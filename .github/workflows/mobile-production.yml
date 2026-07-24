@@ -1,0 +1,82 @@
+name: Mobile Production Release (EAS Build + Submit)
+
+# master push -> prod build + submit (mevcut Tarodan app: TestFlight + Play internal).
+# VERSION-GATE: submit yalnızca app.json expo.version bu push'ta DEĞİŞTİYSE çalışır
+# (her master merge'i build tetiklemez — deliberate release). workflow_dispatch ile
+# elle de tetiklenebilir. Guard: EXPO_TOKEN yoksa no-op.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      submit:
+        description: 'Submit to stores after build?'
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: mobile-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-submit:
+    name: EAS Build + Submit (iOS & Android)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # HEAD~1..HEAD diff (version-gate) için son iki commit gerekli.
+          fetch-depth: 2
+      - name: Guard — skip if EXPO_TOKEN missing
+        id: guard
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::EXPO_TOKEN missing — no-op."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Version-gate — app.json version değişti mi?
+        id: vergate
+        if: steps.guard.outputs.skip != 'true' && github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          # Sadece top-level expo.version'ı karşılaştır (nested "version" alanları
+          # false-trigger etmesin). fetch-depth: 2 → HEAD~1 erişilebilir.
+          CUR=$(node -p "require('./app.json').expo.version")
+          PREV=$(git show HEAD~1:app.json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).expo.version))")
+          echo "prev=$PREV cur=$CUR"
+          if [ "$CUR" != "$PREV" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::expo.version $PREV -> $CUR — prod release devam."
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::expo.version değişmedi ($CUR) — prod release skip."
+          fi
+      - uses: pnpm/action-setup@v6
+        if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || github.event_name == 'workflow_dispatch')
+      - uses: actions/setup-node@v6
+        if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || github.event_name == 'workflow_dispatch')
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - uses: expo/expo-github-action@v9
+        if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || github.event_name == 'workflow_dispatch')
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Install
+        if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || github.event_name == 'workflow_dispatch')
+        run: pnpm install --frozen-lockfile
+      - name: EAS build (iOS + Android, production)
+        if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || github.event_name == 'workflow_dispatch')
+        run: eas build --platform all --profile production --non-interactive --wait
+      - name: EAS submit — iOS (TestFlight, mevcut app)
+        if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || (github.event_name == 'workflow_dispatch' && inputs.submit))
+        run: eas submit --platform ios --profile production --latest --non-interactive
+      - name: EAS submit — Android (Play internal)
+        if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || (github.event_name == 'workflow_dispatch' && inputs.submit))
+        run: eas submit --platform android --profile production --latest --non-interactive

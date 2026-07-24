@@ -1,13 +1,13 @@
 name: Mobile Staging (OTA + Preview Build)
 
-# develop'e mobile-etkileyen her push staging kanalına gider:
+# main'e mobile-etkileyen her push staging kanalına gider:
 #   JS/asset-only -> eas update --branch staging (OTA)
 #   native        -> preview EAS build (iOS+Android internal, staging-api)
 # Guard: EXPO_TOKEN yoksa no-op.
 
 on:
   push:
-    branches: [develop]
+    branches: [main]
     paths:
       - '**'
       - '!docs/**'
@@ -109,11 +109,11 @@ jobs:
         run: eas update --branch staging --message "$MSG" --non-interactive
 
   build:
-    name: Preview build (iOS+Android) -> internal, staging-api
+    name: Staging build (iOS) -> Tarodan Staging TestFlight
     needs: classify
     if: needs.classify.outputs.skip != 'true' && needs.classify.outputs.mode == 'build'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -126,5 +126,7 @@ jobs:
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-      - name: EAS preview build (internal, staging-api)
-        run: eas build --platform all --profile preview --non-interactive --no-wait
+      - name: EAS staging build (iOS, store dist -> TestFlight)
+        run: eas build --platform ios --profile staging --non-interactive --wait
+      - name: Submit to Tarodan Staging (TestFlight)
+        run: eas submit --platform ios --profile staging --latest --non-interactive
