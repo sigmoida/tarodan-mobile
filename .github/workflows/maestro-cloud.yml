@@ -1,0 +1,47 @@
+name: Maestro Cloud (Mobile e2e)
+
+# Mobile UI akışları Maestro Cloud'da (gerçek iOS simulator).
+# Guard: secret'lar veya build/Tarodan.app yoksa no-op.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop]
+    paths:
+      - '**'
+      - '!docs/**'
+      - '!**/*.md'
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - '**'
+      - '!docs/**'
+      - '!**/*.md'
+
+jobs:
+  maestro:
+    name: Maestro Cloud
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Guard — skip if secrets or .app missing
+        id: guard
+        run: |
+          if [ -z "${{ secrets.MAESTRO_CLOUD_API_KEY }}" ] || [ -z "${{ secrets.MAESTRO_CLOUD_PROJECT_ID }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Maestro secrets eksik — no-op."
+          elif [ ! -e build/Tarodan.app ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::build/Tarodan.app yok — no-op."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run flows on Maestro Cloud
+        if: steps.guard.outputs.skip == 'false'
+        uses: mobile-dev-inc/action-maestro-cloud@v3
+        with:
+          api-key: ${{ secrets.MAESTRO_CLOUD_API_KEY }}
+          project-id: ${{ secrets.MAESTRO_CLOUD_PROJECT_ID }}
+          app-file: build/Tarodan.app
+          workspace: maestro
+          include-tags: smoke
