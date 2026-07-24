@@ -40,3 +40,7 @@ fcm-service-account*.json
 # per-developer local Xcode env
 ios/.xcode.env.local
 .superpowers/
+
+# CNG: native dizinler prebuild'den üretilir, git'te tutulmaz
+/android
+/ios
