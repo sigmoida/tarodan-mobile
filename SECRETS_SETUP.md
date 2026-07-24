@@ -167,3 +167,19 @@ mobile workflow'ları sessiz no-op olur (guard).
 
 Branch modeli: `develop` → staging (OTA/preview), `main` + `mobile-v*` tag → prod.
 runtimeVersion politikası `fingerprint` (uyumsuz OTA'yı engeller).
+
+## Staging/Prod TestFlight pipeline (2026-07-25)
+
+Branch modeli: **main = staging → Tarodan Staging (yeni ASC app)**, **master = prod → mevcut Tarodan app**.
+(Backend monorepo `master`=prod ile uyumlu; mobil `main`, backend `development` staging rolünü oynar.)
+
+| Ön koşul | Kimde | Kritiklik |
+|---|---|---|
+| ASC'de "Tarodan Staging" app (`com.tarodan.app.staging`) + ascAppId → `eas.json` `submit.staging.ios.ascAppId` (`REPLACE_WITH_TARODAN_STAGING_ASC_APP_ID`) | Apple (Murat) | Zorunlu (staging submit) |
+| Staging backend `staging-api.tarodan.com`'a deploy + DNS | Backend/ops | **Zorunlu — yoksa staging app API'ye ulaşamaz (şu an NXDOMAIN)** |
+| `EXPO_TOKEN` GitHub secret | EAS hesabı | Zorunlu (yoksa tüm workflow'lar no-op) |
+| `master` branch'i `main`'den açılır | Sen | Prod tetikleyici |
+| Testçiler "Tarodan Staging" internal tester | Apple (Murat) | İlk staging build sonrası |
+
+**Staging** (`main` push): JS/asset-only → `eas update` (OTA, staging channel); native → `eas build --profile staging --platform ios` (store dist) + `eas submit --profile staging` → Tarodan Staging TestFlight.
+**Prod** (`master` push): `app.json` `version` DEĞİŞTİYSE → `eas build --profile production --platform all` + iOS submit (mevcut app TF) + Android submit (Play internal). Version değişmezse skip. `workflow_dispatch` ile elle de tetiklenebilir.
