@@ -24,3 +24,18 @@ android/app/build/
 coverage/
 .env
 .env.local
+
+# expo generated
+expo-env.d.ts
+
+# push / FCM secrets — must not be committed
+# NOTE: google-services.json is intentionally NOT ignored — EAS git-mode builds
+# need it (bare Android FCM config, low sensitivity). The real secrets (APNs .p8,
+# service-account keys) stay ignored below.
+GoogleService-Info.plist
+*.p8
+fcm-service-account*.json
+*-firebase-adminsdk-*.json
+
+# per-developer local Xcode env
+ios/.xcode.env.local
