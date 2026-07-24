@@ -1,0 +1,51 @@
+{
+  "name": "tarodan-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tarodan mobile app (React Native / Expo) extracted from the monorepo",
+  "packageManager": "pnpm@10.34.5",
+  "engines": {
+    "node": ">=20.0.0 <22.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "start": "pnpm --filter @tarodan/mobile start",
+    "ios": "pnpm --filter @tarodan/mobile ios",
+    "android": "pnpm --filter @tarodan/mobile android",
+    "build:packages": "pnpm --filter @tarodan/i18n --filter @tarodan/types --filter @tarodan/logger run build",
+    "typecheck": "pnpm --filter @tarodan/mobile exec tsc --noEmit",
+    "lint": "pnpm --filter @tarodan/mobile lint",
+    "test": "pnpm --filter @tarodan/mobile test"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@typescript-eslint/eslint-plugin": "^6.14.0",
+    "@typescript-eslint/parser": "^6.14.0",
+    "eslint": "^8.55.0",
+    "prettier": "^3.9.5",
+    "typescript": "^5.3.2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@sentry/cli",
+      "detox",
+      "esbuild",
+      "msgpackr-extract",
+      "unrs-resolver"
+    ],
+    "packageExtensions": {
+      "react-native-worklets": {
+        "dependencies": {
+          "@babel/types": "^7.28.0"
+        }
+      }
+    },
+    "overrides": {
+      "glob@>=10.2.0 <10.5.0": "10.5.0",
+      "lodash@>=4.0.0 <=4.17.23": "4.18.0",
+      "minimatch@<3.1.4": "3.1.4",
+      "minimatch@>=9.0.0 <9.0.7": "9.0.7",
+      "ws@>=8.0.0 <8.21.0": "8.21.0"
+    }
+  }
+}

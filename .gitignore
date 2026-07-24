@@ -1,0 +1,26 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# builds
+dist/
+.expo/
+.turbo/
+web-build/
+
+# native build artifacts
+ios/Pods/
+ios/build/
+ios/DerivedData/
+android/build/
+android/.gradle/
+android/app/build/
+*.keystore
+!debug.keystore
+
+# misc
+*.log
+.DS_Store
+coverage/
+.env
+.env.local
