@@ -44,13 +44,17 @@ jobs:
         if: steps.guard.outputs.skip != 'true' && github.event_name == 'push'
         run: |
           set -euo pipefail
-          # Merge commit'te ilk-parent; normalde HEAD~1..HEAD.
-          if git diff "HEAD~1" HEAD -- app.json | grep -qE '^\+\s*"version"\s*:'; then
+          # Sadece top-level expo.version'ı karşılaştır (nested "version" alanları
+          # false-trigger etmesin). fetch-depth: 2 → HEAD~1 erişilebilir.
+          CUR=$(node -p "require('./app.json').expo.version")
+          PREV=$(git show HEAD~1:app.json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).expo.version))")
+          echo "prev=$PREV cur=$CUR"
+          if [ "$CUR" != "$PREV" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::app.json version değişti — prod release devam."
+            echo "::notice::expo.version $PREV -> $CUR — prod release devam."
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::app.json version değişmedi — prod release skip."
+            echo "::notice::expo.version değişmedi ($CUR) — prod release skip."
           fi
       - uses: pnpm/action-setup@v6
         if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || github.event_name == 'workflow_dispatch')
