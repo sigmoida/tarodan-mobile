@@ -161,7 +161,7 @@ mobile workflow'ları sessiz no-op olur (guard).
 | `MAESTRO_CLOUD_API_KEY` + `MAESTRO_CLOUD_PROJECT_ID` | Maestro Cloud | e2e (`maestro-cloud.yml`) |
 | GitHub `production` Environment | repo ayarı | TestFlight onay kapısı (`mobile-testflight.yml`) |
 | Apple ASC API key / Google Play service account | Apple + Google (imza Murat) | `eas submit` (`eas credentials`) |
-| Firebase `com.tarodan.app.staging` kaydı | Firebase konsolu | Yoksa staging Android Gradle build "No matching client found" ile kesilir |
+| Firebase `com.tarodan.app.staging` kaydı | Firebase konsolu | Yoksa staging Android Gradle build "No matching client found" ile kesilir. **DİKKAT:** paketi kaydettikten sonra `google-services.json`'u YENİDEN indir — hem `com.tarodan.app` hem `com.tarodan.app.staging` client'larını içermeli; tek-client dosya ile staging build yine kesilir. |
 | App Store Connect "Tarodan (Staging)" app | Apple (imza Murat) | Anında açılır, beta review YOK (internal TestFlight) |
 | `staging-api.tarodan.com` teyidi | Coolify | `eas.json` preview env'deki adres gerçek staging domain mi? (teyit edilmedi) |
 

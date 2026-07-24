@@ -2,6 +2,13 @@ name: Maestro Cloud (Mobile e2e)
 
 # Mobile UI akışları Maestro Cloud'da (gerçek iOS simulator).
 # Guard: secret'lar veya build/Tarodan.app yoksa no-op.
+#
+# ⚠️ BİLİNEN EKSİK / FOLLOW-UP (bilinçli ertelendi): Bu workflow bir `.app`
+# artefaktı TÜKETİR ama onu ÜRETEN bir adım henüz yok. mobile-build.yml
+# `eas build --no-wait` ile çalıştığından runner'a `.app` inmez. Dolayısıyla
+# `build/Tarodan.app` guard'ı her zaman no-op verir. e2e'yi gerçekten çalıştırmak
+# için: mobile-build'i `--wait` yapıp EAS artefaktını `build/`'e indir, VEYA EAS
+# build çıktısına karşı Maestro'yu tetikle. Şimdilik güvenli no-op olarak durur.
 
 on:
   workflow_dispatch:

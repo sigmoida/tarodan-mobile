@@ -96,8 +96,18 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
       - name: Publish OTA to staging
+        # ÖNEMLİ: eas update, eas.json'daki `preview` profilinin `env` bloğunu
+        # OKUMAZ — EXPO_PUBLIC_* değerlerini runner ortamından inline eder. Bu
+        # değerler burada set edilmezse (a) app.config.js base (prod-id) config
+        # üretir → fingerprint preview build'den FARKLI olur → OTA hiçbir staging
+        # build'e ULAŞMAZ; (b) EXPO_PUBLIC_API_URL boş kalır → bundle localhost'a
+        # bakar. Bu yüzden eas.json `preview` env'i ile birebir aynı set edilir.
         env:
           MSG: ${{ github.event.head_commit.message || 'manual staging OTA' }}
+          EXPO_PUBLIC_ENVIRONMENT: preview
+          EXPO_PUBLIC_API_URL: https://staging-api.tarodan.com/api
+          EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: 243308404313-kdc77bd36flfhv6ujlb5tfd4qjteh94c.apps.googleusercontent.com
+          EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: 243308404313-92c5475nff3874maoqes02ajakn81hvh.apps.googleusercontent.com
         run: eas update --branch staging --message "$MSG" --non-interactive
 
   build:
