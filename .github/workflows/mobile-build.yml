@@ -5,13 +5,13 @@ name: Mobile Build (iOS Simulator)
 
 on:
   push:
-    branches: [develop]
+    branches: [main]
     paths:
       - '**'
       - '!docs/**'
       - '!**/*.md'
   pull_request:
-    branches: [develop, main]
+    branches: [main, master]
     paths:
       - '**'
       - '!docs/**'

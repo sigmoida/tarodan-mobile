@@ -1,6 +1,6 @@
 name: Mobile Staging (OTA + Preview Build)
 
-# develop'e mobile-etkileyen her push staging kanalına gider:
+# main'e mobile-etkileyen her push staging kanalına gider:
 #   JS/asset-only -> eas update --branch staging (OTA)
 #   native        -> preview EAS build (iOS+Android internal, staging-api)
 # Guard: EXPO_TOKEN yoksa no-op.
