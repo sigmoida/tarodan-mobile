@@ -4,7 +4,7 @@
     "slug": "tarodan",
     "version": "1.0.0",
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "fingerprint"
     },
     "updates": {
       "url": "https://u.expo.dev/a1d4149d-bbbc-49a8-9a26-d2b81cd842d3",
