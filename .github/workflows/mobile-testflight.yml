@@ -44,8 +44,6 @@ jobs:
           fi
       - uses: pnpm/action-setup@v6
         if: steps.guard.outputs.skip != 'true'
-        with:
-          version: 10
       - uses: actions/setup-node@v6
         if: steps.guard.outputs.skip != 'true'
         with:
