@@ -11,19 +11,21 @@ Web → mobile mapping:
 
 | Web (`apps/web`)                     | Mobile (`apps/mobile`)                       |
 | ------------------------------------ | -------------------------------------------- |
-| `@tarodan/ui`                        | `@tarodan/ui-native`                         |
-| `@tarodan/ui/form` (RHF+zod)         | `@tarodan/ui-native/form` (`useZodForm`)     |
+| `@tarodan/ui`                        | `@/ui` (vendored `@tarodan/ui-native`)       |
+| `@tarodan/ui/form` (RHF+zod)         | `@/ui/form` (vendored; `useZodForm`)         |
 | App Router route groups + `_folders` | expo-router route groups + `_folders`        |
 | Server Components / `generateMetadata` | (drops — native has no SSR/SEO)            |
 | TanStack Query + `lib/api/*` by domain | **same** (`src/lib/query`, `src/lib/api/*`) |
-| Tailwind semantic token classes      | `theme.*` tokens from `@tarodan/ui-native`   |
+| Tailwind semantic token classes      | `@/theme` (re-exported via `@/ui`)           |
+
+**Note:** `@tarodan/*` packages are vendored into this standalone repo under `src/` — there are no external package dependencies. Import from `@/ui` and `@/theme` (aliased to `src/ui` and `src/theme`).
 
 ## 1. Base components come from `@tarodan/ui-native`
 
 Never rebuild a primitive that already exists (`Input`, `Textarea`, `Checkbox`,
 `Switch`, `Card`, `Badge`, `Alert`, `Modal`, `Spinner`, `Avatar`, `StatusBadge`,
 `Stack`/`VStack`/`HStack`, `Divider`, `ProgressBar`, `EmptyState`, `ErrorState`).
-Import from `@tarodan/ui-native`.
+Import from `@/ui` (vendored `@tarodan/ui-native`; source lives in `src/ui`).
 
 - Need a variant/state that doesn't exist? Add it to `@tarodan/ui-native`
   (shared), don't fork a local copy.
@@ -33,10 +35,10 @@ Import from `@tarodan/ui-native`.
 ## 2. Everything flows from design tokens
 
 Colors, spacing, radius, and typography come from the `theme` export of
-`@tarodan/ui-native` (which re-exports `@tarodan/design-tokens`):
+`@/theme` (vendored `@tarodan/design-tokens`):
 
 ```ts
-import { theme } from '@tarodan/ui-native';
+import { theme } from '@/theme';
 const s = StyleSheet.create({
   card: { backgroundColor: theme.colors.surface, padding: theme.spacing.md,
           borderRadius: theme.radius.lg },
@@ -97,14 +99,14 @@ Never hand-write `['product', id]` inline — that is how `my-collections` vs
 APIs from `@/lib/api`. (`src/services/api.ts` is a backward-compat barrel that
 re-exports `@/lib/api`; new code imports from `@/lib/api` directly.)
 
-## 7. Forms — one abstraction (`@tarodan/ui-native/form`)
+## 7. Forms — one abstraction (`@/ui/form`)
 
 All forms use `useZodForm` + `Form`/`FormInput`/`FormError` from
-`@tarodan/ui-native/form`. **No manual `useState`-per-field forms.** Colocate the
+`@/ui/form` (vendored `@tarodan/ui-native/form`). **No manual `useState`-per-field forms.** Colocate the
 zod schema in the route's `_lib/schema.ts`.
 
 ```ts
-import { useZodForm, Form, FormInput } from '@tarodan/ui-native/form';
+import { useZodForm, Form, FormInput } from '@/ui/form';
 import { offerSchema } from './_lib/schema';
 const form = useZodForm(offerSchema);
 ```

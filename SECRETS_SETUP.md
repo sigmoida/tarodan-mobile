@@ -148,3 +148,22 @@ ASC → TestFlight → External Testing → "Add Group" → "Enable Public Link"
 - [ ] App icon 1024×1024 alpha kanalsız (icon.png)
 - [ ] Privacy Policy URL ASC'de doldurulu (zorunlu, app.tarodan.com/privacy gibi)
 - [ ] Release akışı okundu: [`docs/RELEASE.md`](./docs/RELEASE.md)
+
+## Standalone repo pipeline ön koşulları (2026-07-24)
+
+Mobil monorepo'dan bu ayrı repoya (`sigmoida/tarodan-mobile`) taşındı. Aşağıdakiler
+CI/pipeline'ın çalışması için gerekli — kod değil, ops. `EXPO_TOKEN` yoksa TÜM
+mobile workflow'ları sessiz no-op olur (guard).
+
+| Ön koşul | Kimde | Not |
+|---|---|---|
+| `EXPO_TOKEN` (repo secret) | EAS hesabı | Yoksa TÜM mobile workflow'lar no-op (pipeline'ın hiç çalışmamasının asıl nedeni) |
+| `MAESTRO_CLOUD_API_KEY` + `MAESTRO_CLOUD_PROJECT_ID` | Maestro Cloud | e2e (`maestro-cloud.yml`) |
+| GitHub `production` Environment | repo ayarı | TestFlight onay kapısı (`mobile-testflight.yml`) |
+| Apple ASC API key / Google Play service account | Apple + Google (imza Murat) | `eas submit` (`eas credentials`) |
+| Firebase `com.tarodan.app.staging` kaydı | Firebase konsolu | Yoksa staging Android Gradle build "No matching client found" ile kesilir. **DİKKAT:** paketi kaydettikten sonra `google-services.json`'u YENİDEN indir — hem `com.tarodan.app` hem `com.tarodan.app.staging` client'larını içermeli; tek-client dosya ile staging build yine kesilir. |
+| App Store Connect "Tarodan (Staging)" app | Apple (imza Murat) | Anında açılır, beta review YOK (internal TestFlight) |
+| `staging-api.tarodan.com` teyidi | Coolify | `eas.json` preview env'deki adres gerçek staging domain mi? (teyit edilmedi) |
+
+Branch modeli: `develop` → staging (OTA/preview), `main` + `mobile-v*` tag → prod.
+runtimeVersion politikası `fingerprint` (uyumsuz OTA'yı engeller).
