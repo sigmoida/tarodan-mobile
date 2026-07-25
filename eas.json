@@ -14,6 +14,7 @@
         "buildType": "apk"
       },
       "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "EXPO_PUBLIC_ENVIRONMENT": "development"
       }
     },
@@ -29,6 +30,7 @@
         "autoIncrement": "versionCode"
       },
       "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "EXPO_PUBLIC_ENVIRONMENT": "preview",
         "EXPO_PUBLIC_API_URL": "https://api.staging.tarodan.shop/api",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "243308404313-kdc77bd36flfhv6ujlb5tfd4qjteh94c.apps.googleusercontent.com",
@@ -45,6 +47,7 @@
         "autoIncrement": "versionCode"
       },
       "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "EXPO_PUBLIC_ENVIRONMENT": "production",
         "EXPO_PUBLIC_API_URL": "https://tarodan.shop/api",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "243308404313-kdc77bd36flfhv6ujlb5tfd4qjteh94c.apps.googleusercontent.com",
@@ -58,6 +61,7 @@
         "autoIncrement": "buildNumber"
       },
       "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "EXPO_PUBLIC_ENVIRONMENT": "preview",
         "EXPO_PUBLIC_API_URL": "https://api.staging.tarodan.shop/api",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "243308404313-kdc77bd36flfhv6ujlb5tfd4qjteh94c.apps.googleusercontent.com",
