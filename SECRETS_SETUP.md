@@ -183,3 +183,5 @@ Branch modeli: **main = staging → Tarodan Staging (yeni ASC app)**, **master =
 
 **Staging** (`main` push): JS/asset-only → `eas update` (OTA, staging channel); native → `eas build --profile staging --platform ios` (store dist) + `eas submit --profile staging` → Tarodan Staging TestFlight.
 **Prod** (`master` push): `app.json` `version` DEĞİŞTİYSE → `eas build --profile production --platform all` + iOS submit (mevcut app TF) + Android submit (Play internal). Version değişmezse skip. `workflow_dispatch` ile elle de tetiklenebilir.
+
+**Opsiyonel — secret-scan:** `GITLEAKS_LICENSE` (org repo gitleaks lisansı) eklenince `secret-scan.yml` taramaya başlar; yoksa guarded no-op.
