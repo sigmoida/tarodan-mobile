@@ -45,7 +45,7 @@ eas env:create --environment production --name EXPO_PUBLIC_API_URL --value "http
 eas env:create --environment production --name EXPO_PUBLIC_SENTRY_DSN --value "<sentry-dsn>" --visibility plaintext
 
 # Preview (TestFlight'tan ayrı bir staging dağıtımı tutarsanız)
-eas env:create --environment preview --name EXPO_PUBLIC_API_URL --value "https://staging-api.tarodan.com/api" --visibility plaintext
+eas env:create --environment preview --name EXPO_PUBLIC_API_URL --value "https://api.staging.tarodan.shop/api" --visibility plaintext
 ```
 
 `eas.json` `production.env` bloğunda `EXPO_PUBLIC_ENVIRONMENT=production`
@@ -63,7 +63,7 @@ staging'i yan yana tutabilir.
 | iOS `bundleIdentifier` | `com.tarodan.app`          | `com.tarodan.app.staging`             |
 | Android `package`      | `com.tarodan.app`          | `com.tarodan.app.staging`             |
 | Uygulama adı           | Tarodan                    | Tarodan (Staging)                     |
-| `EXPO_PUBLIC_API_URL`  | `https://tarodan.shop/api` | `https://staging-api.tarodan.com/api` |
+| `EXPO_PUBLIC_API_URL`  | `https://tarodan.shop/api` | `https://api.staging.tarodan.shop/api` |
 
 > Doğrula: `EXPO_PUBLIC_ENVIRONMENT=preview npx expo config --type public --json`
 > → `ios.bundleIdentifier` / `android.package` `.staging` ile bitmeli.
@@ -163,7 +163,7 @@ mobile workflow'ları sessiz no-op olur (guard).
 | Apple ASC API key / Google Play service account | Apple + Google (imza Murat) | `eas submit` (`eas credentials`) |
 | Firebase `com.tarodan.app.staging` kaydı | Firebase konsolu | Yoksa staging Android Gradle build "No matching client found" ile kesilir. **DİKKAT:** paketi kaydettikten sonra `google-services.json`'u YENİDEN indir — hem `com.tarodan.app` hem `com.tarodan.app.staging` client'larını içermeli; tek-client dosya ile staging build yine kesilir. |
 | App Store Connect "Tarodan (Staging)" app | Apple (imza Murat) | Anında açılır, beta review YOK (internal TestFlight) |
-| `staging-api.tarodan.com` teyidi | Coolify | `eas.json` preview env'deki adres gerçek staging domain mi? (teyit edilmedi) |
+| `api.staging.tarodan.shop` teyidi | Coolify | `eas.json` preview env'deki adres gerçek staging domain mi? (teyit edilmedi) |
 
 Branch modeli: `develop` → staging (OTA/preview), `main` + `mobile-v*` tag → prod.
 runtimeVersion politikası `fingerprint` (uyumsuz OTA'yı engeller).
@@ -176,7 +176,7 @@ Branch modeli: **main = staging → Tarodan Staging (yeni ASC app)**, **master =
 | Ön koşul | Kimde | Kritiklik |
 |---|---|---|
 | ASC'de "Tarodan Staging" app (`com.tarodan.app.staging`) + ascAppId → `eas.json` `submit.staging.ios.ascAppId` (`REPLACE_WITH_TARODAN_STAGING_ASC_APP_ID`) | Apple (Murat) | Zorunlu (staging submit) |
-| Staging backend `staging-api.tarodan.com`'a deploy + DNS | Backend/ops | **Zorunlu — yoksa staging app API'ye ulaşamaz (şu an NXDOMAIN)** |
+| Staging backend `api.staging.tarodan.shop`'a deploy + DNS | Backend/ops | **Zorunlu — yoksa staging app API'ye ulaşamaz (şu an NXDOMAIN)** |
 | `EXPO_TOKEN` GitHub secret | EAS hesabı | Zorunlu (yoksa tüm workflow'lar no-op) |
 | `master` branch'i `main`'den açılır | Sen | Prod tetikleyici |
 | Testçiler "Tarodan Staging" internal tester | Apple (Murat) | İlk staging build sonrası |
