@@ -24,8 +24,12 @@ module.exports = function withGoogleSigninPods(config) {
       const podfile = path.join(cfg.modRequest.platformProjectRoot, 'Podfile');
       let contents = fs.readFileSync(podfile, 'utf8');
       if (!contents.includes(MARKER)) {
+        // Target adı varyanta göre değişir (prod: `Tarodan`, staging:
+        // `TarodanStaging`). Bu yüzden sabit isim yerine herhangi bir target
+        // adını yakala — aksi halde staging build'de block enjekte edilmez ve
+        // pod install `AppCheckCore` modular_headers hatasıyla patlar.
         contents = contents.replace(
-          /(target 'Tarodan' do\n\s*use_expo_modules!\n)/,
+          /(target '[^']+' do\n\s*use_expo_modules!\n)/,
           `$1${BLOCK}`,
         );
         fs.writeFileSync(podfile, contents);
