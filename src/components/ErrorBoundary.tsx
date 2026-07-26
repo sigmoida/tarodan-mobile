@@ -19,6 +19,7 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  componentStack: string | null;
 }
 
 /**
@@ -32,13 +33,14 @@ interface State {
  * component (FallbackScreen) ve useTranslation orada çağrılır.
  */
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false, error: null };
+  state: State = { hasError: false, error: null, componentStack: null };
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error, componentStack: null };
   }
 
   componentDidCatch(error: Error, errorInfo: { componentStack?: string }) {
+    this.setState({ componentStack: errorInfo.componentStack ?? null });
     logger.captureException(error, {
       level: "error",
       tags: { boundary: "app-root" },
@@ -46,19 +48,27 @@ export class ErrorBoundary extends Component<Props, State> {
     });
   }
 
-  reset = () => this.setState({ hasError: false, error: null });
+  reset = () => this.setState({ hasError: false, error: null, componentStack: null });
 
   render() {
     if (!this.state.hasError) return this.props.children;
-    return <FallbackScreen error={this.state.error} onRetry={this.reset} />;
+    return (
+      <FallbackScreen
+        error={this.state.error}
+        componentStack={this.state.componentStack}
+        onRetry={this.reset}
+      />
+    );
   }
 }
 
 function FallbackScreen({
   error,
+  componentStack,
   onRetry,
 }: {
   error: Error | null;
+  componentStack: string | null;
   onRetry: () => void;
 }) {
   return (
@@ -78,8 +88,8 @@ function FallbackScreen({
         <ScrollView style={styles.errorBox}>
           <Text style={styles.errorText}>
             {error.message}
-            {"\n\n"}
-            {error.stack ?? ""}
+            {"\n\n=== COMPONENT STACK ===\n"}
+            {componentStack ?? "(yok)"}
           </Text>
         </ScrollView>
       )}
