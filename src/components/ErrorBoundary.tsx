@@ -72,7 +72,9 @@ function FallbackScreen({
       <Text style={styles.subtitle}>
         Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.
       </Text>
-      {__DEV__ && error && (
+      {/* TANI (geçici): staging'de gerçek hatayı ekranda göster — OTA ile teşhis.
+          Kök neden bulununca geri alınacak (__DEV__ guard'ı geri gelecek). */}
+      {error && (
         <ScrollView style={styles.errorBox}>
           <Text style={styles.errorText}>
             {error.message}
