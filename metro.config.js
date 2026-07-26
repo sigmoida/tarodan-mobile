@@ -53,4 +53,16 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return context.resolveRequest(context, moduleName, platform);
 };
 
+// TANI (geçici): minify sırasında fonksiyon/bileşen isimlerini koru → prod
+// bundle'da bile component stack gerçek isimleri gösterir (undefined bileşeni
+// bulmak için). Kök neden bulununca geri alınacak.
+config.transformer = config.transformer || {};
+config.transformer.minifierConfig = {
+  ...(config.transformer.minifierConfig || {}),
+  keep_fnames: true,
+  keep_classnames: true,
+  mangle: { keep_fnames: true, keep_classnames: true },
+  compress: { keep_fnames: true, keep_classnames: true },
+};
+
 module.exports = config;
