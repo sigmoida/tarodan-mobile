@@ -7,10 +7,22 @@ import {
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { usePathname } from "expo-router";
 import { theme } from "@/ui";
 import { logger } from "../services/logger";
 
 const { colors } = theme;
+
+// TANI (geçici): çöken route'u yakalamak için son gidilen path'i modül
+// seviyesinde tutar. <RouteTracker/> router içinde render edilir; ErrorBoundary
+// (router dışında) bu ref'ten okur. Kök neden bulununca geri alınacak.
+export const lastRouteRef = { current: "(bilinmiyor)" };
+
+export function RouteTracker() {
+  const pathname = usePathname();
+  lastRouteRef.current = pathname; // render-time yazım (tanı amaçlı)
+  return null;
+}
 
 interface Props {
   children: ReactNode;
@@ -87,6 +99,7 @@ function FallbackScreen({
       {error && (
         <ScrollView style={styles.errorBox}>
           <Text style={styles.errorText}>
+            {"### ROUTE: " + lastRouteRef.current + "\n\n"}
             {error.message}
             {"\n\n=== COMPONENT STACK ===\n"}
             {componentStack ?? "(yok)"}

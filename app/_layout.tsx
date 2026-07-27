@@ -18,7 +18,7 @@ import { initSentry } from "@/services/sentry";
 import AnimatedSplash from "@/components/AnimatedSplash";
 import BusinessMembershipGuard from "@/components/BusinessMembershipGuard";
 import ForceUpdateGate from "@/components/ForceUpdateGate";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ErrorBoundary, RouteTracker } from "@/components/ErrorBoundary";
 
 const { colors } = theme;
 
@@ -120,6 +120,7 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <LocaleProvider>
           <StatusBar style="auto" />
+          <RouteTracker />
           <Stack
             screenOptions={{
               headerStyle: { backgroundColor: colors.primary[600]! },
