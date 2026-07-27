@@ -1,4 +1,5 @@
 import { View, ScrollView, RefreshControl } from 'react-native';
+import { tabDiag } from '@/components/_tabDiag';
 import { Text, theme } from '@/ui';
 
 import { styles } from './_lib/profileStyles';
@@ -19,7 +20,7 @@ const { colors } = theme;
  * the trust-visibility mutation, and logout/delete/guest actions; this file
  * only branches guest vs. authenticated and composes the sections.
  */
-export default function ProfileScreen() {
+function ProfileScreen() {
   const f = useProfile();
 
   if (!f.isAuthenticated) return <ProfileGuestView f={f} />;
@@ -55,3 +56,5 @@ export default function ProfileScreen() {
     </View>
   );
 }
+
+export default tabDiag('profile', ProfileScreen);

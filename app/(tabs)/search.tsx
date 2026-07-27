@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { tabDiag } from '@/components/_tabDiag';
 import { View, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Spinner, Text, theme } from '@/ui';
@@ -17,7 +18,7 @@ const { colors, spacing } = theme;
  * search, autocomplete, the infinite product query, and scroll/collapse state;
  * this file composes the header, collapsible bars, results list, and modals.
  */
-export default function SearchScreen() {
+function SearchScreen() {
   const f = useSearch();
 
   // Stable renderItem (#75) — memoized SearchResultCard bails out on unchanged rows.
@@ -139,3 +140,5 @@ export default function SearchScreen() {
     </View>
   );
 }
+
+export default tabDiag('search', SearchScreen);

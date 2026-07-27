@@ -1,4 +1,5 @@
 import { View, FlatList, TouchableOpacity, RefreshControl } from "react-native";
+import { tabDiag } from '@/components/_tabDiag';
 import {
   Badge,
   Input,
@@ -16,7 +17,7 @@ import { ThreadRow } from "./_components/ThreadRow";
 
 const { colors } = theme;
 
-export default function MessagesTabScreen() {
+function MessagesTabScreen() {
   const { t } = useTranslation();
   const f = useMessagesTab();
 
@@ -130,3 +131,5 @@ export default function MessagesTabScreen() {
     </View>
   );
 }
+
+export default tabDiag('messages', MessagesTabScreen);
