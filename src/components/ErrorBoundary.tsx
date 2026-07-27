@@ -18,6 +18,23 @@ const { colors } = theme;
 // (router dışında) bu ref'ten okur. Kök neden bulununca geri alınacak.
 export const lastRouteRef = { current: "(bilinmiyor)" };
 
+// TANI (geçici): React, "Element type is invalid" fırlatmadan önce console.error
+// ile "Check the render method of `X`" uyarısı basar (X = gerçek bileşen adı).
+// Bunu yakalayıp ErrorBoundary'de gösteriyoruz. Kök neden bulununca geri alınacak.
+export const capturedLogs: string[] = [];
+if (!(console as unknown as { __patched?: boolean }).__patched) {
+  const orig = console.error.bind(console);
+  console.error = (...args: unknown[]) => {
+    try {
+      const msg = args.map((a) => (typeof a === "string" ? a : String(a))).join(" ");
+      capturedLogs.push(msg.slice(0, 600));
+      if (capturedLogs.length > 8) capturedLogs.shift();
+    } catch {}
+    orig(...args);
+  };
+  (console as unknown as { __patched?: boolean }).__patched = true;
+}
+
 export function RouteTracker() {
   const pathname = usePathname();
   lastRouteRef.current = pathname; // render-time yazım (tanı amaçlı)
@@ -99,10 +116,10 @@ function FallbackScreen({
       {error && (
         <ScrollView style={styles.errorBox}>
           <Text style={styles.errorText}>
-            {"### ROUTE: " + lastRouteRef.current + "\n\n"}
+            {"### CONSOLE (Check the render method of ...) ###\n"}
+            {capturedLogs.filter((l) => /invalid|render method|got:|undefined/i.test(l)).join("\n---\n") || "(ilgili log yok)"}
+            {"\n\n### ROUTE: " + lastRouteRef.current + "\n\n"}
             {error.message}
-            {"\n\n=== COMPONENT STACK ===\n"}
-            {componentStack ?? "(yok)"}
           </Text>
         </ScrollView>
       )}
