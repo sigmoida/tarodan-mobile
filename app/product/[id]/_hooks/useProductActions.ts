@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { appAlert } from '@/ui';
 import { userReportsApi } from '@/lib/api';
 import { useCartStore } from '@/stores/cartStore';
+import { useCartSync } from '@/hooks/useCartSync';
 import { getImageUrl as getImageUrlFromUtils } from '@/utils/imageUrl';
 import { asLabel } from '@/utils/format';
 import { buildShareContent, productShareUrl } from '@/utils/share';
@@ -61,7 +62,9 @@ export function useProductActions({
   isAuthenticated: boolean;
   user: { id?: string } | null | undefined;
 }) {
-  const { addItem, isInCart, setBuyNow } = useCartStore();
+  const { isInCart, setBuyNow } = useCartStore();
+  // Sepet yazmaları üyede sunucuya da aynalanır.
+  const cart = useCartSync();
 
   const [snackbar, setSnackbar] = useState({
     visible: false,
@@ -85,7 +88,7 @@ export function useProductActions({
   const handleAddToCart = () => {
     if (!product) return;
     if (isOutOfStock) return notify('Bu ürün şu anda stokta yok', 'error');
-    addItem(buildCartItem(product, images) as any);
+    cart.add(buildCartItem(product, images) as any);
     notify('Ürün sepete eklendi!', 'success');
   };
 

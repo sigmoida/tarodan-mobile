@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
-import { ordersApi, paymentsApi, shippingApi, addressesApi, type OrderAddressInput } from '@/lib/api';
+import { ordersApi, paymentsApi, shippingApi, addressesApi, cartApi, type OrderAddressInput } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useCartStore } from '@/stores/cartStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -29,8 +29,17 @@ export function useCheckout() {
     [isBuyNow, buyNowItem, cartItems],
   );
   const finalizeCart = () => {
-    if (isBuyNow) clearBuyNow();
-    else clearCartStore();
+    if (isBuyNow) {
+      clearBuyNow();
+      return;
+    }
+    clearCartStore();
+    // Üyede sunucu sepeti de boşaltılır; yoksa satın alınan satırlar orada kalır.
+    if (isAuthenticated) {
+      cartApi.clear().catch((error) =>
+        captureException(error, { level: 'warning', tags: { flow: 'checkout.clearServerCart' } }),
+      );
+    }
   };
 
   const [step, setStep] = useState(1);

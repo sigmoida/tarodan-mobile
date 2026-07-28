@@ -3,6 +3,7 @@ import { useFocusEffect } from 'expo-router';
 import { useFavorites, type WishlistItem } from '@/hooks/useFavorites';
 import { useAuthStore } from '@/stores/authStore';
 import { useCartStore } from '@/stores/cartStore';
+import { useCartSync } from '@/hooks/useCartSync';
 import { getImageUrl as getImageUrlFromUtils } from '@/utils/imageUrl';
 
 /**
@@ -13,7 +14,9 @@ import { getImageUrl as getImageUrlFromUtils } from '@/utils/imageUrl';
 export function useFavoritesScreen() {
   const { isAuthenticated } = useAuthStore();
   const { items, isLoading, error, fetchFavorites, removeFromFavorites, getFavoriteCount } = useFavorites();
-  const { addItem: addToCart, removeByProductId, isInCart } = useCartStore();
+  const { isInCart } = useCartStore();
+  // Sepet yazmaları üyede sunucuya da aynalanır.
+  const cart = useCartSync();
   const [refreshing, setRefreshing] = useState(false);
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
 
@@ -42,12 +45,12 @@ export function useFavoritesScreen() {
   // Toggle: sepetteyse çıkar, değilse ekle (tekrar basınca adet artırmasın).
   const handleToggleCart = (item: WishlistItem) => {
     if (isInCart(item.productId)) {
-      removeByProductId(item.productId);
+      cart.removeByProductId(item.productId);
       setSnackbar({ visible: true, message: 'Sepetten çıkarıldı' });
       return;
     }
     const product = item.product;
-    addToCart({
+    cart.add({
       productId: product.id,
       title: product.title,
       price: product.price,

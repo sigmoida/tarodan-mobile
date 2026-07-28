@@ -11,6 +11,7 @@ import * as SplashScreen from "expo-splash-screen";
 import Constants from "expo-constants";
 import { theme, AlertDialogHost } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
+import { useCartMergeOnLogin } from '@/hooks/useServerCart';
 import { useMessagingSocket } from "@/hooks/messaging";
 // Paylaşılan QueryClient — logout'ta resetUserStores aynı örneği temizler.
 import { queryClient } from "@/lib/queryClient";
@@ -65,6 +66,12 @@ if (!isExpoGo && Notifications) {
 /** QueryClientProvider'ın altında çalışması gereken global mesaj socket köprüsü (#77). */
 function MessagingSocketBridge() {
   useMessagingSocket();
+  return null;
+}
+
+/** Misafirken eklenen sepet satırlarını giriş sonrası sunucu sepetine taşır. */
+function CartMergeBridge() {
+  useCartMergeOnLogin();
   return null;
 }
 
@@ -139,6 +146,7 @@ export default function RootLayout() {
           </Stack>
           {/* Global mesaj socket köprüsü (#77) — provider altında setQueryData için. */}
           <MessagingSocketBridge />
+          <CartMergeBridge />
           {/* Kurumsal hesap business üyelik yoksa üyelik sayfasına yönlendirir (web ile aynı). */}
           <BusinessMembershipGuard />
           {/* Native Alert.alert yerine temalı dialog — appAlert() bu host'u kullanır. */}

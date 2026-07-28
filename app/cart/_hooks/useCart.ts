@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { ordersApi } from '@/lib/api';
 import { useCartStore } from '@/stores/cartStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useCartSync } from '@/hooks/useCartSync';
+import { useServerCart } from '@/hooks/useServerCart';
 
 /**
  * Cart controller — owns the cart store bindings, the expired-item cleanup, the
@@ -10,7 +12,10 @@ import { useAuthStore } from '@/stores/authStore';
  * verbatim from the monolithic screen (§12).
  */
 export function useCart() {
-  const { items, getSubtotal, getItemCount, removeItem, updateQuantity, cleanExpiredItems } = useCartStore();
+  const { items, getSubtotal, getItemCount, cleanExpiredItems } = useCartStore();
+  // Yazmalar sunucu sepetine de aynalanır (üyede); okuma yerel store'dan.
+  const sync = useCartSync();
+  const { byProductId } = useServerCart();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   // Clean expired items on mount
@@ -37,14 +42,22 @@ export function useCart() {
   const total = subtotal + buyerFee;
 
   const handleRemove = (itemId: string) => {
-    removeItem(itemId);
+    sync.removeItem(itemId);
   };
 
   const handleQuantityChange = (itemId: string, delta: number) => {
     const item = items.find((i) => i.id === itemId);
     if (item) {
-      updateQuantity(itemId, item.quantity + delta);
+      sync.setQuantity(itemId, item.quantity + delta);
     }
+  };
+
+  /** Satır bazlı sunucu stok uyarısı — yalnız üyede dolu gelir. */
+  const stockWarningFor = (productId: string) => {
+    const line = byProductId.get(productId);
+    if (!line) return null;
+    if (line.isAvailable === false) return 'Bu ürün şu anda stokta yok';
+    return line.stockWarning ?? null;
   };
 
   return {
@@ -56,6 +69,7 @@ export function useCart() {
     total,
     handleRemove,
     handleQuantityChange,
+    stockWarningFor,
   };
 }
 

@@ -183,6 +183,11 @@ export const qk = {
     collector: ["featured-collector"] as const,
   },
 
+  cart: {
+    /** Sunucu sepeti (yalnız üye) — satırlar + fiyat hesabı. */
+    mine: ["cart"] as const,
+  },
+
   ads: {
     /** Yayındaki bannerlar — konum/cihaz filtresi istemcide yapılır. */
     active: ["ads", "active"] as const,

@@ -32,6 +32,7 @@ export * from "./trades";
 export * from "./user";
 export * from "./media";
 export * from "./ads";
+export * from "./cart";
 
 // =============================================================================
 // ENDPOINTS OBJECT - Unified API access

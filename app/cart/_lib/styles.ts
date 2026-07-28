@@ -193,4 +193,11 @@ export const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: theme.spacing[6],
   },
+  /** Satır altındaki sunucu stok uyarısı. */
+  stockWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing[1],
+    marginTop: theme.spacing[1],
+  },
 });

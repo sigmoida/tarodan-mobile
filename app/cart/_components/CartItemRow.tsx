@@ -15,6 +15,7 @@ export function CartItemRow({ item, f }: { item: any; f: CartController }) {
   const itemMax = maxAllowedQty(item);
   const atMax = item.quantity >= itemMax;
   const stockKnown = item.stock != null;
+  const stockWarning = f.stockWarningFor?.(item.productId) ?? null;
 
   return (
     <View testID="cart-item-row" style={styles.cartItem}>
@@ -31,6 +32,16 @@ export function CartItemRow({ item, f }: { item: any; f: CartController }) {
         <Text style={styles.itemMeta}>{asLabel(item.brand, 'Marka')} • {asLabel(item.scale, '1:64')}</Text>
         <Text style={styles.itemSeller}>Satıcı: {item.seller.displayName}</Text>
         <Text style={styles.itemPrice}>₺{item.price.toLocaleString('tr-TR')}</Text>
+        {/* Sunucudan gelen taze stok uyarısı — yerel sepetteki stok bilgisi
+            ekleme anında donduğu için tükenen ürün ancak burada görünür. */}
+        {stockWarning ? (
+          <View style={styles.stockWarning} testID="cart-item-stock-warning">
+            <Ionicons name="alert-circle-outline" size={14} color={colors.warning[600]!} />
+            <Text variant="caption" style={{ color: colors.warning[600]!, flex: 1 }}>
+              {stockWarning}
+            </Text>
+          </View>
+        ) : null}
       </View>
       <View style={styles.itemActions}>
         <IconButton
