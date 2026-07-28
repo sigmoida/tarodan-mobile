@@ -63,6 +63,8 @@ export const ordersApi = {
     guestName: string;
     shippingAddress: OrderAddressInput;
     billingAddress?: OrderAddressInput;
+    /** GuestCheckoutGroupDto, CheckoutDto'yu extends eder → kupon misafirde de geçerli. */
+    couponCode?: string;
   }) => guestApi.post('/orders/checkout/guest', data),
   /** Alıcının sipariş grupları (gruplu liste) */
   getGroups: (params?: Record<string, any>) =>

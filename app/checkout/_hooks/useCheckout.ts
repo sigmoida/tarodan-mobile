@@ -10,6 +10,7 @@ import { captureException } from '@/services/sentry';
 import { DEFAULT_COUNTRY_CODE, normalizePhoneForPayload } from '@/utils/phone';
 import { STOCKOUT_KEYWORDS, generateUuidV4, EMPTY_ADDRESS } from '../_lib/constants';
 import { extractApiMessage, validateGuest, validateInlineAddress } from '../_lib/validation';
+import { useCoupon } from './useCoupon';
 import type { ShippingAddressInput, SavedAddress } from '../_lib/types';
 
 /**
@@ -83,7 +84,11 @@ export function useCheckout() {
   });
   const buyerFee = Number(quoteQuery.data?.buyerFeeAmount ?? 0);
   const taxAmount = Number(quoteQuery.data?.taxAmount ?? 0);
-  const total = subtotal + shippingCost + buyerFee + taxAmount;
+
+  // Kupon: tutar sunucudan gelir, burada yalnız gösterim için düşülür.
+  // Kesin fiyat sipariş/ödeme yanıtının otoritesindedir.
+  const coupon = useCoupon(items, isAuthenticated);
+  const total = Math.max(0, subtotal + shippingCost + buyerFee + taxAmount - coupon.discount);
 
   const addressesQuery = useQuery({
     queryKey: qk.addresses.mine,
@@ -243,6 +248,8 @@ export function useCheckout() {
         shippingAddress: shipping.inline,
         billingAddressId: billing?.id,
         billingAddress: billing?.inline,
+        // Kupon yoksa alanı hiç göndermiyoruz (backend opsiyonel bekliyor).
+        ...(coupon.couponCode ? { couponCode: coupon.couponCode } : {}),
       };
 
       const response =
@@ -257,6 +264,7 @@ export function useCheckout() {
               guestName: guestName.trim(),
               shippingAddress: shipping.inline!,
               billingAddress: billing?.inline,
+              ...(coupon.couponCode ? { couponCode: coupon.couponCode } : {}),
             });
 
       const data: any = (response.data as any)?.data ?? response.data;
@@ -458,6 +466,7 @@ export function useCheckout() {
     // shipping/pricing
     shippingCost, shippingLoading, effectiveShippingCity,
     subtotal, buyerFee, taxAmount, total,
+    coupon,
     // ui
     loading,
     snackbar,

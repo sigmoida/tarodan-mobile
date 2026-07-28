@@ -9,6 +9,7 @@ import { useCheckout } from './_hooks/useCheckout';
 import { CheckoutProgress } from './_components/CheckoutProgress';
 import { Step1Address, Step2Payment, Step3Confirm } from './_components/CheckoutSteps';
 import { OrderSummary } from './_components/OrderSummary';
+import { CouponInput } from './_components/CouponInput';
 import { OtpModal } from './_modals/OtpModal';
 
 const { colors } = theme;
@@ -46,6 +47,8 @@ export default function CheckoutScreen() {
         {c.step === 2 ? <Step2Payment c={c} /> : null}
         {c.step === 3 ? <Step3Confirm c={c} /> : null}
 
+        <CouponInput coupon={c.coupon} />
+
         <OrderSummary
           itemCount={c.items.length}
           subtotal={c.subtotal}
@@ -53,6 +56,8 @@ export default function CheckoutScreen() {
           effectiveShippingCity={c.effectiveShippingCity}
           buyerFee={c.buyerFee}
           taxAmount={c.taxAmount}
+          discount={c.coupon.discount}
+          couponCode={c.coupon.applied?.code}
           total={c.total}
         />
 

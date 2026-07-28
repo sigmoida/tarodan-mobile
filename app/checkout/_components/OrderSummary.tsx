@@ -1,8 +1,10 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Divider, Text } from '@/ui';
+import { Divider, Text, theme } from '@/ui';
 import { formatPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
+
+const { colors } = theme;
 
 /** Ödeme detayı özeti — her adımda görünür. */
 export function OrderSummary({
@@ -12,6 +14,8 @@ export function OrderSummary({
   effectiveShippingCity,
   buyerFee,
   taxAmount,
+  discount = 0,
+  couponCode,
   total,
 }: {
   itemCount: number;
@@ -20,6 +24,8 @@ export function OrderSummary({
   effectiveShippingCity: string;
   buyerFee: number;
   taxAmount: number;
+  discount?: number;
+  couponCode?: string;
   total: number;
 }) {
   return (
@@ -43,6 +49,16 @@ export function OrderSummary({
         <View style={styles.orderSummaryRow}>
           <Text style={styles.orderSummaryLabel}>KDV</Text>
           <Text style={styles.orderSummaryValue}>{formatPrice(taxAmount)}</Text>
+        </View>
+      ) : null}
+      {discount > 0 ? (
+        <View style={styles.orderSummaryRow} testID="order-summary-discount">
+          <Text style={styles.orderSummaryLabel}>
+            İndirim{couponCode ? ` (${couponCode})` : ''}
+          </Text>
+          <Text style={[styles.orderSummaryValue, { color: colors.success[600]! }]}>
+            -{formatPrice(discount)}
+          </Text>
         </View>
       ) : null}
       <Divider style={{ marginVertical: 12 }} />
