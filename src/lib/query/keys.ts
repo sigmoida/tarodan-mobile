@@ -183,6 +183,16 @@ export const qk = {
     collector: ["featured-collector"] as const,
   },
 
+  ads: {
+    /** Yayındaki bannerlar — konum/cihaz filtresi istemcide yapılır. */
+    active: ["ads", "active"] as const,
+  },
+
+  membershipLimits: {
+    /** GET /membership/me/limits — reklamsız üyelik kontrolü için. */
+    mine: ["membership", "limits"] as const,
+  },
+
   appConfig: {
     all: ["app-config"] as const,
     check: (platform: string, version: string) =>

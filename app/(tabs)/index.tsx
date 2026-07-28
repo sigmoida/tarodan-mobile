@@ -24,6 +24,7 @@ import {
   CollectionsSection,
 } from './_components/HomeSections';
 import { CompanyOfWeekSection } from './_components/CompanyOfWeekSection';
+import { AdBanner } from '@/components/ads/AdBanner';
 
 const { colors } = theme;
 
@@ -84,6 +85,7 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary[600]!]} />}
         showsVerticalScrollIndicator={false}
       >
+        <AdBanner />
         <HeroBanner />
         <CategoriesSection categories={categories} />
         <BrandsSection />
