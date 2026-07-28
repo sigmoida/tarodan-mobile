@@ -79,6 +79,8 @@ export default function OrderDetailScreen() {
           sellerInvoice={invoices.sellerInvoice}
           onView={invoices.viewSellerInvoice}
           downloading={invoices.downloadingSellerInvoice}
+          onUpload={invoices.pickAndUploadSellerInvoice}
+          uploading={invoices.uploadingSellerInvoice}
         />
         <OrderCancelCard order={order} view={view} onCancel={actions.handleCancelOrder} cancelPending={actions.cancelOrderPending} />
         <OrderRatingButtons order={order} view={view} onRate={(type) => setRatingModal({ visible: true, type })} />

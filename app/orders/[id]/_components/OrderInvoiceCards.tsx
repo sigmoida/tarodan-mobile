@@ -39,10 +39,14 @@ export function OrderSellerInvoiceCard({
   sellerInvoice,
   onView,
   downloading,
+  onUpload,
+  uploading,
 }: {
   sellerInvoice: any;
   onView: () => void;
   downloading: boolean;
+  onUpload: () => void;
+  uploading: boolean;
 }) {
   if (!(sellerInvoice && (sellerInvoice.invoice || (sellerInvoice.canUpload && sellerInvoice.isSeller)))) return null;
   return (
@@ -60,14 +64,38 @@ export function OrderSellerInvoiceCard({
             title="Satıcı Faturasını Görüntüle / İndir"
           />
           {sellerInvoice.canUpload && (
-            <Text variant="caption" style={{ color: colors.text.muted, marginTop: theme.spacing[2] }}>
-              Faturayı değiştirmek için tarodan.com sipariş sayfasını kullanın.
-            </Text>
+            <Button
+              variant="outline"
+              fullWidth
+              icon="document-attach-outline"
+              onPress={onUpload}
+              isLoading={uploading}
+              disabled={uploading}
+              title="Faturayı Değiştir"
+              testID="seller-invoice-replace-button"
+              style={{ marginTop: theme.spacing[2] }}
+            />
           )}
+        </>
+      ) : sellerInvoice.canUpload ? (
+        <>
+          <Text variant="caption" style={styles.hint}>
+            Alıcıya iletilmek üzere fatura PDF'i yükleyin (en fazla 10 MB).
+          </Text>
+          <Button
+            variant="primary"
+            fullWidth
+            icon="document-attach-outline"
+            onPress={onUpload}
+            isLoading={uploading}
+            disabled={uploading}
+            title="Fatura Yükle"
+            testID="seller-invoice-upload-button"
+          />
         </>
       ) : (
         <Text variant="caption" style={{ color: colors.text.muted }}>
-          Bu sipariş için fatura yüklemek üzere tarodan.com sipariş sayfasını kullanın.
+          Bu sipariş için henüz fatura yüklenmedi.
         </Text>
       )}
     </Card>
