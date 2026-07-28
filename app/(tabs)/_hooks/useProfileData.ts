@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userApi, collectionsApi, membershipApi } from '@/lib/api';
+import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import type { ProfileCollection } from '../_lib/profileConstants';
 
@@ -33,6 +34,23 @@ export function useProfileData() {
     retry: 1,
   });
   const apiStats = (apiProfile as any)?.stats ?? null;
+
+  // Kullanıcının kendi özet istatistikleri (ilan/sipariş/takas/koleksiyon +
+  // harcama/gelir + puan). Public profil yanıtında sipariş ve favori sayısı yok;
+  // bu uç onları da döndürüyor. Hata/boş olursa aşağıda public profile düşülür.
+  const { data: summaryStats } = useQuery({
+    queryKey: qk.user.summaryStats,
+    enabled: isAuthenticated,
+    retry: 1,
+    queryFn: async () => {
+      try {
+        const res = await userApi.getSummaryStats();
+        return ((res.data as any)?.data ?? (res.data as any) ?? null) as Record<string, number> | null;
+      } catch {
+        return null;
+      }
+    },
+  });
 
   // Güven skoru + görünürlük: sahibin kendi /users/me yanıtından (web profil sayfası paritesi).
   // getPublicProfile sahibe de görünürlük kuralını uygular (gizliyken trustScore=null) → toggle kaybolurdu;
@@ -98,13 +116,16 @@ export function useProfileData() {
   const collectionsCount: number = myCollections?.total ?? 0;
 
   const apiStatsObj = (apiStats as Record<string, number> | null) || null;
+  // Öncelik /users/me/stats; alan yoksa public profil stats'ı, o da yoksa user objesi.
   const stats = {
-    listings: apiStatsObj?.totalListings ?? (user as any)?.listingCount ?? 0,
-    trades: apiStatsObj?.totalTrades ?? 0,
-    rating: apiStatsObj?.averageRating ?? (user as any)?.rating ?? 0,
-    collections: collectionsCount ?? 0,
-    favorites: apiStatsObj?.favorites ?? 0,
-    orders: apiStatsObj?.orders ?? user?.totalPurchases ?? 0,
+    listings:
+      summaryStats?.totalListings ?? apiStatsObj?.totalListings ?? (user as any)?.listingCount ?? 0,
+    trades: summaryStats?.totalTrades ?? apiStatsObj?.totalTrades ?? 0,
+    rating: summaryStats?.averageRating ?? apiStatsObj?.averageRating ?? (user as any)?.rating ?? 0,
+    // Koleksiyon sayısı /collections/me'den kesin geliyor; özet uç yalnız yedek.
+    collections: collectionsCount || summaryStats?.totalCollections || 0,
+    favorites: summaryStats?.totalFavorites ?? apiStatsObj?.favorites ?? 0,
+    orders: summaryStats?.totalOrders ?? apiStatsObj?.orders ?? user?.totalPurchases ?? 0,
   };
 
   // BUG-008: Efektif üyelik tier'ı — backend /membership/me past_due'yu free'ye
@@ -134,7 +155,8 @@ export function useProfileData() {
     setRefreshing(true);
     try {
       await Promise.all([
-        queryClient.refetchQueries({ queryKey: ['user-stats', user?.id] }),
+        // Prefix root: hem ['user-stats', id] hem de özet istatistik anahtarını kapsar.
+        queryClient.refetchQueries({ queryKey: qk.user.statsAll }),
         queryClient.refetchQueries({ queryKey: ['profile-collections', user?.id] }),
         queryClient.refetchQueries({ queryKey: ['membership-me'] }),
       ]);

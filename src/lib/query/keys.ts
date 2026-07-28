@@ -117,6 +117,8 @@ export const qk = {
     stats: (id?: string) => ["user-stats", id] as const,
     /** Prefix root — invalidate every user-stats variant (with/without id). */
     statsAll: ["user-stats"] as const,
+    /** Kendi özet istatistikleri — GET /users/me/stats. */
+    summaryStats: ["user-stats", "me", "summary"] as const,
     trust: ["me-trust"] as const,
     bankAccount: ["bank-account"] as const,
     addresses: ["addresses"] as const,

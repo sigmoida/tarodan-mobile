@@ -93,6 +93,32 @@ export function CurrentPlanCard({ f }: { f: MembershipManageController }) {
   );
 }
 
+/** Dönem sonuna planlanmış paket değişikliği — yoksa hiç çizilmez. */
+export function ScheduledChangeCard({ f }: { f: MembershipManageController }) {
+  if (!f.hasScheduledChange) return null;
+
+  return (
+    <Card style={styles.card}>
+      <View style={styles.cancelledNote}>
+        <Ionicons name="calendar-outline" size={16} color={colors.info[600]!} />
+        <Text style={styles.cancelledNoteText}>
+          Dönem sonunda <Text style={{ fontWeight: 'bold' }}>{f.scheduledLabel}</Text> planına
+          geçilecek. Mevcut planınız {formatDate(f.data?.currentPeriodEnd)} tarihine kadar geçerli.
+        </Text>
+      </View>
+      <Button
+        variant="outline"
+        title="Değişikliği İptal Et"
+        icon="close-circle-outline"
+        onPress={f.handleCancelScheduledChange}
+        isLoading={f.cancelScheduledChangeMutation.isPending}
+        disabled={f.cancelScheduledChangeMutation.isPending}
+        style={{ ...styles.actionBtn, borderColor: colors.danger[600]! }}
+      />
+    </Card>
+  );
+}
+
 /** Plan değiştir / iptal / yükselt aksiyonları + yardım kutusu. */
 export function ManageActions({ f }: { f: MembershipManageController }) {
   return (

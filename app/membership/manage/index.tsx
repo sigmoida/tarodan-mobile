@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { ScreenHeader, ThemedRefreshControl } from '@/components/common';
 import { useMembershipManage } from './_hooks/useMembershipManage';
 import { styles } from './_lib/styles';
-import { CurrentPlanCard, ManageActions } from './_components/ManageSections';
+import { CurrentPlanCard, ScheduledChangeCard, ManageActions } from './_components/ManageSections';
 
 export default function MembershipManageScreen() {
   const f = useMembershipManage();
@@ -30,6 +30,7 @@ export default function MembershipManageScreen() {
         refreshControl={<ThemedRefreshControl refreshing={f.refreshing} onRefresh={f.onRefresh} />}
       >
         <CurrentPlanCard f={f} />
+        <ScheduledChangeCard f={f} />
         <ManageActions f={f} />
       </ScrollView>
 

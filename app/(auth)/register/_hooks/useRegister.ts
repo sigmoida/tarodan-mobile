@@ -25,13 +25,33 @@ export function useRegister() {
   });
 
   const registerMutation = useMutation({
-    mutationFn: (data: RegisterForm) =>
-      authApi.register({
+    mutationFn: async (data: RegisterForm) => {
+      // Kayıttan önce e-posta durumunu sor (web ile parite). Backend zaten 409
+      // döner ama gerekçeyi ayırt etmez: `hasPassword: false` = hesap Google/Apple
+      // ile açılmış, kullanıcının şifre denemesi hiçbir zaman tutmayacak.
+      // Uç erişilemezse kayıt engellenmemeli — hata sessizce yutulur.
+      try {
+        const res = await authApi.checkEmail(data.email);
+        const body = res.data;
+        if (body?.exists) {
+          throw new Error(
+            body.hasPassword
+              ? 'Bu e-posta zaten kayıtlı. Aşağıdaki "Giriş Yap" bağlantısını kullanın.'
+              : 'Bu e-posta Google veya Apple ile kayıtlı. Giriş ekranından o yöntemle devam edin.',
+          );
+        }
+      } catch (error) {
+        // Yalnız yukarıdaki bilinçli hatayı yeniden fırlat; ağ/5xx hatasını yut.
+        if (error instanceof Error && error.message.startsWith('Bu e-posta')) throw error;
+      }
+
+      return authApi.register({
         displayName: data.displayName,
         email: data.email,
         password: data.password,
         birthDate: data.birthDate,
-      }),
+      });
+    },
     onSuccess: () => router.replace('/(auth)/login'),
   });
 
