@@ -247,6 +247,24 @@ export const styles = StyleSheet.create({
   quickActionLabel: {
     minHeight: 32,
   },
+  /** Hızlı erişim ikonunun sağ üstüne oturan bekleyen-iş sayacı. */
+  quickActionBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: spacing[1],
+    borderRadius: radius.full,
+    backgroundColor: colors.danger[600],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickActionBadgeText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: colors.white,
+  },
   menuSection: {
     marginTop: spacing[6],
     paddingHorizontal: spacing[4],

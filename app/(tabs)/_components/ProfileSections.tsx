@@ -7,7 +7,7 @@ import { Avatar, Badge, Text, theme } from '@/ui';
 import { buildAvatarUrl } from '@/lib/api';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/profileStyles';
-import { quickActionItems, quickActionTint } from '../_lib/profileConstants';
+import { quickActionItems, quickActionTint, type QuickActionBadgeKey } from '../_lib/profileConstants';
 import type { ProfileController } from '../_hooks/useProfile';
 
 const { colors, spacing } = theme;
@@ -216,12 +216,19 @@ export function ProfileGarageSection({ f }: SectionProps) {
 // ---------------------------------------------------------------------------
 // Quick actions grid (static list)
 // ---------------------------------------------------------------------------
-export function ProfileQuickActions() {
+export function ProfileQuickActions({
+  badges,
+}: {
+  /** Bekleyen iş sayaçları (`useHomeBadges`). Verilmezse rozet çizilmez. */
+  badges?: Partial<Record<QuickActionBadgeKey, number>>;
+}) {
   return (
     <View style={styles.section}>
       <Text variant="h3">Hızlı Erişim</Text>
       <View style={styles.quickActions}>
-        {quickActionItems.map((q) => (
+        {quickActionItems.map((q) => {
+          const count = q.badgeKey ? (badges?.[q.badgeKey] ?? 0) : 0;
+          return (
           <TouchableOpacity
             key={q.label}
             testID={q.testID}
@@ -230,6 +237,13 @@ export function ProfileQuickActions() {
           >
             <View style={styles.quickActionIcon}>
               <Ionicons name={q.icon} size={22} color={quickActionTint.fg} />
+              {count > 0 && (
+                <View style={styles.quickActionBadge} testID={`${q.testID}-badge`}>
+                  <Text style={styles.quickActionBadgeText}>
+                    {count > 99 ? '99+' : count}
+                  </Text>
+                </View>
+              )}
             </View>
             <Text
               variant="caption"
@@ -241,7 +255,8 @@ export function ProfileQuickActions() {
               {q.label}
             </Text>
           </TouchableOpacity>
-        ))}
+          );
+        })}
       </View>
     </View>
   );

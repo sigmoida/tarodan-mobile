@@ -31,6 +31,10 @@ export const qk = {
      * görüntülenme değişince hepsi tazelensin diye tek yerde. */
     searchAll: ["products-search"] as const,
     boosted: ["products", "boosted"] as const,
+    /** Anasayfa "Popüler İlanlar" — backend görüntülenmeye göre sıralar. */
+    popular: ["products", "popular"] as const,
+    /** İlana özel boost paket seçenekleri (paket + süre + fiyat). */
+    boostOptions: (id: string) => ["product", id, "boost-options"] as const,
     featuredBusiness: ["featured-business"] as const,
     featuredCollector: ["featured-collector"] as const,
     myListings: (filters?: Filters | string) =>
@@ -76,6 +80,8 @@ export const qk = {
     list: (filters?: Filters) => ["trades", "list", filters] as const,
     detail: (id: string) => ["trade", id] as const,
     statusCounts: ["trades-status-counts"] as const,
+    /** Profil menüsü rozeti: yanıt bekleyen takas sayısı. */
+    pendingCount: ["trades", "pending-count"] as const,
     targetListing: (id: string) => ["trade-target-listing", id] as const,
     myTradeable: ["my-tradeable-products"] as const,
     sellerTradeable: (sellerId: string) =>
@@ -89,6 +95,8 @@ export const qk = {
     /** Batch komisyon önizlemesi — teklif id kümesine göre anahtarlı. */
     commissionPreview: (ids: string[]) =>
       ["offers", "commission-preview", ids] as const,
+    /** Profil menüsü rozeti: yanıt bekleyen (gelen) teklif sayısı. */
+    pendingCount: ["offers", "pending-count"] as const,
   },
 
   membership: {

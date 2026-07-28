@@ -25,11 +25,15 @@ export interface ProfileCollection {
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 // Kimliği doğrulanmış kullanıcı için "Hızlı Erişim" ızgarası.
+/** Rozet gösterebilen hızlı erişim satırları — sayaç `useHomeBadges`'den gelir. */
+export type QuickActionBadgeKey = 'pendingOffers' | 'pendingTrades';
+
 export const quickActionItems: Array<{
   icon: IoniconName;
   label: string;
   to: string;
   testID?: string;
+  badgeKey?: QuickActionBadgeKey;
 }> = [
   { icon: 'pricetag', label: 'İlanlarım', to: '/settings/my-listings' },
   { icon: 'cube', label: 'Siparişlerim', to: '/orders', testID: 'profile-orders-link' },
@@ -38,8 +42,8 @@ export const quickActionItems: Array<{
   { icon: 'heart', label: 'Favorilerim', to: '/favorites' },
   { icon: 'chatbubbles', label: 'Mesajlar', to: '/messages' },
   { icon: 'albums', label: 'Beğenilen Koleksiyonlar', to: '/settings/liked-collections' },
-  { icon: 'swap-horizontal', label: 'Takaslarım', to: '/trades', testID: 'profile-trades-link' },
-  { icon: 'pricetags', label: 'Tekliflerim', to: '/offers', testID: 'profile-offers-link' },
+  { icon: 'swap-horizontal', label: 'Takaslarım', to: '/trades', testID: 'profile-trades-link', badgeKey: 'pendingTrades' },
+  { icon: 'pricetags', label: 'Tekliflerim', to: '/offers', testID: 'profile-offers-link', badgeKey: 'pendingOffers' },
   { icon: 'stats-chart', label: 'İstatistikler', to: '/settings/analytics' },
   { icon: 'help-circle', label: 'Yardım', to: '/help' },
 ];

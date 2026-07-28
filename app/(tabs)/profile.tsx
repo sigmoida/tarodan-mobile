@@ -4,6 +4,7 @@ import { Text, theme } from '@/ui';
 
 import { styles } from './_lib/profileStyles';
 import { useProfile } from './_hooks/useProfile';
+import { useHomeBadges } from './_hooks/useHomeBadges';
 import { ProfileGuestView } from './_components/ProfileGuestView';
 import {
   ProfileCard,
@@ -22,6 +23,8 @@ const { colors } = theme;
  */
 function ProfileScreen() {
   const f = useProfile();
+  // Hook sırası sabit kalsın diye erken return'den ÖNCE çağrılır (CLAUDE.md §12).
+  const badges = useHomeBadges(f.isAuthenticated);
 
   if (!f.isAuthenticated) return <ProfileGuestView f={f} />;
 
@@ -48,7 +51,9 @@ function ProfileScreen() {
         <ProfileCard f={f} />
         <ProfileStatsGrid f={f} />
         <ProfileGarageSection f={f} />
-        <ProfileQuickActions />
+        <ProfileQuickActions
+          badges={{ pendingOffers: badges.pendingOffers, pendingTrades: badges.pendingTrades }}
+        />
         <ProfileMenuSections f={f} />
 
         <View style={{ height: 100 }} />

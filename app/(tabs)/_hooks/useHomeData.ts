@@ -31,6 +31,22 @@ export function useHomeData() {
     },
   });
 
+  /** Popüler ilanlar — backend görüntülenme sayısına göre sıralar (web ile aynı uç).
+   *  Boş dönerse ekran genel ürün listesine düşer. */
+  const popularQuery = useQuery({
+    queryKey: qk.products.popular,
+    queryFn: async () => {
+      try {
+        const response = await productsApi.getPopular({ limit: 20 });
+        const list = response.data?.data || response.data?.products || response.data || [];
+        return Array.isArray(list) ? list : [];
+      } catch {
+        console.log('⚠️ Popüler ilanlar yüklenemedi');
+        return [];
+      }
+    },
+  });
+
   const categoriesQuery = useQuery({
     queryKey: qk.catalog.categories,
     queryFn: async () => {
@@ -111,6 +127,9 @@ export function useHomeData() {
 
   return {
     products: productsQuery.data ?? [],
+    /** Popüler bölümü için; uç boş dönerse genel listeye düşer. */
+    popularProducts: popularQuery.data?.length ? popularQuery.data : (productsQuery.data ?? []),
+    loadingPopular: popularQuery.isLoading,
     boostedProducts: boostedQuery.data ?? [],
     categories: categoriesQuery.data ?? [],
     collections: collectionsQuery.data ?? [],

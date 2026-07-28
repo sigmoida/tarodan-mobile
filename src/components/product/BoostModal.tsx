@@ -1,9 +1,12 @@
 /**
  * BoostModal — İlanı öne çıkar (boost): süre/fiyat seç → ödeme başlat → /payment/[id].
- * Web BoostModal ile birebir akış. Backend: GET /products/boost/pricing,
- * POST /products/:id/boost/initiate.
+ * Web BoostModal ile birebir akış. Backend: GET /products/:id/boost/options
+ * (paket modeli; web ile aynı kaynak), eski kurulumlarda GET /products/boost/pricing'e
+ * düşer. POST /products/:id/boost/initiate.
  */
 import React, { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import {
   Modal,
   View,
@@ -25,6 +28,24 @@ interface BoostOption {
   durationDays: number;
   price: number;
   label: string;
+  /** Paket modelinden geldiyse initiate'e geri gönderilir. */
+  packageId?: string;
+}
+
+/** Paket yanıtını (packages[].durations[]) düz süre listesine indirger; backend
+ *  eski düz-fiyat şeklini döndürdüyse onu olduğu gibi geçirir. */
+function normalizeBoostOptions(data: any): BoostOption[] {
+  if (Array.isArray(data?.packages)) {
+    return data.packages.flatMap((pkg: any) =>
+      (pkg.durations ?? []).map((d: any) => ({
+        durationDays: d.durationDays,
+        price: d.price,
+        label: pkg.name ? `${pkg.name} · ${d.durationDays} gün` : `${d.durationDays} gün`,
+        packageId: pkg.id,
+      })),
+    );
+  }
+  return Array.isArray(data?.options) ? data.options : [];
 }
 
 interface BoostModalProps {
@@ -46,32 +67,47 @@ export function BoostModal({
   boostedUntil,
   isPremium = false,
 }: BoostModalProps) {
-  const [loadingPricing, setLoadingPricing] = useState(false);
-  const [options, setOptions] = useState<BoostOption[]>([]);
-  const [enabled, setEnabled] = useState(true);
   const [selected, setSelected] = useState<number | null>(null);
   const [autoRenew, setAutoRenew] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  /** Önce ilana özel paket seçenekleri; boş dönerse eski düz-fiyat ucuna düşer. */
+  const { data, isLoading: loadingPricing } = useQuery({
+    queryKey: qk.products.boostOptions(listingId),
+    enabled: visible && !!listingId,
+    queryFn: async () => {
+      try {
+        const res = await productsApi.getBoostOptions(listingId);
+        const opts = normalizeBoostOptions(res?.data ?? {});
+        if (opts.length) return { options: opts, enabled: (res?.data as any)?.enabled !== false };
+      } catch {
+        // paket ucu yoksa/erişilemiyorsa aşağıdaki eski akışa düş
+      }
+      try {
+        const res = await productsApi.getBoostPricing();
+        const body: any = res?.data ?? {};
+        return {
+          options: normalizeBoostOptions(body),
+          enabled: body.enabled !== false,
+        };
+      } catch {
+        return { options: [] as BoostOption[], enabled: false };
+      }
+    },
+  });
+
+  const options = data?.options ?? [];
+  const enabled = data?.enabled ?? true;
+
+  // Seçenekler gelince varsayılanı seç (7 gün varsa o, yoksa ilki).
   useEffect(() => {
-    if (!visible) return;
-    setLoadingPricing(true);
-    productsApi
-      .getBoostPricing()
-      .then((res) => {
-        const data: any = res?.data ?? {};
-        const opts: BoostOption[] = Array.isArray(data.options) ? data.options : [];
-        setOptions(opts);
-        setEnabled(data.enabled !== false);
-        const seven = opts.find((o) => o.durationDays === 7);
-        setSelected(seven?.durationDays ?? opts[0]?.durationDays ?? null);
-      })
-      .catch(() => {
-        setOptions([]);
-        setEnabled(false);
-      })
-      .finally(() => setLoadingPricing(false));
-  }, [visible]);
+    if (!options.length) return;
+    setSelected((current) =>
+      current != null && options.some((o) => o.durationDays === current)
+        ? current
+        : (options.find((o) => o.durationDays === 7) ?? options[0]).durationDays,
+    );
+  }, [options]);
 
   const remainingDays = boostedUntil
     ? Math.max(0, Math.ceil((new Date(boostedUntil).getTime() - Date.now()) / 86400000))
@@ -82,8 +118,11 @@ export function BoostModal({
     if (selected == null || submitting) return;
     setSubmitting(true);
     try {
+      const chosen = options.find((o) => o.durationDays === selected);
       const res = await productsApi.initiateBoost(listingId, {
         durationDays: selected,
+        // Paket modelinden seçildiyse packageId gönderilir; yoksa eski düz-fiyat akışı.
+        ...(chosen?.packageId ? { packageId: chosen.packageId } : {}),
         autoRenew: isPremium ? autoRenew : false,
         provider: 'paytr',
       });

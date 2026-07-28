@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { notificationsApi } from '@/lib/api';
+import { notificationsApi, offersApi, tradesApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useCartStore } from '@/stores/cartStore';
 import { useFavorites } from '@/hooks/useFavorites';
@@ -37,5 +37,45 @@ export function useHomeBadges(isAuthenticated: boolean) {
   });
   const unreadCount = typeof unreadData === 'number' ? unreadData : 0;
 
-  return { cartCount, cartProductIds, favCount, messageUnreadCount, unreadCount };
+  /** Profil menüsü rozetleri: yanıt bekleyen teklif / takas. Bildirim sayacıyla
+   *  aynı desen — hata durumunda 0, rozet gizlenir. */
+  const { data: pendingOffers = 0 } = useQuery({
+    queryKey: qk.offers.pendingCount,
+    enabled: isAuthenticated,
+    refetchInterval: 60000,
+    queryFn: async () => {
+      try {
+        const res = await offersApi.getPendingCount();
+        const body = res.data as { count?: number; data?: { count?: number } } | undefined;
+        return body?.count ?? body?.data?.count ?? 0;
+      } catch {
+        return 0;
+      }
+    },
+  });
+
+  const { data: pendingTrades = 0 } = useQuery({
+    queryKey: qk.trades.pendingCount,
+    enabled: isAuthenticated,
+    refetchInterval: 60000,
+    queryFn: async () => {
+      try {
+        const res = await tradesApi.getPendingCount();
+        const body = res.data as { count?: number; data?: { count?: number } } | undefined;
+        return body?.count ?? body?.data?.count ?? 0;
+      } catch {
+        return 0;
+      }
+    },
+  });
+
+  return {
+    cartCount,
+    cartProductIds,
+    favCount,
+    messageUnreadCount,
+    unreadCount,
+    pendingOffers,
+    pendingTrades,
+  };
 }

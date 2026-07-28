@@ -33,6 +33,8 @@ export default function HomeScreen() {
 
   const {
     products,
+    popularProducts,
+    loadingPopular,
     boostedProducts,
     categories,
     collections,
@@ -88,7 +90,7 @@ export default function HomeScreen() {
         <ScalesSection />
         <FeaturedCollectorSection featuredCollector={featuredCollector} />
         <BoostedRail items={boostedProducts} {...cardProps} />
-        <PopularProducts items={products} isLoading={loadingProducts} {...cardProps} />
+        <PopularProducts items={popularProducts} isLoading={loadingPopular} {...cardProps} />
         <ProductsGrid items={products} {...cardProps} />
         <CompanyOfWeekSection companyOfWeek={companyOfWeek} />
         <CollectionsSection collections={collections} />
