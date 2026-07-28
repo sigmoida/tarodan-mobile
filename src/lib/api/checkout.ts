@@ -2,8 +2,9 @@ import { api, guestApi } from './client';
 
 // Addresses API - Web ile aynı endpoint'ler
 export const addressesApi = {
+  // Backend'de tekil adres ucu yok (GET /users/me/addresses/:id tanımlı değil) —
+  // detay için listeden filtreleyin.
   getAll: () => api.get('/users/me/addresses'),
-  getOne: (id: string) => api.get(`/users/me/addresses/${id}`),
   create: (data: {
     title?: string;
     fullName: string;

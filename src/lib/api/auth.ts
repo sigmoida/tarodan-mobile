@@ -2,6 +2,9 @@ import { api, guestApi } from './client';
 
 // Auth API - Web ile aynı endpoint'ler
 export const authApi = {
+  /** E-posta kayıtlı mı / şifresi var mı — backend: POST /auth/check-email (public) */
+  checkEmail: (email: string) =>
+    guestApi.post<{ exists: boolean; hasPassword: boolean }>('/auth/check-email', { email }),
   login: (email: string, password: string) =>
     api.post('/auth/login', { email, password }),
   loginWithGoogle: (idToken: string) =>

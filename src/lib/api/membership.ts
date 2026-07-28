@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api, guestApi } from './client';
 
 // Membership API - Web ile aynı endpoint'ler
 export const membershipApi = {
@@ -23,6 +23,8 @@ export const membershipApi = {
     return api.post('/membership/subscribe', tierOrData);
   },
   cancel: () => api.post('/membership/cancel'),
+  /** Dönem sonuna planlanmış paket değişikliğini iptal et — POST /membership/cancel-scheduled-change */
+  cancelScheduledChange: () => api.post('/membership/cancel-scheduled-change'),
   /** Otomatik yenilemeyi aç/kapa — backend: PATCH /membership/auto-renew */
   setAutoRenew: (autoRenew: boolean) =>
     api.patch('/membership/auto-renew', { autoRenew }),
@@ -71,5 +73,10 @@ export const discountsApi = {
     code: string;
     cartItems: Array<{ productId: string; quantity: number; price: number }>;
   }) => api.post('/discounts/validate', data),
+  /** Misafir sepeti için kupon doğrulama (auth yok) — POST /discounts/validate-guest */
+  validateGuest: (data: {
+    code: string;
+    cartItems: Array<{ productId: string; quantity: number }>;
+  }) => guestApi.post('/discounts/validate-guest', data),
   getActiveCampaigns: () => api.get('/discounts/active'),
 };

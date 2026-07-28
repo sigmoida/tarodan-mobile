@@ -24,10 +24,19 @@ export const collectionsApi = {
     api.get(`/collections/slug/${slug}`),
   getUserCollections: (userId: string, params?: Record<string, any>) =>
     api.get(`/collections/user/${userId}`, { params }),
-  create: (data: { name: string; description?: string; coverImageUrl?: string; isPublic?: boolean }) =>
+  // DTO alanı `coverImageKey` (S3 key); dosya yüklemek için PATCH /collections/:id/cover kullanılır.
+  create: (data: { name: string; description?: string; coverImageKey?: string; isPublic?: boolean; categoryId?: string }) =>
     api.post('/collections', data),
-  update: (id: string, data: { name?: string; description?: string; coverImageUrl?: string; isPublic?: boolean }) =>
+  update: (id: string, data: { name?: string; description?: string; coverImageKey?: string; isPublic?: boolean; categoryId?: string | null }) =>
     api.patch(`/collections/${id}`, data),
+  /** Kapak görseli yükle/değiştir — multipart, alan adı `cover` */
+  updateCover: (id: string, file: { uri: string; name: string; type: string }) => {
+    const formData = new FormData();
+    formData.append('cover', file as any);
+    return api.patch(`/collections/${id}/cover`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
   delete: (id: string) =>
     api.delete(`/collections/${id}`),
   addItem: (id: string, data: { productId: string; sortOrder?: number; isFeatured?: boolean }) =>

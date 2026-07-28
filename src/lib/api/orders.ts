@@ -90,6 +90,9 @@ export const ordersApi = {
   /** Guest sipariş takibi (orderNumber + email) */
   trackGuest: (data: { orderNumber: string; email: string }) =>
     guestApi.post('/orders/guest/track', data),
+  /** Alıcının bu siparişe yazdığı kendi değerlendirmesi (yoksa null) —
+   *  "Değerlendir" butonunu gizlemek için. Backend: GET /orders/:id/my-review */
+  getMyReview: (id: string) => api.get(`/orders/${id}/my-review`),
   /** Checkout quote (fiyat kırılımı) */
   getQuote: (data: { items: Array<{ productId: string; quantity?: number }> }) =>
     api.post('/orders/quote', data),
@@ -122,6 +125,15 @@ export const sellerInvoiceApi = {
       isSeller: boolean;
       isBuyer: boolean;
     }>(`/orders/${orderId}/seller-invoice`),
+  /** Kurumsal satıcı: siparişe fatura PDF yükle/değiştir (alıcıya mail gider).
+   *  Backend: POST /orders/:id/seller-invoice — multipart/form-data, alan adı `file`. */
+  upload: (orderId: string, file: { uri: string; name: string; type: string }) => {
+    const formData = new FormData();
+    formData.append('file', file as any);
+    return api.post(`/orders/${orderId}/seller-invoice`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
   /** İndirme — S3 presigned URL ({ url, fileName }) */
   download: (orderId: string) =>
     api.get<{ url?: string; fileName?: string }>(`/orders/${orderId}/seller-invoice/download`),

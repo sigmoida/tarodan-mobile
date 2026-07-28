@@ -28,12 +28,16 @@ export const userApi = {
     ),
   /** Hesabı sil (kullanıcının kendi). Backend: DELETE /users/me */
   deleteAccount: () => api.delete("/users/me"),
-  /** Genel istatistikler (satıcı analitik dahil). Backend: GET /users/me/business-stats */
+  /** İşletme dashboard istatistikleri — YALNIZ işletme hesapları (backend 400 döner aksi halde).
+   *  Backend: GET /users/me/business-stats */
   getStats: () => api.get("/users/me/business-stats"),
+  /** Tüm kullanıcılar için özet istatistik (ilan/sipariş/takas/koleksiyon sayıları,
+   *  toplam harcama-gelir, puan). Backend: GET /users/me/stats */
+  getSummaryStats: () => api.get("/users/me/stats"),
   /** İlanlarım için ürün-bazlı istatistik (backend: GET /products/my/stats) */
   getMyProductStats: () => api.get("/products/my/stats"),
-  /** Analitik raporu (timeRange ile) — backend: GET /users/me/analytics */
-  getAnalytics: (params?: { timeRange?: "7d" | "30d" | "90d" | "all" }) =>
+  /** Analitik raporu — backend query parametresi `period` (7d|30d|90d) */
+  getAnalytics: (params?: { period?: "7d" | "30d" | "90d" }) =>
     api.get("/users/me/analytics", { params }),
   /** Kullanıcının public profili — backend: GET /users/:id/profile */
   getPublicProfile: (userId: string) => api.get(`/users/${userId}/profile`),
@@ -65,6 +69,29 @@ export const userApi = {
   /** Top collections */
   getTopCollections: (params?: { limit?: number }) =>
     api.get("/users/top-collections", { params }),
+};
+
+/** Kurumsal satıcı başvuru belgeleri — backend: /users/me/seller-documents */
+export const sellerDocumentsApi = {
+  list: () =>
+    api.get<
+      Array<{
+        id: string;
+        documentType: string;
+        fileName: string;
+        status: "pending" | "approved" | "rejected";
+        uploadedAt: string;
+      }>
+    >("/users/me/seller-documents"),
+  /** multipart/form-data: `file` + `documentType` */
+  upload: (documentType: string, file: { uri: string; name: string; type: string }) => {
+    const formData = new FormData();
+    formData.append("documentType", documentType);
+    formData.append("file", file as any);
+    return api.post("/users/me/seller-documents", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
 };
 
 // Seller Bank Account (IBAN) — backend: GET/PATCH/DELETE /users/me/bank-account

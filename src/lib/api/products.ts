@@ -4,6 +4,9 @@ import { api } from './client';
 export const productsApi = {
   getAll: (params?: Record<string, any>) =>
     api.get('/products', { params }),
+  /** Popüler ilanlar (görüntülenmeye göre) — backend: GET /products/popular */
+  getPopular: (params?: { limit?: number; page?: number }) =>
+    api.get('/products/popular', { params }),
   /** Dinamik filtre seçenekleri — web SidebarFilters ile aynı kaynak. Backend: GET /products/filters */
   getFilters: (params?: { manufacturer?: string }) =>
     api.get<{
@@ -49,12 +52,23 @@ export const productsApi = {
       enabled?: boolean;
       options?: Array<{ durationDays: number; price: number; label: string }>;
     }>('/products/boost/pricing'),
+  /** İlan için paket + süre + fiyat seçenekleri (web BoostModal ile aynı kaynak).
+   *  Backend: GET /products/:id/boost/options — yeni paket modeli; boost/pricing eski düz-fiyat. */
+  getBoostOptions: (productId: string) =>
+    api.get<{
+      packages?: Array<{
+        id: string;
+        name: string;
+        durations: Array<{ durationDays: number; price: number }>;
+      }>;
+      options?: Array<{ durationDays: number; price: number; label: string }>;
+    }>(`/products/${productId}/boost/options`),
   /** Kullanıcının boost'ları (en yeni önce). Backend: GET /products/boost/my */
   getMyBoosts: () => api.get('/products/boost/my'),
   /** İlanı öne çıkar — ödeme başlat (paymentId döner). Backend: POST /products/:id/boost/initiate */
   initiateBoost: (
     productId: string,
-    data: { durationDays: number; autoRenew?: boolean; provider?: 'paytr' },
+    data: { durationDays: number; packageId?: string; autoRenew?: boolean; provider?: 'paytr' },
   ) => api.post(`/products/${productId}/boost/initiate`, data),
 };
 
@@ -101,7 +115,7 @@ export const searchApi = {
 /** Markalar (örn. Porsche, Ferrari) */
 export const brandsApi = {
   findAll: () => api.get('/brands'),
-  findOne: (id: string) => api.get(`/brands/${id}`),
+  /** Backend'de yalnızca slug ile detay var (GET /brands/:slug) — id ile çağrı 404 döner. */
   findBySlug: (slug: string) => api.get(`/brands/${slug}`),
 };
 
@@ -116,6 +130,6 @@ export const manufacturersApi = {
 export const carModelsApi = {
   findAll: (params?: { brandId?: string; brandSlug?: string }) =>
     api.get('/car-models', { params }),
-  findOne: (id: string) => api.get(`/car-models/${id}`),
+  /** Backend'de yalnızca slug ile detay var (GET /car-models/:slug) — id ile çağrı 404 döner. */
   findBySlug: (slug: string) => api.get(`/car-models/${slug}`),
 };

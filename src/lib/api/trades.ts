@@ -7,6 +7,8 @@ export const tradesApi = {
   /** Takaslar sekme sayaçları (filtre/sayfalama bağımsız): { all, pending, shipping, completed } */
   getStatusCounts: () =>
     api.get<{ all: number; pending: number; shipping: number; completed: number }>('/trades/status-counts'),
+  /** Yanıt bekleyen takas sayısı (rozet) — backend: GET /trades/pending-count */
+  getPendingCount: () => api.get<{ count: number }>('/trades/pending-count'),
   getOne: (id: string | number) =>
     api.get(`/trades/${id}`),
   create: (data: {
@@ -39,6 +41,8 @@ export const offersApi = {
     api.get('/offers', { params }),
   getOne: (id: string) =>
     api.get(`/offers/${id}`),
+  /** Bekleyen (gelen) teklif sayısı (rozet) — backend: GET /offers/pending-count */
+  getPendingCount: () => api.get<{ count: number }>('/offers/pending-count'),
   create: (data: { productId: string; amount: number; message?: string }) =>
     api.post('/offers', data),
   accept: (id: string) =>
