@@ -55,9 +55,18 @@ export default function SellerRegisterScreen() {
             </Text>
           </View>
 
+          <Button
+            testID="seller-register-continue-application"
+            variant="primary"
+            fullWidth
+            title="Başvurumu Tamamla / Düzenle"
+            onPress={() => router.push('/settings/business-application' as never)}
+            style={styles.submitBtn}
+          />
+
           {!isBusinessTier ? (
             <Button
-              variant="primary"
+              variant="outline"
               fullWidth
               title="Business Üyeliğe Geç"
               onPress={() => router.replace('/membership')}

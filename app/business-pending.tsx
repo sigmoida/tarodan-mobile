@@ -59,6 +59,13 @@ export default function BusinessPendingScreen() {
         </View>
 
         <Button
+          testID="business-pending-continue"
+          variant="primary"
+          title="Başvurumu Tamamla"
+          onPress={() => router.push('/settings/business-application' as never)}
+          style={styles.button}
+        />
+        <Button
           variant="outline"
           title="Destek Ekibiyle İletişime Geç"
           onPress={() => router.push('/contact')}

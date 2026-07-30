@@ -27,7 +27,7 @@ export default function BusinessMembershipGuard() {
 
     // Pending: sadece /business-pending ve /contact'a izin ver
     if (user.businessStatus === 'pending') {
-      const allowedPaths = ['/business-pending', '/contact'];
+      const allowedPaths = ['/business-pending', '/contact', '/settings/business-application'];
       if (!allowedPaths.some((p) => pathname.startsWith(p))) {
         router.replace('/business-pending');
       }
@@ -36,7 +36,7 @@ export default function BusinessMembershipGuard() {
 
     // Rejected: sadece /business-rejected, /contact ve /login'e izin ver
     if (user.businessStatus === 'rejected') {
-      const allowedPaths = ['/business-rejected', '/contact', '/login'];
+      const allowedPaths = ['/business-rejected', '/contact', '/login', '/settings/business-application'];
       if (!allowedPaths.some((p) => pathname.startsWith(p))) {
         router.replace('/business-rejected');
       }

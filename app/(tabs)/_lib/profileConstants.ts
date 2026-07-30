@@ -46,4 +46,10 @@ export const quickActionItems: Array<{
   { icon: 'pricetags', label: 'Tekliflerim', to: '/offers', testID: 'profile-offers-link', badgeKey: 'pendingOffers' },
   { icon: 'stats-chart', label: 'İstatistikler', to: '/settings/analytics' },
   { icon: 'help-circle', label: 'Yardım', to: '/help' },
+  {
+    icon: 'document-text',
+    label: 'Kurumsal Başvuru',
+    to: '/settings/business-application',
+    testID: 'settings-business-application',
+  },
 ];
