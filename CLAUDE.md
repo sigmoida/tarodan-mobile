@@ -34,17 +34,24 @@ Import from `@/ui` (vendored `@tarodan/ui-native`; source lives in `src/ui`).
 
 ## 2. Everything flows from design tokens
 
-Colors, spacing, radius, and typography come from the `theme` export of
-`@/theme` (vendored `@tarodan/design-tokens`):
+Colors, spacing, radius, and typography come from the `theme` export, re-exported
+from `@/ui` (`@/theme` only exports the raw tokens — there is no `theme` export
+there):
 
 ```ts
-import { theme } from '@/theme';
+import { theme } from '@/ui';
 const s = StyleSheet.create({
-  card: { backgroundColor: theme.colors.surface, padding: theme.spacing.md,
+  card: { backgroundColor: theme.colors.surface.DEFAULT, padding: theme.spacing[4],
           borderRadius: theme.radius.lg },
 });
 ```
 
+- `spacing` keys are **numeric**, not named (`theme.spacing[4]` = 16pt, `[2]` = 8pt,
+  `[1]` = 4pt — there is no `spacing.md`/`spacing.sm`/`spacing.xs`). `radius` keys
+  (`sm`, `DEFAULT`, `md`, `lg`, `xl`, `2xl`, `3xl`, `full`) and top-level `colors`
+  keys (`primary`, `danger`, `success`, `info`, `warning`, `gray`, `text`, `surface`,
+  `border`, `white`, `black`, `transparent` — no `background`) are real; confirm
+  exact names in `src/theme/` before using one you haven't seen in surrounding code.
 - **No hardcoded hex / rgba** in screens or components. Need a translucent
   overlay? Use `theme.colors.overlay.*`, not a raw `rgba(...)`.
 - **`src/theme/colors.ts` (`TarodanColors`) is legacy and banned** — it is a

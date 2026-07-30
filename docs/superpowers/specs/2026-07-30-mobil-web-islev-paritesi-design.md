@@ -278,3 +278,17 @@ Her plan kendi plan → uygulama turunu tamamlar; sıra bu spec'teki önceliktir
 - Repo'daki `.com` e-posta/API sabitleri ürün sahibi kararı bekliyor
 - `docs/WEB_MOBILE_PARITY.md`, `WEB_MOBILE_GAP_ANALYSIS.md` bayat — güvenilecek kaynak
   `docs/mobile-parity/` ve bu spec
+- **Plan 1 tamamlandı (P0).** Kalan ops önkoşulu: `tarodan.com.tr` ve
+  `staging.tarodan.com.tr` üzerinde `.well-known/apple-app-site-association` +
+  `assetlinks.json` yayını — yapılmadan universal link çalışmaz.
+- Paydaş kimlik türü seçicisi (`tckn` / `passport`) `@/ui`'da segmented primitive
+  eklenene kadar `tckn` varsayılanıyla çalışır.
+- `rejected` durumundaki kurumsal hesapların da `/settings/business-application`'a
+  erişebilmesi (`BusinessMembershipGuard`) **ürün onayı bekleyen** bir karar —
+  reddedilen başvurunun tekrar düzenlenip gönderilebilmesi mi, yoksa tamamen
+  kilitlenmesi mi gerektiği netleşmedi.
+- `CLAUDE.md`'deki `theme`'in `@/theme`'den import edildiği iddiası **hatalı** —
+  gerçekte `@/ui`'dan gelir (`import { theme } from '@/ui'`); `@/theme` yalnız ham
+  token'ları export eder, `theme` adında bir export yoktur. Ayrıca `theme.spacing.md`
+  gibi isimli spacing anahtarları **repoda yok** — spacing sayısal anahtarlıdır
+  (`theme.spacing[4]` = 16pt). `CLAUDE.md` §2 bu konuda güncellenmeli.
