@@ -2,7 +2,7 @@ name: Mobile Staging (OTA + Preview Build)
 
 # main'e mobile-etkileyen her push staging kanalına gider:
 #   JS/asset-only -> eas update --branch staging (OTA)
-#   native        -> preview EAS build (iOS+Android internal, api.staging.tarodan.shop)
+#   native        -> preview EAS build (iOS+Android internal, staging.tarodan.com.tr)
 # Guard: EXPO_TOKEN yoksa no-op.
 
 on:
@@ -103,7 +103,7 @@ jobs:
         env:
           MSG: ${{ github.event.head_commit.message || 'manual staging OTA' }}
           EXPO_PUBLIC_ENVIRONMENT: preview
-          EXPO_PUBLIC_API_URL: https://api.staging.tarodan.shop/api
+          EXPO_PUBLIC_API_URL: https://staging.tarodan.com.tr/api
           EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: 243308404313-kdc77bd36flfhv6ujlb5tfd4qjteh94c.apps.googleusercontent.com
           EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: 243308404313-92c5475nff3874maoqes02ajakn81hvh.apps.googleusercontent.com
         run: eas update --branch staging --message "$MSG" --non-interactive

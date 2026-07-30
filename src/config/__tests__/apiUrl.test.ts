@@ -11,7 +11,7 @@ const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
 describe('ortam API adresleri', () => {
   it('hiçbir yapılandırma dosyasında ölü tarodan.shop domaini kalmadı', () => {
-    for (const file of ['.env', '.env.example', 'eas.json']) {
+    for (const file of ['.env', '.env.example', 'eas.json', '.github/workflows/mobile-staging.yml']) {
       expect(read(file)).not.toContain('tarodan.shop');
     }
   });
