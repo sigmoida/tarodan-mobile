@@ -5,8 +5,16 @@ export const authApi = {
   /** E-posta kayıtlı mı / şifresi var mı — backend: POST /auth/check-email (public) */
   checkEmail: (email: string) =>
     guestApi.post<{ exists: boolean; hasPassword: boolean }>('/auth/check-email', { email }),
-  login: (email: string, password: string) =>
-    api.post('/auth/login', { email, password }),
+  /**
+   * Başarılı parola sonrası 2FA etkinse yanıt **200 + { requires2FA: true }** olur
+   * (token YOK). Aynı istek `twoFactorCode` ile tekrarlanmalıdır.
+   */
+  login: (email: string, password: string, twoFactorCode?: string) =>
+    api.post('/auth/login', {
+      email,
+      password,
+      ...(twoFactorCode ? { twoFactorCode } : {}),
+    }),
   loginWithGoogle: (idToken: string) =>
     api.post('/auth/google', { idToken }),
   loginWithApple: (identityToken: string, fullName?: string) =>

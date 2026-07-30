@@ -8,7 +8,7 @@ import { authApi } from '@/lib/api';
 import { signInWithGoogle } from '@/services/googleSignin';
 import { signInWithApple, isAppleAvailable } from '@/services/appleSignin';
 import { useAuthStore } from '@/stores/authStore';
-import { loginSchema, type LoginForm } from '../_lib/schema';
+import { loginSchema, TWO_FACTOR_CODE_PATTERN, type LoginForm } from '../_lib/schema';
 
 /**
  * Login controller — owns the RHF form (zod), the login + resend-verification
@@ -19,6 +19,7 @@ export function useLogin() {
   const { login } = useAuthStore();
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [requires2FA, setRequires2FA] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
@@ -26,10 +27,11 @@ export function useLogin() {
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
   });
-  const { handleSubmit, getValues } = form;
+  const { handleSubmit, getValues, setError } = form;
 
   const loginMutation = useMutation({
-    mutationFn: (data: LoginForm) => authApi.login(data.email, data.password),
+    mutationFn: (data: LoginForm) =>
+      authApi.login(data.email, data.password, data.twoFactorCode || undefined),
     onSuccess: async (response) => {
       const data = response.data as Record<string, unknown> & {
         tokens?: { accessToken?: string; refreshToken?: string };
@@ -38,13 +40,21 @@ export function useLogin() {
         user?: {
           email?: string;
         };
+        requires2FA?: boolean;
       };
+
+      // 200 + requires2FA: token verilmemiştir — hata değil, akış adımı.
+      if (data.requires2FA === true) {
+        setRequires2FA(true);
+        setErrorMessage(null);
+        return;
+      }
+
       const accessToken = data.tokens?.accessToken || data.accessToken;
       const refreshToken = data.tokens?.refreshToken || data.refreshToken;
       const user = data.user;
       setErrorMessage(null);
 
-      console.log('✅ Login başarılı:', user?.email);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await login(accessToken!, user as any, refreshToken);
 
@@ -199,9 +209,18 @@ export function useLogin() {
   const handleLoginPress = () => {
     if (process.env.EXPO_PUBLIC_MAESTRO === '1') {
       const v = getValues();
+      // Maestro tap akışı RHF handleSubmit'i atlar; ama 2FA kodu yine de burada
+      // doğrulanmalı — aksi halde geçersiz kod (örn. "12") sunucuya gider.
+      if (v?.twoFactorCode && !TWO_FACTOR_CODE_PATTERN.test(v.twoFactorCode.trim())) {
+        setError('twoFactorCode', {
+          type: 'pattern',
+          message: '6 haneli kod veya XXXX-XXXX yedek kod girin',
+        });
+        return;
+      }
       if (v?.email && v?.password) {
         setErrorMessage(null);
-        loginMutation.mutate({ email: v.email, password: v.password });
+        loginMutation.mutate({ email: v.email, password: v.password, twoFactorCode: v.twoFactorCode });
         return;
       }
     }
@@ -215,6 +234,7 @@ export function useLogin() {
     unverifiedEmail,
     setUnverifiedEmail,
     errorMessage,
+    requires2FA,
     googleLoading,
     appleLoading,
     appleAvailable,

@@ -86,6 +86,27 @@ export function LoginCard({ f }: { f: LoginController }) {
         )}
       />
 
+      {f.requires2FA ? (
+        <Controller
+          control={control}
+          name="twoFactorCode"
+          render={({ field: { onChange, value } }) => (
+            <Input
+              testID="login-2fa-code-input"
+              label="Doğrulama kodu"
+              leftIconName="shield-checkmark-outline"
+              placeholder="123456 veya XXXX-XXXX"
+              value={value}
+              onChangeText={onChange}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              helperText="Kimlik doğrulama uygulamanızdaki 6 haneli kodu ya da yedek kodunuzu girin."
+              error={errors.twoFactorCode?.message}
+            />
+          )}
+        />
+      ) : null}
+
       <Pressable
         onPress={() => router.push('/(auth)/forgot-password' as never)}
         hitSlop={8}
