@@ -22,7 +22,7 @@ jest.mock('@/lib/api', () => ({
   ordersApi: { directBuy: jest.fn(), createGuest: jest.fn() },
   paymentsApi: {
     getPaymentMethods: jest.fn(() => Promise.resolve({ data: [] })),
-    processDirect: jest.fn(),
+    directForm: jest.fn(),
     initiate: jest.fn(),
     initiateGuest: jest.fn(),
     bypassComplete: jest.fn(),

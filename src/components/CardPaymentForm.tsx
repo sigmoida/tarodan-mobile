@@ -4,6 +4,13 @@ import { WebView, WebViewNavigation } from 'react-native-webview';
 import { Button, Input, Checkbox, Text, theme, appAlert } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { paymentsApi, membershipApi } from '@/lib/api';
+import {
+  assertSafePaytrForm,
+  buildPaytrFormHtml,
+  cardFieldsForNewCard,
+  cardFieldsForSavedCard,
+  PAYTR_ACTION,
+} from '@/lib/payment/paytrDirectForm';
 
 const { colors } = theme;
 
@@ -37,7 +44,7 @@ interface Props {
   isGuest?: boolean;
   /**
    * Çağıran ekranın (/payment/[id]) zaten bildiği ödeme referansı — form mount olmadan
-   * ÖNCE sipariş/grup/takas için oluşturulmuş paymentId. processDirect ağ/timeout hatası
+   * ÖNCE sipariş/grup/takas için oluşturulmuş paymentId. directForm ağ/timeout hatası
    * verirse (sunucu charge'ı işlemiş olabilir) bu referansla mevcut poll/verify güvenlik
    * ağı devreye alınır; sert "başarısız" gösterilmez.
    */
@@ -57,7 +64,7 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
   const [processing, setProcessing] = useState(false);
   const [threeDSHtml, setThreeDSHtml] = useState<string | null>(null);
   const [paymentId, setPaymentId] = useState<string | null>(null);
-  // processDirect ağ/timeout hatasında (sunucu charge'ı işlemiş olabilir) true olur;
+  // directForm ağ/timeout hatasında (sunucu charge'ı işlemiş olabilir) true olur;
   // 3DS WebView olmadan da poll useEffect'ini devreye alır.
   const [verifying, setVerifying] = useState(false);
 
@@ -89,7 +96,7 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
     onFailRef.current?.();
   };
 
-  // 3DS WebView açıkken VEYA processDirect ağ/timeout hatası sonrası (verifying) ödeme
+  // 3DS WebView açıkken VEYA directForm ağ/timeout hatası sonrası (verifying) ödeme
   // durumunu yokla. PayTR'ın dönüş yönlendirmesi (merchant_ok_url) WebView içinde her zaman
   // /payment/success URL'ine ulaşmayabilir; bu durumda kullanıcı PayTR'ın "ödeme alınıyor"
   // sayfasında SONSUZA DEK takılıyordu. Ayrıca timeout durumunda sunucu charge'ı işlemiş
@@ -175,55 +182,60 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
   async function submit() {
     if (processing) return;
 
-    let body: any;
+    let body: {
+      orderId?: string;
+      checkoutGroupId?: string;
+      tradeId?: string;
+      savedCardId?: string;
+      saveCard?: boolean;
+    };
+    let cardFields: { name: string; value: string }[];
+
     if (selected === NEW_CARD) {
       const err = validateNewCard();
       if (err) {
         appAlert('Eksik bilgi', err);
         return;
       }
-      body = {
-        ...target,
-        card: {
-          cardHolderName: holder.trim(),
-          cardNumber: digitsOnly(number),
-          expireMonth: expMonth,
-          expireYear: expYear,
-          cvc,
-        },
-        saveCard: recurringEnabled && saveCard,
-      };
+      body = { ...target, saveCard: recurringEnabled && saveCard };
+      cardFields = cardFieldsForNewCard({
+        holder,
+        number,
+        expMonth,
+        expYear,
+        cvc,
+      });
     } else {
       if (selectedCard?.requireCvv && !/^\d{3,4}$/.test(savedCvv)) {
         appAlert('CVV gerekli', 'Bu kart için CVV girin');
         return;
       }
-      body = {
-        ...target,
-        savedCardId: selected,
-        ...(selectedCard?.requireCvv ? { cvv: savedCvv } : {}),
-      };
+      body = { ...target, savedCardId: selected };
+      cardFields = cardFieldsForSavedCard(selectedCard?.requireCvv ? savedCvv : undefined);
     }
 
     setProcessing(true);
     try {
-      const res: any = await paymentsApi.processDirect(body);
+      const res = await paymentsApi.directForm(body);
       const data = res.data;
       setPaymentId(data.paymentId);
 
-      if (data.threeDSHtml) {
-        setThreeDSHtml(data.threeDSHtml); // 3D WebView göster
-        setProcessing(false);
-        return;
-      }
-      if (data.status === 'failed') {
-        appAlert('Ödeme başarısız', data.reason || 'Ödeme tamamlanamadı');
-        setProcessing(false);
-        resolveFail();
-        return;
-      }
-      resolveSuccess(data.paymentId);
+      // İki güvenlik kontrolü: hedef tam olarak PayTR mı, sunucu ham kart alanı
+      // gönderiyor mu. Başarısızsa akış İPTAL edilir (kart bilgisi hiçbir yere gitmez).
+      assertSafePaytrForm(data);
+
+      const savedCardCvvRequired = data.savedCard === true && data.requireCvv === false;
+      const fields = savedCardCvvRequired ? data.fields : [...data.fields, ...cardFields];
+      setThreeDSHtml(buildPaytrFormHtml(PAYTR_ACTION, fields));
+      setProcessing(false);
+      return;
     } catch (e: any) {
+      // Güvenlik doğrulaması reddi — tekrar denemek çözmez, kullanıcıya net söyle.
+      if (e?.code === 'PAYTR_BAD_ACTION' || e?.code === 'PAYTR_RAW_CARD_FIELD' || e?.code === 'PAYTR_NO_FIELDS') {
+        appAlert('Ödeme durduruldu', e.message);
+        setProcessing(false);
+        return;
+      }
       // Ağ/timeout hatası (30sn client-timeout dahil): sunucudan yanıt YOK demek, sunucu
       // charge'ı işlemiş olabilir. Gerçek API reddi (4xx/5xx yanıtlı) bu değildir.
       const isNetworkOrTimeout = e?.code === 'ECONNABORTED' || !e?.response;
@@ -331,12 +343,14 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
           {selected === NEW_CARD && (
             <View style={styles.newCard}>
               <Input
+                testID="card-holder"
                 placeholder="Kart üzerindeki isim"
                 value={holder}
                 onChangeText={setHolder}
                 autoCapitalize="characters"
               />
               <Input
+                testID="card-number"
                 placeholder="Kart numarası"
                 keyboardType="number-pad"
                 maxLength={16}
@@ -345,6 +359,7 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
               />
               <View style={styles.expRow}>
                 <Input
+                  testID="card-exp-month"
                   containerStyle={styles.expField}
                   placeholder="AA"
                   keyboardType="number-pad"
@@ -353,6 +368,7 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
                   onChangeText={(t) => setExpMonth(digitsOnly(t).slice(0, 2))}
                 />
                 <Input
+                  testID="card-exp-year"
                   containerStyle={styles.expField}
                   placeholder="YY"
                   keyboardType="number-pad"
@@ -361,6 +377,7 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
                   onChangeText={(t) => setExpYear(digitsOnly(t).slice(0, 4))}
                 />
                 <Input
+                  testID="card-cvc"
                   containerStyle={styles.expField}
                   placeholder="CVV"
                   keyboardType="number-pad"
@@ -383,6 +400,7 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
       )}
 
       <Button
+        testID="card-submit"
         onPress={submit}
         isLoading={processing}
         disabled={loadingCards}

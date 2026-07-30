@@ -1,4 +1,5 @@
 import { api, guestApi } from './client';
+import type { DirectFormResponse } from '@/lib/payment/paytrDirectForm';
 
 // Addresses API - Web ile aynı endpoint'ler
 export const addressesApi = {
@@ -78,23 +79,19 @@ export const paymentsApi = {
   retry: (paymentId: string) =>
     api.post(`/payments/${paymentId}/retry`),
   /**
-   * Direct API (TEK ödeme yolu; misafir + üye): kendi kart formumuzdan ödeme.
-   * Yeni kart → 3DS HTML döner (WebView'de gösterilir); kayıtlı kart → Non3D anında status
-   * (PAYTR_RECURRING_ENABLED açıkken).
+   * Direct API (TEK ödeme yolu; misafir + üye). Sunucu İMZALI form alanlarını döner;
+   * kart alanlarını İSTEMCİ ekler ve WebView doğrudan PayTR'ye POST eder.
+   *
+   * Gövdeye kart verisi KOYULAMAZ: backend `assertNoRawCardData` ile gövdenin her
+   * seviyesinde kart alan adlarını arar ve 400 döner. (Eski `POST /payments/process-direct`
+   * API'den kaldırıldı; kart-verisi sınırı testi varlığını yasaklıyor.)
    */
-  processDirect: (body: {
+  directForm: (body: {
+    paymentId?: string;
     orderId?: string;
     checkoutGroupId?: string;
     tradeId?: string;
-    card?: {
-      cardHolderName: string;
-      cardNumber: string;
-      expireMonth: string;
-      expireYear: string;
-      cvc: string;
-    };
     savedCardId?: string;
-    cvv?: string;
     saveCard?: boolean;
-  }) => api.post('/payments/process-direct', body),
+  }) => api.post<DirectFormResponse>('/payments/direct-form', body),
 };
