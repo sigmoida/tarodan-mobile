@@ -2,15 +2,15 @@ import { Platform } from 'react-native';
 import { buildShareContent, productShareUrl, collectionShareUrl } from '../share';
 
 describe('share urls', () => {
-  it('points product links at the real tarodan.shop domain', () => {
+  it('points product links at the real tarodan.com.tr domain', () => {
     // EXPO_PUBLIC_WEB_URL test ortamında set değil → güvenli fallback kullanılmalı.
-    expect(productShareUrl('abc123')).toBe('https://tarodan.shop/listings/abc123');
-    expect(collectionShareUrl('col-1')).toBe('https://tarodan.shop/collections/col-1');
+    expect(productShareUrl('abc123')).toBe('https://tarodan.com.tr/listings/abc123');
+    expect(collectionShareUrl('col-1')).toBe('https://tarodan.com.tr/collections/col-1');
   });
 });
 
 describe('buildShareContent', () => {
-  const url = 'https://tarodan.shop/listings/abc123';
+  const url = 'https://tarodan.com.tr/listings/abc123';
   const text = 'Tomica Toyota Hilux - ₺130,38\n\nTarodan\'da bu ürüne göz atın!';
 
   afterEach(() => {

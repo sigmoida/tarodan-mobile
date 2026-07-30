@@ -36,7 +36,7 @@ function webAssetHost(): string {
   if (webUrl) return webUrl.replace(/\/+$/, '');
   // Standalone/production: hostUri undefined → localhost DEĞİL, prod web host kullan.
   if (process.env.EXPO_PUBLIC_ENVIRONMENT && process.env.EXPO_PUBLIC_ENVIRONMENT !== 'development') {
-    return 'https://tarodan.shop';
+    return 'https://tarodan.com.tr';
   }
   const expoHost = Constants.expoConfig?.hostUri?.split(':')[0];
   if (expoHost) return `http://${expoHost}:3000`;

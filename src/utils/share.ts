@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import type { ShareContent, ShareOptions } from 'react-native';
 
-const WEB_URL = (process.env.EXPO_PUBLIC_WEB_URL || 'https://tarodan.shop').replace(/\/+$/, '');
+const WEB_URL = (process.env.EXPO_PUBLIC_WEB_URL || 'https://tarodan.com.tr').replace(/\/+$/, '');
 
 export const productShareUrl = (id: string) => `${WEB_URL}/listings/${id}`;
 export const collectionShareUrl = (id: string) => `${WEB_URL}/collections/${id}`;

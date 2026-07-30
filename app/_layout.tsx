@@ -19,6 +19,7 @@ import {
   registerForPushNotifications,
   setupPushNotificationRouting,
 } from "@/services/push";
+import { setupDeepLinkRouting } from "@/services/deepLinks";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { initSentry } from "@/services/sentry";
 import AnimatedSplash from "@/components/AnimatedSplash";
@@ -126,6 +127,9 @@ export default function RootLayout() {
       teardown();
     };
   }, []);
+
+  // Wire universal link + custom scheme deep-link routing (cold start + foreground).
+  useEffect(() => setupDeepLinkRouting(), []);
 
   return (
     <ErrorBoundary>

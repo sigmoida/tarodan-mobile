@@ -16,7 +16,7 @@ export function getWebPublicAssetUrl(path: string): string {
   if (webUrl) return `${webUrl.replace(/\/+$/, '')}${normalized}`;
   // Standalone/production: hostUri undefined → localhost DEĞİL, prod web host kullan.
   if (process.env.EXPO_PUBLIC_ENVIRONMENT && process.env.EXPO_PUBLIC_ENVIRONMENT !== 'development') {
-    return `https://tarodan.shop${normalized}`;
+    return `https://tarodan.com.tr${normalized}`;
   }
 
   const expoHost = Constants.expoConfig?.hostUri?.split(':')[0];
