@@ -207,4 +207,9 @@ export const qk = {
     check: (platform: string, version: string) =>
       ["app-config", platform, version] as const,
   },
+
+  sellerDocuments: {
+    list: ["seller-documents"] as const,
+    application: ["seller-documents", "application"] as const,
+  },
 } as const;

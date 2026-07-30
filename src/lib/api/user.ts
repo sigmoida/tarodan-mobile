@@ -73,25 +73,51 @@ export const userApi = {
 
 /** Kurumsal satıcı başvuru belgeleri — backend: /users/me/seller-documents */
 export const sellerDocumentsApi = {
+  /** Belge slotları (presigned URL'lerle). */
   list: () =>
     api.get<
       Array<{
         id: string;
         documentType: string;
         fileName: string;
-        status: "pending" | "approved" | "rejected";
+        status: "pending" | "approved" | "rejected" | "revision_requested" | "appealed";
         uploadedAt: string;
+        version?: number;
+        reviewNote?: string | null;
+        stakeholderId?: string | null;
+        url?: string | null;
       }>
     >("/users/me/seller-documents"),
-  /** multipart/form-data: `file` + `documentType` */
-  upload: (documentType: string, file: { uri: string; name: string; type: string }) => {
+  /**
+   * multipart/form-data: `file` + `documentType` (+ paydaş kimlik belgelerinde
+   * `stakeholderId`). Kabul: application/pdf, jpeg, png, webp; ≤10 MB.
+   */
+  upload: (
+    documentType: string,
+    file: { uri: string; name: string; type: string },
+    stakeholderId?: string,
+  ) => {
     const formData = new FormData();
     formData.append("documentType", documentType);
-    formData.append("file", file as any);
+    if (stakeholderId) formData.append("stakeholderId", stakeholderId);
+    formData.append("file", file as unknown as Blob);
     return api.post("/users/me/seller-documents", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
+  /** Başvuru yoksa backend 400/404 döner — çağıran taraf "başvuru yok" olarak ele alır. */
+  getApplication: () => api.get("/users/me/seller-documents/application"),
+  updateApplication: (data: Record<string, string | undefined>) =>
+    api.patch("/users/me/seller-documents/application", data),
+  addStakeholder: (data: {
+    fullName: string;
+    identityType: "tckn" | "passport";
+    identityNumber?: string;
+  }) => api.post("/users/me/seller-documents/application/stakeholders", data),
+  submit: () => api.post("/users/me/seller-documents/application/submit"),
+  /** Belge kararına itiraz. */
+  appeal: (documentId: string, note: string) =>
+    api.post(`/users/me/seller-documents/${documentId}/appeal`, { note }),
 };
 
 // Seller Bank Account (IBAN) — backend: GET/PATCH/DELETE /users/me/bank-account
