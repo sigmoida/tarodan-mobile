@@ -20,6 +20,10 @@
 type Filters = Record<string, unknown> | undefined;
 
 export const qk = {
+  auth: {
+    corporateInvitation: (token: string) => ['auth', 'corporate-invitation', token] as const,
+  },
+
   products: {
     all: ["products"] as const,
     list: (filters?: Filters) => ["products", "list", filters] as const,

@@ -53,6 +53,24 @@ export const authApi = {
   verifyEmail: (token: string) =>
     guestApi.post('/auth/verify-email', { token }),
   resendVerification: (email: string) => api.post('/auth/resend-verification', { email }),
+  /**
+   * Kurumsal davet doğrulama (public, throttle 20/dk). Geçersiz/süresi dolmuş
+   * davette **400** döner — bu durumda form gösterilmez.
+   */
+  getCorporateInvitation: (token: string) =>
+    guestApi.get<{ companyTitle: string; companyEmail: string; expiresAt: string }>(
+      '/auth/corporate-invitation',
+      { params: { token } },
+    ),
+  /**
+   * Kurumsal hesabın kullanıcı adı + ilk şifresini belirle (public, throttle 5/dk).
+   * Kullanıcı adı BİR KEZ belirlenir, değiştirilemez.
+   */
+  activateCorporateInvitation: (data: {
+    token: string;
+    username: string;
+    password: string;
+  }) => guestApi.post('/auth/corporate-invitation/activate', data),
   /** Şifre değiştirme — backend `security` modülüne taşındı. */
   changePassword: (currentPassword: string, newPassword: string) =>
     api.post('/security/password/change', { currentPassword, newPassword }),
