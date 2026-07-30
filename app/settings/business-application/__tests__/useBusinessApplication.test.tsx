@@ -43,6 +43,16 @@ it('başvuru yoksa isMissing true olur', async () => {
   expect(result.current.isMissing).toBe(true);
 });
 
+it('500 hatasında isMissing false, loadError true olur', async () => {
+  (sellerDocumentsApi.getApplication as jest.Mock).mockRejectedValue({
+    response: { status: 500 },
+  });
+  const { result } = renderHook(() => useBusinessApplication(), { wrapper });
+  await waitFor(() => expect(result.current.isLoading).toBe(false));
+  expect(result.current.isMissing).toBe(false);
+  expect(result.current.loadError).toBe(true);
+});
+
 it('under_review iken kilitlidir', async () => {
   (sellerDocumentsApi.getApplication as jest.Mock).mockResolvedValue({
     data: { id: 'app-1', status: 'under_review', stakeholders: [] },

@@ -22,6 +22,12 @@ const errorText = (e: unknown, fallback: string) => {
   return Array.isArray(raw) ? raw.join('\n') : raw || fallback;
 };
 
+/** Başvuru sorgusu 400/404 döndüyse "henüz başvuru yok" demektir; başka bir hata değil. */
+const isMissingStatus = (e: unknown) => {
+  const status = (e as { response?: { status?: number } })?.response?.status;
+  return status === 400 || status === 404;
+};
+
 /**
  * Kurumsal başvuru controller'ı — başvuru + belge sorgularını, üç mutation'ı
  * (detay kaydet, paydaş ekle, incelemeye gönder) ve sekme durumunu sahiplenir.
@@ -131,8 +137,10 @@ export function useBusinessApplication() {
     documents,
     stakeholders,
     isLoading: applicationQuery.isLoading || documentsQuery.isLoading,
-    /** Backend 400/404 → henüz başvuru oluşmamış. */
-    isMissing: applicationQuery.isError,
+    /** Backend 400/404 → henüz başvuru oluşmamış. Diğer hatalar `loadError`'a düşer. */
+    isMissing: isMissingStatus(applicationQuery.error),
+    /** 400/404 dışındaki hatalar (500, ağ hatası, ...) — "başvuru yok" değil, gerçek hata. */
+    loadError: applicationQuery.isError && !isMissingStatus(applicationQuery.error),
     isLocked,
     tab,
     setTab,
