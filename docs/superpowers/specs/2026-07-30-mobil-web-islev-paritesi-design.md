@@ -252,14 +252,21 @@ donuyor — modal mutation'dan **önce** kapatılır.
 
 Bu spec tek bir plan için fazla geniş. Uygulama planları faz başına ayrı yazılır:
 
-1. **Plan 1 — Faz 0 + Faz 1 (P0):** ortam düzeltmesi, ödeme ucu, 2FA, derin bağlantı,
-   kurumsal davet + belgeler. Sonunda test edilebilir bir sürüm.
-2. **Plan 2 — Layout denetimi:** tarama → rapor → düzeltme. Faz 1 ile paralel
-   yürütülebilir (dosya çakışması riski düşük; farklı katmanlar).
-3. **Plan 3 — Faz 2 (P1)**
-4. **Plan 4 — Faz 3 (P2)**
+1. **Plan 1 — Faz 0 + Faz 1 (P0):** ortam düzeltmesi (yalnız staging; production
+   adresi ayarlanır ama doğrulaması ertelenir), ödeme ucu, 2FA, derin bağlantı,
+   kurumsal davet + belgeler.
+2. **Plan 2 — Faz 2 (P1)**
+3. **Plan 3 — Faz 3 (P2)**
+4. **Plan 4 — Layout denetimi:** tarama → rapor → düzeltme. **En sonda**, çünkü
+   Faz 1–3 yeni ekran ekleyip mevcutlara dokunuyor; denetimi sona bırakmak aynı
+   düzeltmeyi iki kez yapmayı önler.
 
-Her plan kendi spec → plan → uygulama turunu tamamlar; sıra bu spec'teki önceliktir.
+**İstisna:** bir layout kayması P0 akışlarının elle test edilmesini engelliyorsa
+o kayma ilgili fazda yerinde düzeltilir, Plan 4'e bırakılmaz.
+
+Production doğrulaması (master branch CI deploy'u) tüm planların dışında, ayrı bir iş.
+
+Her plan kendi plan → uygulama turunu tamamlar; sıra bu spec'teki önceliktir.
 
 ---
 
