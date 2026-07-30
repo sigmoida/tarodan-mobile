@@ -3087,23 +3087,44 @@ Create `app/settings/__tests__/business-application-link.test.tsx`:
 
 ```tsx
 /**
- * Kurumsal başvuru ekranına erişim. Menüde giriş yoksa ekran "yok" sayılır;
- * ayrıca business-pending ekranında çıkış yolu bulunmalı.
+ * Kurumsal başvuru ekranına erişim — DAVRANIŞ testi: menü satırına basıldığında
+ * gerçekten o rotaya gidiliyor mu. (Kaynak metni taramak kırılgan olurdu: dosya
+ * taşınınca ya da satır başka bir bileşene çıkınca yanlış sonuç verir.)
  */
-import fs from 'fs';
-import path from 'path';
+import React from 'react';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { renderWithProviders } from '@/test-utils';
 
-const ROOT = path.resolve(__dirname, '../../..');
-const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+const mockPush = jest.fn();
+jest.mock('expo-router', () => ({
+  router: { push: (r: string) => mockPush(r), replace: jest.fn(), back: jest.fn(), canGoBack: () => true },
+  useRouter: () => ({ push: (r: string) => mockPush(r) }),
+  Link: ({ children }: any) => children,
+}));
 
-it('ayarlar menüsü kurumsal başvuru ekranına bağlanır', () => {
-  expect(read('app/settings/index.tsx')).toContain('/settings/business-application');
+import SettingsScreen from '../index';
+import BusinessPendingScreen from '../../business-pending';
+
+beforeEach(() => jest.clearAllMocks());
+
+it('ayarlar menüsünden kurumsal başvuru ekranına gidilir', async () => {
+  renderWithProviders(<SettingsScreen />);
+  await waitFor(() => expect(screen.getByTestId('settings-business-application')).toBeTruthy());
+  fireEvent.press(screen.getByTestId('settings-business-application'));
+  expect(mockPush).toHaveBeenCalledWith('/settings/business-application');
 });
 
-it('business-pending ekranı başvuruya devam yolu sunar', () => {
-  expect(read('app/business-pending.tsx')).toContain('/settings/business-application');
+it('business-pending ekranından başvuruya devam edilir', async () => {
+  renderWithProviders(<BusinessPendingScreen />);
+  await waitFor(() => expect(screen.getByTestId('business-pending-continue')).toBeTruthy());
+  fireEvent.press(screen.getByTestId('business-pending-continue'));
+  expect(mockPush).toHaveBeenCalledWith('/settings/business-application');
 });
 ```
+
+> Her iki ekran da başka store/sorgu bağımlılığı taşıyorsa (`useAuthStore`,
+> React Query) bunları mevcut ekran testlerindeki mock desenine uyarak ekle —
+> `app/settings/__tests__/` altındaki bir teste bak ve aynı kurulumu kullan.
 
 - [ ] **Step 2: Testi çalıştır, başarısız olduğunu gör**
 
@@ -3116,8 +3137,9 @@ Expected: FAIL — rota dizesi bulunamıyor
 
 - Etiket: `Kurumsal Başvuru`
 - Açıklama/alt metin: `Belgeler, paydaşlar ve başvuru durumu`
-- Hedef: `/settings/business-application`
+- Hedef: `/settings/business-application` (`router.push` ile)
 - İkon: mevcut satırların kullandığı `Ionicons` setinden `document-text-outline`
+- **`testID="settings-business-application"`**
 
 - [ ] **Step 4: `business-pending` ekranına çıkış yolu ekle**
 
@@ -3125,6 +3147,7 @@ Expected: FAIL — rota dizesi bulunamıyor
 
 - Etiket: `Başvurumu tamamla`
 - Aksiyon: `router.push('/settings/business-application')`
+- **`testID="business-pending-continue"`**
 
 Ekranda hâlihazırda **çıkış yap** ve **destek** aksiyonları yoksa onları da ekle (`docs/mobile-parity/01` §10 üç durum ekranı için ikisini de şart koşuyor).
 
