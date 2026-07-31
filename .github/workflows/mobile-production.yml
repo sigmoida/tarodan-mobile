@@ -1,6 +1,8 @@
 name: Mobile Production Release (EAS Build + Submit)
 
-# master push -> prod build + submit (mevcut Tarodan app: TestFlight + Play internal).
+# master push -> prod iOS build + submit (mevcut Tarodan app: TestFlight).
+# Android ERTELENDİ (spec 2026-07-31 §7): Play service account + Firebase
+# çift-client google-services.json hazır olunca --platform android geri eklenir.
 # VERSION-GATE: submit yalnızca app.json expo.version bu push'ta DEĞİŞTİYSE çalışır
 # (her master merge'i build tetiklemez — deliberate release). workflow_dispatch ile
 # elle de tetiklenebilir. Guard: EXPO_TOKEN yoksa no-op.
@@ -22,7 +24,7 @@ concurrency:
 
 jobs:
   build-and-submit:
-    name: EAS Build + Submit (iOS & Android)
+    name: EAS Build + Submit (iOS)
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -71,12 +73,9 @@ jobs:
       - name: Install
         if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || github.event_name == 'workflow_dispatch')
         run: pnpm install --frozen-lockfile
-      - name: EAS build (iOS + Android, production)
+      - name: EAS build (iOS, production)
         if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || github.event_name == 'workflow_dispatch')
-        run: eas build --platform all --profile production --non-interactive --wait
+        run: eas build --platform ios --profile production --non-interactive --wait
       - name: EAS submit — iOS (TestFlight, mevcut app)
         if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || (github.event_name == 'workflow_dispatch' && inputs.submit))
         run: eas submit --platform ios --profile production --latest --non-interactive
-      - name: EAS submit — Android (Play internal)
-        if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || (github.event_name == 'workflow_dispatch' && inputs.submit))
-        run: eas submit --platform android --profile production --latest --non-interactive
