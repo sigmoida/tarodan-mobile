@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { adsApi, membershipApi, type ActiveAd } from '@/lib/api';
+import { adsApi, type ActiveAd } from '@/lib/api';
 import { qk } from '@/lib/query';
-import { useAuthStore } from '@/stores/authStore';
+import { useMembershipLimits } from './useMembershipLimits';
 
 /** Bu istemcide gösterilebilecek cihaz hedefleri. */
 const DEVICE_TARGETS = ['all', 'mobile'];
@@ -18,22 +18,8 @@ const DEVICE_TARGETS = ['all', 'mobile'];
  * sabit tier tablosundan değil (yönetici limitleri değiştirebilir).
  */
 export function useAds(position: string) {
-  const { isAuthenticated } = useAuthStore();
-
-  const limitsQuery = useQuery({
-    queryKey: qk.membershipLimits.mine,
-    enabled: isAuthenticated,
-    staleTime: 5 * 60_000,
-    queryFn: async () => {
-      try {
-        const res = await membershipApi.getLimits();
-        return ((res.data as any)?.data ?? res.data ?? null) as { isAdFree?: boolean } | null;
-      } catch {
-        return null;
-      }
-    },
-  });
-  const isAdFree = limitsQuery.data?.isAdFree === true;
+  const { limits } = useMembershipLimits();
+  const isAdFree = limits?.isAdFree === true;
 
   const adsQuery = useQuery({
     queryKey: qk.ads.active,

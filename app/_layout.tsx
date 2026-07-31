@@ -12,6 +12,7 @@ import Constants from "expo-constants";
 import { theme, AlertDialogHost } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
 import { useCartMergeOnLogin } from '@/hooks/useServerCart';
+import { useMembershipLimits } from '@/hooks/useMembershipLimits';
 import { useMessagingSocket } from "@/hooks/messaging";
 // Paylaşılan QueryClient — logout'ta resetUserStores aynı örneği temizler.
 import { queryClient } from "@/lib/queryClient";
@@ -73,6 +74,7 @@ function MessagingSocketBridge() {
 /** Misafirken eklenen sepet satırlarını giriş sonrası sunucu sepetine taşır. */
 function CartMergeBridge() {
   useCartMergeOnLogin();
+  useMembershipLimits();
   return null;
 }
 

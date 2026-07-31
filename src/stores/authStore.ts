@@ -93,12 +93,26 @@ export interface MembershipLimits {
   isAdFree: boolean;
 }
 
+/** Sunucunun sağladığı hak alanları. Sağlanmayan alan için anahtar HİÇ
+ *  konmaz; `{ ...TIER_LIMITS[tier], ...override }` bindirmesinde o alan
+ *  sabit tablodan gelmeye devam eder. */
+export type ServerLimitsOverride = Partial<
+  Pick<
+    MembershipLimits,
+    'maxListings' | 'maxImagesPerListing' | 'canCreateCollections' | 'canTrade' | 'isAdFree'
+  >
+>;
+
 interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: User | null;
   token: string | null;
   limits: MembershipLimits | null;
+  /** Sunucudan gelen hak bindirmesi (GET /membership/me/limits).
+   *  Fetch'i useMembershipLimits yapar; store yalnız tutar. */
+  serverLimits: ServerLimitsOverride | null;
+  setServerLimits: (v: ServerLimitsOverride) => void;
 
   // Actions
   login: (token: string, user: User, refreshToken?: string) => Promise<void>;
@@ -185,6 +199,13 @@ const TIER_LIMITS: Record<MembershipTier, MembershipLimits> = {
     isAdFree: true,
   },
 };
+
+/** Sabit tier tablosu + sunucu bindirmesi. Sunucu bir alanı vermiyorsa
+ *  o alan TIER_LIMITS'ten gelir (ör. maxAddresses, maxSavedSearches). */
+const mergeLimits = (
+  tier: MembershipTier,
+  override: ServerLimitsOverride | null,
+): MembershipLimits => ({ ...TIER_LIMITS[tier], ...(override ?? {}) });
 
 // Helper to extract membership tier from various API formats
 const extractMembershipTier = (apiUser: any): MembershipTier => {
@@ -319,6 +340,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: null,
   limits: null,
+  serverLimits: null,
+
+  setServerLimits: (v: ServerLimitsOverride) => {
+    const tier = get().user?.membershipTier || "free";
+    set({ serverLimits: v, limits: mergeLimits(tier, v) });
+  },
 
   login: async (token: string, user: User, refreshToken?: string) => {
     await SecureStore.setItemAsync("accessToken", token);
@@ -326,7 +353,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await SecureStore.setItemAsync("refreshToken", refreshToken);
     }
     const mappedUser = mapApiUserToUser(user);
-    const limits = TIER_LIMITS[mappedUser.membershipTier];
+    const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
     console.log("🔐 Auth stored - Tier:", mappedUser.membershipTier);
     set({ isAuthenticated: true, token, user: mappedUser, limits });
     // Tag every subsequent Sentry event with the active user.
@@ -390,7 +417,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // Web ile aynı endpoint: GET /users/me
         const response = await userApi.getProfile();
         const mappedUser = mapApiUserToUser(response.data);
-        const limits = TIER_LIMITS[mappedUser.membershipTier];
+        const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
         set({
           isAuthenticated: true,
           token,
@@ -463,7 +490,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const currentUser = get().user;
     if (currentUser) {
       const updatedUser = { ...currentUser, ...userData };
-      const limits = TIER_LIMITS[updatedUser.membershipTier];
+      const limits = mergeLimits(updatedUser.membershipTier, get().serverLimits);
       set({ user: updatedUser, limits });
     }
   },
@@ -473,7 +500,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const response = await userApi.getProfile();
       const mappedUser = mapApiUserToUser(response.data);
-      const limits = TIER_LIMITS[mappedUser.membershipTier];
+      const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
       set({ user: mappedUser, limits });
     } catch (error) {
       console.error("Failed to refresh user data:", error);
@@ -521,9 +548,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   getMembershipLimits: () => {
-    const { user } = get();
-    const tier = user?.membershipTier || "free";
-    return TIER_LIMITS[tier];
+    const { user, serverLimits } = get();
+    return mergeLimits(user?.membershipTier || "free", serverLimits);
   },
 }));
 
