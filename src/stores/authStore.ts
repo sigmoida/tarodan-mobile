@@ -387,7 +387,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
     await SecureStore.deleteItemAsync("accessToken");
     await SecureStore.deleteItemAsync("refreshToken");
-    set({ isAuthenticated: false, token: null, user: null, limits: null });
+    set({ isAuthenticated: false, token: null, user: null, limits: null, serverLimits: null });
     // Kullanıcıya özel yerel state (sepet/favori/mesaj rozetleri, query cache).
     // Lazy require: messagesStore → authStore import zinciriyle döngü oluşmasın.
     const { resetUserStores } = require("./resetUserStores");
@@ -408,6 +408,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           token: null,
           user: null,
           limits: null,
+          serverLimits: null,
           isLoading: false,
         });
         return;
@@ -461,6 +462,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             token: null,
             user: null,
             limits: null,
+            serverLimits: null,
             isLoading: false,
           });
         }
@@ -481,6 +483,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         token: null,
         user: null,
         limits: null,
+        serverLimits: null,
         isLoading: false,
       });
     }
