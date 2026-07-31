@@ -19,7 +19,7 @@ jest.mock('@/lib/api', () => ({
   api: { get: jest.fn() },
   paymentsApi: { getMyPayments: jest.fn() },
 }));
-import { api } from '@/lib/api';
+import { paymentsApi } from '@/lib/api';
 
 let mockIsAuthenticated = true;
 jest.mock('@/stores/authStore', () => ({
@@ -28,7 +28,7 @@ jest.mock('@/stores/authStore', () => ({
 
 import PaymentHistoryScreen from '../payment-history';
 
-const getMock = api.get as jest.Mock;
+const getMock = paymentsApi.getMyPayments as jest.Mock;
 
 function payment(overrides: Record<string, unknown> = {}) {
   return {
