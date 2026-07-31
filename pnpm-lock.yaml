@@ -23,7 +23,7 @@ importers:
         version: 15.1.1(expo-font@14.0.12(expo@54.0.36)(react-native@0.81.5(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       '@hookform/resolvers':
         specifier: ^3.6.0
-        version: 3.10.0(react-hook-form@7.82.0(react@19.1.0))
+        version: 3.10.0(react-hook-form@7.83.0(react@19.1.0))
       '@react-native-async-storage/async-storage':
         specifier: 2.2.0
         version: 2.2.0(react-native@0.81.5(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.1.17)(react@19.1.0))
@@ -118,8 +118,8 @@ importers:
         specifier: 19.1.0
         version: 19.1.0(react@19.1.0)
       react-hook-form:
-        specifier: ^7.81.0
-        version: 7.82.0(react@19.1.0)
+        specifier: ^7.83.0
+        version: 7.83.0(react@19.1.0)
       react-i18next:
         specifier: ^15.7.4
         version: 15.7.4(i18next@24.2.3(typescript@5.9.3))(react-dom@19.1.0(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
@@ -4921,8 +4921,8 @@ packages:
     peerDependencies:
       react: '>=17.0.0'
 
-  react-hook-form@7.82.0:
-    resolution: {integrity: sha512-Zw/uFZ2dO+02GHlBn7JFGn8kZJ7LdM33B/0BXOovzFay+CMhf94JMw5BVu+F1tVkUKjNvBuaE3fz5BJhga10Tg==}
+  react-hook-form@7.83.0:
+    resolution: {integrity: sha512-AXt8cMCmx5a7u4uvpb2uRFVrWQhllI4pV+LSykxIac/hjt44TnQkmX9BKuQi2i+LDC62esmiLpilkav+kjVf/A==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       react: ^16.8.0 || ^17 || ^18 || ^19
@@ -7398,9 +7398,9 @@ snapshots:
     dependencies:
       '@hapi/hoek': 9.3.0
 
-  '@hookform/resolvers@3.10.0(react-hook-form@7.82.0(react@19.1.0))':
+  '@hookform/resolvers@3.10.0(react-hook-form@7.83.0(react@19.1.0))':
     dependencies:
-      react-hook-form: 7.82.0(react@19.1.0)
+      react-hook-form: 7.83.0(react@19.1.0)
 
   '@humanwhocodes/config-array@0.13.0':
     dependencies:
@@ -12191,7 +12191,7 @@ snapshots:
     dependencies:
       react: 19.1.0
 
-  react-hook-form@7.82.0(react@19.1.0):
+  react-hook-form@7.83.0(react@19.1.0):
     dependencies:
       react: 19.1.0
 
