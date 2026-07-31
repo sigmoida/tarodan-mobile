@@ -28,6 +28,9 @@ export const userApi = {
     ),
   /** Hesabı sil (kullanıcının kendi). Backend: DELETE /users/me */
   deleteAccount: () => api.delete("/users/me"),
+  /** Değiştirilemez kullanıcı adını bir kez belirle — PATCH /users/me/username. */
+  claimUsername: (username: string) =>
+    api.patch<{ username: string; usernameClaimed: boolean }>("/users/me/username", { username }),
   /** İşletme dashboard istatistikleri — YALNIZ işletme hesapları (backend 400 döner aksi halde).
    *  Backend: GET /users/me/business-stats */
   getStats: () => api.get("/users/me/business-stats"),

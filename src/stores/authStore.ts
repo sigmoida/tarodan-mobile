@@ -72,6 +72,10 @@ export interface User {
   reputationLevel?:
     "rising_star" | "trusted_seller" | "elite_collector" | "hall_of_fame";
   specialRecognitions?: string[];
+
+  // Kullanıcı adı (bir kez belirlenir, değiştirilemez)
+  username?: string;
+  usernameClaimed?: boolean;
 }
 
 // Membership limits per tier

@@ -55,6 +55,13 @@ export default function EditProfileScreen() {
         />
 
         <Button
+          variant="ghost"
+          title="Kullanıcı Adı"
+          onPress={() => router.push('/settings/username' as never)}
+          testID="edit-profile-username"
+        />
+
+        <Button
           variant="primary"
           fullWidth
           title="Değişiklikleri Kaydet"
