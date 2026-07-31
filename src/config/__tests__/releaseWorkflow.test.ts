@@ -16,10 +16,12 @@ describe('mobile-production workflow', () => {
   it('yalnız iOS build eder — Android ertelendi', () => {
     expect(workflow).toContain('--platform ios --profile production');
     expect(workflow).not.toContain('--platform all');
+    expect(workflow).not.toContain('-p all');
   });
 
   it('Android submit adımı içermez', () => {
     expect(workflow).not.toContain('eas submit --platform android');
+    expect(workflow).not.toContain('eas submit -p android');
   });
 
   it('iOS submit adımı korunur', () => {

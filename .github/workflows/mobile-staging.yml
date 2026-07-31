@@ -66,7 +66,11 @@ jobs:
             echo "Merge commit -> full build (safe)."
             echo "mode=build" >> "$GITHUB_OUTPUT"
           else
-            changed="$(git diff --name-only HEAD~1 HEAD)"
+            BASE="${{ github.event.before }}"
+            if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+              BASE="HEAD~1"
+            fi
+            changed="$(git diff --name-only "$BASE" HEAD)"
             echo "Changed:"; echo "$changed" | sed 's/^/  /'
             if echo "$changed" | grep -qE "$native_re"; then
               echo "mode=build" >> "$GITHUB_OUTPUT"

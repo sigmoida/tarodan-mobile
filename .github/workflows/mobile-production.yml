@@ -2,7 +2,7 @@ name: Mobile Production Release (EAS Build + Submit)
 
 # master push -> prod iOS build + submit (mevcut Tarodan app: TestFlight).
 # Android ERTELENDİ (spec 2026-07-31 §7): Play service account + Firebase
-# çift-client google-services.json hazır olunca --platform android geri eklenir.
+# çift-client google-services.json hazır olunca Android platformu geri eklenir.
 # VERSION-GATE: submit yalnızca app.json expo.version bu push'ta DEĞİŞTİYSE çalışır
 # (her master merge'i build tetiklemez — deliberate release). workflow_dispatch ile
 # elle de tetiklenebilir. Guard: EXPO_TOKEN yoksa no-op.
@@ -30,8 +30,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          # HEAD~1..HEAD diff (version-gate) için son iki commit gerekli.
-          fetch-depth: 2
+          # Version-gate github.event.before..HEAD taban commit'ini karşılaştırır;
+          # push N commit taşıyabildiği için tam geçmiş gerekir (bkz. BASE fallback).
+          fetch-depth: 0
       - name: Guard — skip if EXPO_TOKEN missing
         id: guard
         run: |
@@ -47,10 +48,16 @@ jobs:
         run: |
           set -euo pipefail
           # Sadece top-level expo.version'ı karşılaştır (nested "version" alanları
-          # false-trigger etmesin). fetch-depth: 2 → HEAD~1 erişilebilir.
+          # false-trigger etmesin). Taban commit push'un event.before'udur — HEAD~1
+          # yalnızca push tek commit taşıyorsa doğrudur; N-commit'lik push'larda
+          # HEAD~1 yanlış taban olur ve gate sessizce atlanır (bkz. github issue).
+          BASE="${{ github.event.before }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            BASE="HEAD~1"
+          fi
           CUR=$(node -p "require('./app.json').expo.version")
-          PREV=$(git show HEAD~1:app.json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).expo.version))")
-          echo "prev=$PREV cur=$CUR"
+          PREV=$(git show "$BASE:app.json" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).expo.version))")
+          echo "base=$BASE prev=$PREV cur=$CUR"
           if [ "$CUR" != "$PREV" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
             echo "::notice::expo.version $PREV -> $CUR — prod release devam."
