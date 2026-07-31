@@ -92,4 +92,10 @@ export const authApi = {
   sendPhoneCode: (phone: string) => api.post('/auth/phone/send-code', { phone }),
   /** SMS doğrulama kodunu doğrula */
   verifyPhone: (code: string) => api.post('/auth/phone/verify', { code }),
+  /** E-posta değişikliği kodu gönder — kod YENİ adrese gider (throttle 3/dk). */
+  requestEmailChange: (newEmail: string) =>
+    api.post<{ message: string }>('/auth/email/request-change', { newEmail }),
+  /** E-posta değişikliği kodunu doğrula (throttle 10/dk). */
+  verifyEmailChange: (code: string) =>
+    api.post<{ message: string; email: string }>('/auth/email/verify-change', { code }),
 };

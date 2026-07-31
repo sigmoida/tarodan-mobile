@@ -48,6 +48,13 @@ export default function EditProfileScreen() {
         <BusinessInfoCard f={f} />
 
         <Button
+          variant="ghost"
+          title="E-posta Değiştir"
+          onPress={() => router.push('/settings/email-change' as never)}
+          testID="edit-profile-email-change"
+        />
+
+        <Button
           variant="primary"
           fullWidth
           title="Değişiklikleri Kaydet"
