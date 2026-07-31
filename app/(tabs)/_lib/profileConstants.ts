@@ -34,6 +34,8 @@ export const quickActionItems: Array<{
   to: string;
   testID?: string;
   badgeKey?: QuickActionBadgeKey;
+  /** Yalnızca kurumsal hesaplarda göster (companyName + taxId var demek kurumsal). */
+  requiresBusiness?: boolean;
 }> = [
   { icon: 'pricetag', label: 'İlanlarım', to: '/settings/my-listings' },
   { icon: 'cube', label: 'Siparişlerim', to: '/orders', testID: 'profile-orders-link' },
@@ -51,5 +53,6 @@ export const quickActionItems: Array<{
     label: 'Kurumsal Başvuru',
     to: '/settings/business-application',
     testID: 'settings-business-application',
+    requiresBusiness: true,
   },
 ];

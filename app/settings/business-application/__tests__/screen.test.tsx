@@ -85,6 +85,19 @@ it('reddedilen belgede itiraz aksiyonu sunar', async () => {
   expect(screen.getByText('Okunmuyor')).toBeTruthy();
 });
 
+it('isMissing (404) durumunda sekmeleri değil yalnızca bilgi + geri dön gösterir', async () => {
+  (sellerDocumentsApi.getApplication as jest.Mock).mockRejectedValue({
+    response: { status: 404, data: { message: 'Not found' } },
+  });
+  renderWithProviders(<BusinessApplicationScreen />);
+  await waitFor(() => expect(screen.getByText(/Başvuru bulunamadı/i)).toBeTruthy());
+  expect(screen.queryByTestId('tab-details')).toBeNull();
+  expect(screen.queryByTestId('tab-stakeholders')).toBeNull();
+  expect(screen.queryByTestId('tab-documents')).toBeNull();
+  expect(screen.queryByTestId('details-taxId')).toBeNull();
+  expect(screen.getByTestId('business-application-missing-back')).toBeTruthy();
+});
+
 it('loadError durumunda ErrorState gösterir, "başvuru yok" demez', async () => {
   (sellerDocumentsApi.getApplication as jest.Mock).mockRejectedValue({
     response: { status: 500, data: { message: 'Sunucu hatası' } },

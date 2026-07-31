@@ -51,7 +51,14 @@ export default function BusinessRejectedScreen() {
         </View>
 
         <Button
+          testID="business-rejected-continue"
           variant="primary"
+          title="Başvurumu Düzelt"
+          onPress={() => router.push('/settings/business-application' as never)}
+          style={styles.button}
+        />
+        <Button
+          variant="outline"
           title="Destek Ekibiyle İletişime Geç"
           onPress={() => router.push('/contact')}
           style={styles.button}

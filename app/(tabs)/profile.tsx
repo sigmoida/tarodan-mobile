@@ -53,6 +53,7 @@ function ProfileScreen() {
         <ProfileGarageSection f={f} />
         <ProfileQuickActions
           badges={{ pendingOffers: badges.pendingOffers, pendingTrades: badges.pendingTrades }}
+          isBusiness={!!(f.user?.companyName && f.user?.taxId)}
         />
         <ProfileMenuSections f={f} />
 

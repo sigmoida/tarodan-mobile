@@ -270,7 +270,24 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
   if (threeDSHtml) {
     return (
       <View style={styles.webviewWrap}>
-        <Pressable onPress={() => { setThreeDSHtml(null); setProcessing(false); }} style={{ padding: theme.spacing[3], alignSelf: 'flex-end' }}>
+        <Pressable
+          testID="threeds-cancel"
+          onPress={() => {
+            setThreeDSHtml(null);
+            // paymentId varsa sert "başarısız" gösterme — poll/verify güvenlik ağı
+            // (yukarıdaki useEffect) devreye girip gerçek durumu doğrular. Kullanıcı
+            // bankada 3DS'i onaylamış olabilir; erken "başarısız" çift charge'a yol açar.
+            if (paymentId) {
+              // processing=true kalır (buton spinner'da) ki kullanıcı doğrulama
+              // tamamlanmadan tekrar ödeme başlatamasın.
+              setProcessing(true);
+              setVerifying(true);
+            } else {
+              setProcessing(false);
+            }
+          }}
+          style={{ padding: theme.spacing[3], alignSelf: 'flex-end' }}
+        >
           <Text style={{ color: colors.primary[600]!, fontWeight: '600' }}>Vazgeç</Text>
         </Pressable>
         <WebView

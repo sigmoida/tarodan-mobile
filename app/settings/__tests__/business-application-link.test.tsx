@@ -72,6 +72,17 @@ describe('business-pending — başvuruya devam', () => {
   });
 });
 
+describe('business-rejected — başvuruyu düzelt', () => {
+  it('"Başvurumu Düzelt" butonuna basınca /settings/business-application açılır', async () => {
+    mockUser = { companyName: 'Test AŞ', email: 'test@example.com' };
+    const BusinessRejectedScreen = require('../../business-rejected').default;
+    render(<BusinessRejectedScreen />);
+    await waitFor(() => expect(screen.getByTestId('business-rejected-continue')).toBeTruthy());
+    fireEvent.press(screen.getByTestId('business-rejected-continue'));
+    expect(mockPush).toHaveBeenCalledWith('/settings/business-application');
+  });
+});
+
 describe('BusinessMembershipGuard — pending kullanıcı business-application yolunda kilitlenmemeli', () => {
   it('/settings/business-application yolunda router.replace ÇAĞRILMAZ', async () => {
     mockUser = { companyName: 'Test AŞ', taxId: '1234567890', businessStatus: 'pending' };

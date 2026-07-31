@@ -218,15 +218,19 @@ export function ProfileGarageSection({ f }: SectionProps) {
 // ---------------------------------------------------------------------------
 export function ProfileQuickActions({
   badges,
+  isBusiness,
 }: {
   /** Bekleyen iş sayaçları (`useHomeBadges`). Verilmezse rozet çizilmez. */
   badges?: Partial<Record<QuickActionBadgeKey, number>>;
+  /** Kurumsal hesap mı (companyName + taxId var) — `requiresBusiness` öğelerini filtreler. */
+  isBusiness?: boolean;
 }) {
+  const items = quickActionItems.filter((q) => !q.requiresBusiness || isBusiness);
   return (
     <View style={styles.section}>
       <Text variant="h3">Hızlı Erişim</Text>
       <View style={styles.quickActions}>
-        {quickActionItems.map((q) => {
+        {items.map((q) => {
           const count = q.badgeKey ? (badges?.[q.badgeKey] ?? 0) : 0;
           return (
           <TouchableOpacity

@@ -108,6 +108,34 @@ it('action beklenmedikse WebView açmaz ve kullanıcıyı uyarır', async () => 
   expect(screen.queryByTestId('paytr-webview')).toBeNull();
 });
 
+it('3DS açıkken Vazgeç: sert başarısız saymaz, durum sorgulaması devreye girer ve ödendiyse başarı bildirir', async () => {
+  (paymentsApi.directForm as jest.Mock).mockResolvedValue({ data: signedResponse });
+  (paymentsApi.getStatusLight as jest.Mock).mockResolvedValue({
+    data: { status: 'completed' },
+  });
+  const onSuccess = jest.fn();
+  const onFail = jest.fn();
+  jest.useFakeTimers();
+  renderWithProviders(
+    <CardPaymentForm target={{ orderId: 'order-1' }} onSuccess={onSuccess} onFail={onFail} />,
+  );
+  await fillCardAndSubmit();
+  await waitFor(() => expect(screen.getByTestId('paytr-webview')).toBeTruthy());
+
+  fireEvent.press(screen.getByTestId('threeds-cancel'));
+
+  // WebView kapanır ama Vazgeç, ödemeyi "başarısız" olarak bildirmez.
+  expect(screen.queryByTestId('paytr-webview')).toBeNull();
+  expect(onFail).not.toHaveBeenCalled();
+
+  // Poll/verify güvenlik ağı devreye girer (setTimeout 3000ms) ve gerçek durumu doğrular.
+  await jest.advanceTimersByTimeAsync(3000);
+  await waitFor(() => expect(paymentsApi.getStatusLight).toHaveBeenCalledWith('pay-9'));
+  await waitFor(() => expect(onSuccess).toHaveBeenCalledWith('pay-9'));
+  expect(onFail).not.toHaveBeenCalled();
+  jest.useRealTimers();
+});
+
 it('sunucudan ham kart alanı gelirse akışı iptal eder', async () => {
   (paymentsApi.directForm as jest.Mock).mockResolvedValue({
     data: { ...signedResponse, fields: [{ name: 'card_number', value: 'x' }] },
