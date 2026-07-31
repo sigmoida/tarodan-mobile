@@ -9,7 +9,6 @@ export {
   ReputationScore,
   RatingBreakdown
 } from './ReputationBadge';
-export { FeaturedListingsModal } from './FeaturedListingsModal';
 export { ShareModal } from './ShareModal';
 export { default as RatingModal } from './RatingModal';
 export { default as ReportModal } from './ReportModal';

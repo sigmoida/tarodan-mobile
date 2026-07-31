@@ -35,7 +35,7 @@ export const productsApi = {
     api.patch(`/products/${id}`, data),
   delete: (id: string | number) =>
     api.delete(`/products/${id}`),
-  /** Backend: GET /products/my (web ile aynı). Daha önce /products/my-listings kullanılıyordu — backend'de yok. */
+  /** Backend: GET /products/my (web ile aynı). Daha önce farklı bir "my listings" ucu kullanılıyordu — backend'de yok. */
   getMyListings: (params?: Record<string, any>) =>
     api.get('/products/my', { params }),
   /** İlanlarım istatistikleri (aktif, satıldı, görüntülenme vb.) */
