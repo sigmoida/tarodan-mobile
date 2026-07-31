@@ -1,8 +1,9 @@
 /**
  * J62/J64 · Siparişlerim listesi — mobil UI dilimi.
  * Liste render, boş durum, rol/filtre chip'leri, durum rozeti metni,
- * "Teslim Aldım" buton görünürlüğü (alıcı + delivered/awaiting_confirmation),
- * sipariş kartına navigasyon wiring.
+ * değerlendirme butonu görünürlüğü (alıcı + delivered/completed; yeni escrow
+ * kuralı: ayrı "Teslim Aldım" onay butonu YOK, ödeme teslim+14 gün sonra
+ * otomatik serbest kalır — bkz. OrderCard.tsx), sipariş kartına navigasyon wiring.
  * Backend onay/iade/escrow aktarımı backend-only.
  */
 import React from 'react';
@@ -20,6 +21,7 @@ const pushMock = router.push as jest.Mock;
 jest.mock('@/lib/api', () => ({
   ordersApi: {
     getAll: jest.fn(),
+    getGroups: jest.fn(),
     confirm: jest.fn(),
     confirmReceipt: jest.fn(),
   },
@@ -33,7 +35,10 @@ jest.mock('@/stores/authStore', () => ({
 
 import OrdersScreen from '../index';
 
-const getAllMock = ordersApi.getAll as jest.Mock;
+// Varsayılan filtre ("Tümü") gruplu listeyi (ordersApi.getGroups) kullanır —
+// bkz. app/orders/_hooks/useOrders.ts `useGroupedList`. ordersApi.getAll yalnızca
+// diğer filtre sekmelerinde çağrılır.
+const getGroupsMock = ordersApi.getGroups as jest.Mock;
 
 function orderFixture(overrides: Record<string, unknown> = {}) {
   return {
@@ -49,15 +54,28 @@ function orderFixture(overrides: Record<string, unknown> = {}) {
   };
 }
 
+// Tek ürünlü grup — hook bunu düz sipariş kartına indirger (kind: 'order').
+function orderGroupFixture(overrides: Record<string, unknown> = {}) {
+  const order = orderFixture(overrides);
+  return {
+    id: `group-${order.id}`,
+    groupNumber: order.orderNumber,
+    totalAmount: order.totalAmount,
+    status: order.status,
+    createdAt: order.createdAt,
+    orders: [order],
+  };
+}
+
 describe('J62 · Siparişlerim listesi', () => {
   beforeEach(() => {
-    getAllMock.mockReset();
+    getGroupsMock.mockReset();
     pushMock.mockReset();
     mockAuth = { isAuthenticated: true };
   });
 
   it('J62.1 boş durumda "Henüz siparişiniz yok" ve keşfet butonu gösterir', async () => {
-    getAllMock.mockResolvedValue({ data: { data: [] } });
+    getGroupsMock.mockResolvedValue({ data: { data: [] } });
     renderWithProviders(<OrdersScreen />);
     await waitFor(() =>
       expect(screen.getByText('Henüz siparişiniz yok')).toBeOnTheScreen(),
@@ -74,7 +92,7 @@ describe('J62 · Siparişlerim listesi', () => {
   });
 
   it('J64.1 sipariş listelenir, durum rozeti ve fiyat görünür', async () => {
-    getAllMock.mockResolvedValue({ data: { data: [orderFixture()] } });
+    getGroupsMock.mockResolvedValue({ data: { data: [orderGroupFixture()] } });
     renderWithProviders(<OrdersScreen />);
     await waitFor(() =>
       expect(screen.getByText('Sipariş #TRD-1001')).toBeOnTheScreen(),
@@ -84,25 +102,30 @@ describe('J62 · Siparişlerim listesi', () => {
     expect(screen.getAllByText('Teslim Edildi').length).toBeGreaterThan(0);
   });
 
-  it('J64.2 alıcı + delivered → "Teslim Aldım" butonu görünür', async () => {
-    getAllMock.mockResolvedValue({ data: { data: [orderFixture({ status: 'delivered', isBuyer: true })] } });
+  it('J64.2 alıcı + delivered → değerlendirme butonları görünür (ayrı teslim-onay butonu yok)', async () => {
+    getGroupsMock.mockResolvedValue({ data: { data: [orderGroupFixture({ status: 'delivered', isBuyer: true })] } });
     renderWithProviders(<OrdersScreen />);
     await waitFor(() =>
-      expect(screen.getByText('Teslim Aldım')).toBeOnTheScreen(),
+      expect(screen.getByText('Ürünü Değerlendir')).toBeOnTheScreen(),
     );
+    expect(screen.getByText('Satıcıyı Değerlendir')).toBeOnTheScreen();
+    // Yeni escrow kuralı: ödeme otomatik serbest kaldığı için ayrı bir
+    // teslim-onay butonu artık YOK (bkz. OrderCard.tsx).
+    expect(screen.queryByText('Teslim Aldım')).toBeNull();
   });
 
-  it('J64.3 satıcı görünümünde "Teslim Aldım" butonu görünmez', async () => {
-    getAllMock.mockResolvedValue({ data: { data: [orderFixture({ status: 'delivered', isBuyer: false })] } });
+  it('J64.3 satıcı görünümünde değerlendirme butonları görünmez (canRateOrder yalnızca alıcı)', async () => {
+    getGroupsMock.mockResolvedValue({ data: { data: [orderGroupFixture({ status: 'delivered', isBuyer: false })] } });
     renderWithProviders(<OrdersScreen />);
     await waitFor(() =>
       expect(screen.getByText('Sipariş #TRD-1001')).toBeOnTheScreen(),
     );
+    expect(screen.queryByText('Ürünü Değerlendir')).toBeNull();
     expect(screen.queryByText('Teslim Aldım')).toBeNull();
   });
 
   it('J62.3 sipariş kartına dokununca detay sayfasına gider', async () => {
-    getAllMock.mockResolvedValue({ data: { data: [orderFixture()] } });
+    getGroupsMock.mockResolvedValue({ data: { data: [orderGroupFixture()] } });
     renderWithProviders(<OrdersScreen />);
     await waitFor(() =>
       expect(screen.getByText('Sipariş #TRD-1001')).toBeOnTheScreen(),
