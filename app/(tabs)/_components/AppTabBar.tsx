@@ -10,12 +10,15 @@ const { colors } = theme;
 
 // Sadece görünür sekmeler — sırasıyla. href:null olan (create,
 // notifications/index) kasıtlı olarak dışarıda bırakılır.
+// NOT: `sell` ve `badge` her girdide açıkça yazılır. `as const` her satırı ayrı
+// bir literal tipe çevirdiğinden, anahtar yalnız bazı girdilerde olsaydı
+// `tab.sell` / `tab.badge` erişimi TS2339 verirdi.
 const VISIBLE = [
-  { name: "index", labelKey: "nav.home", icon: "home", iconOutline: "home-outline" },
-  { name: "search", labelKey: "common.search", icon: "search", iconOutline: "search-outline" },
-  { name: "sell", labelKey: "", icon: "add", iconOutline: "add", sell: true },
-  { name: "messages/index", labelKey: "message.messages", icon: "chatbubbles", iconOutline: "chatbubbles-outline", badge: true },
-  { name: "profile", labelKey: "nav.profile", icon: "person", iconOutline: "person-outline" },
+  { name: "index", labelKey: "nav.home", icon: "home", iconOutline: "home-outline", sell: false, badge: false },
+  { name: "search", labelKey: "common.search", icon: "search", iconOutline: "search-outline", sell: false, badge: false },
+  { name: "sell", labelKey: "", icon: "add", iconOutline: "add", sell: true, badge: false },
+  { name: "messages/index", labelKey: "message.messages", icon: "chatbubbles", iconOutline: "chatbubbles-outline", sell: false, badge: true },
+  { name: "profile", labelKey: "nav.profile", icon: "person", iconOutline: "person-outline", sell: false, badge: false },
 ] as const;
 
 /**
