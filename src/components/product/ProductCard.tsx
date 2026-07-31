@@ -4,6 +4,7 @@ import { AppImage } from '@/components/AppImage';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { theme, Text } from '@/ui';
+import { productsApi } from '@/lib/api';
 import { formatPrice } from '../../utils/format';
 import { transformImageUrl } from '../../utils/imageUrl';
 import {
@@ -87,6 +88,8 @@ function ProductCardBase({
   const discountPct = useMemo(() => getProductDiscountPercent(product), [product]);
 
   const handlePress = () => {
+    // Fire-and-forget sıralama sinyali; hata navigasyonu engellemez.
+    void productsApi.recordClick(product.id).catch(() => {});
     if (onPress) return onPress();
     router.push(`/product/${product.id}`);
   };

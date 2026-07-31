@@ -29,6 +29,10 @@ export const productsApi = {
   /** Görüntülenme sayacını artır — web ile parite (POST /products/:id/view). Ekran başına 1 kez çağrılmalı. */
   incrementView: (id: string | number) =>
     api.post(`/products/${id}/view`),
+  /** İlan kartı tıklama sayacını artır — web ile parite (POST /products/:id/click).
+   *  Fire-and-forget: hata navigasyonu engellememeli. */
+  recordClick: (id: string | number) =>
+    api.post(`/products/${id}/click`),
   create: (data: Record<string, any>) =>
     api.post('/products', data),
   update: (id: string | number, data: Record<string, any>) =>
