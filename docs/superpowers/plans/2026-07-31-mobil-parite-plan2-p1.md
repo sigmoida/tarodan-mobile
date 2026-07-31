@@ -176,8 +176,11 @@ jest.mock('@/lib/api', () => ({
   productsApi: { recordClick: jest.fn(() => Promise.resolve({ data: {} })) },
 }));
 
-const router = { push: jest.fn() };
-jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => router.push(...a) } }));
+// NOT: jest.mock fabrikası dış değişkene ancak adı `mock` ile başlıyorsa
+// atıf yapabilir; aksi halde "not allowed to reference any out-of-scope
+// variables" hatası alınır.
+const mockRouterPush = jest.fn();
+jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockRouterPush(...a) } }));
 
 const product = {
   id: 'p-1',
@@ -199,7 +202,7 @@ describe('ProductCard tıklama takibi', () => {
     (productsApi.recordClick as jest.Mock).mockRejectedValueOnce(new Error('ağ'));
     const { getByText } = render(<ProductCard product={product} />);
     fireEvent.press(getByText('Test Ürün'));
-    expect(router.push).toHaveBeenCalledWith('/product/p-1');
+    expect(mockRouterPush).toHaveBeenCalledWith('/product/p-1');
   });
 
   it('onPress override edildiğinde de tıklama kaydedilir', () => {
