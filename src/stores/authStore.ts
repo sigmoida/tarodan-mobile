@@ -309,6 +309,10 @@ const mapApiUserToUser = (apiUser: any): User => {
     reputationLevel: apiUser.reputationLevel || apiUser.reputation_level,
     specialRecognitions:
       apiUser.specialRecognitions || apiUser.special_recognitions || [],
+
+    // Kullanıcı adı (bir kez belirlenir, değiştirilemez)
+    username: apiUser.username,
+    usernameClaimed: apiUser.usernameClaimed ?? apiUser.username_claimed,
   };
 };
 

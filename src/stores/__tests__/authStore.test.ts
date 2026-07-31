@@ -19,6 +19,7 @@ jest.mock('../resetUserStores', () => ({
 }));
 
 import { useAuthStore, type User } from '../authStore';
+import { userApi } from '@/lib/api';
 
 const baseUser: User = {
   id: 'u1',
@@ -73,5 +74,35 @@ describe('authStore — serverLimits sızıntısı (logout)', () => {
     // henüz gelmediği için free tier'ın TIER_LIMITS değerleri geçerli olmalı.
     expect(limits?.maxListings).toBe(10);
     expect(limits?.isAdFree).toBe(false);
+  });
+});
+
+/**
+ * `mapApiUserToUser` (authStore.ts, private) yeni `username`/`usernameClaimed`
+ * alanlarını API cevabından kopyalamazsa, `claimUsername` ile set edilen değer
+ * bir sonraki profil refetch'inde sessizce silinir — kullanıcı adı bir kez
+ * belirlenir kuralı bozulur. Bu suite gerçek store + gerçek `mapApiUserToUser`
+ * üzerinden (authStore mock'lanmadan) bu alanların taşındığını sabitler.
+ */
+describe('authStore — mapApiUserToUser kullanıcı adı alanları', () => {
+  beforeEach(async () => {
+    await useAuthStore.getState().logout();
+    jest.clearAllMocks();
+  });
+
+  it('refreshUserData sonrası username ve usernameClaimed store’a doğru taşınır', async () => {
+    (userApi.getProfile as jest.Mock).mockResolvedValueOnce({
+      data: {
+        ...baseUser,
+        username: 'kaan.merakli',
+        usernameClaimed: true,
+      },
+    });
+
+    await useAuthStore.getState().refreshUserData();
+
+    const { user } = useAuthStore.getState();
+    expect(user?.username).toBe('kaan.merakli');
+    expect(user?.usernameClaimed).toBe(true);
   });
 });
