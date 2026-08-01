@@ -2,9 +2,34 @@
 import { StyleSheet, Dimensions } from 'react-native';
 import { theme } from '@/ui';
 
-const { colors } = theme;
+const { colors, typography } = theme;
 const { width } = Dimensions.get('window');
 export const CARD_WIDTH = (width - 48) / 2;
+
+// "Popüler İlanlar" rafının loading/empty/content dallarının ÜÇÜ de aynı
+// minHeight'i paylaşmalı, yoksa veri gelince kutu büyüyüp alttaki bölümleri
+// aşağı iter. Sabit sayı yazmak yerine yüksekliği yatay kart rafının gerçek
+// metriklerinden türetiyoruz — kart tasarımı (`productImage`/`productContent`)
+// değişirse bu sayı da otomatik değişsin:
+//   - productImage.height (140, aşağıda tanımlı)
+//   - + productContent dikey padding'i (theme.spacing[3.5] × 2, üst+alt)
+//   - + başlık: ProductCard'da `bodySm` varyantı, numberOfLines={2}
+//     (fontSize.sm × lineHeight.normal) × 2 satır
+//   - + meta satırı: `caption` varyantı, marginTop spacing[0.5]
+//     (fontSize.xs × lineHeight.normal)
+//   - + fiyat satırı: `h3` varyantı, marginTop spacing[1]
+//     (fontSize.lg × lineHeight.snug)
+const POPULAR_RAIL_IMAGE_HEIGHT = 140;
+const POPULAR_RAIL_CONTENT_PADDING = theme.spacing[3.5] * 2;
+const POPULAR_RAIL_TITLE_HEIGHT = typography.fontSize.sm * typography.lineHeight.normal * 2;
+const POPULAR_RAIL_META_HEIGHT = theme.spacing[0.5] + typography.fontSize.xs * typography.lineHeight.normal;
+const POPULAR_RAIL_PRICE_HEIGHT = theme.spacing[1] + typography.fontSize.lg * typography.lineHeight.snug;
+export const POPULAR_RAIL_MIN_HEIGHT =
+  POPULAR_RAIL_IMAGE_HEIGHT +
+  POPULAR_RAIL_CONTENT_PADDING +
+  POPULAR_RAIL_TITLE_HEIGHT +
+  POPULAR_RAIL_META_HEIGHT +
+  POPULAR_RAIL_PRICE_HEIGHT;
 
 export const styles = StyleSheet.create({
   container: {
@@ -443,10 +468,16 @@ export const styles = StyleSheet.create({
     color: colors.text.muted,
     marginTop: theme.spacing[0.5],
   },
+  // Loading / empty / content dalları bu ortak minHeight'i paylaşır
+  // (bkz. POPULAR_RAIL_MIN_HEIGHT türetmesi), böylece raf duruma göre
+  // büyüyüp küçülmez.
+  popularRailContent: {
+    minHeight: POPULAR_RAIL_MIN_HEIGHT,
+    justifyContent: 'center',
+  },
   loadingContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 50,
   },
   loadingText: {
     color: colors.overlay.white90,
@@ -457,7 +488,6 @@ export const styles = StyleSheet.create({
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 50,
   },
   emptyText: {
     color: colors.overlay.white90,

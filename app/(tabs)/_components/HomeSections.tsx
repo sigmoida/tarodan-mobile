@@ -189,24 +189,26 @@ export function PopularProducts({
   return (
     <View style={[styles.section, styles.bestSellersSection]}>
       <SectionHeader title="Popüler İlanlar" titleColor={colors.white} onSeeAll={() => router.push('/search')} />
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <Spinner size="lg" color={colors.white} />
-          <Text style={styles.loadingText}>Ürünler yükleniyor...</Text>
-        </View>
-      ) : items.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="cube-outline" size={48} color={colors.gray[300]} />
-          <Text style={styles.emptyText}>Henüz ürün yok</Text>
-          <Text style={styles.emptySubtext}>API bağlantısını kontrol edin</Text>
-        </View>
-      ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>
-          {items.slice(0, 10).map((item: any, index: number) => (
-            <ProductCard key={item.id || index} item={item} index={index} inCart={cartProductIds.has(item.id)} onPress={onProductPress} />
-          ))}
-        </ScrollView>
-      )}
+      <View style={styles.popularRailContent} testID="popular-rail-content">
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <Spinner size="lg" color={colors.white} />
+            <Text style={styles.loadingText}>Ürünler yükleniyor...</Text>
+          </View>
+        ) : items.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="cube-outline" size={48} color={colors.gray[300]} />
+            <Text style={styles.emptyText}>Henüz ürün yok</Text>
+            <Text style={styles.emptySubtext}>API bağlantısını kontrol edin</Text>
+          </View>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>
+            {items.slice(0, 10).map((item: any, index: number) => (
+              <ProductCard key={item.id || index} item={item} index={index} inCart={cartProductIds.has(item.id)} onPress={onProductPress} />
+            ))}
+          </ScrollView>
+        )}
+      </View>
     </View>
   );
 }
