@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ProductFilterSheet from '@/components/ProductFilterSheet';
 import { styles } from './_lib/searchStyles';
+import { SEARCH_NUM_COLUMNS, getSearchItemLayout } from './_lib/searchConstants';
 import { useSearch } from './_hooks/useSearch';
 import { SearchBars } from './_components/SearchBars';
 import { SearchResultCard } from './_components/SearchResultCard';
@@ -58,11 +59,12 @@ function SearchScreen() {
           <FlatList
             ref={f.listRef}
             data={f.products}
-            numColumns={2}
+            numColumns={SEARCH_NUM_COLUMNS}
             contentContainerStyle={[styles.listContent, { paddingTop: f.headerHeight }]}
             columnWrapperStyle={styles.listRow}
             keyExtractor={(item, index) => `${item.id}-${index}`}
             renderItem={renderResult}
+            getItemLayout={getSearchItemLayout}
             // #82: virtualizasyon ayarı — sonsuz arama sonuçlarında bellek/kaydırma.
             windowSize={7}
             initialNumToRender={8}
