@@ -188,8 +188,47 @@ describe('rezerve yüksekliklerinin değer doğruluğu (regresyon)', () => {
 
   it('SECTION_HEADER_HEIGHT bağımsızca hesaplanan indicator/title + marginBottom toplamına eşittir', () => {
     const indicatorHeight = 24;
-    const titleHeight = typography.fontSize.xl * typography.lineHeight.snug;
+    // `sectionTitle` Text'i `variant` GEÇMİYOR ve kendi `lineHeight`'ını set
+    // ETMİYOR (Text.tsx:145 varsayılan 'body', :159-165 flatten sırası — `style`
+    // yalnız kendi taşıdığı anahtarları override eder) — o yüzden gerçek satır
+    // yüksekliği fontSize.xl × lineHeight.snug DEĞİL, body varyantının
+    // varsayılanıdır: fontSize.base × lineHeight.normal (review fix #2).
+    const titleHeight = typography.fontSize.base * typography.lineHeight.normal;
     expect(SECTION_HEADER_HEIGHT).toBe(Math.max(indicatorHeight, titleHeight) + theme.spacing[4]);
+  });
+
+  it('CATEGORIES_SECTION_MIN_HEIGHT: bağımsızca hesaplanan ALT sınır — categoryCount satırı koşullu olduğu için SAYILMAZ', () => {
+    const paddingV = theme.spacing[3.5] * 2; // brandLogo.paddingVertical ×2
+    const border = 1.5 * 2; // brandLogo.borderWidth ×2
+    // brandLogoText: variant yok, kendi lineHeight'ı yok → body varsayılanı.
+    const textHeight = typography.fontSize.base * typography.lineHeight.normal;
+    const expected = SECTION_HEADER_HEIGHT + paddingV + border + textHeight + SECTION_MARGIN_BOTTOM;
+    expect(CATEGORIES_SECTION_MIN_HEIGHT).toBe(expected);
+  });
+
+  it('COMPANY_OF_WEEK_SECTION_MIN_HEIGHT: companySectionTitle marginTop (spacing[3]) rezerve edilir', () => {
+    const sectionPaddingV = theme.spacing[6] * 2; // companySection.paddingVertical ×2
+    const sectionMarginBottom = theme.spacing[6]; // companySection.marginBottom
+    const cardPadding = theme.spacing[5] * 2; // companyCard.padding ×2
+    const headerHeight = 70 + 3 * 2; // companyAvatar.height + borderWidth×2
+    const headerMargin = 18; // companyHeader.marginBottom
+    // companySectionTitle: variant yok, kendi lineHeight'ı yok → body
+    // varsayılanı; marginTop (spacing[3]) + marginBottom (spacing[3.5]) ikisi de dahil.
+    const titleHeight =
+      theme.spacing[3] + typography.fontSize.base * typography.lineHeight.normal + theme.spacing[3.5];
+    const buttonMargin = 18; // viewStoreButton.marginTop
+    const buttonHeight = theme.spacing[3.5] * 2 + typography.fontSize.base * typography.lineHeight.normal; // viewStoreButtonGradient
+    const expected =
+      SECTION_HEADER_HEIGHT +
+      sectionPaddingV +
+      sectionMarginBottom +
+      cardPadding +
+      headerHeight +
+      headerMargin +
+      titleHeight +
+      buttonMargin +
+      buttonHeight;
+    expect(COMPANY_OF_WEEK_SECTION_MIN_HEIGHT).toBe(expected);
   });
 
   it('her *_MIN_HEIGHT en az SECTION_HEADER_HEIGHT + SECTION_MARGIN_BOTTOM kadardır (28pt-sınıfı eksik-rezerv regresyonu)', () => {
@@ -205,10 +244,28 @@ describe('rezerve yüksekliklerinin değer doğruluğu (regresyon)', () => {
     expect(COMPANY_OF_WEEK_SECTION_MIN_HEIGHT).toBeGreaterThanOrEqual(SECTION_HEADER_HEIGHT + theme.spacing[6]);
   });
 
-  it('BOOSTED_RAIL_MIN_HEIGHT / PRODUCTS_GRID_MIN_HEIGHT = header + POPULAR_RAIL_MIN_HEIGHT + section margin', () => {
-    const expected = SECTION_HEADER_HEIGHT + POPULAR_RAIL_MIN_HEIGHT + SECTION_MARGIN_BOTTOM;
+  it('BOOSTED_RAIL_MIN_HEIGHT / PRODUCTS_GRID_MIN_HEIGHT: bağımsızca hesaplanan ALT sınır (1 satır başlık, meta YOK)', () => {
+    // review fix #3: BOOSTED_RAIL_MIN_HEIGHT/PRODUCTS_GRID_MIN_HEIGHT artık
+    // POPULAR_RAIL_MIN_HEIGHT'i (2 satır başlık + her zaman meta varsayan bir
+    // ÜST sınır) miras almıyor — kendi ALT sınırlarını taşıyorlar: 1 satır
+    // başlık (ProductCard numberOfLines={2} ama kısa başlık 1 satıra sığabilir),
+    // meta satırı yok (metaLabel boşsa ProductCard.tsx hiç render etmiyor).
+    const imageHeight = 140; // productImage.height
+    const contentPadding = theme.spacing[3.5] * 2;
+    const titleHeight = typography.fontSize.sm * typography.lineHeight.normal; // 1 satır (bodySm)
+    const priceHeight = theme.spacing[1] + typography.fontSize.lg * typography.lineHeight.snug; // h3
+    const expected = SECTION_HEADER_HEIGHT + imageHeight + contentPadding + titleHeight + priceHeight + SECTION_MARGIN_BOTTOM;
     expect(BOOSTED_RAIL_MIN_HEIGHT).toBe(expected);
     expect(PRODUCTS_GRID_MIN_HEIGHT).toBe(expected);
+  });
+
+  it('BOOSTED_RAIL_MIN_HEIGHT bir ALT sınırdır — POPULAR_RAIL_MIN_HEIGHT tabanlı ÜST sınırdan kesinlikle düşüktür', () => {
+    // Regresyon kilidi: biri BOOSTED_RAIL_MIN_HEIGHT'i tekrar
+    // "SECTION_HEADER_HEIGHT + POPULAR_RAIL_MIN_HEIGHT + SECTION_MARGIN_BOTTOM"e
+    // (2 satır başlık + her zaman meta varsayan üst sınır) çevirirse bu test kırılır.
+    const upperBoundIfMisused = SECTION_HEADER_HEIGHT + POPULAR_RAIL_MIN_HEIGHT + SECTION_MARGIN_BOTTOM;
+    expect(BOOSTED_RAIL_MIN_HEIGHT).toBeLessThan(upperBoundIfMisused);
+    expect(PRODUCTS_GRID_MIN_HEIGHT).toBeLessThan(upperBoundIfMisused);
   });
 
   it('CollectionsSection: bağımsızca hesaplanan kart metrikleri (image 110 + padding + isim + meta satırı)', () => {

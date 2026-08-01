@@ -6,19 +6,40 @@ const { colors, typography } = theme;
 const { width } = Dimensions.get('window');
 export const CARD_WIDTH = (width - 48) / 2;
 
+// `Text` bileşeni `variant` verilmezse 'body' varsayar (Text.tsx:145-146) VE
+// `StyleSheet.flatten([variantStyle[variant], ..., style])` variant stilini
+// ÖNCE, `style` prop'unu SONRA flatten eder (Text.tsx:159-165) — yani `style`
+// yalnız KENDİ taşıdığı anahtarları override eder. Bu ekrandaki `sectionTitle` /
+// `brandLogoText` / `categoryCount` / `companySectionTitle` Text'lerinin hiçbiri
+// `variant` GEÇMİYOR ve hiçbiri kendi `lineHeight`'ını set ETMİYOR (yalnız
+// hardcoded `fontSize` taşıyorlar), o yüzden gerçek satır yüksekliği o Text'in
+// KENDİ fontSize'ından türetilemez — HER ZAMAN body varyantının varsayılanı
+// kullanılır: fontSize.base(16) × lineHeight.normal(1.5) = 24. Doğrulandı:
+// src/ui/components/Text.tsx:145,159-165.
+const DEFAULT_TEXT_LINE_HEIGHT = typography.fontSize.base * typography.lineHeight.normal; // 24
+
 // "Popüler İlanlar" rafının loading/empty/content dallarının ÜÇÜ de aynı
 // minHeight'i paylaşmalı, yoksa veri gelince kutu büyüyüp alttaki bölümleri
-// aşağı iter. Sabit sayı yazmak yerine yüksekliği yatay kart rafının gerçek
-// metriklerinden türetiyoruz — kart tasarımı (`productImage`/`productContent`)
-// değişirse bu sayı da otomatik değişsin:
-//   - productImage.height (aşağıdaki POPULAR_RAIL_IMAGE_HEIGHT'ten türetiliyor)
-//   - + productContent dikey padding'i (theme.spacing[3.5] × 2, üst+alt)
-//   - + başlık: ProductCard'da `bodySm` varyantı, numberOfLines={2}
+// aşağı iter. Yüksekliği yatay kart rafının gerçek metriklerinden türetiyoruz:
+//   - productImage.height (aşağıdaki POPULAR_RAIL_IMAGE_HEIGHT) ve
+//     productContent dikey padding'i (theme.spacing[3.5] × 2) GERÇEKTEN tek
+//     kaynaktan geliyor — `productImage`/`productContent` stilleri de aynı
+//     sabitleri kullanıyor (bkz. aşağıda), o ikisi değişirse bu türetme de
+//     otomatik değişir.
+//   - başlık/meta/fiyat satırları İSE `ProductCard.tsx`'in geçtiği `variant`
+//     prop'larını (bodySm/caption/h3 — ProductCard.tsx:74,76,78) BİREBİR
+//     yansıtıyor. Bu satırlar ProductCard'ın KENDİ `variant` seçimini set
+//     ediyor (yukarıdaki DEFAULT_TEXT_LINE_HEIGHT kuralının aksine — o Text'ler
+//     variant'ı hiç geçmiyordu), o yüzden fontSize.sm/xs/lg türetmeleri DOĞRU;
+//     ama ProductCard.tsx başka bir dosya, o yüzden OTOMATİK değil: biri
+//     ProductCard.tsx'te variant'ı değiştirirse bu üç sabit elle senkronize
+//     edilmeli.
+//   - + başlık: `bodySm` varyantı, numberOfLines={2} →
 //     (fontSize.sm × lineHeight.normal) × 2 satır
-//   - + meta satırı: `caption` varyantı, marginTop spacing[0.5]
-//     (fontSize.xs × lineHeight.normal)
-//   - + fiyat satırı: `h3` varyantı, marginTop spacing[1]
-//     (fontSize.lg × lineHeight.snug)
+//   - + meta satırı: `caption` varyantı, marginTop spacing[0.5] →
+//     spacing[0.5] + fontSize.xs × lineHeight.normal
+//   - + fiyat satırı: `h3` varyantı, marginTop spacing[1] →
+//     spacing[1] + fontSize.lg × lineHeight.snug
 const POPULAR_RAIL_IMAGE_HEIGHT = 140;
 const POPULAR_RAIL_CONTENT_PADDING = theme.spacing[3.5] * 2;
 const POPULAR_RAIL_TITLE_HEIGHT = typography.fontSize.sm * typography.lineHeight.normal * 2;
@@ -34,10 +55,13 @@ export const POPULAR_RAIL_MIN_HEIGHT =
 // Diğer bölümler için de aynı desen: loading/empty/content aynı rezerve
 // yüksekliği paylaşmalı ki veri gelince o bölümün ÜSTÜNDEKİ okuma noktası
 // kaymasın (bkz. task-2-brief.md). Ortak parça: her `section`in kendi
-// `SectionHeader`i — indicator (24pt) ile başlık metninden (fontSize.xl ×
-// lineHeight.snug) yüksek olanı + altındaki marginBottom (spacing[4]).
+// `SectionHeader`i — indicator (24pt) ile başlık metninden yüksek olanı +
+// altındaki marginBottom (spacing[4]). `sectionTitle` Text'i de yukarıdaki
+// DEFAULT_TEXT_LINE_HEIGHT kuralına tabi (variant yok, kendi lineHeight'ı
+// yok) — gerçek satır yüksekliği fontSize.xl × lineHeight.snug (27) DEĞİL,
+// body varyantının sabit varsayılanı (24).
 const SECTION_HEADER_INDICATOR_HEIGHT = 24; // sectionIndicator.height
-const SECTION_TITLE_TEXT_HEIGHT = typography.fontSize.xl * typography.lineHeight.snug;
+const SECTION_TITLE_TEXT_HEIGHT = DEFAULT_TEXT_LINE_HEIGHT;
 export const SECTION_HEADER_HEIGHT =
   Math.max(SECTION_HEADER_INDICATOR_HEIGHT, SECTION_TITLE_TEXT_HEIGHT) + theme.spacing[4];
 
@@ -50,15 +74,18 @@ export const SECTION_HEADER_HEIGHT =
 export const SECTION_MARGIN_BOTTOM = 28;
 
 // CategoriesSection: brandLogo kutusunun kendi metrikleri (paddingVertical ×2
-// + borderWidth ×2) + başlık metni (brandLogoText, fontSize.sm) + isteğe
-// bağlı ürün sayısı satırı (categoryCount, fontSize['2xs']).
+// + borderWidth ×2) + başlık metni (brandLogoText — variant yok, kendi
+// lineHeight'ı yok → DEFAULT_TEXT_LINE_HEIGHT). Ürün sayısı satırı
+// (categoryCount) KOŞULLU render ediyor (`HomeSections.tsx:80`,
+// `cat.productCount > 0`) — bu rezerve bir ALT sınır olmalı, o yüzden count
+// satırını SAYMIYORUZ: tüm kategorilerin productCount'u 0 ise gerçek yükseklik
+// bundan düşük olmaz, count satırı varsa gerçek yükseklik bundan biraz
+// YÜKSEK olur — yön hep aşağı iter, hiçbir zaman içerik rezervin üstüne taşıp
+// yukarı sıçramaz.
 const CATEGORIES_ITEM_PADDING_V = theme.spacing[3.5] * 2;
 const CATEGORIES_ITEM_BORDER = 1.5 * 2; // brandLogo.borderWidth, üst+alt
-const CATEGORIES_ITEM_TEXT_HEIGHT = typography.fontSize.sm * typography.lineHeight.normal;
-const CATEGORIES_ITEM_COUNT_HEIGHT =
-  theme.spacing[0.5] + typography.fontSize['2xs'] * typography.lineHeight.normal;
-const CATEGORIES_RAIL_HEIGHT =
-  CATEGORIES_ITEM_PADDING_V + CATEGORIES_ITEM_BORDER + CATEGORIES_ITEM_TEXT_HEIGHT + CATEGORIES_ITEM_COUNT_HEIGHT;
+const CATEGORIES_ITEM_TEXT_HEIGHT = DEFAULT_TEXT_LINE_HEIGHT;
+const CATEGORIES_RAIL_HEIGHT = CATEGORIES_ITEM_PADDING_V + CATEGORIES_ITEM_BORDER + CATEGORIES_ITEM_TEXT_HEIGHT;
 export const CATEGORIES_SECTION_MIN_HEIGHT = SECTION_HEADER_HEIGHT + CATEGORIES_RAIL_HEIGHT + SECTION_MARGIN_BOTTOM;
 
 // FeaturedCollectorSection: featuredCard padding (×2) + üst satır (avatar
@@ -83,14 +110,37 @@ export const FEATURED_COLLECTOR_SECTION_MIN_HEIGHT =
   FEATURED_BUTTON_HEIGHT +
   SECTION_MARGIN_BOTTOM;
 
-// BoostedRail: aynı `ProductCard` rafı (bkz. PopularProducts) — kart
-// metrikleri özdeş, o yüzden POPULAR_RAIL_MIN_HEIGHT'i yeniden kullanıyoruz.
-export const BOOSTED_RAIL_MIN_HEIGHT = SECTION_HEADER_HEIGHT + POPULAR_RAIL_MIN_HEIGHT + SECTION_MARGIN_BOTTOM;
+// BoostedRail / ProductsGrid: aynı `ProductCard` raf/hücre (bkz.
+// PopularProducts) — AMA reserve'leri POPULAR_RAIL_MIN_HEIGHT'i MİRAS ALAMAZ.
+// POPULAR_RAIL_MIN_HEIGHT bir ÜST sınır: "başlık HER ZAMAN 2 satır"
+// (ProductCard `numberOfLines={2}` — kısa başlık 1 satıra sığabilir) ve "meta
+// satırı HER ZAMAN var" (`metaLabel` boşsa ProductCard.tsx:75-77 hiç render
+// ETMİYOR) varsayıyor; Popüler İlanlar rafında bu güvenli çünkü o rafın
+// `popularRailContent` sarmalayıcısı bu minHeight'i HER ÜÇ dalda da taşıyor
+// (aşağıda) — kart küçük gelse bile kutu küçülemez.
+//
+// BoostedRail/ProductsGrid'te ise `boostedRailReserved`/`productsGridReserved`
+// yalnız YÜKLEME dalında bu minHeight'i taşıyor; YÜKLENMİŞ dal düz `styles.section`
+// kullanıyor (bkz. HomeSections.tsx BoostedRail/ProductsGrid), yani bir taban
+// yok. Sponsorlu/ızgara ürünleri kısa başlıklı ve brand/scale'siz gelirse
+// gerçek yükseklik POPULAR_RAIL_MIN_HEIGHT tabanlı rezervin ALTINDA kalır ve
+// içerik YUKARI sıçrar — bu, kaymayı önlemek isteyen mekanizmanın tam tersi
+// bir regresyon. Bu yüzden burada AYRI bir ALT sınır türetiyoruz: 1 satır
+// başlık, meta satırı YOK (floor senaryosu — bu iki dal her zaman en az bunun
+// kadar yer kaplar, hiçbir zaman daha az değil).
+const RAIL_CARD_FLOOR_TITLE_HEIGHT = typography.fontSize.sm * typography.lineHeight.normal; // 1 satır (bodySm)
+const RAIL_CARD_FLOOR_HEIGHT =
+  POPULAR_RAIL_IMAGE_HEIGHT +
+  POPULAR_RAIL_CONTENT_PADDING +
+  RAIL_CARD_FLOOR_TITLE_HEIGHT +
+  // meta satırı YOK (floor) — bkz. yukarıdaki gerekçe
+  POPULAR_RAIL_PRICE_HEIGHT;
+export const BOOSTED_RAIL_MIN_HEIGHT = SECTION_HEADER_HEIGHT + RAIL_CARD_FLOOR_HEIGHT + SECTION_MARGIN_BOTTOM;
 
 // ProductsGrid: grid hücreleri de aynı `ProductCard`; ilk satırın yüksekliğini
-// rezerve ediyoruz (satır sayısı veriye göre değişir, kaymayı önlemek için
-// yeter olan minimum budur).
-export const PRODUCTS_GRID_MIN_HEIGHT = SECTION_HEADER_HEIGHT + POPULAR_RAIL_MIN_HEIGHT + SECTION_MARGIN_BOTTOM;
+// rezerve ediyoruz (satır sayısı veriye göre değişir). Aynı alt-sınır
+// gerekçesiyle RAIL_CARD_FLOOR_HEIGHT'i paylaşıyor (bkz. yukarısı).
+export const PRODUCTS_GRID_MIN_HEIGHT = SECTION_HEADER_HEIGHT + RAIL_CARD_FLOOR_HEIGHT + SECTION_MARGIN_BOTTOM;
 
 // CollectionsSection: collectionCard — sabit görsel yüksekliği (110) +
 // collectionInfo padding (×2) + isim satırı (collectionName, fontSize.sm) +
@@ -114,8 +164,11 @@ export const COLLECTIONS_SECTION_MIN_HEIGHT = SECTION_HEADER_HEIGHT + COLLECTION
 const COMPANY_CARD_PADDING = theme.spacing[5] * 2; // companyCard.padding
 const COMPANY_HEADER_HEIGHT = 70 + 3 * 2; // companyAvatar.height + borderWidth×2
 const COMPANY_HEADER_MARGIN = 18; // companyHeader.marginBottom
+// companySectionTitle: variant yok, kendi lineHeight'ı yok →
+// DEFAULT_TEXT_LINE_HEIGHT kuralına tabi. marginTop (spacing[3]) ÖNCEDEN
+// sayılmıyordu (yalnız marginBottom vardı) — eklendi.
 const COMPANY_SECTION_TITLE_HEIGHT =
-  typography.fontSize.base * typography.lineHeight.normal + theme.spacing[3.5]; // companySectionTitle marginBottom
+  theme.spacing[3] /* marginTop */ + DEFAULT_TEXT_LINE_HEIGHT + theme.spacing[3.5]; /* marginBottom */
 const COMPANY_BUTTON_MARGIN = 18; // viewStoreButton.marginTop
 const COMPANY_BUTTON_HEIGHT =
   theme.spacing[3.5] * 2 + typography.fontSize.base * typography.lineHeight.normal; // viewStoreButtonGradient

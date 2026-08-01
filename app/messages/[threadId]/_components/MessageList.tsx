@@ -138,7 +138,7 @@ export function MessageList({ f }: { f: MessageThreadController }) {
       contentContainerStyle={styles.messagesContent}
       onContentSizeChange={f.handleContentSizeChange}
       onScroll={f.handleScroll}
-      scrollEventThrottle={100}
+      scrollEventThrottle={16}
       ListFooterComponent={
         // TypingIndicator görünüp kaybolunca içerik yüksekliği DEĞİŞMESİN diye
         // sabit yükseklikli bir kapsayıcıya alınır (bkz. layout denetimi B3) —

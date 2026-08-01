@@ -278,7 +278,7 @@ export function useSearch() {
     if (showRecentSearches || autocompleteOpen) closeSuggestions();
     if (y <= 4) {
       if (topBarsHidden) setTopBarsHidden(false);
-    } else if (y - prev > 6 && !topBarsHidden && y > headerHeight) {
+    } else if (y - prev > 6 && !topBarsHidden && barsMeasured && y > headerHeight) {
       setTopBarsHidden(true);
     } else if (prev - y > 6 && topBarsHidden) {
       setTopBarsHidden(false);
