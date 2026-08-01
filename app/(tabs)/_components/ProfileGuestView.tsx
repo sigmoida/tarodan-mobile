@@ -3,6 +3,7 @@ import { View, ScrollView, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Snackbar, Text, theme } from '@/ui';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SignupPrompt } from '@/components/SignupPrompt';
 import { styles } from '../_lib/profileStyles';
@@ -13,9 +14,10 @@ const { colors, spacing, radius } = theme;
 
 /** Unauthenticated profile: welcome, benefits, quick links, premium promo. */
 export function ProfileGuestView({ f }: { f: ProfileController }) {
+  const insets = useSafeAreaInsets();
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
         <Text variant="h3" tone="inverted" weight="bold">
           Profil
         </Text>

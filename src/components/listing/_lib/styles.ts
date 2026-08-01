@@ -27,7 +27,6 @@ export const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: colors.primary[600]!,
-    paddingTop: 50,
     paddingBottom: theme.spacing[4],
     paddingHorizontal: theme.spacing[5],
     flexDirection: 'row',

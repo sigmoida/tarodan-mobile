@@ -10,7 +10,6 @@ export const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface.alt },
   header: {
     backgroundColor: colors.primary[600]!,
-    paddingTop: 50,
     paddingBottom: theme.spacing[4],
     paddingHorizontal: theme.spacing[5],
   },

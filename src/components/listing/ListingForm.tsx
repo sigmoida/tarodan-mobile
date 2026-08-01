@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, Platform, KeyboardAvoidingView, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/ui';
@@ -32,6 +32,7 @@ export type { ListingFormProps };
  */
 export default function ListingForm({ mode, productId }: ListingFormProps) {
   const f = useListingForm({ mode, productId });
+  const insets = useSafeAreaInsets();
 
   const gate = ListingGates({ f });
   if (gate) return gate;
@@ -39,7 +40,7 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
   return (
     <SafeAreaView style={styles.container} edges={f.isEdit ? ['bottom'] : ['top', 'bottom']}>
       {f.isEdit && (
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
           <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Geri">
             <Ionicons name="arrow-back" size={24} color={colors.white} />
           </Pressable>

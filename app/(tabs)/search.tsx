@@ -3,6 +3,7 @@ import { tabDiag } from '@/components/_tabDiag';
 import { View, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Spinner, Text, theme } from '@/ui';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ProductFilterSheet from '@/components/ProductFilterSheet';
 import { styles } from './_lib/searchStyles';
@@ -20,6 +21,7 @@ const { colors, spacing } = theme;
  */
 function SearchScreen() {
   const f = useSearch();
+  const insets = useSafeAreaInsets();
 
   // Stable renderItem (#75) — memoized SearchResultCard bails out on unchanged rows.
   const renderResult = useCallback(
@@ -36,7 +38,7 @@ function SearchScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
         <Text style={styles.headerTitle}>Ara</Text>
       </View>
 

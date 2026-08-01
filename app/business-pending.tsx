@@ -1,4 +1,5 @@
 import { View, ScrollView, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { theme, Text, Button } from '@/ui';
@@ -21,7 +22,7 @@ export default function BusinessPendingScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.iconCircle}>
@@ -78,7 +79,7 @@ export default function BusinessPendingScreen() {
           style={styles.button}
         />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

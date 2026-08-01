@@ -1,6 +1,7 @@
 import { View, TouchableOpacity } from 'react-native';
 import { Badge, Button, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { styles } from '../_lib/styles';
 
 const { colors } = theme;
@@ -19,8 +20,9 @@ export function NotificationsHeader({
   unreadCount?: number;
   onMarkAll?: () => void;
 }) {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
       <View style={styles.headerLeft}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn} hitSlop={8}>
           <Ionicons name="chevron-back" size={26} color={colors.white} />

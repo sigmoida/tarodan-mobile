@@ -1,6 +1,7 @@
 import { View, ScrollView, RefreshControl } from 'react-native';
 import { tabDiag } from '@/components/_tabDiag';
 import { Text, theme } from '@/ui';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { styles } from './_lib/profileStyles';
 import { useProfile } from './_hooks/useProfile';
@@ -25,12 +26,13 @@ function ProfileScreen() {
   const f = useProfile();
   // Hook sırası sabit kalsın diye erken return'den ÖNCE çağrılır (CLAUDE.md §12).
   const badges = useHomeBadges(f.isAuthenticated);
+  const insets = useSafeAreaInsets();
 
   if (!f.isAuthenticated) return <ProfileGuestView f={f} />;
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
         <Text variant="h3" tone="inverted" weight="bold">
           Profil
         </Text>

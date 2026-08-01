@@ -13,7 +13,6 @@ export const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: colors.primary[600]!,
-    paddingTop: 50,
     paddingHorizontal: theme.spacing[4],
     paddingBottom: theme.spacing[5],
     borderBottomLeftRadius: 24,

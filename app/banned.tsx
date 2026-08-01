@@ -1,4 +1,5 @@
 import { View, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { theme, Text, Button } from '@/ui';
@@ -24,7 +25,7 @@ export default function BannedScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
       <View style={styles.content}>
         <Ionicons name="ban-outline" size={64} color={colors.danger[600]!} />
@@ -52,7 +53,7 @@ export default function BannedScreen() {
           style={styles.button}
         />
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

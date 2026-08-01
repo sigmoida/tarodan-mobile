@@ -3,6 +3,7 @@ import { View, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar, IconButton, Alert as UIAlert, Text, theme } from '@/ui';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ReportModal from '@/components/ReportModal';
 import { styles } from '../_lib/styles';
@@ -13,10 +14,11 @@ const { colors } = theme;
 /** Chat header (avatar, name, product), report modal, product banner + alerts. */
 export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
   const { other, currentThread } = f;
+  const insets = useSafeAreaInsets();
   return (
     <>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
         <TouchableOpacity onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.white} />
         </TouchableOpacity>

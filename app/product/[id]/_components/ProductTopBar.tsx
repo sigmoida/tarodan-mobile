@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { Spinner, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { colors } = theme;
 
@@ -21,8 +22,9 @@ export function ProductTopBar({
   onShare: () => void;
   onFavorite: () => void;
 }) {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
       <Pressable onPress={onBack} style={styles.headerButton} accessibilityRole="button" accessibilityLabel="Geri">
         <Ionicons name="arrow-back" size={24} color={colors.white} />
       </Pressable>
@@ -65,7 +67,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 50,
     paddingHorizontal: theme.spacing[4],
     paddingBottom: theme.spacing[3],
   },

@@ -3,6 +3,7 @@ import { View, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar, Button, Chip, Divider, Text, theme } from '@/ui';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedRefreshControl } from '@/components/common';
 import { transformImageUrl } from '@/utils/imageUrl';
@@ -14,6 +15,7 @@ const { colors } = theme;
 /** Cover image, header buttons, collection info, items grid, and guest notice. */
 export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
   const { collection, items, id } = f;
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.container}>
@@ -25,7 +27,7 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
       />
 
       {/* Header Buttons */}
-      <View style={styles.headerButtons}>
+      <View style={[styles.headerButtons, { top: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={colors.white} />
         </TouchableOpacity>

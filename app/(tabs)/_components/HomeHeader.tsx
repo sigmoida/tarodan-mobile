@@ -3,6 +3,7 @@ import { View, Image, TouchableOpacity } from 'react-native';
 import { Input, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { styles } from '../_lib/styles';
 
 const { colors } = theme;
@@ -27,8 +28,9 @@ export function HomeHeader({
   onSearch: () => void;
   counts: HomeBadgeCounts;
 }) {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
       <View style={styles.headerTop}>
         <View style={styles.logoContainer}>
           <Image source={require('../../../assets/tarodan-logo.png')} style={styles.logoImage} resizeMode="contain" />

@@ -49,7 +49,7 @@ export default function EditCollectionScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Koleksiyonu Düzenle' }} />
+      <Stack.Screen options={{ title: 'Koleksiyonu Düzenle', headerShown: true }} />
       <CollectionEditBody f={f} />
     </>
   );
