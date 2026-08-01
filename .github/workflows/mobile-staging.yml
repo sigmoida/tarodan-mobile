@@ -1,8 +1,20 @@
 name: Mobile Staging (OTA + Preview Build)
 
-# main'e mobile-etkileyen her push staging kanalına gider:
-#   JS/asset-only -> eas update --branch staging (OTA)
-#   native        -> preview EAS build (iOS+Android internal, staging.tarodan.com.tr)
+# main'e push -> staging kanalına YALNIZ OTA. Build ASLA otomatik alınmaz.
+#
+# iOS build kotası aylık 15. Otomatik build'ler bunu birkaç günde bitiriyordu,
+# bu yüzden push yolundan build tamamen kaldırıldı (cron da öyle). OTA ücretsiz
+# ve kotadan düşmez, o yüzden otomatik kaldı.
+#
+#   JS/asset-only -> eas update --branch staging (OTA, otomatik, bedava)
+#   native değişti -> hiçbir şey yayınlanmaz + uyarı basılır; build ELLE alınır:
+#       gh workflow run mobile-staging.yml --ref main -f mode=build
+#
+# Native değiştiğinde OTA da yayınlanmaz: runtimeVersion politikası `fingerprint`,
+# yani native bağımlılık değişince fingerprint de değişir ve o OTA mevcut hiçbir
+# binary'ye ulaşamaz. Yayınlamak yanıltıcı olurdu ("staging güncellendi" görünür,
+# aslında kimseye inmez).
+#
 # Guard: EXPO_TOKEN yoksa no-op.
 
 on:
@@ -13,8 +25,6 @@ on:
       - '!docs/**'
       - '!**/*.md'
       - '!maestro/**'
-  schedule:
-    - cron: '0 3 * * 1'
   workflow_dispatch:
     inputs:
       mode:
@@ -59,21 +69,23 @@ jobs:
           set -euo pipefail
           native_re='^(package\.json|pnpm-lock\.yaml|app\.json|app\.config\.js|eas\.json|google-services\.json)$|^(ios|android|plugins|patches|credentials)/'
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            # Elle tetikleme: build de OTA da serbest — kotayı harcama kararı insanın.
             echo "mode=${DISPATCH_MODE}" >> "$GITHUB_OUTPUT"
-          elif [ "$EVENT_NAME" = "schedule" ]; then
-            echo "mode=build" >> "$GITHUB_OUTPUT"
-          elif [ "$(git rev-list --parents -n1 HEAD | wc -w)" -gt 2 ]; then
-            echo "Merge commit -> full build (safe)."
-            echo "mode=build" >> "$GITHUB_OUTPUT"
           else
+            # push: build ASLA otomatik alınmaz (aylık 15 iOS build kotası).
+            # Merge commit için ayrı bir dal yok: BASE artık push'un tam tabanı
+            # (github.event.before), yani merge'in getirdiği tüm commit'ler zaten
+            # diff'e dahil.
             BASE="${{ github.event.before }}"
             if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
               BASE="HEAD~1"
             fi
             changed="$(git diff --name-only "$BASE" HEAD)"
+            echo "base=$BASE"
             echo "Changed:"; echo "$changed" | sed 's/^/  /'
             if echo "$changed" | grep -qE "$native_re"; then
-              echo "mode=build" >> "$GITHUB_OUTPUT"
+              echo "mode=none" >> "$GITHUB_OUTPUT"
+              echo "::warning::Native dosya değişti — OTA bu binary'lere ULAŞAMAZ (fingerprint değişti). Staging'i güncellemek için build hakkı harcaman gerekiyor: gh workflow run mobile-staging.yml --ref main -f mode=build"
             else
               echo "mode=ota" >> "$GITHUB_OUTPUT"
             fi

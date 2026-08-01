@@ -1,21 +1,17 @@
 name: Mobile Build (iOS Simulator)
 
 # development profili iOS simulator .app (imzasız) — Maestro Cloud girdisi.
+#
+# YALNIZ ELLE ÇALIŞIR. iOS build kotası aylık 15 ile sınırlı; bu workflow
+# eskiden her main push'unda VE her PR'da bir build harcıyordu — tek başına
+# kotayı birkaç günde bitiriyordu. Simulator build'i bir "olsa iyi olur", her
+# commit'e bir hak vermeye değmez.
+#
+#   gh workflow run mobile-build.yml --ref main
+#
 # Guard: EXPO_TOKEN yoksa no-op.
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '**'
-      - '!docs/**'
-      - '!**/*.md'
-  pull_request:
-    branches: [main, master]
-    paths:
-      - '**'
-      - '!docs/**'
-      - '!**/*.md'
   workflow_dispatch:
 
 jobs:
