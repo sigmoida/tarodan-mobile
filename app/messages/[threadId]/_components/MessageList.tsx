@@ -137,10 +137,13 @@ export function MessageList({ f }: { f: MessageThreadController }) {
       contentContainerStyle={styles.messagesContent}
       onContentSizeChange={f.handleContentSizeChange}
       ListFooterComponent={
-        <>
+        // TypingIndicator görünüp kaybolunca içerik yüksekliği DEĞİŞMESİN diye
+        // sabit yükseklikli bir kapsayıcıya alınır (bkz. layout denetimi B3) —
+        // aksi halde onContentSizeChange → scrollToEnd tetiklenip liste dibe
+        // fırlıyordu. Mevcut 20pt alt boşluk da bu kapsayıcıyla korunur.
+        <View style={styles.typingIndicatorFooter}>
           <TypingIndicator visible={f.isPeerTyping} />
-          <View style={{ height: 20 }} />
-        </>
+        </View>
       }
     />
   );

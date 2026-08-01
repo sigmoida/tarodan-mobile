@@ -97,6 +97,11 @@ değil — ekran içeriğiyle çakışmıyor; `app/(tabs)/_components/AppTabBar.
   değiştirmesin.
 - **Şiddet:** Yüksek
 
+> **Güncelleme (2026-08-01, plan3-p2):** `TypingIndicator`'ın bu tetikleyicisi
+> kapatıldı — `MessageList.tsx`'te gösterge artık sabit yükseklikli bir
+> `typingIndicatorFooter` sarmalayıcı içinde; görünüp kaybolması `ListFooterComponent`
+> yüksekliğini artık değiştirmiyor. (a) ve (c) tetikleyicileri hâlâ geçerli.
+
 ### B4: Bazı ekranların üstü status bar'ın / çentiğin altında kalıyor
 
 - **Belirti:** Koleksiyon detayı, ilan düzenleme gibi ekranlarda en üstteki

@@ -14,11 +14,17 @@ const mockGetSocket = jest.fn(() => mockSocket as any);
 
 jest.mock('@/services/socket', () => ({ getSocket: () => mockGetSocket() }));
 
+const mockGetAuthState = jest.fn(() => ({ user: { id: 'me' } }) as any);
+jest.mock('@/stores/authStore', () => ({
+  useAuthStore: { getState: () => mockGetAuthState() },
+}));
+
 describe('useTypingIndicator', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
     mockGetSocket.mockImplementation(() => mockSocket as any);
+    mockGetAuthState.mockImplementation(() => ({ user: { id: 'me' } }) as any);
   });
   afterEach(() => { jest.useRealTimers(); });
 
@@ -83,6 +89,12 @@ describe('useTypingIndicator', () => {
     expect(mockSocket.on).toHaveBeenCalledWith('typing:started', expect.any(Function));
     act(() => { handlers['typing:started']({ threadId: 't1' }); });
     expect(result.current.isPeerTyping).toBe(true);
+  });
+
+  it('kendi userId’mizden gelen typing:started göstergeyi açmaz', () => {
+    const { result } = renderHook(() => useTypingIndicator('t1'));
+    act(() => { handlers['typing:started']({ threadId: 't1', userId: 'me' }); });
+    expect(result.current.isPeerTyping).toBe(false);
   });
 
   it('stop gittikten sonra yazmaya devam edilince yeniden typing:start yayınlar', () => {

@@ -1,6 +1,6 @@
 # Plan 3 — P2: Erişim, Typing, Layout Denetimi
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Yazılmış ama erişilemeyen ekranları kullanıcıya aç, mesajlaşmada "yazıyor" göstergesini bağla, ve ekranlardaki layout kaymalarını sistematik olarak tespit edip raporla.
 
@@ -69,7 +69,7 @@ Bunlar `CLAUDE.md`'den gelir ve **her task için bağlayıcıdır**:
 - Consumes: `Sale` DTO (`app/sales/_lib/types.ts`), `SaleActionsController` (`app/sales/_hooks/useSaleActions.ts`)
 - Produces: yok (yaprak değişiklik)
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `app/sales/__tests__/saleCardNav.test.tsx`:
 
@@ -115,12 +115,12 @@ describe('SaleCard navigasyonu', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest app/sales/__tests__/saleCardNav.test.tsx`
 Expected: FAIL — `Unable to find an element with testID: sale-card-sale-1`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `SaleCard.tsx` içinde: `Card`'ın **içeriğini** saran bir `TouchableOpacity` eklenir — aksiyon butonları bu sarmalayıcının **dışında** kalmalı, yoksa buton basışı navigasyonu da tetikler.
 
@@ -150,12 +150,12 @@ import { router } from 'expo-router';
 
 Not: `{/* Action Buttons */}` yorumundan sonraki tüm bloklar `TouchableOpacity`'nin **dışında** kalır.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `npx jest app/sales/`
 Expected: PASS (yeni dosya + mevcut sales testleri)
 
-- [ ] **Step 5: Verify + commit**
+- [x] **Step 5: Verify + commit**
 
 ```bash
 npx tsc --noEmit && npx eslint app/sales/
@@ -181,7 +181,7 @@ buttons outside so they do not trigger navigation."
 - Consumes: yerel `MenuItem` bileşeni — imzası `{ icon, label, onPress, tone?, rightSlot?, testID? }` (`ProfileSections.tsx:272-279`)
 - Produces: yeni `testID`'ler — `profile-payment-methods-link`, `profile-payment-history-link`, `profile-payments-link`, `profile-subscription-link`, `profile-saved-searches-link`, `profile-discounts-link`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `app/(tabs)/__tests__/profileMenuLinks.test.tsx`:
 
@@ -221,12 +221,12 @@ describe('profil menüsü — daha önce erişilemeyen ekranlar', () => {
 
 **Not:** Menü bölümünü render eden dışa aktarılmış bileşenin gerçek adını `ProfileSections.tsx`'ten teyit et (yaklaşık satır 295'te başlayan "Hesap Ayarları" bölümünü içeren export). Yukarıdaki `ProfileMenuSections` adı tahmindir — dosyadaki gerçek export adıyla ve gerçek prop şekliyle (`SectionProps`) değiştir. `f` nesnesini o bileşenin okuduğu alanlarla doldur.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest 'app/(tabs)/__tests__/profileMenuLinks.test.tsx'`
 Expected: FAIL — `Unable to find an element with testID: profile-payment-methods-link`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 "Hesap Ayarları" bölümünde, mevcut `Banka Hesabı / IBAN` satırından **sonra** ödeme üçlüsünü ekle:
 
@@ -279,12 +279,12 @@ Expected: FAIL — `Unable to find an element with testID: profile-payment-metho
         />
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `npx jest 'app/(tabs)/'`
 Expected: PASS
 
-- [ ] **Step 5: Verify + commit**
+- [x] **Step 5: Verify + commit**
 
 ```bash
 npx tsc --noEmit && npx eslint 'app/(tabs)/'
@@ -310,7 +310,7 @@ them from the profile menu next to related items."
 **Interfaces:**
 - Produces: `LEGAL_PAGES: ReadonlyArray<{ slug: string; label: string; icon: string }>` — Task 5 dokümantasyonu buna atıf yapar.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `app/(tabs)/__tests__/legalPagesMenu.test.tsx`:
 
@@ -342,12 +342,12 @@ Ayrıca menü testini `profileMenuLinks.test.tsx`'e ekle (Task 2'deki dosya, ayn
   });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest 'app/(tabs)/__tests__/legalPagesMenu.test.tsx'`
 Expected: FAIL — `Cannot find module '../_lib/legalPages'`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `app/(tabs)/_lib/legalPages.ts`:
 
@@ -391,12 +391,12 @@ export const LEGAL_PAGES: ReadonlyArray<{
 
 Import ekle: `import { LEGAL_PAGES } from '../_lib/legalPages';`
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `npx jest 'app/(tabs)/' app/sayfa/`
 Expected: PASS
 
-- [ ] **Step 5: Bayat yorumu düzelt**
+- [x] **Step 5: Bayat yorumu düzelt**
 
 `app/sayfa/[slug].tsx:11` "page/[slug].tsx ile aynı ... desenini kullanarak" diyor ama `app/page/[slug].tsx` **yok**. Yorumu şununla değiştir:
 
@@ -405,7 +405,7 @@ Expected: PASS
 // görünür. Bu yüzden WebView + htmlWrapper ile tasarım token'larına uygun render edilir.
 ```
 
-- [ ] **Step 6: Verify + commit**
+- [x] **Step 6: Verify + commit**
 
 ```bash
 npx tsc --noEmit && npx eslint 'app/(tabs)/' app/sayfa/
@@ -443,7 +443,7 @@ Sunucu sözleşmesi `src/types/websocket.ts`'te **zaten tanımlı** (`ClientToSe
 - Mesaj gönderilince veya ekrandan çıkılınca derhal `typing:stop`.
 - Karşı taraftan `typing:started` gelince gösterge açılır; `typing:stopped` gelince veya **5 sn** içinde yenilenmezse kapanır (sunucu `stop` göndermezse gösterge takılı kalmasın).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `app/messages/[threadId]/__tests__/typingIndicator.test.tsx`:
 
@@ -514,14 +514,14 @@ describe('useTypingIndicator', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest 'app/messages/\[threadId\]/__tests__/typingIndicator.test.tsx'`
 Expected: FAIL — `Cannot find module '../_hooks/useTypingIndicator'`
 
 **Not:** `@/services/socket` mock yolu tahmindir. `useMessageThread.ts`'teki gerçek `getSocket` import yolunu teyit et ve mock'u ona göre düzelt.
 
-- [ ] **Step 3: Implement the hook**
+- [x] **Step 3: Implement the hook**
 
 `app/messages/[threadId]/_hooks/useTypingIndicator.ts`:
 
@@ -603,12 +603,12 @@ export function useTypingIndicator(threadId: string | undefined) {
 }
 ```
 
-- [ ] **Step 4: Run hook tests**
+- [x] **Step 4: Run hook tests**
 
 Run: `npx jest 'app/messages/\[threadId\]/__tests__/typingIndicator.test.tsx'`
 Expected: PASS (6 test)
 
-- [ ] **Step 5: Commit the hook**
+- [x] **Step 5: Commit the hook**
 
 ```bash
 npx tsc --noEmit && npx eslint 'app/messages/'
@@ -621,7 +621,7 @@ begins, stop after 3s of silence or on unmount. The receiving side has a 5s
 self-expiry so a missing typing:stopped cannot leave the indicator stuck."
 ```
 
-- [ ] **Step 6: Wire the controller**
+- [x] **Step 6: Wire the controller**
 
 `useMessageThread.ts`:
 - `import { useTypingIndicator } from './useTypingIndicator';`
@@ -630,7 +630,7 @@ self-expiry so a missing typing:stopped cannot leave the indicator stuck."
 - Mesaj gönderme handler'ının **başında** `typing.stopTyping();` çağır (gönderirken "yazıyor" asılı kalmasın).
 - `MessageThreadController` tipini bu üç alanla genişlet.
 
-- [ ] **Step 7: Wire the input**
+- [x] **Step 7: Wire the input**
 
 `MessageInputBar.tsx` içindeki `RNTextInput`'un `onChangeText`'ini sar — mevcut handler korunur:
 
@@ -641,7 +641,7 @@ self-expiry so a missing typing:stopped cannot leave the indicator stuck."
             }}
 ```
 
-- [ ] **Step 8: Add the indicator component**
+- [x] **Step 8: Add the indicator component**
 
 `app/messages/[threadId]/_components/TypingIndicator.tsx`:
 
@@ -673,12 +673,12 @@ export function TypingIndicator({ visible }: { visible: boolean }) {
         ListFooterComponent={<TypingIndicator visible={f.isPeerTyping} />}
 ```
 
-- [ ] **Step 9: Run full messaging tests**
+- [x] **Step 9: Run full messaging tests**
 
 Run: `npx jest app/messages/ src/hooks/messaging/`
 Expected: PASS
 
-- [ ] **Step 10: Verify + commit**
+- [x] **Step 10: Verify + commit**
 
 ```bash
 npx tsc --noEmit && npx eslint 'app/messages/'
@@ -701,7 +701,7 @@ Spec §7 bulguların **uygulanmadan önce raporlanmasını** şart koşar. Bu ta
 
 **Interfaces:** yok (rapor).
 
-- [ ] **Step 1: Safe area taraması**
+- [x] **Step 1: Safe area taraması**
 
 ```bash
 cd /Users/gorkemsubas/dev/tarodan-mobile
@@ -712,7 +712,7 @@ comm -13 /tmp/has_safe.txt /tmp/all_screens.txt
 
 Her ekran için: insets hiç uygulanmıyor mu, yoksa `Stack.Screen` header'ı zaten karşılıyor mu — ikisini ayır. Yalnız gerçekten üst/alt kesime giren ekranları raporla.
 
-- [ ] **Step 2: Header çakışması**
+- [x] **Step 2: Header çakışması**
 
 ```bash
 rg -n "headerShown" -g '*.tsx' app/ | rg -v "headerShown: false" | head -40
@@ -721,7 +721,7 @@ rg -ln "ScreenHeader" -g '*.tsx' app/
 
 Aranan hata: özel `ScreenHeader` **ve** görünür `Stack.Screen` header'ı aynı ekranda → çift üst boşluk.
 
-- [ ] **Step 3: Tab bar alt boşluğu**
+- [x] **Step 3: Tab bar alt boşluğu**
 
 ```bash
 rg -n "contentContainerStyle" -g '*.tsx' 'app/(tabs)/'
@@ -729,7 +729,7 @@ rg -n "contentContainerStyle" -g '*.tsx' 'app/(tabs)/'
 
 Aranan hata: tab içi listelerde alt padding yok → son öğe tab bar altında kalıyor. `AppTabBar` yüksekliğini teyit et ve padding ile karşılaştır.
 
-- [ ] **Step 4: Klavye davranışı**
+- [x] **Step 4: Klavye davranışı**
 
 ```bash
 rg -ln "TextInput|useZodForm" -g '*.tsx' app/ | sort > /tmp/forms.txt
@@ -740,7 +740,7 @@ rg -n "behavior=" -g '*.tsx' app/
 
 Aranan hata: form ekranında `KeyboardAvoidingView` yok; ya da `behavior` platform ayrımı yapılmamış (iOS `padding`, Android `height`/undefined).
 
-- [ ] **Step 5: Liste ve görsel zıplaması — KAYMANIN ANA KAYNAĞI**
+- [x] **Step 5: Liste ve görsel zıplaması — KAYMANIN ANA KAYNAĞI**
 
 Kullanıcının bildirdiği "kayma" en olası burada:
 
@@ -758,7 +758,7 @@ Aranan hatalar:
 
 Özellikle şu ekranları elle incele (en çok görsel + koşullu blok içerenler): `app/(tabs)/index.tsx`, `app/product/[id]/index.tsx`, `app/orders/[id]/index.tsx`, `app/trade/[id]/index.tsx`.
 
-- [ ] **Step 6: Modal + insets**
+- [x] **Step 6: Modal + insets**
 
 ```bash
 rg -n "<Modal" -g '*.tsx' app/ src/ui/ | head -20
@@ -766,7 +766,7 @@ rg -n "<Modal" -g '*.tsx' app/ src/ui/ | head -20
 
 `ui-native` Modal'ın insets'i kendi mi uyguluyor, yoksa çağıran mı — tutarsızlık varsa raporla.
 
-- [ ] **Step 7: Raporu yaz**
+- [x] **Step 7: Raporu yaz**
 
 `docs/superpowers/reports/2026-08-01-layout-denetimi.md` şu yapıda:
 
@@ -796,7 +796,7 @@ rg -n "<Modal" -g '*.tsx' app/ src/ui/ | head -20
 
 ⚠️ **Arama tuzağı:** Bu repoda daha önce üç kez, `grep --include=*.tsx` zsh'de glob hatası verdiği için boş dönen arama "kod yok" sanıldı ve yanlış bulgu raporlandı. Yalnız `rg` kullan; boş çıktıyı "yok" saymadan önce en az iki farklı terimle tekrar ara.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add docs/superpowers/reports/
@@ -820,21 +820,21 @@ design spec, findings are reviewed before any fix is applied."
 
 **Interfaces:** yok.
 
-- [ ] **Step 1: Spec §2 "Hâlâ açık" tablosunu düzelt**
+- [x] **Step 1: Spec §2 "Hâlâ açık" tablosunu düzelt**
 
 Şu satırlar **kapanmıştır**, tablodan çıkar veya "Kapandı (2026-08-01)" işaretle:
 - "Üyelik hakları istemcide sabit `TIER_LIMITS`" → kapandı (`src/hooks/useMembershipLimits.ts`)
 - "`products/:id/click`, `products/popular` çağrılmıyor" → kapandı (`src/lib/api/products.ts:32`, `app/(tabs)/_hooks/useHomeData.ts:40`)
 
-- [ ] **Step 2: Spec §6'yı gerçek kapsamla değiştir**
+- [x] **Step 2: Spec §6'yı gerçek kapsamla değiştir**
 
 "~22 ekran" ifadesini şununla değiştir: erişilemeyen **8** ekran, Task 1–3'te kapatıldı. Kalan tek P2 kalemi **i18n taşıma**.
 
-- [ ] **Step 3: §5 (P1) tablosuna kapanış notu ekle**
+- [x] **Step 3: §5 (P1) tablosuna kapanış notu ekle**
 
 Altı maddenin de kapandığını, kupon UI'ının `POST /cart/coupon` yerine `discounts/validate` ile **bilinçli** olarak yapıldığını (`src/lib/api/cart.ts:53`) yaz.
 
-- [ ] **Step 4: İki bayat dökümanın başına uyarı koy**
+- [x] **Step 4: İki bayat dökümanın başına uyarı koy**
 
 `WEB_MOBILE_PARITY.md` ve `WEB_MOBILE_GAP_ANALYSIS.md` en üstüne:
 
@@ -845,7 +845,7 @@ Altı maddenin de kapandığını, kupon UI'ının `POST /cart/coupon` yerine `d
 > ve `docs/superpowers/plans/2026-08-01-mobil-parite-plan3-p2.md` bakılmalı.
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs/

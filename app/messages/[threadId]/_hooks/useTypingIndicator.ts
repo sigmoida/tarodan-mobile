@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getSocket } from '@/services/socket';
+import { useAuthStore } from '@/stores/authStore';
+import type { TypingEvent } from '@/types/websocket';
 
 /** Son tuş vuruşundan sonra typing:stop'a kadar beklenen süre. */
 const STOP_AFTER_MS = 3000;
@@ -59,14 +61,23 @@ export function useTypingIndicator(threadId: string | undefined) {
 
     let subscribedSocket: ReturnType<typeof getSocket> = null;
 
-    const onStarted = (p: { threadId: string }) => {
-      if (p.threadId !== threadId) return;
+    // Sunucu, oda yayınlarını (join:thread) göndericiye de iletiyor — kendi
+    // typing olayımızı görmezden gelmezsek kullanıcı kendi yazışını "yazıyor…"
+    // olarak görür. `useMessagingSocket.ts`'teki desenle aynı: mevcut kullanıcı
+    // kimliği `useAuthStore.getState()`'ten okunur.
+    const isOwnEvent = (p: TypingEvent) => {
+      const myUserId = useAuthStore.getState().user?.id;
+      return !!p.userId && p.userId === myUserId;
+    };
+
+    const onStarted = (p: TypingEvent) => {
+      if (p.threadId !== threadId || isOwnEvent(p)) return;
       setIsPeerTyping(true);
       if (peerTimer.current) clearTimeout(peerTimer.current);
       peerTimer.current = setTimeout(() => setIsPeerTyping(false), PEER_TIMEOUT_MS);
     };
-    const onStopped = (p: { threadId: string }) => {
-      if (p.threadId !== threadId) return;
+    const onStopped = (p: TypingEvent) => {
+      if (p.threadId !== threadId || isOwnEvent(p)) return;
       if (peerTimer.current) clearTimeout(peerTimer.current);
       setIsPeerTyping(false);
     };
