@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 import { theme, Text } from '@/ui';
 import { productsApi } from '@/lib/api';
 import { formatPrice } from '../../utils/format';
-import { transformImageUrl } from '../../utils/imageUrl';
+import { transformImageUrl, IMAGE_PLACEHOLDER } from '../../utils/imageUrl';
 import {
   ProductPriceFields,
   getProductEffectivePrice,
@@ -57,7 +57,7 @@ interface ProductCardProps {
   compact?: boolean;
 }
 
-const FALLBACK_IMG = 'https://placehold.co/400x400/FFF7ED/f97316?text=Tarodan';
+const FALLBACK_IMG = IMAGE_PLACEHOLDER;
 
 function resolveImageSrc(product: ProductCardProduct): string {
   // Liste hücresi → 'card' varyantı (thumbnail), tam-res değil (#73).

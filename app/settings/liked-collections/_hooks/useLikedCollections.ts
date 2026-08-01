@@ -3,6 +3,7 @@ import { useFocusEffect } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { collectionsApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import { IMAGE_PLACEHOLDER } from '@/utils/imageUrl';
 import type { LikedCollection } from '../_lib/types';
 
 /**
@@ -59,7 +60,7 @@ export function useLikedCollections() {
 
   const getImageUrl = (collection: LikedCollection) => {
     if (collection.coverImageUrl) return collection.coverImageUrl;
-    return 'https://via.placeholder.com/300x200?text=Koleksiyon';
+    return IMAGE_PLACEHOLDER;
   };
 
   return {

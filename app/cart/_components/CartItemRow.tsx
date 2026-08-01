@@ -3,7 +3,7 @@ import { IconButton, Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { maxAllowedQty } from '@/stores/cartStore';
-import { transformImageUrl } from '@/utils/imageUrl';
+import { transformImageUrl, IMAGE_PLACEHOLDER } from '@/utils/imageUrl';
 import { asLabel } from '@/utils/format';
 import { styles } from '../_lib/styles';
 import type { CartController } from '../_hooks/useCart';
@@ -21,7 +21,7 @@ export function CartItemRow({ item, f }: { item: any; f: CartController }) {
     <View testID="cart-item-row" style={styles.cartItem}>
       <TouchableOpacity onPress={() => router.push(`/product/${item.productId}`)}>
         <Image
-          source={{ uri: transformImageUrl(item.imageUrl) || 'https://placehold.co/100x100/f3f4f6/9ca3af?text=Ürün' }}
+          source={{ uri: transformImageUrl(item.imageUrl) || IMAGE_PLACEHOLDER }}
           style={styles.itemImage}
         />
       </TouchableOpacity>

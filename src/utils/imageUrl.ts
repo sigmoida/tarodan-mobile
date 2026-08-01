@@ -18,7 +18,14 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-export const IMAGE_PLACEHOLDER = 'https://placehold.co/400x300/f3f4f6/9ca3af?text=G%C3%B6rsel';
+/**
+ * Görsel yok yedeği — TAMAMEN yerel. Düz gri (theme `colors.gray[100]` ~
+ * `#f3f4f6`) 4x3 PNG, base64 data URI olarak gömülü. Ağ isteği yapmaz, offline
+ * çalışır; eski dış servis bağımlılıkları kaldırıldı (biri ölüydü, diğeri
+ * üçüncü parti — bkz. faz0 raporu).
+ */
+export const IMAGE_PLACEHOLDER =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAIAAAA7ljmRAAAAEUlEQVR42mP4/OUbHDHg5AAAniMiXeLfbUMAAAAASUVORK5CYII=';
 
 // React Native'in doğrudan render edebildiği lokal/uzak şemalar.
 const REMOTE_URI_RE = /^https?:\/\//i;

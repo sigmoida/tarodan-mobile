@@ -58,11 +58,6 @@ export function HeroBanner() {
               </TouchableOpacity>
             </View>
           </View>
-          <Image
-            source={{ uri: 'https://via.placeholder.com/150x100?text=Diecast+Cars' }}
-            style={styles.heroImage}
-            resizeMode="contain"
-          />
         </View>
       </LinearGradient>
     </View>

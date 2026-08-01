@@ -6,11 +6,11 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { theme, Text, Chip, Avatar, type ChipVariant } from '@/ui';
 import { formatPrice } from '../../utils/format';
-import { transformImageUrl } from '../../utils/imageUrl';
+import { transformImageUrl, IMAGE_PLACEHOLDER } from '../../utils/imageUrl';
 
 const { colors, spacing, radius } = theme;
 
-const FALLBACK_IMG = 'https://placehold.co/120x120/f3f4f6/9ca3af?text=%C3%9Cr%C3%BCn';
+const FALLBACK_IMG = IMAGE_PLACEHOLDER;
 
 /** Takas statüsü → rozet etiketi/rengi. Depo-escrow akışını da kapsar. */
 export const TRADE_STATUSES: Record<string, { label: string; variant: ChipVariant }> = {
