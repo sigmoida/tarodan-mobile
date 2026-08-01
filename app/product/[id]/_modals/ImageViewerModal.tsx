@@ -3,6 +3,7 @@ import { Modal, ScrollView, Pressable, Dimensions, StyleSheet } from 'react-nati
 import { theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ZoomableImage from '@/components/product/ZoomableImage';
 
 const { colors } = theme;
@@ -21,6 +22,7 @@ export function ImageViewerModal({
   onClose: () => void;
 }) {
   const [zoomed, setZoomed] = useState(false);
+  const insets = useSafeAreaInsets();
 
   return (
     <Modal
@@ -32,7 +34,12 @@ export function ImageViewerModal({
     >
       {/* Modal Android'de yeni native pencere açtığı için root view modal içinde olmalı */}
       <GestureHandlerRootView style={styles.viewerContainer}>
-        <Pressable style={styles.viewerClose} onPress={onClose} accessibilityRole="button" accessibilityLabel="Kapat">
+        <Pressable
+          style={[styles.viewerClose, { top: Math.max(insets.top, theme.spacing[3]) }]}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Kapat"
+        >
           <Ionicons name="close" size={30} color={colors.white} />
         </Pressable>
         <ScrollView
@@ -56,7 +63,6 @@ const styles = StyleSheet.create({
   viewerContainer: { flex: 1, backgroundColor: colors.black },
   viewerClose: {
     position: 'absolute',
-    top: 50,
     right: 20,
     zIndex: 10,
     width: 44,

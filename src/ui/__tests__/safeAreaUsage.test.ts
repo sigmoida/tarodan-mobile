@@ -13,6 +13,7 @@ const MIGRATED = [
   'app/messages/[threadId]/_lib/styles.ts',
   'src/components/listing/_lib/styles.ts',
   'app/collections/[id]/_lib/collectionStyles.ts',
+  'app/product/[id]/_modals/ImageViewerModal.tsx',
 ];
 
 describe('safe-area disiplini', () => {

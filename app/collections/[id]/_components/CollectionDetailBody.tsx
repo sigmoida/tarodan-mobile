@@ -27,7 +27,7 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
       />
 
       {/* Header Buttons */}
-      <View style={[styles.headerButtons, { top: insets.top }]}>
+      <View style={[styles.headerButtons, { top: Math.max(insets.top, theme.spacing[3]) }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={colors.white} />
         </TouchableOpacity>
