@@ -312,11 +312,35 @@ export function ProfileMenuSections({ f }: SectionProps) {
           onPress={() => router.push('/settings/bank-account')}
         />
         <MenuItem
+          testID="profile-payment-methods-link"
+          icon="wallet-outline"
+          label="Ödeme Yöntemlerim"
+          onPress={() => router.push('/settings/payment-methods')}
+        />
+        <MenuItem
+          testID="profile-payment-history-link"
+          icon="time-outline"
+          label="Ödeme Geçmişi"
+          onPress={() => router.push('/settings/payment-history')}
+        />
+        <MenuItem
+          testID="profile-payments-link"
+          icon="cash-outline"
+          label="Ödemelerim"
+          onPress={() => router.push('/settings/payments')}
+        />
+        <MenuItem
           testID="profile-membership-link"
           icon="diamond-outline"
           label="Üyelik Planı"
           onPress={() => router.push('/membership')}
           rightSlot={f.isPaidTier ? <Badge variant="primary">{f.tierLabel}</Badge> : null}
+        />
+        <MenuItem
+          testID="profile-subscription-link"
+          icon="repeat-outline"
+          label="Aboneliğim"
+          onPress={() => router.push('/settings/subscription')}
         />
         <MenuItem
           icon="notifications-outline"
@@ -347,6 +371,18 @@ export function ProfileMenuSections({ f }: SectionProps) {
           icon="stats-chart-outline"
           label="İstatistikler"
           onPress={() => router.push('/settings/analytics')}
+        />
+        <MenuItem
+          testID="profile-saved-searches-link"
+          icon="bookmark-outline"
+          label="Kayıtlı Aramalarım"
+          onPress={() => router.push('/settings/saved-searches')}
+        />
+        <MenuItem
+          testID="profile-discounts-link"
+          icon="pricetag-outline"
+          label="İndirim Kuponlarım"
+          onPress={() => router.push('/settings/discounts')}
         />
       </View>
 
