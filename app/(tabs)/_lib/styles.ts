@@ -31,6 +31,63 @@ export const POPULAR_RAIL_MIN_HEIGHT =
   POPULAR_RAIL_META_HEIGHT +
   POPULAR_RAIL_PRICE_HEIGHT;
 
+// Diğer bölümler için de aynı desen: loading/empty/content aynı rezerve
+// yüksekliği paylaşmalı ki veri gelince o bölümün ÜSTÜNDEKİ okuma noktası
+// kaymasın (bkz. task-2-brief.md). Ortak parça: her `section`in kendi
+// `SectionHeader`i — indicator (24pt) ile başlık metninden (fontSize.xl ×
+// lineHeight.snug) yüksek olanı + altındaki marginBottom (spacing[4]).
+const SECTION_HEADER_INDICATOR_HEIGHT = 24; // sectionIndicator.height
+const SECTION_TITLE_TEXT_HEIGHT = typography.fontSize.xl * typography.lineHeight.snug;
+export const SECTION_HEADER_HEIGHT =
+  Math.max(SECTION_HEADER_INDICATOR_HEIGHT, SECTION_TITLE_TEXT_HEIGHT) + theme.spacing[4];
+
+// CategoriesSection: brandLogo kutusunun kendi metrikleri (paddingVertical ×2
+// + borderWidth ×2) + başlık metni (brandLogoText, fontSize.sm) + isteğe
+// bağlı ürün sayısı satırı (categoryCount, fontSize['2xs']).
+const CATEGORIES_ITEM_PADDING_V = theme.spacing[3.5] * 2;
+const CATEGORIES_ITEM_BORDER = 1.5 * 2; // brandLogo.borderWidth, üst+alt
+const CATEGORIES_ITEM_TEXT_HEIGHT = typography.fontSize.sm * typography.lineHeight.normal;
+const CATEGORIES_ITEM_COUNT_HEIGHT =
+  theme.spacing[0.5] + typography.fontSize['2xs'] * typography.lineHeight.normal;
+const CATEGORIES_RAIL_HEIGHT =
+  CATEGORIES_ITEM_PADDING_V + CATEGORIES_ITEM_BORDER + CATEGORIES_ITEM_TEXT_HEIGHT + CATEGORIES_ITEM_COUNT_HEIGHT;
+export const CATEGORIES_SECTION_MIN_HEIGHT = SECTION_HEADER_HEIGHT + CATEGORIES_RAIL_HEIGHT;
+
+// FeaturedCollectorSection: featuredCard padding (×2) + üst satır (avatar
+// 60pt + borderWidth ×2, metin sütunundan uzun olan öğe) + marginBottom +
+// alttaki "Garajını incele" butonu (paddingVertical ×2 + metin satırı).
+const FEATURED_CARD_PADDING = 18 * 2; // featuredCard.padding
+const FEATURED_HEADER_HEIGHT = 60 + 3 * 2; // featuredAvatar.height + borderWidth×2
+const FEATURED_HEADER_MARGIN = 18; // featuredHeader.marginBottom
+const FEATURED_BUTTON_HEIGHT =
+  theme.spacing[2.5] * 2 + typography.fontSize.sm * typography.lineHeight.normal;
+export const FEATURED_COLLECTOR_SECTION_MIN_HEIGHT =
+  SECTION_HEADER_HEIGHT +
+  FEATURED_CARD_PADDING +
+  FEATURED_HEADER_HEIGHT +
+  FEATURED_HEADER_MARGIN +
+  FEATURED_BUTTON_HEIGHT;
+
+// BoostedRail: aynı `ProductCard` rafı (bkz. PopularProducts) — kart
+// metrikleri özdeş, o yüzden POPULAR_RAIL_MIN_HEIGHT'i yeniden kullanıyoruz.
+export const BOOSTED_RAIL_MIN_HEIGHT = SECTION_HEADER_HEIGHT + POPULAR_RAIL_MIN_HEIGHT;
+
+// ProductsGrid: grid hücreleri de aynı `ProductCard`; ilk satırın yüksekliğini
+// rezerve ediyoruz (satır sayısı veriye göre değişir, kaymayı önlemek için
+// yeter olan minimum budur).
+export const PRODUCTS_GRID_MIN_HEIGHT = SECTION_HEADER_HEIGHT + POPULAR_RAIL_MIN_HEIGHT;
+
+// CollectionsSection: collectionCard — sabit görsel yüksekliği (110) +
+// collectionInfo padding (×2) + isim satırı (collectionName, fontSize.sm) +
+// meta satırı (collectionMeta, marginTop + fontSize.xs).
+const COLLECTION_IMAGE_HEIGHT = 110; // collectionImage.height
+const COLLECTION_INFO_PADDING = theme.spacing[3] * 2;
+const COLLECTION_NAME_HEIGHT = typography.fontSize.sm * typography.lineHeight.normal;
+const COLLECTION_META_HEIGHT = theme.spacing[1] + typography.fontSize.xs * typography.lineHeight.normal;
+const COLLECTIONS_RAIL_HEIGHT =
+  COLLECTION_IMAGE_HEIGHT + COLLECTION_INFO_PADDING + COLLECTION_NAME_HEIGHT + COLLECTION_META_HEIGHT;
+export const COLLECTIONS_SECTION_MIN_HEIGHT = SECTION_HEADER_HEIGHT + COLLECTIONS_RAIL_HEIGHT;
+
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -499,6 +556,24 @@ export const styles = StyleSheet.create({
     color: colors.overlay.white70,
     marginTop: theme.spacing[1.5],
     fontSize: 14,
+  },
+  // Yükleme sırasında rezerve edilen bölüm yer tutucuları — her biri kendi
+  // MIN_HEIGHT sabitini kullanır (bkz. yukarıdaki türetmeler), böylece veri
+  // gelene kadar bölüm görünmez ama boyutu zaten yerindedir.
+  categoriesSectionReserved: {
+    minHeight: CATEGORIES_SECTION_MIN_HEIGHT,
+  },
+  featuredCollectorSectionReserved: {
+    minHeight: FEATURED_COLLECTOR_SECTION_MIN_HEIGHT,
+  },
+  boostedRailReserved: {
+    minHeight: BOOSTED_RAIL_MIN_HEIGHT,
+  },
+  productsGridReserved: {
+    minHeight: PRODUCTS_GRID_MIN_HEIGHT,
+  },
+  collectionsSectionReserved: {
+    minHeight: COLLECTIONS_SECTION_MIN_HEIGHT,
   },
   productsGrid: {
     flexDirection: 'row',

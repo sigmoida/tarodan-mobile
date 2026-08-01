@@ -64,7 +64,10 @@ export function HeroBanner() {
   );
 }
 
-export function CategoriesSection({ categories }: { categories: any[] }) {
+export function CategoriesSection({ categories, isLoading }: { categories: any[]; isLoading?: boolean }) {
+  if (isLoading) {
+    return <View style={styles.categoriesSectionReserved} testID="categories-section-reserved" />;
+  }
   if (categories.length === 0) return null;
   return (
     <View style={styles.section}>
@@ -115,7 +118,16 @@ export function ScalesSection() {
   );
 }
 
-export function FeaturedCollectorSection({ featuredCollector }: { featuredCollector: any }) {
+export function FeaturedCollectorSection({
+  featuredCollector,
+  isLoading,
+}: {
+  featuredCollector: any;
+  isLoading?: boolean;
+}) {
+  if (isLoading) {
+    return <View style={styles.featuredCollectorSectionReserved} testID="featured-collector-section-reserved" />;
+  }
   if (!featuredCollector) return null;
   const fc = featuredCollector;
   return (
@@ -166,7 +178,15 @@ type CardListProps = {
   onProductPress: (id: string) => void;
 };
 
-export function BoostedRail({ items, cartProductIds, onProductPress }: CardListProps) {
+export function BoostedRail({
+  items,
+  cartProductIds,
+  onProductPress,
+  isLoading,
+}: CardListProps & { isLoading?: boolean }) {
+  if (isLoading) {
+    return <View style={styles.boostedRailReserved} testID="boosted-rail-reserved" />;
+  }
   if (items.length === 0) return null;
   return (
     <View style={styles.section}>
@@ -213,7 +233,15 @@ export function PopularProducts({
   );
 }
 
-export function ProductsGrid({ items, cartProductIds, onProductPress }: CardListProps) {
+export function ProductsGrid({
+  items,
+  cartProductIds,
+  onProductPress,
+  isLoading,
+}: CardListProps & { isLoading?: boolean }) {
+  if (isLoading) {
+    return <View style={styles.productsGridReserved} testID="products-grid-reserved" />;
+  }
   if (items.length === 0) return null;
   return (
     <View style={styles.section}>
@@ -229,7 +257,10 @@ export function ProductsGrid({ items, cartProductIds, onProductPress }: CardList
   );
 }
 
-export function CollectionsSection({ collections }: { collections: any[] }) {
+export function CollectionsSection({ collections, isLoading }: { collections: any[]; isLoading?: boolean }) {
+  if (isLoading) {
+    return <View style={styles.collectionsSectionReserved} testID="collections-section-reserved" />;
+  }
   if (collections.length === 0) return null;
   return (
     <View style={styles.section}>
