@@ -11,6 +11,7 @@ import { mediaApi, userApi } from '@/lib/api';
 import { getSocket } from '@/services/socket';
 import { groupMessagesByDate } from '../_lib/helpers';
 import { useTypingIndicator } from './useTypingIndicator';
+import { useAutoScroll } from './useAutoScroll';
 
 /**
  * Message-thread controller — thread/messages artık React Query (#77), send/markRead
@@ -69,18 +70,14 @@ export function useMessageThread() {
   }, [threadId]);
 
   // İlk yüklemede animasyonsuz en alta konumla (liste o ana dek gizli);
-  // sonraki içerik değişimlerinde (yeni mesaj) yumuşak kaydır.
-  const handleContentSizeChange = () => {
-    if (!isPositioned) {
-      // Boş konuşma (yüklenmiş, mesaj yok) da "konumlanmış" sayılır.
-      if (messages.length > 0 || !isLoadingMessages) {
-        scrollViewRef.current?.scrollToEnd({ animated: false });
-        setIsPositioned(true);
-      }
-    } else {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }
-  };
+  // sonraki içerik değişimlerinde yalnız kullanıcı dibe yakınsa veya kendi
+  // mesajını gönderdiyse kaydır (bkz. layout denetimi B3 — useAutoScroll).
+  const { handleScroll, handleContentSizeChange, forceScrollToBottom } = useAutoScroll(
+    scrollViewRef,
+    isPositioned,
+    setIsPositioned,
+    messages.length > 0 || !isLoadingMessages,
+  );
 
   /**
    * Resim seç → önizleme olarak input üstüne ekle. Gönderim, kullanıcı
@@ -158,6 +155,8 @@ export function useMessageThread() {
         await sendMessage.mutateAsync({ threadId, content });
         setInputText('');
         setPendingImage(null);
+        // Kullanıcının kendi mesajı: konumdan bağımsız HER ZAMAN dibe kaydır.
+        forceScrollToBottom();
       } catch (e: any) {
         appAlert(
           'Mesaj gönderilemedi',
@@ -236,6 +235,7 @@ export function useMessageThread() {
     notifyTyping: typing.notifyTyping,
     // handlers
     handleContentSizeChange,
+    handleScroll,
     handleAttachImage,
     handleSend,
     handleHeaderMenu,

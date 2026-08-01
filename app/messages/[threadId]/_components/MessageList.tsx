@@ -15,8 +15,9 @@ import { TypingIndicator } from './TypingIndicator';
  * Virtualized (#74): the grouped structure is flattened into typed rows
  * (divider + message) and rendered through a FlatList so only on-screen bubbles
  * mount — unbounded chat history no longer mounts every row up front. Auto-scroll
- * keeps the same contract: onContentSizeChange → scrollToEnd (FlatList supports
- * both identically to ScrollView).
+ * is driven by `useAutoScroll` (see B3 layout fix): `onScroll` tracks distance
+ * from bottom in a ref, `onContentSizeChange` only scrolls when near the bottom
+ * or a send forced it — reading history no longer gets yanked to the end.
  */
 type Row =
   | { kind: 'divider'; key: string; date: string }
@@ -136,6 +137,8 @@ export function MessageList({ f }: { f: MessageThreadController }) {
       style={[styles.messagesList, !f.isPositioned && styles.messagesListHidden]}
       contentContainerStyle={styles.messagesContent}
       onContentSizeChange={f.handleContentSizeChange}
+      onScroll={f.handleScroll}
+      scrollEventThrottle={100}
       ListFooterComponent={
         // TypingIndicator görünüp kaybolunca içerik yüksekliği DEĞİŞMESİN diye
         // sabit yükseklikli bir kapsayıcıya alınır (bkz. layout denetimi B3) —
