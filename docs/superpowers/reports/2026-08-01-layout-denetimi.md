@@ -216,6 +216,23 @@ değil — ekran içeriğiyle çakışmıyor; `app/(tabs)/_components/AppTabBar.
   düzeltmez, bozar; onlara dokunma.
 - **Şiddet:** Orta
 
+> **Düzeltme notu (2026-08-01, task-3 uygulaması sırasında):** Yukarıdaki
+> "arama sonuç ızgarası ... satır yüksekliği sabit" öncülü **yanlış** çıktı —
+> ölçümle doğrulandı, aşağıya bakınız. Bulgunun geri kalanı (21 `FlatList`,
+> hiçbirinde `getItemLayout` yok) hâlâ geçerli; sadece "arama ızgarası hazır
+> bir kazanım" iddiası düzeltiliyor:
+> - Gerçek satır yüksekliği aralığı 272.8pt–315.8pt arasında, sabit değil.
+> - `numberOfLines={2}` bir **üst** sınır, alt sınır değil — tek satırlık
+>   başlıklarda satır ~21pt daha kısa.
+> - Koşullu puan satırı (`SearchResultCard.tsx:78-86`, `ratingAvg > 0` iken
+>   render ediliyor) ~22pt ekliyor.
+> - `getItemLayout` ön koşulu: kart önce gerçekten sabit yüksekliğe
+>   sabitlenmeli (başlığa 2 satırlık `minHeight`, puan satırı koşulsuz yer
+>   kaplasın, meta tek satıra klemplensin). Bu bir **görsel tasarım kararı** —
+>   ayrı ele alınmalı, bir performans task'ının yan etkisi olarak alınmamalı.
+> - Bu yüzden B8 bu fazda (task-3, faz2-layout) **uygulanmadı**; geri alındı.
+>   Ayrıntı: `.superpowers/sdd/2026-08-01-faz2-layout/task-3-report.md`.
+
 ### B9: Ana sayfa "hero" görseli dış bir placeholder servisine bağlı
 
 - **Belirti:** Ana sayfadaki tanıtım kutusunda görsel hiç gelmiyor / gri kalıyor.

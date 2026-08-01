@@ -72,7 +72,12 @@ function SearchResultCardBase({
           <Text variant="bodySm" weight="semibold" numberOfLines={2}>
             {item.title}
           </Text>
-          <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[0.5] }}>
+          <Text
+            variant="caption"
+            tone="muted"
+            numberOfLines={1}
+            style={{ marginTop: theme.spacing[0.5] }}
+          >
             {asLabel(item.brand, 'Marka')} • {asLabel(item.scale, '1:64')}
           </Text>
           {ratingAvg > 0 ? (
