@@ -5,6 +5,16 @@ import { getSocket } from '@/services/socket';
 const STOP_AFTER_MS = 3000;
 /** Sunucu stop göndermezse göstergenin kendiliğinden kapanma süresi. */
 const PEER_TIMEOUT_MS = 5000;
+/**
+ * `getSocket()` null dönerken veya `disconnectSocket`/`connectSocket` yeni bir
+ * instance yarattığında (logout→login, reconnect) yeniden kaydolmak için
+ * yoklama aralığı. `join:thread` bu tuzağa `useFocusEffect` ile kaçıyor, ama o
+ * yalnız ekrana her dönüşte onarır — deep-link ile ekran, kök layout'un
+ * `connectSocket()`'i henüz çalışmadan mount olursa (aynı commit'te çocuk
+ * effect'leri ebeveynden önce çalışır) hiç iyileşmezdi. Yoklama, mount sırasına
+ * bağlı olmadan hem bu geç-bağlanma yarışını hem de instance değişimini kapsar.
+ */
+const SOCKET_POLL_MS = 500;
 
 /**
  * Mesaj thread'i için "yazıyor" köprüsü.
@@ -40,11 +50,14 @@ export function useTypingIndicator(threadId: string | undefined) {
     stopTimer.current = setTimeout(emitStop, STOP_AFTER_MS);
   }, [threadId, emitStop]);
 
-  // Karşı tarafın typing olaylarını dinle
+  // Karşı tarafın typing olaylarını dinle. Soket mount anında hazır olmayabilir
+  // (deep-link, kök layout'un connectSocket'i henüz çalışmadan) ya da sonradan
+  // logout/login ile yeni bir instance'a değişebilir — bu yüzden tek seferlik
+  // `getSocket()` yerine hazır olana / değişene kadar yoklanır.
   useEffect(() => {
-    if (!threadId) return;
-    const socket = getSocket();
-    if (!socket) return;
+    if (!threadId) return undefined;
+
+    let subscribedSocket: ReturnType<typeof getSocket> = null;
 
     const onStarted = (p: { threadId: string }) => {
       if (p.threadId !== threadId) return;
@@ -58,11 +71,29 @@ export function useTypingIndicator(threadId: string | undefined) {
       setIsPeerTyping(false);
     };
 
-    socket.on('typing:started', onStarted);
-    socket.on('typing:stopped', onStopped);
+    const unsubscribe = () => {
+      if (!subscribedSocket) return;
+      subscribedSocket.off('typing:started', onStarted);
+      subscribedSocket.off('typing:stopped', onStopped);
+      subscribedSocket = null;
+    };
+
+    const trySubscribe = () => {
+      const socket = getSocket();
+      if (socket === subscribedSocket) return;
+      unsubscribe();
+      if (!socket) return;
+      socket.on('typing:started', onStarted);
+      socket.on('typing:stopped', onStopped);
+      subscribedSocket = socket;
+    };
+
+    trySubscribe();
+    const pollId = setInterval(trySubscribe, SOCKET_POLL_MS);
+
     return () => {
-      socket.off('typing:started', onStarted);
-      socket.off('typing:stopped', onStopped);
+      clearInterval(pollId);
+      unsubscribe();
       if (peerTimer.current) clearTimeout(peerTimer.current);
       setIsPeerTyping(false);
     };
