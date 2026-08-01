@@ -24,11 +24,7 @@
         "NSCameraUsageDescription": "Ürün fotoğrafı çekmek için kamera erişimi gereklidir.",
         "NSPhotoLibraryUsageDescription": "Ürün fotoğrafı seçmek için galeri erişimi gereklidir.",
         "ITSAppUsesNonExemptEncryption": false
-      },
-      "associatedDomains": [
-        "applinks:tarodan.com.tr",
-        "applinks:staging.tarodan.com.tr"
-      ]
+      }
     },
     "android": {
       "package": "com.tarodan.app",

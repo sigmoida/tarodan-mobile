@@ -150,3 +150,41 @@ edilirse testler atlanır; disiplin olarak `master`'a elle commit atılmamalı.
 - App Store'a (TestFlight ötesi) otomatik yayın — manuel kalır.
 - Android build/submit uygulaması (§7 yalnız plan).
 - Prod backend'in ayağa kaldırılması — mobil reponun işi değil.
+
+---
+
+## 11. Sonradan eklendi (2026-08-01): iOS Associated Domains build'i kırdı
+
+İlk gerçek iOS build denemesinde hem prod hem staging **Xcode derleme adımında** düştü:
+
+```
+Provisioning profile "*[expo] com.tarodan.app AppStore 2026-07-02"
+  doesn't support the Associated Domains capability.
+  doesn't include the com.apple.developer.associated-domains entitlement.
+```
+
+**Sebep:** Plan 1 / Task 6'da (`7a951fa`) universal link için eklenen
+`ios.associatedDomains`, iOS'ta **Associated Domains** capability'si gerektiriyor.
+Mevcut provisioning profile'lar (prod 2026-07-02, staging 2026-07-25) o değişiklikten
+önce üretildiği için bu yetkiyi taşımıyor.
+
+**Karar:** `ios.associatedDomains` **geçici olarak kaldırıldı**. Gerekçe: AASA dosyaları
+(`/.well-known/apple-app-site-association`) iki domainde de **404** — universal link'ler
+zaten çalışmıyordu, capability yalnızca build'i kırıyordu. Custom scheme (`tarodan://`)
+etkilenmedi ve derin bağlantı yönlendirmesi (`src/services/deepLinks.ts` + `toMobileRoute`)
+olduğu gibi duruyor.
+
+**Geri eklemek için sıra (üçü birlikte yapılmalı):**
+1. AASA + `assetlinks.json` dosyaları `tarodan.com.tr` ve `staging.tarodan.com.tr`
+   üzerinde yayınlanır.
+2. Apple Developer portal'da her iki App ID'ye (`com.tarodan.app`,
+   `com.tarodan.app.staging`) **Associated Domains** capability'si eklenir; ya da
+   `eas credentials` interaktif çalıştırılıp EAS'ın capability'yi senkronlaması sağlanır.
+3. `app.json`'a `ios.associatedDomains` geri eklenir ve **bir build alınarak doğrulanır**.
+
+Android `intentFilters` (autoVerify) kaldırılmadı — Android build'i kırmıyor ve
+`assetlinks.json` yayınlanınca kendiliğinden devreye girer.
+
+**Ders:** iOS capability değişiklikleri yalnız gerçek bir build'de görünür; statik
+doğrulama (tsc/lint/test) yakalayamaz. Bu tür bir değişiklikten sonra kotayı harcamadan
+önce tek bir doğrulama build'i alınmalı.
