@@ -1,3 +1,8 @@
+> ⚠️ **BAYAT (2026-08-01 itibarıyla).** Bu döküman P0 ve P1 işleri tamamlanmadan
+> önce yazıldı ve kapanmış maddeleri hâlâ açık gösteriyor. Güncel durum için
+> `docs/superpowers/specs/2026-07-30-mobil-web-islev-paritesi-design.md` §2/§5/§6
+> ve `docs/superpowers/plans/2026-08-01-mobil-parite-plan3-p2.md` bakılmalı.
+
 # Web ↔ Mobil derin gap analizi
 
 **Tarih:** 2026-03-12  
