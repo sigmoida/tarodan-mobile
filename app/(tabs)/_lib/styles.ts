@@ -174,10 +174,6 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text.heading,
   },
-  heroImage: {
-    width: 100,
-    height: 100,
-  },
   section: {
     marginBottom: 28,
   },

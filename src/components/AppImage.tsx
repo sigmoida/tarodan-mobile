@@ -57,6 +57,7 @@ export const AppImage = React.memo(function AppImage({
       cachePolicy="memory-disk"
       transition={150}
       placeholder={IMAGE_PLACEHOLDER}
+      placeholderContentFit={fit}
       accessibilityLabel={accessibilityLabel}
       onError={onError}
     />
