@@ -45,6 +45,7 @@ export default function HomeScreen() {
     featuredCollector,
     loadingFeaturedCollector,
     companyOfWeek,
+    loadingCompanyOfWeek,
     loadingProducts,
     refetchProducts,
   } = useHomeData();
@@ -98,7 +99,7 @@ export default function HomeScreen() {
         <BoostedRail items={boostedProducts} isLoading={loadingBoosted} {...cardProps} />
         <PopularProducts items={popularProducts} isLoading={loadingPopular} {...cardProps} />
         <ProductsGrid items={products} isLoading={loadingProducts} {...cardProps} />
-        <CompanyOfWeekSection companyOfWeek={companyOfWeek} />
+        <CompanyOfWeekSection companyOfWeek={companyOfWeek} isLoading={loadingCompanyOfWeek} />
         <CollectionsSection collections={collections} isLoading={loadingCollections} />
         <View style={{ height: 100 }} />
       </ScrollView>

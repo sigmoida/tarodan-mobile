@@ -8,6 +8,7 @@
  */
 import React from 'react';
 import { render, screen } from '@testing-library/react-native';
+import { theme } from '@/ui';
 import {
   CategoriesSection,
   FeaturedCollectorSection,
@@ -15,13 +16,18 @@ import {
   ProductsGrid,
   CollectionsSection,
 } from '../HomeSections';
+import { CompanyOfWeekSection } from '../CompanyOfWeekSection';
 import {
   styles,
+  SECTION_HEADER_HEIGHT,
+  SECTION_MARGIN_BOTTOM,
+  POPULAR_RAIL_MIN_HEIGHT,
   CATEGORIES_SECTION_MIN_HEIGHT,
   FEATURED_COLLECTOR_SECTION_MIN_HEIGHT,
   BOOSTED_RAIL_MIN_HEIGHT,
   PRODUCTS_GRID_MIN_HEIGHT,
   COLLECTIONS_SECTION_MIN_HEIGHT,
+  COMPANY_OF_WEEK_SECTION_MIN_HEIGHT,
 } from '../../_lib/styles';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn(), navigate: jest.fn() } }));
@@ -118,6 +124,26 @@ describe('ProductsGrid', () => {
   });
 });
 
+describe('CompanyOfWeekSection', () => {
+  it('loading: rezerve alan çizer', () => {
+    render(<CompanyOfWeekSection companyOfWeek={null} isLoading />);
+    const el = screen.getByTestId('company-of-week-section-reserved');
+    expect(el.props.style).toEqual(styles.companyOfWeekSectionReserved);
+    expect(styles.companyOfWeekSectionReserved.minHeight).toBe(COMPANY_OF_WEEK_SECTION_MIN_HEIGHT);
+  });
+
+  it('boş: hiç yer kaplamaz', () => {
+    render(<CompanyOfWeekSection companyOfWeek={null} isLoading={false} />);
+    expect(screen.queryByTestId('company-of-week-section-reserved')).toBeNull();
+    expect(screen.queryByText('Haftanın Şirketi')).toBeNull();
+  });
+
+  it('dolu: içeriği çizer', () => {
+    render(<CompanyOfWeekSection companyOfWeek={{ id: '1', companyName: 'Acme' }} isLoading={false} />);
+    expect(screen.getByText('Haftanın Şirketi')).toBeTruthy();
+  });
+});
+
 describe('CollectionsSection', () => {
   it('loading: rezerve alan çizer', () => {
     render(<CollectionsSection collections={[]} isLoading />);
@@ -140,5 +166,57 @@ describe('CollectionsSection', () => {
       />
     );
     expect(screen.getByText('Koleksiyonlar')).toBeTruthy();
+  });
+});
+
+/**
+ * Değer doğruluğu (inceleme notu): önceki `toBe(X_MIN_HEIGHT)` testleri
+ * sadece stilin sabite BAĞLANDIĞINI kontrol ediyordu, sabitin kendisinin
+ * gerçek render yüksekliğine yakın olduğunu değil — `section.marginBottom`
+ * (28pt) beş bölümün de rezervinden eksikti ve hiçbir test bunu yakalamadı.
+ * Burada her MIN_HEIGHT'i, `_lib/styles.ts`'teki private sabitleri değil,
+ * doğrudan `theme`den bağımsızca yeniden hesaplayıp karşılaştırıyoruz —
+ * ikisi ayrışırsa (ör. biri güncellenip diğeri unutulursa) bu test kırılır.
+ */
+describe('rezerve yüksekliklerinin değer doğruluğu (regresyon)', () => {
+  const { typography } = theme;
+
+  it('SECTION_MARGIN_BOTTOM her `section` sarmalayıcısının gerçek marginBottom değeriyle eşleşir', () => {
+    expect(styles.section.marginBottom).toBe(SECTION_MARGIN_BOTTOM);
+    expect(SECTION_MARGIN_BOTTOM).toBe(28);
+  });
+
+  it('SECTION_HEADER_HEIGHT bağımsızca hesaplanan indicator/title + marginBottom toplamına eşittir', () => {
+    const indicatorHeight = 24;
+    const titleHeight = typography.fontSize.xl * typography.lineHeight.snug;
+    expect(SECTION_HEADER_HEIGHT).toBe(Math.max(indicatorHeight, titleHeight) + theme.spacing[4]);
+  });
+
+  it('her *_MIN_HEIGHT en az SECTION_HEADER_HEIGHT + SECTION_MARGIN_BOTTOM kadardır (28pt-sınıfı eksik-rezerv regresyonu)', () => {
+    const floor = SECTION_HEADER_HEIGHT + SECTION_MARGIN_BOTTOM;
+    expect(CATEGORIES_SECTION_MIN_HEIGHT).toBeGreaterThanOrEqual(floor);
+    expect(FEATURED_COLLECTOR_SECTION_MIN_HEIGHT).toBeGreaterThanOrEqual(floor);
+    expect(BOOSTED_RAIL_MIN_HEIGHT).toBeGreaterThanOrEqual(floor);
+    expect(PRODUCTS_GRID_MIN_HEIGHT).toBeGreaterThanOrEqual(floor);
+    expect(COLLECTIONS_SECTION_MIN_HEIGHT).toBeGreaterThanOrEqual(floor);
+    // CompanyOfWeekSection kendi `styles.section`ini kullanmıyor (bkz.
+    // companySection.marginBottom = spacing[6]), o yüzden bu tabana dahil
+    // değil — kendi tabanını ayrı doğruluyoruz.
+    expect(COMPANY_OF_WEEK_SECTION_MIN_HEIGHT).toBeGreaterThanOrEqual(SECTION_HEADER_HEIGHT + theme.spacing[6]);
+  });
+
+  it('BOOSTED_RAIL_MIN_HEIGHT / PRODUCTS_GRID_MIN_HEIGHT = header + POPULAR_RAIL_MIN_HEIGHT + section margin', () => {
+    const expected = SECTION_HEADER_HEIGHT + POPULAR_RAIL_MIN_HEIGHT + SECTION_MARGIN_BOTTOM;
+    expect(BOOSTED_RAIL_MIN_HEIGHT).toBe(expected);
+    expect(PRODUCTS_GRID_MIN_HEIGHT).toBe(expected);
+  });
+
+  it('CollectionsSection: bağımsızca hesaplanan kart metrikleri (image 110 + padding + isim + meta satırı)', () => {
+    const imageHeight = 110; // collectionImage.height
+    const infoPadding = theme.spacing[3] * 2;
+    const nameHeight = typography.fontSize.sm * typography.lineHeight.normal;
+    const metaHeight = theme.spacing[1] + typography.fontSize.xs * typography.lineHeight.normal;
+    const expected = SECTION_HEADER_HEIGHT + imageHeight + infoPadding + nameHeight + metaHeight + SECTION_MARGIN_BOTTOM;
+    expect(COLLECTIONS_SECTION_MIN_HEIGHT).toBe(expected);
   });
 });

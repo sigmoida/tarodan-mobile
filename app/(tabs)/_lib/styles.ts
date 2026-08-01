@@ -41,6 +41,14 @@ const SECTION_TITLE_TEXT_HEIGHT = typography.fontSize.xl * typography.lineHeight
 export const SECTION_HEADER_HEIGHT =
   Math.max(SECTION_HEADER_INDICATOR_HEIGHT, SECTION_TITLE_TEXT_HEIGHT) + theme.spacing[4];
 
+// `section` sarmalayıcısının kendi marginBottom'u da rezerve yüksekliğine
+// dahil olmalı — içerik `<View style={styles.section}>` içinde render
+// oluyor (`HomeSections.tsx`), rezerve `View`'lar bu marjı unutursa gerçek
+// yükseklikten hep SECTION_MARGIN_BOTTOM kadar az rezerve edilmiş olur
+// (task-2-report.md'deki inceleme notu). `section` stili de bu sabitten
+// beslenir — tek kaynak, ayrışma riski yok.
+export const SECTION_MARGIN_BOTTOM = 28;
+
 // CategoriesSection: brandLogo kutusunun kendi metrikleri (paddingVertical ×2
 // + borderWidth ×2) + başlık metni (brandLogoText, fontSize.sm) + isteğe
 // bağlı ürün sayısı satırı (categoryCount, fontSize['2xs']).
@@ -51,11 +59,17 @@ const CATEGORIES_ITEM_COUNT_HEIGHT =
   theme.spacing[0.5] + typography.fontSize['2xs'] * typography.lineHeight.normal;
 const CATEGORIES_RAIL_HEIGHT =
   CATEGORIES_ITEM_PADDING_V + CATEGORIES_ITEM_BORDER + CATEGORIES_ITEM_TEXT_HEIGHT + CATEGORIES_ITEM_COUNT_HEIGHT;
-export const CATEGORIES_SECTION_MIN_HEIGHT = SECTION_HEADER_HEIGHT + CATEGORIES_RAIL_HEIGHT;
+export const CATEGORIES_SECTION_MIN_HEIGHT = SECTION_HEADER_HEIGHT + CATEGORIES_RAIL_HEIGHT + SECTION_MARGIN_BOTTOM;
 
 // FeaturedCollectorSection: featuredCard padding (×2) + üst satır (avatar
 // 60pt + borderWidth ×2, metin sütunundan uzun olan öğe) + marginBottom +
 // alttaki "Garajını incele" butonu (paddingVertical ×2 + metin satırı).
+// NOT: `fc.items` doluysa araya 110pt'lik yatay ürün rafı da giriyor
+// (featuredProducts) — bilinçli olarak SAYMIYORUZ. Rezervde varsayıp veri
+// gelince raf çıkmazsa (items boş) içerik YUKARI sıçrar; bu, okuyucunun tam
+// baktığı yerde ters yönde bir kayma yaratır ve mevcut aşağı-itme
+// davranışından (bu task'ın çözdüğü kusur) daha rahatsız edicidir. Rafı
+// saymayıp bazen ~110pt eksik rezerve etmek — yön hep aşağı — daha az kötü.
 const FEATURED_CARD_PADDING = 18 * 2; // featuredCard.padding
 const FEATURED_HEADER_HEIGHT = 60 + 3 * 2; // featuredAvatar.height + borderWidth×2
 const FEATURED_HEADER_MARGIN = 18; // featuredHeader.marginBottom
@@ -66,16 +80,17 @@ export const FEATURED_COLLECTOR_SECTION_MIN_HEIGHT =
   FEATURED_CARD_PADDING +
   FEATURED_HEADER_HEIGHT +
   FEATURED_HEADER_MARGIN +
-  FEATURED_BUTTON_HEIGHT;
+  FEATURED_BUTTON_HEIGHT +
+  SECTION_MARGIN_BOTTOM;
 
 // BoostedRail: aynı `ProductCard` rafı (bkz. PopularProducts) — kart
 // metrikleri özdeş, o yüzden POPULAR_RAIL_MIN_HEIGHT'i yeniden kullanıyoruz.
-export const BOOSTED_RAIL_MIN_HEIGHT = SECTION_HEADER_HEIGHT + POPULAR_RAIL_MIN_HEIGHT;
+export const BOOSTED_RAIL_MIN_HEIGHT = SECTION_HEADER_HEIGHT + POPULAR_RAIL_MIN_HEIGHT + SECTION_MARGIN_BOTTOM;
 
 // ProductsGrid: grid hücreleri de aynı `ProductCard`; ilk satırın yüksekliğini
 // rezerve ediyoruz (satır sayısı veriye göre değişir, kaymayı önlemek için
 // yeter olan minimum budur).
-export const PRODUCTS_GRID_MIN_HEIGHT = SECTION_HEADER_HEIGHT + POPULAR_RAIL_MIN_HEIGHT;
+export const PRODUCTS_GRID_MIN_HEIGHT = SECTION_HEADER_HEIGHT + POPULAR_RAIL_MIN_HEIGHT + SECTION_MARGIN_BOTTOM;
 
 // CollectionsSection: collectionCard — sabit görsel yüksekliği (110) +
 // collectionInfo padding (×2) + isim satırı (collectionName, fontSize.sm) +
@@ -86,7 +101,36 @@ const COLLECTION_NAME_HEIGHT = typography.fontSize.sm * typography.lineHeight.no
 const COLLECTION_META_HEIGHT = theme.spacing[1] + typography.fontSize.xs * typography.lineHeight.normal;
 const COLLECTIONS_RAIL_HEIGHT =
   COLLECTION_IMAGE_HEIGHT + COLLECTION_INFO_PADDING + COLLECTION_NAME_HEIGHT + COLLECTION_META_HEIGHT;
-export const COLLECTIONS_SECTION_MIN_HEIGHT = SECTION_HEADER_HEIGHT + COLLECTIONS_RAIL_HEIGHT;
+export const COLLECTIONS_SECTION_MIN_HEIGHT = SECTION_HEADER_HEIGHT + COLLECTIONS_RAIL_HEIGHT + SECTION_MARGIN_BOTTOM;
+
+// CompanyOfWeekSection: `companySection` kendi paddingVertical'ını taşıyor
+// (spacing[6] ×2, section marginBottom'a ek — bu sarmalayıcı `styles.section`
+// KULLANMIYOR, kendi `marginBottom: spacing[6]`si var, bkz. aşağıdaki
+// stylesheet). İçindeki `companyCard`: padding(×2) + profil satırı (avatar
+// 70pt + borderWidth×2) + "Öne Çıkan Ürünler" başlığı (companySectionTitle,
+// fontSize.base) + "Mağazayı İncele" butonu (viewStoreButton marginTop +
+// viewStoreButtonGradient paddingVertical×2 + metin satırı). En yavaş query
+// olduğu için (fallback zinciri) bu bölüm de aynı üç dallı deseni izliyor.
+const COMPANY_CARD_PADDING = theme.spacing[5] * 2; // companyCard.padding
+const COMPANY_HEADER_HEIGHT = 70 + 3 * 2; // companyAvatar.height + borderWidth×2
+const COMPANY_HEADER_MARGIN = 18; // companyHeader.marginBottom
+const COMPANY_SECTION_TITLE_HEIGHT =
+  typography.fontSize.base * typography.lineHeight.normal + theme.spacing[3.5]; // companySectionTitle marginBottom
+const COMPANY_BUTTON_MARGIN = 18; // viewStoreButton.marginTop
+const COMPANY_BUTTON_HEIGHT =
+  theme.spacing[3.5] * 2 + typography.fontSize.base * typography.lineHeight.normal; // viewStoreButtonGradient
+const COMPANY_SECTION_PADDING_V = theme.spacing[6] * 2; // companySection.paddingVertical ×2
+const COMPANY_SECTION_MARGIN_BOTTOM = theme.spacing[6]; // companySection.marginBottom
+export const COMPANY_OF_WEEK_SECTION_MIN_HEIGHT =
+  SECTION_HEADER_HEIGHT +
+  COMPANY_SECTION_PADDING_V +
+  COMPANY_SECTION_MARGIN_BOTTOM +
+  COMPANY_CARD_PADDING +
+  COMPANY_HEADER_HEIGHT +
+  COMPANY_HEADER_MARGIN +
+  COMPANY_SECTION_TITLE_HEIGHT +
+  COMPANY_BUTTON_MARGIN +
+  COMPANY_BUTTON_HEIGHT;
 
 export const styles = StyleSheet.create({
   container: {
@@ -256,7 +300,7 @@ export const styles = StyleSheet.create({
     color: colors.text.heading,
   },
   section: {
-    marginBottom: 28,
+    marginBottom: SECTION_MARGIN_BOTTOM,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -574,6 +618,9 @@ export const styles = StyleSheet.create({
   },
   collectionsSectionReserved: {
     minHeight: COLLECTIONS_SECTION_MIN_HEIGHT,
+  },
+  companyOfWeekSectionReserved: {
+    minHeight: COMPANY_OF_WEEK_SECTION_MIN_HEIGHT,
   },
   productsGrid: {
     flexDirection: 'row',

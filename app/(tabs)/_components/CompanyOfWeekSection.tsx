@@ -10,7 +10,16 @@ import { styles } from '../_lib/styles';
 const { colors } = theme;
 
 /** "Haftanın Şirketi" — profil + istatistik + öne çıkan ürünler + koleksiyonlar. */
-export function CompanyOfWeekSection({ companyOfWeek }: { companyOfWeek: any }) {
+export function CompanyOfWeekSection({
+  companyOfWeek,
+  isLoading,
+}: {
+  companyOfWeek: any;
+  isLoading?: boolean;
+}) {
+  if (isLoading) {
+    return <View style={styles.companyOfWeekSectionReserved} testID="company-of-week-section-reserved" />;
+  }
   if (!companyOfWeek) return null;
   const c = companyOfWeek;
 

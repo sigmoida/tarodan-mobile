@@ -139,6 +139,7 @@ export function useHomeData() {
     featuredCollector: featuredCollectorQuery.data ?? null,
     loadingFeaturedCollector: featuredCollectorQuery.isLoading,
     companyOfWeek: companyOfWeekQuery.data ?? null,
+    loadingCompanyOfWeek: companyOfWeekQuery.isLoading,
     loadingProducts: productsQuery.isLoading,
     refetchProducts: productsQuery.refetch,
   };
