@@ -10,6 +10,7 @@ import { detectViolations, getViolationMessage } from '@/utils/contentFilter';
 import { mediaApi, userApi } from '@/lib/api';
 import { getSocket } from '@/services/socket';
 import { groupMessagesByDate } from '../_lib/helpers';
+import { useTypingIndicator } from './useTypingIndicator';
 
 /**
  * Message-thread controller — thread/messages artık React Query (#77), send/markRead
@@ -26,6 +27,7 @@ export function useMessageThread() {
   const { data: messages = [], isLoading: isLoadingMessages } = useMessagesQuery(threadId);
   const sendMessage = useSendMessage();
   const markAsRead = useMarkAsRead();
+  const typing = useTypingIndicator(threadId);
 
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
@@ -118,6 +120,8 @@ export function useMessageThread() {
   const handleSend = async () => {
     const trimmed = inputText.trim();
     if ((!trimmed && !pendingImage) || !threadId || sending || uploadingImage || !canSend) return;
+
+    typing.stopTyping();
 
     // Platform dışı iletişim tespiti (telefon, email, IBAN, WhatsApp vs.)
     if (trimmed) {
@@ -227,6 +231,9 @@ export function useMessageThread() {
     // derived
     groupedMessages,
     other,
+    // typing indicator
+    isPeerTyping: typing.isPeerTyping,
+    notifyTyping: typing.notifyTyping,
     // handlers
     handleContentSizeChange,
     handleAttachImage,

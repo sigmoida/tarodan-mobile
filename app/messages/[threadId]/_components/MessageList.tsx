@@ -7,6 +7,7 @@ import { AppImage } from '@/components/AppImage';
 import { styles } from '../_lib/styles';
 import { formatTime, getMessageStatus } from '../_lib/helpers';
 import type { MessageThreadController } from '../_hooks/useMessageThread';
+import { TypingIndicator } from './TypingIndicator';
 
 /**
  * Grouped, date-divided message list with own/other bubbles.
@@ -135,7 +136,12 @@ export function MessageList({ f }: { f: MessageThreadController }) {
       style={[styles.messagesList, !f.isPositioned && styles.messagesListHidden]}
       contentContainerStyle={styles.messagesContent}
       onContentSizeChange={f.handleContentSizeChange}
-      ListFooterComponent={<View style={{ height: 20 }} />}
+      ListFooterComponent={
+        <>
+          <TypingIndicator visible={f.isPeerTyping} />
+          <View style={{ height: 20 }} />
+        </>
+      }
     />
   );
 }

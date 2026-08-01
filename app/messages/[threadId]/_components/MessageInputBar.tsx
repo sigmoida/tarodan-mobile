@@ -60,7 +60,10 @@ export function MessageInputBar({ f }: { f: MessageThreadController }) {
             placeholder={f.canSend ? 'Mesajınızı yazın...' : 'Mesaj limiti doldu'}
             placeholderTextColor={colors.text.subtle}
             value={f.inputText}
-            onChangeText={f.setInputText}
+            onChangeText={(t) => {
+              f.setInputText(t);
+              f.notifyTyping();
+            }}
             multiline
             maxLength={1000}
             editable={f.canSend && !f.uploadingImage}
