@@ -3,15 +3,9 @@ import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { appAlert } from '@/ui';
 import { useZodForm } from '@/ui/form';
-import { authApi } from '@/lib/api';
+import { authApi, errorText } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { emailChangeSchema, emailCodeSchema } from '../_lib/schema';
-
-/** Sunucu hata mesajı string veya string[] gelebilir (NestJS doğrulama dizisi). */
-const errorText = (e: unknown, fallback: string): string => {
-  const m = (e as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
-  return Array.isArray(m) ? m.join('\n') : (m ?? fallback);
-};
 
 export function useEmailChange() {
   const [step, setStep] = useState<'email' | 'code'>('email');

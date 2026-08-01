@@ -20,6 +20,7 @@ import { mediaApi, uploadApi } from "./media";
 
 export * from "./client";
 export * from "./app-config";
+export * from "./errorText";
 export * from "./auth";
 export * from "./products";
 export * from "./catalog";
