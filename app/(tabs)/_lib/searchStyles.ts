@@ -5,6 +5,10 @@ import { CARD_WIDTH } from './searchConstants';
 
 const { colors, radius } = theme;
 
+// Liste boş-durum yuvasının (yükleniyor / sonuç bulunamadı) dikey nefesi — iki
+// durum da aynı ritmi paylaşsın diye tek yerden türetiliyor.
+const EMPTY_SLOT_PADDING_Y = theme.spacing[12] + theme.spacing[3];
+
 // Arama ekranının route-local stylesheet'i (monolitten birebir taşındı).
 export const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface.alt },
@@ -153,6 +157,9 @@ export const styles = StyleSheet.create({
   resultsCount: { paddingHorizontal: theme.spacing[4], paddingVertical: theme.spacing[2], backgroundColor: colors.surface.alt },
   resultsCountText: { fontSize: 13, color: colors.text.muted },
   listContent: { padding: theme.spacing[4], paddingTop: theme.spacing[2] },
+  // Üst çubuklar ölçülene kadar liste görünmez ama YERLEŞİR (opacity, display değil):
+  // doğru üst boşlukla tek seferde konumlanır, kullanıcı ara kareyi görmez.
+  listHidden: { opacity: 0 },
   listRow: { justifyContent: 'space-between' },
   scrollTopFab: {
     position: 'absolute',
@@ -219,9 +226,20 @@ export const styles = StyleSheet.create({
     borderRadius: 12,
   },
   productContent: { paddingVertical: theme.spacing[3] },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  // Yükleme artık listeyi sökmüyor; ListEmptyComponent yuvasında boş durumla
+  // aynı dikey ritimde ortalanıyor.
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: EMPTY_SLOT_PADDING_Y,
+  },
   loadingText: { marginTop: theme.spacing[3], fontSize: 14, color: colors.text.muted },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 60 },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: EMPTY_SLOT_PADDING_Y,
+  },
   emptyTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text.heading, marginTop: theme.spacing[4] },
   emptySubtitle: { fontSize: 14, color: colors.text.muted, textAlign: 'center', marginTop: theme.spacing[2] },
   sortModalBackdrop: {

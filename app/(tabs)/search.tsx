@@ -47,52 +47,55 @@ function SearchScreen() {
       <View style={styles.resultsArea}>
         <SearchBars f={f} />
 
-        {/* Results */}
-        {f.isLoading ? (
-          <View style={styles.loadingContainer}>
-            <Spinner size="lg" color={colors.primary[600]!} />
-            <Text variant="body" tone="muted" style={styles.loadingText}>
-              Sonuçlar yükleniyor...
-            </Text>
-          </View>
-        ) : (
-          <FlatList
-            ref={f.listRef}
-            data={f.products}
-            numColumns={SEARCH_NUM_COLUMNS}
-            contentContainerStyle={[styles.listContent, { paddingTop: f.headerHeight }]}
-            columnWrapperStyle={styles.listRow}
-            keyExtractor={(item, index) => `${item.id}-${index}`}
-            renderItem={renderResult}
-            // #82: virtualizasyon ayarı — sonsuz arama sonuçlarında bellek/kaydırma.
-            windowSize={7}
-            initialNumToRender={8}
-            maxToRenderPerBatch={10}
-            removeClippedSubviews
-            showsVerticalScrollIndicator={false}
-            onScroll={f.handleResultsScroll}
-            scrollEventThrottle={16}
-            keyboardDismissMode="on-drag"
-            refreshControl={
-              <RefreshControl
-                refreshing={f.isRefetching}
-                onRefresh={f.refetch}
-                colors={[colors.primary[600]!]}
-                tintColor={colors.primary[600]!}
-              />
-            }
-            onEndReached={() => {
-              if (f.hasNextPage && !f.isFetchingNextPage) f.fetchNextPage();
-            }}
-            onEndReachedThreshold={0.5}
-            ListFooterComponent={
-              f.isFetchingNextPage ? (
-                <View style={{ paddingVertical: spacing[4] }}>
-                  <Spinner size="md" color={colors.primary[600]!} />
-                </View>
-              ) : null
-            }
-            ListEmptyComponent={
+        {/* Results — liste yükleme/boş durumda da MONTE kalır (sökülüp yeniden
+            yerleşmesin diye); üst çubuklar ölçülene kadar yalnızca görünmez. */}
+        <FlatList
+          testID="search-results-list"
+          ref={f.listRef}
+          data={f.products}
+          numColumns={SEARCH_NUM_COLUMNS}
+          style={f.barsMeasured ? undefined : styles.listHidden}
+          contentContainerStyle={[styles.listContent, { paddingTop: f.headerHeight }]}
+          columnWrapperStyle={styles.listRow}
+          keyExtractor={(item, index) => `${item.id}-${index}`}
+          renderItem={renderResult}
+          // #82: virtualizasyon ayarı — sonsuz arama sonuçlarında bellek/kaydırma.
+          windowSize={7}
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          removeClippedSubviews
+          showsVerticalScrollIndicator={false}
+          onScroll={f.handleResultsScroll}
+          scrollEventThrottle={16}
+          keyboardDismissMode="on-drag"
+          refreshControl={
+            <RefreshControl
+              refreshing={f.isRefetching}
+              onRefresh={f.refetch}
+              colors={[colors.primary[600]!]}
+              tintColor={colors.primary[600]!}
+            />
+          }
+          onEndReached={() => {
+            if (f.hasNextPage && !f.isFetchingNextPage) f.fetchNextPage();
+          }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            f.isFetchingNextPage ? (
+              <View style={{ paddingVertical: spacing[4] }}>
+                <Spinner size="md" color={colors.primary[600]!} />
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            f.isLoading ? (
+              <View style={styles.loadingContainer}>
+                <Spinner size="lg" color={colors.primary[600]!} />
+                <Text variant="body" tone="muted" style={styles.loadingText}>
+                  Sonuçlar yükleniyor...
+                </Text>
+              </View>
+            ) : (
               <View style={styles.emptyContainer}>
                 <Ionicons name="search-outline" size={64} color={colors.text.subtle} />
                 <Text variant="h3" align="center" style={styles.emptyTitle}>
@@ -108,9 +111,9 @@ function SearchScreen() {
                   style={{ marginTop: spacing[4], alignSelf: 'center' }}
                 />
               </View>
-            }
-          />
-        )}
+            )
+          }
+        />
       </View>
 
       {/* En üste dön butonu — liste yeterince aşağı inince görünür */}

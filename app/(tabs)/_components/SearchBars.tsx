@@ -18,6 +18,7 @@ const { colors } = theme;
 export function SearchBars({ f }: { f: SearchController }) {
   return (
     <Animated.View
+      testID="search-collapsible-bars"
       style={[styles.collapsibleBars, { transform: [{ translateY: f.barsTranslateY }] }]}
       onLayout={f.onBarsLayout}
     >

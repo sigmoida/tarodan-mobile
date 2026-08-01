@@ -22,7 +22,7 @@ import {
   extractMeta,
   type ProductFilters,
 } from '@/utils/productFilters';
-import { PAGE_SIZE, COLLAPSIBLE_ESTIMATE, conditionLabel } from '../_lib/searchConstants';
+import { PAGE_SIZE, conditionLabel } from '../_lib/searchConstants';
 
 /**
  * Search screen controller — owns filter state, the debounced search box, the
@@ -114,7 +114,11 @@ export function useSearch() {
   const listRef = useRef<FlatList>(null);
 
   // Üst çubukları absolute bir katmanda tutup translateY ile kaydırıyoruz (liste reflow olmaz → takılmaz).
-  const [headerHeight, setHeaderHeight] = useState(COLLAPSIBLE_ESTIMATE);
+  // Yükseklik TAHMİN EDİLMEZ: 0'dan başlar ve ilk `onLayout` ölçümüyle yazılır. Ölçüm
+  // gelene kadar `barsMeasured` false'tur ve ekran listeyi gizli tutar; böylece liste
+  // yanlış bir üst boşlukla bir kare çizilip sonra yerine kaymaz.
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const barsMeasured = headerHeight > 0;
   const barsTranslateY = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(barsTranslateY, {
@@ -123,10 +127,11 @@ export function useSearch() {
       useNativeDriver: true,
     }).start();
   }, [topBarsHidden, headerHeight, barsTranslateY]);
-  const onBarsLayout = (e: LayoutChangeEvent) => {
+  const onBarsLayout = useCallback((e: LayoutChangeEvent) => {
     const h = e.nativeEvent.layout.height;
-    if (h > 0 && Math.abs(h - headerHeight) > 0.5) setHeaderHeight(h);
-  };
+    if (h <= 0) return;
+    setHeaderHeight((prev) => (Math.abs(h - prev) > 0.5 ? h : prev));
+  }, []);
 
   // Arama kutusu → filters.search (debounce 400ms)
   useEffect(() => {
@@ -332,6 +337,8 @@ export function useSearch() {
     // collapsible bars + scroll
     listRef,
     headerHeight,
+    barsMeasured,
+    topBarsHidden,
     barsTranslateY,
     onBarsLayout,
     handleResultsScroll,
