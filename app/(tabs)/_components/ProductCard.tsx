@@ -73,7 +73,7 @@ function ProductCardBase({
         <View style={styles.productContent}>
           <Text variant="bodySm" weight="semibold" numberOfLines={2}>{item.title}</Text>
           {metaLabel ? (
-            <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[0.5] }}>{metaLabel}</Text>
+            <Text variant="caption" tone="muted" numberOfLines={1} style={{ marginTop: theme.spacing[0.5] }}>{metaLabel}</Text>
           ) : null}
           <Text variant="h3" tone="primary" style={{ marginTop: theme.spacing[1] }}>
             ₺{item.price?.toLocaleString('tr-TR') || 0}

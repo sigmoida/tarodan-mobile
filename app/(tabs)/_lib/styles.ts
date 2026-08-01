@@ -11,7 +11,7 @@ export const CARD_WIDTH = (width - 48) / 2;
 // aşağı iter. Sabit sayı yazmak yerine yüksekliği yatay kart rafının gerçek
 // metriklerinden türetiyoruz — kart tasarımı (`productImage`/`productContent`)
 // değişirse bu sayı da otomatik değişsin:
-//   - productImage.height (140, aşağıda tanımlı)
+//   - productImage.height (aşağıdaki POPULAR_RAIL_IMAGE_HEIGHT'ten türetiliyor)
 //   - + productContent dikey padding'i (theme.spacing[3.5] × 2, üst+alt)
 //   - + başlık: ProductCard'da `bodySm` varyantı, numberOfLines={2}
 //     (fontSize.sm × lineHeight.normal) × 2 satır
@@ -355,7 +355,7 @@ export const styles = StyleSheet.create({
   },
   productImage: {
     width: '100%',
-    height: 140,
+    height: POPULAR_RAIL_IMAGE_HEIGHT,
     backgroundColor: colors.gray[200],
   },
   topLeftStack: {

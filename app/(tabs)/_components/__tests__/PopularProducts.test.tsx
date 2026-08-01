@@ -23,6 +23,14 @@ it('loading durumunda sarmalayıcı ortak minHeight ile render edilir', () => {
   expect(styles.popularRailContent.minHeight).toBe(POPULAR_RAIL_MIN_HEIGHT);
 });
 
+it('loading/empty konteynerleri kendi paddingVertical fazlalığını geri getirmez (B2 regresyonu)', () => {
+  // loadingContainer/emptyContainer artık dikey uzunluğu ortak
+  // popularRailContent minHeight'ından alıyor — biri buraya paddingVertical
+  // eklerse üç dal tekrar farklı yüksekliklere döner ve B2 hatası geri gelir.
+  expect((styles.loadingContainer as { paddingVertical?: number }).paddingVertical).toBeUndefined();
+  expect((styles.emptyContainer as { paddingVertical?: number }).paddingVertical).toBeUndefined();
+});
+
 it('boş durumda sarmalayıcı aynı minHeight ile render edilir', () => {
   render(<PopularProducts items={[]} isLoading={false} cartProductIds={emptySet} onProductPress={noop} />);
   const wrapper = screen.getByTestId('popular-rail-content');
