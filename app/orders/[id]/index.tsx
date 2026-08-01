@@ -74,14 +74,6 @@ export default function OrderDetailScreen() {
         <OrderSellerCard order={order} />
         <OrderAddressCard order={order} isMembershipOrder={view.isMembershipOrder} />
         <OrderPriceSummary order={order} isMembershipOrder={view.isMembershipOrder} />
-        <OrderElogoInvoiceCard elogoInvoice={invoices.elogoInvoice} onView={invoices.viewInvoice} downloading={invoices.downloadingInvoice} />
-        <OrderSellerInvoiceCard
-          sellerInvoice={invoices.sellerInvoice}
-          onView={invoices.viewSellerInvoice}
-          downloading={invoices.downloadingSellerInvoice}
-          onUpload={invoices.pickAndUploadSellerInvoice}
-          uploading={invoices.uploadingSellerInvoice}
-        />
         <OrderCancelCard order={order} view={view} onCancel={actions.handleCancelOrder} cancelPending={actions.cancelOrderPending} />
         <OrderRatingButtons order={order} view={view} onRate={(type) => setRatingModal({ visible: true, type })} />
         <OrderRefundBanner
@@ -91,6 +83,17 @@ export default function OrderDetailScreen() {
           cancelRefundPending={actions.cancelRefundPending}
         />
         <OrderRefundActionCard order={order} view={view} onOpenRefund={actions.refund.open} />
+        {/* B7: fatura verileri ayrı query'lerle sonradan gelir (bkz. useOrderInvoices); dokunulan
+            aksiyon kartlarının (iptal/değerlendirme/iade) ALTINDA render edilir ki geç gelen
+            içerik hiçbir dokunma hedefini kaydırmasın. */}
+        <OrderElogoInvoiceCard elogoInvoice={invoices.elogoInvoice} onView={invoices.viewInvoice} downloading={invoices.downloadingInvoice} />
+        <OrderSellerInvoiceCard
+          sellerInvoice={invoices.sellerInvoice}
+          onView={invoices.viewSellerInvoice}
+          downloading={invoices.downloadingSellerInvoice}
+          onUpload={invoices.pickAndUploadSellerInvoice}
+          uploading={invoices.uploadingSellerInvoice}
+        />
         <OrderHelpCard />
 
         <View style={{ height: 50 }} />

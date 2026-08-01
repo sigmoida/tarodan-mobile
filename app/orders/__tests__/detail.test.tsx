@@ -24,7 +24,7 @@ jest.mock('@/lib/api', () => ({
   elogoInvoicesApi: { byOrder: jest.fn(() => Promise.resolve({ data: null })), pdf: jest.fn() },
   sellerInvoiceApi: { status: jest.fn(() => Promise.resolve({ data: null })), download: jest.fn() },
 }));
-import { api } from '@/lib/api';
+import { api, elogoInvoicesApi } from '@/lib/api';
 
 import OrderDetailScreen from '../[id]';
 
@@ -230,6 +230,44 @@ describe('Üyelik/dijital sipariş — fiziksel ürün aksiyonları gizlenir', (
     );
     expect(screen.queryByText('Değerlendirme')).toBeNull();
     expect(screen.queryByTestId('refund-request-button')).toBeNull();
+  });
+});
+
+// B7 · Fatura kartları ayrı query'lerle sonradan gelir; aksiyon (iptal/iade) butonlarının
+// üstüne değil ALTINA render edilmeli, yoksa geç gelen fatura kartı dokunma hedefini kaydırır.
+describe('B7 · Fatura kartları aksiyonların altında render edilir', () => {
+  beforeEach(() => {
+    getMock.mockReset();
+    mockParams = { id: 'order-1' };
+  });
+
+  it('B7.1 fatura kartı (elogo), iade talep butonundan SONRA render edilir', async () => {
+    getMock.mockResolvedValue({
+      data: { data: orderFixture({ isBuyer: true, payment: { status: 'completed' }, activeRefundRequest: null }) },
+    });
+    (elogoInvoicesApi.byOrder as jest.Mock).mockResolvedValue({
+      data: { id: 'inv-1', invoiceNumber: 'ELG-1' },
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    await waitFor(() => expect(screen.getByTestId('refund-request-button')).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByTestId('order-invoice-card')).toBeOnTheScreen());
+
+    // Render sırasını testID listesinden çıkar (DOM/tree sırası tarama derinliği önemsiz).
+    const testIds: string[] = [];
+    const collect = (node: any) => {
+      if (!node || typeof node !== 'object') return;
+      const id = node.props?.testID;
+      if (typeof id === 'string') testIds.push(id);
+      const children = node.children;
+      if (Array.isArray(children)) children.forEach(collect);
+    };
+    collect(screen.toJSON());
+
+    const actionPos = testIds.indexOf('refund-request-button');
+    const invoicePos = testIds.indexOf('order-invoice-card');
+    expect(actionPos).toBeGreaterThan(-1);
+    expect(invoicePos).toBeGreaterThan(-1);
+    expect(actionPos).toBeLessThan(invoicePos);
   });
 });
 
