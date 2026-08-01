@@ -1,4 +1,5 @@
-import { View } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
+import { router } from 'expo-router';
 import { Button, Card, Text, StatusBadge } from '@/ui';
 import { AppImage } from '@/components/AppImage';
 import { getOrderProductImageUri } from '@/utils/orderProductImage';
@@ -13,31 +14,37 @@ export function SaleCard({ sale, actions }: { sale: Sale; actions: SaleActionsCo
 
   return (
     <Card variant="elevated" style={styles.saleCard}>
-      <View style={styles.saleHeader}>
-        <Text variant="caption" style={styles.orderNumber}>
-          #{sale.orderNumber}
-        </Text>
-        <StatusBadge status={saleBadgeStatus(sale)} config={salesStatusConfig} size="sm" />
-      </View>
-
-      <View style={styles.saleContent}>
-        <AppImage source={getOrderProductImageUri(sale.product, 'card')} style={styles.productImage} />
-        <View style={styles.saleInfo}>
-          <Text variant="label" numberOfLines={1}>{sale.product.title}</Text>
-          <Text variant="caption" style={styles.buyerName}>
-            Alıcı: {sale.buyer.displayName}
+      <TouchableOpacity
+        testID={`sale-card-${sale.id}`}
+        activeOpacity={0.7}
+        onPress={() => router.push(`/sales/${sale.id}`)}
+      >
+        <View style={styles.saleHeader}>
+          <Text variant="caption" style={styles.orderNumber}>
+            #{sale.orderNumber}
           </Text>
-          {sale.shippingAddress?.city ? (
-            <Text variant="caption" style={styles.addressText} numberOfLines={1}>
-              📍 {sale.shippingAddress.city}
+          <StatusBadge status={saleBadgeStatus(sale)} config={salesStatusConfig} size="sm" />
+        </View>
+
+        <View style={styles.saleContent}>
+          <AppImage source={getOrderProductImageUri(sale.product, 'card')} style={styles.productImage} />
+          <View style={styles.saleInfo}>
+            <Text variant="label" numberOfLines={1}>{sale.product.title}</Text>
+            <Text variant="caption" style={styles.buyerName}>
+              Alıcı: {sale.buyer.displayName}
             </Text>
-          ) : null}
+            {sale.shippingAddress?.city ? (
+              <Text variant="caption" style={styles.addressText} numberOfLines={1}>
+                📍 {sale.shippingAddress.city}
+              </Text>
+            ) : null}
+          </View>
+          <View style={styles.priceSection}>
+            <Text variant="h3" style={styles.price}>{formatPrice(sale.totalAmount)}</Text>
+            <Text variant="caption" style={styles.dateText}>{formatDate(sale.createdAt)}</Text>
+          </View>
         </View>
-        <View style={styles.priceSection}>
-          <Text variant="h3" style={styles.price}>{formatPrice(sale.totalAmount)}</Text>
-          <Text variant="caption" style={styles.dateText}>{formatDate(sale.createdAt)}</Text>
-        </View>
-      </View>
+      </TouchableOpacity>
 
       {/* Action Buttons */}
       {sale.status === 'paid' && (
