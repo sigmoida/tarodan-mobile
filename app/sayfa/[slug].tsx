@@ -8,8 +8,8 @@ import { pagesApi } from '@/lib/api';
 
 const { colors } = theme;
 
-// API page.content bir HTML string'idir; düz <Text> ile basıldığında etiketler ham görünür.
-// page/[slug].tsx ile aynı WebView/htmlWrapper desenini kullanarak HTML'i doğru render et.
+// API page.content bir HTML string'idir; düz <Text> ile basıldığında etiketler ham
+// görünür. Bu yüzden WebView + htmlWrapper ile tasarım token'larına uygun render edilir.
 const htmlWrapper = (content: string) => `
   <!DOCTYPE html>
   <html>

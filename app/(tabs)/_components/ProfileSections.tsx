@@ -8,6 +8,7 @@ import { buildAvatarUrl } from '@/lib/api';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/profileStyles';
 import { quickActionItems, quickActionTint, type QuickActionBadgeKey } from '../_lib/profileConstants';
+import { LEGAL_PAGES } from '../_lib/legalPages';
 import type { ProfileController } from '../_hooks/useProfile';
 
 const { colors, spacing } = theme;
@@ -426,6 +427,15 @@ export function ProfileMenuSections({ f }: SectionProps) {
           label="Platform Hizmet Bedeli"
           onPress={() => router.push('/platform-hizmet-bedeli')}
         />
+        {LEGAL_PAGES.map((p) => (
+          <MenuItem
+            key={p.slug}
+            testID={`profile-legal-${p.slug}-link`}
+            icon={p.icon}
+            label={p.label}
+            onPress={() => router.push(`/sayfa/${p.slug}`)}
+          />
+        ))}
       </View>
 
       <TouchableOpacity

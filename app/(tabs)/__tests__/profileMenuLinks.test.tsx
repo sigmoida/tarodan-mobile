@@ -29,4 +29,10 @@ describe('profil menüsü — daha önce erişilemeyen ekranlar', () => {
     fireEvent.press(getByTestId(testID));
     expect(router.push).toHaveBeenCalledWith(route);
   });
+
+  it('hukuki sayfalar CMS ekranına yönlendirir', () => {
+    const { getByTestId } = render(<ProfileMenuSections f={f} />);
+    fireEvent.press(getByTestId('profile-legal-privacy-link'));
+    expect(router.push).toHaveBeenCalledWith('/sayfa/privacy');
+  });
 });
