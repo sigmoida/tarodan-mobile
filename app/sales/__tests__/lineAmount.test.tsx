@@ -8,6 +8,7 @@
  */
 import React from 'react';
 import { render, screen } from '@testing-library/react-native';
+import { theme } from '@/ui';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
@@ -27,7 +28,7 @@ function renderBody(item: Record<string, unknown>) {
             createdAt: new Date('2026-08-01').toISOString(),
             items: [{ id: 'i1', product: { id: 'p1', title: 'Model' }, ...item }],
           },
-          sc: { bg: '#fff', fg: '#000' },
+          sc: { bg: theme.colors.surface.DEFAULT, fg: theme.colors.text.heading },
           displayStatus: 'paid',
         } as any
       }
