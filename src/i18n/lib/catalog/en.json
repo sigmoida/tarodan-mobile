@@ -561,7 +561,16 @@
     "multipleImagesRequired360": "Multiple images required for 360° view",
     "conditionPoor": "Poor",
     "statusDeleted": "Removed",
-    "upToImages": "Up to {count} images"
+    "upToImages": "Up to {count} images",
+    "tradeShort": "Trade",
+    "productCode": "Product code",
+    "modelYear": "Model year",
+    "readMore": "Read more",
+    "showLess": "Show less",
+    "secureShoppingTitle": "Secure shopping",
+    "secureShoppingBody": "Your payment is held securely until the item reaches you.",
+    "goToCart": "Go to cart",
+    "offerSent": "Your offer was sent"
   },
   "cart": {
     "myCart": "My Cart",

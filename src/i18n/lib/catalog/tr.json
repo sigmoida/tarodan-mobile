@@ -561,7 +561,16 @@
     "multipleImagesRequired360": "360° görüntüleme için birden fazla resim gerekli",
     "conditionPoor": "Kötü",
     "statusDeleted": "Kaldırıldı",
-    "upToImages": "En fazla {count} görsel"
+    "upToImages": "En fazla {count} görsel",
+    "tradeShort": "Takas",
+    "productCode": "Ürün Kodu",
+    "modelYear": "Model Yılı",
+    "readMore": "Devamını oku",
+    "showLess": "Daha az göster",
+    "secureShoppingTitle": "Güvenli Alışveriş",
+    "secureShoppingBody": "Ödemeniz, ürün elinize ulaşana kadar güvende tutulur.",
+    "goToCart": "Sepete Git",
+    "offerSent": "Teklifiniz gönderildi"
   },
   "cart": {
     "myCart": "Sepetim",
