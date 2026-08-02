@@ -3,6 +3,8 @@ import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
+import { captureException } from "@/services/sentry";
+import { errorFingerprint } from "./requestId";
 
 // API URL çözümleme sırası:
 // 1) EXPO_PUBLIC_API_URL (production / preview / staging build'leri için zorunlu)
@@ -152,7 +154,20 @@ async function performTokenRefresh(): Promise<string | null> {
 // Tek-uçuş refresh: eşzamanlı 401'ler tek refresh paylaşır (rotated token + storm önlenir).
 const refreshAccessToken = singleFlight(performTokenRefresh);
 
-async function handleAuthFailure(): Promise<void> {
+async function handleAuthFailure(error?: unknown): Promise<void> {
+  // Bu dal kullanıcıyı AÇIKLAMASIZ login'e atıyor ve bugün hiçbir iz bırakmıyor.
+  // Ayrımı (EMAIL_NOT_VERIFIED / IP-blok 403) kör yazmıyoruz — gövdeleri canlı
+  // üretilemedi (denetim 2026-08-03 §5.3). Onun yerine ayırt edici alanları +
+  // `x-request-id`'yi raporluyoruz: gerçek gövde bir kez görülünce ayrım tek
+  // satırda takılacak. Rapor PII taşımaz (bkz. `./requestId`).
+  const fingerprint = errorFingerprint(error);
+  if (__DEV__) console.warn("[auth] silent logout", fingerprint);
+  captureException(error ?? new Error("Auth failure without an error object"), {
+    level: "warning",
+    tags: { requestId: fingerprint.requestId ?? "none" },
+    extra: { ...fingerprint },
+  });
+
   // Merkezi çıkış: SecureStore + Zustand + query cache + socket + push temizlenir.
   // require ile lazy import → api.ts ↔ authStore döngüsü (cycle) önlenir.
   try {
@@ -199,9 +214,9 @@ api.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${newAccess}`;
           return api(originalRequest);
         }
-        await handleAuthFailure();
+        await handleAuthFailure(error);
       } catch (refreshError) {
-        await handleAuthFailure();
+        await handleAuthFailure(error);
       }
     }
 
