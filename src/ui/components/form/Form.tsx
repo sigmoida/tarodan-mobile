@@ -25,11 +25,17 @@ import { theme } from '../../lib/theme';
  * RN has no <form> element, so submission is triggered by the caller via
  * `form.handleSubmit`. Fields bind through Controller (RN inputs are controlled).
  */
-export function Form<T extends FieldValues>({
+export function Form<T extends FieldValues, TTransformed = T>({
   form,
   children,
 }: {
-  form: UseFormReturn<T>;
+  /**
+   * `useZodForm` artık şemanın ÇIKTI tipini üçüncü generic'te taşıyor
+   * (`handleSubmit` transform'lu değerleri verir). `Form` bu tipi yalnız
+   * geçirir, kullanmaz — sabit `UseFormReturn<T>` yazmak transform'lu her
+   * formu buraya bağlanamaz hâle getiriyordu.
+   */
+  form: UseFormReturn<T, unknown, TTransformed>;
   children: React.ReactNode;
 }) {
   // Wrap in a fragment: react-hook-form's FormProvider is typed against React

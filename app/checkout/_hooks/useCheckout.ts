@@ -12,7 +12,12 @@ import { indexQuoteLines } from '@/utils/quoteLines';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
 import { DEFAULT_COUNTRY_CODE, parsePhoneForPayload, PHONE_INVALID_MESSAGE } from '@/utils/phone';
 import { STOCKOUT_KEYWORDS, generateUuidV4, EMPTY_ADDRESS } from '../_lib/constants';
-import { extractApiMessage, validateGuest, validateInlineAddress } from '../_lib/validation';
+import {
+  addressPhoneError,
+  extractApiMessage,
+  validateGuest,
+  validateInlineAddress,
+} from '../_lib/validation';
 import { useCoupon } from './useCoupon';
 import type { ShippingAddressInput, SavedAddress } from '../_lib/types';
 
@@ -438,7 +443,10 @@ export function useCheckout() {
     if (!(isAuthenticated && selectedAddressId !== 'new')) {
       const src = shippingPhoneSource();
       const shipping = parsePhoneForPayload(src.phone, src.countryCode);
-      if (!shipping) return { ok: false, message: `Teslimat adresi — ${PHONE_INVALID_MESSAGE}` };
+      if (!shipping) {
+        // Boş alan ile çözülemeyen numara farklı hatalar — mesaj tek kaynaktan.
+        return { ok: false, message: addressPhoneError(src.phone, src.countryCode, 'Teslimat')! };
+      }
       phones.shipping = shipping;
     }
 
@@ -447,7 +455,16 @@ export function useCheckout() {
         billingAddress.phone,
         billingAddress.phoneCountryCode ?? DEFAULT_COUNTRY_CODE,
       );
-      if (!billing) return { ok: false, message: `Fatura adresi — ${PHONE_INVALID_MESSAGE}` };
+      if (!billing) {
+        return {
+          ok: false,
+          message: addressPhoneError(
+            billingAddress.phone,
+            billingAddress.phoneCountryCode ?? DEFAULT_COUNTRY_CODE,
+            'Fatura',
+          )!,
+        };
+      }
       phones.billing = billing;
     }
 

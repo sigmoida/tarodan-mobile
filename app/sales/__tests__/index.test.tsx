@@ -41,7 +41,7 @@ const earningsMock = ordersApi.getSellerEarnings as jest.Mock;
 function saleFixture(overrides: Record<string, unknown> = {}) {
   return {
     id: "sale-1",
-    orderNumber: "TRD-3001",
+    orderNumber: "ORD-3001000000",
     status: "paid",
     totalAmount: 350,
     product: { id: "p1", title: "Deri Ceket", images: [] },
@@ -84,7 +84,7 @@ describe("J63 · Satışlarım listesi", () => {
     });
     renderWithProviders(<SalesScreen />);
     await waitFor(() =>
-      expect(screen.getByText("#TRD-3001")).toBeOnTheScreen(),
+      expect(screen.getByText("#ORD-3001000000")).toBeOnTheScreen(),
     );
     // StatusBadge paid → 'Ödendi - Hazırla' (filtre chip'inde de aynı etiket geçer)
     expect(screen.getAllByText("Ödendi - Hazırla").length).toBeGreaterThan(0);
@@ -108,7 +108,7 @@ describe("J63 · Satışlarım listesi", () => {
     });
     renderWithProviders(<SalesScreen />);
     await waitFor(() =>
-      expect(screen.getByText("#TRD-3001")).toBeOnTheScreen(),
+      expect(screen.getByText("#ORD-3001000000")).toBeOnTheScreen(),
     );
     expect(screen.queryByText("Hazırlanıyor Olarak İşaretle")).toBeNull();
     // pending_payment → 'Ödeme Bekliyor' rozeti

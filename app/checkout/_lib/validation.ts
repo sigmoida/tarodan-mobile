@@ -38,11 +38,28 @@ export const validateGuest = (
  * kullanıcıya alanı doldurduğu hâlde "boş" diyordu. Ülke kodu adresin kendi
  * `phoneCountryCode`'undan okunur (yoksa `+90`).
  */
+/**
+ * Adres telefonunun hata mesajı — TEK kaynak.
+ *
+ * Boş alan ile çözülemeyen numara farklı hatalar: alanı hiç doldurmamış
+ * kullanıcıya biçim açıklaması göstermek yanlış yönlendiriyor. İki katman
+ * (form doğrulaması ve ödeme öncesi telefon çözümlemesi) buradan konuşur ki
+ * aynı boş alan iki farklı cümle üretmesin.
+ */
+export const addressPhoneError = (
+  phone: string,
+  countryCode: string = DEFAULT_COUNTRY_CODE,
+  label = 'Teslimat',
+): string | null => {
+  if (!phone.trim()) return `${label} adresi için telefon numarası gerekli`;
+  if (!isValidPhoneInput(phone, countryCode)) return `${label} adresi — ${PHONE_INVALID_MESSAGE}`;
+  return null;
+};
+
 export const validateInlineAddress = (a: ShippingAddressInput, label = 'Teslimat'): string | null => {
   if (!a.fullName.trim()) return `${label} adresi için ad soyad gerekli`;
-  if (!a.phone.trim()) return `${label} adresi için telefon numarası gerekli`;
-  if (!isValidPhoneInput(a.phone, a.phoneCountryCode ?? DEFAULT_COUNTRY_CODE))
-    return `${label} adresi — ${PHONE_INVALID_MESSAGE}`;
+  const phoneError = addressPhoneError(a.phone, a.phoneCountryCode ?? DEFAULT_COUNTRY_CODE, label);
+  if (phoneError) return phoneError;
   if (!a.city.trim()) return `${label} adresi için il seçin`;
   if (!a.district.trim()) return `${label} adresi için ilçe seçin`;
   if (!a.address.trim()) return `${label} adresi için açık adres girin`;

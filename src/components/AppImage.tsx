@@ -70,10 +70,11 @@ export const AppImage = React.memo(function AppImage({
 }: AppImageProps) {
   const uri = resolveImageUrl(source, variant);
   const fit = contentFit ?? (resizeMode ? RESIZE_TO_FIT[resizeMode] : 'cover');
-  // Hook KOŞULSUZ çağrılır (rules-of-hooks); token sızıntısı sözleşmesi hemen
-  // altındaki dallanmayla korunur: `authenticated` false ise header HİÇ konmaz.
-  const storeToken = useAuthStore((s) => s.token);
-  const token = authenticated ? storeToken : null;
+  // Hook KOŞULSUZ çağrılır (rules-of-hooks), ama seçici `authenticated`
+  // değilken sabit `null` döndürür: public görseller token değişimine ABONE
+  // OLMAZ, yoksa her sessiz refresh uygulamadaki BÜTÜN görselleri yeniden
+  // render ederdi. Token sızıntısı sözleşmesi de aynı seçicide korunuyor.
+  const token = useAuthStore((s) => (authenticated ? s.token : null));
   const imageSource = token ? { uri, headers: { Authorization: `Bearer ${token}` } } : { uri };
 
   const handleError = React.useCallback(() => {
