@@ -9,6 +9,7 @@ import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/profileStyles';
 import { quickActionItems, quickActionTint, type QuickActionBadgeKey } from '../_lib/profileConstants';
 import { LEGAL_PAGES } from '../_lib/legalPages';
+import { INFO_PAGES, ACCOUNT_PAGES } from '../_lib/infoPages';
 import type { ProfileController } from '../_hooks/useProfile';
 
 const { colors, spacing } = theme;
@@ -401,6 +402,15 @@ export function ProfileMenuSections({ f }: SectionProps) {
           label="Destek Taleplerim"
           onPress={() => router.push('/support')}
         />
+        {ACCOUNT_PAGES.map((p) => (
+          <MenuItem
+            key={p.route}
+            testID={`profile-account-${p.route}-link`}
+            icon={p.icon}
+            label={p.label}
+            onPress={() => router.push(`/${p.route}` as never)}
+          />
+        ))}
         <MenuItem
           icon="information-circle-outline"
           label="Hakkında"
@@ -427,6 +437,15 @@ export function ProfileMenuSections({ f }: SectionProps) {
           label="Platform Hizmet Bedeli"
           onPress={() => router.push('/platform-hizmet-bedeli')}
         />
+        {INFO_PAGES.map((p) => (
+          <MenuItem
+            key={p.route}
+            testID={`profile-info-${p.route}-link`}
+            icon={p.icon}
+            label={p.label}
+            onPress={() => router.push(`/${p.route}` as never)}
+          />
+        ))}
         {LEGAL_PAGES.map((p) => (
           <MenuItem
             key={p.slug}

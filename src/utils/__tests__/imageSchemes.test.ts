@@ -66,3 +66,41 @@ describe('[IMG:] traversal variants', () => {
     ]);
   });
 });
+
+/**
+ * `EXPO_PUBLIC_S3_PUBLIC_BASE_URL` neden tanımsız kalabiliyor.
+ *
+ * Canlı ölçüm (staging, 2026-08-03): sunucu her görsel için HEM çıplak key
+ * (`cardKey`/`detailKey`) HEM de mutlak URL (`cardUrl`/`detailUrl`) gönderiyor,
+ * ve URL'ler **imzalı değil** — düz public S3 (`?X-Amz-` yok, doğrudan 200).
+ * Çözücü mutlak URL'i tercih ettiği için çıplak-key dalı bu uçlarda hiç
+ * çalışmıyor; env değişkeni yalnızca sunucunun URL göndermediği bir durum
+ * için yedek.
+ *
+ * Bu test o tercihi kilitler: URL alanı varken key'e düşülürse (ve env de
+ * tanımsızsa) ekranda yer tutucu belirirdi.
+ */
+describe('server image objects', () => {
+  const IMG = {
+    cardKey: 'staging/products/x-card.webp',
+    detailKey: 'staging/products/x-detail.webp',
+    cardUrl: 'https://bucket.example.com/staging/products/x-card.webp',
+    detailUrl: 'https://bucket.example.com/staging/products/x-detail.webp',
+  };
+
+  it('prefers the absolute card URL over the bare key', () => {
+    expect(resolveImageUrl(IMG, 'card')).toBe(IMG.cardUrl);
+  });
+
+  it('prefers the absolute detail URL over the bare key', () => {
+    expect(resolveImageUrl(IMG, 'detail')).toBe(IMG.detailUrl);
+  });
+
+  it('reaches through an entity to its first image object', () => {
+    expect(resolveImageUrl({ id: 'p1', images: [IMG] }, 'card')).toBe(IMG.cardUrl);
+  });
+
+  it('falls back to a placeholder for a key-only image while the base is unset', () => {
+    expect(resolveImageUrl({ cardKey: IMG.cardKey }, 'card')).toBe(IMAGE_PLACEHOLDER);
+  });
+});
