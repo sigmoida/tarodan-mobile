@@ -52,9 +52,14 @@ describe('serverAmount', () => {
 
 describe('formatServerPrice', () => {
   it('sunucu alanı yoksa/sayı değilse yer tutucu basar — asla "0,00 TL"', () => {
-    for (const bad of [null, undefined, NaN, Infinity, -Infinity, '', '  ', 'abc', {}]) {
-      expect(formatServerPrice(bad)).toBe(PRICE_PLACEHOLDER);
-      expect(formatServerPrice(bad)).not.toBe('0,00 TL');
+    // İmza `number | string | null | undefined` — yanlışlıkla bir nesne geçmek
+    // derleme hatası olsun diye dar tutuldu. Buradaki cast bunu BİLEREK deliyor:
+    // sunucu bir gün beklenmedik bir şekil dönerse çalışma anında da yer tutucuya
+    // düşüldüğünü kanıtlıyoruz, tipin verdiği güvenceye ek olarak.
+    const untypedServerValues = [null, undefined, NaN, Infinity, -Infinity, '', '  ', 'abc', {}];
+    for (const bad of untypedServerValues) {
+      expect(formatServerPrice(bad as number)).toBe(PRICE_PLACEHOLDER);
+      expect(formatServerPrice(bad as number)).not.toBe('0,00 TL');
     }
   });
 

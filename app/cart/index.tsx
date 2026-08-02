@@ -65,13 +65,17 @@ export default function CartScreen() {
         </View>
         {/* Fiyat alınamadıysa ilerletme: checkout aynı queryKey'i paylaştığı için
             kullanıcı orada da ErrorState'e düşer — bir adım öteye taşımak yerine
-            burada durdurup "Tekrar Dene"ye yönlendir (özet kartında). */}
+            burada durdurup "Tekrar Dene"ye yönlendir (özet kartında).
+            `total == null` de kapıya dahil: quote 200 dönüp `total` alanı boş
+            gelirse hata yok ama tutar da yok — checkout'un kapısıyla simetrik
+            (`app/checkout/index.tsx`), yoksa kullanıcı orada hata kartı
+            olmadan devre dışı bir butonla kalırdı. */}
         <Button
           testID="cart-checkout-button"
           variant="primary"
           title="Satın Al"
           style={styles.checkoutButton}
-          disabled={f.quoteError}
+          disabled={f.quoteError || f.total == null}
           onPress={() => router.push('/checkout')}
         />
       </View>

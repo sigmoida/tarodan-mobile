@@ -28,7 +28,10 @@ export function indexQuoteLines(
   items: readonly OrderQuoteItem[] | undefined,
 ): Map<string, QuoteLineAmounts> {
   const index = new Map<string, QuoteLineAmounts>();
-  for (const line of items ?? []) {
+  // Kabın kendisi de korunur: `serverAmount` alanı sayı değilse yer tutucuya
+  // düşüyor, ama `items` bir gün dizi olmayan bir şey dönerse `for...of` render
+  // sırasında TypeError atıp sepeti ve checkout'u beyaz ekrana çevirirdi.
+  for (const line of Array.isArray(items) ? items : []) {
     const productId = line?.productId;
     if (typeof productId !== 'string' || productId === '') continue;
     index.set(productId, {

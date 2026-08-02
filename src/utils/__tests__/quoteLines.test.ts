@@ -32,6 +32,16 @@ describe('indexQuoteLines', () => {
     expect(indexQuoteLines([]).size).toBe(0);
   });
 
+  it('items dizi DEĞİLSE atmaz — sepet ve checkout beyaz ekrana düşmez', () => {
+    // Alan bazında `serverAmount` kapısı var ama kabın kendisi de korunmalı:
+    // `for...of` bir objeyle patlasa hata render sırasında (useMemo içinde)
+    // atılır ve iki ekranı birden beyaz ekrana çevirirdi.
+    for (const notAnArray of [{}, 'items', 42, true, null]) {
+      expect(() => indexQuoteLines(notAnArray as never)).not.toThrow();
+      expect(indexQuoteLines(notAnArray as never).size).toBe(0);
+    }
+  });
+
   it('productId si olmayan satırları atlar', () => {
     const index = indexQuoteLines([
       { subtotal: 50 } as any,

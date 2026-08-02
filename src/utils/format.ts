@@ -74,7 +74,7 @@ export function serverAmount(value: unknown): number | null {
  * gelen bir alan yoksa VEYA sayı değilse tutar yerine yer tutucu basılır —
  * istemcide sayı uydurulmaz.
  */
-export function formatServerPrice(price: unknown): string {
+export function formatServerPrice(price: number | string | null | undefined): string {
   const amount = serverAmount(price);
   return amount == null ? PRICE_PLACEHOLDER : formatPrice(amount);
 }

@@ -166,5 +166,9 @@ describe('Sepet özeti — fiyat yalnızca pricing.summary den gelir', () => {
     expect(screen.getByTestId('cart-summary-total')).toHaveTextContent('—');
     expect(screen.getByTestId('cart-checkout-total')).toHaveTextContent('—');
     expect(screen.queryByText('0,00 TL')).toBeNull();
+    // Sorgu HATA vermedi (200 döndü), yani `quoteError` false — ama tutar yok.
+    // Buton yine de kapalı olmalı: checkout'un kapısı `total == null`'a da bakıyor,
+    // simetri kurulmazsa kullanıcı orada hata kartı olmadan devre dışı bir butonla kalırdı.
+    expect(screen.getByTestId('cart-checkout-button')).toBeDisabled();
   });
 });
