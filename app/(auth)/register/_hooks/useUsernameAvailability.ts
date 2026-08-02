@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { authApi } from '@/lib/api';
 import { qk } from '@/lib/query';
-import { USERNAME_PATTERN } from '../_lib/schema';
+import { USERNAME_PATTERN } from '@/utils/validation';
 
 const DEBOUNCE_MS = 400;
 const MIN_LEN = 3;

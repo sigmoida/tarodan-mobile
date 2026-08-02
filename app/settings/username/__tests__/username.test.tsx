@@ -46,6 +46,19 @@ describe('Kullanıcı adı talebi', () => {
     await waitFor(() => expect(userApi.claimUsername).toHaveBeenCalledWith('kaan.merakli'));
   });
 
+  // §5 yakınsaması: kural artık `@/utils/validation`'daki tek `usernameSchema`.
+  // Karışık büyük/küçük giriş ALANDA küçük harfe çevrilir — kullanıcı kalıcı
+  // handle'ını gördüğü gibi gönderir (sessiz dönüşüm yok).
+  it('karışık büyük/küçük giriş alanda küçük harfe çevrilir ve öyle gönderilir', async () => {
+    const { getByTestId } = renderScreen();
+    const input = getByTestId('username-input');
+    fireEvent.changeText(input, 'Kaan.Merakli');
+    expect(input.props.value).toBe('kaan.merakli');
+
+    fireEvent.press(getByTestId('username-submit'));
+    await waitFor(() => expect(userApi.claimUsername).toHaveBeenCalledWith('kaan.merakli'));
+  });
+
   it('kullanıcı adı alınmışsa form gösterilmez', () => {
     mockUser.username = 'kaan.merakli';
     mockUser.usernameClaimed = true;

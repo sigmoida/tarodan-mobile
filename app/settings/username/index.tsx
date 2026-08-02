@@ -31,6 +31,9 @@ export default function UsernameScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 maxLength={30}
+                // Girişte küçük harfe çevir — kullanıcı kalıcı handle'ını
+                // olduğu gibi görür, şemadaki `.toLowerCase()` emniyet kemeri.
+                transform={(t) => t.toLowerCase()}
                 testID="username-input"
               />
               <Button

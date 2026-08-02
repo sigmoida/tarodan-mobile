@@ -63,6 +63,10 @@ export default function CorporateInviteScreen() {
             placeholder="tarodan.kurumsal"
             autoCapitalize="none"
             autoCorrect={false}
+            maxLength={30}
+            // Girişte küçük harfe çevir — kullanıcı kalıcı handle'ını olduğu
+            // gibi görür, şemadaki `.toLowerCase()` emniyet kemeri.
+            transform={(t) => t.toLowerCase()}
           />
           <FormInput
             testID="invite-password"

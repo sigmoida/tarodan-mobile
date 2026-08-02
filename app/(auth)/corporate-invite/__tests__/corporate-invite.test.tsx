@@ -84,6 +84,33 @@ it('aktivasyon başarılı olduğunda girişe yönlendirir', async () => {
   await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/(auth)/login'));
 });
 
+// §5 yakınsaması: kural artık `@/utils/validation`'daki tek `usernameSchema`.
+// ÖNCEDEN bu ekranın şemasında `.toLowerCase()` YOKTU, yani karışık büyük/küçük
+// giriş reddediliyordu — kayıt ekranı ise sessizce kabul ediyordu. Artık ikisi de
+// alanda küçük harfe çevirir; davranış farkı bilinçli bir karara dönüştü.
+it('karışık büyük/küçük kullanıcı adı alanda küçük harfe çevrilir ve öyle gönderilir', async () => {
+  (authApi.getCorporateInvitation as jest.Mock).mockResolvedValue({
+    data: { companyTitle: 'X', companyEmail: 'k@firma.com', expiresAt: '2026-08-10' },
+  });
+  (authApi.activateCorporateInvitation as jest.Mock).mockResolvedValue({ data: {} });
+  renderWithProviders(<CorporateInviteScreen />);
+  await waitFor(() => expect(screen.getByTestId('invite-username')).toBeTruthy());
+
+  const input = screen.getByTestId('invite-username');
+  fireEvent.changeText(input, 'Tarodan.Kurumsal');
+  expect(input.props.value).toBe('tarodan.kurumsal');
+
+  fireEvent.changeText(screen.getByTestId('invite-password'), 'SecurePass1');
+  fireEvent.changeText(screen.getByTestId('invite-password-confirm'), 'SecurePass1');
+  fireEvent.press(screen.getByTestId('invite-submit'));
+
+  await waitFor(() =>
+    expect(authApi.activateCorporateInvitation).toHaveBeenCalledWith(
+      expect.objectContaining({ username: 'tarodan.kurumsal' }),
+    ),
+  );
+});
+
 it('geçersiz kullanıcı adını göndermez', async () => {
   (authApi.getCorporateInvitation as jest.Mock).mockResolvedValue({
     data: { companyTitle: 'X', companyEmail: 'k@firma.com', expiresAt: '2026-08-10' },

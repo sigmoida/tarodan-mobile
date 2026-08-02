@@ -45,10 +45,17 @@ export interface FormInputProps
   extends Omit<InputProps, 'value' | 'onChangeText' | 'onBlur' | 'error'> {
   /** Field name in the form schema. */
   name: string;
+  /**
+   * Normalise each keystroke before it reaches the form state, e.g.
+   * `transform={(t) => t.toLowerCase()}` for a username field. Keeps what the
+   * user sees identical to what gets submitted — a schema-level transform would
+   * change the value silently after the fact.
+   */
+  transform?: (text: string) => string;
 }
 
 /** Text input wired to the form by `name` via Controller. */
-export function FormInput({ name, ...props }: FormInputProps) {
+export function FormInput({ name, transform, ...props }: FormInputProps) {
   const { control } = useFormContext();
   return (
     <Controller
@@ -58,7 +65,7 @@ export function FormInput({ name, ...props }: FormInputProps) {
         <Input
           {...props}
           value={field.value ?? ''}
-          onChangeText={field.onChange}
+          onChangeText={transform ? (t) => field.onChange(transform(t)) : field.onChange}
           onBlur={field.onBlur}
           error={fieldState.error?.message}
         />

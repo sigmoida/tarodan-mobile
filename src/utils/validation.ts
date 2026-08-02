@@ -36,6 +36,39 @@ export const taxIdSchema = z
 /** Email: hem .email() hem trim — basit. */
 export const emailSchema = z.string().trim().email('Geçerli bir e-posta girin');
 
+/**
+ * API `RegisterDto.username` ile birebir: küçük harf, rakam, nokta, alt çizgi;
+ * baş/son karakter harf/rakam olmalı (baştaki/sondaki `.`/`_` geçersiz).
+ *
+ * TEK KAYNAK — kayıt (`app/(auth)/register`), kurumsal davet
+ * (`app/(auth)/corporate-invite`) ve kullanıcı adı talebi
+ * (`app/settings/username`) ekranlarının üçü de buradan alır. Daha önce üç ayrı
+ * kopya vardı ve davranışları sessizce ayrışmıştı (biri `Gorkem`'i kabul edip
+ * dönüştürüyor, biri reddediyordu).
+ */
+export const USERNAME_PATTERN = /^[a-z0-9](?:[a-z0-9._]*[a-z0-9])?$/;
+
+/**
+ * Kullanıcı adı — 3-30, `USERNAME_PATTERN`.
+ *
+ * ⚠️ `.toLowerCase()` regex'ten ÖNCE koşar (Zod check'leri bildirim sırasıyla
+ * çalışır), yani `Gorkem` şema seviyesinde sessizce `gorkem`'e döner. Bu bilinçli
+ * bir EMNİYET KEMERİ: üç ekran da girdiyi zaten alanda küçük harfe çeviriyor
+ * (kullanıcı kaydolacağı handle'ı görür ve uygunluk kontrolünden geçirir), şema
+ * yalnız kaçakları yakalar. Kullanıcı adı bir kez belirlenince DEĞİŞTİRİLEMEZ,
+ * bu yüzden sessiz dönüşüm alan seviyesinde önlenir.
+ */
+export const usernameSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(3, 'En az 3 karakter olmalı')
+  .max(30, 'En fazla 30 karakter olabilir')
+  .regex(
+    USERNAME_PATTERN,
+    'Yalnız küçük harf, rakam, nokta ve alt çizgi kullanın; başta/sonda nokta veya alt çizgi olamaz',
+  );
+
 /** Display name (web ile aynı: 2-30 char). */
 export const displayNameSchema = z
   .string()

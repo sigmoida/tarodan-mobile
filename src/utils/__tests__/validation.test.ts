@@ -2,7 +2,14 @@
  * Saf validasyon kuralları (B katmanı). Form/UI yok — şema doğrudan test edilir.
  * J41: şifre kuralları · J42: 18 yaş kuralı.
  */
-import { strongPasswordSchema, isAdult, displayNameSchema, emailSchema } from '../validation';
+import {
+  strongPasswordSchema,
+  isAdult,
+  displayNameSchema,
+  emailSchema,
+  usernameSchema,
+  USERNAME_PATTERN,
+} from '../validation';
 
 describe('J41 · şifre kuralları (strongPasswordSchema)', () => {
   it('8 karakterden kısa reddedilir', () => {
@@ -41,6 +48,71 @@ describe('J42 · 18 yaş kuralı (isAdult)', () => {
 
   it('geçersiz tarih false', () => {
     expect(isAdult('not-a-date')).toBe(false);
+  });
+});
+
+/**
+ * `usernameSchema` — kayıt, kurumsal davet ve kullanıcı adı talebi ekranlarının
+ * ORTAK kuralı (§5). Sınır testleri register route'undan buraya taşındı; üç
+ * ekranın da davranışı bu tek şemadan türüyor.
+ */
+describe('usernameSchema (üç ekranın tek kaynağı)', () => {
+  it('2 karakter (3 sınırının altı) reddedilir', () => {
+    expect(usernameSchema.safeParse('ab').success).toBe(false);
+  });
+
+  it('3 karakter (alt sınır) kabul edilir', () => {
+    expect(usernameSchema.safeParse('abc').success).toBe(true);
+  });
+
+  it('30 karakter (üst sınır) kabul edilir', () => {
+    expect(usernameSchema.safeParse('a'.repeat(30)).success).toBe(true);
+  });
+
+  it('31 karakter (üst sınırın üstü) reddedilir', () => {
+    expect(usernameSchema.safeParse('a'.repeat(31)).success).toBe(false);
+  });
+
+  it('baştaki nokta reddedilir (.abc)', () => {
+    expect(usernameSchema.safeParse('.abc').success).toBe(false);
+  });
+
+  it('sondaki nokta reddedilir (abc.)', () => {
+    expect(usernameSchema.safeParse('abc.').success).toBe(false);
+  });
+
+  it('baştaki alt çizgi reddedilir (_abc)', () => {
+    expect(usernameSchema.safeParse('_abc').success).toBe(false);
+  });
+
+  it('sondaki alt çizgi reddedilir (abc_)', () => {
+    expect(usernameSchema.safeParse('abc_').success).toBe(false);
+  });
+
+  it('ortada nokta VE alt çizgi kabul edilir (a.b_c)', () => {
+    expect(usernameSchema.safeParse('a.b_c').success).toBe(true);
+  });
+
+  it('büyük harfli giriş küçük harfe çevrilerek kabul edilir (Gorkem → gorkem)', () => {
+    const result = usernameSchema.safeParse('Gorkem');
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).toBe('gorkem');
+  });
+
+  it('karışık büyük/küçük + ayraçlı giriş normalize edilir (Gorkem.Test → gorkem.test)', () => {
+    const result = usernameSchema.safeParse('Gorkem.Test');
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).toBe('gorkem.test');
+  });
+
+  it('geçersiz karakter (boşluk/@) reddedilir', () => {
+    expect(usernameSchema.safeParse('gorkem test').success).toBe(false);
+    expect(usernameSchema.safeParse('gorkem@test').success).toBe(false);
+  });
+
+  it('USERNAME_PATTERN tire kabul etmez (Maestro damgaları için kritik)', () => {
+    expect(USERNAME_PATTERN.test('maestro-j1-123')).toBe(false);
+    expect(USERNAME_PATTERN.test('maestroj1123')).toBe(true);
   });
 });
 

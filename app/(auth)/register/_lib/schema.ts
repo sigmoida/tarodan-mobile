@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { displayNameSchema, emailSchema, strongPasswordSchema, isAdult } from '@/utils/validation';
+import {
+  displayNameSchema,
+  emailSchema,
+  isAdult,
+  strongPasswordSchema,
+  usernameSchema,
+} from '@/utils/validation';
 
 /** En geç seçilebilir doğum tarihi (bugün - 18 yıl) — 18+'ı seçici seviyesinde kısıtlar. */
 export function maxBirthDate(): Date {
@@ -8,23 +14,8 @@ export function maxBirthDate(): Date {
   return d;
 }
 
-/**
- * API `RegisterDto.username` ile birebir: küçük harf, rakam, nokta, alt çizgi;
- * baş/son karakter harf/rakam olmalı (baştaki/sondaki `.`/`_` geçersiz).
- * Bir kez belirlenince DEĞİŞTİRİLEMEZ — bkz. RegisterForm'daki uyarı.
- */
-export const USERNAME_PATTERN = /^[a-z0-9](?:[a-z0-9._]*[a-z0-9])?$/;
-
-export const usernameSchema = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .min(3, 'En az 3 karakter olmalı')
-  .max(30, 'En fazla 30 karakter olabilir')
-  .regex(
-    USERNAME_PATTERN,
-    'Yalnız küçük harf, rakam, nokta ve alt çizgi kullanın; başta/sonda nokta veya alt çizgi olamaz',
-  );
+// `usernameSchema` / `USERNAME_PATTERN` tek kaynaktan gelir: `@/utils/validation`
+// (§5). Bir kez belirlenince DEĞİŞTİRİLEMEZ — bkz. RegisterForm'daki uyarı.
 
 export const registerSchema = z
   .object({
