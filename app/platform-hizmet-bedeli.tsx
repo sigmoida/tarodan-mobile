@@ -7,7 +7,14 @@ const { colors } = theme;
 
 /**
  * Platform Hizmet Bedeli şeffaflık sayfası. Web karşılığı:
- * apps/web/src/app/platform-hizmet-bedeli/page.tsx (içerik birebir).
+ * apps/web/src/app/platform-hizmet-bedeli/page.tsx.
+ *
+ * §1–2 web'den KASITLI olarak ayrışıyor: web hâlâ "%3" ve "500 TL → 15 TL"
+ * yazıyor, canlı `pricing.buyerFeeRate` ise 10 (staging, 2026-08-03) — yani metin
+ * gerçeğin dörtte birini söylüyordu. Oranı burada sabit yazmak aynı hatayı tekrar
+ * eder; sayfa oranı sunucudan okuyamıyor (public ayar ucu `{}` dönüyor, oran
+ * yalnız sepet quote'unda gelir), bu yüzden sayı vermek yerine kullanıcı ödeme
+ * özetine yönlendiriliyor. Web tarafı da düzeltilmeli (bu reponun kapsamı dışı).
  */
 export default function PlatformHizmetBedeliScreen() {
   return (
@@ -23,7 +30,7 @@ export default function PlatformHizmetBedeliScreen() {
         <Text style={styles.sectionTitle}>1. Nedir?</Text>
         <Text style={styles.paragraph}>
           Platform Hizmet Bedeli, TARODAN üzerinden yaptığınız her satın almada ürün
-          bedelinin %3'ü oranında alınan bir hizmet ücretidir. Bu bedel, ödeme altyapısı,
+          bedeli üzerinden alınan bir hizmet ücretidir. Bu bedel, ödeme altyapısı,
           güvenli alışveriş garantisi, uyuşmazlık çözümü ve platform üzerinde sunduğumuz
           diğer hizmetler için kullanılır.
         </Text>
@@ -31,13 +38,17 @@ export default function PlatformHizmetBedeliScreen() {
         <Text style={styles.sectionTitle}>2. Hesaplama Yöntemi</Text>
         <Text style={styles.listItem}>• Baz tutar: Sadece ürün fiyatı (kargo bedeli ve indirimler hariç).</Text>
         <Text style={styles.listItem}>
-          • Oran: Yürürlükteki oran %3'tür. Bu oran zaman içinde değişebilir; değişiklikler
-          bu sayfada duyurulur.
+          • Oran: Yürürlükteki oran zaman içinde değişebilir. Siparişinize uygulanan güncel
+          oran ve tutar, ödemeden önce ödeme özetinde ayrı bir satır olarak gösterilir.
         </Text>
-        <Text style={styles.listItem}>• KDV: Tutara KDV dahildir; ayrıca KDV eklenmez.</Text>
+        <Text style={styles.listItem}>
+          • KDV: Hizmet bedeline KDV eklenir. Bu KDV yalnız hizmet bedelini değil, kargo
+          bedelinin platforma düşen payını da kapsar; ödeme özetindeki "Platform Hizmet
+          Bedeli" satırı bu KDV dâhil tutarı gösterir.
+        </Text>
         <Text style={styles.paragraph}>
-          Örnek: 500 TL'lik bir ürün satın alırsanız Platform Hizmet Bedeli 15 TL olur ve
-          sepet toplamına dahil edilir.
+          Ödeme ekranındaki tutar, ödemenizden tahsil edilecek tutarın kendisidir; sepet ile
+          ödeme adımı arasında fark oluşmaz.
         </Text>
 
         <Text style={styles.sectionTitle}>3. Nereye Gider?</Text>
