@@ -41,9 +41,9 @@ jest.mock('@/lib/api', () => ({
     initiateGuest: jest.fn(),
     bypassComplete: jest.fn(),
   },
-  // GET /shipping/rates artik HIC cagrilmiyor - kargo yalniz quote'tan gelir.
-  // Sabit birakiliyor ki testler "hic cagrilmadi" iddiasini dogrulayabilsin.
-  shippingApi: { getRatesByCity: jest.fn() },
+  // shippingApi'de artik kargo UCRETI ucu YOK (getRatesByCity/getRates/
+  // calculateRates/getCarriers kaldirildi) - kargo yalniz quote'tan gelir.
+  // API yuzeyi garantisi: src/lib/api/__tests__/orders.test.ts.
   addressesApi: { getAll: jest.fn(() => Promise.resolve({ data: [] })) },
   discountsApi: { validate: jest.fn() },
 }));
@@ -53,7 +53,6 @@ jest.mock('@/stores/authStore', () => ({
   useAuthStore: () => ({ isAuthenticated: false, user: null }),
 }));
 
-import { shippingApi } from '@/lib/api';
 import { useCartStore } from '@/stores/cartStore';
 import CheckoutScreen from '../index';
 
@@ -103,10 +102,14 @@ describe('checkout-3step', () => {
       expect(screen.getByText('Ödeme Detayı')).toBeOnTheScreen();
     });
 
-    it('il seçilmeden kargo satırı "İl seçin" gösterir', () => {
+    it('kargo satırı il seçilmeden de summary.shippingAmount ile basılır', async () => {
       seedCart([SAMPLE_ITEM]);
       renderWithProviders(<CheckoutScreen />);
-      expect(screen.getByText('İl seçin')).toBeOnTheScreen();
+      // Quote şehirden bağımsız (`items` gövdesi) ve `summary.total` kargoyu
+      // zaten içeriyor. Eski "İl seçin" kapısı, kargo satırı gizliyken toplamın
+      // kargolu olmasına yol açıyordu → satırlar toplama eşit görünmüyordu.
+      await waitFor(() => expect(screen.getByText('50,00 TL')).toBeOnTheScreen());
+      expect(screen.queryByText('İl seçin')).toBeNull();
     });
   });
 
@@ -142,7 +145,7 @@ describe('checkout-3step', () => {
   });
 
   describe('Fiyat sözleşmesi — özet quote.pricing.summary\'den gelir', () => {
-    it('Toplam ve hizmet bedeli satırı summary.total/serviceFeeAmount\'tan render edilir — yerel aritmetik değil', async () => {
+    it('dört satır da summary\'den gelir ve üç satırın toplamı Toplam\'a eşittir', async () => {
       seedCart([SAMPLE_ITEM]);
       renderWithProviders(<CheckoutScreen />);
 
@@ -151,13 +154,14 @@ describe('checkout-3step', () => {
       await waitFor(() => {
         expect(screen.getByText('165,00 TL')).toBeOnTheScreen();
       });
-      // serviceFeeAmount (15) — hizmet bedeli + TÜM alıcı hizmet KDV'si tek satırda,
-      // ayrı bir "KDV" satırı basılmaz.
+      // Üç satır: 100 + 50 + 15 = 165 → satırlar toplama BİREBİR eşit.
+      // (Sunucu garantisi; ekrana araya başka bir para satırı eklenmez.)
+      expect(screen.getByText('100,00 TL')).toBeOnTheScreen();
+      expect(screen.getByText('50,00 TL')).toBeOnTheScreen();
       expect(screen.getByText('15,00 TL')).toBeOnTheScreen();
+      // serviceFeeAmount hizmet bedeli + TÜM alıcı hizmet KDV'sini içerir —
+      // ayrı bir "KDV" satırı basılmaz (çift sayım).
       expect(screen.queryByText('KDV')).toBeNull();
-
-      // GET /shipping/rates hiç çağrılmadı — kargo yalnız quote'tan geldi.
-      expect(shippingApi.getRatesByCity).not.toHaveBeenCalled();
     });
   });
 });

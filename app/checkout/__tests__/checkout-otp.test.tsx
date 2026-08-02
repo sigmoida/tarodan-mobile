@@ -118,9 +118,10 @@ jest.mock('@/lib/api', () => ({
     ),
     bypassComplete: jest.fn(() => Promise.resolve({ data: {} })),
   },
-  // GET /shipping/rates artik HIC cagrilmiyor - kargo yalniz quote'tan gelir.
-  // Sabit birakiliyor ki testler "hic cagrilmadi" iddiasini dogrulayabilsin.
-  shippingApi: { getRatesByCity: jest.fn() },
+  // shippingApi'de artik kargo UCRETI ucu YOK (getRatesByCity/getRates/
+  // calculateRates/getCarriers kaldirildi) - kargo yalniz quote'tan gelir.
+  // "Hic cagrilmadi" iddiasi yerine artik API yuzeyi garantisi var:
+  // src/lib/api/__tests__/orders.test.ts.
   addressesApi: { getAll: jest.fn(() => Promise.resolve({ data: [] })) },
   discountsApi: { validate: jest.fn() },
 }));
@@ -130,7 +131,7 @@ jest.mock('@/stores/authStore', () => ({
   useAuthStore: () => ({ isAuthenticated: false, user: null }),
 }));
 
-import { ordersApi, shippingApi } from '@/lib/api';
+import { ordersApi } from '@/lib/api';
 import { useCartStore } from '@/stores/cartStore';
 import { replaceMock } from '@/test-utils/router-mock';
 import CheckoutScreen from '../index';
@@ -240,9 +241,6 @@ describe('Misafir checkout OTP akışı', () => {
         }),
       );
     });
-
-    // Kargo yalnız quote'tan gelir — GET /shipping/rates hiç çağrılmamalı.
-    expect(shippingApi.getRatesByCity).not.toHaveBeenCalled();
   });
 
   it('stok bitti (400, stok keyword) → OTP modal KAPANIR, unavailable sayfasına redirect edilir', async () => {

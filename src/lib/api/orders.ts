@@ -223,24 +223,15 @@ export const sellerInvoiceApi = {
 // uygulama yalnızca 'surat' ile çalışıyor — web ile parite).
 export type ShippingProvider = 'surat';
 
+/**
+ * Kargo ÜCRETİ sorgulayan uçlar (`GET/POST /shipping/rates`, `/shipping/carriers`)
+ * bilerek YOK: checkout'ta gösterilen kargo tutarı yalnızca `POST /orders/quote`
+ * yanıtından gelir (`pricing.summary.shippingAmount`). Ayrı bir tarife çağrısı,
+ * ekrandaki tutarın PayTR'de çekilenden sessizce ayrışmasına yol açıyordu; yüzeyi
+ * yeniden eklemek o hatayı da geri getirir. Buradaki uçlar yalnız kargo
+ * OPERASYONU (shipment oluşturma / takip) içindir.
+ */
 export const shippingApi = {
-  /** Şehir/firma için tek satır kargo ücreti (checkout / addresses) */
-  getRatesByCity: (params: { city: string; carrier: ShippingProvider; weight?: number }) =>
-    api.get<{ rate: number }>('/shipping/rates', { params }),
-  /** Geriye uyumluluk: eski parametre adlarıyla aynı çağrıyı yapan alias */
-  getRates: (params: { fromCity?: string; toCity?: string; city?: string; carrier?: ShippingProvider; weight?: number }) =>
-    api.get<{ rate: number } | any>('/shipping/rates', {
-      params: {
-        city: params.city ?? params.toCity ?? params.fromCity,
-        carrier: params.carrier ?? 'surat',
-        weight: params.weight,
-      },
-    }),
-  /** Kullanılabilir kargo firmaları */
-  getCarriers: () => api.get('/shipping/carriers'),
-  /** Adres bazlı kargo hesaplama (backend: POST /shipping/rates) */
-  calculateRates: (data: { fromAddressId: string; toAddressId: string; weight?: number; provider?: ShippingProvider }) =>
-    api.post('/shipping/rates', data),
   /** Sipariş için kargo başlat — backend: POST /shipping */
   createShipment: (data: { orderId: string; provider: ShippingProvider }) =>
     api.post('/shipping', data),

@@ -1,18 +1,26 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { appAlert, alertAfterClose } from '@/ui';
 import { ordersApi, paymentsApi, addressesApi, cartApi, type OrderAddressInput, type OrderQuoteResponse } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useCartStore } from '@/stores/cartStore';
 import { useAuthStore } from '@/stores/authStore';
 import { captureException } from '@/services/sentry';
-import { formatPrice } from '@/utils/format';
+import { formatServerPrice } from '@/utils/format';
+import { unwrapEnvelope } from '@/utils/apiEnvelope';
 import { DEFAULT_COUNTRY_CODE, normalizePhoneForPayload } from '@/utils/phone';
 import { STOCKOUT_KEYWORDS, generateUuidV4, EMPTY_ADDRESS } from '../_lib/constants';
 import { extractApiMessage, validateGuest, validateInlineAddress } from '../_lib/validation';
 import { useCoupon } from './useCoupon';
 import type { ShippingAddressInput, SavedAddress } from '../_lib/types';
+
+/**
+ * Modal kapanma animasyonu bitmeden `appAlert` çağırmak iOS'ta donuyor.
+ * `alertAfterClose`'un kendi varsayılanıyla aynı gecikme — orada kapatma da
+ * yapılıyor, burada modal zaten kapatılmış oluyor.
+ */
+const MODAL_CLOSE_ALERT_DELAY_MS = 400;
 
 /**
  * Checkout controller'ı — tüm form durumu, query'ler, kargo hesabı, payload
@@ -63,16 +71,82 @@ export function useCheckout() {
 
   const paymentProvider = 'paytr' as const;
 
-  const [otpModalOpen, setOtpModalOpen] = useState(false);
+  const [otpModalOpenState, setOtpModalOpenState] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [otpSending, setOtpSending] = useState(false);
   const [otpExpiresIn, setOtpExpiresIn] = useState(0);
   const [otpError, setOtpError] = useState<string | null>(null);
 
+  /**
+   * OTP modalının AÇIK/KAPALI durumu, closure'dan bağımsız.
+   *
+   * React Query, çalışan bir `queryFn`'i fetch'in BAŞLADIĞI render'ın closure'ıyla
+   * yürütür. Aşağıdaki uyarı yardımcıları `otpModalOpen`'ı state'ten (closure'dan)
+   * okusaydı şu senaryoda BAYAT `false` görürdü: kupon uygulanır (quote fetch
+   * başlar, modal kapalı) → kullanıcı "Onayla ve Öde"ye basar → OTP modalı açılır
+   * → gecikmiş quote 400'ü düşer → modal AÇIKKEN `appAlert` → iOS donar.
+   */
+  const otpModalOpenRef = useRef(false);
+  const otpModalOpen = otpModalOpenState;
+  const setOtpModalOpen = (open: boolean) => {
+    otpModalOpenRef.current = open;
+    setOtpModalOpenState(open);
+  };
+  /** Modal kapanınca gösterilmek üzere bekleyen bilgilendirme (aşağıya bkz.). */
+  const pendingAlertRef = useRef<{ title: string; message?: string } | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' });
 
-  const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.price * it.quantity, 0), [items]);
+  const closeOtpModal = () => {
+    setOtpModalOpen(false);
+    setOtpCode('');
+    setOtpError(null);
+    const pending = pendingAlertRef.current;
+    if (pending) {
+      pendingAlertRef.current = null;
+      setTimeout(() => appAlert(pending.title, pending.message), MODAL_CLOSE_ALERT_DELAY_MS);
+    }
+  };
+
+  /**
+   * GEÇİCİ / bilgilendirici uyarı (kupon düştü, quote tazelendi…).
+   *
+   * OTP modalı açıkken `appAlert` iOS'ta donuyor; modalı KAPATMAK ise kullanıcının
+   * OTP oturumunu boşa düşürür (yeniden kod istemek zorunda kalır) — geçici bir
+   * olay bunu hak etmiyor. Uyarıyı ERTELE, modal kapanınca göster.
+   */
+  const alertDeferredWhileOtpOpen = (title: string, message?: string) => {
+    if (otpModalOpenRef.current) {
+      pendingAlertRef.current = { title, message };
+      return;
+    }
+    appAlert(title, message);
+  };
+
+  /**
+   * ENGELLEYİCİ uyarı — kullanıcı devam edemiyor, mesajı ŞİMDİ görmeli.
+   * Modal açıkken modal İÇİNDE satır içi basılır: kod alanı ve OTP oturumu korunur.
+   */
+  const alertInlineWhileOtpOpen = (title: string, message: string) => {
+    if (otpModalOpenRef.current) {
+      setOtpError(message);
+      return;
+    }
+    appAlert(title, message);
+  };
+
+  /**
+   * Akışı SONLANDIRAN uyarı (fiyat değişti → ana ekranda yeniden onay gerekiyor).
+   * Modal önce kapanır, sonra uyarı gösterilir.
+   */
+  const alertAfterOtpClose = (title: string, message?: string) => {
+    if (otpModalOpenRef.current) {
+      alertAfterClose(closeOtpModal, title, message);
+      return;
+    }
+    appAlert(title, message);
+  };
 
   // Kupon: `/discounts/validate` ile doğrulanır. Doğrulanmış kod quote'a da
   // gönderilir (aşağıda) — sunucu `summary.productAmount`'ı "kupon sonrası ara
@@ -80,14 +154,31 @@ export function useCheckout() {
   // `summary.total` checkout'ta gerçekte tahsil edilenden FAZLA görünür.
   const coupon = useCoupon(items, isAuthenticated);
 
+  const queryClient = useQueryClient();
+  const itemsSignature = useMemo(
+    () => items.map((it) => `${it.productId}:${it.quantity}`).join(','),
+    [items],
+  );
+
+  /**
+   * Quote 400'ü KUPONA mı ait?
+   *
+   * Quote kupon dışı sebeplerle de 400 döndürebilir (geçersiz `productId`, stok).
+   * Her 400'ü kupona yormak, kuponu haksız yere düşürüp "Kupon Geçersiz" başlığıyla
+   * yanlış bilgi verir. Sunucunun `i18nKey`/`message` metnine bak.
+   */
+  const isCouponRejection = (err: any, sentCouponCode?: string): boolean => {
+    if (!sentCouponCode) return false;
+    if (err?.response?.status !== 400) return false;
+    const i18nKey = typeof err?.response?.data?.i18nKey === 'string' ? err.response.data.i18nKey : '';
+    return /kupon|coupon|discount|indirim/i.test(`${i18nKey} ${extractApiMessage(err) ?? ''}`);
+  };
+
   // Quote'un KÖKÜ korunur — `pricingHash` + `shippingTariffVersion` kökte,
   // `pricing` içinde DEĞİL, ve order-create payload'larına aynen geri gider.
   // `couponCode` queryKey'e DAHİL: kupon uygulanınca/kaldırılınca quote tazelenir.
   const quoteQuery = useQuery({
-    queryKey: qk.checkout.quote(
-      items.map((it) => `${it.productId}:${it.quantity}`).join(','),
-      coupon.couponCode,
-    ),
+    queryKey: qk.checkout.quote(itemsSignature, coupon.couponCode),
     queryFn: async () => {
       const baseItems = items.map((it) => ({ productId: it.productId, quantity: it.quantity }));
       const couponCode = coupon.couponCode;
@@ -96,42 +187,66 @@ export function useCheckout() {
           items: baseItems,
           ...(couponCode ? { couponCode } : {}),
         });
-        return (res.data ?? {}) as OrderQuoteResponse;
+        return unwrapEnvelope<OrderQuoteResponse>(res);
       } catch (err: any) {
-        // Kupon arada geçersizleşmiş olabilir (süre doldu / kullanım limiti) —
-        // yapısal hata kodu yok, yalnız `message` string'i var (canlı ölçüm: 400
-        // "Kupon kodu bulunamadı"). Checkout'u kilitleme: kuponu düşür, kuponsuz
-        // quote'u aynı istekte tekrar dene, kullanıcıya haber ver.
-        if (couponCode && err?.response?.status === 400) {
-          coupon.remove();
-          alertRespectingOtpModal(
-            'Kupon Geçersiz',
-            extractApiMessage(err) ?? 'Kupon kodu artık geçerli değil, kaldırıldı.',
-          );
+        // Kupon dışı hatalar olduğu gibi yukarı gider → sorgu hata durumuna
+        // düşer, ekran ErrorState + "Tekrar Dene" gösterir (kilitlenmez).
+        if (!isCouponRejection(err, couponCode)) throw err;
+
+        // Kupon arada geçersizleşmiş (süre doldu / kullanım limiti). Kuponu düşür:
+        // bu, queryKey'i kuponsuz anahtara çevirir. Kuponsuz sonucu ÖNDEN çekip
+        // KUPONSUZ anahtara yaz — kuponsuz cevabı KUPONLU anahtar altında
+        // döndürmek önbelleği zehirliyordu: aynı kod 60 sn (staleTime) içinde
+        // yeniden uygulanırsa istek hiç gitmez, uyarı çıkmaz, "uygulandı" rozeti
+        // kalır ve sipariş ucundan bu kez ham 400 gelir.
+        coupon.remove();
+        alertDeferredWhileOtpOpen(
+          'Kupon Geçersiz',
+          extractApiMessage(err) ?? 'Kupon kodu artık geçerli değil, kaldırıldı.',
+        );
+        try {
           const retryRes = await ordersApi.getQuote({ items: baseItems });
-          return (retryRes.data ?? {}) as OrderQuoteResponse;
+          queryClient.setQueryData(qk.checkout.quote(itemsSignature, undefined), unwrapEnvelope<OrderQuoteResponse>(retryRes));
+        } catch {
+          // Kuponsuz deneme de başarısızsa bir şey yazma — kuponsuz anahtar
+          // kendi isteğini atar ve gerekirse hata yolunu (ErrorState) kullanır.
         }
+        // Bu ANAHTAR gerçekten başarısız oldu; hata olarak bırak ki aynı kupon
+        // yeniden uygulanınca istek tekrar gitsin ve uyarı yine çıksın.
         throw err;
       }
     },
     enabled: items.length > 0,
     staleTime: 60_000,
+    // 4xx yeniden denenmez: varsayılan `retry: 2` bir kupon 400'ünde aynı uyarıyı
+    // üç kez bastırır ve üç istek atar. Ağ/5xx hataları varsayılan gibi denenir.
+    retry: (failureCount, err: any) => {
+      const status = err?.response?.status;
+      if (typeof status === 'number' && status >= 400 && status < 500) return false;
+      return failureCount < 2;
+    },
   });
   const quote = quoteQuery.data;
   const summary = quote?.pricing?.summary;
-  // Kargo yalnızca quote'tan gelir — GET /shipping/rates çağrısı ve başarısızlıkta
-  // 34.9/49.9 sabitine düşen fallback kaldırıldı: ağ hatasında ekrandaki tutarın
-  // PayTR'de çekilen tutardan sessizce ayrışmasına yol açıyordu.
-  const shippingCost = Number(summary?.shippingAmount ?? 0);
+  const hasQuote = summary != null;
+  // ————————————————————————————————————————————————————————————————
+  // Gösterilen HER tutar bir sunucu alanının aynısıdır. Sunucu değeri yokken
+  // `null` döndürülür (yerel toplam ya da 0 DEĞİL) — ekran yer tutucu basar,
+  // "Onayla ve Öde (0,00 TL)" gibi uydurma bir tutar kullanıcıya gösterilmez.
+  // ————————————————————————————————————————————————————————————————
+  const shippingCost = hasQuote ? Number(summary!.shippingAmount) : null;
+  const productAmount = hasQuote ? Number(summary!.productAmount) : null;
+  /** Hizmet bedeli + TÜM alıcı hizmet KDV'si — ayrı bir KDV satırı basılmaz. */
+  const serviceFeeAmount = hasQuote ? Number(summary!.serviceFeeAmount) : null;
+  const total = hasQuote ? Number(summary!.total) : null;
+  /**
+   * Sunucunun uyguladığı indirim — quote yanıtının KÖKÜNDEKİ `couponDiscount`.
+   * `/discounts/validate`'in `estimatedDiscount`'u DEĞİL: o yalnız bir tahmin ve
+   * özet satırlarıyla tutarlı değil. Özet satırı olarak basılmaz (üç satır zaten
+   * toplama eşit); yalnız kupon rozetinde bilgilendirme olarak gösterilir.
+   */
+  const couponDiscount = quote?.couponDiscount != null ? Number(quote.couponDiscount) : null;
   const shippingLoading = quoteQuery.isLoading;
-  // Kupon sonrası ürün ara toplamı — quote yüklenene kadar yerel toplamla
-  // (aynı, henüz hesap yapılmamış rakam) doldurulur, sonrasında sunucu değeri geçerli.
-  const productAmount = Number(summary?.productAmount ?? subtotal);
-  // Hizmet bedeli + TÜM alıcı hizmet KDV'si — ayrı bir KDV satırı basılmaz.
-  const serviceFeeAmount = Number(summary?.serviceFeeAmount ?? 0);
-  // Toplam SUNUCU garantisi — yerel aritmetik yok, `pricing.summary.total` aynen
-  // basılır. Kupon doğrulanmışsa quote'a gittiği için bu değer zaten indirimlidir.
-  const total = Number(summary?.total ?? 0);
 
   const addressesQuery = useQuery({
     queryKey: qk.addresses.mine,
@@ -158,25 +273,11 @@ export function useCheckout() {
     return () => clearInterval(id);
   }, [otpModalOpen]);
 
-  const effectiveShippingCity = useMemo(() => {
-    if (isAuthenticated && selectedAddressId !== 'new') {
-      const a = addresses.find((x) => x.id === selectedAddressId);
-      return a?.city ?? '';
-    }
-    return shippingAddress.city;
-  }, [isAuthenticated, selectedAddressId, addresses, shippingAddress.city]);
+  // NOT: kargo satırı artık şehre bağlı değil — quote şehirden bağımsız (`items`
+  // gövdesi) ve `summary.total` kargoyu zaten içeriyor. Şehre bakan
+  // `effectiveShippingCity` kapısı kaldırıldı (satırlar her zaman toplama eşit).
 
   const showSnackbar = (message: string) => setSnackbar({ visible: true, message });
-
-  /** Modal açıkken appAlert çağırmak iOS'ta donuyor — OTP modalı açıksa önce
-   *  kapat, sonra göster (aksi halde doğrudan göster). */
-  const alertRespectingOtpModal = (title: string, message?: string) => {
-    if (otpModalOpen) {
-      alertAfterClose(closeOtpModal, title, message);
-    } else {
-      appAlert(title, message);
-    }
-  };
 
   const handleEmailAlreadyRegistered = (e: any): boolean => {
     if (e?.response?.status === 409 || e?.response?.data?.code === 'EMAIL_ALREADY_REGISTERED') {
@@ -268,9 +369,15 @@ export function useCheckout() {
     // yerine burada durup kullanıcıdan bekle (undefined/0 göndermek yalnızca
     // aynı 400'ü başka bir şekilde üretir).
     if (!quote?.pricingHash || quote.shippingTariffVersion == null) {
-      alertRespectingOtpModal(
-        'Fiyat Bilgisi Hazır Değil',
-        'Fiyat bilgisi yükleniyor, lütfen birkaç saniye sonra tekrar deneyin.',
+      // Hata halinde mesaj FARKLI: "yükleniyor" demek yanlış olurdu — sorgu
+      // 4xx'te hiç, ağ hatasında `retry` tükendikten sonra kendiliğinden
+      // tazelenmiyor (`refetchOnWindowFocus: false`); kullanıcı özet kartındaki
+      // "Tekrar Dene" düğmesine basmalı.
+      alertInlineWhileOtpOpen(
+        quoteQuery.isError ? 'Fiyat Bilgisi Alınamadı' : 'Fiyat Bilgisi Hazır Değil',
+        quoteQuery.isError
+          ? 'Fiyat bilgisi alınamadı. Ödeme detayı kartındaki "Tekrar Dene" ile yeniden deneyin.'
+          : 'Fiyat bilgisi yükleniyor, lütfen birkaç saniye sonra tekrar deneyin.',
       );
       return;
     }
@@ -392,11 +499,13 @@ export function useCheckout() {
         const oldTotal = total;
         const refreshed = await quoteQuery.refetch();
         const newTotal = refreshed.data?.pricing?.summary?.total;
-        alertRespectingOtpModal(
+        // Geçici DEĞİL: kullanıcı ana ekranda yeni tutarı görüp yeniden
+        // onaylamalı → OTP modalı açıksa önce kapatılır.
+        alertAfterOtpClose(
           'Fiyatlar Güncellendi',
-          `Ürün veya kargo fiyatları güncellendi.\n\nÖnceki toplam: ${formatPrice(oldTotal)}\nYeni toplam: ${
-            newTotal != null ? formatPrice(newTotal) : '—'
-          }\n\nLütfen tutarı kontrol edip tekrar onaylayın.`,
+          `Ürün veya kargo fiyatları güncellendi.\n\nÖnceki toplam: ${formatServerPrice(
+            oldTotal,
+          )}\nYeni toplam: ${formatServerPrice(newTotal)}\n\nLütfen tutarı kontrol edip tekrar onaylayın.`,
         );
         return;
       }
@@ -468,12 +577,6 @@ export function useCheckout() {
     }
   };
 
-  const closeOtpModal = () => {
-    setOtpModalOpen(false);
-    setOtpCode('');
-    setOtpError(null);
-  };
-
   const handleOtpSubmit = async () => {
     if (otpCode.length !== 6) return;
     await proceedCheckout(otpCode);
@@ -520,11 +623,20 @@ export function useCheckout() {
     selectedBillingAddressId, setSelectedBillingAddressId,
     billingAddress, setBillingAddress,
     addresses,
-    // shipping/pricing — hepsi `pricing.summary`'den, istemci hesabı yok.
-    shippingCost, shippingLoading, effectiveShippingCity,
+    // shipping/pricing — hepsi `pricing.summary`'den AYNEN; sunucu değeri yoksa
+    // `null` (yer tutucu basılır, yerel sayı uydurulmaz).
+    shippingCost, shippingLoading,
     productAmount, serviceFeeAmount, total,
+    hasQuote,
     quoteLoading: quoteQuery.isLoading,
+    /** Quote hatası — ekran ErrorState + "Tekrar Dene" gösterir (CLAUDE.md §11). */
+    quoteError: quoteQuery.isError,
+    retryQuote: () => {
+      void quoteQuery.refetch();
+    },
     coupon,
+    /** Sunucunun uyguladığı indirim (quote kökü) — rozet bilgisi, özet satırı değil. */
+    couponDiscount,
     // ui
     loading,
     snackbar,

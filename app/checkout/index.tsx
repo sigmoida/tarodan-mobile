@@ -47,17 +47,16 @@ export default function CheckoutScreen() {
         {c.step === 2 ? <Step2Payment c={c} /> : null}
         {c.step === 3 ? <Step3Confirm c={c} /> : null}
 
-        <CouponInput coupon={c.coupon} />
+        <CouponInput coupon={c.coupon} couponDiscount={c.couponDiscount} />
 
         <OrderSummary
           itemCount={c.items.length}
           productAmount={c.productAmount}
           shippingCost={c.shippingCost}
-          effectiveShippingCity={c.effectiveShippingCity}
           serviceFeeAmount={c.serviceFeeAmount}
-          discount={c.coupon.discount}
-          couponCode={c.coupon.applied?.code}
           total={c.total}
+          isError={c.quoteError}
+          onRetry={c.retryQuote}
         />
 
         <View style={{ height: 120 }} />
@@ -76,10 +75,19 @@ export default function CheckoutScreen() {
         ) : (
           <Button
             variant="primary"
-            title={c.loading ? 'İşleniyor...' : `Onayla ve Öde (${formatPrice(c.total)})`}
+            // Toplam bilinmiyorken butona TUTAR BASILMAZ — "Onayla ve Öde (0,00 TL)"
+            // yazan etkin bir buton, quote hata verdiğinde kullanıcıyı boş bir
+            // guard mesajına sürüklüyordu. Bilinmiyorsa buton da devre dışı.
+            title={
+              c.loading
+                ? 'İşleniyor...'
+                : c.total == null
+                  ? 'Onayla ve Öde'
+                  : `Onayla ve Öde (${formatPrice(c.total)})`
+            }
             onPress={c.handleCheckout}
             isLoading={c.loading}
-            disabled={c.loading || c.quoteLoading}
+            disabled={c.loading || c.quoteLoading || c.quoteError || c.total == null}
             fullWidth
             style={styles.actionButton}
             icon="card-outline"

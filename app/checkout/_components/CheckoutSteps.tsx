@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { PhoneInput } from '@/components/common';
 import { transformImageUrl } from '@/utils/imageUrl';
-import { formatPrice, asLabel } from '@/utils/format';
+import { formatPrice, formatServerPrice, asLabel } from '@/utils/format';
 import { AddressSelector } from './AddressSelector';
 import { styles } from '../_lib/styles';
 import type { useCheckout } from '../_hooks/useCheckout';
@@ -115,7 +115,13 @@ export function Step2Payment({ c }: { c: Ctrl }) {
             <Text style={styles.optionTitle}>Sürat Kargo</Text>
             <Text style={styles.optionDescription}>2-4 iş günü teslimat</Text>
           </View>
-          {c.shippingLoading ? <Spinner size="sm" /> : <Text style={styles.optionPrice}>{formatPrice(c.shippingCost)}</Text>}
+          {c.shippingLoading ? (
+            <Spinner size="sm" />
+          ) : (
+            // Sunucu değeri yoksa yer tutucu — `formatPrice(null)` "0,00 TL" basıp
+            // ücretsiz kargo izlenimi verirdi.
+            <Text style={styles.optionPrice}>{formatServerPrice(c.shippingCost)}</Text>
+          )}
         </View>
       </View>
 

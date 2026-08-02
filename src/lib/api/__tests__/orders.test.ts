@@ -27,7 +27,7 @@ jest.mock('../client', () => ({
 }));
 
 import { api, guestApi } from '../client';
-import { ordersApi } from '../orders';
+import { ordersApi, shippingApi } from '../orders';
 
 const mockApiPost = api.post as jest.Mock;
 const mockGuestPost = guestApi.post as jest.Mock;
@@ -127,5 +127,26 @@ describe('ordersApi — expectedPricingHash / expectedShippingTariffVersion', ()
     expect(mockApiPost).toHaveBeenCalledWith('/orders/quote', {
       items: [{ productId: 'p1', quantity: 1 }],
     });
+  });
+});
+
+/**
+ * Kargo ÜCRETİ sorgulayan uçlar API yüzeyinden kaldırıldı: checkout'ta gösterilen
+ * kargo yalnız `POST /orders/quote` yanıtından gelir. Ayrı bir tarife çağrısı
+ * ekrandaki tutarın PayTR'de çekilenden sessizce ayrışmasına yol açıyordu; yüzey
+ * geri gelirse birileri onu yeniden çağırabilir. Ekran testlerindeki "hiç
+ * çağrılmadı" iddiasının yerini bu alıyor.
+ */
+describe('shippingApi — kargo ücreti uçları yüzeyde YOK', () => {
+  it.each(['getRatesByCity', 'getRates', 'calculateRates', 'getCarriers'])(
+    '%s tanımlı değil',
+    (name) => {
+      expect((shippingApi as Record<string, unknown>)[name]).toBeUndefined();
+    },
+  );
+
+  it('kargo OPERASYONU uçları (shipment oluşturma/takip) duruyor', () => {
+    expect(typeof shippingApi.createShipment).toBe('function');
+    expect(typeof shippingApi.updateTracking).toBe('function');
   });
 });

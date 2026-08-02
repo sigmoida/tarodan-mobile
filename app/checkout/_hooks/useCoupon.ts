@@ -5,10 +5,17 @@ import { extractApiMessage } from '../_lib/validation';
 
 type CartLine = { productId: string; quantity: number; price: number };
 
+/**
+ * Uygulanan kupon.
+ *
+ * `estimatedDiscount` BİLEREK taşınmıyor: adı gibi bir TAHMİN ve quote'un
+ * `pricing.summary` kırılımıyla tutarlı değil — ekranda basıldığında özet
+ * satırlarının toplamı `total`a eşit çıkmıyordu. Gösterilecek indirim tutarı
+ * yalnızca quote yanıtının kökündeki `couponDiscount`'tır (bkz. `useCheckout`).
+ * Bu tip artık sadece "kupon doğrulandı mı + hangi kod" bilgisini taşır.
+ */
 export type AppliedCoupon = {
   code: string;
-  /** Sunucunun hesapladığı tahmini indirim; kesin tutar sipariş yanıtından gelir. */
-  discount: number;
   name?: string;
 };
 
@@ -58,9 +65,9 @@ export function useCoupon(items: CartLine[], isAuthenticated: boolean) {
         return;
       }
       setError(null);
+      // `result.discount.estimatedDiscount` bilerek okunmuyor — bkz. AppliedCoupon.
       setApplied({
         code: result.discount.code || raw.trim().toUpperCase(),
-        discount: Math.max(0, Number(result.discount.estimatedDiscount ?? 0)),
         name: result.discount.name,
       });
     },
@@ -90,9 +97,7 @@ export function useCoupon(items: CartLine[], isAuthenticated: boolean) {
     apply,
     remove,
     isPending: mutation.isPending,
-    /** Özet ve toplamda kullanılan indirim tutarı (kupon yoksa 0). */
-    discount: applied?.discount ?? 0,
-    /** Checkout payload'ına eklenecek kod (kupon yoksa undefined). */
+    /** Checkout payload'ına ve quote isteğine eklenecek kod (kupon yoksa undefined). */
     couponCode: applied?.code,
   };
 }

@@ -51,7 +51,6 @@ jest.mock('@/lib/api', () => ({
     initiateGroupGuest: jest.fn(),
     bypassComplete: jest.fn(),
   },
-  shippingApi: { getRatesByCity: jest.fn() },
   addressesApi: { getAll: jest.fn(() => Promise.resolve({ data: ONE_ADDRESS })) },
   discountsApi: { validate: jest.fn() },
   cartApi: { clear: jest.fn(() => Promise.resolve()) },
