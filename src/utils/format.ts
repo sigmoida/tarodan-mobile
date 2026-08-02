@@ -38,15 +38,45 @@ export function formatPrice(price: number | string | null | undefined): string {
 export const PRICE_PLACEHOLDER = '—';
 
 /**
+ * Sunucudan gelen bir para alanını KULLANILABİLİR bir sayıya indirger; alan
+ * gerçek bir sayı DEĞİLSE `null`.
+ *
+ * Neden `Number(...)` yetmiyor: `Number(null)` = **0**, `Number('')` = **0**,
+ * `Number(undefined)` = **NaN**. "Quote geldi mi?" kapısı (`summary != null`)
+ * alanın kendisi hakkında hiçbir şey söylemez; sunucu bir gün `total: null`
+ * döndürürse `Number(null)` sıfıra düşer, `total == null` kontrolü false olur ve
+ * kullanıcı ETKİN bir "Onayla ve Öde (0,00 TL)" butonu görür. Kapı bu yüzden
+ * alan seviyesinde: sayı değilse tutar YOK sayılır (yer tutucu + devre dışı buton).
+ *
+ * - `number` → sonlu ise aynen; `NaN` / `±Infinity` → `null`
+ * - `-0` → `0` (işaretli sıfır ayrı bir tutar değil; "-0,00 TL" basılmaz)
+ * - boş olmayan sayısal `string` → sayı (sunucu bir gün decimal'i string
+ *   gönderirse tolere edilir); `''` / `'  '` / `'abc'` → `null`
+ * - `null` / `undefined` / diğer her şey → `null`
+ */
+export function serverAmount(value: unknown): number | null {
+  const n =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && value.trim() !== ''
+        ? Number(value)
+        : NaN;
+  if (!Number.isFinite(n)) return null;
+  return n === 0 ? 0 : n;
+}
+
+/**
  * Sunucu-yetkili tutar gösterimi.
  *
- * `formatPrice(null)` "0,00 TL" döndürür — bu, fiyat henüz yüklenmemişken ya da
- * quote hata verdiğinde ekranda GERÇEKMİŞ gibi duran bir sıfır bırakır (kullanıcı
- * "Onayla ve Öde (0,00 TL)" görür). Sunucudan gelen bir alan yoksa tutar yerine
- * yer tutucu basılır — istemcide sayı uydurulmaz.
+ * `formatPrice(null)` "0,00 TL", `formatPrice(NaN)` de "0,00 TL" döndürür — bu,
+ * fiyat henüz yüklenmemişken ya da quote hata verdiğinde ekranda GERÇEKMİŞ gibi
+ * duran bir sıfır bırakır (kullanıcı "Onayla ve Öde (0,00 TL)" görür). Sunucudan
+ * gelen bir alan yoksa VEYA sayı değilse tutar yerine yer tutucu basılır —
+ * istemcide sayı uydurulmaz.
  */
-export function formatServerPrice(price: number | null | undefined): string {
-  return price == null ? PRICE_PLACEHOLDER : formatPrice(price);
+export function formatServerPrice(price: unknown): string {
+  const amount = serverAmount(price);
+  return amount == null ? PRICE_PLACEHOLDER : formatPrice(amount);
 }
 
 export function formatPriceNumber(price: number | string | null | undefined): string {

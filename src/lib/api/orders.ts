@@ -42,6 +42,28 @@ export type OrderQuotePricing = {
   summary?: OrderQuotePricingSummary;
 };
 
+/**
+ * Quote'un SATIR kırılımı (canlı ölçüm — staging, 2026-08-02).
+ * `subtotal` adedi ZATEN içerir (quantity: 3 → subtotal = 3 × unitPrice), bu yüzden
+ * ekranda satır tutarı için istemcide `price × quantity` çarpımı YAPILMAZ; sepet
+ * satırındaki `price` sepete ekleme anında donmuş 24 saatlik bir kopyadır ve
+ * kampanya penceresi kapanınca sunucu tutarından sessizce ayrışır.
+ */
+export type OrderQuoteItem = {
+  productId: string;
+  sellerId?: string;
+  quantity?: number;
+  /** Sunucunun O AN geçerli birim fiyatı (kampanya dahil). */
+  unitPrice?: number;
+  /** Satırın adet DAHİL tutarı — ekranda basılacak TEK doğru satır tutarı. */
+  subtotal?: number;
+  buyerFeeAmount?: number;
+  sellerFeeAmount?: number;
+  sellerNetAmount?: number;
+  taxAmount?: number;
+  title?: string;
+};
+
 export type OrderQuoteShippingBySeller = {
   sellerId: string;
   shippingCost: number;
@@ -60,7 +82,7 @@ export type OrderQuoteResponse = {
   couponDiscount?: number;
   totalAmount?: number;
   sellerNetAmount?: number;
-  items?: unknown[];
+  items?: OrderQuoteItem[];
   shippingBySeller?: OrderQuoteShippingBySeller[];
   /** Order-create payload'ına AYNEN geri gönderilecek fiyat imzası. */
   pricingHash: string;
