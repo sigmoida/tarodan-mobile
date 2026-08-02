@@ -93,7 +93,16 @@ export function useCheckout() {
     otpModalOpenRef.current = open;
     setOtpModalOpenState(open);
   };
-  /** Modal kapanınca gösterilmek üzere bekleyen bilgilendirme (aşağıya bkz.). */
+  /**
+   * Modal kapanınca gösterilmek üzere bekleyen bilgilendirme (aşağıya bkz.).
+   *
+   * BİLİNEN SINIR (N5 — bilerek düzeltilmedi): ref ekranla birlikte yaşıyor.
+   * Kullanıcı modalı kapatmadan checkout'tan çıkarsa (geri / sepete dön)
+   * ertelenmiş uyarı hiç gösterilmez, sessizce kaybolur. Ertelenen olaylar
+   * yalnızca GEÇİCİ bilgilendirmeler (kupon düştü) ve düşen kuponun görsel
+   * karşılığı zaten ekranda (rozet kayboluyor); kalıcı bir kuyruk kurmak, o
+   * uyarıyı ilgisiz bir ekranın üstüne düşürme riskini getirirdi.
+   */
   const pendingAlertRef = useRef<{ title: string; message?: string } | null>(null);
 
   const [loading, setLoading] = useState(false);
