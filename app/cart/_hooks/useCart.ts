@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ordersApi, type OrderQuoteResponse } from '@/lib/api';
-import { qk } from '@/lib/query';
+import { qk, retryUnlessClientError } from '@/lib/query';
+import { serverAmount } from '@/utils/format';
+import { indexQuoteLines } from '@/utils/quoteLines';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
 import { useCartStore } from '@/stores/cartStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -39,21 +41,35 @@ export function useCart() {
     },
     enabled: items.length > 0,
     staleTime: 60_000,
+    // 4xx yeniden denenmez — checkout ile AYNI yüklem (tek kaynak, §5). Sepet
+    // ve checkout aynı queryKey'i paylaşıyor; yüklem burada eksik olsaydı aynı
+    // sorgu iki ekranda farklı sayıda istek atardı.
+    retry: retryUnlessClientError,
   });
   const summary = quoteQuery.data?.pricing?.summary;
-  const hasQuote = summary != null;
   // ————————————————————————————————————————————————————————————————
   // BAĞLAYICI KISIT: parayla ilgili hiçbir değer istemcide hesaplanmaz.
   // Eskiden buradaki `total` `productAmount + serviceFeeAmount` idi — hiçbir
   // sunucu alanına karşılık gelmeyen, istemcide üretilmiş bir tutar; üstelik
   // "Ara Toplam" yerel `getSubtotal()`, "Toplam" sunucu tabanlıydı, ikisi
   // ayrıştığında satırlar tutmuyordu. Artık dördü de `pricing.summary`'den AYNEN.
-  // Sunucu değeri yoksa `null` → ekran yer tutucu basar, yerel toplam BASILMAZ.
+  // Kapı ALAN seviyesinde (`serverAmount`): `summary` gelip `total: null` olsaydı
+  // `Number(null)` = 0 ile "0,00 TL" basılırdı. Sayı değilse `null` → yer tutucu.
   // ————————————————————————————————————————————————————————————————
-  const productAmount = hasQuote ? Number(summary!.productAmount) : null;
-  const shippingAmount = hasQuote ? Number(summary!.shippingAmount) : null;
-  const serviceFeeAmount = hasQuote ? Number(summary!.serviceFeeAmount) : null;
-  const total = hasQuote ? Number(summary!.total) : null;
+  const productAmount = serverAmount(summary?.productAmount);
+  const shippingAmount = serverAmount(summary?.shippingAmount);
+  const serviceFeeAmount = serverAmount(summary?.serviceFeeAmount);
+  const total = serverAmount(summary?.total);
+
+  /**
+   * Satır birim fiyatı — sunucunun `items[].unitPrice`'ı. Sepetteki `item.price`
+   * ekleme anında donuyor ve 24 saat saklanıyor; kampanya penceresi sepette
+   * beklerken kapanırsa satırda eski (indirimli) fiyat, özette yeni ara toplam
+   * görünürdü. Sunucu satırı yoksa `null` → ekran yer tutucu basar.
+   */
+  const quoteLines = useMemo(() => indexQuoteLines(quoteQuery.data?.items), [quoteQuery.data]);
+  const unitPriceFor = (productId: string): number | null =>
+    quoteLines.get(productId)?.unitPrice ?? null;
 
   const handleRemove = (itemId: string) => {
     sync.removeItem(itemId);
@@ -83,8 +99,19 @@ export function useCart() {
     shippingAmount,
     serviceFeeAmount,
     total,
-    hasQuote,
+    /** Satır birim fiyatı — sunucunun `items[].unitPrice`'ı; yoksa `null`. */
+    unitPriceFor,
     quoteLoading: quoteQuery.isLoading,
+    /**
+     * Quote hatası — sepet de checkout ile AYNI çıkış yolunu gösterir
+     * (paylaşılan `ErrorState` + "Tekrar Dene", CLAUDE.md §11). Bu olmadan
+     * kullanıcı dört satırın da "—" olduğu, sebebi ve çıkışı olmayan bir
+     * sepet görüyordu.
+     */
+    quoteError: quoteQuery.isError,
+    retryQuote: () => {
+      void quoteQuery.refetch();
+    },
     handleRemove,
     handleQuantityChange,
     stockWarningFor,

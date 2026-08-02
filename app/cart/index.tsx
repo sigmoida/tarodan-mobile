@@ -63,11 +63,15 @@ export default function CartScreen() {
             {formatServerPrice(f.total)}
           </Text>
         </View>
+        {/* Fiyat alınamadıysa ilerletme: checkout aynı queryKey'i paylaştığı için
+            kullanıcı orada da ErrorState'e düşer — bir adım öteye taşımak yerine
+            burada durdurup "Tekrar Dene"ye yönlendir (özet kartında). */}
         <Button
           testID="cart-checkout-button"
           variant="primary"
           title="Satın Al"
           style={styles.checkoutButton}
+          disabled={f.quoteError}
           onPress={() => router.push('/checkout')}
         />
       </View>

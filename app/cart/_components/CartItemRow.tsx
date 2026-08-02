@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { maxAllowedQty } from '@/stores/cartStore';
 import { transformImageUrl, IMAGE_PLACEHOLDER } from '@/utils/imageUrl';
-import { asLabel } from '@/utils/format';
+import { asLabel, formatServerPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
 import type { CartController } from '../_hooks/useCart';
 
@@ -31,7 +31,15 @@ export function CartItemRow({ item, f }: { item: any; f: CartController }) {
         </TouchableOpacity>
         <Text style={styles.itemMeta}>{asLabel(item.brand, 'Marka')} • {asLabel(item.scale, '1:64')}</Text>
         <Text style={styles.itemSeller}>Satıcı: {item.seller.displayName}</Text>
-        <Text style={styles.itemPrice}>₺{item.price.toLocaleString('tr-TR')}</Text>
+        {/* Birim fiyat SUNUCUDAN (`quote.items[].unitPrice`). Sepetteki
+            `item.price` ekleme anında donuyor ve 24 saat saklanıyor; ürünlerde
+            kampanya penceresi var, pencere sepette beklerken kapanırsa satırda
+            eski indirimli fiyat, özette yeni ara toplam görünürdü. Ayrıca
+            `₺{n.toLocaleString('tr-TR')}` `formatPrice` ailesinin dışındaydı —
+            aynı ekranda "₺100" ile "100,00 TL" yan yana basılıyordu. */}
+        <Text style={styles.itemPrice} testID="cart-item-unit-price">
+          {formatServerPrice(f.unitPriceFor(item.productId))}
+        </Text>
         {/* Sunucudan gelen taze stok uyarısı — yerel sepetteki stok bilgisi
             ekleme anında donduğu için tükenen ürün ancak burada görünür. */}
         {stockWarning ? (

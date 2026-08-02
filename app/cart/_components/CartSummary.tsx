@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { Divider, Text, theme } from '@/ui';
+import { Divider, ErrorState, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { formatServerPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
@@ -19,28 +19,40 @@ const { colors } = theme;
 export function CartSummary({ f }: { f: CartController }) {
   return (
     <>
-      <View style={styles.summary}>
-        <Text style={styles.summaryTitle}>Sipariş Özeti</Text>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Ara Toplam ({f.itemCount} ürün)</Text>
-          <Text style={styles.summaryValue}>{formatServerPrice(f.productAmount)}</Text>
+      {/* Quote hata verdiyse dört satırı da "—" basıp kullanıcıyı sebepsiz
+          bırakma — checkout'un `OrderSummary`'siyle AYNI çıkış yolu (§11). */}
+      {f.quoteError ? (
+        <View style={styles.summary} testID="cart-summary-error">
+          <ErrorState
+            title="Fiyat bilgisi alınamadı"
+            message="Sepet tutarı sunucudan alınamadı. Bağlantınızı kontrol edip tekrar deneyin."
+            onRetry={f.retryQuote}
+          />
         </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Kargo</Text>
-          <Text style={styles.summaryValue}>{formatServerPrice(f.shippingAmount)}</Text>
+      ) : (
+        <View style={styles.summary}>
+          <Text style={styles.summaryTitle}>Sipariş Özeti</Text>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Ara Toplam ({f.itemCount} ürün)</Text>
+            <Text style={styles.summaryValue}>{formatServerPrice(f.productAmount)}</Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Kargo</Text>
+            <Text style={styles.summaryValue}>{formatServerPrice(f.shippingAmount)}</Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Platform Hizmet Bedeli</Text>
+            <Text style={styles.summaryValue}>{formatServerPrice(f.serviceFeeAmount)}</Text>
+          </View>
+          <Divider style={{ marginVertical: theme.spacing[3] }} />
+          <View style={styles.summaryRow}>
+            <Text style={styles.totalLabel}>Toplam</Text>
+            <Text style={styles.totalValue} testID="cart-summary-total">
+              {formatServerPrice(f.total)}
+            </Text>
+          </View>
         </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Platform Hizmet Bedeli</Text>
-          <Text style={styles.summaryValue}>{formatServerPrice(f.serviceFeeAmount)}</Text>
-        </View>
-        <Divider style={{ marginVertical: theme.spacing[3] }} />
-        <View style={styles.summaryRow}>
-          <Text style={styles.totalLabel}>Toplam</Text>
-          <Text style={styles.totalValue} testID="cart-summary-total">
-            {formatServerPrice(f.total)}
-          </Text>
-        </View>
-      </View>
+      )}
 
       {/* Guest Checkout Info — yalnızca giriş yapmamış kullanıcılara göster */}
       {!f.isAuthenticated && (

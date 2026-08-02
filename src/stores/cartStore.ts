@@ -46,7 +46,10 @@ interface CartState {
   onPurchaseComplete: (productIds: string[]) => void;
   
   // Computed
-  getSubtotal: () => number;
+  // NOT: `getSubtotal()` BİLEREK YOK. Yerel `price × quantity` toplamı hiçbir
+  // sunucu alanına karşılık gelmiyor (sepetteki fiyat ekleme anında donuyor,
+  // kampanya penceresi kapanabiliyor) ve bir zamanlar "Toplam" diye basılıyordu.
+  // Para tutarları YALNIZCA `POST /orders/quote` yanıtından gelir.
   getItemCount: () => number;
   isInCart: (productId: string) => boolean;
 }
@@ -189,10 +192,6 @@ export const useCartStore = create<CartState>()(
       onPurchaseComplete: (productIds: string[]) => {
         const items = get().items.filter(item => !productIds.includes(item.productId));
         set({ items, lastUpdated: Date.now() });
-      },
-
-      getSubtotal: () => {
-        return get().items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       },
 
       getItemCount: () => {

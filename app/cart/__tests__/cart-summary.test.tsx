@@ -13,7 +13,7 @@
  * `getQuote`/`total`/`buyerFee` kelimelerinin hiçbirini içermiyordu).
  */
 import React from 'react';
-import { screen, waitFor } from '@testing-library/react-native';
+import { screen, waitFor, fireEvent, act } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -50,6 +50,9 @@ const QUOTE = {
   data: {
     pricingHash: 'hash-1',
     shippingTariffVersion: 3,
+    // Satır birim fiyatı da sunucudan: sepetteki donmuş 100 değil 95 (kampanya
+    // sepette beklerken değişmiş senaryosu — bulgu N1'in sepet karşılığı).
+    items: [{ productId: 'p1', quantity: 2, unitPrice: 95, subtotal: 190 }],
     pricing: {
       summary: { productAmount: 190, shippingAmount: 50, serviceFeeAmount: 24.4, total: 264.4 },
     },
@@ -99,19 +102,69 @@ describe('Sepet özeti — fiyat yalnızca pricing.summary den gelir', () => {
     // Eski istemci aritmetiği (productAmount + serviceFeeAmount = 214,40) hiçbir
     // yerde görünmemeli.
     expect(screen.queryByText('214,40 TL')).toBeNull();
+
+    // Satır birim fiyatı da sunucudan (`items[].unitPrice` = 95); sepetteki
+    // donmuş `price` (100) ve eski `₺100` biçimi ekranda YOK (bulgu N1/N9).
+    expect(screen.getByTestId('cart-item-unit-price')).toHaveTextContent('95,00 TL');
+    expect(screen.queryByText('₺100')).toBeNull();
   });
 
-  it('quote yokken tutar yerine yer tutucu basılır — yerel ara toplam Toplam diye basılmaz', async () => {
+  it('quote hata verince paylaşılan ErrorState + Tekrar Dene çıkar, Satın Al kilitlenir', async () => {
     (jest.mocked(ordersApi.getQuote) as unknown as jest.Mock).mockRejectedValue({
-      response: { status: 500, data: { message: 'Sunucu hatası' } },
+      response: { status: 400, data: { message: 'Geçersiz ürün' } },
     });
 
     renderWithProviders(<CartScreen />);
 
-    await waitFor(() => expect(screen.getByTestId('cart-summary-total')).toHaveTextContent('—'));
+    // Bulgu N3: eskiden dört satır da sebepsizce "—" oluyordu, "Satın Al" ise
+    // etkin kalıp kullanıcıyı checkout'taki ErrorState'e taşıyordu.
+    await waitFor(() => expect(screen.getByTestId('cart-summary-error')).toBeOnTheScreen());
+    expect(screen.getByText('Tekrar Dene')).toBeOnTheScreen();
     expect(screen.getByTestId('cart-checkout-total')).toHaveTextContent('—');
-    // Yerel `getSubtotal()` (200) hiçbir formatta "Toplam" olarak basılmaz.
+    expect(screen.getByTestId('cart-checkout-button')).toBeDisabled();
+
+    // Yerel `price × quantity` (200) hiçbir formatta basılmaz.
     expect(screen.queryByText('₺200')).toBeNull();
     expect(screen.queryByText('200,00 TL')).toBeNull();
+    // Satır fiyatı da sunucudan geldiği için donmuş yerel fiyat da yok.
+    expect(screen.getByTestId('cart-item-unit-price')).toHaveTextContent('—');
+  });
+
+  it('"Tekrar Dene" quote u yeniden çeker ve tutarlar geri gelir', async () => {
+    (jest.mocked(ordersApi.getQuote) as unknown as jest.Mock)
+      .mockRejectedValueOnce({ response: { status: 400, data: { message: 'Geçersiz ürün' } } })
+      .mockResolvedValue(QUOTE);
+
+    renderWithProviders(<CartScreen />);
+    await waitFor(() => expect(screen.getByTestId('cart-summary-error')).toBeOnTheScreen());
+
+    await act(async () => {
+      fireEvent.press(screen.getByText('Tekrar Dene'));
+    });
+
+    await waitFor(() => expect(screen.getByTestId('cart-summary-total')).toHaveTextContent('264,40 TL'), {
+      timeout: 2000,
+    });
+    expect(screen.queryByTestId('cart-summary-error')).toBeNull();
+    expect(screen.getByTestId('cart-checkout-button')).not.toBeDisabled();
+  });
+
+  // `summary` gelip alanı boş dönen yanıt (bulgu N2): `Number(null)` = 0 olduğu
+  // için eski kod bunu geçerli bir sıfır sanıp "0,00 TL" basardı.
+  it('summary gelir ama total null ise "0,00 TL" değil yer tutucu basılır', async () => {
+    (jest.mocked(ordersApi.getQuote) as unknown as jest.Mock).mockResolvedValue({
+      data: {
+        pricingHash: 'h',
+        shippingTariffVersion: 3,
+        pricing: { summary: { productAmount: 190, shippingAmount: 50, serviceFeeAmount: 24.4, total: null } },
+      },
+    });
+
+    renderWithProviders(<CartScreen />);
+
+    await waitFor(() => expect(screen.getByText('190,00 TL')).toBeOnTheScreen());
+    expect(screen.getByTestId('cart-summary-total')).toHaveTextContent('—');
+    expect(screen.getByTestId('cart-checkout-total')).toHaveTextContent('—');
+    expect(screen.queryByText('0,00 TL')).toBeNull();
   });
 });
