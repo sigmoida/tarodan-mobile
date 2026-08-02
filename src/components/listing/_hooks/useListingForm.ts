@@ -7,6 +7,7 @@ import { appAlert } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { listingFormSchema, emptyListingFormValues } from '../_lib/schema';
 import { firstListingValidationError } from '../_lib/validate';
+import { buildTierPayloadField } from '../_lib/payload';
 
 import { useAuthStore } from '../../../stores/authStore';
 import { api, productsApi, categoriesApi, bankAccountApi, shippingApi } from '@/lib/api';
@@ -595,7 +596,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       year: year ? Number(year) : undefined,
       isTradeEnabled,
       isSet,
-      shippingPackageTier,
+      // Boş kademe payload'a KONMAZ — düzenlemede sunucunun kayıtlı değerini
+      // ezmesin (sunucu mevcut kademeyi geri döndürmüyor, bkz. `_lib/payload`).
+      ...buildTierPayloadField(shippingPackageTier),
       bundleSize: isSet && Number(bundleSize) >= 2 ? Number(bundleSize) : undefined,
       images: imageKeys.length > 0 ? imageKeys : undefined,
       attributes: customAttributeSlugs.length > 0 ? customAttributeSlugs : undefined,
@@ -609,6 +612,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       values: form.getValues(),
       categoryId,
       imageCount: imageKeys.length,
+      isEdit,
     });
     if (error) {
       appAlert('Hata', error);

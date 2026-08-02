@@ -6,6 +6,8 @@ export interface ListingValidationInput {
   categoryId: string;
   /** Şema dışı: yüklenmiş görsel sayısı. */
   imageCount: number;
+  /** Düzenleme mi? Kademe zorunluluğu yalnız oluşturmada geçerli (aşağıya bak). */
+  isEdit?: boolean;
 }
 
 /**
@@ -25,10 +27,17 @@ export function firstListingValidationError(
   }
   if (!input.categoryId) return 'Lütfen bir kategori seçin.';
   if (input.imageCount === 0) return 'En az bir fotoğraf ekleyin.';
-  // Kargo bölümü formun en altında, bu yüzden en sonda. Boş geçilemez: sunucu
-  // kademe gelmediğinde `small` VARSAYIYOR — büyük bir ürün küçük paket
-  // bedeliyle gidip paket başına 60 TL eksik tahsil ediliyor.
-  if (!input.values.shippingPackageTier) {
+  // Kargo bölümü formun en altında, bu yüzden en sonda. Oluşturmada boş
+  // geçilemez: sunucu kademe gelmediğinde `small` VARSAYIYOR ve büyük bir ürün
+  // küçük paket bedeliyle gidip paket başına 60 TL eksik tahsil ediliyor.
+  //
+  // DÜZENLEMEDE zorunlu DEĞİL: `GET /products/my/:id` mevcut kademeyi geri
+  // döndürmüyor (canlı ölçüm, 2026-08-03 — 46 alan, hiçbiri kargo değil), yani
+  // alan boş açılıyor. Zorunlu tutmak, yazım hatası düzeltmeye gelen satıcıyı
+  // göremediği bir değeri yeniden seçmeye zorlardı ve farkında olmadan
+  // değiştirmesine yol açardı. Boş bırakılırsa payload'a da KONMAZ, sunucu
+  // kendi kayıtlı değerini korur.
+  if (!input.isEdit && !input.values.shippingPackageTier) {
     return 'Lütfen kargo paket boyutunu seçin.';
   }
   return null;

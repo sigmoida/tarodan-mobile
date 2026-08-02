@@ -100,3 +100,25 @@ describe('silent logout reporting', () => {
     expect(mockCaptureException).not.toHaveBeenCalled();
   });
 });
+
+describe('auth failure routing', () => {
+  it('sends an expired session to the login screen', async () => {
+    const { router } = jest.requireMock('expo-router');
+    await onResponseError({
+      config: { headers: {}, method: 'get', url: '/orders' },
+      response: { status: 401, headers: {}, data: { i18nKey: 'server.auth.invalidRefreshToken' } },
+    }).catch(() => undefined);
+
+    expect(router.replace).toHaveBeenCalledWith('/(auth)/login');
+  });
+
+  it('sends an unverified e-mail to the verification screen instead', async () => {
+    const { router } = jest.requireMock('expo-router');
+    await onResponseError({
+      config: { headers: {}, method: 'get', url: '/orders' },
+      response: { status: 401, headers: {}, data: { errorCode: 'EMAIL_NOT_VERIFIED' } },
+    }).catch(() => undefined);
+
+    expect(router.replace).toHaveBeenCalledWith('/(auth)/verify-email');
+  });
+});

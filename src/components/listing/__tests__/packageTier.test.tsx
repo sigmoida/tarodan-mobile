@@ -164,3 +164,23 @@ describe('paket boyutu seçimi', () => {
     await waitFor(() => expect(productsApi.create).not.toHaveBeenCalled());
   });
 });
+
+/**
+ * Düzenleme payload'ı — boş kademe sunucunun kaydını EZMEMELİ.
+ *
+ * Sunucu mevcut kademeyi geri döndürmediği için (canlı ölçüm) alan boş
+ * açılıyor. `shippingPackageTier: ''` göndermek, sunucudaki gerçek boyutu
+ * silip `small` varsayımına düşürürdü — satıcı hiçbir şey seçmemiş olmasına
+ * rağmen kargo bedeli değişirdi.
+ */
+describe('listing payload tier', () => {
+  it('omits the tier when nothing was chosen', () => {
+    const { buildTierPayloadField } = require('../_lib/payload');
+    expect(buildTierPayloadField('')).toEqual({});
+  });
+
+  it('sends the tier when the seller chose one', () => {
+    const { buildTierPayloadField } = require('../_lib/payload');
+    expect(buildTierPayloadField('large')).toEqual({ shippingPackageTier: 'large' });
+  });
+});

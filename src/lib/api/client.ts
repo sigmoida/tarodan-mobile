@@ -5,6 +5,7 @@ import { Platform } from "react-native";
 import Constants from "expo-constants";
 import { captureException } from "@/services/sentry";
 import { errorFingerprint } from "./requestId";
+import { authFailureKind } from "./authFailureKind";
 
 // API URL çözümleme sırası:
 // 1) EXPO_PUBLIC_API_URL (production / preview / staging build'leri için zorunlu)
@@ -202,7 +203,15 @@ async function handleAuthFailure(error?: unknown): Promise<void> {
     await SecureStore.deleteItemAsync("accessToken");
     await SecureStore.deleteItemAsync("refreshToken");
   }
-  router.replace("/(auth)/login");
+  // Doğrulanmamış e-posta, "oturumun bitti" ile aynı şey değil: kullanıcıyı
+  // açıklamasız login ekranına atmak, yapması gereken şeyi (e-postayı
+  // doğrulamak) gizler. Ayrım ölçülmüş kanıta dayanıyor ve tanınmayan her
+  // gövde için davranış AYNEN korunuyor (bkz. `./authFailureKind`).
+  router.replace(
+    authFailureKind(error) === "emailNotVerified"
+      ? "/(auth)/verify-email"
+      : "/(auth)/login",
+  );
 }
 
 // Response interceptor - handle token refresh
