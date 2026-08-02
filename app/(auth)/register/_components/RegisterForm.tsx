@@ -1,17 +1,67 @@
 import { View } from 'react-native';
-import { Button, Checkbox, DateField, HStack, Input, Text } from '@/ui';
+import { Ionicons } from '@expo/vector-icons';
+import { Button, Checkbox, DateField, HStack, Input, Spinner, Text, theme } from '@/ui';
 import { Controller } from 'react-hook-form';
 import { router } from 'expo-router';
 import { styles } from '../_lib/styles';
 import { maxBirthDate } from '../_lib/schema';
 import type { RegisterController } from '../_hooks/useRegister';
 
-/** Kayıt form kartı — ad/e-posta/doğum/şifre/onay alanları + sözleşme linkleri + gönder. */
+/** Kayıt form kartı — kullanıcı adı/ad/e-posta/doğum/şifre/onay alanları + sözleşme linkleri + gönder. */
 export function RegisterForm({ f }: { f: RegisterController }) {
-  const { control, errors, registerMutation } = f;
+  const { control, errors, registerMutation, usernameAvailability } = f;
+
+  // "Alınmış" durumu format hatasıyla aynı kırmızı slot'u paylaşır (Input tek satır gösterir);
+  // format zaten geçersizse uygunluk mesajı hiç gösterilmez (zod hatası önceliklidir).
+  const usernameFormatError = errors.username?.message;
+  const usernameTakenError =
+    !usernameFormatError && usernameAvailability.available === false
+      ? 'Bu kullanıcı adı alınmış'
+      : undefined;
+  const usernameError = usernameFormatError || usernameTakenError;
+  const usernameHelper = usernameError
+    ? undefined
+    : usernameAvailability.isThrottled
+      ? 'Çok fazla deneme yapıldı. Birazdan tekrar deneyin.'
+      : usernameAvailability.checking
+        ? 'Kontrol ediliyor…'
+        : usernameAvailability.available === true
+          ? 'Bu kullanıcı adı uygun'
+          : undefined;
+  const usernameStatusIcon = usernameError
+    ? null
+    : usernameAvailability.checking
+      ? <Spinner size="sm" />
+      : usernameAvailability.available === true
+        ? <Ionicons name="checkmark-circle" size={20} color={theme.colors.success[600]} />
+        : null;
 
   return (
     <View style={styles.card}>
+      <Controller
+        control={control}
+        name="username"
+        render={({ field: { onChange, value } }) => (
+          <Input
+            testID="register-username-input"
+            label="Kullanıcı adı"
+            leftIconName="at-outline"
+            rightIcon={usernameStatusIcon}
+            placeholder="kaan.merakli"
+            value={value}
+            onChangeText={onChange}
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            error={usernameError}
+            helperText={usernameHelper}
+          />
+        )}
+      />
+      <Text variant="bodySm" tone="muted" style={{ marginTop: -4, marginBottom: 8 }}>
+        Kullanıcı adı bir kez belirlenince değiştirilemez.
+      </Text>
+
       <Controller
         control={control}
         name="displayName"
@@ -158,7 +208,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         title="Kayıt Ol"
         onPress={f.handleSubmit(f.onSubmit)}
         isLoading={registerMutation.isPending}
-        disabled={registerMutation.isPending}
+        disabled={registerMutation.isPending || usernameAvailability.available === false}
         style={{ marginTop: 16 }}
       />
     </View>

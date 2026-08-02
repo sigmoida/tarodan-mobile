@@ -22,6 +22,8 @@ type Filters = Record<string, unknown> | undefined;
 export const qk = {
   auth: {
     corporateInvitation: (token: string) => ['auth', 'corporate-invitation', token] as const,
+    /** Kayıt sırasında debounce edilmiş kullanıcı adı uygunluğu sorgusu. */
+    usernameAvailability: (username: string) => ['auth', 'username-availability', username] as const,
   },
 
   products: {

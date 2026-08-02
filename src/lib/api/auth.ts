@@ -20,6 +20,7 @@ export const authApi = {
   loginWithApple: (identityToken: string, fullName?: string) =>
     api.post('/auth/apple', { identityToken, fullName }),
   register: (data: {
+    username: string;
     displayName: string;
     email: string;
     password: string;
@@ -27,6 +28,17 @@ export const authApi = {
     birthDate?: string;
     acceptsMarketingEmails?: boolean;
   }) => api.post('/auth/register', data),
+  /**
+   * Kullanıcı adı uygunluğu — public, throttle **30/dk**. Yalnız "bu isim alınmış
+   * mı" diye bakar, FORMAT doğrulaması YAPMAZ: örn. `Gorkem` (büyük harfli) için
+   * bile `available:true` dönebilir. İstemci `USERNAME_PATTERN`'i (register
+   * `_lib/schema.ts`) KENDİ zorlamalı ve bu uca yalnız o geçtikten sonra sormalı —
+   * aksi halde kullanıcı "uygun" görüp kayıt anında 400 yer.
+   */
+  checkUsernameAvailability: (username: string) =>
+    guestApi.get<{ available: boolean }>('/auth/username-availability', {
+      params: { username },
+    }),
   /** İşletme hesabı olarak kayıt. Web /auth/register/business ile eşleşir. */
   registerBusiness: (data: {
     companyName: string;
