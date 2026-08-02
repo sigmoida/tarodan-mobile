@@ -166,4 +166,16 @@ describe('Profil formu — alana yazılan telefon payload\'a ne olarak gidiyor',
     await waitFor(() => expect(updateProfile).toHaveBeenCalledTimes(1));
     expect(screen.queryByText(PHONE_INVALID_MESSAGE)).toBeNull();
   });
+
+  it('20 karakteri aşan girdide zod un İNGİLİZCE mesajı görünmez', async () => {
+    // Şemadaki `max(20)` formatlayıcı kırptığı sürece ULAŞILAMAZDI; ham metin
+    // alanda kalmaya başlayınca canlandı ve "String must contain at most 20
+    // character(s)" basıyordu. Üstelik zod resolver'ı `onSubmit`'teki Türkçe
+    // kapıdan ÖNCE koştuğu için o kapı hiç çalışmıyordu.
+    fillAndSave('+90 532 123 45 6789 0123');
+    await waitFor(() => expect(screen.getByText(PHONE_INVALID_MESSAGE)).toBeTruthy());
+    expect(screen.queryByText(/String must contain/i)).toBeNull();
+    expect(screen.queryByText(/at most 20/i)).toBeNull();
+    expect(updateProfile).not.toHaveBeenCalled();
+  });
 });

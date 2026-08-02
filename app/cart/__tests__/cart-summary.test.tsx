@@ -151,7 +151,7 @@ describe('Sepet özeti — fiyat yalnızca pricing.summary den gelir', () => {
 
   // `summary` gelip alanı boş dönen yanıt (bulgu N2): `Number(null)` = 0 olduğu
   // için eski kod bunu geçerli bir sıfır sanıp "0,00 TL" basardı.
-  it('summary gelir ama total null ise "0,00 TL" değil yer tutucu basılır', async () => {
+  it('summary gelir ama total null ise "0,00 TL" değil ÇIKIŞ YOLU gösterilir', async () => {
     (jest.mocked(ordersApi.getQuote) as unknown as jest.Mock).mockResolvedValue({
       data: {
         pricingHash: 'h',
@@ -162,13 +162,41 @@ describe('Sepet özeti — fiyat yalnızca pricing.summary den gelir', () => {
 
     renderWithProviders(<CartScreen />);
 
-    await waitFor(() => expect(screen.getByText('190,00 TL')).toBeOnTheScreen());
-    expect(screen.getByTestId('cart-summary-total')).toHaveTextContent('—');
-    expect(screen.getByTestId('cart-checkout-total')).toHaveTextContent('—');
-    expect(screen.queryByText('0,00 TL')).toBeNull();
     // Sorgu HATA vermedi (200 döndü), yani `quoteError` false — ama tutar yok.
-    // Buton yine de kapalı olmalı: checkout'un kapısı `total == null`'a da bakıyor,
-    // simetri kurulmazsa kullanıcı orada hata kartı olmadan devre dışı bir butonla kalırdı.
+    // Yalnız "—" basıp bırakmak kullanıcıyı sebepsiz kilitliyordu: buton kapalı,
+    // hata kartı yok, retry yok. Artık aynı `ErrorState` çıkış yolu veriliyor.
+    await waitFor(() => expect(screen.getByTestId('cart-summary-error')).toBeOnTheScreen());
+    expect(screen.getByText('Tekrar Dene')).toBeOnTheScreen();
+    expect(screen.queryByText('0,00 TL')).toBeNull();
+    expect(screen.getByTestId('cart-checkout-total')).toHaveTextContent('—');
     expect(screen.getByTestId('cart-checkout-button')).toBeDisabled();
+  });
+
+  it('quote YÜKLENİRKEN hata kartı gösterilmez (yer tutucu basılır)', async () => {
+    // `total` yükleme sırasında da null — `quoteLoading` kapısı olmasaydı her
+    // sepet açılışında "Fiyat bilgisi alınamadı" yanıp sönerdi.
+    let release!: (v: unknown) => void;
+    (jest.mocked(ordersApi.getQuote) as unknown as jest.Mock).mockReturnValue(
+      new Promise((res) => {
+        release = res;
+      }),
+    );
+
+    renderWithProviders(<CartScreen />);
+
+    expect(screen.queryByTestId('cart-summary-error')).toBeNull();
+    expect(screen.getByTestId('cart-checkout-total')).toHaveTextContent('—');
+
+    await act(async () => {
+      release({
+        data: {
+          pricingHash: 'h',
+          shippingTariffVersion: 3,
+          pricing: { summary: { productAmount: 190, shippingAmount: 50, serviceFeeAmount: 24.4, total: 264.4 } },
+        },
+      });
+    });
+    await waitFor(() => expect(screen.getByTestId('cart-summary-total')).toHaveTextContent('264,40 TL'));
+    expect(screen.queryByTestId('cart-summary-error')).toBeNull();
   });
 });

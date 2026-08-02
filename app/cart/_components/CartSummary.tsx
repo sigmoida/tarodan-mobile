@@ -20,8 +20,13 @@ export function CartSummary({ f }: { f: CartController }) {
   return (
     <>
       {/* Quote hata verdiyse dört satırı da "—" basıp kullanıcıyı sebepsiz
-          bırakma — checkout'un `OrderSummary`'siyle AYNI çıkış yolu (§11). */}
-      {f.quoteError ? (
+          bırakma — checkout'un `OrderSummary`'siyle AYNI çıkış yolu (§11).
+          `total == null` de bu kapıya dahil: sorgu 200 dönüp `total` alanı boş
+          gelirse `quoteError` false olur, buton yine kapalıdır (bkz. index.tsx)
+          ama kullanıcı yalnız dört "—" görür ve elinde retry KALMAZ.
+          ⚠️ `quoteLoading` şart: ilk yüklemede `total` zaten null, o kapı olmadan
+          her sepet açılışında hata kartı yanıp sönerdi. */}
+      {f.quoteError || (!f.quoteLoading && f.total == null) ? (
         <View style={styles.summary} testID="cart-summary-error">
           <ErrorState
             title="Fiyat bilgisi alınamadı"

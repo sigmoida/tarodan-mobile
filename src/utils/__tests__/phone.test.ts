@@ -219,11 +219,24 @@ describe('TR dışı ülke kodları — davranış korunur', () => {
     expect(formatPhoneNumber('4155550100999', '+1')).toBe('4155550100999');
   });
 
-  it('boş dışında bir şey reddedilmez (yerel numara planını bilmiyoruz)', () => {
+  it('yerel numara planına göre RED yok — gerçek numaralar geçer', () => {
+    // Eski `>= 10 hane` kuralı bu ikisini reddediyordu; ikisi de geçerli.
+    expect(isValidPhoneInput('30 1234567', '+49')).toBe(true);
+    expect(isValidPhoneInput('50 123 4567', '+971')).toBe(true);
     expect(isValidPhoneInput('4155550100', '+1')).toBe(true);
-    expect(isValidPhoneInput('12', '+1')).toBe(true);
     expect(isValidPhoneInput('', '+1')).toBe(false);
     expect(isValidPhoneInput('   ', '+1')).toBe(false);
+  });
+
+  it('yalnız E.164 in KENDİ sınırları uygulanır (plan tahmini değil)', () => {
+    // Ulusal kısım < 4 hane: en kısa bilinen plan Saint Helena (+290 XXXX).
+    // Bu kapı olmadan `+1` seçip `1` yazan kullanıcının `+11`'i sunucuya gidiyordu.
+    expect(isValidPhoneInput('1', '+1')).toBe(false);
+    expect(isValidPhoneInput('123', '+49')).toBe(false);
+    expect(isValidPhoneInput('1234', '+290')).toBe(true);
+    // Ülke kodu dahil > 15 hane (E.164 §6.2.1).
+    expect(isValidPhoneInput('415555010012345678', '+1')).toBe(false);
+    expect(parsePhoneForPayload('1', '+1')).toBeNull();
   });
 });
 

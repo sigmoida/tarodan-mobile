@@ -24,7 +24,12 @@ export const createProfileSchema = (isBusinessTier: boolean) =>
     // ulaşılabilir hâle geldi. Çıplak `max(20)` zod'un İngilizce iç mesajını
     // ("String must contain at most 20 character(s)") kullanıcıya gösteriyordu —
     // üstelik zod resolver'ı `onSubmit`'teki Türkçe kapıdan önce koştuğu için o kapı
-    // hiç çalışmıyordu. Geçerli en uzun yazım (`+90 (532) 123 45 67`) 19 karakter.
+    // hiç çalışmıyordu.
+    //
+    // Sınır hiçbir geçerli girdiyi reddedemez: alan ülke kodunu ayrı bir `Select`'te
+    // tuttuğu için formatlanmış TR değeri 13 karakter (`532 123 45 67`), TR dışında
+    // yalnız rakam. Yani `max` burada bir emniyet kemeri; asıl reddi `parseE164TrPhone`
+    // ve `onSubmit` kapısı veriyor.
     phone: z.string().max(20, PHONE_INVALID_MESSAGE).optional().or(z.literal('')),
     birthDate: z
       .string()

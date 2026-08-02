@@ -112,8 +112,9 @@ describe('N2 · tutar alanı sayı değilse tutar YOK sayılır', () => {
     renderWithProviders(<CheckoutScreen />);
     await goToStep3();
 
-    // Diğer üç satır sunucudan geldiği için ekran doluyor — ama Toplam yok.
-    await waitFor(() => expect(screen.getByText('1.771,20 TL')).toBeOnTheScreen());
+    // Sorgu hata vermedi (200), yalnız `total` boş. Tutar basılmıyor VE kullanıcıya
+    // çıkış yolu veriliyor — "—" satırlarıyla sebepsiz kilitlenmiyor.
+    await waitFor(() => expect(screen.getByTestId('order-summary-error')).toBeOnTheScreen());
     expect(screen.queryByText('0,00 TL')).toBeNull();
     expect(screen.getByText('Onayla ve Öde')).toBeOnTheScreen();
     expect(screen.queryByText(/Onayla ve Öde \(/)).toBeNull();
@@ -134,7 +135,7 @@ describe('N2 · tutar alanı sayı değilse tutar YOK sayılır', () => {
     renderWithProviders(<CheckoutScreen />);
     await goToStep3();
 
-    await waitFor(() => expect(screen.getByText('1.771,20 TL')).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByTestId('order-summary-error')).toBeOnTheScreen());
     expect(screen.queryByText('0,00 TL')).toBeNull();
     expect(screen.getByText('Onayla ve Öde')).toBeOnTheScreen();
 

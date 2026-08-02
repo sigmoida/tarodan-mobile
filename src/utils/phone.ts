@@ -138,11 +138,18 @@ export function hasCountryCodePrefix(phone: string): boolean {
  * Payload için telefonu doğrular + normalize eder; **çözemezse `null`**.
  *
  * - `+90` seçiliyken sıkı TR ayrıştırma (`parseE164TrPhone`) — kırpma/tahmin yok.
- * - TR dışı ülke kodlarında DAVRANIŞ DEĞİŞMEDİ: boşluklar temizlenir, zaten ülke
- *   kodu varsa olduğu gibi döner, yoksa seçili kod prefix'lenir. Bu ülkeler için
- *   yerel numara planını bilmiyoruz; uydurma bir uzunluk kuralı koymak, düzeltmek
- *   istediğimiz "tahmin" hatasının aynısı olurdu.
+ * - TR dışı ülke kodlarında **yerel numara planına göre** bir kural YOK: o ülkelerin
+ *   plan uzunluklarını bilmiyoruz ve uydurma bir kural koymak, düzeltmek istediğimiz
+ *   "tahmin" hatasının aynısı olurdu. (Eski `>= 10 hane` kuralı tam bunu yapıyordu ve
+ *   geçerli Alman `+49 30 1234567` ile BAE `+971 50 123 4567` numaralarını reddediyordu.)
+ *   Uygulanan tek sınır **ITU-T E.164'ün kendi objektif sınırları**: ülke kodu dahil en
+ *   çok 15 hane, ulusal kısım en az 4 hane (bilinen en kısa plan: Saint Helena +290 XXXX).
+ *   Böylece `+1` seçip `1` yazan kullanıcının `+11`'i sunucuya gitmiyor, ama hiçbir
+ *   gerçek numara plan tahminiyle reddedilmiyor.
  */
+const E164_MAX_DIGITS = 15; // ITU-T E.164 §6.2.1 — ülke kodu dahil
+const E164_MIN_NATIONAL_DIGITS = 4; // en kısa bilinen ulusal plan
+
 export function parsePhoneForPayload(
   phone: string | null | undefined,
   countryCode: string,
@@ -150,8 +157,13 @@ export function parsePhoneForPayload(
   const clean = (phone ?? '').replace(/\s/g, '');
   if (!clean) return null;
   if (countryCode === DEFAULT_COUNTRY_CODE) return parseE164TrPhone(clean);
-  if (hasCountryCodePrefix(clean)) return clean;
-  return countryCode + clean;
+
+  const e164 = hasCountryCodePrefix(clean) ? clean : countryCode + clean;
+  const allDigits = e164.replace(/\D/g, '');
+  const ccDigits = e164.startsWith(countryCode) ? countryCode.replace(/\D/g, '').length : 0;
+  if (allDigits.length > E164_MAX_DIGITS) return null;
+  if (allDigits.length - ccDigits < E164_MIN_NATIONAL_DIGITS) return null;
+  return e164;
 }
 
 /** Alan girdisi seçili ülke kodu için gönderilebilir mi? (`PhoneInput`/form gate'leri) */
