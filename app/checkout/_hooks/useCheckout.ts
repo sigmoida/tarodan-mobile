@@ -1,13 +1,14 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { appAlert, alertAfterClose } from '@/ui';
+import { appAlert, alertAfterClose, type AlertDialogButton } from '@/ui';
 import { ordersApi, paymentsApi, addressesApi, cartApi, type OrderAddressInput, type OrderQuoteResponse } from '@/lib/api';
-import { qk } from '@/lib/query';
+import { qk, retryUnlessClientError } from '@/lib/query';
 import { useCartStore } from '@/stores/cartStore';
 import { useAuthStore } from '@/stores/authStore';
 import { captureException } from '@/services/sentry';
-import { formatServerPrice } from '@/utils/format';
+import { formatServerPrice, serverAmount } from '@/utils/format';
+import { indexQuoteLines } from '@/utils/quoteLines';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
 import { DEFAULT_COUNTRY_CODE, normalizePhoneForPayload } from '@/utils/phone';
 import { STOCKOUT_KEYWORDS, generateUuidV4, EMPTY_ADDRESS } from '../_lib/constants';
@@ -137,15 +138,21 @@ export function useCheckout() {
   };
 
   /**
-   * Akışı SONLANDIRAN uyarı (fiyat değişti → ana ekranda yeniden onay gerekiyor).
-   * Modal önce kapanır, sonra uyarı gösterilir.
+   * Akışı SONLANDIRAN uyarı (fiyat değişti, sipariş oluştu ama ödeme başlatılamadı,
+   * e-posta zaten kayıtlı → misafir akışı burada biter). Modal önce kapanır, sonra
+   * uyarı gösterilir; `buttons` verilirse aksiyonlu uyarı basılır.
+   *
+   * Bekleyen ERTELENMİŞ bilgilendirme (ör. "kupon düştü") burada DÜŞÜRÜLÜR: akış
+   * zaten sona eriyor, ve iki uyarıyı aynı anda kuyruğa koymak kullanıcıya
+   * üst üste iki dialog gösterirdi. Sonlandırıcı mesaj eyleme dönük olandır.
    */
-  const alertAfterOtpClose = (title: string, message?: string) => {
+  const alertAfterOtpClose = (title: string, message?: string, buttons?: AlertDialogButton[]) => {
     if (otpModalOpenRef.current) {
-      alertAfterClose(closeOtpModal, title, message);
+      pendingAlertRef.current = null;
+      alertAfterClose(closeOtpModal, title, message, buttons);
       return;
     }
-    appAlert(title, message);
+    appAlert(title, message, buttons);
   };
 
   // Kupon: `/discounts/validate` ile doğrulanır. Doğrulanmış kod quote'a da
@@ -218,35 +225,42 @@ export function useCheckout() {
     },
     enabled: items.length > 0,
     staleTime: 60_000,
-    // 4xx yeniden denenmez: varsayılan `retry: 2` bir kupon 400'ünde aynı uyarıyı
-    // üç kez bastırır ve üç istek atar. Ağ/5xx hataları varsayılan gibi denenir.
-    retry: (failureCount, err: any) => {
-      const status = err?.response?.status;
-      if (typeof status === 'number' && status >= 400 && status < 500) return false;
-      return failureCount < 2;
-    },
+    // 4xx yeniden denenmez (tek kaynak — sepet aynı yüklemi kullanır, §5).
+    retry: retryUnlessClientError,
   });
   const quote = quoteQuery.data;
   const summary = quote?.pricing?.summary;
-  const hasQuote = summary != null;
   // ————————————————————————————————————————————————————————————————
-  // Gösterilen HER tutar bir sunucu alanının aynısıdır. Sunucu değeri yokken
-  // `null` döndürülür (yerel toplam ya da 0 DEĞİL) — ekran yer tutucu basar,
-  // "Onayla ve Öde (0,00 TL)" gibi uydurma bir tutar kullanıcıya gösterilmez.
+  // Gösterilen HER tutar bir sunucu alanının aynısıdır. Kapı ALAN seviyesinde:
+  // `summary != null` kontrolü alanın kendisi hakkında hiçbir şey söylemez —
+  // `Number(null)` = 0 ve `Number(undefined)` = NaN olduğu için `total: null`
+  // gelen bir yanıt "0,00 TL" yazan ETKİN bir ödeme butonu üretirdi. Sayı
+  // değilse tutar YOK sayılır → ekran yer tutucu basar, buton devre dışı kalır.
   // ————————————————————————————————————————————————————————————————
-  const shippingCost = hasQuote ? Number(summary!.shippingAmount) : null;
-  const productAmount = hasQuote ? Number(summary!.productAmount) : null;
+  const shippingCost = serverAmount(summary?.shippingAmount);
+  const productAmount = serverAmount(summary?.productAmount);
   /** Hizmet bedeli + TÜM alıcı hizmet KDV'si — ayrı bir KDV satırı basılmaz. */
-  const serviceFeeAmount = hasQuote ? Number(summary!.serviceFeeAmount) : null;
-  const total = hasQuote ? Number(summary!.total) : null;
+  const serviceFeeAmount = serverAmount(summary?.serviceFeeAmount);
+  const total = serverAmount(summary?.total);
   /**
    * Sunucunun uyguladığı indirim — quote yanıtının KÖKÜNDEKİ `couponDiscount`.
    * `/discounts/validate`'in `estimatedDiscount`'u DEĞİL: o yalnız bir tahmin ve
    * özet satırlarıyla tutarlı değil. Özet satırı olarak basılmaz (üç satır zaten
    * toplama eşit); yalnız kupon rozetinde bilgilendirme olarak gösterilir.
    */
-  const couponDiscount = quote?.couponDiscount != null ? Number(quote.couponDiscount) : null;
+  const couponDiscount = serverAmount(quote?.couponDiscount);
   const shippingLoading = quoteQuery.isLoading;
+
+  /**
+   * Satır tutarları — sunucunun `items[]` kırılımından, `productId` ile eşlenir.
+   * Sepet satırındaki `price` sepete EKLEME anında donuyor (24 saat) ve ürünlerde
+   * kampanya penceresi var; `price × quantity` çarpımı kampanya sepette
+   * beklerken biterse özet satırlarıyla ayrışıyordu. Eşleşme yoksa `null` →
+   * ekran yer tutucu basar, yerel çarpıma DÜŞMEZ.
+   */
+  const quoteLines = useMemo(() => indexQuoteLines(quote?.items), [quote]);
+  const lineSubtotalFor = (productId: string): number | null =>
+    quoteLines.get(productId)?.subtotal ?? null;
 
   const addressesQuery = useQuery({
     queryKey: qk.addresses.mine,
@@ -279,9 +293,15 @@ export function useCheckout() {
 
   const showSnackbar = (message: string) => setSnackbar({ visible: true, message });
 
+  /**
+   * "Bu e-posta zaten kayıtlı" → misafir akışı BURADA BİTER (kullanıcı login'e
+   * yönlendirilir), dolayısıyla SONLANDIRICI: OTP modalı açıksa (kod yeniden
+   * gönderilirken bu hata gelebilir) önce kapatılır, uyarı sonra basılır. Modalı
+   * açık bırakmak anlamsız olurdu — girilecek bir kod artık yok.
+   */
   const handleEmailAlreadyRegistered = (e: any): boolean => {
     if (e?.response?.status === 409 || e?.response?.data?.code === 'EMAIL_ALREADY_REGISTERED') {
-      appAlert(
+      alertAfterOtpClose(
         'Bu e-posta zaten kayıtlı',
         extractApiMessage(e) ?? 'Bu e-posta adresi zaten kayıtlı. Lütfen giriş yapıp alışverişe devam edin.',
       );
@@ -422,7 +442,11 @@ export function useCheckout() {
       const firstOrderId: string | null = data?.orders?.[0]?.orderId ?? null;
 
       if (!checkoutGroupId || !firstOrderId) {
-        appAlert(
+        // SONLANDIRICI: sipariş oluştu, sepet boşaltılıyor ve kullanıcı
+        // /orders'a taşınıyor — OTP modalı açıksa (misafir onayı) önce kapanmalı,
+        // yoksa uyarı modalın üstüne düşer (iOS donması) ve kapanan ekranın
+        // üzerinde asılı kalır.
+        alertAfterOtpClose(
           'Hata',
           'Sipariş oluşturuldu fakat ödeme başlatılamadı. Siparişlerim sayfasından devam edebilirsiniz.',
         );
@@ -485,7 +509,10 @@ export function useCheckout() {
             return;
           }
         }
-        appAlert('Ödeme Başlatılamadı', msg, [
+        // SONLANDIRICI: butonun kendisi ekranı terk ediyor (siparişlerim / ana
+        // sayfa). Modal açıkken bu uyarıyı basmak hem donduruyor hem de altında
+        // hiçbir işe yaramayan bir OTP formu bırakıyordu → önce kapat.
+        alertAfterOtpClose('Ödeme Başlatılamadı', msg, [
           { text: 'Tamam', onPress: () => router.replace(isAuthenticated ? '/orders' : ('/' as any)) },
         ]);
       }
@@ -530,7 +557,13 @@ export function useCheckout() {
           return;
         }
       }
-      appAlert('Hata', errorMessage);
+      // ENGELLEYİCİ (sonlandırıcı DEĞİL): buraya düşen hatalar ya geçici sunucu/ağ
+      // hataları (5xx) ya da yönlendirilecek `productId`'si olmayan stok
+      // hatalarıdır — "kod geçersiz" durumu yukarıda zaten satır içi işleniyor.
+      // Girilen OTP kodu HÂLÂ GEÇERLİ olduğu için modalı kapatmak kullanıcıyı
+      // yeni kod istemeye zorlardı; mesajı modalın İÇİNDE göster, "Onayla"ya
+      // yeniden basabilsin.
+      alertInlineWhileOtpOpen('Hata', typeof errorMessage === 'string' ? errorMessage : String(errorMessage));
     } finally {
       setLoading(false);
     }
@@ -596,10 +629,10 @@ export function useCheckout() {
       setOtpCode('');
       setOtpError(null);
     } catch (e: any) {
-      if (handleEmailAlreadyRegistered(e)) {
-        setOtpModalOpen(false);
-        return;
-      }
+      // `handleEmailAlreadyRegistered` modalı `closeOtpModal` üzerinden kapatır:
+      // ham `setOtpModalOpen(false)` `otpCode`/`otpError`'ı temizlemiyor ve
+      // `pendingAlertRef`'i boşaltmıyordu → ertelenmiş bir uyarı askıda kalırdı.
+      if (handleEmailAlreadyRegistered(e)) return;
       setOtpError(extractApiMessage(e) ?? 'Kod gönderilemedi.');
     } finally {
       setOtpSending(false);
@@ -627,7 +660,8 @@ export function useCheckout() {
     // `null` (yer tutucu basılır, yerel sayı uydurulmaz).
     shippingCost, shippingLoading,
     productAmount, serviceFeeAmount, total,
-    hasQuote,
+    /** Satır tutarı — sunucunun `items[].subtotal`'ı; yoksa `null` (yer tutucu). */
+    lineSubtotalFor,
     quoteLoading: quoteQuery.isLoading,
     /** Quote hatası — ekran ErrorState + "Tekrar Dene" gösterir (CLAUDE.md §11). */
     quoteError: quoteQuery.isError,

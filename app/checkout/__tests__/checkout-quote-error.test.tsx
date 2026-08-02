@@ -144,8 +144,11 @@ describe('Quote hatası — checkout kilitlenmez', () => {
       fireEvent.press(screen.getByText('Tekrar Dene'));
     });
 
-    await waitFor(() => expect(screen.queryByTestId('order-summary-error')).toBeNull());
-    await waitFor(() => expect(screen.getByText('165,00 TL')).toBeOnTheScreen());
+    // Önce POZİTİF sonucu bekle: refetch + rerender yüklü makinede 1 sn'lik
+    // varsayılan `waitFor` penceresini aşabiliyordu ve "hata kartı kayboldu mu"
+    // negatif iddiası daha tazeyken düşüyordu (flake — bu turdan önce de vardı).
+    await waitFor(() => expect(screen.getByText('165,00 TL')).toBeOnTheScreen(), { timeout: 5000 });
+    expect(screen.queryByTestId('order-summary-error')).toBeNull();
     expect(screen.getByText(/Onayla ve Öde \(165,00 TL\)/)).toBeOnTheScreen();
   });
 });

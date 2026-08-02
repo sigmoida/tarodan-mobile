@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { PhoneInput } from '@/components/common';
 import { transformImageUrl } from '@/utils/imageUrl';
-import { formatPrice, formatServerPrice, asLabel } from '@/utils/format';
+import { formatServerPrice, asLabel } from '@/utils/format';
 import { AddressSelector } from './AddressSelector';
 import { styles } from '../_lib/styles';
 import type { useCheckout } from '../_hooks/useCheckout';
@@ -158,7 +158,16 @@ export function Step3Confirm({ c }: { c: Ctrl }) {
             <Text style={styles.orderItemTitle} numberOfLines={2}>{item.title}</Text>
             <Text style={styles.orderItemMeta}>{asLabel(item.brand)} · {asLabel(item.scale)} · x{item.quantity}</Text>
           </View>
-          <Text style={styles.orderItemPrice}>{formatPrice(item.price * item.quantity)}</Text>
+          {/* Satır tutarı SUNUCUDAN (`quote.items[].subtotal`, adet dahil).
+              `item.price` sepete ekleme anında donuyor ve 24 saat saklanıyor;
+              ürünlerde kampanya penceresi var (`isOnSale`/`saleEndDate`).
+              Kampanya sepette beklerken biterse yerel `price × quantity`
+              (885,60) ile sunucunun ara toplamı (619,92) ayrışır ve satırlar
+              toplamı tutmaz. Sunucu satırı yoksa yer tutucu — yerel çarpıma
+              DÜŞÜLMEZ. */}
+          <Text style={styles.orderItemPrice} testID="order-item-subtotal">
+            {formatServerPrice(c.lineSubtotalFor(item.productId))}
+          </Text>
         </View>
       ))}
 
