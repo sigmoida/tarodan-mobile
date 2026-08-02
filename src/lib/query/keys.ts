@@ -53,6 +53,11 @@ export const qk = {
     myListingsAll: ["my-listings"] as const,
   },
 
+  shipping: {
+    /** Kargo paket kademesi tarifesi (public) — ilan formundaki üç kart. */
+    packageTiers: ["shipping", "package-tiers"] as const,
+  },
+
   catalog: {
     categories: ["categories"] as const,
     brands: ["brands"] as const,

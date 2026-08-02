@@ -197,9 +197,18 @@ export const ordersApi = {
    */
   getQuote: (data: { items: Array<{ productId: string; quantity?: number }>; couponCode?: string }) =>
     api.post<OrderQuoteResponse>('/orders/quote', data),
-  /** İlan formunda komisyon önizleme (tek ürün) */
-  getCommissionPreview: (params: { amount: number; categoryId?: string }) =>
-    api.get('/orders/commission-preview', { params }),
+  /**
+   * İlan formunda komisyon önizleme (tek ürün).
+   *
+   * `packageTier` gönderilmezse sunucu `small` VARSAYAR — yani satıcıya her
+   * zaman en küçük paketin net kazancı gösterilirdi. Seçim yapılmışsa aynen
+   * geçir; yapılmamışsa alanı hiç koyma (istemci `small` uydurmaz).
+   */
+  getCommissionPreview: (params: {
+    amount: number;
+    categoryId?: string;
+    packageTier?: ShippingPackageTierCode;
+  }) => api.get('/orders/commission-preview', { params }),
   /** İlanlarım listesi için toplu komisyon önizleme */
   getCommissionPreviewBatch: (items: Array<{ amount: number; categoryId?: string | null }>) =>
     api.post('/orders/commission-preview-batch', { items }),
@@ -253,7 +262,45 @@ export type ShippingProvider = 'surat';
  * yeniden eklemek o hatayı da geri getirir. Buradaki uçlar yalnız kargo
  * OPERASYONU (shipment oluşturma / takip) içindir.
  */
+/** İlan başına seçilen kargo paket boyutu (desi girdisinin yerine geçti). */
+export type ShippingPackageTierCode = 'small' | 'medium' | 'large';
+
+/**
+ * `GET /shipping/package-tiers` kademesi (canlı ölçüm — staging, 2026-08-02).
+ *
+ * ⚠️ `billableDesi` / `minDesi` / `maxDesi` **asla render edilmez** (doküman 14
+ * §1 bağlayıcı kuralı: mobil arayüzde desi hiç görünmez). Bunlar yalnız
+ * sunucunun paket kademesini `Σ billableDesi × adet`'ten türetmesi için var.
+ *
+ * `sample*` ölçüleri bugün üç kademede de `null` — "varsa göster".
+ */
+export interface ShippingPackageTier {
+  code: ShippingPackageTierCode;
+  label: string;
+  /** Kademenin TAM kargo bedeli. Alıcı/satıcı payı kategori bazlı ve admin
+   *  tarafından belirleniyor (canlıda 50/50) — istemci pay HESAPLAMAZ. */
+  amount: number;
+  billableDesi: number;
+  minDesi: number | null;
+  maxDesi: number | null;
+  sampleWidth: number | null;
+  sampleHeight: number | null;
+  sampleLength: number | null;
+}
+
+export interface ShippingPackageTiersResponse {
+  tariffVersion: number;
+  tiers: ShippingPackageTier[];
+}
+
 export const shippingApi = {
+  /**
+   * Kargo paket kademesi tarifesi (public). İlan formundaki üç kartın kaynağı.
+   * Tarife tanımlı değilse backend 503 döner — çağıran fail-closed davranmalı
+   * (kademe seçtirmeden ilan gönderilmesin).
+   */
+  getPackageTiers: () =>
+    api.get<ShippingPackageTiersResponse>('/shipping/package-tiers'),
   /** Sipariş için kargo başlat — backend: POST /shipping */
   createShipment: (data: { orderId: string; provider: ShippingProvider }) =>
     api.post('/shipping', data),
