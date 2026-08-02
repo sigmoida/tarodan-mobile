@@ -2,6 +2,8 @@ import React from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import { Modal, Button, Spinner, Input, Text, ModalMessage, theme } from '@/ui';
 
+import { PhoneInput } from '@/components/common';
+
 import { styles } from '../_lib/styles';
 import type { SecurityController } from '../_hooks/useSecurity';
 
@@ -93,12 +95,17 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
       <Modal isOpen={f.showPhoneDialog} onClose={() => { f.setShowPhoneDialog(false); f.setPhoneMsg(null); }} title="Telefon Doğrulama">
         {f.phoneStep === 'enter' ? (
           <View style={{ gap: theme.spacing[3] }}>
-            <Input
+            <PhoneInput
               label="Telefon numarası"
-              value={f.phoneInput}
-              onChangeText={f.setPhoneInput}
-              placeholder="+905551234567"
-              keyboardType="phone-pad"
+              // Gönderime basmadan görsün: çözülemeyen numara blur'da uyarır.
+              validateOnBlur
+              countryCode={f.phoneCountryCode}
+              onCountryCodeChange={f.setPhoneCountryCode}
+              phone={f.phoneInput}
+              onPhoneChange={(phone) => {
+                f.setPhoneInput(phone);
+                f.setPhoneMsg(null);
+              }}
               testID="phone-input"
               containerStyle={styles.dialogInput}
             />
