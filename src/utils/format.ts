@@ -34,6 +34,21 @@ export function formatPrice(price: number | string | null | undefined): string {
   return `${numPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL`;
 }
 
+/** Sunucu tutarı henüz bilinmiyorken basılan yer tutucu. */
+export const PRICE_PLACEHOLDER = '—';
+
+/**
+ * Sunucu-yetkili tutar gösterimi.
+ *
+ * `formatPrice(null)` "0,00 TL" döndürür — bu, fiyat henüz yüklenmemişken ya da
+ * quote hata verdiğinde ekranda GERÇEKMİŞ gibi duran bir sıfır bırakır (kullanıcı
+ * "Onayla ve Öde (0,00 TL)" görür). Sunucudan gelen bir alan yoksa tutar yerine
+ * yer tutucu basılır — istemcide sayı uydurulmaz.
+ */
+export function formatServerPrice(price: number | null | undefined): string {
+  return price == null ? PRICE_PLACEHOLDER : formatPrice(price);
+}
+
 export function formatPriceNumber(price: number | string | null | undefined): string {
   if (price === null || price === undefined) {
     return '0,00';
