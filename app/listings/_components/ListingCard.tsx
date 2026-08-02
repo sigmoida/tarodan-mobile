@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { AppImage } from '@/components/AppImage';
 import { isProductOutOfStock } from '@/utils/productPrice';
+import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
 import { OutOfStockOverlay } from '@/components/product';
 import { asLabel } from '@/utils/format';
 import { styles } from '../_lib/styles';
@@ -14,7 +15,7 @@ const { colors } = theme;
 
 /** 2-sütun grid ürün kartı (memoized — #75). */
 function ListingCardBase({ item }: { item: any }) {
-  const isTradeEnabled = item.isTradeEnabled || item.trade_available || item.tradeAvailable;
+  const isTradeEnabled = isProductTradeOpen(item);
   return (
     <TouchableOpacity style={styles.productCard} onPress={() => router.push(`/product/${item.id}`)}>
       <View style={styles.productImageContainer}>

@@ -15,6 +15,7 @@ import {
   getProductDiscountPercent,
   isProductOutOfStock,
 } from '../../utils/productPrice';
+import { isProductTradeOpen } from '../../utils/isProductTradeOpen';
 
 const { colors } = theme;
 
@@ -195,7 +196,7 @@ function ProductCardBase({
               <Text style={[styles.badgeText, { marginLeft: theme.spacing[1] }]}>LIMITED</Text>
             </View>
           ) : null}
-          {product.isTradeEnabled ? (
+          {isProductTradeOpen(product) ? (
             <View style={[styles.badge, styles.tradeBadge]}>
               <Ionicons name="swap-horizontal" size={10} color={colors.white} />
               <Text style={[styles.badgeText, { marginLeft: theme.spacing[1] }]}>TAKAS</Text>
