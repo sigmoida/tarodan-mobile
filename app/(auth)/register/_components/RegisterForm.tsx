@@ -13,15 +13,24 @@ export function RegisterForm({ f }: { f: RegisterController }) {
   const { control, errors, registerMutation, usernameAvailability } = f;
 
   // Kullanıcı adı durum slotu — TEK öncelik sırası (Input tek satır gösterir):
-  //   1) zod format hatası  2) "kontrol ediliyor"  3) uygunluk sonucu.
+  //   1) zod format hatası (submit sonrası)  2) ham biçim uyarısı (ANINDA, submit
+  //   beklemeden — N-1: Türkçe büyük harf 'İ'.toLowerCase() birleşik noktalı 'i'
+  //   üretir, alanda gözle doğru görünür ama regex'i geçmez)  3) "kontrol
+  //   ediliyor"  4) uygunluk sonucu.
   // "Kontrol ediliyor" ADIMI ATLANMAZ: aksi halde henüz sorulmamış bir ad için
   // eski sonucun kırmızısı görünür ve buton sessizce kilitli kalır.
-  const { available, checking, isThrottled } = usernameAvailability;
+  const { available, checking, isThrottled, isFormatInvalid } = usernameAvailability;
   const usernameFormatError = errors.username?.message;
+  const usernameRawFormatWarning =
+    !usernameFormatError && isFormatInvalid
+      ? 'Geçersiz biçim: yalnız küçük harf, rakam, nokta, alt çizgi; en az 3 karakter.'
+      : undefined;
   const usernameTakenError =
-    !usernameFormatError && !checking && available === false ? 'Bu kullanıcı adı alınmış' : undefined;
-  const usernameError = usernameFormatError || usernameTakenError;
-  const usernameHelper = usernameFormatError
+    !usernameFormatError && !usernameRawFormatWarning && !checking && available === false
+      ? 'Bu kullanıcı adı alınmış'
+      : undefined;
+  const usernameError = usernameFormatError || usernameRawFormatWarning || usernameTakenError;
+  const usernameHelper = usernameError
     ? undefined
     : checking
       ? 'Kontrol ediliyor…'

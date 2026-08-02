@@ -121,3 +121,75 @@ describe('Kayıt ekranı — kullanıcı adı uygunluğu', () => {
     );
   });
 });
+
+/**
+ * N-1: `'İstanbul'.toLowerCase()` → `"i̇stanbul"` (i + BİRLEŞİK NOKTA U+0307,
+ * 9 karakter) — alanda gözle "istanbul" gibi görünür ama USERNAME_PATTERN'i
+ * geçmez. Öncesinde bu durumda hiçbir satır içi geri bildirim çıkmıyordu (RHF
+ * `mode` varsayılan `onSubmit`); kullanıcı ancak "Kayıt Ol"a basınca öğreniyordu.
+ * Hedef, bir transliterasyon EKLEMEK değil — yalnız görünürlük eklemek.
+ */
+describe('Kayıt ekranı — Türkçe karakterli girdide biçim uyarısı (N-1)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.useFakeTimers();
+    resetRouterMocks();
+    mockCheckAvailability.mockResolvedValue({ data: { available: true } });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('İpek yazınca biçim uyarısı ANINDA (debounce beklemeden) görünür ve uygunluk ucu hiç sorulmaz', async () => {
+    renderWithProviders(<RegisterScreen />);
+    fireEvent.changeText(screen.getByTestId('register-username-input'), 'İpek');
+
+    // Senkron: 400ms debounce'u beklemeden görünür.
+    expect(screen.getByText(/geçersiz biçim/i)).toBeTruthy();
+
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(mockCheckAvailability).not.toHaveBeenCalled();
+  });
+
+  it('boş alanda biçim uyarısı görünmez (kullanıcı henüz bir şey yazmadı)', () => {
+    renderWithProviders(<RegisterScreen />);
+    expect(screen.queryByText(/geçersiz biçim/i)).toBeNull();
+  });
+
+  it('İpek\'ten gorkem\'e geçince biçim uyarısı kaybolur ve normal akış (kontrol ediliyor → sonuç) işler', async () => {
+    renderWithProviders(<RegisterScreen />);
+    const input = screen.getByTestId('register-username-input');
+    fireEvent.changeText(input, 'İpek');
+    expect(screen.getByText(/geçersiz biçim/i)).toBeTruthy();
+
+    fireEvent.changeText(input, 'gorkem');
+    expect(screen.queryByText(/geçersiz biçim/i)).toBeNull();
+    expect(screen.getByText('Kontrol ediliyor…')).toBeTruthy();
+
+    await jest.advanceTimersByTimeAsync(400);
+    await waitFor(() => expect(mockCheckAvailability).toHaveBeenCalledWith('gorkem'));
+    await waitFor(() => expect(screen.getByText('Bu kullanıcı adı uygun')).toBeTruthy());
+  });
+
+  it('zod hatası varken biçim uyarısı onu ezmez', async () => {
+    renderWithProviders(<RegisterScreen />);
+    const input = screen.getByTestId('register-username-input');
+    fillRestOfForm();
+
+    // 2 karakter — usernameSchema.min(3) reddeder. Submit ile zod hatası tetiklenir.
+    fireEvent.changeText(input, 'ab');
+    fireEvent.press(screen.getByTestId('register-submit-button'));
+    await waitFor(() => expect(screen.getByText('En az 3 karakter olmalı')).toBeTruthy());
+
+    // RHF `reValidateMode` (varsayılan `onChange`) artık bu alanı her tuşta
+    // yeniden doğruluyor — Türkçe karakterli, yine geçersiz bir girişe geçelim.
+    // Zod'un KENDİ mesajı üstün kalmalı; N-1'in genel "geçersiz biçim" metni
+    // onu EZMEMELİ.
+    fireEvent.changeText(input, 'İpek');
+    await waitFor(() =>
+      expect(screen.getByText(/küçük harf, rakam, nokta ve alt çizgi/i)).toBeTruthy(),
+    );
+    expect(screen.queryByText(/^geçersiz biçim:/i)).toBeNull();
+  });
+});

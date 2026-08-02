@@ -17,6 +17,13 @@ export interface UsernameAvailability {
   available: boolean | undefined;
   /** 30/dk throttle'a takıldı — kullanıcıya bekleme mesajı göster, sessizce yeniden deneme. */
   isThrottled: boolean;
+  /** Ham (henüz debounce edilmemiş) girdi DOLU ama `USERNAME_PATTERN`/uzunluğu
+   *  GEÇMİYOR — örn. Türkçe büyük 'İ'.toLowerCase() birleşik noktalı 'i' üretir
+   *  (9. karakter U+0307), regex'i geçemez; alanda "ipek" gibi görünür ama
+   *  geçersizdir. Boş alanda (henüz yazılmadıysa) `false` — kullanıcı bir şey
+   *  yazmadan uyarı gösterilmez. N-1: form bu bayrakla ANINDA (debounce/submit
+   *  beklemeden) açıklayıcı bir satır gösterir. */
+  isFormatInvalid: boolean;
 }
 
 /**
@@ -44,6 +51,7 @@ export function useUsernameAvailability(rawUsername: string): UsernameAvailabili
   const candidate = debounced.trim();
   const isValidFormat = isValid(candidate);
   const isRawValidFormat = isValid(rawUsername);
+  const isRawEmpty = rawUsername.trim().length === 0;
   /** Sorgulanan aday, kullanıcının ŞU ANDA yazdığı değer mi? Debounce penceresinde
    *  değildir — o aralıkta `available` bir ÖNCEKİ adın sonucudur (bayat). */
   const isFresh = candidate === rawUsername.trim();
@@ -70,5 +78,6 @@ export function useUsernameAvailability(rawUsername: string): UsernameAvailabili
     available: isValidFormat && isFresh ? query.data?.available : undefined,
     // 429 uç geneli bir sinyal (ada özel değil) — tazelikle kapılanmaz.
     isThrottled,
+    isFormatInvalid: !isRawEmpty && !isRawValidFormat,
   };
 }

@@ -119,6 +119,36 @@ describe('useUsernameAvailability', () => {
     await waitFor(() => expect(result.current.available).toBe(true));
   });
 
+  // N-1: 'İ'.toLowerCase() → 'i' + BİRLEŞİK NOKTA (U+0307) üretir; alanda "ipek"
+  // gibi görünür ama USERNAME_PATTERN'i debounce'suz, ANINDA geçemez. `available`
+  // ve `checking` her ikisi de ölçülü kalmalı (uygunluk ucuna hiç sorulmaz).
+  it('boş alanda isFormatInvalid false döner (henüz yazılmadıysa uyarı gösterilmez)', () => {
+    const { result } = renderHook(({ v }: { v: string }) => useUsernameAvailability(v), {
+      wrapper: Wrapper,
+      initialProps: { v: '' },
+    });
+    expect(result.current.isFormatInvalid).toBe(false);
+  });
+
+  it('Türkçe büyük harfli (İpek → birleşik noktalı i) girişte isFormatInvalid ANINDA true olur, debounce/sorgu beklemez', () => {
+    const { result } = renderHook(({ v }: { v: string }) => useUsernameAvailability(v), {
+      wrapper: Wrapper,
+      initialProps: { v: 'İpek'.toLowerCase() },
+    });
+    expect(result.current.isFormatInvalid).toBe(true);
+    expect(result.current.checking).toBe(false);
+    expect(result.current.available).toBeUndefined();
+    expect(mockCheck).not.toHaveBeenCalled();
+  });
+
+  it('geçerli girişte isFormatInvalid false döner', () => {
+    const { result } = renderHook(({ v }: { v: string }) => useUsernameAvailability(v), {
+      wrapper: Wrapper,
+      initialProps: { v: 'gorkem' },
+    });
+    expect(result.current.isFormatInvalid).toBe(false);
+  });
+
   it('429 (throttle) yanıtında isThrottled true olur ve sessizce yeniden denemez', async () => {
     mockCheck.mockRejectedValue({ response: { status: 429 } });
     const { rerender, result } = renderHook(({ v }: { v: string }) => useUsernameAvailability(v), {
