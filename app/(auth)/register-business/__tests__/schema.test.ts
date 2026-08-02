@@ -121,6 +121,80 @@ describe('registerBusinessSchema — telefon normalizasyonu (^\\+90[0-9]{10}$)',
   });
 });
 
+/**
+ * REGRESYON: eski `toE164TrPhone` (formatPhoneNumber + normalizePhoneForPayload)
+ * tanımadığı öneki atıp ilk on haneyi alıyordu, yani `^\+90[0-9]{10}$`'a UYAN ama
+ * ULAŞILAMAZ numara üretiyordu: `00905321234567` → `+900905321234`,
+ * `+1 415 555 0100` → `+901415555010`, `05321234567890` → `+905321234567`.
+ * Kullanıcı hata görmüyor, başvuru yanlış telefonla kaydediliyordu.
+ */
+describe('registerBusinessSchema — telefon sıkı ayrıştırma (KIRPMA YOK)', () => {
+  const parsePhone = (phone: string) => registerBusinessSchema.safeParse({ ...validPayload, phone });
+
+  it.each([
+    ['0532 123 45 67', '+905321234567'],
+    ['+90 532 123 45 67', '+905321234567'],
+    ['532 123 45 67', '+905321234567'],
+    ['(0532) 123-45-67', '+905321234567'],
+    ['905321234567', '+905321234567'],
+    ['+90 0532 123 45 67', '+905321234567'],
+  ])('%s → %s', (input, expected) => {
+    const result = parsePhone(input);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.phone).toBe(expected);
+  });
+
+  it.each([
+    ['00905321234567', 'uluslararası çevirme öneki — tahmin edilmez, reddedilir'],
+    ['+1 415 555 0100', 'TR olmayan numara — eskiden +901415555010 üretiyordu'],
+    ['05321234567890', 'fazla haneli — eskiden sessizce kırpılıyordu'],
+    ['0432 123 45 67', 'sabit hat (5 ile başlamıyor)'],
+    ['0000000000', 'sıfırlar'],
+    ['   ', 'yalnız boşluk'],
+    ['abcdefghij', 'rakamsız'],
+  ])('%s REDDEDİLİR (%s)', (input) => {
+    expect(parsePhone(input).success).toBe(false);
+  });
+
+  it('reddedilen numara için mesaj TÜRKÇE ve alan telefon', () => {
+    const result = parsePhone('+1 415 555 0100');
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const issue = result.error.issues.find((i) => i.path[0] === 'phone');
+      expect(issue?.message).toBe('Geçerli bir telefon numarası girin (5XX XXX XX XX)');
+    }
+  });
+
+  it('contactPhone da aynı sıkı ayrıştırmadan geçer', () => {
+    expect(
+      registerBusinessSchema.safeParse({ ...validPayload, contactPhone: '00905321234567' }).success,
+    ).toBe(false);
+    expect(
+      registerBusinessSchema.safeParse({ ...validPayload, contactPhone: '+1 415 555 0100' }).success,
+    ).toBe(false);
+  });
+});
+
+describe('registerBusinessSchema — e-posta küçük harfe çevrilir', () => {
+  it('companyEmail trim + lowercase edilir (davet e-postası eşleşmesi)', () => {
+    const result = registerBusinessSchema.safeParse({
+      ...validPayload,
+      companyEmail: '  Basvuru@TestOtomotiv.COM ',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.companyEmail).toBe('basvuru@testotomotiv.com');
+  });
+
+  it('kepAddress da lowercase edilir', () => {
+    const result = registerBusinessSchema.safeParse({
+      ...validPayload,
+      kepAddress: 'Firma@HS01.KEP.TR',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.kepAddress).toBe('firma@hs01.kep.tr');
+  });
+});
+
 describe('registerBusinessSchema — opsiyonel alanlar (kepAddress / contactPhone)', () => {
   it('kepAddress ve contactPhone hiç gönderilmeden form geçerli olur (API canlı: 201)', () => {
     const { ...rest } = validPayload;

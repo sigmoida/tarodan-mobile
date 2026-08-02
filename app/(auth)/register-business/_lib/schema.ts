@@ -1,52 +1,64 @@
-import { z } from 'zod';
-import { emailSchema } from '@/utils/validation';
-import { DEFAULT_COUNTRY_CODE, formatPhoneNumber, normalizePhoneForPayload } from '@/utils/phone';
-
 /**
  * `BusinessRegisterDto` (backend) — canlıda doğrulandı (task-3-report.md):
  * yalnız bu sekiz alan kabul edilir, `password` YOK (bu adım hesap açmaz, ön
  * başvurudur — kullanıcı adı/şifre admin onayı sonrası davet e-postasıyla
  * `corporate-invite` akışında belirlenir).
+ *
+ * Telefon ayrıştırma `_lib/phone.ts`'te — alan formatlayıcısıyla TEK KAYNAK.
  */
-const TR_PHONE_REGEX = /^\+90[0-9]{10}$/;
+import { z } from 'zod';
+import { emailSchema } from '@/utils/validation';
+import { parseE164TrPhone } from './phone';
 
-/**
- * Ham telefon girdisini ("0532…", "532…", "+90 532…") E.164 TR biçimine
- * normalize eder. Mevcut telefon yardımcılarını (PhoneInput'un kullandığı aynı
- * çift adım) kompoze eder — bir daha implemente etmez (CLAUDE.md §5 DRY):
- * `formatPhoneNumber` başındaki "0"/"90" prefix'ini söker ve gruplar,
- * `normalizePhoneForPayload` ülke kodunu ekler.
- */
-function toE164TrPhone(raw: string): string {
-  return normalizePhoneForPayload(
-    formatPhoneNumber(raw, DEFAULT_COUNTRY_CODE),
-    DEFAULT_COUNTRY_CODE,
-  );
-}
+const PHONE_ERROR = 'Geçerli bir telefon numarası girin (5XX XXX XX XX)';
 
 const requiredTrPhoneSchema = z
   .string()
   .trim()
   .min(1, 'Telefon numarası gerekli')
-  .transform(toE164TrPhone)
-  .refine((v) => TR_PHONE_REGEX.test(v), 'Geçerli bir telefon numarası girin (5XX XXX XX XX)');
+  .transform((v, ctx) => {
+    const e164 = parseE164TrPhone(v);
+    if (!e164) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: PHONE_ERROR });
+      return z.NEVER;
+    }
+    return e164;
+  });
 
 const optionalTrPhoneSchema = z
   .string()
   .trim()
   .optional()
-  .transform((v) => (v ? toE164TrPhone(v) : undefined))
-  .refine((v) => v === undefined || TR_PHONE_REGEX.test(v), 'Geçerli bir telefon numarası girin (5XX XXX XX XX)');
+  .transform((v, ctx) => {
+    if (!v) return undefined;
+    const e164 = parseE164TrPhone(v);
+    if (!e164) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: PHONE_ERROR });
+      return z.NEVER;
+    }
+    return e164;
+  });
+
+/**
+ * `emailSchema` (tek kaynak: trim + format) üstüne **route-local** küçük harf
+ * dönüşümü: davet e-postası eşleşmesi büyük/küçük harfe takılmasın. Paylaşılan
+ * `emailSchema`'nın davranışı değiştirilmez (başka çağıranları var).
+ */
+const loweredEmailSchema = emailSchema.transform((v) => v.toLowerCase());
 
 const optionalEmailSchema = z
   .string()
   .trim()
   .optional()
-  .transform((v) => (v ? v : undefined))
-  .refine(
-    (v) => v === undefined || z.string().email().safeParse(v).success,
-    'Geçerli bir e-posta girin',
-  );
+  .transform((v, ctx) => {
+    if (!v) return undefined;
+    const parsed = emailSchema.safeParse(v);
+    if (!parsed.success) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Geçerli bir e-posta girin' });
+      return z.NEVER;
+    }
+    return parsed.data.toLowerCase();
+  });
 
 export const registerBusinessSchema = z.object({
   authorizedFullName: z
@@ -69,7 +81,7 @@ export const registerBusinessSchema = z.object({
     .trim()
     .min(10, 'En az 10 karakter olmalı')
     .max(500, 'En fazla 500 karakter olabilir'),
-  companyEmail: emailSchema,
+  companyEmail: loweredEmailSchema,
   kepAddress: optionalEmailSchema,
   phone: requiredTrPhoneSchema,
   contactPhone: optionalTrPhoneSchema,
