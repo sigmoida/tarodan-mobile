@@ -3,8 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Controller } from 'react-hook-form';
 import { Button, Checkbox, Text, VStack, theme } from '@/ui';
 import { Form, FormInput } from '@/ui/form';
-import { DEFAULT_COUNTRY_CODE, getPhonePlaceholder } from '@/utils/phone';
-import { formatTrPhoneField } from '../_lib/phone';
+import { DEFAULT_COUNTRY_CODE, formatTrPhoneField, getPhonePlaceholder } from '@/utils/phone';
 import { styles } from '../_lib/styles';
 import type { RegisterBusinessController } from '../_hooks/useRegisterBusiness';
 

@@ -8,6 +8,7 @@
  */
 
 import { z } from 'zod';
+import { PHONE_INVALID_MESSAGE, parseE164TrPhone } from './phone';
 
 /** Tek noktada güçlü şifre Zod schema'sı. */
 export const strongPasswordSchema = z
@@ -17,15 +18,47 @@ export const strongPasswordSchema = z
   .regex(/[a-z]/, 'En az 1 küçük harf içermeli')
   .regex(/\d/, 'En az 1 rakam içermeli');
 
-/** Telefon (TR formatı esnek, opsiyonel). */
+/**
+ * TR cep telefonu — **zorunlu**. Çıktı E.164 (`+905XXXXXXXXX`), çözülemeyen
+ * girdi Türkçe hatayla reddedilir (KIRPMA YOK — bkz. `@/utils/phone`).
+ *
+ * TEK KAYNAK: ayrıştırma `parseE164TrPhone`'da, alan formatlayıcısı
+ * (`formatTrPhoneField`) da aynı ön-ek soyma kuralını kullanır; ikisi ayrışamaz.
+ */
+export const requiredTrPhoneSchema = z
+  .string()
+  .trim()
+  .min(1, 'Telefon numarası gerekli')
+  .transform((v, ctx) => {
+    const e164 = parseE164TrPhone(v);
+    if (!e164) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: PHONE_INVALID_MESSAGE });
+      return z.NEVER;
+    }
+    return e164;
+  });
+
+/**
+ * TR cep telefonu — **opsiyonel**. Boş/atlanmış → `undefined`; dolu ama
+ * çözülemiyorsa hata (sessizce düşürülmez).
+ *
+ * ⚠️ Eski hâli ölü bir export'tu ve regex'i `0532 123 45 67`'yi bile reddediyordu;
+ * paylaşılan ayrıştırıcıyla değiştirildi ve gerçek tüketicilere (kurumsal kayıt
+ * şeması) bağlandı.
+ */
 export const trPhoneSchema = z
   .string()
   .trim()
   .optional()
-  .refine(
-    (val) => !val || /^(\+?90)?\s?5\d{2}[\s.-]?\d{3}[\s.-]?\d{2}[\s.-]?\d{2}$/.test(val),
-    'Geçerli bir cep telefonu girin (ör. +90 5XX XXX XX XX)',
-  );
+  .transform((v, ctx) => {
+    if (!v) return undefined;
+    const e164 = parseE164TrPhone(v);
+    if (!e164) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: PHONE_INVALID_MESSAGE });
+      return z.NEVER;
+    }
+    return e164;
+  });
 
 /** Vergi numarası (10) veya T.C. Kimlik (11) — yalnızca rakam. */
 export const taxIdSchema = z

@@ -4,40 +4,16 @@
  * başvurudur — kullanıcı adı/şifre admin onayı sonrası davet e-postasıyla
  * `corporate-invite` akışında belirlenir).
  *
- * Telefon ayrıştırma `_lib/phone.ts`'te — alan formatlayıcısıyla TEK KAYNAK.
+ * Telefon ayrıştırma paylaşılan `@/utils/validation` + `@/utils/phone`'da — alan
+ * formatlayıcısıyla TEK KAYNAK (route-local `_lib/phone.ts` kopyası emekli edildi;
+ * aynı girdiye iki farklı cevap veren iki telefon davranışı kalmadı, §5).
  */
 import { z } from 'zod';
-import { emailSchema } from '@/utils/validation';
-import { parseE164TrPhone } from './phone';
-
-const PHONE_ERROR = 'Geçerli bir telefon numarası girin (5XX XXX XX XX)';
-
-const requiredTrPhoneSchema = z
-  .string()
-  .trim()
-  .min(1, 'Telefon numarası gerekli')
-  .transform((v, ctx) => {
-    const e164 = parseE164TrPhone(v);
-    if (!e164) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: PHONE_ERROR });
-      return z.NEVER;
-    }
-    return e164;
-  });
-
-const optionalTrPhoneSchema = z
-  .string()
-  .trim()
-  .optional()
-  .transform((v, ctx) => {
-    if (!v) return undefined;
-    const e164 = parseE164TrPhone(v);
-    if (!e164) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: PHONE_ERROR });
-      return z.NEVER;
-    }
-    return e164;
-  });
+import {
+  emailSchema,
+  requiredTrPhoneSchema,
+  trPhoneSchema as optionalTrPhoneSchema,
+} from '@/utils/validation';
 
 /**
  * `emailSchema` (tek kaynak: trim + format) üstüne **route-local** küçük harf

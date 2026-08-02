@@ -1,9 +1,13 @@
 /**
- * `_lib/phone.ts` — alan formatlayıcısı ile şema ayrıştırıcısının TEK kaynağı.
- * REGRESYON: paylaşılan `formatPhoneNumber` on haneden fazlasını KIRPAR; bu formda
- * kırpma, "format olarak geçerli ama ulaşılamaz" numara üretiyordu.
+ * Kurumsal kayıt formunun telefon matrisi — route-local `_lib/phone.ts` emekli
+ * edildi, ayrıştırıcı artık paylaşılan `@/utils/phone`'da (TEK KAYNAK, §5).
+ * Bu suite yerinde kalıyor: formun sözleşmesi bu matris ve paylaşılan util
+ * değişince burada da kırmızı görülsün.
+ *
+ * REGRESYON: eski paylaşılan `formatPhoneNumber` on haneden fazlasını KIRPIYORDU;
+ * kırpma "format olarak geçerli ama ulaşılamaz" numara üretiyordu.
  */
-import { formatTrPhoneField, parseE164TrPhone } from '../_lib/phone';
+import { formatTrPhoneField, parseE164TrPhone } from '@/utils/phone';
 
 describe('parseE164TrPhone — kırpma yok', () => {
   it.each([
