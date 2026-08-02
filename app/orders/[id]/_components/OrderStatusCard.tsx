@@ -14,7 +14,15 @@ export function OrderStatusCard({ order, view }: { order: OrderDetail; view: Ord
   return (
     <Card variant="elevated" style={styles.card}>
       <View style={styles.statusHeader}>
-        <Text variant="caption" style={styles.orderNumber}>Sipariş #{order.orderNumber}</Text>
+        <View>
+          <Text variant="caption" style={styles.orderNumber}>Sipariş #{order.orderNumber}</Text>
+          {/* Kargo oluşmadan sunucu bu numarayı üretmiyor — satır kendini kapılıyor. */}
+          {order.packageNumber ? (
+            <Text variant="caption" style={styles.orderNumber}>
+              Teslimat No {order.packageNumber}
+            </Text>
+          ) : null}
+        </View>
         <StatusBadge status={badgeStatusOf(order)} config={uiOrderStatusConfig} size="sm" />
       </View>
 

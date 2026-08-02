@@ -5,6 +5,10 @@ const { colors } = theme;
 export interface OrderStatus {
   id: string;
   orderNumber: string;
+  /** Grup numarası (`GRP-…`) — çok satıcılı siparişte gelir, eski kayıtlarda null. */
+  groupNumber?: string | null;
+  /** Teslimat/paket numarası (`PKG-…`) — kargo oluşunca gelir, eski kayıtlarda null. */
+  packageNumber?: string | null;
   status: string;
   totalAmount: number;
   createdAt: string;

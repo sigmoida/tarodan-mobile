@@ -198,6 +198,13 @@ export function ProductInfo({
               <Text style={styles.specValue}>{product.year}</Text>
             </View>
           )}
+          {/* Sunucu üretimli ürün kodu — destek yazışmasında ürünü tanımlar. */}
+          {product.productCode ? (
+            <View style={styles.specItem}>
+              <Text style={styles.specLabel}>Ürün Kodu</Text>
+              <Text style={styles.specValue}>{String(product.productCode)}</Text>
+            </View>
+          ) : null}
         </View>
       </View>
 

@@ -3,6 +3,8 @@
 export interface OrderDetail {
   id: string;
   orderNumber: string;
+  /** Teslimat/paket numarası (`PKG-…`) — kargo oluşunca gelir, eski siparişlerde null. */
+  packageNumber?: string | null;
   isMembership?: boolean;
   status: string;
   quantity?: number;
