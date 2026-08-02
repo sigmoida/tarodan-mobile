@@ -159,7 +159,14 @@ export function Step3Confirm({ c }: { c: Ctrl }) {
           <Image source={{ uri: transformImageUrl(item.imageUrl) }} style={styles.orderItemImage} />
           <View style={styles.orderItemInfo}>
             <Text style={styles.orderItemTitle} numberOfLines={2}>{item.title}</Text>
-            <Text style={styles.orderItemMeta}>{asLabel(item.brand)} · {asLabel(item.scale)} · x{item.quantity}</Text>
+            {/* Adet de tutarla AYNI kaynaktan: sunucu satırı stok yüzünden
+                azaltırsa, yerel adedin yanında sunucu tutarı basmak satırı
+                kendi içinde çelişkili gösterirdi. Sunucu adet göndermediyse
+                yerel adede dönülür. */}
+            <Text style={styles.orderItemMeta}>
+              {asLabel(item.brand)} · {asLabel(item.scale)} · x
+              {c.lineQuantityFor(item.productId) ?? item.quantity}
+            </Text>
           </View>
           {/* Satır tutarı SUNUCUDAN (`quote.items[].subtotal`, adet dahil).
               `item.price` sepete ekleme anında donuyor ve 24 saat saklanıyor;

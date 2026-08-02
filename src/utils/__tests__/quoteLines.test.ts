@@ -13,8 +13,9 @@ describe('indexQuoteLines', () => {
       { productId: 'p1', quantity: 3, unitPrice: 619.92, subtotal: 1859.76 },
       { productId: 'p2', quantity: 1, unitPrice: 100, subtotal: 100 },
     ]);
-    expect(index.get('p1')).toEqual({ unitPrice: 619.92, subtotal: 1859.76 });
-    expect(index.get('p2')).toEqual({ unitPrice: 100, subtotal: 100 });
+    // Adet de indeksleniyor: ekran adedi tutarla AYNI kaynaktan okuyor.
+    expect(index.get('p1')).toEqual({ unitPrice: 619.92, subtotal: 1859.76, quantity: 3 });
+    expect(index.get('p2')).toEqual({ unitPrice: 100, subtotal: 100, quantity: 1 });
     expect(index.get('yok')).toBeUndefined();
   });
 

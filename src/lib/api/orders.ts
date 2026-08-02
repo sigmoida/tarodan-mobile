@@ -185,9 +185,10 @@ export const ordersApi = {
   /** Guest sipariş takibi (orderNumber + email) */
   trackGuest: (data: { orderNumber: string; email: string }) =>
     guestApi.post('/orders/guest/track', data),
-  /** Alıcının bu siparişe yazdığı kendi değerlendirmesi (yoksa null) —
-   *  "Değerlendir" butonunu gizlemek için. Backend: GET /orders/:id/my-review */
-  getMyReview: (id: string) => api.get(`/orders/${id}/my-review`),
+  /* `GET /orders/:id/my-review` bilerek YOK: değerlendirme durumunun kaynağı
+     sipariş gövdesindeki `hasProductRating` / `hasSellerRating` (ikisi de
+     sunucudan gelir ve `OrderRatingButtons` onları okur). Ayrı bir uç, aynı
+     gerçeğin ikinci kaynağı olurdu — tanımlıydı, hiç çağrılmıyordu. */
   /**
    * Checkout quote (fiyat kırılımı) — `pricingHash`/`shippingTariffVersion` köktedir.
    * `couponCode` yalnızca DOĞRULANMIŞ bir kupon varken gönderilir: sunucu indirimi

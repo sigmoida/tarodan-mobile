@@ -10,6 +10,13 @@ export type QuoteLineAmounts = {
   unitPrice: number | null;
   /** Satırın ADET DAHİL tutarı (`items[].subtotal`) — istemcide çarpma yok. */
   subtotal: number | null;
+  /**
+   * Sunucunun FİYATLADIĞI adet. Tutarla aynı kaynaktan okunur: sunucu bir satırı
+   * stok yüzünden azaltırsa, yerel sepet adedi yanında sunucu tutarı basmak
+   * kullanıcıya "x3" yazan bir satırın altında iki adetlik tutar gösterirdi.
+   * Sunucu göndermemişse `undefined` → çağıran yerel adede geri döner.
+   */
+  quantity?: number;
 };
 
 /**
@@ -37,6 +44,9 @@ export function indexQuoteLines(
     index.set(productId, {
       unitPrice: serverAmount(line.unitPrice),
       subtotal: serverAmount(line.subtotal),
+      ...(typeof line.quantity === 'number' && Number.isFinite(line.quantity)
+        ? { quantity: line.quantity }
+        : {}),
     });
   }
   return index;

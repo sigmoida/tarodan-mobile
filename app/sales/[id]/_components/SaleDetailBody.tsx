@@ -2,7 +2,13 @@ import { View, Image, Pressable } from 'react-native';
 import { Button, Divider, Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { formatPrice, formatOrderStatus, formatRelativeDate } from '@/utils/format';
+import {
+  formatPrice,
+  formatServerPrice,
+  serverAmount,
+  formatOrderStatus,
+  formatRelativeDate,
+} from '@/utils/format';
 import { transformImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
 import type { SaleDetailController } from '../_hooks/useSaleDetail';
@@ -46,7 +52,16 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
             <View style={{ flex: 1 }}>
               <Text style={styles.itemTitle} numberOfLines={2}>{item.product?.title}</Text>
               <Text style={styles.itemMeta}>Adet: {item.quantity}</Text>
-              <Text style={styles.itemPrice}>{formatPrice(item.price * item.quantity)}</Text>
+              {/* Satır tutarı SUNUCUDAN. `price` siparişe girildiği andaki donmuş
+                  kopya; adetle çarpınca tahsil edilenden sapabiliyor. Sunucu satır
+                  tutarı göndermediyse çarpım uydurulmaz — birim fiyat basılır. */}
+              {serverAmount(item.subtotal) != null ? (
+                <Text style={styles.itemPrice}>{formatServerPrice(item.subtotal)}</Text>
+              ) : (
+                <Text style={styles.itemPrice}>
+                  Birim {formatServerPrice(item.price)}
+                </Text>
+              )}
             </View>
           </Pressable>
         ))}

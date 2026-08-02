@@ -307,6 +307,9 @@ export function useCheckout() {
   const quoteLines = useMemo(() => indexQuoteLines(quote?.items), [quote]);
   const lineSubtotalFor = (productId: string): number | null =>
     quoteLines.get(productId)?.subtotal ?? null;
+  /** Sunucunun fiyatladığı adet; satır eşleşmezse `null` → ekran yerel adede döner. */
+  const lineQuantityFor = (productId: string): number | null =>
+    quoteLines.get(productId)?.quantity ?? null;
 
   const addressesQuery = useQuery({
     queryKey: qk.addresses.mine,
@@ -778,6 +781,8 @@ export function useCheckout() {
     productAmount, serviceFeeAmount, total,
     /** Satır tutarı — sunucunun `items[].subtotal`'ı; yoksa `null` (yer tutucu). */
     lineSubtotalFor,
+    /** Satır adedi — tutarla AYNI kaynaktan; yoksa `null` (yerel adet basılır). */
+    lineQuantityFor,
     quoteLoading: quoteQuery.isLoading,
     /** Quote hatası — ekran ErrorState + "Tekrar Dene" gösterir (CLAUDE.md §11). */
     quoteError: quoteQuery.isError,
