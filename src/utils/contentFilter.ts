@@ -116,11 +116,45 @@ export interface ParsedMessage {
   images: string[];
 }
 
+const HTTP_URI_RE = /^https?:\/\//i;
+// Herhangi bir URI şeması: "file:", "data:", "ph:", "javascript:", "blob:", ...
+const ANY_URI_SCHEME_RE = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
+
+/**
+ * `[IMG:…]` hedefi için ŞEMA BEYAZ LİSTESİ.
+ *
+ * Mesaj gövdesi güvenilmez girdi: içerik filtresi (`detectViolations`) yalnız
+ * KULLANICININ YAZDIĞI metne uygulanıyor, karşı taraf gövdeye elle
+ * `[IMG:file:///etc/passwd]`, `[IMG:data:text/html,…]`, `[IMG:ph://…]` veya
+ * `[IMG:javascript:…]` yazabiliyor. `resolveImageUrl` lokal şemaları OLDUĞU GİBİ
+ * `expo-image`'e geçirdiği için bu değerler yerel dosya okuma denemesine ya da
+ * alıcının kendi galerisinden bir görselin baloncukta belirmesine (UI spoof)
+ * dönüşebilir.
+ *
+ * Kabul edilenler:
+ *   - mutlak `http(s)://`
+ *   - `/` ile başlayan web-public relatif yol
+ *   - çıplak depolama key'i (şemasız) — `..` segmenti içermemek şartıyla
+ * Diğer her şey atılır: işaret metinden yine silinir (ham `[IMG:…]` metni
+ * baloncukta görünmez) ama `images`'a EKLENMEZ, yani hiç render edilmez.
+ *
+ * Not: meşru `file:` kullanımı olan yerel yükleme önizlemesi bu yoldan GEÇMEZ —
+ * `MessageInputBar` `pendingImage.uri`'yi doğrudan RN `<Image>`'a veriyor.
+ */
+function isAllowedImageTarget(raw: string): boolean {
+  const s = raw.trim();
+  if (!s) return false;
+  if (HTTP_URI_RE.test(s)) return true;
+  if (ANY_URI_SCHEME_RE.test(s)) return false;
+  // Şemasız: çıplak key veya `/` relatif yol. Dizin çıkışı kabul edilmez.
+  return !s.split('/').includes('..');
+}
+
 export function parseMessageContent(content: string): ParsedMessage {
   if (!content) return { text: '', images: [] };
   const images: string[] = [];
-  const text = content.replace(/\[IMG:([^\]\s]+)\]/g, (_, url) => {
-    images.push(url);
+  const text = content.replace(/\[IMG:([^\]\s]+)\]/g, (_, url: string) => {
+    if (isAllowedImageTarget(url)) images.push(url);
     return '';
   }).trim();
   return { text, images };

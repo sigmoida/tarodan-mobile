@@ -6,7 +6,7 @@ import { appAlert } from '@/ui';
 import { useMessagesStore } from '@/stores/messagesStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useThreadQuery, useMessagesQuery, useSendMessage, useMarkAsRead } from '@/hooks/messaging';
-import { detectViolations, getViolationMessage } from '@/utils/contentFilter';
+import { detectViolations, embedImageInMessage, getViolationMessage } from '@/utils/contentFilter';
 import { mediaApi, userApi } from '@/lib/api';
 import { getSocket } from '@/services/socket';
 import { groupMessagesByDate } from '../_lib/helpers';
@@ -142,7 +142,9 @@ export function useMessageThread() {
           const response = await mediaApi.uploadMessageImage(pendingImage as any);
           const url = (response.data as any)?.url ?? (response.data as any)?.data?.url;
           if (!url) throw new Error('Resim yüklendi fakat URL alınamadı.');
-          content = trimmed ? `${trimmed} [IMG:${url}]` : `[IMG:${url}]`;
+          // İşaret formatının TEK kaynağı `embedImageInMessage` — burada elle
+          // kurmak `parseMessageContent` ile sessizce birbirinden ayrılabilirdi.
+          content = embedImageInMessage(trimmed, url);
         } catch (e: any) {
           appAlert('Hata', e?.response?.data?.message || 'Resim gönderilemedi.');
           return;

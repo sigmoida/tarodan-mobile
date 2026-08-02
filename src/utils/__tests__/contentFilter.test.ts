@@ -57,6 +57,84 @@ describe('parseMessageContent — [IMG:] ayrıştırma (task 4)', () => {
       images: [],
     });
   });
+
+  it('boş işaret `[IMG:]` eşleşmez — ham metin olarak kalır', () => {
+    expect(parseMessageContent('[IMG:]')).toEqual({ text: '[IMG:]', images: [] });
+  });
+
+  it('yalnız boşluk içeren `[IMG: ]` eşleşmez', () => {
+    expect(parseMessageContent('[IMG: ]')).toEqual({ text: '[IMG: ]', images: [] });
+  });
+
+  it('kapanmamış işaret `[IMG:x.jpg` eşleşmez — gövde yutulmaz', () => {
+    expect(parseMessageContent('merhaba [IMG:x.jpg')).toEqual({
+      text: 'merhaba [IMG:x.jpg',
+      images: [],
+    });
+  });
+});
+
+/**
+ * I1 (düzeltme turu) — genişletilmiş regex şemasız DEĞERLERİ kabul ederken
+ * lokal/tehlikeli şemaları da yakalar hâle gelmişti. Mesaj gövdesi güvenilmez
+ * girdi: `detectViolations` yalnız KULLANICININ YAZDIĞI metne uygulanıyor
+ * (`useMessageThread`), karşı taraf gövdeye elle `[IMG:file:///…]` yazabilir ve
+ * `resolveImageUrl` lokal şemaları olduğu gibi `expo-image`'e geçiriyor.
+ * Beyaz liste mesaj AYRIŞTIRMA SINIRINDA uygulanır.
+ */
+describe('parseMessageContent — [IMG:] şema beyaz listesi (I1)', () => {
+  const blocked = [
+    ['file (yerel dosya okuma)', 'file:///etc/passwd'],
+    ['data (gömülü HTML/script)', 'data:text/html,<script>alert(1)</script>'],
+    ['javascript', 'javascript:alert(1)'],
+    ['ph (alıcının kendi galerisi — UI spoof)', 'ph://ASSET-ID/L0/001'],
+    ['assets-library', 'assets-library://asset/asset.JPG'],
+    ['content (Android sağlayıcı)', 'content://media/external/images/1'],
+    ['blob', 'blob:abc-123'],
+  ] as const;
+
+  it.each(blocked)('%s şeması reddedilir — images boş kalır', (_label, target) => {
+    const { images } = parseMessageContent(`[IMG:${target}]`);
+    expect(images).toEqual([]);
+  });
+
+  it('reddedilen işaret metinde de görünmez (ham `[IMG:file:…]` sızmaz)', () => {
+    const { text, images } = parseMessageContent('bak [IMG:file:///etc/passwd] gördün mü');
+    expect(images).toEqual([]);
+    // İşaret silinir (geçerli hedeflerdeki davranışın aynısı); geriye iki
+    // boşluk kalır — mevcut davranış, kayıt altına alınıyor.
+    expect(text).toBe('bak  gördün mü');
+  });
+
+  it('dizin çıkışı içeren çıplak key reddedilir', () => {
+    expect(parseMessageContent('[IMG:../../secret]').images).toEqual([]);
+    expect(parseMessageContent('[IMG:dev/../../secret.jpg]').images).toEqual([]);
+  });
+
+  it('meşru hedefler etkilenmez: http(s), `/` relatif, çıplak key', () => {
+    expect(parseMessageContent('[IMG:https://cdn.x.com/a.jpg]').images).toEqual([
+      'https://cdn.x.com/a.jpg',
+    ]);
+    expect(parseMessageContent('[IMG:http://10.0.2.2:3001/api/media/x]').images).toEqual([
+      'http://10.0.2.2:3001/api/media/x',
+    ]);
+    expect(parseMessageContent('[IMG:/photos/x.jpg]').images).toEqual(['/photos/x.jpg']);
+    expect(parseMessageContent('[IMG:dev/messages/x.jpg]').images).toEqual([
+      'dev/messages/x.jpg',
+    ]);
+  });
+
+  it('karışık mesajda yalnız geçerli hedef render edilir', () => {
+    const { images } = parseMessageContent(
+      '[IMG:file:///etc/passwd] [IMG:https://cdn.x.com/ok.jpg]'
+    );
+    expect(images).toEqual(['https://cdn.x.com/ok.jpg']);
+  });
+
+  it('formatMessagePreview reddedilen hedef için 📷 Fotoğraf BASMAZ', () => {
+    expect(formatMessagePreview('[IMG:file:///etc/passwd]')).toBe('');
+    expect(formatMessagePreview('selam [IMG:javascript:alert(1)]')).toBe('selam');
+  });
 });
 
 describe('formatMessagePreview — hem mutlak URL hem çıplak key için 📷 Fotoğraf basar (task 4)', () => {
