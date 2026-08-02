@@ -201,7 +201,14 @@ export const REFUND_REASON_OPTIONS: Array<{ value: string; label: string }> = [
   'counterfeit',
   'delivery_delayed',
   'other',
-].map((value) => ({ value, label: refundReasonConfig[value]!.label }));
+]
+  // Sözlükte olmayan bir kod (yazım hatası) yalnız listeden DÜŞER; `!` ile
+  // iddia etmek import anında TypeError atıp iade ekranını beyaz ekrana
+  // çeviriyordu — tek bir harf yüzünden.
+  .flatMap((value) => {
+    const config = refundReasonConfig[value];
+    return config ? [{ value, label: config.label }] : [];
+  });
 
 /** Kargo/gönderi durumu (ShipmentStatus). */
 export const shipmentStatusConfig: Record<string, StatusConfig> = {

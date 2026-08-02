@@ -49,4 +49,17 @@ describe('REFUND_REASON_OPTIONS', () => {
   it('keeps "other" last so the specific reasons are read first', () => {
     expect(REFUND_REASON_OPTIONS[REFUND_REASON_OPTIONS.length - 1]!.value).toBe('other');
   });
+
+  it('is built without a non-null assertion that could crash the module', () => {
+    // Mutasyon denetiminde çıktı: liste sözlükte OLMAYAN bir koda atıfta
+    // bulunursa `refundReasonConfig[value]!.label` import anında TypeError
+    // atıyordu — iade ekranı komple beyaz ekran olurdu, tek bir yazım hatası
+    // yüzünden. Kaynağı okuyup iddiayı doğrudan yasaklıyoruz.
+    const source = require('fs').readFileSync(
+      require('path').resolve(__dirname, '../status-configs.ts'),
+      'utf8',
+    );
+    const optionsBlock = source.slice(source.indexOf('REFUND_REASON_OPTIONS'));
+    expect(optionsBlock).not.toContain('refundReasonConfig[value]!');
+  });
 });
