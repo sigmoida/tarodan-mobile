@@ -42,12 +42,6 @@ export function OrderPriceSummary({ order, isMembershipOrder }: { order: OrderDe
         <Text>Ürün Tutarı</Text>
         <Text>{formatPrice(p?.subtotal ?? order.product.price)}</Text>
       </View>
-      {(p?.taxAmount ?? 0) > 0 && (
-        <View style={styles.priceRow}>
-          <Text>KDV</Text>
-          <Text>{formatPrice(p!.taxAmount!)}</Text>
-        </View>
-      )}
       {!isMembershipOrder && (
         <View style={styles.priceRow}>
           <Text>Kargo</Text>
@@ -58,6 +52,12 @@ export function OrderPriceSummary({ order, isMembershipOrder }: { order: OrderDe
         <View style={styles.priceRow}>
           <Text>Platform ücreti</Text>
           <Text>{formatPrice(p?.buyerFeeAmount ?? order.buyerFeeAmount ?? 0)}</Text>
+        </View>
+      )}
+      {(p?.buyerServiceTaxAmount ?? 0) > 0 && (
+        <View style={styles.priceRow}>
+          <Text>Hizmet KDV'si</Text>
+          <Text>{formatPrice(p!.buyerServiceTaxAmount!)}</Text>
         </View>
       )}
       {order.isSeller && ((p?.sellerFeeAmount ?? order.sellerFeeAmount ?? 0) > 0 || p?.sellerNetAmount != null) && (

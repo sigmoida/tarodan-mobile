@@ -18,7 +18,11 @@ export interface OrderDetail {
     buyerFeeAmount: number;
     sellerFeeAmount: number;
     commissionAmount: number;
+    /** Legacy KDV — sunucu artık hep 0 döndürüyor (2026-07-30 sonrası). */
     taxAmount?: number;
+    /** Alıcı hizmet KDV'si — hizmet bedeli + kargo payının %20'si (canlı ölçüm). */
+    buyerServiceTaxAmount?: number;
+    serviceVatRate?: number;
     totalAmount: number;
     sellerNetAmount: number;
   };
