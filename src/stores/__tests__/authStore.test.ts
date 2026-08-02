@@ -18,6 +18,8 @@ jest.mock('../resetUserStores', () => ({
   resetUserStores: jest.fn(),
 }));
 
+import * as SecureStore from 'expo-secure-store';
+
 import { useAuthStore, type User } from '../authStore';
 import { userApi } from '@/lib/api';
 
@@ -104,5 +106,43 @@ describe('authStore — mapApiUserToUser kullanıcı adı alanları', () => {
     const { user } = useAuthStore.getState();
     expect(user?.username).toBe('kaan.merakli');
     expect(user?.usernameClaimed).toBe(true);
+  });
+});
+
+/**
+ * C1'in soğuk-açılış varyantı: `loadToken` SecureStore'dan token'ı `getProfile()`
+ * çağrısından ÖNCE okuyor. Access token süresi dolmuşsa o istek 401 alıp sessiz
+ * refresh tetikler (interceptor SecureStore'u yeniler) — ama store'a önceden
+ * okunan BAYAT token yazılırsa, store'dan okuyan tüketiciler (bearer'lı mesaj
+ * eki görselleri, socket) ölü token'la kalır. Bu test taze token'ın yazıldığını
+ * sabitler.
+ */
+describe('authStore — loadToken sessiz refresh sonrası taze token yazar', () => {
+  beforeEach(async () => {
+    await useAuthStore.getState().logout();
+    jest.clearAllMocks();
+  });
+
+  it('getProfile sırasında token yenilendiyse store TAZE token’ı tutar', async () => {
+    (SecureStore.getItemAsync as jest.Mock)
+      .mockResolvedValueOnce('expired-token') // ilk okuma: süresi dolmuş
+      .mockResolvedValueOnce('refreshed-token'); // getProfile sonrası: yenilenmiş
+    (userApi.getProfile as jest.Mock).mockResolvedValueOnce({ data: baseUser });
+
+    await useAuthStore.getState().loadToken();
+
+    expect(useAuthStore.getState().token).toBe('refreshed-token');
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+  });
+
+  it('refresh olmadıysa (token aynı) davranış değişmez', async () => {
+    (SecureStore.getItemAsync as jest.Mock)
+      .mockResolvedValueOnce('valid-token')
+      .mockResolvedValueOnce('valid-token');
+    (userApi.getProfile as jest.Mock).mockResolvedValueOnce({ data: baseUser });
+
+    await useAuthStore.getState().loadToken();
+
+    expect(useAuthStore.getState().token).toBe('valid-token');
   });
 });

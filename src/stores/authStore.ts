@@ -425,11 +425,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (token) {
         // Web ile aynı endpoint: GET /users/me
         const response = await userApi.getProfile();
+        // Bu istek 401 alıp sessiz refresh tetiklemiş olabilir (soğuk açılışta
+        // süresi dolmuş access token tipik). O durumda SecureStore'daki token
+        // yenilendi ve yukarıda okunan `token` artık BAYAT — store'a taze olanı
+        // yaz, yoksa store'dan okuyan tüketiciler (bearer'lı görseller, socket)
+        // ölü token'la kalır.
+        const freshToken =
+          (await SecureStore.getItemAsync("accessToken")) || token;
         const mappedUser = mapApiUserToUser(response.data);
         const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
         set({
           isAuthenticated: true,
-          token,
+          token: freshToken,
           user: mappedUser,
           limits,
           isLoading: false,

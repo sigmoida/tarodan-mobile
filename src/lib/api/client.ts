@@ -102,6 +102,34 @@ export const resetBannedRedirect = () => {
   bannedRedirectActive = false;
 };
 
+/**
+ * Yenilenen access token'ı zustand store'daki `token` alanına da yazar.
+ *
+ * SecureStore tek başına YETMİYOR: axios request interceptor'ı token'ı doğrudan
+ * SecureStore'dan okuduğu için istekler çalışmaya devam eder, ama store'dan
+ * okuyan tüketiciler (bearer'lı görsel header'ı — `AppImage`; socket bağlantı
+ * token'ı — `useMessagingSocket`) sessiz refresh'ten sonra süresi DOLMUŞ token'ı
+ * kullanmaya devam ederdi.
+ *
+ * `require` ile lazy import → `client.ts` ↔ `authStore` import döngüsü önlenir
+ * (aşağıdaki `handleAuthFailure` ile aynı desen).
+ *
+ * Guard: yalnız store'da hâlâ bir oturum varken yazar. Refresh uçuştayken
+ * kullanıcı çıkış yaptıysa (`logout` token'ı null'lar) zombi bir oturum
+ * yazmayalım; oturum açılışında `loadToken` zaten SecureStore'dan okuyor.
+ */
+function syncStoreAccessToken(newAccess: string): void {
+  try {
+    const { useAuthStore } = require("../../stores/authStore");
+    const current = useAuthStore.getState().token;
+    if (current && current !== newAccess) {
+      useAuthStore.setState({ token: newAccess });
+    }
+  } catch {
+    /* store yüklenemedi — SecureStore yazımı geçerli, istekler etkilenmez */
+  }
+}
+
 async function performTokenRefresh(): Promise<string | null> {
   const refreshToken = await SecureStore.getItemAsync("refreshToken");
   if (!refreshToken) return null;
@@ -117,6 +145,7 @@ async function performTokenRefresh(): Promise<string | null> {
   await SecureStore.setItemAsync("accessToken", newAccess);
   // ROTATED refresh token'ı da kaydet (asıl bug buydu).
   if (newRefresh) await SecureStore.setItemAsync("refreshToken", newRefresh);
+  syncStoreAccessToken(newAccess);
   return newAccess;
 }
 
