@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import { Button, Spinner, Snackbar, Text, ScreenHeader, theme } from '@/ui';
 import { router } from 'expo-router';
@@ -17,6 +18,7 @@ const { colors } = theme;
  * composes the gate, filters, list (order + group cards), and rating modal.
  */
 export default function OrdersScreen() {
+  const { t } = useTranslation();
   const f = useOrders();
 
   const gate = OrdersGate({ f });
@@ -85,7 +87,7 @@ export default function OrdersScreen() {
           f.setSnackbar({
             visible: true,
             variant: 'success',
-            message: 'Değerlendirmeniz alındı. Onaylandıktan sonra yayınlanacak.',
+            message: t('order.reviewReceived'),
           });
         }}
       />

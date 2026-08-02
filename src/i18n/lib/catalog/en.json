@@ -891,7 +891,22 @@
     "refundReasonLostInTransit": "Lost in transit",
     "refundReasonOther": "Other",
     "statusPendingPayment": "Pending Payment",
-    "statusRefundRequested": "Refund Requested"
+    "statusRefundRequested": "Refund Requested",
+    "signInToView": "Sign in to see your orders",
+    "noRefunds": "You have no refunds",
+    "startShopping": "Start shopping!",
+    "tabAll": "All",
+    "tabRefunds": "Refunds",
+    "showItems": "Show items",
+    "hideItems": "Hide items",
+    "track": "Track",
+    "statusAwaitingConfirmation": "Awaiting your confirmation",
+    "statusRefundInProgress": "Refund in progress",
+    "statusMixed": "Mixed status",
+    "reviewReceived": "Your review was received. It will appear once approved.",
+    "noOrdersForStatus": "No {status} orders",
+    "multiOrderWithCount": "Multi-seller order · {count} items",
+    "exploreProducts": "Explore products"
   },
   "trade": {
     "myTrades": "My Trades",

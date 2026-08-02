@@ -891,7 +891,22 @@
     "refundReasonLostInTransit": "Kargoda kayboldu",
     "refundReasonOther": "Diğer",
     "statusPendingPayment": "Ödeme Bekleniyor",
-    "statusRefundRequested": "İade Talep Edildi"
+    "statusRefundRequested": "İade Talep Edildi",
+    "signInToView": "Siparişlerinizi görmek için giriş yapın",
+    "noRefunds": "İade kaydınız yok",
+    "startShopping": "Alışverişe başlayın!",
+    "tabAll": "Tümü",
+    "tabRefunds": "İadeler",
+    "showItems": "Ürünleri gör",
+    "hideItems": "Ürünleri gizle",
+    "track": "Takip Et",
+    "statusAwaitingConfirmation": "Onayınız Bekleniyor",
+    "statusRefundInProgress": "İade Sürecinde",
+    "statusMixed": "Karışık Durum",
+    "reviewReceived": "Değerlendirmeniz alındı. Onaylandıktan sonra yayınlanacak.",
+    "noOrdersForStatus": "{status} siparişiniz yok",
+    "multiOrderWithCount": "Çoklu Sipariş · {count} ürün",
+    "exploreProducts": "Ürünleri Keşfet"
   },
   "trade": {
     "myTrades": "Takaslarım",

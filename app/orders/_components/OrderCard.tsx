@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, Pressable, Image } from 'react-native';
 import { router } from 'expo-router';
@@ -7,7 +8,7 @@ import { Button, Card, StatusBadge, Text, theme } from '@/ui';
 import { getOrderProductImageUri } from '@/utils/orderProductImage';
 import { styles } from '../_lib/ordersStyles';
 import {
-  uiOrderStatusConfig,
+  useOrderStatusConfig,
   badgeStatusOf,
   canRateOrder,
   formatOrderDate,
@@ -27,6 +28,8 @@ export function OrderCard({
   compact?: boolean;
   onRate: (type: 'product' | 'seller', order: Order) => void;
 }) {
+  const { t } = useTranslation();
+  const statusConfig = useOrderStatusConfig();
   return (
     <Card variant="elevated" padding={0} style={styles.orderCard}>
       <Pressable onPress={() => router.push(`/orders/${order.id}`)}>
@@ -34,7 +37,7 @@ export function OrderCard({
           <Text variant="caption" style={styles.orderNumber}>
             Sipariş #{order.orderNumber}
           </Text>
-          <StatusBadge status={badgeStatusOf(order)} config={uiOrderStatusConfig} size="sm" />
+          <StatusBadge status={badgeStatusOf(order)} config={statusConfig} size="sm" />
         </View>
 
         <View style={styles.orderContent}>
@@ -65,7 +68,7 @@ export function OrderCard({
               onPress={() => router.push(`/order-track?orderNumber=${order.orderNumber}`)}
             >
               <Ionicons name="location" size={14} color={colors.primary[600]!} />
-              <Text style={styles.trackButtonText}>Takip Et</Text>
+              <Text style={styles.trackButtonText}>{t('order.track')}</Text>
             </Pressable>
           )}
         </View>

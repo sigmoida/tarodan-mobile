@@ -1,3 +1,6 @@
+import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { MessageKey } from '@/i18n/lib';
 import type { BadgeVariant } from '@/ui';
 import { apiStatusToUi, type UiOrderStatus } from '@/utils/orderStatus';
 
@@ -42,23 +45,55 @@ export type OrderListEntry =
 export type FilterType =
   | 'all' | 'pending' | 'processing' | 'shipped' | 'delivered' | 'completed' | 'refunds';
 
-// UI status keys -> StatusBadge config (matches semantic Badge variants)
-export const uiOrderStatusConfig: Record<string, { label: string; variant: BadgeVariant }> = {
-  pending: { label: 'Ödeme bekliyor', variant: 'warning' },
-  paid: { label: 'Ödendi', variant: 'info' },
-  processing: { label: 'Hazırlanıyor', variant: 'info' },
-  shipped: { label: 'Kargoda', variant: 'primary' },
-  delivered: { label: 'Teslim Edildi', variant: 'success' },
-  awaiting_confirmation: { label: 'Onayınız Bekleniyor', variant: 'warning' },
-  completed: { label: 'Tamamlandı', variant: 'success' },
-  cancelled: { label: 'İptal Edildi', variant: 'danger' },
-  refunded: { label: 'İade Edildi', variant: 'secondary' },
-  refund_requested: { label: 'İade Sürecinde', variant: 'danger' },
-  mixed: { label: 'Karışık Durum', variant: 'info' },
+/**
+ * UI durum anahtarı -> rozet varyantı + KATALOG ANAHTARI.
+ *
+ * Etiketler burada sabit Türkçe olarak duruyordu; saf bir modül olduğu için
+ * `useTranslation` çağıramıyor. Çözüm: modül anahtarı taşır, çeviri render
+ * anında `useOrderStatusConfig` ile yapılır. Varyant (semantik renk) çeviriden
+ * bağımsız, o burada kalır.
+ *
+ * ⚠️ `app/orders/group/[id]/_lib/status.ts` bunun İKİNCİ bir kopyasını
+ * tutuyor (bu turdan önce de öyleydi); o rota kendi turunda aynı desene
+ * geçirilmeli.
+ */
+export const uiOrderStatusMeta: Record<
+  string,
+  { labelKey: MessageKey; variant: BadgeVariant }
+> = {
+  pending: { labelKey: 'order.statusPendingPayment', variant: 'warning' },
+  paid: { labelKey: 'order.statusPaid', variant: 'info' },
+  processing: { labelKey: 'order.statusProcessing', variant: 'info' },
+  shipped: { labelKey: 'order.statusShipped', variant: 'primary' },
+  delivered: { labelKey: 'order.statusDelivered', variant: 'success' },
+  awaiting_confirmation: { labelKey: 'order.statusAwaitingConfirmation', variant: 'warning' },
+  completed: { labelKey: 'order.statusCompleted', variant: 'success' },
+  cancelled: { labelKey: 'order.statusCancelled', variant: 'danger' },
+  refunded: { labelKey: 'order.statusRefunded', variant: 'secondary' },
+  refund_requested: { labelKey: 'order.statusRefundInProgress', variant: 'danger' },
+  mixed: { labelKey: 'order.statusMixed', variant: 'info' },
 };
 
-export const getStatusText = (status: UiOrderStatus) =>
-  uiOrderStatusConfig[status]?.label ?? String(status);
+/** `StatusBadge`'in beklediği çevrilmiş config. */
+export function useOrderStatusConfig(): Record<string, { label: string; variant: BadgeVariant }> {
+  const { t } = useTranslation();
+  return useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(uiOrderStatusMeta).map(([status, meta]) => [
+          status,
+          { label: t(meta.labelKey), variant: meta.variant },
+        ]),
+      ),
+    [t],
+  );
+}
+
+/** Rozet dışında düz metin gerektiğinde (ör. erişilebilirlik etiketi). */
+export function useStatusText(): (status: UiOrderStatus) => string {
+  const config = useOrderStatusConfig();
+  return (status) => config[status]?.label ?? String(status);
+}
 
 // Rozet önceliği: aktif iade > iptal > normal durum.
 // - activeRefundRequest dolu ama tamamlanmadıysa → "İade Sürecinde" (sipariş
