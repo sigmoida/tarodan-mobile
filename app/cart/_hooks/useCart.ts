@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ordersApi, type OrderQuoteResponse } from '@/lib/api';
 import { qk } from '@/lib/query';
+import { unwrapEnvelope } from '@/utils/apiEnvelope';
 import { useCartStore } from '@/stores/cartStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useCartSync } from '@/hooks/useCartSync';
@@ -13,7 +14,7 @@ import { useServerCart } from '@/hooks/useServerCart';
  * verbatim from the monolithic screen (§12).
  */
 export function useCart() {
-  const { items, getSubtotal, getItemCount, cleanExpiredItems } = useCartStore();
+  const { items, getItemCount, cleanExpiredItems } = useCartStore();
   // Yazmalar sunucu sepetine de aynalanır (üyede); okuma yerel store'dan.
   const sync = useCartSync();
   const { byProductId } = useServerCart();
@@ -24,28 +25,35 @@ export function useCart() {
     cleanExpiredItems();
   }, []);
 
-  const subtotal = getSubtotal();
   const itemCount = getItemCount();
 
-  // Platform hizmet bedeli (komisyon) — backend quote'tan, sepette de net göster.
-  // `pricing.summary`'den AYNEN: istemci tarafında hesaplanan/yuvarlanan para
-  // değeri yok (kargo hariç — checkout adımında hesaplanır, burada gösterilmez).
+  // Fiyat kırılımı checkout ile AYNI uçtan ve AYNI anahtardan gelir — sepet ile
+  // ödeme ekranı arasında tek bir doğru vardır.
   const quoteQuery = useQuery({
     queryKey: qk.checkout.quote(items.map((it) => `${it.productId}:${it.quantity}`).join(',')),
     queryFn: async () => {
       const res = await ordersApi.getQuote({
         items: items.map((it) => ({ productId: it.productId, quantity: it.quantity })),
       });
-      return (res.data ?? {}) as OrderQuoteResponse;
+      return unwrapEnvelope<OrderQuoteResponse>(res);
     },
     enabled: items.length > 0,
     staleTime: 60_000,
   });
   const summary = quoteQuery.data?.pricing?.summary;
-  const buyerFee = Number(summary?.serviceFeeAmount ?? 0);
-  // Sepet önizlemesi kargoyu içermez (checkout'ta belirlenir); ürün ara toplamı +
-  // hizmet bedeli, ikisi de sunucudan — burada yalnızca toplamaları var, aritmetik yok.
-  const total = summary ? Number(summary.productAmount) + Number(summary.serviceFeeAmount) : subtotal;
+  const hasQuote = summary != null;
+  // ————————————————————————————————————————————————————————————————
+  // BAĞLAYICI KISIT: parayla ilgili hiçbir değer istemcide hesaplanmaz.
+  // Eskiden buradaki `total` `productAmount + serviceFeeAmount` idi — hiçbir
+  // sunucu alanına karşılık gelmeyen, istemcide üretilmiş bir tutar; üstelik
+  // "Ara Toplam" yerel `getSubtotal()`, "Toplam" sunucu tabanlıydı, ikisi
+  // ayrıştığında satırlar tutmuyordu. Artık dördü de `pricing.summary`'den AYNEN.
+  // Sunucu değeri yoksa `null` → ekran yer tutucu basar, yerel toplam BASILMAZ.
+  // ————————————————————————————————————————————————————————————————
+  const productAmount = hasQuote ? Number(summary!.productAmount) : null;
+  const shippingAmount = hasQuote ? Number(summary!.shippingAmount) : null;
+  const serviceFeeAmount = hasQuote ? Number(summary!.serviceFeeAmount) : null;
+  const total = hasQuote ? Number(summary!.total) : null;
 
   const handleRemove = (itemId: string) => {
     sync.removeItem(itemId);
@@ -69,10 +77,14 @@ export function useCart() {
   return {
     items,
     isAuthenticated,
-    subtotal,
     itemCount,
-    buyerFee,
+    // Fiyat — hepsi `pricing.summary`'nin aynısı; yoksa `null` (yer tutucu).
+    productAmount,
+    shippingAmount,
+    serviceFeeAmount,
     total,
+    hasQuote,
+    quoteLoading: quoteQuery.isLoading,
     handleRemove,
     handleQuantityChange,
     stockWarningFor,

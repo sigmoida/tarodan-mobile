@@ -1,12 +1,21 @@
 import { View } from 'react-native';
 import { Divider, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
+import { formatServerPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
 import type { CartController } from '../_hooks/useCart';
 
 const { colors } = theme;
 
-/** Sipariş özeti kartı + (misafir ise) misafir-checkout bilgisi. */
+/**
+ * Sipariş özeti kartı + (misafir ise) misafir-checkout bilgisi.
+ *
+ * Checkout'un `OrderSummary`'siyle AYNI disiplin: dört satır da
+ * `pricing.summary`'den aynen basılır, istemcide hiçbir toplama/çıkarma yapılmaz.
+ * Sunucu değeri yoksa tutar yerine yer tutucu — yerel `getSubtotal()` sonucunu
+ * "Toplam" diye basmak, hiçbir sunucu alanına karşılık gelmeyen bir para değeri
+ * göstermek demekti.
+ */
 export function CartSummary({ f }: { f: CartController }) {
   return (
     <>
@@ -14,22 +23,22 @@ export function CartSummary({ f }: { f: CartController }) {
         <Text style={styles.summaryTitle}>Sipariş Özeti</Text>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Ara Toplam ({f.itemCount} ürün)</Text>
-          <Text style={styles.summaryValue}>₺{f.subtotal.toLocaleString('tr-TR')}</Text>
+          <Text style={styles.summaryValue}>{formatServerPrice(f.productAmount)}</Text>
         </View>
-        {f.buyerFee > 0 ? (
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Platform Hizmet Bedeli</Text>
-            <Text style={styles.summaryValue}>₺{f.buyerFee.toLocaleString('tr-TR')}</Text>
-          </View>
-        ) : null}
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Kargo</Text>
-          <Text style={styles.summaryValue}>Ödeme adımında hesaplanır</Text>
+          <Text style={styles.summaryValue}>{formatServerPrice(f.shippingAmount)}</Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Platform Hizmet Bedeli</Text>
+          <Text style={styles.summaryValue}>{formatServerPrice(f.serviceFeeAmount)}</Text>
         </View>
         <Divider style={{ marginVertical: theme.spacing[3] }} />
         <View style={styles.summaryRow}>
           <Text style={styles.totalLabel}>Toplam</Text>
-          <Text style={styles.totalValue}>₺{f.total.toLocaleString('tr-TR')}</Text>
+          <Text style={styles.totalValue} testID="cart-summary-total">
+            {formatServerPrice(f.total)}
+          </Text>
         </View>
       </View>
 

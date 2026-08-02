@@ -2,6 +2,7 @@ import { View, ScrollView } from 'react-native';
 import { Button, Text, theme, ScreenHeader } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { formatServerPrice } from '@/utils/format';
 import { useCart } from './_hooks/useCart';
 import { styles } from './_lib/styles';
 import { CartItemRow } from './_components/CartItemRow';
@@ -56,7 +57,11 @@ export default function CartScreen() {
       <View style={styles.checkoutBar}>
         <View style={styles.checkoutTotal}>
           <Text style={styles.checkoutLabel}>Toplam</Text>
-          <Text style={styles.checkoutPrice}>₺{f.total.toLocaleString('tr-TR')}</Text>
+          {/* Sunucu toplamı gelmeden tutar basılmaz — yerel bir sayı uydurmak
+              yerine yer tutucu (ödeme adımında tutar zaten yeniden doğrulanır). */}
+          <Text style={styles.checkoutPrice} testID="cart-checkout-total">
+            {formatServerPrice(f.total)}
+          </Text>
         </View>
         <Button
           testID="cart-checkout-button"
