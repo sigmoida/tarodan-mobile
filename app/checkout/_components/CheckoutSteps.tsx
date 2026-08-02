@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, Image, TouchableOpacity } from 'react-native';
 import { Input, Radio, Switch, Spinner, Divider, Text, theme } from '@/ui';
@@ -15,13 +16,14 @@ type Ctrl = ReturnType<typeof useCheckout>;
 
 /** Adım 1: konuk iletişim + teslimat adresi + fatura adresi (toggle). */
 export function Step1Address({ c }: { c: Ctrl }) {
+  const { t } = useTranslation();
   return (
     <>
       {!c.isAuthenticated ? (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="person-outline" size={24} color={colors.primary[600]!} />
-            <Text style={styles.sectionTitle}>İletişim Bilgileri</Text>
+            <Text style={styles.sectionTitle}>{t('checkout.contactInfo')}</Text>
           </View>
           <View style={styles.guestNotice}>
             <Ionicons name="information-circle-outline" size={20} color={colors.warning[600]!} />
@@ -57,7 +59,7 @@ export function Step1Address({ c }: { c: Ctrl }) {
             containerStyle={styles.input}
           />
           <TouchableOpacity style={styles.loginLink} onPress={() => router.push('/(auth)/login' as any)}>
-            <Text style={styles.loginLinkText}>Üye misiniz? Giriş yapın →</Text>
+            <Text style={styles.loginLinkText}>{t('checkout.signInPrompt')}</Text>
           </TouchableOpacity>
         </View>
       ) : null}
@@ -65,7 +67,7 @@ export function Step1Address({ c }: { c: Ctrl }) {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Ionicons name="location-outline" size={24} color={colors.primary[600]!} />
-          <Text style={styles.sectionTitle}>Teslimat Adresi</Text>
+          <Text style={styles.sectionTitle}>{t('checkout.shippingAddress')}</Text>
         </View>
         <AddressSelector
           isAuthenticated={c.isAuthenticated}
@@ -81,7 +83,7 @@ export function Step1Address({ c }: { c: Ctrl }) {
         <View style={[styles.sectionHeader, { justifyContent: 'space-between' }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Ionicons name="receipt-outline" size={24} color={colors.primary[600]!} />
-            <Text style={styles.sectionTitle}>Fatura Adresi</Text>
+            <Text style={styles.sectionTitle}>{t('checkout.billingAddress')}</Text>
           </View>
           <Switch value={c.billingDifferent} onValueChange={c.setBillingDifferent} />
         </View>
@@ -96,7 +98,7 @@ export function Step1Address({ c }: { c: Ctrl }) {
             setInline={c.setBillingAddress}
           />
         ) : (
-          <Text style={styles.helperText}>Teslimat adresi ile aynı kullanılacak.</Text>
+          <Text style={styles.helperText}>{t('checkout.sameAsShippingUsed')}</Text>
         )}
       </View>
     </>
@@ -105,17 +107,18 @@ export function Step1Address({ c }: { c: Ctrl }) {
 
 /** Adım 2: kargo (tek firma) + ödeme yöntemi bilgilendirme. */
 export function Step2Payment({ c }: { c: Ctrl }) {
+  const { t } = useTranslation();
   return (
     <>
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Ionicons name="car-outline" size={24} color={colors.primary[600]!} />
-          <Text style={styles.sectionTitle}>Kargo Seçimi</Text>
+          <Text style={styles.sectionTitle}>{t('checkout.shippingSelection')}</Text>
         </View>
         <View style={[styles.optionCard, styles.optionCardActive]}>
           <Radio checked onChange={() => {}} />
           <View style={styles.optionContent}>
-            <Text style={styles.optionTitle}>Sürat Kargo</Text>
+            <Text style={styles.optionTitle}>{t('checkout.suratKargo')}</Text>
             <Text style={styles.optionDescription}>2-4 iş günü teslimat</Text>
           </View>
           {c.shippingLoading ? (
@@ -131,7 +134,7 @@ export function Step2Payment({ c }: { c: Ctrl }) {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Ionicons name="card-outline" size={24} color={colors.primary[600]!} />
-          <Text style={styles.sectionTitle}>Ödeme Yöntemi</Text>
+          <Text style={styles.sectionTitle}>{t('checkout.paymentMethod')}</Text>
         </View>
         <View style={styles.paytrNotice}>
           <Ionicons name="lock-closed" size={18} color={colors.success[600]!} />
@@ -147,11 +150,12 @@ export function Step2Payment({ c }: { c: Ctrl }) {
 
 /** Adım 3: sipariş özeti (ürünler) + güvenlik notu. */
 export function Step3Confirm({ c }: { c: Ctrl }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <Ionicons name="receipt-outline" size={24} color={colors.primary[600]!} />
-        <Text style={styles.sectionTitle}>Sipariş Özeti</Text>
+        <Text style={styles.sectionTitle}>{t('checkout.orderSummary')}</Text>
       </View>
 
       {c.items.map((item) => (
@@ -186,7 +190,7 @@ export function Step3Confirm({ c }: { c: Ctrl }) {
       <View style={styles.securityNotice}>
         <Ionicons name="shield-checkmark" size={20} color={colors.success[600]!} />
         <View style={styles.securityContent}>
-          <Text style={styles.securityTitle}>Güvenli Alışveriş</Text>
+          <Text style={styles.securityTitle}>{t('checkout.secureShopping')}</Text>
           <Text style={styles.securityText}>
             Ödemeniz şifreli olarak iletilir. Ürün elinize ulaşana kadar paranız güvende tutulur.
           </Text>

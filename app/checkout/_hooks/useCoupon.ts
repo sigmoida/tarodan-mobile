@@ -1,3 +1,4 @@
+import i18n from '@/i18n/config';
 import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { discountsApi } from '@/lib/api';
@@ -61,7 +62,7 @@ export function useCoupon(items: CartLine[], isAuthenticated: boolean) {
       // Uç geçersiz kuponda da 200 döner; karar `isValid` alanında.
       if (!result?.isValid || !result.discount) {
         setApplied(null);
-        setError(result?.error || 'Kupon kodu geçersiz veya süresi dolmuş.');
+        setError(result?.error || i18n.t('checkout.couponInvalidOrExpired'));
         return;
       }
       setError(null);
@@ -73,7 +74,7 @@ export function useCoupon(items: CartLine[], isAuthenticated: boolean) {
     },
     onError: (err: any) => {
       setApplied(null);
-      setError(extractApiMessage(err) ?? 'Kupon doğrulanamadı. Lütfen tekrar deneyin.');
+      setError(extractApiMessage(err) ?? i18n.t('checkout.couponValidateFailed'));
     },
   });
 

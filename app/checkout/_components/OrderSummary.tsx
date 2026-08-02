@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View } from 'react-native';
 import { Divider, ErrorState, Text } from '@/ui';
@@ -38,6 +39,7 @@ export function OrderSummary({
   isError?: boolean;
   onRetry?: () => void;
 }) {
+  const { t } = useTranslation();
   // Quote hata verdiyse tutar basma — çıkış yolu ver (paylaşılan primitive, §11).
   if (isError) {
     return (
@@ -53,22 +55,22 @@ export function OrderSummary({
 
   return (
     <View style={styles.orderSummary}>
-      <Text style={styles.orderSummaryTitle}>Ödeme Detayı</Text>
+      <Text style={styles.orderSummaryTitle}>{t('checkout.paymentDetail')}</Text>
       <View style={styles.orderSummaryRow}>
         <Text style={styles.orderSummaryLabel}>Ara Toplam ({itemCount} ürün)</Text>
         <Text style={styles.orderSummaryValue}>{formatServerPrice(productAmount)}</Text>
       </View>
       <View style={styles.orderSummaryRow}>
-        <Text style={styles.orderSummaryLabel}>Kargo (Sürat)</Text>
+        <Text style={styles.orderSummaryLabel}>{t('checkout.shippingWithCarrier')}</Text>
         <Text style={styles.orderSummaryValue}>{formatServerPrice(shippingCost)}</Text>
       </View>
       <View style={styles.orderSummaryRow}>
-        <Text style={styles.orderSummaryLabel}>Platform Hizmet Bedeli</Text>
+        <Text style={styles.orderSummaryLabel}>{t('footer.platformServiceFee')}</Text>
         <Text style={styles.orderSummaryValue}>{formatServerPrice(serviceFeeAmount)}</Text>
       </View>
       <Divider style={{ marginVertical: 12 }} />
       <View style={styles.orderSummaryRow}>
-        <Text style={styles.orderTotalLabel}>Toplam</Text>
+        <Text style={styles.orderTotalLabel}>{t('common.total')}</Text>
         <Text style={styles.orderTotalValue}>{formatServerPrice(total)}</Text>
       </View>
     </View>

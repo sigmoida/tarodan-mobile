@@ -1,3 +1,10 @@
+/**
+ * ⚠️ React DIŞI modül — `useTranslation` çağıramaz. Kullanıcıya dönen mesajlar
+ * global i18next örneğinden okunur; anahtarlar yine tip-denetimli
+ * (`i18next.d.ts` augmentation). Mesajlar tek seferlik üretildiği için dil
+ * değişiminde yeniden render gerekmiyor.
+ */
+import i18n from '@/i18n/config';
 import { DEFAULT_COUNTRY_CODE, isValidPhoneInput, PHONE_INVALID_MESSAGE } from '@/utils/phone';
 import type { ShippingAddressInput } from './types';
 
@@ -23,9 +30,9 @@ export const validateGuest = (
   phone: string,
   countryCode: string = DEFAULT_COUNTRY_CODE,
 ): string | null => {
-  if (!name.trim()) return 'Lütfen adınızı girin';
-  if (!/^\S+@\S+\.\S+$/.test(email.trim())) return 'Geçerli bir e-posta adresi girin';
-  if (!phone.trim()) return 'Lütfen telefon numaranızı girin';
+  if (!name.trim()) return i18n.t('checkout.nameRequired');
+  if (!/^\S+@\S+\.\S+$/.test(email.trim())) return i18n.t('checkout.invalidEmail');
+  if (!phone.trim()) return i18n.t('checkout.phoneRequired');
   if (!isValidPhoneInput(phone, countryCode)) return PHONE_INVALID_MESSAGE;
   return null;
 };
@@ -49,14 +56,14 @@ export const validateGuest = (
 export const addressPhoneError = (
   phone: string,
   countryCode: string = DEFAULT_COUNTRY_CODE,
-  label = 'Teslimat',
+  label = i18n.t('checkout.shippingAddressLabel'),
 ): string | null => {
   if (!phone.trim()) return `${label} adresi için telefon numarası gerekli`;
   if (!isValidPhoneInput(phone, countryCode)) return `${label} adresi — ${PHONE_INVALID_MESSAGE}`;
   return null;
 };
 
-export const validateInlineAddress = (a: ShippingAddressInput, label = 'Teslimat'): string | null => {
+export const validateInlineAddress = (a: ShippingAddressInput, label = i18n.t('checkout.shippingAddressLabel')): string | null => {
   if (!a.fullName.trim()) return `${label} adresi için ad soyad gerekli`;
   const phoneError = addressPhoneError(a.phone, a.phoneCountryCode ?? DEFAULT_COUNTRY_CODE, label);
   if (phoneError) return phoneError;

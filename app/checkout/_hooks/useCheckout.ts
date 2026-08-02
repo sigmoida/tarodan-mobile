@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -71,6 +72,7 @@ const requirePhone = (phone: string | null, message: string): string => {
  * yalnız adımları kompoze eder. Ödeme dallanmaları orijinalden BİREBİR taşındı.
  */
 export function useCheckout() {
+  const { t } = useTranslation();
   const { buyNow } = useLocalSearchParams<{ buyNow?: string }>();
   const isBuyNow = buyNow === '1';
   const { items: cartItems, clearCart: clearCartStore, buyNowItem, clearBuyNow } = useCartStore();
@@ -259,8 +261,8 @@ export function useCheckout() {
         // kalır ve sipariş ucundan bu kez ham 400 gelir.
         coupon.remove();
         alertDeferredWhileOtpOpen(
-          'Kupon Geçersiz',
-          extractApiMessage(err) ?? 'Kupon kodu artık geçerli değil, kaldırıldı.',
+          t('checkout.couponInvalidTitle'),
+          extractApiMessage(err) ?? t('checkout.couponInvalidBody'),
         );
         try {
           const retryRes = await ordersApi.getQuote({ items: baseItems });
@@ -356,8 +358,8 @@ export function useCheckout() {
   const handleEmailAlreadyRegistered = (e: any): boolean => {
     if (e?.response?.status === 409 || e?.response?.data?.code === 'EMAIL_ALREADY_REGISTERED') {
       alertAfterOtpClose(
-        'Bu e-posta zaten kayıtlı',
-        extractApiMessage(e) ?? 'Bu e-posta adresi zaten kayıtlı. Lütfen giriş yapıp alışverişe devam edin.',
+        t('checkout.emailRegisteredTitle'),
+        extractApiMessage(e) ?? t('checkout.emailRegisteredBody'),
       );
       router.push('/(auth)/login' as any);
       return true;
@@ -400,7 +402,7 @@ export function useCheckout() {
       if (isAuthenticated && selectedBillingAddressId !== 'new') {
         // Kayıtlı seçildi → OK
       } else {
-        const err = validateInlineAddress(billingAddress, 'Fatura');
+        const err = validateInlineAddress(billingAddress, t('checkout.billingAddressLabel'));
         if (err) return err;
       }
     }
@@ -445,7 +447,7 @@ export function useCheckout() {
       const shipping = parsePhoneForPayload(src.phone, src.countryCode);
       if (!shipping) {
         // Boş alan ile çözülemeyen numara farklı hatalar — mesaj tek kaynaktan.
-        return { ok: false, message: addressPhoneError(src.phone, src.countryCode, 'Teslimat')! };
+        return { ok: false, message: addressPhoneError(src.phone, src.countryCode, t('checkout.shippingAddressLabel'))! };
       }
       phones.shipping = shipping;
     }
@@ -461,7 +463,7 @@ export function useCheckout() {
           message: addressPhoneError(
             billingAddress.phone,
             billingAddress.phoneCountryCode ?? DEFAULT_COUNTRY_CODE,
-            'Fatura',
+            t('checkout.billingAddressLabel'),
           )!,
         };
       }
@@ -515,10 +517,10 @@ export function useCheckout() {
       // tazelenmiyor (`refetchOnWindowFocus: false`); kullanıcı özet kartındaki
       // "Tekrar Dene" düğmesine basmalı.
       alertInlineWhileOtpOpen(
-        quoteQuery.isError ? 'Fiyat Bilgisi Alınamadı' : 'Fiyat Bilgisi Hazır Değil',
+        quoteQuery.isError ? t('checkout.priceUnavailableTitle') : t('checkout.priceNotReadyTitle'),
         quoteQuery.isError
-          ? 'Fiyat bilgisi alınamadı. Ödeme detayı kartındaki "Tekrar Dene" ile yeniden deneyin.'
-          : 'Fiyat bilgisi yükleniyor, lütfen birkaç saniye sonra tekrar deneyin.',
+          ? t('checkout.priceUnavailableBody')
+          : t('checkout.priceNotReadyBody'),
       );
       return;
     }
@@ -527,7 +529,7 @@ export function useCheckout() {
     // yüzden modal açıkken satır içi basılır (modal kapatmak kodu boşa düşürürdü).
     const resolved = resolvePayloadPhones();
     if (!resolved.ok) {
-      alertInlineWhileOtpOpen('Telefon Numarası Geçersiz', resolved.message);
+      alertInlineWhileOtpOpen(t('checkout.phoneInvalidTitle'), resolved.message);
       return;
     }
     setLoading(true);
@@ -578,7 +580,7 @@ export function useCheckout() {
         // üzerinde asılı kalır.
         alertAfterOtpClose(
           'Hata',
-          'Sipariş oluşturuldu fakat ödeme başlatılamadı. Siparişlerim sayfasından devam edebilirsiniz.',
+          t('checkout.orderCreatedPaymentFailed'),
         );
         finalizeCart();
         router.replace('/orders' as any);
@@ -626,7 +628,7 @@ export function useCheckout() {
       } catch (payErr: any) {
         const msg =
           payErr?.response?.data?.message ||
-          'Ödeme başlatılamadı. Siparişinizi daha sonra siparişlerim üzerinden tamamlayabilirsiniz.';
+          t('checkout.paymentStartFailedBody');
         const status = payErr?.response?.status;
         const isStockout =
           (status === 400 || status === 409) &&
@@ -642,15 +644,15 @@ export function useCheckout() {
         // SONLANDIRICI: butonun kendisi ekranı terk ediyor (siparişlerim / ana
         // sayfa). Modal açıkken bu uyarıyı basmak hem donduruyor hem de altında
         // hiçbir işe yaramayan bir OTP formu bırakıyordu → önce kapat.
-        alertAfterOtpClose('Ödeme Başlatılamadı', msg, [
-          { text: 'Tamam', onPress: () => router.replace(isAuthenticated ? '/orders' : ('/' as any)) },
+        alertAfterOtpClose(t('checkout.paymentStartFailedTitle'), msg, [
+          { text: t('common.ok'), onPress: () => router.replace(isAuthenticated ? '/orders' : ('/' as any)) },
         ]);
       }
     } catch (error: any) {
       // Client-side telefon reddi ağ hatası DEĞİL: log'lanmaz (mesaj PII taşımaz
       // ama gürültü de yapmasın), Sentry'ye gitmez, kullanıcıya Türkçe basılır.
       if (error?.isClientValidation) {
-        alertInlineWhileOtpOpen('Telefon Numarası Geçersiz', error.message);
+        alertInlineWhileOtpOpen(t('checkout.phoneInvalidTitle'), error.message);
         return;
       }
       console.error('Checkout error:', error);
@@ -665,7 +667,7 @@ export function useCheckout() {
         // Geçici DEĞİL: kullanıcı ana ekranda yeni tutarı görüp yeniden
         // onaylamalı → OTP modalı açıksa önce kapatılır.
         alertAfterOtpClose(
-          'Fiyatlar Güncellendi',
+          t('checkout.pricesUpdatedTitle'),
           `Ürün veya kargo fiyatları güncellendi.\n\nÖnceki toplam: ${formatServerPrice(
             oldTotal,
           )}\nYeni toplam: ${formatServerPrice(newTotal)}\n\nLütfen tutarı kontrol edip tekrar onaylayın.`,
@@ -677,13 +679,13 @@ export function useCheckout() {
         error.response?.data?.error ||
         (Array.isArray(error.response?.data?.message)
           ? error.response?.data?.message.join(', ')
-          : 'Sipariş oluşturulamadı');
+          : t('checkout.orderCreateFailed'));
       const isStockout =
         (status === 400 || status === 409) &&
         typeof errorMessage === 'string' &&
         STOCKOUT_KEYWORDS.some((kw) => errorMessage.toLowerCase().includes(kw.toLowerCase()));
       if (!isAuthenticated && emailVerificationCode && status === 400 && !isStockout) {
-        setOtpError(extractApiMessage(error) ?? 'Doğrulama kodu geçersiz veya süresi dolmuş.');
+        setOtpError(extractApiMessage(error) ?? t('checkout.verificationCodeInvalid'));
         return;
       }
       if (isStockout) {
@@ -707,7 +709,7 @@ export function useCheckout() {
 
   const handleCheckout = async () => {
     if (items.length === 0) {
-      showSnackbar('Sepetiniz boş');
+      showSnackbar(t('checkout.emptyCart'));
       return;
     }
     for (const item of items) {
@@ -740,7 +742,7 @@ export function useCheckout() {
       setOtpModalOpen(true);
     } catch (e: any) {
       if (handleEmailAlreadyRegistered(e)) return;
-      appAlert('Hata', extractApiMessage(e) ?? 'Doğrulama kodu gönderilemedi.');
+      appAlert('Hata', extractApiMessage(e) ?? t('checkout.verificationCodeSendFailed'));
     } finally {
       setOtpSending(false);
     }
@@ -769,7 +771,7 @@ export function useCheckout() {
       // ham `setOtpModalOpen(false)` `otpCode`/`otpError`'ı temizlemiyor ve
       // `pendingAlertRef`'i boşaltmıyordu → ertelenmiş bir uyarı askıda kalırdı.
       if (handleEmailAlreadyRegistered(e)) return;
-      setOtpError(extractApiMessage(e) ?? 'Kod gönderilemedi.');
+      setOtpError(extractApiMessage(e) ?? t('checkout.codeSendFailed'));
     } finally {
       setOtpSending(false);
     }

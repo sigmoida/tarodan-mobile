@@ -1,3 +1,4 @@
+import i18n from '@/i18n/config';
 import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ordersApi, type OrderQuoteResponse } from '@/lib/api';
@@ -86,7 +87,7 @@ export function useCart() {
   const stockWarningFor = (productId: string) => {
     const line = byProductId.get(productId);
     if (!line) return null;
-    if (line.isAvailable === false) return 'Bu ürün şu anda stokta yok';
+    if (line.isAvailable === false) return i18n.t('cart.outOfStock');
     return line.stockWarning ?? null;
   };
 
