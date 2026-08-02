@@ -11,8 +11,9 @@ const MAX_LEN = 30;
 export interface UsernameAvailability {
   /** Debounce bekleniyor veya sorgu sürüyor. */
   checking: boolean;
-  /** Format geçersizken (veya henüz sorgu atılmadıysa) `undefined` — bilinmiyor
-   *  demektir, bloklama YAPILMAZ. Yalnız kesin `false` gönderimi engellemeli. */
+  /** Format geçersizken, henüz sorgu atılmadıysa VEYA sonuç yazılan değere ait
+   *  değilken (debounce penceresi) `undefined` — bilinmiyor demektir, bloklama
+   *  YAPILMAZ. Yalnız yazılan adın kendi kesin `false`'u gönderimi engeller. */
   available: boolean | undefined;
   /** 30/dk throttle'a takıldı — kullanıcıya bekleme mesajı göster, sessizce yeniden deneme. */
   isThrottled: boolean;
@@ -24,7 +25,8 @@ export interface UsernameAvailability {
  * ⚠️ Canlı tuzak: uç FORMAT doğrulaması YAPMAZ — `Gorkem` (büyük harfli) gibi
  * geçersiz bir girdi için bile `available:true` dönebilir. Bu yüzden sorgu YALNIZ
  * ham (case-sensitive) girdi `USERNAME_PATTERN`'i geçtiğinde atılır; büyük harfli
- * girdi hiçbir zaman ağa gitmeden reddedilmiş olur.
+ * girdi hiçbir zaman ağa gitmeden reddedilmiş olur. (RegisterForm alanı zaten
+ * girişte küçük harfe çeviriyor — buradaki kapı ikinci bariyer.)
  */
 export function useUsernameAvailability(rawUsername: string): UsernameAvailability {
   const [debounced, setDebounced] = useState(rawUsername);
