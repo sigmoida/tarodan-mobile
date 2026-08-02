@@ -42,6 +42,9 @@ export function useUsernameAvailability(rawUsername: string): UsernameAvailabili
   const candidate = debounced.trim();
   const isValidFormat = isValid(candidate);
   const isRawValidFormat = isValid(rawUsername);
+  /** Sorgulanan aday, kullanıcının ŞU ANDA yazdığı değer mi? Debounce penceresinde
+   *  değildir — o aralıkta `available` bir ÖNCEKİ adın sonucudur (bayat). */
+  const isFresh = candidate === rawUsername.trim();
 
   const query = useQuery({
     queryKey: qk.auth.usernameAvailability(candidate),
@@ -58,7 +61,12 @@ export function useUsernameAvailability(rawUsername: string): UsernameAvailabili
     // Debounce beklerken de "kontrol ediliyor" göster (format zaten geçerliyse);
     // format geçersizse (kısa/karakter dışı/büyük harf) hiçbir zaman true olmaz.
     checking: isRawValidFormat && (debounced !== rawUsername || query.isFetching),
-    available: isValidFormat ? query.data?.available : undefined,
+    // TAZELİK KAPISI: yalnız yazılan değerin kendi sonucu döner. Aksi halde
+    // kullanıcı "alınmış" bir addan yeni bir ada geçtiğinde 400ms boyunca eski
+    // `false` yeni ada yapışıyor, ekran kırmızı "alınmış" gösteriyor ve buton
+    // kilitli kalıyordu (fail-open korunur: bilinmiyorsa `undefined`).
+    available: isValidFormat && isFresh ? query.data?.available : undefined,
+    // 429 uç geneli bir sinyal (ada özel değil) — tazelikle kapılanmaz.
     isThrottled,
   };
 }

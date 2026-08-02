@@ -11,28 +11,29 @@ import type { RegisterController } from '../_hooks/useRegister';
 export function RegisterForm({ f }: { f: RegisterController }) {
   const { control, errors, registerMutation, usernameAvailability } = f;
 
-  // "Alınmış" durumu format hatasıyla aynı kırmızı slot'u paylaşır (Input tek satır gösterir);
-  // format zaten geçersizse uygunluk mesajı hiç gösterilmez (zod hatası önceliklidir).
+  // Kullanıcı adı durum slotu — TEK öncelik sırası (Input tek satır gösterir):
+  //   1) zod format hatası  2) "kontrol ediliyor"  3) uygunluk sonucu.
+  // "Kontrol ediliyor" ADIMI ATLANMAZ: aksi halde henüz sorulmamış bir ad için
+  // eski sonucun kırmızısı görünür ve buton sessizce kilitli kalır.
+  const { available, checking, isThrottled } = usernameAvailability;
   const usernameFormatError = errors.username?.message;
   const usernameTakenError =
-    !usernameFormatError && usernameAvailability.available === false
-      ? 'Bu kullanıcı adı alınmış'
-      : undefined;
+    !usernameFormatError && !checking && available === false ? 'Bu kullanıcı adı alınmış' : undefined;
   const usernameError = usernameFormatError || usernameTakenError;
-  const usernameHelper = usernameError
+  const usernameHelper = usernameFormatError
     ? undefined
-    : usernameAvailability.isThrottled
-      ? 'Çok fazla deneme yapıldı. Birazdan tekrar deneyin.'
-      : usernameAvailability.checking
-        ? 'Kontrol ediliyor…'
-        : usernameAvailability.available === true
+    : checking
+      ? 'Kontrol ediliyor…'
+      : isThrottled
+        ? 'Çok fazla deneme yapıldı. Birazdan tekrar deneyin.'
+        : available === true
           ? 'Bu kullanıcı adı uygun'
           : undefined;
-  const usernameStatusIcon = usernameError
-    ? null
-    : usernameAvailability.checking
-      ? <Spinner size="sm" />
-      : usernameAvailability.available === true
+  const usernameStatusIcon = checking
+    ? <Spinner size="sm" />
+    : usernameError
+      ? null
+      : available === true
         ? <Ionicons name="checkmark-circle" size={20} color={theme.colors.success[600]} />
         : null;
 
@@ -49,7 +50,11 @@ export function RegisterForm({ f }: { f: RegisterController }) {
             rightIcon={usernameStatusIcon}
             placeholder="kaan.merakli"
             value={value}
-            onChangeText={onChange}
+            // Girişte küçük harfe çevir: alan gerçekten kaydedilecek handle'ı
+            // gösterir (sessiz dönüşüm yok) ve karışık girdi de uygunluk
+            // kontrolünden geçer. Şemadaki `.toLowerCase()` emniyet kemeri.
+            onChangeText={(t) => onChange(t.toLowerCase())}
+            maxLength={30}
             autoCapitalize="none"
             autoCorrect={false}
             spellCheck={false}
@@ -58,7 +63,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
           />
         )}
       />
-      <Text variant="bodySm" tone="muted" style={{ marginTop: -4, marginBottom: 8 }}>
+      <Text variant="bodySm" tone="muted" style={styles.fieldHint}>
         Kullanıcı adı bir kez belirlenince değiştirilemez.
       </Text>
 
@@ -136,7 +141,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
           />
         )}
       />
-      <Text variant="bodySm" tone="muted" style={{ marginTop: -4, marginBottom: 8 }}>
+      <Text variant="bodySm" tone="muted" style={styles.fieldHint}>
         Şifre en az 8 karakter olmalı; 1 büyük harf, 1 küçük harf ve 1 rakam içermeli.
       </Text>
 
