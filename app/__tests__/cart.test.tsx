@@ -106,8 +106,12 @@ describe('J60 · checkout navigasyon wiring', () => {
     useCartStore.setState({ items: [seedItem()] });
   });
 
-  it('Satın Al checkout ekranına push eder', () => {
+  it('Satın Al checkout ekranına push eder', async () => {
     renderWithProviders(<CartScreen />);
+    // Buton sunucu toplamı gelene kadar KAPALI (quote hata verse de, 200 dönüp
+    // `total` boş gelse de) — yerel bir tutarla ödeme adımına geçirmemek için.
+    // Navigasyonu sürmek için önce quote'un oturmasını bekle.
+    await waitFor(() => expect(screen.getByTestId('cart-checkout-total')).toHaveTextContent('264,40 TL'));
     fireEvent.press(screen.getByTestId('cart-checkout-button'));
     expect(pushMock).toHaveBeenCalledWith('/checkout');
   });
