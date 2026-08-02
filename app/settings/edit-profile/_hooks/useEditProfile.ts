@@ -5,7 +5,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { userApi, mediaApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
-import { normalizePhoneForPayload, splitPhone } from '@/utils/phone';
+import {
+  isValidPhoneInput,
+  parsePhoneForPayload,
+  PHONE_INVALID_MESSAGE,
+  splitPhone,
+} from '@/utils/phone';
 import { createProfileSchema, type ProfileForm } from '../_lib/schema';
 
 /**
@@ -35,6 +40,8 @@ export function useEditProfile() {
     control,
     handleSubmit,
     formState: { errors },
+    setError,
+    clearErrors,
     watch,
   } = useForm<ProfileForm>({
     resolver: zodResolver(createProfileSchema(isBusinessTier)),
@@ -71,10 +78,23 @@ export function useEditProfile() {
         avatarUrl = uploadRes.data?.key ?? uploadRes.data?.url;
       }
 
+      // Boş bırakılırsa '' gönderilir (numara silme); doluysa "+90…" normalize edilir.
+      // EMNİYET KEMERİ: `onSubmit` zaten geçirmiyor, ama çözülemeyen numara sessizce
+      // kırpılıp/uydurulup kaydedilmesin — gönderimi durdur.
+      let phone = data.phone;
+      if (phone) {
+        const parsed = parsePhoneForPayload(phone, phoneCountryCode);
+        if (!parsed) {
+          const invalid: any = new Error(PHONE_INVALID_MESSAGE);
+          invalid.isClientValidation = true;
+          throw invalid;
+        }
+        phone = parsed;
+      }
+
       const payload: Record<string, any> = {
         displayName: data.displayName,
-        // Boş bırakılırsa '' gönderilir (numara silme); doluysa "+90…" normalize edilir.
-        phone: data.phone ? normalizePhoneForPayload(data.phone, phoneCountryCode) : data.phone,
+        phone,
         bio: data.bio,
         birthDate: data.birthDate,
       };
@@ -106,6 +126,12 @@ export function useEditProfile() {
       setSnackbar({ visible: true, message: 'Profil güncellendi!', variant: 'success' });
     },
     onError: (error: any) => {
+      // Client-side telefon reddi ağ hatası değil — alana da yaz, snackbar'da da göster.
+      if (error?.isClientValidation) {
+        setError('phone', { type: 'manual', message: error.message });
+        setSnackbar({ visible: true, message: error.message, variant: 'danger' });
+        return;
+      }
       setSnackbar({
         visible: true,
         message: error.response?.data?.message || 'Güncelleme başarısız',
@@ -128,6 +154,14 @@ export function useEditProfile() {
   };
 
   const onSubmit = (data: ProfileForm) => {
+    // Telefon opsiyonel — boş bırakmak "numarayı sil" demek. Ama DOLUYSA
+    // çözülebilmeli: eskiden fazla hane sessizce kırpılıp yanlış numara
+    // kaydediliyordu. Şema ülke kodunu bilmediği için gate burada.
+    if (data.phone?.trim() && !isValidPhoneInput(data.phone, phoneCountryCode)) {
+      setError('phone', { type: 'manual', message: PHONE_INVALID_MESSAGE });
+      return;
+    }
+    clearErrors('phone');
     updateMutation.mutate(data);
   };
 

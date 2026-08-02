@@ -2,7 +2,13 @@ import { useState, useCallback } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { appAlert } from "@/ui";
-import { normalizePhoneForPayload, splitPhone } from "@/utils/phone";
+import {
+  DEFAULT_COUNTRY_CODE,
+  isValidPhoneInput,
+  parsePhoneForPayload,
+  PHONE_INVALID_MESSAGE,
+  splitPhone,
+} from "@/utils/phone";
 import { useRefresh } from "@/hooks/useRefresh";
 import { api } from "@/lib/api";
 import { qk } from "@/lib/query";
@@ -65,9 +71,18 @@ export function useAddresses() {
       // API CreateAddressDto `zipCode` bekliyor (postalCode değil) — eşle, yoksa posta kodu kaybolur.
       // phoneCountryCode DTO'da yok; telefonu "+90…" olarak normalize edip payload'dan çıkar.
       const { postalCode, phoneCountryCode, ...rest } = data;
+      // EMNİYET KEMERİ: `handleSubmit` zaten geçirmiyor, ama çözülemeyen numara
+      // buradan ASLA sessizce (kırpılmış/uydurulmuş olarak) çıkmasın — kargo
+      // telefonu bu; yanlışı göndermektense gönderimi durdurup hata göster.
+      const phone = parsePhoneForPayload(data.phone, phoneCountryCode);
+      if (!phone) {
+        const invalid: any = new Error(PHONE_INVALID_MESSAGE);
+        invalid.isClientValidation = true;
+        throw invalid;
+      }
       const payload = {
         ...rest,
-        phone: normalizePhoneForPayload(data.phone, phoneCountryCode),
+        phone,
         zipCode: postalCode,
       };
       if (editingAddress) {
@@ -86,6 +101,12 @@ export function useAddresses() {
       );
     },
     onError: (err: any) => {
+      // Client-side telefon reddi ağ hatası değil — kendi Türkçe mesajını göster.
+      if (err?.isClientValidation) {
+        setFieldErrors((prev) => ({ ...prev, phone: err.message }));
+        appAlert("Hata", err.message);
+        return;
+      }
       const msg = err?.response?.data?.message;
       appAlert(
         "Hata",
@@ -193,7 +214,14 @@ export function useAddresses() {
     if (!formData.title.trim()) errors.title = "Zorunlu alan";
     if (!formData.fullName.trim()) errors.fullName = "Zorunlu alan";
     if (!formData.phone.trim()) errors.phone = "Zorunlu alan";
-    else if (formData.phone.replace(/\D/g, "").length < 10)
+    // TR'de sıkı ayrıştırma (kırpma/tahmin yok, `@/utils/phone` TEK KAYNAK);
+    // TR dışı ülke kodlarında eski ≥10 hane kuralı aynen korunur.
+    else if (!isValidPhoneInput(formData.phone, formData.phoneCountryCode))
+      errors.phone = PHONE_INVALID_MESSAGE;
+    else if (
+      formData.phoneCountryCode !== DEFAULT_COUNTRY_CODE &&
+      formData.phone.replace(/\D/g, "").length < 10
+    )
       errors.phone = "En az 10 haneli geçerli numara";
     if (!formData.address.trim()) errors.address = "Zorunlu alan";
     else if (formData.address.trim().length < 10)
@@ -217,10 +245,8 @@ export function useAddresses() {
       } else if (errors.address) {
         appAlert("Hata", "Adres en az 10 karakter olmalıdır");
       } else {
-        appAlert(
-          "Hata",
-          "Geçerli bir telefon numarası giriniz (en az 10 hane)",
-        );
+        // Alanın altındaki mesajla AYNI metin — iki yerde iki farklı kural anlatılmasın.
+        appAlert("Hata", errors.phone ?? PHONE_INVALID_MESSAGE);
       }
       return;
     }

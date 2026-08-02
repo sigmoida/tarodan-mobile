@@ -42,7 +42,10 @@ export function AddressFormModal({ f }: { f: AddressesController }) {
           containerStyle={styles.input}
         />
         <PhoneInput
+          testID="address-phone-input"
           label="Telefon *"
+          // Kaydete basmadan önce görsün: çözülemeyen numara blur'da uyarır.
+          validateOnBlur
           countryCode={formData.phoneCountryCode}
           onCountryCodeChange={(code) => setFormData({ ...formData, phoneCountryCode: code })}
           phone={formData.phone}
