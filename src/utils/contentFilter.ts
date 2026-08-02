@@ -146,8 +146,19 @@ function isAllowedImageTarget(raw: string): boolean {
   if (!s) return false;
   if (HTTP_URI_RE.test(s)) return true;
   if (ANY_URI_SCHEME_RE.test(s)) return false;
-  // Şemasız: çıplak key veya `/` relatif yol. Dizin çıkışı kabul edilmez.
-  return !s.split('/').includes('..');
+  // Şemasız: çıplak key veya `/` relatif yol. Dizin çıkışı kabul edilmez —
+  // yüzde kodlanmış (`%2e%2e`) ve ters bölülü varyantlar dahil. Çözme
+  // başarısız olursa (bozuk kodlama) değeri kabul etmeyiz.
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(s);
+  } catch {
+    return false;
+  }
+  return !decoded
+    .replace(/\\/g, '/')
+    .split('/')
+    .includes('..');
 }
 
 export function parseMessageContent(content: string): ParsedMessage {
