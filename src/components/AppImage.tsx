@@ -31,10 +31,15 @@ export interface AppImageProps {
   onError?: () => void;
   /**
    * `Authorization: Bearer <token>` header'ı ekler (`expo-image`'in
-   * `source.headers`'ı). Token `useAuthStore.getState()`'ten senkron okunur —
-   * React state'e subscribe olmaz, bu yüzden token değişince bu komponent
-   * yeniden render OLMAZ (görsel zaten mount'ta bir kez yüklenir, yeniden
-   * subscribe etmeye gerek yok).
+   * `source.headers`'ı). Token store'a ABONE olunarak okunur (`useAuthStore`
+   * selector'ü) — `getState()` ile tek seferlik okumak DEĞİL:
+   *   - Token sonradan gelirse (push/deep-link ile doğrudan thread'e girip
+   *     `loadToken()` bitmeden render olmak tipik), tek seferlik okuma `null`
+   *     görür, `React.memo` ebeveyn render'ını bloklar ve görsel KALICI olarak
+   *     kırık kalırdı.
+   *   - Sessiz refresh token'ı değiştirdiğinde de aynı şey olurdu.
+   * Selector sayesinde `token` değişmedikçe hiçbir `AppImage` örneği yeniden
+   * render olmaz; değişince authenticated olanlar doğru header'la tekrar dener.
    *
    * ⚠️ Varsayılan `false` — SADECE API'nin JWT istediği bilinen uçlar için aç
    * (örn. mesaj eki `/api/media/message-attachment/{id}`, bkz.
@@ -65,10 +70,23 @@ export const AppImage = React.memo(function AppImage({
 }: AppImageProps) {
   const uri = resolveImageUrl(source, variant);
   const fit = contentFit ?? (resizeMode ? RESIZE_TO_FIT[resizeMode] : 'cover');
-  // Yalnız opt-in edildiğinde token'ı sorgula — varsayılan (public) yol
-  // authStore'a hiç dokunmaz.
-  const token = authenticated ? useAuthStore.getState().token : null;
+  // Hook KOŞULSUZ çağrılır (rules-of-hooks); token sızıntısı sözleşmesi hemen
+  // altındaki dallanmayla korunur: `authenticated` false ise header HİÇ konmaz.
+  const storeToken = useAuthStore((s) => s.token);
+  const token = authenticated ? storeToken : null;
   const imageSource = token ? { uri, headers: { Authorization: `Bearer ${token}` } } : { uri };
+
+  const handleError = React.useCallback(() => {
+    // Bearer'lı yükleme sessizce placeholder'a düşmesin — bu hatanın bunca
+    // zaman görünmez kalmasının sebebi buydu (çağrı yerleri `onError` bağlamıyor).
+    // ⚠️ Token, URL, imza/query ve her tür PII log'lanmaz; yalnız DEV'de ve
+    // yalnız "token var mıydı" boolean'ı — C1 (bayat token) ile C2 (token hiç
+    // gelmemiş) ayrımını yapmaya bu yetiyor.
+    if (__DEV__ && authenticated) {
+      console.warn(`[AppImage] authenticated image failed to load (hasToken=${!!token})`);
+    }
+    onError?.();
+  }, [authenticated, token, onError]);
 
   return (
     <Image
@@ -80,7 +98,7 @@ export const AppImage = React.memo(function AppImage({
       placeholder={IMAGE_PLACEHOLDER}
       placeholderContentFit={fit}
       accessibilityLabel={accessibilityLabel}
-      onError={onError}
+      onError={handleError}
     />
   );
 });
