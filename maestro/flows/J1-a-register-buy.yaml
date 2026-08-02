@@ -2,11 +2,11 @@
 # Auto-login KAPALI çalışır (EXPO_PUBLIC_MAESTRO_NO_AUTOLOGIN=1) ki yeni kullanıcı
 # akışı zeynep ile ezilmesin. Kayıt sonrası orkestrator driver verify-email+seed-address
 # koşar, sonra J1-b-login-buy.yaml devam eder.
-# Gerekli env: REG_EMAIL (benzersiz), REG_PASSWORD, REG_NAME.
+# Gerekli env: REG_EMAIL (benzersiz), REG_USERNAME (benzersiz), REG_PASSWORD, REG_NAME.
 appId: com.tarodan.app
 tags:
   - manual
-# REG_EMAIL / REG_PASSWORD / REG_NAME orkestratörden --env ile gelir.
+# REG_EMAIL / REG_USERNAME / REG_PASSWORD / REG_NAME orkestratörden --env ile gelir.
 # Inline env: defaultları Maestro'da --env'i EZDİĞİ için bilinçli olarak yok.
 ---
 - launchApp:
@@ -118,6 +118,16 @@ tags:
     visible:
       id: "register-displayName-input"
     timeout: 15000
+# username: 2026-07-30'dan beri RegisterDto'de ZORUNLU — boş bırakılırsa
+# handleSubmit doğrulamada takılır, mutation hiç koşmaz ve akış aşağıdaki
+# login-email-input beklemesinde 20 sn sonra düşer.
+- tapOn:
+    id: "register-username-input"
+- inputText: "${REG_USERNAME}"
+# Uygunluk sorgusu 400 ms debounce'lu; yanıt gelmeden gönderilirse "alınmış"
+# bilinmiyor sayılır (fail-open) — yine de sonucu bekleyip yeşil onayı görelim.
+- waitForAnimationToEnd:
+    timeout: 3000
 - tapOn:
     id: "register-displayName-input"
 - inputText: "${REG_NAME}"
