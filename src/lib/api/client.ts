@@ -120,6 +120,26 @@ export const resetBannedRedirect = () => {
  * kullanıcı çıkış yaptıysa (`logout` token'ı null'lar) zombi bir oturum
  * yazmayalım; oturum açılışında `loadToken` zaten SecureStore'dan okuyor.
  */
+/**
+ * Oturum kuşağı — çıkış, uçuştaki refresh'i geçersizleştirir.
+ *
+ * Yarış: A çıkarken bir refresh uçuşta olabilir. Tamamlanınca refresh
+ * `SecureStore.setItemAsync("accessToken", …)` çalıştırıyordu; bu arada B giriş
+ * yapmışsa **B'nin token'ı A'nınkiyle eziliyor** ve request interceptor'ı
+ * token'ı SecureStore'dan okuduğu için B'nin TÜM istekleri A'nın token'ıyla
+ * gidiyordu. `syncStoreAccessToken`'daki guard yalnız store yarısını
+ * kapatıyordu — asıl sızıntı SecureStore yazımıydı.
+ *
+ * `logout()` kuşağı ilerletir; refresh, yazımdan ÖNCE kendi kuşağını kontrol
+ * eder ve eskiyse hiçbir şey yazmaz.
+ */
+let sessionEpoch = 0;
+
+/** Çıkışta çağrılır — o ana kadar uçuşta olan her refresh'i geçersiz kılar. */
+export function advanceSessionEpoch(): void {
+  sessionEpoch += 1;
+}
+
 function syncStoreAccessToken(newAccess: string): void {
   try {
     const { useAuthStore } = require("../../stores/authStore");
@@ -133,6 +153,8 @@ function syncStoreAccessToken(newAccess: string): void {
 }
 
 async function performTokenRefresh(): Promise<string | null> {
+  // İsteği başlatan oturum. Yanıt döndüğünde hâlâ aynı kuşaktaysak yazarız.
+  const epochAtStart = sessionEpoch;
   const refreshToken = await SecureStore.getItemAsync("refreshToken");
   if (!refreshToken) return null;
   const response = await axios.post(`${API_URL}/auth/refresh`, {
@@ -144,6 +166,9 @@ async function performTokenRefresh(): Promise<string | null> {
   const newRefresh: string | undefined =
     data?.tokens?.refreshToken ?? data?.refreshToken;
   if (!newAccess) return null;
+  // Uçuştayken çıkış yapıldı: bu token artık kapanmış bir oturuma ait. Yazarsak
+  // bu arada giriş yapmış olan kullanıcının token'ını ezeriz.
+  if (epochAtStart !== sessionEpoch) return null;
   await SecureStore.setItemAsync("accessToken", newAccess);
   // ROTATED refresh token'ı da kaydet (asıl bug buydu).
   if (newRefresh) await SecureStore.setItemAsync("refreshToken", newRefresh);

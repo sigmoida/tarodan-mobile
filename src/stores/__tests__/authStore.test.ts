@@ -6,6 +6,9 @@
 jest.mock('@/lib/api', () => ({
   authApi: { logout: jest.fn(() => Promise.resolve()) },
   userApi: { getProfile: jest.fn() },
+  // logout ilk iş olarak oturum kuşağını ilerletiyor (uçuştaki refresh'i
+  // geçersizleştirmek için) — sözleşmesi `sessionEpoch.test.ts`'te kilitli.
+  advanceSessionEpoch: jest.fn(),
 }));
 // authStore `require("../services/push")`'u logout içinde lazy çağırıyor —
 // gerçek push modülü native bağımlılıklar içerir, no-op mock yeterli.
