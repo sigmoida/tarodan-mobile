@@ -44,7 +44,10 @@ let mockUser: Record<string, unknown> = {};
 const mockLogout = jest.fn();
 
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ isAuthenticated: true, user: mockUser, logout: mockLogout }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: true, user: mockUser, logout: mockLogout });
+    return sel ? sel(state) : state;
+  },
 }));
 
 beforeEach(() => {

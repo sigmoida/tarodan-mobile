@@ -13,7 +13,10 @@ jest.mock('expo-router', () => ({
 }));
 
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ isAuthenticated: true }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: true });
+    return sel ? sel(state) : state;
+  },
 }));
 
 const fetchFollowing = jest.fn();

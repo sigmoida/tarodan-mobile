@@ -15,7 +15,10 @@ jest.mock("expo-router", () => ({
 
 // Oturum açık kullanıcı
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => ({ isAuthenticated: true, logout: jest.fn() }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: true, logout: jest.fn() });
+    return sel ? sel(state) : state;
+  },
 }));
 
 // i18n — anahtarı aynen döndür

@@ -50,13 +50,16 @@ jest.mock('@/lib/api', () => ({
 import { productsApi } from '@/lib/api';
 
 jest.mock('../../../stores/authStore', () => ({
-  useAuthStore: () => ({
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({
     isAuthenticated: true,
     isLoading: false,
     user: { membershipTier: 'free', listingCount: 0 },
     limits: { maxListings: 10, maxImagesPerListing: 5, canTrade: false },
     refreshUserData: jest.fn(async () => {}),
-  }),
+  });
+    return sel ? sel(state) : state;
+  },
 }));
 
 import ListingForm from '../ListingForm';

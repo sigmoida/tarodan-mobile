@@ -17,7 +17,10 @@ import { api } from '@/lib/api';
 
 let mockLimits: { maxReviewChars: number } | undefined = { maxReviewChars: 500 };
 jest.mock('../../stores/authStore', () => ({
-  useAuthStore: () => ({ limits: mockLimits }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ limits: mockLimits });
+    return sel ? sel(state) : state;
+  },
 }));
 
 const postMock = api.post as jest.Mock;

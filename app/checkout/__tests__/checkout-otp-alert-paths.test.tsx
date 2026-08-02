@@ -116,7 +116,10 @@ const SAMPLE_ITEM = {
 };
 
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ isAuthenticated: false, user: null }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: false, user: null });
+    return sel ? sel(state) : state;
+  },
 }));
 
 function fillAllStep1Fields() {

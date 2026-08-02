@@ -16,7 +16,10 @@ jest.mock('expo-router', () => ({
 
 const mockRefreshUserData = jest.fn().mockResolvedValue(undefined);
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ refreshUserData: mockRefreshUserData }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ refreshUserData: mockRefreshUserData });
+    return sel ? sel(state) : state;
+  },
 }));
 
 jest.mock('@/lib/api', () => ({

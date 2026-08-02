@@ -21,7 +21,10 @@ jest.mock('@/lib/api', () => ({
 }));
 
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ isAuthenticated: true }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: true });
+    return sel ? sel(state) : state;
+  },
 }));
 
 import { wishlistApi } from '@/lib/api';

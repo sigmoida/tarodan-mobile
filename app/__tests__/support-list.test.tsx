@@ -24,7 +24,10 @@ const getMyTicketsMock = supportApi.getMyTickets as jest.Mock;
 
 let mockIsAuthenticated = true;
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ isAuthenticated: mockIsAuthenticated }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: mockIsAuthenticated });
+    return sel ? sel(state) : state;
+  },
 }));
 
 import SupportTicketsScreen from '../support';

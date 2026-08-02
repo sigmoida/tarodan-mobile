@@ -128,7 +128,10 @@ jest.mock('@/lib/api', () => ({
 
 // Konuk akışı: isAuthenticated=false
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ isAuthenticated: false, user: null }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: false, user: null });
+    return sel ? sel(state) : state;
+  },
 }));
 
 import { ordersApi } from '@/lib/api';

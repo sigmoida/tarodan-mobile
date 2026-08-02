@@ -12,7 +12,10 @@ jest.mock('expo-router', () => ({ router: { back: jest.fn() } }));
 
 const mockUser = { username: '', usernameClaimed: false };
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ user: mockUser, updateUser: jest.fn() }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ user: mockUser, updateUser: jest.fn() });
+    return sel ? sel(state) : state;
+  },
 }));
 
 // Not: brief testi düz `render` ile yazıyordu; useClaimUsername useMutation kullandığı

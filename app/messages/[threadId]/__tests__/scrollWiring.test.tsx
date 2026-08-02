@@ -39,7 +39,10 @@ jest.mock('@/lib/api', () => ({
 }));
 
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ user: { id: 'me' }, limits: { maxMessagesPerDay: 50 } }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ user: { id: 'me' }, limits: { maxMessagesPerDay: 50 } });
+    return sel ? sel(state) : state;
+  },
 }));
 
 const mockStore = {

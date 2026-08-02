@@ -93,7 +93,10 @@ jest.mock('@/lib/api', () => ({
 // değişken adı `mock` ile başlamak ZORUNDA.
 const mockAuthState: { isAuthenticated: boolean; user: any } = { isAuthenticated: false, user: null };
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => mockAuthState,
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = mockAuthState;
+    return sel ? sel(state) : state;
+  },
 }));
 
 import { ordersApi, addressesApi } from '@/lib/api';

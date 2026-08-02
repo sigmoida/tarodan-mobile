@@ -10,11 +10,14 @@ import { renderWithProviders } from "@/test-utils";
 jest.mock("expo-router", () => require("@/test-utils/router-mock").routerMock);
 
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => ({
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({
     user: { displayName: "Test", email: "t@b.com", membershipTier: "free" },
     isAuthenticated: true,
     refreshUserData: jest.fn(),
-  }),
+  });
+    return sel ? sel(state) : state;
+  },
 }));
 
 jest.mock("react-i18next", () => ({

@@ -21,7 +21,10 @@ let mockAuth: { isAuthenticated: boolean; user: { email?: string } | null } = {
   user: null,
 };
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => mockAuth,
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = mockAuth;
+    return sel ? sel(state) : state;
+  },
 }));
 
 jest.mock('@/lib/api', () => ({

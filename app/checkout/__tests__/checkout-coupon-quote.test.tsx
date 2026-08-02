@@ -85,7 +85,10 @@ jest.mock('@/lib/api', () => ({
 }));
 
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ isAuthenticated: false, user: null }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: false, user: null });
+    return sel ? sel(state) : state;
+  },
 }));
 
 import { appAlert } from '@/ui';

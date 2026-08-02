@@ -24,7 +24,10 @@ import { tradesApi, productsApi } from '@/lib/api';
 
 let mockUser: { id: string } | null = { id: 'user-initiator' };
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ user: mockUser }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ user: mockUser });
+    return sel ? sel(state) : state;
+  },
 }));
 
 import TradeCounterScreen from '../[id]';

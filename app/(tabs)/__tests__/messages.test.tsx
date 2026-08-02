@@ -29,7 +29,10 @@ let mockAuth: any = {
   limits: { maxMessagesPerDay: 50 },
 };
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => mockAuth,
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = mockAuth;
+    return sel ? sel(state) : state;
+  },
 }));
 
 // Store artık client-only (getOtherParticipant + dailyMessageCount); selector-aware (#77).

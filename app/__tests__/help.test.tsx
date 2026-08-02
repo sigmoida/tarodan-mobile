@@ -26,7 +26,10 @@ import { supportApi } from "@/lib/api";
 
 let mockIsAuthenticated = false;
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => ({ isAuthenticated: mockIsAuthenticated }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: mockIsAuthenticated });
+    return sel ? sel(state) : state;
+  },
 }));
 
 jest.mock("react-i18next", () => ({

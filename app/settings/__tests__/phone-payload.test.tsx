@@ -38,13 +38,16 @@ jest.mock('@/components/common', () => {
 });
 
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({
     isAuthenticated: true,
     limits: { maxAddresses: 10 },
     user: { displayName: 'Test', email: 't@b.com', membershipTier: 'free' },
     refreshUserData: jest.fn(),
     updateUser: jest.fn(),
-  }),
+  });
+    return sel ? sel(state) : state;
+  },
 }));
 
 jest.mock('@/lib/api', () => ({

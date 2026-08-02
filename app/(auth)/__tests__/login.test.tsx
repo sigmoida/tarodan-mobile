@@ -14,7 +14,10 @@ jest.mock('@/lib/api', () => ({
 import { authApi } from '@/lib/api';
 
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ login: jest.fn() }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ login: jest.fn() });
+    return sel ? sel(state) : state;
+  },
 }));
 
 import LoginScreen from '../login';

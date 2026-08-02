@@ -22,12 +22,15 @@ jest.mock('react-i18next', () => ({
 }));
 
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({
     isAuthenticated: true,
     logout: jest.fn(),
     user: { displayName: 'Test', email: 't@b.com', phone: '', isPhoneVerified: false },
     refreshUserData: jest.fn(),
-  }),
+  });
+    return sel ? sel(state) : state;
+  },
 }));
 
 const mockSendPhoneCode = jest.fn(() => Promise.resolve({ data: {} }));

@@ -50,7 +50,10 @@ jest.mock('@/lib/api', () => ({
 
 // Konuk akışı: misafir kullanıcı → adres formu inline görünür (testID gerektirmez).
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ isAuthenticated: false, user: null }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: false, user: null });
+    return sel ? sel(state) : state;
+  },
 }));
 
 import { useCartStore } from '@/stores/cartStore';

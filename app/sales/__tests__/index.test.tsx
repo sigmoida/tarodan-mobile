@@ -30,7 +30,10 @@ import { ordersApi } from '@/lib/api';
 
 let mockAuth = { isAuthenticated: true };
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => mockAuth,
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = mockAuth;
+    return sel ? sel(state) : state;
+  },
 }));
 
 import SalesScreen from "../index";

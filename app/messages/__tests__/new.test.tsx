@@ -53,7 +53,10 @@ jest.mock("@/hooks/messaging", () => ({
 
 // authStore — limits
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => ({ limits: { maxMessagesPerDay: 50 } }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ limits: { maxMessagesPerDay: 50 } });
+    return sel ? sel(state) : state;
+  },
 }));
 
 import NewMessageScreen from "../new";
