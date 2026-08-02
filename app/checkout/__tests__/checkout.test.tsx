@@ -19,7 +19,21 @@ jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
 // API inline mock — ağ yok, deterministik. Checkout'un kullandığı tüm api'lar.
 jest.mock('@/lib/api', () => ({
-  ordersApi: { directBuy: jest.fn(), createGuest: jest.fn() },
+  ordersApi: {
+    directBuy: jest.fn(),
+    createGuest: jest.fn(),
+    getQuote: jest.fn(() =>
+      Promise.resolve({
+        data: {
+          pricingHash: '70a8bdadff29af70',
+          shippingTariffVersion: 3,
+          pricing: {
+            summary: { productAmount: 100, shippingAmount: 50, serviceFeeAmount: 15, total: 165 },
+          },
+        },
+      }),
+    ),
+  },
   paymentsApi: {
     getPaymentMethods: jest.fn(() => Promise.resolve({ data: [] })),
     directForm: jest.fn(),
@@ -27,7 +41,9 @@ jest.mock('@/lib/api', () => ({
     initiateGuest: jest.fn(),
     bypassComplete: jest.fn(),
   },
-  shippingApi: { getRatesByCity: jest.fn(() => Promise.resolve({ data: { rate: 34.9 } })) },
+  // GET /shipping/rates artik HIC cagrilmiyor - kargo yalniz quote'tan gelir.
+  // Sabit birakiliyor ki testler "hic cagrilmadi" iddiasini dogrulayabilsin.
+  shippingApi: { getRatesByCity: jest.fn() },
   addressesApi: { getAll: jest.fn(() => Promise.resolve({ data: [] })) },
   discountsApi: { validate: jest.fn() },
 }));
@@ -37,6 +53,7 @@ jest.mock('@/stores/authStore', () => ({
   useAuthStore: () => ({ isAuthenticated: false, user: null }),
 }));
 
+import { shippingApi } from '@/lib/api';
 import { useCartStore } from '@/stores/cartStore';
 import CheckoutScreen from '../index';
 
@@ -121,6 +138,26 @@ describe('checkout-3step', () => {
       // İlk adımda son adım butonu (Onayla ve Öde) görünmez.
       expect(screen.queryByText(/Onayla ve Öde/)).toBeNull();
       expect(screen.getByText('Devam Et')).toBeOnTheScreen();
+    });
+  });
+
+  describe('Fiyat sözleşmesi — özet quote.pricing.summary\'den gelir', () => {
+    it('Toplam ve hizmet bedeli satırı summary.total/serviceFeeAmount\'tan render edilir — yerel aritmetik değil', async () => {
+      seedCart([SAMPLE_ITEM]);
+      renderWithProviders(<CheckoutScreen />);
+
+      // summary.total (165) — eski yerel aritmetik (subtotal 100 + shippingCost 0
+      // + buyerFee/taxAmount 0 - indirim 0 = 100) render edilseydi bu metin YOK olurdu.
+      await waitFor(() => {
+        expect(screen.getByText('165,00 TL')).toBeOnTheScreen();
+      });
+      // serviceFeeAmount (15) — hizmet bedeli + TÜM alıcı hizmet KDV'si tek satırda,
+      // ayrı bir "KDV" satırı basılmaz.
+      expect(screen.getByText('15,00 TL')).toBeOnTheScreen();
+      expect(screen.queryByText('KDV')).toBeNull();
+
+      // GET /shipping/rates hiç çağrılmadı — kargo yalnız quote'tan geldi.
+      expect(shippingApi.getRatesByCity).not.toHaveBeenCalled();
     });
   });
 });

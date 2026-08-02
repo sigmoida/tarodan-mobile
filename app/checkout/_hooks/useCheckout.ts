@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { appAlert } from '@/ui';
-import { ordersApi, paymentsApi, shippingApi, addressesApi, cartApi, type OrderAddressInput } from '@/lib/api';
+import { appAlert, alertAfterClose } from '@/ui';
+import { ordersApi, paymentsApi, addressesApi, cartApi, type OrderAddressInput, type OrderQuoteResponse } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useCartStore } from '@/stores/cartStore';
 import { useAuthStore } from '@/stores/authStore';
 import { captureException } from '@/services/sentry';
+import { formatPrice } from '@/utils/format';
 import { DEFAULT_COUNTRY_CODE, normalizePhoneForPayload } from '@/utils/phone';
 import { STOCKOUT_KEYWORDS, generateUuidV4, EMPTY_ADDRESS } from '../_lib/constants';
 import { extractApiMessage, validateGuest, validateInlineAddress } from '../_lib/validation';
@@ -60,10 +61,7 @@ export function useCheckout() {
   const [selectedBillingAddressId, setSelectedBillingAddressId] = useState<string | 'new'>('new');
   const [billingAddress, setBillingAddress] = useState<ShippingAddressInput>(EMPTY_ADDRESS);
 
-  const selectedCarrier = 'surat' as const;
   const paymentProvider = 'paytr' as const;
-  const [shippingCost, setShippingCost] = useState(0);
-  const [shippingLoading, setShippingLoading] = useState(false);
 
   const [otpModalOpen, setOtpModalOpen] = useState(false);
   const [otpCode, setOtpCode] = useState('');
@@ -76,28 +74,37 @@ export function useCheckout() {
 
   const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.price * it.quantity, 0), [items]);
 
+  // Quote'un KÖKÜ korunur — `pricingHash` + `shippingTariffVersion` kökte,
+  // `pricing` içinde DEĞİL, ve order-create payload'larına aynen geri gider.
   const quoteQuery = useQuery({
     queryKey: qk.checkout.quote(items.map((it) => `${it.productId}:${it.quantity}`).join(',')),
     queryFn: async () => {
-      const res: any = await ordersApi.getQuote({
+      const res = await ordersApi.getQuote({
         items: items.map((it) => ({ productId: it.productId, quantity: it.quantity })),
       });
-      return (res.data?.pricing ?? res.data ?? {}) as {
-        buyerFeeAmount?: number;
-        taxAmount?: number;
-        totalAmount?: number;
-      };
+      return (res.data ?? {}) as OrderQuoteResponse;
     },
     enabled: items.length > 0,
     staleTime: 60_000,
   });
-  const buyerFee = Number(quoteQuery.data?.buyerFeeAmount ?? 0);
-  const taxAmount = Number(quoteQuery.data?.taxAmount ?? 0);
+  const quote = quoteQuery.data;
+  const summary = quote?.pricing?.summary;
+  // Kargo yalnızca quote'tan gelir — GET /shipping/rates çağrısı ve başarısızlıkta
+  // 34.9/49.9 sabitine düşen fallback kaldırıldı: ağ hatasında ekrandaki tutarın
+  // PayTR'de çekilen tutardan sessizce ayrışmasına yol açıyordu.
+  const shippingCost = Number(summary?.shippingAmount ?? 0);
+  const shippingLoading = quoteQuery.isLoading;
+  // Kupon sonrası ürün ara toplamı — quote yüklenene kadar yerel toplamla
+  // (aynı, henüz hesap yapılmamış rakam) doldurulur, sonrasında sunucu değeri geçerli.
+  const productAmount = Number(summary?.productAmount ?? subtotal);
+  // Hizmet bedeli + TÜM alıcı hizmet KDV'si — ayrı bir KDV satırı basılmaz.
+  const serviceFeeAmount = Number(summary?.serviceFeeAmount ?? 0);
 
   // Kupon: tutar sunucudan gelir, burada yalnız gösterim için düşülür.
   // Kesin fiyat sipariş/ödeme yanıtının otoritesindedir.
   const coupon = useCoupon(items, isAuthenticated);
-  const total = Math.max(0, subtotal + shippingCost + buyerFee + taxAmount - coupon.discount);
+  // Toplam SUNUCU garantisi — yerel aritmetik yok, `pricing.summary.total` aynen basılır.
+  const total = Number(summary?.total ?? 0);
 
   const addressesQuery = useQuery({
     queryKey: qk.addresses.mine,
@@ -132,32 +139,17 @@ export function useCheckout() {
     return shippingAddress.city;
   }, [isAuthenticated, selectedAddressId, addresses, shippingAddress.city]);
 
-  const calculateShipping = async (city: string) => {
-    setShippingLoading(true);
-    try {
-      const response = await shippingApi
-        .getRatesByCity({ city, carrier: selectedCarrier, weight: 0.5 })
-        .catch(() => null);
-      if (response?.data?.rate) {
-        setShippingCost(response.data.rate);
-      } else {
-        const isIstanbul = city.toLowerCase().includes('istanbul');
-        setShippingCost(isIstanbul ? 34.9 : 49.9);
-      }
-    } catch {
-      setShippingCost(49.9);
-    } finally {
-      setShippingLoading(false);
+  const showSnackbar = (message: string) => setSnackbar({ visible: true, message });
+
+  /** Modal açıkken appAlert çağırmak iOS'ta donuyor — OTP modalı açıksa önce
+   *  kapat, sonra göster (aksi halde doğrudan göster). */
+  const alertRespectingOtpModal = (title: string, message?: string) => {
+    if (otpModalOpen) {
+      alertAfterClose(closeOtpModal, title, message);
+    } else {
+      appAlert(title, message);
     }
   };
-
-  useEffect(() => {
-    if (effectiveShippingCity) calculateShipping(effectiveShippingCity);
-    else setShippingCost(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveShippingCity, selectedCarrier]);
-
-  const showSnackbar = (message: string) => setSnackbar({ visible: true, message });
 
   const handleEmailAlreadyRegistered = (e: any): boolean => {
     if (e?.response?.status === 409 || e?.response?.data?.code === 'EMAIL_ALREADY_REGISTERED') {
@@ -245,6 +237,16 @@ export function useCheckout() {
 
   const proceedCheckout = async (emailVerificationCode?: string) => {
     if (loading) return;
+    // API DTO'sunda ikisi de zorunlu — quote yüklenmeden HER ZAMAN göndermek
+    // yerine burada durup kullanıcıdan bekle (undefined/0 göndermek yalnızca
+    // aynı 400'ü başka bir şekilde üretir).
+    if (!quote?.pricingHash || quote.shippingTariffVersion == null) {
+      alertRespectingOtpModal(
+        'Fiyat Bilgisi Hazır Değil',
+        'Fiyat bilgisi yükleniyor, lütfen birkaç saniye sonra tekrar deneyin.',
+      );
+      return;
+    }
     setLoading(true);
     try {
       const shipping = buildShippingPayload();
@@ -257,6 +259,9 @@ export function useCheckout() {
         shippingAddress: shipping.inline,
         billingAddressId: billing?.id,
         billingAddress: billing?.inline,
+        // Quote kökünden AYNEN — API DTO'sunda ikisi de zorunlu, koşullu gönderilmez.
+        expectedPricingHash: quote.pricingHash,
+        expectedShippingTariffVersion: quote.shippingTariffVersion,
         // Kupon yoksa alanı hiç göndermiyoruz (backend opsiyonel bekliyor).
         ...(coupon.couponCode ? { couponCode: coupon.couponCode } : {}),
       };
@@ -273,6 +278,8 @@ export function useCheckout() {
               guestName: guestName.trim(),
               shippingAddress: shipping.inline!,
               billingAddress: billing?.inline,
+              expectedPricingHash: checkoutPayload.expectedPricingHash,
+              expectedShippingTariffVersion: checkoutPayload.expectedShippingTariffVersion,
               ...(coupon.couponCode ? { couponCode: coupon.couponCode } : {}),
             });
 
@@ -351,13 +358,27 @@ export function useCheckout() {
     } catch (error: any) {
       console.error('Checkout error:', error);
       captureException(error, { level: 'error', tags: { flow: 'checkout' }, extra: { status: error?.response?.status } });
+      const status = error?.response?.status;
+      // Ayırt edici: `code`/`errorCode` YOK, yalnız i18nKey. Fiyatlar sunucuda
+      // değişmiş — quote'u yenile, eski/yeni toplamı göster, yeniden onay iste.
+      if (status === 409 && error?.response?.data?.i18nKey === 'server.shipping.pricingChanged') {
+        const oldTotal = total;
+        const refreshed = await quoteQuery.refetch();
+        const newTotal = refreshed.data?.pricing?.summary?.total;
+        alertRespectingOtpModal(
+          'Fiyatlar Güncellendi',
+          `Ürün veya kargo fiyatları güncellendi.\n\nÖnceki toplam: ${formatPrice(oldTotal)}\nYeni toplam: ${
+            newTotal != null ? formatPrice(newTotal) : '—'
+          }\n\nLütfen tutarı kontrol edip tekrar onaylayın.`,
+        );
+        return;
+      }
       const errorMessage =
         error.response?.data?.message ||
         error.response?.data?.error ||
         (Array.isArray(error.response?.data?.message)
           ? error.response?.data?.message.join(', ')
           : 'Sipariş oluşturulamadı');
-      const status = error?.response?.status;
       const isStockout =
         (status === 400 || status === 409) &&
         typeof errorMessage === 'string' &&
@@ -472,9 +493,10 @@ export function useCheckout() {
     selectedBillingAddressId, setSelectedBillingAddressId,
     billingAddress, setBillingAddress,
     addresses,
-    // shipping/pricing
+    // shipping/pricing — hepsi `pricing.summary`'den, istemci hesabı yok.
     shippingCost, shippingLoading, effectiveShippingCity,
-    subtotal, buyerFee, taxAmount, total,
+    productAmount, serviceFeeAmount, total,
+    quoteLoading: quoteQuery.isLoading,
     coupon,
     // ui
     loading,

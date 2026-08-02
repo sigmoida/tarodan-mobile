@@ -6,24 +6,28 @@ import { styles } from '../_lib/styles';
 
 const { colors } = theme;
 
-/** Ödeme detayı özeti — her adımda görünür. */
+/**
+ * Ödeme detayı özeti — her adımda görünür.
+ * Üç satır `pricing.summary`'den AYNEN gelir (`productAmount`/`shippingAmount`/
+ * `serviceFeeAmount`); istemci tarafında hesaplanan/yuvarlanan hiçbir para
+ * değeri yoktur. `serviceFeeAmount` hizmet bedeli + TÜM alıcı hizmet KDV'sini
+ * içerir — ayrı bir KDV satırı basılmaz.
+ */
 export function OrderSummary({
   itemCount,
-  subtotal,
+  productAmount,
   shippingCost,
   effectiveShippingCity,
-  buyerFee,
-  taxAmount,
+  serviceFeeAmount,
   discount = 0,
   couponCode,
   total,
 }: {
   itemCount: number;
-  subtotal: number;
+  productAmount: number;
   shippingCost: number;
   effectiveShippingCity: string;
-  buyerFee: number;
-  taxAmount: number;
+  serviceFeeAmount: number;
   discount?: number;
   couponCode?: string;
   total: number;
@@ -33,22 +37,16 @@ export function OrderSummary({
       <Text style={styles.orderSummaryTitle}>Ödeme Detayı</Text>
       <View style={styles.orderSummaryRow}>
         <Text style={styles.orderSummaryLabel}>Ara Toplam ({itemCount} ürün)</Text>
-        <Text style={styles.orderSummaryValue}>{formatPrice(subtotal)}</Text>
+        <Text style={styles.orderSummaryValue}>{formatPrice(productAmount)}</Text>
       </View>
       <View style={styles.orderSummaryRow}>
         <Text style={styles.orderSummaryLabel}>Kargo (Sürat)</Text>
         <Text style={styles.orderSummaryValue}>{effectiveShippingCity ? formatPrice(shippingCost) : 'İl seçin'}</Text>
       </View>
-      {buyerFee > 0 ? (
+      {serviceFeeAmount > 0 ? (
         <View style={styles.orderSummaryRow}>
           <Text style={styles.orderSummaryLabel}>Platform Hizmet Bedeli</Text>
-          <Text style={styles.orderSummaryValue}>{formatPrice(buyerFee)}</Text>
-        </View>
-      ) : null}
-      {taxAmount > 0 ? (
-        <View style={styles.orderSummaryRow}>
-          <Text style={styles.orderSummaryLabel}>KDV</Text>
-          <Text style={styles.orderSummaryValue}>{formatPrice(taxAmount)}</Text>
+          <Text style={styles.orderSummaryValue}>{formatPrice(serviceFeeAmount)}</Text>
         </View>
       ) : null}
       {discount > 0 ? (

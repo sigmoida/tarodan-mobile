@@ -95,6 +95,20 @@ jest.mock('@/lib/api', () => ({
       Promise.resolve({ data: { success: true, expiresInSeconds: 180 } }),
     ),
     getGroups: jest.fn(),
+    // 2026-07-30 canli olcum (staging): pricingHash/shippingTariffVersion KOKTE.
+    // Rakamlar bilincli olarak subtotal(100)+shippingCost+buyerFee toplamindan
+    // FARKLI (165): kod eski yerel aritmetige donerse test kirilir.
+    getQuote: jest.fn(() =>
+      Promise.resolve({
+        data: {
+          pricingHash: '70a8bdadff29af70',
+          shippingTariffVersion: 3,
+          pricing: {
+            summary: { productAmount: 100, shippingAmount: 50, serviceFeeAmount: 15, total: 165 },
+          },
+        },
+      }),
+    ),
   },
   paymentsApi: {
     getPaymentMethods: jest.fn(() => Promise.resolve({ data: [] })),
@@ -104,7 +118,9 @@ jest.mock('@/lib/api', () => ({
     ),
     bypassComplete: jest.fn(() => Promise.resolve({ data: {} })),
   },
-  shippingApi: { getRatesByCity: jest.fn(() => Promise.resolve({ data: { rate: 34.9 } })) },
+  // GET /shipping/rates artik HIC cagrilmiyor - kargo yalniz quote'tan gelir.
+  // Sabit birakiliyor ki testler "hic cagrilmadi" iddiasini dogrulayabilsin.
+  shippingApi: { getRatesByCity: jest.fn() },
   addressesApi: { getAll: jest.fn(() => Promise.resolve({ data: [] })) },
   discountsApi: { validate: jest.fn() },
 }));
@@ -114,7 +130,7 @@ jest.mock('@/stores/authStore', () => ({
   useAuthStore: () => ({ isAuthenticated: false, user: null }),
 }));
 
-import { ordersApi } from '@/lib/api';
+import { ordersApi, shippingApi } from '@/lib/api';
 import { useCartStore } from '@/stores/cartStore';
 import { replaceMock } from '@/test-utils/router-mock';
 import CheckoutScreen from '../index';
@@ -213,12 +229,20 @@ describe('Misafir checkout OTP akışı', () => {
       fireEvent.press(screen.getByTestId('guest-otp-submit'));
     });
 
-    // checkoutGuest emailVerificationCode ile çağrılmalı
+    // checkoutGuest emailVerificationCode İLE ve quote sözleşme alanlarıyla çağrılmalı —
+    // ikisi de API DTO'sunda zorunlu, aksi halde 400 alınır (task-1 brief 1b).
     await waitFor(() => {
       expect(ordersApi.checkoutGuest).toHaveBeenCalledWith(
-        expect.objectContaining({ emailVerificationCode: '123456' }),
+        expect.objectContaining({
+          emailVerificationCode: '123456',
+          expectedPricingHash: '70a8bdadff29af70',
+          expectedShippingTariffVersion: 3,
+        }),
       );
     });
+
+    // Kargo yalnız quote'tan gelir — GET /shipping/rates hiç çağrılmamalı.
+    expect(shippingApi.getRatesByCity).not.toHaveBeenCalled();
   });
 
   it('stok bitti (400, stok keyword) → OTP modal KAPANIR, unavailable sayfasına redirect edilir', async () => {

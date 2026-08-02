@@ -51,11 +51,10 @@ export default function CheckoutScreen() {
 
         <OrderSummary
           itemCount={c.items.length}
-          subtotal={c.subtotal}
+          productAmount={c.productAmount}
           shippingCost={c.shippingCost}
           effectiveShippingCity={c.effectiveShippingCity}
-          buyerFee={c.buyerFee}
-          taxAmount={c.taxAmount}
+          serviceFeeAmount={c.serviceFeeAmount}
           discount={c.coupon.discount}
           couponCode={c.coupon.applied?.code}
           total={c.total}
@@ -80,7 +79,7 @@ export default function CheckoutScreen() {
             title={c.loading ? 'İşleniyor...' : `Onayla ve Öde (${formatPrice(c.total)})`}
             onPress={c.handleCheckout}
             isLoading={c.loading}
-            disabled={c.loading}
+            disabled={c.loading || c.quoteLoading}
             fullWidth
             style={styles.actionButton}
             icon="card-outline"

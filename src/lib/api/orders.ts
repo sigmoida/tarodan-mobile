@@ -10,6 +10,65 @@ export type OrderAddressInput = {
   zipCode?: string;
 };
 
+/**
+ * `POST /orders/quote` yanıtı (2026-07-30 canlı ölçüm — staging).
+ * `pricingHash` + `shippingTariffVersion` KÖKTE, `pricing` içinde DEĞİL — order-create
+ * uçlarının `expectedPricingHash`/`expectedShippingTariffVersion` zorunlu alanları
+ * buradan gelir. `pricing.summary` ekranda basılacak TEK doğru kırılım (§CLAUDE.md
+ * "parayla ilgili hiçbir değeri istemcide hesaplama").
+ */
+export type OrderQuotePricingSummary = {
+  /** Kupon sonrası ürün ara toplamı — kuponu ekranda bir daha düşme. */
+  productAmount: number;
+  shippingAmount: number;
+  /** Hizmet bedeli + TÜM alıcı hizmet KDV'si — ayrı bir KDV satırı ekleme. */
+  serviceFeeAmount: number;
+  total: number;
+};
+
+export type OrderQuotePricing = {
+  subtotal?: number;
+  shippingAmount?: number;
+  buyerFeeAmount?: number;
+  buyerFeeRate?: number;
+  sellerFeeAmount?: number;
+  commissionAmount?: number;
+  taxAmount?: number;
+  buyerServiceTaxAmount?: number;
+  sellerServiceTaxAmount?: number;
+  serviceVatRate?: number;
+  totalAmount?: number;
+  sellerNetAmount?: number;
+  summary?: OrderQuotePricingSummary;
+};
+
+export type OrderQuoteShippingBySeller = {
+  sellerId: string;
+  shippingCost: number;
+  sellerShippingCost?: number;
+  billableDesi?: number;
+  packageTier?: string;
+};
+
+export type OrderQuoteResponse = {
+  itemsSubtotal?: number;
+  shippingAmount?: number;
+  buyerFeeAmount?: number;
+  sellerFeeAmount?: number;
+  commissionAmount?: number;
+  taxAmount?: number;
+  couponDiscount?: number;
+  totalAmount?: number;
+  sellerNetAmount?: number;
+  items?: unknown[];
+  shippingBySeller?: OrderQuoteShippingBySeller[];
+  /** Order-create payload'ına AYNEN geri gönderilecek fiyat imzası. */
+  pricingHash: string;
+  /** Order-create payload'ına AYNEN geri gönderilecek kargo tarife versiyonu. */
+  shippingTariffVersion: number;
+  pricing?: OrderQuotePricing;
+};
+
 export const ordersApi = {
   getAll: (params?: Record<string, any>) =>
     api.get('/orders', { params }),
@@ -27,6 +86,9 @@ export const ordersApi = {
     shippingAddress?: OrderAddressInput;
     billingAddressId?: string;
     billingAddress?: OrderAddressInput;
+    /** Quote kökünden AYNEN — API DTO'sunda zorunlu. */
+    expectedPricingHash: string;
+    expectedShippingTariffVersion: number;
   }) => api.post('/orders/buy', data),
   createGuest: (data: {
     productId: string;
@@ -37,6 +99,9 @@ export const ordersApi = {
     billingAddress?: OrderAddressInput;
     offerId?: string;
     price?: number;
+    /** Quote kökünden AYNEN — API DTO'sunda zorunlu. */
+    expectedPricingHash: string;
+    expectedShippingTariffVersion: number;
   }) => guestApi.post('/orders/guest', data),
   sendGuestVerificationCode: (data: { email: string; expectedCheckoutCount?: number }) =>
     guestApi.post<{ success: boolean; expiresInSeconds: number }>(
@@ -52,6 +117,9 @@ export const ordersApi = {
     billingAddressId?: string;
     billingAddress?: OrderAddressInput;
     couponCode?: string;
+    /** Quote kökünden AYNEN — API DTO'sunda zorunlu. */
+    expectedPricingHash: string;
+    expectedShippingTariffVersion: number;
   }) => api.post('/orders/checkout', data),
   /** Toplu checkout (misafir) */
   checkoutGuest: (data: {
@@ -65,6 +133,9 @@ export const ordersApi = {
     billingAddress?: OrderAddressInput;
     /** GuestCheckoutGroupDto, CheckoutDto'yu extends eder → kupon misafirde de geçerli. */
     couponCode?: string;
+    /** Quote kökünden AYNEN — API DTO'sunda zorunlu. */
+    expectedPricingHash: string;
+    expectedShippingTariffVersion: number;
   }) => guestApi.post('/orders/checkout/guest', data),
   /** Alıcının sipariş grupları (gruplu liste) */
   getGroups: (params?: Record<string, any>) =>
@@ -95,9 +166,9 @@ export const ordersApi = {
   /** Alıcının bu siparişe yazdığı kendi değerlendirmesi (yoksa null) —
    *  "Değerlendir" butonunu gizlemek için. Backend: GET /orders/:id/my-review */
   getMyReview: (id: string) => api.get(`/orders/${id}/my-review`),
-  /** Checkout quote (fiyat kırılımı) */
+  /** Checkout quote (fiyat kırılımı) — `pricingHash`/`shippingTariffVersion` köktedir. */
   getQuote: (data: { items: Array<{ productId: string; quantity?: number }> }) =>
-    api.post('/orders/quote', data),
+    api.post<OrderQuoteResponse>('/orders/quote', data),
   /** İlan formunda komisyon önizleme (tek ürün) */
   getCommissionPreview: (params: { amount: number; categoryId?: string }) =>
     api.get('/orders/commission-preview', { params }),

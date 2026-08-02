@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ordersApi } from '@/lib/api';
+import { ordersApi, type OrderQuoteResponse } from '@/lib/api';
+import { qk } from '@/lib/query';
 import { useCartStore } from '@/stores/cartStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useCartSync } from '@/hooks/useCartSync';
@@ -27,19 +28,24 @@ export function useCart() {
   const itemCount = getItemCount();
 
   // Platform hizmet bedeli (komisyon) — backend quote'tan, sepette de net göster.
+  // `pricing.summary`'den AYNEN: istemci tarafında hesaplanan/yuvarlanan para
+  // değeri yok (kargo hariç — checkout adımında hesaplanır, burada gösterilmez).
   const quoteQuery = useQuery({
-    queryKey: ['cart-quote', items.map((it) => `${it.productId}:${it.quantity}`).join(',')],
+    queryKey: qk.checkout.quote(items.map((it) => `${it.productId}:${it.quantity}`).join(',')),
     queryFn: async () => {
-      const res: any = await ordersApi.getQuote({
+      const res = await ordersApi.getQuote({
         items: items.map((it) => ({ productId: it.productId, quantity: it.quantity })),
       });
-      return (res.data?.pricing ?? res.data ?? {}) as { buyerFeeAmount?: number };
+      return (res.data ?? {}) as OrderQuoteResponse;
     },
     enabled: items.length > 0,
     staleTime: 60_000,
   });
-  const buyerFee = Number(quoteQuery.data?.buyerFeeAmount ?? 0);
-  const total = subtotal + buyerFee;
+  const summary = quoteQuery.data?.pricing?.summary;
+  const buyerFee = Number(summary?.serviceFeeAmount ?? 0);
+  // Sepet önizlemesi kargoyu içermez (checkout'ta belirlenir); ürün ara toplamı +
+  // hizmet bedeli, ikisi de sunucudan — burada yalnızca toplamaları var, aritmetik yok.
+  const total = summary ? Number(summary.productAmount) + Number(summary.serviceFeeAmount) : subtotal;
 
   const handleRemove = (itemId: string) => {
     sync.removeItem(itemId);
