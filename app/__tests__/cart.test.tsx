@@ -52,9 +52,9 @@ describe('J22 · boş sepet', () => {
     expect(screen.getByText('Sepetiniz Boş')).toBeOnTheScreen();
   });
 
-  it('boş sepette İlanlara Göz At ana sayfaya replace eder', () => {
+  it('boş sepette ilanlara götüren buton ana sayfaya replace eder', () => {
     renderWithProviders(<CartScreen />);
-    fireEvent.press(screen.getByText('İlanlara Göz At'));
+    fireEvent.press(screen.getByText('İlanları İncele'));
     expect(replaceMock).toHaveBeenCalledWith('/');
   });
 });

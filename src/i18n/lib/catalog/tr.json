@@ -585,7 +585,13 @@
     "excludedFromTotal": "Ödenecek toplama dahil değildir",
     "decreaseQuantity": "Adedi azalt",
     "increaseQuantity": "Adedi arttır",
-    "lineTotal": "Satır toplamı"
+    "lineTotal": "Satır toplamı",
+    "expiryNotice": "Sepetinizdeki ürünler 24 saat sonra otomatik olarak silinir",
+    "myCartWithCount": "Sepetim ({count})",
+    "subtotalWithCount": "Ara Toplam ({count} ürün)",
+    "priceUnavailableTitle": "Fiyat bilgisi alınamadı",
+    "priceUnavailableMessage": "Sepet tutarı sunucudan alınamadı. Bağlantınızı kontrol edip tekrar deneyin.",
+    "guestNotice": "Üye olmadan da alışveriş yapabilirsiniz. Siparişinizi e-posta ile takip edebilirsiniz."
   },
   "favorites": {
     "myFavorites": "Favorilerim",

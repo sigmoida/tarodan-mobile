@@ -2,6 +2,8 @@ import { View } from 'react-native';
 import { Divider, ErrorState, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { formatServerPrice } from '@/utils/format';
+import { useTranslation } from 'react-i18next';
+
 import { styles } from '../_lib/styles';
 import type { CartController } from '../_hooks/useCart';
 
@@ -17,6 +19,7 @@ const { colors } = theme;
  * göstermek demekti.
  */
 export function CartSummary({ f }: { f: CartController }) {
+  const { t } = useTranslation();
   return (
     <>
       {/* Quote hata verdiyse dört satırı da "—" basıp kullanıcıyı sebepsiz
@@ -29,29 +32,29 @@ export function CartSummary({ f }: { f: CartController }) {
       {f.quoteError || (!f.quoteLoading && f.total == null) ? (
         <View style={styles.summary} testID="cart-summary-error">
           <ErrorState
-            title="Fiyat bilgisi alınamadı"
-            message="Sepet tutarı sunucudan alınamadı. Bağlantınızı kontrol edip tekrar deneyin."
+            title={t('cart.priceUnavailableTitle')}
+            message={t('cart.priceUnavailableMessage')}
             onRetry={f.retryQuote}
           />
         </View>
       ) : (
         <View style={styles.summary}>
-          <Text style={styles.summaryTitle}>Sipariş Özeti</Text>
+          <Text style={styles.summaryTitle}>{t('checkout.orderSummary')}</Text>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Ara Toplam ({f.itemCount} ürün)</Text>
+            <Text style={styles.summaryLabel}>{t('cart.subtotalWithCount', { count: f.itemCount })}</Text>
             <Text style={styles.summaryValue}>{formatServerPrice(f.productAmount)}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Kargo</Text>
+            <Text style={styles.summaryLabel}>{t('checkout.shipping')}</Text>
             <Text style={styles.summaryValue}>{formatServerPrice(f.shippingAmount)}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Platform Hizmet Bedeli</Text>
+            <Text style={styles.summaryLabel}>{t('footer.platformServiceFee')}</Text>
             <Text style={styles.summaryValue}>{formatServerPrice(f.serviceFeeAmount)}</Text>
           </View>
           <Divider style={{ marginVertical: theme.spacing[3] }} />
           <View style={styles.summaryRow}>
-            <Text style={styles.totalLabel}>Toplam</Text>
+            <Text style={styles.totalLabel}>{t('common.total')}</Text>
             <Text style={styles.totalValue} testID="cart-summary-total">
               {formatServerPrice(f.total)}
             </Text>
@@ -64,7 +67,7 @@ export function CartSummary({ f }: { f: CartController }) {
         <View style={styles.guestInfo}>
           <Ionicons name="information-circle-outline" size={20} color={colors.info[600]!} />
           <Text style={styles.guestInfoText}>
-            Üye olmadan da alışveriş yapabilirsiniz. Siparişinizi e-posta ile takip edebilirsiniz.
+            {t('cart.guestNotice')}
           </Text>
         </View>
       )}

@@ -585,7 +585,13 @@
     "excludedFromTotal": "Not included in the payable total",
     "decreaseQuantity": "Decrease quantity",
     "increaseQuantity": "Increase quantity",
-    "lineTotal": "Line total"
+    "lineTotal": "Line total",
+    "expiryNotice": "Items in your cart are removed automatically after 24 hours",
+    "myCartWithCount": "My Cart ({count})",
+    "subtotalWithCount": "Subtotal ({count} items)",
+    "priceUnavailableTitle": "Price unavailable",
+    "priceUnavailableMessage": "The cart total could not be retrieved. Check your connection and try again.",
+    "guestNotice": "You can shop without an account and follow your order by e-mail."
   },
   "favorites": {
     "myFavorites": "My Favorites",

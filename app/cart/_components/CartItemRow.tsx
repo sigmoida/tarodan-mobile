@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { maxAllowedQty } from '@/stores/cartStore';
 import { transformImageUrl, IMAGE_PLACEHOLDER } from '@/utils/imageUrl';
 import { asLabel, formatServerPrice } from '@/utils/format';
+import { useTranslation } from 'react-i18next';
+
 import { styles } from '../_lib/styles';
 import type { CartController } from '../_hooks/useCart';
 
@@ -12,6 +14,7 @@ const { colors } = theme;
 
 /** Tek sepet satırı — foto/başlık/fiyat + kaldır + adet kontrolü (stok sınırı). */
 export function CartItemRow({ item, f }: { item: any; f: CartController }) {
+  const { t } = useTranslation();
   const itemMax = maxAllowedQty(item);
   const atMax = item.quantity >= itemMax;
   const stockKnown = item.stock != null;
@@ -29,8 +32,8 @@ export function CartItemRow({ item, f }: { item: any; f: CartController }) {
         <TouchableOpacity onPress={() => router.push(`/product/${item.productId}`)}>
           <Text style={styles.itemTitle} numberOfLines={2}>{item.title}</Text>
         </TouchableOpacity>
-        <Text style={styles.itemMeta}>{asLabel(item.brand, 'Marka')} • {asLabel(item.scale, '1:64')}</Text>
-        <Text style={styles.itemSeller}>Satıcı: {item.seller.displayName}</Text>
+        <Text style={styles.itemMeta}>{asLabel(item.brand, t('product.brand'))} • {asLabel(item.scale, '1:64')}</Text>
+        <Text style={styles.itemSeller}>{t('product.seller')}: {item.seller.displayName}</Text>
         {/* Birim fiyat SUNUCUDAN (`quote.items[].unitPrice`). Sepetteki
             `item.price` ekleme anında donuyor ve 24 saat saklanıyor; ürünlerde
             kampanya penceresi var, pencere sepette beklerken kapanırsa satırda

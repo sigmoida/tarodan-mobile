@@ -4,6 +4,17 @@
  * Native modül mock'ları gerektikçe buraya eklenir (SecureStore, AsyncStorage, image-picker).
  */
 
+// i18n: gerçek katalogla (tr) senkron init. Ekranlar `useTranslation` kullanmaya
+// başladıkça, i18n kurulmamış bir testte `t('cart.empty')` ANAHTARI döndürüyor ve
+// Türkçe metne bakan mevcut testler sebepsiz kırılıyordu. Gerçek katalogla
+// kurunca testler kullanıcının GÖRDÜĞÜ metni doğrulamaya devam ediyor.
+// (Anahtar kullanımını kanıtlamak isteyen testler `react-i18next`'i kendi
+// dosyasında mock'lamaya devam edebilir — o mock bunu ezer.)
+import i18n from '@/i18n/config';
+
+// Cihaz dili jest ortamında `en-US` çözülüyor; testler Türkçe metne bakıyor.
+i18n.changeLanguage('tr');
+
 // Test modu: register birthDate öndolu (1990-01-01), şifre alanları maskesiz.
 // Uygulama EXPO_PUBLIC_MAESTRO==='1' ile bu davranışları açar.
 process.env.EXPO_PUBLIC_MAESTRO = '1';

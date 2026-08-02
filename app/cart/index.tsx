@@ -1,4 +1,5 @@
 import { View, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Button, Text, theme, ScreenHeader } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,20 +12,21 @@ import { CartSummary } from './_components/CartSummary';
 const { colors } = theme;
 
 export default function CartScreen() {
+  const { t } = useTranslation();
   const f = useCart();
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
   if (f.items.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <ScreenHeader title="Sepetim" onBack={back} />
+        <ScreenHeader title={t('cart.myCart')} onBack={back} />
         <View style={styles.emptyContent}>
           <Ionicons name="cart-outline" size={80} color={colors.text.muted} />
-          <Text style={styles.emptyTitle}>Sepetiniz Boş</Text>
-          <Text style={styles.emptySubtitle}>İlanlara göz atın ve beğendiklerinizi sepete ekleyin</Text>
+          <Text style={styles.emptyTitle}>{t('cart.empty')}</Text>
+          <Text style={styles.emptySubtitle}>{t('cart.emptyDesc')}</Text>
           <Button
             variant="primary"
-            title="İlanlara Göz At"
+            title={t('cart.browseListings')}
             onPress={() => router.replace('/')}
             style={{ marginTop: theme.spacing[6], alignSelf: 'center' }}
           />
@@ -35,12 +37,12 @@ export default function CartScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title={`Sepetim (${f.itemCount})`} onBack={back} />
+      <ScreenHeader title={t('cart.myCartWithCount', { count: f.itemCount })} onBack={back} />
 
       {/* Expiry Notice */}
       <View style={styles.expiryNotice}>
         <Ionicons name="time-outline" size={16} color={colors.warning[600]!} />
-        <Text style={styles.expiryText}>Sepetinizdeki ürünler 24 saat sonra otomatik olarak silinir</Text>
+        <Text style={styles.expiryText}>{t('cart.expiryNotice')}</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -56,7 +58,7 @@ export default function CartScreen() {
       {/* Checkout Button */}
       <View style={styles.checkoutBar}>
         <View style={styles.checkoutTotal}>
-          <Text style={styles.checkoutLabel}>Toplam</Text>
+          <Text style={styles.checkoutLabel}>{t('common.total')}</Text>
           {/* Sunucu toplamı gelmeden tutar basılmaz — yerel bir sayı uydurmak
               yerine yer tutucu (ödeme adımında tutar zaten yeniden doğrulanır). */}
           <Text style={styles.checkoutPrice} testID="cart-checkout-total">
@@ -73,7 +75,7 @@ export default function CartScreen() {
         <Button
           testID="cart-checkout-button"
           variant="primary"
-          title="Satın Al"
+          title={t('cart.proceedToCheckout')}
           style={styles.checkoutButton}
           disabled={f.quoteError || f.total == null}
           onPress={() => router.push('/checkout')}
