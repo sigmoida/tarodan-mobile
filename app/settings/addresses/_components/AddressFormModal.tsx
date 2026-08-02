@@ -32,6 +32,7 @@ export function AddressFormModal({ f }: { f: AddressesController }) {
           containerStyle={styles.input}
         />
         <Input
+          testID="address-fullname-input"
           label="Ad Soyad *"
           value={formData.fullName}
           onChangeText={(text) => {
@@ -57,6 +58,7 @@ export function AddressFormModal({ f }: { f: AddressesController }) {
           containerStyle={styles.input}
         />
         <Input
+          testID="address-address-input"
           label="Adres *"
           value={formData.address}
           onChangeText={(text) => {
