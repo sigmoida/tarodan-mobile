@@ -10,6 +10,7 @@ import {
   appAlert,
 } from '@/ui';
 import type { BadgeVariant } from '@/ui';
+import { refundReasonLabel } from '@/lib/shared/status-configs';
 import { useState, useCallback } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -33,15 +34,6 @@ const refundStatusConfig: Record<string, { label: string; variant: BadgeVariant 
   rejected: { label: 'Reddedildi', variant: 'danger' },
   disputed: { label: 'İncelemede (İtiraz)', variant: 'warning' },
   cancelled: { label: 'İptal Edildi', variant: 'danger' },
-};
-
-const reasonLabels: Record<string, string> = {
-  changed_mind: 'Vazgeçtim',
-  damaged: 'Hasarlı geldi',
-  wrong_item: 'Yanlış ürün',
-  not_as_described: 'Açıklamayla uyuşmuyor',
-  missing_parts: 'Eksik parça',
-  other: 'Diğer',
 };
 
 interface BuyerRefund {
@@ -163,7 +155,7 @@ export default function BuyerRefundRequestsScreen() {
                           {rr.order?.product?.title ?? 'Ürün'}
                         </Text>
                         <Text variant="caption" style={styles.muted}>
-                          Sebep: {reasonLabels[rr.reason] ?? rr.reason}
+                          Sebep: {refundReasonLabel(rr.reason)}
                         </Text>
                         {rr.order?.seller?.displayName ? (
                           <Text variant="caption" style={styles.muted}>

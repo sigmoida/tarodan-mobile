@@ -152,17 +152,56 @@ export const membershipTierConfig: Record<string, StatusConfig> = {
   business: { label: 'İşletme', variant: 'primary' },
 };
 
-/** İade nedeni (RefundReason). */
+/**
+ * İade nedeni (RefundReason) — TEK kaynak.
+ *
+ * Bu harita dört ayrı dosyada üç farklı sürümle yazılmıştı; hepsi buraya
+ * bağlandı. Etiketler kullanıcıya hem seçicide hem listelerde göründüğü için
+ * tek bir ifade kullanılır — iki bağlamda iki farklı sözcük kullanmak,
+ * sözlüklerin ilk ayrışma sebebiydi.
+ */
 export const refundReasonConfig: Record<string, StatusConfig> = {
-  changed_mind: { label: 'Fikrimi Değiştirdim', variant: 'secondary' },
-  damaged: { label: 'Hasarlı', variant: 'danger' },
-  wrong_item: { label: 'Yanlış Ürün', variant: 'warning' },
-  not_as_described: { label: 'Açıklamaya Uygun Değil', variant: 'warning' },
-  missing_parts: { label: 'Eksik Parçalar', variant: 'warning' },
-  counterfeit: { label: 'Sahte / Taklit', variant: 'danger' },
-  lost_in_transit: { label: 'Kargoda Kayboldu', variant: 'danger' },
+  changed_mind: { label: 'Fikrim değişti', variant: 'secondary' },
+  damaged: { label: 'Hasarlı geldi', variant: 'danger' },
+  wrong_item: { label: 'Yanlış ürün geldi', variant: 'warning' },
+  not_as_described: { label: 'Açıklamayla uyuşmuyor', variant: 'warning' },
+  missing_parts: { label: 'Eksik parça var', variant: 'warning' },
+  counterfeit: { label: 'Sahte / taklit', variant: 'danger' },
+  lost_in_transit: { label: 'Kargoda kayboldu', variant: 'danger' },
+  delivery_delayed: { label: 'Teslimat gecikti', variant: 'warning' },
   other: { label: 'Diğer', variant: 'default' },
 };
+
+/**
+ * Nedenin okunur etiketi. Sunucunun tam enum listesi doğrulanamadı, o yüzden
+ * tanımadığımız bir kod SESSİZCE düşmez — ham kod basılır ki ekranda boş bir
+ * "Sebep:" satırı kalmasın.
+ */
+export function refundReasonLabel(reason: string | null | undefined): string {
+  if (!reason) return '';
+  return refundReasonConfig[reason]?.label ?? reason;
+}
+
+/**
+ * Alıcının iade talebi açarken SEÇEBİLECEĞİ nedenler.
+ *
+ * Sözlüğün tamamı değil: `lost_in_transit` gibi kodlar sistem/satıcı akışından
+ * da gelebiliyor, ama gösterilebilmeleri gerekiyor — bu yüzden gösterim
+ * (`refundReasonConfig`) ile seçim listesi ayrı, etiketleri ortak.
+ *
+ * `delivery_delayed` delta §15 ile eklendi (`POST /refunds` kabul ediyor,
+ * satıcı kusuru sayılıp otomatik onaylanıyor).
+ */
+export const REFUND_REASON_OPTIONS: Array<{ value: string; label: string }> = [
+  'changed_mind',
+  'damaged',
+  'not_as_described',
+  'wrong_item',
+  'missing_parts',
+  'counterfeit',
+  'delivery_delayed',
+  'other',
+].map((value) => ({ value, label: refundReasonConfig[value]!.label }));
 
 /** Kargo/gönderi durumu (ShipmentStatus). */
 export const shipmentStatusConfig: Record<string, StatusConfig> = {

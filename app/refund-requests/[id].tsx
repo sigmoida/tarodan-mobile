@@ -10,6 +10,7 @@ import {
   appAlert,
 } from '@/ui';
 import type { BadgeVariant } from '@/ui';
+import { refundReasonLabel } from '@/lib/shared/status-configs';
 import { useState, useCallback } from 'react';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -31,15 +32,6 @@ const refundStatusConfig: Record<string, { label: string; variant: BadgeVariant 
   rejected: { label: 'Reddedildi', variant: 'danger' },
   disputed: { label: 'İncelemede (İtiraz)', variant: 'warning' },
   cancelled: { label: 'İptal Edildi', variant: 'danger' },
-};
-
-const reasonLabels: Record<string, string> = {
-  changed_mind: 'Vazgeçtim',
-  damaged: 'Hasarlı geldi',
-  wrong_item: 'Yanlış ürün',
-  not_as_described: 'Açıklamayla uyuşmuyor',
-  missing_parts: 'Eksik parça',
-  other: 'Diğer',
 };
 
 // Süreç (metadata.history) aksiyon adlarının Türkçe karşılığı (refund.service appendHistory).
@@ -173,7 +165,7 @@ export default function RefundDetailScreen() {
         {/* İade bilgileri */}
         <Card variant="elevated" style={styles.card}>
           <Text variant="label" style={styles.sectionTitle}>İade Bilgileri</Text>
-          <Row label="Sebep" value={reasonLabels[rr.reason] ?? rr.reason} />
+          <Row label="Sebep" value={refundReasonLabel(rr.reason)} />
           {rr.description ? <Row label="Açıklama" value={rr.description} /> : null}
           {rr.order?.seller?.displayName ? <Row label="Satıcı" value={rr.order.seller.displayName} /> : null}
           {rr.requester?.displayName && !isRequester ? <Row label="Alıcı" value={rr.requester.displayName} /> : null}
