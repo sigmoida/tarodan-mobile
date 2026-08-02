@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, Image, Pressable } from 'react-native';
 import { Card, StatusBadge, Text, theme } from '@/ui';
 import { router } from 'expo-router';
@@ -12,6 +13,7 @@ const { colors } = theme;
 
 /** Grup başlık kartı + (2+ üründe) ürün-bazlı iade/iptal notu. */
 export function GroupHeader({ group }: { group: GroupDetail }) {
+  const { t } = useTranslation();
   const statusConfig = useOrderStatusConfig();
   return (
     <>
@@ -26,7 +28,7 @@ export function GroupHeader({ group }: { group: GroupDetail }) {
           <StatusBadge status={group.status} config={statusConfig} size="sm" />
         </View>
         <View style={[styles.headerRow, styles.totalRow]}>
-          <Text variant="label">Toplam</Text>
+          <Text variant="label">{t('common.total')}</Text>
           <Text variant="label" style={styles.price}>{formatPrice(group.totalAmount)}</Text>
         </View>
       </Card>
@@ -48,6 +50,7 @@ export function GroupHeader({ group }: { group: GroupDetail }) {
 
 /** Tek ürün satırı — kendi kargo takibi + iade/iptal aksiyonu (self-gated). */
 export function GroupOrderRow({ order, multi }: { order: GroupOrder; multi: boolean }) {
+  const { t } = useTranslation();
   const statusConfig = useOrderStatusConfig();
   const d = deriveOrderRow(order);
 
@@ -76,7 +79,7 @@ export function GroupOrderRow({ order, multi }: { order: GroupOrder; multi: bool
               color={d.isDelivered ? colors.success[600]! : colors.primary[600]!}
             />
             <Text variant="caption" style={styles.shipmentText}>
-              {d.isDelivered ? 'Teslim Edildi' : 'Kargo Takip'}: {d.tracking}
+              {d.isDelivered ? t('order.statusDelivered') : t('order.trackOrder')}: {d.tracking}
             </Text>
             <Ionicons name="chevron-forward" size={16} color={colors.text.subtle} />
           </View>

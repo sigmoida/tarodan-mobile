@@ -571,7 +571,21 @@
     "secureShoppingTitle": "Güvenli Alışveriş",
     "secureShoppingBody": "Ödemeniz, ürün elinize ulaşana kadar güvende tutulur.",
     "goToCart": "Sepete Git",
-    "offerSent": "Teklifiniz gönderildi"
+    "offerSent": "Teklifiniz gönderildi",
+    "addedToCartExclaim": "Ürün sepete eklendi!",
+    "signInToMessage": "Mesaj göndermek için üye olun",
+    "signInToTrade": "Takas teklifi için üye olun",
+    "signInToOffer": "Teklif vermek için üye olun",
+    "signInToCollect": "Koleksiyon için üye olun",
+    "signInToReport": "Raporlamak için giriş yapmalısınız",
+    "signInToFavorite": "Favorilere eklemek için üye olun",
+    "reportReasonPrompt": "Bu ilanı neden raporlamak istiyorsunuz?",
+    "reportReceived": "Raporunuz alındı. Teşekkür ederiz!",
+    "favoriteRemoved": "Favorilerden kaldırıldı",
+    "favoriteRemoveFailed": "Favorilerden kaldırılamadı",
+    "favoriteAdded": "Favorilere eklendi!",
+    "favoriteAddFailed": "Favorilere eklenemedi",
+    "reportReasonFake": "Sahte Ürün"
   },
   "cart": {
     "myCart": "Sepetim",
@@ -760,7 +774,8 @@
     "billingAddressLabel": "Fatura",
     "couponInvalidOrExpired": "Kupon kodu geçersiz veya süresi dolmuş.",
     "couponValidateFailed": "Kupon doğrulanamadı. Lütfen tekrar deneyin.",
-    "resendCode": "Kodu tekrar gönder"
+    "resendCode": "Kodu tekrar gönder",
+    "orderNumberLabel": "Sipariş Numarası"
   },
   "order": {
     "myOrders": "Siparişlerim",
@@ -985,7 +1000,16 @@
     "serviceVat": "Hizmet KDV'si",
     "refundQuantity": "İade Edilecek Adet",
     "refundReasonOptional": "İade Nedeni (isteğe bağlı)",
-    "evidencePhotoOptional": "Kanıt Fotoğrafı (isteğe bağlı)"
+    "evidencePhotoOptional": "Kanıt Fotoğrafı (isteğe bağlı)",
+    "cancellationActions": "İptal işlemleri",
+    "refundActions": "İade işlemleri",
+    "groupLoadFailed": "Sipariş grubu yüklenemedi.",
+    "receivedTitle": "Siparişiniz Alındı!",
+    "detailsEmailed": "Sipariş detayları e-posta adresinize gönderildi.",
+    "trackingSection": "Kargo Takibi",
+    "trackingWhenSellerShips": "Kargo bilgileri satıcı tarafından girildiğinde bilgilendirileceksiniz.",
+    "sellerContactSection": "Satıcı İletişimi",
+    "sellerContactVia": "Mesajlar bölümünden satıcıyla iletişime geçebilirsiniz."
   },
   "trade": {
     "myTrades": "Takaslarım",

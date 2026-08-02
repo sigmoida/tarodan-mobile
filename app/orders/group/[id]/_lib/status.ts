@@ -1,3 +1,4 @@
+import i18n from '@/i18n/config';
 import type { BadgeVariant } from '@/ui';
 import type { GroupOrder } from './types';
 
@@ -42,6 +43,11 @@ export function deriveOrderRow(order: GroupOrder) {
     !isCancelled &&
     order.status !== 'refunded' &&
     ['shipped', 'delivered', 'awaiting_confirmation', 'completed'].includes(order.status);
-  const actionLabel = isClosed ? null : isPreShipment ? 'İptal işlemleri' : 'İade işlemleri';
+  // Saf modül — global i18next örneği (hook yok).
+  const actionLabel = isClosed
+    ? null
+    : isPreShipment
+      ? i18n.t('order.cancellationActions')
+      : i18n.t('order.refundActions');
   return { tracking, isPreShipment, isCancelled, isClosed, isDelivered, showTracking, actionLabel };
 }

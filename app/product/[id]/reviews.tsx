@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, FlatList, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
 import { useState, useCallback } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -25,6 +26,7 @@ type Review = {
 };
 
 export default function ProductReviewsScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams();
   const productId = String(id);
   const [refreshing, setRefreshing] = useState(false);
@@ -90,7 +92,7 @@ export default function ProductReviewsScreen() {
 
   const renderItem = useCallback(({ item }: { item: Review }) => {
     const score = item.score ?? item.rating ?? 0;
-    const reviewerName = item.user?.displayName ?? item.userName ?? item.reviewer?.displayName ?? 'Kullanıcı';
+    const reviewerName = item.user?.displayName ?? item.userName ?? item.reviewer?.displayName ?? t('common.user');
     const reviewText = item.review ?? item.comment;
     const dateStr = item.createdAt ?? item.date;
     return (

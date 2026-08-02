@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Button, Card, Text, theme } from '@/ui';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -6,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 const { colors } = theme;
 
 export default function CheckoutSuccessScreen() {
+  const { t } = useTranslation();
   const { orderId } = useLocalSearchParams<{ orderId?: string }>();
 
   return (
@@ -19,12 +21,12 @@ export default function CheckoutSuccessScreen() {
         </View>
 
         {/* Title */}
-        <Text style={styles.title}>Siparişiniz Alındı!</Text>
+        <Text style={styles.title}>{t('order.receivedTitle')}</Text>
 
         {/* Order ID */}
         {orderId && (
           <View style={styles.orderIdContainer}>
-            <Text style={styles.orderIdLabel}>Sipariş Numarası</Text>
+            <Text style={styles.orderIdLabel}>{t('checkout.orderNumberLabel')}</Text>
             <Text style={styles.orderIdValue}>#{orderId}</Text>
           </View>
         )}
@@ -40,21 +42,21 @@ export default function CheckoutSuccessScreen() {
             <Ionicons name="mail-outline" size={24} color={colors.primary[600]!} />
             <View style={styles.infoContent}>
               <Text style={styles.infoTitle}>E-posta Bildirimi</Text>
-              <Text style={styles.infoText}>Sipariş detayları e-posta adresinize gönderildi.</Text>
+              <Text style={styles.infoText}>{t('order.detailsEmailed')}</Text>
             </View>
           </View>
           <View style={styles.infoItem}>
             <Ionicons name="location-outline" size={24} color={colors.primary[600]!} />
             <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>Kargo Takibi</Text>
-              <Text style={styles.infoText}>Kargo bilgileri satıcı tarafından girildiğinde bilgilendirileceksiniz.</Text>
+              <Text style={styles.infoTitle}>{t('order.trackingSection')}</Text>
+              <Text style={styles.infoText}>{t('order.trackingWhenSellerShips')}</Text>
             </View>
           </View>
           <View style={styles.infoItem}>
             <Ionicons name="chatbubble-outline" size={24} color={colors.primary[600]!} />
             <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>Satıcı İletişimi</Text>
-              <Text style={styles.infoText}>Mesajlar bölümünden satıcıyla iletişime geçebilirsiniz.</Text>
+              <Text style={styles.infoTitle}>{t('order.sellerContactSection')}</Text>
+              <Text style={styles.infoText}>{t('order.sellerContactVia')}</Text>
             </View>
           </View>
         </Card>

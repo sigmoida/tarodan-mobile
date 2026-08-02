@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
@@ -26,6 +27,7 @@ export function useProductFavorite({
   isAuthenticated: boolean;
   notify: Notify;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { addToFavorites, removeFromFavorites, isInFavorites, fetchFavorites } =
     useFavorites();
@@ -48,7 +50,7 @@ export function useProductFavorite({
 
   const toggle = async () => {
     if (!isAuthenticated) {
-      notify('Favorilere eklemek için üye olun', 'error');
+      notify(t('product.signInToFavorite'), 'error');
       setTimeout(() => router.push('/(auth)/login'), 1500);
       return;
     }
@@ -61,9 +63,9 @@ export function useProductFavorite({
           setFavoriteCount((c) => Math.max(0, c - 1));
           invalidateProductLists(queryClient);
           queryClient.invalidateQueries({ queryKey: qk.products.detail(productId) });
-          notify('Favorilerden kaldırıldı', 'success');
+          notify(t('product.favoriteRemoved'), 'success');
         } else {
-          notify('Favorilerden kaldırılamadı', 'error');
+          notify(t('product.favoriteRemoveFailed'), 'error');
         }
       } else {
         const success = await addToFavorites(productId);
@@ -72,13 +74,13 @@ export function useProductFavorite({
           setFavoriteCount((c) => c + 1);
           invalidateProductLists(queryClient);
           queryClient.invalidateQueries({ queryKey: qk.products.detail(productId) });
-          notify('Favorilere eklendi!', 'success');
+          notify(t('product.favoriteAdded'), 'success');
         } else {
-          notify('Favorilere eklenemedi', 'error');
+          notify(t('product.favoriteAddFailed'), 'error');
         }
       }
     } catch {
-      notify('Bir hata oluştu', 'error');
+      notify(t('utility.error500.title'), 'error');
     } finally {
       setFavoriteLoading(false);
     }
