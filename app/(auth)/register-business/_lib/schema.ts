@@ -12,7 +12,7 @@ import { z } from 'zod';
 import {
   emailSchema,
   requiredTrPhoneSchema,
-  trPhoneSchema as optionalTrPhoneSchema,
+  optionalTrPhoneSchema,
 } from '@/utils/validation';
 
 /**

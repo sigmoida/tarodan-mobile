@@ -10,7 +10,10 @@ import {
   usernameSchema,
   USERNAME_PATTERN,
   toHandle,
+  requiredTrPhoneSchema,
+  optionalTrPhoneSchema,
 } from '../validation';
+import { PHONE_INVALID_MESSAGE } from '../phone';
 
 describe('J41 · şifre kuralları (strongPasswordSchema)', () => {
   it('8 karakterden kısa reddedilir', () => {
@@ -145,5 +148,49 @@ describe('yardımcı şemalar', () => {
   });
   it('geçersiz email reddedilir', () => {
     expect(emailSchema.safeParse('bad').success).toBe(false);
+  });
+});
+
+/**
+ * İkisi de `parseE164TrPhone` üzerine kurulu — kırpma YOK, çözülemeyen girdi
+ * Türkçe mesajla reddedilir. Adları bilerek nitelikli: eskiden niteliksiz
+ * `trPhoneSchema` **opsiyonel** olandı ve tek tüketicisi onu import ederken
+ * yeniden adlandırmak zorunda kalıyordu.
+ */
+describe('TR telefon şemaları', () => {
+  const VALID = ['0532 123 45 67', '+90 532 123 45 67', '532 123 45 67', '(0532) 123-45-67'];
+  // Hepsi eskiden sessizce kırpılıp geçerli görünen bir E.164'e dönüştürülüyordu.
+  const INVALID = ['00905321234567', '+1 415 555 0100', '05321234567890', '0432 123 45 67', '532 123 45 6'];
+
+  it.each(VALID)('zorunlu şema %s girdisini E.164 yapar', (input) => {
+    const r = requiredTrPhoneSchema.safeParse(input);
+    expect(r.success && r.data).toBe('+905321234567');
+  });
+
+  it.each(INVALID)('zorunlu şema %s girdisini REDDEDER (kırpmaz)', (input) => {
+    const r = requiredTrPhoneSchema.safeParse(input);
+    expect(r.success).toBe(false);
+    if (!r.success) expect(r.error.issues[0]?.message).toBe(PHONE_INVALID_MESSAGE);
+  });
+
+  it('zorunlu şema boş girdiyi Türkçe mesajla reddeder', () => {
+    const r = requiredTrPhoneSchema.safeParse('');
+    expect(r.success).toBe(false);
+    if (!r.success) expect(r.error.issues[0]?.message).toBe('Telefon numarası gerekli');
+  });
+
+  it('opsiyonel şema boş/atlanmış girdiyi undefined yapar', () => {
+    expect(optionalTrPhoneSchema.safeParse('')).toMatchObject({ success: true, data: undefined });
+    expect(optionalTrPhoneSchema.safeParse(undefined)).toMatchObject({ success: true, data: undefined });
+  });
+
+  it('opsiyonel şema DOLU ama çözülemeyen girdiyi sessizce düşürmez', () => {
+    const r = optionalTrPhoneSchema.safeParse('00905321234567');
+    expect(r.success).toBe(false);
+    if (!r.success) expect(r.error.issues[0]?.message).toBe(PHONE_INVALID_MESSAGE);
+  });
+
+  it('opsiyonel şema geçerli girdiyi de E.164 yapar', () => {
+    expect(optionalTrPhoneSchema.safeParse('0532 123 45 67')).toMatchObject({ data: '+905321234567' });
   });
 });

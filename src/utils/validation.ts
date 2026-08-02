@@ -46,7 +46,7 @@ export const requiredTrPhoneSchema = z
  * paylaşılan ayrıştırıcıyla değiştirildi ve gerçek tüketicilere (kurumsal kayıt
  * şeması) bağlandı.
  */
-export const trPhoneSchema = z
+export const optionalTrPhoneSchema = z
   .string()
   .trim()
   .optional()
