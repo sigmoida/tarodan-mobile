@@ -103,6 +103,13 @@ export function getViolationMessage(violations: ContentViolation[]): string {
 /**
  * Mesajdaki [IMG:url] işaretini URL'ye parse eder.
  * Ör: "bak bu güzel [IMG:https://s3.../a.jpg]" → { text: "bak bu güzel ", images: ["https://..."] }
+ *
+ * Şemasız değerleri de kabul eder (çıplak S3 key: "dev/messages/x.jpg", relatif
+ * yol: "/photos/x.jpg") — sunucu her zaman mutlak http(s) URL döndürmeyebilir.
+ * Çözümü kasıtlı olarak burada YAPMIYORUZ: mutlak/çıplak/relatif ayrımı
+ * `resolveImageUrl` (`@/utils/imageUrl`) sorumluluğunda, tek kaynak orada kalsın.
+ * `]` ve boşluk sınırı (`[^\]\s]+`) korunuyor ki mesaj gövdesinin geri kalanı
+ * yutulmasın.
  */
 export interface ParsedMessage {
   text: string;
@@ -112,7 +119,7 @@ export interface ParsedMessage {
 export function parseMessageContent(content: string): ParsedMessage {
   if (!content) return { text: '', images: [] };
   const images: string[] = [];
-  const text = content.replace(/\[IMG:(https?:\/\/[^\]\s]+)\]/g, (_, url) => {
+  const text = content.replace(/\[IMG:([^\]\s]+)\]/g, (_, url) => {
     images.push(url);
     return '';
   }).trim();
