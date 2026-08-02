@@ -45,6 +45,11 @@ export const authApi = {
    * ile belirlenir. Canlıda doğrulandı (task-3-report.md): yalnız bu sekiz alan
    * kabul edilir; `password`/`companyName`/`taxId`/`city` YOK — göndermek 400
    * döndürür (beş zorunlu alan eksik sayılır). Web /auth/register/business ile eşleşir.
+   *
+   * ⚠️ `guestApi` (interceptor'sız istemci) ile gider: uç public'tir ve bayat token'lı
+   * bir cihazda `api` ölümcül olurdu — 401 → refresh başarısızsa `handleAuthFailure()`
+   * logout + login'e yönlendirir (başvuru sessizce kaybolur), refresh başarılıysa bu
+   * non-idempotent POST **replay** edilir (mükerrer başvuru + 5/dk kotasından ikinci hak).
    */
   registerBusiness: (data: {
     authorizedFullName: string; // zorunlu, 2-120
@@ -56,7 +61,7 @@ export const authApi = {
     phone: string; // zorunlu: /^\+90[0-9]{10}$/
     contactPhone?: string; // opsiyonel, aynı format
   }) =>
-    api.post<{ applicationId: string; status: string; email: string; message: string }>(
+    guestApi.post<{ applicationId: string; status: string; email: string; message: string }>(
       '/auth/register/business',
       data,
     ),
