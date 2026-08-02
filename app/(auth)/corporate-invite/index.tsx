@@ -10,6 +10,7 @@ import {
   theme,
 } from '@/ui';
 import { Form, FormInput } from '@/ui/form';
+import { toHandle } from '@/utils/validation';
 import { useCorporateInvite } from './_hooks/useCorporateInvite';
 
 /**
@@ -66,7 +67,7 @@ export default function CorporateInviteScreen() {
             maxLength={30}
             // Girişte küçük harfe çevir — kullanıcı kalıcı handle'ını olduğu
             // gibi görür, şemadaki `.toLowerCase()` emniyet kemeri.
-            transform={(t) => t.toLowerCase()}
+            transform={toHandle}
           />
           <FormInput
             testID="invite-password"

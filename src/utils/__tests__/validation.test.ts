@@ -9,6 +9,7 @@ import {
   emailSchema,
   usernameSchema,
   USERNAME_PATTERN,
+  toHandle,
 } from '../validation';
 
 describe('J41 · şifre kuralları (strongPasswordSchema)', () => {
@@ -113,6 +114,28 @@ describe('usernameSchema (üç ekranın tek kaynağı)', () => {
   it('USERNAME_PATTERN tire kabul etmez (Maestro damgaları için kritik)', () => {
     expect(USERNAME_PATTERN.test('maestro-j1-123')).toBe(false);
     expect(USERNAME_PATTERN.test('maestroj1123')).toBe(true);
+  });
+});
+
+/**
+ * `toHandle` — register/corporate-invite/settings-username ekranlarının üçünün
+ * de kullandığı ortak alan-dönüşümü (§5, önceden 3 kopya `(t) => t.toLowerCase()`).
+ * Bilinçli olarak transliterasyon YAPMAZ — yalnız küçük harfe çevirir.
+ */
+describe('toHandle (üç ekranın ortak alan dönüşümü)', () => {
+  it('küçük harfe çevirir', () => {
+    expect(toHandle('Gorkem')).toBe('gorkem');
+  });
+
+  it('zaten küçükse değiştirmez', () => {
+    expect(toHandle('gorkem')).toBe('gorkem');
+  });
+
+  it('transliterasyon yapmaz — Türkçe karakterler JS toLowerCase davranışıyla aynen kalır', () => {
+    // 'İ'.toLowerCase() → 'i' + BİRLEŞİK NOKTA (U+0307) — bilinçli olarak
+    // "düzeltilmiyor" (bkz. validation.ts docstring).
+    expect(toHandle('İpek')).toBe('İpek'.toLowerCase());
+    expect(toHandle('İpek')).not.toBe('ipek');
   });
 });
 

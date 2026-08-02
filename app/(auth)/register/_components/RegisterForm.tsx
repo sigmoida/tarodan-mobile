@@ -5,6 +5,7 @@ import { Controller } from 'react-hook-form';
 import { router } from 'expo-router';
 import { styles } from '../_lib/styles';
 import { maxBirthDate } from '../_lib/schema';
+import { toHandle } from '@/utils/validation';
 import type { RegisterController } from '../_hooks/useRegister';
 
 /** Kayıt form kartı — kullanıcı adı/ad/e-posta/doğum/şifre/onay alanları + sözleşme linkleri + gönder. */
@@ -53,7 +54,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
             // Girişte küçük harfe çevir: alan gerçekten kaydedilecek handle'ı
             // gösterir (sessiz dönüşüm yok) ve karışık girdi de uygunluk
             // kontrolünden geçer. Şemadaki `.toLowerCase()` emniyet kemeri.
-            onChangeText={(t) => onChange(t.toLowerCase())}
+            onChangeText={(t) => onChange(toHandle(t))}
             maxLength={30}
             autoCapitalize="none"
             autoCorrect={false}

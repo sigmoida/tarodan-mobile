@@ -49,6 +49,19 @@ export const emailSchema = z.string().trim().email('Geçerli bir e-posta girin')
 export const USERNAME_PATTERN = /^[a-z0-9](?:[a-z0-9._]*[a-z0-9])?$/;
 
 /**
+ * Kullanıcı adı alanının görüntü dönüşümü — bugün yalnız küçük harfe çevirir.
+ * TEK KAYNAK: register (`RegisterForm.tsx`), kurumsal davet
+ * (`corporate-invite/index.tsx`) ve kullanıcı adı talebi
+ * (`settings/username/index.tsx`) ekranlarının üçü de buradan alır (önceden
+ * üç ayrı `(t) => t.toLowerCase()` kopyası vardı, §5).
+ *
+ * ⚠️ Bilinçli olarak transliterasyon YAPMAZ (`ı→i`, `ş→s`, `ğ→g` gibi bir eşleme
+ * yok) — kullanıcının adını sessizce başka bir kalıcı handle'a çevirmek ürün
+ * kararı gerektirir. İleride böyle bir karar verilirse tek yerden uygulanır.
+ */
+export const toHandle = (t: string) => t.toLowerCase();
+
+/**
  * Kullanıcı adı — 3-30, `USERNAME_PATTERN`.
  *
  * ⚠️ `.toLowerCase()` regex'ten ÖNCE koşar (Zod check'leri bildirim sırasıyla
