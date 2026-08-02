@@ -3,18 +3,26 @@ import { Ionicons } from '@expo/vector-icons';
 import { Controller } from 'react-hook-form';
 import { Button, Checkbox, Text, VStack, theme } from '@/ui';
 import { Form, FormInput } from '@/ui/form';
+import { DEFAULT_COUNTRY_CODE, getPhonePlaceholder } from '@/utils/phone';
+import { formatTrPhoneField } from '../_lib/phone';
 import { styles } from '../_lib/styles';
 import type { RegisterBusinessController } from '../_hooks/useRegisterBusiness';
 
 const { colors, spacing } = theme;
+
+/** `formatTrPhoneField` baştaki `0`/`90`'ı soyduğu için placeholder da lokal biçim. */
+const TR_PHONE_PLACEHOLDER = getPhonePlaceholder(DEFAULT_COUNTRY_CODE);
 
 /** Kurumsal ön-başvuru form kartı — sekiz sözleşme alanı + KVKK onayı + gönder. */
 export function RegisterBusinessForm({ f }: { f: RegisterBusinessController }) {
   const { form } = f;
   const {
     control,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = form;
+  // `handleSubmit` async: doğrulama sürerken mutation henüz `isPending` değil —
+  // ikisi birden olmadan çift gönderim penceresi açık kalıyor.
+  const busy = f.registerMutation.isPending || isSubmitting;
 
   return (
     <View style={styles.card}>
@@ -38,16 +46,20 @@ export function RegisterBusinessForm({ f }: { f: RegisterBusinessController }) {
           />
 
           <Text variant="label" style={{ marginTop: spacing[2] }}>Şirket Bilgileri</Text>
+          {/* İki alan da "Şirket…" ile başlayıp yan yana durunca ters doldurulmaya
+              açıktı; ayrım artık etiket + helperText ile açık. */}
           <FormInput
             testID="register-business-companyLegalName-input"
             name="companyLegalName"
-            label="Şirket Ticaret Unvanı *"
+            label="Ticaret Unvanı *"
+            helperText="Vergi levhanızda yazan tam unvan."
             placeholder="Ör. Örnek Otomotiv Sanayi ve Ticaret Ltd. Şti."
           />
           <FormInput
             testID="register-business-companyTitle-input"
             name="companyTitle"
-            label="Şirket Adı / Marka *"
+            label="Görünen İşletme Adı *"
+            helperText="Tarodan'da alıcılara gösterilecek kısa ad/marka."
             placeholder="Ör. Örnek Otomotiv"
           />
           <FormInput
@@ -74,19 +86,26 @@ export function RegisterBusinessForm({ f }: { f: RegisterBusinessController }) {
             keyboardType="email-address"
             autoCapitalize="none"
           />
+          {/* Telefon alanları her tuş vuruşunda formatlanır (eski formdaki `PhoneInput`
+              davranışı, `FormInput`'un `transform` prop'u üzerinden — kendi kopyası
+              yazılmadan): kullanıcı GÖNDERİLECEK değeri yazarken görür. */}
           <FormInput
             testID="register-business-phone-input"
             name="phone"
             label="Telefon *"
-            placeholder="05XX XXX XX XX"
+            placeholder={TR_PHONE_PLACEHOLDER}
             keyboardType="phone-pad"
+            textContentType="telephoneNumber"
+            transform={formatTrPhoneField}
           />
           <FormInput
             testID="register-business-contactPhone-input"
             name="contactPhone"
             label="Ek İletişim Telefonu (opsiyonel)"
-            placeholder="05XX XXX XX XX"
+            placeholder={TR_PHONE_PLACEHOLDER}
             keyboardType="phone-pad"
+            textContentType="telephoneNumber"
+            transform={formatTrPhoneField}
           />
         </Form>
 
@@ -111,8 +130,8 @@ export function RegisterBusinessForm({ f }: { f: RegisterBusinessController }) {
           fullWidth
           title="Başvuru Gönder"
           onPress={f.onSubmit}
-          isLoading={f.registerMutation.isPending}
-          disabled={f.registerMutation.isPending}
+          isLoading={busy}
+          disabled={busy}
           style={{ marginTop: spacing[3] }}
         />
       </VStack>

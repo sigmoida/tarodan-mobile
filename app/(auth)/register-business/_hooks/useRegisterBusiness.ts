@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
 import { useZodForm } from '@/ui/form';
-import { authApi } from '@/lib/api';
+import { authApi, errorText } from '@/lib/api';
 import { registerBusinessSchema, type RegisterBusinessForm } from '../_lib/schema';
 
 /**
@@ -17,7 +17,20 @@ import { registerBusinessSchema, type RegisterBusinessForm } from '../_lib/schem
  */
 export function useRegisterBusiness() {
   const form = useZodForm(registerBusinessSchema, {
-    defaultValues: { acceptTerms: false },
+    // Her string alan `''` ile başlamalı: dokunulmamış alan RHF'te `undefined`
+    // kalırsa zod `invalid_type` üretir ve kullanıcı tamamen Türkçe bir ekranda
+    // İngilizce "Required" görür. Boş formda submit en sık gidilen hata yolu.
+    defaultValues: {
+      authorizedFullName: '',
+      companyLegalName: '',
+      companyTitle: '',
+      companyAddress: '',
+      companyEmail: '',
+      kepAddress: '',
+      phone: '',
+      contactPhone: '',
+      acceptTerms: false,
+    },
   });
 
   const registerMutation = useMutation({
@@ -40,20 +53,29 @@ export function useRegisterBusiness() {
         email?: string;
         message?: string;
       };
-      appAlert(
-        'Başvurunuz alındı',
+      const lines = [
         `${data.email ?? 'Belirttiğiniz e-posta adresi'} için kurumsal satıcı başvurunuz ` +
           'incelemeye alındı. Admin onayının ardından davet e-postanızdaki bağlantıdan ' +
           'kullanıcı adınızı ve şifrenizi belirleyebileceksiniz.',
-        [{ text: 'Tamam', onPress: () => router.replace('/(auth)/login') }],
-      );
+      ];
+      // Başvuru numarası destek için tek referans — uç 5/dk limitli, kullanıcı
+      // "gitti mi?" diye tekrar denemesin.
+      if (data.applicationId) lines.push(`Başvuru numaranız: ${data.applicationId}`);
+      appAlert('Başvurunuz alındı', lines.join('\n\n'), [
+        { text: 'Tamam', onPress: () => router.replace('/(auth)/login') },
+      ]);
     },
     onError: (e: unknown) => {
-      const err = e as { response?: { data?: { message?: string | string[] } } };
-      const raw = err?.response?.data?.message;
+      const status = (e as { response?: { status?: number } })?.response?.status;
       appAlert(
         'Başvuru gönderilemedi',
-        Array.isArray(raw) ? raw.join('\n') : raw || 'Başvurunuz gönderilemedi. Lütfen tekrar deneyin.',
+        // Uç 5/dk throttle'lı; ham gövde NestJS'in iç sınıf adını
+        // ("ThrottlerException: Too Many Requests") döndürüyor — kullanıcıya gösterilmez.
+        status === 429
+          ? 'Çok fazla deneme yaptınız, lütfen bir dakika sonra tekrar deneyin.'
+          : // Paylaşılan helper: dizi mesajları birleştirir, boş dizi/boş string
+            // fallback'e düşer (elle yazılan sürüm boş gövdeli alert üretiyordu).
+            errorText(e, 'Başvurunuz gönderilemedi. Lütfen tekrar deneyin.'),
       );
     },
   });

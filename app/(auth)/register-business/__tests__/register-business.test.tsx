@@ -5,6 +5,7 @@
  * `password` hiç toplanmaz/gönderilmez, başarı ekranı "hesabınız açıldı" demez.
  */
 import React from 'react';
+import { TextInput } from 'react-native';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 
@@ -17,6 +18,9 @@ jest.mock('@/lib/api', () => ({
   authApi: {
     registerBusiness: jest.fn(),
   },
+  // `errorText` paylaşılan gerçek helper — mock'lanmaz, çünkü boş-dizi/boş-string
+  // davranışı burada test ediliyor (client.ts'i çekmemek için doğrudan modülden).
+  errorText: jest.requireActual('@/lib/api/errorText').errorText,
 }));
 import { authApi } from '@/lib/api';
 import { appAlert } from '@/ui';
@@ -54,9 +58,12 @@ beforeEach(() => {
 
 it('şifre alanı hiç render edilmez (bu adım hesap açmaz)', () => {
   renderWithProviders(<RegisterBusinessScreen />);
-  expect(screen.queryByTestId('register-business-password-input')).toBeNull();
-  expect(screen.queryByTestId('register-business-passwordConfirm-input')).toBeNull();
-  expect(screen.queryByPlaceholderText('••••••••')).toBeNull();
+  // Asıl koruma: ağaçta `secureTextEntry` ile render edilmiş HİÇBİR TextInput yok.
+  // (testID/placeholder sorgulamak vakumdu — o testID'ler eski kodda da yoktu.)
+  const secureInputs = screen
+    .UNSAFE_queryAllByType(TextInput)
+    .filter((node) => node.props.secureTextEntry === true);
+  expect(secureInputs).toHaveLength(0);
   expect(screen.queryByText(/^Şifre \*$/)).toBeNull();
 });
 
@@ -182,6 +189,108 @@ it('başarılı başvuruda "hesabınız açıldı" DENMEZ; login ekranına yönl
   const buttons = (appAlert as jest.Mock).mock.calls[0][2];
   buttons[0].onPress();
   expect(mockReplace).toHaveBeenCalledWith('/(auth)/login');
+});
+
+it('başarı mesajı başvuru numarasını içerir (destek referansı)', async () => {
+  (authApi.registerBusiness as jest.Mock).mockResolvedValue({
+    data: { applicationId: '40356b5a-1506-4169-86be-0a8e726d6f4f', status: 'submitted', email: 'x@y.com', message: 'ok' },
+  });
+  renderWithProviders(<RegisterBusinessScreen />);
+
+  fillValidForm();
+  fireEvent.press(screen.getByTestId('register-business-submit-button'));
+
+  await waitFor(() => expect(appAlert).toHaveBeenCalledTimes(1));
+  const [, message] = (appAlert as jest.Mock).mock.calls[0];
+  expect(message).toMatch(/40356b5a-1506-4169-86be-0a8e726d6f4f/);
+});
+
+/**
+ * REGRESYON: `defaultValues` yalnız `acceptTerms` veriyordu; dokunulmamış string
+ * alanlar RHF'te `undefined` kalıp zod `invalid_type` → İngilizce "Required"
+ * üretiyordu. Tamamen Türkçe bir ekranda en sık gidilen hata yolu buydu.
+ */
+it('boş formda submit → hataların hepsi TÜRKÇE, "Required" hiç görünmez', async () => {
+  renderWithProviders(<RegisterBusinessScreen />);
+
+  fireEvent.press(screen.getByTestId('register-business-submit-button'));
+
+  // authorizedFullName / companyLegalName / companyTitle
+  await waitFor(() => expect(screen.getAllByText('En az 2 karakter olmalı')).toHaveLength(3));
+  expect(screen.getByText('En az 10 karakter olmalı')).toBeTruthy(); // companyAddress
+  expect(screen.getByText('Geçerli bir e-posta girin')).toBeTruthy(); // companyEmail
+  expect(screen.getByText('Telefon numarası gerekli')).toBeTruthy(); // phone
+  expect(screen.getByText(/sözleşmesini.*kabul/i)).toBeTruthy(); // acceptTerms
+  expect(screen.queryAllByText(/required/i)).toHaveLength(0);
+  expect(authApi.registerBusiness).not.toHaveBeenCalled();
+});
+
+it('opsiyonel alanlar boş bırakılınca hata vermez', async () => {
+  renderWithProviders(<RegisterBusinessScreen />);
+  fireEvent.press(screen.getByTestId('register-business-submit-button'));
+
+  await waitFor(() => expect(screen.getByText('Telefon numarası gerekli')).toBeTruthy());
+  // kepAddress / contactPhone boş → hata yok (tek "e-posta" hatası companyEmail'in).
+  expect(screen.queryAllByText('Geçerli bir e-posta girin')).toHaveLength(1);
+  expect(screen.queryAllByText(/Geçerli bir telefon numarası girin/)).toHaveLength(0);
+});
+
+/**
+ * REGRESYON: eski form `PhoneInput` ile her tuş vuruşunda formatlıyordu; yeni form
+ * düz `FormInput`'a geçince normalizasyon yalnız submit'te ve GÖRÜNMEZ koşuyordu.
+ */
+it('telefon alanı yazarken formatlanır — görünen değer gönderilen değerdir', () => {
+  renderWithProviders(<RegisterBusinessScreen />);
+  const phone = screen.getByTestId('register-business-phone-input');
+
+  fireEvent.changeText(phone, '05321234567');
+  expect(phone.props.value).toBe('532 123 45 67');
+
+  fireEvent.changeText(phone, '+905321234567');
+  expect(phone.props.value).toBe('532 123 45 67');
+});
+
+it('çözülemeyen telefon gönderilmez (TR olmayan numara sessizce kırpılmaz)', async () => {
+  renderWithProviders(<RegisterBusinessScreen />);
+
+  fillValidForm();
+  fireEvent.changeText(screen.getByTestId('register-business-phone-input'), '+1 415 555 0100');
+  fireEvent.press(screen.getByTestId('register-business-submit-button'));
+
+  await waitFor(() =>
+    expect(screen.getByText('Geçerli bir telefon numarası girin (5XX XXX XX XX)')).toBeTruthy(),
+  );
+  expect(authApi.registerBusiness).not.toHaveBeenCalled();
+});
+
+it('429 (throttle) → NestJS sınıf adı değil, Türkçe mesaj gösterilir', async () => {
+  (authApi.registerBusiness as jest.Mock).mockRejectedValue({
+    response: { status: 429, data: { message: 'ThrottlerException: Too Many Requests', statusCode: 429 } },
+  });
+  renderWithProviders(<RegisterBusinessScreen />);
+
+  fillValidForm();
+  fireEvent.press(screen.getByTestId('register-business-submit-button'));
+
+  await waitFor(() => expect(appAlert).toHaveBeenCalledTimes(1));
+  const [title, message] = (appAlert as jest.Mock).mock.calls[0];
+  expect(title).toBe('Başvuru gönderilemedi');
+  expect(message).not.toMatch(/ThrottlerException|Too Many Requests/);
+  expect(message).toMatch(/bir dakika sonra tekrar deneyin/i);
+});
+
+it('boş `message` dizisiyle gelen 400 → boş alert değil, Türkçe fallback', async () => {
+  (authApi.registerBusiness as jest.Mock).mockRejectedValue({
+    response: { status: 400, data: { message: [] } },
+  });
+  renderWithProviders(<RegisterBusinessScreen />);
+
+  fillValidForm();
+  fireEvent.press(screen.getByTestId('register-business-submit-button'));
+
+  await waitFor(() => expect(appAlert).toHaveBeenCalledTimes(1));
+  const [, message] = (appAlert as jest.Mock).mock.calls[0];
+  expect(message).toBe('Başvurunuz gönderilemedi. Lütfen tekrar deneyin.');
 });
 
 it('400 hatasında API mesajını gösterir', async () => {
