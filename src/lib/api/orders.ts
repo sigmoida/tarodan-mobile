@@ -166,8 +166,14 @@ export const ordersApi = {
   /** Alıcının bu siparişe yazdığı kendi değerlendirmesi (yoksa null) —
    *  "Değerlendir" butonunu gizlemek için. Backend: GET /orders/:id/my-review */
   getMyReview: (id: string) => api.get(`/orders/${id}/my-review`),
-  /** Checkout quote (fiyat kırılımı) — `pricingHash`/`shippingTariffVersion` köktedir. */
-  getQuote: (data: { items: Array<{ productId: string; quantity?: number }> }) =>
+  /**
+   * Checkout quote (fiyat kırılımı) — `pricingHash`/`shippingTariffVersion` köktedir.
+   * `couponCode` yalnızca DOĞRULANMIŞ bir kupon varken gönderilir: sunucu indirimi
+   * quote'a da uygular (fee/tax/shipping indirimli tabana göre yeniden hesaplanır),
+   * aksi halde önizleme toplamı checkout'ta gerçekte tahsil edilenden fazla görünür
+   * (canlı ölçüm — geçersiz kod 400 "Kupon kodu bulunamadı", boş/null/eksik 201).
+   */
+  getQuote: (data: { items: Array<{ productId: string; quantity?: number }>; couponCode?: string }) =>
     api.post<OrderQuoteResponse>('/orders/quote', data),
   /** İlan formunda komisyon önizleme (tek ürün) */
   getCommissionPreview: (params: { amount: number; categoryId?: string }) =>

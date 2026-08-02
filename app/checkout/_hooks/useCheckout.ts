@@ -74,15 +74,45 @@ export function useCheckout() {
 
   const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.price * it.quantity, 0), [items]);
 
+  // Kupon: `/discounts/validate` ile doğrulanır. Doğrulanmış kod quote'a da
+  // gönderilir (aşağıda) — sunucu `summary.productAmount`'ı "kupon sonrası ara
+  // toplam" olarak tanımlıyor; kod gitmezse bu alan indirimsiz kalır ve
+  // `summary.total` checkout'ta gerçekte tahsil edilenden FAZLA görünür.
+  const coupon = useCoupon(items, isAuthenticated);
+
   // Quote'un KÖKÜ korunur — `pricingHash` + `shippingTariffVersion` kökte,
   // `pricing` içinde DEĞİL, ve order-create payload'larına aynen geri gider.
+  // `couponCode` queryKey'e DAHİL: kupon uygulanınca/kaldırılınca quote tazelenir.
   const quoteQuery = useQuery({
-    queryKey: qk.checkout.quote(items.map((it) => `${it.productId}:${it.quantity}`).join(',')),
+    queryKey: qk.checkout.quote(
+      items.map((it) => `${it.productId}:${it.quantity}`).join(','),
+      coupon.couponCode,
+    ),
     queryFn: async () => {
-      const res = await ordersApi.getQuote({
-        items: items.map((it) => ({ productId: it.productId, quantity: it.quantity })),
-      });
-      return (res.data ?? {}) as OrderQuoteResponse;
+      const baseItems = items.map((it) => ({ productId: it.productId, quantity: it.quantity }));
+      const couponCode = coupon.couponCode;
+      try {
+        const res = await ordersApi.getQuote({
+          items: baseItems,
+          ...(couponCode ? { couponCode } : {}),
+        });
+        return (res.data ?? {}) as OrderQuoteResponse;
+      } catch (err: any) {
+        // Kupon arada geçersizleşmiş olabilir (süre doldu / kullanım limiti) —
+        // yapısal hata kodu yok, yalnız `message` string'i var (canlı ölçüm: 400
+        // "Kupon kodu bulunamadı"). Checkout'u kilitleme: kuponu düşür, kuponsuz
+        // quote'u aynı istekte tekrar dene, kullanıcıya haber ver.
+        if (couponCode && err?.response?.status === 400) {
+          coupon.remove();
+          alertRespectingOtpModal(
+            'Kupon Geçersiz',
+            extractApiMessage(err) ?? 'Kupon kodu artık geçerli değil, kaldırıldı.',
+          );
+          const retryRes = await ordersApi.getQuote({ items: baseItems });
+          return (retryRes.data ?? {}) as OrderQuoteResponse;
+        }
+        throw err;
+      }
     },
     enabled: items.length > 0,
     staleTime: 60_000,
@@ -99,11 +129,8 @@ export function useCheckout() {
   const productAmount = Number(summary?.productAmount ?? subtotal);
   // Hizmet bedeli + TÜM alıcı hizmet KDV'si — ayrı bir KDV satırı basılmaz.
   const serviceFeeAmount = Number(summary?.serviceFeeAmount ?? 0);
-
-  // Kupon: tutar sunucudan gelir, burada yalnız gösterim için düşülür.
-  // Kesin fiyat sipariş/ödeme yanıtının otoritesindedir.
-  const coupon = useCoupon(items, isAuthenticated);
-  // Toplam SUNUCU garantisi — yerel aritmetik yok, `pricing.summary.total` aynen basılır.
+  // Toplam SUNUCU garantisi — yerel aritmetik yok, `pricing.summary.total` aynen
+  // basılır. Kupon doğrulanmışsa quote'a gittiği için bu değer zaten indirimlidir.
   const total = Number(summary?.total ?? 0);
 
   const addressesQuery = useQuery({

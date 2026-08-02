@@ -171,7 +171,11 @@ export const qk = {
   },
 
   checkout: {
-    quote: (sig: string) => ["checkout-quote", sig] as const,
+    /** `couponCode` anahtara dahildir — kupon değişince (uygulanınca/kaldırılınca)
+     *  quote tazelenmeli, aksi halde sunucu indirimi hesaba katmadan eski toplamı
+     *  gösteririz. */
+    quote: (sig: string, couponCode?: string) =>
+      ["checkout-quote", sig, couponCode ?? null] as const,
   },
 
   support: {
