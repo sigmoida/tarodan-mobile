@@ -70,7 +70,11 @@ export function AddressSelector({
             testID={isBilling ? undefined : 'shipping-fullname-input'}
           />
           <PhoneInput
+            testID={isBilling ? 'billing-phone-input' : 'shipping-phone-input'}
             label="Telefon *"
+            // Ödeme adımına gelmeden görsün: çözülemeyen numara blur'da uyarır.
+            // Gönderimi engelleyen kuralla AYNI ayrıştırıcı (`@/utils/phone`).
+            validateOnBlur
             countryCode={inline.phoneCountryCode ?? DEFAULT_COUNTRY_CODE}
             onCountryCodeChange={(code) => setInline((prev) => ({ ...prev, phoneCountryCode: code }))}
             phone={inline.phone}

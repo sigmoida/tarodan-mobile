@@ -46,7 +46,10 @@ export function Step1Address({ c }: { c: Ctrl }) {
             testID="guest-email-input"
           />
           <PhoneInput
+            testID="guest-phone-input"
             label="Telefon *"
+            // Ödeme adımına gelmeden görsün: çözülemeyen numara blur'da uyarır.
+            validateOnBlur
             countryCode={c.guestPhoneCountryCode}
             onCountryCodeChange={c.setGuestPhoneCountryCode}
             phone={c.guestPhone}
