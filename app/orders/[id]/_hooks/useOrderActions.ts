@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Platform } from 'react-native';
 import { router } from 'expo-router';
@@ -31,6 +32,7 @@ const strMsg = (err: any, fallback: string): string => {
  * + iade modalının form durumu (sebep/açıklama/adet/kanıt foto) + snackbar.
  */
 export function useOrderActions(id: string, order: OrderDetail | undefined) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string; variant: SnackVariant }>({
@@ -80,12 +82,12 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
       setRefundDescription('');
       setEvidenceAssets([]);
       setRefundQuantity(1);
-      notify('İade talebiniz oluşturuldu.', 'success');
+      notify(t('order.refundRequestCreated'), 'success');
       invalidateOrder();
     },
     onError: (err: any) => {
       captureException(err, { level: 'error', tags: { flow: 'refund.create' }, extra: { orderId: id, reason: refundReason } });
-      notify(strMsg(err, 'İade talebi oluşturulamadı.'), 'danger');
+      notify(strMsg(err, t('order.refundRequestFailed')), 'danger');
     },
   });
 
@@ -93,11 +95,11 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
     mutationFn: (refundId: string) => refundsApi.cancel(refundId),
     onSuccess: () => {
       invalidateOrder();
-      notify('İade talebi iptal edildi.', 'success');
+      notify(t('refund.cancel.successMessage'), 'success');
     },
     onError: (err: any) => {
       captureException(err, { level: 'error', tags: { flow: 'refund.cancel' }, extra: { orderId: id } });
-      notify(strMsg(err, 'İptal başarısız.'), 'danger');
+      notify(strMsg(err, t('refund.cancel.errorMessage')), 'danger');
     },
   });
 
@@ -105,11 +107,11 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
     mutationFn: () => ordersApi.cancel(id),
     onSuccess: () => {
       invalidateOrder();
-      notify('Siparişiniz iptal edildi.', 'success');
+      notify(t('order.orderCancelled'), 'success');
     },
     onError: (err: any) => {
       captureException(err, { level: 'error', tags: { flow: 'order.cancel' }, extra: { orderId: id } });
-      notify(strMsg(err, 'Sipariş iptal edilemedi.'), 'danger');
+      notify(strMsg(err, t('order.orderCancelFailed')), 'danger');
     },
   });
 
@@ -134,7 +136,7 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
     },
     onError: (err: any) => {
       captureException(err, { level: 'error', tags: { flow: 'order.payInitiate' }, extra: { orderId: id } });
-      notify(joinMsg(err, 'Ödeme başlatılamadı. Lütfen tekrar deneyin.'), 'danger');
+      notify(joinMsg(err, t('checkout.paymentInitFailedRetry')), 'danger');
     },
   });
 
@@ -144,7 +146,7 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
     if (remaining <= 0) return;
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      appAlert('İzin Gerekli', 'Fotoğraf eklemek için galeri erişim izni gerekiyor.');
+      appAlert(t('order.permissionRequired'), t('order.galleryPermissionBody'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -167,22 +169,22 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
   const handleCancelRefund = () => {
     const rr = order?.activeRefundRequest;
     if (!rr) return;
-    appAlert('İade Talebini İptal Et', 'İade talebiniz iptal edilecek. Devam edilsin mi?', [
-      { text: 'Vazgeç', style: 'cancel' },
-      { text: 'İptal Et', style: 'destructive', onPress: () => cancelRefundMutation.mutate(rr.id) },
+    appAlert(t('refund.cancel.confirmTitle'), t('refund.cancel.confirmBody'), [
+      { text: t('order.keepOrder'), style: 'cancel' },
+      { text: t('order.cancelShort'), style: 'destructive', onPress: () => cancelRefundMutation.mutate(rr.id) },
     ]);
   };
 
   const handleCancelOrder = () => {
     const isUnpaid = order?.status === 'pending';
     appAlert(
-      'Siparişi İptal Et',
+      t('order.cancelOrder'),
       isUnpaid
-        ? 'Sipariş iptal edilecek. Devam edilsin mi?'
-        : 'Sipariş iptal edilecek ve ödemeniz iade edilecek. Devam edilsin mi?',
+        ? t('order.cancelConfirmBody')
+        : t('order.cancelConfirmRefundBody'),
       [
-        { text: 'Vazgeç', style: 'cancel' },
-        { text: 'İptal Et', style: 'destructive', onPress: () => cancelOrderMutation.mutate() },
+        { text: t('order.keepOrder'), style: 'cancel' },
+        { text: t('order.cancelShort'), style: 'destructive', onPress: () => cancelOrderMutation.mutate() },
       ],
     );
   };
