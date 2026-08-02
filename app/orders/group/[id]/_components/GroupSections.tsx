@@ -5,13 +5,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { getOrderProductImageUri } from '@/utils/orderProductImage';
 import { formatPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
-import { uiOrderStatusConfig, badgeStatusOf, formatDate, deriveOrderRow } from '../_lib/status';
+import { useOrderStatusConfig, badgeStatusOf, formatDate, deriveOrderRow } from '../_lib/status';
 import type { GroupDetail, GroupOrder } from '../_lib/types';
 
 const { colors } = theme;
 
 /** Grup başlık kartı + (2+ üründe) ürün-bazlı iade/iptal notu. */
 export function GroupHeader({ group }: { group: GroupDetail }) {
+  const statusConfig = useOrderStatusConfig();
   return (
     <>
       <Card variant="elevated" padding={12} style={styles.card}>
@@ -22,7 +23,7 @@ export function GroupHeader({ group }: { group: GroupDetail }) {
               {formatDate(group.createdAt)} · {group.orders.length} ürün
             </Text>
           </View>
-          <StatusBadge status={group.status} config={uiOrderStatusConfig} size="sm" />
+          <StatusBadge status={group.status} config={statusConfig} size="sm" />
         </View>
         <View style={[styles.headerRow, styles.totalRow]}>
           <Text variant="label">Toplam</Text>
@@ -47,6 +48,7 @@ export function GroupHeader({ group }: { group: GroupDetail }) {
 
 /** Tek ürün satırı — kendi kargo takibi + iade/iptal aksiyonu (self-gated). */
 export function GroupOrderRow({ order, multi }: { order: GroupOrder; multi: boolean }) {
+  const statusConfig = useOrderStatusConfig();
   const d = deriveOrderRow(order);
 
   return (
@@ -55,7 +57,7 @@ export function GroupOrderRow({ order, multi }: { order: GroupOrder; multi: bool
         <View style={styles.itemHeader}>
           <Text variant="caption" style={styles.muted}>#{order.orderNumber}</Text>
           {/* Tek siparişli grupta öğe rozeti, üstteki grup rozetiyle aynı → yalnız 2+ siparişte göster. */}
-          {multi && <StatusBadge status={badgeStatusOf(order)} config={uiOrderStatusConfig} size="sm" />}
+          {multi && <StatusBadge status={badgeStatusOf(order)} config={statusConfig} size="sm" />}
         </View>
         <View style={styles.itemContent}>
           <Image source={{ uri: getOrderProductImageUri(order.product) }} style={styles.productImage} />

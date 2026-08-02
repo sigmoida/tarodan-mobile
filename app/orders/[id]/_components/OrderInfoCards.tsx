@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Pressable, Linking, StyleSheet } from 'react-native';
 import { Card, Text, Button, StatusBadge, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
-import { uiOrderStatusConfig } from '../_lib/status';
+import { useOrderStatusConfig } from '../_lib/status';
 import { formatDate, formatPrice } from '../_lib/format';
 import type { OrderDetail } from '../_lib/types';
 import type { OrderView } from '../_lib/derive';
@@ -94,12 +94,13 @@ export function OrderPayPendingCard({
 
 /** Kargo takip kartı. */
 export function OrderTrackingCard({ order, view }: { order: OrderDetail; view: OrderView }) {
+  const statusConfig = useOrderStatusConfig();
   if (!view.showTrackingCard) return null;
   return (
     <Card variant="elevated" style={styles.card} testID="order-tracking-card">
       <View style={styles.trackingHeaderRow}>
         <Text variant="label" style={styles.sectionTitle}>Kargo Takip</Text>
-        <StatusBadge status={view.isDelivered ? 'delivered' : 'shipped'} config={uiOrderStatusConfig} size="sm" />
+        <StatusBadge status={view.isDelivered ? 'delivered' : 'shipped'} config={statusConfig} size="sm" />
       </View>
       <View style={styles.trackingRow}>
         <Ionicons

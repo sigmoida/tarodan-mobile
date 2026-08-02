@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Card, Text, StatusBadge, theme } from '@/ui';
 import { TimelineItem } from './TimelineItem';
-import { badgeStatusOf, uiOrderStatusConfig } from '../_lib/status';
+import { badgeStatusOf, useOrderStatusConfig } from '../_lib/status';
 import { formatDate } from '../_lib/format';
 import type { OrderDetail } from '../_lib/types';
 import type { OrderView } from '../_lib/derive';
@@ -11,6 +11,7 @@ const { colors } = theme;
 
 /** Sipariş numarası + rozet + durum timeline'ı. */
 export function OrderStatusCard({ order, view }: { order: OrderDetail; view: OrderView }) {
+  const statusConfig = useOrderStatusConfig();
   return (
     <Card variant="elevated" style={styles.card}>
       <View style={styles.statusHeader}>
@@ -23,7 +24,7 @@ export function OrderStatusCard({ order, view }: { order: OrderDetail; view: Ord
             </Text>
           ) : null}
         </View>
-        <StatusBadge status={badgeStatusOf(order)} config={uiOrderStatusConfig} size="sm" />
+        <StatusBadge status={badgeStatusOf(order)} config={statusConfig} size="sm" />
       </View>
 
       <View style={styles.timeline}>

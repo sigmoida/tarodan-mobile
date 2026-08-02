@@ -1,19 +1,9 @@
 import type { BadgeVariant } from '@/ui';
 import type { GroupOrder } from './types';
 
-export const uiOrderStatusConfig: Record<string, { label: string; variant: BadgeVariant }> = {
-  pending: { label: 'Ödeme bekliyor', variant: 'warning' },
-  paid: { label: 'Ödendi', variant: 'info' },
-  processing: { label: 'Hazırlanıyor', variant: 'info' },
-  shipped: { label: 'Kargoda', variant: 'primary' },
-  delivered: { label: 'Teslim Edildi', variant: 'success' },
-  awaiting_confirmation: { label: 'Onayınız Bekleniyor', variant: 'warning' },
-  completed: { label: 'Tamamlandı', variant: 'success' },
-  cancelled: { label: 'İptal Edildi', variant: 'danger' },
-  refunded: { label: 'İade Edildi', variant: 'secondary' },
-  refund_requested: { label: 'İade Sürecinde', variant: 'danger' },
-  mixed: { label: 'Karışık Durum', variant: 'info' },
-};
+// Durum haritası TEK kaynakta (`@/lib/shared/orderStatus`); burada yeniden
+// tanımlamak üç rotanın sessizce ayrışmasına yol açıyordu.
+export { uiOrderStatusMeta, useOrderStatusConfig, useStatusText } from '@/lib/shared/orderStatus';
 
 // Rozet önceliği (liste/detay ile aynı): aktif iade > iptal > normal durum.
 // İade tamamlandıysa (status 'refunded') "İade Edildi", aksi halde "İade Sürecinde".
