@@ -10,7 +10,7 @@ import { captureException } from '@/services/sentry';
 import { formatServerPrice, serverAmount } from '@/utils/format';
 import { indexQuoteLines } from '@/utils/quoteLines';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
-import { DEFAULT_COUNTRY_CODE, normalizePhoneForPayload } from '@/utils/phone';
+import { DEFAULT_COUNTRY_CODE, parsePhoneForPayload, PHONE_INVALID_MESSAGE } from '@/utils/phone';
 import { STOCKOUT_KEYWORDS, generateUuidV4, EMPTY_ADDRESS } from '../_lib/constants';
 import { extractApiMessage, validateGuest, validateInlineAddress } from '../_lib/validation';
 import { useCoupon } from './useCoupon';
@@ -22,6 +22,43 @@ import type { ShippingAddressInput, SavedAddress } from '../_lib/types';
  * yapılıyor, burada modal zaten kapatılmış oluyor.
  */
 const MODAL_CLOSE_ALERT_DELAY_MS = 400;
+
+/**
+ * Payload'a girecek telefonların TAMAMI. Bir alan `null` ise o telefon bu
+ * siparişte hiç gönderilmiyor demektir (kayıtlı adres seçili → telefon
+ * sunucuda; fatura adresi kapalı; üye akışı → `guest` yok).
+ */
+interface ResolvedPhones {
+  /** `shippingAddress.inline.phone` */
+  shipping: string | null;
+  /** `billingAddress.inline.phone` */
+  billing: string | null;
+  /** `checkoutGuest.phone` (misafir iletişim) */
+  guest: string | null;
+}
+
+/**
+ * Çözülemeyen telefon — payload'a ASLA girmez. `isClientValidation` bayrağı
+ * `catch` tarafında ağ hatasından ayırt etmeye yarar (adres/profil formlarıyla
+ * aynı kalıp). Mesaj numarayı BASMAZ: PII log'a/Sentry'ye gitmez.
+ */
+class PhoneRejectedError extends Error {
+  readonly isClientValidation = true;
+  constructor(message: string) {
+    super(message);
+    this.name = 'PhoneRejectedError';
+  }
+}
+
+/**
+ * EMNİYET KEMERİ — `resolvePayloadPhones` her çağrı yerinin dalını zaten
+ * karşılıyor; bu son kapı, ileride bir dal eklenirse boş telefonun SESSİZCE
+ * payload'a girmesini (eski `normalizePhoneForPayload` davranışı) imkânsız kılar.
+ */
+const requirePhone = (phone: string | null, message: string): string => {
+  if (!phone) throw new PhoneRejectedError(message);
+  return phone;
+};
 
 /**
  * Checkout controller'ı — tüm form durumu, query'ler, kargo hesabı, payload
@@ -320,16 +357,35 @@ export function useCheckout() {
     return false;
   };
 
+  /**
+   * Inline teslimat adresinin telefonu — alan boşsa misafir iletişim telefonuna
+   * düşer. Ülke kodu ile numara BİRLİKTE taşınır: numara `guestPhone`'dan
+   * gelirken ülke kodunu `shippingAddress`'ten okumak, `+1 415 555 0100` gibi
+   * bir girdiyi TR sanıp doğrulamayı ayrıştırırdı. `buildShippingPayload`'un
+   * eşleştirmesiyle AYNI (tek kaynak, §5).
+   */
+  const shippingPhoneSource = (): { phone: string; countryCode: string } =>
+    shippingAddress.phone.trim()
+      ? {
+          phone: shippingAddress.phone,
+          countryCode: shippingAddress.phoneCountryCode ?? DEFAULT_COUNTRY_CODE,
+        }
+      : { phone: guestPhone, countryCode: guestPhoneCountryCode };
+
   const validateStep1 = (): string | null => {
     if (!isAuthenticated) {
-      const guestErr = validateGuest(guestName, guestEmail, guestPhone);
+      const guestErr = validateGuest(guestName, guestEmail, guestPhone, guestPhoneCountryCode);
       if (guestErr) return guestErr;
     }
     if (isAuthenticated && selectedAddressId !== 'new') {
       // Kayıtlı adres seçildi → OK
     } else {
-      const phone = shippingAddress.phone.trim() || guestPhone.trim();
-      const err = validateInlineAddress({ ...shippingAddress, phone });
+      const src = shippingPhoneSource();
+      const err = validateInlineAddress({
+        ...shippingAddress,
+        phone: src.phone.trim(),
+        phoneCountryCode: src.countryCode,
+      });
       if (err) return err;
     }
     if (billingDifferent) {
@@ -356,17 +412,53 @@ export function useCheckout() {
     }
   };
 
-  const buildShippingPayload = (): { id?: string; inline?: OrderAddressInput } => {
+  /**
+   * Gönderime girecek her telefonu `setLoading(true)`'dan ÖNCE çözer.
+   *
+   * ⚠️ Eskiden `normalizePhoneForPayload` geçersiz numarada sessizce `''`
+   * döndürüyordu: kullanıcı hata görmeden ham bir 400 yiyordu (öncesinde ise
+   * kırpılmış, ULAŞILAMAZ bir numara gönderiliyordu). Artık gönderim hiç
+   * başlamaz ve sebep ekranda görünür.
+   *
+   * Mesaj numarayı BASMAZ (PII log/uyarıya sızmasın).
+   */
+  const resolvePayloadPhones = (): { ok: true; phones: ResolvedPhones } | { ok: false; message: string } => {
+    const phones: ResolvedPhones = { shipping: null, billing: null, guest: null };
+
+    if (!(isAuthenticated && user)) {
+      const guest = parsePhoneForPayload(guestPhone, guestPhoneCountryCode);
+      if (!guest) return { ok: false, message: PHONE_INVALID_MESSAGE };
+      phones.guest = guest;
+    }
+
+    // Kayıtlı adres seçiliyse inline adres hiç gönderilmiyor → çözülecek telefon yok.
+    if (!(isAuthenticated && selectedAddressId !== 'new')) {
+      const src = shippingPhoneSource();
+      const shipping = parsePhoneForPayload(src.phone, src.countryCode);
+      if (!shipping) return { ok: false, message: `Teslimat adresi — ${PHONE_INVALID_MESSAGE}` };
+      phones.shipping = shipping;
+    }
+
+    if (billingDifferent && !(isAuthenticated && selectedBillingAddressId !== 'new')) {
+      const billing = parsePhoneForPayload(
+        billingAddress.phone,
+        billingAddress.phoneCountryCode ?? DEFAULT_COUNTRY_CODE,
+      );
+      if (!billing) return { ok: false, message: `Fatura adresi — ${PHONE_INVALID_MESSAGE}` };
+      phones.billing = billing;
+    }
+
+    return { ok: true, phones };
+  };
+
+  const buildShippingPayload = (phones: ResolvedPhones): { id?: string; inline?: OrderAddressInput } => {
     if (isAuthenticated && selectedAddressId !== 'new') {
       return { id: selectedAddressId };
     }
-    const phone = shippingAddress.phone.trim()
-      ? normalizePhoneForPayload(shippingAddress.phone, shippingAddress.phoneCountryCode ?? DEFAULT_COUNTRY_CODE)
-      : normalizePhoneForPayload(guestPhone, guestPhoneCountryCode);
     return {
       inline: {
         fullName: shippingAddress.fullName.trim(),
-        phone,
+        phone: requirePhone(phones.shipping, `Teslimat adresi — ${PHONE_INVALID_MESSAGE}`),
         city: shippingAddress.city.trim(),
         district: shippingAddress.district.trim(),
         address: shippingAddress.address.trim(),
@@ -375,7 +467,7 @@ export function useCheckout() {
     };
   };
 
-  const buildBillingPayload = (): { id?: string; inline?: OrderAddressInput } | null => {
+  const buildBillingPayload = (phones: ResolvedPhones): { id?: string; inline?: OrderAddressInput } | null => {
     if (!billingDifferent) return null;
     if (isAuthenticated && selectedBillingAddressId !== 'new') {
       return { id: selectedBillingAddressId };
@@ -383,7 +475,7 @@ export function useCheckout() {
     return {
       inline: {
         fullName: billingAddress.fullName.trim(),
-        phone: normalizePhoneForPayload(billingAddress.phone, billingAddress.phoneCountryCode ?? DEFAULT_COUNTRY_CODE),
+        phone: requirePhone(phones.billing, `Fatura adresi — ${PHONE_INVALID_MESSAGE}`),
         city: billingAddress.city.trim(),
         district: billingAddress.district.trim(),
         address: billingAddress.address.trim(),
@@ -410,10 +502,18 @@ export function useCheckout() {
       );
       return;
     }
+    // Telefon kapısı — `setLoading(true)`'dan ÖNCE. ENGELLEYİCİ ama SONLANDIRICI
+    // değil: kullanıcı numarayı düzeltip aynı OTP oturumuyla devam edebilir, o
+    // yüzden modal açıkken satır içi basılır (modal kapatmak kodu boşa düşürürdü).
+    const resolved = resolvePayloadPhones();
+    if (!resolved.ok) {
+      alertInlineWhileOtpOpen('Telefon Numarası Geçersiz', resolved.message);
+      return;
+    }
     setLoading(true);
     try {
-      const shipping = buildShippingPayload();
-      const billing = buildBillingPayload();
+      const shipping = buildShippingPayload(resolved.phones);
+      const billing = buildBillingPayload(resolved.phones);
 
       const checkoutPayload = {
         items: items.map((item) => ({ productId: item.productId })),
@@ -437,7 +537,8 @@ export function useCheckout() {
               idempotencyKey: checkoutPayload.idempotencyKey,
               email: guestEmail.trim().toLowerCase(),
               emailVerificationCode: emailVerificationCode ?? '',
-              phone: normalizePhoneForPayload(guestPhone, guestPhoneCountryCode),
+              // `resolvePayloadPhones` misafir dalında ÇÖZDÜ — boş geçemez.
+              phone: requirePhone(resolved.phones.guest, PHONE_INVALID_MESSAGE),
               guestName: guestName.trim(),
               shippingAddress: shipping.inline!,
               billingAddress: billing?.inline,
@@ -526,6 +627,12 @@ export function useCheckout() {
         ]);
       }
     } catch (error: any) {
+      // Client-side telefon reddi ağ hatası DEĞİL: log'lanmaz (mesaj PII taşımaz
+      // ama gürültü de yapmasın), Sentry'ye gitmez, kullanıcıya Türkçe basılır.
+      if (error?.isClientValidation) {
+        alertInlineWhileOtpOpen('Telefon Numarası Geçersiz', error.message);
+        return;
+      }
       console.error('Checkout error:', error);
       captureException(error, { level: 'error', tags: { flow: 'checkout' }, extra: { status: error?.response?.status } });
       const status = error?.response?.status;
@@ -594,7 +701,7 @@ export function useCheckout() {
       return;
     }
 
-    const guestErr = validateGuest(guestName, guestEmail, guestPhone);
+    const guestErr = validateGuest(guestName, guestEmail, guestPhone, guestPhoneCountryCode);
     if (guestErr) {
       showSnackbar(guestErr);
       return;
