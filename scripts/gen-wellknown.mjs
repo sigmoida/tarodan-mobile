@@ -2,8 +2,11 @@
 /**
  * paths.json → docs/wellknown/{apple-app-site-association, assetlinks.json}
  *
- * Yalniz I/O yapar; uretim mantigi src/lib/deeplinks/index.ts ile ayni
- * algoritmadir ve paths.test.ts ikisinin ciktisini karsilastirir.
+ * Uretim mantiginin TEK yeri burasi. src/lib/deeplinks/index.ts'te AASA/
+ * assetlinks ureteci BILEREK yok — ikinci bir kopya iki tarafi ayri bakima
+ * mahkum eder ve sessizce ayrisir. Uretilen dosyanin dogrulugu paths.test.ts'te
+ * OZELLIK testleriyle olculur (her teyitli desen dosyada var, teyitsiz hicbiri
+ * yok, dislamalar basta) — ikinci bir ureteçle karsilastirilarak degil.
  *
  * Kullanim:
  *   node scripts/gen-wellknown.mjs           # parmak izi yoksa UYARI + cikis 0
