@@ -159,8 +159,16 @@ describe('J32.b · "Varsayılan Yap" satır-bazlı yükleme (bulgu #23)', () => 
     // Mutation'ı çöz → onSuccess invalidate eder, a1 satırı yükleme durumundan çıkar,
     // dangling handle kalmaz. Her iki buton tekrar görünür.
     resolvePatch({ data: { id: "a1" } });
-    await waitFor(() => {
-      expect(screen.getAllByText("Varsayılan Yap")).toHaveLength(2);
-    });
+    // Buradaki bekleyiş DÖRT adımlı bir zincir: promise çözülür → onSuccess →
+    // invalidateQueries → yeniden fetch → render. RNTL'in 1 sn'lik varsayılanı
+    // yüklü bir CI runner'ında bu zincire dar geliyor (yerelde geçip CI'da iki
+    // kez düşmüştü). Süreyi açmak iddiayı zayıflatmıyor: davranış yanlışsa test
+    // yine kırılır, yalnız yavaş makineye tolerans tanınıyor.
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Varsayılan Yap")).toHaveLength(2);
+      },
+      { timeout: 5000 },
+    );
   });
 });
