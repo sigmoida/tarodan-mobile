@@ -38,10 +38,14 @@ export function redirectSystemPath({ path }: { path: string; initial: boolean })
     // `include: false` satırları.
     if (isExcludedWebPath(normalized)) return NO_NAVIGATION;
 
-    // Eşleşmeyen yol olduğu gibi geçer: `tarodan://cart` gibi mobil rotayla
-    // birebir örtüşen custom scheme bağlantıları expo-router'ın kendi
-    // eşleşmesiyle çalışmaya devam etsin.
-    return toMobileRoute(normalized) ?? normalized;
+    // Eşleşme yoksa GİRDİYİ OLDUĞU GİBİ döndür — `normalized`'ı değil. İkisi
+    // aynı şey değil: `normalized` bizim türetimimiz, expo-router'ın kendi URL
+    // çıkarımıyla örtüşmek zorunda değil. Onu döndürmek, eşlemediğimiz HER
+    // bağlantı için expo-router'ın çıkarımını sessizce eziyordu — dev client'ın
+    // açılış URL'i (`tarodan://expo-development-client/?url=…`) dahil, ki
+    // uygulama splash'te kilitleniyordu. `path` dönmek "kanca yokmuş gibi
+    // davran" demek; `tarodan://cart` gibi örtüşen yollar yine çalışır.
+    return toMobileRoute(normalized) ?? path;
   } catch {
     // Kancada atılan hata uygulamayı çökertebilir — girdiyi olduğu gibi bırak.
     return path;

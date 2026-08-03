@@ -53,11 +53,26 @@ describe('redirectSystemPath — dokunulmayanlar', () => {
     expect(call('')).toBe('');
   });
 
-  it('eşlemesi olmayan yolu olduğu gibi geçirir (expo-router kendi eşleşmesini denesin)', () => {
-    // `tarodan://cart` mobil rotayla birebir örtüşür; toMobileRoute null döner
-    // ama expo-router'ın kendi ağacı bunu zaten çözer.
-    expect(call('tarodan://cart')).toBe('/cart');
-    expect(call('https://tarodan.com.tr/sayfa/hakkimizda')).toBe('/sayfa/hakkimizda');
+  it('eşlemesi olmayan girdiyi DEĞİŞTİRMEDEN döndürür', () => {
+    // Kritik: kendi türettiğimiz `normalized` değil, GİRDİNİN AYNISI. İkisi
+    // farklı şeyler — `normalized` expo-router'ın URL çıkarımıyla örtüşmek
+    // zorunda değil, ve onu döndürmek eşlemediğimiz her bağlantı için o
+    // çıkarımı sessizce eziyor. Girdiyi döndürmek "kanca yokmuş gibi davran"
+    // demek; expo-router kendi ağacında arar ve `tarodan://cart` yine çalışır.
+    expect(call('tarodan://cart')).toBe('tarodan://cart');
+    expect(call('https://tarodan.com.tr/sayfa/hakkimizda')).toBe(
+      'https://tarodan.com.tr/sayfa/hakkimizda',
+    );
+  });
+
+  // CİHAZDA BULUNDU (2026-08-03, iOS 26 simulator): fallback `normalized`
+  // döndürdüğü sürece dev client'ın açılış URL'i yeniden yazılıyor, expo-router
+  // olmayan bir rotaya gitmeye çalışıyor ve uygulama SPLASH'TE KİLİTLENİYORDU.
+  // Hiçbir birim testi yakalamamıştı; uygulamayı gerçekten açmak yakaladı.
+  it('expo dev client açılış URL\'ine dokunmaz', () => {
+    const devClientUrl =
+      'tarodan://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081';
+    expect(call(devClientUrl)).toBe(devClientUrl);
   });
 });
 
