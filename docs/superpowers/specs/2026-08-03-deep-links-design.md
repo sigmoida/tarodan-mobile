@@ -205,10 +205,17 @@ Herhangi bir hata → çıkış kodu 1. Bugün koşarsa hepsi kırmızı; dürü
 daraltmanın kanıtı odur. Yanlış yollar ise `paths.json`'a hiç girmediği için
 kendiliğinden kırmızı olmaz — 7. madde onları bilerek kilitler.
 
-**Kapsam sınırı:** 4. madde mevcut çözücü hatalarını da ortaya çıkarabilir
-(ör. `case 'seller'` yolu aynen döndürüyor ama `app/` altında `seller/[id]`
-rotası yok). Bu turda yalnız **teyitli `include`** satırlarını bozan eşlemeler
-düzeltilir; kalanlar `docs/deep-links.md`'ye takip maddesi olarak yazılır.
+**Kapsam sınırı:** 4. madde mevcut çözücü hatalarını da ortaya çıkarabilir.
+Bu turda yalnız **teyitli `include`** satırlarını bozan eşlemeler düzeltilir;
+kalanlar `docs/deep-links.md`'ye takip maddesi olarak yazılır.
+
+> **Düzeltme (2026-08-03):** bu paragraf önce örnek olarak "`case 'seller'`
+> yolu aynen döndürüyor ama `app/` altında `seller/[id]` rotası yok" diyordu.
+> **Yanlıştı** — `app/seller/[id]/index.tsx` var, çözücü doğru. İddia kırpılmış
+> bir dosya listesinden doğdu ve `paths.json` yorumuna da sızdı; üçü birden
+> düzeltildi. `/seller/*` hâlâ `confirmed: false`, ama tek sebebi **web**
+> yolunun teyit edilmemiş olması. Test 4 bu turda hiçbir çözücü hatası
+> bulmadı.
 
 ## 5. Sıra ve kapı
 

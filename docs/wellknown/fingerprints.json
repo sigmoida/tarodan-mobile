@@ -1,4 +1,5 @@
 {
+  "_format": "sha256 = 32 adet iki haneli BUYUK harf hex, ':' ile ayrilmis (or. 'A1:B2:...:FF', 95 karakter). Bos birakilabilir; gecersiz bicim gen-wellknown.mjs'i HATA ile durdurur — yanlis bir deger yayinlanirsa Android dogrulamasi KESIN duser.",
   "eas_upload_keystore": {
     "sha256": "",
     "source": "eas credentials -p android --profile production → Keystore → SHA256 Fingerprint"

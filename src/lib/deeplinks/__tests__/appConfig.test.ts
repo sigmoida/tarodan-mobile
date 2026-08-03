@@ -12,9 +12,20 @@ const android = (appJson as any).expo.android;
 const filter = android.intentFilters[0];
 const data: Array<Record<string, string>> = filter.data;
 
+// Android'in tum yol nitelikleri. `path`/`pathPrefix` disinda `pathPattern` ve
+// `pathSuffix` de yol talep eder; ikinci bir filtre eklenirse ödeme bekcisinin
+// yanindan gecemesin diye hepsi tek listede tutuluyor.
+const PATH_ATTRS = ['path', 'pathPrefix', 'pathPattern', 'pathSuffix'] as const;
+
 describe('app.json — Android App Links', () => {
   it('paket adi tabloyla ayni (tek kaynak)', () => {
     expect(android.package).toBe(deepLinkConfig.androidPackage);
+  });
+
+  // Ikinci bir intent filter eklenirse asagidaki kontrollerin hicbiri onu
+  // gormez — tek filtre oldugu burada kilitleniyor.
+  it('tek bir intent filter var', () => {
+    expect(android.intentFilters).toHaveLength(1);
   });
 
   it('autoVerify acik', () => {
@@ -27,14 +38,19 @@ describe('app.json — Android App Links', () => {
   });
 
   it('yol girdileri tablodan uretilenle birebir ayni', () => {
-    const declared = data.filter((d) => d.path || d.pathPrefix);
+    const declared = data.filter((d) => PATH_ATTRS.some((attr) => d[attr]));
     expect(declared).toEqual(buildAndroidPathEntries());
   });
 
   it('odeme ve checkout yollarini TALEP ETMEZ', () => {
-    const prefixes = data.map((d) => d.pathPrefix ?? d.path ?? '');
-    expect(prefixes.some((p) => p.startsWith('/payment'))).toBe(false);
-    expect(prefixes.some((p) => p.startsWith('/checkout'))).toBe(false);
+    // Her yol-benzeri nitelik uzerinden bak: sonradan eklenen bir pathPattern
+    // yalniz path/pathPrefix'e bakan bir kontrolun yanindan gecerdi.
+    const claimed = data.flatMap((d) =>
+      PATH_ATTRS.map((attr) => d[attr]).filter((v): v is string => typeof v === 'string'),
+    );
+    for (const forbidden of ['/payment', '/checkout']) {
+      expect(claimed.filter((p) => p.includes(forbidden))).toEqual([]);
+    }
   });
 
   it('host genelini talep eden yolsuz bir data girdisi kalmadi', () => {

@@ -25,6 +25,7 @@
     "test:cov": "jest --coverage --forceExit",
     "i18n:codegen": "node scripts/gen-keys.mjs",
     "wellknown:gen": "node scripts/gen-wellknown.mjs",
+    "wellknown:gen:strict": "node scripts/gen-wellknown.mjs --strict",
     "wellknown:check": "node scripts/check-deeplinks.mjs"
   },
   "dependencies": {

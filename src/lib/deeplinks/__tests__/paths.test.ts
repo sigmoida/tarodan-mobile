@@ -9,6 +9,8 @@ import {
   pendingConfirmation,
   withLocaleVariants,
   toAndroidPathEntry,
+  pathFromUrl,
+  isExcludedWebPath,
 } from '../index';
 
 const shipped = shippablePaths();
@@ -77,6 +79,59 @@ describe('locale varyantlari', () => {
   });
 });
 
+// Silinen src/services/__tests__/deepLinks.test.ts'ten devralindi (fonksiyon
+// oraya degil buraya tasindi; cagirani app/+native-intent.ts).
+describe('pathFromUrl', () => {
+  it('https universal linkten yol + sorguyu cikarir', () => {
+    expect(pathFromUrl('https://tarodan.com.tr/verify-email?token=abc')).toBe(
+      '/verify-email?token=abc',
+    );
+  });
+
+  it('custom scheme baglantisindan yol cikarir', () => {
+    expect(pathFromUrl('tarodan://product/p-1')).toBe('/product/p-1');
+  });
+
+  it('semasiz girdiyi zaten yol kabul eder (bas slash ekler)', () => {
+    expect(pathFromUrl('product/p-1')).toBe('/product/p-1');
+    expect(pathFromUrl('/product/p-1')).toBe('/product/p-1');
+  });
+
+  it('ardisik slaslari tekile indirir', () => {
+    expect(pathFromUrl('https://tarodan.com.tr//product/p-1')).toBe('/product/p-1');
+  });
+
+  it('yol yoksa null doner', () => {
+    expect(pathFromUrl('https://tarodan.com.tr')).toBeNull();
+    expect(pathFromUrl('tarodan:///')).toBeNull();
+    expect(pathFromUrl('')).toBeNull();
+  });
+});
+
+describe('isExcludedWebPath', () => {
+  // Her include:false satirin kendi ornegi, ciplak + locale onekli halleriyle.
+  it.each(
+    excluded.flatMap((p) =>
+      [p.sample, ...deepLinkConfig.locales.map((l) => `/${l}${p.sample}`)].map(
+        (sample) => [p.pattern, sample] as const,
+      ),
+    ),
+  )('%s deseni %s yolunu dislar', (_pattern, sample) => {
+    expect(isExcludedWebPath(sample)).toBe(true);
+  });
+
+  it('dislanan yolun sorgulu hali de dislanir', () => {
+    expect(isExcludedWebPath('/payment/success?paymentId=p1')).toBe(true);
+    expect(isExcludedWebPath('/tr/payment/fail')).toBe(true);
+  });
+
+  it('yayinlanan yollari dislamaz', () => {
+    for (const p of shippablePaths().filter((row) => row.include)) {
+      expect(isExcludedWebPath(p.sample)).toBe(false);
+    }
+  });
+});
+
 describe('Android yol girdisi donusumu', () => {
   it('* ile biten deseni pathPrefix yapar', () => {
     expect(toAndroidPathEntry('/listings/*')).toEqual({ pathPrefix: '/listings/' });
@@ -122,12 +177,27 @@ describe('uretilen AASA dosyasi', () => {
     expect(patterns).toContain(variant);
   });
 
-  it.each(pendingConfirmation().map((p) => [p.pattern]))(
-    'teyit bekleyen %s dosyaya girmemis',
-    (pattern) => {
-      expect(patterns).not.toContain(pattern);
-    },
-  );
+  // Ciplak desen kadar locale varyantlari da sizabilir: `/seller/*` silinip
+  // `/tr/seller/*` dosyada kalirsa bunu YALNIZ varyant uzerinden gezen bu
+  // kontrol yakalar.
+  it.each(
+    pendingConfirmation().flatMap((p) =>
+      withLocaleVariants(p.pattern).map((v) => [p.pattern, v] as const),
+    ),
+  )('teyit bekleyen %s icin %s varyanti dosyada yok', (_pattern, variant) => {
+    expect(patterns).not.toContain(variant);
+  });
+
+  // Ters yon: dosyadaki her desen tabloda bir satira karsilik gelmeli. Bu
+  // olmadan `paths.json`'dan teyitli bir satir silinip `wellknown:gen`
+  // kosulmadiginda, uygulamanin ele alamadigi bir yol icin CANLI talep
+  // dosyada kalir ve hicbir test kirmizi olmaz.
+  it('dosyadaki her desen tabloda bir satirdan geliyor (fazlalik yok)', () => {
+    const fromTable = new Set(
+      shippablePaths().flatMap((p) => withLocaleVariants(p.pattern)),
+    );
+    expect(patterns.filter((p) => !fromTable.has(p))).toEqual([]);
+  });
 
   it('dislamalar listenin basinda (AASA v2: ilk eslesen kazanir)', () => {
     const firstInclude = components.findIndex((c) => c.exclude !== true);

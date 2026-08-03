@@ -47,7 +47,9 @@
       "comment": "profil -> (tabs)/profile" },
 
     { "pattern": "/seller/*", "sample": "/seller/12", "include": true, "confirmed": false,
-      "comment": "TEYIT: web yolu dogrulanmadi VE mobilde seller/[id] rotasi yok" },
+      "comment": "TEYIT: yalniz WEB yolu dogrulanmadi; mobil rota var (app/seller/[id]/index.tsx), cozucu dogru" },
+    { "pattern": "/orders/*", "sample": "/orders/12", "include": true, "confirmed": false,
+      "comment": "TEYIT: kanonik web yolu hangisi? Tabloda /profile/orders/* teyitli, ama apps/web/src/app/orders/[id]/page.tsx da var (docs/manual-test/faz1-kritik-checklist.md:13). Ikisi de servis ediliyorsa bu satir da teyitlenir; cozucu zaten dogru rotayi veriyor" },
     { "pattern": "/category/*", "sample": "/category/tofas", "include": true, "confirmed": false,
       "comment": "TEYIT: web yolu dogrulanmadi; toMobileRoute eslemesi yok" },
     { "pattern": "/brands/*", "sample": "/brands/bmw", "include": true, "confirmed": false,

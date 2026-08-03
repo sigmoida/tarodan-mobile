@@ -4,7 +4,7 @@
 
 **Goal:** `https://` linklerinin uygulamayı açması için gereken iki doğrulama dosyasını (`apple-app-site-association`, `assetlinks.json`) repodaki tek bir yol tablosundan üretmek, tabloyu `toMobileRoute` ile testle senkron tutmak ve web/infra'ya yorum gerektirmeyen bir teslim paketi bırakmak.
 
-**Architecture:** `src/lib/deeplinks/paths.json` tek doğruluk kaynağıdır. `src/lib/deeplinks/index.ts` saf fonksiyonlarla (ağ yok, fs yok) AASA/assetlinks/Android girdilerini üretir; `scripts/*.mjs` yalnız I/O yapar. Jest testleri tabloyu üç ayrı bekçiyle kilitler: çözücü senkronu, gerçek rota varlığı, `app.json` senkronu.
+**Architecture:** `src/lib/deeplinks/paths.json` tek doğruluk kaynağıdır. `src/lib/deeplinks/index.ts` saf fonksiyonlarla (ağ yok, fs yok) tabloya tipli erişim + Android intent girdileri verir; **AASA/assetlinks üretimi yalnız `scripts/gen-wellknown.mjs`'dedir** (tek-uygulama tadili, Task 1). `scripts/*.mjs` yalnız I/O yapar. Jest testleri tabloyu üç ayrı bekçiyle kilitler: çözücü senkronu, gerçek rota varlığı, `app.json` senkronu.
 
 **Tech Stack:** TypeScript (`resolveJsonModule: true`), Jest + jest-expo, Node ESM script'leri (`.mjs`, `scripts/gen-keys.mjs` deseni), Expo SDK 54 `app.json`.
 
@@ -28,7 +28,7 @@
 | Dosya | Sorumluluk |
 | --- | --- |
 | `src/lib/deeplinks/paths.json` | **Veri.** Web yol tablosu + locale/appID/paket sabitleri. Kod yok. |
-| `src/lib/deeplinks/index.ts` | **Saf fonksiyonlar.** Tabloyu okur, AASA/assetlinks/Android girdileri üretir. Ağ ve fs yok → tam test edilebilir. |
+| `src/lib/deeplinks/index.ts` | **Saf fonksiyonlar.** Tabloyu tipli okur; Android intent girdileri (`buildAndroidPathEntries`), locale varyantları, URL→yol normalleştirme, dışlama eşleştirmesi. **AASA/assetlinks üretimi burada YOK** — tek uygulama `scripts/gen-wellknown.mjs`'de (tek-uygulama tadili, Task 1). Ağ ve fs yok → tam test edilebilir. |
 | `src/lib/deeplinks/__tests__/paths.test.ts` | Çözücü senkronu, dışlama, locale, regresyon kilidi. |
 | `src/lib/deeplinks/__tests__/routes.test.ts` | Çözülen rotanın `app/` ağacında gerçekten var olması. |
 | `src/lib/deeplinks/__tests__/appConfig.test.ts` | `app.json` Android yolları + paket adı senkronu. |

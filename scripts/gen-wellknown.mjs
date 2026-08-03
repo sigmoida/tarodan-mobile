@@ -9,8 +9,11 @@
  * yok, dislamalar basta) — ikinci bir ureteçle karsilastirilarak degil.
  *
  * Kullanim:
- *   node scripts/gen-wellknown.mjs           # parmak izi yoksa UYARI + cikis 0
- *   node scripts/gen-wellknown.mjs --strict  # parmak izi yoksa HATA + cikis 1
+ *   pnpm wellknown:gen         # parmak izi yoksa UYARI + cikis 0 (gunluk kullanim)
+ *   pnpm wellknown:gen:strict  # parmak izi yoksa HATA + cikis 1 (SURUM KAPISI)
+ *
+ * --strict, parmak izi girildikten sonraki surum kapisidir: assetlinks.json
+ * uretilemiyorsa build ilerlemesin. Bkz. docs/deep-links.md §4/§6.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -54,9 +57,27 @@ console.log(`yazildi: ${path.relative(ROOT, aasaPath)} (${components.length} com
 const fingerprintsFile = JSON.parse(
   fs.readFileSync(path.join(OUT_DIR, 'fingerprints.json'), 'utf8'),
 );
-const fingerprints = Object.values(fingerprintsFile)
-  .map((f) => f.sha256)
-  .filter((s) => s && s.trim().length > 0);
+// SHA-256 sertifika parmak izi: 32 bayt, iki hane BUYUK harf hex, ':' ile
+// ayrilmis. Sekli dogrulamak sart — "TODO" ya da kucuk harfli bir deger
+// yazilirsa dosya yine uretilir ve Android dogrulamayi KESIN olarak dusurur;
+// tam da bos-liste bekcisinin engellemek icin var oldugu sonuc.
+const SHA256_FINGERPRINT = /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/;
+const fingerprints = [];
+const badFingerprints = [];
+for (const [key, entry] of Object.entries(fingerprintsFile)) {
+  const value = (entry?.sha256 ?? '').trim();
+  if (value.length === 0) continue;
+  if (SHA256_FINGERPRINT.test(value)) fingerprints.push(value);
+  else badFingerprints.push(`${key}: "${value}"`);
+}
+if (badFingerprints.length > 0) {
+  console.error(
+    'HATA: parmak izi bicimi gecersiz (beklenen: 32 x BUYUK-harf hex, ":" ile ayrilmis, ' +
+      'or. AB:CD:...:EF):\n  ' +
+      badFingerprints.join('\n  '),
+  );
+  process.exit(1);
+}
 
 const assetLinksPath = path.join(OUT_DIR, 'assetlinks.json');
 if (fingerprints.length === 0) {

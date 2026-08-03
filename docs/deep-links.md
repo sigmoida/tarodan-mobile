@@ -61,19 +61,25 @@ değil. Web tarafı gerçekte `/listings/:id`, `/trades/:id`, `/track-order`,
 kullanıcıların tıkladığı gerçek web linklerinin çoğu yine Safari'de açılırdı
 — hatasız görünen, sessizce çalışmayan bir kurulum.
 
-Bunun tekrarını üç bekçi testi engelliyor (`src/lib/deeplinks/__tests__/`):
+Bunun tekrarını dört bekçi testi engelliyor:
 
-- `paths.test.ts` — `paths.json`'daki her satırın `toMobileRoute` çözücüsüyle
-  (`src/utils/notificationRoute.ts`) doğru şekilde çözüldüğünü/dışlandığını
-  doğrular; eski listenin mobil-rota-adlı örneklerini (`/order-track`,
-  `/corporate-invite`, `/trade/5`, `/product/123`) tabloya geri sızmaya karşı
-  regresyon kilidiyle tutar.
-- `routes.test.ts` — çözülen her rotanın `app/` altında **gerçekten var
-  olduğunu** doğrular (bkz. §11).
-- `appConfig.test.ts` — `app.json`'daki Android intent filter'ının tabloyla
-  birebir aynı olduğunu, ödeme/checkout yollarını talep etmediğini ve
-  `{scheme, host}` ikilisinin yolsuz (tüm host'u talep eden) bir girdi
-  olarak kalmadığını doğrular.
+- `src/lib/deeplinks/__tests__/paths.test.ts` — `paths.json`'daki her satırın
+  `toMobileRoute` çözücüsüyle (`src/utils/notificationRoute.ts`) doğru şekilde
+  çözüldüğünü/dışlandığını doğrular; eski listenin mobil-rota-adlı örneklerini
+  (`/order-track`, `/corporate-invite`, `/trade/5`, `/product/123`) tabloya geri
+  sızmaya karşı regresyon kilidiyle tutar. Üretilen AASA'yı **iki yönde** de
+  ölçer: tablodaki her desen (locale varyantlarıyla) dosyada var, dosyadaki
+  hiçbir desen tablo dışı değil — yani teyitli bir satır silinip
+  `pnpm wellknown:gen` koşulmazsa canlı kalan talep yakalanır.
+- `src/lib/deeplinks/__tests__/routes.test.ts` — çözülen her rotanın `app/`
+  altında **gerçekten var olduğunu** doğrular (bkz. §11).
+- `src/lib/deeplinks/__tests__/appConfig.test.ts` — `app.json`'daki Android
+  intent filter'ının (tek filtre) tabloyla birebir aynı olduğunu, hiçbir yol
+  niteliğiyle (`path`/`pathPrefix`/`pathPattern`/`pathSuffix`) ödeme/checkout
+  talep etmediğini ve `{scheme, host}` ikilisinin yolsuz (tüm host'u talep eden)
+  bir girdi olarak kalmadığını doğrular.
+- `app/__tests__/native-intent.test.ts` — teslim kancasının (§12) web yolunu
+  mobil rotaya çevirdiğini ve **ödeme dönüş URL'lerinde gezinmediğini** doğrular.
 
 ---
 
@@ -127,8 +133,16 @@ sokar.
    ```
    → Keystore → SHA256 Fingerprint.
 2. Değeri `docs/wellknown/fingerprints.json` → `eas_upload_keystore.sha256`
-   alanına yaz.
+   alanına yaz. **Biçim:** 32 adet iki haneli **BÜYÜK harf** hex, `:` ile
+   ayrılmış (`A1:B2:…:FF`, 95 karakter). Küçük harfli ya da `TODO` gibi bir
+   değer yazılırsa `gen-wellknown.mjs` **hata verip durur** — çünkü öyle bir
+   değerle yayınlanan dosya Android doğrulamasını *kesin olarak* düşürür, tam
+   da boş-liste bekçisinin engellemek için var olduğu sonuç.
 3. `pnpm wellknown:gen` çalıştır — `docs/wellknown/assetlinks.json` üretilir.
+4. **Sürüm kapısı:** parmak izi girildikten sonra üretim
+   `pnpm wellknown:gen:strict` ile koşulur. `--strict`, parmak izi yoksa
+   uyarıyla geçmez, **çıkış kodu 1** verir — CI/sürüm adımında kullanılacak
+   biçim budur (bkz. §6 adım 4).
 
 ⚠️ **Sürüm kontrol listesi maddesi — atlanırsa mağazadan kuran herkeste
 doğrulama düşer:** ilk Play Store yüklemesinden sonra Play Console → **Test
@@ -160,6 +174,23 @@ App ID `com.tarodan.app` üzerinde açık olmalı. İki yol:
 2. Apple capability açılır (§5).
 3. **Ancak sonra** `app.json` → `ios.associatedDomains` eklenir (§7) ve yeni
    build alınır.
+
+Sürüm kontrol listesi (parmak izi girildikten sonra, her sürümde):
+
+```bash
+pnpm wellknown:gen:strict   # parmak izi yoksa çıkış 1 — kapı budur
+pnpm wellknown:check        # yayındaki dosyaları ölçer, hepsi yeşil olmalı
+```
+
+`wellknown:gen:strict` çıktısı `git status`'ta bir değişiklik bırakıyorsa
+`paths.json` düzenlenip üretim koşulmamış demektir; üretilen dosyalar
+commit'lenir.
+
+⚠️ 1. adımdan hemen sonra `wellknown:check`'in **kısmen kırmızı kalması
+normaldir**: `app-site-association.cdn-apple.com` Apple'ın kendi önbelleğidir
+ve doğru bir yayının **saatler** gerisinde kalabilir. Origin `200` dönüyor +
+içerik birebir aynıysa yayın başarılıdır; CDN ve Google doğrulayıcı satırları
+kendiliğinden yeşile döner. Aynısı §9 için de geçerli.
 
 **3'ü önce yapmak zarar verir:**
 
@@ -233,14 +264,26 @@ toplam **16 doğrulama kontrolü** (2 host × 8):
 Herhangi bir kontrol başarısızsa **exit kodu 1**. Bugünkü (2026-08-03) çalışma
 16 kontrolün 2'sini geçiyor — bkz. §1.
 
+Her satır ölçüldüğü anda basılır (bir istek asılırsa nerede kalındığı görünür)
+ve her isteğin 10 saniyelik zaman aşımı vardır — WAF arkasında kara deliğe
+düşen bir bağlantı script'i kilitlemez.
+
+⚠️ **Yayının hemen ardından bu çıktının kısmen kırmızı kalması beklenir.** Son
+iki kontrol (`Apple CDN gördü`, `Google doğrulayıcı`) origin'i değil üçüncü
+tarafın önbelleğini sorar; Apple'ınki doğru bir yayının **saatler** gerisinde
+kalabilir. `AASA 200` + `AASA içerik üretilenle aynı` yeşilse yayın doğrudur,
+kalanları beklemek yeterlidir — yayın başarısız demek değildir.
+
 ---
 
 ## 10. Teyit bekleyenler
 
-`paths.json`'da `confirmed: false` olan 7 yol — web'de gerçekten var
+`paths.json`'da `confirmed: false` olan 8 yol — web'de gerçekten var
 olduğu **doğrulanmadığı** için üretilen dosyalara girmiyor:
 
-- `/seller/*`
+- `/seller/*` (mobil rota var — `app/seller/[id]/index.tsx`; teyit bekleyen
+  yalnız **web** yolu)
+- `/orders/*` (aşağıda 3. soru)
 - `/category/*`
 - `/brands/*`
 - `/sayfa/*`
@@ -248,7 +291,7 @@ olduğu **doğrulanmadığı** için üretilen dosyalara girmiyor:
 - `/pricing`
 - `/favorites`
 
-Web tarafına iki soru:
+Web tarafına dört soru:
 
 1. **Bu 7 yol web'de gerçekten bu path'lerde mi yaşıyor?** (`/category/*`,
    `/brands/*`, `/sayfa/*` için `toMobileRoute` içinde henüz bir eşleme de
@@ -258,6 +301,17 @@ Web tarafına iki soru:
    varsayımı doğru mu)? Cevap "ön ek yok, hiçbir zaman gerekmiyor" ise
    `paths.json` → `locales` dizisi boşaltılır ve `/tr/*` / `/en/*`
    varyantları üretimden düşer.
+3. **Sipariş detayının kanonik web yolu hangisi?** Tabloda
+   `/profile/orders/*` teyitli, ama repo içinde `/orders/:id`'nin de servis
+   edildiğine dair kanıt var: `docs/manual-test/faz1-kritik-checklist.md:13`
+   → `apps/web/src/app/orders/[id]/page.tsx`. İkisi de yayındaysa `/orders/*`
+   satırı da `confirmed: true` yapılır (çözücü zaten doğru rotayı veriyor);
+   biri yönlendirmeyse hangisinin kanonik olduğu yazılsın.
+4. **Sondaki `/` var mı?** AASA ve Android `path` girdileri **birebir**
+   eşleşir: `{"path": "/profile"}` `https://host/profile/` adresini
+   **eşleştirmez**. Web `/profile/` biçiminde link üretiyorsa (ya da `/profile`
+   → `/profile/` yönlendirmesi varsa) tabloya sondaki slash'lı varyantlar da
+   eklenmeli. Sitenin gerçekte hangi biçimi ürettiği söylensin.
 
 Cevaplar geldikten sonra: ilgili satırların `confirmed` alanı `true`
 yapılır, gerekiyorsa `toMobileRoute` içine eşleme eklenir, `pnpm
@@ -265,22 +319,19 @@ wellknown:gen` yeniden çalıştırılır.
 
 ---
 
-## 11. Takip maddeleri
+## 11. Çözücü takibi — açık madde yok
 
 Task 3'ün eklediği bekçi testi (`routes.test.ts`), her `confirmed: true` +
 `include: true` satırın çözdüğü rotanın `app/` altında **gerçekten var
-olduğunu** doğruluyor. **Bu turda tüm teyitli yollar yeşil** — 16 yayınlanan
-yolun tamamı ilk çalıştırmada geçti; `/seller/*` teyit beklediği için kapsam
-dışı kaldı.
+olduğunu** doğruluyor. **Yayınlanan yolların tamamı yeşil** — 16'sı da ilk
+çalıştırmada geçti. Bu turda düzeltilmeyi bekleyen bir çözücü hatası **yok**.
 
-Ortaya çıkan, bu turda **kasıtlı olarak düzeltilmeyen** bir gerçek hata var:
-`toMobileRoute` içinde `case 'seller'` → `/seller/:id` döndürüyor, ama `app/`
-altında böyle bir rota **yok**. Bu turda düzeltilmedi çünkü `/seller/*`
-zaten `confirmed: false` — yayına hiç girmiyor, dolayısıyla bekçi testinin
-kapsamı dışında kalıyor (test yalnız `confirmed: true` satırları kontrol
-ediyor). `/seller/*` teyit edilip `confirmed: true` yapıldığında bu eşleme
-düzeltilmeden `routes.test.ts` kırmızı verecek — o an fark edilecek, sessizce
-geçmeyecek.
+> Bu bölüm daha önce bir takip maddesi kaydediyordu: "`case 'seller'` →
+> `/seller/:id` döndürüyor ama `app/` altında böyle bir rota yok." **Bu iddia
+> yanlıştı** — `app/seller/[id]/index.tsx` var, çözücü doğru. İddia kırpılmış
+> bir dosya listesinden doğmuş ve `paths.json` yorumuna da sızmıştı; ikisi de
+> düzeltildi. `/seller/*` hâlâ `confirmed: false`, ama artık tek sebebi §10'daki
+> **web yolu teyidi**.
 
 ---
 
@@ -294,10 +345,26 @@ sürece hiçbiri doğrulanmıyor.
 
 Yönlendirme mantığı hazır ve dosyalar yayınlanır yayınlanmaz çalışacak:
 
-- `expo-linking` cold/warm start'ı ele alıyor
+- Teslim yolu **`app/+native-intent.ts`**'te (`redirectSystemPath`). expo-router
+  bu kancayı hem soğuk başlatmada (`getInitialURL`) hem uygulama açıkken
+  (`subscribe`) **kendi rotalamasından ÖNCE** çağırır, yani web yolu → mobil
+  rota çevirisi rota ağacına girmeden yapılıyor.
 - push bildirimleri ve derin bağlantılar aynı çözücüyü paylaşıyor
-  (`src/utils/notificationRoute.ts`)
-- Universal/App Link açıldığında uygulama zaten doğru ekrana gidiyor;
-  eksik olan tek şey platformların linki uygulamaya **teslim etmesi**
+  (`src/utils/notificationRoute.ts`); push tap'i ayrı akıştır
+  (`src/services/push.ts`) ve bu kancadan geçmez.
+- Ödeme dönüşü (`/payment/*`, `/checkout*`) kancada **boş string** döndürülerek
+  bilerek gezinmesiz bırakılıyor — `app/payment/success.tsx` gerçekten var, aksi
+  hâlde PayTR 3DS turu WebView'in dışına çıkardı. Dışlanan yolların tek kaynağı
+  `paths.json`'daki `include: false` satırları.
 
-Uygulama tarafında bu plan kapsamında başka iş yok.
+**Neden bu kanca şart:** expo-router gelen URL'yi doğrudan kendi rota ağacında
+arıyor ve `app/listings/[id]` diye bir rota **yok**. Kanca olmasaydı, doğrulama
+dosyaları yayına girdiği anda `/listings/123` önce "sayfa bulunamadı" ekranını
+açar, sonra doğru ekrana atlar (ve not-found geri yığında kalırdı); rota adı
+örtüşen `/collections/9`, `/offers`, `/messages`, `/profile` ise **iki kez**
+açılırdı. Eski `src/services/deepLinks.ts` çevirisi rotalamadan *sonra*
+çalıştığı için bu ikilemeyi üretiyordu; kaldırıldı, davranış testleri
+`app/__tests__/native-intent.test.ts`'e taşındı.
+
+Uygulama tarafında bu plan kapsamında başka iş yok — teslim yolu tamam,
+bekleyen tek şey §1'deki iki dosyanın yayınlanması.

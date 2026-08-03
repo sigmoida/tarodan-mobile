@@ -18,8 +18,18 @@ const config = JSON.parse(
   fs.readFileSync(path.join(ROOT, 'src/lib/deeplinks/paths.json'), 'utf8'),
 );
 
+// Bu script web/infra ekibine veriliyor; baglantilari kara deliğe atan bir WAF
+// arkasinda kosabilir. Zaman asimi olmadan tek bir asili baglanti script'i
+// ciktisiz kilitler.
+const TIMEOUT_MS = 10_000;
+
 const results = [];
-const record = (host, check, ok, detail) => results.push({ host, check, ok, detail });
+// Her satir URETILDIGI ANDA basilir: dongude bir istisna cikarsa o ana kadar
+// olculen sonuclar kaybolmasin, asili bir istekte ilerleme gorunsun.
+const record = (host, check, ok, detail) => {
+  results.push({ host, check, ok, detail });
+  console.log(`${ok ? 'OK  ' : 'FAIL'}  ${host.padEnd(26)} ${check.padEnd(32)} ${detail}`);
+};
 
 const readLocal = (name) => {
   const file = path.join(OUT_DIR, name);
@@ -28,7 +38,10 @@ const readLocal = (name) => {
 
 async function fetchNoRedirect(url) {
   try {
-    const res = await fetch(url, { redirect: 'manual' });
+    const res = await fetch(url, {
+      redirect: 'manual',
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
     const body = res.status === 200 ? await res.text() : '';
     return { status: res.status, type: res.headers.get('content-type') ?? '', body };
   } catch (err) {
@@ -39,6 +52,7 @@ async function fetchNoRedirect(url) {
 const expectedAasa = readLocal('apple-app-site-association');
 const expectedLinks = readLocal('assetlinks.json');
 
+console.log('');
 for (const host of config.hosts) {
   const aasa = await fetchNoRedirect(`https://${host}/.well-known/apple-app-site-association`);
   record(host, 'AASA 200', aasa.status === 200, `HTTP ${aasa.status}${aasa.error ?? ''}`);
@@ -91,10 +105,6 @@ for (const host of config.hosts) {
 }
 
 const pending = config.paths.filter((p) => !p.confirmed);
-console.log('');
-for (const r of results) {
-  console.log(`${r.ok ? 'OK  ' : 'FAIL'}  ${r.host.padEnd(26)} ${r.check.padEnd(32)} ${r.detail}`);
-}
 console.log('');
 if (pending.length > 0) {
   console.log(`TEYIT BEKLEYEN ${pending.length} yol (yayina konmadi): ${pending.map((p) => p.pattern).join(', ')}`);
