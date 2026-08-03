@@ -44,7 +44,7 @@ export default function PaymentHistoryScreen() {
           refreshControl={
             <RefreshControl
               refreshing={f.isRefreshing}
-              onRefresh={() => f.fetchPayments(true)}
+              onRefresh={() => f.fetchPayments()}
               colors={[theme.colors.primary[500]]}
               tintColor={theme.colors.primary[500]}
             />
