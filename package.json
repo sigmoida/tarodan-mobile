@@ -23,7 +23,9 @@
     "lint": "eslint . --ext .ts,.tsx",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage --forceExit",
-    "i18n:codegen": "node scripts/gen-keys.mjs"
+    "i18n:codegen": "node scripts/gen-keys.mjs",
+    "wellknown:gen": "node scripts/gen-wellknown.mjs",
+    "wellknown:check": "node scripts/check-deeplinks.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",

@@ -1,0 +1,10 @@
+{
+  "eas_upload_keystore": {
+    "sha256": "",
+    "source": "eas credentials -p android --profile production → Keystore → SHA256 Fingerprint"
+  },
+  "play_app_signing": {
+    "sha256": "",
+    "source": "Play Console → Test and release → App integrity → App signing key certificate → SHA-256"
+  }
+}

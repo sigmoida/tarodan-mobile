@@ -96,3 +96,51 @@ describe('tablo sabitleri', () => {
     expect(deepLinkConfig.hosts).toEqual(['tarodan.com.tr', 'staging.tarodan.com.tr']);
   });
 });
+
+describe('uretilen AASA dosyasi', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const FILE = path.join(
+    __dirname,
+    '../../../../docs/wellknown/apple-app-site-association',
+  );
+  const aasa = JSON.parse(fs.readFileSync(FILE, 'utf8'));
+  const detail = aasa.applinks.details[0];
+  const components: Array<{ '/': string; exclude?: boolean }> = detail.components;
+  const patterns = components.map((c) => c['/']);
+
+  it('appIDs Team ID + bundle birlesimidir', () => {
+    expect(detail.appIDs).toEqual(deepLinkConfig.appIDs);
+  });
+
+  // Tabloya satir eklenip `pnpm wellknown:gen` kosulmazsa bu test kirmizi olur.
+  it.each(
+    shippablePaths().flatMap((p) =>
+      withLocaleVariants(p.pattern).map((v) => [p.pattern, v] as const),
+    ),
+  )('%s icin %s varyanti dosyada var', (_pattern, variant) => {
+    expect(patterns).toContain(variant);
+  });
+
+  it.each(pendingConfirmation().map((p) => [p.pattern]))(
+    'teyit bekleyen %s dosyaya girmemis',
+    (pattern) => {
+      expect(patterns).not.toContain(pattern);
+    },
+  );
+
+  it('dislamalar listenin basinda (AASA v2: ilk eslesen kazanir)', () => {
+    const firstInclude = components.findIndex((c) => c.exclude !== true);
+    const lastExclude = components.map((c) => c.exclude === true).lastIndexOf(true);
+    expect(lastExclude).toBeLessThan(firstInclude);
+  });
+
+  it('dislanan her yol exclude bayragiyla isaretli', () => {
+    const excludedPatterns = shippablePaths()
+      .filter((p) => !p.include)
+      .flatMap((p) => withLocaleVariants(p.pattern));
+    for (const pattern of excludedPatterns) {
+      expect(components.find((c) => c['/'] === pattern)?.exclude).toBe(true);
+    }
+  });
+});
