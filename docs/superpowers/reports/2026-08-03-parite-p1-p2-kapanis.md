@@ -141,6 +141,11 @@ Ayrıca **misafir takip yanıtında `groupNumber`/`packageNumber` şekli
 çözmüyor (üç kod biçimi de 404). Eklenen satırlar kendini kapıladığı için
 alan yoksa çizilmiyor — davranış güvenli ama **şekil doğrulanmadı**.
 
+> **Güncelleme:** derin bağlantı kalemi ayrı bir tura alındı —
+> `docs/superpowers/specs/2026-08-03-deep-links-design.md` (tasarım) ve
+> `docs/deep-links.md` (teslim). Android'in "zaten çalıştığı" iddiası
+> düzeltildi: `assetlinks.json` da 404, o da aynı doğrulama dosyasını bekliyor.
+
 ---
 
 ## 5. Çalışma kuralına ek
