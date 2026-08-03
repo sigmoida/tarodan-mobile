@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { qk } from "@/lib/query";
 import { router } from "expo-router";
 import { appAlert, useModalMessage, alertAfterClose } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
@@ -33,21 +35,22 @@ export function useSecurity() {
 
   // Gerçek 2FA durumunu sunucudan çek (user nesnesinde twoFactorEnabled yok —
   // o alan yalnız AdminUser'da; normal kullanıcıda kaynak TwoFactorSecret.isEnabled).
+  // 2FA durumu React Query ile (CLAUDE.md §6). Ulaşılamazsa kapalı varsayılır —
+  // eski davranış korundu; `retry: false` çünkü tek bir hata "bilinmiyor"
+  // demek, tekrar denemek kullanıcıya bir şey kazandırmıyor.
+  const twoFactorQuery = useQuery({
+    queryKey: qk.user.twoFactorStatus,
+    retry: false,
+    queryFn: async () => {
+      const res = await authApi.getTwoFactorStatus();
+      const payload = (res.data as any)?.data ?? (res.data as any) ?? {};
+      return !!payload.isEnabled;
+    },
+  });
+
   useEffect(() => {
-    let active = true;
-    authApi
-      .getTwoFactorStatus()
-      .then((res) => {
-        const payload = (res.data as any)?.data ?? (res.data as any) ?? {};
-        if (active) setTwoFactorEnabled(!!payload.isEnabled);
-      })
-      .catch(() => {
-        /* sessizce yoksay: durum bilinmiyorsa kapalı varsay */
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+    if (twoFactorQuery.data !== undefined) setTwoFactorEnabled(twoFactorQuery.data);
+  }, [twoFactorQuery.data]);
 
   // Telefon doğrulama. Alan artık paylaşılan `PhoneInput` (ülke kodu + formatlı
   // lokal parça); gönderilen değer daima `parsePhoneForPayload` çıktısı E.164.

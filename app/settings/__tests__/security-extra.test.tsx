@@ -6,6 +6,7 @@
  * Mevcut security.test ile ÇAKIŞMA yok: o dosya yalnız 2FA durumunu test eder.
  */
 import React from "react";
+import { renderWithProviders } from "@/test-utils";
 import { appAlert } from "@/ui";
 import {
   render,
@@ -60,7 +61,7 @@ describe("J48 · Güvenlik — tüm cihazlardan çıkış", () => {
   });
 
   it('J48.1 "Tüm Cihazlardan Çıkış" satırı render edilir', async () => {
-    render(<SecuritySettingsScreen />);
+    renderWithProviders(<SecuritySettingsScreen />);
     expect(screen.getByText("Tüm Cihazlardan Çıkış")).toBeOnTheScreen();
     expect(
       screen.getByText("Diğer tüm cihazlarda oturumunuzu sonlandırın"),
@@ -69,7 +70,7 @@ describe("J48 · Güvenlik — tüm cihazlardan çıkış", () => {
 
   it("J48.2 satıra basınca onay Alert tetiklenir", () => {
     const alertSpy = (appAlert as jest.Mock).mockImplementation(() => {});
-    render(<SecuritySettingsScreen />);
+    renderWithProviders(<SecuritySettingsScreen />);
     fireEvent.press(screen.getByText("Tüm Cihazlardan Çıkış"));
     expect(alertSpy).toHaveBeenCalledWith(
       "Tüm Cihazlardan Çıkış",
@@ -88,7 +89,7 @@ describe("J48 · Güvenlik — tüm cihazlardan çıkış", () => {
         )?.onPress;
       },
     );
-    render(<SecuritySettingsScreen />);
+    renderWithProviders(<SecuritySettingsScreen />);
     fireEvent.press(screen.getByText("Tüm Cihazlardan Çıkış"));
     expect(confirmOnPress).toBeDefined();
 

@@ -5,6 +5,7 @@
  * Strateji: docs/superpowers/specs/mobile-test-strategy.md
  */
 import React from "react";
+import { renderWithProviders } from "@/test-utils";
 import { render, screen, waitFor } from "@testing-library/react-native";
 import SecuritySettingsScreen from "../security";
 
@@ -46,14 +47,14 @@ describe("SecuritySettingsScreen — 2FA durumu", () => {
 
   it('sunucu isEnabled:true dönerse toggle "Aktif" gösterir', async () => {
     mockGetTwoFactorStatus.mockResolvedValue({ data: { isEnabled: true } });
-    render(<SecuritySettingsScreen />);
+    renderWithProviders(<SecuritySettingsScreen />);
     await waitFor(() => expect(screen.getByText("Aktif")).toBeOnTheScreen());
     expect(mockGetTwoFactorStatus).toHaveBeenCalledTimes(1);
   });
 
   it('sunucu isEnabled:false dönerse toggle "Devre dışı" gösterir', async () => {
     mockGetTwoFactorStatus.mockResolvedValue({ data: { isEnabled: false } });
-    render(<SecuritySettingsScreen />);
+    renderWithProviders(<SecuritySettingsScreen />);
     await waitFor(() =>
       expect(screen.getByText("Devre dışı")).toBeOnTheScreen(),
     );
