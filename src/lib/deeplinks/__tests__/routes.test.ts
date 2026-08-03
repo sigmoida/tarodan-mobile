@@ -13,7 +13,15 @@ const APP_DIR = path.join(__dirname, '../../../../app');
 function collectRoutePatterns(dir: string, prefix = ''): string[] {
   const out: string[] = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name.startsWith('_') || entry.name === '__tests__') continue;
+    // `_` gizli klasor/dosya, `__tests__` test, `+` expo-router ozel dosyasi
+    // (`+native-intent.ts`, `+html.tsx`) — hicbiri rota degil.
+    if (
+      entry.name.startsWith('_') ||
+      entry.name.startsWith('+') ||
+      entry.name === '__tests__'
+    ) {
+      continue;
+    }
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       out.push(...collectRoutePatterns(full, `${prefix}/${entry.name}`));

@@ -52,6 +52,57 @@ export function withLocaleVariants(pattern: string): string[] {
 // basina gelen sey. Uretilen dosyanin dogrulugu paths.test.ts'te ozellik
 // testleriyle olculur.
 
+/**
+ * URL'den yol + sorgu dizesini cikarir (sema/host'u atarak). Sema yoksa girdi
+ * ZATEN yol kabul edilir — expo-router `redirectSystemPath`'e surumune gore ya
+ * tam URL ya da bas slash'siz cikarilmis yol (`product/p-1`) verir; ikisini de
+ * ayni normal forma indiriyoruz. Kok URL (`tarodan:///`, `https://host`) → null.
+ */
+export function pathFromUrl(url: string): string | null {
+  if (!url) return null;
+  const match = url.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):\/\/(.*)$/);
+
+  let path: string;
+  if (!match) {
+    // Semasiz girdi: `product/p-1` ya da `/product/p-1`.
+    path = url;
+  } else {
+    const [, scheme, afterScheme] = match;
+    if (scheme === 'http' || scheme === 'https') {
+      // https://host/yol?q — host'u at, yol+sorgu'yu tut.
+      const idx = afterScheme!.search(/[/?]/);
+      path = idx === -1 ? '' : afterScheme!.slice(idx);
+    } else {
+      // custom scheme'de host segmenti yol gibi davranir: tarodan://product/p-1
+      path = afterScheme!;
+    }
+  }
+
+  if (!path) path = '/';
+  else if (path.startsWith('?')) path = `/${path}`;
+  else if (!path.startsWith('/')) path = `/${path}`;
+
+  // Ardisik slash'lari tekile indir (or. https://host//product/p-1).
+  path = path.replace(/\/{2,}/g, '/');
+
+  return path === '/' || path === '/?' ? null : path;
+}
+
+/**
+ * `include: false` satirlari — tarayicida kalmasi KARARLASTIRILMIS yollar
+ * (`/checkout*`, `/payment/*`, `/admin/*`, `/api/*`). Tek kaynak paths.json;
+ * ikinci bir liste tutulmaz.
+ */
+export function isExcludedWebPath(pathWithQuery: string): boolean {
+  const path = pathWithQuery.split('?')[0]!.replace(/\/+$/, '') || '/';
+  return deepLinkConfig.paths
+    .filter((p) => !p.include)
+    .flatMap((p) => withLocaleVariants(p.pattern))
+    .some((pattern) =>
+      pattern.endsWith('*') ? path.startsWith(pattern.slice(0, -1)) : path === pattern,
+    );
+}
+
 export function toAndroidPathEntry(pattern: string): AndroidPathEntry {
   return pattern.endsWith('*')
     ? { pathPrefix: pattern.slice(0, -1) }
