@@ -12,22 +12,12 @@
             "comment": "odeme web'de kalsin"
           },
           {
-            "/": "/tr/checkout*",
-            "exclude": true,
-            "comment": "odeme web'de kalsin"
-          },
-          {
             "/": "/en/checkout*",
             "exclude": true,
             "comment": "odeme web'de kalsin"
           },
           {
             "/": "/payment/*",
-            "exclude": true,
-            "comment": "PayTR 3DS turu tarayicida baslar tarayicida biter"
-          },
-          {
-            "/": "/tr/payment/*",
             "exclude": true,
             "comment": "PayTR 3DS turu tarayicida baslar tarayicida biter"
           },
@@ -42,22 +32,12 @@
             "comment": "yonetim paneli uygulamada yok"
           },
           {
-            "/": "/tr/admin/*",
-            "exclude": true,
-            "comment": "yonetim paneli uygulamada yok"
-          },
-          {
             "/": "/en/admin/*",
             "exclude": true,
             "comment": "yonetim paneli uygulamada yok"
           },
           {
             "/": "/api/*",
-            "exclude": true,
-            "comment": "API yuzeyi"
-          },
-          {
-            "/": "/tr/api/*",
             "exclude": true,
             "comment": "API yuzeyi"
           },
@@ -71,19 +51,11 @@
             "comment": "e-posta dogrulama linki -> (auth)/verify-email"
           },
           {
-            "/": "/tr/verify-email",
-            "comment": "e-posta dogrulama linki -> (auth)/verify-email"
-          },
-          {
             "/": "/en/verify-email",
             "comment": "e-posta dogrulama linki -> (auth)/verify-email"
           },
           {
             "/": "/reset-password",
-            "comment": "sifre sifirlama linki -> (auth)/reset-password"
-          },
-          {
-            "/": "/tr/reset-password",
             "comment": "sifre sifirlama linki -> (auth)/reset-password"
           },
           {
@@ -95,19 +67,11 @@
             "comment": "sifremi unuttum -> (auth)/forgot-password"
           },
           {
-            "/": "/tr/forgot-password",
-            "comment": "sifremi unuttum -> (auth)/forgot-password"
-          },
-          {
             "/": "/en/forgot-password",
             "comment": "sifremi unuttum -> (auth)/forgot-password"
           },
           {
             "/": "/corporate/invite",
-            "comment": "kurumsal davet -> (auth)/corporate-invite"
-          },
-          {
-            "/": "/tr/corporate/invite",
             "comment": "kurumsal davet -> (auth)/corporate-invite"
           },
           {
@@ -119,19 +83,11 @@
             "comment": "urun detayi -> product/[id]; /listings/:id/edit -> listing/[id]/edit"
           },
           {
-            "/": "/tr/listings/*",
-            "comment": "urun detayi -> product/[id]; /listings/:id/edit -> listing/[id]/edit"
-          },
-          {
             "/": "/en/listings/*",
             "comment": "urun detayi -> product/[id]; /listings/:id/edit -> listing/[id]/edit"
           },
           {
             "/": "/collections/*",
-            "comment": "koleksiyon -> collections/[id]"
-          },
-          {
-            "/": "/tr/collections/*",
             "comment": "koleksiyon -> collections/[id]"
           },
           {
@@ -143,19 +99,11 @@
             "comment": "web cogul -> mobil trade/[id]"
           },
           {
-            "/": "/tr/trades/*",
-            "comment": "web cogul -> mobil trade/[id]"
-          },
-          {
             "/": "/en/trades/*",
             "comment": "web cogul -> mobil trade/[id]"
           },
           {
             "/": "/track-order",
-            "comment": "misafir takip -> order-track"
-          },
-          {
-            "/": "/tr/track-order",
             "comment": "misafir takip -> order-track"
           },
           {
@@ -167,19 +115,11 @@
             "comment": "mesajlar; ?thread= -> messages/[threadId]"
           },
           {
-            "/": "/tr/messages",
-            "comment": "mesajlar; ?thread= -> messages/[threadId]"
-          },
-          {
             "/": "/en/messages",
             "comment": "mesajlar; ?thread= -> messages/[threadId]"
           },
           {
             "/": "/offers",
-            "comment": "teklifler -> offers"
-          },
-          {
-            "/": "/tr/offers",
             "comment": "teklifler -> offers"
           },
           {
@@ -191,19 +131,11 @@
             "comment": "siparis detayi -> orders/[id]"
           },
           {
-            "/": "/tr/profile/orders/*",
-            "comment": "siparis detayi -> orders/[id]"
-          },
-          {
             "/": "/en/profile/orders/*",
             "comment": "siparis detayi -> orders/[id]"
           },
           {
             "/": "/profile/refund-requests/*",
-            "comment": "iade detayi -> refund-requests/[id]"
-          },
-          {
-            "/": "/tr/profile/refund-requests/*",
             "comment": "iade detayi -> refund-requests/[id]"
           },
           {
@@ -215,19 +147,11 @@
             "comment": "takas detayi -> trade/[id]"
           },
           {
-            "/": "/tr/profile/trades/*",
-            "comment": "takas detayi -> trade/[id]"
-          },
-          {
             "/": "/en/profile/trades/*",
             "comment": "takas detayi -> trade/[id]"
           },
           {
             "/": "/profile/listings",
-            "comment": "ilanlarim -> settings/my-listings"
-          },
-          {
-            "/": "/tr/profile/listings",
             "comment": "ilanlarim -> settings/my-listings"
           },
           {
@@ -239,19 +163,11 @@
             "comment": "kazanclar -> settings/payments"
           },
           {
-            "/": "/tr/profile/earnings",
-            "comment": "kazanclar -> settings/payments"
-          },
-          {
             "/": "/en/profile/earnings",
             "comment": "kazanclar -> settings/payments"
           },
           {
             "/": "/profile",
-            "comment": "profil -> (tabs)/profile"
-          },
-          {
-            "/": "/tr/profile",
             "comment": "profil -> (tabs)/profile"
           },
           {

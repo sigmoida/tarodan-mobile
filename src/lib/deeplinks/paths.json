@@ -1,5 +1,6 @@
 {
   "locales": ["tr", "en"],
+  "defaultLocale": "tr",
   "appIDs": ["P2628CQK26.com.tarodan.app"],
   "androidPackage": "com.tarodan.app",
   "hosts": ["tarodan.com.tr", "staging.tarodan.com.tr"],

@@ -22,7 +22,10 @@ export type DeepLinkPath = {
 };
 
 export type DeepLinkConfig = {
+  /** Cozucunun anladigi tum locale onekleri. */
   locales: string[];
+  /** next-intl `as-needed`: bu dil ON EKSIZ render edilir, yayinda talep edilmez. */
+  defaultLocale: string;
   appIDs: string[];
   androidPackage: string;
   hosts: string[];
@@ -43,7 +46,31 @@ export const pendingConfirmation = (): DeepLinkPath[] =>
 
 /** `/listings/*` → ['/listings/*', '/tr/listings/*', '/en/listings/*'] */
 export function withLocaleVariants(pattern: string): string[] {
-  return [pattern, ...deepLinkConfig.locales.map((l) => `/${l}${pattern}`)];
+  return [pattern, ...publishedLocalePrefixes().map((l) => `/${l}${pattern}`)];
+}
+
+/**
+ * Web next-intl'i `localePrefix: "as-needed"` kullaniyor (apps/web/src/i18n/
+ * routing.ts): varsayilan dil ON EKSIZ render ediliyor (`/listings/123`),
+ * digerleri on ekli (`/en/listings/123`). Yani `/tr/...` KANONIK BIR URL DEGIL —
+ * next-intl onu kabul edip on eksiz hale yonlendiriyor. Yayinlanan dosyalarda
+ * talep etmiyoruz; iki ayri liste tutmak yerine tek kuraldan turetiyoruz.
+ */
+export function publishedLocalePrefixes(): string[] {
+  return deepLinkConfig.locales.filter((l) => l !== deepLinkConfig.defaultLocale);
+}
+
+/**
+ * Bastaki locale segmentini soyar — YALNIZ segment tam olarak bilinen bir
+ * locale ise. Cozucu, kanonik olmayan `/tr/...` bicimini de anlamali (eski
+ * baglantilar, elle yazilmis URL'ler), bu yuzden burada TUM locale'ler gecerli.
+ * Yayinlamak ile anlamak ayri sorular.
+ */
+export function stripLocalePrefix(path: string): string {
+  const seg0 = path.split('/')[1];
+  return seg0 && deepLinkConfig.locales.includes(seg0)
+    ? path.slice(seg0.length + 1)
+    : path;
 }
 
 // AASA/assetlinks uretimi BILEREK burada degil: tek uygulama
@@ -94,11 +121,14 @@ export function pathFromUrl(url: string): string | null {
  * ikinci bir liste tutulmaz.
  */
 export function isExcludedWebPath(pathWithQuery: string): boolean {
-  const path = pathWithQuery.split('?')[0]!.replace(/\/+$/, '') || '/';
+  const raw = pathWithQuery.split('?')[0]!.replace(/\/+$/, '') || '/';
+  // Once locale onekini soy, sonra CIPLAK desenlerle karsilastir. Varyantlari
+  // tek tek uretip aramak, kanonik olmayan `/tr/payment/success` bicimini
+  // kacirirdi — yayinlanan varyantlar arasinda `/tr/...` yok.
+  const path = stripLocalePrefix(raw) || '/';
   return deepLinkConfig.paths
     .filter((p) => !p.include)
-    .flatMap((p) => withLocaleVariants(p.pattern))
-    .some((pattern) =>
+    .some(({ pattern }) =>
       pattern.endsWith('*') ? path.startsWith(pattern.slice(0, -1)) : path === pattern,
     );
 }

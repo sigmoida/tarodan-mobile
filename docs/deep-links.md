@@ -296,11 +296,15 @@ Web tarafına dört soru:
 1. **Bu 7 yol web'de gerçekten bu path'lerde mi yaşıyor?** (`/category/*`,
    `/brands/*`, `/sayfa/*` için `toMobileRoute` içinde henüz bir eşleme de
    yok — hem yol hem eşleme teyit bekliyor.)
-2. **Locale ön ek biçimi ne?** `/en/listings/123` geçerli bir URL mü,
-   varsayılan dil (`tr`) gerçekten ön eksiz mi (`localePrefix: 'as-needed'`
-   varsayımı doğru mu)? Cevap "ön ek yok, hiçbir zaman gerekmiyor" ise
-   `paths.json` → `locales` dizisi boşaltılır ve `/tr/*` / `/en/*`
-   varyantları üretimden düşer.
+2. ~~**Locale ön ek biçimi ne?**~~ **CEVAPLANDI (2026-08-03).**
+   `sigmoida/tarodan-app` → `apps/web/src/i18n/routing.ts`:
+   `localePrefix: "as-needed"`, varsayılan dil `tr`. Yani `/listings/123`
+   (Türkçe, ön eksiz) ve `/en/listings/123` gerçek URL'ler; **`/tr/listings/123`
+   kanonik değil** — next-intl onu ön eksiz hâle yönlendiriyor.
+   `paths.json` → `defaultLocale: "tr"` eklendi; yayınlanan dosyalar artık
+   `/tr/*` talep etmiyor (AASA 60 → 40 component, Android 48 → 32 yol).
+   Çözücü `/tr/...` biçimini yine de **anlıyor** — eski/elle yazılmış
+   bağlantılar için. Yayınlamak ile anlamak ayrı sorular.
 3. **Sipariş detayının kanonik web yolu hangisi?** Tabloda
    `/profile/orders/*` teyitli, ama repo içinde `/orders/:id`'nin de servis
    edildiğine dair kanıt var: `docs/manual-test/faz1-kritik-checklist.md:13`

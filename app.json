@@ -14,7 +14,9 @@
     "orientation": "portrait",
     "scheme": "tarodan",
     "userInterfaceStyle": "light",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.tarodan.app",
@@ -46,59 +48,116 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            { "scheme": "https" },
-            { "host": "tarodan.com.tr" },
-            { "host": "staging.tarodan.com.tr" },
-            { "path": "/verify-email" },
-            { "path": "/tr/verify-email" },
-            { "path": "/en/verify-email" },
-            { "path": "/reset-password" },
-            { "path": "/tr/reset-password" },
-            { "path": "/en/reset-password" },
-            { "path": "/forgot-password" },
-            { "path": "/tr/forgot-password" },
-            { "path": "/en/forgot-password" },
-            { "path": "/corporate/invite" },
-            { "path": "/tr/corporate/invite" },
-            { "path": "/en/corporate/invite" },
-            { "pathPrefix": "/listings/" },
-            { "pathPrefix": "/tr/listings/" },
-            { "pathPrefix": "/en/listings/" },
-            { "pathPrefix": "/collections/" },
-            { "pathPrefix": "/tr/collections/" },
-            { "pathPrefix": "/en/collections/" },
-            { "pathPrefix": "/trades/" },
-            { "pathPrefix": "/tr/trades/" },
-            { "pathPrefix": "/en/trades/" },
-            { "path": "/track-order" },
-            { "path": "/tr/track-order" },
-            { "path": "/en/track-order" },
-            { "path": "/messages" },
-            { "path": "/tr/messages" },
-            { "path": "/en/messages" },
-            { "path": "/offers" },
-            { "path": "/tr/offers" },
-            { "path": "/en/offers" },
-            { "pathPrefix": "/profile/orders/" },
-            { "pathPrefix": "/tr/profile/orders/" },
-            { "pathPrefix": "/en/profile/orders/" },
-            { "pathPrefix": "/profile/refund-requests/" },
-            { "pathPrefix": "/tr/profile/refund-requests/" },
-            { "pathPrefix": "/en/profile/refund-requests/" },
-            { "pathPrefix": "/profile/trades/" },
-            { "pathPrefix": "/tr/profile/trades/" },
-            { "pathPrefix": "/en/profile/trades/" },
-            { "path": "/profile/listings" },
-            { "path": "/tr/profile/listings" },
-            { "path": "/en/profile/listings" },
-            { "path": "/profile/earnings" },
-            { "path": "/tr/profile/earnings" },
-            { "path": "/en/profile/earnings" },
-            { "path": "/profile" },
-            { "path": "/tr/profile" },
-            { "path": "/en/profile" }
+            {
+              "scheme": "https"
+            },
+            {
+              "host": "tarodan.com.tr"
+            },
+            {
+              "host": "staging.tarodan.com.tr"
+            },
+            {
+              "path": "/verify-email"
+            },
+            {
+              "path": "/en/verify-email"
+            },
+            {
+              "path": "/reset-password"
+            },
+            {
+              "path": "/en/reset-password"
+            },
+            {
+              "path": "/forgot-password"
+            },
+            {
+              "path": "/en/forgot-password"
+            },
+            {
+              "path": "/corporate/invite"
+            },
+            {
+              "path": "/en/corporate/invite"
+            },
+            {
+              "pathPrefix": "/listings/"
+            },
+            {
+              "pathPrefix": "/en/listings/"
+            },
+            {
+              "pathPrefix": "/collections/"
+            },
+            {
+              "pathPrefix": "/en/collections/"
+            },
+            {
+              "pathPrefix": "/trades/"
+            },
+            {
+              "pathPrefix": "/en/trades/"
+            },
+            {
+              "path": "/track-order"
+            },
+            {
+              "path": "/en/track-order"
+            },
+            {
+              "path": "/messages"
+            },
+            {
+              "path": "/en/messages"
+            },
+            {
+              "path": "/offers"
+            },
+            {
+              "path": "/en/offers"
+            },
+            {
+              "pathPrefix": "/profile/orders/"
+            },
+            {
+              "pathPrefix": "/en/profile/orders/"
+            },
+            {
+              "pathPrefix": "/profile/refund-requests/"
+            },
+            {
+              "pathPrefix": "/en/profile/refund-requests/"
+            },
+            {
+              "pathPrefix": "/profile/trades/"
+            },
+            {
+              "pathPrefix": "/en/profile/trades/"
+            },
+            {
+              "path": "/profile/listings"
+            },
+            {
+              "path": "/en/profile/listings"
+            },
+            {
+              "path": "/profile/earnings"
+            },
+            {
+              "path": "/en/profile/earnings"
+            },
+            {
+              "path": "/profile"
+            },
+            {
+              "path": "/en/profile"
+            }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },

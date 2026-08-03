@@ -27,9 +27,14 @@ const config = JSON.parse(
   fs.readFileSync(path.join(ROOT, 'src/lib/deeplinks/paths.json'), 'utf8'),
 );
 
+// next-intl `as-needed`: varsayilan dil ON EKSIZ render ediliyor, yani
+// `/tr/listings/123` kanonik bir URL degil ve yayinda talep edilmiyor.
+// Kural src/lib/deeplinks/index.ts#publishedLocalePrefixes ile ayni.
 const withLocaleVariants = (pattern) => [
   pattern,
-  ...config.locales.map((l) => `/${l}${pattern}`),
+  ...config.locales
+    .filter((l) => l !== config.defaultLocale)
+    .map((l) => `/${l}${pattern}`),
 ];
 
 const shipped = config.paths.filter((p) => p.confirmed);

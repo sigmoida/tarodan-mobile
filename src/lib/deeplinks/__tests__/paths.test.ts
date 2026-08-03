@@ -8,6 +8,7 @@ import {
   shippablePaths,
   pendingConfirmation,
   withLocaleVariants,
+  stripLocalePrefix,
   toAndroidPathEntry,
   pathFromUrl,
   isExcludedWebPath,
@@ -70,12 +71,30 @@ describe('paths.json — regresyon kilidi', () => {
 });
 
 describe('locale varyantlari', () => {
-  it('cipiak + her locale onekli varyanti uretir', () => {
+  // Web next-intl'i `localePrefix: "as-needed"` kullaniyor: varsayilan dil (tr)
+  // ON EKSIZ render ediliyor, yani /tr/listings/123 kanonik bir URL degil ve
+  // yayinda talep edilmemeli. /en/... ise gercek bir URL.
+  it('ciplak + varsayilan OLMAYAN locale onekli varyanti uretir', () => {
     expect(withLocaleVariants('/listings/*')).toEqual([
       '/listings/*',
-      '/tr/listings/*',
       '/en/listings/*',
     ]);
+  });
+
+  it('varsayilan locale onekini yayina koymaz', () => {
+    expect(withLocaleVariants('/listings/*')).not.toContain('/tr/listings/*');
+  });
+
+  // Yayinlamak ile anlamak ayri sorular: kanonik olmayan /tr/... bicimi
+  // (eski baglantilar, elle yazilmis URL'ler) yine cozulebilmeli.
+  it('kanonik olmayan /tr/ onekini yine de soyar', () => {
+    expect(stripLocalePrefix('/tr/listings/123')).toBe('/listings/123');
+    expect(stripLocalePrefix('/en/listings/123')).toBe('/listings/123');
+    expect(stripLocalePrefix('/listings/123')).toBe('/listings/123');
+  });
+
+  it('locale olmayan ilk segmenti soymaz', () => {
+    expect(stripLocalePrefix('/trades/5')).toBe('/trades/5');
   });
 });
 
