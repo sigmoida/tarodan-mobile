@@ -54,3 +54,31 @@ describe('toMobileRoute — derin bağlantı yolları', () => {
     expect(toMobileRoute('/payment/fail')).toBeNull();
   });
 });
+
+describe('toMobileRoute — locale oneki', () => {
+  it('en onekli urun linkini cozer', () => {
+    expect(toMobileRoute('/en/listings/123')).toBe('/product/123');
+  });
+
+  it('tr onekli urun linkini cozer', () => {
+    expect(toMobileRoute('/tr/listings/123')).toBe('/product/123');
+  });
+
+  it('onekli sorgu parametresini korur', () => {
+    expect(toMobileRoute('/en/verify-email?token=abc')).toBe('/verify-email?token=abc');
+  });
+
+  it('onekli dislanan yolu yine cozmez', () => {
+    expect(toMobileRoute('/en/payment/success')).toBeNull();
+  });
+
+  it('locale olmayan ilk segmenti soymaz', () => {
+    // /offers bir rota; yanlislikla "locale" sanilip soyulursa /offers kaybolur
+    expect(toMobileRoute('/offers')).toBe('/offers');
+  });
+
+  it('cipiak locale kokunu profil sekmesine dusurmez', () => {
+    // /en tek basina bir icerik yolu degil → eslesme yok
+    expect(toMobileRoute('/en')).toBeNull();
+  });
+});

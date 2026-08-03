@@ -1,3 +1,5 @@
+import { deepLinkConfig } from '@/lib/deeplinks';
+
 /**
  * Backend `link` alanları WEB rotaları için interpole ediliyor (ör.
  * /listings/:id, /trades/:id, /messages?thread=:id). Mobil expo-router
@@ -12,7 +14,15 @@
 export function toMobileRoute(link: string): string | null {
   if (!link || link.includes('{{')) return null; // interpole edilmemiş şablon
   const [rawPath, rawQuery] = link.split('?');
-  const path = rawPath.replace(/\/+$/, '');
+  const rawPathNoSlash = rawPath.replace(/\/+$/, '');
+  // Web [locale] segmenti: /en/listings/123 → /listings/123. YALNIZ segment tam
+  // olarak bilinen bir locale ise soyulur; rota agacinda ilk segmenti tr/en olan
+  // rota yok, carpisma riski yok. Cipiak /en kok sayfasidir, esleme uretmez.
+  const seg0 = rawPathNoSlash.split('/')[1];
+  const path =
+    seg0 && deepLinkConfig.locales.includes(seg0)
+      ? rawPathNoSlash.slice(seg0.length + 1)
+      : rawPathNoSlash;
 
   // /messages?thread=<id> → /messages/<id>  (RN'de URLSearchParams'a güvenmeden)
   if (path === '/messages') {

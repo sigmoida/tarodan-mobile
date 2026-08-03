@@ -37,6 +37,14 @@ describe('paths.json — cozucu senkronu', () => {
   it('teyit bekleyen satirlar tabloda durur (sessizce silinmez)', () => {
     expect(pendingConfirmation().length).toBeGreaterThan(0);
   });
+
+  it.each(
+    included.flatMap((p) =>
+      deepLinkConfig.locales.map((l) => [l, p.pattern, `/${l}${p.sample}`] as const),
+    ),
+  )('%s onekli %s ornegi (%s) de cozulur', (_locale, _pattern, sample) => {
+    expect(toMobileRoute(sample)).not.toBeNull();
+  });
 });
 
 describe('paths.json — regresyon kilidi', () => {
