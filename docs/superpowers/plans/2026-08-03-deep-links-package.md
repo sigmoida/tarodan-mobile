@@ -56,10 +56,10 @@
   - `shippablePaths(): DeepLinkPath[]` — `confirmed === true` olanlar
   - `pendingConfirmation(): DeepLinkPath[]` — `confirmed === false` olanlar
   - `withLocaleVariants(pattern: string): string[]`
-  - `buildAppleAppSiteAssociation(): AppleAppSiteAssociation`
-  - `buildAssetLinks(fingerprints: string[]): AssetLinkStatement[] | null`
   - `toAndroidPathEntry(pattern: string): AndroidPathEntry`
   - `buildAndroidPathEntries(): AndroidPathEntry[]`
+
+> **AASA/assetlinks üretimi burada YOK — bilerek.** Tek uygulama `scripts/gen-wellknown.mjs`'de durur; `index.ts`'e ikinci bir kopya konmaz (CLAUDE.md §5). Üretilen dosyanın doğruluğu Task 4'te **özellik testleriyle** (her teyitli desen dosyada var, teyitsiz hiçbiri yok, dışlamalar başta) doğrulanır — ikinci bir üreteçle karşılaştırılarak değil. `buildAndroidPathEntries` burada kalır çünkü `app.json` script'le üretilmiyor; onun `.mjs` ikizi yok, kopya doğmuyor.
 
 - [ ] **Step 1: Yol tablosunu yaz**
 
@@ -151,8 +151,6 @@ import {
   pendingConfirmation,
   withLocaleVariants,
   toAndroidPathEntry,
-  buildAppleAppSiteAssociation,
-  buildAssetLinks,
 } from '../index';
 
 const shipped = shippablePaths();
@@ -177,6 +175,10 @@ describe('paths.json — cozucu senkronu', () => {
       expect(toMobileRoute(sample)).toBeNull();
     },
   );
+
+  it('teyit bekleyen satirlar tabloda durur (sessizce silinmez)', () => {
+    expect(pendingConfirmation().length).toBeGreaterThan(0);
+  });
 });
 
 describe('paths.json — regresyon kilidi', () => {
@@ -219,43 +221,19 @@ describe('Android yol girdisi donusumu', () => {
   });
 });
 
-describe('AASA uretimi', () => {
-  const aasa = buildAppleAppSiteAssociation();
-  const components = aasa.applinks.details[0].components;
-
+describe('tablo sabitleri', () => {
   it('appIDs Team ID + bundle birlesimidir', () => {
-    expect(aasa.applinks.details[0].appIDs).toEqual(['P2628CQK26.com.tarodan.app']);
+    expect(deepLinkConfig.appIDs).toEqual(['P2628CQK26.com.tarodan.app']);
   });
 
-  it('dislamalar listenin basinda gelir (AASA v2: ilk eslesen kazanir)', () => {
-    const firstInclude = components.findIndex((c) => c.exclude !== true);
-    const lastExclude = components.map((c) => c.exclude === true).lastIndexOf(true);
-    expect(lastExclude).toBeLessThan(firstInclude);
-  });
-
-  it('teyit edilmemis yollari yayina koymaz', () => {
-    const patterns = components.map((c) => c['/']);
-    expect(patterns).not.toContain('/category/*');
-  });
-
-  it('teyit bekleyen satirlar tabloda durur (sessizce silinmez)', () => {
-    expect(pendingConfirmation().length).toBeGreaterThan(0);
-  });
-});
-
-describe('assetlinks uretimi', () => {
-  it('parmak izi yoksa null doner — bos liste yayinlanmasin', () => {
-    expect(buildAssetLinks([])).toBeNull();
-  });
-
-  it('parmak izi varsa paket adini tablodan alir', () => {
-    const statements = buildAssetLinks(['AA:BB']);
-    expect(statements).not.toBeNull();
-    expect(statements![0].target.package_name).toBe(deepLinkConfig.androidPackage);
-    expect(statements![0].target.sha256_cert_fingerprints).toEqual(['AA:BB']);
+  it('her iki alan adi da sayilir', () => {
+    expect(deepLinkConfig.hosts).toEqual(['tarodan.com.tr', 'staging.tarodan.com.tr']);
   });
 });
 ```
+
+> AASA ve assetlinks üretimine dair testler burada **yok** — üretim `.mjs`
+> script'inde ve testleri Task 4'te üretilen dosyanın üstünde koşuyor.
 
 - [ ] **Step 3: Testin başarısız olduğunu gör**
 
@@ -296,14 +274,6 @@ export type DeepLinkConfig = {
   paths: DeepLinkPath[];
 };
 
-export type AppleComponent = { '/': string; comment: string; exclude?: true };
-export type AppleAppSiteAssociation = {
-  applinks: { details: Array<{ appIDs: string[]; components: AppleComponent[] }> };
-};
-export type AssetLinkStatement = {
-  relation: string[];
-  target: { namespace: string; package_name: string; sha256_cert_fingerprints: string[] };
-};
 export type AndroidPathEntry = { path: string } | { pathPrefix: string };
 
 // resolveJsonModule JSON'u dar literal tiplerle cikarir; DeepLinkConfig'e
@@ -321,38 +291,11 @@ export function withLocaleVariants(pattern: string): string[] {
   return [pattern, ...deepLinkConfig.locales.map((l) => `/${l}${pattern}`)];
 }
 
-export function buildAppleAppSiteAssociation(): AppleAppSiteAssociation {
-  const rows = shippablePaths();
-  // AASA v2'de ILK eslesen component kazanir → dislamalar basa.
-  const ordered = [...rows.filter((p) => !p.include), ...rows.filter((p) => p.include)];
-  const components = ordered.flatMap((p) =>
-    withLocaleVariants(p.pattern).map((pattern): AppleComponent =>
-      p.include
-        ? { '/': pattern, comment: p.comment }
-        : { '/': pattern, exclude: true, comment: p.comment },
-    ),
-  );
-  return { applinks: { details: [{ appIDs: deepLinkConfig.appIDs, components }] } };
-}
-
-/**
- * Parmak izi yoksa null. Bos `sha256_cert_fingerprints` iceren bir dosya
- * yayinlanirsa Android dogrulamasi "basarisiz" olarak KESINLESIR — hic dosya
- * olmamasindan kotudur.
- */
-export function buildAssetLinks(fingerprints: string[]): AssetLinkStatement[] | null {
-  if (fingerprints.length === 0) return null;
-  return [
-    {
-      relation: ['delegate_permission/common.handle_all_urls'],
-      target: {
-        namespace: 'android_app',
-        package_name: deepLinkConfig.androidPackage,
-        sha256_cert_fingerprints: fingerprints,
-      },
-    },
-  ];
-}
+// AASA/assetlinks uretimi BILEREK burada degil: tek uygulama
+// scripts/gen-wellknown.mjs'de. Buraya bir kopya konursa iki taraf ayri ayri
+// bakim ister ve sessizce ayrisir — tam da elle yazilan AASA listesinin
+// basina gelen sey. Uretilen dosyanin dogrulugu paths.test.ts'te ozellik
+// testleriyle olculur.
 
 export function toAndroidPathEntry(pattern: string): AndroidPathEntry {
   return pattern.endsWith('*')
@@ -617,10 +560,10 @@ second list that would drift the same way the AASA list did."
 - Test: `src/lib/deeplinks/__tests__/paths.test.ts` (drift testi ekleme)
 
 **Interfaces:**
-- Consumes: `buildAppleAppSiteAssociation()`, `buildAssetLinks()`, `pendingConfirmation()` (Task 1).
+- Consumes: `src/lib/deeplinks/paths.json` (Task 1) — script onu doğrudan okur; testler `shippablePaths()`, `pendingConfirmation()`, `withLocaleVariants()`, `deepLinkConfig` kullanır.
 - Produces: `pnpm gen:wellknown` komutu; `docs/wellknown/apple-app-site-association` dosyası.
 
-**Not — neden mantık iki yerde duruyor:** `index.ts` TypeScript, script `.mjs`; Node onu build adımı olmadan import edemez. Bu yüzden script `paths.json`'ı okuyup aynı algoritmayı kendisi çalıştırır. İkisinin ayrışmaması Step 5'teki drift testiyle garanti altına alınır: test, diskteki üretilmiş dosyayı `buildAppleAppSiteAssociation()` çıktısıyla karşılaştırır. Script yanlış üretirse dosya `index.ts`'in ürettiğinden farklı olur ve test kırmızı olur.
+**Not — üretim mantığının TEK yeri burasıdır.** `index.ts`'te AASA/assetlinks üreteci yok (Task 1). Script `paths.json`'ı okur ve dosyaları üretir; doğruluğu Step 5'teki **özellik testleriyle** ölçülür — üretilen dosyanın kendisi üstünde, ikinci bir üreteçle karşılaştırılarak değil. Böylece kopya doğmaz (CLAUDE.md §5) ve drift koruması kalır: tabloya satır eklenip `wellknown:gen` koşulmazsa "her teyitli desen dosyada var" testi kırmızı olur.
 
 - [ ] **Step 1: Parmak izi dosyasını oluştur**
 
@@ -764,18 +707,57 @@ Expected: exit 1, `HATA: assetlinks.json YAZILMADI`.
 > `wellknown:check` Task 6'da yazılacak script'i gösterir; ikisi tek yerde
 > dursun diye şimdi ekleniyor.
 
-- [ ] **Step 5: Drift testini yaz**
+- [ ] **Step 5: Üretilen dosyanın özellik testlerini yaz**
 
-`src/lib/deeplinks/__tests__/paths.test.ts` sonuna ekle:
+`src/lib/deeplinks/__tests__/paths.test.ts` sonuna ekle. Bu testler dosyanın
+**kendisini** sorgular; ikinci bir üreteç yazmaz.
 
 ```ts
-describe('uretilen dosya commit ile ayni', () => {
-  it('docs/wellknown/apple-app-site-association guncel', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const file = path.join(__dirname, '../../../../docs/wellknown/apple-app-site-association');
-    const onDisk = JSON.parse(fs.readFileSync(file, 'utf8'));
-    expect(onDisk).toEqual(buildAppleAppSiteAssociation());
+describe('uretilen AASA dosyasi', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const FILE = path.join(
+    __dirname,
+    '../../../../docs/wellknown/apple-app-site-association',
+  );
+  const aasa = JSON.parse(fs.readFileSync(FILE, 'utf8'));
+  const detail = aasa.applinks.details[0];
+  const components: Array<{ '/': string; exclude?: boolean }> = detail.components;
+  const patterns = components.map((c) => c['/']);
+
+  it('appIDs Team ID + bundle birlesimidir', () => {
+    expect(detail.appIDs).toEqual(deepLinkConfig.appIDs);
+  });
+
+  // Tabloya satir eklenip `pnpm wellknown:gen` kosulmazsa bu test kirmizi olur.
+  it.each(
+    shippablePaths().flatMap((p) =>
+      withLocaleVariants(p.pattern).map((v) => [p.pattern, v] as const),
+    ),
+  )('%s icin %s varyanti dosyada var', (_pattern, variant) => {
+    expect(patterns).toContain(variant);
+  });
+
+  it.each(pendingConfirmation().map((p) => [p.pattern]))(
+    'teyit bekleyen %s dosyaya girmemis',
+    (pattern) => {
+      expect(patterns).not.toContain(pattern);
+    },
+  );
+
+  it('dislamalar listenin basinda (AASA v2: ilk eslesen kazanir)', () => {
+    const firstInclude = components.findIndex((c) => c.exclude !== true);
+    const lastExclude = components.map((c) => c.exclude === true).lastIndexOf(true);
+    expect(lastExclude).toBeLessThan(firstInclude);
+  });
+
+  it('dislanan her yol exclude bayragiyla isaretli', () => {
+    const excludedPatterns = shippablePaths()
+      .filter((p) => !p.include)
+      .flatMap((p) => withLocaleVariants(p.pattern));
+    for (const pattern of excludedPatterns) {
+      expect(components.find((c) => c['/'] === pattern)?.exclude).toBe(true);
+    }
   });
 });
 ```
