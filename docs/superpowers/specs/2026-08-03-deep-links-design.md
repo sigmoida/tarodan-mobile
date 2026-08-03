@@ -126,9 +126,14 @@ desenler ayrık olduğu için zarar vermiyor ama kural kırılgan, üreteç doğ
 uygular.
 
 **`assetlinks.json`** — `fingerprints.json`'daki **boş olmayan** SHA-256'lardan
-üretilir. Hiç parmak izi yoksa üreteç **dosyayı yazmaz ve 1 ile çıkar**. Sebep:
+üretilir. Hiç parmak izi yoksa **dosya yazılmaz**. Sebep:
 `sha256_cert_fingerprints: []` içeren bir dosya yayınlanırsa Android doğrulaması
 "başarısız" olarak **kesinleşir** — hiç dosya olmamasından kötüdür.
+
+Parmak izi bugün elde yok, yani "yazılmadı" **beklenen** durum: üreteç bu hâlde
+uyarı basar ve **0 ile çıkar** (aksi hâlde `gen:wellknown` her koşuda kırmızı
+olurdu ve uyarı anlamını yitirirdi). Sürüm anında `--strict` bayrağı aynı durumu
+1'e çevirir — kapıyı orada tutar.
 
 ```jsonc
 // docs/wellknown/fingerprints.json
@@ -192,8 +197,13 @@ Herhangi bir hata → çıkış kodu 1. Bugün koşarsa hepsi kırmızı; dürü
    düzenleyip üretmeyi unutmayı yakalar).
 6. `app.json` Android yol listesi tabloyla aynı (§3.4 bekçisi).
 
-§2'deki altı yanlış yol ve `app.json`'ın yol kısıtsızlığı, bu testlerin ilk
-koşusunda **kırmızı** çıkar. Düzeltmenin kanıtı odur.
+7. §2'deki altı yanlış yol (`/product/*`, `/order-track*`, `/corporate-invite*`,
+   `/orders/*`, `/refund-requests*`, `/trade/*`) web URL'si olarak **çözülmez** —
+   listenin neden değiştiğini kilitleyen regresyon testi.
+
+`app.json`'ın yol kısıtsızlığı 6. testin ilk koşusunda **kırmızı** çıkar;
+daraltmanın kanıtı odur. Yanlış yollar ise `paths.json`'a hiç girmediği için
+kendiliğinden kırmızı olmaz — 7. madde onları bilerek kilitler.
 
 **Kapsam sınırı:** 4. madde mevcut çözücü hatalarını da ortaya çıkarabilir
 (ör. `case 'seller'` yolu aynen döndürüyor ama `app/` altında `seller/[id]`
