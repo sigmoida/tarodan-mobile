@@ -86,18 +86,31 @@ describe('redirectSystemPath — ödeme dönüşü GEZİNME YAPMAZ', () => {
     'https://tarodan.com.tr/payment/failure',
     'https://tarodan.com.tr/tr/payment/success',
     'tarodan://payment/success',
-    'https://tarodan.com.tr/checkout',
-    'https://tarodan.com.tr/checkout/address',
   ])('%s boş string döner (expo-router gezinmez)', (url) => {
     expect(call(url)).toBe('');
   });
 
-  it('app/payment/success rotası GERÇEKTEN var — bu yüzden dışlama şart', () => {
+  it('app/payment/success rotası GERÇEKTEN var — bu yüzden engelleme şart', () => {
     expect(fs.existsSync(nodePath.join(__dirname, '../payment/success.tsx'))).toBe(true);
   });
 
-  it('ödeme dışı yollar dışlanmaz (dışlama fazla genişlemiş olmasın)', () => {
+  it('ödeme dışı yollar engellenmez (engel fazla genişlemiş olmasın)', () => {
     expect(call('https://tarodan.com.tr/offers')).toBe('/offers');
     expect(call('https://tarodan.com.tr/collections/9')).toBe('/collections/9');
+  });
+});
+
+describe('checkout: AASA dışında ama custom scheme ile AÇILIR', () => {
+  // `include: false` "bu WEB yolunu AASA'da talep etme" demek — tarayıcıdan
+  // gelen bir checkout linki uygulamaya çekilmesin diye. Kullanıcı
+  // `tarodan://checkout` ile uygulamayı AÇIKÇA çağırdığında engellemek için
+  // bir sebep yok. İki anlamı bir liste sanmak checkout ekranını sessizce
+  // öldürmüştü (cihazda doğrulandı, 2026-08-03).
+  it('tarodan://checkout gezinmeyi engellemez', () => {
+    expect(call('tarodan://checkout')).not.toBe('');
+  });
+
+  it('checkout ekranı GERÇEKTEN var — engellenirse ölür', () => {
+    expect(fs.existsSync(nodePath.join(__dirname, '../checkout/index.tsx'))).toBe(true);
   });
 });

@@ -11,7 +11,7 @@ import {
   stripLocalePrefix,
   toAndroidPathEntry,
   pathFromUrl,
-  isExcludedWebPath,
+  isNeverNavigatePath,
 } from '../index';
 
 const shipped = shippablePaths();
@@ -127,27 +127,48 @@ describe('pathFromUrl', () => {
   });
 });
 
-describe('isExcludedWebPath', () => {
-  // Her include:false satirin kendi ornegi, ciplak + locale onekli halleriyle.
+describe('isNeverNavigatePath', () => {
+  const neverNavigate = deepLinkConfig.paths.filter((p) => p.neverNavigate);
+
+  it('en az bir neverNavigate satiri var', () => {
+    expect(neverNavigate.length).toBeGreaterThan(0);
+  });
+
+  // Ciplak + locale onekli haller. /tr/... yayinlanmiyor ama cozucu onu
+  // anliyor, o yuzden engelleme de anlamali.
   it.each(
-    excluded.flatMap((p) =>
+    neverNavigate.flatMap((p) =>
       [p.sample, ...deepLinkConfig.locales.map((l) => `/${l}${p.sample}`)].map(
         (sample) => [p.pattern, sample] as const,
       ),
     ),
-  )('%s deseni %s yolunu dislar', (_pattern, sample) => {
-    expect(isExcludedWebPath(sample)).toBe(true);
+  )('%s deseni %s yolunda gezinmeyi engeller', (_pattern, sample) => {
+    expect(isNeverNavigatePath(sample)).toBe(true);
   });
 
-  it('dislanan yolun sorgulu hali de dislanir', () => {
-    expect(isExcludedWebPath('/payment/success?paymentId=p1')).toBe(true);
-    expect(isExcludedWebPath('/tr/payment/fail')).toBe(true);
+  it('sorgulu hali de engellenir', () => {
+    expect(isNeverNavigatePath('/payment/success?paymentId=p1')).toBe(true);
+    expect(isNeverNavigatePath('/tr/payment/fail')).toBe(true);
   });
 
-  it('yayinlanan yollari dislamaz', () => {
+  it('yayinlanan yollari engellemez', () => {
     for (const p of shippablePaths().filter((row) => row.include)) {
-      expect(isExcludedWebPath(p.sample)).toBe(false);
+      expect(isNeverNavigatePath(p.sample)).toBe(false);
     }
+  });
+
+  // AYRIM: include:false "AASA'da talep etme", neverNavigate "hic gezinme".
+  // Ikisini ayni saymak checkout ekranini custom scheme'de sessizce oldurmustu.
+  it.each(
+    excluded
+      .filter((p) => !p.neverNavigate)
+      .map((p) => [p.pattern, p.sample] as const),
+  )('%s AASA disi ama gezinme engeli DEGIL (%s)', (_pattern, sample) => {
+    expect(isNeverNavigatePath(sample)).toBe(false);
+  });
+
+  it('checkout hala AASA disinda — dislama listesi degismedi', () => {
+    expect(excluded.map((p) => p.pattern)).toContain('/checkout*');
   });
 });
 

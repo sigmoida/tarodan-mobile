@@ -13,7 +13,7 @@
  * ikinci bir kopya tutulmaz. Push tap'leri bu kancadan geçmez
  * (`src/services/push.ts` ayrı akış), eşleyici ortaktır.
  */
-import { isExcludedWebPath, pathFromUrl } from '@/lib/deeplinks';
+import { isNeverNavigatePath, pathFromUrl } from '@/lib/deeplinks';
 import { toMobileRoute } from '@/utils/notificationRoute';
 
 /**
@@ -29,14 +29,17 @@ export function redirectSystemPath({ path }: { path: string; initial: boolean })
     // Kök URL (`tarodan:///` — bağlantısız açılış) ya da boş: dokunma.
     if (!normalized) return path;
 
-    // Ödeme/checkout dönüşü uygulamaya ÇEKİLMEZ. PayTR 3DS turu ödeme
-    // WebView'i içinde yakalanır; uygulama dışından gelen bir link kullanıcıyı
-    // akışın ortasında dışarı alırsa ödeme kopar. `toMobileRoute` bu yollara
-    // zaten null döner, ama null "eşleme yok" demek — aşağıdaki fallback yolu
-    // olduğu gibi geçirir ve `app/payment/success` GERÇEKTEN var. Bu yüzden
-    // dışlama ayrıca ve önce kontrol edilir. Tek kaynak: paths.json
-    // `include: false` satırları.
-    if (isExcludedWebPath(normalized)) return NO_NAVIGATION;
+    // Ödeme dönüşü uygulamaya ÇEKİLMEZ. PayTR 3DS turu ödeme WebView'i içinde
+    // yakalanır; kullanıcıyı akışın ortasında dışarı alan bir link ödemeyi
+    // bozar. `toMobileRoute` bu yollara zaten null döner, ama null "eşleme yok"
+    // demek — fallback girdiyi olduğu gibi geçirir ve `app/payment/success`
+    // GERÇEKTEN var. Bu yüzden ayrıca ve önce kontrol edilir.
+    //
+    // Yalnız `neverNavigate` satırları: `include: false` olan `/checkout*`,
+    // `/admin/*`, `/api/*` burada engellenmez. Onlar "AASA'da talep etme"
+    // kararı; kullanıcı `tarodan://checkout` ile uygulamayı açıkça çağırdığında
+    // engellemek için bir sebep yok.
+    if (isNeverNavigatePath(normalized)) return NO_NAVIGATION;
 
     // Eşleşme yoksa GİRDİYİ OLDUĞU GİBİ döndür — `normalized`'ı değil. İkisi
     // aynı şey değil: `normalized` bizim türetimimiz, expo-router'ın kendi URL

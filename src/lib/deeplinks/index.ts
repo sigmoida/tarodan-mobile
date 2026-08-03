@@ -18,6 +18,11 @@ export type DeepLinkPath = {
   include: boolean;
   /** Web'de var oldugu teyitli mi. false → uretilen dosyalara girmez. */
   confirmed: boolean;
+  /**
+   * Hangi semadan gelirse gelsin gezinme YOK. `include: false`'tan farkli:
+   * o "AASA'da talep etme", bu "hic gezinme". Bkz. isNeverNavigatePath.
+   */
+  neverNavigate?: boolean;
   comment: string;
 };
 
@@ -116,18 +121,25 @@ export function pathFromUrl(url: string): string | null {
 }
 
 /**
- * `include: false` satirlari — tarayicida kalmasi KARARLASTIRILMIS yollar
- * (`/checkout*`, `/payment/*`, `/admin/*`, `/api/*`). Tek kaynak paths.json;
- * ikinci bir liste tutulmaz.
+ * `neverNavigate: true` satirlari — HANGI SEMADAN gelirse gelsin gezinilmemesi
+ * gereken yollar. Bugun tek uye: `/payment/*`, cunku PayTR 3DS turu tarayicida
+ * basliyor ve tarayicida bitiyor; ortasinda uygulamaya atlamak odemeyi bozar.
+ *
+ * `include: false` ile AYNI SEY DEGIL, ve bu ayrimi kaybetmek gercek bir hataya
+ * yol acti: `include: false` "bu WEB yolunu AASA'da talep etme" demek —
+ * `/checkout*`, `/admin/*`, `/api/*` bu yuzden disarida. Ama kullanici
+ * `tarodan://checkout` ile uygulamayi ACIKCA cagirdiginda onu engellemek icin
+ * bir sebep yok; o liste tum semalara uygulaninca checkout ekrani sessizce
+ * olmustu (cihazda dogrulandi, 2026-08-03).
  */
-export function isExcludedWebPath(pathWithQuery: string): boolean {
+export function isNeverNavigatePath(pathWithQuery: string): boolean {
   const raw = pathWithQuery.split('?')[0]!.replace(/\/+$/, '') || '/';
   // Once locale onekini soy, sonra CIPLAK desenlerle karsilastir. Varyantlari
   // tek tek uretip aramak, kanonik olmayan `/tr/payment/success` bicimini
   // kacirirdi — yayinlanan varyantlar arasinda `/tr/...` yok.
   const path = stripLocalePrefix(raw) || '/';
   return deepLinkConfig.paths
-    .filter((p) => !p.include)
+    .filter((p) => p.neverNavigate)
     .some(({ pattern }) =>
       pattern.endsWith('*') ? path.startsWith(pattern.slice(0, -1)) : path === pattern,
     );
