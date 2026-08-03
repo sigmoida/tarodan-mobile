@@ -5,6 +5,17 @@ import { Button, Input, Checkbox, Text, theme, appAlert } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { paymentsApi, membershipApi } from '@/lib/api';
 import {
+
+/**
+ * ⚠️ BU BİLEŞEN BİLEREK React Query'ye TAŞINMADI (CLAUDE.md §6'nın istisnası).
+ *
+ * Buradaki effect'ler 3DS sonrası ödeme durumunu YOKLUYOR: sabit aralıklarla
+ * sorup nihai sonuca göre yönlendiriyorlar. React Query'nin yeniden deneme ve
+ * odakta tazeleme semantiği bu yoklamayı öngörülemez hâle getirir; ödeme
+ * akışında zamanlama davranışın kendisidir.
+ *
+ * Yoklama elle, tek-sefer korumalarıyla yazıldı ve öyle kalmalı.
+ */
   assertSafePaytrForm,
   buildPaytrFormHtml,
   cardFieldsForNewCard,

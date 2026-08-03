@@ -112,6 +112,8 @@ export const qk = {
 
   membership: {
     all: ["membership"] as const,
+    /** Üyelik katmanları + fiyatları (checkout ekranı). */
+    tiers: ["membership-tiers"] as const,
     me: ["membership-me"] as const,
     discounts: ["my-discounts"] as const,
     discountProducts: ["my-products-for-discount"] as const,
@@ -124,6 +126,10 @@ export const qk = {
   },
 
   user: {
+    /** İşletme paneli istatistikleri (yalnız kurumsal hesap). */
+    businessStats: ["business-stats"] as const,
+    /** 2FA açık mı — kaynak TwoFactorSecret.isEnabled, user nesnesinde yok. */
+    twoFactorStatus: ["two-factor-status"] as const,
     detail: (id: string) => ["user", id] as const,
     stats: (id?: string) => ["user-stats", id] as const,
     /** Prefix root — invalidate every user-stats variant (with/without id). */
@@ -158,6 +164,8 @@ export const qk = {
 
   notifications: {
     unread: ["notifications-unread"] as const,
+    /** Bildirim listesi + okunmamış sayısı (tek sorgu, ikisi birlikte gelir). */
+    list: ["notifications", "list"] as const,
   },
 
   favorites: {

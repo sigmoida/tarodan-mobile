@@ -59,3 +59,20 @@ describe('değerlendirme durumu tek kaynak', () => {
     expect(card).toContain('hasSellerRating');
   });
 });
+
+describe('ölü komisyon önizleme bileşeni', () => {
+  it('geri eklenmemiş', () => {
+    expect(fs.existsSync(path.join(ROOT, 'src/components/common/CommissionPreview.tsx'))).toBe(false);
+  });
+
+  it('kaldırılma sebebi geçerli: net kazanç önizlemesi tek yerde', () => {
+    // Bileşen hiçbir yerde render edilmiyordu ve `commission-preview`'e
+    // `packageTier` GÖNDERMİYORDU — geri gelirse satıcıya her zaman en küçük
+    // paketin net kazancını gösteren ikinci bir kaynak olur.
+    const form = fs.readFileSync(
+      path.join(ROOT, 'src/components/listing/_hooks/useListingForm.ts'),
+      'utf8',
+    );
+    expect(form).toContain('packageTier');
+  });
+});

@@ -6,6 +6,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { paymentsApi } from '@/lib/api';
 
+/**
+ * ⚠️ BU EKRAN BİLEREK React Query'ye TAŞINMADI (CLAUDE.md §6'nın istisnası).
+ *
+ * Buradaki yükleme saf bir okuma değil: `confirmFailed` çağrısıyla stok rezervasyonunu SERBEST BIRAKIYOR. React Query sorguları
+ * başarısızlıkta yeniden dener, odaklanmada/yeniden bağlanmada tazeler ve
+ * aynı `queryFn`'i birden çok kez çalıştırabilir. Para hareketi yapan bir
+ * çağrının bu semantiğe konması, en kötü ihtimalle işlemin iki kez
+ * yürütülmesi demek.
+ *
+ * Akış `resolvedRef` gibi tek-sefer korumalarıyla elle yazıldı ve öyle
+ * kalmalı. Buraya "tutarlılık için" sorgu eklemeyin.
+ */
+
 const { colors } = theme;
 
 interface PaymentInfo {

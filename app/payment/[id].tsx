@@ -8,6 +8,19 @@ import { ScreenHeader, ErrorState } from '@/components/common';
 import { captureException } from '@/services/sentry';
 import CardPaymentForm from '@/components/CardPaymentForm';
 
+/**
+ * ⚠️ BU EKRAN BİLEREK React Query'ye TAŞINMADI (CLAUDE.md §6'nın istisnası).
+ *
+ * Buradaki yükleme saf bir okuma değil: ödeme durumunu okurken bypass açıksa `bypassComplete` ile ödemeyi TAMAMLIYOR ve başarı/başarısızlık rotasına yönlendiriyor. React Query sorguları
+ * başarısızlıkta yeniden dener, odaklanmada/yeniden bağlanmada tazeler ve
+ * aynı `queryFn`'i birden çok kez çalıştırabilir. Para hareketi yapan bir
+ * çağrının bu semantiğe konması, en kötü ihtimalle işlemin iki kez
+ * yürütülmesi demek.
+ *
+ * Akış `resolvedRef` gibi tek-sefer korumalarıyla elle yazıldı ve öyle
+ * kalmalı. Buraya "tutarlılık için" sorgu eklemeyin.
+ */
+
 const { colors } = theme;
 
 /**

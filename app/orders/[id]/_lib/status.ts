@@ -14,18 +14,8 @@ export const COOLING_OFF_DAYS = 14;
 // tekrar yazmak, sözlüğün dört dosyada üç sürüme ayrılmasının sebebiydi.
 export const REFUND_REASONS = REFUND_REASON_OPTIONS;
 
-export const REFUND_STATUS_META: Record<string, { labelKey: MessageKey; variant: BadgeVariant }> = {
-  pending_review: { labelKey: 'refund.statusPendingReview', variant: 'info' },
-  approved: { labelKey: 'refund.statusApproved', variant: 'info' },
-  wait_for_delivery: { labelKey: 'refund.statusWaitForDelivery', variant: 'info' },
-  return_shipment_open: { labelKey: 'refund.statusReturnShipmentOpen', variant: 'info' },
-  return_in_transit: { labelKey: 'order.shipStatusReturnInProgress', variant: 'info' },
-  return_delivered: { labelKey: 'refund.statusReturnDelivered', variant: 'info' },
-  refunded: { labelKey: 'order.shipStatusReturned', variant: 'success' },
-  rejected: { labelKey: 'order.statusRejected', variant: 'danger' },
-  disputed: { labelKey: 'refund.statusDisputed', variant: 'warning' },
-  cancelled: { labelKey: 'common.cancelled', variant: 'secondary' },
-};
+// İade durum haritası TEK kaynakta (`@/lib/shared/refundStatus`).
+export { refundStatusMeta as REFUND_STATUS_META, useRefundStatusConfig } from '@/lib/shared/refundStatus';
 
 // Durum haritası TEK kaynakta (`@/lib/shared/orderStatus`); burada yeniden
 // tanımlamak üç rotanın sessizce ayrışmasına yol açıyordu.
@@ -40,17 +30,3 @@ export const badgeStatusOf = (o: any): string => {
   return o?.status;
 };
 
-/** `StatusBadge` için çevrilmiş iade durum config'i (aynı desen: anahtar + hook). */
-export function useRefundStatusConfig(): Record<string, { label: string; variant: BadgeVariant }> {
-  const { t } = useTranslation();
-  return useMemo(
-    () =>
-      Object.fromEntries(
-        Object.entries(REFUND_STATUS_META).map(([status, meta]) => [
-          status,
-          { label: t(meta.labelKey), variant: meta.variant },
-        ]),
-      ),
-    [t],
-  );
-}

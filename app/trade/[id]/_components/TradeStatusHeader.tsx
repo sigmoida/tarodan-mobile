@@ -1,14 +1,14 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Card, Text, Button, StatusBadge, theme, tradeStatusConfig } from '@/ui';
+import { Card, Text, Button, StatusBadge, theme } from '@/ui';
+import { useTradeStatusConfig } from '@/lib/shared/tradeStatus';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import {
-  TRADE_STATUSES,
+  useTradeStatusDetail,
   STATUS_DESCRIPTIONS,
-  NEW_STATUS_KEYS,
   STEP_FLOW_STATUSES,
   deadlineForStatus,
   formatCountdown,
@@ -20,12 +20,17 @@ const { colors } = theme;
 
 /** Üst statü blokları: banner + açıklama + geri sayım + stepper + tamamlandı/depo/iade kartları. */
 export function TradeStatusHeader({ trade, t, now }: { trade: Trade; t: TFn; now: number }) {
-  const statusInfoBase =
-    TRADE_STATUSES[trade.status as keyof typeof TRADE_STATUSES] || TRADE_STATUSES.pending;
-  const statusInfo = NEW_STATUS_KEYS[trade.status]
-    ? { ...statusInfoBase, label: t(NEW_STATUS_KEYS[trade.status]) }
-    : statusInfoBase;
-  const hasBadge = !!tradeStatusConfig[trade.status];
+  // Etiket/renk/ikon TEK kaynaktan, çevrilmiş hâlde.
+  const statusDetail = useTradeStatusDetail();
+  const statusInfoBase = statusDetail[trade.status] ?? statusDetail.pending!;
+  // `NEW_STATUS_KEYS` override'ı KALDIRILDI: paylaşılan harita zaten her durum
+  // için katalog anahtarı taşıyor, override ikinci bir anahtar seti
+  // (`trade.tradeStatus.*` vs `trade.status*`) ve dolayısıyla ikinci bir kelime
+  // seti yaratıyordu ("Depoya Gönderim" / "Depoya Gönderiliyor").
+  const statusInfo = statusInfoBase;
+  // Rozet de aynı tek kaynaktan — banner ile rozet farklı kelime göstermesin.
+  const badgeConfig = useTradeStatusConfig();
+  const hasBadge = !!badgeConfig[trade.status];
   const countdown = formatCountdown(deadlineForStatus(trade), now);
   const statusDescription = STATUS_DESCRIPTIONS[trade.status];
 
@@ -35,7 +40,7 @@ export function TradeStatusHeader({ trade, t, now }: { trade: Trade; t: TFn; now
       <View style={[styles.statusBanner, { backgroundColor: statusInfo.color + '15' }]}>
         <Ionicons name={statusInfo.icon as any} size={24} color={statusInfo.color} />
         <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
-        {hasBadge ? <StatusBadge status={trade.status} config={tradeStatusConfig} size="sm" /> : null}
+        {hasBadge ? <StatusBadge status={trade.status} config={badgeConfig} size="sm" /> : null}
       </View>
 
       {/* Status description — özel kartı olan statülerde tekrar olmasın diye gizlenir. */}

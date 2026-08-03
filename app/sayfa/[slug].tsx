@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
+import { unwrapEnvelope } from '@/utils/apiEnvelope';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { theme, Spinner, Text, ScreenHeader } from '@/ui';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -66,33 +68,23 @@ interface PageData {
 
 export default function DynamicCMSPage() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const [page, setPage] = useState<PageData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (!slug) return;
+  // CMS sayfası React Query ile (CLAUDE.md §6). Aynı slug ikinci kez açıldığında
+  // önbellekten gelir; 404 ile diğer hatalar ayrı mesaj alır (mevcut davranış).
+  const query = useQuery({
+    queryKey: qk.catalog.pages(slug),
+    enabled: !!slug,
+    retry: false,
+    queryFn: async (): Promise<PageData> => unwrapEnvelope<PageData>(await pagesApi.getBySlug(slug)),
+  });
 
-    const fetchPage = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const response: any = await pagesApi.getBySlug(slug);
-        const data = response.data?.data || response.data;
-        setPage(data);
-      } catch (err: any) {
-        if (err?.response?.status === 404) {
-          setError('Sayfa bulunamadı.');
-        } else {
-          setError('Sayfa yüklenirken bir hata oluştu.');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPage();
-  }, [slug]);
+  const page = query.data ?? null;
+  const loading = query.isLoading;
+  const error = query.error
+    ? (query.error as any)?.response?.status === 404
+      ? 'Sayfa bulunamadı.'
+      : 'Sayfa yüklenirken bir hata oluştu.'
+    : '';
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return null;
@@ -128,14 +120,9 @@ export default function DynamicCMSPage() {
           <Text style={styles.errorTitle}>{error}</Text>
           <TouchableOpacity
             style={styles.retryButton}
-            onPress={() => {
-              setLoading(true);
-              setError('');
-              pagesApi.getBySlug(slug!)
-                .then((res: any) => setPage(res.data?.data || res.data))
-                .catch(() => setError('Sayfa yüklenirken bir hata oluştu.'))
-                .finally(() => setLoading(false));
-            }}
+            // Eskiden bu buton fetch'in TAMAMINI ikinci kez yazıyordu; sorgu
+            // artık tek kaynak olduğu için yalnız tazeleme yetiyor.
+            onPress={() => query.refetch()}
           >
             <Ionicons name="refresh" size={18} color={colors.white} />
             <Text style={styles.retryButtonText}>Tekrar Dene</Text>
