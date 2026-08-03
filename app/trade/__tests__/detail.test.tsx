@@ -102,13 +102,13 @@ describe("J5 · Takas detayı durum rozetleri", () => {
     mockUser = { id: "user-receiver" };
   });
 
-  it('J5.1 takas numarası ve "Bekliyor" rozeti gösterilir', async () => {
+  it('J5.1 takas numarası ve bekleme rozeti gösterilir', async () => {
     getOneMock.mockResolvedValue({
       data: { data: tradeFixture({ status: "pending" }) },
     });
     renderWithProviders(<TradeDetailScreen />);
     await waitFor(() =>
-      expect(screen.getAllByText("Bekliyor").length).toBeGreaterThan(0),
+      expect(screen.getAllByText("trade.statusPending").length).toBeGreaterThan(0),
     );
     expect(screen.getAllByText("Takas #TKS-501").length).toBeGreaterThan(0);
   });
@@ -123,23 +123,26 @@ describe("J5 · Takas detayı durum rozetleri", () => {
     );
   });
 
-  it('J5.3 shipping_to_warehouse → "Depoya Gönderim" rozeti', async () => {
+  it('J5.3 shipping_to_warehouse → depo rozeti', async () => {
     getOneMock.mockResolvedValue({
       data: { data: tradeFixture({ status: "shipping_to_warehouse" }) },
     });
     renderWithProviders(<TradeDetailScreen />);
     await waitFor(() =>
-      expect(screen.getAllByText("Depoya Gönderim").length).toBeGreaterThan(0),
+      expect(screen.getAllByText("trade.statusShippingToWarehouse").length).toBeGreaterThan(0),
     );
   });
 
-  it('J5.4 returning → "İade Sürecinde" rozeti + iade banner', async () => {
+  // Etiket katalogdan geliyor artık: aynı durum detayda "İade Sürecinde",
+  // rozette "İade Yolda", katalogda "trade.statusReturning" yazıyordu — üç farklı
+  // kelime. Tek kaynak katalog.
+  it('J5.4 returning → iade rozeti + iade banner', async () => {
     getOneMock.mockResolvedValue({
       data: { data: tradeFixture({ status: "returning" }) },
     });
     renderWithProviders(<TradeDetailScreen />);
     await waitFor(() =>
-      expect(screen.getAllByText("İade Sürecinde").length).toBeGreaterThan(0),
+      expect(screen.getAllByText("trade.statusReturning").length).toBeGreaterThan(0),
     );
     expect(screen.getByText("Takas Reddedildi")).toBeOnTheScreen();
   });

@@ -1,3 +1,4 @@
+import { useRefundStatusConfig } from '@/lib/shared/refundStatus';
 import { View, ScrollView, StyleSheet, RefreshControl, Image, Pressable } from 'react-native';
 import { Button, Card, Chip, ScreenHeader, Spinner, StatusBadge, Text, appAlert, theme } from '@/ui';
 import type { BadgeVariant } from '@/ui';
@@ -14,19 +15,6 @@ const { colors } = theme;
 
 // Alıcı perspektifi durum etiketleri — RefundRequestStatus enum'ının TÜM değerleri
 // (web refund-requests buyer rolü ile parite). Eksik durum = StatusBadge ham enum gösterir.
-const refundStatusConfig: Record<string, { label: string; variant: BadgeVariant }> = {
-  pending_review: { label: 'Satıcı İncelemesinde', variant: 'warning' },
-  approved: { label: 'Onaylandı', variant: 'success' },
-  wait_for_delivery: { label: 'İade Kargosu Bekleniyor', variant: 'info' },
-  return_shipment_open: { label: 'İade Kargosu Açıldı', variant: 'info' },
-  return_in_transit: { label: 'İade Kargoda', variant: 'primary' },
-  return_delivered: { label: 'Satıcıya Ulaştı', variant: 'success' },
-  refunded: { label: 'İade Edildi', variant: 'success' },
-  rejected: { label: 'Reddedildi', variant: 'danger' },
-  disputed: { label: 'İncelemede (İtiraz)', variant: 'warning' },
-  cancelled: { label: 'İptal Edildi', variant: 'danger' },
-};
-
 interface BuyerRefund {
   id: string;
   status: string;
@@ -45,6 +33,7 @@ function formatPrice(value?: number): string {
 }
 
 export default function BuyerRefundRequestsScreen() {
+  const refundStatusConfig = useRefundStatusConfig();
   const { isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);

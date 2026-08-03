@@ -1,3 +1,4 @@
+import { useTradeStatusConfig } from '@/lib/shared/tradeStatus';
 import React, { useState } from 'react';
 import { View, StyleSheet, Image, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,30 +13,19 @@ const { colors, spacing, radius } = theme;
 
 const FALLBACK_IMG = IMAGE_PLACEHOLDER;
 
-/** Takas statüsü → rozet etiketi/rengi. Depo-escrow akışını da kapsar. */
-export const TRADE_STATUSES: Record<string, { label: string; variant: ChipVariant }> = {
-  pending: { label: 'Bekliyor', variant: 'warning' },
-  accepted: { label: 'Kabul Edildi', variant: 'success' },
-  awaiting_payment: { label: 'Ödeme Bekleniyor', variant: 'warning' },
-  shipping_to_warehouse: { label: 'Depoya Gönderim', variant: 'info' },
-  at_warehouse: { label: 'Depoda', variant: 'primary' },
-  admin_reviewing: { label: 'İnceleniyor', variant: 'info' },
-  shipping_to_recipients: { label: 'Size Gönderiliyor', variant: 'primary' },
-  rejected: { label: 'Reddedildi', variant: 'danger' },
-  completed: { label: 'Tamamlandı', variant: 'success' },
-  cancelled: { label: 'İptal', variant: 'neutral' },
-  disputed: { label: 'İtiraz', variant: 'danger' },
-  countered: { label: 'Karşı Teklif', variant: 'info' },
-  // Legacy escrow statuses (pre-warehouse flow) kept for old trades
-  initiator_shipped: { label: 'Kargoda', variant: 'info' },
-  receiver_shipped: { label: 'Kargoda', variant: 'info' },
-  both_shipped: { label: 'Kargoda', variant: 'info' },
-  initiator_received: { label: 'Teslim', variant: 'primary' },
-  receiver_received: { label: 'Teslim', variant: 'primary' },
-};
 
-export function getTradeStatusInfo(status: string): { label: string; variant: ChipVariant } {
-  return TRADE_STATUSES[status] || { label: status, variant: 'neutral' };
+/**
+ * Takas durumunun çip bilgisi. Sözlük TEK kaynakta
+ * (`@/lib/shared/tradeStatus`); burada ikinci bir kopya tutmak kartla rozetin
+ * aynı durumu farklı kelimeyle göstermesine yol açıyordu.
+ */
+export function useTradeStatusInfo(): (status: string) => { label: string; variant: ChipVariant } {
+  const config = useTradeStatusConfig();
+  return (status) =>
+    (config[status] as { label: string; variant: ChipVariant } | undefined) ?? {
+      label: status,
+      variant: 'neutral',
+    };
 }
 
 export interface TradeCardItem {
@@ -148,7 +138,8 @@ export interface TradeCardProps {
 }
 
 function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
-  const statusInfo = getTradeStatusInfo(trade.status);
+  const tradeStatusInfo = useTradeStatusInfo();
+  const statusInfo = tradeStatusInfo(trade.status);
   const isSent = !!currentUserId && trade.initiatorId === currentUserId;
 
   const otherUserName = isSent

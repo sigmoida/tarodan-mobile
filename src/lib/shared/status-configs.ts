@@ -26,6 +26,12 @@ export const orderStatusConfig: Record<string, StatusConfig> = {
  * Trade status → Badge mapping
  * Used in: trades page, trade detail, dashboard
  */
+/**
+ * @deprecated Takas durumu için TEK kaynak `@/lib/shared/tradeStatus`
+ * (`useTradeStatusConfig`). Bu statik kopya çeviri yapamadığı için sabit
+ * Türkçe taşıyor ve kelimeleri paylaşılan haritadan ayrışmıştı; yeni çağıran
+ * eklemeyin.
+ */
 export const tradeStatusConfig: Record<string, StatusConfig> = {
   pending: { label: 'Bekliyor', variant: 'warning' },
   accepted: { label: 'Kabul Edildi', variant: 'success' },

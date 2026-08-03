@@ -7,89 +7,9 @@ const { colors } = theme;
 
 // Status meta (icon + color) — üst statü banner'ı için. Yeni auto-shipping akışı
 // için yerelleştirilmiş etiketler NEW_STATUS_KEYS ile uygulanır.
-export const TRADE_STATUSES = {
-  pending: {
-    label: "Bekliyor",
-    color: colors.warning[600]!,
-    icon: "time-outline",
-  },
-  accepted: {
-    label: "Kabul Edildi",
-    color: colors.success[600]!,
-    icon: "checkmark-circle-outline",
-  },
-  rejected: {
-    label: "Reddedildi",
-    color: colors.danger[600]!,
-    icon: "close-circle-outline",
-  },
-  countered: {
-    label: "Karşı Teklif",
-    color: colors.info[600]!,
-    icon: "swap-horizontal",
-  },
-  awaiting_payment: {
-    label: "Ödeme Bekleniyor",
-    color: colors.warning[600]!,
-    icon: "card-outline",
-  },
-  shipping_to_warehouse: {
-    label: "Depoya Gönderim",
-    color: colors.info[600]!,
-    icon: "cube-outline",
-  },
-  at_warehouse: {
-    label: "Depoda",
-    color: colors.info[600]!,
-    icon: "business-outline",
-  },
-  admin_reviewing: {
-    label: "İnceleniyor",
-    color: colors.info[600]!,
-    icon: "search-outline",
-  },
-  shipping_to_recipients: {
-    label: "Alıcılara Gönderim",
-    color: colors.primary[600]!,
-    icon: "airplane-outline",
-  },
-  returning: {
-    label: "İade Sürecinde",
-    color: colors.warning[600]!,
-    icon: "return-up-back-outline",
-  },
-  // Legacy fallbacks
-  initiator_shipped: {
-    label: "Kargo Yolda",
-    color: colors.info[600]!,
-    icon: "cube-outline",
-  },
-  receiver_shipped: {
-    label: "Kargo Yolda",
-    color: colors.info[600]!,
-    icon: "cube-outline",
-  },
-  both_shipped: {
-    label: "Kargo Yolda",
-    color: colors.primary[600]!,
-    icon: "airplane-outline",
-  },
-  completed: {
-    label: "Tamamlandı",
-    color: colors.success[600]!,
-    icon: "checkmark-done-circle-outline",
-  },
-  cancelled: {
-    label: "İptal Edildi",
-    color: colors.text.muted,
-    icon: "ban-outline",
-  },
-  disputed: {
-    label: "İtiraz Var",
-    color: colors.danger[600]!,
-    icon: "warning-outline",
-  },
-};
+// Takas durum haritası TEK kaynakta (`@/lib/shared/tradeStatus`) — üç kopya
+// hem kapsam hem kelime olarak ayrışmıştı.
+export { tradeStatusMeta as TRADE_STATUSES, useTradeStatusDetail } from '@/lib/shared/tradeStatus';
 
 // Statü açıklamaları — banner altındaki bilgilendirme kartı (web parity).
 export const STATUS_DESCRIPTIONS: Record<string, string> = {

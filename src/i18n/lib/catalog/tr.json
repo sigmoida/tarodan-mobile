@@ -1229,7 +1229,8 @@
     "statusAtWarehouse": "Depoda",
     "statusAdminReviewing": "İnceleniyor",
     "statusShippingToRecipients": "Alıcılara Gönderiliyor",
-    "statusReturning": "İade Ediliyor"
+    "statusReturning": "İade Ediliyor",
+    "statusCountered": "Karşı Teklif Verildi"
   },
   "offer": {
     "makeOffer": "Teklif Ver",

@@ -1229,7 +1229,8 @@
     "statusAtWarehouse": "At Warehouse",
     "statusAdminReviewing": "Under Review",
     "statusShippingToRecipients": "Shipping to Recipients",
-    "statusReturning": "Returning"
+    "statusReturning": "Returning",
+    "statusCountered": "Counter-offered"
   },
   "offer": {
     "makeOffer": "Make Offer",

@@ -1,3 +1,4 @@
+import { useRefundStatusConfig } from '@/lib/shared/refundStatus';
 import { View, ScrollView, StyleSheet, Image, RefreshControl } from 'react-native';
 import {
   Button,
@@ -20,19 +21,6 @@ import { useAuthStore } from '@/stores/authStore';
 import { captureException } from '@/services/sentry';
 
 const { colors } = theme;
-
-const refundStatusConfig: Record<string, { label: string; variant: BadgeVariant }> = {
-  pending_review: { label: 'Satıcı İncelemesinde', variant: 'warning' },
-  approved: { label: 'Onaylandı', variant: 'success' },
-  wait_for_delivery: { label: 'İade Kargosu Bekleniyor', variant: 'info' },
-  return_shipment_open: { label: 'İade Kargosu Açıldı', variant: 'info' },
-  return_in_transit: { label: 'İade Kargoda', variant: 'primary' },
-  return_delivered: { label: 'Satıcıya Ulaştı', variant: 'success' },
-  refunded: { label: 'İade Edildi', variant: 'success' },
-  rejected: { label: 'Reddedildi', variant: 'danger' },
-  disputed: { label: 'İncelemede (İtiraz)', variant: 'warning' },
-  cancelled: { label: 'İptal Edildi', variant: 'danger' },
-};
 
 // Süreç (metadata.history) aksiyon adlarının Türkçe karşılığı (refund.service appendHistory).
 const actionLabels: Record<string, string> = {
@@ -60,6 +48,7 @@ function formatDate(value?: string): string {
 }
 
 export default function RefundDetailScreen() {
+  const refundStatusConfig = useRefundStatusConfig();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { isAuthenticated, user } = useAuthStore();
   const queryClient = useQueryClient();
