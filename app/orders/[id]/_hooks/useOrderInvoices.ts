@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Linking } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -12,6 +13,7 @@ type Notify = (message: string, variant: 'success' | 'danger' | 'default') => vo
 
 /** eLogo e-Arşiv + kurumsal satıcı faturası query'leri + görüntüleme handler'ları. */
 export function useOrderInvoices(id: string, orderStatus: string | undefined, notify: Notify) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const invoiceEnabled =
     !!id &&
@@ -54,9 +56,9 @@ export function useOrderInvoices(id: string, orderStatus: string | undefined, no
       const res = await elogoInvoicesApi.pdf(elogoInvoice.id);
       const url = res.data?.url;
       if (url) await Linking.openURL(url);
-      else notify('Fatura henüz hazır değil', 'danger');
+      else notify(t('order.invoiceNotReady'), 'danger');
     } catch {
-      notify('Fatura açılamadı', 'danger');
+      notify(t('order.invoiceOpenFailed'), 'danger');
     } finally {
       setDownloadingInvoice(false);
     }
@@ -69,9 +71,9 @@ export function useOrderInvoices(id: string, orderStatus: string | undefined, no
       const res = await sellerInvoiceApi.download(id);
       const url = res.data?.url;
       if (url) await Linking.openURL(url);
-      else notify('Fatura bulunamadı', 'danger');
+      else notify(t('order.invoiceNotFound'), 'danger');
     } catch {
-      notify('Fatura açılamadı', 'danger');
+      notify(t('order.invoiceOpenFailed'), 'danger');
     } finally {
       setDownloadingSellerInvoice(false);
     }
@@ -82,13 +84,13 @@ export function useOrderInvoices(id: string, orderStatus: string | undefined, no
     mutationFn: (file: { uri: string; name: string; type: string }) =>
       sellerInvoiceApi.upload(id, file),
     onSuccess: () => {
-      notify('Fatura yüklendi. Alıcıya e-posta ile iletildi.', 'success');
+      notify(t('order.invoiceUploaded'), 'success');
       queryClient.invalidateQueries({ queryKey: qk.orders.sellerInvoice(id) });
     },
     onError: (error: any) => {
       const msg = error?.response?.data?.message;
       const text = Array.isArray(msg) ? msg[0] : msg;
-      notify(typeof text === 'string' ? text : 'Fatura yüklenemedi.', 'danger');
+      notify(typeof text === 'string' ? text : t('order.invoiceUploadFailed'), 'danger');
     },
   });
 
@@ -103,7 +105,7 @@ export function useOrderInvoices(id: string, orderStatus: string | undefined, no
     const asset = result.assets?.[0];
     if (!asset) return;
     if (asset.size != null && asset.size > MAX_INVOICE_BYTES) {
-      notify('Dosya çok büyük (en fazla 10 MB).', 'danger');
+      notify(t('order.fileTooLarge'), 'danger');
       return;
     }
 

@@ -10,6 +10,87 @@ export type OrderAddressInput = {
   zipCode?: string;
 };
 
+/**
+ * `POST /orders/quote` yanıtı (2026-07-30 canlı ölçüm — staging).
+ * `pricingHash` + `shippingTariffVersion` KÖKTE, `pricing` içinde DEĞİL — order-create
+ * uçlarının `expectedPricingHash`/`expectedShippingTariffVersion` zorunlu alanları
+ * buradan gelir. `pricing.summary` ekranda basılacak TEK doğru kırılım (§CLAUDE.md
+ * "parayla ilgili hiçbir değeri istemcide hesaplama").
+ */
+export type OrderQuotePricingSummary = {
+  /** Kupon sonrası ürün ara toplamı — kuponu ekranda bir daha düşme. */
+  productAmount: number;
+  shippingAmount: number;
+  /** Hizmet bedeli + TÜM alıcı hizmet KDV'si — ayrı bir KDV satırı ekleme. */
+  serviceFeeAmount: number;
+  total: number;
+};
+
+export type OrderQuotePricing = {
+  subtotal?: number;
+  shippingAmount?: number;
+  buyerFeeAmount?: number;
+  buyerFeeRate?: number;
+  sellerFeeAmount?: number;
+  commissionAmount?: number;
+  taxAmount?: number;
+  buyerServiceTaxAmount?: number;
+  sellerServiceTaxAmount?: number;
+  serviceVatRate?: number;
+  totalAmount?: number;
+  sellerNetAmount?: number;
+  summary?: OrderQuotePricingSummary;
+};
+
+/**
+ * Quote'un SATIR kırılımı (canlı ölçüm — staging, 2026-08-02).
+ * `subtotal` adedi ZATEN içerir (quantity: 3 → subtotal = 3 × unitPrice), bu yüzden
+ * ekranda satır tutarı için istemcide `price × quantity` çarpımı YAPILMAZ; sepet
+ * satırındaki `price` sepete ekleme anında donmuş 24 saatlik bir kopyadır ve
+ * kampanya penceresi kapanınca sunucu tutarından sessizce ayrışır.
+ */
+export type OrderQuoteItem = {
+  productId: string;
+  sellerId?: string;
+  quantity?: number;
+  /** Sunucunun O AN geçerli birim fiyatı (kampanya dahil). */
+  unitPrice?: number;
+  /** Satırın adet DAHİL tutarı — ekranda basılacak TEK doğru satır tutarı. */
+  subtotal?: number;
+  buyerFeeAmount?: number;
+  sellerFeeAmount?: number;
+  sellerNetAmount?: number;
+  taxAmount?: number;
+  title?: string;
+};
+
+export type OrderQuoteShippingBySeller = {
+  sellerId: string;
+  shippingCost: number;
+  sellerShippingCost?: number;
+  billableDesi?: number;
+  packageTier?: string;
+};
+
+export type OrderQuoteResponse = {
+  itemsSubtotal?: number;
+  shippingAmount?: number;
+  buyerFeeAmount?: number;
+  sellerFeeAmount?: number;
+  commissionAmount?: number;
+  taxAmount?: number;
+  couponDiscount?: number;
+  totalAmount?: number;
+  sellerNetAmount?: number;
+  items?: OrderQuoteItem[];
+  shippingBySeller?: OrderQuoteShippingBySeller[];
+  /** Order-create payload'ına AYNEN geri gönderilecek fiyat imzası. */
+  pricingHash: string;
+  /** Order-create payload'ına AYNEN geri gönderilecek kargo tarife versiyonu. */
+  shippingTariffVersion: number;
+  pricing?: OrderQuotePricing;
+};
+
 export const ordersApi = {
   getAll: (params?: Record<string, any>) =>
     api.get('/orders', { params }),
@@ -27,6 +108,9 @@ export const ordersApi = {
     shippingAddress?: OrderAddressInput;
     billingAddressId?: string;
     billingAddress?: OrderAddressInput;
+    /** Quote kökünden AYNEN — API DTO'sunda zorunlu. */
+    expectedPricingHash: string;
+    expectedShippingTariffVersion: number;
   }) => api.post('/orders/buy', data),
   createGuest: (data: {
     productId: string;
@@ -37,6 +121,9 @@ export const ordersApi = {
     billingAddress?: OrderAddressInput;
     offerId?: string;
     price?: number;
+    /** Quote kökünden AYNEN — API DTO'sunda zorunlu. */
+    expectedPricingHash: string;
+    expectedShippingTariffVersion: number;
   }) => guestApi.post('/orders/guest', data),
   sendGuestVerificationCode: (data: { email: string; expectedCheckoutCount?: number }) =>
     guestApi.post<{ success: boolean; expiresInSeconds: number }>(
@@ -52,6 +139,9 @@ export const ordersApi = {
     billingAddressId?: string;
     billingAddress?: OrderAddressInput;
     couponCode?: string;
+    /** Quote kökünden AYNEN — API DTO'sunda zorunlu. */
+    expectedPricingHash: string;
+    expectedShippingTariffVersion: number;
   }) => api.post('/orders/checkout', data),
   /** Toplu checkout (misafir) */
   checkoutGuest: (data: {
@@ -65,6 +155,9 @@ export const ordersApi = {
     billingAddress?: OrderAddressInput;
     /** GuestCheckoutGroupDto, CheckoutDto'yu extends eder → kupon misafirde de geçerli. */
     couponCode?: string;
+    /** Quote kökünden AYNEN — API DTO'sunda zorunlu. */
+    expectedPricingHash: string;
+    expectedShippingTariffVersion: number;
   }) => guestApi.post('/orders/checkout/guest', data),
   /** Alıcının sipariş grupları (gruplu liste) */
   getGroups: (params?: Record<string, any>) =>
@@ -92,15 +185,31 @@ export const ordersApi = {
   /** Guest sipariş takibi (orderNumber + email) */
   trackGuest: (data: { orderNumber: string; email: string }) =>
     guestApi.post('/orders/guest/track', data),
-  /** Alıcının bu siparişe yazdığı kendi değerlendirmesi (yoksa null) —
-   *  "Değerlendir" butonunu gizlemek için. Backend: GET /orders/:id/my-review */
-  getMyReview: (id: string) => api.get(`/orders/${id}/my-review`),
-  /** Checkout quote (fiyat kırılımı) */
-  getQuote: (data: { items: Array<{ productId: string; quantity?: number }> }) =>
-    api.post('/orders/quote', data),
-  /** İlan formunda komisyon önizleme (tek ürün) */
-  getCommissionPreview: (params: { amount: number; categoryId?: string }) =>
-    api.get('/orders/commission-preview', { params }),
+  /* `GET /orders/:id/my-review` bilerek YOK: değerlendirme durumunun kaynağı
+     sipariş gövdesindeki `hasProductRating` / `hasSellerRating` (ikisi de
+     sunucudan gelir ve `OrderRatingButtons` onları okur). Ayrı bir uç, aynı
+     gerçeğin ikinci kaynağı olurdu — tanımlıydı, hiç çağrılmıyordu. */
+  /**
+   * Checkout quote (fiyat kırılımı) — `pricingHash`/`shippingTariffVersion` köktedir.
+   * `couponCode` yalnızca DOĞRULANMIŞ bir kupon varken gönderilir: sunucu indirimi
+   * quote'a da uygular (fee/tax/shipping indirimli tabana göre yeniden hesaplanır),
+   * aksi halde önizleme toplamı checkout'ta gerçekte tahsil edilenden fazla görünür
+   * (canlı ölçüm — geçersiz kod 400 "Kupon kodu bulunamadı", boş/null/eksik 201).
+   */
+  getQuote: (data: { items: Array<{ productId: string; quantity?: number }>; couponCode?: string }) =>
+    api.post<OrderQuoteResponse>('/orders/quote', data),
+  /**
+   * İlan formunda komisyon önizleme (tek ürün).
+   *
+   * `packageTier` gönderilmezse sunucu `small` VARSAYAR — yani satıcıya her
+   * zaman en küçük paketin net kazancı gösterilirdi. Seçim yapılmışsa aynen
+   * geçir; yapılmamışsa alanı hiç koyma (istemci `small` uydurmaz).
+   */
+  getCommissionPreview: (params: {
+    amount: number;
+    categoryId?: string;
+    packageTier?: ShippingPackageTierCode;
+  }) => api.get('/orders/commission-preview', { params }),
   /** İlanlarım listesi için toplu komisyon önizleme */
   getCommissionPreviewBatch: (items: Array<{ amount: number; categoryId?: string | null }>) =>
     api.post('/orders/commission-preview-batch', { items }),
@@ -146,24 +255,53 @@ export const sellerInvoiceApi = {
 // uygulama yalnızca 'surat' ile çalışıyor — web ile parite).
 export type ShippingProvider = 'surat';
 
+/**
+ * Kargo ÜCRETİ sorgulayan uçlar (`GET/POST /shipping/rates`, `/shipping/carriers`)
+ * bilerek YOK: checkout'ta gösterilen kargo tutarı yalnızca `POST /orders/quote`
+ * yanıtından gelir (`pricing.summary.shippingAmount`). Ayrı bir tarife çağrısı,
+ * ekrandaki tutarın PayTR'de çekilenden sessizce ayrışmasına yol açıyordu; yüzeyi
+ * yeniden eklemek o hatayı da geri getirir. Buradaki uçlar yalnız kargo
+ * OPERASYONU (shipment oluşturma / takip) içindir.
+ */
+/** İlan başına seçilen kargo paket boyutu (desi girdisinin yerine geçti). */
+export type ShippingPackageTierCode = 'small' | 'medium' | 'large';
+
+/**
+ * `GET /shipping/package-tiers` kademesi (canlı ölçüm — staging, 2026-08-02).
+ *
+ * ⚠️ `billableDesi` / `minDesi` / `maxDesi` **asla render edilmez** (doküman 14
+ * §1 bağlayıcı kuralı: mobil arayüzde desi hiç görünmez). Bunlar yalnız
+ * sunucunun paket kademesini `Σ billableDesi × adet`'ten türetmesi için var.
+ *
+ * `sample*` ölçüleri bugün üç kademede de `null` — "varsa göster".
+ */
+export interface ShippingPackageTier {
+  code: ShippingPackageTierCode;
+  label: string;
+  /** Kademenin TAM kargo bedeli. Alıcı/satıcı payı kategori bazlı ve admin
+   *  tarafından belirleniyor (canlıda 50/50) — istemci pay HESAPLAMAZ. */
+  amount: number;
+  billableDesi: number;
+  minDesi: number | null;
+  maxDesi: number | null;
+  sampleWidth: number | null;
+  sampleHeight: number | null;
+  sampleLength: number | null;
+}
+
+export interface ShippingPackageTiersResponse {
+  tariffVersion: number;
+  tiers: ShippingPackageTier[];
+}
+
 export const shippingApi = {
-  /** Şehir/firma için tek satır kargo ücreti (checkout / addresses) */
-  getRatesByCity: (params: { city: string; carrier: ShippingProvider; weight?: number }) =>
-    api.get<{ rate: number }>('/shipping/rates', { params }),
-  /** Geriye uyumluluk: eski parametre adlarıyla aynı çağrıyı yapan alias */
-  getRates: (params: { fromCity?: string; toCity?: string; city?: string; carrier?: ShippingProvider; weight?: number }) =>
-    api.get<{ rate: number } | any>('/shipping/rates', {
-      params: {
-        city: params.city ?? params.toCity ?? params.fromCity,
-        carrier: params.carrier ?? 'surat',
-        weight: params.weight,
-      },
-    }),
-  /** Kullanılabilir kargo firmaları */
-  getCarriers: () => api.get('/shipping/carriers'),
-  /** Adres bazlı kargo hesaplama (backend: POST /shipping/rates) */
-  calculateRates: (data: { fromAddressId: string; toAddressId: string; weight?: number; provider?: ShippingProvider }) =>
-    api.post('/shipping/rates', data),
+  /**
+   * Kargo paket kademesi tarifesi (public). İlan formundaki üç kartın kaynağı.
+   * Tarife tanımlı değilse backend 503 döner — çağıran fail-closed davranmalı
+   * (kademe seçtirmeden ilan gönderilmesin).
+   */
+  getPackageTiers: () =>
+    api.get<ShippingPackageTiersResponse>('/shipping/package-tiers'),
   /** Sipariş için kargo başlat — backend: POST /shipping */
   createShipment: (data: { orderId: string; provider: ShippingProvider }) =>
     api.post('/shipping', data),

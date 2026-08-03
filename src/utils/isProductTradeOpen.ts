@@ -18,24 +18,28 @@ const truthy = (v: unknown): boolean => {
   return false;
 };
 
-export function isProductTradeOpen(
-  item: Record<string, unknown> | null | undefined
-): boolean {
+/**
+ * Parametre `unknown`: çağıranlar hem gevşek `any` DTO'lar hem de index
+ * signature'ı olmayan tipli arayüzler (`ProductCardProduct`) — daraltma zaten
+ * içeride yapılıyor, tek kaynağın önüne tip engeli konmasın.
+ */
+export function isProductTradeOpen(item: unknown): boolean {
   if (!item || typeof item !== 'object') return false;
+  const record = item as Record<string, unknown>;
 
-  if (truthy(item.isTradeEnabled)) return true;
-  if (truthy(item.tradeAvailable)) return true;
-  if (truthy(item.trade_available)) return true;
-  if (truthy(item.trade_enabled)) return true;
+  if (truthy(record.isTradeEnabled)) return true;
+  if (truthy(record.tradeAvailable)) return true;
+  if (truthy(record.trade_available)) return true;
+  if (truthy(record.trade_enabled)) return true;
 
-  const trade = item.trade as Record<string, unknown> | undefined;
+  const trade = record.trade as Record<string, unknown> | undefined;
   if (trade && typeof trade === 'object') {
     if (truthy(trade.available)) return true;
     if (truthy(trade.isEnabled)) return true;
     if (truthy(trade.enabled)) return true;
   }
 
-  const status = item.tradeStatus;
+  const status = record.tradeStatus;
   if (typeof status === 'string') {
     const s = status.toLowerCase();
     if (s === 'open' || s === 'available' || s === 'enabled') return true;

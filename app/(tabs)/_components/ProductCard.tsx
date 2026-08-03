@@ -4,6 +4,7 @@ import { Card, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { AppImage } from '@/components/AppImage';
 import { isProductOutOfStock } from '@/utils/productPrice';
+import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
 import { OutOfStockOverlay } from '@/components/product';
 import { styles } from '../_lib/styles';
 
@@ -20,7 +21,7 @@ function ProductCardBase({
   inCart: boolean;
   onPress: (id: string) => void;
 }) {
-  const isTradeEnabled = item.isTradeEnabled || item.trade_available;
+  const isTradeEnabled = isProductTradeOpen(item);
   const viewCount = item.viewCount || item.views || 0;
   const brandLabel =
     typeof item.brand === 'object' && item.brand !== null ? (item.brand.name ?? '') : (item.brand ?? '');

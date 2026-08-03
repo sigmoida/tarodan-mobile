@@ -55,7 +55,10 @@ jest.mock("@/components/common", () => ({
 // Bu ekran useAuthStore().user'a göre initiator/receiver ayrımı yapar.
 let mockUser: { id: string } | null = { id: "user-receiver" };
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => ({ user: mockUser }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ user: mockUser });
+    return sel ? sel(state) : state;
+  },
 }));
 
 import TradeDetailScreen from "../[id]";

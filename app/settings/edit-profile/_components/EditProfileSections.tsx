@@ -92,7 +92,10 @@ export function PersonalInfoCard({ f }: { f: EditProfileController }) {
         name="phone"
         render={({ field: { onChange, value } }) => (
           <PhoneInput
+            testID="profile-phone-input"
             label="Telefon"
+            // Kaydete basmadan önce görsün: çözülemeyen numara blur'da uyarır.
+            validateOnBlur
             countryCode={f.phoneCountryCode}
             onCountryCodeChange={f.setPhoneCountryCode}
             phone={value ?? ""}

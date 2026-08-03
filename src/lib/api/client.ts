@@ -3,6 +3,9 @@ import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
+import { captureException } from "@/services/sentry";
+import { errorFingerprint } from "./requestId";
+import { authFailureKind } from "./authFailureKind";
 
 // API URL çözümleme sırası:
 // 1) EXPO_PUBLIC_API_URL (production / preview / staging build'leri için zorunlu)
@@ -102,7 +105,57 @@ export const resetBannedRedirect = () => {
   bannedRedirectActive = false;
 };
 
+/**
+ * Yenilenen access token'ı zustand store'daki `token` alanına da yazar.
+ *
+ * SecureStore tek başına YETMİYOR: axios request interceptor'ı token'ı doğrudan
+ * SecureStore'dan okuduğu için istekler çalışmaya devam eder, ama store'dan
+ * okuyan tüketiciler (bearer'lı görsel header'ı — `AppImage`; socket bağlantı
+ * token'ı — `useMessagingSocket`) sessiz refresh'ten sonra süresi DOLMUŞ token'ı
+ * kullanmaya devam ederdi.
+ *
+ * `require` ile lazy import → `client.ts` ↔ `authStore` import döngüsü önlenir
+ * (aşağıdaki `handleAuthFailure` ile aynı desen).
+ *
+ * Guard: yalnız store'da hâlâ bir oturum varken yazar. Refresh uçuştayken
+ * kullanıcı çıkış yaptıysa (`logout` token'ı null'lar) zombi bir oturum
+ * yazmayalım; oturum açılışında `loadToken` zaten SecureStore'dan okuyor.
+ */
+/**
+ * Oturum kuşağı — çıkış, uçuştaki refresh'i geçersizleştirir.
+ *
+ * Yarış: A çıkarken bir refresh uçuşta olabilir. Tamamlanınca refresh
+ * `SecureStore.setItemAsync("accessToken", …)` çalıştırıyordu; bu arada B giriş
+ * yapmışsa **B'nin token'ı A'nınkiyle eziliyor** ve request interceptor'ı
+ * token'ı SecureStore'dan okuduğu için B'nin TÜM istekleri A'nın token'ıyla
+ * gidiyordu. `syncStoreAccessToken`'daki guard yalnız store yarısını
+ * kapatıyordu — asıl sızıntı SecureStore yazımıydı.
+ *
+ * `logout()` kuşağı ilerletir; refresh, yazımdan ÖNCE kendi kuşağını kontrol
+ * eder ve eskiyse hiçbir şey yazmaz.
+ */
+let sessionEpoch = 0;
+
+/** Çıkışta çağrılır — o ana kadar uçuşta olan her refresh'i geçersiz kılar. */
+export function advanceSessionEpoch(): void {
+  sessionEpoch += 1;
+}
+
+function syncStoreAccessToken(newAccess: string): void {
+  try {
+    const { useAuthStore } = require("../../stores/authStore");
+    const current = useAuthStore.getState().token;
+    if (current && current !== newAccess) {
+      useAuthStore.setState({ token: newAccess });
+    }
+  } catch {
+    /* store yüklenemedi — SecureStore yazımı geçerli, istekler etkilenmez */
+  }
+}
+
 async function performTokenRefresh(): Promise<string | null> {
+  // İsteği başlatan oturum. Yanıt döndüğünde hâlâ aynı kuşaktaysak yazarız.
+  const epochAtStart = sessionEpoch;
   const refreshToken = await SecureStore.getItemAsync("refreshToken");
   if (!refreshToken) return null;
   const response = await axios.post(`${API_URL}/auth/refresh`, {
@@ -114,16 +167,33 @@ async function performTokenRefresh(): Promise<string | null> {
   const newRefresh: string | undefined =
     data?.tokens?.refreshToken ?? data?.refreshToken;
   if (!newAccess) return null;
+  // Uçuştayken çıkış yapıldı: bu token artık kapanmış bir oturuma ait. Yazarsak
+  // bu arada giriş yapmış olan kullanıcının token'ını ezeriz.
+  if (epochAtStart !== sessionEpoch) return null;
   await SecureStore.setItemAsync("accessToken", newAccess);
   // ROTATED refresh token'ı da kaydet (asıl bug buydu).
   if (newRefresh) await SecureStore.setItemAsync("refreshToken", newRefresh);
+  syncStoreAccessToken(newAccess);
   return newAccess;
 }
 
 // Tek-uçuş refresh: eşzamanlı 401'ler tek refresh paylaşır (rotated token + storm önlenir).
 const refreshAccessToken = singleFlight(performTokenRefresh);
 
-async function handleAuthFailure(): Promise<void> {
+async function handleAuthFailure(error?: unknown): Promise<void> {
+  // Bu dal kullanıcıyı AÇIKLAMASIZ login'e atıyor ve bugün hiçbir iz bırakmıyor.
+  // Ayrımı (EMAIL_NOT_VERIFIED / IP-blok 403) kör yazmıyoruz — gövdeleri canlı
+  // üretilemedi (denetim 2026-08-03 §5.3). Onun yerine ayırt edici alanları +
+  // `x-request-id`'yi raporluyoruz: gerçek gövde bir kez görülünce ayrım tek
+  // satırda takılacak. Rapor PII taşımaz (bkz. `./requestId`).
+  const fingerprint = errorFingerprint(error);
+  if (__DEV__) console.warn("[auth] silent logout", fingerprint);
+  captureException(error ?? new Error("Auth failure without an error object"), {
+    level: "warning",
+    tags: { requestId: fingerprint.requestId ?? "none" },
+    extra: { ...fingerprint },
+  });
+
   // Merkezi çıkış: SecureStore + Zustand + query cache + socket + push temizlenir.
   // require ile lazy import → api.ts ↔ authStore döngüsü (cycle) önlenir.
   try {
@@ -133,7 +203,15 @@ async function handleAuthFailure(): Promise<void> {
     await SecureStore.deleteItemAsync("accessToken");
     await SecureStore.deleteItemAsync("refreshToken");
   }
-  router.replace("/(auth)/login");
+  // Doğrulanmamış e-posta, "oturumun bitti" ile aynı şey değil: kullanıcıyı
+  // açıklamasız login ekranına atmak, yapması gereken şeyi (e-postayı
+  // doğrulamak) gizler. Ayrım ölçülmüş kanıta dayanıyor ve tanınmayan her
+  // gövde için davranış AYNEN korunuyor (bkz. `./authFailureKind`).
+  router.replace(
+    authFailureKind(error) === "emailNotVerified"
+      ? "/(auth)/verify-email"
+      : "/(auth)/login",
+  );
 }
 
 // Response interceptor - handle token refresh
@@ -170,9 +248,9 @@ api.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${newAccess}`;
           return api(originalRequest);
         }
-        await handleAuthFailure();
+        await handleAuthFailure(error);
       } catch (refreshError) {
-        await handleAuthFailure();
+        await handleAuthFailure(error);
       }
     }
 

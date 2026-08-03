@@ -35,7 +35,10 @@ import { offersApi } from "@/lib/api";
 
 let mockAuth = { isAuthenticated: true, isLoading: false };
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => mockAuth,
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = mockAuth;
+    return sel ? sel(state) : state;
+  },
 }));
 
 import OffersScreen from "../index";

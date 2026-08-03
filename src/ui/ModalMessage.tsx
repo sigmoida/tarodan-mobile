@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Text, StyleSheet } from 'react-native';
 import { theme } from './lib/theme';
-import { appAlert } from './components/AlertDialog';
+import { appAlert, type AlertDialogButton } from './components/AlertDialog';
 
 const { colors, spacing, typography } = theme;
 
@@ -32,15 +32,20 @@ export function ModalMessage({ state }: { state: ModalMessageState }) {
 }
 
 /** Terminal başarı bildirimi: önce modalı kapat, sonra (modal tamamen kapandıktan
- *  sonra) appAlert göster. */
+ *  sonra) appAlert göster.
+ *
+ *  `buttons`: uyarı akışı SONLANDIRIP bir yere yönlendiriyorsa (ör. "Tamam →
+ *  siparişlerime git") aksiyon butonları buradan geçirilir; verilmezse appAlert'in
+ *  varsayılan "Tamam" butonu kullanılır. */
 export function alertAfterClose(
   close: () => void,
   title: string,
   message?: string,
+  buttons?: AlertDialogButton[],
   delayMs = 400,
 ): void {
   close();
-  setTimeout(() => appAlert(title, message), delayMs);
+  setTimeout(() => appAlert(title, message, buttons), delayMs);
 }
 
 const styles = StyleSheet.create({

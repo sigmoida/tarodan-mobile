@@ -26,7 +26,10 @@ jest.mock("react-i18next", () => ({
 // Oturum açık kullanıcı; logout izlenebilir
 const mockLogout = jest.fn();
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => ({ isAuthenticated: true, logout: mockLogout }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: true, logout: mockLogout });
+    return sel ? sel(state) : state;
+  },
 }));
 
 // API — fn'ler factory içinde, sonra import

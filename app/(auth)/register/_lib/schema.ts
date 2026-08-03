@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { displayNameSchema, emailSchema, strongPasswordSchema, isAdult } from '@/utils/validation';
+import {
+  displayNameSchema,
+  emailSchema,
+  isAdult,
+  strongPasswordSchema,
+  usernameSchema,
+} from '@/utils/validation';
 
 /** En geç seçilebilir doğum tarihi (bugün - 18 yıl) — 18+'ı seçici seviyesinde kısıtlar. */
 export function maxBirthDate(): Date {
@@ -8,8 +14,12 @@ export function maxBirthDate(): Date {
   return d;
 }
 
+// `usernameSchema` / `USERNAME_PATTERN` tek kaynaktan gelir: `@/utils/validation`
+// (§5). Bir kez belirlenince DEĞİŞTİRİLEMEZ — bkz. RegisterForm'daki uyarı.
+
 export const registerSchema = z
   .object({
+    username: usernameSchema,
     displayName: displayNameSchema,
     email: emailSchema,
     birthDate: z

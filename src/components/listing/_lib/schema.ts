@@ -32,6 +32,17 @@ export const listingFormSchema = z.object({
   isSet: z.boolean(),
   status: z.string(),
   isPreorder: z.boolean(),
+  /**
+   * Kargo paket boyutu — ilan başına satıcı seçer (kaldırılan desi girdisinin
+   * yerine geçti). Kodlar sunucu tarifesinden (`GET /shipping/package-tiers`)
+   * gelir; şema onları sabitlemez ki tarifeye kademe eklenince form
+   * kilitlenmesin.
+   *
+   * ZORUNLULUK burada değil `validate()`'te: hata mesajları formdaki görsel
+   * sırayla çıkmalı (başlık → kategori → fotoğraf → … → paket boyutu) ve
+   * kategori/fotoğraf zaten şema dışında, elle kontrol ediliyor.
+   */
+  shippingPackageTier: z.string(),
 });
 
 export type ListingFormValues = z.infer<typeof listingFormSchema>;
@@ -54,4 +65,5 @@ export const emptyListingFormValues: ListingFormValues = {
   isSet: false,
   status: 'active',
   isPreorder: false,
+  shippingPackageTier: '',
 };

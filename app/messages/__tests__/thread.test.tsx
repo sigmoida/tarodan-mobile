@@ -6,6 +6,8 @@
  */
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { Image as ExpoImage } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { renderWithProviders } from '@/test-utils';
 
 import { resetRouterMocks } from '@/test-utils/router-mock';
@@ -26,9 +28,11 @@ jest.mock('@/lib/api', () => ({
   mediaApi: { uploadMessageImage: jest.fn() },
 }));
 
-let mockAuth: any = { user: { id: 'me' }, limits: { maxMessagesPerDay: 50 } };
+// Selector-aware: `useMessageThread` hook'u selector'süz çağırıyor, `AppImage`
+// ise `useAuthStore((s) => s.token)` ile abone oluyor (bearer'lı mesaj eki).
+let mockAuth: any = { user: { id: 'me' }, limits: { maxMessagesPerDay: 50 }, token: 'test-token' };
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => mockAuth,
+  useAuthStore: (selector?: any) => (selector ? selector(mockAuth) : mockAuth),
 }));
 
 // Store client-only (getOtherParticipant/canSendMessage/setCurrentThreadId); selector-aware (#77).
@@ -51,6 +55,7 @@ jest.mock('@/hooks/messaging', () => ({
   useMarkAsRead: () => ({ mutate: mockMarkAsRead }),
 }));
 
+import { mediaApi } from '@/lib/api';
 import MessageThreadScreen from '../[threadId]';
 
 function message(overrides: Record<string, unknown> = {}) {
@@ -94,7 +99,7 @@ describe('J103 · mesaj thread render & gönderim', () => {
     resetRouterMocks();
     mockSendMessage.mockReset().mockResolvedValue(true);
     mockMarkAsRead.mockReset();
-    mockAuth = { user: { id: 'me' }, limits: { maxMessagesPerDay: 50 } };
+    mockAuth = { user: { id: 'me' }, limits: { maxMessagesPerDay: 50 }, token: 'test-token' };
     mockStore = makeStore();
     mockThreadQuery = makeThreadQuery();
     mockMessagesQuery = makeMessagesQuery([]);
@@ -130,7 +135,7 @@ describe('J104 · içerik filtresi & mesaj limiti (UI göstergesi)', () => {
     resetRouterMocks();
     mockSendMessage.mockReset().mockResolvedValue(true);
     mockMarkAsRead.mockReset();
-    mockAuth = { user: { id: 'me' }, limits: { maxMessagesPerDay: 50 } };
+    mockAuth = { user: { id: 'me' }, limits: { maxMessagesPerDay: 50 }, token: 'test-token' };
     mockStore = makeStore();
     mockThreadQuery = makeThreadQuery();
     mockMessagesQuery = makeMessagesQuery([]);
@@ -170,11 +175,99 @@ describe('J104 · içerik filtresi & mesaj limiti (UI göstergesi)', () => {
   });
 
   it('J104.4 premium (limitsiz) kullanıcıda limit uyarısı gösterilmez', () => {
-    mockAuth = { user: { id: 'me' }, limits: { maxMessagesPerDay: -1 } };
+    mockAuth = { user: { id: 'me' }, limits: { maxMessagesPerDay: -1 }, token: 'test-token' };
     mockStore = makeStore({ canSendMessage: () => true });
     renderWithProviders(<MessageThreadScreen />);
     // limitsiz: aktif input placeholder'ı görünür, "limiti doldu" placeholder yok
     expect(screen.getByPlaceholderText('Mesajınızı yazın...').props.editable).toBe(true);
     expect(screen.queryByPlaceholderText('Mesaj limiti doldu')).toBeNull();
+  });
+});
+
+/**
+ * Mesaj eki görselinin UÇTAN UCA kablolaması (parite P0 #4 + düzeltme turu):
+ * `[IMG:]` → `parseMessageContent` → `<AppImage authenticated>` → bearer header.
+ * Birim testleri (AppImage.test.tsx, contentFilter.test.ts) parçaları ayrı ayrı
+ * kilitliyor; burada zincirin gerçekten bağlı olduğu doğrulanıyor — `authenticated`
+ * prop'unun düşmesi ya da beyaz listenin atlanması sessizce geçmesin.
+ */
+describe('mesaj eki görselleri — bearer + şema beyaz listesi', () => {
+  beforeEach(() => {
+    resetRouterMocks();
+    mockSendMessage.mockReset().mockResolvedValue(true);
+    mockMarkAsRead.mockReset();
+    mockAuth = { user: { id: 'me' }, limits: { maxMessagesPerDay: 50 }, token: 'test-token' };
+    mockStore = makeStore();
+    mockThreadQuery = makeThreadQuery();
+    mockMessagesQuery = makeMessagesQuery([]);
+  });
+
+  const attachmentImages = () =>
+    screen
+      .UNSAFE_queryAllByType(ExpoImage)
+      .filter((n: any) => String(n.props.source?.uri || '').includes('message-attachment'));
+
+  it('[IMG:] eki Authorization header ile yüklenir', () => {
+    mockMessagesQuery = makeMessagesQuery([
+      message({ content: 'bak [IMG:https://api.tarodan.com/api/media/message-attachment/a1]' }),
+    ]);
+    renderWithProviders(<MessageThreadScreen />);
+
+    const [img] = attachmentImages();
+    expect(img).toBeDefined();
+    expect(img.props.source.headers).toEqual({ Authorization: 'Bearer test-token' });
+    expect(screen.getByText('bak')).toBeOnTheScreen();
+  });
+
+  it('token yokken header konulmaz (Bearer null gönderilmez)', () => {
+    mockAuth = { ...mockAuth, token: null };
+    mockMessagesQuery = makeMessagesQuery([
+      message({ content: '[IMG:https://api.tarodan.com/api/media/message-attachment/a1]' }),
+    ]);
+    renderWithProviders(<MessageThreadScreen />);
+
+    expect(attachmentImages()[0].props.source.headers).toBeUndefined();
+  });
+
+  it('karşı tarafın elle yazdığı `file:` eki HİÇ render edilmez (I1)', () => {
+    mockMessagesQuery = makeMessagesQuery([
+      message({ content: 'şunu aç [IMG:file:///etc/passwd]' }),
+    ]);
+    renderWithProviders(<MessageThreadScreen />);
+
+    const uris = screen
+      .UNSAFE_queryAllByType(ExpoImage)
+      .map((n: any) => String(n.props.source?.uri || ''));
+    expect(uris.some((u) => u.startsWith('file:'))).toBe(false);
+    // Ham işaret metni de baloncukta görünmez.
+    expect(screen.queryByText(/\[IMG:/)).toBeNull();
+  });
+
+  it('gönderim tarafı `[IMG:]` işaretini tek kaynaktan (embedImageInMessage) kurar', async () => {
+    (ImagePicker.requestMediaLibraryPermissionsAsync as jest.Mock).mockResolvedValue({
+      granted: true,
+    });
+    (ImagePicker.launchImageLibraryAsync as jest.Mock).mockResolvedValue({
+      canceled: false,
+      assets: [{ uri: 'file:///tmp/a.jpg', mimeType: 'image/jpeg' }],
+    });
+    (mediaApi.uploadMessageImage as jest.Mock).mockResolvedValue({
+      data: { url: 'https://api.tarodan.com/api/media/message-attachment/new-1' },
+    });
+
+    renderWithProviders(<MessageThreadScreen />);
+    fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın...'), 'şuna bak');
+    await waitFor(() =>
+      fireEvent.press(screen.UNSAFE_getByProps({ name: 'image-outline' }).parent),
+    );
+    await waitFor(() => expect(mediaApi.uploadMessageImage).not.toHaveBeenCalled());
+    fireEvent.press(screen.UNSAFE_getByProps({ name: 'send' }).parent);
+
+    await waitFor(() =>
+      expect(mockSendMessage).toHaveBeenCalledWith({
+        threadId: 't1',
+        content: 'şuna bak [IMG:https://api.tarodan.com/api/media/message-attachment/new-1]',
+      }),
+    );
   });
 });

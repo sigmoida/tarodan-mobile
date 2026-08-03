@@ -8,7 +8,13 @@ appId: com.tarodan.app
 tags:
   - manual
 env:
-  REG_EMAIL: e2e-${maestro.timestamp}@demo.com
+  # `Date.now()` (ms) yalnız RAKAM üretir. Kullanıcı adı regex'i
+  # `^[a-z0-9](?:[a-z0-9._]*[a-z0-9])?$` tire/iki nokta KABUL ETMEZ, o yüzden
+  # e-postadaki "e2e-" deseni kullanıcı adında kullanılamaz. Sonuç ~16 karakter
+  # (3-30 sınırının içinde). `maestro.timestamp` Maestro'da tanımlı bir sabit
+  # değil (undefined'a çözülüp her koşumda AYNI değeri üretiyordu).
+  REG_EMAIL: e2e-${Date.now()}@demo.com
+  REG_USERNAME: e2e${Date.now()}
   REG_PASSWORD: Demo123!Demo
   REG_NAME: E2E User
 ---
@@ -36,6 +42,14 @@ env:
     visible:
       id: "register-displayName-input"
     timeout: 15000
+# username: RegisterDto'de ZORUNLU — boş bırakılırsa form doğrulamada takılır
+# ve gönderim hiç olmaz (aşağıdaki "doğrula/Giriş" beklemesi 30 sn sonra düşer).
+- tapOn:
+    id: "register-username-input"
+- inputText: ${REG_USERNAME}
+# Uygunluk sorgusu 400 ms debounce'lu — sonucu bekle.
+- waitForAnimationToEnd:
+    timeout: 3000
 - tapOn:
     id: "register-displayName-input"
 - inputText: ${REG_NAME}

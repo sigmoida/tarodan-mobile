@@ -58,13 +58,13 @@ describe("J63 · useUpdateOrderStatus", () => {
       await result.current.mutateAsync({
         orderId: "ord-1",
         status: "shipped",
-        trackingNumber: "TRK123",
+        trackingNumber: "PKG-1230000000",
       });
     });
 
     expect(shipping.getOrderShipments).toHaveBeenCalledWith("ord-1");
     expect(shipping.updateTracking).toHaveBeenCalledWith("shp-1", {
-      trackingNumber: "TRK123",
+      trackingNumber: "PKG-1230000000",
     });
     expect(shipping.createShipment).not.toHaveBeenCalled();
   });
@@ -80,7 +80,7 @@ describe("J63 · useUpdateOrderStatus", () => {
       await result.current.mutateAsync({
         orderId: "ord-2",
         status: "shipped",
-        trackingNumber: "TRK999",
+        trackingNumber: "PKG-9990000000",
       });
     });
 
@@ -89,7 +89,7 @@ describe("J63 · useUpdateOrderStatus", () => {
       provider: "surat",
     });
     expect(shipping.updateTracking).toHaveBeenCalledWith("shp-new", {
-      trackingNumber: "TRK999",
+      trackingNumber: "PKG-9990000000",
     });
   });
 

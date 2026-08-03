@@ -6,9 +6,12 @@ import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { listingFormSchema, emptyListingFormValues } from '../_lib/schema';
+import { firstListingValidationError } from '../_lib/validate';
+import { buildTierPayloadField } from '../_lib/payload';
 
 import { useAuthStore } from '../../../stores/authStore';
-import { api, productsApi, categoriesApi, bankAccountApi } from '@/lib/api';
+import { api, productsApi, categoriesApi, bankAccountApi, shippingApi } from '@/lib/api';
+import { qk } from '@/lib/query';
 import { FALLBACK_SCALES, FALLBACK_MATERIALS, BRAND_SLUGS, SCALE_SLUGS } from '../_lib/constants';
 import type {
   Category,
@@ -41,6 +44,26 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     enabled: !isEdit,
   });
   const hasBankAccount = isEdit || !!bankAccountQuery.data;
+
+  /**
+   * Kargo paket kademesi tarifesi. Kartların etiketi ve örnek ölçüsü buradan
+   * gelir; kod listesi de sunucudan, istemcide sabitlenmez.
+   *
+   * Tarife alınamazsa (backend 503 `SHIPPING_PACKAGE_TIERS_NOT_CONFIGURED`)
+   * fail-closed davranıyoruz: seçim yapılamaz, `validate()` zaten boş kademeyi
+   * reddeder — sessizce `small` varsayılan bir ilan açılmaz.
+   */
+  const packageTiersQuery = useQuery({
+    queryKey: qk.shipping.packageTiers,
+    queryFn: async () => {
+      const res = await shippingApi.getPackageTiers();
+      return res.data ?? null;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const packageTiers = packageTiersQuery.data?.tiers ?? [];
+  const packageTiersLoading = packageTiersQuery.isLoading;
+  const packageTiersError = packageTiersQuery.isError;
 
   const {
     isAuthenticated,
@@ -102,6 +125,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const setStatus = (v: string) => form.setValue('status', v);
   const isPreorder = form.watch('isPreorder');
   const setIsPreorder = (v: boolean) => form.setValue('isPreorder', v);
+  const shippingPackageTier = form.watch('shippingPackageTier');
+  const setShippingPackageTier = (v: string) =>
+    form.setValue('shippingPackageTier', v);
   const [salePrice, setSalePrice] = useState('');
   const [saleStartDate, setSaleStartDate] = useState('');
   const [saleEndDate, setSaleEndDate] = useState('');
@@ -229,6 +255,10 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
         setBundleSize(p.bundleSize != null ? String(p.bundleSize) : '');
         setIsPreorder(!!p.isPreorder);
         setStatus(p.status ?? 'active');
+        // Sunucunun ürün okumasında kademeyi geri döndürdüğü DOĞRULANAMADI
+        // (kimlikli erişim gerekiyor). Alan gelirse seç, gelmezse boş bırak —
+        // satıcı yeniden seçer; sessizce `small` varsaymaktan iyidir.
+        setShippingPackageTier(p.shippingPackageTier ?? '');
 
         const imgs = Array.isArray(p.images) ? p.images : [];
         setImageKeys(
@@ -334,7 +364,13 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       setCommissionLoading(true);
       api
         .get('/orders/commission-preview', {
-          params: { amount: price, categoryId: categoryId || undefined },
+          params: {
+            amount: price,
+            categoryId: categoryId || undefined,
+            // Geçilmezse sunucu `small` varsayar → satıcıya HER ZAMAN en küçük
+            // paketin net kazancı gösterilirdi. Seçim yoksa alanı hiç koyma.
+            packageTier: shippingPackageTier || undefined,
+          },
         })
         .then((res) => {
           if (res.data) {
@@ -351,7 +387,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     return () => {
       if (commissionTimer.current) clearTimeout(commissionTimer.current);
     };
-  }, [price, categoryId]);
+    // Kademe değişince net kazanç yeniden sorulur — satıcı seçiminin etkisini
+    // anında görür.
+  }, [price, categoryId, shippingPackageTier]);
 
   // -----------------------------------------------------------------------
   // API Calls
@@ -558,6 +596,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       year: year ? Number(year) : undefined,
       isTradeEnabled,
       isSet,
+      // Boş kademe payload'a KONMAZ — düzenlemede sunucunun kayıtlı değerini
+      // ezmesin (sunucu mevcut kademeyi geri döndürmüyor, bkz. `_lib/payload`).
+      ...buildTierPayloadField(shippingPackageTier),
       bundleSize: isSet && Number(bundleSize) >= 2 ? Number(bundleSize) : undefined,
       images: imageKeys.length > 0 ? imageKeys : undefined,
       attributes: customAttributeSlugs.length > 0 ? customAttributeSlugs : undefined,
@@ -565,19 +606,16 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   };
 
   const validate = (): boolean => {
-    // title + price kuralları artık zod schema'da (senkron safeParse — field sırası
-    // title→price korunur). category/image schema-dışı olduğu için manuel kalır.
-    const result = listingFormSchema.safeParse(form.getValues());
-    if (!result.success) {
-      appAlert('Hata', result.error.issues[0]?.message || 'Lütfen alanları kontrol edin.');
-      return false;
-    }
-    if (!categoryId) {
-      appAlert('Hata', 'Lütfen bir kategori seçin.');
-      return false;
-    }
-    if (imageKeys.length === 0) {
-      appAlert('Hata', 'En az bir fotoğraf ekleyin.');
+    // Kurallar ve SIRALARI tek yerde (`_lib/validate.ts`) — kullanıcıya
+    // gösterilecek tek mesajı o sıra belirliyor.
+    const error = firstListingValidationError({
+      values: form.getValues(),
+      categoryId,
+      imageCount: imageKeys.length,
+      isEdit,
+    });
+    if (error) {
+      appAlert('Hata', error);
       return false;
     }
     return true;
@@ -771,6 +809,8 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     // edit-only fields
     status, setStatus,
     isPreorder, setIsPreorder,
+    shippingPackageTier, setShippingPackageTier,
+    packageTiers, packageTiersLoading, packageTiersError,
     salePrice, setSalePrice,
     saleStartDate, setSaleStartDate,
     saleEndDate, setSaleEndDate,

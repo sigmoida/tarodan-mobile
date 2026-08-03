@@ -24,7 +24,10 @@ const mockState = {
 };
 
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ isAuthenticated: mockState.isAuthenticated }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: mockState.isAuthenticated });
+    return sel ? sel(state) : state;
+  },
 }));
 
 jest.mock('@/hooks/useFavorites', () => ({

@@ -32,6 +32,7 @@ export function AddressFormModal({ f }: { f: AddressesController }) {
           containerStyle={styles.input}
         />
         <Input
+          testID="address-fullname-input"
           label="Ad Soyad *"
           value={formData.fullName}
           onChangeText={(text) => {
@@ -42,7 +43,10 @@ export function AddressFormModal({ f }: { f: AddressesController }) {
           containerStyle={styles.input}
         />
         <PhoneInput
+          testID="address-phone-input"
           label="Telefon *"
+          // Kaydete basmadan önce görsün: çözülemeyen numara blur'da uyarır.
+          validateOnBlur
           countryCode={formData.phoneCountryCode}
           onCountryCodeChange={(code) => setFormData({ ...formData, phoneCountryCode: code })}
           phone={formData.phone}
@@ -54,6 +58,7 @@ export function AddressFormModal({ f }: { f: AddressesController }) {
           containerStyle={styles.input}
         />
         <Input
+          testID="address-address-input"
           label="Adres *"
           value={formData.address}
           onChangeText={(text) => {

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { Modal, Button, Input, Text, theme } from '@/ui';
 
@@ -29,6 +30,7 @@ export function OtpModal({
   onSubmit: () => void;
   onResend: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Modal isOpen={visible} onClose={onClose} title="E-posta Doğrulama">
       <Text style={{ marginBottom: theme.spacing[3], color: colors.text.muted }}>
@@ -51,7 +53,7 @@ export function OtpModal({
         testID="guest-otp-submit"
       />
       <Button
-        title={otpExpiresIn > 0 ? `Tekrar gönder (${otpExpiresIn}s)` : 'Kodu tekrar gönder'}
+        title={otpExpiresIn > 0 ? `Tekrar gönder (${otpExpiresIn}s)` : t('checkout.resendCode')}
         variant="ghost"
         onPress={onResend}
         disabled={otpExpiresIn > 0 || otpSending}

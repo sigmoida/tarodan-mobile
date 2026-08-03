@@ -30,7 +30,8 @@ export default function OrderTrackScreen() {
           </View>
 
           <Text style={styles.formDescription}>
-            Sipariş numaranız ve e-posta adresinizle siparişinizin durumunu öğrenebilirsiniz.
+            Sipariş, grup veya teslimat numaranızla ve e-posta adresinizle siparişinizin
+            durumunu öğrenebilirsiniz.
           </Text>
 
           <Input
@@ -38,7 +39,7 @@ export default function OrderTrackScreen() {
             value={f.orderNumber}
             onChangeText={f.onChangeOrderNumber}
             containerStyle={styles.input}
-            placeholder="ORD-XXXXXX"
+            placeholder="ORD- / GRP- / PKG-"
             autoCapitalize="characters"
           />
 

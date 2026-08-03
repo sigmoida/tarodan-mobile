@@ -25,11 +25,17 @@ import { theme } from '../../lib/theme';
  * RN has no <form> element, so submission is triggered by the caller via
  * `form.handleSubmit`. Fields bind through Controller (RN inputs are controlled).
  */
-export function Form<T extends FieldValues>({
+export function Form<T extends FieldValues, TTransformed = T>({
   form,
   children,
 }: {
-  form: UseFormReturn<T>;
+  /**
+   * `useZodForm` artık şemanın ÇIKTI tipini üçüncü generic'te taşıyor
+   * (`handleSubmit` transform'lu değerleri verir). `Form` bu tipi yalnız
+   * geçirir, kullanmaz — sabit `UseFormReturn<T>` yazmak transform'lu her
+   * formu buraya bağlanamaz hâle getiriyordu.
+   */
+  form: UseFormReturn<T, unknown, TTransformed>;
   children: React.ReactNode;
 }) {
   // Wrap in a fragment: react-hook-form's FormProvider is typed against React
@@ -45,10 +51,17 @@ export interface FormInputProps
   extends Omit<InputProps, 'value' | 'onChangeText' | 'onBlur' | 'error'> {
   /** Field name in the form schema. */
   name: string;
+  /**
+   * Normalise each keystroke before it reaches the form state, e.g.
+   * `transform={(t) => t.toLowerCase()}` for a username field. Keeps what the
+   * user sees identical to what gets submitted — a schema-level transform would
+   * change the value silently after the fact.
+   */
+  transform?: (text: string) => string;
 }
 
 /** Text input wired to the form by `name` via Controller. */
-export function FormInput({ name, ...props }: FormInputProps) {
+export function FormInput({ name, transform, ...props }: FormInputProps) {
   const { control } = useFormContext();
   return (
     <Controller
@@ -58,7 +71,7 @@ export function FormInput({ name, ...props }: FormInputProps) {
         <Input
           {...props}
           value={field.value ?? ''}
-          onChangeText={field.onChange}
+          onChangeText={transform ? (t) => field.onChange(transform(t)) : field.onChange}
           onBlur={field.onBlur}
           error={fieldState.error?.message}
         />

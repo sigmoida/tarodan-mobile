@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { Spinner, Snackbar, ScreenHeader, EmptyState, theme } from '@/ui';
 import { useState } from 'react';
@@ -28,6 +29,7 @@ import { RefundRequestModal } from './_modals/RefundRequestModal';
 const { colors } = theme;
 
 export default function OrderDetailScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const queryClient = useQueryClient();
 
@@ -136,7 +138,7 @@ export default function OrderDetailScreen() {
         sellerName={order.seller.displayName}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: qk.orders.detail(String(id)) });
-          actions.notify('Değerlendirmeniz alındı. Onaylandıktan sonra yayınlanacak.', 'success');
+          actions.notify(t('order.reviewReceived'), 'success');
         }}
       />
     </View>

@@ -33,7 +33,7 @@ const getMock = api.get as jest.Mock;
 function orderFixture(overrides: Record<string, unknown> = {}) {
   return {
     id: 'order-1',
-    orderNumber: 'TRD-1001',
+    orderNumber: 'ORD-1001000000',
     status: 'delivered',
     totalAmount: 350,
     shippingCost: 30,
@@ -59,7 +59,7 @@ describe('J67 · Sipariş detayı render', () => {
     getMock.mockResolvedValue({ data: { data: orderFixture() } });
     renderWithProviders(<OrderDetailScreen />);
     await waitFor(() =>
-      expect(screen.getByText('Sipariş #TRD-1001')).toBeOnTheScreen(),
+      expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen(),
     );
     // "Teslim Edildi" hem rozet hem timeline etiketinde geçer
     expect(screen.getAllByText('Teslim Edildi').length).toBeGreaterThan(0);
@@ -103,7 +103,7 @@ describe('J78 · Alıcı onay butonu KALDIRILDI + escrow bilgisi', () => {
     getMock.mockResolvedValue({ data: { data: orderFixture({ status: 'delivered', isBuyer: false }) } });
     renderWithProviders(<OrderDetailScreen />);
     await waitFor(() =>
-      expect(screen.getByText('Sipariş #TRD-1001')).toBeOnTheScreen(),
+      expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen(),
     );
     expect(screen.queryByTestId('order-escrow-info')).toBeNull();
     expect(screen.queryByTestId('order-confirm-delivery-button')).toBeNull();
@@ -157,7 +157,7 @@ describe('J79 · İade talep butonu görünürlüğü', () => {
     });
     renderWithProviders(<OrderDetailScreen />);
     await waitFor(() =>
-      expect(screen.getByText('Sipariş #TRD-1001')).toBeOnTheScreen(),
+      expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen(),
     );
     expect(screen.queryByTestId('refund-request-button')).toBeNull();
   });
@@ -320,7 +320,7 @@ describe('B25 · Timeline iade/iptal yansıtması', () => {
     });
     renderWithProviders(<OrderDetailScreen />);
     await waitFor(() =>
-      expect(screen.getByText('Sipariş #TRD-1001')).toBeOnTheScreen(),
+      expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen(),
     );
     expect(screen.getByText('İade Edildi')).toBeOnTheScreen();
     expect(screen.queryByText('İade Sürecinde')).toBeNull();

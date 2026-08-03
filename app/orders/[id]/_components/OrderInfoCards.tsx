@@ -1,8 +1,9 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, Pressable, Linking, StyleSheet } from 'react-native';
 import { Card, Text, Button, StatusBadge, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
-import { uiOrderStatusConfig } from '../_lib/status';
+import { useOrderStatusConfig } from '../_lib/status';
 import { formatDate, formatPrice } from '../_lib/format';
 import type { OrderDetail } from '../_lib/types';
 import type { OrderView } from '../_lib/derive';
@@ -11,6 +12,7 @@ const { colors } = theme;
 
 /** Ödeme güvencesi (escrow) kartı. */
 export function OrderEscrowCard({ order, view }: { order: OrderDetail; view: OrderView }) {
+  const { t } = useTranslation();
   if (
     !(order.isBuyer !== false && !view.isMembershipOrder && view.isPostShipment && !view.isCancelled && order.status !== 'refunded')
   )
@@ -19,11 +21,11 @@ export function OrderEscrowCard({ order, view }: { order: OrderDetail; view: Ord
     <Card variant="elevated" style={styles.card} testID="order-escrow-info">
       <View style={styles.escrowHeaderRow}>
         <Ionicons name="shield-checkmark-outline" size={20} color={colors.info[600]!} />
-        <Text variant="label" style={styles.escrowHeaderText}>Ödeme Güvencesi</Text>
+        <Text variant="label" style={styles.escrowHeaderText}>{t('order.paymentProtection')}</Text>
         {view.hasActiveRefund && (
           <StatusBadge
             status="frozen"
-            config={{ frozen: { label: 'İade nedeniyle bekletiliyor', variant: 'warning' } }}
+            config={{ frozen: { label: t('order.heldForRefund'), variant: 'warning' } }}
             size="sm"
           />
         )}
@@ -48,12 +50,13 @@ export function OrderEscrowCard({ order, view }: { order: OrderDetail; view: Ord
 
 /** İptal bilgi kartı. */
 export function OrderCancelledInfo({ view }: { view: OrderView }) {
+  const { t } = useTranslation();
   if (!view.isCancelled) return null;
   return (
     <Card variant="elevated" style={styles.card} testID="order-cancelled-info">
       <View style={styles.cancelledHeaderRow}>
         <Ionicons name="close-circle-outline" size={20} color={colors.danger[600]!} />
-        <Text variant="label" style={styles.cancelledHeaderText}>Sipariş İptal Edildi</Text>
+        <Text variant="label" style={styles.cancelledHeaderText}>{t('order.orderCancelled')}</Text>
       </View>
       <Text variant="caption" style={styles.escrowText}>
         Bu sipariş iptal edildi. Ödemeniz iade işlemine alındı; bankanıza yansıması birkaç iş günü sürebilir.
@@ -74,11 +77,12 @@ export function OrderPayPendingCard({
   onPay: () => void;
   payPending: boolean;
 }) {
+  const { t } = useTranslation();
   if (!(order.status === 'pending' && !view.isPaid && order.isBuyer !== false)) return null;
   return (
     <Card variant="elevated" style={styles.card}>
-      <Text variant="label" style={styles.sectionTitle}>Ödeme Bekliyor</Text>
-      <Text variant="caption" style={styles.confirmNote}>Siparişinizi tamamlamak için ödemeyi yapın.</Text>
+      <Text variant="label" style={styles.sectionTitle}>{t('order.statusPendingPayment')}</Text>
+      <Text variant="caption" style={styles.confirmNote}>{t('order.completePaymentPrompt')}</Text>
       <Button
         testID="order-pay-button"
         variant="primary"
@@ -94,12 +98,14 @@ export function OrderPayPendingCard({
 
 /** Kargo takip kartı. */
 export function OrderTrackingCard({ order, view }: { order: OrderDetail; view: OrderView }) {
+  const { t } = useTranslation();
+  const statusConfig = useOrderStatusConfig();
   if (!view.showTrackingCard) return null;
   return (
     <Card variant="elevated" style={styles.card} testID="order-tracking-card">
       <View style={styles.trackingHeaderRow}>
-        <Text variant="label" style={styles.sectionTitle}>Kargo Takip</Text>
-        <StatusBadge status={view.isDelivered ? 'delivered' : 'shipped'} config={uiOrderStatusConfig} size="sm" />
+        <Text variant="label" style={styles.sectionTitle}>{t('order.trackOrder')}</Text>
+        <StatusBadge status={view.isDelivered ? 'delivered' : 'shipped'} config={statusConfig} size="sm" />
       </View>
       <View style={styles.trackingRow}>
         <Ionicons
@@ -110,10 +116,10 @@ export function OrderTrackingCard({ order, view }: { order: OrderDetail; view: O
         <View style={styles.trackingInfo}>
           <Text testID="order-tracking-number">{order.trackingNumber}</Text>
           {view.isDelivered ? (
-            <Text variant="caption" style={styles.trackingDeliveredText}>Kargonuz teslim edildi.</Text>
+            <Text variant="caption" style={styles.trackingDeliveredText}>{t('order.parcelDelivered')}</Text>
           ) : order.trackingUrl ? (
             <Pressable onPress={() => Linking.openURL(order.trackingUrl!)}>
-              <Text style={styles.trackLink}>Kargo Sitesinde Takip Et</Text>
+              <Text style={styles.trackLink}>{t('order.trackOnCarrierSite')}</Text>
             </Pressable>
           ) : null}
         </View>

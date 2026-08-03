@@ -41,23 +41,31 @@ describe('J58 · sepete ekle (addItem)', () => {
   });
 });
 
-describe('J1 · sepet özeti (getSubtotal / getItemCount)', () => {
+describe('J1 · sepet adedi (getItemCount)', () => {
   beforeEach(reset);
 
-  it('ara toplam = price*quantity toplamı, adet = quantity toplamı', () => {
+  it('adet = quantity toplamı', () => {
     const st = useCartStore.getState();
     st.addItem(baseItem); // p1 x1 @100
     st.addItem({ ...baseItem, productId: 'p2', price: 50 }); // p2 x1 @50
     st.addItem(baseItem); // p1 -> x2
-    const s = useCartStore.getState();
-    expect(s.getItemCount()).toBe(3);
-    expect(s.getSubtotal()).toBe(100 * 2 + 50);
+    expect(useCartStore.getState().getItemCount()).toBe(3);
   });
 
-  it('boş sepette ara toplam ve adet 0', () => {
-    const s = useCartStore.getState();
-    expect(s.getSubtotal()).toBe(0);
-    expect(s.getItemCount()).toBe(0);
+  it('boş sepette adet 0', () => {
+    expect(useCartStore.getState().getItemCount()).toBe(0);
+  });
+
+  /**
+   * Store para HESAPLAMAZ. `getSubtotal()` yerel `price × quantity` toplamı
+   * döndürüyordu; sepetteki fiyat ekleme anında donduğu (24 saat) ve kampanya
+   * penceresi kapanabildiği için bu tutar hiçbir sunucu alanına karşılık
+   * gelmiyor, bir zamanlar da "Toplam" diye basılıyordu. Yüzeyden kaldırıldı —
+   * geri gelirse bu test kırılır.
+   */
+  it('para hesaplayan bir yüzey (getSubtotal) YOK', () => {
+    useCartStore.getState().addItem(baseItem);
+    expect((useCartStore.getState() as unknown as Record<string, unknown>).getSubtotal).toBeUndefined();
   });
 });
 

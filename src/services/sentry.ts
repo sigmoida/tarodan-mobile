@@ -5,6 +5,7 @@
  */
 import Constants from "expo-constants";
 import * as Sentry from "@sentry/react-native";
+import { scrubEvent } from "./sentryScrub";
 
 export type SeverityLevel = "fatal" | "error" | "warning" | "info" | "debug";
 
@@ -39,6 +40,12 @@ export function initSentry(): void {
     environment: process.env.EXPO_PUBLIC_ENVIRONMENT ?? "development",
     tracesSampleRate: 0.1,
     enableNative: true,
+    // Kişisel veri kayıt sunucusuna GİTMEZ. Axios hataları `config.data`
+    // alanında serileştirilmiş istek gövdesini taşıyor (telefon, adres, IBAN,
+    // şifre); SDK bunları olaya kopyalıyordu. Teşhis alanları (requestId,
+    // status, url, i18nKey) korunur — bkz. `./sentryScrub`.
+    beforeSend: (event) => scrubEvent(event),
+    beforeBreadcrumb: (breadcrumb) => scrubEvent(breadcrumb),
   });
 }
 

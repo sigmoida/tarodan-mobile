@@ -589,6 +589,74 @@ export function ListingPricingSection({ f }: SectionProps) {
 }
 
 // ---------------------------------------------------------------------------
+// Shipping package tier
+// ---------------------------------------------------------------------------
+
+/**
+ * Kargo paket boyutu — üç kart, sunucu tarifesinden (`GET /shipping/package-tiers`).
+ *
+ * ⚠️ BAĞLAYICI (doküman 14 §1): mobil arayüzde **desi hiç görünmez**. Tarife
+ * `billableDesi` / `minDesi` / `maxDesi` döndürüyor; hiçbiri render edilmez.
+ * Kart üzerinde tutar da yazmıyoruz: `amount` kademenin TAM kargo bedeli ama
+ * alıcı/satıcı payı kategori bazlı ve adminden geliyor (canlıda 50/50) —
+ * istemcinin gösterebileceği doğru tek rakam, aşağıdaki net kazanç önizlemesi.
+ */
+export function ListingShippingSection({ f }: SectionProps) {
+  return (
+    <View style={styles.card}>
+      <Text style={styles.sectionHeader}>KARGO</Text>
+
+      <Text style={styles.label}>
+        Paket Boyutu <Text style={styles.required}>*</Text>
+      </Text>
+
+      {f.packageTiersLoading ? (
+        <ActivityIndicator size="small" color={colors.text.subtle} />
+      ) : f.packageTiersError || f.packageTiers.length === 0 ? (
+        <Text style={styles.hint}>
+          Kargo paket boyutları şu anda alınamıyor. Bağlantınızı kontrol edip sayfayı
+          yenileyin — boyut seçilmeden ilan yayınlanamaz.
+        </Text>
+      ) : (
+        <>
+          <View style={styles.tierRow}>
+            {f.packageTiers.map((tier) => {
+              const selected = f.shippingPackageTier === tier.code;
+              const sample = [tier.sampleWidth, tier.sampleHeight, tier.sampleLength];
+              const hasSample = sample.every((v) => v != null);
+              return (
+                <TouchableOpacity
+                  key={tier.code}
+                  testID={`package-tier-${tier.code}`}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  style={[styles.tierCard, selected && styles.tierCardActive]}
+                  onPress={() => f.setShippingPackageTier(tier.code)}
+                >
+                  <Text style={[styles.tierLabel, selected && styles.tierLabelActive]}>
+                    {tier.label}
+                  </Text>
+                  {/* Örnek ölçü sunucuda bugün boş — geldiği gün görünür. */}
+                  {hasSample && (
+                    <Text style={[styles.tierSample, selected && styles.tierLabelActive]}>
+                      {sample.join(' × ')} cm
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <Text style={styles.hint}>
+            Ürünün sığdığı en küçük paketi seçin. Kargo bedeli bu boyuta göre
+            hesaplanır; seçim net kazancınızı da değiştirir.
+          </Text>
+        </>
+      )}
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Submit + delete
 // ---------------------------------------------------------------------------
 export function ListingSubmitRow({ f }: SectionProps) {

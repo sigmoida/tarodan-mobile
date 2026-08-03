@@ -34,8 +34,11 @@ export interface Order {
   };
   items?: Array<{
     id: string;
+    /** Sipariş anında donmuş birim fiyat kopyası — adetle ÇARPILMAZ. */
     price: number;
     quantity: number;
+    /** Sunucunun gönderdiği, adet DAHİL satır tutarı (varsa basılacak tek doğru tutar). */
+    subtotal?: number;
     product?: {
       id: string;
       title: string;

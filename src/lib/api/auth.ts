@@ -20,6 +20,7 @@ export const authApi = {
   loginWithApple: (identityToken: string, fullName?: string) =>
     api.post('/auth/apple', { identityToken, fullName }),
   register: (data: {
+    username: string;
     displayName: string;
     email: string;
     password: string;
@@ -27,19 +28,43 @@ export const authApi = {
     birthDate?: string;
     acceptsMarketingEmails?: boolean;
   }) => api.post('/auth/register', data),
-  /** İşletme hesabı olarak kayıt. Web /auth/register/business ile eşleşir. */
+  /**
+   * Kullanıcı adı uygunluğu — public, throttle **30/dk**. Yalnız "bu isim alınmış
+   * mı" diye bakar, FORMAT doğrulaması YAPMAZ: örn. `Gorkem` (büyük harfli) için
+   * bile `available:true` dönebilir. İstemci `USERNAME_PATTERN`'i (register
+   * `_lib/schema.ts`) KENDİ zorlamalı ve bu uca yalnız o geçtikten sonra sormalı —
+   * aksi halde kullanıcı "uygun" görüp kayıt anında 400 yer.
+   */
+  checkUsernameAvailability: (username: string) =>
+    guestApi.get<{ available: boolean }>('/auth/username-availability', {
+      params: { username },
+    }),
+  /**
+   * İşletme ön başvurusu (`BusinessRegisterDto`) — HESAP OLUŞTURMAZ. Admin onayı
+   * sonrası davet e-postasıyla kullanıcı adı/şifre `activateCorporateInvitation`
+   * ile belirlenir. Canlıda doğrulandı (task-3-report.md): yalnız bu sekiz alan
+   * kabul edilir; `password`/`companyName`/`taxId`/`city` YOK — göndermek 400
+   * döndürür (beş zorunlu alan eksik sayılır). Web /auth/register/business ile eşleşir.
+   *
+   * ⚠️ `guestApi` (interceptor'sız istemci) ile gider: uç public'tir ve bayat token'lı
+   * bir cihazda `api` ölümcül olurdu — 401 → refresh başarısızsa `handleAuthFailure()`
+   * logout + login'e yönlendirir (başvuru sessizce kaybolur), refresh başarılıysa bu
+   * non-idempotent POST **replay** edilir (mükerrer başvuru + 5/dk kotasından ikinci hak).
+   */
   registerBusiness: (data: {
-    companyName: string;
-    email: string;
-    password: string;
-    phone: string; // BusinessRegisterDto zorunlu: /^\+90[0-9]{10}$/
-    taxId: string;
-    city: string; // BusinessRegisterDto zorunlu (min 2)
-    district?: string;
-    companyType?: string;
-    birthDate?: string;
-    acceptsMarketingEmails?: boolean;
-  }) => api.post('/auth/register/business', data),
+    authorizedFullName: string; // zorunlu, 2-120
+    companyLegalName: string; // zorunlu, 2-240
+    companyTitle: string; // zorunlu, 2-200
+    companyAddress: string; // zorunlu, 10-500
+    companyEmail: string; // zorunlu, e-posta
+    kepAddress?: string; // opsiyonel, e-posta
+    phone: string; // zorunlu: /^\+90[0-9]{10}$/
+    contactPhone?: string; // opsiyonel, aynı format
+  }) =>
+    guestApi.post<{ applicationId: string; status: string; email: string; message: string }>(
+      '/auth/register/business',
+      data,
+    ),
   logout: () => api.post('/auth/logout'),
   getProfile: () => api.get('/users/me'),
   refresh: (refreshToken: string) => api.post('/auth/refresh', { refreshToken }),

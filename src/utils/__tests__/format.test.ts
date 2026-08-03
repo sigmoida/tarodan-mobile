@@ -1,4 +1,88 @@
-import { asLabel, formatOrderStatus } from '../format';
+import {
+  asLabel,
+  formatOrderStatus,
+  formatPrice,
+  formatServerPrice,
+  serverAmount,
+  PRICE_PLACEHOLDER,
+} from '../format';
+
+/**
+ * serverAmount / formatServerPrice — "gösterilen her tutar bir sunucu alanının
+ * aynısıdır" kısıtının BEKÇİSİ (bulgu N2).
+ *
+ * Eski kapı ekran hook'larındaydı ve alan değil NESNE seviyesindeydi:
+ * `const total = summary != null ? Number(summary.total) : null`. Sunucu bir gün
+ * `total: null` döndürseydi `Number(null)` = **0** → `total == null` false →
+ * "Onayla ve Öde (0,00 TL)" yazan ETKİN bir ödeme butonu. `total: undefined`
+ * olsaydı `Number(undefined)` = **NaN** → `formatServerPrice` null kontrolünden
+ * geçer, `formatPrice(NaN)` yine **"0,00 TL"** basardı. Kapı artık alan
+ * seviyesinde ve `Number.isFinite` tabanlı.
+ */
+describe('serverAmount', () => {
+  it('sayı olmayan girdiler için null döner (Number(null)=0 tuzağı)', () => {
+    expect(serverAmount(null)).toBeNull();
+    expect(serverAmount(undefined)).toBeNull();
+    expect(serverAmount(NaN)).toBeNull();
+    expect(serverAmount(Infinity)).toBeNull();
+    expect(serverAmount(-Infinity)).toBeNull();
+    expect(serverAmount('')).toBeNull();
+    expect(serverAmount('   ')).toBeNull();
+    expect(serverAmount('abc')).toBeNull();
+    expect(serverAmount({})).toBeNull();
+    expect(serverAmount([])).toBeNull();
+    expect(serverAmount(true)).toBeNull();
+  });
+
+  it('sonlu sayıları aynen geçirir (0 ve negatif dahil)', () => {
+    expect(serverAmount(0)).toBe(0);
+    expect(serverAmount(754.32)).toBe(754.32);
+    expect(serverAmount(-25.5)).toBe(-25.5);
+  });
+
+  it('-0 işaretsiz 0 a normalize edilir ("-0,00 TL" basılmaz)', () => {
+    expect(Object.is(serverAmount(-0), 0)).toBe(true);
+  });
+
+  it('boş olmayan sayısal string i tolere eder (decimal-as-string şekli)', () => {
+    expect(serverAmount('619.92')).toBe(619.92);
+    expect(serverAmount('0')).toBe(0);
+  });
+});
+
+describe('formatServerPrice', () => {
+  it('sunucu alanı yoksa/sayı değilse yer tutucu basar — asla "0,00 TL"', () => {
+    // İmza `number | string | null | undefined` — yanlışlıkla bir nesne geçmek
+    // derleme hatası olsun diye dar tutuldu. Buradaki cast bunu BİLEREK deliyor:
+    // sunucu bir gün beklenmedik bir şekil dönerse çalışma anında da yer tutucuya
+    // düşüldüğünü kanıtlıyoruz, tipin verdiği güvenceye ek olarak.
+    const untypedServerValues = [null, undefined, NaN, Infinity, -Infinity, '', '  ', 'abc', {}];
+    for (const bad of untypedServerValues) {
+      expect(formatServerPrice(bad as number)).toBe(PRICE_PLACEHOLDER);
+      expect(formatServerPrice(bad as number)).not.toBe('0,00 TL');
+    }
+  });
+
+  it('gerçek 0, yer tutucu DEĞİL "0,00 TL" basar (ücretsiz kargo gerçek bir tutar)', () => {
+    expect(formatServerPrice(0)).toBe('0,00 TL');
+    expect(formatServerPrice(-0)).toBe('0,00 TL');
+  });
+
+  it('sonlu tutarı formatPrice ile aynı basar', () => {
+    expect(formatServerPrice(754.32)).toBe(formatPrice(754.32));
+    expect(formatServerPrice(754.32)).toBe('754,32 TL');
+    expect(formatServerPrice(-25.5)).toBe('-25,50 TL');
+  });
+
+  // formatPrice HÂLÂ "0,00 TL" döndürüyor — sunucu-yetkili gösterimlerde neden
+  // ondan geçilemeyeceğinin kanıtı (bu iki satır ayrışırsa kapı kalkmış demektir).
+  it('formatPrice ile ayrışma noktası: null/NaN', () => {
+    expect(formatPrice(null)).toBe('0,00 TL');
+    expect(formatPrice(NaN)).toBe('0,00 TL');
+    expect(formatServerPrice(null)).toBe(PRICE_PLACEHOLDER);
+    expect(formatServerPrice(NaN)).toBe(PRICE_PLACEHOLDER);
+  });
+});
 
 /**
  * asLabel — product/[id] kategori crash fix'inin (BULGU #3) regresyon koruması.

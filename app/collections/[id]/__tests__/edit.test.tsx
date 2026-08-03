@@ -22,7 +22,10 @@ import { api } from '@/lib/api';
 
 let mockAuth: Record<string, unknown> = { user: { id: 'owner-1' } };
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => mockAuth,
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = mockAuth;
+    return sel ? sel(state) : state;
+  },
 }));
 
 import EditCollectionScreen from '../edit';

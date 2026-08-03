@@ -33,7 +33,7 @@ function infoFixture(overrides: Record<string, unknown> = {}) {
     id: 'pay-1',
     amount: 350,
     status: 'paid',
-    order: { id: 'order-1', orderNumber: 'TRD-1001' },
+    order: { id: 'order-1', orderNumber: 'ORD-1001000000' },
     ...overrides,
   };
 }
@@ -58,7 +58,7 @@ describe('J71 · Ödeme başarılı render', () => {
   it('J71.2 sipariş özeti: sipariş no, tutar ve durum rozeti', async () => {
     getStatusMock.mockResolvedValue({ data: { data: infoFixture() } });
     renderWithProviders(<PaymentSuccessScreen />);
-    expect(await screen.findByText('TRD-1001')).toBeOnTheScreen();
+    expect(await screen.findByText('ORD-1001000000')).toBeOnTheScreen();
     expect(screen.getByText('Sipariş No')).toBeOnTheScreen();
     expect(screen.getByText('Tutar')).toBeOnTheScreen();
     // status 'paid' → 'Ödendi' etiketi

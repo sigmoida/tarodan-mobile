@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import { Input, Radio, Text, theme } from '@/ui';
@@ -26,6 +27,7 @@ export function AddressSelector({
   inline: ShippingAddressInput;
   setInline: React.Dispatch<React.SetStateAction<ShippingAddressInput>>;
 }) {
+  const { t } = useTranslation();
   return (
     <View>
       {isAuthenticated && addresses.length > 0 ? (
@@ -54,7 +56,7 @@ export function AddressSelector({
             <Radio checked={selectedId === 'new'} onChange={() => setSelectedId('new')} />
             <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="add-circle-outline" size={18} color={colors.primary[600]!} />
-              <Text style={[styles.addressTitle, { marginLeft: theme.spacing[2] }]}>Yeni Adres Ekle</Text>
+              <Text style={[styles.addressTitle, { marginLeft: theme.spacing[2] }]}>{t('checkout.addNewAddress')}</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -70,7 +72,11 @@ export function AddressSelector({
             testID={isBilling ? undefined : 'shipping-fullname-input'}
           />
           <PhoneInput
+            testID={isBilling ? 'billing-phone-input' : 'shipping-phone-input'}
             label="Telefon *"
+            // Ödeme adımına gelmeden görsün: çözülemeyen numara blur'da uyarır.
+            // Gönderimi engelleyen kuralla AYNI ayrıştırıcı (`@/utils/phone`).
+            validateOnBlur
             countryCode={inline.phoneCountryCode ?? DEFAULT_COUNTRY_CODE}
             onCountryCodeChange={(code) => setInline((prev) => ({ ...prev, phoneCountryCode: code }))}
             phone={inline.phone}

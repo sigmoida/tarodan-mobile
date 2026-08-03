@@ -16,6 +16,7 @@ import {
   ListingDetailsSection,
   ListingOptionsSection,
   ListingPricingSection,
+  ListingShippingSection,
   ListingSubmitRow,
 } from './_components/ListingSections';
 import { ListingPickers } from './_components/ListingPickers';
@@ -61,6 +62,7 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
           <ListingDetailsSection f={f} />
           <ListingOptionsSection f={f} />
           <ListingPricingSection f={f} />
+          <ListingShippingSection f={f} />
           <ListingSubmitRow f={f} />
         </ScrollView>
       </KeyboardAvoidingView>

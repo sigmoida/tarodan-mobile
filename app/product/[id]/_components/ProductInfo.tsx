@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { Divider, Text, theme } from '@/ui';
@@ -34,6 +35,7 @@ export function ProductInfo({
   actions: ProductInfoActions;
   onOpenReviews: () => void;
 }) {
+  const { t } = useTranslation();
   const [showAllDescription, setShowAllDescription] = useState(false);
   const conditionInfo = getConditionInfo(product.condition ?? '');
   const tradeOpen = isProductTradeOpen(product);
@@ -123,7 +125,7 @@ export function ProductInfo({
             <View style={styles.actionIconWrap}>
               <Ionicons name="swap-horizontal" size={22} color={colors.primary[700]!} />
             </View>
-            <Text style={styles.actionLabel} numberOfLines={1}>Takas</Text>
+            <Text style={styles.actionLabel} numberOfLines={1}>{t('product.tradeShort')}</Text>
           </Pressable>
         ) : null}
 
@@ -132,7 +134,7 @@ export function ProductInfo({
             <View style={styles.actionIconWrap}>
               <Ionicons name="pricetag-outline" size={22} color={colors.primary[700]!} />
             </View>
-            <Text style={styles.actionLabel} numberOfLines={1}>Teklif Ver</Text>
+            <Text style={styles.actionLabel} numberOfLines={1}>{t('product.makeOffer')}</Text>
           </Pressable>
         )}
 
@@ -141,7 +143,7 @@ export function ProductInfo({
             <View style={styles.actionIconWrap}>
               <Ionicons name="albums-outline" size={22} color={colors.primary[700]!} />
             </View>
-            <Text style={styles.actionLabel} numberOfLines={1}>Koleksiyon</Text>
+            <Text style={styles.actionLabel} numberOfLines={1}>{t('collection.collection')}</Text>
           </Pressable>
         )}
 
@@ -150,7 +152,7 @@ export function ProductInfo({
             <View style={styles.actionIconWrap}>
               <Ionicons name="chatbubble-outline" size={22} color={colors.primary[700]!} />
             </View>
-            <Text style={styles.actionLabel} numberOfLines={1}>Mesaj</Text>
+            <Text style={styles.actionLabel} numberOfLines={1}>{t('common.message')}</Text>
           </Pressable>
         )}
 
@@ -158,7 +160,7 @@ export function ProductInfo({
           <View style={styles.actionIconWrap}>
             <Ionicons name="share-social-outline" size={22} color={colors.primary[700]!} />
           </View>
-          <Text style={styles.actionLabel} numberOfLines={1}>Paylaş</Text>
+          <Text style={styles.actionLabel} numberOfLines={1}>{t('product.share')}</Text>
         </Pressable>
       </View>
 
@@ -166,27 +168,27 @@ export function ProductInfo({
 
       {/* Specifications */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Özellikler</Text>
+        <Text style={styles.sectionTitle}>{t('product.detailsSection')}</Text>
         <View style={styles.specGrid}>
           {asLabel(product.brand) ? (
             <View style={styles.specItem}>
-              <Text style={styles.specLabel}>Marka</Text>
+              <Text style={styles.specLabel}>{t('product.brand')}</Text>
               <Text style={styles.specValue}>{asLabel(product.brand)}</Text>
             </View>
           ) : null}
           {asLabel(product.scale) ? (
             <View style={styles.specItem}>
-              <Text style={styles.specLabel}>Ölçek</Text>
+              <Text style={styles.specLabel}>{t('product.scale')}</Text>
               <Text style={styles.specValue}>{asLabel(product.scale)}</Text>
             </View>
           ) : null}
           <View style={styles.specItem}>
-            <Text style={styles.specLabel}>Durum</Text>
+            <Text style={styles.specLabel}>{t('common.status')}</Text>
             <Text style={[styles.specValue, { color: conditionInfo.color }]}>{conditionInfo.name}</Text>
           </View>
           {product.category && (
             <View style={styles.specItem}>
-              <Text style={styles.specLabel}>Kategori</Text>
+              <Text style={styles.specLabel}>{t('common.category')}</Text>
               <Text style={styles.specValue}>
                 {typeof product.category === 'object' ? product.category.name : product.category}
               </Text>
@@ -194,10 +196,17 @@ export function ProductInfo({
           )}
           {product.year && (
             <View style={styles.specItem}>
-              <Text style={styles.specLabel}>Model Yılı</Text>
+              <Text style={styles.specLabel}>{t('product.modelYear')}</Text>
               <Text style={styles.specValue}>{product.year}</Text>
             </View>
           )}
+          {/* Sunucu üretimli ürün kodu — destek yazışmasında ürünü tanımlar. */}
+          {product.productCode ? (
+            <View style={styles.specItem}>
+              <Text style={styles.specLabel}>{t('product.productCode')}</Text>
+              <Text style={styles.specValue}>{String(product.productCode)}</Text>
+            </View>
+          ) : null}
         </View>
       </View>
 
@@ -207,13 +216,13 @@ export function ProductInfo({
       {product.description && (
         <>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Açıklama</Text>
+            <Text style={styles.sectionTitle}>{t('common.description')}</Text>
             <Text style={styles.description} numberOfLines={showAllDescription ? undefined : 4}>
               {product.description}
             </Text>
             {product.description.length > 200 && (
               <Pressable onPress={() => setShowAllDescription(!showAllDescription)}>
-                <Text style={styles.readMore}>{showAllDescription ? 'Daha az göster' : 'Devamını oku'}</Text>
+                <Text style={styles.readMore}>{showAllDescription ? t('product.showLess') : t('product.readMore')}</Text>
               </Pressable>
             )}
           </View>

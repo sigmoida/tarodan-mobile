@@ -1,17 +1,82 @@
 import { View } from 'react-native';
-import { Button, Checkbox, DateField, HStack, Input, Text } from '@/ui';
+import { Ionicons } from '@expo/vector-icons';
+import { Button, Checkbox, DateField, HStack, Input, Spinner, Text, theme } from '@/ui';
 import { Controller } from 'react-hook-form';
 import { router } from 'expo-router';
 import { styles } from '../_lib/styles';
 import { maxBirthDate } from '../_lib/schema';
+import { toHandle } from '@/utils/validation';
 import type { RegisterController } from '../_hooks/useRegister';
 
-/** Kayıt form kartı — ad/e-posta/doğum/şifre/onay alanları + sözleşme linkleri + gönder. */
+/** Kayıt form kartı — kullanıcı adı/ad/e-posta/doğum/şifre/onay alanları + sözleşme linkleri + gönder. */
 export function RegisterForm({ f }: { f: RegisterController }) {
-  const { control, errors, registerMutation } = f;
+  const { control, errors, registerMutation, usernameAvailability } = f;
+
+  // Kullanıcı adı durum slotu — TEK öncelik sırası (Input tek satır gösterir):
+  //   1) zod format hatası (submit sonrası)  2) ham biçim uyarısı (ANINDA, submit
+  //   beklemeden — N-1: Türkçe büyük harf 'İ'.toLowerCase() birleşik noktalı 'i'
+  //   üretir, alanda gözle doğru görünür ama regex'i geçmez)  3) "kontrol
+  //   ediliyor"  4) uygunluk sonucu.
+  // "Kontrol ediliyor" ADIMI ATLANMAZ: aksi halde henüz sorulmamış bir ad için
+  // eski sonucun kırmızısı görünür ve buton sessizce kilitli kalır.
+  const { available, checking, isThrottled, isFormatInvalid } = usernameAvailability;
+  const usernameFormatError = errors.username?.message;
+  const usernameRawFormatWarning =
+    !usernameFormatError && isFormatInvalid
+      ? 'Geçersiz biçim: yalnız küçük harf, rakam, nokta, alt çizgi; en az 3 karakter.'
+      : undefined;
+  const usernameTakenError =
+    !usernameFormatError && !usernameRawFormatWarning && !checking && available === false
+      ? 'Bu kullanıcı adı alınmış'
+      : undefined;
+  const usernameError = usernameFormatError || usernameRawFormatWarning || usernameTakenError;
+  const usernameHelper = usernameError
+    ? undefined
+    : checking
+      ? 'Kontrol ediliyor…'
+      : isThrottled
+        ? 'Çok fazla deneme yapıldı. Birazdan tekrar deneyin.'
+        : available === true
+          ? 'Bu kullanıcı adı uygun'
+          : undefined;
+  const usernameStatusIcon = checking
+    ? <Spinner size="sm" />
+    : usernameError
+      ? null
+      : available === true
+        ? <Ionicons name="checkmark-circle" size={20} color={theme.colors.success[600]} />
+        : null;
 
   return (
     <View style={styles.card}>
+      <Controller
+        control={control}
+        name="username"
+        render={({ field: { onChange, value } }) => (
+          <Input
+            testID="register-username-input"
+            label="Kullanıcı adı"
+            leftIconName="at-outline"
+            rightIcon={usernameStatusIcon}
+            placeholder="kaan.merakli"
+            value={value}
+            // Girişte küçük harfe çevir: alan gerçekten kaydedilecek handle'ı
+            // gösterir (sessiz dönüşüm yok) ve karışık girdi de uygunluk
+            // kontrolünden geçer. Şemadaki `.toLowerCase()` emniyet kemeri.
+            onChangeText={(t) => onChange(toHandle(t))}
+            maxLength={30}
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            error={usernameError}
+            helperText={usernameHelper}
+          />
+        )}
+      />
+      <Text variant="bodySm" tone="muted" style={styles.fieldHint}>
+        Kullanıcı adı bir kez belirlenince değiştirilemez.
+      </Text>
+
       <Controller
         control={control}
         name="displayName"
@@ -86,7 +151,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
           />
         )}
       />
-      <Text variant="bodySm" tone="muted" style={{ marginTop: -4, marginBottom: 8 }}>
+      <Text variant="bodySm" tone="muted" style={styles.fieldHint}>
         Şifre en az 8 karakter olmalı; 1 büyük harf, 1 küçük harf ve 1 rakam içermeli.
       </Text>
 
@@ -158,7 +223,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         title="Kayıt Ol"
         onPress={f.handleSubmit(f.onSubmit)}
         isLoading={registerMutation.isPending}
-        disabled={registerMutation.isPending}
+        disabled={registerMutation.isPending || usernameAvailability.available === false}
         style={{ marginTop: 16 }}
       />
     </View>

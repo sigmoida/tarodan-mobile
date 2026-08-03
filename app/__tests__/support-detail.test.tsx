@@ -24,7 +24,10 @@ const getTicketMock = supportApi.getTicket as jest.Mock;
 const addMessageMock = supportApi.addMessage as jest.Mock;
 
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ isAuthenticated: true }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: true });
+    return sel ? sel(state) : state;
+  },
 }));
 
 jest.mock('@/services/sentry', () => ({ captureException: jest.fn() }));

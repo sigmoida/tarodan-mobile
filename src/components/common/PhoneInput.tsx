@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 import { Input, Select, Text, theme } from '@/ui';
 import {
@@ -6,7 +6,9 @@ import {
   DEFAULT_COUNTRY_CODE,
   formatPhoneNumber,
   getPhonePlaceholder,
-} from '../../utils/phone';
+  isValidPhoneInput,
+  PHONE_INVALID_MESSAGE,
+} from '@/utils/phone';
 
 const { spacing, typography, colors } = theme;
 
@@ -20,11 +22,27 @@ export interface PhoneInputProps {
   label?: string;
   error?: string;
   containerStyle?: ViewStyle;
+  /**
+   * Opt-in: alan blur'landıktan sonra çözülemeyen numara için alanın altında
+   * Türkçe hata gösterilir (ve düzeltilince anında kaybolur).
+   *
+   * Neden opt-in: dört çağrı yerinin prop yüzeyi bozulmasın ve her form kendi
+   * gönderim gate'iyle birlikte açsın. Doğrulama `@/utils/phone` ile AYNI
+   * ayrıştırıcıyı kullanır — alanın gösterdiği hata ile gönderimi engelleyen
+   * kural ayrışamaz.
+   */
+  validateOnBlur?: boolean;
+  /** `validateOnBlur` mesajını özelleştirmek için (varsayılan: paylaşılan metin). */
+  invalidMessage?: string;
+  testID?: string;
 }
 
 /**
  * Ülke kodu Select + telefon Input combo'su (web'deki PhoneInput'un native eşi).
  * Formatlama ve placeholder otomatik; varsayılan ülke kodu +90.
+ *
+ * ⚠️ Formatlayıcı KIRPMAZ: on haneye sığmayan girdi ham kalır (kullanıcı ne
+ * yazdığını görür), `validateOnBlur` ile de hata metni gösterilir.
  */
 export const PhoneInput: React.FC<PhoneInputProps> = ({
   countryCode,
@@ -34,8 +52,19 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   label,
   error,
   containerStyle,
+  validateOnBlur = false,
+  invalidMessage = PHONE_INVALID_MESSAGE,
+  testID,
 }) => {
   const code = countryCode || DEFAULT_COUNTRY_CODE;
+  // Yazarken değil, alandan çıkınca uyar — yarım numarayı kırmızıya boyamak
+  // kullanıcıyı her tuş vuruşunda cezalandırırdı.
+  const [blurred, setBlurred] = useState(false);
+
+  const showInvalid =
+    validateOnBlur && blurred && phone.trim().length > 0 && !isValidPhoneInput(phone, code);
+  // Üstten gelen (form/submit) hata önceliklidir — o, gönderimi engelleyen hatadır.
+  const shownError = error ?? (showInvalid ? invalidMessage : undefined);
 
   return (
     <View style={containerStyle}>
@@ -52,12 +81,14 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
           />
         </View>
         <Input
+          testID={testID}
           value={phone}
           onChangeText={(text) => onPhoneChange(formatPhoneNumber(text, code))}
+          onBlur={() => setBlurred(true)}
           keyboardType="phone-pad"
           textContentType="telephoneNumber"
           placeholder={getPhonePlaceholder(code)}
-          error={error}
+          error={shownError}
           containerStyle={styles.phoneInput}
         />
       </View>

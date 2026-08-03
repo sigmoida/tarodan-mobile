@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Card, Text, Button, theme } from '@/ui';
@@ -14,10 +15,11 @@ export function OrderElogoInvoiceCard({
   onView: () => void;
   downloading: boolean;
 }) {
+  const { t } = useTranslation();
   if (!elogoInvoice?.id) return null;
   return (
     <Card variant="elevated" style={styles.card} testID="order-invoice-card">
-      <Text variant="label" style={styles.sectionTitle}>Fatura</Text>
+      <Text variant="label" style={styles.sectionTitle}>{t('order.invoice')}</Text>
       <Text variant="caption" style={styles.hint}>
         Faturanız e-posta adresinize gönderildi
         {elogoInvoice.invoiceNumber ? ` · No: ${elogoInvoice.invoiceNumber}` : ''}
@@ -48,10 +50,11 @@ export function OrderSellerInvoiceCard({
   onUpload: () => void;
   uploading: boolean;
 }) {
+  const { t } = useTranslation();
   if (!(sellerInvoice && (sellerInvoice.invoice || (sellerInvoice.canUpload && sellerInvoice.isSeller)))) return null;
   return (
     <Card variant="elevated" style={styles.card} testID="seller-invoice-card">
-      <Text variant="label" style={styles.sectionTitle}>Satıcı Faturası</Text>
+      <Text variant="label" style={styles.sectionTitle}>{t('order.sellerInvoice')}</Text>
       {sellerInvoice.invoice ? (
         <>
           <Text variant="caption" style={styles.hint}>{sellerInvoice.invoice.fileName}</Text>

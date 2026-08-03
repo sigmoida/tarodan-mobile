@@ -1,112 +1,91 @@
-import { useState } from 'react';
 import { router } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
 import { useMutation } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
-import { authApi } from '@/lib/api';
-import { useAuthStore } from '@/stores/authStore';
-import { DEFAULT_COUNTRY_CODE, normalizePhoneForPayload } from '@/utils/phone';
-import type { BusinessForm } from '../_lib/types';
+import { useZodForm } from '@/ui/form';
+import { authApi, errorText } from '@/lib/api';
+import { registerBusinessSchema, type RegisterBusinessForm } from '../_lib/schema';
 
 /**
- * Business-registration controller — owns the form object, the register mutation
- * (token persist + login + verify-email alert), and the field validation. Lifted
- * verbatim from the monolithic screen (§12).
+ * Kurumsal ön-başvuru controller'ı — `useZodForm` + kayıt mutation'ını sahiplenir.
+ *
+ * Bu adım HESAP OLUŞTURMAZ: `BusinessRegisterDto` bir ön başvurudur (canlıda
+ * doğrulandı — task-3-report.md). Admin onayının ardından davet e-postasındaki
+ * bağlantıdan kullanıcı adı/şifre `corporate-invite` akışında belirlenir; bu
+ * yüzden burada şifre alanı YOK ve başarı sonrası token kaydı / otomatik giriş
+ * YAPILMAZ (önceki sürüm SecureStore'a token yazıp `/seller/dashboard`'a
+ * yönlendiriyordu — API hiçbir zaman token dönmediği için bu her zaman no-op'tu).
  */
 export function useRegisterBusiness() {
-  const { login } = useAuthStore();
-  const [form, setForm] = useState<BusinessForm>({
-    companyName: '',
-    taxId: '',
-    city: '',
-    district: '',
-    companyType: '',
-    email: '',
-    phone: '',
-    phoneCountryCode: DEFAULT_COUNTRY_CODE,
-    password: '',
-    passwordConfirm: '',
+  const form = useZodForm(registerBusinessSchema, {
+    // Her string alan `''` ile başlamalı: dokunulmamış alan RHF'te `undefined`
+    // kalırsa zod `invalid_type` üretir ve kullanıcı tamamen Türkçe bir ekranda
+    // İngilizce "Required" görür. Boş formda submit en sık gidilen hata yolu.
+    defaultValues: {
+      authorizedFullName: '',
+      companyLegalName: '',
+      companyTitle: '',
+      companyAddress: '',
+      companyEmail: '',
+      kepAddress: '',
+      phone: '',
+      contactPhone: '',
+      acceptTerms: false,
+    },
   });
-  const [acceptTerms, setAcceptTerms] = useState(false);
-  const [acceptMarketing, setAcceptMarketing] = useState(false);
-
-  const setField = <K extends keyof BusinessForm>(key: K, value: BusinessForm[K]) =>
-    setForm((f) => ({ ...f, [key]: value }));
 
   const registerMutation = useMutation({
-    mutationFn: async () => {
-      const formattedPhone = normalizePhoneForPayload(form.phone, form.phoneCountryCode);
-      return authApi.registerBusiness({
-        companyName: form.companyName.trim(),
-        email: form.email.trim().toLowerCase(),
-        password: form.password,
-        phone: formattedPhone,
-        taxId: form.taxId.trim(),
-        city: form.city.trim(),
-        district: form.district.trim() || undefined,
-        companyType: form.companyType.trim() || undefined,
-        acceptsMarketingEmails: acceptMarketing,
-      });
-    },
-    onSuccess: async (response) => {
-      const data =
-        (response.data as { data?: Record<string, unknown> })?.data ??
-        ((response.data as Record<string, unknown>) ?? {});
-      const tokens = data.tokens as { accessToken?: string; refreshToken?: string } | undefined;
-      const accessToken = (tokens?.accessToken ?? data.accessToken ?? data.token) as string | undefined;
-      const refreshToken = (tokens?.refreshToken ?? data.refreshToken) as string | undefined;
-      if (accessToken) {
-        await SecureStore.setItemAsync('accessToken', accessToken);
-        if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
-      }
-      if (data.user && login) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await login(accessToken!, data.user as any);
-      }
-      appAlert(
-        'Kurumsal hesap oluşturuldu',
-        'E-posta doğrulaması için kayıtlı e-posta adresinize gönderilen bağlantıyı kullanın.',
-        [{ text: 'Devam', onPress: () => router.replace('/seller/dashboard') }],
-      );
+    mutationFn: (values: RegisterBusinessForm) =>
+      authApi.registerBusiness({
+        authorizedFullName: values.authorizedFullName,
+        companyLegalName: values.companyLegalName,
+        companyTitle: values.companyTitle,
+        companyAddress: values.companyAddress,
+        companyEmail: values.companyEmail,
+        phone: values.phone,
+        // Opsiyonel alanlar boşsa hiç GÖNDERİLMEZ — DTO'yla birebir (fazla alan yok).
+        ...(values.kepAddress ? { kepAddress: values.kepAddress } : {}),
+        ...(values.contactPhone ? { contactPhone: values.contactPhone } : {}),
+      }),
+    onSuccess: (response) => {
+      const data = response.data as {
+        applicationId?: string;
+        status?: string;
+        email?: string;
+        message?: string;
+      };
+      const lines = [
+        `${data.email ?? 'Belirttiğiniz e-posta adresi'} için kurumsal satıcı başvurunuz ` +
+          'incelemeye alındı. Admin onayının ardından davet e-postanızdaki bağlantıdan ' +
+          'kullanıcı adınızı ve şifrenizi belirleyebileceksiniz.',
+      ];
+      // Başvuru numarası destek için tek referans — uç 5/dk limitli, kullanıcı
+      // "gitti mi?" diye tekrar denemesin.
+      if (data.applicationId) lines.push(`Başvuru numaranız: ${data.applicationId}`);
+      appAlert('Başvurunuz alındı', lines.join('\n\n'), [
+        { text: 'Tamam', onPress: () => router.replace('/(auth)/login') },
+      ]);
     },
     onError: (e: unknown) => {
-      const err = e as { response?: { data?: { message?: string } } };
-      appAlert('Hata', err?.response?.data?.message || 'Kayıt tamamlanamadı.');
+      const status = (e as { response?: { status?: number } })?.response?.status;
+      appAlert(
+        'Başvuru gönderilemedi',
+        // Uç 5/dk throttle'lı; ham gövde NestJS'in iç sınıf adını
+        // ("ThrottlerException: Too Many Requests") döndürüyor — kullanıcıya gösterilmez.
+        status === 429
+          ? 'Çok fazla deneme yaptınız, lütfen bir dakika sonra tekrar deneyin.'
+          : // Paylaşılan helper: dizi mesajları birleştirir, boş dizi/boş string
+            // fallback'e düşer (elle yazılan sürüm boş gövdeli alert üretiyordu).
+            errorText(e, 'Başvurunuz gönderilemedi. Lütfen tekrar deneyin.'),
+      );
     },
   });
 
-  const handleSubmit = () => {
-    if (!form.companyName.trim()) return appAlert('Eksik', 'Şirket adı gerekli.');
-    if (!/^\d{10,11}$/.test(form.taxId.trim()))
-      return appAlert('Eksik', 'Vergi / T.C. no 10 veya 11 hane olmalı.');
-    if (form.city.trim().length < 2) return appAlert('Eksik', 'Şehir/İl gerekli.');
-    if (!/^\S+@\S+\.\S+$/.test(form.email)) return appAlert('Eksik', 'Geçerli e-posta girin.');
-    // TR için tam 10 hane; diğer ülke kodlarında en az 8 hane yeterli.
-    const phoneDigits = form.phone.replace(/\D/g, '');
-    const phoneValid =
-      form.phoneCountryCode === DEFAULT_COUNTRY_CODE
-        ? /^[0-9]{10}$/.test(phoneDigits)
-        : phoneDigits.length >= 8;
-    if (!phoneValid) return appAlert('Eksik', 'Geçerli bir telefon numarası girin (5XX XXX XX XX).');
-    if (form.password.length < 8) return appAlert('Şifre Yetersiz', 'Şifre en az 8 karakter olmalı.');
-    if (!/[A-Z]/.test(form.password)) return appAlert('Şifre Yetersiz', 'Şifre en az 1 büyük harf içermeli.');
-    if (!/[a-z]/.test(form.password)) return appAlert('Şifre Yetersiz', 'Şifre en az 1 küçük harf içermeli.');
-    if (!/\d/.test(form.password)) return appAlert('Şifre Yetersiz', 'Şifre en az 1 rakam içermeli.');
-    if (form.password !== form.passwordConfirm) return appAlert('Eksik', 'Şifreler eşleşmiyor.');
-    if (!acceptTerms)
-      return appAlert('Sözleşme', 'Üyelik sözleşmesini ve KVKK aydınlatmasını kabul etmelisiniz.');
-    registerMutation.mutate();
-  };
+  const onSubmit = form.handleSubmit((values) => registerMutation.mutate(values));
 
   return {
     form,
-    setField,
-    acceptTerms,
-    setAcceptTerms,
-    acceptMarketing,
-    setAcceptMarketing,
     registerMutation,
-    handleSubmit,
+    onSubmit,
   };
 }
 

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { Avatar, IconButton, Text, theme } from '@/ui';
@@ -16,9 +17,10 @@ export function SellerCard({
   onPressSeller: () => void;
   onMessage: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Pressable style={styles.sellerCard} onPress={onPressSeller}>
-      <Avatar size="lg" name={seller?.displayName || 'Satıcı'} source={resolveAvatarSource(seller?.avatarUrl)} />
+      <Avatar size="lg" name={seller?.displayName || t('product.seller')} source={resolveAvatarSource(seller?.avatarUrl)} />
       <View style={styles.sellerInfo}>
         <View style={styles.sellerNameRow}>
           <Text style={styles.sellerName}>{seller?.displayName}</Text>
@@ -34,7 +36,7 @@ export function SellerCard({
             <Text style={styles.sellerStatText}>{seller?.totalSales || 0} satış</Text>
           </View>
         </View>
-        <Text style={styles.sellerResponseTime}>Yanıt süresi: {seller?.responseTime || 'Bilinmiyor'}</Text>
+        <Text style={styles.sellerResponseTime}>Yanıt süresi: {seller?.responseTime || t('common.unknown')}</Text>
       </View>
       <View style={styles.sellerAction}>
         <IconButton

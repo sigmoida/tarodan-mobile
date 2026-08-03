@@ -28,7 +28,10 @@ jest.mock('@/components/product/AddToCollectionModal', () => ({ __esModule: true
 jest.mock('@/components/SignupPrompt', () => ({ SignupPrompt: () => null }));
 
 let mockAuth = { isAuthenticated: false, user: null as { id: string } | null };
-jest.mock('@/stores/authStore', () => ({ useAuthStore: () => mockAuth }));
+jest.mock('@/stores/authStore', () => ({ useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = mockAuth ;
+    return sel ? sel(state) : state;
+  }}));
 jest.mock('@/stores/cartStore', () => ({
   useCartStore: () => ({ addItem: jest.fn(), isInCart: () => false, setBuyNow: jest.fn() }),
 }));

@@ -23,7 +23,10 @@ import { paymentsApi } from '@/lib/api';
 
 let mockIsAuthenticated = true;
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ isAuthenticated: mockIsAuthenticated }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: mockIsAuthenticated });
+    return sel ? sel(state) : state;
+  },
 }));
 
 import PaymentHistoryScreen from '../payment-history';

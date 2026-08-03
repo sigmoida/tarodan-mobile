@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { Text, theme } from '@/ui';
@@ -14,20 +15,21 @@ export function ProductReviewsPreview({
   reviews: ProductReview[] | undefined;
   onSeeAll: () => void;
 }) {
+  const { t } = useTranslation();
   const list = Array.isArray(reviews) ? reviews : [];
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Değerlendirmeler</Text>
+        <Text style={styles.sectionTitle}>{t('profile.reviews')}</Text>
         <Pressable onPress={onSeeAll}>
-          <Text style={styles.seeAll}>Tümünü Gör</Text>
+          <Text style={styles.seeAll}>{t('common.seeAll')}</Text>
         </Pressable>
       </View>
 
       {list.slice(0, 2).map((review) => {
         const score = review.score ?? review.rating ?? 0;
         const reviewerName =
-          review.user?.displayName ?? (review as any).userName ?? (review as any).reviewer?.displayName ?? 'Kullanıcı';
+          review.user?.displayName ?? (review as any).userName ?? (review as any).reviewer?.displayName ?? t('common.user');
         const reviewText = review.review ?? review.comment;
         const dateStr = review.createdAt ?? review.date;
         return (
@@ -52,7 +54,7 @@ export function ProductReviewsPreview({
         );
       })}
 
-      {list.length === 0 && <Text style={styles.noReviews}>Henüz değerlendirme yok</Text>}
+      {list.length === 0 && <Text style={styles.noReviews}>{t('profile.noReviews')}</Text>}
     </View>
   );
 }

@@ -1,6 +1,7 @@
 import { render, fireEvent } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { ProfileMenuSections } from '../_components/ProfileSections';
+import { INFO_PAGES, ACCOUNT_PAGES } from '../_lib/infoPages';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 
@@ -29,6 +30,16 @@ describe('profil menüsü — daha önce erişilemeyen ekranlar', () => {
     fireEvent.press(getByTestId(testID));
     expect(router.push).toHaveBeenCalledWith(route);
   });
+
+  it.each([...INFO_PAGES, ...ACCOUNT_PAGES].map((p) => [p.route] as [string]))(
+    'menüsüz kalan /%s ekranına gidilebiliyor',
+    (route) => {
+      const prefix = INFO_PAGES.some((p) => p.route === route) ? 'info' : 'account';
+      const { getByTestId } = render(<ProfileMenuSections f={f} />);
+      fireEvent.press(getByTestId(`profile-${prefix}-${route}-link`));
+      expect(router.push).toHaveBeenCalledWith(`/${route}`);
+    },
+  );
 
   it('hukuki sayfalar CMS ekranına yönlendirir', () => {
     const { getByTestId } = render(<ProfileMenuSections f={f} />);

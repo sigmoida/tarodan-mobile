@@ -40,7 +40,7 @@ export const quickActionItems: Array<{
   { icon: 'pricetag', label: 'İlanlarım', to: '/settings/my-listings' },
   { icon: 'cube', label: 'Siparişlerim', to: '/orders', testID: 'profile-orders-link' },
   { icon: 'cash', label: 'Satışlarım', to: '/sales', testID: 'profile-sales-link' },
-  { icon: 'arrow-undo', label: 'İadelerim', to: '/refund-requests', testID: 'profile-refunds-link' },
+  { icon: 'arrow-undo', label: 'İade Talepleri', to: '/refund-requests', testID: 'profile-refunds-link' },
   { icon: 'heart', label: 'Favorilerim', to: '/favorites' },
   { icon: 'chatbubbles', label: 'Mesajlar', to: '/messages' },
   { icon: 'albums', label: 'Beğenilen Koleksiyonlar', to: '/settings/liked-collections' },

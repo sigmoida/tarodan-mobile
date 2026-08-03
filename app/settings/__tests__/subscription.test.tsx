@@ -26,7 +26,10 @@ jest.mock("react-i18next", () => ({
 // authStore — varsayılan: oturum açık. Test içinde override edilebilir.
 let mockAuthState = { isAuthenticated: true };
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => mockAuthState,
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = mockAuthState;
+    return sel ? sel(state) : state;
+  },
 }));
 
 // API katmanı — controller'ın query/mutation'larını besler.

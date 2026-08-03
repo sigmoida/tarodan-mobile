@@ -19,7 +19,10 @@ let mockAuthState: any = {
   user: { id: 'u1', isSeller: true },
 };
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => mockAuthState,
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = mockAuthState;
+    return sel ? sel(state) : state;
+  },
 }));
 
 jest.mock('@/lib/api', () => ({

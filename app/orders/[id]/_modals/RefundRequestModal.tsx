@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, ScrollView, Image, Pressable, StyleSheet } from 'react-native';
 import { Modal, Button, Input, RadioGroup, Text, theme } from '@/ui';
@@ -39,6 +40,7 @@ export function RefundRequestModal({
   onSubmit: () => void;
   isPending: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <Modal isOpen={visible} onClose={onClose} title="İade Talebi Oluştur">
       <ScrollView>
@@ -48,7 +50,7 @@ export function RefundRequestModal({
 
         {orderQuantity > 1 && (
           <View style={styles.qtySection}>
-            <Text variant="caption" style={styles.refundModalLabel}>İade Edilecek Adet</Text>
+            <Text variant="caption" style={styles.refundModalLabel}>{t('order.refundQuantity')}</Text>
             <Text variant="caption" style={styles.evidenceHint}>
               Bu siparişte {orderQuantity} adet var. Kaç adet iade edeceğinizi seçin.
             </Text>
@@ -80,7 +82,7 @@ export function RefundRequestModal({
           </View>
         )}
 
-        <Text variant="caption" style={styles.refundModalLabel}>İade Nedeni (isteğe bağlı)</Text>
+        <Text variant="caption" style={styles.refundModalLabel}>{t('order.refundReasonOptional')}</Text>
         <RadioGroup value={reason} onChange={setReason} options={REFUND_REASONS} />
 
         <Input
@@ -95,7 +97,7 @@ export function RefundRequestModal({
         />
 
         <View style={styles.evidenceSection}>
-          <Text variant="caption" style={styles.refundModalLabel}>Kanıt Fotoğrafı (isteğe bağlı)</Text>
+          <Text variant="caption" style={styles.refundModalLabel}>{t('order.evidencePhotoOptional')}</Text>
           <Text variant="caption" style={styles.evidenceHint}>
             Dilerseniz fotoğraf ekleyin (en fazla {MAX_EVIDENCE_PHOTOS}).
           </Text>

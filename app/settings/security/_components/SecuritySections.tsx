@@ -2,6 +2,7 @@ import React from 'react';
 import { View, ScrollView, TouchableOpacity } from 'react-native';
 import { Card, Switch, Button, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
+import { splitPhone } from '@/utils/phone';
 
 import { styles } from '../_lib/styles';
 import type { SecurityController } from '../_hooks/useSecurity';
@@ -97,7 +98,11 @@ export function SecuritySections({ f }: { f: SecurityController }) {
           <Button
             title="Doğrula"
             onPress={() => {
-              f.setPhoneInput(f.user?.phone || '');
+              // Kayıtlı numara E.164 saklanıyor; alan ülke kodu + lokal parça
+              // istiyor, ikisine ayır (yoksa "+90" tekrar yazılmış görünürdü).
+              const seed = splitPhone(f.user?.phone || '');
+              f.setPhoneCountryCode(seed.countryCode);
+              f.setPhoneInput(seed.phone);
               f.setPhoneStep('enter');
               f.setPhoneCode('');
               f.setPhoneMsg(null);

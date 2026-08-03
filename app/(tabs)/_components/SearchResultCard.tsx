@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Card, Text, theme } from '@/ui';
 
 import { isProductOutOfStock } from '@/utils/productPrice';
+import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
 import { OutOfStockOverlay } from '@/components/product';
 import { asLabel } from '@/utils/format';
 import { styles } from '../_lib/searchStyles';
@@ -44,7 +45,7 @@ function SearchResultCardBase({
             resizeMode="cover"
           />
           {isProductOutOfStock(item) && <OutOfStockOverlay />}
-          {(item.tradeAvailable || item.isTradeEnabled) && (
+          {isProductTradeOpen(item) && (
             <View style={styles.tradeBadge}>
               <Ionicons name="swap-horizontal" size={12} color={colors.white} />
               <Text variant="caption" tone="inverted" weight="bold">

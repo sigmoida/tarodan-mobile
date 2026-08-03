@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, Image, Pressable, StyleSheet } from 'react-native';
 import { Card, Text, theme } from '@/ui';
@@ -28,6 +29,7 @@ export function OrderProductCard({ order }: { order: OrderDetail }) {
 }
 
 export function OrderSellerCard({ order }: { order: OrderDetail }) {
+  const { t } = useTranslation();
   return (
     <Card variant="elevated" style={styles.card}>
       <Pressable onPress={() => router.push(`/seller/${order.seller.id}`)}>
@@ -35,7 +37,7 @@ export function OrderSellerCard({ order }: { order: OrderDetail }) {
           <Ionicons name="storefront" size={24} color={colors.primary[600]!} />
           <View style={styles.sellerInfo}>
             <Text variant="label">{order.seller.displayName}</Text>
-            <Text variant="caption" style={styles.sellerLink}>Satıcı Profilini Görüntüle</Text>
+            <Text variant="caption" style={styles.sellerLink}>{t('order.viewSellerProfile')}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
         </View>

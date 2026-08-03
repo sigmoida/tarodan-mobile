@@ -11,7 +11,10 @@ import { routerMock, resetRouterMocks } from '@/test-utils/router-mock';
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
 jest.mock('@/lib/api', () => ({
-  authApi: { register: jest.fn() },
+  authApi: {
+    register: jest.fn(),
+    checkUsernameAvailability: jest.fn(() => Promise.resolve({ data: { available: true } })),
+  },
 }));
 import { authApi } from '@/lib/api';
 import RegisterScreen from '../register';
@@ -19,6 +22,8 @@ import RegisterScreen from '../register';
 const mockRegister = authApi.register as jest.Mock;
 
 function fillValidFormExceptResult() {
+  // API 2026-07-30'dan beri username zorunlu — bkz. register/_lib/schema.ts.
+  fireEvent.changeText(screen.getByTestId('register-username-input'), 'test.kullanici');
   fireEvent.changeText(screen.getByTestId('register-displayName-input'), 'Test Kullanıcı');
   fireEvent.changeText(screen.getByTestId('register-email-input'), 'dupe@demo.com');
   fireEvent.changeText(screen.getByTestId('register-password-input'), 'Demo1234');

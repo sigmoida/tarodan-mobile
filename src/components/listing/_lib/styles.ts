@@ -300,6 +300,40 @@ export const styles = StyleSheet.create({
     color: colors.white,
   },
 
+  // Kargo paket boyutu — üç kart
+  tierRow: {
+    flexDirection: 'row',
+    gap: theme.spacing[2],
+  },
+  tierCard: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: colors.border.DEFAULT,
+    borderRadius: theme.radius.lg,
+    paddingVertical: theme.spacing[3],
+    paddingHorizontal: theme.spacing[2],
+    alignItems: 'center',
+    gap: theme.spacing[1],
+  },
+  tierCardActive: {
+    borderColor: colors.primary[600]!,
+    backgroundColor: colors.primary[50]!,
+  },
+  tierLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text.heading,
+    textAlign: 'center',
+  },
+  tierLabelActive: {
+    color: colors.primary[700]!,
+  },
+  tierSample: {
+    fontSize: 11,
+    color: colors.text.muted,
+    textAlign: 'center',
+  },
+
   // Images
   imageUploadArea: {
     borderWidth: 2,

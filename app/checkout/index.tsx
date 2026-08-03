@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Button, Snackbar, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,14 +16,15 @@ import { OtpModal } from './_modals/OtpModal';
 const { colors } = theme;
 
 export default function CheckoutScreen() {
+  const { t } = useTranslation();
   const c = useCheckout();
 
   if (c.items.length === 0) {
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="cart-outline" size={80} color={colors.text.muted} />
-        <Text style={styles.emptyTitle}>Sepetiniz Boş</Text>
-        <Text style={styles.emptySubtitle}>Ödeme yapabilmek için sepetinize ürün ekleyin</Text>
+        <Text style={styles.emptyTitle}>{t('checkout.emptyCart')}</Text>
+        <Text style={styles.emptySubtitle}>{t('checkout.emptyCartDesc')}</Text>
         <Button
           variant="primary"
           title="Alışverişe Başla"
@@ -36,7 +38,7 @@ export default function CheckoutScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScreenHeader
-        title={c.step === 1 ? 'Teslimat Bilgileri' : c.step === 2 ? 'Ödeme' : 'Sipariş Onayı'}
+        title={c.step === 1 ? t('checkout.shippingInfo') : c.step === 2 ? t('checkout.title') : t('checkout.orderConfirmation')}
         onBack={() => (c.step > 1 ? c.setStep(c.step - 1) : router.back())}
       />
 
@@ -47,18 +49,19 @@ export default function CheckoutScreen() {
         {c.step === 2 ? <Step2Payment c={c} /> : null}
         {c.step === 3 ? <Step3Confirm c={c} /> : null}
 
-        <CouponInput coupon={c.coupon} />
+        <CouponInput coupon={c.coupon} couponDiscount={c.couponDiscount} />
 
         <OrderSummary
           itemCount={c.items.length}
-          subtotal={c.subtotal}
+          productAmount={c.productAmount}
           shippingCost={c.shippingCost}
-          effectiveShippingCity={c.effectiveShippingCity}
-          buyerFee={c.buyerFee}
-          taxAmount={c.taxAmount}
-          discount={c.coupon.discount}
-          couponCode={c.coupon.applied?.code}
+          serviceFeeAmount={c.serviceFeeAmount}
           total={c.total}
+          // Tutar YOK ama hata da yok (200 döndü, `total` alanı boş): buton zaten
+          // kapalı, ama çıkış yolu olmadan kullanıcı dört "—" ile kilitli kalır.
+          // `quoteLoading` kapısı ilk yüklemede hata kartının yanıp sönmesini önler.
+          isError={c.quoteError || (!c.quoteLoading && c.total == null)}
+          onRetry={c.retryQuote}
         />
 
         <View style={{ height: 120 }} />
@@ -77,10 +80,19 @@ export default function CheckoutScreen() {
         ) : (
           <Button
             variant="primary"
-            title={c.loading ? 'İşleniyor...' : `Onayla ve Öde (${formatPrice(c.total)})`}
+            // Toplam bilinmiyorken butona TUTAR BASILMAZ — "Onayla ve Öde (0,00 TL)"
+            // yazan etkin bir buton, quote hata verdiğinde kullanıcıyı boş bir
+            // guard mesajına sürüklüyordu. Bilinmiyorsa buton da devre dışı.
+            title={
+              c.loading
+                ? t('checkout.processing')
+                : c.total == null
+                  ? t('checkout.confirmAndPay')
+                  : `Onayla ve Öde (${formatPrice(c.total)})`
+            }
             onPress={c.handleCheckout}
             isLoading={c.loading}
-            disabled={c.loading}
+            disabled={c.loading || c.quoteLoading || c.quoteError || c.total == null}
             fullWidth
             style={styles.actionButton}
             icon="card-outline"

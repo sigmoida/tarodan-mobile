@@ -85,6 +85,11 @@ export function MessageList({ f }: { f: MessageThreadController }) {
                     variant="card"
                     style={styles.messageImage}
                     resizeMode="cover"
+                    // Mesaj ekleri API redirect uçtan gelir (`/api/media/message-attachment/{id}`)
+                    // ve JWT ister — bearer'sız istek 401 alıp sessizce placeholder'a düşüyordu
+                    // (task 4, parite P0 #4). Ürün görselleri gibi public değil, bu yüzden burada
+                    // opt-in ediyoruz.
+                    authenticated
                   />
                 ))}
               </View>

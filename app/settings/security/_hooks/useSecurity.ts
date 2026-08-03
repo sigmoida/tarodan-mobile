@@ -4,6 +4,11 @@ import { appAlert, useModalMessage, alertAfterClose } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
 import { authApi } from "@/lib/api";
 import { useTranslation } from "react-i18next";
+import {
+  PHONE_INVALID_MESSAGE,
+  parsePhoneForPayload,
+  splitPhone,
+} from "@/utils/phone";
 
 /**
  * Güvenlik ekranı controller'ı — şifre değiştirme, 2FA kurulum/kapat/yedek-kod,
@@ -44,9 +49,12 @@ export function useSecurity() {
     };
   }, []);
 
-  // Telefon doğrulama
+  // Telefon doğrulama. Alan artık paylaşılan `PhoneInput` (ülke kodu + formatlı
+  // lokal parça); gönderilen değer daima `parsePhoneForPayload` çıktısı E.164.
   const [showPhoneDialog, setShowPhoneDialog] = useState(false);
-  const [phoneInput, setPhoneInput] = useState(user?.phone || "");
+  const initialPhone = splitPhone(user?.phone || "");
+  const [phoneCountryCode, setPhoneCountryCode] = useState(initialPhone.countryCode);
+  const [phoneInput, setPhoneInput] = useState(initialPhone.phone);
   const [phoneCode, setPhoneCode] = useState("");
   const [phoneStep, setPhoneStep] = useState<"enter" | "verify">("enter");
   const [phoneVerified, setPhoneVerified] = useState(!!user?.isPhoneVerified);
@@ -72,10 +80,17 @@ export function useSecurity() {
   }, [resendIn]);
 
   const handleSendPhoneCode = async () => {
+    // Çözülemeyen numarayı sunucuya sormadan burada durdur — kullanıcı reddin
+    // sebebini görsün (diğer telefon yollarıyla aynı sözleşme, Plan 4).
+    const e164 = parsePhoneForPayload(phoneInput, phoneCountryCode);
+    if (!e164) {
+      setPhoneMsg({ type: "error", text: PHONE_INVALID_MESSAGE });
+      return;
+    }
     setLoading(true);
     setPhoneMsg(null);
     try {
-      await authApi.sendPhoneCode(phoneInput);
+      await authApi.sendPhoneCode(e164);
       setPhoneStep("verify");
       setResendIn(60);
       // Modal açık: alert yerine modal-içi bilgi mesajı (iç içe modal donmasını önler).
@@ -335,6 +350,8 @@ export function useSecurity() {
     setShowPhoneDialog,
     phoneInput,
     setPhoneInput,
+    phoneCountryCode,
+    setPhoneCountryCode,
     phoneCode,
     setPhoneCode,
     phoneStep,

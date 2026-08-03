@@ -19,7 +19,21 @@ jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
 // API inline mock — ağ yok, deterministik. Checkout'un kullandığı tüm api'lar.
 jest.mock('@/lib/api', () => ({
-  ordersApi: { directBuy: jest.fn(), createGuest: jest.fn() },
+  ordersApi: {
+    directBuy: jest.fn(),
+    createGuest: jest.fn(),
+    getQuote: jest.fn(() =>
+      Promise.resolve({
+        data: {
+          pricingHash: '70a8bdadff29af70',
+          shippingTariffVersion: 3,
+          pricing: {
+            summary: { productAmount: 100, shippingAmount: 50, serviceFeeAmount: 15, total: 165 },
+          },
+        },
+      }),
+    ),
+  },
   paymentsApi: {
     getPaymentMethods: jest.fn(() => Promise.resolve({ data: [] })),
     directForm: jest.fn(),
@@ -27,14 +41,19 @@ jest.mock('@/lib/api', () => ({
     initiateGuest: jest.fn(),
     bypassComplete: jest.fn(),
   },
-  shippingApi: { getRatesByCity: jest.fn(() => Promise.resolve({ data: { rate: 34.9 } })) },
+  // shippingApi'de artik kargo UCRETI ucu YOK (getRatesByCity/getRates/
+  // calculateRates/getCarriers kaldirildi) - kargo yalniz quote'tan gelir.
+  // API yuzeyi garantisi: src/lib/api/__tests__/orders.test.ts.
   addressesApi: { getAll: jest.fn(() => Promise.resolve({ data: [] })) },
   discountsApi: { validate: jest.fn() },
 }));
 
 // Konuk akışı: misafir kullanıcı → adres formu inline görünür (testID gerektirmez).
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ isAuthenticated: false, user: null }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: false, user: null });
+    return sel ? sel(state) : state;
+  },
 }));
 
 import { useCartStore } from '@/stores/cartStore';
@@ -86,10 +105,14 @@ describe('checkout-3step', () => {
       expect(screen.getByText('Ödeme Detayı')).toBeOnTheScreen();
     });
 
-    it('il seçilmeden kargo satırı "İl seçin" gösterir', () => {
+    it('kargo satırı il seçilmeden de summary.shippingAmount ile basılır', async () => {
       seedCart([SAMPLE_ITEM]);
       renderWithProviders(<CheckoutScreen />);
-      expect(screen.getByText('İl seçin')).toBeOnTheScreen();
+      // Quote şehirden bağımsız (`items` gövdesi) ve `summary.total` kargoyu
+      // zaten içeriyor. Eski "İl seçin" kapısı, kargo satırı gizliyken toplamın
+      // kargolu olmasına yol açıyordu → satırlar toplama eşit görünmüyordu.
+      await waitFor(() => expect(screen.getByText('50,00 TL')).toBeOnTheScreen());
+      expect(screen.queryByText('İl seçin')).toBeNull();
     });
   });
 
@@ -121,6 +144,27 @@ describe('checkout-3step', () => {
       // İlk adımda son adım butonu (Onayla ve Öde) görünmez.
       expect(screen.queryByText(/Onayla ve Öde/)).toBeNull();
       expect(screen.getByText('Devam Et')).toBeOnTheScreen();
+    });
+  });
+
+  describe('Fiyat sözleşmesi — özet quote.pricing.summary\'den gelir', () => {
+    it('dört satır da summary\'den gelir ve üç satırın toplamı Toplam\'a eşittir', async () => {
+      seedCart([SAMPLE_ITEM]);
+      renderWithProviders(<CheckoutScreen />);
+
+      // summary.total (165) — eski yerel aritmetik (subtotal 100 + shippingCost 0
+      // + buyerFee/taxAmount 0 - indirim 0 = 100) render edilseydi bu metin YOK olurdu.
+      await waitFor(() => {
+        expect(screen.getByText('165,00 TL')).toBeOnTheScreen();
+      });
+      // Üç satır: 100 + 50 + 15 = 165 → satırlar toplama BİREBİR eşit.
+      // (Sunucu garantisi; ekrana araya başka bir para satırı eklenmez.)
+      expect(screen.getByText('100,00 TL')).toBeOnTheScreen();
+      expect(screen.getByText('50,00 TL')).toBeOnTheScreen();
+      expect(screen.getByText('15,00 TL')).toBeOnTheScreen();
+      // serviceFeeAmount hizmet bedeli + TÜM alıcı hizmet KDV'sini içerir —
+      // ayrı bir "KDV" satırı basılmaz (çift sayım).
+      expect(screen.queryByText('KDV')).toBeNull();
     });
   });
 });

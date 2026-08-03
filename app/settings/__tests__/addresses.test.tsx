@@ -16,7 +16,10 @@ jest.mock("expo-router", () => ({
 }));
 
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => ({ isAuthenticated: true, limits: { maxAddresses: 10 } }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: true, limits: { maxAddresses: 10 } });
+    return sel ? sel(state) : state;
+  },
 }));
 
 jest.mock("react-i18next", () => ({

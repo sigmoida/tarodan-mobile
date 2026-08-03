@@ -32,6 +32,26 @@ export function OrderTrackResult({ order }: { order: OrderStatus }) {
 
       <Divider style={{ marginVertical: theme.spacing[4] }} />
 
+      {/* Sunucunun çözdüğü diğer numaralar — kargo/grup oluşmadıysa gelmezler. */}
+      {(order.groupNumber || order.packageNumber) && (
+        <View style={styles.shippingInfo}>
+          {order.groupNumber ? (
+            <View style={styles.shippingRow}>
+              <Text style={styles.shippingLabel}>Grup No</Text>
+              <Text style={[styles.shippingValue, styles.trackingNumber]}>{order.groupNumber}</Text>
+            </View>
+          ) : null}
+          {order.packageNumber ? (
+            <View style={styles.shippingRow}>
+              <Text style={styles.shippingLabel}>Teslimat No</Text>
+              <Text style={[styles.shippingValue, styles.trackingNumber]}>
+                {order.packageNumber}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      )}
+
       {/* Product Info */}
       <View style={styles.productSection}>
         <Text style={styles.sectionTitle}>Ürün</Text>

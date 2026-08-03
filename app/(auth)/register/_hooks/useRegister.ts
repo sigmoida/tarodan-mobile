@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { authApi } from '@/lib/api';
 import { registerSchema, type RegisterForm } from '../_lib/schema';
+import { useUsernameAvailability } from './useUsernameAvailability';
 
 /**
  * Register controller — owns the RHF+zod form, the register mutation and the
@@ -13,16 +14,21 @@ export function useRegister() {
   const {
     control,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
+      username: '',
       acceptTerms: false,
       // Maestro spinner DateField'ı süremez; test modunda geçerli (18+) bir
       // doğum tarihi öndoldurulur. Prod'da EXPO_PUBLIC_MAESTRO unset → '' .
       birthDate: process.env.EXPO_PUBLIC_MAESTRO === '1' ? '1990-01-01' : '',
     },
   });
+
+  const usernameValue = watch('username') ?? '';
+  const usernameAvailability = useUsernameAvailability(usernameValue);
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterForm) => {
@@ -46,6 +52,7 @@ export function useRegister() {
       }
 
       return authApi.register({
+        username: data.username,
         displayName: data.displayName,
         email: data.email,
         password: data.password,
@@ -55,11 +62,25 @@ export function useRegister() {
     onSuccess: () => router.replace('/(auth)/login'),
   });
 
-  const onSubmit = (data: RegisterForm) => registerMutation.mutate(data);
+  const onSubmit = (data: RegisterForm) => {
+    // Kesin "alınmış" yanıtı gelmişse gönderme (buton zaten disabled olur —
+    // burası ikinci bir bariyer). Sorgu henüz bilinmiyorsa (undefined) engellemez;
+    // sunucu son sözü söyler.
+    if (usernameAvailability.available === false) return;
+    registerMutation.mutate(data);
+  };
 
   const handleBack = () => (router.canGoBack() ? router.back() : router.replace('/(auth)/login'));
 
-  return { control, handleSubmit, errors, registerMutation, onSubmit, handleBack };
+  return {
+    control,
+    handleSubmit,
+    errors,
+    registerMutation,
+    onSubmit,
+    handleBack,
+    usernameAvailability,
+  };
 }
 
 export type RegisterController = ReturnType<typeof useRegister>;

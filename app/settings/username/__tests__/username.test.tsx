@@ -12,7 +12,10 @@ jest.mock('expo-router', () => ({ router: { back: jest.fn() } }));
 
 const mockUser = { username: '', usernameClaimed: false };
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ user: mockUser, updateUser: jest.fn() }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ user: mockUser, updateUser: jest.fn() });
+    return sel ? sel(state) : state;
+  },
 }));
 
 // Not: brief testi düz `render` ile yazıyordu; useClaimUsername useMutation kullandığı
@@ -42,6 +45,19 @@ describe('Kullanıcı adı talebi', () => {
   it('geçerli kullanıcı adı gönderilir', async () => {
     const { getByTestId } = renderScreen();
     fireEvent.changeText(getByTestId('username-input'), 'kaan.merakli');
+    fireEvent.press(getByTestId('username-submit'));
+    await waitFor(() => expect(userApi.claimUsername).toHaveBeenCalledWith('kaan.merakli'));
+  });
+
+  // §5 yakınsaması: kural artık `@/utils/validation`'daki tek `usernameSchema`.
+  // Karışık büyük/küçük giriş ALANDA küçük harfe çevrilir — kullanıcı kalıcı
+  // handle'ını gördüğü gibi gönderir (sessiz dönüşüm yok).
+  it('karışık büyük/küçük giriş alanda küçük harfe çevrilir ve öyle gönderilir', async () => {
+    const { getByTestId } = renderScreen();
+    const input = getByTestId('username-input');
+    fireEvent.changeText(input, 'Kaan.Merakli');
+    expect(input.props.value).toBe('kaan.merakli');
+
     fireEvent.press(getByTestId('username-submit'));
     await waitFor(() => expect(userApi.claimUsername).toHaveBeenCalledWith('kaan.merakli'));
   });

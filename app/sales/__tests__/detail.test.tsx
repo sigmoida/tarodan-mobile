@@ -26,7 +26,7 @@ const getOneMock = ordersApi.getOne as jest.Mock;
 function saleFixture(overrides: Record<string, unknown> = {}) {
   return {
     id: 'sale-1',
-    orderNumber: 'TRD-2001',
+    orderNumber: 'ORD-2001000000',
     status: 'paid',
     totalAmount: 350,
     subtotal: 320,
@@ -53,7 +53,7 @@ describe('J63 · Satıcı sipariş detayı render', () => {
     getOneMock.mockResolvedValue({ data: { data: saleFixture() } });
     renderWithProviders(<SaleDetailScreen />);
     await waitFor(() =>
-      expect(screen.getByText('Sipariş #TRD-2001')).toBeOnTheScreen(),
+      expect(screen.getByText('Sipariş #ORD-2001000000')).toBeOnTheScreen(),
     );
     expect(screen.getByText('Deri Ceket')).toBeOnTheScreen();
   });
@@ -62,7 +62,7 @@ describe('J63 · Satıcı sipariş detayı render', () => {
     getOneMock.mockResolvedValue({ data: { data: saleFixture({ status: 'paid' }) } });
     renderWithProviders(<SaleDetailScreen />);
     await waitFor(() =>
-      expect(screen.getByText('Sipariş #TRD-2001')).toBeOnTheScreen(),
+      expect(screen.getByText('Sipariş #ORD-2001000000')).toBeOnTheScreen(),
     );
     // formatOrderStatus(paid) durum banner'ında render edilir
     expect(screen.getByTestId('sales-shipment-card')).toBeOnTheScreen();
@@ -100,7 +100,7 @@ describe('J63 · Satıcı iptali yok + iptal etiketi', () => {
     getOneMock.mockResolvedValue({ data: { data: saleFixture({ status: 'paid' }) } });
     renderWithProviders(<SaleDetailScreen />);
     await waitFor(() =>
-      expect(screen.getByText('Sipariş #TRD-2001')).toBeOnTheScreen(),
+      expect(screen.getByText('Sipariş #ORD-2001000000')).toBeOnTheScreen(),
     );
     expect(screen.queryByText('Siparişi İptal Et')).toBeNull();
   });
@@ -120,7 +120,7 @@ describe('J63 · Satıcı iptali yok + iptal etiketi', () => {
     getOneMock.mockRejectedValue(new Error('not found'));
     renderWithProviders(<SaleDetailScreen />);
     await waitFor(() =>
-      expect(screen.queryByText('Sipariş #TRD-2001')).toBeNull(),
+      expect(screen.queryByText('Sipariş #ORD-2001000000')).toBeNull(),
     );
     // ErrorState fullscreen render edilir; başlık hâlâ "Sipariş Detayı"
     expect(screen.getByText('Sipariş Detayı')).toBeOnTheScreen();

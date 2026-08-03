@@ -1,15 +1,7 @@
 import { View, ScrollView, StyleSheet, RefreshControl, Image, Pressable } from 'react-native';
-import {
-  Button,
-  Card,
-  Spinner,
-  Text,
-  StatusBadge,
-  theme,
-  ScreenHeader,
-  appAlert,
-} from '@/ui';
+import { Button, Card, Chip, ScreenHeader, Spinner, StatusBadge, Text, appAlert, theme } from '@/ui';
 import type { BadgeVariant } from '@/ui';
+import { refundReasonLabel } from '@/lib/shared/status-configs';
 import { useState, useCallback } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -35,19 +27,12 @@ const refundStatusConfig: Record<string, { label: string; variant: BadgeVariant 
   cancelled: { label: 'İptal Edildi', variant: 'danger' },
 };
 
-const reasonLabels: Record<string, string> = {
-  changed_mind: 'Vazgeçtim',
-  damaged: 'Hasarlı geldi',
-  wrong_item: 'Yanlış ürün',
-  not_as_described: 'Açıklamayla uyuşmuyor',
-  missing_parts: 'Eksik parça',
-  other: 'Diğer',
-};
-
 interface BuyerRefund {
   id: string;
   status: string;
   reason: string;
+  /** Satıcı sekmesinde talebi AÇAN kullanıcı (alıcı sekmesinde gelmez). */
+  requester?: { id: string; displayName?: string };
   amount?: number;
   description?: string;
   createdAt?: string;
@@ -63,15 +48,22 @@ export default function BuyerRefundRequestsScreen() {
   const { isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+  /**
+   * Alıcı sekmesi kendi taleplerini (`/me`), satıcı sekmesi kendisine AÇILAN
+   * talepleri (`/seller`) gösterir. Satıcı sekmesi salt okunur — aksiyon ucu
+   * yok (bkz. `__tests__/sellerInbox.test.tsx`).
+   */
+  const [tab, setTab] = useState<'buyer' | 'seller'>('buyer');
+
+  const unwrap = (res: any): BuyerRefund[] => {
+    const payload = res?.data?.data ?? res?.data ?? res;
+    return (Array.isArray(payload) ? payload : payload?.items ?? payload?.data ?? []) as BuyerRefund[];
+  };
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['refund-requests', 'me'],
-    queryFn: async () => {
-      const res: any = await refundsApi.getMine();
-      const payload = res?.data?.data ?? res?.data ?? res;
-      const list = Array.isArray(payload) ? payload : payload?.items ?? payload?.data ?? [];
-      return list as BuyerRefund[];
-    },
+    queryKey: ['refund-requests', tab],
+    queryFn: async () =>
+      unwrap(tab === 'seller' ? await refundsApi.getSeller() : await refundsApi.getMine()),
     enabled: isAuthenticated,
   });
 
@@ -81,7 +73,7 @@ export default function BuyerRefundRequestsScreen() {
     mutationFn: (id: string) => refundsApi.cancel(id),
     onSuccess: () => {
       appAlert('İptal edildi', 'İade talebiniz iptal edildi.');
-      queryClient.invalidateQueries({ queryKey: ['refund-requests', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['refund-requests'] });
     },
     onError: (e: any) => {
       captureException(e, { level: 'error', tags: { flow: 'refund.buyer.cancel' } });
@@ -116,7 +108,37 @@ export default function BuyerRefundRequestsScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="İadelerim" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+      <ScreenHeader title="İade Talepleri" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+
+      <View style={styles.tabRow}>
+        <Chip
+          testID="refunds-tab-buyer"
+          label="Taleplerim"
+          selected={tab === 'buyer'}
+          onPress={() => setTab('buyer')}
+          style={styles.tabChip}
+        />
+        <Chip
+          testID="refunds-tab-seller"
+          label="Bana Açılanlar"
+          selected={tab === 'seller'}
+          onPress={() => setTab('seller')}
+          style={styles.tabChip}
+        />
+      </View>
+
+      {/* Satıcı sekmesinde aksiyon butonu YOK: API'de onay/ret ucu tanımlı
+          değil (üretilen katalogda yalnız beş iade ucu var). Buton koymak
+          olmayan bir yetki vaat ederdi; bunun yerine durum açıkça yazılır. */}
+      {tab === 'seller' ? (
+        <View style={styles.readonlyNote} testID="refunds-seller-readonly-note">
+          <Ionicons name="information-circle-outline" size={18} color={colors.info[600]!} />
+          <Text variant="caption" style={styles.readonlyNoteText}>
+            Size açılan iade talepleri. Onay ve ret işlemleri şu an uygulamadan
+            yapılamıyor; talep süreci destek ekibi tarafından yürütülür.
+          </Text>
+        </View>
+      ) : null}
 
       {isLoading && refunds.length === 0 ? (
         <View style={styles.loadingContainer}>
@@ -125,9 +147,13 @@ export default function BuyerRefundRequestsScreen() {
       ) : refunds.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="receipt-outline" size={80} color={colors.text.subtle} />
-          <Text variant="h3" style={styles.emptyTitle}>İade talebiniz yok</Text>
+          <Text variant="h3" style={styles.emptyTitle}>
+            {tab === 'seller' ? 'Size açılan iade talebi yok' : 'İade talebiniz yok'}
+          </Text>
           <Text variant="body" tone="muted" style={styles.emptySubtitle}>
-            Bir siparişiniz için açtığınız iade talepleri burada görünür
+            {tab === 'seller'
+              ? 'Sattığınız ürünler için açılan iade talepleri burada görünür'
+              : 'Bir siparişiniz için açtığınız iade talepleri burada görünür'}
           </Text>
         </View>
       ) : (
@@ -138,7 +164,8 @@ export default function BuyerRefundRequestsScreen() {
           }
         >
           {refunds.map((rr) => {
-            const canCancel = rr.status === 'pending_review';
+            // İptal ucu alıcıya ait — satıcı sekmesinde gösterilmez.
+            const canCancel = tab === 'buyer' && rr.status === 'pending_review';
             return (
               <Pressable key={rr.id} onPress={() => router.push(`/refund-requests/${rr.id}` as any)}>
                 <Card variant="elevated" style={styles.card}>
@@ -163,9 +190,15 @@ export default function BuyerRefundRequestsScreen() {
                           {rr.order?.product?.title ?? 'Ürün'}
                         </Text>
                         <Text variant="caption" style={styles.muted}>
-                          Sebep: {reasonLabels[rr.reason] ?? rr.reason}
+                          Sebep: {refundReasonLabel(rr.reason)}
                         </Text>
-                        {rr.order?.seller?.displayName ? (
+                        {tab === 'seller' ? (
+                          rr.requester?.displayName ? (
+                            <Text variant="caption" style={styles.muted}>
+                              Talep eden: {rr.requester.displayName}
+                            </Text>
+                          ) : null
+                        ) : rr.order?.seller?.displayName ? (
                           <Text variant="caption" style={styles.muted}>
                             Satıcı: {rr.order.seller.displayName}
                           </Text>
@@ -210,6 +243,24 @@ export default function BuyerRefundRequestsScreen() {
 }
 
 const styles = StyleSheet.create({
+  tabRow: {
+    flexDirection: 'row',
+    gap: theme.spacing[2],
+    paddingHorizontal: theme.spacing[4],
+    paddingTop: theme.spacing[3],
+  },
+  tabChip: { flex: 1 },
+  readonlyNote: {
+    flexDirection: 'row',
+    gap: theme.spacing[2],
+    alignItems: 'flex-start',
+    marginHorizontal: theme.spacing[4],
+    marginTop: theme.spacing[3],
+    padding: theme.spacing[3],
+    backgroundColor: colors.info[50]!,
+    borderRadius: theme.radius.lg,
+  },
+  readonlyNoteText: { flex: 1, color: colors.info[700]! },
   container: { flex: 1, backgroundColor: colors.surface.alt },
   centeredContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: theme.spacing[8], backgroundColor: colors.surface.DEFAULT },
   title: { marginTop: theme.spacing[4], marginBottom: theme.spacing[2] },

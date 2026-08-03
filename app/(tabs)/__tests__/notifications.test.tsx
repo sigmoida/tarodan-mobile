@@ -33,7 +33,10 @@ import { notificationsApi } from '@/lib/api';
 
 let mockAuthed = true;
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ isAuthenticated: mockAuthed }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: mockAuthed });
+    return sel ? sel(state) : state;
+  },
 }));
 
 import NotificationsScreen from '../notifications';

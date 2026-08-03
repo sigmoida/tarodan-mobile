@@ -23,11 +23,14 @@ jest.mock("react-i18next", () => ({
 }));
 
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => ({
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({
     user: { listingCount: 2, membershipTier: "free" },
     limits: { maxListings: 10 },
     refreshUserData: jest.fn(),
-  }),
+  });
+    return sel ? sel(state) : state;
+  },
 }));
 
 // BoostModal native bağımlılıklarını izole et — UI dilimi dışı.

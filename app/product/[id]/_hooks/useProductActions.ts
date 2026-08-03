@@ -1,3 +1,6 @@
+import i18n from '@/i18n/config';
+import type { MessageKey } from '@/i18n/lib';
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Share } from 'react-native';
 import { router } from 'expo-router';
@@ -12,15 +15,20 @@ import type { Product } from '../_lib/types';
 
 type SnackType = 'success' | 'error';
 
-const REPORT_REASONS = [
-  { key: 'spam', label: 'Spam' },
-  { key: 'fake_product', label: 'Sahte Ürün' },
-  { key: 'scam', label: 'Dolandırıcılık' },
-  { key: 'counterfeit', label: 'Taklit Ürün' },
-  { key: 'wrong_category', label: 'Yanlış Kategori' },
-  { key: 'misleading_info', label: 'Yanıltıcı Bilgi' },
-  { key: 'inappropriate_content', label: 'Uygunsuz İçerik' },
-  { key: 'other', label: 'Diğer' },
+/**
+ * Rapor nedenleri — modül seviyesinde olduğu için `t` çağıramaz; katalog
+ * ANAHTARI tutulur, çeviri hook'un içinde yapılır (durum haritalarıyla aynı
+ * desen). 'Spam' her iki dilde de aynı, çevrilmiyor.
+ */
+const REPORT_REASONS: Array<{ key: string; labelKey: MessageKey | null; fallback?: string }> = [
+  { key: 'spam', labelKey: null, fallback: 'Spam' },
+  { key: 'fake_product', labelKey: 'product.reportReasonFake' },
+  { key: 'scam', labelKey: 'report.reasonScam' },
+  { key: 'counterfeit', labelKey: 'admin.reports.reason.counterfeit' },
+  { key: 'wrong_category', labelKey: 'admin.reports.reason.wrongCategory' },
+  { key: 'misleading_info', labelKey: 'admin.reports.reason.misleadingInfo' },
+  { key: 'inappropriate_content', labelKey: 'report.reasonInappropriate' },
+  { key: 'other', labelKey: 'product.other' },
 ];
 
 function buildCartItem(product: Product, images: any[]) {
@@ -36,7 +44,8 @@ function buildCartItem(product: Product, images: any[]) {
     scale: asLabel(product.scale, ''),
     seller: {
       id: product.seller?.id || 'unknown',
-      displayName: product.seller?.displayName || 'Satıcı',
+      // Modül seviyesindeki yardımcı — hook yok; global örnek kullanılır.
+      displayName: product.seller?.displayName || i18n.t('product.seller'),
     },
   };
 }
@@ -62,6 +71,7 @@ export function useProductActions({
   isAuthenticated: boolean;
   user: { id?: string } | null | undefined;
 }) {
+  const { t } = useTranslation();
   const { isInCart, setBuyNow } = useCartStore();
   // Sepet yazmaları üyede sunucuya da aynalanır.
   const cart = useCartSync();
@@ -87,21 +97,21 @@ export function useProductActions({
 
   const handleAddToCart = () => {
     if (!product) return;
-    if (isOutOfStock) return notify('Bu ürün şu anda stokta yok', 'error');
+    if (isOutOfStock) return notify(t('cart.outOfStock'), 'error');
     cart.add(buildCartItem(product, images) as any);
-    notify('Ürün sepete eklendi!', 'success');
+    notify(t('product.addedToCartExclaim'), 'success');
   };
 
   const handleBuyNow = () => {
     if (!product) return;
-    if (isOutOfStock) return notify('Bu ürün şu anda stokta yok', 'error');
+    if (isOutOfStock) return notify(t('cart.outOfStock'), 'error');
     setBuyNow(buildCartItem(product, images) as any);
     router.push('/checkout?buyNow=1' as any);
   };
 
   const handleMessage = () => {
     if (!product) return;
-    if (!requireAuth('Mesaj göndermek için üye olun')) return;
+    if (!requireAuth(t('product.signInToMessage'))) return;
     router.push(
       `/messages/new?sellerId=${product.seller?.id}&productId=${productId}&productTitle=${encodeURIComponent(product.title)}`,
     );
@@ -109,22 +119,22 @@ export function useProductActions({
 
   const handleTrade = () => {
     if (!product) return;
-    if (!requireAuth('Takas teklifi için üye olun')) return;
-    if (!product.seller?.id) return notify('Satıcı bilgisi bulunamadı', 'error');
+    if (!requireAuth(t('product.signInToTrade'))) return;
+    if (!product.seller?.id) return notify(t('trade.sellerNotFound'), 'error');
     router.push(`/trade/new?targetProductId=${productId}&targetSellerId=${product.seller.id}` as any);
   };
 
   const handleMakeOffer = () => {
     if (!product) return;
-    if (!requireAuth('Teklif vermek için üye olun')) return;
+    if (!requireAuth(t('product.signInToOffer'))) return;
     if (product.seller?.id && user?.id === product.seller.id) {
-      return notify('Kendi ürününüze teklif veremezsiniz', 'error');
+      return notify(t('product.cannotOfferOwn'), 'error');
     }
     setOfferModalOpen(true);
   };
 
   const handleAddToCollection = () => {
-    if (!requireAuth('Koleksiyon için üye olun')) return;
+    if (!requireAuth(t('product.signInToCollect'))) return;
     setCollectionModalOpen(true);
   };
 
@@ -143,23 +153,23 @@ export function useProductActions({
   };
 
   const handleReport = () => {
-    if (!isAuthenticated) return notify('Raporlamak için giriş yapmalısınız', 'error');
+    if (!isAuthenticated) return notify(t('product.signInToReport'), 'error');
     appAlert(
-      'İlanı Raporla',
-      'Bu ilanı neden raporlamak istiyorsunuz?',
+      t('product.reportListingTitle'),
+      t('product.reportReasonPrompt'),
       [
         ...REPORT_REASONS.map((reason) => ({
-          text: reason.label,
+          text: reason.labelKey ? t(reason.labelKey) : reason.fallback!,
           onPress: async () => {
             try {
               await userReportsApi.create({ type: 'product', targetId: productId, reason: reason.key as any });
-              notify('Raporunuz alındı. Teşekkür ederiz!', 'success');
+              notify(t('product.reportReceived'), 'success');
             } catch (error: any) {
-              notify(error.response?.data?.message || 'Rapor gönderilemedi', 'error');
+              notify(error.response?.data?.message || t('report.submitFailed'), 'error');
             }
           },
         })),
-        { text: 'İptal', style: 'cancel' as const },
+        { text: t('common.cancel'), style: 'cancel' as const },
       ],
       { cancelable: true },
     );

@@ -33,7 +33,10 @@ jest.mock('@/services/appleSignin', () => ({
 
 const mockLogin = jest.fn();
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ login: mockLogin }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ login: mockLogin });
+    return sel ? sel(state) : state;
+  },
 }));
 
 import LoginScreen from '../index';

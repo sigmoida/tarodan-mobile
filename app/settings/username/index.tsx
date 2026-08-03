@@ -2,6 +2,7 @@ import { View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Alert, Button, Card, ScreenHeader, Text, theme } from '@/ui';
 import { Form, FormInput } from '@/ui/form';
+import { toHandle } from '@/utils/validation';
 import { useClaimUsername } from './_hooks/useClaimUsername';
 
 export default function UsernameScreen() {
@@ -31,6 +32,9 @@ export default function UsernameScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 maxLength={30}
+                // Girişte küçük harfe çevir — kullanıcı kalıcı handle'ını
+                // olduğu gibi görür, şemadaki `.toLowerCase()` emniyet kemeri.
+                transform={toHandle}
                 testID="username-input"
               />
               <Button

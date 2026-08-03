@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, ScrollView, RefreshControl } from 'react-native';
 import { Button, Spinner, Text, ScreenHeader, theme } from '@/ui';
 import { router } from 'expo-router';
@@ -9,6 +10,7 @@ import { GroupHeader, GroupOrderRow } from './_components/GroupSections';
 const { colors } = theme;
 
 export default function OrderGroupDetailScreen() {
+  const { t } = useTranslation();
   const f = useOrderGroup();
 
   return (
@@ -25,7 +27,7 @@ export default function OrderGroupDetailScreen() {
       ) : f.error || !f.group ? (
         <View style={styles.center}>
           <Ionicons name="alert-circle-outline" size={64} color={colors.text.subtle} />
-          <Text style={styles.errorText}>Sipariş grubu yüklenemedi.</Text>
+          <Text style={styles.errorText}>{t('order.groupLoadFailed')}</Text>
           <Button variant="primary" title="Tekrar Dene" onPress={() => f.refetch()} />
         </View>
       ) : (

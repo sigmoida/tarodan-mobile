@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, ScrollView, Pressable, Image } from 'react-native';
 import { router } from 'expo-router';
@@ -8,8 +9,8 @@ import { getOrderProductImageUri } from '@/utils/orderProductImage';
 import type { UiOrderStatus } from '@/utils/orderStatus';
 import { styles } from '../_lib/ordersStyles';
 import {
-  uiOrderStatusConfig,
-  getStatusText,
+  useOrderStatusConfig,
+  useStatusText,
   formatOrderDate,
   formatOrderPrice,
   type Order,
@@ -27,13 +28,14 @@ const FILTER_ORDER: FilterType[] = ['all', 'pending', 'processing', 'shipped', '
 // Not-authenticated gate
 // ---------------------------------------------------------------------------
 export function OrdersGate({ f }: { f: OrdersController }) {
+  const { t } = useTranslation();
   if (f.isAuthenticated) return null;
   return (
     <View style={styles.centeredContainer}>
       <Ionicons name="receipt-outline" size={64} color={colors.primary[600]!} />
-      <Text variant="h2" style={styles.title}>Siparişlerim</Text>
-      <Text style={styles.subtitle}>Siparişlerinizi görmek için giriş yapın</Text>
-      <Button variant="primary" title="Giriş Yap" onPress={() => router.push('/(auth)/login')} style={{ alignSelf: 'center' }} />
+      <Text variant="h2" style={styles.title}>{t('order.myOrders')}</Text>
+      <Text style={styles.subtitle}>{t('order.signInToView')}</Text>
+      <Button variant="primary" title={t('common.login')} onPress={() => router.push('/(auth)/login')} style={{ alignSelf: 'center' }} />
     </View>
   );
 }
@@ -42,13 +44,21 @@ export function OrdersGate({ f }: { f: OrdersController }) {
 // Filter chips
 // ---------------------------------------------------------------------------
 export function OrdersFilters({ f }: { f: OrdersController }) {
+  const { t } = useTranslation();
+  const statusText = useStatusText();
   return (
     <View style={styles.filterContainer}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         {FILTER_ORDER.map((key) => (
           <Chip
             key={key}
-            label={key === 'all' ? 'Tümü' : key === 'refunds' ? 'İadeler' : getStatusText(key as UiOrderStatus)}
+            label={
+              key === 'all'
+                ? t('order.tabAll')
+                : key === 'refunds'
+                  ? t('order.tabRefunds')
+                  : statusText(key as UiOrderStatus)
+            }
             selected={f.filter === key}
             onPress={() => f.setFilter(key)}
             style={styles.filterChipSpacing}
@@ -63,20 +73,22 @@ export function OrdersFilters({ f }: { f: OrdersController }) {
 // Empty state
 // ---------------------------------------------------------------------------
 export function OrdersEmpty({ filter }: { filter: FilterType }) {
+  const { t } = useTranslation();
+  const statusText = useStatusText();
   return (
     <View style={styles.emptyContainer}>
       <Ionicons name="receipt-outline" size={80} color={colors.text.subtle} />
       <Text variant="h3" style={styles.emptyTitle}>
         {filter === 'all'
-          ? 'Henüz siparişiniz yok'
+          ? t('order.noOrders')
           : filter === 'refunds'
-            ? 'İade kaydınız yok'
-            : `${getStatusText(filter as UiOrderStatus)} siparişiniz yok`}
+            ? t('order.noRefunds')
+            : t('order.noOrdersForStatus', { status: statusText(filter as UiOrderStatus) })}
       </Text>
-      <Text style={styles.emptySubtitle}>Alışverişe başlayın!</Text>
+      <Text style={styles.emptySubtitle}>{t('order.startShopping')}</Text>
       <Button
         variant="primary"
-        title="Ürünleri Keşfet"
+        title={t('order.exploreProducts')}
         onPress={() => router.push('/(tabs)/search')}
         style={styles.emptyButton}
       />
@@ -98,6 +110,8 @@ export function OrderGroupCard({
   onToggle: () => void;
   onRate: (type: 'product' | 'seller', order: Order) => void;
 }) {
+  const { t } = useTranslation();
+  const statusConfig = useOrderStatusConfig();
   const itemCount = group.orders.length;
   const thumbs = group.orders.slice(0, 4);
   const extraCount = itemCount - thumbs.length;
@@ -115,9 +129,9 @@ export function OrderGroupCard({
           {/* 1. Başlık — tekli karttaki sipariş no / durum hizası */}
           <View style={styles.orderHeader}>
             <Text variant="caption" style={styles.orderNumber}>
-              Çoklu Sipariş · {itemCount} ürün
+              {t('order.multiOrderWithCount', { count: itemCount })}
             </Text>
-            <StatusBadge status={group.status} config={uiOrderStatusConfig} size="sm" />
+            <StatusBadge status={group.status} config={statusConfig} size="sm" />
           </View>
 
           {/* 2. İçerik — tekli karttaki ürün görseli hizası (büyük thumbnaillar) */}
@@ -154,7 +168,7 @@ export function OrderGroupCard({
           {/* 3. Alt — tekli karttaki satıcı / toplam hizası + aç-kapa */}
           <View style={styles.orderFooter}>
             <Text variant="caption" style={styles.dateText}>
-              {isExpanded ? 'Ürünleri gizle' : 'Ürünleri gör'}
+              {isExpanded ? t('order.hideItems') : t('order.showItems')}
             </Text>
             <View style={styles.groupFooterRight}>
               <Text variant="h3" style={styles.price}>

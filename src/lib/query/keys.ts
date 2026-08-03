@@ -22,6 +22,8 @@ type Filters = Record<string, unknown> | undefined;
 export const qk = {
   auth: {
     corporateInvitation: (token: string) => ['auth', 'corporate-invitation', token] as const,
+    /** Kayıt sırasında debounce edilmiş kullanıcı adı uygunluğu sorgusu. */
+    usernameAvailability: (username: string) => ['auth', 'username-availability', username] as const,
   },
 
   products: {
@@ -49,6 +51,11 @@ export const qk = {
     /** Prefix roots for invalidation (match every filtered variant). */
     listingsAll: ["listings"] as const,
     myListingsAll: ["my-listings"] as const,
+  },
+
+  shipping: {
+    /** Kargo paket kademesi tarifesi (public) — ilan formundaki üç kart. */
+    packageTiers: ["shipping", "package-tiers"] as const,
   },
 
   catalog: {
@@ -171,7 +178,11 @@ export const qk = {
   },
 
   checkout: {
-    quote: (sig: string) => ["checkout-quote", sig] as const,
+    /** `couponCode` anahtara dahildir — kupon değişince (uygulanınca/kaldırılınca)
+     *  quote tazelenmeli, aksi halde sunucu indirimi hesaba katmadan eski toplamı
+     *  gösteririz. */
+    quote: (sig: string, couponCode?: string) =>
+      ["checkout-quote", sig, couponCode ?? null] as const,
   },
 
   support: {

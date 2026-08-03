@@ -1,7 +1,24 @@
 /**
- * Phone utilities — ülke kodu listesi ve telefon formatlama helper'ları.
- * apps/web/src/lib/phone.ts ile aynı davranış; mobil formlar (adres, checkout vb.)
- * buradan import etmeli.
+ * Phone utilities — TEK KAYNAK (§5): ülke kodu listesi, alan formatlayıcısı ve
+ * E.164 ayrıştırıcısı. Adres, checkout, profil ve kurumsal kayıt formlarının
+ * tamamı buradan besleniyor; ayrı bir "route-local telefon" kopyası YOK.
+ *
+ * ## Neden bu dosya yeniden yazıldı
+ *
+ * Eski `formatPhoneNumber` on haneden fazlasını **sessizce KIRPIYOR**, eski
+ * `normalizePhoneForPayload` da sonuca körü körüne ülke kodu ekliyordu. Sonuç:
+ * `^\+90[0-9]{10}$` regex'ini geçen ama ULAŞILAMAZ numaralar, kullanıcıya
+ * hiçbir hata gösterilmeden (ölçüldü):
+ *
+ *   `00905321234567` → `+900905321234`
+ *   `+1 415 555 0100` → `+901415555010`
+ *   `05321234567890` → `+905321234567`
+ *
+ * Bu yol kargo adresi ve iletişim telefonu topluyor; yanlış numara = kuryenin
+ * ulaşamadığı teslimat. Yeni kural tek cümle:
+ *
+ * > Kullanıcının yazdığı numara sessizce başka bir numaraya DÖNÜŞMEZ.
+ * > Ya geçerli olduğu gibi normalize edilir, ya reddedilir.
  */
 
 export interface CountryCode {
@@ -39,25 +56,76 @@ export const countryCodes: CountryCode[] = [
 
 export const DEFAULT_COUNTRY_CODE = '+90';
 
+/** Geçersiz TR numarası için TEK mesaj — şema, form ve `PhoneInput` aynısını gösterir. */
+export const PHONE_INVALID_MESSAGE = 'Geçerli bir telefon numarası girin (5XX XXX XX XX)';
+
+/** API sözleşmesi: `phone` / `contactPhone` alanları bu regex'e uyar. */
+const TR_PHONE_REGEX = /^\+90[0-9]{10}$/;
+
+/** Gruplanmış TR gösteriminin lokal hane sayısı (5XX XXX XX XX). */
+const TR_LOCAL_DIGITS = 10;
+
 /**
- * TR numaralarını XXX XXX XX XX şeklinde formatlar; diğer ülkeler için sadece
- * non-digit karakterleri temizler. TR'de baştaki "90" (autofill: +90 5XX…) ve
- * "0" (alışkanlık: 05XX…) prefix'leri normalize edilir.
+ * Girdinin başındaki **en fazla bir** `90` ülke kodu ve **en fazla bir** `0`
+ * şehirlerarası öneki soyulur.
+ *
+ * ⚠️ `0090…` KARARI — bilerek çözülmez, reddedilir:
+ * bir `90` ve bir `0` soyulduktan sonra `0090532…`'ten geriye `0532…`'nin değil
+ * `905…`'in kalması gerekirdi; regex sırayla `90`? (eşleşmez, `00` ile başlıyor)
+ * sonra `0`? (bir sıfır) soyar ve geriye `0905321234567` kalır — on haneli `5…`
+ * değil, reddedilir. Gerekçe:
+ *  1. Alanın yanında zaten `+90` ülke kodu seçili ve placeholder `5XX XXX XX XX`;
+ *     `0090…` yazmak alanın sözleşmesini aşan bir ÇEVİRME öneki.
+ *  2. Kabul etmek "kaç tane baştaki sıfırı soyayım?" sorusunu açar; her ek soyma
+ *     kuralı bir numarayı sessizce BAŞKA bir numaraya çevirmenin yeni bir yolu
+ *     olur (`000532…` yazım hatası da geçerli sanılırdı). Kural bu haliyle
+ *     sınırlı ve denetlenebilir: en fazla bir `90`, en fazla bir `0`.
+ *  3. Maliyet asimetrik: reddetmek kullanıcıya bir tuş vuruşuna mal olur ve
+ *     Türkçe bir hata gösterir; kabul etmek yanlış tahminde ulaşılamaz bir
+ *     teslimat telefonuna mal olur.
+ * Karar UYGULAMA GENELİNDE tek: kurumsal kayıt, adres, profil ve checkout aynı
+ * ayrıştırıcıyı çağırır (testle çivilendi).
+ */
+function stripTrPrefixes(digits: string): string {
+  return digits.replace(/^(?:90)?0?/, '');
+}
+
+/**
+ * Ham telefon girdisini E.164'e (`+905XXXXXXXXX`) çevirir; **çözemezse `null`**.
+ * Kırpma yok — on haneye sığmayan girdi reddedilir, kısaltılmaz.
+ */
+export function parseE164TrPhone(raw: string | null | undefined): string | null {
+  const local = stripTrPrefixes((raw ?? '').replace(/\D/g, ''));
+  if (!/^5\d{9}$/.test(local)) return null;
+  const e164 = `${DEFAULT_COUNTRY_CODE}${local}`;
+  // API sözleşmesine karşı son kontrol.
+  return TR_PHONE_REGEX.test(e164) ? e164 : null;
+}
+
+/**
+ * ALAN formatlayıcısı — her tuş vuruşunda koşar, kullanıcı gönderilecek değeri
+ * yazarken görür.
+ *
+ * TR'de baştaki `90` / `0` önekleri normalize edilir ve numara `5XX XXX XX XX`
+ * biçiminde gruplanır. **On haneye sığmayan girdi KIRPILMAZ**: ham metin olduğu
+ * gibi geri döner, böylece kullanıcı ne yazdığını görür ve doğrulama reddedebilir.
+ * TR dışı ülke kodlarında davranış eskisiyle aynı: yalnız rakam-dışı temizlik.
  */
 export function formatPhoneNumber(value: string, countryCode: string = DEFAULT_COUNTRY_CODE): string {
-  let digits = value.replace(/\D/g, '');
+  const digits = value.replace(/\D/g, '');
+  if (countryCode !== DEFAULT_COUNTRY_CODE) return digits;
 
-  if (countryCode === DEFAULT_COUNTRY_CODE) {
-    if (digits.startsWith('90') && digits.length > 10) digits = digits.slice(2);
-    if (digits.startsWith('0')) digits = digits.slice(1);
-    const limited = digits.slice(0, 10);
-    if (limited.length <= 3) return limited;
-    if (limited.length <= 6) return `${limited.slice(0, 3)} ${limited.slice(3)}`;
-    if (limited.length <= 8) return `${limited.slice(0, 3)} ${limited.slice(3, 6)} ${limited.slice(6)}`;
-    return `${limited.slice(0, 3)} ${limited.slice(3, 6)} ${limited.slice(6, 8)} ${limited.slice(8)}`;
-  }
+  const local = stripTrPrefixes(digits);
+  if (local.length > TR_LOCAL_DIGITS) return value;
+  if (local.length <= 3) return local;
+  if (local.length <= 6) return `${local.slice(0, 3)} ${local.slice(3)}`;
+  if (local.length <= 8) return `${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}`;
+  return `${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6, 8)} ${local.slice(8)}`;
+}
 
-  return digits;
+/** `formatPhoneNumber`'ın TR'ye sabitlenmiş tek argümanlı hâli (`transform` prop'ları için). */
+export function formatTrPhoneField(raw: string): string {
+  return formatPhoneNumber(raw, DEFAULT_COUNTRY_CODE);
 }
 
 /** Telefon numarası zaten bir ülke kodu prefix'i içeriyor mu? */
@@ -67,14 +135,52 @@ export function hasCountryCodePrefix(phone: string): boolean {
 }
 
 /**
- * Payload için telefon numarasını normalize eder: boşlukları temizler,
- * zaten ülke kodu varsa olduğu gibi döner; yoksa verilen ülke kodunu prefix olarak ekler.
+ * Payload için telefonu doğrular + normalize eder; **çözemezse `null`**.
+ *
+ * - `+90` seçiliyken sıkı TR ayrıştırma (`parseE164TrPhone`) — kırpma/tahmin yok.
+ * - TR dışı ülke kodlarında **yerel numara planına göre** bir kural YOK: o ülkelerin
+ *   plan uzunluklarını bilmiyoruz ve uydurma bir kural koymak, düzeltmek istediğimiz
+ *   "tahmin" hatasının aynısı olurdu. (Eski `>= 10 hane` kuralı tam bunu yapıyordu ve
+ *   geçerli Alman `+49 30 1234567` ile BAE `+971 50 123 4567` numaralarını reddediyordu.)
+ *   Uygulanan tek sınır **ITU-T E.164'ün kendi objektif sınırları**: ülke kodu dahil en
+ *   çok 15 hane, ulusal kısım en az 4 hane (bilinen en kısa plan: Saint Helena +290 XXXX).
+ *   Böylece `+1` seçip `1` yazan kullanıcının `+11`'i sunucuya gitmiyor, ama hiçbir
+ *   gerçek numara plan tahminiyle reddedilmiyor.
+ */
+const E164_MAX_DIGITS = 15; // ITU-T E.164 §6.2.1 — ülke kodu dahil
+const E164_MIN_NATIONAL_DIGITS = 4; // en kısa bilinen ulusal plan
+
+export function parsePhoneForPayload(
+  phone: string | null | undefined,
+  countryCode: string,
+): string | null {
+  const clean = (phone ?? '').replace(/\s/g, '');
+  if (!clean) return null;
+  if (countryCode === DEFAULT_COUNTRY_CODE) return parseE164TrPhone(clean);
+
+  const e164 = hasCountryCodePrefix(clean) ? clean : countryCode + clean;
+  const allDigits = e164.replace(/\D/g, '');
+  const ccDigits = e164.startsWith(countryCode) ? countryCode.replace(/\D/g, '').length : 0;
+  if (allDigits.length > E164_MAX_DIGITS) return null;
+  if (allDigits.length - ccDigits < E164_MIN_NATIONAL_DIGITS) return null;
+  return e164;
+}
+
+/** Alan girdisi seçili ülke kodu için gönderilebilir mi? (`PhoneInput`/form gate'leri) */
+export function isValidPhoneInput(phone: string | null | undefined, countryCode: string): boolean {
+  return parsePhoneForPayload(phone, countryCode) !== null;
+}
+
+/**
+ * Payload için normalize edilmiş telefon; **çözemezse boş string**.
+ *
+ * ⚠️ Artık DOĞRULAR: geçersiz girdide eskiden olduğu gibi bozuk bir E.164
+ * uydurmaz, `''` döner — böylece bozuk numara backend'e sızmaz. Hatayı KULLANICIYA
+ * gösterebilmek için çağıran taraf `parsePhoneForPayload`/`isValidPhoneInput` ile
+ * gönderimden ÖNCE kontrol etmeli; bu fonksiyon yalnızca son emniyet kemeridir.
  */
 export function normalizePhoneForPayload(phone: string | undefined, countryCode: string): string {
-  const clean = (phone ?? '').replace(/\s/g, '');
-  if (!clean) return '';
-  if (hasCountryCodePrefix(clean)) return clean;
-  return countryCode + clean;
+  return parsePhoneForPayload(phone, countryCode) ?? '';
 }
 
 /**

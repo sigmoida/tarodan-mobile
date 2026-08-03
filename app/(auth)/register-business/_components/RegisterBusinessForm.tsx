@@ -1,106 +1,136 @@
 import { View } from 'react-native';
-import { Button, Checkbox, HStack, Input, Text, VStack, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
-import { PhoneInput } from '@/components/common';
+import { Controller } from 'react-hook-form';
+import { Button, Checkbox, Text, VStack, theme } from '@/ui';
+import { Form, FormInput } from '@/ui/form';
+import { DEFAULT_COUNTRY_CODE, formatTrPhoneField, getPhonePlaceholder } from '@/utils/phone';
 import { styles } from '../_lib/styles';
 import type { RegisterBusinessController } from '../_hooks/useRegisterBusiness';
 
 const { colors, spacing } = theme;
 
-/** Kurumsal kayıt form kartı — şirket + hesap bilgileri + onaylar + gönder. */
+/** `formatTrPhoneField` baştaki `0`/`90`'ı soyduğu için placeholder da lokal biçim. */
+const TR_PHONE_PLACEHOLDER = getPhonePlaceholder(DEFAULT_COUNTRY_CODE);
+
+/** Kurumsal ön-başvuru form kartı — sekiz sözleşme alanı + KVKK onayı + gönder. */
 export function RegisterBusinessForm({ f }: { f: RegisterBusinessController }) {
-  const { form, setField } = f;
+  const { form } = f;
+  const {
+    control,
+    formState: { errors, isSubmitting },
+  } = form;
+  // `handleSubmit` async: doğrulama sürerken mutation henüz `isPending` değil —
+  // ikisi birden olmadan çift gönderim penceresi açık kalıyor.
+  const busy = f.registerMutation.isPending || isSubmitting;
 
   return (
     <View style={styles.card}>
       <VStack gap={3}>
         <View style={styles.infoCard}>
           <Ionicons name="business" size={24} color={colors.primary[600]!} />
-          <Text variant="h3" align="center">İşletme olarak kaydol</Text>
+          <Text variant="h3" align="center">İşletme olarak ön başvuru yapın</Text>
           <Text variant="bodySm" tone="muted" align="center">
-            Vergi ve şirket bilgilerinizle kurumsal satıcı hesabı açın. Avantajlı komisyon
-            oranları, sınırsız ilan ve kurumsal rozet otomatik etkinleşir.
+            Başvurunuz admin onayına gönderilir. Onaylandığında kullanıcı adınızı ve
+            şifrenizi belirleyeceğiniz bir davet e-postası alırsınız.
           </Text>
         </View>
 
-        <Text variant="label" style={{ marginTop: spacing[2] }}>Şirket Bilgileri</Text>
-        <Input
-          label="Şirket / İşletme Adı *"
-          value={form.companyName}
-          onChangeText={(v) => setField('companyName', v)}
-        />
-        <HStack gap={2}>
-          <View style={{ flex: 1 }}>
-            <Input
-              label="Vergi / TC No *"
-              value={form.taxId}
-              onChangeText={(v) => setField('taxId', v.replace(/[^\d]/g, ''))}
-              keyboardType="number-pad"
-              maxLength={11}
+        <Form form={form}>
+          <Text variant="label" style={{ marginTop: spacing[2] }}>Yetkili Bilgileri</Text>
+          <FormInput
+            testID="register-business-authorizedFullName-input"
+            name="authorizedFullName"
+            label="Yetkili Ad Soyad *"
+            placeholder="Ör. Ayşe Yılmaz"
+          />
+
+          <Text variant="label" style={{ marginTop: spacing[2] }}>Şirket Bilgileri</Text>
+          {/* İki alan da "Şirket…" ile başlayıp yan yana durunca ters doldurulmaya
+              açıktı; ayrım artık etiket + helperText ile açık. */}
+          <FormInput
+            testID="register-business-companyLegalName-input"
+            name="companyLegalName"
+            label="Ticaret Unvanı *"
+            helperText="Vergi levhanızda yazan tam unvan."
+            placeholder="Ör. Örnek Otomotiv Sanayi ve Ticaret Ltd. Şti."
+          />
+          <FormInput
+            testID="register-business-companyTitle-input"
+            name="companyTitle"
+            label="Görünen İşletme Adı *"
+            helperText="Tarodan'da alıcılara gösterilecek kısa ad/marka."
+            placeholder="Ör. Örnek Otomotiv"
+          />
+          <FormInput
+            testID="register-business-companyAddress-input"
+            name="companyAddress"
+            label="Şirket Adresi *"
+            placeholder="Mahalle, cadde/sokak, no, ilçe/il"
+            multiline
+            numberOfLines={3}
+          />
+
+          <Text variant="label" style={{ marginTop: spacing[2] }}>İletişim Bilgileri</Text>
+          <FormInput
+            testID="register-business-companyEmail-input"
+            name="companyEmail"
+            label="Şirket E-posta *"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          <FormInput
+            testID="register-business-kepAddress-input"
+            name="kepAddress"
+            label="KEP Adresi (opsiyonel)"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          {/* Telefon alanları her tuş vuruşunda formatlanır (eski formdaki `PhoneInput`
+              davranışı, `FormInput`'un `transform` prop'u üzerinden — kendi kopyası
+              yazılmadan): kullanıcı GÖNDERİLECEK değeri yazarken görür. */}
+          <FormInput
+            testID="register-business-phone-input"
+            name="phone"
+            label="Telefon *"
+            placeholder={TR_PHONE_PLACEHOLDER}
+            keyboardType="phone-pad"
+            textContentType="telephoneNumber"
+            transform={formatTrPhoneField}
+          />
+          <FormInput
+            testID="register-business-contactPhone-input"
+            name="contactPhone"
+            label="Ek İletişim Telefonu (opsiyonel)"
+            placeholder={TR_PHONE_PLACEHOLDER}
+            keyboardType="phone-pad"
+            textContentType="telephoneNumber"
+            transform={formatTrPhoneField}
+          />
+        </Form>
+
+        <Controller
+          control={control}
+          name="acceptTerms"
+          render={({ field: { onChange, value } }) => (
+            <Checkbox
+              testID="register-business-acceptTerms"
+              checked={!!value}
+              onChange={() => onChange(!value)}
+              label="Üyelik sözleşmesini ve KVKK aydınlatma metnini okudum, kabul ediyorum. *"
+              error={errors.acceptTerms?.message}
             />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Input label="Firma Türü" value={form.companyType} onChangeText={(v) => setField('companyType', v)} />
-          </View>
-        </HStack>
-        <HStack gap={2}>
-          <View style={{ flex: 1 }}>
-            <Input label="Şehir / İl *" value={form.city} onChangeText={(v) => setField('city', v)} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Input label="İlçe" value={form.district} onChangeText={(v) => setField('district', v)} />
-          </View>
-        </HStack>
-
-        <Text variant="label" style={{ marginTop: spacing[2] }}>Hesap Bilgileri</Text>
-        <Input
-          label="E-posta *"
-          value={form.email}
-          onChangeText={(v) => setField('email', v)}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        <PhoneInput
-          label="Telefon *"
-          countryCode={form.phoneCountryCode}
-          onCountryCodeChange={(code) => setField('phoneCountryCode', code)}
-          phone={form.phone}
-          onPhoneChange={(v) => setField('phone', v)}
-        />
-        <Input
-          label="Şifre *"
-          value={form.password}
-          onChangeText={(v) => setField('password', v)}
-          secureTextEntry
-          togglePasswordVisibility
-        />
-        <Input
-          label="Şifre (Tekrar) *"
-          value={form.passwordConfirm}
-          onChangeText={(v) => setField('passwordConfirm', v)}
-          secureTextEntry
-          togglePasswordVisibility
-        />
-
-        <Checkbox
-          checked={f.acceptTerms}
-          onChange={() => f.setAcceptTerms(!f.acceptTerms)}
-          label="Üyelik sözleşmesini ve KVKK aydınlatma metnini okudum, kabul ediyorum. *"
-        />
-        <Checkbox
-          checked={f.acceptMarketing}
-          onChange={() => f.setAcceptMarketing(!f.acceptMarketing)}
-          label="Kampanya ve bilgilendirmeleri e-posta ile almak istiyorum."
+          )}
         />
 
         <Button
+          testID="register-business-submit-button"
           variant="primary"
           size="lg"
           fullWidth
-          title="Hesap Oluştur"
-          onPress={f.handleSubmit}
-          isLoading={f.registerMutation.isPending}
-          disabled={f.registerMutation.isPending}
+          title="Başvuru Gönder"
+          onPress={f.onSubmit}
+          isLoading={busy}
+          disabled={busy}
           style={{ marginTop: spacing[3] }}
         />
       </VStack>

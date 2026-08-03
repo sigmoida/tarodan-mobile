@@ -4,13 +4,13 @@ import { appAlert } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { userApi, errorText } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
-import { usernameSchema } from '../_lib/schema';
+import { claimUsernameSchema } from '../_lib/schema';
 
 export function useClaimUsername() {
   const { user, updateUser } = useAuthStore();
   const claimed = !!user?.usernameClaimed;
 
-  const form = useZodForm(usernameSchema, { defaultValues: { username: '' } });
+  const form = useZodForm(claimUsernameSchema, { defaultValues: { username: '' } });
 
   const claim = useMutation({
     mutationFn: (username: string) => userApi.claimUsername(username),
