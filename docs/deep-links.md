@@ -102,6 +102,16 @@ altındaki dosyalar **birebir** (byte-exact) kopyalanır.
 
 Yayınlandıktan sonraki doğrulama komutu §9'da.
 
+⚠️ **`/checkout*` ve `/payment/*` bu içeriğe bilerek girmiyor — her iki
+platformda da.** PayTR 3DS turu tarayıcıda başlayıp tarayıcıda bitiyor;
+kullanıcıyı akışın ortasında uygulamaya çeken bir link ödemeyi bozar. Risk
+özellikle **uygulama dışından** gelen bir tıklama — e-posta, SMS, Chrome/
+Safari; checkout ekranının kendi içindeki WebView navigasyonu intent
+filter'ı/Universal Link'i hiç tetiklemiyor, o yüzden bu ekranın kendi akışı
+tehlikede değil. Bu, sonra kapatılacak bir eksiklik **değil** — `paths.json`'a
+bu yolları `include: true` olarak eklemek ödeme akışına aynı hatayı geri
+sokar.
+
 ---
 
 ## 4. Android imza parmak izleri
@@ -208,7 +218,7 @@ pnpm wellknown:check
 ```
 
 (`scripts/check-deeplinks.mjs`'i çalıştırır.) Her host için 8 kontrol —
-toplam **16** (2 host × 8):
+toplam **16 doğrulama kontrolü** (2 host × 8):
 
 - AASA `HTTP 200`
 - AASA `content-type: application/json`
@@ -221,7 +231,7 @@ toplam **16** (2 host × 8):
 - Google'ın digitalassetlinks doğrulayıcısı en az bir `statement` döndürüyor
 
 Herhangi bir kontrol başarısızsa **exit kodu 1**. Bugünkü (2026-08-03) çalışma
-2/16 geçiyor — bkz. §1.
+16 kontrolün 2'sini geçiyor — bkz. §1.
 
 ---
 
@@ -259,9 +269,9 @@ wellknown:gen` yeniden çalıştırılır.
 
 Task 3'ün eklediği bekçi testi (`routes.test.ts`), her `confirmed: true` +
 `include: true` satırın çözdüğü rotanın `app/` altında **gerçekten var
-olduğunu** doğruluyor. **Bu turda tüm teyitli yollar yeşil** — 16 satırın
-tamamı ilk çalıştırmada geçti; `/seller/*` teyit beklediği için kapsam dışı
-kaldı.
+olduğunu** doğruluyor. **Bu turda tüm teyitli yollar yeşil** — 16 yayınlanan
+yolun tamamı ilk çalıştırmada geçti; `/seller/*` teyit beklediği için kapsam
+dışı kaldı.
 
 Ortaya çıkan, bu turda **kasıtlı olarak düzeltilmeyen** bir gerçek hata var:
 `toMobileRoute` içinde `case 'seller'` → `/seller/:id` döndürüyor, ama `app/`
