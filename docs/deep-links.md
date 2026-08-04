@@ -265,6 +265,31 @@ adb shell pm get-app-links com.tarodan.app   # durumu okur
 
 ## 9. Doğrulama
 
+### Cihazda kanıtlandı — staging, 2026-08-04
+
+Kapı açılmadan önce, **yalnız staging** alan adıyla geçici bir yerel build
+alınarak zincirin tamamı ölçüldü (`applinks:staging.tarodan.com.tr`;
+production alan adı hiç beyan edilmedi, dolayısıyla zehirlenme riski yok):
+
+| Adım | Sonuç |
+| --- | --- |
+| iOS `https://staging.tarodan.com.tr/track-order` linkini uygulamaya teslim etti | ✅ Safari açılmadı |
+| `+native-intent.ts` web `/track-order` → mobil `/order-track` çevirdi | ✅ |
+| Doğru ekran açıldı (Sipariş Takip) | ✅ |
+
+`/track-order`, eski elle yazılmış AASA listesinin **yanlış yazdığı altı
+yoldan biri** — yani bu test tam olarak §2'deki hata sınıfını kapatıyor.
+
+İki uyarı: (a) simülatör, associated-domains'i gerçek cihazdan daha **hoşgörülü**
+ele alabiliyor, bu yüzden test uygulama tarafını kanıtlar ama Apple CDN
+doğrulamasının cihazdaki tam yolunu kanıtlamaz — o, gerçek cihaz build'ine kalıyor.
+(b) `app.json`'daki native değişiklik `ios/` zaten varken `expo run:ios` ile
+**senkronlanmıyor**; önce `npx expo prebuild -p ios` gerekiyor, yoksa entitlement
+binary'ye hiç girmiyor ve test sessizce anlamsızlaşıyor. Ayrıca yerel build
+`SENTRY_DISABLE_AUTO_UPLOAD=true` ister (eas.json profilleri bunu veriyor).
+
+### Yayındaki durumu ölç
+
 ```bash
 pnpm wellknown:check
 ```
