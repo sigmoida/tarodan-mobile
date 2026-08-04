@@ -129,9 +129,13 @@ sokar.
 
 1. EAS keystore'un SHA-256'sını al:
    ```bash
-   eas credentials -p android --profile production
+   eas credentials -p android
    ```
-   → Keystore → SHA256 Fingerprint.
+   Komut **etkileşimli**; build profili (`production`) akışın içinde sorulur.
+   `--profile` diye bir bayrak **yok** — eas-cli 21.x'te `-p/--platform`
+   dışında bayrak almıyor, verilirse `Nonexistent flag` ile düşer.
+   Menü: build profili → **Keystore: Manage everything needed to build your
+   project** → **SHA256 Fingerprint** satırı.
 2. Değeri `docs/wellknown/fingerprints.json` → `eas_upload_keystore.sha256`
    alanına yaz. **Biçim:** 32 adet iki haneli **BÜYÜK harf** hex, `:` ile
    ayrılmış (`A1:B2:…:FF`, 95 karakter). Küçük harfli ya da `TODO` gibi bir
