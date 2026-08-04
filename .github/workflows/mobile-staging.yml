@@ -25,6 +25,9 @@ on:
       - '!docs/**'
       - '!**/*.md'
       - '!maestro/**'
+      # Workflow'un kendisi değiştiğinde OTA yayınlamak anlamsız: kullanıcıya
+      # inen JS aynı. Yalnız gürültü üretir ve boş bir update grubu bırakır.
+      - '!.github/**'
   workflow_dispatch:
     inputs:
       mode:
@@ -130,7 +133,13 @@ jobs:
     needs: classify
     if: needs.classify.outputs.skip != 'true' && needs.classify.outputs.mode == 'build'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # 120, production ile aynı. 60 yetmiyor: build ~7 dk sürüyor ama `eas submit`
+    # App Store Connect'in işlemesini bekliyor ve o süre Apple'da, öngörülemiyor.
+    # 2026-08-04'te build 14:13'te bitti, submit 53 dk sürdü ve iş 60. dakikada
+    # KESİLDİ — sonuç "cancelled" göründü, oysa hiçbir şey başarısız olmamıştı.
+    # Yükleme EAS sunucusunda koşuyor; CLI yalnız bekliyor, o yüzden kesilmesi
+    # teslimi durdurmuyor ama geriye yanıltıcı bir kırmızı bırakıyor.
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
