@@ -122,10 +122,27 @@ sokar.
 
 ## 4. Android imza parmak izleri
 
+> **ÖN KOŞUL — ölçüldü (2026-08-04): Android hiç build almamış.**
+> `eas build:list --platform android` **boş** dizi döndürüyor; `eas credentials
+> -p android` "No credentials set up yet" diyor. Keystore, EAS'te ilk Android
+> build'iyle **oluşuyor** — kopyalanmayı bekleyen bir parmak izi yok.
+>
+> Sonucu: bu bölüm bir komut meselesi değil, bir **proje kilometre taşına**
+> bağlı. Ve bugün hiçbir kullanıcı kaybı üretmiyor — `assetlinks.json` *kurulu*
+> bir uygulamayı alan adıyla eşleştiriyor; ortada Android kurulumu yok.
+> (Karşılaştırma: iOS'ta `staging` ve `development` build'leri var, o yüzden
+> iOS zinciri gerçek.)
+>
+> Keystore'u yalnız parmak izi almak için elle oluşturma: o anahtar
+> uygulamanın kalıcı yükleme kimliği olur ve kaybolursa Play'e güncelleme
+> gönderilemez. Doğal sıra, ilk Android build'iyle birlikte oluşması.
+
 `docs/wellknown/assetlinks.json` şu an **yok** — bilerek. Boş
 `sha256_cert_fingerprints` ile yayınlanan bir dosya, doğrulamayı
 **kesin olarak başarısız** yapar; hiç dosya olmamasından daha kötüdür
 (`scripts/gen-wellknown.mjs`, parmak izi yoksa dosyayı yazmaz/siler).
+
+Aşağıdaki adımlar **ilk Android build'inden sonra** geçerlidir:
 
 1. EAS keystore'un SHA-256'sını al:
    ```bash
