@@ -9,6 +9,9 @@ name: Mobile Staging (OTA + Preview Build)
 #   JS/asset-only -> eas update --branch staging (OTA, otomatik, bedava)
 #   native değişti -> hiçbir şey yayınlanmaz + uyarı basılır; build ELLE alınır:
 #       gh workflow run mobile-staging.yml --ref main -f mode=build
+#         (varsayılan platform=android — müşteriye APK. iOS TestFlight için
+#          -f platform=ios, ikisi birden için -f platform=all. Kotalar platform
+#          başına ayrı: 15 Android + 15 iOS.)
 #
 # Native değiştiğinde OTA da yayınlanmaz: runtimeVersion politikası `fingerprint`,
 # yani native bağımlılık değişince fingerprint de değişir ve o OTA mevcut hiçbir
@@ -36,6 +39,12 @@ on:
         default: 'build'
         type: choice
         options: [build, ota]
+      platform:
+        description: 'Which platform to build (mode=build only)'
+        required: true
+        default: 'android'
+        type: choice
+        options: [android, ios, all]
 
 concurrency:
   group: mobile-staging-${{ github.ref }}
@@ -129,7 +138,7 @@ jobs:
         run: eas update --branch staging --message "$MSG" --non-interactive
 
   build:
-    name: Staging build (iOS) -> Tarodan Staging TestFlight
+    name: Staging build -> TestFlight (iOS) / internal APK (Android)
     needs: classify
     if: needs.classify.outputs.skip != 'true' && needs.classify.outputs.mode == 'build'
     runs-on: ubuntu-latest
@@ -153,6 +162,41 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
       - name: EAS staging build (iOS, store dist -> TestFlight)
+        if: inputs.platform == 'ios' || inputs.platform == 'all'
         run: eas build --platform ios --profile staging --non-interactive --wait
       - name: Submit to Tarodan Staging (TestFlight)
+        if: inputs.platform == 'ios' || inputs.platform == 'all'
         run: eas submit --platform ios --profile staging --latest --non-interactive
+
+      # Android, iOS'tan SONRA ama onun sonucundan BAĞIMSIZ koşar. Gerekçe kayıtlı
+      # bir vaka: 2026-08-04'te `eas submit` App Store Connect'i 53 dk bekledi ve
+      # job kesildi, oysa build başarılıydı. Aynı kesinti APK'yı da götürmemeli.
+      #
+      # `-p all` kullanılamaz: iOS `staging` profilinde (store dist -> TestFlight),
+      # Android `preview` profilinde (apk -> internal). `staging` profilinde android
+      # bloğu yok; oradan alınsa dağıtamayacağımız bir AAB çıkardı.
+      - name: EAS staging build (Android, APK -> internal distribution)
+        if: ${{ !cancelled() && (inputs.platform == 'android' || inputs.platform == 'all') }}
+        run: |
+          set -euo pipefail
+          eas build --platform android --profile preview \
+            --non-interactive --wait --json > android-build.json
+      - name: Publish the APK install link to the job summary
+        if: ${{ !cancelled() && (inputs.platform == 'android' || inputs.platform == 'all') }}
+        run: |
+          set -euo pipefail
+          BUILD_ID="$(jq -r '.[0].id // empty' android-build.json)"
+          APK_URL="$(jq -r '.[0].artifacts.buildUrl // .[0].artifacts.applicationArchiveUrl // empty' android-build.json)"
+          INSTALL_PAGE="https://expo.dev/accounts/mki19xcis-organization/projects/tarodan/builds/${BUILD_ID}"
+          {
+            echo "## Staging APK hazır"
+            echo
+            echo "Müşteriye **kurulum sayfasını** gönder (QR + Install düğmesi var):"
+            echo
+            echo "  ${INSTALL_PAGE}"
+            echo
+            echo "Doğrudan APK: ${APK_URL:-yok}"
+            echo
+            echo "Müşteri tarafı: linki Android telefonun tarayıcısında açar, APK iner,"
+            echo "\"bilinmeyen kaynaktan yükleme\" onayı verir, kurulur."
+          } >> "$GITHUB_STEP_SUMMARY"
