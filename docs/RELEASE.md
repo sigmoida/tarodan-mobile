@@ -78,6 +78,17 @@ side — no rebuild required. See
 [`deep-links.md`](./deep-links.md) and
 [`specs/2026-08-05-staging-apk-dagitimi-design.md`](./superpowers/specs/2026-08-05-staging-apk-dagitimi-design.md) §4.
 
+**Known gap — Google sign-in.** No Android build has ever shipped from this
+project, so the release keystore is brand new and its SHA-1 fingerprint is
+registered nowhere. The "Sign in with Google" button still renders — Android
+doesn't gate it on any configuration check — but tapping it fails at runtime
+with `DEVELOPER_ERROR` (code 10), because `@react-native-google-signin` needs
+an Android OAuth client in the Google Cloud project matching both the package
+name `com.tarodan.app` and the signing keystore's SHA-1. Closing it needs that
+OAuth client registered with the SHA-1 from `eas credentials -p android` — the
+same command's SHA-256 output is what the deep-links gap above needs, so both
+close from one place.
+
 ## Production (tagged release)
 
 1. **Bump the version** in a reviewed PR: set `expo.version` in

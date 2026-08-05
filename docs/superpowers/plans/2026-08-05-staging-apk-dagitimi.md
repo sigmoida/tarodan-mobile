@@ -286,11 +286,9 @@ Bu adım plandaki en önemli doğrulama — birim testinin göremediği her şey
 | Uygulama açılıyor mu | Splash geçiyor, ana ekran geliyor (splash'te kilitlenmiyor) |
 | İkon altındaki ad | **Tarodan (Staging)** |
 | Ürün listesi geliyor mu | Evet → staging API'ye bağlı (`https://staging.tarodan.com.tr/api`) |
-| **Google ile giriş** | **Çalışıyor** — §2'deki sessiz başarısızlığın olmadığının tek kanıtı |
+| **Google ile giriş** | **`DEVELOPER_ERROR` ile BAŞARISIZ olması BEKLENİYOR** — bu paket suffix değişikliğinden kaynaklı bir regresyon değil, bilinen bir eksik: `com.tarodan.app` için henüz hiçbir Google Cloud OAuth client'ı keystore'un SHA-1'iyle kayıtlı değil. Kapatma yolu: `eas credentials -p android` ile SHA-1'i al, o client'ı Google Cloud konsolunda kaydet. |
 | E-posta ile giriş/kayıt | Çalışıyor |
 | Bildirim izni istendiğinde | Çökme yok (FCM yapılandırması sağlam) |
-
-Google ile giriş burada patlarsa durup nedenini bul — CI'a geçmenin anlamı yok.
 
 - [ ] **Step 6: Record the outcome**
 
