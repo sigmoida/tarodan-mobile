@@ -111,32 +111,58 @@ takas.
 
 ### 3.4 CI
 
-`mobile-staging.yml` → `build` job'ına Android adımı eklenir.
+`mobile-staging.yml` → `build` job'ına Android adımı **ve bir `platform` seçimi**
+eklenir.
 
 `-p all` **kullanılamaz**: iOS `staging` profilini (store dist → TestFlight),
 Android `preview` profilini (apk → internal) kullanıyor. `staging` profilinde
 `android` bloğu yok; oradan Android build'i alınsa `distribution: store` ile AAB
 üretirdi — dağıtamayacağımız bir çıktı. Dolayısıyla iki ayrı `eas build` adımı.
 
-Sıra ve dayanıklılık: Android adımı iOS'tan **sonra**, ama iOS adımlarının
-sonucundan bağımsız koşar (`if: !cancelled()`). Gerekçe kayıtlı bir vaka:
-2026-08-04'te `eas submit` App Store Connect'i 53 dakika bekledi ve job kesildi —
-build başarılıydı. Aynı kesinti APK'yı da götürmemeli.
+**Platform seçimi.** `workflow_dispatch`'e ikinci bir input girer:
+
+```yaml
+platform:
+  description: 'Which platform to build'
+  required: true
+  default: 'android'
+  type: choice
+  options: [android, ios, all]
+```
+
+Her build adımı kendi koşuluyla gizlenir (`inputs.platform` `android`/`ios` veya
+`all`). iOS `submit` adımı da iOS build adımıyla aynı koşula bağlanır — build
+alınmadan submit anlamsız.
+
+**Varsayılan `android`, bilinçli.** Bugünkü ihtiyaç müşteriye APK göndermek; iOS
+TestFlight'a gidecek bir şey yok ve o kota tarihsel olarak darboğaz (workflow'un
+kendi yorumunda push'tan build bu yüzden kaldırılmış). Düşünmeden `-f mode=build`
+diyen kişi iOS hakkı yakmaz. Karşılığı: staging TestFlight sürümü istendiğinde
+`-f platform=ios` açıkça yazılmalı — `docs/RELEASE.md`'e bu not düşer.
+İki platform aynı anda gerektiğinde `platform=all` zaten var; ileride varsayılanı
+`all`'a çevirmek tek satır.
+
+`build` job'ı yalnız `workflow_dispatch`'ten `mode=build` ile tetikleniyor (push
+yolu `ota` veya `none` üretir), dolayısıyla `inputs.platform` bu job koştuğunda
+her zaman tanımlı.
+
+Sıra ve dayanıklılık: `platform=all` durumunda Android adımı iOS'tan **sonra**,
+ama iOS adımlarının sonucundan bağımsız koşar (`!cancelled()` ile birleşik
+koşul). Gerekçe kayıtlı bir vaka: 2026-08-04'te `eas submit` App Store Connect'i
+53 dakika bekledi ve job kesildi — build başarılıydı. Aynı kesinti APK'yı da
+götürmemeli.
 
 Build bitince APK'nın install link'i `$GITHUB_STEP_SUMMARY`'ye yazılır
 (`eas build ... --json` çıktısındaki artifact URL'i). Müşteriye gönderilecek link
 job özetinde durur; EAS panelinde aramak gerekmez.
-
-`mode=build` bundan sonra iki platformu birden alır. Kotalar ayrı olduğu için
-(§1) bu bir kısıt yaratmıyor; tek bedeli, yalnız APK istendiğinde bir iOS
-hakkının da yanması. Bilinçli kabul edildi — `platform` inputu eklemek workflow'un
-karar matrisini büyütüyor, kazancı ayda birkaç iOS build hakkı.
 
 ### 3.5 Dokümantasyon
 
 `docs/RELEASE.md`'e "Müşteriye staging APK gönderme" bölümü:
 
 - Tetikleme: `gh workflow run mobile-staging.yml --ref main -f mode=build`
+  (varsayılan `platform=android`; iOS TestFlight için `-f platform=ios`, ikisi
+  birden için `-f platform=all`)
 - Linkin nereden alınacağı (job özeti)
 - Müşteri tarafı: linki Android telefonun tarayıcısında aç → APK iner →
   "bilinmeyen kaynaktan yükleme" onayı → kurulur. Uygulama normal bir uygulama
@@ -184,5 +210,6 @@ kapı — geçmeden 4'e geçilmez.
 - APK gerçek bir Android cihaza kurulur, açılır, staging API'ye bağlanır
   (`EXPO_PUBLIC_API_URL` = `https://staging.tarodan.com.tr/api`)
 - Google ile giriş çalışır (§2'deki sessiz başarısızlığın olmadığının kanıtı)
-- `gh workflow run mobile-staging.yml -f mode=build` — iOS TestFlight'a giderken
-  Android APK linki job özetinde belirir
+- `gh workflow run mobile-staging.yml -f mode=build` — yalnız Android koşar
+  (iOS adımları atlanır, hiçbir iOS build hakkı yanmaz) ve APK install link'i job
+  özetinde belirir
