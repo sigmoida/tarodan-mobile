@@ -139,9 +139,9 @@ Step-by-step account setup and the verification checklist:
 ## Cheat sheet
 
 ```
-JS/asset fix, fast to staging     → merge to development           (auto OTA)
+JS/asset fix, fast to staging     → push to main                       (auto OTA)
 JS/asset fix, fast to production  → eas update --branch production
-New native module / SDK bump      → merge to development           (auto preview build)
-APK to a customer for testing      → gh workflow run mobile-staging.yml -f mode=build
+New native module / SDK bump      → gh workflow run mobile-staging.yml -f mode=build
+APK to a customer for testing     → gh workflow run mobile-staging.yml -f mode=build
 Public release                    → bump app.json version → master → tag mobile-vX.Y.Z
 ```
