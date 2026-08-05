@@ -28,8 +28,55 @@ Nothing manual. When a PR merges to `development` and touches `apps/mobile/**`
 A weekly schedule and manual `workflow_dispatch` also produce a fresh preview
 build on demand.
 
-Install: staging builds carry the `com.tarodan.app.staging` id and the name
-"Tarodan (Staging)" (#229) so they sit next to production on one device.
+Install: staging builds carry the name "Tarodan (Staging)". On **iOS** they also
+carry the `com.tarodan.app.staging` bundle id (#229), so a staging build sits next
+to production on one device. On **Android** the package stays `com.tarodan.app` —
+suffixing it would need a Firebase/FCM registration *and* a Google Cloud OAuth
+client (missing the latter breaks "Sign in with Google" silently), and the payoff
+is currently nil since Android production has never shipped. Rationale:
+[`specs/2026-08-05-staging-apk-dagitimi-design.md`](./superpowers/specs/2026-08-05-staging-apk-dagitimi-design.md) §2.
+
+## Sending a staging APK to a customer
+
+Android testers install straight from EAS internal distribution — no Play Store,
+no account setup on their side.
+
+```bash
+gh workflow run mobile-staging.yml --ref main -f mode=build
+```
+
+`platform` defaults to `android`, so this burns **no iOS build credit**. For a
+staging TestFlight release you must say so explicitly:
+
+```bash
+gh workflow run mobile-staging.yml --ref main -f mode=build -f platform=ios
+gh workflow run mobile-staging.yml --ref main -f mode=build -f platform=all
+```
+
+When the run finishes, the job summary carries a **"Staging APK hazır"** block
+with the install page URL. Send that link to the customer. On their phone:
+
+1. Open the link in the Android browser
+2. The APK downloads
+3. Approve "install from unknown sources" when prompted
+4. The app installs as **Tarodan (Staging)** and opens like any other app —
+   testing happens inside the app, not in the browser
+
+**Updating them afterwards:** JS/asset changes reach the installed APK over the
+air (`channel: staging`) — no new APK, no new link. Only a native change
+(deps, `app.json`/`app.config.js`/`eas.json`, `ios/`·`android/`, plugins,
+`google-services.json`) needs a fresh build.
+
+**Known gap — deep links.** `assetlinks.json` is not published for the staging
+domain, so `https://staging.tarodan.com.tr/...` links open in the browser instead
+of jumping into the app. The app itself is unaffected, and `tarodan://` links
+still work. The one flow this blocks is **email verification / password reset**:
+the customer taps the link in their email and lands on the website, so that
+journey can't be tested end-to-end inside the app. Closing it needs the keystore's
+SHA-256 (`eas credentials -p android`) published in `assetlinks.json` on the web
+side — no rebuild required. See
+[`deep-links.md`](./deep-links.md) and
+[`specs/2026-08-05-staging-apk-dagitimi-design.md`](./superpowers/specs/2026-08-05-staging-apk-dagitimi-design.md) §4.
 
 ## Production (tagged release)
 
@@ -83,5 +130,6 @@ Step-by-step account setup and the verification checklist:
 JS/asset fix, fast to staging     → merge to development           (auto OTA)
 JS/asset fix, fast to production  → eas update --branch production
 New native module / SDK bump      → merge to development           (auto preview build)
+APK to a customer for testing      → gh workflow run mobile-staging.yml -f mode=build
 Public release                    → bump app.json version → master → tag mobile-vX.Y.Z
 ```
