@@ -5,7 +5,7 @@ How the mobile app ships, mirroring the backend's staging/production cadence
 
 | Track          | Trigger                                     | Pipeline                | Where it lands                                                    |
 | -------------- | ------------------------------------------- | ----------------------- | ----------------------------------------------------------------- |
-| **Staging**    | every push to `development` touching mobile | `mobile-staging.yml`    | JS→OTA `staging` channel · native→internal preview build          |
+| **Staging**    | push to `main` → auto OTA only; build is manual (`workflow_dispatch`) | `mobile-staging.yml`    | JS→OTA `staging` channel · native→internal preview build          |
 | **Production** | `mobile-v*` tag on `master`                 | `mobile-testflight.yml` | TestFlight (iOS) + Play internal (Android), after manual approval |
 
 The golden rule (see [`EAS_UPDATE_OTA.md`](./EAS_UPDATE_OTA.md)):
@@ -16,17 +16,18 @@ The golden rule (see [`EAS_UPDATE_OTA.md`](./EAS_UPDATE_OTA.md)):
 
 ## Staging (continuous)
 
-Nothing manual. When a PR merges to `development` and touches `apps/mobile/**`
-(or shared `packages/**`), `mobile-staging.yml` decides automatically:
+Every push to `main` runs `mobile-staging.yml`, which decides automatically:
 
-- **JS/asset-only** → `eas update --branch staging`. Testers on a `staging`
-  build (the `preview` profile, channel `staging`) get it on next launch (~1 min).
+- **JS/asset-only** → `eas update --branch staging`, published for free. Testers
+  on a `staging` build (the `preview` profile, channel `staging`) get it on next
+  launch (~1 min).
 - **Native** (deps, `app.json`/`app.config.js`/`eas.json`, `ios/`·`android/`,
-  plugins, `google-services.json`) → a fresh `preview` EAS build (iOS+Android),
-  internal distribution, built against **staging-api**.
+  plugins, `google-services.json`) → publishes nothing and prints a warning
+  instead. The runtime version policy is `fingerprint`, so a native change
+  moves the fingerprint — an OTA couldn't reach any existing binary anyway.
 
-A weekly schedule and manual `workflow_dispatch` also produce a fresh preview
-build on demand.
+A build only ever happens through a deliberate `workflow_dispatch` — see
+"Sending a staging APK to a customer" below.
 
 Install: staging builds carry the name "Tarodan (Staging)". On **iOS** they also
 carry the `com.tarodan.app.staging` bundle id (#229), so a staging build sits next
