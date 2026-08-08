@@ -35,13 +35,13 @@ büyük ölçüde **13'teki P0-P1-P2 listesini yukarıdan aşağı kapatmak** de
 
 ## 2. Kaynaklar — neye güveneceksin
 
-| Kaynak                                       | Rolü                                                                   |
-| -------------------------------------------- | ---------------------------------------------------------------------- |
+| Kaynak                                       | Rolü                                                                                                                               |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `github.com/sigmoida/tarodan-mobile` `main`  | **Kanonik mobil kod.** Lokal `/Users/kaan/Projects/tarodan-mobile` klonu bayat ve yanlış remote'da — KULLANMA; GitHub'dan taze çek |
-| `tarodan-app` `development` → `apps/api/src` | **Sözleşmenin tek gerçeği.** Doküman ile kod çelişirse kod kazanır      |
-| `docs/mobile-api-reference.html`             | Üretilmiş endpoint kataloğu + durum sözlükleri. Bayatlamışsa `pnpm docs:mobile-api` ile yeniden üret |
-| `docs/mobile-parity/*.md`                    | Sözleşme + kabul kriterleri (aşağıdaki okuma sırasıyla)                 |
-| ~~Swagger/OpenAPI~~                          | **Güvenme** — örn. `CheckoutQuoteResponseDto` `pricing.summary`'yi bilmiyor; kaynak kod esas |
+| `tarodan-app` `development` → `apps/api/src` | **Sözleşmenin tek gerçeği.** Doküman ile kod çelişirse kod kazanır                                                                 |
+| `docs/mobile-api-reference.html`             | Üretilmiş endpoint kataloğu + durum sözlükleri. Bayatlamışsa `pnpm docs:mobile-api` ile yeniden üret                               |
+| `docs/mobile-parity/*.md`                    | Sözleşme + kabul kriterleri (aşağıdaki okuma sırasıyla)                                                                            |
+| ~~Swagger/OpenAPI~~                          | **Güvenme** — örn. `CheckoutQuoteResponseDto` `pricing.summary`'yi bilmiyor; kaynak kod esas                                       |
 
 Doküman öncelik zinciri (çelişkide sağdaki soldakini ezer):
 **01–12 → 14 → 15 → 13(v2)** — ve hepsini `apps/api` kodu ezer.
@@ -70,11 +70,11 @@ Doküman öncelik zinciri (çelişkide sağdaki soldakini ezer):
 Matristeki sırayla; her biri için sol sütun mobil repo, sağ sütun API doğrulama
 noktası:
 
-| İş | Mobilde dokunulacak yer | API'de doğrulama |
-| --- | --- | --- |
-| **1+3. Checkout:** `expectedPricingHash` + `expectedShippingTariffVersion` gönder ve toplamı `pricing.summary`'den bas (yerel aritmetiği + `GET /shipping/rates` çağrısını sil) | `app/checkout/_hooks/useCheckout.ts`, `app/cart/_hooks/useCart.ts`, `src/lib/api/orders.ts` (4 payload üreticisi), `app/checkout/_components/OrderSummary.tsx` | `apps/api/src/modules/order/dto/checkout.dto.ts`, `order-pricing.service.ts` (`summary` üretimi), 409 davranışı |
-| **2. Kayıt:** `username` alanı + regex + uygunluk kontrolü | `app/(auth)/register/_lib/schema.ts`, `_components/RegisterForm.tsx`, `src/lib/api/auth.ts` | `apps/api/src/modules/auth/dto/register.dto.ts` (`^[a-z0-9](?:[a-z0-9._]*[a-z0-9])?$`), `GET /auth/username-availability` |
-| **4. Mesaj görselleri:** bearer'lı görsel yükleme (`expo-image` `headers` veya token'lı fetch→cache) | `app/messages/[threadId]/_hooks/useMessageThread.ts`, `src/utils/contentFilter.ts`, `src/utils/imageUrl.ts` | `apps/api/src/modules/media/media.controller.ts` (`message-attachment/:id`, JWT + 302) |
+| İş                                                                                                                                                                              | Mobilde dokunulacak yer                                                                                                                                        | API'de doğrulama                                                                                                          |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **1+3. Checkout:** `expectedPricingHash` + `expectedShippingTariffVersion` gönder ve toplamı `pricing.summary`'den bas (yerel aritmetiği + `GET /shipping/rates` çağrısını sil) | `app/checkout/_hooks/useCheckout.ts`, `app/cart/_hooks/useCart.ts`, `src/lib/api/orders.ts` (4 payload üreticisi), `app/checkout/_components/OrderSummary.tsx` | `apps/api/src/modules/order/dto/checkout.dto.ts`, `order-pricing.service.ts` (`summary` üretimi), 409 davranışı           |
+| **2. Kayıt:** `username` alanı + regex + uygunluk kontrolü                                                                                                                      | `app/(auth)/register/_lib/schema.ts`, `_components/RegisterForm.tsx`, `src/lib/api/auth.ts`                                                                    | `apps/api/src/modules/auth/dto/register.dto.ts` (`^[a-z0-9](?:[a-z0-9._]*[a-z0-9])?$`), `GET /auth/username-availability` |
+| **4. Mesaj görselleri:** bearer'lı görsel yükleme (`expo-image` `headers` veya token'lı fetch→cache)                                                                            | `app/messages/[threadId]/_hooks/useMessageThread.ts`, `src/utils/contentFilter.ts`, `src/utils/imageUrl.ts`                                                    | `apps/api/src/modules/media/media.controller.ts` (`message-attachment/:id`, JWT + 302)                                    |
 
 P0'lar bitince matristeki P1 #5 (sipariş para dökümü) ve #6 (paket boyutu — 14'ün
 tamamı) gelir; gerisi matristeki sıra.
