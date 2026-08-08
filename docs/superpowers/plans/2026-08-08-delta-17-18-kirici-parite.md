@@ -419,8 +419,15 @@ git commit -m "feat(api): carry the checkout pricing signature as one snapshot"
 "commissionChangedTitle": "Komisyon oranları güncellendi",
 "commissionChangedBody": "Platform komisyon kuralları siz ödemeye geçerken güncellendi.\n\nÖnceki toplam: {oldTotal}\nYeni toplam: {newTotal}\n\nLütfen tutarı kontrol edip tekrar onaylayın.",
 "pricingUnavailableTitle": "Ödeme şu an alınamıyor",
-"pricingUnavailableBody": "Fiyatlandırma yapılandırması geçici olarak kullanılamıyor. Lütfen birazdan tekrar deneyin."
+"pricingUnavailableBody": "Fiyatlandırma yapılandırması geçici olarak kullanılamıyor. Lütfen birazdan tekrar deneyin.",
+"pricesUpdatedBody": "Ürün veya kargo fiyatları güncellendi.\n\nÖnceki toplam: {oldTotal}\nYeni toplam: {newTotal}\n\nLütfen tutarı kontrol edip tekrar onaylayın."
 ```
+
+> `pricesUpdatedBody` MEVCUT sabit Türkçe mesajın kataloğa taşınmış halidir —
+> metin birebir aynı, yalnız iki tutar ICU değişkeni oldu. Bu, planın "yeni kodda
+> gömülü Türkçe yazılmaz" kısıtıyla 409 dalının çelişmesini kapatır (karar:
+> insan ortağı, 2026-08-08). `checkout-pricing-changed.test.tsx`'in
+> `'165,00 TL'` beklentisi bozulmaz: değişkenler yine `formatServerPrice`'tan geçer.
 
 `en.json` içindeki aynı bloğa İngilizce karşılıkları ekle:
 
@@ -598,9 +605,10 @@ Mevcut 409 bloğunu (`if (status === 409 && error?.response?.data?.i18nKey === '
                 oldTotal: formatServerPrice(oldTotal),
                 newTotal: formatServerPrice(newTotal),
               })
-            : `Ürün veya kargo fiyatları güncellendi.\n\nÖnceki toplam: ${formatServerPrice(
-                oldTotal,
-              )}\nYeni toplam: ${formatServerPrice(newTotal)}\n\nLütfen tutarı kontrol edip tekrar onaylayın.`,
+            : t('checkout.pricesUpdatedBody', {
+                oldTotal: formatServerPrice(oldTotal),
+                newTotal: formatServerPrice(newTotal),
+              }),
         );
         return;
       }
