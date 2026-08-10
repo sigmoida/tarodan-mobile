@@ -4,6 +4,7 @@ import { View, Pressable, Linking, StyleSheet } from 'react-native';
 import { Card, Text, Button, StatusBadge, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { buildTrackingUrl } from '@/lib/shipping/tracking';
 import { useRefundStatusConfig } from '../_lib/status';
 import { formatDate } from '../_lib/format';
 import type { OrderDetail } from '../_lib/types';
@@ -94,6 +95,7 @@ export function OrderRefundBanner({
   const { t } = useTranslation();
   const refundStatusConfig = useRefundStatusConfig();
   const rr = order.activeRefundRequest;
+  const returnTrackingUrl = buildTrackingUrl(rr?.returnProvider, rr?.returnTrackingNumber);
   if (!(rr && !view.isCancelled)) return null;
   return (
     <Card variant="elevated" style={styles.card} testID="refund-active-banner">
@@ -111,16 +113,13 @@ export function OrderRefundBanner({
             Bu numarayı paketle birlikte herhangi bir Sürat şubesine bırakın:
           </Text>
           <Text style={styles.refundTrackingNumber}>{rr.returnTrackingNumber}</Text>
-          {rr.returnProvider === 'surat' ? (
+          {/* Link ELLE BİRLEŞTİRİLMEZ — tek kaynak `buildTrackingUrl`. */}
+          {returnTrackingUrl ? (
             <Button
               variant="outline"
               icon="cube"
               title="Sürat'ta Takip Et"
-              onPress={() =>
-                Linking.openURL(
-                  `https://www.suratkargo.com.tr/KargoTakip/?kargotakipno=${encodeURIComponent(rr.returnTrackingNumber!)}`,
-                )
-              }
+              onPress={() => Linking.openURL(returnTrackingUrl)}
               style={{ marginTop: theme.spacing[2] }}
             />
           ) : null}

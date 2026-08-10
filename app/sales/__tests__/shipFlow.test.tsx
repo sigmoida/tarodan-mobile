@@ -10,6 +10,11 @@
  *
  * Elle takip numarası girişi kalktı: numarayı sunucu üretiyor, satıcının yazdığı
  * serbest metin sunucunun `PKG-` düzeniyle çelişiyordu (matris #20).
+ *
+ * `updateTracking`'in geri gelmediği burada DOĞRULANMAZ: bu dosya `@/lib/api`'yi
+ * `jest.mock` fabrikasıyla değiştiriyor, dolayısıyla iddia mock'u sınardı ve
+ * gerçek yüzeye `updateTracking` eklense bile geçerdi. Gerçek modülün yüklendiği
+ * yerdeki tek nüsha: `src/lib/api/__tests__/orders.test.ts`.
  */
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

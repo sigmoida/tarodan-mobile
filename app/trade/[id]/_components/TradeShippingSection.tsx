@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Pressable, Linking, StyleSheet } from 'react-native';
 import { Card, Text, Button, theme } from '@/ui';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { buildTrackingUrl } from '@/lib/shipping/tracking';
 import { ShipmentStatusChip } from './ShipmentStatusChip';
 import { renderOtherShipmentHint } from '../_lib/status';
 import type { Trade, TFn, TradeShipment } from '../_lib/types';
@@ -9,8 +10,11 @@ import type { TradeView } from '../_lib/derive';
 
 const { colors } = theme;
 
-const suratTrackUrl = (code: string) =>
-  `https://www.suratkargo.com.tr/KargoTakip/?kargotakipno=${encodeURIComponent(code)}`;
+/** Link ELLE BİRLEŞTİRİLMEZ — tek kaynak `buildTrackingUrl` (§ kargo takibi). */
+const openSuratTrack = (code: string) => {
+  const url = buildTrackingUrl('surat', code);
+  if (url) Linking.openURL(url);
+};
 
 const carrierLabel = (s: TradeShipment) =>
   (s.carrier === 'surat' ? 'Sürat Kargo' : s.carrier || '—') +
@@ -80,7 +84,7 @@ export function TradeShippingSection({
             <Button
               variant="outline"
               title="Kargoyu Takip Et"
-              onPress={() => Linking.openURL(suratTrackUrl(theirTrackingNumber))}
+              onPress={() => openSuratTrack(theirTrackingNumber)}
               style={styles.trackButton}
             />
           )}
@@ -119,7 +123,7 @@ export function TradeShippingSection({
                 <Button
                   variant="outline"
                   title="Sürat'ta Takip Et"
-                  onPress={() => Linking.openURL(suratTrackUrl(myToWarehouseShipment.trackingNumber!))}
+                  onPress={() => openSuratTrack(myToWarehouseShipment.trackingNumber!)}
                   style={styles.trackButton}
                 />
               ) : null}
@@ -153,7 +157,7 @@ export function TradeShippingSection({
                 <Button
                   variant="outline"
                   title="Sürat'ta Takip Et"
-                  onPress={() => Linking.openURL(suratTrackUrl(myFromWarehouseShipment.trackingNumber!))}
+                  onPress={() => openSuratTrack(myFromWarehouseShipment.trackingNumber!)}
                   style={styles.trackButton}
                 />
               )}
@@ -196,7 +200,7 @@ export function TradeShippingSection({
               <Button
                 variant="outline"
                 title="Sürat'ta Takip Et"
-                onPress={() => Linking.openURL(suratTrackUrl(myReturnShipment.trackingNumber!))}
+                onPress={() => openSuratTrack(myReturnShipment.trackingNumber!)}
                 style={styles.trackButton}
               />
             )}
