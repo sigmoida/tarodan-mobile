@@ -1,6 +1,6 @@
 # Parite — Kalan İşler
 
-**Güncelleme:** 2026-08-10 (ilan formu turu sonrası)
+**Güncelleme:** 2026-08-11 (kargo/takip turu sonrası)
 **Referans noktası:** `sigmoida/tarodan-app` `development` @ `cfc058da` (2026-08-07)
 — o tarihten beri mobili ilgilendiren yeni commit yok (kontrol edildi).
 
@@ -50,6 +50,29 @@ testli ama indirim kutusu yalnız düzenleme modunda render ediliyor
 indirimli açamıyor; oluşturup sonra düzenlemeden ekliyor. Tek satırlık bir kapı
 gibi görünüyor ama gerçek ekrandan (input→handler→submit) bir entegrasyon testi
 de gerekecek.
+
+---
+
+## ✅ 2026-08-11 kargo/takip turunda KAPANANLAR
+
+`feat/kargo-takip-kodu` — kapanış:
+`docs/superpowers/reports/2026-08-11-kargo-takip-kapanis.md`
+
+- ~~**P1 #4** Kargo akışı — mevcut shipment'ı önce oku~~ ✅
+- ~~**Matris #20** Satıcı takip numarası serbest metin~~ ✅ (elle giriş kalktı,
+  `shippingApi.updateTracking` silindi — numarayı sunucu üretiyor)
+- ~~`trackingNumber` vs `providerTrackingId` ayrımı~~ ✅ **dört ekranda birden**
+  (alıcı detay, satıcı detay, grup, misafir takip). Alıcı `PKG-`'yi takip
+  numarası olarak hiçbir yerde görmüyor; link `providerTrackingId`'den kuruluyor
+  ve sunucunun bozuk `trackingUrl`'ü hiç okunmuyor.
+- ~~Sürat durum kodu 1 → `picked_up`~~ ✅ (durum etiketi sözlüğü eklendi, bilinmeyen
+  durumda ham kod basılmıyor)
+
+**Yeni takip maddesi — satıcı kartındaki "Kargoya Ver" butonu döngüsü.** Kargo
+kaydı zaten varken buton görünmeye devam ediyor (sipariş durumu şube kabulüne
+kadar değişmiyor). Mesaj artık dürüst ama satıcı tekrar basabilir. Kartı
+referans + "şubeye teslim edin" durumuna çevirmek kapatır; `useOrderShipment`
+paylaşılan hook olarak hazır.
 
 ---
 
@@ -173,6 +196,8 @@ Hiçbiri merge'ü engellemedi; gerekçeleri kapanış raporunda.
 | **IP-blok 403'ünde ayırt edici alan yok** | O hata dalı bilerek yazılmadı |
 | **Kupon reddi 400'ünde yapısal alan yok** | Ayrım mesaj metnine bağlı kalıyor |
 | **Android `assetlinks.json` yayında değil** | İmza parmak izi backend/ops tarafına iletilmeli |
+| **`POST /orders/guest/track` gerçek Sürat kodunu döndürmüyor** | Yalnız `provider`, `trackingNumber` (iç referans), `trackingUrl` (bozuk), `status`, `estimatedDelivery` veriyor. Misafir takip ekranı numara yerine **durum** gösteriyor; alan uydurulmadı |
+| **`GET /products/my` `relatedOrder`/`relatedTrade` yayınlamıyor** | Ölçümle doğrulandı: 1 `sold` + 2 `reserved` ilan var, alan yine gelmiyor |
 
 Bunlar yeni bir denetimde "mobil bulgusu" olarak açılmamalı — sözleşme eksiğidir.
 
