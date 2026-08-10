@@ -601,6 +601,32 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     } as Record<string, any>;
   };
 
+  /**
+   * İndirim alanları — `POST /products` de artık kabul ediyor (delta 18 §2b).
+   * `price` formdaki indirim ÖNCESİ normal fiyattır; sunucu
+   * `salePrice < max(originalPrice, price)` ise ürünü indirimli açar, aksi
+   * halde indirim alanlarını yok sayar. Etkin fiyatı İSTEMCİ TÜRETMEZ.
+   */
+  const buildSalePayload = (): Record<string, unknown> => {
+    const formPrice = Number(price);
+    const sale = salePrice ? Number(salePrice) : 0;
+    const hasSale = sale > 0 && formPrice > sale && sale !== formPrice;
+    if (!hasSale) {
+      return {
+        originalPrice: null,
+        salePrice: null,
+        saleStartDate: null,
+        saleEndDate: null,
+      };
+    }
+    return {
+      originalPrice: formPrice,
+      salePrice: sale,
+      saleStartDate: saleStartDate ? new Date(saleStartDate).toISOString() : null,
+      saleEndDate: saleEndDate ? new Date(saleEndDate).toISOString() : null,
+    };
+  };
+
   const validate = (): boolean => {
     // Kurallar ve SIRALARI tek yerde (`_lib/validate.ts`) — kullanıcıya
     // gösterilecek tek mesajı o sıra belirliyor.
@@ -644,6 +670,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       if (!isEdit) {
         await productsApi.create({
           ...buildBasePayload(),
+          ...buildSalePayload(),
           isPreorder: false,
           // Boş bırakılırsa 1 adet — sınırsız (null) stok bilinçli bir seçim değil, default değil.
           quantity: quantity ? Number(quantity) : 1,
@@ -664,26 +691,11 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       } else {
         const payload: Record<string, any> = {
           ...buildBasePayload(),
+          ...buildSalePayload(),
           isPreorder,
           quantity: quantity !== '' ? Number(quantity) : null,
           status,
         };
-
-        // Sale/discount fields — original price is the listed price field.
-        const formPrice = Number(price);
-        const sale = salePrice ? Number(salePrice) : 0;
-        const hasSale = sale > 0 && formPrice > sale && sale !== formPrice;
-        if (hasSale) {
-          payload.originalPrice = formPrice;
-          payload.salePrice = sale;
-          payload.saleStartDate = saleStartDate ? new Date(saleStartDate).toISOString() : null;
-          payload.saleEndDate = saleEndDate ? new Date(saleEndDate).toISOString() : null;
-        } else {
-          payload.originalPrice = null;
-          payload.salePrice = null;
-          payload.saleStartDate = null;
-          payload.saleEndDate = null;
-        }
 
         await productsApi.update(productId!, payload);
         invalidateListingCaches();
