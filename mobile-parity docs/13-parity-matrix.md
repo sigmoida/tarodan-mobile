@@ -13,6 +13,18 @@
 > **backend** bekliyor. Ölçümler ve backend maddeleri:
 > `docs/superpowers/reports/2026-08-03-parite-p1-p2-kapanis.md`.
 
+> **GÜNCELLEME 2026-08-09 — delta 17/18 kırıcı turu.** `feat/parite-delta-17-18`
+> branch'inde ana repodaki 2–7 Ağustos sözleşme değişikliklerinin **kırıcı**
+> olanları kapatıldı: checkout komisyon snapshot'ı (`commissionRuleSetId`/
+> `Version` + `409 COMMISSION_PRICING_CHANGED` + `503`), kısmi quote
+> (`unavailableItems[]`), ve takas fiyatlama v2 (`cashPayments[]`, iki taraflı
+> ödeme, `payment-quote`/`preview`). Sözleşmeler staging'de canlı ölçüldü —
+> ölçüm `docs/superpowers/reports/2026-08-09-delta-17-18-olcum.md`, kapanış
+> `docs/superpowers/reports/2026-08-09-delta-17-18-kapanis.md`.
+> **Bu turun kapsamı dışında kalanlar** (ilan formu `edit` projeksiyonu,
+> bildirim enum'u + route resolver, Sürat kargo akışı, `distanceSalesAccepted`,
+> sepette satır seçimi) sonraki tura kaldı — kapanış raporunun son bölümünde.
+
 Gösterim: ✅ tam · 🟡 kısmi · ❌ yok · ⚠️ hatalı/bozuk
 
 ---
