@@ -66,29 +66,21 @@ describe('firstListingValidationError', () => {
 });
 
 /**
- * Düzenleme akışı — sunucu mevcut kademeyi GERİ DÖNDÜRMÜYOR.
- *
- * Canlı ölçüm (staging, 2026-08-03): `GET /products/my/:id` 46 alan
- * döndürüyor ve içlerinde `shippingPackageTier` YOK. Yani düzenlemede alan
- * boş açılıyor. Kademe zorunlu tutulursa satıcı yazım hatası düzeltmek için
- * girdiği ilanda kargo boyutunu YENİDEN SEÇMEK zorunda kalır ve mevcut
- * değeri göremediği için farkında olmadan değiştirebilir — 60 TL'lik fark
- * sessizce oluşur. Bu yüzden zorunluluk yalnız OLUŞTURMADA geçerli.
+ * Düzenleme akışı — sunucu kademeyi `edit.shippingPackageTier` ile geri
+ * döndürüyor (2026-08-10 ölçümü), yani form onu HEP dolu açıyor. Eski
+ * istisna (düzenlemede zorunlu değil) o ölçümden ÖNCEKİ duruma aitti;
+ * `isEdit` artık `ListingValidationInput`'ta yok ve kural her iki modda da
+ * aynı.
  */
 describe('firstListingValidationError on edit', () => {
   const editable = () => ({
     values: { ...complete, shippingPackageTier: '' },
     categoryId: 'c1',
     imageCount: 1,
-    isEdit: true,
   });
 
-  it('does not force a tier the server never sent back', () => {
-    expect(firstListingValidationError(editable())).toBeNull();
-  });
-
-  it('still requires it when creating', () => {
-    expect(firstListingValidationError({ ...editable(), isEdit: false })).toBe(
+  it('still requires the tier on edit — the server always sends it back', () => {
+    expect(firstListingValidationError(editable())).toBe(
       'Lütfen kargo paket boyutunu seçin.',
     );
   });

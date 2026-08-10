@@ -166,21 +166,75 @@ describe('paket boyutu seçimi', () => {
 });
 
 /**
- * Düzenleme payload'ı — boş kademe sunucunun kaydını EZMEMELİ.
+ * Düzenleme payload'ı — kademe artık KOŞULSUZ gönderilir.
  *
- * Sunucu mevcut kademeyi geri döndürmediği için (canlı ölçüm) alan boş
- * açılıyor. `shippingPackageTier: ''` göndermek, sunucudaki gerçek boyutu
- * silip `small` varsayımına düşürürdü — satıcı hiçbir şey seçmemiş olmasına
- * rağmen kargo bedeli değişirdi.
+ * Sunucu kademeyi `edit.shippingPackageTier` ile geri döndürüyor (2026-08-10
+ * ölçümü), yani form onu her zaman dolu açar; koşullu göndermek (eski
+ * "boşsa payload'a koyma" workaround'u) artık satıcının bilerek yaptığı
+ * değişikliği yutardı. `buildBasePayload` artık `shippingPackageTier`'ı
+ * doğrudan yazar — ayrı bir yardımcı fonksiyon yok.
  */
 describe('listing payload tier', () => {
-  it('omits the tier when nothing was chosen', () => {
-    const { buildTierPayloadField } = require('../_lib/payload');
-    expect(buildTierPayloadField('')).toEqual({});
-  });
+  it('sends the tier the seller has selected when submitting an edit', async () => {
+    (productsApi.getMyById as jest.Mock).mockResolvedValue({
+      data: {
+        data: {
+          quantity: 1,
+          availableQuantity: 1,
+          isPreorder: false,
+          edit: {
+            title: 'Geçerli başlık',
+            description: '',
+            price: 500,
+            oldPrice: null,
+            salePrice: null,
+            saleStartDate: null,
+            saleEndDate: null,
+            categoryId: 'c1',
+            brandId: null,
+            carModelId: null,
+            manufacturerId: null,
+            condition: 'very_good',
+            status: 'active',
+            modelCode: '',
+            color: null,
+            isBoxed: null,
+            quantity: 1,
+            maxQuantityPerOrder: null,
+            shippingPackageTier: 'large',
+            isTradeEnabled: false,
+            isSet: false,
+            bundleSize: null,
+            isLimited: false,
+            editionNumber: null,
+            editionTotal: null,
+            releaseDate: null,
+            year: null,
+            images: [
+              {
+                cardKey: 'card-1',
+                detailKey: 'detail-1',
+                cardUrl: 'https://example.com/card-1.jpg',
+                detailUrl: 'https://example.com/detail-1.jpg',
+                sortOrder: 0,
+              },
+            ],
+            attributes: [],
+          },
+        },
+      },
+    });
 
-  it('sends the tier when the seller chose one', () => {
-    const { buildTierPayloadField } = require('../_lib/payload');
-    expect(buildTierPayloadField('large')).toEqual({ shippingPackageTier: 'large' });
+    renderWithProviders(<ListingForm mode="edit" productId="p1" />);
+    await screen.findByText('Değişiklikleri Kaydet');
+
+    fireEvent.press(screen.getByText('Değişiklikleri Kaydet'));
+
+    await waitFor(() =>
+      expect(productsApi.update).toHaveBeenCalledWith(
+        'p1',
+        expect.objectContaining({ shippingPackageTier: 'large' }),
+      ),
+    );
   });
 });

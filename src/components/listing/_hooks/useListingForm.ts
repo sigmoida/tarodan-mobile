@@ -7,7 +7,7 @@ import { appAlert } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { listingFormSchema, emptyListingFormValues } from '../_lib/schema';
 import { firstListingValidationError } from '../_lib/validate';
-import { buildTierPayloadField } from '../_lib/payload';
+import { toFormValues } from '../_lib/editMapper';
 
 import { useAuthStore } from '../../../stores/authStore';
 import { api, productsApi, categoriesApi, bankAccountApi, shippingApi } from '@/lib/api';
@@ -23,7 +23,9 @@ import type {
   CommissionPreview,
   AttrGroup,
   ListingFormProps,
+  MyProductResponse,
 } from '../_lib/types';
+import type { MappedListing } from '../_lib/editMapper';
 
 /**
  * ListingForm controller — owns the entire create/edit form state machine.
@@ -158,6 +160,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   // Holds prefilled manufacturer attributes (edit) until the groups finish loading,
   // so the manufacturer-change reset effect doesn't wipe them.
   const initialCustomAttrsRef = useRef<Record<string, string[]> | null>(null);
+  // Marka/model/kategori/üretici adları için yedek — listeler yüklenene kadar
+  // `.find()` boş döner, eşleyicinin etiketleri o boşluğu doldurur.
+  const editLabelsRef = useRef<MappedListing['labels'] | null>(null);
 
   // Loading flags
   const [brandsLoading, setBrandsLoading] = useState(true);
@@ -226,68 +231,25 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       setProductLoading(true);
       try {
         const res = await productsApi.getMyById(productId);
-        const p = (res.data?.data ?? res.data) as any;
+        const mapped = toFormValues((res.data?.data ?? res.data) as MyProductResponse);
         if (cancelled) return;
-        if (!p) {
+        if (!mapped) {
           setProductNotFound(true);
           return;
         }
-        const onSale =
-          p.isOnSale && p.oldPrice != null && Number(p.oldPrice) > Number(p.price);
 
-        setTitle(p.title ?? '');
-        setDescription(p.description ?? '');
-        setPrice(String(onSale ? p.oldPrice : p.price ?? ''));
-        setQuantity(p.quantity != null ? String(p.quantity) : '');
-        setReservedQty(
-          p.quantity != null && p.availableQuantity != null
-            ? Math.max(0, Number(p.quantity) - Number(p.availableQuantity))
-            : 0
-        );
-        setCategoryId(p.category?.id ?? p.categoryId ?? '');
-        setCondition(p.condition ?? 'very_good');
-        setBrandId(p.brand?.id ?? '');
-        setCarModelId(p.carModel?.id ?? '');
-        setScale(p.scale ?? '');
-        setMaterial(p.material ?? '');
-        setManufacturerId(p.manufacturer?.id ?? '');
-        setYear(p.year != null ? String(p.year) : '');
-        setIsTradeEnabled(!!p.isTradeEnabled);
-        setIsSet(!!p.isSet);
-        setBundleSize(p.bundleSize != null ? String(p.bundleSize) : '');
-        setIsPreorder(!!p.isPreorder);
-        setStatus(p.status ?? 'active');
-        // Sunucunun ürün okumasında kademeyi geri döndürdüğü DOĞRULANAMADI
-        // (kimlikli erişim gerekiyor). Alan gelirse seç, gelmezse boş bırak —
-        // satıcı yeniden seçer; sessizce `small` varsaymaktan iyidir.
-        setShippingPackageTier(p.shippingPackageTier ?? '');
-
-        const imgs = Array.isArray(p.images) ? p.images : [];
-        setImageKeys(
-          imgs.map((i: any) => ({
-            cardKey: i.cardKey ?? i.url,
-            detailKey: i.detailKey ?? i.cardKey ?? i.url,
-          }))
-        );
-        setImageUris(imgs.map((i: any) => i.cardUrl ?? i.detailUrl ?? i.url ?? ''));
-
-        // Manufacturer-scoped attributes → groupSlug -> [attrSlug]
-        const scoped = (Array.isArray(p.attributes) ? p.attributes : []).filter(
-          (a: any) => a?.manufacturerSlug && a?.groupSlug && a?.slug
-        );
-        if (scoped.length) {
-          const grouped: Record<string, string[]> = {};
-          scoped.forEach((a: any) => {
-            (grouped[a.groupSlug] ??= []).push(a.slug);
-          });
-          initialCustomAttrsRef.current = grouped;
+        // Şema alanları tek seferde; tek tek setter çağırmak yerine form.reset.
+        form.reset(mapped.values);
+        setReservedQty(mapped.reservedQty);
+        setImageKeys(mapped.images.keys);
+        setImageUris(mapped.images.uris);
+        setSalePrice(mapped.sale.salePrice);
+        setSaleStartDate(mapped.sale.saleStartDate);
+        setSaleEndDate(mapped.sale.saleEndDate);
+        if (Object.keys(mapped.attrs).length) {
+          initialCustomAttrsRef.current = mapped.attrs;
         }
-
-        if (onSale) {
-          setSalePrice(String(p.price));
-          setSaleStartDate(p.saleStartDate ? String(p.saleStartDate).slice(0, 10) : '');
-          setSaleEndDate(p.saleEndDate ? String(p.saleEndDate).slice(0, 10) : '');
-        }
+        editLabelsRef.current = mapped.labels;
       } catch {
         if (!cancelled) setProductNotFound(true);
       } finally {
@@ -564,10 +526,29 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const flatCategories = flattenCategories(categories).filter(
     (c) => !BRAND_SLUGS.includes(c.slug) && !SCALE_SLUGS.includes(c.slug)
   );
-  const selectedCategory = flatCategories.find((c) => c.id === categoryId);
-  const selectedBrand = brands.find((b) => b.id === brandId);
-  const selectedModel = models.find((m) => m.id === carModelId);
-  const selectedManufacturer = manufacturerList.find((m) => m.id === manufacturerId);
+  // Liste yüklenene kadar `.find()` boş döner; eşleyicinin etiket yedeği o
+  // boşluğu doldurur. Liste yüklendiğinde `.find()` kazanır — yedek yalnız
+  // `undefined` olduğunda devreye girer, gerçek kaydı asla ezmez.
+  const selectedCategory =
+    flatCategories.find((c) => c.id === categoryId) ??
+    (editLabelsRef.current?.categoryName
+      ? { id: categoryId, name: editLabelsRef.current.categoryName, slug: '' }
+      : undefined);
+  const selectedBrand =
+    brands.find((b) => b.id === brandId) ??
+    (editLabelsRef.current?.brandName
+      ? { id: brandId, name: editLabelsRef.current.brandName, slug: '' }
+      : undefined);
+  const selectedModel =
+    models.find((m) => m.id === carModelId) ??
+    (editLabelsRef.current?.carModelName
+      ? { id: carModelId, name: editLabelsRef.current.carModelName, slug: '' }
+      : undefined);
+  const selectedManufacturer =
+    manufacturerList.find((m) => m.id === manufacturerId) ??
+    (editLabelsRef.current?.manufacturerName
+      ? { id: manufacturerId, name: editLabelsRef.current.manufacturerName, slug: '' }
+      : undefined);
   const effectiveScales = scaleList.length > 0 ? scaleList : FALLBACK_SCALES;
   const effectiveMaterials = materialList.length > 0 ? materialList : FALLBACK_MATERIALS;
   const selectedMaterial = effectiveMaterials.find((m) => m.slug === material);
@@ -601,9 +582,10 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       year: year ? Number(year) : undefined,
       isTradeEnabled,
       isSet,
-      // Boş kademe payload'a KONMAZ — düzenlemede sunucunun kayıtlı değerini
-      // ezmesin (sunucu mevcut kademeyi geri döndürmüyor, bkz. `_lib/payload`).
-      ...buildTierPayloadField(shippingPackageTier),
+      // Sunucu kademeyi `edit.shippingPackageTier` ile geri döndürüyor
+      // (2026-08-10 ölçümü), yani form onu HEP dolu açar. Koşullu göndermek
+      // artık satıcının BİLEREK yaptığı değişikliği yutardı.
+      shippingPackageTier,
       bundleSize: isSet && Number(bundleSize) >= 2 ? Number(bundleSize) : undefined,
       images: imageKeys.length > 0 ? imageKeys : undefined,
       attributes: customAttributeSlugs.length > 0 ? customAttributeSlugs : undefined,
@@ -617,7 +599,6 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       values: form.getValues(),
       categoryId,
       imageCount: imageKeys.length,
-      isEdit,
     });
     if (error) {
       appAlert('Hata', error);
