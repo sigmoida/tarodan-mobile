@@ -88,8 +88,48 @@ export type OrderQuoteResponse = {
   pricingHash: string;
   /** Order-create payload'ına AYNEN geri gönderilecek kargo tarife versiyonu. */
   shippingTariffVersion: number;
+  /** Order-create payload'ına AYNEN geri gönderilecek komisyon seti (delta 18). */
+  commissionRuleSetId: string;
+  commissionRuleSetVersion: number;
   pricing?: OrderQuotePricing;
 };
+
+/**
+ * Sipariş gövdesine AYNEN geri gidecek fiyat imzası. Delta 18 ile komisyon
+ * rule-set kimliği/sürümü eklendi; alanlar dört payload üreticisine dağıtılmak
+ * yerine burada toplanır — beşinci alan geldiğinde yalnız bu tip ve
+ * `toExpectedPricing` değişir, çağıran hiç değişmez.
+ */
+export type ExpectedPricingSnapshot = {
+  expectedPricingHash: string;
+  expectedShippingTariffVersion: number;
+  expectedCommissionRuleSetId: string;
+  expectedCommissionRuleSetVersion: number;
+};
+
+const isFiniteNumber = (v: unknown): v is number =>
+  typeof v === 'number' && Number.isFinite(v);
+
+/**
+ * Quote → imza. Alanlardan biri eksik/tip dışıysa `null`: yarım gövde göndermek
+ * yalnız aynı 400'ü başka bir şekilde üretir, çağıran bunu "fiyat hazır değil"
+ * kapısı olarak kullanır.
+ */
+export function toExpectedPricing(
+  q: OrderQuoteResponse | undefined | null,
+): ExpectedPricingSnapshot | null {
+  if (!q) return null;
+  if (typeof q.pricingHash !== 'string' || !q.pricingHash) return null;
+  if (!isFiniteNumber(q.shippingTariffVersion)) return null;
+  if (typeof q.commissionRuleSetId !== 'string' || !q.commissionRuleSetId) return null;
+  if (!isFiniteNumber(q.commissionRuleSetVersion)) return null;
+  return {
+    expectedPricingHash: q.pricingHash,
+    expectedShippingTariffVersion: q.shippingTariffVersion,
+    expectedCommissionRuleSetId: q.commissionRuleSetId,
+    expectedCommissionRuleSetVersion: q.commissionRuleSetVersion,
+  };
+}
 
 export const ordersApi = {
   getAll: (params?: Record<string, any>) =>
@@ -102,17 +142,16 @@ export const ordersApi = {
   create: (data: any) =>
     api.post('/orders', data),
   /** Buy Now — üye için doğrudan satın alma */
-  directBuy: (data: {
+  directBuy: ({ expectedPricing, ...rest }: {
     productId: string;
     shippingAddressId?: string;
     shippingAddress?: OrderAddressInput;
     billingAddressId?: string;
     billingAddress?: OrderAddressInput;
-    /** Quote kökünden AYNEN — API DTO'sunda zorunlu. */
-    expectedPricingHash: string;
-    expectedShippingTariffVersion: number;
-  }) => api.post('/orders/buy', data),
-  createGuest: (data: {
+    /** Quote'tan türetilmiş fiyat imzası — gövdeye düz alanlar olarak yayılır. */
+    expectedPricing: ExpectedPricingSnapshot;
+  }) => api.post('/orders/buy', { ...rest, ...expectedPricing }),
+  createGuest: ({ expectedPricing, ...rest }: {
     productId: string;
     email: string;
     phone: string;
@@ -121,17 +160,16 @@ export const ordersApi = {
     billingAddress?: OrderAddressInput;
     offerId?: string;
     price?: number;
-    /** Quote kökünden AYNEN — API DTO'sunda zorunlu. */
-    expectedPricingHash: string;
-    expectedShippingTariffVersion: number;
-  }) => guestApi.post('/orders/guest', data),
+    /** Quote'tan türetilmiş fiyat imzası — gövdeye düz alanlar olarak yayılır. */
+    expectedPricing: ExpectedPricingSnapshot;
+  }) => guestApi.post('/orders/guest', { ...rest, ...expectedPricing }),
   sendGuestVerificationCode: (data: { email: string; expectedCheckoutCount?: number }) =>
     guestApi.post<{ success: boolean; expiresInSeconds: number }>(
       '/orders/guest/send-verification-code',
       data,
     ),
   /** Toplu checkout (üye): sepetteki tüm ürünler tek CheckoutGroup altında, tek ödeme */
-  checkout: (data: {
+  checkout: ({ expectedPricing, ...rest }: {
     items: Array<{ productId: string }>;
     idempotencyKey: string;
     shippingAddressId?: string;
@@ -139,12 +177,11 @@ export const ordersApi = {
     billingAddressId?: string;
     billingAddress?: OrderAddressInput;
     couponCode?: string;
-    /** Quote kökünden AYNEN — API DTO'sunda zorunlu. */
-    expectedPricingHash: string;
-    expectedShippingTariffVersion: number;
-  }) => api.post('/orders/checkout', data),
+    /** Quote'tan türetilmiş fiyat imzası — gövdeye düz alanlar olarak yayılır. */
+    expectedPricing: ExpectedPricingSnapshot;
+  }) => api.post('/orders/checkout', { ...rest, ...expectedPricing }),
   /** Toplu checkout (misafir) */
-  checkoutGuest: (data: {
+  checkoutGuest: ({ expectedPricing, ...rest }: {
     items: Array<{ productId: string }>;
     idempotencyKey: string;
     email: string;
@@ -155,10 +192,9 @@ export const ordersApi = {
     billingAddress?: OrderAddressInput;
     /** GuestCheckoutGroupDto, CheckoutDto'yu extends eder → kupon misafirde de geçerli. */
     couponCode?: string;
-    /** Quote kökünden AYNEN — API DTO'sunda zorunlu. */
-    expectedPricingHash: string;
-    expectedShippingTariffVersion: number;
-  }) => guestApi.post('/orders/checkout/guest', data),
+    /** Quote'tan türetilmiş fiyat imzası — gövdeye düz alanlar olarak yayılır. */
+    expectedPricing: ExpectedPricingSnapshot;
+  }) => guestApi.post('/orders/checkout/guest', { ...rest, ...expectedPricing }),
   /** Alıcının sipariş grupları (gruplu liste) */
   getGroups: (params?: Record<string, any>) =>
     api.get('/orders/groups', { params }),

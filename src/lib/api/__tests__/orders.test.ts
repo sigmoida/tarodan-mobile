@@ -1,13 +1,13 @@
 /**
  * `POST /orders/quote` yanıtının kökünde `pricingHash` + `shippingTariffVersion`
- * bulunur (2026-07-30 canlı ölçüm). API DTO'su bu ikisini order-create uçlarının
- * (`checkout`, `checkoutGuest`, `directBuy`, `createGuest`) hepsinde ZORUNLU
- * bekliyor — 2026-07-30'dan beri mobil ikisini de göndermediği için dört satın
- * alma yolunun dördü de 400 alıyordu.
+ * + `commissionRuleSetId` + `commissionRuleSetVersion` bulunur (2026-08-08 canlı
+ * ölçüm — delta 18). API DTO'su bu dördünü order-create uçlarının (`checkout`,
+ * `checkoutGuest`, `directBuy`, `createGuest`) hepsinde ZORUNLU bekliyor —
+ * komisyon seti quote'tan aynen geri gönderilmezse DTO doğrulaması reddediyor.
  *
- * Bu test dört payload üreticisinin de `expectedPricingHash` +
- * `expectedShippingTariffVersion`'ı AYNEN (koşulsuz — web'in `expectedPricingHash`'i
- * yalnızca doluysa gönderme hatasının aksine) alt katmana geçirdiğini doğrular.
+ * Bu test dört payload üreticisinin de `toExpectedPricing`'in ürettiği
+ * `ExpectedPricingSnapshot`'ı (dört `expected*` alanı) AYNEN koşulsuz alt
+ * katmana geçirdiğini doğrular.
  *
  * Mock deseni `sellerDocuments.test.ts`'ten alındı: mock fonksiyonları fabrika
  * İÇİNDE tanımlanır (named-import + babel-jest hoist etkileşimi bu ortamda
@@ -36,25 +36,27 @@ beforeEach(() => jest.clearAllMocks());
 
 const PRICING_HASH = '70a8bdadff29af70';
 const SHIPPING_TARIFF_VERSION = 3;
+const EXPECTED_PRICING = {
+  expectedPricingHash: PRICING_HASH,
+  expectedShippingTariffVersion: SHIPPING_TARIFF_VERSION,
+  expectedCommissionRuleSetId: '11111111-2222-3333-4444-555555555555',
+  expectedCommissionRuleSetVersion: 7,
+};
 
 describe('ordersApi — expectedPricingHash / expectedShippingTariffVersion', () => {
-  it('checkout (üye): ikisini de koşulsuz gönderir', async () => {
+  it('checkout (üye): dört alanı da koşulsuz gönderir', async () => {
     await ordersApi.checkout({
       items: [{ productId: 'p1' }],
       idempotencyKey: 'idem-1',
-      expectedPricingHash: PRICING_HASH,
-      expectedShippingTariffVersion: SHIPPING_TARIFF_VERSION,
+      expectedPricing: EXPECTED_PRICING,
     });
     expect(mockApiPost).toHaveBeenCalledWith(
       '/orders/checkout',
-      expect.objectContaining({
-        expectedPricingHash: PRICING_HASH,
-        expectedShippingTariffVersion: SHIPPING_TARIFF_VERSION,
-      }),
+      expect.objectContaining(EXPECTED_PRICING),
     );
   });
 
-  it('checkoutGuest (misafir): ikisini de koşulsuz gönderir', async () => {
+  it('checkoutGuest (misafir): dört alanı da koşulsuz gönderir', async () => {
     await ordersApi.checkoutGuest({
       items: [{ productId: 'p1' }],
       idempotencyKey: 'idem-2',
@@ -69,35 +71,27 @@ describe('ordersApi — expectedPricingHash / expectedShippingTariffVersion', ()
         district: 'Kadıköy',
         address: 'Test Sokak No:1',
       },
-      expectedPricingHash: PRICING_HASH,
-      expectedShippingTariffVersion: SHIPPING_TARIFF_VERSION,
+      expectedPricing: EXPECTED_PRICING,
     });
     expect(mockGuestPost).toHaveBeenCalledWith(
       '/orders/checkout/guest',
-      expect.objectContaining({
-        expectedPricingHash: PRICING_HASH,
-        expectedShippingTariffVersion: SHIPPING_TARIFF_VERSION,
-      }),
+      expect.objectContaining(EXPECTED_PRICING),
     );
   });
 
-  it('directBuy (üye, Buy Now): ikisini de koşulsuz gönderir', async () => {
+  it('directBuy (üye, Buy Now): dört alanı da koşulsuz gönderir', async () => {
     await ordersApi.directBuy({
       productId: 'p1',
       shippingAddressId: 'addr-1',
-      expectedPricingHash: PRICING_HASH,
-      expectedShippingTariffVersion: SHIPPING_TARIFF_VERSION,
+      expectedPricing: EXPECTED_PRICING,
     });
     expect(mockApiPost).toHaveBeenCalledWith(
       '/orders/buy',
-      expect.objectContaining({
-        expectedPricingHash: PRICING_HASH,
-        expectedShippingTariffVersion: SHIPPING_TARIFF_VERSION,
-      }),
+      expect.objectContaining(EXPECTED_PRICING),
     );
   });
 
-  it('createGuest (misafir tekil satın alma): ikisini de koşulsuz gönderir', async () => {
+  it('createGuest (misafir tekil satın alma): dört alanı da koşulsuz gönderir', async () => {
     await ordersApi.createGuest({
       productId: 'p1',
       email: 'a@b.com',
@@ -110,15 +104,11 @@ describe('ordersApi — expectedPricingHash / expectedShippingTariffVersion', ()
         district: 'Kadıköy',
         address: 'Test Sokak No:1',
       },
-      expectedPricingHash: PRICING_HASH,
-      expectedShippingTariffVersion: SHIPPING_TARIFF_VERSION,
+      expectedPricing: EXPECTED_PRICING,
     });
     expect(mockGuestPost).toHaveBeenCalledWith(
       '/orders/guest',
-      expect.objectContaining({
-        expectedPricingHash: PRICING_HASH,
-        expectedShippingTariffVersion: SHIPPING_TARIFF_VERSION,
-      }),
+      expect.objectContaining(EXPECTED_PRICING),
     );
   });
 
