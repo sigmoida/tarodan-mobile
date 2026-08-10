@@ -315,6 +315,26 @@ export function useCheckout() {
   /** Quote'un fiyatlayamadığı satırlar — bilgi amaçlı, tutar türetilmez. */
   const unavailableItems = quote?.unavailableItems ?? [];
 
+  /**
+   * Ayrılan satırlar ödeme ÖZETİNDEN de çıkar (delta 18 §2): sunucu bunları
+   * fiyatlamadı, dolayısıyla `pricing.summary` içinde de yoklar. Özet listesinde
+   * bırakmak satırı "—" tutarıyla gösterir, ürün sayacını da şişirir
+   * ("Ara Toplam (3 ürün)" derken 2 ürünün parası çekilir). Ayrılan satırlar
+   * uyarı kartında adlarıyla gösterilir — bilgi kaybolmaz, yalnız yeri değişir.
+   */
+  const unavailableProductIds = useMemo(
+    () => new Set(unavailableItems.map((u) => u.productId)),
+    // `unavailableItems` her render'da yeni dizi; kimlik yerine içeriğe bağlan.
+    [JSON.stringify(unavailableItems.map((u) => u.productId))], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const payableItems = useMemo(
+    () => items.filter((i) => !unavailableProductIds.has(i.productId)),
+    [items, unavailableProductIds],
+  );
+  /** Ayrılan satırın sepetteki adı — `quote.items[]`'ta bu satır YOK, ad sepetten gelir. */
+  const cartTitleFor = (productId: string): string | undefined =>
+    items.find((i) => i.productId === productId)?.title;
+
   // Sunucu satırı ayırdıysa sepetin yerel kopyası bayat: satır artık satın
   // alınamaz. Sepeti tazele (silme İSTEĞİ atma — sunucu zaten kendi kararını verdi).
   useEffect(() => {
@@ -837,6 +857,10 @@ export function useCheckout() {
     productAmount, serviceFeeAmount, total,
     /** Quote'un fiyatlayamadığı satırlar — bilgi amaçlı, hiçbir tutar hesabına girmez. */
     unavailableItems,
+    /** Ödemeye giren satırlar = sepet − ayrılanlar. Özet listesi ve ürün sayacı BUNU kullanır. */
+    payableItems,
+    /** Ayrılan satırın adı (sepetten) — uyarı kartı hangi ürün olduğunu yazsın diye. */
+    cartTitleFor,
     /** Satır tutarı — sunucunun `items[].subtotal`'ı; yoksa `null` (yer tutucu). */
     lineSubtotalFor,
     /** Satır adedi — tutarla AYNI kaynaktan; yoksa `null` (yerel adet basılır). */

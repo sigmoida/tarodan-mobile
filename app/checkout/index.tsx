@@ -52,10 +52,11 @@ export default function CheckoutScreen() {
 
         <CouponInput coupon={c.coupon} couponDiscount={c.couponDiscount} />
 
-        <CheckoutUnavailableItems items={c.unavailableItems} />
+        <CheckoutUnavailableItems items={c.unavailableItems} titleFor={c.cartTitleFor} />
 
         <OrderSummary
-          itemCount={c.items.length}
+          // Ayrılan satırlar sunucu toplamına girmedi — sayaç da onları saymaz.
+          itemCount={c.payableItems.length}
           productAmount={c.productAmount}
           shippingCost={c.shippingCost}
           serviceFeeAmount={c.serviceFeeAmount}

@@ -124,3 +124,54 @@ it('unavailableItems boşsa hiçbir uyarı bölümü çizilmez', async () => {
 
   expect(screen.queryByText('Bu ürünler ödemeye dahil edilmedi')).toBeNull();
 });
+
+/**
+ * Ayrılan satırlar ödeme ÖZETİNDEN de çıkar (delta 18 §2).
+ *
+ * Sunucu bu satırları fiyatlamadı — `pricing.summary` içinde yoklar. Özet
+ * listesinde bırakmak "—" tutarlı bir satır ve şişmiş bir ürün sayacı üretirdi
+ * ("Ara Toplam (2 ürün)" derken 1 ürünün parası çekilir).
+ */
+const SECOND_ITEM = {
+  ...SAMPLE_ITEM,
+  id: 'cart-2',
+  productId: 'prod-ayrilan',
+  title: 'Ayrılan Model Kamyon',
+};
+
+const QUOTE_ONE_DROPPED = {
+  ...QUOTE_PARTIAL,
+  items: [{ productId: SAMPLE_ITEM.productId, quantity: 1, subtotal: 100 }],
+  unavailableItems: [
+    { productId: SECOND_ITEM.productId, sellerId: 's2', code: 'PRODUCT_NOT_ACTIVE' },
+  ],
+};
+
+describe('ayrılan satır ödeme özetinden çıkarılır', () => {
+  beforeEach(() => {
+    jest.mocked(ordersApi.getQuote).mockReset().mockResolvedValue({ data: QUOTE_ONE_DROPPED } as any);
+    seedCart([SAMPLE_ITEM, SECOND_ITEM]);
+  });
+
+  it('ürün sayacı yalnız ödenen satırları sayar', async () => {
+    await openCheckout();
+    expect(await screen.findByText('Ara Toplam (1 ürün)')).toBeTruthy();
+    expect(screen.queryByText('Ara Toplam (2 ürün)')).toBeNull();
+  });
+
+  it('ayrılan satır 3. adımdaki ürün listesinde çizilmez', async () => {
+    await openCheckout();
+    fireEvent.press(screen.getByText('Devam Et')); // step1 → step2
+    await waitFor(() => expect(screen.getByText('Kargo Seçimi')).toBeOnTheScreen());
+    fireEvent.press(screen.getByText('Devam Et')); // step2 → step3
+    await waitFor(() => expect(screen.getByText('Test Model Araba')).toBeOnTheScreen());
+    // Ad yalnız uyarı kartında geçer; ürün satırı (tutar hücresi) hiç çizilmez.
+    expect(screen.getAllByTestId('order-item-subtotal')).toHaveLength(1);
+  });
+
+  it('uyarı kartı hangi ürün olduğunu ADIYLA yazar (gerekçe tek başına ayırt etmez)', async () => {
+    await openCheckout();
+    expect(await screen.findByText('Ayrılan Model Kamyon')).toBeTruthy();
+    expect(screen.getByText('İlan satışta değil.')).toBeTruthy();
+  });
+});

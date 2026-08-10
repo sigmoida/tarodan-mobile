@@ -10,7 +10,19 @@ import { unavailableReason } from '../_lib/status';
  * Ödemeye dahil EDİLMEYEN satırlar. Bu kart yalnız bilgilendirir — tutarların
  * hiçbiri buradan türetilmez, toplam `pricing.summary.total`'dır.
  */
-export function CheckoutUnavailableItems({ items }: { items: QuoteUnavailableItem[] }) {
+export function CheckoutUnavailableItems({
+  items,
+  titleFor,
+}: {
+  items: QuoteUnavailableItem[];
+  /**
+   * `productId` → sepetteki ürün adı. Gerekçe metni tek başına yetmez: iki ürün
+   * aynı kodla ayrılırsa kullanıcı aynı cümleyi iki kez görür, HANGİ ürünlerin
+   * çıkarıldığını anlayamaz. Ad `quote.items[]`'ta yoktur (ayrılan satır orada
+   * yok), sepet satırından gelir.
+   */
+  titleFor?: (productId: string) => string | undefined;
+}) {
   const { t } = useTranslation();
   if (!items.length) return null;
 
@@ -20,11 +32,17 @@ export function CheckoutUnavailableItems({ items }: { items: QuoteUnavailableIte
         <Ionicons name="alert-circle" size={18} color={theme.colors.warning[600]!} />
         <Text variant="body" style={styles.title}>{t('checkout.unavailableTitle')}</Text>
       </View>
-      {items.map((item) => (
-        <Text key={item.productId} variant="caption" tone="muted" style={styles.reason}>
-          {unavailableReason(item, t)}
-        </Text>
-      ))}
+      {items.map((item) => {
+        const title = titleFor?.(item.productId);
+        return (
+          <View key={item.productId} style={styles.line}>
+            {title ? (
+              <Text variant="caption" style={styles.name}>{title}</Text>
+            ) : null}
+            <Text variant="caption" tone="muted">{unavailableReason(item, t)}</Text>
+          </View>
+        );
+      })}
     </Card>
   );
 }
@@ -39,5 +57,6 @@ const styles = StyleSheet.create({
   },
   header: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2] },
   title: { fontWeight: '600', flex: 1 },
-  reason: { marginTop: theme.spacing[1] },
+  line: { marginTop: theme.spacing[2] },
+  name: { fontWeight: '600' },
 });

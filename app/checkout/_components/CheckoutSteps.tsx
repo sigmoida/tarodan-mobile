@@ -158,7 +158,10 @@ export function Step3Confirm({ c }: { c: Ctrl }) {
         <Text style={styles.sectionTitle}>{t('checkout.orderSummary')}</Text>
       </View>
 
-      {c.items.map((item) => (
+      {/* Ayrılan satırlar burada YOK: sunucu onları fiyatlamadı, listede
+          bırakmak "—" tutarlı bir satır gösterirdi. Gerekçeleriyle birlikte
+          `CheckoutUnavailableItems` kartında gösteriliyorlar. */}
+      {c.payableItems.map((item) => (
         <View key={item.id} style={styles.orderItem}>
           <Image source={{ uri: transformImageUrl(item.imageUrl) }} style={styles.orderItemImage} />
           <View style={styles.orderItemInfo}>
