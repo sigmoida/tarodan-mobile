@@ -56,6 +56,8 @@ export const qk = {
   shipping: {
     /** Kargo paket kademesi tarifesi (public) — ilan formundaki üç kart. */
     packageTiers: ["shipping", "package-tiers"] as const,
+    /** Siparişin kargo kaydı. 404 = kargo yok (hata değil). */
+    byOrder: (orderId: string) => ["shipping", "order", orderId] as const,
   },
 
   catalog: {
