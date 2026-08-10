@@ -93,3 +93,53 @@ describe('deriveTradeView — ödeme satırları', () => {
     expect(v.isV2).toBe(true);
   });
 });
+
+/**
+ * hasShippedLeg · iade uyarısı eşiği (delta 17 §1f, review Bulgu 1 fix).
+ *
+ * Backend shipment kaydını ödeme tamamlanır tamamlanmaz `pending` statüsüyle
+ * otomatik oluşturur — henüz taşıyıcıya teslim edilmemiş, tam iade hâlâ
+ * mümkündür. Eşik salt shipment VARLIĞI değil, fiilen yola çıkmış olması
+ * (`isShipmentDispatched`, `_lib/status.ts`) olmalı.
+ */
+describe('deriveTradeView — hasShippedLeg', () => {
+  it('kendi to_warehouse shipment kaydım yoksa false', () => {
+    const v = deriveTradeView({ ...BASE, shipments: [] } as unknown as Trade, ME, null);
+    expect(v.hasShippedLeg).toBe(false);
+  });
+
+  it('shipment var ama pending (henüz taşıyıcıya verilmemiş) → false, tam iade hâlâ mümkün', () => {
+    const trade = {
+      ...BASE,
+      shipments: [
+        { id: 's1', direction: 'to_warehouse', senderUserId: 'u1', status: 'pending' },
+      ],
+    } as unknown as Trade;
+    expect(deriveTradeView(trade, ME, null).hasShippedLeg).toBe(false);
+  });
+
+  it('shipment label_created (henüz taşıyıcıya verilmemiş) → false', () => {
+    const trade = {
+      ...BASE,
+      shipments: [
+        { id: 's1', direction: 'to_warehouse', senderUserId: 'u1', status: 'label_created' },
+      ],
+    } as unknown as Trade;
+    expect(deriveTradeView(trade, ME, null).hasShippedLeg).toBe(false);
+  });
+
+  it('shipment in_transit (fiilen yola çıkmış) → true', () => {
+    const trade = {
+      ...BASE,
+      shipments: [
+        { id: 's1', direction: 'to_warehouse', senderUserId: 'u1', status: 'in_transit' },
+      ],
+    } as unknown as Trade;
+    expect(deriveTradeView(trade, ME, null).hasShippedLeg).toBe(true);
+  });
+
+  it('shipment kaydı olmasa da firstWarehouseArrivalAt doluysa true (depoya varmış = yola çıkmış)', () => {
+    const trade = { ...BASE, shipments: [], firstWarehouseArrivalAt: '2026-08-01T00:00:00Z' } as unknown as Trade;
+    expect(deriveTradeView(trade, ME, null).hasShippedLeg).toBe(true);
+  });
+});

@@ -5,6 +5,11 @@
  * verildikten sonra → `totalAmount − shippingAmount`: kargo İADE EDİLMEZ.
  * Eşik, kullanıcının iptal kilidiyle AYNIDIR (bkz. `trade.cancel.lockedHint`
  * yakınındaki `!trade.canCancel && trade.firstWarehouseArrivalAt` koşulu).
+ *
+ * Bu dosya `TradeActions`'ın `hasShippedLeg` prop'unu doğru okuyup okumadığını
+ * (bileşen kablolaması) doğrular — `hasShippedLeg` doğrudan enjekte edilir.
+ * Asıl türetme (`pending` shipment'ta hâlâ tam iade mümkün mü?) `derive-v2.test.ts`
+ * → `deriveTradeView — hasShippedLeg` bloğunda saf fonksiyon testiyle doğrulanır.
  */
 import React from 'react';
 import { render, screen } from '@testing-library/react-native';
@@ -52,7 +57,7 @@ function renderActions(trade: Record<string, unknown>, view: Record<string, unkn
 
 describe('TradeActions · kargo iadesi uyarısı', () => {
   it('kargoya verilmemişken kargo uyarısı gösterilmez', () => {
-    renderActions({ status: 'awaiting_payment' }, { isV2: true, myToWarehouseShipment: undefined });
+    renderActions({ status: 'awaiting_payment' }, { isV2: true, hasShippedLeg: false });
     expect(screen.queryByText(/kargo bedeli iade edilmez/i)).toBeNull();
   });
 

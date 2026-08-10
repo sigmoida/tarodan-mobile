@@ -2,6 +2,7 @@
 // (Ekran bunu bir kez çağırır; her türetmeyi JSX içinde tekrarlamaz.)
 import type { Trade, TradeCashPayment, TradeItem, TradeShipment } from './types';
 import type { TradePaymentQuote } from '@/lib/api';
+import { isShipmentDispatched } from './status';
 
 export function deriveTradeView(
   trade: Trade,
@@ -75,6 +76,20 @@ export function deriveTradeView(
   const paidCount = cashPayments.filter((p) => p.status === 'completed').length;
   const totalCount = cashPayments.length;
 
+  /**
+   * İptal edilirse kargo bedeli iade edilmez uyarısının eşiği (delta 17 §1f).
+   * Shipment kaydı ödeme tamamlanır tamamlanmaz `pending` statüsüyle otomatik
+   * oluşuyor — henüz taşıyıcıya teslim edilmemiş; bu yüzden salt shipment
+   * VARLIĞINA değil, `isShipmentDispatched` ile fiilen yola çıkmış olmasına
+   * bakılır (tek kaynak: `_lib/status.ts`, `renderOtherShipmentHint` da aynı
+   * yardımcıyı kullanır). `trade.firstWarehouseArrivalAt` de dahil: depoya
+   * varmışsa taşıyıcıya zaten teslim edilmiş demektir, bu yüzden dispatched
+   * sayılır (ör. shipment kaydı eksik/gecikmeliyse bile).
+   */
+  const hasShippedLeg = Boolean(
+    isShipmentDispatched(myToWarehouseShipment?.status) || trade.firstWarehouseArrivalAt,
+  );
+
   const myTrackingNumber = isInitiator ? trade.initiatorTrackingNumber : trade.receiverTrackingNumber;
   const theirTrackingNumber = isInitiator ? trade.receiverTrackingNumber : trade.initiatorTrackingNumber;
 
@@ -102,6 +117,7 @@ export function deriveTradeView(
     myPaymentPending,
     paidCount,
     totalCount,
+    hasShippedLeg,
   };
 }
 

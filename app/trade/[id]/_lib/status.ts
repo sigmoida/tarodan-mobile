@@ -165,6 +165,20 @@ export function formatCountdown(
   return days > 0 ? `${days}g ${hms}` : hms;
 }
 
+// Shipment statüsü kargoya FİİLEN verilmiş mi ("dispatched")? `pending` /
+// `label_created` henüz taşıyıcıya teslim edilmemiştir — tam iade hâlâ
+// mümkündür. Tek kaynak: hem `renderOtherShipmentHint` hem de iade-uyarısı
+// eşiği (`deriveTradeView`) bunu kullanır.
+export function isShipmentDispatched(s: string | null | undefined): boolean {
+  return (
+    s === "picked_up" ||
+    s === "in_transit" ||
+    s === "at_delivery_branch" ||
+    s === "out_for_delivery" ||
+    s === "delivered"
+  );
+}
+
 // Karşı tarafın depoya-kargo durumuna göre ipucu metni.
 export function renderOtherShipmentHint(
   s: string | null | undefined,
@@ -172,12 +186,7 @@ export function renderOtherShipmentHint(
 ): string {
   if (s === "delivered")
     return t("trade.warehouseShipping.counterpartyDelivered");
-  if (
-    s === "picked_up" ||
-    s === "in_transit" ||
-    s === "at_delivery_branch" ||
-    s === "out_for_delivery"
-  )
+  if (isShipmentDispatched(s) && s !== "delivered")
     return t("trade.warehouseShipping.counterpartyInTransit");
   if (s === "cancelled")
     return t("trade.warehouseShipping.counterpartyCancelled");
