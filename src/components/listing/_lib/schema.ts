@@ -33,6 +33,12 @@ export const listingFormSchema = z.object({
   status: z.string(),
   isPreorder: z.boolean(),
   /**
+   * Üretici model kodu. Sunucuda OPSİYONEL (delta 18 §2a): gönderilmezse
+   * geçerli, gönderilirse trimlenir ve en fazla 100 karakter.
+   * Temizlemek için boş veya yalnız boşluk içeren string gönderilir.
+   */
+  modelCode: z.string().max(100, 'Model kodu en fazla 100 karakter olabilir.'),
+  /**
    * Kargo paket boyutu — ilan başına satıcı seçer (kaldırılan desi girdisinin
    * yerine geçti). Kodlar sunucu tarifesinden (`GET /shipping/package-tiers`)
    * gelir; şema onları sabitlemez ki tarifeye kademe eklenince form
@@ -65,5 +71,6 @@ export const emptyListingFormValues: ListingFormValues = {
   isSet: false,
   status: 'active',
   isPreorder: false,
+  modelCode: '',
   shippingPackageTier: '',
 };
