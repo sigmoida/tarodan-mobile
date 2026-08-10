@@ -1,6 +1,6 @@
 # Parite — Kalan İşler
 
-**Güncelleme:** 2026-08-11 (kargo/takip turu sonrası)
+**Güncelleme:** 2026-08-11 (Metro elle test turu sonrası)
 **Referans noktası:** `sigmoida/tarodan-app` `development` @ `cfc058da` (2026-08-07)
 — o tarihten beri mobili ilgilendiren yeni commit yok (kontrol edildi).
 
@@ -73,6 +73,38 @@ kaydı zaten varken buton görünmeye devam ediyor (sipariş durumu şube kabul�
 kadar değişmiyor). Mesaj artık dürüst ama satıcı tekrar basabilir. Kartı
 referans + "şubeye teslim edin" durumuna çevirmek kapatır; `useOrderShipment`
 paylaşılan hook olarak hazır.
+
+---
+
+## 🧪 2026-08-11 Metro elle test turunda ÇIKANLAR
+
+Üç turun ilk gerçek ekran doğrulaması. Rapor:
+`docs/superpowers/reports/2026-08-11-metro-elle-test-turu.md`
+
+**Doğrulandı:** ilan düzenlemede yalnız-başlık kaydı fiyat/kademe/görsel/nitelik/
+modelCode/stok'u bozmuyor (API diff'i temiz); alıcı sipariş detayı `PKG-` iç
+referansını hiçbir yerde göstermiyor ve bozuk `trackingUrl`'ü okumuyor;
+checkout üç adım boyunca toplamı kaydırmıyor.
+
+**Yeni P1 — teslim edilmiş siparişte takip kartı kendini yalanlıyor.**
+`app/orders/[id]/_components/OrderInfoCards.tsx:149-152` alıcı dalı, `cargoCode`
+yoksa **shipment durumuna bakmadan** "Satıcı paketinizi hazırlıyor…" basıyor.
+`providerTrackingId` hiç gelmediği için bu dal her siparişte çalışıyor: kartın
+sağı "Teslim edildi" derken gövdesi paketin hazırlandığını söylüyor. Aynı hata
+grup ekranında ve misafir takipte **yok** (ikisi de durumu kapıyor), yani tek
+dosyalık tutarsızlık — bir dosya + bir test.
+
+**Yeni P2 — paket kademesi etiketlerinde Türkçe karakter yok** ("Kucuk Paket",
+"Buyuk Paket"). Kaynak `GET /shipping/package-tiers`; mobil `tier.label`'ı aynen
+basıyor. Ya backend tarifeyi düzeltir ya mobil `code → i18n etiketi` eşler.
+
+**Gözlem:** ilan kaydetme diyaloğu açıkken derin bağlantıyla gidilen yeni rotanın
+**üstünde** kalıyor (donma yok, dokununca kapanıyor). CLAUDE.md §12 ailesinden.
+
+**Ortam borcu:** `maestro/run.sh` bu repoda çalışmıyor — yerel `:3001` backend'i
+şart koşuyor, oysa standalone repo staging'e bakıyor. Ayrıca Maestro 2.5.1
+Xcode 26 ile sürücü kuramıyordu; 2.8.0'a yükseltildi + simülatör yeniden
+başlatıldı (asıl çözen bu).
 
 ---
 
@@ -217,10 +249,14 @@ Bunlar yeni bir denetimde "mobil bulgusu" olarak açılmamalı — sözleşme ek
 
 ## Önerilen sıra (güncel)
 
+0. **Takip kartı durum kapısı** (Metro turunun P1'i) — tek dosya, tek test;
+   bugün her teslim edilmiş siparişte yanlış metin gösteriliyor. Ucuz ve
+   kullanıcıyı doğrudan yanıltıyor, o yüzden başa alındı.
 1. **P1 #1** (bildirim resolver'ı) — kalan iki P1'den daha temel; tek katman,
    sonrasında her yeni tip ucuz. 14 tip, ikisi hiçbir delta dosyasında yok.
 2. **P1 #5** (kurumsal satış yetkisi) — satın alınamaz ürünün satın alınabilir
    görünmesini bitirir.
-3. **P2 toplu tur** — çoğu tek dosyalık; **#10 ve #11 sıfır API işi**.
+3. **P2 toplu tur** — çoğu tek dosyalık; **#10 ve #11 sıfır API işi**;
+   paket kademesi etiketleri de buraya.
 4. **Temizlik turu** — üç turun ertelenenleri + iOS `associatedDomains` (P2 #16,
-   matris #15 ile aynı iş).
+   matris #15 ile aynı iş) + `maestro/run.sh`'ın staging'e uyarlanması.
