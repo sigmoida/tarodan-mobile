@@ -57,7 +57,9 @@ describe('TradeActions · ödeme CTA kapısı', () => {
       { isV2: true, myPaymentRow: { totalAmount: 310 }, myPaymentPending: true },
     );
     expect(screen.getByTestId('cash-pay-button')).toBeTruthy();
-    expect(screen.getByText(/payment\.pay/)).toBeTruthy();
+    // Tutar SUNUCUDAN: `myPaymentRow.totalAmount`. `cashTotal`a (burada 0)
+    // dönülürse buton "0,00 TL" yazar — varlık kontrolü bunu yakalamaz.
+    expect(screen.getByText('payment.pay — 310,00 TL')).toBeTruthy();
   });
 
   it('kendi satırım completed, karşı taraf pending ise bekleme durumu çizilir', () => {
@@ -75,6 +77,7 @@ describe('TradeActions · ödeme CTA kapısı', () => {
       { isV2: false },
     );
     expect(screen.getByTestId('cash-pay-button')).toBeTruthy();
-    expect(screen.getByText(/payment\.pay/)).toBeTruthy();
+    // v1 yolu `cashTotal` yoksa `trade.cashAmount`a döner — o da sunucu alanı.
+    expect(screen.getByText('payment.pay — 500,00 TL')).toBeTruthy();
   });
 });

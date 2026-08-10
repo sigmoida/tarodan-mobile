@@ -128,7 +128,12 @@ describe('409 COMMISSION_PRICING_CHANGED ve 503', () => {
     await payThroughCheckout();
 
     await waitFor(() => expect(ordersApi.getQuote).toHaveBeenCalledTimes(2));
-    expect(appAlert).toHaveBeenCalled();
+    // Başlık, `pricesUpdatedTitle` dalına DÜŞMEMELİ: iki dal aynı yere iniyor
+    // ama farklı gerekçe anlatıyor; salt `toHaveBeenCalled()` karışmayı görmez.
+    await waitFor(() => expect(appAlert).toHaveBeenCalled());
+    const [title] = jest.mocked(appAlert).mock.calls[0];
+    expect(title).toBe('Komisyon oranları güncellendi');
+    expect(title).not.toBe('Fiyatlar Güncellendi');
     // Sessiz retry YOK: checkout ikinci kez çağrılmadı.
     expect(ordersApi.checkout).toHaveBeenCalledTimes(1);
   });
