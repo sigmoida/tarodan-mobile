@@ -23,7 +23,6 @@ jest.mock('@/lib/api', () => ({
   shippingApi: {
     getOrderShipments: jest.fn(),
     createShipment: jest.fn(),
-    updateTracking: jest.fn(),
   },
 }));
 import { ordersApi } from '@/lib/api';

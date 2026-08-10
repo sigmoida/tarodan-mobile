@@ -1,12 +1,13 @@
 import { View } from 'react-native';
-import { Button, Input, Modal, Text } from '@/ui';
+import { useTranslation } from 'react-i18next';
+import { Button, Modal, Text } from '@/ui';
 import { styles } from '../_lib/styles';
 import type { SaleActionsController } from '../_hooks/useSaleActions';
 
-/** Kargo takip numarası modalı — "Kargoya Ver" akışını tamamlar. */
+/** Kargoya verme onay diyaloğu — numara artık sunucu üretiyor, elle giriş yok. */
 export function ShipDialog({ actions }: { actions: SaleActionsController }) {
-  const { shipDialog, setShipDialog, trackingNumber, setTrackingNumber, handleShip, updateStatusMutation } =
-    actions;
+  const { t } = useTranslation();
+  const { shipDialog, setShipDialog, handleShip, updateStatusMutation } = actions;
 
   return (
     <Modal
@@ -17,12 +18,7 @@ export function ShipDialog({ actions }: { actions: SaleActionsController }) {
       <Text variant="body" style={{ marginBottom: 16 }}>
         {shipDialog.order?.product.title}
       </Text>
-      <Input
-        label="Kargo Takip Numarası"
-        value={trackingNumber}
-        onChangeText={setTrackingNumber}
-        placeholder="Örn: 1234567890"
-      />
+      <Text variant="body">{t('order.cargoRefInstructions')}</Text>
       <View style={styles.dialogActions}>
         <Button
           variant="ghost"

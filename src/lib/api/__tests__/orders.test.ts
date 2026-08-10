@@ -135,8 +135,12 @@ describe('shippingApi — kargo ücreti uçları yüzeyde YOK', () => {
     },
   );
 
-  it('kargo OPERASYONU uçları (shipment oluşturma/takip) duruyor', () => {
+  it('kargo OPERASYONU uçları (shipment oluşturma/okuma) duruyor', () => {
     expect(typeof shippingApi.createShipment).toBe('function');
-    expect(typeof shippingApi.updateTracking).toBe('function');
+    expect(typeof shippingApi.getOrderShipments).toBe('function');
+  });
+
+  it('updateTracking kaldırıldı — takip numarasını sunucu üretir, satıcı yazmaz', () => {
+    expect((shippingApi as Record<string, unknown>).updateTracking).toBeUndefined();
   });
 });

@@ -379,9 +379,6 @@ export const shippingApi = {
   /** Sipariş için kargo başlat — backend: POST /shipping */
   createShipment: (data: { orderId: string; provider: ShippingProvider }) =>
     api.post('/shipping', data),
-  /** Kargo takip numarası gir — backend: PATCH /shipping/:id/tracking */
-  updateTracking: (shipmentId: string, data: { trackingNumber: string }) =>
-    api.patch(`/shipping/${shipmentId}/tracking`, data),
   /** Tek shipment detayı */
   getShipment: (id: string) => api.get(`/shipping/${id}`),
   /** Siparişin shipment'ları */
