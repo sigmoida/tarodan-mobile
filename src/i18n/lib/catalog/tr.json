@@ -507,6 +507,8 @@
     "sponsored": "Sponsorlu",
     "sponsoredRegion": "Reklam alanı",
     "model": "Model",
+    "modelCodeLabel": "Üretici Model Kodu",
+    "modelCodePlaceholder": "Örn. SEED-0057",
     "pricing": "Fiyatlandırma",
     "priceLabel": "Fiyat (₺) *",
     "stockQuantity": "Stok Miktarı",

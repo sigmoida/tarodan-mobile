@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { theme, DateField } from '@/ui';
 
 import { styles } from '../_lib/styles';
@@ -245,6 +246,7 @@ export function ListingBasicInfoSection({ f }: SectionProps) {
 // manufacturer, year, manufacturer-scoped attribute groups)
 // ---------------------------------------------------------------------------
 export function ListingDetailsSection({ f }: SectionProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.card}>
       <Text style={styles.sectionHeader}>ÜRÜN DETAYLARI</Text>
@@ -349,6 +351,16 @@ export function ListingDetailsSection({ f }: SectionProps) {
         </Text>
         <Text style={styles.pickerArrow}>›</Text>
       </TouchableOpacity>
+
+      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.modelCodeLabel')}</Text>
+      <TextInput
+        style={styles.input}
+        value={f.modelCode}
+        onChangeText={f.setModelCode}
+        placeholder={t('product.modelCodePlaceholder')}
+        placeholderTextColor={colors.text.subtle}
+        maxLength={100}
+      />
 
       <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>Çıkış Yılı</Text>
       <TouchableOpacity style={styles.pickerButton} onPress={() => f.setShowYearPicker(true)}>

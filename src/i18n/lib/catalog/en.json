@@ -507,6 +507,8 @@
     "sponsored": "Sponsored",
     "sponsoredRegion": "Sponsored",
     "model": "Model",
+    "modelCodeLabel": "Manufacturer Model Code",
+    "modelCodePlaceholder": "e.g. SEED-0057",
     "pricing": "Pricing",
     "priceLabel": "Price (₺) *",
     "stockQuantity": "Stock quantity",

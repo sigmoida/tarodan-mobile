@@ -111,6 +111,8 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const setMaterial = (v: string) => form.setValue('material', v);
   const manufacturerId = form.watch('manufacturerId');
   const setManufacturerId = (v: string) => form.setValue('manufacturerId', v);
+  const modelCode = form.watch('modelCode');
+  const setModelCode = (v: string) => form.setValue('modelCode', v);
   const year = form.watch('year');
   const setYear = (v: string) => form.setValue('year', v);
   const isTradeEnabled = form.watch('isTradeEnabled');
@@ -593,6 +595,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       scale: scale || undefined,
       material: material || undefined,
       manufacturerId: manufacturerId || undefined,
+      // `carModelId || undefined` deseninin AKSİNE: boş string burada da
+      // gönderilir — sunucu opsiyonel kabul eder ve boş string alanı temizler.
+      modelCode,
       year: year ? Number(year) : undefined,
       isTradeEnabled,
       isSet,
@@ -767,6 +772,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     setScale('1:64');
     setMaterial('');
     setManufacturerId('');
+    setModelCode('');
     setYear('');
     setIsTradeEnabled(false);
     setIsSet(false);
@@ -802,6 +808,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     scale, setScale,
     material, setMaterial,
     manufacturerId, setManufacturerId,
+    modelCode, setModelCode,
     year, setYear,
     isTradeEnabled, setIsTradeEnabled,
     isSet, setIsSet,
