@@ -60,9 +60,22 @@ console.log("📡 API URL:", API_URL);
 console.log("📱 Platform:", Platform.OS);
 console.log("🌐 Expo Host:", Constants.expoConfig?.hostUri);
 
+/**
+ * Mobil istemci ÇEREZ TAŞIMAZ. Sunucu `/auth/login` ve `/auth/refresh`
+ * yanıtlarında `access_token` + `refresh_token` + `csrf_token` bırakıyor;
+ * bunlar web'in cookie-auth akışı içindir. RN'in ağ katmanı (iOS'ta
+ * NSURLSession) paylaşılan bir çerez deposu tutar ve bu alan kapatılmazsa
+ * çerezleri sonraki her isteğe kendiliğinden ekler — o anda sunucunun CSRF
+ * muhafızı devreye girip `X-CSRF-Token` beklediği için değiştirici her istek
+ * `403 Invalid CSRF token` alır. Belirti oturumun ORTASINDA çıkar: ilk 15
+ * dakika sorunsuz geçer, access token yenilendiği anda checkout düşer.
+ */
+const NO_COOKIES = { withCredentials: false } as const;
+
 export const api = createApiClient({
   baseURL: API_URL,
   timeout: 30000,
+  ...NO_COOKIES,
   headers: {
     "Content-Type": "application/json",
   },
@@ -75,6 +88,7 @@ export const api = createApiClient({
 export const guestApi = createApiClient({
   baseURL: API_URL,
   timeout: 30000,
+  ...NO_COOKIES,
   headers: {
     "Content-Type": "application/json",
   },
@@ -158,9 +172,13 @@ async function performTokenRefresh(): Promise<string | null> {
   const epochAtStart = sessionEpoch;
   const refreshToken = await SecureStore.getItemAsync("refreshToken");
   if (!refreshToken) return null;
-  const response = await axios.post(`${API_URL}/auth/refresh`, {
-    refreshToken,
-  });
+  // Çıplak `axios` — instance'ların ayarını miras ALMAZ, o yüzden çerez kapısı
+  // burada tekrar edilir. Yenileme, çerezlerin sızdığı iki uçtan biridir.
+  const response = await axios.post(
+    `${API_URL}/auth/refresh`,
+    { refreshToken },
+    NO_COOKIES,
+  );
   const data: any = response.data;
   const newAccess: string | undefined =
     data?.tokens?.accessToken ?? data?.accessToken;
