@@ -344,6 +344,30 @@ export interface ShippingPackageTiersResponse {
   tiers: ShippingPackageTier[];
 }
 
+/**
+ * `GET /shipping/order/:orderId` yanıtı (2026-08-10 ölçümü — TEK nesne, dizi değil).
+ *
+ * İKİ numara taşır ve işleri farklıdır:
+ *   - `trackingNumber` (`PKG-…`/`ORD-…`): Tarodan iç referansı; satıcı şubede verir.
+ *   - `providerTrackingId`: gerçek Sürat kodu; takip bununla yapılır, şube
+ *     kabulünden SONRA dolar.
+ *
+ * `trackingUrl` tipte var ama OKUNMAZ — ölçümde ya `null` ya da iç referansı
+ * taşıyan bozuk bir link. Bkz. `src/lib/shipping/tracking.ts`.
+ */
+export type Shipment = {
+  id: string;
+  orderId: string;
+  provider: string;
+  trackingNumber: string | null;
+  providerTrackingId: string | null;
+  trackingUrl: string | null;
+  status: string;
+  cost?: number | null;
+  estimatedDelivery?: string | null;
+  events?: unknown[];
+};
+
 export const shippingApi = {
   /**
    * Kargo paket kademesi tarifesi (public). İlan formundaki üç kartın kaynağı.
