@@ -64,6 +64,18 @@ export type OrderQuoteItem = {
   title?: string;
 };
 
+/**
+ * Quote'un fiyatlayamadığı satırlar (delta 18 §1). Quote 200 ile KISMİ başarı
+ * dönebilir: `items[]` yalnız fiyatlananlar, bunlar dışarıda bırakılanlardır.
+ */
+export type QuoteUnavailableItem = {
+  productId: string;
+  sellerId?: string;
+  /** PRODUCT_NOT_FOUND | PRODUCT_NOT_ACTIVE | SELLER_SALES_SUSPENDED — kapalı liste DEĞİL. */
+  code: string;
+  message: string;
+};
+
 export type OrderQuoteShippingBySeller = {
   sellerId: string;
   shippingCost: number;
@@ -92,6 +104,8 @@ export type OrderQuoteResponse = {
   commissionRuleSetId: string;
   commissionRuleSetVersion: number;
   pricing?: OrderQuotePricing;
+  /** Fiyatlanamayan satırlar (delta 18 §1) — her zaman gelir, yoksa `[]`. */
+  unavailableItems?: QuoteUnavailableItem[];
 };
 
 /**

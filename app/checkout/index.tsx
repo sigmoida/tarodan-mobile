@@ -10,6 +10,7 @@ import { useCheckout } from './_hooks/useCheckout';
 import { CheckoutProgress } from './_components/CheckoutProgress';
 import { Step1Address, Step2Payment, Step3Confirm } from './_components/CheckoutSteps';
 import { OrderSummary } from './_components/OrderSummary';
+import { CheckoutUnavailableItems } from './_components/CheckoutUnavailableItems';
 import { CouponInput } from './_components/CouponInput';
 import { OtpModal } from './_modals/OtpModal';
 
@@ -50,6 +51,8 @@ export default function CheckoutScreen() {
         {c.step === 3 ? <Step3Confirm c={c} /> : null}
 
         <CouponInput coupon={c.coupon} couponDiscount={c.couponDiscount} />
+
+        <CheckoutUnavailableItems items={c.unavailableItems} />
 
         <OrderSummary
           itemCount={c.items.length}

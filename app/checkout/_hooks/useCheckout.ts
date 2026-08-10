@@ -312,6 +312,17 @@ export function useCheckout() {
   const couponDiscount = serverAmount(quote?.couponDiscount);
   const shippingLoading = quoteQuery.isLoading;
 
+  /** Quote'un fiyatlayamadığı satırlar — bilgi amaçlı, tutar türetilmez. */
+  const unavailableItems = quote?.unavailableItems ?? [];
+
+  // Sunucu satırı ayırdıysa sepetin yerel kopyası bayat: satır artık satın
+  // alınamaz. Sepeti tazele (silme İSTEĞİ atma — sunucu zaten kendi kararını verdi).
+  useEffect(() => {
+    if (unavailableItems.length > 0) {
+      void queryClient.invalidateQueries({ queryKey: qk.cart.mine });
+    }
+  }, [unavailableItems.length, queryClient]);
+
   /**
    * Satır tutarları — sunucunun `items[]` kırılımından, `productId` ile eşlenir.
    * Sepet satırındaki `price` sepete EKLEME anında donuyor (24 saat) ve ürünlerde
@@ -824,6 +835,8 @@ export function useCheckout() {
     // `null` (yer tutucu basılır, yerel sayı uydurulmaz).
     shippingCost, shippingLoading,
     productAmount, serviceFeeAmount, total,
+    /** Quote'un fiyatlayamadığı satırlar — bilgi amaçlı, hiçbir tutar hesabına girmez. */
+    unavailableItems,
     /** Satır tutarı — sunucunun `items[].subtotal`'ı; yoksa `null` (yer tutucu). */
     lineSubtotalFor,
     /** Satır adedi — tutarla AYNI kaynaktan; yoksa `null` (yerel adet basılır). */

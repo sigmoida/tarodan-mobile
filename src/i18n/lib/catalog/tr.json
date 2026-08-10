@@ -780,7 +780,11 @@
     "couponInvalidOrExpired": "Kupon kodu geçersiz veya süresi dolmuş.",
     "couponValidateFailed": "Kupon doğrulanamadı. Lütfen tekrar deneyin.",
     "resendCode": "Kodu tekrar gönder",
-    "orderNumberLabel": "Sipariş Numarası"
+    "orderNumberLabel": "Sipariş Numarası",
+    "unavailableTitle": "Bu ürünler ödemeye dahil edilmedi",
+    "unavailableProductNotFound": "Ürün artık mevcut değil.",
+    "unavailableProductNotActive": "İlan satışta değil.",
+    "unavailableSellerSuspended": "Satıcının satış yetkisi şu an geçerli değil."
   },
   "order": {
     "myOrders": "Siparişlerim",
