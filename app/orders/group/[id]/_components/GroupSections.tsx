@@ -78,8 +78,8 @@ export function GroupOrderRow({ order, multi }: { order: GroupOrder; multi: bool
               size={16}
               color={d.isDelivered ? colors.success[600]! : colors.primary[600]!}
             />
-            <Text variant="caption" style={styles.shipmentText}>
-              {d.isDelivered ? t('order.statusDelivered') : t('order.trackOrder')}: {d.tracking}
+            <Text testID="group-tracking-text" variant="caption" style={styles.shipmentText}>
+              {d.trackingText}
             </Text>
             <Ionicons name="chevron-forward" size={16} color={colors.text.subtle} />
           </View>

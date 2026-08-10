@@ -1,4 +1,5 @@
 import i18n from '@/i18n/config';
+import { deriveShipmentView } from '@/lib/shipping/tracking';
 import type { BadgeVariant } from '@/ui';
 import type { GroupOrder } from './types';
 
@@ -31,7 +32,13 @@ export const formatDate = (dateString: string) =>
 
 /** Bir ürün satırının türetilmiş görünüm bayrakları (kargo/iptal/iade gösterimi). */
 export function deriveOrderRow(order: GroupOrder) {
-  const tracking = order.trackingNumber || order.shipment?.trackingNumber;
+  // ALICI EKRANI: `trackingNumber` (`PKG-…`) Tarodan iç referansı — satıcının
+  // şubede vereceği numara, Sürat onu TANIMAZ. Alıcının takip edebileceği tek
+  // numara `cargoCode`; yoksa numara YERİNE bekleme metni gösterilir.
+  const { cargoCode } = deriveShipmentView(
+    order.shipment,
+    order.cargoCode ?? order.shipment?.cargoCode,
+  );
   // Kargo öncesi = İptal, kargo sonrası = İade. apiStatusToUi paid/preparing'i
   // 'processing'e indirir; 'pending' ödeme bekleyen sipariştir.
   const isPreShipment = ['pending', 'processing'].includes(order.status);
@@ -39,15 +46,30 @@ export function deriveOrderRow(order: GroupOrder) {
   const isClosed = isCancelled || order.status === 'refunded';
   const isDelivered = ['delivered', 'awaiting_confirmation', 'completed'].includes(order.status);
   const showTracking =
-    !!tracking &&
     !isCancelled &&
     order.status !== 'refunded' &&
     ['shipped', 'delivered', 'awaiting_confirmation', 'completed'].includes(order.status);
-  // Saf modül — global i18next örneği (hook yok).
+  // Saf modül — global i18next örneği (hook yok). JSX yeniden türetmesin diye
+  // satırın metni de burada kurulur (§ "türetmeler saf birimlerde").
+  const statusLabel = isDelivered ? i18n.t('order.statusDelivered') : i18n.t('order.trackOrder');
+  const trackingText = cargoCode
+    ? `${statusLabel}: ${cargoCode}`
+    : isDelivered
+      ? statusLabel
+      : i18n.t('order.shipmentPreparingBuyer');
   const actionLabel = isClosed
     ? null
     : isPreShipment
       ? i18n.t('order.cancellationActions')
       : i18n.t('order.refundActions');
-  return { tracking, isPreShipment, isCancelled, isClosed, isDelivered, showTracking, actionLabel };
+  return {
+    cargoCode,
+    trackingText,
+    isPreShipment,
+    isCancelled,
+    isClosed,
+    isDelivered,
+    showTracking,
+    actionLabel,
+  };
 }
