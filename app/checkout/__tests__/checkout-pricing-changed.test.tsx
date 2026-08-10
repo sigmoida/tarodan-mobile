@@ -40,6 +40,7 @@ const ONE_ADDRESS = [
 ];
 
 jest.mock('@/lib/api', () => ({
+  toExpectedPricing: jest.requireActual('@/lib/api').toExpectedPricing,
   ordersApi: {
     checkout: jest.fn(),
     getQuote: jest.fn(),
@@ -86,11 +87,15 @@ const SAMPLE_ITEM = {
 const OLD_QUOTE = {
   pricingHash: 'hash-old',
   shippingTariffVersion: 3,
+  commissionRuleSetId: 'rs-1',
+  commissionRuleSetVersion: 7,
   pricing: { summary: { productAmount: 100, shippingAmount: 50, serviceFeeAmount: 15, total: 165 } },
 };
 const NEW_QUOTE = {
   pricingHash: 'hash-new',
   shippingTariffVersion: 3,
+  commissionRuleSetId: 'rs-1',
+  commissionRuleSetVersion: 7,
   pricing: { summary: { productAmount: 100, shippingAmount: 80, serviceFeeAmount: 15, total: 195 } },
 };
 

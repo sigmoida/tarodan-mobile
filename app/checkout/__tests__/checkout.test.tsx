@@ -19,6 +19,7 @@ jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
 // API inline mock — ağ yok, deterministik. Checkout'un kullandığı tüm api'lar.
 jest.mock('@/lib/api', () => ({
+  toExpectedPricing: jest.requireActual('@/lib/api').toExpectedPricing,
   ordersApi: {
     directBuy: jest.fn(),
     createGuest: jest.fn(),

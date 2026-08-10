@@ -46,6 +46,7 @@ jest.mock('@/ui', () => {
 // `estimatedDiscount` (18) ile sunucunun `couponDiscount`'u (20) BİLEREK farklı:
 // ekranda 18 görünürse yanlış kaynak kullanılıyor demektir.
 jest.mock('@/lib/api', () => ({
+  toExpectedPricing: jest.requireActual('@/lib/api').toExpectedPricing,
   ordersApi: {
     checkout: jest.fn(),
     checkoutGuest: jest.fn(),

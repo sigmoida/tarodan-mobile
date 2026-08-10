@@ -58,6 +58,7 @@ const SAVED_ADDRESS = {
 };
 
 jest.mock('@/lib/api', () => ({
+  toExpectedPricing: jest.requireActual('@/lib/api').toExpectedPricing,
   ordersApi: {
     checkout: jest.fn(() =>
       Promise.resolve({ data: { data: { checkoutGroupId: 'g1', orders: [{ orderId: 'o1' }] } } }),
@@ -73,6 +74,8 @@ jest.mock('@/lib/api', () => ({
         data: {
           pricingHash: '70a8bdadff29af70',
           shippingTariffVersion: 3,
+          commissionRuleSetId: 'rs-1',
+          commissionRuleSetVersion: 7,
           pricing: { summary: { productAmount: 100, shippingAmount: 50, serviceFeeAmount: 15, total: 165 } },
         },
       }),

@@ -84,6 +84,7 @@ jest.mock('@/components/common', () => {
 
 // API mock'ları — jest.fn() inline, sonra modülden referans alınır.
 jest.mock('@/lib/api', () => ({
+  toExpectedPricing: jest.requireActual('@/lib/api').toExpectedPricing,
   ordersApi: {
     checkout: jest.fn(),
     checkoutGuest: jest.fn(() =>
@@ -103,6 +104,8 @@ jest.mock('@/lib/api', () => ({
         data: {
           pricingHash: '70a8bdadff29af70',
           shippingTariffVersion: 3,
+          commissionRuleSetId: 'rs-1',
+          commissionRuleSetVersion: 7,
           pricing: {
             summary: { productAmount: 100, shippingAmount: 50, serviceFeeAmount: 15, total: 165 },
           },
@@ -233,14 +236,18 @@ describe('Misafir checkout OTP akışı', () => {
       fireEvent.press(screen.getByTestId('guest-otp-submit'));
     });
 
-    // checkoutGuest emailVerificationCode İLE ve quote sözleşme alanlarıyla çağrılmalı —
-    // ikisi de API DTO'sunda zorunlu, aksi halde 400 alınır (task-1 brief 1b).
+    // checkoutGuest emailVerificationCode İLE ve quote sözleşme imzasıyla çağrılmalı —
+    // dört alan API DTO'sunda zorunlu, aksi halde 400 alınır (task-1/2 brief).
     await waitFor(() => {
       expect(ordersApi.checkoutGuest).toHaveBeenCalledWith(
         expect.objectContaining({
           emailVerificationCode: '123456',
-          expectedPricingHash: '70a8bdadff29af70',
-          expectedShippingTariffVersion: 3,
+          expectedPricing: {
+            expectedPricingHash: '70a8bdadff29af70',
+            expectedShippingTariffVersion: 3,
+            expectedCommissionRuleSetId: 'rs-1',
+            expectedCommissionRuleSetVersion: 7,
+          },
         }),
       );
     });

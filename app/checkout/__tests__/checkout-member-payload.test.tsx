@@ -1,7 +1,8 @@
 /**
  * checkout-member-payload · ÜYE çağrı yerinin sözleşme alanları (bulgu M2).
  *
- * `expectedPricingHash` + `expectedShippingTariffVersion` API DTO'sunda ZORUNLU.
+ * `expectedPricing` (dört alanlı imza — delta 18 ile komisyon seti eklendi)
+ * API DTO'sunda ZORUNLU.
  * `src/lib/api/__tests__/orders.test.ts` yalnız payload üreticisinin alanları
  * alt katmana geçirdiğini gösterir (tip zaten zorunlu kılıyor); asıl güvence
  * ÇAĞRI YERİNİN quote kökünden gerçekten okuyup göndermesidir. Misafir yolu
@@ -30,6 +31,7 @@ const ONE_ADDRESS = [
 ];
 
 jest.mock('@/lib/api', () => ({
+  toExpectedPricing: jest.requireActual('@/lib/api').toExpectedPricing,
   ordersApi: {
     checkout: jest.fn(() =>
       Promise.resolve({ data: { data: { checkoutGroupId: 'g1', orders: [{ orderId: 'o1' }] } } }),
@@ -40,6 +42,8 @@ jest.mock('@/lib/api', () => ({
         data: {
           pricingHash: '70a8bdadff29af70',
           shippingTariffVersion: 3,
+          commissionRuleSetId: 'rs-1',
+          commissionRuleSetVersion: 7,
           pricing: { summary: { productAmount: 100, shippingAmount: 50, serviceFeeAmount: 15, total: 165 } },
         },
       }),
@@ -109,17 +113,19 @@ describe('Üye checkout payload sözleşmesi', () => {
     await waitFor(() => {
       expect(ordersApi.checkout).toHaveBeenCalledWith(
         expect.objectContaining({
-          expectedPricingHash: '70a8bdadff29af70',
-          expectedShippingTariffVersion: 3,
+          expectedPricing: {
+            expectedPricingHash: '70a8bdadff29af70',
+            expectedShippingTariffVersion: 3,
+            expectedCommissionRuleSetId: 'rs-1',
+            expectedCommissionRuleSetVersion: 7,
+          },
         }),
       );
     });
 
     // Koşulsuz gönderilir (web'in "yalnız doluysa gönder" hatası tekrarlanmaz):
-    // alanlar payload'da her zaman var.
+    // imza payload'da her zaman var, tek alan olarak.
     const payload = jest.mocked(ordersApi.checkout).mock.calls[0][0];
-    expect(Object.keys(payload)).toEqual(
-      expect.arrayContaining(['expectedPricingHash', 'expectedShippingTariffVersion']),
-    );
+    expect(Object.keys(payload)).toEqual(expect.arrayContaining(['expectedPricing']));
   });
 });

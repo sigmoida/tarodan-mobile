@@ -35,6 +35,7 @@ const ONE_ADDRESS = [
 ];
 
 jest.mock('@/lib/api', () => ({
+  toExpectedPricing: jest.requireActual('@/lib/api').toExpectedPricing,
   ordersApi: { checkout: jest.fn(), getQuote: jest.fn() },
   paymentsApi: {
     getPaymentMethods: jest.fn(() => Promise.resolve({ data: [] })),

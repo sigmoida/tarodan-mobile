@@ -62,6 +62,7 @@ jest.mock('@/components/common', () => {
 });
 
 jest.mock('@/lib/api', () => ({
+  toExpectedPricing: jest.requireActual('@/lib/api').toExpectedPricing,
   ordersApi: {
     checkout: jest.fn(),
     checkoutGuest: jest.fn(),
@@ -76,6 +77,8 @@ jest.mock('@/lib/api', () => ({
             data: {
               pricingHash: 'hash-no-coupon',
               shippingTariffVersion: 3,
+              commissionRuleSetId: 'rs-1',
+              commissionRuleSetVersion: 7,
               couponDiscount: 0,
               pricing: { summary: { productAmount: 100, shippingAmount: 50, serviceFeeAmount: 15, total: 165 } },
             },

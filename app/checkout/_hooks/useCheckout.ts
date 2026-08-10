@@ -3,7 +3,15 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { appAlert, alertAfterClose, type AlertDialogButton } from '@/ui';
-import { ordersApi, paymentsApi, addressesApi, cartApi, type OrderAddressInput, type OrderQuoteResponse } from '@/lib/api';
+import {
+  ordersApi,
+  paymentsApi,
+  addressesApi,
+  cartApi,
+  toExpectedPricing,
+  type OrderAddressInput,
+  type OrderQuoteResponse,
+} from '@/lib/api';
 import { qk, retryUnlessClientError } from '@/lib/query';
 import { useCartStore } from '@/stores/cartStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -508,10 +516,10 @@ export function useCheckout() {
 
   const proceedCheckout = async (emailVerificationCode?: string) => {
     if (loading) return;
-    // API DTO'sunda ikisi de zorunlu — quote yüklenmeden HER ZAMAN göndermek
-    // yerine burada durup kullanıcıdan bekle (undefined/0 göndermek yalnızca
-    // aynı 400'ü başka bir şekilde üretir).
-    if (!quote?.pricingHash || quote.shippingTariffVersion == null) {
+    // Dört alanın DÖRDÜ de API DTO'sunda zorunlu — yarım gövde göndermek yalnız
+    // aynı 400'ü başka bir şekilde üretir. Türetici tek kaynak (`@/lib/api`).
+    const expectedPricing = toExpectedPricing(quote);
+    if (!expectedPricing) {
       // Hata halinde mesaj FARKLI: "yükleniyor" demek yanlış olurdu — sorgu
       // 4xx'te hiç, ağ hatasında `retry` tükendikten sonra kendiliğinden
       // tazelenmiyor (`refetchOnWindowFocus: false`); kullanıcı özet kartındaki
@@ -544,9 +552,8 @@ export function useCheckout() {
         shippingAddress: shipping.inline,
         billingAddressId: billing?.id,
         billingAddress: billing?.inline,
-        // Quote kökünden AYNEN — API DTO'sunda ikisi de zorunlu, koşullu gönderilmez.
-        expectedPricingHash: quote.pricingHash,
-        expectedShippingTariffVersion: quote.shippingTariffVersion,
+        // Quote'tan türetilmiş imza — dört alan gövdeye burada yayılır.
+        expectedPricing,
         // Kupon yoksa alanı hiç göndermiyoruz (backend opsiyonel bekliyor).
         ...(coupon.couponCode ? { couponCode: coupon.couponCode } : {}),
       };
@@ -564,8 +571,7 @@ export function useCheckout() {
               guestName: guestName.trim(),
               shippingAddress: shipping.inline!,
               billingAddress: billing?.inline,
-              expectedPricingHash: checkoutPayload.expectedPricingHash,
-              expectedShippingTariffVersion: checkoutPayload.expectedShippingTariffVersion,
+              expectedPricing,
               ...(coupon.couponCode ? { couponCode: coupon.couponCode } : {}),
             });
 
@@ -658,19 +664,39 @@ export function useCheckout() {
       console.error('Checkout error:', error);
       captureException(error, { level: 'error', tags: { flow: 'checkout' }, extra: { status: error?.response?.status } });
       const status = error?.response?.status;
-      // Ayırt edici: `code`/`errorCode` YOK, yalnız i18nKey. Fiyatlar sunucuda
-      // değişmiş — quote'u yenile, eski/yeni toplamı göster, yeniden onay iste.
-      if (status === 409 && error?.response?.data?.i18nKey === 'server.shipping.pricingChanged') {
+      // İki ayrı çakışma, TEK dal: fiyat/kargo değişti (i18nKey ile gelir) veya
+      // komisyon seti değişti (delta 18 — `code` ile gelir). İkisinde de quote
+      // yenilenir, yeni toplam gösterilir, yeniden onay istenir. Sessiz retry YOK.
+      const isPricingConflict =
+        status === 409 && error?.response?.data?.i18nKey === 'server.shipping.pricingChanged';
+      const isCommissionConflict =
+        status === 409 && error?.response?.data?.code === 'COMMISSION_PRICING_CHANGED';
+      if (isPricingConflict || isCommissionConflict) {
         const oldTotal = total;
         const refreshed = await quoteQuery.refetch();
         const newTotal = refreshed.data?.pricing?.summary?.total;
-        // Geçici DEĞİL: kullanıcı ana ekranda yeni tutarı görüp yeniden
-        // onaylamalı → OTP modalı açıksa önce kapatılır.
         alertAfterOtpClose(
-          t('checkout.pricesUpdatedTitle'),
-          `Ürün veya kargo fiyatları güncellendi.\n\nÖnceki toplam: ${formatServerPrice(
-            oldTotal,
-          )}\nYeni toplam: ${formatServerPrice(newTotal)}\n\nLütfen tutarı kontrol edip tekrar onaylayın.`,
+          isCommissionConflict
+            ? t('checkout.commissionChangedTitle')
+            : t('checkout.pricesUpdatedTitle'),
+          isCommissionConflict
+            ? t('checkout.commissionChangedBody', {
+                oldTotal: formatServerPrice(oldTotal),
+                newTotal: formatServerPrice(newTotal),
+              })
+            : t('checkout.pricesUpdatedBody', {
+                oldTotal: formatServerPrice(oldTotal),
+                newTotal: formatServerPrice(newTotal),
+              }),
+        );
+        return;
+      }
+      // 503: aktif komisyon kuralı yok. Yeniden quote'la ÇÖZÜLMEZ — kullanıcıyı
+      // quote döngüsüne sokma, geçici platform hatası olarak bildir.
+      if (status === 503) {
+        alertAfterOtpClose(
+          t('checkout.pricingUnavailableTitle'),
+          t('checkout.pricingUnavailableBody'),
         );
         return;
       }
