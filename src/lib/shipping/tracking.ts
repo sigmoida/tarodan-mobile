@@ -1,5 +1,3 @@
-import type { Shipment } from '@/lib/api';
-
 /** Sağlayıcı → takip sayfası şablonu. Bugün tek sağlayıcı var. */
 const TRACKING_URLS: Record<string, (code: string) => string> = {
   surat: (code) =>
@@ -20,6 +18,20 @@ export function buildTrackingUrl(
   return build ? build(code) : null;
 }
 
+/**
+ * `deriveShipmentView`'ün okuduğu ASGARİ alanlar. Tam `Shipment` kaydı
+ * (`GET /shipping/order/:id`) bu şekle uyar; sipariş/grup yanıtlarındaki kargo
+ * ÖZETİ ise aynı kodu `providerTrackingId` yerine `cargoCode` adıyla taşır —
+ * onu `fallbackCargoCode` parametresiyle verin.
+ */
+export type ShipmentLike = {
+  provider?: string | null;
+  trackingNumber?: string | null;
+  providerTrackingId?: string | null;
+  /** Kabul edilir ama ASLA OKUNMAZ — link `buildTrackingUrl` ile kurulur. */
+  trackingUrl?: string | null;
+};
+
 export type ShipmentView = {
   /** Gerçek taşıyıcı kodu — kullanıcıya "Takip Numarası" olarak gösterilir. */
   cargoCode: string | null;
@@ -36,7 +48,7 @@ export type ShipmentView = {
  * bilgiyi taşıyan `shipment.cargoCode` alanı içindir.
  */
 export function deriveShipmentView(
-  s: Shipment | null | undefined,
+  s: ShipmentLike | null | undefined,
   fallbackCargoCode?: string | null,
 ): ShipmentView {
   const cargoCode = s?.providerTrackingId || fallbackCargoCode || null;

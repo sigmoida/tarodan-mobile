@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { Shipment } from '@/lib/api';
 import { formatDate, formatPrice } from '../_lib/format';
 import { deriveShipmentView } from '@/lib/shipping/tracking';
-import { shipmentStatusLabel } from '../_lib/shipmentStatus';
+import { shipmentStatusLabel } from '@/lib/shipping/shipmentStatus';
 import type { OrderDetail } from '../_lib/types';
 import type { OrderView } from '../_lib/derive';
 
