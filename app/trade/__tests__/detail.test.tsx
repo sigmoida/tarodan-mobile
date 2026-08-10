@@ -257,7 +257,7 @@ describe("J7 · Ödeme butonu wiring", () => {
     renderWithProviders(<TradeDetailScreen />);
     await waitFor(() =>
       expect(
-        screen.getByText("Karşı tarafın nakit fark ödemesi bekleniyor."),
+        screen.getByText("trade.waitingCounterpartyPayment"),
       ).toBeOnTheScreen(),
     );
     expect(screen.queryByTestId("cash-pay-button")).toBeNull();

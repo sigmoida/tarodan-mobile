@@ -135,7 +135,11 @@ export default function TradeDetailScreen() {
           otherPartyId={view.otherParty.id}
           cashPaid={view.cashPaid}
           cashTotal={view.cashTotal}
-          cashCommission={view.cashCommission}
+          isV2={view.isV2}
+          myPaymentRow={view.myPaymentRow}
+          myPaymentPending={view.myPaymentPending}
+          paidCount={view.paidCount}
+          totalCount={view.totalCount}
           myFromWarehouseStatus={view.myFromWarehouseShipment?.status}
           actions={{
             setTradeAddressId: actions.setTradeAddressId,
