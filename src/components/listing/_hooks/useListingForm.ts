@@ -165,6 +165,8 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   // Marka/model/kategori/üretici adları için yedek — listeler yüklenene kadar
   // `.find()` boş döner, eşleyicinin etiketleri o boşluğu doldurur.
   const editLabelsRef = useRef<MappedListing['labels'] | null>(null);
+  // Marka değişimini yakalar: değişince eski markanın model ADI geçersizleşir.
+  const prevBrandIdRef = useRef<string | null>(null);
 
   // Loading flags
   const [brandsLoading, setBrandsLoading] = useState(true);
@@ -285,6 +287,14 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   // Fetch models when brand changes
   // -----------------------------------------------------------------------
   useEffect(() => {
+    // Marka GERÇEKTEN değiştiyse (prefill'in '' → id geçişi değil) eski
+    // markanın model adı geçersizdir: yedek etiket olarak kalırsa `models`
+    // listesi tazelenirken uyumsuz `carModelId`'yi maskeler.
+    if (prevBrandIdRef.current && prevBrandIdRef.current !== brandId && editLabelsRef.current) {
+      editLabelsRef.current = { ...editLabelsRef.current, carModelName: '' };
+    }
+    prevBrandIdRef.current = brandId;
+
     if (brandId) {
       const selected = brands.find((b) => b.id === brandId);
       if (selected) fetchModels(selected.slug);
@@ -553,29 +563,38 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const flatCategories = flattenCategories(categories).filter(
     (c) => !BRAND_SLUGS.includes(c.slug) && !SCALE_SLUGS.includes(c.slug)
   );
-  // Liste yüklenene kadar `.find()` boş döner; eşleyicinin etiket yedeği o
-  // boşluğu doldurur. Liste yüklendiğinde `.find()` kazanır — yedek yalnız
-  // `undefined` olduğunda devreye girer, gerçek kaydı asla ezmez.
+  /**
+   * Etiket yedeği YALNIZ ilgili liste HENÜZ YÜKLENMEMİŞKEN (`length === 0`)
+   * devrededir.
+   *
+   * Liste geldiğinde `.find()` tek otoritedir: eşleşme yoksa picker
+   * "… Seçin" gösterir ve satıcı uyumsuzluğu GÖRÜR. Yedeği `??` ile
+   * koşulsuz zincirlemek, marka değişince eski markanın model adını
+   * göstermeye devam ediyor ve bayat `carModelId`'yi maskeliyordu.
+   */
+  const labelFallback = <T extends { id: string; name: string; slug: string }>(
+    list: readonly unknown[],
+    id: string,
+    name: string | undefined,
+  ): T | undefined =>
+    list.length === 0 && !!id && !!name ? ({ id, name, slug: '' } as T) : undefined;
+
   const selectedCategory =
     flatCategories.find((c) => c.id === categoryId) ??
-    (editLabelsRef.current?.categoryName
-      ? { id: categoryId, name: editLabelsRef.current.categoryName, slug: '' }
-      : undefined);
+    labelFallback<Category>(flatCategories, categoryId, editLabelsRef.current?.categoryName);
   const selectedBrand =
     brands.find((b) => b.id === brandId) ??
-    (editLabelsRef.current?.brandName
-      ? { id: brandId, name: editLabelsRef.current.brandName, slug: '' }
-      : undefined);
+    labelFallback<Brand>(brands, brandId, editLabelsRef.current?.brandName);
   const selectedModel =
     models.find((m) => m.id === carModelId) ??
-    (editLabelsRef.current?.carModelName
-      ? { id: carModelId, name: editLabelsRef.current.carModelName, slug: '' }
-      : undefined);
+    labelFallback<CarModel>(models, carModelId, editLabelsRef.current?.carModelName);
   const selectedManufacturer =
     manufacturerList.find((m) => m.id === manufacturerId) ??
-    (editLabelsRef.current?.manufacturerName
-      ? { id: manufacturerId, name: editLabelsRef.current.manufacturerName, slug: '' }
-      : undefined);
+    labelFallback<Manufacturer>(
+      manufacturerList,
+      manufacturerId,
+      editLabelsRef.current?.manufacturerName,
+    );
   const effectiveScales = scaleList.length > 0 ? scaleList : FALLBACK_SCALES;
   const effectiveMaterials = materialList.length > 0 ? materialList : FALLBACK_MATERIALS;
   const selectedMaterial = effectiveMaterials.find((m) => m.slug === material);
