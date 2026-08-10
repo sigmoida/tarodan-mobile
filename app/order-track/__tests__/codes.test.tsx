@@ -68,3 +68,52 @@ describe('guest tracking result', () => {
     expect(screen.queryByText('Grup No')).toBeNull();
   });
 });
+
+/**
+ * Misafir/alıcı takip kartı — `PKG-` HİÇ GÖSTERİLMEZ.
+ *
+ * `POST /orders/guest/track` yalnız `shipment.trackingNumber`'ı döndürüyor
+ * (backend `order-query.service.ts#trackGuestOrder`, 2026-08-11 okuması):
+ * bu Tarodan iç referansı, satıcının şubede vereceği numara — Sürat onu
+ * TANIMAZ. Uç gerçek Sürat kodunu (`providerTrackingId`/`cargoCode`) hiç
+ * göndermiyor, o yüzden bu ekranda takip numarası GÖSTERİLEMEZ; durum
+ * gösterilir. Uç kodu göndermeye başlayınca burası kodu basacak şekilde
+ * genişletilmeli (backend maddesi).
+ */
+describe('guest tracking · shipment numbers', () => {
+  const shipped = (shipment: Record<string, unknown>) =>
+    renderWithProviders(<OrderTrackResult order={order({ shipment })} />);
+
+  it('never prints the internal PKG- reference as a tracking number', () => {
+    shipped({ provider: 'surat', trackingNumber: 'PKG-3BQ2W4JPJ3', status: 'in_transit' });
+
+    expect(screen.queryByText(/PKG-/)).toBeNull();
+    expect(screen.queryByText('Takip Numarası')).toBeNull();
+  });
+
+  it('shows the shipment status in words instead', () => {
+    shipped({ provider: 'surat', trackingNumber: 'PKG-3BQ2W4JPJ3', status: 'in_transit' });
+
+    expect(screen.getByTestId('track-shipment-status')).toBeOnTheScreen();
+    expect(screen.getByText('Yolda')).toBeOnTheScreen();
+  });
+
+  it('never prints a raw status code', () => {
+    shipped({ provider: 'surat', trackingNumber: 'PKG-3BQ2W4JPJ3', status: 'at_delivery_branch' });
+
+    expect(screen.queryByText('at_delivery_branch')).toBeNull();
+    expect(screen.getByText('Dağıtım şubesinde')).toBeOnTheScreen();
+  });
+
+  it('explains the wait while the parcel is still with the seller', () => {
+    shipped({ provider: 'surat', trackingNumber: 'PKG-3BQ2W4JPJ3', status: 'label_created' });
+
+    expect(screen.getByText(/Satıcı paketinizi hazırlıyor/)).toBeOnTheScreen();
+  });
+
+  it('drops the wait note once the parcel is moving', () => {
+    shipped({ provider: 'surat', trackingNumber: 'PKG-3BQ2W4JPJ3', status: 'out_for_delivery' });
+
+    expect(screen.queryByText(/Satıcı paketinizi hazırlıyor/)).toBeNull();
+  });
+});

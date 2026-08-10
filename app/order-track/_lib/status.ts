@@ -16,6 +16,13 @@ export interface OrderStatus {
     title: string;
     images: string[];
   };
+  /**
+   * `POST /orders/guest/track` kargo özeti. DİKKAT: uç yalnız
+   * `trackingNumber`'ı gönderiyor ve o Tarodan İÇ REFERANSI (`PKG-…`) —
+   * satıcının şubede vereceği numara. Sürat onu TANIMAZ, alıcıya
+   * GÖSTERİLMEZ. Gerçek Sürat kodu (`providerTrackingId`/`cargoCode`) bu
+   * yanıtta HİÇ YOK; uç eklenene kadar bu ekran kod gösteremez.
+   */
   shipment?: {
     trackingNumber: string;
     provider: string;

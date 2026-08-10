@@ -1,7 +1,9 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, Divider, theme } from '@/ui';
+import { shipmentStatusLabel } from '@/lib/shipping/shipmentStatus';
 
 import { styles } from '../_lib/styles';
 import {
@@ -15,8 +17,15 @@ import {
 
 const { colors } = theme;
 
+/** Paket hâlâ satıcıda — "takip bilgileri birazdan" notu yalnız burada anlamlı. */
+const AWAITING_DROPOFF = ['label_created', 'pending'];
+
 /** Result card: header status, product, price, shipping, and timeline. */
 export function OrderTrackResult({ order }: { order: OrderStatus }) {
+  const { t } = useTranslation();
+  const awaitingDropoff =
+    !order.shipment?.status || AWAITING_DROPOFF.includes(order.shipment.status);
+
   return (
     <View style={styles.resultCard}>
       <View style={styles.resultHeader}>
@@ -77,14 +86,14 @@ export function OrderTrackResult({ order }: { order: OrderStatus }) {
                 {order.shipment.provider === 'surat' ? 'Sürat Kargo' : order.shipment.provider}
               </Text>
             </View>
-            {order.shipment.trackingNumber && (
-              <View style={styles.shippingRow}>
-                <Text style={styles.shippingLabel}>Takip Numarası</Text>
-                <Text style={[styles.shippingValue, styles.trackingNumber]}>
-                  {order.shipment.trackingNumber}
-                </Text>
-              </View>
-            )}
+            {/* Takip numarası GÖSTERİLMEZ: uç yalnız iç referansı (`PKG-…`)
+                gönderiyor ve Sürat onu tanımaz. Yerine kargo durumu. */}
+            <View style={styles.shippingRow}>
+              <Text style={styles.shippingLabel}>Kargo Durumu</Text>
+              <Text testID="track-shipment-status" style={styles.shippingValue}>
+                {shipmentStatusLabel(order.shipment.status, t)}
+              </Text>
+            </View>
             {order.shipment.estimatedDelivery && (
               <View style={styles.shippingRow}>
                 <Text style={styles.shippingLabel}>Tahmini Teslimat</Text>
@@ -94,6 +103,9 @@ export function OrderTrackResult({ order }: { order: OrderStatus }) {
               </View>
             )}
           </View>
+          {awaitingDropoff ? (
+            <Text style={styles.shippingLabel}>{t('order.shipmentPreparingBuyer')}</Text>
+          ) : null}
         </View>
       )}
 
