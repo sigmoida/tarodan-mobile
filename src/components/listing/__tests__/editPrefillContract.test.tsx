@@ -69,20 +69,35 @@ const TARIFF = {
 };
 
 const BRANDS = [{ id: 'brand-1', name: 'Mini GT', slug: 'mini-gt' }];
-const MANUFACTURERS = [{ id: 'man-1', name: 'Hot Wheels', slug: 'hot-wheels' }];
-
-const ATTR_GROUPS = [
-  {
-    slug: 'series',
-    name: 'Seri',
-    manufacturerSlug: 'hot-wheels',
-    isRequired: false,
-    attributes: [
-      { slug: 'premium', label: 'Premium' },
-      { slug: 'mainline', label: 'Mainline' },
-    ],
-  },
+const MANUFACTURERS = [
+  { id: 'man-1', name: 'Hot Wheels', slug: 'hot-wheels' },
+  { id: 'man-2', name: 'Tomica', slug: 'tomica' },
 ];
+
+const ATTR_GROUPS: Record<string, Array<Record<string, unknown>>> = {
+  'hot-wheels': [
+    {
+      slug: 'series',
+      name: 'Seri',
+      manufacturerSlug: 'hot-wheels',
+      isRequired: false,
+      attributes: [
+        { slug: 'premium', label: 'Premium' },
+        { slug: 'mainline', label: 'Mainline' },
+      ],
+    },
+  ],
+  // Farklı groupSlug: `series` seçimi burada arayüzde HİÇ render edilmez.
+  tomica: [
+    {
+      slug: 'edition',
+      name: 'Edisyon',
+      manufacturerSlug: 'tomica',
+      isRequired: false,
+      attributes: [{ slug: 'limited', label: 'Limited' }],
+    },
+  ],
+};
 
 /** 2026-08-10 staging ölçümü: `scale`/`material` üretici-BAĞIMSIZ, `series` kapsamlı. */
 const EDIT_RESPONSE = {
@@ -139,7 +154,7 @@ const EDIT_RESPONSE = {
 };
 
 function wireApi(opts: { brands?: typeof BRANDS; models?: Array<{ id: string; name: string; slug: string }> } = {}) {
-  mockGet.mockImplementation((url: string) => {
+  mockGet.mockImplementation((url: string, args?: { params?: Record<string, unknown> }) => {
     if (url === '/products/filters') {
       return Promise.resolve({
         data: {
@@ -154,7 +169,8 @@ function wireApi(opts: { brands?: typeof BRANDS; models?: Array<{ id: string; na
       return Promise.resolve({ data: opts.models ?? [] });
     }
     if (url === '/products/attribute-groups') {
-      return Promise.resolve({ data: ATTR_GROUPS });
+      const slug = args?.params?.manufacturer as string;
+      return Promise.resolve({ data: ATTR_GROUPS[slug] ?? [] });
     }
     if (url === '/shipping/package-tiers') return Promise.resolve({ data: TARIFF });
     if (url === '/orders/commission-preview') {
@@ -237,6 +253,39 @@ describe('409 — form TAMAMEN sunucunun taze haline döner', () => {
     // kalan 'mainline' bir sonraki kaydetmede payload'a KARIŞMAZ.
     await waitFor(() => expect(screen.getByText('Premium')).toBeOnTheScreen());
     expect(screen.queryByText('Mainline')).toBeNull();
+  });
+
+  /**
+   * `applyMappedListing` 409 dalında da çağrıldığı için `initialCustomAttrsRef`
+   * orada da kuruluyordu — ama onu tüketen TEK yer üretici-grup efekti ve o
+   * efekt 409'dan sonra tetiklenmiyor (üretici değişmedi). Ref asılı kalınca
+   * bir SONRAKİ üretici değişimi onu görüp eski üreticinin niteliklerini geri
+   * yazıyordu: arayüzde hiç görünmeyen, payload'a giren bir seçim.
+   */
+  it('409 sonrası üretici değişiminde ESKİ üreticinin nitelikleri payload`a girmez', async () => {
+    wireApi();
+    (productsApi.update as jest.Mock).mockRejectedValue({ response: { status: 409 } });
+
+    renderWithProviders(<ListingForm mode="edit" productId="p1" />);
+    await screen.findByText('Değişiklikleri Kaydet');
+    // man-1'in grupları yüklendi ve sunucudaki seçim uygulandı.
+    await screen.findByText('Premium');
+
+    fireEvent.press(screen.getByText('Değişiklikleri Kaydet'));
+    await waitFor(() => expect(productsApi.update).toHaveBeenCalledTimes(1));
+
+    // Satıcı üreticiyi değiştiriyor → man-2'nin grupları geliyor (`series` YOK).
+    fireEvent.press(screen.getByText('Hot Wheels'));
+    fireEvent.press(await screen.findByText('Tomica'));
+    await waitFor(() => expect(screen.getByText('Edisyon seçin')).toBeOnTheScreen());
+
+    (productsApi.update as jest.Mock).mockResolvedValue({ data: {} });
+    fireEvent.press(screen.getByText('Değişiklikleri Kaydet'));
+
+    await waitFor(() => expect(productsApi.update).toHaveBeenCalledTimes(2));
+    const payload = (productsApi.update as jest.Mock).mock.calls[1][1];
+    expect(payload.attributes).toBeUndefined();
+    expect(payload.attributes ?? []).not.toContain('premium');
   });
 });
 

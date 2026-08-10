@@ -251,8 +251,14 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     // yaptığı ölçek/malzeme değişikliğini geri yazarlar.
     const scoped = mapped.manufacturerAttrs;
     setCustomAttributes(scoped);
-    // Üretici grupları yüklenene kadar sakla ki üretici-değişimi efekti silmesin.
-    initialCustomAttrsRef.current = Object.keys(scoped).length ? scoped : null;
+    // Ref YALNIZ bir köprüdür: üretici-grup efekti henüz çalışmadıysa (gruplar
+    // boş) seçimleri ona taşır, efekt de tüketip `null`'lar. Gruplar ZATEN
+    // yüklüyken (409 dalı) kurmak, ref'in tüketilmeden asılı kalmasına yol
+    // açardı — sonraki üretici değişiminde efekt onu görüp ESKİ üreticinin
+    // niteliklerini geri yazar, arayüzde hiç görünmeden `attributes[]`
+    // payload'ına girerlerdi. Kural burada, tek yerde.
+    initialCustomAttrsRef.current =
+      manufacturerAttrGroups.length === 0 && Object.keys(scoped).length ? scoped : null;
     editLabelsRef.current = mapped.labels;
   };
 
