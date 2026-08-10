@@ -13,8 +13,19 @@ export interface TradeShipment {
 
 export interface TradeCashPayment {
   id?: string;
+  /** v2: bu satırı ödeyen taraf. v1 tekil kayıtta yok. */
+  payerId?: string;
+  /** v2'de string|null — yalnız nakit fark taşıyan satırda dolu. */
+  recipientId?: string | null;
+  /** Ham nakit fark; borçlu olmayan tarafın satırında 0. */
   amount?: number;
+  /** v2: hizmet bedeli (KDV DAHİL). */
+  tradeFeeAmount?: number;
+  /** v2: bu tarafın 2 bacaklık kargo bedeli. */
+  shippingAmount?: number;
+  /** v1 kalıntısı — v2 satırlarında her zaman 0. */
   commission?: number;
+  /** PayTR'nin çektiği tutar. v2'de amount + tradeFeeAmount + shippingAmount. */
   totalAmount?: number;
   status?: string;
   paidAt?: string | null;
@@ -67,6 +78,8 @@ export interface Trade {
   items?: TradeItem[];
   shipments?: TradeShipment[];
   cashPayment?: TradeCashPayment | null;
+  /** v2: her zaman var, kabulden önce []. İki satırlı olması v2 işaretidir. */
+  cashPayments?: TradeCashPayment[];
   cashCommission?: number | null;
   paymentDeadline?: string | null;
   shippingDeadline?: string | null;

@@ -15,6 +15,7 @@ import { deriveTradeView } from "./_lib/derive";
 import { useTrade } from "./_hooks/useTrade";
 import { useCountdown } from "./_hooks/useCountdown";
 import { useTradeActions } from "./_hooks/useTradeActions";
+import { useTradePaymentQuote } from "./_hooks/useTradePaymentQuote";
 import { TradeStatusHeader } from "./_components/TradeStatusHeader";
 import { TradeInfoCard } from "./_components/TradeInfoCard";
 import { TradeItemsCompare } from "./_components/TradeItemsCompare";
@@ -42,6 +43,7 @@ export default function TradeDetailScreen() {
   const { refreshing, onRefresh } = useRefresh(refetch);
   const now = useCountdown();
   const actions = useTradeActions(tradeId);
+  const { quote: paymentQuote } = useTradePaymentQuote(tradeId);
 
   const handleBack = () => {
     if (router.canGoBack()) router.back();
@@ -74,7 +76,7 @@ export default function TradeDetailScreen() {
     );
   }
 
-  const view = deriveTradeView(trade, user);
+  const view = deriveTradeView(trade, user, paymentQuote);
   const copyCode = (code?: string | null) => {
     if (!code) return;
     Clipboard.setString(code);

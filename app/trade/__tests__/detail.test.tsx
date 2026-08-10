@@ -40,6 +40,7 @@ jest.mock("@/lib/api", () => ({
     confirmReceipt: jest.fn(),
     cancel: jest.fn(),
     raiseDispute: jest.fn(),
+    getPaymentQuote: jest.fn(() => Promise.resolve({ data: {} })),
   },
   paymentsApi: { initiateTradeCash: jest.fn() },
 }));

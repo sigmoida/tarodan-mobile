@@ -90,6 +90,8 @@ export const qk = {
     all: ["trades"] as const,
     list: (filters?: Filters) => ["trades", "list", filters] as const,
     detail: (id: string) => ["trade", id] as const,
+    /** Takas ödeme dökümü (v2 fiyatlama) — v1 takasta boş gövde döner. */
+    paymentQuote: (id: string) => ["trade", id, "payment-quote"] as const,
     statusCounts: ["trades-status-counts"] as const,
     /** Profil menüsü rozeti: yanıt bekleyen takas sayısı. */
     pendingCount: ["trades", "pending-count"] as const,
