@@ -3,8 +3,10 @@ import React from 'react';
 import { View, Pressable, Linking, StyleSheet } from 'react-native';
 import { Card, Text, Button, StatusBadge, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
-import { useOrderStatusConfig } from '../_lib/status';
+import type { Shipment } from '@/lib/api';
 import { formatDate, formatPrice } from '../_lib/format';
+import { deriveShipmentView } from '@/lib/shipping/tracking';
+import { shipmentStatusLabel } from '../_lib/shipmentStatus';
 import type { OrderDetail } from '../_lib/types';
 import type { OrderView } from '../_lib/derive';
 
@@ -96,34 +98,58 @@ export function OrderPayPendingCard({
   );
 }
 
-/** Kargo takip kartı. */
-export function OrderTrackingCard({ order, view }: { order: OrderDetail; view: OrderView }) {
+/**
+ * Kargo takip kartı — İKİ NUMARA, İKİ İŞ:
+ *   - `cargoCode` (`providerTrackingId`): gerçek Sürat kodu, HER İKİ TARAFA
+ *     gösterilir (+ link).
+ *   - `reference` (`trackingNumber`, `PKG-…`): Tarodan iç referansı, YALNIZ
+ *     satıcıya (şubede vereceği numara). Alıcı işine yaramaz, hiç gösterilmez.
+ * `trackingUrl` sunucudan OKUNMAZ — `deriveShipmentView` koddan kurar.
+ */
+export function OrderTrackingCard({
+  order, view, shipment, isSeller,
+}: {
+  order: OrderDetail;
+  view: OrderView;
+  shipment: Shipment | null;
+  isSeller: boolean;
+}) {
   const { t } = useTranslation();
-  const statusConfig = useOrderStatusConfig();
-  if (!view.showTrackingCard) return null;
+  const s = deriveShipmentView(shipment, order.shipment?.cargoCode);
+  // Kargo kaydı hiç yoksa çizecek bir şey yok.
+  if (!shipment && !s.cargoCode) return null;
+
   return (
     <Card variant="elevated" style={styles.card} testID="order-tracking-card">
       <View style={styles.trackingHeaderRow}>
         <Text variant="label" style={styles.sectionTitle}>{t('order.trackOrder')}</Text>
-        <StatusBadge status={view.isDelivered ? 'delivered' : 'shipped'} config={statusConfig} size="sm" />
+        <Text variant="caption" tone="muted">
+          {shipmentStatusLabel(shipment?.status ?? order.shipment?.status, t)}
+        </Text>
       </View>
-      <View style={styles.trackingRow}>
-        <Ionicons
-          name={view.isDelivered ? 'checkmark-circle' : 'location'}
-          size={20}
-          color={view.isDelivered ? colors.success[600]! : colors.primary[600]!}
-        />
+
+      {s.cargoCode ? (
         <View style={styles.trackingInfo}>
-          <Text testID="order-tracking-number">{order.trackingNumber}</Text>
-          {view.isDelivered ? (
-            <Text variant="caption" style={styles.trackingDeliveredText}>{t('order.parcelDelivered')}</Text>
-          ) : order.trackingUrl ? (
-            <Pressable onPress={() => Linking.openURL(order.trackingUrl!)}>
-              <Text style={styles.trackLink}>{t('order.trackOnCarrierSite')}</Text>
+          <Text variant="caption" tone="muted">{t('order.trackingNumber')}</Text>
+          <Text testID="order-tracking-number">{s.cargoCode}</Text>
+          {s.trackingUrl ? (
+            <Pressable onPress={() => Linking.openURL(s.trackingUrl!)}>
+              <Text style={styles.trackLink}>{t('order.trackShipment')}</Text>
             </Pressable>
           ) : null}
         </View>
-      </View>
+      ) : isSeller ? (
+        // SATICI: şubede vereceği referans + kodun ne zaman geleceği.
+        <View style={styles.trackingInfo}>
+          <Text variant="caption" tone="muted">{t('order.cargoReference')}</Text>
+          <Text testID="order-cargo-reference">{s.reference}</Text>
+          <Text variant="caption" tone="muted">{t('order.cargoRefInstructions')}</Text>
+          <Text variant="caption" tone="muted">{t('order.trackingAppearsAfterDropoff')}</Text>
+        </View>
+      ) : (
+        // ALICI: iç referans işine yaramaz, gösterme.
+        <Text variant="caption" tone="muted">{t('order.shipmentPreparingBuyer')}</Text>
+      )}
     </Card>
   );
 }
@@ -137,9 +163,7 @@ const styles = StyleSheet.create({
   escrowText: { color: colors.text.muted, lineHeight: 18 },
   cancelledHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2], marginBottom: theme.spacing[1.5] },
   cancelledHeaderText: { flex: 1, color: colors.text.heading },
-  trackingHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  trackingRow: { flexDirection: 'row', alignItems: 'center' },
-  trackingInfo: { flex: 1, marginLeft: theme.spacing[3] },
+  trackingHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing[2] },
+  trackingInfo: { marginTop: theme.spacing[1] },
   trackLink: { color: colors.primary[600]!, marginTop: theme.spacing[1] },
-  trackingDeliveredText: { color: colors.text.muted, marginTop: theme.spacing[1] },
 });

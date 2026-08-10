@@ -15,8 +15,9 @@ export function deriveOrderView(order: OrderDetail) {
   const isCancelled = order.status === 'cancelled' || order.cancellationType === 'iptal';
   const isDelivered = ['delivered', 'awaiting_confirmation', 'completed'].includes(order.status);
 
+  // Kod/referans varlığı kartın kendi kapısı (bkz. OrderTrackingCard); burada
+  // yalnızca sipariş durumuna göre gösterime uygunluk türetilir.
   const showTrackingCard =
-    !!order.trackingNumber &&
     !!order.shippedAt &&
     isPostShipment &&
     !isCancelled &&

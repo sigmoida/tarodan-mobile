@@ -1023,7 +1023,21 @@
     "trackingSection": "Kargo Takibi",
     "trackingWhenSellerShips": "Kargo bilgileri satıcı tarafından girildiğinde bilgilendirileceksiniz.",
     "sellerContactSection": "Satıcı İletişimi",
-    "sellerContactVia": "Mesajlar bölümünden satıcıyla iletişime geçebilirsiniz."
+    "sellerContactVia": "Mesajlar bölümünden satıcıyla iletişime geçebilirsiniz.",
+    "shipmentStatus": {
+      "label_created": "Kargo kaydı oluşturuldu",
+      "pending": "Şube kabulü bekleniyor",
+      "picked_up": "Şubede kabul edildi",
+      "in_transit": "Yolda",
+      "at_delivery_branch": "Dağıtım şubesinde",
+      "out_for_delivery": "Dağıtıma çıktı",
+      "delivered": "Teslim edildi",
+      "return_in_progress": "İade sürecinde",
+      "returned": "İade edildi",
+      "cancelled": "İptal edildi",
+      "failed": "Başarısız",
+      "unknown": "Kargo durumu güncelleniyor"
+    }
   },
   "trade": {
     "myTrades": "Takaslarım",

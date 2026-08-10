@@ -8,6 +8,8 @@ import { ThemedRefreshControl } from '@/components/common';
 import { useRefresh } from '@/hooks/useRefresh';
 import RatingModal from '@/components/RatingModal';
 import { qk } from '@/lib/query';
+import { useAuthStore } from '@/stores/authStore';
+import { useOrderShipment } from '@/hooks/useOrderShipment';
 import { deriveOrderView } from './_lib/derive';
 import { useOrder } from './_hooks/useOrder';
 import { useOrderInvoices } from './_hooks/useOrderInvoices';
@@ -41,6 +43,8 @@ export default function OrderDetailScreen() {
   });
   const actions = useOrderActions(String(id), order ?? undefined);
   const invoices = useOrderInvoices(String(id), order?.status, actions.notify);
+  const { shipment } = useOrderShipment(id);
+  const { user } = useAuthStore();
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
@@ -58,6 +62,7 @@ export default function OrderDetailScreen() {
   }
 
   const view = deriveOrderView(order);
+  const isSeller = !!user?.id && order?.seller?.id === user.id;
 
   return (
     <View style={styles.container}>
@@ -71,7 +76,7 @@ export default function OrderDetailScreen() {
         <OrderStatusCard order={order} view={view} />
         <OrderCancelledInfo view={view} />
         <OrderPayPendingCard order={order} view={view} onPay={actions.initiatePayment} payPending={actions.payPending} />
-        <OrderTrackingCard order={order} view={view} />
+        <OrderTrackingCard order={order} view={view} shipment={shipment} isSeller={isSeller} />
         <OrderProductCard order={order} />
         <OrderSellerCard order={order} />
         <OrderAddressCard order={order} isMembershipOrder={view.isMembershipOrder} />

@@ -1023,7 +1023,21 @@
     "trackingSection": "Shipment tracking",
     "trackingWhenSellerShips": "You will be notified once the seller enters shipment details.",
     "sellerContactSection": "Contact the seller",
-    "sellerContactVia": "You can reach the seller from Messages."
+    "sellerContactVia": "You can reach the seller from Messages.",
+    "shipmentStatus": {
+      "label_created": "Shipping label created",
+      "pending": "Awaiting branch acceptance",
+      "picked_up": "Accepted at branch",
+      "in_transit": "In transit",
+      "at_delivery_branch": "At delivery branch",
+      "out_for_delivery": "Out for delivery",
+      "delivered": "Delivered",
+      "return_in_progress": "Return in progress",
+      "returned": "Returned",
+      "cancelled": "Cancelled",
+      "failed": "Failed",
+      "unknown": "Updating shipment status"
+    }
   },
   "trade": {
     "myTrades": "My Trades",

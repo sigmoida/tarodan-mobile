@@ -52,6 +52,12 @@ export interface OrderDetail {
   } | null;
   trackingNumber?: string;
   trackingUrl?: string;
+  /** Sipariş yanıtındaki kargo özeti; `cargoCode` = `providerTrackingId`. */
+  shipment?: {
+    cargoCode?: string | null;
+    trackingNumber?: string | null;
+    status?: string | null;
+  } | null;
   createdAt: string;
   paidAt?: string;
   shippedAt?: string;

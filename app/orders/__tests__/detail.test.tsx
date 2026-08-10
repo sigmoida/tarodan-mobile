@@ -12,6 +12,7 @@ let mockParams: Record<string, string> = { id: 'order-1' };
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
   useLocalSearchParams: () => mockParams,
+  useFocusEffect: jest.fn(),
 }));
 
 // Yeni mimaride hook'lar `@/lib/api`'den import ediyor (services/api artık barrel).
