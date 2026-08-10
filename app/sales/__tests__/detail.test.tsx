@@ -5,8 +5,11 @@
  * Backend durum geçişi (iptal/iade aktarımı, escrow) backend-only.
  */
 import React from 'react';
-import { screen, waitFor } from '@testing-library/react-native';
+import { Linking } from 'react-native';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
+
+jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
 
 let mockParams: Record<string, string> = { id: 'sale-1' };
 jest.mock('expo-router', () => ({
@@ -68,25 +71,123 @@ describe('J63 · Satıcı sipariş detayı render', () => {
     expect(screen.getByTestId('sales-shipment-card')).toBeOnTheScreen();
   });
 
-  it('J63.3 kargo takip numarası varsa kargo kartında ve takip butonu görünür', async () => {
+  it('J63.3 gerçek Sürat kodu geldiyse takip numarası ve takip butonu görünür', async () => {
     getOneMock.mockResolvedValue({
-      data: { data: saleFixture({ status: 'shipped', shipment: { provider: 'surat', trackingNumber: 'SK123456' } }) },
+      data: {
+        data: saleFixture({
+          status: 'shipped',
+          shipment: {
+            provider: 'surat',
+            trackingNumber: 'PKG-CMRGW9D6ZH',
+            cargoCode: '79174212154116',
+            status: 'picked_up',
+          },
+        }),
+      },
     });
     renderWithProviders(<SaleDetailScreen />);
     await waitFor(() =>
       expect(screen.getByTestId('sales-tracking-number')).toBeOnTheScreen(),
     );
-    expect(screen.getByText('SK123456')).toBeOnTheScreen();
+    expect(screen.getByText('79174212154116')).toBeOnTheScreen();
     expect(screen.getByTestId('sales-track-link')).toBeOnTheScreen();
+    // Kod geldikten sonra iç referansın işi bitti — ekranda yeri yok.
+    expect(screen.queryByText(/PKG-/)).toBeNull();
   });
 
-  it('J63.4 takip numarası yoksa bekleme metni gösterilir, takip butonu yok', async () => {
+  it('J63.4 kargo kaydı yoksa bekleme metni gösterilir, takip butonu yok', async () => {
     getOneMock.mockResolvedValue({ data: { data: saleFixture({ status: 'paid', shipment: undefined }) } });
     renderWithProviders(<SaleDetailScreen />);
     await waitFor(() =>
       expect(screen.getByTestId('sales-shipment-card')).toBeOnTheScreen(),
     );
     expect(screen.queryByTestId('sales-track-link')).toBeNull();
+    expect(screen.queryByTestId('sales-tracking-number')).toBeNull();
+    expect(screen.queryByTestId('sales-cargo-reference')).toBeNull();
+  });
+});
+
+/**
+ * İKİ NUMARA, İKİ İŞ (Critical 1/2). `trackingNumber` (`PKG-…`) Tarodan iç
+ * referansı — satıcı ŞUBEDE verir, Sürat tanımaz. `cargoCode`
+ * (`providerTrackingId`) gerçek Sürat kodu — takip onunla yapılır.
+ */
+describe('J63 · Satıcı kargo numarası ayrımı', () => {
+  beforeEach(() => {
+    getOneMock.mockReset();
+    mockParams = { id: 'sale-1' };
+  });
+
+  const withShipment = (shipment: Record<string, unknown>) =>
+    getOneMock.mockResolvedValue({
+      data: { data: saleFixture({ status: 'shipped', shipment }) },
+    });
+
+  it('J63.8 kod gelmeden ŞUBE REFERANSI gösterilir, takip butonu yok', async () => {
+    withShipment({
+      provider: 'surat',
+      trackingNumber: 'PKG-CMRGW9D6ZH',
+      cargoCode: null,
+      status: 'label_created',
+    });
+    renderWithProviders(<SaleDetailScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId('sales-cargo-reference')).toBeOnTheScreen(),
+    );
+    expect(screen.getByText('PKG-CMRGW9D6ZH')).toBeOnTheScreen();
+    expect(screen.getByText('Kargo Referans Numarası')).toBeOnTheScreen();
+    // Sürat bu numarayı tanımaz → takip linki verilmez.
+    expect(screen.queryByTestId('sales-track-link')).toBeNull();
+    expect(screen.queryByTestId('sales-tracking-number')).toBeNull();
+  });
+
+  it('J63.9 takip linki iç referanstan DEĞİL Sürat kodundan kurulur', async () => {
+    withShipment({
+      provider: 'surat',
+      trackingNumber: 'PKG-CMRGW9D6ZH',
+      cargoCode: '79174212154116',
+      status: 'picked_up',
+    });
+    renderWithProviders(<SaleDetailScreen />);
+
+    await waitFor(() => expect(screen.getByTestId('sales-track-link')).toBeOnTheScreen());
+    fireEvent.press(screen.getByTestId('sales-track-link'));
+
+    expect(Linking.openURL).toHaveBeenCalledWith(
+      'https://www.suratkargo.com.tr/KargoTakip/?kargotakipno=79174212154116',
+    );
+  });
+
+  it('J63.10 kargo durumu HAM KOD olarak basılmaz', async () => {
+    withShipment({
+      provider: 'surat',
+      trackingNumber: 'PKG-CMRGW9D6ZH',
+      cargoCode: '79174212154116',
+      status: 'at_delivery_branch',
+    });
+    renderWithProviders(<SaleDetailScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId('sales-shipment-status')).toBeOnTheScreen(),
+    );
+    expect(screen.getByText('Dağıtım şubesinde')).toBeOnTheScreen();
+    expect(screen.queryByText('at_delivery_branch')).toBeNull();
+  });
+
+  it('J63.11 bilinmeyen kargo durumunda da ham kod basılmaz', async () => {
+    withShipment({
+      provider: 'surat',
+      trackingNumber: 'PKG-CMRGW9D6ZH',
+      cargoCode: '79174212154116',
+      status: 'yeni_bir_durum',
+    });
+    renderWithProviders(<SaleDetailScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId('sales-shipment-status')).toBeOnTheScreen(),
+    );
+    expect(screen.queryByText('yeni_bir_durum')).toBeNull();
   });
 });
 

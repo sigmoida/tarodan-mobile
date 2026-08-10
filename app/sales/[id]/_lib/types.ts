@@ -45,12 +45,21 @@ export interface Order {
       imageUrl?: string;
     };
   }>;
+  /**
+   * Sipariş yanıtındaki kargo özeti. İKİ NUMARA taşır, işleri farklı:
+   *   - `trackingNumber` (`PKG-…`): Tarodan iç referansı — satıcı ŞUBEDE verir,
+   *     Sürat bu numarayı TANIMAZ.
+   *   - `cargoCode` (= `providerTrackingId`): gerçek Sürat kodu — takip bununla
+   *     yapılır, şube kabulünden SONRA dolar.
+   * `trackingUrl` tipte var ama OKUNMAZ; link `buildTrackingUrl` ile kurulur.
+   */
   shipment?: {
     carrier?: string;
     provider?: string;
-    trackingNumber?: string;
-    status?: string;
+    trackingNumber?: string | null;
+    cargoCode?: string | null;
+    status?: string | null;
     shippedAt?: string;
-    trackingUrl?: string;
+    trackingUrl?: string | null;
   };
 }

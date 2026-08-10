@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, Image, Pressable } from 'react-native';
 import { Button, Divider, Text, theme } from '@/ui';
 import { router } from 'expo-router';
@@ -10,6 +11,7 @@ import {
   formatRelativeDate,
 } from '@/utils/format';
 import { transformImageUrl } from '@/utils/imageUrl';
+import { shipmentStatusLabel } from '@/lib/shipping/shipmentStatus';
 import { styles } from '../_lib/styles';
 import type { SaleDetailController } from '../_hooks/useSaleDetail';
 
@@ -17,9 +19,12 @@ const { colors } = theme;
 
 /** Sipariş detay gövdesi — durum, ürünler, alıcı, adres, kargo, tutar kartları. */
 export function SaleDetailBody({ f }: { f: SaleDetailController }) {
+  const { t } = useTranslation();
   const order = f.order;
   if (!order) return null;
 
+  const s = f.shipmentView;
+  const hasShipment = !!(s.cargoCode || s.reference);
   const p = order.pricing;
   const subtotal = p?.subtotal ?? order.subtotal;
   const shipping = p?.shippingAmount ?? order.shippingCost;
@@ -104,10 +109,12 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
         </View>
       ) : null}
 
-      {/* Shipment — Sürat Kargo otomatik gönderi (auto-created, read-only) */}
+      {/* Shipment — İKİ NUMARA, İKİ İŞ. Kod gelmeden satıcı ŞUBE REFERANSINI
+          görür (Sürat onu tanımaz, link verilmez); kod gelince gerçek Sürat
+          takip numarası + koddan KURULMUŞ link. Kalıp: `OrderTrackingCard`. */}
       <View style={styles.card} testID="sales-shipment-card">
         <Text style={styles.sectionTitle}>Kargo Bilgisi (Sürat Kargo)</Text>
-        {f.shipmentTracking ? (
+        {hasShipment ? (
           <>
             <View style={styles.kvRow}>
               <MaterialCommunityIcons name="truck-fast-outline" size={18} color={colors.primary[600]!} />
@@ -115,29 +122,49 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
                 {f.isSurat ? 'Sürat Kargo' : f.shipmentProvider || 'Sürat Kargo'}
               </Text>
             </View>
-            <View style={styles.kvRow}>
-              <Ionicons name="barcode-outline" size={18} color={colors.text.muted} />
-              <Text testID="sales-tracking-number" selectable style={[styles.kvValue, { fontWeight: '700' }]}>
-                {f.shipmentTracking}
-              </Text>
-            </View>
+
             {order.shipment?.status ? (
               <View style={styles.kvRow}>
                 <Ionicons name="pulse-outline" size={18} color={colors.text.muted} />
-                <Text testID="sales-shipment-status" style={styles.kvValue}>{order.shipment.status}</Text>
+                <Text testID="sales-shipment-status" style={styles.kvValue}>
+                  {shipmentStatusLabel(order.shipment.status, t)}
+                </Text>
               </View>
             ) : null}
-            <Text style={styles.helperText}>
-              Sürat Kargo şubesinde bu takip numarasıyla ürünü teslim edin. Alıcıya bildirim otomatik gönderilir.
-            </Text>
-            <Button
-              testID="sales-track-link"
-              variant="outline"
-              icon="cube"
-              title="Sürat'ta Takip Et"
-              onPress={f.handleTrack}
-              style={{ marginTop: theme.spacing[2] }}
-            />
+
+            {s.cargoCode ? (
+              <>
+                <Text style={styles.kvLabel}>{t('order.trackingNumber')}</Text>
+                <View style={styles.kvRow}>
+                  <Ionicons name="barcode-outline" size={18} color={colors.text.muted} />
+                  <Text testID="sales-tracking-number" selectable style={[styles.kvValue, { fontWeight: '700' }]}>
+                    {s.cargoCode}
+                  </Text>
+                </View>
+                {s.trackingUrl ? (
+                  <Button
+                    testID="sales-track-link"
+                    variant="outline"
+                    icon="cube"
+                    title={t('order.trackOnSurat')}
+                    onPress={f.handleTrack}
+                    style={{ marginTop: theme.spacing[2] }}
+                  />
+                ) : null}
+              </>
+            ) : (
+              <>
+                <Text style={styles.kvLabel}>{t('order.cargoReference')}</Text>
+                <View style={styles.kvRow}>
+                  <Ionicons name="barcode-outline" size={18} color={colors.text.muted} />
+                  <Text testID="sales-cargo-reference" selectable style={[styles.kvValue, { fontWeight: '700' }]}>
+                    {s.reference}
+                  </Text>
+                </View>
+                <Text style={styles.helperText}>{t('order.cargoRefInstructions')}</Text>
+                <Text style={styles.helperText}>{t('order.trackingAppearsAfterDropoff')}</Text>
+              </>
+            )}
           </>
         ) : (
           <Text style={styles.helperText}>
