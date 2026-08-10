@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Card, Text, theme } from '@/ui';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { formatPrice } from '@/utils/format';
@@ -14,6 +15,7 @@ export function TradeCashCard({
   cashPaid,
   cashCommission,
   cashTotal,
+  isV2,
 }: {
   trade: Trade;
   userId?: string;
@@ -21,18 +23,22 @@ export function TradeCashCard({
   cashPaid: boolean;
   cashCommission: number;
   cashTotal: number;
+  isV2: boolean;
 }) {
+  const { t } = useTranslation();
+  // v2'de ödeme dökümü TradePaymentsCard'ta; bu kart yalnız v1 takaslar içindir.
+  if (isV2) return null;
   if (!(trade.cashAmount != null && Number(trade.cashAmount) > 0)) return null;
 
   return (
     <Card style={{ ...styles.card, ...styles.cashCard }}>
       <View style={styles.cashHeaderRow}>
         <View style={{ flex: 1 }}>
-          <Text variant="caption" tone="muted">Nakit Fark</Text>
+          <Text variant="caption" tone="muted">{t('trade.cashDifferenceLine')}</Text>
           <Text variant="h2" style={styles.cashBig}>{formatPrice(Math.abs(Number(trade.cashAmount ?? 0)))}</Text>
           {cashCommission > 0 && cashTotal > 0 ? (
             <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[0.5] }}>
-              Komisyon dahil toplam: {formatPrice(cashTotal)}
+              {t('trade.commissionLine')}: {formatPrice(cashTotal)}
             </Text>
           ) : null}
           <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[0.5] }}>
@@ -44,7 +50,7 @@ export function TradeCashCard({
           {cashPaid ? (
             <View style={styles.paidChip}>
               <Ionicons name="checkmark-circle" size={14} color={colors.success[700]!} />
-              <Text style={styles.paidChipText}>Ödendi</Text>
+              <Text style={styles.paidChipText}>{t('trade.paymentPaid')}</Text>
             </View>
           ) : null}
         </View>

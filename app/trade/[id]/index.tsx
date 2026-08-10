@@ -20,6 +20,7 @@ import { TradeStatusHeader } from "./_components/TradeStatusHeader";
 import { TradeInfoCard } from "./_components/TradeInfoCard";
 import { TradeItemsCompare } from "./_components/TradeItemsCompare";
 import { TradeCashCard } from "./_components/TradeCashCard";
+import { TradePaymentsCard } from "./_components/TradePaymentsCard";
 import { TradeMessages } from "./_components/TradeMessages";
 import { TradeShippingSection } from "./_components/TradeShippingSection";
 import { TradeProtectionCard } from "./_components/TradeProtectionCard";
@@ -113,7 +114,9 @@ export default function TradeDetailScreen() {
           cashPaid={view.cashPaid}
           cashCommission={view.cashCommission}
           cashTotal={view.cashTotal}
+          isV2={view.isV2}
         />
+        <TradePaymentsCard view={view} otherPartyName={view.otherParty.displayName} />
         <TradeMessages trade={trade} />
         <TradeShippingSection
           trade={trade}
