@@ -8,6 +8,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react-native';
 import { TradePaymentsCard } from '../[id]/_components/TradePaymentsCard';
 import { TradeCashCard } from '../[id]/_components/TradeCashCard';
+import { TradeCostPreviewCard } from '../[id]/_components/TradeCostPreviewCard';
 
 const V2_VIEW = {
   isV2: true,
@@ -33,6 +34,18 @@ describe('TradePaymentsCard', () => {
   it('v1 takasta hiç çizmez', () => {
     const { toJSON } = render(
       <TradePaymentsCard view={{ ...V2_VIEW, isV2: false } as any} otherPartyName="Karşı" />,
+    );
+    expect(toJSON()).toBeNull();
+  });
+
+  // Kabul EDİLMEMİŞ v2 takas: `isV2` true (quote dolu) ama `cashPayments` boş.
+  // Kapı yalnız `isV2` olsaydı "0/0 ödeme tamamlandı" yazan boş kabuk çizilirdi.
+  it('kilitli satır yokken (kabul edilmemiş v2) hiç çizmez', () => {
+    const { toJSON } = render(
+      <TradePaymentsCard
+        view={{ isV2: true, myPaymentRow: null, theirPaymentRow: null, paidCount: 0, totalCount: 0 } as any}
+        otherPartyName="Karşı"
+      />,
     );
     expect(toJSON()).toBeNull();
   });
@@ -81,5 +94,37 @@ describe('TradeCashCard · v1/v2 kapısı', () => {
       />,
     );
     expect(toJSON()).not.toBeNull();
+  });
+});
+
+/**
+ * Kilitli snapshot ile canlı önizleme AYNI ANDA çizilmez.
+ *
+ * `payment-quote` kabul EDİLMİŞ takaslarda da dolu gövde döndürüyor (2026-08-09
+ * ölçümü §4). İki kart yan yana çizilseydi kullanıcı, PayTR'nin fiilen çekeceği
+ * snapshot tutarının yanında canlı bir yeniden fiyatlama görürdü — tarife
+ * değiştiyse iki farklı tutar. Kapılar TAMAMLAYICI: satır varsa ödemeler kartı,
+ * yoksa önizleme kartı.
+ */
+const QUOTE_SIDE = { serviceFee: 120, shipping: 190, cashDifference: 0, total: 310 } as any;
+
+describe('TradePaymentsCard ↔ TradeCostPreviewCard tamamlayıcılığı', () => {
+  it('kilitli satır VARKEN: ödemeler kartı çizilir, önizleme çizilmez', () => {
+    const payments = render(<TradePaymentsCard view={V2_VIEW} otherPartyName="Karşı" />);
+    const preview = render(
+      <TradeCostPreviewCard mine={QUOTE_SIDE} theirs={QUOTE_SIDE} lockedPaymentCount={V2_VIEW.totalCount} />,
+    );
+    expect(payments.toJSON()).not.toBeNull();
+    expect(preview.toJSON()).toBeNull();
+  });
+
+  it('kilitli satır YOKKEN: önizleme çizilir, ödemeler kartı çizilmez (ekran bilgisiz kalmaz)', () => {
+    const emptyView = { isV2: true, myPaymentRow: null, theirPaymentRow: null, paidCount: 0, totalCount: 0 } as any;
+    const payments = render(<TradePaymentsCard view={emptyView} otherPartyName="Karşı" />);
+    const preview = render(
+      <TradeCostPreviewCard mine={QUOTE_SIDE} theirs={QUOTE_SIDE} lockedPaymentCount={emptyView.totalCount} />,
+    );
+    expect(payments.toJSON()).toBeNull();
+    expect(preview.toJSON()).not.toBeNull();
   });
 });

@@ -20,7 +20,11 @@ export function TradePaymentsCard({
   otherPartyName: string;
 }) {
   const { t } = useTranslation();
-  if (!view.isV2) return null;
+  // Kabul EDİLMEMİŞ v2 takas `isV2` olur ama 0 satırlıdır: kapı yalnız `isV2`
+  // olsaydı başlık + "0/0 ödeme tamamlandı" yazan boş bir kabuk çizilirdi.
+  // Kilitli satır yokken ekranı `TradeCostPreviewCard` doldurur (tamamlayıcı
+  // kapı: satır varsa bu kart, yoksa önizleme kartı).
+  if (!view.isV2 || (!view.myPaymentRow && !view.theirPaymentRow)) return null;
 
   return (
     <Card style={styles.card}>

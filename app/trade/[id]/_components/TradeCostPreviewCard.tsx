@@ -10,16 +10,27 @@ import type { TFn } from '../_lib/types';
  * Kabul ÖNCESİ canlı maliyet dökümü. Tutarlar tahminidir, kabul anında kilitlenir
  * (`cashPayments` snapshot'ı) — bunu `costPreviewHint` metni söyler.
  * `feeLines` denetim detayıdır ve BASILMAZ.
+ *
+ * `payment-quote` KABUL EDİLMİŞ takaslarda da dolu gövde döndürüyor (2026-08-09
+ * ölçümü §4). Kilitli satır varken bu kartı çizmek, PayTR'nin fiilen çekeceği
+ * snapshot tutarının (`TradePaymentsCard`) yanına canlı bir yeniden fiyatlama
+ * koyar — tarife/kural değiştiyse kullanıcı iki farklı tutar görür ve "kabul
+ * anında sabitlenir" ipucu, zaten sabitlenmiş bir takasta yanıltıcı olur.
+ * Bu yüzden kapı burada, bileşenin içinde: kilitli satır varsa hiç çizme.
  */
 export function TradeCostPreviewCard({
   mine,
   theirs,
+  lockedPaymentCount = 0,
 }: {
   mine: TradePaymentQuoteSide | null;
   theirs: TradePaymentQuoteSide | null;
+  /** `view.totalCount` — kilitli `cashPayments` satır sayısı. */
+  lockedPaymentCount?: number;
 }) {
   const { t } = useTranslation();
   if (!mine || !theirs) return null;
+  if (lockedPaymentCount > 0) return null;
 
   return (
     <Card style={styles.card}>
