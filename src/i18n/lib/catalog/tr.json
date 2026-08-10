@@ -587,9 +587,7 @@
     "favoriteRemoveFailed": "Favorilerden kaldırılamadı",
     "favoriteAdded": "Favorilere eklendi!",
     "favoriteAddFailed": "Favorilere eklenemedi",
-    "reportReasonFake": "Sahte Ürün"
-  },
-  "listing": {
+    "reportReasonFake": "Sahte Ürün",
     "imageUploadIncomplete": "Bazı görseller yüklenemedi. Lütfen tekrar deneyin.",
     "saveWhileUploading": "Görseller yükleniyor…",
     "listingChangedElsewhere": "Bu ilan başka bir yerden güncellendi. En güncel hali yüklendi, değişikliklerinizi tekrar uygulayın."

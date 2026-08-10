@@ -494,7 +494,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
 
       const usable = uploaded.filter((r: any) => r?.cardKey && r?.detailKey);
       if (usable.length !== uploaded.length) {
-        appAlert('Hata', t('listing.imageUploadIncomplete'));
+        appAlert('Hata', t('product.imageUploadIncomplete'));
       }
       const newKeys = usable.map((r: any) => ({
         cardKey: r.cardKey,
@@ -712,7 +712,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
           // Yeniden çekme de başarısızsa formu olduğu gibi bırak; aşağıdaki
           // uyarı yine çıkar ve kullanıcı kaydedilmediğini bilir.
         }
-        appAlert('Hata', t('listing.listingChangedElsewhere'));
+        appAlert('Hata', t('product.listingChangedElsewhere'));
         return;
       }
 

@@ -680,6 +680,7 @@ export function ListingSubmitRow({ f }: SectionProps) {
           <Text style={styles.cancelButtonText}>İptal</Text>
         </TouchableOpacity>
         <TouchableOpacity
+          testID="listing-submit-button"
           style={[styles.submitButton, (f.isSubmitting || f.uploadingImages) && styles.submitButtonDisabled]}
           onPress={f.handleSubmit}
           disabled={f.isSubmitting || f.uploadingImages}
@@ -689,7 +690,7 @@ export function ListingSubmitRow({ f }: SectionProps) {
           ) : (
             <Text style={styles.submitButtonText}>
               {f.uploadingImages
-                ? t('listing.saveWhileUploading')
+                ? t('product.saveWhileUploading')
                 : f.isEdit
                   ? 'Değişiklikleri Kaydet'
                   : 'İlanı Oluştur'}

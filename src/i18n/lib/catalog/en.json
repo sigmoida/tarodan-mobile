@@ -587,9 +587,7 @@
     "favoriteRemoveFailed": "Could not remove from favourites",
     "favoriteAdded": "Added to favourites!",
     "favoriteAddFailed": "Could not add to favourites",
-    "reportReasonFake": "Fake item"
-  },
-  "listing": {
+    "reportReasonFake": "Fake item",
     "imageUploadIncomplete": "Some images could not be uploaded. Please try again.",
     "saveWhileUploading": "Uploading images…",
     "listingChangedElsewhere": "This listing was updated elsewhere. The latest version has been loaded; please reapply your changes."
