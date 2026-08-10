@@ -45,9 +45,13 @@ const EDIT = {
     { cardKey: 'k/b-card.webp', detailKey: 'k/b-detail.webp',
       cardUrl: 'https://s3/b-card.webp', detailUrl: 'https://s3/b-detail.webp', sortOrder: 1 },
   ],
+  // 2026-08-10 staging ölçümünden AYNEN: `scale`'in slug'ı ile value'su
+  // FARKLI ('1-64' vs '1:64'), `material`'ın displayValue'su slug'ından farklı.
   attributes: [
     { groupSlug: 'scale', groupName: 'Ölçek', slug: '1-64',
       value: '1:64', displayValue: '1:64', manufacturerSlug: null },
+    { groupSlug: 'material', groupName: 'Malzeme', slug: 'diecast',
+      value: 'diecast', displayValue: 'Diecast Metal', manufacturerSlug: null },
     { groupSlug: 'series', groupName: 'Seri', slug: 'premium',
       value: 'Premium', displayValue: 'Premium', manufacturerSlug: 'hot-wheels' },
   ],
@@ -67,6 +71,38 @@ const RESPONSE = {
   isOnSale: true,
   edit: EDIT,
 } as unknown as MyProductResponse;
+
+describe('toFormValues — form değerlerinin TAMAMI', () => {
+  /**
+   * TAM-NESNE assertion'ı: alan alan kontrol, eşleyicinin YANLIŞ doldurduğu
+   * (ör. `scale`'e slug yazan) alanları görmeden geçiyordu. Şemadaki 19 alanın
+   * hepsi burada kilitli — yeni alan eklendiğinde bu test kırılır ve
+   * kaynağının bilinçli seçilmesini zorlar.
+   */
+  it('19 şema alanının tamamını ölçülmüş gövdeden türetir', () => {
+    expect(toFormValues(RESPONSE)!.values).toEqual({
+      title: 'Mini GT Volkswagen',
+      description: 'Açıklama',
+      price: '551.07',
+      quantity: '3',
+      bundleSize: '',
+      categoryId: 'cat-1',
+      condition: 'very_good',
+      brandId: 'brand-1',
+      carModelId: 'model-1',
+      scale: '1:64',
+      material: 'diecast',
+      manufacturerId: 'man-1',
+      year: '2024',
+      isTradeEnabled: false,
+      isSet: false,
+      status: 'active',
+      isPreorder: false,
+      modelCode: 'SEED-0057',
+      shippingPackageTier: 'small',
+    });
+  });
+});
 
 describe('toFormValues — kaynak seçimi', () => {
   it('`edit` yoksa null döner', () => {
@@ -135,13 +171,77 @@ describe('toFormValues — indirim çifti', () => {
   });
 });
 
+describe('toFormValues — ölçek ve malzeme AYRI alanlardan gelir', () => {
+  /**
+   * Form sözlükleri farklı: ölçek çipleri GÖRÜNEN formatta ('1:64'),
+   * malzeme listesi SLUG tabanlı ('diecast'). Tek bir `slug` listesi ikisine
+   * birden hizmet edemez.
+   */
+  it('scale niteliğin `value`sundan gelir — slug DEĞİL', () => {
+    const m = toFormValues(RESPONSE)!;
+    expect(m.values.scale).toBe('1:64');
+    expect(m.values.scale).not.toBe('1-64');
+  });
+
+  it('material niteliğin `slug`ından gelir — displayValue DEĞİL', () => {
+    const m = toFormValues(RESPONSE)!;
+    expect(m.values.material).toBe('diecast');
+    expect(m.values.material).not.toBe('Diecast Metal');
+  });
+
+  it('ölçek niteliği yoksa alan BOŞ kalır — payload onu hiç göndermez', () => {
+    const m = toFormValues({
+      ...RESPONSE,
+      edit: { ...EDIT, attributes: [] },
+    } as unknown as MyProductResponse)!;
+    expect(m.values.scale).toBe('');
+    expect(m.values.material).toBe('');
+  });
+
+  it('`value` boşsa slug`a DÜŞMEZ — tanınmayan değer geri yazılmaz', () => {
+    const m = toFormValues({
+      ...RESPONSE,
+      edit: {
+        ...EDIT,
+        attributes: [
+          { groupSlug: 'scale', groupName: 'Ölçek', slug: '1-64',
+            value: null, displayValue: '1:64', manufacturerSlug: null },
+        ],
+      },
+    } as unknown as MyProductResponse)!;
+    expect(m.values.scale).toBe('');
+  });
+});
+
 describe('toFormValues — nitelikler', () => {
   it('üretici-BAĞIMSIZ nitelikleri de alır', () => {
     // Eski kod `manufacturerSlug` dolu olanları filtreliyordu; `scale` düşüyordu.
     expect(toFormValues(RESPONSE)!.attrs).toEqual({
       scale: ['1-64'],
+      material: ['diecast'],
       series: ['premium'],
     });
+  });
+
+  it('`manufacturerAttrs` YALNIZ üretici-kapsamlı grupları içerir', () => {
+    // `attributes[]` payload'ını besleyen kaynak budur; `scale`/`material`
+    // buraya girerse satıcının çiple yaptığı değişikliği geri yazarlar.
+    expect(toFormValues(RESPONSE)!.manufacturerAttrs).toEqual({ series: ['premium'] });
+  });
+
+  it('bir grupta hem kapsamlı hem bağımsız nitelik varsa yalnız kapsamlı geçer', () => {
+    const m = toFormValues({
+      ...RESPONSE,
+      edit: {
+        ...EDIT,
+        attributes: [
+          { groupSlug: 'series', groupName: 'Seri', slug: 'global', value: 'G', displayValue: 'G', manufacturerSlug: null },
+          { groupSlug: 'series', groupName: 'Seri', slug: 'premium', value: 'P', displayValue: 'P', manufacturerSlug: 'hot-wheels' },
+        ],
+      },
+    } as unknown as MyProductResponse)!;
+    expect(m.attrs).toEqual({ series: ['global', 'premium'] });
+    expect(m.manufacturerAttrs).toEqual({ series: ['premium'] });
   });
 
   it('aynı gruptaki birden çok niteliği toplar', () => {

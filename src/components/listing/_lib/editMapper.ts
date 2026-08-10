@@ -9,8 +9,21 @@ import { emptyListingFormValues, type ListingFormValues } from './schema';
 export type MappedListing = {
   values: ListingFormValues;
   images: { keys: ImageKey[]; uris: string[] };
-  /** groupSlug → [attrSlug] */
+  /**
+   * TÜM nitelik grupları — groupSlug → [attrSlug]. Teşhis/görüntü içindir.
+   *
+   * ⚠️ Bunu `attributes[]` payload'ına BESLEME: üretici-bağımsız gruplar
+   * (`scale`, `material`) formda kendi alanlarına sahip ve arayüzde
+   * `manufacturerAttrGroups` içinde HİÇ render edilmez. Payload'a girerlerse
+   * satıcının ölçek çipiyle bilerek yaptığı değişikliği eski nitelik geri yazar.
+   */
   attrs: Record<string, string[]>;
+  /**
+   * Yalnız üretici-kapsamlı gruplar (`manufacturerSlug != null`) — payload'ın
+   * `attributes[]` dizisini besleyen TEK kaynak. Arayüzde gerçekten seçilebilen
+   * gruplar bunlar.
+   */
+  manufacturerAttrs: Record<string, string[]>;
   sale: { salePrice: string; saleStartDate: string; saleEndDate: string };
   reservedQty: number;
   isPreorder: boolean;
@@ -46,12 +59,23 @@ export function toFormValues(p: MyProductResponse): MappedListing | null {
   const oldPrice = e.oldPrice;
   const onSale = price != null && oldPrice != null && Number(oldPrice) > Number(price);
 
-  const attrs: Record<string, string[]> = {};
+  // Ham nitelikler grup bazında saklanır: `scale` ve `material` FARKLI
+  // alanlardan okunuyor (aşağıda), tek bir slug listesi ikisine birden hizmet
+  // edemez.
+  const raw: Record<string, EditAttribute[]> = {};
   for (const a of (e.attributes ?? []) as EditAttribute[]) {
     // `manufacturerSlug` filtresi YOK: `scale` gibi üretici-bağımsız
-    // nitelikler de forma girer.
+    // nitelikler de forma girer — ama payload'a değil (bkz. `manufacturerAttrs`).
     if (!a?.groupSlug || !a?.slug) continue;
-    (attrs[a.groupSlug] ??= []).push(a.slug);
+    (raw[a.groupSlug] ??= []).push(a);
+  }
+
+  const attrs: Record<string, string[]> = {};
+  const manufacturerAttrs: Record<string, string[]> = {};
+  for (const [group, list] of Object.entries(raw)) {
+    attrs[group] = list.map((a) => a.slug);
+    const scoped = list.filter((a) => a.manufacturerSlug != null).map((a) => a.slug);
+    if (scoped.length) manufacturerAttrs[group] = scoped;
   }
 
   // Dizi sırası kanoniktir (indeks = sortOrder). Sunucu sıralı gönderse de
@@ -85,15 +109,27 @@ export function toFormValues(p: MyProductResponse): MappedListing | null {
       status: e.status || emptyListingFormValues.status,
       isPreorder: !!p.isPreorder,
       shippingPackageTier: str(e.shippingPackageTier),
-      // `scale` ve `material` artık üst seviyeden DEĞİL `attributes`'tan gelir.
-      scale: attrs.scale?.[0] ?? '',
-      material: attrs.material?.[0] ?? '',
+      // `scale` ve `material` artık üst seviyeden DEĞİL `attributes`'tan gelir
+      // — ama AYNI alandan değil (2026-08-10 ölçümü):
+      //   scale    → `value`  ('1:64'); form sözlüğü GÖRÜNEN formatta
+      //              (`FALLBACK_SCALES`, karşılaştırma `f.scale === s`).
+      //   material → `slug`   ('diecast'); form sözlüğü SLUG tabanlı
+      //              (`effectiveMaterials.find(m => m.slug === material)`).
+      // Slug'ı ölçek alanına yazmak hem çipi seçilmemiş gösterir hem de
+      // payload'a tanınmayan bir değer ('1-64') koyar.
+      //
+      // `value` boşsa slug'a DÜŞÜLMEZ: boş bırakmak payload'da alanı hiç
+      // göndermemek (`scale || undefined`) demek, yani sunucudaki değer korunur;
+      // slug yazmak ise tanınmayan bir değeri geri yazardı.
+      scale: str(raw.scale?.[0]?.value),
+      material: str(raw.material?.[0]?.slug),
     },
     images: {
       keys: usable.map((i) => ({ cardKey: i.cardKey, detailKey: i.detailKey })),
       uris: usable.map((i) => i.cardUrl || i.detailUrl || ''),
     },
     attrs,
+    manufacturerAttrs,
     sale: {
       salePrice: onSale ? str(price) : '',
       saleStartDate: onSale ? day(e.saleStartDate) : '',
