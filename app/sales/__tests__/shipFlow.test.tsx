@@ -22,6 +22,7 @@ jest.mock('@/lib/api', () => ({
 jest.mock('@/ui', () => ({ ...jest.requireActual('@/ui'), appAlert: jest.fn() }));
 
 import { shippingApi } from '@/lib/api';
+import { appAlert } from '@/ui';
 import { useSaleActions } from '../_hooks/useSaleActions';
 
 const wrapper = ({ children }: { children: React.ReactNode }) => {
@@ -62,7 +63,45 @@ it('kayıt 404 + sipariş preparing ise POST /shipping çağrılır', async () =
   expect(shippingApi.createShipment).toHaveBeenCalledWith({ orderId: 'o1', provider: 'surat' });
 });
 
-it('elle takip numarası artık gönderilmiyor', async () => {
-  // `updateTracking` API yüzeyinden silindi; bu test onun geri gelmesini engeller.
-  expect((shippingApi as Record<string, unknown>).updateTracking).toBeUndefined();
+/**
+ * ONARIM ile ZATEN VAR aynı şey değildir. Hiçbir dalda sipariş durumu
+ * değişmiyor (backend `createShipment` yalnız kayıt açar; sipariş `shipped`'e
+ * şube kabulüyle geçer) — "Sipariş durumu güncellendi" demek satıcıyı butona
+ * tekrar tekrar bastırıyordu. Ölçüm: 13 siparişin 8'inde kayıt zaten VAR.
+ */
+describe('kargoya verme geri bildirimi', () => {
+  const alertText = () => jest.mocked(appAlert).mock.calls.map((c) => c.join(' ')).join('\n');
+
+  it('kayıt zaten varsa "durum güncellendi" DEMEZ', async () => {
+    jest.mocked(shippingApi.getOrderShipments).mockResolvedValue({
+      data: { id: 's1', orderId: 'o1', provider: 'surat', trackingNumber: 'PKG-X',
+              providerTrackingId: null, trackingUrl: null, status: 'label_created' },
+    } as any);
+
+    await ship();
+
+    expect(alertText()).not.toMatch(/güncellendi/i);
+    expect(alertText()).toContain('Kargo Kaydı Hazır');
+    expect(alertText()).toMatch(/şubesine teslim/i);
+  });
+
+  it('onarım yapıldıysa kaydın OLUŞTUĞUNU söyler', async () => {
+    jest.mocked(shippingApi.getOrderShipments).mockRejectedValue({ response: { status: 404 } });
+    jest.mocked(shippingApi.createShipment).mockResolvedValue({ data: { id: 's9' } } as any);
+
+    await ship();
+
+    expect(alertText()).toContain('Kargo Kaydı Oluşturuldu');
+    expect(alertText()).not.toMatch(/güncellendi/i);
+  });
+
+  it('boş gövdeyi mevcut kayıt saymaz — onarım yolu açık kalır', async () => {
+    // `unwrapEnvelope` veri yoksa `{}` döner, `null` değil.
+    jest.mocked(shippingApi.getOrderShipments).mockResolvedValue({ data: null } as any);
+    jest.mocked(shippingApi.createShipment).mockResolvedValue({ data: { id: 's9' } } as any);
+
+    await ship();
+
+    expect(shippingApi.createShipment).toHaveBeenCalled();
+  });
 });

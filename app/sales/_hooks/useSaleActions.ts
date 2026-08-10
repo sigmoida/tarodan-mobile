@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
+import i18n from '@/i18n/config';
 import { ordersApi, shippingApi, type Shipment } from '@/lib/api';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
 import type { Sale } from '../_lib/types';
@@ -35,22 +36,41 @@ export function useSaleActions() {
         let existing: Shipment | null = null;
         try {
           const res = await shippingApi.getOrderShipments(orderId);
-          existing = unwrapEnvelope<Shipment>(res) ?? null;
+          const body = unwrapEnvelope<Partial<Shipment>>(res);
+          // `unwrapEnvelope` veri yoksa `{}` döner (bkz. apiEnvelope.ts), `null`
+          // değil — boş gövdeyi kayıt sanmamak için `id` yokluğuna bakıyoruz,
+          // yoksa onarım yolu sessizce kapanır (kalıp: useOrderShipment).
+          existing = body?.id ? (body as Shipment) : null;
         } catch (error: any) {
           if (error?.response?.status !== 404) throw error;
         }
-        if (existing) return existing;
+        if (existing) return { alreadyExisted: true };
         // ONARIM yolu: kayıt yok. Sunucu durum kapısını kendi uyguluyor.
-        const created = await shippingApi.createShipment({ orderId, provider: 'surat' });
-        return unwrapEnvelope<Shipment>(created) ?? null;
+        await shippingApi.createShipment({ orderId, provider: 'surat' });
+        return { alreadyExisted: false };
       }
       throw new Error(`Desteklenmeyen sipariş durumu: ${status}`);
     },
-    onSuccess: () => {
+    /**
+     * İKİ DAL, İKİ MESAJ. Hiçbirinde sipariş durumu DEĞİŞMİYOR: backend
+     * `createShipment` yalnız kaydı açar, sipariş `shipped`'e şube kabulüyle
+     * geçer. "Sipariş durumu güncellendi" demek satıcıya olmayan bir ilerleme
+     * bildiriyor ve aynı butona tekrar tekrar bastırıyordu.
+     * `markAsPreparing` (result yok) eski mesajını korur — orada durum
+     * gerçekten değişiyor.
+     */
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['shipping'] });
       setShipDialog({ visible: false, order: null });
-      appAlert('Başarılı', 'Sipariş durumu güncellendi');
+      if (!result || !('alreadyExisted' in result)) {
+        appAlert('Başarılı', 'Sipariş durumu güncellendi');
+        return;
+      }
+      appAlert(
+        i18n.t(result.alreadyExisted ? 'order.shipmentRecordExistsTitle' : 'order.shipmentRecordCreatedTitle'),
+        i18n.t(result.alreadyExisted ? 'order.shipmentRecordExists' : 'order.shipmentRecordCreated'),
+      );
     },
     onError: (e: any) => {
       appAlert('Hata', e?.response?.data?.message || e?.message || 'Durum güncellenemedi');
