@@ -28,6 +28,13 @@ opsiyonelliği, görsel key/sıra sözleşmesi, bildirim enum + `toMobileRoute`,
 kargo `providerTrackingId` akışı, `distanceSalesAccepted`, sepette satır seçimi,
 bülten formu, boş `scales` toleransı.
 
+> **Ölçüm sonucu (2026-08-09):** kapı geçildi, dört sözleşme de staging'de canlı,
+> hiçbir madde düşmedi. Ölçüm iki düzeltme üretti: `eas.json` doğru çıktı (base
+> URL sorusu kapandı) ve `isV2` yalnız `cashPayments.length`'ten türetilemiyor —
+> kabul edilmemiş v2 takas 0 satırlı olduğu için `payment-quote` ikinci sinyal
+> olarak gerekli. Kanıt ve ham gövdeler:
+> `docs/superpowers/reports/2026-08-09-delta-17-18-olcum.md`.
+
 ## 0. Doğrulama kapısı (kod yazmadan önce)
 
 17/18 delta'ları **mobil repo taranmadan** yazıldı ve alanların staging'e deploy

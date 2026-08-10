@@ -66,9 +66,10 @@ react-hook-form (`@/ui/form`), Jest + @testing-library/react-native, i18next
 | Dosya | Sorumluluk |
 | --- | --- |
 | `app/checkout/_components/CheckoutUnavailableItems.tsx` | Ödemeden ayrılan satırları gerekçesiyle gösterir; liste boşsa `null` |
+| `app/trade/[id]/_hooks/useTradePaymentQuote.ts` | `payment-quote` query'si — döküm **ve** ikinci v2 sinyali (Görev 4) |
 | `app/trade/[id]/_components/TradePaymentsCard.tsx` | **Yalnız v2** iki taraflı ödeme kartı; v1'de `null` |
 | `app/trade/[id]/_components/TradeCostPreviewCard.tsx` | `payment-quote` dökümü; boş gövdede `null` |
-| `docs/superpowers/reports/2026-08-08-delta-17-18-olcum.md` | Görev 0'ın staging ölçüm kanıtı |
+| ~~`docs/superpowers/reports/2026-08-08-…-olcum.md`~~ | ✅ yazıldı: `reports/2026-08-09-delta-17-18-olcum.md` |
 
 **Test dosyaları:**
 
@@ -88,7 +89,14 @@ react-hook-form (`@/ui/form`), Jest + @testing-library/react-native, i18next
 
 ---
 
-### Task 0: Staging ölçümü — KAPI
+### Task 0: Staging ölçümü — KAPI ✅ TAMAMLANDI (2026-08-09)
+
+> **Sonuç: hiçbir madde düşmedi, dört sözleşme de staging'de canlı.** Rapor:
+> `docs/superpowers/reports/2026-08-09-delta-17-18-olcum.md`.
+> Ölçüm iki düzeltme üretti: (1) `eas.json` doğru, base URL düzeltmesi gereksiz
+> (Görev 1 Adım 9 atlandı); (2) `isV2` yalnız satır sayısından türetilemez,
+> `payment-quote` ikinci sinyal olarak gerekli (Görev 4 yeniden yazıldı, Görev
+> 8'in hook'u oraya taşındı). Aşağıdaki adımlar kayıt amaçlı bırakıldı.
 
 Kod yazılmadan önce sözleşmenin staging'e deploy edildiği kanıtlanır. Bu görev
 kod üretmez, **kanıt** üretir ve sonraki görevlerin kapsamını belirler.
@@ -375,13 +383,12 @@ sunucu dört alanı gövdenin kökünde bekler.
 Run: `npx jest src/lib/api/__tests__/orders.test.ts src/lib/api/__tests__/expectedPricing.test.ts --forceExit`
 Expected: PASS
 
-- [ ] **Step 9: Base URL düzeltmesi (yalnız Görev 0 çelişki bulduysa)**
+- [ ] **Step 9: ~~Base URL düzeltmesi~~ — ATLANDI**
 
-Görev 0'ın raporu `eas.json`'daki `EXPO_PUBLIC_API_URL` değerlerinin yanlış
-olduğunu gösterdiyse üç profili de (`preview`, `staging`, `production`) ölçülmüş
-adrese güncelle ve `src/config/__tests__/apiUrl.test.ts`'teki beklentileri aynı
-değerlere getir. Rapor çelişki bulmadıysa bu adımı atla ve neden atlandığını
-commit mesajında belirt.
+Görev 0 ölçtü: `staging.tarodan.com.tr/api`, `tarodan.com.tr/api` ve
+`api.tarodan.com.tr/api` üçü de `/health/ready`'ye **200** dönüyor.
+`eas.json`'daki üç profil doğru — değişiklik gerekmiyor.
+(Kanıt: `docs/superpowers/reports/2026-08-09-delta-17-18-olcum.md` §1.)
 
 - [ ] **Step 10: Tip kontrolü**
 
@@ -897,20 +904,114 @@ git commit -m "feat(checkout): surface the lines a partial quote left out"
 
 ---
 
-### Task 4: Takas v2 tipleri + `derive.ts`
+### Task 4: Takas v2 tipleri + `payment-quote` hook'u + `derive.ts`
+
+> ⚠️ **Görev 0 bu görevi değiştirdi.** `isV2` tek başına `cashPayments.length`'ten
+> türetilemez: staging'de `rejected` bir v2 takas **0 satırlı** ama
+> `payment-quote`'u dolu gövde döndürüyor. Delta 17 zaten iki sinyal söylüyordu
+> ("kabul sonrası 2 satır, **veya** kabul öncesi `payment-quote` boş değil") —
+> ikisi de uygulanır. Bu yüzden `payment-quote` ucu ve hook'u BU göreve alındı
+> (eskiden Görev 8'deydi); Görev 8'de yalnız kartlar ve `preview` kalır.
+> Kanıt: `docs/superpowers/reports/2026-08-09-delta-17-18-olcum.md` §3.
 
 **Files:**
-- Modify: `app/trade/[id]/_lib/types.ts`, `app/trade/[id]/_lib/derive.ts`
+- Modify: `app/trade/[id]/_lib/types.ts`, `app/trade/[id]/_lib/derive.ts`,
+  `src/lib/api/trades.ts`, `src/lib/query/keys.ts`
+- Create: `app/trade/[id]/_hooks/useTradePaymentQuote.ts`
 - Test: `app/trade/__tests__/derive-v2.test.ts` (yeni)
 
 **Interfaces:**
-- Consumes: Görev 0'ın ölçtüğü `cashPayments[]` gövdesi.
-- Produces: `deriveTradeView(trade, user)` dönüşünde yeni alanlar —
-  `isV2: boolean`, `myPaymentRow: TradeCashPayment | null`,
-  `theirPaymentRow: TradeCashPayment | null`, `myPaymentPending: boolean`,
-  `paidCount: number`, `totalCount: number`. Görev 6–8 yalnız bunları okur.
+- Consumes: Görev 0'ın ölçtüğü `cashPayments[]` ve `payment-quote` gövdeleri.
+- Produces:
+  - `type TradePaymentQuoteSide` / `TradePaymentQuote` ve
+    `tradesApi.getPaymentQuote(id)` — Görev 8 bunları yeniden tanımlamaz.
+  - `useTradePaymentQuote(id)` → `{ quote, isLoading }`; v1'de `quote` `null`.
+  - `deriveTradeView(trade, user, paymentQuote)` dönüşünde yeni alanlar —
+    `isV2: boolean`, `myPaymentRow: TradeCashPayment | null`,
+    `theirPaymentRow: TradeCashPayment | null`, `myPaymentPending: boolean`,
+    `paidCount: number`, `totalCount: number`. Görev 6–8 yalnız bunları okur.
 
-- [ ] **Step 1: Başarısız testi yaz**
+- [ ] **Step 1: `payment-quote` ucunu, tipini ve query key'i ekle**
+
+`src/lib/api/trades.ts`:
+
+```ts
+/** Bir tarafın maliyeti. Hepsi TL ve KDV DAHİL; total = serviceFee + shipping + cashDifference. */
+export type TradePaymentQuoteSide = {
+  userId?: string;
+  side?: 'initiator' | 'receiver';
+  serviceFee: number;
+  shipping: number;
+  cashDifference: number;
+  total: number;
+  /** Denetim detayı — ekranda BASILMAZ, tek `serviceFee` satırı gösterilir. */
+  feeLines?: Array<{ productId: string; role: string; amount: number }>;
+};
+
+/**
+ * Sunucu ayrıca `commissionRuleSet` ve `ruleMatches[]` döndürüyor (2026-08-09
+ * ölçümü — delta 17 §1c'de yazmıyor). İkisi de denetim detayı; istemci OKUMAZ,
+ * eksik sanılmasın diye burada anılıyor.
+ */
+export type TradePaymentQuote = {
+  tradeId?: string;
+  initiator: TradePaymentQuoteSide;
+  receiver: TradePaymentQuoteSide;
+};
+```
+
+`tradesApi`'ye:
+
+```ts
+  /**
+   * Takas ödeme dökümü. v1 takasta `200` + BOŞ GÖVDE döner (ölçümle doğrulandı) —
+   * bu hata değildir, `isV2`'nin ikinci kaynağıdır. Takasın HER durumunda çalışır:
+   * kabul edilmemiş v2 takasta da dolu gövde döner, bu yüzden 0 satırlı takas v1
+   * SAYILAMAZ. `503 server.shipping.noActiveTariff`: aktif tarifede kademe yok.
+   */
+  getPaymentQuote: (id: string | number) =>
+    api.get<Partial<TradePaymentQuote>>(`/trades/${id}/payment-quote`),
+```
+
+`src/lib/query/keys.ts` — `trades` bloğuna:
+
+```ts
+    paymentQuote: (id: string) => ["trade", id, "payment-quote"] as const,
+```
+
+- [ ] **Step 2: Hook'u yaz**
+
+`app/trade/[id]/_hooks/useTradePaymentQuote.ts`:
+
+```ts
+import { useQuery } from '@tanstack/react-query';
+import { tradesApi, type TradePaymentQuote } from '@/lib/api';
+import { qk, retryUnlessClientError } from '@/lib/query';
+import { unwrapEnvelope } from '@/utils/apiEnvelope';
+
+/**
+ * Takas ödeme dökümü. v1 takasta uç 200 + boş gövde döndürür; bu HATA DEĞİL —
+ * `quote` `null` kalır, kart çizilmez ve `isV2` bu `null`'a bakar.
+ */
+export function useTradePaymentQuote(id: string) {
+  const query = useQuery({
+    queryKey: qk.trades.paymentQuote(id),
+    queryFn: async () => {
+      const res = await tradesApi.getPaymentQuote(id);
+      const body = unwrapEnvelope<Partial<TradePaymentQuote>>(res);
+      // Boş gövde → v1. Yarım gövdeyi de v1 say: tek taraflı döküm çizilemez.
+      if (!body?.initiator || !body?.receiver) return null;
+      return body as TradePaymentQuote;
+    },
+    enabled: Boolean(id),
+    staleTime: 60_000,
+    retry: retryUnlessClientError,
+  });
+  return { quote: query.data ?? null, isLoading: query.isLoading };
+}
+```
+
+- [ ] **Step 3: Başarısız testi yaz**
 
 `app/trade/__tests__/derive-v2.test.ts`:
 
@@ -918,14 +1019,22 @@ git commit -m "feat(checkout): surface the lines a partial quote left out"
 /**
  * derive-v2 · takas v2 ödeme modeli (delta 17 §1).
  *
- * `pricingVersion` yanıt DTO'sunda YOK. İstemci v2'yi `cashPayments.length >= 2`
- * ile anlar. Eldeki v1 takaslar açıldıkları modelle biteceği için iki görünüm de
- * yaşar; ayrım BURADA, tek yerde yapılır.
+ * `pricingVersion` yanıt DTO'sunda YOK. İSTEMCİ İKİ SİNYALLE anlar:
+ *   1. kabul sonrası `cashPayments.length >= 2`
+ *   2. kabul öncesi `payment-quote` boş olmayan gövde
+ * 2026-08-09 ölçümü ikinci sinyalin şart olduğunu gösterdi: `rejected` bir v2
+ * takas 0 satırlıydı ama dolu quote döndürdü. Tek satırlı + `commission > 0`
+ * olan kayıt v1'dir. Eldeki v1 takaslar açıldıkları modelle biteceği için iki
+ * görünüm de yaşar; ayrım BURADA, tek yerde yapılır.
  */
 import { deriveTradeView } from '../[id]/_lib/derive';
 import type { Trade } from '../[id]/_lib/types';
 
 const ME = { id: 'u1' };
+const QUOTE = {
+  initiator: { serviceFee: 200, shipping: 200, cashDifference: 0, total: 400 },
+  receiver: { serviceFee: 200, shipping: 200, cashDifference: 500, total: 900 },
+} as any;
 
 const BASE = {
   id: 't1',
@@ -946,44 +1055,58 @@ const V2 = {
   ],
 } as unknown as Trade;
 
+// v1: TEK satır + commission > 0 + tradeFee/shipping sıfır (staging `12012f5e`).
 const V1 = {
   ...BASE,
-  cashPayment: { id: 'c1', amount: 500, commission: 50, totalAmount: 550, status: 'pending' },
+  cashCommission: 7.5,
+  cashPayment: { id: 'c1', payerId: 'u1', amount: 150, commission: 7.5, tradeFeeAmount: 0, shippingAmount: 0, totalAmount: 157.5, status: 'pending' },
+  cashPayments: [
+    { id: 'c1', payerId: 'u1', recipientId: 'u2', amount: 150, tradeFeeAmount: 0, shippingAmount: 0, commission: 7.5, totalAmount: 157.5, status: 'pending' },
+  ],
 } as unknown as Trade;
 
 describe('deriveTradeView — v1/v2 ayrımı', () => {
-  it('iki ödeme satırı varsa v2 sayar', () => {
-    expect(deriveTradeView(V2, ME).isV2).toBe(true);
+  it('iki ödeme satırı varsa quote olmadan da v2 sayar', () => {
+    expect(deriveTradeView(V2, ME, null).isV2).toBe(true);
   });
 
-  it('tekil cashPayment varsa v1 kalır', () => {
-    expect(deriveTradeView(V1, ME).isV2).toBe(false);
+  it('tek satır + commission > 0 ise v1 kalır', () => {
+    expect(deriveTradeView(V1, ME, null).isV2).toBe(false);
   });
 
-  it('cashPayments hiç yoksa v1 kalır (güvenli taraf)', () => {
-    expect(deriveTradeView(BASE, ME).isV2).toBe(false);
+  it('kabul EDİLMEMİŞ v2 takas: 0 satır ama dolu quote → v2 sayar', () => {
+    // 2026-08-09 ölçümü: `rejected` v2 takas 0 satırlı, quote'u dolu.
+    expect(deriveTradeView(BASE, ME, QUOTE).isV2).toBe(true);
+  });
+
+  it('0 satır + quote yok → v1 kalır (güvenli taraf)', () => {
+    expect(deriveTradeView(BASE, ME, null).isV2).toBe(false);
+  });
+
+  it('quote henüz yüklenmemişken 2 satır yine v2 der (yanıp sönme yok)', () => {
+    expect(deriveTradeView(V2, ME, undefined).isV2).toBe(true);
   });
 });
 
 describe('deriveTradeView — ödeme satırları', () => {
   it('kendi satırımı payerId ile bulur', () => {
-    const v = deriveTradeView(V2, ME);
+    const v = deriveTradeView(V2, ME, null);
     expect(v.myPaymentRow?.id).toBe('c1');
     expect(v.theirPaymentRow?.id).toBe('c2');
   });
 
   it('kendi satırım completed ise bekleyen saymaz', () => {
-    expect(deriveTradeView(V2, ME).myPaymentPending).toBe(false);
+    expect(deriveTradeView(V2, ME, null).myPaymentPending).toBe(false);
   });
 
   it('karşı taraf öderken 1/2 sayar', () => {
-    const v = deriveTradeView(V2, ME);
+    const v = deriveTradeView(V2, ME, null);
     expect(v.paidCount).toBe(1);
     expect(v.totalCount).toBe(2);
   });
 
   it('kullanıcı yoksa satır çözmez ama patlamaz', () => {
-    const v = deriveTradeView(V2, null);
+    const v = deriveTradeView(V2, null, null);
     expect(v.myPaymentRow).toBeNull();
     expect(v.isV2).toBe(true);
   });
@@ -1035,14 +1158,18 @@ satırının hemen altına:
 
 ```ts
   /**
-   * v2 sinyali: `pricingVersion` yanıt DTO'sunda YOK, iki ödeme satırının
-   * varlığı tek güvenilir işarettir (delta 17 §1). Emin olunamadığında v1'de
-   * kalmak güvenli taraftır — kullanıcı eski ama tutarlı bir görünüm görür.
+   * v2 sinyali İKİ KAYNAKLI (delta 17 §1; 2026-08-09 ölçümüyle doğrulandı):
+   *   1. kabul sonrası iki ödeme satırı,
+   *   2. kabul öncesi dolu `payment-quote` — kabul edilmemiş v2 takas 0 satırlıdır,
+   *      dolayısıyla yalnız satır sayısına bakmak onu v1 sayardı.
+   * v1 kaydın işareti tersten de doğrulanır: tek satır + `commission > 0`.
+   * Emin olunamadığında v1'de kalmak güvenli taraftır — kullanıcı eski ama
+   * tutarlı bir görünüm görür.
    */
   const cashPayments: TradeCashPayment[] = Array.isArray(trade.cashPayments)
     ? trade.cashPayments
     : [];
-  const isV2 = cashPayments.length >= 2;
+  const isV2 = cashPayments.length >= 2 || paymentQuote != null;
   const myPaymentRow = uid ? (cashPayments.find((p) => p.payerId === uid) ?? null) : null;
   const theirPaymentRow = uid
     ? (cashPayments.find((p) => p.payerId && p.payerId !== uid) ?? null)
@@ -1052,19 +1179,45 @@ satırının hemen altına:
   const totalCount = cashPayments.length;
 ```
 
-`TradeCashPayment`'ı dosyanın üst importuna ekle, ve dönüş nesnesine altı alanı
-da koy (`isV2, myPaymentRow, theirPaymentRow, myPaymentPending, paidCount, totalCount`).
+`deriveTradeView`'in imzasına üçüncü parametreyi ekle:
 
-- [ ] **Step 5: Testi çalıştır, geçtiğini gör**
+```ts
+export function deriveTradeView(
+  trade: Trade,
+  user: { id?: string } | null | undefined,
+  /** `useTradePaymentQuote` sonucu. `null` = v1 (boş gövde), `undefined` = henüz yüklenmedi. */
+  paymentQuote?: TradePaymentQuote | null,
+) {
+```
+
+`TradeCashPayment` ve `TradePaymentQuote`'u dosyanın üst importuna ekle, ve dönüş
+nesnesine altı alanı da koy (`isV2, myPaymentRow, theirPaymentRow,
+myPaymentPending, paidCount, totalCount`).
+
+- [ ] **Step 5: Ekranda hook'u ve üçüncü parametreyi bağla**
+
+`app/trade/[id]/index.tsx` — hook **koşulsuz**, `isLoading` / not-found erken
+dönüşlerinden ÖNCE çağrılır (CLAUDE.md §12 hook sırası kuralı):
+
+```tsx
+  const { quote: paymentQuote } = useTradePaymentQuote(tradeId);
+```
+
+ve mevcut `deriveTradeView(trade, user)` çağrısını
+`deriveTradeView(trade, user, paymentQuote)` yap.
+
+- [ ] **Step 6: Testi çalıştır, geçtiğini gör**
 
 Run: `npx jest app/trade --forceExit`
 Expected: PASS — yeni dosya geçer, mevcut `detail.test.tsx` de yeşil kalır.
+`detail.test.tsx` `@/lib/api` mock'unu kullanıyorsa `tradesApi.getPaymentQuote`
+mock'unu eklemen gerekebilir (eksikse hook `undefined.get` ile patlar).
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add app/trade/\[id\]/_lib app/trade/__tests__/derive-v2.test.ts
-git commit -m "feat(trade): derive the v2 payment rows in one place"
+git add app/trade src/lib/api/trades.ts src/lib/query/keys.ts
+git commit -m "feat(trade): detect the v2 pricing model from both server signals"
 ```
 
 ---
@@ -1533,70 +1686,41 @@ git commit -m "fix(trade): gate the payment CTA on the caller's own payment row"
 
 ---
 
-### Task 8: `payment-quote` + `preview` dökümü
+### Task 8: Döküm kartı + teklif ekranında canlı önizleme
+
+> `getPaymentQuote`, `TradePaymentQuote` tipleri, `useTradePaymentQuote` ve
+> `qk.trades.paymentQuote` **Görev 4'te yazıldı** — burada yeniden tanımlama.
+> Bu görevde kart ve `preview` ucu var.
 
 **Files:**
-- Modify: `src/lib/api/trades.ts`, `src/lib/query/keys.ts`,
-  `app/trade/[id]/index.tsx`
-- Create: `app/trade/[id]/_hooks/useTradePaymentQuote.ts`,
-  `app/trade/[id]/_components/TradeCostPreviewCard.tsx`
+- Modify: `src/lib/api/trades.ts` (yalnız `previewPaymentQuote`),
+  `src/lib/query/keys.ts` (yalnız `previewQuote`), `app/trade/[id]/index.tsx`,
+  `app/trade/new/_hooks/useNewTrade.ts`, `app/trade/new/_components/NewTradeSteps.tsx`
+- Create: `app/trade/[id]/_components/TradeCostPreviewCard.tsx`
 - Test: `app/trade/__tests__/cost-preview.test.tsx` (yeni)
 
 **Interfaces:**
-- Consumes: Görev 0'ın `payment-quote` ölçümü; Görev 5'in `costPreview*` anahtarları.
-- Produces:
-  - `tradesApi.getPaymentQuote(id)`, `tradesApi.previewPaymentQuote(body)`
-  - `type TradePaymentQuoteSide = { userId?: string; side?: string; serviceFee: number; shipping: number; cashDifference: number; total: number; feeLines?: Array<{ productId: string; role: string; amount: number }> }`
-  - `useTradePaymentQuote(id)` → `{ quote, isLoading }`; v1'de `quote` `null`.
-  - `qk.trades.paymentQuote(id)`
+- Consumes: `TradePaymentQuoteSide`, `useTradePaymentQuote` (Görev 4);
+  Görev 5'in `costPreview*` anahtarları.
+- Produces: `tradesApi.previewPaymentQuote(body)`,
+  `qk.trades.previewQuote(...)`, `<TradeCostPreviewCard mine theirs />`.
 
-- [ ] **Step 1: API ve query key'i ekle**
+- [ ] **Step 1: `preview` ucunu ekle**
 
-`src/lib/api/trades.ts`:
-
-```ts
-/** Bir tarafın maliyeti. Hepsi TL ve KDV DAHİL; total = serviceFee + shipping + cashDifference. */
-export type TradePaymentQuoteSide = {
-  userId?: string;
-  side?: 'initiator' | 'receiver';
-  serviceFee: number;
-  shipping: number;
-  cashDifference: number;
-  total: number;
-  /** Denetim detayı — ekranda BASILMAZ, tek `serviceFee` satırı gösterilir. */
-  feeLines?: Array<{ productId: string; role: string; amount: number }>;
-};
-
-export type TradePaymentQuote = {
-  tradeId?: string;
-  initiator: TradePaymentQuoteSide;
-  receiver: TradePaymentQuoteSide;
-};
-```
-
-`tradesApi`'ye:
+`src/lib/api/trades.ts` — `getPaymentQuote`'un hemen altına:
 
 ```ts
   /**
-   * Takas ödeme dökümü. v1 takasta `200` + BOŞ GÖVDE döner — bu hata değildir,
-   * `isV2`'nin ikinci kaynağıdır. `503 server.shipping.noActiveTariff`: aktif
-   * tarifede paket kademesi yok.
+   * Kaydedilmemiş teklifin canlı fiyatı — teklif oluşturma ekranı için.
+   * Yanıtta `tradeId`/`userId`/`side` YOKTUR (ölçümle doğrulandı). Bilinmeyen
+   * veya silinmiş `productId` sunucuda sessizce atlanır.
    */
-  getPaymentQuote: (id: string | number) =>
-    api.get<Partial<TradePaymentQuote>>(`/trades/${id}/payment-quote`),
-  /** Kaydedilmemiş teklifin canlı fiyatı — teklif oluşturma ekranı için. */
   previewPaymentQuote: (body: {
     initiatorItems: Array<{ productId: string; quantity?: number }>;
     receiverItems: Array<{ productId: string; quantity?: number }>;
     cashAmount?: number;
     cashPayer?: 'initiator' | 'receiver';
   }) => api.post<Omit<TradePaymentQuote, 'tradeId'>>('/trades/payment-quote/preview', body),
-```
-
-`src/lib/query/keys.ts` — `trades` bloğuna:
-
-```ts
-    paymentQuote: (id: string) => ["trade", id, "payment-quote"] as const,
 ```
 
 - [ ] **Step 2: Başarısız testi yaz**
@@ -1644,39 +1768,7 @@ it('taraf yoksa (v1 → boş gövde) hiç çizmez', () => {
 Run: `npx jest app/trade/__tests__/cost-preview.test.tsx --forceExit`
 Expected: FAIL — modül yok
 
-- [ ] **Step 4: Query hook'unu yaz**
-
-`app/trade/[id]/_hooks/useTradePaymentQuote.ts`:
-
-```ts
-import { useQuery } from '@tanstack/react-query';
-import { tradesApi, type TradePaymentQuote } from '@/lib/api';
-import { qk, retryUnlessClientError } from '@/lib/query';
-import { unwrapEnvelope } from '@/utils/apiEnvelope';
-
-/**
- * Takas ödeme dökümü. v1 takasta uç 200 + boş gövde döndürür; bu HATA DEĞİL —
- * `quote` `null` kalır ve kart hiç çizilmez.
- */
-export function useTradePaymentQuote(id: string) {
-  const query = useQuery({
-    queryKey: qk.trades.paymentQuote(id),
-    queryFn: async () => {
-      const res = await tradesApi.getPaymentQuote(id);
-      const body = unwrapEnvelope<Partial<TradePaymentQuote>>(res);
-      // Boş gövde → v1. Yarım gövdeyi de v1 say: tek taraflı döküm çizilemez.
-      if (!body?.initiator || !body?.receiver) return null;
-      return body as TradePaymentQuote;
-    },
-    enabled: Boolean(id),
-    staleTime: 60_000,
-    retry: retryUnlessClientError,
-  });
-  return { quote: query.data ?? null, isLoading: query.isLoading };
-}
-```
-
-- [ ] **Step 5: Kartı yaz**
+- [ ] **Step 4: Kartı yaz**
 
 `app/trade/[id]/_components/TradeCostPreviewCard.tsx` — `TradePaymentsCard`'ın
 `Line` / `styles` kalıbını izler (aynı token'lar, aynı `formatPrice`):
@@ -1767,16 +1859,10 @@ const styles = StyleSheet.create({
 });
 ```
 
-- [ ] **Step 6: Ekrana bağla**
+- [ ] **Step 5: Ekrana bağla**
 
-`app/trade/[id]/index.tsx` — hook'u **koşulsuz**, `isLoading` / not-found erken
-dönüşlerinden ÖNCE çağır (CLAUDE.md §12 hook sırası kuralı):
-
-```tsx
-  const { quote: paymentQuote } = useTradePaymentQuote(tradeId);
-```
-
-ve `TradePaymentsCard`'ın altına:
+`paymentQuote` Görev 4 Adım 5'te zaten ekrana bağlandı; burada yalnız kart eklenir.
+`app/trade/[id]/index.tsx` — `TradePaymentsCard`'ın altına:
 
 ```tsx
         <TradeCostPreviewCard
@@ -1785,7 +1871,7 @@ ve `TradePaymentsCard`'ın altına:
         />
 ```
 
-- [ ] **Step 7: Teklif oluşturma ekranına canlı önizlemeyi bağla**
+- [ ] **Step 6: Teklif oluşturma ekranına canlı önizlemeyi bağla**
 
 `preview` ucunun varlık sebebi bu ekran: kullanıcı takas teklifini **kaydetmeden**
 iki tarafın maliyetini görmeli. `app/trade/new/_hooks/useNewTrade.ts`'e query ekle
@@ -1837,12 +1923,12 @@ yazdığın kartı **yeniden kullanarak** bas:
 `useNewTrade.ts` içindeki gerçek state adları (`initiatorItems`, `cashAmount`,
 `cashPayer`) farklıysa oradaki adları kullan; yenisini uydurma.
 
-- [ ] **Step 8: Testleri çalıştır**
+- [ ] **Step 7: Testleri çalıştır**
 
 Run: `npx jest app/trade --forceExit`
 Expected: PASS — `counter.test.tsx` dahil mevcut takas testleri yeşil kalmalı.
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add app/trade src/lib/api/trades.ts src/lib/query/keys.ts
