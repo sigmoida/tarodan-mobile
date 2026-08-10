@@ -19,7 +19,23 @@ import type { Trade, TFn } from '../_lib/types';
 const { colors } = theme;
 
 /** Üst statü blokları: banner + açıklama + geri sayım + stepper + tamamlandı/depo/iade kartları. */
-export function TradeStatusHeader({ trade, t, now }: { trade: Trade; t: TFn; now: number }) {
+export function TradeStatusHeader({
+  trade,
+  t,
+  now,
+  hasPaymentStep,
+}: {
+  trade: Trade;
+  t: TFn;
+  now: number;
+  /**
+   * `view.hasPaymentStep` (tek kaynak `_lib/derive.ts`). v2'de eşit takasta bile
+   * ödeme aşaması vardır; buradaki eski `cashAmount > 0` türetmesi
+   * `awaiting_payment`'ı adım listesinden düşürüp çubuğu yanlış adımda
+   * gösteriyordu.
+   */
+  hasPaymentStep: boolean;
+}) {
   // Etiket/renk/ikon TEK kaynaktan, çevrilmiş hâlde.
   const statusDetail = useTradeStatusDetail();
   const statusInfoBase = statusDetail[trade.status] ?? statusDetail.pending!;
@@ -70,10 +86,7 @@ export function TradeStatusHeader({ trade, t, now }: { trade: Trade; t: TFn; now
       {/* Progress Stepper (depo-escrow akışı) */}
       {STEP_FLOW_STATUSES.has(trade.status) && (
         <Card style={styles.card}>
-          <TradeProgressStepper
-            status={trade.status}
-            hasCash={trade.cashAmount != null && Number(trade.cashAmount) > 0}
-          />
+          <TradeProgressStepper status={trade.status} hasCash={hasPaymentStep} />
         </Card>
       )}
 

@@ -292,3 +292,46 @@ describe("J7 · Ödeme butonu wiring", () => {
     );
   });
 });
+
+/**
+ * İlerleme çubuğunun "Ödeme" adımı — v2'de eşit takasta bile vardır.
+ *
+ * `hasCash` eskiden `trade.cashAmount > 0`'dan türüyordu: eşit v2 takasta adım
+ * listeden düşüyor, `awaiting_payment` bulunamayınca çubuk "Kabul Edildi"yi
+ * aktif gösteriyordu — kullanıcı ödeme butonunu görürken çubuk ödeme diye bir
+ * aşama olmadığını söylüyordu. Kaynak artık `view.hasPaymentStep`.
+ */
+describe("Takas ilerleme çubuğu · ödeme adımı", () => {
+  const V2_ROWS = [
+    { id: "c1", payerId: "user-receiver", amount: 0, tradeFeeAmount: 120, shippingAmount: 190, commission: 0, totalAmount: 310, status: "pending" },
+    { id: "c2", payerId: "user-initiator", amount: 0, tradeFeeAmount: 120, shippingAmount: 190, commission: 0, totalAmount: 310, status: "pending" },
+  ];
+
+  beforeEach(() => {
+    getOneMock.mockReset();
+    mockPush.mockReset();
+    mockParams = { id: "trade-1" };
+    mockUser = { id: "user-receiver" };
+  });
+
+  it('eşit v2 takasta (cashAmount yok) "Ödeme" adımı çizilir', async () => {
+    getOneMock.mockResolvedValue({
+      data: {
+        data: tradeFixture({ status: "awaiting_payment", cashAmount: null, cashPayments: V2_ROWS }),
+      },
+    });
+    renderWithProviders(<TradeDetailScreen />);
+    expect(await screen.findByText("Ödeme")).toBeOnTheScreen();
+  });
+
+  it('v1 nakitsiz takasta "Ödeme" adımı çizilmez (eski davranış korunur)', async () => {
+    getOneMock.mockResolvedValue({
+      data: { data: tradeFixture({ status: "awaiting_payment", cashAmount: null }) },
+    });
+    renderWithProviders(<TradeDetailScreen />);
+    await waitFor(() =>
+      expect(screen.getAllByText("Takas #TKS-501").length).toBeGreaterThan(0),
+    );
+    expect(screen.queryByText("Ödeme")).toBeNull();
+  });
+});

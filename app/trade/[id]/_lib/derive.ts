@@ -72,9 +72,23 @@ export function deriveTradeView(
   const theirPaymentRow = uid
     ? (cashPayments.find((p) => p.payerId && p.payerId !== uid) ?? null)
     : null;
-  const myPaymentPending = myPaymentRow != null && myPaymentRow.status !== 'completed';
+  /**
+   * Ödeme CTA'sının kapısı: SADECE `pending` satır ödenmeyi bekler.
+   * `!== 'completed'` yazmak `refunded` (2026-08-09 ölçümü §3'te gerçek bir kayıt
+   * var) ve ileride eklenebilecek `failed`/`cancelled` gibi terminal statüleri de
+   * "bekliyor" sayıp iptal/iade edilmiş bir takasta ödeme butonunu yeniden açardı.
+   */
+  const myPaymentPending = myPaymentRow?.status === 'pending';
   const paidCount = cashPayments.filter((p) => p.status === 'completed').length;
   const totalCount = cashPayments.length;
+
+  /**
+   * İlerleme çubuğunda "Ödeme" adımı var mı? v2'de EŞİT takasta bile iki taraf
+   * öder (`cashAmount: 0` olsa da ödeme aşaması vardır) — v1'in `cashAmount > 0`
+   * kapısı burada yanlış sonuç verir ve `awaiting_payment` adım listesinde
+   * bulunamayınca çubuk yanlış adımı aktif gösterirdi. v1'de eski kapı korunur.
+   */
+  const hasPaymentStep = isV2 || Number(trade.cashAmount ?? 0) > 0;
 
   /**
    * İptal edilirse kargo bedeli iade edilmez uyarısının eşiği (delta 17 §1f).
@@ -117,6 +131,7 @@ export function deriveTradeView(
     myPaymentPending,
     paidCount,
     totalCount,
+    hasPaymentStep,
     hasShippedLeg,
   };
 }

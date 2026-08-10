@@ -68,6 +68,12 @@ export function TradeActions({
     ? Number(myPaymentRow?.totalAmount ?? 0)
     : Math.abs(cashTotal > 0 ? cashTotal : Number(trade.cashAmount ?? 0));
   const payTitle = `${t('payment.pay')} — ${formatPrice(payAmount)}`;
+  // İptal butonunun görünürlüğü TEK yerde: iade uyarısı da aynı sinyali kullanır
+  // (uyarı "iptal edersen kargo geri gelmez" der — iptal edilemeyen, terminal bir
+  // takasta anlamsızdır).
+  const canCancelNow =
+    Boolean(trade.canCancel) &&
+    (trade.status === 'pending' ? isInitiator : isInitiator || isReceiver);
   return (
     <View style={styles.actions}>
       {/* Pending: Accept/Reject/Counter for receiver */}
@@ -102,7 +108,7 @@ export function TradeActions({
       )}
 
       {/* Cancel — backend-derived. Pending'de yalnızca teklifi yapan iptal edebilir. */}
-      {trade.canCancel && (trade.status === 'pending' ? isInitiator : isInitiator || isReceiver) && (
+      {canCancelNow && (
         <Button
           variant="outline"
           title={trade.status === 'pending' ? t('trade.cancel.offerCta') : t('trade.cancel.tradeCta')}
@@ -115,9 +121,10 @@ export function TradeActions({
       {/*
         Kargoya verildikten sonra iade `totalAmount − shippingAmount`'tır: nakit
         fark ve hizmet bedeli döner, KARGO DÖNMEZ (delta 17 §1f). Eşik, iptal
-        kilidiyle aynı: "hâlâ iptal edebiliyorsan kargon da geri gelir."
+        kilidiyle AYNI SİNYALDİR (`canCancelNow`): iptal edilemeyen ya da
+        tamamlanmış bir takasta bu uyarı yanlış bilgi verirdi.
       */}
-      {isV2 && hasShippedLeg ? (
+      {isV2 && hasShippedLeg && canCancelNow ? (
         <Text variant="caption" tone="muted">{t('trade.shippingNotRefundable')}</Text>
       ) : null}
 

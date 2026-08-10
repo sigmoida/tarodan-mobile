@@ -87,10 +87,61 @@ describe('deriveTradeView — ödeme satırları', () => {
     expect(v.totalCount).toBe(2);
   });
 
+  // 2026-08-09 ölçümü §3'te `refunded` bir satır var. `!== 'completed'` kapısı
+  // onu "bekliyor" sayıp ödeme CTA'sını yeniden açardı.
+  it('kendi satırım refunded ise bekleyen SAYMAZ (ödeme CTA yeniden açılmaz)', () => {
+    const refunded = {
+      ...V2,
+      cashPayments: [
+        { ...(V2 as any).cashPayments[0], status: 'refunded' },
+        (V2 as any).cashPayments[1],
+      ],
+    } as unknown as Trade;
+    expect(deriveTradeView(refunded, ME, null).myPaymentPending).toBe(false);
+  });
+
+  it('kendi satırım pending ise bekleyen sayar', () => {
+    const pending = {
+      ...V2,
+      cashPayments: [
+        { ...(V2 as any).cashPayments[0], status: 'pending' },
+        (V2 as any).cashPayments[1],
+      ],
+    } as unknown as Trade;
+    expect(deriveTradeView(pending, ME, null).myPaymentPending).toBe(true);
+  });
+
   it('kullanıcı yoksa satır çözmez ama patlamaz', () => {
     const v = deriveTradeView(V2, null, null);
     expect(v.myPaymentRow).toBeNull();
     expect(v.isV2).toBe(true);
+  });
+});
+
+/**
+ * hasPaymentStep · ilerleme çubuğundaki "Ödeme" adımı.
+ *
+ * v2'de EŞİT takasta bile iki taraf öder: `cashAmount` 0/null olsa da ödeme
+ * aşaması vardır. Eski `cashAmount > 0` kapısı `awaiting_payment`'ı adım
+ * listesinden düşürüyor, `findIndex` −1 dönünce çubuk "Kabul Edildi"yi aktif
+ * gösteriyordu.
+ */
+describe('deriveTradeView — hasPaymentStep', () => {
+  it('eşit v2 takasta (cashAmount yok) ödeme adımı VARDIR', () => {
+    expect(deriveTradeView(V2, ME, null).hasPaymentStep).toBe(true);
+  });
+
+  it('kabul edilmemiş v2 takasta (0 satır, dolu quote) da ödeme adımı vardır', () => {
+    expect(deriveTradeView(BASE, ME, QUOTE).hasPaymentStep).toBe(true);
+  });
+
+  it('v1 nakitsiz takasta ödeme adımı yoktur (eski kapı korunur)', () => {
+    expect(deriveTradeView(BASE, ME, null).hasPaymentStep).toBe(false);
+  });
+
+  it('v1 nakit farklı takasta ödeme adımı vardır', () => {
+    const v1Cash = { ...BASE, cashAmount: 150 } as unknown as Trade;
+    expect(deriveTradeView(v1Cash, ME, null).hasPaymentStep).toBe(true);
   });
 });
 

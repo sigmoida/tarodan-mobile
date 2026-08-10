@@ -61,9 +61,9 @@ describe('TradeActions · kargo iadesi uyarısı', () => {
     expect(screen.queryByText(/kargo bedeli iade edilmez/i)).toBeNull();
   });
 
-  it('kargoya verildikten sonra kargo uyarısı gösterilir', () => {
+  it('kargoya verildikten sonra, takas hâlâ iptal edilebiliyorken uyarı gösterilir', () => {
     renderActions(
-      { status: 'shipping_to_warehouse' },
+      { status: 'shipping_to_warehouse', canCancel: true },
       { isV2: true, hasShippedLeg: true },
     );
     expect(screen.getByText(/kargo bedeli iade edilmez/i)).toBeTruthy();
@@ -71,8 +71,26 @@ describe('TradeActions · kargo iadesi uyarısı', () => {
 
   it('v1 takasta kargoya verilmiş olsa dahi uyarı gösterilmez', () => {
     renderActions(
-      { status: 'shipping_to_warehouse' },
+      { status: 'shipping_to_warehouse', canCancel: true },
       { isV2: false, hasShippedLeg: true },
+    );
+    expect(screen.queryByText(/kargo bedeli iade edilmez/i)).toBeNull();
+  });
+
+  // Uyarı "iptal edersen kargo geri gelmez" der; iptal edilemeyen bir takasta
+  // (kilit devreye girmiş ya da terminal durum) yanlış bilgidir.
+  it('tamamlanmış takasta uyarı gösterilmez (terminal durum)', () => {
+    renderActions(
+      { status: 'completed', canCancel: false },
+      { isV2: true, hasShippedLeg: true },
+    );
+    expect(screen.queryByText(/kargo bedeli iade edilmez/i)).toBeNull();
+  });
+
+  it('iptal kilidi devredeyken (canCancel false) uyarı gösterilmez', () => {
+    renderActions(
+      { status: 'shipping_to_warehouse', canCancel: false },
+      { isV2: true, hasShippedLeg: true },
     );
     expect(screen.queryByText(/kargo bedeli iade edilmez/i)).toBeNull();
   });

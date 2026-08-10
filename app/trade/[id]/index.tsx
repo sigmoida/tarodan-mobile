@@ -95,7 +95,7 @@ export default function TradeDetailScreen() {
           <ThemedRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <TradeStatusHeader trade={trade} t={t} now={now} />
+        <TradeStatusHeader trade={trade} t={t} now={now} hasPaymentStep={view.hasPaymentStep} />
         <TradeInfoCard
           trade={trade}
           isInitiator={view.isInitiator}
@@ -121,6 +121,7 @@ export default function TradeDetailScreen() {
         <TradeCostPreviewCard
           mine={view.isInitiator ? paymentQuote?.initiator ?? null : paymentQuote?.receiver ?? null}
           theirs={view.isInitiator ? paymentQuote?.receiver ?? null : paymentQuote?.initiator ?? null}
+          lockedPaymentCount={view.totalCount}
         />
         <TradeMessages trade={trade} />
         <TradeShippingSection
