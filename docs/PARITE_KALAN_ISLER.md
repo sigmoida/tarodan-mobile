@@ -98,7 +98,7 @@ merkezî olarak çözülüyor.
 - Tek bir `toMobileRoute(type, link, data)` katmanı; ön plan, arka plan ve soğuk
   başlatma **aynı** resolver'ı kullanmalı.
 
-### 2. İlan düzenleme formu `edit` projeksiyonundan doldurulmalı (delta 18 §2c)
+### ~~2. İlan düzenleme formu `edit` projeksiyonundan doldurulmalı~~ ✅ KAPANDI (2026-08-10)
 
 `GET /products/my/:id` artık iki projeksiyon döndürüyor: üst seviye (gösterim) ve
 `edit` (kayda geri yazılabilir ham değerler). Form **yalnız `edit`'ten**
@@ -111,7 +111,7 @@ görseller ve nitelikler geri yazımda bozulabiliyor.
   alanıdır, tek başına otorite değildir.
 - **Bu madde yukarıdaki paket kademesi tıkanıklığını da kapatıyor.**
 
-### 3. Görsel sahiplik ve sıra sözleşmesi (delta 18 §2d)
+### ~~3. Görsel sahiplik ve sıra sözleşmesi~~ ✅ KAPANDI (2026-08-10)
 
 - `POST /media/upload/product` yanıtındaki `cardKey`/`detailKey` artık kullanıcının
   geçici klasörüne bağlı. İstemci **key üretmemeli**, URL'den key çıkarmamalı,
@@ -125,7 +125,7 @@ görseller ve nitelikler geri yazımda bozulabiliyor.
   API'nin döndürdüğü `cardUrl`/`detailUrl` + key çifti saklanmalı.
 - `409`/iyimser kilit hatasında yerel form **kaydedilmiş sayılmamalı**.
 
-### 4. Kargo akışı — mevcut shipment'ı önce oku (delta 18 §4)
+### ~~4. Kargo akışı — mevcut shipment'ı önce oku~~ ✅ KAPANDI (2026-08-11)
 
 - Ödeme tamamlanınca backend shipment satırını **otomatik** oluşturuyor.
 - Satıcı kargo ekranı önce `GET /shipping/order/:orderId` çağırmalı; shipment
@@ -156,9 +156,9 @@ görseller ve nitelikler geri yazımda bozulabiliyor.
 
 | # | Madde | Kaynak |
 | --- | --- | --- |
-| 6 | `carModelId` ve `modelCode` **opsiyonel** oldu — formdaki zorunluluk kaldırılmalı. Temizleme: `carModelId: null`, model kodu için boş string | delta 18 §2a |
-| 7 | Yeni ilan **indirimli açılabiliyor**: `originalPrice`, `salePrice`, `saleStartDate`, `saleEndDate`. Etkin fiyatı istemcide türetme — `price`/`oldPrice`/`isOnSale` esas | delta 18 §2b |
-| 8 | `GET /products/my` satırlarında `relatedOrder` / `relatedTrade` — satılmış/rezerve ilan aksiyonunu tahminî `orderId`'den türetmeyi bırak | delta 18 §2e |
+| ~~6~~ | ✅ KAPANDI (2026-08-10) — `carModelId` zaten opsiyoneldi, `modelCode` forma eklendi — formdaki zorunluluk kaldırılmalı. Temizleme: `carModelId: null`, model kodu için boş string | delta 18 §2a |
+| ~~7~~ | 🟡 Payload hazır (2026-08-10) ama **oluşturma ekranında UI yok** — satıcı yeni ilanı doğrudan indirimli açamıyor: `originalPrice`, `salePrice`, `saleStartDate`, `saleEndDate`. Etkin fiyatı istemcide türetme — `price`/`oldPrice`/`isOnSale` esas | delta 18 §2b |
+| ~~8~~ | 🧱 **Backend bekliyor** — alan yayınlanmıyor (ölçüldü). `relatedOrder` / `relatedTrade` — satılmış/rezerve ilan aksiyonunu tahminî `orderId`'den türetmeyi bırak | delta 18 §2e |
 | 9 | `distanceSalesAccepted` (opsiyonel) + onay kutusu. **İlk çağrıda gönder** (idempotency replay sonradan gelen onayı işlemez). Buy-now `/orders/buy` kullanıyorsa onay düşemez — tek ürünlük `/orders/checkout`'a geçmeyi değerlendir | delta 17 §2 |
 | 10 | **Sepette satır seçerek ödeme** — API işi **sıfır**, tamamen istemci durumu. `POST /orders/quote`/`checkout` zaten gönderilen `items`'ı fiyatlıyor ve yalnız onları sepetten düşüyor | delta 17 §3 |
 | 11 | Checkout sonrası sepeti **yeniden çek**, `DELETE /cart/items` atma — sunucu satırları transaction içinde zaten siliyor, ekstra silme `404` alır | delta 17 §3 |
@@ -210,19 +210,17 @@ Bunlar yeni bir denetimde "mobil bulgusu" olarak açılmamalı — sözleşme ek
 | 7 | Satıcı iade gelen kutusu — sekme açıldı ama **salt okunur** | Backend bekliyor (onay/ret ucu yok) |
 | 9 | `EMAIL_NOT_VERIFIED` refresh 401'i | `errorCode` üzerinden bağlandı; gövde canlı üretilemedi, kod gelmezse davranış aynı |
 | 10 | IP-engel 403'ü | Backend bekliyor; yerine `x-request-id` raporlanıyor |
-| 15 | iOS universal link | **Artık açılabilir** — AASA canlı (yukarı bak) |
-| 20 | Satıcı takip numarası serbest metin | P1 #4 ile birlikte ele alınmalı — sunucu üretimli `PKG-`/`providerTrackingId` düzeniyle çelişiyor |
+| 15 | iOS universal link | **Artık açılabilir** — AASA canlı; P2 #16 ile aynı iş |
+| ~~20~~ | ✅ **KAPANDI** (2026-08-11) — elle giriş kalktı, `updateTracking` silindi |
 
 ---
 
-## Önerilen sıra
+## Önerilen sıra (güncel)
 
-1. **P1 #2 + #3** (ilan düzenleme `edit` + görsel sözleşmesi) — birlikte yapılmalı,
-   ikisi de aynı ekrana dokunuyor ve #2 paket kademesi tıkanıklığını da kapatıyor.
-2. **P1 #1** (bildirim resolver'ı) — tek katman, sonrasında her yeni tip ucuz.
-3. **P1 #4 + matris #20** (kargo akışı ve kod ayrımı) — kullanıcıya yanlış kod
-   gösterilmesini bitirir.
-4. **P1 #5** (kurumsal satış yetkisi) — satın alınamaz ürünün satın alınabilir
+1. **P1 #1** (bildirim resolver'ı) — kalan iki P1'den daha temel; tek katman,
+   sonrasında her yeni tip ucuz. 14 tip, ikisi hiçbir delta dosyasında yok.
+2. **P1 #5** (kurumsal satış yetkisi) — satın alınamaz ürünün satın alınabilir
    görünmesini bitirir.
-5. **P2 toplu tur** — çoğu tek dosyalık; #10 ve #11 sıfır API işi.
-6. **Temizlik turu** — 2026-08-09 ertelenenleri + iOS `associatedDomains`.
+3. **P2 toplu tur** — çoğu tek dosyalık; **#10 ve #11 sıfır API işi**.
+4. **Temizlik turu** — üç turun ertelenenleri + iOS `associatedDomains` (P2 #16,
+   matris #15 ile aynı iş).
