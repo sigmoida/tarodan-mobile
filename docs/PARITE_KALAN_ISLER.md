@@ -1,6 +1,6 @@
 # Parite — Kalan İşler
 
-**Güncelleme:** 2026-08-10
+**Güncelleme:** 2026-08-10 (ilan formu turu sonrası)
 **Referans noktası:** `sigmoida/tarodan-app` `development` @ `cfc058da` (2026-08-07)
 — o tarihten beri mobili ilgilendiren yeni commit yok (kontrol edildi).
 
@@ -24,6 +24,32 @@ Bunlar "backend bekliyor" diye kapatılmıştı; artık yapılabilir:
 
 Hâlâ bekleyen: **Android `assetlinks.json` 404** — imza parmak izi iletilmeden
 açılamaz (boş liste yayınlamak Android doğrulamasını kalıcı düşürür).
+
+---
+
+## ✅ 2026-08-10 ilan formu turunda KAPANANLAR
+
+`feat/ilan-formu-sozlesmesi` — kapanış:
+`docs/superpowers/reports/2026-08-10-ilan-formu-kapanis.md`
+
+- ~~**P1 #2** İlan düzenleme formu `edit` projeksiyonundan doldurulmalı~~ ✅
+  (kargo paket kademesi tıkanıklığı da bununla kapandı)
+- ~~**P1 #3** Görsel sahiplik ve sıra sözleşmesi~~ ✅
+- ~~**P2 #6** `carModelId` / `modelCode` opsiyonel~~ ✅
+  (`carModelId` zaten opsiyonelmiş; `modelCode` forma eklendi)
+- ~~**P2 #7** Yeni ilan indirimli açılabilir~~ 🟡 **payload hazır, UI yok** —
+  aşağıya bakın
+- **P2 #8** `relatedOrder` / `relatedTrade` → **backend bekliyor**, ölçümle
+  doğrulandı (`docs/superpowers/reports/2026-08-10-products-my-olcum.md`):
+  hesapta 1 `sold` + 2 `reserved` ilan var, alan yine gelmiyor. Yani "örnek veri
+  yok" değil, uç yayınlamıyor.
+
+**Yeni P2 — oluşturma ekranında indirim girdisi UI'ı yok.** Boru hattı hazır ve
+testli ama indirim kutusu yalnız düzenleme modunda render ediliyor
+(`ListingSections.tsx`'te bir `isEdit` kapısı). Satıcı yeni ilanı doğrudan
+indirimli açamıyor; oluşturup sonra düzenlemeden ekliyor. Tek satırlık bir kapı
+gibi görünüyor ama gerçek ekrandan (input→handler→submit) bir entegrasyon testi
+de gerekecek.
 
 ---
 
