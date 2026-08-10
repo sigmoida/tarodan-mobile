@@ -42,7 +42,9 @@ export function TradeCashCard({
             </Text>
           ) : null}
           <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[0.5] }}>
-            {trade.cashPayerId === userId ? 'Bu tutarı siz ödeyeceksiniz' : `${otherPartyName} ödeyecek`}
+            {trade.cashPayerId === userId
+              ? t('trade.iWillPay')
+              : t('trade.willPayBy', { name: otherPartyName })}
           </Text>
         </View>
         <View style={{ alignItems: 'flex-end', gap: theme.spacing[1.5] }}>

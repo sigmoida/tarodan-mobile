@@ -7,6 +7,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react-native';
 import { TradePaymentsCard } from '../[id]/_components/TradePaymentsCard';
+import { TradeCashCard } from '../[id]/_components/TradeCashCard';
 
 const V2_VIEW = {
   isV2: true,
@@ -43,5 +44,42 @@ describe('TradePaymentsCard', () => {
     };
     render(<TradePaymentsCard view={zeroFee as any} otherPartyName="Karşı" />);
     expect(screen.getAllByText('0,00 TL').length).toBeGreaterThan(0);
+  });
+});
+
+const CASH_TRADE = {
+  cashAmount: 500,
+  cashPayerId: 'u1',
+} as any;
+
+describe('TradeCashCard · v1/v2 kapısı', () => {
+  it('isV2=true ise geçerli cashAmount olsa da hiç çizmez (TradePaymentsCard ile çakışmasın)', () => {
+    const { toJSON } = render(
+      <TradeCashCard
+        trade={CASH_TRADE}
+        userId="u1"
+        otherPartyName="Karşı"
+        cashPaid={false}
+        cashCommission={0}
+        cashTotal={0}
+        isV2={true}
+      />,
+    );
+    expect(toJSON()).toBeNull();
+  });
+
+  it('isV2=false ve geçerli cashAmount ile çizer (kapı tek yönlü değil)', () => {
+    const { toJSON } = render(
+      <TradeCashCard
+        trade={CASH_TRADE}
+        userId="u1"
+        otherPartyName="Karşı"
+        cashPaid={false}
+        cashCommission={0}
+        cashTotal={0}
+        isV2={false}
+      />,
+    );
+    expect(toJSON()).not.toBeNull();
   });
 });
