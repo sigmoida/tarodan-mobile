@@ -226,6 +226,34 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   // -----------------------------------------------------------------------
   // Edit: fetch product and prefill the form
   // -----------------------------------------------------------------------
+
+  /**
+   * Formu sunucunun `edit` projeksiyonuna eşitleyen TEK yer.
+   *
+   * Hem ilk yükleme hem 409 (yazım çakışması) dalı bunu çağırır — iki yolun
+   * ayrı ayrı yazılması, 409'dan sonra nitelik seçimlerinin ve rezerve adedin
+   * eski oturumdan kalmasına yol açıyordu; oysa kullanıcıya "en güncel hali
+   * yüklendi" deniyor.
+   */
+  const applyMappedListing = (mapped: MappedListing) => {
+    form.reset(mapped.values);
+    setReservedQty(mapped.reservedQty);
+    setImageKeys(mapped.images.keys);
+    setImageUris(mapped.images.uris);
+    setSalePrice(mapped.sale.salePrice);
+    setSaleStartDate(mapped.sale.saleStartDate);
+    setSaleEndDate(mapped.sale.saleEndDate);
+    // YALNIZ üretici-kapsamlı nitelikler: `scale`/`material` gibi
+    // üretici-bağımsız gruplar formda kendi alanlarına sahip, arayüzde
+    // seçilemez ve `attributes[]` payload'ına girerlerse satıcının bilerek
+    // yaptığı ölçek/malzeme değişikliğini geri yazarlar.
+    const scoped = mapped.manufacturerAttrs;
+    setCustomAttributes(scoped);
+    // Üretici grupları yüklenene kadar sakla ki üretici-değişimi efekti silmesin.
+    initialCustomAttrsRef.current = Object.keys(scoped).length ? scoped : null;
+    editLabelsRef.current = mapped.labels;
+  };
+
   useEffect(() => {
     if (!isEdit || !productId) return;
     let cancelled = false;
@@ -241,17 +269,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
         }
 
         // Şema alanları tek seferde; tek tek setter çağırmak yerine form.reset.
-        form.reset(mapped.values);
-        setReservedQty(mapped.reservedQty);
-        setImageKeys(mapped.images.keys);
-        setImageUris(mapped.images.uris);
-        setSalePrice(mapped.sale.salePrice);
-        setSaleStartDate(mapped.sale.saleStartDate);
-        setSaleEndDate(mapped.sale.saleEndDate);
-        if (Object.keys(mapped.attrs).length) {
-          initialCustomAttrsRef.current = mapped.attrs;
-        }
-        editLabelsRef.current = mapped.labels;
+        applyMappedListing(mapped);
       } catch {
         if (!cancelled) setProductNotFound(true);
       } finally {
@@ -712,14 +730,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
         try {
           const fresh = await productsApi.getMyById(productId!);
           const mapped = toFormValues((fresh.data?.data ?? fresh.data) as MyProductResponse);
-          if (mapped) {
-            form.reset(mapped.values);
-            setImageKeys(mapped.images.keys);
-            setImageUris(mapped.images.uris);
-            setSalePrice(mapped.sale.salePrice);
-            setSaleStartDate(mapped.sale.saleStartDate);
-            setSaleEndDate(mapped.sale.saleEndDate);
-          }
+          // İlk yüklemedeki prefill ile AYNI durum: nitelikler ve rezerve adet
+          // dahil. Aksi halde "en güncel hali yüklendi" mesajı yalan olurdu.
+          if (mapped) applyMappedListing(mapped);
         } catch {
           // Yeniden çekme de başarısızsa formu olduğu gibi bırak; aşağıdaki
           // uyarı yine çıkar ve kullanıcı kaydedilmediğini bilir.
