@@ -57,6 +57,9 @@ it('404"te null döner, HATA DURUMUNA DÜŞMEZ', async () => {
   const { result } = renderHook(() => useOrderShipment('o1'), { wrapper });
   await waitFor(() => expect(result.current.isLoading).toBe(false));
   expect(result.current.shipment).toBeNull();
+  // Ayırt edici: 404 gerçek bir hata DEĞİL — `isError` false kalmalı, aksi
+  // halde çağıran 404'ü 500'den ayıramaz (bkz. sonraki test).
+  expect(result.current.isError).toBe(false);
 });
 
 it('404 DIŞI hatalar yutulmaz', async () => {
@@ -69,9 +72,21 @@ it('404 DIŞI hatalar yutulmaz', async () => {
   // davranış); varsayılan `waitFor` 1000ms'i aşar, bu yüzden burada uzatılıyor.
   await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 5000 });
   // 500'de de shipment null'dır ama bu "kargo yok" DEĞİL — sorgu hata
-  // durumundadır ve çağıran isterse ona bakabilir.
+  // durumundadır. Ayırt edici assertion: `isError` true olmalı, aksi halde bu
+  // test `queryFn`'i koşulsuz `return null` yapan bir regresyonu da geçerdi.
   expect(result.current.shipment).toBeNull();
+  expect(result.current.isError).toBe(true);
 }, 10000);
+
+it('boş gövdeli 200 sahte kayıt üretmez (id yoksa null)', async () => {
+  // `unwrapEnvelope` veri yoksa `{}` döner, `null` değil (apiEnvelope.ts) —
+  // sunucu 404 yerine boş gövdeyle 200 dönerse bunu kayıt sanmamalıyız.
+  jest.mocked(shippingApi.getOrderShipments).mockResolvedValue({ data: {} } as any);
+  const { result } = renderHook(() => useOrderShipment('o1'), { wrapper });
+  await waitFor(() => expect(result.current.isLoading).toBe(false));
+  expect(result.current.shipment).toBeNull();
+  expect(result.current.isError).toBe(false);
+});
 
 it('orderId yokken istek atmaz', async () => {
   renderHook(() => useOrderShipment(undefined), { wrapper });

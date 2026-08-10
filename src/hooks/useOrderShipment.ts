@@ -12,6 +12,11 @@ import { unwrapEnvelope } from '@/utils/apiEnvelope';
  * **404 hata DEĞİL:** her siparişin kargo kaydı yok. Uç
  * `404 "Bu sipariş için kargo bulunamadı"` döndürüyor; bunu `null`'a çeviriyoruz
  * ki satıcıya olmayan bir sorun gösterilmesin ve onarım yolu açık kalsın.
+ *
+ * **Diğer hatalar (ör. 500) normal hata yolunda kalır** — `queryFn` onları
+ * yeniden fırlatır ve `isError`/`error` çağırana geçer. `shipment` her iki
+ * durumda da (kayıt yok / gerçek hata) `null` olduğu için tüketen ekran bu
+ * ikisini `isError`'a bakmadan ayırt edemez.
  */
 export function useOrderShipment(orderId: string | undefined) {
   const query = useQuery({
@@ -19,7 +24,10 @@ export function useOrderShipment(orderId: string | undefined) {
     queryFn: async () => {
       try {
         const res = await shippingApi.getOrderShipments(orderId!);
-        return unwrapEnvelope<Shipment>(res) ?? null;
+        const body = unwrapEnvelope<Partial<Shipment>>(res);
+        // `unwrapEnvelope` veri yoksa `{}` döner (bkz. apiEnvelope.ts), `null`
+        // değil — boş gövdeyi kayıt sanmamak için `id` yokluğuna bakıyoruz.
+        return body?.id ? (body as Shipment) : null;
       } catch (error: any) {
         if (error?.response?.status === 404) return null;
         throw error;
@@ -43,6 +51,8 @@ export function useOrderShipment(orderId: string | undefined) {
   return {
     shipment: query.data ?? null,
     isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
     refetch: query.refetch,
   };
 }
