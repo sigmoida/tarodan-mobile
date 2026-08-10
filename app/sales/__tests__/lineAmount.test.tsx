@@ -30,6 +30,8 @@ function renderBody(item: Record<string, unknown>) {
           },
           sc: { bg: theme.colors.surface.DEFAULT, fg: theme.colors.text.heading },
           displayStatus: 'paid',
+          // Kargo kaydı yok — bu dosyanın konusu satır tutarı.
+          shipmentView: { cargoCode: null, reference: null, isCodePending: false, trackingUrl: null },
         } as any
       }
     />,
