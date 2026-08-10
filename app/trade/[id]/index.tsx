@@ -146,6 +146,7 @@ export default function TradeDetailScreen() {
           paidCount={view.paidCount}
           totalCount={view.totalCount}
           myFromWarehouseStatus={view.myFromWarehouseShipment?.status}
+          hasShippedLeg={Boolean(view.myToWarehouseShipment || trade.firstWarehouseArrivalAt)}
           actions={{
             setTradeAddressId: actions.setTradeAddressId,
             handleAccept: actions.handleAccept,

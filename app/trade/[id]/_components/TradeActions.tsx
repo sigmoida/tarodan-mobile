@@ -39,6 +39,7 @@ export function TradeActions({
   paidCount,
   totalCount,
   myFromWarehouseStatus,
+  hasShippedLeg,
   actions,
 }: {
   trade: Trade;
@@ -56,6 +57,7 @@ export function TradeActions({
   paidCount: number;
   totalCount: number;
   myFromWarehouseStatus?: string | null;
+  hasShippedLeg?: boolean;
   actions: TradeActionHandlers;
 }) {
   // v1: mevcut cashTotal/cashCommission mantığı aynen korunur (para istemcide
@@ -109,6 +111,15 @@ export function TradeActions({
           style={{ ...styles.actionButton, borderColor: colors.danger[600]! }}
         />
       )}
+
+      {/*
+        Kargoya verildikten sonra iade `totalAmount − shippingAmount`'tır: nakit
+        fark ve hizmet bedeli döner, KARGO DÖNMEZ (delta 17 §1f). Eşik, iptal
+        kilidiyle aynı: "hâlâ iptal edebiliyorsan kargon da geri gelir."
+      */}
+      {isV2 && hasShippedLeg ? (
+        <Text variant="caption" tone="muted">{t('trade.shippingNotRefundable')}</Text>
+      ) : null}
 
       {/* Cancel locked hint */}
       {!trade.canCancel &&
