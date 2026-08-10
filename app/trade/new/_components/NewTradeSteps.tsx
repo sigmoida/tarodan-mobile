@@ -10,6 +10,7 @@ import { getProductEffectivePrice } from '@/utils/productPrice';
 import { formatPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
 import { TradeProductCard } from './TradeProductCard';
+import { TradeCostPreviewCard } from '../../[id]/_components/TradeCostPreviewCard';
 import type { Product } from '../_lib/types';
 import type { NewTradeController } from '../_hooks/useNewTrade';
 
@@ -213,6 +214,11 @@ export function Step3Review({ f }: StepProps) {
           </Text>
         </View>
       </Card>
+
+      <TradeCostPreviewCard
+        mine={f.costPreview?.initiator ?? null}
+        theirs={f.costPreview?.receiver ?? null}
+      />
 
       {/* Cash Summary */}
       {f.cashValue > 0 && (

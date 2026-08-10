@@ -21,6 +21,7 @@ import { TradeInfoCard } from "./_components/TradeInfoCard";
 import { TradeItemsCompare } from "./_components/TradeItemsCompare";
 import { TradeCashCard } from "./_components/TradeCashCard";
 import { TradePaymentsCard } from "./_components/TradePaymentsCard";
+import { TradeCostPreviewCard } from "./_components/TradeCostPreviewCard";
 import { TradeMessages } from "./_components/TradeMessages";
 import { TradeShippingSection } from "./_components/TradeShippingSection";
 import { TradeProtectionCard } from "./_components/TradeProtectionCard";
@@ -117,6 +118,10 @@ export default function TradeDetailScreen() {
           isV2={view.isV2}
         />
         <TradePaymentsCard view={view} otherPartyName={view.otherParty.displayName} />
+        <TradeCostPreviewCard
+          mine={view.isInitiator ? paymentQuote?.initiator ?? null : paymentQuote?.receiver ?? null}
+          theirs={view.isInitiator ? paymentQuote?.receiver ?? null : paymentQuote?.initiator ?? null}
+        />
         <TradeMessages trade={trade} />
         <TradeShippingSection
           trade={trade}

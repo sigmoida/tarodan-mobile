@@ -3,7 +3,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
 // listingsApi → productsApi (parite migrasyonu); userApi.getMyProducts → productsApi.getMyListings
-import { productsApi as listingsApi, tradesApi, productsApi } from '@/lib/api';
+import { productsApi as listingsApi, tradesApi, productsApi, type TradePaymentQuoteSide } from '@/lib/api';
+import { qk, retryUnlessClientError } from '@/lib/query';
+import { unwrapEnvelope } from '@/utils/apiEnvelope';
 import { useAuthStore } from '@/stores/authStore';
 import { getProductEffectivePrice } from '@/utils/productPrice';
 import { formatApiErrorMessage } from '@/utils/formatApiErrorMessage';
@@ -150,6 +152,33 @@ export function useNewTrade() {
   const myTotal = selectedMyItems.reduce((sum, p) => sum + getProductEffectivePrice(p), 0);
   const theirTotal = selectedTheirItems.reduce((sum, p) => sum + getProductEffectivePrice(p), 0);
   const cashValue = parseFloat(cashAmount.replace(',', '.')) || 0;
+  const cashPayer: 'initiator' | 'receiver' = cashDirection === 'offer' ? 'initiator' : 'receiver';
+
+  /**
+   * Kaydedilmemiş teklifin canlı maliyeti. Ürün seçimi veya nakit fark her
+   * değiştiğinde yeniden fiyatlanır; tutarlar TAHMİNİDİR, kabul anında kilitlenir.
+   * Bilinmeyen/silinmiş productId sunucuda sessizce atlanır — istemci elemez.
+   */
+  const previewQuery = useQuery({
+    queryKey: qk.trades.previewQuote(
+      selectedMyItems.map((p) => p.id),
+      selectedTheirItems.map((p) => p.id),
+      cashValue,
+      cashPayer,
+    ),
+    queryFn: async () => {
+      const res = await tradesApi.previewPaymentQuote({
+        initiatorItems: selectedMyItems.map((p) => ({ productId: p.id, quantity: 1 })),
+        receiverItems: selectedTheirItems.map((p) => ({ productId: p.id, quantity: 1 })),
+        ...(cashValue > 0 ? { cashAmount: cashValue, cashPayer } : {}),
+      });
+      return unwrapEnvelope<{ initiator: TradePaymentQuoteSide; receiver: TradePaymentQuoteSide }>(res);
+    },
+    enabled: selectedMyItems.length > 0 && selectedTheirItems.length > 0,
+    staleTime: 30_000,
+    retry: retryUnlessClientError,
+  });
+  const costPreview = previewQuery.data ?? null;
 
   const toggleMyItem = (product: Product) => {
     if (selectedMyItems.find((p) => p.id === product.id)) {
@@ -208,6 +237,7 @@ export function useNewTrade() {
     myTotal,
     theirTotal,
     cashValue,
+    costPreview,
     toggleMyItem,
     toggleTheirItem,
     handleSubmit,

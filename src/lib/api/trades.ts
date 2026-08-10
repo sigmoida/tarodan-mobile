@@ -64,6 +64,17 @@ export const tradesApi = {
    */
   getPaymentQuote: (id: string | number) =>
     api.get<Partial<TradePaymentQuote>>(`/trades/${id}/payment-quote`),
+  /**
+   * Kaydedilmemiş teklifin canlı fiyatı — teklif oluşturma ekranı için.
+   * Yanıtta `tradeId`/`userId`/`side` YOKTUR (ölçümle doğrulandı). Bilinmeyen
+   * veya silinmiş `productId` sunucuda sessizce atlanır.
+   */
+  previewPaymentQuote: (body: {
+    initiatorItems: Array<{ productId: string; quantity?: number }>;
+    receiverItems: Array<{ productId: string; quantity?: number }>;
+    cashAmount?: number;
+    cashPayer?: 'initiator' | 'receiver';
+  }) => api.post<Omit<TradePaymentQuote, 'tradeId'>>('/trades/payment-quote/preview', body),
 };
 
 // Offers API - Web ile aynı endpoint'ler
