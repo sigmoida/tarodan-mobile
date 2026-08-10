@@ -672,6 +672,7 @@ export function ListingShippingSection({ f }: SectionProps) {
 // Submit + delete
 // ---------------------------------------------------------------------------
 export function ListingSubmitRow({ f }: SectionProps) {
+  const { t } = useTranslation();
   return (
     <>
       <View style={styles.submitRow}>
@@ -679,14 +680,20 @@ export function ListingSubmitRow({ f }: SectionProps) {
           <Text style={styles.cancelButtonText}>İptal</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.submitButton, f.isSubmitting && styles.submitButtonDisabled]}
+          style={[styles.submitButton, (f.isSubmitting || f.uploadingImages) && styles.submitButtonDisabled]}
           onPress={f.handleSubmit}
-          disabled={f.isSubmitting}
+          disabled={f.isSubmitting || f.uploadingImages}
         >
           {f.isSubmitting ? (
             <ActivityIndicator size="small" color={colors.white} />
           ) : (
-            <Text style={styles.submitButtonText}>{f.isEdit ? 'Değişiklikleri Kaydet' : 'İlanı Oluştur'}</Text>
+            <Text style={styles.submitButtonText}>
+              {f.uploadingImages
+                ? t('listing.saveWhileUploading')
+                : f.isEdit
+                  ? 'Değişiklikleri Kaydet'
+                  : 'İlanı Oluştur'}
+            </Text>
           )}
         </TouchableOpacity>
       </View>

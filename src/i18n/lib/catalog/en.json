@@ -589,6 +589,11 @@
     "favoriteAddFailed": "Could not add to favourites",
     "reportReasonFake": "Fake item"
   },
+  "listing": {
+    "imageUploadIncomplete": "Some images could not be uploaded. Please try again.",
+    "saveWhileUploading": "Uploading images…",
+    "listingChangedElsewhere": "This listing was updated elsewhere. The latest version has been loaded; please reapply your changes."
+  },
   "cart": {
     "myCart": "My Cart",
     "empty": "Your Cart is Empty",

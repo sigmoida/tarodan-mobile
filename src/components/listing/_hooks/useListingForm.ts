@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { appAlert } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { listingFormSchema, emptyListingFormValues } from '../_lib/schema';
@@ -36,6 +37,7 @@ import type { MappedListing } from '../_lib/editMapper';
 export function useListingForm({ mode, productId }: ListingFormProps) {
   const isEdit = mode === 'edit';
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const bankAccountQuery = useQuery({
     queryKey: ['bank-account'],
@@ -490,14 +492,21 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       });
       const uploaded = Array.isArray(res.data) ? res.data : [res.data];
 
-      const newKeys = uploaded.map((r: any) => ({
+      const usable = uploaded.filter((r: any) => r?.cardKey && r?.detailKey);
+      if (usable.length !== uploaded.length) {
+        appAlert('Hata', t('listing.imageUploadIncomplete'));
+      }
+      const newKeys = usable.map((r: any) => ({
         cardKey: r.cardKey,
         detailKey: r.detailKey,
       }));
-      const newPreviewUrls = uploaded.map((r: any) => r.cardUrl || r.detailUrl || '');
+      const newPreviewUrls = usable.map((r: any) => r.cardUrl || r.detailUrl || '');
 
       setImageKeys((prev) => [...prev, ...newKeys]);
-      setImageUris((prev) => [...prev, ...assets.map((a, i) => newPreviewUrls[i] || a.uri)]);
+      // API'nin döndürdüğü URL esastır; yerel geçici URI'yi saklamak, kaydetme
+      // anında sunucuda karşılığı olmayan bir görselin "yüklenmiş" görünmesine
+      // yol açar (delta 18 §2d).
+      setImageUris((prev) => [...prev, ...newPreviewUrls]);
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Görsel yükleme başarısız.';
       appAlert('Hata', msg);
@@ -684,6 +693,29 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
         ]);
       }
     } catch (err: any) {
+      // İyimser kilit / atomik görsel yazımı çakışması (delta 18 §2d).
+      // Yerel formu kaydedilmiş SAYMA: sunucudaki güncel kaydı çek ve
+      // kullanıcıya çakışmayı bildir.
+      if (err?.response?.status === 409 && isEdit) {
+        try {
+          const fresh = await productsApi.getMyById(productId!);
+          const mapped = toFormValues((fresh.data?.data ?? fresh.data) as MyProductResponse);
+          if (mapped) {
+            form.reset(mapped.values);
+            setImageKeys(mapped.images.keys);
+            setImageUris(mapped.images.uris);
+            setSalePrice(mapped.sale.salePrice);
+            setSaleStartDate(mapped.sale.saleStartDate);
+            setSaleEndDate(mapped.sale.saleEndDate);
+          }
+        } catch {
+          // Yeniden çekme de başarısızsa formu olduğu gibi bırak; aşağıdaki
+          // uyarı yine çıkar ve kullanıcı kaydedilmediğini bilir.
+        }
+        appAlert('Hata', t('listing.listingChangedElsewhere'));
+        return;
+      }
+
       const msg =
         err.response?.data?.message ??
         err.response?.data?.error ??
