@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
 import { theme, Button, Input, Text, appAlert } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -11,6 +11,14 @@ const { colors } = theme;
 
 export default function NewsletterScreen() {
   const [email, setEmail] = useState('');
+  /**
+   * KVKK/ETK açık rızası — İŞARETSİZ başlar ve abonelik kapısıdır.
+   *
+   * Sunucuya güvenilemez: 2026-08-11 ölçümünde `/newsletter/subscribe` yalnız
+   * `email` istiyor ve `newsletter: false` ile bile başarı dönüyor. Yani
+   * "ikisi de false → 400" kuralı staging'de YOK; kapı tamamen burada.
+   */
+  const [consent, setConsent] = useState(false);
 
   const subscribeMutation = useMutation({
     mutationFn: async () => {
@@ -18,7 +26,8 @@ export default function NewsletterScreen() {
       // kabul eder; backend 'name' alanını desteklemez (whitelist ile sessizce strip edilir).
       return guestApi.post('/newsletter/subscribe', {
         email: email.trim().toLowerCase(),
-        newsletter: true,
+        // Kullanıcının verdiği rıza — sabit `true` değil.
+        newsletter: consent,
       });
     },
     onSuccess: () => {
@@ -28,6 +37,7 @@ export default function NewsletterScreen() {
         [{ text: 'Tamam', onPress: () => router.back() }],
       );
       setEmail('');
+      setConsent(false);
     },
     onError: (e: any) =>
       appAlert('Hata', e?.response?.data?.message || 'Abonelik kaydedilemedi.'),
@@ -58,6 +68,7 @@ export default function NewsletterScreen() {
           </Text>
 
           <Input
+            testID="newsletter-email"
             label="E-posta *"
             value={email}
             onChangeText={setEmail}
@@ -66,12 +77,38 @@ export default function NewsletterScreen() {
             containerStyle={styles.input}
           />
 
+          {/* Açık rıza — işaretsiz başlar, abone olmanın kapısıdır. */}
+          <View style={styles.consentRow}>
+            <TouchableOpacity
+              testID="newsletter-consent"
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: consent }}
+              onPress={() => setConsent((v) => !v)}
+              hitSlop={8}
+            >
+              <Ionicons
+                name={consent ? 'checkbox' : 'square-outline'}
+                size={22}
+                color={consent ? colors.primary[600]! : colors.text.muted}
+              />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.consentText}>
+                Ticari elektronik ileti almayı ve e-postamın bu amaçla işlenmesini kabul ediyorum.
+              </Text>
+              <TouchableOpacity onPress={() => router.push('/privacy' as any)}>
+                <Text style={styles.consentLink}>Gizlilik Politikası</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           <Button
+            testID="newsletter-submit"
             variant="primary"
             title="Abone Ol"
             onPress={handleSubmit}
             isLoading={subscribeMutation.isPending}
-            disabled={subscribeMutation.isPending || !email}
+            disabled={subscribeMutation.isPending || !email || !consent}
             style={styles.btn}
           />
 
@@ -88,6 +125,19 @@ export default function NewsletterScreen() {
 }
 
 const styles = StyleSheet.create({
+  consentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: theme.spacing[2],
+    marginBottom: theme.spacing[4],
+  },
+  consentText: { color: colors.text.body, fontSize: 13, lineHeight: 18 },
+  consentLink: {
+    color: colors.primary[600]!,
+    textDecorationLine: 'underline',
+    fontSize: 13,
+    marginTop: theme.spacing[1],
+  },
   container: {
     flex: 1,
     backgroundColor: colors.surface.DEFAULT,

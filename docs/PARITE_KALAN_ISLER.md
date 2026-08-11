@@ -1,6 +1,6 @@
 # Parite — Kalan İşler
 
-**Güncelleme:** 2026-08-11 (Metro elle test turu sonrası)
+**Güncelleme:** 2026-08-11 (P2 toplu tur sonrası — mobil tarafı kapandı)
 **Referans noktası:** `sigmoida/tarodan-app` `development` @ `cfc058da` (2026-08-07)
 — o tarihten beri mobili ilgilendiren yeni commit yok (kontrol edildi).
 
@@ -234,15 +234,15 @@ netleşmeli.
 | # | Madde | Kaynak |
 | --- | --- | --- |
 | ~~6~~ | ✅ KAPANDI (2026-08-10) — `carModelId` zaten opsiyoneldi, `modelCode` forma eklendi — formdaki zorunluluk kaldırılmalı. Temizleme: `carModelId: null`, model kodu için boş string | delta 18 §2a |
-| ~~7~~ | 🟡 Payload hazır (2026-08-10) ama **oluşturma ekranında UI yok** — satıcı yeni ilanı doğrudan indirimli açamıyor: `originalPrice`, `salePrice`, `saleStartDate`, `saleEndDate`. Etkin fiyatı istemcide türetme — `price`/`oldPrice`/`isOnSale` esas | delta 18 §2b |
+| ~~7~~ | ✅ **KAPANDI** (2026-08-11) — indirim bloğunun önündeki `isEdit` kapısı kaldırıldı; `buildSalePayload` zaten create yolunda da çağrılıyordu, engel yalnız UI'daydı. Güvence ekrandan uçtan uca (girdi → yüzde hesabı) | delta 18 §2b |
 | ~~8~~ | 🧱 **Backend bekliyor** — alan yayınlanmıyor (ölçüldü). `relatedOrder` / `relatedTrade` — satılmış/rezerve ilan aksiyonunu tahminî `orderId`'den türetmeyi bırak | delta 18 §2e |
 | ~~9~~ | ✅ **KAPANDI** (2026-08-11) — onay kutusu onay adımında, ödemeyi kapatıyor, sözleşme sayfasına link veriyor; alan üye ve misafir yollarında **ilk çağrının** gövdesinde gidiyor ve API DTO'sunda **zorunlu**. Buy-now endişesi mobilde geçersiz: `/orders/buy` API katmanında tanımlı ama **hiç çağrılmıyor**, buy-now da `/checkout?buyNow=1` ile aynı uca gidiyor. ⚠️ Sunucunun alanı işlediği **doğrulanamadı**: uç bilinmeyen alanları reddetmiyor (uydurma alanla aynı 400) | delta 17 §2 |
 | ~~10~~ | ✅ **KAPANDI** (2026-08-11) — satır başına onay kutusu + "tümünü seç"; seçim `cartStore.deselectedIds`'te (opt-out: sonradan eklenen satır kendiliğinden seçili). Quote ve checkout yalnız seçilileri görüyor, seçim dışı satır fiyat yerine sebebini yazıyor, hiçbiri seçili değilken ödeme kapalı | delta 17 §3 |
 | ~~11~~ | ✅ **KAPANDI** (2026-08-11) — `cartApi.clear()` kaldırıldı; yerelde yalnız ödenen satırlar düşüyor (`onPurchaseComplete`, yazılmış ama hiç çağrılmayan bir ilkeydi), sunucu sepeti `qk.cart.mine` invalidate ile tazeleniyor. Satır seçimiyle birlikte bu artık yalnız gereksiz değil **yıkıcıydı**: `DELETE /cart` seçilmeyen satırları da silerdi | delta 17 §3 |
-| 12 | Bülten formu: kutular **işaretsiz** başlasın (KVKK/ETK); ikisi de `false` → yeni `400` | delta 17 §6 |
-| 13 | `GET /products/filters` → `scales` **boş dizi** dönebilir (16'lık sabit fallback kaldırıldı); filtre UI'ı `[]`'e dayanıklı olsun | delta 17 §7 |
-| 14 | `DELETE /membership/cards/:id` başarılı yanıtından sonra listeyi invalidate et; PayTR temizliğini bekleme | delta 18 §5 |
-| 15 | `/security/*` eski şifre-sıfırlama uçları silinmek üzere (issue #432) — mobilin bunları çağırmadığı teyit edilmeli; akış `/auth/*` üzerinden olmalı | delta 17 §7 |
+| ~~12~~ | ✅ **KAPANDI** (2026-08-11) — form hiç onay kutusu göstermiyor, `newsletter: true` sabit gidiyordu (rıza alınmadan abonelik). Artık işaretsiz başlayan bir rıza kutusu abone olmanın kapısı ve gövdeye kullanıcının verdiği değer gidiyor. ⚠️ **Doküman yanlış çıktı:** sunucu "ikisi de false → 400" kuralını UYGULAMIYOR — yalnız `email` zorunlu, `newsletter: false` ile bile abonelik başarılı dönüyor. Kapı tamamen istemcide | delta 17 §6 |
+| ~~13~~ | ✅ **KAPANDI** (2026-08-11) — mobil boş yanıt görünce 5 elemanlı bir **istemci listesi** koyuyordu; kullanıcı katalogda karşılığı olmayan ölçekle filtreleyip sıfır sonuç alıyordu. `SCALE_FALLBACK`/`MATERIAL_FALLBACK` silindi, boş dizi aynen geçiyor | delta 17 §7 |
+| ~~14~~ | ✅ **KAPANDI** (2026-08-11) — invalidate zaten vardı; eksik olan anahtarın elle yazılmasıydı (`["saved-cards"]`). `qk.payments.savedCards`'a bağlandı — bugün değerler aynı, ama sapma tam böyle başlıyor | delta 18 §5 |
+| ~~15~~ | ✅ **TEYİT EDİLDİ** (2026-08-11), kod değişikliği gerekmedi. Mobilin şifre sıfırlama akışı `/auth/forgot-password` + `/auth/reset-password`. `/security/*` altında yalnız **farklı** özellikler çağrılıyor: 2FA (`/security/2fa/*` → `status` 200), şifre **değiştirme** (`/security/password/change` → boş gövdede 400, yani canlı) ve tüm cihazlardan çıkış. Silinecek olan `POST /security/password/reset` staging'de hâlâ ayakta (boş gövdede 400) ama mobil onu **çağırmıyor** | delta 17 §7 |
 | ~~16~~ | ✅ **KAPANDI** (2026-08-11) — `app.json`'a `applinks:tarodan.com.tr` + `applinks:staging.tarodan.com.tr` eklendi; host listesi `paths.json`'dan tek kaynak, bekçisi `appConfig.test.ts`. Ölçüm: iki alan adında da AASA `200`/`application/json`, içerik üretilenle aynı, **Apple CDN de görmüş**. ⚠️ Entitlement — **yeni build** gerekir | delta 17 §5 |
 | ~~17~~ | ✅ **KAPANDI** (2026-08-11) — `useInfiniteQuery` + `onEndReached`; sunucunun `pagination.{page,pages}` alanları okunuyor, sayfa yokken istek atılmıyor, okundu-işaretleme iyimser güncellemesi sayfalı önbelleğe uyarlandı (işaretlenen satır ikinci sayfada olabilir). Simülatörde 26. sıradaki kayda erişildi | 2026-08-11 ölçümü |
 | 18 | **Push yolu simülatörde sınanamıyor** — `registerForPushNotifications` `!Device.isDevice` kapısında **izin istemeden** dönüyor, iOS bildirimi göstermiyor, `simctl push` yutuluyor. İzin isteme adımını simülatörde de çalıştırmak push tap'ini otomasyona açar | 2026-08-11 ölçümü |
@@ -309,7 +309,18 @@ Bunlar yeni bir denetimde "mobil bulgusu" olarak açılmamalı — sözleşme ek
 1. ~~P1 #1 (bildirim resolver'ı)~~ ✅ kapandı (2026-08-11).
 2. **P1 #5** (kurumsal satış yetkisi) — satın alınamaz ürünün satın alınabilir
    görünmesini bitirir.
-3. **P2 toplu tur** — çoğu tek dosyalık; **#10 ve #11 sıfır API işi**;
-   paket kademesi etiketleri de buraya.
-4. **Temizlik turu** — üç turun ertelenenleri + iOS `associatedDomains` (P2 #16,
-   matris #15 ile aynı iş) + `maestro/run.sh`'ın staging'e uyarlanması.
+3. ~~P2 toplu tur~~ ✅ kapandı (2026-08-11): #7, #9, #10, #11, #12, #13, #14, #15, #16, #17.
+4. ~~Temizlik turu~~ ✅ kapandı (2026-08-11); yalnız satıcı buton etiketi açık.
+
+**Mobilin tek başına kapatabileceği madde kalmadı.** Açık olanların hepsi ya
+staging verisi ya backend sözleşmesi bekliyor:
+
+| Ne bekliyor | Maddeler |
+| --- | --- |
+| **Staging verisi** | P1 #5 (askıya alınmış kurumsal satıcı + ilanı), satıcı "Kargoya Ver" buton etiketi (satışı olan satıcı hesabı), push tap yolu (P2 #18 — simülatörde izin istenmiyor) |
+| **Backend** | Android `assetlinks.json` (imza parmak izi), iade onay/ret ucu, IP-blok 403 ayırt edici alanı, kupon reddi yapısal alanı, `relatedOrder`/`relatedTrade`, misafir takipte gerçek Sürat kodu, paket kademesi etiketlerinde Türkçe karakterler, `MembershipLimits`'in yayınlanmayan 10 alanı |
+| **Yeni build** | iOS `associatedDomains` bir entitlement — OTA ile geçmez |
+
+Repoda kalan iş: `maestro/run.sh`'ın staging'e uyarlanması ve iki kararsız test
+(`J30.5` koleksiyon düzenle, `J75.2` ödeme WebView — ikisi de izole koşumda
+geçiyor, tam koşumda ara sıra düşüyor).

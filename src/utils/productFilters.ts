@@ -71,14 +71,9 @@ export const CONDITION_OPTIONS: { value: string; label: string }[] = [
   { value: 'fair', label: 'Orta' },
 ];
 
-export const MATERIAL_FALLBACK: { slug: string; label: string }[] = [
-  { slug: 'diecast', label: 'Diecast (Metal)' },
-  { slug: 'resin', label: 'Resin (Reçine)' },
-  { slug: 'composite', label: 'Composite (Kompozit)' },
-  { slug: 'plastic', label: 'Plastic (Plastik)' },
-];
-
-export const SCALE_FALLBACK = ['1:18', '1:24', '1:43', '1:64', '1:87'];
+// NOT: Ölçek/malzeme için İSTEMCİ FALLBACK'İ BİLEREK YOK. Sunucu boş dizi
+// döndürebiliyor ve bu "katalogda yok" demek; yerine bir liste koymak
+// kullanıcıya karşılığı olmayan filtre seçenekleri gösteriyordu (P2 #13).
 
 /**
  * Web listings/page.tsx `buildListParams` ile birebir aynı param mantığı.

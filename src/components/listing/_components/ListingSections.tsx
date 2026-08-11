@@ -537,9 +537,11 @@ export function ListingPricingSection({ f }: SectionProps) {
         </Text>
       )}
 
-      {/* Discount (edit only) */}
-      {f.isEdit && (
-        <View style={styles.discountBox}>
+      {/* İndirim — create'te de gösterilir. `POST /products` indirim alanlarını
+          kabul ediyor (delta 18 §2b) ve `buildSalePayload` zaten create yolunda
+          da çağrılıyordu; yalnız bu kapı yüzünden satıcı ilanı önce açıp sonra
+          düzenlemeden indirim eklemek zorunda kalıyordu. */}
+      <View style={styles.discountBox}>
           <Text style={styles.label}>İndirimli Fiyat (₺)</Text>
           <TextInput
             style={styles.input}
@@ -567,8 +569,7 @@ export function ListingPricingSection({ f }: SectionProps) {
             placeholder="Tarih seçin"
             minimumDate={f.saleStartDate ? new Date(f.saleStartDate) : undefined}
           />
-        </View>
-      )}
+      </View>
 
       {/* Commission preview */}
       {(f.commissionLoading || f.commissionPreview) && (

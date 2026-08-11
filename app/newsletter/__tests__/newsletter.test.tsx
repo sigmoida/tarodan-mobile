@@ -49,6 +49,8 @@ describe('J39 · Bülten abone (newsletter)', () => {
   it('J39.2 geçersiz e-posta → Alert ile reddedilir, API çağrılmaz', () => {
     renderWithProviders(<NewsletterScreen />);
     fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], 'gecersiz');
+    // Rıza kutusu (P2 #12) abone olmanın kapısı — kullanıcı gibi önce işaretle.
+    fireEvent.press(screen.getByTestId('newsletter-consent'));
     fireEvent.press(screen.getByText('Abone Ol'));
     expect(alertSpy).toHaveBeenCalledWith('Eksik', 'Geçerli bir e-posta girin.');
     expect(postMock).not.toHaveBeenCalled();
@@ -58,6 +60,7 @@ describe('J39 · Bülten abone (newsletter)', () => {
     postMock.mockResolvedValue({ data: {} });
     renderWithProviders(<NewsletterScreen />);
     fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], 'Ali@Test.com');
+    fireEvent.press(screen.getByTestId('newsletter-consent'));
     fireEvent.press(screen.getByText('Abone Ol'));
     await waitFor(() =>
       expect(postMock).toHaveBeenCalledWith('/newsletter/subscribe', {

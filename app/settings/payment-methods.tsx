@@ -12,6 +12,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ScreenHeader, EmptyState } from "@/components/common";
 import { useAuthStore } from "@/stores/authStore";
 import { membershipApi } from "@/lib/api";
+import { qk } from "@/lib/query";
 import { styles } from './_payment-methods/_lib/styles';
 
 const { colors } = theme;
@@ -47,7 +48,7 @@ export default function PaymentMethodsScreen() {
   const queryClient = useQueryClient();
 
   const cardsQuery = useQuery({
-    queryKey: ["saved-cards"],
+    queryKey: qk.payments.savedCards,
     queryFn: async () => {
       const res = await membershipApi.listCards();
       const data: any = res.data;
@@ -69,7 +70,9 @@ export default function PaymentMethodsScreen() {
           onPress: async () => {
             try {
               await membershipApi.deleteCard(card.id);
-              queryClient.invalidateQueries({ queryKey: ["saved-cards"] });
+              // Sunucu 200 döndüğü an listeyi tazele — PayTR tarafındaki
+              // temizliğin bitmesini BEKLEME (kart kaydı bizde zaten silindi).
+              queryClient.invalidateQueries({ queryKey: qk.payments.savedCards });
             } catch (e: any) {
               appAlert(
                 "Hata",
