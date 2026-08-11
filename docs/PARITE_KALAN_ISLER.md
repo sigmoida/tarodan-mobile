@@ -321,6 +321,12 @@ staging verisi ya backend sözleşmesi bekliyor:
 | **Backend** | Android `assetlinks.json` (imza parmak izi), iade onay/ret ucu, IP-blok 403 ayırt edici alanı, kupon reddi yapısal alanı, `relatedOrder`/`relatedTrade`, misafir takipte gerçek Sürat kodu, paket kademesi etiketlerinde Türkçe karakterler, `MembershipLimits`'in yayınlanmayan 10 alanı |
 | **Yeni build** | iOS `associatedDomains` bir entitlement — OTA ile geçmez |
 
-Repoda kalan iş: `maestro/run.sh`'ın staging'e uyarlanması ve iki kararsız test
-(`J30.5` koleksiyon düzenle, `J75.2` ödeme WebView — ikisi de izole koşumda
-geçiyor, tam koşumda ara sıra düşüyor).
+Repoda kalan iş **yok**; ikisi de aynı turda kapandı:
+
+- ~~`maestro/run.sh` staging'e uyarlanmalı~~ ✅ backend adresi artık `.env`'deki
+  `EXPO_PUBLIC_API_URL`'den geliyor (`API_URL=` ile ezilebilir). Harness bu
+  repoda ilk kez çalışıyor.
+- ~~İki kararsız test~~ ✅ kök neden: iddialar zamanlama ölçmüyor ama RNTL'in
+  **1000 ms** varsayılan sınırına yaslanıyorlardı. Sınır 150 ms'ye çekilince 8
+  test düşüyor (biri `J30.5`) — yani sınıra yakın bir küme var. `jest.setup.ts`'te
+  `asyncUtilTimeout: 5000` ile açık bir sınır kondu; kaldırılmadı, yükseltildi.
