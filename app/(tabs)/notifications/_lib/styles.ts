@@ -5,6 +5,7 @@ const { colors } = theme;
 
 // Route-local stylesheet (§12). Monolitten BİREBİR taşındı.
 export const styles = StyleSheet.create({
+  footerSpinner: { paddingVertical: theme.spacing[4] },
   // SafeAreaView'in kendisi turuncu → status bar inset'i de turuncu olur
   // (anasayfa/profil header'larıyla aynı). İçerik gri arka planı `body`'den alır.
   container: {

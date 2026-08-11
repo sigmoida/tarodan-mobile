@@ -130,9 +130,10 @@ host reddediliyor.
 `tradeId` takası açıyor), `products/unavailable` kuralının yalnız push'ta
 olması. `audience` ilk kez okunuyor.
 
-**Cihazda doğrulanamayan:** grup vakası birim testinde kapalı ama simülatörde
-üretilemedi — bildirim listesi sayfalamasız (20/36) ve simülatöre push
-sunulamıyor. İkisi de aşağıda yeni madde.
+**Cihazda doğrulandı (2026-08-11, sayfalama açıldıktan sonra):** listede 26.
+sıradaki grup ödemesi bildirimine dokunmak artık **grup ekranını** açıyor
+(`GRP-AT979R67NS`, üç siparişiyle) — düzeltmeden önce Profil sekmesine
+düşüyordu. Push tap yolu hâlâ simülatörde sınanamıyor (P2 #18).
 
 ### Eski metin (referans) — bildirim sözleşmesi (delta 18 §3)
 
@@ -243,7 +244,7 @@ netleşmeli.
 | 14 | `DELETE /membership/cards/:id` başarılı yanıtından sonra listeyi invalidate et; PayTR temizliğini bekleme | delta 18 §5 |
 | 15 | `/security/*` eski şifre-sıfırlama uçları silinmek üzere (issue #432) — mobilin bunları çağırmadığı teyit edilmeli; akış `/auth/*` üzerinden olmalı | delta 17 §7 |
 | 16 | **iOS `associatedDomains`** eklenebilir (AASA canlı). appID: `P2628CQK26.com.tarodan.app`. Kapsam dışı bırakılanlar: `/checkout*`, `/payment/*`, `/admin/*`, `/api/*` | delta 17 §5 |
-| 17 | **Bildirim listesinde sayfalama yok** — ekran `GET /notifications`'ı parametresiz çağırıyor, sunucu varsayılanı 20. Ölçüm hesabında 36 kayıt var (`pagination.pages: 2`), yani 16'sı kullanıcıya hiç görünmüyor. Sonsuz kaydırma ya da en azından `limit` yükseltmek gerekiyor | 2026-08-11 ölçümü |
+| ~~17~~ | ✅ **KAPANDI** (2026-08-11) — `useInfiniteQuery` + `onEndReached`; sunucunun `pagination.{page,pages}` alanları okunuyor, sayfa yokken istek atılmıyor, okundu-işaretleme iyimser güncellemesi sayfalı önbelleğe uyarlandı (işaretlenen satır ikinci sayfada olabilir). Simülatörde 26. sıradaki kayda erişildi | 2026-08-11 ölçümü |
 | 18 | **Push yolu simülatörde sınanamıyor** — `registerForPushNotifications` `!Device.isDevice` kapısında **izin istemeden** dönüyor, iOS bildirimi göstermiyor, `simctl push` yutuluyor. İzin isteme adımını simülatörde de çalıştırmak push tap'ini otomasyona açar | 2026-08-11 ölçümü |
 
 ---

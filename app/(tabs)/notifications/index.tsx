@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { View, FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { EmptyState, ScreenLoader, theme } from '@/ui';
+import { EmptyState, ScreenLoader, Spinner, theme } from '@/ui';
 import { useNotifications } from './_hooks/useNotifications';
 import { styles } from './_lib/styles';
 import { NotificationsHeader } from './_components/NotificationsHeader';
@@ -54,6 +54,7 @@ export default function NotificationsScreen() {
         onMarkAll={f.handleMarkAllAsRead}
       />
       <FlatList
+        testID="notifications-list"
         data={f.notifications}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
@@ -80,6 +81,9 @@ export default function NotificationsScreen() {
           />
         }
         ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+        onEndReached={f.loadMore}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={f.loadingMore ? <Spinner style={styles.footerSpinner} /> : null}
       />
     </SafeAreaView>
   );

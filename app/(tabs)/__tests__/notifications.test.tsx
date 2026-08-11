@@ -152,3 +152,102 @@ describe('J113 · tümünü okundu butonu ve navigasyon wiring', () => {
     await waitFor(() => expect(markAsRead).toHaveBeenCalledWith('n1'));
   });
 });
+
+/**
+ * P2 #17 — bildirim listesinde sayfalama.
+ *
+ * Ekran `GET /notifications`'ı parametresiz çağırıyordu; sunucu varsayılanı 20.
+ * 2026-08-11 ölçümünde hesapta 36 kayıt vardı (`pagination.pages: 2`), yani
+ * 16'sı kullanıcıya HİÇ görünmüyordu — üstelik listenin dibinde bir "devamı
+ * var" işareti de yoktu, sessiz bir kesme.
+ */
+describe('P2 #17 · bildirim sayfalaması', () => {
+  const page = (ids: string[], p: number, pages: number) => ({
+    data: {
+      notifications: ids.map((id) => ({
+        id,
+        type: 'order_created',
+        title: `Başlık ${id}`,
+        message: `Mesaj ${id}`,
+        isRead: true,
+        createdAt: new Date().toISOString(),
+        data: { orderId: `o-${id}` },
+      })),
+      pagination: { page: p, limit: 20, total: 36, pages },
+      unreadCount: 0,
+    },
+  });
+
+  it('ilk sayfa isteği sayfa parametresiyle gider', async () => {
+    getAll.mockResolvedValue(page(['a1'], 1, 1));
+    renderWithProviders(<NotificationsScreen />);
+
+    await waitFor(() => expect(getAll).toHaveBeenCalled());
+    expect(getAll).toHaveBeenCalledWith(expect.objectContaining({ page: 1 }));
+  });
+
+  it('listenin sonuna gelince sonraki sayfa yüklenir ve satırlar birleşir', async () => {
+    getAll.mockImplementation((params: any) =>
+      Promise.resolve(params?.page === 2 ? page(['b1'], 2, 2) : page(['a1'], 1, 2)),
+    );
+    renderWithProviders(<NotificationsScreen />);
+
+    expect(await screen.findByText('Mesaj a1')).toBeOnTheScreen();
+    // İkinci sayfa henüz istenmedi.
+    expect(screen.queryByText('Mesaj b1')).toBeNull();
+
+    fireEvent(screen.getByTestId('notifications-list'), 'endReached');
+
+    expect(await screen.findByText('Mesaj b1')).toBeOnTheScreen();
+    // Birinci sayfa da ekranda kalır — sayfalar değişmez, birikir.
+    expect(screen.getByText('Mesaj a1')).toBeOnTheScreen();
+  });
+
+  it('son sayfadayken yeni istek atılmaz', async () => {
+    getAll.mockResolvedValue(page(['a1'], 1, 1));
+    renderWithProviders(<NotificationsScreen />);
+
+    expect(await screen.findByText('Mesaj a1')).toBeOnTheScreen();
+    const before = getAll.mock.calls.length;
+
+    fireEvent(screen.getByTestId('notifications-list'), 'endReached');
+    fireEvent(screen.getByTestId('notifications-list'), 'endReached');
+
+    await waitFor(() => expect(getAll.mock.calls.length).toBe(before));
+  });
+
+  it('ikinci sayfadaki bildirim okundu işaretlenebilir', async () => {
+    getAll.mockImplementation((params: any) =>
+      Promise.resolve(
+        params?.page === 2
+          ? {
+              data: {
+                notifications: [
+                  {
+                    id: 'b1',
+                    type: 'order_created',
+                    title: 'Başlık b1',
+                    message: 'Mesaj b1',
+                    isRead: false,
+                    createdAt: new Date().toISOString(),
+                    data: { orderId: 'o-b1' },
+                  },
+                ],
+                pagination: { page: 2, limit: 20, total: 36, pages: 2 },
+                unreadCount: 1,
+              },
+            }
+          : page(['a1'], 1, 2),
+      ),
+    );
+    renderWithProviders(<NotificationsScreen />);
+
+    expect(await screen.findByText('Mesaj a1')).toBeOnTheScreen();
+    fireEvent(screen.getByTestId('notifications-list'), 'endReached');
+    expect(await screen.findByText('Mesaj b1')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText('Mesaj b1'));
+
+    await waitFor(() => expect(markAsRead).toHaveBeenCalledWith('b1'));
+  });
+});

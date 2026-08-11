@@ -1,13 +1,15 @@
 import { useCallback } from 'react';
 import { router, useFocusEffect } from 'expo-router';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import type { Notification } from '../_lib/types';
 import { routeForNotification } from '../_lib/route';
 
-type NotificationsPayload = { list: Notification[]; unreadCount: number };
+type NotificationsPayload = { list: Notification[]; unreadCount: number; hasMore: boolean };
+/** `useInfiniteQuery` önbelleğinin şekli — iyimser güncellemeler bunu düzenler. */
+type NotificationsPages = { pages: NotificationsPayload[]; pageParams: unknown[] };
 
 /**
  * Liste + okunmamış sayısı TEK sorguda.
@@ -16,10 +18,12 @@ type NotificationsPayload = { list: Notification[]; unreadCount: number };
  * bayat kalabilir ve rozet listeyle çelişirdi. Sayaç ucu düşerse sorgu
  * düşmez — yüklü sayfadan türetilir (mevcut davranış korundu).
  */
-async function fetchNotifications(): Promise<NotificationsPayload> {
+async function fetchNotifications(page: number): Promise<NotificationsPayload> {
   const [listRes, countRes] = await Promise.all([
-    notificationsApi.getAll(),
-    notificationsApi.getUnreadCount().catch(() => null),
+    notificationsApi.getAll({ page }),
+    // Sayaç YALNIZ ilk sayfada sorulur: rozet listenin tamamına ait, her sayfa
+    // için tekrar sormak aynı sayıyı N kez çekmek olurdu.
+    page === 1 ? notificationsApi.getUnreadCount().catch(() => null) : Promise.resolve(null),
   ]);
 
   // Backend `GET /notifications` → `{ notifications, unreadCount, pagination }`.
@@ -38,7 +42,12 @@ async function fetchNotifications(): Promise<NotificationsPayload> {
   const unreadCount =
     typeof c === 'number' ? c : list.filter((n: any) => !(n.read || n.isRead)).length;
 
-  return { list, unreadCount };
+  // Sunucu `{page, limit, total, pages}` döndürüyor (ölçüldü). Alan gelmezse
+  // "devamı yok" varsayılır — eski tek-sayfa davranışı.
+  const pg = (body?.pagination ?? {}) as { page?: number; pages?: number };
+  const hasMore = typeof pg.page === 'number' && typeof pg.pages === 'number' && pg.page < pg.pages;
+
+  return { list, unreadCount, hasMore };
 }
 
 /**
@@ -53,20 +62,43 @@ export function useNotifications() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const queryClient = useQueryClient();
 
-  const query = useQuery({
+  // Sayfalama: uç 20'şer döndürüyor ve fazlası SESSİZCE kesiliyordu (36 kayıtlı
+  // bir hesapta 16'sı hiç görünmüyordu). Liste zaten FlatList; eksik olan
+  // sayfa isteğiydi.
+  const query = useInfiniteQuery({
     queryKey: qk.notifications.list,
-    queryFn: fetchNotifications,
+    queryFn: ({ pageParam }) => fetchNotifications(pageParam as number),
+    initialPageParam: 1,
+    getNextPageParam: (last, all) => (last.hasMore ? all.length + 1 : undefined),
     enabled: isAuthenticated,
   });
 
-  const data = query.data ?? { list: [], unreadCount: 0 };
+  const pages = query.data?.pages ?? [];
+  const data = {
+    list: pages.flatMap((p) => p.list),
+    // Rozet listenin TAMAMINA ait; ilk sayfanın sayacı otoritedir.
+    unreadCount: pages[0]?.unreadCount ?? 0,
+  };
 
-  /** Sorgu önbelleğini yerinde günceller — ağ beklemeden liste tepki verir. */
+  /**
+   * Sorgu önbelleğini yerinde günceller — ağ beklemeden liste tepki verir.
+   *
+   * Önbellek artık SAYFALI: düzenleme her sayfaya uygulanır (işaretlenen satır
+   * ikinci sayfada olabilir), ama sayaç yalnız ilk sayfada tutulur — rozet
+   * oradan okunuyor, diğer sayfaların sayacı zaten kullanılmıyor.
+   */
   const patchCache = useCallback(
     (fn: (prev: NotificationsPayload) => NotificationsPayload) => {
-      queryClient.setQueryData<NotificationsPayload>(qk.notifications.list, (prev) =>
-        fn(prev ?? { list: [], unreadCount: 0 }),
-      );
+      queryClient.setQueryData<NotificationsPages>(qk.notifications.list, (prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          pages: prev.pages.map((p, i) => {
+            const next = fn(p);
+            return i === 0 ? next : { ...next, unreadCount: p.unreadCount };
+          }),
+        };
+      });
     },
     [queryClient],
   );
@@ -75,6 +107,7 @@ export function useNotifications() {
     mutationFn: (id: string) => notificationsApi.markAsRead(id),
     onMutate: (id) => {
       patchCache((prev) => ({
+        ...prev,
         list: prev.list.map((n) => (n.id === id ? { ...n, read: true, isRead: true } : n)),
         unreadCount: Math.max(0, prev.unreadCount - 1),
       }));
@@ -90,6 +123,7 @@ export function useNotifications() {
     mutationFn: () => notificationsApi.markAllAsRead(),
     onMutate: () => {
       patchCache((prev) => ({
+        ...prev,
         list: prev.list.map((n) => ({ ...n, read: true, isRead: true })),
         unreadCount: 0,
       }));
@@ -136,6 +170,11 @@ export function useNotifications() {
     handleBack,
     handlePress,
     handleMarkAllAsRead: () => markAllAsRead.mutate(),
+    /** Listenin sonuna gelindiğinde bir sonraki sayfayı ister. */
+    loadMore: () => {
+      if (query.hasNextPage && !query.isFetchingNextPage) query.fetchNextPage();
+    },
+    loadingMore: query.isFetchingNextPage,
   };
 }
 
