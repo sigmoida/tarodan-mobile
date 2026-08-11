@@ -1,4 +1,4 @@
-import { View, ScrollView } from 'react-native';
+import { View, ScrollView, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Text, theme, ScreenHeader } from '@/ui';
 import { router } from 'expo-router';
@@ -45,6 +45,27 @@ export default function CartScreen() {
         <Text style={styles.expiryText}>{t('cart.expiryNotice')}</Text>
       </View>
 
+      {/* Toplu seçim — sepette birden fazla satır varken anlamlı. */}
+      {f.items.length > 1 ? (
+        <TouchableOpacity
+          testID="cart-select-all"
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: f.allSelected }}
+          onPress={f.toggleSelectAll}
+          style={styles.selectAllRow}
+        >
+          <Ionicons
+            name={f.allSelected ? 'checkbox' : 'square-outline'}
+            size={22}
+            color={f.allSelected ? colors.primary[600]! : colors.text.muted}
+          />
+          <Text style={styles.selectAllLabel}>{t('cart.selectAllItems')}</Text>
+          <Text style={styles.selectAllCount}>
+            {t('cart.selectedCount', { count: f.selectedCount })}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
+
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {f.items.map((item) => (
           <CartItemRow key={item.id} item={item} f={f} />
@@ -77,7 +98,7 @@ export default function CartScreen() {
           variant="primary"
           title={t('cart.proceedToCheckout')}
           style={styles.checkoutButton}
-          disabled={f.quoteError || f.total == null}
+          disabled={f.quoteError || f.total == null || f.selectedCount === 0}
           onPress={() => router.push('/checkout')}
         />
       </View>

@@ -31,6 +31,31 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: theme.spacing[2],
   },
+  itemExcluded: {
+    color: colors.text.muted,
+    fontSize: 13,
+    fontStyle: 'italic',
+  },
+  selectBox: {
+    justifyContent: 'center',
+    paddingRight: theme.spacing[2],
+  },
+  selectAllRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing[2],
+    paddingHorizontal: theme.spacing[4],
+    paddingVertical: theme.spacing[3],
+    backgroundColor: colors.surface.DEFAULT,
+  },
+  selectAllLabel: {
+    flex: 1,
+    color: colors.text.body,
+  },
+  selectAllCount: {
+    color: colors.text.muted,
+    fontSize: 13,
+  },
   expiryNotice: {
     flexDirection: 'row',
     alignItems: 'center',

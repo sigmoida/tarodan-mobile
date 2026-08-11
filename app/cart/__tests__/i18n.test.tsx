@@ -36,6 +36,13 @@ const mockCart = {
   isAuthenticated: true,
   updateQuantity: jest.fn(),
   removeItem: jest.fn(),
+  // Satır seçimi (P2 #10) — ekran her satır için okur.
+  selectedItems: [] as unknown[],
+  selectedCount: 0,
+  allSelected: true,
+  isSelected: () => true,
+  toggleSelected: jest.fn(),
+  toggleSelectAll: jest.fn(),
 };
 jest.mock('../_hooks/useCart', () => ({ useCart: () => mockCart }));
 

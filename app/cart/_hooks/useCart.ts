@@ -18,6 +18,22 @@ import { useServerCart } from '@/hooks/useServerCart';
  */
 export function useCart() {
   const { items, getItemCount, cleanExpiredItems } = useCartStore();
+  // Seçim store'da: checkout ayrı bir rota ve aynı kaynaktan okuyor. Ekranda
+  // `useState` olsaydı ödeme adımı seçimi göremezdi.
+  const deselectedIds = useCartStore((s) => s.deselectedIds);
+  const toggleSelected = useCartStore((s) => s.toggleSelected);
+  const setAllSelected = useCartStore((s) => s.setAllSelected);
+
+  /**
+   * Fiyatlanan ve ödenecek satırlar. `items` yerine BUNLAR quote'a gider —
+   * uç zaten yalnız gönderilen satırları fiyatlıyor, o yüzden seçim tek başına
+   * istemci tarafında bitiyor.
+   */
+  const selected = useMemo(
+    () => items.filter((i) => !deselectedIds.includes(i.id)),
+    [items, deselectedIds],
+  );
+  const allSelected = items.length > 0 && selected.length === items.length;
   // Yazmalar sunucu sepetine de aynalanır (üyede); okuma yerel store'dan.
   const sync = useCartSync();
   const { byProductId } = useServerCart();
@@ -33,14 +49,14 @@ export function useCart() {
   // Fiyat kırılımı checkout ile AYNI uçtan ve AYNI anahtardan gelir — sepet ile
   // ödeme ekranı arasında tek bir doğru vardır.
   const quoteQuery = useQuery({
-    queryKey: qk.checkout.quote(items.map((it) => `${it.productId}:${it.quantity}`).join(',')),
+    queryKey: qk.checkout.quote(selected.map((it) => `${it.productId}:${it.quantity}`).join(',')),
     queryFn: async () => {
       const res = await ordersApi.getQuote({
-        items: items.map((it) => ({ productId: it.productId, quantity: it.quantity })),
+        items: selected.map((it) => ({ productId: it.productId, quantity: it.quantity })),
       });
       return unwrapEnvelope<OrderQuoteResponse>(res);
     },
-    enabled: items.length > 0,
+    enabled: selected.length > 0,
     staleTime: 60_000,
     // 4xx yeniden denenmez — checkout ile AYNI yüklem (tek kaynak, §5). Sepet
     // ve checkout aynı queryKey'i paylaşıyor; yüklem burada eksik olsaydı aynı
@@ -95,6 +111,13 @@ export function useCart() {
     items,
     isAuthenticated,
     itemCount,
+    /** Ödemeye girecek satırlar; seçim kutuları ve ödeme kapısı bunu okur. */
+    selectedItems: selected,
+    selectedCount: selected.length,
+    allSelected,
+    isSelected: (itemId: string) => !deselectedIds.includes(itemId),
+    toggleSelected,
+    toggleSelectAll: () => setAllSelected(!allSelected),
     // Fiyat — hepsi `pricing.summary`'nin aynısı; yoksa `null` (yer tutucu).
     productAmount,
     shippingAmount,

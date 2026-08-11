@@ -236,8 +236,8 @@ netleşmeli.
 | ~~7~~ | 🟡 Payload hazır (2026-08-10) ama **oluşturma ekranında UI yok** — satıcı yeni ilanı doğrudan indirimli açamıyor: `originalPrice`, `salePrice`, `saleStartDate`, `saleEndDate`. Etkin fiyatı istemcide türetme — `price`/`oldPrice`/`isOnSale` esas | delta 18 §2b |
 | ~~8~~ | 🧱 **Backend bekliyor** — alan yayınlanmıyor (ölçüldü). `relatedOrder` / `relatedTrade` — satılmış/rezerve ilan aksiyonunu tahminî `orderId`'den türetmeyi bırak | delta 18 §2e |
 | 9 | `distanceSalesAccepted` (opsiyonel) + onay kutusu. **İlk çağrıda gönder** (idempotency replay sonradan gelen onayı işlemez). Buy-now `/orders/buy` kullanıyorsa onay düşemez — tek ürünlük `/orders/checkout`'a geçmeyi değerlendir | delta 17 §2 |
-| 10 | **Sepette satır seçerek ödeme** — API işi **sıfır**, tamamen istemci durumu. `POST /orders/quote`/`checkout` zaten gönderilen `items`'ı fiyatlıyor ve yalnız onları sepetten düşüyor | delta 17 §3 |
-| 11 | Checkout sonrası sepeti **yeniden çek**, `DELETE /cart/items` atma — sunucu satırları transaction içinde zaten siliyor, ekstra silme `404` alır | delta 17 §3 |
+| ~~10~~ | ✅ **KAPANDI** (2026-08-11) — satır başına onay kutusu + "tümünü seç"; seçim `cartStore.deselectedIds`'te (opt-out: sonradan eklenen satır kendiliğinden seçili). Quote ve checkout yalnız seçilileri görüyor, seçim dışı satır fiyat yerine sebebini yazıyor, hiçbiri seçili değilken ödeme kapalı | delta 17 §3 |
+| ~~11~~ | ✅ **KAPANDI** (2026-08-11) — `cartApi.clear()` kaldırıldı; yerelde yalnız ödenen satırlar düşüyor (`onPurchaseComplete`, yazılmış ama hiç çağrılmayan bir ilkeydi), sunucu sepeti `qk.cart.mine` invalidate ile tazeleniyor. Satır seçimiyle birlikte bu artık yalnız gereksiz değil **yıkıcıydı**: `DELETE /cart` seçilmeyen satırları da silerdi | delta 17 §3 |
 | 12 | Bülten formu: kutular **işaretsiz** başlasın (KVKK/ETK); ikisi de `false` → yeni `400` | delta 17 §6 |
 | 13 | `GET /products/filters` → `scales` **boş dizi** dönebilir (16'lık sabit fallback kaldırıldı); filtre UI'ı `[]`'e dayanıklı olsun | delta 17 §7 |
 | 14 | `DELETE /membership/cards/:id` başarılı yanıtından sonra listeyi invalidate et; PayTR temizliğini bekleme | delta 18 §5 |

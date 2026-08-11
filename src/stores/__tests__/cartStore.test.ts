@@ -174,3 +174,73 @@ describe('J61 · süresi dolan ürünler (cleanExpiredItems)', () => {
     expect(s.items.map(i => i.id)).toEqual(['b']);
   });
 });
+
+/**
+ * P2 #10 — sepette satır seçerek ödeme. API işi yok: `POST /orders/quote` ve
+ * `/orders/checkout` zaten yalnız gönderilen `items`'ı fiyatlıyor ve yalnız
+ * onları sepetten düşüyor.
+ *
+ * Seçim OPT-OUT tutulur (`deselectedIds`): varsayılan "hepsi seçili" ve sonradan
+ * eklenen satır kendiliğinden seçili gelir. Opt-in bir liste olsaydı her ekleme
+ * yolunun (addItem/addToCart/sunucudan senkron) listeyi güncellemesi gerekirdi.
+ */
+describe('P2 #10 · sepette satır seçimi', () => {
+  const seed = () => {
+    useCartStore.setState({ items: [], deselectedIds: [] });
+    useCartStore.getState().addItem({ productId: 'p1', title: 'A', price: 10 } as any);
+    useCartStore.getState().addItem({ productId: 'p2', title: 'B', price: 20 } as any);
+  };
+
+  it('varsayılan olarak tüm satırlar seçilidir', () => {
+    seed();
+    const s = useCartStore.getState();
+    expect(s.selectedItems().map((i) => i.productId)).toEqual(['p1', 'p2']);
+    expect(s.isSelected(s.items[0]!.id)).toBe(true);
+  });
+
+  it('satır seçimi kaldırılınca seçili listeden çıkar, tekrar seçilince döner', () => {
+    seed();
+    const id = useCartStore.getState().items[0]!.id;
+    useCartStore.getState().toggleSelected(id);
+    expect(useCartStore.getState().selectedItems().map((i) => i.productId)).toEqual(['p2']);
+    expect(useCartStore.getState().isSelected(id)).toBe(false);
+
+    useCartStore.getState().toggleSelected(id);
+    expect(useCartStore.getState().selectedItems().map((i) => i.productId)).toEqual(['p1', 'p2']);
+  });
+
+  it('seçim kaldırıldıktan SONRA eklenen satır seçili gelir', () => {
+    seed();
+    useCartStore.getState().toggleSelected(useCartStore.getState().items[0]!.id);
+    useCartStore.getState().addItem({ productId: 'p3', title: 'C', price: 30 } as any);
+    expect(useCartStore.getState().selectedItems().map((i) => i.productId)).toEqual(['p2', 'p3']);
+  });
+
+  it('tümünü seç / tümünü bırak', () => {
+    seed();
+    useCartStore.getState().setAllSelected(false);
+    expect(useCartStore.getState().selectedItems()).toHaveLength(0);
+    useCartStore.getState().setAllSelected(true);
+    expect(useCartStore.getState().selectedItems()).toHaveLength(2);
+  });
+
+  it('satın alınan satırlar düşerken seçim kaydı da temizlenir', () => {
+    seed();
+    const p2Id = useCartStore.getState().items[1]!.id;
+    useCartStore.getState().toggleSelected(p2Id);
+    useCartStore.getState().onPurchaseComplete(['p1']);
+
+    const s = useCartStore.getState();
+    expect(s.items.map((i) => i.productId)).toEqual(['p2']);
+    // p2 hâlâ seçili DEĞİL — kullanıcının kararı korunur.
+    expect(s.isSelected(p2Id)).toBe(false);
+  });
+
+  it('sepetten silinen satırın seçim kaydı artık taşınmaz', () => {
+    seed();
+    const id = useCartStore.getState().items[0]!.id;
+    useCartStore.getState().toggleSelected(id);
+    useCartStore.getState().removeItem(id);
+    expect(useCartStore.getState().deselectedIds).not.toContain(id);
+  });
+});

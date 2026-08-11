@@ -22,6 +22,23 @@ export function CartItemRow({ item, f }: { item: any; f: CartController }) {
 
   return (
     <View testID="cart-item-row" style={styles.cartItem}>
+      {/* Seçim kutusu — ödemeye girecek satırları kullanıcı belirler; seçimi
+          kalkan satır quote'a da gönderilmez. */}
+      <TouchableOpacity
+        testID={`cart-item-select-${item.productId}`}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: f.isSelected(item.id) }}
+        accessibilityLabel={t('cart.selectItem')}
+        onPress={() => f.toggleSelected(item.id)}
+        hitSlop={8}
+        style={styles.selectBox}
+      >
+        <Ionicons
+          name={f.isSelected(item.id) ? 'checkbox' : 'square-outline'}
+          size={22}
+          color={f.isSelected(item.id) ? colors.primary[600]! : colors.text.muted}
+        />
+      </TouchableOpacity>
       <TouchableOpacity onPress={() => router.push(`/product/${item.productId}`)}>
         <Image
           source={{ uri: transformImageUrl(item.imageUrl) || IMAGE_PLACEHOLDER }}
@@ -40,9 +57,17 @@ export function CartItemRow({ item, f }: { item: any; f: CartController }) {
             eski indirimli fiyat, özette yeni ara toplam görünürdü. Ayrıca
             `₺{n.toLocaleString('tr-TR')}` `formatPrice` ailesinin dışındaydı —
             aynı ekranda "₺100" ile "100,00 TL" yan yana basılıyordu. */}
-        <Text style={styles.itemPrice} testID="cart-item-unit-price">
-          {formatServerPrice(f.unitPriceFor(item.productId))}
-        </Text>
+        {/* Seçim dışı satırın quote karşılığı YOK; çıplak "—" basmak
+            "fiyat alınamadı" gibi okunuyordu. Sebebini söyle. */}
+        {f.isSelected(item.id) ? (
+          <Text style={styles.itemPrice} testID="cart-item-unit-price">
+            {formatServerPrice(f.unitPriceFor(item.productId))}
+          </Text>
+        ) : (
+          <Text style={styles.itemExcluded} testID="cart-item-excluded">
+            {t('cart.excludedFromTotal')}
+          </Text>
+        )}
         {/* Sunucudan gelen taze stok uyarısı — yerel sepetteki stok bilgisi
             ekleme anında donduğu için tükenen ürün ancak burada görünür. */}
         {stockWarning ? (

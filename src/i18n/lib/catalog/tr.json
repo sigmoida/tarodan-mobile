@@ -593,35 +593,39 @@
     "listingChangedElsewhere": "Bu ilan başka bir yerden güncellendi. En güncel hali yüklendi, değişikliklerinizi tekrar uygulayın."
   },
   "cart": {
-    "myCart": "Sepetim",
+    "addToCartFailed": "Sepete eklenemedi",
+    "addedToCart": "Sepete eklendi",
+    "applyCoupon": "Uygula",
+    "browseListings": "İlanları İncele",
+    "continueShopping": "Alışverişe Devam Et",
+    "couponApplied": "Kupon Uygulandı",
+    "couponApplyError": "Kupon uygulanamadı",
+    "couponCode": "Kupon Kodu",
+    "couponLoginRequired": "Kupon kullanmak için giriş yapmanız gerekiyor",
+    "couponPlaceholder": "Kupon kodunuzu girin",
+    "decreaseQuantity": "Adedi azalt",
     "empty": "Sepetiniz Boş",
     "emptyDesc": "İlanları inceleyin ve beğendiğiniz ürünleri sepetinize ekleyin",
-    "browseListings": "İlanları İncele",
-    "proceedToCheckout": "Ödemeye Geç",
-    "continueShopping": "Alışverişe Devam Et",
-    "itemsInCart": "ürün sepetinizde",
-    "removeItem": "Ürünü Kaldır",
-    "updateQuantity": "Adedi Güncelle",
-    "couponCode": "Kupon Kodu",
-    "couponPlaceholder": "Kupon kodunuzu girin",
-    "applyCoupon": "Uygula",
-    "couponApplied": "Kupon Uygulandı",
-    "removeCoupon": "Kuponu Kaldır",
-    "couponApplyError": "Kupon uygulanamadı",
-    "couponLoginRequired": "Kupon kullanmak için giriş yapmanız gerekiyor",
-    "addedToCart": "Sepete eklendi",
-    "addToCartFailed": "Sepete eklenemedi",
     "excludedFromTotal": "Ödenecek toplama dahil değildir",
-    "decreaseQuantity": "Adedi azalt",
-    "increaseQuantity": "Adedi arttır",
-    "lineTotal": "Satır toplamı",
     "expiryNotice": "Sepetinizdeki ürünler 24 saat sonra otomatik olarak silinir",
-    "myCartWithCount": "Sepetim ({count})",
-    "subtotalWithCount": "Ara Toplam ({count} ürün)",
-    "priceUnavailableTitle": "Fiyat bilgisi alınamadı",
-    "priceUnavailableMessage": "Sepet tutarı sunucudan alınamadı. Bağlantınızı kontrol edip tekrar deneyin.",
     "guestNotice": "Üye olmadan da alışveriş yapabilirsiniz. Siparişinizi e-posta ile takip edebilirsiniz.",
-    "outOfStock": "Bu ürün şu anda stokta yok"
+    "increaseQuantity": "Adedi arttır",
+    "itemsInCart": "ürün sepetinizde",
+    "lineTotal": "Satır toplamı",
+    "myCart": "Sepetim",
+    "myCartWithCount": "Sepetim ({count})",
+    "noneSelected": "Ödemek için en az bir ürün seçin",
+    "outOfStock": "Bu ürün şu anda stokta yok",
+    "priceUnavailableMessage": "Sepet tutarı sunucudan alınamadı. Bağlantınızı kontrol edip tekrar deneyin.",
+    "priceUnavailableTitle": "Fiyat bilgisi alınamadı",
+    "proceedToCheckout": "Ödemeye Geç",
+    "removeCoupon": "Kuponu Kaldır",
+    "removeItem": "Ürünü Kaldır",
+    "selectAllItems": "Tümünü seç",
+    "selectItem": "Bu ürünü seç",
+    "selectedCount": "{count} ürün seçili",
+    "subtotalWithCount": "Ara Toplam ({count} ürün)",
+    "updateQuantity": "Adedi Güncelle"
   },
   "favorites": {
     "myFavorites": "Favorilerim",
@@ -727,7 +731,7 @@
     "guestShoppingNotice": "Üye olmadan alışveriş yapıyorsunuz. Siparişinizi takip etmek için e-posta adresinizi girin.",
     "pleaseFillIn": "Lütfen şu alanları doldurun: {fields}",
     "selectOrEnterShippingAddress": "Lütfen bir teslimat adresi seçin veya girin",
-    "orderCreatedPaymentFailed": "Sipariş oluşturuldu ancak ödeme başlatılamadı. Lütfen Siparişlerim sayfasından ödemeyi tamamlayın.",
+    "orderCreatedPaymentFailed": "Sipariş oluşturuldu fakat ödeme başlatılamadı. Siparişlerim sayfasından devam edebilirsiniz.",
     "paymentInitFailedRetry": "Ödeme başlatılamadı. Lütfen tekrar deneyin.",
     "completePaymentFromOrders": "Lütfen ödemeyi Siparişlerim sayfasından tamamlayın.",
     "emailAlreadyRegistered": "Bu e-posta adresi zaten kayıtlı. Lütfen giriş yapıp alışverişe devam edin.",
@@ -768,7 +772,6 @@
     "priceUnavailableBody": "Fiyat bilgisi alınamadı. Ödeme detayı kartındaki \"Tekrar Dene\" ile yeniden deneyin.",
     "priceNotReadyBody": "Fiyat bilgisi yükleniyor, lütfen birkaç saniye sonra tekrar deneyin.",
     "phoneInvalidTitle": "Telefon Numarası Geçersiz",
-    "orderCreatedPaymentFailed": "Sipariş oluşturuldu fakat ödeme başlatılamadı. Siparişlerim sayfasından devam edebilirsiniz.",
     "paymentStartFailedBody": "Ödeme başlatılamadı. Siparişinizi daha sonra siparişlerim üzerinden tamamlayabilirsiniz.",
     "paymentStartFailedTitle": "Ödeme Başlatılamadı",
     "pricesUpdatedTitle": "Fiyatlar Güncellendi",
@@ -813,7 +816,7 @@
     "statusProcessing": "Hazırlanıyor",
     "noOrders": "Henüz siparişiniz yok",
     "viewOrder": "Siparişi Gör",
-    "orderCancelled": "Sipariş iptal edildi",
+    "orderCancelled": "Siparişiniz iptal edildi.",
     "orderNotFound": "Sipariş bulunamadı",
     "statusUpdated": "Sipariş durumu güncellendi",
     "paymentNotFound": "Ödeme bilgisi bulunamadı",
@@ -863,7 +866,7 @@
     "refundWindowClosed": "İade Süresi Doldu",
     "cancelConfirmYes": "Evet, iptal et",
     "cancelConfirmNo": "Vazgeç",
-    "refundRequestCreated": "İade talebi oluşturuldu",
+    "refundRequestCreated": "İade talebiniz oluşturuldu.",
     "refundReasonChangedMind": "Vazgeçtim / fikrim değişti",
     "refundReasonDamaged": "Hasarlı geldi",
     "refundReasonWrongItem": "Yanlış ürün geldi",
@@ -960,8 +963,8 @@
     "reactivateFailed": "Sipariş aktive edilemedi",
     "reactivateSuccess": "Sipariş yeniden aktive edildi. Ödemenizi tamamlayabilirsiniz.",
     "invoiceReplaced": "Fatura değiştirildi, alıcıya mail gönderildi",
-    "invoiceUploaded": "Fatura yüklendi, alıcıya mail gönderildi",
-    "refundRequestFailed": "İade talebi oluşturulamadı",
+    "invoiceUploaded": "Fatura yüklendi. Alıcıya e-posta ile iletildi.",
+    "refundRequestFailed": "İade talebi oluşturulamadı.",
     "descriptionMin20": "Açıklama en az 20 karakter olmalıdır",
     "photoEvidenceRequired": "Bu sebep için en az bir kanıt fotoğrafı gereklidir",
     "refundPhasePreparing": "Satıcı henüz kargoya vermedi. İadeniz anında işlenecek.",
@@ -994,12 +997,8 @@
     "statusRejected": "Talep Reddedildi",
     "heldForRefund": "İade nedeniyle bekletiliyor",
     "invoiceOpenFailed": "Fatura açılamadı",
-    "invoiceUploaded": "Fatura yüklendi. Alıcıya e-posta ile iletildi.",
     "invoiceUploadFailed": "Fatura yüklenemedi.",
     "fileTooLarge": "Dosya çok büyük (en fazla 10 MB).",
-    "refundRequestCreated": "İade talebiniz oluşturuldu.",
-    "refundRequestFailed": "İade talebi oluşturulamadı.",
-    "orderCancelled": "Siparişiniz iptal edildi.",
     "orderCancelFailed": "Sipariş iptal edilemedi.",
     "permissionRequired": "İzin Gerekli",
     "galleryPermissionBody": "Fotoğraf eklemek için galeri erişim izni gerekiyor.",
@@ -2478,7 +2477,10 @@
       "reviews": {
         "title": "Yorumlar",
         "description": "Ürün ve satıcı yorumlarını yönetin",
-        "tabs": { "product": "Ürün Yorumları", "seller": "Satıcı Yorumları" },
+        "tabs": {
+          "product": "Ürün Yorumları",
+          "seller": "Satıcı Yorumları"
+        },
         "allStatuses": "Tüm Durumlar",
         "filters": {
           "pending": "Bekleyenler",
@@ -2605,7 +2607,10 @@
           "approved": "Onaylananlar",
           "rejected": "Reddedilenler"
         },
-        "status": { "sent": "Gönderildi", "pending": "Onay Bekliyor" },
+        "status": {
+          "sent": "Gönderildi",
+          "pending": "Onay Bekliyor"
+        },
         "summary": {
           "approved": "onaylanmış mesaj",
           "rejected": "reddedilen mesaj",
@@ -2616,7 +2621,10 @@
       "support": {
         "title": "Destek Merkezi",
         "subtitle": "Destek taleplerini ve misafir mesajlarını yönetin",
-        "tabs": { "tickets": "Destek Talepleri", "guest": "Misafir Mesajları" },
+        "tabs": {
+          "tickets": "Destek Talepleri",
+          "guest": "Misafir Mesajları"
+        },
         "notFound": "Destek talebi bulunamadı",
         "guestNotFound": "Misafir mesajı bulunamadı",
         "ticketNumber": "Talep No",
@@ -3140,7 +3148,10 @@
           "inline": "İçerik Arası",
           "popup": "Popup"
         },
-        "device": { "desktop": "Masaüstü", "mobile": "Mobil" },
+        "device": {
+          "desktop": "Masaüstü",
+          "mobile": "Mobil"
+        },
         "upload": {
           "formats": "Sadece JPG, PNG ve WebP desteklenir",
           "maxSize": "Dosya en fazla 2MB olmalı",
@@ -3150,7 +3161,9 @@
           "chooseFile": "Dosya Seç",
           "urlPlaceholder": "veya görsel URL'si yapıştırın"
         },
-        "validation": { "titleRequired": "Başlık gerekli" }
+        "validation": {
+          "titleRequired": "Başlık gerekli"
+        }
       },
       "discounts": {
         "title": "İndirim Yönetimi",
@@ -3220,7 +3233,10 @@
           "product": "Ürün",
           "seller": "Satıcı"
         },
-        "status": { "expired": "Süresi Doldu", "unknown": "Belirsiz" },
+        "status": {
+          "expired": "Süresi Doldu",
+          "unknown": "Belirsiz"
+        },
         "type": {
           "percentage": "Yüzde (%)",
           "fixedAmount": "Sabit Tutar (TL)",

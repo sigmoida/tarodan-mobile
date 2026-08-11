@@ -7,7 +7,6 @@ import {
   ordersApi,
   paymentsApi,
   addressesApi,
-  cartApi,
   toExpectedPricing,
   type OrderAddressInput,
   type OrderQuoteResponse,
@@ -83,26 +82,29 @@ export function useCheckout() {
   const { t } = useTranslation();
   const { buyNow } = useLocalSearchParams<{ buyNow?: string }>();
   const isBuyNow = buyNow === '1';
-  const { items: cartItems, clearCart: clearCartStore, buyNowItem, clearBuyNow } = useCartStore();
+  const {
+    items: cartItems,
+    deselectedIds,
+    onPurchaseComplete,
+    buyNowItem,
+    clearBuyNow,
+  } = useCartStore();
   const { isAuthenticated, user } = useAuthStore();
 
+  /**
+   * Ödenecek satırlar. Sepet yolunda kullanıcının SEÇTİKLERİ — uç zaten yalnız
+   * gönderilen `items`'ı fiyatlıyor ve yalnız onları sepetten düşüyor.
+   */
   const items = useMemo(
-    () => (isBuyNow ? (buyNowItem ? [buyNowItem] : []) : cartItems),
-    [isBuyNow, buyNowItem, cartItems],
+    () =>
+      isBuyNow
+        ? buyNowItem
+          ? [buyNowItem]
+          : []
+        : cartItems.filter((i) => !deselectedIds.includes(i.id)),
+    [isBuyNow, buyNowItem, cartItems, deselectedIds],
   );
-  const finalizeCart = () => {
-    if (isBuyNow) {
-      clearBuyNow();
-      return;
-    }
-    clearCartStore();
-    // Üyede sunucu sepeti de boşaltılır; yoksa satın alınan satırlar orada kalır.
-    if (isAuthenticated) {
-      cartApi.clear().catch((error) =>
-        captureException(error, { level: 'warning', tags: { flow: 'checkout.clearServerCart' } }),
-      );
-    }
-  };
+
 
   const [step, setStep] = useState(1);
 
@@ -223,6 +225,23 @@ export function useCheckout() {
   const coupon = useCoupon(items, isAuthenticated);
 
   const queryClient = useQueryClient();
+
+  /**
+   * Ödeme bittikten sonra sepet. `DELETE /cart` ÇAĞRILMAZ: sunucu satın alınan
+   * satırları transaction içinde zaten siliyor, ekstra silme hem gereksiz hem —
+   * satır seçimi geldiğinden beri — yıkıcı: seçilmeyen satırlar da uçardı.
+   * Yerelde yalnız ödenenler düşer, sunucu sepeti yeniden çekilir.
+   */
+  const finalizeCart = () => {
+    if (isBuyNow) {
+      clearBuyNow();
+      return;
+    }
+    onPurchaseComplete(items.map((i) => i.productId));
+    if (isAuthenticated) {
+      queryClient.invalidateQueries({ queryKey: qk.cart.mine });
+    }
+  };
   const itemsSignature = useMemo(
     () => items.map((it) => `${it.productId}:${it.quantity}`).join(','),
     [items],

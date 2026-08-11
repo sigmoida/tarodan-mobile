@@ -41,7 +41,7 @@ export function CartSummary({ f }: { f: CartController }) {
         <View style={styles.summary}>
           <Text style={styles.summaryTitle}>{t('checkout.orderSummary')}</Text>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>{t('cart.subtotalWithCount', { count: f.itemCount })}</Text>
+            <Text style={styles.summaryLabel}>{t('cart.subtotalWithCount', { count: f.selectedCount })}</Text>
             <Text style={styles.summaryValue}>{formatServerPrice(f.productAmount)}</Text>
           </View>
           <View style={styles.summaryRow}>

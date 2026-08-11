@@ -33,6 +33,17 @@ interface CartState {
    */
   buyNowItem: CartItem | null;
 
+  /**
+   * Ödemeye GİRMEYECEK satırların id'leri. Seçim bilerek OPT-OUT tutuluyor:
+   * varsayılan "hepsi seçili" ve sonradan eklenen satır kendiliğinden seçili
+   * gelir. Opt-in bir liste olsaydı her ekleme yolunun (addItem / addToCart /
+   * sunucudan senkron) listeyi ayrıca güncellemesi gerekirdi ve biri unutulunca
+   * kullanıcı eklediği ürünü ödeyemezdi.
+   *
+   * Kalıcı depoya yazılmaz (partialize) — seçim oturumluk bir karardır.
+   */
+  deselectedIds: string[];
+
   // Actions
   addItem: (item: Omit<CartItem, 'id' | 'quantity' | 'addedAt'>) => void;
   setBuyNow: (item: Omit<CartItem, 'id' | 'quantity' | 'addedAt'>) => void;
@@ -44,7 +55,13 @@ interface CartState {
   clearCart: () => void;
   cleanExpiredItems: () => void;
   onPurchaseComplete: (productIds: string[]) => void;
-  
+  toggleSelected: (itemId: string) => void;
+  setAllSelected: (selected: boolean) => void;
+
+  /** Ödemeye girecek satırlar — quote da checkout da YALNIZ bunları görür. */
+  selectedItems: () => CartItem[];
+  isSelected: (itemId: string) => boolean;
+
   // Computed
   // NOT: `getSubtotal()` BİLEREK YOK. Yerel `price × quantity` toplamı hiçbir
   // sunucu alanına karşılık gelmiyor (sepetteki fiyat ekleme anında donuyor,
@@ -74,6 +91,11 @@ export function maxAllowedQty(item: {
   return caps.length ? Math.min(CART_MAX_QTY, ...caps) : CART_MAX_QTY;
 }
 
+/** Sepetten düşen satırların seçim kaydını da düşürür (bayat id birikmesin). */
+function pruneDeselected(deselectedIds: string[], removedItemIds: string[]): string[] {
+  return deselectedIds.filter((id) => !removedItemIds.includes(id));
+}
+
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
@@ -81,6 +103,7 @@ export const useCartStore = create<CartState>()(
       lastUpdated: Date.now(),
       isLoading: false,
       buyNowItem: null,
+      deselectedIds: [],
 
       setBuyNow: (item) => {
         set({
@@ -151,12 +174,21 @@ export const useCartStore = create<CartState>()(
 
       removeItem: (itemId) => {
         const items = get().items.filter(i => i.id !== itemId);
-        set({ items, lastUpdated: Date.now() });
+        set({
+          items,
+          deselectedIds: pruneDeselected(get().deselectedIds, [itemId]),
+          lastUpdated: Date.now(),
+        });
       },
 
       removeByProductId: (productId: string) => {
+        const removedIds = get().items.filter(i => i.productId === productId).map(i => i.id);
         const items = get().items.filter(i => i.productId !== productId);
-        set({ items, lastUpdated: Date.now() });
+        set({
+          items,
+          deselectedIds: pruneDeselected(get().deselectedIds, removedIds),
+          lastUpdated: Date.now(),
+        });
       },
 
       updateQuantity: (itemId, quantity) => {
@@ -173,7 +205,7 @@ export const useCartStore = create<CartState>()(
       },
 
       clearCart: () => {
-        set({ items: [], lastUpdated: Date.now() });
+        set({ items: [], deselectedIds: [], lastUpdated: Date.now() });
       },
 
       cleanExpiredItems: () => {
@@ -184,15 +216,46 @@ export const useCartStore = create<CartState>()(
         });
         
         if (items.length !== get().items.length) {
-          set({ items, lastUpdated: Date.now() });
+          const keptIds = items.map((i) => i.id);
+          set({
+            items,
+            deselectedIds: get().deselectedIds.filter((id) => keptIds.includes(id)),
+            lastUpdated: Date.now(),
+          });
         }
       },
 
       // Remove purchased items from cart
       onPurchaseComplete: (productIds: string[]) => {
+        const removed = get().items.filter((i) => productIds.includes(i.productId));
         const items = get().items.filter(item => !productIds.includes(item.productId));
-        set({ items, lastUpdated: Date.now() });
+        set({
+          items,
+          // Düşen satırların seçim kaydı da gider; kalanlarınki korunur.
+          deselectedIds: pruneDeselected(get().deselectedIds, removed.map((i) => i.id)),
+          lastUpdated: Date.now(),
+        });
       },
+
+      toggleSelected: (itemId: string) => {
+        const cur = get().deselectedIds;
+        set({
+          deselectedIds: cur.includes(itemId)
+            ? cur.filter((id) => id !== itemId)
+            : [...cur, itemId],
+        });
+      },
+
+      setAllSelected: (selected: boolean) => {
+        set({ deselectedIds: selected ? [] : get().items.map((i) => i.id) });
+      },
+
+      selectedItems: () => {
+        const { items, deselectedIds } = get();
+        return items.filter((i) => !deselectedIds.includes(i.id));
+      },
+
+      isSelected: (itemId: string) => !get().deselectedIds.includes(itemId),
 
       getItemCount: () => {
         return get().items.reduce((sum, item) => sum + item.quantity, 0);

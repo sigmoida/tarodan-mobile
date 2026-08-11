@@ -593,35 +593,39 @@
     "listingChangedElsewhere": "This listing was updated elsewhere. The latest version has been loaded; please reapply your changes."
   },
   "cart": {
-    "myCart": "My Cart",
+    "addToCartFailed": "Could not add to cart",
+    "addedToCart": "Added to cart",
+    "applyCoupon": "Apply",
+    "browseListings": "Browse Listings",
+    "continueShopping": "Continue Shopping",
+    "couponApplied": "Coupon Applied",
+    "couponApplyError": "Coupon could not be applied",
+    "couponCode": "Coupon Code",
+    "couponLoginRequired": "Please sign in to use a coupon",
+    "couponPlaceholder": "Enter your coupon code",
+    "decreaseQuantity": "Decrease quantity",
     "empty": "Your Cart is Empty",
     "emptyDesc": "Browse listings and add items you like to your cart",
-    "browseListings": "Browse Listings",
-    "proceedToCheckout": "Proceed to Checkout",
-    "continueShopping": "Continue Shopping",
-    "itemsInCart": "items in cart",
-    "removeItem": "Remove Item",
-    "updateQuantity": "Update Quantity",
-    "couponCode": "Coupon Code",
-    "couponPlaceholder": "Enter your coupon code",
-    "applyCoupon": "Apply",
-    "couponApplied": "Coupon Applied",
-    "removeCoupon": "Remove Coupon",
-    "couponApplyError": "Coupon could not be applied",
-    "couponLoginRequired": "Please sign in to use a coupon",
-    "addedToCart": "Added to cart",
-    "addToCartFailed": "Could not add to cart",
     "excludedFromTotal": "Not included in the payable total",
-    "decreaseQuantity": "Decrease quantity",
-    "increaseQuantity": "Increase quantity",
-    "lineTotal": "Line total",
     "expiryNotice": "Items in your cart are removed automatically after 24 hours",
-    "myCartWithCount": "My Cart ({count})",
-    "subtotalWithCount": "Subtotal ({count} items)",
-    "priceUnavailableTitle": "Price unavailable",
-    "priceUnavailableMessage": "The cart total could not be retrieved. Check your connection and try again.",
     "guestNotice": "You can shop without an account and follow your order by e-mail.",
-    "outOfStock": "This item is out of stock"
+    "increaseQuantity": "Increase quantity",
+    "itemsInCart": "items in cart",
+    "lineTotal": "Line total",
+    "myCart": "My Cart",
+    "myCartWithCount": "My Cart ({count})",
+    "noneSelected": "Select at least one item to check out",
+    "outOfStock": "This item is out of stock",
+    "priceUnavailableMessage": "The cart total could not be retrieved. Check your connection and try again.",
+    "priceUnavailableTitle": "Price unavailable",
+    "proceedToCheckout": "Proceed to Checkout",
+    "removeCoupon": "Remove Coupon",
+    "removeItem": "Remove Item",
+    "selectAllItems": "Select all",
+    "selectItem": "Select this item",
+    "selectedCount": "{count} item(s) selected",
+    "subtotalWithCount": "Subtotal ({count} items)",
+    "updateQuantity": "Update Quantity"
   },
   "favorites": {
     "myFavorites": "My Favorites",
@@ -727,7 +731,7 @@
     "guestShoppingNotice": "You are shopping without logging in. Enter your email to track your order.",
     "pleaseFillIn": "Please fill in: {fields}",
     "selectOrEnterShippingAddress": "Please select or enter a shipping address",
-    "orderCreatedPaymentFailed": "Order was created but could not start payment. Please go to My Orders to complete payment.",
+    "orderCreatedPaymentFailed": "The order was created but payment could not start. Continue from My Orders.",
     "paymentInitFailedRetry": "Failed to initiate payment. Please try again.",
     "completePaymentFromOrders": "Please complete payment from My Orders.",
     "emailAlreadyRegistered": "This email is already registered. Please sign in to continue.",
@@ -768,7 +772,6 @@
     "priceUnavailableBody": "The price could not be retrieved. Use \"Try again\" on the payment detail card.",
     "priceNotReadyBody": "The price is still loading, please try again in a few seconds.",
     "phoneInvalidTitle": "Invalid phone number",
-    "orderCreatedPaymentFailed": "The order was created but payment could not start. Continue from My Orders.",
     "paymentStartFailedBody": "Payment could not start. You can complete the order later from My Orders.",
     "paymentStartFailedTitle": "Payment could not start",
     "pricesUpdatedTitle": "Prices updated",
@@ -813,7 +816,7 @@
     "statusProcessing": "Preparing",
     "noOrders": "No orders yet",
     "viewOrder": "View Order",
-    "orderCancelled": "Order cancelled",
+    "orderCancelled": "Your order was cancelled.",
     "orderNotFound": "Order not found",
     "statusUpdated": "Order status updated",
     "paymentNotFound": "Payment information not found",
@@ -863,7 +866,7 @@
     "refundWindowClosed": "Refund window closed",
     "cancelConfirmYes": "Yes, cancel",
     "cancelConfirmNo": "No",
-    "refundRequestCreated": "Refund request created",
+    "refundRequestCreated": "Your refund request was created.",
     "refundReasonChangedMind": "Changed my mind",
     "refundReasonDamaged": "Damaged",
     "refundReasonWrongItem": "Wrong item",
@@ -960,8 +963,8 @@
     "reactivateFailed": "Could not reactivate order",
     "reactivateSuccess": "Order reactivated. You can complete payment now.",
     "invoiceReplaced": "Invoice replaced, buyer notified",
-    "invoiceUploaded": "Invoice uploaded, buyer notified",
-    "refundRequestFailed": "Failed to create refund request",
+    "invoiceUploaded": "Invoice uploaded and e-mailed to the buyer.",
+    "refundRequestFailed": "The refund request could not be created.",
     "descriptionMin20": "Description must be at least 20 characters",
     "photoEvidenceRequired": "Photo evidence is required for this reason",
     "refundPhasePreparing": "The seller has not shipped yet. Your refund will be processed instantly.",
@@ -994,12 +997,8 @@
     "statusRejected": "Request rejected",
     "heldForRefund": "On hold for a refund",
     "invoiceOpenFailed": "The invoice could not be opened",
-    "invoiceUploaded": "Invoice uploaded and e-mailed to the buyer.",
     "invoiceUploadFailed": "The invoice could not be uploaded.",
     "fileTooLarge": "File is too large (10 MB maximum).",
-    "refundRequestCreated": "Your refund request was created.",
-    "refundRequestFailed": "The refund request could not be created.",
-    "orderCancelled": "Your order was cancelled.",
     "orderCancelFailed": "The order could not be cancelled.",
     "permissionRequired": "Permission required",
     "galleryPermissionBody": "Gallery access is needed to attach a photo.",
@@ -2478,7 +2477,10 @@
       "reviews": {
         "title": "Reviews",
         "description": "Manage product and seller reviews",
-        "tabs": { "product": "Product Reviews", "seller": "Seller Reviews" },
+        "tabs": {
+          "product": "Product Reviews",
+          "seller": "Seller Reviews"
+        },
         "allStatuses": "All Statuses",
         "filters": {
           "pending": "Pending",
@@ -2605,7 +2607,10 @@
           "approved": "Approved",
           "rejected": "Rejected"
         },
-        "status": { "sent": "Sent", "pending": "Pending Approval" },
+        "status": {
+          "sent": "Sent",
+          "pending": "Pending Approval"
+        },
         "summary": {
           "approved": "approved messages",
           "rejected": "rejected messages",
@@ -2616,7 +2621,10 @@
       "support": {
         "title": "Support Center",
         "subtitle": "Manage support tickets and guest messages",
-        "tabs": { "tickets": "Support Tickets", "guest": "Guest Messages" },
+        "tabs": {
+          "tickets": "Support Tickets",
+          "guest": "Guest Messages"
+        },
         "notFound": "No support tickets found",
         "guestNotFound": "No guest messages found",
         "ticketNumber": "Ticket No.",
@@ -3140,7 +3148,10 @@
           "inline": "Inline",
           "popup": "Popup"
         },
-        "device": { "desktop": "Desktop", "mobile": "Mobile" },
+        "device": {
+          "desktop": "Desktop",
+          "mobile": "Mobile"
+        },
         "upload": {
           "formats": "Only JPG, PNG, and WebP are supported",
           "maxSize": "File size must not exceed 2MB",
@@ -3150,7 +3161,9 @@
           "chooseFile": "Choose File",
           "urlPlaceholder": "or paste an image URL"
         },
-        "validation": { "titleRequired": "Title is required" }
+        "validation": {
+          "titleRequired": "Title is required"
+        }
       },
       "discounts": {
         "title": "Discount Management",
@@ -3220,7 +3233,10 @@
           "product": "Product",
           "seller": "Seller"
         },
-        "status": { "expired": "Expired", "unknown": "Unknown" },
+        "status": {
+          "expired": "Expired",
+          "unknown": "Unknown"
+        },
         "type": {
           "percentage": "Percentage (%)",
           "fixedAmount": "Fixed Amount (TL)",
