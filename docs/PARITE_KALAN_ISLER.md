@@ -196,7 +196,27 @@ görseller ve nitelikler geri yazımda bozulabiliyor.
 - **`8f9ae671` (dokümansız):** Sürat durum kodu `1` artık `pending` değil
   **`picked_up`** — "şubede fiziksel kabul edildi" demek. Durum haritası gözden geçirilmeli.
 
-### 5. Kurumsal satış yetkisi (delta 18 §1)
+### 5. Kurumsal satış yetkisi (delta 18 §1) — 🔒 **ÖLÇÜLEMİYOR (2026-08-11)**
+
+Staging'de bu maddenin hiçbir sinyali üretilemiyor:
+
+- **Askıya alınmış satıcı yok** → `409 SELLER_SALES_SUSPENDED` tetiklenemiyor.
+  Satışa uygun olmayan ürün için sepet ucu `400 "Bu ürün şu an satışa uygun
+  değil"` döndürüyor ve bu gövdede **ne `i18nKey` ne yapısal kod var** (kupon
+  reddiyle aynı aile) — yani 409'un gövdesi de tahmin edilemez.
+- **Kurumsal hesap yok**: `ahmet@demo.com` ve `ali@demo.com` (dokümanda
+  BUSINESS diye geçiyor) ikisinde de `businessStatus: null`, `companyName: null`,
+  üyelik `premium` ve **2027-08-05**'e kadar aktif. Üyeliği biten kurumsal
+  satıcı akışı gözlemlenemiyor.
+- **Bayat detay**: gizlenen ürün gerçekten `404` (`i18nKey:
+  server.product.notFound`) — ama erişebildiğim gizli ilanların **hepsi kendi
+  ilanım**, o yüzden alıcının bayat-detay yolu üretilemiyor. (Sahibi için ekran
+  doğru: alt bar "İlanı Düzenle", satın alma yolu yok.)
+
+Ölçüm kapısı gereği bu maddeye ölü dal yazılmadı. Açılması için staging'de
+**askıya alınmış satış yetkisine sahip bir kurumsal satıcı + o satıcının bir
+ilanı** gerekiyor; ayrıca 409 gövdesinin ayırt edici alan taşıyıp taşımadığı
+netleşmeli.
 
 - `POST /cart/items` askıdaki satıcı ürünü için `409 SELLER_SALES_SUSPENDED`
   dönebilir.
@@ -249,7 +269,7 @@ Hiçbiri merge'ü engellemedi; gerekçeleri kapanış raporunda.
 
 | Madde | Neden mobilde kapatılamıyor |
 | --- | --- |
-| **10 üyelik limiti** hiçbir uçta yayınlanmıyor | İstemci sabiti kalmak zorunda |
+| ~~**10 üyelik limiti** hiçbir uçta yayınlanmıyor~~ **YANLIŞ — 2026-08-11 ölçümü** | `GET /membership/me/limits` `maxImages: 10`, `maxTotalListings: 200` döndürüyor; `/users/me` de `membership.tier` altında veriyor. `useMembershipLimits` beş alanın beşini de eşliyor, ilan formu sunucu değerini okuyor ("3 / 10 yüklendi" ekranda doğrulandı). Gerçek eksik daha dar: `MembershipLimits`'in kalan 10 alanı (`maxAddresses`, `maxSavedSearches`, `maxMessagesPerDay`, `listingExpireDays`, `maxReviewChars`, `maxValuePerListing`, `canFeatureListings`, `canBulkUpload`, `canScheduleListings`, `priorityInSearch`) yayınlanmıyor — onlar istemci sabiti kalıyor |
 | **İade onay/ret ucu yok** | Satıcı iade sekmesi salt okunur kalmak zorunda |
 | **IP-blok 403'ünde ayırt edici alan yok** | O hata dalı bilerek yazılmadı |
 | **Kupon reddi 400'ünde yapısal alan yok** | Ayrım mesaj metnine bağlı kalıyor |
