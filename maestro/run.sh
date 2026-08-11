@@ -6,8 +6,20 @@
 # Kullanım:
 #   ./run.sh flows/01-smoke.yaml
 #   MAESTRO_EMAIL=ahmet@demo.com ./run.sh flows/E-05-membership-manage.yaml
+#   API_URL=http://127.0.0.1:3001/api ./run.sh flows/01-smoke.yaml   # yerel backend
 set -euo pipefail
 
+# Backend adresi UYGULAMANIN OKUDUĞU yerden gelir (`.env` → EXPO_PUBLIC_API_URL).
+# Bu standalone repoda yerel `:3001` YOK; uygulama staging'e bakıyor ve harness
+# sabit `:3001` istediği için hiç çalışmıyordu. Sıra: ortam değişkeni > .env >
+# yerel varsayılan.
+MOBILE_DIR_EARLY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+env_api_url() {
+  [ -f "$MOBILE_DIR_EARLY/.env" ] || return 1
+  sed -n 's/^[[:space:]]*EXPO_PUBLIC_API_URL[[:space:]]*=[[:space:]]*//p' "$MOBILE_DIR_EARLY/.env" \
+    | tail -1 | tr -d '"'"'"'[:space:]'
+}
+API_URL="${API_URL:-$(env_api_url || true)}"
 API_URL="${API_URL:-http://127.0.0.1:3001/api}"
 METRO_PORT="${METRO_PORT:-8081}"
 MAESTRO_EMAIL="${MAESTRO_EMAIL:-zeynep@demo.com}"
@@ -20,7 +32,8 @@ err() { printf '\033[1;31m[harness]\033[0m %s\n' "$1" >&2; }
 # 1. Backend health
 log "Backend kontrol: $API_URL/categories"
 if ! curl -fsS -o /dev/null "$API_URL/categories"; then
-  err "Backend ayakta değil ($API_URL). Önce: cd apps/api && pnpm dev"
+  err "Backend ayakta değil ($API_URL)."
+  err "Adres .env'deki EXPO_PUBLIC_API_URL'den geldi; API_URL=... ile ezebilirsin."
   exit 1
 fi
 
