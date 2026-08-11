@@ -30,7 +30,6 @@ function renderCard({ role, shipment }: { role: 'buyer' | 'seller'; shipment: an
 it('ALICI: kod gelmeden PKG- referansını GÖRMEZ', () => {
   renderCard({ role: 'buyer', shipment: { trackingNumber: 'PKG-CMRGW9D6ZH', providerTrackingId: null } });
   expect(screen.queryByText(/PKG-/)).toBeNull();
-  expect(screen.getByText('Satıcı paketinizi hazırlıyor. Sürat şubesine teslim edildiği anda takip bilgileri burada görünecek.')).toBeTruthy();
 });
 
 it('ALICI: kod gelince takip numarasını ve linki görür', () => {
@@ -54,6 +53,23 @@ it('sunucunun bozuk trackingUrl"ü kullanılmaz', () => {
     },
   });
   expect(screen.queryByText('Kargoyu takip et')).toBeNull();
+});
+
+/**
+ * `providerTrackingId` hiçbir zaman gelmediği için "kod yok" dalı HER siparişte
+ * çalışıyor. Durum kapısı olmadan teslim edilmiş bir siparişte kartın sağı
+ * "Teslim edildi" derken gövdesi paketin hazırlandığını söylüyordu.
+ * 2026-08-11 Metro turunda gerçek ekranda görüldü (`ORD-M9ED69QWAT`).
+ */
+it('ALICI: paket yola çıktıysa "hazırlanıyor" notunu GÖRMEZ', () => {
+  renderCard({ role: 'buyer', shipment: { trackingNumber: 'PKG-NKSQYKP256', providerTrackingId: null, status: 'delivered' } });
+  expect(screen.queryByText(/hazırlıyor/)).toBeNull();
+  expect(screen.getByText('Teslim edildi')).toBeTruthy();
+});
+
+it('ALICI: paket hâlâ satıcıdayken "hazırlanıyor" notunu görür', () => {
+  renderCard({ role: 'buyer', shipment: { trackingNumber: 'PKG-NKSQYKP256', providerTrackingId: null, status: 'label_created' } });
+  expect(screen.getByText('Satıcı paketinizi hazırlıyor. Sürat şubesine teslim edildiği anda takip bilgileri burada görünecek.')).toBeTruthy();
 });
 
 it('bilinmeyen durumda ham kod basılmaz', () => {

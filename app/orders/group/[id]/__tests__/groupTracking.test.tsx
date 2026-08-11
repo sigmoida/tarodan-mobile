@@ -52,6 +52,20 @@ describe('grup sipariş satırı · kargo numarası', () => {
     expect(screen.getByText(/Satıcı paketinizi hazırlıyor/)).toBeOnTheScreen();
   });
 
+  /**
+   * Kapı `order.status`'te yalnız "teslim edildi"yi ayırıyordu; kargoya verilmiş
+   * ama henüz teslim edilmemiş sipariş de "satıcı hazırlıyor" diyordu. Kod hiç
+   * gelmediği için bu dal her gönderi de çalışıyor.
+   */
+  it('paket yola çıktıysa hazırlanıyor metnini GÖSTERMEZ', () => {
+    render({
+      trackingNumber: 'PKG-CMRGW9D6ZH',
+      shipment: { provider: 'surat', trackingNumber: 'PKG-CMRGW9D6ZH', cargoCode: null, status: 'in_transit' },
+    });
+
+    expect(screen.queryByText(/hazırlıyor/)).toBeNull();
+  });
+
   it('gerçek Sürat kodu geldiyse onu gösterir', () => {
     render({
       trackingNumber: 'PKG-CMRGW9D6ZH',

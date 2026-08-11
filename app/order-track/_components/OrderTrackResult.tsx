@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, Divider, theme } from '@/ui';
-import { shipmentStatusLabel } from '@/lib/shipping/shipmentStatus';
+import { isAwaitingDropoff, shipmentStatusLabel } from '@/lib/shipping/shipmentStatus';
 
 import { styles } from '../_lib/styles';
 import {
@@ -17,14 +17,12 @@ import {
 
 const { colors } = theme;
 
-/** Paket hâlâ satıcıda — "takip bilgileri birazdan" notu yalnız burada anlamlı. */
-const AWAITING_DROPOFF = ['label_created', 'pending'];
-
 /** Result card: header status, product, price, shipping, and timeline. */
 export function OrderTrackResult({ order }: { order: OrderStatus }) {
   const { t } = useTranslation();
-  const awaitingDropoff =
-    !order.shipment?.status || AWAITING_DROPOFF.includes(order.shipment.status);
+  // Liste `@/lib/shipping/shipmentStatus`'te tek yerde; alıcı sipariş detayı da
+  // aynı kapıyı kullanıyor (iki kopya sessizce ayrılırdı).
+  const awaitingDropoff = isAwaitingDropoff(order.shipment?.status);
 
   return (
     <View style={styles.resultCard}>

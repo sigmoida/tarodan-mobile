@@ -1,5 +1,6 @@
 import i18n from '@/i18n/config';
 import { deriveShipmentView } from '@/lib/shipping/tracking';
+import { isAwaitingDropoff } from '@/lib/shipping/shipmentStatus';
 import type { BadgeVariant } from '@/ui';
 import type { GroupOrder } from './types';
 
@@ -52,11 +53,16 @@ export function deriveOrderRow(order: GroupOrder) {
   // Saf modül — global i18next örneği (hook yok). JSX yeniden türetmesin diye
   // satırın metni de burada kurulur (§ "türetmeler saf birimlerde").
   const statusLabel = isDelivered ? i18n.t('order.statusDelivered') : i18n.t('order.trackOrder');
+  // "Satıcı hazırlıyor" YALNIZ paket hâlâ satıcıdayken doğru. Kapı kargo
+  // durumundan okunur (tek kaynak: `@/lib/shipping/shipmentStatus`); durum
+  // gelmediyse sipariş teslim edilmiş mi ona bakılır — kod hiç gelmediği için
+  // bu dal her gönderide çalışıyor ve yanlış kapı doğrudan yanıltıyordu.
+  const awaitingDropoff = !isDelivered && isAwaitingDropoff(order.shipment?.status);
   const trackingText = cargoCode
     ? `${statusLabel}: ${cargoCode}`
-    : isDelivered
-      ? statusLabel
-      : i18n.t('order.shipmentPreparingBuyer');
+    : awaitingDropoff
+      ? i18n.t('order.shipmentPreparingBuyer')
+      : statusLabel;
   const actionLabel = isClosed
     ? null
     : isPreShipment

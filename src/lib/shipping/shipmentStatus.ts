@@ -19,3 +19,18 @@ export function shipmentStatusLabel(
   const key = status && KNOWN.has(status) ? status : 'unknown';
   return t(`order.shipmentStatus.${key}` as any);
 }
+
+/** Paket hâlâ satıcıda: şube henüz fiziksel kabul etmedi. */
+const AWAITING_DROPOFF = new Set(['label_created', 'pending']);
+
+/**
+ * "Takip bilgileri şubeye teslimden sonra görünecek" notu YALNIZ bu durumlarda
+ * doğrudur. `providerTrackingId` hiçbir zaman gelmediği için kod-yok dalı her
+ * siparişte çalışıyor; durum kapısı olmadan teslim edilmiş bir sipariş de
+ * "hazırlanıyor" diyor (2026-08-11 Metro turu bulgusu).
+ *
+ * Durum bilinmiyorsa `true`: paketin yola çıktığını iddia edecek bilgi yok.
+ */
+export function isAwaitingDropoff(status: string | null | undefined): boolean {
+  return !status || AWAITING_DROPOFF.has(status);
+}

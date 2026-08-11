@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { Shipment } from '@/lib/api';
 import { formatDate, formatPrice } from '../_lib/format';
 import { deriveShipmentView } from '@/lib/shipping/tracking';
-import { shipmentStatusLabel } from '@/lib/shipping/shipmentStatus';
+import { isAwaitingDropoff, shipmentStatusLabel } from '@/lib/shipping/shipmentStatus';
 import type { OrderDetail } from '../_lib/types';
 import type { OrderView } from '../_lib/derive';
 
@@ -119,12 +119,16 @@ export function OrderTrackingCard({
   // Kargo kaydı hiç yoksa çizecek bir şey yok.
   if (!shipment && !s.cargoCode) return null;
 
+  // Başlıktaki durum ile gövdedeki metin AYNI kaynaktan okunur; ayrılırlarsa
+  // kart kendini yalanlar ("Teslim edildi" + "paketiniz hazırlanıyor").
+  const status = shipment?.status ?? order.shipment?.status;
+
   return (
     <Card variant="elevated" style={styles.card} testID="order-tracking-card">
       <View style={styles.trackingHeaderRow}>
         <Text variant="label" style={styles.sectionTitle}>{t('order.trackOrder')}</Text>
         <Text variant="caption" tone="muted">
-          {shipmentStatusLabel(shipment?.status ?? order.shipment?.status, t)}
+          {shipmentStatusLabel(status, t)}
         </Text>
       </View>
 
@@ -146,10 +150,11 @@ export function OrderTrackingCard({
           <Text variant="caption" tone="muted">{t('order.cargoRefInstructions')}</Text>
           <Text variant="caption" tone="muted">{t('order.trackingAppearsAfterDropoff')}</Text>
         </View>
-      ) : (
-        // ALICI: iç referans işine yaramaz, gösterme.
+      ) : isAwaitingDropoff(status) ? (
+        // ALICI: iç referans işine yaramaz, gösterme. Paket hâlâ satıcıdayken
+        // "takip bilgileri şubeye teslimden sonra" notu doğru bilgidir.
         <Text variant="caption" tone="muted">{t('order.shipmentPreparingBuyer')}</Text>
-      )}
+      ) : null}
     </Card>
   );
 }
