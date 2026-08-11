@@ -24,7 +24,13 @@ export function TradePaymentsCard({
   // olsaydı başlık + "0/0 ödeme tamamlandı" yazan boş bir kabuk çizilirdi.
   // Kilitli satır yokken ekranı `TradeCostPreviewCard` doldurur (tamamlayıcı
   // kapı: satır varsa bu kart, yoksa önizleme kartı).
-  if (!view.isV2 || (!view.myPaymentRow && !view.theirPaymentRow)) return null;
+  //
+  // Kapı SATIR SAYISINA bakar, kendi satırıma değil. Satırlar `uid`'e göre
+  // seçiliyor; auth rehydrate penceresinde `uid` henüz yokken ikisi de `null`
+  // oluyordu ve bu kart çizmiyordu — önizleme kartı da `totalCount > 0`
+  // olduğu için kapalı olduğundan kullanıcı ödeme bölümünü HİÇ görmüyordu.
+  // İki kapı artık aynı sinyalin iki yüzü: her durumda tam olarak biri çizilir.
+  if (!view.isV2 || view.totalCount === 0) return null;
 
   return (
     <Card style={styles.card}>

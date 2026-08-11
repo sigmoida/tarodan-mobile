@@ -81,3 +81,27 @@ describe('TradeActions · ödeme CTA kapısı', () => {
     expect(screen.getByText('payment.pay — 500,00 TL')).toBeTruthy();
   });
 });
+
+/**
+ * Ertelenmiş madde — v1 ödeme butonundaki " (komisyon dahil)" ibaresi bir
+ * yeniden düzenlemede düşmüştü. Tutar doğruydu ve değişmedi; kaybolan yalnız
+ * ŞEFFAFLIKTI: kullanıcı komisyonun bu tutara dahil olduğunu butondan
+ * okuyamıyordu. v2'de komisyon YOK, o yüzden ibare oraya konmaz.
+ */
+describe('v1 ödeme butonu · komisyon şeffaflığı', () => {
+  it('komisyon varken tutarın komisyon dahil olduğunu söyler', () => {
+    renderActions(
+      { status: 'awaiting_payment', cashPayerId: 'u1', cashAmount: 750 },
+      { isV2: false, cashTotal: 810, cashCommission: 60 },
+    );
+    expect(screen.getByText(/payment.commissionIncluded/)).toBeTruthy();
+  });
+
+  it('komisyon yokken ibareyi eklemez', () => {
+    renderActions(
+      { status: 'awaiting_payment', cashPayerId: 'u1', cashAmount: 750 },
+      { isV2: false, cashTotal: 750, cashCommission: 0 },
+    );
+    expect(screen.queryByText(/payment.commissionIncluded/)).toBeNull();
+  });
+});

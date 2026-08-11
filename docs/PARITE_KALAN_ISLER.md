@@ -243,7 +243,7 @@ netleşmeli.
 | 13 | `GET /products/filters` → `scales` **boş dizi** dönebilir (16'lık sabit fallback kaldırıldı); filtre UI'ı `[]`'e dayanıklı olsun | delta 17 §7 |
 | 14 | `DELETE /membership/cards/:id` başarılı yanıtından sonra listeyi invalidate et; PayTR temizliğini bekleme | delta 18 §5 |
 | 15 | `/security/*` eski şifre-sıfırlama uçları silinmek üzere (issue #432) — mobilin bunları çağırmadığı teyit edilmeli; akış `/auth/*` üzerinden olmalı | delta 17 §7 |
-| 16 | **iOS `associatedDomains`** eklenebilir (AASA canlı). appID: `P2628CQK26.com.tarodan.app`. Kapsam dışı bırakılanlar: `/checkout*`, `/payment/*`, `/admin/*`, `/api/*` | delta 17 §5 |
+| ~~16~~ | ✅ **KAPANDI** (2026-08-11) — `app.json`'a `applinks:tarodan.com.tr` + `applinks:staging.tarodan.com.tr` eklendi; host listesi `paths.json`'dan tek kaynak, bekçisi `appConfig.test.ts`. Ölçüm: iki alan adında da AASA `200`/`application/json`, içerik üretilenle aynı, **Apple CDN de görmüş**. ⚠️ Entitlement — **yeni build** gerekir | delta 17 §5 |
 | ~~17~~ | ✅ **KAPANDI** (2026-08-11) — `useInfiniteQuery` + `onEndReached`; sunucunun `pagination.{page,pages}` alanları okunuyor, sayfa yokken istek atılmıyor, okundu-işaretleme iyimser güncellemesi sayfalı önbelleğe uyarlandı (işaretlenen satır ikinci sayfada olabilir). Simülatörde 26. sıradaki kayda erişildi | 2026-08-11 ölçümü |
 | 18 | **Push yolu simülatörde sınanamıyor** — `registerForPushNotifications` `!Device.isDevice` kapısında **izin istemeden** dönüyor, iOS bildirimi göstermiyor, `simctl push` yutuluyor. İzin isteme adımını simülatörde de çalıştırmak push tap'ini otomasyona açar | 2026-08-11 ölçümü |
 
@@ -253,14 +253,23 @@ netleşmeli.
 
 Hiçbiri merge'ü engellemedi; gerekçeleri kapanış raporunda.
 
-| Madde | Not |
+**2026-08-11 temizlik turunda hepsi kapandı** (biri hariç, aşağıda).
+
+| Madde | Sonuç |
 | --- | --- |
-| v1 ödeme butonundaki " (komisyon dahil)" ibaresi kaldırıldı | Tutar doğru ve değişmedi, yalnız şeffaflık metni gitti. Yeni katalog anahtarı gerektiriyor (ör. `payment.commissionIncluded`) |
-| `uid` çözülmemişken iki takas kartı da gizli kalabiliyor | Pencere auth rehydrate anıyla sınırlı. Temiz çözüm: `TradePaymentsCard` kapısını da `totalCount === 0`'a bağlamak — iki kapı aynı sinyalin iki yüzü olur |
-| `TradeCostPreviewCard.lockedPaymentCount` opsiyonel | Unutulan çağrı sessizce eski dala düşer. Prop zorunlu olup `app/trade/new` açıkça `0` geçmeli |
-| `unavailableProductIds` useMemo'sunda `exhaustive-deps` susturması | Bayat kapanış riski yok; aynı dosyadaki `itemsSignature` kalıbı daha temiz |
-| Tüm satırlar ayrılırsa özet "0 ürün" dalı | Test edilmemiş kenar durum |
-| `renderOtherShipmentHint`'te gereksiz `s !== "delivered"` | Kozmetik |
+| ~~v1 ödeme butonundaki " (komisyon dahil)" ibaresi kaldırıldı~~ | ✅ `payment.commissionIncluded` katalog anahtarı eklendi; ibare **yalnız v1 ve komisyon > 0** iken basılıyor (v2'de komisyon yok) |
+| ~~`uid` çözülmemişken iki takas kartı da gizli kalabiliyor~~ | ✅ `TradePaymentsCard` kapısı satır SAYISINA (`totalCount`) bağlandı — kim olduğumuzdan bağımsız. İki kapı artık aynı sinyalin iki yüzü: her durumda tam olarak biri çiziliyor |
+| ~~`TradeCostPreviewCard.lockedPaymentCount` opsiyonel~~ | ✅ zorunlu; `app/trade/new` açıkça `0` geçiyor (kilit kavramı orada yok) |
+| ~~`unavailableProductIds` useMemo'sunda `exhaustive-deps` susturması~~ | ✅ `unavailableSignature` ara `useMemo`'suyla susturma kalktı — `itemsSignature` ile aynı kalıp |
+| ~~Tüm satırlar ayrılırsa özet "0 ürün" dalı~~ | ✅ satır seçimi bunu **tasarımca ulaşılabilir** yaptı: hiçbir satır seçili değilken özet "Fiyat alınamadı / Tekrar Dene" hata kartına düşüyordu. Artık ne yapılacağını söyleyen not var |
+| ~~`renderOtherShipmentHint`'te gereksiz `s !== "delivered"`~~ | ✅ kaldırıldı (`delivered` bir üstteki dalda zaten dönüyor) |
+
+**Kapanmayan tek madde — satıcı "Kargoya Ver" butonu.** Yıkıcı kısmı zaten
+kapalı: `handleShip` ÖNCE okuyor, mevcut kayda POST atmıyor, mesaj dürüst ve
+`ShipDialog` var olan kaydın referansını gösteriyor. Kalan yalnız buton
+etiketinin bitmiş bir işi vaat etmesi. Kartı "referans + şubeye teslim edin"
+durumuna çevirmek satır başına kargo verisi ister ve **staging'de gözlemlenemiyor**
+(`ahmet@demo.com`'un satışı yok). Körlemesine UI yazmamak için bırakıldı.
 
 ---
 
@@ -289,7 +298,7 @@ Bunlar yeni bir denetimde "mobil bulgusu" olarak açılmamalı — sözleşme ek
 | 7 | Satıcı iade gelen kutusu — sekme açıldı ama **salt okunur** | Backend bekliyor (onay/ret ucu yok) |
 | 9 | `EMAIL_NOT_VERIFIED` refresh 401'i | `errorCode` üzerinden bağlandı; gövde canlı üretilemedi, kod gelmezse davranış aynı |
 | 10 | IP-engel 403'ü | Backend bekliyor; yerine `x-request-id` raporlanıyor |
-| 15 | iOS universal link | **Artık açılabilir** — AASA canlı; P2 #16 ile aynı iş |
+| ~~15~~ | ✅ **KAPANDI** (2026-08-11) — `associatedDomains` eklendi (P2 #16 ile aynı iş) |
 | ~~20~~ | ✅ **KAPANDI** (2026-08-11) — elle giriş kalktı, `updateTracking` silindi |
 
 ---

@@ -33,6 +33,7 @@ export function TradeActions({
   otherPartyId,
   cashPaid,
   cashTotal,
+  cashCommission,
   isV2,
   myPaymentRow,
   myPaymentPending,
@@ -51,6 +52,8 @@ export function TradeActions({
   otherPartyId: string;
   cashPaid: boolean;
   cashTotal: number;
+  /** v1 komisyonu — `cashTotal`'a dahildir; butonun şeffaflık ibaresini açar. */
+  cashCommission: number;
   isV2: boolean;
   myPaymentRow?: TradeCashPayment | null;
   myPaymentPending: boolean;
@@ -67,7 +70,13 @@ export function TradeActions({
   const payAmount = isV2
     ? Number(myPaymentRow?.totalAmount ?? 0)
     : Math.abs(cashTotal > 0 ? cashTotal : Number(trade.cashAmount ?? 0));
-  const payTitle = `${t('payment.pay')} — ${formatPrice(payAmount)}`;
+  // v1'de tutar komisyonu İÇERİR; bunu söylemek şeffaflık meselesi — ibare bir
+  // yeniden düzenlemede düşmüştü, tutar doğru olduğu için de fark edilmemişti.
+  // v2'de komisyon yok (`commission` her zaman 0), ibare oraya konmaz.
+  const showsCommission = !isV2 && cashCommission > 0;
+  const payTitle = showsCommission
+    ? `${t('payment.pay')} — ${formatPrice(payAmount)} (${t('payment.commissionIncluded')})`
+    : `${t('payment.pay')} — ${formatPrice(payAmount)}`;
   // İptal butonunun görünürlüğü TEK yerde: iade uyarısı da aynı sinyali kullanır
   // (uyarı "iptal edersen kargo geri gelmez" der — iptal edilemeyen, terminal bir
   // takasta anlamsızdır).

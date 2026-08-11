@@ -23,11 +23,11 @@ tarayıcıda kalıyor, sadece iOS'un görünür bir hata mesajı yok.
 
 | # | Parça | Sorumlu | Durum |
 |---|---|---|---|
-| 1 | AASA dosyası yayını (iOS) | **web / infra** | ❌ 404 — her iki alan adında |
+| 1 | AASA dosyası yayını (iOS) | **web / infra** | ✅ **2026-08-11**: iki alan adında da `200`, `application/json`, içerik üretilenle aynı; Apple'ın kendi CDN'i de görmüş |
 | 2 | `assetlinks.json` yayını (Android) | **web / infra** | ❌ 404 — her iki alan adında |
 | 3 | Apple `Associated Domains` capability | Apple Developer / EAS | ❓ doğrulanmadı |
 | 4 | Android imza parmak izi (`fingerprints.json`) | bu repo + Play Console | ❌ iki alan da boş |
-| 5 | `ios.associatedDomains` (`app.json`) | bu repo | ❌ bilerek eklenmedi (bkz. §6) |
+| 5 | `ios.associatedDomains` (`app.json`) | bu repo | ✅ **2026-08-11 eklendi** — sıra kuralı karşılandı (1 yeşil). Bekçisi: `src/lib/deeplinks/__tests__/appConfig.test.ts`. ⚠️ Entitlement olduğu için **yeni build** gerekir |
 
 **Ölçüm:** `node scripts/check-deeplinks.mjs`, 2026-08-03, exit kodu **1**,
 **2/16 kontrol geçti**:
@@ -224,9 +224,11 @@ kendiliğinden yeşile döner. Aynısı §9 için de geçerli.
 
 ---
 
-## 7. Bekleyen `app.json` yaması — henüz uygulanmadı
+## 7. `app.json` yaması — UYGULANDI (2026-08-11)
 
-1 ve 2 bitmeden bu yama **uygulanmaz**:
+AASA iki alan adında da yayında ve Apple CDN dosyayı görmüş durumda, yani
+§6'daki "önce ekleme" riski (doğrulama başarısızlığının önbelleğe alınması)
+ortadan kalktı. Uygulanan hâli:
 
 ```jsonc
 "ios": {

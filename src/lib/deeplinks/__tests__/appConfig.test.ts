@@ -59,3 +59,24 @@ describe('app.json — Android App Links', () => {
     expect(hostWithScheme).toEqual([]);
   });
 });
+
+/**
+ * iOS Universal Links — `associatedDomains` bir ENTITLEMENT'tır, OTA ile
+ * geçmez; app.json elle düzenleniyor, bekçisi bu test.
+ *
+ * Sıra kuralı (docs/deep-links.md §6): AASA yayına girmeden bu alan eklenirse
+ * iOS doğrulama BAŞARISIZLIĞINI önbelleğe alır ve dosya sonradan yayınlansa
+ * bile bir süre çalışmaz. 2026-08-11 ölçümünde iki alan adında da AASA 200 ve
+ * Apple'ın kendi CDN'i dosyayı görmüş durumda, yani kapı açık.
+ */
+describe('app.json — iOS Universal Links', () => {
+  const ios = (appJson as any).expo.ios;
+
+  it('bundle identifier AASA appID ile ayni', () => {
+    expect(deepLinkConfig.appIDs.some((id) => id.endsWith(`.${ios.bundleIdentifier}`))).toBe(true);
+  });
+
+  it('her host icin applinks bildirilir (tek kaynak: paths.json)', () => {
+    expect(ios.associatedDomains).toEqual(deepLinkConfig.hosts.map((h) => `applinks:${h}`));
+  });
+});

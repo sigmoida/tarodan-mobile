@@ -29,7 +29,15 @@ export function CartSummary({ f }: { f: CartController }) {
           ama kullanıcı yalnız dört "—" görür ve elinde retry KALMAZ.
           ⚠️ `quoteLoading` şart: ilk yüklemede `total` zaten null, o kapı olmadan
           her sepet açılışında hata kartı yanıp sönerdi. */}
-      {f.quoteError || (!f.quoteLoading && f.total == null) ? (
+      {/* Hiçbir satır seçili değil: quote hiç çalışmıyor, `total` null kalıyor
+          ve aşağıdaki hata kapısına düşerdi — oysa hata YOK, kullanıcı seçimi
+          kaldırdı. Yanlış teşhis üstüne bir de işlevsiz "Tekrar Dene" düğmesi
+          çıkıyordu. Bu kapı hata kapısından ÖNCE gelmeli. */}
+      {f.selectedCount === 0 ? (
+        <View style={styles.summary} testID="cart-summary-none-selected">
+          <Text style={styles.summaryLabel}>{t('cart.noneSelected')}</Text>
+        </View>
+      ) : f.quoteError || (!f.quoteLoading && f.total == null) ? (
         <View style={styles.summary} testID="cart-summary-error">
           <ErrorState
             title={t('cart.priceUnavailableTitle')}

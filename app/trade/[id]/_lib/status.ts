@@ -186,7 +186,8 @@ export function renderOtherShipmentHint(
 ): string {
   if (s === "delivered")
     return t("trade.warehouseShipping.counterpartyDelivered");
-  if (isShipmentDispatched(s) && s !== "delivered")
+  // `delivered` yukarıda döndü; burada ayrıca dışlamak gereksizdi.
+  if (isShipmentDispatched(s))
     return t("trade.warehouseShipping.counterpartyInTransit");
   if (s === "cancelled")
     return t("trade.warehouseShipping.counterpartyCancelled");

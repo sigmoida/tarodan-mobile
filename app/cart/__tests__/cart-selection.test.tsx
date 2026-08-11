@@ -172,3 +172,41 @@ describe('P2 #10 · seçim dışı satırın sunumu', () => {
     await waitFor(() => expect(screen.getByText('Ara Toplam (1 ürün)')).toBeOnTheScreen());
   });
 });
+
+/**
+ * Ertelenmiş madde ("tüm satırlar ayrılırsa özet 0 ürün dalı") — satır seçimi
+ * geldiğinden beri bu durum TASARIMCA ulaşılabilir. Hiçbir satır seçili
+ * değilken quote hiç çalışmıyor, `total` null kalıyor ve özet kartı
+ * "Fiyat alınamadı / Tekrar Dene" hata kartına düşüyordu: hata yok, kullanıcı
+ * yalnız seçimi kaldırmış. Yanlış teşhis + işlevsiz bir retry düğmesi.
+ */
+describe('P2 #10 · hiçbir satır seçili değilken özet', () => {
+  beforeEach(() => {
+    (jest.mocked(ordersApi.getQuote) as unknown as jest.Mock).mockReset();
+    (jest.mocked(ordersApi.getQuote) as unknown as jest.Mock).mockImplementation((body: any) =>
+      Promise.resolve(quoteFor(body.items.map((i: any) => i.productId))),
+    );
+    useCartStore.setState({
+      items: [item('p1', 'Birinci')],
+      deselectedIds: [],
+      lastUpdated: Date.now(),
+      isLoading: false,
+    });
+  });
+
+  afterEach(() => {
+    useCartStore.setState({ items: [], deselectedIds: [] });
+  });
+
+  it('hata kartı değil, ne yapılacağını söyleyen not gösterir', async () => {
+    renderWithProviders(<CartScreen />);
+    await waitFor(() => expect(ordersApi.getQuote).toHaveBeenCalled());
+
+    fireEvent.press(screen.getByTestId('cart-item-select-p1'));
+
+    await waitFor(() =>
+      expect(screen.getByText('Ödemek için en az bir ürün seçin')).toBeOnTheScreen(),
+    );
+    expect(screen.queryByTestId('cart-summary-error')).toBeNull();
+  });
+});

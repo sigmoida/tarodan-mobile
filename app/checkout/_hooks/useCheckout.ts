@@ -341,10 +341,17 @@ export function useCheckout() {
    * ("Ara Toplam (3 ürün)" derken 2 ürünün parası çekilir). Ayrılan satırlar
    * uyarı kartında adlarıyla gösterilir — bilgi kaybolmaz, yalnız yeri değişir.
    */
+  // `unavailableItems` her render'da yeni dizi; kimlik yerine İÇERİĞE bağlanmalı.
+  // İmzayı ayrı bir `useMemo`'da üretmek `itemsSignature` ile aynı kalıp ve
+  // `exhaustive-deps` susturmasına gerek bırakmıyor (susturma, ileride eklenen
+  // bir bağımlılığın sessizce kaçmasına da açık kapı bırakıyordu).
+  const unavailableSignature = useMemo(
+    () => unavailableItems.map((u) => u.productId).join(','),
+    [unavailableItems],
+  );
   const unavailableProductIds = useMemo(
-    () => new Set(unavailableItems.map((u) => u.productId)),
-    // `unavailableItems` her render'da yeni dizi; kimlik yerine içeriğe bağlan.
-    [JSON.stringify(unavailableItems.map((u) => u.productId))], // eslint-disable-line react-hooks/exhaustive-deps
+    () => new Set(unavailableSignature ? unavailableSignature.split(',') : []),
+    [unavailableSignature],
   );
   const payableItems = useMemo(
     () => items.filter((i) => !unavailableProductIds.has(i.productId)),

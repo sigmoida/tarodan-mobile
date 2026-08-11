@@ -128,3 +128,38 @@ describe('TradePaymentsCard ↔ TradeCostPreviewCard tamamlayıcılığı', () =
     expect(preview.toJSON()).not.toBeNull();
   });
 });
+
+/**
+ * Ertelenmiş madde — `uid` çözülmemişken (auth rehydrate penceresi) İKİ KART DA
+ * gizli kalıyordu: satırlar `uid`'e göre seçildiği için ikisi de `null` oluyor,
+ * ödeme kartı çizmiyordu; maliyet önizlemesi ise `totalCount > 0` olduğu için
+ * zaten kapalıydı. Kullanıcı o an ödeme bölümünü hiç görmüyordu.
+ *
+ * İki kapı aynı sinyalin iki yüzü olmalı: satır SAYISI (`totalCount`) — kim
+ * olduğumuzdan bağımsız. Böylece her durumda tam olarak biri çizilir.
+ */
+describe('uid çözülmemiş pencere · kartlardan biri MUTLAKA çizilir', () => {
+  const NO_UID_VIEW = {
+    isV2: true,
+    myPaymentRow: null,
+    theirPaymentRow: null,
+    paidCount: 1,
+    totalCount: 2,
+  } as any;
+
+  it('ödeme kartı satır sayısına bakar, kendi satırıma değil', () => {
+    const { toJSON } = render(<TradePaymentsCard view={NO_UID_VIEW} otherPartyName="Karşı" />);
+    expect(toJSON()).not.toBeNull();
+  });
+
+  it('maliyet önizlemesi kilitli satır varken yine çizmez (tamamlayıcı kapı)', () => {
+    const { toJSON } = render(
+      <TradeCostPreviewCard
+        mine={{ serviceFee: 1, shipping: 1, cashDifference: 0, total: 2, feeLines: [] } as any}
+        theirs={{ serviceFee: 1, shipping: 1, cashDifference: 0, total: 2, feeLines: [] } as any}
+        lockedPaymentCount={NO_UID_VIEW.totalCount}
+      />,
+    );
+    expect(toJSON()).toBeNull();
+  });
+});

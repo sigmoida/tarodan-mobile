@@ -215,9 +215,12 @@ export function Step3Review({ f }: StepProps) {
         </View>
       </Card>
 
+      {/* Yeni takasta kilitli ödeme kavramı yok — kart hep çizilmeli.
+          Prop zorunlu olduğu için bu karar burada AÇIKÇA yazılıyor. */}
       <TradeCostPreviewCard
         mine={f.costPreview?.initiator ?? null}
         theirs={f.costPreview?.receiver ?? null}
+        lockedPaymentCount={0}
       />
 
       {/* Cash Summary */}

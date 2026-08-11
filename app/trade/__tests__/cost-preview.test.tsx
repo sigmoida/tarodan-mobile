@@ -17,17 +17,17 @@ const SIDE = {
 };
 
 it('kendi ve karşı tarafın toplamını basar', () => {
-  render(<TradeCostPreviewCard mine={SIDE} theirs={{ ...SIDE, cashDifference: 0, total: 310 }} />);
+  render(<TradeCostPreviewCard mine={SIDE} theirs={{ ...SIDE, cashDifference: 0, total: 310 }} lockedPaymentCount={0} />);
   expect(screen.getByText('810,00 TL')).toBeTruthy();
   expect(screen.getByText('310,00 TL')).toBeTruthy();
 });
 
 it('feeLines detayını EKRANA basmaz', () => {
-  render(<TradeCostPreviewCard mine={SIDE} theirs={SIDE} />);
+  render(<TradeCostPreviewCard mine={SIDE} theirs={SIDE} lockedPaymentCount={0} />);
   expect(screen.queryByText('60,00 TL')).toBeNull();
 });
 
 it('taraf yoksa (v1 → boş gövde) hiç çizmez', () => {
-  const { toJSON } = render(<TradeCostPreviewCard mine={null} theirs={null} />);
+  const { toJSON } = render(<TradeCostPreviewCard mine={null} theirs={null} lockedPaymentCount={0} />);
   expect(toJSON()).toBeNull();
 });

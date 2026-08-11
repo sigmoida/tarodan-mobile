@@ -21,12 +21,17 @@ import type { TFn } from '../_lib/types';
 export function TradeCostPreviewCard({
   mine,
   theirs,
-  lockedPaymentCount = 0,
+  lockedPaymentCount,
 }: {
   mine: TradePaymentQuoteSide | null;
   theirs: TradePaymentQuoteSide | null;
-  /** `view.totalCount` — kilitli `cashPayments` satır sayısı. */
-  lockedPaymentCount?: number;
+  /**
+   * `view.totalCount` — kilitli `cashPayments` satır sayısı. ZORUNLU: varsayılanı
+   * `0` olsaydı, prop'u geçirmeyi unutan yeni bir çağrı yeri sessizce "kilit yok"
+   * dalına düşer ve kilitli bir takasın yanına canlı yeniden fiyatlama koyardı.
+   * Kilit kavramı olmayan çağrı yerleri (yeni takas akışı) açıkça `0` geçer.
+   */
+  lockedPaymentCount: number;
 }) {
   const { t } = useTranslation();
   if (!mine || !theirs) return null;
