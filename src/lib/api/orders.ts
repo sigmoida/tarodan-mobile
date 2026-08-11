@@ -186,6 +186,18 @@ export const ordersApi = {
   checkout: ({ expectedPricing, ...rest }: {
     items: Array<{ productId: string }>;
     idempotencyKey: string;
+    /**
+     * Mesafeli satış sözleşmesi onayı. Sunucu sözleşmesinde OPSİYONEL ama
+     * burada ZORUNLU: onaysız checkout göndermek istemcinin yasal
+     * yükümlülüğünü atlamak olurdu, ve alan İLK çağrıda gitmeli —
+     * idempotency replay'i sonradan gelen onayı işlemez.
+     *
+     * ⚠️ Sunucunun bu alanı gerçekten işleyip işlemediği DIŞARIDAN
+     * DOĞRULANAMADI: uç bilinmeyen alanları reddetmiyor (2026-08-11 ölçümü),
+     * yani `zzzUydurmaAlan` ile aynı 400 dönüyor. Gönderilmesi zararsız.
+     */
+    distanceSalesAccepted: boolean;
+
     shippingAddressId?: string;
     shippingAddress?: OrderAddressInput;
     billingAddressId?: string;
@@ -198,6 +210,18 @@ export const ordersApi = {
   checkoutGuest: ({ expectedPricing, ...rest }: {
     items: Array<{ productId: string }>;
     idempotencyKey: string;
+    /**
+     * Mesafeli satış sözleşmesi onayı. Sunucu sözleşmesinde OPSİYONEL ama
+     * burada ZORUNLU: onaysız checkout göndermek istemcinin yasal
+     * yükümlülüğünü atlamak olurdu, ve alan İLK çağrıda gitmeli —
+     * idempotency replay'i sonradan gelen onayı işlemez.
+     *
+     * ⚠️ Sunucunun bu alanı gerçekten işleyip işlemediği DIŞARIDAN
+     * DOĞRULANAMADI: uç bilinmeyen alanları reddetmiyor (2026-08-11 ölçümü),
+     * yani `zzzUydurmaAlan` ile aynı 400 dönüyor. Gönderilmesi zararsız.
+     */
+    distanceSalesAccepted: boolean;
+
     email: string;
     emailVerificationCode: string;
     phone: string;

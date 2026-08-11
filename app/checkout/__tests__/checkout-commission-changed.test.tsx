@@ -101,9 +101,19 @@ async function payThroughCheckout() {
   await waitFor(() => expect(screen.getByText('Kargo Seçimi')).toBeOnTheScreen());
   fireEvent.press(screen.getByText('Devam Et')); // step2 → step3
   await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
+  acceptDistanceSales();
   await act(async () => {
     fireEvent.press(screen.getByText(/Onayla ve Öde/));
   });
+}
+
+/**
+ * Mesafeli satış onayı (P2 #9) ödeme butonunu kapatıyor — her ödeme akışı
+ * önce kutuyu işaretlemeli, tıpkı kullanıcının yaptığı gibi.
+ */
+function acceptDistanceSales() {
+  const box = screen.queryByTestId('checkout-distance-sales-checkbox');
+  if (box) fireEvent.press(box);
 }
 
 describe('409 COMMISSION_PRICING_CHANGED ve 503', () => {

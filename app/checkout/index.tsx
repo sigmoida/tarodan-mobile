@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { View, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
 import { Button, Snackbar, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -68,6 +68,35 @@ export default function CheckoutScreen() {
           onRetry={c.retryQuote}
         />
 
+        {/* Mesafeli satış sözleşmesi onayı — YALNIZ onay adımında ve ödemeyi
+            kapatıyor. Yasal yükümlülük; onay sunucuya İLK çağrıda gidiyor
+            (idempotency replay sonradan geleni işlemez). */}
+        {c.step === 3 ? (
+          <View style={styles.consentRow}>
+            <TouchableOpacity
+              testID="checkout-distance-sales-checkbox"
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: c.distanceSalesAccepted }}
+              onPress={c.toggleDistanceSales}
+              hitSlop={8}
+            >
+              <Ionicons
+                name={c.distanceSalesAccepted ? 'checkbox' : 'square-outline'}
+                size={22}
+                color={c.distanceSalesAccepted ? theme.colors.primary[600]! : theme.colors.text.muted}
+              />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text variant="caption">{t('checkout.distanceSalesConsent')}</Text>
+              <TouchableOpacity onPress={() => router.push('/distance-sales')}>
+                <Text variant="caption" style={styles.consentLink}>
+                  {t('checkout.distanceSalesConsentLink')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
+
         <View style={{ height: 120 }} />
       </ScrollView>
 
@@ -94,9 +123,12 @@ export default function CheckoutScreen() {
                   ? t('checkout.confirmAndPay')
                   : `Onayla ve Öde (${formatPrice(c.total)})`
             }
+            testID="checkout-pay-button"
             onPress={c.handleCheckout}
             isLoading={c.loading}
-            disabled={c.loading || c.quoteLoading || c.quoteError || c.total == null}
+            disabled={
+              c.loading || c.quoteLoading || c.quoteError || c.total == null || !c.distanceSalesAccepted
+            }
             fullWidth
             style={styles.actionButton}
             icon="card-outline"

@@ -176,6 +176,15 @@ function fillAllStep1Fields() {
   fireEvent.changeText(screen.getByTestId('shipping-address-input'), 'Test Sokak No:1');
 }
 
+/**
+ * Mesafeli satış onayı (P2 #9) ödeme butonunu kapatıyor — her ödeme akışı
+ * önce kutuyu işaretlemeli, tıpkı kullanıcının yaptığı gibi.
+ */
+function acceptDistanceSales() {
+  const box = screen.queryByTestId('checkout-distance-sales-checkbox');
+  if (box) fireEvent.press(box);
+}
+
 describe('Misafir checkout OTP akışı', () => {
   beforeEach(() => {
     jest.mocked(ordersApi.sendGuestVerificationCode).mockClear();
@@ -210,6 +219,7 @@ describe('Misafir checkout OTP akışı', () => {
     });
 
     // --- Adım 3: Onayla ve Öde → OTP gönderilir ---
+    acceptDistanceSales();
     await act(async () => {
       fireEvent.press(screen.getByText(/Onayla ve Öde/));
     });
@@ -276,6 +286,7 @@ describe('Misafir checkout OTP akışı', () => {
     fireEvent.press(screen.getByText('Devam Et'));
     await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
 
+    acceptDistanceSales();
     await act(async () => {
       fireEvent.press(screen.getByText(/Onayla ve Öde/));
     });
@@ -318,6 +329,7 @@ describe('Misafir checkout OTP akışı', () => {
     fireEvent.press(screen.getByText('Devam Et'));
     await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
 
+    acceptDistanceSales();
     await act(async () => {
       fireEvent.press(screen.getByText(/Onayla ve Öde/));
     });

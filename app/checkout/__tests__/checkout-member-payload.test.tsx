@@ -86,6 +86,15 @@ const SAMPLE_ITEM = {
   addedAt: Date.now(),
 };
 
+/**
+ * Mesafeli satış onayı (P2 #9) ödeme butonunu kapatıyor — her ödeme akışı
+ * önce kutuyu işaretlemeli, tıpkı kullanıcının yaptığı gibi.
+ */
+function acceptDistanceSales() {
+  const box = screen.queryByTestId('checkout-distance-sales-checkbox');
+  if (box) fireEvent.press(box);
+}
+
 describe('Üye checkout payload sözleşmesi', () => {
   beforeEach(() => {
     jest.mocked(ordersApi.checkout).mockClear();
@@ -106,6 +115,7 @@ describe('Üye checkout payload sözleşmesi', () => {
     fireEvent.press(screen.getByText('Devam Et'));
     await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
 
+    acceptDistanceSales();
     await act(async () => {
       fireEvent.press(screen.getByText(/Onayla ve Öde/));
     });

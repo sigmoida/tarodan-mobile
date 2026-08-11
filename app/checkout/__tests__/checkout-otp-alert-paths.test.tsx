@@ -144,6 +144,7 @@ async function openOtpModal() {
   await waitFor(() => expect(screen.getByText('Kargo Seçimi')).toBeOnTheScreen());
   fireEvent.press(screen.getByText('Devam Et'));
   await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
+  acceptDistanceSales();
   await act(async () => {
     fireEvent.press(screen.getByText(/Onayla ve Öde/));
   });
@@ -157,6 +158,15 @@ async function submitOtp() {
   await act(async () => {
     fireEvent.press(screen.getByTestId('guest-otp-submit'));
   });
+}
+
+/**
+ * Mesafeli satış onayı (P2 #9) ödeme butonunu kapatıyor — her ödeme akışı
+ * önce kutuyu işaretlemeli, tıpkı kullanıcının yaptığı gibi.
+ */
+function acceptDistanceSales() {
+  const box = screen.queryByTestId('checkout-distance-sales-checkbox');
+  if (box) fireEvent.press(box);
 }
 
 describe('OTP modalı açıkken ham appAlert kalmadı', () => {

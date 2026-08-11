@@ -159,6 +159,13 @@ export function useCheckout() {
    */
   const pendingAlertRef = useRef<{ title: string; message?: string } | null>(null);
 
+  /**
+   * Mesafeli satış sözleşmesi onayı. Sunucuya İLK çağrıda gider — idempotency
+   * replay'i sonradan gelen onayı işlemez (aynı anahtarla ikinci istek ilk
+   * yanıtı tekrarlar), o yüzden "önce öde, sonra onayla" diye bir yol yok.
+   */
+  const [distanceSalesAccepted, setDistanceSalesAccepted] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' });
 
@@ -603,6 +610,7 @@ export function useCheckout() {
       const billing = buildBillingPayload(resolved.phones);
 
       const checkoutPayload = {
+        distanceSalesAccepted,
         items: items.map((item) => ({ productId: item.productId })),
         idempotencyKey: idempotencyKeyRef.current,
         shippingAddressId: shipping.id,
@@ -619,6 +627,9 @@ export function useCheckout() {
         isAuthenticated && user
           ? await ordersApi.checkout(checkoutPayload)
           : await ordersApi.checkoutGuest({
+              // Onay misafir yolunda da İLK çağrıda gider — yasal yükümlülük
+              // üye/misafir ayrımı yapmıyor.
+              distanceSalesAccepted,
               items: checkoutPayload.items,
               idempotencyKey: checkoutPayload.idempotencyKey,
               email: guestEmail.trim().toLowerCase(),
@@ -906,6 +917,8 @@ export function useCheckout() {
     dismissSnackbar: () => setSnackbar({ visible: false, message: '' }),
     handleNextStep,
     handleCheckout,
+    distanceSalesAccepted,
+    toggleDistanceSales: () => setDistanceSalesAccepted((v) => !v),
     // otp
     otpModalOpen, otpCode, setOtpCode, otpError, otpExpiresIn, otpSending,
     closeOtpModal, handleOtpSubmit, handleOtpResend,

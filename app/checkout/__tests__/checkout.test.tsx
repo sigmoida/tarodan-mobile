@@ -77,6 +77,15 @@ const SAMPLE_ITEM = {
   addedAt: Date.now(),
 };
 
+/**
+ * Mesafeli satış onayı (P2 #9) ödeme butonunu kapatıyor — her ödeme akışı
+ * önce kutuyu işaretlemeli, tıpkı kullanıcının yaptığı gibi.
+ */
+function acceptDistanceSales() {
+  const box = screen.queryByTestId('checkout-distance-sales-checkbox');
+  if (box) fireEvent.press(box);
+}
+
 describe('checkout-3step', () => {
   afterEach(() => {
     useCartStore.setState({ items: [] });

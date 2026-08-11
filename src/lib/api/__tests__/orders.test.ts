@@ -48,6 +48,7 @@ describe('ordersApi — expectedPricingHash / expectedShippingTariffVersion', ()
     await ordersApi.checkout({
       items: [{ productId: 'p1' }],
       idempotencyKey: 'idem-1',
+      distanceSalesAccepted: true,
       expectedPricing: EXPECTED_PRICING,
     });
     expect(mockApiPost).toHaveBeenCalledWith(
@@ -60,6 +61,7 @@ describe('ordersApi — expectedPricingHash / expectedShippingTariffVersion', ()
     await ordersApi.checkoutGuest({
       items: [{ productId: 'p1' }],
       idempotencyKey: 'idem-2',
+      distanceSalesAccepted: true,
       email: 'a@b.com',
       emailVerificationCode: '123456',
       phone: '+905321234567',

@@ -99,6 +99,15 @@ const NEW_QUOTE = {
   pricing: { summary: { productAmount: 100, shippingAmount: 80, serviceFeeAmount: 15, total: 195 } },
 };
 
+/**
+ * Mesafeli satış onayı (P2 #9) ödeme butonunu kapatıyor — her ödeme akışı
+ * önce kutuyu işaretlemeli, tıpkı kullanıcının yaptığı gibi.
+ */
+function acceptDistanceSales() {
+  const box = screen.queryByTestId('checkout-distance-sales-checkbox');
+  if (box) fireEvent.press(box);
+}
+
 describe('409 PRICING_CHANGED', () => {
   beforeEach(() => {
     jest.mocked(appAlert).mockClear();
@@ -131,6 +140,7 @@ describe('409 PRICING_CHANGED', () => {
     fireEvent.press(screen.getByText('Devam Et')); // step2 → step3
     await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
 
+    acceptDistanceSales();
     await act(async () => {
       fireEvent.press(screen.getByText(/Onayla ve Öde/));
     });

@@ -150,6 +150,15 @@ afterEach(() => {
   useCartStore.setState({ items: [] });
 });
 
+/**
+ * Mesafeli satış onayı (P2 #9) ödeme butonunu kapatıyor — her ödeme akışı
+ * önce kutuyu işaretlemeli, tıpkı kullanıcının yaptığı gibi.
+ */
+function acceptDistanceSales() {
+  const box = screen.queryByTestId('checkout-distance-sales-checkbox');
+  if (box) fireEvent.press(box);
+}
+
 describe('Misafir yolu — alana yazılan telefon payloada ne olarak gidiyor', () => {
   beforeEach(() => {
     mockAuthState.isAuthenticated = false;
@@ -170,6 +179,7 @@ describe('Misafir yolu — alana yazılan telefon payloada ne olarak gidiyor', (
     fillGuestStep1('0532 123 45 67');
     await advanceToConfirm();
 
+    acceptDistanceSales();
     await act(async () => {
       fireEvent.press(screen.getByText(/Onayla ve Öde/));
     });
@@ -258,6 +268,7 @@ describe('Üye yolu — telefon payloada ne olarak gidiyor', () => {
     await waitFor(() => expect(screen.getByText('Ali Veli · +905321234567')).toBeOnTheScreen());
     await advanceToConfirm();
 
+    acceptDistanceSales();
     await act(async () => {
       fireEvent.press(screen.getByText(/Onayla ve Öde/));
     });
@@ -276,6 +287,7 @@ describe('Üye yolu — telefon payloada ne olarak gidiyor', () => {
     fireEvent.changeText(screen.getByTestId('shipping-phone-input'), '0532 123 45 67');
     await advanceToConfirm();
 
+    acceptDistanceSales();
     await act(async () => {
       fireEvent.press(screen.getByText(/Onayla ve Öde/));
     });

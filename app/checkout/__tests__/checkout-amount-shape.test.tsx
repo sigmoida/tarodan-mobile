@@ -96,6 +96,15 @@ async function goToStep3() {
   await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
 }
 
+/**
+ * Mesafeli satış onayı (P2 #9) ödeme butonunu kapatıyor — her ödeme akışı
+ * önce kutuyu işaretlemeli, tıpkı kullanıcının yaptığı gibi.
+ */
+function acceptDistanceSales() {
+  const box = screen.queryByTestId('checkout-distance-sales-checkbox');
+  if (box) fireEvent.press(box);
+}
+
 describe('N2 · tutar alanı sayı değilse tutar YOK sayılır', () => {
   beforeEach(() => {
     mocked(ordersApi.checkout).mockReset();
@@ -123,6 +132,7 @@ describe('N2 · tutar alanı sayı değilse tutar YOK sayılır', () => {
     expect(screen.getByText('Onayla ve Öde')).toBeOnTheScreen();
     expect(screen.queryByText(/Onayla ve Öde \(/)).toBeNull();
 
+    acceptDistanceSales();
     await act(async () => {
       fireEvent.press(screen.getByText('Onayla ve Öde'));
     });
@@ -143,6 +153,7 @@ describe('N2 · tutar alanı sayı değilse tutar YOK sayılır', () => {
     expect(screen.queryByText('0,00 TL')).toBeNull();
     expect(screen.getByText('Onayla ve Öde')).toBeOnTheScreen();
 
+    acceptDistanceSales();
     await act(async () => {
       fireEvent.press(screen.getByText('Onayla ve Öde'));
     });

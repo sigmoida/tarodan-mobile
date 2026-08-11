@@ -92,6 +92,15 @@ async function goToStep3() {
   await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
 }
 
+/**
+ * Mesafeli satış onayı (P2 #9) ödeme butonunu kapatıyor — her ödeme akışı
+ * önce kutuyu işaretlemeli, tıpkı kullanıcının yaptığı gibi.
+ */
+function acceptDistanceSales() {
+  const box = screen.queryByTestId('checkout-distance-sales-checkbox');
+  if (box) fireEvent.press(box);
+}
+
 describe('Quote hatası — checkout kilitlenmez', () => {
   beforeEach(() => {
     jest.mocked(ordersApi.checkout).mockReset();
@@ -128,6 +137,7 @@ describe('Quote hatası — checkout kilitlenmez', () => {
     expect(screen.queryByText(/Kupon Geçersiz/)).toBeNull();
 
     // Devre dışı: basınca sipariş oluşturma denenmez.
+    acceptDistanceSales();
     await act(async () => {
       fireEvent.press(screen.getByText('Onayla ve Öde'));
     });
