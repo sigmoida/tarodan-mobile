@@ -86,13 +86,15 @@ modelCode/stok'u bozmuyor (API diff'i temiz); alıcı sipariş detayı `PKG-` i�
 referansını hiçbir yerde göstermiyor ve bozuk `trackingUrl`'ü okumuyor;
 checkout üç adım boyunca toplamı kaydırmıyor.
 
-**Yeni P1 — teslim edilmiş siparişte takip kartı kendini yalanlıyor.**
-`app/orders/[id]/_components/OrderInfoCards.tsx:149-152` alıcı dalı, `cargoCode`
-yoksa **shipment durumuna bakmadan** "Satıcı paketinizi hazırlıyor…" basıyor.
-`providerTrackingId` hiç gelmediği için bu dal her siparişte çalışıyor: kartın
-sağı "Teslim edildi" derken gövdesi paketin hazırlandığını söylüyor. Aynı hata
-grup ekranında ve misafir takipte **yok** (ikisi de durumu kapıyor), yani tek
-dosyalık tutarsızlık — bir dosya + bir test.
+- ~~**Yeni P1** teslim edilmiş siparişte takip kartı kendini yalanlıyor~~ ✅
+  **KAPANDI** (`e05f4fd`). Alıcı dalı `cargoCode` yoksa shipment durumuna
+  bakmadan "Satıcı paketinizi hazırlıyor…" basıyordu; `providerTrackingId` hiç
+  gelmediği için bu dal her siparişte çalışıyordu. Not artık `isAwaitingDropoff`
+  kapısından geçiyor ve kapı, başlıktaki durumla **aynı değerden** okunuyor.
+  Grup ekranında da daha hafif hâli varmış (yalnız "teslim edildi" muaf tutulmuş,
+  kargoya verilmiş sipariş yine "hazırlanıyor" diyordu) — o da kapatıldı. Misafir
+  takipteki yerel `AWAITING_DROPOFF` kopyası ortak modüle taşındı, üç ekran tek
+  kaynağa bağlı. Simülatörde staging'e karşı doğrulandı.
 
 **Yeni P2 — paket kademesi etiketlerinde Türkçe karakter yok** ("Kucuk Paket",
 "Buyuk Paket"). Kaynak `GET /shipping/package-tiers`; mobil `tier.label`'ı aynen
@@ -110,7 +112,29 @@ başlatıldı (asıl çözen bu).
 
 ## 🔴 P1 — Yanlış davranış veya kullanıcıyı yanıltan eksik
 
-### 1. Bildirim sözleşmesi + tek route resolver'ı (delta 18 §3)
+### ~~1. Bildirim sözleşmesi + tek route resolver'ı~~ ✅ KAPANDI (2026-08-11)
+
+Ölçüm: `docs/superpowers/reports/2026-08-11-bildirim-sozlesmesi-olcum.md` (36 kayıt).
+
+Tek katman `notificationRoute(n)` (`src/utils/notificationRoute.ts`); uygulama
+içi liste ve push tap artık **aynı** fonksiyonu çağırıyor. Sıra ölçümden çıktı:
+tip istisnaları → `data` kimlikleri (`audience` satıcıyı `/sales/:id`'ye
+götürür; sipariş gruptan önce gelir) → `data.link` → `link` (mevcut yol
+eşlemesi) → `null`. Hedef yoksa **gezinme yok** — kullanıcı alakasız ekrana
+atılmıyor. Güvenlik kapısı: yalnız `/…` göreli yol veya tanıdık host üzerinden
+`https://`; `javascript:`, özel scheme, protokol-göreli `//host` ve yabancı
+host reddediliyor.
+
+Ölçümle yakalanıp kapanan üç ayrışma: grup ödemesi (link listeye düşerken
+`checkoutGroupId` grubu açıyor), `trade_auto_cancelled` (link listeye düşerken
+`tradeId` takası açıyor), `products/unavailable` kuralının yalnız push'ta
+olması. `audience` ilk kez okunuyor.
+
+**Cihazda doğrulanamayan:** grup vakası birim testinde kapalı ama simülatörde
+üretilemedi — bildirim listesi sayfalamasız (20/36) ve simülatöre push
+sunulamıyor. İkisi de aşağıda yeni madde.
+
+### Eski metin (referans) — bildirim sözleşmesi (delta 18 §3)
 
 `09-messaging-notifications.md`'deki "`type` serbest metindir" bilgisi **artık
 geçersiz** — sunucuda kapalı `NotificationType` enum'u var ve `link` sunucuda
@@ -199,6 +223,8 @@ görseller ve nitelikler geri yazımda bozulabiliyor.
 | 14 | `DELETE /membership/cards/:id` başarılı yanıtından sonra listeyi invalidate et; PayTR temizliğini bekleme | delta 18 §5 |
 | 15 | `/security/*` eski şifre-sıfırlama uçları silinmek üzere (issue #432) — mobilin bunları çağırmadığı teyit edilmeli; akış `/auth/*` üzerinden olmalı | delta 17 §7 |
 | 16 | **iOS `associatedDomains`** eklenebilir (AASA canlı). appID: `P2628CQK26.com.tarodan.app`. Kapsam dışı bırakılanlar: `/checkout*`, `/payment/*`, `/admin/*`, `/api/*` | delta 17 §5 |
+| 17 | **Bildirim listesinde sayfalama yok** — ekran `GET /notifications`'ı parametresiz çağırıyor, sunucu varsayılanı 20. Ölçüm hesabında 36 kayıt var (`pagination.pages: 2`), yani 16'sı kullanıcıya hiç görünmüyor. Sonsuz kaydırma ya da en azından `limit` yükseltmek gerekiyor | 2026-08-11 ölçümü |
+| 18 | **Push yolu simülatörde sınanamıyor** — `registerForPushNotifications` `!Device.isDevice` kapısında **izin istemeden** dönüyor, iOS bildirimi göstermiyor, `simctl push` yutuluyor. İzin isteme adımını simülatörde de çalıştırmak push tap'ini otomasyona açar | 2026-08-11 ölçümü |
 
 ---
 
@@ -249,11 +275,8 @@ Bunlar yeni bir denetimde "mobil bulgusu" olarak açılmamalı — sözleşme ek
 
 ## Önerilen sıra (güncel)
 
-0. **Takip kartı durum kapısı** (Metro turunun P1'i) — tek dosya, tek test;
-   bugün her teslim edilmiş siparişte yanlış metin gösteriliyor. Ucuz ve
-   kullanıcıyı doğrudan yanıltıyor, o yüzden başa alındı.
-1. **P1 #1** (bildirim resolver'ı) — kalan iki P1'den daha temel; tek katman,
-   sonrasında her yeni tip ucuz. 14 tip, ikisi hiçbir delta dosyasında yok.
+0. ~~Takip kartı durum kapısı~~ ✅ kapandı (`e05f4fd`).
+1. ~~P1 #1 (bildirim resolver'ı)~~ ✅ kapandı (2026-08-11).
 2. **P1 #5** (kurumsal satış yetkisi) — satın alınamaz ürünün satın alınabilir
    görünmesini bitirir.
 3. **P2 toplu tur** — çoğu tek dosyalık; **#10 ve #11 sıfır API işi**;

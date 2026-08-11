@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { notificationsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
-import { toMobileRoute } from '@/utils/notificationRoute';
 import type { Notification } from '../_lib/types';
 import { routeForNotification } from '../_lib/route';
 
@@ -118,18 +117,10 @@ export function useNotifications() {
     (notification: Notification) => {
       if (!(notification.read || notification.isRead)) markAsRead.mutate(notification.id);
 
-      // Bazı bildirim tipleri için doğrudan mobil rota — backend/web ortak
-      // link'i (ör. karşı teklif → /listings/:id) yanlış yere götürdüğü için
-      // tipe öncelik ver. Karşı teklif alıcının başlattığı pazarlıktadır →
-      // "Gönderilen" sekmesi.
-      const typeRoute: Record<string, string> = {
-        offer_counter: '/offers?tab=sent',
-      };
-
-      const target =
-        typeRoute[notification.type] ??
-        (notification.link ? toMobileRoute(notification.link) : null) ??
-        routeForNotification(notification);
+      // Hedef kararı TEK katmanda (tip istisnaları, `data` kimlikleri, link
+      // eşlemesi ve güvenlik kapısı orada). Hedef yoksa gezinme YOK — satır
+      // okundu işaretlenir, kullanıcı alakasız bir ekrana atılmaz.
+      const target = routeForNotification(notification);
       if (target) router.push(target as never);
     },
     [markAsRead],
