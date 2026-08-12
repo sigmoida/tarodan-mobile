@@ -1,8 +1,9 @@
 {
   "_format": "sha256 = 32 adet iki haneli BUYUK harf hex, ':' ile ayrilmis (or. 'A1:B2:...:FF', 95 karakter). Bos birakilabilir; gecersiz bicim gen-wellknown.mjs'i HATA ile durdurur — yanlis bir deger yayinlanirsa Android dogrulamasi KESIN duser.",
   "eas_upload_keystore": {
-    "sha256": "",
-    "source": "eas credentials -p android → build profili seç → Keystore → SHA256 Fingerprint"
+    "sha256": "AD:59:A4:90:B8:7E:43:EB:01:FC:66:5E:7A:4C:9C:31:24:59:74:63:51:99:41:66:3B:D6:D4:6E:52:55:4C:B9",
+    "source": "eas credentials -p android → build profili seç → Keystore → SHA256 Fingerprint",
+    "note": "2026-08-12'de yayindaki preview APK'nin imza blogundan cikarildi (v2/v3 imza; APK v1/JAR imzasi tasimiyor). EAS ayni proje keystore'unu (Build Credentials RKkSVc-dZz) yeniden kullaniyor, deger build'ler arasinda degismez."
   },
   "play_app_signing": {
     "sha256": "",

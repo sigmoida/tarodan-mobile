@@ -26,7 +26,7 @@ tarayıcıda kalıyor, sadece iOS'un görünür bir hata mesajı yok.
 | 1 | AASA dosyası yayını (iOS) | **web / infra** | ✅ **2026-08-11**: iki alan adında da `200`, `application/json`, içerik üretilenle aynı; Apple'ın kendi CDN'i de görmüş |
 | 2 | `assetlinks.json` yayını (Android) | **web / infra** | ❌ 404 — her iki alan adında |
 | 3 | Apple `Associated Domains` capability | Apple Developer / EAS | ❓ doğrulanmadı |
-| 4 | Android imza parmak izi (`fingerprints.json`) | bu repo + Play Console | ❌ iki alan da boş |
+| 4 | Android imza parmak izi (`fingerprints.json`) | bu repo + Play Console | 🟡 **upload keystore dolu** (2026-08-12) — değer yayındaki preview APK'nın v2 imza bloğundan çıkarıldı; EAS aynı proje keystore'unu yeniden kullanıyor. **Play App Signing slotu hâlâ boş**: mağazadan kurulanlar Google'ın kendi anahtarıyla imzalanır, o parmak izi eklenmeden Play kurulumlarında doğrulama düşer |
 | 5 | `ios.associatedDomains` (`app.json`) | bu repo | ✅ **2026-08-11 eklendi** — sıra kuralı karşılandı (1 yeşil). Bekçisi: `src/lib/deeplinks/__tests__/appConfig.test.ts`. ⚠️ Entitlement olduğu için **yeni build** gerekir |
 
 **Ölçüm:** `node scripts/check-deeplinks.mjs`, 2026-08-03, exit kodu **1**,
