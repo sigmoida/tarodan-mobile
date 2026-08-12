@@ -20,6 +20,7 @@ const mockState = {
   removeFromFavorites: jest.fn().mockResolvedValue(true),
   addItem: jest.fn(),
   removeByProductId: jest.fn(),
+  updateQuantity: jest.fn(),
   isInCart: jest.fn().mockReturnValue(false),
 };
 
@@ -43,8 +44,12 @@ jest.mock('@/hooks/useFavorites', () => ({
 
 jest.mock('@/stores/cartStore', () => ({
   useCartStore: () => ({
+    // `useCartSync.add` reddedilen eklemeyi geri alabilmek için ÖNCEKİ satırı
+    // okur; sahte store da o alanı taşımalı.
+    items: mockState.items,
     addItem: mockState.addItem,
     removeByProductId: mockState.removeByProductId,
+    updateQuantity: mockState.updateQuantity,
     isInCart: mockState.isInCart,
   }),
 }));

@@ -594,6 +594,7 @@
   },
   "cart": {
     "addToCartFailed": "Sepete eklenemedi",
+    "addToCartFailedTitle": "Ürün sepete eklenemedi",
     "addedToCart": "Sepete eklendi",
     "applyCoupon": "Uygula",
     "browseListings": "İlanları İncele",

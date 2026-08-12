@@ -594,6 +594,7 @@
   },
   "cart": {
     "addToCartFailed": "Could not add to cart",
+    "addToCartFailedTitle": "Could not add to cart",
     "addedToCart": "Added to cart",
     "applyCoupon": "Apply",
     "browseListings": "Browse Listings",
