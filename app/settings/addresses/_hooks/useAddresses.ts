@@ -214,15 +214,13 @@ export function useAddresses() {
     if (!formData.title.trim()) errors.title = "Zorunlu alan";
     if (!formData.fullName.trim()) errors.fullName = "Zorunlu alan";
     if (!formData.phone.trim()) errors.phone = "Zorunlu alan";
-    // TR'de sıkı ayrıştırma (kırpma/tahmin yok, `@/utils/phone` TEK KAYNAK);
-    // TR dışı ülke kodlarında eski ≥10 hane kuralı aynen korunur.
+    // Sıkı TR ayrıştırma — kırpma/tahmin yok, `@/utils/phone` TEK KAYNAK.
+    // TR dışı kodlar için ayrı bir "≥10 hane" dalı VARDI; kaldırıldı: sunucu
+    // artık yalnız `+905…` kabul ediyor (`IsTrPhone`, staging 2026-08-26) ve
+    // `isValidPhoneInput` TR dışı her kodda zaten `false` dönüyor. Dal ölüydü
+    // ve okuyana "yabancı numara destekleniyor" izlenimi veriyordu.
     else if (!isValidPhoneInput(formData.phone, formData.phoneCountryCode))
       errors.phone = PHONE_INVALID_MESSAGE;
-    else if (
-      formData.phoneCountryCode !== DEFAULT_COUNTRY_CODE &&
-      formData.phone.replace(/\D/g, "").length < 10
-    )
-      errors.phone = "En az 10 haneli geçerli numara";
     if (!formData.address.trim()) errors.address = "Zorunlu alan";
     else if (formData.address.trim().length < 10)
       errors.address = "En az 10 karakter olmalıdır";

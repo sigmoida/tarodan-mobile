@@ -202,41 +202,53 @@ describe('parsePhoneForPayload / normalizePhoneForPayload — doğrular, uydurma
   });
 });
 
-/** TR dışı ülke kodlarının davranışı DEĞİŞMEDİ (sıkı TR kuralı yalnız +90'da). */
-describe('TR dışı ülke kodları — davranış korunur', () => {
-  it('ülke kodu prefix\'lenir', () => {
-    expect(normalizePhoneForPayload('415 555 0100', '+1')).toBe('+14155550100');
-    expect(normalizePhoneForPayload('7911123456', '+44')).toBe('+447911123456');
+/**
+ * TR DIŞI ülke kodları artık REDDEDİLİYOR.
+ *
+ * Eski davranış (ITU-T E.164'ün kendi sınırlarını uygula, plan tahmini yapma)
+ * kendi içinde tutarlıydı ama sunucunun kabul etmediği değerleri geçerli
+ * sayıyordu. Sunucu 2026-08-14'te her giriş noktasını `IsTrPhone()`
+ * (`/^\+905\d{9}$/`) kuralına bağladı; staging'de ölçüldü (2026-08-26,
+ * `POST /auth/register`):
+ *
+ *   `+49 30 1234567`  → "Geçerli bir Türkiye cep numarası giriniz (+905XXXXXXXXX)"
+ *   `+90 212 1234567` → aynı hata (TR sabit hat da reddediliyor)
+ *   `+90 532 1234567` → telefon hatası yok
+ *
+ * Yani eski testlerin "geçer" dediği her numara üretimde 400 alıyordu ve
+ * istemci bunu kullanıcıya gönderimden önce göstermiyordu. `PhoneInput`'tan
+ * ülke seçicisi kaldırıldığı için bu dala UI'dan artık ulaşılamıyor; kapı
+ * kalıcı veride (eski bir adres) TR dışı numara bulunma ihtimali için duruyor.
+ */
+describe('TR dışı ülke kodları — REDDEDİLİR (sunucu yalnız +905… kabul ediyor)', () => {
+  it.each([
+    ['415 555 0100', '+1'],
+    ['7911123456', '+44'],
+    ['30 1234567', '+49'],
+    ['50 123 4567', '+971'],
+  ])('%s (%s) payload üretmez', (phone, code) => {
+    expect(parsePhoneForPayload(phone, code)).toBeNull();
+    expect(normalizePhoneForPayload(phone, code)).toBe('');
+    expect(isValidPhoneInput(phone, code)).toBe(false);
   });
 
-  it('zaten ülke kodu varsa olduğu gibi kalır', () => {
-    expect(normalizePhoneForPayload('+14155550100', '+1')).toBe('+14155550100');
-    expect(normalizePhoneForPayload('+49 30 123456', '+49')).toBe('+4930123456');
+  it('zaten E.164 yazılmış yabancı numara da geçmez', () => {
+    expect(parsePhoneForPayload('+14155550100', '+1')).toBeNull();
+    expect(parsePhoneForPayload('+49 30 123456', '+49')).toBeNull();
+  });
+
+  // TR SABİT HAT: eski `^\+90[0-9]{10}$` sözleşmesini geçiyordu, yeni kural
+  // (`+905…`) reddediyor. İstemci de reddetmeli — sunucuya gidip 400 almasın.
+  it('TR sabit hat (+90 212…) reddedilir', () => {
+    expect(parsePhoneForPayload('212 123 4567', '+90')).toBeNull();
+    expect(isValidPhoneInput('212 123 4567', '+90')).toBe(false);
   });
 
   it('formatlayıcı yalnız rakam-dışı temizlik yapar, kırpmaz, gruplamaz', () => {
+    // Formatlama DEĞİŞMEDİ: alan hâlâ ne yazıldığını gösteriyor, gönderimi
+    // engelleyen `parsePhoneForPayload`.
     expect(formatPhoneNumber('415 555 0100', '+1')).toBe('4155550100');
     expect(formatPhoneNumber('4155550100999', '+1')).toBe('4155550100999');
-  });
-
-  it('yerel numara planına göre RED yok — gerçek numaralar geçer', () => {
-    // Eski `>= 10 hane` kuralı bu ikisini reddediyordu; ikisi de geçerli.
-    expect(isValidPhoneInput('30 1234567', '+49')).toBe(true);
-    expect(isValidPhoneInput('50 123 4567', '+971')).toBe(true);
-    expect(isValidPhoneInput('4155550100', '+1')).toBe(true);
-    expect(isValidPhoneInput('', '+1')).toBe(false);
-    expect(isValidPhoneInput('   ', '+1')).toBe(false);
-  });
-
-  it('yalnız E.164 in KENDİ sınırları uygulanır (plan tahmini değil)', () => {
-    // Ulusal kısım < 4 hane: en kısa bilinen plan Saint Helena (+290 XXXX).
-    // Bu kapı olmadan `+1` seçip `1` yazan kullanıcının `+11`'i sunucuya gidiyordu.
-    expect(isValidPhoneInput('1', '+1')).toBe(false);
-    expect(isValidPhoneInput('123', '+49')).toBe(false);
-    expect(isValidPhoneInput('1234', '+290')).toBe(true);
-    // Ülke kodu dahil > 15 hane (E.164 §6.2.1).
-    expect(isValidPhoneInput('415555010012345678', '+1')).toBe(false);
-    expect(parsePhoneForPayload('1', '+1')).toBeNull();
   });
 });
 
