@@ -72,8 +72,10 @@ describe("J48 · Güvenlik — tüm cihazlardan çıkış", () => {
     const alertSpy = (appAlert as jest.Mock).mockImplementation(() => {});
     renderWithProviders(<SecuritySettingsScreen />);
     fireEvent.press(screen.getByText("Tüm Cihazlardan Çıkış"));
+    // Bu dosya `t`'yi anahtarı döndürecek şekilde mock'luyor; başlık artık
+    // katalogdan geliyor, o yüzden beklenen değer ANAHTAR.
     expect(alertSpy).toHaveBeenCalledWith(
-      "Tüm Cihazlardan Çıkış",
+      "security.logoutAllTitle",
       expect.any(String),
       expect.any(Array),
     );

@@ -6170,5 +6170,36 @@
       "unavailable_at_address": "I Won't Be at the Address",
       "other": "Other"
     }
+  },
+  "security": {
+    "phoneCodeSent": "A verification code has been sent to your phone",
+    "phoneCodeSendFailed": "The code could not be sent",
+    "phoneVerified": "Your phone number is verified",
+    "phoneCodeWrong": "Incorrect code",
+    "passwordRules": "The password must be at least 8 characters and contain an uppercase letter, a lowercase letter, a digit and a special character (@$!%*?&)",
+    "passwordChanged": "Your password has been changed",
+    "passwordChangeFailed": "The password could not be changed",
+    "enterSixDigitCode": "Please enter the 6-digit verification code",
+    "twoFactorEnabled": "Two-factor authentication is enabled",
+    "twoFactorDisabled": "Two-factor authentication is disabled",
+    "verificationFailed": "Verification failed",
+    "backupCodesRegenFailed": "Backup codes could not be regenerated",
+    "logoutAllTitle": "Sign Out of All Devices",
+    "logoutAllBody": "You will be signed out on every device and will need to sign in again.",
+    "changePasswordTitle": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "newPasswordRepeat": "Repeat New Password",
+    "verificationCode": "Verification Code",
+    "disableTwoFactor": "Turn Off",
+    "phoneVerificationTitle": "Phone Verification",
+    "phoneNumber": "Phone number",
+    "sendCode": "Send Code",
+    "verificationCodeLower": "Verification code",
+    "verify": "Verify",
+    "resendIn": "Resend in {seconds}s",
+    "resendCode": "Resend code",
+    "regenerateBackupCodes": "Regenerate Backup Codes",
+    "regenerate": "Regenerate"
   }
 }

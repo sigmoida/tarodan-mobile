@@ -99,12 +99,12 @@ export function useSecurity() {
       // Modal açık: alert yerine modal-içi bilgi mesajı (iç içe modal donmasını önler).
       setPhoneMsg({
         type: "info",
-        text: "Doğrulama kodu telefonunuza gönderildi",
+        text: t('security.phoneCodeSent'),
       });
     } catch (e: any) {
       setPhoneMsg({
         type: "error",
-        text: e?.response?.data?.message || "Kod gönderilemedi",
+        text: e?.response?.data?.message || t('security.phoneCodeSendFailed'),
       });
     } finally {
       setLoading(false);
@@ -125,14 +125,14 @@ export function useSecurity() {
       setPhoneCode("");
       setPhoneMsg(null);
       setTimeout(
-        () => appAlert("Başarılı", "Telefon numaranız doğrulandı"),
+        () => appAlert(t('common.success'), t('security.phoneVerified')),
         400,
       );
     } catch (e: any) {
       // Hata da modal açıkken: alert yerine modal-içi hata mesajı.
       setPhoneMsg({
         type: "error",
-        text: e?.response?.data?.message || "Kod hatalı",
+        text: e?.response?.data?.message || t('security.phoneCodeWrong'),
       });
     } finally {
       setLoading(false);
@@ -152,7 +152,7 @@ export function useSecurity() {
   const handlePasswordChange = async () => {
     pwMsg.clear();
     if (newPassword !== confirmPassword) {
-      pwMsg.error("Şifreler eşleşmiyor");
+      pwMsg.error(t('validation.passwordMatch'));
       return;
     }
 
@@ -161,7 +161,7 @@ export function useSecurity() {
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!strongPassword.test(newPassword)) {
       pwMsg.error(
-        "Şifre en az 8 karakter, bir büyük harf, bir küçük harf, bir rakam ve bir özel karakter (@$!%*?&) içermelidir",
+        t('security.passwordRules'),
       );
       return;
     }
@@ -174,11 +174,11 @@ export function useSecurity() {
       setConfirmPassword("");
       alertAfterClose(
         () => setShowPasswordDialog(false),
-        "Başarılı",
-        "Şifreniz değiştirildi",
+        t('common.success'),
+        t('security.passwordChanged'),
       );
     } catch (error: any) {
-      pwMsg.error(error.response?.data?.message || "Şifre değiştirilemedi");
+      pwMsg.error(error.response?.data?.message || t('security.passwordChangeFailed'));
     } finally {
       setLoading(false);
     }
@@ -207,7 +207,7 @@ export function useSecurity() {
   const handleVerifyTwoFactor = async () => {
     twoFaMsg.clear();
     if (verificationCode.length !== 6) {
-      twoFaMsg.error("Lütfen 6 haneli doğrulama kodunu girin");
+      twoFaMsg.error(t('security.enterSixDigitCode'));
       return;
     }
 
@@ -218,11 +218,11 @@ export function useSecurity() {
       setVerificationCode("");
       alertAfterClose(
         () => setShowTwoFactorSetup(false),
-        "Başarılı",
-        "İki faktörlü doğrulama aktifleştirildi",
+        t('common.success'),
+        t('security.twoFactorEnabled'),
       );
     } catch (error: any) {
-      twoFaMsg.error(error.response?.data?.message || "Doğrulama başarısız");
+      twoFaMsg.error(error.response?.data?.message || t('security.verificationFailed'));
     } finally {
       setLoading(false);
     }
@@ -238,7 +238,7 @@ export function useSecurity() {
   const confirmDisableTwoFactor = async () => {
     disableMsg.clear();
     if (disableCode.length !== 6) {
-      disableMsg.error("Lütfen 6 haneli doğrulama kodunu girin");
+      disableMsg.error(t('security.enterSixDigitCode'));
       return;
     }
     setLoading(true);
@@ -248,11 +248,11 @@ export function useSecurity() {
       setDisableCode("");
       alertAfterClose(
         () => setShowDisableDialog(false),
-        "Başarılı",
-        "İki faktörlü doğrulama kapatıldı",
+        t('common.success'),
+        t('security.twoFactorDisabled'),
       );
     } catch (error: any) {
-      disableMsg.error(error.response?.data?.message || "İşlem başarısız");
+      disableMsg.error(error.response?.data?.message || t('common.operationFailed'));
     } finally {
       setLoading(false);
     }
@@ -261,7 +261,7 @@ export function useSecurity() {
   const handleRegenerateBackupCodes = async () => {
     regenMsg.clear();
     if (regenerateCode.length !== 6) {
-      regenMsg.error("Lütfen 6 haneli doğrulama kodunu girin");
+      regenMsg.error(t('security.enterSixDigitCode'));
       return;
     }
     setLoading(true);
@@ -275,7 +275,7 @@ export function useSecurity() {
       setRegenerateCode("");
     } catch (error: any) {
       regenMsg.error(
-        error.response?.data?.message || "Yedek kodlar yenilenemedi",
+        error.response?.data?.message || t('security.backupCodesRegenFailed'),
       );
     } finally {
       setLoading(false);
@@ -284,12 +284,12 @@ export function useSecurity() {
 
   const handleLogoutAllDevices = () => {
     appAlert(
-      "Tüm Cihazlardan Çıkış",
-      "Tüm cihazlardan çıkış yapılacak ve tekrar giriş yapmanız gerekecek.",
+      t('security.logoutAllTitle'),
+      t('security.logoutAllBody'),
       [
-        { text: "İptal", style: "cancel" },
+        { text: t('common.cancel'), style: "cancel" },
         {
-          text: "Çıkış Yap",
+          text: t('common.logout'),
           style: "destructive",
           onPress: async () => {
             try {
@@ -297,7 +297,7 @@ export function useSecurity() {
               logout();
               router.replace("/(auth)/login");
             } catch (error) {
-              appAlert("Hata", "İşlem başarısız");
+              appAlert(t('common.error'), t('common.operationFailed'));
             }
           },
         },

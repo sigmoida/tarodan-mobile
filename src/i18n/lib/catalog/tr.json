@@ -6170,5 +6170,36 @@
       "unavailable_at_address": "Adreste Bulunamayacağım",
       "other": "Diğer"
     }
+  },
+  "security": {
+    "phoneCodeSent": "Doğrulama kodu telefonunuza gönderildi",
+    "phoneCodeSendFailed": "Kod gönderilemedi",
+    "phoneVerified": "Telefon numaranız doğrulandı",
+    "phoneCodeWrong": "Kod hatalı",
+    "passwordRules": "Şifre en az 8 karakter, bir büyük harf, bir küçük harf, bir rakam ve bir özel karakter (@$!%*?&) içermelidir",
+    "passwordChanged": "Şifreniz değiştirildi",
+    "passwordChangeFailed": "Şifre değiştirilemedi",
+    "enterSixDigitCode": "Lütfen 6 haneli doğrulama kodunu girin",
+    "twoFactorEnabled": "İki faktörlü doğrulama aktifleştirildi",
+    "twoFactorDisabled": "İki faktörlü doğrulama kapatıldı",
+    "verificationFailed": "Doğrulama başarısız",
+    "backupCodesRegenFailed": "Yedek kodlar yenilenemedi",
+    "logoutAllTitle": "Tüm Cihazlardan Çıkış",
+    "logoutAllBody": "Tüm cihazlardan çıkış yapılacak ve tekrar giriş yapmanız gerekecek.",
+    "changePasswordTitle": "Şifre Değiştir",
+    "currentPassword": "Mevcut Şifre",
+    "newPassword": "Yeni Şifre",
+    "newPasswordRepeat": "Yeni Şifre Tekrar",
+    "verificationCode": "Doğrulama Kodu",
+    "disableTwoFactor": "Kapat",
+    "phoneVerificationTitle": "Telefon Doğrulama",
+    "phoneNumber": "Telefon numarası",
+    "sendCode": "Kod Gönder",
+    "verificationCodeLower": "Doğrulama kodu",
+    "verify": "Doğrula",
+    "resendIn": "Tekrar gönder {seconds}s",
+    "resendCode": "Kodu tekrar gönder",
+    "regenerateBackupCodes": "Yedek Kodları Yenile",
+    "regenerate": "Yenile"
   }
 }

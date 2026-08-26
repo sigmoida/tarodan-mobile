@@ -58,7 +58,7 @@ describe('settings/security phone verification', () => {
     await openPhoneDialog();
 
     fireEvent.changeText(await screen.findByTestId('phone-input'), '0532 123 45 67');
-    fireEvent.press(screen.getByText('Kod Gönder'));
+    fireEvent.press(screen.getByText('security.sendCode'));
 
     await waitFor(() => expect(mockSendPhoneCode).toHaveBeenCalledWith('+905321234567'));
   });
@@ -67,7 +67,7 @@ describe('settings/security phone verification', () => {
     await openPhoneDialog();
 
     fireEvent.changeText(await screen.findByTestId('phone-input'), '05321234567890');
-    fireEvent.press(screen.getByText('Kod Gönder'));
+    fireEvent.press(screen.getByText('security.sendCode'));
 
     await waitFor(() => expect(screen.getByText(PHONE_INVALID_MESSAGE)).toBeTruthy());
     expect(mockSendPhoneCode).not.toHaveBeenCalled();

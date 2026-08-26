@@ -15,23 +15,23 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
   return (
     <>
       {/* Password Change Dialog */}
-      <Modal isOpen={f.showPasswordDialog} onClose={() => { f.setShowPasswordDialog(false); f.pwMsg.clear(); }} title="Şifre Değiştir">
+      <Modal isOpen={f.showPasswordDialog} onClose={() => { f.setShowPasswordDialog(false); f.pwMsg.clear(); }} title={t('security.changePasswordTitle')}>
         <Input
-          label="Mevcut Şifre"
+          label={t('security.currentPassword')}
           value={f.currentPassword}
           onChangeText={f.setCurrentPassword}
           secureTextEntry
           containerStyle={styles.dialogInput}
         />
         <Input
-          label="Yeni Şifre"
+          label={t('security.newPassword')}
           value={f.newPassword}
           onChangeText={f.setNewPassword}
           secureTextEntry
           containerStyle={styles.dialogInput}
         />
         <Input
-          label="Yeni Şifre Tekrar"
+          label={t('security.newPasswordRepeat')}
           value={f.confirmPassword}
           onChangeText={f.setConfirmPassword}
           secureTextEntry
@@ -57,7 +57,7 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
           <Spinner size="sm" />
         )}
         <Input
-          label="Doğrulama Kodu"
+          label={t('security.verificationCode')}
           value={f.verificationCode}
           onChangeText={f.setVerificationCode}
           keyboardType="numeric"
@@ -77,7 +77,7 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
           İki faktörlü doğrulamayı kapatmak için uygulamanızdaki 6 haneli kodu girin.
         </Text>
         <Input
-          label="Doğrulama Kodu"
+          label={t('security.verificationCode')}
           value={f.disableCode}
           onChangeText={f.setDisableCode}
           keyboardType="numeric"
@@ -86,17 +86,17 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
         />
         <View style={styles.dialogActions}>
           <Button variant="ghost" title={t('mobile.cancel')} onPress={() => { f.setShowDisableDialog(false); f.disableMsg.clear(); }} />
-          <Button variant="danger" title="Kapat" onPress={f.confirmDisableTwoFactor} isLoading={f.loading} />
+          <Button variant="danger" title={t('security.disableTwoFactor')} onPress={f.confirmDisableTwoFactor} isLoading={f.loading} />
         </View>
         <ModalMessage state={f.disableMsg.state} />
       </Modal>
 
       {/* Phone Verification Dialog */}
-      <Modal isOpen={f.showPhoneDialog} onClose={() => { f.setShowPhoneDialog(false); f.setPhoneMsg(null); }} title="Telefon Doğrulama">
+      <Modal isOpen={f.showPhoneDialog} onClose={() => { f.setShowPhoneDialog(false); f.setPhoneMsg(null); }} title={t('security.phoneVerificationTitle')}>
         {f.phoneStep === 'enter' ? (
           <View style={{ gap: theme.spacing[3] }}>
             <PhoneInput
-              label="Telefon numarası"
+              label={t('security.phoneNumber')}
               // Gönderime basmadan görsün: çözülemeyen numara blur'da uyarır.
               validateOnBlur
               countryCode={f.phoneCountryCode}
@@ -109,12 +109,12 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
               testID="phone-input"
               containerStyle={styles.dialogInput}
             />
-            <Button title="Kod Gönder" onPress={f.handleSendPhoneCode} disabled={f.loading || !f.phoneInput} isLoading={f.loading} />
+            <Button title={t('security.sendCode')} onPress={f.handleSendPhoneCode} disabled={f.loading || !f.phoneInput} isLoading={f.loading} />
           </View>
         ) : (
           <View style={{ gap: theme.spacing[3] }}>
             <Input
-              label="Doğrulama kodu"
+              label={t('security.verificationCodeLower')}
               value={f.phoneCode}
               onChangeText={f.setPhoneCode}
               placeholder="123456"
@@ -123,10 +123,10 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
               testID="phone-code-input"
               containerStyle={styles.dialogInput}
             />
-            <Button title="Doğrula" onPress={f.handleVerifyPhone} disabled={f.loading || f.phoneCode.length !== 6} isLoading={f.loading} />
+            <Button title={t('security.verify')} onPress={f.handleVerifyPhone} disabled={f.loading || f.phoneCode.length !== 6} isLoading={f.loading} />
             <TouchableOpacity onPress={f.handleSendPhoneCode} disabled={f.resendIn > 0 || f.loading}>
               <Text style={{ color: colors.text.muted, textAlign: 'center' }}>
-                {f.resendIn > 0 ? `Tekrar gönder ${f.resendIn}s` : 'Kodu tekrar gönder'}
+                {f.resendIn > 0 ? t('security.resendIn', { seconds: f.resendIn }) : t('security.resendCode')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -149,7 +149,7 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
       <Modal
         isOpen={f.showRegenerateDialog}
         onClose={() => { f.setShowRegenerateDialog(false); f.regenMsg.clear(); }}
-        title="Yedek Kodları Yenile"
+        title={t('security.regenerateBackupCodes')}
       >
         {f.newBackupCodes ? (
           <>
@@ -164,7 +164,7 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
               ))}
             </View>
             <View style={styles.dialogActions}>
-              <Button variant="primary" title="Tamam" onPress={() => f.setShowRegenerateDialog(false)} />
+              <Button variant="primary" title={t('common.ok')} onPress={() => f.setShowRegenerateDialog(false)} />
             </View>
           </>
         ) : (
@@ -173,7 +173,7 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
               Yeni yedek kodlar üretmek için uygulamanızdaki 6 haneli kodu girin.
             </Text>
             <Input
-              label="Doğrulama Kodu"
+              label={t('security.verificationCode')}
               value={f.regenerateCode}
               onChangeText={f.setRegenerateCode}
               keyboardType="numeric"
@@ -182,7 +182,7 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
             />
             <View style={styles.dialogActions}>
               <Button variant="ghost" title={t('mobile.cancel')} onPress={() => { f.setShowRegenerateDialog(false); f.regenMsg.clear(); }} />
-              <Button variant="primary" title="Yenile" onPress={f.handleRegenerateBackupCodes} isLoading={f.loading} />
+              <Button variant="primary" title={t('security.regenerate')} onPress={f.handleRegenerateBackupCodes} isLoading={f.loading} />
             </View>
             <ModalMessage state={f.regenMsg.state} />
           </>
