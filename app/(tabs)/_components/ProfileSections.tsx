@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +21,7 @@ type SectionProps = { f: ProfileController };
 // Profile card: avatar, name, membership + trust badges, edit button
 // ---------------------------------------------------------------------------
 export function ProfileCard({ f }: SectionProps) {
+  const { t } = useTranslation();
   const { user } = f;
   return (
     <View style={styles.profileCard}>
@@ -67,7 +69,7 @@ export function ProfileCard({ f }: SectionProps) {
                 variant="caption"
                 style={{ marginLeft: spacing[1], color: colors.text.muted }}
               >
-                {f.showTrustScore ? 'Herkese açık' : 'Gizli'}
+                {f.showTrustScore ? t('mobile.profileTrustPublic') : t('mobile.profileTrustHidden')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -227,10 +229,11 @@ export function ProfileQuickActions({
   /** Kurumsal hesap mı (companyName + taxId var) — `requiresBusiness` öğelerini filtreler. */
   isBusiness?: boolean;
 }) {
+  const { t } = useTranslation();
   const items = quickActionItems.filter((q) => !q.requiresBusiness || isBusiness);
   return (
     <View style={styles.section}>
-      <Text variant="h3">Hızlı Erişim</Text>
+      <Text variant="h3">{t('mobile.profileQuickAccess')}</Text>
       <View style={styles.quickActions}>
         {items.map((q) => {
           const count = q.badgeKey ? (badges?.[q.badgeKey] ?? 0) : 0;
@@ -296,74 +299,75 @@ function MenuItem({ icon, label, onPress, tone = 'default', rightSlot, testID }:
 }
 
 export function ProfileMenuSections({ f }: SectionProps) {
+  const { t } = useTranslation();
   return (
     <>
       <View style={styles.menuSection}>
         <Text variant="overline" tone="muted" style={{ marginBottom: spacing[3] }}>
-          Hesap Ayarları
+          {t('profile.accountSettings')}
         </Text>
 
         <MenuItem
           icon="location-outline"
-          label="Adreslerim"
+          label={t('mobile.settingsAddresses')}
           onPress={() => router.push('/settings/addresses')}
         />
         <MenuItem
           icon="card-outline"
-          label="Banka Hesabı / IBAN"
+          label={t('mobile.settingsBankAccount')}
           onPress={() => router.push('/settings/bank-account')}
         />
         <MenuItem
           testID="profile-payment-methods-link"
           icon="wallet-outline"
-          label="Ödeme Yöntemlerim"
+          label={t('mobile.settingsPaymentMethods')}
           onPress={() => router.push('/settings/payment-methods')}
         />
         <MenuItem
           testID="profile-payment-history-link"
           icon="time-outline"
-          label="Ödeme Geçmişi"
+          label={t('mobile.settingsPaymentHistory')}
           onPress={() => router.push('/settings/payment-history')}
         />
         <MenuItem
           testID="profile-payments-link"
           icon="cash-outline"
-          label="Ödemelerim"
+          label={t('mobile.settingsPayments')}
           onPress={() => router.push('/settings/payments')}
         />
         <MenuItem
           testID="profile-membership-link"
           icon="diamond-outline"
-          label="Üyelik Planı"
+          label={t('mobile.settingsMembershipPlan')}
           onPress={() => router.push('/membership')}
           rightSlot={f.isPaidTier ? <Badge variant="primary">{f.tierLabel}</Badge> : null}
         />
         <MenuItem
           testID="profile-subscription-link"
           icon="repeat-outline"
-          label="Aboneliğim"
+          label={t('mobile.settingsSubscription')}
           onPress={() => router.push('/settings/subscription')}
         />
         <MenuItem
           icon="notifications-outline"
-          label="Bildirim Ayarları"
+          label={t('mobile.settingsNotifications')}
           onPress={() => router.push('/settings/notifications')}
         />
         <MenuItem
           icon="shield-checkmark-outline"
-          label="Güvenlik"
+          label={t('mobile.settingsSecurity')}
           onPress={() => router.push('/settings/security')}
         />
         <MenuItem
           testID="profile-language-link"
           icon="language-outline"
-          label="Dil / Language"
+          label={t('mobile.settingsLanguage')}
           onPress={() => router.push('/settings/language')}
         />
         {f.effectiveTier.toLowerCase() === 'business' && (
           <MenuItem
             icon="business-outline"
-            label="İşletme Paneli"
+            label={t('mobile.settingsBusinessPanel')}
             tone="primary"
             onPress={() => router.push('/settings/business')}
             rightSlot={<Badge variant="warning">👑</Badge>}
@@ -371,19 +375,19 @@ export function ProfileMenuSections({ f }: SectionProps) {
         )}
         <MenuItem
           icon="stats-chart-outline"
-          label="İstatistikler"
+          label={t('mobile.settingsStatistics')}
           onPress={() => router.push('/settings/analytics')}
         />
         <MenuItem
           testID="profile-saved-searches-link"
           icon="bookmark-outline"
-          label="Kayıtlı Aramalarım"
+          label={t('mobile.settingsSavedSearchesMine')}
           onPress={() => router.push('/settings/saved-searches')}
         />
         <MenuItem
           testID="profile-discounts-link"
           icon="pricetag-outline"
-          label="İndirim Kuponlarım"
+          label={t('mobile.settingsDiscountCoupons')}
           onPress={() => router.push('/settings/discounts')}
         />
       </View>
@@ -394,12 +398,12 @@ export function ProfileMenuSections({ f }: SectionProps) {
         </Text>
         <MenuItem
           icon="help-circle-outline"
-          label="Yardım & SSS"
+          label={t('mobile.settingsHelpFaq')}
           onPress={() => router.push('/help')}
         />
         <MenuItem
           icon="headset-outline"
-          label="Destek Taleplerim"
+          label={t('mobile.settingsSupportTickets')}
           onPress={() => router.push('/support')}
         />
         {ACCOUNT_PAGES.map((p) => (
@@ -413,7 +417,7 @@ export function ProfileMenuSections({ f }: SectionProps) {
         ))}
         <MenuItem
           icon="information-circle-outline"
-          label="Hakkında"
+          label={t('mobile.settingsAbout')}
           onPress={() => router.push('/about')}
         />
       </View>
@@ -424,17 +428,17 @@ export function ProfileMenuSections({ f }: SectionProps) {
         </Text>
         <MenuItem
           icon="shield-checkmark-outline"
-          label="Orijinallik Garantisi"
+          label={t('mobile.settingsAuthenticity')}
           onPress={() => router.push('/authenticity')}
         />
         <MenuItem
           icon="book-outline"
-          label="Koleksiyoner Rehberi"
+          label={t('footer.collectorsGuide')}
           onPress={() => router.push('/collectors-guide')}
         />
         <MenuItem
           icon="receipt-outline"
-          label="Platform Hizmet Bedeli"
+          label={t('footer.platformServiceFee')}
           onPress={() => router.push('/platform-hizmet-bedeli')}
         />
         {INFO_PAGES.map((p) => (

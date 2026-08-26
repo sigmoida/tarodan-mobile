@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, ScrollView, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,15 +16,16 @@ const { colors } = theme;
  * categories) once ≥2 chars are typed.
  */
 export function SearchSuggestions({ f }: { f: SearchController }) {
+  const { t } = useTranslation();
   return (
     <>
       {/* Recent Searches */}
       {f.showRecentSearches && f.recentSearchQueries.length > 0 && !f.searchQuery && (
         <View style={styles.recentSearchesDropdown}>
           <View style={styles.recentSearchesHeader}>
-            <Text style={styles.recentSearchesTitle}>Son Aramalar</Text>
+            <Text style={styles.recentSearchesTitle}>{t('search.recentSearches')}</Text>
             <TouchableOpacity onPress={f.clearSearches}>
-              <Text style={styles.clearRecentText}>Temizle</Text>
+              <Text style={styles.clearRecentText}>{t('common.clear')}</Text>
             </TouchableOpacity>
           </View>
           {f.recentSearchQueries.map((query, index) => (
@@ -51,7 +53,7 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
           <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 360 }}>
             {f.autocomplete.suggestions && f.autocomplete.suggestions.length > 0 ? (
               <View style={styles.acSection}>
-                <Text style={styles.acSectionTitle}>Öneriler</Text>
+                <Text style={styles.acSectionTitle}>{t('search.suggestions')}</Text>
                 {f.autocomplete.suggestions.slice(0, 5).map((s, i) => (
                   <TouchableOpacity
                     key={`s-${i}`}
@@ -70,7 +72,7 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
 
             {f.autocomplete.products && f.autocomplete.products.length > 0 ? (
               <View style={styles.acSection}>
-                <Text style={styles.acSectionTitle}>Ürünler</Text>
+                <Text style={styles.acSectionTitle}>{t('product.title')}</Text>
                 {f.autocomplete.products.slice(0, 5).map((p) => (
                   <TouchableOpacity
                     key={`p-${p.id}`}
@@ -94,7 +96,7 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
 
             {f.sellerResults.length > 0 ? (
               <View style={styles.acSection}>
-                <Text style={styles.acSectionTitle}>Satıcılar</Text>
+                <Text style={styles.acSectionTitle}>{t('search.sellers')}</Text>
                 {f.sellerResults.slice(0, 6).map((s) => (
                   <TouchableOpacity
                     key={`s-${s.id}`}
@@ -118,7 +120,7 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
 
             {f.autocomplete.brands && f.autocomplete.brands.length > 0 ? (
               <View style={styles.acSection}>
-                <Text style={styles.acSectionTitle}>Markalar</Text>
+                <Text style={styles.acSectionTitle}>{t('brands.title')}</Text>
                 {f.autocomplete.brands.slice(0, 5).map((b) => (
                   <TouchableOpacity
                     key={`b-${b.id}`}
@@ -136,7 +138,7 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
 
             {f.autocomplete.manufacturers && f.autocomplete.manufacturers.length > 0 ? (
               <View style={styles.acSection}>
-                <Text style={styles.acSectionTitle}>Üreticiler</Text>
+                <Text style={styles.acSectionTitle}>{t('nav.manufacturers')}</Text>
                 {f.autocomplete.manufacturers.slice(0, 5).map((m) => (
                   <TouchableOpacity
                     key={`mf-${m.id}`}
@@ -154,7 +156,7 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
 
             {f.autocomplete.categories && f.autocomplete.categories.length > 0 ? (
               <View style={styles.acSection}>
-                <Text style={styles.acSectionTitle}>Kategoriler</Text>
+                <Text style={styles.acSectionTitle}>{t('footer.categories')}</Text>
                 {f.autocomplete.categories.slice(0, 5).map((c) => (
                   <TouchableOpacity
                     key={`c-${c.id}`}

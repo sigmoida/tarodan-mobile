@@ -69,21 +69,60 @@ describe('üretilen tipler', () => {
 
 describe('çeviri tamamlanmamış anahtarlar', () => {
   /**
-   * İki katalogda birebir aynı olan değerler. Bir kısmı meşru (özel isimler,
-   * "OK", "Tarodan", sayı biçimleri) ama çoğu **çevrilmemiş TR metni**.
+   * İki katalogda birebir aynı olan değerler için AÇIK muafiyet listesi.
    *
-   * Sayı bir EŞİK olarak tutuluyor: göç ilerledikçe düşmeli, asla artmamalı.
-   * Yeni bir TR metnini EN kataloğuna kopyalayıp bırakmak bu testi düşürür.
+   * Önce bir sayı bütçesiydi; ilk aşımda kusuru gösterdi: sayı, "çevrilmesi
+   * gereken ama çevrilmemiş" ile "iki dilde zaten aynı" arasında ayrım
+   * yapamıyor, ve aşıldığında yapılacak en kolay şey sayıyı büyütmek oluyor.
+   * Açık liste her muafiyeti bir KARAR hâline getiriyor.
+   *
+   * Bu liste bir kez gerçek bir hata yakaladı: `product.deactivateDesc` Türkçe
+   * katalogda İngilizce metin taşıyordu (ve hiçbir yerde kullanılmıyordu) —
+   * silindi.
    */
-  const IDENTICAL_VALUE_BUDGET = 50;
+  const INTENTIONALLY_IDENTICAL = new Set([
+    // Kendi dilinde gösterilen dil adları.
+    'language.turkish',
+    'language.english',
+    // Özel adlar, marka ve teknik kısaltmalar.
+    'product.limitedEdition',
+    'product.model',
+    'models.model',
+    'checkout.cvv',
+    'checkout.suratKargo',
+    'membership.premium',
+    'mobile.guestGarageTitle',
+    'collection.coverImagePlaceholder',
+    'order.invoiceNo',
+    // Ölçek etiketleri ve iletişim değerleri — çevrilecek bir sözcük yok.
+    'information.sizeGuide.scale18',
+    'information.sizeGuide.scale24',
+    'information.sizeGuide.scale43',
+    'information.sizeGuide.scale64',
+    'information.sizeGuide.note64',
+    'information.contactInfo.emailValue',
+    'information.contactInfo.phoneValue',
+  ]);
 
-  it(`en fazla ${IDENTICAL_VALUE_BUDGET} anahtar iki dilde aynı değeri taşıyor`, () => {
-    const identical = trKeys.filter((key) => {
-      const pick = (c: any) => key.split('.').reduce((o: any, k) => o[k], c);
-      return pick(tr) === pick(en);
-    });
-    // Aştığında: yeni eklenen anahtarı gerçekten İngilizce'ye çevir, bütçeyi
-    // yükseltme. Düştüğünde: bütçeyi indir ki kazanım kilitlensin.
-    expect(identical.length).toBeLessThanOrEqual(IDENTICAL_VALUE_BUDGET);
+  /**
+   * `admin.*` ve saf-interpolasyonlu `server.notification.*` mesajları toplu
+   * muaf: birincisi mobil arayüzde hiç render edilmiyor (katalog ana repoyla
+   * paylaşıldığı için burada duruyor), ikincisi yalnız `{argüman}` taşıyor.
+   */
+  const isBulkExempt = (key: string) =>
+    key.startsWith('admin.') || /^server\.notification\..*\.message$/.test(key);
+
+  it('çevrilmemiş kalan anahtar yok', () => {
+    const pick = (catalog: any, key: string) =>
+      key.split('.').reduce((o: any, k) => o[k], catalog);
+    const identical = trKeys.filter(
+      (key) =>
+        pick(tr, key) === pick(en, key) &&
+        !INTENTIONALLY_IDENTICAL.has(key) &&
+        !isBulkExempt(key),
+    );
+    // Düşerse: anahtarı gerçekten İngilizce'ye çevir. Metin iki dilde
+    // GERÇEKTEN aynıysa (özel ad, kısaltma) yukarıdaki listeye ekle — sebebiyle.
+    expect(identical).toEqual([]);
   });
 });

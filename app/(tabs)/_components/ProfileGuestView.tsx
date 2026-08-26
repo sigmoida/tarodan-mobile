@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, ScrollView, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +15,7 @@ const { colors, spacing, radius } = theme;
 
 /** Unauthenticated profile: welcome, benefits, quick links, premium promo. */
 export function ProfileGuestView({ f }: { f: ProfileController }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   return (
     <View style={styles.container}>
@@ -55,7 +57,7 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
             size="lg"
             fullWidth
             icon="log-in-outline"
-            title="Giriş Yap"
+            title={t('auth.loginTitle')}
             onPress={() => router.push('/(auth)/login')}
             style={styles.loginButton}
           />
@@ -63,7 +65,7 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
             variant="outline"
             size="lg"
             fullWidth
-            title="Ücretsiz Üye Ol"
+            title={t('auth.freeSignUp')}
             onPress={() => router.push('/(auth)/register')}
             style={styles.registerButton}
           />
@@ -77,26 +79,26 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
           {[
             {
               icon: 'pricetag' as const,
-              title: 'İlan Yayınlayın',
-              desc: 'Koleksiyonunuzdaki modelleri satışa çıkarın veya takasa açın',
+              title: t('mobile.guestListTitle'),
+              desc: t('mobile.guestListDesc'),
               tint: benefitTints[0],
             },
             {
               icon: 'swap-horizontal' as const,
-              title: 'Takas Yapın',
-              desc: 'Diğer koleksiyonerlerle model değişimi yapın',
+              title: t('mobile.guestTradeTitle'),
+              desc: t('mobile.guestTradeDesc'),
               tint: benefitTints[1],
             },
             {
               icon: 'heart' as const,
-              title: 'Favorilere Kaydedin',
-              desc: 'Beğendiğiniz ürünleri kaydedin, fiyat değişikliklerinden haberdar olun',
+              title: t('mobile.guestFavTitle'),
+              desc: t('mobile.guestFavDesc'),
               tint: benefitTints[2],
             },
             {
               icon: 'car-sport' as const,
-              title: 'Digital Garage',
-              desc: 'Koleksiyonunuzu sergileyin ve diğerleriyle paylaşın',
+              title: t('mobile.guestGarageTitle'),
+              desc: t('mobile.guestGarageDesc'),
               tint: benefitTints[3],
             },
           ].map((b) => (
@@ -120,11 +122,11 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
           </Text>
 
           {[
-            { icon: 'search-outline' as const, label: 'İlanlara Göz At', to: '/search' },
-            { icon: 'albums-outline' as const, label: 'Koleksiyonları Keşfet', to: '/collections' },
-            { icon: 'cart-outline' as const, label: 'Sepetim', to: '/cart' },
-            { icon: 'location-outline' as const, label: 'Sipariş Takip', to: '/order-track' },
-            { icon: 'help-circle-outline' as const, label: 'Yardım Merkezi', to: '/help' },
+            { icon: 'search-outline' as const, label: t('mobile.guestBrowseListings'), to: '/search' },
+            { icon: 'albums-outline' as const, label: t('collection.exploreCollections'), to: '/collections' },
+            { icon: 'cart-outline' as const, label: t('cart.myCart'), to: '/cart' },
+            { icon: 'location-outline' as const, label: t('mobile.guestOrderTrack'), to: '/order-track' },
+            { icon: 'help-circle-outline' as const, label: t('help.title'), to: '/help' },
           ].map((q) => (
             <TouchableOpacity
               key={q.label}
@@ -166,7 +168,7 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
             variant="primary"
             size="lg"
             fullWidth
-            title="Premium Ol"
+            title={t('mobile.guestGoPremium')}
             onPress={() => router.push('/(auth)/register')}
             style={{ backgroundColor: colors.warning[500]! }}
           />
