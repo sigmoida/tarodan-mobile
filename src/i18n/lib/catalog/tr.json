@@ -1815,7 +1815,20 @@
       "startTrading": "Takasa Başla",
       "howItWorks": "Nasıl Çalışır?",
       "imageAlt": "Diecast model araç koleksiyonu"
-    }
+    },
+    "seeAll": "Tümünü gör",
+    "heroTitle": "Türkiye'nin en büyük",
+    "heroSubtitle": "Diecast pazaryeri",
+    "heroCreateCollection": "Koleksiyon oluştur",
+    "heroBrowseMarket": "Pazaryerini incele",
+    "scale": "Boyut",
+    "viewGarage": "Garajını incele →",
+    "sponsoredProducts": "Sponsorlu Ürünler",
+    "loadingProducts": "Ürünler yükleniyor...",
+    "noProductsYet": "Henüz ürün yok",
+    "allListings": "Tüm İlanlar",
+    "companyFallback": "Şirket",
+    "companyCollections": "Koleksiyonları"
   },
   "search": {
     "search": "Ara",
@@ -2539,7 +2552,11 @@
     "guestFavTitle": "Favorilere Kaydedin",
     "guestFavDesc": "Beğendiğiniz ürünleri kaydedin, fiyat değişikliklerinden haberdar olun",
     "guestGarageTitle": "Digital Garage",
-    "guestGarageDesc": "Koleksiyonunuzu sergileyin ve diğerleriyle paylaşın"
+    "guestGarageDesc": "Koleksiyonunuzu sergileyin ve diğerleriyle paylaşın",
+    "quickMySales": "Satışlarım",
+    "quickRefundRequests": "İade Talepleri",
+    "quickMyOffers": "Tekliflerim",
+    "quickBusinessApplication": "Kurumsal Başvuru"
   },
   "refund": {
     "cancel": {

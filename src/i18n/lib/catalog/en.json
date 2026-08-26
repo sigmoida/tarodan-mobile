@@ -1815,7 +1815,20 @@
       "startTrading": "Start Trading",
       "howItWorks": "How It Works?",
       "imageAlt": "Diecast model car collection"
-    }
+    },
+    "seeAll": "See all",
+    "heroTitle": "The largest",
+    "heroSubtitle": "diecast marketplace in Türkiye",
+    "heroCreateCollection": "Create a collection",
+    "heroBrowseMarket": "Browse the marketplace",
+    "scale": "Scale",
+    "viewGarage": "View their garage →",
+    "sponsoredProducts": "Sponsored Items",
+    "loadingProducts": "Loading items…",
+    "noProductsYet": "No items yet",
+    "allListings": "All Listings",
+    "companyFallback": "Company",
+    "companyCollections": "Their collections"
   },
   "search": {
     "search": "Search",
@@ -2539,7 +2552,11 @@
     "guestFavTitle": "Save Favourites",
     "guestFavDesc": "Save the items you like and hear about price changes",
     "guestGarageTitle": "Digital Garage",
-    "guestGarageDesc": "Show off your collection and share it with others"
+    "guestGarageDesc": "Show off your collection and share it with others",
+    "quickMySales": "My Sales",
+    "quickRefundRequests": "Refund Requests",
+    "quickMyOffers": "My Offers",
+    "quickBusinessApplication": "Business Application"
   },
   "refund": {
     "cancel": {

@@ -23,7 +23,13 @@
 import React from 'react';
 import { render, fireEvent, screen, waitFor } from '@testing-library/react-native';
 
-import { quickActionItems } from '../../(tabs)/_lib/profileConstants';
+import { buildQuickActionItems } from '../../(tabs)/_lib/profileConstants';
+import { schemaT } from '@/test-utils';
+
+// Liste artık `t`'yi argüman alan bir FABRİKA (etiketler çeviriden gelir).
+// Bu test dilden bağımsız alanları (`testID`, `to`, `requiresBusiness`)
+// sınıyor, o yüzden gerçek katalogla bir kez kurmak yeter.
+const quickActionItems = buildQuickActionItems(schemaT);
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();

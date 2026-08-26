@@ -8,7 +8,7 @@ import { Avatar, Badge, Text, theme } from '@/ui';
 import { buildAvatarUrl } from '@/lib/api';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/profileStyles';
-import { quickActionItems, quickActionTint, type QuickActionBadgeKey } from '../_lib/profileConstants';
+import { buildQuickActionItems, quickActionTint, type QuickActionBadgeKey } from '../_lib/profileConstants';
 import { LEGAL_PAGES } from '../_lib/legalPages';
 import { INFO_PAGES, ACCOUNT_PAGES } from '../_lib/infoPages';
 import type { ProfileController } from '../_hooks/useProfile';
@@ -230,7 +230,11 @@ export function ProfileQuickActions({
   isBusiness?: boolean;
 }) {
   const { t } = useTranslation();
-  const items = quickActionItems.filter((q) => !q.requiresBusiness || isBusiness);
+  // Dil değişince etiketler de değişsin diye liste `t`'ye bağlı kuruluyor.
+  const items = React.useMemo(
+    () => buildQuickActionItems(t).filter((q) => !q.requiresBusiness || isBusiness),
+    [t, isBusiness],
+  );
   return (
     <View style={styles.section}>
       <Text variant="h3">{t('mobile.profileQuickAccess')}</Text>
