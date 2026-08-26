@@ -27,6 +27,7 @@ import {
   OrderHelpCard,
 } from './_components/OrderActionCards';
 import { RefundRequestModal } from './_modals/RefundRequestModal';
+import { CancelOrderModal } from '@/components/orders/CancelOrderModal';
 
 const { colors } = theme;
 
@@ -105,6 +106,14 @@ export default function OrderDetailScreen() {
 
         <View style={{ height: 50 }} />
       </ScrollView>
+
+      <CancelOrderModal
+        isOpen={actions.cancelModal.visible}
+        onClose={actions.cancelModal.close}
+        onConfirm={actions.cancelModal.confirm}
+        willRefund={actions.cancelModal.willRefund}
+        pending={actions.cancelOrderPending}
+      />
 
       <RefundRequestModal
         visible={actions.refund.visible}

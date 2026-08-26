@@ -9,6 +9,7 @@ import { ordersApi, refundsApi, mediaApi, paymentsApi, type RNFile } from '@/lib
 import { qk } from '@/lib/query';
 import { captureException } from '@/services/sentry';
 import { MAX_EVIDENCE_PHOTOS } from '../_lib/status';
+import type { OrderCancellationReason } from '@/lib/shared/orderCancellation';
 import type { OrderDetail } from '../_lib/types';
 
 type SnackVariant = 'success' | 'danger' | 'default';
@@ -45,6 +46,7 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
   const dismissSnackbar = () => setSnackbar({ visible: false, message: '', variant: 'default' });
 
   const [refundModalVisible, setRefundModalVisible] = useState(false);
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [refundReason, setRefundReason] = useState('changed_mind');
   const [refundDescription, setRefundDescription] = useState('');
   const [evidenceAssets, setEvidenceAssets] = useState<RNFile[]>([]);
@@ -104,7 +106,8 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
   });
 
   const cancelOrderMutation = useMutation({
-    mutationFn: () => ordersApi.cancel(id),
+    mutationFn: (input: { reasonCode: OrderCancellationReason; reason?: string }) =>
+      ordersApi.cancel(id, input),
     onSuccess: () => {
       invalidateOrder();
       notify(t('order.orderCancelled'), 'success');
@@ -175,19 +178,15 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
     ]);
   };
 
-  const handleCancelOrder = () => {
-    const isUnpaid = order?.status === 'pending';
-    appAlert(
-      t('order.cancelOrder'),
-      isUnpaid
-        ? t('order.cancelConfirmBody')
-        : t('order.cancelConfirmRefundBody'),
-      [
-        { text: t('order.keepOrder'), style: 'cancel' },
-        { text: t('order.cancelShort'), style: 'destructive', onPress: () => cancelOrderMutation.mutate() },
-      ],
-    );
-  };
+  /**
+   * İptal artık bir onay kutusu DEĞİL, nedenli bir form.
+   *
+   * Sunucu `paid`/`preparing` siparişlerde `reasonCode` olmadan 400 atıyor
+   * (`server.order.cancelReasonRequired`) — eski `appAlert` akışı yalnız boş bir
+   * gövde gönderdiği için ödenmiş siparişin iptali mobilde HİÇ çalışmıyordu.
+   * Form `CancelOrderModal`'da; burada yalnız aç/kapa durumu duruyor.
+   */
+  const handleCancelOrder = () => setCancelModalVisible(true);
 
   return {
     snackbar,
@@ -215,6 +214,15 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
     cancelRefundPending: cancelRefundMutation.isPending,
     handleCancelOrder,
     cancelOrderPending: cancelOrderMutation.isPending,
+    // iptal modalı — form `CancelOrderModal`'da, burada yalnız aç/kapa durumu.
+    cancelModal: {
+      visible: cancelModalVisible,
+      close: () => setCancelModalVisible(false),
+      /** Ödemesi alınmışsa iade uyarısı gösterilir. */
+      willRefund: order?.status !== 'pending' && order?.status !== 'pending_payment',
+      confirm: (input: { reasonCode: OrderCancellationReason; reason?: string }) =>
+        cancelOrderMutation.mutate(input),
+    },
     initiatePayment: () => initiatePaymentMutation.mutate(),
     payPending: initiatePaymentMutation.isPending,
   };

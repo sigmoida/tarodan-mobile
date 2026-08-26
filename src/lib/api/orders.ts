@@ -1,4 +1,5 @@
 import { api, guestApi } from './client';
+import type { OrderCancellationReason } from '@/lib/shared/orderCancellation';
 
 // Orders API - Web ile aynı endpoint'ler
 export type OrderAddressInput = {
@@ -239,8 +240,33 @@ export const ordersApi = {
   /** Tek sipariş grubu detayı (ürün satırları + ayrı kargolar) */
   getGroup: (id: string) =>
     api.get(`/orders/groups/${id}`),
-  cancel: (id: string | number, reason?: string) =>
-    api.post(`/orders/${id}/cancel`, { reason }),
+  /**
+   * Kargo öncesi sipariş iptali.
+   *
+   * `reasonCode` OPSİYONEL DEĞİL: sunucu (`OrderLifecycleService.cancel`)
+   * sipariş `paid` ya da `preparing` iken kod yoksa
+   * `server.order.cancelReasonRequired` ile 400 atıyor. Bu istemci uzun süre
+   * yalnız serbest metin `reason` gönderdi — yani ödenmiş bir siparişin iptali
+   * mobilde HİÇ çalışmıyordu (web aynı uca `reasonCode` gönderiyor). Değer
+   * listesi `@/lib/shared/orderCancellation`'da, staging'de ölçülmüş hâliyle.
+   */
+  cancel: (
+    id: string | number,
+    body?: { reasonCode?: OrderCancellationReason; reason?: string },
+  ) => api.post(`/orders/${id}/cancel`, body ?? {}),
+  /**
+   * Misafir sipariş iptali (kargo öncesi) — delta 19, staging'de canlı.
+   *
+   * Kimlik doğrulaması takip ucuyla AYNI (sipariş numarası + siparişteki
+   * e-posta); oturum yok, o yüzden `guestApi`. Sonrası üye iptaliyle birebir
+   * aynı komut: aynı kesinti politikası, aynı kargoya-devir kilidi.
+   */
+  cancelGuest: (data: {
+    orderNumber: string;
+    email: string;
+    reasonCode?: OrderCancellationReason;
+    reason?: string;
+  }) => guestApi.post('/orders/guest/cancel', data),
   /** Alıcı: teslim aldım onayı (backend: POST /orders/:id/confirm). */
   confirm: (id: string | number) =>
     api.post(`/orders/${id}/confirm`),
