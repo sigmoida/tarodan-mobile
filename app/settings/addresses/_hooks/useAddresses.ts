@@ -96,8 +96,8 @@ export function useAddresses() {
       setDialogVisible(false);
       resetForm();
       appAlert(
-        "Başarılı",
-        editingAddress ? "Adres güncellendi" : "Adres eklendi",
+        t("common.success"),
+        editingAddress ? t("address.updated") : t("address.added"),
       );
     },
     onError: (err: any) => {
@@ -110,7 +110,7 @@ export function useAddresses() {
       const msg = err?.response?.data?.message;
       appAlert(
         "Hata",
-        Array.isArray(msg) ? msg.join("\n") : msg || "Adres kaydedilemedi",
+        Array.isArray(msg) ? msg.join("\n") : msg || t("address.saveFailed"),
       );
     },
   });
@@ -122,13 +122,13 @@ export function useAddresses() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.user.addresses });
-      appAlert("Başarılı", "Adres silindi");
+      appAlert(t("common.success"), t("address.deleted"));
     },
     onError: (err: any) => {
       const msg = err?.response?.data?.message;
       appAlert(
         "Hata",
-        Array.isArray(msg) ? msg.join("\n") : msg || "Adres silinemedi",
+        Array.isArray(msg) ? msg.join("\n") : msg || t("address.deleteFailed"),
       );
     },
   });
@@ -161,11 +161,11 @@ export function useAddresses() {
   const openAddDialog = () => {
     if (addresses.length >= maxAddresses) {
       appAlert(
-        "Adres Limiti",
-        `Ücretsiz üyeler en fazla ${maxAddresses} adres kaydedebilir. Premium üyelikle daha fazla adres ekleyin.`,
+        t("address.limitTitle"),
+        t("address.limitBody", { max: maxAddresses }),
         [
-          { text: "İptal", style: "cancel" },
-          { text: "Premium'a Geç", onPress: () => router.push("/upgrade") },
+          { text: t("common.cancel"), style: "cancel" },
+          { text: t("address.goPremium"), onPress: () => router.push("/upgrade") },
         ],
       );
       return;
@@ -193,12 +193,12 @@ export function useAddresses() {
 
   const handleDelete = (address: Address) => {
     appAlert(
-      "Adresi Sil",
-      `"${address.title}" adresini silmek istediğinize emin misiniz?`,
+      t("address.deleteAddress"),
+      t("address.deleteConfirmNamed", { title: address.title }),
       [
-        { text: "İptal", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Sil",
+          text: t("common.delete"),
           style: "destructive",
           onPress: () => deleteMutation.mutate(address.id),
         },
@@ -211,9 +211,9 @@ export function useAddresses() {
     // API DTO kuralları (adres ≥10 karakter, telefon ≥10 hane) client'ta önden uygulanır;
     // yoksa backend ham 400 "Adres kaydedilemedi" döner.
     const errors: Record<string, string> = {};
-    if (!formData.title.trim()) errors.title = "Zorunlu alan";
-    if (!formData.fullName.trim()) errors.fullName = "Zorunlu alan";
-    if (!formData.phone.trim()) errors.phone = "Zorunlu alan";
+    if (!formData.title.trim()) errors.title = t("validation.required");
+    if (!formData.fullName.trim()) errors.fullName = t("validation.required");
+    if (!formData.phone.trim()) errors.phone = t("validation.required");
     // Sıkı TR ayrıştırma — kırpma/tahmin yok, `@/utils/phone` TEK KAYNAK.
     // TR dışı kodlar için ayrı bir "≥10 hane" dalı VARDI; kaldırıldı: sunucu
     // artık yalnız `+905…` kabul ediyor (`IsTrPhone`, staging 2026-08-26) ve
@@ -221,11 +221,11 @@ export function useAddresses() {
     // ve okuyana "yabancı numara destekleniyor" izlenimi veriyordu.
     else if (!isValidPhoneInput(formData.phone, formData.phoneCountryCode))
       errors.phone = PHONE_INVALID_MESSAGE;
-    if (!formData.address.trim()) errors.address = "Zorunlu alan";
+    if (!formData.address.trim()) errors.address = t("validation.required");
     else if (formData.address.trim().length < 10)
-      errors.address = "En az 10 karakter olmalıdır";
-    if (!formData.city) errors.city = "Zorunlu alan";
-    if (!formData.district) errors.district = "Zorunlu alan";
+      errors.address = t("validation.minLength", { min: 10 });
+    if (!formData.city) errors.city = t("validation.required");
+    if (!formData.district) errors.district = t("validation.required");
 
     setFieldErrors(errors);
 
@@ -239,9 +239,9 @@ export function useAddresses() {
         !formData.city ||
         !formData.district;
       if (hasMissing) {
-        appAlert("Hata", "Lütfen zorunlu alanları doldurun (ilçe dahil)");
+        appAlert(t("common.error"), t("address.fillRequiredFields"));
       } else if (errors.address) {
-        appAlert("Hata", "Adres en az 10 karakter olmalıdır");
+        appAlert(t("common.error"), t("address.addressMinLength"));
       } else {
         // Alanın altındaki mesajla AYNI metin — iki yerde iki farklı kural anlatılmasın.
         appAlert("Hata", errors.phone ?? PHONE_INVALID_MESSAGE);

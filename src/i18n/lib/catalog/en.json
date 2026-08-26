@@ -1969,7 +1969,13 @@
     "loadingAddresses": "Loading addresses...",
     "backToSaved": "Back to saved addresses",
     "fullNamePlaceholder": "John Doe",
-    "addressPlaceholder": "Neighborhood, street, building, floor..."
+    "addressPlaceholder": "Neighborhood, street, building, floor...",
+    "limitTitle": "Address Limit",
+    "limitBody": "Free members can save at most {max} addresses. Add more with a premium membership.",
+    "goPremium": "Go Premium",
+    "deleteConfirmNamed": "Are you sure you want to delete the address \"{title}\"?",
+    "fillRequiredFields": "Please fill in the required fields, including the district",
+    "addressMinLength": "The address must be at least 10 characters"
   },
   "contact": {
     "title": "Contact Us",
@@ -6201,5 +6207,46 @@
     "resendCode": "Resend code",
     "regenerateBackupCodes": "Regenerate Backup Codes",
     "regenerate": "Regenerate"
+  },
+  "discount": {
+    "editTitle": "Edit Discount",
+    "newTitle": "New Discount",
+    "nameLabel": "Discount Name *",
+    "descriptionLabel": "Description",
+    "couponCodeLabel": "Coupon Code (optional)",
+    "typeLabel": "Discount Type",
+    "typePercent": "Percentage (%)",
+    "typeFixed": "Fixed (TRY)",
+    "scopeLabel": "Scope",
+    "scopeAllStore": "Entire Store",
+    "scopeSelected": "Selected Items",
+    "pickProducts": "Pick items",
+    "validityLabel": "Validity (YYYY-MM-DD)",
+    "startLabel": "Start",
+    "endLabel": "End",
+    "limitsLabel": "Limits (optional)",
+    "minCartLabel": "Minimum Cart Total (TRY)",
+    "maxDiscountLabel": "Maximum Discount (TRY)",
+    "totalUsageLimit": "Total Usage Limit",
+    "perUserLimit": "Per-User Limit",
+    "stackable": "Stackable Discount",
+    "active": "Active",
+    "discard": "Discard",
+    "update": "Update",
+    "create": "Create"
+  },
+  "listing": {
+    "deactivated": "The listing has been deactivated",
+    "deactivateFailed": "The listing could not be deactivated",
+    "sentForReview": "The listing has been sent for review. It goes live again once approved.",
+    "activateFailed": "The listing could not be activated",
+    "deleted": "The listing has been deleted",
+    "deleteFailed": "The listing could not be deleted",
+    "republishFailed": "The listing could not be republished. Check your listing limit.",
+    "deactivateTitle": "Deactivate Listing",
+    "deactivateBody": "This listing will be made inactive. Do you want to continue?",
+    "deactivateAction": "Deactivate",
+    "limitTitle": "Listing Limit",
+    "limitBody": "You have reached your listing limit. Upgrade to premium to republish."
   }
 }

@@ -1969,7 +1969,13 @@
     "loadingAddresses": "Adresler yükleniyor...",
     "backToSaved": "Kayıtlı adreslere dön",
     "fullNamePlaceholder": "Ahmet Yılmaz",
-    "addressPlaceholder": "Mahalle, sokak, bina, kat..."
+    "addressPlaceholder": "Mahalle, sokak, bina, kat...",
+    "limitTitle": "Adres Limiti",
+    "limitBody": "Ücretsiz üyeler en fazla {max} adres kaydedebilir. Premium üyelikle daha fazla adres ekleyin.",
+    "goPremium": "Premium'a Geç",
+    "deleteConfirmNamed": "\"{title}\" adresini silmek istediğinize emin misiniz?",
+    "fillRequiredFields": "Lütfen zorunlu alanları doldurun (ilçe dahil)",
+    "addressMinLength": "Adres en az 10 karakter olmalıdır"
   },
   "contact": {
     "title": "İletişim",
@@ -6201,5 +6207,46 @@
     "resendCode": "Kodu tekrar gönder",
     "regenerateBackupCodes": "Yedek Kodları Yenile",
     "regenerate": "Yenile"
+  },
+  "discount": {
+    "editTitle": "İndirimi Düzenle",
+    "newTitle": "Yeni İndirim",
+    "nameLabel": "İndirim Adı *",
+    "descriptionLabel": "Açıklama",
+    "couponCodeLabel": "Kupon Kodu (opsiyonel)",
+    "typeLabel": "İndirim Tipi",
+    "typePercent": "Yüzde (%)",
+    "typeFixed": "Sabit (TL)",
+    "scopeLabel": "Kapsam",
+    "scopeAllStore": "Tüm Mağaza",
+    "scopeSelected": "Seçili Ürünler",
+    "pickProducts": "Ürün seçin",
+    "validityLabel": "Geçerlilik (YYYY-AA-GG)",
+    "startLabel": "Başlangıç",
+    "endLabel": "Bitiş",
+    "limitsLabel": "Limitler (opsiyonel)",
+    "minCartLabel": "Min Sepet Tutarı (TL)",
+    "maxDiscountLabel": "Max İndirim Tutarı (TL)",
+    "totalUsageLimit": "Toplam Kullanım Limiti",
+    "perUserLimit": "Kullanıcı Başına Limit",
+    "stackable": "Birleşebilir İndirim",
+    "active": "Aktif",
+    "discard": "Vazgeç",
+    "update": "Güncelle",
+    "create": "Oluştur"
+  },
+  "listing": {
+    "deactivated": "İlan deaktif edildi",
+    "deactivateFailed": "İlan deaktif edilemedi",
+    "sentForReview": "İlan incelemeye gönderildi. Onaylandığında yeniden yayına girer.",
+    "activateFailed": "İlan aktif edilemedi",
+    "deleted": "İlan silindi",
+    "deleteFailed": "İlan silinemedi",
+    "republishFailed": "İlan yeniden yayınlanamadı. İlan limitinizi kontrol edin.",
+    "deactivateTitle": "İlanı Deaktif Et",
+    "deactivateBody": "Bu ilan pasif hale getirilecek. Devam etmek istiyor musunuz?",
+    "deactivateAction": "Deaktif Et",
+    "limitTitle": "İlan Limiti",
+    "limitBody": "İlan limitinize ulaştınız. Yeniden yayınlamak için Premium üyeliğe geçin."
   }
 }

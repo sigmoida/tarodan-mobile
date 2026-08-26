@@ -58,8 +58,8 @@ describe("J32 · adres ekleme form validasyonu", () => {
     await openDialog();
     fireEvent.press(screen.getByTestId("address-save-button"));
     expect(alertSpy).toHaveBeenCalledWith(
-      "Hata",
-      "Lütfen zorunlu alanları doldurun (ilçe dahil)",
+      "common.error",
+      "address.fillRequiredFields",
     );
     expect(post).not.toHaveBeenCalled();
   });
@@ -77,7 +77,7 @@ describe("J32 · adres ekleme form validasyonu", () => {
     await openDialog();
     fireEvent.press(screen.getByTestId("address-save-button"));
     // title + fullName + phone + address Input'ları mesajı basar (il/ilçe kırmızı çerçeve alır).
-    const errs = await screen.findAllByText("Zorunlu alan");
+    const errs = await screen.findAllByText("validation.required");
     expect(errs.length).toBeGreaterThanOrEqual(4);
   });
 
@@ -85,10 +85,10 @@ describe("J32 · adres ekleme form validasyonu", () => {
     renderWithProviders(<AddressesScreen />);
     await openDialog();
     fireEvent.press(screen.getByTestId("address-save-button"));
-    const beforeCount = (await screen.findAllByText("Zorunlu alan")).length;
+    const beforeCount = (await screen.findAllByText("validation.required")).length;
     fireEvent.changeText(screen.getByTestId("address-title-input"), "Ev");
     await waitFor(() => {
-      expect(screen.getAllByText("Zorunlu alan").length).toBe(beforeCount - 1);
+      expect(screen.getAllByText("validation.required").length).toBe(beforeCount - 1);
     });
   });
 });
