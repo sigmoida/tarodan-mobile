@@ -1,8 +1,90 @@
 # Parite — Kalan İşler
 
-**Güncelleme:** 2026-08-11 (P2 toplu tur sonrası — mobil tarafı kapandı)
-**Referans noktası:** `sigmoida/tarodan-app` `development` @ `cfc058da` (2026-08-07)
-— o tarihten beri mobili ilgilendiren yeni commit yok (kontrol edildi).
+**Güncelleme:** 2026-08-26 (delta 19 turu)
+**Referans noktası:** `sigmoida/tarodan-app` `development` @ `9f2f66bfc` (2026-08-22).
+
+> ℹ️ **Ana repoda `apps/mobile` YOK — 2026-07-28'de silindi** (`b8f08d335`
+> "chore(mobile): remove mobile app from monorepo", 860 dosya, −93.142 satır).
+> `packages/ui-native` de aynı commit'le boşaldı. Yani mobil istemcinin tek
+> kanonik kaynağı bu repo; ayrılma ana repo tarafından bilinçli ve tamamlanmış
+> bir karar.
+>
+> **Tuzak yerelde:** `~/dev/tarodan-app` çalışma kopyası `docs/mobile-build-fix-spec`
+> dalında duruyor (2026-07-23, `development`'tan 936 commit geride) ve o dalda
+> `apps/mobile` HÂLÂ var. Oradan okunan mobil kod eski. Karşılaştırma yaparken
+> önce `git fetch` + `origin/development`'a bak — parite için ana repodan
+> okunacak tek şey **web + api sözleşmesi**.
+
+---
+
+## 2026-08-26 · delta 19 turu
+
+Ana repoda **delta 19 dokümanı yazılmamış** (`docs/mobile-parity/` 18'de duruyor,
+2026-08-07). Aradaki 891 commit `94f372e1b..9f2f66bfc` diffinden taranıp aday
+maddeler çıkarıldı, her biri staging'e istek atılarak ölçüldü:
+`docs/superpowers/reports/2026-08-26-delta-19-olcum.md`.
+
+Aralığın ezici çoğunluğu iç refactor (AuthService / DiscountService /
+RefundService / PayTR / Elogo bölmeleri + modül klasör düzeni) — hiçbiri uç
+adresi veya alan değiştirmiyor. Web'de **08-07'den beri yeni sayfa yok**, yani
+ekran-düzeyi parite kapalı.
+
+### Kapananlar
+
+- ✅ **`Accept-Language` gönderiliyor.** Sunucu (#224) hata mesajını isteğin
+  diline göre çeviriyor ve gövdeye `i18nKey` koyuyor; mobil başlığı hiç
+  göndermediği için İngilizce kullanan Türkçe hata görüyordu.
+  `src/lib/api/acceptLanguage.ts`, iki axios instance'ına da takılı.
+- ✅ **Misafir sipariş iptali.** `POST /orders/guest/cancel` (staging'de canlı)
+  → `app/order-track` artık kargo öncesi iptal sunuyor.
+- ✅ **P0 — üye iptalinde eksik `reasonCode`.** Bu turun en pahalı bulgusu:
+  `ordersApi.cancel` yalnız serbest metin `reason` gönderiyordu, oysa sunucu
+  `paid`/`preparing` siparişlerde kod yoksa `server.order.cancelReasonRequired`
+  ile 400 atıyor. Yani **ödenmiş bir siparişin iptali mobilde hiç
+  çalışmıyordu** ve hiçbir test bunu yakalamamıştı. Neden listesi tek kaynakta:
+  `src/lib/shared/orderCancellation.ts` (değerler staging'den ölçüldü).
+- ✅ **`tradeFeeDiscountAmount`.** Takas hizmet bedeli kampanya indirimi ayrı
+  satır olarak gösteriliyor. DTO'nun okunuşunun aksine alan `cashPayments[]`
+  satırının İÇİNDE dönüyor (ölçüldü).
+- ✅ **İade nedenleri sunucu enum'una hizalandı.** `POST /orders/:id/refund-requests`
+  geçersiz kodda tam listeyi veriyor (ölçüldü); `defective` ve `buyer_damaged`
+  mobilin sözlüğünde YOKTU — o kodu taşıyan talep ekranda ham `snake_case`
+  basılıyordu ve alıcı web'de seçebildiği iki nedeni burada seçemiyordu. Seçenek
+  listesi artık elle yazılmıyor, sözlükten türetiliyor ve kural web'inkiyle aynı
+  (`lost_in_transit` + `other` sunulmaz). **Davranış değişikliği:** alıcı artık
+  "Diğer" seçemiyor — web'de de seçemiyor, gerekçe orada yazılı.
+- ✅ **Telefon TR-only.** Sunucu 2026-08-14'te `IsTrPhone()`'a geçti
+  (`/^\+905\d{9}$/`); mobilin 24 ülkelik seçicisi kullanıcıyı garanti 400'e
+  yürütüyordu. Seçici kaldırıldı, web'deki gibi sabit `+90` öneki gösteriliyor.
+  Staging'de üç yönlü doğrulandı: yabancı numara ✗, TR sabit hat ✗, TR cep ✓.
+
+### Bu turda AÇILAN madde — backend/ops bekliyor
+
+- 🔴 **`color` attribute grubu staging'de (ve muhtemelen prod'da) SEED
+  EDİLMEMİŞ.** Sözleşme yayında: `POST /products` `colors: string[]` kabul
+  ediyor, `GET /products?color=red` filtresi gerçekten uygulanıyor
+  (`total` 44 → 0; bilinmeyen parametre yutuluyor, yani filtre canlı). Ama
+  `GET /products/attribute-groups` yalnız `scale`, `material`, `vehicle_type`
+  döndürüyor — renk grubu yok.
+  **Mobilde renk seçicisi/filtresi bu yüzden YAZILMADI:** seçenek listesi o
+  uçtan geliyor, grup boşken yazılacak kod ölü dal olur (`relatedOrder` turunda
+  yapılan hatanın aynısı). Ana repodaki seeder `dc00df45a`; staging + prod'da
+  koşulmalı. Not: bu bir mobil/web ayrışması değil — web'de de filtre bugün 0
+  sonuç veriyor.
+
+### Ölçülemeyen
+
+- 🟡 **Kupon `target` / `budgetRemaining` / `maxDiscountAmount`.** Hesapta kupon
+  yok, geçerli bir kod bulunamadı → başarı gövdesi doğrulanamadı, tip
+  yazılmadı. Bedel hedefli kuponlarda `estimatedDiscount` 0 dönüyor;
+  `useCoupon` zaten o alanı okumuyor, o yüzden yanlış para gösterme riski yok.
+
+### Yan teyit — açık madde duruyor
+
+**Kupon reddi hâlâ yapısal alan taşımıyor.** `POST /discounts/validate`
+geçersiz kodda `200 {"isValid":false,"error":"Kupon kodu bulunamadı"}` dönüyor —
+`i18nKey` yok. `i18nMessage` göçü bu yolu kapsamamış (reddi exception olarak
+fırlatmıyor). Aşağıdaki listede kalmaya devam ediyor.
 
 Bu dosya "web'de var, mobilde yok" listesi değil; **açık kalan sözleşme ve
 davranış maddeleridir**. Kaynaklar: `mobile-parity docs/15,17,18`, delta 18'den

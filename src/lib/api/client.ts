@@ -6,6 +6,7 @@ import Constants from "expo-constants";
 import { captureException } from "@/services/sentry";
 import { errorFingerprint } from "./requestId";
 import { authFailureKind } from "./authFailureKind";
+import { acceptLanguageHeader } from "./acceptLanguage";
 
 // API URL çözümleme sırası:
 // 1) EXPO_PUBLIC_API_URL (production / preview / staging build'leri için zorunlu)
@@ -93,6 +94,21 @@ export const guestApi = createApiClient({
     "Content-Type": "application/json",
   },
 });
+
+/**
+ * `Accept-Language` — sunucu hata mesajları arayüz diliyle aynı dilde dönsün.
+ * Gerekçesi ve ölçümü `./acceptLanguage` başında. İKİ instance'a da takılır:
+ * misafir akışları (checkout, sipariş takibi, iletişim) `guestApi` üzerinden
+ * gidiyor ve hata gösteren yolların çoğu tam olarak orada.
+ */
+const attachAcceptLanguage = (instance: typeof api) => {
+  instance.interceptors.request.use((config) => {
+    config.headers["Accept-Language"] = acceptLanguageHeader();
+    return config;
+  });
+};
+attachAcceptLanguage(api);
+attachAcceptLanguage(guestApi);
 
 // Request interceptor - add auth token
 api.interceptors.request.use(

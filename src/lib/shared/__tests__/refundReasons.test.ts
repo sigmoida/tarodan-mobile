@@ -8,13 +8,24 @@
  * başka bir yerde açılmış böyle bir talep etiketsiz kalıyordu (CLAUDE.md §5).
  *
  * `delivery_delayed` delta §15 ile eklendi: satıcı kusuru sayılıyor, seçiciye
- * girmesi gerekiyor. Sunucunun tam enum listesi doğrulanamadı, o yüzden
- * bilinmeyen kod SESSİZCE düşmez — ham kodla gösterilir.
+ * girmesi gerekiyor. Bilinmeyen kod SESSİZCE düşmez — ham kodla gösterilir.
+ *
+ * **2026-08-26: enum artık DOĞRULANDI.** `POST /orders/:id/refund-requests`
+ * geçersiz bir kodda tam listeyi geri veriyor (staging):
+ *
+ *   delivery_delayed, changed_mind, damaged, wrong_item, not_as_described,
+ *   missing_parts, counterfeit, defective, buyer_damaged, lost_in_transit, other
+ *
+ * `defective` ve `buyer_damaged` o güne kadar sözlükte YOKTU: bu kodu taşıyan
+ * talep ekranda ham snake_case basılıyordu ve alıcı web'de seçebildiği iki
+ * nedeni burada seçemiyordu.
  */
 import {
+  REFUND_REASONS,
   refundReasonConfig,
   refundReasonLabel,
   REFUND_REASON_OPTIONS,
+  BUYER_SELECTABLE_REFUND_REASONS,
 } from '../status-configs';
 
 describe('refundReasonLabel', () => {
@@ -46,8 +57,21 @@ describe('REFUND_REASON_OPTIONS', () => {
     });
   });
 
-  it('keeps "other" last so the specific reasons are read first', () => {
-    expect(REFUND_REASON_OPTIONS[REFUND_REASON_OPTIONS.length - 1]!.value).toBe('other');
+  // ESKİ kural "`other` en sonda dursun"du. Web `other`'ı alıcıya HİÇ
+  // sunmuyor (politika çözümü olmayan serbest kova) ve mobil sunuyordu — bu
+  // bir sıralama tercihi değil, parite farkıydı. Kural artık web'inkiyle aynı.
+  it('alıcıya `other` sunmaz — serbest kova seçilemez', () => {
+    expect(REFUND_REASON_OPTIONS.map((o) => o.value)).not.toContain('other');
+  });
+
+  it('`lost_in_transit` de sunulmaz (operasyonel tespit, alıcı beyanı değil)', () => {
+    expect(REFUND_REASON_OPTIONS.map((o) => o.value)).not.toContain('lost_in_transit');
+  });
+
+  it('seçilebilir listeden TÜRETİLİR — elle yazılmış ikinci bir kopya yok', () => {
+    expect(REFUND_REASON_OPTIONS.map((o) => o.value)).toEqual([
+      ...BUYER_SELECTABLE_REFUND_REASONS,
+    ]);
   });
 
   it('is built without a non-null assertion that could crash the module', () => {
@@ -61,5 +85,24 @@ describe('REFUND_REASON_OPTIONS', () => {
     );
     const optionsBlock = source.slice(source.indexOf('REFUND_REASON_OPTIONS'));
     expect(optionsBlock).not.toContain('refundReasonConfig[value]!');
+  });
+});
+
+describe('sunucu enum’u ile sözlük', () => {
+  it('sözlük enum’un HER değerini tanır — ham kod basılmaz', () => {
+    for (const reason of REFUND_REASONS) {
+      expect(refundReasonConfig[reason]).toBeDefined();
+      expect(refundReasonLabel(reason)).not.toBe(reason);
+    }
+  });
+
+  it('sözlükte enum dışı uydurma kod yok', () => {
+    expect(Object.keys(refundReasonConfig).sort()).toEqual([...REFUND_REASONS].sort());
+  });
+
+  it('web’de seçilebilen defective / buyer_damaged burada da seçilebilir', () => {
+    const values = REFUND_REASON_OPTIONS.map((o) => o.value);
+    expect(values).toContain('defective');
+    expect(values).toContain('buyer_damaged');
   });
 });

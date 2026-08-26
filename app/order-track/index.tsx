@@ -1,7 +1,9 @@
 import { View, ScrollView, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { theme, Text, Input, Button, ScreenHeader } from '@/ui';
+import { theme, Text, Input, Button, ScreenHeader, Snackbar } from '@/ui';
+import { CancelOrderModal } from '@/components/orders/CancelOrderModal';
 
 import { styles } from './_lib/styles';
 import { useOrderTrack } from './_hooks/useOrderTrack';
@@ -15,6 +17,7 @@ const { colors } = theme;
  * the result card, and the help footer.
  */
 export default function OrderTrackScreen() {
+  const { t } = useTranslation();
   const f = useOrderTrack();
 
   return (
@@ -74,6 +77,24 @@ export default function OrderTrackScreen() {
         {/* Order Result */}
         {f.order && <OrderTrackResult order={f.order} />}
 
+        {/*
+          Misafir iptali (delta 19). Web'in `GuestCancelModal`'ıyla aynı uç ve
+          aynı neden listesi; kapı `canGuestCancel` — kargoya verilmiş siparişte
+          hiç çizilmez.
+        */}
+        {f.cancel.available ? (
+          <Button
+            testID="guest-cancel-button"
+            variant="outline"
+            icon="close-circle-outline"
+            fullWidth
+            title={t('order.guestCancelCta')}
+            onPress={f.cancel.open}
+            disabled={f.cancel.isPending}
+            style={styles.guestCancelButton}
+          />
+        ) : null}
+
         {/* Help Section */}
         <View style={styles.helpSection}>
           <Ionicons name="help-circle-outline" size={24} color={colors.primary[600]!} />
@@ -91,6 +112,23 @@ export default function OrderTrackScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      <CancelOrderModal
+        isOpen={f.cancel.visible}
+        onClose={f.cancel.close}
+        onConfirm={f.cancel.confirm}
+        willRefund={f.cancel.willRefund}
+        pending={f.cancel.isPending}
+      />
+
+      <Snackbar
+        visible={f.snackbar.visible}
+        onDismiss={f.dismissSnackbar}
+        duration={3500}
+        variant={f.snackbar.variant}
+      >
+        {f.snackbar.message}
+      </Snackbar>
     </View>
   );
 }

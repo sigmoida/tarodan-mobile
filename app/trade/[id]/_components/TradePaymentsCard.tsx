@@ -70,6 +70,19 @@ function PaymentRow({
         <Text variant="caption" tone="muted">{t(statusKey as any)}</Text>
       </View>
       <Line label={t('trade.serviceFee')} amount={row.tradeFeeAmount} />
+      {/*
+        Kampanya indirimi — yalnız > 0 iken. `tradeFeeAmount` ZATEN indirilmiş
+        tutar, bu satır onu tekrar düşmez; kullanıcı "neden bedel beklediğimden
+        düşük?" sorusunun cevabını görsün diye var. 0 satırı gürültü olurdu
+        (indirimsiz takasların hepsi 0 döndürüyor — staging ölçümü).
+      */}
+      {Number(row.tradeFeeDiscountAmount ?? 0) > 0 ? (
+        <Line
+          label={t('trade.serviceFeeDiscount')}
+          amount={row.tradeFeeDiscountAmount}
+          tone="success"
+        />
+      ) : null}
       <Line label={t('trade.shippingFee')} amount={row.shippingAmount} />
       {/* Nakit fark yalnız borçlu tarafta anlamlı; 0 satırı gürültü olur. */}
       {Number(row.amount ?? 0) > 0 ? (
@@ -84,12 +97,24 @@ function PaymentRow({
 }
 
 /** Hizmet bedeli 0 olabilir (admin henüz girmemiş) — 0 TL meşru, satır yine çizilir. */
-function Line({ label, amount }: { label: string; amount?: number }) {
+function Line({
+  label,
+  amount,
+  tone,
+}: {
+  label: string;
+  amount?: number;
+  /** `success` = lehte bir kalem (indirim); işaret `−` ile birlikte gelir. */
+  tone?: 'success';
+}) {
   if (amount == null) return null;
+  const value = formatPrice(Number(amount));
   return (
     <View style={styles.line}>
       <Text variant="caption" tone="muted">{label}</Text>
-      <Text variant="caption">{formatPrice(Number(amount))}</Text>
+      <Text variant="caption" style={tone === 'success' ? styles.discountValue : undefined}>
+        {tone === 'success' ? `−${value}` : value}
+      </Text>
     </View>
   );
 }
@@ -103,6 +128,7 @@ const styles = StyleSheet.create({
   rowHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: theme.spacing[1] },
   rowLabel: { fontWeight: '600' },
   line: { flexDirection: 'row', justifyContent: 'space-between' },
+  discountValue: { color: theme.colors.success[700]! },
   totalLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',

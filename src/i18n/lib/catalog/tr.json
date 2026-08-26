@@ -1022,6 +1022,12 @@
     "refundReasonOptional": "İade Nedeni (isteğe bağlı)",
     "evidencePhotoOptional": "Kanıt Fotoğrafı (isteğe bağlı)",
     "cancellationActions": "İptal işlemleri",
+    "cancelReasonLabel": "İptal nedeni",
+    "guestCancelTitle": "Siparişi iptal et",
+    "guestCancelIntro": "Sipariş henüz kargoya verilmedi. İptal ederseniz ödemeniz iade edilir.",
+    "guestCancelCta": "Siparişi İptal Et",
+    "guestCancelDone": "Siparişiniz iptal edildi.",
+    "guestCancelFailed": "Sipariş iptal edilemedi.",
     "refundActions": "İade işlemleri",
     "groupLoadFailed": "Sipariş grubu yüklenemedi.",
     "receivedTitle": "Siparişiniz Alındı!",
@@ -1271,6 +1277,7 @@
     "yourPayment": "Sizin ödemeniz",
     "theirPayment": "{name} ödemesi",
     "serviceFee": "Takas hizmet bedeli",
+    "serviceFeeDiscount": "Hizmet bedeli indirimi",
     "shippingFee": "Kargo (2 gönderi)",
     "cashDifferenceLine": "Nakit fark",
     "paymentTotal": "Toplam",
@@ -5989,6 +5996,17 @@
       "tierNotActive": "Bu üyelik tipi aktif değil",
       "tierNotFound": "Üyelik tipi bulunamadı: {type}",
       "userIdNotFound": "Kullanıcı kimliği bulunamadı"
+    }
+  },
+  "status": {
+    "orderCancellationReason": {
+      "delivery_delayed": "Teslimat Gecikti",
+      "wrong_product_selected": "Yanlış Ürün Seçtim",
+      "changed_mind": "Fikrimi Değiştirdim",
+      "wrong_card": "Yanlış Kart Kullandım",
+      "price_changed_mind": "Fiyat Nedeniyle Vazgeçtim",
+      "unavailable_at_address": "Adreste Bulunamayacağım",
+      "other": "Diğer"
     }
   }
 }

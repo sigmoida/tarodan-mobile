@@ -173,10 +173,32 @@ export const refundReasonConfig: Record<string, StatusConfig> = {
   not_as_described: { label: 'Açıklamayla uyuşmuyor', variant: 'warning' },
   missing_parts: { label: 'Eksik parça var', variant: 'warning' },
   counterfeit: { label: 'Sahte / taklit', variant: 'danger' },
+  // `defective` + `buyer_damaged`: sunucu enum'unda VARDI, burada yoktu.
+  // Staging'de ölçüldü (2026-08-26, `POST /orders/:id/refund-requests` geçersiz
+  // bir kodla tam listeyi geri veriyor). Eksik olduklarında iki şey oluyordu:
+  // bu kodu taşıyan bir talep ekranda ham `snake_case` basılıyordu ve alıcı
+  // web'de seçebildiği iki nedeni mobilde seçemiyordu.
+  defective: { label: 'Arızalı / kusurlu', variant: 'danger' },
+  buyer_damaged: { label: 'Alıcı kaynaklı hasar', variant: 'warning' },
   lost_in_transit: { label: 'Kargoda kayboldu', variant: 'danger' },
   delivery_delayed: { label: 'Teslimat gecikti', variant: 'warning' },
   other: { label: 'Diğer', variant: 'default' },
 };
+
+/** Sunucunun `RefundReason` enum'u — staging'de ölçülen tam liste (2026-08-26). */
+export const REFUND_REASONS = [
+  'delivery_delayed',
+  'changed_mind',
+  'damaged',
+  'wrong_item',
+  'not_as_described',
+  'missing_parts',
+  'counterfeit',
+  'defective',
+  'buyer_damaged',
+  'lost_in_transit',
+  'other',
+] as const;
 
 /**
  * Nedenin okunur etiketi. Sunucunun tam enum listesi doğrulanamadı, o yüzden
@@ -191,23 +213,24 @@ export function refundReasonLabel(reason: string | null | undefined): string {
 /**
  * Alıcının iade talebi açarken SEÇEBİLECEĞİ nedenler.
  *
- * Sözlüğün tamamı değil: `lost_in_transit` gibi kodlar sistem/satıcı akışından
- * da gelebiliyor, ama gösterilebilmeleri gerekiyor — bu yüzden gösterim
+ * Sözlüğün tamamı değil: `lost_in_transit` operasyonel bir TESPİT (kargo
+ * takibinden gelir), `other` ise politika çözümü olmayan serbest kova. İkisi de
+ * gösterilebilmeli ama seçtirilmemeli — bu yüzden gösterim
  * (`refundReasonConfig`) ile seçim listesi ayrı, etiketleri ortak.
  *
- * `delivery_delayed` delta §15 ile eklendi (`POST /refunds` kabul ediyor,
- * satıcı kusuru sayılıp otomatik onaylanıyor).
+ * Liste artık ELLE yazılmıyor, sözlükten TÜRETİLİYOR ve kural web'inkiyle
+ * birebir aynı (`BUYER_SELECTABLE_REFUND_REASONS`). Elle yazıldığı sürece iki
+ * kod (`defective`, `buyer_damaged`) sunucu enum'unda olduğu hâlde mobilde
+ * seçilemiyordu ve `other` web'de sunulmadığı hâlde burada sunuluyordu.
+ * Türetme, sunucuya yeni bir neden eklendiğinde tek bir sözlük satırının
+ * yetmesini sağlıyor.
  */
-export const REFUND_REASON_OPTIONS: Array<{ value: string; label: string }> = [
-  'changed_mind',
-  'damaged',
-  'not_as_described',
-  'wrong_item',
-  'missing_parts',
-  'counterfeit',
-  'delivery_delayed',
-  'other',
-]
+export const BUYER_SELECTABLE_REFUND_REASONS = Object.keys(
+  refundReasonConfig,
+).filter((reason) => reason !== 'lost_in_transit' && reason !== 'other');
+
+export const REFUND_REASON_OPTIONS: Array<{ value: string; label: string }> =
+  BUYER_SELECTABLE_REFUND_REASONS
   // Sözlükte olmayan bir kod (yazım hatası) yalnız listeden DÜŞER; `!` ile
   // iddia etmek import anında TypeError atıp iade ekranını beyaz ekrana
   // çeviriyordu — tek bir harf yüzünden.

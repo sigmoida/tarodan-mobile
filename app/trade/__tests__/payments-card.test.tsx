@@ -50,6 +50,34 @@ describe('TradePaymentsCard', () => {
     expect(toJSON()).toBeNull();
   });
 
+  // Delta 19 (staging 2026-08-26): `tradeFeeDiscountAmount` cashPayments satırının
+  // İÇİNDE dönüyor. `tradeFeeAmount` zaten indirilmiş tutar — indirim satırı yalnız
+  // AÇIKLAR, hiçbir toplamdan tekrar düşülmez.
+  it('hizmet bedeli kampanya indirimini eksi işaretiyle ayrı satırda gösterir', () => {
+    const discounted = {
+      ...V2_VIEW,
+      myPaymentRow: { ...V2_VIEW.myPaymentRow, tradeFeeAmount: 90, tradeFeeDiscountAmount: 30, totalAmount: 280 },
+    };
+    render(<TradePaymentsCard view={discounted as any} otherPartyName="Karşı" />);
+    expect(screen.getByText('−30,00 TL')).toBeTruthy();
+    // Toplam SUNUCUDAN gelir; indirim satırı onu değiştirmez.
+    expect(screen.getByText('280,00 TL')).toBeTruthy();
+  });
+
+  it('indirim 0 iken satırı hiç çizmez (indirimsiz takasların hepsi 0 döndürüyor)', () => {
+    const zeroDiscount = {
+      ...V2_VIEW,
+      myPaymentRow: { ...V2_VIEW.myPaymentRow, tradeFeeDiscountAmount: 0 },
+    };
+    render(<TradePaymentsCard view={zeroDiscount as any} otherPartyName="Karşı" />);
+    expect(screen.queryByText('Hizmet bedeli indirimi')).toBeNull();
+  });
+
+  it('alan hiç gelmediğinde de satırı çizmez (eski gövde şekli)', () => {
+    render(<TradePaymentsCard view={V2_VIEW} otherPartyName="Karşı" />);
+    expect(screen.queryByText('Hizmet bedeli indirimi')).toBeNull();
+  });
+
   it('hizmet bedeli 0 olsa da satırı çizer (0 TL meşru konfigürasyon)', () => {
     const zeroFee = {
       ...V2_VIEW,

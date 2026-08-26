@@ -19,8 +19,20 @@ export interface TradeCashPayment {
   recipientId?: string | null;
   /** Ham nakit fark; borçlu olmayan tarafın satırında 0. */
   amount?: number;
-  /** v2: hizmet bedeli (KDV DAHİL). */
+  /** v2: hizmet bedeli (KDV DAHİL; kampanya varsa İNDİRİM SONRASI tutar). */
   tradeFeeAmount?: number;
+  /**
+   * Hizmet bedeli kampanyasının bu satıra verdiği indirim (İ25).
+   *
+   * Staging'de ölçüldü (2026-08-26): alan `cashPayments[]` satırının İÇİNDE
+   * dönüyor — `TradeResponseDto`'nun okunuşunun aksine takasın kökünde DEĞİL.
+   * Örnek gövdede `0`; kampanya uygulanmış bir takas bulunamadı, o yüzden
+   * dolu bir örnek üzerinde doğrulanmadı.
+   *
+   * `tradeFeeAmount` zaten indirilmiş tutar olduğu için bu alan yalnız
+   * BİLGİLENDİRME satırıdır — hiçbir toplamdan tekrar düşülmez.
+   */
+  tradeFeeDiscountAmount?: number;
   /** v2: bu tarafın 2 bacaklık kargo bedeli. */
   shippingAmount?: number;
   /** v1 kalıntısı — v2 satırlarında her zaman 0. */
