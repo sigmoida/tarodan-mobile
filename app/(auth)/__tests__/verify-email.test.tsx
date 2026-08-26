@@ -62,7 +62,9 @@ describe('J45 · e-posta doğrulama (süresi geçmiş token)', () => {
     mockVerify.mockResolvedValue({});
     renderWithProviders(<VerifyEmailScreen />);
 
-    await waitFor(() => expect(screen.getByText('E-postanız doğrulandı')).toBeOnTheScreen());
+    // Başlık artık katalogdaki `auth.emailVerified` — ekranın kendi kopyası
+    // ("E-postanız doğrulandı") kaldırıldı, aynı cümlenin iki sürümü kalmasın.
+    await waitFor(() => expect(screen.getByText('E-posta Doğrulandı!')).toBeOnTheScreen());
     fireEvent.press(screen.getByText('Devam Et'));
     expect(mockReplace).toHaveBeenCalledWith('/(auth)/login');
   });

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
@@ -21,6 +22,7 @@ const { colors, spacing } = theme;
 type Status = 'idle' | 'verifying' | 'success' | 'error';
 
 export default function VerifyEmailScreen() {
+  const { t } = useTranslation();
   const { token: tokenParam } = useLocalSearchParams<{ token?: string }>();
   const { isAuthenticated, user } = useAuthStore();
   const [manualToken, setManualToken] = useState('');
@@ -36,7 +38,7 @@ export default function VerifyEmailScreen() {
     onError: (e: unknown) => {
       const err = e as { response?: { data?: { message?: string } } };
       setStatus('error');
-      setErrorMsg(err?.response?.data?.message || 'Bağlantı geçersiz veya süresi dolmuş olabilir.');
+      setErrorMsg(err?.response?.data?.message || t('auth.verifyLinkInvalid'));
     },
   });
 
@@ -44,13 +46,13 @@ export default function VerifyEmailScreen() {
     mutationFn: () => authApi.resendVerification(user?.email ?? ''),
     onSuccess: () => {
       appAlert(
-        'Gönderildi',
-        'Yeni bir doğrulama bağlantısı e-posta adresinize gönderildi. Spam kutunuzu da kontrol etmeyi unutmayın.',
+        t('auth.verificationResentTitle'),
+        t('auth.verifyResentBody'),
       );
     },
     onError: (e: unknown) => {
       const err = e as { response?: { data?: { message?: string } } };
-      appAlert('Hata', err?.response?.data?.message || 'Doğrulama bağlantısı gönderilemedi.');
+      appAlert(t('common.error'), err?.response?.data?.message || t('auth.verificationResendFailed'));
     },
   });
 
@@ -62,7 +64,7 @@ export default function VerifyEmailScreen() {
   }, [tokenParam, status, verifyMutation]);
 
   const handleManual = () => {
-    if (!manualToken.trim()) return appAlert('Eksik', 'Doğrulama kodunu girin.');
+    if (!manualToken.trim()) return appAlert(t('auth.verifyCodeMissingTitle'), t('auth.verifyCodeMissingBody'));
     setStatus('verifying');
     verifyMutation.mutate(manualToken.trim());
   };
@@ -78,7 +80,7 @@ export default function VerifyEmailScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.surface.DEFAULT }}>
-      <ScreenHeader title="E-posta Doğrulama" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+      <ScreenHeader title={t('auth.emailVerification')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
 
       <VStack gap={2} align="center" padding={6} flex={1}>
         <View style={{ marginTop: spacing[4], marginBottom: spacing[2] }}>
@@ -88,23 +90,23 @@ export default function VerifyEmailScreen() {
         {status === 'verifying' ? (
           <>
             <Text variant="h2" align="center">
-              Doğrulanıyor...
+              {t('auth.verifyingEmail')}
             </Text>
             <Spinner color={colors.primary[600]!} />
           </>
         ) : status === 'success' ? (
           <>
             <Text variant="h2" align="center">
-              E-postanız doğrulandı
+              {t('auth.emailVerified')}
             </Text>
             <Text variant="bodySm" tone="muted" align="center">
-              Hesabınız aktif. Artık tüm özelliklerden yararlanabilirsiniz.
+              {t('auth.emailVerifiedDesc')}
             </Text>
             <Button
               variant="primary"
               size="lg"
               fullWidth
-              title="Devam Et"
+              title={t('common.continueAction')}
               onPress={() =>
                 router.replace(isAuthenticated ? '/(tabs)' : '/(auth)/login')
               }
@@ -114,17 +116,17 @@ export default function VerifyEmailScreen() {
         ) : status === 'error' ? (
           <>
             <Text variant="h2" align="center">
-              Doğrulama Başarısız
+              {t('auth.verificationFailed')}
             </Text>
             <Text variant="bodySm" tone="muted" align="center">
-              {errorMsg || 'Bağlantı geçersiz olabilir. Yeni bir doğrulama bağlantısı isteyebilirsiniz.'}
+              {errorMsg || t('auth.verifyLinkInvalidLong')}
             </Text>
             {isAuthenticated ? (
               <Button
                 variant="primary"
                 size="lg"
                 fullWidth
-                title="Yeni Bağlantı Gönder"
+                title={t('auth.verifyRequestNewLink')}
                 icon="mail-outline"
                 onPress={() => resendMutation.mutate()}
                 isLoading={resendMutation.isPending}
@@ -135,23 +137,23 @@ export default function VerifyEmailScreen() {
             <Button
               variant="ghost"
               fullWidth
-              title="Giriş Ekranına Dön"
+              title={t('auth.verifyBackToLogin')}
               onPress={() => router.replace('/(auth)/login')}
             />
           </>
         ) : (
           <>
             <Text variant="h2" align="center">
-              E-posta Doğrulama
+              {t('auth.emailVerification')}
             </Text>
             <Text variant="bodySm" tone="muted" align="center">
               {user?.email
-                ? `${user.email} adresine gönderdiğimiz bağlantıya tıklayarak doğrulayabilirsiniz. Kod aldıysanız aşağıya yapıştırabilirsiniz.`
-                : 'E-posta adresinize gönderdiğimiz bağlantıya tıklayarak doğrulayabilirsiniz. Kod aldıysanız aşağıya yapıştırabilirsiniz.'}
+                ? t('auth.verifyInstructionsWithEmail', { email: user.email })
+                : t('auth.verifyInstructions')}
             </Text>
 
             <Input
-              label="Doğrulama Kodu"
+              label={t('auth.verifyCodeLabel')}
               value={manualToken}
               onChangeText={setManualToken}
               autoCapitalize="none"
@@ -161,7 +163,7 @@ export default function VerifyEmailScreen() {
               variant="primary"
               size="lg"
               fullWidth
-              title="Kodu Doğrula"
+              title={t('auth.verifyCodeSubmit')}
               onPress={handleManual}
               disabled={!manualToken.trim()}
             />
@@ -170,7 +172,7 @@ export default function VerifyEmailScreen() {
               <Button
                 variant="ghost"
                 fullWidth
-                title="Yeniden Gönder"
+                title={t('auth.verifyResend')}
                 icon="mail-outline"
                 onPress={() => resendMutation.mutate()}
                 isLoading={resendMutation.isPending}

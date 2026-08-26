@@ -27,26 +27,22 @@ export default function ResetPasswordScreen() {
   const [success, setSuccess] = useState(false);
 
   const validatePassword = () => {
-    if (password.length < 8) return "Şifre en az 8 karakter olmalıdır";
-    if (!/[A-Z]/.test(password))
-      return "Şifre en az bir büyük harf içermelidir";
-    if (!/[a-z]/.test(password))
-      return "Şifre en az bir küçük harf içermelidir";
-    if (!/[0-9]/.test(password)) return "Şifre en az bir rakam içermelidir";
+    if (password.length < 8) return t("auth.pwRuleMinLength");
+    if (!/[A-Z]/.test(password)) return t("auth.pwRuleUppercase");
+    if (!/[a-z]/.test(password)) return t("auth.pwRuleLowercase");
+    if (!/[0-9]/.test(password)) return t("auth.pwRuleNumber");
     return null;
   };
 
   const handleResetPassword = async () => {
     setError("");
     if (!token) {
-      setError(
-        "Geçersiz veya eksik token. Lütfen şifre sıfırlama bağlantısını tekrar kullanın.",
-      );
+      setError(t("auth.resetTokenMissing"));
       return;
     }
     const passwordError = validatePassword();
     if (passwordError) return setError(passwordError);
-    if (password !== confirmPassword) return setError("Şifreler eşleşmiyor");
+    if (password !== confirmPassword) return setError(t("auth.resetPasswordMismatch"));
 
     setLoading(true);
     try {
@@ -54,7 +50,7 @@ export default function ResetPasswordScreen() {
       setSuccess(true);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
-      setError(e.response?.data?.message || "Şifre sıfırlama başarısız oldu");
+      setError(e.response?.data?.message || t("auth.resetFailed"));
     } finally {
       setLoading(false);
     }
@@ -81,16 +77,16 @@ export default function ResetPasswordScreen() {
             />
           </View>
           <Text variant="h1" align="center">
-            Şifre Başarıyla Değiştirildi!
+            {t("auth.resetSuccessTitle")}
           </Text>
           <Text variant="body" tone="muted" align="center">
-            Yeni şifreniz ile giriş yapabilirsiniz.
+            {t("auth.resetSuccessBody")}
           </Text>
           <Button
             variant="primary"
             size="lg"
             fullWidth
-            title="Giriş Yap"
+            title={t("auth.loginTitle")}
             onPress={() => router.replace("/(auth)/login")}
           />
         </VStack>
@@ -98,11 +94,14 @@ export default function ResetPasswordScreen() {
     );
   }
 
+  // Etiketler `auth.pwReq*`'ten — kayıt formu ve şifre değiştirme ekranı da aynı
+  // anahtarları kullanıyor. Kural metnini burada ayrıca yazmak, gereksinimlerin
+  // iki ekranda farklı ifade edilmesi demekti (CLAUDE.md §5).
   const passwordRequirements = [
-    { ok: password.length >= 8, label: "En az 8 karakter" },
-    { ok: /[A-Z]/.test(password), label: "En az bir büyük harf" },
-    { ok: /[a-z]/.test(password), label: "En az bir küçük harf" },
-    { ok: /[0-9]/.test(password), label: "En az bir rakam" },
+    { id: "minLength", ok: password.length >= 8, label: t("auth.pwReqMinLength") },
+    { id: "uppercase", ok: /[A-Z]/.test(password), label: t("auth.pwReqUppercase") },
+    { id: "lowercase", ok: /[a-z]/.test(password), label: t("auth.pwReqLowercase") },
+    { id: "number", ok: /[0-9]/.test(password), label: t("auth.pwReqNumber") },
   ];
 
   return (
@@ -111,7 +110,7 @@ export default function ResetPasswordScreen() {
         <IconButton
           icon="arrow-back"
           variant="plain"
-          accessibilityLabel="Geri"
+          accessibilityLabel={t("common.back")}
           onPress={() => router.back()}
         />
       </HStack>
@@ -136,10 +135,10 @@ export default function ResetPasswordScreen() {
         </View>
 
         <Text variant="h1" align="center">
-          Yeni Şifre Belirle
+          {t("auth.resetTitle")}
         </Text>
         <Text variant="body" tone="muted" align="center">
-          Hesabınız için güçlü bir şifre oluşturun.
+          {t("auth.resetSubtitle")}
         </Text>
 
         <Input
@@ -163,11 +162,11 @@ export default function ResetPasswordScreen() {
             tone="muted"
             style={{ marginBottom: spacing[3] }}
           >
-            Şifre gereksinimleri:
+            {t("auth.pwReqTitle")}
           </Text>
           {passwordRequirements.map((r) => (
             <HStack
-              key={r.label}
+              key={r.id}
               gap={2}
               align="center"
               style={{ marginBottom: spacing[2] }}
