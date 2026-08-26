@@ -84,14 +84,14 @@ export function useSubscription() {
       });
       setSnackbar({
         visible: true,
-        message: "Abonelik iptal edildi",
+        message: t('membership.cancelled'),
         variant: "success",
       });
     },
     onError: (error: any) => {
       setSnackbar({
         visible: true,
-        message: error?.response?.data?.message || "Abonelik iptal edilemedi",
+        message: error?.response?.data?.message || t('membership.cancelFailed'),
         variant: "danger",
       });
     },
@@ -106,14 +106,14 @@ export function useSubscription() {
       });
       setSnackbar({
         visible: true,
-        message: "Abonelik yeniden aktifleştirildi!",
+        message: t('membership.reactivated'),
         variant: "success",
       });
     },
     onError: (error: any) => {
       setSnackbar({
         visible: true,
-        message: error?.response?.data?.message || "Abonelik yenilenemedi",
+        message: error?.response?.data?.message || t('membership.reactivateFailed'),
         variant: "danger",
       });
     },
@@ -121,12 +121,12 @@ export function useSubscription() {
 
   const handleCancel = () => {
     appAlert(
-      "Aboneliği İptal Et",
-      "Aboneliğinizi iptal etmek istediğinize emin misiniz? Dönem sonuna kadar premium özelliklerden yararlanmaya devam edebilirsiniz.",
+      t('membership.cancelTitle'),
+      t('membership.cancelConfirm'),
       [
-        { text: "Vazgeç", style: "cancel" },
+        { text: t('discount.discard'), style: 'cancel' },
         {
-          text: "İptal Et",
+          text: t('payment.cancelAction'),
           style: "destructive",
           onPress: () => cancelMutation.mutate(),
         },

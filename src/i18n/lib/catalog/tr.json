@@ -123,7 +123,9 @@
     "goBack": "Geri Dön",
     "continueAction": "Devam Et",
     "genericError": "Bir hata oluştu. Lütfen tekrar deneyin.",
-    "and": "ve"
+    "and": "ve",
+    "continueShort": "Devam",
+    "missing": "Eksik"
   },
   "nav": {
     "home": "Ana Sayfa",
@@ -1524,7 +1526,13 @@
     "changePlan": "Plan Değiştir",
     "switchToYearly": "Yıllık plana geç ve tasarruf et",
     "switchToMonthly": "Aylık plana geç",
-    "subscriptionHelp": "Abonelik ile ilgili yardım"
+    "subscriptionHelp": "Abonelik ile ilgili yardım",
+    "cancelled": "Abonelik iptal edildi",
+    "cancelFailed": "Abonelik iptal edilemedi",
+    "reactivated": "Abonelik yeniden aktifleştirildi!",
+    "reactivateFailed": "Abonelik yenilenemedi",
+    "cancelTitle": "Aboneliği İptal Et",
+    "cancelConfirm": "Aboneliğinizi iptal etmek istediğinize emin misiniz? Dönem sonuna kadar premium özelliklerden yararlanmaya devam edebilirsiniz."
   },
   "collection": {
     "share": "Paylaş",
@@ -2141,7 +2149,11 @@
     "trackMyOrder": "Siparişimi takip et",
     "transactionIdLabel": "İşlem No",
     "viewItemsCount": "{count} ürünü gör",
-    "viewMyOrder": "Siparişimi Görüntüle"
+    "viewMyOrder": "Siparişimi Görüntüle",
+    "cancelTitle": "Ödemeyi İptal Et",
+    "cancelAction": "İptal Et",
+    "retryTitle": "Ödemeyi Yeniden Dene",
+    "retryStarted": "Yeniden deneme başlatıldı"
   },
   "seller": {
     "sellerProfile": "Satıcı Profili",
@@ -6287,7 +6299,17 @@
     "active": "Aktif",
     "discard": "Vazgeç",
     "update": "Güncelle",
-    "create": "Oluştur"
+    "create": "Oluştur",
+    "updated": "İndirim güncellendi",
+    "created": "İndirim oluşturuldu",
+    "saveFailed": "İndirim kaydedilemedi.",
+    "deleted": "İndirim silindi",
+    "deleteFailed": "İndirim silinemedi.",
+    "nameRequired": "İndirim adı gerekli.",
+    "valueInvalid": "Geçerli bir indirim değeri girin.",
+    "percentTooHigh": "Yüzde indirim 100'den büyük olamaz.",
+    "pickAtLeastOne": "Lütfen en az bir ürün seçin.",
+    "deleteTitle": "İndirimi Sil"
   },
   "listing": {
     "deactivated": "İlan deaktif edildi",

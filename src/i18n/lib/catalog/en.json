@@ -123,7 +123,9 @@
     "goBack": "Go Back",
     "continueAction": "Continue",
     "genericError": "Something went wrong. Please try again.",
-    "and": "and"
+    "and": "and",
+    "continueShort": "Continue",
+    "missing": "Missing"
   },
   "nav": {
     "home": "Home",
@@ -1524,7 +1526,13 @@
     "changePlan": "Change Plan",
     "switchToYearly": "Switch to yearly and save",
     "switchToMonthly": "Switch to monthly",
-    "subscriptionHelp": "Help with your subscription"
+    "subscriptionHelp": "Help with your subscription",
+    "cancelled": "Subscription cancelled",
+    "cancelFailed": "The subscription could not be cancelled",
+    "reactivated": "Subscription reactivated",
+    "reactivateFailed": "The subscription could not be renewed",
+    "cancelTitle": "Cancel Subscription",
+    "cancelConfirm": "Are you sure you want to cancel your subscription? You keep the premium features until the end of the period."
   },
   "collection": {
     "share": "Share",
@@ -2141,7 +2149,11 @@
     "trackMyOrder": "Track my order",
     "transactionIdLabel": "Transaction ID",
     "viewItemsCount": "View {count} items",
-    "viewMyOrder": "View my order"
+    "viewMyOrder": "View my order",
+    "cancelTitle": "Cancel Payment",
+    "cancelAction": "Cancel It",
+    "retryTitle": "Retry Payment",
+    "retryStarted": "Retry started"
   },
   "seller": {
     "sellerProfile": "Seller Profile",
@@ -6287,7 +6299,17 @@
     "active": "Active",
     "discard": "Discard",
     "update": "Update",
-    "create": "Create"
+    "create": "Create",
+    "updated": "Discount updated",
+    "created": "Discount created",
+    "saveFailed": "The discount could not be saved.",
+    "deleted": "Discount deleted",
+    "deleteFailed": "The discount could not be deleted.",
+    "nameRequired": "A discount name is required.",
+    "valueInvalid": "Enter a valid discount value.",
+    "percentTooHigh": "A percentage discount cannot exceed 100.",
+    "pickAtLeastOne": "Please pick at least one item.",
+    "deleteTitle": "Delete Discount"
   },
   "listing": {
     "deactivated": "The listing has been deactivated",
