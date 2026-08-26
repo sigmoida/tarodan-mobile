@@ -1,4 +1,5 @@
 import { View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pressable } from 'react-native';
@@ -18,6 +19,7 @@ const { colors } = theme;
  * header, login card, and footer links.
  */
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const f = useLogin();
 
@@ -27,7 +29,7 @@ export default function LoginScreen() {
         testID="login-back-button"
         onPress={f.continueAsGuest}
         accessibilityRole="button"
-        accessibilityLabel="Ana sayfaya dön"
+        accessibilityLabel={t('auth.backToHome')}
         hitSlop={12}
         style={[styles.backButton, { top: insets.top + 8 }]}
       >
