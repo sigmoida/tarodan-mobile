@@ -1022,6 +1022,12 @@
     "refundReasonOptional": "Refund reason (optional)",
     "evidencePhotoOptional": "Evidence photo (optional)",
     "cancellationActions": "Cancellation",
+    "cancelReasonLabel": "Cancellation reason",
+    "guestCancelTitle": "Cancel order",
+    "guestCancelIntro": "This order has not shipped yet. If you cancel, your payment is refunded.",
+    "guestCancelCta": "Cancel Order",
+    "guestCancelDone": "Your order has been cancelled.",
+    "guestCancelFailed": "The order could not be cancelled.",
     "refundActions": "Refunds",
     "groupLoadFailed": "The order group could not be loaded.",
     "receivedTitle": "Order received!",
@@ -1271,6 +1277,7 @@
     "yourPayment": "Your payment",
     "theirPayment": "{name}'s payment",
     "serviceFee": "Trade service fee",
+    "serviceFeeDiscount": "Service fee discount",
     "shippingFee": "Shipping (2 parcels)",
     "cashDifferenceLine": "Cash difference",
     "paymentTotal": "Total",
@@ -5989,6 +5996,17 @@
       "tierNotActive": "This membership tier is not active",
       "tierNotFound": "Membership tier not found: {type}",
       "userIdNotFound": "User ID not found"
+    }
+  },
+  "status": {
+    "orderCancellationReason": {
+      "delivery_delayed": "Delivery Delayed",
+      "wrong_product_selected": "I Selected the Wrong Item",
+      "changed_mind": "Changed My Mind",
+      "wrong_card": "I Used the Wrong Card",
+      "price_changed_mind": "Changed My Mind Over Price",
+      "unavailable_at_address": "I Won't Be at the Address",
+      "other": "Other"
     }
   }
 }
