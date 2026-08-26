@@ -8,15 +8,30 @@
  */
 
 import { z } from 'zod';
+import type { TFunction } from 'i18next';
 import { PHONE_INVALID_MESSAGE, parseE164TrPhone } from './phone';
 
+/**
+ * ## Neden şemalar FABRİKA
+ *
+ * Zod mesajları şema KURULURKEN çözülür. Modül seviyesinde bir `z.string()
+ * .email('Geçerli bir e-posta girin')` ilk import anında donuyor: i18next daha
+ * hazır olmayabiliyor ve hazır olsa bile kullanıcı dili değiştirdiğinde mesaj
+ * ilk dilde kalıyordu. Bu yüzden her şema çevirmeni argüman alan bir fonksiyon;
+ * çağıran taraf `useMemo(() => …, [t])` ile dil değişiminde yeniden kuruyor.
+ *
+ * Mesajlar `validation.*` kataloğundan gelir — üç kayıt ekranı, kurumsal davet
+ * ve kullanıcı adı talebi aynı metinleri paylaşır (§5).
+ */
+
 /** Tek noktada güçlü şifre Zod schema'sı. */
-export const strongPasswordSchema = z
-  .string()
-  .min(8, 'Şifre en az 8 karakter olmalı')
-  .regex(/[A-Z]/, 'En az 1 büyük harf içermeli')
-  .regex(/[a-z]/, 'En az 1 küçük harf içermeli')
-  .regex(/\d/, 'En az 1 rakam içermeli');
+export const strongPasswordSchema = (t: TFunction) =>
+  z
+    .string()
+    .min(8, t('validation.passwordMin8'))
+    .regex(/[A-Z]/, t('validation.passwordUppercase'))
+    .regex(/[a-z]/, t('validation.passwordLowercase'))
+    .regex(/\d/, t('validation.passwordNumber'));
 
 /**
  * TR cep telefonu — **zorunlu**. Çıktı E.164 (`+905XXXXXXXXX`), çözülemeyen
@@ -25,10 +40,11 @@ export const strongPasswordSchema = z
  * TEK KAYNAK: ayrıştırma `parseE164TrPhone`'da, alan formatlayıcısı
  * (`formatTrPhoneField`) da aynı ön-ek soyma kuralını kullanır; ikisi ayrışamaz.
  */
-export const requiredTrPhoneSchema = z
+export const requiredTrPhoneSchema = (t: TFunction) =>
+  z
   .string()
   .trim()
-  .min(1, 'Telefon numarası gerekli')
+  .min(1, t('validation.phoneRequired'))
   .transform((v, ctx) => {
     const e164 = parseE164TrPhone(v);
     if (!e164) {
@@ -46,7 +62,8 @@ export const requiredTrPhoneSchema = z
  * paylaşılan ayrıştırıcıyla değiştirildi ve gerçek tüketicilere (kurumsal kayıt
  * şeması) bağlandı.
  */
-export const optionalTrPhoneSchema = z
+export const optionalTrPhoneSchema = (_t: TFunction) =>
+  z
   .string()
   .trim()
   .optional()
@@ -61,13 +78,12 @@ export const optionalTrPhoneSchema = z
   });
 
 /** Vergi numarası (10) veya T.C. Kimlik (11) — yalnızca rakam. */
-export const taxIdSchema = z
-  .string()
-  .trim()
-  .regex(/^\d{10,11}$/, 'Vergi / T.C. kimlik 10 veya 11 hane olmalı');
+export const taxIdSchema = (t: TFunction) =>
+  z.string().trim().regex(/^\d{10,11}$/, t('validation.taxId'));
 
 /** Email: hem .email() hem trim — basit. */
-export const emailSchema = z.string().trim().email('Geçerli bir e-posta girin');
+export const emailSchema = (t: TFunction) =>
+  z.string().trim().email(t('validation.invalidEmail'));
 
 /**
  * API `RegisterDto.username` ile birebir: küçük harf, rakam, nokta, alt çizgi;
@@ -104,28 +120,26 @@ export const toHandle = (t: string) => t.toLowerCase();
  * yalnız kaçakları yakalar. Kullanıcı adı bir kez belirlenince DEĞİŞTİRİLEMEZ,
  * bu yüzden sessiz dönüşüm alan seviyesinde önlenir.
  */
-export const usernameSchema = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .min(3, 'En az 3 karakter olmalı')
-  .max(30, 'En fazla 30 karakter olabilir')
-  .regex(
-    USERNAME_PATTERN,
-    'Yalnız küçük harf, rakam, nokta ve alt çizgi kullanın; başta/sonda nokta veya alt çizgi olamaz',
-  );
+export const usernameSchema = (t: TFunction) =>
+  z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(3, t('validation.minLength', { min: 3 }))
+    .max(30, t('validation.maxLength', { max: 30 }))
+    .regex(USERNAME_PATTERN, t('validation.usernamePattern'));
 
 /** Display name (web ile aynı: 2-30 char). */
-export const displayNameSchema = z
-  .string()
-  .trim()
-  .min(2, 'Ad en az 2 karakter olmalı')
-  .max(30, 'Ad en fazla 30 karakter olabilir');
+export const displayNameSchema = (t: TFunction) =>
+  z
+    .string()
+    .trim()
+    .min(2, t('validation.displayNameMin'))
+    .max(30, t('validation.displayNameMax'));
 
 /** Şartları kabul (zorunlu boolean). */
-export const acceptTermsSchema = z
-  .boolean()
-  .refine((val) => val === true, 'Sözleşmeleri kabul etmelisiniz');
+export const acceptTermsSchema = (t: TFunction) =>
+  z.boolean().refine((val) => val === true, t('validation.acceptTerms'));
 
 /** "YYYY-MM-DD" doğum tarihi 18 yaş ve üstü mü? Geçersiz tarih → false. */
 export function isAdult(dateStr: string): boolean {

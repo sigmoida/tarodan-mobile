@@ -1,4 +1,5 @@
 import { View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Checkbox, DateField, HStack, Input, Spinner, Text, theme } from '@/ui';
 import { Controller } from 'react-hook-form';
@@ -10,6 +11,7 @@ import type { RegisterController } from '../_hooks/useRegister';
 
 /** Kayıt form kartı — kullanıcı adı/ad/e-posta/doğum/şifre/onay alanları + sözleşme linkleri + gönder. */
 export function RegisterForm({ f }: { f: RegisterController }) {
+  const { t } = useTranslation();
   const { control, errors, registerMutation, usernameAvailability } = f;
 
   // Kullanıcı adı durum slotu — TEK öncelik sırası (Input tek satır gösterir):
@@ -23,21 +25,21 @@ export function RegisterForm({ f }: { f: RegisterController }) {
   const usernameFormatError = errors.username?.message;
   const usernameRawFormatWarning =
     !usernameFormatError && isFormatInvalid
-      ? 'Geçersiz biçim: yalnız küçük harf, rakam, nokta, alt çizgi; en az 3 karakter.'
+      ? t('auth.usernameInvalidFormat')
       : undefined;
   const usernameTakenError =
     !usernameFormatError && !usernameRawFormatWarning && !checking && available === false
-      ? 'Bu kullanıcı adı alınmış'
+      ? t('auth.usernameTaken')
       : undefined;
   const usernameError = usernameFormatError || usernameRawFormatWarning || usernameTakenError;
   const usernameHelper = usernameError
     ? undefined
     : checking
-      ? 'Kontrol ediliyor…'
+      ? t('auth.usernameChecking')
       : isThrottled
-        ? 'Çok fazla deneme yapıldı. Birazdan tekrar deneyin.'
+        ? t('auth.usernameRateLimited')
         : available === true
-          ? 'Bu kullanıcı adı uygun'
+          ? t('auth.usernameAvailable')
           : undefined;
   const usernameStatusIcon = checking
     ? <Spinner size="sm" />
@@ -55,7 +57,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         render={({ field: { onChange, value } }) => (
           <Input
             testID="register-username-input"
-            label="Kullanıcı adı"
+            label={t('auth.usernameLabel')}
             leftIconName="at-outline"
             rightIcon={usernameStatusIcon}
             placeholder="kaan.merakli"
@@ -83,9 +85,9 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         render={({ field: { onChange, value } }) => (
           <Input
             testID="register-displayName-input"
-            label="Adınız"
+            label={t('auth.fullNameLabel')}
             leftIconName="person-outline"
-            placeholder="Adınız Soyadınız"
+            placeholder={t('auth.fullNamePlaceholder')}
             value={value}
             onChangeText={onChange}
             error={errors.displayName?.message}
@@ -99,9 +101,9 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         render={({ field: { onChange, value } }) => (
           <Input
             testID="register-email-input"
-            label="E-posta"
+            label={t('auth.email')}
             leftIconName="mail-outline"
-            placeholder="ornek@eposta.com"
+            placeholder={t('auth.emailPlaceholder')}
             value={value}
             onChangeText={onChange}
             keyboardType="email-address"
@@ -117,10 +119,10 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         render={({ field: { onChange, value } }) => (
           <DateField
             testID="register-birthDate-input"
-            label="Doğum Tarihi"
+            label={t('auth.birthDate')}
             value={value}
             onChange={onChange}
-            placeholder="Tarih seçin"
+            placeholder={t('auth.birthDatePlaceholder')}
             maximumDate={maxBirthDate()}
             error={errors.birthDate?.message}
           />
@@ -133,7 +135,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         render={({ field: { onChange, value } }) => (
           <Input
             testID="register-password-input"
-            label="Şifre"
+            label={t('auth.password')}
             leftIconName="lock-closed-outline"
             placeholder="••••••••"
             value={value}
@@ -152,7 +154,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         )}
       />
       <Text variant="bodySm" tone="muted" style={styles.fieldHint}>
-        Şifre en az 8 karakter olmalı; 1 büyük harf, 1 küçük harf ve 1 rakam içermeli.
+        {t('auth.passwordHint')}
       </Text>
 
       <Controller
@@ -161,7 +163,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         render={({ field: { onChange, value } }) => (
           <Input
             testID="register-confirmPassword-input"
-            label="Şifre Tekrar"
+            label={t('auth.confirmPassword')}
             leftIconName="lock-closed-outline"
             placeholder="••••••••"
             value={value}
@@ -185,7 +187,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
             testID="register-acceptTerms"
             checked={value}
             onChange={() => onChange(!value)}
-            label="Kullanım koşullarını ve gizlilik politikasını kabul ediyorum"
+            label={t('auth.termsCheckboxLabel')}
             error={errors.acceptTerms?.message}
           />
         )}
@@ -196,11 +198,11 @@ export function RegisterForm({ f }: { f: RegisterController }) {
 
       <HStack justify="center" wrap gap={1} style={{ marginTop: 8 }}>
         <Text variant="bodySm" tone="primary" weight="semibold" onPress={() => router.push('/terms')}>
-          Kullanım Koşulları
+          {t('footer.terms')}
         </Text>
-        <Text variant="bodySm" tone="muted">ve</Text>
+        <Text variant="bodySm" tone="muted">{t('common.and')}</Text>
         <Text variant="bodySm" tone="primary" weight="semibold" onPress={() => router.push('/privacy')}>
-          Gizlilik Politikası
+          {t('footer.privacy')}
         </Text>
       </HStack>
 
@@ -210,7 +212,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
             const err = registerMutation.error as any;
             const msg = err?.response?.data?.message;
             const text = Array.isArray(msg) ? msg[0] : msg;
-            return text || err?.message || 'Kayıt başarısız. Lütfen tekrar deneyin.';
+            return text || err?.message || t('auth.registerFailed');
           })()}
         </Text>
       ) : null}
@@ -220,7 +222,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         variant="primary"
         size="lg"
         fullWidth
-        title="Kayıt Ol"
+        title={t('auth.registerSubmit')}
         onPress={f.handleSubmit(f.onSubmit)}
         isLoading={registerMutation.isPending}
         disabled={registerMutation.isPending || usernameAvailability.available === false}

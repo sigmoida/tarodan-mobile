@@ -180,7 +180,7 @@ describe('Kayıt ekranı — Türkçe karakterli girdide biçim uyarısı (N-1)'
     // 2 karakter — usernameSchema.min(3) reddeder. Submit ile zod hatası tetiklenir.
     fireEvent.changeText(input, 'ab');
     fireEvent.press(screen.getByTestId('register-submit-button'));
-    await waitFor(() => expect(screen.getByText('En az 3 karakter olmalı')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('En az 3 karakter olmalıdır')).toBeTruthy());
 
     // RHF `reValidateMode` (varsayılan `onChange`) artık bu alanı her tuşta
     // yeniden doğruluyor — Türkçe karakterli, yine geçersiz bir girişe geçelim.

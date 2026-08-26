@@ -8,7 +8,12 @@
  * `src/utils/__tests__/validation.test.ts`. Burada yalnız `registerSchema`
  * entegrasyonu doğrulanır.
  */
-import { registerSchema } from '../_lib/schema';
+import { buildRegisterSchema } from '../_lib/schema';
+import { schemaT } from '@/test-utils';
+
+// Şema artık `t`'yi argüman alan bir FABRİKA (gerekçe:
+// `@/utils/validation` başı). Testler kuralları sınıyor, çeviriyi değil.
+const registerSchema = buildRegisterSchema(schemaT);
 
 const validRest = {
   displayName: 'Test Kullanıcı',

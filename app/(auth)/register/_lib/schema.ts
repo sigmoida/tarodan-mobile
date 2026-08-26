@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { TFunction } from 'i18next';
 import {
   displayNameSchema,
   emailSchema,
@@ -17,22 +18,27 @@ export function maxBirthDate(): Date {
 // `usernameSchema` / `USERNAME_PATTERN` tek kaynaktan gelir: `@/utils/validation`
 // (§5). Bir kez belirlenince DEĞİŞTİRİLEMEZ — bkz. RegisterForm'daki uyarı.
 
-export const registerSchema = z
-  .object({
-    username: usernameSchema,
-    displayName: displayNameSchema,
-    email: emailSchema,
-    birthDate: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Lütfen doğum tarihinizi seçin')
-      .refine(isAdult, 'Kayıt için en az 18 yaşında olmalısınız'),
-    password: strongPasswordSchema,
-    confirmPassword: z.string(),
-    acceptTerms: z.boolean().refine((val) => val, 'Kullanım koşullarını kabul etmelisiniz'),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'Şifreler eşleşmiyor',
-    path: ['confirmPassword'],
-  });
+/**
+ * Fabrika biçimi: zod mesajları şema kurulurken çözülüyor, modül seviyesinde
+ * kurulsa metin ilk yüklenen dilde donardı (bkz. `@/utils/validation` başı).
+ */
+export const buildRegisterSchema = (t: TFunction) =>
+  z
+    .object({
+      username: usernameSchema(t),
+      displayName: displayNameSchema(t),
+      email: emailSchema(t),
+      birthDate: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, t('validation.birthDateRequired'))
+        .refine(isAdult, t('validation.minAge18')),
+      password: strongPasswordSchema(t),
+      confirmPassword: z.string(),
+      acceptTerms: z.boolean().refine((val) => val, t('validation.acceptTerms')),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: t('validation.passwordMatch'),
+      path: ['confirmPassword'],
+    });
 
-export type RegisterForm = z.infer<typeof registerSchema>;
+export type RegisterForm = z.infer<ReturnType<typeof buildRegisterSchema>>;

@@ -1,16 +1,21 @@
+import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { appAlert } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { userApi, errorText } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
-import { claimUsernameSchema } from '../_lib/schema';
+import { buildClaimUsernameSchema } from '../_lib/schema';
 
 export function useClaimUsername() {
+  const { t } = useTranslation();
   const { user, updateUser } = useAuthStore();
   const claimed = !!user?.usernameClaimed;
 
-  const form = useZodForm(claimUsernameSchema, { defaultValues: { username: '' } });
+  // Dil değişince şema yeniden kurulur — aksi halde hata metni ilk dilde donar.
+  const schema = useMemo(() => buildClaimUsernameSchema(t), [t]);
+  const form = useZodForm(schema, { defaultValues: { username: '' } });
 
   const claim = useMutation({
     mutationFn: (username: string) => userApi.claimUsername(username),

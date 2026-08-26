@@ -122,7 +122,8 @@
     "errorCodeSuffix": "kod: {code}",
     "goBack": "Geri Dön",
     "continueAction": "Devam Et",
-    "genericError": "Bir hata oluştu. Lütfen tekrar deneyin."
+    "genericError": "Bir hata oluştu. Lütfen tekrar deneyin.",
+    "and": "ve"
   },
   "nav": {
     "home": "Ana Sayfa",
@@ -354,7 +355,21 @@
     "resetSuccessTitle": "Şifre Başarıyla Değiştirildi!",
     "resetSuccessBody": "Yeni şifreniz ile giriş yapabilirsiniz.",
     "resetTitle": "Yeni Şifre Belirle",
-    "resetSubtitle": "Hesabınız için güçlü bir şifre oluşturun."
+    "resetSubtitle": "Hesabınız için güçlü bir şifre oluşturun.",
+    "usernameLabel": "Kullanıcı adı",
+    "usernameInvalidFormat": "Geçersiz biçim: yalnız küçük harf, rakam, nokta, alt çizgi; en az 3 karakter.",
+    "usernameTaken": "Bu kullanıcı adı alınmış",
+    "usernameChecking": "Kontrol ediliyor…",
+    "usernameRateLimited": "Çok fazla deneme yapıldı. Birazdan tekrar deneyin.",
+    "usernameAvailable": "Bu kullanıcı adı uygun",
+    "fullNameLabel": "Adınız",
+    "birthDatePlaceholder": "Tarih seçin",
+    "registerSubmit": "Kayıt Ol",
+    "registerFailed": "Kayıt başarısız. Lütfen tekrar deneyin.",
+    "emailAlreadyRegistered": "Bu e-posta zaten kayıtlı. Aşağıdaki \"Giriş Yap\" bağlantısını kullanın.",
+    "emailRegisteredWithSocial": "Bu e-posta Google veya Apple ile kayıtlı. Giriş ekranından o yöntemle devam edin.",
+    "termsCheckboxLabel": "Kullanım koşullarını ve gizlilik politikasını kabul ediyorum",
+    "passwordHint": "Şifre en az 8 karakter olmalı; 1 büyük harf, 1 küçük harf ve 1 rakam içermeli."
   },
   "brands": {
     "title": "Markalar",
@@ -1829,7 +1844,15 @@
     "enterOrderNumber": "Sipariş numarası girin",
     "offerBelowPrice": "Teklif fiyattan düşük olmalı",
     "nameRequired": "Ad soyad gerekli",
-    "subjectRequired": "Konu gerekli"
+    "subjectRequired": "Konu gerekli",
+    "phoneRequired": "Telefon numarası gerekli",
+    "taxId": "Vergi / T.C. kimlik 10 veya 11 hane olmalı",
+    "usernamePattern": "Yalnız küçük harf, rakam, nokta ve alt çizgi kullanın; başta/sonda nokta veya alt çizgi olamaz",
+    "displayNameMin": "Ad en az 2 karakter olmalı",
+    "displayNameMax": "Ad en fazla 30 karakter olabilir",
+    "acceptTerms": "Sözleşmeleri kabul etmelisiniz",
+    "passwordMax72": "En fazla 72 karakter",
+    "acceptBusinessTerms": "Üyelik sözleşmesini ve KVKK aydınlatma metnini kabul etmelisiniz"
   },
   "time": {
     "justNow": "Az önce",

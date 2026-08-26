@@ -1,9 +1,11 @@
 import { router } from 'expo-router';
+import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { authApi, errorText } from '@/lib/api';
-import { registerBusinessSchema, type RegisterBusinessForm } from '../_lib/schema';
+import { buildRegisterBusinessSchema, type RegisterBusinessForm } from '../_lib/schema';
 
 /**
  * Kurumsal ön-başvuru controller'ı — `useZodForm` + kayıt mutation'ını sahiplenir.
@@ -16,7 +18,10 @@ import { registerBusinessSchema, type RegisterBusinessForm } from '../_lib/schem
  * yönlendiriyordu — API hiçbir zaman token dönmediği için bu her zaman no-op'tu).
  */
 export function useRegisterBusiness() {
-  const form = useZodForm(registerBusinessSchema, {
+  const { t } = useTranslation();
+  // Dil değişince şema yeniden kurulur — aksi halde hata metni ilk dilde donar.
+  const schema = useMemo(() => buildRegisterBusinessSchema(t), [t]);
+  const form = useZodForm(schema, {
     // Her string alan `''` ile başlamalı: dokunulmamış alan RHF'te `undefined`
     // kalırsa zod `invalid_type` üretir ve kullanıcı tamamen Türkçe bir ekranda
     // İngilizce "Required" görür. Boş formda submit en sık gidilen hata yolu.

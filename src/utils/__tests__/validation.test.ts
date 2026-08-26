@@ -3,35 +3,47 @@
  * J41: şifre kuralları · J42: 18 yaş kuralı.
  */
 import {
-  strongPasswordSchema,
+  
+  strongPasswordSchema as _strongPasswordSchema,
   isAdult,
-  displayNameSchema,
-  emailSchema,
-  usernameSchema,
+  displayNameSchema as _displayNameSchema,
+  emailSchema as _emailSchema,
+  usernameSchema as _usernameSchema,
   USERNAME_PATTERN,
   toHandle,
-  requiredTrPhoneSchema,
-  optionalTrPhoneSchema,
+  requiredTrPhoneSchema as _requiredTrPhoneSchema,
+  optionalTrPhoneSchema as _optionalTrPhoneSchema,
 } from '../validation';
+import { schemaT } from '@/test-utils';
+
+// Şemalar artık `t`'yi argüman alan FABRİKALAR (gerekçe: `../validation` başı).
+// Testler kuralları sınıyor, çeviriyi değil — bu yüzden hepsi gerçek katalogla
+// bir kez kuruluyor ve gövdeler olduğu gibi kalıyor.
+const strongPasswordSchema = _strongPasswordSchema(schemaT);
+const requiredTrPhoneSchema = _requiredTrPhoneSchema(schemaT);
+const optionalTrPhoneSchema = _optionalTrPhoneSchema(schemaT);
+const emailSchema = _emailSchema(schemaT);
+const usernameSchema = _usernameSchema(schemaT);
+const displayNameSchema = _displayNameSchema(schemaT);
 import { PHONE_INVALID_MESSAGE } from '../phone';
 
 describe('J41 · şifre kuralları (strongPasswordSchema)', () => {
   it('8 karakterden kısa reddedilir', () => {
     const r = strongPasswordSchema.safeParse('Ab1');
     expect(r.success).toBe(false);
-    if (!r.success) expect(r.error.issues[0].message).toBe('Şifre en az 8 karakter olmalı');
+    if (!r.success) expect(r.error.issues[0].message).toBe('Şifre en az 8 karakter olmalıdır');
   });
 
   it('büyük harfsiz reddedilir', () => {
     const r = strongPasswordSchema.safeParse('demo1234');
     expect(r.success).toBe(false);
-    if (!r.success) expect(r.error.issues.map((i) => i.message)).toContain('En az 1 büyük harf içermeli');
+    if (!r.success) expect(r.error.issues.map((i) => i.message)).toContain('Büyük harf gerekli');
   });
 
   it('rakamsız reddedilir', () => {
     const r = strongPasswordSchema.safeParse('Demoabcd');
     expect(r.success).toBe(false);
-    if (!r.success) expect(r.error.issues.map((i) => i.message)).toContain('En az 1 rakam içermeli');
+    if (!r.success) expect(r.error.issues.map((i) => i.message)).toContain('Rakam gerekli');
   });
 
   it('güçlü şifre kabul edilir', () => {

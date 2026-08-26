@@ -1,23 +1,39 @@
+import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { authApi } from '@/lib/api';
-import { registerSchema, type RegisterForm } from '../_lib/schema';
+import { buildRegisterSchema, type RegisterForm } from '../_lib/schema';
 import { useUsernameAvailability } from './useUsernameAvailability';
+
+/**
+ * "Bu e-posta zaten kayıtlı" — kasıtlı olarak fırlatılan, KULLANICIYA
+ * gösterilecek hata.
+ *
+ * Ayrı bir sınıf, çünkü ayrım eskiden mesajın `'Bu e-posta'` ile başlamasına
+ * bakıyordu: metin çevrilir çevrilmez o kontrol İngilizce'de tutmayacak ve
+ * kasıtlı hata sessizce yutulup kullanıcı "kayıt olamıyorum ama sebep yok"
+ * durumunda kalacaktı. Sınıf kimliği dilden bağımsız.
+ */
+class EmailTakenError extends Error {}
 
 /**
  * Register controller — owns the RHF+zod form, the register mutation and the
  * back handler. Lifted verbatim from the monolithic screen (§12).
  */
 export function useRegister() {
+  const { t } = useTranslation();
+  // Dil değişince şema yeniden kurulur — aksi halde hata metni ilk dilde donar.
+  const schema = useMemo(() => buildRegisterSchema(t), [t]);
   const {
     control,
     handleSubmit,
     watch,
     formState: { errors },
   } = useForm<RegisterForm>({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       username: '',
       acceptTerms: false,
@@ -40,15 +56,15 @@ export function useRegister() {
         const res = await authApi.checkEmail(data.email);
         const body = res.data;
         if (body?.exists) {
-          throw new Error(
+          throw new EmailTakenError(
             body.hasPassword
-              ? 'Bu e-posta zaten kayıtlı. Aşağıdaki "Giriş Yap" bağlantısını kullanın.'
-              : 'Bu e-posta Google veya Apple ile kayıtlı. Giriş ekranından o yöntemle devam edin.',
+              ? t('auth.emailAlreadyRegistered')
+              : t('auth.emailRegisteredWithSocial'),
           );
         }
       } catch (error) {
         // Yalnız yukarıdaki bilinçli hatayı yeniden fırlat; ağ/5xx hatasını yut.
-        if (error instanceof Error && error.message.startsWith('Bu e-posta')) throw error;
+        if (error instanceof EmailTakenError) throw error;
       }
 
       return authApi.register({

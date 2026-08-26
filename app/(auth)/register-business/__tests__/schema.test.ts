@@ -5,7 +5,12 @@
  * companyLegalName, companyTitle, companyAddress (min 10), companyEmail.
  * `password` DTO'da hiç yok — bu adım hesap açmaz, ön başvurudur.
  */
-import { registerBusinessSchema } from '../_lib/schema';
+import { buildRegisterBusinessSchema } from '../_lib/schema';
+import { schemaT } from '@/test-utils';
+
+// Şema artık `t`'yi argüman alan bir FABRİKA (gerekçe:
+// `@/utils/validation` başı). Testler kuralları sınıyor, çeviriyi değil.
+const registerBusinessSchema = buildRegisterBusinessSchema(schemaT);
 
 const validPayload = {
   authorizedFullName: 'Ayşe Test Yılmaz',

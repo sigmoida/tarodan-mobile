@@ -216,9 +216,9 @@ it('boş formda submit → hataların hepsi TÜRKÇE, "Required" hiç görünmez
   fireEvent.press(screen.getByTestId('register-business-submit-button'));
 
   // authorizedFullName / companyLegalName / companyTitle
-  await waitFor(() => expect(screen.getAllByText('En az 2 karakter olmalı')).toHaveLength(3));
-  expect(screen.getByText('En az 10 karakter olmalı')).toBeTruthy(); // companyAddress
-  expect(screen.getByText('Geçerli bir e-posta girin')).toBeTruthy(); // companyEmail
+  await waitFor(() => expect(screen.getAllByText('En az 2 karakter olmalıdır')).toHaveLength(3));
+  expect(screen.getByText('En az 10 karakter olmalıdır')).toBeTruthy(); // companyAddress
+  expect(screen.getByText('Geçerli bir e-posta adresi girin')).toBeTruthy(); // companyEmail
   expect(screen.getByText('Telefon numarası gerekli')).toBeTruthy(); // phone
   expect(screen.getByText(/sözleşmesini.*kabul/i)).toBeTruthy(); // acceptTerms
   expect(screen.queryAllByText(/required/i)).toHaveLength(0);
@@ -231,7 +231,7 @@ it('opsiyonel alanlar boş bırakılınca hata vermez', async () => {
 
   await waitFor(() => expect(screen.getByText('Telefon numarası gerekli')).toBeTruthy());
   // kepAddress / contactPhone boş → hata yok (tek "e-posta" hatası companyEmail'in).
-  expect(screen.queryAllByText('Geçerli bir e-posta girin')).toHaveLength(1);
+  expect(screen.queryAllByText('Geçerli bir e-posta adresi girin')).toHaveLength(1);
   expect(screen.queryAllByText(/Geçerli bir telefon numarası girin/)).toHaveLength(0);
 });
 

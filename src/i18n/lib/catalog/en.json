@@ -122,7 +122,8 @@
     "errorCodeSuffix": "code: {code}",
     "goBack": "Go Back",
     "continueAction": "Continue",
-    "genericError": "Something went wrong. Please try again."
+    "genericError": "Something went wrong. Please try again.",
+    "and": "and"
   },
   "nav": {
     "home": "Home",
@@ -354,7 +355,21 @@
     "resetSuccessTitle": "Password Changed",
     "resetSuccessBody": "You can now sign in with your new password.",
     "resetTitle": "Set a New Password",
-    "resetSubtitle": "Create a strong password for your account."
+    "resetSubtitle": "Create a strong password for your account.",
+    "usernameLabel": "Username",
+    "usernameInvalidFormat": "Invalid format: lowercase letters, digits, dots and underscores only, at least 3 characters.",
+    "usernameTaken": "That username is taken",
+    "usernameChecking": "Checking…",
+    "usernameRateLimited": "Too many attempts. Try again shortly.",
+    "usernameAvailable": "That username is available",
+    "fullNameLabel": "Your name",
+    "birthDatePlaceholder": "Pick a date",
+    "registerSubmit": "Sign Up",
+    "registerFailed": "Sign-up failed. Please try again.",
+    "emailAlreadyRegistered": "That e-mail is already registered. Use the \"Sign In\" link below.",
+    "emailRegisteredWithSocial": "That e-mail is registered with Google or Apple. Continue with that method from the sign-in screen.",
+    "termsCheckboxLabel": "I accept the terms of use and the privacy policy",
+    "passwordHint": "The password must be at least 8 characters and contain an uppercase letter, a lowercase letter and a digit."
   },
   "brands": {
     "title": "Brands",
@@ -1829,7 +1844,15 @@
     "enterOrderNumber": "Enter order number",
     "offerBelowPrice": "Offer must be lower than the price",
     "nameRequired": "Name is required",
-    "subjectRequired": "Subject is required"
+    "subjectRequired": "Subject is required",
+    "phoneRequired": "A phone number is required",
+    "taxId": "The tax or national ID must be 10 or 11 digits",
+    "usernamePattern": "Use lowercase letters, digits, dots and underscores only; it cannot start or end with a dot or underscore",
+    "displayNameMin": "The name must be at least 2 characters",
+    "displayNameMax": "The name can be at most 30 characters",
+    "acceptTerms": "You must accept the agreements",
+    "passwordMax72": "At most 72 characters",
+    "acceptBusinessTerms": "You must accept the membership agreement and the privacy notice"
   },
   "time": {
     "justNow": "Just now",
