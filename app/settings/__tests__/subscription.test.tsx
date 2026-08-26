@@ -77,25 +77,25 @@ describe("J107 · abonelik ayarları (settings/subscription)", () => {
 
   it('ücretsiz kullanıcı → "Premium\'a Yükselt" CTA gösterir', async () => {
     renderWithProviders(<SubscriptionSettingsScreen />);
-    expect(await screen.findByText("Premium'a Yükselt")).toBeOnTheScreen();
+    expect(await screen.findByText("membership.upgradeToPremium")).toBeOnTheScreen();
   });
 
   it("regresyon: AKTİF ücretsiz üyelik premium gibi gösterilmemeli", async () => {
     // Backend her kullanıcıya status=active bir ücretsiz üyelik açar (~100 yıl
     // geçerli). Eskiden isPremium yalnız isSubscriptionActive'e bakıyordu; bu
-    // yüzden ücretsiz kullanıcılar bile "Premium Üyelik" görüyordu. Artık tier
+    // yüzden ücretsiz kullanıcılar bile "membership.premiumMembership" görüyordu. Artık tier
     // tipi de kontrol edildiği için ücretsiz üyelik premium sayılmamalı.
     mockGetMembership.mockResolvedValue({
       data: {
         ...activePremiumSub,
         tierId: "free",
-        tier: { type: "free", name: "Ücretsiz Üyelik" },
+        tier: { type: "free", name: "membership.freeMembership" },
         currentPeriodEnd: new Date(Date.now() + 365 * 86400000).toISOString(),
       },
     });
     renderWithProviders(<SubscriptionSettingsScreen />);
-    expect(await screen.findByText("Ücretsiz Üyelik")).toBeOnTheScreen();
-    expect(screen.getByText("Premium'a Yükselt")).toBeOnTheScreen();
+    expect(await screen.findByText("membership.freeMembership")).toBeOnTheScreen();
+    expect(screen.getByText("membership.upgradeToPremium")).toBeOnTheScreen();
     // Premium'a özel aksiyonlar görünmemeli
     expect(screen.queryByText("Aboneliği İptal Et")).toBeNull();
   });
@@ -104,7 +104,7 @@ describe("J107 · abonelik ayarları (settings/subscription)", () => {
     mockGetMembership.mockResolvedValue({ data: activePremiumSub });
     renderWithProviders(<SubscriptionSettingsScreen />);
     expect(await screen.findByText("Aboneliği İptal Et")).toBeOnTheScreen();
-    expect(screen.getByText("Premium Üyelik")).toBeOnTheScreen();
+    expect(screen.getByText("membership.premiumMembership")).toBeOnTheScreen();
   });
 
   it("J108.2 iptal edilmiş (dönem içi) abonelik → downgrade uyarısı gösterir, iptal butonu yok", async () => {
@@ -118,7 +118,7 @@ describe("J107 · abonelik ayarları (settings/subscription)", () => {
 
   it("ücretsiz CTA → /upgrade ekranına yönlendirir", async () => {
     renderWithProviders(<SubscriptionSettingsScreen />);
-    fireEvent.press(await screen.findByText("Premium'a Yükselt"));
+    fireEvent.press(await screen.findByText("membership.upgradeToPremium"));
     expect(pushMock).toHaveBeenCalledWith("/upgrade");
   });
 });

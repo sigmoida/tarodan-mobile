@@ -94,6 +94,8 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     'mobile.guestGarageTitle',
     'collection.coverImagePlaceholder',
     'order.invoiceNo',
+    // "Plan:" iki dilde de aynı sözcük.
+    'membership.planLabel',
     // Ölçek etiketleri ve iletişim değerleri — çevrilecek bir sözcük yok.
     'information.sizeGuide.scale18',
     'information.sizeGuide.scale24',

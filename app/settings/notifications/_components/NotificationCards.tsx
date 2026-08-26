@@ -1,4 +1,5 @@
 import { View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Card, Divider, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../_lib/styles';
@@ -9,6 +10,7 @@ const { colors } = theme;
 
 /** Anlık bildirim + bildirim türleri + e-posta/SMS kartları + bilgi kutusu. */
 export function NotificationCards({ f }: { f: NotificationSettingsController }) {
+  const { t } = useTranslation();
   const { settings, handleToggle } = f;
 
   return (
@@ -17,12 +19,12 @@ export function NotificationCards({ f }: { f: NotificationSettingsController }) 
       <Card style={styles.card}>
         <View style={styles.sectionHeader}>
           <Ionicons name="phone-portrait" size={24} color={colors.primary[600]!} />
-          <Text variant="h3" style={styles.sectionTitle}>Anlık Bildirimler</Text>
+          <Text variant="h3" style={styles.sectionTitle}>{t('notification.pushSection')}</Text>
         </View>
         <SettingItem
           icon="notifications"
-          label="Anlık Bildirimleri Etkinleştir"
-          description="Cihazınıza gönderilen tüm push bildirimleri aç/kapat"
+          label={t('notification.pushEnableLabel')}
+          description={t('notification.pushEnableDesc')}
           value={settings.pushNotifications}
           onToggle={() => handleToggle('pushNotifications')}
         />
@@ -32,40 +34,40 @@ export function NotificationCards({ f }: { f: NotificationSettingsController }) 
       <Card style={styles.card}>
         <View style={styles.sectionHeader}>
           <Ionicons name="options" size={24} color={colors.primary[600]!} />
-          <Text variant="h3" style={styles.sectionTitle}>Bildirim Türleri</Text>
+          <Text variant="h3" style={styles.sectionTitle}>{t('notification.typesSection')}</Text>
         </View>
         <SettingItem
           icon="cart"
-          label="Sipariş Güncellemeleri"
-          description="Sipariş, teklif, takas ve iade durumu değişiklikleri"
+          label={t('notification.orderUpdatesLabel')}
+          description={t('notification.orderUpdatesDesc')}
           value={settings.orderUpdates}
           onToggle={() => handleToggle('orderUpdates')}
         />
         <SettingItem
           icon="chatbubble"
-          label="Mesaj Bildirimleri"
-          description="Yeni mesaj aldığınızda bildir"
+          label={t('notification.messagesLabel')}
+          description={t('notification.messagesDesc')}
           value={settings.messageAlerts}
           onToggle={() => handleToggle('messageAlerts')}
         />
         <SettingItem
           icon="pricetag"
-          label="Fiyat Düşüşü Uyarıları"
-          description="Favori/takip ürünlerin fiyatı düştüğünde veya stoğa girdiğinde"
+          label={t('notification.priceDropLabel')}
+          description={t('notification.priceDropDesc')}
           value={settings.priceDropAlerts}
           onToggle={() => handleToggle('priceDropAlerts')}
         />
         <SettingItem
           icon="person-add"
-          label="Takip Ettiklerinden Yeni İlanlar"
-          description="Takip ettiğiniz satıcılar yeni ilan eklediğinde"
+          label={t('notification.newListingsLabel')}
+          description={t('notification.newListingsDesc')}
           value={settings.newListingAlerts}
           onToggle={() => handleToggle('newListingAlerts')}
         />
         <SettingItem
           icon="megaphone"
-          label="Pazarlama ve Teklifler"
-          description="Kampanya ve özel tekliflerden haberdar ol"
+          label={t('notification.marketingLabel')}
+          description={t('notification.marketingDesc')}
           value={settings.marketingEmails}
           onToggle={() => handleToggle('marketingEmails')}
         />
@@ -80,7 +82,7 @@ export function NotificationCards({ f }: { f: NotificationSettingsController }) 
         <SettingItem
           icon="mail"
           label="E-posta Bildirimlerini Etkinleştir"
-          description="Yukarıdaki türler için e-posta gönderilsin"
+          description={t('notification.emailDesc')}
           value={settings.emailNotifications}
           onToggle={() => handleToggle('emailNotifications')}
         />
@@ -88,7 +90,7 @@ export function NotificationCards({ f }: { f: NotificationSettingsController }) 
         <SettingItem
           icon="chatbox-ellipses"
           label="SMS Bildirimleri"
-          description="Önemli güncellemeler için SMS gönderilsin"
+          description={t('notification.smsDesc')}
           value={settings.smsNotifications}
           onToggle={() => handleToggle('smsNotifications')}
         />
