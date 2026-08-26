@@ -31,11 +31,23 @@ module.exports = ({ config }) => {
     return config;
   }
 
+  // `associatedDomains` staging'e GİRMEZ. İki sebep, ikisi de bundle id
+  // sonekinden çıkıyor:
+  //   1. Yayındaki AASA yalnız `P2628CQK26.com.tarodan.app`'i talep ediyor;
+  //      `.staging` orada olmadığı için iOS doğrulamayı zaten geçemez. Yani
+  //      entitlement'ı taşımanın bir faydası yok.
+  //   2. Staging App ID'sinin provisioning profile'ında Associated Domains
+  //      yeteneği açık değil ve entitlement istendiği anda imzalama düşüyor
+  //      ("doesn't support the Associated Domains capability" — 2026-08-26).
+  // Staging'de de universal link isteniyorsa iki iş birlikte yapılmalı:
+  // AASA'ya `.staging` appID'si eklenmeli VE portal'da yetenek açılmalı.
+  const { associatedDomains: _productionOnly, ...stagingIos } = config.ios;
+
   return {
     ...config,
     name: `${config.name} (Staging)`,
     ios: {
-      ...config.ios,
+      ...stagingIos,
       bundleIdentifier: `${config.ios.bundleIdentifier}${STAGING_SUFFIX}`,
     },
   };
