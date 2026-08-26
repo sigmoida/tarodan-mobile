@@ -6248,5 +6248,20 @@
     "deactivateAction": "Deaktif Et",
     "limitTitle": "İlan Limiti",
     "limitBody": "İlan limitinize ulaştınız. Yeniden yayınlamak için Premium üyeliğe geçin."
+  },
+  "business": {
+    "tabOverview": "Genel Bakış",
+    "statActiveProducts": "Aktif Ürün",
+    "statCollections": "Koleksiyon",
+    "totalRevenue": "Toplam Gelir",
+    "thisWeek": "Bu Hafta",
+    "collectionStats": "Koleksiyon İstatistikleri",
+    "totalViews": "Toplam Görüntülenme",
+    "totalLikes": "Toplam Beğeni",
+    "mostViewedProducts": "En Çok Görüntülenen Ürünler",
+    "mostLikedProducts": "En Çok Beğenilen Ürünler",
+    "mostPopularCollections": "En Popüler Koleksiyonlar",
+    "noProductStats": "Henüz ürün istatistiği yok",
+    "noCollectionStats": "Henüz koleksiyon istatistiği yok"
   }
 }

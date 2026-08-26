@@ -6248,5 +6248,20 @@
     "deactivateAction": "Deactivate",
     "limitTitle": "Listing Limit",
     "limitBody": "You have reached your listing limit. Upgrade to premium to republish."
+  },
+  "business": {
+    "tabOverview": "Overview",
+    "statActiveProducts": "Active Items",
+    "statCollections": "Collections",
+    "totalRevenue": "Total Revenue",
+    "thisWeek": "This Week",
+    "collectionStats": "Collection Statistics",
+    "totalViews": "Total Views",
+    "totalLikes": "Total Likes",
+    "mostViewedProducts": "Most Viewed Items",
+    "mostLikedProducts": "Most Liked Items",
+    "mostPopularCollections": "Most Popular Collections",
+    "noProductStats": "No item statistics yet",
+    "noCollectionStats": "No collection statistics yet"
   }
 }

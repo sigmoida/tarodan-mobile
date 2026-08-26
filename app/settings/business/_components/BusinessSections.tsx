@@ -1,4 +1,6 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { View, Image, Pressable, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,16 +14,22 @@ import type { BusinessController } from '../_hooks/useBusinessStats';
 
 const { colors } = theme;
 
-const TABS: Array<{ id: TabType; label: string; icon: string }> = [
-  { id: 'overview', label: 'Genel Bakış', icon: 'stats-chart' },
-  { id: 'products', label: 'Ürünler', icon: 'cube' },
-  { id: 'collections', label: 'Koleksiyonlar', icon: 'albums' },
+/**
+ * Etiketler çeviriden geldiği için liste bir FABRİKA: modül seviyesinde
+ * kurulsaydı `t` daha hazır olmadan çalışır ve etiketler ilk dilde donardı
+ * (aynı gerekçe `quickActionItems` ve zod şemalarında da geçerli).
+ */
+const buildTabs = (t: TFunction): Array<{ id: TabType; label: string; icon: string }> => [
+  { id: 'overview', label: t('business.tabOverview'), icon: 'stats-chart' },
+  { id: 'products', label: t('product.title'), icon: 'cube' },
+  { id: 'collections', label: t('collection.collections'), icon: 'albums' },
 ];
 
 // ---------------------------------------------------------------------------
 // Company header (gradient)
 // ---------------------------------------------------------------------------
 export function BusinessCompanyHeader({ f }: { f: BusinessController }) {
+  const { t } = useTranslation();
   const { stats } = f;
   return (
     <LinearGradient colors={[colors.primary[100]!, colors.warning[100]!]} style={styles.companyHeader}>
@@ -53,9 +61,10 @@ export function BusinessCompanyHeader({ f }: { f: BusinessController }) {
 // Tab bar
 // ---------------------------------------------------------------------------
 export function BusinessTabs({ f }: { f: BusinessController }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.tabsContainer}>
-      {TABS.map((tab) => (
+      {buildTabs(t).map((tab) => (
         <Pressable
           key={tab.id}
           style={[styles.tab, f.activeTab === tab.id && styles.tabActive]}
@@ -75,6 +84,7 @@ export function BusinessTabs({ f }: { f: BusinessController }) {
 // Tab content (overview / products / collections)
 // ---------------------------------------------------------------------------
 export function BusinessTabContent({ f }: { f: BusinessController }) {
+  const { t } = useTranslation();
   const { activeTab, stats } = f;
   if (!stats) return null;
 
@@ -83,53 +93,53 @@ export function BusinessTabContent({ f }: { f: BusinessController }) {
       <View style={styles.tabContent}>
         {/* Main Stats */}
         <View style={styles.statsGrid}>
-          <StatCard icon="eye" label="Görüntülenme" value={stats.overview.totalViews} color={colors.info[600]!} />
-          <StatCard icon="heart" label="Beğeni" value={stats.overview.totalLikes} color={colors.danger[600]!} />
-          <StatCard icon="bag-handle" label="Satış" value={stats.overview.totalSales} color={colors.success[600]!} />
-          <StatCard icon="cube" label="Aktif Ürün" value={stats.overview.activeProducts} color={colors.info[700]!} />
-          <StatCard icon="albums" label="Koleksiyon" value={stats.overview.totalCollections} color={colors.primary[600]!} />
+          <StatCard icon="eye" label={t('home.statViews')} value={stats.overview.totalViews} color={colors.info[600]!} />
+          <StatCard icon="heart" label={t('home.statLikes')} value={stats.overview.totalLikes} color={colors.danger[600]!} />
+          <StatCard icon="bag-handle" label={t('common.sales')} value={stats.overview.totalSales} color={colors.success[600]!} />
+          <StatCard icon="cube" label={t('business.statActiveProducts')} value={stats.overview.activeProducts} color={colors.info[700]!} />
+          <StatCard icon="albums" label={t('business.statCollections')} value={stats.overview.totalCollections} color={colors.primary[600]!} />
         </View>
 
         {/* Revenue Card */}
         <Card style={styles.revenueCard} padding={0}>
           <LinearGradient colors={[colors.success[100]!, colors.success[50]!]} style={styles.revenueGradient}>
-            <Text style={styles.revenueLabel}>Toplam Gelir</Text>
+            <Text style={styles.revenueLabel}>{t('business.totalRevenue')}</Text>
             <Text style={styles.revenueValue}>₺{stats.overview.totalRevenue.toLocaleString('tr-TR')}</Text>
           </LinearGradient>
         </Card>
 
         {/* Weekly Stats */}
         <Card style={styles.weeklyCard}>
-          <Text style={styles.sectionTitle}>Bu Hafta</Text>
+          <Text style={styles.sectionTitle}>{t('business.thisWeek')}</Text>
           <View style={styles.weeklyStatsRow}>
             <View style={styles.weeklyStat}>
               <Ionicons name="eye" size={20} color={colors.info[600]!} />
               <Text style={styles.weeklyStatValue}>{stats.weekly.views.toLocaleString()}</Text>
-              <Text style={styles.weeklyStatLabel}>Görüntülenme</Text>
+              <Text style={styles.weeklyStatLabel}>{t('home.statViews')}</Text>
             </View>
             <View style={styles.weeklyStat}>
               <Ionicons name="heart" size={20} color={colors.danger[600]!} />
               <Text style={styles.weeklyStatValue}>{stats.weekly.likes.toLocaleString()}</Text>
-              <Text style={styles.weeklyStatLabel}>Beğeni</Text>
+              <Text style={styles.weeklyStatLabel}>{t('home.statLikes')}</Text>
             </View>
           </View>
         </Card>
 
         {/* Collection Stats */}
         <Card style={styles.collectionStatsCard}>
-          <Text style={styles.sectionTitle}>Koleksiyon İstatistikleri</Text>
+          <Text style={styles.sectionTitle}>{t('business.collectionStats')}</Text>
           <View style={styles.weeklyStatsRow}>
             <View style={styles.weeklyStat}>
               <Text style={[styles.weeklyStatValue, { color: colors.info[600]! }]}>
                 {stats.overview.collectionViews.toLocaleString()}
               </Text>
-              <Text style={styles.weeklyStatLabel}>Toplam Görüntülenme</Text>
+              <Text style={styles.weeklyStatLabel}>{t('business.totalViews')}</Text>
             </View>
             <View style={styles.weeklyStat}>
               <Text style={[styles.weeklyStatValue, { color: colors.danger[600]! }]}>
                 {stats.overview.collectionLikes.toLocaleString()}
               </Text>
-              <Text style={styles.weeklyStatLabel}>Toplam Beğeni</Text>
+              <Text style={styles.weeklyStatLabel}>{t('business.totalLikes')}</Text>
             </View>
           </View>
         </Card>
@@ -140,22 +150,22 @@ export function BusinessTabContent({ f }: { f: BusinessController }) {
   if (activeTab === 'products') {
     return (
       <View style={styles.tabContent}>
-        <Text style={styles.sectionTitle}>En Çok Görüntülenen Ürünler</Text>
+        <Text style={styles.sectionTitle}>{t('business.mostViewedProducts')}</Text>
         {stats.topProducts?.byViews?.length > 0 ? (
           stats.topProducts.byViews.map((product, index) => (
             <ProductRow key={product.id} product={product} index={index} metric="views" />
           ))
         ) : (
-          <Text style={styles.emptyText}>Henüz ürün istatistiği yok</Text>
+          <Text style={styles.emptyText}>{t('business.noProductStats')}</Text>
         )}
 
-        <Text style={[styles.sectionTitle, { marginTop: theme.spacing[6] }]}>En Çok Beğenilen Ürünler</Text>
+        <Text style={[styles.sectionTitle, { marginTop: theme.spacing[6] }]}>{t('business.mostLikedProducts')}</Text>
         {stats.topProducts?.byLikes?.length > 0 ? (
           stats.topProducts.byLikes.map((product, index) => (
             <ProductRow key={product.id} product={product} index={index} metric="likes" />
           ))
         ) : (
-          <Text style={styles.emptyText}>Henüz ürün istatistiği yok</Text>
+          <Text style={styles.emptyText}>{t('business.noProductStats')}</Text>
         )}
       </View>
     );
@@ -164,13 +174,13 @@ export function BusinessTabContent({ f }: { f: BusinessController }) {
   // collections
   return (
     <View style={styles.tabContent}>
-      <Text style={styles.sectionTitle}>En Popüler Koleksiyonlar</Text>
+      <Text style={styles.sectionTitle}>{t('business.mostPopularCollections')}</Text>
       {stats.topCollections?.length > 0 ? (
         stats.topCollections.map((collection, index) => (
           <CollectionRow key={collection.id} collection={collection} index={index} />
         ))
       ) : (
-        <Text style={styles.emptyText}>Henüz koleksiyon istatistiği yok</Text>
+        <Text style={styles.emptyText}>{t('business.noCollectionStats')}</Text>
       )}
     </View>
   );
