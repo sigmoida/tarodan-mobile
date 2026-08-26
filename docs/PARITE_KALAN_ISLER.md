@@ -3,13 +3,17 @@
 **Güncelleme:** 2026-08-26 (delta 19 turu)
 **Referans noktası:** `sigmoida/tarodan-app` `development` @ `9f2f66bfc` (2026-08-22).
 
-> ⚠️ **Ana repodaki `apps/mobile` ARTIK KANONİK DEĞİL.** Son dokunuluşu
-> 2026-07-23 (`a8b896c6`); bu standalone repo o günden beri 298 commit aldı.
-> İki ağaç `app/` altında **370 dosyada, ~6.980 satır** ayrışıyor ve bunun yalnız
-> ~350 satırı `@tarodan/*` → `@/…` import yeniden yazımı. Yani ayrışmanın hemen
-> tamamı burada yapılmış iş. Ana repoya dokunan biri için tuzak: oradaki
-> `apps/mobile` eski kodu gösteriyor. Silinmesi ya da bu ağacın oraya taşınması
-> **açık bir karar** olarak bekliyor.
+> ℹ️ **Ana repoda `apps/mobile` YOK — 2026-07-28'de silindi** (`b8f08d335`
+> "chore(mobile): remove mobile app from monorepo", 860 dosya, −93.142 satır).
+> `packages/ui-native` de aynı commit'le boşaldı. Yani mobil istemcinin tek
+> kanonik kaynağı bu repo; ayrılma ana repo tarafından bilinçli ve tamamlanmış
+> bir karar.
+>
+> **Tuzak yerelde:** `~/dev/tarodan-app` çalışma kopyası `docs/mobile-build-fix-spec`
+> dalında duruyor (2026-07-23, `development`'tan 936 commit geride) ve o dalda
+> `apps/mobile` HÂLÂ var. Oradan okunan mobil kod eski. Karşılaştırma yaparken
+> önce `git fetch` + `origin/development`'a bak — parite için ana repodan
+> okunacak tek şey **web + api sözleşmesi**.
 
 ---
 
@@ -42,6 +46,13 @@ ekran-düzeyi parite kapalı.
 - ✅ **`tradeFeeDiscountAmount`.** Takas hizmet bedeli kampanya indirimi ayrı
   satır olarak gösteriliyor. DTO'nun okunuşunun aksine alan `cashPayments[]`
   satırının İÇİNDE dönüyor (ölçüldü).
+- ✅ **İade nedenleri sunucu enum'una hizalandı.** `POST /orders/:id/refund-requests`
+  geçersiz kodda tam listeyi veriyor (ölçüldü); `defective` ve `buyer_damaged`
+  mobilin sözlüğünde YOKTU — o kodu taşıyan talep ekranda ham `snake_case`
+  basılıyordu ve alıcı web'de seçebildiği iki nedeni burada seçemiyordu. Seçenek
+  listesi artık elle yazılmıyor, sözlükten türetiliyor ve kural web'inkiyle aynı
+  (`lost_in_transit` + `other` sunulmaz). **Davranış değişikliği:** alıcı artık
+  "Diğer" seçemiyor — web'de de seçemiyor, gerekçe orada yazılı.
 - ✅ **Telefon TR-only.** Sunucu 2026-08-14'te `IsTrPhone()`'a geçti
   (`/^\+905\d{9}$/`); mobilin 24 ülkelik seçicisi kullanıcıyı garanti 400'e
   yürütüyordu. Seçici kaldırıldı, web'deki gibi sabit `+90` öneki gösteriliyor.
