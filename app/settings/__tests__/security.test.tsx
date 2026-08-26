@@ -45,18 +45,18 @@ const mockGetTwoFactorStatus = authApi.getTwoFactorStatus as jest.Mock;
 describe("SecuritySettingsScreen — 2FA durumu", () => {
   beforeEach(() => mockGetTwoFactorStatus.mockReset());
 
-  it('sunucu isEnabled:true dönerse toggle "Aktif" gösterir', async () => {
+  it('sunucu isEnabled:true dönerse toggle "security.enabled" gösterir', async () => {
     mockGetTwoFactorStatus.mockResolvedValue({ data: { isEnabled: true } });
     renderWithProviders(<SecuritySettingsScreen />);
-    await waitFor(() => expect(screen.getByText("Aktif")).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText("security.enabled")).toBeOnTheScreen());
     expect(mockGetTwoFactorStatus).toHaveBeenCalledTimes(1);
   });
 
-  it('sunucu isEnabled:false dönerse toggle "Devre dışı" gösterir', async () => {
+  it('sunucu isEnabled:false dönerse toggle "security.disabled" gösterir', async () => {
     mockGetTwoFactorStatus.mockResolvedValue({ data: { isEnabled: false } });
     renderWithProviders(<SecuritySettingsScreen />);
     await waitFor(() =>
-      expect(screen.getByText("Devre dışı")).toBeOnTheScreen(),
+      expect(screen.getByText("security.disabled")).toBeOnTheScreen(),
     );
   });
 });

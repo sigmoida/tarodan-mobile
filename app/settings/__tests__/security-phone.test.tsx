@@ -46,7 +46,7 @@ import SecurityScreen from '../security';
 
 async function openPhoneDialog() {
   renderWithProviders(<SecurityScreen />);
-  fireEvent.press(await screen.findByText('Doğrula'));
+  fireEvent.press(await screen.findByText('security.verify'));
 }
 
 beforeEach(() => {

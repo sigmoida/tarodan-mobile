@@ -24,8 +24,8 @@ export function SecuritySections({ f }: { f: SecurityController }) {
           <View style={styles.settingInfo}>
             <Ionicons name="lock-closed-outline" size={24} color={colors.primary[600]!} />
             <View style={styles.settingText}>
-              <Text style={styles.settingTitle}>Şifre Değiştir</Text>
-              <Text style={styles.settingSubtitle}>Son değişiklik: Bilinmiyor</Text>
+              <Text style={styles.settingTitle}>{t('security.changePasswordTitle')}</Text>
+              <Text style={styles.settingSubtitle}>{t('security.lastChangeUnknown')}</Text>
             </View>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.text.subtle} />
@@ -33,7 +33,7 @@ export function SecuritySections({ f }: { f: SecurityController }) {
       </Card>
 
       {/* Two-Factor Auth */}
-      <Text style={styles.sectionTitle}>İki Faktörlü Doğrulama (2FA)</Text>
+      <Text style={styles.sectionTitle}>{t('security.twoFactorSection')}</Text>
       <Card style={styles.card}>
         <View style={styles.settingRow}>
           <View style={styles.settingInfo}>
@@ -41,7 +41,7 @@ export function SecuritySections({ f }: { f: SecurityController }) {
             <View style={styles.settingText}>
               <Text style={styles.settingTitle}>2FA</Text>
               <Text style={styles.settingSubtitle}>
-                {f.twoFactorEnabled ? 'Aktif' : 'Devre dışı'}
+                {f.twoFactorEnabled ? t('security.enabled') : t('security.disabled')}
               </Text>
             </View>
           </View>
@@ -63,7 +63,7 @@ export function SecuritySections({ f }: { f: SecurityController }) {
         {f.twoFactorEnabled ? (
           <Button
             variant="outline"
-            title="Yedek Kodları Yenile"
+            title={t('security.regenerateBackupCodes')}
             onPress={() => {
               f.setNewBackupCodes(null);
               f.setRegenerateCode('');
@@ -76,7 +76,7 @@ export function SecuritySections({ f }: { f: SecurityController }) {
       </Card>
 
       {/* Phone Verification */}
-      <Text style={styles.sectionTitle}>Telefon Doğrulama</Text>
+      <Text style={styles.sectionTitle}>{t('security.phoneSection')}</Text>
       <Card style={styles.card}>
         <View style={styles.settingRow}>
           <View style={styles.settingInfo}>
@@ -84,7 +84,7 @@ export function SecuritySections({ f }: { f: SecurityController }) {
             <View style={styles.settingText}>
               <Text style={styles.settingTitle}>Telefon Doğrulama</Text>
               <Text style={styles.settingSubtitle}>
-                {f.phoneVerified ? 'Telefon numaranız doğrulandı.' : 'SMS ile doğrulayın.'}
+                {f.phoneVerified ? t('security.phoneVerifiedNotice') : t('security.phoneVerifyHint')}
               </Text>
             </View>
           </View>
@@ -92,11 +92,11 @@ export function SecuritySections({ f }: { f: SecurityController }) {
         {f.phoneVerified ? (
           <View style={styles.verifiedBadge}>
             <Ionicons name="checkmark-circle" size={18} color={colors.success[600]!} />
-            <Text style={styles.verifiedText}>Doğrulandı</Text>
+            <Text style={styles.verifiedText}>{t('security.verified')}</Text>
           </View>
         ) : (
           <Button
-            title="Doğrula"
+            title={t('security.verify')}
             onPress={() => {
               // Kayıtlı numara E.164 saklanıyor; alan ülke kodu + lokal parça
               // istiyor, ikisine ayır (yoksa "+90" tekrar yazılmış görünürdü).
@@ -133,7 +133,7 @@ export function SecuritySections({ f }: { f: SecurityController }) {
       </Card>
 
       {/* Security Tips */}
-      <Text style={styles.sectionTitle}>Güvenlik İpuçları</Text>
+      <Text style={styles.sectionTitle}>{t('security.tipsSection')}</Text>
       <Card style={styles.tipsCard}>
         <View style={styles.tipItem}>
           <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />

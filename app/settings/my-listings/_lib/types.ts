@@ -1,3 +1,4 @@
+import type { MessageKey } from '@/i18n/lib';
 import { theme } from '@/ui';
 
 const { colors } = theme;
@@ -34,16 +35,23 @@ export const getStatusColor = (status: string) => {
   }
 };
 
-export const getStatusText = (status: string) => {
+/**
+ * Durumun katalog ANAHTARI — çözülmüş metin değil.
+ *
+ * Bu modül sabitler taşıyor; burada `t()` çağırmak metni ilk yüklenen dilde
+ * dondururdu. Tanınmayan bir durum `null` döner, çağıran ham kodu basar (ekranda
+ * boş bir satır kalmasın).
+ */
+export const statusTextKey = (status: string): MessageKey | null => {
   switch (status) {
-    case 'active': return 'Aktif';
-    case 'sold': return 'Satıldı';
-    case 'pending': return 'Onay Bekliyor';
-    case 'rejected': return 'Reddedildi';
-    case 'reserved': return 'Rezerve';
-    case 'inactive': return 'Deaktif';
-    case 'deleted': return 'Kaldırıldı';
-    default: return status;
+    case 'active': return 'listing.filterActive';
+    case 'sold': return 'listing.filterSold';
+    case 'pending': return 'listing.statusPendingApproval';
+    case 'rejected': return 'listing.filterRejected';
+    case 'reserved': return 'listing.filterReserved';
+    case 'inactive': return 'listing.filterInactive';
+    case 'deleted': return 'listing.statusDeleted';
+    default: return null;
   }
 };
 
