@@ -15,6 +15,53 @@
 > önce `git fetch` + `origin/development`'a bak — parite için ana repodan
 > okunacak tek şey **web + api sözleşmesi**.
 
+
+---
+
+## 2026-08-26 · Kalan işler — ölçülmüş durum
+
+Parite matrisinin 22 maddesi kapalı; kalan her şey ya **teknik borç** ya
+**backend/ops** bekliyor. Rakamlar bugün ölçüldü (hafızadaki 2026-08-03
+sayıları bayattı).
+
+### Mobilin tek başına yapabilecekleri
+
+| # | İş | Ölçülen büyüklük | Not |
+| --- | --- | --- | --- |
+| 1 | **i18n** | 711 dosyanın **98'i** `useTranslation` kullanıyor; ~588 sabit Türkçe metin | Uygulama İngilizce'ye geçemiyor. Bugün sunucu hataları çevrilir oldu (`Accept-Language`) ama arayüzün %86'sı hâlâ gömülü Türkçe — yani dil anahtarı pratikte hâlâ çalışmıyor |
+| 2 | **Ekran gövdeleri** | 200+ satırlık **15 ekran** (en büyüğü 299) | CLAUDE.md §12 deseni. ⚠️ Regex/otomatik dönüşüm bir kez denendi, JSX bozuldu |
+| 3 | **`any` borcu** | 1078 eslint uyarısının **860'ı** `no-explicit-any` | 0 error. Kalanlar: 99 `no-var-requires`, 45 `no-empty-function`, 37 `no-unused-vars`, 35 `exhaustive-deps` |
+| 4 | **İstemci limit tablosu** | `FREE_MEMBER_LIMITS` / `PREMIUM_MEMBER_LIMITS` elle yazılmış | `/membership/me/limits` yalnız 5 sayı + 4 boolean yayınlıyor (`maxImages`, `maxFreeListings`, `maxTotalListings`, `remaining*`). `maxAddresses`, `maxSavedSearches`, `maxMessagesPerDay`, `listingExpireDays` istemci sabiti kalmak zorunda — sunucuyla sessizce ayrışabilir |
+| 5 | **Flake** | Tam turda 1 test bir kez düştü, 4 turda tekrar etmedi | Adı yakalanamadı. Repoda benzer geçmiş var (`ed473a4`) |
+
+### Backend / ops bekleyenler — bugün YENİDEN doğrulandı
+
+| Madde | Ölçüm |
+| --- | --- |
+| `color` attribute grubu seed'i | `GET /products/attribute-groups` → yalnız `scale`, `material`, `vehicle_type`. Sözleşme yayında, **veri yok** |
+| Satıcı iade onay/ret ucu | `refund-requests/:id/{approve,reject,decision}` → **404**. Satıcı iade sekmesi salt okunur kalmak zorunda |
+| `relatedOrder` / `relatedTrade` | Hesapta 1 `sold` + 1 `reserved` ilan var; `GET /products/my` bu alanları yayınlamıyor (yine ölçüldü). "Örnek veri yok" değil |
+| Kupon reddi yapısal alanı | `POST /discounts/validate` → `200 {"isValid":false,"error":"<düz metin>"}`, `i18nKey` yok |
+| Kupon `target` başarı gövdesi | Staging'de kupon verisi yok → **ölçülemedi** |
+| Adres limiti (`maxAddresses`) | Hiçbir uçta yayınlanmıyor → istemci sabiti |
+| IP-blok 403 ayırt edici alanı | Yok |
+| `POST /orders/guest/track` gerçek kargo kodu | Yok — ekran kod yerine kargo durumunu gösteriyor |
+| **Android `assetlinks.json`** | Prod + staging'de **404**. ⚠️ Durum DEĞİŞTİ: parmak izi artık elimizde (`docs/wellknown/fingerprints.json` → `eas_upload_keystore`, 2026-08-12). `pnpm wellknown:gen:strict` dosyayı üretiyor; kalan iş **yayına koymak** (ops). Play App Signing devreye girince ikinci parmak izi eklenmeli |
+| Google Sign-In (Android) | `google-services.json` → `com.tarodan.app`, `oauth_client: 0`. SHA-1 hâlâ Google Cloud'a kayıtlı değil |
+
+### Kapanmış — artık listede değil
+
+- ~~iOS `associatedDomains` eklenemiyor~~ → **eklendi**, `app.json:24`. AASA prod +
+  staging'de 200/`application/json`, üretilen içerikle birebir aynı.
+  `pnpm wellknown:check` 16 kontrolün 10'unu geçiyor; kalan 6'nın hepsi Android
+  `assetlinks` 404'üne bağlı.
+- ~~Android parmak izi elimizde yok~~ → `eas_upload_keystore.sha256` dolu.
+
+**Derin bağlantıda teyit bekleyen 8 yol** (`gen-wellknown` uyarısı, yayına
+konmadı): `/seller/*`, `/orders/*`, `/category/*`, `/brands/*`, `/sayfa/*`,
+`/membership`, `/pricing`, `/favorites`. Bu bir ürün kararı — hangi yollar
+uygulamayı açsın.
+
 ---
 
 ## 2026-08-26 · delta 19 turu
