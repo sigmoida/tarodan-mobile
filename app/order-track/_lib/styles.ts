@@ -57,6 +57,10 @@ export const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: theme.spacing[2],
   },
+  guestCancelButton: {
+    marginTop: theme.spacing[4],
+    borderColor: theme.colors.danger[600]!,
+  },
   resultCard: {
     backgroundColor: colors.surface.DEFAULT,
     borderRadius: 12,

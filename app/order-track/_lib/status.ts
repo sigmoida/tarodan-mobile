@@ -52,6 +52,27 @@ export const CLOSED_TRACK_HINTS: Record<string, string> = {
   refund_requested: 'İade talebiniz işleniyor. Süreç tamamlandığında bilgilendirileceksiniz.',
 };
 
+/**
+ * Misafirin İPTAL edebileceği durumlar — kargoya devirden ÖNCEsi.
+ *
+ * Sunucu (`OrderLifecycleService.cancel`) kargoya verilmiş siparişte
+ * `server.order.cancelAfterHandover` ile 400 atıyor; burası o kuralın ekrandaki
+ * karşılığı. `paid`/`preparing`'de ayrıca `reasonCode` ZORUNLU — form bunu her
+ * zaman gönderiyor (bkz. `@/lib/shared/orderCancellation`).
+ *
+ * `shipped` ve sonrası bilerek DIŞARIDA: butonu göstermek yalnız kullanıcıyı
+ * sunucudan gelecek bir 400'e yürütür.
+ */
+export const GUEST_CANCELLABLE_STATUSES = ['pending_payment', 'paid', 'preparing'];
+
+/** Kargoya verilmemiş, hâlâ iptal edilebilir bir sipariş mi? */
+export function canGuestCancel(order: OrderStatus | null | undefined): boolean {
+  if (!order) return false;
+  // Kargo kaydı doğmuşsa (etiket/teslim alma) sunucu zaten reddeder.
+  if (order.shipment && order.shipment.status !== 'pending') return false;
+  return GUEST_CANCELLABLE_STATUSES.includes(order.status);
+}
+
 export const getStatusInfo = (status: string) =>
   STATUS_MAP[status] || { label: status, color: colors.gray[500]!, icon: 'help-circle-outline' };
 

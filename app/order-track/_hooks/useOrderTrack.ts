@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { api } from '@/lib/api';
-import type { OrderStatus } from '../_lib/status';
+import { canGuestCancel, type OrderStatus } from '../_lib/status';
+import { useGuestOrderCancel } from './useGuestOrderCancel';
 
 /** A route parameter arrives as a string, an array, or not at all. */
 function firstParam(value: string | string[] | undefined): string {
@@ -25,7 +26,29 @@ export function useOrderTrack() {
   const [error, setError] = useState('');
   const [order, setOrder] = useState<OrderStatus | null>(null);
 
-  const handleTrack = async () => {
+  const [snackbar, setSnackbar] = useState<{
+    visible: boolean;
+    message: string;
+    variant: 'success' | 'danger';
+  }>({ visible: false, message: '', variant: 'success' });
+  const notify = useCallback(
+    (message: string, variant: 'success' | 'danger') =>
+      setSnackbar({ visible: true, message, variant }),
+    [],
+  );
+  const dismissSnackbar = useCallback(
+    () => setSnackbar((s) => ({ ...s, visible: false })),
+    [],
+  );
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
+
+  /**
+   * `useCallback` — iptal mutasyonunun `onSettled`'ı bunu yeniden koşuyor
+   * (bu ekranın verisi React Query'de değil, `useState`'te; `invalidateQueries`
+   * karşılığı budur). Kimliğinin her render'da değişmesi mutasyonu gereksiz
+   * yeniden kurardı.
+   */
+  const handleTrack = useCallback(async () => {
     if (!orderNumber.trim()) {
       setError('Sipariş numarası girin');
       return;
@@ -56,7 +79,14 @@ export function useOrderTrack() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [orderNumber, email]);
+
+  const cancelMutation = useGuestOrderCancel({
+    orderNumber,
+    email,
+    onDone: handleTrack,
+    notify,
+  });
 
   const onChangeOrderNumber = (text: string) => {
     setOrderNumber(text);
@@ -76,6 +106,22 @@ export function useOrderTrack() {
     error,
     order,
     handleTrack,
+    snackbar,
+    dismissSnackbar,
+    /**
+     * Misafir iptali. Kapı `canGuestCancel` — kargoya verilmiş siparişte sunucu
+     * zaten 400 atıyor, butonu göstermek kullanıcıyı o hataya yürütmek olurdu.
+     */
+    cancel: {
+      available: canGuestCancel(order),
+      visible: cancelModalVisible,
+      open: () => setCancelModalVisible(true),
+      close: () => setCancelModalVisible(false),
+      /** `pending_payment` dışında ödeme alınmıştır → iade uyarısı gösterilir. */
+      willRefund: order?.status !== 'pending_payment',
+      confirm: cancelMutation.mutate,
+      isPending: cancelMutation.isPending,
+    },
   };
 }
 
