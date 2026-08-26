@@ -36,13 +36,13 @@ export function useCorporateInvite() {
         password: values.password,
       }),
     onSuccess: () => {
-      appAlert('Hesabınız hazır', 'Kullanıcı adınız ve şifreniz belirlendi. Şimdi giriş yapabilirsiniz.');
+      appAlert(t('auth.corporateActivatedTitle'), t('auth.corporateActivatedBody'));
       router.replace('/(auth)/login' as never);
     },
     onError: (e: unknown) => {
       const err = e as { response?: { data?: { message?: string | string[] } } };
       const raw = err?.response?.data?.message;
-      appAlert('Hata', Array.isArray(raw) ? raw.join('\n') : raw || 'Aktivasyon tamamlanamadı.');
+      appAlert(t('common.error'), Array.isArray(raw) ? raw.join('\n') : raw || t('auth.corporateActivationFailed'));
     },
   });
 

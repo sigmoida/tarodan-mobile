@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { TFunction } from 'i18next';
 
 /**
  * Şifre minimum kuralı web ile aynı: 8+ karakter, küçük + büyük harf + rakam.
@@ -11,15 +12,20 @@ import { z } from 'zod';
  */
 export const TWO_FACTOR_CODE_PATTERN = /^(?:\d{6}|[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4})$/;
 
-export const loginSchema = z.object({
-  email: z.string().email('Geçerli e-posta girin'),
-  password: z.string().min(1, 'Şifre boş olamaz'),
-  twoFactorCode: z
-    .string()
-    .trim()
-    .regex(TWO_FACTOR_CODE_PATTERN, '6 haneli kod veya XXXX-XXXX yedek kod girin')
-    .optional()
-    .or(z.literal('')),
-});
+/**
+ * Fabrika biçimi: zod mesajları şema kurulurken çözülüyor, modül seviyesinde
+ * kurulsa metin ilk yüklenen dilde donardı (bkz. `@/utils/validation` başı).
+ */
+export const buildLoginSchema = (t: TFunction) =>
+  z.object({
+    email: z.string().email(t('auth.emailInvalidShort')),
+    password: z.string().min(1, t('auth.passwordRequired')),
+    twoFactorCode: z
+      .string()
+      .trim()
+      .regex(TWO_FACTOR_CODE_PATTERN, t('auth.twoFactorCodeInvalid'))
+      .optional()
+      .or(z.literal('')),
+  });
 
-export type LoginForm = z.infer<typeof loginSchema>;
+export type LoginForm = z.infer<ReturnType<typeof buildLoginSchema>>;

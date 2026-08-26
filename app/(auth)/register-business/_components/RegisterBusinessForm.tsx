@@ -1,4 +1,5 @@
 import { View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { Controller } from 'react-hook-form';
 import { Button, Checkbox, Text, VStack, theme } from '@/ui';
@@ -14,6 +15,7 @@ const TR_PHONE_PLACEHOLDER = getPhonePlaceholder(DEFAULT_COUNTRY_CODE);
 
 /** Kurumsal ön-başvuru form kartı — sekiz sözleşme alanı + KVKK onayı + gönder. */
 export function RegisterBusinessForm({ f }: { f: RegisterBusinessController }) {
+  const { t } = useTranslation();
   const { form } = f;
   const {
     control,
@@ -40,32 +42,32 @@ export function RegisterBusinessForm({ f }: { f: RegisterBusinessController }) {
           <FormInput
             testID="register-business-authorizedFullName-input"
             name="authorizedFullName"
-            label="Yetkili Ad Soyad *"
-            placeholder="Ör. Ayşe Yılmaz"
+            label={t('auth.bizAuthorizedName')}
+            placeholder={t('auth.bizAuthorizedNamePlaceholder')}
           />
 
-          <Text variant="label" style={{ marginTop: spacing[2] }}>Şirket Bilgileri</Text>
+          <Text variant="label" style={{ marginTop: spacing[2] }}>{t('auth.bizSectionCompany')}</Text>
           {/* İki alan da "Şirket…" ile başlayıp yan yana durunca ters doldurulmaya
               açıktı; ayrım artık etiket + helperText ile açık. */}
           <FormInput
             testID="register-business-companyLegalName-input"
             name="companyLegalName"
-            label="Ticaret Unvanı *"
-            helperText="Vergi levhanızda yazan tam unvan."
-            placeholder="Ör. Örnek Otomotiv Sanayi ve Ticaret Ltd. Şti."
+            label={t('auth.bizLegalName')}
+            helperText={t('auth.bizLegalNameHelp')}
+            placeholder={t('auth.bizLegalNamePlaceholder')}
           />
           <FormInput
             testID="register-business-companyTitle-input"
             name="companyTitle"
-            label="Görünen İşletme Adı *"
-            helperText="Tarodan'da alıcılara gösterilecek kısa ad/marka."
-            placeholder="Ör. Örnek Otomotiv"
+            label={t('auth.bizDisplayName')}
+            helperText={t('auth.bizDisplayNameHelp')}
+            placeholder={t('auth.bizDisplayNamePlaceholder')}
           />
           <FormInput
             testID="register-business-companyAddress-input"
             name="companyAddress"
-            label="Şirket Adresi *"
-            placeholder="Mahalle, cadde/sokak, no, ilçe/il"
+            label={t('auth.bizAddress')}
+            placeholder={t('auth.bizAddressPlaceholder')}
             multiline
             numberOfLines={3}
           />
@@ -74,7 +76,7 @@ export function RegisterBusinessForm({ f }: { f: RegisterBusinessController }) {
           <FormInput
             testID="register-business-companyEmail-input"
             name="companyEmail"
-            label="Şirket E-posta *"
+            label={t('auth.bizEmail')}
             keyboardType="email-address"
             autoCapitalize="none"
           />
@@ -91,7 +93,7 @@ export function RegisterBusinessForm({ f }: { f: RegisterBusinessController }) {
           <FormInput
             testID="register-business-phone-input"
             name="phone"
-            label="Telefon *"
+            label={t('auth.bizPhone')}
             placeholder={TR_PHONE_PLACEHOLDER}
             keyboardType="phone-pad"
             textContentType="telephoneNumber"
@@ -100,7 +102,7 @@ export function RegisterBusinessForm({ f }: { f: RegisterBusinessController }) {
           <FormInput
             testID="register-business-contactPhone-input"
             name="contactPhone"
-            label="Ek İletişim Telefonu (opsiyonel)"
+            label={t('auth.bizContactPhone')}
             placeholder={TR_PHONE_PLACEHOLDER}
             keyboardType="phone-pad"
             textContentType="telephoneNumber"
@@ -116,7 +118,7 @@ export function RegisterBusinessForm({ f }: { f: RegisterBusinessController }) {
               testID="register-business-acceptTerms"
               checked={!!value}
               onChange={() => onChange(!value)}
-              label="Üyelik sözleşmesini ve KVKK aydınlatma metnini okudum, kabul ediyorum. *"
+              label={t('auth.bizTermsLabel')}
               error={errors.acceptTerms?.message}
             />
           )}
@@ -127,7 +129,7 @@ export function RegisterBusinessForm({ f }: { f: RegisterBusinessController }) {
           variant="primary"
           size="lg"
           fullWidth
-          title="Başvuru Gönder"
+          title={t('auth.bizSubmit')}
           onPress={f.onSubmit}
           isLoading={busy}
           disabled={busy}

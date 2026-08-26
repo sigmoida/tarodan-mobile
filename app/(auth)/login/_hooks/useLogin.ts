@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,7 +9,7 @@ import { authApi } from '@/lib/api';
 import { signInWithGoogle } from '@/services/googleSignin';
 import { signInWithApple, isAppleAvailable } from '@/services/appleSignin';
 import { useAuthStore } from '@/stores/authStore';
-import { loginSchema, TWO_FACTOR_CODE_PATTERN, type LoginForm } from '../_lib/schema';
+import { buildLoginSchema, TWO_FACTOR_CODE_PATTERN, type LoginForm } from '../_lib/schema';
 
 /**
  * Login controller — owns the RHF form (zod), the login + resend-verification
@@ -26,8 +26,10 @@ export function useLogin() {
   const [appleLoading, setAppleLoading] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
 
+  // Dil değişince şema yeniden kurulur — aksi halde hata metni ilk dilde donar.
+  const schema = useMemo(() => buildLoginSchema(t), [t]);
   const form = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(schema),
   });
   const { handleSubmit, getValues, setError } = form;
 

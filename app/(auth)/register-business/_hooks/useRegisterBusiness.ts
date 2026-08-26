@@ -59,28 +59,28 @@ export function useRegisterBusiness() {
         message?: string;
       };
       const lines = [
-        `${data.email ?? 'Belirttiğiniz e-posta adresi'} için kurumsal satıcı başvurunuz ` +
-          'incelemeye alındı. Admin onayının ardından davet e-postanızdaki bağlantıdan ' +
-          'kullanıcı adınızı ve şifrenizi belirleyebileceksiniz.',
+        t('auth.bizReceivedBody', {
+          email: data.email ?? t('auth.bizReceivedFallbackEmail'),
+        }),
       ];
       // Başvuru numarası destek için tek referans — uç 5/dk limitli, kullanıcı
       // "gitti mi?" diye tekrar denemesin.
-      if (data.applicationId) lines.push(`Başvuru numaranız: ${data.applicationId}`);
-      appAlert('Başvurunuz alındı', lines.join('\n\n'), [
-        { text: 'Tamam', onPress: () => router.replace('/(auth)/login') },
+      if (data.applicationId) lines.push(t('auth.bizApplicationNumber', { id: data.applicationId }));
+      appAlert(t('auth.bizReceivedTitle'), lines.join('\n\n'), [
+        { text: t('common.ok'), onPress: () => router.replace('/(auth)/login') },
       ]);
     },
     onError: (e: unknown) => {
       const status = (e as { response?: { status?: number } })?.response?.status;
       appAlert(
-        'Başvuru gönderilemedi',
+        t('auth.bizSubmitFailedTitle'),
         // Uç 5/dk throttle'lı; ham gövde NestJS'in iç sınıf adını
         // ("ThrottlerException: Too Many Requests") döndürüyor — kullanıcıya gösterilmez.
         status === 429
-          ? 'Çok fazla deneme yaptınız, lütfen bir dakika sonra tekrar deneyin.'
+          ? t('auth.bizThrottled')
           : // Paylaşılan helper: dizi mesajları birleştirir, boş dizi/boş string
             // fallback'e düşer (elle yazılan sürüm boş gövdeli alert üretiyordu).
-            errorText(e, 'Başvurunuz gönderilemedi. Lütfen tekrar deneyin.'),
+            errorText(e, t('auth.bizSubmitFailedBody')),
       );
     },
   });

@@ -1,4 +1,5 @@
 import { View, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import {
   Text,
@@ -19,6 +20,7 @@ import { useCorporateInvite } from './_hooks/useCorporateInvite';
  * Kullanıcı adı BİR KEZ belirlenir ve değiştirilemez.
  */
 export default function CorporateInviteScreen() {
+  const { t } = useTranslation();
   const f = useCorporateInvite();
 
   if (f.isLoading) return <ScreenLoader />;
@@ -26,9 +28,9 @@ export default function CorporateInviteScreen() {
   if (f.isInvalid) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.colors.surface.DEFAULT }}>
-        <ScreenHeader title="Kurumsal Davet" onBack={() => router.replace('/(auth)/login' as never)} />
+        <ScreenHeader title={t('auth.corporateInviteTitle')} onBack={() => router.replace('/(auth)/login' as never)} />
         <View testID="invite-invalid" style={{ padding: theme.spacing[4], gap: theme.spacing[4] }}>
-          <Alert variant="danger" title="Bağlantı geçersiz">
+          <Alert variant="danger" title={t('auth.corporateInviteInvalid')}>
             Davet bağlantısı geçersiz veya süresi dolmuş. Lütfen şirket yöneticinizden
             yeni bir davet isteyin.
           </Alert>
@@ -40,7 +42,7 @@ export default function CorporateInviteScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.surface.DEFAULT }}>
-      <ScreenHeader title="Kurumsal Hesabı Etkinleştir" onBack={() => router.replace('/(auth)/login' as never)} />
+      <ScreenHeader title={t('auth.corporateActivateTitle')} onBack={() => router.replace('/(auth)/login' as never)} />
       <ScrollView
         contentContainerStyle={{ padding: theme.spacing[4], gap: theme.spacing[4] }}
         keyboardShouldPersistTaps="handled"
@@ -52,7 +54,7 @@ export default function CorporateInviteScreen() {
           </Text>
         </Card>
 
-        <Alert variant="info" title="Kullanıcı adı kalıcıdır">
+        <Alert variant="info" title={t('auth.usernamePermanentTitle')}>
           Belirlediğiniz kullanıcı adı sonradan değiştirilemez.
         </Alert>
 
@@ -60,7 +62,7 @@ export default function CorporateInviteScreen() {
           <FormInput
             testID="invite-username"
             name="username"
-            label="Kullanıcı adı"
+            label={t('auth.usernameLabel')}
             placeholder="tarodan.kurumsal"
             autoCapitalize="none"
             autoCorrect={false}
@@ -72,14 +74,14 @@ export default function CorporateInviteScreen() {
           <FormInput
             testID="invite-password"
             name="password"
-            label="Şifre"
+            label={t('auth.password')}
             secureTextEntry
-            helperText="En az 8 karakter; bir küçük harf, bir büyük harf ve bir rakam."
+            helperText={t('auth.corporatePasswordHelp')}
           />
           <FormInput
             testID="invite-password-confirm"
             name="passwordConfirm"
-            label="Şifre (tekrar)"
+            label={t('auth.passwordRepeatLabel')}
             secureTextEntry
           />
         </Form>
