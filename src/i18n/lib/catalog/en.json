@@ -6320,5 +6320,19 @@
     "notUploaded": "Not uploaded",
     "upload": "Upload",
     "versionSuffix": " · v{version}"
+  },
+  "bankAccount": {
+    "holderMinLength": "The account holder name must be at least 2 characters",
+    "ibanInvalid": "Enter a valid Turkish IBAN (TR followed by 24 digits)",
+    "saved": "Bank account saved",
+    "saveFailed": "Saving failed",
+    "deleted": "Bank account deleted",
+    "deleteFailed": "Deletion failed",
+    "deleteTitle": "Delete Bank Account",
+    "deleteConfirm": "Are you sure you want to delete it?",
+    "holderLabel": "Account Holder *",
+    "taxIdOptional": "Tax Number (optional)",
+    "reverifyNotice": "If you update these details, your account returns to \"Not verified\" until it is checked again.",
+    "tcknInvalid": "The national ID must be 11 digits"
   }
 }

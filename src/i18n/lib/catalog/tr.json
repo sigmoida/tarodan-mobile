@@ -6320,5 +6320,19 @@
     "notUploaded": "Yüklenmedi",
     "upload": "Yükle",
     "versionSuffix": " · v{version}"
+  },
+  "bankAccount": {
+    "holderMinLength": "Hesap sahibi adı en az 2 karakter olmalı",
+    "ibanInvalid": "Geçerli bir TR IBAN giriniz (TR + 24 rakam)",
+    "saved": "Banka hesabı kaydedildi",
+    "saveFailed": "Kaydetme başarısız",
+    "deleted": "Banka hesabı silindi",
+    "deleteFailed": "Silme başarısız",
+    "deleteTitle": "Banka Hesabını Sil",
+    "deleteConfirm": "Silmek istediğinize emin misiniz?",
+    "holderLabel": "Hesap Sahibi *",
+    "taxIdOptional": "Vergi No (opsiyonel)",
+    "reverifyNotice": "Bilgileri güncellerseniz hesabınız yeniden doğrulanana kadar \"Doğrulanmadı\" durumuna döner.",
+    "tcknInvalid": "TC Kimlik No 11 rakam olmalı"
   }
 }

@@ -1,4 +1,5 @@
 import { View, ScrollView, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import {
   Button,
   Card,
@@ -8,7 +9,7 @@ import {
   appAlert,
   theme,
 } from '@/ui';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { router } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,20 +19,26 @@ import { bankAccountApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { isValidTrIban, normalizeIban, formatIbanDisplay } from '@/utils/iban';
 import { ScreenHeader } from '@/components/common';
+import type { TFunction } from 'i18next';
 import { styles } from './_bank-account/_lib/styles';
 
 const { colors } = theme;
 
-const bankAccountSchema = z.object({
-  accountHolder: z.string().min(2, 'Hesap sahibi adı en az 2 karakter olmalı').max(150),
-  iban: z.string().refine((v) => isValidTrIban(v), 'Geçerli bir TR IBAN giriniz (TR + 24 rakam)'),
-  tcKimlikNo: z
-    .string()
-    .regex(/^\d{11}$/, 'TC Kimlik No 11 rakam olmalı')
-    .optional()
-    .or(z.literal('')),
-  taxId: z.string().max(20).optional().or(z.literal('')),
-});
+/**
+ * Fabrika biçimi: zod mesajları şema kurulurken çözülüyor, modül seviyesinde
+ * kurulsa metin ilk yüklenen dilde donardı (bkz. `@/utils/validation` başı).
+ */
+const buildBankAccountSchema = (t: TFunction) =>
+  z.object({
+    accountHolder: z.string().min(2, t('bankAccount.holderMinLength')).max(150),
+    iban: z.string().refine((v) => isValidTrIban(v), t('bankAccount.ibanInvalid')),
+    tcKimlikNo: z
+      .string()
+      .regex(/^\d{11}$/, t('bankAccount.tcknInvalid'))
+      .optional()
+      .or(z.literal('')),
+    taxId: z.string().max(20).optional().or(z.literal('')),
+  });
 
 type BankAccountForm = {
   accountHolder: string;
@@ -41,6 +48,9 @@ type BankAccountForm = {
 };
 
 export default function BankAccountScreen() {
+  const { t } = useTranslation();
+  // Dil değişince şema yeniden kurulur — aksi halde hata metni ilk dilde donar.
+  const schema = useMemo(() => buildBankAccountSchema(t), [t]);
   const { isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
   const [snackbar, setSnackbar] = useState<{
@@ -64,7 +74,7 @@ export default function BankAccountScreen() {
     reset,
     formState: { errors },
   } = useForm<BankAccountForm>({
-    resolver: zodResolver(bankAccountSchema),
+    resolver: zodResolver(schema),
     defaultValues: { accountHolder: '', iban: '', tcKimlikNo: '', taxId: '' },
   });
 
@@ -90,10 +100,10 @@ export default function BankAccountScreen() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-account'] });
-      setSnackbar({ visible: true, message: 'Banka hesabı kaydedildi', variant: 'success' });
+      setSnackbar({ visible: true, message: t('bankAccount.saved'), variant: 'success' });
     },
     onError: (error: any) => {
-      const msg = error.response?.data?.message || 'Kaydetme başarısız';
+      const msg = error.response?.data?.message || t('bankAccount.saveFailed');
       setSnackbar({
         visible: true,
         message: Array.isArray(msg) ? msg[0] : msg,
@@ -107,12 +117,12 @@ export default function BankAccountScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-account'] });
       reset({ accountHolder: '', iban: '', tcKimlikNo: '', taxId: '' });
-      setSnackbar({ visible: true, message: 'Banka hesabı silindi', variant: 'success' });
+      setSnackbar({ visible: true, message: t('bankAccount.deleted'), variant: 'success' });
     },
     onError: (error: any) => {
       setSnackbar({
         visible: true,
-        message: error.response?.data?.message || 'Silme başarısız',
+        message: error.response?.data?.message || t('bankAccount.deleteFailed'),
         variant: 'danger',
       });
     },
@@ -121,8 +131,8 @@ export default function BankAccountScreen() {
   const onSubmit = (data: BankAccountForm) => upsertMutation.mutate(data);
 
   const handleDelete = () =>
-    appAlert('Banka Hesabını Sil', 'Silmek istediğinize emin misiniz?', [
-      { text: 'Vazgeç', style: 'cancel' },
+    appAlert(t('bankAccount.deleteTitle'), t('bankAccount.deleteConfirm'), [
+      { text: t('discount.discard'), style: 'cancel' },
       { text: 'Sil', style: 'destructive', onPress: () => deleteMutation.mutate() },
     ]);
 
@@ -131,10 +141,10 @@ export default function BankAccountScreen() {
   if (!isAuthenticated) {
     return (
       <View style={styles.centered}>
-        <Text variant="h3">Giriş Yapın</Text>
+        <Text variant="h3">{t('auth.loginToContinue')}</Text>
         <Button
           variant="primary"
-          title="Giriş Yap"
+          title={t('auth.loginTitle')}
           onPress={() => router.push('/(auth)/login')}
         />
       </View>
@@ -143,7 +153,7 @@ export default function BankAccountScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Banka Hesabı / IBAN" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+      <ScreenHeader title={t('mobile.settingsBankAccount')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <Card style={styles.card}>
@@ -157,7 +167,7 @@ export default function BankAccountScreen() {
             render={({ field: { onChange, value } }) => (
               <Input
                 testID="bank-account-holder-input"
-                label="Hesap Sahibi *"
+                label={t('bankAccount.holderLabel')}
                 value={value}
                 onChangeText={onChange}
                 error={errors.accountHolder?.message}
@@ -204,7 +214,7 @@ export default function BankAccountScreen() {
             name="taxId"
             render={({ field: { onChange, value } }) => (
               <Input
-                label="Vergi No (opsiyonel)"
+                label={t('bankAccount.taxIdOptional')}
                 value={value ?? ''}
                 onChangeText={(t) => onChange(t.slice(0, 20))}
                 error={errors.taxId?.message}
@@ -215,8 +225,7 @@ export default function BankAccountScreen() {
 
           {existing && (
             <Text variant="bodySm" style={styles.updateWarning}>
-              Bilgileri güncellerseniz hesabınız yeniden doğrulanana kadar "Doğrulanmadı" durumuna
-              döner.
+              {t('bankAccount.reverifyNotice')}
             </Text>
           )}
 
@@ -224,7 +233,7 @@ export default function BankAccountScreen() {
             testID="bank-account-submit-button"
             variant="primary"
             fullWidth
-            title={existing ? 'Güncelle' : 'Kaydet'}
+            title={existing ? t('discount.update') : t('common.save')}
             onPress={handleSubmit(onSubmit)}
             isLoading={upsertMutation.isPending}
             disabled={upsertMutation.isPending}
@@ -236,7 +245,7 @@ export default function BankAccountScreen() {
               testID="bank-account-delete-button"
               variant="ghost"
               fullWidth
-              title="Banka Hesabını Sil"
+              title={t('bankAccount.deleteTitle')}
               onPress={handleDelete}
               style={styles.deleteButton}
             />
