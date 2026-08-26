@@ -1,38 +1,46 @@
 import { theme } from '@/ui';
+import type { MessageKey } from '@/i18n/lib';
 import type { SellerDocumentStatus } from './types';
 
-/** Zengin akışın 7 belge türü (web /profile/business ile birebir). */
+/**
+ * Zengin akışın 7 belge türü (web /profile/business ile birebir).
+ *
+ * Etiketler `labelKey` olarak taşınır, çözülmüş metin olarak DEĞİL: bu sabitler
+ * modül seviyesinde kuruluyor ve orada `t()` çağırmak metni ilk yüklenen dilde
+ * dondururdu. Çeviriyi çağıran bileşen yapar. (Ana repodaki paylaşılan
+ * `status-configs` de aynı `labelKey` biçimini kullanıyor.)
+ */
 export const DOCUMENT_TYPES = [
-  { type: 'tax_plate', label: 'Vergi levhası' },
-  { type: 'residence_or_invoice', label: 'İkametgâh veya fatura' },
-  { type: 'signature_circular', label: 'İmza sirküleri' },
-  { type: 'trade_registry_gazette', label: 'Ticaret sicil gazetesi' },
-  { type: 'activity_certificate', label: 'Faaliyet belgesi' },
-  { type: 'bank_account_info', label: 'Banka hesap bilgisi' },
-  { type: 'contract', label: 'Sözleşme' },
-] as const;
+  { type: 'tax_plate', labelKey: 'sellerDocument.taxPlate' },
+  { type: 'residence_or_invoice', labelKey: 'sellerDocument.residenceOrInvoice' },
+  { type: 'signature_circular', labelKey: 'sellerDocument.signatureCircular' },
+  { type: 'trade_registry_gazette', labelKey: 'sellerDocument.tradeRegistryGazette' },
+  { type: 'activity_certificate', labelKey: 'sellerDocument.activityCertificate' },
+  { type: 'bank_account_info', labelKey: 'sellerDocument.bankAccountInfo' },
+  { type: 'contract', labelKey: 'sellerDocument.contract' },
+] as const satisfies ReadonlyArray<{ type: string; labelKey: MessageKey }>;
 
 /** Paydaş başına ön/arka kimlik belgesi türleri. */
 export const IDENTITY_DOCUMENT_TYPES = {
   tckn: [
-    { type: 'identity_front', label: 'Kimlik ön yüz' },
-    { type: 'identity_back', label: 'Kimlik arka yüz' },
+    { type: 'identity_front', labelKey: 'sellerDocument.identityFront' },
+    { type: 'identity_back', labelKey: 'sellerDocument.identityBack' },
   ],
   passport: [
-    { type: 'passport_front', label: 'Pasaport ön yüz' },
-    { type: 'passport_back', label: 'Pasaport arka yüz' },
+    { type: 'passport_front', labelKey: 'sellerDocument.passportFront' },
+    { type: 'passport_back', labelKey: 'sellerDocument.passportBack' },
   ],
-} as const;
+} as const satisfies Record<string, ReadonlyArray<{ type: string; labelKey: MessageKey }>>;
 
 export const DOCUMENT_STATUS_CONFIG: Record<
   SellerDocumentStatus,
-  { label: string; color: string }
+  { labelKey: MessageKey; color: string }
 > = {
-  pending: { label: 'İncelemede', color: theme.colors.warning[600]! },
-  approved: { label: 'Onaylandı', color: theme.colors.success[600]! },
-  rejected: { label: 'Reddedildi', color: theme.colors.danger[600]! },
-  revision_requested: { label: 'Düzeltme istendi', color: theme.colors.warning[600]! },
-  appealed: { label: 'İtiraz edildi', color: theme.colors.info[600]! },
+  pending: { labelKey: 'sellerDocument.statusPending', color: theme.colors.warning[600]! },
+  approved: { labelKey: 'sellerDocument.statusApproved', color: theme.colors.success[600]! },
+  rejected: { labelKey: 'sellerDocument.statusRejected', color: theme.colors.danger[600]! },
+  revision_requested: { labelKey: 'sellerDocument.statusRevisionRequested', color: theme.colors.warning[600]! },
+  appealed: { labelKey: 'sellerDocument.statusAppealed', color: theme.colors.info[600]! },
 };
 
 /** Backend: application/pdf + jpeg/png/webp, ≤10 MB. */

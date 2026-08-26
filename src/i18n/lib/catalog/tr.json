@@ -6298,5 +6298,27 @@
     "mostPopularCollections": "En Popüler Koleksiyonlar",
     "noProductStats": "Henüz ürün istatistiği yok",
     "noCollectionStats": "Henüz koleksiyon istatistiği yok"
+  },
+  "sellerDocument": {
+    "taxPlate": "Vergi levhası",
+    "residenceOrInvoice": "İkametgâh veya fatura",
+    "signatureCircular": "İmza sirküleri",
+    "tradeRegistryGazette": "Ticaret sicil gazetesi",
+    "activityCertificate": "Faaliyet belgesi",
+    "bankAccountInfo": "Banka hesap bilgisi",
+    "contract": "Sözleşme",
+    "identityFront": "Kimlik ön yüz",
+    "identityBack": "Kimlik arka yüz",
+    "passportFront": "Pasaport ön yüz",
+    "passportBack": "Pasaport arka yüz",
+    "statusPending": "İncelemede",
+    "statusApproved": "Onaylandı",
+    "statusRejected": "Reddedildi",
+    "statusRevisionRequested": "Düzeltme istendi",
+    "statusAppealed": "İtiraz edildi",
+    "uploading": "Yükleniyor…",
+    "notUploaded": "Yüklenmedi",
+    "upload": "Yükle",
+    "versionSuffix": " · v{version}"
   }
 }

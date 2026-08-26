@@ -104,6 +104,8 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     'information.sizeGuide.note64',
     'information.contactInfo.emailValue',
     'information.contactInfo.phoneValue',
+    // Yalnız ayraç + sürüm numarası (" · v3"); çevrilecek sözcük yok.
+    'sellerDocument.versionSuffix',
   ]);
 
   /**

@@ -6298,5 +6298,27 @@
     "mostPopularCollections": "Most Popular Collections",
     "noProductStats": "No item statistics yet",
     "noCollectionStats": "No collection statistics yet"
+  },
+  "sellerDocument": {
+    "taxPlate": "Tax certificate",
+    "residenceOrInvoice": "Proof of residence or a utility bill",
+    "signatureCircular": "Signature circular",
+    "tradeRegistryGazette": "Trade registry gazette",
+    "activityCertificate": "Certificate of activity",
+    "bankAccountInfo": "Bank account details",
+    "contract": "Contract",
+    "identityFront": "ID card, front",
+    "identityBack": "ID card, back",
+    "passportFront": "Passport, front",
+    "passportBack": "Passport, back",
+    "statusPending": "Under review",
+    "statusApproved": "Approved",
+    "statusRejected": "Rejected",
+    "statusRevisionRequested": "Revision requested",
+    "statusAppealed": "Appealed",
+    "uploading": "Uploading…",
+    "notUploaded": "Not uploaded",
+    "upload": "Upload",
+    "versionSuffix": " · v{version}"
   }
 }

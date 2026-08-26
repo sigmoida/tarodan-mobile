@@ -1,4 +1,5 @@
 import { View, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Controller } from 'react-hook-form';
 import { Text, Button, Card, EmptyState, SegmentedButtons, theme } from '@/ui';
 import { Form, FormInput } from '@/ui/form';
@@ -13,6 +14,7 @@ type Props = {
 
 /** Şirket sahipleri/ortakları + paydaş başına ön/arka kimlik yüklemesi. */
 export function StakeholdersTab({ f, upload }: Props) {
+  const { t } = useTranslation();
   if (f.tab !== 'stakeholders') return null;
 
   return (
@@ -43,12 +45,12 @@ export function StakeholdersTab({ f, upload }: Props) {
                       paddingVertical: theme.spacing[2],
                     }}
                   >
-                    <Text variant="body">{d.label}</Text>
+                    <Text variant="body">{t(d.labelKey)}</Text>
                     <Text
                       variant="caption"
                       color={doc ? DOCUMENT_STATUS_CONFIG[doc.status].color : theme.colors.text.muted}
                     >
-                      {busy ? 'Yükleniyor…' : doc ? DOCUMENT_STATUS_CONFIG[doc.status].label : 'Yükle'}
+                      {busy ? t('sellerDocument.uploading') : doc ? t(DOCUMENT_STATUS_CONFIG[doc.status].labelKey) : t('sellerDocument.upload')}
                     </Text>
                   </Pressable>
                 );
