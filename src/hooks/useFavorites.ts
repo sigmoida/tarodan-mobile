@@ -118,8 +118,19 @@ export function useFavorites() {
       await query.refetch();
       return true;
     } catch (error: any) {
-      // Zaten wishlist'te ise yine başarı (idempotent).
-      if (error?.response?.status === 409 || error?.response?.data?.message?.includes('zaten')) {
+      /**
+       * Zaten wishlist'te ise yine başarı.
+       *
+       * Sunucu ASLINDA idempotent: staging'de ölçüldü (2026-08-26) — aynı ürünü
+       * ikinci kez eklemek `201` ve aynı satırı döndürüyor, hata atmıyor. Bu dal
+       * yalnızca bir emniyet kemeri.
+       *
+       * Eskiden ikinci bir koşul daha vardı: `message.includes('zaten')`. İstemci
+       * artık `Accept-Language` gönderdiği için sunucu mesajı İngilizce'ye
+       * dönebiliyor ve o kontrol sessizce tutmaz olurdu — metne bakan bir kural
+       * çeviriyle birlikte bozulur. Durum kodu dilden bağımsız.
+       */
+      if (error?.response?.status === 409) {
         await query.refetch();
         return true;
       }

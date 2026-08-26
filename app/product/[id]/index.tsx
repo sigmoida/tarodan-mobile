@@ -161,7 +161,7 @@ export default function ProductDetailScreen() {
         duration={2000}
         variant={actions.snackbar.type === 'success' ? 'success' : 'danger'}
         action={
-          actions.snackbar.type === 'success' && actions.snackbar.message.includes('sepet')
+          actions.snackbar.action === 'goToCart'
             ? { label: t('product.goToCart'), onPress: () => router.push('/cart') }
             : undefined
         }

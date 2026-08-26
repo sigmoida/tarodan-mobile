@@ -76,16 +76,24 @@ export function useProductActions({
   // Sepet yazmaları üyede sunucuya da aynalanır.
   const cart = useCartSync();
 
+  /**
+   * `action`: snackbar'ın yanında gösterilecek kısayol.
+   *
+   * Ekran bunu eskiden mesajın İÇİNDEN çıkarıyordu (`message.includes('sepet')`)
+   * — metin çevrildiği anda o kontrol tutmaz ve "Sepete git" butonu sessizce
+   * kaybolurdu. Kısayol artık mesajın yanında AYRI bir alan; dilden bağımsız.
+   */
   const [snackbar, setSnackbar] = useState({
     visible: false,
     message: '',
     type: 'success' as SnackType,
+    action: undefined as 'goToCart' | undefined,
   });
   const [offerModalOpen, setOfferModalOpen] = useState(false);
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
 
-  const notify = (message: string, type: SnackType) =>
-    setSnackbar({ visible: true, message, type });
+  const notify = (message: string, type: SnackType, action?: 'goToCart') =>
+    setSnackbar({ visible: true, message, type, action });
   const dismissSnackbar = () => setSnackbar((s) => ({ ...s, visible: false }));
 
   const requireAuth = (message: string) => {
@@ -99,7 +107,7 @@ export function useProductActions({
     if (!product) return;
     if (isOutOfStock) return notify(t('cart.outOfStock'), 'error');
     cart.add(buildCartItem(product, images) as any);
-    notify(t('product.addedToCartExclaim'), 'success');
+    notify(t('product.addedToCartExclaim'), 'success', 'goToCart');
   };
 
   const handleBuyNow = () => {
