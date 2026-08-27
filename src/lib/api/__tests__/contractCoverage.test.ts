@@ -72,6 +72,73 @@ const TRADES_TYPE_SOURCES = [
 ];
 
 /**
+ * `products` fixture'ının `mine` (GET /products/my) gövdesini deklare eden dosyalar.
+ *
+ * `list` (GET /products) KASITLI OLARAK burada YOK — bkz. dosya sonundaki
+ * "products sözleşmesi" testinin başındaki not: `app/product/[id]/_lib/types.ts`
+ * ürün/satıcı şeklini index signature (`[key: string]: any`) ile taşıyor, bu da
+ * `list` gövdesi için guard'ı anlamsızlaştırıyor (55 "bildirilmemiş" alan —
+ * neredeyse hepsi guard'ın YAPISAL olarak ölçemediği bir tip yüzünden, gerçek
+ * bulgu değil gürültü). Task-3 brief'in kararı: `products/my` (`Listing` tipi
+ * EXPLICIT — tarihsel `rejectionReason` kaçırması da oradan çıkmıştı) kapsanır,
+ * ürün-detay gövdesi tiplemesi sıkılaştırılana kadar kapsam DIŞI bırakılır.
+ *
+ * `src/components/listing/_lib/types.ts` (`EditProjection`/`EditImage`) BREF'İN
+ * öngörmediği ÜÇÜNCÜ bir kaynak — `GET /products/my/:id` (düzenleme ucu) aynı
+ * ürün gövdesini taşıyor ve `cardKey`/`detailKey`/`cardUrl`/`detailUrl`/
+ * `sortOrder`/`description`/`modelCode`/`color`/... gibi `my-listings`'in
+ * `Listing` tipinde YOK ama düzenleme akışında GERÇEKTEN kullanılan birçok
+ * alanı burada bildiriyor. Eklenmeden önce 39 "bildirilmemiş" alan vardı,
+ * eklenince 11'e düştü — kalanı gerçekten hiç bildirilmiyor.
+ */
+const PRODUCTS_TYPE_SOURCES = [
+  'app/settings/my-listings/_lib/types.ts',
+  'app/product/[id]/_lib/types.ts',
+  'src/components/listing/_lib/types.ts',
+];
+
+/**
+ * `membership` fixture'ının (`tiers`+`me`+`limits`) gövdesini deklare eden dosyalar.
+ *
+ * `src/hooks/useMembershipLimits.ts` BREF'İN öngörmediği bir kaynak — `GET
+ * /membership/me/limits`'in TAM alan listesini (13 alan) JSDoc'ta ÖLÇÜLMÜŞ
+ * olarak belgeliyor ve beşini `ServerLimitsDto`'ya eşliyor; kalan sekizinin
+ * neden okunmadığını da orada anlatıyor. Eklenmeden önce 19 "bildirilmemiş"
+ * alan vardı, eklenince 4'e düştü.
+ */
+const MEMBERSHIP_TYPE_SOURCES = [
+  'app/membership/manage/_lib/types.ts',
+  'app/membership/_lib/membershipTiers.ts',
+  'src/lib/api/membership.ts',
+  'src/hooks/useMembershipLimits.ts',
+];
+
+/** `user` fixture'ının (`me`+`addresses`) gövdesini deklare eden dosyalar. */
+const USER_TYPE_SOURCES = [
+  'src/types/user.ts',
+  'src/stores/authStore.ts',
+  'app/settings/addresses/_lib/types.ts',
+];
+
+/**
+ * `messaging` fixture'ının (`GET /messages/threads`) gövdesini deklare eden dosyalar.
+ *
+ * Brief `app/messages/` altına bakmayı öneriyordu — orada YOK. Gerçek tip
+ * `src/stores/messagesStore.ts`'te (`MessageThread`/`Message`) yaşıyor, ama
+ * ondan da önemlisi `src/lib/messaging/normalize.ts`: API düz alanlar
+ * (`participant1Id`/`participant1Name`/`participant1AvatarUrl`, …) döndürüyor,
+ * `MessageThread` tipi İÇ İÇE `participant1`/`participant2` nesnesi bekliyor —
+ * `normalizeThread` ikisi arasındaki KÖPRÜ ve ham alan adlarının GERÇEK
+ * bildirim yeri. Bu dosya olmadan guard `participant1Id` gibi alanları hiç
+ * göremezdi.
+ */
+const MESSAGING_TYPE_SOURCES = [
+  'src/lib/api/messaging.ts',
+  'src/stores/messagesStore.ts',
+  'src/lib/messaging/normalize.ts',
+];
+
+/**
  * Yanıtta olup tipte OLMAYAN, ama bilinçli olarak okunmayan alanlar.
  *
  * Her satır bir KARAR: ya "mobil bu alanı hiç kullanmıyor ve kullanmamalı" ya da
@@ -333,6 +400,179 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     'list.trades.initiatorShipment.cargoCode',
     'list.trades.shipments.cargoCode',
   ]),
+  products: new Set<string>([
+    // ── Mobil bu alanları hiç kullanmıyor ve kullanmamalı (bu EKRANDA) ──────
+    // `useMyListings.ts`/`MyListingsSections.tsx`/`MyListingsModals.tsx` içinde
+    // `grep`le tek tek doğrulandı. Hepsi ürünün BAŞKA ekranlarında (ürün detay,
+    // arama sonucu kartı, satıcı vitrini) GERÇEKTEN okunuyor ve kendi rota-yerel
+    // tiplerinde bildirilmiş — yalnız `products/my` (ilanlarım YÖNETİM ekranı)
+    // bunları göstermiyor, ki zaten mantıklı: bu ekran "benim ilanım" listesi,
+    // vitrin/arama kartı değil.
+    //   - `discountPercent` / `isOnSale` / `originalPrice`: indirim rozeti —
+    //     `SearchResultCard.tsx`/`ListingSections.tsx`'te var, yönetim
+    //     listesinde satıcı zaten kendi fiyatını biliyor.
+    //   - `isBoosted`: `boostedUntil` (Listing tipinde ZATEN bildirilmiş) ile
+    //     AYNI anlamı taşıyan ikinci bir bayrak (`ProductCard.tsx`:
+    //     `item.isBoosted || item.boostedUntil`) — `boostedUntil` yeterli.
+    //   - `productCode`: yalnız `ProductInfo.tsx` (ürün detay "teknik özellikler"
+    //     bloğu) gösteriyor, yönetim listesinde yok.
+    //   - `sellerId`: bu zaten KENDİ ilanım — sahibi belli, göstermeye gerek yok.
+    //   - `tradeAvailable`: `isTradeEnabled` (Listing tipinde ZATEN bildirilmiş)
+    //     bu ekranın kullandığı denklik; `tradeAvailable` yalnız satıcı vitrini
+    //     (`SellerTabs.tsx`) ve kayıtlı arama filtresinde kullanılıyor.
+    'data.discountPercent',
+    'data.isBoosted',
+    'data.isOnSale',
+    'data.originalPrice',
+    'data.productCode',
+    'data.sellerId',
+    'data.tradeAvailable',
+    // `meta.*`: `useMyListings.ts` `response.data?.data || response.data || []`
+    // ile YALNIZ `.data`'yı okuyor, `.meta`'ya hiç dokunmuyor — `orders`/`trades`
+    // ile AYNI "sayfalama üstverisi hiç okunmuyor" sınıfı.
+    'meta.limit',
+    'meta.page',
+    'meta.total',
+    'meta.totalPages',
+  ]),
+  membership: new Set<string>([
+    // `me.userId` / `me.createdAt`: kayıt üstverisi, hiçbir ekran okumuyor.
+    'me.userId',
+    'me.createdAt',
+    // `me.usedFreeListings` / `me.usedTotalListings`: `GET /membership/me`
+    // zaten kota KULLANIMINI taşıyor ama mobil kota hesabını AYRI bir uçtan
+    // (`GET /products/my/stats` → `summary.used`/`max`/`canCreate`,
+    // `useMyListings.ts`) türetiyor — iki kaynak aynı bilgiyi taşıyor, mobil
+    // ikincisini seçmiş. `grep -rn 'usedFreeListings\|usedTotalListings' app src`
+    // boş dönüyor.
+    'me.usedFreeListings',
+    'me.usedTotalListings',
+  ]),
+  user: new Set<string>([
+    // ── Fixture'ın kendi yapısı, sunucu alanı DEĞİL ─────────────────────────
+    // `addresses` (kök): bu hesabın kayıtlı adresi YOK, `GET /users/me/addresses`
+    // boş dizi döndü. `fieldPaths` boş diziyi ALANIN KENDİSİ olarak raporluyor
+    // (bkz. dosya başı `fieldPaths` yorumu, `feeDiscounts: []` örneği) — ama
+    // orada `feeDiscounts` GERÇEK bir API alan adıydı, burada `addresses` bu
+    // fixture'ın KENDİ üst-seviye anahtarı (`{ me, addresses }`), sunucu
+    // yanıtının kendisi çıplak bir dizi. Gerçek `Address` şekli
+    // `app/settings/addresses/_lib/types.ts`'te bildirilmiş ve
+    // `useAddresses.ts` onu okuyor — yalnız bu hesapta ölçülecek satır yok.
+    'addresses',
+    // ── `me.membership.*` / `me.stats.*` / `me.addresses`: GET /users/me AYRI
+    // bir alanda AYNI bilgiyi tekrarlıyor, mobil o kopyaları değil KENDİ
+    // uçlarını okuyor ──────────────────────────────────────────────────────
+    //   - `me.addresses`: `GET /users/me/addresses` (ayrı uç, `useAddresses.ts`)
+    //     zaten var; `mapApiUserToUser` (`authStore.ts`) `apiUser.addresses`'a
+    //     hiç dokunmuyor.
+    //   - `me.membership.status` / `currentPeriodStart` / `currentPeriodEnd` /
+    //     `tier.maxTotalListings`: `GET /membership/me` (ayrı uç,
+    //     `useMembership.ts`/`useMembershipManage.ts`) zaten bu bilgiyi taşıyor.
+    //     `mapApiUserToUser` yalnız `apiUser.membership?.tier?.type`'ı (tier
+    //     ADINI) okuyor — `extractMembershipTier`, bkz. aşağı — kalanına
+    //     dokunmuyor.
+    //   - `me.stats.averageRating` / `totalListings`: bu STATS objesi
+    //     `GET /users/:id/profile` (public profil, `getPublicProfile`) yanıtının
+    //     bir kopyası; `useProfileData.ts` `apiStats` değişkenini
+    //     `getPublicProfile`'dan dolduruyor, `/users/me`'nin KENDİ `stats`'ına
+    //     hiç bakmıyor.
+    'me.addresses',
+    'me.membership.currentPeriodEnd',
+    'me.membership.currentPeriodStart',
+    'me.membership.status',
+    'me.membership.tier.maxTotalListings',
+    'me.stats.averageRating',
+    'me.stats.totalListings',
+    // ── `me.isPremium` / `trustScore` / `trustLevel` / `showTrustScore`: OKUNUYOR
+    // — ama bu 3 dosyanın HİÇBİRİNDEN değil ─────────────────────────────────
+    // `app/(tabs)/_hooks/useProfileData.ts` `userApi.getProfile()`'ı (AYNI
+    // `/users/me` ucu) İKİNCİ kez, HAM `any`-cast ile çağırıyor
+    // (`meProfile`, satır ~58-70) ve dördünü de doğrudan okuyor — bu üç tip
+    // kaynağından hiçbirinde İSİM olarak geçmiyorlar çünkü orada bir TİP değil,
+    // dinamik erişim var. Guard'ın ADI aradığı yer yalnız "tip bildiren"
+    // dosyalar; bu alanlar bildirilmiş bir TİPTEN değil ham sorgu kodundan
+    // okunuyor — guard'ın kapsamadığı ama gerçekte OKUNAN alanlar sınıfı.
+    'me.isPremium',
+    'me.trustScore',
+    'me.trustLevel',
+    'me.showTrustScore',
+    // ── Hiç okunmuyor (kayıt/moderasyon/admin üstverisi, mobilde karşılığı yok) ─
+    'me.acceptsMarketingEmails',
+    'me.adminCode',
+    'me.bannedAt',
+    'me.companyCity',
+    'me.companyDistrict',
+    'me.companyType',
+    'me.deletedAt',
+    'me.homeTourVersion',
+    'me.isBanned',
+    'me.lastActivityAt',
+    'me.lastLoginAt',
+    'me.listingTourVersion',
+    'me.notificationSettings',
+    'me.preferredLanguage',
+    'me.storeViewCount',
+    'me.usernameClaimedAt',
+    //
+    // ── BOŞLUK — Plan B (guard'ın YAKALAMADIĞI, review'la BULUNAN gerçek bir
+    // eşleme kusuru) ─────────────────────────────────────────────────────────
+    // `me.birthDate` alanı VAR ve `app/settings/edit-profile/_hooks/
+    // useEditProfile.ts` onu `(user as any)?.birthDate` ile OKUMAYA ÇALIŞIYOR
+    // (doğum tarihi formunu ön-doldurmak için) — ama `user` burada authStore'un
+    // `mapApiUserToUser`'ı (satır ~239) ile eşlenmiş NESNE, ve o fonksiyon
+    // `birthDate`'i HİÇ satıra dökmüyor (dönen `User` objesinde yok — dosya
+    // başındaki `return { id, email, displayName, … }` listesinde `birthDate`
+    // YOK). Yani bu okuma HER ZAMAN `undefined` döner: kullanıcı ayarlardan
+    // profilini düzenlemeye her girdiğinde doğum tarihi alanı SIFIRLANMIŞ görünür
+    // — kayıtlı değeri olsa da. `rejectionReason` ile AYNI sınıf: sunucu alanı
+    // var, mobil bir yerde OKUMAYA ÇALIŞIYOR ama yanlış (maplenmemiş) kaynaktan
+    // okuyor, sonuç sessizce boş. Ciddiyeti yüzünden Plan B'ye ayrıca vurgulanmalı.
+    'me.birthDate',
+  ]),
+  messaging: new Set<string>([
+    // `page` / `pageSize` / `total`: `useThreadsQuery` (`src/hooks/messaging/
+    // queries.ts`) `res.data?.threads || res.data?.data || res.data || []` ile
+    // YALNIZ `.threads`'i okuyor — `orders`/`trades`/`products` ile AYNI
+    // "sayfalama üstverisi hiç okunmuyor" sınıfı.
+    'page',
+    'pageSize',
+    'total',
+    // `lastMessage.senderName` / `receiverName`: `Message` tipi (`messagesStore.ts`)
+    // yalnız `senderId`/`receiverId` taşıyor, gösterim adı zaten
+    // `participant1`/`participant2`'den (`getOtherParticipant`) geliyor —
+    // denormalize edilmiş isim ikinci kez okunmuyor.
+    'threads.lastMessage.receiverName',
+    'threads.lastMessage.senderName',
+    //
+    // ── BOŞLUK — Plan B (guard'ın YAKALAMADIĞI, review'la BULUNAN gerçek bir
+    // normalize kusuru) ─────────────────────────────────────────────────────
+    // `threads.productTitle` / `threads.productImage`: sunucu HER thread'de bu
+    // ikisini düz alan olarak döndürüyor (staging'de ölçüldü — İKİ thread'in
+    // de `productTitle`/`productImage`'ı dolu). `ThreadRow.tsx` ürün bağlamını
+    // `thread.product` (İÇ İÇE nesne, `{ id, title, images }`) üzerinden
+    // gösteriyor — `thread.product` yoksa "Genel mesaj" düşer. Ama
+    // `normalizeThread` (`src/lib/messaging/normalize.ts`) `participant1`/
+    // `participant2`'yi düz alanlardan NESNEYE çeviriyor, `productTitle`/
+    // `productImage`'ı ASLA `product`'a eşlemiyor (fonksiyonun tamamı okundu —
+    // yalnız katılımcı normalize var). Sonuç: `thread.product` GERÇEK API
+    // verisiyle HER ZAMAN `undefined` — ürünle başlanan her sohbette de mesaj
+    // listesi ekranı "Genel mesaj" rozetini gösteriyor, ürün adı/görseli hiçbir
+    // zaman görünmüyor. `rejectionReason`'la AYNI sınıf, bu kez alan adları
+    // arasındaki uyumsuzluk (`productTitle` vs `product.title`) yüzünden.
+    // Ciddiyeti yüzünden Plan B'ye ayrıca vurgulanmalı.
+    'threads.productTitle',
+    'threads.productImage',
+    //
+    // `threads.lastMessageAt`: thread'in kendi "son aktivite" zaman damgası —
+    // `ThreadRow.tsx` bunun yerine `thread.lastMessage.createdAt` (yoksa
+    // `thread.createdAt`) kullanıyor. Staging'de ölçülen örnekte ikisi FARKLI
+    // (`lastMessage.createdAt`: 06:21, `lastMessageAt`: 07:21) — hangisinin
+    // "doğru" son aktivite olduğu backend'in bilgisi, ama mobil ayrı bir alanı
+    // hiç okumuyor. Küçük bir hassasiyet farkı (sıralama/"az önce" metni
+    // birkaç dakika kayabilir), `productTitle` kadar ciddi değil — yine de not
+    // düşülüyor.
+    'threads.lastMessageAt',
+  ]),
 };
 
 describe('fieldPaths', () => {
@@ -409,6 +649,52 @@ describe('trades sözleşmesi', () => {
     const fixture = readFixture('trades');
     const src = readTypes(TRADES_TYPE_SOURCES);
     const missing = undeclaredFields(fixture, src, KNOWN_UNDECLARED.trades);
+    expect(missing).toEqual([]);
+  });
+});
+
+describe('products sözleşmesi', () => {
+  it('ölçülen `mine` (GET /products/my) gövdesindeki her alan tipte bildirilmiş ya da listede', () => {
+    // Yalnız `mine` — `list` (GET /products) KASITLI OLARAK dışarıda. Gövdesi
+    // `app/product/[id]/_lib/types.ts`'teki `Product`/`ProductSeller` index
+    // signature'ı yüzünden bu guard'la ÖLÇÜLEMEZ (bkz. `PRODUCTS_TYPE_SOURCES`
+    // yorumu): guard yalnız isim ARAR, tipin index signature mi yoksa açık alan
+    // mı olduğunu bilmez, ama `list` üzerinde denendiğinde 55 "bildirilmemiş"
+    // alan çıkıyor — bunun neredeyse tamamı gerçek bulgu değil, guard'ın bu
+    // şekli hiç ÖLÇEMEDİĞİNİN göstergesi (yüzlerce satırı elle sınıflandırmak
+    // brief'in "yapma" dediği şey). `products/my`'nin `Listing` tipi EXPLICIT
+    // olduğu için (ve tarihsel `rejectionReason` kaçırması oradan çıktığı için)
+    // guard'ın değerli olduğu yarısı bu.
+    const fixture = readFixture('products');
+    const src = readTypes(PRODUCTS_TYPE_SOURCES);
+    const missing = undeclaredFields(fixture.mine, src, KNOWN_UNDECLARED.products);
+    expect(missing).toEqual([]);
+  });
+});
+
+describe('membership sözleşmesi', () => {
+  it('ölçülen gövdedeki (tiers+me+limits) her alan tipte bildirilmiş ya da listede', () => {
+    const fixture = readFixture('membership');
+    const src = readTypes(MEMBERSHIP_TYPE_SOURCES);
+    const missing = undeclaredFields(fixture, src, KNOWN_UNDECLARED.membership);
+    expect(missing).toEqual([]);
+  });
+});
+
+describe('user sözleşmesi', () => {
+  it('ölçülen gövdedeki (me+addresses) her alan tipte bildirilmiş ya da listede', () => {
+    const fixture = readFixture('user');
+    const src = readTypes(USER_TYPE_SOURCES);
+    const missing = undeclaredFields(fixture, src, KNOWN_UNDECLARED.user);
+    expect(missing).toEqual([]);
+  });
+});
+
+describe('messaging sözleşmesi', () => {
+  it('ölçülen thread listesi gövdesindeki her alan tipte bildirilmiş ya da listede', () => {
+    const fixture = readFixture('messaging');
+    const src = readTypes(MESSAGING_TYPE_SOURCES);
+    const missing = undeclaredFields(fixture.threads, src, KNOWN_UNDECLARED.messaging);
     expect(missing).toEqual([]);
   });
 });

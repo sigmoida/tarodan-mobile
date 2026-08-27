@@ -34,6 +34,31 @@ Aynı desen `checkout` ve `trades` için de var (Task 2): `CHECKOUT_TYPE_SOURCES
 + `app/trade/counter/[id]/_lib/types.ts` + `app/trade/new/_lib/types.ts`. Aynı
 uyarı geçerli — listeler İNSAN sorumluluğu.
 
+Task 3 dört alan daha ekledi, ikisinde brief'in öngördüğü kaynak listesi
+ölçümle DEĞİŞTİ:
+
+- `PRODUCTS_TYPE_SOURCES` = `app/settings/my-listings/_lib/types.ts` +
+  `app/product/[id]/_lib/types.ts` + `src/components/listing/_lib/types.ts`
+  (ÜÇÜNCÜSÜ brief'te YOKTU — `GET /products/my/:id` düzenleme ucunun tipi,
+  39 alanı 11'e düşürdü). Yalnız `mine` (`GET /products/my`) fixture'ı
+  taranıyor: `list` (`GET /products`) `app/product/[id]/_lib/types.ts`'teki
+  `Product`/`ProductSeller` index signature'ı yüzünden bu guard'la ÖLÇÜLEMEZ —
+  ayrıntı `contractCoverage.test.ts`'teki `PRODUCTS_TYPE_SOURCES` yorumunda.
+- `MEMBERSHIP_TYPE_SOURCES` = `app/membership/manage/_lib/types.ts` +
+  `app/membership/_lib/membershipTiers.ts` + `src/lib/api/membership.ts` +
+  `src/hooks/useMembershipLimits.ts` (SONUNCUSU brief'te YOKTU — `GET
+  /membership/me/limits`'in tam alan listesini JSDoc'ta belgeliyor, 19 alanı
+  4'e düşürdü).
+- `USER_TYPE_SOURCES` = `src/types/user.ts` + `src/stores/authStore.ts` +
+  `app/settings/addresses/_lib/types.ts` (brief'in önerdiği gibi).
+- `MESSAGING_TYPE_SOURCES` = `src/lib/api/messaging.ts` +
+  `src/stores/messagesStore.ts` + `src/lib/messaging/normalize.ts`. Brief
+  `app/messages/` altına bakmayı öneriyordu — orada tip YOK; gerçek tip
+  `messagesStore.ts`'te, ham alan adlarının GERÇEK bildirim yeri ise
+  `normalize.ts` (API düz `participant1Id`/`participant1Name`/… döndürüyor,
+  `MessageThread` tipi iç içe `participant1` nesnesi bekliyor —
+  `normalizeThread` ikisi arasındaki köprü).
+
 Sebep: parite denetimleri iki kez üst üste sunucunun İÇ İÇE ve DTO'suz
 alanlarını kaçırdı (`pricing.summary.quantityDiscount`, `rejectionReason`).
 `dto/**` diffi bunları göstermiyor çünkü gövde serviste kuruluyor. Ölçülmüş
