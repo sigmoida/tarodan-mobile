@@ -60,6 +60,17 @@ const ORDERS_TYPE_SOURCES = [
   'app/orders/_lib/ordersStatus.ts',
 ];
 
+/** `checkout` fixture'ının (`POST /orders/quote`) gövdesini deklare eden dosyalar. */
+const CHECKOUT_TYPE_SOURCES = ['src/lib/api/orders.ts', 'app/checkout/_lib/types.ts'];
+
+/** `trades` fixture'ının gövdesini deklare eden tüm dosyalar (axios yüzeyi + rota-yerel tipler). */
+const TRADES_TYPE_SOURCES = [
+  'src/lib/api/trades.ts',
+  'app/trade/[id]/_lib/types.ts',
+  'app/trade/counter/[id]/_lib/types.ts',
+  'app/trade/new/_lib/types.ts',
+];
+
 /**
  * Yanıtta olup tipte OLMAYAN, ama bilinçli olarak okunmayan alanlar.
  *
@@ -234,6 +245,94 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     'list.meta.total',
     'list.meta.totalPages',
   ]),
+  checkout: new Set<string>([
+    // ── BOŞLUK — Plan B ──────────────────────────────────────────────────
+    // `pricing.summary.feeDiscountTotal` (bedel kampanyalarının TOPLAMI) tipte
+    // var ve `useCheckout.ts`/`OrderSummary.tsx` onu basıyor. Ama kökte AYRICA
+    // bu toplamın alıcı/satıcı KIRILIMI dönüyor (`buyerFeeDiscountTotal` +
+    // `sellerFeeDiscountTotal` = `feeDiscountTotal`) — bu ikisi `orders.ts`'te
+    // HİÇ bildirilmemiş (kökteki diğer tüm `pricing.*` eşdeğerleri —
+    // `itemsSubtotal`, `shippingAmount`, `buyerFeeAmount`, … — zaten `OrderQuoteResponse`'ta
+    // var, yalnız bu iki alan atlanmış). Bu tam olarak bu denetimin doğduğu sınıf
+    // (kampanya indirimi kırılımı) olduğu için "mobil kullanmamalı" DEĞİL,
+    // gerçek bir boşluk olarak işaretliyorum — bugün her iki değer de `0`
+    // (aktif kampanya yok), ne zaman okunacağı Plan B'nin kararı.
+    'quoteSingle.buyerFeeDiscountTotal',
+    'quoteSingle.sellerFeeDiscountTotal',
+    'quoteMulti.buyerFeeDiscountTotal',
+    'quoteMulti.sellerFeeDiscountTotal',
+  ]),
+  trades: new Set<string>([
+    // ── Mobil bu alanları hiç kullanmıyor ve kullanmamalı ───────────────────
+    // Cash-satırı alanları (`tradeFeeAmount` vb.) `TradeCashPayment`'ta
+    // (`app/trade/[id]/_lib/types.ts`, `TRADES_TYPE_SOURCES`'ta) ZATEN
+    // bildirilmiş olduğu için bu listede yok — brief'in öngördüğü yanlış
+    // pozitif çıkmadı, kontrol edildi.
+    //
+    // `page`/`pageSize`: istek parametresi olarak GÖNDERİLİYOR
+    // (`app/trades.tsx`: `pageSize: '100'`) ama yanıttaki yankısı hiç
+    // okunmuyor — `orders`'daki `meta.limit`/`page` ile AYNI sınıf
+    // (istek parametresiyle yanıt alanının karıştırılmaması gerektiği ders).
+    'list.page',
+    'list.pageSize',
+    // `updatedAt`: ekran durum geçişlerini kendi zaman damgalarından
+    // (`acceptedAt`/`cancelledAt`/`completedAt`/`firstWarehouseArrivalAt`, …)
+    // türetiyor; genel `updatedAt`'e hiç bakılmıyor.
+    'list.trades.updatedAt',
+    'detail.updatedAt',
+    // `initiatorShipment`/`receiverShipment` (kökte, tekil KOLAYLIK nesneleri):
+    // `app/trade/[id]/_lib/derive.ts` yalnız `trade.shipments[]` dizisini
+    // `direction`/`senderUserId`/`recipientUserId` ile süzüyor
+    // (`myToWarehouseShipment` vb.); bu iki kök alan `grep`le doğrulandı, HİÇBİR
+    // ekranda okunmuyor — `shipments[]` zaten aynı bilgiyi taşıyor.
+    'list.trades.initiatorShipment.confirmedAt',
+    'list.trades.initiatorShipment.deliveredAt',
+    'list.trades.initiatorShipment.shippedAt',
+    'list.trades.initiatorShipment.shipperId',
+    'list.trades.initiatorShipment.shipperName',
+    'list.trades.receiverShipment.confirmedAt',
+    'list.trades.receiverShipment.deliveredAt',
+    'list.trades.receiverShipment.shippedAt',
+    'list.trades.receiverShipment.shipperId',
+    'list.trades.receiverShipment.shipperName',
+    'detail.initiatorShipment.confirmedAt',
+    'detail.initiatorShipment.deliveredAt',
+    'detail.initiatorShipment.shippedAt',
+    'detail.initiatorShipment.shipperId',
+    'detail.initiatorShipment.shipperName',
+    'detail.receiverShipment.confirmedAt',
+    'detail.receiverShipment.deliveredAt',
+    'detail.receiverShipment.shippedAt',
+    'detail.receiverShipment.shipperId',
+    'detail.receiverShipment.shipperName',
+    // `shipments[].deliveredAt` / `shippedAt`: mobil kargo kartı yalnız
+    // `status` + `trackingNumber` + `carrier` basıyor (`TradeShippingSection.tsx`,
+    // `ShipmentStatusChip`), zaman damgası hiç gösterilmiyor.
+    'list.trades.shipments.deliveredAt',
+    'list.trades.shipments.shippedAt',
+    'detail.shipments.deliveredAt',
+    'detail.shipments.shippedAt',
+    //
+    // ── BOŞLUK — Plan B ──────────────────────────────────────────────────
+    // `dispute.raisedById` / `resolution` / `resolvedAt`: mobil "itiraz aç"
+    // YAZMA akışını sunuyor (`useTradeActions.ts` → `DisputeTradeModal`) ama
+    // açılmış bir itirazın SONUCUNU hiçbir yerde okumuyor/göstermiyor — bir
+    // takas `disputed` olduktan sonra kullanıcı çözümü öğrenemiyor. Yazma var,
+    // okuma yok.
+    'list.trades.dispute.raisedById',
+    'list.trades.dispute.resolution',
+    'list.trades.dispute.resolvedAt',
+    // `shipments[].cargoCode`: `src/lib/api/orders.ts`'teki AYNI ikili-numara
+    // deseni burada da var — `trackingNumber` Tarodan İÇ referansı
+    // (`TKS-…-WH-INI`), `cargoCode` GERÇEK Sürat kodudur (staging'de ölçüldü:
+    // `"12516210181141"`). Ama `TradeShippingSection.tsx`'teki `openSuratTrack`
+    // `buildTrackingUrl('surat', code)`'u `trackingNumber` İLE çağırıyor —
+    // `cargoCode` DEĞİL. Sürat'ın takip sistemi muhtemelen gerçek taşıyıcı
+    // kodunu bekler; bu potansiyel olarak BOZUK bir takip linki. Ciddiyeti
+    // yüzünden Plan B'ye özellikle vurgulanmalı.
+    'list.trades.initiatorShipment.cargoCode',
+    'list.trades.shipments.cargoCode',
+  ]),
 };
 
 describe('fieldPaths', () => {
@@ -292,6 +391,24 @@ describe('orders sözleşmesi', () => {
     const missing = undeclaredFields(fixture, src, KNOWN_UNDECLARED.orders);
     // Düşerse: alanı tipe ekle (Plan B task'ı) ya da neden okunmadığını yazıp
     // KNOWN_UNDECLARED'a al. Listeyi gerekçesiz büyütme.
+    expect(missing).toEqual([]);
+  });
+});
+
+describe('checkout sözleşmesi', () => {
+  it('ölçülen quote gövdesindeki her alan tipte bildirilmiş ya da listede', () => {
+    const fixture = readFixture('checkout');
+    const src = readTypes(CHECKOUT_TYPE_SOURCES);
+    const missing = undeclaredFields(fixture, src, KNOWN_UNDECLARED.checkout);
+    expect(missing).toEqual([]);
+  });
+});
+
+describe('trades sözleşmesi', () => {
+  it('ölçülen gövdedeki her alan tipte bildirilmiş ya da listede', () => {
+    const fixture = readFixture('trades');
+    const src = readTypes(TRADES_TYPE_SOURCES);
+    const missing = undeclaredFields(fixture, src, KNOWN_UNDECLARED.trades);
     expect(missing).toEqual([]);
   });
 });

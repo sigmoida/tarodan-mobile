@@ -28,6 +28,12 @@ SESSİZ kalır — uyarmaz (fix round 2'de `ordersStatus.ts` tam da böyle eksik
 kalmıştı; bugün fark etmedi çünkü içerdiği alan adları zaten başka bir
 kaynakta vardı, ama tesadüfti).
 
+Aynı desen `checkout` ve `trades` için de var (Task 2): `CHECKOUT_TYPE_SOURCES`
+= `src/lib/api/orders.ts` (quote tipleri orada yaşıyor) + `app/checkout/_lib/types.ts`;
+`TRADES_TYPE_SOURCES` = `src/lib/api/trades.ts` + `app/trade/[id]/_lib/types.ts`
++ `app/trade/counter/[id]/_lib/types.ts` + `app/trade/new/_lib/types.ts`. Aynı
+uyarı geçerli — listeler İNSAN sorumluluğu.
+
 Sebep: parite denetimleri iki kez üst üste sunucunun İÇ İÇE ve DTO'suz
 alanlarını kaçırdı (`pricing.summary.quantityDiscount`, `rejectionReason`).
 `dto/**` diffi bunları göstermiyor çünkü gövde serviste kuruluyor. Ölçülmüş

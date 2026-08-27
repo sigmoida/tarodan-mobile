@@ -1,0 +1,142 @@
+{
+  "_meta": {
+    "capturedAt": "2026-08-27",
+    "account": "ahmet@demo.com",
+    "endpoints": [
+      "POST /orders/quote (qty 1)",
+      "POST /orders/quote (qty 3)"
+    ]
+  },
+  "quoteSingle": {
+    "itemsSubtotal": 424.15,
+    "shippingAmount": 50,
+    "buyerFeeAmount": 38.18,
+    "sellerFeeAmount": 46.66,
+    "commissionAmount": 84.84,
+    "taxAmount": 0,
+    "couponDiscount": 0,
+    "quantityDiscount": 0,
+    "feeDiscounts": [],
+    "buyerFeeDiscountTotal": 0,
+    "sellerFeeDiscountTotal": 0,
+    "totalAmount": 529.96,
+    "sellerNetAmount": 377.49,
+    "items": [
+      {
+        "productId": "dd2c4ce6-6b49-45bc-bcfe-8536d1e775b4",
+        "sellerId": "a1f0d756-45a7-421a-9d8c-f179090f5d6d",
+        "quantity": 1,
+        "unitPrice": 424.15,
+        "subtotal": 424.15,
+        "buyerFeeAmount": 38.18,
+        "sellerFeeAmount": 46.66,
+        "sellerNetAmount": 377.49,
+        "taxAmount": 0,
+        "title": "Maisto 1963 Corvette Stingray 1:24"
+      }
+    ],
+    "unavailableItems": [],
+    "shippingBySeller": [
+      {
+        "sellerId": "a1f0d756-45a7-421a-9d8c-f179090f5d6d",
+        "shippingCost": 50,
+        "sellerShippingCost": 50,
+        "billableDesi": 2,
+        "packageTier": "small"
+      }
+    ],
+    "shippingTariffVersion": 1,
+    "commissionRuleSetId": "8d9fe2c4-a82e-4fc2-8b6d-5a4d1e9f1001",
+    "commissionRuleSetVersion": 1,
+    "pricingHash": "c220a08d25da6b34",
+    "pricing": {
+      "subtotal": 424.15,
+      "shippingAmount": 50,
+      "buyerFeeAmount": 38.18,
+      "buyerFeeRate": 9,
+      "sellerFeeAmount": 46.66,
+      "commissionAmount": 84.84,
+      "taxAmount": 0,
+      "buyerServiceTaxAmount": 17.63,
+      "sellerServiceTaxAmount": 19.33,
+      "serviceVatRate": 20,
+      "totalAmount": 529.96,
+      "sellerNetAmount": 377.49,
+      "summary": {
+        "feeDiscounts": [],
+        "feeDiscountTotal": 0,
+        "quantityDiscount": 0,
+        "productAmount": 424.15,
+        "shippingAmount": 50,
+        "serviceFeeAmount": 55.81,
+        "total": 529.96
+      }
+    }
+  },
+  "quoteMulti": {
+    "itemsSubtotal": 1272.4499999999998,
+    "shippingAmount": 80,
+    "buyerFeeAmount": 114.52,
+    "sellerFeeAmount": 139.97,
+    "commissionAmount": 254.49,
+    "taxAmount": 0,
+    "couponDiscount": 0,
+    "quantityDiscount": 0,
+    "feeDiscounts": [],
+    "buyerFeeDiscountTotal": 0,
+    "sellerFeeDiscountTotal": 0,
+    "totalAmount": 1505.87,
+    "sellerNetAmount": 1132.4799999999998,
+    "items": [
+      {
+        "productId": "dd2c4ce6-6b49-45bc-bcfe-8536d1e775b4",
+        "sellerId": "a1f0d756-45a7-421a-9d8c-f179090f5d6d",
+        "quantity": 3,
+        "unitPrice": 424.15,
+        "subtotal": 1272.4499999999998,
+        "buyerFeeAmount": 114.52,
+        "sellerFeeAmount": 139.97,
+        "sellerNetAmount": 1132.4799999999998,
+        "taxAmount": 0,
+        "title": "Maisto 1963 Corvette Stingray 1:24"
+      }
+    ],
+    "unavailableItems": [],
+    "shippingBySeller": [
+      {
+        "sellerId": "a1f0d756-45a7-421a-9d8c-f179090f5d6d",
+        "shippingCost": 80,
+        "sellerShippingCost": 80,
+        "billableDesi": 6,
+        "packageTier": "large"
+      }
+    ],
+    "shippingTariffVersion": 1,
+    "commissionRuleSetId": "8d9fe2c4-a82e-4fc2-8b6d-5a4d1e9f1001",
+    "commissionRuleSetVersion": 1,
+    "pricingHash": "972996526c8ba903",
+    "pricing": {
+      "subtotal": 1272.4499999999998,
+      "shippingAmount": 80,
+      "buyerFeeAmount": 114.52,
+      "buyerFeeRate": 9,
+      "sellerFeeAmount": 139.97,
+      "commissionAmount": 254.49,
+      "taxAmount": 0,
+      "buyerServiceTaxAmount": 38.9,
+      "sellerServiceTaxAmount": 43.99,
+      "serviceVatRate": 20,
+      "totalAmount": 1505.87,
+      "sellerNetAmount": 1132.4799999999998,
+      "summary": {
+        "feeDiscounts": [],
+        "feeDiscountTotal": 0,
+        "quantityDiscount": 0,
+        "productAmount": 1272.45,
+        "shippingAmount": 80,
+        "serviceFeeAmount": 153.42,
+        "total": 1505.87
+      }
+    }
+  }
+}
