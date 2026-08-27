@@ -20,6 +20,17 @@ const carrierLabel = (s: TradeShipment) =>
   (s.carrier === 'surat' ? 'Sürat Kargo' : s.carrier || '—') +
   (s.trackingNumber ? ` · ${s.trackingNumber}` : '');
 
+/**
+ * Gönderi → takip görünümü. `TradeShipment.carrier` field'ını
+ * `deriveShipmentView`'ün beklediği `provider`'a eşler ve `cargoCode`'u
+ * fallback olarak verir — üç kart (depoya-giriş/alıcıya-çıkış/iade) bu
+ * eşlemeyi paylaşır (CLAUDE.md §5: tekrar eden blok çıkarılır).
+ */
+function shipmentTrackingView(s: TradeShipment | null | undefined) {
+  if (!s) return deriveShipmentView(null);
+  return deriveShipmentView({ ...s, provider: s.provider ?? s.carrier }, s.cargoCode);
+}
+
 function CopyBtn({ code, onCopy }: { code?: string | null; onCopy: (c?: string | null) => void }) {
   if (!code) return null;
   return (
@@ -56,29 +67,17 @@ export function TradeShippingSection({
 
   // Gerçek taşıyıcı kodu HEP `deriveShipmentView` üzerinden — iç referans
   // (`TKS-…`) hiçbir zaman `openSuratTrack`'e verilmez (§ kargo takibi).
-  // Legacy alan yalnız iç referansı taşır; gerçek kod hiç gelmez, o yüzden
-  // buton her zaman gizli kalır — bu, bozuk linki göstermekten iyidir.
+  // Legacy alan yalnız iç referansı taşır; gerçek kod API'de hiç bulunmuyor
+  // (v2 yanıtında initiatorTrackingNumber/receiverTrackingNumber alanı yok),
+  // o yüzden bu görünüm HER ZAMAN isCodePending=true döner. Diğer üç karttan
+  // FARKLI olarak burada "kod hazırlanıyor" metni de basılmaz — bu dal asla
+  // ilerlemeyecek bir "yakında gelecek" sözü vermiş olurdu (bkz. JSX'teki not).
   const legacyView = deriveShipmentView(
     theirTrackingNumber ? { provider: 'surat', trackingNumber: theirTrackingNumber } : null,
   );
-  const toWarehouseView = deriveShipmentView(
-    myToWarehouseShipment
-      ? { ...myToWarehouseShipment, provider: myToWarehouseShipment.provider ?? myToWarehouseShipment.carrier }
-      : null,
-    myToWarehouseShipment?.cargoCode,
-  );
-  const fromWarehouseView = deriveShipmentView(
-    myFromWarehouseShipment
-      ? { ...myFromWarehouseShipment, provider: myFromWarehouseShipment.provider ?? myFromWarehouseShipment.carrier }
-      : null,
-    myFromWarehouseShipment?.cargoCode,
-  );
-  const returnView = deriveShipmentView(
-    myReturnShipment
-      ? { ...myReturnShipment, provider: myReturnShipment.provider ?? myReturnShipment.carrier }
-      : null,
-    myReturnShipment?.cargoCode,
-  );
+  const toWarehouseView = shipmentTrackingView(myToWarehouseShipment);
+  const fromWarehouseView = shipmentTrackingView(myFromWarehouseShipment);
+  const returnView = shipmentTrackingView(myReturnShipment);
 
   return (
     <>
@@ -113,9 +112,10 @@ export function TradeShippingSection({
               onPress={() => openSuratTrack(legacyView.cargoCode!)}
               style={styles.trackButton}
             />
-          ) : legacyView.isCodePending ? (
-            <Text variant="caption" tone="muted">{t('shipping.codePending')}</Text>
-          ) : null}
+          ) : null /* legacy alanda gerçek kod HİÇ gelmez (bkz. yukarıdaki not) —
+                       diğer üç karttan farklı olarak burada "kod hazırlanıyor"
+                       yazmıyoruz, çünkü asla hazır olmayacak bir şeyi "hazırlanıyor"
+                       demek yanıltıcı olurdu. Bu ayrımı "tutarlılık" adına kaldırmayın. */}
         </Card>
       )}
 
