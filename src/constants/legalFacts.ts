@@ -11,10 +11,31 @@
  * Doğrulanmış kaynaklar:
  * - İade talep penceresi 14 gün → backend COOLING_OFF_DAYS (apps/api refund.service.ts).
  * - Komisyon DB-driven (CommissionRule), %5'ten başlar; sabit %3/%2 tier yoktur.
- * - Genel destek e-postası web ile birebir aynı: destek@tarodan.com.
+ * - Genel destek e-postası web ile birebir aynı: destek@tarodan.com.tr.
  * - Gerçek bir destek telefonu henüz tanımlı değildir; tüm sayfalarda tutarlı
  *   placeholder gösterilir, gerçek numara gelince yalnızca burası güncellenir.
  */
+
+/**
+ * Hukuki künye — ana repodaki TEK KAYNAĞIN kopyası:
+ * `apps/web/src/lib/legal/platform-entity.ts` (origin/development).
+ *
+ * Değerler burada DÜZENLENMEZ. Tüzel kişi bilgisi değişirse önce orada
+ * değişir, sonra buraya kopyalanır — iki yerde bağımsız düzenlenen bir künye
+ * tam olarak bu kusuru doğurdu.
+ */
+export const LEGAL_ENTITY = {
+  brand: 'TARODAN',
+  legalName:
+    'Serhatlar Oyuncak Temizlik Gıda Maddeleri İnşaat Sanayi ve Ticaret Limited Şirketi',
+  /** Sözleşme metnindeki haliyle: vergi/MERSİS numarası ve bağlı olunan yer. */
+  taxRegistration: '7620277268 – Torbalı / İZMİR',
+  address: 'Yenişehir Mah. 1145/2 No:3 Torbalı / İZMİR',
+  phone: '0 232 433 41 42',
+  email: 'destek@tarodan.com.tr',
+  kep: 'serhatlaroyuncak@hs03.kep.tr',
+  website: 'www.tarodan.com.tr',
+} as const;
 
 // — İade süreleri (gün) —
 
@@ -29,16 +50,20 @@ export const DAMAGE_REPORT_DAYS = 3;
 
 // — İletişim —
 
-/** Genel destek e-postası (web ile aynı). */
-export const SUPPORT_EMAIL = 'destek@tarodan.com';
+/** Genel destek e-postası (web ile birebir aynı, LEGAL_ENTITY.email ile eşleşir). */
+export const SUPPORT_EMAIL = 'destek@tarodan.com.tr';
 
-/** Amaca özel posta kutuları — ayrı adreslerdir, çelişki değildir. */
-export const COMPANY_INFO_EMAIL = 'info@tarodan.com';
-export const LEGAL_EMAIL = 'legal@tarodan.com';
-export const PRIVACY_EMAIL = 'privacy@tarodan.com';
-export const SELLER_SUPPORT_EMAIL = 'seller-support@tarodan.com';
-export const SECURITY_EMAIL = 'security@tarodan.com';
-export const IP_EMAIL = 'ip@tarodan.com';
+/**
+ * Amaca özel posta kutuları — ayrı adreslerdir, çelişki değildir. Gerçek alan
+ * adı `tarodan.com.tr`dir (`tarodan.com`'un MX kaydı yok); yerel kısımlar
+ * (info/legal/privacy/...) LEGAL_ENTITY'nin dışındadır, yalnız TLD düzeltildi.
+ */
+export const COMPANY_INFO_EMAIL = 'info@tarodan.com.tr';
+export const LEGAL_EMAIL = 'legal@tarodan.com.tr';
+export const PRIVACY_EMAIL = 'privacy@tarodan.com.tr';
+export const SELLER_SUPPORT_EMAIL = 'seller-support@tarodan.com.tr';
+export const SECURITY_EMAIL = 'security@tarodan.com.tr';
+export const IP_EMAIL = 'ip@tarodan.com.tr';
 
 /**
  * Destek telefonu / WhatsApp. Gerçek hat henüz yok; tüm sayfalarda TEK ve tutarlı

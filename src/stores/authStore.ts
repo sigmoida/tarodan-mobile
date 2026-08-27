@@ -17,6 +17,8 @@ export interface User {
   avatar?: string;
   avatarUrl?: string;
   bio?: string;
+  /** `YYYY-MM-DD`. Profil düzenleme formu bunu ön-doldurur. */
+  birthDate?: string;
 
   // Membership
   membershipTier: MembershipTier;
@@ -236,7 +238,7 @@ const extractMembershipTier = (apiUser: any): MembershipTier => {
 };
 
 // Default user values for mapping API response
-const mapApiUserToUser = (apiUser: any): User => {
+export const mapApiUserToUser = (apiUser: any): User => {
   const membershipTier = extractMembershipTier(apiUser);
 
   return {
@@ -247,6 +249,7 @@ const mapApiUserToUser = (apiUser: any): User => {
     avatar: apiUser.avatar || apiUser.avatarUrl || apiUser.avatar_url,
     avatarUrl: apiUser.avatarUrl || apiUser.avatar_url,
     bio: apiUser.bio,
+    birthDate: apiUser.birthDate ?? undefined,
 
     // Membership - properly extracted
     membershipTier,

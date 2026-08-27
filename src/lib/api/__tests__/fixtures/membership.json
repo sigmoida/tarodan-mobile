@@ -1,0 +1,109 @@
+{
+  "_meta": {
+    "capturedAt": "2026-08-27",
+    "account": "ahmet@demo.com",
+    "endpoints": [
+      "GET /membership/tiers",
+      "GET /membership/me",
+      "GET /membership/me/limits"
+    ]
+  },
+  "tiers": [
+    {
+      "id": "8e4b4b0b-3bfe-43ca-8c10-40564e62f681",
+      "type": "free",
+      "name": "Ücretsiz Üyelik",
+      "description": "Temel özelliklerle başlayın",
+      "monthlyPrice": 0,
+      "yearlyPrice": 0,
+      "maxFreeListings": 5,
+      "maxTotalListings": 10,
+      "maxImagesPerListing": 3,
+      "canCreateCollections": false,
+      "canTrade": false,
+      "isActive": true
+    },
+    {
+      "id": "44878775-336f-4d14-8eb3-9e31932b27ce",
+      "type": "basic",
+      "name": "Temel Üyelik",
+      "description": "Daha fazla ilan ve takas özelliği",
+      "monthlyPrice": 49.99,
+      "yearlyPrice": 479.99,
+      "maxFreeListings": 15,
+      "maxTotalListings": 50,
+      "maxImagesPerListing": 6,
+      "canCreateCollections": true,
+      "canTrade": true,
+      "isActive": true
+    },
+    {
+      "id": "f3c9ef84-17f2-45c6-88e5-3070d5fe5858",
+      "type": "premium",
+      "name": "Premium Üyelik",
+      "description": "Profesyonel koleksiyoncular için",
+      "monthlyPrice": 99.99,
+      "yearlyPrice": 959.99,
+      "maxFreeListings": 50,
+      "maxTotalListings": 200,
+      "maxImagesPerListing": 10,
+      "canCreateCollections": true,
+      "canTrade": true,
+      "isActive": true
+    },
+    {
+      "id": "b7c9986b-97d7-457d-ab0c-2b21bec7a30e",
+      "type": "business",
+      "name": "İş Üyeliği",
+      "description": "Kurumsal satıcılar için",
+      "monthlyPrice": 249.99,
+      "yearlyPrice": 2399.99,
+      "maxFreeListings": 200,
+      "maxTotalListings": 1000,
+      "maxImagesPerListing": 15,
+      "canCreateCollections": true,
+      "canTrade": true,
+      "isActive": true
+    }
+  ],
+  "me": {
+    "id": "ad48ed2a-b688-456b-a21e-94b19a999e17",
+    "userId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+    "tier": {
+      "id": "f3c9ef84-17f2-45c6-88e5-3070d5fe5858",
+      "type": "premium",
+      "name": "Premium Üyelik",
+      "description": "Profesyonel koleksiyoncular için",
+      "monthlyPrice": 99.99,
+      "yearlyPrice": 959.99,
+      "maxFreeListings": 50,
+      "maxTotalListings": 200,
+      "maxImagesPerListing": 10,
+      "canCreateCollections": true,
+      "canTrade": true,
+      "isActive": true
+    },
+    "status": "active",
+    "autoRenew": false,
+    "currentPeriodStart": "2026-08-05T07:21:16.063Z",
+    "currentPeriodEnd": "2027-08-05T00:00:00.000Z",
+    "createdAt": "2026-08-05T07:21:16.072Z",
+    "usedFreeListings": 2,
+    "usedTotalListings": 2,
+    "remainingFreeListings": 48,
+    "remainingTotalListings": 198
+  },
+  "limits": {
+    "canCreateListing": true,
+    "canUseFreeSlot": true,
+    "canTrade": true,
+    "canCreateCollection": true,
+    "maxImages": 10,
+    "maxFreeListings": 50,
+    "maxTotalListings": 200,
+    "remainingFreeListings": 48,
+    "remainingTotalListings": 198,
+    "tierName": "Premium Üyelik",
+    "tierType": "premium"
+  }
+}

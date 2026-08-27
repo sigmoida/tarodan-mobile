@@ -27,7 +27,7 @@ export function MyListingsModals({ f }: { f: MyListingsController }) {
                 <Text style={styles.menuItemText}>Görüntüle</Text>
               </Pressable>
             )}
-            {menu.status !== 'sold' && menu.status !== 'deleted' && (
+            {menu.status !== 'sold' && menu.status !== 'deleted' && menu.status !== 'suspended' && (
               <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('edit', menu)}>
                 <Ionicons name="pencil" size={20} color={colors.text.heading} />
                 <Text style={styles.menuItemText}>Düzenle</Text>

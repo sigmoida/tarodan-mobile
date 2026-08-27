@@ -43,5 +43,3 @@ export const getStatusLabel = (status: FilterType): string => {
 
 export const formatDate = (dateString: string): string =>
   new Date(dateString).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
-
-export const formatPrice = (price: number): string => `₺${price.toLocaleString('tr-TR')}`;

@@ -146,7 +146,10 @@ export function useSecurity() {
 
   // 2FA setup
   const [totpSecret, setTotpSecret] = useState("");
-  const [, setTotpQr] = useState("");
+  // Ölçüldü (staging, /security/2fa/enable): gövde `secret`, `qrCodeUrl`,
+  // `qrCodeImage`, `backupCodes` döndürüyor — `qrCode` diye bir alan yok.
+  // QR'ı çizecek olan base64 data URI `qrCodeImage`'ta.
+  const [totpQrImage, setTotpQrImage] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
 
   const handlePasswordChange = async () => {
@@ -191,7 +194,7 @@ export function useSecurity() {
       const payload =
         (response.data as any)?.data ?? (response.data as any) ?? {};
       setTotpSecret(payload.secret ?? "");
-      setTotpQr(payload.qrCode ?? "");
+      setTotpQrImage(payload.qrCodeImage ?? "");
       twoFaMsg.clear();
       setShowTwoFactorSetup(true);
     } catch (error: any) {
@@ -317,6 +320,7 @@ export function useSecurity() {
     setShowTwoFactorSetup,
     twoFaMsg,
     totpSecret,
+    totpQrImage,
     verificationCode,
     setVerificationCode,
     handleVerifyTwoFactor,

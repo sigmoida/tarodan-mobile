@@ -26,9 +26,10 @@ export interface MessageThread {
   };
   productId?: string;
   product?: {
-    id: string;
+    id?: string;
     title: string;
     images?: Array<{ url: string }>;
+    imageUrl?: string;
   };
   lastMessage?: {
     content: string;

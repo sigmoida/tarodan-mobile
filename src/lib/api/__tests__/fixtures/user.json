@@ -1,0 +1,77 @@
+{
+  "_meta": {
+    "capturedAt": "2026-08-27",
+    "account": "ahmet@demo.com",
+    "endpoints": [
+      "GET /users/me",
+      "GET /users/me/addresses"
+    ]
+  },
+  "me": {
+    "id": "52336236-4dcb-4d6a-9995-8788c11c188d",
+    "adminCode": "B010004",
+    "username": "ahmet34",
+    "usernameClaimedAt": "2026-08-14T18:41:56.421Z",
+    "email": "REDACTED",
+    "phone": "REDACTED",
+    "displayName": "REDACTED",
+    "avatarUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/avatars/52336236-4dcb-4d6a-9995-8788c11c188d/094bcb44-2e68-461f-970f-f11a07e97341.webp",
+    "bio": "Hot Wheels tutkunu, 15 yıllık koleksiyoncu",
+    "isVerified": true,
+    "isEmailVerified": true,
+    "isPhoneVerified": false,
+    "isSeller": true,
+    "showTrustScore": true,
+    "sellerType": "verified",
+    "taxId": null,
+    "companyName": null,
+    "businessStatus": null,
+    "companyType": null,
+    "taxOffice": null,
+    "companyCity": null,
+    "companyDistrict": null,
+    "createdAt": "2026-08-05T07:21:15.969Z",
+    "updatedAt": "2026-08-27T13:05:09.147Z",
+    "birthDate": null,
+    "bannedAt": null,
+    "isBanned": false,
+    "acceptsMarketingEmails": false,
+    "preferredLanguage": "tr",
+    "homeTourVersion": 1,
+    "listingTourVersion": 1,
+    "notificationSettings": null,
+    "lastActivityAt": "2026-08-27T13:05:09.144Z",
+    "lastLoginAt": "2026-08-27T13:05:09.144Z",
+    "deletedAt": null,
+    "storeViewCount": 0,
+    "addresses": [],
+    "membership": {
+      "id": "ad48ed2a-b688-456b-a21e-94b19a999e17",
+      "status": "active",
+      "currentPeriodStart": "2026-08-05T07:21:16.063Z",
+      "currentPeriodEnd": "2027-08-05T00:00:00.000Z",
+      "tier": {
+        "id": "f3c9ef84-17f2-45c6-88e5-3070d5fe5858",
+        "type": "premium",
+        "name": "Premium Üyelik",
+        "maxFreeListings": 50,
+        "maxTotalListings": 200,
+        "maxImagesPerListing": 10,
+        "canCreateCollections": true,
+        "canTrade": true
+      }
+    },
+    "listingCount": 5,
+    "isPremium": true,
+    "trustScore": 13,
+    "trustLevel": "Gelişmekte",
+    "stats": {
+      "totalListings": 5,
+      "totalSales": 5,
+      "totalTrades": 1,
+      "averageRating": 0,
+      "totalRatings": 0
+    }
+  },
+  "addresses": []
+}

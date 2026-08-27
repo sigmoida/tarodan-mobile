@@ -1,0 +1,98 @@
+# Sözleşme fixture'ları
+
+Staging'den ÖLÇÜLMÜŞ ham yanıt gövdeleri. Elle yazılmazlar — `_meta.capturedAt`
+ve `_meta.endpoints` neyin, ne zaman, hangi uçtan alındığını söyler.
+
+## Ne işe yarıyorlar
+
+`contractCoverage.test.ts` her fixture'ın alan adlarını, o fixture için AD
+VERİLMİŞ tip dosyalarına karşı tarıyor — TEK bir dosyaya değil, ama "BÜTÜN
+tip kaynakları" da değil. `orders` için bu dosyalar testteki
+`ORDERS_TYPE_SOURCES`'ta SAYILI olarak duruyor: `src/lib/api/orders.ts`
+(axios yüzeyi) + `app/orders/[id]/_lib/types.ts` (`OrderDetail`) +
+`app/orders/group/[id]/_lib/types.ts` (`GroupOrder`) +
+`app/orders/_lib/ordersStatus.ts` (`Order`/`OrderGroup`). Sebep:
+`src/lib/api/<domain>.ts` genelde yalnız axios çağrılarını taşıyor, gövdenin
+GERÇEK tipi çoğu zaman rota-yerel bir `_lib/types.ts`'te yaşıyor — yalnız
+domain dosyasını okumak guard'ın yanlış yere bakmasına, zaten bildirilmiş
+alanları "eksik" diye listelemesine yol açtı (fix round 1). AD VERİLMİŞ
+kaynakların hiçbirinde geçmeyen alan ya `KNOWN_UNDECLARED` listesinde
+gerekçesiyle duruyor ya da test düşüyor.
+
+⚠️ `ORDERS_TYPE_SOURCES` gövdeyi deklare eden dosyaların BİLİNEN listesidir,
+KANITLANMIŞ TAM listesi değil — hiçbir mekanizma bu listenin eksiksiz
+olduğunu doğrulamıyor. Listeyi güncel tutmak İNSAN sorumluluğu: yeni bir
+rota-yerel tip dosyası eklenirse (ya da bir alan yalnız yeni bir dosyada
+bildirilirse) `ORDERS_TYPE_SOURCES`'a elle eklenmesi gerekir, unutulursa test
+SESSİZ kalır — uyarmaz (fix round 2'de `ordersStatus.ts` tam da böyle eksik
+kalmıştı; bugün fark etmedi çünkü içerdiği alan adları zaten başka bir
+kaynakta vardı, ama tesadüfti).
+
+Aynı desen `checkout` ve `trades` için de var (Task 2): `CHECKOUT_TYPE_SOURCES`
+= `src/lib/api/orders.ts` (quote tipleri orada yaşıyor) + `app/checkout/_lib/types.ts`;
+`TRADES_TYPE_SOURCES` = `src/lib/api/trades.ts` + `app/trade/[id]/_lib/types.ts`
++ `app/trade/counter/[id]/_lib/types.ts` + `app/trade/new/_lib/types.ts`. Aynı
+uyarı geçerli — listeler İNSAN sorumluluğu.
+
+Task 3 dört alan daha ekledi, ikisinde brief'in öngördüğü kaynak listesi
+ölçümle DEĞİŞTİ:
+
+- `PRODUCTS_TYPE_SOURCES` = `app/settings/my-listings/_lib/types.ts` +
+  `app/product/[id]/_lib/types.ts` + `src/components/listing/_lib/types.ts`
+  (ÜÇÜNCÜSÜ brief'te YOKTU — `GET /products/my/:id` düzenleme ucunun tipi,
+  39 alanı 11'e düşürdü). Yalnız `mine` (`GET /products/my`) fixture'ı
+  taranıyor: `list` (`GET /products`) `app/product/[id]/_lib/types.ts`'teki
+  `Product`/`ProductSeller` index signature'ı yüzünden bu guard'la ÖLÇÜLEMEZ —
+  ayrıntı `contractCoverage.test.ts`'teki `PRODUCTS_TYPE_SOURCES` yorumunda.
+- `MEMBERSHIP_TYPE_SOURCES` = `app/membership/manage/_lib/types.ts` +
+  `app/membership/_lib/membershipTiers.ts` + `src/lib/api/membership.ts` +
+  `src/hooks/useMembershipLimits.ts` (SONUNCUSU brief'te YOKTU — `GET
+  /membership/me/limits`'in tam alan listesini JSDoc'ta belgeliyor, 19 alanı
+  4'e düşürdü).
+- `USER_TYPE_SOURCES` = `src/types/user.ts` + `src/stores/authStore.ts` +
+  `app/settings/addresses/_lib/types.ts` (brief'in önerdiği gibi).
+- `MESSAGING_TYPE_SOURCES` = `src/lib/api/messaging.ts` +
+  `src/stores/messagesStore.ts` + `src/lib/messaging/normalize.ts`. Brief
+  `app/messages/` altına bakmayı öneriyordu — orada tip YOK; gerçek tip
+  `messagesStore.ts`'te, ham alan adlarının GERÇEK bildirim yeri ise
+  `normalize.ts` (API düz `participant1Id`/`participant1Name`/… döndürüyor,
+  `MessageThread` tipi iç içe `participant1` nesnesi bekliyor —
+  `normalizeThread` ikisi arasındaki köprü).
+
+Sebep: parite denetimleri iki kez üst üste sunucunun İÇ İÇE ve DTO'suz
+alanlarını kaçırdı (`pricing.summary.quantityDiscount`, `rejectionReason`).
+`dto/**` diffi bunları göstermiyor çünkü gövde serviste kuruluyor. Ölçülmüş
+gövde gösteriyor.
+
+## Sınırı — abartma
+
+İki farklı sınır var, ikisini de karıştırma:
+
+1. Alan ADININ (ad verilmiş tip kaynaklarının herhangi birinde) geçip
+   geçmediğine bakar; iç içe yapıyı ya da tipi DOĞRULAMAZ. `total: string`
+   yazılmışsa yakalamaz.
+2. Eşleşme YAPRAK ADI bazlı ve KONUM-KÖR: bir ad tip kaynaklarının
+   HERHANGİ BİRİNDE, HERHANGİ BİR ALAKASIZ yapıda geçiyorsa "bildirilmiş"
+   sayılır. Guard'ın YAKALADIĞI TEK ŞEY: kod tabanının hiçbir yerde hiç
+   görmediği bir alan adı. YAKALAYAMADIĞI: bilinen bir adın YENİ bir konumda
+   belirmesi. Somut örnek — guard'ın kendisi bunu YAKALAMADI, review turu
+   2'de elle bulundu: `list.meta.total` / `groups.meta.total` (sayfalama
+   alanları) `declared` sayıldı çünkü `total` adı `orders.ts`'de
+   `OrderQuotePricingSummary.total` olarak — TAMAMEN alakasız bir checkout
+   fiyat alanı — zaten geçiyordu. Guard adı gördü, konumun sayfalama meta'sı
+   değil fiyat özeti olduğunu bilemedi. Bu iki satır `KNOWN_UNDECLARED`'da
+   bu yüzden elle duruyor.
+
+Özetle guard'ın yakaladığı tek şey — tam olarak bizi iki kez yakalayan şey —
+yanıtta olup ad verilmiş kaynakların HİÇBİRİNDE hiç bulunmayan bir alan adı.
+
+## PII
+
+Fixture'lar `jq walk` filtresiyle maskelenmiş hâlde commit'lenir. Ham gövdeyi
+repoya koyma.
+
+## Yenileme
+
+Sözleşme değiştiğinde yeniden ölç (README başındaki komutlar
+`docs/superpowers/plans/2026-08-26-tam-parite-denetimi.md` içinde). Fixture
+bayatladığında test SESSİZ kalır — bu yüzden her parite turunda yenilenmeli.

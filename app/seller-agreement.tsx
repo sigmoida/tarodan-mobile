@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import {
   COMMISSION_SUMMARY,
   SELLER_SUPPORT_EMAIL,
+  LEGAL_ENTITY,
 } from "@/constants/legalFacts";
 
 const { colors } = theme;
@@ -25,7 +26,7 @@ export default function SellerAgreementScreen() {
 
         <Text style={styles.sectionTitle}>1. Taraflar ve Tanımlar</Text>
         <Text style={styles.paragraph}>
-          İşbu sözleşme, Tarodan Teknoloji A.Ş. ("Platform") ile Tarodan
+          İşbu sözleşme, {LEGAL_ENTITY.legalName} ("Platform") ile Tarodan
           platformu üzerinden ürün satışı yapan gerçek veya tüzel kişi
           ("Satıcı") arasında akdedilmiştir.
         </Text>

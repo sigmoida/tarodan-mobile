@@ -6246,6 +6246,7 @@
     "passwordChanged": "Şifreniz değiştirildi",
     "passwordChangeFailed": "Şifre değiştirilemedi",
     "enterSixDigitCode": "Lütfen 6 haneli doğrulama kodunu girin",
+    "twoFactorQrAlt": "İki adımlı doğrulama QR kodu",
     "twoFactorEnabled": "İki faktörlü doğrulama aktifleştirildi",
     "twoFactorDisabled": "İki faktörlü doğrulama kapatıldı",
     "verificationFailed": "Doğrulama başarısız",
@@ -6349,7 +6350,8 @@
     "expiresInDays": "{days} gün içinde süresi dolacak",
     "imageTooSmallTitle": "Görsel çok küçük",
     "imageTooSmallBody": "{count} görsel 1 KB altında olduğu için eklenmedi. Boş ya da bozuk bir dosya olabilir.",
-    "imageAllTooSmall": "Seçilen görsellerin hiçbiri eklenemedi: hepsi 1 KB altında."
+    "imageAllTooSmall": "Seçilen görsellerin hiçbiri eklenemedi: hepsi 1 KB altında.",
+    "statusSuspended": "Askıya Alındı"
   },
   "business": {
     "tabOverview": "Genel Bakış",
@@ -6401,5 +6403,8 @@
     "taxIdOptional": "Vergi No (opsiyonel)",
     "reverifyNotice": "Bilgileri güncellerseniz hesabınız yeniden doğrulanana kadar \"Doğrulanmadı\" durumuna döner.",
     "tcknInvalid": "TC Kimlik No 11 rakam olmalı"
+  },
+  "shipping": {
+    "codePending": "Kargo kodu hazırlanıyor"
   }
 }

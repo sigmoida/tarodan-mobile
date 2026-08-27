@@ -4,9 +4,8 @@ import { theme, Text, ScreenHeader } from "@/ui";
 import { useTranslation } from "react-i18next";
 import {
   RETURN_REQUEST_DAYS,
-  SUPPORT_PHONE,
-  COMPANY_INFO_EMAIL,
   LEGAL_EMAIL,
+  LEGAL_ENTITY,
 } from "@/constants/legalFacts";
 
 const { colors } = theme;
@@ -28,11 +27,15 @@ export default function DistanceSalesScreen() {
         <Text style={styles.sectionTitle}>Madde 1 — Taraflar</Text>
         <Text style={styles.subTitle}>SATICI</Text>
         <Text style={styles.paragraph}>
-          Unvan: Tarodan Teknoloji A.Ş.{"\n"}
-          Adres: İstanbul, Türkiye{"\n"}
-          E-posta: {COMPANY_INFO_EMAIL}
+          Unvan: {LEGAL_ENTITY.legalName}
           {"\n"}
-          Telefon: {SUPPORT_PHONE}
+          Vergi/MERSİS: {LEGAL_ENTITY.taxRegistration}
+          {"\n"}
+          Adres: {LEGAL_ENTITY.address}
+          {"\n"}
+          E-posta: {LEGAL_ENTITY.email}
+          {"\n"}
+          Telefon: {LEGAL_ENTITY.phone}
         </Text>
         <Text style={styles.subTitle}>ALICI</Text>
         <Text style={styles.paragraph}>
