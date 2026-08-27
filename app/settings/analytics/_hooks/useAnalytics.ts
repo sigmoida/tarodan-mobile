@@ -6,6 +6,7 @@ import { useRefresh } from "@/hooks/useRefresh";
 import { useAuthStore } from "@/stores/authStore";
 import { useTranslation } from "react-i18next";
 import type { Analytics } from "../_lib/types";
+import { isPremiumTier } from "../_lib/premium";
 
 /**
  * Analytics controller — owns the seller-analytics query, focus refresh, and the
@@ -13,10 +14,16 @@ import type { Analytics } from "../_lib/types";
  */
 export function useAnalytics() {
   const { t } = useTranslation();
-  const { isAuthenticated, limits } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const timeRange = "7d";
 
-  const isPremium = limits?.maxListings === -1;
+  // `useAuthStore().limits` is the client's merged tier table (TIER_LIMITS
+  // overlaid with server quotas) — it has no `tierType` field, so it can't
+  // answer "is this account premium". `user.membershipTier` is the field
+  // that actually carries the server's tier (extractMembershipTier reads it
+  // straight off the API user object), matching the same domain as the
+  // `/membership/me/limits` response's measured `tierType` field.
+  const isPremium = isPremiumTier({ tierType: user?.membershipTier });
 
   // Fetch analytics
   const {

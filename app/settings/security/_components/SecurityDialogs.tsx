@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity, Image } from 'react-native';
 import { Modal, Button, Spinner, Input, Text, ModalMessage, theme } from '@/ui';
 
 import { PhoneInput } from '@/components/common';
@@ -49,6 +49,13 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
         <Text style={styles.dialogText}>
           Google Authenticator veya benzeri bir uygulamayı kullanarak aşağıdaki kodu tarayın veya manuel olarak girin:
         </Text>
+        {f.totpQrImage ? (
+          <Image
+            source={{ uri: f.totpQrImage }}
+            style={{ width: 200, height: 200, alignSelf: 'center' }}
+            accessibilityLabel={t('security.twoFactorQrAlt')}
+          />
+        ) : null}
         {f.totpSecret ? (
           <View style={styles.secretContainer}>
             <Text style={styles.secretText}>{f.totpSecret}</Text>

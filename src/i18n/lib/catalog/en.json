@@ -6246,6 +6246,7 @@
     "passwordChanged": "Your password has been changed",
     "passwordChangeFailed": "The password could not be changed",
     "enterSixDigitCode": "Please enter the 6-digit verification code",
+    "twoFactorQrAlt": "Two-factor authentication QR code",
     "twoFactorEnabled": "Two-factor authentication is enabled",
     "twoFactorDisabled": "Two-factor authentication is disabled",
     "verificationFailed": "Verification failed",

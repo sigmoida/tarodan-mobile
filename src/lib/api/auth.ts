@@ -101,9 +101,13 @@ export const authApi = {
     api.post('/security/password/change', { currentPassword, newPassword }),
   // ---- 2FA / Güvenlik (backend: /security/2fa/*) ----
   getTwoFactorStatus: () => api.get('/security/2fa/status'),
-  /** 2FA'yı etkinleştir; secret + qrCode + backupCodes döner */
+  /** 2FA'yı etkinleştir. Ölçüldü (staging, /security/2fa/enable):
+   *  `secret`, `qrCodeUrl`, `qrCodeImage`, `backupCodes` — `qrCode` diye bir
+   *  alan hiç yok. `qrCodeImage` çizilebilir base64 data URI. */
   setupTwoFactor: () =>
-    api.post<{ secret: string; qrCode: string; backupCodes?: string[] }>('/security/2fa/enable'),
+    api.post<{ secret: string; qrCodeUrl: string; qrCodeImage: string; backupCodes?: string[] }>(
+      '/security/2fa/enable',
+    ),
   // Backend Verify2FADto/Disable2FADto hepsi `code` alanı bekliyor (TOTP 6 hane).
   verifyTwoFactor: (code: string) =>
     api.post('/security/2fa/verify', { code }),

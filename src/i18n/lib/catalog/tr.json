@@ -6246,6 +6246,7 @@
     "passwordChanged": "Şifreniz değiştirildi",
     "passwordChangeFailed": "Şifre değiştirilemedi",
     "enterSixDigitCode": "Lütfen 6 haneli doğrulama kodunu girin",
+    "twoFactorQrAlt": "İki adımlı doğrulama QR kodu",
     "twoFactorEnabled": "İki faktörlü doğrulama aktifleştirildi",
     "twoFactorDisabled": "İki faktörlü doğrulama kapatıldı",
     "verificationFailed": "Doğrulama başarısız",
