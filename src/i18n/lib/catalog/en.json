@@ -6350,7 +6350,8 @@
     "expiresInDays": "Expires in {days} days",
     "imageTooSmallTitle": "Image too small",
     "imageTooSmallBody": "{count} image(s) were skipped because they are under 1 KB. They may be empty or corrupted.",
-    "imageAllTooSmall": "None of the selected images could be added: they are all under 1 KB."
+    "imageAllTooSmall": "None of the selected images could be added: they are all under 1 KB.",
+    "statusSuspended": "Suspended"
   },
   "business": {
     "tabOverview": "Overview",

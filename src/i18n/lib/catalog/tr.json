@@ -6350,7 +6350,8 @@
     "expiresInDays": "{days} gün içinde süresi dolacak",
     "imageTooSmallTitle": "Görsel çok küçük",
     "imageTooSmallBody": "{count} görsel 1 KB altında olduğu için eklenmedi. Boş ya da bozuk bir dosya olabilir.",
-    "imageAllTooSmall": "Seçilen görsellerin hiçbiri eklenemedi: hepsi 1 KB altında."
+    "imageAllTooSmall": "Seçilen görsellerin hiçbiri eklenemedi: hepsi 1 KB altında.",
+    "statusSuspended": "Askıya Alındı"
   },
   "business": {
     "tabOverview": "Genel Bakış",

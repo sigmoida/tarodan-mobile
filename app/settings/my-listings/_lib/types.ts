@@ -7,7 +7,7 @@ export interface Listing {
   id: string;
   title: string;
   price: number;
-  status: 'active' | 'pending' | 'sold' | 'inactive' | 'reserved' | 'rejected' | 'deleted';
+  status: 'active' | 'pending' | 'sold' | 'inactive' | 'reserved' | 'rejected' | 'deleted' | 'suspended';
   viewCount: number;
   likeCount?: number;
   images: Array<{ url: string }>;
@@ -41,6 +41,7 @@ export const getStatusColor = (status: string) => {
     case 'reserved': return colors.primary[600]!;
     case 'inactive': return colors.text.subtle;
     case 'deleted': return colors.danger[600]!;
+    case 'suspended': return colors.warning[700]!;
     default: return colors.text.muted;
   }
 };
@@ -61,6 +62,7 @@ export const statusTextKey = (status: string): MessageKey | null => {
     case 'reserved': return 'listing.filterReserved';
     case 'inactive': return 'listing.filterInactive';
     case 'deleted': return 'listing.statusDeleted';
+    case 'suspended': return 'listing.statusSuspended';
     default: return null;
   }
 };
