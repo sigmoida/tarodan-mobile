@@ -1,0 +1,836 @@
+{
+  "_meta": {
+    "capturedAt": "2026-08-26",
+    "account": "ahmet@demo.com",
+    "endpoints": [
+      "GET /orders?limit=3",
+      "GET /orders/:id",
+      "GET /orders/groups?limit=3"
+    ]
+  },
+  "list": {
+    "data": [
+      {
+        "id": "c58b3123-63f2-4ef6-9884-e54e88f8d72d",
+        "orderNumber": "ORD-M9ED69QWAT",
+        "isMembership": false,
+        "checkoutGroupId": "86609c2f-0845-4869-bb0a-65e0ab57bcc7",
+        "groupNumber": "GRP-M9ED69QWAT",
+        "packageId": "45bfef56-77d4-4d79-a55b-85c361a21694",
+        "packageNumber": "PKG-NKSQYKP256",
+        "amount": 557.6,
+        "totalAmount": 557.6,
+        "commissionAmount": 89.83,
+        "buyerFeeAmount": 40.42,
+        "sellerFeeAmount": 49.41,
+        "shippingCost": 50,
+        "pricing": {
+          "subtotal": 449.1,
+          "shippingAmount": 50,
+          "buyerFeeAmount": 40.42,
+          "sellerFeeAmount": 49.41,
+          "commissionAmount": 89.83,
+          "taxAmount": 0,
+          "withholdingTaxAmount": 4.49,
+          "sellerShippingAmount": 50,
+          "buyerServiceTaxAmount": 18.08,
+          "sellerServiceTaxAmount": 19.88,
+          "serviceVatRate": 20,
+          "buyerFeeDiscountAmount": 0,
+          "sellerFeeDiscountAmount": 0,
+          "totalAmount": 557.6,
+          "sellerNetAmount": 325.32
+        },
+        "status": "delivered",
+        "product": {
+          "id": "2d64698d-8459-43db-b449-583e5834f01f",
+          "title": "Hot Wheels Ferrari 275 GTB",
+          "imageUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2d64698d-8459-43db-b449-583e5834f01f/1ff11264-b52a-4e62-b12e-ab6721ae8ded-card.webp",
+          "status": "active",
+          "price": 449.1,
+          "condition": "good"
+        },
+        "items": [
+          {
+            "id": "c58b3123-63f2-4ef6-9884-e54e88f8d72d",
+            "product": {
+              "id": "2d64698d-8459-43db-b449-583e5834f01f",
+              "title": "Hot Wheels Ferrari 275 GTB",
+              "imageUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2d64698d-8459-43db-b449-583e5834f01f/1ff11264-b52a-4e62-b12e-ab6721ae8ded-card.webp",
+              "status": "active",
+              "price": 449.1,
+              "condition": "good"
+            },
+            "quantity": 1,
+            "price": 557.6
+          }
+        ],
+        "buyer": {
+          "id": "52336236-4dcb-4d6a-9995-8788c11c188d",
+          "isVerified": true,
+          "publicName": "ahmet34",
+          "displayName": "REDACTED",
+          "username": "ahmet34",
+          "avatarUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/avatars/52336236-4dcb-4d6a-9995-8788c11c188d/094bcb44-2e68-461f-970f-f11a07e97341.webp"
+        },
+        "seller": {
+          "id": "a1376658-3e1e-42a4-93de-733f167b26cc",
+          "isVerified": true,
+          "publicName": "Tarodan Platform Ticaret A.Ş.",
+          "displayName": "REDACTED",
+          "username": null,
+          "avatarUrl": null
+        },
+        "shippingAddress": {
+          "id": "",
+          "title": "",
+          "fullName": "REDACTED",
+          "phone": "REDACTED",
+          "address": "REDACTED",
+          "addressLine1": "Ahmet Koleksiyoncu Mahallesi, Koleksiyon Sokak No: 3",
+          "addressLine2": "",
+          "district": "Nilüfer",
+          "city": "Bursa",
+          "zipCode": "REDACTED",
+          "postalCode": "REDACTED"
+        },
+        "billingAddress": null,
+        "shipment": {
+          "id": "1a355a78-3730-4b81-ac53-63e41e11dc3a",
+          "provider": "surat",
+          "trackingNumber": "PKG-NKSQYKP256",
+          "cargoCode": null,
+          "trackingUrl": null,
+          "status": "delivered",
+          "cost": null,
+          "shippedAt": "2026-08-05T07:21:21.000Z",
+          "deliveredAt": "2026-08-07T07:21:21.000Z"
+        },
+        "trackingNumber": "PKG-NKSQYKP256",
+        "cargoCode": null,
+        "trackingUrl": null,
+        "paidAt": null,
+        "shippedAt": "2026-08-05T07:21:21.000Z",
+        "deliveredAt": "2026-08-07T07:21:21.000Z",
+        "completedAt": null,
+        "cancelledAt": null,
+        "cancelReason": null,
+        "cancellationType": null,
+        "cancelCategory": null,
+        "canReactivate": false,
+        "confirmationDeadline": null,
+        "buyerConfirmedAt": null,
+        "isBuyer": true,
+        "isSeller": false,
+        "hasProductRating": true,
+        "hasSellerRating": false,
+        "activeRefundRequest": {
+          "id": "1ebdb48d-8cd0-4bac-8af7-d55e23d342db",
+          "refundNumber": "RFD-QAG7ETC36A",
+          "status": "pending_review",
+          "reason": "not_as_described",
+          "returnTrackingNumber": null,
+          "returnCargoCode": null,
+          "returnProvider": null,
+          "returnStatus": null,
+          "createdAt": "2026-08-04T07:21:21.000Z"
+        },
+        "createdAt": "2026-08-04T07:21:21.000Z",
+        "updatedAt": "2026-08-14T07:30:01.523Z"
+      },
+      {
+        "id": "7ba0d116-7d33-44f1-8b12-8e9ace31bdf5",
+        "orderNumber": "ORD-ZXCR29BBX7",
+        "isMembership": false,
+        "checkoutGroupId": "89b494fa-ea7c-4c36-9923-7a4a14d89be6",
+        "groupNumber": "GRP-ZXCR29BBX7",
+        "packageId": "58d8e9e7-6a29-4067-830b-44973f393e40",
+        "packageNumber": "PKG-BF68WBKQAD",
+        "amount": 612.89,
+        "totalAmount": 612.89,
+        "commissionAmount": 99.8,
+        "buyerFeeAmount": 44.91,
+        "sellerFeeAmount": 54.89,
+        "shippingCost": 50,
+        "pricing": {
+          "subtotal": 499,
+          "shippingAmount": 50,
+          "buyerFeeAmount": 44.91,
+          "sellerFeeAmount": 54.89,
+          "commissionAmount": 99.8,
+          "taxAmount": 0,
+          "withholdingTaxAmount": 0,
+          "sellerShippingAmount": 50,
+          "buyerServiceTaxAmount": 18.98,
+          "sellerServiceTaxAmount": 20.98,
+          "serviceVatRate": 20,
+          "buyerFeeDiscountAmount": 0,
+          "sellerFeeDiscountAmount": 0,
+          "totalAmount": 612.89,
+          "sellerNetAmount": 373.13
+        },
+        "status": "delivered",
+        "product": {
+          "id": "d710c82f-dc6f-4c5a-ba8f-80c9669b7e22",
+          "title": "Matchbox 007 Aston Martin DB5",
+          "imageUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-card.webp",
+          "status": "reserved",
+          "price": 499,
+          "condition": "good"
+        },
+        "items": [
+          {
+            "id": "7ba0d116-7d33-44f1-8b12-8e9ace31bdf5",
+            "product": {
+              "id": "d710c82f-dc6f-4c5a-ba8f-80c9669b7e22",
+              "title": "Matchbox 007 Aston Martin DB5",
+              "imageUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-card.webp",
+              "status": "reserved",
+              "price": 499,
+              "condition": "good"
+            },
+            "quantity": 1,
+            "price": 612.89
+          }
+        ],
+        "buyer": {
+          "id": "840496c8-88d4-4024-a984-ff2fc41ae16e",
+          "isVerified": true,
+          "publicName": "Mehmet Diecast",
+          "displayName": "REDACTED",
+          "username": null,
+          "avatarUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/avatars/840496c8-88d4-4024-a984-ff2fc41ae16e/df925823-ab8e-45df-a626-b368c89f5ce6.webp"
+        },
+        "seller": {
+          "id": "52336236-4dcb-4d6a-9995-8788c11c188d",
+          "isVerified": true,
+          "publicName": "ahmet34",
+          "displayName": "REDACTED",
+          "username": "ahmet34",
+          "avatarUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/avatars/52336236-4dcb-4d6a-9995-8788c11c188d/094bcb44-2e68-461f-970f-f11a07e97341.webp"
+        },
+        "shippingAddress": {
+          "id": "",
+          "title": "",
+          "fullName": "REDACTED",
+          "phone": "REDACTED",
+          "address": "REDACTED",
+          "addressLine1": "Mehmet Diecast Mahallesi, Koleksiyon Sokak No: 4",
+          "addressLine2": "",
+          "district": "Muratpaşa",
+          "city": "Antalya",
+          "zipCode": "REDACTED",
+          "postalCode": "REDACTED"
+        },
+        "billingAddress": null,
+        "shipment": {
+          "id": "91e833f9-3a34-4138-9421-bff487c1915f",
+          "provider": "surat",
+          "trackingNumber": "PKG-BF68WBKQAD",
+          "cargoCode": null,
+          "trackingUrl": null,
+          "status": "delivered",
+          "cost": null,
+          "shippedAt": "2026-08-04T07:21:21.027Z",
+          "deliveredAt": "2026-08-06T07:21:21.027Z"
+        },
+        "trackingNumber": "PKG-BF68WBKQAD",
+        "cargoCode": null,
+        "trackingUrl": null,
+        "paidAt": null,
+        "shippedAt": "2026-08-04T07:21:21.027Z",
+        "deliveredAt": "2026-08-06T07:21:21.027Z",
+        "completedAt": null,
+        "cancelledAt": null,
+        "cancelReason": null,
+        "cancellationType": null,
+        "cancelCategory": null,
+        "canReactivate": false,
+        "confirmationDeadline": null,
+        "buyerConfirmedAt": null,
+        "isBuyer": false,
+        "isSeller": true,
+        "activeRefundRequest": {
+          "id": "097fd9a0-88e6-43c6-ae77-c26aa259e378",
+          "refundNumber": "RFD-SEH24T6D2Z",
+          "status": "pending_review",
+          "reason": "damaged",
+          "returnTrackingNumber": null,
+          "returnCargoCode": null,
+          "returnProvider": null,
+          "returnStatus": null,
+          "createdAt": "2026-08-03T07:21:21.027Z"
+        },
+        "createdAt": "2026-08-03T07:21:21.027Z",
+        "updatedAt": "2026-08-05T07:30:08.671Z"
+      },
+      {
+        "id": "bad9ee64-44f8-48c1-a6c0-8df57b62e089",
+        "orderNumber": "ORD-AVQC432SF2",
+        "isMembership": false,
+        "checkoutGroupId": "4fb847c0-f657-4176-81a6-934f9dbd2a66",
+        "groupNumber": "GRP-PZWXW7AKD2",
+        "packageId": "4da9d0d5-3d32-40fb-a43e-23200d667767",
+        "packageNumber": "PKG-XGWRNQ8M2G",
+        "amount": 552.89,
+        "totalAmount": 552.89,
+        "commissionAmount": 99.8,
+        "buyerFeeAmount": 44.91,
+        "sellerFeeAmount": 54.89,
+        "shippingCost": 0,
+        "pricing": {
+          "subtotal": 499,
+          "shippingAmount": 0,
+          "buyerFeeAmount": 44.91,
+          "sellerFeeAmount": 54.89,
+          "commissionAmount": 99.8,
+          "taxAmount": 0,
+          "withholdingTaxAmount": 0,
+          "sellerShippingAmount": 0,
+          "buyerServiceTaxAmount": 8.98,
+          "sellerServiceTaxAmount": 10.98,
+          "serviceVatRate": 20,
+          "buyerFeeDiscountAmount": 0,
+          "sellerFeeDiscountAmount": 0,
+          "totalAmount": 552.89,
+          "sellerNetAmount": 433.13
+        },
+        "status": "paid",
+        "product": {
+          "id": "d710c82f-dc6f-4c5a-ba8f-80c9669b7e22",
+          "title": "Matchbox 007 Aston Martin DB5",
+          "imageUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-card.webp",
+          "status": "reserved",
+          "price": 499,
+          "condition": "good"
+        },
+        "items": [
+          {
+            "id": "bad9ee64-44f8-48c1-a6c0-8df57b62e089",
+            "product": {
+              "id": "d710c82f-dc6f-4c5a-ba8f-80c9669b7e22",
+              "title": "Matchbox 007 Aston Martin DB5",
+              "imageUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-card.webp",
+              "status": "reserved",
+              "price": 499,
+              "condition": "good"
+            },
+            "quantity": 1,
+            "price": 552.89
+          }
+        ],
+        "buyer": {
+          "id": "341c4a40-20de-4d3d-b2eb-4b43adcdfb79",
+          "isVerified": true,
+          "publicName": "Deniz Buyer",
+          "displayName": "REDACTED",
+          "username": null,
+          "avatarUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/avatars/341c4a40-20de-4d3d-b2eb-4b43adcdfb79/bd8841e1-f6fc-4e98-88f1-5446b57382b3.webp"
+        },
+        "seller": {
+          "id": "52336236-4dcb-4d6a-9995-8788c11c188d",
+          "isVerified": true,
+          "publicName": "ahmet34",
+          "displayName": "REDACTED",
+          "username": "ahmet34",
+          "avatarUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/avatars/52336236-4dcb-4d6a-9995-8788c11c188d/094bcb44-2e68-461f-970f-f11a07e97341.webp"
+        },
+        "shippingAddress": {
+          "id": "",
+          "title": "",
+          "fullName": "REDACTED",
+          "phone": "REDACTED",
+          "address": "REDACTED",
+          "addressLine1": "Deniz Buyer Mahallesi, Koleksiyon Sokak No: 14",
+          "addressLine2": "",
+          "district": "Selçuklu",
+          "city": "Konya",
+          "zipCode": "REDACTED",
+          "postalCode": "REDACTED"
+        },
+        "billingAddress": null,
+        "shipment": {
+          "id": "559778ef-6afd-41d5-89e4-652776b29423",
+          "provider": "surat",
+          "trackingNumber": "PKG-XGWRNQ8M2G",
+          "cargoCode": "79174212154116",
+          "trackingUrl": "https://www.suratkargo.com.tr/KargoTakip/?kargotakipno=79174212154116",
+          "status": "pending",
+          "cost": 0,
+          "shippedAt": null,
+          "deliveredAt": null
+        },
+        "trackingNumber": "PKG-XGWRNQ8M2G",
+        "cargoCode": "79174212154116",
+        "trackingUrl": "https://www.suratkargo.com.tr/KargoTakip/?kargotakipno=79174212154116",
+        "paidAt": null,
+        "shippedAt": null,
+        "deliveredAt": null,
+        "completedAt": null,
+        "cancelledAt": null,
+        "cancelReason": null,
+        "cancellationType": null,
+        "cancelCategory": null,
+        "canReactivate": false,
+        "confirmationDeadline": null,
+        "buyerConfirmedAt": null,
+        "isBuyer": false,
+        "isSeller": true,
+        "activeRefundRequest": null,
+        "createdAt": "2026-07-30T07:21:24.499Z",
+        "updatedAt": "2026-08-05T07:21:32.253Z"
+      }
+    ],
+    "meta": {
+      "total": 14,
+      "page": 1,
+      "limit": 3,
+      "totalPages": 5
+    }
+  },
+  "groups": {
+    "data": [
+      {
+        "kind": "group",
+        "id": "86609c2f-0845-4869-bb0a-65e0ab57bcc7",
+        "groupNumber": "GRP-M9ED69QWAT",
+        "totalAmount": 557.6,
+        "status": "delivered",
+        "createdAt": "2026-08-04T07:21:21.000Z",
+        "viewerRole": "buyer",
+        "payment": {
+          "id": "6ac0fb88-8802-4025-9da9-ae2df5374bd2",
+          "status": "completed",
+          "amount": 557.6,
+          "provider": "paytr",
+          "paidAt": "2026-08-04T08:21:21.000Z"
+        },
+        "packages": [
+          {
+            "id": "45bfef56-77d4-4d79-a55b-85c361a21694",
+            "packageNumber": "PKG-NKSQYKP256",
+            "sellerId": "a1376658-3e1e-42a4-93de-733f167b26cc",
+            "seller": {
+              "id": "a1376658-3e1e-42a4-93de-733f167b26cc",
+              "publicName": "Tarodan Platform Ticaret A.Ş.",
+              "displayName": "REDACTED",
+              "username": null,
+              "avatarUrl": null,
+              "isVerified": true
+            },
+            "shippingCost": 50,
+            "cargo": {
+              "trackingNumber": "PKG-NKSQYKP256",
+              "cargoCode": null,
+              "provider": "surat",
+              "status": "delivered",
+              "trackingUrl": "https://www.suratkargo.com.tr/KargoTakip/?kargotakipno=PKG-NKSQYKP256",
+              "shippedAt": "2026-08-05T07:21:21.000Z",
+              "deliveredAt": "2026-08-07T07:21:21.000Z"
+            },
+            "orders": [
+              {
+                "id": "c58b3123-63f2-4ef6-9884-e54e88f8d72d",
+                "orderNumber": "ORD-M9ED69QWAT",
+                "isMembership": false,
+                "checkoutGroupId": "86609c2f-0845-4869-bb0a-65e0ab57bcc7",
+                "groupNumber": null,
+                "packageId": "45bfef56-77d4-4d79-a55b-85c361a21694",
+                "packageNumber": "PKG-NKSQYKP256",
+                "amount": 557.6,
+                "totalAmount": 557.6,
+                "commissionAmount": 89.83,
+                "buyerFeeAmount": 40.42,
+                "sellerFeeAmount": 49.41,
+                "shippingCost": 50,
+                "pricing": {
+                  "subtotal": 449.1,
+                  "shippingAmount": 50,
+                  "buyerFeeAmount": 40.42,
+                  "sellerFeeAmount": 49.41,
+                  "commissionAmount": 89.83,
+                  "taxAmount": 0,
+                  "withholdingTaxAmount": 4.49,
+                  "sellerShippingAmount": 50,
+                  "buyerServiceTaxAmount": 18.08,
+                  "sellerServiceTaxAmount": 19.88,
+                  "serviceVatRate": 20,
+                  "buyerFeeDiscountAmount": 0,
+                  "sellerFeeDiscountAmount": 0,
+                  "totalAmount": 557.6,
+                  "sellerNetAmount": 325.32
+                },
+                "status": "delivered",
+                "product": {
+                  "id": "2d64698d-8459-43db-b449-583e5834f01f",
+                  "title": "Hot Wheels Ferrari 275 GTB",
+                  "imageUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2d64698d-8459-43db-b449-583e5834f01f/1ff11264-b52a-4e62-b12e-ab6721ae8ded-card.webp",
+                  "status": "active",
+                  "price": 449.1,
+                  "condition": "good"
+                },
+                "items": [
+                  {
+                    "id": "c58b3123-63f2-4ef6-9884-e54e88f8d72d",
+                    "product": {
+                      "id": "2d64698d-8459-43db-b449-583e5834f01f",
+                      "title": "Hot Wheels Ferrari 275 GTB",
+                      "imageUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2d64698d-8459-43db-b449-583e5834f01f/1ff11264-b52a-4e62-b12e-ab6721ae8ded-card.webp",
+                      "status": "active",
+                      "price": 449.1,
+                      "condition": "good"
+                    },
+                    "quantity": 1,
+                    "price": 557.6
+                  }
+                ],
+                "buyer": {
+                  "id": "52336236-4dcb-4d6a-9995-8788c11c188d",
+                  "isVerified": true,
+                  "publicName": "ahmet34",
+                  "displayName": "REDACTED",
+                  "username": "ahmet34",
+                  "avatarUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/avatars/52336236-4dcb-4d6a-9995-8788c11c188d/094bcb44-2e68-461f-970f-f11a07e97341.webp"
+                },
+                "seller": {
+                  "id": "a1376658-3e1e-42a4-93de-733f167b26cc",
+                  "isVerified": true,
+                  "publicName": "Tarodan Platform Ticaret A.Ş.",
+                  "displayName": "REDACTED",
+                  "username": null,
+                  "avatarUrl": null
+                },
+                "shippingAddress": {
+                  "id": "",
+                  "title": "",
+                  "fullName": "REDACTED",
+                  "phone": "REDACTED",
+                  "address": "REDACTED",
+                  "addressLine1": "Ahmet Koleksiyoncu Mahallesi, Koleksiyon Sokak No: 3",
+                  "addressLine2": "",
+                  "district": "Nilüfer",
+                  "city": "Bursa",
+                  "zipCode": "REDACTED",
+                  "postalCode": "REDACTED"
+                },
+                "billingAddress": null,
+                "shipment": {
+                  "id": "1a355a78-3730-4b81-ac53-63e41e11dc3a",
+                  "provider": "surat",
+                  "trackingNumber": "PKG-NKSQYKP256",
+                  "cargoCode": null,
+                  "trackingUrl": null,
+                  "status": "delivered",
+                  "cost": null,
+                  "shippedAt": "2026-08-05T07:21:21.000Z",
+                  "deliveredAt": "2026-08-07T07:21:21.000Z"
+                },
+                "trackingNumber": "PKG-NKSQYKP256",
+                "cargoCode": null,
+                "trackingUrl": null,
+                "paidAt": null,
+                "shippedAt": "2026-08-05T07:21:21.000Z",
+                "deliveredAt": "2026-08-07T07:21:21.000Z",
+                "completedAt": null,
+                "cancelledAt": null,
+                "cancelReason": null,
+                "cancellationType": null,
+                "cancelCategory": null,
+                "canReactivate": false,
+                "confirmationDeadline": null,
+                "buyerConfirmedAt": null,
+                "isBuyer": true,
+                "isSeller": false,
+                "hasProductRating": true,
+                "hasSellerRating": false,
+                "activeRefundRequest": {
+                  "id": "1ebdb48d-8cd0-4bac-8af7-d55e23d342db",
+                  "refundNumber": "RFD-QAG7ETC36A",
+                  "status": "pending_review",
+                  "reason": "not_as_described",
+                  "returnTrackingNumber": null,
+                  "returnCargoCode": null,
+                  "returnProvider": null,
+                  "returnStatus": null,
+                  "createdAt": "2026-08-04T07:21:21.000Z"
+                },
+                "createdAt": "2026-08-04T07:21:21.000Z",
+                "updatedAt": "2026-08-14T07:30:01.523Z"
+              }
+            ]
+          }
+        ],
+        "orders": [
+          {
+            "id": "c58b3123-63f2-4ef6-9884-e54e88f8d72d",
+            "orderNumber": "ORD-M9ED69QWAT",
+            "isMembership": false,
+            "checkoutGroupId": "86609c2f-0845-4869-bb0a-65e0ab57bcc7",
+            "groupNumber": null,
+            "packageId": "45bfef56-77d4-4d79-a55b-85c361a21694",
+            "packageNumber": "PKG-NKSQYKP256",
+            "amount": 557.6,
+            "totalAmount": 557.6,
+            "commissionAmount": 89.83,
+            "buyerFeeAmount": 40.42,
+            "sellerFeeAmount": 49.41,
+            "shippingCost": 50,
+            "pricing": {
+              "subtotal": 449.1,
+              "shippingAmount": 50,
+              "buyerFeeAmount": 40.42,
+              "sellerFeeAmount": 49.41,
+              "commissionAmount": 89.83,
+              "taxAmount": 0,
+              "withholdingTaxAmount": 4.49,
+              "sellerShippingAmount": 50,
+              "buyerServiceTaxAmount": 18.08,
+              "sellerServiceTaxAmount": 19.88,
+              "serviceVatRate": 20,
+              "buyerFeeDiscountAmount": 0,
+              "sellerFeeDiscountAmount": 0,
+              "totalAmount": 557.6,
+              "sellerNetAmount": 325.32
+            },
+            "status": "delivered",
+            "product": {
+              "id": "2d64698d-8459-43db-b449-583e5834f01f",
+              "title": "Hot Wheels Ferrari 275 GTB",
+              "imageUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2d64698d-8459-43db-b449-583e5834f01f/1ff11264-b52a-4e62-b12e-ab6721ae8ded-card.webp",
+              "status": "active",
+              "price": 449.1,
+              "condition": "good"
+            },
+            "items": [
+              {
+                "id": "c58b3123-63f2-4ef6-9884-e54e88f8d72d",
+                "product": {
+                  "id": "2d64698d-8459-43db-b449-583e5834f01f",
+                  "title": "Hot Wheels Ferrari 275 GTB",
+                  "imageUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2d64698d-8459-43db-b449-583e5834f01f/1ff11264-b52a-4e62-b12e-ab6721ae8ded-card.webp",
+                  "status": "active",
+                  "price": 449.1,
+                  "condition": "good"
+                },
+                "quantity": 1,
+                "price": 557.6
+              }
+            ],
+            "buyer": {
+              "id": "52336236-4dcb-4d6a-9995-8788c11c188d",
+              "isVerified": true,
+              "publicName": "ahmet34",
+              "displayName": "REDACTED",
+              "username": "ahmet34",
+              "avatarUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/avatars/52336236-4dcb-4d6a-9995-8788c11c188d/094bcb44-2e68-461f-970f-f11a07e97341.webp"
+            },
+            "seller": {
+              "id": "a1376658-3e1e-42a4-93de-733f167b26cc",
+              "isVerified": true,
+              "publicName": "Tarodan Platform Ticaret A.Ş.",
+              "displayName": "REDACTED",
+              "username": null,
+              "avatarUrl": null
+            },
+            "shippingAddress": {
+              "id": "",
+              "title": "",
+              "fullName": "REDACTED",
+              "phone": "REDACTED",
+              "address": "REDACTED",
+              "addressLine1": "Ahmet Koleksiyoncu Mahallesi, Koleksiyon Sokak No: 3",
+              "addressLine2": "",
+              "district": "Nilüfer",
+              "city": "Bursa",
+              "zipCode": "REDACTED",
+              "postalCode": "REDACTED"
+            },
+            "billingAddress": null,
+            "shipment": {
+              "id": "1a355a78-3730-4b81-ac53-63e41e11dc3a",
+              "provider": "surat",
+              "trackingNumber": "PKG-NKSQYKP256",
+              "cargoCode": null,
+              "trackingUrl": null,
+              "status": "delivered",
+              "cost": null,
+              "shippedAt": "2026-08-05T07:21:21.000Z",
+              "deliveredAt": "2026-08-07T07:21:21.000Z"
+            },
+            "trackingNumber": "PKG-NKSQYKP256",
+            "cargoCode": null,
+            "trackingUrl": null,
+            "paidAt": null,
+            "shippedAt": "2026-08-05T07:21:21.000Z",
+            "deliveredAt": "2026-08-07T07:21:21.000Z",
+            "completedAt": null,
+            "cancelledAt": null,
+            "cancelReason": null,
+            "cancellationType": null,
+            "cancelCategory": null,
+            "canReactivate": false,
+            "confirmationDeadline": null,
+            "buyerConfirmedAt": null,
+            "isBuyer": true,
+            "isSeller": false,
+            "hasProductRating": true,
+            "hasSellerRating": false,
+            "activeRefundRequest": {
+              "id": "1ebdb48d-8cd0-4bac-8af7-d55e23d342db",
+              "refundNumber": "RFD-QAG7ETC36A",
+              "status": "pending_review",
+              "reason": "not_as_described",
+              "returnTrackingNumber": null,
+              "returnCargoCode": null,
+              "returnProvider": null,
+              "returnStatus": null,
+              "createdAt": "2026-08-04T07:21:21.000Z"
+            },
+            "createdAt": "2026-08-04T07:21:21.000Z",
+            "updatedAt": "2026-08-14T07:30:01.523Z"
+          }
+        ]
+      }
+    ],
+    "meta": {
+      "total": 1,
+      "page": 1,
+      "limit": 3,
+      "totalPages": 1
+    }
+  },
+  "detail": {
+    "id": "c58b3123-63f2-4ef6-9884-e54e88f8d72d",
+    "orderNumber": "ORD-M9ED69QWAT",
+    "isMembership": false,
+    "checkoutGroupId": "86609c2f-0845-4869-bb0a-65e0ab57bcc7",
+    "groupNumber": "GRP-M9ED69QWAT",
+    "packageId": "45bfef56-77d4-4d79-a55b-85c361a21694",
+    "packageNumber": null,
+    "amount": 557.6,
+    "totalAmount": 557.6,
+    "commissionAmount": 89.83,
+    "buyerFeeAmount": 40.42,
+    "sellerFeeAmount": 49.41,
+    "shippingCost": 50,
+    "pricing": {
+      "subtotal": 449.1,
+      "shippingAmount": 50,
+      "buyerFeeAmount": 40.42,
+      "sellerFeeAmount": 49.41,
+      "commissionAmount": 89.83,
+      "taxAmount": 0,
+      "withholdingTaxAmount": 4.49,
+      "sellerShippingAmount": 50,
+      "buyerServiceTaxAmount": 18.08,
+      "sellerServiceTaxAmount": 19.88,
+      "serviceVatRate": 20,
+      "buyerFeeDiscountAmount": 0,
+      "sellerFeeDiscountAmount": 0,
+      "totalAmount": 557.6,
+      "sellerNetAmount": 325.32
+    },
+    "status": "delivered",
+    "product": {
+      "id": "2d64698d-8459-43db-b449-583e5834f01f",
+      "title": "Hot Wheels Ferrari 275 GTB",
+      "imageUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2d64698d-8459-43db-b449-583e5834f01f/1ff11264-b52a-4e62-b12e-ab6721ae8ded-card.webp",
+      "status": "active",
+      "price": 449.1,
+      "condition": "good"
+    },
+    "items": [
+      {
+        "id": "c58b3123-63f2-4ef6-9884-e54e88f8d72d",
+        "product": {
+          "id": "2d64698d-8459-43db-b449-583e5834f01f",
+          "title": "Hot Wheels Ferrari 275 GTB",
+          "imageUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2d64698d-8459-43db-b449-583e5834f01f/1ff11264-b52a-4e62-b12e-ab6721ae8ded-card.webp",
+          "status": "active",
+          "price": 449.1,
+          "condition": "good"
+        },
+        "quantity": 1,
+        "price": 557.6
+      }
+    ],
+    "buyer": {
+      "id": "52336236-4dcb-4d6a-9995-8788c11c188d",
+      "isVerified": true,
+      "publicName": "ahmet34",
+      "displayName": "REDACTED",
+      "username": "ahmet34",
+      "avatarUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/avatars/52336236-4dcb-4d6a-9995-8788c11c188d/094bcb44-2e68-461f-970f-f11a07e97341.webp"
+    },
+    "seller": {
+      "id": "a1376658-3e1e-42a4-93de-733f167b26cc",
+      "isVerified": true,
+      "publicName": "Tarodan Platform Ticaret A.Ş.",
+      "displayName": "REDACTED",
+      "username": null,
+      "avatarUrl": null
+    },
+    "shippingAddress": {
+      "id": "",
+      "title": "",
+      "fullName": "REDACTED",
+      "phone": "REDACTED",
+      "address": "REDACTED",
+      "addressLine1": "Ahmet Koleksiyoncu Mahallesi, Koleksiyon Sokak No: 3",
+      "addressLine2": "",
+      "district": "Nilüfer",
+      "city": "Bursa",
+      "zipCode": "REDACTED",
+      "postalCode": "REDACTED"
+    },
+    "billingAddress": null,
+    "shipment": {
+      "id": "1a355a78-3730-4b81-ac53-63e41e11dc3a",
+      "provider": "surat",
+      "trackingNumber": "PKG-NKSQYKP256",
+      "cargoCode": null,
+      "trackingUrl": null,
+      "status": "delivered",
+      "cost": null,
+      "shippedAt": "2026-08-05T07:21:21.000Z",
+      "deliveredAt": "2026-08-07T07:21:21.000Z"
+    },
+    "trackingNumber": "PKG-NKSQYKP256",
+    "cargoCode": null,
+    "trackingUrl": null,
+    "paidAt": "2026-08-04T08:21:21.000Z",
+    "shippedAt": "2026-08-05T07:21:21.000Z",
+    "deliveredAt": "2026-08-07T07:21:21.000Z",
+    "completedAt": null,
+    "cancelledAt": null,
+    "cancelReason": null,
+    "cancellationType": null,
+    "cancelCategory": null,
+    "canReactivate": false,
+    "confirmationDeadline": null,
+    "buyerConfirmedAt": null,
+    "isBuyer": true,
+    "isSeller": false,
+    "hasProductRating": true,
+    "hasSellerRating": false,
+    "payment": {
+      "id": "6ac0fb88-8802-4025-9da9-ae2df5374bd2",
+      "status": "completed",
+      "amount": 557.6,
+      "provider": "paytr"
+    },
+    "activeRefundRequest": {
+      "id": "1ebdb48d-8cd0-4bac-8af7-d55e23d342db",
+      "refundNumber": "RFD-QAG7ETC36A",
+      "status": "pending_review",
+      "reason": "not_as_described",
+      "returnTrackingNumber": null,
+      "returnCargoCode": null,
+      "returnProvider": null,
+      "returnStatus": null,
+      "createdAt": "2026-08-04T07:21:21.000Z"
+    },
+    "createdAt": "2026-08-04T07:21:21.000Z",
+    "updatedAt": "2026-08-14T07:30:01.523Z"
+  }
+}
