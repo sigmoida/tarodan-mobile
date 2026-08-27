@@ -484,11 +484,11 @@ node scripts/gen-keys.mjs
 - `getStatusColor`: `case 'suspended': return colors.warning[700]!;`
 - `statusTextKey`: `case 'suspended': return 'listing.statusSuspended';`
 
-`MyListingsSections.tsx` — `FILTER_CHIPS`'e ekle:
-```ts
-  { value: 'suspended', labelKey: 'listing.statusSuspended', countKey: 'suspended' },
-```
-`FilterType` birleşimine ve `counts` tipine de `suspended` eklenmeli.
+**Filtre çipi EKLENMEZ.** Ölçüldü (ön uçuş): `GET /products/my/stats` `counts`
+nesnesinde `suspended` sayacı YOK — çip "Askıya Alındı (undefined)" basardı.
+Askıdaki ilan "Tümü" altında zaten görünüyor. Çip, sunucu sayacı yayınladığında
+açılacak bir "backend bekliyor" maddesi; istemcide saymak sayfalı listede
+yanlış sonuç verir.
 
 `MyListingsModals.tsx:30` — düzenleme kapısı:
 ```tsx
