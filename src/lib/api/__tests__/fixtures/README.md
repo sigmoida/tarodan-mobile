@@ -5,10 +5,16 @@ ve `_meta.endpoints` neyin, ne zaman, hangi uçtan alındığını söyler.
 
 ## Ne işe yarıyorlar
 
-`contractCoverage.test.ts` her fixture'ın alan adlarını ilgili
-`src/lib/api/<domain>.ts` tip dosyasına karşı tarıyor. Tip dosyasında adı
-geçmeyen her alan ya `KNOWN_UNDECLARED` listesinde gerekçesiyle duruyor ya da
-test düşüyor.
+`contractCoverage.test.ts` her fixture'ın alan adlarını, o gövdeyi deklare eden
+BÜTÜN tip kaynaklarına karşı tarıyor — TEK bir dosyaya değil. `orders` için bu
+`src/lib/api/orders.ts` (axios yüzeyi) + `app/orders/[id]/_lib/types.ts`
+(`OrderDetail`) + `app/orders/group/[id]/_lib/types.ts` (`GroupOrder`) demek
+(bkz. testteki `ORDERS_TYPE_SOURCES`). Sebep: `src/lib/api/<domain>.ts`
+genelde yalnız axios çağrılarını taşıyor, gövdenin GERÇEK tipi çoğu zaman
+rota-yerel bir `_lib/types.ts`'te yaşıyor — yalnız domain dosyasını okumak
+guard'ın yanlış yere bakmasına, zaten bildirilmiş alanları "eksik" diye
+listelemesine yol açtı (fix round 1). Herhangi bir kaynakta adı geçmeyen alan
+ya `KNOWN_UNDECLARED` listesinde gerekçesiyle duruyor ya da test düşüyor.
 
 Sebep: parite denetimleri iki kez üst üste sunucunun İÇ İÇE ve DTO'suz
 alanlarını kaçırdı (`pricing.summary.quantityDiscount`, `rejectionReason`).
@@ -17,10 +23,14 @@ gövde gösteriyor.
 
 ## Sınırı — abartma
 
-Test alan ADININ tip dosyasında geçip geçmediğine bakar; iç içe yapıyı ya da
-tipi DOĞRULAMAZ. Yani `total: string` yazılmışsa yakalamaz. Yakaladığı tek şey,
-tam olarak bizi iki kez yakalayan şey: yanıtta olup tip dosyasında hiç
-bulunmayan alan.
+Test alan ADININ (herhangi bir tip kaynağında) geçip geçmediğine bakar; iç içe
+yapıyı, tipi, ya da alanın HANGİ tip kaynağında/hangi konumda bildirildiğini
+DOĞRULAMAZ. Yani `total: string` yazılmışsa yakalamaz. Konum-körlüğün somut
+sonucu: bir alan adı bir yapıda (mesela `orders[]`) bildirilmişse, sunucunun
+AYNI adı taşıyan ama mobilin hiç dokunmadığı BAŞKA bir yapıda (mesela
+`packages[].orders[]`) döndürdüğü aynı isimli alanı da "bildirilmiş" sayar —
+adı kontrol ediyoruz, konumu değil. Yakaladığı tek şey, tam olarak bizi iki kez
+yakalayan şey: yanıtta olup HİÇBİR tip kaynağında hiç bulunmayan alan.
 
 ## PII
 
