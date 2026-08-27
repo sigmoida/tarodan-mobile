@@ -7,6 +7,7 @@ import {
   SUPPORT_PHONE,
   COMPANY_INFO_EMAIL,
   LEGAL_EMAIL,
+  LEGAL_ENTITY,
 } from "@/constants/legalFacts";
 
 const { colors } = theme;
@@ -28,8 +29,12 @@ export default function DistanceSalesScreen() {
         <Text style={styles.sectionTitle}>Madde 1 — Taraflar</Text>
         <Text style={styles.subTitle}>SATICI</Text>
         <Text style={styles.paragraph}>
-          Unvan: Tarodan Teknoloji A.Ş.{"\n"}
-          Adres: İstanbul, Türkiye{"\n"}
+          Unvan: {LEGAL_ENTITY.legalName}
+          {"\n"}
+          Vergi/MERSİS: {LEGAL_ENTITY.taxRegistration}
+          {"\n"}
+          Adres: {LEGAL_ENTITY.address}
+          {"\n"}
           E-posta: {COMPANY_INFO_EMAIL}
           {"\n"}
           Telefon: {SUPPORT_PHONE}

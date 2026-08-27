@@ -2,7 +2,7 @@ import { View, ScrollView, StyleSheet } from "react-native";
 import { theme, Text, ScreenHeader } from "@/ui";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { PRIVACY_EMAIL } from "@/constants/legalFacts";
+import { PRIVACY_EMAIL, LEGAL_ENTITY } from "@/constants/legalFacts";
 
 const { colors } = theme;
 
@@ -123,7 +123,7 @@ export default function PrivacyPolicyScreen() {
           Gizlilik ile ilgili sorularınız için bizimle iletişime geçebilirsiniz:
         </Text>
         <Text style={styles.contactInfo}>E-posta: {PRIVACY_EMAIL}</Text>
-        <Text style={styles.contactInfo}>Adres: İstanbul, Türkiye</Text>
+        <Text style={styles.contactInfo}>Adres: {LEGAL_ENTITY.address}</Text>
 
         <View style={{ height: 40 }} />
       </ScrollView>
