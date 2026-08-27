@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Pressable, Linking, StyleSheet } from 'react-native';
 import { Card, Text, Button, theme } from '@/ui';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { buildTrackingUrl } from '@/lib/shipping/tracking';
+import { buildTrackingUrl, deriveShipmentView } from '@/lib/shipping/tracking';
 import { ShipmentStatusChip } from './ShipmentStatusChip';
 import { renderOtherShipmentHint } from '../_lib/status';
 import type { Trade, TFn, TradeShipment } from '../_lib/types';
@@ -54,6 +54,32 @@ export function TradeShippingSection({
     theirTrackingNumber,
   } = view;
 
+  // Gerçek taşıyıcı kodu HEP `deriveShipmentView` üzerinden — iç referans
+  // (`TKS-…`) hiçbir zaman `openSuratTrack`'e verilmez (§ kargo takibi).
+  // Legacy alan yalnız iç referansı taşır; gerçek kod hiç gelmez, o yüzden
+  // buton her zaman gizli kalır — bu, bozuk linki göstermekten iyidir.
+  const legacyView = deriveShipmentView(
+    theirTrackingNumber ? { provider: 'surat', trackingNumber: theirTrackingNumber } : null,
+  );
+  const toWarehouseView = deriveShipmentView(
+    myToWarehouseShipment
+      ? { ...myToWarehouseShipment, provider: myToWarehouseShipment.provider ?? myToWarehouseShipment.carrier }
+      : null,
+    myToWarehouseShipment?.cargoCode,
+  );
+  const fromWarehouseView = deriveShipmentView(
+    myFromWarehouseShipment
+      ? { ...myFromWarehouseShipment, provider: myFromWarehouseShipment.provider ?? myFromWarehouseShipment.carrier }
+      : null,
+    myFromWarehouseShipment?.cargoCode,
+  );
+  const returnView = deriveShipmentView(
+    myReturnShipment
+      ? { ...myReturnShipment, provider: myReturnShipment.provider ?? myReturnShipment.carrier }
+      : null,
+    myReturnShipment?.cargoCode,
+  );
+
   return (
     <>
       {/* Legacy Kargo Durumu — yalnızca eski (direkt-kargo) takaslarda. */}
@@ -80,14 +106,16 @@ export function TradeShippingSection({
               Karşı taraf: {theirTrackingNumber || 'Henüz gönderilmedi'}
             </Text>
           </View>
-          {theirTrackingNumber && (
+          {legacyView.trackingUrl ? (
             <Button
               variant="outline"
               title="Kargoyu Takip Et"
-              onPress={() => openSuratTrack(theirTrackingNumber)}
+              onPress={() => openSuratTrack(legacyView.cargoCode!)}
               style={styles.trackButton}
             />
-          )}
+          ) : legacyView.isCodePending ? (
+            <Text variant="caption" tone="muted">{t('shipping.codePending')}</Text>
+          ) : null}
         </Card>
       )}
 
@@ -119,13 +147,15 @@ export function TradeShippingSection({
               <View style={styles.inboundChipRow}>
                 <ShipmentStatusChip testID="trade-status-chip-my-inbound" status={myToWarehouseShipment?.status} t={t} />
               </View>
-              {myToWarehouseShipment?.carrier === 'surat' && myToWarehouseShipment?.trackingNumber ? (
+              {toWarehouseView.trackingUrl ? (
                 <Button
                   variant="outline"
                   title="Sürat'ta Takip Et"
-                  onPress={() => openSuratTrack(myToWarehouseShipment.trackingNumber!)}
+                  onPress={() => openSuratTrack(toWarehouseView.cargoCode!)}
                   style={styles.trackButton}
                 />
+              ) : toWarehouseView.isCodePending ? (
+                <Text variant="caption" style={styles.inboundShipHint}>{t('shipping.codePending')}</Text>
               ) : null}
             </View>
             <Text variant="caption" style={styles.inboundShipHint}>
@@ -153,14 +183,16 @@ export function TradeShippingSection({
               <View style={styles.inboundChipRow}>
                 <ShipmentStatusChip testID="trade-status-chip-my-outbound" status={myFromWarehouseShipment.status} t={t} />
               </View>
-              {myFromWarehouseShipment.carrier === 'surat' && myFromWarehouseShipment.trackingNumber && (
+              {fromWarehouseView.trackingUrl ? (
                 <Button
                   variant="outline"
                   title="Sürat'ta Takip Et"
-                  onPress={() => openSuratTrack(myFromWarehouseShipment.trackingNumber!)}
+                  onPress={() => openSuratTrack(fromWarehouseView.cargoCode!)}
                   style={styles.trackButton}
                 />
-              )}
+              ) : fromWarehouseView.isCodePending ? (
+                <Text variant="caption" style={styles.inboundShipHint}>{t('shipping.codePending')}</Text>
+              ) : null}
             </View>
           ) : (
             <View style={styles.inboundShipBox}>
@@ -196,14 +228,16 @@ export function TradeShippingSection({
             <View style={styles.inboundChipRow}>
               <ShipmentStatusChip status={myReturnShipment.status} t={t} />
             </View>
-            {myReturnShipment.carrier === 'surat' && myReturnShipment.trackingNumber && (
+            {returnView.trackingUrl ? (
               <Button
                 variant="outline"
                 title="Sürat'ta Takip Et"
-                onPress={() => openSuratTrack(myReturnShipment.trackingNumber!)}
+                onPress={() => openSuratTrack(returnView.cargoCode!)}
                 style={styles.trackButton}
               />
-            )}
+            ) : returnView.isCodePending ? (
+              <Text variant="caption" style={styles.inboundShipHint}>{t('shipping.codePending')}</Text>
+            ) : null}
           </View>
         </Card>
       )}

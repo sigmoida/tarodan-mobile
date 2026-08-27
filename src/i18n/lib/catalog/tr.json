@@ -6401,5 +6401,8 @@
     "taxIdOptional": "Vergi No (opsiyonel)",
     "reverifyNotice": "Bilgileri güncellerseniz hesabınız yeniden doğrulanana kadar \"Doğrulanmadı\" durumuna döner.",
     "tcknInvalid": "TC Kimlik No 11 rakam olmalı"
+  },
+  "shipping": {
+    "codePending": "Kargo kodu hazırlanıyor"
   }
 }

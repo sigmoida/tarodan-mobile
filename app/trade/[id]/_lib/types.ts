@@ -9,6 +9,18 @@ export interface TradeShipment {
   trackingNumber?: string | null;
   status?: string | null;
   carrier?: string | null;
+  /**
+   * Gerçek taşıyıcı kodu — takip bununla yapılır.
+   *
+   * `trackingNumber` Tarodan'ın İÇ referansı (`TKS-…`); Sürat onu tanımaz ve
+   * alıcıya gösterilmez. Ayrım sipariş tarafında `deriveShipmentView` ile
+   * çözülüyor, takas tarafı bu alanı hiç bildirmediği için o yardımcıya
+   * bağlanamıyordu.
+   */
+  cargoCode?: string | null;
+  /** Sunucunun aynı bilgiyi taşıyan diğer adı; `deriveShipmentView` ikisini de okur. */
+  providerTrackingId?: string | null;
+  provider?: string | null;
 }
 
 export interface TradeCashPayment {

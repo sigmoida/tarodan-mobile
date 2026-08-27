@@ -6401,5 +6401,8 @@
     "taxIdOptional": "Tax Number (optional)",
     "reverifyNotice": "If you update these details, your account returns to \"Not verified\" until it is checked again.",
     "tcknInvalid": "The national ID must be 11 digits"
+  },
+  "shipping": {
+    "codePending": "Carrier code is being prepared"
   }
 }
