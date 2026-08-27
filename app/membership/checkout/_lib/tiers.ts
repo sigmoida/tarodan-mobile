@@ -41,7 +41,10 @@ export const MEMBERSHIP_TIERS = {
       'Takas özelliği',
       'Koleksiyon oluşturma',
       '10 öne çıkan ilan',
-      'Reklamsız deneyim',
+      // "Reklamsız deneyim" KALDIRILDI: banner'lar herkese gösteriliyor, hiçbir
+      // katman bu vaadi veremiyor. Staging'de ölçüldü (2026-08-26):
+      // `GET /membership/tiers` her katman için `isAdFree: null` döndürüyor.
+      // Web aynı vaadi 2026-08-12'de kaldırdı (`cae3d05c4`).
       'Öncelikli destek',
     ],
     color: colors.primary[600]!,
@@ -58,7 +61,6 @@ export const MEMBERSHIP_TIERS = {
       'Takas özelliği',
       'Koleksiyon oluşturma',
       '50 öne çıkan ilan',
-      'Reklamsız deneyim',
       'Öncelikli destek',
       'API erişimi',
       'Özel satıcı rozeti',

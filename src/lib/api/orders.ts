@@ -284,6 +284,21 @@ export const ordersApi = {
     body?: { reasonCode?: OrderCancellationReason; reason?: string },
   ) => api.post(`/orders/${id}/cancel`, body ?? {}),
   /**
+   * SEPETİN TAMAMINI iptal et (çok satıcılı grup).
+   *
+   * Web bunu 2026-08-12'den beri sunuyor; mobilde grup ekranı yalnız okunurdu,
+   * yani çok satıcılı bir siparişi iptal etmenin tek yolu kalemleri tek tek
+   * gezmekti. Uç staging'de doğrulandı (2026-08-26): uydurma bir kimlikle
+   * `404 {"i18nKey":"server.order.groupNotFound"}` dönüyor — route var, grup yok.
+   *
+   * Gövde tekil iptalle AYNI; `reasonCode` aynı gerekçeyle zorunlu
+   * (bkz. `cancel` ve `@/lib/shared/orderCancellation`).
+   */
+  cancelGroup: (
+    groupId: string,
+    body?: { reasonCode?: OrderCancellationReason; reason?: string },
+  ) => api.post(`/orders/groups/${groupId}/cancel`, body ?? {}),
+  /**
    * Misafir sipariş iptali (kargo öncesi) — delta 19, staging'de canlı.
    *
    * Kimlik doğrulaması takip ucuyla AYNI (sipariş numarası + siparişteki

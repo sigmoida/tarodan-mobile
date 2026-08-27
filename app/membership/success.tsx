@@ -32,7 +32,10 @@ const TIER_FEATURES: Record<TierKey, TierFeature[]> = {
     { icon: 'swap-horizontal', label: 'Takas özelliği' },
     { icon: 'albums', label: 'Koleksiyon oluşturma' },
     { icon: 'star', label: '10 öne çıkan ilan' },
-    { icon: 'shield-checkmark', label: 'Reklamsız deneyim' },
+    // "Reklamsız deneyim" KALDIRILDI — banner'lar herkese gösteriliyor ve
+    // sunucu her katman için `isAdFree: null` döndürüyor (staging, 2026-08-26).
+    // Satın alma SONRASI ekranda duruyordu: kullanıcı parayı ödedikten sonra
+    // karşılığı olmayan bir vaat okuyordu.
   ],
   business: [
     { icon: 'list', label: '200 ücretsiz ilan' },

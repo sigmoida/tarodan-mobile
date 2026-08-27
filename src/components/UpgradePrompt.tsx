@@ -126,10 +126,13 @@ export default function UpgradePrompt({
           <Ionicons name="checkmark" size={16} color={colors.success[600]!} />
           <Text style={styles.featureText}>Dijital Garaj</Text>
         </View>
-        <View style={styles.featureRow}>
-          <Ionicons name="checkmark" size={16} color={colors.success[600]!} />
-          <Text style={styles.featureText}>Reklamsız deneyim</Text>
-        </View>
+        {/*
+          "Reklamsız deneyim" KALDIRILDI: banner'lar herkese gösteriliyor ve
+          sunucu her katman için `isAdFree: null` döndürüyor (staging,
+          2026-08-26). Vaadin kendisi devre dışı; `useAds`'teki `isAdFree`
+          kapısı kodda kalıyor çünkü alan bir gün dolarsa mekanizma çalışır —
+          ama pazarlama metni karşılığı olmayan bir söz veremez.
+        */}
       </View>
 
       <Button
