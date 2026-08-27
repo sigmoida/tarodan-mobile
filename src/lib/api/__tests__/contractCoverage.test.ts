@@ -7,22 +7,39 @@
  * eriyordu. `rejectionReason` de öyle: satıcı ilanının neden reddedildiğini
  * hiçbir yerde göremiyordu.
  *
- * Bu test o sınıfı kapatıyor: ÖLÇÜLMÜŞ gövdedeki her alan adı, ilgili tip
- * KAYNAKLARINDA geçmiyorsa ya gerekçesiyle `KNOWN_UNDECLARED`'da durur ya da
- * test düşer.
+ * Bu test o sınıfı kapatıyor: ÖLÇÜLMÜŞ gövdedeki her alan adı, `ORDERS_TYPE_
+ * SOURCES`'ta AŞAĞIDA SAYILAN dosyaların hiçbirinde geçmiyorsa ya gerekçesiyle
+ * `KNOWN_UNDECLARED`'da durur ya da test düşer.
  *
  * TİP KAYNAKLARI TEK DOSYA DEĞİL: `src/lib/api/<domain>.ts` yalnız axios
  * yüzeyi — orada `getAll`/`getOne`/`getGroup`/`getGroups` jenerik `api.get()`
  * döndürüyor, gövdenin GERÇEK tipi rota-yerel `_lib/types.ts` dosyalarında
- * yaşıyor (`OrderDetail`, `GroupOrder`, …). Fix round 1'de bu ayrım
- * gözden kaçtı ve guard yalnız `orders.ts`'i okuyunca 217 "bildirilmemiş"
- * alan çıktı — bunların çoğu rota-yerel tipte ZATEN bildirilmişti, guard
- * yanlış yere bakıyordu. `readTypes` bu yüzden bir dosya değil, gövdeyi
- * deklare eden dosyaların LİSTESİNİ okuyup birleştiriyor.
+ * yaşıyor (`OrderDetail`, `GroupOrder`, `Order`/`OrderGroup`, …). Fix round
+ * 1'de bu ayrım gözden kaçtı ve guard yalnız `orders.ts`'i okuyunca 217
+ * "bildirilmemiş" alan çıktı — bunların çoğu rota-yerel tipte ZATEN
+ * bildirilmişti, guard yanlış yere bakıyordu.
  *
- * SINIRI: alan ADINA bakar, tipe ya da iç içe yapıya DEĞİL. `total: string`
- * yazılmışsa yakalamaz. Yakaladığı tek şey yanıtta olup hiçbir tip
- * kaynağında hiç olmayan alan.
+ * ⚠️ `ORDERS_TYPE_SOURCES` bu gövdeyi deklare eden dosyaların BİLİNEN
+ * listesidir, KANITLANMIŞ TAM listesi değildir — testin kendisi listenin
+ * eksiksiz olduğunu doğrulayamaz. Yeni bir rota-yerel tip dosyası eklenirse
+ * (ya da var olan bir alan yalnız YENİ bir dosyada bildirilirse) bu listeyi
+ * güncellemek İNSAN sorumluluğu; unutulursa test SESSİZ kalır, uyarmaz
+ * (fix round 2'de `app/orders/_lib/ordersStatus.ts` böyle eksik kalmıştı —
+ * bugün fark etmedi çünkü yaprak adları zaten `OrderDetail`/`GroupOrder`'da
+ * vardı, ama tesadüfti).
+ *
+ * SINIRI (iki farklı şey): (1) alan ADINA bakar, tipe ya da iç içe yapıya
+ * DEĞİL — `total: string` yazılmışsa yakalamaz. (2) YAPRAK ADI EŞLEŞMESİ
+ * KONUM-KÖR — bir ad tip kaynaklarının HERHANGİ BİRİNDE, HERHANGİ BİR ALAKASIZ
+ * yapıda geçiyorsa "bildirilmiş" sayılır. Guard'ın YAKALADIĞI TEK ŞEY:
+ * kod tabanının HİÇBİR YERDE hiç görmediği bir alan adı. YAKALAYAMADIĞI:
+ * bilinen bir adın YENİ bir konumda belirmesi. Somut örnek (review turu 2'de
+ * bulundu, guard'ın kendisi YAKALAMADI): `list.meta.total` / `groups.meta.total`
+ * sayfalama alanları `declared` sayıldı çünkü `total` adı `orders.ts`'de
+ * `OrderQuotePricingSummary.total` olarak (TAMAMEN alakasız bir checkout-fiyat
+ * alanı) zaten geçiyordu — guard adı gördü, konumun sayfalama meta'sı değil
+ * fiyat özeti olduğunu bilemedi. Bu iki satır `KNOWN_UNDECLARED`'da bu yüzden
+ * elle duruyor.
  */
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
@@ -40,6 +57,7 @@ const ORDERS_TYPE_SOURCES = [
   'src/lib/api/orders.ts',
   'app/orders/[id]/_lib/types.ts',
   'app/orders/group/[id]/_lib/types.ts',
+  'app/orders/_lib/ordersStatus.ts',
 ];
 
 /**
@@ -53,12 +71,16 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
   orders: new Set<string>([
     // ── Mobil bu alanları hiç kullanmıyor ve kullanmamalı ───────────────────
     // Fix round 1 (bkz. dosya başı doc yorumu): guard artık yalnız
-    // `src/lib/api/orders.ts`'i değil, `ORDERS_TYPE_SOURCES`'taki ÜÇ dosyayı
-    // birlikte okuyor. Önceki tur 217 alan listelemişti; bunların 126'sı
-    // rota-yerel tiplerde (`OrderDetail`, `GroupOrder`) ZATEN bildirilmişti —
-    // guard yanlış yere bakıyordu, alan eksik değildi. Geriye kalan 91'i
-    // `app/orders/**` içinde `grep`le tek tek doğruladım: hiçbiri hiçbir
-    // ekranda okunmuyor.
+    // `src/lib/api/orders.ts`'i değil, `ORDERS_TYPE_SOURCES`'taki dosyaları
+    // (fix round 2'de dördüncüsü — `ordersStatus.ts` — eklendi) birlikte
+    // okuyor. İlk tur 217 alan listelemişti; büyük çoğunluğu rota-yerel
+    // tiplerde (`OrderDetail`, `GroupOrder`, `Order`/`OrderGroup`) ZATEN
+    // bildirilmişti — guard yanlış yere bakıyordu, alan eksik değildi.
+    // Aşağıdaki satırların NEREDEYSE TAMAMINI `app/orders/**` içinde
+    // `grep`le tek tek doğruladım: hiçbiri hiçbir ekranda okunmuyor. İKİ
+    // İSTİSNA VAR — `list.meta.total` / `groups.meta.total` — bunlar `grep`le
+    // değil, review turu 2'nin bulduğu bir isim çakışmasıyla buraya geldi;
+    // ayrıntı bu iki satırın kendi yorumunda ve dosya başı SINIRI notunda.
     //   - `canReactivate` / `cancelCategory` / `cancelReason` / `checkoutGroupId` /
     //     `packageId` / `updatedAt`: sunucu tarafı muhasebe/iş akışı alanları —
     //     ekranın kullandığı denklik `status` + `cancellationType` + zaman
@@ -76,10 +98,16 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     //     `address` satırı gösteriyor (bkz. `OrderDetail.shippingAddress.address`).
     //   - `activeRefundRequest.returnCargoCode` / `returnStatus`: iade
     //     ekranı yalnız `returnProvider` + `returnTrackingNumber` gösteriyor.
-    //   - `groups.data.kind`: grup tekli/çoklu ayrımını mobil zaten
-    //     `orders.length === 1` ile İSTEMCİDE türetiyor (bkz. `useOrders.ts`).
-    //     (`app/orders/index.tsx`'teki `kind: 'order' | 'group'` AYRI bir
-    //     yerel UI etiketi — sunucunun `kind` alanıyla karışmasın.)
+    //   - Sunucunun `groups.data.kind` alanı grup tekli/çoklu ayrımı içindir;
+    //     mobil bunu zaten `orders.length === 1` ile İSTEMCİDE türetiyor
+    //     (bkz. `useOrders.ts`), sunucu alanını hiç okumuyor. Satır fix
+    //     round 2'de `KNOWN_UNDECLARED`'dan SİLİNDİ — `ordersStatus.ts`
+    //     `ORDERS_TYPE_SOURCES`'a eklenince `OrderListEntry`'nin kendi
+    //     `kind: 'order' | 'group'` etiketi (TAMAMEN ayrı, yerel bir UI
+    //     alanı) guard'a "bildirilmiş" gösterdi. Alan hâlâ okunmuyor; bu
+    //     yalnız dosya başı SINIRI notundaki isim-çakışması sınırının BİR
+    //     BAŞKA canlı örneği — `meta.total` ile aynı sınıf, bu kez allowlist'i
+    //     KISALTAN yönde.
     //   - `groups.data.viewerRole`: bu ekran yalnız alıcı rolünde çalışıyor
     //     (satıcı sekmesi ayrı bir uç kullanıyor), sunucudan rol okumaya
     //     gerek yok.
@@ -89,6 +117,13 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     //     (`grep -rn '\.meta\b' app/orders` boş döner). Önceki turda bu
     //     "kullanılıyor" sayılmıştı — o bir yanlıştı, istek parametresiyle
     //     yanıt alanı karıştırılmıştı; burada düzeltildi.
+    //   - `*.meta.total`: AYNI sayfalama üstverisi ailesi, AYNI sebeple hiç
+    //     okunmuyor — ama `limit`/`page`/`totalPages`'ın aksine bu ikisi
+    //     guard TARAFINDAN YAKALANMADI, review turu 2'de elle bulundu:
+    //     `total` adı `orders.ts`'de `OrderQuotePricingSummary.total`
+    //     (checkout fiyat özeti, sayfalamayla İLGİSİZ) olarak zaten geçtiği
+    //     için guard onu "bildirilmiş" saydı. Dosya başı SINIRI notundaki
+    //     isim-çakışması örneği budur.
     //
     // `packages` NOTU (satıcı bazlı kargo kırılımı): önceki turda "58 alan
     // hiç okunmuyor" diye ayrı bir blok vardı (`groups.data.packages.*`).
@@ -126,7 +161,6 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     'detail.shippingAddress.addressLine1',
     'detail.shippingAddress.addressLine2',
     'detail.updatedAt',
-    'groups.data.kind',
     'groups.data.orders.activeRefundRequest.returnCargoCode',
     'groups.data.orders.activeRefundRequest.returnStatus',
     'groups.data.orders.buyer.isVerified',
@@ -173,6 +207,7 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     'groups.data.viewerRole',
     'groups.meta.limit',
     'groups.meta.page',
+    'groups.meta.total',
     'groups.meta.totalPages',
     'list.data.activeRefundRequest.returnCargoCode',
     'list.data.activeRefundRequest.returnStatus',
@@ -196,6 +231,7 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     'list.data.updatedAt',
     'list.meta.limit',
     'list.meta.page',
+    'list.meta.total',
     'list.meta.totalPages',
   ]),
 };

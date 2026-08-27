@@ -332,7 +332,7 @@ jq 'walk(
   if type == "object" then
     with_entries(
       if (.key | IN("email","phone","contactPhone","guestName","fullName",
-                    "displayName","address","addressLine","addressLine1","addressLine2",
+                    "displayName","publicName","address","addressLine","addressLine1","addressLine2",
                     "zipCode","postalCode","iban","taxId","tcKimlikNo","accountHolder"))
          and (.value | type == "string")
       then .value = "REDACTED" else . end)
