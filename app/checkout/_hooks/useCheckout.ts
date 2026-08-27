@@ -330,6 +330,21 @@ export function useCheckout() {
   const serviceFeeAmount = serverAmount(summary?.serviceFeeAmount);
   const total = serverAmount(summary?.total);
   /**
+   * Kampanya kazançları — TOPLANAN DEĞİL, AÇIKLAMA satırları.
+   *
+   * `productAmount` / `serviceFeeAmount` zaten indirimli tutarı taşıyor; bu
+   * alanlar kazancın KAYNAĞINI söyler. Aksi halde "2 al 1 öde" ya da bir bedel
+   * kampanyası, toplam düşerken hiçbir yerde etiketlenmeden eriyordu (web bunu
+   * 2026-08-13'te düzeltti; mobil geride kalmıştı).
+   *
+   * `quantityDiscount`/`feeDiscountTotal` staging'de doğrulandı (her ölçümde 0 —
+   * hesapta aktif kampanya yok), `feeDiscounts` satırlarının DOLU hâli
+   * görülemedi; o yüzden dizi savunmacı okunur.
+   */
+  const quantityDiscount = serverAmount(summary?.quantityDiscount);
+  const feeDiscountTotal = serverAmount(summary?.feeDiscountTotal);
+  const feeDiscounts = Array.isArray(summary?.feeDiscounts) ? summary!.feeDiscounts! : [];
+  /**
    * Sunucunun uyguladığı indirim — quote yanıtının KÖKÜNDEKİ `couponDiscount`.
    * `/discounts/validate`'in `estimatedDiscount`'u DEĞİL: o yalnız bir tahmin ve
    * özet satırlarıyla tutarlı değil. Özet satırı olarak basılmaz (üç satır zaten
@@ -892,6 +907,7 @@ export function useCheckout() {
     // `null` (yer tutucu basılır, yerel sayı uydurulmaz).
     shippingCost, shippingLoading,
     productAmount, serviceFeeAmount, total,
+    quantityDiscount, feeDiscounts, feeDiscountTotal,
     /** Quote'un fiyatlayamadığı satırlar — bilgi amaçlı, hiçbir tutar hesabına girmez. */
     unavailableItems,
     /** Ödemeye giren satırlar = sepet − ayrılanlar. Özet listesi ve ürün sayacı BUNU kullanır. */

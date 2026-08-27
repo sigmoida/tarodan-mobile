@@ -16,6 +16,44 @@
 > okunacak tek şey **web + api sözleşmesi**.
 
 
+
+---
+
+## 2026-08-26 · commit ağacı taraması — delta 19'un kaçırdıkları
+
+Delta 19 turunda adaylar `dto/**` + `*.controller.ts` diffinden türetilmişti.
+**Yöntemin deliği:** `pricing.summary` bir SERVİSTE kuruluyor, DTO'da tanımlı
+değil — o yüzden hiç görünmedi. `rejectionReason` de öyle. Web'in özellik
+commit'leri tek tek yürününce altı davranış farkı çıktı; hepsi staging'de
+doğrulandı ve kapatıldı.
+
+| # | Bulgu | Ölçüm | Durum |
+|---|---|---|---|
+| 1 | **Sepet/ödeme özetinde iki kampanya satırı eksik** | `pricing.summary` **7** alan döndürüyor, mobilin tipi **4** tanesini tanıyordu (`quantityDiscount`, `feeDiscounts`, `feeDiscountTotal` yok) | ✅ kapandı |
+| 2 | **Reddedilen ilanın gerekçesi gösterilmiyor** | `GET /products/my` `rejectionReason` yayınlıyor (alan VAR; hesaptaki eski kayıtta `null`) | ✅ kapandı |
+| 3 | **Yıllık indirim rozeti fazla vaat edebilir** | Oran yalnız premium'dan türetiliyordu | ✅ kapandı — artık tüm ücretli katmanların EN DÜŞÜĞÜ |
+| 4 | **Misafir kurumsal paketi göremiyor** | Web girişsiz ziyaretçiye dördünü de gösteriyor | ✅ kapandı |
+| 5 | **1 KB altı görsel kontrolü yok** | Sunucuda alt sınır yok; web istemcide koydu | ✅ kapandı |
+| 6 | `quantityDiscount` tipi | (1)'in parçası | ✅ kapandı |
+
+**Kritik tasarım notu (1 için).** Mobilin `OrderSummary`'sinde bunu yasaklayan
+gerekçeli bir yorum vardı: *"üç satırın toplamı `total`a eşit olmalı, başka para
+satırı eklenmez."* Gerekçe doğruydu; web bunu satırları **toplanan değil
+açıklayan** yaparak çözmüş — `productAmount` zaten indirimli tutarı taşıyor,
+kampanya satırı yalnız kaynağı söylüyor. `feeDiscountTotal` bilinçli olarak
+TOPLAMIN ALTINDA duruyor. Aynı karar mobilde de uygulandı ve yorum güncellendi.
+
+**Doğrulanamayanlar (dürüstlük payı):** `feeDiscounts` dizisinin DOLU hâli
+staging'de görülemedi (hesapta aktif kampanya yok, her ölçümde `[]`);
+`rejectionReason` da dolu bir örnekte görülemedi (tek reddedilmiş ilan gerekçenin
+kalıcılaştığı 2026-08-13 değişikliğinden eski). İkisinin de şekli ana repodan
+alındı, ikisi de boşken hiçbir şey çizmiyor.
+
+**Kalıcı ders — yönteme eklendi:** sözleşme taraması DTO diffiyle bitmiyor.
+Yanıt gövdesini KURAN servisler ve web'in özellik commit'leri de yürünmeli;
+aksi halde iç içe alanlar (`pricing.summary` gibi) ve DTO'suz eklenen alanlar
+görünmez kalıyor.
+
 ---
 
 ## 2026-08-26 · Kalan işler — ölçülmüş durum

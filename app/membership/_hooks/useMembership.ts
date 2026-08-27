@@ -106,10 +106,22 @@ export function useMembership() {
       ],
     );
 
+  /**
+   * Hangi katmanlar gösterilir.
+   *
+   * Kurumsal-izli hesap (davet aktivasyonundan itibaren) ya da mevcut business
+   * üyeliği olan YALNIZ business'ı görür. Girişli bireysel hesap business'ı
+   * görmez. **Girişsiz ziyaretçi DÖRDÜNÜ de görür** — kurumsal teklif herkese
+   * görünür olmalı; bu kapı eskiden misafiri de kapsıyordu ve kurumsal paket
+   * mobilde hiç keşfedilemiyordu. Kural web'inkiyle birebir aynı
+   * (`visibleTiers`, 2026-08-13).
+   */
   const visibleTiers: TierType[] =
     isBusinessAccount || isBusinessTier
       ? TIER_ORDER.filter((tier) => tier === "business")
-      : TIER_ORDER.filter((tier) => tier !== "business");
+      : !isAuthenticated
+        ? [...TIER_ORDER]
+        : TIER_ORDER.filter((tier) => tier !== "business");
 
   const getPrice = (tier: TierType): number => {
     if (tier === "free") return 0;

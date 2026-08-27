@@ -61,6 +61,9 @@ export default function CheckoutScreen() {
           shippingCost={c.shippingCost}
           serviceFeeAmount={c.serviceFeeAmount}
           total={c.total}
+          quantityDiscount={c.quantityDiscount}
+          feeDiscounts={c.feeDiscounts}
+          feeDiscountTotal={c.feeDiscountTotal}
           // Tutar YOK ama hata da yok (200 döndü, `total` alanı boş): buton zaten
           // kapalı, ama çıkış yolu olmadan kullanıcı dört "—" ile kilitli kalır.
           // `quoteLoading` kapısı ilk yüklemede hata kartının yanıp sönmesini önler.

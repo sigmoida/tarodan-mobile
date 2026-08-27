@@ -77,10 +77,28 @@ export function mapTiersToSettings(list: any[]): PlatformSettings {
   const basic = by('basic');
   const premium = by('premium');
   const business = by('business');
-  // Yıllık indirim %'sini premium tier fiyatından türet (monthly*12 vs yearly).
   const pm = num(premium?.monthlyPrice);
   const py = num(premium?.yearlyPrice);
-  const pct = pm && py && pm * 12 > 0 ? Math.round((1 - py / (pm * 12)) * 100) : undefined;
+  /**
+   * Yıllık indirim rozeti — TÜM ücretli katmanların oranından, EN DÜŞÜĞÜ.
+   *
+   * Eskiden yalnız premium'un oranı okunuyordu. Katmanların oranı ayrıştığı gün
+   * (admin bir katmanın yıllık fiyatını değiştirdiğinde) rozet, bazı kartlarda
+   * olandan FAZLASINI vaat ediyordu. Bugün üçü de %20 olduğu için görünür etkisi
+   * yok — yani bu sessiz bir yalan, ölçümle değil ancak okumayla yakalanır.
+   * Web aynı düzeltmeyi 2026-08-13'te yaptı; kural oradan alındı: "rozet hiçbir
+   * kartta olandan fazlasını vaat edemez."
+   */
+  const yearlyPct = (monthly?: number, yearly?: number) =>
+    monthly && yearly && monthly * 12 > 0
+      ? Math.round((1 - yearly / (monthly * 12)) * 100)
+      : undefined;
+  const discountPcts = [
+    yearlyPct(num(basic?.monthlyPrice), num(basic?.yearlyPrice)),
+    yearlyPct(pm, py),
+    yearlyPct(num(business?.monthlyPrice), num(business?.yearlyPrice)),
+  ].filter((v): v is number => typeof v === 'number' && v > 0);
+  const pct = discountPcts.length ? Math.min(...discountPcts) : undefined;
   return {
     free_listing_limit: num(free?.maxTotalListings),
     basic_listing_limit: num(basic?.maxTotalListings),

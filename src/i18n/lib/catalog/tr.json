@@ -698,7 +698,8 @@
     "reportReasonFake": "Sahte Ürün",
     "imageUploadIncomplete": "Bazı görseller yüklenemedi. Lütfen tekrar deneyin.",
     "saveWhileUploading": "Görseller yükleniyor…",
-    "listingChangedElsewhere": "Bu ilan başka bir yerden güncellendi. En güncel hali yüklendi, değişikliklerinizi tekrar uygulayın."
+    "listingChangedElsewhere": "Bu ilan başka bir yerden güncellendi. En güncel hali yüklendi, değişikliklerinizi tekrar uygulayın.",
+    "rejectionReason": "Red gerekçesi"
   },
   "cart": {
     "addToCartFailed": "Sepete eklenemedi",
@@ -903,7 +904,9 @@
     "verificationCodeInvalid": "Doğrulama kodu geçersiz veya süresi dolmuş.",
     "verificationCodeSendFailed": "Doğrulama kodu gönderilemedi.",
     "yourAddresses": "Kayıtlı Adresleriniz",
-    "zipCode": "Posta Kodu"
+    "zipCode": "Posta Kodu",
+    "quantityCampaignDiscount": "Adet kampanyası indirimi",
+    "campaignSavings": "Kampanya kazancınız"
   },
   "order": {
     "myOrders": "Siparişlerim",
@@ -6342,7 +6345,11 @@
     "filterDeleted": "Kaldırılan",
     "filterAll": "Tümü",
     "statusPendingApproval": "Onay Bekliyor",
-    "statusDeleted": "Kaldırıldı"
+    "statusDeleted": "Kaldırıldı",
+    "expiresInDays": "{days} gün içinde süresi dolacak",
+    "imageTooSmallTitle": "Görsel çok küçük",
+    "imageTooSmallBody": "{count} görsel 1 KB altında olduğu için eklenmedi. Boş ya da bozuk bir dosya olabilir.",
+    "imageAllTooSmall": "Seçilen görsellerin hiçbiri eklenemedi: hepsi 1 KB altında."
   },
   "business": {
     "tabOverview": "Genel Bakış",

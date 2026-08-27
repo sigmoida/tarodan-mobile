@@ -27,3 +27,13 @@ export const YEAR_OPTIONS = Array.from({ length: currentYear - 1950 + 1 }, (_, i
 // listesinden dışlanır.
 export const BRAND_SLUGS = ['hot-wheels', 'hot-wheels-premium', 'hot-wheels-rlc', 'matchbox', 'tomica', 'majorette', 'maisto', 'bburago', 'welly', 'jada', 'greenlight', 'auto-world', 'mini-gt', 'tarmac-works', 'inno64', 'pop-race'];
 export const SCALE_SLUGS = ['scale-118', 'scale-124', 'scale-143', 'scale-164'];
+
+/**
+ * Ürün fotoğrafı için istemci-tarafı alt sınır.
+ *
+ * Sunucuda alt sınır YOK (`media.service.ts` yalnız 10 MB üst sınırına bakar) —
+ * bu tamamen kalite kuralı: 1 KB altında anlamlı bir ürün fotoğrafı pratikte
+ * bulunmuyor, gelen şey boş/bozuk kayıt ya da galeri yer tutucusu oluyor.
+ * Web'deki `MIN_IMAGE_BYTES` ile aynı değer (2026-08-15).
+ */
+export const MIN_IMAGE_BYTES = 1024;

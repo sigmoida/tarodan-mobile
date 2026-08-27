@@ -118,6 +118,17 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
+  rejectionBox: {
+    marginTop: theme.spacing[2],
+    paddingVertical: theme.spacing[2],
+    paddingHorizontal: theme.spacing[3],
+    borderRadius: theme.radius.lg,
+    backgroundColor: colors.danger[50]!,
+  },
+  rejectionText: {
+    fontSize: 12,
+    color: colors.danger[700]!,
+  },
   expiryWarning: {
     flexDirection: 'row',
     alignItems: 'center',

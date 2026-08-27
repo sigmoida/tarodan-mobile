@@ -18,6 +18,22 @@ export type OrderAddressInput = {
  * buradan gelir. `pricing.summary` ekranda basılacak TEK doğru kırılım (§CLAUDE.md
  * "parayla ilgili hiçbir değeri istemcide hesaplama").
  */
+/**
+ * Bedel kampanyasının bu sepete verdiği tek indirim satırı.
+ *
+ * ⚠️ Şekil ana repodaki `OrderSummaryAmounts`'tan alındı; staging'de DOLU bir
+ * örnek bulunamadı (`feeDiscounts` her ölçümde `[]` döndü — hesapta aktif
+ * kampanya yok). Alanların varlığı doğrulandı, değerleri doğrulanmadı — bu
+ * yüzden hepsi savunmacı okunur.
+ */
+export type OrderQuoteFeeDiscount = {
+  /** Hangi bedelden indi (`commission` / `shipping` / `service_fee` …). */
+  target: string;
+  name: string;
+  code: string | null;
+  amount: number;
+};
+
 export type OrderQuotePricingSummary = {
   /** Kupon sonrası ürün ara toplamı — kuponu ekranda bir daha düşme. */
   productAmount: number;
@@ -25,6 +41,19 @@ export type OrderQuotePricingSummary = {
   /** Hizmet bedeli + TÜM alıcı hizmet KDV'si — ayrı bir KDV satırı ekleme. */
   serviceFeeAmount: number;
   total: number;
+  /**
+   * Adet kampanyası (bogo/bulk) kazancı.
+   *
+   * ⚠️ Bu bir TOPLANAN DEĞİL, AÇIKLAMA. `productAmount` zaten indirimli tutarı
+   * taşıyor; bu alan kazancın KAYNAĞINI söyler. Toplama eklenirse satırlar
+   * `total`ı tutmaz. (Web aynı kararı verdi: satır ürün tutarının hemen altında,
+   * eksi işaretiyle, ve toplama girmiyor.)
+   */
+  quantityDiscount?: number;
+  /** Aynı mantık: bedel kampanyalarının kalem kalem dökümü. Toplanan değil. */
+  feeDiscounts?: OrderQuoteFeeDiscount[];
+  /** Bedel kampanyalarının toplamı — TOPLAMIN ALTINDA "kampanya kazancı" olarak. */
+  feeDiscountTotal?: number;
 };
 
 export type OrderQuotePricing = {

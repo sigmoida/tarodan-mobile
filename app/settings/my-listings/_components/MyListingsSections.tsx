@@ -142,11 +142,24 @@ export function MyListingCard({
           </View>
         </View>
 
+        {/*
+          Red gerekçesi — satıcının ilanının NEDEN reddedildiğini öğrendiği tek
+          yer. `rejectionReason` boşken hiçbir şey çizilmez: boş bir kırmızı
+          kutu, gerekçe yokmuş gibi değil "bir şey bozuk" gibi görünür.
+        */}
+        {listing.status === 'rejected' && listing.rejectionReason ? (
+          <View style={styles.rejectionBox}>
+            <Text style={styles.rejectionText}>
+              {t('product.rejectionReason')}: {listing.rejectionReason}
+            </Text>
+          </View>
+        ) : null}
+
         {/* Expiry Warning */}
         {listing.status === 'active' && daysUntilExpiry !== null && daysUntilExpiry <= 7 && daysUntilExpiry > 0 && (
           <View style={styles.expiryWarning}>
             <Ionicons name="warning" size={14} color={colors.warning[600]!} />
-            <Text style={styles.expiryText}>{daysUntilExpiry} gün içinde süresi dolacak</Text>
+            <Text style={styles.expiryText}>{t('listing.expiresInDays', { days: daysUntilExpiry })}</Text>
           </View>
         )}
 

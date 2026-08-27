@@ -17,6 +17,16 @@ export interface Listing {
   condition: string;
   category?: { name: string };
   boostedUntil?: string | null;
+  /**
+   * Moderasyon reddi gerekçesi — yalnız `rejected` durumunda dolu.
+   *
+   * Staging'de ölçüldü (2026-08-26): alan `GET /products/my` yanıtında VAR ama
+   * hesaptaki reddedilmiş ilanda `null` — o kayıt gerekçenin kalıcılaştığı
+   * 2026-08-13 değişikliğinden ESKİ. Yani alanın varlığı doğrulandı, DOLU bir
+   * örnek görülemedi; bu yüzden boşken hiçbir şey çizilmez (boş bir kırmızı
+   * kutu, gerekçe yokmuş gibi değil "bir şey bozuk" gibi görünür).
+   */
+  rejectionReason?: string | null;
 }
 
 export type FilterType =

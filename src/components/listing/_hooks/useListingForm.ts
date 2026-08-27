@@ -13,7 +13,7 @@ import { toFormValues } from '../_lib/editMapper';
 import { useAuthStore } from '../../../stores/authStore';
 import { api, productsApi, categoriesApi, bankAccountApi, shippingApi } from '@/lib/api';
 import { qk } from '@/lib/query';
-import { FALLBACK_SCALES, FALLBACK_MATERIALS, BRAND_SLUGS, SCALE_SLUGS } from '../_lib/constants';
+import { FALLBACK_SCALES, FALLBACK_MATERIALS, BRAND_SLUGS, SCALE_SLUGS , MIN_IMAGE_BYTES } from '../_lib/constants';
 import type {
   Category,
   Brand,
@@ -505,7 +505,30 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
 
     if (result.canceled || result.assets.length === 0) return;
 
-    const assets = result.assets.slice(0, remaining);
+    /**
+     * 1 KB altı dosyalar elenir — boş/bozuk kayıtlar ve galeri yer tutucuları
+     * buradan geliyor.
+     *
+     * ⚠️ Bu YALNIZCA istemci kuralı: sunucuda alt sınır YOK (`media.service.ts`
+     * yalnız 10 MB üst sınırına bakar), yani burada elenen bir dosya teknik
+     * olarak yüklenebilirdi. Sınır kalite için; 1 KB altında anlamlı bir ürün
+     * fotoğrafı pratikte yok. Web aynı kuralı 2026-08-15'te koydu.
+     *
+     * `fileSize` her platformda gelmiyor; GELMEYEN dosya elenmez — bilmediğimiz
+     * için reddetmek, kullanıcının geçerli fotoğrafını sessizce düşürmek olurdu.
+     */
+    const picked = result.assets.slice(0, remaining);
+    const assets = picked.filter(
+      (a) => typeof a.fileSize !== 'number' || a.fileSize >= MIN_IMAGE_BYTES,
+    );
+    const skipped = picked.length - assets.length;
+    if (assets.length === 0) {
+      appAlert(t('listing.imageTooSmallTitle'), t('listing.imageAllTooSmall'));
+      return;
+    }
+    if (skipped > 0) {
+      appAlert(t('listing.imageTooSmallTitle'), t('listing.imageTooSmallBody', { count: skipped }));
+    }
     setUploadingImages(true);
 
     try {

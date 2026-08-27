@@ -698,7 +698,8 @@
     "reportReasonFake": "Fake item",
     "imageUploadIncomplete": "Some images could not be uploaded. Please try again.",
     "saveWhileUploading": "Uploading images…",
-    "listingChangedElsewhere": "This listing was updated elsewhere. The latest version has been loaded; please reapply your changes."
+    "listingChangedElsewhere": "This listing was updated elsewhere. The latest version has been loaded; please reapply your changes.",
+    "rejectionReason": "Rejection reason"
   },
   "cart": {
     "addToCartFailed": "Could not add to cart",
@@ -903,7 +904,9 @@
     "verificationCodeInvalid": "The verification code is invalid or has expired.",
     "verificationCodeSendFailed": "The verification code could not be sent.",
     "yourAddresses": "Your Saved Addresses",
-    "zipCode": "Zip Code"
+    "zipCode": "Zip Code",
+    "quantityCampaignDiscount": "Quantity campaign discount",
+    "campaignSavings": "Your campaign savings"
   },
   "order": {
     "myOrders": "My Orders",
@@ -6342,7 +6345,11 @@
     "filterDeleted": "Removed",
     "filterAll": "All",
     "statusPendingApproval": "Awaiting Approval",
-    "statusDeleted": "Removed"
+    "statusDeleted": "Removed",
+    "expiresInDays": "Expires in {days} days",
+    "imageTooSmallTitle": "Image too small",
+    "imageTooSmallBody": "{count} image(s) were skipped because they are under 1 KB. They may be empty or corrupted.",
+    "imageAllTooSmall": "None of the selected images could be added: they are all under 1 KB."
   },
   "business": {
     "tabOverview": "Overview",
