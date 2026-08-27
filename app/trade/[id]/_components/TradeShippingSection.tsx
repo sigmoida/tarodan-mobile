@@ -68,7 +68,8 @@ export function TradeShippingSection({
   // Gerçek taşıyıcı kodu HEP `deriveShipmentView` üzerinden — iç referans
   // (`TKS-…`) hiçbir zaman `openSuratTrack`'e verilmez (§ kargo takibi).
   // Legacy alan yalnız iç referansı taşır; gerçek kod API'de hiç bulunmuyor
-  // (v2 yanıtında initiatorTrackingNumber/receiverTrackingNumber alanı yok),
+  // (v2 yanıtında initiatorTrackingNumber/receiverTrackingNumber alanı VAR
+  // ama değeri ölçülen örneklerde HEP `null` — dolu bir değer gözlenmedi),
   // o yüzden bu görünüm HER ZAMAN isCodePending=true döner. Diğer üç karttan
   // FARKLI olarak burada "kod hazırlanıyor" metni de basılmaz — bu dal asla
   // ilerlemeyecek bir "yakında gelecek" sözü vermiş olurdu (bkz. JSX'teki not).

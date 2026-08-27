@@ -3,8 +3,15 @@
  *
  * `mapApiUserToUser` kırk kadar alan haritalıyor, `birthDate`'i taşımıyordu.
  * Profil düzenleme ekranı (`useEditProfile.ts:54`) onu okuyor, yani alan HER
- * ZAMAN boş açılıyordu — ve form kaydedilince (satır 99) o boş değer geri
- * gönderiliyor, kayıtlı tarih sessizce siliniyordu.
+ * ZAMAN boş açılıyordu — kullanıcı kayıtlı bir tarih olsa bile onu hiç
+ * göremiyordu.
+ *
+ * Düzeltme: bu değil, "form o boş değeri PATCH'le geri gönderip kayıtlı
+ * tarihi siliyordu" iddiası doğrulanmadan yazılmış ve yanlıştı.
+ * `useEditProfile.ts:107-109` boş string'i PATCH'ten ÖNCE `undefined`'a
+ * çeviriyor, axios `client.ts`'de `transformRequest` yok, yani undefined
+ * alan hiç gönderilmiyor. Sunucudaki kayıtlı tarih hiçbir zaman silinmedi —
+ * yalnızca ekranda hiç gösterilmedi.
  */
 import { mapApiUserToUser } from '../authStore';
 

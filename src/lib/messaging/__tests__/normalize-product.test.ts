@@ -42,4 +42,18 @@ describe('normalizeThread — ürün bağlamı', () => {
     expect(t.product?.title).toBe('X');
     expect(t.product?.imageUrl).toBeUndefined();
   });
+
+  it('yalnız `productId` gelip `productTitle` gelmediğinde `product` üretmez', () => {
+    // Yarım nesne ("{id, title: ''}") ThreadRow'da boş etiketli bir rozet
+    // basardı — "Genel mesaj" düşmesi gereken yerde.
+    expect(normalizeThread({ id: 't', productId: 'p1' }).product).toBeUndefined();
+  });
+
+  it('`productId` olmadan `productTitle` geldiğinde `id` uydurmaz', () => {
+    // `id: ''` uydurmak MessageThreadHeader'ın `/product/${id}`'yi ölü bir
+    // rotaya (`/product/`) itmesine yol açardı.
+    const t = normalizeThread({ id: 't', productTitle: 'Genel ürün' });
+    expect(t.product).toEqual({ title: 'Genel ürün', imageUrl: undefined });
+    expect(t.product && 'id' in t.product).toBe(false);
+  });
 });

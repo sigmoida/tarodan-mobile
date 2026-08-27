@@ -395,16 +395,6 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     'list.trades.dispute.raisedById',
     'list.trades.dispute.resolution',
     'list.trades.dispute.resolvedAt',
-    // `shipments[].cargoCode`: `src/lib/api/orders.ts`'teki AYNI ikili-numara
-    // deseni burada da var — `trackingNumber` Tarodan İÇ referansı
-    // (`TKS-…-WH-INI`), `cargoCode` GERÇEK Sürat kodudur (staging'de ölçüldü:
-    // `"12516210181141"`). Ama `TradeShippingSection.tsx`'teki `openSuratTrack`
-    // `buildTrackingUrl('surat', code)`'u `trackingNumber` İLE çağırıyor —
-    // `cargoCode` DEĞİL. Sürat'ın takip sistemi muhtemelen gerçek taşıyıcı
-    // kodunu bekler; bu potansiyel olarak BOZUK bir takip linki. Ciddiyeti
-    // yüzünden Plan B'ye özellikle vurgulanmalı.
-    'list.trades.initiatorShipment.cargoCode',
-    'list.trades.shipments.cargoCode',
   ]),
   products: new Set<string>([
     // ── Mobil bu alanları hiç kullanmıyor ve kullanmamalı (bu EKRANDA) ──────
@@ -558,21 +548,6 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     'me.preferredLanguage',
     'me.storeViewCount',
     'me.usernameClaimedAt',
-    //
-    // ── BOŞLUK — Plan B (guard'ın YAKALAMADIĞI, review'la BULUNAN gerçek bir
-    // eşleme kusuru) ─────────────────────────────────────────────────────────
-    // `me.birthDate` alanı VAR ve `app/settings/edit-profile/_hooks/
-    // useEditProfile.ts` onu `(user as any)?.birthDate` ile OKUMAYA ÇALIŞIYOR
-    // (doğum tarihi formunu ön-doldurmak için) — ama `user` burada authStore'un
-    // `mapApiUserToUser`'ı (satır ~239) ile eşlenmiş NESNE, ve o fonksiyon
-    // `birthDate`'i HİÇ satıra dökmüyor (dönen `User` objesinde yok — dosya
-    // başındaki `return { id, email, displayName, … }` listesinde `birthDate`
-    // YOK). Yani bu okuma HER ZAMAN `undefined` döner: kullanıcı ayarlardan
-    // profilini düzenlemeye her girdiğinde doğum tarihi alanı SIFIRLANMIŞ görünür
-    // — kayıtlı değeri olsa da. `rejectionReason` ile AYNI sınıf: sunucu alanı
-    // var, mobil bir yerde OKUMAYA ÇALIŞIYOR ama yanlış (maplenmemiş) kaynaktan
-    // okuyor, sonuç sessizce boş. Ciddiyeti yüzünden Plan B'ye ayrıca vurgulanmalı.
-    'me.birthDate',
   ]),
   messaging: new Set<string>([
     // `page` / `pageSize` / `total`: `useThreadsQuery` (`src/hooks/messaging/
@@ -588,25 +563,6 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     // denormalize edilmiş isim ikinci kez okunmuyor.
     'threads.lastMessage.receiverName',
     'threads.lastMessage.senderName',
-    //
-    // ── BOŞLUK — Plan B (guard'ın YAKALAMADIĞI, review'la BULUNAN gerçek bir
-    // normalize kusuru) ─────────────────────────────────────────────────────
-    // `threads.productTitle` / `threads.productImage`: sunucu HER thread'de bu
-    // ikisini düz alan olarak döndürüyor (staging'de ölçüldü — İKİ thread'in
-    // de `productTitle`/`productImage`'ı dolu). `ThreadRow.tsx` ürün bağlamını
-    // `thread.product` (İÇ İÇE nesne, `{ id, title, images }`) üzerinden
-    // gösteriyor — `thread.product` yoksa "Genel mesaj" düşer. Ama
-    // `normalizeThread` (`src/lib/messaging/normalize.ts`) `participant1`/
-    // `participant2`'yi düz alanlardan NESNEYE çeviriyor, `productTitle`/
-    // `productImage`'ı ASLA `product`'a eşlemiyor (fonksiyonun tamamı okundu —
-    // yalnız katılımcı normalize var). Sonuç: `thread.product` GERÇEK API
-    // verisiyle HER ZAMAN `undefined` — ürünle başlanan her sohbette de mesaj
-    // listesi ekranı "Genel mesaj" rozetini gösteriyor, ürün adı/görseli hiçbir
-    // zaman görünmüyor. `rejectionReason`'la AYNI sınıf, bu kez alan adları
-    // arasındaki uyumsuzluk (`productTitle` vs `product.title`) yüzünden.
-    // Ciddiyeti yüzünden Plan B'ye ayrıca vurgulanmalı.
-    'threads.productTitle',
-    'threads.productImage',
     //
     // `threads.lastMessageAt`: thread'in kendi "son aktivite" zaman damgası —
     // `ThreadRow.tsx` bunun yerine `thread.lastMessage.createdAt` (yoksa

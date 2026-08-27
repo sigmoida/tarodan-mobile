@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { Card, Text } from '@/ui';
 import { styles } from '../_lib/styles';
-import { formatPrice } from '../_lib/status';
+import { formatPrice } from '@/utils/format';
 
 /** Filtreden bağımsız kazanç özeti (tamamlanan + bekleyen). */
 export function SalesEarnings({

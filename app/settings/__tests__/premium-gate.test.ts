@@ -33,13 +33,18 @@ describe('isPremiumTier', () => {
     expect(isPremiumTier(null)).toBe(false);
   });
 
-  it('`maxListings === -1` deseni bir daha kullanılmaz', () => {
+  it('`maxListings === -1` deseni bir daha kullanılmaz, ekran gerçekten `user?.membershipTier`den okur', () => {
     // Regresyon: sunucu böyle bir alan göndermiyor; yerel taban tablosundaki
     // -1 bindirmeyle her zaman geziliyor. Kuralı kaynakta çiviliyoruz.
+    //
+    // Yalnız eski deseni aramak yeterli değil — yarın biri kancayı BAŞKA yanlış
+    // bir kaynağa (örn. `limits.maxListings` dışında bir yer sanılan bir alan)
+    // bağlarsa bu negatif iddia yine geçerdi. Gerçek kablolamayı da doğrula.
     const source = require('fs').readFileSync(
       require('path').resolve(__dirname, '../analytics/_hooks/useAnalytics.ts'),
       'utf8',
     );
     expect(source).not.toContain('maxListings === -1');
+    expect(source).toContain('user?.membershipTier');
   });
 });

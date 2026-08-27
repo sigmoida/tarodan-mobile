@@ -4,8 +4,6 @@ import { theme, Text, ScreenHeader } from "@/ui";
 import { useTranslation } from "react-i18next";
 import {
   RETURN_REQUEST_DAYS,
-  SUPPORT_PHONE,
-  COMPANY_INFO_EMAIL,
   LEGAL_EMAIL,
   LEGAL_ENTITY,
 } from "@/constants/legalFacts";
@@ -35,9 +33,9 @@ export default function DistanceSalesScreen() {
           {"\n"}
           Adres: {LEGAL_ENTITY.address}
           {"\n"}
-          E-posta: {COMPANY_INFO_EMAIL}
+          E-posta: {LEGAL_ENTITY.email}
           {"\n"}
-          Telefon: {SUPPORT_PHONE}
+          Telefon: {LEGAL_ENTITY.phone}
         </Text>
         <Text style={styles.subTitle}>ALICI</Text>
         <Text style={styles.paragraph}>

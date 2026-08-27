@@ -56,8 +56,12 @@ export function normalizeThread(t: any): MessageThread {
      */
     product:
       t.product ??
-      (t.productId || t.productTitle
-        ? { id: t.productId ?? '', title: t.productTitle ?? '', imageUrl: t.productImage ?? undefined }
+      (t.productTitle
+        ? {
+            ...(t.productId ? { id: t.productId } : {}),
+            title: t.productTitle,
+            imageUrl: t.productImage ?? undefined,
+          }
         : undefined),
   };
 }

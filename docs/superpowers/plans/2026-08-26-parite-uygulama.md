@@ -323,8 +323,13 @@ export function isPremiumTier(limits: { tierType?: string } | null | undefined):
 `app/settings/analytics/_hooks/useAnalytics.ts:19`:
 
 ```ts
-const isPremium = isPremiumTier(limits);
+const isPremium = isPremiumTier({ tierType: user?.membershipTier });
 ```
+
+`limits`'in kendisinde `tierType` YOK (`useMembershipLimits` bunu döndürmüyor)
+— gerçek kaynak `user.membershipTier` (`/users/me` alanı). `isPremiumTier(limits)`
+derlenir ama sonsuza kadar `false` döner; bu ŞİPPEDİ DEĞİL, gerçek kablolama
+budur.
 
 Import ekle: `import { isPremiumTier } from '../_lib/premium';`
 
