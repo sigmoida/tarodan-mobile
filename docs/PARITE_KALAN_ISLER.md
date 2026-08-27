@@ -19,6 +19,87 @@
 
 ---
 
+## 2026-08-27 · tam parite denetimi (sözleşme taraması + commit süzgeci)
+
+Rapor: `docs/superpowers/reports/2026-08-26-tam-parite-denetimi.md`. Ölçüm
+kaynağı `https://staging.tarodan.com.tr/api`, hesap `ahmet@demo.com`; ana repo
+referansı `origin/development` @ `9414935f1`.
+
+**Kapsam.** İki bacak:
+
+1. **Sözleşme taraması** (Task 1-3) — 7 alan (orders, checkout, trades,
+   products, membership, user, messaging), 13 uç, 7 ölçülmüş fixture. Bekçi
+   `src/lib/api/__tests__/contractCoverage.test.ts`, "sunucunun yanıtında VAR,
+   mobilin tipinde YOK" yönünü tarıyor.
+2. **Süzülmüş commit taraması** (Task 4) — aralık `d7df71e80..94f372e1b`,
+   `apps/web`/`packages/{ui,shared,types,i18n}` yolları, `*(admin)` hariç:
+   **147** aday `feat`/`fix` commit, **7**'si desen süzgeciyle okunmadan
+   elendi (CSP, çerez onayı, footer/dropdown/grid, responsive/viewport,
+   Sentry etiketleme — RN karşılığı yok), **140**'ı tek tek yüründü.
+
+Ayrıntılı kova dağılımı, ham ölçüm gövdeleri ve "temiz çıkan alanlar" listesi
+raporda; burada tekrarlanmıyor.
+
+### On iki bulgu
+
+| # | Bulgu (tek satır) | Öncelik | Mobil tek başına kapatır mı |
+| --- | --- | --- | --- |
+| B1 | Takas takip linki `trackingNumber` (iç referans) ile kuruluyor, `cargoCode` değil — Sürat sayfası tanımıyor | P1 | ✅ evet |
+| B2 | Satışlar listesinde alıcının ödediği toplam satıcıya "ürün bedeli" gibi gösteriliyor | P1 | ✅ evet |
+| B3 | `suspended` ilan durumu hiç tanınmıyor — ham kod basılıyor, filtre çipi yok | P1 | ✅ evet |
+| B4 | Hukuki künye (KVKK/mesafeli satış) uydurma tüzel kişi + var olmayan e-posta alan adları | P1 | ✅ evet |
+| B5 | Premium tespiti `limits.maxListings === -1` ile yapılıyor — sunucu böyle bir alan döndürmüyor, hep `false` | P1 | ✅ evet |
+| B8 | `me.birthDate` haritalanmıyor — profil formunda doğum tarihi hep boş | P1 | ✅ evet |
+| B9 | `normalizeThread` `productTitle`/`productImage`'ı eşlemiyor — ürünlü sohbet "Genel mesaj" görünüyor | P1 | ✅ evet |
+| B11 | 2FA kurulumu `payload.qrCode` okuyor (sunucu `qrCodeUrl`/`qrCodeImage` döndürüyor); değer ayrıca `const [, setTotpQr]` ile atılıyor | P1 | ✅ evet |
+| B6 | Checkout kökündeki `buyerFeeDiscountTotal`/`sellerFeeDiscountTotal` bildirilmemiş (bugün `0`, kampanya açılınca kırılım okunamaz) | P2 | ✅ evet |
+| B7 | Anlaşmazlık akışı yaz-only: `raisedById`/`resolution`/`resolvedAt` hiç okunmuyor | P2 | ✅ evet |
+| B10 | Çok satıcılı grup yanıtındaki `packages.*` (satıcı bazlı kargo kırılımı) hiç okunmuyor | P2 | ✅ evet |
+| B13 | Kurumsal kayıtta KEP adresi opsiyonel (web'de zorunlu) | P3 | ✅ evet |
+
+Bu turda **P0 yok, backend'e devredilen madde yok** — sekiz P1, üç P2, bir P3.
+Rubrik notu raporda: B1'in P1 olması onu kuyrukta geri atmıyor (ölçüm P0'ı
+"para/veri kaybı" için ayırıyor; ölü bir takip linki ikisi de değil, ama en
+ucuz ve en doğrudan etkili madde).
+
+### Geri çekilen iki bulgu
+
+**B12 (checkout hizmet bedeli oranı) — geri çekildi, parite temeli yok.**
+`checkout.platformServiceFeeWithRate` i18n kataloğunda var ama `apps/web`
+içinde hiçbir yerden çağrılmıyor; web'in sipariş özeti de oransız
+`t("checkout.serviceFee")` basıyor — mobille aynı. Sunucu tarafı
+(`pricing.buyerFeeRate`) `b06bcac9f` ile geldi ama web istemcisi hiç
+kullanmadı. Bir boşluk değil, en fazla iki istemciye birden açık bir ürün
+önerisi; bu raporun kapsamı dışında.
+
+**B14 (`relatedOrder`/`relatedTrade`) — geri çekildi, backend maddesi
+AÇILMADI.** `6b25e0148` alanları eklemişti; `bc73db263 fix(api): preserve
+category and listing boundaries` ikisini de hem API'den hem web'den BİLEREK
+kaldırdı (`product-query.service.ts` −102 satır projeksiyon, `ListingCard.tsx`
+−92 satır). `origin/development`'ta alanlar artık ne `apps/web/src`'te ne
+`apps/api/src`'te geçiyor. "Web sunuyor, mobil sunamıyor" cümlesi YANLIŞ: web
+de sunmuyor.
+
+**Bu dosyada `relatedOrder`/`relatedTrade` daha önce "backend bekliyor" diye
+iki tur boyunca kayıtlıydı — o kayıt YANLIŞTI ve yukarıda (Backend/ops
+tablosu, delta 18 §2e satırı, "Backend bekleyenler" tablosu, "Önerilen sıra"
+özeti) düzeltildi.** Yöntemsel ders: tarama commit'leri tek tek
+değerlendiriliyor, aralarındaki "ekle sonra geri al" ilişkisi kurulmuyordu.
+Kural: bir alan bulgusundan önce alanın `origin/development`'ta HÂLÂ var
+olduğu `git grep` ile doğrulanmalı — commit gövdesi tek başına yeterli değil.
+
+### Taranmamış sınıf — bekçi tek yönlü
+
+`contractCoverage.test.ts` yalnız "sunucunun yanıtında VAR, mobilin tipinde
+YOK" yönünü tarıyor. Tersi — **"mobilin kodu okuyor, sunucunun yanıtında YOK"**
+— hiç taranmadı. Bu raporda o sınıftan iki canlı örnek bulundu (B5, B11);
+ikisi de bekçiden değil kod okunarak çıktı. İmza: kod hiç patlamıyor
+(`undefined === -1` → `false`; `payload.qrCode ?? ""` → boş string), ekran
+sessizce yanlış davranır. Ölçülmemiş, gerçek bir sınıf — Plan B'nin ilk işi
+bu yönün bekçisini kurmak (bkz. `.superpowers/sdd/2026-08-26-tam-parite-denetimi/plan-b-input.md`).
+
+---
+
 ## 2026-08-26 · commit ağacı taraması — delta 19'un kaçırdıkları
 
 Delta 19 turunda adaylar `dto/**` + `*.controller.ts` diffinden türetilmişti.
@@ -78,7 +159,7 @@ sayıları bayattı).
 | --- | --- |
 | `color` attribute grubu seed'i | `GET /products/attribute-groups` → yalnız `scale`, `material`, `vehicle_type`. Sözleşme yayında, **veri yok** |
 | Satıcı iade onay/ret ucu | `refund-requests/:id/{approve,reject,decision}` → **404**. Satıcı iade sekmesi salt okunur kalmak zorunda |
-| `relatedOrder` / `relatedTrade` | Hesapta 1 `sold` + 1 `reserved` ilan var; `GET /products/my` bu alanları yayınlamıyor (yine ölçüldü). "Örnek veri yok" değil |
+| ~~`relatedOrder` / `relatedTrade`~~ | ✅ **DÜZELTİLDİ (2026-08-27) — bu satır yanlıştı, backend maddesi değil.** `bc73db263` alanları hem API'den hem web'den BİLEREK kaldırdı; `origin/development`'ta ikisi de yok, web de sunmuyor. Ölçüm ("alan gelmiyor") doğruydu, "backend eksiği" sonucu yanlıştı. Ayrıntı: aşağıdaki "2026-08-27 · tam parite denetimi" bölümü |
 | Kupon reddi yapısal alanı | `POST /discounts/validate` → `200 {"isValid":false,"error":"<düz metin>"}`, `i18nKey` yok |
 | Kupon `target` başarı gövdesi | Staging'de kupon verisi yok → **ölçülemedi** |
 | Adres limiti (`maxAddresses`) | Hiçbir uçta yayınlanmıyor → istemci sabiti |
@@ -206,10 +287,15 @@ açılamaz (boş liste yayınlamak Android doğrulamasını kalıcı düşürür
   (`carModelId` zaten opsiyonelmiş; `modelCode` forma eklendi)
 - ~~**P2 #7** Yeni ilan indirimli açılabilir~~ 🟡 **payload hazır, UI yok** —
   aşağıya bakın
-- **P2 #8** `relatedOrder` / `relatedTrade` → **backend bekliyor**, ölçümle
-  doğrulandı (`docs/superpowers/reports/2026-08-10-products-my-olcum.md`):
-  hesapta 1 `sold` + 2 `reserved` ilan var, alan yine gelmiyor. Yani "örnek veri
-  yok" değil, uç yayınlamıyor.
+- ~~**P2 #8** `relatedOrder` / `relatedTrade` → **backend bekliyor**~~ ✅
+  **DÜZELTİLDİ (2026-08-27)** — bu bir backend maddesi değildi. Ölçüm
+  (`docs/superpowers/reports/2026-08-10-products-my-olcum.md`: hesapta 1
+  `sold` + 2 `reserved` ilan var, alan gelmiyor) doğruydu; çıkarılan sonuç
+  ("uç yayınlamıyor, backend eksiği") yanlıştı. `bc73db263 fix(api): preserve
+  category and listing boundaries` alanları hem API'den hem web'den BİLEREK
+  kaldırdı (`product-query.service.ts` −102 satır projeksiyon,
+  `ListingCard.tsx` −92 satır) — web de artık sunmuyor. Ayrıntı: aşağıdaki
+  "2026-08-27 · tam parite denetimi" bölümü.
 
 **Yeni P2 — oluşturma ekranında indirim girdisi UI'ı yok.** Boru hattı hazır ve
 testli ama indirim kutusu yalnız düzenleme modunda render ediliyor
@@ -402,7 +488,7 @@ netleşmeli.
 | --- | --- | --- |
 | ~~6~~ | ✅ KAPANDI (2026-08-10) — `carModelId` zaten opsiyoneldi, `modelCode` forma eklendi — formdaki zorunluluk kaldırılmalı. Temizleme: `carModelId: null`, model kodu için boş string | delta 18 §2a |
 | ~~7~~ | ✅ **KAPANDI** (2026-08-11) — indirim bloğunun önündeki `isEdit` kapısı kaldırıldı; `buildSalePayload` zaten create yolunda da çağrılıyordu, engel yalnız UI'daydı. Güvence ekrandan uçtan uca (girdi → yüzde hesabı) | delta 18 §2b |
-| ~~8~~ | 🧱 **Backend bekliyor** — alan yayınlanmıyor (ölçüldü). `relatedOrder` / `relatedTrade` — satılmış/rezerve ilan aksiyonunu tahminî `orderId`'den türetmeyi bırak | delta 18 §2e |
+| ~~8~~ | ✅ **DÜZELTİLDİ (2026-08-27)** — backend maddesi değildi. `relatedOrder`/`relatedTrade` `bc73db263` ile hem API'den hem web'den BİLEREK kaldırıldı; web de sunmuyor. Bkz. aşağıdaki "2026-08-27 · tam parite denetimi" bölümü | delta 18 §2e |
 | ~~9~~ | ✅ **KAPANDI** (2026-08-11) — onay kutusu onay adımında, ödemeyi kapatıyor, sözleşme sayfasına link veriyor; alan üye ve misafir yollarında **ilk çağrının** gövdesinde gidiyor ve API DTO'sunda **zorunlu**. Buy-now endişesi mobilde geçersiz: `/orders/buy` API katmanında tanımlı ama **hiç çağrılmıyor**, buy-now da `/checkout?buyNow=1` ile aynı uca gidiyor. ⚠️ Sunucunun alanı işlediği **doğrulanamadı**: uç bilinmeyen alanları reddetmiyor (uydurma alanla aynı 400) | delta 17 §2 |
 | ~~10~~ | ✅ **KAPANDI** (2026-08-11) — satır başına onay kutusu + "tümünü seç"; seçim `cartStore.deselectedIds`'te (opt-out: sonradan eklenen satır kendiliğinden seçili). Quote ve checkout yalnız seçilileri görüyor, seçim dışı satır fiyat yerine sebebini yazıyor, hiçbiri seçili değilken ödeme kapalı | delta 17 §3 |
 | ~~11~~ | ✅ **KAPANDI** (2026-08-11) — `cartApi.clear()` kaldırıldı; yerelde yalnız ödenen satırlar düşüyor (`onPurchaseComplete`, yazılmış ama hiç çağrılmayan bir ilkeydi), sunucu sepeti `qk.cart.mine` invalidate ile tazeleniyor. Satır seçimiyle birlikte bu artık yalnız gereksiz değil **yıkıcıydı**: `DELETE /cart` seçilmeyen satırları da silerdi | delta 17 §3 |
@@ -452,7 +538,7 @@ durumuna çevirmek satır başına kargo verisi ister ve **staging'de gözlemlen
 | **Kupon reddi 400'ünde yapısal alan yok** | Ayrım mesaj metnine bağlı kalıyor |
 | **Android `assetlinks.json` yayında değil** | İmza parmak izi backend/ops tarafına iletilmeli |
 | **`POST /orders/guest/track` gerçek Sürat kodunu döndürmüyor** | Yalnız `provider`, `trackingNumber` (iç referans), `trackingUrl` (bozuk), `status`, `estimatedDelivery` veriyor. Misafir takip ekranı numara yerine **durum** gösteriyor; alan uydurulmadı |
-| **`GET /products/my` `relatedOrder`/`relatedTrade` yayınlamıyor** | Ölçümle doğrulandı: 1 `sold` + 2 `reserved` ilan var, alan yine gelmiyor |
+| ~~**`GET /products/my` `relatedOrder`/`relatedTrade` yayınlamıyor**~~ | ✅ **DÜZELTİLDİ (2026-08-27) — bu satır bu tablodan çıkmalıydı, backend maddesi değil.** Alanlar `bc73db263` ile API+web'den bilerek kaldırıldı; web de sunmuyor. Bkz. aşağıdaki "2026-08-27 · tam parite denetimi" bölümü |
 
 Bunlar yeni bir denetimde "mobil bulgusu" olarak açılmamalı — sözleşme eksiğidir.
 
@@ -485,7 +571,7 @@ staging verisi ya backend sözleşmesi bekliyor:
 | Ne bekliyor | Maddeler |
 | --- | --- |
 | **Staging verisi** | P1 #5 (askıya alınmış kurumsal satıcı + ilanı), satıcı "Kargoya Ver" buton etiketi (satışı olan satıcı hesabı), push tap yolu (P2 #18 — simülatörde izin istenmiyor) |
-| **Backend** | Android `assetlinks.json` (imza parmak izi), iade onay/ret ucu, IP-blok 403 ayırt edici alanı, kupon reddi yapısal alanı, `relatedOrder`/`relatedTrade`, misafir takipte gerçek Sürat kodu, paket kademesi etiketlerinde Türkçe karakterler, `MembershipLimits`'in yayınlanmayan 10 alanı |
+| **Backend** | Android `assetlinks.json` (imza parmak izi), iade onay/ret ucu, IP-blok 403 ayırt edici alanı, kupon reddi yapısal alanı, misafir takipte gerçek Sürat kodu, paket kademesi etiketlerinde Türkçe karakterler, `MembershipLimits`'in yayınlanmayan 10 alanı (~~`relatedOrder`/`relatedTrade`~~ 2026-08-27'de düzeltildi — backend maddesi değildi, bkz. "2026-08-27 · tam parite denetimi" bölümü) |
 | **Yeni build** | iOS `associatedDomains` bir entitlement — OTA ile geçmez |
 
 Repoda kalan iş **yok**; ikisi de aynı turda kapandı:
