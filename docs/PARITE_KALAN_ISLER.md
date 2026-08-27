@@ -21,7 +21,8 @@
 
 ## 2026-08-27 · tam parite denetimi (sözleşme taraması + commit süzgeci)
 
-Rapor: `docs/superpowers/reports/2026-08-26-tam-parite-denetimi.md`. Ölçüm
+Rapor: `docs/superpowers/reports/2026-08-26-tam-parite-denetimi.md` (bulgular) ve
+`docs/superpowers/reports/2026-08-26-parite-uygulama-sirasi.md` (öncelik sırası`. Ölçüm
 kaynağı `https://staging.tarodan.com.tr/api`, hesap `ahmet@demo.com`; ana repo
 referansı `origin/development` @ `9414935f1`.
 
