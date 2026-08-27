@@ -4,7 +4,8 @@ import { Button, Card, Text, StatusBadge } from '@/ui';
 import { AppImage } from '@/components/AppImage';
 import { getOrderProductImageUri } from '@/utils/orderProductImage';
 import { styles } from '../_lib/styles';
-import { salesStatusConfig, saleBadgeStatus, formatDate, formatPrice } from '../_lib/status';
+import { salesStatusConfig, saleBadgeStatus, formatDate } from '../_lib/status';
+import { formatPrice, PRICE_PLACEHOLDER } from '@/utils/format';
 import type { Sale } from '../_lib/types';
 import type { SaleActionsController } from '../_hooks/useSaleActions';
 
@@ -40,7 +41,9 @@ export function SaleCard({ sale, actions }: { sale: Sale; actions: SaleActionsCo
             ) : null}
           </View>
           <View style={styles.priceSection}>
-            <Text variant="h3" style={styles.price}>{formatPrice(sale.totalAmount)}</Text>
+            <Text variant="h3" style={styles.price}>
+              {sale.pricing?.subtotal != null ? formatPrice(sale.pricing.subtotal) : PRICE_PLACEHOLDER}
+            </Text>
             <Text variant="caption" style={styles.dateText}>{formatDate(sale.createdAt)}</Text>
           </View>
         </View>
