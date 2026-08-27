@@ -15,7 +15,7 @@
 - **Bir task yeşil olup commit'lenmeden sonraki başlamaz.** Commit biriktirme yok.
 - Her task'ın kapısı: `npx tsc --noEmit` temiz → `npx eslint . --ext .ts,.tsx` **0 error** → `npx jest` tam paket yeşil.
 - Ölçüm kapısı: bir alan hakkında kod yazmadan önce staging'den ölçülür. Ölçüm göstermiyorsa madde "backend bekliyor"a taşınır, tip yazılmaz.
-- Fixture'lar PII taşımaz: e-posta, telefon, adres, ad-soyad alanları `scrubFixture` ile maskelenir (Task 1).
+- Fixture'lar PII taşımaz: e-posta, telefon, adres, ad-soyad alanları ölçüm anında `jq walk` filtresiyle `REDACTED`'a çevrilir (filtre Task 1 Step 8'de).
 - Demo hesabı: `ahmet@demo.com` / `Demo123!`. Access token ömrü **900 sn** — ölçüm uzarsa yenile.
 - Test dosyalarının yorumları Türkçe, kod İngilizce (repo deseni).
 - Bu plan denetimdir; **hiçbir ürün davranışı değiştirilmez**. Davranış değişiklikleri Plan B'ye aittir.
@@ -50,7 +50,6 @@ netleşiyor; Plan B onlardan türüyor.
 **Interfaces:**
 - Produces: `fieldPaths(body: unknown): string[]` — gövdedeki her yaprak alanın nokta yolu (dizi indisleri atlanır: `orders[0].id` → `orders.id`).
 - Produces: `undeclaredFields(body: unknown, typeSource: string, allowlist: Set<string>): string[]` — tip kaynağında adı geçmeyen ve allowlist'te olmayan alan yolları.
-- Produces: `scrubFixture(body: unknown): unknown` — PII alanlarını maskeler.
 
 - [ ] **Step 1: Staging'den `orders` gövdesini ölç ve kaydet**
 
@@ -107,7 +106,7 @@ bulunmayan alan.
 
 ## PII
 
-Fixture'lar `scrubFixture` ile maskelenmiş hâlde commit'lenir. Ham gövdeyi
+Fixture'lar `jq walk` filtresiyle maskelenmiş hâlde commit'lenir. Ham gövdeyi
 repoya koyma.
 
 ## Yenileme
@@ -235,26 +234,6 @@ Expected: FAIL — `Cannot find module './contractCoverage'`
  * Sözleşme kapsaması yardımcıları. Gerekçe `contractCoverage.test.ts` başında.
  */
 
-/** Fixture'lardan maskelenecek alan adları — PII repoya girmez. */
-const PII_KEYS = new Set([
-  'email', 'phone', 'contactPhone', 'guestName', 'fullName', 'displayName',
-  'address', 'addressLine', 'zipCode', 'postalCode', 'iban', 'taxId',
-  'tcKimlikNo', 'accountHolder',
-]);
-
-/** PII alanlarını maskeler; yapıyı ve alan varlığını korur. */
-export function scrubFixture(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(scrubFixture);
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>).map(([k, v]) =>
-        PII_KEYS.has(k) && typeof v === 'string' ? [k, 'REDACTED'] : [k, scrubFixture(v)],
-      ),
-    );
-  }
-  return value;
-}
-
 /**
  * Gövdedeki her YAPRAK alanın nokta yolu.
  *
@@ -343,34 +322,27 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
 
 - [ ] **Step 8: Fixture'ı maskele**
 
-```bash
-node -e "
-const {scrubFixture} = require('./src/lib/api/__tests__/contractCoverage.ts');
-" 2>/dev/null || true
-```
-
-TypeScript doğrudan `node` ile koşmadığı için maskeleme testle yapılır — geçici
-bir test dosyası yerine `jest` üzerinden tek seferlik bir script koş:
+PII, ölçüm anında `jq walk` ile maskelenir — TypeScript yardımcısıyla değil.
+Maskeleme bir yakalama adımı, bir test davranışı değil; testin işi kapsamayı
+denetlemek. (`jq 1.7.1` ile doğrulandı.)
 
 ```bash
-cat > /tmp/scrub.test.ts <<'EOF'
-import { writeFileSync, readFileSync } from 'fs';
-import { resolve } from 'path';
-import { scrubFixture } from '../../src/lib/api/__tests__/contractCoverage';
-it('scrubs', () => {
-  const p = resolve(__dirname, '../../src/lib/api/__tests__/fixtures/orders.json');
-  const body = JSON.parse(readFileSync(p, 'utf8'));
-  writeFileSync(p, JSON.stringify(scrubFixture(body), null, 2) + '\n');
-  expect(true).toBe(true);
-});
-EOF
-mkdir -p scripts/__tests__ && cp /tmp/scrub.test.ts scripts/__tests__/scrub.test.ts
-npx jest --testPathPattern="scrub" --silent
-rm scripts/__tests__/scrub.test.ts
-grep -c REDACTED src/lib/api/__tests__/fixtures/orders.json
+F=src/lib/api/__tests__/fixtures/orders.json
+jq 'walk(
+  if type == "object" then
+    with_entries(
+      if (.key | IN("email","phone","contactPhone","guestName","fullName",
+                    "displayName","address","addressLine","zipCode","postalCode",
+                    "iban","taxId","tcKimlikNo","accountHolder"))
+         and (.value | type == "string")
+      then .value = "REDACTED" else . end)
+  else . end)' "$F" > "$F.tmp" && mv "$F.tmp" "$F"
+
+jq . "$F" > /dev/null && echo "geçerli JSON"
+grep -c REDACTED "$F"
 ```
 
-Beklenen: `REDACTED` sayısı > 0 ve dosya hâlâ geçerli JSON (`jq . <dosya>`).
+Beklenen: `REDACTED` sayısı > 0 ve dosya geçerli JSON.
 
 - [ ] **Step 9: Kapıları koş**
 
@@ -385,9 +357,7 @@ Expected: tsc çıktısı boş; eslint **0 errors**; tüm testler PASS.
 - [ ] **Step 10: Commit**
 
 ```bash
-git add src/lib/api/__tests__/contractCoverage.ts \
-        src/lib/api/__tests__/contractCoverage.test.ts \
-        src/lib/api/__tests__/fixtures/
+git add src/lib/api/__tests__/
 git commit -m "test(contract): flag response fields the mobile types never declare
 
 Two parity rounds in a row missed the same class: fields the server assembles in
@@ -412,7 +382,7 @@ bit us and claims nothing more."
 - Modify: `src/lib/api/__tests__/contractCoverage.test.ts`
 
 **Interfaces:**
-- Consumes: `fieldPaths`, `undeclaredFields`, `scrubFixture` (Task 1)
+- Consumes: `fieldPaths`, `undeclaredFields` (Task 1)
 
 - [ ] **Step 1: İki gövdeyi ölç**
 
@@ -507,8 +477,8 @@ bu yüzden yanlış pozitif verecekler. Gerekçeyi buna göre yaz:
 
 - [ ] **Step 5: Fixture'ları maskele**
 
-Task 1 Step 8'deki geçici script yöntemini `checkout.json` ve `trades.json` için
-tekrarla. Sonra doğrula:
+Task 1 Step 8'deki `jq walk` filtresini `checkout.json` ve `trades.json` için
+tekrarla (`$F` değişkenini değiştir). Sonra doğrula:
 
 ```bash
 jq . src/lib/api/__tests__/fixtures/checkout.json > /dev/null && echo ok
@@ -628,7 +598,8 @@ bak — `rejectionReason` oradan çıkmıştı; benzer, hiç okunmayan alanlar o
 
 - [ ] **Step 4: Fixture'ları maskele ve doğrula**
 
-Task 1 Step 8 yöntemi, dört dosya için. Sonra `jq .` ile hepsini doğrula.
+Task 1 Step 8'deki `jq walk` filtresi, dört dosya için sırayla. Sonra `jq .`
+ile hepsini doğrula.
 
 - [ ] **Step 5: Kapıları koş**
 
