@@ -15,7 +15,7 @@
 - **Bir task yeşil olup commit'lenmeden sonraki başlamaz.** Commit biriktirme yok.
 - Her task'ın kapısı: `npx tsc --noEmit` temiz → `npx eslint . --ext .ts,.tsx` **0 error** → `npx jest` tam paket yeşil.
 - Ölçüm kapısı: bir alan hakkında kod yazmadan önce staging'den ölçülür. Ölçüm göstermiyorsa madde "backend bekliyor"a taşınır, tip yazılmaz.
-- Fixture'lar PII taşımaz: e-posta, telefon, adres, ad-soyad alanları ölçüm anında `jq walk` filtresiyle `REDACTED`'a çevrilir (filtre Task 1 Step 8'de).
+- Fixture'lar PII taşımaz: e-posta, telefon, adres, ad-soyad alanları ölçüm anında `jq walk` filtresiyle `REDACTED`'a çevrilir; presigned `avatarUrl` sorgu dizesi (uzun ömürlü AWS erişim anahtarı ID'si içerir) atılıp yalnız yol bırakılır (filtre Task 1 Step 8'de).
 - Demo hesabı: `ahmet@demo.com` / `Demo123!`. Access token ömrü **900 sn** — ölçüm uzarsa yenile.
 - Test dosyalarının yorumları Türkçe, kod İngilizce (repo deseni).
 - Bu plan denetimdir; **hiçbir ürün davranışı değiştirilmez**. Davranış değişiklikleri Plan B'ye aittir.
@@ -333,9 +333,14 @@ jq 'walk(
     with_entries(
       if (.key | IN("email","phone","contactPhone","guestName","fullName",
                     "displayName","publicName","address","addressLine","addressLine1","addressLine2",
-                    "zipCode","postalCode","iban","taxId","tcKimlikNo","accountHolder"))
+                    "zipCode","postalCode","iban","taxId","tcKimlikNo","accountHolder",
+                    "participant1Name","participant2Name","senderName","receiverName",
+                    "initiatorName","shipperName"))
          and (.value | type == "string")
-      then .value = "REDACTED" else . end)
+      then .value = "REDACTED"
+      elif (.key == "avatarUrl") and (.value | type == "string")
+      then .value = (.value | split("?")[0])
+      else . end)
   else . end)' "$F" > "$F.tmp" && mv "$F.tmp" "$F"
 
 jq . "$F" > /dev/null && echo "geçerli JSON"
@@ -754,7 +759,7 @@ items belong to the backend rather than the client — so a later round can tell
 
 **Files:**
 - Modify: `docs/PARITE_KALAN_ISLER.md`
-- Create: `docs/superpowers/plans/2026-08-26-parite-uygulama.md` (Plan B)
+- Create: `.superpowers/sdd/2026-08-26-tam-parite-denetimi/plan-b-input.md` (sıralı girdi dosyası)
 
 - [ ] **Step 1: Backend bekleyenleri devret**
 
@@ -766,10 +771,13 @@ items belong to the backend rather than the client — so a later round can tell
 Rapordaki bulguları P0 → P3 sırasına ve akış grubuna (checkout/sepet →
 siparişler → takas → ilanlar → üyelik → mesaj/bildirim → profil/ayarlar) diz.
 
-- [ ] **Step 3: Plan B'yi yaz**
+- [ ] **Step 3: Plan B'nin girdisini yaz**
 
-`writing-plans` skill'ini yeniden çağır; girdi olarak denetim raporunu ve bu
-sıralamayı ver. Plan B'nin her task'ı:
+Bu task'ın deliverable'ı Plan B'nin KENDİSİ değil, onun sıralı girdi dosyası
+(`plan-b-input.md`) — denetim raporu + Step 2'nin önceliklendirmesi. Plan B'yi
+`writing-plans` skill'iyle **ayrı bir oturumda kontrolcü** yazar; o oturum bu
+girdi dosyasını okur. Girdi dosyası Plan B'nin her task'ının uyması gereken
+kuralları da taşır:
 - bir davranış, bir commit, en az bir test,
 - test biçimi bulgu sınıfına göre (spec'teki tablo),
 - ilgili `KNOWN_UNDECLARED` satırını **siler** (bir alan boşluğuysa),
@@ -778,9 +786,10 @@ sıralamayı ver. Plan B'nin her task'ı:
 - [ ] **Step 4: Commit**
 
 ```bash
-git add docs/PARITE_KALAN_ISLER.md docs/superpowers/plans/2026-08-26-parite-uygulama.md
+git add docs/PARITE_KALAN_ISLER.md
 git commit -m "docs: hand the audit findings to an implementation plan
 
 Backend-owned items move to the waiting list rather than being worked around on
-the client; the rest become tasks ordered by user harm."
+the client; the rest become an ordered input file for Plan B, authored
+separately by the controller."
 ```

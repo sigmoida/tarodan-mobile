@@ -96,7 +96,10 @@ YOK" yönünü tarıyor. Tersi — **"mobilin kodu okuyor, sunucunun yanıtında
 ikisi de bekçiden değil kod okunarak çıktı. İmza: kod hiç patlamıyor
 (`undefined === -1` → `false`; `payload.qrCode ?? ""` → boş string), ekran
 sessizce yanlış davranır. Ölçülmemiş, gerçek bir sınıf — Plan B'nin ilk işi
-bu yönün bekçisini kurmak (bkz. `.superpowers/sdd/2026-08-26-tam-parite-denetimi/plan-b-input.md`).
+bu yönün bekçisini kurmak (bkz. denetim raporu:
+`docs/superpowers/reports/2026-08-26-tam-parite-denetimi.md` — girdi dosyası
+`.superpowers/sdd/2026-08-26-tam-parite-denetimi/plan-b-input.md` gitignore'lu,
+depoyu klonlayan biri o dosyaya erişemez).
 
 ---
 

@@ -102,9 +102,15 @@ const PRODUCTS_TYPE_SOURCES = [
  *
  * `src/hooks/useMembershipLimits.ts` BREF'İN öngörmediği bir kaynak — `GET
  * /membership/me/limits`'in TAM alan listesini (13 alan) JSDoc'ta ÖLÇÜLMÜŞ
- * olarak belgeliyor ve beşini `ServerLimitsDto`'ya eşliyor; kalan sekizinin
- * neden okunmadığını da orada anlatıyor. Eklenmeden önce 19 "bildirilmemiş"
- * alan vardı, eklenince 4'e düştü.
+ * olarak belgeliyor ve beşini `ServerLimitsDto`'ya (gerçek KOD, yorum değil)
+ * eşliyor; kalan sekizinin neden okunmadığını da orada anlatıyor.
+ *
+ * ⚠️ Bu dosyanın eklenmesi kapsamayı İYİLEŞTİRMEDİ, KARIŞTIRDI: `declared` seti
+ * yorumları da tarıyordu (fix — bkz. `contractCoverage.ts` `stripComments`),
+ * yani JSDoc'un saydığı 13 ad — beşi `ServerLimitsDto`'da gerçekten kod olarak
+ * bildirilmiş olsa da — kalan dokuzu SADECE bu cümlede geçtiği için
+ * "bildirilmiş" sayılıyordu. Yorumlar atılınca bu dokuzu `KNOWN_UNDECLARED.
+ * membership`'e gerekçeleriyle taşımak gerekti (aşağıda).
  */
 const MEMBERSHIP_TYPE_SOURCES = [
   'app/membership/manage/_lib/types.ts',
@@ -411,9 +417,14 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     //   - `discountPercent` / `isOnSale` / `originalPrice`: indirim rozeti —
     //     `SearchResultCard.tsx`/`ListingSections.tsx`'te var, yönetim
     //     listesinde satıcı zaten kendi fiyatını biliyor.
-    //   - `isBoosted`: `boostedUntil` (Listing tipinde ZATEN bildirilmiş) ile
-    //     AYNI anlamı taşıyan ikinci bir bayrak (`ProductCard.tsx`:
-    //     `item.isBoosted || item.boostedUntil`) — `boostedUntil` yeterli.
+    //   - `isBoosted`: bu ekranda (`MyListingsSections.tsx`) hiç okunmuyor —
+    //     `products/my` listesi öne çıkarma rozeti hiç basmıyor. `boostedUntil`
+    //     (Listing tipinde ZATEN bildirilmiş) `isBoosted`'ın eşdeğeri OLDUĞU
+    //     için değil, `index.tsx:84`'te `BoostModal`'a geri sayım için
+    //     GEÇİRİLDİĞİ için burada bildirilmiş — `ProductCard.tsx`'teki
+    //     `item.isBoosted || item.boostedUntil` bu ekranda hiç kullanılmıyor,
+    //     o OR zaten ikisinin birbirinin YERİNE geçmediğinin kanıtı (biri
+    //     doluyken diğeri boş olabildiği durum için var).
     //   - `productCode`: yalnız `ProductInfo.tsx` (ürün detay "teknik özellikler"
     //     bloğu) gösteriyor, yönetim listesinde yok.
     //   - `sellerId`: bu zaten KENDİ ilanım — sahibi belli, göstermeye gerek yok.
@@ -436,6 +447,40 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     'meta.totalPages',
   ]),
   membership: new Set<string>([
+    // ── Yorum-şeridi fix'i açığa çıkardı: `useMembershipLimits.ts`'in JSDoc'u
+    // (satır ~14-19) `GET /membership/me/limits`'in 13 alanını ÖLÇÜLMÜŞ olarak
+    // sayıyor ama yalnız beşi (`maxTotalListings`/`maxImages`/
+    // `canCreateCollection`/`canTrade`/`isAdFree`) `ServerLimitsDto`'da GERÇEK
+    // koddur. Kalan dokuz — yorumlar taranırken "bildirilmiş" görünüyordu,
+    // artık görünmüyor. JSDoc'un kendi metni nedenini zaten anlatıyor:
+    // ──────────────────────────────────────────────────────────────────────
+    //   - `canCreateListing`: `ServerLimitsDto`'ya eşlenmiyor — mobil kendi
+    //     `canCreateListing`'ini `authStore.ts`/`useListingForm.ts` içinde
+    //     yerelden hesaplıyor (`grep -rn canCreateListing app src` bunu
+    //     gösteriyor); sunucunun aynı adlı alanı hiç okunmuyor, isim çakışması.
+    //   - `canUseFreeSlot`: `ServerLimitsDto`'da yok, kod tabanında BAŞKA hiçbir
+    //     yerde de geçmiyor (`grep -rn canUseFreeSlot app src` boş) — hiç
+    //     okunmuyor.
+    //   - `tiers.maxFreeListings` / `me.tier.maxFreeListings` / `limits.
+    //     maxFreeListings`: `ServerLimitsDto` yalnız `maxTotalListings`'i
+    //     eşliyor, `maxFreeListings`'i değil. `authStore.ts`'teki aynı adlı
+    //     alan (`apiUser.maxFreeListings`) FARKLI bir uçtan (`GET /users/me`)
+    //     geliyor — isim çakışması, bu üç yol hiç okunmuyor.
+    //   - `me.remainingFreeListings` / `limits.remainingFreeListings` /
+    //     `me.remainingTotalListings` / `limits.remainingTotalListings`:
+    //     JSDoc'un dediği gibi türetilmiş sayaçlar — mobil kotayı
+    //     `GET /products/my/stats`'tan türetiyor (bkz. aşağıdaki
+    //     `usedFreeListings`/`usedTotalListings` gerekçesi), sunucunun hazır
+    //     `remaining*` alanlarını hiç okumuyor.
+    'limits.canCreateListing',
+    'limits.canUseFreeSlot',
+    'tiers.maxFreeListings',
+    'me.tier.maxFreeListings',
+    'limits.maxFreeListings',
+    'me.remainingFreeListings',
+    'limits.remainingFreeListings',
+    'me.remainingTotalListings',
+    'limits.remainingTotalListings',
     // `me.userId` / `me.createdAt`: kayıt üstverisi, hiçbir ekran okumuyor.
     'me.userId',
     'me.createdAt',
@@ -696,5 +741,33 @@ describe('messaging sözleşmesi', () => {
     const src = readTypes(MESSAGING_TYPE_SOURCES);
     const missing = undeclaredFields(fixture.threads, src, KNOWN_UNDECLARED.messaging);
     expect(missing).toEqual([]);
+  });
+});
+
+/**
+ * `KNOWN_UNDECLARED` bir ilerleme defteri: bir boşluk kapanınca satır SİLİNİR.
+ * Silinmezse sessizce kalır ve o yoldaki bir GERİLEMEYİ (tip daraltılır, alan
+ * gerçekten okunmaz hâle gelirse guard yine susar) maskeler.
+ *
+ * Bu test yalnız ÖLÜ bir satırı yakalar — her yol, kendi domain'inin ölçülmüş
+ * gövdesinde GERÇEKTEN var mı? Listenin EKSİKSİZ olduğunu (yeni bir boşluğun
+ * unutulmadığını) doğrulayamaz — bu, dosya başındaki SINIRI notundaki gibi,
+ * makineyle denetlenemeyen bir şey.
+ */
+describe('KNOWN_UNDECLARED — ölü satır yok', () => {
+  const DOMAIN_BODIES: Record<string, unknown> = {
+    orders: readFixture('orders'),
+    checkout: readFixture('checkout'),
+    trades: readFixture('trades'),
+    products: readFixture('products').mine,
+    membership: readFixture('membership'),
+    user: readFixture('user'),
+    messaging: readFixture('messaging').threads,
+  };
+
+  it.each(Object.keys(KNOWN_UNDECLARED))('%s: her allowlist yolu fixture’da var', (domain) => {
+    const paths = new Set(fieldPaths(DOMAIN_BODIES[domain]));
+    const dead = [...KNOWN_UNDECLARED[domain]].filter((path) => !paths.has(path));
+    expect(dead).toEqual([]);
   });
 });

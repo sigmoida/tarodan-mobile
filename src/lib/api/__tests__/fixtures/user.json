@@ -15,7 +15,7 @@
     "email": "REDACTED",
     "phone": "REDACTED",
     "displayName": "REDACTED",
-    "avatarUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/avatars/52336236-4dcb-4d6a-9995-8788c11c188d/094bcb44-2e68-461f-970f-f11a07e97341.webp?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIA444WPX6HXNL4SLAL%2F20260827%2Feu-west-1%2Fs3%2Faws4_request&X-Amz-Date=20260827T130510Z&X-Amz-Expires=86400&X-Amz-Signature=3e25ce6757313bd8a2e5c1b8f09fe35b17a73ae8db26992b69fce736ea47b4d1&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject",
+    "avatarUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/avatars/52336236-4dcb-4d6a-9995-8788c11c188d/094bcb44-2e68-461f-970f-f11a07e97341.webp",
     "bio": "Hot Wheels tutkunu, 15 yıllık koleksiyoncu",
     "isVerified": true,
     "isEmailVerified": true,

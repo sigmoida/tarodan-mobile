@@ -13,9 +13,9 @@
         "id": "c3300977-08cd-4bd4-9ea7-c49bfe5588da",
         "tradeNumber": "TKS-Z49XB93WJ6",
         "initiatorId": "2a882a6f-5a80-4024-95cc-77ef421c39cf",
-        "initiatorName": "zferzane",
+        "initiatorName": "REDACTED",
         "receiverId": "52336236-4dcb-4d6a-9995-8788c11c188d",
-        "receiverName": "ahmet34",
+        "receiverName": "REDACTED",
         "status": "cancelled",
         "initiatorItems": [
           {
@@ -110,9 +110,9 @@
         "id": "efeec5f8-2c0b-4aa6-b29f-3018b4809146",
         "tradeNumber": "TKS-9MQEWD2FKR",
         "initiatorId": "52336236-4dcb-4d6a-9995-8788c11c188d",
-        "initiatorName": "ahmet34",
+        "initiatorName": "REDACTED",
         "receiverId": "2a882a6f-5a80-4024-95cc-77ef421c39cf",
-        "receiverName": "zferzane",
+        "receiverName": "REDACTED",
         "status": "cancelled",
         "initiatorItems": [
           {
@@ -154,7 +154,7 @@
         "initiatorShipment": {
           "id": "e6146672-9b67-4f51-b5a5-5355f910e977",
           "shipperId": "52336236-4dcb-4d6a-9995-8788c11c188d",
-          "shipperName": "ahmet34",
+          "shipperName": "REDACTED",
           "carrier": "surat",
           "trackingNumber": "TKS-9MQEWD2FKR-WH-INI",
           "cargoCode": "12516210181141",
@@ -166,7 +166,7 @@
         "receiverShipment": {
           "id": "53e049ad-cd3f-40d7-8fa9-1d7365acd676",
           "shipperId": "2a882a6f-5a80-4024-95cc-77ef421c39cf",
-          "shipperName": "zferzane",
+          "shipperName": "REDACTED",
           "carrier": "surat",
           "trackingNumber": null,
           "status": "cancelled",
@@ -246,9 +246,9 @@
         "id": "97cf9178-3e8c-45db-9c92-88c748571dbd",
         "tradeNumber": "TKS-QMGCMW2PEE",
         "initiatorId": "52336236-4dcb-4d6a-9995-8788c11c188d",
-        "initiatorName": "ahmet34",
+        "initiatorName": "REDACTED",
         "receiverId": "2152e919-03e5-4945-8195-4b8078257bba",
-        "receiverName": "Ayşe Vintage",
+        "receiverName": "REDACTED",
         "status": "admin_reviewing",
         "initiatorItems": [
           {
@@ -299,9 +299,9 @@
         "id": "b562ea66-8642-425d-9976-ebf11f994341",
         "tradeNumber": "TKS-HAAWFRTV52",
         "initiatorId": "a1376658-3e1e-42a4-93de-733f167b26cc",
-        "initiatorName": "Tarodan Platform Ticaret A.Ş.",
+        "initiatorName": "REDACTED",
         "receiverId": "52336236-4dcb-4d6a-9995-8788c11c188d",
-        "receiverName": "ahmet34",
+        "receiverName": "REDACTED",
         "status": "completed",
         "initiatorItems": [
           {
@@ -343,7 +343,7 @@
         "initiatorShipment": {
           "id": "d2eda1ca-ba7c-402e-acca-a3458011e852",
           "shipperId": "a1376658-3e1e-42a4-93de-733f167b26cc",
-          "shipperName": "Tarodan Platform Ticaret A.Ş.",
+          "shipperName": "REDACTED",
           "carrier": "surat",
           "trackingNumber": "TKS-HAAWFRTV52-WH-INI",
           "status": "delivered",
@@ -354,7 +354,7 @@
         "receiverShipment": {
           "id": "82d3cff9-05da-4ad4-892e-a0fc22cd2e43",
           "shipperId": "52336236-4dcb-4d6a-9995-8788c11c188d",
-          "shipperName": "ahmet34",
+          "shipperName": "REDACTED",
           "carrier": "surat",
           "trackingNumber": "TKS-HAAWFRTV52-WH-REC",
           "status": "delivered",
@@ -457,9 +457,9 @@
         "id": "12012f5e-4d1b-43c8-87fe-c644ea5dde24",
         "tradeNumber": "TKS-P5HKS96CC2",
         "initiatorId": "52336236-4dcb-4d6a-9995-8788c11c188d",
-        "initiatorName": "ahmet34",
+        "initiatorName": "REDACTED",
         "receiverId": "2152e919-03e5-4945-8195-4b8078257bba",
-        "receiverName": "Ayşe Vintage",
+        "receiverName": "REDACTED",
         "status": "cancelled",
         "initiatorItems": [
           {
@@ -543,9 +543,9 @@
         "id": "b2122b73-cc8e-48be-9fd9-a3e29dac5ae9",
         "tradeNumber": "TKS-5HGBYAHH28",
         "initiatorId": "52336236-4dcb-4d6a-9995-8788c11c188d",
-        "initiatorName": "ahmet34",
+        "initiatorName": "REDACTED",
         "receiverId": "2152e919-03e5-4945-8195-4b8078257bba",
-        "receiverName": "Ayşe Vintage",
+        "receiverName": "REDACTED",
         "status": "at_warehouse",
         "initiatorItems": [
           {
@@ -596,9 +596,9 @@
         "id": "145abe9e-8b8e-4ba9-98d0-a6d51efffe33",
         "tradeNumber": "TKS-8KY22EZK2T",
         "initiatorId": "52336236-4dcb-4d6a-9995-8788c11c188d",
-        "initiatorName": "ahmet34",
+        "initiatorName": "REDACTED",
         "receiverId": "5a79aed4-ad6f-4c45-a085-c275df24bd4b",
-        "receiverName": "İrem Hobici",
+        "receiverName": "REDACTED",
         "status": "rejected",
         "initiatorItems": [
           {
@@ -649,9 +649,9 @@
         "id": "d3aa6ddb-799d-4797-9574-ca76442c9df7",
         "tradeNumber": "TKS-YDMX637CV2",
         "initiatorId": "52336236-4dcb-4d6a-9995-8788c11c188d",
-        "initiatorName": "ahmet34",
+        "initiatorName": "REDACTED",
         "receiverId": "2152e919-03e5-4945-8195-4b8078257bba",
-        "receiverName": "Ayşe Vintage",
+        "receiverName": "REDACTED",
         "status": "disputed",
         "initiatorItems": [
           {
@@ -710,9 +710,9 @@
         "id": "2753ebf8-e631-4448-85bb-97a441d6bea4",
         "tradeNumber": "TKS-KT3XXANZY3",
         "initiatorId": "52336236-4dcb-4d6a-9995-8788c11c188d",
-        "initiatorName": "ahmet34",
+        "initiatorName": "REDACTED",
         "receiverId": "5a79aed4-ad6f-4c45-a085-c275df24bd4b",
-        "receiverName": "İrem Hobici",
+        "receiverName": "REDACTED",
         "status": "accepted",
         "initiatorItems": [
           {
@@ -754,7 +754,7 @@
         "initiatorShipment": {
           "id": "374e2895-255f-420a-8ba1-9ea48176388b",
           "shipperId": "52336236-4dcb-4d6a-9995-8788c11c188d",
-          "shipperName": "ahmet34",
+          "shipperName": "REDACTED",
           "carrier": "surat",
           "trackingNumber": "TKS-KT3XXANZY3-WH-INI",
           "cargoCode": "85157362219948",
@@ -766,7 +766,7 @@
         "receiverShipment": {
           "id": "53ceffdc-451d-4a27-9bac-58928e70b593",
           "shipperId": "5a79aed4-ad6f-4c45-a085-c275df24bd4b",
-          "shipperName": "İrem Hobici",
+          "shipperName": "REDACTED",
           "carrier": "surat",
           "trackingNumber": null,
           "status": "label_created",
@@ -844,9 +844,9 @@
         "id": "48f1e121-930e-4815-9d2e-e334b170024f",
         "tradeNumber": "TKS-QWJBC32449",
         "initiatorId": "2152e919-03e5-4945-8195-4b8078257bba",
-        "initiatorName": "Ayşe Vintage",
+        "initiatorName": "REDACTED",
         "receiverId": "52336236-4dcb-4d6a-9995-8788c11c188d",
-        "receiverName": "ahmet34",
+        "receiverName": "REDACTED",
         "status": "cancelled",
         "initiatorItems": [
           {
@@ -904,9 +904,9 @@
     "id": "b562ea66-8642-425d-9976-ebf11f994341",
     "tradeNumber": "TKS-HAAWFRTV52",
     "initiatorId": "a1376658-3e1e-42a4-93de-733f167b26cc",
-    "initiatorName": "Tarodan Platform Ticaret A.Ş.",
+    "initiatorName": "REDACTED",
     "receiverId": "52336236-4dcb-4d6a-9995-8788c11c188d",
-    "receiverName": "ahmet34",
+    "receiverName": "REDACTED",
     "status": "completed",
     "initiatorItems": [
       {
@@ -948,7 +948,7 @@
     "initiatorShipment": {
       "id": "d2eda1ca-ba7c-402e-acca-a3458011e852",
       "shipperId": "a1376658-3e1e-42a4-93de-733f167b26cc",
-      "shipperName": "Tarodan Platform Ticaret A.Ş.",
+      "shipperName": "REDACTED",
       "carrier": "surat",
       "trackingNumber": "TKS-HAAWFRTV52-WH-INI",
       "status": "delivered",
@@ -959,7 +959,7 @@
     "receiverShipment": {
       "id": "82d3cff9-05da-4ad4-892e-a0fc22cd2e43",
       "shipperId": "52336236-4dcb-4d6a-9995-8788c11c188d",
-      "shipperName": "ahmet34",
+      "shipperName": "REDACTED",
       "carrier": "surat",
       "trackingNumber": "TKS-HAAWFRTV52-WH-REC",
       "status": "delivered",
