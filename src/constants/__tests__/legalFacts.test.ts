@@ -28,7 +28,13 @@ describe('hukuki künye', () => {
   });
 
   it('ekranlar künyeyi bu sabitten okur, kendi metnini yazmaz', () => {
-    for (const file of ['app/distance-sales.tsx', 'app/privacy.tsx']) {
+    // Tüzel kişi künyesi geçen her yayınlanmış hukuki metin burada olmalı —
+    // yoksa yeni eklenen bir belge sessizce eski/uydurma künyeyle kalır.
+    for (const file of [
+      'app/distance-sales.tsx',
+      'app/privacy.tsx',
+      'app/seller-agreement.tsx',
+    ]) {
       const source = require('fs').readFileSync(
         require('path').resolve(__dirname, '../../..', file),
         'utf8',
