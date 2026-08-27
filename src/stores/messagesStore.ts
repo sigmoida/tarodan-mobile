@@ -29,6 +29,7 @@ export interface MessageThread {
     id: string;
     title: string;
     images?: Array<{ url: string }>;
+    imageUrl?: string;
   };
   lastMessage?: {
     content: string;

@@ -48,6 +48,17 @@ export function normalizeThread(t: any): MessageThread {
     participant1,
     participant2,
     unreadCount: t.unreadCount || 0,
+    /**
+     * Ürün bağlamı: sunucu DÜZ alanlarda gönderiyor (`productTitle`/
+     * `productImage`), `ThreadRow` iç içe `thread.product` arıyor. Haritalama
+     * yoktu, o yüzden ürün üzerinden başlamış her konuşma listede "Genel mesaj"
+     * görünüyordu. Sunucu iç içe göndermeye geçerse onu bozmuyoruz.
+     */
+    product:
+      t.product ??
+      (t.productId || t.productTitle
+        ? { id: t.productId ?? '', title: t.productTitle ?? '', imageUrl: t.productImage ?? undefined }
+        : undefined),
   };
 }
 
