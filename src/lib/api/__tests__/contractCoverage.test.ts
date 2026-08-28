@@ -648,6 +648,20 @@ describe('undeclaredFields', () => {
  * bir araç. Bu test yalnız "tipte adı var, hiçbir ölçülen gövdede o ad yok"
  * sınıfını kapsar — başka hiçbir şeyi değil.
  *
+ * `extractTypeFields`'IN KENDİ İKİ SINIRI (fix round 1, inceleme buldu, ikisi
+ * de dosyanın `extractTypeFields` yorumunda AYRINTILI): (1) yalnız NESNE TİPİ
+ * HARFİYEN bildirimlerini okur — bir BİRLEŞİM (union, `{ a } | { b }`) verilirse
+ * sessizce ilk kolu döndürmek yerine FIRLATIR, çünkü sessiz kısmi kapsama
+ * "beşinci bir tip eklemek BİLİNÇLİ bir eylem olmalı" ilkesinin karşıtı olurdu.
+ * (2) yalnız DÜZ ÖZELLİKLERİ okur — derinlik sayacı `(`/`)` izlemediği için
+ * `doThing(x: number): void` gibi bir METOD üyesi verilirse parametre adı
+ * sahte bir "alan" olarak sızar; bu bilerek düzeltilmedi (parantez takibi
+ * kapsamı genişletirdi), yalnız burada yazılı bir sınır. İkisi de BUGÜN canlı
+ * DEĞİL — `PARITY_TYPES`'taki dört tipin hiçbiri birleşim değil, hiçbirinde
+ * metod üyesi yok — ama biri eksik kalsaydı bu listenin dürüstlüğü eksik
+ * kalırdı: bir sonraki bakımcı yalnız BULUNAN sınırları değil, TÜM sınırları
+ * bilmeli.
+ *
  * NEDEN DOMAIN DEĞİL, TEK TEK ADLANDIRILMIŞ TİP: ilk deneme `declaredButAbsent`'ı
  * doğrudan bütün `*_TYPE_SOURCES` dosyalarına karşı çalıştırmıştı (`undeclaredFields`'ın
  * `declared` setiyle AYNI geniş kimlik taraması). O yön için (bir alan adının
@@ -695,6 +709,19 @@ describe('extractTypeFields', () => {
   it('adı verilen tip dosyada yoksa boş dizi döner', () => {
     const src = 'export type X = { a: number };';
     expect(extractTypeFields(src, 'DoesNotExist')).toEqual([]);
+  });
+
+  it('BİRLEŞİM (union) tipinde SESSİZCE ilk kolu döndürmek yerine FIRLATIR', () => {
+    // Fix round 1: `{ a } | { b }` verilince önceki davranış yalnız `a`'yı
+    // döndürüp `b`'yi hiç işaret etmeden düşürüyordu. Beşinci bir tip
+    // eklemek BİLİNÇLİ bir eylem olmalı — sessiz kısmi kapsama bunun tam
+    // karşıtı, bu yüzden burada fırlatmak DOĞRU başarısızlık biçimi.
+    // Not: Türkçe büyük `İ` JS'in `/i` bayrağıyla küçük `i`'ye basit bir
+    // şekilde eşlenmiyor (Unicode case-folding farkı) — büyük/küçük harf
+    // karışık bir regex yerine mesajdaki gerçek harfle birebir eşleşen bir
+    // alt dizi arıyoruz.
+    const src = 'export type X = { a: number } | { b: string };';
+    expect(() => extractTypeFields(src, 'X')).toThrow('BİRLEŞİM');
   });
 });
 

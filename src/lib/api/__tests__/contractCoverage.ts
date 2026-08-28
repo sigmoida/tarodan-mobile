@@ -90,6 +90,25 @@ export function undeclaredFields(
  *
  * `stripComments` yorumları atar — aynı gerekçeyle (bkz. `undeclaredFields`
  * yorumu): düz yazı bir bildirim SAYILMAMALI.
+ *
+ * KAPSAMI — dürüst olması gereken iki sınır (fix round 1, inceleme buldu):
+ *
+ * 1. YALNIZ NESNE TİPİ HARFİYEN bildirimlerini okur. `type X = { a } | { b }`
+ *    gibi bir BİRLEŞİM (union) verilirse yalnız İLK kolu okuyup SESSİZCE
+ *    kalan kolları düşürmek yerine FIRLATIR — bkz. aşağıdaki kontrol. Bu
+ *    guard'ın bütün güvenlik özelliği "beşinci bir tip eklemek BİLİNÇLİ,
+ *    bilgili bir eylem olmalı" — bir birleşim tipini sessizce yarım okumak
+ *    tam da bunun karşıtı: bakımcı bunu asla fark etmezdi. Bugün canlı DEĞİL
+ *    (dört bağlı tipin hiçbiri birleşim değil) ama beşinci bir tip eklenirse
+ *    canlı olabilir.
+ * 2. YALNIZ DÜZ ÖZELLİKLERİ okur, METOD/callback ÜYELERİNİ değil. Derinlik
+ *    sayacı yalnız `{`/`}` izler, `(`/`)` İZLEMEZ — `doThing(x: number): void`
+ *    gibi bir metod üyesi verilirse parametre adı `x` sahte bir "alan" olarak
+ *    sızar. Bilerek DÜZELTİLMEDİ (parantez takibi eklemek bu ayıklayıcının
+ *    kapsamını genişletirdi, brief'in "redesign etme" talimatına aykırı
+ *    düşerdi) — bunun yerine burada YAZILI bir sınır. Bugün canlı DEĞİL (dört
+ *    bağlı tipin hiçbirinde metod üyesi yok) — metod üyesi olan bir tip
+ *    eklenirse bu ayıklayıcının MENZİLİ DIŞINDA kalır.
  */
 export function extractTypeFields(source: string, typeName: string): string[] {
   const stripped = stripComments(source);
@@ -98,11 +117,29 @@ export function extractTypeFields(source: string, typeName: string): string[] {
   );
   if (!declaration) return [];
   const bodyStart = declaration.index + declaration[0].length;
+  // Açılış parantezinden ÖNCEki başlıkta bir `|` — `type X = Foo | { ... }`
+  // gibi bir birleşimin başka bir kolu — sessizce yalnız nesne-harfiyen kolu
+  // okumak yerine burada durdurur.
+  const head = declaration[0].slice(0, -1);
+  if (head.includes('|')) {
+    throw new Error(
+      `extractTypeFields('${typeName}'): bildirim bir '|' içeriyor — bu ayıklayıcı yalnız NESNE TİPİ HARFİYEN bildirimlerini okur, BİRLEŞİM (union) tiplerini değil.`,
+    );
+  }
   let depth = 1;
   let bodyEnd = bodyStart;
   for (; bodyEnd < stripped.length && depth > 0; bodyEnd++) {
     if (stripped[bodyEnd] === '{') depth++;
     else if (stripped[bodyEnd] === '}') depth--;
+  }
+  // Kapanış parantezinden HEMEN SONRA (boşluk atlanarak) bir `|` — `type X =
+  // { a } | { b }` gibi ilk kolu doğru okuyup KALAN kolları sessizce düşürmek
+  // yerine burada durdurur.
+  const afterBody = /^\s*(\S)/.exec(stripped.slice(bodyEnd));
+  if (afterBody && afterBody[1] === '|') {
+    throw new Error(
+      `extractTypeFields('${typeName}'): bildirim bir BİRLEŞİM (union) tipinin yalnız İLK kolu — bu ayıklayıcı yalnız NESNE TİPİ HARFİYEN bildirimlerini okur, BİRLEŞİM tiplerini değil.`,
+    );
   }
   const body = stripped.slice(bodyStart, bodyEnd - 1);
   const names: string[] = [];
