@@ -70,7 +70,60 @@ export function undeclaredFields(
 }
 
 /**
- * Tip kaynağında BİLDİRİLEN ama ÖLÇÜLEN hiçbir gövdede görünmeyen adlar.
+ * Adı verilen bir `type`/`interface` bildiriminin KENDİ blok gövdesinden alan
+ * adlarını çıkarır — dosyanın geri kalanından (import'lar, fonksiyonlar,
+ * axios yüzeyi, başka tiplerin alanları) değil.
+ *
+ * İlk deneme `declaredButAbsent`'ı doğrudan bütün `*_TYPE_SOURCES`
+ * dosyalarına karşı çalıştırmıştı — `undeclaredFields`'ın `declared` setiyle
+ * AYNI geniş kimlik taraması. O yön için (bir alan adının dosyanın HERHANGİ
+ * bir yerinde geçip geçmediği) güvenliydi; TERS yönde (bir tip alanının
+ * ÖLÇÜLEN gövdede geçip geçmediği) felaketti — dosyalar axios metod adlarını,
+ * store eylemlerini, İLGİSİZ uçların tiplerini de "bildiriyordu", yedi
+ * domainin YEDİSİ de 40 satır eşiğini (74-285 arası) katladı. Bu fonksiyon o
+ * dersin sonucu: yalnız TEK, adı VERİLMİŞ bir tipin kendi alanlarını döndürür
+ * — o tipe REFERANS veren bir alan varsa (`summary?: OrderQuotePricingSummary`)
+ * yalnız `summary` sayılır, `OrderQuotePricingSummary`'nin alanları değil
+ * (onlar ayrı bir çağrıyla, kendi adlarıyla istenir). Blok içinde satır içi
+ * `{ ... }` (iç içe nesne tipi) varsa onun içindeki adlar da bu yüzden
+ * ATLANIR — yalnız tipin KENDİ üst düzeyi.
+ *
+ * `stripComments` yorumları atar — aynı gerekçeyle (bkz. `undeclaredFields`
+ * yorumu): düz yazı bir bildirim SAYILMAMALI.
+ */
+export function extractTypeFields(source: string, typeName: string): string[] {
+  const stripped = stripComments(source);
+  const declaration = new RegExp(`\\b(?:type|interface)\\s+${typeName}\\b[^{]*\\{`).exec(
+    stripped,
+  );
+  if (!declaration) return [];
+  const bodyStart = declaration.index + declaration[0].length;
+  let depth = 1;
+  let bodyEnd = bodyStart;
+  for (; bodyEnd < stripped.length && depth > 0; bodyEnd++) {
+    if (stripped[bodyEnd] === '{') depth++;
+    else if (stripped[bodyEnd] === '}') depth--;
+  }
+  const body = stripped.slice(bodyStart, bodyEnd - 1);
+  const names: string[] = [];
+  let localDepth = 0;
+  const tokenRe = /([a-zA-Z_][a-zA-Z0-9_]*)\??\s*:|[{}]/g;
+  let m: RegExpExecArray | null;
+  while ((m = tokenRe.exec(body))) {
+    if (m[0] === '{') {
+      localDepth++;
+    } else if (m[0] === '}') {
+      localDepth--;
+    } else if (localDepth === 0) {
+      names.push(m[1]);
+    }
+  }
+  return unique(names);
+}
+
+/**
+ * BİLDİRİLEN (bir tipin kendi alan adları) ama ÖLÇÜLEN hiçbir gövdede
+ * görünmeyen adlar.
  *
  * `undeclaredFields`'ın tersi: orada gövde tipe göre taranır, burada tip
  * gövdelere göre taranır. Amaç ayrı bir hata sınıfı — istemcinin sunucunun
@@ -82,21 +135,48 @@ export function undeclaredFields(
  * edilmemiş bir siparişte yok) — TÜM ölçülen gövdelerin HİÇBİRİNDE olmayan bir
  * ad farklı bir şey, sunucu hiç göndermiyor ya da göndermeyi bırakmış demektir.
  *
- * `stripComments` burada da uygulanır — aynı gerekçeyle (bkz. `undeclaredFields`
- * yorumu): düz yazı bir bildirim SAYILMAMALI.
+ * `declaredFieldNames` YALNIZ `extractTypeFields`'ın döndürdüğü adlardan
+ * gelmeli — bir dosyanın tüm kimliklerinden DEĞİL (bkz. `extractTypeFields`
+ * yorumu, bu ayrımın neden var olduğu). Kapsamı BİLEREK dar: yeni bir tip
+ * eklemek (beşinci bir `extractTypeFields` çağrısı) her zaman BİLİNÇLİ, elle
+ * bir karar olmalı — guard kendiliğinden genişlemez, bu onu dürüst tutan şey.
+ *
+ * Varlığı `fieldPaths`'ın YAPRAKLARINA değil, gövdedeki HER anahtar adına
+ * bakarak ölçer (`presentFieldNames`, altta). `fieldPaths` kasıtlı olarak iç
+ * içe bir konteynerin adını DÜŞÜRÜR — `pricing: { summary: {...} }` iken
+ * yaprak yolu `pricing.summary.total` olur, `pricing` ya da `summary` KENDİSİ
+ * hiç yaprak olarak görünmez (bkz. `fieldPaths` yorumu). `OrderQuoteResponse.
+ * pricing` gibi bir alan tam olarak böyle bir konteyner — yalnız yapraklara
+ * bakılsaydı GERÇEKTEN dolu bir gövdede bile "yok" diye yanlış işaretlenirdi.
+ * Bu yüzden burada AYRI bir tarayıcı var: her derinlikteki HER anahtarı sayar.
  *
  * SINIRI: yalnız TİPTE bildirilen adları görür. `any`'ye okunan bir alan
- * (`payload.qrCode` gibi) hiçbir tipte geçmediği için bu fonksiyona hiç
- * girmez — o sınıf kaynak taraması ister, bu araç onu KAPSAMAZ.
+ * (`payload.qrCode` gibi) hiçbir tipte geçmediği için `extractTypeFields`'a
+ * hiç girmez — o sınıf kaynak taraması ister, bu araç onu KAPSAMAZ.
  */
 export function declaredButAbsent(
-  typeSource: string,
+  declaredFieldNames: string[],
   bodies: unknown[],
   allowlist: Set<string>,
 ): string[] {
-  const declared = new Set(stripComments(typeSource).match(/\b[a-zA-Z_][a-zA-Z0-9_]*\b/g) ?? []);
-  const presentLeaves = new Set(
-    bodies.flatMap((body) => fieldPaths(body).map((path) => leafOf(path))),
-  );
-  return [...declared].filter((name) => !presentLeaves.has(name) && !allowlist.has(name)).sort();
+  const presentNames = new Set(bodies.flatMap((body) => presentFieldNames(body)));
+  return declaredFieldNames
+    .filter((name) => !presentNames.has(name) && !allowlist.has(name))
+    .sort();
+}
+
+/** Gövdedeki HER anahtar adı, derinlik ve yaprak/konteyner ayrımı olmadan. */
+function presentFieldNames(body: unknown): string[] {
+  if (Array.isArray(body)) {
+    return unique(body.flatMap((item) => presentFieldNames(item)));
+  }
+  if (body && typeof body === 'object') {
+    return unique(
+      Object.entries(body as Record<string, unknown>).flatMap(([key, value]) => [
+        key,
+        ...presentFieldNames(value),
+      ]),
+    );
+  }
+  return [];
 }
