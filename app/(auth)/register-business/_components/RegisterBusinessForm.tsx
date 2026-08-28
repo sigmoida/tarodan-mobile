@@ -83,7 +83,7 @@ export function RegisterBusinessForm({ f }: { f: RegisterBusinessController }) {
           <FormInput
             testID="register-business-kepAddress-input"
             name="kepAddress"
-            label="KEP Adresi (opsiyonel)"
+            label={t('auth.bizKepAddress')}
             keyboardType="email-address"
             autoCapitalize="none"
           />

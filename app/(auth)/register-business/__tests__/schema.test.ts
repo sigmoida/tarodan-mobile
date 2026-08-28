@@ -4,6 +4,12 @@
  * tam olarak bu beş zorunlu alanı şikayet ediyor: authorizedFullName,
  * companyLegalName, companyTitle, companyAddress (min 10), companyEmail.
  * `password` DTO'da hiç yok — bu adım hesap açmaz, ön başvurudur.
+ *
+ * `kepAddress` B13'te ZORUNLU oldu — web'le eşleşir
+ * (`apps/web/.../_lib/auth.ts:186`: "KEP kurumsal tebligat adresi:
+ * başvurunun yasal iletişim kanalı, bu yüzden zorunlu"). Sunucu DTO'da hâlâ
+ * `kepAddress?: string` (opsiyonel) — bu bir ÜRÜN kararı, sözleşme kısıtı
+ * değil.
  */
 import { buildRegisterBusinessSchema } from '../_lib/schema';
 import { schemaT } from '@/test-utils';
@@ -18,6 +24,7 @@ const validPayload = {
   companyTitle: 'Test Otomotiv Ltd. Şti.',
   companyAddress: 'Örnek Mahallesi Test Caddesi No:12 Kadıköy İstanbul',
   companyEmail: 'basvuru@testotomotiv.com',
+  kepAddress: 'basvuru@hs01.kep.tr',
   phone: '0532 123 45 67',
   acceptTerms: true as const,
 };
@@ -190,32 +197,45 @@ describe('registerBusinessSchema — e-posta küçük harfe çevrilir', () => {
     if (result.success) expect(result.data.companyEmail).toBe('basvuru@testotomotiv.com');
   });
 
-  it('kepAddress da lowercase edilir', () => {
+  /**
+   * `kepAddress` companyEmail'in AKSİNE lowercase'e çevrilmez — web'in şekli
+   * birebir budur (`trim().min(1, …).email(…)`, transform YOK). Davet
+   * eşleşmesi companyEmail üzerinden yapılıyor, KEP eşleşme amaçlı değil.
+   */
+  it('kepAddress lowercase edilmez (web ile aynı şekil, transform yok)', () => {
     const result = registerBusinessSchema.safeParse({
       ...validPayload,
       kepAddress: 'Firma@HS01.KEP.TR',
     });
     expect(result.success).toBe(true);
-    if (result.success) expect(result.data.kepAddress).toBe('firma@hs01.kep.tr');
+    if (result.success) expect(result.data.kepAddress).toBe('Firma@HS01.KEP.TR');
   });
 });
 
-describe('registerBusinessSchema — opsiyonel alanlar (kepAddress / contactPhone)', () => {
-  it('kepAddress ve contactPhone hiç gönderilmeden form geçerli olur (API canlı: 201)', () => {
-    const { ...rest } = validPayload;
-    const result = registerBusinessSchema.safeParse(rest);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.kepAddress).toBeUndefined();
-      expect(result.data.contactPhone).toBeUndefined();
-    }
+describe('registerBusinessSchema — kepAddress zorunlu (B13: web ile eşleşir)', () => {
+  it('kepAddress hiç gönderilmezse reddedilir', () => {
+    const { kepAddress: _omit, ...rest } = validPayload;
+    expect(registerBusinessSchema.safeParse(rest).success).toBe(false);
   });
 
-  it('geçerli kepAddress kabul edilir, geçersiz e-posta reddedilir', () => {
+  it('boş kepAddress reddedilir', () => {
+    expect(registerBusinessSchema.safeParse({ ...validPayload, kepAddress: '' }).success).toBe(false);
+  });
+
+  it('geçersiz kepAddress formatı reddedilir, geçerlisi kabul edilir', () => {
+    expect(registerBusinessSchema.safeParse({ ...validPayload, kepAddress: 'gecersiz' }).success).toBe(false);
     expect(
       registerBusinessSchema.safeParse({ ...validPayload, kepAddress: 'firma@hs01.kep.tr' }).success,
     ).toBe(true);
-    expect(registerBusinessSchema.safeParse({ ...validPayload, kepAddress: 'gecersiz' }).success).toBe(false);
+  });
+});
+
+describe('registerBusinessSchema — contactPhone (opsiyonel)', () => {
+  it('contactPhone hiç gönderilmeden form geçerli olur', () => {
+    const { contactPhone: _omit, ...rest } = validPayload as typeof validPayload & { contactPhone?: string };
+    const result = registerBusinessSchema.safeParse(rest);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.contactPhone).toBeUndefined();
   });
 
   it('geçerli contactPhone normalize edilip kabul edilir, geçersizi reddedilir', () => {
@@ -244,7 +264,7 @@ describe('registerBusinessSchema — API DTO ile birebir eşleşme', () => {
     if (result.success) {
       expect(result.data).not.toHaveProperty('password');
       expect(Object.keys(result.data).sort()).toEqual(
-        ['acceptTerms', 'authorizedFullName', 'companyAddress', 'companyEmail', 'companyLegalName', 'companyTitle', 'phone'].sort(),
+        ['acceptTerms', 'authorizedFullName', 'companyAddress', 'companyEmail', 'companyLegalName', 'companyTitle', 'kepAddress', 'phone'].sort(),
       );
     }
   });

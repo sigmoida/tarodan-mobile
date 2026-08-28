@@ -393,6 +393,7 @@
     "bizAddress": "Şirket Adresi *",
     "bizAddressPlaceholder": "Mahalle, cadde/sokak, no, ilçe/il",
     "bizEmail": "Şirket E-posta *",
+    "bizKepAddress": "KEP Adresi *",
     "bizPhone": "Telefon *",
     "bizContactPhone": "Ek İletişim Telefonu (opsiyonel)",
     "bizTermsLabel": "Üyelik sözleşmesini ve KVKK aydınlatma metnini okudum, kabul ediyorum. *",

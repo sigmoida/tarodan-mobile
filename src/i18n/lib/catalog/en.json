@@ -393,6 +393,7 @@
     "bizAddress": "Company Address *",
     "bizAddressPlaceholder": "Neighbourhood, street, number, district, province",
     "bizEmail": "Company E-mail *",
+    "bizKepAddress": "KEP Address *",
     "bizPhone": "Phone *",
     "bizContactPhone": "Additional Contact Phone (optional)",
     "bizTermsLabel": "I have read and accept the membership agreement and the privacy notice. *",

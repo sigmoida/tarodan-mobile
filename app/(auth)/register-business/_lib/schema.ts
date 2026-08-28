@@ -29,20 +29,6 @@ export const buildRegisterBusinessSchema = (t: TFunction) => {
   const email = emailSchema(t);
   const loweredEmailSchema = email.transform((v) => v.toLowerCase());
 
-  const optionalEmailSchema = z
-    .string()
-    .trim()
-    .optional()
-    .transform((v, ctx) => {
-      if (!v) return undefined;
-      const parsed = email.safeParse(v);
-      if (!parsed.success) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: t('validation.invalidEmail') });
-        return z.NEVER;
-      }
-      return parsed.data.toLowerCase();
-    });
-
   return z.object({
     authorizedFullName: z
       .string()
@@ -65,7 +51,18 @@ export const buildRegisterBusinessSchema = (t: TFunction) => {
       .min(10, t('validation.minLength', { min: 10 }))
       .max(500, t('validation.maxLength', { max: 500 })),
     companyEmail: loweredEmailSchema,
-    kepAddress: optionalEmailSchema,
+    /**
+     * KEP kurumsal tebligat adresi: başvurunun yasal iletişim kanalı, bu
+     * yüzden zorunlu (web: `apps/web/.../_lib/auth.ts:186`, aynı şekil —
+     * `trim().min(1, …).email(…)`, lowercase dönüşümü YOK). Sunucu DTO'da
+     * `kepAddress?: string` (opsiyonel) kalsa da bu zorunluluk üründe
+     * bilinçli bir karar: mobil web'le eşleşir.
+     */
+    kepAddress: z
+      .string()
+      .trim()
+      .min(1, t('validation.emailRequired'))
+      .email(t('validation.invalidEmail')),
     phone: requiredTrPhoneSchema(t),
     contactPhone: optionalTrPhoneSchema(t),
     /** Client-only kapı — API'ye GÖNDERİLMEZ (DTO'da böyle bir alan yok). */
