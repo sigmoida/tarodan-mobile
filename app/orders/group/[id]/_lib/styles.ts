@@ -103,4 +103,21 @@ export const styles = StyleSheet.create({
     color: colors.primary[600]!,
     fontWeight: '600',
   },
+  packageSellerName: {
+    marginBottom: theme.spacing[2],
+    color: colors.text.heading,
+  },
+  packageInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing[1],
+  },
+  packageInfoValue: {
+    color: colors.text.heading,
+    fontWeight: '600',
+  },
+  packageTrackButton: {
+    marginTop: theme.spacing[2],
+  },
 });

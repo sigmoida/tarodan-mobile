@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useOrderGroup } from './_hooks/useOrderGroup';
 import { styles } from './_lib/styles';
-import { GroupHeader, GroupOrderRow } from './_components/GroupSections';
+import { GroupHeader, GroupOrderRow, GroupPackageCard } from './_components/GroupSections';
 
 const { colors } = theme;
 
@@ -42,6 +42,13 @@ export default function OrderGroupDetailScreen() {
           {f.group.orders.map((order) => (
             <GroupOrderRow key={order.id} order={order} multi={f.group!.orders.length > 1} />
           ))}
+          {/*
+            Satıcı-bazlı kargo kırılımı (B10) — yalnız 2+ paketli (çok satıcılı)
+            grupta. Tek paketli grupta üstteki sipariş satırı zaten aynı kargo
+            bilgisini taşıyor, ayrı kart tekrar olurdu (§5 DRY).
+          */}
+          {f.group.packages.length > 1 &&
+            f.group.packages.map((pkg) => <GroupPackageCard key={pkg.id} pkg={pkg} />)}
           {/*
             Sepetin tamamını iptal — web'de 2026-08-12'den beri var. Kapı
             `cancel.available`: tek kalem bile kargoya verilmişse sunucu

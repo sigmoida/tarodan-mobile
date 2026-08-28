@@ -1024,6 +1024,7 @@
     "shippingIncludedInPackage": "Shipping included in package",
     "shipsPerSellerPackage": "Items from the same seller ship together",
     "sellerPackage": "{name}'s package",
+    "packageNumber": "Delivery No",
     "notPaidCancelInstead": "This order is not paid; cancel it instead",
     "cancelMsgYouCancelled": "You cancelled this order.",
     "cancelMsgBuyerCancelled": "The buyer cancelled this order.",

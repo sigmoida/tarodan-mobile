@@ -1024,6 +1024,7 @@
     "shippingIncludedInPackage": "Kargo pakete dahil",
     "shipsPerSellerPackage": "Aynı satıcının ürünleri tek pakette kargolanır",
     "sellerPackage": "{name} paketi",
+    "packageNumber": "Teslimat No",
     "notPaidCancelInstead": "Bu sipariş henüz ödenmemiş, iptal etmelisiniz",
     "cancelMsgYouCancelled": "Bu siparişi iptal ettiniz.",
     "cancelMsgBuyerCancelled": "Alıcı bu siparişi iptal etti.",
