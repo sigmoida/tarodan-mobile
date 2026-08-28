@@ -43,7 +43,7 @@
  */
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { fieldPaths, undeclaredFields } from './contractCoverage';
+import { declaredButAbsent, fieldPaths, undeclaredFields } from './contractCoverage';
 
 const ROOT = resolve(__dirname, '../../../..');
 /** Bir gövdeyi deklare eden BİRDEN FAZLA dosyayı okuyup tek kaynak metnine birleştirir. */
@@ -622,6 +622,97 @@ describe('undeclaredFields', () => {
     // aramak her iç içe tipte yanlış pozitif üretirdi.
     const src = 'export type Inner = { b: number };';
     expect(undeclaredFields({ a: { b: 1 } }, src, new Set())).toEqual([]);
+  });
+});
+
+/**
+ * TERS YÖN — istemcinin sunucunun hiç göndermediği bir adı ARAMASI.
+ *
+ * `analytics` ekranı `limits.maxListings === -1` diye karşılaştırıyordu; sunucu
+ * `maxTotalListings` gönderiyor, `maxListings` HİÇ yok — premium üye premium
+ * bölümü hiç görmüyordu. 2FA kurulumu `payload.qrCode` okuyordu; sunucu
+ * `qrCodeImage` gönderiyor. İkisi de elle bulundu, `undeclaredFields` bu sınıfı
+ * hiç yakalamıyor (o yön yalnız TERSİNİ görür: sunucunun gönderip mobilin
+ * BİLDİRMEDİĞİ alan).
+ *
+ * SINIRI (elle yazılması istenen kısım): bu yalnız TİPTE bildirilen bir adı
+ * yakalar. `payload.qrCode` gibi bir okuma `any`'YE yapılıyorsa — hiçbir tipte
+ * hiç geçmiyorsa — `declared` setine hiç girmez, bu fonksiyon onu GÖREMEZ. O
+ * sınıf (untyped/`any` okuma) KAYNAK TARAMASI ister; `styles.card` / `theme.
+ * colors` / `router.push` gibi gürültüyü ELEMESİ gerekir, bu FARKLI ve DAHA ZOR
+ * bir araç. Bu test yalnız "tipte adı var, hiçbir ölçülen gövdede o ad yok"
+ * sınıfını kapsar — başka hiçbir şeyi değil.
+ *
+ * DOMAIN SÖZLEŞMESİ NEDEN YOK: aynı `*_TYPE_SOURCES` dosyalarını (yukarıdaki
+ * `ORDERS_TYPE_SOURCES` vb.) bu yönde denedim — hem tam kimlik regex'iyle
+ * (`undeclaredFields`'ın kullandığı) hem de daha dar bir "özellik-adı:"
+ * regex'iyle. Sonuç her domainde `KNOWN_ABSENT` eşiğinin (~40) ÇOK üstünde:
+ * orders 259/130, checkout 208/116, trades 140/74, products 138/50,
+ * membership 248/89, user 285/90, messaging 130/42 (tam-kimlik/özellik-adı).
+ * Sebep aynı sınıf: `*_TYPE_SOURCES` dosyaları yalnız o gövdenin alanlarını
+ * değil — axios metod adlarını (`getAll`, `sendMessage`), zustand store
+ * eylemlerini (`markAsRead`, `registerPushToken`), İLGİSİZ uçların tiplerini
+ * (`orders.ts` aynı zamanda kargo/fatura/komisyon tiplerini de taşıyor) ve TS
+ * anahtar kelimelerini de "bildiriyor" — bu YÖN için hepsi gürültü. Brief'in
+ * durma koşulu tam bunu öngörüyordu ("ilk turda 217 çıktı, yanlış dosyaya
+ * bakılmıştı"). Burada da aynı sınıf hata, YEDİ domainin YEDİSİNDE — bu bir
+ * domainin yanlış seçilmesi değil, `declaredButAbsent`'ı `*_TYPE_SOURCES`'un
+ * TAMAMINA karşı çalıştırmanın yapısal sonucu. Kapsamı daraltmak (yalnız
+ * gövdeyi taşıyan TEK tipe bakmak gibi) yeni bir ayıklama kararı olurdu —
+ * brief'in "redesign etme" talimatına aykırı düşerdi, o yüzden durup
+ * bildiriyorum, elle 250 satır gerekçelendirmek yerine.
+ *
+ * GERÇEK BULGU (elle doğrulandı, otomatik geçitle DEĞİL): `MembershipLimits`
+ * alanı `maxListings` — `src/hooks/useMembershipLimits.ts:43`
+ * (`out.maxListings = dto.maxTotalListings`) onu GERÇEK bir çıktı alanı olarak
+ * bildiriyor, membership fixture'ının (`tiers`+`me`+`limits`) HİÇBİR
+ * satırında `maxListings` adı geçmiyor — sunucu yalnız `maxTotalListings`
+ * gönderiyor. Bu "istemci sunucunun göndermediği bir adı adlandırıyor" —
+ * ikinci gerekçe kalıbı. Üretime giden düzeltme premium kapıyı zaten
+ * `maxListings`'ten `maxTotalListings`'e taşımıştı; alan hâlâ `MembershipLimits`
+ * tipinde duruyor ve hâlâ hiç gelmiyor — ölü kod, ayrı bir küçük temizlik.
+ */
+describe('declaredButAbsent', () => {
+  // Not: `declared` seti `undeclaredFields`'la AYNI regex'i kullanır — yani
+  // `export`/`type`/`X`/`number` gibi kod-sözdizimi belirteçleri de "bildirilmiş"
+  // sayılır ve onlar da hiçbir gövdede leaf olarak geçmediği için raporlanır. Bu
+  // gerçek fonksiyonun davranışı (bkz. dosya başı `declaredButAbsent` yorumu ve
+  // "DOMAIN SÖZLEŞMESİ NEDEN YOK" notu) — testler onu allowlist'le SUSTURUYOR,
+  // gizlemiyor, tam olarak asıl alanı görünür kılmak için.
+  const SYNTAX_NOISE = new Set(['export', 'type', 'interface', 'X', 'number', 'string']);
+
+  it('gövdede olmayan bildirilmiş adı raporlar', () => {
+    const src = 'export type X = { maxListings: number };';
+    expect(declaredButAbsent(src, [{ maxTotalListings: 5 }], SYNTAX_NOISE)).toEqual([
+      'maxListings',
+    ]);
+  });
+
+  it('EN AZ BİR gövdede geçen adı raporlamaz — tek gövdede eksik olmak normal', () => {
+    const src = 'export type X = { cancelledAt: string; maxListings: number };';
+    expect(
+      declaredButAbsent(
+        src,
+        [{ cancelledAt: null }, { status: 'ok' }],
+        new Set([...SYNTAX_NOISE, 'maxListings']),
+      ),
+    ).toEqual([]);
+  });
+
+  it('allowlist’teki adı raporlamaz', () => {
+    const src = 'export type X = { maxListings: number };';
+    const allow = new Set([...SYNTAX_NOISE, 'maxListings']);
+    expect(declaredButAbsent(src, [{ other: 1 }], allow)).toEqual([]);
+  });
+
+  it('yorumdaki adı bildirim saymaz (stripComments)', () => {
+    // `useMembershipLimits.ts`'in JSDoc'u dokuz alanı böyle sızdırıyordu
+    // (bkz. `stripComments` yorumu) — bu yönde de aynı disiplin geçerli: yorumda
+    // geçen `ghostField` bir bildirim SAYILMAMALI, yani hiç raporlanmamalı.
+    const src = '// sunucu ayrıca ghostField döndürür\nexport type X = { total: number };';
+    expect(
+      declaredButAbsent(src, [{ total: 1 }], new Set([...SYNTAX_NOISE, 'total'])),
+    ).toEqual([]);
   });
 });
 

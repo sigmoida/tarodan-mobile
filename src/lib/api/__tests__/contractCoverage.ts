@@ -68,3 +68,35 @@ export function undeclaredFields(
     .filter((path) => !declared.has(leafOf(path)))
     .sort();
 }
+
+/**
+ * Tip kaynağında BİLDİRİLEN ama ÖLÇÜLEN hiçbir gövdede görünmeyen adlar.
+ *
+ * `undeclaredFields`'ın tersi: orada gövde tipe göre taranır, burada tip
+ * gövdelere göre taranır. Amaç ayrı bir hata sınıfı — istemcinin sunucunun
+ * hiç göndermediği bir adı ARAMASI (`limits.maxListings === -1` derken sunucu
+ * `maxTotalListings` gönderiyor, `maxListings` hiç yok; `payload.qrCode`
+ * derken sunucu `qrCodeImage` gönderiyor).
+ *
+ * "Hiçbirinde" kasıtlı: bir gövdede eksik olmak normaldir (`cancelledAt` iptal
+ * edilmemiş bir siparişte yok) — TÜM ölçülen gövdelerin HİÇBİRİNDE olmayan bir
+ * ad farklı bir şey, sunucu hiç göndermiyor ya da göndermeyi bırakmış demektir.
+ *
+ * `stripComments` burada da uygulanır — aynı gerekçeyle (bkz. `undeclaredFields`
+ * yorumu): düz yazı bir bildirim SAYILMAMALI.
+ *
+ * SINIRI: yalnız TİPTE bildirilen adları görür. `any`'ye okunan bir alan
+ * (`payload.qrCode` gibi) hiçbir tipte geçmediği için bu fonksiyona hiç
+ * girmez — o sınıf kaynak taraması ister, bu araç onu KAPSAMAZ.
+ */
+export function declaredButAbsent(
+  typeSource: string,
+  bodies: unknown[],
+  allowlist: Set<string>,
+): string[] {
+  const declared = new Set(stripComments(typeSource).match(/\b[a-zA-Z_][a-zA-Z0-9_]*\b/g) ?? []);
+  const presentLeaves = new Set(
+    bodies.flatMap((body) => fieldPaths(body).map((path) => leafOf(path))),
+  );
+  return [...declared].filter((name) => !presentLeaves.has(name) && !allowlist.has(name)).sort();
+}
