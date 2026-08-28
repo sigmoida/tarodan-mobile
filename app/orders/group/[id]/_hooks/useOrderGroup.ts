@@ -7,7 +7,7 @@ import { qk } from '@/lib/query';
 import { captureException } from '@/services/sentry';
 import type { OrderCancellationReason } from '@/lib/shared/orderCancellation';
 import { apiStatusToUi } from '@/utils/orderStatus';
-import type { GroupDetail, GroupOrder } from '../_lib/types';
+import type { GroupDetail, GroupOrder, GroupPackage } from '../_lib/types';
 
 /**
  * Order-group controller — owns the group query (with the raw→UI status mapping)
@@ -46,6 +46,33 @@ export function useOrderGroup() {
             id: o.product?.id ?? '',
             title: o.product?.title ?? '',
           },
+        })),
+        // Satıcı-bazlı kargo kırılımı (B10). Para HESAPLANMAZ — `shippingCost`
+        // sunucunun gönderdiği gibi basılır. Takip linki `deriveShipmentView`
+        // üzerinden kurulur; sunucunun `cargo.trackingUrl`'ı hiç okunmaz (o,
+        // Sürat'ın tanımadığı iç referanstan kurulu bozuk bir link).
+        packages: (raw.packages || []).map((p: any): GroupPackage => ({
+          id: p.id,
+          packageNumber: p.packageNumber ?? null,
+          sellerId: p.sellerId ?? null,
+          seller: p.seller
+            ? {
+                id: p.seller.id,
+                publicName: p.seller.publicName,
+                displayName: p.seller.displayName ?? p.seller.publicName ?? '',
+              }
+            : null,
+          shippingCost: Number(p.shippingCost ?? 0),
+          cargo: p.cargo
+            ? {
+                trackingNumber: p.cargo.trackingNumber ?? null,
+                cargoCode: p.cargo.cargoCode ?? null,
+                provider: p.cargo.provider ?? null,
+                status: p.cargo.status ?? null,
+                shippedAt: p.cargo.shippedAt ?? null,
+                deliveredAt: p.cargo.deliveredAt ?? null,
+              }
+            : null,
         })),
       };
     },

@@ -1,13 +1,14 @@
 import { useTranslation } from 'react-i18next';
-import { View, Image, Pressable } from 'react-native';
-import { Card, StatusBadge, Text, theme } from '@/ui';
+import { View, Image, Pressable, Linking } from 'react-native';
+import { Card, StatusBadge, Text, Button, theme } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getOrderProductImageUri } from '@/utils/orderProductImage';
 import { formatPrice } from '@/utils/format';
+import { deriveShipmentView } from '@/lib/shipping/tracking';
 import { styles } from '../_lib/styles';
 import { useOrderStatusConfig, badgeStatusOf, formatDate, deriveOrderRow } from '../_lib/status';
-import type { GroupDetail, GroupOrder } from '../_lib/types';
+import type { GroupDetail, GroupOrder, GroupPackage } from '../_lib/types';
 
 const { colors } = theme;
 
@@ -97,6 +98,56 @@ export function GroupOrderRow({ order, multi }: { order: GroupOrder; multi: bool
           </View>
         )}
       </Pressable>
+    </Card>
+  );
+}
+
+/**
+ * Satıcı-bazlı paket kırılımı (B10). Yalnızca 2+ paketli grupta gösterilir —
+ * tek paketli grupta üstteki sipariş satırının kendi kargo satırı zaten aynı
+ * bilgiyi taşıyor, ayrı kart tekrar olurdu (§5 DRY).
+ *
+ * Takip linki HER ZAMAN `deriveShipmentView` ile kurulur — sunucunun
+ * `cargo.trackingUrl`'ı hiç okunmaz (bkz. `_hooks/useOrderGroup.ts`).
+ */
+export function GroupPackageCard({ pkg }: { pkg: GroupPackage }) {
+  const { t } = useTranslation();
+  const view = deriveShipmentView(pkg.cargo, pkg.cargo?.cargoCode);
+
+  return (
+    <Card variant="elevated" padding={12} style={styles.card} testID="group-package-card">
+      {pkg.seller && (
+        <Text variant="label" style={styles.packageSellerName}>
+          {t('order.sellerPackage', { name: pkg.seller.publicName || pkg.seller.displayName })}
+        </Text>
+      )}
+      {pkg.packageNumber && (
+        <View style={styles.packageInfoRow}>
+          <Text variant="caption" style={styles.muted}>{t('order.packageNumber')}</Text>
+          <Text variant="caption" style={styles.packageInfoValue}>{pkg.packageNumber}</Text>
+        </View>
+      )}
+      <View style={styles.packageInfoRow}>
+        <Text variant="caption" style={styles.muted}>{t('checkout.shipping')}</Text>
+        <Text variant="caption" style={styles.packageInfoValue}>{formatPrice(pkg.shippingCost)}</Text>
+      </View>
+      {view.cargoCode ? (
+        <View style={styles.packageInfoRow}>
+          <Text variant="caption" style={styles.muted}>{t('order.trackingNumber')}</Text>
+          <Text variant="caption" style={styles.packageInfoValue}>{view.cargoCode}</Text>
+        </View>
+      ) : view.isCodePending ? (
+        <Text variant="caption" style={styles.muted}>{t('shipping.codePending')}</Text>
+      ) : null}
+      {view.trackingUrl && (
+        <Button
+          variant="outline"
+          size="sm"
+          title={t('order.trackOnSurat')}
+          onPress={() => Linking.openURL(view.trackingUrl!)}
+          style={styles.packageTrackButton}
+        />
+      )}
     </Card>
   );
 }

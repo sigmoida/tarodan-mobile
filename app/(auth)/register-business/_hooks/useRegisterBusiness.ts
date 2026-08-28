@@ -47,7 +47,10 @@ export function useRegisterBusiness() {
         companyAddress: values.companyAddress,
         companyEmail: values.companyEmail,
         phone: values.phone,
-        // Opsiyonel alanlar boşsa hiç GÖNDERİLMEZ — DTO'yla birebir (fazla alan yok).
+        // `kepAddress` B13'ten beri zod'da ZORUNLU (`values.kepAddress` her zaman
+        // dolu) — spread biçimi korunuyor çünkü DTO alanı hâlâ opsiyonel
+        // (`kepAddress?: string`) ve `contactPhone` (gerçekten opsiyonel) boşsa
+        // hiç GÖNDERİLMEMELİ — DTO'yla birebir (fazla alan yok).
         ...(values.kepAddress ? { kepAddress: values.kepAddress } : {}),
         ...(values.contactPhone ? { contactPhone: values.contactPhone } : {}),
       }),

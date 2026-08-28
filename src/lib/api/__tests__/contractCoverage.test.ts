@@ -174,10 +174,13 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     //     `packageId` / `updatedAt`: sunucu tarafı muhasebe/iş akışı alanları —
     //     ekranın kullandığı denklik `status` + `cancellationType` + zaman
     //     damgaları.
-    //   - `buyer`/`seller` altındaki `isVerified` / `publicName` / `username`:
-    //     sipariş ekranları yalnız `displayName` basıyor, profil kartı yok
+    //   - `buyer`/`seller` altındaki `isVerified` / `username`: sipariş
+    //     ekranları yalnız `displayName` basıyor, profil kartı yok
     //     (`avatarUrl` de aynı sebepten okunmuyordu, artık `OrderDetail`/
-    //     `GroupOrder`'da bildirilmiş durumda).
+    //     `GroupOrder`'da bildirilmiş durumda). `publicName` İSTİSNA — B10
+    //     `GroupPackage.seller.publicName`'i gerçekten okuyor (paket kartında
+    //     satıcı adı), bu yüzden adın TÜM `*.publicName` satırları allowlist'ten
+    //     silindi (isim-tek-taraflı eşleşme, bkz. dosya başı SINIRI notu).
     //   - `pricing.buyerFeeDiscountAmount` / `sellerFeeDiscountAmount` /
     //     `sellerShippingAmount` / `withholdingTaxAmount`: kampanya/vergi
     //     kırılımı satıcı muhasebesine ait, alıcı/satıcı sipariş ekranlarında
@@ -214,26 +217,24 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     //     için guard onu "bildirilmiş" saydı. Dosya başı SINIRI notundaki
     //     isim-çakışması örneği budur.
     //
-    // `packages` NOTU (satıcı bazlı kargo kırılımı): önceki turda "58 alan
-    // hiç okunmuyor" diye ayrı bir blok vardı (`groups.data.packages.*`).
-    // O bulgu hâlâ DOĞRU — `useOrders.ts` yalnız `rawGroup.orders`'ı okuyor,
-    // `rawGroup.packages`'a `app/orders/group` içinde hiç dokunulmuyor — ama
-    // bu guard'ın ADI-tek-taraflı eşleştirmesi onu artık AYRI bir bulgu
-    // olarak GÖSTEREMİYOR: `packages.orders[]` üst düzey `orders[]` ile AYNI
-    // sipariş şeklini taşıyor, üst düzey `orders[]` `GroupOrder`'da bildirilmiş
-    // olduğu için aynı yaprak adları (`cargoCode`, `createdAt`, …) `packages`
-    // altında da "bildirilmiş" sayılıyor — konumu değil, adı kontrol ediyoruz
-    // (bkz. dosya başı SINIRI notu). Yani: `packages` hâlâ okunmuyor, ama bu
-    // test artık bunu YAKALAMIYOR; bu satırlarda görünen `packages.*` alanları
-    // yalnızca HER YERDE ölü olan (`canReactivate`, `checkoutGroupId`, …) sınıf
-    // yüzünden burada — `packages`'a özgü değiller. Çok-satıcılı kargo
-    // kırılımının mobilde hiç gösterilmediği gerçek ürün boşluğu, task-1-report
-    // içinde ayrı not olarak duruyor; bir sonraki plan bunu README'nin
-    // "Sınırı — abartma" bölümündeki tanınan sınırla ele almalı.
+    // `packages` NOTU (satıcı bazlı kargo kırılımı) — B10'da KAPATILDI: önceki
+    // turda "58 alan hiç okunmuyor" diye ayrı bir blok vardı
+    // (`groups.data.packages.*`) çünkü `useOrderGroup.ts` yalnız
+    // `rawGroup.orders`'ı okuyordu, `rawGroup.packages`'a hiç dokunmuyordu.
+    // B10 bunu düzeltti: `GroupPackage` tipi (`packageNumber`, `sellerId`,
+    // `seller.publicName`/`displayName`, `shippingCost`, `cargo.*`) artık
+    // `app/orders/group/[id]/_lib/types.ts`'te bildirilmiş VE `useOrderGroup.ts`
+    // `raw.packages`'ı gerçekten map'liyor, `_components/GroupSections.tsx`
+    // `GroupPackageCard` bunu (2+ paketli grupta) render ediyor. Aşağıdaki
+    // `packages.*` satırları hâlâ burada duruyor çünkü guard'ın adı-tek-taraflı
+    // eşleştirmesi onları AYRI bir bulgu olarak hiç göstermedi — yaprak adları
+    // (`cargoCode`, `createdAt`, `canReactivate`, …) üst düzey `orders[]`
+    // (`GroupOrder`) üzerinden zaten "bildirilmiş" sayılıyordu, konumu değil
+    // adı kontrol ediyor (bkz. dosya başı SINIRI notu). `packages.*.publicName`
+    // satırları ise gerçekten B10 ile deklare edildiği için YUKARIDA silindi.
     'detail.activeRefundRequest.returnCargoCode',
     'detail.activeRefundRequest.returnStatus',
     'detail.buyer.isVerified',
-    'detail.buyer.publicName',
     'detail.buyer.username',
     'detail.canReactivate',
     'detail.cancelCategory',
@@ -245,7 +246,6 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     'detail.pricing.sellerShippingAmount',
     'detail.pricing.withholdingTaxAmount',
     'detail.seller.isVerified',
-    'detail.seller.publicName',
     'detail.seller.username',
     'detail.shippingAddress.addressLine1',
     'detail.shippingAddress.addressLine2',
@@ -253,7 +253,6 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     'groups.data.orders.activeRefundRequest.returnCargoCode',
     'groups.data.orders.activeRefundRequest.returnStatus',
     'groups.data.orders.buyer.isVerified',
-    'groups.data.orders.buyer.publicName',
     'groups.data.orders.buyer.username',
     'groups.data.orders.canReactivate',
     'groups.data.orders.cancelCategory',
@@ -265,7 +264,6 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     'groups.data.orders.pricing.sellerShippingAmount',
     'groups.data.orders.pricing.withholdingTaxAmount',
     'groups.data.orders.seller.isVerified',
-    'groups.data.orders.seller.publicName',
     'groups.data.orders.seller.username',
     'groups.data.orders.shippingAddress.addressLine1',
     'groups.data.orders.shippingAddress.addressLine2',
@@ -273,7 +271,6 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     'groups.data.packages.orders.activeRefundRequest.returnCargoCode',
     'groups.data.packages.orders.activeRefundRequest.returnStatus',
     'groups.data.packages.orders.buyer.isVerified',
-    'groups.data.packages.orders.buyer.publicName',
     'groups.data.packages.orders.buyer.username',
     'groups.data.packages.orders.canReactivate',
     'groups.data.packages.orders.cancelCategory',
@@ -285,13 +282,11 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     'groups.data.packages.orders.pricing.sellerShippingAmount',
     'groups.data.packages.orders.pricing.withholdingTaxAmount',
     'groups.data.packages.orders.seller.isVerified',
-    'groups.data.packages.orders.seller.publicName',
     'groups.data.packages.orders.seller.username',
     'groups.data.packages.orders.shippingAddress.addressLine1',
     'groups.data.packages.orders.shippingAddress.addressLine2',
     'groups.data.packages.orders.updatedAt',
     'groups.data.packages.seller.isVerified',
-    'groups.data.packages.seller.publicName',
     'groups.data.packages.seller.username',
     'groups.data.viewerRole',
     'groups.meta.limit',
@@ -301,7 +296,6 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     'list.data.activeRefundRequest.returnCargoCode',
     'list.data.activeRefundRequest.returnStatus',
     'list.data.buyer.isVerified',
-    'list.data.buyer.publicName',
     'list.data.buyer.username',
     'list.data.canReactivate',
     'list.data.cancelCategory',
@@ -313,7 +307,6 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     'list.data.pricing.sellerShippingAmount',
     'list.data.pricing.withholdingTaxAmount',
     'list.data.seller.isVerified',
-    'list.data.seller.publicName',
     'list.data.seller.username',
     'list.data.shippingAddress.addressLine1',
     'list.data.shippingAddress.addressLine2',

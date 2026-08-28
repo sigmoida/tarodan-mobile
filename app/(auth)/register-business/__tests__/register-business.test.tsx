@@ -48,6 +48,11 @@ const fillValidForm = () => {
     screen.getByTestId('register-business-companyEmail-input'),
     'basvuru@testotomotiv.com',
   );
+  // B13: kepAddress zorunlu — web ile eşleşir (KEP yasal tebligat kanalı).
+  fireEvent.changeText(
+    screen.getByTestId('register-business-kepAddress-input'),
+    'basvuru@hs01.kep.tr',
+  );
   fireEvent.changeText(screen.getByTestId('register-business-phone-input'), '0532 123 45 67');
   fireEvent.press(screen.getByTestId('register-business-acceptTerms'));
 };
@@ -102,10 +107,12 @@ it('geçerli form gönderildiğinde payload API DTO ile birebir eşleşir (fazla
     companyTitle: 'Test Otomotiv Ltd. Şti.',
     companyAddress: 'Örnek Mahallesi Test Caddesi No:12 Kadıköy İstanbul',
     companyEmail: 'basvuru@testotomotiv.com',
+    // B13: kepAddress artık zorunlu, `fillValidForm` her zaman dolduruyor.
+    kepAddress: 'basvuru@hs01.kep.tr',
     phone: '+905321234567',
   });
   expect(payload).not.toHaveProperty('password');
-  // Boş bırakılan opsiyonel alanlar (kepAddress/contactPhone) HİÇ gönderilmez.
+  // contactPhone opsiyonel — boş bırakılınca HİÇ gönderilmez.
   expect(Object.keys(payload).sort()).toEqual(
     [
       'authorizedFullName',
@@ -113,25 +120,25 @@ it('geçerli form gönderildiğinde payload API DTO ile birebir eşleşir (fazla
       'companyTitle',
       'companyAddress',
       'companyEmail',
+      'kepAddress',
       'phone',
     ].sort(),
   );
 });
 
-it('kepAddress + contactPhone doldurulunca payload\'a eklenir ve telefon normalize edilir', async () => {
+it('contactPhone doldurulunca payload\'a eklenir ve telefon normalize edilir', async () => {
   (authApi.registerBusiness as jest.Mock).mockResolvedValue({
     data: { applicationId: 'app-2', status: 'submitted', email: 'x@y.com', message: 'ok' },
   });
   renderWithProviders(<RegisterBusinessScreen />);
 
   fillValidForm();
-  fireEvent.changeText(screen.getByTestId('register-business-kepAddress-input'), 'firma@hs01.kep.tr');
   fireEvent.changeText(screen.getByTestId('register-business-contactPhone-input'), '0533 765 43 21');
   fireEvent.press(screen.getByTestId('register-business-submit-button'));
 
   await waitFor(() => expect(authApi.registerBusiness).toHaveBeenCalledTimes(1));
   const payload = (authApi.registerBusiness as jest.Mock).mock.calls[0][0];
-  expect(payload.kepAddress).toBe('firma@hs01.kep.tr');
+  expect(payload.kepAddress).toBe('basvuru@hs01.kep.tr');
   expect(payload.contactPhone).toBe('+905337654321');
 });
 
@@ -157,6 +164,10 @@ it('KVKK onayı işaretlenmeden gönderilmez', async () => {
   fireEvent.changeText(
     screen.getByTestId('register-business-companyEmail-input'),
     'basvuru@testotomotiv.com',
+  );
+  fireEvent.changeText(
+    screen.getByTestId('register-business-kepAddress-input'),
+    'basvuru@hs01.kep.tr',
   );
   fireEvent.changeText(screen.getByTestId('register-business-phone-input'), '0532 123 45 67');
   // acceptTerms İŞARETLENMEDİ.
@@ -219,18 +230,21 @@ it('boş formda submit → hataların hepsi TÜRKÇE, "Required" hiç görünmez
   await waitFor(() => expect(screen.getAllByText('En az 2 karakter olmalıdır')).toHaveLength(3));
   expect(screen.getByText('En az 10 karakter olmalıdır')).toBeTruthy(); // companyAddress
   expect(screen.getByText('Geçerli bir e-posta adresi girin')).toBeTruthy(); // companyEmail
+  expect(screen.getByText('E-posta adresi gerekli')).toBeTruthy(); // kepAddress (B13: zorunlu)
   expect(screen.getByText('Telefon numarası gerekli')).toBeTruthy(); // phone
   expect(screen.getByText(/sözleşmesini.*kabul/i)).toBeTruthy(); // acceptTerms
   expect(screen.queryAllByText(/required/i)).toHaveLength(0);
   expect(authApi.registerBusiness).not.toHaveBeenCalled();
 });
 
-it('opsiyonel alanlar boş bırakılınca hata vermez', async () => {
+it('kepAddress boş bırakılınca hata verir (B13: zorunlu, contactPhone ise opsiyonel kalır)', async () => {
   renderWithProviders(<RegisterBusinessScreen />);
   fireEvent.press(screen.getByTestId('register-business-submit-button'));
 
   await waitFor(() => expect(screen.getByText('Telefon numarası gerekli')).toBeTruthy());
-  // kepAddress / contactPhone boş → hata yok (tek "e-posta" hatası companyEmail'in).
+  expect(screen.getByText('E-posta adresi gerekli')).toBeTruthy(); // kepAddress
+  // companyEmail (format hatası) + kepAddress (zorunlu hatası) — biri diğerinin
+  // mesajını taşımaz, ikisi ayrı metin.
   expect(screen.queryAllByText('Geçerli bir e-posta adresi girin')).toHaveLength(1);
   expect(screen.queryAllByText(/Geçerli bir telefon numarası girin/)).toHaveLength(0);
 });
