@@ -43,7 +43,12 @@
  */
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { fieldPaths, undeclaredFields } from './contractCoverage';
+import {
+  declaredButAbsent,
+  extractTypeFields,
+  fieldPaths,
+  undeclaredFields,
+} from './contractCoverage';
 
 const ROOT = resolve(__dirname, '../../../..');
 /** Bir gövdeyi deklare eden BİRDEN FAZLA dosyayı okuyup tek kaynak metnine birleştirir. */
@@ -622,6 +627,229 @@ describe('undeclaredFields', () => {
     // aramak her iç içe tipte yanlış pozitif üretirdi.
     const src = 'export type Inner = { b: number };';
     expect(undeclaredFields({ a: { b: 1 } }, src, new Set())).toEqual([]);
+  });
+});
+
+/**
+ * TERS YÖN — istemcinin sunucunun hiç göndermediği bir adı ARAMASI.
+ *
+ * `analytics` ekranı `limits.maxListings === -1` diye karşılaştırıyordu; sunucu
+ * `maxTotalListings` gönderiyor, `maxListings` HİÇ yok — premium üye premium
+ * bölümü hiç görmüyordu. 2FA kurulumu `payload.qrCode` okuyordu; sunucu
+ * `qrCodeImage` gönderiyor. İkisi de elle bulundu, `undeclaredFields` bu sınıfı
+ * hiç yakalamıyor (o yön yalnız TERSİNİ görür: sunucunun gönderip mobilin
+ * BİLDİRMEDİĞİ alan).
+ *
+ * SINIRI (elle yazılması istenen kısım): bu yalnız TİPTE bildirilen bir adı
+ * yakalar. `payload.qrCode` gibi bir okuma `any`'YE yapılıyorsa — hiçbir tipte
+ * hiç geçmiyorsa — `extractTypeFields`'a hiç girmez, bu fonksiyon onu GÖREMEZ.
+ * O sınıf (untyped/`any` okuma) KAYNAK TARAMASI ister; `styles.card` / `theme.
+ * colors` / `router.push` gibi gürültüyü ELEMESİ gerekir, bu FARKLI ve DAHA ZOR
+ * bir araç. Bu test yalnız "tipte adı var, hiçbir ölçülen gövdede o ad yok"
+ * sınıfını kapsar — başka hiçbir şeyi değil.
+ *
+ * `extractTypeFields`'IN KENDİ İKİ SINIRI (fix round 1, inceleme buldu, ikisi
+ * de dosyanın `extractTypeFields` yorumunda AYRINTILI): (1) yalnız NESNE TİPİ
+ * HARFİYEN bildirimlerini okur — bir BİRLEŞİM (union, `{ a } | { b }`) verilirse
+ * sessizce ilk kolu döndürmek yerine FIRLATIR, çünkü sessiz kısmi kapsama
+ * "beşinci bir tip eklemek BİLİNÇLİ bir eylem olmalı" ilkesinin karşıtı olurdu.
+ * (2) yalnız DÜZ ÖZELLİKLERİ okur — derinlik sayacı `(`/`)` izlemediği için
+ * `doThing(x: number): void` gibi bir METOD üyesi verilirse parametre adı
+ * sahte bir "alan" olarak sızar; bu bilerek düzeltilmedi (parantez takibi
+ * kapsamı genişletirdi), yalnız burada yazılı bir sınır. İkisi de BUGÜN canlı
+ * DEĞİL — `PARITY_TYPES`'taki dört tipin hiçbiri birleşim değil, hiçbirinde
+ * metod üyesi yok — ama biri eksik kalsaydı bu listenin dürüstlüğü eksik
+ * kalırdı: bir sonraki bakımcı yalnız BULUNAN sınırları değil, TÜM sınırları
+ * bilmeli.
+ *
+ * NEDEN DOMAIN DEĞİL, TEK TEK ADLANDIRILMIŞ TİP: ilk deneme `declaredButAbsent`'ı
+ * doğrudan bütün `*_TYPE_SOURCES` dosyalarına karşı çalıştırmıştı (`undeclaredFields`'ın
+ * `declared` setiyle AYNI geniş kimlik taraması). O yön için (bir alan adının
+ * dosyanın HERHANGİ bir yerinde geçip geçmediği) güvenliydi; TERS yönde felaketti —
+ * dosyalar axios metod adlarını, store eylemlerini, İLGİSİZ uçların tiplerini de
+ * "bildiriyordu", yedi domainin YEDİSİ de 40 satır eşiğini (74-285 arası) katladı —
+ * ilk `undeclaredFields` denemesinin 217 alanla yanlış dosyaya bakması ile AYNI
+ * sınıf hata. Kural: `PARITY_TYPES` aşağıda yalnız GERÇEKTEN bir sunucu yanıt
+ * gövdesini tanımladığını iddia eden, adı VERİLMİŞ dört tipi sayar —
+ * `extractTypeFields` yalnız o tipin KENDİ blok gövdesini okur, dosyanın
+ * kalanını değil. BEŞİNCİ bir tip eklemek (yeni bir `extractTypeFields` çağrısı)
+ * her zaman BİLİNÇLİ, elle bir karar — guard listeye göre kendiliğinden
+ * genişlemez, onu dürüst tutan şey bu.
+ *
+ * GERÇEK BULGULAR (elle doğrulandı, aşağıdaki geçitle de doğrulanıyor):
+ * `ServerLimitsDto.maxListings` yok, ama `useMembershipLimits.ts:43`
+ * (`out.maxListings = dto.maxTotalListings`) onu GERÇEK bir çıktı alanı olarak
+ * atıyor — bu doğrudan `ServerLimitsDto`'nun alanı DEĞİL (bkz. aşağıdaki not,
+ * `maxListings` `ServerLimitsDto`'da yok, `ServerLimitsOverride`'da). Bu
+ * fonksiyonun asıl yakaladığı, `ServerLimitsDto.isAdFree`: tip bunu bildiriyor,
+ * membership fixture'ının `limits` gövdesi (11 alan) arasında YOK — sunucu
+ * artık göndermiyor.
+ */
+describe('extractTypeFields', () => {
+  it('adı verilen tipin üst düzey alanlarını döndürür', () => {
+    const src = 'export type X = { a: number; b?: string };';
+    expect(extractTypeFields(src, 'X')).toEqual(['a', 'b']);
+  });
+
+  it('başka bir tipe REFERANS veren alanın kendi adını sayar, hedef tipin alanlarını değil', () => {
+    const src = 'export type Y = { total: number }; export type X = { summary?: Y };';
+    expect(extractTypeFields(src, 'X')).toEqual(['summary']);
+  });
+
+  it('satır içi iç içe nesne tipinin İÇİNDEKİ adları atlar — yalnız kendi üst düzeyi', () => {
+    const src = 'export type X = { a: number; nested: { b: string } };';
+    expect(extractTypeFields(src, 'X')).toEqual(['a', 'nested']);
+  });
+
+  it('yorumdaki adı bildirim saymaz (stripComments)', () => {
+    const src = '// ayrıca ghostField döner\nexport type X = { a: number };';
+    expect(extractTypeFields(src, 'X')).toEqual(['a']);
+  });
+
+  it('adı verilen tip dosyada yoksa boş dizi döner', () => {
+    const src = 'export type X = { a: number };';
+    expect(extractTypeFields(src, 'DoesNotExist')).toEqual([]);
+  });
+
+  it('BİRLEŞİM (union) tipinde SESSİZCE ilk kolu döndürmek yerine FIRLATIR', () => {
+    // Fix round 1: `{ a } | { b }` verilince önceki davranış yalnız `a`'yı
+    // döndürüp `b`'yi hiç işaret etmeden düşürüyordu. Beşinci bir tip
+    // eklemek BİLİNÇLİ bir eylem olmalı — sessiz kısmi kapsama bunun tam
+    // karşıtı, bu yüzden burada fırlatmak DOĞRU başarısızlık biçimi.
+    // Not: Türkçe büyük `İ` JS'in `/i` bayrağıyla küçük `i`'ye basit bir
+    // şekilde eşlenmiyor (Unicode case-folding farkı) — büyük/küçük harf
+    // karışık bir regex yerine mesajdaki gerçek harfle birebir eşleşen bir
+    // alt dizi arıyoruz.
+    const src = 'export type X = { a: number } | { b: string };';
+    expect(() => extractTypeFields(src, 'X')).toThrow('BİRLEŞİM');
+  });
+});
+
+describe('declaredButAbsent', () => {
+  it('gövdede olmayan bildirilmiş adı raporlar', () => {
+    expect(declaredButAbsent(['maxListings'], [{ maxTotalListings: 5 }], new Set())).toEqual([
+      'maxListings',
+    ]);
+  });
+
+  it('EN AZ BİR gövdede geçen adı raporlamaz — tek gövdede eksik olmak normal', () => {
+    expect(
+      declaredButAbsent(
+        ['cancelledAt', 'maxListings'],
+        [{ cancelledAt: null }, { status: 'ok' }],
+        new Set(['maxListings']),
+      ),
+    ).toEqual([]);
+  });
+
+  it('allowlist’teki adı raporlamaz', () => {
+    expect(
+      declaredButAbsent(['maxListings'], [{ other: 1 }], new Set(['maxListings'])),
+    ).toEqual([]);
+  });
+
+  it('iç içe bir KONTEYNER adını da (yaprak olmasa da) var sayar', () => {
+    // `fieldPaths` `pricing`'in kendisini hiç yaprak olarak üretmez — yalnız
+    // `pricing.summary.total` gibi bir yaprak yolu. `OrderQuoteResponse.pricing`
+    // gibi bir alan GERÇEKTEN dolu bir gövdede bile yalnız yapraklara bakılsaydı
+    // yanlışlıkla "yok" çıkardı; bkz. `declaredButAbsent` yorumu.
+    expect(
+      declaredButAbsent(['pricing'], [{ pricing: { summary: { total: 1 } } }], new Set()),
+    ).toEqual([]);
+  });
+});
+
+/**
+ * `KNOWN_ABSENT` domainlerin `*_TYPE_SOURCES`'una DEĞİL, `PARITY_TYPES`'taki
+ * TEK tiplere karşı yazılıyor — bkz. yukarıdaki "NEDEN DOMAIN DEĞİL" notu.
+ * Her satır bir KARAR: ya "tip bu fixture'ın ÖLÇMEDİĞİ bir durumu tanımlıyor"
+ * ya da "istemci sunucunun göndermediği bir şeyi adlandırıyor" (sonraki bir
+ * tur için gerçek bulgu, burada DÜZELTİLMİYOR).
+ */
+const KNOWN_ABSENT: Record<string, Set<string>> = {
+  ServerLimitsDto: new Set<string>([
+    // ── Gerçek bulgu — istemci sunucunun göndermediği bir şeyi adlandırıyor ──
+    // `isAdFree`: tip bunu bildiriyor (`src/hooks/useMembershipLimits.ts:36`,
+    // `mapServerLimits` de okuyup `ServerLimitsOverride.isAdFree`'ye eşliyor —
+    // kod ÇALIŞIR durumda), ama membership fixture'ının `limits` gövdesi
+    // (`GET /membership/me/limits`, 11 alan) arasında `isAdFree` HİÇ yok —
+    // sunucu artık göndermiyor. `maxListings`'in aksine bu `ServerLimitsDto`'nun
+    // KENDİ alanı, dolaylı bir isim çakışması değil — sonraki bir turda
+    // backend'e sorulmalı: alan kaldırıldı mı, yoksa bu uçta hiç mi yayınlanmadı.
+    'isAdFree',
+  ]),
+  OrderQuoteResponse: new Set<string>([]),
+  OrderQuotePricingSummary: new Set<string>([]),
+  OrderQuoteFeeDiscount: new Set<string>([
+    // ── Tip bu fixture'ın ÖLÇMEDİĞİ bir durumu tanımlıyor ──────────────────
+    // `target`/`name`/`code`/`amount`: `OrderQuoteFeeDiscount`'un KENDİ alanları
+    // (bedel kampanyası indirim SATIRININ şekli), ama `feeDiscounts` her iki
+    // ölçülen quote'ta da (`quoteSingle`+`quoteMulti`) `[]` döndü — aktif
+    // kampanya yoktu (bkz. `fieldPaths` dosya başı yorumu: boş dizi alanın
+    // KENDİSİNİ raporlar, iç şeklini değil — bu satırların `KNOWN_UNDECLARED`
+    // değil `KNOWN_ABSENT`'te olma sebebi de bu: `fieldPaths` onları hiç
+    // ÜRETMEDİ, `declaredButAbsent` bu yüzden "sıfır." Şeklin kendisi doğrulandı
+    // (bkz. `OrderQuoteFeeDiscount` yorumu, ana repodaki `OrderSummaryAmounts`'tan
+    // alındı), yalnız DOLU bir örnek staging'de bulunamadı.
+    'target',
+    'name',
+    'code',
+    'amount',
+  ]),
+};
+
+/** `PARITY_TYPES`'taki dört adlandırılmış sözleşme tipi ve onları ölçen gövdeler. */
+const PARITY_TYPES: Array<{
+  typeName: string;
+  sourceFile: string;
+  bodies: () => unknown[];
+}> = [
+  {
+    typeName: 'ServerLimitsDto',
+    sourceFile: 'src/hooks/useMembershipLimits.ts',
+    bodies: () => [readFixture('membership').limits],
+  },
+  {
+    typeName: 'OrderQuoteResponse',
+    sourceFile: 'src/lib/api/orders.ts',
+    bodies: () => [readFixture('checkout').quoteSingle, readFixture('checkout').quoteMulti],
+  },
+  {
+    typeName: 'OrderQuotePricingSummary',
+    sourceFile: 'src/lib/api/orders.ts',
+    bodies: () => [readFixture('checkout').quoteSingle, readFixture('checkout').quoteMulti],
+  },
+  {
+    typeName: 'OrderQuoteFeeDiscount',
+    sourceFile: 'src/lib/api/orders.ts',
+    bodies: () => [readFixture('checkout').quoteSingle, readFixture('checkout').quoteMulti],
+  },
+];
+
+describe('declaredButAbsent — adlandırılmış sözleşme tipleri', () => {
+  it.each(PARITY_TYPES)(
+    '$typeName: tipin kendi alanları ölçülen gövdede ya var ya listede',
+    ({ typeName, sourceFile, bodies }) => {
+      const src = readFileSync(resolve(ROOT, sourceFile), 'utf8');
+      const declaredFields = extractTypeFields(src, typeName);
+      // Sıfır alan dönerse tip bulunamamış demektir — sessizce boş geçmek
+      // yerine düşürüyoruz, aksi halde `typeName` yazım hatası fark edilmez.
+      expect(declaredFields.length).toBeGreaterThan(0);
+      const missing = declaredButAbsent(declaredFields, bodies(), KNOWN_ABSENT[typeName]);
+      expect(missing).toEqual([]);
+    },
+  );
+});
+
+describe('KNOWN_ABSENT — ölü satır yok', () => {
+  it.each(PARITY_TYPES)('$typeName: her allowlist adı tipte gerçekten bildirilmiş', ({
+    typeName,
+    sourceFile,
+  }) => {
+    const src = readFileSync(resolve(ROOT, sourceFile), 'utf8');
+    const declared = new Set(extractTypeFields(src, typeName));
+    const dead = [...KNOWN_ABSENT[typeName]].filter((name) => !declared.has(name));
+    expect(dead).toEqual([]);
   });
 });
 
