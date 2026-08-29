@@ -22,7 +22,7 @@ export default function DistanceSalesScreen() {
       />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.lastUpdated}>{t("distanceSalesPage.lastUpdated")}</Text>
+        <Text style={styles.lastUpdated}>{t("legalContact.lastUpdatedJan2026")}</Text>
 
         <Text style={styles.sectionTitle}>{t("distanceSalesPage.m1Title")}</Text>
         <Text style={styles.subTitle}>{t("distanceSalesPage.sellerLabel")}</Text>

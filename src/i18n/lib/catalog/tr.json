@@ -6571,7 +6571,8 @@
     "emailLabel": "E-posta: {value}",
     "phoneLabel": "Telefon: {value}",
     "addressLabel": "Adres: {value}",
-    "contactLabel": "İletişim: {value}"
+    "contactLabel": "İletişim: {value}",
+    "lastUpdatedJan2026": "Son güncelleme: 1 Ocak 2026"
   },
   "securityFeatures": {
     "introTitle": "Güvenliğiniz Bizim Önceliğimiz",
@@ -6690,7 +6691,6 @@
     "lastUpdatedOn": "Son güncelleme: {date}"
   },
   "distanceSalesPage": {
-    "lastUpdated": "Son güncelleme: 1 Ocak 2026",
     "m1Title": "Madde 1 — Taraflar",
     "sellerLabel": "SATICI",
     "sellerBlock": "Unvan: {legalName}\nVergi/MERSİS: {taxRegistration}\nAdres: {address}\nE-posta: {email}\nTelefon: {phone}",

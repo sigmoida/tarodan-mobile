@@ -6571,7 +6571,8 @@
     "emailLabel": "Email: {value}",
     "phoneLabel": "Phone: {value}",
     "addressLabel": "Address: {value}",
-    "contactLabel": "Contact: {value}"
+    "contactLabel": "Contact: {value}",
+    "lastUpdatedJan2026": "Last updated: January 1, 2026"
   },
   "securityFeatures": {
     "introTitle": "Your Security Is Our Priority",
@@ -6690,7 +6691,6 @@
     "lastUpdatedOn": "Last updated: {date}"
   },
   "distanceSalesPage": {
-    "lastUpdated": "Last updated: January 1, 2026",
     "m1Title": "Article 1 — Parties",
     "sellerLabel": "SELLER",
     "sellerBlock": "Legal Name: {legalName}\nTax No./MERSİS: {taxRegistration}\nAddress: {address}\nEmail: {email}\nPhone: {phone}",
