@@ -9,8 +9,8 @@ import { buildAvatarUrl } from '@/lib/api';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/profileStyles';
 import { buildQuickActionItems, quickActionTint, type QuickActionBadgeKey } from '../_lib/profileConstants';
-import { LEGAL_PAGES } from '../_lib/legalPages';
-import { INFO_PAGES, ACCOUNT_PAGES } from '../_lib/infoPages';
+import { buildLegalPages } from '../_lib/legalPages';
+import { buildInfoPages, buildAccountPages } from '../_lib/infoPages';
 import type { ProfileController } from '../_hooks/useProfile';
 
 const { colors, spacing } = theme;
@@ -304,6 +304,9 @@ function MenuItem({ icon, label, onPress, tone = 'default', rightSlot, testID }:
 
 export function ProfileMenuSections({ f }: SectionProps) {
   const { t } = useTranslation();
+  const infoPages = buildInfoPages(t);
+  const accountPages = buildAccountPages(t);
+  const legalPages = buildLegalPages(t);
   return (
     <>
       <View style={styles.menuSection}>
@@ -410,7 +413,7 @@ export function ProfileMenuSections({ f }: SectionProps) {
           label={t('mobile.settingsSupportTickets')}
           onPress={() => router.push('/support')}
         />
-        {ACCOUNT_PAGES.map((p) => (
+        {accountPages.map((p) => (
           <MenuItem
             key={p.route}
             testID={`profile-account-${p.route}-link`}
@@ -445,7 +448,7 @@ export function ProfileMenuSections({ f }: SectionProps) {
           label={t('footer.platformServiceFee')}
           onPress={() => router.push('/platform-hizmet-bedeli')}
         />
-        {INFO_PAGES.map((p) => (
+        {infoPages.map((p) => (
           <MenuItem
             key={p.route}
             testID={`profile-info-${p.route}-link`}
@@ -454,7 +457,7 @@ export function ProfileMenuSections({ f }: SectionProps) {
             onPress={() => router.push(`/${p.route}` as never)}
           />
         ))}
-        {LEGAL_PAGES.map((p) => (
+        {legalPages.map((p) => (
           <MenuItem
             key={p.slug}
             testID={`profile-legal-${p.slug}-link`}

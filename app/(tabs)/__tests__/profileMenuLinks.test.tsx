@@ -1,7 +1,11 @@
 import { render, fireEvent } from '@testing-library/react-native';
 import { router } from 'expo-router';
+import i18n from '@/i18n/config';
 import { ProfileMenuSections } from '../_components/ProfileSections';
-import { INFO_PAGES, ACCOUNT_PAGES } from '../_lib/infoPages';
+import { buildInfoPages, buildAccountPages } from '../_lib/infoPages';
+
+const INFO_PAGES = buildInfoPages(i18n.t);
+const ACCOUNT_PAGES = buildAccountPages(i18n.t);
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 
