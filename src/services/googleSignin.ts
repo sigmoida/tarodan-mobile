@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import i18n from '@/i18n/config';
 
 // [GEÇİCİ — refactor runtime doğrulaması için] Native RNGoogleSignin bu dev-client
 // build'inde bridgeless TurboModule olarak register olmuyor (iOS Google Sign-In
@@ -40,13 +41,17 @@ export function isGoogleConfigured(): boolean {
 /** Google ile giriş; backend'e gönderilecek idToken döner. */
 export async function signInWithGoogle(): Promise<string> {
   if (!isGoogleConfigured()) {
-    throw new Error('Google girişi bu platformda yapılandırılmamış');
+    // React DIŞI modül — `useTranslation` çağıramaz; bu hata `useLogin`'in
+    // catch bloğunda `e.message` olarak doğrudan kullanıcıya gösterilir
+    // (appAlert), o yüzden global `i18n` örneğinden ÇAĞRI ANINDA okunur
+    // (bkz. `paytrDirectForm.ts`).
+    throw new Error(i18n.t('auth.googleNotConfigured'));
   }
   ensureConfigured();
   const GoogleSignin = getGoogleSignin();
   await GoogleSignin.hasPlayServices();
   const result: any = await GoogleSignin.signIn();
   const idToken = result?.idToken ?? result?.data?.idToken;
-  if (!idToken) throw new Error('Google idToken alınamadı');
+  if (!idToken) throw new Error(i18n.t('auth.googleIdTokenMissing'));
   return idToken;
 }
