@@ -1,4 +1,5 @@
 import { View, Image, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Spinner, Text, EmptyState, theme } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +13,7 @@ const { colors } = theme;
 
 /** Model hero (kapak görseli + marka/model/yıl) + açıklama. */
 export function ModelHero({ model }: { model: CarModelDetail }) {
+  const { t } = useTranslation();
   return (
     <>
       <View style={styles.hero}>
@@ -32,7 +34,7 @@ export function ModelHero({ model }: { model: CarModelDetail }) {
           <Text style={styles.modelName}>{model.name}</Text>
           {model.yearStart || model.yearEnd ? (
             <Text style={styles.yearLabel}>
-              {model.yearStart ?? '?'}{model.yearEnd ? ` - ${model.yearEnd}` : ' - günümüz'}
+              {model.yearStart ?? '?'}{model.yearEnd ? ` - ${model.yearEnd}` : ` - ${t('models.present')}`}
             </Text>
           ) : null}
         </View>
@@ -49,14 +51,19 @@ export function ModelHero({ model }: { model: CarModelDetail }) {
 
 /** Bu modele ait diecast ürünler grid'i. */
 export function ModelProductsGrid({ f }: { f: ModelDetailController }) {
+  const { t } = useTranslation();
   const { model, products, productsQuery, getImageUri, conditionLabel } = f;
 
   return (
     <View style={styles.productsSection}>
       <View style={styles.productsHeader}>
-        <Text style={styles.sectionTitle}>{model?.name} İçin Diecast Modeller</Text>
+        <Text style={styles.sectionTitle}>
+          {t('models.diecastModelsFor', { name: model?.name ?? '' })}
+        </Text>
         <Text style={styles.productCount}>
-          {productsQuery.isLoading ? '...' : `${products.length} ürün`}
+          {productsQuery.isLoading
+            ? '...'
+            : t('collection.itemCountSuffix', { count: products.length })}
         </Text>
       </View>
 
@@ -65,8 +72,8 @@ export function ModelProductsGrid({ f }: { f: ModelDetailController }) {
       ) : products.length === 0 ? (
         <EmptyState
           icon="cube-outline"
-          title="Henüz ürün yok"
-          subtitle="Bu model için henüz diecast ürün listelenmemiş."
+          title={t('home.noProductsYet')}
+          subtitle={t('models.noProductsForModel')}
         />
       ) : (
         <View style={styles.productsGrid}>

@@ -436,7 +436,13 @@
     "noProducts": "Bu modele ait aktif ilan bulunamadı.",
     "backToAll": "Tüm Modeller",
     "present": "Günümüz",
-    "notFound": "Model bulunamadı."
+    "notFound": "Model bulunamadı.",
+    "emptySearchHint": "Farklı bir arama deneyin.",
+    "emptyHint": "Henüz araba modeli eklenmemiş.",
+    "notFoundDesc": "Aradığınız model mevcut değil.",
+    "backToModels": "Modellere Dön",
+    "diecastModelsFor": "{name} İçin Diecast Modeller",
+    "noProductsForModel": "Bu model için henüz diecast ürün listelenmemiş."
   },
   "product": {
     "title": "Ürünler",

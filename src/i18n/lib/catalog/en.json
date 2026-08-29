@@ -436,7 +436,13 @@
     "noProducts": "No active listings found for this model.",
     "backToAll": "All Models",
     "present": "Present",
-    "notFound": "Model not found."
+    "notFound": "Model not found.",
+    "emptySearchHint": "Try a different search.",
+    "emptyHint": "No car models added yet.",
+    "notFoundDesc": "The model you're looking for isn't available.",
+    "backToModels": "Back to Models",
+    "diecastModelsFor": "Diecast Models for {name}",
+    "noProductsForModel": "No diecast products have been listed for this model yet."
   },
   "product": {
     "title": "Products",
