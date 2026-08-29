@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Image } from 'react-native';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Chip, Divider, Spinner, Text, Input, Textarea, theme } from '@/ui';
 
@@ -22,6 +23,8 @@ type StepProps = { f: NewTradeController };
 // Steps indicator (1 · 2 · 3)
 // ---------------------------------------------------------------------------
 export function StepIndicator({ step }: { step: number }) {
+  const { t } = useTranslation();
+  const labels = [t('trade.stepMyItems'), t('trade.stepWantedItems'), t('checkout.stepConfirm')];
   return (
     <View style={styles.stepsContainer}>
       {[1, 2, 3].map((s) => (
@@ -30,7 +33,7 @@ export function StepIndicator({ step }: { step: number }) {
             <Text style={[styles.stepNumber, step >= s && styles.stepNumberActive]}>{s}</Text>
           </View>
           <Text style={[styles.stepLabel, step >= s && styles.stepLabelActive]}>
-            {s === 1 ? 'Ürünlerim' : s === 2 ? 'İstediklerim' : 'Onay'}
+            {labels[s - 1]}
           </Text>
         </View>
       ))}
@@ -42,10 +45,11 @@ export function StepIndicator({ step }: { step: number }) {
 // Step 1 — select my items
 // ---------------------------------------------------------------------------
 export function Step1MyItems({ f }: StepProps) {
+  const { t } = useTranslation();
   return (
     <View>
       <Text variant="h3" style={styles.sectionTitle}>
-        Takas için ürünlerinizi seçin
+        {t('trade.selectMyItemsTitle')}
       </Text>
 
       {f.loadingMyProducts ? (
@@ -57,9 +61,9 @@ export function Step1MyItems({ f }: StepProps) {
           <View style={styles.emptyContent}>
             <Ionicons name="pricetag-outline" size={48} color={colors.text.subtle} />
             <Text variant="body" style={styles.emptyText}>
-              Takas için aktif ilanınız yok
+              {t('trade.noListingsForTrade')}
             </Text>
-            <Button variant="outline" title="İlan Oluştur" onPress={() => router.push('/(tabs)/sell')} style={{ alignSelf: 'center' }} />
+            <Button variant="outline" title={t('product.createListing')} onPress={() => router.push('/(tabs)/sell')} style={{ alignSelf: 'center' }} />
           </View>
         </Card>
       ) : (
@@ -74,7 +78,7 @@ export function Step1MyItems({ f }: StepProps) {
       )}
 
       <View style={styles.stepActions}>
-        <Button variant="primary" title={`Devam (${f.selectedMyItems.length} seçili)`} onPress={() => f.setStep(2)} />
+        <Button variant="primary" title={t('trade.continueWithSelectedCount', { count: f.selectedMyItems.length })} onPress={() => f.setStep(2)} />
       </View>
     </View>
   );
@@ -84,10 +88,11 @@ export function Step1MyItems({ f }: StepProps) {
 // Step 2 — select their items + cash adjustment
 // ---------------------------------------------------------------------------
 export function Step2TheirItems({ f }: StepProps) {
+  const { t } = useTranslation();
   return (
     <View>
       <Text variant="h3" style={styles.sectionTitle}>
-        İstediğiniz ürünleri seçin
+        {t('trade.selectWantedItemsTitle')}
       </Text>
 
       {f.loadingTheirProducts ? (
@@ -99,7 +104,7 @@ export function Step2TheirItems({ f }: StepProps) {
           <View style={styles.emptyContent}>
             <Ionicons name="swap-horizontal" size={48} color={colors.text.subtle} />
             <Text variant="body" style={styles.emptyText}>
-              Bu satıcının takas için ürünü yok
+              {t('trade.noProductsFromSeller')}
             </Text>
           </View>
         </Card>
@@ -116,17 +121,17 @@ export function Step2TheirItems({ f }: StepProps) {
 
       {/* Cash Adjustment */}
       <Card style={styles.cashCard}>
-        <Text variant="label" style={styles.cashTitle}>Nakit Fark (Opsiyonel)</Text>
+        <Text variant="label" style={styles.cashTitle}>{t('trade.cashDifferenceOptionalLabel')}</Text>
         <View style={styles.cashDirectionRow}>
           <Chip
-            label="Ben ödeyeceğim"
+            label={t('trade.iWillPay')}
             selected={f.cashDirection === 'offer'}
             onPress={() => f.setCashDirection('offer')}
             variant="primary"
             style={styles.cashChip}
           />
           <Chip
-            label="Karşı taraf ödesin"
+            label={t('trade.theyWillPay')}
             selected={f.cashDirection === 'request'}
             onPress={() => f.setCashDirection('request')}
             variant="primary"
@@ -134,7 +139,7 @@ export function Step2TheirItems({ f }: StepProps) {
           />
         </View>
         <Input
-          label="Tutar (₺)"
+          label={t('trade.amountLabelSymbol')}
           value={f.cashAmount}
           onChangeText={(v: string) => f.setCashAmount(v.replace(/[^\d.,]/g, ''))}
           keyboardType="numeric"
@@ -143,10 +148,10 @@ export function Step2TheirItems({ f }: StepProps) {
       </Card>
 
       <View style={styles.stepActions}>
-        <Button variant="outline" title="Geri" onPress={() => f.setStep(1)} style={{ marginRight: theme.spacing[3] }} />
+        <Button variant="outline" title={t('common.back')} onPress={() => f.setStep(1)} style={{ marginRight: theme.spacing[3] }} />
         <Button
           variant="primary"
-          title="Devam"
+          title={t('common.continueShort')}
           disabled={f.selectedTheirItems.length === 0}
           onPress={() => f.setStep(3)}
         />
@@ -159,16 +164,17 @@ export function Step2TheirItems({ f }: StepProps) {
 // Step 3 — review & submit
 // ---------------------------------------------------------------------------
 export function Step3Review({ f }: StepProps) {
+  const { t } = useTranslation();
   return (
     <View>
       <Text variant="h3" style={styles.sectionTitle}>
-        Takas Özeti
+        {t('trade.tradeSummaryTitle')}
       </Text>
 
       {/* My Items Summary */}
       <Card style={styles.summaryCard}>
         <Text variant="label" style={styles.summaryTitle}>
-          Teklif Ettiğiniz Ürünler
+          {t('trade.productsYouOffer')}
         </Text>
         {f.selectedMyItems.map((product) => (
           <View key={product.id} style={styles.summaryItem}>
@@ -183,7 +189,7 @@ export function Step3Review({ f }: StepProps) {
         ))}
         <Divider style={styles.summaryDivider} />
         <View style={styles.summaryTotal}>
-          <Text variant="body">Toplam Değer:</Text>
+          <Text variant="body">{t('trade.totalValueLabel')}:</Text>
           <Text variant="label" style={styles.totalPrice}>
             {formatPrice(f.myTotal)}
           </Text>
@@ -193,7 +199,7 @@ export function Step3Review({ f }: StepProps) {
       {/* Their Items Summary */}
       <Card style={styles.summaryCard}>
         <Text variant="label" style={styles.summaryTitle}>
-          İstediğiniz Ürünler
+          {t('trade.productsYouWant')}
         </Text>
         {f.selectedTheirItems.map((product) => (
           <View key={product.id} style={styles.summaryItem}>
@@ -208,7 +214,7 @@ export function Step3Review({ f }: StepProps) {
         ))}
         <Divider style={styles.summaryDivider} />
         <View style={styles.summaryTotal}>
-          <Text variant="body">Toplam Değer:</Text>
+          <Text variant="body">{t('trade.totalValueLabel')}:</Text>
           <Text variant="label" style={styles.totalPrice}>
             {formatPrice(f.theirTotal)}
           </Text>
@@ -226,9 +232,9 @@ export function Step3Review({ f }: StepProps) {
       {/* Cash Summary */}
       {f.cashValue > 0 && (
         <Card style={styles.summaryCard}>
-          <Text variant="label" style={styles.summaryTitle}>Nakit Fark</Text>
+          <Text variant="label" style={styles.summaryTitle}>{t('trade.cashDifferenceLine')}</Text>
           <Text variant="body">
-            {f.cashDirection === 'offer' ? 'Siz ödeyeceksiniz: ' : 'Karşı taraf ödeyecek: '}
+            {f.cashDirection === 'offer' ? `${t('trade.youWillPayLabel')}: ` : `${t('trade.theyWillPay')}: `}
             <Text style={{ color: colors.primary[600]!, fontWeight: 'bold' }}>
               {formatPrice(f.cashValue)}
             </Text>
@@ -238,12 +244,12 @@ export function Step3Review({ f }: StepProps) {
 
       {/* Message */}
       <Textarea
-        label="Mesajınız (Opsiyonel)"
+        label={t('trade.yourMessageOptionalLabel')}
         value={f.message}
         onChangeText={(v: string) => f.setMessage(v.slice(0, 500))}
         rows={3}
         containerStyle={styles.messageInput}
-        placeholder="Teklif hakkında bir not ekleyin..."
+        placeholder={t('trade.messagePlaceholder')}
       />
       <Text variant="caption" tone="subtle" style={styles.charCount}>
         {f.message.length}/500
@@ -251,7 +257,7 @@ export function Step3Review({ f }: StepProps) {
 
       {/* Teslimat adresi (takas kabul edilince kargo bu adrese gelir) */}
       <View style={styles.messageInput}>
-        <TradeAddressPicker label="Teslimat Adresiniz" onChange={f.setTradeAddressId} />
+        <TradeAddressPicker label={t('address.deliveryAddress')} onChange={f.setTradeAddressId} />
       </View>
 
       {/* Trade Protection Info */}
@@ -259,19 +265,19 @@ export function Step3Review({ f }: StepProps) {
         <View style={styles.protectionContent}>
           <Ionicons name="shield-checkmark" size={24} color={colors.success[600]!} />
           <View style={styles.protectionText}>
-            <Text variant="label">Takas Koruma Programı</Text>
+            <Text variant="label">{t('trade.safeTradeTitle')}</Text>
             <Text variant="caption" style={styles.protectionDesc}>
-              Her iki taraf da kargoyu göndermeden ödeme yapılmaz. Güvenli takas garantisi.
+              {t('trade.safeTradeDesc')}
             </Text>
           </View>
         </View>
       </Card>
 
       <View style={styles.stepActions}>
-        <Button variant="outline" title="Geri" onPress={() => f.setStep(2)} style={{ marginRight: theme.spacing[3] }} />
+        <Button variant="outline" title={t('common.back')} onPress={() => f.setStep(2)} style={{ marginRight: theme.spacing[3] }} />
         <Button
           variant="primary"
-          title="Teklifi Gönder"
+          title={t('trade.sendTrade')}
           onPress={f.handleSubmit}
           isLoading={f.createTradeMutation.isPending}
           disabled={f.createTradeMutation.isPending}
