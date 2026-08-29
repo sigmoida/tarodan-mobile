@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, ScrollView, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { WebView, WebViewNavigation } from 'react-native-webview';
+import { useTranslation } from 'react-i18next';
 import { Button, Input, Checkbox, Text, theme, appAlert } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { paymentsApi, membershipApi } from '@/lib/api';
@@ -69,6 +70,7 @@ const isPaidStatus = (s?: string) =>
   s === 'completed' || s === 'paid' || s === 'success' || s === 'hold_payment';
 
 export default function CardPaymentForm({ target, amount, onSuccess, onFail, recurringEnabled = false, isGuest = false, paymentId: initialPaymentId }: Props) {
+  const { t } = useTranslation();
   const [cards, setCards] = useState<SavedCard[]>([]);
   const [loadingCards, setLoadingCards] = useState(recurringEnabled);
   const [selected, setSelected] = useState<string>(NEW_CARD);
@@ -139,7 +141,7 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
         // poll tükendi (terminal duruma ulaşılamadı)
         setVerifying(false);
         setProcessing(false);
-        appAlert('Bağlantı sorunu', "Ödemenizin durumunu doğrulayamadık. Ödeme yapıldıysa 'Siparişlerim' bölümünde görünür; aksi halde tekrar deneyebilirsiniz.");
+        appAlert(t('payment.connectionIssueTitle'), t('payment.verifyTimeoutBody'));
       }
     };
     timer = setTimeout(poll, 3000);
@@ -180,13 +182,13 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
   const digitsOnly = (v: string) => v.replace(/\D/g, '');
 
   function validateNewCard(): string | null {
-    if (holder.trim().length < 2) return 'Kart üzerindeki ismi girin';
+    if (holder.trim().length < 2) return t('payment.cardHolderRequired');
     const num = digitsOnly(number);
-    if (num.length < 15 || num.length > 16) return 'Geçerli bir kart numarası girin';
+    if (num.length < 15 || num.length > 16) return t('payment.cardNumberInvalid');
     if (!/^\d{2}$/.test(expMonth) || Number(expMonth) < 1 || Number(expMonth) > 12)
-      return 'Son kullanma ayı (AA) geçersiz';
-    if (!/^\d{2}(\d{2})?$/.test(expYear)) return 'Son kullanma yılı (YY) geçersiz';
-    if (!/^\d{3,4}$/.test(cvc)) return 'CVV geçersiz';
+      return t('payment.expMonthInvalid');
+    if (!/^\d{2}(\d{2})?$/.test(expYear)) return t('payment.expYearInvalid');
+    if (!/^\d{3,4}$/.test(cvc)) return t('payment.cvvInvalid');
     return null;
   }
 
@@ -205,7 +207,7 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
     if (selected === NEW_CARD) {
       const err = validateNewCard();
       if (err) {
-        appAlert('Eksik bilgi', err);
+        appAlert(t('payment.missingInfoTitle'), err);
         return;
       }
       body = { ...target, saveCard: recurringEnabled && saveCard };
@@ -218,7 +220,7 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
       });
     } else {
       if (selectedCard?.requireCvv && !/^\d{3,4}$/.test(savedCvv)) {
-        appAlert('CVV gerekli', 'Bu kart için CVV girin');
+        appAlert(t('payment.cvvRequiredTitle'), t('payment.cvvRequiredBody'));
         return;
       }
       body = { ...target, savedCardId: selected };
@@ -243,7 +245,7 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
     } catch (e: any) {
       // Güvenlik doğrulaması reddi — tekrar denemek çözmez, kullanıcıya net söyle.
       if (e?.code === 'PAYTR_BAD_ACTION' || e?.code === 'PAYTR_RAW_CARD_FIELD' || e?.code === 'PAYTR_NO_FIELDS') {
-        appAlert('Ödeme durduruldu', e.message);
+        appAlert(t('payment.stoppedTitle'), e.message);
         setProcessing(false);
         return;
       }
@@ -259,11 +261,11 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
       }
       if (isNetworkOrTimeout) {
         // Elde ödeme referansı yok (beklenmeyen durum) — sert hata yerine bilgilendirme.
-        appAlert('Bağlantı sorunu', "Ödemeniz işleniyor olabilir. Lütfen 'Siparişlerim' bölümünden kontrol edin.");
+        appAlert(t('payment.connectionIssueTitle'), t('payment.processingMaybeBody'));
         setProcessing(false);
         return;
       }
-      appAlert('Hata', e?.response?.data?.message || 'Ödeme başlatılamadı');
+      appAlert(t('common.error'), e?.response?.data?.message || t('payment.startFailed'));
       setProcessing(false);
     }
   }
@@ -299,7 +301,7 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
           }}
           style={{ padding: theme.spacing[3], alignSelf: 'flex-end' }}
         >
-          <Text style={{ color: colors.primary[600]!, fontWeight: '600' }}>Vazgeç</Text>
+          <Text style={{ color: colors.primary[600]!, fontWeight: '600' }}>{t('payment.threeDSCancel')}</Text>
         </Pressable>
         <WebView
           originWhitelist={['*']}
@@ -315,7 +317,7 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.titleRow}>
         <Ionicons name="card-outline" size={22} color={colors.primary[500]} />
-        <Text variant="h3">Kart ile Öde</Text>
+        <Text variant="h3">{t('payment.cardFormTitle')}</Text>
       </View>
 
       {loadingCards ? (
@@ -337,17 +339,17 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
               />
               <Ionicons name="card" size={18} color={colors.text.muted} />
               <Text variant="body" style={styles.cardLabel}>
-                {(c.brand || 'Kart') + ' •••• ' + c.last4}
+                {(c.brand || t('payment.cardGenericBrand')) + ' •••• ' + c.last4}
               </Text>
               {selected === c.id && c.requireCvv && (
                 <Input
                   containerStyle={styles.cvvInline}
-                  placeholder="CVV"
+                  placeholder={t('checkout.cvv')}
                   keyboardType="number-pad"
                   secureTextEntry
                   maxLength={4}
                   value={savedCvv}
-                  onChangeText={(t) => setSavedCvv(digitsOnly(t))}
+                  onChangeText={(v) => setSavedCvv(digitsOnly(v))}
                 />
               )}
             </Pressable>
@@ -364,7 +366,7 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
             />
             <Ionicons name="add" size={18} color={colors.text.muted} />
             <Text variant="body" style={styles.cardLabel}>
-              Yeni kart ile öde
+              {t('payment.payWithNewCard')}
             </Text>
           </Pressable>
 
@@ -372,54 +374,54 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
             <View style={styles.newCard}>
               <Input
                 testID="card-holder"
-                placeholder="Kart üzerindeki isim"
+                placeholder={t('payment.cardHolderPlaceholder')}
                 value={holder}
                 onChangeText={setHolder}
                 autoCapitalize="characters"
               />
               <Input
                 testID="card-number"
-                placeholder="Kart numarası"
+                placeholder={t('payment.cardNumberPlaceholder')}
                 keyboardType="number-pad"
                 maxLength={16}
                 value={number}
-                onChangeText={(t) => setNumber(digitsOnly(t).slice(0, 16))}
+                onChangeText={(v) => setNumber(digitsOnly(v).slice(0, 16))}
               />
               <View style={styles.expRow}>
                 <Input
                   testID="card-exp-month"
                   containerStyle={styles.expField}
-                  placeholder="AA"
+                  placeholder={t('payment.expMonthPlaceholder')}
                   keyboardType="number-pad"
                   maxLength={2}
                   value={expMonth}
-                  onChangeText={(t) => setExpMonth(digitsOnly(t).slice(0, 2))}
+                  onChangeText={(v) => setExpMonth(digitsOnly(v).slice(0, 2))}
                 />
                 <Input
                   testID="card-exp-year"
                   containerStyle={styles.expField}
-                  placeholder="YY"
+                  placeholder={t('payment.expYearPlaceholder')}
                   keyboardType="number-pad"
                   maxLength={4}
                   value={expYear}
-                  onChangeText={(t) => setExpYear(digitsOnly(t).slice(0, 4))}
+                  onChangeText={(v) => setExpYear(digitsOnly(v).slice(0, 4))}
                 />
                 <Input
                   testID="card-cvc"
                   containerStyle={styles.expField}
-                  placeholder="CVV"
+                  placeholder={t('checkout.cvv')}
                   keyboardType="number-pad"
                   secureTextEntry
                   maxLength={4}
                   value={cvc}
-                  onChangeText={(t) => setCvc(digitsOnly(t).slice(0, 4))}
+                  onChangeText={(v) => setCvc(digitsOnly(v).slice(0, 4))}
                 />
               </View>
               {recurringEnabled && (
                 <Checkbox
                   checked={saveCard}
                   onChange={setSaveCard}
-                  label="Kartımı sonraki ödemeler ve otomatik yenileme için kaydet"
+                  label={t('payment.saveCardForFuture')}
                 />
               )}
             </View>
@@ -435,8 +437,8 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
         fullWidth
         title={
           amount != null
-            ? `${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL Öde`
-            : 'Öde'
+            ? t('payment.payAmount', { amount: amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) })
+            : t('payment.payShort')
         }
         style={styles.payBtn}
       />
@@ -444,7 +446,7 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
       <View style={styles.secure}>
         <Ionicons name="shield-checkmark-outline" size={14} color={colors.success[600]} />
         <Text variant="caption" tone="muted" style={styles.secureText}>
-          Kart bilgileriniz saklanmaz; PayTR ile 256-bit SSL üzerinden işlenir.
+          {t('payment.cardSecureNotice')}
         </Text>
       </View>
     </ScrollView>

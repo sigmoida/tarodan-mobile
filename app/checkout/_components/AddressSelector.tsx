@@ -42,7 +42,7 @@ export function AddressSelector({
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <Text style={styles.addressTitle}>{a.title || a.fullName}</Text>
-                  {a.isDefault ? <Text style={styles.defaultBadge}> · Varsayılan</Text> : null}
+                  {a.isDefault ? <Text style={styles.defaultBadge}> · {t('common.default')}</Text> : null}
                 </View>
                 <Text style={styles.addressLine} numberOfLines={2}>{a.fullName} · {a.phone}</Text>
                 <Text style={styles.addressLine} numberOfLines={2}>{a.address}, {a.district}/{a.city}</Text>
@@ -65,7 +65,7 @@ export function AddressSelector({
       {selectedId === 'new' ? (
         <View>
           <Input
-            label="Ad Soyad *"
+            label={t('checkout.fullNameRequired')}
             value={inline.fullName}
             onChangeText={(text: string) => setInline({ ...inline, fullName: text })}
             containerStyle={styles.input}
@@ -73,7 +73,7 @@ export function AddressSelector({
           />
           <PhoneInput
             testID={isBilling ? 'billing-phone-input' : 'shipping-phone-input'}
-            label="Telefon *"
+            label={t('auth.bizPhone')}
             // Ödeme adımına gelmeden görsün: çözülemeyen numara blur'da uyarır.
             // Gönderimi engelleyen kuralla AYNI ayrıştırıcı (`@/utils/phone`).
             validateOnBlur
@@ -90,7 +90,7 @@ export function AddressSelector({
             onChangeDistrict={(district) => setInline((prev) => ({ ...prev, district }))}
           />
           <Input
-            label="Açık Adres *"
+            label={t('checkout.streetAddressRequired')}
             value={inline.address}
             onChangeText={(text: string) => setInline({ ...inline, address: text })}
             multiline
@@ -99,7 +99,7 @@ export function AddressSelector({
             testID={isBilling ? undefined : 'shipping-address-input'}
           />
           <Input
-            label="Posta Kodu"
+            label={t('checkout.zipCode')}
             value={inline.zipCode || ''}
             onChangeText={(text: string) => setInline({ ...inline, zipCode: text })}
             keyboardType="number-pad"

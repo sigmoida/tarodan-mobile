@@ -108,8 +108,10 @@ describe('J89 · Boş / giriş gerekli durumu', () => {
   it('J89.1 ödeme yoksa boş durum mesajı gösterilir', async () => {
     getMock.mockResolvedValue({ data: { data: [] } });
     renderWithProviders(<PaymentHistoryScreen />);
+    // i18n slice: reuses payment.noHistory ("Henüz ödeme geçmişiniz bulunmuyor"),
+    // adds "Henüz" vs. the screen's previous hardcoded "Ödeme geçmişiniz bulunmuyor".
     await waitFor(() =>
-      expect(screen.getByText('Ödeme geçmişiniz bulunmuyor')).toBeOnTheScreen(),
+      expect(screen.getByText('Henüz ödeme geçmişiniz bulunmuyor')).toBeOnTheScreen(),
     );
   });
 

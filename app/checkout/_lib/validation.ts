@@ -58,17 +58,17 @@ export const addressPhoneError = (
   countryCode: string = DEFAULT_COUNTRY_CODE,
   label = i18n.t('checkout.shippingAddressLabel'),
 ): string | null => {
-  if (!phone.trim()) return `${label} adresi için telefon numarası gerekli`;
-  if (!isValidPhoneInput(phone, countryCode)) return `${label} adresi — ${PHONE_INVALID_MESSAGE}`;
+  if (!phone.trim()) return i18n.t('checkout.addressPhoneRequired', { label });
+  if (!isValidPhoneInput(phone, countryCode)) return i18n.t('checkout.addressPhoneInvalid', { label, message: PHONE_INVALID_MESSAGE });
   return null;
 };
 
 export const validateInlineAddress = (a: ShippingAddressInput, label = i18n.t('checkout.shippingAddressLabel')): string | null => {
-  if (!a.fullName.trim()) return `${label} adresi için ad soyad gerekli`;
+  if (!a.fullName.trim()) return i18n.t('checkout.addressFullNameRequired', { label });
   const phoneError = addressPhoneError(a.phone, a.phoneCountryCode ?? DEFAULT_COUNTRY_CODE, label);
   if (phoneError) return phoneError;
-  if (!a.city.trim()) return `${label} adresi için il seçin`;
-  if (!a.district.trim()) return `${label} adresi için ilçe seçin`;
-  if (!a.address.trim()) return `${label} adresi için açık adres girin`;
+  if (!a.city.trim()) return i18n.t('checkout.addressCityRequired', { label });
+  if (!a.district.trim()) return i18n.t('checkout.addressDistrictRequired', { label });
+  if (!a.address.trim()) return i18n.t('checkout.addressLineRequired', { label });
   return null;
 };

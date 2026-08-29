@@ -32,12 +32,12 @@ export function OtpModal({
 }) {
   const { t } = useTranslation();
   return (
-    <Modal isOpen={visible} onClose={onClose} title="E-posta Doğrulama">
+    <Modal isOpen={visible} onClose={onClose} title={t('auth.emailVerification')}>
       <Text style={{ marginBottom: theme.spacing[3], color: colors.text.muted }}>
-        {email} adresine gönderilen 6 haneli kodu girin.
+        {t('checkout.otpSentToEmail', { email })}
       </Text>
       <Input
-        label="Doğrulama kodu"
+        label={t('security.verificationCodeLower')}
         value={otpCode}
         onChangeText={(v) => setOtpCode(v.replace(/\D/g, '').slice(0, 6))}
         keyboardType="number-pad"
@@ -46,14 +46,14 @@ export function OtpModal({
         testID="guest-otp-input"
       />
       <Button
-        title="Doğrula ve Öde"
+        title={t('checkout.verifyAndPay')}
         onPress={onSubmit}
         disabled={otpCode.length !== 6}
         isLoading={loading}
         testID="guest-otp-submit"
       />
       <Button
-        title={otpExpiresIn > 0 ? `Tekrar gönder (${otpExpiresIn}s)` : t('checkout.resendCode')}
+        title={otpExpiresIn > 0 ? t('checkout.resendCodeWithTimer', { seconds: otpExpiresIn }) : t('checkout.resendCode')}
         variant="ghost"
         onPress={onResend}
         disabled={otpExpiresIn > 0 || otpSending}

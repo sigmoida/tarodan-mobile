@@ -4,6 +4,7 @@ import { Button, Spinner, Text, theme } from '@/ui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { paymentsApi } from '@/lib/api';
 
 /**
@@ -32,6 +33,7 @@ interface PaymentInfo {
 }
 
 export default function PaymentFailScreen() {
+  const { t } = useTranslation();
   const { paymentId, guest, error: queryError } = useLocalSearchParams<{
     paymentId: string;
     guest?: string;
@@ -76,7 +78,7 @@ export default function PaymentFailScreen() {
   const orderId = info?.order?.id || info?.orderId;
   // Takas nakit farkı ödemesi: sipariş yerine takas detayına dönülür.
   const tradeId = info?.tradeId;
-  const reason = queryError || info?.failureReason || 'Ödemeniz tamamlanamadı.';
+  const reason = queryError || info?.failureReason || t('payment.failedReasonDefault');
 
   return (
     <SafeAreaView style={styles.container}>
@@ -85,7 +87,7 @@ export default function PaymentFailScreen() {
           <Ionicons name="close-circle" size={96} color={colors.danger[600]!} />
         </View>
 
-        <Text style={styles.title}>Ödeme Başarısız</Text>
+        <Text style={styles.title}>{t('payment.failedTitle')}</Text>
         <Text style={styles.subtitle}>{reason}</Text>
 
         {loading ? (
@@ -97,14 +99,14 @@ export default function PaymentFailScreen() {
         <View style={styles.hintCard}>
           <Ionicons name="information-circle-outline" size={18} color={colors.info[600]!} />
           <Text style={styles.hintText}>
-            Hesabınızdan bir tahsilat yapılmadı. Tekrar deneyebilir veya farklı bir ödeme yöntemi seçebilirsiniz.
+            {t('payment.failedHint')}
           </Text>
         </View>
 
         <View style={styles.actions}>
           <Button
             variant="primary"
-            title="Tekrar Dene"
+            title={t('payment.retry')}
             fullWidth
             onPress={handleRetry}
             isLoading={retrying}
@@ -114,7 +116,7 @@ export default function PaymentFailScreen() {
           {tradeId ? (
             <Button
               variant="outline"
-              title="Takasa Dön"
+              title={t('trade.backToTrade')}
               fullWidth
               onPress={() => router.replace(`/trade/${tradeId}` as any)}
               style={styles.btn}
@@ -122,7 +124,7 @@ export default function PaymentFailScreen() {
           ) : orderId && guest !== '1' ? (
             <Button
               variant="outline"
-              title="Sipariş Detayına Git"
+              title={t('payment.goToOrderDetail')}
               fullWidth
               onPress={() => router.replace(`/orders/${orderId}` as any)}
               style={styles.btn}
@@ -130,7 +132,7 @@ export default function PaymentFailScreen() {
           ) : null}
           <Button
             variant="ghost"
-            title="Ana Sayfaya Dön"
+            title={t('auth.goToHome')}
             fullWidth
             onPress={() => router.replace('/')}
           />

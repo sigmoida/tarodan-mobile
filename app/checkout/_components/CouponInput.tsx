@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Button, Input, Text, theme } from '@/ui';
 import { formatPrice } from '@/utils/format';
 import type { CouponController } from '../_hooks/useCoupon';
@@ -25,6 +26,7 @@ export function CouponInput({
   /** Quote kökündeki `couponDiscount` — sunucunun kendi sayısı. */
   couponDiscount?: number | null;
 }) {
+  const { t } = useTranslation();
   if (coupon.applied) {
     const showDiscount = couponDiscount != null && couponDiscount > 0;
     return (
@@ -32,8 +34,9 @@ export function CouponInput({
         <Ionicons name="pricetag" size={18} color={colors.success[600]!} />
         <View style={styles.appliedText}>
           <Text variant="bodySm" weight="bold" style={{ color: colors.success[600]! }}>
-            {coupon.applied.code} uygulandı
-            {showDiscount ? ` · −${formatPrice(couponDiscount)}` : ''}
+            {showDiscount
+              ? t('checkout.couponAppliedWithDiscount', { code: coupon.applied.code, amount: formatPrice(couponDiscount) })
+              : t('checkout.couponAppliedLabel', { code: coupon.applied.code })}
           </Text>
           {coupon.applied.name ? (
             <Text variant="caption" style={{ color: colors.text.muted }}>
@@ -41,7 +44,7 @@ export function CouponInput({
             </Text>
           ) : null}
         </View>
-        <Button variant="ghost" size="sm" title="Kaldır" onPress={coupon.remove} testID="coupon-remove-button" />
+        <Button variant="ghost" size="sm" title={t('common.remove')} onPress={coupon.remove} testID="coupon-remove-button" />
       </View>
     );
   }
@@ -50,7 +53,7 @@ export function CouponInput({
     <View style={styles.box}>
       <View style={styles.field}>
         <Input
-          placeholder="Kupon kodu"
+          placeholder={t('checkout.couponCodePlaceholder')}
           value={coupon.code}
           onChangeText={coupon.setCode}
           autoCapitalize="characters"
@@ -63,7 +66,7 @@ export function CouponInput({
       </View>
       <Button
         variant="outline"
-        title="Uygula"
+        title={t('common.apply')}
         onPress={coupon.apply}
         isLoading={coupon.isPending}
         disabled={coupon.isPending || !coupon.code.trim()}
