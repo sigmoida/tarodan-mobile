@@ -6566,5 +6566,34 @@
     "imageLimitBenefit": "Premium ile 15 fotoğraf yükleyin!",
     "featuresTitle": "Premium ile:",
     "upgradeButtonWithPrice": "Premium''a Geç - 99 TL/ay"
+  },
+  "legalContact": {
+    "emailLabel": "E-posta: {value}",
+    "phoneLabel": "Telefon: {value}",
+    "addressLabel": "Adres: {value}",
+    "contactLabel": "İletişim: {value}"
+  },
+  "securityFeatures": {
+    "introTitle": "Güvenliğiniz Bizim Önceliğimiz",
+    "introText": "Tarodan''da alışveriş ve takas güvenliği en üst düzeyde sağlanır. Aşağıda platformumuzun sunduğu güvenlik özelliklerini inceleyebilirsiniz.",
+    "sslTitle": "SSL Şifreleme",
+    "sslDesc": "Tüm veri aktarımları 256-bit SSL/TLS şifreleme ile korunur. Kişisel bilgileriniz ve ödeme verileriniz üçüncü taraflarca okunamaz.",
+    "buyerProtectionTitle": "Alıcı Koruma Sistemi",
+    "buyerProtectionDesc": "Ödemeniz, ürünü teslim alıp onaylayana kadar güvenli emanet hesapta tutulur. Ürün gelmezse veya açıklamaya uygun değilse paranız iade edilir.",
+    "dataPrivacyDesc": "Kişisel verileriniz KVKK (6698 sayılı Kanun) kapsamında korunur. Verileriniz yalnızca hizmet sağlamak amacıyla işlenir ve izinsiz üçüncü taraflarla paylaşılmaz.",
+    "paymentInfraTitle": "Güvenli Ödeme Altyapısı",
+    "paymentInfraDesc": "Ödemeler, PCI DSS uyumlu ödeme kuruluşları (iyzico/PayTR) üzerinden işlenir. Kart bilgileriniz Tarodan sunucularında saklanmaz.",
+    "identityTitle": "Kimlik Doğrulama",
+    "identityDesc": "Satıcılar e-posta ve telefon doğrulamasından geçer. Premium satıcılar için kimlik ve adres doğrulaması zorunludur.",
+    "messagingTitle": "Güvenli Mesajlaşma",
+    "messagingDesc": "Platform içi mesajlaşma sistemi ile iletişim kurun. Kişisel iletişim bilgilerinizi paylaşmak zorunda kalmadan alıcı/satıcılarla güvenle görüşün.",
+    "secureTradeDesc": "Takas işlemlerinde her iki tarafın ürünleri platform garantisi altında gönderilir. Anlaşmazlık durumunda platform arabuluculuk yapar.",
+    "fraudTitle": "Dolandırıcılık Önleme",
+    "fraudDesc": "Yapay zeka destekli sistemler şüpheli işlemleri ve sahte ilanları otomatik olarak tespit eder. Riskli işlemler ek doğrulama gerektirir.",
+    "reportingTitle": "Raporlama Sistemi",
+    "reportingDesc": "Şüpheli ilanları, kullanıcıları veya mesajları kolayca raporlayabilirsiniz. Her rapor 24 saat içinde uzman ekibimiz tarafından incelenir.",
+    "ratingTitle": "Değerlendirme Sistemi",
+    "ratingDesc": "Alıcı ve satıcı puanlama sistemi sayesinde güvenilir kullanıcıları kolayca belirleyebilirsiniz. Sahte değerlendirmeler tespit edilip kaldırılır.",
+    "footerText": "Güvenlikle ilgili bir sorun fark ederseniz lütfen derhal bize bildirin."
   }
 }

@@ -6566,5 +6566,34 @@
     "imageLimitBenefit": "Upload up to 15 photos with Premium!",
     "featuresTitle": "With Premium:",
     "upgradeButtonWithPrice": "Go Premium - 99 TL/mo"
+  },
+  "legalContact": {
+    "emailLabel": "Email: {value}",
+    "phoneLabel": "Phone: {value}",
+    "addressLabel": "Address: {value}",
+    "contactLabel": "Contact: {value}"
+  },
+  "securityFeatures": {
+    "introTitle": "Your Security Is Our Priority",
+    "introText": "Shopping and trading safety on Tarodan is maintained at the highest level. Below you can review the security features our platform offers.",
+    "sslTitle": "SSL Encryption",
+    "sslDesc": "All data transfers are protected with 256-bit SSL/TLS encryption. Your personal information and payment data cannot be read by third parties.",
+    "buyerProtectionTitle": "Buyer Protection System",
+    "buyerProtectionDesc": "Your payment is held in a secure escrow account until you receive and confirm the product. If the product doesn''t arrive or doesn''t match its description, you get your money back.",
+    "dataPrivacyDesc": "Your personal data is protected under KVKK (Law No. 6698). Your data is processed solely to provide the service and is never shared with unauthorized third parties.",
+    "paymentInfraTitle": "Secure Payment Infrastructure",
+    "paymentInfraDesc": "Payments are processed through PCI DSS-compliant payment providers (iyzico/PayTR). Your card details are never stored on Tarodan''s servers.",
+    "identityTitle": "Identity Verification",
+    "identityDesc": "Sellers go through email and phone verification. Premium sellers are also required to verify their identity and address.",
+    "messagingTitle": "Secure Messaging",
+    "messagingDesc": "Communicate through the in-platform messaging system. Talk safely with buyers/sellers without having to share your personal contact details.",
+    "secureTradeDesc": "In trades, both parties'' items are shipped under the platform''s guarantee. In case of a dispute, the platform mediates.",
+    "fraudTitle": "Fraud Prevention",
+    "fraudDesc": "AI-powered systems automatically detect suspicious transactions and fake listings. Risky transactions require additional verification.",
+    "reportingTitle": "Reporting System",
+    "reportingDesc": "You can easily report suspicious listings, users, or messages. Every report is reviewed by our expert team within 24 hours.",
+    "ratingTitle": "Rating System",
+    "ratingDesc": "The buyer and seller rating system makes it easy to identify trustworthy users. Fake reviews are detected and removed.",
+    "footerText": "If you notice a security issue, please let us know right away."
   }
 }
