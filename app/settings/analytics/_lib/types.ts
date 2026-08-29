@@ -19,8 +19,18 @@ export interface Analytics {
   avgTimeToSell?: number;
 }
 
-export const getDayLabels = () => {
-  const days = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+import type { TFunction } from 'i18next';
+
+export const getDayLabels = (t: TFunction) => {
+  const days = [
+    t('time.weekdayMonShort'),
+    t('time.weekdayTueShort'),
+    t('time.weekdayWedShort'),
+    t('time.weekdayThuShort'),
+    t('time.weekdayFriShort'),
+    t('time.weekdaySatShort'),
+    t('time.weekdaySunShort'),
+  ];
   const today = new Date().getDay();
   const result = [];
   for (let i = 6; i >= 0; i--) {

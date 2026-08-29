@@ -73,7 +73,7 @@ export function AnalyticsContent({ f }: { f: AnalyticsController }) {
             return (
               <View key={index} style={styles.chartBar}>
                 <View style={[styles.bar, { height: `${height}%` }]} />
-                <Text style={styles.barLabel}>{getDayLabels()[index]}</Text>
+                <Text style={styles.barLabel}>{getDayLabels(t)[index]}</Text>
               </View>
             );
           })}

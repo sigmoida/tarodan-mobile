@@ -199,8 +199,8 @@ export function useSecurity() {
       setShowTwoFactorSetup(true);
     } catch (error: any) {
       appAlert(
-        "Hata",
-        error.response?.data?.message || "2FA kurulumu başarısız",
+        t('common.error'),
+        error.response?.data?.message || t('security.twoFactorSetupFailed'),
       );
     } finally {
       setLoading(false);

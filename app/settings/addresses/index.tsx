@@ -24,8 +24,8 @@ export default function AddressesScreen() {
       <View style={styles.centeredContainer}>
         <Ionicons name="location-outline" size={64} color={colors.primary[600]!} />
         <Text variant="h3" style={styles.title}>{f.t('mobile.settingsAddresses')}</Text>
-        <Text variant="body" style={styles.subtitle}>Adreslerinizi görmek için giriş yapın</Text>
-        <Button variant="primary" title="Giriş Yap" onPress={() => router.push('/(auth)/login')} style={{ alignSelf: 'center' }} />
+        <Text variant="body" style={styles.subtitle}>{f.t('address.authGateSubtitle')}</Text>
+        <Button variant="primary" title={f.t('common.login')} onPress={() => router.push('/(auth)/login')} style={{ alignSelf: 'center' }} />
       </View>
     );
   }
@@ -46,8 +46,8 @@ export default function AddressesScreen() {
         <View style={styles.emptyContainer}>
           <Ionicons name="location-outline" size={80} color={colors.text.subtle} />
           <Text variant="h3" style={styles.emptyTitle}>{f.t('mobile.noSavedAddress')}</Text>
-          <Text variant="body" style={styles.emptySubtitle}>Teslimat adresinizi ekleyin</Text>
-          <Button variant="primary" title="Adres Ekle" onPress={f.openAddDialog} style={{ alignSelf: 'center' }} />
+          <Text variant="body" style={styles.emptySubtitle}>{f.t('address.emptySubtitle')}</Text>
+          <Button variant="primary" title={f.t('address.addNewAddress')} onPress={f.openAddDialog} style={{ alignSelf: 'center' }} />
         </View>
       ) : (
         <ScrollView
@@ -73,7 +73,7 @@ export default function AddressesScreen() {
       {f.addresses.length < f.maxAddresses && f.addresses.length > 0 && (
         <FAB
           icon="add"
-          accessibilityLabel="Yeni adres ekle"
+          accessibilityLabel={f.t('address.addNewAddress')}
           style={styles.fab}
           onPress={f.openAddDialog}
         />

@@ -38,20 +38,20 @@ describe("J118 · profil düzenleme", () => {
 
   it("J118.1 bio karakter sayacı yazıldıkça güncellenir", () => {
     renderWithProviders(<EditProfileScreen />);
-    expect(screen.getByText("Hakkımda (0/500)")).toBeOnTheScreen();
+    expect(screen.getByText("profile.bio (0/500)")).toBeOnTheScreen();
     fireEvent.changeText(screen.getByDisplayValue("Test"), "Test"); // displayName var
     const bioInput = screen.getByPlaceholderText("mobile.bioPlaceholder");
     fireEvent.changeText(bioInput, "merhaba");
-    expect(screen.getByText("Hakkımda (7/500)")).toBeOnTheScreen();
+    expect(screen.getByText("profile.bio (7/500)")).toBeOnTheScreen();
   });
 
   it("J118.2 displayName 1 karaktere düşerse hata, updateProfile çağrılmaz", async () => {
     renderWithProviders(<EditProfileScreen />);
     fireEvent.changeText(screen.getByDisplayValue("Test"), "A");
-    fireEvent.press(screen.getByText("Değişiklikleri Kaydet"));
+    fireEvent.press(screen.getByText("product.saveChanges"));
     await waitFor(() =>
       expect(
-        screen.getByText("İsim en az 2 karakter olmalı"),
+        screen.getByText("validation.displayNameMin"),
       ).toBeOnTheScreen(),
     );
     expect(updateProfile).not.toHaveBeenCalled();

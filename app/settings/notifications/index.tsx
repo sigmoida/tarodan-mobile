@@ -23,14 +23,14 @@ export default function NotificationSettingsScreen() {
           color={colors.primary[600]!}
         />
         <Text variant="h3" style={styles.title}>
-          Bildirim Ayarları
+          {t("mobile.settingsNotifications")}
         </Text>
         <Text variant="body" style={styles.subtitle}>
-          Ayarlarınızı düzenlemek için giriş yapın
+          {t("settings.notificationsAuthGateSubtitle")}
         </Text>
         <Button
           variant="primary"
-          title="Giriş Yap"
+          title={t("common.login")}
           onPress={() => router.push("/(auth)/login")}
           style={{ alignSelf: "center" }}
         />
@@ -51,7 +51,7 @@ export default function NotificationSettingsScreen() {
             disabled={f.saveMutation.isPending}
           >
             <Text style={styles.saveButton}>
-              {f.saveMutation.isPending ? "Kaydediliyor..." : "Kaydet"}
+              {f.saveMutation.isPending ? t("collection.saving") : t("mobile.save")}
             </Text>
           </TouchableOpacity>
         }

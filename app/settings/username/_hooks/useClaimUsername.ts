@@ -22,10 +22,11 @@ export function useClaimUsername() {
     onSuccess: (res) => {
       const username = (res.data as { username?: string })?.username;
       if (username) updateUser({ username, usernameClaimed: true });
-      appAlert('Kullanıcı adı belirlendi', 'Kullanıcı adınız kalıcı olarak kaydedildi.');
+      appAlert(t('settings.usernameSetTitle'), t('settings.usernameSetBody'));
       router.back();
     },
-    onError: (e) => appAlert('Belirlenemedi', errorText(e, 'Kullanıcı adı kaydedilemedi.')),
+    onError: (e) =>
+      appAlert(t('settings.usernameSetFailedTitle'), errorText(e, t('settings.usernameSetFailedBody'))),
   });
 
   return {

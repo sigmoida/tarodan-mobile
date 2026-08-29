@@ -129,7 +129,10 @@
     "and": "and",
     "continueShort": "Continue",
     "missing": "Missing",
-    "info": "Info"
+    "info": "Info",
+    "selectCityPlaceholder": "Select a city",
+    "selectDistrictPlaceholder": "Select a district",
+    "selectCityFirst": "Select a city first"
   },
   "nav": {
     "home": "Home",
@@ -2086,7 +2089,11 @@
     "smsDesc": "Send SMS for important updates",
     "loginToView": "Sign in to see your notifications",
     "loginPromptDesc": "Instant notifications for your orders, offers, and messages appear here.",
-    "emptyListDesc": "New order, offer, and message notifications will appear here."
+    "emptyListDesc": "New order, offer, and message notifications will appear here.",
+    "emailSmsSection": "Email & SMS",
+    "emailEnableLabel": "Enable Email Notifications",
+    "smsLabel": "SMS Notifications",
+    "preferencesInfo": "You can change your notification preferences anytime. Important security and account notifications are always sent."
   },
   "profile": {
     "profile": "Profile",
@@ -2136,7 +2143,11 @@
     "invalidCode": "Invalid code",
     "phoneVerified": "Phone verified",
     "cannotDeleteAccount": "Cannot delete account",
-    "deleteAccountFailed": "Failed to delete account"
+    "deleteAccountFailed": "Failed to delete account",
+    "businessMembershipBadge": "Business Membership",
+    "companyLegalNameLabel": "Company / Legal Name",
+    "companyNameRequiredWarning": "Company name is required to use the business panel",
+    "corporateInfoNotice": "Corporate seller information is used for invoicing. Incorrect information may create legal liability."
   },
   "review": {
     "reviews": "Reviews",
@@ -2358,7 +2369,12 @@
     "displayNameMax": "The name can be at most 30 characters",
     "acceptTerms": "You must accept the agreements",
     "passwordMax72": "At most 72 characters",
-    "acceptBusinessTerms": "You must accept the membership agreement and the privacy notice"
+    "acceptBusinessTerms": "You must accept the membership agreement and the privacy notice",
+    "bioMaxLength": "Bio can be at most {max} characters",
+    "birthDateInvalid": "Please select a valid birth date",
+    "mustBeAdult": "You must be over 18 years old",
+    "companyNameRequired": "Company name is required",
+    "sixDigitCode": "Enter the 6-digit code"
   },
   "time": {
     "justNow": "Just now",
@@ -2384,7 +2400,14 @@
       "minutes": "{count} min ago",
       "hours": "{count} hr ago",
       "days": "{count, plural, one {# day ago} other {# days ago}}"
-    }
+    },
+    "weekdayMonShort": "Mon",
+    "weekdayTueShort": "Tue",
+    "weekdayWedShort": "Wed",
+    "weekdayThuShort": "Thu",
+    "weekdayFriShort": "Fri",
+    "weekdaySatShort": "Sat",
+    "weekdaySunShort": "Sun"
   },
   "language": {
     "language": "Language",
@@ -2439,7 +2462,10 @@
     "goPremium": "Go Premium",
     "deleteConfirmNamed": "Are you sure you want to delete the address \"{title}\"?",
     "fillRequiredFields": "Please fill in the required fields, including the district",
-    "addressMinLength": "The address must be at least 10 characters"
+    "addressMinLength": "The address must be at least 10 characters",
+    "authGateSubtitle": "Sign in to view your addresses",
+    "emptySubtitle": "Add your delivery address",
+    "addressTitleLabel": "Address Title"
   },
   "contact": {
     "title": "Contact Us",
@@ -2489,7 +2515,28 @@
     "enable": "Enable",
     "disable": "Disable",
     "activeSessions": "Active Sessions",
-    "loginHistory": "Login History"
+    "loginHistory": "Login History",
+    "emailChangeLink": "Change Email",
+    "usernameLink": "Username",
+    "emailChangeActiveTitle": "Your current email stays active",
+    "emailChangeActiveBody": "Your account keeps working with your current email until you verify the new address.",
+    "newEmailLabel": "New email",
+    "newEmailPlaceholder": "new@example.com",
+    "sendCodeButton": "Send verification code",
+    "emailUpdatedTitle": "Email updated",
+    "emailUpdatedBody": "Your new email address has been verified.",
+    "verifyFailedTitle": "Verification failed",
+    "codeVerifyFailedBody": "Code could not be verified. Try again.",
+    "usernameClaimedHint": "A username is set once and cannot be changed.",
+    "usernamePermanentWarningTitle": "This choice is permanent",
+    "usernamePermanentWarningBody": "A username is set once and cannot be changed afterwards.",
+    "usernameSetButton": "Set username",
+    "usernameSetTitle": "Username set",
+    "usernameSetBody": "Your username has been saved permanently.",
+    "usernameSetFailedTitle": "Could not be set",
+    "usernameSetFailedBody": "Username could not be saved.",
+    "notificationsAuthGateSubtitle": "Sign in to edit your settings",
+    "notificationSettingsSaved": "Notification settings saved"
   },
   "analytics": {
     "analytics": "Analytics",
@@ -2510,7 +2557,9 @@
     "conversionRate": "Conversion Rate",
     "avgTimeToSell": "Avg. Time to Sell",
     "revenueTracking": "Revenue Tracking",
-    "detailedAnalytics": "Detailed Analytics"
+    "detailedAnalytics": "Detailed Analytics",
+    "authGateSubtitle": "Sign in to view your statistics",
+    "dataLoadFailed": "Data could not be loaded"
   },
   "payment": {
     "addCard": "Add Card",
@@ -3300,7 +3349,14 @@
       "feedbackPlaceholder": "Your feedback...",
       "subscribeAgain": "Subscribe again",
       "unsubscribedToast": "Unsubscribed",
-      "subscriptionFailed": "Subscription failed"
+      "subscriptionFailed": "Subscription failed",
+      "emailInvalid": "Enter a valid email address.",
+      "consentText": "I agree to receive commercial electronic messages and to my email being processed for this purpose.",
+      "cancelLinkText": "I want to cancel my subscription",
+      "unsubscribeHeaderTitle": "Cancel Subscription",
+      "unsubscribeReasonSubtitle": "Enter your email address and we will cancel your subscription right away. If you followed a link and are still seeing this page, the automatic cancellation may have failed.",
+      "unsubscribeSuccessTitle": "Your Subscription Has Been Cancelled",
+      "unsubscribeFailed": "Subscription could not be cancelled."
     }
   },
   "stockout": {
@@ -3421,7 +3477,14 @@
     "quickMySales": "My Sales",
     "quickRefundRequests": "Refund Requests",
     "quickMyOffers": "My Offers",
-    "quickBusinessApplication": "Business Application"
+    "quickBusinessApplication": "Business Application",
+    "bannedTitle": "Your Account Has Been Suspended",
+    "bannedDescription": "Your account was banned for a rule violation. If you think this is a mistake, you can contact support.",
+    "bannedReasonLabel": "Ban reason",
+    "bannedCreateSupport": "Create Support Request",
+    "maintenanceHeaderTitle": "Maintenance",
+    "maintenanceTitle": "Under Maintenance",
+    "maintenanceDescription": "We are currently performing maintenance. We will be back shortly."
   },
   "refund": {
     "cancel": {
@@ -7113,7 +7176,10 @@
     "phoneVerifiedNotice": "Your phone number is verified.",
     "phoneVerifyHint": "Verify it by SMS.",
     "verified": "Verified",
-    "tipsSection": "Security Tips"
+    "tipsSection": "Security Tips",
+    "twoFactorSetupFailed": "2FA setup failed",
+    "twoFactorSetupModalTitle": "2FA Setup",
+    "twoFactorDisableModalTitle": "Turn Off 2FA"
   },
   "discount": {
     "editTitle": "Edit Discount",

@@ -76,7 +76,7 @@ describe('Adres formu — alana yazılan telefon payload\'a ne olarak gidiyor', 
 
   const fillAndSave = async (phone: string) => {
     renderWithProviders(<AddressesScreen />);
-    fireEvent.press(await screen.findByText('Adres Ekle'));
+    fireEvent.press(await screen.findByText('address.addNewAddress'));
     fireEvent.changeText(screen.getByTestId('address-title-input'), 'Ev');
     fireEvent.changeText(screen.getByTestId('address-fullname-input'), 'Ayşe Yılmaz');
     fireEvent.changeText(screen.getByTestId('address-phone-input'), phone);
@@ -114,7 +114,7 @@ describe('Adres formu — alana yazılan telefon payload\'a ne olarak gidiyor', 
 
   it('fazla haneli girdi alanda KIRPILMAZ — kullanıcı yazdığını görür', async () => {
     renderWithProviders(<AddressesScreen />);
-    fireEvent.press(await screen.findByText('Adres Ekle'));
+    fireEvent.press(await screen.findByText('address.addNewAddress'));
     const input = screen.getByTestId('address-phone-input');
     fireEvent.changeText(input, '05321234567890');
     // Kırpma olsaydı burada "532 123 45 67" görünür, 890 sessizce kaybolurdu.
@@ -123,7 +123,7 @@ describe('Adres formu — alana yazılan telefon payload\'a ne olarak gidiyor', 
 
   it('blur\'da hata görünür, numara düzeltilince anında kalkar', async () => {
     renderWithProviders(<AddressesScreen />);
-    fireEvent.press(await screen.findByText('Adres Ekle'));
+    fireEvent.press(await screen.findByText('address.addNewAddress'));
     const input = screen.getByTestId('address-phone-input');
 
     fireEvent.changeText(input, '00905321234567');
@@ -142,7 +142,7 @@ describe('Profil formu — alana yazılan telefon payload\'a ne olarak gidiyor',
   const fillAndSave = (phone: string) => {
     renderWithProviders(<EditProfileScreen />);
     fireEvent.changeText(screen.getByTestId('profile-phone-input'), phone);
-    fireEvent.press(screen.getByText('Değişiklikleri Kaydet'));
+    fireEvent.press(screen.getByText('product.saveChanges'));
   };
 
   it.each([['0532 123 45 67'], ['+90 532 123 45 67'], ['5321234567']])(
@@ -165,7 +165,7 @@ describe('Profil formu — alana yazılan telefon payload\'a ne olarak gidiyor',
 
   it('telefon boş bırakılabilir (numara silme) — hata çıkmaz', async () => {
     renderWithProviders(<EditProfileScreen />);
-    fireEvent.press(screen.getByText('Değişiklikleri Kaydet'));
+    fireEvent.press(screen.getByText('product.saveChanges'));
     await waitFor(() => expect(updateProfile).toHaveBeenCalledTimes(1));
     expect(screen.queryByText(getPhoneInvalidMessage())).toBeNull();
   });

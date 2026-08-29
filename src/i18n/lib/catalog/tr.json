@@ -129,7 +129,10 @@
     "and": "ve",
     "continueShort": "Devam",
     "missing": "Eksik",
-    "info": "Bilgi"
+    "info": "Bilgi",
+    "selectCityPlaceholder": "Bir il seçin",
+    "selectDistrictPlaceholder": "Bir ilçe seçin",
+    "selectCityFirst": "Önce il seçin"
   },
   "nav": {
     "home": "Ana Sayfa",
@@ -2086,7 +2089,11 @@
     "smsDesc": "Önemli güncellemeler için SMS gönderilsin",
     "loginToView": "Bildirimleri görmek için giriş yapın",
     "loginPromptDesc": "Siparişleriniz, tekliflerileriniz ve mesajlarınız için anlık bildirimler burada görünür.",
-    "emptyListDesc": "Yeni sipariş, teklif ve mesaj bildirimlerin burada görünür."
+    "emptyListDesc": "Yeni sipariş, teklif ve mesaj bildirimlerin burada görünür.",
+    "emailSmsSection": "E-posta ve SMS",
+    "emailEnableLabel": "E-posta Bildirimlerini Etkinleştir",
+    "smsLabel": "SMS Bildirimleri",
+    "preferencesInfo": "Bildirim tercihlerinizi istediğiniz zaman değiştirebilirsiniz. Önemli güvenlik ve hesap bildirimleri her zaman gönderilir."
   },
   "profile": {
     "profile": "Profil",
@@ -2136,7 +2143,11 @@
     "invalidCode": "Kod hatalı",
     "phoneVerified": "Telefon doğrulandı",
     "cannotDeleteAccount": "Hesap silinemez",
-    "deleteAccountFailed": "Hesap silinemedi"
+    "deleteAccountFailed": "Hesap silinemedi",
+    "businessMembershipBadge": "İş Üyeliği",
+    "companyLegalNameLabel": "Şirket / Ticari Unvan",
+    "companyNameRequiredWarning": "İşletme panelini kullanmak için şirket adı zorunludur",
+    "corporateInfoNotice": "Kurumsal satıcı bilgileri fatura kesiminde kullanılır. Yanlış bilgi girişi yasal sorumluluk doğurabilir."
   },
   "review": {
     "reviews": "Değerlendirmeler",
@@ -2358,7 +2369,12 @@
     "displayNameMax": "Ad en fazla 30 karakter olabilir",
     "acceptTerms": "Sözleşmeleri kabul etmelisiniz",
     "passwordMax72": "En fazla 72 karakter",
-    "acceptBusinessTerms": "Üyelik sözleşmesini ve KVKK aydınlatma metnini kabul etmelisiniz"
+    "acceptBusinessTerms": "Üyelik sözleşmesini ve KVKK aydınlatma metnini kabul etmelisiniz",
+    "bioMaxLength": "Biyografi en fazla {max} karakter olabilir",
+    "birthDateInvalid": "Lütfen geçerli bir doğum tarihi seçin",
+    "mustBeAdult": "18 yaşından büyük olmalısınız",
+    "companyNameRequired": "Şirket adı zorunludur",
+    "sixDigitCode": "6 haneli kodu girin"
   },
   "time": {
     "justNow": "Az önce",
@@ -2384,7 +2400,14 @@
       "minutes": "{count} dk önce",
       "hours": "{count} sa önce",
       "days": "{count} gün önce"
-    }
+    },
+    "weekdayMonShort": "Pzt",
+    "weekdayTueShort": "Sal",
+    "weekdayWedShort": "Çar",
+    "weekdayThuShort": "Per",
+    "weekdayFriShort": "Cum",
+    "weekdaySatShort": "Cmt",
+    "weekdaySunShort": "Paz"
   },
   "language": {
     "language": "Dil",
@@ -2439,7 +2462,10 @@
     "goPremium": "Premium'a Geç",
     "deleteConfirmNamed": "\"{title}\" adresini silmek istediğinize emin misiniz?",
     "fillRequiredFields": "Lütfen zorunlu alanları doldurun (ilçe dahil)",
-    "addressMinLength": "Adres en az 10 karakter olmalıdır"
+    "addressMinLength": "Adres en az 10 karakter olmalıdır",
+    "authGateSubtitle": "Adreslerinizi görmek için giriş yapın",
+    "emptySubtitle": "Teslimat adresinizi ekleyin",
+    "addressTitleLabel": "Adres Başlığı"
   },
   "contact": {
     "title": "İletişim",
@@ -2489,7 +2515,28 @@
     "enable": "Etkinleştir",
     "disable": "Devre Dışı Bırak",
     "activeSessions": "Aktif Oturumlar",
-    "loginHistory": "Giriş Geçmişi"
+    "loginHistory": "Giriş Geçmişi",
+    "emailChangeLink": "E-posta Değiştir",
+    "usernameLink": "Kullanıcı Adı",
+    "emailChangeActiveTitle": "Mevcut e-postanız aktif kalır",
+    "emailChangeActiveBody": "Yeni adresinizi doğrulayana kadar hesabınız mevcut e-posta ile çalışmaya devam eder.",
+    "newEmailLabel": "Yeni e-posta",
+    "newEmailPlaceholder": "yeni@ornek.com",
+    "sendCodeButton": "Doğrulama kodu gönder",
+    "emailUpdatedTitle": "E-posta güncellendi",
+    "emailUpdatedBody": "Yeni e-posta adresiniz doğrulandı.",
+    "verifyFailedTitle": "Doğrulanamadı",
+    "codeVerifyFailedBody": "Kod doğrulanamadı. Tekrar deneyin.",
+    "usernameClaimedHint": "Kullanıcı adı bir kez belirlenir ve değiştirilemez.",
+    "usernamePermanentWarningTitle": "Bu seçim kalıcıdır",
+    "usernamePermanentWarningBody": "Kullanıcı adı bir kez belirlenir ve sonradan değiştirilemez.",
+    "usernameSetButton": "Kullanıcı adını belirle",
+    "usernameSetTitle": "Kullanıcı adı belirlendi",
+    "usernameSetBody": "Kullanıcı adınız kalıcı olarak kaydedildi.",
+    "usernameSetFailedTitle": "Belirlenemedi",
+    "usernameSetFailedBody": "Kullanıcı adı kaydedilemedi.",
+    "notificationsAuthGateSubtitle": "Ayarlarınızı düzenlemek için giriş yapın",
+    "notificationSettingsSaved": "Bildirim ayarları kaydedildi"
   },
   "analytics": {
     "analytics": "Analitikler",
@@ -2510,7 +2557,9 @@
     "conversionRate": "Dönüşüm Oranı",
     "avgTimeToSell": "Ort. Satış Süresi",
     "revenueTracking": "Gelir Takibi",
-    "detailedAnalytics": "Detaylı Analitik"
+    "detailedAnalytics": "Detaylı Analitik",
+    "authGateSubtitle": "İstatistiklerinizi görmek için giriş yapın",
+    "dataLoadFailed": "Veri yüklenemedi"
   },
   "payment": {
     "addCard": "Kart Ekle",
@@ -3300,7 +3349,14 @@
       "feedbackPlaceholder": "Geri bildiriminiz...",
       "subscribeAgain": "Tekrar abone ol",
       "unsubscribedToast": "Abonelikten çıkıldı",
-      "subscriptionFailed": "Abonelik başarısız"
+      "subscriptionFailed": "Abonelik başarısız",
+      "emailInvalid": "Geçerli bir e-posta girin.",
+      "consentText": "Ticari elektronik ileti almayı ve e-postamın bu amaçla işlenmesini kabul ediyorum.",
+      "cancelLinkText": "Aboneliğimi İptal Etmek İstiyorum",
+      "unsubscribeHeaderTitle": "Abonelik İptali",
+      "unsubscribeReasonSubtitle": "E-posta adresinizi girin, aboneliğinizi anında iptal edelim. Bağlantıyla geldiğiniz halde bu sayfayı görüyorsanız otomatik iptal başarısız olmuş olabilir.",
+      "unsubscribeSuccessTitle": "Aboneliğiniz İptal Edildi",
+      "unsubscribeFailed": "Abonelik iptal edilemedi."
     }
   },
   "stockout": {
@@ -3421,7 +3477,14 @@
     "quickMySales": "Satışlarım",
     "quickRefundRequests": "İade Talepleri",
     "quickMyOffers": "Tekliflerim",
-    "quickBusinessApplication": "Kurumsal Başvuru"
+    "quickBusinessApplication": "Kurumsal Başvuru",
+    "bannedTitle": "Hesabınız Askıya Alındı",
+    "bannedDescription": "Hesabınız kural ihlali nedeniyle banlanmıştır. Bunun bir hata olduğunu düşünüyorsanız destek ekibiyle iletişime geçebilirsiniz.",
+    "bannedReasonLabel": "Ban sebebi",
+    "bannedCreateSupport": "Destek Talebi Oluştur",
+    "maintenanceHeaderTitle": "Bakım",
+    "maintenanceTitle": "Bakım Çalışması",
+    "maintenanceDescription": "Şu an bakım çalışması yapılıyor. Kısa süre sonra tekrar hizmetinizdeyiz."
   },
   "refund": {
     "cancel": {
@@ -7113,7 +7176,10 @@
     "phoneVerifiedNotice": "Telefon numaranız doğrulandı.",
     "phoneVerifyHint": "SMS ile doğrulayın.",
     "verified": "Doğrulandı",
-    "tipsSection": "Güvenlik İpuçları"
+    "tipsSection": "Güvenlik İpuçları",
+    "twoFactorSetupFailed": "2FA kurulumu başarısız",
+    "twoFactorSetupModalTitle": "2FA Kurulumu",
+    "twoFactorDisableModalTitle": "2FA'yı Kapat"
   },
   "discount": {
     "editTitle": "İndirimi Düzenle",

@@ -1,16 +1,21 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { appAlert } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { authApi, errorText } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
-import { emailChangeSchema, emailCodeSchema } from '../_lib/schema';
+import { buildEmailChangeSchema, buildEmailCodeSchema } from '../_lib/schema';
 
 export function useEmailChange() {
+  const { t } = useTranslation();
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [pendingEmail, setPendingEmail] = useState('');
   const { updateUser } = useAuthStore();
+
+  const emailChangeSchema = useMemo(() => buildEmailChangeSchema(t), [t]);
+  const emailCodeSchema = useMemo(() => buildEmailCodeSchema(t), [t]);
 
   const emailForm = useZodForm(emailChangeSchema, { defaultValues: { newEmail: '' } });
   const codeForm = useZodForm(emailCodeSchema, { defaultValues: { code: '' } });
@@ -20,9 +25,10 @@ export function useEmailChange() {
     onSuccess: (_res, newEmail) => {
       setPendingEmail(newEmail);
       setStep('code');
-      appAlert('Kod gönderildi', `Doğrulama kodu ${newEmail} adresine gönderildi.`);
+      appAlert(t('profile.codeSent'), t('checkout.otpSentToEmail', { email: newEmail }));
     },
-    onError: (e) => appAlert('Gönderilemedi', errorText(e, 'Kod gönderilemedi. Tekrar deneyin.')),
+    onError: (e) =>
+      appAlert(t('auth.failedToSend'), errorText(e, t('checkout.guestEmailSendCodeFailed'))),
   });
 
   const verify = useMutation({
@@ -30,10 +36,11 @@ export function useEmailChange() {
     onSuccess: (res) => {
       const email = (res.data as { email?: string })?.email;
       if (email) updateUser({ email });
-      appAlert('E-posta güncellendi', 'Yeni e-posta adresiniz doğrulandı.');
+      appAlert(t('settings.emailUpdatedTitle'), t('settings.emailUpdatedBody'));
       router.back();
     },
-    onError: (e) => appAlert('Doğrulanamadı', errorText(e, 'Kod doğrulanamadı. Tekrar deneyin.')),
+    onError: (e) =>
+      appAlert(t('settings.verifyFailedTitle'), errorText(e, t('settings.codeVerifyFailedBody'))),
   });
 
   return {

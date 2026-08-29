@@ -17,10 +17,10 @@ export default function EditProfileScreen() {
   if (!f.isAuthenticated) {
     return (
       <View style={styles.centeredContainer}>
-        <Text variant="h3">Giriş Yapın</Text>
+        <Text variant="h3">{t("membership.loginRequiredTitle")}</Text>
         <Button
           variant="primary"
-          title="Giriş Yap"
+          title={t("common.login")}
           onPress={() => router.push("/(auth)/login")}
           style={{ alignSelf: "center" }}
         />
@@ -49,14 +49,14 @@ export default function EditProfileScreen() {
 
         <Button
           variant="ghost"
-          title="E-posta Değiştir"
+          title={t("settings.emailChangeLink")}
           onPress={() => router.push('/settings/email-change' as never)}
           testID="edit-profile-email-change"
         />
 
         <Button
           variant="ghost"
-          title="Kullanıcı Adı"
+          title={t("settings.usernameLink")}
           onPress={() => router.push('/settings/username' as never)}
           testID="edit-profile-username"
         />
@@ -64,7 +64,7 @@ export default function EditProfileScreen() {
         <Button
           variant="primary"
           fullWidth
-          title="Değişiklikleri Kaydet"
+          title={t("product.saveChanges")}
           icon="checkmark"
           onPress={f.handleSubmit(f.onSubmit)}
           isLoading={f.updateMutation.isPending}

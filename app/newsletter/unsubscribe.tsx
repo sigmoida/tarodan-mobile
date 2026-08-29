@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { theme, Button, Input, Text, appAlert } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -10,6 +11,7 @@ import { ScreenHeader } from '@/components/common';
 const { colors } = theme;
 
 export default function NewsletterUnsubscribeScreen() {
+  const { t } = useTranslation();
   const { token: tokenParam } = useLocalSearchParams<{ token?: string }>();
   const [email, setEmail] = useState('');
   const [success, setSuccess] = useState(false);
@@ -25,13 +27,13 @@ export default function NewsletterUnsubscribeScreen() {
     onSuccess: (res: any) => {
       // API 2xx döner ama gövdede success:false ile başarısız olabilir (geçersiz e-posta vb.).
       if (res?.data?.success === false) {
-        appAlert('Hata', res.data.message || 'Abonelik iptal edilemedi.');
+        appAlert(t('common.error'), res.data.message || t('marketing.newsletter.unsubscribeFailed'));
         return;
       }
       setSuccess(true);
     },
     onError: (e: any) =>
-      appAlert('Hata', e?.response?.data?.message || 'Abonelik iptal edilemedi.'),
+      appAlert(t('common.error'), e?.response?.data?.message || t('marketing.newsletter.unsubscribeFailed')),
   });
 
   // Token ile gelindiyse otomatik iptal
@@ -42,13 +44,14 @@ export default function NewsletterUnsubscribeScreen() {
   }, [tokenParam]);
 
   const handleSubmit = () => {
-    if (!/^\S+@\S+\.\S+$/.test(email)) return appAlert('Eksik', 'Geçerli bir e-posta girin.');
+    if (!/^\S+@\S+\.\S+$/.test(email))
+      return appAlert(t('common.missing'), t('marketing.newsletter.emailInvalid'));
     unsubscribeMutation.mutate({ email: email.trim().toLowerCase() });
   };
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Abonelik İptali" />
+      <ScreenHeader title={t('marketing.newsletter.unsubscribeHeaderTitle')} />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -66,13 +69,13 @@ export default function NewsletterUnsubscribeScreen() {
 
           {success ? (
             <>
-              <Text style={styles.title}>Aboneliğiniz İptal Edildi</Text>
+              <Text style={styles.title}>{t('marketing.newsletter.unsubscribeSuccessTitle')}</Text>
               <Text style={styles.subtitle}>
-                Artık bültenimizden e-posta almayacaksınız. Fikriniz değişirse tekrar abone olabilirsiniz.
+                {t('marketing.newsletter.unsubscribeSuccess')}
               </Text>
               <Button
                 variant="primary"
-                title="Ana Sayfaya Dön"
+                title={t('auth.goToHome')}
                 fullWidth
                 onPress={() => router.replace('/')}
                 style={styles.btn}
@@ -80,13 +83,13 @@ export default function NewsletterUnsubscribeScreen() {
             </>
           ) : (
             <>
-              <Text style={styles.title}>Bülten Aboneliğini İptal Et</Text>
+              <Text style={styles.title}>{t('marketing.newsletter.unsubscribeTitle')}</Text>
               <Text style={styles.subtitle}>
-                E-posta adresinizi girin, aboneliğinizi anında iptal edelim. Bağlantıyla geldiğiniz halde bu sayfayı görüyorsanız otomatik iptal başarısız olmuş olabilir.
+                {t('marketing.newsletter.unsubscribeReasonSubtitle')}
               </Text>
 
               <Input
-                label="E-posta *"
+                label={`${t('marketing.newsletter.emailLabel')} *`}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -96,7 +99,7 @@ export default function NewsletterUnsubscribeScreen() {
 
               <Button
                 variant="danger"
-                title="Aboneliğimi İptal Et"
+                title={t('marketing.newsletter.unsubscribeButton')}
                 fullWidth
                 onPress={handleSubmit}
                 isLoading={unsubscribeMutation.isPending}
@@ -106,7 +109,7 @@ export default function NewsletterUnsubscribeScreen() {
 
               <Button
                 variant="ghost"
-                title="Vazgeç"
+                title={t('seller.cancel')}
                 fullWidth
                 onPress={() => router.back()}
               />

@@ -42,14 +42,14 @@ export function AddressCard({
           <IconButton
             icon="pencil"
             size="sm"
-            accessibilityLabel="Adresi düzenle"
+            accessibilityLabel={t("address.editAddress")}
             onPress={onEdit}
           />
           <IconButton
             icon="trash-outline"
             variant="danger"
             size="sm"
-            accessibilityLabel="Adresi sil"
+            accessibilityLabel={t("address.deleteAddress")}
             onPress={onDelete}
           />
         </View>
@@ -64,14 +64,14 @@ export function AddressCard({
         {address.zipCode ?? address.postalCode ?? ""}
       </Text>
       <Text variant="bodySm" style={styles.addressDetail}>
-        Tel: {address.phone}
+        {t("sale.phoneLabel", { phone: address.phone })}
       </Text>
 
       {!address.isDefault && (
         <Button
           variant="ghost"
           size="sm"
-          title="Varsayılan Yap"
+          title={t("address.makeDefault")}
           onPress={onSetDefault}
           isLoading={setDefaultPending}
           style={styles.defaultButton}

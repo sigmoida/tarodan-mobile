@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
@@ -11,7 +12,7 @@ import {
   getPhoneInvalidMessage,
   splitPhone,
 } from '@/utils/phone';
-import { createProfileSchema, type ProfileForm } from '../_lib/schema';
+import { buildProfileSchema, type ProfileForm } from '../_lib/schema';
 
 /**
  * Edit-profile controller — owns the RHF+zod form, the avatar pick + upload,
@@ -19,6 +20,7 @@ import { createProfileSchema, type ProfileForm } from '../_lib/schema';
  * the snackbar. Lifted verbatim from the monolithic screen (§12).
  */
 export function useEditProfile() {
+  const { t } = useTranslation();
   const { user, isAuthenticated, refreshUserData } = useAuthStore();
   const queryClient = useQueryClient();
 
@@ -30,6 +32,11 @@ export function useEditProfile() {
   }>({ visible: false, message: '' });
 
   const isBusinessTier = (user as any)?.membershipTier === 'business';
+
+  const profileSchema = useMemo(
+    () => buildProfileSchema(t, isBusinessTier),
+    [t, isBusinessTier],
+  );
 
   // Kayıtlı numara "+90532…" formatında gelir — ülke kodu + formatlı lokal parçaya ayır.
   const [phoneCountryCode, setPhoneCountryCode] = useState(
@@ -44,7 +51,7 @@ export function useEditProfile() {
     clearErrors,
     watch,
   } = useForm<ProfileForm>({
-    resolver: zodResolver(createProfileSchema(isBusinessTier)),
+    resolver: zodResolver(profileSchema),
     defaultValues: {
       displayName: user?.displayName || '',
       bio: user?.bio || '',
@@ -123,7 +130,7 @@ export function useEditProfile() {
       // profilde yeni foto görünmez. Web'deki refreshUser() ile parite.
       await refreshUserData();
       queryClient.invalidateQueries({ queryKey: ['user'] });
-      setSnackbar({ visible: true, message: 'Profil güncellendi!', variant: 'success' });
+      setSnackbar({ visible: true, message: t('profile.profileUpdated'), variant: 'success' });
     },
     onError: (error: any) => {
       // Client-side telefon reddi ağ hatası değil — alana da yaz, snackbar'da da göster.
@@ -134,7 +141,7 @@ export function useEditProfile() {
       }
       setSnackbar({
         visible: true,
-        message: error.response?.data?.message || 'Güncelleme başarısız',
+        message: error.response?.data?.message || t('collection.updateFailed'),
         variant: 'danger',
       });
     },

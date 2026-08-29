@@ -1,33 +1,35 @@
 import { View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Alert, Button, ScreenHeader, Text, theme } from '@/ui';
 import { Form, FormInput } from '@/ui/form';
 import { useEmailChange } from './_hooks/useEmailChange';
 
 export default function EmailChangeScreen() {
+  const { t } = useTranslation();
   const f = useEmailChange();
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="E-posta Değiştir" onBack={() => router.back()} />
+      <ScreenHeader title={t('settings.emailChangeLink')} onBack={() => router.back()} />
       <View style={styles.body}>
-        <Alert variant="info" title="Mevcut e-postanız aktif kalır">
-          Yeni adresinizi doğrulayana kadar hesabınız mevcut e-posta ile çalışmaya devam eder.
+        <Alert variant="info" title={t('settings.emailChangeActiveTitle')}>
+          {t('settings.emailChangeActiveBody')}
         </Alert>
 
         {f.step === 'email' ? (
           <Form form={f.emailForm}>
             <FormInput
               name="newEmail"
-              label="Yeni e-posta"
-              placeholder="yeni@ornek.com"
+              label={t('settings.newEmailLabel')}
+              placeholder={t('settings.newEmailPlaceholder')}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
               testID="email-change-input"
             />
             <Button
-              title="Doğrulama kodu gönder"
+              title={t('settings.sendCodeButton')}
               onPress={f.submitEmail}
               isLoading={f.isRequesting}
               testID="email-change-request"
@@ -36,18 +38,18 @@ export default function EmailChangeScreen() {
         ) : (
           <Form form={f.codeForm}>
             <Text variant="bodySm" style={styles.hint}>
-              {f.pendingEmail} adresine gönderilen 6 haneli kodu girin.
+              {t('checkout.otpSentToEmail', { email: f.pendingEmail })}
             </Text>
             <FormInput
               name="code"
-              label="Doğrulama kodu"
+              label={t('security.verificationCode')}
               placeholder="123456"
               keyboardType="number-pad"
               maxLength={6}
               testID="email-change-code"
             />
             <Button
-              title="Doğrula"
+              title={t('security.verify')}
               onPress={f.submitCode}
               isLoading={f.isVerifying}
               testID="email-change-verify"
