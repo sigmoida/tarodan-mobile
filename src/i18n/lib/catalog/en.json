@@ -1603,7 +1603,12 @@
     "viewProfile": "View Profile",
     "imageUploadedNoUrl": "The image was uploaded but no URL was returned.",
     "imageSendFailed": "Couldn't send the image.",
-    "tryAgainBody": "Please try again."
+    "tryAgainBody": "Please try again.",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "pendingImageReady": "Photo ready to send",
+    "messageLimitReached": "Message limit reached",
+    "dailyLimitWarning": "You've reached your daily message limit ({count} messages). Get unlimited messaging with Premium."
   },
   "membership": {
     "title": "Membership Plans",

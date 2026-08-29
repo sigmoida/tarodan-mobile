@@ -1603,7 +1603,12 @@
     "viewProfile": "Profili Görüntüle",
     "imageUploadedNoUrl": "Resim yüklendi fakat URL alınamadı.",
     "imageSendFailed": "Resim gönderilemedi.",
-    "tryAgainBody": "Lütfen tekrar deneyin."
+    "tryAgainBody": "Lütfen tekrar deneyin.",
+    "today": "Bugün",
+    "yesterday": "Dün",
+    "pendingImageReady": "Fotoğraf gönderilmeye hazır",
+    "messageLimitReached": "Mesaj limiti doldu",
+    "dailyLimitWarning": "Günlük mesaj limitinize ulaştınız ({count} mesaj). Premium üyelikle sınırsız mesaj gönderin."
   },
   "membership": {
     "title": "Üyelik Planları",

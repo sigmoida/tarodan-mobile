@@ -172,7 +172,7 @@ export function useMessageThread() {
     }
   };
 
-  const groupedMessages = groupMessagesByDate(messages);
+  const groupedMessages = groupMessagesByDate(messages, t);
   const other = currentThread ? getOtherParticipant(currentThread) : null;
 
   const handleBlockUser = () => {
