@@ -1564,7 +1564,11 @@
     "rejectConfirmBody": "Are you sure you want to reject this offer?",
     "cancelConfirmBody": "Are you sure you want to cancel your offer?",
     "enterCounterAmountBody": "Enter your counter-offer amount.",
-    "amountPlaceholderTL": "Amount (TL)"
+    "amountPlaceholderTL": "Amount (TL)",
+    "myOffersTitle": "My Offers",
+    "loadingOffers": "Loading offers...",
+    "loadOffersFailed": "Something went wrong while loading offers",
+    "authGateSubtitle": "Sign in to view your offers"
   },
   "message": {
     "messages": "Messages",

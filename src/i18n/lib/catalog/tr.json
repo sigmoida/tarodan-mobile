@@ -1564,7 +1564,11 @@
     "rejectConfirmBody": "Teklifi reddetmek istediğinize emin misiniz?",
     "cancelConfirmBody": "Teklifinizi iptal etmek istediğinize emin misiniz?",
     "enterCounterAmountBody": "Karşı teklif tutarınızı girin.",
-    "amountPlaceholderTL": "Tutar (TL)"
+    "amountPlaceholderTL": "Tutar (TL)",
+    "myOffersTitle": "Tekliflerim",
+    "loadingOffers": "Teklifler yükleniyor...",
+    "loadOffersFailed": "Teklifler yüklenirken bir hata oluştu",
+    "authGateSubtitle": "Tekliflerinizi görmek için giriş yapın"
   },
   "message": {
     "messages": "Mesajlar",

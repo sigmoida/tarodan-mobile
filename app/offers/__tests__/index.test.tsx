@@ -93,8 +93,8 @@ describe("J3 · Tekliflerim listesi", () => {
     mockAuth = { isAuthenticated: false, isLoading: false };
     renderWithProviders(<OffersScreen />);
     expect(
-      screen.getByText("Tekliflerinizi görmek için giriş yapın"),
+      screen.getByText("offer.authGateSubtitle"),
     ).toBeOnTheScreen();
-    expect(screen.getByText("Giriş Yap")).toBeOnTheScreen();
+    expect(screen.getByText("common.login")).toBeOnTheScreen();
   });
 });
