@@ -1,11 +1,15 @@
+import { useMemo } from 'react';
 import { View, TouchableOpacity, Modal } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Text, Radio } from '@/ui';
-import { SORT_OPTIONS } from '@/utils/productFilters';
+import { buildSortOptions } from '@/utils/productFilters';
 import { styles } from '../_lib/styles';
 import type { ListingsController } from '../_hooks/useListings';
 
 /** Sıralama seçim modalı (alttan açılan sheet). */
 export function ListingsSortModal({ f }: { f: ListingsController }) {
+  const { t } = useTranslation();
+  const SORT_OPTIONS = useMemo(() => buildSortOptions(t), [t]);
   const select = (value: string) => {
     f.setFilters({ ...f.filters, sortBy: value });
     f.setSortMenuVisible(false);
