@@ -1160,6 +1160,7 @@
     "exploreProducts": "Ürünleri Keşfet",
     "statusRejected": "Talep Reddedildi",
     "heldForRefund": "İade nedeniyle bekletiliyor",
+    "cancelledRefundNotice": "Bu sipariş iptal edildi. Ödemeniz iade işlemine alındı; bankanıza yansıması birkaç iş günü sürebilir.",
     "invoiceOpenFailed": "Fatura açılamadı",
     "invoiceUploadFailed": "Fatura yüklenemedi.",
     "fileTooLarge": "Dosya çok büyük (en fazla 10 MB).",

@@ -1160,6 +1160,7 @@
     "exploreProducts": "Explore products",
     "statusRejected": "Request rejected",
     "heldForRefund": "On hold for a refund",
+    "cancelledRefundNotice": "This order was cancelled. Your payment has been refunded; it may take a few business days to appear on your bank statement.",
     "invoiceOpenFailed": "The invoice could not be opened",
     "invoiceUploadFailed": "The invoice could not be uploaded.",
     "fileTooLarge": "File is too large (10 MB maximum).",
