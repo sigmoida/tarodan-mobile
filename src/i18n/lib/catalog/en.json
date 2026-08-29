@@ -7485,6 +7485,14 @@
     "authGateSubtitle": "Sign in to view your sales",
     "markPreparingConfirmTitle": "Mark Order as Preparing",
     "markPreparingConfirmBody": "Confirm that you have started preparing this order?",
-    "shipDialogTitle": "Shipping Info"
+    "shipDialogTitle": "Shipping Info",
+    "orderNumberTitle": "Order #{number}",
+    "netEarnings": "Net Earnings",
+    "amountSummaryTitle": "Amount Summary",
+    "quantityLabel": "Qty: {count}",
+    "unitPriceLabel": "Unit {price}",
+    "phoneLabel": "Phone: {phone}",
+    "shipmentSectionTitle": "Shipping Info ({carrier})",
+    "shipmentPendingNotice": "Once payment is confirmed, your Sürat Kargo shipment is created automatically. The tracking number will appear here shortly."
   }
 }

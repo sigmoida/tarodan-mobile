@@ -223,7 +223,9 @@ describe('J63 · Satıcı iptali yok + iptal etiketi', () => {
     await waitFor(() =>
       expect(screen.queryByText('Sipariş #ORD-2001000000')).toBeNull(),
     );
-    // ErrorState fullscreen render edilir; başlık hâlâ "Sipariş Detayı"
-    expect(screen.getByText('Sipariş Detayı')).toBeOnTheScreen();
+    // ErrorState fullscreen render edilir; başlık hâlâ "Sipariş Detayları"
+    // (order.orderDetails — sales/[id]'in kendi anahtarı yerine paylaşılan
+    // katalog anahtarı reuse edildi, bkz. i18n raporu).
+    expect(screen.getByText('Sipariş Detayları')).toBeOnTheScreen();
   });
 });

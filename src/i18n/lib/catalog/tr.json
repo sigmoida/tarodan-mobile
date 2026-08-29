@@ -7485,6 +7485,14 @@
     "authGateSubtitle": "Satışlarınızı görmek için giriş yapın",
     "markPreparingConfirmTitle": "Siparişi Hazırlıyor Olarak İşaretle",
     "markPreparingConfirmBody": "Siparişi hazırlamaya başladığınızı onaylıyor musunuz?",
-    "shipDialogTitle": "Kargo Bilgisi"
+    "shipDialogTitle": "Kargo Bilgisi",
+    "orderNumberTitle": "Sipariş #{number}",
+    "netEarnings": "Net Kazanç",
+    "amountSummaryTitle": "Tutar Özeti",
+    "quantityLabel": "Adet: {count}",
+    "unitPriceLabel": "Birim {price}",
+    "phoneLabel": "Tel: {phone}",
+    "shipmentSectionTitle": "Kargo Bilgisi ({carrier})",
+    "shipmentPendingNotice": "Ödeme onaylandıktan sonra Sürat Kargo gönderiniz otomatik oluşturulur. Takip numarası kısa süre içinde burada görünecek."
   }
 }

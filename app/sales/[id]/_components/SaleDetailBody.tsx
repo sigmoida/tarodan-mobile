@@ -19,7 +19,7 @@ const { colors } = theme;
 
 /** Sipariş detay gövdesi — durum, ürünler, alıcı, adres, kargo, tutar kartları. */
 export function SaleDetailBody({ f }: { f: SaleDetailController }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const order = f.order;
   if (!order) return null;
 
@@ -39,14 +39,18 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
       <View style={[styles.statusBanner, { backgroundColor: f.sc.bg }]}>
         <Ionicons name="information-circle" size={20} color={f.sc.fg} />
         <View style={{ flex: 1 }}>
-          <Text style={[styles.statusText, { color: f.sc.fg }]}>{formatOrderStatus(f.displayStatus)}</Text>
-          <Text style={[styles.statusSub, { color: f.sc.fg }]}>{formatRelativeDate(order.createdAt)}</Text>
+          <Text style={[styles.statusText, { color: f.sc.fg }]}>
+            {formatOrderStatus(f.displayStatus, i18n.language)}
+          </Text>
+          <Text style={[styles.statusSub, { color: f.sc.fg }]}>
+            {formatRelativeDate(order.createdAt, i18n.language)}
+          </Text>
         </View>
       </View>
 
       {/* Items */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Ürünler</Text>
+        <Text style={styles.sectionTitle}>{t('product.title')}</Text>
         {(order.items || []).map((item) => (
           <Pressable
             key={item.id}
@@ -56,7 +60,7 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
             <Image source={{ uri: transformImageUrl(item.product?.imageUrl) }} style={styles.itemImg} />
             <View style={{ flex: 1 }}>
               <Text style={styles.itemTitle} numberOfLines={2}>{item.product?.title}</Text>
-              <Text style={styles.itemMeta}>Adet: {item.quantity}</Text>
+              <Text style={styles.itemMeta}>{t('sale.quantityLabel', { count: item.quantity })}</Text>
               {/* Satır tutarı SUNUCUDAN. `price` siparişe girildiği andaki donmuş
                   kopya; adetle çarpınca tahsil edilenden sapabiliyor. Sunucu satır
                   tutarı göndermediyse çarpım uydurulmaz — birim fiyat basılır. */}
@@ -64,7 +68,7 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
                 <Text style={styles.itemPrice}>{formatServerPrice(item.subtotal)}</Text>
               ) : (
                 <Text style={styles.itemPrice}>
-                  Birim {formatServerPrice(item.price)}
+                  {t('sale.unitPriceLabel', { price: formatServerPrice(item.price) })}
                 </Text>
               )}
             </View>
@@ -75,7 +79,7 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
       {/* Buyer */}
       {order.buyer ? (
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Alıcı</Text>
+          <Text style={styles.sectionTitle}>{t('order.buyer')}</Text>
           <View style={styles.kvRow}>
             <Ionicons name="person-outline" size={16} color={colors.text.muted} />
             <Text style={styles.kvValue}>{order.buyer.displayName}</Text>
@@ -98,14 +102,16 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
       {/* Shipping Address */}
       {order.shippingAddress ? (
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Teslimat Adresi</Text>
+          <Text style={styles.sectionTitle}>{t('checkout.shippingAddress')}</Text>
           <Text style={styles.addressName}>{order.shippingAddress.fullName}</Text>
           <Text style={styles.addressLine}>{order.shippingAddress.address}</Text>
           <Text style={styles.addressLine}>
             {order.shippingAddress.district}, {order.shippingAddress.city}
             {order.shippingAddress.zipCode ? ` ${order.shippingAddress.zipCode}` : ''}
           </Text>
-          <Text style={styles.addressLine}>Tel: {order.shippingAddress.phone}</Text>
+          <Text style={styles.addressLine}>
+            {t('sale.phoneLabel', { phone: order.shippingAddress.phone })}
+          </Text>
         </View>
       ) : null}
 
@@ -113,7 +119,9 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
           görür (Sürat onu tanımaz, link verilmez); kod gelince gerçek Sürat
           takip numarası + koddan KURULMUŞ link. Kalıp: `OrderTrackingCard`. */}
       <View style={styles.card} testID="sales-shipment-card">
-        <Text style={styles.sectionTitle}>Kargo Bilgisi (Sürat Kargo)</Text>
+        <Text style={styles.sectionTitle}>
+          {t('sale.shipmentSectionTitle', { carrier: 'Sürat Kargo' })}
+        </Text>
         {hasShipment ? (
           <>
             <View style={styles.kvRow}>
@@ -167,42 +175,42 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
             )}
           </>
         ) : (
-          <Text style={styles.helperText}>
-            Ödeme onaylandıktan sonra Sürat Kargo gönderiniz otomatik oluşturulur. Takip numarası kısa süre içinde burada görünecek.
-          </Text>
+          <Text style={styles.helperText}>{t('sale.shipmentPendingNotice')}</Text>
         )}
       </View>
 
       {/* Totals */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Tutar Özeti</Text>
+        <Text style={styles.sectionTitle}>{t('sale.amountSummaryTitle')}</Text>
         {subtotal != null ? (
           <View style={styles.kvRow}>
-            <Text style={styles.kvLabel}>Ara Toplam</Text>
+            <Text style={styles.kvLabel}>{t('checkout.subtotal')}</Text>
             <Text style={styles.kvValue}>{formatPrice(subtotal)}</Text>
           </View>
         ) : null}
         {shipping != null ? (
           <View style={styles.kvRow}>
-            <Text style={styles.kvLabel}>Kargo</Text>
+            <Text style={styles.kvLabel}>{t('product.shipping')}</Text>
             <Text style={styles.kvValue}>{formatPrice(shipping)}</Text>
           </View>
         ) : null}
         {commission != null ? (
           <View style={styles.kvRow}>
-            <Text style={styles.kvLabel}>Komisyon</Text>
+            <Text style={styles.kvLabel}>{t('product.commissionLine')}</Text>
             <Text style={[styles.kvValue, { color: colors.danger[600]! }]}>- {formatPrice(commission)}</Text>
           </View>
         ) : null}
         {withholding > 0 ? (
           <View style={styles.kvRow}>
-            <Text style={styles.kvLabel}>Stopaj (tevkifat)</Text>
+            <Text style={styles.kvLabel}>{t('order.withholdingTax')}</Text>
             <Text style={[styles.kvValue, { color: colors.danger[600]! }]}>- {formatPrice(withholding)}</Text>
           </View>
         ) : null}
         <Divider style={{ marginVertical: theme.spacing[2] }} />
         <View style={styles.kvRow}>
-          <Text style={[styles.kvLabel, { fontWeight: '700' }]}>{net != null ? 'Net Kazanç' : 'Toplam'}</Text>
+          <Text style={[styles.kvLabel, { fontWeight: '700' }]}>
+            {net != null ? t('sale.netEarnings') : t('common.total')}
+          </Text>
           <Text style={[styles.kvValue, { fontSize: 18, fontWeight: '800', color: colors.primary[600]! }]}>
             {formatPrice(net ?? order.totalAmount ?? 0)}
           </Text>
