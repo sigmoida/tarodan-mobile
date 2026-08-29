@@ -7472,5 +7472,16 @@
     "rejectedSubText": "Red gerekçesi {email} adresinize e-posta ile gönderilmiştir.",
     "rejectedInfoText": "Başvurunuzun reddedildiğini düşünüyorsanız veya eksik bilgi olduğuna inanıyorsanız destek ekibiyle iletişime geçebilirsiniz.",
     "rejectedFixCta": "Başvurumu Düzelt"
+  },
+  "sale": {
+    "statusPendingPayment": "Ödeme Bekliyor",
+    "statusPaidPrepare": "Ödendi - Hazırla",
+    "statusShipped": "Kargoda",
+    "statusAwaitingConfirmation": "Onay Bekleniyor",
+    "filterCancelledOrRefunded": "İptal / İade",
+    "shipCta": "Kargoya Ver",
+    "emptyTitle": "Henüz satışınız yok",
+    "emptySubtitle": "İlan oluşturarak satışa başlayın",
+    "authGateSubtitle": "Satışlarınızı görmek için giriş yapın"
   }
 }

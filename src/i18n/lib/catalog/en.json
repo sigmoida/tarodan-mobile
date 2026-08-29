@@ -7472,5 +7472,16 @@
     "rejectedSubText": "The reason for rejection has been emailed to {email}.",
     "rejectedInfoText": "If you believe your application was rejected in error or that information is missing, you can contact our support team.",
     "rejectedFixCta": "Fix My Application"
+  },
+  "sale": {
+    "statusPendingPayment": "Payment Pending",
+    "statusPaidPrepare": "Paid - Prepare",
+    "statusShipped": "In Transit",
+    "statusAwaitingConfirmation": "Awaiting Confirmation",
+    "filterCancelledOrRefunded": "Cancelled / Refunded",
+    "shipCta": "Ship Now",
+    "emptyTitle": "You have no sales yet",
+    "emptySubtitle": "Create a listing to start selling",
+    "authGateSubtitle": "Sign in to view your sales"
   }
 }
