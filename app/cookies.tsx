@@ -18,95 +18,52 @@ export default function CookiePolicyScreen() {
       />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.lastUpdated}>Son güncelleme: 1 Ocak 2026</Text>
+        <Text style={styles.lastUpdated}>{t("legalContact.lastUpdatedJan2026")}</Text>
 
-        <Text style={styles.sectionTitle}>1. Çerezler Nedir?</Text>
-        <Text style={styles.paragraph}>
-          Çerezler, web siteleri ve uygulamalar tarafından cihazınıza
-          yerleştirilen küçük metin dosyalarıdır. Bu dosyalar tercihlerinizi
-          hatırlamak, deneyiminizi kişiselleştirmek ve kullanım istatistiklerini
-          analiz etmek amacıyla kullanılır.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("cookiesPage.s1Title")}</Text>
+        <Text style={styles.paragraph}>{t("cookiesPage.s1Content")}</Text>
 
-        <Text style={styles.sectionTitle}>2. Kullandığımız Çerez Türleri</Text>
+        <Text style={styles.sectionTitle}>{t("cookiesPage.s2Title")}</Text>
 
-        <Text style={styles.subTitle}>a) Zorunlu Çerezler</Text>
-        <Text style={styles.paragraph}>
-          Platformun temel işlevlerinin çalışması için gereklidir. Oturum
-          yönetimi, güvenlik ve sepet bilgileri bu çerezlerle sağlanır. Bu
-          çerezler devre dışı bırakılamaz.
-        </Text>
+        <Text style={styles.subTitle}>{t("cookiesPage.s2aTitle")}</Text>
+        <Text style={styles.paragraph}>{t("cookiesPage.s2aContent")}</Text>
 
-        <Text style={styles.subTitle}>b) Performans Çerezleri</Text>
-        <Text style={styles.paragraph}>
-          Ziyaretçilerin platformu nasıl kullandığını anlamamıza yardımcı olur.
-          Hangi sayfaların en çok ziyaret edildiği, hata mesajları gibi
-          bilgileri toplar. Tüm veriler anonimleştirilmiş olarak işlenir.
-        </Text>
+        <Text style={styles.subTitle}>{t("cookiesPage.s2bTitle")}</Text>
+        <Text style={styles.paragraph}>{t("cookiesPage.s2bContent")}</Text>
 
-        <Text style={styles.subTitle}>c) İşlevsellik Çerezleri</Text>
-        <Text style={styles.paragraph}>
-          Dil tercihi, bölge seçimi ve arayüz özelleştirmelerinizi hatırlar. Bu
-          çerezler olmadan bazı kişiselleştirme özellikleri çalışmayabilir.
-        </Text>
+        <Text style={styles.subTitle}>{t("cookiesPage.s2cTitle")}</Text>
+        <Text style={styles.paragraph}>{t("cookiesPage.s2cContent")}</Text>
 
-        <Text style={styles.subTitle}>d) Hedefleme / Reklam Çerezleri</Text>
-        <Text style={styles.paragraph}>
-          İlgi alanlarınıza uygun içerik ve reklamlar göstermek için kullanılır.
-          Üçüncü taraf reklam ağları tarafından yerleştirilebilir.
-        </Text>
+        <Text style={styles.subTitle}>{t("cookiesPage.s2dTitle")}</Text>
+        <Text style={styles.paragraph}>{t("cookiesPage.s2dContent")}</Text>
 
-        <Text style={styles.sectionTitle}>3. Üçüncü Taraf Çerezleri</Text>
-        <Text style={styles.paragraph}>
-          Platformumuzda aşağıdaki üçüncü taraf hizmetlerinin çerezleri
-          bulunabilir:
-        </Text>
-        <Text style={styles.listItem}>
-          • Google Analytics — Kullanım istatistikleri
-        </Text>
-        <Text style={styles.listItem}>
-          • Facebook Pixel — Reklam optimizasyonu
-        </Text>
-        <Text style={styles.listItem}>
-          • iyzico / PayTR — Ödeme işlemleri güvenliği
-        </Text>
-        <Text style={styles.listItem}>
-          • Hotjar — Kullanıcı davranış analizi
-        </Text>
+        <Text style={styles.sectionTitle}>{t("cookiesPage.s3Title")}</Text>
+        <Text style={styles.paragraph}>{t("cookiesPage.s3Intro")}</Text>
+        <Text style={styles.listItem}>{t("cookiesPage.s3Item1")}</Text>
+        <Text style={styles.listItem}>{t("cookiesPage.s3Item2")}</Text>
+        <Text style={styles.listItem}>{t("cookiesPage.s3Item3")}</Text>
+        <Text style={styles.listItem}>{t("cookiesPage.s3Item4")}</Text>
 
-        <Text style={styles.sectionTitle}>
-          4. Çerezleri Nasıl Yönetirsiniz?
-        </Text>
-        <Text style={styles.paragraph}>
-          Çerez tercihlerinizi aşağıdaki yöntemlerle yönetebilirsiniz:
-        </Text>
-        <Text style={styles.listItem}>
-          • Tarayıcı ayarlarından çerezleri engelleyebilir veya silebilirsiniz
-        </Text>
-        <Text style={styles.listItem}>
-          • Çerez onay bannerımızdan tercihlerinizi güncelleyebilirsiniz
-        </Text>
-        <Text style={styles.listItem}>
-          • Mobil cihaz ayarlarından uygulama izinlerini yönetebilirsiniz
-        </Text>
-        <Text style={styles.paragraph}>
-          Zorunlu çerezler dışındaki çerezleri devre dışı bırakmak, platformun
-          bazı özelliklerinin düzgün çalışmamasına neden olabilir.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("cookiesPage.s4Title")}</Text>
+        <Text style={styles.paragraph}>{t("cookiesPage.s4Intro")}</Text>
+        <Text style={styles.listItem}>{t("cookiesPage.s4Item1")}</Text>
+        <Text style={styles.listItem}>{t("cookiesPage.s4Item2")}</Text>
+        <Text style={styles.listItem}>{t("cookiesPage.s4Item3")}</Text>
+        <Text style={styles.paragraph}>{t("cookiesPage.s4Outro")}</Text>
 
-        <Text style={styles.sectionTitle}>5. Veri Saklama Süresi</Text>
-        <Text style={styles.paragraph}>
-          Oturum çerezleri tarayıcınızı kapattığınızda silinir. Kalıcı çerezler,
-          türüne bağlı olarak 30 gün ile 2 yıl arasında cihazınızda saklanır.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("cookiesPage.s5Title")}</Text>
+        <Text style={styles.paragraph}>{t("cookiesPage.s5Content")}</Text>
 
-        <Text style={styles.sectionTitle}>6. İletişim</Text>
-        <Text style={styles.paragraph}>
-          Çerez politikamız hakkında sorularınız için bizimle iletişime
-          geçebilirsiniz:
+        <Text style={styles.sectionTitle}>{t("cookiesPage.s6Title")}</Text>
+        <Text style={styles.paragraph}>{t("cookiesPage.s6Intro")}</Text>
+        <Text style={styles.contactInfo}>
+          {t("legalContact.emailLabel", { value: PRIVACY_EMAIL })}
         </Text>
-        <Text style={styles.contactInfo}>E-posta: {PRIVACY_EMAIL}</Text>
-        <Text style={styles.contactInfo}>Adres: İstanbul, Türkiye</Text>
+        <Text style={styles.contactInfo}>
+          {t("legalContact.addressLabel", {
+            value: t("cookiesPage.locationValue"),
+          })}
+        </Text>
 
         <View style={{ height: 40 }} />
       </ScrollView>
