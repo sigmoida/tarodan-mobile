@@ -1668,7 +1668,33 @@
     "prefilledInquiry": "Hi, I'd like to ask about the \"{title}\" listing.\n\n",
     "tooLong": "Message cannot exceed {max} characters. Current: {current}",
     "stillSend": "{warning} Do you still want to send it?",
-    "contactInfoWarning": "Personal contact information detected in your message. Communication outside the platform is not recommended for your safety."
+    "contactInfoWarning": "Personal contact information detected in your message. Communication outside the platform is not recommended for your safety.",
+    "blockUserTitle": "Block User",
+    "blockUserBody": "{name} will be blocked. This user won't be able to message you or see your listings.",
+    "blockUserError": "Something went wrong while blocking the user.",
+    "blockedTitle": "Blocked",
+    "blockedBody": "{name} has been blocked.",
+    "viewProfile": "View Profile",
+    "imageUploadedNoUrl": "The image was uploaded but no URL was returned.",
+    "imageSendFailed": "Couldn't send the image.",
+    "tryAgainBody": "Please try again.",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "pendingImageReady": "Photo ready to send",
+    "messageLimitReached": "Message limit reached",
+    "dailyLimitWarning": "You've reached your daily message limit ({count} messages). Get unlimited messaging with Premium.",
+    "dailyLimitReached": "You've reached your daily message limit ({count} messages)",
+    "recipient": "Recipient",
+    "searchUserPlaceholder": "Search users...",
+    "userSearchUnsupported": "Searching users by name isn't supported yet. Use the \"Send Message\" option from a listing or a seller's profile to send a message.",
+    "aboutProduct": "About the Product",
+    "loginToView": "Sign in to see your messages",
+    "dailyMessageCount": "Daily messages: {count}/{limit}",
+    "noMessagesYet": "No messages yet",
+    "tryDifferentSearch": "Try a different search term",
+    "startConversationShort": "Contact a seller to get started",
+    "generalMessage": "General message",
+    "dailyLimitError": "You've reached your daily message limit"
   },
   "membership": {
     "title": "Membership Plans",
@@ -2043,7 +2069,10 @@
     "marketingLabel": "Marketing and Offers",
     "marketingDesc": "Hear about campaigns and special offers",
     "emailDesc": "Send e-mail for the types above",
-    "smsDesc": "Send SMS for important updates"
+    "smsDesc": "Send SMS for important updates",
+    "loginToView": "Sign in to see your notifications",
+    "loginPromptDesc": "Instant notifications for your orders, offers, and messages appear here.",
+    "emptyListDesc": "New order, offer, and message notifications will appear here."
   },
   "profile": {
     "profile": "Profile",
@@ -2335,7 +2364,13 @@
     "now": "now",
     "minuteShort": "m",
     "hourShort": "h",
-    "dayShort": "d"
+    "dayShort": "d",
+    "relative": {
+      "justNow": "Just now",
+      "minutes": "{count} min ago",
+      "hours": "{count} hr ago",
+      "days": "{count, plural, one {# day ago} other {# days ago}}"
+    }
   },
   "language": {
     "language": "Language",

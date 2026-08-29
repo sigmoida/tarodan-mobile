@@ -74,17 +74,17 @@ describe("J103 · yeni mesaj (konuşma oluştur)", () => {
   it("J103.1 alıcı yokken manuel arama desteklenmiyor bilgisi gösterilir", () => {
     renderWithProviders(<NewMessageScreen />);
     fireEvent.changeText(
-      screen.getByPlaceholderText("Kullanıcı ara..."),
+      screen.getByPlaceholderText("message.searchUserPlaceholder"),
       "ahmet",
     );
     expect(
-      screen.getByText(/İsimle kullanıcı arama şu anda desteklenmiyor/),
+      screen.getByText("message.userSearchUnsupported"),
     ).toBeOnTheScreen();
   });
 
   it("J103.2 alıcı yok + metin yok → Gönder butonu pasif", () => {
     renderWithProviders(<NewMessageScreen />);
-    const sendBtn = screen.getByText("Gönder");
+    const sendBtn = screen.getByText("common.send");
     fireEvent.press(sendBtn);
     expect(mockCreateThread).not.toHaveBeenCalled();
   });
@@ -114,10 +114,10 @@ describe("J103 · yeni mesaj (konuşma oluştur)", () => {
     );
 
     fireEvent.changeText(
-      screen.getByPlaceholderText("Mesajınızı yazın..."),
+      screen.getByPlaceholderText("message.typeMessage"),
       "Merhaba",
     );
-    fireEvent.press(screen.getByText("Gönder"));
+    fireEvent.press(screen.getByText("common.send"));
 
     await waitFor(() =>
       expect(mockCreateThread).toHaveBeenCalledWith({

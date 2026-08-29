@@ -2,6 +2,7 @@ import React from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Avatar, IconButton, Alert as UIAlert, Text, theme } from '@/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,6 +14,7 @@ const { colors } = theme;
 
 /** Chat header (avatar, name, product), report modal, product banner + alerts. */
 export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
+  const { t } = useTranslation();
   const { other, currentThread } = f;
   const insets = useSafeAreaInsets();
   return (
@@ -33,7 +35,7 @@ export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
             name={other?.displayName?.charAt(0) || '?'}
           />
           <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle}>{other?.displayName || 'Yükleniyor...'}</Text>
+            <Text style={styles.headerTitle}>{other?.displayName || t('common.loading')}</Text>
             {currentThread?.product && (
               <Text style={styles.headerSubtitle} numberOfLines={1}>
                 {currentThread.product.title}
@@ -44,7 +46,7 @@ export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
 
         <IconButton
           icon="ellipsis-vertical"
-          accessibilityLabel="Daha fazla"
+          accessibilityLabel={t('common.more')}
           size="md"
           onPress={f.handleHeaderMenu}
         />
@@ -77,7 +79,7 @@ export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
       {/* Message Limit Warning */}
       {!f.isUnlimited && !f.canSend && (
         <UIAlert variant="warning">
-          Günlük mesaj limitinize ulaştınız ({f.messageLimit} mesaj). Premium üyelikle sınırsız mesaj gönderin.
+          {t('message.dailyLimitWarning', { count: f.messageLimit })}
         </UIAlert>
       )}
 

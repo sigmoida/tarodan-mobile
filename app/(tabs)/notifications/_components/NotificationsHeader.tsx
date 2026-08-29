@@ -1,6 +1,7 @@
 import { View, TouchableOpacity } from 'react-native';
 import { Badge, Button, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { styles } from '../_lib/styles';
 
 const { colors } = theme;
@@ -19,13 +20,14 @@ export function NotificationsHeader({
   unreadCount?: number;
   onMarkAll?: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.header}>
       <View style={styles.headerLeft}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn} hitSlop={8}>
           <Ionicons name="chevron-back" size={26} color={colors.white} />
         </TouchableOpacity>
-        <Text variant="h2" tone="inverted">Bildirimler</Text>
+        <Text variant="h2" tone="inverted">{t('notification.notifications')}</Text>
         {unreadCount > 0 ? (
           <Badge variant="primary" style={styles.headerBadge}>{unreadCount}</Badge>
         ) : null}
@@ -34,7 +36,7 @@ export function NotificationsHeader({
         <Button
           variant="ghost"
           size="sm"
-          title="Tümünü Okundu"
+          title={t('notification.markAllReadShort')}
           onPress={onMarkAll}
           textStyle={styles.markAllText}
         />

@@ -1668,7 +1668,33 @@
     "prefilledInquiry": "Merhaba, \"{title}\" ilanı hakkında bilgi almak istiyorum.\n\n",
     "tooLong": "Mesaj {max} karakteri aşamaz. Mevcut: {current}",
     "stillSend": "{warning} Yine de göndermek istiyor musunuz?",
-    "contactInfoWarning": "Mesajınızda kişisel iletişim bilgisi tespit edildi. Platform dışı iletişim güvenliğiniz için önerilmez."
+    "contactInfoWarning": "Mesajınızda kişisel iletişim bilgisi tespit edildi. Platform dışı iletişim güvenliğiniz için önerilmez.",
+    "blockUserTitle": "Kullanıcıyı Engelle",
+    "blockUserBody": "{name} engellenecek. Bu kullanıcı size mesaj gönderemez ve ilanlarınızı göremez.",
+    "blockUserError": "Kullanıcı engellenirken bir sorun oluştu.",
+    "blockedTitle": "Engellendi",
+    "blockedBody": "{name} engellendi.",
+    "viewProfile": "Profili Görüntüle",
+    "imageUploadedNoUrl": "Resim yüklendi fakat URL alınamadı.",
+    "imageSendFailed": "Resim gönderilemedi.",
+    "tryAgainBody": "Lütfen tekrar deneyin.",
+    "today": "Bugün",
+    "yesterday": "Dün",
+    "pendingImageReady": "Fotoğraf gönderilmeye hazır",
+    "messageLimitReached": "Mesaj limiti doldu",
+    "dailyLimitWarning": "Günlük mesaj limitinize ulaştınız ({count} mesaj). Premium üyelikle sınırsız mesaj gönderin.",
+    "dailyLimitReached": "Günlük mesaj limitinize ulaştınız ({count} mesaj)",
+    "recipient": "Alıcı",
+    "searchUserPlaceholder": "Kullanıcı ara...",
+    "userSearchUnsupported": "İsimle kullanıcı arama şu anda desteklenmiyor. Mesaj göndermek için bir ilan veya satıcı profilinden \"Mesaj Gönder\" seçeneğini kullanın.",
+    "aboutProduct": "Ürün Hakkında",
+    "loginToView": "Mesajlarınızı görmek için giriş yapın",
+    "dailyMessageCount": "Günlük mesaj: {count}/{limit}",
+    "noMessagesYet": "Henüz mesaj yok",
+    "tryDifferentSearch": "Farklı bir arama terimi deneyin",
+    "startConversationShort": "Bir satıcıyla iletişime geçerek başlayın",
+    "generalMessage": "Genel mesaj",
+    "dailyLimitError": "Günlük mesaj limitine ulaştınız"
   },
   "membership": {
     "title": "Üyelik Planları",
@@ -2043,7 +2069,10 @@
     "marketingLabel": "Pazarlama ve Teklifler",
     "marketingDesc": "Kampanya ve özel tekliflerden haberdar ol",
     "emailDesc": "Yukarıdaki türler için e-posta gönderilsin",
-    "smsDesc": "Önemli güncellemeler için SMS gönderilsin"
+    "smsDesc": "Önemli güncellemeler için SMS gönderilsin",
+    "loginToView": "Bildirimleri görmek için giriş yapın",
+    "loginPromptDesc": "Siparişleriniz, tekliflerileriniz ve mesajlarınız için anlık bildirimler burada görünür.",
+    "emptyListDesc": "Yeni sipariş, teklif ve mesaj bildirimlerin burada görünür."
   },
   "profile": {
     "profile": "Profil",
@@ -2335,7 +2364,13 @@
     "now": "şimdi",
     "minuteShort": "dk",
     "hourShort": "sa",
-    "dayShort": "g"
+    "dayShort": "g",
+    "relative": {
+      "justNow": "Az önce",
+      "minutes": "{count} dk önce",
+      "hours": "{count} sa önce",
+      "days": "{count} gün önce"
+    }
   },
   "language": {
     "language": "Dil",

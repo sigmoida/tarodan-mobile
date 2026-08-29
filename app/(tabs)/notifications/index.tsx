@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { View, FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { EmptyState, ScreenLoader, Spinner, theme } from '@/ui';
 import { useNotifications } from './_hooks/useNotifications';
 import { styles } from './_lib/styles';
@@ -10,6 +11,7 @@ import { NotificationRow } from './_components/NotificationRow';
 import type { Notification } from './_lib/types';
 
 export default function NotificationsScreen() {
+  const { t } = useTranslation();
   const f = useNotifications();
 
   const renderItem = useCallback(
@@ -25,9 +27,9 @@ export default function NotificationsScreen() {
           <EmptyState
             fullscreen
             icon="notifications-outline"
-            title="Bildirimleri görmek için giriş yapın"
-            subtitle="Siparişleriniz, tekliflerileriniz ve mesajlarınız için anlık bildirimler burada görünür."
-            actionLabel="Giriş Yap"
+            title={t('notification.loginToView')}
+            subtitle={t('notification.loginPromptDesc')}
+            actionLabel={t('common.login')}
             onAction={() => router.push('/(auth)/login')}
           />
         </View>
@@ -76,8 +78,8 @@ export default function NotificationsScreen() {
         ListEmptyComponent={
           <EmptyState
             icon="notifications-outline"
-            title="Henüz bildirimin yok"
-            subtitle="Yeni sipariş, teklif ve mesaj bildirimlerin burada görünür."
+            title={t('notification.noneYet')}
+            subtitle={t('notification.emptyListDesc')}
           />
         }
         ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
