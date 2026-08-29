@@ -5,7 +5,7 @@
  * değişiminde yeniden render gerekmiyor.
  */
 import i18n from '@/i18n/config';
-import { DEFAULT_COUNTRY_CODE, isValidPhoneInput, PHONE_INVALID_MESSAGE } from '@/utils/phone';
+import { DEFAULT_COUNTRY_CODE, isValidPhoneInput, getPhoneInvalidMessage } from '@/utils/phone';
 import type { ShippingAddressInput } from './types';
 
 export const extractApiMessage = (e: any): string | null => {
@@ -33,7 +33,7 @@ export const validateGuest = (
   if (!name.trim()) return i18n.t('checkout.nameRequired');
   if (!/^\S+@\S+\.\S+$/.test(email.trim())) return i18n.t('checkout.invalidEmail');
   if (!phone.trim()) return i18n.t('checkout.phoneRequired');
-  if (!isValidPhoneInput(phone, countryCode)) return PHONE_INVALID_MESSAGE;
+  if (!isValidPhoneInput(phone, countryCode)) return getPhoneInvalidMessage();
   return null;
 };
 
@@ -59,7 +59,7 @@ export const addressPhoneError = (
   label = i18n.t('checkout.shippingAddressLabel'),
 ): string | null => {
   if (!phone.trim()) return i18n.t('checkout.addressPhoneRequired', { label });
-  if (!isValidPhoneInput(phone, countryCode)) return i18n.t('checkout.addressPhoneInvalid', { label, message: PHONE_INVALID_MESSAGE });
+  if (!isValidPhoneInput(phone, countryCode)) return i18n.t('checkout.addressPhoneInvalid', { label, message: getPhoneInvalidMessage() });
   return null;
 };
 

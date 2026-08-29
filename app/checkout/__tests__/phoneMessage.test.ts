@@ -8,7 +8,7 @@
  * göstermek yanlış yönlendiriyor. Mesaj üretimi tek yerden gelmeli.
  */
 import { addressPhoneError } from '../_lib/validation';
-import { PHONE_INVALID_MESSAGE } from '@/utils/phone';
+import { getPhoneInvalidMessage } from '@/utils/phone';
 
 describe('addressPhoneError', () => {
   it('asks for the number when the field is empty', () => {
@@ -25,7 +25,7 @@ describe('addressPhoneError', () => {
 
   it('explains the format when the number cannot be resolved', () => {
     expect(addressPhoneError('0532', '+90', 'Fatura')).toBe(
-      `Fatura adresi — ${PHONE_INVALID_MESSAGE}`,
+      `Fatura adresi — ${getPhoneInvalidMessage()}`,
     );
   });
 

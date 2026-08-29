@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { PHONE_INVALID_MESSAGE } from '@/utils/phone';
+import { getPhoneInvalidMessage } from '@/utils/phone';
 
 export const MAX_BIO_LENGTH = 500; // Backend DTO (UpdateProfileDto) bio'yu 500 ile sınırlar — web ile aynı.
 
@@ -30,7 +30,7 @@ export const createProfileSchema = (isBusinessTier: boolean) =>
     // tuttuğu için formatlanmış TR değeri 13 karakter (`532 123 45 67`), TR dışında
     // yalnız rakam. Yani `max` burada bir emniyet kemeri; asıl reddi `parseE164TrPhone`
     // ve `onSubmit` kapısı veriyor.
-    phone: z.string().max(20, PHONE_INVALID_MESSAGE).optional().or(z.literal('')),
+    phone: z.string().max(20, getPhoneInvalidMessage()).optional().or(z.literal('')),
     birthDate: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'Lütfen geçerli bir doğum tarihi seçin')

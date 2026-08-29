@@ -1594,7 +1594,15 @@
     "prefilledInquiry": "Hi, I'd like to ask about the \"{title}\" listing.\n\n",
     "tooLong": "Message cannot exceed {max} characters. Current: {current}",
     "stillSend": "{warning} Do you still want to send it?",
-    "contactInfoWarning": "Personal contact information detected in your message. Communication outside the platform is not recommended for your safety."
+    "contactInfoWarning": "Personal contact information detected in your message. Communication outside the platform is not recommended for your safety.",
+    "violationLabelPhone": "Phone number",
+    "violationLabelEmail": "Email address",
+    "violationLabelIban": "Bank account (IBAN)",
+    "violationLabelWhatsapp": "WhatsApp",
+    "violationLabelTelegram": "Telegram",
+    "violationLabelInstagram": "Instagram / social media",
+    "violationLabelExternalLink": "External link",
+    "violationDetected": "This message can't be sent for your safety. Detected: {labels}. Off-platform communication may be reported as a violation."
   },
   "membership": {
     "title": "Membership Plans",

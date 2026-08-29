@@ -20,6 +20,7 @@
  * > Kullanıcının yazdığı numara sessizce başka bir numaraya DÖNÜŞMEZ.
  * > Ya geçerli olduğu gibi normalize edilir, ya reddedilir.
  */
+import i18n from '@/i18n/config';
 
 export interface CountryCode {
   code: string;
@@ -56,8 +57,17 @@ export const countryCodes: CountryCode[] = [
 
 export const DEFAULT_COUNTRY_CODE = '+90';
 
-/** Geçersiz TR numarası için TEK mesaj — şema, form ve `PhoneInput` aynısını gösterir. */
-export const PHONE_INVALID_MESSAGE = 'Geçerli bir telefon numarası girin (5XX XXX XX XX)';
+/**
+ * Geçersiz TR numarası için TEK mesaj — şema, form ve `PhoneInput` aynısını
+ * gösterir. `validation.invalidPhone` katalog anahtarını REUSE eder (ayrı bir
+ * `phone.invalidMessage` anahtarı yerine — aynı mesaj zaten oradaydı).
+ *
+ * ⚠️ React DIŞI modül — `useTranslation` çağıramaz; global `i18n`
+ * örneğinden ÇAĞRI ANINDA okur (bkz. `paytrDirectForm.ts`).
+ */
+export function getPhoneInvalidMessage(): string {
+  return i18n.t('validation.invalidPhone');
+}
 
 /** API sözleşmesi: `phone` / `contactPhone` alanları bu regex'e uyar. */
 const TR_PHONE_REGEX = /^\+90[0-9]{10}$/;
@@ -202,7 +212,12 @@ export function splitPhone(full: string | undefined): { countryCode: string; pho
   return { countryCode: DEFAULT_COUNTRY_CODE, phone: formatPhoneNumber(clean, DEFAULT_COUNTRY_CODE) };
 }
 
-/** Ülke koduna göre tipik placeholder. */
-export function getPhonePlaceholder(countryCode: string, fallback = 'Telefon'): string {
+/**
+ * Ülke koduna göre tipik placeholder. TR biçim ipucu (`5XX XXX XX XX`) rakam
+ * maskesi — çevrilecek bir sözcük taşımıyor (bkz. katalog testindeki
+ * `INTENTIONALLY_IDENTICAL` muafiyeti mantığı). `fallback` varsayılanı
+ * `common.phone`'u REUSE eder — çağrı anında okunur (React dışı modül).
+ */
+export function getPhonePlaceholder(countryCode: string, fallback = i18n.t('common.phone')): string {
   return countryCode === DEFAULT_COUNTRY_CODE ? '5XX XXX XX XX' : fallback;
 }

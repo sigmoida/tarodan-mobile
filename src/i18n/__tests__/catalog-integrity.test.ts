@@ -141,6 +141,9 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     // Türkçe koleksiyoncu jargonunda İngilizce haliyle kullanılıyor.
     'collection.templateF1',
     'collection.templateMuscle',
+    // İçerik filtresi etiketleri: platform/marka adları, çevrilmez.
+    'message.violationLabelWhatsapp',
+    'message.violationLabelTelegram',
   ]);
 
   /**

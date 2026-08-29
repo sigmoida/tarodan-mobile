@@ -25,7 +25,9 @@ const optionalTrPhoneSchema = _optionalTrPhoneSchema(schemaT);
 const emailSchema = _emailSchema(schemaT);
 const usernameSchema = _usernameSchema(schemaT);
 const displayNameSchema = _displayNameSchema(schemaT);
-import { PHONE_INVALID_MESSAGE } from '../phone';
+// PHONE_INVALID_MESSAGE kaldırıldı (React-dışı sabit → i18n çağrı-anı okuması);
+// mesaj artık şemanın kendi `t('validation.invalidPhone')` çağrısından gelir.
+const PHONE_INVALID_MESSAGE = schemaT('validation.invalidPhone');
 
 describe('J41 · şifre kuralları (strongPasswordSchema)', () => {
   it('8 karakterden kısa reddedilir', () => {

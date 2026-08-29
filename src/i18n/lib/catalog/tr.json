@@ -1594,7 +1594,15 @@
     "prefilledInquiry": "Merhaba, \"{title}\" ilanı hakkında bilgi almak istiyorum.\n\n",
     "tooLong": "Mesaj {max} karakteri aşamaz. Mevcut: {current}",
     "stillSend": "{warning} Yine de göndermek istiyor musunuz?",
-    "contactInfoWarning": "Mesajınızda kişisel iletişim bilgisi tespit edildi. Platform dışı iletişim güvenliğiniz için önerilmez."
+    "contactInfoWarning": "Mesajınızda kişisel iletişim bilgisi tespit edildi. Platform dışı iletişim güvenliğiniz için önerilmez.",
+    "violationLabelPhone": "Telefon numarası",
+    "violationLabelEmail": "E-posta adresi",
+    "violationLabelIban": "Banka hesabı (IBAN)",
+    "violationLabelWhatsapp": "WhatsApp",
+    "violationLabelTelegram": "Telegram",
+    "violationLabelInstagram": "Instagram / sosyal medya",
+    "violationLabelExternalLink": "Harici bağlantı",
+    "violationDetected": "Güvenliğiniz için bu mesaj gönderilemiyor. Tespit edilen: {labels}. Platform dışı iletişim ihlal olarak raporlanabilir."
   },
   "membership": {
     "title": "Üyelik Planları",
