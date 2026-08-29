@@ -90,6 +90,8 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     'models.model',
     'checkout.cvv',
     'checkout.suratKargo',
+    // İki haneli yıl format ipucu ("YY") — çevrilecek bir sözcük yok.
+    'payment.expYearPlaceholder',
     'membership.premium',
     'mobile.guestGarageTitle',
     'collection.coverImagePlaceholder',
