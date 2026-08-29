@@ -56,10 +56,7 @@ export function SecuritySections({ f }: { f: SecurityController }) {
             }}
           />
         </View>
-        <Text style={styles.infoText}>
-          İki faktörlü doğrulama, hesabınıza ek bir güvenlik katmanı ekler.
-          Google Authenticator veya benzeri bir uygulama gereklidir.
-        </Text>
+        <Text style={styles.infoText}>{t('security.twoFactorDesc')}</Text>
         {f.twoFactorEnabled ? (
           <Button
             variant="outline"
@@ -82,7 +79,7 @@ export function SecuritySections({ f }: { f: SecurityController }) {
           <View style={styles.settingInfo}>
             <Ionicons name="call-outline" size={24} color={colors.primary[600]!} />
             <View style={styles.settingText}>
-              <Text style={styles.settingTitle}>Telefon Doğrulama</Text>
+              <Text style={styles.settingTitle}>{t('security.phoneVerificationTitle')}</Text>
               <Text style={styles.settingSubtitle}>
                 {f.phoneVerified ? t('security.phoneVerifiedNotice') : t('security.phoneVerifyHint')}
               </Text>

@@ -31,10 +31,9 @@ export default function CorporateInviteScreen() {
         <ScreenHeader title={t('auth.corporateInviteTitle')} onBack={() => router.replace('/(auth)/login' as never)} />
         <View testID="invite-invalid" style={{ padding: theme.spacing[4], gap: theme.spacing[4] }}>
           <Alert variant="danger" title={t('auth.corporateInviteInvalid')}>
-            Davet bağlantısı geçersiz veya süresi dolmuş. Lütfen şirket yöneticinizden
-            yeni bir davet isteyin.
+            {t('auth.corporateInviteInvalidDesc')}
           </Alert>
-          <Button onPress={() => router.replace('/(auth)/login' as never)}>Girişe dön</Button>
+          <Button onPress={() => router.replace('/(auth)/login' as never)}>{t('auth.backToLogin')}</Button>
         </View>
       </View>
     );
@@ -55,7 +54,7 @@ export default function CorporateInviteScreen() {
         </Card>
 
         <Alert variant="info" title={t('auth.usernamePermanentTitle')}>
-          Belirlediğiniz kullanıcı adı sonradan değiştirilemez.
+          {t('settings.usernamePermanentWarningBody')}
         </Alert>
 
         <Form form={f.form}>
@@ -87,7 +86,7 @@ export default function CorporateInviteScreen() {
         </Form>
 
         <Button testID="invite-submit" onPress={f.onSubmit} isLoading={f.isSubmitting}>
-          Hesabı etkinleştir
+          {t('auth.corporateActivateSubmit')}
         </Button>
       </ScrollView>
     </View>

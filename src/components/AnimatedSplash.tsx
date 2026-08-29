@@ -20,6 +20,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import { theme, Text } from '@/ui';
 
 const { colors } = theme;
@@ -80,6 +81,7 @@ function LoadingDot({ delay }: { delay: number }) {
 }
 
 export default function AnimatedSplash({ appReady, onFinish }: AnimatedSplashProps) {
+  const { t } = useTranslation();
   const { width } = useWindowDimensions();
   const logoWidth = width * LOGO_WIDTH_RATIO;
   const logoHeight = logoWidth / LOGO_ASPECT;
@@ -175,7 +177,7 @@ export default function AnimatedSplash({ appReady, onFinish }: AnimatedSplashPro
           </Animated.View>
 
           <Animated.View style={taglineStyle}>
-            <Text style={styles.tagline}>İkinci elin güvenli adresi</Text>
+            <Text style={styles.tagline}>{t('mobile.splashTagline')}</Text>
           </Animated.View>
         </View>
 

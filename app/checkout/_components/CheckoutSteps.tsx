@@ -119,7 +119,7 @@ export function Step2Payment({ c }: { c: Ctrl }) {
           <Radio checked onChange={() => {}} />
           <View style={styles.optionContent}>
             <Text style={styles.optionTitle}>{t('checkout.suratKargo')}</Text>
-            <Text style={styles.optionDescription}>2-4 iş günü teslimat</Text>
+            <Text style={styles.optionDescription}>{t('checkout.suratKargoDeliveryEstimate')}</Text>
           </View>
           {c.shippingLoading ? (
             <Spinner size="sm" />

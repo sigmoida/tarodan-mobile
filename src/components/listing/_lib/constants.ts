@@ -1,4 +1,5 @@
 import type { TFunction } from 'i18next';
+import type { MessageKey } from '@/i18n/lib/generated/keys';
 import type { MaterialOption } from './types';
 
 // ---------------------------------------------------------------------------
@@ -31,6 +32,25 @@ export const buildMaterials = (t: TFunction): MaterialOption[] => [
   { slug: 'composite', label: t('product.materialComposite') },
   { slug: 'plastic', label: t('product.materialPlastic') },
 ];
+
+/**
+ * `GET /shipping/package-tiers` yanıtındaki `label` sunucudan geliyor ve
+ * yalnız Türkçe — yanı sıra bugünkü içerik yazım hatalı ("Kucuk Paket",
+ * "Buyuk Paket", ü/ı olmadan). `code` ise sabit ve semantik
+ * (`ShippingPackageTierCode`), o yüzden görünen metni KATALOGTAN `code`'a göre
+ * kur; yalnızca tanımadığımız bir `code` gelirse (yeni bir kademe eklenmiş
+ * olabilir) sunucunun `label`'ına düş — hiç metin göstermemektense.
+ */
+const PACKAGE_TIER_KEY: Record<string, MessageKey> = {
+  small: 'listing.packageTierSmall',
+  medium: 'listing.packageTierMedium',
+  large: 'listing.packageTierLarge',
+};
+
+export const getPackageTierLabel = (code: string, fallbackLabel: string, t: TFunction): string => {
+  const key = PACKAGE_TIER_KEY[code];
+  return key ? t(key) : fallbackLabel;
+};
 
 const currentYear = new Date().getFullYear();
 export const YEAR_OPTIONS = Array.from({ length: currentYear - 1950 + 1 }, (_, i) => currentYear - i);

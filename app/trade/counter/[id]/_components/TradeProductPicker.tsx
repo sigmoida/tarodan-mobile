@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Pressable, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Card, Text, theme } from '@/ui';
 
 import { formatPrice } from '@/utils/format';
@@ -24,12 +25,13 @@ export function TradeProductPicker({
   selected: TradeItem[];
   toggle: (p: any) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Card style={styles.card}>
       <Text style={styles.section}>{title}</Text>
       <Text style={styles.sectionSubtitle}>{subtitle}</Text>
       {products.length === 0 ? (
-        <Text style={styles.emptyText}>Takasa uygun ürün bulunamadı.</Text>
+        <Text style={styles.emptyText}>{t('trade.noEligibleProducts')}</Text>
       ) : (
         <View style={styles.grid}>
           {products.map(p => {

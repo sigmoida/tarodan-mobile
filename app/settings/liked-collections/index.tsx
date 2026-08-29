@@ -34,15 +34,15 @@ export default function LikedCollectionsScreen() {
         <ScreenHeader title={title} onBack={back} />
         <View style={styles.emptyContainer}>
           <Ionicons name="heart-outline" size={64} color={colors.text.subtle} />
-          <Text style={styles.emptyTitle}>Giriş Yapın</Text>
+          <Text style={styles.emptyTitle}>{t("collection.authGateTitle")}</Text>
           <Text style={styles.emptySubtitle}>
-            Beğendiğiniz koleksiyonları görmek için giriş yapmanız gerekiyor
+            {t("collection.likedLoginSubtitle")}
           </Text>
           <TouchableOpacity
             style={styles.loginButton}
             onPress={() => router.push("/(auth)/login")}
           >
-            <Text style={styles.loginButtonText}>Giriş Yap</Text>
+            <Text style={styles.loginButtonText}>{t("common.login")}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -56,7 +56,7 @@ export default function LikedCollectionsScreen() {
       {f.isLoading ? (
         <View style={styles.loadingContainer}>
           <Spinner size="lg" />
-          <Text style={styles.loadingText}>Yükleniyor...</Text>
+          <Text style={styles.loadingText}>{t("common.loading")}</Text>
         </View>
       ) : f.error ? (
         <View style={styles.emptyContainer}>
@@ -65,15 +65,15 @@ export default function LikedCollectionsScreen() {
             size={64}
             color={colors.danger[600]!}
           />
-          <Text style={styles.emptyTitle}>Bir Hata Oluştu</Text>
+          <Text style={styles.emptyTitle}>{t("common.error")}</Text>
           <Text style={styles.emptySubtitle}>
-            Koleksiyonlar yüklenirken bir hata oluştu. Lütfen tekrar deneyin.
+            {t("collection.likedLoadErrorDesc")}
           </Text>
           <TouchableOpacity
             style={styles.retryButton}
             onPress={() => f.refetch()}
           >
-            <Text style={styles.retryButtonText}>Tekrar Dene</Text>
+            <Text style={styles.retryButtonText}>{t("collection.tryAgain")}</Text>
           </TouchableOpacity>
         </View>
       ) : f.collections.length === 0 ? (
@@ -83,15 +83,15 @@ export default function LikedCollectionsScreen() {
             size={64}
             color={colors.text.subtle}
           />
-          <Text style={styles.emptyTitle}>Henüz Beğeni Yok</Text>
+          <Text style={styles.emptyTitle}>{t("collection.noLikedCollections")}</Text>
           <Text style={styles.emptySubtitle}>
-            Beğendiğiniz koleksiyonlar burada görünecek
+            {t("collection.likedEmptySubtitle")}
           </Text>
           <TouchableOpacity
             style={styles.browseButton}
             onPress={() => router.push("/collections")}
           >
-            <Text style={styles.browseButtonText}>Koleksiyonları Keşfet</Text>
+            <Text style={styles.browseButtonText}>{t("collection.exploreCollections")}</Text>
           </TouchableOpacity>
         </View>
       ) : (
