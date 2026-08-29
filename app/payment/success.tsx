@@ -5,21 +5,23 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { paymentsApi } from '@/lib/api';
 import { formatPrice } from '@/utils/format';
 import { styles } from './_success/_lib/styles';
 
 const { colors } = theme;
 
-// Web'deki OrderStatusLabels ile uyumlu Türkçe durum etiketleri
-const STATUS_LABELS: Record<string, string> = {
-  paid: 'Ödendi',
-  completed: 'Tamamlandı',
-  success: 'Ödendi',
-  hold_payment: 'Ödeme Alındı',
-  pending: 'Beklemede',
-  processing: 'İşleniyor',
-};
+// Web'deki OrderStatusLabels ile uyumlu durum etiketleri
+const buildStatusLabels = (t: TFunction): Record<string, string> => ({
+  paid: t('order.statusPaid'),
+  completed: t('order.statusCompleted'),
+  success: t('order.statusPaid'),
+  hold_payment: t('payment.statusHoldPayment'),
+  pending: t('common.pending'),
+  processing: t('payment.statusProcessing'),
+});
 
 /** Ödeme kesinleşti mi (gerçekten ödendi). Hem polling'de hem render'da kullanılır. */
 const isTerminal = (s?: string) =>
@@ -47,9 +49,11 @@ export default function PaymentSuccessScreen() {
     tradeId?: string;
     groupId?: string;
   }>();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [info, setInfo] = useState<PaymentInfo | null>(null);
+  const statusLabels = buildStatusLabels(t);
 
   // Takas nakit farkı ödemesi mi? URL paramları 3DS dönüşü/deep link'te
   // kaybolabilir; web ile parite için API yanıtındaki tradeId de sinyal sayılır.
@@ -126,14 +130,14 @@ export default function PaymentSuccessScreen() {
         </View>
 
         <Text style={styles.title}>
-          {isCompleted ? 'Ödemeniz Başarılı!' : 'Ödemeniz Doğrulanıyor'}
+          {isCompleted ? t('payment.successTitle') : t('payment.confirmingTitle')}
         </Text>
         <Text style={styles.subtitle}>
           {isCompleted
             ? isTrade
-              ? 'Nakit fark ödemesi alındı. Takas süreci başlıyor...'
-              : 'Siparişiniz alındı. Detayları e-posta adresinize gönderdik.'
-            : 'Ödeme talebiniz alındı ancak henüz onaylanmadı. Bu kısa sürebilir; durumu Siparişlerim sayfasından takip edebilirsiniz.'}
+              ? t('payment.tradeCashReceivedDesc')
+              : t('payment.orderReceivedDesc')
+            : t('payment.verifyingDesc')}
         </Text>
 
         {loading ? (
@@ -144,24 +148,24 @@ export default function PaymentSuccessScreen() {
           <View style={styles.summaryCard}>
             {info.groupNumber ? (
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Sipariş No</Text>
+                <Text style={styles.summaryLabel}>{t('order.orderNumber')}</Text>
                 <Text style={styles.summaryValue}>{info.groupNumber}</Text>
               </View>
             ) : info.order?.orderNumber ? (
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Sipariş No</Text>
+                <Text style={styles.summaryLabel}>{t('order.orderNumber')}</Text>
                 <Text style={styles.summaryValue}>{info.order.orderNumber}</Text>
               </View>
             ) : null}
             {info.orders && info.orders.length > 1 ? (
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Ürün Sayısı</Text>
+                <Text style={styles.summaryLabel}>{t('payment.orderCountLabel')}</Text>
                 <Text style={styles.summaryValue}>{info.orders.length}</Text>
               </View>
             ) : null}
             {info.amount ? (
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Tutar</Text>
+                <Text style={styles.summaryLabel}>{t('common.amount')}</Text>
                 <Text style={[styles.summaryValue, { color: colors.primary[600]!, fontSize: 18 }]}>
                   {formatPrice(info.amount)}
                 </Text>
@@ -169,9 +173,9 @@ export default function PaymentSuccessScreen() {
             ) : null}
             {info.status ? (
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Durum</Text>
+                <Text style={styles.summaryLabel}>{t('common.status')}</Text>
                 <Text style={[styles.summaryValue, { color: colors.success[600]! }]}>
-                  {STATUS_LABELS[info.status] ?? info.status}
+                  {statusLabels[info.status] ?? info.status}
                 </Text>
               </View>
             ) : null}
@@ -182,7 +186,7 @@ export default function PaymentSuccessScreen() {
           {isTrade && tid ? (
             <Button
               variant="primary"
-              title="Takasa Dön"
+              title={t('trade.backToTrade')}
               fullWidth
               onPress={() => router.replace(`/trade/${tid}` as any)}
               style={styles.btn}
@@ -190,7 +194,7 @@ export default function PaymentSuccessScreen() {
           ) : checkoutGroupId && guest !== '1' ? (
             <Button
               variant="primary"
-              title="Siparişimi Gör"
+              title={t('payment.viewMyOrder')}
               fullWidth
               onPress={() => router.replace(`/orders/group/${checkoutGroupId}` as any)}
               style={styles.btn}
@@ -198,7 +202,7 @@ export default function PaymentSuccessScreen() {
           ) : orderId && guest !== '1' ? (
             <Button
               variant="primary"
-              title="Siparişimi Gör"
+              title={t('payment.viewMyOrder')}
               fullWidth
               onPress={() => router.replace(`/orders/${orderId}` as any)}
               style={styles.btn}
@@ -206,7 +210,7 @@ export default function PaymentSuccessScreen() {
           ) : null}
           <Button
             variant="outline"
-            title="Ana Sayfaya Dön"
+            title={t('auth.goToHome')}
             fullWidth
             onPress={() => router.replace('/')}
             style={styles.btn}
