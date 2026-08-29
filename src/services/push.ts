@@ -4,6 +4,7 @@ import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { theme } from '@/ui';
 import { api } from '@/lib/api';
+import i18n from '@/i18n/config';
 import { notificationRoute } from '../utils/notificationRoute';
 
 const { colors } = theme;
@@ -111,31 +112,34 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   // Configure notification channel for Android
+  // Kanal adları Android sistem ayarlarında kullanıcıya gösterilir — React
+  // dışı bir modülüz, `paytrDirectForm.ts` ile aynı desen: global `i18n`'den
+  // ÇAĞRI ANINDA (registerForPushNotifications her çalıştığında) okunur.
   if (Platform.OS === 'android' && Notifications) {
     try {
       await Notifications.setNotificationChannelAsync('default', {
-        name: 'Varsayılan',
+        name: i18n.t('common.default'),
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: colors.danger[500],
       });
 
       await Notifications.setNotificationChannelAsync('trades', {
-        name: 'Takaslar',
+        name: i18n.t('nav.trades'),
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: colors.success[500],
       });
 
       await Notifications.setNotificationChannelAsync('messages', {
-        name: 'Mesajlar',
+        name: i18n.t('message.messages'),
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: colors.info[500],
       });
 
       await Notifications.setNotificationChannelAsync('orders', {
-        name: 'Siparişler',
+        name: i18n.t('notification.filterOrders'),
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: colors.warning[500],
