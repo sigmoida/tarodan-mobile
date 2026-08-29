@@ -7018,5 +7018,21 @@
     "documentUploadedBody": "Document uploaded and submitted for review.",
     "documentUploadFailedTitle": "Upload failed",
     "documentUploadFailed": "Failed to upload document."
+  },
+  "businessGuard": {
+    "pendingTitle": "Your Application Is Under Review",
+    "pendingBody": "Your application on behalf of {company} is under review.",
+    "pendingSubText": "We'll notify you at {email} once our team finishes reviewing it. This usually takes 1-2 business days.",
+    "pendingInfoTitle": "What happens during the review?",
+    "pendingStep1": "1. Our team verifies your company details and tax ID.",
+    "pendingStep2": "2. Once approved, your account becomes active and you're notified by email.",
+    "pendingStep3": "3. If rejected, you'll receive an email with the reason.",
+    "pendingContinueCta": "Complete My Application",
+    "contactSupport": "Contact Support",
+    "rejectedTitle": "Your Application Was Rejected",
+    "rejectedBody": "Your business account application on behalf of {company} was not approved.",
+    "rejectedSubText": "The reason for rejection has been emailed to {email}.",
+    "rejectedInfoText": "If you believe your application was rejected in error or that information is missing, you can contact our support team.",
+    "rejectedFixCta": "Fix My Application"
   }
 }

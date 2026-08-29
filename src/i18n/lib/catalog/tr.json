@@ -7018,5 +7018,21 @@
     "documentUploadedBody": "Belge yüklendi ve incelemeye alındı.",
     "documentUploadFailedTitle": "Yüklenemedi",
     "documentUploadFailed": "Belge yüklenemedi."
+  },
+  "businessGuard": {
+    "pendingTitle": "Başvurunuz İnceleniyor",
+    "pendingBody": "{company} adına yaptığınız başvuru onay sürecindedir.",
+    "pendingSubText": "Ekibimiz incelemeyi tamamladığında {email} adresinize bilgi gönderilecektir. Bu işlem genellikle 1–2 iş günü sürer.",
+    "pendingInfoTitle": "Onay sürecinde neler olur?",
+    "pendingStep1": "1. Ekibimiz şirket bilgileri ve vergi kimlik numaranızı doğrular.",
+    "pendingStep2": "2. Onaylandığında hesabınız aktif olur ve e-posta ile bilgilendirilirsiniz.",
+    "pendingStep3": "3. Reddedilmesi durumunda red gerekçesiyle birlikte e-posta alırsınız.",
+    "pendingContinueCta": "Başvurumu Tamamla",
+    "contactSupport": "Destek Ekibiyle İletişime Geç",
+    "rejectedTitle": "Başvurunuz Reddedildi",
+    "rejectedBody": "{company} adına yaptığınız şirket hesabı başvurusu onaylanmadı.",
+    "rejectedSubText": "Red gerekçesi {email} adresinize e-posta ile gönderilmiştir.",
+    "rejectedInfoText": "Başvurunuzun reddedildiğini düşünüyorsanız veya eksik bilgi olduğuna inanıyorsanız destek ekibiyle iletişime geçebilirsiniz.",
+    "rejectedFixCta": "Başvurumu Düzelt"
   }
 }
