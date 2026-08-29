@@ -477,6 +477,7 @@
     "reportListingTitle": "İlanı Raporla",
     "reportListingMessage": "İlanı raporlamak için giriş yapmanız gerekiyor.",
     "share": "Paylaş",
+    "shareText": "{title} - ₺{price}\n\nTarodan''da bu ürüne göz atın!",
     "addToCollection": "Koleksiyona Ekle",
     "addedToCollection": "Ürün koleksiyona eklendi",
     "similarProducts": "Benzer Ürünler",
@@ -531,6 +532,8 @@
     "sortPriceHigh": "Fiyat (Yüksekten Düşüğe)",
     "sortPopular": "Popüler",
     "sellerProfile": "Satıcı Profili",
+    "sellerTotalSalesCount": "{count} satış",
+    "sellerResponseTimeLabel": "Yanıt süresi: {time}",
     "viewSellerProfile": "Satıcı profilini görüntülemek ve iletişime geçmek için üye olmanız gerekiyor.",
     "contactSeller": "Satıcıya Mesaj Gönder",
     "contactSellerMessage": "Satıcıyla iletişime geçmek için giriş yapmanız gerekiyor.",
@@ -583,6 +586,7 @@
     "noReviews": "Henüz değerlendirme yapılmamış",
     "beFirstToReview": "Bu ürünü satın alan ilk kişi olun ve deneyiminizi paylaşın!",
     "listingNotFound": "İlan bulunamadı",
+    "productNotFoundTitle": "Ürün bulunamadı",
     "stockFinished": "Stok bitti",
     "productPrice": "Ürün Fiyatı",
     "sendOffer": "Teklif Gönder",
@@ -680,6 +684,7 @@
     "statusDeleted": "Kaldırıldı",
     "upToImages": "En fazla {count} görsel",
     "tradeShort": "Takas",
+    "inCartShort": "Sepette",
     "productCode": "Ürün Kodu",
     "modelYear": "Model Yılı",
     "readMore": "Devamını oku",
@@ -709,7 +714,8 @@
     "noManufacturersYet": "Henüz üretici yok",
     "noManufacturerProducts": "Bu üreticiye ait ürün yok",
     "moreProductsComingSoon": "Yakında yeni ürünler eklenecek.",
-    "productFallback": "Ürün"
+    "productFallback": "Ürün",
+    "zoomPhotoA11y": "Fotoğrafı büyüt"
   },
   "cart": {
     "addToCartFailed": "Sepete eklenemedi",
@@ -2098,6 +2104,7 @@
   },
   "review": {
     "reviews": "Değerlendirmeler",
+    "countLabel": "{count} değerlendirme",
     "writeReview": "Değerlendirme Yaz",
     "yourRating": "Puanınız",
     "yourReview": "Değerlendirmeniz",

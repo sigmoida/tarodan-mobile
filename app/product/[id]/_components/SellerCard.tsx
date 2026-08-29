@@ -33,10 +33,14 @@ export function SellerCard({
           </View>
           <View style={styles.sellerStat}>
             <Ionicons name="bag-check-outline" size={14} color={colors.text.muted} />
-            <Text style={styles.sellerStatText}>{seller?.totalSales || 0} satış</Text>
+            <Text style={styles.sellerStatText}>
+              {t('product.sellerTotalSalesCount', { count: seller?.totalSales || 0 })}
+            </Text>
           </View>
         </View>
-        <Text style={styles.sellerResponseTime}>Yanıt süresi: {seller?.responseTime || t('common.unknown')}</Text>
+        <Text style={styles.sellerResponseTime}>
+          {t('product.sellerResponseTimeLabel', { time: seller?.responseTime || t('common.unknown') })}
+        </Text>
       </View>
       <View style={styles.sellerAction}>
         <IconButton
@@ -45,7 +49,7 @@ export function SellerCard({
           color={colors.primary[600]!}
           style={styles.messageButton}
           onPress={onMessage}
-          accessibilityLabel="Satıcıya mesaj gönder"
+          accessibilityLabel={t('product.sendMessageToSeller')}
         />
         <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
       </View>

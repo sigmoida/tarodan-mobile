@@ -477,6 +477,7 @@
     "reportListingTitle": "Report Listing",
     "reportListingMessage": "Please sign in to report this listing.",
     "share": "Share",
+    "shareText": "{title} - ₺{price}\n\nCheck out this product on Tarodan!",
     "addToCollection": "Add to Collection",
     "addedToCollection": "Product added to collection",
     "similarProducts": "Similar Products",
@@ -531,6 +532,8 @@
     "sortPriceHigh": "Price: High to Low",
     "sortPopular": "Popular",
     "sellerProfile": "Seller Profile",
+    "sellerTotalSalesCount": "{count} sales",
+    "sellerResponseTimeLabel": "Response time: {time}",
     "viewSellerProfile": "Please sign in to view the seller's profile and contact them.",
     "contactSeller": "Contact Seller",
     "contactSellerMessage": "Please sign in to contact the seller.",
@@ -583,6 +586,7 @@
     "noReviews": "No reviews yet",
     "beFirstToReview": "Be the first to buy this product and share your experience!",
     "listingNotFound": "Listing not found",
+    "productNotFoundTitle": "Product not found",
     "stockFinished": "Out of stock",
     "productPrice": "Product Price",
     "sendOffer": "Send Offer",
@@ -680,6 +684,7 @@
     "statusDeleted": "Removed",
     "upToImages": "Up to {count} images",
     "tradeShort": "Trade",
+    "inCartShort": "In Cart",
     "productCode": "Product code",
     "modelYear": "Model year",
     "readMore": "Read more",
@@ -709,7 +714,8 @@
     "noManufacturersYet": "No manufacturers yet",
     "noManufacturerProducts": "This manufacturer has no products",
     "moreProductsComingSoon": "New products will be added soon.",
-    "productFallback": "Product"
+    "productFallback": "Product",
+    "zoomPhotoA11y": "Zoom photo"
   },
   "cart": {
     "addToCartFailed": "Could not add to cart",
@@ -2098,6 +2104,7 @@
   },
   "review": {
     "reviews": "Reviews",
+    "countLabel": "{count} reviews",
     "writeReview": "Write a Review",
     "yourRating": "Your Rating",
     "yourReview": "Your Review",

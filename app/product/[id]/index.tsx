@@ -60,8 +60,8 @@ export default function ProductDetailScreen() {
       <EmptyState
         fullscreen
         icon="cube-outline"
-        title="Ürün bulunamadı"
-        actionLabel="Geri Dön"
+        title={t('product.productNotFoundTitle')}
+        actionLabel={t('common.goBack')}
         onAction={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       />
     );
