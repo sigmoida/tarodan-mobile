@@ -6665,5 +6665,14 @@
     "trackingTitle": "Kargo Takibi",
     "trackingContent": "Satıcı ürünü kargoya verdikten sonra size bir takip numarası iletilir. Bu numara ile gönderiminizin durumunu istediğiniz zaman kontrol edebilirsiniz.",
     "trackLinkText": "Kargo Takibi"
+  },
+  "paymentOptionsPage": {
+    "pageSubtitle": "Güvenli ödeme yöntemleri",
+    "acceptedTitle": "Kabul Edilen Ödeme Yöntemleri",
+    "acceptedContent": "Tarodan üzerinde kredi kartı ve banka kartı ile güvenli ödeme yapabilirsiniz. Visa, Mastercard ve Troy kartları desteklenmektedir.",
+    "securityTitle": "Ödeme Güvenliği",
+    "securityContent": "Tüm ödemeler 256-bit SSL şifreleme ile korunmaktadır. Kart bilgileriniz PayTR güvenli altyapısı üzerinden işlenir ve sunucularımızda saklanmaz.",
+    "installmentsTitle": "Taksit Seçenekleri",
+    "installmentsContent": "Anlaşmalı bankalar aracılığıyla taksit seçeneklerinden yararlanabilirsiniz. Taksit detayları ödeme sayfasında kartınıza göre gösterilir."
   }
 }

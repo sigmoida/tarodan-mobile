@@ -6665,5 +6665,14 @@
     "trackingTitle": "Shipment Tracking",
     "trackingContent": "Once the seller hands the product to the carrier, you''re given a tracking number. You can check your shipment''s status with this number at any time.",
     "trackLinkText": "Track Shipment"
+  },
+  "paymentOptionsPage": {
+    "pageSubtitle": "Secure payment methods",
+    "acceptedTitle": "Accepted Payment Methods",
+    "acceptedContent": "You can pay securely on Tarodan with a credit card or debit card. Visa, Mastercard, and Troy cards are supported.",
+    "securityTitle": "Payment Security",
+    "securityContent": "All payments are protected with 256-bit SSL encryption. Your card details are processed through PayTR''s secure infrastructure and are never stored on our servers.",
+    "installmentsTitle": "Installment Options",
+    "installmentsContent": "You can take advantage of installment options through our partner banks. Installment details are shown on the payment page based on your card."
   }
 }
