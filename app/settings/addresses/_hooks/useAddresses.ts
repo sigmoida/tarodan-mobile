@@ -104,12 +104,12 @@ export function useAddresses() {
       // Client-side telefon reddi ağ hatası değil — kendi Türkçe mesajını göster.
       if (err?.isClientValidation) {
         setFieldErrors((prev) => ({ ...prev, phone: err.message }));
-        appAlert("Hata", err.message);
+        appAlert(t("common.error"), err.message);
         return;
       }
       const msg = err?.response?.data?.message;
       appAlert(
-        "Hata",
+        t("common.error"),
         Array.isArray(msg) ? msg.join("\n") : msg || t("address.saveFailed"),
       );
     },
@@ -127,7 +127,7 @@ export function useAddresses() {
     onError: (err: any) => {
       const msg = err?.response?.data?.message;
       appAlert(
-        "Hata",
+        t("common.error"),
         Array.isArray(msg) ? msg.join("\n") : msg || t("address.deleteFailed"),
       );
     },
@@ -244,7 +244,7 @@ export function useAddresses() {
         appAlert(t("common.error"), t("address.addressMinLength"));
       } else {
         // Alanın altındaki mesajla AYNI metin — iki yerde iki farklı kural anlatılmasın.
-        appAlert("Hata", errors.phone ?? PHONE_INVALID_MESSAGE);
+        appAlert(t("common.error"), errors.phone ?? PHONE_INVALID_MESSAGE);
       }
       return;
     }

@@ -2399,7 +2399,10 @@
     "goPremium": "Go Premium",
     "deleteConfirmNamed": "Are you sure you want to delete the address \"{title}\"?",
     "fillRequiredFields": "Please fill in the required fields, including the district",
-    "addressMinLength": "The address must be at least 10 characters"
+    "addressMinLength": "The address must be at least 10 characters",
+    "authGateSubtitle": "Sign in to view your addresses",
+    "emptySubtitle": "Add your delivery address",
+    "addressTitleLabel": "Address Title"
   },
   "contact": {
     "title": "Contact Us",

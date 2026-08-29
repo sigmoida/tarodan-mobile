@@ -2399,7 +2399,10 @@
     "goPremium": "Premium'a Geç",
     "deleteConfirmNamed": "\"{title}\" adresini silmek istediğinize emin misiniz?",
     "fillRequiredFields": "Lütfen zorunlu alanları doldurun (ilçe dahil)",
-    "addressMinLength": "Adres en az 10 karakter olmalıdır"
+    "addressMinLength": "Adres en az 10 karakter olmalıdır",
+    "authGateSubtitle": "Adreslerinizi görmek için giriş yapın",
+    "emptySubtitle": "Teslimat adresinizi ekleyin",
+    "addressTitleLabel": "Adres Başlığı"
   },
   "contact": {
     "title": "İletişim",
