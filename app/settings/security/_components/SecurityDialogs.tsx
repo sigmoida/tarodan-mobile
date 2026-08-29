@@ -45,7 +45,7 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
       </Modal>
 
       {/* 2FA Setup Dialog */}
-      <Modal isOpen={f.showTwoFactorSetup} onClose={() => { f.setShowTwoFactorSetup(false); f.twoFaMsg.clear(); }} title="2FA Kurulumu">
+      <Modal isOpen={f.showTwoFactorSetup} onClose={() => { f.setShowTwoFactorSetup(false); f.twoFaMsg.clear(); }} title={t('security.twoFactorSetupModalTitle')}>
         <Text style={styles.dialogText}>
           Google Authenticator veya benzeri bir uygulamayı kullanarak aşağıdaki kodu tarayın veya manuel olarak girin:
         </Text>
@@ -79,7 +79,7 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
       </Modal>
 
       {/* 2FA Disable Dialog — backend geçerli TOTP kodu ister */}
-      <Modal isOpen={f.showDisableDialog} onClose={() => { f.setShowDisableDialog(false); f.disableMsg.clear(); }} title="2FA'yı Kapat">
+      <Modal isOpen={f.showDisableDialog} onClose={() => { f.setShowDisableDialog(false); f.disableMsg.clear(); }} title={t('security.twoFactorDisableModalTitle')}>
         <Text style={styles.dialogText}>
           İki faktörlü doğrulamayı kapatmak için uygulamanızdaki 6 haneli kodu girin.
         </Text>
