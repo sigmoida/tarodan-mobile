@@ -2273,7 +2273,9 @@
     "companyFallback": "Company",
     "companyCollections": "Their collections",
     "featuredCollectionCount": "{count}-vehicle collection",
-    "checkApiConnection": "Check the API connection"
+    "checkApiConnection": "Check the API connection",
+    "businessBadge": "👑 Business",
+    "reviewCountSuffix": "({count} reviews)"
   },
   "search": {
     "search": "Search",
