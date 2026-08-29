@@ -668,7 +668,7 @@ export function useCheckout() {
         // yoksa uyarı modalın üstüne düşer (iOS donması) ve kapanan ekranın
         // üzerinde asılı kalır.
         alertAfterOtpClose(
-          'Hata',
+          t('common.error'),
           t('checkout.orderCreatedPaymentFailed'),
         );
         finalizeCart();
@@ -810,7 +810,7 @@ export function useCheckout() {
       // Girilen OTP kodu HÂLÂ GEÇERLİ olduğu için modalı kapatmak kullanıcıyı
       // yeni kod istemeye zorlardı; mesajı modalın İÇİNDE göster, "Onayla"ya
       // yeniden basabilsin.
-      alertInlineWhileOtpOpen('Hata', typeof errorMessage === 'string' ? errorMessage : String(errorMessage));
+      alertInlineWhileOtpOpen(t('common.error'), typeof errorMessage === 'string' ? errorMessage : String(errorMessage));
     } finally {
       setLoading(false);
     }
@@ -823,7 +823,7 @@ export function useCheckout() {
     }
     for (const item of items) {
       if (!item.productId || typeof item.productId !== 'string' || item.productId.length < 10) {
-        appAlert('Hata', `Geçersiz ürün ID: ${item.title}`);
+        appAlert(t('common.error'), t('checkout.invalidProductId', { title: item.title }));
         return;
       }
     }
@@ -851,7 +851,7 @@ export function useCheckout() {
       setOtpModalOpen(true);
     } catch (e: any) {
       if (handleEmailAlreadyRegistered(e)) return;
-      appAlert('Hata', extractApiMessage(e) ?? t('checkout.verificationCodeSendFailed'));
+      appAlert(t('common.error'), extractApiMessage(e) ?? t('checkout.verificationCodeSendFailed'));
     } finally {
       setOtpSending(false);
     }

@@ -832,6 +832,7 @@
     "guestPhone": "Telefon Numarası",
     "guestShoppingNotice": "Üye olmadan alışveriş yapıyorsunuz. Siparişinizi takip etmek için e-posta adresinizi girin.",
     "invalidAddress": "Seçilen adres geçersiz, lütfen yeni bir adres ekleyin",
+    "invalidProductId": "Geçersiz ürün ID: {title}",
     "invalidAddressAddNew": "Seçilen adres geçersiz, lütfen yeni bir adres ekleyin",
     "invalidEmail": "Geçerli bir e-posta adresi girin",
     "loginFasterCheckout": "Hızlı ödeme için giriş yapın",
