@@ -53,7 +53,7 @@ export function ProductBottomBar({
             icon="create-outline"
             style={styles.flexButton}
           >
-            İlanı Düzenle
+            {t('product.editListing')}
           </Button>
         </View>
       ) : isOutOfStock ? (
@@ -70,7 +70,7 @@ export function ProductBottomBar({
             icon="close-circle-outline"
             style={styles.flexButton}
           >
-            Stokta Yok
+            {t('product.soldOut')}
           </Button>
         </View>
       ) : (
@@ -84,7 +84,7 @@ export function ProductBottomBar({
           </View>
 
           {isProductTradeOpen(product) ? (
-            <ActionTile testID="product-detail-trade-button" icon="swap-horizontal" label="Takas" onPress={onTrade} />
+            <ActionTile testID="product-detail-trade-button" icon="swap-horizontal" label={t('product.tradeShort')} onPress={onTrade} />
           ) : (
             <View style={styles.tilePlaceholder} />
           )}
@@ -92,15 +92,15 @@ export function ProductBottomBar({
           <ActionTile
             testID="product-detail-buy-now-button"
             icon="flash"
-            label="Hızlı Al"
+            label={t('product.buyNow')}
             variant="primary"
             onPress={onBuyNow}
           />
 
           {inCart ? (
-            <ActionTile testID="product-detail-go-to-cart-button" icon="checkmark-circle" label="Sepette" onPress={onGoToCart} />
+            <ActionTile testID="product-detail-go-to-cart-button" icon="checkmark-circle" label={t('product.inCartShort')} onPress={onGoToCart} />
           ) : (
-            <ActionTile testID="product-detail-add-to-cart-button" icon="cart" label="Sepete Ekle" onPress={onAddToCart} />
+            <ActionTile testID="product-detail-add-to-cart-button" icon="cart" label={t('product.addToCart')} onPress={onAddToCart} />
           )}
         </View>
       )}

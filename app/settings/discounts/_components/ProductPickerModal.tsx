@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, ScrollView, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { Modal, Button, Spinner, Text, theme } from '@/ui';
 
@@ -11,12 +12,13 @@ const { colors } = theme;
 
 /** Multi-select product picker for product-scoped discounts. */
 export function ProductPickerModal({ f }: { f: DiscountsController }) {
+  const { t } = useTranslation();
   const { form, setForm } = f;
   return (
     <Modal
       isOpen={f.productPickerOpen}
       onClose={() => f.setProductPickerOpen(false)}
-      title="Ürün Seç"
+      title={t('discount.pickProducts')}
     >
       <ScrollView style={styles.dialogScroll}>
         {f.productsQuery.isLoading ? (
@@ -24,7 +26,7 @@ export function ProductPickerModal({ f }: { f: DiscountsController }) {
             <Spinner size="lg" />
           </View>
         ) : f.products.length === 0 ? (
-          <Text style={styles.emptyProducts}>Aktif ürününüz yok.</Text>
+          <Text style={styles.emptyProducts}>{t('discount.noActiveProducts')}</Text>
         ) : (
           f.products.map((p) => {
             const checked = form.targetProductIds.includes(p.id);
@@ -56,7 +58,7 @@ export function ProductPickerModal({ f }: { f: DiscountsController }) {
         )}
       </ScrollView>
       <View style={styles.dialogActions}>
-        <Button variant="primary" title="Tamam" onPress={() => f.setProductPickerOpen(false)} />
+        <Button variant="primary" title={t('common.ok')} onPress={() => f.setProductPickerOpen(false)} />
       </View>
     </Modal>
   );

@@ -1,5 +1,5 @@
 import type { TFunction } from 'i18next';
-import { listingFormSchema, type ListingFormValues } from './schema';
+import { buildListingFormSchema, type ListingFormValues } from './schema';
 
 export interface ListingValidationInput {
   values: ListingFormValues;
@@ -21,7 +21,7 @@ export function firstListingValidationError(
   t: TFunction,
   input: ListingValidationInput,
 ): string | null {
-  const result = listingFormSchema.safeParse(input.values);
+  const result = buildListingFormSchema(t).safeParse(input.values);
   if (!result.success) {
     return result.error.issues[0]?.message || t('listing.checkFieldsFallback');
   }

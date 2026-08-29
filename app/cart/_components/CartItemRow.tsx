@@ -82,7 +82,7 @@ export function CartItemRow({ item, f }: { item: any; f: CartController }) {
       <View style={styles.itemActions}>
         <IconButton
           icon="trash-outline"
-          accessibilityLabel="Ürünü sepetten kaldır"
+          accessibilityLabel={t('cart.removeItem')}
           size="md"
           onPress={() => f.handleRemove(item.id)}
         />
@@ -91,7 +91,7 @@ export function CartItemRow({ item, f }: { item: any; f: CartController }) {
             style={styles.quantityButton}
             onPress={() => f.handleQuantityChange(item.id, -1)}
             accessibilityRole="button"
-            accessibilityLabel="Adedi azalt"
+            accessibilityLabel={t('cart.decreaseQuantity')}
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           >
             <Ionicons name="remove" size={16} color={colors.text.heading} />
@@ -102,14 +102,16 @@ export function CartItemRow({ item, f }: { item: any; f: CartController }) {
             disabled={atMax}
             onPress={() => f.handleQuantityChange(item.id, 1)}
             accessibilityRole="button"
-            accessibilityLabel="Adedi artır"
+            accessibilityLabel={t('cart.increaseQuantity')}
             accessibilityState={{ disabled: atMax }}
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           >
             <Ionicons name="add" size={16} color={atMax ? colors.text.muted : colors.text.heading} />
           </TouchableOpacity>
         </View>
-        {stockKnown && atMax ? <Text style={styles.stockHint}>Son {itemMax} adet</Text> : null}
+        {stockKnown && atMax ? (
+          <Text style={styles.stockHint}>{t('cart.lastStockCount', { count: itemMax })}</Text>
+        ) : null}
       </View>
     </View>
   );

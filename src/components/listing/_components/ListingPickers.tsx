@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { PickerModal } from './PickerModal';
 import { YEAR_OPTIONS } from '../_lib/constants';
@@ -10,12 +11,13 @@ import type { ListingFormController } from '../_hooks/useListingForm';
  * material, manufacturer, year, and manufacturer-scoped attribute groups.
  */
 export function ListingPickers({ f }: { f: ListingFormController }) {
+  const { t } = useTranslation();
   return (
     <>
       <PickerModal
         visible={f.showCategoryPicker}
         onClose={() => f.setShowCategoryPicker(false)}
-        title="Kategori Seçin"
+        title={t('product.selectCategory')}
         data={f.flatCategories}
         onSelect={(item: Category) => f.setCategoryId(item.id)}
         selectedId={f.categoryId}
@@ -23,13 +25,13 @@ export function ListingPickers({ f }: { f: ListingFormController }) {
         onSearchChange={f.setCategorySearch}
         keyExtractor={(item: Category) => item.id}
         labelExtractor={(item: Category) => item.name}
-        emptyText="Kategori bulunamadı"
+        emptyText={t('listing.categoryPickerEmpty')}
       />
 
       <PickerModal
         visible={f.showBrandPicker}
         onClose={() => f.setShowBrandPicker(false)}
-        title="Marka Seçin"
+        title={t('product.selectBrand')}
         data={f.brands}
         onSelect={(item: Brand) => {
           f.setBrandId(item.id);
@@ -40,39 +42,39 @@ export function ListingPickers({ f }: { f: ListingFormController }) {
         onSearchChange={f.setBrandSearch}
         keyExtractor={(item: Brand) => item.id}
         labelExtractor={(item: Brand) => item.name}
-        emptyText="Marka bulunamadı"
+        emptyText={t('brands.noResults')}
         loading={f.brandsLoading}
       />
 
       <PickerModal
         visible={f.showModelPicker}
         onClose={() => f.setShowModelPicker(false)}
-        title="Model Seçin"
+        title={t('product.selectModel')}
         data={f.models}
         onSelect={(item: CarModel) => f.setCarModelId(item.id)}
         selectedId={f.carModelId}
         keyExtractor={(item: CarModel) => item.id}
         labelExtractor={(item: CarModel) => item.name}
-        emptyText="Model bulunamadı"
+        emptyText={t('models.noResults')}
         loading={f.modelsLoading}
       />
 
       <PickerModal
         visible={f.showMaterialPicker}
         onClose={() => f.setShowMaterialPicker(false)}
-        title="Malzeme Seçin"
+        title={t('product.selectMaterial')}
         data={f.effectiveMaterials}
         onSelect={(item: MaterialOption) => f.setMaterial(item.slug)}
         selectedId={f.material}
         keyExtractor={(item: MaterialOption) => item.slug}
         labelExtractor={(item: MaterialOption) => item.label}
-        emptyText="Malzeme bulunamadı"
+        emptyText={t('listing.materialPickerEmpty')}
       />
 
       <PickerModal
         visible={f.showManufacturerPicker}
         onClose={() => f.setShowManufacturerPicker(false)}
-        title="Üretici Seçin"
+        title={t('product.selectManufacturer')}
         data={f.manufacturerList}
         onSelect={(item: Manufacturer) => f.setManufacturerId(item.id)}
         selectedId={f.manufacturerId}
@@ -80,19 +82,19 @@ export function ListingPickers({ f }: { f: ListingFormController }) {
         onSearchChange={f.setManufacturerSearch}
         keyExtractor={(item: Manufacturer) => item.id}
         labelExtractor={(item: Manufacturer) => item.name}
-        emptyText="Üretici bulunamadı"
+        emptyText={t('listing.manufacturerPickerEmpty')}
       />
 
       <PickerModal
         visible={f.showYearPicker}
         onClose={() => f.setShowYearPicker(false)}
-        title="Yıl Seçin"
+        title={t('product.selectYear')}
         data={YEAR_OPTIONS}
         onSelect={(item: number) => f.setYear(String(item))}
         selectedId={f.year}
         keyExtractor={(item: number) => String(item)}
         labelExtractor={(item: number) => String(item)}
-        emptyText="Yıl bulunamadı"
+        emptyText={t('listing.yearPickerEmpty')}
       />
 
       {f.manufacturerAttrGroups.map((group) => {
@@ -103,7 +105,7 @@ export function ListingPickers({ f }: { f: ListingFormController }) {
             modalKey={group.slug}
             visible={f.showAttrGroupPicker === group.slug}
             onClose={() => f.setShowAttrGroupPicker(null)}
-            title={`${group.name} Seçin`}
+            title={t('product.selectAttribute', { name: group.name })}
             data={group.attributes}
             onSelect={(item: { slug: string; label: string }) => {
               f.setCustomAttributes((prev) => {
@@ -120,7 +122,7 @@ export function ListingPickers({ f }: { f: ListingFormController }) {
             selectedId={selected[0] ?? ''}
             keyExtractor={(item: { slug: string }) => item.slug}
             labelExtractor={(item: { label: string }) => item.label}
-            emptyText="Sonuç bulunamadı"
+            emptyText={t('common.noResults')}
           />
         );
       })}

@@ -111,6 +111,7 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     'language.english',
     // Özel adlar, marka ve teknik kısaltmalar.
     'product.limitedEdition',
+    'product.limitedBadge',
     'product.model',
     'models.model',
     'checkout.cvv',

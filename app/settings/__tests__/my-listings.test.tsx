@@ -139,8 +139,8 @@ describe("J133 · İlan düzenleme navigasyon wiring", () => {
 
     // İlan menüsünü aç (accessibilityLabel="İlan menüsü")
     fireEvent.press(screen.getByLabelText("listing.menuAccessibility"));
-    await screen.findByText("Düzenle");
-    fireEvent.press(screen.getByText("Düzenle"));
+    await screen.findByText("common.edit");
+    fireEvent.press(screen.getByText("common.edit"));
 
     expect(mockPush).toHaveBeenCalledWith("/listing/L9/edit");
   });

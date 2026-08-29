@@ -1,5 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { EmptyState, ScreenHeader } from '@/ui';
 
@@ -11,15 +12,17 @@ import type { DiscountsController } from '../_hooks/useDiscounts';
  * should render. Matches the web parity rules (checked after hooks run).
  */
 export function DiscountsGate({ f }: { f: DiscountsController }) {
+  const { t } = useTranslation();
+
   if (!f.isAuthenticated) {
     return (
       <View style={styles.gateContainer}>
-        <ScreenHeader title="İndirimlerim" />
+        <ScreenHeader title={t('discount.myDiscountsTitle')} />
         <EmptyState
           icon="lock-closed-outline"
-          title="Giriş Gerekli"
-          subtitle="İndirimlerinizi yönetmek için giriş yapmalısınız."
-          actionLabel="Giriş Yap"
+          title={t('listing.loginRequiredTitle')}
+          subtitle={t('discount.loginRequiredBody')}
+          actionLabel={t('common.login')}
           onAction={() => router.push('/(auth)/login' as any)}
         />
       </View>
@@ -29,12 +32,12 @@ export function DiscountsGate({ f }: { f: DiscountsController }) {
   if (f.user && f.user.isSeller === false) {
     return (
       <View style={styles.gateContainer}>
-        <ScreenHeader title="İndirimlerim" />
+        <ScreenHeader title={t('discount.myDiscountsTitle')} />
         <EmptyState
           icon="storefront-outline"
-          title="Satıcı Olun"
-          subtitle="İndirim oluşturmak için satıcı hesabı gerekli."
-          actionLabel="Satıcı Ol"
+          title={t('discount.sellerRequiredTitle')}
+          subtitle={t('discount.sellerRequiredBody')}
+          actionLabel={t('discount.becomeSeller')}
           onAction={() => router.push('/seller/register' as any)}
         />
       </View>

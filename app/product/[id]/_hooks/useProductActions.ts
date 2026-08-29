@@ -150,7 +150,10 @@ export function useProductActions({
     if (!product) return;
     try {
       const { content, options } = buildShareContent(
-        `${product.title} - ₺${product.price?.toLocaleString('tr-TR')}\n\nTarodan'da bu ürüne göz atın!`,
+        t('product.shareText', {
+          title: product.title,
+          price: product.price?.toLocaleString('tr-TR'),
+        }),
         productShareUrl(product.id),
         product.title,
       );

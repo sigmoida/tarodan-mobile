@@ -6,7 +6,7 @@ import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { appAlert } from '@/ui';
 import { useZodForm } from '@/ui/form';
-import { listingFormSchema, emptyListingFormValues } from '../_lib/schema';
+import { buildListingFormSchema, emptyListingFormValues } from '../_lib/schema';
 import { firstListingValidationError } from '../_lib/validate';
 import { toFormValues } from '../_lib/editMapper';
 
@@ -88,7 +88,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   // #81 (hibrit): text alanları useZodForm'da; watch/setValue köprüsüyle mevcut
   // f.title/f.setTitle sözleşmesi korunur (section'lar değişmez), zod validasyon
   // submit'te form.trigger() ile devreye girer. Diğer alanlar useState kalır.
-  const form = useZodForm(listingFormSchema, { defaultValues: emptyListingFormValues });
+  const form = useZodForm(buildListingFormSchema(t), { defaultValues: emptyListingFormValues });
   const title = form.watch('title');
   const setTitle = (v: string) => form.setValue('title', v);
   const description = form.watch('description');

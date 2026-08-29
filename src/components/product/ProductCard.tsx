@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { View, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { AppImage } from '@/components/AppImage';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -81,6 +82,7 @@ function ProductCardBase({
   inCart = false,
   compact = false,
 }: ProductCardProps) {
+  const { t } = useTranslation();
   const [imgSrc, setImgSrc] = useState<string>(() => resolveImageSrc(product));
 
   const effectivePrice = useMemo(() => getProductEffectivePrice(product), [product]);
@@ -112,7 +114,7 @@ function ProductCardBase({
           />
           {isOutOfStock ? (
             <View style={styles.outOfStockOverlay}>
-              <Text style={styles.outOfStockText}>STOKTA YOK</Text>
+              <Text style={styles.outOfStockText}>{t('product.soldOut').toUpperCase()}</Text>
             </View>
           ) : null}
           {onSale && discountPct > 0 ? (
@@ -123,7 +125,7 @@ function ProductCardBase({
           {inCart ? (
             <View style={styles.inCartPill}>
               <Ionicons name="checkmark-circle" size={12} color={colors.white} />
-              <Text style={styles.inCartPillText}>Sepette</Text>
+              <Text style={styles.inCartPillText}>{t('product.inCartShort')}</Text>
             </View>
           ) : null}
         </View>
@@ -135,7 +137,9 @@ function ProductCardBase({
             </Text>
           ) : null}
           {product.seller?.displayName ? (
-            <Text style={styles.meta} numberOfLines={1}>Satıcı: {product.seller.displayName}</Text>
+            <Text style={styles.meta} numberOfLines={1}>
+              {t('refund.sellerLabel', { name: product.seller.displayName })}
+            </Text>
           ) : null}
           <View style={styles.listFooter}>
             <View>
@@ -168,7 +172,7 @@ function ProductCardBase({
 
         {isOutOfStock ? (
           <View style={styles.outOfStockOverlay}>
-            <Text style={styles.outOfStockText}>STOKTA YOK</Text>
+            <Text style={styles.outOfStockText}>{t('product.soldOut').toUpperCase()}</Text>
           </View>
         ) : null}
 
@@ -177,29 +181,29 @@ function ProductCardBase({
           {product.isBoosted || product.boostedUntil ? (
             <View style={[styles.badge, styles.boostBadge]}>
               <Ionicons name="rocket" size={10} color={colors.white} />
-              <Text style={[styles.badgeText, { marginLeft: theme.spacing[1] }]}>SPONSORLU</Text>
+              <Text style={[styles.badgeText, { marginLeft: theme.spacing[1] }]}>{t('product.sponsored').toUpperCase()}</Text>
             </View>
           ) : null}
           {onSale && discountPct > 0 ? (
             <View style={[styles.badge, styles.saleBadge]}>
-              <Text style={styles.badgeText}>%{discountPct} İndirim</Text>
+              <Text style={styles.badgeText}>%{discountPct} {t('product.discount')}</Text>
             </View>
           ) : null}
           {product.isPreorder ? (
             <View style={[styles.badge, styles.preorderBadge]}>
-              <Text style={styles.badgeText}>ÖN SİPARİŞ</Text>
+              <Text style={styles.badgeText}>{t('product.preOrder').toUpperCase()}</Text>
             </View>
           ) : null}
           {product.isLimited ? (
             <View style={[styles.badge, styles.limitedBadge]}>
               <Ionicons name="star" size={10} color={colors.white} />
-              <Text style={[styles.badgeText, { marginLeft: theme.spacing[1] }]}>LIMITED</Text>
+              <Text style={[styles.badgeText, { marginLeft: theme.spacing[1] }]}>{t('product.limitedBadge').toUpperCase()}</Text>
             </View>
           ) : null}
           {isProductTradeOpen(product) ? (
             <View style={[styles.badge, styles.tradeBadge]}>
               <Ionicons name="swap-horizontal" size={10} color={colors.white} />
-              <Text style={[styles.badgeText, { marginLeft: theme.spacing[1] }]}>TAKAS</Text>
+              <Text style={[styles.badgeText, { marginLeft: theme.spacing[1] }]}>{t('product.tradeShort').toUpperCase()}</Text>
             </View>
           ) : null}
         </View>
@@ -216,7 +220,7 @@ function ProductCardBase({
               style={styles.favBtn}
               onPress={onToggleFavorite}
               accessibilityRole="button"
-              accessibilityLabel={isFavorite ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+              accessibilityLabel={isFavorite ? t('product.removeFromFavorites') : t('product.addToFavorites')}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
               <Ionicons
@@ -231,7 +235,7 @@ function ProductCardBase({
         {inCart ? (
           <View style={styles.inCartPill}>
             <Ionicons name="checkmark-circle" size={12} color={colors.white} />
-            <Text style={styles.inCartPillText}>Sepette</Text>
+            <Text style={styles.inCartPillText}>{t('product.inCartShort')}</Text>
           </View>
         ) : null}
       </View>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation } from '@tanstack/react-query';
 import { theme, Text, Button, Modal, Input, Textarea, useModalMessage, ModalMessage } from '@/ui';
@@ -31,6 +32,7 @@ export default function MakeOfferModal({
   listPrice,
   onSuccess,
 }: MakeOfferModalProps) {
+  const { t } = useTranslation();
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
   const msg = useModalMessage();
@@ -56,17 +58,17 @@ export default function MakeOfferModal({
     msg.clear();
     const numeric = parseFloat(amount);
     if (!numeric || numeric <= 0) {
-      msg.error('Pozitif bir teklif tutarı girin.');
+      msg.error(t('offer.enterPositiveAmount'));
       return;
     }
     // API kuralı: minimum teklif fiyatın %50'si (web paritesi) — yoksa ham 400 dönüyordu.
     const minOffer = listPrice * 0.5;
     if (numeric < minOffer) {
-      msg.error(`Minimum teklif ₺${minOffer.toLocaleString('tr-TR')} (fiyatın %50'si).`);
+      msg.error(t('offer.minimumOfferErrorTl', { amount: minOffer.toLocaleString('tr-TR') }));
       return;
     }
     if (numeric >= listPrice) {
-      msg.error('Teklifiniz liste fiyatından yüksek veya eşit. Doğrudan satın alma seçeneğini kullanabilirsiniz.');
+      msg.error(t('offer.aboveListPriceError'));
       return;
     }
     try {
@@ -74,7 +76,7 @@ export default function MakeOfferModal({
       onSuccess?.();
       handleClose();
     } catch (e: any) {
-      msg.error(e?.response?.data?.message || 'Teklif gönderilemedi. Lütfen tekrar deneyin.');
+      msg.error(e?.response?.data?.message || t('product.offerFailed'));
     }
   };
 
@@ -83,51 +85,51 @@ export default function MakeOfferModal({
   const discountPct = listPrice > 0 && numeric > 0 ? Math.round(((listPrice - numeric) / listPrice) * 100) : 0;
 
   return (
-    <Modal isOpen={visible} onClose={handleClose} title="Teklif Ver">
+    <Modal isOpen={visible} onClose={handleClose} title={t('product.makeOffer')}>
       <View>
         <Text style={styles.productTitle} numberOfLines={2}>
           {productTitle}
         </Text>
         <View style={styles.priceRow}>
-          <Text style={styles.priceLabel}>Liste fiyatı:</Text>
+          <Text style={styles.priceLabel}>{t('product.listPriceLine')}:</Text>
           <Text style={styles.priceValue}>{formatPrice(listPrice)}</Text>
         </View>
 
         <Input
           testID="offer-amount-input"
-          label="Teklif tutarınız (TL) *"
+          label={`${t('offer.yourOfferAmount')} *`}
           value={amount}
           onChangeText={(v: string) => setAmount(v.replace(/[^\d.,]/g, '').replace(',', '.'))}
           // Maestro: numeric klavyede return tuşu yok → hideKeyboard çalışmıyor.
           // Test modunda default klavye (return var); input zaten rakam-dışını filtreler.
           keyboardType={process.env.EXPO_PUBLIC_MAESTRO === '1' ? 'default' : 'numeric'}
           containerStyle={styles.input}
-          placeholder="Örn. 1500"
+          placeholder={t('offer.amountPlaceholderExample')}
         />
 
         {numeric > 0 && discount > 0 ? (
           <View style={styles.discountInfo}>
             <Ionicons name="trending-down" size={16} color={colors.success[600]!} />
             <Text style={styles.discountText}>
-              Liste fiyatından {formatPrice(discount)} ({discountPct}%) daha düşük
+              {t('offer.discountBelowListText', { amount: formatPrice(discount), percent: discountPct })}
             </Text>
           </View>
         ) : null}
 
         <Textarea
-          label="Mesaj (opsiyonel)"
+          label={t('offer.offerMessage')}
           value={message}
           onChangeText={setMessage}
           rows={3}
           maxLength={500}
           containerStyle={styles.input}
-          placeholder="Satıcıya bir mesaj ekleyin..."
+          placeholder={t('product.offerMessagePlaceholder')}
         />
 
         <View style={styles.warning}>
           <Ionicons name="information-circle-outline" size={16} color={colors.info[600]!} />
           <Text style={styles.warningText}>
-            Teklifiniz satıcıya iletilir. Satıcı kabul ederse otomatik olarak siparişe dönüştürülür.
+            {t('offer.offerDeliveryNotice')}
           </Text>
         </View>
       </View>
@@ -135,14 +137,14 @@ export default function MakeOfferModal({
       <View style={styles.actions}>
         <Button
           variant="ghost"
-          title="Vazgeç"
+          title={t('listing.dismiss')}
           onPress={handleClose}
           disabled={createOfferMutation.isPending}
         />
         <Button
           testID="offer-submit-button"
           variant="primary"
-          title="Teklif Gönder"
+          title={t('offer.sendOffer')}
           onPress={handleSubmit}
           isLoading={createOfferMutation.isPending}
           disabled={!numeric || createOfferMutation.isPending}
