@@ -1,5 +1,6 @@
 import { Dimensions } from 'react-native';
-import { CONDITION_OPTIONS } from '@/utils/productFilters';
+import type { TFunction } from 'i18next';
+import { buildConditionOptions } from '@/utils/productFilters';
 
 const { width } = Dimensions.get('window');
 
@@ -19,5 +20,5 @@ export const PAGE_SIZE = 24;
 // başlık nedeniyle 272.8–315.8pt arasında değişiyor, sabit değil.
 export const SEARCH_NUM_COLUMNS = 2;
 
-export const conditionLabel = (v: string) =>
-  CONDITION_OPTIONS.find((c) => c.value === v)?.label || v;
+export const conditionLabel = (v: string, t: TFunction) =>
+  buildConditionOptions(t).find((c) => c.value === v)?.label || v;

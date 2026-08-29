@@ -81,21 +81,6 @@ export const buildConditionOptions = (t: TFunction): { value: string; label: str
   { value: 'fair', label: t('product.conditionFair') },
 ];
 
-/**
- * ⚠️ LEGACY — yalnızca `app/listings/_lib/chips.ts` ve
- * `app/(tabs)/_lib/searchConstants.ts` için tutuluyor (her ikisi de bu i18n
- * dilimi kapsamı dışında). Aynı kalıcı-Türkçe kusurunu taşıyor; buradan
- * `buildConditionOptions(t)`'e geçirilmeleri ayrı bir iş. `ProductFilterSheet`
- * artık bunu KULLANMIYOR.
- */
-export const CONDITION_OPTIONS: { value: string; label: string }[] = [
-  { value: 'new', label: 'Yeni' },
-  { value: 'like_new', label: 'Yeni Gibi' },
-  { value: 'very_good', label: 'Çok İyi' },
-  { value: 'good', label: 'İyi' },
-  { value: 'fair', label: 'Orta' },
-];
-
 // NOT: Ölçek/malzeme için İSTEMCİ FALLBACK'İ BİLEREK YOK. Sunucu boş dizi
 // döndürebiliyor ve bu "katalogda yok" demek; yerine bir liste koymak
 // kullanıcıya karşılığı olmayan filtre seçenekleri gösteriyordu (P2 #13).

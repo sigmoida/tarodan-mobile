@@ -2036,7 +2036,14 @@
     "send": "Send Message",
     "sending": "Sending...",
     "success": "Your message has been sent. We'll get back to you soon.",
-    "messageTooShort": "Message must be at least 10 characters"
+    "messageTooShort": "Message must be at least 10 characters",
+    "sendFailed": "Message could not be sent, please try again.",
+    "formSectionTitle": "Send a Message",
+    "hoursTitle": "Working Hours",
+    "hoursWeekdays": "Monday - Friday",
+    "hoursSaturday": "Saturday",
+    "hoursSunday": "Sunday",
+    "hoursClosed": "Closed"
   },
   "settings": {
     "settings": "Settings",
@@ -2247,7 +2254,24 @@
     "inProgress": "In Progress",
     "resolved": "Resolved",
     "closed": "Closed",
-    "contactSupport": "Contact Support"
+    "contactSupport": "Contact Support",
+    "ticketTitle": "Support Ticket",
+    "notFound": "Support ticket not found",
+    "waitingCustomer": "Awaiting Your Reply",
+    "you": "You",
+    "team": "Support Team",
+    "closedNotice": "This ticket has been closed. You can create a new ticket for a different issue.",
+    "replyLabel": "Your Reply",
+    "replyFailed": "Message could not be sent, please try again.",
+    "category": {
+      "shipping": "Order / Shipping",
+      "payment": "Payment",
+      "account": "Account",
+      "product": "Listing / Product",
+      "trade": "Trade",
+      "technical": "Technical Issue",
+      "other": "Other"
+    }
   },
   "faq": {
     "title": "Frequently Asked Questions",
@@ -2691,7 +2715,24 @@
     "trackingGenerating": "Your return tracking number is being generated, please check back shortly.",
     "refundedBody": "Your money has been returned to the original payment method. It may take 1-3 business days to reflect on your statement.",
     "rejectedBody": "If you disagree, please reach out to support.",
-    "disputedBody": "The seller disputed this request. Our admin team will review the case and reach out within 1-3 business days."
+    "disputedBody": "The seller disputed this request. Our admin team will review the case and reach out within 1-3 business days.",
+    "detail": {
+      "title": "Refund Details",
+      "notFound": "Refund request not found",
+      "infoTitle": "Refund Information",
+      "trackingLabel": "Return Tracking Number",
+      "requestDateLabel": "Request Date",
+      "timelineTitle": "Timeline"
+    },
+    "history": {
+      "returnOpened": "Return shipment opened",
+      "acceptedBySeller": "Seller accepted",
+      "rejectedBySeller": "Seller rejected",
+      "cancelledByBuyer": "Buyer cancelled",
+      "refundCompleted": "Refund completed",
+      "policyOverridden": "Policy updated",
+      "payerChanged": "Return shipping fee payer updated"
+    }
   },
   "report": {
     "reportListing": "Report Listing",

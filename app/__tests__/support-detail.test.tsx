@@ -62,7 +62,7 @@ describe('Destek talebi detayı', () => {
     renderWithProviders(<SupportTicketDetailScreen />);
     await waitFor(() => expect(screen.getByText('Siparişim kargoya verilmedi')).toBeOnTheScreen());
     expect(screen.getByText('#TKT-1001')).toBeOnTheScreen();
-    expect(screen.getByText('İnceleniyor')).toBeOnTheScreen();
+    expect(screen.getByText('İşlemde')).toBeOnTheScreen();
     // kendi mesajı "Siz", destek mesajı gönderen adıyla
     expect(screen.getByText('Siz')).toBeOnTheScreen();
     expect(screen.getByText('Destek')).toBeOnTheScreen();
