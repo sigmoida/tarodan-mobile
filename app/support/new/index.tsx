@@ -32,13 +32,13 @@ export default function SupportScreen() {
             size={64}
             color={colors.primary[600]!}
           />
-          <Text style={styles.authTitle}>Giriş Gerekli</Text>
+          <Text style={styles.authTitle}>{t("auth.loginRequired")}</Text>
           <Text style={styles.authSubtitle}>
-            Destek talebi oluşturmak için giriş yapmanız gerekmektedir.
+            {t("support.new.loginRequiredSubtitle")}
           </Text>
           <Button
             variant="primary"
-            title="Giriş Yap"
+            title={t("common.login")}
             onPress={() => router.push("/(auth)/login")}
             style={{ alignSelf: "center" }}
           />
@@ -49,7 +49,7 @@ export default function SupportScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Destek Talebi" onBack={back} />
+      <ScreenHeader title={t("support.new.title")} onBack={back} />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <SupportForm f={f} />

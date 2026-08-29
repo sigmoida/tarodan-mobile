@@ -16,6 +16,7 @@ const openSuratTrack = (code: string) => {
   if (url) Linking.openURL(url);
 };
 
+// 'Sürat Kargo' bir taşıyıcı markası — özel ad, çevrilmez (CLAUDE.md kural 4).
 const carrierLabel = (s: TradeShipment) =>
   (s.carrier === 'surat' ? 'Sürat Kargo' : s.carrier || '—') +
   (s.trackingNumber ? ` · ${s.trackingNumber}` : '');
@@ -31,12 +32,12 @@ function shipmentTrackingView(s: TradeShipment | null | undefined) {
   return deriveShipmentView({ ...s, provider: s.provider ?? s.carrier }, s.cargoCode);
 }
 
-function CopyBtn({ code, onCopy }: { code?: string | null; onCopy: (c?: string | null) => void }) {
+function CopyBtn({ code, onCopy, t }: { code?: string | null; onCopy: (c?: string | null) => void; t: TFn }) {
   if (!code) return null;
   return (
     <Pressable onPress={() => onCopy(code)} style={styles.copyBtn} hitSlop={8}>
       <Ionicons name="copy-outline" size={16} color={colors.primary[600]!} />
-      <Text variant="caption" tone="primary" weight="medium">Kopyala</Text>
+      <Text variant="caption" tone="primary" weight="medium">{t('common.copy')}</Text>
     </Pressable>
   );
 }
@@ -85,7 +86,7 @@ export function TradeShippingSection({
       {/* Legacy Kargo Durumu — yalnızca eski (direkt-kargo) takaslarda. */}
       {(myTrackingNumber || theirTrackingNumber) && (
         <Card style={styles.card}>
-          <Text variant="label" style={styles.sectionTitle}>Kargo Durumu</Text>
+          <Text variant="label" style={styles.sectionTitle}>{t('trade.shippingStatus.title')}</Text>
           <View style={styles.shippingRow}>
             <Ionicons
               name={myTrackingNumber ? 'checkmark-circle' : 'ellipse-outline'}
@@ -93,7 +94,7 @@ export function TradeShippingSection({
               color={myTrackingNumber ? colors.success[600]! : colors.text.muted}
             />
             <Text variant="body" style={styles.shippingText}>
-              Sizin kargonuz: {myTrackingNumber || 'Henüz gönderilmedi'}
+              {t('trade.yourShipmentLabel', { value: myTrackingNumber || t('trade.notShippedYet') })}
             </Text>
           </View>
           <View style={styles.shippingRow}>
@@ -103,13 +104,13 @@ export function TradeShippingSection({
               color={theirTrackingNumber ? colors.success[600]! : colors.text.muted}
             />
             <Text variant="body" style={styles.shippingText}>
-              Karşı taraf: {theirTrackingNumber || 'Henüz gönderilmedi'}
+              {t('trade.otherPartyShipmentLabel', { value: theirTrackingNumber || t('trade.notShippedYet') })}
             </Text>
           </View>
           {legacyView.trackingUrl ? (
             <Button
               variant="outline"
-              title="Kargoyu Takip Et"
+              title={t('trade.trackShipmentLegacy')}
               onPress={() => openSuratTrack(legacyView.cargoCode!)}
               style={styles.trackButton}
             />
@@ -138,12 +139,12 @@ export function TradeShippingSection({
                 <Text style={[styles.inboundTrackingNumber, { flex: 1 }]} numberOfLines={1}>
                   {myToWarehouseShipment?.trackingNumber ?? '—'}
                 </Text>
-                <CopyBtn code={myToWarehouseShipment?.trackingNumber} onCopy={onCopy} />
+                <CopyBtn code={myToWarehouseShipment?.trackingNumber} onCopy={onCopy} t={t} />
               </View>
               {trade.status === 'shipping_to_warehouse' ? (
                 <Text variant="caption" style={styles.inboundShipHint}>{t('trade.warehouseShipping.handIn')}</Text>
               ) : (
-                <Text variant="caption" style={styles.inboundShipHint}>Ürününüz Tarodan deposuna ulaştı.</Text>
+                <Text variant="caption" style={styles.inboundShipHint}>{t('trade.warehouseShipping.arrived')}</Text>
               )}
               <View style={styles.inboundChipRow}>
                 <ShipmentStatusChip testID="trade-status-chip-my-inbound" status={myToWarehouseShipment?.status} t={t} />
@@ -151,7 +152,7 @@ export function TradeShippingSection({
               {toWarehouseView.trackingUrl ? (
                 <Button
                   variant="outline"
-                  title="Sürat'ta Takip Et"
+                  title={t('order.trackOnSurat')}
                   onPress={() => openSuratTrack(toWarehouseView.cargoCode!)}
                   style={styles.trackButton}
                 />
@@ -170,16 +171,16 @@ export function TradeShippingSection({
         <Card style={{ ...styles.card, ...styles.inboundCard }} testID="trade-outbound-card">
           <View style={styles.shippingRow}>
             <MaterialCommunityIcons name="truck-delivery-outline" size={22} color={colors.info[600]!} />
-            <Text variant="label" style={{ ...styles.sectionTitle, marginBottom: theme.spacing[0], flex: 1 }}>Kargonuz Yolda</Text>
+            <Text variant="label" style={{ ...styles.sectionTitle, marginBottom: theme.spacing[0], flex: 1 }}>{t('trade.shipmentOnWay')}</Text>
           </View>
           {myFromWarehouseShipment ? (
             <View style={styles.inboundShipBox}>
-              <Text variant="caption" style={styles.messageSender}>Size gönderilen kargo</Text>
+              <Text variant="caption" style={styles.messageSender}>{t('trade.shippedToYou')}</Text>
               <View style={styles.trackingCodeRow}>
                 <Text style={[styles.inboundTrackingNumber, { flex: 1 }]} numberOfLines={1}>
                   {carrierLabel(myFromWarehouseShipment)}
                 </Text>
-                <CopyBtn code={myFromWarehouseShipment.trackingNumber} onCopy={onCopy} />
+                <CopyBtn code={myFromWarehouseShipment.trackingNumber} onCopy={onCopy} t={t} />
               </View>
               <View style={styles.inboundChipRow}>
                 <ShipmentStatusChip testID="trade-status-chip-my-outbound" status={myFromWarehouseShipment.status} t={t} />
@@ -187,7 +188,7 @@ export function TradeShippingSection({
               {fromWarehouseView.trackingUrl ? (
                 <Button
                   variant="outline"
-                  title="Sürat'ta Takip Et"
+                  title={t('order.trackOnSurat')}
                   onPress={() => openSuratTrack(fromWarehouseView.cargoCode!)}
                   style={styles.trackButton}
                 />
@@ -197,12 +198,12 @@ export function TradeShippingSection({
             </View>
           ) : (
             <View style={styles.inboundShipBox}>
-              <Text variant="caption" style={styles.inboundShipHint}>Takip bilgileri kısa süre içinde görünecek.</Text>
+              <Text variant="caption" style={styles.inboundShipHint}>{t('trade.trackingSoon')}</Text>
             </View>
           )}
           {otherFromWarehouseShipment ? (
             <View style={[styles.inboundShipBox, { marginTop: theme.spacing[2] }]}>
-              <Text variant="caption" style={styles.messageSender}>Karşı tarafın kargosu</Text>
+              <Text variant="caption" style={styles.messageSender}>{t('trade.otherPartyShipment')}</Text>
               <Text variant="bodySm" numberOfLines={1}>{carrierLabel(otherFromWarehouseShipment)}</Text>
               <View style={styles.inboundChipRow}>
                 <ShipmentStatusChip status={otherFromWarehouseShipment.status} t={t} />
@@ -217,14 +218,14 @@ export function TradeShippingSection({
         <Card style={{ ...styles.card, ...styles.inboundCard }} testID="trade-return-card">
           <View style={styles.shippingRow}>
             <MaterialCommunityIcons name="truck-fast-outline" size={22} color={colors.warning[600]!} />
-            <Text variant="label" style={{ ...styles.sectionTitle, marginBottom: theme.spacing[0], flex: 1 }}>İade Kargosu</Text>
+            <Text variant="label" style={{ ...styles.sectionTitle, marginBottom: theme.spacing[0], flex: 1 }}>{t('trade.returnShipment')}</Text>
           </View>
           <View style={styles.inboundShipBox}>
             <View style={styles.trackingCodeRow}>
               <Text style={[styles.inboundTrackingNumber, { flex: 1 }]} numberOfLines={1}>
                 {carrierLabel(myReturnShipment)}
               </Text>
-              <CopyBtn code={myReturnShipment.trackingNumber} onCopy={onCopy} />
+              <CopyBtn code={myReturnShipment.trackingNumber} onCopy={onCopy} t={t} />
             </View>
             <View style={styles.inboundChipRow}>
               <ShipmentStatusChip status={myReturnShipment.status} t={t} />
@@ -232,7 +233,7 @@ export function TradeShippingSection({
             {returnView.trackingUrl ? (
               <Button
                 variant="outline"
-                title="Sürat'ta Takip Et"
+                title={t('order.trackOnSurat')}
                 onPress={() => openSuratTrack(returnView.cargoCode!)}
                 style={styles.trackButton}
               />
