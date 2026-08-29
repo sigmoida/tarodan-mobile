@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
+import { useTranslation } from 'react-i18next';
 import { appAlert } from '@/ui';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
-import { collectionSchema, type CollectionForm, type Collection } from '../_lib/collectionEditSchema';
+import { buildCollectionEditSchema, type CollectionForm, type Collection } from '../_lib/collectionEditSchema';
 
 /**
  * Collection edit controller — owns the collection query, RHF form (zod), the
@@ -15,6 +16,7 @@ import { collectionSchema, type CollectionForm, type Collection } from '../_lib/
  * Lifted verbatim from the monolithic EditCollectionScreen.
  */
 export function useCollectionEdit() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams();
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
@@ -32,8 +34,10 @@ export function useCollectionEdit() {
     enabled: !!id,
   });
 
+  const schema = useMemo(() => buildCollectionEditSchema(t), [t]);
+
   const form = useForm<CollectionForm>({
-    resolver: zodResolver(collectionSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       name: '',
       description: '',
@@ -81,10 +85,10 @@ export function useCollectionEdit() {
       queryClient.invalidateQueries({ queryKey: ['collection', id] });
       queryClient.invalidateQueries({ queryKey: ['collections'] });
       queryClient.invalidateQueries({ queryKey: ['my-collections'] });
-      setSnackbar({ visible: true, message: 'Koleksiyon güncellendi!' });
+      setSnackbar({ visible: true, message: t('collection.collectionUpdated') });
     },
     onError: (error: any) => {
-      setSnackbar({ visible: true, message: error.response?.data?.message || 'Güncelleme başarısız' });
+      setSnackbar({ visible: true, message: error.response?.data?.message || t('collection.updateFailed') });
     },
   });
 
@@ -94,11 +98,11 @@ export function useCollectionEdit() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collections'] });
       queryClient.invalidateQueries({ queryKey: ['my-collections'] });
-      setSnackbar({ visible: true, message: 'Koleksiyon silindi' });
+      setSnackbar({ visible: true, message: t('collection.collectionDeleted') });
       setTimeout(() => router.replace('/collections'), 1500);
     },
     onError: (error: any) => {
-      setSnackbar({ visible: true, message: error.response?.data?.message || 'Silme başarısız' });
+      setSnackbar({ visible: true, message: error.response?.data?.message || t('collection.deleteFailed') });
     },
   });
 
@@ -107,10 +111,10 @@ export function useCollectionEdit() {
     mutationFn: (itemId: string) => api.delete(`/collections/${id}/items/${itemId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collection', id] });
-      setSnackbar({ visible: true, message: 'Ürün koleksiyondan kaldırıldı' });
+      setSnackbar({ visible: true, message: t('collection.productRemoved') });
     },
     onError: (error: any) => {
-      setSnackbar({ visible: true, message: error.response?.data?.message || 'Kaldırma başarısız' });
+      setSnackbar({ visible: true, message: error.response?.data?.message || t('collection.removeFailed') });
     },
   });
 
@@ -129,22 +133,22 @@ export function useCollectionEdit() {
 
   const handleDelete = () => {
     appAlert(
-      'Koleksiyonu Sil',
-      'Bu koleksiyonu silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
+      t('collection.deleteCollection'),
+      t('collection.deleteConfirmShort'),
       [
-        { text: 'İptal', style: 'cancel' },
-        { text: 'Sil', style: 'destructive', onPress: () => deleteMutation.mutate() },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.delete'), style: 'destructive', onPress: () => deleteMutation.mutate() },
       ]
     );
   };
 
   const handleRemoveItem = (itemId: string, productTitle: string) => {
     appAlert(
-      'Ürünü Kaldır',
-      `"${productTitle}" ürününü koleksiyondan kaldırmak istediğinize emin misiniz?`,
+      t('collection.removeItemTitle'),
+      t('collection.removeItemConfirm', { title: productTitle }),
       [
-        { text: 'İptal', style: 'cancel' },
-        { text: 'Kaldır', style: 'destructive', onPress: () => removeItemMutation.mutate(itemId) },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.remove'), style: 'destructive', onPress: () => removeItemMutation.mutate(itemId) },
       ]
     );
   };

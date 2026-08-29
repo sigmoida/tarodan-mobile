@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { productsApi, collectionsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { OPTIMISTIC, type Listing } from '../_lib/types';
@@ -12,6 +13,7 @@ import { OPTIMISTIC, type Listing } from '../_lib/types';
  * VERBATIM from the monolithic screen — the optimistic race logic is delicate (§12).
  */
 export function useAddItems() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const collectionId = String(id);
   const queryClient = useQueryClient();
@@ -79,18 +81,18 @@ export function useAddItems() {
     try {
       if (!adding) {
         await collectionsApi.removeItem(collectionId, itemId!);
-        setSnackbar({ visible: true, message: 'Koleksiyondan çıkarıldı' });
+        setSnackbar({ visible: true, message: t('collection.removedFromCollection') });
       } else {
         try {
           const res = await collectionsApi.addItem(collectionId, { productId: listing.id });
           const newItem = res.data?.data || res.data;
           if (newItem?.id) patchOverlay(listing.id, newItem.id);
-          setSnackbar({ visible: true, message: 'Koleksiyona eklendi' });
+          setSnackbar({ visible: true, message: t('collection.addedToCollectionSingle') });
         } catch (e: any) {
           const msg = e?.response?.data?.message || '';
           // Yarış/eskimiş durum: ürün zaten ekliyse hata gösterme, ekli kabul et.
           if (e?.response?.status === 400 && /zaten/i.test(msg)) {
-            setSnackbar({ visible: true, message: 'Bu ürün zaten koleksiyonda' });
+            setSnackbar({ visible: true, message: t('collection.alreadyInCollectionMsg') });
           } else {
             throw e;
           }
@@ -107,7 +109,7 @@ export function useAddItems() {
         delete next[listing.id];
         return next;
       });
-      setSnackbar({ visible: true, message: e?.response?.data?.message || 'İşlem başarısız' });
+      setSnackbar({ visible: true, message: e?.response?.data?.message || t('common.operationFailed') });
     } finally {
       inFlight.current -= 1;
       setPending((p) => ({ ...p, [listing.id]: false }));

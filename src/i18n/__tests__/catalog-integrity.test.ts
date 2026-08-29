@@ -137,6 +137,10 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     'seller.trustScoreLevelSuffix',
     // Uluslararası kısaltma — İngilizce'de de "IBAN".
     'businessApplication.ibanLabel',
+    // Koleksiyon şablonu adları: yarış serisi ve araç türü adı — ikisi de
+    // Türkçe koleksiyoncu jargonunda İngilizce haliyle kullanılıyor.
+    'collection.templateF1',
+    'collection.templateMuscle',
   ]);
 
   /**

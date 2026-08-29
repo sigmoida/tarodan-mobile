@@ -86,7 +86,7 @@ describe('J57 · favoriler ekranı — misafir', () => {
   it('giriş yapılmamışsa giriş CTA gösterir ve butona basınca login push', () => {
     mockState.isAuthenticated = false;
     renderWithProviders(<FavoritesScreen />);
-    expect(screen.getByText('Favorilerinizi görmek için giriş yapın')).toBeOnTheScreen();
+    expect(screen.getByText('Favorileri görüntülemek için giriş yapın')).toBeOnTheScreen();
     fireEvent.press(screen.getByText('Giriş Yap'));
     expect(pushMock).toHaveBeenCalledWith('/(auth)/login');
   });
@@ -96,7 +96,7 @@ describe('J57 · favoriler ekranı — boş durum', () => {
   it('liste boşken boş durum metni ve keşfet butonu görünür', () => {
     mockState.items = [];
     renderWithProviders(<FavoritesScreen />);
-    expect(screen.getByText('Henüz favori yok')).toBeOnTheScreen();
+    expect(screen.getByText('Henüz favoriniz yok')).toBeOnTheScreen();
     fireEvent.press(screen.getByText('Ürünleri Keşfet'));
     expect(pushMock).toHaveBeenCalledWith('/(tabs)/search');
   });
@@ -114,19 +114,19 @@ describe('J57 · favoriler ekranı — dolu liste', () => {
   it('J21 · favoriden çıkar butonu removeFromFavorites çağırır', () => {
     mockState.items = [makeItem('p1')];
     renderWithProviders(<FavoritesScreen />);
-    fireEvent.press(screen.getByLabelText('Favorilerden çıkar'));
+    fireEvent.press(screen.getByLabelText('Favorilerden Çıkar'));
     expect(mockState.removeFromFavorites).toHaveBeenCalledWith('p1');
   });
 
   it('sepet butonu toggle: sepette değilse addItem, sepetteyse removeByProductId çağırır', () => {
     mockState.items = [makeItem('p1')];
     renderWithProviders(<FavoritesScreen />);
-    fireEvent.press(screen.getByLabelText('Sepete ekle'));
+    fireEvent.press(screen.getByLabelText('Sepete Ekle'));
     expect(mockState.addItem).toHaveBeenCalledWith(expect.objectContaining({ productId: 'p1' }));
 
     mockState.isInCart.mockReturnValue(true);
     renderWithProviders(<FavoritesScreen />);
-    fireEvent.press(screen.getByLabelText('Sepetten çıkar'));
+    fireEvent.press(screen.getByLabelText('Sepetten Çıkar'));
     expect(mockState.removeByProductId).toHaveBeenCalledWith('p1');
   });
 

@@ -2,6 +2,7 @@ import { View, FlatList, RefreshControl } from 'react-native';
 import { theme, Text, Button, Spinner, Snackbar, ScreenHeader } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useFavoritesScreen } from './_hooks/useFavoritesScreen';
 import { styles } from './_lib/styles';
 import { FavoriteCard } from './_components/FavoriteCard';
@@ -9,19 +10,20 @@ import { FavoriteCard } from './_components/FavoriteCard';
 const { colors } = theme;
 
 export default function FavoritesScreen() {
+  const { t } = useTranslation();
   const f = useFavoritesScreen();
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
   if (!f.isAuthenticated) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Favorilerim" onBack={back} />
+        <ScreenHeader title={t('favorites.myFavorites')} onBack={back} />
         <View style={styles.centeredContainer}>
           <Ionicons name="heart-outline" size={64} color={colors.primary[600]!} />
-          <Text variant="h2" style={styles.title}>Favorilerim</Text>
-          <Text variant="body" style={styles.subtitle}>Favorilerinizi görmek için giriş yapın</Text>
-          <Button variant="primary" title="Giriş Yap" onPress={() => router.push('/(auth)/login')} style={styles.button} />
-          <Button variant="ghost" title="Hesap Oluştur" onPress={() => router.push('/(auth)/register')} style={{ alignSelf: 'center' }} />
+          <Text variant="h2" style={styles.title}>{t('favorites.myFavorites')}</Text>
+          <Text variant="body" style={styles.subtitle}>{t('favorites.loginRequired')}</Text>
+          <Button variant="primary" title={t('common.login')} onPress={() => router.push('/(auth)/login')} style={styles.button} />
+          <Button variant="ghost" title={t('auth.createAccount')} onPress={() => router.push('/(auth)/register')} style={{ alignSelf: 'center' }} />
         </View>
       </View>
     );
@@ -31,7 +33,7 @@ export default function FavoritesScreen() {
     return (
       <View style={styles.centeredContainer}>
         <Spinner size="lg" />
-        <Text style={{ marginTop: theme.spacing[4] }}>Favoriler yükleniyor...</Text>
+        <Text style={{ marginTop: theme.spacing[4] }}>{t('favorites.loadingText')}</Text>
       </View>
     );
   }
@@ -40,25 +42,25 @@ export default function FavoritesScreen() {
     return (
       <View style={styles.centeredContainer}>
         <Ionicons name="cloud-offline-outline" size={64} color={colors.text.subtle} />
-        <Text style={{ marginTop: theme.spacing[4], fontSize: 16, fontWeight: '600', color: colors.text.heading }}>Yüklenemedi</Text>
-        <Text style={{ marginTop: theme.spacing[2], color: colors.text.subtle, textAlign: 'center' }}>Favorileriniz yüklenirken bir hata oluştu.</Text>
-        <Button variant="primary" title="Tekrar Dene" onPress={() => f.fetchFavorites()} style={{ marginTop: theme.spacing[4], alignSelf: 'center' }} />
+        <Text style={{ marginTop: theme.spacing[4], fontSize: 16, fontWeight: '600', color: colors.text.heading }}>{t('favorites.loadFailedTitle')}</Text>
+        <Text style={{ marginTop: theme.spacing[2], color: colors.text.subtle, textAlign: 'center' }}>{t('favorites.loadErrorDesc')}</Text>
+        <Button variant="primary" title={t('common.tryAgain')} onPress={() => f.fetchFavorites()} style={{ marginTop: theme.spacing[4], alignSelf: 'center' }} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title={`Favorilerim (${f.getFavoriteCount()})`} onBack={back} />
+      <ScreenHeader title={`${t('favorites.myFavorites')} (${f.getFavoriteCount()})`} onBack={back} />
 
       {f.items.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="heart-outline" size={80} color={colors.text.subtle} />
-          <Text variant="h3" style={styles.emptyTitle}>Henüz favori yok</Text>
+          <Text variant="h3" style={styles.emptyTitle}>{t('favorites.empty')}</Text>
           <Text variant="body" style={styles.emptySubtitle}>
-            Beğendiğiniz ürünleri favorilere ekleyerek kolayca takip edin
+            {t('favorites.emptyStateDesc')}
           </Text>
-          <Button variant="primary" title="Ürünleri Keşfet" onPress={() => router.push('/(tabs)/search')} style={styles.browseButton} />
+          <Button variant="primary" title={t('order.exploreProducts')} onPress={() => router.push('/(tabs)/search')} style={styles.browseButton} />
         </View>
       ) : (
         <FlatList
@@ -72,8 +74,8 @@ export default function FavoritesScreen() {
           ListFooterComponent={
             <>
               <View style={styles.recommendationsSection}>
-                <Text variant="h3" style={styles.sectionTitle}>Beğenebileceğiniz</Text>
-                <Button variant="outline" title="Daha Fazla Ürün Keşfet" style={{ alignSelf: 'center' }} onPress={() => router.push('/(tabs)/search')} />
+                <Text variant="h3" style={styles.sectionTitle}>{t('favorites.recommendationsTitle')}</Text>
+                <Button variant="outline" title={t('favorites.exploreMoreProducts')} style={{ alignSelf: 'center' }} onPress={() => router.push('/(tabs)/search')} />
               </View>
               <View style={{ height: 100 }} />
             </>
@@ -86,7 +88,7 @@ export default function FavoritesScreen() {
         visible={f.snackbar.visible}
         onDismiss={() => f.setSnackbar({ ...f.snackbar, visible: false })}
         duration={2000}
-        action={{ label: 'Sepete Git', onPress: () => router.push('/cart') }}
+        action={{ label: t('product.goToCart'), onPress: () => router.push('/cart') }}
       >
         {f.snackbar.message}
       </Snackbar>

@@ -2,14 +2,15 @@ import { View, TouchableOpacity, Image } from 'react-native';
 import { Button, Switch, IconButton, Text, Input, Textarea, theme } from '@/ui';
 import { Controller } from 'react-hook-form';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { styles } from '../_lib/styles';
-import { COLLECTION_TEMPLATES } from '../_lib/templates';
 import type { NewCollectionController } from '../_hooks/useNewCollection';
 
 const { colors } = theme;
 
 /** Ana form içeriği — kapak, şablon, bilgiler, gizlilik, ipucu, gönder. */
 export function NewCollectionForm({ f }: { f: NewCollectionController }) {
+  const { t } = useTranslation();
   const { control, errors } = f;
 
   return (
@@ -21,13 +22,13 @@ export function NewCollectionForm({ f }: { f: NewCollectionController }) {
         ) : (
           <View style={styles.coverImagePlaceholder}>
             <Ionicons name="image-outline" size={48} color={colors.text.muted} />
-            <Text variant="body" style={styles.coverImageText}>Kapak fotoğrafı ekle</Text>
+            <Text variant="body" style={styles.coverImageText}>{t('collection.addCoverPhoto')}</Text>
           </View>
         )}
         {f.coverImage && (
           <IconButton
             icon="close-circle"
-            accessibilityLabel="Kapak fotoğrafını kaldır"
+            accessibilityLabel={t('collection.removeCoverPhoto')}
             size="md"
             style={styles.removeCoverButton}
             onPress={() => f.setCoverImage(null)}
@@ -37,9 +38,9 @@ export function NewCollectionForm({ f }: { f: NewCollectionController }) {
 
       {/* Templates */}
       <View style={styles.card}>
-        <Text variant="h3" style={styles.sectionTitle}>Şablon Seçin</Text>
+        <Text variant="h3" style={styles.sectionTitle}>{t('collection.selectTemplate')}</Text>
         <View style={styles.templatesGrid}>
-          {COLLECTION_TEMPLATES.map((template) => (
+          {f.templates.map((template) => (
             <TouchableOpacity
               key={template.id}
               style={[
@@ -59,18 +60,18 @@ export function NewCollectionForm({ f }: { f: NewCollectionController }) {
 
       {/* Collection Details */}
       <View style={styles.card}>
-        <Text variant="h3" style={styles.sectionTitle}>Koleksiyon Bilgileri</Text>
+        <Text variant="h3" style={styles.sectionTitle}>{t('collection.infoSectionTitle')}</Text>
 
         <Controller
           control={control}
           name="name"
           render={({ field: { onChange, value } }) => (
             <Input
-              label="Koleksiyon Adı *"
+              label={t('collection.collectionNameLabel')}
               value={value}
               onChangeText={onChange}
               error={errors.name?.message}
-              placeholder="örn: Ferrari 1:18 Koleksiyonum"
+              placeholder={t('collection.namePlaceholderExample')}
               containerStyle={styles.input}
             />
           )}
@@ -81,12 +82,12 @@ export function NewCollectionForm({ f }: { f: NewCollectionController }) {
           name="description"
           render={({ field: { onChange, value } }) => (
             <Textarea
-              label="Açıklama"
+              label={t('collection.descriptionLabel')}
               value={value}
               onChangeText={onChange}
               rows={3}
               error={errors.description?.message}
-              placeholder="Koleksiyonunuz hakkında birkaç cümle..."
+              placeholder={t('collection.descriptionPlaceholder')}
               containerStyle={styles.input}
             />
           )}
@@ -95,15 +96,15 @@ export function NewCollectionForm({ f }: { f: NewCollectionController }) {
 
       {/* Privacy Settings */}
       <View style={styles.card}>
-        <Text variant="h3" style={styles.sectionTitle}>Gizlilik</Text>
+        <Text variant="h3" style={styles.sectionTitle}>{t('collection.privacyTitle')}</Text>
 
         <View style={styles.privacyOption}>
           <View style={styles.privacyInfo}>
             <Ionicons name="globe-outline" size={24} color={colors.primary[600]!} />
             <View style={styles.privacyText}>
-              <Text variant="body">Herkese Açık</Text>
+              <Text variant="body">{t('collection.isPublic')}</Text>
               <Text variant="bodySm" style={styles.privacyDesc}>
-                Herkes koleksiyonunuzu görebilir
+                {t('collection.publicVisibleToAll')}
               </Text>
             </View>
           </View>
@@ -120,7 +121,7 @@ export function NewCollectionForm({ f }: { f: NewCollectionController }) {
           <View style={styles.privateNote}>
             <Ionicons name="lock-closed" size={16} color={colors.text.muted} />
             <Text variant="bodySm" style={styles.privateNoteText}>
-              Özel koleksiyonlar sadece siz görebilirsiniz
+              {t('collection.privateNote')}
             </Text>
           </View>
         )}
@@ -131,9 +132,9 @@ export function NewCollectionForm({ f }: { f: NewCollectionController }) {
         <View style={styles.tipContent}>
           <Ionicons name="bulb" size={24} color={colors.warning[600]!} />
           <View style={styles.tipText}>
-            <Text variant="label">İpucu</Text>
+            <Text variant="label">{t('collection.tipLabel')}</Text>
             <Text variant="bodySm" style={styles.tipDesc}>
-              Koleksiyonunuzu oluşturduktan sonra ürünlerinizi ekleyebilir, düzenleyebilir ve paylaşabilirsiniz.
+              {t('collection.tipText')}
             </Text>
           </View>
         </View>
@@ -142,7 +143,7 @@ export function NewCollectionForm({ f }: { f: NewCollectionController }) {
       {/* Submit Button */}
       <Button
         variant="primary"
-        title="Koleksiyon Oluştur"
+        title={t('collection.createCollection')}
         onPress={f.handleSubmit(f.onSubmit)}
         isLoading={f.createMutation.isPending}
         disabled={f.createMutation.isPending}

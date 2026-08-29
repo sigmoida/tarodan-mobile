@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
+import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
-import { collectionSchema, type CollectionForm } from '../_lib/schema';
-import type { CollectionTemplate } from '../_lib/templates';
+import { buildCollectionSchema, type CollectionForm } from '../_lib/schema';
+import { buildCollectionTemplates, type CollectionTemplate } from '../_lib/templates';
 
 /**
  * New-collection controller — owns the RHF+zod form, cover-image pick, template
@@ -15,6 +16,7 @@ import type { CollectionTemplate } from '../_lib/templates';
  * upload). Lifted verbatim from the monolithic screen (§12).
  */
 export function useNewCollection() {
+  const { t } = useTranslation();
   const { isAuthenticated, limits } = useAuthStore();
   const queryClient = useQueryClient();
 
@@ -24,6 +26,9 @@ export function useNewCollection() {
 
   const canCreateCollections = limits?.canCreateCollections || false;
 
+  const templates = useMemo(() => buildCollectionTemplates(t), [t]);
+  const schema = useMemo(() => buildCollectionSchema(t), [t]);
+
   const {
     control,
     handleSubmit,
@@ -31,7 +36,7 @@ export function useNewCollection() {
     setValue,
     watch,
   } = useForm<CollectionForm>({
-    resolver: zodResolver(collectionSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       name: '',
       description: '',
@@ -66,11 +71,11 @@ export function useNewCollection() {
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['collections'] });
       queryClient.invalidateQueries({ queryKey: ['my-collections'] });
-      setSnackbar({ visible: true, message: 'Koleksiyon oluşturuldu!' });
+      setSnackbar({ visible: true, message: t('collection.collectionCreated') });
       setTimeout(() => router.replace(`/collections/${response.data.id}`), 1500);
     },
     onError: (error: any) => {
-      setSnackbar({ visible: true, message: error.response?.data?.message || 'Koleksiyon oluşturulamadı' });
+      setSnackbar({ visible: true, message: error.response?.data?.message || t('collection.createCollectionFailed') });
     },
   });
 
@@ -101,6 +106,7 @@ export function useNewCollection() {
   return {
     isAuthenticated,
     canCreateCollections,
+    templates,
     control,
     errors,
     handleSubmit,

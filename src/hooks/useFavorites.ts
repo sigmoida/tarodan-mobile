@@ -1,4 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { wishlistApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
@@ -25,8 +27,12 @@ export interface WishlistItem {
  * Backend `GET /wishlist` yanıtını `WishlistItem[]`'e eşler. Backend, item'ları
  * ya düz alanlarla (productTitle/productImage…) ya da iç içe `product` ile
  * döndürebilir; her iki şekli de tolere eder.
+ *
+ * `t` argüman alır (fallback ürün/satıcı adları çevrilebilsin) — saf fonksiyon
+ * olduğu için `useTranslation` burada çağrılamaz, çağıran taraf canlı `t`'yi
+ * geçirir (bkz. `@/utils/validation` başı — aynı gerekçe).
  */
-export function mapWishlist(data: any): WishlistItem[] {
+export function mapWishlist(data: any, t: TFunction): WishlistItem[] {
   const wishlistData = data?.items || data?.data || data || [];
   return (Array.isArray(wishlistData) ? wishlistData : [])
     .filter((item: any) => item && item.productId)
@@ -35,14 +41,14 @@ export function mapWishlist(data: any): WishlistItem[] {
       productId: item.productId,
       product: {
         id: item.productId,
-        title: item.productTitle || item.product?.title || 'Ürün',
+        title: item.productTitle || item.product?.title || t('product.productFallback'),
         price: item.productPrice || item.product?.price || 0,
         images: item.productImage ? [{ url: item.productImage }] : (item.product?.images || []),
         condition: item.productCondition || item.product?.condition || 'good',
         status: item.productStatus || item.product?.status || 'active',
         seller: {
           id: item.sellerId || item.product?.seller?.id || '',
-          displayName: item.sellerName || item.product?.seller?.displayName || 'Satıcı',
+          displayName: item.sellerName || item.product?.seller?.displayName || t('product.seller'),
         },
       },
       addedAt: item.addedAt || item.added_at || new Date().toISOString(),
@@ -60,6 +66,7 @@ export function mapWishlist(data: any): WishlistItem[] {
  * cache'i de temizlenir (ayrı reset gerekmez).
  */
 export function useFavorites() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { isAuthenticated } = useAuthStore();
 
@@ -69,7 +76,7 @@ export function useFavorites() {
     queryFn: async (): Promise<WishlistItem[]> => {
       try {
         const response = await wishlistApi.get();
-        return mapWishlist(response.data);
+        return mapWishlist(response.data, t);
       } catch (error: any) {
         // Boş wishlist 404 dönebilir — hata değil, boş liste.
         if (error?.response?.status === 404) return [];
@@ -100,12 +107,12 @@ export function useFavorites() {
         productId,
         product: {
           id: productId,
-          title: 'Ürün',
+          title: t('product.productFallback'),
           price: 0,
           images: [],
           condition: 'good',
           status: 'active',
-          seller: { id: '', displayName: 'Satıcı' },
+          seller: { id: '', displayName: t('product.seller') },
         },
         addedAt: new Date().toISOString(),
       };
@@ -176,7 +183,7 @@ export function useFavorites() {
   return {
     items,
     isLoading: query.isLoading,
-    error: query.isError ? 'Favoriler yüklenemedi' : null,
+    error: query.isError ? t('favorites.loadFailed') : null,
     isInFavorites,
     getFavoriteCount,
     fetchFavorites,
