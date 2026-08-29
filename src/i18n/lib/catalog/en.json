@@ -6641,5 +6641,19 @@
     "cashDiffTitle": "Trading with a Cash Difference",
     "cashDiffText": "Items being traded don''t have to be of equal value. You can set a cash difference in your offer. The difference payment is processed under buyer protection through the secure payment system.",
     "ctaText": "Explore Trade Offers"
+  },
+  "sizeGuidePage": {
+    "intro": "For diecast model cars, scale states the ratio of the model to the real vehicle''s size. Below you''ll find a comparison of the most common scales.",
+    "brandsLabel": "Brands:",
+    "priceRangeLabel": "Price Range:",
+    "desc8": "The largest and most detailed scale, at 1/8 the size of the real vehicle. Usually made from high-quality resin or metal. A showcase piece for collectors.",
+    "desc12": "Large, detailed models. Opening doors, engine detail, and realistic interior features are common. Preferred as a premium collection piece.",
+    "desc18": "The most popular collecting scale. Includes opening doors, hood, trunk, and steering detail. A wide range of brands and models is available.",
+    "desc24": "Offers a good price-to-size balance. Ideal for hobby and collecting. Some models include opening parts. Wide variety available.",
+    "desc32": "Mid-size models. A popular scale also used for slot car racing. Detail level is satisfying for the scale.",
+    "desc36": "A common scale for models with a pull-back mechanism. Affordable entry-level collector pieces.",
+    "desc43": "An ideal size for a display collection. Takes up little space while still offering detailed models. Especially popular for racing cars and classic automobiles.",
+    "desc64": "The most common and affordable scale — the size of Hot Wheels and Matchbox. Wide model variety and an active collector community.",
+    "tip": "Tip: Focusing on a single scale when starting your collection makes your display easier to arrange and helps you manage your budget better."
   }
 }

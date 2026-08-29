@@ -6641,5 +6641,19 @@
     "cashDiffTitle": "Fark Ödemeli Takas",
     "cashDiffText": "Takas edilen ürünlerin değerleri eşit olmak zorunda değildir. Teklifte nakit fark belirleyebilirsiniz. Fark ödemesi, güvenli ödeme sistemi üzerinden alıcı koruma kapsamında işlenir.",
     "ctaText": "Takas Tekliflerini Keşfet"
+  },
+  "sizeGuidePage": {
+    "intro": "Diecast model arabalarda ölçek, modelin gerçek aracın boyutuna oranını belirtir. Aşağıda en yaygın ölçeklerin karşılaştırmasını bulabilirsiniz.",
+    "brandsLabel": "Markalar:",
+    "priceRangeLabel": "Fiyat Aralığı:",
+    "desc8": "En büyük ve en detaylı ölçek. Gerçek araç boyutunun 1/8''i kadardır. Genellikle yüksek kaliteli reçine veya metal malzemeden üretilir. Koleksiyoncular için vitrin ürünüdür.",
+    "desc12": "Büyük ve detaylı modeller. Açılır kapılar, motor detayları ve gerçekçi iç mekan özellikleri yaygındır. Premium koleksiyon parçası olarak tercih edilir.",
+    "desc18": "En popüler koleksiyon ölçeği. Açılır kapılar, kaput, bagaj ve direksiyon detayları içerir. Geniş marka ve model yelpazesi mevcuttur.",
+    "desc24": "Uygun fiyat/boyut dengesi sunar. Hobi ve koleksiyon için idealdir. Bazı modellerde açılır parçalar bulunur. Geniş çeşitlilik sunar.",
+    "desc32": "Orta boy modeller. Slot car yarışları için de kullanılan popüler bir ölçektir. Detay seviyesi ölçeğe göre tatmin edicidir.",
+    "desc36": "Çekbırak (pull-back) mekanizmalı modellerde yaygın ölçektir. Uygun fiyatlı giriş seviyesi koleksiyon parçalarıdır.",
+    "desc43": "Vitrin koleksiyonu için ideal boyut. Az yer kaplar, detaylı modeller bulunur. Özellikle yarış araçları ve klasik otomobillerde popülerdir.",
+    "desc64": "En yaygın ve uygun fiyatlı ölçek. Hot Wheels ve Matchbox boyutudur. Geniş model çeşitliliği ve aktif koleksiyoner topluluğu mevcuttur.",
+    "tip": "İpucu: Koleksiyonunuza başlarken tek bir ölçekte yoğunlaşmanız, vitrin düzeninizi kolaylaştırır ve bütçenizi daha iyi yönetmenizi sağlar."
   }
 }
