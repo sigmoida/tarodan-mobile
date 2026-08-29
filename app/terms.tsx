@@ -18,123 +18,72 @@ export default function TermsOfServiceScreen() {
       />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.lastUpdated}>Son güncelleme: 1 Ocak 2026</Text>
+        <Text style={styles.lastUpdated}>{t("legalContact.lastUpdatedJan2026")}</Text>
 
-        <Text style={styles.sectionTitle}>1. Hizmet Tanımı</Text>
-        <Text style={styles.paragraph}>
-          Tarodan, diecast model araç koleksiyonerleri için bir pazaryeri
-          platformudur. Platform, kullanıcıların diecast model araçlarını
-          listelemesine, satın almasına ve takas etmesine olanak tanır.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("termsPage.s1Title")}</Text>
+        <Text style={styles.paragraph}>{t("termsPage.s1Content")}</Text>
 
-        <Text style={styles.sectionTitle}>2. Hesap Oluşturma</Text>
-        <Text style={styles.paragraph}>
-          Hizmetlerimizi kullanmak için bir hesap oluşturmanız gerekmektedir.
-          Hesap oluştururken doğru ve güncel bilgiler vermeyi kabul edersiniz.
-          Hesabınızın güvenliğinden siz sorumlusunuz.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("termsPage.s2Title")}</Text>
+        <Text style={styles.paragraph}>{t("termsPage.s2Content")}</Text>
 
-        <Text style={styles.sectionTitle}>3. Kullanıcı Sorumlulukları</Text>
-        <Text style={styles.listItem}>
-          • Doğru ve yanıltıcı olmayan ürün bilgileri sağlamak
-        </Text>
-        <Text style={styles.listItem}>
-          • Gerçekçi ve güncel fiyatlandırma yapmak
-        </Text>
-        <Text style={styles.listItem}>
-          • Yasal olmayan ürünleri listelememek
-        </Text>
-        <Text style={styles.listItem}>
-          • Diğer kullanıcılara saygılı davranmak
-        </Text>
-        <Text style={styles.listItem}>• Platform kurallarına uymak</Text>
+        <Text style={styles.sectionTitle}>{t("termsPage.s3Title")}</Text>
+        <Text style={styles.listItem}>{t("termsPage.s3Item1")}</Text>
+        <Text style={styles.listItem}>{t("termsPage.s3Item2")}</Text>
+        <Text style={styles.listItem}>{t("termsPage.s3Item3")}</Text>
+        <Text style={styles.listItem}>{t("termsPage.s3Item4")}</Text>
+        <Text style={styles.listItem}>{t("termsPage.s3Item5")}</Text>
 
-        <Text style={styles.sectionTitle}>4. İlan Kuralları</Text>
-        <Text style={styles.paragraph}>
-          İlanlarınızda şunları sağlamalısınız:
-        </Text>
-        <Text style={styles.listItem}>• Gerçek ürün fotoğrafları</Text>
-        <Text style={styles.listItem}>
-          • Doğru ürün açıklaması ve durum bilgisi
-        </Text>
-        <Text style={styles.listItem}>• Uygun kategori seçimi</Text>
-        <Text style={styles.listItem}>• Makul fiyatlandırma</Text>
+        <Text style={styles.sectionTitle}>{t("termsPage.s4Title")}</Text>
+        <Text style={styles.paragraph}>{t("termsPage.s4Intro")}</Text>
+        <Text style={styles.listItem}>{t("termsPage.s4Item1")}</Text>
+        <Text style={styles.listItem}>{t("termsPage.s4Item2")}</Text>
+        <Text style={styles.listItem}>{t("termsPage.s4Item3")}</Text>
+        <Text style={styles.listItem}>{t("termsPage.s4Item4")}</Text>
 
-        <Text style={styles.sectionTitle}>5. Satış ve Satın Alma</Text>
-        <Text style={styles.paragraph}>
-          Satıcılar, listelenen ürünleri belirtilen koşullarda ve sürede teslim
-          etmekle yükümlüdür. Alıcılar, ödeme yapmakla ve ürünü teslim almakla
-          yükümlüdür.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("termsPage.s5Title")}</Text>
+        <Text style={styles.paragraph}>{t("termsPage.s5Content")}</Text>
 
-        <Text style={styles.sectionTitle}>6. Takas İşlemleri</Text>
-        <Text style={styles.paragraph}>
-          Takas işlemleri, her iki tarafın da onayı ile gerçekleşir. Platform,
-          takas işlemlerinde aracılık eder ancak ürünlerin değerlemesinden
-          sorumlu değildir.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("termsPage.s6Title")}</Text>
+        <Text style={styles.paragraph}>{t("termsPage.s6Content")}</Text>
 
-        <Text style={styles.sectionTitle}>7. Ödeme ve Komisyonlar</Text>
-        <Text style={styles.paragraph}>
-          Satışlar üzerinden platform komisyonu alınır. Komisyon oranları üyelik
-          planına göre değişiklik gösterir. Ödemeler güvenli ödeme altyapısı
-          üzerinden işlenir.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("termsPage.s7Title")}</Text>
+        <Text style={styles.paragraph}>{t("termsPage.s7Content")}</Text>
 
-        <Text style={styles.sectionTitle}>8. İptal ve İade</Text>
-        <Text style={styles.paragraph}>
-          İade koşulları satıcı tarafından belirlenir. Platform, uyuşmazlık
-          durumunda arabuluculuk yapabilir. Mesafeli satış sözleşmesi kapsamında
-          yasal haklarınız saklıdır.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("termsPage.s8Title")}</Text>
+        <Text style={styles.paragraph}>{t("termsPage.s8Content")}</Text>
 
-        <Text style={styles.sectionTitle}>9. Fikri Mülkiyet</Text>
-        <Text style={styles.paragraph}>
-          Platform içeriği ve tasarımı Tarodan'a aittir. Kullanıcılar, kendi
-          içeriklerinin haklarına sahip olmalıdır ve başkalarının haklarını
-          ihlal etmemelidir.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("termsPage.s9Title")}</Text>
+        <Text style={styles.paragraph}>{t("termsPage.s9Content")}</Text>
 
-        <Text style={styles.sectionTitle}>10. Yasaklı Davranışlar</Text>
-        <Text style={styles.listItem}>• Sahte veya çalıntı ürün satışı</Text>
-        <Text style={styles.listItem}>• Fiyat manipülasyonu</Text>
-        <Text style={styles.listItem}>• Spam veya yanıltıcı içerik</Text>
-        <Text style={styles.listItem}>• Platform dışı ödeme yönlendirmesi</Text>
-        <Text style={styles.listItem}>• Taciz veya uygunsuz davranış</Text>
+        <Text style={styles.sectionTitle}>{t("termsPage.s10Title")}</Text>
+        <Text style={styles.listItem}>{t("termsPage.s10Item1")}</Text>
+        <Text style={styles.listItem}>{t("termsPage.s10Item2")}</Text>
+        <Text style={styles.listItem}>{t("termsPage.s10Item3")}</Text>
+        <Text style={styles.listItem}>{t("termsPage.s10Item4")}</Text>
+        <Text style={styles.listItem}>{t("termsPage.s10Item5")}</Text>
 
-        <Text style={styles.sectionTitle}>11. Hesap Askıya Alma</Text>
-        <Text style={styles.paragraph}>
-          Kural ihlali durumunda hesabınız uyarılabilir, geçici olarak askıya
-          alınabilir veya kalıcı olarak kapatılabilir.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("termsPage.s11Title")}</Text>
+        <Text style={styles.paragraph}>{t("termsPage.s11Content")}</Text>
 
-        <Text style={styles.sectionTitle}>12. Sorumluluk Sınırlaması</Text>
-        <Text style={styles.paragraph}>
-          Tarodan, kullanıcılar arasındaki işlemlerden, ürün kalitesinden veya
-          teslimat sorunlarından doğrudan sorumlu değildir. Platform yalnızca
-          aracılık hizmeti sağlar.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("termsPage.s12Title")}</Text>
+        <Text style={styles.paragraph}>{t("termsPage.s12Content")}</Text>
 
-        <Text style={styles.sectionTitle}>13. Değişiklikler</Text>
-        <Text style={styles.paragraph}>
-          Bu koşulları önceden bildirimde bulunarak değiştirme hakkımızı saklı
-          tutarız. Değişiklikler yayınlandıktan sonra platformu kullanmaya devam
-          etmeniz, yeni koşulları kabul ettiğiniz anlamına gelir.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("termsPage.s13Title")}</Text>
+        <Text style={styles.paragraph}>{t("termsPage.s13Content")}</Text>
 
-        <Text style={styles.sectionTitle}>14. Uyuşmazlık Çözümü</Text>
-        <Text style={styles.paragraph}>
-          İhtilaf halinde öncelikle platform üzerinden çözüm aranır. Çözülemeyen
-          uyuşmazlıklar Türk hukuku kapsamında İstanbul mahkemelerinde çözüme
-          kavuşturulur.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("termsPage.s14Title")}</Text>
+        <Text style={styles.paragraph}>{t("termsPage.s14Content")}</Text>
 
-        <Text style={styles.sectionTitle}>15. İletişim</Text>
-        <Text style={styles.paragraph}>
-          Sorularınız için bizimle iletişime geçebilirsiniz:
+        <Text style={styles.sectionTitle}>{t("termsPage.s15Title")}</Text>
+        <Text style={styles.paragraph}>{t("termsPage.s15Intro")}</Text>
+        <Text style={styles.contactInfo}>
+          {t("legalContact.emailLabel", { value: LEGAL_EMAIL })}
         </Text>
-        <Text style={styles.contactInfo}>E-posta: {LEGAL_EMAIL}</Text>
-        <Text style={styles.contactInfo}>Adres: İstanbul, Türkiye</Text>
+        <Text style={styles.contactInfo}>
+          {t("legalContact.addressLabel", {
+            value: t("information.contactInfo.addressValue"),
+          })}
+        </Text>
 
         <View style={{ height: 40 }} />
       </ScrollView>
