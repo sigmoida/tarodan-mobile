@@ -7089,6 +7089,7 @@
     "typeFixed": "Sabit (TL)",
     "valueLabelPercent": "Değer * (%)",
     "valueLabelFixed": "Değer * (TL)",
+    "productsSelectedCount": "{count} ürün seçildi",
     "scopeLabel": "Kapsam",
     "scopeAllStore": "Tüm Mağaza",
     "scopeSelected": "Seçili Ürünler",

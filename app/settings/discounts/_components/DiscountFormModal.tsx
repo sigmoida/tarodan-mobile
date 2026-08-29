@@ -91,7 +91,7 @@ export function DiscountFormModal({ f }: { f: DiscountsController }) {
               <Ionicons name="cube-outline" size={20} color={colors.primary[600]!} />
               <Text style={styles.productPickerText}>
                 {form.targetProductIds.length > 0
-                  ? `${form.targetProductIds.length} ürün seçildi`
+                  ? t('discount.productsSelectedCount', { count: form.targetProductIds.length })
                   : t('discount.pickProducts')}
               </Text>
               <Ionicons name="chevron-forward" size={18} color={colors.text.subtle} />

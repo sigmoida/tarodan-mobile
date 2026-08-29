@@ -7089,6 +7089,7 @@
     "typeFixed": "Fixed (TRY)",
     "valueLabelPercent": "Value * (%)",
     "valueLabelFixed": "Value * (TRY)",
+    "productsSelectedCount": "{count} items selected",
     "scopeLabel": "Scope",
     "scopeAllStore": "Entire Store",
     "scopeSelected": "Selected Items",
