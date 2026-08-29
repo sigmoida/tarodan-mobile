@@ -7649,5 +7649,21 @@
     "reviewCount": "({count} değerlendirme)",
     "productAccuracy": "Ürün Doğruluğu",
     "tradeFairness": "Takas Adaleti"
+  },
+  "shareModal": {
+    "typeCollection": "Koleksiyonu Paylaş",
+    "typeProduct": "Ürünü Paylaş",
+    "typeProfile": "Profili Paylaş",
+    "urlLabel": "Paylaşım Linki",
+    "qrHide": "QR Kodu Gizle",
+    "qrShow": "QR Kod Göster",
+    "qrHint": "Telefonunuzla tarayarak koleksiyona erişebilirsiniz",
+    "socialShareTitle": "Sosyal Medyada Paylaş",
+    "otherApps": "Diğer Uygulamalar",
+    "embedCopied": "Embed kodu kopyalandı!",
+    "embedCopyCta": "Web sitesi için embed kodu kopyala",
+    "instagramCopyHint": "Linki kopyalayıp Instagram'da paylaşabilirsiniz",
+    "whatsappOpenFailed": "WhatsApp açılamadı",
+    "telegramOpenFailed": "Telegram açılamadı"
   }
 }

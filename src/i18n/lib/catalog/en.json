@@ -7649,5 +7649,21 @@
     "reviewCount": "({count} reviews)",
     "productAccuracy": "Product Accuracy",
     "tradeFairness": "Trade Fairness"
+  },
+  "shareModal": {
+    "typeCollection": "Share Collection",
+    "typeProduct": "Share Product",
+    "typeProfile": "Share Profile",
+    "urlLabel": "Share Link",
+    "qrHide": "Hide QR Code",
+    "qrShow": "Show QR Code",
+    "qrHint": "Scan with your phone to access the collection",
+    "socialShareTitle": "Share on Social Media",
+    "otherApps": "Other Apps",
+    "embedCopied": "Embed code copied!",
+    "embedCopyCta": "Copy embed code for your website",
+    "instagramCopyHint": "You can copy the link and share it on Instagram",
+    "whatsappOpenFailed": "Couldn't open WhatsApp",
+    "telegramOpenFailed": "Couldn't open Telegram"
   }
 }
