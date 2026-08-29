@@ -54,6 +54,31 @@ describe('katalog anahtar iskeleti', () => {
   });
 });
 
+describe('ICU kesme işareti kaçışı', () => {
+  /**
+   * ICU'da tek tırnak, hemen ardından `{` ya da `}` gelirse ALINTI açar ve
+   * argümanı yutar: `Takas durumu '{status}' kabul edilemez` ekrana
+   * "Takas durumu {status} kabul edilemez" diye basıyordu — yedi anahtarda,
+   * iki dilde. Ölçüldü (2026-08-29), sonra çiftlenerek düzeltildi.
+   *
+   * Harfin önündeki tek tırnak (`Premium'a`) ICU 4.8 davranışında zararsızdır;
+   * bu test yalnız süslü parantezden önce gelen tırnağı yakalar — yani kuralı
+   * gereğinden geniş uygulayıp katalogdaki her kesme işaretini kovalamaz.
+   */
+  it('süslü parantezden önce çiftlenmemiş tırnak yok', () => {
+    const risky: string[] = [];
+    for (const [locale, catalog] of [['tr', tr], ['en', en]] as const) {
+      for (const key of flatten(catalog)) {
+        const value = key.split('.').reduce((o: any, k) => o[k], catalog) as string;
+        if (/(^|[^'])'[{}]/.test(value)) risky.push(`${locale}:${key} → ${value}`);
+      }
+    }
+    // Düşerse: tırnağı çiftle (`''{arg}''`). Aksi halde argüman ekrana hiç
+    // yerleşmez ve kullanıcı ham `{arg}` görür.
+    expect(risky).toEqual([]);
+  });
+});
+
 describe('üretilen tipler', () => {
   it('`keys.ts` katalogla aynı hizada — elle düzenlenmemiş', () => {
     // `node scripts/gen-keys.mjs` çıktısı dosyadakiyle birebir olmalı. Aksi
