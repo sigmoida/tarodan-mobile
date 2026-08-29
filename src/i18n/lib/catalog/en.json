@@ -1597,7 +1597,9 @@
     "sentOffers": "Sent Offers",
     "myOffers": "Offers",
     "minimumOffer": "Minimum offer",
+    "minimumOfferErrorTl": "Minimum offer ₺{amount} (50% of the price).",
     "yourOfferAmount": "Your Offer Amount (TL)",
+    "amountPlaceholderExample": "E.g. 1500",
     "acceptFailed": "Failed to accept offer",
     "rejectFailed": "Failed to reject offer",
     "cancelFailed": "Failed to cancel offer",
@@ -1613,6 +1615,7 @@
     "waitingForBuyerResponse": "Waiting for the buyer to accept or reject your counter-offer.",
     "acceptCounterOffer": "Accept counter-offer",
     "lowerOffer": "Lower offer",
+    "discountBelowListText": "{amount} ({percent}%) lower than the list price",
     "payAmount": "Pay · {amount}",
     "counterMustBeHigher": "The counter-offer must be higher than the current offer ({amount})",
     "counterMustNotExceedPrice": "The counter-offer cannot be higher than the listing price ({amount})",
@@ -1632,6 +1635,8 @@
     "acceptedOrderCreated": "Offer accepted. Order created.",
     "invalidAmountTitle": "Invalid amount",
     "enterPositiveAmount": "Enter a positive amount.",
+    "aboveListPriceError": "Your offer is higher than or equal to the list price. You can use the buy now option instead.",
+    "offerDeliveryNotice": "Your offer will be sent to the seller. If accepted, it converts automatically into an order.",
     "detailTitle": "Offer Details",
     "createdAtLabel": "Created:",
     "counterOfferCta": "Make a Counter-Offer",
@@ -7203,6 +7208,16 @@
     "materialPickerEmpty": "No materials found",
     "manufacturerPickerEmpty": "No manufacturers found",
     "yearPickerEmpty": "No years found"
+  },
+  "boost": {
+    "title": "Boost Listing",
+    "subtitleSuffix": " Show this listing higher in search, category, and home page results for the duration you choose.",
+    "activeNotice": "This listing already has an active boost: ~{remainingDays} days left. The duration you choose is added on top of the remaining time.",
+    "activeNoticeTotal": " Total will be ~{totalDays} days.",
+    "noPackages": "No suitable boost package was found.",
+    "autoRenewLabel": "Get a reminder to auto-renew when the boost ends (Premium)",
+    "extendAndPay": "Extend and Pay",
+    "boostAndPay": "Boost and Pay"
   },
   "business": {
     "tabOverview": "Overview",

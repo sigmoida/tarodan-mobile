@@ -1597,7 +1597,9 @@
     "sentOffers": "Gönderilen Teklifler",
     "myOffers": "Teklifler",
     "minimumOffer": "Minimum teklif",
+    "minimumOfferErrorTl": "Minimum teklif ₺{amount} (fiyatın %50'si).",
     "yourOfferAmount": "Teklif Tutarınız (TL)",
+    "amountPlaceholderExample": "Örn. 1500",
     "acceptFailed": "Teklif kabul edilirken hata oluştu",
     "rejectFailed": "Teklif reddedilirken hata oluştu",
     "cancelFailed": "Teklif iptal edilirken hata oluştu",
@@ -1613,6 +1615,7 @@
     "waitingForBuyerResponse": "Alıcının karşı teklifinizi kabul veya reddetmesi bekleniyor.",
     "acceptCounterOffer": "Karşı teklifi kabul et",
     "lowerOffer": "Daha düşük teklif",
+    "discountBelowListText": "Liste fiyatından {amount} ({percent}%) daha düşük",
     "payAmount": "Ödeme Yap · {amount}",
     "counterMustBeHigher": "Karşı teklif, mevcut tekliften ({amount}) yüksek olmalıdır",
     "counterMustNotExceedPrice": "Karşı teklif, ürün fiyatından ({amount}) yüksek olamaz",
@@ -1632,6 +1635,8 @@
     "acceptedOrderCreated": "Teklif kabul edildi. Sipariş oluşturuldu.",
     "invalidAmountTitle": "Geçersiz tutar",
     "enterPositiveAmount": "Pozitif bir tutar girin.",
+    "aboveListPriceError": "Teklifiniz liste fiyatından yüksek veya eşit. Doğrudan satın alma seçeneğini kullanabilirsiniz.",
+    "offerDeliveryNotice": "Teklifiniz satıcıya iletilir. Satıcı kabul ederse otomatik olarak siparişe dönüştürülür.",
     "detailTitle": "Teklif Detayı",
     "createdAtLabel": "Oluşturuldu:",
     "counterOfferCta": "Karşı Teklif Ver",
@@ -7203,6 +7208,16 @@
     "materialPickerEmpty": "Malzeme bulunamadı",
     "manufacturerPickerEmpty": "Üretici bulunamadı",
     "yearPickerEmpty": "Yıl bulunamadı"
+  },
+  "boost": {
+    "title": "İlanı Öne Çıkar",
+    "subtitleSuffix": " ilanını seçtiğiniz süre boyunca arama, kategori ve ana sayfa vitrininde üst sıralarda gösterin.",
+    "activeNotice": "Bu ilanda aktif öne çıkarma var: ~{remainingDays} gün kaldı. Seçtiğiniz süre kalan sürenin üstüne eklenir.",
+    "activeNoticeTotal": " Toplam ~{totalDays} gün olacak.",
+    "noPackages": "Uygun bir öne çıkarma paketi bulunamadı.",
+    "autoRenewLabel": "Süre bitince otomatik yenileme hatırlatması al (Premium)",
+    "extendAndPay": "Süreyi Uzat ve Öde",
+    "boostAndPay": "Öne Çıkar ve Öde"
   },
   "business": {
     "tabOverview": "Genel Bakış",
