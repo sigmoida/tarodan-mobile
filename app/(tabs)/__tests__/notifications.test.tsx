@@ -99,7 +99,7 @@ describe('J38 · bildirim listesi ve okunmamış sayaç', () => {
     getUnreadCount.mockResolvedValue({ data: { count: 0 } });
     renderWithProviders(<NotificationsScreen />);
 
-    expect(await screen.findByText('Henüz bildirimin yok')).toBeOnTheScreen();
+    expect(await screen.findByText('Henüz bildirim yok')).toBeOnTheScreen();
   });
 
   it('J38.4 giriş yapılmadıysa giriş yap boş durumu gösterilir', async () => {
@@ -118,7 +118,7 @@ describe('J113 · tümünü okundu butonu ve navigasyon wiring', () => {
     getUnreadCount.mockResolvedValue({ data: { count: 1 } });
     renderWithProviders(<NotificationsScreen />);
 
-    const btn = await screen.findByText('Tümünü Okundu');
+    const btn = await screen.findByText('Tümünü oku');
     fireEvent.press(btn);
     await waitFor(() => expect(markAllAsRead).toHaveBeenCalledTimes(1));
   });
@@ -131,7 +131,7 @@ describe('J113 · tümünü okundu butonu ve navigasyon wiring', () => {
     renderWithProviders(<NotificationsScreen />);
 
     await screen.findByText('Yeni Mesaj');
-    expect(screen.queryByText('Tümünü Okundu')).toBeNull();
+    expect(screen.queryByText('Tümünü oku')).toBeNull();
   });
 
   it('J113.3 bildirime tıklayınca ilgili rotaya push edilir', async () => {

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Image, TouchableOpacity } from 'react-native';
 import { Text } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { formatRelativeDate } from '@/utils/format';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
@@ -16,6 +17,7 @@ function NotificationRowBase({
   item: Notification;
   onPress: (item: Notification) => void;
 }) {
+  const { t } = useTranslation();
   const isUnread = !(item.read || item.isRead);
   const { icon, color, bg } = getIconForType(item.type);
 
@@ -45,7 +47,7 @@ function NotificationRowBase({
           {item.message}
         </Text>
         <Text variant="caption" tone="subtle">
-          {formatRelativeDate(item.createdAt)}
+          {formatRelativeDate(item.createdAt, t)}
         </Text>
       </View>
       {isUnread ? <View style={styles.dot} /> : null}

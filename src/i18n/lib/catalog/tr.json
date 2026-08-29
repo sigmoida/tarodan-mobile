@@ -1619,7 +1619,8 @@
     "noMessagesYet": "Henüz mesaj yok",
     "tryDifferentSearch": "Farklı bir arama terimi deneyin",
     "startConversationShort": "Bir satıcıyla iletişime geçerek başlayın",
-    "generalMessage": "Genel mesaj"
+    "generalMessage": "Genel mesaj",
+    "dailyLimitError": "Günlük mesaj limitine ulaştınız"
   },
   "membership": {
     "title": "Üyelik Planları",
@@ -1994,7 +1995,10 @@
     "marketingLabel": "Pazarlama ve Teklifler",
     "marketingDesc": "Kampanya ve özel tekliflerden haberdar ol",
     "emailDesc": "Yukarıdaki türler için e-posta gönderilsin",
-    "smsDesc": "Önemli güncellemeler için SMS gönderilsin"
+    "smsDesc": "Önemli güncellemeler için SMS gönderilsin",
+    "loginToView": "Bildirimleri görmek için giriş yapın",
+    "loginPromptDesc": "Siparişleriniz, tekliflerileriniz ve mesajlarınız için anlık bildirimler burada görünür.",
+    "emptyListDesc": "Yeni sipariş, teklif ve mesaj bildirimlerin burada görünür."
   },
   "profile": {
     "profile": "Profil",
@@ -2286,7 +2290,13 @@
     "now": "şimdi",
     "minuteShort": "dk",
     "hourShort": "sa",
-    "dayShort": "g"
+    "dayShort": "g",
+    "relative": {
+      "justNow": "Az önce",
+      "minutes": "{count} dk önce",
+      "hours": "{count} sa önce",
+      "days": "{count} gün önce"
+    }
   },
   "language": {
     "language": "Dil",

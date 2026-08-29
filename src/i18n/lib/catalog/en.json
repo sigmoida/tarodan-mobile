@@ -1619,7 +1619,8 @@
     "noMessagesYet": "No messages yet",
     "tryDifferentSearch": "Try a different search term",
     "startConversationShort": "Contact a seller to get started",
-    "generalMessage": "General message"
+    "generalMessage": "General message",
+    "dailyLimitError": "You've reached your daily message limit"
   },
   "membership": {
     "title": "Membership Plans",
@@ -1994,7 +1995,10 @@
     "marketingLabel": "Marketing and Offers",
     "marketingDesc": "Hear about campaigns and special offers",
     "emailDesc": "Send e-mail for the types above",
-    "smsDesc": "Send SMS for important updates"
+    "smsDesc": "Send SMS for important updates",
+    "loginToView": "Sign in to see your notifications",
+    "loginPromptDesc": "Instant notifications for your orders, offers, and messages appear here.",
+    "emptyListDesc": "New order, offer, and message notifications will appear here."
   },
   "profile": {
     "profile": "Profile",
@@ -2286,7 +2290,13 @@
     "now": "now",
     "minuteShort": "m",
     "hourShort": "h",
-    "dayShort": "d"
+    "dayShort": "d",
+    "relative": {
+      "justNow": "Just now",
+      "minutes": "{count} min ago",
+      "hours": "{count} hr ago",
+      "days": "{count, plural, one {# day ago} other {# days ago}}"
+    }
   },
   "language": {
     "language": "Language",
