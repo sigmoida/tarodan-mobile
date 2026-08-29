@@ -2,6 +2,7 @@ import { View, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
 import type { Listing } from '../_lib/types';
@@ -11,6 +12,7 @@ const { colors } = theme;
 
 /** Tek ilan satırı — foto/başlık/fiyat + ekle/çıkar toggle (optimistic). */
 export function ListingPickerRow({ listing, f }: { listing: Listing; f: AddItemsController }) {
+  const { t } = useTranslation();
   const added = !!f.effectiveItemId(listing.id);
   const busy = !!f.pending[listing.id];
 
@@ -28,7 +30,7 @@ export function ListingPickerRow({ listing, f }: { listing: Listing; f: AddItems
         style={[styles.toggleBtn, added && styles.toggleBtnAdded]}
         onPress={() => f.toggle(listing)}
         disabled={busy}
-        accessibilityLabel={added ? 'Koleksiyondan çıkar' : 'Koleksiyona ekle'}
+        accessibilityLabel={added ? t('collection.removeFromCollection') : t('collection.addToCollection')}
       >
         {busy ? (
           <ActivityIndicator size="small" color={added ? colors.white : colors.primary[600]!} />
