@@ -2,6 +2,20 @@
  * Format helpers ported from apps/web/src/lib/format.ts.
  * Mobile uyumunu (parite) korumak için her fonksiyonun imzası ve davranışı web ile birebir aynıdır.
  */
+import i18n from '@/i18n/config';
+
+/**
+ * Sayı/tarih biçimlendirmesi için AKTİF dile göre `Intl` locale etiketi.
+ *
+ * ⚠️ React DIŞI bir modülüz — `useTranslation` çağıramayız; global `i18n`
+ * örneğinden ÇAĞRI ANINDA okuruz (import anında okumak metni ilk yüklenen
+ * dilde dondururdu — bkz. `paytrDirectForm.ts`). Yalnız GÖSTERİM biçimi
+ * (binlik ayraç, ay adı) dile göre değişir — para birimi hep TL: bu Türkiye
+ * pazaryeri, fiyatlar lira; `formatPrice`'ın " TL" son eki dilden bağımsızdır.
+ */
+function activeNumberLocale(): string {
+  return i18n.language === 'en' ? 'en-US' : 'tr-TR';
+}
 
 /**
  * Backend'den brand/scale/category bazen string ("AutoArt"), bazen obje ({id,name,slug}) gelir.
@@ -21,17 +35,21 @@ export function asLabel(value: unknown, fallback: string = ''): string {
 }
 
 export function formatPrice(price: number | string | null | undefined): string {
+  const zero = (0).toLocaleString(activeNumberLocale(), {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
   if (price === null || price === undefined) {
-    return '0,00 TL';
+    return `${zero} TL`;
   }
 
   const numPrice = typeof price === 'string' ? parseFloat(price) : price;
 
   if (isNaN(numPrice)) {
-    return '0,00 TL';
+    return `${zero} TL`;
   }
 
-  return `${numPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL`;
+  return `${numPrice.toLocaleString(activeNumberLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL`;
 }
 
 /** Sunucu tutarı henüz bilinmiyorken basılan yer tutucu. */
@@ -80,17 +98,21 @@ export function formatServerPrice(price: number | string | null | undefined): st
 }
 
 export function formatPriceNumber(price: number | string | null | undefined): string {
+  const zero = (0).toLocaleString(activeNumberLocale(), {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
   if (price === null || price === undefined) {
-    return '0,00';
+    return zero;
   }
 
   const numPrice = typeof price === 'string' ? parseFloat(price) : price;
 
   if (isNaN(numPrice)) {
-    return '0,00';
+    return zero;
   }
 
-  return numPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return numPrice.toLocaleString(activeNumberLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export function formatCondition(condition: string | null | undefined, locale: string = 'tr'): string {
@@ -245,7 +267,10 @@ export function formatOfferStatus(status: string | null | undefined, locale: str
 /**
  * Relative date formatter: "2 saat önce", "3 gün önce", "tam tarih"
  */
-export function formatRelativeDate(date: string | Date | null | undefined, locale: string = 'tr'): string {
+export function formatRelativeDate(
+  date: string | Date | null | undefined,
+  locale: string = i18n.language,
+): string {
   if (!date) return '';
 
   const d = typeof date === 'string' ? new Date(date) : date;
