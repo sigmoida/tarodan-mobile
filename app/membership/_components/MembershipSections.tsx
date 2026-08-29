@@ -8,7 +8,7 @@ import { styles } from '../_lib/membershipStyles';
 import {
   TIER_COLORS,
   TIER_ICONS,
-  TIER_NAMES,
+  buildTierNames,
   formatTL,
   type TierType,
 } from '../_lib/membershipTiers';
@@ -22,14 +22,14 @@ type SectionProps = { f: MembershipController };
 // Error + pending-payment banners
 // ---------------------------------------------------------------------------
 export function MembershipBanners({ f }: SectionProps) {
-  const { membership } = f;
+  const { membership, t } = f;
   return (
     <>
       {f.error ? (
         <TouchableOpacity style={styles.errorBanner} onPress={f.fetchData} activeOpacity={0.8}>
           <Ionicons name="alert-circle" size={18} color={colors.danger[600]!} />
           <Text style={styles.errorBannerText}>{f.error}</Text>
-          <Text style={styles.errorBannerRetry}>Tekrar dene</Text>
+          <Text style={styles.errorBannerRetry}>{t('common.tryAgain')}</Text>
         </TouchableOpacity>
       ) : null}
 
@@ -45,9 +45,11 @@ export function MembershipBanners({ f }: SectionProps) {
           <Ionicons name="warning" size={22} color={colors.warning[800]!} />
           <View style={styles.pendingBannerText}>
             <Text style={styles.pendingTitle}>
-              Ödeme Bekleniyor – {membership?.pendingPayment?.tierName || membership?.pendingTierName || 'Plan'}
+              {t('membership.pendingPaymentTitle', {
+                tierName: membership?.pendingPayment?.tierName || membership?.pendingTierName || t('membership.planFallback'),
+              })}
             </Text>
-            <Text style={styles.pendingSubtitle}>Ödemeyi tamamlamak için dokunun</Text>
+            <Text style={styles.pendingSubtitle}>{t('membership.pendingPaymentSubtitle')}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.warning[800]!} />
         </TouchableOpacity>
@@ -60,22 +62,25 @@ export function MembershipBanners({ f }: SectionProps) {
 // Current plan summary card
 // ---------------------------------------------------------------------------
 export function MembershipCurrentPlan({ f }: SectionProps) {
-  const { currentTier, membership } = f;
+  const { currentTier, membership, t } = f;
+  const tierNames = buildTierNames(t);
   return (
     <View style={styles.currentPlanCard}>
       <View style={[styles.currentPlanIcon, { backgroundColor: TIER_COLORS[currentTier] + '20' }]}>
         <Ionicons name={TIER_ICONS[currentTier]} size={28} color={TIER_COLORS[currentTier]} />
       </View>
-      <Text style={styles.currentPlanLabel}>Mevcut Planınız</Text>
+      <Text style={styles.currentPlanLabel}>{t('membership.currentPlan')}</Text>
       <Text style={[styles.currentPlanName, { color: TIER_COLORS[currentTier] }]}>
-        {TIER_NAMES[currentTier]}
+        {tierNames[currentTier]}
       </Text>
       {membership?.currentPeriodEnd && currentTier !== 'free' && (
         <Text style={styles.currentPlanExpiry}>
-          Yenilenme: {new Date(membership.currentPeriodEnd).toLocaleDateString('tr-TR', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
+          {t('membership.renewalLabel', {
+            date: new Date(membership.currentPeriodEnd).toLocaleDateString('tr-TR', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            }),
           })}
         </Text>
       )}
@@ -87,7 +92,7 @@ export function MembershipCurrentPlan({ f }: SectionProps) {
       >
         <Ionicons name="settings-outline" size={16} color={colors.primary[600]!} />
         <Text style={styles.manageButtonText}>
-          Üyelik Yönetimi (otomatik yenileme & kayıtlı kartlar)
+          {t('membership.manageMembershipHint')}
         </Text>
         <Ionicons name="chevron-forward" size={16} color={colors.primary[600]!} />
       </TouchableOpacity>
@@ -99,21 +104,22 @@ export function MembershipCurrentPlan({ f }: SectionProps) {
 // Billing period toggle (monthly / yearly)
 // ---------------------------------------------------------------------------
 export function MembershipBillingToggle({ f }: SectionProps) {
+  const { t } = f;
   return (
     <View style={styles.toggleContainer}>
       <TouchableOpacity
         style={[styles.toggleButton, f.billingPeriod === 'monthly' && styles.toggleButtonActive]}
         onPress={() => f.setBillingPeriod('monthly')}
       >
-        <Text style={[styles.toggleText, f.billingPeriod === 'monthly' && styles.toggleTextActive]}>Aylık</Text>
+        <Text style={[styles.toggleText, f.billingPeriod === 'monthly' && styles.toggleTextActive]}>{t('membership.monthly')}</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.toggleButton, f.billingPeriod === 'yearly' && styles.toggleButtonActive]}
         onPress={() => f.setBillingPeriod('yearly')}
       >
-        <Text style={[styles.toggleText, f.billingPeriod === 'yearly' && styles.toggleTextActive]}>Yıllık</Text>
+        <Text style={[styles.toggleText, f.billingPeriod === 'yearly' && styles.toggleTextActive]}>{t('membership.yearly')}</Text>
         <View style={styles.discountBadge}>
-          <Text style={styles.discountBadgeText}>%{f.settings.yearly_discount_percentage ?? 20} indirim</Text>
+          <Text style={styles.discountBadgeText}>{t('membership.discountBadge', { percent: f.settings.yearly_discount_percentage ?? 20 })}</Text>
         </View>
       </TouchableOpacity>
     </View>
@@ -124,6 +130,8 @@ export function MembershipBillingToggle({ f }: SectionProps) {
 // Horizontal tier cards
 // ---------------------------------------------------------------------------
 function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
+  const { t } = f;
+  const tierNames = buildTierNames(t);
   const price = f.getPrice(tier);
   const isCurrent = tier === f.currentTier;
   const isUpgrade = f.tierIndex(tier) > f.tierIndex(f.currentTier);
@@ -135,7 +143,7 @@ function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
       {/* Popular badge for premium */}
       {tier === 'premium' && (
         <View style={[styles.popularBadge, { backgroundColor: color }]}>
-          <Text style={styles.popularBadgeText}>En Popüler</Text>
+          <Text style={styles.popularBadgeText}>{t('membership.mostPopular')}</Text>
         </View>
       )}
 
@@ -143,7 +151,7 @@ function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
       {isCurrent && (
         <View style={[styles.currentBadge, { backgroundColor: color }]}>
           <Ionicons name="checkmark-circle" size={14} color={colors.white} />
-          <Text style={styles.currentBadgeText}>Mevcut Plan</Text>
+          <Text style={styles.currentBadgeText}>{t('membership.currentPlanBadge')}</Text>
         </View>
       )}
 
@@ -151,22 +159,22 @@ function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
         <Ionicons name={TIER_ICONS[tier]} size={24} color={color} />
       </View>
 
-      <Text style={[styles.tierName, { color }]}>{TIER_NAMES[tier]}</Text>
+      <Text style={[styles.tierName, { color }]}>{tierNames[tier]}</Text>
 
       <View style={styles.tierPriceRow}>
         {price === 0 ? (
-          <Text style={styles.tierPriceFree}>Ücretsiz</Text>
+          <Text style={styles.tierPriceFree}>{t('membership.free')}</Text>
         ) : (
           <>
             <Text style={styles.tierPrice}>{formatTL(price)} ₺</Text>
-            <Text style={styles.tierPricePeriod}>/{f.billingPeriod === 'monthly' ? 'ay' : 'yıl'}</Text>
+            <Text style={styles.tierPricePeriod}>{f.billingPeriod === 'monthly' ? t('membership.perMonth') : t('membership.perYear')}</Text>
           </>
         )}
       </View>
 
       {f.billingPeriod === 'yearly' && price > 0 && (
         <Text style={styles.tierMonthlyEquiv}>
-          Aylık ~{Math.round(price / 12).toLocaleString('tr-TR')} ₺
+          {t('membership.monthlyEquivLabel', { amount: Math.round(price / 12).toLocaleString('tr-TR') })}
         </Text>
       )}
 
@@ -206,12 +214,12 @@ function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
           ]}
         >
           {isCurrent
-            ? 'Mevcut Plan'
+            ? t('membership.currentPlanBadge')
             : tier === 'free'
-              ? 'Ücretsiz'
+              ? t('membership.free')
               : isUpgrade
-                ? 'Yükselt'
-                : 'Alt Plan'}
+                ? t('membership.upgrade')
+                : t('membership.lowerPlanButton')}
         </Text>
       </TouchableOpacity>
     </View>

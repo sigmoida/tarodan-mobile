@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { appAlert } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
@@ -6,7 +6,7 @@ import { membershipApi } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 import {
   TIER_ORDER,
-  TIER_FEATURES,
+  buildTierFeatures,
   mapTiersToSettings,
   getDefaultMonthly,
   type TierType,
@@ -21,6 +21,7 @@ import {
  */
 export function useMembership() {
   const { t } = useTranslation();
+  const tierFeatures = useMemo(() => buildTierFeatures(t), [t]);
   const { isAuthenticated, user, logout } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +65,7 @@ export function useMembership() {
     }
     if (membershipRes.status === "rejected" && tiersRes.status === "rejected") {
       console.error("Failed to load membership data:", membershipRes.reason);
-      setError("Üyelik bilgileri yüklenemedi. Lütfen tekrar deneyin.");
+      setError(t("membership.loadError"));
     }
     setLoading(false);
   };
@@ -91,12 +92,12 @@ export function useMembership() {
   // Kilitli kullanıcı için çıkış yolu: onaylı logout → giriş ekranı.
   const handleLockedExit = () =>
     appAlert(
-      "Çıkış yap",
-      "Kurumsal hesabınız için Business üyeliği tamamlanmadan uygulamayı kullanamazsınız. Çıkış yapmak ister misiniz?",
+      t("common.logout"),
+      t("membership.businessLockedExitBody"),
       [
-        { text: "Vazgeç", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Çıkış yap",
+          text: t("common.logout"),
           style: "destructive",
           onPress: async () => {
             await logout();
@@ -143,25 +144,25 @@ export function useMembership() {
   const getListingLimit = (tier: TierType): string => {
     const key = `${tier}_listing_limit` as keyof PlatformSettings;
     const limit = settings[key] as number | undefined;
-    if (limit === -1) return "Sınırsız ilan";
-    if (limit) return `${limit} ilan`;
+    if (limit === -1) return t("membership.tierLimitUnlimitedListings");
+    if (limit) return t("membership.tierLimitListings", { count: limit });
 
     switch (tier) {
       case "free":
-        return "10 ilan";
+        return t("membership.tierLimitListings", { count: 10 });
       case "basic":
-        return `${settings.basic_listing_limit ?? 50} ilan`;
+        return t("membership.tierLimitListings", { count: settings.basic_listing_limit ?? 50 });
       case "premium":
-        return "Sınırsız ilan";
+        return t("membership.tierLimitUnlimitedListings");
       case "business":
-        return "Sınırsız ilan";
+        return t("membership.tierLimitUnlimitedListings");
       default:
-        return "10 ilan";
+        return t("membership.tierLimitListings", { count: 10 });
     }
   };
 
   const getFeatures = (tier: TierType): string[] => {
-    const base = [...TIER_FEATURES[tier]];
+    const base = [...tierFeatures[tier]];
     if (tier !== "free") {
       base[0] = getListingLimit(tier);
     }
@@ -174,8 +175,8 @@ export function useMembership() {
     if (tier === "free" || tier === currentTier) return;
     if (tierIndex(tier) < tierIndex(currentTier)) {
       appAlert(
-        "Alt plana geçiş",
-        "Mevcut üyelik döneminiz sürerken daha düşük bir plana geçemezsiniz. Üyeliğinizi iptal edip dönem sonunda ücretsiz plana düştükten sonra istediğiniz plana geçebilirsiniz.",
+        t("membership.lowerTierAlertTitle"),
+        t("membership.lowerTierAlertBody"),
       );
       return;
     }
