@@ -89,11 +89,11 @@ export function TradeActions({
       {trade.status === 'pending' && isReceiver && (
         <>
           <View style={{ marginBottom: theme.spacing[3] }}>
-            <TradeAddressPicker label="Teslimat Adresi" onChange={actions.setTradeAddressId} />
+            <TradeAddressPicker label={t('address.deliveryAddress')} onChange={actions.setTradeAddressId} />
           </View>
           <Button
             variant="primary"
-            title="Kabul Et"
+            title={t('trade.acceptTrade')}
             onPress={actions.handleAccept}
             isLoading={actions.acceptPending}
             style={styles.actionButton}
@@ -101,13 +101,13 @@ export function TradeActions({
           <View style={styles.actionRow}>
             <Button
               variant="outline"
-              title="Karşı Teklif"
+              title={t('trade.counterOffer')}
               onPress={() => router.push(`/trade/counter/${id}` as any)}
               style={{ ...styles.actionButton, ...styles.actionItem }}
             />
             <Button
               variant="outline"
-              title="Reddet"
+              title={t('trade.rejectTrade')}
               onPress={actions.openReject}
               isLoading={actions.rejectPending}
               style={{ ...styles.actionButton, ...styles.actionItem, borderColor: colors.danger[600]! }}
@@ -188,7 +188,7 @@ export function TradeActions({
           <Button
             testID="trade-confirm-delivery-button"
             variant="primary"
-            title="Teslim Aldım"
+            title={t('trade.iReceivedIt')}
             onPress={actions.confirm}
             isLoading={actions.confirmPending}
             disabled={myFromWarehouseStatus !== 'delivered'}
@@ -211,7 +211,7 @@ export function TradeActions({
       {/* Message other party */}
       <Button
         variant="ghost"
-        title="Mesaj Gönder"
+        title={t('message.sendMessage')}
         onPress={() => router.push(`/messages/new?receiverId=${otherPartyId}`)}
         style={styles.actionButton}
       />

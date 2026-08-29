@@ -1335,6 +1335,7 @@
     "tradeRejected": "Takas reddedildi",
     "rejectFailed": "Takas reddedilemedi",
     "cancelConfirmTitle": "Takası iptal et",
+    "stepPayment": "Ödeme",
     "stepShipToWarehouse": "Depoya Kargolanıyor",
     "stepShippingToYou": "Size Kargolanıyor",
     "tradeProgress": "Takas Aşamaları",

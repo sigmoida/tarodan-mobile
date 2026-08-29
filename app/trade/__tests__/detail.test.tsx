@@ -145,7 +145,7 @@ describe("J5 · Takas detayı durum rozetleri", () => {
     await waitFor(() =>
       expect(screen.getAllByText("trade.statusReturning").length).toBeGreaterThan(0),
     );
-    expect(screen.getByText("Takas Reddedildi")).toBeOnTheScreen();
+    expect(screen.getByText("trade.returningBannerTitle")).toBeOnTheScreen();
   });
 
   it("J5.5 takas bulunamazsa hata durumu gösterilir", async () => {
@@ -168,9 +168,9 @@ describe("J5 · Aksiyon buton görünürlüğü", () => {
       data: { data: tradeFixture({ status: "pending" }) },
     });
     renderWithProviders(<TradeDetailScreen />);
-    await waitFor(() => expect(screen.getByText("Kabul Et")).toBeOnTheScreen());
-    expect(screen.getByText("Karşı Teklif")).toBeOnTheScreen();
-    expect(screen.getByText("Reddet")).toBeOnTheScreen();
+    await waitFor(() => expect(screen.getByText("trade.acceptTrade")).toBeOnTheScreen());
+    expect(screen.getByText("trade.counterOffer")).toBeOnTheScreen();
+    expect(screen.getByText("trade.rejectTrade")).toBeOnTheScreen();
   });
 
   it("J5.7 initiator + pending → Kabul Et butonu görünmez", async () => {
@@ -182,7 +182,7 @@ describe("J5 · Aksiyon buton görünürlüğü", () => {
     await waitFor(() =>
       expect(screen.getAllByText("trade.tradeNumberTitle").length).toBeGreaterThan(0),
     );
-    expect(screen.queryByText("Kabul Et")).toBeNull();
+    expect(screen.queryByText("trade.acceptTrade")).toBeNull();
   });
 
   it('J5.9 receiver + pending → "Teklifi İptal Et" görünmez (aksiyonu Reddet)', async () => {
@@ -190,7 +190,7 @@ describe("J5 · Aksiyon buton görünürlüğü", () => {
       data: { data: tradeFixture({ status: "pending", canCancel: true }) },
     });
     renderWithProviders(<TradeDetailScreen />);
-    await waitFor(() => expect(screen.getByText("Reddet")).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText("trade.rejectTrade")).toBeOnTheScreen());
     expect(screen.queryByText("trade.cancel.offerCta")).toBeNull();
   });
 
@@ -203,7 +203,7 @@ describe("J5 · Aksiyon buton görünürlüğü", () => {
     await waitFor(() =>
       expect(screen.getByText("trade.cancel.offerCta")).toBeOnTheScreen(),
     );
-    expect(screen.queryByText("Reddet")).toBeNull();
+    expect(screen.queryByText("trade.rejectTrade")).toBeNull();
   });
 
   it('J5.8 "Karşı Teklif" → router.push counter ekranına', async () => {
@@ -212,9 +212,9 @@ describe("J5 · Aksiyon buton görünürlüğü", () => {
     });
     renderWithProviders(<TradeDetailScreen />);
     await waitFor(() =>
-      expect(screen.getByText("Karşı Teklif")).toBeOnTheScreen(),
+      expect(screen.getByText("trade.counterOffer")).toBeOnTheScreen(),
     );
-    fireEvent.press(screen.getByText("Karşı Teklif"));
+    fireEvent.press(screen.getByText("trade.counterOffer"));
     expect(mockPush).toHaveBeenCalledWith("/trade/counter/trade-1");
   });
 });
@@ -321,7 +321,7 @@ describe("Takas ilerleme çubuğu · ödeme adımı", () => {
       },
     });
     renderWithProviders(<TradeDetailScreen />);
-    expect(await screen.findByText("Ödeme")).toBeOnTheScreen();
+    expect(await screen.findByText("trade.stepPayment")).toBeOnTheScreen();
   });
 
   it('v1 nakitsiz takasta "Ödeme" adımı çizilmez (eski davranış korunur)', async () => {
@@ -332,6 +332,6 @@ describe("Takas ilerleme çubuğu · ödeme adımı", () => {
     await waitFor(() =>
       expect(screen.getAllByText("trade.tradeNumberTitle").length).toBeGreaterThan(0),
     );
-    expect(screen.queryByText("Ödeme")).toBeNull();
+    expect(screen.queryByText("trade.stepPayment")).toBeNull();
   });
 });

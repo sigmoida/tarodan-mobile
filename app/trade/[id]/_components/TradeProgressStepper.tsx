@@ -13,7 +13,7 @@ export function TradeProgressStepper({ status, hasCash }: { status: string; hasC
   if (!STEP_FLOW_STATUSES.has(status)) return null;
   const steps = [
     { key: 'accepted', label: t('trade.statusAccepted') },
-    ...(hasCash ? [{ key: 'awaiting_payment', label: t('checkout.stepPayment') }] : []),
+    ...(hasCash ? [{ key: 'awaiting_payment', label: t('trade.stepPayment') }] : []),
     { key: 'shipping_to_warehouse', label: t('trade.stepShipToWarehouse') },
     { key: 'at_warehouse', label: t('trade.statusAtWarehouse') },
     { key: 'shipping_to_recipients', label: t('trade.stepShippingToYou') },

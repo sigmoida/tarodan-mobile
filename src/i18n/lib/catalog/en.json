@@ -1335,6 +1335,7 @@
     "tradeRejected": "Trade rejected",
     "rejectFailed": "Failed to reject trade",
     "cancelConfirmTitle": "Cancel trade",
+    "stepPayment": "Payment",
     "stepShipToWarehouse": "Ship to Warehouse",
     "stepShippingToYou": "Shipping to You",
     "tradeProgress": "Trade Progress",
