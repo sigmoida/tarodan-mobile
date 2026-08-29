@@ -35,11 +35,15 @@ describe('J14 · üyelik başarı ekranı (membership/success)', () => {
     mockParams = {};
   });
 
-  it('J14.S1 tier=business → "Business" gösterir, "Premium" yazmaz', async () => {
+  it('J14.S1 tier=business → "İş" gösterir, "Premium" yazmaz', async () => {
+    // Not: ekran katalogtaki `membership.business` ("İş") kullanır — checkout
+    // (`checkout/_lib/tiers.ts`) ile parite. Bu ekran daha önce hardcoded
+    // "Business" gösteriyordu; katalog/checkout ile aynı hizaya getirildi
+    // (i18n göçü, bkz. docs/i18n-uyelik-report.md).
     mockParams = { tier: 'business', paymentId: 'pay1' };
     renderWithProviders(<MembershipSuccessScreen />);
     await waitFor(() =>
-      expect(screen.getByText(/Business üyeliğiniz başarıyla aktifleştirildi/)).toBeOnTheScreen(),
+      expect(screen.getByText(/İş üyeliğiniz başarıyla aktifleştirildi/)).toBeOnTheScreen(),
     );
     expect(screen.queryByText(/Premium üyeliğiniz/)).toBeNull();
     // Kademeye özel özellik

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { qk } from '@/lib/query';
 import { readList } from '@/utils/apiEnvelope';
@@ -7,7 +8,7 @@ import { appAlert } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { membershipApi, paymentsApi } from '@/lib/api';
 import { captureException } from '@/services/sentry';
-import { MEMBERSHIP_TIERS, DEFAULT_MONTHLY } from '../_lib/tiers';
+import { buildMembershipTiers, DEFAULT_MONTHLY, type MembershipTierKey } from '../_lib/tiers';
 
 /**
  * Membership checkout controller — owns tier resolution, the DB-tier price query
@@ -17,11 +18,13 @@ import { MEMBERSHIP_TIERS, DEFAULT_MONTHLY } from '../_lib/tiers';
  * subscribe/bypass/PayTR branch logic. (§12)
  */
 export function useMembershipCheckout() {
+  const { t } = useTranslation();
+  const membershipTiers = useMemo(() => buildMembershipTiers(t), [t]);
   const { tier: tierParam, period: periodParam } = useLocalSearchParams<{ tier: string; period?: string }>();
   const { isAuthenticated, refreshUserData } = useAuthStore();
   const [loading, setLoading] = useState(false);
 
-  const tier = MEMBERSHIP_TIERS[tierParam as keyof typeof MEMBERSHIP_TIERS] || MEMBERSHIP_TIERS.premium;
+  const tier = membershipTiers[tierParam as MembershipTierKey] || membershipTiers.premium;
   const tierType = (tierParam as string) || 'premium';
   const billingPeriod: 'monthly' | 'yearly' = periodParam === 'yearly' ? 'yearly' : 'monthly';
 
@@ -52,7 +55,10 @@ export function useMembershipCheckout() {
     return monthly;
   })();
 
-  const periodLabel = billingPeriod === 'yearly' ? 'yıl' : 'ay';
+  // Fiyat kartındaki "/ay" ya da "/yıl" son eki — katalogtan (parite: iki dilde
+  // sıra/ek farklı olabilir). `billingPeriod` KENDİSİ karşılaştırma için kalır;
+  // Türkçe bir metin değerine karşı karşılaştırma yapılmaz (bkz. CheckoutSections).
+  const periodLabel = billingPeriod === 'yearly' ? t('membership.perYear') : t('membership.perMonth');
 
   useEffect(() => {
     if (!isAuthenticated) router.replace('/(auth)/login');
@@ -121,15 +127,17 @@ export function useMembershipCheckout() {
         extra: { tierType, billingPeriod, status: e?.response?.status },
       });
       appAlert(
-        'Ödeme Hatası',
-        e?.response?.data?.message || 'Üyelik ödemesi başlatılamadı. Lütfen tekrar deneyin.',
+        t('membership.paymentErrorTitle'),
+        e?.response?.data?.message || t('membership.paymentErrorGeneric'),
       );
     }
   };
 
   return {
+    t,
     isAuthenticated,
     tier,
+    billingPeriod,
     displayPrice,
     periodLabel,
     loading,

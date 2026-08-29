@@ -2,6 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Button, ScreenHeader, Text, theme } from '@/ui';
 
 import { getUpgradeMessage } from '@/utils/membershipLimits';
@@ -15,8 +16,9 @@ const { colors } = theme;
  * wizard itself should render. Keeps the early-return ladder out of the screen.
  */
 export function NewTradeGate({ f }: { f: NewTradeController }) {
+  const { t } = useTranslation();
   if (!f.canTrade) {
-    const upgradeInfo = getUpgradeMessage('tradeFeature');
+    const upgradeInfo = getUpgradeMessage(t, 'tradeFeature');
     return (
       <View style={styles.container}>
         <ScreenHeader title="Takas Teklifi" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />

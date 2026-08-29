@@ -1,60 +1,66 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { theme, Button, Text } from '@/ui';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
 import { paymentsApi } from '@/lib/api';
+import type { TFunction } from 'i18next';
 
 const { colors } = theme;
 
 type TierKey = 'basic' | 'premium' | 'business';
 
-const TIER_NAMES: Record<TierKey, string> = {
-  basic: 'Temel',
-  premium: 'Premium',
-  business: 'Business',
-};
-
 type TierFeature = { icon: keyof typeof Ionicons.glyphMap; label: string };
 
-// Kademeye özel başarı özellikleri (checkout MEMBERSHIP_TIERS ile hizalı).
-const TIER_FEATURES: Record<TierKey, TierFeature[]> = {
+/**
+ * Kademeye özel başarı özellikleri — `checkout/_lib/tiers.ts`teki
+ * `buildMembershipTiers` ile AYNI sayı/anahtar seti (15/50/200 ücretsiz ilan,
+ * 2/10/50 öne çıkan ilan, "Takas özelliği"/"Koleksiyon oluşturma"/"API
+ * erişimi"), drift'i önlemek için oradaki `membership.tierFeature*`
+ * anahtarları yeniden kullanılıyor. `t` çağrıldığı ANDA çözülür (bkz.
+ * UpgradePrompt) — bileşen `useMemo(() => buildTierFeatures(t), [t])` ile
+ * çağırıyor.
+ */
+const buildTierFeatures = (t: TFunction): Record<TierKey, TierFeature[]> => ({
   basic: [
-    { icon: 'list', label: '15 ücretsiz ilan' },
-    { icon: 'swap-horizontal', label: 'Takas özelliği' },
-    { icon: 'albums', label: 'Koleksiyon oluşturma' },
-    { icon: 'star', label: '2 öne çıkan ilan' },
+    { icon: 'list', label: t('membership.tierFeatureFreeListings', { count: 15 }) },
+    { icon: 'swap-horizontal', label: t('membership.tierFeatureTrade') },
+    { icon: 'albums', label: t('membership.tierFeatureCollectionCreate') },
+    { icon: 'star', label: t('membership.tierFeatureFeaturedListings', { count: 2 }) },
   ],
   premium: [
-    { icon: 'list', label: '50 ücretsiz ilan' },
-    { icon: 'swap-horizontal', label: 'Takas özelliği' },
-    { icon: 'albums', label: 'Koleksiyon oluşturma' },
-    { icon: 'star', label: '10 öne çıkan ilan' },
+    { icon: 'list', label: t('membership.tierFeatureFreeListings', { count: 50 }) },
+    { icon: 'swap-horizontal', label: t('membership.tierFeatureTrade') },
+    { icon: 'albums', label: t('membership.tierFeatureCollectionCreate') },
+    { icon: 'star', label: t('membership.tierFeatureFeaturedListings', { count: 10 }) },
     // "Reklamsız deneyim" KALDIRILDI — banner'lar herkese gösteriliyor ve
     // sunucu her katman için `isAdFree: null` döndürüyor (staging, 2026-08-26).
     // Satın alma SONRASI ekranda duruyordu: kullanıcı parayı ödedikten sonra
     // karşılığı olmayan bir vaat okuyordu.
   ],
   business: [
-    { icon: 'list', label: '200 ücretsiz ilan' },
-    { icon: 'swap-horizontal', label: 'Takas özelliği' },
-    { icon: 'star', label: '50 öne çıkan ilan' },
-    { icon: 'code-slash', label: 'API erişimi' },
-    { icon: 'ribbon', label: 'Özel satıcı rozeti' },
+    { icon: 'list', label: t('membership.tierFeatureFreeListings', { count: 200 }) },
+    { icon: 'swap-horizontal', label: t('membership.tierFeatureTrade') },
+    { icon: 'star', label: t('membership.tierFeatureFeaturedListings', { count: 50 }) },
+    { icon: 'code-slash', label: t('membership.tierFeatureApiAccess') },
+    { icon: 'ribbon', label: t('membership.tierFeatureSellerBadge') },
   ],
-};
+});
 
 export default function MembershipSuccessScreen() {
+  const { t } = useTranslation();
   const { paymentId, tier } = useLocalSearchParams<{ paymentId?: string; tier?: string }>();
   const { refreshUserData } = useAuthStore();
   const queryClient = useQueryClient();
+  const tierFeatures = useMemo(() => buildTierFeatures(t), [t]);
 
   // `?tier=` paramına göre içeriği kademeye uyarla; bilinmeyen/eksikse premium'a düş.
   const tierKey: TierKey = tier === 'basic' || tier === 'business' ? tier : 'premium';
-  const tierName = TIER_NAMES[tierKey];
-  const features = TIER_FEATURES[tierKey];
+  const tierName = tierKey === 'basic' ? t('membership.basic') : tierKey === 'business' ? t('membership.business') : t('membership.premium');
+  const features = tierFeatures[tierKey];
 
   // PayTR dönüşü sonrası: üyeliği sunucu tarafında KESİNLEŞTİR, sonra yerel
   // kullanıcı + üyelik query'lerini tazele. Callback (ngrok) gecikse/ulaşmasa
@@ -97,11 +103,11 @@ export default function MembershipSuccessScreen() {
         </View>
 
         {/* Title */}
-        <Text style={styles.title}>Üyelik Aktif!</Text>
+        <Text style={styles.title}>{t('membership.successTitle')}</Text>
 
         {/* Description */}
         <Text style={styles.description}>
-          {tierName} üyeliğiniz başarıyla aktifleştirildi. Artık tüm özelliklerden yararlanabilirsiniz.
+          {t('membership.successDescription', { tierName })}
         </Text>
 
         {/* Features */}
@@ -118,14 +124,14 @@ export default function MembershipSuccessScreen() {
         <View style={styles.buttons}>
           <Button
             variant="primary"
-            title="Ana Sayfaya Git"
+            title={t('error.goHome')}
             fullWidth
             onPress={() => router.replace('/(tabs)')}
             style={styles.primaryButton}
           />
           <Button
             variant="outline"
-            title="İlanlarımı Gör"
+            title={t('membership.successViewListings')}
             fullWidth
             onPress={() => router.push('/settings/my-listings')}
             style={styles.secondaryButton}

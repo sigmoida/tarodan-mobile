@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Card, Button, Chip, Divider, Text, theme } from '@/ui';
 
+import { PREMIUM_MEMBER_LIMITS } from '@/utils/membershipLimits';
 import { formatBillingPeriod } from '../_lib/subscription';
 import { styles } from '../_lib/styles';
 import type { SubscriptionController } from '../_hooks/useSubscription';
@@ -44,7 +45,7 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
               <View style={styles.detailRow}>
                 <Text variant="body" style={styles.detailLabel}>{t('membership.planLabel')}</Text>
                 <Text variant="body" style={styles.detailValue}>
-                  {formatBillingPeriod(subscription.billingPeriod)}
+                  {formatBillingPeriod(t, subscription.billingPeriod)}
                 </Text>
               </View>
 
@@ -61,7 +62,7 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
                 <View style={styles.detailRow}>
                   <Text variant="body" style={styles.detailLabel}>{t('membership.remainingLabel')}</Text>
                   <Text variant="body" style={[styles.detailValue, { color: colors.primary[600]! }]}>
-                    {daysLeft} gün
+                    {t('membership.daysCount', { count: daysLeft })}
                   </Text>
                 </View>
               )}
@@ -73,7 +74,7 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
           <>
             <Divider style={styles.divider} />
             <Text variant="body" style={styles.upgradePrompt}>
-              Premium üyelikle sınırsız ilan, takas özelliği ve daha fazlasına erişin!
+              {t('membership.freePlanPromo')}
             </Text>
             <Button
               variant="primary"
@@ -94,7 +95,7 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
           <View style={styles.featuresGrid}>
             {[
               { icon: 'pricetag', text: t('membership.featureUnlimitedListings') },
-              { icon: 'camera', text: '15 Fotoğraf' },
+              { icon: 'camera', text: t('membership.photoCountFeature', { count: PREMIUM_MEMBER_LIMITS.maxImagesPerListing }) },
               { icon: 'swap-horizontal', text: t('membership.featureTrade') },
               { icon: 'images', text: t('membership.featureDigitalGarage') },
               { icon: 'star', text: t('membership.featureBoost') },
@@ -173,10 +174,10 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
               <Ionicons name="close-circle-outline" size={24} color={colors.danger[600]!} />
               <View style={styles.actionTextWrap}>
                 <Text variant="body" style={[styles.actionTitle, { color: colors.danger[600]! }]}>
-                  Aboneliği İptal Et
+                  {t('membership.cancelTitle')}
                 </Text>
                 <Text variant="bodySm" style={styles.actionDesc}>
-                  Dönem sonunda premium özellikler kapanır
+                  {t('membership.cancelSubscriptionDesc')}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -185,10 +186,10 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
               <Ionicons name="refresh" size={24} color={colors.success[600]!} />
               <View style={styles.actionTextWrap}>
                 <Text variant="body" style={[styles.actionTitle, { color: colors.success[600]! }]}>
-                  Aboneliği Yeniden Aktifleştir
+                  {t('membership.reactivateSubscriptionTitle')}
                 </Text>
                 <Text variant="bodySm" style={styles.actionDesc}>
-                  Premium özelliklerinize devam edin
+                  {t('membership.reactivateSubscriptionDesc')}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -203,10 +204,10 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
             <Ionicons name="warning" size={24} color={colors.warning[600]!} />
             <View style={styles.warningText}>
               <Text variant="body" style={styles.warningTitle}>
-                Aboneliğiniz {daysLeft} gün sonra sona erecek
+                {t('membership.expiringWarningTitle', { count: daysLeft })}
               </Text>
               <Text variant="bodySm" style={styles.warningDesc}>
-                Dönem sonunda ücretsiz üyeliğe geçiş yapılacak ve bazı özellikler kısıtlanacaktır.
+                {t('membership.expiringWarningDesc')}
               </Text>
             </View>
           </View>

@@ -147,7 +147,7 @@ export function useSubscription() {
   const isCancelled = subscription?.status === "cancelled";
   const daysLeft = subscription ? getDaysUntilRenewal(subscription) : 0;
   const statusInfo = subscription
-    ? getSubscriptionStatusText(subscription.status)
+    ? getSubscriptionStatusText(t, subscription.status)
     : null;
 
   // Map status text color to a Chip variant
