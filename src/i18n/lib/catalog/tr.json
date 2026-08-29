@@ -1351,6 +1351,9 @@
     "counterOfferNumber": "Karşı Teklif #{number}",
     "tradeNumberTitle": "Takas #{number}",
     "initiatorLabel": "Teklif Eden",
+    "otherPartyItemsLabel": "{name} Ürünleri",
+    "noItemsShort": "Ürün yok",
+    "totalValueLabel": "Toplam Değer",
     "statusMeta": {
       "pending": "Teklif alıcı tarafından değerlendiriliyor",
       "accepted": "Takas kabul edildi, gönderim bekleniyor",

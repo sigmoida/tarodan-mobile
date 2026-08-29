@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { STEP_FLOW_STATUSES, STATUS_TO_STEP_KEY } from '../_lib/status';
@@ -8,14 +9,15 @@ const { colors } = theme;
 
 /** Depo-escrow akışı için yatay ilerleme çubuğu (web ile parite). */
 export function TradeProgressStepper({ status, hasCash }: { status: string; hasCash: boolean }) {
+  const { t } = useTranslation();
   if (!STEP_FLOW_STATUSES.has(status)) return null;
   const steps = [
-    { key: 'accepted', label: 'Kabul Edildi' },
-    ...(hasCash ? [{ key: 'awaiting_payment', label: 'Ödeme' }] : []),
-    { key: 'shipping_to_warehouse', label: 'Depoya Kargo' },
-    { key: 'at_warehouse', label: 'Depoda' },
-    { key: 'shipping_to_recipients', label: 'Size Kargo' },
-    { key: 'completed', label: 'Tamamlandı' },
+    { key: 'accepted', label: t('trade.statusAccepted') },
+    ...(hasCash ? [{ key: 'awaiting_payment', label: t('checkout.stepPayment') }] : []),
+    { key: 'shipping_to_warehouse', label: t('trade.stepShipToWarehouse') },
+    { key: 'at_warehouse', label: t('trade.statusAtWarehouse') },
+    { key: 'shipping_to_recipients', label: t('trade.stepShippingToYou') },
+    { key: 'completed', label: t('trade.statusCompleted') },
   ];
   const currentKey = STATUS_TO_STEP_KEY[status] ?? 'accepted';
   const current = Math.max(0, steps.findIndex((s) => s.key === currentKey));

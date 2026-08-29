@@ -1351,6 +1351,9 @@
     "counterOfferNumber": "Counter-offer #{number}",
     "tradeNumberTitle": "Trade #{number}",
     "initiatorLabel": "Offer Sender",
+    "otherPartyItemsLabel": "{name}'s Items",
+    "noItemsShort": "No items",
+    "totalValueLabel": "Total Value",
     "statusMeta": {
       "pending": "Offer is being evaluated by the recipient",
       "accepted": "Trade accepted, awaiting shipment",
