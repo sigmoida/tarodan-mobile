@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Share } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { api, collectionsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useRefresh } from '@/hooks/useRefresh';
@@ -13,6 +14,7 @@ import { buildShareContent, collectionShareUrl } from '@/utils/share';
  * share, and derived owner/premium flags. Lifted verbatim from the monolith.
  */
 export function useCollectionDetail() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams();
   const queryClient = useQueryClient();
   const { isAuthenticated, user } = useAuthStore();
@@ -55,7 +57,7 @@ export function useCollectionDetail() {
     if (!collection) return;
     try {
       const { content, options } = buildShareContent(
-        `${collection.name}\n\n${collection.description ?? ''}\n\nTarodan'da bu koleksiyona göz atın!`,
+        t('collection.shareText', { name: collection.name, description: collection.description ?? '' }),
         collectionShareUrl(String(collection.id ?? id)),
         collection.name,
       );
