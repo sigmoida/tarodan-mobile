@@ -1354,6 +1354,10 @@
     "otherPartyItemsLabel": "{name} Ürünleri",
     "noItemsShort": "Ürün yok",
     "totalValueLabel": "Toplam Değer",
+    "detailTitle": "Takas Detayı",
+    "notFoundTitle": "Takas bulunamadı",
+    "trackingCopied": "Takip numarası kopyalandı",
+    "countdownHint": "Lütfen süre dolmadan işleminizi tamamlayın",
     "statusMeta": {
       "pending": "Teklif alıcı tarafından değerlendiriliyor",
       "accepted": "Takas kabul edildi, gönderim bekleniyor",

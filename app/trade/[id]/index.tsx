@@ -55,7 +55,7 @@ export default function TradeDetailScreen() {
   if (isLoading) {
     return (
       <View style={styles.screen}>
-        <ScreenHeader title="Takas Detayı" onBack={handleBack} />
+        <ScreenHeader title={t('trade.detailTitle')} onBack={handleBack} />
         <View style={styles.loadingContainer}>
           <Spinner size="lg" />
         </View>
@@ -66,12 +66,12 @@ export default function TradeDetailScreen() {
   if (!trade) {
     return (
       <View style={styles.screen}>
-        <ScreenHeader title="Takas Detayı" onBack={handleBack} />
+        <ScreenHeader title={t('trade.detailTitle')} onBack={handleBack} />
         <EmptyState
           fullscreen
           icon="swap-horizontal-outline"
-          title="Takas bulunamadı"
-          actionLabel="Geri Dön"
+          title={t('trade.notFoundTitle')}
+          actionLabel={t('common.goBack')}
           onAction={handleBack}
         />
       </View>
@@ -82,12 +82,12 @@ export default function TradeDetailScreen() {
   const copyCode = (code?: string | null) => {
     if (!code) return;
     Clipboard.setString(code);
-    actions.notify("Takip numarası kopyalandı");
+    actions.notify(t('trade.trackingCopied'));
   };
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title={`Takas #${trade.tradeNumber}`} onBack={handleBack} />
+      <ScreenHeader title={t('trade.tradeNumberTitle', { number: trade.tradeNumber })} onBack={handleBack} />
 
       <ScrollView
         style={styles.content}

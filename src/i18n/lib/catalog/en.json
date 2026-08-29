@@ -1354,6 +1354,10 @@
     "otherPartyItemsLabel": "{name}'s Items",
     "noItemsShort": "No items",
     "totalValueLabel": "Total Value",
+    "detailTitle": "Trade Details",
+    "notFoundTitle": "Trade not found",
+    "trackingCopied": "Tracking number copied",
+    "countdownHint": "Please complete this step before time runs out",
     "statusMeta": {
       "pending": "Offer is being evaluated by the recipient",
       "accepted": "Trade accepted, awaiting shipment",

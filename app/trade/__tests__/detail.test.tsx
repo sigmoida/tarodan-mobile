@@ -111,7 +111,7 @@ describe("J5 · Takas detayı durum rozetleri", () => {
     await waitFor(() =>
       expect(screen.getAllByText("trade.statusPending").length).toBeGreaterThan(0),
     );
-    expect(screen.getAllByText("Takas #TKS-501").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("trade.tradeNumberTitle").length).toBeGreaterThan(0);
   });
 
   it('J5.2 accepted → "Kabul Edildi" rozeti', async () => {
@@ -120,7 +120,7 @@ describe("J5 · Takas detayı durum rozetleri", () => {
     });
     renderWithProviders(<TradeDetailScreen />);
     await waitFor(() =>
-      expect(screen.getAllByText("Kabul Edildi").length).toBeGreaterThan(0),
+      expect(screen.getAllByText("trade.statusAccepted").length).toBeGreaterThan(0),
     );
   });
 
@@ -151,7 +151,7 @@ describe("J5 · Takas detayı durum rozetleri", () => {
   it("J5.5 takas bulunamazsa hata durumu gösterilir", async () => {
     getOneMock.mockRejectedValue(new Error("not found"));
     renderWithProviders(<TradeDetailScreen />);
-    expect(await screen.findByText("Takas bulunamadı")).toBeOnTheScreen();
+    expect(await screen.findByText("trade.notFoundTitle")).toBeOnTheScreen();
   });
 });
 
@@ -180,7 +180,7 @@ describe("J5 · Aksiyon buton görünürlüğü", () => {
     });
     renderWithProviders(<TradeDetailScreen />);
     await waitFor(() =>
-      expect(screen.getAllByText("Takas #TKS-501").length).toBeGreaterThan(0),
+      expect(screen.getAllByText("trade.tradeNumberTitle").length).toBeGreaterThan(0),
     );
     expect(screen.queryByText("Kabul Et")).toBeNull();
   });
@@ -330,7 +330,7 @@ describe("Takas ilerleme çubuğu · ödeme adımı", () => {
     });
     renderWithProviders(<TradeDetailScreen />);
     await waitFor(() =>
-      expect(screen.getAllByText("Takas #TKS-501").length).toBeGreaterThan(0),
+      expect(screen.getAllByText("trade.tradeNumberTitle").length).toBeGreaterThan(0),
     );
     expect(screen.queryByText("Ödeme")).toBeNull();
   });
