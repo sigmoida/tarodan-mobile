@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { appAlert } from '@/ui';
 import { tradesApi, productsApi } from '@/lib/api';
 import { useRefresh } from '@/hooks/useRefresh';
@@ -13,6 +14,7 @@ import { itemId, offerSignature, type Trade, type TradeItem } from '../_lib/type
  * mutation. Lifted verbatim from the monolithic TradeCounterScreen.
  */
 export function useTradeCounter() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
@@ -119,11 +121,11 @@ export function useTradeCounter() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trade', id] });
       queryClient.invalidateQueries({ queryKey: ['trades'] });
-      setSnack('Karşı teklif gönderildi!');
+      setSnack(t('trade.counterOfferSent'));
       setTimeout(() => router.replace(`/trade/${id}` as any), 1200);
     },
     onError: (e: any) =>
-      appAlert('Hata', e?.response?.data?.message || 'Karşı teklif gönderilemedi.'),
+      appAlert(t('common.error'), e?.response?.data?.message || t('trade.counterOfferFailed')),
   });
 
   const myProducts = myProductsQuery.data ?? [];
@@ -153,14 +155,14 @@ export function useTradeCounter() {
 
   const handleSubmit = () => {
     if (selectedMine.length === 0 && selectedTheirs.length === 0) {
-      appAlert('Hata', 'En az bir ürün seçmelisiniz.');
+      appAlert(t('common.error'), t('trade.selectAtLeastOneOffer'));
       return;
     }
     const currentSig = offerSignature(selectedMine, selectedTheirs, cashDirection, cashAmount);
     if (currentSig === initialSig) {
       appAlert(
-        'Değişiklik yok',
-        'Karşı teklif önceki teklifle aynı. Lütfen ürün veya nakit farkında değişiklik yapın.',
+        t('trade.noChangesTitle'),
+        t('trade.counterOfferIdentical'),
       );
       return;
     }
