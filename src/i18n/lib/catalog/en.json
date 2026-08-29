@@ -6674,5 +6674,12 @@
     "securityContent": "All payments are protected with 256-bit SSL encryption. Your card details are processed through PayTR''s secure infrastructure and are never stored on our servers.",
     "installmentsTitle": "Installment Options",
     "installmentsContent": "You can take advantage of installment options through our partner banks. Installment details are shown on the payment page based on your card."
+  },
+  "returnsExchangesPage": {
+    "pageSubtitle": "Information about the return and exchange terms",
+    "policyContent": "You can return products purchased through Tarodan within {days} days of the delivery date. Products being returned must be unused and in their original packaging.",
+    "processContent": "You can open a return request from the order detail page or by contacting our support team. Once your request is approved, you can ship the product with our partner carrier.",
+    "timelineTitle": "Return Timeline",
+    "timelineContent": "Once your return request is approved, ship the product as soon as possible using the shipping code sent to you. After the product reaches the seller, the refund amount is transferred to your account within {days} days."
   }
 }

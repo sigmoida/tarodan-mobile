@@ -6674,5 +6674,12 @@
     "securityContent": "Tüm ödemeler 256-bit SSL şifreleme ile korunmaktadır. Kart bilgileriniz PayTR güvenli altyapısı üzerinden işlenir ve sunucularımızda saklanmaz.",
     "installmentsTitle": "Taksit Seçenekleri",
     "installmentsContent": "Anlaşmalı bankalar aracılığıyla taksit seçeneklerinden yararlanabilirsiniz. Taksit detayları ödeme sayfasında kartınıza göre gösterilir."
+  },
+  "returnsExchangesPage": {
+    "pageSubtitle": "İade ve değişim koşulları hakkında bilgi",
+    "policyContent": "Tarodan üzerinden satın aldığınız ürünleri, teslim tarihinden itibaren {days} gün içinde iade edebilirsiniz. İade edilecek ürünlerin kullanılmamış ve orijinal ambalajında olması gerekmektedir.",
+    "processContent": "İade talebinizi sipariş detay sayfasından veya destek ekibimize başvurarak oluşturabilirsiniz. Talebiniz onaylandıktan sonra ürünü anlaşmalı kargo firması ile gönderebilirsiniz.",
+    "timelineTitle": "İade Süreleri",
+    "timelineContent": "İade talebinizin onaylanmasından sonra ürünü, size iletilen kargo koduyla en kısa sürede kargoya verin. Ürün satıcıya ulaştıktan sonra iade tutarı {days} gün içinde hesabınıza aktarılır."
   }
 }

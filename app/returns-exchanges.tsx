@@ -10,24 +10,30 @@ import {
 
 const { colors } = theme;
 
-const sections = [
-  {
-    title: "İade Politikası",
-    content: `Tarodan üzerinden satın aldığınız ürünleri, teslim tarihinden itibaren ${RETURN_REQUEST_DAYS} gün içinde iade edebilirsiniz. İade edilecek ürünlerin kullanılmamış ve orijinal ambalajında olması gerekmektedir.`,
-  },
-  {
-    title: "İade Süreci",
-    content:
-      "İade talebinizi sipariş detay sayfasından veya destek ekibimize başvurarak oluşturabilirsiniz. Talebiniz onaylandıktan sonra ürünü anlaşmalı kargo firması ile gönderebilirsiniz.",
-  },
-  {
-    title: "İade Süreleri",
-    content: `İade talebinizin onaylanmasından sonra ürünü, size iletilen kargo koduyla en kısa sürede kargoya verin. Ürün satıcıya ulaştıktan sonra iade tutarı ${REFUND_PAYOUT_DAYS} gün içinde hesabınıza aktarılır.`,
-  },
-];
+function useSections(t: (key: string, opts?: Record<string, unknown>) => string) {
+  return [
+    {
+      title: t("mobile.pageRefundPolicy"),
+      content: t("returnsExchangesPage.policyContent", {
+        days: RETURN_REQUEST_DAYS,
+      }),
+    },
+    {
+      title: t("information.returns.process"),
+      content: t("returnsExchangesPage.processContent"),
+    },
+    {
+      title: t("returnsExchangesPage.timelineTitle"),
+      content: t("returnsExchangesPage.timelineContent", {
+        days: REFUND_PAYOUT_DAYS,
+      }),
+    },
+  ];
+}
 
 export default function ReturnsExchangesScreen() {
   const { t } = useTranslation();
+  const sections = useSections(t);
   return (
     <View style={styles.container}>
       <ScreenHeader
@@ -49,9 +55,9 @@ export default function ReturnsExchangesScreen() {
             />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.pageTitle}>İade ve Değişim</Text>
+            <Text style={styles.pageTitle}>{t("mobile.pageReturns")}</Text>
             <Text style={styles.pageSubtitle}>
-              İade ve değişim koşulları hakkında bilgi
+              {t("returnsExchangesPage.pageSubtitle")}
             </Text>
           </View>
         </View>
