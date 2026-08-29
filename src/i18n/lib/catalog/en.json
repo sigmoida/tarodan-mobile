@@ -7211,7 +7211,10 @@
     "manufacturerPickerEmpty": "No manufacturers found",
     "yearPickerEmpty": "No years found",
     "loadListingsFailed": "There was a problem loading your listings.",
-    "createNewA11y": "Create new listing"
+    "createNewA11y": "Create new listing",
+    "boostAction": "Boost",
+    "relistAction": "Republish",
+    "deleteConfirmNamed": "Are you sure you want to delete \"{title}\"? This cannot be undone."
   },
   "boost": {
     "title": "Boost Listing",

@@ -7211,7 +7211,10 @@
     "manufacturerPickerEmpty": "Üretici bulunamadı",
     "yearPickerEmpty": "Yıl bulunamadı",
     "loadListingsFailed": "İlanlarınız yüklenirken bir hata oluştu.",
-    "createNewA11y": "Yeni ilan oluştur"
+    "createNewA11y": "Yeni ilan oluştur",
+    "boostAction": "Öne Çıkar",
+    "relistAction": "Yeniden Yayınla",
+    "deleteConfirmNamed": "\"{title}\" ilanını silmek istediğinize emin misiniz? Bu işlem geri alınamaz."
   },
   "boost": {
     "title": "İlanı Öne Çıkar",
