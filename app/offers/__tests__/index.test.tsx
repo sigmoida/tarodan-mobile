@@ -83,9 +83,9 @@ describe("J3 · Tekliflerim listesi", () => {
     await waitFor(() =>
       expect(screen.getByText("Vintage Kamera")).toBeOnTheScreen(),
     );
-    expect(screen.getByText("Kabul Et")).toBeOnTheScreen();
-    expect(screen.getByText("Reddet")).toBeOnTheScreen();
-    expect(screen.getByText("Karşı Teklif")).toBeOnTheScreen();
+    expect(screen.getByText("offer.acceptOffer")).toBeOnTheScreen();
+    expect(screen.getByText("offer.rejectOffer")).toBeOnTheScreen();
+    expect(screen.getByText("offer.counterOffer")).toBeOnTheScreen();
     expect(screen.getByText("Ali Veli")).toBeOnTheScreen();
   });
 

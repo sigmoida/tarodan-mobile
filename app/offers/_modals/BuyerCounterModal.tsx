@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Modal, Button, theme } from '@/ui';
 import { useZodForm, Form, FormInput } from '@/ui/form';
 import { buyerCounterSchema } from '../_lib/schema';
@@ -20,9 +21,10 @@ export function BuyerCounterModal({
   offer: Offer | null;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const refAmount = Number(offer?.amount) || 0;
 
-  const schema = useMemo(() => buyerCounterSchema(refAmount), [refAmount]);
+  const schema = useMemo(() => buyerCounterSchema(refAmount, t), [refAmount, t]);
   const form = useZodForm(schema, { defaultValues: { amount: '' } });
   const buyerCounter = useDoBuyerCounter();
 
@@ -40,25 +42,26 @@ export function BuyerCounterModal({
   });
 
   return (
-    <Modal isOpen={!!offer} onClose={onClose} title="Daha düşük teklif">
+    <Modal isOpen={!!offer} onClose={onClose} title={t('offer.lowerOffer')}>
       <Form form={form}>
         <Text style={styles.subtitle}>
-          Satıcının karşı teklifi: {offer ? formatPrice(refAmount) : '—'}. Bu tutarın
-          altında, ilan fiyatının en az %50 kadarına uygun bir teklif yazın.
+          {t('offer.sellerCounterSubtitle', {
+            amount: offer ? formatPrice(refAmount) : '—',
+          })}
         </Text>
         <FormInput
           name="amount"
-          placeholder="Yeni tutar (₺)"
+          placeholder={t('offer.newAmountPlaceholderTl')}
           keyboardType="numeric"
           autoFocus
         />
         <View style={styles.actions}>
-          <Button variant="secondary" onPress={onClose} title="Vazgeç" />
+          <Button variant="secondary" onPress={onClose} title={t('trade.dispute.cancelCta')} />
           <Button
             variant="primary"
             onPress={onSubmit}
             isLoading={buyerCounter.isPending}
-            title="Gönder"
+            title={t('common.submit')}
           />
         </View>
       </Form>

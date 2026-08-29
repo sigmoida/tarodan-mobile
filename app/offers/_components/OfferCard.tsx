@@ -14,7 +14,7 @@ import { theme } from "@/ui";
 import { transformImageUrl } from "@/utils/imageUrl";
 import type { Offer, TabType } from "../_lib/types";
 import {
-  statusConfig,
+  translatedStatusConfig,
   getProductImage,
   getTimeRemaining,
   formatTimeAgo,
@@ -48,7 +48,7 @@ function OfferCardBase({
   onOpenCounter,
   onOpenBuyerCounter,
 }: OfferCardProps) {
-  const status = statusConfig(offer.status);
+  const status = translatedStatusConfig(offer.status, t);
   const otherUser = tab === "received" ? offer.buyer : offer.seller;
   const timeRemaining =
     offer.status === "pending" ? getTimeRemaining(offer.expiresAt) : null;
@@ -76,7 +76,7 @@ function OfferCardBase({
           </TouchableOpacity>
 
           <Text style={styles.originalPrice}>
-            İlan Fiyatı:{" "}
+            {t("offer.listingPrice")}:{" "}
             <Text style={styles.strikethrough}>
               {formatPrice(offer.product.price)}
             </Text>
@@ -95,7 +95,7 @@ function OfferCardBase({
             <View style={styles.counterAlertBadge}>
               <Ionicons name="swap-horizontal" size={14} color={colors.white} />
               <Text style={styles.counterAlertText}>
-                Satıcıdan karşı teklif · yanıtlayın
+                {t("offer.counterFromSeller")}
               </Text>
             </View>
           ) : null}
@@ -105,13 +105,13 @@ function OfferCardBase({
       {/* Offer amount */}
       <View style={styles.amountRow}>
         <View style={styles.amountBox}>
-          <Text style={styles.amountLabel}>Teklif Tutarı</Text>
+          <Text style={styles.amountLabel}>{t("offer.offerAmount")}</Text>
           <Text style={styles.amountValue}>{formatPrice(offer.amount)}</Text>
         </View>
 
         {estimatedNet != null && (
           <View style={styles.netBox}>
-            <Text style={styles.netLabel}>Tahmini net (satıcı)</Text>
+            <Text style={styles.netLabel}>{t("offer.estimatedNetSeller")}</Text>
             <Text style={styles.netValue}>{formatPrice(estimatedNet)}</Text>
           </View>
         )}
@@ -123,7 +123,9 @@ function OfferCardBase({
               size={14}
               color={colors.warning[600]!}
             />
-            <Text style={styles.timeText}>{timeRemaining} kaldı</Text>
+            <Text style={styles.timeText}>
+              {t("offer.timeRemaining", { time: timeRemaining })}
+            </Text>
           </View>
         )}
       </View>
@@ -143,7 +145,7 @@ function OfferCardBase({
           )}
           <View>
             <Text style={styles.userLabel}>
-              {tab === "received" ? "Teklif Veren" : "Satıcı"}
+              {tab === "received" ? t("offer.offerer") : t("product.seller")}
             </Text>
             <Text style={styles.userName}>{otherUser.displayName}</Text>
           </View>
@@ -184,7 +186,7 @@ function OfferCardBase({
                 color={colors.warning[700]!}
               />
               <Text style={styles.waitingBannerText}>
-                Alıcının karşı teklifinizi kabul veya reddetmesi bekleniyor.
+                {t("offer.waitingForBuyerResponse")}
               </Text>
             </View>
           ) : tab === "received" ? (
@@ -199,7 +201,7 @@ function OfferCardBase({
                 ) : (
                   <>
                     <Ionicons name="checkmark" size={16} color={colors.white} />
-                    <Text style={styles.actionBtnText}>Kabul Et</Text>
+                    <Text style={styles.actionBtnText}>{t("offer.acceptOffer")}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -209,7 +211,7 @@ function OfferCardBase({
                 disabled={isPending}
               >
                 <Ionicons name="close" size={16} color={colors.white} />
-                <Text style={styles.actionBtnText}>Reddet</Text>
+                <Text style={styles.actionBtnText}>{t("offer.rejectOffer")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionBtn, styles.counterBtn]}
@@ -221,7 +223,7 @@ function OfferCardBase({
                   size={16}
                   color={colors.white}
                 />
-                <Text style={styles.actionBtnText}>Karşı Teklif</Text>
+                <Text style={styles.actionBtnText}>{t("offer.counterOffer")}</Text>
               </TouchableOpacity>
             </>
           ) : offer.buyerMustAccept ? (
@@ -237,7 +239,7 @@ function OfferCardBase({
                   <>
                     <Ionicons name="checkmark" size={16} color={colors.white} />
                     <Text style={styles.actionBtnText}>
-                      Karşı teklifi kabul et
+                      {t("offer.acceptCounterOffer")}
                     </Text>
                   </>
                 )}
@@ -248,7 +250,7 @@ function OfferCardBase({
                 disabled={isPending}
               >
                 <Ionicons name="close" size={16} color={colors.white} />
-                <Text style={styles.actionBtnText}>Reddet</Text>
+                <Text style={styles.actionBtnText}>{t("offer.rejectOffer")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionBtn, styles.counterBtn]}
@@ -256,7 +258,7 @@ function OfferCardBase({
                 disabled={isPending}
               >
                 <Ionicons name="trending-down" size={16} color={colors.white} />
-                <Text style={styles.actionBtnText}>Daha düşük teklif</Text>
+                <Text style={styles.actionBtnText}>{t("offer.lowerOffer")}</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -270,7 +272,7 @@ function OfferCardBase({
               ) : (
                 <>
                   <Ionicons name="close" size={16} color={colors.white} />
-                  <Text style={styles.actionBtnText}>İptal Et</Text>
+                  <Text style={styles.actionBtnText}>{t("offer.cancelOffer")}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -302,7 +304,7 @@ function OfferCardBase({
           >
             <Ionicons name="card-outline" size={16} color={colors.white} />
             <Text style={styles.actionBtnText}>
-              Ödeme Yap · {formatPrice(offer.amount)}
+              {t("offer.payAmount", { amount: formatPrice(offer.amount) })}
             </Text>
           </TouchableOpacity>
         ) : (
@@ -320,7 +322,7 @@ function OfferCardBase({
             }
           >
             <Ionicons name="cube-outline" size={16} color={colors.white} />
-            <Text style={styles.actionBtnText}>Siparişi Görüntüle</Text>
+            <Text style={styles.actionBtnText}>{t("order.viewOrder")}</Text>
           </TouchableOpacity>
         ))}
     </View>
