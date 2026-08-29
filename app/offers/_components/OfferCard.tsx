@@ -51,7 +51,7 @@ function OfferCardBase({
   const status = translatedStatusConfig(offer.status, t);
   const otherUser = tab === "received" ? offer.buyer : offer.seller;
   const timeRemaining =
-    offer.status === "pending" ? getTimeRemaining(offer.expiresAt) : null;
+    offer.status === "pending" ? getTimeRemaining(offer.expiresAt, t) : null;
 
   return (
     <View style={styles.card}>
