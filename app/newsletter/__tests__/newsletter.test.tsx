@@ -13,7 +13,8 @@ import { renderWithProviders } from '@/test-utils';
 
 let mockParams: Record<string, string> = {};
 jest.mock('expo-router', () => ({
-  router: { push: jest.fn(), back: jest.fn(), replace: jest.fn() },
+  // canGoBack: ScreenHeader sarmalayıcısı geri okunu buna göre etkinleştirir.
+  router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => true },
   useLocalSearchParams: () => mockParams,
 }));
 import { router } from 'expo-router';

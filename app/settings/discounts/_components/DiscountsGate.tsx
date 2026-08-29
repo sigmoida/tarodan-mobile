@@ -2,7 +2,8 @@ import React from 'react';
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
-import { EmptyState, ScreenHeader } from '@/ui';
+import { EmptyState } from '@/ui';
+import { ScreenHeader } from '@/components/common';
 
 import { styles } from '../_lib/styles';
 import type { DiscountsController } from '../_hooks/useDiscounts';

@@ -1,6 +1,7 @@
 import { View, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Chip, FAB, Snackbar, ScreenHeader, EmptyState, ScreenLoader } from '@/ui';
+import { Chip, FAB, Snackbar, EmptyState, ScreenLoader } from '@/ui';
+import { ScreenHeader } from '@/components/common';
 
 import { ThemedRefreshControl } from '@/components/common';
 import { styles } from './_lib/styles';
