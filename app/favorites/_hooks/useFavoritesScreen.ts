@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useFavorites, type WishlistItem } from '@/hooks/useFavorites';
 import { useAuthStore } from '@/stores/authStore';
 import { useCartStore } from '@/stores/cartStore';
@@ -12,6 +13,7 @@ import { getImageUrl as getImageUrlFromUtils } from '@/utils/imageUrl';
  * from the monolithic screen (§12).
  */
 export function useFavoritesScreen() {
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
   const { items, isLoading, error, fetchFavorites, removeFromFavorites, getFavoriteCount } = useFavorites();
   const { isInCart } = useCartStore();
@@ -38,7 +40,7 @@ export function useFavoritesScreen() {
     const success = await removeFromFavorites(productId);
     setSnackbar({
       visible: true,
-      message: success ? 'Favorilerden çıkarıldı' : 'Bir hata oluştu',
+      message: success ? t('product.removedFromFavorites') : t('utility.error500.title'),
     });
   };
 
@@ -46,7 +48,7 @@ export function useFavoritesScreen() {
   const handleToggleCart = (item: WishlistItem) => {
     if (isInCart(item.productId)) {
       cart.removeByProductId(item.productId);
-      setSnackbar({ visible: true, message: 'Sepetten çıkarıldı' });
+      setSnackbar({ visible: true, message: t('cart.removedFromCart') });
       return;
     }
     const product = item.product;
@@ -57,7 +59,7 @@ export function useFavoritesScreen() {
       imageUrl: getImageUrlFromUtils(product.images),
       seller: product.seller,
     });
-    setSnackbar({ visible: true, message: 'Sepete eklendi' });
+    setSnackbar({ visible: true, message: t('cart.addedToCart') });
   };
 
   const formatPrice = (price: number) => `₺${(price ?? 0).toLocaleString('tr-TR')}`;

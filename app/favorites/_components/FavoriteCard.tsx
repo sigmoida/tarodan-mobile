@@ -1,6 +1,7 @@
 import { View, TouchableOpacity } from 'react-native';
 import { Text, Card, IconButton, theme } from '@/ui';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { AppImage } from '@/components/AppImage';
 import type { WishlistItem } from '@/hooks/useFavorites';
 import { styles } from '../_lib/styles';
@@ -10,6 +11,7 @@ const { colors } = theme;
 
 /** Tek favori ürün kartı — foto/başlık/fiyat/durum + kalp/sepet aksiyonları. */
 export function FavoriteCard({ item, f }: { item: WishlistItem; f: FavoritesScreenController }) {
+  const { t } = useTranslation();
   return (
     <Card padding={0} style={styles.card}>
       {/* Aksiyon butonları navigasyon TouchableOpacity'sinin DIŞINDA (kardeş) —
@@ -20,14 +22,14 @@ export function FavoriteCard({ item, f }: { item: WishlistItem; f: FavoritesScre
           <View style={styles.productInfo}>
             <Text variant="label" numberOfLines={2} style={styles.productTitle}>{item.product.title}</Text>
             <Text variant="caption" style={styles.sellerName}>
-              {item.product.seller?.displayName || 'Satıcı'}
+              {item.product.seller?.displayName || t('product.seller')}
             </Text>
             <Text variant="h3" style={styles.price}>{f.formatPrice(item.product.price)}</Text>
 
             {item.product.status !== 'active' && (
               <View style={[styles.statusBadge, { backgroundColor: colors.warning[50]! }]}>
                 <Text style={{ color: colors.warning[600]!, fontSize: 11 }}>
-                  {item.product.status === 'sold' ? 'Satıldı' : 'Aktif değil'}
+                  {item.product.status === 'sold' ? t('product.statusSold') : t('product.statusInactive')}
                 </Text>
               </View>
             )}
@@ -38,7 +40,7 @@ export function FavoriteCard({ item, f }: { item: WishlistItem; f: FavoritesScre
         <View style={styles.actions}>
           <IconButton
             icon="heart"
-            accessibilityLabel="Favorilerden çıkar"
+            accessibilityLabel={t('favorites.removeFromFavorites')}
             size="md"
             color={colors.danger[600]!}
             onPress={() => f.handleRemove(item.productId)}
@@ -46,7 +48,7 @@ export function FavoriteCard({ item, f }: { item: WishlistItem; f: FavoritesScre
           {item.product.status === 'active' && (
             <IconButton
               icon={f.isInCart(item.productId) ? 'cart' : 'cart-outline'}
-              accessibilityLabel={f.isInCart(item.productId) ? 'Sepetten çıkar' : 'Sepete ekle'}
+              accessibilityLabel={f.isInCart(item.productId) ? t('product.removeFromCart') : t('product.addToCart')}
               size="md"
               color={colors.primary[600]!}
               onPress={() => f.handleToggleCart(item)}
