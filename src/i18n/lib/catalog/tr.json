@@ -1512,7 +1512,15 @@
     "enterCounterAmount": "Yeni teklif tutarını girin",
     "amountPlaceholderTl": "Tutar (₺)",
     "newAmountPlaceholderTl": "Yeni tutar (₺)",
-    "sellerCounterSubtitle": "Satıcının karşı teklifi: {amount}. Bu tutarın altında, ilan fiyatının en az %50 kadarına uygun bir teklif yazın."
+    "sellerCounterSubtitle": "Satıcının karşı teklifi: {amount}. Bu tutarın altında, ilan fiyatının en az %50 kadarına uygun bir teklif yazın.",
+    "tabReceived": "Gelen",
+    "tabSent": "Gönderilen",
+    "emptyReceivedTitle": "Henüz gelen teklif yok",
+    "emptySentTitle": "Henüz gönderilen teklif yok",
+    "emptyReceivedSubtitle": "Alıcılar ilanlarınıza teklif verdiğinde burada görünecek.",
+    "emptySentSubtitle": "İlanlara göz atın ve ilk teklifinizi yapın!",
+    "counterSent": "Karşı teklif gönderildi",
+    "buyerCounterSent": "Karşı teklifiniz gönderildi; satıcı yanıtlayacak"
   },
   "message": {
     "messages": "Mesajlar",

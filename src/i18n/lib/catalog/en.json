@@ -1512,7 +1512,15 @@
     "enterCounterAmount": "Enter the new offer amount",
     "amountPlaceholderTl": "Amount (₺)",
     "newAmountPlaceholderTl": "New amount (₺)",
-    "sellerCounterSubtitle": "The seller''s counter-offer is: {amount}. Enter an offer below this amount that is at least 50% of the listing price."
+    "sellerCounterSubtitle": "The seller''s counter-offer is: {amount}. Enter an offer below this amount that is at least 50% of the listing price.",
+    "tabReceived": "Received",
+    "tabSent": "Sent",
+    "emptyReceivedTitle": "No offers received yet",
+    "emptySentTitle": "No offers sent yet",
+    "emptyReceivedSubtitle": "Offers buyers make on your listings will show up here.",
+    "emptySentSubtitle": "Browse listings and make your first offer!",
+    "counterSent": "Counter-offer sent",
+    "buyerCounterSent": "Your counter-offer has been sent; the seller will respond"
   },
   "message": {
     "messages": "Messages",

@@ -55,11 +55,11 @@ describe("J3 · Tekliflerim listesi", () => {
     getAllMock.mockResolvedValue({ data: { data: [] } });
     renderWithProviders(<OffersScreen />);
     await waitFor(() =>
-      expect(screen.getByText("Henüz gelen teklif yok")).toBeOnTheScreen(),
+      expect(screen.getByText("offer.emptyReceivedTitle")).toBeOnTheScreen(),
     );
     // Sekmeler render olur
-    expect(screen.getByText("Gelen")).toBeOnTheScreen();
-    expect(screen.getByText("Gönderilen")).toBeOnTheScreen();
+    expect(screen.getByText("offer.tabReceived")).toBeOnTheScreen();
+    expect(screen.getByText("offer.tabSent")).toBeOnTheScreen();
   });
 
   it("gelen pending teklifi kart olarak render eder, aksiyon butonları görünür", async () => {
