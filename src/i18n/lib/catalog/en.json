@@ -1193,7 +1193,9 @@
       "cancelled": "Cancelled",
       "failed": "Failed",
       "unknown": "Updating shipment status"
-    }
+    },
+    "timelineCreated": "Order Created",
+    "timelinePaymentMade": "Payment Made"
   },
   "trade": {
     "featureTitle": "Trading",

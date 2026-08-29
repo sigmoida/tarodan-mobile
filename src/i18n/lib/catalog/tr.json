@@ -1193,7 +1193,9 @@
       "cancelled": "İptal edildi",
       "failed": "Başarısız",
       "unknown": "Kargo durumu güncelleniyor"
-    }
+    },
+    "timelineCreated": "Sipariş Oluşturuldu",
+    "timelinePaymentMade": "Ödeme Yapıldı"
   },
   "trade": {
     "featureTitle": "Takas Özelliği",
