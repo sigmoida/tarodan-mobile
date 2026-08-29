@@ -3,6 +3,7 @@ import { View, TouchableOpacity } from 'react-native';
 import { Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { AppImage } from '@/components/AppImage';
 import { isProductOutOfStock } from '@/utils/productPrice';
 import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
@@ -15,6 +16,7 @@ const { colors } = theme;
 
 /** 2-sütun grid ürün kartı (memoized — #75). */
 function ListingCardBase({ item }: { item: any }) {
+  const { t } = useTranslation();
   const isTradeEnabled = isProductTradeOpen(item);
   return (
     <TouchableOpacity style={styles.productCard} onPress={() => router.push(`/product/${item.id}`)}>
@@ -39,7 +41,7 @@ function ListingCardBase({ item }: { item: any }) {
         </Text>
         <View style={styles.priceRow}>
           <Text style={styles.productPrice}>₺{item.price?.toLocaleString('tr-TR')}</Text>
-          {item.condition && <Text style={styles.conditionBadge}>{conditionLabel(item.condition)}</Text>}
+          {item.condition && <Text style={styles.conditionBadge}>{conditionLabel(item.condition, t)}</Text>}
         </View>
       </View>
     </TouchableOpacity>

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { productsApi, searchApi } from '@/lib/api';
 import { useRecentSearchesStore } from '@/stores/recentSearchesStore';
@@ -31,6 +32,7 @@ import { PAGE_SIZE, conditionLabel } from '../_lib/searchConstants';
  * Lifted verbatim from the monolithic SearchScreen.
  */
 export function useSearch() {
+  const { t } = useTranslation();
   const params = useLocalSearchParams();
 
   // Filtre state'i (web listings/page.tsx ile aynı shape)
@@ -242,7 +244,7 @@ export function useSearch() {
   if (filters.manufacturer) activeChips.push({ key: 'manuf', label: filters.manufacturer, onRemove: () => setFilters({ ...filters, manufacturer: '', manufacturerId: '' }) });
   if (filters.scale) activeChips.push({ key: 'scale', label: filters.scale, onRemove: () => setFilters({ ...filters, scale: '' }) });
   if (filters.material) activeChips.push({ key: 'mat', label: filters.material, onRemove: () => setFilters({ ...filters, material: '' }) });
-  if (filters.condition) activeChips.push({ key: 'cond', label: conditionLabel(filters.condition), onRemove: () => setFilters({ ...filters, condition: '' }) });
+  if (filters.condition) activeChips.push({ key: 'cond', label: conditionLabel(filters.condition, t), onRemove: () => setFilters({ ...filters, condition: '' }) });
   if (filters.minPrice || filters.maxPrice) activeChips.push({ key: 'price', label: `₺${filters.minPrice || '0'} - ₺${filters.maxPrice || '∞'}`, onRemove: () => setFilters({ ...filters, minPrice: '', maxPrice: '' }) });
   if (filters.tradeOnly) activeChips.push({ key: 'trade', label: 'Takaslı', onRemove: () => setFilters({ ...filters, tradeOnly: false }) });
   if (filters.discountOnly) activeChips.push({ key: 'disc', label: 'İndirimli', onRemove: () => setFilters({ ...filters, discountOnly: false }) });

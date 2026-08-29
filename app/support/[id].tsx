@@ -16,29 +16,31 @@ import { useState, useCallback } from 'react';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { supportApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { captureException } from '@/services/sentry';
 
 const { colors } = theme;
 
-const ticketStatusConfig: Record<string, { label: string; variant: BadgeVariant }> = {
-  open: { label: 'Açık', variant: 'info' },
-  in_progress: { label: 'İnceleniyor', variant: 'warning' },
-  waiting_customer: { label: 'Yanıtınız Bekleniyor', variant: 'primary' },
-  resolved: { label: 'Çözüldü', variant: 'success' },
-  closed: { label: 'Kapatıldı', variant: 'default' },
-};
+const buildTicketStatusConfig = (t: TFunction): Record<string, { label: string; variant: BadgeVariant }> => ({
+  open: { label: t('support.open'), variant: 'info' },
+  in_progress: { label: t('support.inProgress'), variant: 'warning' },
+  waiting_customer: { label: t('support.waitingCustomer'), variant: 'primary' },
+  resolved: { label: t('support.resolved'), variant: 'success' },
+  closed: { label: t('support.closed'), variant: 'default' },
+});
 
-const categoryLabels: Record<string, string> = {
-  shipping: 'Sipariş / Kargo',
-  payment: 'Ödeme',
-  account: 'Hesap',
-  product: 'İlan / Ürün',
-  trade: 'Takas',
-  technical: 'Teknik Sorun',
-  other: 'Diğer',
-};
+const buildCategoryLabels = (t: TFunction): Record<string, string> => ({
+  shipping: t('support.category.shipping'),
+  payment: t('support.category.payment'),
+  account: t('support.category.account'),
+  product: t('support.category.product'),
+  trade: t('support.category.trade'),
+  technical: t('support.category.technical'),
+  other: t('support.category.other'),
+});
 
 interface TicketMessage {
   id: string;
@@ -79,12 +81,15 @@ function formatDateTime(value?: string): string {
 }
 
 export default function SupportTicketDetailScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
   const [reply, setReply] = useState('');
+  const ticketStatusConfig = buildTicketStatusConfig(t);
+  const categoryLabels = buildCategoryLabels(t);
 
   const { data: ticket, isLoading, refetch } = useQuery({
     queryKey: ['support-tickets', 'detail', id],
@@ -105,7 +110,7 @@ export default function SupportTicketDetailScreen() {
     },
     onError: (e: any) => {
       captureException(e, { level: 'error', tags: { flow: 'support.ticket.reply' } });
-      appAlert('Hata', e?.response?.data?.message || 'Mesaj gönderilemedi, lütfen tekrar deneyin.');
+      appAlert(t('common.error'), e?.response?.data?.message || t('support.replyFailed'));
     },
   });
 
@@ -124,7 +129,7 @@ export default function SupportTicketDetailScreen() {
   if (isLoading && !ticket) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Destek Talebi" onBack={() => (router.canGoBack() ? router.back() : router.replace('/support'))} />
+        <ScreenHeader title={t('support.ticketTitle')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/support'))} />
         <View style={styles.loadingContainer}><Spinner size="lg" /></View>
       </View>
     );
@@ -133,10 +138,10 @@ export default function SupportTicketDetailScreen() {
   if (!ticket) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Destek Talebi" onBack={() => (router.canGoBack() ? router.back() : router.replace('/support'))} />
+        <ScreenHeader title={t('support.ticketTitle')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/support'))} />
         <View style={styles.emptyContainer}>
           <Ionicons name="alert-circle-outline" size={64} color={colors.text.subtle} />
-          <Text variant="h3" style={styles.emptyTitle}>Destek talebi bulunamadı</Text>
+          <Text variant="h3" style={styles.emptyTitle}>{t('support.notFound')}</Text>
         </View>
       </View>
     );
@@ -147,7 +152,7 @@ export default function SupportTicketDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Destek Talebi" onBack={() => (router.canGoBack() ? router.back() : router.replace('/support'))} />
+      <ScreenHeader title={t('support.ticketTitle')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/support'))} />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -181,7 +186,7 @@ export default function SupportTicketDetailScreen() {
                   <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}>
                     <View style={styles.bubbleMeta}>
                       <Text variant="caption" style={[styles.bubbleSender, mine && styles.bubbleSenderMine]}>
-                        {mine ? 'Siz' : message.senderName || 'Destek Ekibi'}
+                        {mine ? t('support.you') : message.senderName || t('support.team')}
                       </Text>
                       <Text variant="caption" style={[styles.bubbleTime, mine && styles.bubbleTimeMine]}>
                         {formatDateTime(message.createdAt)}
@@ -205,22 +210,22 @@ export default function SupportTicketDetailScreen() {
         {isClosed ? (
           <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
             <Text variant="body" tone="muted" style={styles.closedText}>
-              Bu talep kapatılmıştır. Yeni bir sorun için destek talebi oluşturabilirsiniz.
+              {t('support.closedNotice')}
             </Text>
           </View>
         ) : (
           <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
             <Textarea
-              label="Yanıtınız"
+              label={t('support.replyLabel')}
               value={reply}
               onChangeText={setReply}
               rows={3}
-              placeholder="Mesajınızı yazın..."
+              placeholder={t('message.typeMessage')}
               style={styles.replyInput}
             />
             <Button
               variant="primary"
-              title="Gönder"
+              title={t('common.send')}
               icon="send"
               onPress={() => replyMutation.mutate(reply.trim())}
               isLoading={replyMutation.isPending}

@@ -2036,7 +2036,14 @@
     "send": "Mesaj Gönder",
     "sending": "Gönderiliyor...",
     "success": "Mesajınız gönderildi. En kısa sürede size döneceğiz.",
-    "messageTooShort": "Mesaj en az 10 karakter olmalıdır"
+    "messageTooShort": "Mesaj en az 10 karakter olmalıdır",
+    "sendFailed": "Mesaj gönderilemedi, lütfen tekrar deneyin.",
+    "formSectionTitle": "Mesaj Gönderin",
+    "hoursTitle": "Çalışma Saatleri",
+    "hoursWeekdays": "Pazartesi - Cuma",
+    "hoursSaturday": "Cumartesi",
+    "hoursSunday": "Pazar",
+    "hoursClosed": "Kapalı"
   },
   "settings": {
     "settings": "Ayarlar",
@@ -2247,7 +2254,24 @@
     "inProgress": "İşlemde",
     "resolved": "Çözüldü",
     "closed": "Kapatıldı",
-    "contactSupport": "Destek ile İletişime Geç"
+    "contactSupport": "Destek ile İletişime Geç",
+    "ticketTitle": "Destek Talebi",
+    "notFound": "Destek talebi bulunamadı",
+    "waitingCustomer": "Yanıtınız Bekleniyor",
+    "you": "Siz",
+    "team": "Destek Ekibi",
+    "closedNotice": "Bu talep kapatılmıştır. Yeni bir sorun için destek talebi oluşturabilirsiniz.",
+    "replyLabel": "Yanıtınız",
+    "replyFailed": "Mesaj gönderilemedi, lütfen tekrar deneyin.",
+    "category": {
+      "shipping": "Sipariş / Kargo",
+      "payment": "Ödeme",
+      "account": "Hesap",
+      "product": "İlan / Ürün",
+      "trade": "Takas",
+      "technical": "Teknik Sorun",
+      "other": "Diğer"
+    }
   },
   "faq": {
     "title": "Sıkça Sorulan Sorular",
@@ -2691,7 +2715,24 @@
     "trackingGenerating": "İade kargo numaranız oluşturuluyor, kısa süre içinde burada görünecek.",
     "refundedBody": "Tutar ödediğiniz karta iade edildi. Banka ekstresinde görünmesi 1-3 iş günü sürebilir.",
     "rejectedBody": "Bu karara itiraz etmek için destek ekibimizle iletişime geçin.",
-    "disputedBody": "Satıcı bu talebe itiraz etti. Admin ekibimiz dosyayı 1-3 iş günü içinde inceleyip size dönecek."
+    "disputedBody": "Satıcı bu talebe itiraz etti. Admin ekibimiz dosyayı 1-3 iş günü içinde inceleyip size dönecek.",
+    "detail": {
+      "title": "İade Detayı",
+      "notFound": "İade talebi bulunamadı",
+      "infoTitle": "İade Bilgileri",
+      "trackingLabel": "İade Takip No",
+      "requestDateLabel": "Talep Tarihi",
+      "timelineTitle": "Süreç"
+    },
+    "history": {
+      "returnOpened": "İade kargosu açıldı",
+      "acceptedBySeller": "Satıcı kabul etti",
+      "rejectedBySeller": "Satıcı reddetti",
+      "cancelledByBuyer": "Alıcı iptal etti",
+      "refundCompleted": "Para iadesi tamamlandı",
+      "policyOverridden": "Politika güncellendi",
+      "payerChanged": "İade kargo ücreti güncellendi"
+    }
   },
   "report": {
     "reportListing": "İlanı Raporla",

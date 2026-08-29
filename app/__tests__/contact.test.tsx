@@ -50,9 +50,9 @@ describe("J116 · İletişim (contact)", () => {
 
   it("J116.1 boş form gönderiminde uyarı snackbar gösterilir, API çağrılmaz", async () => {
     renderWithProviders(<ContactScreen />);
-    fireEvent.press(screen.getByText("Gönder"));
+    fireEvent.press(screen.getByText("common.send"));
     expect(
-      await screen.findByText("Lütfen tüm alanları doldurun"),
+      await screen.findByText("common.fillAllFields"),
     ).toBeOnTheScreen();
     expect(guestContactMock).not.toHaveBeenCalled();
   });
@@ -65,9 +65,9 @@ describe("J116 · İletişim (contact)", () => {
       subject: "Soru",
       message: "kısa",
     });
-    fireEvent.press(screen.getByText("Gönder"));
+    fireEvent.press(screen.getByText("common.send"));
     expect(
-      await screen.findByText("Mesaj en az 10 karakter olmalıdır."),
+      await screen.findByText("contact.messageTooShort"),
     ).toBeOnTheScreen();
     expect(guestContactMock).not.toHaveBeenCalled();
   });
@@ -80,9 +80,9 @@ describe("J116 · İletişim (contact)", () => {
       subject: "Soru",
       message: "Bu yeterince uzun bir mesaj.",
     });
-    fireEvent.press(screen.getByText("Gönder"));
+    fireEvent.press(screen.getByText("common.send"));
     expect(
-      await screen.findByText("Geçerli bir e-posta adresi girin."),
+      await screen.findByText("validation.invalidEmail"),
     ).toBeOnTheScreen();
     expect(guestContactMock).not.toHaveBeenCalled();
   });
@@ -96,7 +96,7 @@ describe("J116 · İletişim (contact)", () => {
       subject: "Soru",
       message: "Bu yeterince uzun bir mesaj.",
     });
-    fireEvent.press(screen.getByText("Gönder"));
+    fireEvent.press(screen.getByText("common.send"));
     await waitFor(() =>
       expect(guestContactMock).toHaveBeenCalledWith({
         name: "Ali Veli",
@@ -105,12 +105,12 @@ describe("J116 · İletişim (contact)", () => {
         message: "Bu yeterince uzun bir mesaj.",
       }),
     );
-    expect(await screen.findByText("Mesajınız gönderildi!")).toBeOnTheScreen();
+    expect(await screen.findByText("contact.success")).toBeOnTheScreen();
   });
 
   it("J116.5 SSS bağlantısı /help ekranına yönlendirir", () => {
     renderWithProviders(<ContactScreen />);
-    fireEvent.press(screen.getByText("Sık Sorulan Sorular"));
+    fireEvent.press(screen.getByText("faq.title"));
     expect(mockPush).toHaveBeenCalledWith("/help");
   });
 });
