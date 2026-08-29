@@ -1,12 +1,13 @@
 import { useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { qk } from '@/lib/query';
 import { appAlert } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { paymentsApi } from '@/lib/api';
 import type { Payment } from '../_lib/types';
-import { STATUS_CONFIG, formatDate, formatCurrency } from '../_lib/status';
+import { buildStatusConfig, formatDate, formatCurrency } from '../_lib/status';
 
 /**
  * Ödeme geçmişi controller'ı — `GET /payments/me`, odakta tazeleme, çekerek
@@ -17,8 +18,10 @@ import { STATUS_CONFIG, formatDate, formatCurrency } from '../_lib/status';
  * kendisinden geliyor — elle üç ayrı `useState` tutulmuyor.
  */
 export function usePaymentHistory() {
+  const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const queryClient = useQueryClient();
+  const statusConfig = buildStatusConfig(t);
 
   const query = useQuery({
     queryKey: qk.payments.mine,
@@ -35,7 +38,7 @@ export function usePaymentHistory() {
         status: p.status,
         method: p.method || (p.provider ? String(p.provider).toUpperCase() : ''),
         description:
-          p.description || p.product?.title || (p.orderNumber ? `Sipariş #${p.orderNumber}` : 'Ödeme'),
+          p.description || p.product?.title || (p.orderNumber ? t('payment.orderNumberFallback', { id: p.orderNumber }) : t('checkout.title')),
         createdAt: p.createdAt,
         invoiceUrl: p.invoiceUrl,
         imageUrl: p.product?.images?.[0] || undefined,
@@ -51,17 +54,17 @@ export function usePaymentHistory() {
 
   const handlePaymentPress = (payment: Payment) => {
     appAlert(
-      'Ödeme Detayı',
+      t('checkout.paymentDetail'),
       [
-        `Tutar: ${formatCurrency(payment.amount)}`,
-        `Tarih: ${formatDate(payment.createdAt)}`,
-        `Durum: ${STATUS_CONFIG[payment.status]?.label || payment.status}`,
-        `Yöntem: ${payment.method || '-'}`,
-        payment.description ? `Açıklama: ${payment.description}` : null,
+        t('payment.detailAmountLine', { value: formatCurrency(payment.amount) }),
+        t('payment.detailDateLine', { value: formatDate(payment.createdAt) }),
+        t('payment.detailStatusLine', { value: statusConfig[payment.status]?.label || payment.status }),
+        t('payment.detailMethodLine', { value: payment.method || '-' }),
+        payment.description ? t('payment.detailDescriptionLine', { value: payment.description }) : null,
       ]
         .filter(Boolean)
         .join('\n'),
-      [{ text: 'Tamam' }],
+      [{ text: t('common.ok') }],
     );
   };
 
