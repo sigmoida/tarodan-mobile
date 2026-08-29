@@ -3311,7 +3311,7 @@
       "email": "E-posta",
       "phone": "Telefon",
       "address": "Adres",
-      "emailValue": "destek@tarodan.com",
+      "emailValue": "destek@tarodan.com.tr",
       "phoneValue": "+90 212 XXX XX XX",
       "addressValue": "İstanbul, Türkiye"
     }
@@ -8031,7 +8031,7 @@
   },
   "ipPage": {
     "s1Title": "1. Platform İçeriği",
-    "s1Content": "Tarodan platformunun tasarımı, logosu, yazılımı, kaynak kodu, grafikleri, metinleri, veri tabanları ve diğer tüm içerikleri Tarodan Teknoloji A.Ş.'nin mülkiyetinde olup, telif hakkı ve fikri mülkiyet yasaları ile korunmaktadır.",
+    "s1Content": "Tarodan platformunun tasarımı, logosu, yazılımı, kaynak kodu, grafikleri, metinleri, veri tabanları ve diğer tüm içerikleri {entity}'nin mülkiyetinde olup, telif hakkı ve fikri mülkiyet yasaları ile korunmaktadır.",
     "s2Title": "2. Marka ve Logo",
     "s2Content": "\"Tarodan\" adı, logosu ve ilişkili grafik öğeler tescilli markalardır. Bu markaların izinsiz kullanımı, kopyalanması, değiştirilmesi veya dağıtılması yasaktır ve yasal işlem başlatılabilir.",
     "s3Title": "3. Kullanıcı İçerikleri",

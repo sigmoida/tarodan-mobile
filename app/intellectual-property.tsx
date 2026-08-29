@@ -2,7 +2,7 @@ import { View, ScrollView, StyleSheet } from "react-native";
 import { theme, Text, ScreenHeader } from "@/ui";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { IP_EMAIL } from "@/constants/legalFacts";
+import { IP_EMAIL, LEGAL_ENTITY } from "@/constants/legalFacts";
 
 const { colors } = theme;
 
@@ -21,7 +21,7 @@ export default function IntellectualPropertyScreen() {
         <Text style={styles.lastUpdated}>{t("legalContact.lastUpdatedJan2026")}</Text>
 
         <Text style={styles.sectionTitle}>{t("ipPage.s1Title")}</Text>
-        <Text style={styles.paragraph}>{t("ipPage.s1Content")}</Text>
+        <Text style={styles.paragraph}>{t("ipPage.s1Content", { entity: LEGAL_ENTITY.legalName })}</Text>
 
         <Text style={styles.sectionTitle}>{t("ipPage.s2Title")}</Text>
         <Text style={styles.paragraph}>{t("ipPage.s2Content")}</Text>

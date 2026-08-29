@@ -3311,7 +3311,7 @@
       "email": "Email",
       "phone": "Phone",
       "address": "Address",
-      "emailValue": "destek@tarodan.com",
+      "emailValue": "destek@tarodan.com.tr",
       "phoneValue": "+90 212 XXX XX XX",
       "addressValue": "Istanbul, Turkey"
     }
@@ -8031,7 +8031,7 @@
   },
   "ipPage": {
     "s1Title": "1. Platform Content",
-    "s1Content": "The design, logo, software, source code, graphics, texts, databases, and all other content of the Tarodan platform are the property of Tarodan Teknoloji A.Ş. and are protected by copyright and intellectual property laws.",
+    "s1Content": "The design, logo, software, source code, graphics, texts, databases, and all other content of the Tarodan platform are the property of {entity} and are protected by copyright and intellectual property laws.",
     "s2Title": "2. Trademark and Logo",
     "s2Content": "The \"Tarodan\" name, logo, and associated graphic elements are registered trademarks. Unauthorized use, copying, modification, or distribution of these trademarks is prohibited and may result in legal action.",
     "s3Title": "3. User Content",
