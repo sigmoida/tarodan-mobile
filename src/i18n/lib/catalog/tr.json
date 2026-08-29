@@ -6595,5 +6595,23 @@
     "ratingTitle": "Değerlendirme Sistemi",
     "ratingDesc": "Alıcı ve satıcı puanlama sistemi sayesinde güvenilir kullanıcıları kolayca belirleyebilirsiniz. Sahte değerlendirmeler tespit edilip kaldırılır.",
     "footerText": "Güvenlikle ilgili bir sorun fark ederseniz lütfen derhal bize bildirin."
+  },
+  "buyerProtectionPage": {
+    "heroTitle": "Alıcı Koruma Programı",
+    "lastUpdated": "Son güncelleme: 24 Ocak 2026",
+    "s1Title": "1. Alıcı Koruma Nedir?",
+    "s1Content": "TARODAN Alıcı Koruma programı, platform üzerinden yaptığınız alışverişlerde ürünün tanıma uygun gelmemesi, hiç gönderilmemesi veya ciddi anlaşmazlık durumlarında inceleme ve gerekirse para iadesi süreçlerini kapsar.",
+    "s2Title": "2. Kapsam",
+    "s2Content": "• Platformda ödeme alınan siparişler\n• Ürün hiç kargolanmadı veya takip bilgisi verilmedi\n• Ürün açıklamaya ciddi şekilde aykırı\n• Sahte veya taklit ürün iddiası",
+    "s3Title": "3. Para İade Garantisi",
+    "s3Content": "Uygun koşullarda ve inceleme sonucunda para iadesi yapılabilir. \"Para iade garantisi\" her durumda otomatik iade anlamına gelmez; her talep ayrı ayrı incelenir.",
+    "s4Title": "4. Anlaşmazlık Çözümü",
+    "s4Content": "1. Satıcı ile iletişime geçin\n2. Destek talebi açın (Hesabım → Siparişlerim → Sorun bildir)\n3. Ekibimiz durumu inceler\n4. Karar ve uygulama\n\nSüre: 5–10 iş günü.",
+    "s5Title": "5. Sizin Yapmanız Gerekenler",
+    "s5Content": "• Sipariş ve hasar fotoğraflarını saklayın\n• Kargo takip ve iletişim geçmişini paylaşın\n• Talep açıklamasını net yazın\n• Platform iletişimlerine zamanında cevap verin",
+    "s6Title": "6. Sınırlamalar",
+    "s6Content": "Alıcı koruma yasal haklarınızın yerine geçmez; onlara ek olarak sunulur.",
+    "s7Title": "7. İletişim",
+    "s7Content": "{email} – konu: \"Alıcı Koruma – Sipariş No\""
   }
 }

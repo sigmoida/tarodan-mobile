@@ -6595,5 +6595,23 @@
     "ratingTitle": "Rating System",
     "ratingDesc": "The buyer and seller rating system makes it easy to identify trustworthy users. Fake reviews are detected and removed.",
     "footerText": "If you notice a security issue, please let us know right away."
+  },
+  "buyerProtectionPage": {
+    "heroTitle": "Buyer Protection Program",
+    "lastUpdated": "Last updated: January 24, 2026",
+    "s1Title": "1. What Is Buyer Protection?",
+    "s1Content": "The TARODAN Buyer Protection program covers review and, where warranted, a refund for purchases made through the platform when the product doesn''t match its description, is never shipped, or a serious dispute arises.",
+    "s2Title": "2. Scope",
+    "s2Content": "• Orders paid for on the platform\n• The product was never shipped or no tracking information was provided\n• The product seriously does not match its description\n• Claims of a counterfeit or fake product",
+    "s3Title": "3. Money-Back Guarantee",
+    "s3Content": "A refund may be issued once conditions are met and the case has been reviewed. The \"money-back guarantee\" does not mean an automatic refund in every case; each request is reviewed individually.",
+    "s4Title": "4. Dispute Resolution",
+    "s4Content": "1. Contact the seller\n2. Open a support request (My Account → My Orders → Report an issue)\n3. Our team reviews the case\n4. Decision and action\n\nTimeframe: 5–10 business days.",
+    "s5Title": "5. What You Need to Do",
+    "s5Content": "• Keep photos of the order and any damage\n• Share shipment tracking and your communication history\n• Write a clear description of your claim\n• Respond to platform communications on time",
+    "s6Title": "6. Limitations",
+    "s6Content": "Buyer protection does not replace your legal rights; it is offered in addition to them.",
+    "s7Title": "7. Contact",
+    "s7Content": "{email} – subject: \"Buyer Protection – Order No.\""
   }
 }

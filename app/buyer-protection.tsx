@@ -8,52 +8,49 @@ import { SUPPORT_EMAIL } from "@/constants/legalFacts";
 
 const { colors } = theme;
 
-const sections = [
-  {
-    title: "1. Alıcı Koruma Nedir?",
-    icon: "shield-checkmark-outline" as const,
-    content:
-      "TARODAN Alıcı Koruma programı, platform üzerinden yaptığınız alışverişlerde ürünün tanıma uygun gelmemesi, hiç gönderilmemesi veya ciddi anlaşmazlık durumlarında inceleme ve gerekirse para iadesi süreçlerini kapsar.",
-  },
-  {
-    title: "2. Kapsam",
-    icon: "list-outline" as const,
-    content:
-      "• Platformda ödeme alınan siparişler\n• Ürün hiç kargolanmadı veya takip bilgisi verilmedi\n• Ürün açıklamaya ciddi şekilde aykırı\n• Sahte veya taklit ürün iddiası",
-  },
-  {
-    title: "3. Para İade Garantisi",
-    icon: "cash-outline" as const,
-    content:
-      'Uygun koşullarda ve inceleme sonucunda para iadesi yapılabilir. "Para iade garantisi" her durumda otomatik iade anlamına gelmez; her talep ayrı ayrı incelenir.',
-  },
-  {
-    title: "4. Anlaşmazlık Çözümü",
-    icon: "chatbubbles-outline" as const,
-    content:
-      "1. Satıcı ile iletişime geçin\n2. Destek talebi açın (Hesabım → Siparişlerim → Sorun bildir)\n3. Ekibimiz durumu inceler\n4. Karar ve uygulama\n\nSüre: 5–10 iş günü.",
-  },
-  {
-    title: "5. Sizin Yapmanız Gerekenler",
-    icon: "checkbox-outline" as const,
-    content:
-      "• Sipariş ve hasar fotoğraflarını saklayın\n• Kargo takip ve iletişim geçmişini paylaşın\n• Talep açıklamasını net yazın\n• Platform iletişimlerine zamanında cevap verin",
-  },
-  {
-    title: "6. Sınırlamalar",
-    icon: "warning-outline" as const,
-    content:
-      "Alıcı koruma yasal haklarınızın yerine geçmez; onlara ek olarak sunulur.",
-  },
-  {
-    title: "7. İletişim",
-    icon: "mail-outline" as const,
-    content: `${SUPPORT_EMAIL} – konu: "Alıcı Koruma – Sipariş No"`,
-  },
-];
+function useSections(t: (key: string, opts?: Record<string, unknown>) => string) {
+  return [
+    {
+      title: t("buyerProtectionPage.s1Title"),
+      icon: "shield-checkmark-outline" as const,
+      content: t("buyerProtectionPage.s1Content"),
+    },
+    {
+      title: t("buyerProtectionPage.s2Title"),
+      icon: "list-outline" as const,
+      content: t("buyerProtectionPage.s2Content"),
+    },
+    {
+      title: t("buyerProtectionPage.s3Title"),
+      icon: "cash-outline" as const,
+      content: t("buyerProtectionPage.s3Content"),
+    },
+    {
+      title: t("buyerProtectionPage.s4Title"),
+      icon: "chatbubbles-outline" as const,
+      content: t("buyerProtectionPage.s4Content"),
+    },
+    {
+      title: t("buyerProtectionPage.s5Title"),
+      icon: "checkbox-outline" as const,
+      content: t("buyerProtectionPage.s5Content"),
+    },
+    {
+      title: t("buyerProtectionPage.s6Title"),
+      icon: "warning-outline" as const,
+      content: t("buyerProtectionPage.s6Content"),
+    },
+    {
+      title: t("buyerProtectionPage.s7Title"),
+      icon: "mail-outline" as const,
+      content: t("buyerProtectionPage.s7Content", { email: SUPPORT_EMAIL }),
+    },
+  ];
+}
 
 export default function BuyerProtectionScreen() {
   const { t } = useTranslation();
+  const sections = useSections(t);
   return (
     <View style={styles.container}>
       <ScreenHeader
@@ -65,8 +62,8 @@ export default function BuyerProtectionScreen() {
 
       <View style={styles.hero}>
         <Ionicons name="shield-checkmark" size={40} color={colors.white} />
-        <Text style={styles.heroTitle}>Alıcı Koruma Programı</Text>
-        <Text style={styles.heroDate}>Son güncelleme: 24 Ocak 2026</Text>
+        <Text style={styles.heroTitle}>{t("buyerProtectionPage.heroTitle")}</Text>
+        <Text style={styles.heroDate}>{t("buyerProtectionPage.lastUpdated")}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -93,7 +90,7 @@ export default function BuyerProtectionScreen() {
             style={styles.linkButton}
             onPress={() => router.push("/refund-policy" as any)}
           >
-            <Text style={styles.linkText}>İade Politikası</Text>
+            <Text style={styles.linkText}>{t("mobile.pageRefundPolicy")}</Text>
             <Ionicons
               name="chevron-forward"
               size={18}
@@ -104,7 +101,7 @@ export default function BuyerProtectionScreen() {
             style={styles.linkButton}
             onPress={() => router.push("/returns-exchanges" as any)}
           >
-            <Text style={styles.linkText}>İade ve Değişim</Text>
+            <Text style={styles.linkText}>{t("mobile.pageReturns")}</Text>
             <Ionicons
               name="chevron-forward"
               size={18}
@@ -115,7 +112,7 @@ export default function BuyerProtectionScreen() {
             style={styles.linkButton}
             onPress={() => router.push("/terms")}
           >
-            <Text style={styles.linkText}>Kullanım Şartları</Text>
+            <Text style={styles.linkText}>{t("legal.termsTitle")}</Text>
             <Ionicons
               name="chevron-forward"
               size={18}
