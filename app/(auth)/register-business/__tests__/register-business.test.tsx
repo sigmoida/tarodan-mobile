@@ -272,7 +272,7 @@ it('çözülemeyen telefon gönderilmez (TR olmayan numara sessizce kırpılmaz)
   fireEvent.press(screen.getByTestId('register-business-submit-button'));
 
   await waitFor(() =>
-    expect(screen.getByText('Geçerli bir telefon numarası girin (5XX XXX XX XX)')).toBeTruthy(),
+    expect(screen.getByText('Geçerli bir telefon numarası girin')).toBeTruthy(),
   );
   expect(authApi.registerBusiness).not.toHaveBeenCalled();
 });

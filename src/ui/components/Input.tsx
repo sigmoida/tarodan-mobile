@@ -11,6 +11,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { theme } from '../lib/theme';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -69,6 +70,7 @@ export const Input: React.FC<InputProps> = ({
   onBlur,
   ...rest
 }) => {
+  const { t } = useTranslation();
   const [focused, setFocused] = useState(false);
   const [passwordHidden, setPasswordHidden] = useState(true);
   const ss = sizeStyle[inputSize];
@@ -93,7 +95,7 @@ export const Input: React.FC<InputProps> = ({
         onPress={() => setPasswordHidden((v) => !v)}
         hitSlop={8}
         accessibilityRole="button"
-        accessibilityLabel={passwordHidden ? 'Şifreyi göster' : 'Şifreyi gizle'}
+        accessibilityLabel={passwordHidden ? t('common.showPassword') : t('common.hidePassword')}
       >
         <Ionicons
           name={passwordHidden ? 'eye-outline' : 'eye-off-outline'}

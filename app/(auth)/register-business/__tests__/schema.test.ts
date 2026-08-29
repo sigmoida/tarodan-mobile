@@ -173,7 +173,7 @@ describe('registerBusinessSchema — telefon sıkı ayrıştırma (KIRPMA YOK)',
     expect(result.success).toBe(false);
     if (!result.success) {
       const issue = result.error.issues.find((i) => i.path[0] === 'phone');
-      expect(issue?.message).toBe('Geçerli bir telefon numarası girin (5XX XXX XX XX)');
+      expect(issue?.message).toBe('Geçerli bir telefon numarası girin');
     }
   });
 
