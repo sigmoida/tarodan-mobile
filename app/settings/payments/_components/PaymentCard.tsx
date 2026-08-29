@@ -42,7 +42,7 @@ export function PaymentCard({ p, f }: { p: Payment; f: PaymentsController }) {
         </View>
       </View>
 
-      <Text style={styles.dateText}>{formatDate(p.paidAt || p.createdAt, t)}</Text>
+      <Text style={styles.dateText}>{formatDate(p.paidAt || p.createdAt)}</Text>
 
       {p.failureReason ? (
         <View style={styles.failureBox}>

@@ -18,9 +18,11 @@ export const buildStatusColors = (t: TFunction): Record<string, { bg: string; fg
   cancelled: { bg: colors.gray[100], fg: colors.text.muted, label: t('common.cancel'), icon: 'ban-outline' },
 });
 
-export const formatDate = (s: string, t: TFunction) => {
+// Not: tarih formatı bilerek 'tr-TR' — @/utils/format.formatPrice ile aynı
+// yerleşik kararı izliyor (uygulama genelinde para/tarih formatı sabit TL/tr-TR).
+export const formatDate = (s: string) => {
   const d = new Date(s);
-  return d.toLocaleString(t('common.dateLocale'), {
+  return d.toLocaleString('tr-TR', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
