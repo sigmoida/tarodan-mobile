@@ -2,10 +2,13 @@ import {
   asLabel,
   formatOrderStatus,
   formatPrice,
+  formatPriceNumber,
+  formatRelativeDate,
   formatServerPrice,
   serverAmount,
   PRICE_PLACEHOLDER,
 } from '../format';
+import i18n from '@/i18n/config';
 
 /**
  * serverAmount / formatServerPrice — "gösterilen her tutar bir sunucu alanının
@@ -163,5 +166,38 @@ describe('formatOrderStatus', () => {
   it('null/undefined için güvenli fallback döner', () => {
     expect(formatOrderStatus(null)).toBe('Bilinmiyor');
     expect(formatOrderStatus(undefined, 'en')).toBe('Unknown');
+  });
+});
+
+/**
+ * Bilinen kusur (2026-08-29 tespit): formatPrice/formatPriceNumber `'tr-TR'`i
+ * SABİT kullanıyordu — İngilizce kullanıcı bile binlik/ondalık ayracı Türkçe
+ * görüyordu. PARA BİRİMİ hep TL kalır (bu bir TL pazaryeri); yalnız SAYI
+ * biçimi aktif dile göre değişir. `formatRelativeDate`'in `locale` varsayılanı
+ * da aynı sınıf kusur taşıyordu (sabit `'tr'`) — artık aktif dile düşer.
+ */
+describe('locale-duyarlı biçimlendirme (aktif dile göre, TL sabit kalır)', () => {
+  afterEach(async () => {
+    await i18n.changeLanguage('tr');
+  });
+
+  it('formatPrice: en aktifken en-US binlik/ondalık ayracı kullanır, TL eki değişmez', async () => {
+    expect(formatPrice(1234.5)).toBe('1.234,50 TL');
+    await i18n.changeLanguage('en');
+    expect(formatPrice(1234.5)).toBe('1,234.50 TL');
+  });
+
+  it('formatPriceNumber aynı locale kuralını TL eki olmadan izler', async () => {
+    await i18n.changeLanguage('en');
+    expect(formatPriceNumber(1234.5)).toBe('1,234.50');
+  });
+
+  it('formatRelativeDate: locale verilmezse aktif dile düşer (7+ gün önce → tam tarih)', async () => {
+    const old = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const trOut = formatRelativeDate(old); // ör. "30 Temmuz 2026" (tam ay adı)
+    await i18n.changeLanguage('en');
+    const enOut = formatRelativeDate(old); // ör. "Jul 30, 2026" (kısaltılmış ay adı)
+    expect(enOut).not.toBe(trOut);
+    expect(enOut).toMatch(/^[A-Za-z]{3} \d{1,2}, \d{4}$/);
   });
 });

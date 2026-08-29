@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { theme, Button, Modal, Text } from '@/ui';
 
 const { colors } = theme;
@@ -21,10 +22,13 @@ interface AuthRequiredSheetProps {
 export function AuthRequiredSheet({
   visible,
   onDismiss,
-  title = 'Giriş Gerekli',
-  message = 'Bu özelliği kullanabilmek için hesabınıza giriş yapmanız gerekiyor.',
+  title,
+  message,
   redirectTo,
 }: AuthRequiredSheetProps) {
+  const { t } = useTranslation();
+  const resolvedTitle = title ?? t('listing.loginRequiredTitle'); // reuse
+  const resolvedMessage = message ?? t('listing.loginRequiredMessage');
   const goLogin = () => {
     onDismiss();
     const url = redirectTo
@@ -39,28 +43,28 @@ export function AuthRequiredSheet({
   };
 
   return (
-    <Modal isOpen={visible} onClose={onDismiss} title={title}>
+    <Modal isOpen={visible} onClose={onDismiss} title={resolvedTitle}>
       <View style={styles.body}>
         <View style={styles.iconCircle}>
           <Ionicons name="lock-closed-outline" size={32} color={colors.primary[600]!} />
         </View>
         <Text variant="body" tone="muted" style={styles.message}>
-          {message}
+          {resolvedMessage}
         </Text>
 
         <Button
           variant="primary"
-          title="Giriş Yap"
+          title={t('common.login')}
           onPress={goLogin}
           style={styles.fullWidth}
         />
         <Button
           variant="outline"
-          title="Hesap Oluştur"
+          title={t('auth.createAccount')}
           onPress={goRegister}
           style={styles.fullWidth}
         />
-        <Button variant="ghost" title="Vazgeç" onPress={onDismiss} style={styles.fullWidth} />
+        <Button variant="ghost" title={t('seller.cancel')} onPress={onDismiss} style={styles.fullWidth} />
       </View>
     </Modal>
   );

@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/authStore';
 import {
   isValidPhoneInput,
   parsePhoneForPayload,
-  PHONE_INVALID_MESSAGE,
+  getPhoneInvalidMessage,
   splitPhone,
 } from '@/utils/phone';
 import { createProfileSchema, type ProfileForm } from '../_lib/schema';
@@ -85,7 +85,7 @@ export function useEditProfile() {
       if (phone) {
         const parsed = parsePhoneForPayload(phone, phoneCountryCode);
         if (!parsed) {
-          const invalid: any = new Error(PHONE_INVALID_MESSAGE);
+          const invalid: any = new Error(getPhoneInvalidMessage());
           invalid.isClientValidation = true;
           throw invalid;
         }
@@ -158,7 +158,7 @@ export function useEditProfile() {
     // çözülebilmeli: eskiden fazla hane sessizce kırpılıp yanlış numara
     // kaydediliyordu. Şema ülke kodunu bilmediği için gate burada.
     if (data.phone?.trim() && !isValidPhoneInput(data.phone, phoneCountryCode)) {
-      setError('phone', { type: 'manual', message: PHONE_INVALID_MESSAGE });
+      setError('phone', { type: 'manual', message: getPhoneInvalidMessage() });
       return;
     }
     clearErrors('phone');

@@ -11,7 +11,7 @@ import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 import { appAlert } from '@/ui';
-import { PHONE_INVALID_MESSAGE } from '@/utils/phone';
+import { getPhoneInvalidMessage } from '@/utils/phone';
 
 jest.mock('expo-router', () => ({
   ...require('@/test-utils/router-mock').routerMock,
@@ -108,7 +108,7 @@ describe('Adres formu — alana yazılan telefon payload\'a ne olarak gidiyor', 
       await fillAndSave(input);
       await waitFor(() => expect(appAlert).toHaveBeenCalled());
       expect(post).not.toHaveBeenCalled();
-      expect(await screen.findByText(PHONE_INVALID_MESSAGE)).toBeTruthy();
+      expect(await screen.findByText(getPhoneInvalidMessage())).toBeTruthy();
     },
   );
 
@@ -127,12 +127,12 @@ describe('Adres formu — alana yazılan telefon payload\'a ne olarak gidiyor', 
     const input = screen.getByTestId('address-phone-input');
 
     fireEvent.changeText(input, '00905321234567');
-    expect(screen.queryByText(PHONE_INVALID_MESSAGE)).toBeNull(); // yazarken cezalandırma yok
+    expect(screen.queryByText(getPhoneInvalidMessage())).toBeNull(); // yazarken cezalandırma yok
     fireEvent(input, 'blur');
-    expect(await screen.findByText(PHONE_INVALID_MESSAGE)).toBeTruthy();
+    expect(await screen.findByText(getPhoneInvalidMessage())).toBeTruthy();
 
     fireEvent.changeText(input, '0532 123 45 67');
-    await waitFor(() => expect(screen.queryByText(PHONE_INVALID_MESSAGE)).toBeNull());
+    await waitFor(() => expect(screen.queryByText(getPhoneInvalidMessage())).toBeNull());
   });
 });
 
@@ -158,7 +158,7 @@ describe('Profil formu — alana yazılan telefon payload\'a ne olarak gidiyor',
     '%s → kaydetme DURUR ve alanda hata görünür',
     async (input) => {
       fillAndSave(input);
-      await waitFor(() => expect(screen.getByText(PHONE_INVALID_MESSAGE)).toBeTruthy());
+      await waitFor(() => expect(screen.getByText(getPhoneInvalidMessage())).toBeTruthy());
       expect(updateProfile).not.toHaveBeenCalled();
     },
   );
@@ -167,7 +167,7 @@ describe('Profil formu — alana yazılan telefon payload\'a ne olarak gidiyor',
     renderWithProviders(<EditProfileScreen />);
     fireEvent.press(screen.getByText('Değişiklikleri Kaydet'));
     await waitFor(() => expect(updateProfile).toHaveBeenCalledTimes(1));
-    expect(screen.queryByText(PHONE_INVALID_MESSAGE)).toBeNull();
+    expect(screen.queryByText(getPhoneInvalidMessage())).toBeNull();
   });
 
   it('20 karakteri aşan girdide zod un İNGİLİZCE mesajı görünmez', async () => {
@@ -176,7 +176,7 @@ describe('Profil formu — alana yazılan telefon payload\'a ne olarak gidiyor',
     // character(s)" basıyordu. Üstelik zod resolver'ı `onSubmit`'teki Türkçe
     // kapıdan ÖNCE koştuğu için o kapı hiç çalışmıyordu.
     fillAndSave('+90 532 123 45 6789 0123');
-    await waitFor(() => expect(screen.getByText(PHONE_INVALID_MESSAGE)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(getPhoneInvalidMessage())).toBeTruthy());
     expect(screen.queryByText(/String must contain/i)).toBeNull();
     expect(screen.queryByText(/at most 20/i)).toBeNull();
     expect(updateProfile).not.toHaveBeenCalled();

@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { usePathname } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { theme } from "@/ui";
 import { logger } from "../services/logger";
 
@@ -100,6 +101,7 @@ function FallbackScreen({
   componentStack: string | null;
   onRetry: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.container}>
       <Ionicons
@@ -107,9 +109,9 @@ function FallbackScreen({
         size={64}
         color={theme.colors.danger[500]}
       />
-      <Text style={styles.title}>Bir şeyler ters gitti</Text>
+      <Text style={styles.title}>{t("mobile.errorSomethingWrong")}</Text>
       <Text style={styles.subtitle}>
-        Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.
+        {t("mobile.errorBoundaryDescription")}
       </Text>
       {/* TANI (geçici): staging'de gerçek hatayı ekranda göster — OTA ile teşhis.
           Kök neden bulununca geri alınacak (__DEV__ guard'ı geri gelecek). */}
@@ -124,7 +126,7 @@ function FallbackScreen({
         </ScrollView>
       )}
       <TouchableOpacity style={styles.button} onPress={onRetry}>
-        <Text style={styles.buttonText}>Tekrar Dene</Text>
+        <Text style={styles.buttonText}>{t("mobile.errorRetry")}</Text>
       </TouchableOpacity>
     </View>
   );

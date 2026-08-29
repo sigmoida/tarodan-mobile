@@ -18,7 +18,7 @@ import { captureException } from '@/services/sentry';
 import { formatServerPrice, serverAmount } from '@/utils/format';
 import { indexQuoteLines } from '@/utils/quoteLines';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
-import { DEFAULT_COUNTRY_CODE, parsePhoneForPayload, PHONE_INVALID_MESSAGE } from '@/utils/phone';
+import { DEFAULT_COUNTRY_CODE, parsePhoneForPayload, getPhoneInvalidMessage } from '@/utils/phone';
 import { STOCKOUT_KEYWORDS, generateUuidV4, EMPTY_ADDRESS } from '../_lib/constants';
 import {
   addressPhoneError,
@@ -524,7 +524,7 @@ export function useCheckout() {
 
     if (!(isAuthenticated && user)) {
       const guest = parsePhoneForPayload(guestPhone, guestPhoneCountryCode);
-      if (!guest) return { ok: false, message: PHONE_INVALID_MESSAGE };
+      if (!guest) return { ok: false, message: getPhoneInvalidMessage() };
       phones.guest = guest;
     }
 
@@ -567,7 +567,7 @@ export function useCheckout() {
     return {
       inline: {
         fullName: shippingAddress.fullName.trim(),
-        phone: requirePhone(phones.shipping, `Teslimat adresi — ${PHONE_INVALID_MESSAGE}`),
+        phone: requirePhone(phones.shipping, `Teslimat adresi — ${getPhoneInvalidMessage()}`),
         city: shippingAddress.city.trim(),
         district: shippingAddress.district.trim(),
         address: shippingAddress.address.trim(),
@@ -584,7 +584,7 @@ export function useCheckout() {
     return {
       inline: {
         fullName: billingAddress.fullName.trim(),
-        phone: requirePhone(phones.billing, `Fatura adresi — ${PHONE_INVALID_MESSAGE}`),
+        phone: requirePhone(phones.billing, `Fatura adresi — ${getPhoneInvalidMessage()}`),
         city: billingAddress.city.trim(),
         district: billingAddress.district.trim(),
         address: billingAddress.address.trim(),
@@ -650,7 +650,7 @@ export function useCheckout() {
               email: guestEmail.trim().toLowerCase(),
               emailVerificationCode: emailVerificationCode ?? '',
               // `resolvePayloadPhones` misafir dalında ÇÖZDÜ — boş geçemez.
-              phone: requirePhone(resolved.phones.guest, PHONE_INVALID_MESSAGE),
+              phone: requirePhone(resolved.phones.guest, getPhoneInvalidMessage()),
               guestName: guestName.trim(),
               shippingAddress: shipping.inline!,
               billingAddress: billing?.inline,

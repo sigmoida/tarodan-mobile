@@ -7,7 +7,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { authApi } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 import {
-  PHONE_INVALID_MESSAGE,
+  getPhoneInvalidMessage,
   parsePhoneForPayload,
   splitPhone,
 } from "@/utils/phone";
@@ -87,7 +87,7 @@ export function useSecurity() {
     // sebebini görsün (diğer telefon yollarıyla aynı sözleşme, Plan 4).
     const e164 = parsePhoneForPayload(phoneInput, phoneCountryCode);
     if (!e164) {
-      setPhoneMsg({ type: "error", text: PHONE_INVALID_MESSAGE });
+      setPhoneMsg({ type: "error", text: getPhoneInvalidMessage() });
       return;
     }
     setLoading(true);

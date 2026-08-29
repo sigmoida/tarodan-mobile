@@ -10,7 +10,7 @@
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
-import { PHONE_INVALID_MESSAGE } from '@/utils/phone';
+import { getPhoneInvalidMessage } from '@/utils/phone';
 
 jest.mock('expo-router', () => ({
   ...require('@/test-utils/router-mock').routerMock,
@@ -69,7 +69,7 @@ describe('settings/security phone verification', () => {
     fireEvent.changeText(await screen.findByTestId('phone-input'), '05321234567890');
     fireEvent.press(screen.getByText('security.sendCode'));
 
-    await waitFor(() => expect(screen.getByText(PHONE_INVALID_MESSAGE)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(getPhoneInvalidMessage())).toBeTruthy());
     expect(mockSendPhoneCode).not.toHaveBeenCalled();
   });
 });

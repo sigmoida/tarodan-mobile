@@ -6,7 +6,7 @@ import { productsApi } from '@/lib/api';
 import { useProductFilterOptions } from '@/hooks/useProductFilterOptions';
 import {
   EMPTY_FILTERS,
-  SORT_OPTIONS,
+  buildSortOptions,
   buildListParams,
   countActiveFilters,
   extractListings,
@@ -97,8 +97,9 @@ export function useListings() {
     setSearchQuery('');
   };
 
+  const sortOptions = useMemo(() => buildSortOptions(t), [t]);
   const getSortLabel = () =>
-    SORT_OPTIONS.find((o) => o.value === filters.sortBy)?.label || 'Sırala';
+    sortOptions.find((o) => o.value === filters.sortBy)?.label || t('product.sortBy');
 
   const activeChips = buildActiveChips(filters, setFilters, t);
 

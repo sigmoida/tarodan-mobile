@@ -53,14 +53,25 @@ export const EMPTY_FILTERS: ProductFilters = {
   customAttributes: {},
 };
 
-/** Web ProductQueryDto-uyumlu sort değerleri (search.tsx eski 'newest'/'sort' yerine). */
-export const SORT_OPTIONS: { value: string; label: string; icon: string }[] = [
-  { value: 'created_desc', label: 'En Yeni', icon: 'time-outline' },
-  { value: 'created_asc', label: 'En Eski', icon: 'time-outline' },
-  { value: 'view_count_desc', label: 'Popüler', icon: 'star-outline' },
-  { value: 'price_asc', label: 'Fiyat (Düşük)', icon: 'arrow-up' },
-  { value: 'price_desc', label: 'Fiyat (Yüksek)', icon: 'arrow-down' },
-  { value: 'rating_desc', label: 'En Yüksek Puan', icon: 'ribbon-outline' },
+/**
+ * Web ProductQueryDto-uyumlu sort değerleri (search.tsx eski 'newest'/'sort' yerine).
+ *
+ * Eskiden modül-seviyesi TR literal diziydi (`buildConditionOptions`'ın
+ * yukarıdaki gerekçesiyle AYNI kusur — `t()` hiç çağrılmadan hep Türkçe
+ * basardı). Artık `product.sort*` anahtarlarını REUSE eden bir factory;
+ * çağıran taraf `useMemo(() => buildSortOptions(t), [t])` ile kurar.
+ *
+ * `sortPriceLow`/`sortPriceHigh` katalog metni buradaki eski kısa etiketten
+ * ("Fiyat (Düşük)"/"Fiyat (Yüksek)") daha AÇIK ("Fiyat (Düşükten Yükseğe)"/
+ * "Fiyat (Yüksekten Düşüğe)") — reuse, ayrı bir kısa kopya açmak yerine.
+ */
+export const buildSortOptions = (t: TFunction): { value: string; label: string; icon: string }[] => [
+  { value: 'created_desc', label: t('product.sortNewest'), icon: 'time-outline' },
+  { value: 'created_asc', label: t('product.sortOldest'), icon: 'time-outline' },
+  { value: 'view_count_desc', label: t('product.sortPopular'), icon: 'star-outline' },
+  { value: 'price_asc', label: t('product.sortPriceLow'), icon: 'arrow-up' },
+  { value: 'price_desc', label: t('product.sortPriceHigh'), icon: 'arrow-down' },
+  { value: 'rating_desc', label: t('product.sortHighestRating'), icon: 'ribbon-outline' },
 ];
 
 /**

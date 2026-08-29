@@ -4,9 +4,9 @@ import { Input, Text, theme } from '@/ui';
 import {
   DEFAULT_COUNTRY_CODE,
   formatPhoneNumber,
+  getPhoneInvalidMessage,
   getPhonePlaceholder,
   isValidPhoneInput,
-  PHONE_INVALID_MESSAGE,
 } from '@/utils/phone';
 
 const { spacing, typography, colors } = theme;
@@ -69,7 +69,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   error,
   containerStyle,
   validateOnBlur = false,
-  invalidMessage = PHONE_INVALID_MESSAGE,
+  invalidMessage,
   testID,
 }) => {
   // Tek geçerli kod. Değişken kalıyor çünkü formatlayıcı/placeholder/doğrulayıcı
@@ -82,7 +82,9 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   const showInvalid =
     validateOnBlur && blurred && phone.trim().length > 0 && !isValidPhoneInput(phone, code);
   // Üstten gelen (form/submit) hata önceliklidir — o, gönderimi engelleyen hatadır.
-  const shownError = error ?? (showInvalid ? invalidMessage : undefined);
+  // `getPhoneInvalidMessage()` — React DIŞI okuma (phone.ts), `@/utils/phone`
+  // ile AYNI mesajı gösterir; PHONE_INVALID_MESSAGE ile aynı anlaşma.
+  const shownError = error ?? (showInvalid ? (invalidMessage ?? getPhoneInvalidMessage()) : undefined);
 
   return (
     <View style={containerStyle}>

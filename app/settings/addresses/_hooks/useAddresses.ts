@@ -6,7 +6,7 @@ import {
   DEFAULT_COUNTRY_CODE,
   isValidPhoneInput,
   parsePhoneForPayload,
-  PHONE_INVALID_MESSAGE,
+  getPhoneInvalidMessage,
   splitPhone,
 } from "@/utils/phone";
 import { useRefresh } from "@/hooks/useRefresh";
@@ -76,7 +76,7 @@ export function useAddresses() {
       // telefonu bu; yanlışı göndermektense gönderimi durdurup hata göster.
       const phone = parsePhoneForPayload(data.phone, phoneCountryCode);
       if (!phone) {
-        const invalid: any = new Error(PHONE_INVALID_MESSAGE);
+        const invalid: any = new Error(getPhoneInvalidMessage());
         invalid.isClientValidation = true;
         throw invalid;
       }
@@ -220,7 +220,7 @@ export function useAddresses() {
     // `isValidPhoneInput` TR dışı her kodda zaten `false` dönüyor. Dal ölüydü
     // ve okuyana "yabancı numara destekleniyor" izlenimi veriyordu.
     else if (!isValidPhoneInput(formData.phone, formData.phoneCountryCode))
-      errors.phone = PHONE_INVALID_MESSAGE;
+      errors.phone = getPhoneInvalidMessage();
     if (!formData.address.trim()) errors.address = t("validation.required");
     else if (formData.address.trim().length < 10)
       errors.address = t("validation.minLength", { min: 10 });
@@ -244,7 +244,7 @@ export function useAddresses() {
         appAlert(t("common.error"), t("address.addressMinLength"));
       } else {
         // Alanın altındaki mesajla AYNI metin — iki yerde iki farklı kural anlatılmasın.
-        appAlert("Hata", errors.phone ?? PHONE_INVALID_MESSAGE);
+        appAlert("Hata", errors.phone ?? getPhoneInvalidMessage());
       }
       return;
     }

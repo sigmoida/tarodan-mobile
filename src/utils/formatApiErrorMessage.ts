@@ -1,7 +1,15 @@
 /**
  * Human-readable message from NestJS / axios error bodies (validation arrays, etc.).
+ *
+ * ⚠️ React DIŞI modül — `useTranslation` çağıramaz; varsayılan `fallback`
+ * global `i18n`'den ÇAĞRI ANINDA okunur (bkz. `paytrDirectForm.ts`). Bugünkü
+ * tüm çağıranlar kendi `fallback`'ini geçiyor (bu varsayılana hiçbiri
+ * düşmüyor), ama güvenlik ağı olarak kalıyor. `common.genericError`'ı REUSE
+ * eder — ayrı bir anahtar açmak yerine.
  */
-export function formatApiErrorMessage(err: unknown, fallback = 'Bir hata oluştu.'): string {
+import i18n from '@/i18n/config';
+
+export function formatApiErrorMessage(err: unknown, fallback = i18n.t('common.genericError')): string {
   const ax = err as {
     response?: { data?: { message?: unknown; error?: unknown; statusCode?: number } };
     message?: string;

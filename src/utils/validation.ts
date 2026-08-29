@@ -9,7 +9,7 @@
 
 import { z } from 'zod';
 import type { TFunction } from 'i18next';
-import { PHONE_INVALID_MESSAGE, parseE164TrPhone } from './phone';
+import { parseE164TrPhone } from './phone';
 
 /**
  * ## Neden şemalar FABRİKA
@@ -48,7 +48,7 @@ export const requiredTrPhoneSchema = (t: TFunction) =>
   .transform((v, ctx) => {
     const e164 = parseE164TrPhone(v);
     if (!e164) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: PHONE_INVALID_MESSAGE });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: t('validation.invalidPhone') });
       return z.NEVER;
     }
     return e164;
@@ -62,7 +62,7 @@ export const requiredTrPhoneSchema = (t: TFunction) =>
  * paylaşılan ayrıştırıcıyla değiştirildi ve gerçek tüketicilere (kurumsal kayıt
  * şeması) bağlandı.
  */
-export const optionalTrPhoneSchema = (_t: TFunction) =>
+export const optionalTrPhoneSchema = (t: TFunction) =>
   z
   .string()
   .trim()
@@ -71,7 +71,7 @@ export const optionalTrPhoneSchema = (_t: TFunction) =>
     if (!v) return undefined;
     const e164 = parseE164TrPhone(v);
     if (!e164) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: PHONE_INVALID_MESSAGE });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: t('validation.invalidPhone') });
       return z.NEVER;
     }
     return e164;

@@ -8,11 +8,17 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
 import { Modal } from './Modal';
 import { theme } from '../lib/theme';
+// Bazı ekran testleri `react-i18next`'i yalnız `{ t }` döndürecek şekilde
+// mock'luyor (useTranslation().i18n undefined kalır) — aktif dili doğrudan
+// global i18n örneğinden okuyoruz (bkz. `@/utils/format`), `t` yine
+// `useTranslation()`'dan (mock'lanabilir metin).
+import i18nInstance from '@/i18n/config';
 
 export interface DateFieldProps {
   label?: string;
@@ -32,20 +38,10 @@ export interface DateFieldProps {
 
 const { colors, radius, spacing, typography } = theme;
 
-const MONTHS_TR = [
-  'Ocak',
-  'Şubat',
-  'Mart',
-  'Nisan',
-  'Mayıs',
-  'Haziran',
-  'Temmuz',
-  'Ağustos',
-  'Eylül',
-  'Ekim',
-  'Kasım',
-  'Aralık',
-];
+/** i18n dili -> `Intl`/native picker locale etiketi (bkz. `@/utils/format`). */
+function activeDateLocale(language: string): string {
+  return language === 'en' ? 'en-US' : 'tr-TR';
+}
 
 /**
  * "YYYY-MM-DD" -> local Date. Built from numeric parts on purpose:
@@ -68,9 +64,9 @@ function formatLocalISO(date: Date): string {
   return `${y}-${mo}-${d}`;
 }
 
-/** "31 Ocak 1990" — readable Turkish display. */
-function formatHuman(date: Date): string {
-  return `${date.getDate()} ${MONTHS_TR[date.getMonth()]} ${date.getFullYear()}`;
+/** "31 Ocak 1990" / "January 31, 1990" — aktif dile göre okunabilir gösterim. */
+function formatHuman(date: Date, locale: string): string {
+  return date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 export const DateField: React.FC<DateFieldProps> = ({
@@ -79,12 +75,15 @@ export const DateField: React.FC<DateFieldProps> = ({
   onChange,
   error,
   helperText,
-  placeholder = 'Tarih seçin',
+  placeholder,
   minimumDate,
   maximumDate,
   testID,
   containerStyle,
 }) => {
+  const { t } = useTranslation();
+  const dateLocale = activeDateLocale(i18nInstance.language);
+  const resolvedPlaceholder = placeholder ?? t('auth.birthDatePlaceholder');
   const selectedDate = parseLocalDate(value);
   const fallbackDate = selectedDate ?? maximumDate ?? new Date();
 
@@ -126,7 +125,7 @@ export const DateField: React.FC<DateFieldProps> = ({
             { color: selectedDate ? colors.text.heading : colors.text.subtle },
           ]}
         >
-          {selectedDate ? formatHuman(selectedDate) : placeholder}
+          {selectedDate ? formatHuman(selectedDate, dateLocale) : resolvedPlaceholder}
         </Text>
         <Ionicons name="calendar-outline" size={20} color={colors.text.muted} />
       </Pressable>
@@ -152,13 +151,13 @@ export const DateField: React.FC<DateFieldProps> = ({
         <Modal
           isOpen={show}
           onClose={() => setShow(false)}
-          title={label ?? 'Tarih seçin'}
+          title={label ?? resolvedPlaceholder}
         >
           <DateTimePicker
             value={draft}
             mode="date"
             display="spinner"
-            locale="tr-TR"
+            locale={dateLocale}
             themeVariant="light"
             minimumDate={minimumDate}
             maximumDate={maximumDate}
@@ -171,7 +170,7 @@ export const DateField: React.FC<DateFieldProps> = ({
               style={styles.iosBtn}
               accessibilityRole="button"
             >
-              <Text style={styles.iosBtnGhost}>Vazgeç</Text>
+              <Text style={styles.iosBtnGhost}>{t('seller.cancel')}</Text>
             </Pressable>
             <Pressable
               onPress={() => {
@@ -181,7 +180,7 @@ export const DateField: React.FC<DateFieldProps> = ({
               style={[styles.iosBtn, styles.iosBtnPrimary]}
               accessibilityRole="button"
             >
-              <Text style={styles.iosBtnPrimaryText}>Tamam</Text>
+              <Text style={styles.iosBtnPrimaryText}>{t('common.ok')}</Text>
             </Pressable>
           </View>
         </Modal>

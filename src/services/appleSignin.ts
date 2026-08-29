@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import i18n from '@/i18n/config';
 
 /**
  * Apple ile giriş bu platformda yapılabilir mi?
@@ -26,7 +27,10 @@ export async function signInWithApple(): Promise<{ identityToken: string; fullNa
     ],
   });
   const identityToken = credential.identityToken;
-  if (!identityToken) throw new Error('Apple identityToken alınamadı');
+  // React DIŞI modül — `useTranslation` çağıramaz; `useLogin`'in catch
+  // bloğunda `e.message` olarak kullanıcıya gösterilir, o yüzden global
+  // `i18n` örneğinden ÇAĞRI ANINDA okunur (bkz. `paytrDirectForm.ts`).
+  if (!identityToken) throw new Error(i18n.t('auth.appleIdentityTokenMissing'));
   const parts = [credential.fullName?.givenName, credential.fullName?.familyName].filter(Boolean);
   const fullName = parts.length ? parts.join(' ') : undefined;
   return { identityToken, fullName };

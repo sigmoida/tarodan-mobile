@@ -135,12 +135,17 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     'sellerDocument.versionSuffix',
     // Yalnız ayraç + interpolasyon (" · {level}"); çevrilecek sözcük yok.
     'seller.trustScoreLevelSuffix',
+    // Yalnız saf interpolasyon ("{current}/{max}"); çevrilecek sözcük yok.
+    'ratingModal.charCount',
     // Uluslararası kısaltma — İngilizce'de de "IBAN".
     'businessApplication.ibanLabel',
     // Koleksiyon şablonu adları: yarış serisi ve araç türü adı — ikisi de
     // Türkçe koleksiyoncu jargonunda İngilizce haliyle kullanılıyor.
     'collection.templateF1',
     'collection.templateMuscle',
+    // İçerik filtresi etiketleri: platform/marka adları, çevrilmez.
+    'message.violationLabelWhatsapp',
+    'message.violationLabelTelegram',
   ]);
 
   /**

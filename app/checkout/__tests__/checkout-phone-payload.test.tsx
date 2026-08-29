@@ -24,7 +24,7 @@ import { screen, fireEvent, waitFor, act, renderHook } from '@testing-library/re
 import { QueryClientProvider } from '@tanstack/react-query';
 import { renderWithProviders, makeTestQueryClient } from '@/test-utils';
 import { appAlert } from '@/ui';
-import { PHONE_INVALID_MESSAGE } from '@/utils/phone';
+import { getPhoneInvalidMessage } from '@/utils/phone';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -208,7 +208,7 @@ describe('Misafir yolu — alana yazılan telefon payloada ne olarak gidiyor', (
     fireEvent.press(screen.getByText('Devam Et'));
 
     // Adım 1'de kalınır: kargo adımı hiç açılmaz.
-    expect(await screen.findByText(PHONE_INVALID_MESSAGE)).toBeOnTheScreen();
+    expect(await screen.findByText(getPhoneInvalidMessage())).toBeOnTheScreen();
     expect(screen.queryByText('Kargo Seçimi')).toBeNull();
     expect(ordersApi.sendGuestVerificationCode).not.toHaveBeenCalled();
     expect(ordersApi.checkoutGuest).not.toHaveBeenCalled();
@@ -221,7 +221,7 @@ describe('Misafir yolu — alana yazılan telefon payloada ne olarak gidiyor', (
     fireEvent.press(screen.getByText('Devam Et'));
 
     // Ayrı mesaj: hangi adresin telefonu reddedildi, kullanıcı görsün.
-    expect(await screen.findByText(`Teslimat adresi — ${PHONE_INVALID_MESSAGE}`)).toBeOnTheScreen();
+    expect(await screen.findByText(`Teslimat adresi — ${getPhoneInvalidMessage()}`)).toBeOnTheScreen();
     expect(screen.queryByText('Kargo Seçimi')).toBeNull();
     expect(ordersApi.sendGuestVerificationCode).not.toHaveBeenCalled();
   });
@@ -233,13 +233,13 @@ describe('Misafir yolu — alana yazılan telefon payloada ne olarak gidiyor', (
     fireEvent.changeText(input, '05321234567890');
     // Kırpma olsaydı burada "532 123 45 67" görünür, 890 sessizce kaybolurdu.
     expect(input.props.value).toBe('05321234567890');
-    expect(screen.queryByText(PHONE_INVALID_MESSAGE)).toBeNull(); // yazarken cezalandırma yok
+    expect(screen.queryByText(getPhoneInvalidMessage())).toBeNull(); // yazarken cezalandırma yok
 
     fireEvent(input, 'blur');
-    expect(await screen.findByText(PHONE_INVALID_MESSAGE)).toBeOnTheScreen();
+    expect(await screen.findByText(getPhoneInvalidMessage())).toBeOnTheScreen();
 
     fireEvent.changeText(input, '0532 123 45 67');
-    await waitFor(() => expect(screen.queryByText(PHONE_INVALID_MESSAGE)).toBeNull());
+    await waitFor(() => expect(screen.queryByText(getPhoneInvalidMessage())).toBeNull());
   });
 
   it('telefon BOŞ ise "geçersiz" değil "gerekli" denir', async () => {
@@ -307,7 +307,7 @@ describe('Üye yolu — telefon payloada ne olarak gidiyor', () => {
       fireEvent.changeText(screen.getByTestId('shipping-phone-input'), input);
       fireEvent.press(screen.getByText('Devam Et'));
 
-      expect(await screen.findByText(`Teslimat adresi — ${PHONE_INVALID_MESSAGE}`)).toBeOnTheScreen();
+      expect(await screen.findByText(`Teslimat adresi — ${getPhoneInvalidMessage()}`)).toBeOnTheScreen();
       expect(screen.queryByText('Kargo Seçimi')).toBeNull();
       expect(ordersApi.checkout).not.toHaveBeenCalled();
     },
@@ -354,7 +354,7 @@ describe('proceedCheckout telefon kapısı — gönderim setLoading ÖNCESİ dur
     });
 
     expect(ordersApi.checkoutGuest).not.toHaveBeenCalled();
-    expect(appAlert).toHaveBeenCalledWith('Telefon Numarası Geçersiz', PHONE_INVALID_MESSAGE);
+    expect(appAlert).toHaveBeenCalledWith('Telefon Numarası Geçersiz', getPhoneInvalidMessage());
     // Mesaj numarayı BASMAZ (PII uyarıya/log'a sızmasın).
     expect(JSON.stringify(jest.mocked(appAlert).mock.calls)).not.toContain('5321234567890');
     // `setLoading(true)` hiç çalışmadı.
@@ -385,7 +385,7 @@ describe('proceedCheckout telefon kapısı — gönderim setLoading ÖNCESİ dur
     expect(ordersApi.checkout).not.toHaveBeenCalled();
     expect(appAlert).toHaveBeenCalledWith(
       'Telefon Numarası Geçersiz',
-      `Teslimat adresi — ${PHONE_INVALID_MESSAGE}`,
+      `Teslimat adresi — ${getPhoneInvalidMessage()}`,
     );
     expect(result.current.loading).toBe(false);
   });

@@ -3,7 +3,14 @@
  * Web paritesi: banka hesabı, telefon, e-posta, WhatsApp, Instagram, Telegram.
  *
  * Amaç: Platform dışı iletişimi önleyerek alıcı/satıcı koruması.
+ *
+ * ⚠️ React DIŞI modül — `useTranslation` çağıramaz; kullanıcıya gösterilen
+ * `label`/mesaj metinleri global `i18n`'den ÇAĞRI ANINDA okunur (bkz.
+ * `paytrDirectForm.ts`). REGEX'LER DAVRANIŞTIR, dile göre değişmez — yalnız
+ * `labelKey` altındaki gösterim metni çevrilir.
  */
+import i18n from '@/i18n/config';
+import type { MessageKey } from '@/i18n/lib/generated/keys';
 
 export type ContentViolationType =
   | 'phone'
@@ -20,54 +27,60 @@ export interface ContentViolation {
   label: string;
 }
 
-const PATTERNS: Array<{ type: ContentViolationType; regex: RegExp; label: string }> = [
+/**
+ * `labelKey`, `message.violationLabel*` katalog anahtarının son parçası —
+ * gösterim metni `detectViolations` içinde ÇAĞRI ANINDA çözülür (PATTERNS
+ * modül seviyesinde kurulsa da hiçbir metin burada donmaz, çünkü `label`
+ * kendisi burada değil `i18n.t` çağrısında üretilir).
+ */
+const PATTERNS: Array<{ type: ContentViolationType; regex: RegExp; labelKey: MessageKey }> = [
   // Türkiye telefon: 05XX XXX XX XX, +90 5XX..., 0090 5XX...
   {
     type: 'phone',
     regex: /(?:\+?90[\s.-]?|0)?5\d{2}[\s.-]?\d{3}[\s.-]?\d{2}[\s.-]?\d{2}/g,
-    label: 'Telefon numarası',
+    labelKey: 'message.violationLabelPhone',
   },
   // Sabit hat + alan kodu ile bir dizi rakam
   {
     type: 'phone',
     regex: /\b0[2-4]\d{2}[\s.-]?\d{3}[\s.-]?\d{2}[\s.-]?\d{2}\b/g,
-    label: 'Telefon numarası',
+    labelKey: 'message.violationLabelPhone',
   },
   // E-posta
   {
     type: 'email',
     regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
-    label: 'E-posta adresi',
+    labelKey: 'message.violationLabelEmail',
   },
   // IBAN (TR ile başlayan + 24 rakam veya boşluklu versiyonu)
   {
     type: 'iban',
     regex: /\bTR[\s]?\d{2}(?:[\s]?\d{4}){5}(?:[\s]?\d{2})\b/gi,
-    label: 'Banka hesabı (IBAN)',
+    labelKey: 'message.violationLabelIban',
   },
   // WhatsApp
   {
     type: 'whatsapp',
     regex: /\b(whats?app|wp|whatsap)\b/gi,
-    label: 'WhatsApp',
+    labelKey: 'message.violationLabelWhatsapp',
   },
   // Telegram
   {
     type: 'telegram',
     regex: /\b(telegram|t\.me)\b/gi,
-    label: 'Telegram',
+    labelKey: 'message.violationLabelTelegram',
   },
   // Instagram (@kullanici veya instagram.com)
   {
     type: 'instagram',
     regex: /\b(instagram|insta)\b|@[a-zA-Z0-9_.]{2,}/gi,
-    label: 'Instagram / sosyal medya',
+    labelKey: 'message.violationLabelInstagram',
   },
   // Harici link (tarodan.com dışı URL)
   {
     type: 'external_link',
     regex: /\bhttps?:\/\/(?!(?:www\.)?tarodan\.com)\S+/gi,
-    label: 'Harici bağlantı',
+    labelKey: 'message.violationLabelExternalLink',
   },
 ];
 
@@ -75,9 +88,10 @@ export function detectViolations(text: string): ContentViolation[] {
   if (!text) return [];
   const found: ContentViolation[] = [];
   const seen = new Set<string>();
-  for (const { type, regex, label } of PATTERNS) {
+  for (const { type, regex, labelKey } of PATTERNS) {
     const matches = text.match(regex);
     if (matches) {
+      const label = i18n.t(labelKey);
       for (const match of matches) {
         const key = `${type}:${match.toLowerCase()}`;
         if (!seen.has(key)) {
@@ -97,7 +111,7 @@ export function hasContentViolation(text: string): boolean {
 export function getViolationMessage(violations: ContentViolation[]): string {
   if (violations.length === 0) return '';
   const uniqueLabels = Array.from(new Set(violations.map(v => v.label)));
-  return `Güvenliğiniz için bu mesaj gönderilemiyor. Tespit edilen: ${uniqueLabels.join(', ')}. Platform dışı iletişim ihlal olarak raporlanabilir.`;
+  return i18n.t('message.violationDetected', { labels: uniqueLabels.join(', ') });
 }
 
 /**
@@ -179,7 +193,8 @@ export function formatMessagePreview(content: string): string {
   if (!content) return '';
   const { text, images } = parseMessageContent(content);
   if (images.length === 0) return text;
-  return text ? `${text} 📷 Fotoğraf` : '📷 Fotoğraf';
+  const photoLabel = i18n.t('message.photoLabel'); // reuse — ThreadRow'un kendi etiketiyle aynı
+  return text ? `${text} ${photoLabel}` : photoLabel;
 }
 
 export function embedImageInMessage(existingText: string, imageUrl: string): string {
