@@ -2122,7 +2122,10 @@
     "invalidCode": "Kod hatalı",
     "phoneVerified": "Telefon doğrulandı",
     "cannotDeleteAccount": "Hesap silinemez",
-    "deleteAccountFailed": "Hesap silinemedi"
+    "deleteAccountFailed": "Hesap silinemedi",
+    "tierMemberBadge": "{tier} Üye",
+    "myDigitalGarage": "Dijital Garajım",
+    "garageEmptyDesc": "Araçlarını sergile ve paylaş"
   },
   "review": {
     "reviews": "Değerlendirmeler",

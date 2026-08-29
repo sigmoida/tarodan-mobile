@@ -39,7 +39,7 @@ export function ProfileCard({ f }: SectionProps) {
           <View style={styles.membershipBadge}>
             <Ionicons name="diamond" size={14} color={colors.warning[500]!} />
             <Text variant="caption" weight="semibold" style={{ marginLeft: spacing[1] }}>
-              {f.tierLabel} Üye
+              {t('profile.tierMemberBadge', { tier: f.tierLabel })}
             </Text>
           </View>
         )}
@@ -52,7 +52,8 @@ export function ProfileCard({ f }: SectionProps) {
                 weight="semibold"
                 style={{ marginLeft: spacing[1], color: colors.warning[700]! }}
               >
-                Güven {f.trustScore}/100{f.trustLevel ? ` · ${f.trustLevel}` : ''}
+                {t('seller.trustScoreLabel', { score: f.trustScore })}
+                {f.trustLevel ? t('seller.trustScoreLevelSuffix', { level: f.trustLevel }) : ''}
               </Text>
             </View>
             <TouchableOpacity
@@ -89,6 +90,7 @@ export function ProfileCard({ f }: SectionProps) {
 // Stats grid: listings / trades / collections / rating
 // ---------------------------------------------------------------------------
 export function ProfileStatsGrid({ f }: SectionProps) {
+  const { t } = useTranslation();
   const { stats } = f;
   return (
     <View style={styles.statsGrid}>
@@ -100,7 +102,7 @@ export function ProfileStatsGrid({ f }: SectionProps) {
           {stats?.listings || 0}
         </Text>
         <Text variant="caption" tone="muted" style={{ marginTop: spacing[1] }}>
-          İlanlarım
+          {t('nav.myListings')}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.statItem} onPress={() => router.push('/trades')}>
@@ -108,7 +110,7 @@ export function ProfileStatsGrid({ f }: SectionProps) {
           {stats?.trades || 0}
         </Text>
         <Text variant="caption" tone="muted" style={{ marginTop: spacing[1] }}>
-          Takaslar
+          {t('nav.trades')}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
@@ -119,7 +121,7 @@ export function ProfileStatsGrid({ f }: SectionProps) {
           {stats?.collections || 0}
         </Text>
         <Text variant="caption" tone="muted" style={{ marginTop: spacing[1] }}>
-          Koleksiyon
+          {t('collection.collection')}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.statItem}>
@@ -130,7 +132,7 @@ export function ProfileStatsGrid({ f }: SectionProps) {
           </Text>
         </View>
         <Text variant="caption" tone="muted" style={{ marginTop: spacing[1] }}>
-          Puan
+          {t('profile.rating')}
         </Text>
       </TouchableOpacity>
     </View>
@@ -141,6 +143,7 @@ export function ProfileStatsGrid({ f }: SectionProps) {
 // Digital garage: horizontal collection preview or empty CTA
 // ---------------------------------------------------------------------------
 export function ProfileGarageSection({ f }: SectionProps) {
+  const { t } = useTranslation();
   const { collectionItems } = f;
   return (
     <View style={styles.section}>
@@ -148,12 +151,12 @@ export function ProfileGarageSection({ f }: SectionProps) {
         <View style={styles.sectionTitleRow}>
           <Ionicons name="car-sport" size={20} color={colors.primary[600]!} />
           <Text variant="h3" style={{ marginLeft: spacing[2] }}>
-            Dijital Garajım
+            {t('profile.myDigitalGarage')}
           </Text>
         </View>
         <TouchableOpacity onPress={() => router.push('/settings/collections')}>
           <Text variant="bodySm" tone="primary" weight="medium">
-            Tümünü gör
+            {t('home.seeAll')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -185,7 +188,7 @@ export function ProfileGarageSection({ f }: SectionProps) {
                 {c.name}
               </Text>
               <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[0.5] }}>
-                {c.itemCount ?? 0} araç
+                {t('collection.vehicleCountSuffix', { count: c.itemCount ?? 0 })}
               </Text>
             </TouchableOpacity>
           ))}
@@ -195,7 +198,7 @@ export function ProfileGarageSection({ f }: SectionProps) {
           >
             <Ionicons name="add-circle" size={32} color={colors.primary[600]!} />
             <Text variant="caption" tone="primary" weight="medium" style={{ marginTop: spacing[2] }}>
-              Yeni
+              {t('common.new')}
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -206,10 +209,10 @@ export function ProfileGarageSection({ f }: SectionProps) {
         >
           <Ionicons name="add-circle" size={40} color={colors.primary[600]!} />
           <Text variant="h3" style={{ marginTop: spacing[3] }}>
-            Koleksiyon Oluştur
+            {t('collection.createCollection')}
           </Text>
           <Text variant="bodySm" tone="muted" style={{ marginTop: spacing[1] }}>
-            Araçlarını sergile ve paylaş
+            {t('profile.garageEmptyDesc')}
           </Text>
         </TouchableOpacity>
       )}
@@ -401,7 +404,7 @@ export function ProfileMenuSections({ f }: SectionProps) {
 
       <View style={styles.menuSection}>
         <Text variant="overline" tone="muted" style={{ marginBottom: spacing[3] }}>
-          Destek
+          {t('mobile.pageSupport')}
         </Text>
         <MenuItem
           icon="help-circle-outline"
@@ -431,7 +434,7 @@ export function ProfileMenuSections({ f }: SectionProps) {
 
       <View style={styles.menuSection}>
         <Text variant="overline" tone="muted" style={{ marginBottom: spacing[3] }}>
-          Bilgi
+          {t('common.info')}
         </Text>
         <MenuItem
           icon="shield-checkmark-outline"
@@ -475,7 +478,7 @@ export function ProfileMenuSections({ f }: SectionProps) {
       >
         <Ionicons name="log-out-outline" size={22} color={colors.danger[600]!} />
         <Text variant="body" tone="danger" weight="semibold" style={{ marginLeft: spacing[2] }}>
-          Çıkış Yap
+          {t('common.logout')}
         </Text>
       </TouchableOpacity>
 
@@ -485,7 +488,7 @@ export function ProfileMenuSections({ f }: SectionProps) {
         onPress={f.handleDeleteAccount}
       >
         <Text variant="caption" tone="danger" weight="medium">
-          Hesabı Sil
+          {t('settings.deleteAccount')}
         </Text>
       </TouchableOpacity>
     </>

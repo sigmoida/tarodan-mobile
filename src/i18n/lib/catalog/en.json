@@ -2122,7 +2122,10 @@
     "invalidCode": "Invalid code",
     "phoneVerified": "Phone verified",
     "cannotDeleteAccount": "Cannot delete account",
-    "deleteAccountFailed": "Failed to delete account"
+    "deleteAccountFailed": "Failed to delete account",
+    "tierMemberBadge": "{tier} Member",
+    "myDigitalGarage": "My Digital Garage",
+    "garageEmptyDesc": "Show off your cars and share them"
   },
   "review": {
     "reviews": "Reviews",
