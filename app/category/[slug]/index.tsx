@@ -1,4 +1,5 @@
 import { View, FlatList, RefreshControl } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { theme, Spinner, Text, ScreenHeader } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,12 +11,13 @@ import { CategoryProductCard } from './_components/CategoryProductCard';
 const { colors } = theme;
 
 export default function CategoryScreen() {
+  const { t } = useTranslation();
   const f = useCategory();
 
   return (
     <View style={styles.container}>
       <ScreenHeader
-        title={f.category?.name || 'Kategori'}
+        title={f.category?.name || t('common.category')}
         onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       />
 
@@ -24,13 +26,13 @@ export default function CategoryScreen() {
       {f.isLoading ? (
         <View style={styles.loadingContainer}>
           <Spinner size="lg" />
-          <Text style={styles.loadingText}>Yükleniyor...</Text>
+          <Text style={styles.loadingText}>{t('common.loading')}</Text>
         </View>
       ) : !f.products || f.products.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="cube-outline" size={64} color={colors.gray[500]} />
-          <Text style={styles.emptyTitle}>Ürün bulunamadı</Text>
-          <Text style={styles.emptySubtitle}>Bu kategoride henüz ürün yok</Text>
+          <Text style={styles.emptyTitle}>{t('product.noProductsFound')}</Text>
+          <Text style={styles.emptySubtitle}>{t('product.noProductsInCategory')}</Text>
         </View>
       ) : (
         <FlatList
@@ -41,7 +43,11 @@ export default function CategoryScreen() {
           columnWrapperStyle={styles.productsGrid}
           style={styles.productsContainer}
           contentContainerStyle={styles.productsContent}
-          ListHeaderComponent={<Text style={styles.resultsCount}>{f.products.length} ürün bulundu</Text>}
+          ListHeaderComponent={
+            <Text style={styles.resultsCount}>
+              {t('product.productsFoundCount', { count: f.products.length })}
+            </Text>
+          }
           ListFooterComponent={<View style={{ height: 100 }} />}
           refreshControl={
             <RefreshControl refreshing={f.refreshing} onRefresh={f.onRefresh} colors={[colors.primary[600]!]} />

@@ -1,4 +1,5 @@
 import { View, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +14,7 @@ const { colors } = theme;
 
 /** Kategori grid ürün kartı. */
 export function CategoryProductCard({ item }: { item: any }) {
+  const { t } = useTranslation();
   const isTradeEnabled = isProductTradeOpen(item);
 
   return (
@@ -27,7 +29,7 @@ export function CategoryProductCard({ item }: { item: any }) {
         {isTradeEnabled && (
           <View style={styles.tradeBadge}>
             <Ionicons name="swap-horizontal" size={12} color={colors.white} />
-            <Text style={styles.tradeBadgeText}>Takas</Text>
+            <Text style={styles.tradeBadgeText}>{t('product.tradeShort')}</Text>
           </View>
         )}
         <View style={styles.likesContainer}>
@@ -37,7 +39,7 @@ export function CategoryProductCard({ item }: { item: any }) {
       </View>
       <View style={styles.productContent}>
         <Text style={styles.productTitle} numberOfLines={2}>{item.title}</Text>
-        <Text style={styles.productMeta}>{safeString(item.brand, 'Marka')} • {safeString(item.scale, '1:64')}</Text>
+        <Text style={styles.productMeta}>{safeString(item.brand, t('product.brand'))} • {safeString(item.scale, '1:64')}</Text>
         <Text style={styles.productPrice}>₺{item.price?.toLocaleString('tr-TR')}</Text>
       </View>
     </TouchableOpacity>
