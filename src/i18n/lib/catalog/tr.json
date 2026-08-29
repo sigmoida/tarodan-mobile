@@ -1226,15 +1226,18 @@
       "counterpartyCancelled": "Karşı tarafın gönderisi iptal edildi; yetkili ekibimiz devreye girecek.",
       "counterpartyFailed": "Karşı tarafın gönderisinde bir aksaklık oluştu; yetkili ekibimiz inceliyor.",
       "counterpartyReturned": "Karşı tarafın gönderisi iade edildi.",
-      "counterpartyWaiting": "Karşı tarafın kargoya teslim etmesi bekleniyor."
+      "counterpartyWaiting": "Karşı tarafın kargoya teslim etmesi bekleniyor.",
+      "arrived": "Ürününüz Tarodan deposuna ulaştı."
     },
     "confirmReceipt": {
-      "waitingDelivered": "Kargonun teslim edildiği bilgisi bekleniyor."
+      "waitingDelivered": "Kargonun teslim edildiği bilgisi bekleniyor.",
+      "successMessage": "Takas tamamlandı!"
     },
     "cancel": {
       "lockedHint": "Ürünlerden biri Tarodan deposuna ulaştı; iptal edilemez. Sorun varsa destek ile iletişime geçin.",
       "offerCta": "Teklifi İptal Et",
-      "tradeCta": "Takası İptal Et"
+      "tradeCta": "Takası İptal Et",
+      "confirmMessage": "Bu takas teklifini iptal etmek istediğinize emin misiniz?"
     },
     "dispute": {
       "openCta": "İtiraz Aç",
@@ -1406,7 +1409,35 @@
     "costPreviewHint": "Tutarlar güncel kural ve kargo tarifesine göre hesaplanır; kabul anında sabitlenir.",
     "costPreviewFailed": "Maliyet önizlemesi alınamadı",
     "paymentsSummaryTitle": "Ödeme dökümü",
-    "commissionLine": "Aracılık komisyonu"
+    "commissionLine": "Aracılık komisyonu",
+    "accept": {
+      "confirmTitle": "Takası Kabul Et",
+      "confirmMessage": "Bu takas teklifini kabul etmek istediğinize emin misiniz?",
+      "successMessage": "Takas kabul edildi!"
+    },
+    "cashPay": {
+      "missingPaymentId": "Ödeme başlatılamadı (paymentId eksik)."
+    },
+    "statusDescription": {
+      "pending": "Karşı tarafın teklifi yanıtlaması bekleniyor.",
+      "accepted": "Takas kabul edildi. Şimdi ürünler Tarodan deposuna kargolanacak.",
+      "awaitingPayment": "Nakit fark ödemesi bekleniyor. Ödeme tamamlanınca kargo süreci başlar.",
+      "shippingToWarehouse": "Her iki taraf da ürününü Tarodan deposuna kargoluyor.",
+      "atWarehouse": "Ürünler Tarodan deposuna ulaştı.",
+      "adminReviewing": "Ekibimiz ürünleri inceliyor. Onay sonrası size kargolanacak.",
+      "shippingToRecipients": "Ürünler depodan size doğru kargolanıyor.",
+      "returning": "Takas reddedildi. Ürünleriniz size iade ediliyor.",
+      "rejected": "Bu takas teklifi reddedildi.",
+      "cancelled": "Bu takas iptal edildi.",
+      "disputed": "Bu takas için bir itiraz açıldı. Ekibimiz inceliyor."
+    },
+    "shippingStatus": {
+      "title": "Kargo Durumu"
+    },
+    "yourShipmentLabel": "Sizin kargonuz: {value}",
+    "otherPartyShipmentLabel": "Karşı taraf: {value}",
+    "notShippedYet": "Henüz gönderilmedi",
+    "trackShipmentLegacy": "Kargoyu Takip Et"
   },
   "offer": {
     "makeOffer": "Teklif Ver",
@@ -2271,6 +2302,32 @@
       "trade": "Takas",
       "technical": "Teknik Sorun",
       "other": "Diğer"
+    },
+    "emptyTitle": "Henüz destek talebiniz yok",
+    "emptySubtitle": "Bir sorununuz olduğunda \"Yeni Talep Oluştur\" ile bize ulaşabilirsiniz",
+    "ticketsLoginPrompt": "Destek taleplerinizi görmek ve oluşturmak için giriş yapın",
+    "new": {
+      "title": "Destek Talebi",
+      "loginRequiredSubtitle": "Destek talebi oluşturmak için giriş yapmanız gerekmektedir.",
+      "selectCategory": "Kategori Seçin",
+      "orderNumberLabel": "Sipariş/Takas Numarası (Opsiyonel)",
+      "subjectLabel": "Konu *",
+      "descriptionLabel": "Açıklama *",
+      "requiredFieldsNote": "* ile işaretli alanların doldurulması zorunludur.",
+      "contactInfoTitle": "İletişim Bilgileriniz",
+      "urgentContact": "Acil destek için:",
+      "category": {
+        "shipping": "Sipariş/Kargo Sorunu",
+        "payment": "Ödeme Sorunu",
+        "account": "Hesap Sorunu",
+        "product": "İlan Sorunu",
+        "trade": "Takas Sorunu"
+      },
+      "subjectMinLength": "Konu en az 5 karakter olmalıdır.",
+      "descriptionMinLength": "Açıklama en az 10 karakter olmalıdır.",
+      "refPrefix": "Sipariş/Takas No: {refId}",
+      "ticketCreated": "Destek talebiniz oluşturuldu!",
+      "createFailed": "Talep oluşturulamadı, lütfen tekrar deneyin."
     }
   },
   "faq": {
@@ -2308,7 +2365,12 @@
     "needMoreHelp": "Hâlâ yardıma mı ihtiyacınız var?",
     "supportReady": "Destek ekibimiz size yardımcı olmak için hazır.",
     "businessHours": "İş günlerinde 09:00 - 18:00 arası hizmetinizdeyiz.",
-    "contactForm": "İletişim Formu"
+    "contactForm": "İletişim Formu",
+    "sendMessageTitle": "Mesaj Gönderin",
+    "messageLabel": "Mesajınız",
+    "contactNameTooShort": "Adınız en az 2 karakter olmalıdır.",
+    "ticketCreated": "Destek talebiniz oluşturuldu! ''Destek Taleplerim''den takip edebilirsiniz.",
+    "ticketSubject": "Yardım Merkezi mesajı"
   },
   "guides": {
     "title": "Kullanım Kılavuzları",
@@ -2329,7 +2391,214 @@
     "safetyTips": "Güvenli Alışveriş İpuçları",
     "stillHaveQuestions": "Hâlâ sorunuz mu var?",
     "faqLink": "Sıkça Sorulan Sorular",
-    "contactLink": "Bize Ulaşın"
+    "contactLink": "Bize Ulaşın",
+    "howToBuy": {
+      "title": "Nasıl Satın Alınır?",
+      "step1": "Arama veya kategoriler aracılığıyla istediğiniz ürünü bulun.",
+      "step2": "Ürün sayfasını inceleyerek fotoğrafları, açıklamayı, durumu ve satıcı bilgilerini kontrol edin.",
+      "step3": "''Satın Al'' butonuna tıklayın veya satıcıya teklif gönderin.",
+      "step4": "Teslimat adresinizi girin ve ödeme yönteminizi seçin.",
+      "step5": "3D Secure doğrulaması ile ödemenizi tamamlayın.",
+      "step6": "Siparişiniz onaylanacak ve satıcı kargo sürecini başlatacaktır.",
+      "step7": "Ürün elinize ulaştığında ''Teslim Aldım'' butonuyla onaylayın."
+    },
+    "howToSell": {
+      "title": "Nasıl Satılır?",
+      "step1": "Üye girişi yapın veya hesap oluşturun.",
+      "step2": "''İlan Ver'' butonuna tıklayın.",
+      "step3": "Ürün bilgilerini girin: başlık, açıklama, kategori, ölçek, marka, durum.",
+      "step4": "Kaliteli fotoğraflar yükleyin (en az 2, farklı açılardan).",
+      "step5": "Satış fiyatını ve kargo tercihlerinizi belirleyin.",
+      "step6": "Takas kabul ediyorsanız ''Takas Açık'' seçeneğini işaretleyin.",
+      "step7": "İlanınızı yayınlayın ve alıcılardan gelen teklifleri takip edin.",
+      "step8": "Satış gerçekleştiğinde 3 iş günü içinde ürünü kargoya verin."
+    },
+    "shippingSteps": {
+      "title": "Kargo Rehberi",
+      "step1": "Diecast model araçları göndermeden önce orijinal kutusuna yerleştirin.",
+      "step2": "Kutu içinde boşluk varsa bubble wrap veya kağıt ile destekleyin.",
+      "step3": "Orijinal kutuyu bir dış karton kutuya yerleştirin (çift kutu yöntemi).",
+      "step4": "Dış kutuyu kargo bandı ile güvenli bir şekilde kapatın.",
+      "step5": "''Kırılacak'' etiketi kullanın.",
+      "step6": "Anlaşmalı kargo firmamız Sürat Kargo ile gönderinizi oluşturun.",
+      "step7": "Kargo kodunu sisteme girerek takip bilgisini paylaşın.",
+      "step8": "Sigortalı gönderi seçeneğini kullanmanız tavsiye edilir."
+    },
+    "tradeSteps": {
+      "step1": "''Takas Açık'' olan bir ürün bulun.",
+      "step2": "''Takas Teklifi Gönder'' butonuna tıklayın.",
+      "step3": "Kendi koleksiyonunuzdan takas etmek istediğiniz ürünleri seçin.",
+      "step4": "Gerekirse nakit fark tutarı belirleyin.",
+      "step5": "İsteğe bağlı mesaj ekleyerek teklifinizi gönderin.",
+      "step6": "Karşı tarafın onayını veya karşı teklifini bekleyin.",
+      "step7": "Her iki taraf da onayladığında takas başlar.",
+      "step8": "Ürünlerinizi belirtilen süre içinde kargoya verin.",
+      "step9": "Teslim aldıktan sonra onay verin; takas tamamlanır."
+    },
+    "collectionGuide": {
+      "title": "Koleksiyon Oluşturma",
+      "step1": "Profil sayfanızdan ''Koleksiyonlarım'' bölümüne gidin.",
+      "step2": "''Yeni Koleksiyon'' butonuna tıklayın.",
+      "step3": "Koleksiyonunuza isim ve açıklama ekleyin.",
+      "step4": "Kapak fotoğrafı seçin (isteğe bağlı).",
+      "step5": "Koleksiyonunuzu herkese açık veya özel yapabilirsiniz.",
+      "step6": "İlan verdiğiniz veya satın aldığınız ürünleri koleksiyonunuza ekleyin.",
+      "step7": "Digital Garage özelliği ile koleksiyonunuzu paylaşın ve beğeni toplayın."
+    },
+    "safetySteps": {
+      "step1": "Satıcı profilini ve değerlendirmelerini her zaman kontrol edin.",
+      "step2": "Ürün fotoğraflarını dikkatli inceleyin; stok fotoğraf kullananlara dikkat edin.",
+      "step3": "Gerçekçi olmayan düşük fiyatlara karşı temkinli olun.",
+      "step4": "Platform dışı ödeme talebinde bulunan satıcılara itibar etmeyin.",
+      "step5": "Kişisel iletişim bilgilerinizi mesajlarda paylaşmaktan kaçının.",
+      "step6": "Ürün teslimini onaylamadan önce dikkatlice kontrol edin.",
+      "step7": "Şüpheli durumları hemen destek ekibine bildirin."
+    }
+  },
+  "faqShared": {
+    "categories": {
+      "selling": "Satış"
+    },
+    "guestCheckout": {
+      "q": "Üye olmadan alışveriş yapabilir miyim?",
+      "a": "Evet, misafir olarak sipariş verebilirsiniz; siparişinizi e-posta ile takip edebilirsiniz. Ancak sipariş geçmişi, favorilere ekleme ve satıcıyla mesajlaşma gibi özellikler için üyelik gereklidir."
+    },
+    "paymentMethods": {
+      "q": "Hangi ödeme yöntemlerini kabul ediyorsunuz?",
+      "a": "Kredi kartı (Visa, Mastercard, Troy), banka kartı ve iyzico bakiyesi ile ödeme yapabilirsiniz. Tüm ödemeler 3D Secure ile güvence altındadır ve ürün elinize ulaşana kadar korunur."
+    },
+    "howToList": {
+      "q": "Nasıl ilan veririm?",
+      "a": "Üye girişi yaptıktan sonra ''İlan Ver'' butonuna tıklayın; ürün bilgilerini, kategori, durum, fiyat ve fotoğraflarını girerek ilanınızı yayınlayın. İlan onayı genellikle birkaç dakika içinde gerçekleşir."
+    },
+    "commissionRate": {
+      "q": "Komisyon oranı nedir?",
+      "a": "Satış tutarı üzerinden %5''ten başlayan platform komisyonu kesilir. Komisyon oranı ürün kategorisine göre değişebilir ve Premium/Business üyelikte düşer; net oran satış sırasında gösterilir. Komisyon yalnızca satış gerçekleştiğinde kesilir."
+    },
+    "payoutTiming": {
+      "q": "Ödememi ne zaman alırım?",
+      "a": "Alıcı ürünü teslim alıp onayladıktan sonra 3 iş günü içinde tanımlı IBAN hesabınıza transfer edilir."
+    },
+    "howTradeWorks": {
+      "q": "Takas nasıl çalışır?",
+      "a": "Premium üyeler ''Takas Açık'' işaretli ürünlere takas teklifi gönderebilir. Kendi ürünlerinizden seçim yapın, gerekirse nakit fark ekleyin ve teklifinizi gönderin; karşılıklı onay ile takas başlar."
+    },
+    "tradeSafety": {
+      "q": "Takas güvenli mi?",
+      "a": "Evet, Güvenli Takas sistemi ile her iki tarafın ürünleri platform garantisi altında gönderilir; taraflar göndermeden önce takası onaylar. Anlaşmazlık durumunda arabuluculuk yapılır."
+    },
+    "premiumBenefits": {
+      "q": "Premium üyelik avantajları nedir?",
+      "a": "Premium üyeler sınırsız ilan yayınlayabilir, düşük komisyon oranlarından yararlanır, takas yapabilir, Digital Garage oluşturabilir, öne çıkan ilanlar kullanabilir ve öncelikli destek alabilir."
+    },
+    "forgotPassword": {
+      "q": "Şifremi unuttum, ne yapmalıyım?",
+      "a": "Giriş ekranındaki ''Şifremi Unuttum'' bağlantısına tıklayarak e-posta adresinize şifre sıfırlama bağlantısı gönderebilirsiniz."
+    },
+    "deleteAccount": {
+      "q": "Hesabımı nasıl silerim?",
+      "a": "Profil > Ayarlar > Hesap > ''Hesabı Sil'' seçeneğinden hesabınızı kalıcı olarak silebilirsiniz. Bu işlem kalıcıdır ve geri alınamaz."
+    },
+    "orderTracking": {
+      "q": "Siparişimi nasıl takip ederim?",
+      "a": "Sipariş onayı e-postasındaki bağlantıdan veya ''Siparişlerim'' / ''Sipariş Takip'' sayfasından, sipariş numaranızla kargo durumunu görebilirsiniz."
+    }
+  },
+  "faqPage": {
+    "categories": {
+      "returns": "İade ve İptal",
+      "account": "Hesap ve Üyelik"
+    },
+    "buying": {
+      "howToOrder": {
+        "q": "Nasıl sipariş veririm?",
+        "a": "Beğendiğiniz ürünü seçin, ''Satın Al'' butonuna tıklayın, teslimat adresinizi girin ve ödeme bilgilerinizi ekleyerek siparişinizi tamamlayın. Sipariş onayı e-posta ile gönderilecektir."
+      },
+      "offer": {
+        "q": "Teklif nasıl gönderirim?",
+        "a": "Ürün sayfasında ''Teklif Ver'' butonuna tıklayarak istediğiniz fiyatı yazın. Satıcı teklifinizi kabul, reddetme veya karşı teklifte bulunabilir."
+      }
+    },
+    "selling": {
+      "listingLimit": {
+        "q": "Kaç ilan verebilirim?",
+        "a": "Ücretsiz üyeler aylık 5 ilan verebilir. Premium ve Pro üyeler sınırsız ilan yayınlayabilir."
+      }
+    },
+    "shipping": {
+      "deliveryTime": {
+        "q": "Kargo süresi ne kadar?",
+        "a": "Satıcı 3 iş günü içinde kargoyu teslim eder. Tahmini teslimat süresi konumunuza göre 2-5 iş günüdür."
+      },
+      "whoPaysShipping": {
+        "q": "Kargo ücretini kim öder?",
+        "a": "Kargo ücreti varsayılan olarak alıcıya aittir. Bazı satıcılar ücretsiz kargo seçeneği sunabilir. Ürün sayfasında kargo bilgileri belirtilir."
+      }
+    },
+    "trade": {
+      "tradeFee": {
+        "q": "Takas ücreti var mı?",
+        "a": "Takas işlemi ücretsizdir. Yalnızca kargo ücretleri taraflara aittir. Premium üyeler takas özelliklerine tam erişime sahiptir."
+      }
+    },
+    "returns": {
+      "returnWindow": {
+        "q": "İade süresi ne kadar?",
+        "a": "Ürün teslim tarihinden itibaren {days} gün içinde iade talebi oluşturabilirsiniz."
+      },
+      "damagedItem": {
+        "q": "Hasarlı ürün geldi, ne yapmalıyım?",
+        "a": "Teslim tarihinden itibaren {days} gün içinde fotoğraflı olarak destek ekibine başvurun. Hasarlı ürün iadeleri satıcı sorumluluğundadır ve tam iade yapılır."
+      },
+      "cancelOrder": {
+        "q": "Siparişimi iptal edebilir miyim?",
+        "a": "Satıcı kargoya vermeden önce siparişinizi iptal edebilirsiniz. Kargoya verildikten sonra iptal mümkün değildir; iade süreci başlatılması gerekir."
+      }
+    },
+    "footer": {
+      "noAnswer": "Sorunuzun cevabını bulamadınız mı?",
+      "contactSupport": "Destek Ekibine Yazın"
+    }
+  },
+  "helpFaq": {
+    "categories": {
+      "general": "Genel",
+      "account": "Hesap"
+    },
+    "general": {
+      "whatIsTarodan": {
+        "q": "Tarodan nedir?",
+        "a": "Tarodan, koleksiyonerlerin diecast model arabalarını alıp satabildiği, takas yapabildiği ve koleksiyonlarını sergileyebildiği bir pazar yeridir."
+      },
+      "howToJoin": {
+        "q": "Nasıl üye olabilirim?",
+        "a": "Ana sayfadaki ''Üye Ol'' butonuna tıklayarak e-posta, telefon ve kişisel bilgilerinizi girerek ücretsiz üyelik oluşturabilirsiniz. Üyeliğinizi doğrulamak için e-posta ve SMS doğrulaması gereklidir."
+      }
+    },
+    "buying": {
+      "returnPolicy": {
+        "q": "İade politikası nedir?",
+        "a": "Ürün açıklamasına uymuyorsa teslim tarihinden itibaren {days} gün içinde iade talep edebilirsiniz. Detaylar için satıcının iade politikasını kontrol edin."
+      }
+    },
+    "selling": {
+      "listingFee": {
+        "q": "İlan ücreti var mı?",
+        "a": "Ücretsiz üyeler belirli sayıda (5-10) ücretsiz ilan verebilir. Premium üyeler sınırsız ilan yayınlayabilir."
+      }
+    },
+    "trading": {
+      "cashDifference": {
+        "q": "Fark ödemeli takas yapabilir miyim?",
+        "a": "Evet, takas teklifinde nakit fark ekleyebilirsiniz. Fark ödemesi güvenli ödeme sistemi üzerinden yapılır."
+      }
+    },
+    "account": {
+      "cancelSubscription": {
+        "q": "Premium üyeliği nasıl iptal ederim?",
+        "a": "Profil > Ayarlar > Üyelik > Aboneliği İptal Et seçeneğinden iptal edebilirsiniz. Mevcut dönem sonuna kadar premium özellikleri kullanmaya devam edersiniz."
+      }
+    }
   },
   "legal": {
     "lastUpdated": "Son güncelleme",

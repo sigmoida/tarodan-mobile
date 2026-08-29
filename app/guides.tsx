@@ -1,93 +1,111 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { View, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import type { TFunction } from "i18next";
 import { theme, Text, ScreenHeader } from "@/ui";
 import { useTranslation } from "react-i18next";
 
 const { colors } = theme;
 
-const GUIDES = [
+type Guide = {
+  title: string;
+  icon:
+    | "cart-outline"
+    | "pricetag-outline"
+    | "cube-outline"
+    | "swap-horizontal-outline"
+    | "albums-outline"
+    | "shield-outline";
+  steps: string[];
+};
+
+/**
+ * Rehber içerikleri çeviriden geldiği için liste bir FABRİKA: modül
+ * seviyesinde kurulsaydı `t` daha hazır olmadan çalışır ve metinler ilk
+ * dilde donardı (bkz. `buildQuickActionItems` — aynı gerekçe).
+ */
+const buildGuides = (t: TFunction): Guide[] => [
   {
-    title: "Nasıl Satın Alınır?",
-    icon: "cart-outline" as const,
+    title: t("guides.howToBuy.title"),
+    icon: "cart-outline",
     steps: [
-      "Arama veya kategoriler aracılığıyla istediğiniz ürünü bulun.",
-      "Ürün sayfasını inceleyerek fotoğrafları, açıklamayı, durumu ve satıcı bilgilerini kontrol edin.",
-      '"Satın Al" butonuna tıklayın veya satıcıya teklif gönderin.',
-      "Teslimat adresinizi girin ve ödeme yönteminizi seçin.",
-      "3D Secure doğrulaması ile ödemenizi tamamlayın.",
-      "Siparişiniz onaylanacak ve satıcı kargo sürecini başlatacaktır.",
-      'Ürün elinize ulaştığında "Teslim Aldım" butonuyla onaylayın.',
+      t("guides.howToBuy.step1"),
+      t("guides.howToBuy.step2"),
+      t("guides.howToBuy.step3"),
+      t("guides.howToBuy.step4"),
+      t("guides.howToBuy.step5"),
+      t("guides.howToBuy.step6"),
+      t("guides.howToBuy.step7"),
     ],
   },
   {
-    title: "Nasıl Satılır?",
-    icon: "pricetag-outline" as const,
+    title: t("guides.howToSell.title"),
+    icon: "pricetag-outline",
     steps: [
-      "Üye girişi yapın veya hesap oluşturun.",
-      '"İlan Ver" butonuna tıklayın.',
-      "Ürün bilgilerini girin: başlık, açıklama, kategori, ölçek, marka, durum.",
-      "Kaliteli fotoğraflar yükleyin (en az 2, farklı açılardan).",
-      "Satış fiyatını ve kargo tercihlerinizi belirleyin.",
-      'Takas kabul ediyorsanız "Takas Açık" seçeneğini işaretleyin.',
-      "İlanınızı yayınlayın ve alıcılardan gelen teklifleri takip edin.",
-      "Satış gerçekleştiğinde 3 iş günü içinde ürünü kargoya verin.",
+      t("guides.howToSell.step1"),
+      t("guides.howToSell.step2"),
+      t("guides.howToSell.step3"),
+      t("guides.howToSell.step4"),
+      t("guides.howToSell.step5"),
+      t("guides.howToSell.step6"),
+      t("guides.howToSell.step7"),
+      t("guides.howToSell.step8"),
     ],
   },
   {
-    title: "Kargo Rehberi",
-    icon: "cube-outline" as const,
+    title: t("guides.shippingSteps.title"),
+    icon: "cube-outline",
     steps: [
-      "Diecast model araçları göndermeden önce orijinal kutusuna yerleştirin.",
-      "Kutu içinde boşluk varsa bubble wrap veya kağıt ile destekleyin.",
-      "Orijinal kutuyu bir dış karton kutuya yerleştirin (çift kutu yöntemi).",
-      "Dış kutuyu kargo bandı ile güvenli bir şekilde kapatın.",
-      '"Kırılacak" etiketi kullanın.',
-      "Anlaşmalı kargo firmamız Sürat Kargo ile gönderinizi oluşturun.",
-      "Kargo kodunu sisteme girerek takip bilgisini paylaşın.",
-      "Sigortalı gönderi seçeneğini kullanmanız tavsiye edilir.",
+      t("guides.shippingSteps.step1"),
+      t("guides.shippingSteps.step2"),
+      t("guides.shippingSteps.step3"),
+      t("guides.shippingSteps.step4"),
+      t("guides.shippingSteps.step5"),
+      t("guides.shippingSteps.step6"),
+      t("guides.shippingSteps.step7"),
+      t("guides.shippingSteps.step8"),
     ],
   },
   {
-    title: "Takas Rehberi",
-    icon: "swap-horizontal-outline" as const,
+    title: t("guides.tradeGuide"),
+    icon: "swap-horizontal-outline",
     steps: [
-      '"Takas Açık" olan bir ürün bulun.',
-      '"Takas Teklifi Gönder" butonuna tıklayın.',
-      "Kendi koleksiyonunuzdan takas etmek istediğiniz ürünleri seçin.",
-      "Gerekirse nakit fark tutarı belirleyin.",
-      "İsteğe bağlı mesaj ekleyerek teklifinizi gönderin.",
-      "Karşı tarafın onayını veya karşı teklifini bekleyin.",
-      "Her iki taraf da onayladığında takas başlar.",
-      "Ürünlerinizi belirtilen süre içinde kargoya verin.",
-      "Teslim aldıktan sonra onay verin; takas tamamlanır.",
+      t("guides.tradeSteps.step1"),
+      t("guides.tradeSteps.step2"),
+      t("guides.tradeSteps.step3"),
+      t("guides.tradeSteps.step4"),
+      t("guides.tradeSteps.step5"),
+      t("guides.tradeSteps.step6"),
+      t("guides.tradeSteps.step7"),
+      t("guides.tradeSteps.step8"),
+      t("guides.tradeSteps.step9"),
     ],
   },
   {
-    title: "Koleksiyon Oluşturma",
-    icon: "albums-outline" as const,
+    title: t("guides.collectionGuide.title"),
+    icon: "albums-outline",
     steps: [
-      'Profil sayfanızdan "Koleksiyonlarım" bölümüne gidin.',
-      '"Yeni Koleksiyon" butonuna tıklayın.',
-      "Koleksiyonunuza isim ve açıklama ekleyin.",
-      "Kapak fotoğrafı seçin (isteğe bağlı).",
-      "Koleksiyonunuzu herkese açık veya özel yapabilirsiniz.",
-      "İlan verdiğiniz veya satın aldığınız ürünleri koleksiyonunuza ekleyin.",
-      "Digital Garage özelliği ile koleksiyonunuzu paylaşın ve beğeni toplayın.",
+      t("guides.collectionGuide.step1"),
+      t("guides.collectionGuide.step2"),
+      t("guides.collectionGuide.step3"),
+      t("guides.collectionGuide.step4"),
+      t("guides.collectionGuide.step5"),
+      t("guides.collectionGuide.step6"),
+      t("guides.collectionGuide.step7"),
     ],
   },
   {
-    title: "Güvenli Alışveriş İpuçları",
-    icon: "shield-outline" as const,
+    title: t("guides.safetyTips"),
+    icon: "shield-outline",
     steps: [
-      "Satıcı profilini ve değerlendirmelerini her zaman kontrol edin.",
-      "Ürün fotoğraflarını dikkatli inceleyin; stok fotoğraf kullananlara dikkat edin.",
-      "Gerçekçi olmayan düşük fiyatlara karşı temkinli olun.",
-      "Platform dışı ödeme talebinde bulunan satıcılara itibar etmeyin.",
-      "Kişisel iletişim bilgilerinizi mesajlarda paylaşmaktan kaçının.",
-      "Ürün teslimini onaylamadan önce dikkatlice kontrol edin.",
-      "Şüpheli durumları hemen destek ekibine bildirin.",
+      t("guides.safetySteps.step1"),
+      t("guides.safetySteps.step2"),
+      t("guides.safetySteps.step3"),
+      t("guides.safetySteps.step4"),
+      t("guides.safetySteps.step5"),
+      t("guides.safetySteps.step6"),
+      t("guides.safetySteps.step7"),
     ],
   },
 ];
@@ -95,6 +113,7 @@ const GUIDES = [
 export default function GuidesScreen() {
   const { t } = useTranslation();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(0);
+  const guides = useMemo(() => buildGuides(t), [t]);
 
   return (
     <View style={styles.container}>
@@ -106,12 +125,9 @@ export default function GuidesScreen() {
       />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.intro}>
-          Tarodan'ı en verimli şekilde kullanmanız için hazırladığımız adım adım
-          rehberler.
-        </Text>
+        <Text style={styles.intro}>{t("guides.subtitle")}</Text>
 
-        {GUIDES.map((guide, index) => {
+        {guides.map((guide, index) => {
           const isExpanded = expandedIndex === index;
           return (
             <View key={index} style={styles.guideCard}>
