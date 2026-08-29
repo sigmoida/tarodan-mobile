@@ -175,10 +175,10 @@ export function useDiscounts() {
   const handleDelete = (d: Discount) => {
     appAlert(
       t('discount.deleteTitle'),
-      `"${d.name}" indirimini silmek istediğinize emin misiniz?`,
+      t('discount.deleteConfirmNamed', { name: d.name }),
       [
         { text: t('discount.discard'), style: 'cancel' },
-        { text: 'Sil', style: 'destructive', onPress: () => deleteMutation.mutate(d.id) },
+        { text: t('common.delete'), style: 'destructive', onPress: () => deleteMutation.mutate(d.id) },
       ],
     );
   };

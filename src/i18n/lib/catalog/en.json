@@ -7123,7 +7123,8 @@
     "emptySubtitle": "Create your first discount coupon for your store.",
     "createNewA11y": "Create new discount",
     "noActiveProducts": "You have no active products.",
-    "filterExpired": "Expired"
+    "filterExpired": "Expired",
+    "deleteConfirmNamed": "Are you sure you want to delete \"{name}\"?"
   },
   "listing": {
     "deactivated": "The listing has been deactivated",

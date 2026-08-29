@@ -7123,7 +7123,8 @@
     "emptySubtitle": "Mağazanız için ilk indirim kuponunuzu oluşturun.",
     "createNewA11y": "Yeni indirim oluştur",
     "noActiveProducts": "Aktif ürününüz yok.",
-    "filterExpired": "Süresi Dolmuş"
+    "filterExpired": "Süresi Dolmuş",
+    "deleteConfirmNamed": "\"{name}\" indirimini silmek istediğinize emin misiniz?"
   },
   "listing": {
     "deactivated": "İlan deaktif edildi",
