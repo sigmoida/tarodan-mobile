@@ -21,8 +21,9 @@ export function OrderElogoInvoiceCard({
     <Card variant="elevated" style={styles.card} testID="order-invoice-card">
       <Text variant="label" style={styles.sectionTitle}>{t('order.invoice')}</Text>
       <Text variant="caption" style={styles.hint}>
-        Faturanız e-posta adresinize gönderildi
-        {elogoInvoice.invoiceNumber ? ` · No: ${elogoInvoice.invoiceNumber}` : ''}
+        {elogoInvoice.invoiceNumber
+          ? t('order.invoiceSentToEmailWithNumber', { number: elogoInvoice.invoiceNumber })
+          : t('order.invoiceSentToEmail')}
       </Text>
       <Button
         variant="outline"
@@ -30,7 +31,7 @@ export function OrderElogoInvoiceCard({
         onPress={onView}
         isLoading={downloading}
         disabled={downloading}
-        title="Faturayı Görüntüle / İndir"
+        title={t('order.viewDownloadInvoice')}
       />
     </Card>
   );
@@ -64,7 +65,7 @@ export function OrderSellerInvoiceCard({
             onPress={onView}
             isLoading={downloading}
             disabled={downloading}
-            title="Satıcı Faturasını Görüntüle / İndir"
+            title={t('order.viewDownloadSellerInvoice')}
           />
           {sellerInvoice.canUpload && (
             <Button
@@ -74,7 +75,7 @@ export function OrderSellerInvoiceCard({
               onPress={onUpload}
               isLoading={uploading}
               disabled={uploading}
-              title="Faturayı Değiştir"
+              title={t('order.replaceInvoice')}
               testID="seller-invoice-replace-button"
               style={{ marginTop: theme.spacing[2] }}
             />
@@ -83,7 +84,7 @@ export function OrderSellerInvoiceCard({
       ) : sellerInvoice.canUpload ? (
         <>
           <Text variant="caption" style={styles.hint}>
-            Alıcıya iletilmek üzere fatura PDF'i yükleyin (en fazla 10 MB).
+            {t('order.uploadInvoicePdfNotice')}
           </Text>
           <Button
             variant="primary"
@@ -92,13 +93,13 @@ export function OrderSellerInvoiceCard({
             onPress={onUpload}
             isLoading={uploading}
             disabled={uploading}
-            title="Fatura Yükle"
+            title={t('order.uploadInvoicePdf')}
             testID="seller-invoice-upload-button"
           />
         </>
       ) : (
         <Text variant="caption" style={{ color: colors.text.muted }}>
-          Bu sipariş için henüz fatura yüklenmedi.
+          {t('order.noInvoiceUploadedYet')}
         </Text>
       )}
     </Card>

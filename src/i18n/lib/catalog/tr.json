@@ -1199,7 +1199,13 @@
     "loadFailedRetry": "Siparişler yüklenemedi. Lütfen tekrar deneyin.",
     "refresh": "Yenile",
     "rateProduct": "Ürünü Değerlendir",
-    "rateSeller": "Satıcıyı Değerlendir"
+    "rateSeller": "Satıcıyı Değerlendir",
+    "refundEligibleIntro": "Teslimattan sonra 14 gün içinde sebep belirtmeden iade talep edebilirsiniz.",
+    "invoiceSentToEmailWithNumber": "Faturanız e-posta adresinize gönderildi · No: {number}",
+    "viewDownloadSellerInvoice": "Satıcı Faturasını Görüntüle / İndir",
+    "replaceInvoice": "Faturayı Değiştir",
+    "uploadInvoicePdfNotice": "Alıcıya iletilmek üzere fatura PDF''i yükleyin (en fazla 10 MB).",
+    "noInvoiceUploadedYet": "Bu sipariş için henüz fatura yüklenmedi."
   },
   "trade": {
     "featureTitle": "Takas Özelliği",

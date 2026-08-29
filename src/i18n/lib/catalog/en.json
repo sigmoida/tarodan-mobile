@@ -1199,7 +1199,13 @@
     "loadFailedRetry": "Failed to load orders. Please try again.",
     "refresh": "Refresh",
     "rateProduct": "Rate the Product",
-    "rateSeller": "Rate the Seller"
+    "rateSeller": "Rate the Seller",
+    "refundEligibleIntro": "You can request a refund within 14 days of delivery without giving a reason.",
+    "invoiceSentToEmailWithNumber": "Your invoice has been sent to your email address · No: {number}",
+    "viewDownloadSellerInvoice": "View / Download Seller Invoice",
+    "replaceInvoice": "Replace Invoice",
+    "uploadInvoicePdfNotice": "Upload the invoice PDF to send to the buyer (10 MB max).",
+    "noInvoiceUploadedYet": "No invoice has been uploaded for this order yet."
   },
   "trade": {
     "featureTitle": "Trading",
