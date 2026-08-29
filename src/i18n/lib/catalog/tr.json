@@ -7209,7 +7209,9 @@
     "categoryPickerEmpty": "Kategori bulunamadı",
     "materialPickerEmpty": "Malzeme bulunamadı",
     "manufacturerPickerEmpty": "Üretici bulunamadı",
-    "yearPickerEmpty": "Yıl bulunamadı"
+    "yearPickerEmpty": "Yıl bulunamadı",
+    "loadListingsFailed": "İlanlarınız yüklenirken bir hata oluştu.",
+    "createNewA11y": "Yeni ilan oluştur"
   },
   "boost": {
     "title": "İlanı Öne Çıkar",

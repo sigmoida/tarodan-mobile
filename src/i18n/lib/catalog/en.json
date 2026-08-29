@@ -7209,7 +7209,9 @@
     "categoryPickerEmpty": "No categories found",
     "materialPickerEmpty": "No materials found",
     "manufacturerPickerEmpty": "No manufacturers found",
-    "yearPickerEmpty": "No years found"
+    "yearPickerEmpty": "No years found",
+    "loadListingsFailed": "There was a problem loading your listings.",
+    "createNewA11y": "Create new listing"
   },
   "boost": {
     "title": "Boost Listing",
