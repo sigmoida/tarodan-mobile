@@ -2,6 +2,7 @@
  * Web paritesi: apps/web/src/app/listings/page.tsx `filters` state'i + `buildListParams`.
  * Tüm ürün arama/listeleme ekranları (Search tab, Listings) bu tek kaynağı kullanır.
  */
+import type { TFunction } from 'i18next';
 
 export type ProductFilters = {
   search: string;
@@ -62,7 +63,31 @@ export const SORT_OPTIONS: { value: string; label: string; icon: string }[] = [
   { value: 'rating_desc', label: 'En Yüksek Puan', icon: 'ribbon-outline' },
 ];
 
-/** Web SidebarFilters CONDITIONS ile aynı (slug + TR etiket). */
+/**
+ * Web SidebarFilters CONDITIONS ile aynı slug seti — etiketler artık katalogdan
+ * gelir. Eskiden bu bir modül-seviyesi TR literal dizisiydi: `t()` hiç
+ * çağrılmadığı için i18next hazır olsun olmasın hep Türkçe basardı (bir yarış
+ * değil, kalıcı bir Türkçe basımıydı). `ProductFilterSheet` artık bunun yerine
+ * listing formundaki `buildConditions(t)` ile AYNI katalog anahtarlarını
+ * (`product.condition*`) kullanan bu factory'i çağırır: bileşen
+ * `useMemo(() => buildConditionOptions(t), [t])` ile — tek koşul kelime
+ * dağarcığı, iki ayrı metin seti değil.
+ */
+export const buildConditionOptions = (t: TFunction): { value: string; label: string }[] => [
+  { value: 'new', label: t('product.conditionNew') },
+  { value: 'like_new', label: t('product.conditionLikeNew') },
+  { value: 'very_good', label: t('product.conditionVeryGood') },
+  { value: 'good', label: t('product.conditionGood') },
+  { value: 'fair', label: t('product.conditionFair') },
+];
+
+/**
+ * ⚠️ LEGACY — yalnızca `app/listings/_lib/chips.ts` ve
+ * `app/(tabs)/_lib/searchConstants.ts` için tutuluyor (her ikisi de bu i18n
+ * dilimi kapsamı dışında). Aynı kalıcı-Türkçe kusurunu taşıyor; buradan
+ * `buildConditionOptions(t)`'e geçirilmeleri ayrı bir iş. `ProductFilterSheet`
+ * artık bunu KULLANMIYOR.
+ */
 export const CONDITION_OPTIONS: { value: string; label: string }[] = [
   { value: 'new', label: 'Yeni' },
   { value: 'like_new', label: 'Yeni Gibi' },

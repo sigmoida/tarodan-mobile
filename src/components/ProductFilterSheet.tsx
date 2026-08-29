@@ -3,7 +3,7 @@
  * Bölümler: Araç Türü, Marka, Model (markaya bağlı), Ölçek, Malzeme, Üretici,
  * Durum, Fiyat, Seçenekler (takas/indirim/ön sipariş/limited/set).
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   View,
   ScrollView,
@@ -25,7 +25,7 @@ import {
   theme,
 } from '@/ui';
 import type { ProductFilters } from '../utils/productFilters';
-import { CONDITION_OPTIONS } from '../utils/productFilters';
+import { buildConditionOptions } from '../utils/productFilters';
 import type { ProductFilterOptions } from '../hooks/useProductFilterOptions';
 
 const { colors, spacing } = theme;
@@ -90,6 +90,7 @@ export default function ProductFilterSheet({
   countLoading,
 }: Props) {
   const { t } = useTranslation();
+  const conditionOptions = useMemo(() => buildConditionOptions(t), [t]);
   const [brandSearch, setBrandSearch] = useState('');
   const [modelSearch, setModelSearch] = useState('');
   const [manufacturerSearch, setManufacturerSearch] = useState('');
@@ -355,7 +356,7 @@ export default function ProductFilterSheet({
           {/* Durum */}
           <View style={styles.section}>
             <SectionTitle>{t('product.condition')}</SectionTitle>
-            {CONDITION_OPTIONS.map((c) => (
+            {conditionOptions.map((c) => (
               <RadioRow
                 key={c.value}
                 label={c.label}

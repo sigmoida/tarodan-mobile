@@ -1165,7 +1165,7 @@
     }
   },
   "trade": {
-    "featureTitle": "Trade Feature",
+    "featureTitle": "Trading",
     "myTrades": "My Trades",
     "createTrade": "Create Trade Offer",
     "sendTrade": "Send Trade Offer",
