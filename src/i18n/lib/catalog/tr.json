@@ -126,7 +126,10 @@
     "and": "ve",
     "continueShort": "Devam",
     "missing": "Eksik",
-    "info": "Bilgi"
+    "info": "Bilgi",
+    "selectCityPlaceholder": "Bir il seçin",
+    "selectDistrictPlaceholder": "Bir ilçe seçin",
+    "selectCityFirst": "Önce il seçin"
   },
   "nav": {
     "home": "Ana Sayfa",

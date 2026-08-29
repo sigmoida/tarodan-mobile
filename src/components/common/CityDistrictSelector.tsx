@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Modal, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { theme, Input, Text } from '@/ui';
 import { turkeyLocations, getDistrictsForCity } from '../../utils/turkeyLocations';
 
@@ -35,6 +36,7 @@ export function CityDistrictSelector({
   cityError,
   districtError,
 }: Props) {
+  const { t } = useTranslation();
   const [cityModal, setCityModal] = useState(false);
   const [districtModal, setDistrictModal] = useState(false);
   const [citySearch, setCitySearch] = useState('');
@@ -93,7 +95,7 @@ export function CityDistrictSelector({
         ]}
       >
         <View style={{ flex: 1 }}>
-          <Text style={styles.fakeLabel}>İl *</Text>
+          <Text style={styles.fakeLabel}>{`${t('address.city')} *`}</Text>
           <Text
             style={[
               styles.fakeValue,
@@ -101,7 +103,7 @@ export function CityDistrictSelector({
             ]}
             numberOfLines={1}
           >
-            {city || 'Bir il seçin'}
+            {city || t('common.selectCityPlaceholder')}
           </Text>
         </View>
         <Ionicons name="chevron-down" size={18} color={colors.text.muted} />
@@ -119,7 +121,7 @@ export function CityDistrictSelector({
           ]}
         >
           <View style={{ flex: 1 }}>
-            <Text style={styles.fakeLabel}>İlçe *</Text>
+            <Text style={styles.fakeLabel}>{`${t('address.district')} *`}</Text>
             <Text
               style={[
                 styles.fakeValue,
@@ -127,7 +129,7 @@ export function CityDistrictSelector({
               ]}
               numberOfLines={1}
             >
-              {district || (city ? 'Bir ilçe seçin' : 'Önce il seçin')}
+              {district || (city ? t('common.selectDistrictPlaceholder') : t('common.selectCityFirst'))}
             </Text>
           </View>
           <Ionicons name="chevron-down" size={18} color={colors.text.muted} />
@@ -145,14 +147,14 @@ export function CityDistrictSelector({
       >
         <View style={styles.modalContainer}>
           <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>İl Seç</Text>
+            <Text style={styles.sheetTitle}>{t('common.selectCity')}</Text>
             <TouchableOpacity onPress={() => setCityModal(false)} hitSlop={8}>
               <Ionicons name="close" size={22} color={colors.text.muted} />
             </TouchableOpacity>
           </View>
           <View style={styles.sheetSearch}>
             <Input
-              placeholder="İl ara…"
+              placeholder={t('common.searchCity')}
               value={citySearch}
               onChangeText={setCitySearch}
               leftIconName="search"
@@ -186,14 +188,14 @@ export function CityDistrictSelector({
       >
         <View style={styles.modalContainer}>
           <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>İlçe Seç ({city})</Text>
+            <Text style={styles.sheetTitle}>{`${t('common.selectDistrict')} (${city})`}</Text>
             <TouchableOpacity onPress={() => setDistrictModal(false)} hitSlop={8}>
               <Ionicons name="close" size={22} color={colors.text.muted} />
             </TouchableOpacity>
           </View>
           <View style={styles.sheetSearch}>
             <Input
-              placeholder="İlçe ara…"
+              placeholder={t('common.searchDistrict')}
               value={districtSearch}
               onChangeText={setDistrictSearch}
               leftIconName="search"

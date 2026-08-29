@@ -126,7 +126,10 @@
     "and": "and",
     "continueShort": "Continue",
     "missing": "Missing",
-    "info": "Info"
+    "info": "Info",
+    "selectCityPlaceholder": "Select a city",
+    "selectDistrictPlaceholder": "Select a district",
+    "selectCityFirst": "Select a city first"
   },
   "nav": {
     "home": "Home",
