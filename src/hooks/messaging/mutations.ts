@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { messagesApi } from '@/lib/api';
+import i18n from '@/i18n/config';
 import { useAuthStore } from '@/stores/authStore';
 import { useMessagesStore } from '@/stores/messagesStore';
 import type { Message, MessageThread } from '@/stores/messagesStore';
@@ -10,10 +11,15 @@ import {
   prependThreadToCache,
 } from '@/lib/messaging/cache';
 
-/** Günlük limit aşımını ayırt etmek için özel hata (UI ayrı mesaj gösterir). */
+/**
+ * Günlük limit aşımını ayırt etmek için özel hata (UI ayrı mesaj gösterir).
+ * `.message` çağıran ekranın generic catch'inde (`e?.message`) doğrudan
+ * kullanıcıya basılıyor — React dışı, `paytrDirectForm.ts` ile aynı desen:
+ * global `i18n`'den ÇAĞRI ANINDA (constructor'da, modül yüklenirken DEĞİL) okunur.
+ */
 export class DailyMessageLimitError extends Error {
   constructor() {
-    super('Günlük mesaj limitine ulaştınız');
+    super(i18n.t('message.dailyLimitError'));
     this.name = 'DailyMessageLimitError';
   }
 }

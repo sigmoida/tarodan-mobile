@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import i18n from '@/i18n/config';
 import { useAuthStore } from './authStore';
 
 /**
@@ -8,6 +9,11 @@ import { useAuthStore } from './authStore';
  *   - `currentThreadId`: açık thread — socket köprüsünün aktif thread'i bilmesi için,
  *   - `dailyMessageCount`/`dailyMessageLimit`: ücretsiz üye günlük mesaj limiti sayacı.
  * Tipler (MessageThread/Message) burada kalır; tüm tüketiciler buradan import eder.
+ *
+ * `getOtherParticipant`'ın "Kullanıcı" düşüşü store'un dışında (React) render
+ * edilmediği için `useTranslation` çağıramaz — `paytrDirectForm.ts` ile aynı
+ * desen: global `i18n` örneğinden ÇAĞRI ANINDA okunur (modül yüklenirken DEĞİL),
+ * store yalnız client state tutar, fetch/çeviri modül kapsamında BAŞLAMAZ.
  */
 
 export interface MessageThread {
@@ -99,7 +105,7 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
 
     const defaultParticipant = {
       id: '',
-      displayName: 'Kullanıcı',
+      displayName: i18n.t('common.user'),
       avatarUrl: undefined,
     };
 
@@ -112,7 +118,7 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
       const otherUser = (thread as any).otherUser;
       return {
         id: otherUser.id || '',
-        displayName: otherUser.displayName || otherUser.name || 'Kullanıcı',
+        displayName: otherUser.displayName || otherUser.name || i18n.t('common.user'),
         avatarUrl: otherUser.avatarUrl || otherUser.avatar || undefined,
       };
     }
@@ -122,7 +128,7 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
       if (!thread.participant2) return defaultParticipant;
       return {
         id: thread.participant2.id || '',
-        displayName: thread.participant2.displayName || 'Kullanıcı',
+        displayName: thread.participant2.displayName || i18n.t('common.user'),
         avatarUrl: thread.participant2.avatarUrl,
       };
     }
@@ -130,7 +136,7 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
     if (!thread.participant1) return defaultParticipant;
     return {
       id: thread.participant1.id || '',
-      displayName: thread.participant1.displayName || 'Kullanıcı',
+      displayName: thread.participant1.displayName || i18n.t('common.user'),
       avatarUrl: thread.participant1.avatarUrl,
     };
   },

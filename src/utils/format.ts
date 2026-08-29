@@ -2,6 +2,7 @@
  * Format helpers ported from apps/web/src/lib/format.ts.
  * Mobile uyumunu (parite) korumak için her fonksiyonun imzası ve davranışı web ile birebir aynıdır.
  */
+import type { TFunction } from 'i18next';
 
 /**
  * Backend'den brand/scale/category bazen string ("AutoArt"), bazen obje ({id,name,slug}) gelir.
@@ -244,8 +245,17 @@ export function formatOfferStatus(status: string | null | undefined, locale: str
 
 /**
  * Relative date formatter: "2 saat önce", "3 gün önce", "tam tarih"
+ *
+ * `localeOrT` da bir `TFunction` verilirse (i18n-aware çağrı yerleri, örn.
+ * bildirim satırı) katalogdan ICU plural'lı `time.relative.*` anahtarları
+ * okunur — İngilizce "1 minute ago" / "2 minutes ago" ayrımı böyle doğru çıkar.
+ * String bir locale ('tr'/'en') verilirse davranış DEĞİŞMEDİ: eski sabit
+ * metinler (par-format-parity.test.ts bunu kilitliyor).
  */
-export function formatRelativeDate(date: string | Date | null | undefined, locale: string = 'tr'): string {
+export function formatRelativeDate(
+  date: string | Date | null | undefined,
+  localeOrT: string | TFunction = 'tr',
+): string {
   if (!date) return '';
 
   const d = typeof date === 'string' ? new Date(date) : date;
@@ -258,6 +268,16 @@ export function formatRelativeDate(date: string | Date | null | undefined, local
   const diffHr = Math.floor(diffMin / 60);
   const diffDay = Math.floor(diffHr / 24);
 
+  if (typeof localeOrT === 'function') {
+    const t = localeOrT;
+    if (diffSec < 60) return t('time.relative.justNow');
+    if (diffMin < 60) return t('time.relative.minutes', { count: diffMin });
+    if (diffHr < 24) return t('time.relative.hours', { count: diffHr });
+    if (diffDay < 7) return t('time.relative.days', { count: diffDay });
+    return d.toLocaleDateString(t('common.dateLocale'), { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  const locale = localeOrT;
   if (locale === 'en') {
     if (diffSec < 60) return 'Just now';
     if (diffMin < 60) return `${diffMin} min ago`;
