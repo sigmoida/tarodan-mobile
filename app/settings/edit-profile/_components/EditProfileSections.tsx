@@ -59,7 +59,7 @@ export function PersonalInfoCard({ f }: { f: EditProfileController }) {
   return (
     <Card style={styles.card}>
       <Text variant="h3" style={styles.sectionTitle}>
-        Kişisel Bilgiler
+        {t("profile.personalInfo")}
       </Text>
 
       <Controller
@@ -67,7 +67,7 @@ export function PersonalInfoCard({ f }: { f: EditProfileController }) {
         name="displayName"
         render={({ field: { onChange, value } }) => (
           <Input
-            label="Görünen İsim *"
+            label={`${t("profile.displayName")} *`}
             value={value}
             onChangeText={onChange}
             error={errors.displayName?.message}
@@ -78,13 +78,13 @@ export function PersonalInfoCard({ f }: { f: EditProfileController }) {
 
       {/* E-posta — salt okunur (web ile parite) */}
       <Input
-        label="E-posta Adresi"
+        label={t("auth.emailAddress")}
         value={f.user?.email || ""}
         editable={false}
         containerStyle={styles.input}
       />
       <Text variant="bodySm" style={styles.hintText}>
-        🔒 E-posta değişikliği için destek ile iletişime geçin
+        {`🔒 ${t("profile.emailChangeNote")}`}
       </Text>
 
       <Controller
@@ -93,7 +93,7 @@ export function PersonalInfoCard({ f }: { f: EditProfileController }) {
         render={({ field: { onChange, value } }) => (
           <PhoneInput
             testID="profile-phone-input"
-            label="Telefon"
+            label={t("common.phone")}
             // Kaydete basmadan önce görsün: çözülemeyen numara blur'da uyarır.
             validateOnBlur
             countryCode={f.phoneCountryCode}
@@ -111,10 +111,10 @@ export function PersonalInfoCard({ f }: { f: EditProfileController }) {
         name="birthDate"
         render={({ field: { onChange, value } }) => (
           <DateField
-            label="Doğum Tarihi"
+            label={t("auth.birthDate")}
             value={value}
             onChange={onChange}
-            placeholder="Tarih seçin"
+            placeholder={t("auth.birthDatePlaceholder")}
             maximumDate={minBirthDate()}
             containerStyle={styles.input}
             error={errors.birthDate?.message}
@@ -127,7 +127,7 @@ export function PersonalInfoCard({ f }: { f: EditProfileController }) {
         name="bio"
         render={({ field: { onChange, value } }) => (
           <Input
-            label={`Hakkımda (${f.bioLength}/${MAX_BIO_LENGTH})`}
+            label={`${t("profile.bio")} (${f.bioLength}/${MAX_BIO_LENGTH})`}
             value={value}
             onChangeText={onChange}
             multiline
@@ -145,6 +145,7 @@ export function PersonalInfoCard({ f }: { f: EditProfileController }) {
 
 /** İşletme bilgileri kartı — sadece business tier'da render edilir. */
 export function BusinessInfoCard({ f }: { f: EditProfileController }) {
+  const { t } = useTranslation();
   if (!f.isBusinessTier) return null;
   const { control, errors } = f;
 
@@ -158,12 +159,12 @@ export function BusinessInfoCard({ f }: { f: EditProfileController }) {
             color={colors.primary[600]!}
           />
           <Text variant="h3" style={styles.premiumFeatureTitle}>
-            İşletme Bilgileri
+            {t("sellerDashboard.businessInfo")}
           </Text>
         </View>
         <View style={styles.tierBadge}>
           <Text variant="bodySm" style={styles.tierBadgeText}>
-            İş Üyeliği
+            {t("profile.businessMembershipBadge")}
           </Text>
         </View>
       </View>
@@ -173,10 +174,10 @@ export function BusinessInfoCard({ f }: { f: EditProfileController }) {
         name="companyName"
         render={({ field: { onChange, value } }) => (
           <Input
-            label="Şirket / Ticari Unvan *"
+            label={`${t("profile.companyLegalNameLabel")} *`}
             value={value}
             onChangeText={onChange}
-            placeholder="ABC Ltd. Şti."
+            placeholder={t("profile.companyPlaceholder")}
             containerStyle={styles.input}
             error={errors.companyName?.message}
           />
@@ -184,7 +185,7 @@ export function BusinessInfoCard({ f }: { f: EditProfileController }) {
       />
       {!f.companyNameValue && (
         <Text variant="bodySm" style={styles.warningText}>
-          ⚠️ İşletme panelini kullanmak için şirket adı zorunludur
+          {`⚠️ ${t("profile.companyNameRequiredWarning")}`}
         </Text>
       )}
 
@@ -193,7 +194,7 @@ export function BusinessInfoCard({ f }: { f: EditProfileController }) {
         name="taxId"
         render={({ field: { onChange, value } }) => (
           <Input
-            label="Vergi Kimlik No"
+            label={t("auth.taxId")}
             value={value}
             onChangeText={(text) =>
               onChange(text.replace(/\D/g, "").slice(0, 11))
@@ -211,10 +212,10 @@ export function BusinessInfoCard({ f }: { f: EditProfileController }) {
         name="taxOffice"
         render={({ field: { onChange, value } }) => (
           <Input
-            label="Vergi Dairesi"
+            label={t("profile.taxOffice")}
             value={value}
             onChangeText={onChange}
-            placeholder="Kadıköy VD"
+            placeholder={t("profile.taxOfficePlaceholder")}
             containerStyle={styles.input}
             error={errors.taxOffice?.message}
           />
@@ -223,8 +224,7 @@ export function BusinessInfoCard({ f }: { f: EditProfileController }) {
 
       <View style={styles.infoBox}>
         <Text variant="bodySm" style={styles.infoBoxText}>
-          ℹ️ Kurumsal satıcı bilgileri fatura kesiminde kullanılır. Yanlış bilgi
-          girişi yasal sorumluluk doğurabilir.
+          {`ℹ️ ${t("profile.corporateInfoNotice")}`}
         </Text>
       </View>
     </Card>

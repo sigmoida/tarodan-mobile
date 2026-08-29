@@ -2093,7 +2093,11 @@
     "invalidCode": "Kod hatalı",
     "phoneVerified": "Telefon doğrulandı",
     "cannotDeleteAccount": "Hesap silinemez",
-    "deleteAccountFailed": "Hesap silinemedi"
+    "deleteAccountFailed": "Hesap silinemedi",
+    "businessMembershipBadge": "İş Üyeliği",
+    "companyLegalNameLabel": "Şirket / Ticari Unvan",
+    "companyNameRequiredWarning": "İşletme panelini kullanmak için şirket adı zorunludur",
+    "corporateInfoNotice": "Kurumsal satıcı bilgileri fatura kesiminde kullanılır. Yanlış bilgi girişi yasal sorumluluk doğurabilir."
   },
   "review": {
     "reviews": "Değerlendirmeler",
@@ -2315,7 +2319,11 @@
     "displayNameMax": "Ad en fazla 30 karakter olabilir",
     "acceptTerms": "Sözleşmeleri kabul etmelisiniz",
     "passwordMax72": "En fazla 72 karakter",
-    "acceptBusinessTerms": "Üyelik sözleşmesini ve KVKK aydınlatma metnini kabul etmelisiniz"
+    "acceptBusinessTerms": "Üyelik sözleşmesini ve KVKK aydınlatma metnini kabul etmelisiniz",
+    "bioMaxLength": "Biyografi en fazla {max} karakter olabilir",
+    "birthDateInvalid": "Lütfen geçerli bir doğum tarihi seçin",
+    "mustBeAdult": "18 yaşından büyük olmalısınız",
+    "companyNameRequired": "Şirket adı zorunludur"
   },
   "time": {
     "justNow": "Az önce",
@@ -2440,7 +2448,9 @@
     "enable": "Etkinleştir",
     "disable": "Devre Dışı Bırak",
     "activeSessions": "Aktif Oturumlar",
-    "loginHistory": "Giriş Geçmişi"
+    "loginHistory": "Giriş Geçmişi",
+    "emailChangeLink": "E-posta Değiştir",
+    "usernameLink": "Kullanıcı Adı"
   },
   "analytics": {
     "analytics": "Analitikler",

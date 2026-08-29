@@ -2093,7 +2093,11 @@
     "invalidCode": "Invalid code",
     "phoneVerified": "Phone verified",
     "cannotDeleteAccount": "Cannot delete account",
-    "deleteAccountFailed": "Failed to delete account"
+    "deleteAccountFailed": "Failed to delete account",
+    "businessMembershipBadge": "Business Membership",
+    "companyLegalNameLabel": "Company / Legal Name",
+    "companyNameRequiredWarning": "Company name is required to use the business panel",
+    "corporateInfoNotice": "Corporate seller information is used for invoicing. Incorrect information may create legal liability."
   },
   "review": {
     "reviews": "Reviews",
@@ -2315,7 +2319,11 @@
     "displayNameMax": "The name can be at most 30 characters",
     "acceptTerms": "You must accept the agreements",
     "passwordMax72": "At most 72 characters",
-    "acceptBusinessTerms": "You must accept the membership agreement and the privacy notice"
+    "acceptBusinessTerms": "You must accept the membership agreement and the privacy notice",
+    "bioMaxLength": "Bio can be at most {max} characters",
+    "birthDateInvalid": "Please select a valid birth date",
+    "mustBeAdult": "You must be over 18 years old",
+    "companyNameRequired": "Company name is required"
   },
   "time": {
     "justNow": "Just now",
@@ -2440,7 +2448,9 @@
     "enable": "Enable",
     "disable": "Disable",
     "activeSessions": "Active Sessions",
-    "loginHistory": "Login History"
+    "loginHistory": "Login History",
+    "emailChangeLink": "Change Email",
+    "usernameLink": "Username"
   },
   "analytics": {
     "analytics": "Analytics",
