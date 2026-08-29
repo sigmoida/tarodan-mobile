@@ -1165,6 +1165,7 @@
     }
   },
   "trade": {
+    "featureTitle": "Trade Feature",
     "myTrades": "My Trades",
     "createTrade": "Create Trade Offer",
     "sendTrade": "Send Trade Offer",
@@ -2711,7 +2712,14 @@
     "reasonHarassment": "Harassment",
     "reasonFakeProduct": "Fake Product",
     "reasonScam": "Scam",
-    "reasonOther": "Other"
+    "reasonOther": "Other",
+    "reasonHateSpeech": "Hate Speech",
+    "reasonCounterfeit": "Counterfeit / Replica",
+    "reasonWrongCategory": "Wrong Category",
+    "reasonMisleadingInfo": "Misleading Information",
+    "reasonSectionTitle": "Report Reason",
+    "descriptionLabel": "Description (Optional)",
+    "falseReportWarning": "False reports may result in your account being suspended."
   },
   "admin": {
     "accounts": {
@@ -6462,5 +6470,58 @@
   },
   "shipping": {
     "codePending": "Carrier code is being prepared"
+  },
+  "filter": {
+    "searchSectionTitle": "Search",
+    "clearSearchLabel": "Clear search",
+    "modelSelectBrandFirstHint": "Select a brand first (or search across all models)",
+    "discountOnlyLabel": "Discounted Only",
+    "resultsLoading": "Loading results…",
+    "showResultsCount": "Show {count} Results"
+  },
+  "signupPrompt": {
+    "favoritesDescription": "Add items you like to your favorites so you can find them again easily. Sign up for free!",
+    "favoritesBenefit1": "Unlimited favorites list",
+    "favoritesBenefit2": "Price change notifications",
+    "favoritesBenefit3": "Quick access to your favorite items",
+    "messageTitle": "Contact the Seller",
+    "messageDescription": "You need to sign in to message sellers. Ask questions, negotiate a deal!",
+    "messageBenefit1": "Direct contact with sellers",
+    "messageBenefit2": "Ability to negotiate",
+    "messageBenefit3": "Ask questions about the item",
+    "purchaseTitle": "Your Order Is Complete!",
+    "purchaseDescription": "Sign up to easily track your orders and get perks on future purchases.",
+    "purchaseBenefit1": "Order history",
+    "purchaseBenefit2": "Reorder in one tap",
+    "purchaseBenefit3": "Exclusive discounts",
+    "tradeDescription": "You need a premium membership to send and receive trade offers. Grow your collection!",
+    "tradeBenefit1": "Send trade offers",
+    "tradeBenefit2": "Swap items in your collection",
+    "tradeBenefit3": "Secure trade guarantee",
+    "collectionsDescription": "Become a premium member to build and showcase your own collection. Inspire other collectors!",
+    "collectionsBenefit1": "Create unlimited collections",
+    "collectionsBenefit2": "Share your collection",
+    "collectionsBenefit3": "Collector badges",
+    "skipText": "Skip for Now"
+  },
+  "upgradePrompt": {
+    "listingLimitTitle": "You've Reached Your Listing Limit",
+    "listingLimitMessage": "As a free member, you can list up to 10 items.",
+    "listingLimitBenefit": "List without limits with Premium!",
+    "tradeFeatureMessage": "You need a Premium membership to make trade offers.",
+    "tradeFeatureBenefit": "Trade and grow your collection with Premium!",
+    "collectionFeatureMessage": "You need a Premium membership to showcase your collections.",
+    "collectionFeatureBenefit": "Build your Digital Garage with Premium!",
+    "featureListingTitle": "Featured Listings",
+    "featureListingMessage": "You need a Premium membership to feature your listings.",
+    "featureListingBenefit": "Get your listings seen by more people with Premium!",
+    "messageLimitTitle": "Daily Message Limit",
+    "messageLimitMessage": "You've reached the daily limit of 50 messages.",
+    "messageLimitBenefit": "Send unlimited messages with Premium!",
+    "imageLimitTitle": "Photo Limit",
+    "imageLimitMessage": "As a free member, you can add up to 5 photos per listing.",
+    "imageLimitBenefit": "Upload up to 15 photos with Premium!",
+    "featuresTitle": "With Premium:",
+    "upgradeButtonWithPrice": "Go Premium - 99 TL/mo"
   }
 }

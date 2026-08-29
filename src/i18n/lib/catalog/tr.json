@@ -1165,6 +1165,7 @@
     }
   },
   "trade": {
+    "featureTitle": "Takas Özelliği",
     "myTrades": "Takaslarım",
     "createTrade": "Takas Teklifi Oluştur",
     "sendTrade": "Takas Teklifi Gönder",
@@ -2711,7 +2712,14 @@
     "reasonHarassment": "Taciz / Kötüye Kullanım",
     "reasonFakeProduct": "Sahte / Yanıltıcı Ürün",
     "reasonScam": "Dolandırıcılık",
-    "reasonOther": "Diğer"
+    "reasonOther": "Diğer",
+    "reasonHateSpeech": "Nefret Söylemi",
+    "reasonCounterfeit": "Sahte / Replika Ürün",
+    "reasonWrongCategory": "Yanlış Kategori",
+    "reasonMisleadingInfo": "Yanıltıcı Bilgi",
+    "reasonSectionTitle": "Raporlama Nedeni",
+    "descriptionLabel": "Açıklama (İsteğe Bağlı)",
+    "falseReportWarning": "Asılsız raporlamalar hesabınızın askıya alınmasına neden olabilir."
   },
   "admin": {
     "accounts": {
@@ -6462,5 +6470,58 @@
   },
   "shipping": {
     "codePending": "Kargo kodu hazırlanıyor"
+  },
+  "filter": {
+    "searchSectionTitle": "Arama",
+    "clearSearchLabel": "Aramayı temizle",
+    "modelSelectBrandFirstHint": "Önce marka seçin (ya da tüm modellerde arayın)",
+    "discountOnlyLabel": "Sadece İndirimli",
+    "resultsLoading": "Sonuçlar yükleniyor…",
+    "showResultsCount": "{count} Sonuç Göster"
+  },
+  "signupPrompt": {
+    "favoritesDescription": "Beğendiğiniz ürünleri favorilere ekleyerek daha sonra kolayca bulabilirsiniz. Ücretsiz üye olun!",
+    "favoritesBenefit1": "Sınırsız favori listesi",
+    "favoritesBenefit2": "Fiyat değişikliği bildirimleri",
+    "favoritesBenefit3": "Favori ürünlerinize hızlı erişim",
+    "messageTitle": "Satıcıyla İletişim",
+    "messageDescription": "Satıcılarla mesajlaşmak için üye girişi yapmanız gerekiyor. Sorularınızı sorun, pazarlık yapın!",
+    "messageBenefit1": "Satıcılarla direkt iletişim",
+    "messageBenefit2": "Pazarlık yapabilme",
+    "messageBenefit3": "Ürün hakkında soru sorma",
+    "purchaseTitle": "Siparişiniz Tamamlandı!",
+    "purchaseDescription": "Siparişlerinizi kolayca takip etmek ve gelecek alışverişlerinizde avantajlar için üye olun.",
+    "purchaseBenefit1": "Sipariş geçmişi",
+    "purchaseBenefit2": "Tek tıkla yeniden sipariş",
+    "purchaseBenefit3": "Özel indirimler",
+    "tradeDescription": "Takas teklifleri göndermek ve almak için premium üye olmanız gerekiyor. Koleksiyonunuzu büyütün!",
+    "tradeBenefit1": "Takas teklifi gönderme",
+    "tradeBenefit2": "Koleksiyon değişimi",
+    "tradeBenefit3": "Güvenli takas garantisi",
+    "collectionsDescription": "Kendi koleksiyonunuzu oluşturup sergilemek için premium üye olun. Diğer koleksiyonerlere ilham verin!",
+    "collectionsBenefit1": "Sınırsız koleksiyon oluşturma",
+    "collectionsBenefit2": "Koleksiyonunuzu paylaşma",
+    "collectionsBenefit3": "Koleksiyoner rozetleri",
+    "skipText": "Şimdilik Geç"
+  },
+  "upgradePrompt": {
+    "listingLimitTitle": "İlan Limitine Ulaştınız",
+    "listingLimitMessage": "Ücretsiz üye olarak en fazla 10 ilan verebilirsiniz.",
+    "listingLimitBenefit": "Premium ile sınırsız ilan verin!",
+    "tradeFeatureMessage": "Takas teklifi yapabilmek için Premium üyelik gerekiyor.",
+    "tradeFeatureBenefit": "Premium ile takas yapın, koleksiyonunuzu büyütün!",
+    "collectionFeatureMessage": "Koleksiyonlarınızı sergilemek için Premium üyelik gerekiyor.",
+    "collectionFeatureBenefit": "Premium ile Dijital Garajınızı oluşturun!",
+    "featureListingTitle": "Öne Çıkarılan İlanlar",
+    "featureListingMessage": "İlanlarınızı öne çıkarmak için Premium üyelik gerekiyor.",
+    "featureListingBenefit": "Premium ile ilanlarınız daha fazla görünsün!",
+    "messageLimitTitle": "Günlük Mesaj Limiti",
+    "messageLimitMessage": "Günlük 50 mesaj limitine ulaştınız.",
+    "messageLimitBenefit": "Premium ile sınırsız mesaj gönderin!",
+    "imageLimitTitle": "Fotoğraf Limiti",
+    "imageLimitMessage": "Ücretsiz üye olarak ilana 5 fotoğraf ekleyebilirsiniz.",
+    "imageLimitBenefit": "Premium ile 15 fotoğraf yükleyin!",
+    "featuresTitle": "Premium ile:",
+    "upgradeButtonWithPrice": "Premium''a Geç - 99 TL/ay"
   }
 }

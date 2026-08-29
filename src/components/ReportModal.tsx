@@ -2,6 +2,8 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { userReportsApi } from '@/lib/api';
 import { theme, Text, Button, Modal, Textarea } from '@/ui';
 
@@ -30,30 +32,47 @@ interface ReportModalProps {
   onSuccess?: () => void;
 }
 
-const PRODUCT_REASONS: { value: ReportReason; label: string }[] = [
-  { value: 'counterfeit', label: 'Sahte / Replika Ürün' },
-  { value: 'fake_product', label: 'Var Olmayan / Yanıltıcı İlan' },
-  { value: 'misleading_info', label: 'Yanıltıcı Bilgi' },
-  { value: 'wrong_category', label: 'Yanlış Kategori' },
-  { value: 'inappropriate_content', label: 'Uygunsuz İçerik' },
-  { value: 'spam', label: 'Spam / Reklam' },
-  { value: 'other', label: 'Diğer' },
+// Tek kaynaktan neden etiketleri — modül düzeyinde sabitlenirse i18next hazır
+// olmadan çözülür ve donar; bileşen `useMemo(() => buildReasonLabels(t), [t])`
+// ile çağırır. Katalogdaki `report.reason*` anahtarları kanonik: aynı neden
+// birden fazla listede farklı ifadeyle tekrar etmesin diye TEK etiket/neden.
+const buildReasonLabels = (t: TFunction): Record<ReportReason, string> => ({
+  spam: t('report.reasonSpam'),
+  inappropriate_content: t('report.reasonInappropriate'),
+  fake_product: t('report.reasonFakeProduct'),
+  scam: t('report.reasonScam'),
+  harassment: t('report.reasonHarassment'),
+  hate_speech: t('report.reasonHateSpeech'),
+  counterfeit: t('report.reasonCounterfeit'),
+  wrong_category: t('report.reasonWrongCategory'),
+  misleading_info: t('report.reasonMisleadingInfo'),
+  other: t('report.reasonOther'),
+});
+
+const PRODUCT_REASON_VALUES: ReportReason[] = [
+  'counterfeit',
+  'fake_product',
+  'misleading_info',
+  'wrong_category',
+  'inappropriate_content',
+  'spam',
+  'other',
 ];
 
-const USER_REASONS: { value: ReportReason; label: string }[] = [
-  { value: 'scam', label: 'Dolandırıcılık' },
-  { value: 'harassment', label: 'Taciz / Rahatsız Edici' },
-  { value: 'hate_speech', label: 'Nefret Söylemi' },
-  { value: 'spam', label: 'Spam Mesajlar' },
-  { value: 'inappropriate_content', label: 'Uygunsuz Davranış' },
-  { value: 'other', label: 'Diğer' },
+const USER_REASON_VALUES: ReportReason[] = [
+  'scam',
+  'harassment',
+  'hate_speech',
+  'spam',
+  'inappropriate_content',
+  'other',
 ];
 
-const GENERIC_REASONS: { value: ReportReason; label: string }[] = [
-  { value: 'inappropriate_content', label: 'Uygunsuz İçerik' },
-  { value: 'spam', label: 'Spam' },
-  { value: 'misleading_info', label: 'Yanıltıcı Bilgi' },
-  { value: 'other', label: 'Diğer' },
+const GENERIC_REASON_VALUES: ReportReason[] = [
+  'inappropriate_content',
+  'spam',
+  'misleading_info',
+  'other',
 ];
 
 export default function ReportModal({
@@ -64,24 +83,29 @@ export default function ReportModal({
   targetName,
   onSuccess,
 }: ReportModalProps) {
+  const { t } = useTranslation();
   const [reason, setReason] = useState<ReportReason | ''>('');
   const [description, setDescription] = useState('');
 
+  const reasonLabels = useMemo(() => buildReasonLabels(t), [t]);
+
   const reasons = useMemo(() => {
-    if (type === 'product') return PRODUCT_REASONS;
-    if (type === 'user') return USER_REASONS;
-    return GENERIC_REASONS;
-  }, [type]);
+    const values =
+      type === 'product' ? PRODUCT_REASON_VALUES
+      : type === 'user' ? USER_REASON_VALUES
+      : GENERIC_REASON_VALUES;
+    return values.map((value) => ({ value, label: reasonLabels[value] }));
+  }, [type, reasonLabels]);
 
   const title = useMemo(() => {
     switch (type) {
-      case 'product': return 'İlanı Raporla';
-      case 'user': return 'Kullanıcıyı Raporla';
-      case 'collection': return 'Koleksiyonu Raporla';
-      case 'message': return 'Mesajı Raporla';
-      default: return 'Raporla';
+      case 'product': return t('report.reportListing');
+      case 'user': return t('report.reportUser');
+      case 'collection': return t('report.reportCollection');
+      case 'message': return t('report.reportMessage');
+      default: return t('report.report');
     }
-  }, [type]);
+  }, [type, t]);
 
   const reportMutation = useMutation({
     mutationFn: async () => {
@@ -130,7 +154,7 @@ export default function ReportModal({
       <ScrollView style={styles.scrollArea} keyboardShouldPersistTaps="handled">
         <Text style={styles.targetInfo} numberOfLines={2}>{targetName}</Text>
 
-        <Text style={styles.sectionTitle}>Raporlama Nedeni</Text>
+        <Text style={styles.sectionTitle}>{t('report.reasonSectionTitle')}</Text>
 
         {reasons.map((r) => (
           <TouchableOpacity
@@ -150,12 +174,12 @@ export default function ReportModal({
           </TouchableOpacity>
         ))}
 
-        <Text style={styles.sectionTitle}>Açıklama (İsteğe Bağlı)</Text>
+        <Text style={styles.sectionTitle}>{t('report.descriptionLabel')}</Text>
         <Textarea
           value={description}
           onChangeText={setDescription}
           rows={3}
-          placeholder="Lütfen durumu detaylı açıklayın..."
+          placeholder={t('report.detailsPlaceholder')}
           maxLength={500}
           style={styles.input}
         />
@@ -164,13 +188,13 @@ export default function ReportModal({
         <View style={styles.warningBox}>
           <Ionicons name="warning" size={20} color={colors.warning[600]!} />
           <Text style={styles.warningText}>
-            Asılsız raporlamalar hesabınızın askıya alınmasına neden olabilir.
+            {t('report.falseReportWarning')}
           </Text>
         </View>
 
         {reportMutation.error ? (
           <Text style={styles.errorText}>
-            Raporlama gönderilemedi. Lütfen tekrar deneyin.
+            {t('report.submitFailed')}
           </Text>
         ) : null}
 
@@ -178,7 +202,7 @@ export default function ReportModal({
           <View style={styles.successBox}>
             <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
             <Text style={styles.successText}>
-              Raporunuz alındı. En kısa sürede incelenecek.
+              {t('report.submitSuccess')}
             </Text>
           </View>
         ) : null}
@@ -187,13 +211,13 @@ export default function ReportModal({
       <View style={styles.actions}>
         <Button
           variant="ghost"
-          title="İptal"
+          title={t('common.cancel')}
           onPress={handleClose}
           disabled={reportMutation.isPending}
         />
         <Button
           variant="danger"
-          title="Raporla"
+          title={t('report.report')}
           onPress={handleSubmit}
           isLoading={reportMutation.isPending}
           disabled={!reason || reportMutation.isPending}

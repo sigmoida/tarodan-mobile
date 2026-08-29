@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { theme, Text, Card, Button, IconButton } from '@/ui';
 
 const { colors } = theme;
@@ -21,49 +23,51 @@ interface UpgradePromptProps {
   compact?: boolean;
 }
 
-const PROMPT_CONFIG: Record<PromptType, {
+// Modül düzeyinde sabitlenirse i18next hazır olmadan çözülür ve donar —
+// bileşen `useMemo(() => buildPromptConfig(t), [t])` ile çağırır.
+const buildPromptConfig = (t: TFunction): Record<PromptType, {
   icon: string;
   title: string;
   message: string;
   benefit: string;
-}> = {
+}> => ({
   listingLimit: {
     icon: 'pricetag',
-    title: 'İlan Limitine Ulaştınız',
-    message: 'Ücretsiz üye olarak en fazla 10 ilan verebilirsiniz.',
-    benefit: 'Premium ile sınırsız ilan verin!',
+    title: t('upgradePrompt.listingLimitTitle'),
+    message: t('upgradePrompt.listingLimitMessage'),
+    benefit: t('upgradePrompt.listingLimitBenefit'),
   },
   tradeFeature: {
     icon: 'swap-horizontal',
-    title: 'Takas Özelliği',
-    message: 'Takas teklifi yapabilmek için Premium üyelik gerekiyor.',
-    benefit: 'Premium ile takas yapın, koleksiyonunuzu büyütün!',
+    title: t('trade.featureTitle'),
+    message: t('upgradePrompt.tradeFeatureMessage'),
+    benefit: t('upgradePrompt.tradeFeatureBenefit'),
   },
   collectionFeature: {
     icon: 'images',
-    title: 'Dijital Garaj',
-    message: 'Koleksiyonlarınızı sergilemek için Premium üyelik gerekiyor.',
-    benefit: 'Premium ile Dijital Garajınızı oluşturun!',
+    title: t('membership.featureDigitalGarage'),
+    message: t('upgradePrompt.collectionFeatureMessage'),
+    benefit: t('upgradePrompt.collectionFeatureBenefit'),
   },
   featureListing: {
     icon: 'star',
-    title: 'Öne Çıkarılan İlanlar',
-    message: 'İlanlarınızı öne çıkarmak için Premium üyelik gerekiyor.',
-    benefit: 'Premium ile ilanlarınız daha fazla görünsün!',
+    title: t('upgradePrompt.featureListingTitle'),
+    message: t('upgradePrompt.featureListingMessage'),
+    benefit: t('upgradePrompt.featureListingBenefit'),
   },
   messageLimit: {
     icon: 'chatbubble',
-    title: 'Günlük Mesaj Limiti',
-    message: 'Günlük 50 mesaj limitine ulaştınız.',
-    benefit: 'Premium ile sınırsız mesaj gönderin!',
+    title: t('upgradePrompt.messageLimitTitle'),
+    message: t('upgradePrompt.messageLimitMessage'),
+    benefit: t('upgradePrompt.messageLimitBenefit'),
   },
   imageLimit: {
     icon: 'camera',
-    title: 'Fotoğraf Limiti',
-    message: 'Ücretsiz üye olarak ilana 5 fotoğraf ekleyebilirsiniz.',
-    benefit: 'Premium ile 15 fotoğraf yükleyin!',
+    title: t('upgradePrompt.imageLimitTitle'),
+    message: t('upgradePrompt.imageLimitMessage'),
+    benefit: t('upgradePrompt.imageLimitBenefit'),
   },
-};
+});
 
 export default function UpgradePrompt({
   type,
@@ -71,7 +75,9 @@ export default function UpgradePrompt({
   dismissable = true,
   compact = false,
 }: UpgradePromptProps) {
-  const config = PROMPT_CONFIG[type];
+  const { t } = useTranslation();
+  const promptConfig = useMemo(() => buildPromptConfig(t), [t]);
+  const config = promptConfig[type];
 
   if (compact) {
     return (
@@ -92,7 +98,7 @@ export default function UpgradePrompt({
         <IconButton
           icon="close"
           size="sm"
-          accessibilityLabel="Kapat"
+          accessibilityLabel={t('common.close')}
           style={styles.closeButton}
           onPress={onDismiss}
         />
@@ -113,18 +119,18 @@ export default function UpgradePrompt({
       </View>
 
       <View style={styles.features}>
-        <Text style={styles.featuresTitle}>Premium ile:</Text>
+        <Text style={styles.featuresTitle}>{t('upgradePrompt.featuresTitle')}</Text>
         <View style={styles.featureRow}>
           <Ionicons name="checkmark" size={16} color={colors.success[600]!} />
-          <Text style={styles.featureText}>Sınırsız ilan</Text>
+          <Text style={styles.featureText}>{t('membership.featureUnlimitedListings')}</Text>
         </View>
         <View style={styles.featureRow}>
           <Ionicons name="checkmark" size={16} color={colors.success[600]!} />
-          <Text style={styles.featureText}>Takas özelliği</Text>
+          <Text style={styles.featureText}>{t('membership.featureTrade')}</Text>
         </View>
         <View style={styles.featureRow}>
           <Ionicons name="checkmark" size={16} color={colors.success[600]!} />
-          <Text style={styles.featureText}>Dijital Garaj</Text>
+          <Text style={styles.featureText}>{t('membership.featureDigitalGarage')}</Text>
         </View>
         {/*
           "Reklamsız deneyim" KALDIRILDI: banner'lar herkese gösteriliyor ve
@@ -137,7 +143,7 @@ export default function UpgradePrompt({
 
       <Button
         variant="primary"
-        title="Premium'a Geç - 99 TL/ay"
+        title={t('upgradePrompt.upgradeButtonWithPrice')}
         onPress={() => router.push('/upgrade')}
         style={styles.upgradeButton}
       />
