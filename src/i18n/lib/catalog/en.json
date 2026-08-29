@@ -700,7 +700,10 @@
     "imageUploadIncomplete": "Some images could not be uploaded. Please try again.",
     "saveWhileUploading": "Uploading images…",
     "listingChangedElsewhere": "This listing was updated elsewhere. The latest version has been loaded; please reapply your changes.",
-    "rejectionReason": "Rejection reason"
+    "rejectionReason": "Rejection reason",
+    "noManufacturersYet": "No manufacturers yet",
+    "noManufacturerProducts": "This manufacturer has no products",
+    "moreProductsComingSoon": "New products will be added soon."
   },
   "cart": {
     "addToCartFailed": "Could not add to cart",
