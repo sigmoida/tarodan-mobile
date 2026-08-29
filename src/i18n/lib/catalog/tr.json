@@ -1349,6 +1349,8 @@
     "targetNotFoundDesc": "Takas etmek istediğiniz ürün bulunamadı veya artık mevcut değil.",
     "sendFailed": "Takas teklifi gönderilemedi",
     "counterOfferNumber": "Karşı Teklif #{number}",
+    "tradeNumberTitle": "Takas #{number}",
+    "initiatorLabel": "Teklif Eden",
     "statusMeta": {
       "pending": "Teklif alıcı tarafından değerlendiriliyor",
       "accepted": "Takas kabul edildi, gönderim bekleniyor",

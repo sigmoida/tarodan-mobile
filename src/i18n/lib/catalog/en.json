@@ -1349,6 +1349,8 @@
     "targetNotFoundDesc": "The product you wanted to trade for could not be found or is no longer available.",
     "sendFailed": "Failed to send trade offer",
     "counterOfferNumber": "Counter-offer #{number}",
+    "tradeNumberTitle": "Trade #{number}",
+    "initiatorLabel": "Offer Sender",
     "statusMeta": {
       "pending": "Offer is being evaluated by the recipient",
       "accepted": "Trade accepted, awaiting shipment",
