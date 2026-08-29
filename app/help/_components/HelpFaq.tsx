@@ -15,9 +15,9 @@ export function HelpFaq({ f }: { f: HelpController }) {
     <>
       {/* Search */}
       <View style={styles.searchSection}>
-        <Text style={styles.searchTitle}>Nasıl yardımcı olabiliriz?</Text>
+        <Text style={styles.searchTitle}>{f.t('helpFaq.searchTitle')}</Text>
         <Input
-          placeholder="Soru veya konu ara..."
+          placeholder={f.t('helpFaq.searchPlaceholder')}
           value={f.searchQuery}
           onChangeText={f.handleSearch}
           leftIconName="search"
@@ -28,21 +28,21 @@ export function HelpFaq({ f }: { f: HelpController }) {
       <View style={styles.quickLinks}>
         <TouchableOpacity style={styles.quickLink} onPress={() => router.push('/order-track')}>
           <Ionicons name="location-outline" size={28} color={colors.primary[600]!} />
-          <Text style={styles.quickLinkText}>Sipariş Takip</Text>
+          <Text style={styles.quickLinkText}>{f.t('mobile.guestOrderTrack')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.quickLink} onPress={() => router.push('/(auth)/login')}>
           <Ionicons name="person-outline" size={28} color={colors.primary[600]!} />
-          <Text style={styles.quickLinkText}>Giriş Yap</Text>
+          <Text style={styles.quickLinkText}>{f.t('common.login')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.quickLink} onPress={() => f.setExpandedCategory('selling')}>
           <Ionicons name="pricetag-outline" size={28} color={colors.primary[600]!} />
-          <Text style={styles.quickLinkText}>Satış Yap</Text>
+          <Text style={styles.quickLinkText}>{f.t('footer.sell')}</Text>
         </TouchableOpacity>
       </View>
 
       {/* FAQ Section */}
       <View style={styles.faqSection}>
-        <Text style={styles.sectionTitle}>Sıkça Sorulan Sorular</Text>
+        <Text style={styles.sectionTitle}>{f.t('faq.title')}</Text>
 
         {f.filteredFAQs.map(category => (
           <View key={category.id} style={styles.faqCategory}>

@@ -18,99 +18,54 @@ export default function IntellectualPropertyScreen() {
       />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.lastUpdated}>Son güncelleme: 1 Ocak 2026</Text>
+        <Text style={styles.lastUpdated}>{t("legalContact.lastUpdatedJan2026")}</Text>
 
-        <Text style={styles.sectionTitle}>1. Platform İçeriği</Text>
-        <Text style={styles.paragraph}>
-          Tarodan platformunun tasarımı, logosu, yazılımı, kaynak kodu,
-          grafikleri, metinleri, veri tabanları ve diğer tüm içerikleri Tarodan
-          Teknoloji A.Ş.'nin mülkiyetinde olup, telif hakkı ve fikri mülkiyet
-          yasaları ile korunmaktadır.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("ipPage.s1Title")}</Text>
+        <Text style={styles.paragraph}>{t("ipPage.s1Content")}</Text>
 
-        <Text style={styles.sectionTitle}>2. Marka ve Logo</Text>
-        <Text style={styles.paragraph}>
-          "Tarodan" adı, logosu ve ilişkili grafik öğeler tescilli markalardır.
-          Bu markaların izinsiz kullanımı, kopyalanması, değiştirilmesi veya
-          dağıtılması yasaktır ve yasal işlem başlatılabilir.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("ipPage.s2Title")}</Text>
+        <Text style={styles.paragraph}>{t("ipPage.s2Content")}</Text>
 
-        <Text style={styles.sectionTitle}>3. Kullanıcı İçerikleri</Text>
-        <Text style={styles.paragraph}>
-          Kullanıcılar, platforma yükledikleri fotoğraf, açıklama ve diğer
-          içeriklerinin fikri mülkiyet haklarına sahip olduğunu veya gerekli
-          izinlere sahip olduğunu beyan ve taahhüt eder.
-        </Text>
-        <Text style={styles.paragraph}>
-          İlan oluşturarak veya içerik paylaşarak, Tarodan'a bu içerikleri
-          platform hizmetleri kapsamında kullanma, görüntüleme ve dağıtma hakkı
-          tanırsınız. Bu lisans, içeriğinizi platformdan kaldırmanız halinde
-          sona erer.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("ipPage.s3Title")}</Text>
+        <Text style={styles.paragraph}>{t("ipPage.s3Content1")}</Text>
+        <Text style={styles.paragraph}>{t("ipPage.s3Content2")}</Text>
 
-        <Text style={styles.sectionTitle}>4. Üçüncü Taraf Markaları</Text>
-        <Text style={styles.paragraph}>
-          Platformda yer alan diecast model araç markaları (Hot Wheels,
-          Matchbox, Maisto, AutoArt, vb.) ilgili marka sahiplerine aittir.
-          Tarodan, bu markaların resmi distribütörü veya temsilcisi değildir.
-          Marka adları yalnızca tanımlayıcı amaçla kullanılmaktadır.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("ipPage.s4Title")}</Text>
+        <Text style={styles.paragraph}>{t("ipPage.s4Content")}</Text>
 
-        <Text style={styles.sectionTitle}>5. Telif Hakkı İhlali Bildirimi</Text>
-        <Text style={styles.paragraph}>
-          İçeriğinizin izinsiz olarak platformda kullanıldığını düşünüyorsanız,
-          aşağıdaki bilgileri içeren bir bildirim gönderebilirsiniz:
-        </Text>
-        <Text style={styles.listItem}>• İhlal edilen eserin tanımı</Text>
-        <Text style={styles.listItem}>
-          • İhlal eden içeriğin platformdaki konumu (URL veya ilan numarası)
-        </Text>
-        <Text style={styles.listItem}>
-          • İletişim bilgileriniz (ad, e-posta, telefon)
-        </Text>
-        <Text style={styles.listItem}>
-          • İçeriğin sizin veya yetkili olduğunuz bir kişinin eserine ait
-          olduğuna dair beyan
-        </Text>
-        <Text style={styles.listItem}>
-          • Bildirimin doğruluğuna ilişkin beyan
-        </Text>
+        <Text style={styles.sectionTitle}>{t("ipPage.s5Title")}</Text>
+        <Text style={styles.paragraph}>{t("ipPage.s5Intro")}</Text>
+        <Text style={styles.listItem}>{t("ipPage.s5Item1")}</Text>
+        <Text style={styles.listItem}>{t("ipPage.s5Item2")}</Text>
+        <Text style={styles.listItem}>{t("ipPage.s5Item3")}</Text>
+        <Text style={styles.listItem}>{t("ipPage.s5Item4")}</Text>
+        <Text style={styles.listItem}>{t("ipPage.s5Item5")}</Text>
 
-        <Text style={styles.sectionTitle}>6. İhlal Durumunda Süreç</Text>
-        <Text style={styles.paragraph}>Geçerli bir bildirim alındığında:</Text>
-        <Text style={styles.listItem}>
-          • İlgili içerik 48 saat içinde kaldırılır veya erişime kapatılır
-        </Text>
-        <Text style={styles.listItem}>
-          • İçeriği paylaşan kullanıcıya bildirimde bulunulur
-        </Text>
-        <Text style={styles.listItem}>
-          • Tekrarlayan ihlallerde kullanıcı hesabı kalıcı olarak kapatılabilir
-        </Text>
+        <Text style={styles.sectionTitle}>{t("ipPage.s6Title")}</Text>
+        <Text style={styles.paragraph}>{t("ipPage.s6Intro")}</Text>
+        <Text style={styles.listItem}>{t("ipPage.s6Item1")}</Text>
+        <Text style={styles.listItem}>{t("ipPage.s6Item2")}</Text>
+        <Text style={styles.listItem}>{t("ipPage.s6Item3")}</Text>
 
-        <Text style={styles.sectionTitle}>7. Karşı Bildirim Hakkı</Text>
-        <Text style={styles.paragraph}>
-          İçeriğinizin haksız yere kaldırıldığını düşünüyorsanız, karşı bildirim
-          göndererek itiraz edebilirsiniz. Platform, her iki tarafın beyanlarını
-          değerlendirerek karar verir.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("ipPage.s7Title")}</Text>
+        <Text style={styles.paragraph}>{t("ipPage.s7Content")}</Text>
 
-        <Text style={styles.sectionTitle}>8. Yasaklı İçerikler</Text>
-        <Text style={styles.listItem}>
-          • Başkalarının fotoğraflarının izinsiz kullanımı
-        </Text>
-        <Text style={styles.listItem}>• Sahte veya taklit ürün görselleri</Text>
-        <Text style={styles.listItem}>
-          • Telif hakkı bulunan görsellerin izinsiz kopyalanması
-        </Text>
-        <Text style={styles.listItem}>
-          • Diğer platformlardan alınan ve orijinal olmayan ürün açıklamaları
-        </Text>
+        <Text style={styles.sectionTitle}>{t("ipPage.s8Title")}</Text>
+        <Text style={styles.listItem}>{t("ipPage.s8Item1")}</Text>
+        <Text style={styles.listItem}>{t("ipPage.s8Item2")}</Text>
+        <Text style={styles.listItem}>{t("ipPage.s8Item3")}</Text>
+        <Text style={styles.listItem}>{t("ipPage.s8Item4")}</Text>
 
-        <Text style={styles.sectionTitle}>9. İletişim</Text>
-        <Text style={styles.paragraph}>Fikri mülkiyet bildirimleri için:</Text>
-        <Text style={styles.contactInfo}>E-posta: {IP_EMAIL}</Text>
-        <Text style={styles.contactInfo}>Adres: İstanbul, Türkiye</Text>
+        <Text style={styles.sectionTitle}>{t("ipPage.s9Title")}</Text>
+        <Text style={styles.paragraph}>{t("ipPage.s9Intro")}</Text>
+        <Text style={styles.contactInfo}>
+          {t("legalContact.emailLabel", { value: IP_EMAIL })}
+        </Text>
+        <Text style={styles.contactInfo}>
+          {t("legalContact.addressLabel", {
+            value: t("information.contactInfo.addressValue"),
+          })}
+        </Text>
 
         <View style={{ height: 40 }} />
       </ScrollView>
