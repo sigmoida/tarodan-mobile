@@ -405,7 +405,10 @@
     "bizSubmitFailedTitle": "Başvuru gönderilemedi",
     "bizThrottled": "Çok fazla deneme yaptınız, lütfen bir dakika sonra tekrar deneyin.",
     "bizSubmitFailedBody": "Başvurunuz gönderilemedi. Lütfen tekrar deneyin.",
-    "bizSectionCompany": "Şirket Bilgileri"
+    "bizSectionCompany": "Şirket Bilgileri",
+    "bizIntroTitle": "İşletme olarak ön başvuru yapın",
+    "bizIntroBody": "Başvurunuz admin onayına gönderilir. Onaylandığında kullanıcı adınızı ve şifrenizi belirleyeceğiniz bir davet e-postası alırsınız.",
+    "bizSectionAuthorized": "Yetkili Bilgileri"
   },
   "brands": {
     "title": "Markalar",

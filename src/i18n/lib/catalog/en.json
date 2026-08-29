@@ -405,7 +405,10 @@
     "bizSubmitFailedTitle": "Application could not be submitted",
     "bizThrottled": "Too many attempts. Please try again in a minute.",
     "bizSubmitFailedBody": "Your application could not be sent. Please try again.",
-    "bizSectionCompany": "Company Details"
+    "bizSectionCompany": "Company Details",
+    "bizIntroTitle": "Submit a business pre-application",
+    "bizIntroBody": "Your application will be sent for admin approval. Once approved, you'll receive an invitation email where you can set your username and password.",
+    "bizSectionAuthorized": "Authorized Person Details"
   },
   "brands": {
     "title": "Brands",
