@@ -116,6 +116,8 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     'models.model',
     'checkout.cvv',
     'checkout.suratKargo',
+    // Malzeme adı — "Diecast" iki dilde de aynı teknik terim.
+    'product.materialDiecast',
     // İki haneli yıl format ipucu ("YY") — çevrilecek bir sözcük yok.
     'payment.expYearPlaceholder',
     'membership.premium',
