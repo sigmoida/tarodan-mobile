@@ -1263,6 +1263,15 @@
       "waitingDelivered": "Kargonun teslim edildiği bilgisi bekleniyor.",
       "successMessage": "Takas tamamlandı!"
     },
+    "confirmationBanner": {
+      "title": "48 Saat Kontrol Süreci",
+      "desc": "Ürünü kontrol et. Sorun yoksa hemen onayla; sorun varsa bildir. 48 saat sonunda otomatik tamamlanır.",
+      "expired": "Süre doldu",
+      "timeLeft": "{hours} saat {minutes} dakika kaldı",
+      "confirming": "Onaylanıyor...",
+      "confirmCta": "Sorun yok, onaylıyorum",
+      "reportProblem": "Sorun bildir"
+    },
     "cancel": {
       "lockedHint": "Ürünlerden biri Tarodan deposuna ulaştı; iptal edilemez. Sorun varsa destek ile iletişime geçin.",
       "offerCta": "Teklifi İptal Et",

@@ -1263,6 +1263,15 @@
       "waitingDelivered": "Waiting for delivery confirmation.",
       "successMessage": "Trade completed!"
     },
+    "confirmationBanner": {
+      "title": "48-Hour Review Window",
+      "desc": "Check the item. If it's fine, confirm right away; if there's a problem, report it. It completes automatically after 48 hours.",
+      "expired": "Time's up",
+      "timeLeft": "{hours}h {minutes}m left",
+      "confirming": "Confirming...",
+      "confirmCta": "No problem, I confirm",
+      "reportProblem": "Report a problem"
+    },
     "cancel": {
       "lockedHint": "One of the items has reached the Tarodan warehouse; cancel is no longer allowed. Contact support if something is wrong.",
       "offerCta": "Cancel Offer",
