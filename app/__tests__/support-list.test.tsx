@@ -75,10 +75,10 @@ describe('Destek Taleplerim (liste)', () => {
     expect(await screen.findByText('Henüz destek talebiniz yok')).toBeOnTheScreen();
   });
 
-  it('"Yeni Talep Oluştur" → /support/new', async () => {
+  it('"Talep Oluştur" → /support/new', async () => {
     getMyTicketsMock.mockResolvedValue({ data: { tickets: [] } });
     renderWithProviders(<SupportTicketsScreen />);
-    fireEvent.press(screen.getByText('Yeni Talep Oluştur'));
+    fireEvent.press(screen.getByText('Talep Oluştur'));
     expect(mockPush).toHaveBeenCalledWith('/support/new');
   });
 
