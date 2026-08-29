@@ -2164,6 +2164,7 @@
     "defaultUpdateFailed": "Varsayılan adres güncellenemedi",
     "makeDefault": "Varsayılan Yap",
     "addNewAddress": "Yeni Adres Ekle",
+    "noAddressesPicker": "Kayıtlı adresiniz yok. Lütfen bir adres ekleyin.",
     "added": "Adres eklendi",
     "updated": "Adres güncellendi",
     "deleted": "Adres silindi",

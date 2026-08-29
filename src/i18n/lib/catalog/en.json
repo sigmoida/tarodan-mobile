@@ -2164,6 +2164,7 @@
     "defaultUpdateFailed": "Failed to update default address",
     "makeDefault": "Make Default",
     "addNewAddress": "Add New Address",
+    "noAddressesPicker": "You don't have a saved address. Please add one.",
     "added": "Address added",
     "updated": "Address updated",
     "deleted": "Address deleted",
