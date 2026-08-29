@@ -1,4 +1,7 @@
-import { LEGAL_PAGES } from '../_lib/legalPages';
+import i18n from '@/i18n/config';
+import { buildLegalPages } from '../_lib/legalPages';
+
+const LEGAL_PAGES = buildLegalPages(i18n.t);
 
 describe('LEGAL_PAGES kataloğu', () => {
   it('yalnız hukuki üçlüyü içerir — about/faq sabit ekranları çiftlemez', () => {

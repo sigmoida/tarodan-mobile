@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { theme, Text, Card, ScreenHeader } from "@/ui";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
   RETURN_REQUEST_DAYS,
   REFUND_PAYOUT_DAYS,
@@ -10,7 +11,7 @@ import {
 
 const { colors } = theme;
 
-function useSections(t: (key: string, opts?: Record<string, unknown>) => string) {
+function useSections(t: TFunction) {
   return [
     {
       title: t("mobile.pageRefundPolicy"),

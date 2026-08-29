@@ -3,10 +3,11 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { theme, Text, ScreenHeader } from "@/ui";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 const { colors } = theme;
 
-function useScales(t: (key: string) => string) {
+function useScales(t: TFunction) {
   return [
     {
       scale: "1:8",

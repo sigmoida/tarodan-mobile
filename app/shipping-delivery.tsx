@@ -3,10 +3,11 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { theme, Text, Card, ScreenHeader } from "@/ui";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 const { colors } = theme;
 
-function useSections(t: (key: string) => string) {
+function useSections(t: TFunction) {
   return [
     {
       title: t("information.shipping.methods"),

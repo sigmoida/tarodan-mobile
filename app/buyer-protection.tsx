@@ -4,11 +4,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native";
 import { theme, Text, Card, ScreenHeader } from "@/ui";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { SUPPORT_EMAIL } from "@/constants/legalFacts";
 
 const { colors } = theme;
 
-function useSections(t: (key: string, opts?: Record<string, unknown>) => string) {
+function useSections(t: TFunction) {
   return [
     {
       title: t("buyerProtectionPage.s1Title"),
