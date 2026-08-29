@@ -1395,6 +1395,7 @@
     "waitingOtherPayment": "Waiting for the other party to complete payment.",
     "completePaymentDesc": "The trade has been accepted. Complete the cash difference payment to proceed.",
     "rejectReasonPlaceholder": "Rejection reason (optional)",
+    "rejectModalDesc": "You're about to reject this trade offer. You can add a reason if you'd like (optional).",
     "rejecting": "Rejecting...",
     "bypassPaymentFailed": "Bypass payment failed",
     "shipInfoSubmitted": "Shipping info submitted",

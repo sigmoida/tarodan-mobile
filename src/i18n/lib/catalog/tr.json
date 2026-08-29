@@ -1395,6 +1395,7 @@
     "waitingOtherPayment": "Karşı tarafın ödemeyi tamamlaması bekleniyor.",
     "completePaymentDesc": "Takas kabul edildi. Devam etmek için nakit fark ödemesini tamamlayın.",
     "rejectReasonPlaceholder": "Red nedeni (opsiyonel)",
+    "rejectModalDesc": "Bu takas teklifini reddetmek üzeresiniz. İsterseniz bir sebep ekleyebilirsiniz (opsiyonel).",
     "rejecting": "Reddediliyor...",
     "bypassPaymentFailed": "Test ödemesi tamamlanamadı",
     "shipInfoSubmitted": "Kargo bilgisi gönderildi",

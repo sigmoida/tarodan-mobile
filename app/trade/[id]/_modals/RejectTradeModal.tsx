@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Modal, Button, Input, Text, theme } from '@/ui';
 
 const { colors } = theme;
@@ -19,26 +20,27 @@ export function RejectTradeModal({
   onSubmit: () => void;
   isPending: boolean;
 }) {
+  const { t } = useTranslation();
   return (
-    <Modal isOpen={visible} onClose={() => !isPending && onClose()} title="Takası Reddet">
+    <Modal isOpen={visible} onClose={() => !isPending && onClose()} title={t('trade.rejectTradeTitle')}>
       <Text variant="caption" tone="muted" style={{ marginBottom: theme.spacing[3] }}>
-        Bu takas teklifini reddetmek üzeresiniz. İsterseniz bir sebep ekleyebilirsiniz (opsiyonel).
+        {t('trade.rejectModalDesc')}
       </Text>
       <Input
-        label="Sebep (opsiyonel)"
+        label={t('trade.rejectReason')}
         value={reason}
         onChangeText={setReason}
         multiline
         numberOfLines={3}
-        placeholder="Örn. Teklif uygun değil"
+        placeholder={t('trade.rejectReasonPlaceholder')}
         containerStyle={{ marginBottom: theme.spacing[3] }}
         inputStyle={{ minHeight: 80 }}
       />
       <View style={styles.modalActions}>
-        <Button variant="outline" title="Vazgeç" onPress={onClose} disabled={isPending} />
+        <Button variant="outline" title={t('trade.dispute.cancelCta')} onPress={onClose} disabled={isPending} />
         <Button
           variant="primary"
-          title="Reddet"
+          title={t('trade.rejectTrade')}
           onPress={onSubmit}
           isLoading={isPending}
           style={{ backgroundColor: colors.danger[600]! }}
