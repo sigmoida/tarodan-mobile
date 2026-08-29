@@ -2,39 +2,42 @@
 // Sınırlar runtime'da (mevcut teklif tutarı / ürün fiyatı) belli olduğundan
 // şemalar bir factory ile üretilir. Form değerleri string girer (`z.input`),
 // `handleSubmit` sayı üretir (`z.output`).
+import type { TFunction } from 'i18next';
 import { z } from 'zod';
 import { formatPrice } from './status';
 
-const amount = z
-  .string()
-  .trim()
-  .transform((s) => parseFloat(s.replace(',', '.')))
-  .refine((n) => !Number.isNaN(n) && n > 0, 'Geçerli bir tutar girin');
+function amountSchema(t: TFunction) {
+  return z
+    .string()
+    .trim()
+    .transform((s) => parseFloat(s.replace(',', '.')))
+    .refine((n) => !Number.isNaN(n) && n > 0, t('validation.enterValidAmount'));
+}
 
 /**
  * Satıcının karşı teklifi: mevcut tekliften YÜKSEK, ürün fiyatından
  * (varsa) DÜŞÜK/eşit olmalı.
  */
-export function sellerCounterSchema(refAmount: number, maxPrice: number) {
+export function sellerCounterSchema(refAmount: number, maxPrice: number, t: TFunction) {
   return z.object({
-    amount: amount
+    amount: amountSchema(t)
       .refine(
         (n) => n > refAmount,
-        `Karşı teklif, mevcut tekliften (${formatPrice(refAmount)}) yüksek olmalıdır`,
+        t('offer.counterMustBeHigher', { amount: formatPrice(refAmount) }),
       )
       .refine(
         (n) => maxPrice <= 0 || n <= maxPrice,
-        `Karşı teklif, ürün fiyatından (${formatPrice(maxPrice)}) yüksek olamaz`,
+        t('offer.counterMustNotExceedPrice', { amount: formatPrice(maxPrice) }),
       ),
   });
 }
 
 /** Alıcının karşı teklifi (satıcının counter'ından sonra): satıcı tutarından DÜŞÜK. */
-export function buyerCounterSchema(refAmount: number) {
+export function buyerCounterSchema(refAmount: number, t: TFunction) {
   return z.object({
-    amount: amount.refine(
+    amount: amountSchema(t).refine(
       (n) => n < refAmount,
-      `Satıcının karşı teklifi ${formatPrice(refAmount)}. Yeni tutar bundan düşük olmalıdır.`,
+      t('offer.buyerCounterMustBeLower', { amount: formatPrice(refAmount) }),
     ),
   });
 }

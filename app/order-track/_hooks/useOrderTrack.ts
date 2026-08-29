@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { api } from '@/lib/api';
+import i18n from '@/i18n/config';
 import { canGuestCancel, type OrderStatus } from '../_lib/status';
 import { useGuestOrderCancel } from './useGuestOrderCancel';
 
@@ -50,11 +51,11 @@ export function useOrderTrack() {
    */
   const handleTrack = useCallback(async () => {
     if (!orderNumber.trim()) {
-      setError('Sipariş numarası girin');
+      setError(i18n.t('validation.enterOrderNumber'));
       return;
     }
     if (!email.trim() || !email.includes('@')) {
-      setError('Geçerli bir e-posta adresi girin');
+      setError(i18n.t('validation.invalidEmail'));
       return;
     }
 
@@ -72,9 +73,9 @@ export function useOrderTrack() {
     } catch (err: any) {
       console.error('Track order error:', err);
       if (err.response?.status === 404) {
-        setError('Sipariş bulunamadı. Bilgileri kontrol edin.');
+        setError(i18n.t('order.notFoundCheckDetails'));
       } else {
-        setError(err.response?.data?.message || 'Sipariş sorgulanamadı');
+        setError(err.response?.data?.message || i18n.t('order.trackQueryFailed'));
       }
     } finally {
       setLoading(false);

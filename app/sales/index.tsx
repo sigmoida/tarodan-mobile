@@ -2,6 +2,7 @@ import { View, FlatList, RefreshControl } from 'react-native';
 import { Button, Spinner, Text, theme, ScreenHeader } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useSales } from './_hooks/useSales';
 import { useSaleActions } from './_hooks/useSaleActions';
 import { styles } from './_lib/styles';
@@ -14,6 +15,7 @@ import { ShipDialog } from './_modals/ShipDialog';
 const { colors } = theme;
 
 export default function SalesScreen() {
+  const { t } = useTranslation();
   const s = useSales();
   const actions = useSaleActions();
 
@@ -24,7 +26,7 @@ export default function SalesScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader
-        title="Satışlarım"
+        title={t('sellerDashboard.mySales')}
         onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       />
 
@@ -39,13 +41,13 @@ export default function SalesScreen() {
       ) : s.filteredSales.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="cart-outline" size={80} color={colors.text.subtle} />
-          <Text variant="h3" style={styles.emptyTitle}>Henüz satışınız yok</Text>
+          <Text variant="h3" style={styles.emptyTitle}>{t('sale.emptyTitle')}</Text>
           <Text variant="body" tone="muted" style={styles.emptySubtitle}>
-            İlan oluşturarak satışa başlayın
+            {t('sale.emptySubtitle')}
           </Text>
           <Button
             variant="primary"
-            title="İlan Oluştur"
+            title={t('product.createListing')}
             onPress={() => router.push('/(tabs)/sell')}
             style={{ alignSelf: 'center' }}
           />

@@ -67,7 +67,9 @@ export function GroupOrderRow({ order, multi }: { order: GroupOrder; multi: bool
           <Image source={{ uri: getOrderProductImageUri(order.product) }} style={styles.productImage} />
           <View style={styles.itemInfo}>
             <Text variant="label" numberOfLines={2}>{order.product.title}</Text>
-            <Text variant="caption" style={styles.muted}>Satıcı: {order.seller?.displayName}</Text>
+            <Text variant="caption" style={styles.muted}>
+              {t('refund.sellerLabel', { name: order.seller?.displayName })}
+            </Text>
             <Text variant="label" style={styles.price}>{formatPrice(order.totalAmount)}</Text>
           </View>
         </View>

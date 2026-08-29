@@ -4,6 +4,7 @@ import type { TFunction } from "i18next";
 import { theme } from "@/ui";
 import { Ionicons } from "@expo/vector-icons";
 import { transformImageUrl } from "@/utils/imageUrl";
+import type { MessageKey } from "@/i18n/lib";
 import type { Offer, OfferStatus } from "./types";
 
 const { colors } = theme;
@@ -11,50 +12,50 @@ const { colors } = theme;
 export const STATUS_CONFIG: Record<
   OfferStatus,
   {
-    label: string;
+    labelKey: MessageKey;
     color: string;
     bg: string;
     icon: keyof typeof Ionicons.glyphMap;
   }
 > = {
   pending: {
-    label: "Bekliyor",
+    labelKey: "payment.statusPending",
     color: colors.warning[600]!,
     bg: colors.warning[100]!,
     icon: "time-outline",
   },
   accepted: {
-    label: "Kabul Edildi",
+    labelKey: "trade.statusAccepted",
     color: colors.success[600]!,
     bg: colors.success[100]!,
     icon: "checkmark-circle-outline",
   },
   rejected: {
-    label: "Reddedildi",
+    labelKey: "trade.statusRejected",
     color: colors.danger[600]!,
     bg: colors.danger[100]!,
     icon: "close-circle-outline",
   },
   countered: {
-    label: "Karşı Teklif",
+    labelKey: "offer.counterOffer",
     color: colors.info[600]!,
     bg: colors.info[100]!,
     icon: "swap-horizontal-outline",
   },
   cancelled: {
-    label: "İptal Edildi",
+    labelKey: "trade.statusCancelled",
     color: colors.gray[500]!,
     bg: colors.gray[100]!,
     icon: "close-circle-outline",
   },
   expired: {
-    label: "Süresi Doldu",
+    labelKey: "offer.statusExpired",
     color: colors.gray[500]!,
     bg: colors.gray[100]!,
     icon: "alert-circle-outline",
   },
   payment_expired: {
-    label: "Ödeme Süresi Doldu",
+    labelKey: "offer.statusPaymentExpired",
     color: colors.danger[600]!,
     bg: colors.danger[100]!,
     icon: "alert-circle-outline",
@@ -64,6 +65,12 @@ export const STATUS_CONFIG: Record<
 /** Bilinmeyen/yeni bir backend durumu için güvenli fallback. */
 export function statusConfig(status: OfferStatus) {
   return STATUS_CONFIG[status] ?? STATUS_CONFIG.expired;
+}
+
+/** `statusConfig`'in çevrilmiş etiketle döndüğü hâli — kartlar bunu kullanır. */
+export function translatedStatusConfig(status: OfferStatus, t: TFunction) {
+  const config = statusConfig(status);
+  return { ...config, label: t(config.labelKey) };
 }
 
 export function getProductImage(product: Offer["product"]): string {

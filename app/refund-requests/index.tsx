@@ -1,5 +1,6 @@
 import { View } from 'react-native';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ScreenHeader } from '@/ui';
 
 import { styles } from './_lib/styles';
@@ -19,6 +20,7 @@ import {
  * `_components/RefundSections.tsx` → `RefundSellerNote`'ta.
  */
 export default function RefundRequestsScreen() {
+  const { t } = useTranslation();
   const f = useRefundRequests();
 
   if (!f.isAuthenticated) return <RefundAuthGate f={f} />;
@@ -26,7 +28,7 @@ export default function RefundRequestsScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader
-        title="İade Talepleri"
+        title={t('mobile.quickRefundRequests')}
         onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       />
       <RefundTabs f={f} />

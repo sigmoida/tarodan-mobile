@@ -1,16 +1,19 @@
 import { View, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Button, Card, Text, StatusBadge } from '@/ui';
 import { AppImage } from '@/components/AppImage';
 import { getOrderProductImageUri } from '@/utils/orderProductImage';
 import { styles } from '../_lib/styles';
-import { salesStatusConfig, saleBadgeStatus, formatDate } from '../_lib/status';
+import { useSalesStatusConfig, saleBadgeStatus, formatDate } from '../_lib/status';
 import { formatPrice, PRICE_PLACEHOLDER } from '@/utils/format';
 import type { Sale } from '../_lib/types';
 import type { SaleActionsController } from '../_hooks/useSaleActions';
 
 /** Tek bir satış kartı — durum rozeti, ürün/alıcı, tutar ve durum-bazlı aksiyonlar. */
 export function SaleCard({ sale, actions }: { sale: Sale; actions: SaleActionsController }) {
+  const { t } = useTranslation();
+  const salesStatusConfig = useSalesStatusConfig();
   const { updateStatusMutation, handleMarkAsProcessing, setShipDialog } = actions;
 
   return (
@@ -32,7 +35,7 @@ export function SaleCard({ sale, actions }: { sale: Sale; actions: SaleActionsCo
           <View style={styles.saleInfo}>
             <Text variant="label" numberOfLines={1}>{sale.product.title}</Text>
             <Text variant="caption" style={styles.buyerName}>
-              Alıcı: {sale.buyer.displayName}
+              {t('order.buyer')}: {sale.buyer.displayName}
             </Text>
             {sale.shippingAddress?.city ? (
               <Text variant="caption" style={styles.addressText} numberOfLines={1}>
@@ -54,7 +57,7 @@ export function SaleCard({ sale, actions }: { sale: Sale; actions: SaleActionsCo
         <View style={styles.actionButtons}>
           <Button
             variant="primary"
-            title="Hazırlanıyor Olarak İşaretle"
+            title={t('order.markAsPreparing')}
             onPress={() => handleMarkAsProcessing(sale)}
             isLoading={
               updateStatusMutation.isPending &&
@@ -68,7 +71,7 @@ export function SaleCard({ sale, actions }: { sale: Sale; actions: SaleActionsCo
         <View style={styles.actionButtons}>
           <Button
             variant="primary"
-            title="Kargoya Ver"
+            title={t('sale.shipCta')}
             onPress={() => setShipDialog({ visible: true, order: sale })}
           />
         </View>

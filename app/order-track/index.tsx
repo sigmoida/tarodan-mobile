@@ -22,23 +22,22 @@ export default function OrderTrackScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Sipariş Takip" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+      <ScreenHeader title={t('mobile.guestOrderTrack')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Track Form */}
         <View style={styles.formCard}>
           <View style={styles.formHeader}>
             <Ionicons name="search-outline" size={24} color={colors.primary[600]!} />
-            <Text style={styles.formTitle}>Siparişinizi Sorgulayın</Text>
+            <Text style={styles.formTitle}>{t('order.trackFormTitle')}</Text>
           </View>
 
           <Text style={styles.formDescription}>
-            Sipariş, grup veya teslimat numaranızla ve e-posta adresinizle siparişinizin
-            durumunu öğrenebilirsiniz.
+            {t('order.trackFormDescription')}
           </Text>
 
           <Input
-            label="Sipariş Numarası"
+            label={t('checkout.orderNumberLabel')}
             value={f.orderNumber}
             onChangeText={f.onChangeOrderNumber}
             containerStyle={styles.input}
@@ -47,13 +46,13 @@ export default function OrderTrackScreen() {
           />
 
           <Input
-            label="E-posta Adresi"
+            label={t('auth.emailAddress')}
             value={f.email}
             onChangeText={f.onChangeEmail}
             containerStyle={styles.input}
             keyboardType="email-address"
             autoCapitalize="none"
-            placeholder="ornek@email.com"
+            placeholder={t('auth.emailPlaceholder')}
           />
 
           {f.error ? (
@@ -65,7 +64,7 @@ export default function OrderTrackScreen() {
 
           <Button
             variant="primary"
-            title="Sipariş Sorgula"
+            title={t('order.trackSubmitCta')}
             onPress={f.handleTrack}
             isLoading={f.loading}
             disabled={f.loading}
@@ -99,12 +98,12 @@ export default function OrderTrackScreen() {
         <View style={styles.helpSection}>
           <Ionicons name="help-circle-outline" size={24} color={colors.primary[600]!} />
           <View style={styles.helpContent}>
-            <Text style={styles.helpTitle}>Yardım mı gerekiyor?</Text>
+            <Text style={styles.helpTitle}>{t('order.trackHelpTitle')}</Text>
             <Text style={styles.helpText}>
-              Siparişinizle ilgili sorunuz varsa destek ekibimizle iletişime geçebilirsiniz.
+              {t('order.trackHelpText')}
             </Text>
             <TouchableOpacity style={styles.helpButton} onPress={() => router.push('/help')}>
-              <Text style={styles.helpButtonText}>Destek Al</Text>
+              <Text style={styles.helpButtonText}>{t('order.trackHelpCta')}</Text>
               <Ionicons name="arrow-forward" size={16} color={colors.primary[600]!} />
             </TouchableOpacity>
           </View>

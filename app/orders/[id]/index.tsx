@@ -58,7 +58,13 @@ export default function OrderDetailScreen() {
   }
   if (!order) {
     return (
-      <EmptyState fullscreen icon="receipt-outline" title="Sipariş bulunamadı" actionLabel="Geri Dön" onAction={back} />
+      <EmptyState
+        fullscreen
+        icon="receipt-outline"
+        title={t('order.orderNotFound')}
+        actionLabel={t('common.goBack')}
+        onAction={back}
+      />
     );
   }
 
@@ -67,7 +73,7 @@ export default function OrderDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Sipariş Detayı" onBack={back} />
+      <ScreenHeader title={t('order.orderDetails')} onBack={back} />
 
       <ScrollView
         style={styles.content}

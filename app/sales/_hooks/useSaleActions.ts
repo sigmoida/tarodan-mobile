@@ -64,7 +64,7 @@ export function useSaleActions() {
       queryClient.invalidateQueries({ queryKey: ['shipping'] });
       setShipDialog({ visible: false, order: null });
       if (!result || !('alreadyExisted' in result)) {
-        appAlert('Başarılı', 'Sipariş durumu güncellendi');
+        appAlert(i18n.t('common.success'), i18n.t('order.statusUpdated'));
         return;
       }
       appAlert(
@@ -73,18 +73,18 @@ export function useSaleActions() {
       );
     },
     onError: (e: any) => {
-      appAlert('Hata', e?.response?.data?.message || e?.message || 'Durum güncellenemedi');
+      appAlert(i18n.t('common.error'), e?.response?.data?.message || e?.message || i18n.t('order.statusUpdateFailed'));
     },
   });
 
   const handleMarkAsProcessing = (order: Sale) => {
     appAlert(
-      'Siparişi Hazırlıyor Olarak İşaretle',
-      'Siparişi hazırlamaya başladığınızı onaylıyor musunuz?',
+      i18n.t('sale.markPreparingConfirmTitle'),
+      i18n.t('sale.markPreparingConfirmBody'),
       [
-        { text: 'İptal', style: 'cancel' },
+        { text: i18n.t('common.cancel'), style: 'cancel' },
         {
-          text: 'Onayla',
+          text: i18n.t('common.confirm'),
           onPress: () => updateStatusMutation.mutate({ orderId: order.id, status: 'processing' }),
         },
       ],

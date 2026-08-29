@@ -55,11 +55,11 @@ describe("J3 · Tekliflerim listesi", () => {
     getAllMock.mockResolvedValue({ data: { data: [] } });
     renderWithProviders(<OffersScreen />);
     await waitFor(() =>
-      expect(screen.getByText("Henüz gelen teklif yok")).toBeOnTheScreen(),
+      expect(screen.getByText("offer.emptyReceivedTitle")).toBeOnTheScreen(),
     );
     // Sekmeler render olur
-    expect(screen.getByText("Gelen")).toBeOnTheScreen();
-    expect(screen.getByText("Gönderilen")).toBeOnTheScreen();
+    expect(screen.getByText("offer.tabReceived")).toBeOnTheScreen();
+    expect(screen.getByText("offer.tabSent")).toBeOnTheScreen();
   });
 
   it("gelen pending teklifi kart olarak render eder, aksiyon butonları görünür", async () => {
@@ -83,9 +83,9 @@ describe("J3 · Tekliflerim listesi", () => {
     await waitFor(() =>
       expect(screen.getByText("Vintage Kamera")).toBeOnTheScreen(),
     );
-    expect(screen.getByText("Kabul Et")).toBeOnTheScreen();
-    expect(screen.getByText("Reddet")).toBeOnTheScreen();
-    expect(screen.getByText("Karşı Teklif")).toBeOnTheScreen();
+    expect(screen.getByText("offer.acceptOffer")).toBeOnTheScreen();
+    expect(screen.getByText("offer.rejectOffer")).toBeOnTheScreen();
+    expect(screen.getByText("offer.counterOffer")).toBeOnTheScreen();
     expect(screen.getByText("Ali Veli")).toBeOnTheScreen();
   });
 
@@ -93,8 +93,8 @@ describe("J3 · Tekliflerim listesi", () => {
     mockAuth = { isAuthenticated: false, isLoading: false };
     renderWithProviders(<OffersScreen />);
     expect(
-      screen.getByText("Tekliflerinizi görmek için giriş yapın"),
+      screen.getByText("offer.authGateSubtitle"),
     ).toBeOnTheScreen();
-    expect(screen.getByText("Giriş Yap")).toBeOnTheScreen();
+    expect(screen.getByText("common.login")).toBeOnTheScreen();
   });
 });

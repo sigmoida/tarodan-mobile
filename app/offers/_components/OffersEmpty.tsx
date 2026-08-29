@@ -2,12 +2,14 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { theme } from '@/ui';
 import type { TabType } from '../_lib/types';
 
 const { colors } = theme;
 
 export function OffersEmpty({ tab }: { tab: TabType }) {
+  const { t } = useTranslation();
   const received = tab === 'received';
   return (
     <View style={styles.container}>
@@ -19,16 +21,14 @@ export function OffersEmpty({ tab }: { tab: TabType }) {
         />
       </View>
       <Text style={styles.title}>
-        {received ? 'Henüz gelen teklif yok' : 'Henüz gönderilen teklif yok'}
+        {received ? t('offer.emptyReceivedTitle') : t('offer.emptySentTitle')}
       </Text>
       <Text style={styles.subtitle}>
-        {received
-          ? 'Alıcılar ilanlarınıza teklif verdiğinde burada görünecek.'
-          : 'İlanlara göz atın ve ilk teklifinizi yapın!'}
+        {received ? t('offer.emptyReceivedSubtitle') : t('offer.emptySentSubtitle')}
       </Text>
       <TouchableOpacity style={styles.browseBtn} onPress={() => router.push('/listings')}>
         <Ionicons name="search-outline" size={18} color={colors.white} />
-        <Text style={styles.browseBtnText}>İlanlara Göz At</Text>
+        <Text style={styles.browseBtnText}>{t('mobile.guestBrowseListings')}</Text>
       </TouchableOpacity>
     </View>
   );

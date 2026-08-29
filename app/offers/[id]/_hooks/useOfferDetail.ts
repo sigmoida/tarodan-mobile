@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
+import i18n from '@/i18n/config';
 import { offersApi } from '@/lib/api';
 import { useRefresh } from '@/hooks/useRefresh';
 import { formatPrice } from '@/utils/format';
@@ -44,28 +45,31 @@ export function useOfferDetail() {
     mutationFn: () => offersApi.accept(id!),
     onSuccess: () => {
       invalidate();
-      appAlert('Başarılı', 'Teklif kabul edildi. Sipariş oluşturuldu.');
+      appAlert(i18n.t('common.success'), i18n.t('offer.acceptedOrderCreated'));
     },
-    onError: (e: any) => appAlert('Hata', e?.response?.data?.message || 'Teklif kabul edilemedi.'),
+    onError: (e: any) =>
+      appAlert(i18n.t('common.error'), e?.response?.data?.message || i18n.t('offer.acceptFailed')),
   });
 
   const rejectMutation = useMutation({
     mutationFn: () => offersApi.reject(id!),
     onSuccess: () => {
       invalidate();
-      appAlert('Bilgi', 'Teklif reddedildi.');
+      appAlert(i18n.t('common.info'), i18n.t('offer.offerRejected'));
     },
-    onError: (e: any) => appAlert('Hata', e?.response?.data?.message || 'İşlem başarısız.'),
+    onError: (e: any) =>
+      appAlert(i18n.t('common.error'), e?.response?.data?.message || i18n.t('listing.actionFailed')),
   });
 
   const cancelMutation = useMutation({
     mutationFn: () => offersApi.cancel(id!),
     onSuccess: () => {
       invalidate();
-      appAlert('Bilgi', 'Teklif iptal edildi.');
+      appAlert(i18n.t('common.info'), i18n.t('offer.offerCancelled'));
       router.canGoBack() ? router.back() : router.replace('/(tabs)');
     },
-    onError: (e: any) => appAlert('Hata', e?.response?.data?.message || 'İşlem başarısız.'),
+    onError: (e: any) =>
+      appAlert(i18n.t('common.error'), e?.response?.data?.message || i18n.t('listing.actionFailed')),
   });
 
   const counterMutation = useMutation({
@@ -74,9 +78,10 @@ export function useOfferDetail() {
       invalidate();
       setCounterDialog(false);
       setCounterAmount('');
-      appAlert('Başarılı', 'Karşı teklif gönderildi.');
+      appAlert(i18n.t('common.success'), i18n.t('offer.counterSent'));
     },
-    onError: (e: any) => appAlert('Hata', e?.response?.data?.message || 'Karşı teklif gönderilemedi.'),
+    onError: (e: any) =>
+      appAlert(i18n.t('common.error'), e?.response?.data?.message || i18n.t('offer.counterFailed')),
   });
 
   const firstImg =
@@ -104,18 +109,24 @@ export function useOfferDetail() {
   const submitCounter = () => {
     if (!offer) return;
     if (counterValue <= 0) {
-      appAlert('Geçersiz tutar', 'Pozitif bir tutar girin.');
+      appAlert(i18n.t('offer.invalidAmountTitle'), i18n.t('offer.enterPositiveAmount'));
       return;
     }
     // API kuralı: karşı teklif mevcut tekliften yüksek, ürün fiyatından düşük/eşit olmalı.
     const refAmount = Number(offer.amount) || 0;
     const maxPrice = Number(offer.product?.price) || 0;
     if (counterValue <= refAmount) {
-      appAlert('Hata', `Karşı teklif, mevcut tekliften (${formatPrice(refAmount)}) yüksek olmalıdır`);
+      appAlert(
+        i18n.t('common.error'),
+        i18n.t('offer.counterMustBeHigher', { amount: formatPrice(refAmount) }),
+      );
       return;
     }
     if (maxPrice > 0 && counterValue > maxPrice) {
-      appAlert('Hata', `Karşı teklif, ürün fiyatından (${formatPrice(maxPrice)}) yüksek olamaz`);
+      appAlert(
+        i18n.t('common.error'),
+        i18n.t('offer.counterMustNotExceedPrice', { amount: formatPrice(maxPrice) }),
+      );
       return;
     }
     counterMutation.mutate(counterValue);

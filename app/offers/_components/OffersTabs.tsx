@@ -1,14 +1,18 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { theme } from '@/ui';
 import type { TabType } from '../_lib/types';
 
 const { colors } = theme;
 
-const TABS: { key: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { key: 'received', label: 'Gelen', icon: 'mail-open-outline' },
-  { key: 'sent', label: 'Gönderilen', icon: 'paper-plane-outline' },
+const buildTabs = (
+  t: TFunction,
+): { key: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] => [
+  { key: 'received', label: t('offer.tabReceived'), icon: 'mail-open-outline' },
+  { key: 'sent', label: t('offer.tabSent'), icon: 'paper-plane-outline' },
 ];
 
 export function OffersTabs({
@@ -18,6 +22,8 @@ export function OffersTabs({
   activeTab: TabType;
   onChange: (tab: TabType) => void;
 }) {
+  const { t } = useTranslation();
+  const TABS = buildTabs(t);
   return (
     <View style={styles.container}>
       {TABS.map(({ key, label, icon }) => {

@@ -30,14 +30,14 @@ export function OrderCancelCard({
     <Card variant="elevated" style={styles.card}>
       <Text variant="label" style={styles.sectionTitle}>{t('order.cancellationSection')}</Text>
       <Text variant="caption" style={styles.confirmNote}>
-        Sipariş henüz kargoya verilmedi. İptal ederseniz ödemeniz iade edilir.
+        {t('order.guestCancelIntro')}
       </Text>
       <Button
         testID="order-cancel-button"
         variant="outline"
         icon="close-circle-outline"
         fullWidth
-        title="Siparişi İptal Et"
+        title={t('order.cancelOrder')}
         onPress={onCancel}
         isLoading={cancelPending}
         disabled={cancelPending}
@@ -64,10 +64,10 @@ export function OrderRatingButtons({
       <Text variant="label" style={styles.sectionTitle}>{t('order.reviewSection')}</Text>
       <View style={styles.ratingButtons}>
         {!order.hasProductRating && (
-          <Button variant="outline" icon="star" title="Ürünü Değerlendir" onPress={() => onRate('product')} style={styles.rateButton} />
+          <Button variant="outline" icon="star" title={t('order.rateProduct')} onPress={() => onRate('product')} style={styles.rateButton} />
         )}
         {!order.hasSellerRating && (
-          <Button variant="outline" icon="person" title="Satıcıyı Değerlendir" onPress={() => onRate('seller')} style={styles.rateButton} />
+          <Button variant="outline" icon="person" title={t('order.rateSeller')} onPress={() => onRate('seller')} style={styles.rateButton} />
         )}
         {order.hasProductRating && order.hasSellerRating && (
           <View style={styles.ratedMessage}>
@@ -110,7 +110,7 @@ export function OrderRefundBanner({
       {rr.status === 'return_shipment_open' && rr.returnTrackingNumber ? (
         <View style={styles.refundTrackingBox}>
           <Text variant="caption" style={styles.refundTrackingHint}>
-            Bu numarayı paketle birlikte herhangi bir Sürat şubesine bırakın:
+            {t('refund.dropOffAtSurat')}
           </Text>
           <Text style={styles.refundTrackingNumber}>{rr.returnTrackingNumber}</Text>
           {/* Link ELLE BİRLEŞTİRİLMEZ — tek kaynak `buildTrackingUrl`. */}
@@ -118,7 +118,7 @@ export function OrderRefundBanner({
             <Button
               variant="outline"
               icon="cube"
-              title="Sürat'ta Takip Et"
+              title={t('order.trackOnSurat')}
               onPress={() => Linking.openURL(returnTrackingUrl)}
               style={{ marginTop: theme.spacing[2] }}
             />
@@ -130,7 +130,7 @@ export function OrderRefundBanner({
           testID="refund-cancel-button"
           variant="outline"
           icon="close-circle-outline"
-          title="Talebi İptal Et"
+          title={t('refund.cancel.cta')}
           onPress={onCancelRefund}
           isLoading={cancelRefundPending}
           disabled={cancelRefundPending}
@@ -167,7 +167,7 @@ export function OrderRefundActionCard({
       <Card variant="elevated" style={styles.card}>
         <Text variant="label" style={styles.sectionTitle}>{t('order.refundWindowClosed')}</Text>
         <Text variant="caption" style={styles.refundIntro}>
-          14 günlük iade süresi doldu; bu sipariş için artık iade talebi oluşturulamaz.
+          {t('order.refundWindowPassed')}
         </Text>
       </Card>
     );
@@ -176,13 +176,13 @@ export function OrderRefundActionCard({
     <Card variant="elevated" style={styles.card}>
       <Text variant="label" style={styles.sectionTitle}>{t('order.refundSection')}</Text>
       <Text variant="caption" style={styles.refundIntro}>
-        Teslimattan sonra 14 gün içinde sebep belirtmeden iade talep edebilirsiniz.
+        {t('order.refundEligibleIntro')}
       </Text>
       <Button
         testID="refund-request-button"
         variant="outline"
         icon="return-up-back"
-        title="İade Talep Et"
+        title={t('order.requestRefund')}
         onPress={onOpenRefund}
         style={{ marginTop: theme.spacing[2] }}
       />

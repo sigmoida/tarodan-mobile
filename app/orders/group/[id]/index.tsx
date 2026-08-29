@@ -17,7 +17,7 @@ export default function OrderGroupDetailScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader
-        title="Sipariş Detayı"
+        title={t('order.orderDetails')}
         onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       />
 
@@ -29,7 +29,7 @@ export default function OrderGroupDetailScreen() {
         <View style={styles.center}>
           <Ionicons name="alert-circle-outline" size={64} color={colors.text.subtle} />
           <Text style={styles.errorText}>{t('order.groupLoadFailed')}</Text>
-          <Button variant="primary" title="Tekrar Dene" onPress={() => f.refetch()} />
+          <Button variant="primary" title={t('common.tryAgain')} onPress={() => f.refetch()} />
         </View>
       ) : (
         <ScrollView

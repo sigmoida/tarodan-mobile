@@ -23,11 +23,13 @@ export function OrderAddressCard({ order, isMembershipOrder }: { order: OrderDet
             {a.district ? `${a.district} / ${a.city}` : a.city}
             {(a.zipCode ?? a.postalCode) ? ` ${a.zipCode ?? a.postalCode}` : ''}
           </Text>
-          <Text variant="caption" style={styles.addressText}>Tel: {a.phone}</Text>
+          <Text variant="caption" style={styles.addressText}>
+            {t('sale.phoneLabel', { phone: a.phone })}
+          </Text>
         </>
       ) : (
         <Text variant="caption" style={styles.addressText}>
-          Teslimat adresi henüz belirlenmedi. Ödemeyi tamamladığınızda adres bilgisi eklenir.
+          {t('order.addressNotSetYet')}
         </Text>
       )}
     </Card>
