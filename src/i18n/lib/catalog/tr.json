@@ -7113,7 +7113,17 @@
     "valueInvalid": "Geçerli bir indirim değeri girin.",
     "percentTooHigh": "Yüzde indirim 100'den büyük olamaz.",
     "pickAtLeastOne": "Lütfen en az bir ürün seçin.",
-    "deleteTitle": "İndirimi Sil"
+    "deleteTitle": "İndirimi Sil",
+    "myDiscountsTitle": "İndirimlerim",
+    "loginRequiredBody": "İndirimlerinizi yönetmek için giriş yapmalısınız.",
+    "sellerRequiredTitle": "Satıcı Olun",
+    "sellerRequiredBody": "İndirim oluşturmak için satıcı hesabı gerekli.",
+    "becomeSeller": "Satıcı Ol",
+    "emptyTitle": "Henüz indiriminiz yok",
+    "emptySubtitle": "Mağazanız için ilk indirim kuponunuzu oluşturun.",
+    "createNewA11y": "Yeni indirim oluştur",
+    "noActiveProducts": "Aktif ürününüz yok.",
+    "filterExpired": "Süresi Dolmuş"
   },
   "listing": {
     "deactivated": "İlan deaktif edildi",

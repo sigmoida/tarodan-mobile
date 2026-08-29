@@ -1,4 +1,5 @@
 import { View, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Chip, FAB, Snackbar, ScreenHeader, EmptyState, ScreenLoader } from '@/ui';
 
 import { ThemedRefreshControl } from '@/components/common';
@@ -16,6 +17,7 @@ import { ProductPickerModal } from './_components/ProductPickerModal';
  * mutations; this file composes the gate, filter chips, list, FAB, and modals.
  */
 export default function DiscountsScreen() {
+  const { t } = useTranslation();
   const f = useDiscounts();
 
   const gate = DiscountsGate({ f });
@@ -23,13 +25,13 @@ export default function DiscountsScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="İndirimlerim" />
+      <ScreenHeader title={t('discount.myDiscountsTitle')} />
 
       <View style={styles.filterRow}>
         {FILTERS.map((opt) => (
           <Chip
             key={opt.value}
-            label={opt.label}
+            label={t(opt.labelKey)}
             selected={f.filter === opt.value}
             variant={f.filter === opt.value ? 'primary' : 'neutral'}
             onPress={() => f.setFilter(opt.value)}
@@ -42,9 +44,9 @@ export default function DiscountsScreen() {
       ) : f.filteredDiscounts.length === 0 ? (
         <EmptyState
           icon="pricetag-outline"
-          title="Henüz indiriminiz yok"
-          subtitle="Mağazanız için ilk indirim kuponunuzu oluşturun."
-          actionLabel="Yeni İndirim"
+          title={t('discount.emptyTitle')}
+          subtitle={t('discount.emptySubtitle')}
+          actionLabel={t('discount.newTitle')}
           onAction={f.openCreate}
         />
       ) : (
@@ -67,7 +69,7 @@ export default function DiscountsScreen() {
 
       <FAB
         icon="add"
-        accessibilityLabel="Yeni indirim oluştur"
+        accessibilityLabel={t('discount.createNewA11y')}
         style={styles.fab}
         onPress={f.openCreate}
       />

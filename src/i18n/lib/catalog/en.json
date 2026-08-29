@@ -7113,7 +7113,17 @@
     "valueInvalid": "Enter a valid discount value.",
     "percentTooHigh": "A percentage discount cannot exceed 100.",
     "pickAtLeastOne": "Please pick at least one item.",
-    "deleteTitle": "Delete Discount"
+    "deleteTitle": "Delete Discount",
+    "myDiscountsTitle": "My Discounts",
+    "loginRequiredBody": "You need to sign in to manage your discounts.",
+    "sellerRequiredTitle": "Become a Seller",
+    "sellerRequiredBody": "A seller account is required to create discounts.",
+    "becomeSeller": "Become a Seller",
+    "emptyTitle": "No discounts yet",
+    "emptySubtitle": "Create your first discount coupon for your store.",
+    "createNewA11y": "Create new discount",
+    "noActiveProducts": "You have no active products.",
+    "filterExpired": "Expired"
   },
   "listing": {
     "deactivated": "The listing has been deactivated",

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { Card, IconButton, Switch, Text, theme } from '@/ui';
 
@@ -20,6 +21,7 @@ export function DiscountCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Card style={styles.discountCard}>
       <View style={styles.cardHeader}>
@@ -34,7 +36,7 @@ export function DiscountCard({
         </View>
         <View style={styles.valueWrap}>
           <Text style={styles.valueText}>{valueLabel(d)}</Text>
-          <Text style={styles.valueLabel}>İndirim</Text>
+          <Text style={styles.valueLabel}>{t('product.discount')}</Text>
         </View>
       </View>
 
@@ -44,7 +46,7 @@ export function DiscountCard({
         <View style={styles.metaItem}>
           <Ionicons name="layers-outline" size={14} color={colors.text.muted} />
           <Text style={styles.metaText}>
-            {d.scope === 'product' ? 'Seçili Ürünler' : 'Tüm Mağaza'}
+            {d.scope === 'product' ? t('discount.scopeSelected') : t('discount.scopeAllStore')}
           </Text>
         </View>
         <View style={styles.metaItem}>
@@ -64,20 +66,20 @@ export function DiscountCard({
       <View style={styles.actions}>
         <View style={styles.activeRow}>
           <Switch value={d.isActive} onValueChange={(v: boolean) => onToggle(v)} />
-          <Text style={styles.activeLabel}>{d.isActive ? 'Aktif' : 'Pasif'}</Text>
+          <Text style={styles.activeLabel}>{d.isActive ? t('discount.active') : t('common.inactive')}</Text>
         </View>
         <View style={{ flexDirection: 'row' }}>
           <IconButton
             icon="pencil"
             size="sm"
-            accessibilityLabel="İndirimi düzenle"
+            accessibilityLabel={t('discount.editTitle')}
             onPress={onEdit}
           />
           <IconButton
             icon="trash-outline"
             variant="danger"
             size="sm"
-            accessibilityLabel="İndirimi sil"
+            accessibilityLabel={t('discount.deleteTitle')}
             onPress={onDelete}
           />
         </View>
