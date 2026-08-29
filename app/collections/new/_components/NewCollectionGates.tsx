@@ -2,6 +2,7 @@ import { View } from 'react-native';
 import { Button, Text, theme, ScreenHeader } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { getUpgradeMessage } from '@/utils/membershipLimits';
 import { styles } from '../_lib/styles';
 
@@ -16,7 +17,8 @@ const PREMIUM_FEATURES = [
 
 /** Premium olmayan kullanıcıya gösterilen yükseltme kapısı. */
 export function PremiumGate() {
-  const upgradeInfo = getUpgradeMessage('collectionFeature');
+  const { t } = useTranslation();
+  const upgradeInfo = getUpgradeMessage(t, 'collectionFeature');
   return (
     <View style={styles.container}>
       <ScreenHeader
