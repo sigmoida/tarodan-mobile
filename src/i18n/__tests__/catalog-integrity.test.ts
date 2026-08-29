@@ -106,6 +106,10 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     'information.contactInfo.phoneValue',
     // Yalnız ayraç + sürüm numarası (" · v3"); çevrilecek sözcük yok.
     'sellerDocument.versionSuffix',
+    // Koleksiyon şablonu adları: yarış serisi ve araç türü adı — ikisi de
+    // Türkçe koleksiyoncu jargonunda İngilizce haliyle kullanılıyor.
+    'collection.templateF1',
+    'collection.templateMuscle',
   ]);
 
   /**
