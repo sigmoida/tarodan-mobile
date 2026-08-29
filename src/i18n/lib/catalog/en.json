@@ -738,6 +738,7 @@
     "guestNotice": "You can shop without an account and follow your order by e-mail.",
     "increaseQuantity": "Increase quantity",
     "itemsInCart": "items in cart",
+    "lastStockCount": "Only {count} left",
     "lineTotal": "Line total",
     "myCart": "My Cart",
     "myCartWithCount": "My Cart ({count})",

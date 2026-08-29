@@ -738,6 +738,7 @@
     "guestNotice": "Üye olmadan da alışveriş yapabilirsiniz. Siparişinizi e-posta ile takip edebilirsiniz.",
     "increaseQuantity": "Adedi arttır",
     "itemsInCart": "ürün sepetinizde",
+    "lastStockCount": "Son {count} adet",
     "lineTotal": "Satır toplamı",
     "myCart": "Sepetim",
     "myCartWithCount": "Sepetim ({count})",
