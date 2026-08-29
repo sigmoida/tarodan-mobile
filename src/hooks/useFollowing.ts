@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
@@ -21,6 +22,7 @@ export interface FollowedSeller {
  * toleranslı. Public API (following/isFollowing/followSeller…) store ile aynıdır.
  */
 export function useFollowing() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { isAuthenticated } = useAuthStore();
 
@@ -50,7 +52,7 @@ export function useFollowing() {
       // API dönüşünden sonra yerel state'e ekle (store paritesi).
       const newFollowing: FollowedSeller = response.data?.user || {
         id: sellerId,
-        displayName: 'Satıcı',
+        displayName: t('product.seller'),
         listingCount: 0,
         followedAt: new Date().toISOString(),
       };
@@ -89,7 +91,7 @@ export function useFollowing() {
   return {
     following,
     isLoading: query.isLoading,
-    error: query.isError ? 'Takip listesi yüklenemedi' : null,
+    error: query.isError ? t('following.loadFailed') : null,
     isFollowing,
     getFollowingCount,
     fetchFollowing,
