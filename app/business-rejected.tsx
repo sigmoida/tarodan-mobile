@@ -1,6 +1,7 @@
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { theme, Text, Button } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -13,6 +14,7 @@ const { colors } = theme;
  * yalnızca bu ekran, /contact, /login ve çıkış serbesttir.
  */
 export default function BusinessRejectedScreen() {
+  const { t } = useTranslation();
   const { user, logout } = useAuthStore();
 
   const handleLogout = async () => {
@@ -28,44 +30,36 @@ export default function BusinessRejectedScreen() {
           <Ionicons name="close-circle-outline" size={44} color={colors.danger[600]!} />
         </View>
 
-        <Text variant="h2" style={styles.title}>Başvurunuz Reddedildi</Text>
+        <Text variant="h2" style={styles.title}>{t('businessGuard.rejectedTitle')}</Text>
         <Text variant="body" style={styles.text}>
-          <Text variant="body" weight="semibold" style={styles.strong}>
-            {user?.companyName}
-          </Text>{' '}
-          adına yaptığınız şirket hesabı başvurusu onaylanmadı.
+          {t('businessGuard.rejectedBody', { company: user?.companyName ?? '' })}
         </Text>
         <Text variant="body" style={styles.subText}>
-          Red gerekçesi{' '}
-          <Text variant="body" weight="semibold" style={styles.strong}>
-            {user?.email}
-          </Text>{' '}
-          adresinize e-posta ile gönderilmiştir.
+          {t('businessGuard.rejectedSubText', { email: user?.email ?? '' })}
         </Text>
 
         <View style={styles.infoBox}>
           <Text variant="body" style={styles.infoText}>
-            Başvurunuzun reddedildiğini düşünüyorsanız veya eksik bilgi olduğuna
-            inanıyorsanız destek ekibiyle iletişime geçebilirsiniz.
+            {t('businessGuard.rejectedInfoText')}
           </Text>
         </View>
 
         <Button
           testID="business-rejected-continue"
           variant="primary"
-          title="Başvurumu Düzelt"
+          title={t('businessGuard.rejectedFixCta')}
           onPress={() => router.push('/settings/business-application' as never)}
           style={styles.button}
         />
         <Button
           variant="outline"
-          title="Destek Ekibiyle İletişime Geç"
+          title={t('businessGuard.contactSupport')}
           onPress={() => router.push('/contact')}
           style={styles.button}
         />
         <Button
           variant="ghost"
-          title="Çıkış Yap"
+          title={t('common.logout')}
           onPress={handleLogout}
           style={styles.button}
         />

@@ -2,6 +2,7 @@ import { View, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { theme, Text, Button } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -14,6 +15,7 @@ const { colors } = theme;
  * yalnızca bu ekran, /contact ve çıkış serbesttir.
  */
 export default function BusinessPendingScreen() {
+  const { t } = useTranslation();
   const { user, logout } = useAuthStore();
 
   const handleLogout = async () => {
@@ -29,52 +31,45 @@ export default function BusinessPendingScreen() {
           <Ionicons name="time-outline" size={44} color={colors.warning[600]!} />
         </View>
 
-        <Text variant="h2" style={styles.title}>Başvurunuz İnceleniyor</Text>
+        <Text variant="h2" style={styles.title}>{t('businessGuard.pendingTitle')}</Text>
         <Text variant="body" style={styles.text}>
-          <Text variant="body" weight="semibold" style={styles.strong}>
-            {user?.companyName}
-          </Text>{' '}
-          adına yaptığınız başvuru onay sürecindedir.
+          {t('businessGuard.pendingBody', { company: user?.companyName ?? '' })}
         </Text>
         <Text variant="body" style={styles.subText}>
-          Ekibimiz incelemeyi tamamladığında{' '}
-          <Text variant="body" weight="semibold" style={styles.strong}>
-            {user?.email}
-          </Text>{' '}
-          adresinize bilgi gönderilecektir. Bu işlem genellikle 1–2 iş günü sürer.
+          {t('businessGuard.pendingSubText', { email: user?.email ?? '' })}
         </Text>
 
         <View style={styles.infoBox}>
           <Text variant="body" weight="semibold" style={styles.infoTitle}>
-            Onay sürecinde neler olur?
+            {t('businessGuard.pendingInfoTitle')}
           </Text>
           <Text variant="body" style={styles.infoItem}>
-            1. Ekibimiz şirket bilgileri ve vergi kimlik numaranızı doğrular.
+            {t('businessGuard.pendingStep1')}
           </Text>
           <Text variant="body" style={styles.infoItem}>
-            2. Onaylandığında hesabınız aktif olur ve e-posta ile bilgilendirilirsiniz.
+            {t('businessGuard.pendingStep2')}
           </Text>
           <Text variant="body" style={styles.infoItem}>
-            3. Reddedilmesi durumunda red gerekçesiyle birlikte e-posta alırsınız.
+            {t('businessGuard.pendingStep3')}
           </Text>
         </View>
 
         <Button
           testID="business-pending-continue"
           variant="primary"
-          title="Başvurumu Tamamla"
+          title={t('businessGuard.pendingContinueCta')}
           onPress={() => router.push('/settings/business-application' as never)}
           style={styles.button}
         />
         <Button
           variant="outline"
-          title="Destek Ekibiyle İletişime Geç"
+          title={t('businessGuard.contactSupport')}
           onPress={() => router.push('/contact')}
           style={styles.button}
         />
         <Button
           variant="ghost"
-          title="Çıkış Yap"
+          title={t('common.logout')}
           onPress={handleLogout}
           style={styles.button}
         />

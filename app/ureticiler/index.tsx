@@ -4,6 +4,7 @@ import { View, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-nativ
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { manufacturersApi } from '@/lib/api';
 import { theme, Text, Input } from '@/ui';
 import { ScreenHeader, ScreenLoader, ErrorState, EmptyState } from '@/components/common';
@@ -20,6 +21,7 @@ interface Manufacturer {
 }
 
 export default function ManufacturersScreen() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
 
   const { data, isLoading, error, refetch, isRefetching } = useQuery<Manufacturer[]>({
@@ -56,7 +58,7 @@ export default function ManufacturersScreen() {
       <View style={styles.body}>
         <Text style={styles.name}>{item.name}</Text>
         {typeof count === 'number' ? (
-          <Text style={styles.count}>{count} ürün</Text>
+          <Text style={styles.count}>{t('payment.itemsCount', { count })}</Text>
         ) : null}
       </View>
       <Ionicons name="chevron-forward" size={18} color={colors.text.subtle} />
@@ -66,13 +68,13 @@ export default function ManufacturersScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Üreticiler" />
+      <ScreenHeader title={t('nav.manufacturers')} />
 
       <View style={styles.searchBar}>
         <Input
           value={search}
           onChangeText={setSearch}
-          placeholder="Üretici ara..."
+          placeholder={t('product.searchManufacturers')}
           leftIconName="search"
         />
       </View>
@@ -85,8 +87,8 @@ export default function ManufacturersScreen() {
         <EmptyState
           fullscreen
           icon="business-outline"
-          title={search ? 'Sonuç bulunamadı' : 'Henüz üretici yok'}
-          subtitle={search ? 'Farklı bir anahtar kelime deneyin.' : undefined}
+          title={search ? t('common.noResults') : t('product.noManufacturersYet')}
+          subtitle={search ? t('search.tryDifferent') : undefined}
         />
       ) : (
         <FlatList

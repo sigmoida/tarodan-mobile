@@ -30,15 +30,14 @@ export function RegisterBusinessForm({ f }: { f: RegisterBusinessController }) {
       <VStack gap={3}>
         <View style={styles.infoCard}>
           <Ionicons name="business" size={24} color={colors.primary[600]!} />
-          <Text variant="h3" align="center">İşletme olarak ön başvuru yapın</Text>
+          <Text variant="h3" align="center">{t('auth.bizIntroTitle')}</Text>
           <Text variant="bodySm" tone="muted" align="center">
-            Başvurunuz admin onayına gönderilir. Onaylandığında kullanıcı adınızı ve
-            şifrenizi belirleyeceğiniz bir davet e-postası alırsınız.
+            {t('auth.bizIntroBody')}
           </Text>
         </View>
 
         <Form form={form}>
-          <Text variant="label" style={{ marginTop: spacing[2] }}>Yetkili Bilgileri</Text>
+          <Text variant="label" style={{ marginTop: spacing[2] }}>{t('auth.bizSectionAuthorized')}</Text>
           <FormInput
             testID="register-business-authorizedFullName-input"
             name="authorizedFullName"
@@ -72,7 +71,7 @@ export function RegisterBusinessForm({ f }: { f: RegisterBusinessController }) {
             numberOfLines={3}
           />
 
-          <Text variant="label" style={{ marginTop: spacing[2] }}>İletişim Bilgileri</Text>
+          <Text variant="label" style={{ marginTop: spacing[2] }}>{t('checkout.contactInfo')}</Text>
           <FormInput
             testID="register-business-companyEmail-input"
             name="companyEmail"

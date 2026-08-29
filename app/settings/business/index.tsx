@@ -25,7 +25,7 @@ export default function BusinessDashboardScreen() {
     return (
       <View style={styles.loadingContainer}>
         <Spinner size="lg" />
-        <Text style={styles.loadingText}>İstatistikler yükleniyor...</Text>
+        <Text style={styles.loadingText}>{f.t('business.loadingStats')}</Text>
       </View>
     );
   }
@@ -38,9 +38,9 @@ export default function BusinessDashboardScreen() {
           <Ionicons name="warning-outline" size={64} color={colors.danger[600]!} />
           <Text style={styles.errorText}>{f.error}</Text>
           {f.error.includes('şirket adı') || f.error.includes('companyName') ? (
-            <Button variant="primary" title="Şirket Adı Ekle" onPress={() => router.push('/settings/edit-profile')} />
+            <Button variant="primary" title={f.t('business.addCompanyName')} onPress={() => router.push('/settings/edit-profile')} />
           ) : (
-            <Button variant="primary" title="Kurumsal Hesap Aç" onPress={() => router.push('/seller/register')} />
+            <Button variant="primary" title={f.t('seller.openBusinessAccount')} onPress={() => router.push('/seller/register')} />
           )}
         </View>
       </View>

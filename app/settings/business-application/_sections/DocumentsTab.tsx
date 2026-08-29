@@ -43,7 +43,7 @@ export function DocumentsTab({ f, upload }: Props) {
                 onPress={() => upload.pickAndUpload(d.type)}
               >
                 <Text variant="body" color={theme.colors.primary[600]} style={{ fontWeight: '600' }}>
-                  {doc ? 'Değiştir' : 'Yükle'}
+                  {doc ? t('common.replace') : t('sellerDocument.upload')}
                 </Text>
               </Pressable>
             </View>
@@ -61,7 +61,7 @@ export function DocumentsTab({ f, upload }: Props) {
                 style={{ marginTop: theme.spacing[1] }}
               >
                 <Text variant="caption" color={theme.colors.primary[600]}>
-                  Karara itiraz et
+                  {t('businessApplication.appealCta')}
                 </Text>
               </Pressable>
             ) : null}
@@ -75,7 +75,7 @@ export function DocumentsTab({ f, upload }: Props) {
         isLoading={f.isSubmitting}
         disabled={f.isLocked}
       >
-        Başvuruyu incelemeye gönder
+        {t('businessApplication.submitApplication')}
       </Button>
 
       <AppealModal documentId={appealDocumentId} onClose={() => setAppealDocumentId(null)} />
