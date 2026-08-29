@@ -2282,6 +2282,7 @@
   },
   "search": {
     "search": "Search",
+    "scrollToTop": "Back to top",
     "searchResults": "Search Results",
     "searchFor": "results for",
     "noResults": "No results found",

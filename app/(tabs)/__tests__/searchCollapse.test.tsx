@@ -130,7 +130,7 @@ describe('B6 · arama üst çubukları — ölçüm ve collapse', () => {
 
     // Yükleme sırasında bile FlatList monte.
     expect(screen.getByTestId('search-results-list')).toBeOnTheScreen();
-    expect(screen.getByText('Sonuçlar yükleniyor...')).toBeOnTheScreen();
+    expect(screen.getByText('Sonuçlar yükleniyor…')).toBeOnTheScreen();
 
     await act(async () => {
       resolve(mockListResponse([makeProduct('p1', 'Ferrari F40')]));

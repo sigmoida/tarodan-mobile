@@ -2282,6 +2282,7 @@
   },
   "search": {
     "search": "Ara",
+    "scrollToTop": "En üste dön",
     "searchResults": "Arama Sonuçları",
     "searchFor": "için sonuçlar",
     "noResults": "Sonuç bulunamadı",

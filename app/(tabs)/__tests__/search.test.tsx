@@ -73,12 +73,12 @@ describe('catalog-search · arama ekranı (J52/J53)', () => {
     expect(screen.getByText('2 sonuç bulundu')).toBeOnTheScreen();
   });
 
-  it('J52 · boş sonuç → "Sonuç Bulunamadı" boş durumu görünür', async () => {
+  it('J52 · boş sonuç → "Sonuç bulunamadı" boş durumu görünür', async () => {
     mockGetAll.mockResolvedValue(mockListResponse([]));
     renderWithProviders(<SearchScreen />);
 
     await waitFor(() =>
-      expect(screen.getByText('Sonuç Bulunamadı')).toBeOnTheScreen(),
+      expect(screen.getByText('Sonuç bulunamadı')).toBeOnTheScreen(),
     );
     expect(screen.getByText('0 sonuç bulundu')).toBeOnTheScreen();
   });
