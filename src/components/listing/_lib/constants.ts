@@ -19,11 +19,17 @@ export const buildConditions = (t: TFunction) => [
 
 export const FALLBACK_SCALES = ['1:18', '1:24', '1:43', '1:64', '1:87'];
 
-export const FALLBACK_MATERIALS: MaterialOption[] = [
-  { slug: 'diecast', label: 'Diecast (Metal)' },
-  { slug: 'resin', label: 'Resin (Reçine)' },
-  { slug: 'composite', label: 'Composite (Kompozit)' },
-  { slug: 'plastic', label: 'Plastic (Plastik)' },
+/**
+ * `buildConditions` ile AYNI gerekçe: modül-seviyesi TR literal dizi
+ * i18next hazır olmadan çözülüp donardı — bu yüzden factory. Çağıran
+ * (`useListingForm`) zaten `useTranslation()` sahibi; `t` değiştikçe
+ * yeniden hesaplanır.
+ */
+export const buildMaterials = (t: TFunction): MaterialOption[] => [
+  { slug: 'diecast', label: t('product.materialDiecast') },
+  { slug: 'resin', label: t('product.materialResin') },
+  { slug: 'composite', label: t('product.materialComposite') },
+  { slug: 'plastic', label: t('product.materialPlastic') },
 ];
 
 const currentYear = new Date().getFullYear();
