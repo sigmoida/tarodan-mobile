@@ -19,7 +19,7 @@ export default function MembershipCheckoutScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader
-        title="Üyelik Satın Al"
+        title={f.t('membership.checkoutTitle')}
         onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       />
 
@@ -31,7 +31,7 @@ export default function MembershipCheckoutScreen() {
 
         <Button
           variant="primary"
-          title={f.loading ? 'İşleniyor...' : `₺${formatTL(f.displayPrice)} Öde`}
+          title={f.loading ? f.t('checkout.processing') : f.t('membership.checkoutPayButton', { price: `₺${formatTL(f.displayPrice)}` })}
           onPress={f.handlePayment}
           isLoading={f.loading}
           disabled={f.loading}
