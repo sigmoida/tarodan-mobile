@@ -1,12 +1,20 @@
 import { z } from 'zod';
+import type { TFunction } from 'i18next';
 
-export const emailChangeSchema = z.object({
-  newEmail: z.string().trim().min(1, 'E-posta gerekli').email('Geçerli bir e-posta girin'),
-});
+/** Zod mesajları şema KURULURKEN çözülür — bkz. `@/utils/validation` başı. */
+export const buildEmailChangeSchema = (t: TFunction) =>
+  z.object({
+    newEmail: z
+      .string()
+      .trim()
+      .min(1, t('validation.emailRequired'))
+      .email(t('validation.invalidEmail')),
+  });
 
-export const emailCodeSchema = z.object({
-  code: z.string().trim().regex(/^\d{6}$/, '6 haneli kodu girin'),
-});
+export const buildEmailCodeSchema = (t: TFunction) =>
+  z.object({
+    code: z.string().trim().regex(/^\d{6}$/, t('validation.sixDigitCode')),
+  });
 
-export type EmailChangeInput = z.input<typeof emailChangeSchema>;
-export type EmailCodeInput = z.input<typeof emailCodeSchema>;
+export type EmailChangeInput = z.input<ReturnType<typeof buildEmailChangeSchema>>;
+export type EmailCodeInput = z.input<ReturnType<typeof buildEmailCodeSchema>>;

@@ -2323,7 +2323,8 @@
     "bioMaxLength": "Biyografi en fazla {max} karakter olabilir",
     "birthDateInvalid": "Lütfen geçerli bir doğum tarihi seçin",
     "mustBeAdult": "18 yaşından büyük olmalısınız",
-    "companyNameRequired": "Şirket adı zorunludur"
+    "companyNameRequired": "Şirket adı zorunludur",
+    "sixDigitCode": "6 haneli kodu girin"
   },
   "time": {
     "justNow": "Az önce",
@@ -2450,7 +2451,24 @@
     "activeSessions": "Aktif Oturumlar",
     "loginHistory": "Giriş Geçmişi",
     "emailChangeLink": "E-posta Değiştir",
-    "usernameLink": "Kullanıcı Adı"
+    "usernameLink": "Kullanıcı Adı",
+    "emailChangeActiveTitle": "Mevcut e-postanız aktif kalır",
+    "emailChangeActiveBody": "Yeni adresinizi doğrulayana kadar hesabınız mevcut e-posta ile çalışmaya devam eder.",
+    "newEmailLabel": "Yeni e-posta",
+    "newEmailPlaceholder": "yeni@ornek.com",
+    "sendCodeButton": "Doğrulama kodu gönder",
+    "emailUpdatedTitle": "E-posta güncellendi",
+    "emailUpdatedBody": "Yeni e-posta adresiniz doğrulandı.",
+    "verifyFailedTitle": "Doğrulanamadı",
+    "codeVerifyFailedBody": "Kod doğrulanamadı. Tekrar deneyin.",
+    "usernameClaimedHint": "Kullanıcı adı bir kez belirlenir ve değiştirilemez.",
+    "usernamePermanentWarningTitle": "Bu seçim kalıcıdır",
+    "usernamePermanentWarningBody": "Kullanıcı adı bir kez belirlenir ve sonradan değiştirilemez.",
+    "usernameSetButton": "Kullanıcı adını belirle",
+    "usernameSetTitle": "Kullanıcı adı belirlendi",
+    "usernameSetBody": "Kullanıcı adınız kalıcı olarak kaydedildi.",
+    "usernameSetFailedTitle": "Belirlenemedi",
+    "usernameSetFailedBody": "Kullanıcı adı kaydedilemedi."
   },
   "analytics": {
     "analytics": "Analitikler",
@@ -7078,7 +7096,10 @@
     "phoneVerifiedNotice": "Telefon numaranız doğrulandı.",
     "phoneVerifyHint": "SMS ile doğrulayın.",
     "verified": "Doğrulandı",
-    "tipsSection": "Güvenlik İpuçları"
+    "tipsSection": "Güvenlik İpuçları",
+    "twoFactorSetupFailed": "2FA kurulumu başarısız",
+    "twoFactorSetupModalTitle": "2FA Kurulumu",
+    "twoFactorDisableModalTitle": "2FA'yı Kapat"
   },
   "discount": {
     "editTitle": "İndirimi Düzenle",

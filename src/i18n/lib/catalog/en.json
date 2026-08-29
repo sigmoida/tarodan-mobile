@@ -2323,7 +2323,8 @@
     "bioMaxLength": "Bio can be at most {max} characters",
     "birthDateInvalid": "Please select a valid birth date",
     "mustBeAdult": "You must be over 18 years old",
-    "companyNameRequired": "Company name is required"
+    "companyNameRequired": "Company name is required",
+    "sixDigitCode": "Enter the 6-digit code"
   },
   "time": {
     "justNow": "Just now",
@@ -2450,7 +2451,24 @@
     "activeSessions": "Active Sessions",
     "loginHistory": "Login History",
     "emailChangeLink": "Change Email",
-    "usernameLink": "Username"
+    "usernameLink": "Username",
+    "emailChangeActiveTitle": "Your current email stays active",
+    "emailChangeActiveBody": "Your account keeps working with your current email until you verify the new address.",
+    "newEmailLabel": "New email",
+    "newEmailPlaceholder": "new@example.com",
+    "sendCodeButton": "Send verification code",
+    "emailUpdatedTitle": "Email updated",
+    "emailUpdatedBody": "Your new email address has been verified.",
+    "verifyFailedTitle": "Verification failed",
+    "codeVerifyFailedBody": "Code could not be verified. Try again.",
+    "usernameClaimedHint": "A username is set once and cannot be changed.",
+    "usernamePermanentWarningTitle": "This choice is permanent",
+    "usernamePermanentWarningBody": "A username is set once and cannot be changed afterwards.",
+    "usernameSetButton": "Set username",
+    "usernameSetTitle": "Username set",
+    "usernameSetBody": "Your username has been saved permanently.",
+    "usernameSetFailedTitle": "Could not be set",
+    "usernameSetFailedBody": "Username could not be saved."
   },
   "analytics": {
     "analytics": "Analytics",
@@ -7078,7 +7096,10 @@
     "phoneVerifiedNotice": "Your phone number is verified.",
     "phoneVerifyHint": "Verify it by SMS.",
     "verified": "Verified",
-    "tipsSection": "Security Tips"
+    "tipsSection": "Security Tips",
+    "twoFactorSetupFailed": "2FA setup failed",
+    "twoFactorSetupModalTitle": "2FA Setup",
+    "twoFactorDisableModalTitle": "Turn Off 2FA"
   },
   "discount": {
     "editTitle": "Edit Discount",
