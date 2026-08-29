@@ -1,4 +1,5 @@
 import type { Ionicons } from '@expo/vector-icons';
+import type { TFunction } from 'i18next';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -22,27 +23,31 @@ export interface MenuPage {
  *   bağlamak kullanıcıya aynı metni iki yerden gösterirdi (bkz. `legalPages`).
  * - `faq` — sabit `/help` ekranı zaten "Yardım & SSS" olarak menüde.
  * - `pricing` — ekran değil, `/membership`'a bilinçli bir yönlendirme.
+ *
+ * Etiketler çeviriden geldiği için liste bir FABRİKA: modül seviyesinde kurulsaydı
+ * `t` daha hazır olmadan çalışır ve etiketler ilk dilde donardı (bkz. `profileConstants`
+ * başındaki aynı gerekçe). `route`/`icon` dilden bağımsız, testler bunları doğrudan okur.
  */
-export const INFO_PAGES: ReadonlyArray<MenuPage> = [
-  { route: 'guides', label: 'Rehberler', icon: 'library-outline' },
-  { route: 'size-guide', label: 'Ölçek Rehberi', icon: 'resize-outline' },
-  { route: 'guvenli-takas', label: 'Güvenli Takas Sistemi', icon: 'swap-horizontal-outline' },
-  { route: 'buyer-protection', label: 'Alıcı Koruması', icon: 'shield-half-outline' },
-  { route: 'returns-exchanges', label: 'İade ve Değişim', icon: 'refresh-outline' },
-  { route: 'refund-policy', label: 'İade Politikası', icon: 'cash-outline' },
-  { route: 'shipping-delivery', label: 'Kargo ve Teslimat', icon: 'cube-outline' },
-  { route: 'payment-options', label: 'Ödeme Seçenekleri', icon: 'card-outline' },
-  { route: 'security-features', label: 'Güvenlik', icon: 'lock-closed-outline' },
-  { route: 'distance-sales', label: 'Mesafeli Satış Sözleşmesi', icon: 'document-outline' },
-  { route: 'seller-agreement', label: 'Satıcı Sözleşmesi', icon: 'briefcase-outline' },
-  { route: 'intellectual-property', label: 'Fikri Mülkiyet', icon: 'ribbon-outline' },
-] as const;
+export const buildInfoPages = (t: TFunction): ReadonlyArray<MenuPage> => [
+  { route: 'guides', label: t('mobile.pageGuides'), icon: 'library-outline' },
+  { route: 'size-guide', label: t('mobile.pageSizeGuide'), icon: 'resize-outline' },
+  { route: 'guvenli-takas', label: t('mobile.pageSafeTrade'), icon: 'swap-horizontal-outline' },
+  { route: 'buyer-protection', label: t('mobile.pageBuyerProtection'), icon: 'shield-half-outline' },
+  { route: 'returns-exchanges', label: t('mobile.pageReturns'), icon: 'refresh-outline' },
+  { route: 'refund-policy', label: t('mobile.pageRefundPolicy'), icon: 'cash-outline' },
+  { route: 'shipping-delivery', label: t('mobile.pageShipping'), icon: 'cube-outline' },
+  { route: 'payment-options', label: t('mobile.pagePaymentOptions'), icon: 'card-outline' },
+  { route: 'security-features', label: t('mobile.pageSecurityFeatures'), icon: 'lock-closed-outline' },
+  { route: 'distance-sales', label: t('mobile.pageDistanceSales'), icon: 'document-outline' },
+  { route: 'seller-agreement', label: t('mobile.pageSellerAgreement'), icon: 'briefcase-outline' },
+  { route: 'intellectual-property', label: t('footer.intellectualProperty'), icon: 'ribbon-outline' },
+];
 
 /**
  * Bilgi metni değil, kullanıcının kendi hesabına ait ekranlar — bu yüzden
  * bilgi listesinden ayrı, hesap bölümünde gösterilirler.
  */
-export const ACCOUNT_PAGES: ReadonlyArray<MenuPage> = [
-  { route: 'following', label: 'Takip Ettiklerim', icon: 'people-outline' },
-  { route: 'newsletter', label: 'Haber Bülteni', icon: 'mail-outline' },
-] as const;
+export const buildAccountPages = (t: TFunction): ReadonlyArray<MenuPage> => [
+  { route: 'following', label: t('mobile.settingsFollowing'), icon: 'people-outline' },
+  { route: 'newsletter', label: t('mobile.settingsNewsletter'), icon: 'mail-outline' },
+];

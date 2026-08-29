@@ -3,34 +3,34 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { theme, Text, Card, ScreenHeader } from "@/ui";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 const { colors } = theme;
 
-const sections = [
-  {
-    title: "Kargo Yöntemleri",
-    content:
-      "Tarodan üzerinden yapılan tüm gönderimler, anlaşmalı kargo firmaları aracılığıyla gerçekleştirilir. Satıcı, ürünü güvenli bir şekilde paketleyerek kargo firmasına teslim eder.",
-  },
-  {
-    title: "Kargo Ücretleri",
-    content:
-      "Kargo ücretleri ürün ağırlığına, boyutuna ve gönderim mesafesine göre değişiklik gösterebilir. Ödeme sayfasında kargo ücreti otomatik olarak hesaplanır.",
-  },
-  {
-    title: "Teslimat Süreleri",
-    content:
-      "Yurt içi gönderimler genellikle 2-5 iş günü içinde teslim edilir. Kargo takip numarası ile gönderiminizi anlık olarak takip edebilirsiniz.",
-  },
-  {
-    title: "Kargo Takibi",
-    content:
-      "Satıcı ürünü kargoya verdikten sonra size bir takip numarası iletilir. Bu numara ile gönderiminizin durumunu istediğiniz zaman kontrol edebilirsiniz.",
-  },
-];
+function useSections(t: TFunction) {
+  return [
+    {
+      title: t("information.shipping.methods"),
+      content: t("shippingDeliveryPage.methodsContent"),
+    },
+    {
+      title: t("information.shipping.costs"),
+      content: t("shippingDeliveryPage.costsContent"),
+    },
+    {
+      title: t("information.shipping.times"),
+      content: t("shippingDeliveryPage.timesContent"),
+    },
+    {
+      title: t("shippingDeliveryPage.trackingTitle"),
+      content: t("shippingDeliveryPage.trackingContent"),
+    },
+  ];
+}
 
 export default function ShippingDeliveryScreen() {
   const { t } = useTranslation();
+  const sections = useSections(t);
   return (
     <View style={styles.container}>
       <ScreenHeader
@@ -50,9 +50,11 @@ export default function ShippingDeliveryScreen() {
             />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.pageTitle}>Kargo ve Teslimat</Text>
+            <Text style={styles.pageTitle}>
+              {t("shippingDeliveryPage.pageTitle")}
+            </Text>
             <Text style={styles.pageSubtitle}>
-              Gönderim süreçleri hakkında bilgi
+              {t("shippingDeliveryPage.pageSubtitle")}
             </Text>
           </View>
         </View>
@@ -73,7 +75,9 @@ export default function ShippingDeliveryScreen() {
             size={20}
             color={colors.primary[600]!}
           />
-          <Text style={styles.trackLinkText}>Kargo Takibi</Text>
+          <Text style={styles.trackLinkText}>
+            {t("shippingDeliveryPage.trackLinkText")}
+          </Text>
           <Ionicons
             name="chevron-forward"
             size={20}

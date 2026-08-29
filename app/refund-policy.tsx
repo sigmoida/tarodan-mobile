@@ -24,102 +24,62 @@ export default function RefundPolicyScreen() {
       />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.lastUpdated}>Son güncelleme: 1 Ocak 2026</Text>
+        <Text style={styles.lastUpdated}>{t("legalContact.lastUpdatedJan2026")}</Text>
 
-        <Text style={styles.sectionTitle}>1. Genel İade Koşulları</Text>
+        <Text style={styles.sectionTitle}>{t("refundPolicyPage.s1Title")}</Text>
         <Text style={styles.paragraph}>
-          Tarodan platformu üzerinden satın aldığınız ürünleri, teslim
-          tarihinden itibaren {RETURN_REQUEST_DAYS} gün içinde iade
-          edebilirsiniz. İade hakkınız, 6502 sayılı Tüketicinin Korunması
-          Hakkında Kanun kapsamında güvence altındadır.
+          {t("refundPolicyPage.s1Content", { days: RETURN_REQUEST_DAYS })}
         </Text>
 
-        <Text style={styles.sectionTitle}>2. İade Şartları</Text>
+        <Text style={styles.sectionTitle}>{t("refundPolicyPage.s2Title")}</Text>
         <Text style={styles.listItem}>
-          • Ürün, teslim tarihinden itibaren {RETURN_REQUEST_DAYS} gün içinde
-          iade talebi oluşturulmalıdır
+          {t("refundPolicyPage.s2Item1", { days: RETURN_REQUEST_DAYS })}
         </Text>
-        <Text style={styles.listItem}>
-          • Ürün kullanılmamış ve orijinal ambalajında olmalıdır
-        </Text>
-        <Text style={styles.listItem}>
-          • Ürün etiketi ve aksesuarları eksiksiz olmalıdır
-        </Text>
-        <Text style={styles.listItem}>
-          • Diecast model araçlarda kutu ve iç ambalaj hasar görmemiş olmalıdır
-        </Text>
-        <Text style={styles.listItem}>
-          • İade formunun eksiksiz doldurulması gerekmektedir
+        <Text style={styles.listItem}>{t("refundPolicyPage.s2Item2")}</Text>
+        <Text style={styles.listItem}>{t("refundPolicyPage.s2Item3")}</Text>
+        <Text style={styles.listItem}>{t("refundPolicyPage.s2Item4")}</Text>
+        <Text style={styles.listItem}>{t("refundPolicyPage.s2Item5")}</Text>
+
+        <Text style={styles.sectionTitle}>{t("refundPolicyPage.s3Title")}</Text>
+        <Text style={styles.subTitle}>{t("refundPolicyPage.step1Title")}</Text>
+        <Text style={styles.paragraph}>{t("refundPolicyPage.step1Content")}</Text>
+        <Text style={styles.subTitle}>{t("refundPolicyPage.step2Title")}</Text>
+        <Text style={styles.paragraph}>{t("refundPolicyPage.step2Content")}</Text>
+        <Text style={styles.subTitle}>{t("refundPolicyPage.step3Title")}</Text>
+        <Text style={styles.paragraph}>{t("refundPolicyPage.step3Content")}</Text>
+        <Text style={styles.subTitle}>{t("refundPolicyPage.step4Title")}</Text>
+        <Text style={styles.paragraph}>
+          {t("refundPolicyPage.step4Content", { days: REFUND_PAYOUT_DAYS })}
         </Text>
 
-        <Text style={styles.sectionTitle}>3. İade Süreci</Text>
-        <Text style={styles.subTitle}>Adım 1: Talep Oluşturma</Text>
-        <Text style={styles.paragraph}>
-          Siparişlerim sayfasından ilgili siparişi seçerek "İade Talebi"
-          oluşturun. İade nedeninizi belirtin ve varsa fotoğraf ekleyin.
-        </Text>
-        <Text style={styles.subTitle}>Adım 2: Satıcı Onayı</Text>
-        <Text style={styles.paragraph}>
-          Satıcı, iade talebinizi 2 iş günü içinde değerlendirir. Onay durumunda
-          iade kargo kodu gönderilir.
-        </Text>
-        <Text style={styles.subTitle}>Adım 3: Ürün Gönderimi</Text>
-        <Text style={styles.paragraph}>
-          Ürünü orijinal ambalajında, size iletilen kargo kodu ile en kısa
-          sürede gönderin.
-        </Text>
-        <Text style={styles.subTitle}>Adım 4: İade Onayı ve Ödeme</Text>
-        <Text style={styles.paragraph}>
-          Satıcı ürünü teslim alıp kontrol ettikten sonra iade tutarı{" "}
-          {REFUND_PAYOUT_DAYS} gün içinde ödeme yönteminize iade edilir.
-        </Text>
-
-        <Text style={styles.sectionTitle}>4. İade Edilemeyen Ürünler</Text>
+        <Text style={styles.sectionTitle}>{t("refundPolicyPage.s4Title")}</Text>
+        <Text style={styles.listItem}>{t("refundPolicyPage.s4Item1")}</Text>
+        <Text style={styles.listItem}>{t("refundPolicyPage.s4Item2")}</Text>
         <Text style={styles.listItem}>
-          • Ambalajı açılmış ve hasar görmüş ürünler
+          {t("refundPolicyPage.s4Item3", { days: RETURN_REQUEST_DAYS })}
         </Text>
-        <Text style={styles.listItem}>
-          • Kişiye özel hazırlanmış (custom) ürünler
-        </Text>
-        <Text style={styles.listItem}>
-          • {RETURN_REQUEST_DAYS} günlük süreyi aşmış talepler
-        </Text>
-        <Text style={styles.listItem}>
-          • Satıcı tarafından "iade kabul edilmez" olarak işaretlenmiş özel
-          ürünler (detaylar ürün sayfasında belirtilir)
-        </Text>
+        <Text style={styles.listItem}>{t("refundPolicyPage.s4Item4")}</Text>
 
-        <Text style={styles.sectionTitle}>5. Hasarlı veya Hatalı Ürün</Text>
+        <Text style={styles.sectionTitle}>{t("refundPolicyPage.s5Title")}</Text>
         <Text style={styles.paragraph}>
-          Ürünün hasarlı, hatalı veya açıklamaya uygun olmadığını tespit
-          ederseniz, teslim tarihinden itibaren {DAMAGE_REPORT_DAYS} gün içinde
-          fotoğraflı bildirimde bulunun. Bu durumda kargo ücreti satıcıya aittir
-          ve tam iade yapılır.
+          {t("refundPolicyPage.s5Content", { days: DAMAGE_REPORT_DAYS })}
         </Text>
 
-        <Text style={styles.sectionTitle}>6. Kargo Ücreti</Text>
-        <Text style={styles.paragraph}>
-          Cayma hakkı kapsamındaki iadelerde kargo ücreti alıcıya aittir.
-          Hasarlı veya hatalı ürün iadeleri ile açıklamaya uygun olmayan ürün
-          iadelerde kargo ücreti satıcıya aittir.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("refundPolicyPage.s6Title")}</Text>
+        <Text style={styles.paragraph}>{t("refundPolicyPage.s6Content")}</Text>
 
-        <Text style={styles.sectionTitle}>7. İade Tutarı</Text>
-        <Text style={styles.paragraph}>
-          İade tutarı, ürünün satın alma bedelidir. Kullanılan kupon/indirim
-          kodları iade tutarından düşülür. Kargo ücreti, uygulanabilir
-          durumlarda ayrıca iade edilir.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("refundPolicyPage.s7Title")}</Text>
+        <Text style={styles.paragraph}>{t("refundPolicyPage.s7Content")}</Text>
 
-        <Text style={styles.sectionTitle}>8. Uyuşmazlık</Text>
-        <Text style={styles.paragraph}>
-          İade sürecinde satıcı ile anlaşmazlık yaşarsanız, destek ekibimize
-          başvurabilirsiniz. Platform, arabuluculuk yaparak en adil çözümü
-          sağlamaya çalışır.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("refundPolicyPage.s8Title")}</Text>
+        <Text style={styles.paragraph}>{t("refundPolicyPage.s8Content")}</Text>
 
-        <Text style={styles.contactInfo}>E-posta: {SUPPORT_EMAIL}</Text>
-        <Text style={styles.contactInfo}>Telefon: {SUPPORT_PHONE}</Text>
+        <Text style={styles.contactInfo}>
+          {t("legalContact.emailLabel", { value: SUPPORT_EMAIL })}
+        </Text>
+        <Text style={styles.contactInfo}>
+          {t("legalContact.phoneLabel", { value: SUPPORT_PHONE })}
+        </Text>
 
         <View style={{ height: 40 }} />
       </ScrollView>

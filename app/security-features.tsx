@@ -7,71 +7,65 @@ import { SECURITY_EMAIL } from "@/constants/legalFacts";
 
 const { colors } = theme;
 
-const FEATURES = [
-  {
-    icon: "lock-closed-outline" as const,
-    title: "SSL Şifreleme",
-    description:
-      "Tüm veri aktarımları 256-bit SSL/TLS şifreleme ile korunur. Kişisel bilgileriniz ve ödeme verileriniz üçüncü taraflarca okunamaz.",
-  },
-  {
-    icon: "shield-checkmark-outline" as const,
-    title: "Alıcı Koruma Sistemi",
-    description:
-      "Ödemeniz, ürünü teslim alıp onaylayana kadar güvenli emanet hesapta tutulur. Ürün gelmezse veya açıklamaya uygun değilse paranız iade edilir.",
-  },
-  {
-    icon: "card-outline" as const,
-    title: "Güvenli Ödeme Altyapısı",
-    description:
-      "Ödemeler, PCI DSS uyumlu ödeme kuruluşları (iyzico/PayTR) üzerinden işlenir. Kart bilgileriniz Tarodan sunucularında saklanmaz.",
-  },
-  {
-    icon: "person-circle-outline" as const,
-    title: "Kimlik Doğrulama",
-    description:
-      "Satıcılar e-posta ve telefon doğrulamasından geçer. Premium satıcılar için kimlik ve adres doğrulaması zorunludur.",
-  },
-  {
-    icon: "eye-off-outline" as const,
-    title: "Veri Gizliliği",
-    description:
-      "Kişisel verileriniz KVKK (6698 sayılı Kanun) kapsamında korunur. Verileriniz yalnızca hizmet sağlamak amacıyla işlenir ve izinsiz üçüncü taraflarla paylaşılmaz.",
-  },
-  {
-    icon: "chatbubble-ellipses-outline" as const,
-    title: "Güvenli Mesajlaşma",
-    description:
-      "Platform içi mesajlaşma sistemi ile iletişim kurun. Kişisel iletişim bilgilerinizi paylaşmak zorunda kalmadan alıcı/satıcılarla güvenle görüşün.",
-  },
-  {
-    icon: "swap-horizontal-outline" as const,
-    title: "Güvenli Takas",
-    description:
-      "Takas işlemlerinde her iki tarafın ürünleri platform garantisi altında gönderilir. Anlaşmazlık durumunda platform arabuluculuk yapar.",
-  },
-  {
-    icon: "alert-circle-outline" as const,
-    title: "Dolandırıcılık Önleme",
-    description:
-      "Yapay zeka destekli sistemler şüpheli işlemleri ve sahte ilanları otomatik olarak tespit eder. Riskli işlemler ek doğrulama gerektirir.",
-  },
-  {
-    icon: "flag-outline" as const,
-    title: "Raporlama Sistemi",
-    description:
-      "Şüpheli ilanları, kullanıcıları veya mesajları kolayca raporlayabilirsiniz. Her rapor 24 saat içinde uzman ekibimiz tarafından incelenir.",
-  },
-  {
-    icon: "star-outline" as const,
-    title: "Değerlendirme Sistemi",
-    description:
-      "Alıcı ve satıcı puanlama sistemi sayesinde güvenilir kullanıcıları kolayca belirleyebilirsiniz. Sahte değerlendirmeler tespit edilip kaldırılır.",
-  },
-];
+function useFeatures() {
+  const { t } = useTranslation();
+  return [
+    {
+      icon: "lock-closed-outline" as const,
+      title: t("securityFeatures.sslTitle"),
+      description: t("securityFeatures.sslDesc"),
+    },
+    {
+      icon: "shield-checkmark-outline" as const,
+      title: t("securityFeatures.buyerProtectionTitle"),
+      description: t("securityFeatures.buyerProtectionDesc"),
+    },
+    {
+      icon: "card-outline" as const,
+      title: t("securityFeatures.paymentInfraTitle"),
+      description: t("securityFeatures.paymentInfraDesc"),
+    },
+    {
+      icon: "person-circle-outline" as const,
+      title: t("securityFeatures.identityTitle"),
+      description: t("securityFeatures.identityDesc"),
+    },
+    {
+      icon: "eye-off-outline" as const,
+      title: t("information.security.dataPrivacy"),
+      description: t("securityFeatures.dataPrivacyDesc"),
+    },
+    {
+      icon: "chatbubble-ellipses-outline" as const,
+      title: t("securityFeatures.messagingTitle"),
+      description: t("securityFeatures.messagingDesc"),
+    },
+    {
+      icon: "swap-horizontal-outline" as const,
+      title: t("mobile.pageSafeTrade"),
+      description: t("securityFeatures.secureTradeDesc"),
+    },
+    {
+      icon: "alert-circle-outline" as const,
+      title: t("securityFeatures.fraudTitle"),
+      description: t("securityFeatures.fraudDesc"),
+    },
+    {
+      icon: "flag-outline" as const,
+      title: t("securityFeatures.reportingTitle"),
+      description: t("securityFeatures.reportingDesc"),
+    },
+    {
+      icon: "star-outline" as const,
+      title: t("securityFeatures.ratingTitle"),
+      description: t("securityFeatures.ratingDesc"),
+    },
+  ];
+}
 
 export default function SecurityFeaturesScreen() {
   const { t } = useTranslation();
+  const FEATURES = useFeatures();
   return (
     <View style={styles.container}>
       <ScreenHeader
@@ -88,11 +82,11 @@ export default function SecurityFeaturesScreen() {
             size={48}
             color={colors.primary[600]!}
           />
-          <Text style={styles.introTitle}>Güvenliğiniz Bizim Önceliğimiz</Text>
+          <Text style={styles.introTitle}>
+            {t("securityFeatures.introTitle")}
+          </Text>
           <Text style={styles.introText}>
-            Tarodan'da alışveriş ve takas güvenliği en üst düzeyde sağlanır.
-            Aşağıda platformumuzun sunduğu güvenlik özelliklerini
-            inceleyebilirsiniz.
+            {t("securityFeatures.introText")}
           </Text>
         </View>
 
@@ -114,10 +108,11 @@ export default function SecurityFeaturesScreen() {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Güvenlikle ilgili bir sorun fark ederseniz lütfen derhal bize
-            bildirin.
+            {t("securityFeatures.footerText")}
           </Text>
-          <Text style={styles.contactInfo}>E-posta: {SECURITY_EMAIL}</Text>
+          <Text style={styles.contactInfo}>
+            {t("legalContact.emailLabel", { value: SECURITY_EMAIL })}
+          </Text>
         </View>
 
         <View style={{ height: 40 }} />

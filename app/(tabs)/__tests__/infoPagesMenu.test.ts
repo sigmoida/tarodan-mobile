@@ -11,11 +11,15 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
+import i18n from '@/i18n/config';
 
-import { INFO_PAGES, ACCOUNT_PAGES } from '../_lib/infoPages';
-import { LEGAL_PAGES } from '../_lib/legalPages';
+import { buildInfoPages, buildAccountPages } from '../_lib/infoPages';
+import { buildLegalPages } from '../_lib/legalPages';
 
 const ROOT = path.resolve(__dirname, '../../..');
+const INFO_PAGES = buildInfoPages(i18n.t);
+const ACCOUNT_PAGES = buildAccountPages(i18n.t);
+const LEGAL_PAGES = buildLegalPages(i18n.t);
 
 function routeExists(route: string): boolean {
   const base = path.join(ROOT, 'app', route);
