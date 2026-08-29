@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Image, Pressable, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { resolveImageUrl } from '@/utils/imageUrl';
@@ -9,6 +10,7 @@ import type { TradeItem } from '../_lib/types';
 const { colors } = theme;
 
 export function CompareItemRow({ item, onPress }: { item: TradeItem; onPress: () => void }) {
+  const { t } = useTranslation();
   const qty = Number(item.quantity) || 1;
   return (
     <Pressable style={({ pressed }) => [styles.cmpItemRow, pressed && { opacity: 0.85 }]} onPress={onPress}>
@@ -18,7 +20,7 @@ export function CompareItemRow({ item, onPress }: { item: TradeItem; onPress: ()
       />
       <View style={styles.itemInfo}>
         <Text variant="bodySm" weight="medium" numberOfLines={1}>
-          {item.productTitle || item.product?.title || 'Ürün'}
+          {item.productTitle || item.product?.title || t('order.product')}
         </Text>
         <Text variant="caption" tone="muted">
           {qty}x · {formatPrice(item.valueAtTrade)}

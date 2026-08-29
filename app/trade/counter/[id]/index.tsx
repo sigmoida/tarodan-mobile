@@ -1,4 +1,5 @@
 import { View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Snackbar } from '@/ui';
 
 import { ScreenHeader, ScreenLoader, ErrorState } from '@/components/common';
@@ -12,12 +13,13 @@ import { TradeCounterBody } from './_components/TradeCounterBody';
  * loading gates and delegates the body + snackbar.
  */
 export default function TradeCounterScreen() {
+  const { t } = useTranslation();
   const f = useTradeCounter();
 
   if (f.tradeQuery.error || (!f.trade && !f.tradeQuery.isLoading)) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Karşı Teklif" onBack={f.handleBack} />
+        <ScreenHeader title={t('trade.counterOffer')} onBack={f.handleBack} />
         <ErrorState fullscreen onRetry={() => f.tradeQuery.refetch()} />
       </View>
     );
@@ -26,7 +28,7 @@ export default function TradeCounterScreen() {
   if (f.tradeQuery.isLoading || !f.trade || f.initializedId !== f.trade.id) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Karşı Teklif" onBack={f.handleBack} />
+        <ScreenHeader title={t('trade.counterOffer')} onBack={f.handleBack} />
         <ScreenLoader />
       </View>
     );
@@ -34,7 +36,7 @@ export default function TradeCounterScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Karşı Teklif Ver" onBack={f.handleBack} />
+      <ScreenHeader title={t('trade.counterOffer')} onBack={f.handleBack} />
 
       <TradeCounterBody f={f} />
 

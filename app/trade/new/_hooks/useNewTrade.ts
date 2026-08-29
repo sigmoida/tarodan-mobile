@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { appAlert } from '@/ui';
 // listingsApi → productsApi (parite migrasyonu); userApi.getMyProducts → productsApi.getMyListings
 import { productsApi as listingsApi, tradesApi, productsApi, type TradePaymentQuoteSide } from '@/lib/api';
@@ -17,6 +18,7 @@ import { firstQueryParam, type Product } from '../_lib/types';
  * validation. Lifted verbatim from the monolithic NewTradeScreen.
  */
 export function useNewTrade() {
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{
     listing?: string | string[];
     productId?: string | string[];
@@ -133,11 +135,11 @@ export function useNewTrade() {
     },
     onSuccess: () => {
       invalidateTradeRelatedQueries();
-      setSnackbar({ visible: true, message: 'Takas teklifi gönderildi!' });
+      setSnackbar({ visible: true, message: t('trade.tradeSent') });
       setTimeout(() => router.replace('/trades'), 1200);
     },
     onError: async (error: unknown) => {
-      const msg = formatApiErrorMessage(error, 'Takas teklifi gönderilemedi');
+      const msg = formatApiErrorMessage(error, t('trade.sendFailed'));
       if (
         msg.includes('Takas özelliği') ||
         msg.includes('üyeliğinizde mevcut değil') ||
@@ -199,15 +201,15 @@ export function useNewTrade() {
   const handleSubmit = () => {
     const cashVal = parseFloat(cashAmount.replace(',', '.')) || 0;
     if (selectedMyItems.length === 0 && cashVal <= 0) {
-      appAlert('Hata', 'En az bir ürün seçin veya nakit farkı girin');
+      appAlert(t('common.error'), t('trade.selectAtLeastOne'));
       return;
     }
     if (selectedTheirItems.length === 0) {
-      appAlert('Hata', 'Karşı taraftan en az bir ürün seçmelisiniz');
+      appAlert(t('common.error'), t('trade.selectAtLeastOneWant'));
       return;
     }
     if (!tradeAddressId) {
-      appAlert('Teslimat Adresi', 'Lütfen bir teslimat adresi seçin veya ekleyin.');
+      appAlert(t('address.deliveryAddress'), t('trade.selectDeliveryAddress'));
       return;
     }
     createTradeMutation.mutate();

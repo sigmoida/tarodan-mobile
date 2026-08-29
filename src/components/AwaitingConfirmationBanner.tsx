@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Button, Card, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,27 +16,26 @@ export interface AwaitingConfirmationBannerProps {
 }
 
 function calcRemaining(deadlineISO: string): {
-  text: string;
   level: 'green' | 'yellow' | 'red' | 'expired';
   hoursLeft: number;
+  minutesLeft: number;
 } {
   const deadline = new Date(deadlineISO).getTime();
   const now = Date.now();
   const diff = deadline - now;
 
   if (diff <= 0) {
-    return { text: 'Süre doldu', level: 'expired', hoursLeft: 0 };
+    return { level: 'expired', hoursLeft: 0, minutesLeft: 0 };
   }
 
   const hours = Math.floor(diff / 3_600_000);
   const minutes = Math.floor((diff % 3_600_000) / 60_000);
-  const text = `${hours} saat ${minutes} dakika kaldı`;
 
   let level: 'green' | 'yellow' | 'red' = 'green';
   if (hours < 6) level = 'red';
   else if (hours < 12) level = 'yellow';
 
-  return { text, level, hoursLeft: hours };
+  return { level, hoursLeft: hours, minutesLeft: minutes };
 }
 
 const { colors, spacing, radius } = theme;
@@ -53,6 +53,7 @@ export function AwaitingConfirmationBanner({
   onReportProblem,
   confirming,
 }: AwaitingConfirmationBannerProps) {
+  const { t } = useTranslation();
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -63,29 +64,32 @@ export function AwaitingConfirmationBanner({
   void tick;
   const remaining = calcRemaining(confirmationDeadline);
   const styleSet = levelStyles[remaining.level];
+  const remainingText =
+    remaining.level === 'expired'
+      ? t('trade.confirmationBanner.expired')
+      : t('trade.confirmationBanner.timeLeft', { hours: remaining.hoursLeft, minutes: remaining.minutesLeft });
 
   return (
     <Card style={[styles.card, { backgroundColor: styleSet.bg, borderColor: styleSet.border }]}>
       <View style={styles.headerRow}>
         <Ionicons name="time-outline" size={24} color={styleSet.text} />
         <Text variant="body" style={{ color: styleSet.text, fontWeight: '600' }}>
-          48 Saat Kontrol Süreci
+          {t('trade.confirmationBanner.title')}
         </Text>
       </View>
 
       <Text variant="h3" style={{ color: styleSet.text, marginTop: spacing[2] }}>
-        {remaining.text}
+        {remainingText}
       </Text>
 
       <Text variant="caption" style={{ color: styleSet.text, marginTop: spacing[1] }}>
-        Ürünü kontrol et. Sorun yoksa hemen onayla; sorun varsa bildir.
-        48 saat sonunda otomatik tamamlanır.
+        {t('trade.confirmationBanner.desc')}
       </Text>
 
       <View style={styles.actionRow}>
         <Button
           variant="primary"
-          title={confirming ? 'Onaylanıyor...' : 'Sorun yok, onaylıyorum'}
+          title={confirming ? t('trade.confirmationBanner.confirming') : t('trade.confirmationBanner.confirmCta')}
           onPress={onConfirm}
           disabled={confirming}
           style={{ flex: 1 }}
@@ -94,7 +98,7 @@ export function AwaitingConfirmationBanner({
 
       <Pressable onPress={onReportProblem} style={styles.reportLink}>
         <Text variant="body" style={{ color: colors.danger[700], textDecorationLine: 'underline' }}>
-          Sorun bildir
+          {t('trade.confirmationBanner.reportProblem')}
         </Text>
       </Pressable>
     </Card>

@@ -1,7 +1,7 @@
 /**
  * J6 · Takas karşı teklif formu — mobil UI dilimi.
  * Nakit fark girişi (tutar + yön chip), mesaj alanı, özet render,
- * "Karşı Teklifi Gönder" buton enable/disable (ürün seçimi), ürün seçince
+ * "Karşı Teklif Gönder" buton enable/disable (ürün seçimi), ürün seçince
  * counter mutation (tradesApi.counter) çağrısı, hata/yükleme durumu.
  * Backend takas rolleri/escrow backend-only.
  */
@@ -83,17 +83,17 @@ describe('J6 · Karşı teklif formu', () => {
   it('J6.1 form bölümleri render edilir (nakit fark + mesaj + özet)', async () => {
     mountWithProducts();
     renderWithProviders(<TradeCounterScreen />);
-    await waitFor(() => expect(screen.getByText('Nakit Fark')).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText('Nakit fark')).toBeOnTheScreen());
     expect(screen.getByText('Ben ödeyeceğim')).toBeOnTheScreen();
-    expect(screen.getByText('Karşı taraf ödesin')).toBeOnTheScreen();
+    expect(screen.getByText('Karşı taraf ödeyecek')).toBeOnTheScreen();
     expect(screen.getByText('Özet')).toBeOnTheScreen();
   });
 
-  it('J6.2 ürün seçili değilken "Karşı Teklifi Gönder" disabled', async () => {
+  it('J6.2 ürün seçili değilken "Karşı Teklif Gönder" disabled', async () => {
     mountWithProducts();
     renderWithProviders(<TradeCounterScreen />);
     await waitFor(() => expect(screen.getByText('Vereceğim Ürünler')).toBeOnTheScreen());
-    fireEvent.press(screen.getByText('Karşı Teklifi Gönder'));
+    fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
     // Boş seçimde mutation tetiklenmez (disabled + handleSubmit guard).
     expect(counterMock).not.toHaveBeenCalled();
   });
@@ -104,7 +104,7 @@ describe('J6 · Karşı teklif formu', () => {
     renderWithProviders(<TradeCounterScreen />);
     await waitFor(() => expect(screen.getByText('Benim Ürünüm')).toBeOnTheScreen());
     fireEvent.press(screen.getByText('Benim Ürünüm'));
-    fireEvent.press(screen.getByText('Karşı Teklifi Gönder'));
+    fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
     await waitFor(() => expect(counterMock).toHaveBeenCalled());
     const [tradeId, body] = counterMock.mock.calls[0];
     expect(tradeId).toBe('trade-1');
@@ -114,7 +114,7 @@ describe('J6 · Karşı teklif formu', () => {
   it('J6.4 nakit tutar girişi sadece rakam/nokta kabul eder', async () => {
     mountWithProducts();
     renderWithProviders(<TradeCounterScreen />);
-    await waitFor(() => expect(screen.getByText('Nakit Fark')).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText('Nakit fark')).toBeOnTheScreen());
     // Nakit alanı tek numeric input'tur; keyboardType ile ayırt et.
     const numericInputs = screen
       .UNSAFE_getAllByType(require('react-native').TextInput)
