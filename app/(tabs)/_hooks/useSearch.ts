@@ -246,11 +246,11 @@ export function useSearch() {
   if (filters.material) activeChips.push({ key: 'mat', label: filters.material, onRemove: () => setFilters({ ...filters, material: '' }) });
   if (filters.condition) activeChips.push({ key: 'cond', label: conditionLabel(filters.condition, t), onRemove: () => setFilters({ ...filters, condition: '' }) });
   if (filters.minPrice || filters.maxPrice) activeChips.push({ key: 'price', label: `₺${filters.minPrice || '0'} - ₺${filters.maxPrice || '∞'}`, onRemove: () => setFilters({ ...filters, minPrice: '', maxPrice: '' }) });
-  if (filters.tradeOnly) activeChips.push({ key: 'trade', label: 'Takaslı', onRemove: () => setFilters({ ...filters, tradeOnly: false }) });
-  if (filters.discountOnly) activeChips.push({ key: 'disc', label: 'İndirimli', onRemove: () => setFilters({ ...filters, discountOnly: false }) });
-  if (filters.preOrder) activeChips.push({ key: 'pre', label: 'Ön Sipariş', onRemove: () => setFilters({ ...filters, preOrder: false }) });
-  if (filters.limited) activeChips.push({ key: 'lim', label: 'Limited', onRemove: () => setFilters({ ...filters, limited: false }) });
-  if (filters.set) activeChips.push({ key: 'set', label: 'Set', onRemove: () => setFilters({ ...filters, set: false }) });
+  if (filters.tradeOnly) activeChips.push({ key: 'trade', label: t('filter.tradeOnlyChip'), onRemove: () => setFilters({ ...filters, tradeOnly: false }) });
+  if (filters.discountOnly) activeChips.push({ key: 'disc', label: t('filter.discountOnlyLabel'), onRemove: () => setFilters({ ...filters, discountOnly: false }) });
+  if (filters.preOrder) activeChips.push({ key: 'pre', label: t('product.preOrder'), onRemove: () => setFilters({ ...filters, preOrder: false }) });
+  if (filters.limited) activeChips.push({ key: 'lim', label: t('product.limitedEdition'), onRemove: () => setFilters({ ...filters, limited: false }) });
+  if (filters.set) activeChips.push({ key: 'set', label: t('product.setBundle'), onRemove: () => setFilters({ ...filters, set: false }) });
 
   // Öneri/geçmiş paneli görünür mü? (X kapat tuşu ve input köşe stilinde kullanılır)
   const recentPanelOpen =

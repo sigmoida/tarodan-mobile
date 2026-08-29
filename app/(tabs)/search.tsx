@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { tabDiag } from '@/components/_tabDiag';
 import { View, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +22,7 @@ const { colors, spacing } = theme;
  * this file composes the header, collapsible bars, results list, and modals.
  */
 function SearchScreen() {
+  const { t } = useTranslation();
   const f = useSearch();
   const insets = useSafeAreaInsets();
 
@@ -40,7 +42,7 @@ function SearchScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
-        <Text style={styles.headerTitle}>Ara</Text>
+        <Text style={styles.headerTitle}>{t('search.search')}</Text>
       </View>
 
       {/* Üst çubuklar absolute katmanda; kaydırınca translateY ile yukarı kayar (liste reflow olmaz) */}
@@ -92,21 +94,21 @@ function SearchScreen() {
               <View style={styles.loadingContainer}>
                 <Spinner size="lg" color={colors.primary[600]!} />
                 <Text variant="body" tone="muted" style={styles.loadingText}>
-                  Sonuçlar yükleniyor...
+                  {t('filter.resultsLoading')}
                 </Text>
               </View>
             ) : (
               <View style={styles.emptyContainer}>
                 <Ionicons name="search-outline" size={64} color={colors.text.subtle} />
                 <Text variant="h3" align="center" style={styles.emptyTitle}>
-                  {f.isError ? 'Bir hata oluştu' : 'Sonuç Bulunamadı'}
+                  {f.isError ? t('utility.error500.title') : t('search.noResults')}
                 </Text>
                 <Text variant="body" tone="muted" align="center" style={styles.emptySubtitle}>
-                  Farklı anahtar kelimeler veya filtreler deneyin
+                  {t('search.tryDifferent')}
                 </Text>
                 <Button
                   variant="outline"
-                  title="Filtreleri Temizle"
+                  title={t('product.clearFilters')}
                   onPress={f.clearAllFilters}
                   style={{ marginTop: spacing[4], alignSelf: 'center' }}
                 />
@@ -123,7 +125,7 @@ function SearchScreen() {
           onPress={f.scrollToTop}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel="En üste dön"
+          accessibilityLabel={t('search.scrollToTop')}
         >
           <Ionicons name="chevron-up" size={26} color={colors.white} />
         </TouchableOpacity>

@@ -1,4 +1,5 @@
 import { View, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Chip, Spinner, Input, EmptyState } from '@/ui';
 import { ScreenHeader, ThemedRefreshControl } from '@/components/common';
 import { useModels } from './_hooks/useModels';
@@ -6,15 +7,16 @@ import { styles } from './_lib/styles';
 import { ModelsBrandSection } from './_components/ModelsBrandSection';
 
 export default function ModelsScreen() {
+  const { t } = useTranslation();
   const f = useModels();
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Araba Modelleri" />
+      <ScreenHeader title={t('models.title')} />
 
       <View style={styles.searchWrap}>
         <Input
-          placeholder="Model veya marka ara..."
+          placeholder={t('models.searchPlaceholder')}
           value={f.search}
           onChangeText={f.setSearch}
           leftIconName="search"
@@ -27,7 +29,7 @@ export default function ModelsScreen() {
         style={styles.brandFilterScroll}
         contentContainerStyle={styles.brandFilterRow}
       >
-        <Chip label="Tüm Markalar" selected={f.selectedBrand === 'all'} onPress={() => f.setSelectedBrand('all')} variant="primary" />
+        <Chip label={t('models.allBrands')} selected={f.selectedBrand === 'all'} onPress={() => f.setSelectedBrand('all')} variant="primary" />
         {f.brands.map((b) => (
           <Chip
             key={b.slug}
@@ -46,8 +48,8 @@ export default function ModelsScreen() {
       ) : f.grouped.length === 0 ? (
         <EmptyState
           icon="car-outline"
-          title="Model bulunamadı"
-          subtitle={f.search ? 'Farklı bir arama deneyin.' : 'Henüz araba modeli eklenmemiş.'}
+          title={t('models.noResults')}
+          subtitle={f.search ? t('models.emptySearchHint') : t('models.emptyHint')}
         />
       ) : (
         <ScrollView

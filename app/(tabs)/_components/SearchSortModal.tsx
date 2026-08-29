@@ -13,7 +13,7 @@ const { colors } = theme;
 /** Bottom-sheet sort picker (web SidebarFilters sort parity). */
 export function SearchSortModal({ f }: { f: SearchController }) {
   const { t } = useTranslation();
-  const SORT_OPTIONS = useMemo(() => buildSortOptions(t), [t]);
+  const sortOptions = useMemo(() => buildSortOptions(t), [t]);
   return (
     <Modal
       visible={f.sortModalVisible}
@@ -29,9 +29,9 @@ export function SearchSortModal({ f }: { f: SearchController }) {
         <View style={styles.sortModalContent}>
           <View style={styles.sortModalHandle} />
           <Text variant="h2" style={styles.sortModalTitle}>
-            Sıralama
+            {t('common.sort')}
           </Text>
-          {SORT_OPTIONS.map((option) => {
+          {sortOptions.map((option) => {
             const isActive = f.filters.sortBy === option.value;
             return (
               <TouchableOpacity

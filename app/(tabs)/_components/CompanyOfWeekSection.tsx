@@ -32,7 +32,7 @@ export function CompanyOfWeekSection({
           <View style={[styles.sectionIndicator, { backgroundColor: colors.warning[500]! }]} />
           <Text style={styles.sectionTitle}>{t('home.companyOfWeek')}</Text>
           <View style={styles.businessBadge}>
-            <Text style={styles.businessBadgeText}>👑 Business</Text>
+            <Text style={styles.businessBadgeText}>{t('home.businessBadge')}</Text>
           </View>
         </View>
       </View>
@@ -62,7 +62,7 @@ export function CompanyOfWeekSection({
           <View style={styles.companyStatsGrid}>
             <View style={[styles.companyStat, { backgroundColor: colors.warning[50]! }]}>
               <Text style={[styles.companyStatValue, { color: colors.primary[600]! }]}>{c.stats.totalProducts || 0}</Text>
-              <Text style={styles.companyStatLabel}>Ürün</Text>
+              <Text style={styles.companyStatLabel}>{t('home.statProducts')}</Text>
             </View>
             <View style={[styles.companyStat, { backgroundColor: colors.success[50]! }]}>
               <Text style={[styles.companyStatValue, { color: colors.success[600]! }]}>{c.stats.totalSales || 0}</Text>
@@ -84,7 +84,9 @@ export function CompanyOfWeekSection({
           <View style={styles.companyRating}>
             <Ionicons name="star" size={18} color={colors.warning[500]!} />
             <Text style={styles.companyRatingValue}>{c.stats.averageRating.toFixed(1)}</Text>
-            <Text style={styles.companyRatingCount}>({c.stats.totalRatings || 0} yorum)</Text>
+            <Text style={styles.companyRatingCount}>
+              {t('home.reviewCountSuffix', { count: c.stats.totalRatings || 0 })}
+            </Text>
           </View>
         )}
 
@@ -135,10 +137,16 @@ export function CompanyOfWeekSection({
                 )}
                 <View style={styles.companyCollectionInfo}>
                   <Text style={styles.companyCollectionName}>{collection.name}</Text>
-                  <Text style={styles.companyCollectionMeta}>{collection.itemCount} ürün</Text>
+                  <Text style={styles.companyCollectionMeta}>
+                    {t('collection.itemCountSuffix', { count: collection.itemCount })}
+                  </Text>
                   <View style={styles.companyCollectionStats}>
-                    <Text style={styles.companyCollectionStatText}>{collection.viewCount} görüntülenme</Text>
-                    <Text style={styles.companyCollectionStatTextRed}>{collection.likeCount} beğeni</Text>
+                    <Text style={styles.companyCollectionStatText}>
+                      {t('collection.viewCountSuffix', { count: collection.viewCount })}
+                    </Text>
+                    <Text style={styles.companyCollectionStatTextRed}>
+                      {t('collection.likeCountSuffix', { count: collection.likeCount })}
+                    </Text>
                   </View>
                 </View>
               </TouchableOpacity>

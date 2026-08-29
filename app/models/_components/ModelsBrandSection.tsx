@@ -1,4 +1,5 @@
 import { View, Image, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +11,7 @@ const { colors } = theme;
 
 /** Bir markanın başlığı + o markaya ait model kartları grid'i. */
 export function ModelsBrandSection({ brand, models }: { brand: Brand; models: CarModel[] }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.brandSection}>
       <View style={styles.brandHeader}>
@@ -23,7 +25,8 @@ export function ModelsBrandSection({ brand, models }: { brand: Brand; models: Ca
         <View style={{ flex: 1 }}>
           <Text style={styles.brandName}>{brand.name}</Text>
           <Text style={styles.brandMeta}>
-            {models.length} model{brand.country ? ` · ${brand.country}` : ''}
+            {t('collection.modelCount', { count: models.length })}
+            {brand.country ? ` · ${brand.country}` : ''}
           </Text>
         </View>
       </View>
@@ -46,11 +49,13 @@ export function ModelsBrandSection({ brand, models }: { brand: Brand; models: Ca
               <Text style={styles.modelName} numberOfLines={1}>{m.name}</Text>
               {m.yearStart || m.yearEnd ? (
                 <Text style={styles.modelYears}>
-                  {m.yearStart ?? '?'}{m.yearEnd ? ` - ${m.yearEnd}` : ' - günümüz'}
+                  {m.yearStart ?? '?'}{m.yearEnd ? ` - ${m.yearEnd}` : ` - ${t('models.present')}`}
                 </Text>
               ) : null}
               {typeof m.productCount === 'number' ? (
-                <Text style={styles.modelCount}>{m.productCount} ürün</Text>
+                <Text style={styles.modelCount}>
+                  {t('collection.itemCountSuffix', { count: m.productCount })}
+                </Text>
               ) : null}
             </View>
           </TouchableOpacity>

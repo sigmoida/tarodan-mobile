@@ -429,6 +429,7 @@
     "productsTitle": "İlanları",
     "noResults": "Marka bulunamadı.",
     "noProducts": "Bu markaya ait aktif ilan bulunamadı.",
+    "emptyProductsTitle": "Bu markaya ait ürün yok",
     "backToAll": "Tüm Markalar",
     "website": "Web Sitesi",
     "activeListings": "Aktif ilanlar"
@@ -445,7 +446,13 @@
     "noProducts": "Bu modele ait aktif ilan bulunamadı.",
     "backToAll": "Tüm Modeller",
     "present": "Günümüz",
-    "notFound": "Model bulunamadı."
+    "notFound": "Model bulunamadı.",
+    "emptySearchHint": "Farklı bir arama deneyin.",
+    "emptyHint": "Henüz araba modeli eklenmemiş.",
+    "notFoundDesc": "Aradığınız model mevcut değil.",
+    "backToModels": "Modellere Dön",
+    "diecastModelsFor": "{name} İçin Diecast Modeller",
+    "noProductsForModel": "Bu model için henüz diecast ürün listelenmemiş."
   },
   "product": {
     "title": "Ürünler",
@@ -597,6 +604,8 @@
     "beFirstToReview": "Bu ürünü satın alan ilk kişi olun ve deneyiminizi paylaşın!",
     "listingNotFound": "İlan bulunamadı",
     "productNotFoundTitle": "Ürün bulunamadı",
+    "noProductsFound": "Ürün bulunamadı",
+    "noProductsInCategory": "Bu kategoride henüz ürün yok",
     "stockFinished": "Stok bitti",
     "productPrice": "Ürün Fiyatı",
     "sendOffer": "Teklif Gönder",
@@ -608,6 +617,7 @@
     "adding": "Ekleniyor...",
     "removing": "Kaldırılıyor...",
     "productsFound": "ürün bulundu",
+    "productsFoundCount": "{count} ürün bulundu",
     "sortHighestRating": "En Yüksek Puan",
     "sortLowestRating": "En Düşük Puan",
     "searchTypes": "Tür ara...",
@@ -763,7 +773,8 @@
     "selectedCount": "{count} ürün seçili",
     "subtotalWithCount": "Ara Toplam ({count} ürün)",
     "updateQuantity": "Adedi Güncelle",
-    "removedFromCart": "Sepetten çıkarıldı"
+    "removedFromCart": "Sepetten çıkarıldı",
+    "inCartBadge": "Sepette"
   },
   "favorites": {
     "myFavorites": "Favorilerim",
@@ -2165,7 +2176,10 @@
     "businessMembershipBadge": "İş Üyeliği",
     "companyLegalNameLabel": "Şirket / Ticari Unvan",
     "companyNameRequiredWarning": "İşletme panelini kullanmak için şirket adı zorunludur",
-    "corporateInfoNotice": "Kurumsal satıcı bilgileri fatura kesiminde kullanılır. Yanlış bilgi girişi yasal sorumluluk doğurabilir."
+    "corporateInfoNotice": "Kurumsal satıcı bilgileri fatura kesiminde kullanılır. Yanlış bilgi girişi yasal sorumluluk doğurabilir.",
+    "tierMemberBadge": "{tier} Üye",
+    "myDigitalGarage": "Dijital Garajım",
+    "garageEmptyDesc": "Araçlarını sergile ve paylaş"
   },
   "review": {
     "reviews": "Değerlendirmeler",
@@ -2315,10 +2329,15 @@
     "noProductsYet": "Henüz ürün yok",
     "allListings": "Tüm İlanlar",
     "companyFallback": "Şirket",
-    "companyCollections": "Koleksiyonları"
+    "companyCollections": "Koleksiyonları",
+    "featuredCollectionCount": "{count} araçlık koleksiyon",
+    "checkApiConnection": "API bağlantısını kontrol edin",
+    "businessBadge": "👑 Business",
+    "reviewCountSuffix": "({count} yorum)"
   },
   "search": {
     "search": "Ara",
+    "scrollToTop": "En üste dön",
     "searchResults": "Arama Sonuçları",
     "searchFor": "için sonuçlar",
     "noResults": "Sonuç bulunamadı",
@@ -7270,6 +7289,9 @@
     "menuAccessibility": "İlan menüsü",
     "createdAt": "Oluşturulma: {date}",
     "noListingsYet": "Henüz ilan yok",
+    "loadingListings": "İlanlar yükleniyor...",
+    "resultsCount": "{count} ilan bulundu",
+    "emptyFilterHint": "Farklı filtreler deneyebilirsiniz",
     "noListingsInStatus": "{status} ilan yok",
     "createFirstHint": "İlk ilanınızı oluşturmak için + butonuna tıklayın",
     "noneInCategory": "Bu kategoride ilan bulunmuyor",
@@ -7426,6 +7448,7 @@
     "clearSearchLabel": "Aramayı temizle",
     "modelSelectBrandFirstHint": "Önce marka seçin (ya da tüm modellerde arayın)",
     "discountOnlyLabel": "Sadece İndirimli",
+    "tradeOnlyChip": "Takaslı",
     "resultsLoading": "Sonuçlar yükleniyor…",
     "showResultsCount": "{count} Sonuç Göster"
   },

@@ -59,6 +59,6 @@ describe('J12 · Marka detay', () => {
     getAll.mockRejectedValue(new Error('boom'));
     renderWithProviders(<BrandDetailScreen />);
 
-    expect(await screen.findByText('Ürünler yüklenemedi.')).toBeOnTheScreen();
+    expect(await screen.findByText('Ürünler yüklenemedi')).toBeOnTheScreen();
   });
 });

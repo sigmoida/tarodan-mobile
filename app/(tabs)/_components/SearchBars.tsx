@@ -18,7 +18,7 @@ const { colors } = theme;
  */
 export function SearchBars({ f }: { f: SearchController }) {
   const { t } = useTranslation();
-  const SORT_OPTIONS = useMemo(() => buildSortOptions(t), [t]);
+  const sortOptions = useMemo(() => buildSortOptions(t), [t]);
   return (
     <Animated.View
       testID="search-collapsible-bars"
@@ -89,7 +89,7 @@ export function SearchBars({ f }: { f: SearchController }) {
         >
           <Ionicons name="swap-vertical-outline" size={20} color={colors.text.heading} />
           <Text style={styles.filterButtonText}>
-            {SORT_OPTIONS.find((s) => s.value === f.filters.sortBy)?.label || t('common.sort')}
+            {sortOptions.find((s) => s.value === f.filters.sortBy)?.label || t('common.sort')}
           </Text>
         </TouchableOpacity>
       </View>

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -18,6 +19,7 @@ interface Brand {
 }
 
 export default function BrandsScreen() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
 
   const { data, isLoading, error, refetch, isRefetching } = useQuery<Brand[]>({
@@ -55,20 +57,22 @@ export default function BrandsScreen() {
       </View>
       <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
       {typeof item.productCount === 'number' ? (
-        <Text style={styles.count}>{item.productCount} ürün</Text>
+        <Text style={styles.count}>
+          {t('collection.itemCountSuffix', { count: item.productCount })}
+        </Text>
       ) : null}
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Markalar" />
+      <ScreenHeader title={t('brands.title')} />
 
       <View style={styles.searchBar}>
         <Input
           value={search}
           onChangeText={setSearch}
-          placeholder="Marka ara..."
+          placeholder={t('brands.searchPlaceholder')}
           leftIconName="search"
         />
       </View>
@@ -81,8 +85,8 @@ export default function BrandsScreen() {
         <EmptyState
           fullscreen
           icon="pricetags-outline"
-          title={search ? 'Sonuç bulunamadı' : 'Henüz marka yok'}
-          subtitle={search ? 'Farklı bir anahtar kelime deneyin.' : undefined}
+          title={search ? t('search.noResults') : t('brands.noResults')}
+          subtitle={search ? t('search.tryDifferent') : undefined}
         />
       ) : (
         <FlatList

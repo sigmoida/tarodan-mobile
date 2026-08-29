@@ -429,6 +429,7 @@
     "productsTitle": "Listings",
     "noResults": "No brands found.",
     "noProducts": "No active listings found for this brand.",
+    "emptyProductsTitle": "No products for this brand",
     "backToAll": "All Brands",
     "website": "Website",
     "activeListings": "Active listings"
@@ -445,7 +446,13 @@
     "noProducts": "No active listings found for this model.",
     "backToAll": "All Models",
     "present": "Present",
-    "notFound": "Model not found."
+    "notFound": "Model not found.",
+    "emptySearchHint": "Try a different search.",
+    "emptyHint": "No car models added yet.",
+    "notFoundDesc": "The model you're looking for isn't available.",
+    "backToModels": "Back to Models",
+    "diecastModelsFor": "Diecast Models for {name}",
+    "noProductsForModel": "No diecast products have been listed for this model yet."
   },
   "product": {
     "title": "Products",
@@ -597,6 +604,8 @@
     "beFirstToReview": "Be the first to buy this product and share your experience!",
     "listingNotFound": "Listing not found",
     "productNotFoundTitle": "Product not found",
+    "noProductsFound": "No products found",
+    "noProductsInCategory": "There are no products in this category yet",
     "stockFinished": "Out of stock",
     "productPrice": "Product Price",
     "sendOffer": "Send Offer",
@@ -608,6 +617,7 @@
     "adding": "Adding...",
     "removing": "Removing...",
     "productsFound": "products found",
+    "productsFoundCount": "{count} products found",
     "sortHighestRating": "Highest Rating",
     "sortLowestRating": "Lowest Rating",
     "searchTypes": "Search types...",
@@ -763,7 +773,8 @@
     "selectedCount": "{count} item(s) selected",
     "subtotalWithCount": "Subtotal ({count} items)",
     "updateQuantity": "Update Quantity",
-    "removedFromCart": "Removed from cart"
+    "removedFromCart": "Removed from cart",
+    "inCartBadge": "In Cart"
   },
   "favorites": {
     "myFavorites": "My Favorites",
@@ -2165,7 +2176,10 @@
     "businessMembershipBadge": "Business Membership",
     "companyLegalNameLabel": "Company / Legal Name",
     "companyNameRequiredWarning": "Company name is required to use the business panel",
-    "corporateInfoNotice": "Corporate seller information is used for invoicing. Incorrect information may create legal liability."
+    "corporateInfoNotice": "Corporate seller information is used for invoicing. Incorrect information may create legal liability.",
+    "tierMemberBadge": "{tier} Member",
+    "myDigitalGarage": "My Digital Garage",
+    "garageEmptyDesc": "Show off your cars and share them"
   },
   "review": {
     "reviews": "Reviews",
@@ -2315,10 +2329,15 @@
     "noProductsYet": "No items yet",
     "allListings": "All Listings",
     "companyFallback": "Company",
-    "companyCollections": "Their collections"
+    "companyCollections": "Their collections",
+    "featuredCollectionCount": "{count}-vehicle collection",
+    "checkApiConnection": "Check the API connection",
+    "businessBadge": "👑 Business",
+    "reviewCountSuffix": "({count} reviews)"
   },
   "search": {
     "search": "Search",
+    "scrollToTop": "Back to top",
     "searchResults": "Search Results",
     "searchFor": "results for",
     "noResults": "No results found",
@@ -7270,6 +7289,9 @@
     "menuAccessibility": "Listing menu",
     "createdAt": "Created: {date}",
     "noListingsYet": "No listings yet",
+    "loadingListings": "Loading listings...",
+    "resultsCount": "{count} listings found",
+    "emptyFilterHint": "Try different filters",
     "noListingsInStatus": "No {status} listings",
     "createFirstHint": "Tap + to create your first listing",
     "noneInCategory": "There are no listings in this category",
@@ -7426,6 +7448,7 @@
     "clearSearchLabel": "Clear search",
     "modelSelectBrandFirstHint": "Select a brand first (or search across all models)",
     "discountOnlyLabel": "Discounted Only",
+    "tradeOnlyChip": "Tradeable",
     "resultsLoading": "Loading results…",
     "showResultsCount": "Show {count} Results"
   },

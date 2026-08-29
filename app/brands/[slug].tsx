@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Image } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -21,6 +22,7 @@ interface Brand {
 }
 
 export default function BrandDetailScreen() {
+  const { t } = useTranslation();
   const { slug } = useLocalSearchParams<{ slug: string }>();
 
   const { data: brand, isLoading: loadingBrand } = useQuery<Brand | null>({
@@ -54,17 +56,17 @@ export default function BrandDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title={brand?.name || 'Marka'} />
+      <ScreenHeader title={brand?.name || t('product.brand')} />
 
       <ProductGrid
         items={products}
         loading={loadingProducts}
         refreshing={isRefetching}
         onRefresh={refetch}
-        errorMessage={error ? 'Ürünler yüklenemedi.' : null}
+        errorMessage={error ? t('collection.productsLoadFailed') : null}
         onRetry={refetch}
-        emptyTitle="Bu markaya ait ürün yok"
-        emptySubtitle="Yakında yeni ürünler eklenecek."
+        emptyTitle={t('brands.emptyProductsTitle')}
+        emptySubtitle={t('product.moreProductsComingSoon')}
         emptyIcon="pricetag-outline"
         ListHeaderComponent={
           loadingBrand ? null : brand ? (
@@ -79,7 +81,9 @@ export default function BrandDetailScreen() {
               <View style={styles.headerText}>
                 <Text style={styles.brandName}>{brand.name}</Text>
                 {typeof brand.productCount === 'number' ? (
-                  <Text style={styles.count}>{brand.productCount} ürün</Text>
+                  <Text style={styles.count}>
+                    {t('collection.itemCountSuffix', { count: brand.productCount })}
+                  </Text>
                 ) : null}
               </View>
             </View>

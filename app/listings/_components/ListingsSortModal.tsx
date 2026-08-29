@@ -9,7 +9,7 @@ import type { ListingsController } from '../_hooks/useListings';
 /** Sıralama seçim modalı (alttan açılan sheet). */
 export function ListingsSortModal({ f }: { f: ListingsController }) {
   const { t } = useTranslation();
-  const SORT_OPTIONS = useMemo(() => buildSortOptions(t), [t]);
+  const sortOptions = useMemo(() => buildSortOptions(t), [t]);
   const select = (value: string) => {
     f.setFilters({ ...f.filters, sortBy: value });
     f.setSortMenuVisible(false);
@@ -25,8 +25,8 @@ export function ListingsSortModal({ f }: { f: ListingsController }) {
       <TouchableOpacity style={styles.sortBackdrop} activeOpacity={1} onPress={() => f.setSortMenuVisible(false)}>
         <View style={styles.sortSheet}>
           <View style={styles.sortHandle} />
-          <Text variant="h2" style={styles.sortTitle}>Sırala</Text>
-          {SORT_OPTIONS.map((option) => (
+          <Text variant="h2" style={styles.sortTitle}>{t('common.sort')}</Text>
+          {sortOptions.map((option) => (
             <TouchableOpacity key={option.value} style={styles.sortOption} onPress={() => select(option.value)}>
               <Text style={styles.sortOptionText}>{option.label}</Text>
               <Radio checked={f.filters.sortBy === option.value} onChange={() => select(option.value)} />
