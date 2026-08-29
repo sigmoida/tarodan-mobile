@@ -7617,5 +7617,17 @@
     "createdLabel": "Oluşturulma: {date}",
     "run": "Çalıştır",
     "notifyToggleLabel": "Yeni ürünlerde bildir"
+  },
+  "guestRestriction": {
+    "messageMessage": "Satıcıyla mesajlaşmak için giriş yapın",
+    "tradeMessage": "Takas yapabilmek için premium üye olun",
+    "collectionsMessage": "Digital Garage oluşturmak için premium üye olun",
+    "rateMessage": "Değerlendirme yapmak için giriş yapın",
+    "commentTitle": "Yorum Yap",
+    "commentMessage": "Yorum yapmak için giriş yapın",
+    "sellMessage": "İlan vermek için üye olun",
+    "wishlistTitle": "İstek Listesi",
+    "wishlistMessage": "İstek listesi oluşturmak için üye olun",
+    "followMessage": "Satıcıları takip etmek için üye olun"
   }
 }

@@ -7617,5 +7617,17 @@
     "createdLabel": "Created: {date}",
     "run": "Run",
     "notifyToggleLabel": "Notify me of new items"
+  },
+  "guestRestriction": {
+    "messageMessage": "Sign in to message the seller",
+    "tradeMessage": "Become a premium member to make trades",
+    "collectionsMessage": "Become a premium member to create your Digital Garage",
+    "rateMessage": "Sign in to leave a review",
+    "commentTitle": "Comment",
+    "commentMessage": "Sign in to comment",
+    "sellMessage": "Sign up to create a listing",
+    "wishlistTitle": "Wishlist",
+    "wishlistMessage": "Sign up to create a wishlist",
+    "followMessage": "Sign up to follow sellers"
   }
 }
