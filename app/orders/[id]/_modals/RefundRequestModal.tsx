@@ -42,23 +42,23 @@ export function RefundRequestModal({
 }) {
   const { t } = useTranslation();
   return (
-    <Modal isOpen={visible} onClose={onClose} title="İade Talebi Oluştur">
+    <Modal isOpen={visible} onClose={onClose} title={t('order.requestRefundTitle')}>
       <ScrollView>
         <Text variant="caption" style={styles.refundModalHint}>
-          Teslimattan sonra 14 gün içinde sebep belirtmeden iade hakkınız vardır. Sebep, açıklama ve fotoğraf isteğe bağlıdır.
+          {t('order.refundHintTop')}
         </Text>
 
         {orderQuantity > 1 && (
           <View style={styles.qtySection}>
             <Text variant="caption" style={styles.refundModalLabel}>{t('order.refundQuantity')}</Text>
             <Text variant="caption" style={styles.evidenceHint}>
-              Bu siparişte {orderQuantity} adet var. Kaç adet iade edeceğinizi seçin.
+              {t('order.refundQuantityHint', { quantity: orderQuantity })}
             </Text>
             <View style={styles.qtyRow}>
               <Pressable
                 testID="refund-qty-dec"
                 accessibilityRole="button"
-                accessibilityLabel="Adet azalt"
+                accessibilityLabel={t('order.qtyDecreaseA11y')}
                 onPress={() => setQuantity((q) => Math.max(1, q - 1))}
                 disabled={quantity <= 1}
                 style={[styles.qtyBtn, quantity <= 1 && styles.qtyBtnDisabled]}
@@ -70,7 +70,7 @@ export function RefundRequestModal({
               <Pressable
                 testID="refund-qty-inc"
                 accessibilityRole="button"
-                accessibilityLabel="Adet artır"
+                accessibilityLabel={t('order.qtyIncreaseA11y')}
                 onPress={() => setQuantity((q) => Math.min(orderQuantity, q + 1))}
                 disabled={quantity >= orderQuantity}
                 style={[styles.qtyBtn, quantity >= orderQuantity && styles.qtyBtnDisabled]}
@@ -86,8 +86,8 @@ export function RefundRequestModal({
         <RadioGroup value={reason} onChange={setReason} options={REFUND_REASONS} />
 
         <Input
-          label="Açıklama (isteğe bağlı)"
-          placeholder="Sorunu kısaca anlatın..."
+          label={t('order.descriptionOptionalLabel')}
+          placeholder={t('order.describeIssueOptionalPlaceholder')}
           value={description}
           onChangeText={setDescription}
           multiline
@@ -99,7 +99,7 @@ export function RefundRequestModal({
         <View style={styles.evidenceSection}>
           <Text variant="caption" style={styles.refundModalLabel}>{t('order.evidencePhotoOptional')}</Text>
           <Text variant="caption" style={styles.evidenceHint}>
-            Dilerseniz fotoğraf ekleyin (en fazla {MAX_EVIDENCE_PHOTOS}).
+            {t('order.evidenceOptionalHint', { max: MAX_EVIDENCE_PHOTOS })}
           </Text>
           <View style={styles.evidenceGrid}>
             {evidence.map((a, i) => (
@@ -110,24 +110,24 @@ export function RefundRequestModal({
                   onPress={() => removeEvidence(i)}
                   hitSlop={6}
                   accessibilityRole="button"
-                  accessibilityLabel="Fotoğrafı kaldır"
+                  accessibilityLabel={t('order.removePhotoA11y')}
                 >
                   <Ionicons name="close" size={14} color={colors.white} />
                 </Pressable>
               </View>
             ))}
             {evidence.length < MAX_EVIDENCE_PHOTOS ? (
-              <Pressable style={styles.evidenceAdd} onPress={pickEvidence} accessibilityRole="button" accessibilityLabel="Fotoğraf ekle">
+              <Pressable style={styles.evidenceAdd} onPress={pickEvidence} accessibilityRole="button" accessibilityLabel={t('order.addPhotoA11y')}>
                 <Ionicons name="camera-outline" size={22} color={colors.text.muted} />
-                <Text style={styles.evidenceAddText}>Ekle</Text>
+                <Text style={styles.evidenceAddText}>{t('common.add')}</Text>
               </Pressable>
             ) : null}
           </View>
         </View>
 
         <View style={styles.refundModalActions}>
-          <Button variant="ghost" title="Vazgeç" onPress={onClose} disabled={isPending} />
-          <Button variant="primary" title="Talebi Gönder" onPress={onSubmit} isLoading={isPending} disabled={isPending} />
+          <Button variant="ghost" title={t('trade.dispute.cancelCta')} onPress={onClose} disabled={isPending} />
+          <Button variant="primary" title={t('order.submitRefund')} onPress={onSubmit} isLoading={isPending} disabled={isPending} />
         </View>
       </ScrollView>
     </Modal>

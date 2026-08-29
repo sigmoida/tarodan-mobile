@@ -17,7 +17,7 @@ export default function OrderGroupDetailScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader
-        title="Sipariş Detayı"
+        title={t('order.orderDetails')}
         onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       />
 

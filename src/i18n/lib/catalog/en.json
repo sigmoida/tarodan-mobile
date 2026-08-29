@@ -1205,7 +1205,15 @@
     "viewDownloadSellerInvoice": "View / Download Seller Invoice",
     "replaceInvoice": "Replace Invoice",
     "uploadInvoicePdfNotice": "Upload the invoice PDF to send to the buyer (10 MB max).",
-    "noInvoiceUploadedYet": "No invoice has been uploaded for this order yet."
+    "noInvoiceUploadedYet": "No invoice has been uploaded for this order yet.",
+    "refundHintTop": "You have the right to a refund within 14 days of delivery, without giving a reason. Reason, description, and photos are optional.",
+    "descriptionOptionalLabel": "Description (optional)",
+    "describeIssueOptionalPlaceholder": "Briefly describe the issue...",
+    "evidenceOptionalHint": "You may add photos (up to {max}).",
+    "qtyDecreaseA11y": "Decrease quantity",
+    "qtyIncreaseA11y": "Increase quantity",
+    "removePhotoA11y": "Remove photo",
+    "addPhotoA11y": "Add photo"
   },
   "trade": {
     "featureTitle": "Trading",

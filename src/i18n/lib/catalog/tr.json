@@ -1205,7 +1205,15 @@
     "viewDownloadSellerInvoice": "Satıcı Faturasını Görüntüle / İndir",
     "replaceInvoice": "Faturayı Değiştir",
     "uploadInvoicePdfNotice": "Alıcıya iletilmek üzere fatura PDF''i yükleyin (en fazla 10 MB).",
-    "noInvoiceUploadedYet": "Bu sipariş için henüz fatura yüklenmedi."
+    "noInvoiceUploadedYet": "Bu sipariş için henüz fatura yüklenmedi.",
+    "refundHintTop": "Teslimattan sonra 14 gün içinde sebep belirtmeden iade hakkınız vardır. Sebep, açıklama ve fotoğraf isteğe bağlıdır.",
+    "descriptionOptionalLabel": "Açıklama (isteğe bağlı)",
+    "describeIssueOptionalPlaceholder": "Sorunu kısaca anlatın...",
+    "evidenceOptionalHint": "Dilerseniz fotoğraf ekleyin (en fazla {max}).",
+    "qtyDecreaseA11y": "Adet azalt",
+    "qtyIncreaseA11y": "Adet artır",
+    "removePhotoA11y": "Fotoğrafı kaldır",
+    "addPhotoA11y": "Fotoğraf ekle"
   },
   "trade": {
     "featureTitle": "Takas Özelliği",
