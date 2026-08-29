@@ -28,7 +28,7 @@ export default function CheckoutScreen() {
         <Text style={styles.emptySubtitle}>{t('checkout.emptyCartDesc')}</Text>
         <Button
           variant="primary"
-          title="Alışverişe Başla"
+          title={t('checkout.startShopping')}
           onPress={() => router.replace('/' as any)}
           style={{ marginTop: theme.spacing[5], alignSelf: 'center' }}
         />
@@ -107,7 +107,7 @@ export default function CheckoutScreen() {
         {c.step < 3 ? (
           <Button
             variant="primary"
-            title="Devam Et"
+            title={t('common.continue')}
             onPress={c.handleNextStep}
             icon="arrow-forward"
             iconPosition="right"
@@ -124,7 +124,7 @@ export default function CheckoutScreen() {
                 ? t('checkout.processing')
                 : c.total == null
                   ? t('checkout.confirmAndPay')
-                  : `Onayla ve Öde (${formatPrice(c.total)})`
+                  : t('checkout.confirmAndPayWithAmount', { amount: formatPrice(c.total) })
             }
             testID="checkout-pay-button"
             onPress={c.handleCheckout}

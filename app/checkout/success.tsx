@@ -33,7 +33,7 @@ export default function CheckoutSuccessScreen() {
 
         {/* Description */}
         <Text style={styles.description}>
-          Siparişiniz başarıyla oluşturuldu. Satıcı onayladıktan sonra kargoya verilecektir.
+          {t('checkout.successDescription')}
         </Text>
 
         {/* Info Card */}
@@ -41,7 +41,7 @@ export default function CheckoutSuccessScreen() {
           <View style={styles.infoItem}>
             <Ionicons name="mail-outline" size={24} color={colors.primary[600]!} />
             <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>E-posta Bildirimi</Text>
+              <Text style={styles.infoTitle}>{t('checkout.emailNotificationTitle')}</Text>
               <Text style={styles.infoText}>{t('order.detailsEmailed')}</Text>
             </View>
           </View>
@@ -65,7 +65,7 @@ export default function CheckoutSuccessScreen() {
         <View style={styles.buttons}>
           <Button
             variant="primary"
-            title="Siparişlerimi Gör"
+            title={t('checkout.viewMyOrders')}
             fullWidth
             onPress={() => router.replace('/orders')}
             style={styles.primaryButton}
@@ -73,7 +73,7 @@ export default function CheckoutSuccessScreen() {
           />
           <Button
             variant="outline"
-            title="Alışverişe Devam Et"
+            title={t('cart.continueShopping')}
             fullWidth
             onPress={() => router.replace('/(tabs)')}
             style={styles.secondaryButton}
@@ -82,9 +82,9 @@ export default function CheckoutSuccessScreen() {
 
         {/* Support Link */}
         <Text style={styles.supportText}>
-          Bir sorun mu var?{' '}
+          {t('checkout.supportQuestion')}{' '}
           <Text style={styles.supportLink} onPress={() => router.push('/support')}>
-            Destek alın
+            {t('checkout.getSupport')}
           </Text>
         </Text>
       </ScrollView>
