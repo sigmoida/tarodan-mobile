@@ -158,7 +158,7 @@ export default function RefundDetailScreen() {
         {/* İade bilgileri */}
         <Card variant="elevated" style={styles.card}>
           <Text variant="label" style={styles.sectionTitle}>{t('refund.detail.infoTitle')}</Text>
-          <Row label={t('common.reason')} value={refundReasonLabel(rr.reason)} />
+          <Row label={t('common.reason')} value={refundReasonLabel(rr.reason, t)} />
           {rr.description ? <Row label={t('common.description')} value={rr.description} /> : null}
           {rr.order?.seller?.displayName ? <Row label={t('product.seller')} value={rr.order.seller.displayName} /> : null}
           {rr.requester?.displayName && !isRequester ? <Row label={t('order.buyer')} value={rr.requester.displayName} /> : null}

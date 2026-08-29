@@ -3,7 +3,7 @@ import React from 'react';
 import { View, ScrollView, Image, Pressable, StyleSheet } from 'react-native';
 import { Modal, Button, Input, RadioGroup, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
-import { REFUND_REASONS, MAX_EVIDENCE_PHOTOS } from '../_lib/status';
+import { useRefundReasons, MAX_EVIDENCE_PHOTOS } from '../_lib/status';
 import type { RNFile } from '@/lib/api';
 
 const { colors, radius } = theme;
@@ -41,6 +41,7 @@ export function RefundRequestModal({
   isPending: boolean;
 }) {
   const { t } = useTranslation();
+  const refundReasons = useRefundReasons();
   return (
     <Modal isOpen={visible} onClose={onClose} title={t('order.requestRefundTitle')}>
       <ScrollView>
@@ -83,7 +84,7 @@ export function RefundRequestModal({
         )}
 
         <Text variant="caption" style={styles.refundModalLabel}>{t('order.refundReasonOptional')}</Text>
-        <RadioGroup value={reason} onChange={setReason} options={REFUND_REASONS} />
+        <RadioGroup value={reason} onChange={setReason} options={refundReasons} />
 
         <Input
           label={t('order.descriptionOptionalLabel')}

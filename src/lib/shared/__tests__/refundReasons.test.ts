@@ -19,29 +19,39 @@
  * `defective` ve `buyer_damaged` o güne kadar sözlükte YOKTU: bu kodu taşıyan
  * talep ekranda ham snake_case basılıyordu ve alıcı web'de seçebildiği iki
  * nedeni burada seçemiyordu.
+ *
+ * i18n göçü (§ i18n-kuyruk, 2026-08-29): sözlük artık modül seviyesinde
+ * DONDURULMUYOR — `buildRefundReasonConfig(t)` / `buildRefundReasonOptions(t)`
+ * ÇAĞRI ANINDA aktif dile göre kurulur (CLAUDE.md kural 2). Testler sabit TR
+ * çözümü için `i18n.getFixedT('tr')` kullanır (bkz. `validate.test.ts`).
  */
+import i18n from '@/i18n/config';
 import {
   REFUND_REASONS,
-  refundReasonConfig,
+  buildRefundReasonConfig,
   refundReasonLabel,
-  REFUND_REASON_OPTIONS,
+  buildRefundReasonOptions,
   BUYER_SELECTABLE_REFUND_REASONS,
 } from '../status-configs';
+
+const t = i18n.getFixedT('tr');
+const refundReasonConfig = buildRefundReasonConfig(t);
+const REFUND_REASON_OPTIONS = buildRefundReasonOptions(t);
 
 describe('refundReasonLabel', () => {
   it('labels every reason the dictionary knows', () => {
     Object.keys(refundReasonConfig).forEach((code) => {
-      expect(refundReasonLabel(code)).toBe(refundReasonConfig[code]!.label);
+      expect(refundReasonLabel(code, t)).toBe(refundReasonConfig[code]!.label);
     });
   });
 
   it('falls back to the raw code instead of rendering nothing', () => {
-    expect(refundReasonLabel('a_reason_added_later')).toBe('a_reason_added_later');
+    expect(refundReasonLabel('a_reason_added_later', t)).toBe('a_reason_added_later');
   });
 
   it('handles a missing reason without throwing', () => {
-    expect(refundReasonLabel(undefined)).toBe('');
-    expect(refundReasonLabel('')).toBe('');
+    expect(refundReasonLabel(undefined, t)).toBe('');
+    expect(refundReasonLabel('', t)).toBe('');
   });
 });
 
@@ -76,15 +86,15 @@ describe('REFUND_REASON_OPTIONS', () => {
 
   it('is built without a non-null assertion that could crash the module', () => {
     // Mutasyon denetiminde çıktı: liste sözlükte OLMAYAN bir koda atıfta
-    // bulunursa `refundReasonConfig[value]!.label` import anında TypeError
-    // atıyordu — iade ekranı komple beyaz ekran olurdu, tek bir yazım hatası
-    // yüzünden. Kaynağı okuyup iddiayı doğrudan yasaklıyoruz.
+    // bulunursa `config[value]!.label` çağrı anında TypeError atıyordu —
+    // iade ekranı komple beyaz ekran olurdu, tek bir yazım hatası yüzünden.
+    // Kaynağı okuyup iddiayı doğrudan yasaklıyoruz.
     const source = require('fs').readFileSync(
       require('path').resolve(__dirname, '../status-configs.ts'),
       'utf8',
     );
-    const optionsBlock = source.slice(source.indexOf('REFUND_REASON_OPTIONS'));
-    expect(optionsBlock).not.toContain('refundReasonConfig[value]!');
+    const optionsBlock = source.slice(source.indexOf('buildRefundReasonOptions'));
+    expect(optionsBlock).not.toContain('config[value]!');
   });
 });
 
@@ -92,7 +102,7 @@ describe('sunucu enum’u ile sözlük', () => {
   it('sözlük enum’un HER değerini tanır — ham kod basılmaz', () => {
     for (const reason of REFUND_REASONS) {
       expect(refundReasonConfig[reason]).toBeDefined();
-      expect(refundReasonLabel(reason)).not.toBe(reason);
+      expect(refundReasonLabel(reason, t)).not.toBe(reason);
     }
   });
 

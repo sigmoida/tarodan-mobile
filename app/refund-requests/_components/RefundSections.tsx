@@ -128,7 +128,7 @@ function RefundCard({ f, rr }: Props & { rr: RefundRequestRow }) {
                 {rr.order?.product?.title ?? t('order.product')}
               </Text>
               <Text variant="caption" style={styles.muted}>
-                {t('refund.reasonLabel', { reason: refundReasonLabel(rr.reason) })}
+                {t('refund.reasonLabel', { reason: refundReasonLabel(rr.reason, t) })}
               </Text>
               {f.tab === 'seller'
                 ? rr.requester?.displayName && (

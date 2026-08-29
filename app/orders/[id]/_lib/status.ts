@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 // Sipariş/iade statü haritaları + sabitler — TEK kaynak.
 import type { BadgeVariant } from '@/ui';
 import type { MessageKey } from '@/i18n/lib';
-import { REFUND_REASON_OPTIONS } from '@/lib/shared/status-configs';
+import { buildRefundReasonOptions } from '@/lib/shared/status-configs';
 
 export const MAX_EVIDENCE_PHOTOS = 5;
 // Saticiya ödeme = teslim + 14 gün cayma penceresi.
@@ -12,7 +12,12 @@ export const COOLING_OFF_DAYS = 14;
 // 14 gün koşulsuz iade (Mesafeli Satış cayma hakkı): sebep/foto opsiyonel.
 // Liste TEK kaynaktan (`@/lib/shared/status-configs`) gelir — etiketleri burada
 // tekrar yazmak, sözlüğün dört dosyada üç sürüme ayrılmasının sebebiydi.
-export const REFUND_REASONS = REFUND_REASON_OPTIONS;
+// Etiketler AKTİF dile göre çağrı anında kurulur (§ i18n-kuyruk) — modül
+// seviyesinde dondurulmaz, bu yüzden bir sabit değil bir HOOK.
+export function useRefundReasons(): Array<{ value: string; label: string }> {
+  const { t } = useTranslation();
+  return useMemo(() => buildRefundReasonOptions(t), [t]);
+}
 
 // İade durum haritası TEK kaynakta (`@/lib/shared/refundStatus`).
 export { refundStatusMeta as REFUND_STATUS_META, useRefundStatusConfig } from '@/lib/shared/refundStatus';
