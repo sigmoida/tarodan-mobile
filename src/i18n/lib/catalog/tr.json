@@ -1622,7 +1622,9 @@
     "currentPlanBadge": "Mevcut Plan",
     "monthlyEquivLabel": "Aylık ~{amount} ₺",
     "lowerPlanButton": "Alt Plan",
-    "planFallback": "Paket"
+    "planFallback": "Paket",
+    "badgeVerified": "Onaylı",
+    "badgePremiumVerified": "Premium Onaylı"
   },
   "collection": {
     "share": "Paylaş",

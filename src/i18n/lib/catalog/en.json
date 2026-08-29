@@ -1622,7 +1622,9 @@
     "currentPlanBadge": "Current Plan",
     "monthlyEquivLabel": "~₺{amount}/month",
     "lowerPlanButton": "Lower Plan",
-    "planFallback": "Plan"
+    "planFallback": "Plan",
+    "badgeVerified": "Verified",
+    "badgePremiumVerified": "Premium Verified"
   },
   "collection": {
     "share": "Share",
