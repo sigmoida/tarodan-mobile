@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
+import i18n from '@/i18n/config';
 import { refundsApi } from '@/lib/api';
 import { captureException } from '@/services/sentry';
 import { useAuthStore } from '@/stores/authStore';
@@ -37,12 +38,12 @@ export function useRefundRequests() {
   const cancelMutation = useMutation({
     mutationFn: (id: string) => refundsApi.cancel(id),
     onSuccess: () => {
-      appAlert('İptal edildi', 'İade talebiniz iptal edildi.');
+      appAlert(i18n.t('refund.cancelSuccessTitle'), i18n.t('refund.cancelSuccessBody'));
       queryClient.invalidateQueries({ queryKey: ['refund-requests'] });
     },
     onError: (e: any) => {
       captureException(e, { level: 'error', tags: { flow: 'refund.buyer.cancel' } });
-      appAlert('Hata', e?.response?.data?.message || 'İşlem başarısız. Tekrar deneyin.');
+      appAlert(i18n.t('common.error'), e?.response?.data?.message || i18n.t('refund.cancelFailed'));
     },
   });
 

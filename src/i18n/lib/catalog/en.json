@@ -3307,7 +3307,21 @@
       "refundCompleted": "Refund completed",
       "policyOverridden": "Policy updated",
       "payerChanged": "Return shipping fee payer updated"
-    }
+    },
+    "authGateSubtitle": "Sign in to view your refund requests",
+    "tabMine": "My Requests",
+    "tabOpenedAgainstMe": "Opened Against Me",
+    "sellerReadonlyNote": "Refund requests opened against you. Approving or rejecting isn''t available in the app yet; the request is handled by our support team.",
+    "emptySellerTitle": "No refund requests against you",
+    "emptyBuyerTitle": "You have no refund requests",
+    "emptySellerSubtitle": "Refund requests opened for items you sold will show up here",
+    "emptyBuyerSubtitle": "Refund requests you opened for your orders will show up here",
+    "reasonLabel": "Reason: {reason}",
+    "requesterLabel": "Requested by: {name}",
+    "sellerLabel": "Seller: {name}",
+    "cancelSuccessTitle": "Cancelled",
+    "cancelSuccessBody": "Your refund request has been cancelled.",
+    "cancelFailed": "The action failed. Please try again."
   },
   "report": {
     "reportListing": "Report Listing",

@@ -3307,7 +3307,21 @@
       "refundCompleted": "Para iadesi tamamlandı",
       "policyOverridden": "Politika güncellendi",
       "payerChanged": "İade kargo ücreti güncellendi"
-    }
+    },
+    "authGateSubtitle": "İade taleplerinizi görmek için giriş yapın",
+    "tabMine": "Taleplerim",
+    "tabOpenedAgainstMe": "Bana Açılanlar",
+    "sellerReadonlyNote": "Size açılan iade talepleri. Onay ve ret işlemleri şu an uygulamadan yapılamıyor; talep süreci destek ekibi tarafından yürütülür.",
+    "emptySellerTitle": "Size açılan iade talebi yok",
+    "emptyBuyerTitle": "İade talebiniz yok",
+    "emptySellerSubtitle": "Sattığınız ürünler için açılan iade talepleri burada görünür",
+    "emptyBuyerSubtitle": "Bir siparişiniz için açtığınız iade talepleri burada görünür",
+    "reasonLabel": "Sebep: {reason}",
+    "requesterLabel": "Talep eden: {name}",
+    "sellerLabel": "Satıcı: {name}",
+    "cancelSuccessTitle": "İptal edildi",
+    "cancelSuccessBody": "İade talebiniz iptal edildi.",
+    "cancelFailed": "İşlem başarısız. Tekrar deneyin."
   },
   "report": {
     "reportListing": "İlanı Raporla",

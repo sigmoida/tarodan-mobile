@@ -2,6 +2,7 @@ import React from 'react';
 import { View, ScrollView, RefreshControl, Image, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Button, Card, Chip, Spinner, StatusBadge, Text, theme, appAlert } from '@/ui';
 import { refundReasonLabel } from '@/lib/shared/status-configs';
 import { useRefundStatusConfig } from '@/lib/shared/refundStatus';
@@ -17,17 +18,18 @@ type Props = { f: RefundRequestsController };
 
 /** Giriş yapılmamışsa tüm ekranın yerine geçen kapı. */
 export function RefundAuthGate({ f }: Props) {
+  const { t } = useTranslation();
   if (f.isAuthenticated) return null;
   return (
     <View style={styles.centeredContainer}>
       <Ionicons name="receipt-outline" size={64} color={colors.primary[600]!} />
-      <Text variant="h2" style={styles.title}>İadelerim</Text>
+      <Text variant="h2" style={styles.title}>{t('order.myRefundRequests')}</Text>
       <Text variant="body" tone="muted" style={styles.subtitle}>
-        İade taleplerinizi görmek için giriş yapın
+        {t('refund.authGateSubtitle')}
       </Text>
       <Button
         variant="primary"
-        title="Giriş Yap"
+        title={t('common.login')}
         onPress={() => router.push('/(auth)/login')}
         style={{ alignSelf: 'center' }}
       />
@@ -37,18 +39,19 @@ export function RefundAuthGate({ f }: Props) {
 
 /** Alıcı / satıcı sekmeleri. */
 export function RefundTabs({ f }: Props) {
+  const { t } = useTranslation();
   return (
     <View style={styles.tabRow}>
       <Chip
         testID="refunds-tab-buyer"
-        label="Taleplerim"
+        label={t('refund.tabMine')}
         selected={f.tab === 'buyer'}
         onPress={() => f.setTab('buyer')}
         style={styles.tabChip}
       />
       <Chip
         testID="refunds-tab-seller"
-        label="Bana Açılanlar"
+        label={t('refund.tabOpenedAgainstMe')}
         selected={f.tab === 'seller'}
         onPress={() => f.setTab('seller')}
         style={styles.tabChip}
@@ -64,13 +67,13 @@ export function RefundTabs({ f }: Props) {
  * var). Buton koymak olmayan bir yetki vaat ederdi; durum açıkça yazılır.
  */
 export function RefundSellerNote({ f }: Props) {
+  const { t } = useTranslation();
   if (f.tab !== 'seller') return null;
   return (
     <View style={styles.readonlyNote} testID="refunds-seller-readonly-note">
       <Ionicons name="information-circle-outline" size={18} color={colors.info[600]!} />
       <Text variant="caption" style={styles.readonlyNoteText}>
-        Size açılan iade talepleri. Onay ve ret işlemleri şu an uygulamadan
-        yapılamıyor; talep süreci destek ekibi tarafından yürütülür.
+        {t('refund.sellerReadonlyNote')}
       </Text>
     </View>
   );
@@ -78,16 +81,17 @@ export function RefundSellerNote({ f }: Props) {
 
 /** Boş durum — metni sekmeye göre değişir. */
 export function RefundEmpty({ f }: Props) {
+  const { t } = useTranslation();
   return (
     <View style={styles.emptyContainer}>
       <Ionicons name="receipt-outline" size={80} color={colors.text.subtle} />
       <Text variant="h3" style={styles.emptyTitle}>
-        {f.tab === 'seller' ? 'Size açılan iade talebi yok' : 'İade talebiniz yok'}
+        {f.tab === 'seller' ? t('refund.emptySellerTitle') : t('refund.emptyBuyerTitle')}
       </Text>
       <Text variant="body" tone="muted" style={styles.emptySubtitle}>
         {f.tab === 'seller'
-          ? 'Sattığınız ürünler için açılan iade talepleri burada görünür'
-          : 'Bir siparişiniz için açtığınız iade talepleri burada görünür'}
+          ? t('refund.emptySellerSubtitle')
+          : t('refund.emptyBuyerSubtitle')}
       </Text>
     </View>
   );
@@ -95,6 +99,7 @@ export function RefundEmpty({ f }: Props) {
 
 /** Tek talep kartı. */
 function RefundCard({ f, rr }: Props & { rr: RefundRequestRow }) {
+  const { t } = useTranslation();
   const statusConfig = useRefundStatusConfig();
   // İptal ucu alıcıya ait — satıcı sekmesinde gösterilmez.
   const canCancel = f.tab === 'buyer' && rr.status === 'pending_review';
@@ -120,20 +125,20 @@ function RefundCard({ f, rr }: Props & { rr: RefundRequestRow }) {
             )}
             <View style={styles.productInfo}>
               <Text variant="label" numberOfLines={2}>
-                {rr.order?.product?.title ?? 'Ürün'}
+                {rr.order?.product?.title ?? t('order.product')}
               </Text>
               <Text variant="caption" style={styles.muted}>
-                Sebep: {refundReasonLabel(rr.reason)}
+                {t('refund.reasonLabel', { reason: refundReasonLabel(rr.reason) })}
               </Text>
               {f.tab === 'seller'
                 ? rr.requester?.displayName && (
                     <Text variant="caption" style={styles.muted}>
-                      Talep eden: {rr.requester.displayName}
+                      {t('refund.requesterLabel', { name: rr.requester.displayName })}
                     </Text>
                   )
                 : rr.order?.seller?.displayName && (
                     <Text variant="caption" style={styles.muted}>
-                      Satıcı: {rr.order.seller.displayName}
+                      {t('refund.sellerLabel', { name: rr.order.seller.displayName })}
                     </Text>
                   )}
             </View>
@@ -148,15 +153,15 @@ function RefundCard({ f, rr }: Props & { rr: RefundRequestRow }) {
           <View style={styles.actions}>
             <Button
               variant="ghost"
-              title="Talebi İptal Et"
+              title={t('refund.cancel.cta')}
               onPress={() =>
                 appAlert(
-                  'İade talebini iptal et',
-                  'Bu iade talebini iptal etmek istediğinize emin misiniz?',
+                  t('refund.cancel.confirmTitle'),
+                  t('refund.cancel.confirmBody'),
                   [
-                    { text: 'Vazgeç', style: 'cancel' },
+                    { text: t('trade.dispute.cancelCta'), style: 'cancel' },
                     {
-                      text: 'İptal Et',
+                      text: t('order.cancelShort'),
                       style: 'destructive',
                       onPress: () => f.cancelMutation.mutate(rr.id),
                     },
