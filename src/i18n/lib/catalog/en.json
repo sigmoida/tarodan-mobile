@@ -1213,7 +1213,20 @@
     "qtyDecreaseA11y": "Decrease quantity",
     "qtyIncreaseA11y": "Increase quantity",
     "removePhotoA11y": "Remove photo",
-    "addPhotoA11y": "Add photo"
+    "addPhotoA11y": "Add photo",
+    "statusPaidReceived": "Payment Received",
+    "trackClosedHintCancelled": "Your order has been cancelled. If you paid, it will be refunded to your account.",
+    "trackClosedHintRefunded": "Your order's refund is complete; your payment has been refunded.",
+    "trackClosedHintRefundRequested": "Your refund request is being processed. You will be notified once it is complete.",
+    "groupNumberLabel": "Group Number",
+    "orderStatusSectionTitle": "Order Status",
+    "trackFormTitle": "Look Up Your Order",
+    "trackFormDescription": "You can check your order status using your order, group, or delivery number along with your email address.",
+    "trackSubmitCta": "Look Up Order",
+    "trackHelpTitle": "Need help?",
+    "trackHelpText": "If you have a question about your order, you can contact our support team.",
+    "trackHelpCta": "Get Support",
+    "trackQueryFailed": "Could not look up the order"
   },
   "trade": {
     "featureTitle": "Trading",

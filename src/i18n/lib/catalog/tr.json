@@ -1213,7 +1213,20 @@
     "qtyDecreaseA11y": "Adet azalt",
     "qtyIncreaseA11y": "Adet artır",
     "removePhotoA11y": "Fotoğrafı kaldır",
-    "addPhotoA11y": "Fotoğraf ekle"
+    "addPhotoA11y": "Fotoğraf ekle",
+    "statusPaidReceived": "Ödeme Alındı",
+    "trackClosedHintCancelled": "Siparişiniz iptal edildi. Ödemeniz varsa hesabınıza iade edilir.",
+    "trackClosedHintRefunded": "Siparişinizin iadesi tamamlandı; ödemeniz iade edildi.",
+    "trackClosedHintRefundRequested": "İade talebiniz işleniyor. Süreç tamamlandığında bilgilendirileceksiniz.",
+    "groupNumberLabel": "Grup No",
+    "orderStatusSectionTitle": "Sipariş Durumu",
+    "trackFormTitle": "Siparişinizi Sorgulayın",
+    "trackFormDescription": "Sipariş, grup veya teslimat numaranızla ve e-posta adresinizle siparişinizin durumunu öğrenebilirsiniz.",
+    "trackSubmitCta": "Sipariş Sorgula",
+    "trackHelpTitle": "Yardım mı gerekiyor?",
+    "trackHelpText": "Siparişinizle ilgili sorunuz varsa destek ekibimizle iletişime geçebilirsiniz.",
+    "trackHelpCta": "Destek Al",
+    "trackQueryFailed": "Sipariş sorgulanamadı"
   },
   "trade": {
     "featureTitle": "Takas Özelliği",
