@@ -71,7 +71,7 @@ export default function CollectionsScreen() {
     if (!canCreateCollections) {
       setSnackbar({
         visible: true,
-        message: "Koleksiyon oluşturmak için Premium üyelik gerekiyor",
+        message: t("collection.premiumRequiredMsg"),
       });
       setTimeout(() => router.push("/upgrade"), 1500);
       return;
@@ -103,9 +103,9 @@ export default function CollectionsScreen() {
         <View style={styles.infoBanner}>
           <Ionicons name="car-sport" size={32} color={colors.primary[600]!} />
           <View style={styles.infoBannerText}>
-            <Text style={styles.infoBannerTitle}>Dijital Garaj</Text>
+            <Text style={styles.infoBannerTitle}>{t("mobile.guestGarageTitle")}</Text>
             <Text style={styles.infoBannerDesc}>
-              Koleksiyonlarınızı oluşturun, düzenleyin ve dünyayla paylaşın.
+              {t("collection.garageDesc")}
             </Text>
           </View>
         </View>
@@ -118,9 +118,9 @@ export default function CollectionsScreen() {
           >
             <Ionicons name="diamond" size={24} color={colors.warning[500]!} />
             <View style={styles.premiumNoticeText}>
-              <Text style={styles.premiumNoticeTitle}>Premium Özellik</Text>
+              <Text style={styles.premiumNoticeTitle}>{t("membership.premiumFeatureTitle")}</Text>
               <Text style={styles.premiumNoticeDesc}>
-                Koleksiyon oluşturma özelliği Premium üyelere özeldir.
+                {t("collection.premiumFeatureDesc")}
               </Text>
             </View>
             <Ionicons
@@ -169,7 +169,7 @@ export default function CollectionsScreen() {
                       {collection.name}
                     </Text>
                     <Text style={styles.collectionMeta}>
-                      {collection.itemCount || 0} araç
+                      {t("collection.vehicleCountSuffix", { count: collection.itemCount || 0 })}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -184,9 +184,9 @@ export default function CollectionsScreen() {
                   size={64}
                   color={colors.text.subtle}
                 />
-                <Text style={styles.emptyTitle}>Henüz koleksiyon yok</Text>
+                <Text style={styles.emptyTitle}>{t("collection.noCollections")}</Text>
                 <Text style={styles.emptyDesc}>
-                  İlk koleksiyonunuzu oluşturmak için + butonuna tıklayın
+                  {t("collection.emptyCreateHint")}
                 </Text>
               </View>
             )}
@@ -199,7 +199,7 @@ export default function CollectionsScreen() {
       {canCreateCollections && (
         <FAB
           icon="add"
-          accessibilityLabel="Yeni koleksiyon oluştur"
+          accessibilityLabel={t("collection.createNewCollection")}
           style={styles.fab}
           onPress={handleCreateCollection}
         />
