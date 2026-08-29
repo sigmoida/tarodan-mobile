@@ -94,10 +94,10 @@ describe('J2 · İlan formu render + submit butonu', () => {
   });
   afterEach(() => alertSpy.mockRestore());
 
-  it('J2.1 form başlığı ve "İlanı Oluştur" submit butonu görünür', async () => {
+  it('J2.1 form başlığı ve "İlan Oluştur" submit butonu görünür', async () => {
     renderWithProviders(<ListingForm mode="create" />);
     expect(await screen.findByText('Yeni İlan Oluştur')).toBeOnTheScreen();
-    expect(screen.getByText('İlanı Oluştur')).toBeOnTheScreen();
+    expect(screen.getByText('İlan Oluştur')).toBeOnTheScreen();
   });
 });
 
@@ -113,37 +113,37 @@ describe('J18/J55 · ilan formu input validasyonu', () => {
 
   it('J55.1 boş başlık → submit reddedilir, "Başlık en az 5 karakter" uyarısı', async () => {
     renderWithProviders(<ListingForm mode="create" />);
-    await screen.findByText('İlanı Oluştur');
-    fireEvent.press(screen.getByText('İlanı Oluştur'));
+    await screen.findByText('İlan Oluştur');
+    fireEvent.press(screen.getByText('İlan Oluştur'));
     expect(alertSpy).toHaveBeenCalledWith('Hata', 'Başlık en az 5 karakter olmalıdır.');
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it('J55.2 başlık<5 karakter → reddedilir', async () => {
     renderWithProviders(<ListingForm mode="create" />);
-    await screen.findByText('İlanı Oluştur');
+    await screen.findByText('İlan Oluştur');
     fireEvent.changeText(screen.getByPlaceholderText("Örn: Hot Wheels '69 Camaro Z28"), 'Abc');
-    fireEvent.press(screen.getByText('İlanı Oluştur'));
+    fireEvent.press(screen.getByText('İlan Oluştur'));
     expect(alertSpy).toHaveBeenCalledWith('Hata', 'Başlık en az 5 karakter olmalıdır.');
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it('J55.3 geçerli başlık + fiyat<1 → "Geçerli bir fiyat giriniz" uyarısı, reddedilir', async () => {
     renderWithProviders(<ListingForm mode="create" />);
-    await screen.findByText('İlanı Oluştur');
+    await screen.findByText('İlan Oluştur');
     fireEvent.changeText(screen.getByPlaceholderText("Örn: Hot Wheels '69 Camaro Z28"), 'Geçerli Başlık');
     fireEvent.changeText(screen.getByPlaceholderText('0.00'), '0');
-    fireEvent.press(screen.getByText('İlanı Oluştur'));
+    fireEvent.press(screen.getByText('İlan Oluştur'));
     expect(alertSpy).toHaveBeenCalledWith('Hata', 'Geçerli bir fiyat giriniz.');
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it('J55.4 başlık+fiyat geçerli, kategori/foto yok → kategori uyarısı (create yine çağrılmaz)', async () => {
     renderWithProviders(<ListingForm mode="create" />);
-    await screen.findByText('İlanı Oluştur');
+    await screen.findByText('İlan Oluştur');
     fireEvent.changeText(screen.getByPlaceholderText("Örn: Hot Wheels '69 Camaro Z28"), 'Geçerli Başlık');
     fireEvent.changeText(screen.getByPlaceholderText('0.00'), '150');
-    fireEvent.press(screen.getByText('İlanı Oluştur'));
+    fireEvent.press(screen.getByText('İlan Oluştur'));
     expect(alertSpy).toHaveBeenCalledWith('Hata', 'Lütfen bir kategori seçin.');
     expect(mockCreate).not.toHaveBeenCalled();
   });
@@ -160,7 +160,7 @@ describe('J56 · komisyon önizleme bölümü', () => {
 
   it('J56.1 fiyat girilince komisyon önizleme bölümü (kesinti + net kazanç) render olur', async () => {
     renderWithProviders(<ListingForm mode="create" />);
-    await screen.findByText('İlanı Oluştur');
+    await screen.findByText('İlan Oluştur');
     fireEvent.changeText(screen.getByPlaceholderText('0.00'), '500');
     await waitFor(
       () => expect(screen.getByText('Tahmini (satış başına)')).toBeOnTheScreen(),
@@ -172,7 +172,7 @@ describe('J56 · komisyon önizleme bölümü', () => {
 
   it('J56.2 fiyat boş/0 ise komisyon önizleme bölümü görünmez', async () => {
     renderWithProviders(<ListingForm mode="create" />);
-    await screen.findByText('İlanı Oluştur');
+    await screen.findByText('İlan Oluştur');
     expect(screen.queryByText('Tahmini (satış başına)')).toBeNull();
   });
 });

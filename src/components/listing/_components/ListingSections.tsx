@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { theme, DateField } from '@/ui';
 
 import { styles } from '../_lib/styles';
-import { CONDITIONS } from '../_lib/constants';
+import { buildConditions } from '../_lib/constants';
 import type { ListingFormController } from '../_hooks/useListingForm';
 
 const { colors } = theme;
@@ -26,27 +26,26 @@ type SectionProps = { f: ListingFormController };
 // Header + banners (page title, IBAN prompt, limits, reactivate/deleted panels)
 // ---------------------------------------------------------------------------
 export function ListingHeaderBanners({ f }: SectionProps) {
+  const { t } = useTranslation();
   return (
     <>
       {!f.isEdit && (
         <>
-          <Text style={styles.pageTitle}>Yeni İlan Oluştur</Text>
-          <Text style={styles.pageSubtitle}>Ürününüzü koleksiyoncularla buluşturun</Text>
+          <Text style={styles.pageTitle}>{t('collection.createNewListing')}</Text>
+          <Text style={styles.pageSubtitle}>{t('listing.createSubtitle')}</Text>
         </>
       )}
 
       {/* Bank Account Banner (create only) */}
       {!f.isEdit && !f.bankAccountQuery.isLoading && !f.hasBankAccount && (
         <View style={styles.ibanBanner}>
-          <Text style={styles.ibanBannerTitle}>İlan vermeden önce banka hesabı ekleyin</Text>
-          <Text style={styles.ibanBannerBody}>
-            Satışlarınızdan elde edeceğiniz tutarın aktarılabilmesi için IBAN gereklidir.
-          </Text>
+          <Text style={styles.ibanBannerTitle}>{t('listing.bankAccountBannerTitle')}</Text>
+          <Text style={styles.ibanBannerBody}>{t('listing.bankAccountBannerBody')}</Text>
           <TouchableOpacity
             style={styles.ibanBannerButton}
             onPress={() => router.push('/settings/bank-account')}
           >
-            <Text style={styles.ibanBannerButtonText}>IBAN Ekle</Text>
+            <Text style={styles.ibanBannerButtonText}>{t('listing.addIban')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -80,16 +79,21 @@ export function ListingHeaderBanners({ f }: SectionProps) {
                 ]}
               >
                 {f.listingLimits.maxListings === -1
-                  ? `Mevcut İlan: ${f.listingLimits.currentCount} (Sınırsız)`
-                  : `İlan Hakkı: ${f.listingLimits.currentCount} / ${f.listingLimits.maxListings}`}
+                  ? t('listing.currentUnlimited', { count: f.listingLimits.currentCount })
+                  : t('listing.quotaLine', {
+                      count: f.listingLimits.currentCount,
+                      max: f.listingLimits.maxListings,
+                    })}
               </Text>
               {f.listingLimits.remainingListings !== -1 && (
-                <Text style={styles.limitsRemaining}>Kalan: {f.listingLimits.remainingListings}</Text>
+                <Text style={styles.limitsRemaining}>
+                  {t('listing.remainingCount', { count: f.listingLimits.remainingListings })}
+                </Text>
               )}
             </View>
             {!f.listingLimits.canCreateListing && (
               <TouchableOpacity style={styles.upgradeButton} onPress={() => router.push('/(tabs)/profile')}>
-                <Text style={styles.upgradeButtonText}>Premium'a Geç</Text>
+                <Text style={styles.upgradeButtonText}>{t('address.goPremium')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -116,13 +120,13 @@ export function ListingHeaderBanners({ f }: SectionProps) {
       {/* Reactivation panel (edit, sold) */}
       {f.isEdit && f.status === 'sold' && (
         <View style={[styles.card, styles.reactivateCard]}>
-          <Text style={styles.reactivateTitle}>Bu ilan satıldı</Text>
-          <Text style={styles.hint}>Stok girerek ilanı yeniden satışa açabilirsiniz.</Text>
+          <Text style={styles.reactivateTitle}>{t('listing.soldTitle')}</Text>
+          <Text style={styles.hint}>{t('listing.reactivateHint')}</Text>
           <TextInput
             style={[styles.input, { marginTop: theme.spacing[2.5] }]}
             value={f.reactivateQuantity}
             onChangeText={f.setReactivateQuantity}
-            placeholder="Stok miktarı"
+            placeholder={t('product.stockQuantity')}
             placeholderTextColor={colors.text.subtle}
             keyboardType="number-pad"
           />
@@ -134,7 +138,7 @@ export function ListingHeaderBanners({ f }: SectionProps) {
             {f.reactivating ? (
               <ActivityIndicator size="small" color={colors.white} />
             ) : (
-              <Text style={styles.submitButtonText}>Onaya Gönder</Text>
+              <Text style={styles.submitButtonText}>{t('listing.submitForReview')}</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -143,11 +147,8 @@ export function ListingHeaderBanners({ f }: SectionProps) {
       {/* Kaldırılmış ürün: düzenlenemez/yeniden açılamaz (yönetici kaldırması) */}
       {f.isEdit && f.status === 'deleted' && (
         <View style={[styles.card, styles.reactivateCard]}>
-          <Text style={styles.reactivateTitle}>Bu ürün kaldırıldı</Text>
-          <Text style={styles.hint}>
-            Bu ürün yönetici tarafından kaldırılmış ve yeniden açılamaz. Tekrar satmak
-            için yeni bir ilan oluşturabilirsiniz.
-          </Text>
+          <Text style={styles.reactivateTitle}>{t('listing.removedTitle')}</Text>
+          <Text style={styles.hint}>{t('listing.removedBody')}</Text>
         </View>
       )}
     </>
@@ -158,10 +159,11 @@ export function ListingHeaderBanners({ f }: SectionProps) {
 // Images
 // ---------------------------------------------------------------------------
 export function ListingImagesSection({ f }: SectionProps) {
+  const { t } = useTranslation();
   const maxImages = f.limits?.maxImagesPerListing || 5;
   return (
     <View style={styles.card}>
-      <Text style={styles.sectionHeader}>GÖRSELLER</Text>
+      <Text style={styles.sectionHeader}>{t('listing.sectionImages')}</Text>
 
       {f.imageKeys.length < maxImages ? (
         <TouchableOpacity style={styles.imageUploadArea} onPress={f.pickImages} disabled={f.uploadingImages}>
@@ -170,16 +172,16 @@ export function ListingImagesSection({ f }: SectionProps) {
           ) : (
             <>
               <Text style={styles.imageUploadIcon}>📷</Text>
-              <Text style={styles.imageUploadLabel}>Görsel yüklemek için dokunun</Text>
+              <Text style={styles.imageUploadLabel}>{t('listing.tapToUpload')}</Text>
             </>
           )}
           <Text style={styles.imageUploadCount}>
-            {f.imageKeys.length} / {maxImages} yüklendi
+            {t('listing.uploadedCount', { count: f.imageKeys.length, max: maxImages })}
           </Text>
         </TouchableOpacity>
       ) : (
         <View style={styles.imageMaxReached}>
-          <Text style={styles.imageMaxReachedText}>Maksimum görsel sayısına ulaştınız</Text>
+          <Text style={styles.imageMaxReachedText}>{t('product.maxImagesReached')}</Text>
         </View>
       )}
 
@@ -190,7 +192,7 @@ export function ListingImagesSection({ f }: SectionProps) {
               <Image source={{ uri }} style={styles.imageThumb} />
               {index === 0 && (
                 <View style={styles.coverBadge}>
-                  <Text style={styles.coverBadgeText}>Kapak</Text>
+                  <Text style={styles.coverBadgeText}>{t('listing.coverBadge')}</Text>
                 </View>
               )}
               <TouchableOpacity style={styles.imageRemoveBtn} onPress={() => f.removeImage(index)}>
@@ -208,29 +210,30 @@ export function ListingImagesSection({ f }: SectionProps) {
 // Basic info (title, description)
 // ---------------------------------------------------------------------------
 export function ListingBasicInfoSection({ f }: SectionProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.card}>
-      <Text style={styles.sectionHeader}>TEMEL BİLGİLER</Text>
+      <Text style={styles.sectionHeader}>{t('listing.sectionBasicInfo')}</Text>
 
       <Text style={styles.label}>
-        Başlık <Text style={styles.required}>*</Text>
+        {t('common.title')} <Text style={styles.required}>*</Text>
       </Text>
       <TextInput
         style={styles.input}
         value={f.title}
         onChangeText={f.setTitle}
-        placeholder="Örn: Hot Wheels '69 Camaro Z28"
+        placeholder={t('product.titlePlaceholder')}
         placeholderTextColor={colors.text.subtle}
         maxLength={200}
       />
       <Text style={styles.charCount}>{f.title.length}/200</Text>
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>Açıklama</Text>
+      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('common.description')}</Text>
       <TextInput
         style={[styles.input, styles.textArea]}
         value={f.description}
         onChangeText={f.setDescription}
-        placeholder="Ürün hakkında detaylı bilgi..."
+        placeholder={t('product.descriptionPlaceholder')}
         placeholderTextColor={colors.text.subtle}
         multiline
         maxLength={5000}
@@ -247,12 +250,13 @@ export function ListingBasicInfoSection({ f }: SectionProps) {
 // ---------------------------------------------------------------------------
 export function ListingDetailsSection({ f }: SectionProps) {
   const { t } = useTranslation();
+  const conditions = useMemo(() => buildConditions(t), [t]);
   return (
     <View style={styles.card}>
-      <Text style={styles.sectionHeader}>ÜRÜN DETAYLARI</Text>
+      <Text style={styles.sectionHeader}>{t('listing.sectionProductDetails')}</Text>
 
       <Text style={styles.label}>
-        Kategori <Text style={styles.required}>*</Text>
+        {t('product.category')} <Text style={styles.required}>*</Text>
       </Text>
       <TouchableOpacity
         style={styles.pickerButton}
@@ -262,16 +266,16 @@ export function ListingDetailsSection({ f }: SectionProps) {
         }}
       >
         <Text style={f.selectedCategory ? styles.pickerValue : styles.pickerPlaceholder}>
-          {f.selectedCategory?.name || 'Kategori Seçin'}
+          {f.selectedCategory?.name || t('product.selectCategory')}
         </Text>
         <Text style={styles.pickerArrow}>›</Text>
       </TouchableOpacity>
 
       <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>
-        Durum <Text style={styles.required}>*</Text>
+        {t('product.condition')} <Text style={styles.required}>*</Text>
       </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-        {CONDITIONS.map((c) => (
+        {conditions.map((c) => (
           <TouchableOpacity
             key={c.value}
             style={[styles.chip, f.condition === c.value && styles.chipActive]}
@@ -284,7 +288,7 @@ export function ListingDetailsSection({ f }: SectionProps) {
         ))}
       </ScrollView>
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>Marka</Text>
+      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.brand')}</Text>
       <TouchableOpacity
         style={styles.pickerButton}
         onPress={() => {
@@ -294,12 +298,12 @@ export function ListingDetailsSection({ f }: SectionProps) {
         disabled={f.brandsLoading}
       >
         <Text style={f.selectedBrand ? styles.pickerValue : styles.pickerPlaceholder}>
-          {f.brandsLoading ? 'Yükleniyor...' : f.selectedBrand?.name || 'Marka Seçin'}
+          {f.brandsLoading ? t('common.loading') : f.selectedBrand?.name || t('product.selectBrand')}
         </Text>
         <Text style={styles.pickerArrow}>›</Text>
       </TouchableOpacity>
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>Model</Text>
+      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.model')}</Text>
       <TouchableOpacity
         style={[styles.pickerButton, !f.brandId && styles.pickerDisabled]}
         onPress={() => f.setShowModelPicker(true)}
@@ -307,17 +311,17 @@ export function ListingDetailsSection({ f }: SectionProps) {
       >
         <Text style={f.selectedModel ? styles.pickerValue : styles.pickerPlaceholder}>
           {!f.brandId
-            ? 'Önce marka seçin'
+            ? t('product.selectBrandFirst')
             : f.modelsLoading
-            ? 'Yükleniyor...'
+            ? t('common.loading')
             : f.models.length === 0
-            ? 'Bu markaya ait model yok'
-            : f.selectedModel?.name || 'Model Seçin'}
+            ? t('product.noModelsForBrand')
+            : f.selectedModel?.name || t('product.selectModel')}
         </Text>
         <Text style={styles.pickerArrow}>›</Text>
       </TouchableOpacity>
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>Ölçek</Text>
+      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.scale')}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
         {f.effectiveScales.map((s) => (
           <TouchableOpacity
@@ -330,15 +334,15 @@ export function ListingDetailsSection({ f }: SectionProps) {
         ))}
       </ScrollView>
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>Malzeme</Text>
+      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.material')}</Text>
       <TouchableOpacity style={styles.pickerButton} onPress={() => f.setShowMaterialPicker(true)}>
         <Text style={f.selectedMaterial ? styles.pickerValue : styles.pickerPlaceholder}>
-          {f.selectedMaterial?.label || 'Malzeme Seçin'}
+          {f.selectedMaterial?.label || t('product.selectMaterial')}
         </Text>
         <Text style={styles.pickerArrow}>›</Text>
       </TouchableOpacity>
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>Üretici</Text>
+      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.manufacturer')}</Text>
       <TouchableOpacity
         style={styles.pickerButton}
         onPress={() => {
@@ -347,7 +351,7 @@ export function ListingDetailsSection({ f }: SectionProps) {
         }}
       >
         <Text style={f.selectedManufacturer ? styles.pickerValue : styles.pickerPlaceholder}>
-          {f.selectedManufacturer?.name || 'Üretici Seçin'}
+          {f.selectedManufacturer?.name || t('product.selectManufacturer')}
         </Text>
         <Text style={styles.pickerArrow}>›</Text>
       </TouchableOpacity>
@@ -362,9 +366,11 @@ export function ListingDetailsSection({ f }: SectionProps) {
         maxLength={100}
       />
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>Çıkış Yılı</Text>
+      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.releaseYear')}</Text>
       <TouchableOpacity style={styles.pickerButton} onPress={() => f.setShowYearPicker(true)}>
-        <Text style={f.year ? styles.pickerValue : styles.pickerPlaceholder}>{f.year || 'Yıl Seçin'}</Text>
+        <Text style={f.year ? styles.pickerValue : styles.pickerPlaceholder}>
+          {f.year || t('product.selectYear')}
+        </Text>
         <Text style={styles.pickerArrow}>›</Text>
       </TouchableOpacity>
 
@@ -373,10 +379,11 @@ export function ListingDetailsSection({ f }: SectionProps) {
         const selected = f.customAttributes[group.slug] ?? [];
         const summary =
           selected.length === 0
-            ? `${group.name} seçin`
+            ? t('product.selectAttribute', { name: group.name })
             : selected.length === 1
-            ? group.attributes.find((a) => a.slug === selected[0])?.label ?? `1 seçili`
-            : `${selected.length} seçili`;
+            ? group.attributes.find((a) => a.slug === selected[0])?.label ??
+              t('listing.attrGroupSelectedCount', { count: 1 })
+            : t('listing.attrGroupSelectedCount', { count: selected.length });
         return (
           <View key={group.slug}>
             <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{group.name}</Text>
@@ -395,9 +402,10 @@ export function ListingDetailsSection({ f }: SectionProps) {
 // Options (trade, set/bundle, pre-order, status)
 // ---------------------------------------------------------------------------
 export function ListingOptionsSection({ f }: SectionProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.card}>
-      <Text style={styles.sectionHeader}>SEÇENEKLER</Text>
+      <Text style={styles.sectionHeader}>{t('listing.sectionOptions')}</Text>
 
       <View
         style={[
@@ -406,11 +414,11 @@ export function ListingOptionsSection({ f }: SectionProps) {
         ]}
       >
         <View style={{ flex: 1 }}>
-          <Text style={styles.toggleLabel}>Takas Aktif</Text>
+          <Text style={styles.toggleLabel}>{t('product.tradeEnabled')}</Text>
           <Text style={styles.toggleHint}>
             {f.limits?.canTrade
-              ? 'Bu ürünü takas için de açık tutar'
-              : 'Takas özelliği Temel veya üstü üyelik gerektirir'}
+              ? t('product.tradeKeepsOpenForTrade')
+              : t('product.tradeRequiresPremium')}
           </Text>
         </View>
         {f.limits?.canTrade ? (
@@ -422,15 +430,15 @@ export function ListingOptionsSection({ f }: SectionProps) {
           />
         ) : (
           <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
-            <Text style={styles.upgradeLinkText}>Premium →</Text>
+            <Text style={styles.upgradeLinkText}>{t('product.upgradeArrow')}</Text>
           </TouchableOpacity>
         )}
       </View>
 
       <View style={[styles.toggleRow, styles.toggleRowDisabled, { marginTop: theme.spacing[3] }]}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.toggleLabel}>Set / Paket</Text>
-          <Text style={styles.toggleHint}>Tek ilanda birden fazla model (örn. 5'li paket)</Text>
+          <Text style={styles.toggleLabel}>{t('product.setBundle')}</Text>
+          <Text style={styles.toggleHint}>{t('product.setBundleHelper')}</Text>
         </View>
         <Switch
           value={f.isSet}
@@ -442,19 +450,16 @@ export function ListingOptionsSection({ f }: SectionProps) {
 
       {f.isSet && (
         <View style={{ marginTop: theme.spacing[3] }}>
-          <Text style={styles.label}>Set Parça Sayısı</Text>
+          <Text style={styles.label}>{t('product.setPieceCount')}</Text>
           <TextInput
             style={styles.input}
             value={f.bundleSize}
-            onChangeText={(t) => f.setBundleSize(t.replace(/[^0-9]/g, ''))}
+            onChangeText={(v) => f.setBundleSize(v.replace(/[^0-9]/g, ''))}
             keyboardType="number-pad"
-            placeholder="örn. 5"
+            placeholder={t('product.setPiecePlaceholder')}
             placeholderTextColor={colors.gray[400]}
           />
-          <Text style={styles.toggleHint}>
-            Setteki toplam parça sayısı. Her parçanın marka/model/renk gibi
-            ayrıntılarını açıklamada belirtin.
-          </Text>
+          <Text style={styles.toggleHint}>{t('product.setSizeHelper')}</Text>
         </View>
       )}
 
@@ -462,8 +467,8 @@ export function ListingOptionsSection({ f }: SectionProps) {
       {f.isEdit && (
         <View style={[styles.toggleRow, styles.toggleRowDisabled, { marginTop: theme.spacing[3] }]}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.toggleLabel}>Ön Sipariş</Text>
-            <Text style={styles.toggleHint}>Ürün henüz elinizde değilse ön sipariş olarak işaretleyin</Text>
+            <Text style={styles.toggleLabel}>{t('product.preOrder')}</Text>
+            <Text style={styles.toggleHint}>{t('listing.preorderNotInHandHint')}</Text>
           </View>
           <Switch
             value={f.isPreorder}
@@ -477,19 +482,23 @@ export function ListingOptionsSection({ f }: SectionProps) {
       {/* Status (edit only, active/inactive) */}
       {f.isEdit && (f.status === 'active' || f.status === 'inactive') && (
         <View style={{ marginTop: theme.spacing[4] }}>
-          <Text style={styles.label}>İlan Durumu</Text>
+          <Text style={styles.label}>{t('listing.statusLabel')}</Text>
           <View style={styles.chipRow}>
             <TouchableOpacity
               style={[styles.chip, f.status === 'active' && styles.chipActive]}
               onPress={() => f.setStatus('active')}
             >
-              <Text style={[styles.chipText, f.status === 'active' && styles.chipTextActive]}>Aktif</Text>
+              <Text style={[styles.chipText, f.status === 'active' && styles.chipTextActive]}>
+                {t('common.active')}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.chip, f.status === 'inactive' && styles.chipActive]}
               onPress={() => f.setStatus('inactive')}
             >
-              <Text style={[styles.chipText, f.status === 'inactive' && styles.chipTextActive]}>Pasif</Text>
+              <Text style={[styles.chipText, f.status === 'inactive' && styles.chipTextActive]}>
+                {t('common.inactive')}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -502,12 +511,13 @@ export function ListingOptionsSection({ f }: SectionProps) {
 // Pricing (price, quantity, discount, commission preview)
 // ---------------------------------------------------------------------------
 export function ListingPricingSection({ f }: SectionProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.card}>
-      <Text style={styles.sectionHeader}>FİYATLANDIRMA</Text>
+      <Text style={styles.sectionHeader}>{t('listing.sectionPricing')}</Text>
 
       <Text style={styles.label}>
-        Fiyat (₺) <Text style={styles.required}>*</Text>
+        {t('listing.priceFieldLabel')} <Text style={styles.required}>*</Text>
       </Text>
       <TextInput
         style={styles.input}
@@ -518,22 +528,24 @@ export function ListingPricingSection({ f }: SectionProps) {
         keyboardType="decimal-pad"
       />
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>Stok Miktarı</Text>
+      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.stockQuantity')}</Text>
       <TextInput
         style={styles.input}
         value={f.quantity}
         onChangeText={f.setQuantity}
-        placeholder={f.isEdit ? 'Sınırsız' : '1'}
+        placeholder={f.isEdit ? t('membership.unlimited') : '1'}
         placeholderTextColor={colors.text.subtle}
         keyboardType="number-pad"
       />
       <Text style={styles.hint}>
-        {f.isEdit ? 'Boş bırakırsanız sınırsız stok' : 'Boş bırakırsanız 1 adet'}
+        {f.isEdit ? t('product.leaveEmptyUnlimitedStock') : t('product.quantityDefaultHint')}
       </Text>
       {f.isEdit && f.reservedQty > 0 && (
         <Text style={styles.reservedHint}>
-          {f.reservedQty} adedi aktif takas/sipariş için rezerve — ilanda alıcılara{' '}
-          {Math.max(0, (Number(f.quantity) || 0) - f.reservedQty)} adet "satışta" görünür.
+          {t('listing.reservedHint', {
+            reserved: f.reservedQty,
+            available: Math.max(0, (Number(f.quantity) || 0) - f.reservedQty),
+          })}
         </Text>
       )}
 
@@ -542,31 +554,33 @@ export function ListingPricingSection({ f }: SectionProps) {
           da çağrılıyordu; yalnız bu kapı yüzünden satıcı ilanı önce açıp sonra
           düzenlemeden indirim eklemek zorunda kalıyordu. */}
       <View style={styles.discountBox}>
-          <Text style={styles.label}>İndirimli Fiyat (₺)</Text>
+          <Text style={styles.label}>{t('product.discountedPrice')} (₺)</Text>
           <TextInput
             style={styles.input}
             value={f.salePrice}
             onChangeText={f.setSalePrice}
-            placeholder="İndirim yoksa boş bırakın"
+            placeholder={t('listing.salePricePlaceholder')}
             placeholderTextColor={colors.text.subtle}
             keyboardType="decimal-pad"
           />
           {f.discountPercent > 0 && (
-            <Text style={styles.discountPercent}>%{f.discountPercent} indirim</Text>
+            <Text style={styles.discountPercent}>
+              {t('listing.discountPercentLabel', { percent: f.discountPercent })}
+            </Text>
           )}
           <View style={{ marginTop: theme.spacing[3] }}>
             <DateField
-              label="İndirim Başlangıcı"
+              label={t('listing.saleStartLabel')}
               value={f.saleStartDate}
               onChange={f.setSaleStartDate}
-              placeholder="Tarih seçin"
+              placeholder={t('auth.birthDatePlaceholder')}
             />
           </View>
           <DateField
-            label="İndirim Bitişi"
+            label={t('listing.saleEndLabel')}
             value={f.saleEndDate}
             onChange={f.setSaleEndDate}
-            placeholder="Tarih seçin"
+            placeholder={t('auth.birthDatePlaceholder')}
             minimumDate={f.saleStartDate ? new Date(f.saleStartDate) : undefined}
           />
       </View>
@@ -574,23 +588,25 @@ export function ListingPricingSection({ f }: SectionProps) {
       {/* Commission preview */}
       {(f.commissionLoading || f.commissionPreview) && (
         <View style={styles.commissionCard}>
-          <Text style={styles.commissionTitle}>Tahmini (satış başına)</Text>
+          <Text style={styles.commissionTitle}>{t('product.estimatedPerSale')}</Text>
           {f.commissionLoading ? (
             <ActivityIndicator size="small" color={colors.text.subtle} style={{ marginTop: theme.spacing[1] }} />
           ) : f.commissionPreview ? (
             <View style={styles.commissionRow}>
               <Text style={styles.commissionFee}>
-                Platform kesintisi: ₺
-                {(f.commissionPreview.sellerFeeAmount ?? 0).toLocaleString('tr-TR', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
+                {t('listing.platformFeeLine', {
+                  amount: (f.commissionPreview.sellerFeeAmount ?? 0).toLocaleString('tr-TR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }),
                 })}
               </Text>
               <Text style={styles.commissionNet}>
-                Net kazanç: ₺
-                {(f.commissionPreview.sellerNetAmount ?? 0).toLocaleString('tr-TR', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
+                {t('listing.netEarningLine', {
+                  amount: (f.commissionPreview.sellerNetAmount ?? 0).toLocaleString('tr-TR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }),
                 })}
               </Text>
             </View>
@@ -615,21 +631,19 @@ export function ListingPricingSection({ f }: SectionProps) {
  * istemcinin gösterebileceği doğru tek rakam, aşağıdaki net kazanç önizlemesi.
  */
 export function ListingShippingSection({ f }: SectionProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.card}>
-      <Text style={styles.sectionHeader}>KARGO</Text>
+      <Text style={styles.sectionHeader}>{t('listing.sectionShipping')}</Text>
 
       <Text style={styles.label}>
-        Paket Boyutu <Text style={styles.required}>*</Text>
+        {t('listing.packageSizeLabel')} <Text style={styles.required}>*</Text>
       </Text>
 
       {f.packageTiersLoading ? (
         <ActivityIndicator size="small" color={colors.text.subtle} />
       ) : f.packageTiersError || f.packageTiers.length === 0 ? (
-        <Text style={styles.hint}>
-          Kargo paket boyutları şu anda alınamıyor. Bağlantınızı kontrol edip sayfayı
-          yenileyin — boyut seçilmeden ilan yayınlanamaz.
-        </Text>
+        <Text style={styles.hint}>{t('listing.packageTiersError')}</Text>
       ) : (
         <>
           <View style={styles.tierRow}>
@@ -659,10 +673,7 @@ export function ListingShippingSection({ f }: SectionProps) {
               );
             })}
           </View>
-          <Text style={styles.hint}>
-            Ürünün sığdığı en küçük paketi seçin. Kargo bedeli bu boyuta göre
-            hesaplanır; seçim net kazancınızı da değiştirir.
-          </Text>
+          <Text style={styles.hint}>{t('listing.packageTiersHint')}</Text>
         </>
       )}
     </View>
@@ -678,7 +689,7 @@ export function ListingSubmitRow({ f }: SectionProps) {
     <>
       <View style={styles.submitRow}>
         <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
-          <Text style={styles.cancelButtonText}>İptal</Text>
+          <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           testID="listing-submit-button"
@@ -693,8 +704,8 @@ export function ListingSubmitRow({ f }: SectionProps) {
               {f.uploadingImages
                 ? t('product.saveWhileUploading')
                 : f.isEdit
-                  ? 'Değişiklikleri Kaydet'
-                  : 'İlanı Oluştur'}
+                  ? t('product.saveChanges')
+                  : t('product.createListing')}
             </Text>
           )}
         </TouchableOpacity>
@@ -704,7 +715,7 @@ export function ListingSubmitRow({ f }: SectionProps) {
       {f.isEdit && (
         <TouchableOpacity style={styles.deleteButton} onPress={f.handleDelete} disabled={f.isSubmitting}>
           <Ionicons name="trash-outline" size={18} color={colors.danger[600]!} />
-          <Text style={styles.deleteButtonText}>İlanı Sil</Text>
+          <Text style={styles.deleteButtonText}>{t('product.deleteListing')}</Text>
         </TouchableOpacity>
       )}
     </>

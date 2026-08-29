@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import { listingFormSchema, type ListingFormValues } from './schema';
 
 export interface ListingValidationInput {
@@ -17,14 +18,15 @@ export interface ListingValidationInput {
  * belirlediği için burada açıkça yazılı — hook içinde dağılmış if'lerde değil.
  */
 export function firstListingValidationError(
+  t: TFunction,
   input: ListingValidationInput,
 ): string | null {
   const result = listingFormSchema.safeParse(input.values);
   if (!result.success) {
-    return result.error.issues[0]?.message || 'Lütfen alanları kontrol edin.';
+    return result.error.issues[0]?.message || t('listing.checkFieldsFallback');
   }
-  if (!input.categoryId) return 'Lütfen bir kategori seçin.';
-  if (input.imageCount === 0) return 'En az bir fotoğraf ekleyin.';
+  if (!input.categoryId) return t('listing.categoryRequiredMsg');
+  if (input.imageCount === 0) return t('product.addPhoto');
   // Kargo bölümü formun en altında, bu yüzden en sonda. Sunucu kademe
   // gelmediğinde `small` VARSAYIYOR ve büyük bir ürün küçük paket bedeliyle
   // gidiyor — paket başına 60 TL'ye kadar eksik tahsil.
@@ -33,7 +35,7 @@ export function firstListingValidationError(
   // dolu açıyor (2026-08-10 ölçümü), yani satıcı göremediği bir değeri yeniden
   // seçmek zorunda kalmıyor. Eski istisna o ölçümden ÖNCEKİ duruma aitti.
   if (!input.values.shippingPackageTier) {
-    return 'Lütfen kargo paket boyutunu seçin.';
+    return t('listing.packageTierRequiredMsg');
   }
   return null;
 }

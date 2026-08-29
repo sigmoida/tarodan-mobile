@@ -202,12 +202,12 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   useEffect(() => {
     if (authLoading || isEdit) return;
     if (!isAuthenticated) {
-      appAlert('Giriş Gerekli', 'İlan oluşturmak için giriş yapmalısınız.', [
-        { text: 'Giriş Yap', onPress: () => router.push('/(auth)/login') },
-        { text: 'İptal', style: 'cancel' },
+      appAlert(t('listing.loginRequiredTitle'), t('product.loginRequiredToCreate'), [
+        { text: t('common.login'), onPress: () => router.push('/(auth)/login') },
+        { text: t('common.cancel'), style: 'cancel' },
       ]);
     }
-  }, [isAuthenticated, authLoading, isEdit]);
+  }, [isAuthenticated, authLoading, isEdit, t]);
 
   // -----------------------------------------------------------------------
   // Initial data loading
@@ -400,7 +400,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       const cats = res.data?.data || res.data || [];
       setCategories(cats);
     } catch {
-      appAlert('Hata', 'Kategoriler yüklenemedi.');
+      appAlert(t('common.error'), t('listing.categoriesLoadFailed'));
     }
   };
 
@@ -419,7 +419,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       if (data.brands?.length) setBrands(data.brands);
       if (data.manufacturers?.length) setManufacturerList(data.manufacturers);
     } catch {
-      appAlert('Hata', 'Filtreler yüklenemedi.');
+      appAlert(t('common.error'), t('listing.filtersLoadFailed'));
     } finally {
       setBrandsLoading(false);
     }
@@ -433,7 +433,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       const data = Array.isArray(res.data) ? res.data : res.data?.data || [];
       setModels(data);
     } catch {
-      appAlert('Hata', 'Modeller yüklenemedi.');
+      appAlert(t('common.error'), t('listing.modelsLoadFailed'));
     } finally {
       setModelsLoading(false);
     }
@@ -486,13 +486,13 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     const maxImages = limits?.maxImagesPerListing || 5;
     const remaining = maxImages - imageKeys.length;
     if (remaining <= 0) {
-      appAlert('Limit', 'Maksimum görsel sayısına ulaştınız.');
+      appAlert(t('listing.imageLimitTitle'), t('product.maxImagesReached'));
       return;
     }
 
     const permResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permResult.granted) {
-      appAlert('İzin Gerekli', 'Galeri erişim izni gerekiyor.');
+      appAlert(t('order.permissionRequired'), t('order.galleryPermissionBody'));
       return;
     }
 
@@ -565,8 +565,8 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       // yol açar (delta 18 §2d).
       setImageUris((prev) => [...prev, ...newPreviewUrls]);
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Görsel yükleme başarısız.';
-      appAlert('Hata', msg);
+      const msg = err.response?.data?.message || t('listing.imageUploadFailed');
+      appAlert(t('common.error'), msg);
     } finally {
       setUploadingImages(false);
     }
@@ -696,13 +696,13 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const validate = (): boolean => {
     // Kurallar ve SIRALARI tek yerde (`_lib/validate.ts`) — kullanıcıya
     // gösterilecek tek mesajı o sıra belirliyor.
-    const error = firstListingValidationError({
+    const error = firstListingValidationError(t, {
       values: form.getValues(),
       categoryId,
       imageCount: imageKeys.length,
     });
     if (error) {
-      appAlert('Hata', error);
+      appAlert(t('common.error'), error);
       return false;
     }
     return true;
@@ -713,11 +713,11 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
 
     if (!isEdit && !hasBankAccount) {
       appAlert(
-        'Banka Hesabı Gerekli',
-        "İlan vermeden önce IBAN bilgilerinizi eklemelisiniz. Satışlarınızdan elde edeceğiniz tutar bu IBAN'a aktarılır.",
+        t('listing.bankAccountRequiredTitle'),
+        t('listing.bankAccountRequiredBody'),
         [
-          { text: 'Vazgeç', style: 'cancel' },
-          { text: 'IBAN Ekle', onPress: () => router.push('/settings/bank-account') },
+          { text: t('listing.dismiss'), style: 'cancel' },
+          { text: t('listing.addIban'), onPress: () => router.push('/settings/bank-account') },
         ],
       );
       return;
@@ -725,8 +725,11 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
 
     if (!isEdit && listingLimits && !listingLimits.canCreateListing) {
       appAlert(
-        'Limit Aşıldı',
-        `İlan limitinize ulaştınız (${listingLimits.currentCount}/${listingLimits.maxListings}). Üyeliğinizi yükselterek daha fazla ilan oluşturabilirsiniz.`
+        t('listing.limitExceededTitle'),
+        t('listing.limitExceededBody', {
+          count: listingLimits.currentCount,
+          max: listingLimits.maxListings,
+        })
       );
       return;
     }
@@ -742,9 +745,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
           quantity: quantity ? Number(quantity) : 1,
         });
 
-        appAlert('Başarılı', 'İlanınız oluşturuldu! Onay bekliyor.', [
+        appAlert(t('common.success'), t('product.listingCreated'), [
           {
-            text: 'Tamam',
+            text: t('common.ok'),
             onPress: () => {
               resetForm();
               router.push('/settings/my-listings');
@@ -766,8 +769,8 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
         await productsApi.update(productId!, payload);
         invalidateListingCaches();
 
-        appAlert('Başarılı', 'İlan güncellendi!', [
-          { text: 'Tamam', onPress: () => router.back() },
+        appAlert(t('common.success'), t('product.listingUpdated'), [
+          { text: t('common.ok'), onPress: () => router.back() },
         ]);
       }
     } catch (err: any) {
@@ -792,8 +795,8 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       const msg =
         err.response?.data?.message ??
         err.response?.data?.error ??
-        (isEdit ? 'İlan güncellenemedi.' : 'İlan oluşturulamadı.');
-      appAlert('Hata', typeof msg === 'string' ? msg : 'İşlem başarısız.');
+        (isEdit ? t('product.updateFailed') : t('product.failedToCreateListing'));
+      appAlert(t('common.error'), typeof msg === 'string' ? msg : t('listing.actionFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -802,7 +805,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const handleReactivate = async () => {
     const qty = Number(reactivateQuantity);
     if (!qty || qty < 1) {
-      appAlert('Hata', 'Geçerli bir stok miktarı giriniz.');
+      appAlert(t('common.error'), t('listing.invalidQuantity'));
       return;
     }
     setReactivating(true);
@@ -811,20 +814,20 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       setStatus('pending');
       setQuantity(String(qty));
       invalidateListingCaches();
-      appAlert('Başarılı', 'İlanınız incelemeye gönderildi. Onaylandığında yeniden yayına girer.');
+      appAlert(t('common.success'), t('listing.sentForReview'));
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Yeniden satışa açılamadı.';
-      appAlert('Hata', msg);
+      const msg = err.response?.data?.message || t('listing.reactivateFailed');
+      appAlert(t('common.error'), msg);
     } finally {
       setReactivating(false);
     }
   };
 
   const handleDelete = () => {
-    appAlert('İlanı Sil', 'Bu ilan kalıcı olarak silinecek. Devam etmek istiyor musunuz?', [
-      { text: 'İptal', style: 'cancel' },
+    appAlert(t('product.deleteListing'), t('listing.deleteConfirmBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Sil',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           setIsSubmitting(true);
@@ -832,12 +835,12 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
             await productsApi.delete(productId!);
             invalidateListingCaches();
             await refreshUserData();
-            appAlert('Silindi', 'İlan silindi.', [
-              { text: 'Tamam', onPress: () => router.back() },
+            appAlert(t('listing.deletedTitle'), t('listing.deleted'), [
+              { text: t('common.ok'), onPress: () => router.back() },
             ]);
           } catch (err: any) {
-            const msg = err.response?.data?.message || 'İlan silinemedi.';
-            appAlert('Hata', msg);
+            const msg = err.response?.data?.message || t('listing.deleteFailed');
+            appAlert(t('common.error'), msg);
           } finally {
             setIsSubmitting(false);
           }
