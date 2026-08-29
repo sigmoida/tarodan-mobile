@@ -7665,5 +7665,24 @@
     "instagramCopyHint": "You can copy the link and share it on Instagram",
     "whatsappOpenFailed": "Couldn't open WhatsApp",
     "telegramOpenFailed": "Couldn't open Telegram"
+  },
+  "ratingModal": {
+    "titleProduct": "Rate the Product",
+    "titleSeller": "Rate the Seller",
+    "selectRating": "Select a rating",
+    "scoreVeryBad": "Very Bad",
+    "scoreBad": "Bad",
+    "scoreAverage": "Average",
+    "scoreGood": "Good",
+    "scoreExcellent": "Excellent",
+    "reviewLabelOptional": "Your review (optional)",
+    "charCount": "{current}/{max}",
+    "premiumCharLimitNote": "Premium members can write up to 2000 characters",
+    "criteriaTitle": "Rating Criteria:",
+    "criteriaProductAccuracy": "Product Accuracy (40%)",
+    "criteriaCommunication": "Communication (20%)",
+    "criteriaShipping": "Shipping (20%)",
+    "criteriaTradeFairness": "Trade Fairness (20%)",
+    "submitFailed": "Couldn't submit the review"
   }
 }

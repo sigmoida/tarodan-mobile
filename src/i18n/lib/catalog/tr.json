@@ -7665,5 +7665,24 @@
     "instagramCopyHint": "Linki kopyalayıp Instagram'da paylaşabilirsiniz",
     "whatsappOpenFailed": "WhatsApp açılamadı",
     "telegramOpenFailed": "Telegram açılamadı"
+  },
+  "ratingModal": {
+    "titleProduct": "Ürünü Değerlendir",
+    "titleSeller": "Satıcıyı Değerlendir",
+    "selectRating": "Puan seçin",
+    "scoreVeryBad": "Çok Kötü",
+    "scoreBad": "Kötü",
+    "scoreAverage": "Orta",
+    "scoreGood": "İyi",
+    "scoreExcellent": "Mükemmel",
+    "reviewLabelOptional": "Yorumunuz (opsiyonel)",
+    "charCount": "{current}/{max}",
+    "premiumCharLimitNote": "Premium üyeler 2000 karakter yazabilir",
+    "criteriaTitle": "Değerlendirme Kriterleri:",
+    "criteriaProductAccuracy": "Ürün Doğruluğu (%40)",
+    "criteriaCommunication": "İletişim (%20)",
+    "criteriaShipping": "Kargo (%20)",
+    "criteriaTradeFairness": "Takas Adaleti (%20)",
+    "submitFailed": "Değerlendirme gönderilemedi"
   }
 }
