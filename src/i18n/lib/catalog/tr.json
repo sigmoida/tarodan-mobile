@@ -2043,7 +2043,11 @@
     "marketingLabel": "Pazarlama ve Teklifler",
     "marketingDesc": "Kampanya ve özel tekliflerden haberdar ol",
     "emailDesc": "Yukarıdaki türler için e-posta gönderilsin",
-    "smsDesc": "Önemli güncellemeler için SMS gönderilsin"
+    "smsDesc": "Önemli güncellemeler için SMS gönderilsin",
+    "emailSmsSection": "E-posta ve SMS",
+    "emailEnableLabel": "E-posta Bildirimlerini Etkinleştir",
+    "smsLabel": "SMS Bildirimleri",
+    "preferencesInfo": "Bildirim tercihlerinizi istediğiniz zaman değiştirebilirsiniz. Önemli güvenlik ve hesap bildirimleri her zaman gönderilir."
   },
   "profile": {
     "profile": "Profil",
@@ -2471,7 +2475,9 @@
     "usernameSetTitle": "Kullanıcı adı belirlendi",
     "usernameSetBody": "Kullanıcı adınız kalıcı olarak kaydedildi.",
     "usernameSetFailedTitle": "Belirlenemedi",
-    "usernameSetFailedBody": "Kullanıcı adı kaydedilemedi."
+    "usernameSetFailedBody": "Kullanıcı adı kaydedilemedi.",
+    "notificationsAuthGateSubtitle": "Ayarlarınızı düzenlemek için giriş yapın",
+    "notificationSettingsSaved": "Bildirim ayarları kaydedildi"
   },
   "analytics": {
     "analytics": "Analitikler",

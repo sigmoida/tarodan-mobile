@@ -2043,7 +2043,11 @@
     "marketingLabel": "Marketing and Offers",
     "marketingDesc": "Hear about campaigns and special offers",
     "emailDesc": "Send e-mail for the types above",
-    "smsDesc": "Send SMS for important updates"
+    "smsDesc": "Send SMS for important updates",
+    "emailSmsSection": "Email & SMS",
+    "emailEnableLabel": "Enable Email Notifications",
+    "smsLabel": "SMS Notifications",
+    "preferencesInfo": "You can change your notification preferences anytime. Important security and account notifications are always sent."
   },
   "profile": {
     "profile": "Profile",
@@ -2471,7 +2475,9 @@
     "usernameSetTitle": "Username set",
     "usernameSetBody": "Your username has been saved permanently.",
     "usernameSetFailedTitle": "Could not be set",
-    "usernameSetFailedBody": "Username could not be saved."
+    "usernameSetFailedBody": "Username could not be saved.",
+    "notificationsAuthGateSubtitle": "Sign in to edit your settings",
+    "notificationSettingsSaved": "Notification settings saved"
   },
   "analytics": {
     "analytics": "Analytics",

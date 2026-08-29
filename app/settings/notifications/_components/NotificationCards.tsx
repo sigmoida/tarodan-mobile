@@ -77,11 +77,11 @@ export function NotificationCards({ f }: { f: NotificationSettingsController }) 
       <Card style={styles.card}>
         <View style={styles.sectionHeader}>
           <Ionicons name="mail" size={24} color={colors.primary[600]!} />
-          <Text variant="h3" style={styles.sectionTitle}>E-posta ve SMS</Text>
+          <Text variant="h3" style={styles.sectionTitle}>{t('notification.emailSmsSection')}</Text>
         </View>
         <SettingItem
           icon="mail"
-          label="E-posta Bildirimlerini Etkinleştir"
+          label={t('notification.emailEnableLabel')}
           description={t('notification.emailDesc')}
           value={settings.emailNotifications}
           onToggle={() => handleToggle('emailNotifications')}
@@ -89,7 +89,7 @@ export function NotificationCards({ f }: { f: NotificationSettingsController }) 
         <Divider style={styles.divider} />
         <SettingItem
           icon="chatbox-ellipses"
-          label="SMS Bildirimleri"
+          label={t('notification.smsLabel')}
           description={t('notification.smsDesc')}
           value={settings.smsNotifications}
           onToggle={() => handleToggle('smsNotifications')}
@@ -100,8 +100,7 @@ export function NotificationCards({ f }: { f: NotificationSettingsController }) 
       <View style={styles.infoBox}>
         <Ionicons name="information-circle" size={20} color={colors.info[600]!} />
         <Text style={styles.infoText}>
-          Bildirim tercihlerinizi istediğiniz zaman değiştirebilirsiniz.
-          Önemli güvenlik ve hesap bildirimleri her zaman gönderilir.
+          {t('notification.preferencesInfo')}
         </Text>
       </View>
 
