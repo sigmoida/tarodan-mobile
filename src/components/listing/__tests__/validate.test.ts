@@ -50,7 +50,9 @@ describe('firstListingValidationError', () => {
     input.values.shippingPackageTier = '';
     input.categoryId = '';
 
-    expect(firstListingValidationError(t, input)).toBe('Başlık en az 5 karakter olmalıdır.');
+    // `validation.minLength` reuse (rule #1): generic ICU template, katalogda
+    // "Başlık" öneki ve sonda nokta taşımıyor.
+    expect(firstListingValidationError(t, input)).toBe('En az 5 karakter olmalıdır');
   });
 
   it('reports the category before the package tier', () => {

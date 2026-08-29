@@ -115,7 +115,8 @@ describe('J18/J55 · ilan formu input validasyonu', () => {
     renderWithProviders(<ListingForm mode="create" />);
     await screen.findByText('İlan Oluştur');
     fireEvent.press(screen.getByText('İlan Oluştur'));
-    expect(alertSpy).toHaveBeenCalledWith('Hata', 'Başlık en az 5 karakter olmalıdır.');
+    // `validation.minLength` reuse (rule #1): generic ICU template.
+    expect(alertSpy).toHaveBeenCalledWith('Hata', 'En az 5 karakter olmalıdır');
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
@@ -124,7 +125,8 @@ describe('J18/J55 · ilan formu input validasyonu', () => {
     await screen.findByText('İlan Oluştur');
     fireEvent.changeText(screen.getByPlaceholderText("Örn: Hot Wheels '69 Camaro Z28"), 'Abc');
     fireEvent.press(screen.getByText('İlan Oluştur'));
-    expect(alertSpy).toHaveBeenCalledWith('Hata', 'Başlık en az 5 karakter olmalıdır.');
+    // `validation.minLength` reuse (rule #1): generic ICU template.
+    expect(alertSpy).toHaveBeenCalledWith('Hata', 'En az 5 karakter olmalıdır');
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
@@ -134,7 +136,8 @@ describe('J18/J55 · ilan formu input validasyonu', () => {
     fireEvent.changeText(screen.getByPlaceholderText("Örn: Hot Wheels '69 Camaro Z28"), 'Geçerli Başlık');
     fireEvent.changeText(screen.getByPlaceholderText('0.00'), '0');
     fireEvent.press(screen.getByText('İlan Oluştur'));
-    expect(alertSpy).toHaveBeenCalledWith('Hata', 'Geçerli bir fiyat giriniz.');
+    // `common.invalidPrice` reuse (rule #1).
+    expect(alertSpy).toHaveBeenCalledWith('Hata', 'Lütfen geçerli bir fiyat girin');
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
