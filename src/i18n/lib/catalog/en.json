@@ -6655,5 +6655,15 @@
     "desc43": "An ideal size for a display collection. Takes up little space while still offering detailed models. Especially popular for racing cars and classic automobiles.",
     "desc64": "The most common and affordable scale — the size of Hot Wheels and Matchbox. Wide model variety and an active collector community.",
     "tip": "Tip: Focusing on a single scale when starting your collection makes your display easier to arrange and helps you manage your budget better."
+  },
+  "shippingDeliveryPage": {
+    "pageTitle": "Shipping and Delivery",
+    "pageSubtitle": "Information about the shipping process",
+    "methodsContent": "All shipments made through Tarodan go through our partner carriers. The seller packs the product securely and hands it over to the carrier.",
+    "costsContent": "Shipping costs may vary based on the product''s weight, size, and shipping distance. The shipping cost is calculated automatically at checkout.",
+    "timesContent": "Domestic shipments are usually delivered within 2-5 business days. You can track your shipment in real time with the tracking number.",
+    "trackingTitle": "Shipment Tracking",
+    "trackingContent": "Once the seller hands the product to the carrier, you''re given a tracking number. You can check your shipment''s status with this number at any time.",
+    "trackLinkText": "Track Shipment"
   }
 }

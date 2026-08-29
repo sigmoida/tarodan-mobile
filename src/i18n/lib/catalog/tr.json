@@ -6655,5 +6655,15 @@
     "desc43": "Vitrin koleksiyonu için ideal boyut. Az yer kaplar, detaylı modeller bulunur. Özellikle yarış araçları ve klasik otomobillerde popülerdir.",
     "desc64": "En yaygın ve uygun fiyatlı ölçek. Hot Wheels ve Matchbox boyutudur. Geniş model çeşitliliği ve aktif koleksiyoner topluluğu mevcuttur.",
     "tip": "İpucu: Koleksiyonunuza başlarken tek bir ölçekte yoğunlaşmanız, vitrin düzeninizi kolaylaştırır ve bütçenizi daha iyi yönetmenizi sağlar."
+  },
+  "shippingDeliveryPage": {
+    "pageTitle": "Kargo ve Teslimat",
+    "pageSubtitle": "Gönderim süreçleri hakkında bilgi",
+    "methodsContent": "Tarodan üzerinden yapılan tüm gönderimler, anlaşmalı kargo firmaları aracılığıyla gerçekleştirilir. Satıcı, ürünü güvenli bir şekilde paketleyerek kargo firmasına teslim eder.",
+    "costsContent": "Kargo ücretleri ürün ağırlığına, boyutuna ve gönderim mesafesine göre değişiklik gösterebilir. Ödeme sayfasında kargo ücreti otomatik olarak hesaplanır.",
+    "timesContent": "Yurt içi gönderimler genellikle 2-5 iş günü içinde teslim edilir. Kargo takip numarası ile gönderiminizi anlık olarak takip edebilirsiniz.",
+    "trackingTitle": "Kargo Takibi",
+    "trackingContent": "Satıcı ürünü kargoya verdikten sonra size bir takip numarası iletilir. Bu numara ile gönderiminizin durumunu istediğiniz zaman kontrol edebilirsiniz.",
+    "trackLinkText": "Kargo Takibi"
   }
 }
