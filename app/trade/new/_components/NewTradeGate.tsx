@@ -21,7 +21,7 @@ export function NewTradeGate({ f }: { f: NewTradeController }) {
     const upgradeInfo = getUpgradeMessage(t, 'tradeFeature');
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Takas Teklifi" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+        <ScreenHeader title={t('product.trade')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
 
         <View style={styles.premiumRequired}>
           <MaterialCommunityIcons name="swap-horizontal" size={80} color={colors.primary[600]!} />
@@ -31,24 +31,24 @@ export function NewTradeGate({ f }: { f: NewTradeController }) {
           <View style={styles.premiumFeatures}>
             <View style={styles.premiumFeature}>
               <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
-              <Text style={styles.premiumFeatureText}>Takas teklifi oluşturun</Text>
+              <Text style={styles.premiumFeatureText}>{t('trade.premiumFeatureCreate')}</Text>
             </View>
             <View style={styles.premiumFeature}>
               <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
-              <Text style={styles.premiumFeatureText}>Karşı teklif yapın</Text>
+              <Text style={styles.premiumFeatureText}>{t('trade.premiumFeatureCounter')}</Text>
             </View>
             <View style={styles.premiumFeature}>
               <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
-              <Text style={styles.premiumFeatureText}>Nakit fark ekleyin</Text>
+              <Text style={styles.premiumFeatureText}>{t('trade.premiumFeatureCash')}</Text>
             </View>
             <View style={styles.premiumFeature}>
               <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
-              <Text style={styles.premiumFeatureText}>Takas koruma programı</Text>
+              <Text style={styles.premiumFeatureText}>{t('trade.premiumFeatureProtection')}</Text>
             </View>
           </View>
 
-          <Button variant="primary" title="Üyelik Planları" onPress={() => router.push('/membership')} style={styles.upgradeButton} />
-          <Button variant="ghost" title="Geri Dön" onPress={() => router.back()} style={{ alignSelf: 'center' }} />
+          <Button variant="primary" title={t('membership.title')} onPress={() => router.push('/membership')} style={styles.upgradeButton} />
+          <Button variant="ghost" title={t('common.goBack')} onPress={() => router.back()} style={{ alignSelf: 'center' }} />
         </View>
       </View>
     );
@@ -57,9 +57,9 @@ export function NewTradeGate({ f }: { f: NewTradeController }) {
   if (!f.isAuthenticated) {
     return (
       <View style={styles.centeredContainer}>
-        <Text variant="h3">Giriş Yapın</Text>
-        <Text variant="body" style={styles.subtitle}>Takas teklifi vermek için giriş yapmalısınız</Text>
-        <Button variant="primary" title="Giriş Yap" onPress={() => router.push('/(auth)/login')} style={{ alignSelf: 'center' }} />
+        <Text variant="h3">{t('membership.loginRequiredTitle')}</Text>
+        <Text variant="body" style={styles.subtitle}>{t('trade.loginToTrade')}</Text>
+        <Button variant="primary" title={t('common.login')} onPress={() => router.push('/(auth)/login')} style={{ alignSelf: 'center' }} />
       </View>
     );
   }
