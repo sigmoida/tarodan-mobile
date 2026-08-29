@@ -8,6 +8,7 @@
     "delete": "Delete",
     "edit": "Edit",
     "search": "Search",
+    "searchPlaceholder": "Search...",
     "loading": "Loading...",
     "error": "Error",
     "success": "Success",
@@ -7190,7 +7191,11 @@
     "deleteConfirmBody": "This listing will be permanently deleted. Do you want to continue?",
     "checkFieldsFallback": "Please check the fields.",
     "categoryRequiredMsg": "Please select a category.",
-    "packageTierRequiredMsg": "Please select a shipping package size."
+    "packageTierRequiredMsg": "Please select a shipping package size.",
+    "categoryPickerEmpty": "No categories found",
+    "materialPickerEmpty": "No materials found",
+    "manufacturerPickerEmpty": "No manufacturers found",
+    "yearPickerEmpty": "No years found"
   },
   "business": {
     "tabOverview": "Overview",

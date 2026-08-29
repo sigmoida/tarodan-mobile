@@ -8,6 +8,7 @@ import {
   Modal,
   FlatList,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { theme } from '@/ui';
 
 import { styles } from '../_lib/styles';
@@ -50,6 +51,7 @@ export function PickerModal({
   loading,
   modalKey,
 }: PickerModalProps) {
+  const { t } = useTranslation();
   const filtered =
     searchValue !== undefined
       ? data.filter((item) =>
@@ -71,7 +73,7 @@ export function PickerModal({
           {onSearchChange !== undefined && (
             <TextInput
               style={styles.modalSearch}
-              placeholder="Ara..."
+              placeholder={t('common.searchPlaceholder')}
               placeholderTextColor={colors.text.subtle}
               value={searchValue}
               onChangeText={onSearchChange}
@@ -87,7 +89,7 @@ export function PickerModal({
               keyExtractor={(item) => keyExtractor(item)}
               keyboardShouldPersistTaps="handled"
               ListEmptyComponent={
-                <Text style={styles.emptyText}>{emptyText || 'Sonuç bulunamadı'}</Text>
+                <Text style={styles.emptyText}>{emptyText || t('common.noResults')}</Text>
               }
               renderItem={({ item }) => {
                 const isSelected = keyExtractor(item) === selectedId;

@@ -8,6 +8,7 @@
     "delete": "Sil",
     "edit": "Düzenle",
     "search": "Ara",
+    "searchPlaceholder": "Ara...",
     "loading": "Yükleniyor...",
     "error": "Hata",
     "success": "Başarılı",
@@ -7190,7 +7191,11 @@
     "deleteConfirmBody": "Bu ilan kalıcı olarak silinecek. Devam etmek istiyor musunuz?",
     "checkFieldsFallback": "Lütfen alanları kontrol edin.",
     "categoryRequiredMsg": "Lütfen bir kategori seçin.",
-    "packageTierRequiredMsg": "Lütfen kargo paket boyutunu seçin."
+    "packageTierRequiredMsg": "Lütfen kargo paket boyutunu seçin.",
+    "categoryPickerEmpty": "Kategori bulunamadı",
+    "materialPickerEmpty": "Malzeme bulunamadı",
+    "manufacturerPickerEmpty": "Üretici bulunamadı",
+    "yearPickerEmpty": "Yıl bulunamadı"
   },
   "business": {
     "tabOverview": "Genel Bakış",
