@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import { FlatList, StyleSheet, View, RefreshControl, Dimensions, ListRenderItemInfo } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { ProductCard, ProductCardProduct, ProductCardLayout } from './ProductCard';
 import { EmptyState, ScreenLoader, ErrorState, theme } from '@/ui';
 
@@ -56,7 +57,7 @@ export function ProductGrid({
   errorMessage,
   onRetry,
   ListHeaderComponent,
-  emptyTitle = 'Henüz ürün yok',
+  emptyTitle,
   emptySubtitle,
   emptyIcon = 'cube-outline',
   emptyActionLabel,
@@ -67,6 +68,7 @@ export function ProductGrid({
   fullscreen = true,
   contentPadding = 16,
 }: ProductGridProps) {
+  const { t } = useTranslation();
   const columns = layout === 'list' ? 1 : numColumns;
 
   // Stable renderItem (#75) so FlatList can bail out rows when data is unchanged;
@@ -111,7 +113,7 @@ export function ProductGrid({
           : null}
         <EmptyState
           icon={emptyIcon}
-          title={emptyTitle}
+          title={emptyTitle ?? t('home.noProductsYet')}
           subtitle={emptySubtitle}
           actionLabel={emptyActionLabel}
           onAction={onEmptyAction}
