@@ -158,7 +158,7 @@ describe('kaydet kapısı — görsel yükleme sürerken', () => {
 
   it('yükleme başlamadan önce kaydet butonu etkindir', async () => {
     renderWithProviders(<ListingForm mode="create" />);
-    await screen.findByText('İlanı Oluştur');
+    await screen.findByText('İlan Oluştur');
 
     expect(screen.getByTestId('listing-submit-button')).not.toBeDisabled();
   });

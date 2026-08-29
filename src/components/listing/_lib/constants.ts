@@ -1,14 +1,20 @@
+import type { TFunction } from 'i18next';
 import type { MaterialOption } from './types';
 
 // ---------------------------------------------------------------------------
 // ListingForm — static option lists
 // ---------------------------------------------------------------------------
-export const CONDITIONS = [
-  { value: 'new', label: 'Yeni' },
-  { value: 'like_new', label: 'Sıfır Gibi' },
-  { value: 'very_good', label: 'Mükemmel' },
-  { value: 'good', label: 'İyi' },
-  { value: 'fair', label: 'Orta' },
+/**
+ * Bir modül-seviyesi dizi i18next hazır olmadan çözülür ve ilk yüklenen dilde
+ * donardı — bu yüzden factory: bileşen `useMemo(() => buildConditions(t), [t])`
+ * ile çağırır. Etiketler zaten katalogda (`product.condition*`).
+ */
+export const buildConditions = (t: TFunction) => [
+  { value: 'new', label: t('product.conditionNew') },
+  { value: 'like_new', label: t('product.conditionLikeNew') },
+  { value: 'very_good', label: t('product.conditionVeryGood') },
+  { value: 'good', label: t('product.conditionGood') },
+  { value: 'fair', label: t('product.conditionFair') },
 ];
 
 export const FALLBACK_SCALES = ['1:18', '1:24', '1:43', '1:64', '1:87'];
