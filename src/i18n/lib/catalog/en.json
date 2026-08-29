@@ -7348,6 +7348,7 @@
     "platformFeeLine": "Platform fee: ₺{amount}",
     "netEarningLine": "Net earnings: ₺{amount}",
     "reservedHint": "{reserved} reserved for an active trade/order — buyers see {available} listed as \"for sale\".",
+    "reservedCannotEdit": "This listing is reserved and cannot be edited.",
     "sectionShipping": "SHIPPING",
     "packageSizeLabel": "Package Size",
     "packageTiersError": "Shipping package sizes can't be loaded right now. Check your connection and refresh — a listing can't be published without a size.",

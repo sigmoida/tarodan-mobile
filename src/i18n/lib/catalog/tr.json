@@ -7348,6 +7348,7 @@
     "platformFeeLine": "Platform kesintisi: ₺{amount}",
     "netEarningLine": "Net kazanç: ₺{amount}",
     "reservedHint": "{reserved} adedi aktif takas/sipariş için rezerve — ilanda alıcılara {available} adet \"satışta\" görünür.",
+    "reservedCannotEdit": "Bu ilan rezerve durumda olduğu için düzenlenemez.",
     "sectionShipping": "KARGO",
     "packageSizeLabel": "Paket Boyutu",
     "packageTiersError": "Kargo paket boyutları şu anda alınamıyor. Bağlantınızı kontrol edip sayfayı yenileyin — boyut seçilmeden ilan yayınlanamaz.",
