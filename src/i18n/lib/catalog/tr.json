@@ -7635,5 +7635,19 @@
     "wishlistTitle": "İstek Listesi",
     "wishlistMessage": "İstek listesi oluşturmak için üye olun",
     "followMessage": "Satıcıları takip etmek için üye olun"
+  },
+  "reputation": {
+    "risingStarLabel": "Yükselen Yıldız",
+    "trustedSellerLabel": "Güvenilir Satıcı",
+    "eliteCollectorLabel": "Elite Koleksiyoner",
+    "hallOfFameLabel": "Şöhretler Salonu",
+    "fastShipperLabel": "Hızlı Gönderici",
+    "fairTraderLabel": "Adil Takas",
+    "responsiveLabel": "Hızlı Yanıt",
+    "collectorExpertLabel": "Uzman Koleksiyoner",
+    "communityChampionLabel": "Topluluk Şampiyonu",
+    "reviewCount": "({count} değerlendirme)",
+    "productAccuracy": "Ürün Doğruluğu",
+    "tradeFairness": "Takas Adaleti"
   }
 }

@@ -7635,5 +7635,19 @@
     "wishlistTitle": "Wishlist",
     "wishlistMessage": "Sign up to create a wishlist",
     "followMessage": "Sign up to follow sellers"
+  },
+  "reputation": {
+    "risingStarLabel": "Rising Star",
+    "trustedSellerLabel": "Trusted Seller",
+    "eliteCollectorLabel": "Elite Collector",
+    "hallOfFameLabel": "Hall of Fame",
+    "fastShipperLabel": "Fast Shipper",
+    "fairTraderLabel": "Fair Trader",
+    "responsiveLabel": "Responsive",
+    "collectorExpertLabel": "Collector Expert",
+    "communityChampionLabel": "Community Champion",
+    "reviewCount": "({count} reviews)",
+    "productAccuracy": "Product Accuracy",
+    "tradeFairness": "Trade Fairness"
   }
 }
