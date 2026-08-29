@@ -2365,7 +2365,12 @@
     "needMoreHelp": "Still need help?",
     "supportReady": "Our support team is ready to help you.",
     "businessHours": "We're available on business days from 09:00 to 18:00.",
-    "contactForm": "Contact Form"
+    "contactForm": "Contact Form",
+    "sendMessageTitle": "Send a Message",
+    "messageLabel": "Your Message",
+    "contactNameTooShort": "Your name must be at least 2 characters.",
+    "ticketCreated": "Your support ticket has been created! You can track it under ''My Support Tickets''.",
+    "ticketSubject": "Help Center message"
   },
   "guides": {
     "title": "User Guides",
@@ -2386,7 +2391,214 @@
     "safetyTips": "Safe Shopping Tips",
     "stillHaveQuestions": "Still have questions?",
     "faqLink": "Frequently Asked Questions",
-    "contactLink": "Contact Us"
+    "contactLink": "Contact Us",
+    "howToBuy": {
+      "title": "How to Buy",
+      "step1": "Find the item you want by searching or browsing categories.",
+      "step2": "Open the product page and check the photos, description, condition, and seller details.",
+      "step3": "Tap ''Buy Now'' or send the seller an offer.",
+      "step4": "Enter your delivery address and choose a payment method.",
+      "step5": "Complete your payment with 3D Secure verification.",
+      "step6": "Your order will be confirmed and the seller will start the shipping process.",
+      "step7": "Once the item arrives, confirm receipt with the ''Received'' button."
+    },
+    "howToSell": {
+      "title": "How to Sell",
+      "step1": "Log in or create an account.",
+      "step2": "Tap ''List an Item''.",
+      "step3": "Enter the product details: title, description, category, scale, brand, condition.",
+      "step4": "Upload quality photos (at least 2, from different angles).",
+      "step5": "Set your selling price and shipping preferences.",
+      "step6": "If you accept trades, check the ''Open to Trade'' option.",
+      "step7": "Publish your listing and follow up on offers from buyers.",
+      "step8": "Once a sale goes through, ship the item within 3 business days."
+    },
+    "shippingSteps": {
+      "title": "Shipping Guide",
+      "step1": "Before shipping a diecast model car, place it back in its original box.",
+      "step2": "If there's empty space inside the box, pad it with bubble wrap or paper.",
+      "step3": "Place the original box inside an outer shipping box (double-box method).",
+      "step4": "Seal the outer box securely with packing tape.",
+      "step5": "Use a ''Fragile'' label.",
+      "step6": "Create your shipment with our partner carrier, Sürat Kargo.",
+      "step7": "Enter the tracking code in the system so it's shared with the buyer.",
+      "step8": "We recommend using the insured shipping option."
+    },
+    "tradeSteps": {
+      "step1": "Find an item marked ''Open to Trade''.",
+      "step2": "Tap ''Send Trade Offer''.",
+      "step3": "Choose the items from your own collection you'd like to trade.",
+      "step4": "Add a cash difference if needed.",
+      "step5": "Send your offer, optionally with a message.",
+      "step6": "Wait for the other party's acceptance or counteroffer.",
+      "step7": "Once both sides accept, the trade begins.",
+      "step8": "Ship your items within the specified time frame.",
+      "step9": "Confirm once you've received the item; the trade is complete."
+    },
+    "collectionGuide": {
+      "title": "Building a Collection",
+      "step1": "From your profile, go to ''My Collections''.",
+      "step2": "Tap ''New Collection''.",
+      "step3": "Give your collection a name and description.",
+      "step4": "Choose a cover photo (optional).",
+      "step5": "You can make your collection public or private.",
+      "step6": "Add items you've listed or bought to your collection.",
+      "step7": "Share your collection with Digital Garage and collect likes."
+    },
+    "safetySteps": {
+      "step1": "Always check the seller's profile and reviews.",
+      "step2": "Examine product photos carefully; watch out for sellers using stock photos.",
+      "step3": "Be cautious of unrealistically low prices.",
+      "step4": "Don't trust sellers who ask for payment outside the platform.",
+      "step5": "Avoid sharing your personal contact details in messages.",
+      "step6": "Inspect the item carefully before confirming delivery.",
+      "step7": "Report anything suspicious to the support team right away."
+    }
+  },
+  "faqShared": {
+    "categories": {
+      "selling": "Selling"
+    },
+    "guestCheckout": {
+      "q": "Can I shop without registering?",
+      "a": "Yes, you can order as a guest and track your order by email. However, membership is required for order history, adding favorites, and messaging the seller."
+    },
+    "paymentMethods": {
+      "q": "Which payment methods do you accept?",
+      "a": "You can pay by credit card (Visa, Mastercard, Troy), debit card, or your iyzico balance. All payments are protected with 3D Secure and stay safeguarded until the item reaches you."
+    },
+    "howToList": {
+      "q": "How do I create a listing?",
+      "a": "After logging in, tap ''List an Item''; enter the product details, category, condition, price, and photos, then publish your listing. Listings are usually approved within a few minutes."
+    },
+    "commissionRate": {
+      "q": "What's the commission rate?",
+      "a": "A platform commission starting at 5% is deducted from the sale amount. The rate can vary by product category and drops for Premium/Business members; the exact rate is shown at the time of sale. Commission is only charged when a sale actually happens."
+    },
+    "payoutTiming": {
+      "q": "When do I get paid?",
+      "a": "Once the buyer receives and confirms the item, the payment is transferred to your registered IBAN account within 3 business days."
+    },
+    "howTradeWorks": {
+      "q": "How does trading work?",
+      "a": "Premium members can send trade offers on items marked ''Open to Trade''. Pick items from your own collection, add a cash difference if needed, and send your offer; the trade begins once both sides accept."
+    },
+    "tradeSafety": {
+      "q": "Is trading safe?",
+      "a": "Yes — with the Secure Trade system, both parties' items are shipped under platform protection, and each side confirms the trade before shipping. In case of a dispute, our team mediates."
+    },
+    "premiumBenefits": {
+      "q": "What are the benefits of Premium membership?",
+      "a": "Premium members can publish unlimited listings, enjoy lower commission rates, trade, create a Digital Garage, use featured listings, and get priority support."
+    },
+    "forgotPassword": {
+      "q": "I forgot my password — what do I do?",
+      "a": "Tap the ''Forgot Password'' link on the login screen to have a reset link sent to your email address."
+    },
+    "deleteAccount": {
+      "q": "How do I delete my account?",
+      "a": "You can permanently delete your account from Profile > Settings > Account > ''Delete Account''. This action is permanent and cannot be undone."
+    },
+    "orderTracking": {
+      "q": "How do I track my order?",
+      "a": "You can see your shipping status with your order number from the link in your order-confirmation email, or from the ''My Orders'' / ''Track Order'' page."
+    }
+  },
+  "faqPage": {
+    "categories": {
+      "returns": "Returns & Cancellations",
+      "account": "Account & Membership"
+    },
+    "buying": {
+      "howToOrder": {
+        "q": "How do I place an order?",
+        "a": "Pick the item you want, tap ''Buy Now'', enter your delivery address, and complete your order with your payment details. You'll get an order confirmation by email."
+      },
+      "offer": {
+        "q": "How do I send an offer?",
+        "a": "On the product page, tap ''Make Offer'' and enter the price you'd like to pay. The seller can accept, decline, or send back a counteroffer."
+      }
+    },
+    "selling": {
+      "listingLimit": {
+        "q": "How many listings can I post?",
+        "a": "Free members can post 5 listings a month. Premium and Pro members can publish unlimited listings."
+      }
+    },
+    "shipping": {
+      "deliveryTime": {
+        "q": "How long does shipping take?",
+        "a": "The seller ships within 3 business days. Estimated delivery is 2–5 business days after that, depending on your location."
+      },
+      "whoPaysShipping": {
+        "q": "Who pays for shipping?",
+        "a": "By default, shipping is paid by the buyer. Some sellers offer free shipping. Shipping details are shown on the product page."
+      }
+    },
+    "trade": {
+      "tradeFee": {
+        "q": "Is there a fee for trading?",
+        "a": "Trading itself is free — only shipping costs are paid by each party. Premium members have full access to trading features."
+      }
+    },
+    "returns": {
+      "returnWindow": {
+        "q": "How long do I have to return an item?",
+        "a": "You can open a return request within {days} days of the delivery date."
+      },
+      "damagedItem": {
+        "q": "My item arrived damaged — what do I do?",
+        "a": "Contact support with photos within {days} days of delivery. Returns for damaged items are the seller's responsibility and are refunded in full."
+      },
+      "cancelOrder": {
+        "q": "Can I cancel my order?",
+        "a": "You can cancel your order before the seller ships it. Once it has shipped, cancellation is no longer possible — you'll need to start a return instead."
+      }
+    },
+    "footer": {
+      "noAnswer": "Couldn't find the answer you're looking for?",
+      "contactSupport": "Contact Support"
+    }
+  },
+  "helpFaq": {
+    "categories": {
+      "general": "General",
+      "account": "Account"
+    },
+    "general": {
+      "whatIsTarodan": {
+        "q": "What is Tarodan?",
+        "a": "Tarodan is a marketplace where collectors can buy, sell, and trade diecast model cars, and showcase their collections."
+      },
+      "howToJoin": {
+        "q": "How do I sign up?",
+        "a": "Tap ''Sign Up'' on the home screen and enter your email, phone number, and personal details to create a free account. Email and SMS verification are required to activate your membership."
+      }
+    },
+    "buying": {
+      "returnPolicy": {
+        "q": "What's the return policy?",
+        "a": "If the item doesn't match its description, you can request a return within {days} days of delivery. Check the seller's return policy for details."
+      }
+    },
+    "selling": {
+      "listingFee": {
+        "q": "Is there a listing fee?",
+        "a": "Free members get a limited number (5-10) of free listings. Premium members can publish unlimited listings."
+      }
+    },
+    "trading": {
+      "cashDifference": {
+        "q": "Can I trade with a cash top-up?",
+        "a": "Yes, you can add a cash difference to your trade offer. The difference is paid through our secure payment system."
+      }
+    },
+    "account": {
+      "cancelSubscription": {
+        "q": "How do I cancel my Premium membership?",
+        "a": "You can cancel from Profile > Settings > Membership > Cancel Subscription. You'll keep your Premium features until the end of the current billing period."
+      }
+    }
   },
   "legal": {
     "lastUpdated": "Last updated",

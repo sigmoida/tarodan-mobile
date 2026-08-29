@@ -1,27 +1,31 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Text, Input, Textarea, Button, Divider, theme } from '@/ui';
 
 import { styles } from '../_lib/styles';
-import { CONTACT_OPTIONS } from '../_lib/faq';
+import { buildContactOptions } from '../_lib/faq';
 import type { HelpController } from '../_hooks/useHelp';
 
 const { colors } = theme;
 
 /** Contact options (email/whatsapp/phone), contact form, and app info footer. */
 export function HelpContact({ f }: { f: HelpController }) {
+  const { t } = useTranslation();
+  const contactOptions = useMemo(() => buildContactOptions(t), [t]);
+
   return (
     <>
       <Divider style={styles.divider} />
 
       {/* Contact Section */}
       <View style={styles.contactSection}>
-        <Text style={styles.sectionTitle}>Bize Ulaşın</Text>
+        <Text style={styles.sectionTitle}>{t('guides.contactLink')}</Text>
 
         <View style={styles.contactOptions}>
-          {CONTACT_OPTIONS.map(option => (
+          {contactOptions.map(option => (
             <TouchableOpacity key={option.id} style={styles.contactOption} onPress={option.action}>
               <View style={styles.contactIcon}>
                 <Ionicons name={option.icon as any} size={24} color={colors.primary[600]!} />
@@ -37,15 +41,15 @@ export function HelpContact({ f }: { f: HelpController }) {
 
         {/* Contact Form */}
         <View style={styles.contactForm}>
-          <Text style={styles.formTitle}>Mesaj Gönderin</Text>
+          <Text style={styles.formTitle}>{t('help.sendMessageTitle')}</Text>
           <Input
-            label="Adınız"
+            label={t('checkout.guestName')}
             value={f.contactName}
             onChangeText={f.setContactName}
             containerStyle={styles.input}
           />
           <Input
-            label="E-posta"
+            label={t('common.email')}
             value={f.contactEmail}
             onChangeText={f.setContactEmail}
             keyboardType="email-address"
@@ -53,7 +57,7 @@ export function HelpContact({ f }: { f: HelpController }) {
             containerStyle={styles.input}
           />
           <Textarea
-            label="Mesajınız"
+            label={t('help.messageLabel')}
             value={f.contactMessage}
             onChangeText={f.setContactMessage}
             rows={4}
@@ -61,7 +65,7 @@ export function HelpContact({ f }: { f: HelpController }) {
           />
           <Button
             variant="primary"
-            title="Gönder"
+            title={t('common.send')}
             icon="send"
             onPress={f.handleSubmitContact}
             isLoading={f.contactSubmitting}
@@ -76,11 +80,11 @@ export function HelpContact({ f }: { f: HelpController }) {
         <Text style={styles.appInfoText}>Tarodan v1.0.0</Text>
         <View style={styles.appLinks}>
           <TouchableOpacity onPress={() => router.push('/privacy')}>
-            <Text style={styles.appLink}>Gizlilik Politikası</Text>
+            <Text style={styles.appLink}>{t('mobile.pagePrivacy')}</Text>
           </TouchableOpacity>
           <Text style={styles.appLinkDivider}>•</Text>
           <TouchableOpacity onPress={() => router.push('/terms')}>
-            <Text style={styles.appLink}>Kullanım Koşulları</Text>
+            <Text style={styles.appLink}>{t('mobile.pageTerms')}</Text>
           </TouchableOpacity>
         </View>
       </View>

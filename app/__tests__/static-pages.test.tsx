@@ -33,17 +33,16 @@ describe("J126 · Hakkımızda (about) render", () => {
 describe("J126 · SSS (faq) render", () => {
   it("J126.5 kategoriler ve sorular render edilir", () => {
     renderWithProviders(<FAQScreen />);
-    expect(screen.getByText("Satın Alma")).toBeOnTheScreen();
-    expect(screen.getByText("Nasıl sipariş veririm?")).toBeOnTheScreen();
+    expect(screen.getByText("faq.buying")).toBeOnTheScreen();
+    expect(screen.getByText("faqPage.buying.howToOrder.q")).toBeOnTheScreen();
   });
 
   it("J126.6 soruya dokununca cevap genişler", () => {
     renderWithProviders(<FAQScreen />);
     // Başlangıçta hiçbiri açık değil → cevap görünmez
-    const answer =
-      'Beğendiğiniz ürünü seçin, "Satın Al" butonuna tıklayın, teslimat adresinizi girin ve ödeme bilgilerinizi ekleyerek siparişinizi tamamlayın. Sipariş onayı e-posta ile gönderilecektir.';
+    const answer = "faqPage.buying.howToOrder.a";
     expect(screen.queryByText(answer)).toBeNull();
-    fireEvent.press(screen.getByText("Nasıl sipariş veririm?"));
+    fireEvent.press(screen.getByText("faqPage.buying.howToOrder.q"));
     expect(screen.getByText(answer)).toBeOnTheScreen();
   });
 });
@@ -51,13 +50,9 @@ describe("J126 · SSS (faq) render", () => {
 describe("J126 · Rehberler (guides) render", () => {
   it("J126.7 rehber başlıkları görünür; ilk rehber varsayılan açık", () => {
     renderWithProviders(<GuidesScreen />);
-    expect(screen.getByText("Nasıl Satın Alınır?")).toBeOnTheScreen();
-    expect(screen.getByText("Nasıl Satılır?")).toBeOnTheScreen();
+    expect(screen.getByText("guides.howToBuy.title")).toBeOnTheScreen();
+    expect(screen.getByText("guides.howToSell.title")).toBeOnTheScreen();
     // expandedIndex=0 başlangıç → ilk rehberin adımı görünür
-    expect(
-      screen.getByText(
-        "Arama veya kategoriler aracılığıyla istediğiniz ürünü bulun.",
-      ),
-    ).toBeOnTheScreen();
+    expect(screen.getByText("guides.howToBuy.step1")).toBeOnTheScreen();
   });
 });
