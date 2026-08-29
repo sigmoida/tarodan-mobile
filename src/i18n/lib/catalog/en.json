@@ -6872,7 +6872,11 @@
     "mostLikedProducts": "Most Liked Items",
     "mostPopularCollections": "Most Popular Collections",
     "noProductStats": "No item statistics yet",
-    "noCollectionStats": "No collection statistics yet"
+    "noCollectionStats": "No collection statistics yet",
+    "loadingStats": "Loading statistics...",
+    "addCompanyName": "Add Company Name",
+    "businessOnlyError": "This feature is only available for Business accounts.",
+    "statsLoadError": "An error occurred while loading statistics"
   },
   "sellerDocument": {
     "taxPlate": "Tax certificate",

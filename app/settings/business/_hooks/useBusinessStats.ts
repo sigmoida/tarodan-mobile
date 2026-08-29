@@ -37,8 +37,8 @@ export function useBusinessStats() {
     ? (query.error as any)?.response?.status === 400
       ? ((query.error as any)?.response?.data?.message ??
         (query.error as any)?.response?.data?.error ??
-        "Bu özellik sadece İşletme hesapları için geçerlidir.")
-      : "İstatistikler yüklenirken bir hata oluştu"
+        t("business.businessOnlyError"))
+      : t("business.statsLoadError")
     : null;
 
   return {

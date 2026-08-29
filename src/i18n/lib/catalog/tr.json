@@ -6872,7 +6872,11 @@
     "mostLikedProducts": "En Çok Beğenilen Ürünler",
     "mostPopularCollections": "En Popüler Koleksiyonlar",
     "noProductStats": "Henüz ürün istatistiği yok",
-    "noCollectionStats": "Henüz koleksiyon istatistiği yok"
+    "noCollectionStats": "Henüz koleksiyon istatistiği yok",
+    "loadingStats": "İstatistikler yükleniyor...",
+    "addCompanyName": "Şirket Adı Ekle",
+    "businessOnlyError": "Bu özellik sadece İşletme hesapları için geçerlidir.",
+    "statsLoadError": "İstatistikler yüklenirken bir hata oluştu"
   },
   "sellerDocument": {
     "taxPlate": "Vergi levhası",
