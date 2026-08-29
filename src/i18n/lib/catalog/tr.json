@@ -1226,15 +1226,18 @@
       "counterpartyCancelled": "Karşı tarafın gönderisi iptal edildi; yetkili ekibimiz devreye girecek.",
       "counterpartyFailed": "Karşı tarafın gönderisinde bir aksaklık oluştu; yetkili ekibimiz inceliyor.",
       "counterpartyReturned": "Karşı tarafın gönderisi iade edildi.",
-      "counterpartyWaiting": "Karşı tarafın kargoya teslim etmesi bekleniyor."
+      "counterpartyWaiting": "Karşı tarafın kargoya teslim etmesi bekleniyor.",
+      "arrived": "Ürününüz Tarodan deposuna ulaştı."
     },
     "confirmReceipt": {
-      "waitingDelivered": "Kargonun teslim edildiği bilgisi bekleniyor."
+      "waitingDelivered": "Kargonun teslim edildiği bilgisi bekleniyor.",
+      "successMessage": "Takas tamamlandı!"
     },
     "cancel": {
       "lockedHint": "Ürünlerden biri Tarodan deposuna ulaştı; iptal edilemez. Sorun varsa destek ile iletişime geçin.",
       "offerCta": "Teklifi İptal Et",
-      "tradeCta": "Takası İptal Et"
+      "tradeCta": "Takası İptal Et",
+      "confirmMessage": "Bu takas teklifini iptal etmek istediğinize emin misiniz?"
     },
     "dispute": {
       "openCta": "İtiraz Aç",
@@ -1406,7 +1409,35 @@
     "costPreviewHint": "Tutarlar güncel kural ve kargo tarifesine göre hesaplanır; kabul anında sabitlenir.",
     "costPreviewFailed": "Maliyet önizlemesi alınamadı",
     "paymentsSummaryTitle": "Ödeme dökümü",
-    "commissionLine": "Aracılık komisyonu"
+    "commissionLine": "Aracılık komisyonu",
+    "accept": {
+      "confirmTitle": "Takası Kabul Et",
+      "confirmMessage": "Bu takas teklifini kabul etmek istediğinize emin misiniz?",
+      "successMessage": "Takas kabul edildi!"
+    },
+    "cashPay": {
+      "missingPaymentId": "Ödeme başlatılamadı (paymentId eksik)."
+    },
+    "statusDescription": {
+      "pending": "Karşı tarafın teklifi yanıtlaması bekleniyor.",
+      "accepted": "Takas kabul edildi. Şimdi ürünler Tarodan deposuna kargolanacak.",
+      "awaitingPayment": "Nakit fark ödemesi bekleniyor. Ödeme tamamlanınca kargo süreci başlar.",
+      "shippingToWarehouse": "Her iki taraf da ürününü Tarodan deposuna kargoluyor.",
+      "atWarehouse": "Ürünler Tarodan deposuna ulaştı.",
+      "adminReviewing": "Ekibimiz ürünleri inceliyor. Onay sonrası size kargolanacak.",
+      "shippingToRecipients": "Ürünler depodan size doğru kargolanıyor.",
+      "returning": "Takas reddedildi. Ürünleriniz size iade ediliyor.",
+      "rejected": "Bu takas teklifi reddedildi.",
+      "cancelled": "Bu takas iptal edildi.",
+      "disputed": "Bu takas için bir itiraz açıldı. Ekibimiz inceliyor."
+    },
+    "shippingStatus": {
+      "title": "Kargo Durumu"
+    },
+    "yourShipmentLabel": "Sizin kargonuz: {value}",
+    "otherPartyShipmentLabel": "Karşı taraf: {value}",
+    "notShippedYet": "Henüz gönderilmedi",
+    "trackShipmentLegacy": "Kargoyu Takip Et"
   },
   "offer": {
     "makeOffer": "Teklif Ver",
@@ -2271,6 +2302,32 @@
       "trade": "Takas",
       "technical": "Teknik Sorun",
       "other": "Diğer"
+    },
+    "emptyTitle": "Henüz destek talebiniz yok",
+    "emptySubtitle": "Bir sorununuz olduğunda \"Yeni Talep Oluştur\" ile bize ulaşabilirsiniz",
+    "ticketsLoginPrompt": "Destek taleplerinizi görmek ve oluşturmak için giriş yapın",
+    "new": {
+      "title": "Destek Talebi",
+      "loginRequiredSubtitle": "Destek talebi oluşturmak için giriş yapmanız gerekmektedir.",
+      "selectCategory": "Kategori Seçin",
+      "orderNumberLabel": "Sipariş/Takas Numarası (Opsiyonel)",
+      "subjectLabel": "Konu *",
+      "descriptionLabel": "Açıklama *",
+      "requiredFieldsNote": "* ile işaretli alanların doldurulması zorunludur.",
+      "contactInfoTitle": "İletişim Bilgileriniz",
+      "urgentContact": "Acil destek için:",
+      "category": {
+        "shipping": "Sipariş/Kargo Sorunu",
+        "payment": "Ödeme Sorunu",
+        "account": "Hesap Sorunu",
+        "product": "İlan Sorunu",
+        "trade": "Takas Sorunu"
+      },
+      "subjectMinLength": "Konu en az 5 karakter olmalıdır.",
+      "descriptionMinLength": "Açıklama en az 10 karakter olmalıdır.",
+      "refPrefix": "Sipariş/Takas No: {refId}",
+      "ticketCreated": "Destek talebiniz oluşturuldu!",
+      "createFailed": "Talep oluşturulamadı, lütfen tekrar deneyin."
     }
   },
   "faq": {

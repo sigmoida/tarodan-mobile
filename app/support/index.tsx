@@ -13,6 +13,8 @@ import { useState, useCallback } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { supportApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -20,24 +22,25 @@ const { colors } = theme;
 
 // Backend TicketStatus enum'unun TÜM değerleri (web /support ile parite).
 // Eksik durum = StatusBadge ham enum gösterir.
-const ticketStatusConfig: Record<string, { label: string; variant: BadgeVariant }> = {
-  open: { label: 'Açık', variant: 'info' },
-  in_progress: { label: 'İnceleniyor', variant: 'warning' },
-  waiting_customer: { label: 'Yanıtınız Bekleniyor', variant: 'primary' },
-  resolved: { label: 'Çözüldü', variant: 'success' },
-  closed: { label: 'Kapatıldı', variant: 'default' },
-};
+// [id].tsx ile TEK kaynak (support.* anahtarları) — kopya harita çeviri sürüklenmesine yol açar.
+const buildTicketStatusConfig = (t: TFunction): Record<string, { label: string; variant: BadgeVariant }> => ({
+  open: { label: t('support.open'), variant: 'info' },
+  in_progress: { label: t('support.inProgress'), variant: 'warning' },
+  waiting_customer: { label: t('support.waitingCustomer'), variant: 'primary' },
+  resolved: { label: t('support.resolved'), variant: 'success' },
+  closed: { label: t('support.closed'), variant: 'default' },
+});
 
 // Backend TicketCategory enum'u ile birebir.
-const categoryLabels: Record<string, string> = {
-  shipping: 'Sipariş / Kargo',
-  payment: 'Ödeme',
-  account: 'Hesap',
-  product: 'İlan / Ürün',
-  trade: 'Takas',
-  technical: 'Teknik Sorun',
-  other: 'Diğer',
-};
+const buildCategoryLabels = (t: TFunction): Record<string, string> => ({
+  shipping: t('support.category.shipping'),
+  payment: t('support.category.payment'),
+  account: t('support.category.account'),
+  product: t('support.category.product'),
+  trade: t('support.category.trade'),
+  technical: t('support.category.technical'),
+  other: t('support.category.other'),
+});
 
 interface TicketSummary {
   id: string;
@@ -59,8 +62,11 @@ function formatDate(value?: string): string {
 }
 
 export default function SupportTicketsScreen() {
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
   const [refreshing, setRefreshing] = useState(false);
+  const ticketStatusConfig = buildTicketStatusConfig(t);
+  const categoryLabels = buildCategoryLabels(t);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['support-tickets', 'me'],
@@ -93,14 +99,14 @@ export default function SupportTicketsScreen() {
   if (!isAuthenticated) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Destek Taleplerim" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+        <ScreenHeader title={t('support.supportTickets')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
         <View style={styles.centeredContainer}>
           <Ionicons name="headset-outline" size={64} color={colors.primary[600]!} />
-          <Text variant="h2" style={styles.title}>Destek Taleplerim</Text>
+          <Text variant="h2" style={styles.title}>{t('support.supportTickets')}</Text>
           <Text variant="body" tone="muted" style={styles.subtitle}>
-            Destek taleplerinizi görmek ve oluşturmak için giriş yapın
+            {t('support.ticketsLoginPrompt')}
           </Text>
-          <Button variant="primary" title="Giriş Yap" onPress={() => router.push('/(auth)/login')} style={{ alignSelf: 'center' }} />
+          <Button variant="primary" title={t('common.login')} onPress={() => router.push('/(auth)/login')} style={{ alignSelf: 'center' }} />
         </View>
       </View>
     );
@@ -108,12 +114,12 @@ export default function SupportTicketsScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Destek Taleplerim" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+      <ScreenHeader title={t('support.supportTickets')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
 
       <View style={styles.newButtonWrap}>
         <Button
           variant="primary"
-          title="Yeni Talep Oluştur"
+          title={t('support.createTicket')}
           icon="add"
           onPress={() => router.push('/support/new')}
           fullWidth
@@ -127,9 +133,9 @@ export default function SupportTicketsScreen() {
       ) : tickets.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="chatbubbles-outline" size={80} color={colors.text.subtle} />
-          <Text variant="h3" style={styles.emptyTitle}>Henüz destek talebiniz yok</Text>
+          <Text variant="h3" style={styles.emptyTitle}>{t('support.emptyTitle')}</Text>
           <Text variant="body" tone="muted" style={styles.emptySubtitle}>
-            Bir sorununuz olduğunda "Yeni Talep Oluştur" ile bize ulaşabilirsiniz
+            {t('support.emptySubtitle')}
           </Text>
         </View>
       ) : (

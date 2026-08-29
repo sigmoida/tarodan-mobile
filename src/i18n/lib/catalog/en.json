@@ -1226,15 +1226,18 @@
       "counterpartyCancelled": "The other party's shipment was cancelled; our team will step in.",
       "counterpartyFailed": "There was an issue with the other party's shipment; our team is reviewing.",
       "counterpartyReturned": "The other party's shipment was returned.",
-      "counterpartyWaiting": "Waiting for the other party to drop off their shipment."
+      "counterpartyWaiting": "Waiting for the other party to drop off their shipment.",
+      "arrived": "Your item has arrived at the Tarodan warehouse."
     },
     "confirmReceipt": {
-      "waitingDelivered": "Waiting for delivery confirmation."
+      "waitingDelivered": "Waiting for delivery confirmation.",
+      "successMessage": "Trade completed!"
     },
     "cancel": {
       "lockedHint": "One of the items has reached the Tarodan warehouse; cancel is no longer allowed. Contact support if something is wrong.",
       "offerCta": "Cancel Offer",
-      "tradeCta": "Cancel Trade"
+      "tradeCta": "Cancel Trade",
+      "confirmMessage": "Are you sure you want to cancel this trade offer?"
     },
     "dispute": {
       "openCta": "Open a Dispute",
@@ -1406,7 +1409,35 @@
     "costPreviewHint": "Amounts follow the current rules and shipping tariff; they are locked in when the offer is accepted.",
     "costPreviewFailed": "Could not load the cost preview",
     "paymentsSummaryTitle": "Payment breakdown",
-    "commissionLine": "Marketplace commission"
+    "commissionLine": "Marketplace commission",
+    "accept": {
+      "confirmTitle": "Accept Trade",
+      "confirmMessage": "Are you sure you want to accept this trade offer?",
+      "successMessage": "Trade accepted!"
+    },
+    "cashPay": {
+      "missingPaymentId": "Payment could not be started (missing paymentId)."
+    },
+    "statusDescription": {
+      "pending": "Waiting for the other party to respond to the offer.",
+      "accepted": "Trade accepted. The items will now be shipped to the Tarodan warehouse.",
+      "awaitingPayment": "Waiting for the cash difference payment. Shipping starts once payment is complete.",
+      "shippingToWarehouse": "Both parties are shipping their item to the Tarodan warehouse.",
+      "atWarehouse": "The items have arrived at the Tarodan warehouse.",
+      "adminReviewing": "Our team is inspecting the items. They'll be shipped to you after approval.",
+      "shippingToRecipients": "The items are being shipped from the warehouse to you.",
+      "returning": "The trade was rejected. Your items are being returned to you.",
+      "rejected": "This trade offer was rejected.",
+      "cancelled": "This trade was cancelled.",
+      "disputed": "A dispute has been opened for this trade. Our team is reviewing it."
+    },
+    "shippingStatus": {
+      "title": "Shipping Status"
+    },
+    "yourShipmentLabel": "Your shipment: {value}",
+    "otherPartyShipmentLabel": "Other party: {value}",
+    "notShippedYet": "Not shipped yet",
+    "trackShipmentLegacy": "Track Shipment"
   },
   "offer": {
     "makeOffer": "Make Offer",
@@ -2271,6 +2302,32 @@
       "trade": "Trade",
       "technical": "Technical Issue",
       "other": "Other"
+    },
+    "emptyTitle": "You don't have any support tickets yet",
+    "emptySubtitle": "When you run into an issue, reach us with \"Create Ticket\"",
+    "ticketsLoginPrompt": "Log in to view and create your support tickets",
+    "new": {
+      "title": "Support Ticket",
+      "loginRequiredSubtitle": "You need to log in to create a support ticket.",
+      "selectCategory": "Select Category",
+      "orderNumberLabel": "Order/Trade Number (Optional)",
+      "subjectLabel": "Subject *",
+      "descriptionLabel": "Description *",
+      "requiredFieldsNote": "Fields marked with * are required.",
+      "contactInfoTitle": "Your Contact Info",
+      "urgentContact": "For urgent support:",
+      "category": {
+        "shipping": "Order/Shipping Issue",
+        "payment": "Payment Issue",
+        "account": "Account Issue",
+        "product": "Listing Issue",
+        "trade": "Trade Issue"
+      },
+      "subjectMinLength": "Subject must be at least 5 characters.",
+      "descriptionMinLength": "Description must be at least 10 characters.",
+      "refPrefix": "Order/Trade No: {refId}",
+      "ticketCreated": "Your support ticket has been created!",
+      "createFailed": "Could not create the ticket, please try again."
     }
   },
   "faq": {

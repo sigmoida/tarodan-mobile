@@ -11,24 +11,28 @@ const { colors } = theme;
 // hem kapsam hem kelime olarak ayrışmıştı.
 export { tradeStatusMeta as TRADE_STATUSES, useTradeStatusDetail } from '@/lib/shared/tradeStatus';
 
-// Statü açıklamaları — banner altındaki bilgilendirme kartı (web parity).
-export const STATUS_DESCRIPTIONS: Record<string, string> = {
-  pending: "Karşı tarafın teklifi yanıtlaması bekleniyor.",
-  accepted: "Takas kabul edildi. Şimdi ürünler Tarodan deposuna kargolanacak.",
-  awaiting_payment:
-    "Nakit fark ödemesi bekleniyor. Ödeme tamamlanınca kargo süreci başlar.",
-  shipping_to_warehouse:
-    "Her iki taraf da ürününü Tarodan deposuna kargoluyor.",
-  at_warehouse: "Ürünler Tarodan deposuna ulaştı.",
-  admin_reviewing:
-    "Ekibimiz ürünleri inceliyor. Onay sonrası size kargolanacak.",
-  shipping_to_recipients: "Ürünler depodan size doğru kargolanıyor.",
-  returning: "Takas reddedildi. Ürünleriniz size iade ediliyor.",
-  completed: "Takas başarıyla tamamlandı.",
-  rejected: "Bu takas teklifi reddedildi.",
-  cancelled: "Bu takas iptal edildi.",
-  disputed: "Bu takas için bir itiraz açıldı. Ekibimiz inceliyor.",
+// Statü açıklama anahtarları — build fonksiyonu (import-zamanı dondurulmasın, CLAUDE.md §2).
+const STATUS_DESCRIPTION_KEYS: Record<string, MessageKey> = {
+  pending: "trade.statusDescription.pending",
+  accepted: "trade.statusDescription.accepted",
+  awaiting_payment: "trade.statusDescription.awaitingPayment",
+  shipping_to_warehouse: "trade.statusDescription.shippingToWarehouse",
+  at_warehouse: "trade.statusDescription.atWarehouse",
+  admin_reviewing: "trade.statusDescription.adminReviewing",
+  shipping_to_recipients: "trade.statusDescription.shippingToRecipients",
+  returning: "trade.statusDescription.returning",
+  completed: "trade.statusMeta.completed",
+  rejected: "trade.statusDescription.rejected",
+  cancelled: "trade.statusDescription.cancelled",
+  disputed: "trade.statusDescription.disputed",
 };
+
+/** Statü açıklamaları — banner altındaki bilgilendirme kartı (web parity). */
+export function buildStatusDescriptions(t: TFn): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(STATUS_DESCRIPTION_KEYS).map(([status, key]) => [status, t(key)]),
+  );
+}
 
 // Yeni auto-shipping akışı statülerinin i18n etiket anahtarları.
 export const NEW_STATUS_KEYS: Record<string, MessageKey> = {

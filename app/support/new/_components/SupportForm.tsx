@@ -1,19 +1,23 @@
 import { View, TouchableOpacity } from 'react-native';
 import { Text, Card, Chip, Input, Textarea, Button, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { SUPPORT_EMAIL } from '@/constants/legalFacts';
 import { styles } from '../_lib/styles';
-import { SUPPORT_CATEGORIES, PRIORITY_OPTIONS } from '../_lib/constants';
+import { buildSupportCategories, buildPriorityOptions } from '../_lib/constants';
 import type { SupportFormController } from '../_hooks/useSupportForm';
 
 const { colors } = theme;
 
 /** Kategori grid + öncelik + form alanları + iletişim bilgisi + gönder. */
 export function SupportForm({ f }: { f: SupportFormController }) {
+  const { t } = useTranslation();
+  const SUPPORT_CATEGORIES = buildSupportCategories(t);
+  const PRIORITY_OPTIONS = buildPriorityOptions(t);
   return (
     <>
       {/* Category Selection */}
-      <Text style={styles.sectionTitle}>Kategori Seçin</Text>
+      <Text style={styles.sectionTitle}>{t('support.new.selectCategory')}</Text>
       <View style={styles.categoriesGrid}>
         {SUPPORT_CATEGORIES.map((cat) => (
           <TouchableOpacity
@@ -34,7 +38,7 @@ export function SupportForm({ f }: { f: SupportFormController }) {
       </View>
 
       {/* Priority */}
-      <Text style={styles.sectionTitle}>Öncelik</Text>
+      <Text style={styles.sectionTitle}>{t('support.priority')}</Text>
       <View style={styles.priorityRow}>
         {PRIORITY_OPTIONS.map((opt) => (
           <Chip
@@ -51,29 +55,29 @@ export function SupportForm({ f }: { f: SupportFormController }) {
       <Card style={styles.formCard}>
         {(f.category === 'shipping' || f.category === 'trade') && (
           <Input
-            label="Sipariş/Takas Numarası (Opsiyonel)"
+            label={t('support.new.orderNumberLabel')}
             value={f.orderId}
             onChangeText={f.setOrderId}
             style={styles.input}
           />
         )}
 
-        <Input label="Konu *" value={f.subject} onChangeText={f.setSubject} style={styles.input} />
+        <Input label={t('support.new.subjectLabel')} value={f.subject} onChangeText={f.setSubject} style={styles.input} />
 
         <Textarea
-          label="Açıklama *"
+          label={t('support.new.descriptionLabel')}
           value={f.description}
           onChangeText={f.setDescription}
           style={styles.input}
           rows={6}
         />
 
-        <Text style={styles.note}>* ile işaretli alanların doldurulması zorunludur.</Text>
+        <Text style={styles.note}>{t('support.new.requiredFieldsNote')}</Text>
       </Card>
 
       {/* User Info */}
       <Card style={styles.userInfoCard}>
-        <Text style={styles.userInfoTitle}>İletişim Bilgileriniz</Text>
+        <Text style={styles.userInfoTitle}>{t('support.new.contactInfoTitle')}</Text>
         <View style={styles.userInfoRow}>
           <Ionicons name="person-outline" size={18} color={colors.text.muted} />
           <Text style={styles.userInfoText}>{f.user?.displayName}</Text>
@@ -87,7 +91,7 @@ export function SupportForm({ f }: { f: SupportFormController }) {
       {/* Submit Button */}
       <Button
         variant="primary"
-        title="Talep Oluştur"
+        title={t('support.createTicket')}
         onPress={f.handleSubmit}
         isLoading={f.loading}
         disabled={f.loading || !f.category || !f.subject || !f.description}
@@ -99,7 +103,7 @@ export function SupportForm({ f }: { f: SupportFormController }) {
       {/* Contact Info */}
       <View style={styles.contactInfo}>
         <Text style={styles.contactInfoText}>
-          Acil destek için: <Text style={styles.contactInfoLink}>{SUPPORT_EMAIL}</Text>
+          {t('support.new.urgentContact')} <Text style={styles.contactInfoLink}>{SUPPORT_EMAIL}</Text>
         </Text>
       </View>
 

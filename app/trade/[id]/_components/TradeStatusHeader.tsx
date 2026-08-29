@@ -8,7 +8,7 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import {
   useTradeStatusDetail,
-  STATUS_DESCRIPTIONS,
+  buildStatusDescriptions,
   STEP_FLOW_STATUSES,
   deadlineForStatus,
   formatCountdown,
@@ -48,7 +48,8 @@ export function TradeStatusHeader({
   const badgeConfig = useTradeStatusConfig();
   const hasBadge = !!badgeConfig[trade.status];
   const countdown = formatCountdown(deadlineForStatus(trade), now);
-  const statusDescription = STATUS_DESCRIPTIONS[trade.status];
+  const statusDescriptions = buildStatusDescriptions(t);
+  const statusDescription = statusDescriptions[trade.status];
 
   return (
     <>
