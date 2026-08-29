@@ -1,26 +1,29 @@
 import { View, ScrollView, RefreshControl } from 'react-native';
 import { Chip, Snackbar, Spinner, theme } from '@/ui';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ScreenHeader, EmptyState } from '@/components/common';
 import { usePayments } from './_hooks/usePayments';
 import { styles } from './_lib/styles';
-import { STATUS_OPTIONS } from './_lib/status';
+import { buildStatusOptions } from './_lib/status';
 import { PaymentCard } from './_components/PaymentCard';
 
 const { colors } = theme;
 
 export default function PaymentsScreen() {
+  const { t } = useTranslation();
   const f = usePayments();
+  const statusOptions = buildStatusOptions(t);
 
   if (!f.isAuthenticated) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Ödemelerim" />
+        <ScreenHeader title={t('mobile.settingsPayments')} />
         <EmptyState
           icon="lock-closed-outline"
-          title="Giriş Gerekli"
-          subtitle="Ödeme geçmişinizi görmek için giriş yapın."
-          actionLabel="Giriş Yap"
+          title={t('listing.loginRequiredTitle')}
+          subtitle={t('payment.myPaymentsLoginSubtitle')}
+          actionLabel={t('common.login')}
           onAction={() => router.push('/(auth)/login' as any)}
         />
       </View>
@@ -29,7 +32,7 @@ export default function PaymentsScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Ödemelerim" />
+      <ScreenHeader title={t('mobile.settingsPayments')} />
 
       {/* Status filtresi */}
       <ScrollView
@@ -38,7 +41,7 @@ export default function PaymentsScreen() {
         contentContainerStyle={styles.filterRow}
         style={styles.filterScroll}
       >
-        {STATUS_OPTIONS.map((opt) => (
+        {statusOptions.map((opt) => (
           <Chip
             key={opt.value || 'all'}
             label={opt.label}
@@ -57,11 +60,11 @@ export default function PaymentsScreen() {
       ) : f.payments.length === 0 ? (
         <EmptyState
           icon="card-outline"
-          title="Henüz ödeme yok"
+          title={t('payment.noPaymentsTitle')}
           subtitle={
             f.statusFilter
-              ? 'Bu filtreyle eşleşen ödeme bulunamadı.'
-              : 'Yaptığınız ödemeler burada listelenecek.'
+              ? t('payment.noPaymentsFilteredSubtitle')
+              : t('payment.noPaymentsSubtitle')
           }
         />
       ) : (
