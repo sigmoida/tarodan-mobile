@@ -49,7 +49,7 @@ export function useSaleActions() {
         await shippingApi.createShipment({ orderId, provider: 'surat' });
         return { alreadyExisted: false };
       }
-      throw new Error(`Desteklenmeyen sipariş durumu: ${status}`);
+      throw new Error(i18n.t('order.unsupportedStatus'));
     },
     /**
      * İKİ DAL, İKİ MESAJ. Hiçbirinde sipariş durumu DEĞİŞMİYOR: backend
