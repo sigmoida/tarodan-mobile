@@ -419,6 +419,7 @@
     "productsTitle": "Listings",
     "noResults": "No brands found.",
     "noProducts": "No active listings found for this brand.",
+    "emptyProductsTitle": "No products for this brand",
     "backToAll": "All Brands",
     "website": "Website",
     "activeListings": "Active listings"

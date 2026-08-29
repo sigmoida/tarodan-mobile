@@ -419,6 +419,7 @@
     "productsTitle": "İlanları",
     "noResults": "Marka bulunamadı.",
     "noProducts": "Bu markaya ait aktif ilan bulunamadı.",
+    "emptyProductsTitle": "Bu markaya ait ürün yok",
     "backToAll": "Tüm Markalar",
     "website": "Web Sitesi",
     "activeListings": "Aktif ilanlar"
