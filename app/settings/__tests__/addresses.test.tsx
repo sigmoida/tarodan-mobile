@@ -49,7 +49,7 @@ describe("J32 · adres ekleme form validasyonu", () => {
 
   const openDialog = async () => {
     // Boş listede "Adres Ekle" butonu diyaloğu açar (query çözülene kadar bekle)
-    const addBtn = await screen.findByText("Adres Ekle");
+    const addBtn = await screen.findByText("address.addNewAddress");
     fireEvent.press(addBtn);
   };
 
@@ -144,14 +144,14 @@ describe('J32.b · "Varsayılan Yap" satır-bazlı yükleme (bulgu #23)', () => 
   it("bir satırda işlem beklerken yalnız o satır spinner gösterir, diğeri kalır", async () => {
     renderWithProviders(<AddressesScreen />);
 
-    const buttons = await screen.findAllByText("Varsayılan Yap");
+    const buttons = await screen.findAllByText("address.makeDefault");
     expect(buttons).toHaveLength(2);
 
     fireEvent.press(buttons[0]!);
 
     // a1 pending → başlığı spinner ile değişir; a2 dokunulmadığı için "Varsayılan Yap" kalır.
     await waitFor(() => {
-      expect(screen.getAllByText("Varsayılan Yap")).toHaveLength(1);
+      expect(screen.getAllByText("address.makeDefault")).toHaveLength(1);
     });
     expect(patch).toHaveBeenCalledTimes(1);
     expect(patch).toHaveBeenCalledWith("/users/me/addresses/a1/default");
@@ -166,7 +166,7 @@ describe('J32.b · "Varsayılan Yap" satır-bazlı yükleme (bulgu #23)', () => 
     // yine kırılır, yalnız yavaş makineye tolerans tanınıyor.
     await waitFor(
       () => {
-        expect(screen.getAllByText("Varsayılan Yap")).toHaveLength(2);
+        expect(screen.getAllByText("address.makeDefault")).toHaveLength(2);
       },
       { timeout: 5000 },
     );
