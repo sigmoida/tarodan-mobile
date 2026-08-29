@@ -3,6 +3,7 @@ import { View, FlatList, RefreshControl, Pressable, StyleSheet } from 'react-nat
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import {
   Button,
   ScreenHeader,
@@ -14,6 +15,7 @@ import {
 import { tradesApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { TradeCard, type TradeCardTrade } from '@/components/trade/TradeCard';
+import type { TFn } from './trade/[id]/_lib/types';
 
 const { colors, spacing } = theme;
 
@@ -22,21 +24,27 @@ const { colors, spacing } = theme;
 type TradesTabFilter = 'all' | 'pending' | 'shipping' | 'completed' | 'cancelled' | 'rejected';
 
 // Sunucu sayaçları yalnızca ilk 4 grup için var; iptal/red sayaçsız gösterilir.
-const FILTERS: {
+// Etiketler katalogdan — module-scope dizi import-zamanı DONMASIN diye
+// `buildFilters(t)` fonksiyonu (CLAUDE.md §2), her render'da yeniden kurulur.
+function buildFilters(t: TFn): {
   value: TradesTabFilter;
   label: string;
   icon: keyof typeof Ionicons.glyphMap | null;
   countKey?: 'all' | 'pending' | 'shipping' | 'completed';
-}[] = [
-  { value: 'all', label: 'Tümü', icon: null, countKey: 'all' },
-  { value: 'pending', label: 'Bekleyen', icon: 'time-outline', countKey: 'pending' },
-  { value: 'shipping', label: 'Kargoda', icon: 'cube-outline', countKey: 'shipping' },
-  { value: 'completed', label: 'Tamamlanan', icon: 'checkmark-circle-outline', countKey: 'completed' },
-  { value: 'cancelled', label: 'İptal', icon: 'close-circle-outline' },
-  { value: 'rejected', label: 'Reddedilen', icon: 'ban-outline' },
-];
+}[] {
+  return [
+    { value: 'all', label: t('common.all'), icon: null, countKey: 'all' },
+    { value: 'pending', label: t('trade.filterPending'), icon: 'time-outline', countKey: 'pending' },
+    { value: 'shipping', label: t('trade.filterInTransit'), icon: 'cube-outline', countKey: 'shipping' },
+    { value: 'completed', label: t('trade.filterCompleted'), icon: 'checkmark-circle-outline', countKey: 'completed' },
+    { value: 'cancelled', label: t('common.cancel'), icon: 'close-circle-outline' },
+    { value: 'rejected', label: t('trade.filterRejected'), icon: 'ban-outline' },
+  ];
+}
 
 export default function TradesScreen() {
+  const { t } = useTranslation();
+  const FILTERS = buildFilters(t);
   const { isAuthenticated, user } = useAuthStore();
   const [filter, setFilter] = useState<TradesTabFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
@@ -94,7 +102,7 @@ export default function TradesScreen() {
   if (!isAuthenticated) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.surface.DEFAULT }}>
-        <ScreenHeader title="Takaslarım" onBack={handleBack} />
+        <ScreenHeader title={t('trade.myTrades')} onBack={handleBack} />
         <View
           style={{
             flex: 1,
@@ -104,14 +112,14 @@ export default function TradesScreen() {
           }}
         >
           <Text variant="h2" align="center" style={{ marginBottom: spacing[4] }}>
-            Giriş Yapın
+            {t('membership.loginRequiredTitle')}
           </Text>
           <Text variant="body" tone="muted" align="center" style={{ marginBottom: spacing[6] }}>
-            Takaslarınızı görmek için giriş yapmanız gerekiyor
+            {t('trade.tradeRequiresLogin')}
           </Text>
           <Button
             variant="primary"
-            title="Giriş Yap"
+            title={t('common.login')}
             onPress={() => router.push('/(auth)/login')}
             style={{ alignSelf: 'center' }}
           />
@@ -122,7 +130,7 @@ export default function TradesScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.surface.DEFAULT }}>
-      <ScreenHeader title="Takaslarım" onBack={handleBack} />
+      <ScreenHeader title={t('trade.myTrades')} onBack={handleBack} />
 
       {/* Status filters — web gibi sarmalanan (wrap) çip satırı */}
       <View style={styles.filterRow}>
@@ -159,9 +167,9 @@ export default function TradesScreen() {
         <VStack gap={3} align="center" padding={6} style={{ marginTop: spacing[8] }}>
           <Ionicons name="alert-circle-outline" size={48} color={colors.danger[500]!} />
           <Text variant="body" align="center">
-            Takaslar yüklenemedi. Çekerek yenileyin.
+            {t('trade.listLoadFailedHint')}
           </Text>
-          <Button variant="primary" title="Yeniden dene" onPress={() => refetch()} />
+          <Button variant="primary" title={t('common.tryAgain')} onPress={() => refetch()} />
         </VStack>
       ) : isLoading ? (
         <Spinner style={{ marginTop: spacing[8] }} />
@@ -176,7 +184,7 @@ export default function TradesScreen() {
             <VStack gap={3} align="center" style={{ marginTop: spacing[10] }}>
               <Ionicons name="swap-horizontal" size={56} color={colors.border.strong} />
               <Text variant="h3" align="center">
-                Henüz takas yok
+                {t('trade.noTrades')}
               </Text>
               <Text
                 variant="body"
@@ -185,12 +193,12 @@ export default function TradesScreen() {
                 style={{ paddingHorizontal: spacing[6] }}
               >
                 {filter === 'all'
-                  ? 'Beğendiğin bir ürüne takas teklifi göndererek başlayabilirsin.'
-                  : 'Bu filtrede takas bulunamadı.'}
+                  ? t('trade.noTradesHint')
+                  : t('trade.noTradesFilteredHint')}
               </Text>
               <Button
                 variant="primary"
-                title="İlan Ara"
+                title={t('trade.searchListingsCta')}
                 onPress={() => router.push('/search')}
                 style={{ marginTop: spacing[2] }}
               />
