@@ -13,6 +13,7 @@ import {
   type Subscription,
   type MembershipTier,
 } from '../subscription';
+import { schemaT } from '@/test-utils/schema';
 
 const makeSub = (over: Partial<Subscription> = {}): Subscription => ({
   id: 's1',
@@ -68,15 +69,15 @@ describe('J108 · subscriptionStore saf yardımcılar', () => {
   });
 
   it('formatBillingPeriod: monthly/yearly TR metni', () => {
-    expect(formatBillingPeriod('monthly')).toBe('Aylık');
-    expect(formatBillingPeriod('yearly')).toBe('Yıllık');
+    expect(formatBillingPeriod(schemaT, 'monthly')).toBe('Aylık');
+    expect(formatBillingPeriod(schemaT, 'yearly')).toBe('Yıllık');
   });
 
   it('getSubscriptionStatusText: durum metinleri', () => {
-    expect(getSubscriptionStatusText('active').text).toBe('Aktif');
-    expect(getSubscriptionStatusText('cancelled').text).toBe('İptal Edildi');
-    expect(getSubscriptionStatusText('past_due').text).toBe('Ödeme Gecikmiş');
-    expect(getSubscriptionStatusText('expired').text).toBe('Süresi Doldu');
+    expect(getSubscriptionStatusText(schemaT, 'active').text).toBe('Aktif');
+    expect(getSubscriptionStatusText(schemaT, 'cancelled').text).toBe('İptal Edildi');
+    expect(getSubscriptionStatusText(schemaT, 'past_due').text).toBe('Ödeme Gecikmiş');
+    expect(getSubscriptionStatusText(schemaT, 'expired').text).toBe('Süresi Doldu');
   });
 
   it('isPremiumTier: premium/business true, free false', () => {

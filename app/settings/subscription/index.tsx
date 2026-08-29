@@ -17,9 +17,9 @@ export default function SubscriptionSettingsScreen() {
   if (!f.isAuthenticated) {
     return (
       <View style={styles.centeredContainer}>
-        <Text variant="h3">Giriş Yapın</Text>
-        <Text variant="body" style={styles.subtitle}>Abonelik ayarlarınızı görmek için giriş yapın</Text>
-        <Button variant="primary" title="Giriş Yap" onPress={() => router.push('/(auth)/login')} style={{ alignSelf: 'center' }} />
+        <Text variant="h3">{f.t('membership.loginRequiredTitle')}</Text>
+        <Text variant="body" style={styles.subtitle}>{f.t('membership.subscriptionLoginPrompt')}</Text>
+        <Button variant="primary" title={f.t('common.login')} onPress={() => router.push('/(auth)/login')} style={{ alignSelf: 'center' }} />
       </View>
     );
   }

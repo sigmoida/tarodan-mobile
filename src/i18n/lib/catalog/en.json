@@ -1624,7 +1624,8 @@
     "lowerPlanButton": "Lower Plan",
     "planFallback": "Plan",
     "badgeVerified": "Verified",
-    "badgePremiumVerified": "Premium Verified"
+    "badgePremiumVerified": "Premium Verified",
+    "paymentOverdue": "Payment Overdue"
   },
   "collection": {
     "share": "Share",

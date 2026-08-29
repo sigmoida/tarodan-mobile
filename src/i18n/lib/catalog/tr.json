@@ -1624,7 +1624,8 @@
     "lowerPlanButton": "Alt Plan",
     "planFallback": "Paket",
     "badgeVerified": "Onaylı",
-    "badgePremiumVerified": "Premium Onaylı"
+    "badgePremiumVerified": "Premium Onaylı",
+    "paymentOverdue": "Ödeme Gecikmiş"
   },
   "collection": {
     "share": "Paylaş",
