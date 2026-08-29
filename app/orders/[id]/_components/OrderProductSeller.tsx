@@ -12,6 +12,7 @@ import type { OrderDetail } from '../_lib/types';
 const { colors, radius } = theme;
 
 export function OrderProductCard({ order }: { order: OrderDetail }) {
+  const { t, i18n } = useTranslation();
   return (
     <Card variant="elevated" style={styles.card}>
       <Pressable onPress={() => router.push(`/product/${order.product.id}`)}>
@@ -19,7 +20,9 @@ export function OrderProductCard({ order }: { order: OrderDetail }) {
           <Image source={{ uri: getOrderProductImageUri(order.product) }} style={styles.productImage} />
           <View style={styles.productInfo}>
             <Text variant="label" numberOfLines={2}>{order.product.title}</Text>
-            <Text variant="caption" style={styles.conditionText}>Durum: {formatCondition(order.product?.condition)}</Text>
+            <Text variant="caption" style={styles.conditionText}>
+              {t('product.condition')}: {formatCondition(order.product?.condition, i18n.language)}
+            </Text>
             <Text variant="h3" style={styles.productPrice}>{formatPrice(order.product.price)}</Text>
           </View>
         </View>

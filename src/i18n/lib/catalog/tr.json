@@ -1226,7 +1226,8 @@
     "trackHelpTitle": "Yardım mı gerekiyor?",
     "trackHelpText": "Siparişinizle ilgili sorunuz varsa destek ekibimizle iletişime geçebilirsiniz.",
     "trackHelpCta": "Destek Al",
-    "trackQueryFailed": "Sipariş sorgulanamadı"
+    "trackQueryFailed": "Sipariş sorgulanamadı",
+    "addressNotSetYet": "Teslimat adresi henüz belirlenmedi. Ödemeyi tamamladığınızda adres bilgisi eklenir."
   },
   "trade": {
     "featureTitle": "Takas Özelliği",
@@ -7544,6 +7545,8 @@
     "unitPriceLabel": "Birim {price}",
     "phoneLabel": "Tel: {phone}",
     "shipmentSectionTitle": "Kargo Bilgisi ({carrier})",
-    "shipmentPendingNotice": "Ödeme onaylandıktan sonra Sürat Kargo gönderiniz otomatik oluşturulur. Takip numarası kısa süre içinde burada görünecek."
+    "shipmentPendingNotice": "Ödeme onaylandıktan sonra Sürat Kargo gönderiniz otomatik oluşturulur. Takip numarası kısa süre içinde burada görünecek.",
+    "earningsCompleted": "Tamamlanan",
+    "earningsPending": "Bekleyen"
   }
 }

@@ -1226,7 +1226,8 @@
     "trackHelpTitle": "Need help?",
     "trackHelpText": "If you have a question about your order, you can contact our support team.",
     "trackHelpCta": "Get Support",
-    "trackQueryFailed": "Could not look up the order"
+    "trackQueryFailed": "Could not look up the order",
+    "addressNotSetYet": "The shipping address has not been set yet. It will be added once you complete payment."
   },
   "trade": {
     "featureTitle": "Trading",
@@ -7544,6 +7545,8 @@
     "unitPriceLabel": "Unit {price}",
     "phoneLabel": "Phone: {phone}",
     "shipmentSectionTitle": "Shipping Info ({carrier})",
-    "shipmentPendingNotice": "Once payment is confirmed, your Sürat Kargo shipment is created automatically. The tracking number will appear here shortly."
+    "shipmentPendingNotice": "Once payment is confirmed, your Sürat Kargo shipment is created automatically. The tracking number will appear here shortly.",
+    "earningsCompleted": "Completed",
+    "earningsPending": "Pending"
   }
 }
