@@ -34,16 +34,15 @@ export function OrderEscrowCard({ order, view }: { order: OrderDetail; view: Ord
       </View>
       {view.hasActiveRefund ? (
         <Text variant="caption" style={styles.escrowText}>
-          Açık iade talebiniz olduğu için satıcıya ödeme, iade süreci sonuçlanana kadar bekletiliyor.
+          {t('order.paymentOnHoldRefund')}
         </Text>
       ) : view.payoutReleaseDate ? (
         <Text variant="caption" style={styles.escrowText}>
-          Satıcıya ödeme, teslimden 14 gün sonra otomatik serbest kalır. Tahmini serbest kalma:{' '}
-          {formatDate(view.payoutReleaseDate.toISOString())}. Bu süre içinde dilediğiniz zaman iade talep edebilirsiniz.
+          {t('order.payoutReleaseWithDate', { date: formatDate(view.payoutReleaseDate.toISOString()) })}
         </Text>
       ) : (
         <Text variant="caption" style={styles.escrowText}>
-          Satıcıya ödeme, teslimattan 14 gün sonra otomatik serbest kalır. Onaylamanıza gerek yoktur; bu süre içinde iade talep edebilirsiniz.
+          {t('order.payoutRelease')}
         </Text>
       )}
     </Card>
@@ -61,7 +60,7 @@ export function OrderCancelledInfo({ view }: { view: OrderView }) {
         <Text variant="label" style={styles.cancelledHeaderText}>{t('order.orderCancelled')}</Text>
       </View>
       <Text variant="caption" style={styles.escrowText}>
-        Bu sipariş iptal edildi. Ödemeniz iade işlemine alındı; bankanıza yansıması birkaç iş günü sürebilir.
+        {t('order.cancelledRefundNotice')}
       </Text>
     </Card>
   );
@@ -90,7 +89,7 @@ export function OrderPayPendingCard({
         variant="primary"
         fullWidth
         isLoading={payPending}
-        title={`Ödeme Yap · ${formatPrice(order.totalAmount)}`}
+        title={t('offer.payAmount', { amount: formatPrice(order.totalAmount) })}
         onPress={onPay}
         style={{ marginTop: theme.spacing[3] }}
       />

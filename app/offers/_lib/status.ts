@@ -79,13 +79,13 @@ export function getProductImage(product: Offer["product"]): string {
   return transformImageUrl(src);
 }
 
-export function getTimeRemaining(expiresAt: string): string | null {
+export function getTimeRemaining(expiresAt: string, t: TFunction): string | null {
   const diff = new Date(expiresAt).getTime() - Date.now();
   if (diff <= 0) return null;
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  if (hours > 24) return `${Math.floor(hours / 24)} gün`;
-  return `${hours}s ${minutes}d`;
+  if (hours > 24) return `${Math.floor(hours / 24)}${t('time.dayShort')}`;
+  return `${hours}${t('time.hourShort')} ${minutes}${t('time.minuteShort')}`;
 }
 
 export function formatTimeAgo(iso: string, t: TFunction): string {

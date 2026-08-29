@@ -1,9 +1,35 @@
+import type { TFunction } from 'i18next';
 import type { StatusVariant } from './status-variant';
+import type { MessageKey } from '@/i18n/lib';
 
 export interface StatusConfig {
   label: string;
   variant: StatusVariant;
 }
+
+/**
+ * i18n durumu (§ i18n-kuyruk, 2026-08-29): bu dosya `packages/shared/src/
+ * status-configs.ts` (ana monorepo) dosyasının VENDORED aynasıdır — o dosyanın
+ * kendisinde i18n YOK. Aşağıdaki 27 sözlük/fonksiyondan 22'sinin tüketicisi
+ * (uygulama kodunda, testler ve `@/ui` barrel re-export'u hariç) SIFIR —
+ * ölçüldü, doğrulama komutu dosya sonunda. `orderStatusConfig`,
+ * `tradeStatusConfig`, `offerStatusConfig`, `paymentStatusConfig`,
+ * `productStatusConfig`, `ticketStatusConfig` gibi bazıları `@/ui` barrel'ından
+ * re-export edilir ama HİÇBİR ekran onları import etmez (canlı durum
+ * haritaları ayrı, TEK kaynaklı modüllerde: `@/lib/shared/orderStatus`,
+ * `@/lib/shared/tradeStatus`, `@/lib/shared/refundStatus`, bkz. `tradeStatusConfig`
+ * üstündeki `@deprecated` notu).
+ *
+ * Bu sabit Türkçe sözlükleri SİLMEK aynayı kırar (ana repodaki karşılığı
+ * hâlâ onları taşıyor) ve mirror'ın amacı dursun diye BURADA BIRAKILDI —
+ * migration bunları çevirmiyor, yalnız gerçekten TÜKETİLEN kümeyi çeviriyor.
+ * Tek canlı küme: iade nedeni (`buildRefundReasonConfig`/`REFUND_REASONS`/
+ * `buildRefundReasonOptions`/`refundReasonLabel`/`BUYER_SELECTABLE_REFUND_REASONS`,
+ * aşağıda) — dört canlı çağıranı var (`app/refund-requests/[id].tsx`,
+ * `app/refund-requests/_components/RefundSections.tsx`,
+ * `app/orders/[id]/_lib/status.ts`, `app/orders/[id]/_modals/
+ * RefundRequestModal.tsx`) ve `build<Name>(t)` fabrika kalıbına geçirildi.
+ */
 
 /**
  * Order status → Badge mapping
@@ -165,25 +191,60 @@ export const membershipTierConfig: Record<string, StatusConfig> = {
  * bağlandı. Etiketler kullanıcıya hem seçicide hem listelerde göründüğü için
  * tek bir ifade kullanılır — iki bağlamda iki farklı sözcük kullanmak,
  * sözlüklerin ilk ayrışma sebebiydi.
+ *
+ * i18n göçü (§ i18n-kuyruk, 2026-08-29): bu tek küme modül seviyesinde
+ * DONMUŞ Türkçe etiket taşıyordu — dosyanın geri kalanı (32 export) kimse
+ * tarafından tüketilmiyor ve web'deki paylaşılan aynanın (`packages/shared/
+ * src/status-configs.ts`, kendisi de çevrilmemiş) kopyası olduğu için
+ * kasten dokunulmadı; bkz. dosya başı notu. Bu küme FARKLI: canlı dört
+ * çağıran var (aşağıda listelenen), o yüzden `build*Config(t)` kalıbına
+ * (CLAUDE.md kural 2) geçirildi — sabit değişkenler ÇAĞRI ANINDA aktif dile
+ * göre üretilen fonksiyonlara dönüştü. Yalnızca ETİKETLER dile göre değişir;
+ * `variant` ve enum kodları (backend sözleşmesi) sabit kalır, o yüzden ayrı
+ * tutuldu.
  */
-export const refundReasonConfig: Record<string, StatusConfig> = {
-  changed_mind: { label: 'Fikrim değişti', variant: 'secondary' },
-  damaged: { label: 'Hasarlı geldi', variant: 'danger' },
-  wrong_item: { label: 'Yanlış ürün geldi', variant: 'warning' },
-  not_as_described: { label: 'Açıklamayla uyuşmuyor', variant: 'warning' },
-  missing_parts: { label: 'Eksik parça var', variant: 'warning' },
-  counterfeit: { label: 'Sahte / taklit', variant: 'danger' },
+const REFUND_REASON_VARIANTS: Record<string, StatusVariant> = {
+  changed_mind: 'secondary',
+  damaged: 'danger',
+  wrong_item: 'warning',
+  not_as_described: 'warning',
+  missing_parts: 'warning',
+  counterfeit: 'danger',
   // `defective` + `buyer_damaged`: sunucu enum'unda VARDI, burada yoktu.
   // Staging'de ölçüldü (2026-08-26, `POST /orders/:id/refund-requests` geçersiz
   // bir kodla tam listeyi geri veriyor). Eksik olduklarında iki şey oluyordu:
   // bu kodu taşıyan bir talep ekranda ham `snake_case` basılıyordu ve alıcı
   // web'de seçebildiği iki nedeni mobilde seçemiyordu.
-  defective: { label: 'Arızalı / kusurlu', variant: 'danger' },
-  buyer_damaged: { label: 'Alıcı kaynaklı hasar', variant: 'warning' },
-  lost_in_transit: { label: 'Kargoda kayboldu', variant: 'danger' },
-  delivery_delayed: { label: 'Teslimat gecikti', variant: 'warning' },
-  other: { label: 'Diğer', variant: 'default' },
+  defective: 'danger',
+  buyer_damaged: 'warning',
+  lost_in_transit: 'danger',
+  delivery_delayed: 'warning',
+  other: 'default',
 };
+
+/** Her nedenin katalog anahtarı — `t()` ile ÇAĞRI ANINDA çözülür. */
+const REFUND_REASON_LABEL_KEYS: Record<string, MessageKey> = {
+  changed_mind: 'order.refundReasonChangedMind',
+  damaged: 'order.refundReasonDamaged',
+  wrong_item: 'order.refundReasonWrongItem',
+  not_as_described: 'order.refundReasonNotAsDescribed',
+  missing_parts: 'order.refundReasonMissingParts',
+  counterfeit: 'order.refundReasonCounterfeit',
+  defective: 'order.refundReasonDefective',
+  buyer_damaged: 'order.refundReasonBuyerDamaged',
+  lost_in_transit: 'order.refundReasonLostInTransit',
+  delivery_delayed: 'order.refundReasonDeliveryDelayed',
+  other: 'order.refundReasonOther',
+};
+
+/** İade nedeni haritasını AKTİF dile göre kurar — modül seviyesinde DONDURULMAZ. */
+export function buildRefundReasonConfig(t: TFunction): Record<string, StatusConfig> {
+  const config: Record<string, StatusConfig> = {};
+  for (const reason of Object.keys(REFUND_REASON_LABEL_KEYS)) {
+    config[reason] = { label: t(REFUND_REASON_LABEL_KEYS[reason]), variant: REFUND_REASON_VARIANTS[reason] };
+  }
+  return config;
+}
 
 /** Sunucunun `RefundReason` enum'u — staging'de ölçülen tam liste (2026-08-26). */
 export const REFUND_REASONS = [
@@ -205,9 +266,10 @@ export const REFUND_REASONS = [
  * tanımadığımız bir kod SESSİZCE düşmez — ham kod basılır ki ekranda boş bir
  * "Sebep:" satırı kalmasın.
  */
-export function refundReasonLabel(reason: string | null | undefined): string {
+export function refundReasonLabel(reason: string | null | undefined, t: TFunction): string {
   if (!reason) return '';
-  return refundReasonConfig[reason]?.label ?? reason;
+  const key = REFUND_REASON_LABEL_KEYS[reason];
+  return key ? t(key) : reason;
 }
 
 /**
@@ -216,9 +278,9 @@ export function refundReasonLabel(reason: string | null | undefined): string {
  * Sözlüğün tamamı değil: `lost_in_transit` operasyonel bir TESPİT (kargo
  * takibinden gelir), `other` ise politika çözümü olmayan serbest kova. İkisi de
  * gösterilebilmeli ama seçtirilmemeli — bu yüzden gösterim
- * (`refundReasonConfig`) ile seçim listesi ayrı, etiketleri ortak.
+ * (`REFUND_REASON_LABEL_KEYS`) ile seçim listesi ayrı, etiketleri ortak.
  *
- * Liste artık ELLE yazılmıyor, sözlükten TÜRETİLİYOR ve kural web'inkiyle
+ * Liste artık ELLE yazılmıyor, kod kümesinden TÜRETİLİYOR ve kural web'inkiyle
  * birebir aynı (`BUYER_SELECTABLE_REFUND_REASONS`). Elle yazıldığı sürece iki
  * kod (`defective`, `buyer_damaged`) sunucu enum'unda olduğu hâlde mobilde
  * seçilemiyordu ve `other` web'de sunulmadığı hâlde burada sunuluyordu.
@@ -226,18 +288,21 @@ export function refundReasonLabel(reason: string | null | undefined): string {
  * yetmesini sağlıyor.
  */
 export const BUYER_SELECTABLE_REFUND_REASONS = Object.keys(
-  refundReasonConfig,
+  REFUND_REASON_LABEL_KEYS,
 ).filter((reason) => reason !== 'lost_in_transit' && reason !== 'other');
 
-export const REFUND_REASON_OPTIONS: Array<{ value: string; label: string }> =
-  BUYER_SELECTABLE_REFUND_REASONS
-  // Sözlükte olmayan bir kod (yazım hatası) yalnız listeden DÜŞER; `!` ile
-  // iddia etmek import anında TypeError atıp iade ekranını beyaz ekrana
-  // çeviriyordu — tek bir harf yüzünden.
-  .flatMap((value) => {
-    const config = refundReasonConfig[value];
-    return config ? [{ value, label: config.label }] : [];
-  });
+/** Seçim listesi (value+label) — AKTİF dile göre ÇAĞRI ANINDA kurulur. */
+export function buildRefundReasonOptions(t: TFunction): Array<{ value: string; label: string }> {
+  const config = buildRefundReasonConfig(t);
+  return BUYER_SELECTABLE_REFUND_REASONS
+    // Sözlükte olmayan bir kod (yazım hatası) yalnız listeden DÜŞER; `!` ile
+    // iddia etmek import anında TypeError atıp iade ekranını beyaz ekrana
+    // çeviriyordu — tek bir harf yüzünden.
+    .flatMap((value) => {
+      const c = config[value];
+      return c ? [{ value, label: c.label }] : [];
+    });
+}
 
 /** Kargo/gönderi durumu (ShipmentStatus). */
 export const shipmentStatusConfig: Record<string, StatusConfig> = {

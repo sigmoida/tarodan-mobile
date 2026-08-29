@@ -97,7 +97,7 @@ describe('J78 · Alıcı onay butonu KALDIRILDI + escrow bilgisi', () => {
     await waitFor(() =>
       expect(screen.getByTestId('order-escrow-info')).toBeOnTheScreen(),
     );
-    expect(screen.getByText(/14 gün sonra otomatik serbest/)).toBeOnTheScreen();
+    expect(screen.getByText(/14 gün sonra serbest bırakılır/)).toBeOnTheScreen();
   });
 
   it('J78.3 alıcı değilse escrow kartı görünmez', async () => {

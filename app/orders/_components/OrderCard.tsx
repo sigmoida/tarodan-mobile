@@ -35,7 +35,7 @@ export function OrderCard({
       <Pressable onPress={() => router.push(`/orders/${order.id}`)}>
         <View style={styles.orderHeader}>
           <Text variant="caption" style={styles.orderNumber}>
-            Sipariş #{order.orderNumber}
+            {t('sale.orderNumberTitle', { number: order.orderNumber })}
           </Text>
           <StatusBadge status={badgeStatusOf(order)} config={statusConfig} size="sm" />
         </View>
@@ -48,7 +48,7 @@ export function OrderCard({
           <View style={styles.productInfo}>
             <Text variant="label" numberOfLines={2}>{order.product.title}</Text>
             <Text variant="caption" style={styles.sellerName}>
-              Satıcı: {order.seller.displayName}
+              {t('refund.sellerLabel', { name: order.seller.displayName })}
             </Text>
             <Text variant="h3" style={styles.price}>
               {formatOrderPrice(order.totalAmount)}
