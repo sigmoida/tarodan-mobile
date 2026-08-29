@@ -7087,6 +7087,8 @@
     "typeLabel": "Discount Type",
     "typePercent": "Percentage (%)",
     "typeFixed": "Fixed (TRY)",
+    "valueLabelPercent": "Value * (%)",
+    "valueLabelFixed": "Value * (TRY)",
     "scopeLabel": "Scope",
     "scopeAllStore": "Entire Store",
     "scopeSelected": "Selected Items",

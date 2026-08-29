@@ -60,7 +60,7 @@ export function DiscountFormModal({ f }: { f: DiscountsController }) {
           </View>
 
           <Input
-            label={`Değer * ${form.type === 'percentage' ? '(%)' : '(TL)'}`}
+            label={form.type === 'percentage' ? t('discount.valueLabelPercent') : t('discount.valueLabelFixed')}
             value={form.value}
             onChangeText={(v: string) => setForm({ ...form, value: v.replace(',', '.') })}
             keyboardType="numeric"

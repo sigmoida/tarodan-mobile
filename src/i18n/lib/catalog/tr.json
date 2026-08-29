@@ -7087,6 +7087,8 @@
     "typeLabel": "İndirim Tipi",
     "typePercent": "Yüzde (%)",
     "typeFixed": "Sabit (TL)",
+    "valueLabelPercent": "Değer * (%)",
+    "valueLabelFixed": "Değer * (TL)",
     "scopeLabel": "Kapsam",
     "scopeAllStore": "Tüm Mağaza",
     "scopeSelected": "Seçili Ürünler",
