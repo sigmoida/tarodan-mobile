@@ -3,7 +3,7 @@
  * Bölümler: Araç Türü, Marka, Model (markaya bağlı), Ölçek, Malzeme, Üretici,
  * Durum, Fiyat, Seçenekler (takas/indirim/ön sipariş/limited/set).
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   View,
   ScrollView,
@@ -12,6 +12,7 @@ import {
   Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import {
   Button,
   Checkbox,
@@ -24,7 +25,7 @@ import {
   theme,
 } from '@/ui';
 import type { ProductFilters } from '../utils/productFilters';
-import { CONDITION_OPTIONS } from '../utils/productFilters';
+import { buildConditionOptions } from '../utils/productFilters';
 import type { ProductFilterOptions } from '../hooks/useProductFilterOptions';
 
 const { colors, spacing } = theme;
@@ -88,6 +89,8 @@ export default function ProductFilterSheet({
   resultCount,
   countLoading,
 }: Props) {
+  const { t } = useTranslation();
+  const conditionOptions = useMemo(() => buildConditionOptions(t), [t]);
   const [brandSearch, setBrandSearch] = useState('');
   const [modelSearch, setModelSearch] = useState('');
   const [manufacturerSearch, setManufacturerSearch] = useState('');
@@ -169,16 +172,16 @@ export default function ProductFilterSheet({
     >
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text variant="h2">Filtreler</Text>
-          <IconButton icon="close" accessibilityLabel="Kapat" size="md" onPress={onClose} />
+          <Text variant="h2">{t('product.filters')}</Text>
+          <IconButton icon="close" accessibilityLabel={t('common.close')} size="md" onPress={onClose} />
         </View>
 
         <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
           {/* Arama */}
           <View style={styles.section}>
-            <SectionTitle>Arama</SectionTitle>
+            <SectionTitle>{t('filter.searchSectionTitle')}</SectionTitle>
             <Input
-              placeholder="Model, marka veya anahtar kelime..."
+              placeholder={t('search.placeholderLong')}
               value={filters.search}
               onChangeText={(v) => onChange({ ...filters, search: v })}
               leftIconName="search"
@@ -188,7 +191,7 @@ export default function ProductFilterSheet({
                     onPress={() => onChange({ ...filters, search: '' })}
                     hitSlop={8}
                     accessibilityRole="button"
-                    accessibilityLabel="Aramayı temizle"
+                    accessibilityLabel={t('filter.clearSearchLabel')}
                   >
                     <Ionicons name="close-circle" size={20} color={colors.text.muted} />
                   </Pressable>
@@ -202,7 +205,7 @@ export default function ProductFilterSheet({
           {/* Araç Türü */}
           {options.categories.length > 0 && (
             <View style={styles.section}>
-              <SectionTitle>Araç Türü</SectionTitle>
+              <SectionTitle>{t('product.vehicleType')}</SectionTitle>
               {options.categories.map((c) => (
                 <RadioRow
                   key={c.id}
@@ -218,9 +221,9 @@ export default function ProductFilterSheet({
 
           {/* Marka */}
           <View style={styles.section}>
-            <SectionTitle>Marka</SectionTitle>
+            <SectionTitle>{t('product.brand')}</SectionTitle>
             <Input
-              placeholder="Marka ara..."
+              placeholder={t('brands.searchPlaceholder')}
               value={brandSearch}
               onChangeText={setBrandSearch}
               leftIconName="search"
@@ -241,14 +244,14 @@ export default function ProductFilterSheet({
 
           {/* Model (markaya bağlı) */}
           <View style={styles.section}>
-            <SectionTitle>Model</SectionTitle>
+            <SectionTitle>{t('product.model')}</SectionTitle>
             {!filters.brandId && (
               <Text variant="caption" tone="muted" style={{ marginBottom: spacing[2] }}>
-                Önce marka seçin (ya da tüm modellerde arayın)
+                {t('filter.modelSelectBrandFirstHint')}
               </Text>
             )}
             <Input
-              placeholder="Model ara..."
+              placeholder={t('product.searchModels')}
               value={modelSearch}
               onChangeText={setModelSearch}
               leftIconName="search"
@@ -269,7 +272,7 @@ export default function ProductFilterSheet({
 
           {/* Ölçek */}
           <View style={styles.section}>
-            <SectionTitle>Ölçek</SectionTitle>
+            <SectionTitle>{t('product.scale')}</SectionTitle>
             <View style={styles.chipGrid}>
               {options.scales.map((s) => (
                 <Chip
@@ -286,7 +289,7 @@ export default function ProductFilterSheet({
 
           {/* Malzeme */}
           <View style={styles.section}>
-            <SectionTitle>Malzeme</SectionTitle>
+            <SectionTitle>{t('product.material')}</SectionTitle>
             <View style={styles.chipGrid}>
               {options.materials.map((m) => (
                 <Chip
@@ -303,9 +306,9 @@ export default function ProductFilterSheet({
 
           {/* Üretici */}
           <View style={styles.section}>
-            <SectionTitle>Üretici</SectionTitle>
+            <SectionTitle>{t('product.manufacturer')}</SectionTitle>
             <Input
-              placeholder="Üretici ara..."
+              placeholder={t('product.searchManufacturers')}
               value={manufacturerSearch}
               onChangeText={setManufacturerSearch}
               leftIconName="search"
@@ -352,8 +355,8 @@ export default function ProductFilterSheet({
 
           {/* Durum */}
           <View style={styles.section}>
-            <SectionTitle>Durum</SectionTitle>
-            {CONDITION_OPTIONS.map((c) => (
+            <SectionTitle>{t('product.condition')}</SectionTitle>
+            {conditionOptions.map((c) => (
               <RadioRow
                 key={c.value}
                 label={c.label}
@@ -367,7 +370,7 @@ export default function ProductFilterSheet({
 
           {/* Fiyat */}
           <View style={styles.section}>
-            <SectionTitle>Fiyat Aralığı</SectionTitle>
+            <SectionTitle>{t('product.priceRange')}</SectionTitle>
             <View style={styles.chipGrid}>
               {PRICE_PRESETS.map((p) => {
                 const active = filters.minPrice === p.min && filters.maxPrice === p.max;
@@ -390,7 +393,7 @@ export default function ProductFilterSheet({
             <View style={styles.priceRow}>
               <View style={{ flex: 1 }}>
                 <Input
-                  label="Min ₺"
+                  label={t('product.minPrice')}
                   placeholder="0"
                   keyboardType="numeric"
                   value={filters.minPrice}
@@ -402,7 +405,7 @@ export default function ProductFilterSheet({
               </Text>
               <View style={{ flex: 1 }}>
                 <Input
-                  label="Max ₺"
+                  label={t('product.maxPrice')}
                   placeholder="∞"
                   keyboardType="numeric"
                   value={filters.maxPrice}
@@ -416,40 +419,40 @@ export default function ProductFilterSheet({
 
           {/* Seçenekler */}
           <View style={styles.section}>
-            <SectionTitle>Seçenekler</SectionTitle>
+            <SectionTitle>{t('product.options')}</SectionTitle>
             <View style={styles.optionRow}>
               <Checkbox
                 checked={filters.tradeOnly}
                 onChange={(v) => onChange({ ...filters, tradeOnly: v })}
-                label="Sadece Takas Yapılabilir"
+                label={t('product.tradeOnlyHint')}
               />
             </View>
             <View style={styles.optionRow}>
               <Checkbox
                 checked={filters.discountOnly}
                 onChange={(v) => onChange({ ...filters, discountOnly: v })}
-                label="Sadece İndirimli"
+                label={t('filter.discountOnlyLabel')}
               />
             </View>
             <View style={styles.optionRow}>
               <Checkbox
                 checked={filters.preOrder}
                 onChange={(v) => onChange({ ...filters, preOrder: v })}
-                label="Ön Sipariş"
+                label={t('product.preOrder')}
               />
             </View>
             <View style={styles.optionRow}>
               <Checkbox
                 checked={filters.limited}
                 onChange={(v) => onChange({ ...filters, limited: v })}
-                label="Limited Edisyon"
+                label={t('product.limitedEdition')}
               />
             </View>
             <View style={styles.optionRow}>
               <Checkbox
                 checked={filters.set}
                 onChange={(v) => onChange({ ...filters, set: v })}
-                label="Set / Paket"
+                label={t('product.setBundle')}
               />
             </View>
           </View>
@@ -458,10 +461,10 @@ export default function ProductFilterSheet({
         </ScrollView>
 
         <View style={styles.footer}>
-          <Button variant="outline" title="Temizle" onPress={onClear} style={styles.footerBtn} />
+          <Button variant="outline" title={t('common.clear')} onPress={onClear} style={styles.footerBtn} />
           <Button
             variant="primary"
-            title={countLoading ? 'Sonuçlar yükleniyor…' : `${resultCount} Sonuç Göster`}
+            title={countLoading ? t('filter.resultsLoading') : t('filter.showResultsCount', { count: resultCount })}
             onPress={onClose}
             style={{ ...styles.footerBtn, flex: 2 }}
           />
