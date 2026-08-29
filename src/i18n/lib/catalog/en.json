@@ -125,7 +125,8 @@
     "genericError": "Something went wrong. Please try again.",
     "and": "and",
     "continueShort": "Continue",
-    "missing": "Missing"
+    "missing": "Missing",
+    "info": "Info"
   },
   "nav": {
     "home": "Home",
@@ -1520,7 +1521,17 @@
     "emptyReceivedSubtitle": "Offers buyers make on your listings will show up here.",
     "emptySentSubtitle": "Browse listings and make your first offer!",
     "counterSent": "Counter-offer sent",
-    "buyerCounterSent": "Your counter-offer has been sent; the seller will respond"
+    "buyerCounterSent": "Your counter-offer has been sent; the seller will respond",
+    "acceptedOrderCreated": "Offer accepted. Order created.",
+    "invalidAmountTitle": "Invalid amount",
+    "enterPositiveAmount": "Enter a positive amount.",
+    "detailTitle": "Offer Details",
+    "createdAtLabel": "Created:",
+    "counterOfferCta": "Make a Counter-Offer",
+    "rejectConfirmBody": "Are you sure you want to reject this offer?",
+    "cancelConfirmBody": "Are you sure you want to cancel your offer?",
+    "enterCounterAmountBody": "Enter your counter-offer amount.",
+    "amountPlaceholderTL": "Amount (TL)"
   },
   "message": {
     "messages": "Messages",

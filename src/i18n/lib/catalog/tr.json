@@ -125,7 +125,8 @@
     "genericError": "Bir hata oluştu. Lütfen tekrar deneyin.",
     "and": "ve",
     "continueShort": "Devam",
-    "missing": "Eksik"
+    "missing": "Eksik",
+    "info": "Bilgi"
   },
   "nav": {
     "home": "Ana Sayfa",
@@ -1520,7 +1521,17 @@
     "emptyReceivedSubtitle": "Alıcılar ilanlarınıza teklif verdiğinde burada görünecek.",
     "emptySentSubtitle": "İlanlara göz atın ve ilk teklifinizi yapın!",
     "counterSent": "Karşı teklif gönderildi",
-    "buyerCounterSent": "Karşı teklifiniz gönderildi; satıcı yanıtlayacak"
+    "buyerCounterSent": "Karşı teklifiniz gönderildi; satıcı yanıtlayacak",
+    "acceptedOrderCreated": "Teklif kabul edildi. Sipariş oluşturuldu.",
+    "invalidAmountTitle": "Geçersiz tutar",
+    "enterPositiveAmount": "Pozitif bir tutar girin.",
+    "detailTitle": "Teklif Detayı",
+    "createdAtLabel": "Oluşturuldu:",
+    "counterOfferCta": "Karşı Teklif Ver",
+    "rejectConfirmBody": "Teklifi reddetmek istediğinize emin misiniz?",
+    "cancelConfirmBody": "Teklifinizi iptal etmek istediğinize emin misiniz?",
+    "enterCounterAmountBody": "Karşı teklif tutarınızı girin.",
+    "amountPlaceholderTL": "Tutar (TL)"
   },
   "message": {
     "messages": "Mesajlar",

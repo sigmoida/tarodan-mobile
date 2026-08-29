@@ -1,4 +1,5 @@
 import { View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Button, theme, appAlert } from '@/ui';
 import { styles } from '../_lib/styles';
 import type { OfferDetailController } from '../_hooks/useOfferDetail';
@@ -7,6 +8,7 @@ const { colors } = theme;
 
 /** Statü/role-göre aksiyonlar — satıcı kabul/karşı/red, alıcı iptal. Self-gates. */
 export function OfferDetailActions({ f }: { f: OfferDetailController }) {
+  const { t } = useTranslation();
   const { offer, isPending, isSeller, isBuyer, acceptMutation, rejectMutation, cancelMutation, counterMutation } = f;
   if (!offer) return null;
 
@@ -23,7 +25,7 @@ export function OfferDetailActions({ f }: { f: OfferDetailController }) {
             fullWidth
             style={styles.actionBtn}
           >
-            Kabul Et
+            {t('offer.acceptOffer')}
           </Button>
           <Button
             variant="outline"
@@ -34,14 +36,14 @@ export function OfferDetailActions({ f }: { f: OfferDetailController }) {
             style={{ ...styles.actionBtn, borderColor: colors.info[600]! }}
             textStyle={{ color: colors.info[600]! }}
           >
-            Karşı Teklif Ver
+            {t('offer.counterOfferCta')}
           </Button>
           <Button
             variant="outline"
             onPress={() =>
-              appAlert('Reddet', 'Teklifi reddetmek istediğinize emin misiniz?', [
-                { text: 'Vazgeç', style: 'cancel' },
-                { text: 'Reddet', style: 'destructive', onPress: () => rejectMutation.mutate() },
+              appAlert(t('offer.rejectOffer'), t('offer.rejectConfirmBody'), [
+                { text: t('trade.dispute.cancelCta'), style: 'cancel' },
+                { text: t('offer.rejectOffer'), style: 'destructive', onPress: () => rejectMutation.mutate() },
               ])
             }
             disabled={rejectMutation.isPending}
@@ -50,7 +52,7 @@ export function OfferDetailActions({ f }: { f: OfferDetailController }) {
             style={{ ...styles.actionBtn, borderColor: colors.danger[600]! }}
             textStyle={{ color: colors.danger[600]! }}
           >
-            Reddet
+            {t('offer.rejectOffer')}
           </Button>
         </View>
       ) : null}
@@ -60,9 +62,9 @@ export function OfferDetailActions({ f }: { f: OfferDetailController }) {
         <Button
           variant="outline"
           onPress={() =>
-            appAlert('İptal Et', 'Teklifinizi iptal etmek istediğinize emin misiniz?', [
-              { text: 'Vazgeç', style: 'cancel' },
-              { text: 'İptal Et', style: 'destructive', onPress: () => cancelMutation.mutate() },
+            appAlert(t('offer.cancelOffer'), t('offer.cancelConfirmBody'), [
+              { text: t('trade.dispute.cancelCta'), style: 'cancel' },
+              { text: t('offer.cancelOffer'), style: 'destructive', onPress: () => cancelMutation.mutate() },
             ])
           }
           isLoading={cancelMutation.isPending}
@@ -71,7 +73,7 @@ export function OfferDetailActions({ f }: { f: OfferDetailController }) {
           style={{ ...styles.actionBtn, borderColor: colors.danger[600]!, margin: theme.spacing[4] }}
           textStyle={{ color: colors.danger[600]! }}
         >
-          Teklifi İptal Et
+          {t('trade.cancel.offerCta')}
         </Button>
       ) : null}
     </>
