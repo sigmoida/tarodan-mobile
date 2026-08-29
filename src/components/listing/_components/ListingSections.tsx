@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { theme, DateField } from '@/ui';
 
 import { styles } from '../_lib/styles';
-import { buildConditions } from '../_lib/constants';
+import { buildConditions, getPackageTierLabel } from '../_lib/constants';
 import type { ListingFormController } from '../_hooks/useListingForm';
 
 const { colors } = theme;
@@ -661,7 +661,7 @@ export function ListingShippingSection({ f }: SectionProps) {
                   onPress={() => f.setShippingPackageTier(tier.code)}
                 >
                   <Text style={[styles.tierLabel, selected && styles.tierLabelActive]}>
-                    {tier.label}
+                    {getPackageTierLabel(tier.code, tier.label, t)}
                   </Text>
                   {/* Örnek ölçü sunucuda bugün boş — geldiği gün görünür. */}
                   {hasSample && (
