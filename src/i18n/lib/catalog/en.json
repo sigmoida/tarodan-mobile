@@ -3369,7 +3369,14 @@
     "quickMySales": "My Sales",
     "quickRefundRequests": "Refund Requests",
     "quickMyOffers": "My Offers",
-    "quickBusinessApplication": "Business Application"
+    "quickBusinessApplication": "Business Application",
+    "bannedTitle": "Your Account Has Been Suspended",
+    "bannedDescription": "Your account was banned for a rule violation. If you think this is a mistake, you can contact support.",
+    "bannedReasonLabel": "Ban reason",
+    "bannedCreateSupport": "Create Support Request",
+    "maintenanceHeaderTitle": "Maintenance",
+    "maintenanceTitle": "Under Maintenance",
+    "maintenanceDescription": "We are currently performing maintenance. We will be back shortly."
   },
   "refund": {
     "cancel": {

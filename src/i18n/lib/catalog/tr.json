@@ -3369,7 +3369,14 @@
     "quickMySales": "Satışlarım",
     "quickRefundRequests": "İade Talepleri",
     "quickMyOffers": "Tekliflerim",
-    "quickBusinessApplication": "Kurumsal Başvuru"
+    "quickBusinessApplication": "Kurumsal Başvuru",
+    "bannedTitle": "Hesabınız Askıya Alındı",
+    "bannedDescription": "Hesabınız kural ihlali nedeniyle banlanmıştır. Bunun bir hata olduğunu düşünüyorsanız destek ekibiyle iletişime geçebilirsiniz.",
+    "bannedReasonLabel": "Ban sebebi",
+    "bannedCreateSupport": "Destek Talebi Oluştur",
+    "maintenanceHeaderTitle": "Bakım",
+    "maintenanceTitle": "Bakım Çalışması",
+    "maintenanceDescription": "Şu an bakım çalışması yapılıyor. Kısa süre sonra tekrar hizmetinizdeyiz."
   },
   "refund": {
     "cancel": {

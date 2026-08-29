@@ -2,6 +2,7 @@ import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { theme, Text, Button } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { resetBannedRedirect } from '@/lib/api';
@@ -15,6 +16,7 @@ const { colors } = theme;
  * ile aynı izinler).
  */
 export default function BannedScreen() {
+  const { t } = useTranslation();
   const { reason } = useLocalSearchParams<{ reason?: string }>();
   const { logout } = useAuthStore();
 
@@ -29,26 +31,25 @@ export default function BannedScreen() {
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
       <View style={styles.content}>
         <Ionicons name="ban-outline" size={64} color={colors.danger[600]!} />
-        <Text variant="h2" style={styles.title}>Hesabınız Askıya Alındı</Text>
+        <Text variant="h2" style={styles.title}>{t('mobile.bannedTitle')}</Text>
         <Text variant="body" style={styles.text}>
-          Hesabınız kural ihlali nedeniyle banlanmıştır. Bunun bir hata olduğunu
-          düşünüyorsanız destek ekibiyle iletişime geçebilirsiniz.
+          {t('mobile.bannedDescription')}
         </Text>
         {reason ? (
           <View style={styles.reasonBox}>
-            <Text variant="caption" style={styles.reasonLabel}>Ban sebebi</Text>
+            <Text variant="caption" style={styles.reasonLabel}>{t('mobile.bannedReasonLabel')}</Text>
             <Text variant="body" style={styles.reasonText}>{reason}</Text>
           </View>
         ) : null}
         <Button
           variant="primary"
-          title="Destek Talebi Oluştur"
+          title={t('mobile.bannedCreateSupport')}
           onPress={() => router.push('/support')}
           style={styles.button}
         />
         <Button
           variant="outline"
-          title="Çıkış Yap"
+          title={t('common.logout')}
           onPress={handleLogout}
           style={styles.button}
         />
