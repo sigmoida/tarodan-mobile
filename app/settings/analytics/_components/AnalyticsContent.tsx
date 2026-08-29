@@ -80,7 +80,9 @@ export function AnalyticsContent({ f }: { f: AnalyticsController }) {
         </View>
         <View style={styles.chartFooter}>
           <Text variant="bodySm" style={styles.chartTotal}>
-            Toplam: {(analytics.dailyViews || []).reduce((a, b) => a + b.views, 0)} görüntülenme
+            {t('analytics.totalViewsCount', {
+              count: (analytics.dailyViews || []).reduce((a, b) => a + b.views, 0),
+            })}
           </Text>
         </View>
       </Card>
@@ -129,7 +131,7 @@ export function AnalyticsContent({ f }: { f: AnalyticsController }) {
 
               <View style={styles.metricItem}>
                 <Text variant="h3" style={styles.metricValue}>
-                  {analytics.avgTimeToSell} gün
+                  {t('analytics.daysUnit', { count: analytics.avgTimeToSell })}
                 </Text>
                 <Text variant="bodySm" style={styles.metricLabel}>{t('analytics.avgTimeToSell')}</Text>
               </View>
@@ -160,14 +162,14 @@ export function AnalyticsContent({ f }: { f: AnalyticsController }) {
             <Text variant="h3" style={styles.premiumTitle}>{t('analytics.detailedAnalytics')}</Text>
           </View>
           <Text variant="bodySm" style={styles.premiumText}>
-            Premium üyelikle daha detaylı analitiklere erişin:
+            {t('analytics.premiumUpsellDesc')}
           </Text>
           <View style={styles.premiumFeatures}>
-            <Text style={styles.premiumFeature}>• Dönüşüm oranları</Text>
-            <Text style={styles.premiumFeature}>• Gelir takibi</Text>
-            <Text style={styles.premiumFeature}>• Takas başarı oranları</Text>
-            <Text style={styles.premiumFeature}>• En iyi performans gösteren ilanlar</Text>
-            <Text style={styles.premiumFeature}>• Koleksiyon etkileşim metrikleri</Text>
+            <Text style={styles.premiumFeature}>• {t('analytics.featureConversionRates')}</Text>
+            <Text style={styles.premiumFeature}>• {t('analytics.revenueTracking')}</Text>
+            <Text style={styles.premiumFeature}>• {t('analytics.featureTradeSuccessRates')}</Text>
+            <Text style={styles.premiumFeature}>• {t('analytics.featureTopPerformingListings')}</Text>
+            <Text style={styles.premiumFeature}>• {t('analytics.featureCollectionEngagement')}</Text>
           </View>
           <Button variant="primary" title={t('address.goPremium')} onPress={() => router.push('/upgrade')} style={styles.premiumButton} />
         </Card>

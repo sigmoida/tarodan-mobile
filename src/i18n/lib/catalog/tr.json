@@ -2604,7 +2604,14 @@
     "revenueTracking": "Gelir Takibi",
     "detailedAnalytics": "Detaylı Analitik",
     "authGateSubtitle": "İstatistiklerinizi görmek için giriş yapın",
-    "dataLoadFailed": "Veri yüklenemedi"
+    "dataLoadFailed": "Veri yüklenemedi",
+    "totalViewsCount": "Toplam: {count} görüntülenme",
+    "daysUnit": "{count} gün",
+    "premiumUpsellDesc": "Premium üyelikle daha detaylı analitiklere erişin:",
+    "featureConversionRates": "Dönüşüm oranları",
+    "featureTradeSuccessRates": "Takas başarı oranları",
+    "featureTopPerformingListings": "En iyi performans gösteren ilanlar",
+    "featureCollectionEngagement": "Koleksiyon etkileşim metrikleri"
   },
   "payment": {
     "addCard": "Kart Ekle",

@@ -2604,7 +2604,14 @@
     "revenueTracking": "Revenue Tracking",
     "detailedAnalytics": "Detailed Analytics",
     "authGateSubtitle": "Sign in to view your statistics",
-    "dataLoadFailed": "Data could not be loaded"
+    "dataLoadFailed": "Data could not be loaded",
+    "totalViewsCount": "Total: {count} views",
+    "daysUnit": "{count} days",
+    "premiumUpsellDesc": "Get more detailed analytics with Premium membership:",
+    "featureConversionRates": "Conversion rates",
+    "featureTradeSuccessRates": "Trade success rates",
+    "featureTopPerformingListings": "Top-performing listings",
+    "featureCollectionEngagement": "Collection engagement metrics"
   },
   "payment": {
     "addCard": "Add Card",
