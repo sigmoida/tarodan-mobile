@@ -7099,6 +7099,7 @@
     "packageTiersError": "Shipping package sizes can't be loaded right now. Check your connection and refresh — a listing can't be published without a size.",
     "packageTiersHint": "Choose the smallest package the product fits in. Shipping cost is calculated from this size, and it also affects your net earnings.",
     "loginRequiredTitle": "Sign In Required",
+    "loginRequiredMessage": "You need to sign in to your account to use this feature.",
     "categoriesLoadFailed": "Categories could not be loaded.",
     "filtersLoadFailed": "Filters could not be loaded.",
     "modelsLoadFailed": "Models could not be loaded.",
