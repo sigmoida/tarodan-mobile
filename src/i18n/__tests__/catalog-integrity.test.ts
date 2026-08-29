@@ -106,6 +106,8 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     'information.contactInfo.phoneValue',
     // Yalnız ayraç + sürüm numarası (" · v3"); çevrilecek sözcük yok.
     'sellerDocument.versionSuffix',
+    // Yalnız ayraç + interpolasyon (" · {level}"); çevrilecek sözcük yok.
+    'seller.trustScoreLevelSuffix',
   ]);
 
   /**
