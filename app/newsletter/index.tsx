@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { theme, Button, Input, Text, appAlert } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -10,6 +11,7 @@ import { ScreenHeader } from '@/components/common';
 const { colors } = theme;
 
 export default function NewsletterScreen() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   /**
    * KVKK/ETK açık rızası — İŞARETSİZ başlar ve abonelik kapısıdır.
@@ -32,25 +34,25 @@ export default function NewsletterScreen() {
     },
     onSuccess: () => {
       appAlert(
-        'Teşekkürler',
-        'Bültenimize abone oldunuz. En yeni ürünler ve kampanyalardan ilk siz haberdar olacaksınız.',
-        [{ text: 'Tamam', onPress: () => router.back() }],
+        t('marketing.newsletter.successTitle'),
+        t('marketing.newsletter.successMessage'),
+        [{ text: t('common.ok'), onPress: () => router.back() }],
       );
       setEmail('');
       setConsent(false);
     },
     onError: (e: any) =>
-      appAlert('Hata', e?.response?.data?.message || 'Abonelik kaydedilemedi.'),
+      appAlert(t('common.error'), e?.response?.data?.message || t('marketing.newsletter.subscriptionFailed')),
   });
 
   const handleSubmit = () => {
-    if (!/^\S+@\S+\.\S+$/.test(email)) return appAlert('Eksik', 'Geçerli bir e-posta girin.');
+    if (!/^\S+@\S+\.\S+$/.test(email)) return appAlert(t('common.missing'), t('marketing.newsletter.emailInvalid'));
     subscribeMutation.mutate();
   };
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Haber Bülteni" />
+      <ScreenHeader title={t('mobile.settingsNewsletter')} />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -62,14 +64,14 @@ export default function NewsletterScreen() {
             <Ionicons name="mail-unread-outline" size={72} color={colors.primary[600]!} />
           </View>
 
-          <Text style={styles.title}>Yeniliklerden Haberdar Olun</Text>
+          <Text style={styles.title}>{t('marketing.newsletter.title')}</Text>
           <Text style={styles.subtitle}>
-            Yeni modeller, özel koleksiyonlar ve kampanyalar için bültenimize abone olun. İstediğiniz zaman aboneliğinizi iptal edebilirsiniz.
+            {t('marketing.newsletter.subtitle')}
           </Text>
 
           <Input
             testID="newsletter-email"
-            label="E-posta *"
+            label={`${t('marketing.newsletter.emailLabel')} *`}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -94,10 +96,10 @@ export default function NewsletterScreen() {
             </TouchableOpacity>
             <View style={{ flex: 1 }}>
               <Text style={styles.consentText}>
-                Ticari elektronik ileti almayı ve e-postamın bu amaçla işlenmesini kabul ediyorum.
+                {t('marketing.newsletter.consentText')}
               </Text>
               <TouchableOpacity onPress={() => router.push('/privacy' as any)}>
-                <Text style={styles.consentLink}>Gizlilik Politikası</Text>
+                <Text style={styles.consentLink}>{t('mobile.pagePrivacy')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -105,7 +107,7 @@ export default function NewsletterScreen() {
           <Button
             testID="newsletter-submit"
             variant="primary"
-            title="Abone Ol"
+            title={t('marketing.newsletter.subscribeButton')}
             onPress={handleSubmit}
             isLoading={subscribeMutation.isPending}
             disabled={subscribeMutation.isPending || !email || !consent}
@@ -114,7 +116,7 @@ export default function NewsletterScreen() {
 
           <Button
             variant="ghost"
-            title="Aboneliğimi İptal Etmek İstiyorum"
+            title={t('marketing.newsletter.cancelLinkText')}
             onPress={() => router.push('/newsletter/unsubscribe' as any)}
           />
 

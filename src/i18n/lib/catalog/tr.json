@@ -3300,7 +3300,14 @@
       "feedbackPlaceholder": "Geri bildiriminiz...",
       "subscribeAgain": "Tekrar abone ol",
       "unsubscribedToast": "Abonelikten çıkıldı",
-      "subscriptionFailed": "Abonelik başarısız"
+      "subscriptionFailed": "Abonelik başarısız",
+      "emailInvalid": "Geçerli bir e-posta girin.",
+      "consentText": "Ticari elektronik ileti almayı ve e-postamın bu amaçla işlenmesini kabul ediyorum.",
+      "cancelLinkText": "Aboneliğimi İptal Etmek İstiyorum",
+      "unsubscribeHeaderTitle": "Abonelik İptali",
+      "unsubscribeReasonSubtitle": "E-posta adresinizi girin, aboneliğinizi anında iptal edelim. Bağlantıyla geldiğiniz halde bu sayfayı görüyorsanız otomatik iptal başarısız olmuş olabilir.",
+      "unsubscribeSuccessTitle": "Aboneliğiniz İptal Edildi",
+      "unsubscribeFailed": "Abonelik iptal edilemedi."
     }
   },
   "stockout": {

@@ -3300,7 +3300,14 @@
       "feedbackPlaceholder": "Your feedback...",
       "subscribeAgain": "Subscribe again",
       "unsubscribedToast": "Unsubscribed",
-      "subscriptionFailed": "Subscription failed"
+      "subscriptionFailed": "Subscription failed",
+      "emailInvalid": "Enter a valid email address.",
+      "consentText": "I agree to receive commercial electronic messages and to my email being processed for this purpose.",
+      "cancelLinkText": "I want to cancel my subscription",
+      "unsubscribeHeaderTitle": "Cancel Subscription",
+      "unsubscribeReasonSubtitle": "Enter your email address and we will cancel your subscription right away. If you followed a link and are still seeing this page, the automatic cancellation may have failed.",
+      "unsubscribeSuccessTitle": "Your Subscription Has Been Cancelled",
+      "unsubscribeFailed": "Subscription could not be cancelled."
     }
   },
   "stockout": {
