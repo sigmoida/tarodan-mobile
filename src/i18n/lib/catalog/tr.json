@@ -7482,6 +7482,9 @@
     "shipCta": "Kargoya Ver",
     "emptyTitle": "Henüz satışınız yok",
     "emptySubtitle": "İlan oluşturarak satışa başlayın",
-    "authGateSubtitle": "Satışlarınızı görmek için giriş yapın"
+    "authGateSubtitle": "Satışlarınızı görmek için giriş yapın",
+    "markPreparingConfirmTitle": "Siparişi Hazırlıyor Olarak İşaretle",
+    "markPreparingConfirmBody": "Siparişi hazırlamaya başladığınızı onaylıyor musunuz?",
+    "shipDialogTitle": "Kargo Bilgisi"
   }
 }

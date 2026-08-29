@@ -23,7 +23,7 @@ export function ShipDialog({ actions }: { actions: SaleActionsController }) {
     <Modal
       isOpen={shipDialog.visible}
       onClose={() => setShipDialog({ visible: false, order: null })}
-      title="Kargo Bilgisi"
+      title={t('sale.shipDialogTitle')}
     >
       <Text variant="body" style={{ marginBottom: theme.spacing[4] }}>
         {shipDialog.order?.product.title}
@@ -45,12 +45,12 @@ export function ShipDialog({ actions }: { actions: SaleActionsController }) {
       <View style={styles.dialogActions}>
         <Button
           variant="ghost"
-          title="İptal"
+          title={t('common.cancel')}
           onPress={() => setShipDialog({ visible: false, order: null })}
         />
         <Button
           variant="primary"
-          title="Kargoya Verildi"
+          title={t('order.statusShipped')}
           onPress={handleShip}
           isLoading={updateStatusMutation.isPending}
         />
