@@ -2348,7 +2348,14 @@
     "now": "şimdi",
     "minuteShort": "dk",
     "hourShort": "sa",
-    "dayShort": "g"
+    "dayShort": "g",
+    "weekdayMonShort": "Pzt",
+    "weekdayTueShort": "Sal",
+    "weekdayWedShort": "Çar",
+    "weekdayThuShort": "Per",
+    "weekdayFriShort": "Cum",
+    "weekdaySatShort": "Cmt",
+    "weekdaySunShort": "Paz"
   },
   "language": {
     "language": "Dil",
@@ -2498,7 +2505,9 @@
     "conversionRate": "Dönüşüm Oranı",
     "avgTimeToSell": "Ort. Satış Süresi",
     "revenueTracking": "Gelir Takibi",
-    "detailedAnalytics": "Detaylı Analitik"
+    "detailedAnalytics": "Detaylı Analitik",
+    "authGateSubtitle": "İstatistiklerinizi görmek için giriş yapın",
+    "dataLoadFailed": "Veri yüklenemedi"
   },
   "payment": {
     "addCard": "Kart Ekle",

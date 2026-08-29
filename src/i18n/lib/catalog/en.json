@@ -2348,7 +2348,14 @@
     "now": "now",
     "minuteShort": "m",
     "hourShort": "h",
-    "dayShort": "d"
+    "dayShort": "d",
+    "weekdayMonShort": "Mon",
+    "weekdayTueShort": "Tue",
+    "weekdayWedShort": "Wed",
+    "weekdayThuShort": "Thu",
+    "weekdayFriShort": "Fri",
+    "weekdaySatShort": "Sat",
+    "weekdaySunShort": "Sun"
   },
   "language": {
     "language": "Language",
@@ -2498,7 +2505,9 @@
     "conversionRate": "Conversion Rate",
     "avgTimeToSell": "Avg. Time to Sell",
     "revenueTracking": "Revenue Tracking",
-    "detailedAnalytics": "Detailed Analytics"
+    "detailedAnalytics": "Detailed Analytics",
+    "authGateSubtitle": "Sign in to view your statistics",
+    "dataLoadFailed": "Data could not be loaded"
   },
   "payment": {
     "addCard": "Add Card",
