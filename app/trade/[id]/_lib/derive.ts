@@ -3,6 +3,10 @@
 import type { Trade, TradeCashPayment, TradeItem, TradeShipment } from './types';
 import type { TradePaymentQuote } from '@/lib/api';
 import { isShipmentDispatched } from './status';
+// ⚠️ Saf fonksiyon — React DIŞI, `useTranslation` çağıramaz. Global `i18n`
+// örneğinden ÇAĞRI ANINDA okunur (bkz. `src/lib/payment/paytrDirectForm.ts`),
+// import anında DONMASIN diye modül kapsamında değil fonksiyon içinde okunur.
+import i18n from '@/i18n/config';
 
 export function deriveTradeView(
   trade: Trade,
@@ -13,8 +17,8 @@ export function deriveTradeView(
   const isInitiator = user?.id === trade.initiatorId;
   const isReceiver = user?.id === trade.receiverId;
   const otherParty = isInitiator
-    ? { id: trade.receiverId, displayName: trade.receiverName || 'Kullanıcı' }
-    : { id: trade.initiatorId, displayName: trade.initiatorName || 'Kullanıcı' };
+    ? { id: trade.receiverId, displayName: trade.receiverName || i18n.t('common.user') }
+    : { id: trade.initiatorId, displayName: trade.initiatorName || i18n.t('common.user') };
 
   const tradeItems: TradeItem[] = Array.isArray(trade.items) ? trade.items : [];
   const initiatorItems =
