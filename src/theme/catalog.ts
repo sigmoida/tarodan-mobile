@@ -40,6 +40,11 @@ export const BRANDS = [
 
 // Condition options — renkler design token'larına bağlı (#82; eski hex palet kaldırıldı).
 // new/like_new = success (iyi durum), good = info, fair = warning, poor = danger.
+// i18n durumu (son-supurme, 2026-08-29): sıfır tüketicisi var (grep — hiçbir
+// yerden import edilmiyor); durum etiketleri artık `productFilters.ts`
+// `buildConditionOptions(t)` üzerinden `product.condition*` anahtarlarından
+// geliyor. Bu dizi bayat/döşenmiş kod — çevrilmedi, ReputationBadge.tsx'teki
+// AYNI gerekçeyle (bkz. o dosyanın başlığı ve i18n son süpürme raporu).
 export const CONDITIONS = [
   { id: 'new', name: 'Sıfır', color: theme.colors.success[500] },
   { id: 'like_new', name: 'Az Kullanılmış', color: theme.colors.success[500] },

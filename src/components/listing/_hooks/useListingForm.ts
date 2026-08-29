@@ -13,7 +13,7 @@ import { toFormValues } from '../_lib/editMapper';
 import { useAuthStore } from '../../../stores/authStore';
 import { api, productsApi, categoriesApi, bankAccountApi, shippingApi } from '@/lib/api';
 import { qk } from '@/lib/query';
-import { FALLBACK_SCALES, FALLBACK_MATERIALS, BRAND_SLUGS, SCALE_SLUGS , MIN_IMAGE_BYTES } from '../_lib/constants';
+import { FALLBACK_SCALES, buildMaterials, BRAND_SLUGS, SCALE_SLUGS , MIN_IMAGE_BYTES } from '../_lib/constants';
 import type {
   Category,
   Brand,
@@ -625,7 +625,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       editLabelsRef.current?.manufacturerName,
     );
   const effectiveScales = scaleList.length > 0 ? scaleList : FALLBACK_SCALES;
-  const effectiveMaterials = materialList.length > 0 ? materialList : FALLBACK_MATERIALS;
+  const effectiveMaterials = materialList.length > 0 ? materialList : buildMaterials(t);
   const selectedMaterial = effectiveMaterials.find((m) => m.slug === material);
 
   const listPriceNum = Number(price) || 0;
