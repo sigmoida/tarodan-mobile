@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { FlatList, Platform } from 'react-native';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import { useTranslation } from 'react-i18next';
 import { appAlert } from '@/ui';
 import { useMessagesStore } from '@/stores/messagesStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -19,6 +20,7 @@ import { useAutoScroll } from './useAutoScroll';
  * köprüsü açık/kapalı ayrımı için). getOtherParticipant + canSendMessage client store.
  */
 export function useMessageThread() {
+  const { t } = useTranslation();
   const { threadId } = useLocalSearchParams<{ threadId: string }>();
   const { user, limits } = useAuthStore();
   const getOtherParticipant = useMessagesStore((s) => s.getOtherParticipant);
@@ -90,7 +92,7 @@ export function useMessageThread() {
     // İzin iste
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      appAlert('İzin Gerekli', 'Resim göndermek için galeri erişim izni gerekli.');
+      appAlert(t('order.permissionRequired'), t('order.galleryPermissionBody'));
       return;
     }
 
@@ -141,12 +143,12 @@ export function useMessageThread() {
         try {
           const response = await mediaApi.uploadMessageImage(pendingImage as any);
           const url = (response.data as any)?.url ?? (response.data as any)?.data?.url;
-          if (!url) throw new Error('Resim yüklendi fakat URL alınamadı.');
+          if (!url) throw new Error(t('message.imageUploadedNoUrl'));
           // İşaret formatının TEK kaynağı `embedImageInMessage` — burada elle
           // kurmak `parseMessageContent` ile sessizce birbirinden ayrılabilirdi.
           content = embedImageInMessage(trimmed, url);
         } catch (e: any) {
-          appAlert('Hata', e?.response?.data?.message || 'Resim gönderilemedi.');
+          appAlert(t('common.error'), e?.response?.data?.message || t('message.imageSendFailed'));
           return;
         } finally {
           setUploadingImage(false);
@@ -161,8 +163,8 @@ export function useMessageThread() {
         forceScrollToBottom();
       } catch (e: any) {
         appAlert(
-          'Mesaj gönderilemedi',
-          e?.message || e?.response?.data?.message || 'Lütfen tekrar deneyin.'
+          t('message.sendFailed'),
+          e?.message || e?.response?.data?.message || t('message.tryAgainBody')
         );
       }
     } finally {
@@ -176,20 +178,20 @@ export function useMessageThread() {
   const handleBlockUser = () => {
     if (!other) return;
     appAlert(
-      'Kullanıcıyı Engelle',
-      `${other.displayName} engellenecek. Bu kullanıcı size mesaj gönderemez ve ilanlarınızı göremez.`,
+      t('message.blockUserTitle'),
+      t('message.blockUserBody', { name: other.displayName }),
       [
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('discount.discard'), style: 'cancel' },
         {
-          text: 'Engelle',
+          text: t('profile.block'),
           style: 'destructive',
           onPress: async () => {
             try {
               await userApi.block(other.id);
-              appAlert('Engellendi', `${other.displayName} engellendi.`);
+              appAlert(t('message.blockedTitle'), t('message.blockedBody', { name: other.displayName }));
               router.canGoBack() ? router.back() : router.replace('/(tabs)');
             } catch {
-              appAlert('Hata', 'Kullanıcı engellenirken bir sorun oluştu.');
+              appAlert(t('common.error'), t('message.blockUserError'));
             }
           },
         },
@@ -200,11 +202,11 @@ export function useMessageThread() {
   const handleHeaderMenu = () => {
     if (!other) return;
     appAlert(other.displayName, undefined, [
-      { text: 'Profili Görüntüle', onPress: () => router.push(`/seller/${other.id}`) },
+      { text: t('message.viewProfile'), onPress: () => router.push(`/seller/${other.id}`) },
       // iOS'ta alert modalı kapanırken yeni bir native Modal açılırsa görünmeyebilir; kapanışı bekle.
-      { text: 'Şikayet Et', onPress: () => setTimeout(() => setShowReportModal(true), 300) },
-      { text: 'Engelle', style: 'destructive', onPress: handleBlockUser },
-      { text: 'Vazgeç', style: 'cancel' },
+      { text: t('profile.report'), onPress: () => setTimeout(() => setShowReportModal(true), 300) },
+      { text: t('profile.block'), style: 'destructive', onPress: handleBlockUser },
+      { text: t('discount.discard'), style: 'cancel' },
     ]);
   };
 

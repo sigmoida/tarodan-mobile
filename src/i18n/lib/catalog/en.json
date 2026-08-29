@@ -1594,7 +1594,16 @@
     "prefilledInquiry": "Hi, I'd like to ask about the \"{title}\" listing.\n\n",
     "tooLong": "Message cannot exceed {max} characters. Current: {current}",
     "stillSend": "{warning} Do you still want to send it?",
-    "contactInfoWarning": "Personal contact information detected in your message. Communication outside the platform is not recommended for your safety."
+    "contactInfoWarning": "Personal contact information detected in your message. Communication outside the platform is not recommended for your safety.",
+    "blockUserTitle": "Block User",
+    "blockUserBody": "{name} will be blocked. This user won't be able to message you or see your listings.",
+    "blockUserError": "Something went wrong while blocking the user.",
+    "blockedTitle": "Blocked",
+    "blockedBody": "{name} has been blocked.",
+    "viewProfile": "View Profile",
+    "imageUploadedNoUrl": "The image was uploaded but no URL was returned.",
+    "imageSendFailed": "Couldn't send the image.",
+    "tryAgainBody": "Please try again."
   },
   "membership": {
     "title": "Membership Plans",

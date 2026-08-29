@@ -1594,7 +1594,16 @@
     "prefilledInquiry": "Merhaba, \"{title}\" ilanı hakkında bilgi almak istiyorum.\n\n",
     "tooLong": "Mesaj {max} karakteri aşamaz. Mevcut: {current}",
     "stillSend": "{warning} Yine de göndermek istiyor musunuz?",
-    "contactInfoWarning": "Mesajınızda kişisel iletişim bilgisi tespit edildi. Platform dışı iletişim güvenliğiniz için önerilmez."
+    "contactInfoWarning": "Mesajınızda kişisel iletişim bilgisi tespit edildi. Platform dışı iletişim güvenliğiniz için önerilmez.",
+    "blockUserTitle": "Kullanıcıyı Engelle",
+    "blockUserBody": "{name} engellenecek. Bu kullanıcı size mesaj gönderemez ve ilanlarınızı göremez.",
+    "blockUserError": "Kullanıcı engellenirken bir sorun oluştu.",
+    "blockedTitle": "Engellendi",
+    "blockedBody": "{name} engellendi.",
+    "viewProfile": "Profili Görüntüle",
+    "imageUploadedNoUrl": "Resim yüklendi fakat URL alınamadı.",
+    "imageSendFailed": "Resim gönderilemedi.",
+    "tryAgainBody": "Lütfen tekrar deneyin."
   },
   "membership": {
     "title": "Üyelik Planları",
