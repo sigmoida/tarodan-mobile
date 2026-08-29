@@ -24,7 +24,7 @@ export default function NewMessageScreen() {
           variant="primary"
           fullWidth
           size="lg"
-          title="Gönder"
+          title={t("common.send")}
           onPress={f.handleSend}
           disabled={
             !f.selectedUser || !f.messageText.trim() || !f.canSend || f.sending

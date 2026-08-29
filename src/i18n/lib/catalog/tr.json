@@ -1608,7 +1608,12 @@
     "yesterday": "Dün",
     "pendingImageReady": "Fotoğraf gönderilmeye hazır",
     "messageLimitReached": "Mesaj limiti doldu",
-    "dailyLimitWarning": "Günlük mesaj limitinize ulaştınız ({count} mesaj). Premium üyelikle sınırsız mesaj gönderin."
+    "dailyLimitWarning": "Günlük mesaj limitinize ulaştınız ({count} mesaj). Premium üyelikle sınırsız mesaj gönderin.",
+    "dailyLimitReached": "Günlük mesaj limitinize ulaştınız ({count} mesaj)",
+    "recipient": "Alıcı",
+    "searchUserPlaceholder": "Kullanıcı ara...",
+    "userSearchUnsupported": "İsimle kullanıcı arama şu anda desteklenmiyor. Mesaj göndermek için bir ilan veya satıcı profilinden \"Mesaj Gönder\" seçeneğini kullanın.",
+    "aboutProduct": "Ürün Hakkında"
   },
   "membership": {
     "title": "Üyelik Planları",
