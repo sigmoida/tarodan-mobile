@@ -4,7 +4,7 @@ import { View, ScrollView, TouchableOpacity, Pressable, Animated } from 'react-n
 import { Ionicons } from '@expo/vector-icons';
 import { Chip, Input, Text, theme } from '@/ui';
 
-import { SORT_OPTIONS } from '@/utils/productFilters';
+import { buildSortOptions } from '@/utils/productFilters';
 import { styles } from '../_lib/searchStyles';
 import { SearchSuggestions } from './SearchSuggestions';
 import type { SearchController } from '../_hooks/useSearch';
@@ -18,6 +18,7 @@ const { colors } = theme;
  */
 export function SearchBars({ f }: { f: SearchController }) {
   const { t } = useTranslation();
+  const sortOptions = React.useMemo(() => buildSortOptions(t), [t]);
   return (
     <Animated.View
       testID="search-collapsible-bars"
@@ -88,7 +89,7 @@ export function SearchBars({ f }: { f: SearchController }) {
         >
           <Ionicons name="swap-vertical-outline" size={20} color={colors.text.heading} />
           <Text style={styles.filterButtonText}>
-            {SORT_OPTIONS.find((s) => s.value === f.filters.sortBy)?.label || t('common.sort')}
+            {sortOptions.find((s) => s.value === f.filters.sortBy)?.label || t('common.sort')}
           </Text>
         </TouchableOpacity>
       </View>

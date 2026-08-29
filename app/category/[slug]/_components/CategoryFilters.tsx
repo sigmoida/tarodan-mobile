@@ -1,19 +1,22 @@
 import { View, ScrollView, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Chip, Input, Modal, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { SCALES } from '@/theme/catalog';
 import { styles } from '../_lib/styles';
-import { SORT_OPTIONS } from '../_lib/constants';
+import { buildSortOptions } from '../_lib/constants';
 import type { CategoryController } from '../_hooks/useCategory';
 
 const { colors } = theme;
 
 /** Arama + sırala butonu/modalı + ölçek filtre çipleri. */
 export function CategoryFilters({ f }: { f: CategoryController }) {
+  const { t } = useTranslation();
+  const sortOptions = buildSortOptions(t);
   return (
     <View style={styles.filterSection}>
       <Input
-        placeholder="Ara..."
+        placeholder={t('common.search')}
         value={f.searchQuery}
         onChangeText={f.setSearchQuery}
         leftIconName="search"
@@ -25,7 +28,7 @@ export function CategoryFilters({ f }: { f: CategoryController }) {
           style={styles.sortButton}
           onPress={() => f.setSortMenuVisible(true)}
           accessibilityRole="button"
-          accessibilityLabel="Sırala"
+          accessibilityLabel={t('common.sort')}
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         >
           <Ionicons name="swap-vertical" size={18} color={colors.text.muted} />
@@ -33,8 +36,8 @@ export function CategoryFilters({ f }: { f: CategoryController }) {
         </TouchableOpacity>
       </View>
 
-      <Modal isOpen={f.sortMenuVisible} onClose={() => f.setSortMenuVisible(false)} title="Sırala">
-        {SORT_OPTIONS.map((option) => (
+      <Modal isOpen={f.sortMenuVisible} onClose={() => f.setSortMenuVisible(false)} title={t('common.sort')}>
+        {sortOptions.map((option) => (
           <TouchableOpacity
             key={option.id}
             style={styles.menuItem}
@@ -55,7 +58,7 @@ export function CategoryFilters({ f }: { f: CategoryController }) {
 
       {/* Scale Filter Chips */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scaleChips}>
-        <Chip label="Tümü" selected={!f.selectedScale} onPress={() => f.setSelectedScale('')} variant="primary" />
+        <Chip label={t('common.all')} selected={!f.selectedScale} onPress={() => f.setSelectedScale('')} variant="primary" />
         {SCALES.slice(0, 6).map((scale) => (
           <Chip
             key={scale.id}

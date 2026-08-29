@@ -7297,6 +7297,7 @@
     "clearSearchLabel": "Aramayı temizle",
     "modelSelectBrandFirstHint": "Önce marka seçin (ya da tüm modellerde arayın)",
     "discountOnlyLabel": "Sadece İndirimli",
+    "tradeOnlyChip": "Takaslı",
     "resultsLoading": "Sonuçlar yükleniyor…",
     "showResultsCount": "{count} Sonuç Göster"
   },

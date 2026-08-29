@@ -7297,6 +7297,7 @@
     "clearSearchLabel": "Clear search",
     "modelSelectBrandFirstHint": "Select a brand first (or search across all models)",
     "discountOnlyLabel": "Discounted Only",
+    "tradeOnlyChip": "Tradeable",
     "resultsLoading": "Loading results…",
     "showResultsCount": "Show {count} Results"
   },

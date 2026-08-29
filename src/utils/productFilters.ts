@@ -53,14 +53,22 @@ export const EMPTY_FILTERS: ProductFilters = {
   customAttributes: {},
 };
 
-/** Web ProductQueryDto-uyumlu sort değerleri (search.tsx eski 'newest'/'sort' yerine). */
-export const SORT_OPTIONS: { value: string; label: string; icon: string }[] = [
-  { value: 'created_desc', label: 'En Yeni', icon: 'time-outline' },
-  { value: 'created_asc', label: 'En Eski', icon: 'time-outline' },
-  { value: 'view_count_desc', label: 'Popüler', icon: 'star-outline' },
-  { value: 'price_asc', label: 'Fiyat (Düşük)', icon: 'arrow-up' },
-  { value: 'price_desc', label: 'Fiyat (Yüksek)', icon: 'arrow-down' },
-  { value: 'rating_desc', label: 'En Yüksek Puan', icon: 'ribbon-outline' },
+/**
+ * Web ProductQueryDto-uyumlu sort değerleri (search.tsx eski 'newest'/'sort' yerine).
+ *
+ * Etiketler çeviriden geldiği için FABRİKA: modül seviyesinde kurulsaydı `t`
+ * daha hazır olmadan çalışır ve etiketler ilk dilde donardı (bkz.
+ * `buildConditionOptions` başındaki aynı gerekçe).
+ */
+export const buildSortOptions = (
+  t: TFunction,
+): { value: string; label: string; icon: string }[] => [
+  { value: 'created_desc', label: t('product.sortNewest'), icon: 'time-outline' },
+  { value: 'created_asc', label: t('product.sortOldest'), icon: 'time-outline' },
+  { value: 'view_count_desc', label: t('product.sortPopular'), icon: 'star-outline' },
+  { value: 'price_asc', label: t('product.sortPriceLow'), icon: 'arrow-up' },
+  { value: 'price_desc', label: t('product.sortPriceHigh'), icon: 'arrow-down' },
+  { value: 'rating_desc', label: t('product.sortHighestRating'), icon: 'ribbon-outline' },
 ];
 
 /**
