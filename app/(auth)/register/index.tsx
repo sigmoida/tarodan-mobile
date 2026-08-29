@@ -2,6 +2,7 @@ import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { HStack, Screen, Text, VStack, theme } from '@/ui';
 import { BrandLogo } from '@/components/BrandLogo';
 import { useRegister } from './_hooks/useRegister';
@@ -11,6 +12,7 @@ import { RegisterForm } from './_components/RegisterForm';
 const { colors } = theme;
 
 export default function RegisterScreen() {
+  const { t } = useTranslation();
   const f = useRegister();
   const insets = useSafeAreaInsets();
 
@@ -19,7 +21,7 @@ export default function RegisterScreen() {
       <Pressable
         onPress={f.handleBack}
         accessibilityRole="button"
-        accessibilityLabel="Geri"
+        accessibilityLabel={t('common.back')}
         hitSlop={12}
         style={[styles.backButton, { top: insets.top + 8 }]}
       >
@@ -29,15 +31,15 @@ export default function RegisterScreen() {
       <VStack gap={5}>
         <View style={styles.brandHeader}>
           <BrandLogo />
-          <Text variant="displaySm" align="center" style={styles.headerTitle}>Kayıt Ol</Text>
+          <Text variant="displaySm" align="center" style={styles.headerTitle}>{t('auth.registerSubmit')}</Text>
         </View>
 
         <RegisterForm f={f} />
 
         <HStack justify="center" wrap gap={1}>
-          <Text variant="body" style={styles.footerText}>Zaten hesabınız var mı?</Text>
+          <Text variant="body" style={styles.footerText}>{t('auth.hasAccount')}</Text>
           <Text variant="body" weight="bold" style={styles.footerLink} onPress={() => router.push('/(auth)/login')}>
-            Giriş Yap
+            {t('common.login')}
           </Text>
         </HStack>
       </VStack>

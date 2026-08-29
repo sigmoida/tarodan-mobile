@@ -292,6 +292,7 @@
     "taxId": "Vergi Kimlik Numarası",
     "taxIdPlaceholder": "10-11 haneli",
     "registerBusinessAccount": "Şirket Hesabı Oluştur",
+    "registerBusinessTitle": "Kurumsal Kayıt",
     "registerSuccessVerify": "Kayıt başarılı! Lütfen e-postanızı doğrulayın.",
     "registrationFailed": "Kayıt başarısız",
     "fillRequiredFields": "Lütfen tüm zorunlu alanları doldurun",

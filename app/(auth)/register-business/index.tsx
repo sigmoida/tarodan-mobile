@@ -2,6 +2,7 @@ import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { HStack, Screen, Text, VStack, theme } from '@/ui';
 import { BrandLogo } from '@/components/BrandLogo';
 import { useRegisterBusiness } from './_hooks/useRegisterBusiness';
@@ -11,6 +12,7 @@ import { RegisterBusinessForm } from './_components/RegisterBusinessForm';
 const { colors } = theme;
 
 export default function RegisterBusinessScreen() {
+  const { t } = useTranslation();
   const f = useRegisterBusiness();
   const insets = useSafeAreaInsets();
 
@@ -19,7 +21,7 @@ export default function RegisterBusinessScreen() {
       <Pressable
         onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
         accessibilityRole="button"
-        accessibilityLabel="Geri"
+        accessibilityLabel={t('common.back')}
         hitSlop={12}
         style={[styles.backButton, { top: insets.top + 8 }]}
       >
@@ -29,20 +31,20 @@ export default function RegisterBusinessScreen() {
       <VStack gap={5}>
         <View style={styles.brandHeader}>
           <BrandLogo />
-          <Text variant="displaySm" align="center" style={styles.headerTitle}>Kurumsal Kayıt</Text>
+          <Text variant="displaySm" align="center" style={styles.headerTitle}>{t('auth.registerBusinessTitle')}</Text>
         </View>
 
         <RegisterBusinessForm f={f} />
 
         <HStack justify="center" gap={1}>
-          <Text variant="bodySm" style={styles.footerText}>Zaten hesabınız var mı?</Text>
+          <Text variant="bodySm" style={styles.footerText}>{t('auth.hasAccount')}</Text>
           <Text
             variant="bodySm"
             weight="bold"
             style={styles.footerLink}
             onPress={() => router.replace('/(auth)/login')}
           >
-            Giriş yapın
+            {t('common.login')}
           </Text>
         </HStack>
       </VStack>

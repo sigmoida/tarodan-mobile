@@ -292,6 +292,7 @@
     "taxId": "Tax ID Number",
     "taxIdPlaceholder": "10-11 digits",
     "registerBusinessAccount": "Register Business Account",
+    "registerBusinessTitle": "Business Registration",
     "registerSuccessVerify": "Registration successful! Please verify your email.",
     "registrationFailed": "Registration failed",
     "fillRequiredFields": "Please fill in all required fields",
