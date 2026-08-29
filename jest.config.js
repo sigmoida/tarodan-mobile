@@ -30,6 +30,11 @@ module.exports = {
   ],
   // Salt komponent/birim testleri (Maestro/detox hariç).
   testMatch: ['**/__tests__/**/*.test.{ts,tsx}', '**/*.test.{ts,tsx}'],
+  // Ajan worktree'leri repo İÇİNDE (.claude/worktrees/) duruyor; testMatch onları
+  // da tarayıp aynı testin bir başka dalda yarım kalmış kopyasını çalıştırıyordu
+  // (630 süit / 5013 test — yarısı komşu dalın işi). Kök dışı checkout'ları ele.
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/.claude/'],
+  modulePathIgnorePatterns: ['<rootDir>/.claude/worktrees/'],
   moduleNameMapper: {
     // jest-expo preset'inin kendi mapping'lerini olduğu gibi devral (spread).
     ...(require('jest-expo/jest-preset').moduleNameMapper ?? {}),
