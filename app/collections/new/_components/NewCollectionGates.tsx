@@ -8,21 +8,20 @@ import { styles } from '../_lib/styles';
 
 const { colors } = theme;
 
-const PREMIUM_FEATURES = [
-  'Sınırsız koleksiyon oluşturun',
-  'Koleksiyonlarınızı paylaşın',
-  'QR kod ve sosyal medya paylaşımı',
-  "Koleksiyoncu Vitrini'nde yer alın",
-];
-
 /** Premium olmayan kullanıcıya gösterilen yükseltme kapısı. */
 export function PremiumGate() {
   const { t } = useTranslation();
   const upgradeInfo = getUpgradeMessage(t, 'collectionFeature');
+  const premiumFeatures = [
+    t('collection.premiumFeatureUnlimited'),
+    t('collection.premiumFeatureShare'),
+    t('collection.premiumFeatureQr'),
+    t('collection.premiumFeatureShowcase'),
+  ];
   return (
     <View style={styles.container}>
       <ScreenHeader
-        title="Dijital Garaj"
+        title={t('mobile.guestGarageTitle')}
         onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       />
       <View style={styles.premiumRequired}>
@@ -31,7 +30,7 @@ export function PremiumGate() {
         <Text variant="body" style={styles.premiumSubtitle}>{upgradeInfo.message}</Text>
 
         <View style={styles.premiumFeatures}>
-          {PREMIUM_FEATURES.map((feature) => (
+          {premiumFeatures.map((feature) => (
             <View key={feature} style={styles.premiumFeature}>
               <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
               <Text style={styles.premiumFeatureText}>{feature}</Text>
@@ -39,8 +38,8 @@ export function PremiumGate() {
           ))}
         </View>
 
-        <Button variant="primary" title="Premium'a Yükselt" onPress={() => router.push('/upgrade')} style={styles.upgradeButton} />
-        <Button variant="ghost" title="Geri Dön" onPress={() => router.back()} style={{ alignSelf: 'center' }} />
+        <Button variant="primary" title={t('membership.upgradeToPremium')} onPress={() => router.push('/upgrade')} style={styles.upgradeButton} />
+        <Button variant="ghost" title={t('common.goBack')} onPress={() => router.back()} style={{ alignSelf: 'center' }} />
       </View>
     </View>
   );
@@ -48,15 +47,16 @@ export function PremiumGate() {
 
 /** Giriş yapmamış kullanıcı kapısı. */
 export function AuthGate() {
+  const { t } = useTranslation();
   return (
     <View style={styles.centeredContainer}>
-      <Text variant="h2">Giriş Yapın</Text>
+      <Text variant="h2">{t('collection.authGateTitle')}</Text>
       <Text variant="body" style={styles.subtitle}>
-        Koleksiyon oluşturmak için giriş yapmalısınız
+        {t('collection.authGateSubtitle')}
       </Text>
       <Button
         variant="primary"
-        title="Giriş Yap"
+        title={t('common.login')}
         onPress={() => router.push('/(auth)/login')}
         style={{ alignSelf: 'center' }}
       />

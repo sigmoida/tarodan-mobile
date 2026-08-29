@@ -3,6 +3,7 @@ import { View, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { router } from 'expo-router';
 import { Controller } from 'react-hook-form';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Button, Switch, Snackbar, IconButton, Text, Input, Textarea, theme } from '@/ui';
 
 import { resolveImageUrl } from '@/utils/imageUrl';
@@ -13,6 +14,7 @@ const { colors } = theme;
 
 /** Cover picker, form (name/description/privacy), items list, and danger zone. */
 export function CollectionEditBody({ f }: { f: CollectionEditController }) {
+  const { t } = useTranslation();
   const { collection, coverImage, id } = f;
   const { control, handleSubmit, formState: { errors }, watch } = f.form;
 
@@ -29,13 +31,13 @@ export function CollectionEditBody({ f }: { f: CollectionEditController }) {
           ) : (
             <View style={styles.coverImagePlaceholder}>
               <Ionicons name="image-outline" size={48} color={colors.text.muted} />
-              <Text variant="body" style={styles.coverImageText}>Kapak fotoğrafı ekle</Text>
+              <Text variant="body" style={styles.coverImageText}>{t('collection.addCoverPhoto')}</Text>
             </View>
           )}
           {coverImage && (
             <View style={styles.coverOverlay}>
               <Ionicons name="camera" size={24} color={colors.white} />
-              <Text style={styles.coverOverlayText}>Değiştir</Text>
+              <Text style={styles.coverOverlayText}>{t('common.replace')}</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -44,28 +46,28 @@ export function CollectionEditBody({ f }: { f: CollectionEditController }) {
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Ionicons name="eye" size={20} color={colors.text.muted} />
-            <Text variant="body">{collection.viewCount} görüntülenme</Text>
+            <Text variant="body">{t('collection.viewCountSuffix', { count: collection.viewCount })}</Text>
           </View>
           <View style={styles.statItem}>
             <Ionicons name="heart" size={20} color={colors.danger[600]!} />
-            <Text variant="body">{collection.likeCount} beğeni</Text>
+            <Text variant="body">{t('collection.likeCountSuffix', { count: collection.likeCount })}</Text>
           </View>
           <View style={styles.statItem}>
             <Ionicons name="pricetag" size={20} color={colors.primary[600]!} />
-            <Text variant="body">{collection.items?.length || 0} ürün</Text>
+            <Text variant="body">{t('collection.itemCountSuffix', { count: collection.items?.length || 0 })}</Text>
           </View>
         </View>
 
         {/* Collection Details */}
         <View style={styles.card}>
-          <Text variant="h3" style={styles.sectionTitle}>Koleksiyon Bilgileri</Text>
+          <Text variant="h3" style={styles.sectionTitle}>{t('collection.infoSectionTitle')}</Text>
 
           <Controller
             control={control}
             name="name"
             render={({ field: { onChange, value } }) => (
               <Input
-                label="Koleksiyon Adı *"
+                label={t('collection.collectionNameLabel')}
                 value={value}
                 onChangeText={onChange}
                 error={errors.name?.message}
@@ -79,7 +81,7 @@ export function CollectionEditBody({ f }: { f: CollectionEditController }) {
             name="description"
             render={({ field: { onChange, value } }) => (
               <Textarea
-                label="Açıklama"
+                label={t('collection.descriptionLabel')}
                 value={value}
                 onChangeText={onChange}
                 rows={3}
@@ -91,7 +93,7 @@ export function CollectionEditBody({ f }: { f: CollectionEditController }) {
 
         {/* Privacy Settings */}
         <View style={styles.card}>
-          <Text variant="h3" style={styles.sectionTitle}>Gizlilik Ayarları</Text>
+          <Text variant="h3" style={styles.sectionTitle}>{t('collection.privacySectionTitle')}</Text>
 
           <View style={styles.privacyOption}>
             <View style={styles.privacyInfo}>
@@ -101,11 +103,11 @@ export function CollectionEditBody({ f }: { f: CollectionEditController }) {
                 color={colors.primary[600]!}
               />
               <View style={styles.privacyText}>
-                <Text variant="body">{watch('isPublic') ? 'Herkese Açık' : 'Gizli'}</Text>
+                <Text variant="body">{watch('isPublic') ? t('collection.isPublic') : t('collection.isPrivate')}</Text>
                 <Text variant="bodySm" style={styles.privacyDesc}>
                   {watch('isPublic')
-                    ? 'Herkes koleksiyonunuzu görebilir'
-                    : 'Sadece siz görebilirsiniz'}
+                    ? t('collection.publicVisibleToAll')
+                    : t('collection.privateVisibleToYou')}
                 </Text>
               </View>
             </View>
@@ -123,11 +125,11 @@ export function CollectionEditBody({ f }: { f: CollectionEditController }) {
         <View style={styles.card}>
           <View style={styles.itemsHeader}>
             <Text variant="h3" style={styles.sectionTitle}>
-              Koleksiyondaki Ürünler ({collection.items?.length || 0})
+              {t('collection.itemsHeaderTitle', { count: collection.items?.length || 0 })}
             </Text>
             <Button
               variant="outline"
-              title="Ekle"
+              title={t('common.add')}
               onPress={() => router.push(`/collections/${id}/add-items`)}
               icon="add"
               size="sm"
@@ -137,7 +139,7 @@ export function CollectionEditBody({ f }: { f: CollectionEditController }) {
           {collection.items?.length === 0 ? (
             <View style={styles.emptyItems}>
               <Ionicons name="images-outline" size={48} color={colors.gray[500]} />
-              <Text variant="body" style={styles.emptyText}>Henüz ürün eklenmemiş</Text>
+              <Text variant="body" style={styles.emptyText}>{t('collection.noItemsAdded')}</Text>
             </View>
           ) : (
             collection.items?.map((item) => (
@@ -153,7 +155,7 @@ export function CollectionEditBody({ f }: { f: CollectionEditController }) {
                 </TouchableOpacity>
                 <IconButton
                   icon="close"
-                  accessibilityLabel="Ürünü kaldır"
+                  accessibilityLabel={t('collection.removeProduct')}
                   size="sm"
                   onPress={() => f.handleRemoveItem(item.id, item.productTitle)}
                 />
@@ -165,7 +167,7 @@ export function CollectionEditBody({ f }: { f: CollectionEditController }) {
         {/* Actions */}
         <Button
           variant="primary"
-          title="Değişiklikleri Kaydet"
+          title={t('collection.saveChanges')}
           onPress={handleSubmit(f.onSubmit)}
           isLoading={f.updateMutation.isPending}
           disabled={f.updateMutation.isPending}
@@ -175,12 +177,12 @@ export function CollectionEditBody({ f }: { f: CollectionEditController }) {
 
         {/* Danger Zone */}
         <View style={styles.dangerCard}>
-          <Text variant="h3" style={styles.dangerTitle}>Tehlikeli Bölge</Text>
+          <Text variant="h3" style={styles.dangerTitle}>{t('collection.dangerZoneTitle')}</Text>
           <TouchableOpacity onPress={f.handleDelete} style={styles.dangerItem}>
             <Ionicons name="trash" size={24} color={colors.danger[600]!} />
             <View style={{ flex: 1, marginLeft: theme.spacing[3] }}>
-              <Text style={styles.dangerItemTitle}>Koleksiyonu Sil</Text>
-              <Text style={styles.dangerItemDesc}>Bu işlem geri alınamaz</Text>
+              <Text style={styles.dangerItemTitle}>{t('collection.deleteCollection')}</Text>
+              <Text style={styles.dangerItemDesc}>{t('collection.irreversibleAction')}</Text>
             </View>
           </TouchableOpacity>
         </View>
