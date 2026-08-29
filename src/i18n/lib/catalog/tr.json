@@ -218,7 +218,7 @@
     "invalidResetLink": "Geçersiz şifre sıfırlama linki",
     "enterEmail": "E-posta adresinizi girin",
     "sendResetLink": "Sıfırlama Linki Gönder",
-    "backToLogin": "Girişe Dön",
+    "backToLogin": "Girişe dön",
     "loginRequired": "Giriş Yapmanız Gerekiyor",
     "sessionExpired": "Oturumunuz sona erdi",
     "alreadySignedIn": "Zaten giriş yaptınız",
@@ -256,6 +256,8 @@
     "forgotPasswordTitle": "Şifrenizi mi unuttunuz?",
     "forgotPasswordDesc": "Endişelenmeyin! E-posta adresinizi girin, size şifre sıfırlama bağlantısı gönderelim.",
     "signUp": "Kayıt olun",
+    "isBusinessOwnerPrompt": "İşletme sahibi misiniz?",
+    "openBusinessAccountCta": "Kurumsal hesap açın",
     "emailAddress": "E-posta Adresi",
     "signInToAccount": "Hesabınıza giriş yapın",
     "continueWithGoogle": "Google ile devam et",
@@ -386,10 +388,12 @@
     "passwordHint": "Şifre en az 8 karakter olmalı; 1 büyük harf, 1 küçük harf ve 1 rakam içermeli.",
     "corporateInviteTitle": "Kurumsal Davet",
     "corporateInviteInvalid": "Bağlantı geçersiz",
+    "corporateInviteInvalidDesc": "Davet bağlantısı geçersiz veya süresi dolmuş. Lütfen şirket yöneticinizden yeni bir davet isteyin.",
     "corporateActivateTitle": "Kurumsal Hesabı Etkinleştir",
     "usernamePermanentTitle": "Kullanıcı adı kalıcıdır",
     "passwordRepeatLabel": "Şifre (tekrar)",
     "corporatePasswordHelp": "En az 8 karakter; bir küçük harf, bir büyük harf ve bir rakam.",
+    "corporateActivateSubmit": "Hesabı etkinleştir",
     "corporateActivatedTitle": "Hesabınız hazır",
     "corporateActivatedBody": "Kullanıcı adınız ve şifreniz belirlendi. Şimdi giriş yapabilirsiniz.",
     "corporateActivationFailed": "Aktivasyon tamamlanamadı.",
@@ -968,6 +972,7 @@
     "subtotal": "Ara Toplam",
     "subtotalWithCount": "Ara Toplam ({count} ürün)",
     "suratKargo": "Sürat Kargo",
+    "suratKargoDeliveryEstimate": "2-4 iş günü teslimat",
     "title": "Ödeme",
     "total": "Toplam",
     "unavailableProductNotActive": "İlan satışta değil.",
@@ -1606,7 +1611,10 @@
     "yourShipmentLabel": "Sizin kargonuz: {value}",
     "otherPartyShipmentLabel": "Karşı taraf: {value}",
     "notShippedYet": "Henüz gönderilmedi",
-    "trackShipmentLegacy": "Kargoyu Takip Et"
+    "trackShipmentLegacy": "Kargoyu Takip Et",
+    "noEligibleProducts": "Takasa uygun ürün bulunamadı.",
+    "protectionProgramTitle": "Takas Koruma Programı",
+    "protectionProgramDesc": "Her iki taraf da ürünü teslim alana kadar işlem güvence altındadır."
   },
   "offer": {
     "makeOffer": "Teklif Ver",
@@ -2020,6 +2028,8 @@
     "guestNoticeTitle": "Kendi Koleksiyonunuzu Oluşturun",
     "guestNoticeText": "Premium üye olarak kendi Digital Garage''ınızı oluşturabilir, koleksiyonlarınızı sergileyebilirsiniz.",
     "becomePremiumCta": "Premium Üye Ol",
+    "digitalGarageWhatTitle": "Digital Garage Nedir?",
+    "digitalGarageInfoDesc": "Koleksiyonunuzu sergileyin, diğer koleksiyonerleri keşfedin ve ilham alın. Premium üyeler kendi garajlarını oluşturabilir.",
     "premiumFeatureUnlimited": "Sınırsız koleksiyon oluşturun",
     "premiumFeatureShare": "Koleksiyonlarınızı paylaşın",
     "premiumFeatureQr": "QR kod ve sosyal medya paylaşımı",
@@ -3537,7 +3547,8 @@
     "bannedCreateSupport": "Destek Talebi Oluştur",
     "maintenanceHeaderTitle": "Bakım",
     "maintenanceTitle": "Bakım Çalışması",
-    "maintenanceDescription": "Şu an bakım çalışması yapılıyor. Kısa süre sonra tekrar hizmetinizdeyiz."
+    "maintenanceDescription": "Şu an bakım çalışması yapılıyor. Kısa süre sonra tekrar hizmetinizdeyiz.",
+    "splashTagline": "İkinci elin güvenli adresi"
   },
   "refund": {
     "cancel": {
@@ -7223,6 +7234,7 @@
     "regenerate": "Yenile",
     "lastChangeUnknown": "Son değişiklik: Bilinmiyor",
     "twoFactorSection": "İki Faktörlü Doğrulama (2FA)",
+    "twoFactorDesc": "İki faktörlü doğrulama, hesabınıza ek bir güvenlik katmanı ekler. Google Authenticator veya benzeri bir uygulama gereklidir.",
     "enabled": "Aktif",
     "disabled": "Devre dışı",
     "phoneSection": "Telefon Doğrulama",

@@ -218,7 +218,7 @@
     "invalidResetLink": "Invalid password reset link",
     "enterEmail": "Enter your email address",
     "sendResetLink": "Send Reset Link",
-    "backToLogin": "Back to Login",
+    "backToLogin": "Back to sign in",
     "loginRequired": "Login Required",
     "sessionExpired": "Your session has expired",
     "alreadySignedIn": "Already signed in",
@@ -256,6 +256,8 @@
     "forgotPasswordTitle": "Forgot your password?",
     "forgotPasswordDesc": "Don't worry! Enter your email and we'll send you a reset link.",
     "signUp": "Sign up",
+    "isBusinessOwnerPrompt": "Are you a business?",
+    "openBusinessAccountCta": "Open a business account",
     "emailAddress": "Email Address",
     "signInToAccount": "Sign in to your account",
     "continueWithGoogle": "Continue with Google",
@@ -386,10 +388,12 @@
     "passwordHint": "The password must be at least 8 characters and contain an uppercase letter, a lowercase letter and a digit.",
     "corporateInviteTitle": "Business Invitation",
     "corporateInviteInvalid": "Invalid link",
+    "corporateInviteInvalidDesc": "This invitation link is invalid or has expired. Please ask your company admin for a new invitation.",
     "corporateActivateTitle": "Activate Business Account",
     "usernamePermanentTitle": "Your username is permanent",
     "passwordRepeatLabel": "Password (again)",
     "corporatePasswordHelp": "At least 8 characters, with a lowercase letter, an uppercase letter and a digit.",
+    "corporateActivateSubmit": "Activate account",
     "corporateActivatedTitle": "Your account is ready",
     "corporateActivatedBody": "Your username and password are set. You can sign in now.",
     "corporateActivationFailed": "Activation could not be completed.",
@@ -968,6 +972,7 @@
     "subtotal": "Subtotal",
     "subtotalWithCount": "Subtotal ({count} items)",
     "suratKargo": "Sürat Kargo",
+    "suratKargoDeliveryEstimate": "2-4 business day delivery",
     "title": "Checkout",
     "total": "Total",
     "unavailableProductNotActive": "This listing is not on sale.",
@@ -1606,7 +1611,10 @@
     "yourShipmentLabel": "Your shipment: {value}",
     "otherPartyShipmentLabel": "Other party: {value}",
     "notShippedYet": "Not shipped yet",
-    "trackShipmentLegacy": "Track Shipment"
+    "trackShipmentLegacy": "Track Shipment",
+    "noEligibleProducts": "No products eligible for trade were found.",
+    "protectionProgramTitle": "Trade Protection Program",
+    "protectionProgramDesc": "The transaction is protected until both parties receive the item."
   },
   "offer": {
     "makeOffer": "Make Offer",
@@ -2020,6 +2028,8 @@
     "guestNoticeTitle": "Create Your Own Collection",
     "guestNoticeText": "As a Premium member, you can create your own Digital Garage and showcase your collections.",
     "becomePremiumCta": "Become a Premium Member",
+    "digitalGarageWhatTitle": "What Is Digital Garage?",
+    "digitalGarageInfoDesc": "Showcase your collection, discover other collectors, and get inspired. Premium members can build their own garage.",
     "premiumFeatureUnlimited": "Create unlimited collections",
     "premiumFeatureShare": "Share your collections",
     "premiumFeatureQr": "QR code and social media sharing",
@@ -3537,7 +3547,8 @@
     "bannedCreateSupport": "Create Support Request",
     "maintenanceHeaderTitle": "Maintenance",
     "maintenanceTitle": "Under Maintenance",
-    "maintenanceDescription": "We are currently performing maintenance. We will be back shortly."
+    "maintenanceDescription": "We are currently performing maintenance. We will be back shortly.",
+    "splashTagline": "The safe address for secondhand"
   },
   "refund": {
     "cancel": {
@@ -7223,6 +7234,7 @@
     "regenerate": "Regenerate",
     "lastChangeUnknown": "Last changed: unknown",
     "twoFactorSection": "Two-Factor Authentication (2FA)",
+    "twoFactorDesc": "Two-factor authentication adds an extra layer of security to your account. You'll need Google Authenticator or a similar app.",
     "enabled": "On",
     "disabled": "Off",
     "phoneSection": "Phone Verification",

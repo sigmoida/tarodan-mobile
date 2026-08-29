@@ -50,7 +50,7 @@ export function BusinessCompanyHeader({ f }: { f: BusinessController }) {
               <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
             )}
           </View>
-          <Text style={styles.companyTitle}>📊 İşletme Paneli</Text>
+          <Text style={styles.companyTitle}>📊 {t('mobile.settingsBusinessPanel')}</Text>
         </View>
       </View>
     </LinearGradient>

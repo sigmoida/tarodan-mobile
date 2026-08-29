@@ -47,20 +47,20 @@ export default function LoginScreen() {
 
         <VStack gap={2} style={{ marginTop: theme.spacing[1] }}>
           <HStack justify="center" wrap gap={2}>
-            <Text variant="body" style={styles.footerText}>Hesabınız yok mu?</Text>
+            <Text variant="body" style={styles.footerText}>{t('auth.noAccount')}</Text>
             <Text
               variant="body"
               weight="bold"
               style={styles.footerLink}
               onPress={() => router.push('/(auth)/register' as never)}
             >
-              Kayıt olun
+              {t('auth.signUp')}
             </Text>
           </HStack>
 
           <HStack justify="center" wrap gap={2}>
             <Text variant="bodySm" style={styles.footerText}>
-              İşletme sahibi misiniz?
+              {t('auth.isBusinessOwnerPrompt')}
             </Text>
             <Text
               variant="bodySm"
@@ -68,7 +68,7 @@ export default function LoginScreen() {
               style={styles.footerLink}
               onPress={() => router.push('/(auth)/register-business' as never)}
             >
-              Kurumsal hesap açın
+              {t('auth.openBusinessAccountCta')}
             </Text>
           </HStack>
         </VStack>
