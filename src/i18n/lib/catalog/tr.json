@@ -1613,7 +1613,13 @@
     "recipient": "Alıcı",
     "searchUserPlaceholder": "Kullanıcı ara...",
     "userSearchUnsupported": "İsimle kullanıcı arama şu anda desteklenmiyor. Mesaj göndermek için bir ilan veya satıcı profilinden \"Mesaj Gönder\" seçeneğini kullanın.",
-    "aboutProduct": "Ürün Hakkında"
+    "aboutProduct": "Ürün Hakkında",
+    "loginToView": "Mesajlarınızı görmek için giriş yapın",
+    "dailyMessageCount": "Günlük mesaj: {count}/{limit}",
+    "noMessagesYet": "Henüz mesaj yok",
+    "tryDifferentSearch": "Farklı bir arama terimi deneyin",
+    "startConversationShort": "Bir satıcıyla iletişime geçerek başlayın",
+    "generalMessage": "Genel mesaj"
   },
   "membership": {
     "title": "Üyelik Planları",

@@ -1613,7 +1613,13 @@
     "recipient": "Recipient",
     "searchUserPlaceholder": "Search users...",
     "userSearchUnsupported": "Searching users by name isn't supported yet. Use the \"Send Message\" option from a listing or a seller's profile to send a message.",
-    "aboutProduct": "About the Product"
+    "aboutProduct": "About the Product",
+    "loginToView": "Sign in to see your messages",
+    "dailyMessageCount": "Daily messages: {count}/{limit}",
+    "noMessagesYet": "No messages yet",
+    "tryDifferentSearch": "Try a different search term",
+    "startConversationShort": "Contact a seller to get started",
+    "generalMessage": "General message"
   },
   "membership": {
     "title": "Membership Plans",
