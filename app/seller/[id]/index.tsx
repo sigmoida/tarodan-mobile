@@ -1,6 +1,7 @@
 import { View, ScrollView } from 'react-native';
 import { Spinner, Text, ScreenHeader, EmptyState } from '@/ui';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { ThemedRefreshControl } from '@/components/common';
 import { styles } from './_lib/styles';
@@ -14,13 +15,14 @@ import { SellerTabs } from './_components/SellerTabs';
  * the loading/not-found gates and composes the profile card + tabs.
  */
 export default function SellerProfileScreen() {
+  const { t } = useTranslation();
   const f = useSellerProfile();
 
   if (f.isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <Spinner size="lg" />
-        <Text style={styles.loadingText}>Yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -30,8 +32,8 @@ export default function SellerProfileScreen() {
       <EmptyState
         fullscreen
         icon="person-outline"
-        title="Satıcı bulunamadı"
-        actionLabel="Geri Dön"
+        title={t('seller.notFound')}
+        actionLabel={t('common.goBack')}
         onAction={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       />
     );
@@ -39,7 +41,7 @@ export default function SellerProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Satıcı Profili" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+      <ScreenHeader title={t('seller.sellerProfile')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
 
       <ScrollView
         style={styles.content}
