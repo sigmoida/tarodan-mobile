@@ -755,7 +755,8 @@
     "selectedCount": "{count} ürün seçili",
     "subtotalWithCount": "Ara Toplam ({count} ürün)",
     "updateQuantity": "Adedi Güncelle",
-    "removedFromCart": "Sepetten çıkarıldı"
+    "removedFromCart": "Sepetten çıkarıldı",
+    "inCartBadge": "Sepette"
   },
   "favorites": {
     "myFavorites": "Favorilerim",

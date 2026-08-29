@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Card, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { AppImage } from '@/components/AppImage';
@@ -21,6 +22,7 @@ function ProductCardBase({
   inCart: boolean;
   onPress: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   const isTradeEnabled = isProductTradeOpen(item);
   const viewCount = item.viewCount || item.views || 0;
   const brandLabel =
@@ -49,13 +51,13 @@ function ProductCardBase({
               {isTradeEnabled && (
                 <View style={[styles.badge, { backgroundColor: colors.success[500]! }]}>
                   <Ionicons name="swap-horizontal" size={10} color={colors.white} />
-                  <Text variant="caption" tone="inverted" weight="bold"> Takas</Text>
+                  <Text variant="caption" tone="inverted" weight="bold"> {t('product.tradeShort')}</Text>
                 </View>
               )}
               {(item.isBoosted || item.boostedUntil) && (
                 <View style={[styles.badge, { backgroundColor: colors.warning[500]! }]}>
                   <Ionicons name="rocket" size={10} color={colors.white} />
-                  <Text variant="caption" tone="inverted" weight="bold"> Sponsorlu</Text>
+                  <Text variant="caption" tone="inverted" weight="bold"> {t('product.sponsored')}</Text>
                 </View>
               )}
             </View>
@@ -67,7 +69,7 @@ function ProductCardBase({
           {inCart && (
             <View style={styles.inCartPill}>
               <Ionicons name="checkmark-circle" size={13} color={colors.white} />
-              <Text variant="caption" tone="inverted" weight="bold" style={{ marginLeft: theme.spacing[1] }}>Sepette</Text>
+              <Text variant="caption" tone="inverted" weight="bold" style={{ marginLeft: theme.spacing[1] }}>{t('cart.inCartBadge')}</Text>
             </View>
           )}
         </View>

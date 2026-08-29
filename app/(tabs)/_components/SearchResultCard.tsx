@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { AppImage } from '@/components/AppImage';
 import { Ionicons } from '@expo/vector-icons';
 import { Card, Text, theme } from '@/ui';
@@ -22,6 +23,7 @@ function SearchResultCardBase({
   cartProductIds: Set<string>;
   onPress: (productId: string) => void;
 }) {
+  const { t } = useTranslation();
   const ratingAvg = item.rating?.average ? Number(item.rating.average) : 0;
   const ratingCount = item.rating?.count ?? item.reviewCount ?? 0;
   const price = item.price ?? item.salePrice ?? null;
@@ -49,14 +51,14 @@ function SearchResultCardBase({
             <View style={styles.tradeBadge}>
               <Ionicons name="swap-horizontal" size={12} color={colors.white} />
               <Text variant="caption" tone="inverted" weight="bold">
-                Takas
+                {t('product.tradeShort')}
               </Text>
             </View>
           )}
           {item.condition === 'new' && (
             <View style={[styles.conditionBadge, { backgroundColor: colors.success[600]! }]}>
               <Text variant="caption" tone="inverted" weight="bold">
-                Sıfır
+                {t('product.conditionNew')}
               </Text>
             </View>
           )}
@@ -64,7 +66,7 @@ function SearchResultCardBase({
             <View style={styles.inCartPill}>
               <Ionicons name="checkmark-circle" size={12} color={colors.white} />
               <Text variant="caption" tone="inverted" weight="bold" style={{ marginLeft: theme.spacing[1] }}>
-                Sepette
+                {t('cart.inCartBadge')}
               </Text>
             </View>
           )}
@@ -79,7 +81,7 @@ function SearchResultCardBase({
             numberOfLines={1}
             style={{ marginTop: theme.spacing[0.5] }}
           >
-            {asLabel(item.brand, 'Marka')} • {asLabel(item.scale, '1:64')}
+            {asLabel(item.brand, t('product.brand'))} • {asLabel(item.scale, '1:64')}
           </Text>
           {ratingAvg > 0 ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing[0.5], marginTop: theme.spacing[1] }}>

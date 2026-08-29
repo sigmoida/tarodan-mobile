@@ -755,7 +755,8 @@
     "selectedCount": "{count} item(s) selected",
     "subtotalWithCount": "Subtotal ({count} items)",
     "updateQuantity": "Update Quantity",
-    "removedFromCart": "Removed from cart"
+    "removedFromCart": "Removed from cart",
+    "inCartBadge": "In Cart"
   },
   "favorites": {
     "myFavorites": "My Favorites",
