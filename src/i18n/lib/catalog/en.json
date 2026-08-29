@@ -1195,7 +1195,11 @@
       "unknown": "Updating shipment status"
     },
     "timelineCreated": "Order Created",
-    "timelinePaymentMade": "Payment Made"
+    "timelinePaymentMade": "Payment Made",
+    "loadFailedRetry": "Failed to load orders. Please try again.",
+    "refresh": "Refresh",
+    "rateProduct": "Rate the Product",
+    "rateSeller": "Rate the Seller"
   },
   "trade": {
     "featureTitle": "Trading",

@@ -83,7 +83,7 @@ export function OrderCard({
               variant="outline"
               size="sm"
               icon="star"
-              title="Ürünü Değerlendir"
+              title={t('order.rateProduct')}
               onPress={() => onRate('product', order)}
               style={styles.rateButton}
             />
@@ -93,7 +93,7 @@ export function OrderCard({
               variant="outline"
               size="sm"
               icon="person"
-              title="Satıcıyı Değerlendir"
+              title={t('order.rateSeller')}
               onPress={() => onRate('seller', order)}
               style={styles.rateButton}
             />

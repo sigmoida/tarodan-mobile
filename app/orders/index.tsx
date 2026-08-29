@@ -29,7 +29,7 @@ export default function OrdersScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Siparişlerim" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+      <ScreenHeader title={t('order.myOrders')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
 
       <OrdersFilters f={f} />
 
@@ -37,9 +37,9 @@ export default function OrdersScreen() {
       {f.ordersError ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptySubtitle}>
-            Siparişler yüklenemedi. Lütfen tekrar deneyin.
+            {t('order.loadFailedRetry')}
           </Text>
-          <Button variant="primary" title="Yenile" onPress={() => f.refetch()} style={StyleSheet.flatten([styles.emptyButton, { marginTop: theme.spacing[3] }])} />
+          <Button variant="primary" title={t('order.refresh')} onPress={() => f.refetch()} style={StyleSheet.flatten([styles.emptyButton, { marginTop: theme.spacing[3] }])} />
         </View>
       ) : f.isLoading && f.entries.length === 0 ? (
         <View style={styles.loadingContainer}>

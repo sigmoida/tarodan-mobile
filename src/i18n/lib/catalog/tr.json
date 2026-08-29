@@ -1195,7 +1195,11 @@
       "unknown": "Kargo durumu güncelleniyor"
     },
     "timelineCreated": "Sipariş Oluşturuldu",
-    "timelinePaymentMade": "Ödeme Yapıldı"
+    "timelinePaymentMade": "Ödeme Yapıldı",
+    "loadFailedRetry": "Siparişler yüklenemedi. Lütfen tekrar deneyin.",
+    "refresh": "Yenile",
+    "rateProduct": "Ürünü Değerlendir",
+    "rateSeller": "Satıcıyı Değerlendir"
   },
   "trade": {
     "featureTitle": "Takas Özelliği",
