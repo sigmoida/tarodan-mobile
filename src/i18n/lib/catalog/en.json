@@ -2271,7 +2271,9 @@
     "noProductsYet": "No items yet",
     "allListings": "All Listings",
     "companyFallback": "Company",
-    "companyCollections": "Their collections"
+    "companyCollections": "Their collections",
+    "featuredCollectionCount": "{count}-vehicle collection",
+    "checkApiConnection": "Check the API connection"
   },
   "search": {
     "search": "Search",

@@ -2271,7 +2271,9 @@
     "noProductsYet": "Henüz ürün yok",
     "allListings": "Tüm İlanlar",
     "companyFallback": "Şirket",
-    "companyCollections": "Koleksiyonları"
+    "companyCollections": "Koleksiyonları",
+    "featuredCollectionCount": "{count} araçlık koleksiyon",
+    "checkApiConnection": "API bağlantısını kontrol edin"
   },
   "search": {
     "search": "Ara",

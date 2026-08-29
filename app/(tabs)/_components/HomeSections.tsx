@@ -49,9 +49,7 @@ export function HeroBanner() {
           <View style={styles.heroText}>
             <Text style={styles.heroTitle}>{t('home.heroTitle')}</Text>
             <Text style={styles.heroSubtitle}>{t('home.heroSubtitle')}</Text>
-            <Text style={styles.heroDescription}>
-              Diecast modelleri satın alın, satın ve takas edin. Dijital Garajınızı oluşturun ve koleksiyonunuzu sergileyin.
-            </Text>
+            <Text style={styles.heroDescription}>{t('home.slider.marketplaceSubtitle')}</Text>
             <View style={styles.heroButtons}>
               <TouchableOpacity style={styles.heroButtonPrimary} onPress={() => router.push('/profile')}>
                 <Text style={styles.heroButtonPrimaryText}>{t('home.heroCreateCollection')}</Text>
@@ -81,7 +79,11 @@ export function CategoriesSection({ categories, isLoading }: { categories: any[]
           <TouchableOpacity key={cat.id} style={styles.brandItem} onPress={() => goCategory(cat)}>
             <View style={styles.brandLogo}>
               <Text style={styles.brandLogoText}>{cat.name}</Text>
-              {cat.productCount > 0 && <Text style={styles.categoryCount}>{cat.productCount} ürün</Text>}
+              {cat.productCount > 0 && (
+                <Text style={styles.categoryCount}>
+                  {t('collection.itemCountSuffix', { count: cat.productCount })}
+                </Text>
+              )}
             </View>
           </TouchableOpacity>
         ))}
@@ -149,7 +151,9 @@ export function FeaturedCollectorSection({
           </View>
           <View style={styles.featuredInfo}>
             <Text style={styles.featuredName}>{fc.user?.displayName || fc.userName || t('home.collector')}</Text>
-            <Text style={styles.featuredDesc}>{fc.description || `${fc.itemCount || 0} araçlık koleksiyon`}</Text>
+            <Text style={styles.featuredDesc}>
+              {fc.description || t('home.featuredCollectionCount', { count: fc.itemCount || 0 })}
+            </Text>
             <View style={styles.featuredStats}>
               <Ionicons name="thumbs-up" size={14} color={colors.primary[600]!} />
               <Text style={styles.featuredStatText}>{fc.likeCount || 0}</Text>
@@ -228,7 +232,7 @@ export function PopularProducts({
           <View style={styles.emptyContainer}>
             <Ionicons name="cube-outline" size={48} color={colors.gray[300]} />
             <Text style={styles.emptyText}>{t('home.noProductsYet')}</Text>
-            <Text style={styles.emptySubtext}>API bağlantısını kontrol edin</Text>
+            <Text style={styles.emptySubtext}>{t('home.checkApiConnection')}</Text>
           </View>
         ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>
@@ -286,7 +290,9 @@ export function CollectionsSection({ collections, isLoading }: { collections: an
             <Image source={{ uri: getImageUrlFromUtils(collection.coverImageUrl) }} style={styles.collectionImage} />
             <View style={styles.collectionInfo}>
               <Text style={styles.collectionName} numberOfLines={1}>{collection.name}</Text>
-              <Text style={styles.collectionMeta}>{collection.itemCount || 0} araç</Text>
+              <Text style={styles.collectionMeta}>
+                {t('collection.vehicleCountSuffix', { count: collection.itemCount || 0 })}
+              </Text>
             </View>
           </TouchableOpacity>
         ))}
