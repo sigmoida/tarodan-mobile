@@ -108,6 +108,8 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     'sellerDocument.versionSuffix',
     // Yalnız ayraç + interpolasyon (" · {level}"); çevrilecek sözcük yok.
     'seller.trustScoreLevelSuffix',
+    // Uluslararası kısaltma — İngilizce'de de "IBAN".
+    'businessApplication.ibanLabel',
   ]);
 
   /**

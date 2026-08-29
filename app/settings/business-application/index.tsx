@@ -1,5 +1,6 @@
 import { View, ScrollView, Pressable } from 'react-native';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Text, ScreenHeader, ScreenLoader, Alert, Button, ErrorState, theme } from '@/ui';
 import { useBusinessApplication, type BusinessApplicationTab } from './_hooks/useBusinessApplication';
 import { useDocumentUpload } from './_hooks/useDocumentUpload';
@@ -7,19 +8,20 @@ import { DetailsTab } from './_sections/DetailsTab';
 import { StakeholdersTab } from './_sections/StakeholdersTab';
 import { DocumentsTab } from './_sections/DocumentsTab';
 
-const TABS: { key: BusinessApplicationTab; label: string }[] = [
-  { key: 'details', label: 'Detaylar' },
-  { key: 'stakeholders', label: 'Paydaşlar' },
-  { key: 'documents', label: 'Belgeler' },
-];
-
 /**
  * Kurumsal başvuru tamamlama — THIN ekran. Üç sekme; her sekme kendi
  * bölümünde self-gate eder. Veri/mutation `_hooks/useBusinessApplication`'da.
  */
 export default function BusinessApplicationScreen() {
+  const { t } = useTranslation();
   const f = useBusinessApplication();
   const upload = useDocumentUpload();
+
+  const TABS: { key: BusinessApplicationTab; label: string }[] = [
+    { key: 'details', label: t('businessApplication.tabDetails') },
+    { key: 'stakeholders', label: t('businessApplication.tabStakeholders') },
+    { key: 'documents', label: t('businessApplication.tabDocuments') },
+  ];
 
   if (f.isLoading) return <ScreenLoader />;
 
@@ -28,12 +30,12 @@ export default function BusinessApplicationScreen() {
   if (f.loadError) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.colors.surface.DEFAULT }}>
-        <ScreenHeader title="Kurumsal Başvuru" onBack={goBack} />
+        <ScreenHeader title={t('businessApplication.headerTitle')} onBack={goBack} />
         <View testID="application-error" style={{ flex: 1 }}>
           <ErrorState
             fullscreen
-            title="Başvuru yüklenemedi"
-            message="Bir hata oluştu. Lütfen tekrar deneyin."
+            title={t('businessApplication.loadErrorTitle')}
+            message={t('common.genericError')}
           />
         </View>
       </View>
@@ -42,28 +44,28 @@ export default function BusinessApplicationScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.surface.DEFAULT }}>
-      <ScreenHeader title="Kurumsal Başvuru" onBack={goBack} />
+      <ScreenHeader title={t('businessApplication.headerTitle')} onBack={goBack} />
 
       {!f.isMissing && (
         <View style={{ flexDirection: 'row', paddingHorizontal: theme.spacing[4], gap: theme.spacing[2] }}>
-          {TABS.map((t) => (
+          {TABS.map((tabItem) => (
             <Pressable
-              key={t.key}
-              testID={`tab-${t.key}`}
-              onPress={() => f.setTab(t.key)}
+              key={tabItem.key}
+              testID={`tab-${tabItem.key}`}
+              onPress={() => f.setTab(tabItem.key)}
               style={{
                 paddingVertical: theme.spacing[2],
                 paddingHorizontal: theme.spacing[4],
                 borderRadius: theme.radius.md,
-                backgroundColor: f.tab === t.key ? theme.colors.primary[50] : 'transparent',
+                backgroundColor: f.tab === tabItem.key ? theme.colors.primary[50] : 'transparent',
               }}
             >
               <Text
                 variant="body"
-                color={f.tab === t.key ? theme.colors.primary[600] : theme.colors.text.muted}
-                style={{ fontWeight: f.tab === t.key ? '600' : '400' }}
+                color={f.tab === tabItem.key ? theme.colors.primary[600] : theme.colors.text.muted}
+                style={{ fontWeight: f.tab === tabItem.key ? '600' : '400' }}
               >
-                {t.label}
+                {tabItem.label}
               </Text>
             </Pressable>
           ))}
@@ -76,14 +78,13 @@ export default function BusinessApplicationScreen() {
       >
         {f.isMissing ? (
           <>
-            <Alert variant="warning" title="Başvuru bulunamadı">
-              Kurumsal başvurunuz henüz oluşturulmamış. Kurumsal ön başvuruyu tamamladıktan
-              sonra bu ekrandan devam edebilirsiniz.
+            <Alert variant="warning" title={t('businessApplication.notFoundTitle')}>
+              {t('businessApplication.notFoundBody')}
             </Alert>
             <Button
               testID="business-application-missing-back"
               variant="primary"
-              title="Geri Dön"
+              title={t('common.goBack')}
               onPress={goBack}
             />
           </>
