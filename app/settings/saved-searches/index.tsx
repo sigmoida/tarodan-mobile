@@ -22,14 +22,14 @@ export default function SavedSearchesScreen() {
           color={colors.primary[600]!}
         />
         <Text variant="h3" style={styles.title}>
-          Kayıtlı Aramalar
+          {t("savedSearch.title")}
         </Text>
         <Text variant="body" style={styles.subtitle}>
-          Aramalarınızı kaydetmek için giriş yapın
+          {t("savedSearch.loginSubtitle")}
         </Text>
         <Button
           variant="primary"
-          title="Giriş Yap"
+          title={t("common.login")}
           onPress={() => router.push("/(auth)/login")}
           style={{ alignSelf: "center" }}
         />
@@ -63,11 +63,11 @@ export default function SavedSearchesScreen() {
             />
             <Text style={styles.limitText}>
               {f.searches.length >= f.maxSavedSearches
-                ? "Arama limitine ulaştınız"
-                : `${f.maxSavedSearches - f.searches.length} arama hakkı kaldı`}
+                ? t("savedSearch.limitReached")
+                : t("savedSearch.remainingSearches", { count: f.maxSavedSearches - f.searches.length })}
             </Text>
             <TouchableOpacity onPress={() => router.push("/upgrade")}>
-              <Text style={styles.upgradeLink}>Premium</Text>
+              <Text style={styles.upgradeLink}>{t("membership.premium")}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -84,14 +84,14 @@ export default function SavedSearchesScreen() {
             color={colors.text.subtle}
           />
           <Text variant="h3" style={styles.emptyTitle}>
-            Kayıtlı arama yok
+            {t("savedSearch.emptyTitle")}
           </Text>
           <Text variant="body" style={styles.emptySubtitle}>
-            Arama sayfasında arama yapıp "Aramayı Kaydet" butonuna tıklayın
+            {t("savedSearch.emptySubtitle")}
           </Text>
           <Button
             variant="primary"
-            title="Aramaya Git"
+            title={t("savedSearch.goToSearch")}
             onPress={() => router.push("/(tabs)/search")}
             style={{ alignSelf: "center" }}
           />
