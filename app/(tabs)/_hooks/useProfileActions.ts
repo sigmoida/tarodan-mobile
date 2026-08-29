@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { appAlert } from '@/ui';
 import { userApi } from '@/lib/api';
@@ -10,6 +11,7 @@ import { getRestrictionMessage, GuestAction } from '@/utils/guestRestrictions';
  * restriction snackbar/prompt state. Lifted verbatim from ProfileScreen.
  */
 export function useProfileActions() {
+  const { t } = useTranslation();
   const { logout } = useAuthStore();
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -25,12 +27,12 @@ export function useProfileActions() {
 
   const handleDeleteAccount = () => {
     appAlert(
-      'Hesabı Sil',
-      'Hesabınız ve tüm verileriniz kalıcı olarak silinecek. Bu işlem geri alınamaz. Devam etmek istiyor musunuz?',
+      t('settings.deleteAccount'),
+      t('settings.deleteAccountConfirm'),
       [
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('seller.cancel'), style: 'cancel' },
         {
-          text: 'Hesabı Sil',
+          text: t('settings.deleteAccount'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -38,7 +40,7 @@ export function useProfileActions() {
               await logout();
               router.replace('/(auth)/login');
             } catch (e: any) {
-              appAlert('Hata', e?.response?.data?.message || 'Hesap silinemedi. Lütfen tekrar deneyin.');
+              appAlert(t('common.error'), e?.response?.data?.message || t('profile.deleteAccountFailed'));
             }
           },
         },
