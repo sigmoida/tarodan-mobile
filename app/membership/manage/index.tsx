@@ -14,7 +14,7 @@ export default function MembershipManageScreen() {
   if (f.isLoading) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Üyelik Yönetimi" onBack={back} />
+        <ScreenHeader title={f.t('membership.manageMembership')} onBack={back} />
         <View style={styles.loadingBox}>
           <Spinner size="lg" />
         </View>
@@ -24,7 +24,7 @@ export default function MembershipManageScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Üyelik Yönetimi" onBack={back} />
+      <ScreenHeader title={f.t('membership.manageMembership')} onBack={back} />
       <ScrollView
         contentContainerStyle={styles.scrollBody}
         refreshControl={<ThemedRefreshControl refreshing={f.refreshing} onRefresh={f.onRefresh} />}

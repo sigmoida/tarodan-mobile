@@ -10,7 +10,7 @@ const { colors } = theme;
 
 /** Mevcut plan kartı — tier rozeti, durum, dönem/ödeme bilgileri, otomatik yenileme. */
 export function CurrentPlanCard({ f }: { f: MembershipManageController }) {
-  const { data, tierName, isPaid, isCancelled, autoRenew } = f;
+  const { data, tierName, isPaid, isCancelled, autoRenew, t } = f;
 
   return (
     <Card style={styles.card}>
@@ -23,12 +23,12 @@ export function CurrentPlanCard({ f }: { f: MembershipManageController }) {
           isCancelled ? (
             <View style={styles.activeRow}>
               <Ionicons name="close-circle" size={18} color={colors.warning[600]!} />
-              <Text style={[styles.activeText, { color: colors.warning[600]! }]}>İptal Edildi</Text>
+              <Text style={[styles.activeText, { color: colors.warning[600]! }]}>{t('common.cancelled')}</Text>
             </View>
           ) : (
             <View style={styles.activeRow}>
               <Ionicons name="checkmark-circle" size={18} color={colors.success[600]!} />
-              <Text style={styles.activeText}>Aktif</Text>
+              <Text style={styles.activeText}>{t('common.active')}</Text>
             </View>
           )
         ) : null}
@@ -38,8 +38,7 @@ export function CurrentPlanCard({ f }: { f: MembershipManageController }) {
         <View style={styles.cancelledNote}>
           <Ionicons name="information-circle-outline" size={16} color={colors.warning[600]!} />
           <Text style={styles.cancelledNoteText}>
-            Üyeliğiniz iptal edildi. {formatDate(data?.currentPeriodEnd)} tarihine kadar
-            özelliklerinizi kullanmaya devam edebilirsiniz.
+            {t('membership.manageCancelledNote', { endDate: formatDate(data?.currentPeriodEnd) })}
           </Text>
         </View>
       ) : null}
@@ -48,16 +47,16 @@ export function CurrentPlanCard({ f }: { f: MembershipManageController }) {
         <>
           <Divider style={{ marginVertical: theme.spacing[3] }} />
           <View style={styles.kvRow}>
-            <Text style={styles.kvLabel}>Başlangıç</Text>
+            <Text style={styles.kvLabel}>{t('discount.startLabel')}</Text>
             <Text style={styles.kvValue}>{formatDate(data?.currentPeriodStart)}</Text>
           </View>
           <View style={styles.kvRow}>
-            <Text style={styles.kvLabel}>Bitiş</Text>
+            <Text style={styles.kvLabel}>{t('discount.endLabel')}</Text>
             <Text style={styles.kvValue}>{formatDate(data?.currentPeriodEnd)}</Text>
           </View>
           {data?.nextBillingDate ? (
             <View style={styles.kvRow}>
-              <Text style={styles.kvLabel}>Sonraki Ödeme</Text>
+              <Text style={styles.kvLabel}>{t('membership.manageNextPaymentLabel')}</Text>
               <Text style={styles.kvValue}>
                 {formatDate(data.nextBillingDate)}
                 {data.nextBillingAmount != null ? ` · ${formatTL(data.nextBillingAmount)}` : ''}
@@ -70,11 +69,11 @@ export function CurrentPlanCard({ f }: { f: MembershipManageController }) {
           {/* Auto-renew toggle */}
           <View style={styles.autoRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.autoTitle}>Otomatik Yenileme</Text>
+              <Text style={styles.autoTitle}>{t('membership.autoRenew')}</Text>
               <Text style={styles.autoSub}>
                 {autoRenew
-                  ? 'Dönem sonunda yenileme hatırlatması gönderilecek — tek tıkla yenileyebilirsiniz.'
-                  : 'Kapalı — dönem sonunda üyeliğiniz sona erecek.'}
+                  ? t('membership.manageAutoRenewOnHelper')
+                  : t('membership.manageAutoRenewOffHelper')}
               </Text>
             </View>
             <Switch
@@ -86,7 +85,7 @@ export function CurrentPlanCard({ f }: { f: MembershipManageController }) {
         </>
       ) : (
         <Text style={styles.helperText}>
-          Şu anda ücretsiz üyeliği kullanıyorsunuz. Daha fazla özellik için planınızı yükseltin.
+          {t('membership.manageFreeHelper')}
         </Text>
       )}
     </Card>
@@ -95,6 +94,7 @@ export function CurrentPlanCard({ f }: { f: MembershipManageController }) {
 
 /** Dönem sonuna planlanmış paket değişikliği — yoksa hiç çizilmez. */
 export function ScheduledChangeCard({ f }: { f: MembershipManageController }) {
+  const { t } = f;
   if (!f.hasScheduledChange) return null;
 
   return (
@@ -102,13 +102,15 @@ export function ScheduledChangeCard({ f }: { f: MembershipManageController }) {
       <View style={styles.cancelledNote}>
         <Ionicons name="calendar-outline" size={16} color={colors.info[600]!} />
         <Text style={styles.cancelledNoteText}>
-          Dönem sonunda <Text style={{ fontWeight: 'bold' }}>{f.scheduledLabel}</Text> planına
-          geçilecek. Mevcut planınız {formatDate(f.data?.currentPeriodEnd)} tarihine kadar geçerli.
+          {t('membership.manageScheduledChangeNote', {
+            tierLabel: f.scheduledLabel,
+            endDate: formatDate(f.data?.currentPeriodEnd),
+          })}
         </Text>
       </View>
       <Button
         variant="outline"
-        title="Değişikliği İptal Et"
+        title={t('membership.manageCancelScheduledButton')}
         icon="close-circle-outline"
         onPress={f.handleCancelScheduledChange}
         isLoading={f.cancelScheduledChangeMutation.isPending}
@@ -121,13 +123,14 @@ export function ScheduledChangeCard({ f }: { f: MembershipManageController }) {
 
 /** Plan değiştir / iptal / yükselt aksiyonları + yardım kutusu. */
 export function ManageActions({ f }: { f: MembershipManageController }) {
+  const { t } = f;
   return (
     <>
       {f.isPaid ? (
         <>
           <Button
             variant="primary"
-            title="Plan Değiştir"
+            title={t('membership.changePlan')}
             icon="swap-vertical"
             onPress={() => router.push('/membership' as any)}
             style={styles.actionBtn}
@@ -135,7 +138,7 @@ export function ManageActions({ f }: { f: MembershipManageController }) {
           {!f.isCancelled && (
             <Button
               variant="outline"
-              title="Üyeliği İptal Et"
+              title={t('membership.cancelMembership')}
               icon="close-circle-outline"
               onPress={f.handleCancel}
               isLoading={f.cancelMutation.isPending}
@@ -147,7 +150,7 @@ export function ManageActions({ f }: { f: MembershipManageController }) {
       ) : (
         <Button
           variant="primary"
-          title="Üyeliği Yükselt"
+          title={t('membership.manageUpgradeButton')}
           icon="arrow-up"
           onPress={() => router.push('/membership' as any)}
           style={styles.actionBtn}
@@ -157,7 +160,7 @@ export function ManageActions({ f }: { f: MembershipManageController }) {
       <View style={styles.helpBox}>
         <Ionicons name="information-circle-outline" size={18} color={colors.info[600]!} />
         <Text style={styles.helpText}>
-          Üyelik ile ilgili sorularınız için destek ekibimizle iletişime geçebilirsiniz.
+          {t('membership.manageHelpText')}
         </Text>
       </View>
     </>
