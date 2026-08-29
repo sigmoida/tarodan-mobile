@@ -61,8 +61,8 @@ export function OrderSummary({
     return (
       <View style={styles.orderSummary} testID="order-summary-error">
         <ErrorState
-          title="Fiyat bilgisi alınamadı"
-          message="Ödeme tutarı sunucudan alınamadı. Bağlantınızı kontrol edip tekrar deneyin."
+          title={t('cart.priceUnavailableTitle')}
+          message={t('checkout.priceUnavailableRetryBody')}
           onRetry={onRetry}
         />
       </View>
@@ -73,7 +73,7 @@ export function OrderSummary({
     <View style={styles.orderSummary}>
       <Text style={styles.orderSummaryTitle}>{t('checkout.paymentDetail')}</Text>
       <View style={styles.orderSummaryRow}>
-        <Text style={styles.orderSummaryLabel}>Ara Toplam ({itemCount} ürün)</Text>
+        <Text style={styles.orderSummaryLabel}>{t('checkout.subtotalWithCount', { count: itemCount })}</Text>
         <Text style={styles.orderSummaryValue}>{formatServerPrice(productAmount)}</Text>
       </View>
       {Number(quantityDiscount ?? 0) > 0 ? (
