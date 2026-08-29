@@ -6613,5 +6613,33 @@
     "s6Content": "Alıcı koruma yasal haklarınızın yerine geçmez; onlara ek olarak sunulur.",
     "s7Title": "7. İletişim",
     "s7Content": "{email} – konu: \"Alıcı Koruma – Sipariş No\""
+  },
+  "safeTradePage": {
+    "heroTitle": "Güvenli Takas Sistemi",
+    "heroText": "Koleksiyonunuzu büyütmenin en kolay yolu. Platform güvencesi altında diğer koleksiyonerlerle model araçlarınızı takas edin.",
+    "howItWorks": "Nasıl Çalışır?",
+    "step1Title": "Ürün Bulun",
+    "step1Desc": "\"Takas Açık\" etiketli ürünleri arayın veya filtreleyin.",
+    "step2Title": "Teklif Gönderin",
+    "step2Desc": "Kendi koleksiyonunuzdan ürün seçin, gerekirse nakit fark ekleyin ve teklif gönderin.",
+    "step3Title": "Müzakere Edin",
+    "step3Desc": "Karşı taraf kabul edebilir, reddedebilir veya karşı teklif gönderebilir.",
+    "step4Title": "Onaylayın",
+    "step4Desc": "Her iki taraf da takas şartlarını kabul ettiğinde takas resmi olarak başlar.",
+    "step5Title": "Kargolayın",
+    "step5Desc": "Ürünlerinizi güvenli şekilde paketleyerek belirtilen süre içinde kargoya verin.",
+    "step6Title": "Teslim Alın ve Onaylayın",
+    "step6Desc": "Ürünü kontrol edin ve \"Teslim Aldım\" ile onaylayın. Takas tamamlanır.",
+    "securityGuarantees": "Güvenlik Garantileri",
+    "guarantee1": "Her iki tarafın ürünleri platform garantisi altındadır",
+    "guarantee2": "Nakit fark ödemeleri güvenli emanet hesapta tutulur",
+    "guarantee3": "Anlaşmazlık durumunda platform arabuluculuk yapar",
+    "guarantee4": "Ürün açıklamaya uymuyorsa takas iptal edilebilir",
+    "guarantee5": "Kargo takibi her iki taraf için de platformda görüntülenir",
+    "whoCanTrade": "Kimler Takas Yapabilir?",
+    "whoCanTradeText": "Takas özelliği Premium ve Pro üyelere açıktır. Takas yapmak için en az bir aktif ilanınızın bulunması ve hesabınızın doğrulanmış olması gerekmektedir.",
+    "cashDiffTitle": "Fark Ödemeli Takas",
+    "cashDiffText": "Takas edilen ürünlerin değerleri eşit olmak zorunda değildir. Teklifte nakit fark belirleyebilirsiniz. Fark ödemesi, güvenli ödeme sistemi üzerinden alıcı koruma kapsamında işlenir.",
+    "ctaText": "Takas Tekliflerini Keşfet"
   }
 }

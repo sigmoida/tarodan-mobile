@@ -6613,5 +6613,33 @@
     "s6Content": "Buyer protection does not replace your legal rights; it is offered in addition to them.",
     "s7Title": "7. Contact",
     "s7Content": "{email} – subject: \"Buyer Protection – Order No.\""
+  },
+  "safeTradePage": {
+    "heroTitle": "Secure Trading System",
+    "heroText": "The easiest way to grow your collection. Trade your model cars with other collectors under the platform''s guarantee.",
+    "howItWorks": "How It Works",
+    "step1Title": "Find a Product",
+    "step1Desc": "Search or filter for products tagged \"Open to Trade.\"",
+    "step2Title": "Send an Offer",
+    "step2Desc": "Choose an item from your own collection, add cash on top if needed, and send your offer.",
+    "step3Title": "Negotiate",
+    "step3Desc": "The other party can accept, decline, or send a counteroffer.",
+    "step4Title": "Confirm",
+    "step4Desc": "Once both parties accept the trade terms, the trade officially begins.",
+    "step5Title": "Ship It",
+    "step5Desc": "Pack your items securely and ship them within the specified time.",
+    "step6Title": "Receive and Confirm",
+    "step6Desc": "Inspect the item and confirm with \"Received.\" The trade is complete.",
+    "securityGuarantees": "Security Guarantees",
+    "guarantee1": "Both parties'' items are covered by the platform''s guarantee",
+    "guarantee2": "Cash-difference payments are held in a secure escrow account",
+    "guarantee3": "The platform mediates in case of a dispute",
+    "guarantee4": "A trade can be cancelled if the item doesn''t match its description",
+    "guarantee5": "Shipment tracking is visible on the platform for both parties",
+    "whoCanTrade": "Who Can Trade?",
+    "whoCanTradeText": "Trading is available to Premium and Pro members. To trade, you need at least one active listing and a verified account.",
+    "cashDiffTitle": "Trading with a Cash Difference",
+    "cashDiffText": "Items being traded don''t have to be of equal value. You can set a cash difference in your offer. The difference payment is processed under buyer protection through the secure payment system.",
+    "ctaText": "Explore Trade Offers"
   }
 }

@@ -6,46 +6,44 @@ import { useTranslation } from "react-i18next";
 
 const { colors } = theme;
 
-const STEPS = [
-  {
-    icon: "search-outline" as const,
-    title: "Ürün Bulun",
-    description: '"Takas Açık" etiketli ürünleri arayın veya filtreleyin.',
-  },
-  {
-    icon: "swap-horizontal-outline" as const,
-    title: "Teklif Gönderin",
-    description:
-      "Kendi koleksiyonunuzdan ürün seçin, gerekirse nakit fark ekleyin ve teklif gönderin.",
-  },
-  {
-    icon: "chatbubbles-outline" as const,
-    title: "Müzakere Edin",
-    description:
-      "Karşı taraf kabul edebilir, reddedebilir veya karşı teklif gönderebilir.",
-  },
-  {
-    icon: "checkmark-circle-outline" as const,
-    title: "Onaylayın",
-    description:
-      "Her iki taraf da takas şartlarını kabul ettiğinde takas resmi olarak başlar.",
-  },
-  {
-    icon: "cube-outline" as const,
-    title: "Kargolayın",
-    description:
-      "Ürünlerinizi güvenli şekilde paketleyerek belirtilen süre içinde kargoya verin.",
-  },
-  {
-    icon: "shield-checkmark-outline" as const,
-    title: "Teslim Alın ve Onaylayın",
-    description:
-      'Ürünü kontrol edin ve "Teslim Aldım" ile onaylayın. Takas tamamlanır.',
-  },
-];
+function useSteps(t: (key: string) => string) {
+  return [
+    {
+      icon: "search-outline" as const,
+      title: t("safeTradePage.step1Title"),
+      description: t("safeTradePage.step1Desc"),
+    },
+    {
+      icon: "swap-horizontal-outline" as const,
+      title: t("safeTradePage.step2Title"),
+      description: t("safeTradePage.step2Desc"),
+    },
+    {
+      icon: "chatbubbles-outline" as const,
+      title: t("safeTradePage.step3Title"),
+      description: t("safeTradePage.step3Desc"),
+    },
+    {
+      icon: "checkmark-circle-outline" as const,
+      title: t("safeTradePage.step4Title"),
+      description: t("safeTradePage.step4Desc"),
+    },
+    {
+      icon: "cube-outline" as const,
+      title: t("safeTradePage.step5Title"),
+      description: t("safeTradePage.step5Desc"),
+    },
+    {
+      icon: "shield-checkmark-outline" as const,
+      title: t("safeTradePage.step6Title"),
+      description: t("safeTradePage.step6Desc"),
+    },
+  ];
+}
 
 export default function GuvenliTakasScreen() {
   const { t } = useTranslation();
+  const STEPS = useSteps(t);
   return (
     <View style={styles.container}>
       <ScreenHeader
@@ -62,14 +60,11 @@ export default function GuvenliTakasScreen() {
             size={56}
             color={colors.primary[600]!}
           />
-          <Text style={styles.heroTitle}>Güvenli Takas Sistemi</Text>
-          <Text style={styles.heroText}>
-            Koleksiyonunuzu büyütmenin en kolay yolu. Platform güvencesi altında
-            diğer koleksiyonerlerle model araçlarınızı takas edin.
-          </Text>
+          <Text style={styles.heroTitle}>{t("safeTradePage.heroTitle")}</Text>
+          <Text style={styles.heroText}>{t("safeTradePage.heroText")}</Text>
         </View>
 
-        <Text style={styles.sectionTitle}>Nasıl Çalışır?</Text>
+        <Text style={styles.sectionTitle}>{t("safeTradePage.howItWorks")}</Text>
         {STEPS.map((step, index) => (
           <View key={index} style={styles.stepCard}>
             <View style={styles.stepLeft}>
@@ -92,7 +87,7 @@ export default function GuvenliTakasScreen() {
           </View>
         ))}
 
-        <Text style={styles.sectionTitle}>Güvenlik Garantileri</Text>
+        <Text style={styles.sectionTitle}>{t("safeTradePage.securityGuarantees")}</Text>
         <View style={styles.guaranteeCard}>
           <View style={styles.guaranteeRow}>
             <Ionicons
@@ -100,9 +95,7 @@ export default function GuvenliTakasScreen() {
               size={20}
               color={colors.warning[500]!}
             />
-            <Text style={styles.guaranteeText}>
-              Her iki tarafın ürünleri platform garantisi altındadır
-            </Text>
+            <Text style={styles.guaranteeText}>{t("safeTradePage.guarantee1")}</Text>
           </View>
           <View style={styles.guaranteeRow}>
             <Ionicons
@@ -110,9 +103,7 @@ export default function GuvenliTakasScreen() {
               size={20}
               color={colors.warning[500]!}
             />
-            <Text style={styles.guaranteeText}>
-              Nakit fark ödemeleri güvenli emanet hesapta tutulur
-            </Text>
+            <Text style={styles.guaranteeText}>{t("safeTradePage.guarantee2")}</Text>
           </View>
           <View style={styles.guaranteeRow}>
             <Ionicons
@@ -120,9 +111,7 @@ export default function GuvenliTakasScreen() {
               size={20}
               color={colors.warning[500]!}
             />
-            <Text style={styles.guaranteeText}>
-              Anlaşmazlık durumunda platform arabuluculuk yapar
-            </Text>
+            <Text style={styles.guaranteeText}>{t("safeTradePage.guarantee3")}</Text>
           </View>
           <View style={styles.guaranteeRow}>
             <Ionicons
@@ -130,9 +119,7 @@ export default function GuvenliTakasScreen() {
               size={20}
               color={colors.warning[500]!}
             />
-            <Text style={styles.guaranteeText}>
-              Ürün açıklamaya uymuyorsa takas iptal edilebilir
-            </Text>
+            <Text style={styles.guaranteeText}>{t("safeTradePage.guarantee4")}</Text>
           </View>
           <View style={styles.guaranteeRow}>
             <Ionicons
@@ -140,25 +127,15 @@ export default function GuvenliTakasScreen() {
               size={20}
               color={colors.warning[500]!}
             />
-            <Text style={styles.guaranteeText}>
-              Kargo takibi her iki taraf için de platformda görüntülenir
-            </Text>
+            <Text style={styles.guaranteeText}>{t("safeTradePage.guarantee5")}</Text>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Kimler Takas Yapabilir?</Text>
-        <Text style={styles.paragraph}>
-          Takas özelliği Premium ve Pro üyelere açıktır. Takas yapmak için en az
-          bir aktif ilanınızın bulunması ve hesabınızın doğrulanmış olması
-          gerekmektedir.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("safeTradePage.whoCanTrade")}</Text>
+        <Text style={styles.paragraph}>{t("safeTradePage.whoCanTradeText")}</Text>
 
-        <Text style={styles.sectionTitle}>Fark Ödemeli Takas</Text>
-        <Text style={styles.paragraph}>
-          Takas edilen ürünlerin değerleri eşit olmak zorunda değildir. Teklifte
-          nakit fark belirleyebilirsiniz. Fark ödemesi, güvenli ödeme sistemi
-          üzerinden alıcı koruma kapsamında işlenir.
-        </Text>
+        <Text style={styles.sectionTitle}>{t("safeTradePage.cashDiffTitle")}</Text>
+        <Text style={styles.paragraph}>{t("safeTradePage.cashDiffText")}</Text>
 
         <TouchableOpacity
           style={styles.ctaButton}
@@ -166,7 +143,7 @@ export default function GuvenliTakasScreen() {
           activeOpacity={0.8}
         >
           <Ionicons name="swap-horizontal" size={20} color={colors.white} />
-          <Text style={styles.ctaText}>Takas Tekliflerini Keşfet</Text>
+          <Text style={styles.ctaText}>{t("safeTradePage.ctaText")}</Text>
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
