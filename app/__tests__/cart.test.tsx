@@ -96,7 +96,8 @@ describe('J59 · ürün çıkarma (UI)', () => {
 
   it('kaldır butonu (accessibilityLabel) ürünü sepetten siler', () => {
     renderWithProviders(<CartScreen />);
-    fireEvent.press(screen.getByLabelText('Ürünü sepetten kaldır'));
+    // `cart.removeItem` reuse (rule #1): katalogdaki metin "sepetten" içermiyor.
+    fireEvent.press(screen.getByLabelText('Ürünü Kaldır'));
     expect(useCartStore.getState().items).toHaveLength(0);
   });
 });
