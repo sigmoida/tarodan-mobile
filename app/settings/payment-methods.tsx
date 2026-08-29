@@ -9,6 +9,8 @@ import {
 import { Card, Spinner, Text, theme, appAlert } from "@/ui";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { ScreenHeader, EmptyState } from "@/components/common";
 import { useAuthStore } from "@/stores/authStore";
 import { membershipApi } from "@/lib/api";
@@ -38,14 +40,16 @@ interface SavedCard {
   autoRenewEligible: boolean;
 }
 
-const CARD_TYPE_LABELS: Record<string, string> = {
-  credit: "Kredi kartı",
-  debit: "Banka kartı",
-};
+const buildCardTypeLabels = (t: TFunction): Record<string, string> => ({
+  credit: t("payment.cardTypeCredit"),
+  debit: t("payment.cardTypeDebit"),
+});
 
 export default function PaymentMethodsScreen() {
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
+  const cardTypeLabels = buildCardTypeLabels(t);
 
   const cardsQuery = useQuery({
     queryKey: qk.payments.savedCards,
@@ -60,12 +64,12 @@ export default function PaymentMethodsScreen() {
 
   const handleDelete = (card: SavedCard) => {
     appAlert(
-      "Kartı sil",
-      `${card.brand || "Kart"} •••• ${card.last4} kartını silmek istediğine emin misin? Bu kartla otomatik yenileme yapılamaz hale gelir.`,
+      t("payment.deleteCardTitle"),
+      t("payment.deleteCardBody", { brand: card.brand || t("payment.cardGenericBrand"), last4: card.last4 }),
       [
-        { text: "Vazgeç", style: "cancel" },
+        { text: t("payment.threeDSCancel"), style: "cancel" },
         {
-          text: "Sil",
+          text: t("common.delete"),
           style: "destructive",
           onPress: async () => {
             try {
@@ -75,8 +79,8 @@ export default function PaymentMethodsScreen() {
               queryClient.invalidateQueries({ queryKey: qk.payments.savedCards });
             } catch (e: any) {
               appAlert(
-                "Hata",
-                e?.response?.data?.message || "Kart silinemedi.",
+                t("common.error"),
+                e?.response?.data?.message || t("payment.deleteCardFailed"),
               );
             }
           },
@@ -89,7 +93,7 @@ export default function PaymentMethodsScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Kayıtlı Kartlarım" />
+      <ScreenHeader title={t("payment.savedCardsTitle")} />
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -100,8 +104,7 @@ export default function PaymentMethodsScreen() {
         }
       >
         <Text variant="body" tone="muted" style={styles.intro}>
-          Otomatik yenileme ve hızlı ödeme için kayıtlı kartların. Yeni kart,
-          ödeme sırasında "kartımı kaydet" ile eklenir.
+          {t("payment.savedCardsIntro")}
         </Text>
 
         {cardsQuery.isLoading ? (
@@ -111,8 +114,8 @@ export default function PaymentMethodsScreen() {
         ) : cards.length === 0 ? (
           <EmptyState
             icon="card-outline"
-            title="Kayıtlı kartın yok"
-            subtitle='Bir ödeme yaparken "kartımı kaydet" seçeneğini işaretleyerek kart ekleyebilirsin.'
+            title={t("payment.noSavedCardsTitle")}
+            subtitle={t("payment.noSavedCardsSubtitle")}
           />
         ) : (
           cards.map((c) => (
@@ -120,7 +123,7 @@ export default function PaymentMethodsScreen() {
               <Ionicons name="card" size={28} color={colors.primary[500]} />
               <View style={styles.cardInfo}>
                 <Text variant="body" style={styles.cardTitle}>
-                  {(c.brand || "Kart") + " •••• " + c.last4}
+                  {(c.brand || t("payment.cardGenericBrand")) + " •••• " + c.last4}
                 </Text>
                 <View style={styles.badges}>
                   {c.cardScheme && (
@@ -148,7 +151,7 @@ export default function PaymentMethodsScreen() {
                         },
                       ]}
                     >
-                      Varsayılan
+                      {t("payment.defaultCard")}
                     </Text>
                   )}
                   {c.autoRenewEligible ? (
@@ -162,7 +165,7 @@ export default function PaymentMethodsScreen() {
                         },
                       ]}
                     >
-                      Oto-yenilemeye uygun
+                      {t("payment.autoRenewEligibleBadge")}
                     </Text>
                   ) : (
                     <Text
@@ -175,7 +178,7 @@ export default function PaymentMethodsScreen() {
                         },
                       ]}
                     >
-                      CVV gerektirir
+                      {t("payment.cvvRequiredBadge")}
                     </Text>
                   )}
                   {c.businessCard && (
@@ -189,16 +192,16 @@ export default function PaymentMethodsScreen() {
                         },
                       ]}
                     >
-                      Kurumsal
+                      {t("footer.corporate")}
                     </Text>
                   )}
                 </View>
                 {[
                   c.bank,
-                  c.cardType ? CARD_TYPE_LABELS[c.cardType] : null,
+                  c.cardType ? cardTypeLabels[c.cardType] : null,
                 ].filter(Boolean).length > 0 ? (
                   <Text variant="caption" tone="muted">
-                    {[c.bank, c.cardType ? CARD_TYPE_LABELS[c.cardType] : null]
+                    {[c.bank, c.cardType ? cardTypeLabels[c.cardType] : null]
                       .filter(Boolean)
                       .join(" · ")}
                   </Text>
@@ -207,7 +210,7 @@ export default function PaymentMethodsScreen() {
                   <Text
                     variant="caption"
                     tone="muted"
-                  >{`Son kullanma: ${c.expMonth}/${c.expYear}`}</Text>
+                  >{t("payment.expiryLabel", { month: c.expMonth, year: c.expYear })}</Text>
                 ) : null}
               </View>
               <Pressable
@@ -232,8 +235,7 @@ export default function PaymentMethodsScreen() {
             color={colors.success[600]}
           />
           <Text variant="caption" tone="muted" style={styles.secureText}>
-            Kartların PayTR güvenli kasasında saklanır; numara/CVV bizde
-            tutulmaz.
+            {t("payment.cardsVaultNotice")}
           </Text>
         </View>
       </ScrollView>
