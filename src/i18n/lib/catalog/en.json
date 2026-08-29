@@ -6681,5 +6681,12 @@
     "processContent": "You can open a return request from the order detail page or by contacting our support team. Once your request is approved, you can ship the product with our partner carrier.",
     "timelineTitle": "Return Timeline",
     "timelineContent": "Once your return request is approved, ship the product as soon as possible using the shipping code sent to you. After the product reaches the seller, the refund amount is transferred to your account within {days} days."
+  },
+  "cmsPage": {
+    "notFound": "Page not found.",
+    "loadError": "An error occurred while loading the page.",
+    "loadingText": "Loading page...",
+    "fallbackTitle": "Page",
+    "lastUpdatedOn": "Last updated: {date}"
   }
 }

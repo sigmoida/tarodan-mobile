@@ -6,6 +6,7 @@ import { theme, Spinner, Text, ScreenHeader } from '@/ui';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
+import { useTranslation } from 'react-i18next';
 import { pagesApi } from '@/lib/api';
 
 const { colors } = theme;
@@ -67,6 +68,7 @@ interface PageData {
 }
 
 export default function DynamicCMSPage() {
+  const { t } = useTranslation();
   const { slug } = useLocalSearchParams<{ slug: string }>();
 
   // CMS sayfası React Query ile (CLAUDE.md §6). Aynı slug ikinci kez açıldığında
@@ -82,8 +84,8 @@ export default function DynamicCMSPage() {
   const loading = query.isLoading;
   const error = query.error
     ? (query.error as any)?.response?.status === 404
-      ? 'Sayfa bulunamadı.'
-      : 'Sayfa yüklenirken bir hata oluştu.'
+      ? t('cmsPage.notFound')
+      : t('cmsPage.loadError')
     : '';
 
   const formatDate = (dateStr?: string) => {
@@ -102,10 +104,10 @@ export default function DynamicCMSPage() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Yükleniyor..." onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+        <ScreenHeader title={t('common.loading')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
         <View style={styles.loadingContainer}>
           <Spinner size="lg" />
-          <Text style={styles.loadingText}>Sayfa yükleniyor...</Text>
+          <Text style={styles.loadingText}>{t('cmsPage.loadingText')}</Text>
         </View>
       </View>
     );
@@ -114,7 +116,7 @@ export default function DynamicCMSPage() {
   if (error) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Hata" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+        <ScreenHeader title={t('common.error')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={56} color={colors.danger[600]!} />
           <Text style={styles.errorTitle}>{error}</Text>
@@ -125,10 +127,10 @@ export default function DynamicCMSPage() {
             onPress={() => query.refetch()}
           >
             <Ionicons name="refresh" size={18} color={colors.white} />
-            <Text style={styles.retryButtonText}>Tekrar Dene</Text>
+            <Text style={styles.retryButtonText}>{t('common.tryAgain')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.goBackLink} onPress={() => router.back()}>
-            <Text style={styles.goBackText}>Geri Dön</Text>
+            <Text style={styles.goBackText}>{t('common.goBack')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -138,8 +140,12 @@ export default function DynamicCMSPage() {
   return (
     <View style={styles.container}>
       <ScreenHeader
-        title={page?.title || 'Sayfa'}
-        subtitle={formatDate(page?.updatedAt) ? `Son güncelleme: ${formatDate(page?.updatedAt)}` : undefined}
+        title={page?.title || t('cmsPage.fallbackTitle')}
+        subtitle={
+          formatDate(page?.updatedAt)
+            ? t('cmsPage.lastUpdatedOn', { date: formatDate(page?.updatedAt) })
+            : undefined
+        }
         onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       />
 

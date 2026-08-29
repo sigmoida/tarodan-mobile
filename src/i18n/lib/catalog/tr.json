@@ -6681,5 +6681,12 @@
     "processContent": "İade talebinizi sipariş detay sayfasından veya destek ekibimize başvurarak oluşturabilirsiniz. Talebiniz onaylandıktan sonra ürünü anlaşmalı kargo firması ile gönderebilirsiniz.",
     "timelineTitle": "İade Süreleri",
     "timelineContent": "İade talebinizin onaylanmasından sonra ürünü, size iletilen kargo koduyla en kısa sürede kargoya verin. Ürün satıcıya ulaştıktan sonra iade tutarı {days} gün içinde hesabınıza aktarılır."
+  },
+  "cmsPage": {
+    "notFound": "Sayfa bulunamadı.",
+    "loadError": "Sayfa yüklenirken bir hata oluştu.",
+    "loadingText": "Sayfa yükleniyor...",
+    "fallbackTitle": "Sayfa",
+    "lastUpdatedOn": "Son güncelleme: {date}"
   }
 }
