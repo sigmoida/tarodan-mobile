@@ -127,3 +127,31 @@ Yanıttaki hata listesinde **"Geçerli bir tarih giriniz (YYYY-MM-DD)" kalmamal�
 3. Yeni production build + iPad'de login doğrulaması (madde 1).
 4. Üçüne birden Resolution Center'dan tek cevap; Review Notes'a test hesabı ve
    alıcı/satıcı senaryosunu yaz.
+
+---
+
+## Sonraki tur için risk taraması (29 Ağu 2026)
+
+Apple aynı uygulamayı ikinci turda **farklı** maddelerden reddedebiliyor. Bu redde
+girmemiş ama pazar yerlerinde sık takılan maddeler tarandı:
+
+| Madde | Gereklilik | Durum |
+| --- | --- | --- |
+| 5.1.1(v) | Hesap açılabiliyorsa uygulama içinden **hesap silme** | ✅ Profil ekranında buton → `userApi.deleteAccount()` → logout. Gerçek silme, "bize yazın" değil. |
+| 1.2 | Kullanıcı içeriğinde **şikayet** mekanizması | ✅ `userReportsApi` (`src/lib/api/user.ts:139`) |
+| 1.2 | Kullanıcı **engelleme** | ✅ Mesaj başlığında engelle (`app/messages/[threadId]/_hooks/useMessageThread.ts:178`) |
+| 3.1.1 | Dijital içerik IAP ile satılmalı | ⚠️ Üyelik/boost PayTR üzerinden satılıyor. Bu redde çıkmadı; fiziksel ürün pazarı olduğu için savunulabilir ama **dijital üyelik** tarafı ileride sorulabilir. |
+
+### Ölü kod / gereksiz izin (redle ilgisiz borç)
+
+- **`expo-camera` hiç kullanılmıyor.** `launchCameraAsync` / `requestCameraPermissions`
+  çağrısı yok; paket yalnız `app.json` plugin listesinde duruyor ve
+  `NSCameraUsageDescription` ile Android `CAMERA` iznini üretiyor. Fotoğraf akışı
+  tamamen `expo-image-picker` üzerinden. Kaldırılabilir.
+- **Android `RECORD_AUDIO`** — kodda hiçbir ses/mikrofon API'si yok.
+- **Android `READ_EXTERNAL_STORAGE` / `WRITE_EXTERNAL_STORAGE`** — modern
+  `expo-image-picker` bunları istemiyor; `WRITE_EXTERNAL_STORAGE` API 30+'ta zaten
+  yok sayılıyor.
+
+Üçü de yalnız Android'i etkiliyor ve Android henüz yayınlanmadı, bu yüzden iOS
+gönderiminden **sonraya** bırakıldı — şimdi dokunmak gereksiz risk.
