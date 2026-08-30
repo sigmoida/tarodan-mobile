@@ -6,7 +6,7 @@
   "main": "expo-router/entry",
   "packageManager": "pnpm@10.34.5",
   "engines": {
-    "node": ">=20.0.0 <22.0.0",
+    "node": ">=20.0.0",
     "pnpm": ">=10.0.0"
   },
   "scripts": {
