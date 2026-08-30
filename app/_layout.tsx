@@ -20,7 +20,6 @@ import {
   registerForPushNotifications,
   setupPushNotificationRouting,
 } from "@/services/push";
-import { setupDeepLinkRouting } from "@/services/deepLinks";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { initSentry } from "@/services/sentry";
 import AnimatedSplash from "@/components/AnimatedSplash";
@@ -130,8 +129,9 @@ export default function RootLayout() {
     };
   }, []);
 
-  // Wire universal link + custom scheme deep-link routing (cold start + foreground).
-  useEffect(() => setupDeepLinkRouting(), []);
+  // Universal link + custom scheme yönlendirmesi burada DEĞİL: app/+native-intent.ts
+  // (`redirectSystemPath`) expo-router'ın rotalamasından ÖNCE çalışır. Burada bir
+  // router.push daha yapılırsa aynı ekran iki kez açılır.
 
   return (
     <ErrorBoundary>

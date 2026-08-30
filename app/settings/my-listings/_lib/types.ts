@@ -1,3 +1,4 @@
+import type { MessageKey } from '@/i18n/lib';
 import { theme } from '@/ui';
 
 const { colors } = theme;
@@ -6,7 +7,7 @@ export interface Listing {
   id: string;
   title: string;
   price: number;
-  status: 'active' | 'pending' | 'sold' | 'inactive' | 'reserved' | 'rejected' | 'deleted';
+  status: 'active' | 'pending' | 'sold' | 'inactive' | 'reserved' | 'rejected' | 'deleted' | 'suspended';
   viewCount: number;
   likeCount?: number;
   images: Array<{ url: string }>;
@@ -16,6 +17,16 @@ export interface Listing {
   condition: string;
   category?: { name: string };
   boostedUntil?: string | null;
+  /**
+   * Moderasyon reddi gerekçesi — yalnız `rejected` durumunda dolu.
+   *
+   * Staging'de ölçüldü (2026-08-26): alan `GET /products/my` yanıtında VAR ama
+   * hesaptaki reddedilmiş ilanda `null` — o kayıt gerekçenin kalıcılaştığı
+   * 2026-08-13 değişikliğinden ESKİ. Yani alanın varlığı doğrulandı, DOLU bir
+   * örnek görülemedi; bu yüzden boşken hiçbir şey çizilmez (boş bir kırmızı
+   * kutu, gerekçe yokmuş gibi değil "bir şey bozuk" gibi görünür).
+   */
+  rejectionReason?: string | null;
 }
 
 export type FilterType =
@@ -30,20 +41,29 @@ export const getStatusColor = (status: string) => {
     case 'reserved': return colors.primary[600]!;
     case 'inactive': return colors.text.subtle;
     case 'deleted': return colors.danger[600]!;
+    case 'suspended': return colors.warning[700]!;
     default: return colors.text.muted;
   }
 };
 
-export const getStatusText = (status: string) => {
+/**
+ * Durumun katalog ANAHTARI — çözülmüş metin değil.
+ *
+ * Bu modül sabitler taşıyor; burada `t()` çağırmak metni ilk yüklenen dilde
+ * dondururdu. Tanınmayan bir durum `null` döner, çağıran ham kodu basar (ekranda
+ * boş bir satır kalmasın).
+ */
+export const statusTextKey = (status: string): MessageKey | null => {
   switch (status) {
-    case 'active': return 'Aktif';
-    case 'sold': return 'Satıldı';
-    case 'pending': return 'Onay Bekliyor';
-    case 'rejected': return 'Reddedildi';
-    case 'reserved': return 'Rezerve';
-    case 'inactive': return 'Deaktif';
-    case 'deleted': return 'Kaldırıldı';
-    default: return status;
+    case 'active': return 'listing.filterActive';
+    case 'sold': return 'listing.filterSold';
+    case 'pending': return 'listing.statusPendingApproval';
+    case 'rejected': return 'listing.filterRejected';
+    case 'reserved': return 'listing.filterReserved';
+    case 'inactive': return 'listing.filterInactive';
+    case 'deleted': return 'listing.statusDeleted';
+    case 'suspended': return 'listing.statusSuspended';
+    default: return null;
   }
 };
 

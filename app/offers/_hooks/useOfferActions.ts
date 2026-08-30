@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
+import i18n from '@/i18n/config';
 import { offersApi } from '@/lib/api';
 import { formatApiErrorMessage } from '@/utils/formatApiErrorMessage';
 import { useInvalidateOffers } from './useInvalidateOffers';
@@ -17,30 +18,30 @@ export function useOfferActions() {
     mutationFn: (id: string) => offersApi.accept(id),
     onSuccess: () => {
       invalidate();
-      appAlert('Başarılı', 'Teklif kabul edildi');
+      appAlert(i18n.t('common.success'), i18n.t('offer.offerAccepted'));
     },
     onError: (err) =>
-      appAlert('Hata', formatApiErrorMessage(err, 'Teklif kabul edilirken hata oluştu')),
+      appAlert(i18n.t('common.error'), formatApiErrorMessage(err, i18n.t('offer.acceptFailed'))),
   });
 
   const reject = useMutation({
     mutationFn: (id: string) => offersApi.reject(id),
     onSuccess: () => {
       invalidate();
-      appAlert('Başarılı', 'Teklif reddedildi');
+      appAlert(i18n.t('common.success'), i18n.t('offer.offerRejected'));
     },
     onError: (err) =>
-      appAlert('Hata', formatApiErrorMessage(err, 'Teklif reddedilirken hata oluştu')),
+      appAlert(i18n.t('common.error'), formatApiErrorMessage(err, i18n.t('offer.rejectFailed'))),
   });
 
   const cancel = useMutation({
     mutationFn: (id: string) => offersApi.cancel(id),
     onSuccess: () => {
       invalidate();
-      appAlert('Başarılı', 'Teklif iptal edildi');
+      appAlert(i18n.t('common.success'), i18n.t('offer.offerCancelled'));
     },
     onError: (err) =>
-      appAlert('Hata', formatApiErrorMessage(err, 'Teklif iptal edilirken hata oluştu')),
+      appAlert(i18n.t('common.error'), formatApiErrorMessage(err, i18n.t('offer.cancelFailed'))),
   });
 
   const pendingOfferId =

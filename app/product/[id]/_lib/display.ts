@@ -1,6 +1,6 @@
 // Ürün detay görüntüleme yardımcıları — durum rengi, görsel çözümleme, stok.
 import { theme } from '@/ui';
-import { transformImageUrl } from '@/utils/imageUrl';
+import { transformImageUrl, IMAGE_PLACEHOLDER } from '@/utils/imageUrl';
 import { formatCondition } from '@/utils/format';
 import {
   getProductEffectivePrice,
@@ -19,7 +19,7 @@ export interface PriceInfo {
 
 const { colors } = theme;
 
-const PLACEHOLDER = 'https://placehold.co/400x400/f3f4f6/9ca3af?text=Ürün';
+const PLACEHOLDER = IMAGE_PLACEHOLDER;
 
 // Durum rozeti renk paleti. Etiket metni TEK KAYNAK formatCondition()'dan gelir
 // (backend enum: new | like_new | very_good | good | fair) — burada yalnız renk var.

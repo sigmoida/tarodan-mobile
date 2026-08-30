@@ -1,3 +1,5 @@
+import type { MessageKey } from '@/i18n/lib';
+
 export type DiscountType = 'percentage' | 'fixed_amount';
 export type DiscountScope = 'seller' | 'product';
 
@@ -30,11 +32,14 @@ export interface MyProduct {
   status?: string;
 }
 
-export const FILTERS: Array<{ value: '' | 'active' | 'inactive' | 'expired'; label: string }> = [
-  { value: '', label: 'Tümü' },
-  { value: 'active', label: 'Aktif' },
-  { value: 'inactive', label: 'Pasif' },
-  { value: 'expired', label: 'Süresi Dolmuş' },
+// Etiketler `labelKey` olarak duruyor; modül seviyesinde `t()` çağırmak metni
+// ilk yüklenen dilde dondururdu (aynı gerekçe my-listings/_lib/types.ts'teki
+// `statusTextKey`'de de var). Ekran `t(opt.labelKey)` ile çözer.
+export const FILTERS: Array<{ value: '' | 'active' | 'inactive' | 'expired'; labelKey: MessageKey }> = [
+  { value: '', labelKey: 'common.all' },
+  { value: 'active', labelKey: 'discount.active' },
+  { value: 'inactive', labelKey: 'common.inactive' },
+  { value: 'expired', labelKey: 'discount.filterExpired' },
 ];
 
 export const initialForm = () => ({

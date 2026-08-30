@@ -1,9 +1,11 @@
 import React from 'react';
 import { View, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Card, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { AppImage } from '@/components/AppImage';
 import { isProductOutOfStock } from '@/utils/productPrice';
+import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
 import { OutOfStockOverlay } from '@/components/product';
 import { styles } from '../_lib/styles';
 
@@ -20,7 +22,8 @@ function ProductCardBase({
   inCart: boolean;
   onPress: (id: string) => void;
 }) {
-  const isTradeEnabled = item.isTradeEnabled || item.trade_available;
+  const { t } = useTranslation();
+  const isTradeEnabled = isProductTradeOpen(item);
   const viewCount = item.viewCount || item.views || 0;
   const brandLabel =
     typeof item.brand === 'object' && item.brand !== null ? (item.brand.name ?? '') : (item.brand ?? '');
@@ -48,13 +51,13 @@ function ProductCardBase({
               {isTradeEnabled && (
                 <View style={[styles.badge, { backgroundColor: colors.success[500]! }]}>
                   <Ionicons name="swap-horizontal" size={10} color={colors.white} />
-                  <Text variant="caption" tone="inverted" weight="bold"> Takas</Text>
+                  <Text variant="caption" tone="inverted" weight="bold"> {t('product.tradeShort')}</Text>
                 </View>
               )}
               {(item.isBoosted || item.boostedUntil) && (
                 <View style={[styles.badge, { backgroundColor: colors.warning[500]! }]}>
                   <Ionicons name="rocket" size={10} color={colors.white} />
-                  <Text variant="caption" tone="inverted" weight="bold"> Sponsorlu</Text>
+                  <Text variant="caption" tone="inverted" weight="bold"> {t('product.sponsored')}</Text>
                 </View>
               )}
             </View>
@@ -66,14 +69,14 @@ function ProductCardBase({
           {inCart && (
             <View style={styles.inCartPill}>
               <Ionicons name="checkmark-circle" size={13} color={colors.white} />
-              <Text variant="caption" tone="inverted" weight="bold" style={{ marginLeft: theme.spacing[1] }}>Sepette</Text>
+              <Text variant="caption" tone="inverted" weight="bold" style={{ marginLeft: theme.spacing[1] }}>{t('cart.inCartBadge')}</Text>
             </View>
           )}
         </View>
         <View style={styles.productContent}>
           <Text variant="bodySm" weight="semibold" numberOfLines={2}>{item.title}</Text>
           {metaLabel ? (
-            <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[0.5] }}>{metaLabel}</Text>
+            <Text variant="caption" tone="muted" numberOfLines={1} style={{ marginTop: theme.spacing[0.5] }}>{metaLabel}</Text>
           ) : null}
           <Text variant="h3" tone="primary" style={{ marginTop: theme.spacing[1] }}>
             ₺{item.price?.toLocaleString('tr-TR') || 0}

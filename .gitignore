@@ -44,3 +44,6 @@ ios/.xcode.env.local
 # CNG: native dizinler prebuild'den üretilir, git'te tutulmaz
 /android
 /ios
+
+# Ajan worktree'leri ve oturum artıkları (repo İÇİNDE yaşıyor; commit edilmemeli)
+.claude/

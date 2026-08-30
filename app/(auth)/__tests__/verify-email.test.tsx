@@ -21,7 +21,10 @@ let mockAuth: { isAuthenticated: boolean; user: { email?: string } | null } = {
   user: null,
 };
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => mockAuth,
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = mockAuth;
+    return sel ? sel(state) : state;
+  },
 }));
 
 jest.mock('@/lib/api', () => ({
@@ -59,7 +62,9 @@ describe('J45 · e-posta doğrulama (süresi geçmiş token)', () => {
     mockVerify.mockResolvedValue({});
     renderWithProviders(<VerifyEmailScreen />);
 
-    await waitFor(() => expect(screen.getByText('E-postanız doğrulandı')).toBeOnTheScreen());
+    // Başlık artık katalogdaki `auth.emailVerified` — ekranın kendi kopyası
+    // ("E-postanız doğrulandı") kaldırıldı, aynı cümlenin iki sürümü kalmasın.
+    await waitFor(() => expect(screen.getByText('E-posta Doğrulandı!')).toBeOnTheScreen());
     fireEvent.press(screen.getByText('Devam Et'));
     expect(mockReplace).toHaveBeenCalledWith('/(auth)/login');
   });

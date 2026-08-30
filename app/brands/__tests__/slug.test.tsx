@@ -10,7 +10,8 @@ import { renderWithProviders } from '@/test-utils';
 
 let mockParams: Record<string, string> = { slug: 'hot-wheels' };
 jest.mock('expo-router', () => ({
-  router: { back: jest.fn(), push: jest.fn() },
+  // canGoBack: ScreenHeader sarmalayıcısı geri okunu buna göre etkinleştirir.
+  router: { back: jest.fn(), push: jest.fn(), canGoBack: () => true },
   useLocalSearchParams: () => mockParams,
 }));
 
@@ -59,6 +60,6 @@ describe('J12 · Marka detay', () => {
     getAll.mockRejectedValue(new Error('boom'));
     renderWithProviders(<BrandDetailScreen />);
 
-    expect(await screen.findByText('Ürünler yüklenemedi.')).toBeOnTheScreen();
+    expect(await screen.findByText('Ürünler yüklenemedi')).toBeOnTheScreen();
   });
 });

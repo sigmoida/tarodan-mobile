@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useMessagesStore, type MessageThread } from '@/stores/messagesStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useThreadsQuery, useUnreadCountQuery } from '@/hooks/messaging';
@@ -10,6 +11,7 @@ import { useThreadsQuery, useUnreadCountQuery } from '@/hooks/messaging';
  * getOtherParticipant + dailyMessageCount hâlâ client store'dan (§8).
  */
 export function useMessagesTab() {
+  const { t } = useTranslation();
   const { isAuthenticated, user, limits } = useAuthStore();
   const getOtherParticipant = useMessagesStore((s) => s.getOtherParticipant);
   const dailyMessageCount = useMessagesStore((s) => s.dailyMessageCount);
@@ -37,15 +39,15 @@ export function useMessagesTab() {
     try {
       const result = getOtherParticipant(thread);
       if (!result) {
-        return { id: '', displayName: 'Kullanıcı', avatarUrl: null };
+        return { id: '', displayName: t('common.user'), avatarUrl: null };
       }
       return {
         id: result.id || '',
-        displayName: result.displayName || 'Kullanıcı',
+        displayName: result.displayName || t('common.user'),
         avatarUrl: result.avatarUrl || null,
       };
     } catch {
-      return { id: '', displayName: 'Kullanıcı', avatarUrl: null };
+      return { id: '', displayName: t('common.user'), avatarUrl: null };
     }
   };
 

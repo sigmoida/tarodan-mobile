@@ -3,6 +3,8 @@ import { View, Image, TouchableOpacity } from 'react-native';
 import { Input, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { styles } from '../_lib/styles';
 
 const { colors } = theme;
@@ -27,8 +29,10 @@ export function HomeHeader({
   onSearch: () => void;
   counts: HomeBadgeCounts;
 }) {
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
       <View style={styles.headerTop}>
         <View style={styles.logoContainer}>
           <Image source={require('../../../assets/tarodan-logo.png')} style={styles.logoImage} resizeMode="contain" />
@@ -72,7 +76,7 @@ export function HomeHeader({
         </View>
       </View>
       <Input
-        placeholder="Kategori, ürün, marka, koleksiyon ara"
+        placeholder={t('nav.searchPlaceholder')}
         value={searchQuery}
         onChangeText={onChangeSearch}
         onSubmitEditing={onSearch}

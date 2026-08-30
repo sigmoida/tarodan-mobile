@@ -2,6 +2,7 @@ import React from 'react';
 import { View, TouchableOpacity, Image, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Avatar, Card, Text, theme } from '@/ui';
 
 import { resolveImageUrl } from '@/utils/imageUrl';
@@ -22,6 +23,7 @@ function TabEmpty({ icon, text }: { icon: React.ComponentProps<typeof Ionicons>[
 
 /** Tab bar + active tab content (listings / reviews / collections). */
 export function SellerTabs({ f }: { f: SellerProfileController }) {
+  const { t } = useTranslation();
   const { activeTab, products, reviews, collections } = f;
   return (
     <>
@@ -33,7 +35,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
         >
           <Ionicons name="grid-outline" size={20} color={activeTab === 'listings' ? colors.primary[600]! : colors.text.muted} />
           <Text numberOfLines={1} style={[styles.tabText, activeTab === 'listings' && styles.tabTextActive]}>
-            İlanlar ({products.length})
+            {t('seller.listingsCount', { count: products.length })}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -42,7 +44,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
         >
           <Ionicons name="star-outline" size={20} color={activeTab === 'reviews' ? colors.primary[600]! : colors.text.muted} />
           <Text numberOfLines={1} style={[styles.tabText, activeTab === 'reviews' && styles.tabTextActive]}>
-            Değerlendirmeler ({reviews.length})
+            {t('seller.reviewsCount', { count: reviews.length })}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -51,7 +53,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
         >
           <Ionicons name="albums-outline" size={20} color={activeTab === 'collections' ? colors.primary[600]! : colors.text.muted} />
           <Text numberOfLines={1} style={[styles.tabText, activeTab === 'collections' && styles.tabTextActive]}>
-            Koleksiyonlar ({collections.length})
+            {t('seller.collectionsCount', { count: collections.length })}
           </Text>
         </TouchableOpacity>
       </View>
@@ -59,7 +61,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
       {/* Tab Content */}
       {activeTab === 'listings' && (
         products.length === 0 ? (
-          <TabEmpty icon="cube-outline" text="Henüz ilan yok" />
+          <TabEmpty icon="cube-outline" text={t('product.noListings')} />
         ) : (
           <View style={styles.listingsGrid}>
             {products.map((product: any) => (
@@ -93,13 +95,13 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
       {activeTab === 'reviews' && (
         <View style={styles.reviewsList}>
           {reviews.length === 0 ? (
-            <TabEmpty icon="star-outline" text="Henüz değerlendirme yok" />
+            <TabEmpty icon="star-outline" text={t('review.noReviews')} />
           ) : (
             reviews.map((review: any) => {
               // Kullanıcı/satıcı değerlendirmesi DTO'su: { score, comment, createdAt, giverName, giver: { displayName, avatarUrl } }
               const score = review.score ?? review.rating ?? 0;
               const reviewerName =
-                review.giver?.displayName ?? review.giverName ?? review.reviewer?.displayName ?? review.userName ?? 'Kullanıcı';
+                review.giver?.displayName ?? review.giverName ?? review.reviewer?.displayName ?? review.userName ?? t('common.user');
               const dateStr = review.createdAt ?? review.date;
               const avatarUrl = review.giver?.avatarUrl ?? review.reviewer?.avatarUrl;
               return (
@@ -137,7 +139,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
 
       {activeTab === 'collections' && (
         collections.length === 0 ? (
-          <TabEmpty icon="albums-outline" text="Henüz koleksiyon yok" />
+          <TabEmpty icon="albums-outline" text={t('seller.noCollections')} />
         ) : (
           <View style={styles.listingsGrid}>
             {collections.map((collection: any) => (
@@ -160,7 +162,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
                   )}
                   <View style={styles.productContent}>
                     <Text style={styles.productTitle} numberOfLines={2}>{collection.name}</Text>
-                    <Text style={styles.productPrice}>{collection.itemCount ?? 0} ürün</Text>
+                    <Text style={styles.productPrice}>{t('payment.itemsCount', { count: collection.itemCount ?? 0 })}</Text>
                   </View>
                 </Card>
               </Pressable>

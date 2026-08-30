@@ -2,6 +2,21 @@
  * Format helpers ported from apps/web/src/lib/format.ts.
  * Mobile uyumunu (parite) korumak için her fonksiyonun imzası ve davranışı web ile birebir aynıdır.
  */
+import type { TFunction } from 'i18next';
+import i18n from '@/i18n/config';
+
+/**
+ * Sayı/tarih biçimlendirmesi için AKTİF dile göre `Intl` locale etiketi.
+ *
+ * ⚠️ React DIŞI bir modülüz — `useTranslation` çağıramayız; global `i18n`
+ * örneğinden ÇAĞRI ANINDA okuruz (import anında okumak metni ilk yüklenen
+ * dilde dondururdu — bkz. `paytrDirectForm.ts`). Yalnız GÖSTERİM biçimi
+ * (binlik ayraç, ay adı) dile göre değişir — para birimi hep TL: bu Türkiye
+ * pazaryeri, fiyatlar lira; `formatPrice`'ın " TL" son eki dilden bağımsızdır.
+ */
+function activeNumberLocale(): string {
+  return i18n.language === 'en' ? 'en-US' : 'tr-TR';
+}
 
 /**
  * Backend'den brand/scale/category bazen string ("AutoArt"), bazen obje ({id,name,slug}) gelir.
@@ -21,31 +36,84 @@ export function asLabel(value: unknown, fallback: string = ''): string {
 }
 
 export function formatPrice(price: number | string | null | undefined): string {
+  const zero = (0).toLocaleString(activeNumberLocale(), {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
   if (price === null || price === undefined) {
-    return '0,00 TL';
+    return `${zero} TL`;
   }
 
   const numPrice = typeof price === 'string' ? parseFloat(price) : price;
 
   if (isNaN(numPrice)) {
-    return '0,00 TL';
+    return `${zero} TL`;
   }
 
-  return `${numPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL`;
+  return `${numPrice.toLocaleString(activeNumberLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL`;
+}
+
+/** Sunucu tutarı henüz bilinmiyorken basılan yer tutucu. */
+export const PRICE_PLACEHOLDER = '—';
+
+/**
+ * Sunucudan gelen bir para alanını KULLANILABİLİR bir sayıya indirger; alan
+ * gerçek bir sayı DEĞİLSE `null`.
+ *
+ * Neden `Number(...)` yetmiyor: `Number(null)` = **0**, `Number('')` = **0**,
+ * `Number(undefined)` = **NaN**. "Quote geldi mi?" kapısı (`summary != null`)
+ * alanın kendisi hakkında hiçbir şey söylemez; sunucu bir gün `total: null`
+ * döndürürse `Number(null)` sıfıra düşer, `total == null` kontrolü false olur ve
+ * kullanıcı ETKİN bir "Onayla ve Öde (0,00 TL)" butonu görür. Kapı bu yüzden
+ * alan seviyesinde: sayı değilse tutar YOK sayılır (yer tutucu + devre dışı buton).
+ *
+ * - `number` → sonlu ise aynen; `NaN` / `±Infinity` → `null`
+ * - `-0` → `0` (işaretli sıfır ayrı bir tutar değil; "-0,00 TL" basılmaz)
+ * - boş olmayan sayısal `string` → sayı (sunucu bir gün decimal'i string
+ *   gönderirse tolere edilir); `''` / `'  '` / `'abc'` → `null`
+ * - `null` / `undefined` / diğer her şey → `null`
+ */
+export function serverAmount(value: unknown): number | null {
+  const n =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && value.trim() !== ''
+        ? Number(value)
+        : NaN;
+  if (!Number.isFinite(n)) return null;
+  return n === 0 ? 0 : n;
+}
+
+/**
+ * Sunucu-yetkili tutar gösterimi.
+ *
+ * `formatPrice(null)` "0,00 TL", `formatPrice(NaN)` de "0,00 TL" döndürür — bu,
+ * fiyat henüz yüklenmemişken ya da quote hata verdiğinde ekranda GERÇEKMİŞ gibi
+ * duran bir sıfır bırakır (kullanıcı "Onayla ve Öde (0,00 TL)" görür). Sunucudan
+ * gelen bir alan yoksa VEYA sayı değilse tutar yerine yer tutucu basılır —
+ * istemcide sayı uydurulmaz.
+ */
+export function formatServerPrice(price: number | string | null | undefined): string {
+  const amount = serverAmount(price);
+  return amount == null ? PRICE_PLACEHOLDER : formatPrice(amount);
 }
 
 export function formatPriceNumber(price: number | string | null | undefined): string {
+  const zero = (0).toLocaleString(activeNumberLocale(), {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
   if (price === null || price === undefined) {
-    return '0,00';
+    return zero;
   }
 
   const numPrice = typeof price === 'string' ? parseFloat(price) : price;
 
   if (isNaN(numPrice)) {
-    return '0,00';
+    return zero;
   }
 
-  return numPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return numPrice.toLocaleString(activeNumberLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export function formatCondition(condition: string | null | undefined, locale: string = 'tr'): string {
@@ -199,8 +267,19 @@ export function formatOfferStatus(status: string | null | undefined, locale: str
 
 /**
  * Relative date formatter: "2 saat önce", "3 gün önce", "tam tarih"
+ *
+ * `localeOrT` da bir `TFunction` verilirse (i18n-aware çağrı yerleri, örn.
+ * bildirim satırı) katalogdan ICU plural'lı `time.relative.*` anahtarları
+ * okunur — İngilizce "1 minute ago" / "2 minutes ago" ayrımı böyle doğru çıkar.
+ * String bir locale ('tr'/'en') verilirse davranış DEĞİŞMEDİ: eski sabit
+ * metinler (par-format-parity.test.ts bunu kilitliyor).
  */
-export function formatRelativeDate(date: string | Date | null | undefined, locale: string = 'tr'): string {
+export function formatRelativeDate(
+  date: string | Date | null | undefined,
+  // D10'un çevirmen aşırı yüklemesi + D13'ün aktif-dil varsayılanı birlikte:
+  // çağıran `t` verebilir; vermezse metin AKTİF dile düşer, sabit 'tr'ye değil.
+  localeOrT: string | TFunction = i18n.language,
+): string {
   if (!date) return '';
 
   const d = typeof date === 'string' ? new Date(date) : date;
@@ -213,6 +292,16 @@ export function formatRelativeDate(date: string | Date | null | undefined, local
   const diffHr = Math.floor(diffMin / 60);
   const diffDay = Math.floor(diffHr / 24);
 
+  if (typeof localeOrT === 'function') {
+    const t = localeOrT;
+    if (diffSec < 60) return t('time.relative.justNow');
+    if (diffMin < 60) return t('time.relative.minutes', { count: diffMin });
+    if (diffHr < 24) return t('time.relative.hours', { count: diffHr });
+    if (diffDay < 7) return t('time.relative.days', { count: diffDay });
+    return d.toLocaleDateString(t('common.dateLocale'), { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  const locale = localeOrT;
   if (locale === 'en') {
     if (diffSec < 60) return 'Just now';
     if (diffMin < 60) return `${diffMin} min ago`;

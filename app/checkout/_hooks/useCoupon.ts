@@ -1,3 +1,4 @@
+import i18n from '@/i18n/config';
 import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { discountsApi } from '@/lib/api';
@@ -5,10 +6,17 @@ import { extractApiMessage } from '../_lib/validation';
 
 type CartLine = { productId: string; quantity: number; price: number };
 
+/**
+ * Uygulanan kupon.
+ *
+ * `estimatedDiscount` BİLEREK taşınmıyor: adı gibi bir TAHMİN ve quote'un
+ * `pricing.summary` kırılımıyla tutarlı değil — ekranda basıldığında özet
+ * satırlarının toplamı `total`a eşit çıkmıyordu. Gösterilecek indirim tutarı
+ * yalnızca quote yanıtının kökündeki `couponDiscount`'tır (bkz. `useCheckout`).
+ * Bu tip artık sadece "kupon doğrulandı mı + hangi kod" bilgisini taşır.
+ */
 export type AppliedCoupon = {
   code: string;
-  /** Sunucunun hesapladığı tahmini indirim; kesin tutar sipariş yanıtından gelir. */
-  discount: number;
   name?: string;
 };
 
@@ -54,19 +62,19 @@ export function useCoupon(items: CartLine[], isAuthenticated: boolean) {
       // Uç geçersiz kuponda da 200 döner; karar `isValid` alanında.
       if (!result?.isValid || !result.discount) {
         setApplied(null);
-        setError(result?.error || 'Kupon kodu geçersiz veya süresi dolmuş.');
+        setError(result?.error || i18n.t('checkout.couponInvalidOrExpired'));
         return;
       }
       setError(null);
+      // `result.discount.estimatedDiscount` bilerek okunmuyor — bkz. AppliedCoupon.
       setApplied({
         code: result.discount.code || raw.trim().toUpperCase(),
-        discount: Math.max(0, Number(result.discount.estimatedDiscount ?? 0)),
         name: result.discount.name,
       });
     },
     onError: (err: any) => {
       setApplied(null);
-      setError(extractApiMessage(err) ?? 'Kupon doğrulanamadı. Lütfen tekrar deneyin.');
+      setError(extractApiMessage(err) ?? i18n.t('checkout.couponValidateFailed'));
     },
   });
 
@@ -90,9 +98,7 @@ export function useCoupon(items: CartLine[], isAuthenticated: boolean) {
     apply,
     remove,
     isPending: mutation.isPending,
-    /** Özet ve toplamda kullanılan indirim tutarı (kupon yoksa 0). */
-    discount: applied?.discount ?? 0,
-    /** Checkout payload'ına eklenecek kod (kupon yoksa undefined). */
+    /** Checkout payload'ına ve quote isteğine eklenecek kod (kupon yoksa undefined). */
     couponCode: applied?.code,
   };
 }

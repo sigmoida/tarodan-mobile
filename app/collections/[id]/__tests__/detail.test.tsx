@@ -28,7 +28,10 @@ let mockAuth: Record<string, unknown> = {
   user: { id: 'owner-1', membershipTier: 'free' },
 };
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => mockAuth,
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = mockAuth;
+    return sel ? sel(state) : state;
+  },
 }));
 
 import CollectionDetailScreen from '../index';

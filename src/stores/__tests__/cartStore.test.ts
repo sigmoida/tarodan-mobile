@@ -41,23 +41,31 @@ describe('J58 · sepete ekle (addItem)', () => {
   });
 });
 
-describe('J1 · sepet özeti (getSubtotal / getItemCount)', () => {
+describe('J1 · sepet adedi (getItemCount)', () => {
   beforeEach(reset);
 
-  it('ara toplam = price*quantity toplamı, adet = quantity toplamı', () => {
+  it('adet = quantity toplamı', () => {
     const st = useCartStore.getState();
     st.addItem(baseItem); // p1 x1 @100
     st.addItem({ ...baseItem, productId: 'p2', price: 50 }); // p2 x1 @50
     st.addItem(baseItem); // p1 -> x2
-    const s = useCartStore.getState();
-    expect(s.getItemCount()).toBe(3);
-    expect(s.getSubtotal()).toBe(100 * 2 + 50);
+    expect(useCartStore.getState().getItemCount()).toBe(3);
   });
 
-  it('boş sepette ara toplam ve adet 0', () => {
-    const s = useCartStore.getState();
-    expect(s.getSubtotal()).toBe(0);
-    expect(s.getItemCount()).toBe(0);
+  it('boş sepette adet 0', () => {
+    expect(useCartStore.getState().getItemCount()).toBe(0);
+  });
+
+  /**
+   * Store para HESAPLAMAZ. `getSubtotal()` yerel `price × quantity` toplamı
+   * döndürüyordu; sepetteki fiyat ekleme anında donduğu (24 saat) ve kampanya
+   * penceresi kapanabildiği için bu tutar hiçbir sunucu alanına karşılık
+   * gelmiyor, bir zamanlar da "Toplam" diye basılıyordu. Yüzeyden kaldırıldı —
+   * geri gelirse bu test kırılır.
+   */
+  it('para hesaplayan bir yüzey (getSubtotal) YOK', () => {
+    useCartStore.getState().addItem(baseItem);
+    expect((useCartStore.getState() as unknown as Record<string, unknown>).getSubtotal).toBeUndefined();
   });
 });
 
@@ -164,5 +172,75 @@ describe('J61 · süresi dolan ürünler (cleanExpiredItems)', () => {
     useCartStore.getState().cleanExpiredItems();
     const s = useCartStore.getState();
     expect(s.items.map(i => i.id)).toEqual(['b']);
+  });
+});
+
+/**
+ * P2 #10 — sepette satır seçerek ödeme. API işi yok: `POST /orders/quote` ve
+ * `/orders/checkout` zaten yalnız gönderilen `items`'ı fiyatlıyor ve yalnız
+ * onları sepetten düşüyor.
+ *
+ * Seçim OPT-OUT tutulur (`deselectedIds`): varsayılan "hepsi seçili" ve sonradan
+ * eklenen satır kendiliğinden seçili gelir. Opt-in bir liste olsaydı her ekleme
+ * yolunun (addItem/addToCart/sunucudan senkron) listeyi güncellemesi gerekirdi.
+ */
+describe('P2 #10 · sepette satır seçimi', () => {
+  const seed = () => {
+    useCartStore.setState({ items: [], deselectedIds: [] });
+    useCartStore.getState().addItem({ productId: 'p1', title: 'A', price: 10 } as any);
+    useCartStore.getState().addItem({ productId: 'p2', title: 'B', price: 20 } as any);
+  };
+
+  it('varsayılan olarak tüm satırlar seçilidir', () => {
+    seed();
+    const s = useCartStore.getState();
+    expect(s.selectedItems().map((i) => i.productId)).toEqual(['p1', 'p2']);
+    expect(s.isSelected(s.items[0]!.id)).toBe(true);
+  });
+
+  it('satır seçimi kaldırılınca seçili listeden çıkar, tekrar seçilince döner', () => {
+    seed();
+    const id = useCartStore.getState().items[0]!.id;
+    useCartStore.getState().toggleSelected(id);
+    expect(useCartStore.getState().selectedItems().map((i) => i.productId)).toEqual(['p2']);
+    expect(useCartStore.getState().isSelected(id)).toBe(false);
+
+    useCartStore.getState().toggleSelected(id);
+    expect(useCartStore.getState().selectedItems().map((i) => i.productId)).toEqual(['p1', 'p2']);
+  });
+
+  it('seçim kaldırıldıktan SONRA eklenen satır seçili gelir', () => {
+    seed();
+    useCartStore.getState().toggleSelected(useCartStore.getState().items[0]!.id);
+    useCartStore.getState().addItem({ productId: 'p3', title: 'C', price: 30 } as any);
+    expect(useCartStore.getState().selectedItems().map((i) => i.productId)).toEqual(['p2', 'p3']);
+  });
+
+  it('tümünü seç / tümünü bırak', () => {
+    seed();
+    useCartStore.getState().setAllSelected(false);
+    expect(useCartStore.getState().selectedItems()).toHaveLength(0);
+    useCartStore.getState().setAllSelected(true);
+    expect(useCartStore.getState().selectedItems()).toHaveLength(2);
+  });
+
+  it('satın alınan satırlar düşerken seçim kaydı da temizlenir', () => {
+    seed();
+    const p2Id = useCartStore.getState().items[1]!.id;
+    useCartStore.getState().toggleSelected(p2Id);
+    useCartStore.getState().onPurchaseComplete(['p1']);
+
+    const s = useCartStore.getState();
+    expect(s.items.map((i) => i.productId)).toEqual(['p2']);
+    // p2 hâlâ seçili DEĞİL — kullanıcının kararı korunur.
+    expect(s.isSelected(p2Id)).toBe(false);
+  });
+
+  it('sepetten silinen satırın seçim kaydı artık taşınmaz', () => {
+    seed();
+    const id = useCartStore.getState().items[0]!.id;
+    useCartStore.getState().toggleSelected(id);
+    useCartStore.getState().removeItem(id);
+    expect(useCartStore.getState().deselectedIds).not.toContain(id);
   });
 });

@@ -37,10 +37,15 @@ export default function HomeScreen() {
     popularProducts,
     loadingPopular,
     boostedProducts,
+    loadingBoosted,
     categories,
+    loadingCategories,
     collections,
+    loadingCollections,
     featuredCollector,
+    loadingFeaturedCollector,
     companyOfWeek,
+    loadingCompanyOfWeek,
     loadingProducts,
     refetchProducts,
   } = useHomeData();
@@ -87,15 +92,15 @@ export default function HomeScreen() {
       >
         <AdBanner />
         <HeroBanner />
-        <CategoriesSection categories={categories} />
+        <CategoriesSection categories={categories} isLoading={loadingCategories} />
         <BrandsSection />
         <ScalesSection />
-        <FeaturedCollectorSection featuredCollector={featuredCollector} />
-        <BoostedRail items={boostedProducts} {...cardProps} />
+        <FeaturedCollectorSection featuredCollector={featuredCollector} isLoading={loadingFeaturedCollector} />
+        <BoostedRail items={boostedProducts} isLoading={loadingBoosted} {...cardProps} />
         <PopularProducts items={popularProducts} isLoading={loadingPopular} {...cardProps} />
-        <ProductsGrid items={products} {...cardProps} />
-        <CompanyOfWeekSection companyOfWeek={companyOfWeek} />
-        <CollectionsSection collections={collections} />
+        <ProductsGrid items={products} isLoading={loadingProducts} {...cardProps} />
+        <CompanyOfWeekSection companyOfWeek={companyOfWeek} isLoading={loadingCompanyOfWeek} />
+        <CollectionsSection collections={collections} isLoading={loadingCollections} />
         <View style={{ height: 100 }} />
       </ScrollView>
 

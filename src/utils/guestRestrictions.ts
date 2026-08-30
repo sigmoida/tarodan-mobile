@@ -1,4 +1,6 @@
 import { router } from 'expo-router';
+import i18n from '@/i18n/config';
+import type { MessageKey } from '@/i18n/lib/generated/keys';
 
 // #82: bekleyen guest-yönlendirme timer'ı (modül-seviyesi — birikmeyi önler).
 let pendingRedirect: ReturnType<typeof setTimeout> | null = null;
@@ -20,56 +22,67 @@ interface RestrictionConfig {
   redirectTo: '/(auth)/login' | '/(auth)/register';
 }
 
-const RESTRICTION_MESSAGES: Record<GuestAction, RestrictionConfig> = {
+/**
+ * Anahtarlar — DEĞER değil. Değerler `getRestrictionMessage` içinde ÇAĞRI
+ * ANINDA `i18n.t()` ile çözülür (bkz. `paytrDirectForm.ts`); bu tablo modül
+ * seviyesinde kursa da hiçbir METİN burada donmuş DEĞİL. `titleKey` mümkün
+ * olduğunda başka ekranlardaki aynı başlığı REUSE eder (`product.trade`,
+ * `message.sendMessage`, …) — ayrı bir kopya açmak yerine.
+ */
+const RESTRICTION_KEYS: Record<
+  GuestAction,
+  { titleKey: MessageKey; messageKey: MessageKey; redirectTo: '/(auth)/login' | '/(auth)/register' }
+> = {
   favorites: {
-    title: 'Favorilere Ekle',
-    message: 'Favorilere eklemek için üye olun',
+    titleKey: 'product.addToFavorites',
+    messageKey: 'product.signInToFavorite',
     redirectTo: '/(auth)/register',
   },
   message: {
-    title: 'Mesaj Gönder',
-    message: 'Satıcıyla mesajlaşmak için giriş yapın',
+    titleKey: 'message.sendMessage',
+    messageKey: 'guestRestriction.messageMessage',
     redirectTo: '/(auth)/login',
   },
   trade: {
-    title: 'Takas Teklifi',
-    message: 'Takas yapabilmek için premium üye olun',
+    titleKey: 'product.trade',
+    messageKey: 'guestRestriction.tradeMessage',
     redirectTo: '/(auth)/register',
   },
   collections: {
-    title: 'Koleksiyon Oluştur',
-    message: 'Digital Garage oluşturmak için premium üye olun',
+    titleKey: 'collection.createCollection',
+    messageKey: 'guestRestriction.collectionsMessage',
     redirectTo: '/(auth)/register',
   },
   rate: {
-    title: 'Değerlendir',
-    message: 'Değerlendirme yapmak için giriş yapın',
+    titleKey: 'review.submit',
+    messageKey: 'guestRestriction.rateMessage',
     redirectTo: '/(auth)/login',
   },
   comment: {
-    title: 'Yorum Yap',
-    message: 'Yorum yapmak için giriş yapın',
+    titleKey: 'guestRestriction.commentTitle',
+    messageKey: 'guestRestriction.commentMessage',
     redirectTo: '/(auth)/login',
   },
   sell: {
-    title: 'İlan Ver',
-    message: 'İlan vermek için üye olun',
+    titleKey: 'nav.newListing',
+    messageKey: 'guestRestriction.sellMessage',
     redirectTo: '/(auth)/register',
   },
   wishlist: {
-    title: 'İstek Listesi',
-    message: 'İstek listesi oluşturmak için üye olun',
+    titleKey: 'guestRestriction.wishlistTitle',
+    messageKey: 'guestRestriction.wishlistMessage',
     redirectTo: '/(auth)/register',
   },
   follow: {
-    title: 'Takip Et',
-    message: 'Satıcıları takip etmek için üye olun',
+    titleKey: 'profile.follow',
+    messageKey: 'guestRestriction.followMessage',
     redirectTo: '/(auth)/register',
   },
 };
 
 export function getRestrictionMessage(action: GuestAction): RestrictionConfig {
-  return RESTRICTION_MESSAGES[action];
+  const { titleKey, messageKey, redirectTo } = RESTRICTION_KEYS[action];
+  return { title: i18n.t(titleKey), message: i18n.t(messageKey), redirectTo };
 }
 
 export function handleGuestAction(

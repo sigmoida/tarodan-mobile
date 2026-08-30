@@ -1,4 +1,6 @@
+import { useTradeStatusConfig } from '@/lib/shared/tradeStatus';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, StyleSheet, Image, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -6,36 +8,25 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { theme, Text, Chip, Avatar, type ChipVariant } from '@/ui';
 import { formatPrice } from '../../utils/format';
-import { transformImageUrl } from '../../utils/imageUrl';
+import { transformImageUrl, IMAGE_PLACEHOLDER } from '../../utils/imageUrl';
 
 const { colors, spacing, radius } = theme;
 
-const FALLBACK_IMG = 'https://placehold.co/120x120/f3f4f6/9ca3af?text=%C3%9Cr%C3%BCn';
+const FALLBACK_IMG = IMAGE_PLACEHOLDER;
 
-/** Takas statüsü → rozet etiketi/rengi. Depo-escrow akışını da kapsar. */
-export const TRADE_STATUSES: Record<string, { label: string; variant: ChipVariant }> = {
-  pending: { label: 'Bekliyor', variant: 'warning' },
-  accepted: { label: 'Kabul Edildi', variant: 'success' },
-  awaiting_payment: { label: 'Ödeme Bekleniyor', variant: 'warning' },
-  shipping_to_warehouse: { label: 'Depoya Gönderim', variant: 'info' },
-  at_warehouse: { label: 'Depoda', variant: 'primary' },
-  admin_reviewing: { label: 'İnceleniyor', variant: 'info' },
-  shipping_to_recipients: { label: 'Size Gönderiliyor', variant: 'primary' },
-  rejected: { label: 'Reddedildi', variant: 'danger' },
-  completed: { label: 'Tamamlandı', variant: 'success' },
-  cancelled: { label: 'İptal', variant: 'neutral' },
-  disputed: { label: 'İtiraz', variant: 'danger' },
-  countered: { label: 'Karşı Teklif', variant: 'info' },
-  // Legacy escrow statuses (pre-warehouse flow) kept for old trades
-  initiator_shipped: { label: 'Kargoda', variant: 'info' },
-  receiver_shipped: { label: 'Kargoda', variant: 'info' },
-  both_shipped: { label: 'Kargoda', variant: 'info' },
-  initiator_received: { label: 'Teslim', variant: 'primary' },
-  receiver_received: { label: 'Teslim', variant: 'primary' },
-};
 
-export function getTradeStatusInfo(status: string): { label: string; variant: ChipVariant } {
-  return TRADE_STATUSES[status] || { label: status, variant: 'neutral' };
+/**
+ * Takas durumunun çip bilgisi. Sözlük TEK kaynakta
+ * (`@/lib/shared/tradeStatus`); burada ikinci bir kopya tutmak kartla rozetin
+ * aynı durumu farklı kelimeyle göstermesine yol açıyordu.
+ */
+export function useTradeStatusInfo(): (status: string) => { label: string; variant: ChipVariant } {
+  const config = useTradeStatusConfig();
+  return (status) =>
+    (config[status] as { label: string; variant: ChipVariant } | undefined) ?? {
+      label: status,
+      variant: 'neutral',
+    };
 }
 
 export interface TradeCardItem {
@@ -83,12 +74,13 @@ function sideTotal(items: TradeCardItem[]): number {
  * showPrice=false (tek ürünlü tarafta) satır fiyatı gizlenir; tutar zaten
  * başlık satırındaki toplamda görünüyor. */
 function ItemRow({ item, showPrice }: { item: TradeCardItem; showPrice: boolean }) {
+  const { t } = useTranslation();
   const [src, setSrc] = useState<string>(() => itemImageUrl(item));
   const qty = Number(item.quantity) || 1;
   const subtitle = showPrice
     ? `${qty > 1 ? `${qty}x · ` : ''}${formatPrice(item.valueAtTrade)}`
     : qty > 1
-      ? `${qty} adet`
+      ? t('trade.itemQuantityLabel', { count: qty })
       : null;
   return (
     <View style={styles.itemRow}>
@@ -99,7 +91,7 @@ function ItemRow({ item, showPrice }: { item: TradeCardItem; showPrice: boolean 
       />
       <View style={styles.itemBody}>
         <Text variant="bodySm" weight="medium" numberOfLines={subtitle ? 1 : 2}>
-          {item.productTitle || 'Ürün'}
+          {item.productTitle || t('order.product')}
         </Text>
         {subtitle ? (
           <Text variant="caption" tone="muted">
@@ -113,6 +105,7 @@ function ItemRow({ item, showPrice }: { item: TradeCardItem; showPrice: boolean 
 
 /** Bir tarafın başlığı (etiket + toplam aynı satırda) ve ürün satırları. */
 function TradeSide({ label, items }: { label: string; items: TradeCardItem[] }) {
+  const { t } = useTranslation();
   return (
     <View>
       <View style={styles.sideHeader}>
@@ -132,7 +125,7 @@ function TradeSide({ label, items }: { label: string; items: TradeCardItem[] }) 
           ))
         ) : (
           <Text variant="caption" tone="subtle">
-            Ürün yok
+            {t('trade.noItemsShort')}
           </Text>
         )}
       </View>
@@ -148,12 +141,14 @@ export interface TradeCardProps {
 }
 
 function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
-  const statusInfo = getTradeStatusInfo(trade.status);
+  const { t } = useTranslation();
+  const tradeStatusInfo = useTradeStatusInfo();
+  const statusInfo = tradeStatusInfo(trade.status);
   const isSent = !!currentUserId && trade.initiatorId === currentUserId;
 
   const otherUserName = isSent
-    ? trade.receiverName || trade.receiver?.displayName || 'Kullanıcı'
-    : trade.initiatorName || trade.initiator?.displayName || 'Kullanıcı';
+    ? trade.receiverName || trade.receiver?.displayName || t('common.user')
+    : trade.initiatorName || trade.initiator?.displayName || t('common.user');
 
   const myItems = (isSent ? trade.initiatorItems : trade.receiverItems) ?? [];
   const theirItems = (isSent ? trade.receiverItems : trade.initiatorItems) ?? [];
@@ -175,7 +170,7 @@ function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
         <Avatar name={otherUserName} size="md" />
         <View style={styles.headerText}>
           <Text variant="caption" tone="muted">
-            {isSent ? 'Gönderdiğim' : 'Aldığım'}
+            {isSent ? t('trade.sentByMe') : t('trade.receivedByMe')}
           </Text>
           <Text variant="body" weight="semibold" numberOfLines={1}>
             {otherUserName}
@@ -186,7 +181,7 @@ function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
 
       {/* Trade panel */}
       <View style={styles.panel}>
-        <TradeSide label="Senin Ürünlerin" items={myItems} />
+        <TradeSide label={t('trade.yourItems')} items={myItems} />
 
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
@@ -196,7 +191,7 @@ function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
           <View style={styles.dividerLine} />
         </View>
 
-        <TradeSide label="Karşı Tarafın Ürünleri" items={theirItems} />
+        <TradeSide label={t('trade.theirItems')} items={theirItems} />
       </View>
 
       {/* Cash difference */}
@@ -204,7 +199,7 @@ function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
         <View style={styles.cashRow}>
           <Ionicons name="cash-outline" size={16} color={colors.primary[700]!} />
           <Text variant="caption" tone="muted">
-            Nakit fark
+            {t('trade.cashDifferenceLine')}
           </Text>
           <Text variant="bodySm" tone="primary" weight="bold" style={styles.cashAmount}>
             {formatPrice(cash)}
@@ -220,7 +215,7 @@ function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
         </Text>
         <View style={styles.detailLink}>
           <Text variant="caption" tone="primary" weight="medium">
-            Detaylar
+            {t('common.details')}
           </Text>
           <Ionicons name="chevron-forward" size={14} color={colors.primary[600]!} />
         </View>

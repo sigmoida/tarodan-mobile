@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Image, ScrollView, TouchableOpacity } from 'react-native';
 import { Spinner, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,6 +24,7 @@ function SectionHeader({
   titleColor?: string;
   indicatorColor?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.sectionHeader}>
       <View style={styles.sectionTitleContainer}>
@@ -31,7 +33,7 @@ function SectionHeader({
       </View>
       {onSeeAll ? (
         <TouchableOpacity onPress={onSeeAll}>
-          <Text style={[styles.seeAllText, titleColor ? { color: titleColor } : null]}>Tümünü gör {'>'}</Text>
+          <Text style={[styles.seeAllText, titleColor ? { color: titleColor } : null]}>{t('home.seeAll')} {'>'}</Text>
         </TouchableOpacity>
       ) : null}
     </View>
@@ -39,47 +41,49 @@ function SectionHeader({
 }
 
 export function HeroBanner() {
+  const { t } = useTranslation();
   return (
     <View style={styles.heroBanner}>
       <LinearGradient colors={[colors.primary[50]!, colors.primary[100]!]} style={styles.heroGradient}>
         <View style={styles.heroContent}>
           <View style={styles.heroText}>
-            <Text style={styles.heroTitle}>Türkiye'nin en büyük</Text>
-            <Text style={styles.heroSubtitle}>Diecast pazaryeri</Text>
-            <Text style={styles.heroDescription}>
-              Diecast modelleri satın alın, satın ve takas edin. Dijital Garajınızı oluşturun ve koleksiyonunuzu sergileyin.
-            </Text>
+            <Text style={styles.heroTitle}>{t('home.heroTitle')}</Text>
+            <Text style={styles.heroSubtitle}>{t('home.heroSubtitle')}</Text>
+            <Text style={styles.heroDescription}>{t('home.slider.marketplaceSubtitle')}</Text>
             <View style={styles.heroButtons}>
               <TouchableOpacity style={styles.heroButtonPrimary} onPress={() => router.push('/profile')}>
-                <Text style={styles.heroButtonPrimaryText}>Koleksiyon oluştur</Text>
+                <Text style={styles.heroButtonPrimaryText}>{t('home.heroCreateCollection')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.heroButtonSecondary} onPress={() => router.push('/search')}>
-                <Text style={styles.heroButtonSecondaryText}>Pazaryerini incele</Text>
+                <Text style={styles.heroButtonSecondaryText}>{t('home.heroBrowseMarket')}</Text>
               </TouchableOpacity>
             </View>
           </View>
-          <Image
-            source={{ uri: 'https://via.placeholder.com/150x100?text=Diecast+Cars' }}
-            style={styles.heroImage}
-            resizeMode="contain"
-          />
         </View>
       </LinearGradient>
     </View>
   );
 }
 
-export function CategoriesSection({ categories }: { categories: any[] }) {
+export function CategoriesSection({ categories, isLoading }: { categories: any[]; isLoading?: boolean }) {
+  const { t } = useTranslation();
+  if (isLoading) {
+    return <View style={styles.categoriesSectionReserved} testID="categories-section-reserved" />;
+  }
   if (categories.length === 0) return null;
   return (
     <View style={styles.section}>
-      <SectionHeader title="Kategoriler" onSeeAll={() => router.navigate(`/search?reset=1${navToken()}`)} />
+      <SectionHeader title={t('footer.categories')} onSeeAll={() => router.navigate(`/search?reset=1${navToken()}`)} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.brandsScroll}>
         {categories.slice(0, 8).map((cat: any) => (
           <TouchableOpacity key={cat.id} style={styles.brandItem} onPress={() => goCategory(cat)}>
             <View style={styles.brandLogo}>
               <Text style={styles.brandLogoText}>{cat.name}</Text>
-              {cat.productCount > 0 && <Text style={styles.categoryCount}>{cat.productCount} ürün</Text>}
+              {cat.productCount > 0 && (
+                <Text style={styles.categoryCount}>
+                  {t('collection.itemCountSuffix', { count: cat.productCount })}
+                </Text>
+              )}
             </View>
           </TouchableOpacity>
         ))}
@@ -89,9 +93,10 @@ export function CategoriesSection({ categories }: { categories: any[] }) {
 }
 
 export function BrandsSection() {
+  const { t } = useTranslation();
   return (
     <View style={styles.section}>
-      <SectionHeader title="Markalar" onSeeAll={() => router.navigate(`/search?openFilter=1${navToken()}`)} />
+      <SectionHeader title={t('brands.title')} onSeeAll={() => router.navigate(`/search?openFilter=1${navToken()}`)} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.brandsScroll}>
         {BRANDS.map((brand) => (
           <TouchableOpacity key={brand.id} style={styles.brandItem} onPress={() => goBrand(brand)}>
@@ -106,9 +111,10 @@ export function BrandsSection() {
 }
 
 export function ScalesSection() {
+  const { t } = useTranslation();
   return (
     <View style={styles.section}>
-      <SectionHeader title="Boyut" onSeeAll={() => router.navigate(`/search?openFilter=1${navToken()}`)} />
+      <SectionHeader title={t('home.scale')} onSeeAll={() => router.navigate(`/search?openFilter=1${navToken()}`)} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scalesScroll}>
         {SCALES.map((scale) => (
           <TouchableOpacity key={scale.id} style={styles.scaleChip} onPress={() => goScale(scale.id)}>
@@ -120,12 +126,22 @@ export function ScalesSection() {
   );
 }
 
-export function FeaturedCollectorSection({ featuredCollector }: { featuredCollector: any }) {
+export function FeaturedCollectorSection({
+  featuredCollector,
+  isLoading,
+}: {
+  featuredCollector: any;
+  isLoading?: boolean;
+}) {
+  const { t } = useTranslation();
+  if (isLoading) {
+    return <View style={styles.featuredCollectorSectionReserved} testID="featured-collector-section-reserved" />;
+  }
   if (!featuredCollector) return null;
   const fc = featuredCollector;
   return (
     <View style={styles.section}>
-      <SectionHeader title="Haftanın Koleksiyoneri" onSeeAll={() => router.push('/collections')} />
+      <SectionHeader title={t('home.collectorOfWeek')} onSeeAll={() => router.push('/collections')} />
       <View style={styles.featuredCard}>
         <View style={styles.featuredHeader}>
           <View style={styles.featuredAvatar}>
@@ -134,8 +150,10 @@ export function FeaturedCollectorSection({ featuredCollector }: { featuredCollec
             </Text>
           </View>
           <View style={styles.featuredInfo}>
-            <Text style={styles.featuredName}>{fc.user?.displayName || fc.userName || 'Koleksiyoner'}</Text>
-            <Text style={styles.featuredDesc}>{fc.description || `${fc.itemCount || 0} araçlık koleksiyon`}</Text>
+            <Text style={styles.featuredName}>{fc.user?.displayName || fc.userName || t('home.collector')}</Text>
+            <Text style={styles.featuredDesc}>
+              {fc.description || t('home.featuredCollectionCount', { count: fc.itemCount || 0 })}
+            </Text>
             <View style={styles.featuredStats}>
               <Ionicons name="thumbs-up" size={14} color={colors.primary[600]!} />
               <Text style={styles.featuredStatText}>{fc.likeCount || 0}</Text>
@@ -158,7 +176,7 @@ export function FeaturedCollectorSection({ featuredCollector }: { featuredCollec
           </ScrollView>
         )}
         <TouchableOpacity style={styles.viewGarageBtn} onPress={() => router.push(`/collections/${fc.id}` as any)}>
-          <Text style={styles.viewGarageBtnText}>Garajını incele →</Text>
+          <Text style={styles.viewGarageBtnText}>{t('home.viewGarage')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -171,11 +189,20 @@ type CardListProps = {
   onProductPress: (id: string) => void;
 };
 
-export function BoostedRail({ items, cartProductIds, onProductPress }: CardListProps) {
+export function BoostedRail({
+  items,
+  cartProductIds,
+  onProductPress,
+  isLoading,
+}: CardListProps & { isLoading?: boolean }) {
+  const { t } = useTranslation();
+  if (isLoading) {
+    return <View style={styles.boostedRailReserved} testID="boosted-rail-reserved" />;
+  }
   if (items.length === 0) return null;
   return (
     <View style={styles.section}>
-      <SectionHeader title="Sponsorlu Ürünler" />
+      <SectionHeader title={t('home.sponsoredProducts')} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>
         {items.slice(0, 12).map((item: any, index: number) => (
           <ProductCard key={item.id || index} item={item} index={index} inCart={cartProductIds.has(item.id)} onPress={onProductPress} />
@@ -191,36 +218,48 @@ export function PopularProducts({
   cartProductIds,
   onProductPress,
 }: CardListProps & { isLoading: boolean }) {
+  const { t } = useTranslation();
   return (
     <View style={[styles.section, styles.bestSellersSection]}>
-      <SectionHeader title="Popüler İlanlar" titleColor={colors.white} onSeeAll={() => router.push('/search')} />
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <Spinner size="lg" color={colors.white} />
-          <Text style={styles.loadingText}>Ürünler yükleniyor...</Text>
-        </View>
-      ) : items.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="cube-outline" size={48} color={colors.gray[300]} />
-          <Text style={styles.emptyText}>Henüz ürün yok</Text>
-          <Text style={styles.emptySubtext}>API bağlantısını kontrol edin</Text>
-        </View>
-      ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>
-          {items.slice(0, 10).map((item: any, index: number) => (
-            <ProductCard key={item.id || index} item={item} index={index} inCart={cartProductIds.has(item.id)} onPress={onProductPress} />
-          ))}
-        </ScrollView>
-      )}
+      <SectionHeader title={t('home.popularListings')} titleColor={colors.white} onSeeAll={() => router.push('/search')} />
+      <View style={styles.popularRailContent} testID="popular-rail-content">
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <Spinner size="lg" color={colors.white} />
+            <Text style={styles.loadingText}>{t('home.loadingProducts')}</Text>
+          </View>
+        ) : items.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="cube-outline" size={48} color={colors.gray[300]} />
+            <Text style={styles.emptyText}>{t('home.noProductsYet')}</Text>
+            <Text style={styles.emptySubtext}>{t('home.checkApiConnection')}</Text>
+          </View>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>
+            {items.slice(0, 10).map((item: any, index: number) => (
+              <ProductCard key={item.id || index} item={item} index={index} inCart={cartProductIds.has(item.id)} onPress={onProductPress} />
+            ))}
+          </ScrollView>
+        )}
+      </View>
     </View>
   );
 }
 
-export function ProductsGrid({ items, cartProductIds, onProductPress }: CardListProps) {
+export function ProductsGrid({
+  items,
+  cartProductIds,
+  onProductPress,
+  isLoading,
+}: CardListProps & { isLoading?: boolean }) {
+  const { t } = useTranslation();
+  if (isLoading) {
+    return <View style={styles.productsGridReserved} testID="products-grid-reserved" />;
+  }
   if (items.length === 0) return null;
   return (
     <View style={styles.section}>
-      <SectionHeader title="Tüm İlanlar" onSeeAll={() => router.push('/search')} />
+      <SectionHeader title={t('home.allListings')} onSeeAll={() => router.push('/search')} />
       <View style={styles.productsGrid}>
         {items.slice(0, 6).map((item: any, index: number) => (
           <View key={item.id || index} style={styles.gridItem}>
@@ -232,11 +271,15 @@ export function ProductsGrid({ items, cartProductIds, onProductPress }: CardList
   );
 }
 
-export function CollectionsSection({ collections }: { collections: any[] }) {
+export function CollectionsSection({ collections, isLoading }: { collections: any[]; isLoading?: boolean }) {
+  const { t } = useTranslation();
+  if (isLoading) {
+    return <View style={styles.collectionsSectionReserved} testID="collections-section-reserved" />;
+  }
   if (collections.length === 0) return null;
   return (
     <View style={styles.section}>
-      <SectionHeader title="Koleksiyonlar" onSeeAll={() => router.push('/collections')} />
+      <SectionHeader title={t('collection.collections')} onSeeAll={() => router.push('/collections')} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>
         {collections.map((collection: any) => (
           <TouchableOpacity
@@ -247,7 +290,9 @@ export function CollectionsSection({ collections }: { collections: any[] }) {
             <Image source={{ uri: getImageUrlFromUtils(collection.coverImageUrl) }} style={styles.collectionImage} />
             <View style={styles.collectionInfo}>
               <Text style={styles.collectionName} numberOfLines={1}>{collection.name}</Text>
-              <Text style={styles.collectionMeta}>{collection.itemCount || 0} araç</Text>
+              <Text style={styles.collectionMeta}>
+                {t('collection.vehicleCountSuffix', { count: collection.itemCount || 0 })}
+              </Text>
             </View>
           </TouchableOpacity>
         ))}

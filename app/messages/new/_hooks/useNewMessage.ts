@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
 import { useMessagesStore } from '@/stores/messagesStore';
 import { useCreateThread } from '@/hooks/messaging';
@@ -14,6 +15,7 @@ import type { User } from '../_lib/types';
  * screen (§12). NOTE: manuel kullanıcı arama backend'de yok → devre dışı.
  */
 export function useNewMessage() {
+  const { t } = useTranslation();
   const { sellerId, receiverId, productId, productTitle } = useLocalSearchParams<{
     sellerId?: string;
     receiverId?: string;
@@ -33,7 +35,7 @@ export function useNewMessage() {
   const [messageText, setMessageText] = useState(
     // Pre-fill message if coming from a product page
     productId && decodedProductTitle
-      ? `Merhaba, "${decodedProductTitle}" ilanı hakkında bilgi almak istiyorum.\n\n`
+      ? t('message.prefilledInquiry', { title: decodedProductTitle })
       : '',
   );
   const [sending, setSending] = useState(false);

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Card, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -15,6 +16,7 @@ const openProduct = (item: TradeItem) => {
 };
 
 function ItemSide({ label, items }: { label: string; items: TradeItem[] }) {
+  const { t } = useTranslation();
   return (
     <>
       <Text variant="overline" tone="muted" style={styles.sideLabel}>{label}</Text>
@@ -22,7 +24,7 @@ function ItemSide({ label, items }: { label: string; items: TradeItem[] }) {
         {items.length > 0 ? (
           items.map((item) => <CompareItemRow key={item.id} item={item} onPress={() => openProduct(item)} />)
         ) : (
-          <Text variant="caption" tone="subtle">Ürün yok</Text>
+          <Text variant="caption" tone="subtle">{t('trade.noItemsShort')}</Text>
         )}
       </View>
     </>
@@ -42,11 +44,12 @@ export function TradeItemsCompare({
   theirTotal: number;
   otherPartyName: string;
 }) {
+  const { t } = useTranslation();
   return (
     <Card style={styles.card}>
-      <ItemSide label="Senin Ürünlerin" items={myItems} />
+      <ItemSide label={t('trade.yourItems')} items={myItems} />
       <View style={styles.cmpTotalRow}>
-        <Text variant="caption" tone="muted">Toplam Değer</Text>
+        <Text variant="caption" tone="muted">{t('trade.totalValueLabel')}</Text>
         <Text variant="h3" style={styles.cmpTotalValue}>{formatPrice(myTotal)}</Text>
       </View>
 
@@ -58,9 +61,9 @@ export function TradeItemsCompare({
         <View style={styles.arrowLine} />
       </View>
 
-      <ItemSide label={`${otherPartyName} Ürünleri`} items={theirItems} />
+      <ItemSide label={t('trade.otherPartyItemsLabel', { name: otherPartyName })} items={theirItems} />
       <View style={styles.cmpTotalRow}>
-        <Text variant="caption" tone="muted">Toplam Değer</Text>
+        <Text variant="caption" tone="muted">{t('trade.totalValueLabel')}</Text>
         <Text variant="h3" style={styles.cmpTotalValue}>{formatPrice(theirTotal)}</Text>
       </View>
     </Card>

@@ -2,7 +2,13 @@ import { useState, useCallback } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { appAlert } from "@/ui";
-import { normalizePhoneForPayload, splitPhone } from "@/utils/phone";
+import {
+  DEFAULT_COUNTRY_CODE,
+  isValidPhoneInput,
+  parsePhoneForPayload,
+  getPhoneInvalidMessage,
+  splitPhone,
+} from "@/utils/phone";
 import { useRefresh } from "@/hooks/useRefresh";
 import { api } from "@/lib/api";
 import { qk } from "@/lib/query";
@@ -65,9 +71,18 @@ export function useAddresses() {
       // API CreateAddressDto `zipCode` bekliyor (postalCode değil) — eşle, yoksa posta kodu kaybolur.
       // phoneCountryCode DTO'da yok; telefonu "+90…" olarak normalize edip payload'dan çıkar.
       const { postalCode, phoneCountryCode, ...rest } = data;
+      // EMNİYET KEMERİ: `handleSubmit` zaten geçirmiyor, ama çözülemeyen numara
+      // buradan ASLA sessizce (kırpılmış/uydurulmuş olarak) çıkmasın — kargo
+      // telefonu bu; yanlışı göndermektense gönderimi durdurup hata göster.
+      const phone = parsePhoneForPayload(data.phone, phoneCountryCode);
+      if (!phone) {
+        const invalid: any = new Error(getPhoneInvalidMessage());
+        invalid.isClientValidation = true;
+        throw invalid;
+      }
       const payload = {
         ...rest,
-        phone: normalizePhoneForPayload(data.phone, phoneCountryCode),
+        phone,
         zipCode: postalCode,
       };
       if (editingAddress) {
@@ -81,15 +96,21 @@ export function useAddresses() {
       setDialogVisible(false);
       resetForm();
       appAlert(
-        "Başarılı",
-        editingAddress ? "Adres güncellendi" : "Adres eklendi",
+        t("common.success"),
+        editingAddress ? t("address.updated") : t("address.added"),
       );
     },
     onError: (err: any) => {
+      // Client-side telefon reddi ağ hatası değil — kendi Türkçe mesajını göster.
+      if (err?.isClientValidation) {
+        setFieldErrors((prev) => ({ ...prev, phone: err.message }));
+        appAlert(t("common.error"), err.message);
+        return;
+      }
       const msg = err?.response?.data?.message;
       appAlert(
-        "Hata",
-        Array.isArray(msg) ? msg.join("\n") : msg || "Adres kaydedilemedi",
+        t("common.error"),
+        Array.isArray(msg) ? msg.join("\n") : msg || t("address.saveFailed"),
       );
     },
   });
@@ -101,13 +122,13 @@ export function useAddresses() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.user.addresses });
-      appAlert("Başarılı", "Adres silindi");
+      appAlert(t("common.success"), t("address.deleted"));
     },
     onError: (err: any) => {
       const msg = err?.response?.data?.message;
       appAlert(
-        "Hata",
-        Array.isArray(msg) ? msg.join("\n") : msg || "Adres silinemedi",
+        t("common.error"),
+        Array.isArray(msg) ? msg.join("\n") : msg || t("address.deleteFailed"),
       );
     },
   });
@@ -140,11 +161,11 @@ export function useAddresses() {
   const openAddDialog = () => {
     if (addresses.length >= maxAddresses) {
       appAlert(
-        "Adres Limiti",
-        `Ücretsiz üyeler en fazla ${maxAddresses} adres kaydedebilir. Premium üyelikle daha fazla adres ekleyin.`,
+        t("address.limitTitle"),
+        t("address.limitBody", { max: maxAddresses }),
         [
-          { text: "İptal", style: "cancel" },
-          { text: "Premium'a Geç", onPress: () => router.push("/upgrade") },
+          { text: t("common.cancel"), style: "cancel" },
+          { text: t("address.goPremium"), onPress: () => router.push("/upgrade") },
         ],
       );
       return;
@@ -172,12 +193,12 @@ export function useAddresses() {
 
   const handleDelete = (address: Address) => {
     appAlert(
-      "Adresi Sil",
-      `"${address.title}" adresini silmek istediğinize emin misiniz?`,
+      t("address.deleteAddress"),
+      t("address.deleteConfirmNamed", { title: address.title }),
       [
-        { text: "İptal", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Sil",
+          text: t("common.delete"),
           style: "destructive",
           onPress: () => deleteMutation.mutate(address.id),
         },
@@ -190,16 +211,21 @@ export function useAddresses() {
     // API DTO kuralları (adres ≥10 karakter, telefon ≥10 hane) client'ta önden uygulanır;
     // yoksa backend ham 400 "Adres kaydedilemedi" döner.
     const errors: Record<string, string> = {};
-    if (!formData.title.trim()) errors.title = "Zorunlu alan";
-    if (!formData.fullName.trim()) errors.fullName = "Zorunlu alan";
-    if (!formData.phone.trim()) errors.phone = "Zorunlu alan";
-    else if (formData.phone.replace(/\D/g, "").length < 10)
-      errors.phone = "En az 10 haneli geçerli numara";
-    if (!formData.address.trim()) errors.address = "Zorunlu alan";
+    if (!formData.title.trim()) errors.title = t("validation.required");
+    if (!formData.fullName.trim()) errors.fullName = t("validation.required");
+    if (!formData.phone.trim()) errors.phone = t("validation.required");
+    // Sıkı TR ayrıştırma — kırpma/tahmin yok, `@/utils/phone` TEK KAYNAK.
+    // TR dışı kodlar için ayrı bir "≥10 hane" dalı VARDI; kaldırıldı: sunucu
+    // artık yalnız `+905…` kabul ediyor (`IsTrPhone`, staging 2026-08-26) ve
+    // `isValidPhoneInput` TR dışı her kodda zaten `false` dönüyor. Dal ölüydü
+    // ve okuyana "yabancı numara destekleniyor" izlenimi veriyordu.
+    else if (!isValidPhoneInput(formData.phone, formData.phoneCountryCode))
+      errors.phone = getPhoneInvalidMessage();
+    if (!formData.address.trim()) errors.address = t("validation.required");
     else if (formData.address.trim().length < 10)
-      errors.address = "En az 10 karakter olmalıdır";
-    if (!formData.city) errors.city = "Zorunlu alan";
-    if (!formData.district) errors.district = "Zorunlu alan";
+      errors.address = t("validation.minLength", { min: 10 });
+    if (!formData.city) errors.city = t("validation.required");
+    if (!formData.district) errors.district = t("validation.required");
 
     setFieldErrors(errors);
 
@@ -213,14 +239,12 @@ export function useAddresses() {
         !formData.city ||
         !formData.district;
       if (hasMissing) {
-        appAlert("Hata", "Lütfen zorunlu alanları doldurun (ilçe dahil)");
+        appAlert(t("common.error"), t("address.fillRequiredFields"));
       } else if (errors.address) {
-        appAlert("Hata", "Adres en az 10 karakter olmalıdır");
+        appAlert(t("common.error"), t("address.addressMinLength"));
       } else {
-        appAlert(
-          "Hata",
-          "Geçerli bir telefon numarası giriniz (en az 10 hane)",
-        );
+        // Alanın altındaki mesajla AYNI metin — iki yerde iki farklı kural anlatılmasın.
+        appAlert(t("common.error"), errors.phone ?? getPhoneInvalidMessage());
       }
       return;
     }

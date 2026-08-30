@@ -24,7 +24,10 @@ const getTicketMock = supportApi.getTicket as jest.Mock;
 const addMessageMock = supportApi.addMessage as jest.Mock;
 
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ isAuthenticated: true }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: true });
+    return sel ? sel(state) : state;
+  },
 }));
 
 jest.mock('@/services/sentry', () => ({ captureException: jest.fn() }));
@@ -59,7 +62,7 @@ describe('Destek talebi detayı', () => {
     renderWithProviders(<SupportTicketDetailScreen />);
     await waitFor(() => expect(screen.getByText('Siparişim kargoya verilmedi')).toBeOnTheScreen());
     expect(screen.getByText('#TKT-1001')).toBeOnTheScreen();
-    expect(screen.getByText('İnceleniyor')).toBeOnTheScreen();
+    expect(screen.getByText('İşlemde')).toBeOnTheScreen();
     // kendi mesajı "Siz", destek mesajı gönderen adıyla
     expect(screen.getByText('Siz')).toBeOnTheScreen();
     expect(screen.getByText('Destek')).toBeOnTheScreen();

@@ -3,6 +3,8 @@
 export interface OrderDetail {
   id: string;
   orderNumber: string;
+  /** Teslimat/paket numarası (`PKG-…`) — kargo oluşunca gelir, eski siparişlerde null. */
+  packageNumber?: string | null;
   isMembership?: boolean;
   status: string;
   quantity?: number;
@@ -18,7 +20,11 @@ export interface OrderDetail {
     buyerFeeAmount: number;
     sellerFeeAmount: number;
     commissionAmount: number;
+    /** Legacy KDV — sunucu artık hep 0 döndürüyor (2026-07-30 sonrası). */
     taxAmount?: number;
+    /** Alıcı hizmet KDV'si — hizmet bedeli + kargo payının %20'si (canlı ölçüm). */
+    buyerServiceTaxAmount?: number;
+    serviceVatRate?: number;
     totalAmount: number;
     sellerNetAmount: number;
   };
@@ -46,6 +52,12 @@ export interface OrderDetail {
   } | null;
   trackingNumber?: string;
   trackingUrl?: string;
+  /** Sipariş yanıtındaki kargo özeti; `cargoCode` = `providerTrackingId`. */
+  shipment?: {
+    cargoCode?: string | null;
+    trackingNumber?: string | null;
+    status?: string | null;
+  } | null;
   createdAt: string;
   paidAt?: string;
   shippedAt?: string;

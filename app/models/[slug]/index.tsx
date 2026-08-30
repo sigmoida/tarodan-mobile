@@ -1,4 +1,5 @@
 import { View, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Spinner, EmptyState } from '@/ui';
 import { router } from 'expo-router';
 import { ScreenHeader, ThemedRefreshControl } from '@/components/common';
@@ -7,12 +8,13 @@ import { styles } from './_lib/styles';
 import { ModelHero, ModelProductsGrid } from './_components/ModelSections';
 
 export default function ModelDetailScreen() {
+  const { t } = useTranslation();
   const f = useModelDetail();
 
   if (f.modelQuery.isLoading) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Model" />
+        <ScreenHeader title={t('product.model')} />
         <View style={styles.loading}>
           <Spinner size="lg" />
         </View>
@@ -23,12 +25,12 @@ export default function ModelDetailScreen() {
   if (f.modelQuery.isError || !f.model) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Model" />
+        <ScreenHeader title={t('product.model')} />
         <EmptyState
           icon="sad-outline"
-          title="Model bulunamadı"
-          subtitle="Aradığınız model mevcut değil."
-          actionLabel="Modellere Dön"
+          title={t('models.noResults')}
+          subtitle={t('models.notFoundDesc')}
+          actionLabel={t('models.backToModels')}
           onAction={() => router.replace('/models' as any)}
         />
       </View>

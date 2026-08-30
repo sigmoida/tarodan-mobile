@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, Pressable, Image } from 'react-native';
 import { router } from 'expo-router';
@@ -7,7 +8,7 @@ import { Button, Card, StatusBadge, Text, theme } from '@/ui';
 import { getOrderProductImageUri } from '@/utils/orderProductImage';
 import { styles } from '../_lib/ordersStyles';
 import {
-  uiOrderStatusConfig,
+  useOrderStatusConfig,
   badgeStatusOf,
   canRateOrder,
   formatOrderDate,
@@ -27,14 +28,16 @@ export function OrderCard({
   compact?: boolean;
   onRate: (type: 'product' | 'seller', order: Order) => void;
 }) {
+  const { t } = useTranslation();
+  const statusConfig = useOrderStatusConfig();
   return (
     <Card variant="elevated" padding={0} style={styles.orderCard}>
       <Pressable onPress={() => router.push(`/orders/${order.id}`)}>
         <View style={styles.orderHeader}>
           <Text variant="caption" style={styles.orderNumber}>
-            Sipariş #{order.orderNumber}
+            {t('sale.orderNumberTitle', { number: order.orderNumber })}
           </Text>
-          <StatusBadge status={badgeStatusOf(order)} config={uiOrderStatusConfig} size="sm" />
+          <StatusBadge status={badgeStatusOf(order)} config={statusConfig} size="sm" />
         </View>
 
         <View style={styles.orderContent}>
@@ -45,7 +48,7 @@ export function OrderCard({
           <View style={styles.productInfo}>
             <Text variant="label" numberOfLines={2}>{order.product.title}</Text>
             <Text variant="caption" style={styles.sellerName}>
-              Satıcı: {order.seller.displayName}
+              {t('refund.sellerLabel', { name: order.seller.displayName })}
             </Text>
             <Text variant="h3" style={styles.price}>
               {formatOrderPrice(order.totalAmount)}
@@ -65,7 +68,7 @@ export function OrderCard({
               onPress={() => router.push(`/order-track?orderNumber=${order.orderNumber}`)}
             >
               <Ionicons name="location" size={14} color={colors.primary[600]!} />
-              <Text style={styles.trackButtonText}>Takip Et</Text>
+              <Text style={styles.trackButtonText}>{t('order.track')}</Text>
             </Pressable>
           )}
         </View>
@@ -80,7 +83,7 @@ export function OrderCard({
               variant="outline"
               size="sm"
               icon="star"
-              title="Ürünü Değerlendir"
+              title={t('order.rateProduct')}
               onPress={() => onRate('product', order)}
               style={styles.rateButton}
             />
@@ -90,7 +93,7 @@ export function OrderCard({
               variant="outline"
               size="sm"
               icon="person"
-              title="Satıcıyı Değerlendir"
+              title={t('order.rateSeller')}
               onPress={() => onRate('seller', order)}
               style={styles.rateButton}
             />

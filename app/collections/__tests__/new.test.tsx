@@ -21,7 +21,10 @@ let mockAuth: Record<string, unknown> = {
   limits: { canCreateCollections: true },
 };
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => mockAuth,
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = mockAuth;
+    return sel ? sel(state) : state;
+  },
 }));
 
 import NewCollectionScreen from '../new';

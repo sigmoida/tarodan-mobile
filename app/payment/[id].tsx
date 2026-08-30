@@ -3,10 +3,24 @@ import { View, StyleSheet, BackHandler } from 'react-native';
 import { Button, Spinner, Text, theme, appAlert } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { paymentsApi } from '@/lib/api';
 import { ScreenHeader, ErrorState } from '@/components/common';
 import { captureException } from '@/services/sentry';
 import CardPaymentForm from '@/components/CardPaymentForm';
+
+/**
+ * ⚠️ BU EKRAN BİLEREK React Query'ye TAŞINMADI (CLAUDE.md §6'nın istisnası).
+ *
+ * Buradaki yükleme saf bir okuma değil: ödeme durumunu okurken bypass açıksa `bypassComplete` ile ödemeyi TAMAMLIYOR ve başarı/başarısızlık rotasına yönlendiriyor. React Query sorguları
+ * başarısızlıkta yeniden dener, odaklanmada/yeniden bağlanmada tazeler ve
+ * aynı `queryFn`'i birden çok kez çalıştırabilir. Para hareketi yapan bir
+ * çağrının bu semantiğe konması, en kötü ihtimalle işlemin iki kez
+ * yürütülmesi demek.
+ *
+ * Akış `resolvedRef` gibi tek-sefer korumalarıyla elle yazıldı ve öyle
+ * kalmalı. Buraya "tutarlılık için" sorgu eklemeyin.
+ */
 
 const { colors } = theme;
 
@@ -23,6 +37,7 @@ const { colors } = theme;
  *   5. PAYMENT_BYPASS (dev) açıksa kart formu yerine ödeme anında tamamlanır.
  */
 export default function PaymentScreen() {
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{
     id: string;
     guest?: string;
@@ -124,7 +139,7 @@ export default function PaymentScreen() {
       if (!hasTarget) {
         setState({
           loading: false,
-          error: 'Ödeme hedefi bulunamadı. Lütfen tekrar deneyin.',
+          error: t('payment.targetNotFound'),
           target: null,
           recurringEnabled: false,
         });
@@ -147,7 +162,7 @@ export default function PaymentScreen() {
       });
       setState({
         loading: false,
-        error: e?.response?.data?.message || 'Ödeme bilgisi yüklenemedi.',
+        error: e?.response?.data?.message || t('payment.infoLoadFailed'),
         target: null,
         recurringEnabled: false,
       });
@@ -164,11 +179,11 @@ export default function PaymentScreen() {
     // Geri çıkış siparişi İPTAL ETMEZ — sadece ödeme ekranından çıkar. Sipariş
     // "ödeme bekliyor" kalır; kullanıcı sonra tekrar ödeyebilir. Cron terk edileni temizler.
     appAlert(
-      'Ödemeden Çık',
-      'Ödemeyi tamamlamadan çıkmak istediğinize emin misiniz? Siparişiniz "ödeme bekliyor" olarak kalır; daha sonra tekrar ödeyebilirsiniz.',
+      t('payment.exitTitle'),
+      t('payment.exitBody'),
       [
-        { text: 'Ödemeye Devam Et', style: 'cancel' },
-        { text: 'Çık', onPress: () => safeBack() },
+        { text: t('payment.continuePaymentAction'), style: 'cancel' },
+        { text: t('payment.exitAction'), onPress: () => safeBack() },
       ],
     );
   };
@@ -198,24 +213,24 @@ export default function PaymentScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Güvenli Ödeme" subtitle="PayTR" onBack={handleCancel} />
+      <ScreenHeader title={t('checkout.securePayment')} subtitle="PayTR" onBack={handleCancel} />
 
       {state.loading ? (
         <View style={styles.center}>
           <Spinner size="lg" />
-          <Text style={styles.loadingText}>Ödeme hazırlanıyor...</Text>
+          <Text style={styles.loadingText}>{t('payment.preparing')}</Text>
         </View>
       ) : state.error ? (
         <View style={styles.errorWrap}>
           <ErrorState message={state.error} onRetry={load} />
-          <Button variant="ghost" title="Geri Dön" onPress={safeBack} style={{ alignSelf: 'center' }} />
+          <Button variant="ghost" title={t('common.goBack')} onPress={safeBack} style={{ alignSelf: 'center' }} />
         </View>
       ) : state.target ? (
         <View style={{ flex: 1 }}>
           <View style={styles.safeNotice}>
             <Ionicons name="lock-closed" size={14} color={colors.success[600]!} />
             <Text style={styles.safeNoticeText}>
-              Bu sayfa SSL şifrelemeyle korunmaktadır. Kart bilgileriniz Tarodan'a iletilmez.
+              {t('payment.sslNotice')}
             </Text>
           </View>
           <CardPaymentForm

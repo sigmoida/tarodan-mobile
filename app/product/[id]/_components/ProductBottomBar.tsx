@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Button, Text, theme } from '@/ui';
@@ -32,6 +33,7 @@ export function ProductBottomBar({
   onAddToCart: () => void;
   onGoToCart: () => void;
 }) {
+  const { t } = useTranslation();
   const effective = `₺${price.effectivePrice.toLocaleString('tr-TR')}`;
   const original = `₺${price.originalPrice.toLocaleString('tr-TR')}`;
 
@@ -40,7 +42,7 @@ export function ProductBottomBar({
       {isOwner ? (
         <View style={styles.bottomRow}>
           <View style={styles.bottomPrice}>
-            <Text style={styles.bottomPriceLabel}>Fiyat</Text>
+            <Text style={styles.bottomPriceLabel}>{t('common.price')}</Text>
             {price.onSale ? <Text style={styles.bottomPriceOld} numberOfLines={1}>{original}</Text> : null}
             <Text style={styles.bottomPriceValue} numberOfLines={1}>{effective}</Text>
           </View>
@@ -51,13 +53,13 @@ export function ProductBottomBar({
             icon="create-outline"
             style={styles.flexButton}
           >
-            İlanı Düzenle
+            {t('product.editListing')}
           </Button>
         </View>
       ) : isOutOfStock ? (
         <View style={styles.bottomRow}>
           <View style={styles.bottomPrice}>
-            <Text style={styles.bottomPriceLabel}>Fiyat</Text>
+            <Text style={styles.bottomPriceLabel}>{t('common.price')}</Text>
             <Text style={styles.bottomPriceValue} numberOfLines={1}>{effective}</Text>
           </View>
           <Button
@@ -68,13 +70,13 @@ export function ProductBottomBar({
             icon="close-circle-outline"
             style={styles.flexButton}
           >
-            Stokta Yok
+            {t('product.soldOut')}
           </Button>
         </View>
       ) : (
         <View style={styles.tileRow}>
           <View style={styles.priceCell}>
-            <Text style={styles.bottomPriceLabel}>Fiyat</Text>
+            <Text style={styles.bottomPriceLabel}>{t('common.price')}</Text>
             {price.onSale ? <Text style={styles.bottomPriceOld} numberOfLines={1}>{original}</Text> : null}
             <Text style={styles.priceCellValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
               {effective}
@@ -82,7 +84,7 @@ export function ProductBottomBar({
           </View>
 
           {isProductTradeOpen(product) ? (
-            <ActionTile testID="product-detail-trade-button" icon="swap-horizontal" label="Takas" onPress={onTrade} />
+            <ActionTile testID="product-detail-trade-button" icon="swap-horizontal" label={t('product.tradeShort')} onPress={onTrade} />
           ) : (
             <View style={styles.tilePlaceholder} />
           )}
@@ -90,15 +92,15 @@ export function ProductBottomBar({
           <ActionTile
             testID="product-detail-buy-now-button"
             icon="flash"
-            label="Hızlı Al"
+            label={t('product.buyNow')}
             variant="primary"
             onPress={onBuyNow}
           />
 
           {inCart ? (
-            <ActionTile testID="product-detail-go-to-cart-button" icon="checkmark-circle" label="Sepette" onPress={onGoToCart} />
+            <ActionTile testID="product-detail-go-to-cart-button" icon="checkmark-circle" label={t('product.inCartShort')} onPress={onGoToCart} />
           ) : (
-            <ActionTile testID="product-detail-add-to-cart-button" icon="cart" label="Sepete Ekle" onPress={onAddToCart} />
+            <ActionTile testID="product-detail-add-to-cart-button" icon="cart" label={t('product.addToCart')} onPress={onAddToCart} />
           )}
         </View>
       )}

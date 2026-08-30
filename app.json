@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tarodan",
     "slug": "tarodan",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "runtimeVersion": {
       "policy": "fingerprint"
     },
@@ -14,11 +14,17 @@
     "orientation": "portrait",
     "scheme": "tarodan",
     "userInterfaceStyle": "light",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.tarodan.app",
       "usesAppleSignIn": true,
+      "associatedDomains": [
+        "applinks:tarodan.com.tr",
+        "applinks:staging.tarodan.com.tr"
+      ],
       "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "Ürün fotoğrafı çekmek için kamera erişimi gereklidir.",
@@ -46,10 +52,116 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            { "scheme": "https", "host": "tarodan.com.tr" },
-            { "scheme": "https", "host": "staging.tarodan.com.tr" }
+            {
+              "scheme": "https"
+            },
+            {
+              "host": "tarodan.com.tr"
+            },
+            {
+              "host": "staging.tarodan.com.tr"
+            },
+            {
+              "path": "/verify-email"
+            },
+            {
+              "path": "/en/verify-email"
+            },
+            {
+              "path": "/reset-password"
+            },
+            {
+              "path": "/en/reset-password"
+            },
+            {
+              "path": "/forgot-password"
+            },
+            {
+              "path": "/en/forgot-password"
+            },
+            {
+              "path": "/corporate/invite"
+            },
+            {
+              "path": "/en/corporate/invite"
+            },
+            {
+              "pathPrefix": "/listings/"
+            },
+            {
+              "pathPrefix": "/en/listings/"
+            },
+            {
+              "pathPrefix": "/collections/"
+            },
+            {
+              "pathPrefix": "/en/collections/"
+            },
+            {
+              "pathPrefix": "/trades/"
+            },
+            {
+              "pathPrefix": "/en/trades/"
+            },
+            {
+              "path": "/track-order"
+            },
+            {
+              "path": "/en/track-order"
+            },
+            {
+              "path": "/messages"
+            },
+            {
+              "path": "/en/messages"
+            },
+            {
+              "path": "/offers"
+            },
+            {
+              "path": "/en/offers"
+            },
+            {
+              "pathPrefix": "/profile/orders/"
+            },
+            {
+              "pathPrefix": "/en/profile/orders/"
+            },
+            {
+              "pathPrefix": "/profile/refund-requests/"
+            },
+            {
+              "pathPrefix": "/en/profile/refund-requests/"
+            },
+            {
+              "pathPrefix": "/profile/trades/"
+            },
+            {
+              "pathPrefix": "/en/profile/trades/"
+            },
+            {
+              "path": "/profile/listings"
+            },
+            {
+              "path": "/en/profile/listings"
+            },
+            {
+              "path": "/profile/earnings"
+            },
+            {
+              "path": "/en/profile/earnings"
+            },
+            {
+              "path": "/profile"
+            },
+            {
+              "path": "/en/profile"
+            }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },

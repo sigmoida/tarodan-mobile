@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { Avatar, IconButton, Text, theme } from '@/ui';
@@ -16,9 +17,10 @@ export function SellerCard({
   onPressSeller: () => void;
   onMessage: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Pressable style={styles.sellerCard} onPress={onPressSeller}>
-      <Avatar size="lg" name={seller?.displayName || 'Satıcı'} source={resolveAvatarSource(seller?.avatarUrl)} />
+      <Avatar size="lg" name={seller?.displayName || t('product.seller')} source={resolveAvatarSource(seller?.avatarUrl)} />
       <View style={styles.sellerInfo}>
         <View style={styles.sellerNameRow}>
           <Text style={styles.sellerName}>{seller?.displayName}</Text>
@@ -31,10 +33,14 @@ export function SellerCard({
           </View>
           <View style={styles.sellerStat}>
             <Ionicons name="bag-check-outline" size={14} color={colors.text.muted} />
-            <Text style={styles.sellerStatText}>{seller?.totalSales || 0} satış</Text>
+            <Text style={styles.sellerStatText}>
+              {t('product.sellerTotalSalesCount', { count: seller?.totalSales || 0 })}
+            </Text>
           </View>
         </View>
-        <Text style={styles.sellerResponseTime}>Yanıt süresi: {seller?.responseTime || 'Bilinmiyor'}</Text>
+        <Text style={styles.sellerResponseTime}>
+          {t('product.sellerResponseTimeLabel', { time: seller?.responseTime || t('common.unknown') })}
+        </Text>
       </View>
       <View style={styles.sellerAction}>
         <IconButton
@@ -43,7 +49,7 @@ export function SellerCard({
           color={colors.primary[600]!}
           style={styles.messageButton}
           onPress={onMessage}
-          accessibilityLabel="Satıcıya mesaj gönder"
+          accessibilityLabel={t('product.sendMessageToSeller')}
         />
         <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
       </View>

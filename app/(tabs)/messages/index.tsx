@@ -35,13 +35,13 @@ function MessagesTabScreen() {
             {t("mobile.messagesTitle")}
           </Text>
           <Text variant="body" style={styles.subtitle}>
-            Mesajlarınızı görmek için giriş yapın
+            {t("message.loginToView")}
           </Text>
           <TouchableOpacity
             style={styles.loginButton}
             onPress={() => router.push("/(auth)/login")}
           >
-            <Text style={styles.loginButtonText}>Giriş Yap</Text>
+            <Text style={styles.loginButtonText}>{t("common.login")}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -71,11 +71,11 @@ function MessagesTabScreen() {
             color={colors.warning[600]!}
           />
           <Text style={styles.limitText}>
-            Günlük mesaj: {f.dailyMessageCount}/{f.messageLimit}
+            {t("message.dailyMessageCount", { count: f.dailyMessageCount, limit: f.messageLimit })}
           </Text>
           {f.dailyMessageCount >= f.messageLimit && (
             <TouchableOpacity onPress={() => router.push("/upgrade")}>
-              <Text style={styles.upgradeLink}>Premium'a Geç</Text>
+              <Text style={styles.upgradeLink}>{t("address.goPremium")}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -104,12 +104,12 @@ function MessagesTabScreen() {
             color={colors.text.subtle}
           />
           <Text variant="h3" style={styles.emptyTitle}>
-            {f.searchQuery ? "Sonuç bulunamadı" : "Henüz mesaj yok"}
+            {f.searchQuery ? t("common.noResults") : t("message.noMessagesYet")}
           </Text>
           <Text variant="body" style={styles.emptySubtitle}>
             {f.searchQuery
-              ? "Farklı bir arama terimi deneyin"
-              : "Bir satıcıyla iletişime geçerek başlayın"}
+              ? t("message.tryDifferentSearch")
+              : t("message.startConversationShort")}
           </Text>
         </View>
       ) : (

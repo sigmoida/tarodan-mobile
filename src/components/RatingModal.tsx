@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuthStore } from '../stores/authStore';
@@ -31,6 +32,7 @@ export default function RatingModal({
   sellerName,
   onSuccess,
 }: RatingModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { limits } = useAuthStore();
   const [rating, setRating] = useState(0);
@@ -101,7 +103,7 @@ export default function RatingModal({
     <Modal
       isOpen={visible}
       onClose={handleClose}
-      title={type === 'product' ? 'Ürünü Değerlendir' : 'Satıcıyı Değerlendir'}
+      title={type === 'product' ? t('ratingModal.titleProduct') : t('ratingModal.titleSeller')}
     >
       <ScrollView style={styles.scrollArea} keyboardShouldPersistTaps="handled">
         {/* Target info */}
@@ -111,7 +113,7 @@ export default function RatingModal({
 
         {/* Star Rating */}
         <View style={styles.starsContainer}>
-          <Text style={styles.label}>Puan</Text>
+          <Text style={styles.label}>{t('profile.rating')}</Text>
           <View style={styles.stars}>
             {[1, 2, 3, 4, 5].map((star) => (
               <TouchableOpacity
@@ -128,19 +130,19 @@ export default function RatingModal({
             ))}
           </View>
           <Text style={styles.ratingText}>
-            {rating === 0 && 'Puan seçin'}
-            {rating === 1 && 'Çok Kötü'}
-            {rating === 2 && 'Kötü'}
-            {rating === 3 && 'Orta'}
-            {rating === 4 && 'İyi'}
-            {rating === 5 && 'Mükemmel'}
+            {rating === 0 && t('ratingModal.selectRating')}
+            {rating === 1 && t('ratingModal.scoreVeryBad')}
+            {rating === 2 && t('ratingModal.scoreBad')}
+            {rating === 3 && t('ratingModal.scoreAverage')}
+            {rating === 4 && t('ratingModal.scoreGood')}
+            {rating === 5 && t('ratingModal.scoreExcellent')}
           </Text>
         </View>
 
         {/* Title (Product only) */}
         {type === 'product' && (
           <Input
-            label="Başlık (opsiyonel)"
+            label={t('review.titleOptional')}
             value={title}
             onChangeText={setTitle}
             maxLength={100}
@@ -150,7 +152,7 @@ export default function RatingModal({
 
         {/* Review */}
         <Textarea
-          label={type === 'product' ? 'Yorumunuz (opsiyonel)' : 'Yorumunuz (opsiyonel)'}
+          label={t('ratingModal.reviewLabelOptional')}
           value={review}
           onChangeText={(text: string) => setReview(text.slice(0, maxReviewChars))}
           rows={4}
@@ -158,11 +160,11 @@ export default function RatingModal({
         />
         <View style={styles.charCountContainer}>
           <Text style={styles.charCount}>
-            {review.length}/{maxReviewChars}
+            {t('ratingModal.charCount', { current: review.length, max: maxReviewChars })}
           </Text>
           {limits?.maxReviewChars === 500 && (
             <Text style={styles.charLimitNote}>
-              Premium üyeler 2000 karakter yazabilir
+              {t('ratingModal.premiumCharLimitNote')}
             </Text>
           )}
         </View>
@@ -171,23 +173,23 @@ export default function RatingModal({
         {type === 'seller' && (
           <View style={styles.criteriaSection}>
             <Text style={styles.criteriaTitle}>
-              Değerlendirme Kriterleri:
+              {t('ratingModal.criteriaTitle')}
             </Text>
             <View style={styles.criteriaItem}>
               <Ionicons name="checkmark-circle" size={16} color={colors.success[600]!} />
-              <Text style={styles.criteriaText}>Ürün Doğruluğu (%40)</Text>
+              <Text style={styles.criteriaText}>{t('ratingModal.criteriaProductAccuracy')}</Text>
             </View>
             <View style={styles.criteriaItem}>
               <Ionicons name="checkmark-circle" size={16} color={colors.success[600]!} />
-              <Text style={styles.criteriaText}>İletişim (%20)</Text>
+              <Text style={styles.criteriaText}>{t('ratingModal.criteriaCommunication')}</Text>
             </View>
             <View style={styles.criteriaItem}>
               <Ionicons name="checkmark-circle" size={16} color={colors.success[600]!} />
-              <Text style={styles.criteriaText}>Kargo (%20)</Text>
+              <Text style={styles.criteriaText}>{t('ratingModal.criteriaShipping')}</Text>
             </View>
             <View style={styles.criteriaItem}>
               <Ionicons name="checkmark-circle" size={16} color={colors.success[600]!} />
-              <Text style={styles.criteriaText}>Takas Adaleti (%20)</Text>
+              <Text style={styles.criteriaText}>{t('ratingModal.criteriaTradeFairness')}</Text>
             </View>
           </View>
         )}
@@ -195,16 +197,16 @@ export default function RatingModal({
         {/* Error */}
         {error && (
           <Text style={styles.errorText}>
-            {(error as any).response?.data?.message || 'Değerlendirme gönderilemedi'}
+            {(error as any).response?.data?.message || t('ratingModal.submitFailed')}
           </Text>
         )}
       </ScrollView>
 
       <View style={styles.actions}>
-        <Button variant="ghost" title="İptal" onPress={handleClose} disabled={isPending} />
+        <Button variant="ghost" title={t('common.cancel')} onPress={handleClose} disabled={isPending} />
         <Button
           variant="primary"
-          title="Gönder"
+          title={t('common.submit')}
           onPress={handleSubmit}
           isLoading={isPending}
           disabled={rating === 0 || isPending}

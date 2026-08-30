@@ -3,6 +3,7 @@ import { View, StyleSheet, Image } from 'react-native';
 
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { manufacturersApi, productsApi } from '@/lib/api';
 import { theme, Text } from '@/ui';
 import { ScreenHeader } from '@/components/common';
@@ -21,6 +22,7 @@ interface Manufacturer {
 }
 
 export default function ManufacturerDetailScreen() {
+  const { t } = useTranslation();
   const { slug } = useLocalSearchParams<{ slug: string }>();
 
   const { data: manufacturer, isLoading: loadingManufacturer } = useQuery<Manufacturer | null>({
@@ -54,17 +56,17 @@ export default function ManufacturerDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title={manufacturer?.name || 'Üretici'} />
+      <ScreenHeader title={manufacturer?.name || t('product.manufacturer')} />
 
       <ProductGrid
         items={products}
         loading={loadingProducts}
         refreshing={isRefetching}
         onRefresh={refetch}
-        errorMessage={error ? 'Ürünler yüklenemedi.' : null}
+        errorMessage={error ? t('collection.productsLoadFailed') : null}
         onRetry={refetch}
-        emptyTitle="Bu üreticiye ait ürün yok"
-        emptySubtitle="Yakında yeni ürünler eklenecek."
+        emptyTitle={t('product.noManufacturerProducts')}
+        emptySubtitle={t('product.moreProductsComingSoon')}
         emptyIcon="business-outline"
         ListHeaderComponent={
           loadingManufacturer ? null : manufacturer ? (
@@ -81,7 +83,7 @@ export default function ManufacturerDetailScreen() {
               <View style={styles.headerText}>
                 <Text style={styles.name}>{manufacturer.name}</Text>
                 {typeof manufacturer.productCount === 'number' ? (
-                  <Text style={styles.count}>{manufacturer.productCount} ürün</Text>
+                  <Text style={styles.count}>{t('payment.itemsCount', { count: manufacturer.productCount })}</Text>
                 ) : null}
               </View>
             </View>

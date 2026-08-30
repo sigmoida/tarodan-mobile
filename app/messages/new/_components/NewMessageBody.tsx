@@ -2,6 +2,7 @@ import { View, TouchableOpacity, TextInput as RNTextInput } from 'react-native';
 import { Avatar, Input, Spinner, Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { styles } from '../_lib/styles';
 import type { User } from '../_lib/types';
 import type { NewMessageController } from '../_hooks/useNewMessage';
@@ -10,14 +11,15 @@ const { colors } = theme;
 
 /** Alıcı seçimi + ürün referansı + mesaj kutusu + günlük limit uyarısı. */
 export function NewMessageBody({ f }: { f: NewMessageController }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.content}>
       {/* Recipient Selection */}
       {!f.selectedUser ? (
         <View style={styles.recipientSection}>
-          <Text variant="label" style={styles.sectionTitle}>Alıcı</Text>
+          <Text variant="label" style={styles.sectionTitle}>{t('message.recipient')}</Text>
           <Input
-            placeholder="Kullanıcı ara..."
+            placeholder={t('message.searchUserPlaceholder')}
             value={f.searchQuery}
             onChangeText={f.setSearchQuery}
             leftIconName="search"
@@ -36,7 +38,7 @@ export function NewMessageBody({ f }: { f: NewMessageController }) {
                   <Avatar size="md" source={user.avatarUrl} name={user.displayName.charAt(0)} />
                   <View style={styles.userInfo}>
                     <Text variant="body">{user.displayName}</Text>
-                    {user.isSeller && <Text variant="caption" style={styles.sellerBadge}>Satıcı</Text>}
+                    {user.isSeller && <Text variant="caption" style={styles.sellerBadge}>{t('product.seller')}</Text>}
                   </View>
                 </TouchableOpacity>
               ))}
@@ -45,14 +47,13 @@ export function NewMessageBody({ f }: { f: NewMessageController }) {
 
           {f.searchQuery.length >= 2 && !f.searchSupported && (
             <Text style={styles.noResults}>
-              İsimle kullanıcı arama şu anda desteklenmiyor. Mesaj göndermek için bir ilan
-              veya satıcı profilinden "Mesaj Gönder" seçeneğini kullanın.
+              {t('message.userSearchUnsupported')}
             </Text>
           )}
         </View>
       ) : (
         <View style={styles.selectedRecipient}>
-          <Text variant="label" style={styles.sectionTitle}>Alıcı</Text>
+          <Text variant="label" style={styles.sectionTitle}>{t('message.recipient')}</Text>
           <View style={styles.recipientCard}>
             <Avatar size="md" source={f.selectedUser.avatarUrl} name={f.selectedUser.displayName.charAt(0)} />
             <Text variant="body" style={styles.recipientName}>{f.selectedUser.displayName}</Text>
@@ -63,7 +64,7 @@ export function NewMessageBody({ f }: { f: NewMessageController }) {
       {/* Product Reference */}
       {(f.product || (f.productId && f.decodedProductTitle)) && (
         <View style={styles.productSection}>
-          <Text variant="label" style={styles.sectionTitle}>Ürün Hakkında</Text>
+          <Text variant="label" style={styles.sectionTitle}>{t('message.aboutProduct')}</Text>
           <TouchableOpacity
             style={styles.productCard}
             onPress={() => router.push(`/product/${f.product?.id || f.productId}`)}
@@ -81,11 +82,11 @@ export function NewMessageBody({ f }: { f: NewMessageController }) {
 
       {/* Message Input */}
       <View style={styles.messageSection}>
-        <Text variant="label" style={styles.sectionTitle}>Mesaj</Text>
+        <Text variant="label" style={styles.sectionTitle}>{t('common.message')}</Text>
         <View style={styles.messageInputContainer}>
           <RNTextInput
             style={styles.messageInput}
-            placeholder={f.canSend ? 'Mesajınızı yazın...' : 'Mesaj limiti doldu'}
+            placeholder={f.canSend ? t('message.typeMessage') : t('message.messageLimitReached')}
             placeholderTextColor={colors.text.subtle}
             value={f.messageText}
             onChangeText={f.setMessageText}
@@ -102,10 +103,10 @@ export function NewMessageBody({ f }: { f: NewMessageController }) {
         <View style={styles.limitWarning}>
           <Ionicons name="warning" size={20} color={colors.warning[600]!} />
           <Text style={styles.limitWarningText}>
-            Günlük mesaj limitinize ulaştınız ({f.limits?.maxMessagesPerDay || 50} mesaj)
+            {t('message.dailyLimitReached', { count: f.limits?.maxMessagesPerDay || 50 })}
           </Text>
           <TouchableOpacity onPress={() => router.push('/upgrade')}>
-            <Text style={styles.upgradeLink}>Premium'a Geç</Text>
+            <Text style={styles.upgradeLink}>{t('address.goPremium')}</Text>
           </TouchableOpacity>
         </View>
       )}

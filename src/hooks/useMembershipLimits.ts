@@ -8,7 +8,27 @@ import { useAuthStore, type ServerLimitsOverride } from '@/stores/authStore';
 // import ettiği için tipi burada tanımlayıp store'a import ettirmek
 // döngüsel bağımlılık yaratırdı.
 
-/** Sunucudan gelen ham hak zarfı (GET /membership/me/limits). */
+/**
+ * Sunucudan gelen ham hak zarfı (GET /membership/me/limits).
+ *
+ * **Ölçüldü (staging, 2026-08-03, kimlikli):** uç 13 alan döndürüyor —
+ * `canCreateListing`, `canUseFreeSlot`, `canTrade`, `canCreateCollection`,
+ * `isAdFree`, `maxImages`, `maxFreeListings`, `maxTotalListings`,
+ * `remainingFreeListings`, `remainingTotalListings`, `remainingFeaturedSlots`,
+ * `tierName`, `tierType`.
+ *
+ * Bunların istemcideki `MembershipLimits` karşılığı olan **beşinin beşi de**
+ * aşağıda eşleniyor. Kalan alanlar ya türetilmiş sayaç (`remaining*`) ya da
+ * istemcide zaten hesaplanan bilgi. `MembershipLimits`'in diğer 10 alanı
+ * (`maxAddresses`, `maxSavedSearches`, `maxMessagesPerDay`, `listingExpireDays`,
+ * `maxReviewChars`, `maxValuePerListing`, `canFeatureListings`, `canBulkUpload`,
+ * `canScheduleListings`, `priorityInSearch`) sunucu tarafından **hiç
+ * yayınlanmıyor** — public ayar ucu da boş (`{}`).
+ *
+ * Yani "sunucudan gelen alanları genişlet" diye bir iş YOK: gelen her şey
+ * zaten okunuyor. Kalan 10 alanın istemci sabiti olması bilinçli bir durum;
+ * değişmesi için önce backend'in bunları yayınlaması gerekir.
+ */
 export type ServerLimitsDto = {
   maxTotalListings?: number;
   maxImages?: number;

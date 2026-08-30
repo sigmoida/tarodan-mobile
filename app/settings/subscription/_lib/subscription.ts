@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import { theme } from '@/ui';
 
 const { colors } = theme;
@@ -70,21 +71,24 @@ export const getDaysUntilRenewal = (subscription: Subscription | null): number =
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 };
 
-export const formatBillingPeriod = (period: 'monthly' | 'yearly'): string => {
-  return period === 'monthly' ? 'Aylık' : 'Yıllık';
+// `t` MUST come from a live useTranslation()/schemaT at the call site — this
+// module is a route-local `_lib`, not a hook/component, so it can't resolve
+// its own translator (see CLAUDE.md §8 / membershipLimits.ts note).
+export const formatBillingPeriod = (t: TFunction, period: 'monthly' | 'yearly'): string => {
+  return period === 'monthly' ? t('membership.monthly') : t('membership.yearly');
 };
 
-export const getSubscriptionStatusText = (status: Subscription['status']): { text: string; color: string } => {
+export const getSubscriptionStatusText = (t: TFunction, status: Subscription['status']): { text: string; color: string } => {
   switch (status) {
     case 'active':
-      return { text: 'Aktif', color: colors.success[600]! };
+      return { text: t('common.active'), color: colors.success[600]! };
     case 'cancelled':
-      return { text: 'İptal Edildi', color: colors.danger[500]! };
+      return { text: t('common.cancelled'), color: colors.danger[500]! };
     case 'past_due':
-      return { text: 'Ödeme Gecikmiş', color: colors.warning[500]! };
+      return { text: t('membership.paymentOverdue'), color: colors.warning[500]! };
     case 'expired':
-      return { text: 'Süresi Doldu', color: colors.gray[400] };
+      return { text: t('offer.statusExpired'), color: colors.gray[400] };
     default:
-      return { text: 'Bilinmiyor', color: colors.gray[400] };
+      return { text: t('common.unknown'), color: colors.gray[400] };
   }
 };

@@ -16,7 +16,10 @@ jest.mock("expo-router", () => ({
 }));
 
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => ({ isAuthenticated: true, limits: { maxAddresses: 10 } }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: true, limits: { maxAddresses: 10 } });
+    return sel ? sel(state) : state;
+  },
 }));
 
 jest.mock("react-i18next", () => ({
@@ -46,7 +49,7 @@ describe("J32 · adres ekleme form validasyonu", () => {
 
   const openDialog = async () => {
     // Boş listede "Adres Ekle" butonu diyaloğu açar (query çözülene kadar bekle)
-    const addBtn = await screen.findByText("Adres Ekle");
+    const addBtn = await screen.findByText("address.addNewAddress");
     fireEvent.press(addBtn);
   };
 
@@ -55,8 +58,8 @@ describe("J32 · adres ekleme form validasyonu", () => {
     await openDialog();
     fireEvent.press(screen.getByTestId("address-save-button"));
     expect(alertSpy).toHaveBeenCalledWith(
-      "Hata",
-      "Lütfen zorunlu alanları doldurun (ilçe dahil)",
+      "common.error",
+      "address.fillRequiredFields",
     );
     expect(post).not.toHaveBeenCalled();
   });
@@ -74,7 +77,7 @@ describe("J32 · adres ekleme form validasyonu", () => {
     await openDialog();
     fireEvent.press(screen.getByTestId("address-save-button"));
     // title + fullName + phone + address Input'ları mesajı basar (il/ilçe kırmızı çerçeve alır).
-    const errs = await screen.findAllByText("Zorunlu alan");
+    const errs = await screen.findAllByText("validation.required");
     expect(errs.length).toBeGreaterThanOrEqual(4);
   });
 
@@ -82,10 +85,10 @@ describe("J32 · adres ekleme form validasyonu", () => {
     renderWithProviders(<AddressesScreen />);
     await openDialog();
     fireEvent.press(screen.getByTestId("address-save-button"));
-    const beforeCount = (await screen.findAllByText("Zorunlu alan")).length;
+    const beforeCount = (await screen.findAllByText("validation.required")).length;
     fireEvent.changeText(screen.getByTestId("address-title-input"), "Ev");
     await waitFor(() => {
-      expect(screen.getAllByText("Zorunlu alan").length).toBe(beforeCount - 1);
+      expect(screen.getAllByText("validation.required").length).toBe(beforeCount - 1);
     });
   });
 });
@@ -141,14 +144,14 @@ describe('J32.b · "Varsayılan Yap" satır-bazlı yükleme (bulgu #23)', () => 
   it("bir satırda işlem beklerken yalnız o satır spinner gösterir, diğeri kalır", async () => {
     renderWithProviders(<AddressesScreen />);
 
-    const buttons = await screen.findAllByText("Varsayılan Yap");
+    const buttons = await screen.findAllByText("address.makeDefault");
     expect(buttons).toHaveLength(2);
 
     fireEvent.press(buttons[0]!);
 
     // a1 pending → başlığı spinner ile değişir; a2 dokunulmadığı için "Varsayılan Yap" kalır.
     await waitFor(() => {
-      expect(screen.getAllByText("Varsayılan Yap")).toHaveLength(1);
+      expect(screen.getAllByText("address.makeDefault")).toHaveLength(1);
     });
     expect(patch).toHaveBeenCalledTimes(1);
     expect(patch).toHaveBeenCalledWith("/users/me/addresses/a1/default");
@@ -156,8 +159,16 @@ describe('J32.b · "Varsayılan Yap" satır-bazlı yükleme (bulgu #23)', () => 
     // Mutation'ı çöz → onSuccess invalidate eder, a1 satırı yükleme durumundan çıkar,
     // dangling handle kalmaz. Her iki buton tekrar görünür.
     resolvePatch({ data: { id: "a1" } });
-    await waitFor(() => {
-      expect(screen.getAllByText("Varsayılan Yap")).toHaveLength(2);
-    });
+    // Buradaki bekleyiş DÖRT adımlı bir zincir: promise çözülür → onSuccess →
+    // invalidateQueries → yeniden fetch → render. RNTL'in 1 sn'lik varsayılanı
+    // yüklü bir CI runner'ında bu zincire dar geliyor (yerelde geçip CI'da iki
+    // kez düşmüştü). Süreyi açmak iddiayı zayıflatmıyor: davranış yanlışsa test
+    // yine kırılır, yalnız yavaş makineye tolerans tanınıyor.
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("address.makeDefault")).toHaveLength(2);
+      },
+      { timeout: 5000 },
+    );
   });
 });

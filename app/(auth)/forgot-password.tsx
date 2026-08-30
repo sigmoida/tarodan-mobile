@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import type { TFunction } from 'i18next';
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Button, Input, Screen, Text, VStack, theme } from '@/ui';
@@ -11,14 +13,23 @@ import { BrandLogo } from '@/components/BrandLogo';
 
 const { colors } = theme;
 
-const forgotSchema = z.object({
-  email: z.string().email('Geçerli email girin'),
-});
+/**
+ * Şema bir FABRİKA: zod mesajları modül seviyesinde üretilseydi `t` daha
+ * kurulmadan çalışır ve hata metni her zaman ilk dilde donardı. Çevirmeni
+ * argüman alan bu biçim, dil değiştiğinde mesajın da değişmesini sağlıyor.
+ */
+const buildForgotSchema = (t: TFunction) =>
+  z.object({
+    email: z.string().email(t('auth.emailInvalid')),
+  });
 
-type ForgotForm = z.infer<typeof forgotSchema>;
+type ForgotForm = z.infer<ReturnType<typeof buildForgotSchema>>;
 
 export default function ForgotPasswordScreen() {
+  const { t } = useTranslation();
   const [sent, setSent] = useState(false);
+  // Dil değişince şema yeniden kurulur; aksi halde eski dildeki mesaj kalırdı.
+  const forgotSchema = useMemo(() => buildForgotSchema(t), [t]);
 
   const { control, handleSubmit, formState: { errors } } = useForm<ForgotForm>({
     resolver: zodResolver(forgotSchema),
@@ -40,16 +51,16 @@ export default function ForgotPasswordScreen() {
           </View>
           <View style={styles.card}>
             <Text variant="h3" align="center">
-              Email Gönderildi
+              {t('auth.forgotSentTitle')}
             </Text>
             <Text variant="bodySm" tone="muted" align="center" style={{ marginTop: theme.spacing[2], marginBottom: theme.spacing[4] }}>
-              Şifre sıfırlama linki email adresinize gönderildi. Lütfen gelen kutunuzu kontrol edin.
+              {t('auth.forgotSentBody')}
             </Text>
             <Button
               variant="primary"
               size="lg"
               fullWidth
-              title="Giriş Sayfasına Dön"
+              title={t('auth.forgotBackToLogin')}
               onPress={() => router.push('/(auth)/login')}
             />
           </View>
@@ -67,10 +78,10 @@ export default function ForgotPasswordScreen() {
 
         <View style={styles.card}>
           <Text variant="h3" align="center">
-            Şifremi Unuttum
+            {t('auth.forgotPassword')}
           </Text>
           <Text variant="bodySm" tone="muted" align="center" style={{ marginTop: theme.spacing[2], marginBottom: theme.spacing[4] }}>
-            Email adresinizi girin, şifre sıfırlama linki göndereceğiz
+            {t('auth.forgotSubtitle')}
           </Text>
 
           <Controller
@@ -79,9 +90,9 @@ export default function ForgotPasswordScreen() {
             render={({ field: { onChange, value } }) => (
               <Input
                 testID="forgot-email-input"
-                label="E-posta"
+                label={t('auth.email')}
                 leftIconName="mail-outline"
-                placeholder="ornek@eposta.com"
+                placeholder={t('auth.emailPlaceholder')}
                 value={value}
                 onChangeText={onChange}
                 keyboardType="email-address"
@@ -93,7 +104,7 @@ export default function ForgotPasswordScreen() {
 
           {forgotMutation.isError ? (
             <Text variant="bodySm" tone="danger" align="center" style={{ marginBottom: theme.spacing[2] }}>
-              Bir hata oluştu. Lütfen tekrar deneyin.
+              {t('common.genericError')}
             </Text>
           ) : null}
 
@@ -102,13 +113,13 @@ export default function ForgotPasswordScreen() {
             variant="primary"
             size="lg"
             fullWidth
-            title="Şifre Sıfırlama Linki Gönder"
+            title={t('auth.forgotSubmit')}
             onPress={handleSubmit(onSubmit)}
             isLoading={forgotMutation.isPending}
             disabled={forgotMutation.isPending}
           />
 
-          <Button variant="ghost" fullWidth title="Geri Dön" onPress={() => router.back()} style={{ marginTop: theme.spacing[1] }} />
+          <Button variant="ghost" fullWidth title={t('common.goBack')} onPress={() => router.back()} style={{ marginTop: theme.spacing[1] }} />
         </View>
       </VStack>
     </Screen>

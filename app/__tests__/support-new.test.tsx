@@ -27,7 +27,10 @@ let mockAuth: { isAuthenticated: boolean; user: any } = {
   user: { displayName: "Ayşe", email: "ayse@test.com" },
 };
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => mockAuth,
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = mockAuth;
+    return sel ? sel(state) : state;
+  },
 }));
 
 jest.mock("react-i18next", () => ({
@@ -49,42 +52,42 @@ describe("J20 · Destek talebi (support)", () => {
   it('J20.1 giriş yapılmamışsa "Giriş Gerekli" + login navigasyonu', () => {
     mockAuth = { isAuthenticated: false, user: null };
     renderWithProviders(<SupportScreen />);
-    expect(screen.getByText("Giriş Gerekli")).toBeOnTheScreen();
-    fireEvent.press(screen.getByText("Giriş Yap"));
+    expect(screen.getByText("auth.loginRequired")).toBeOnTheScreen();
+    fireEvent.press(screen.getByText("common.login"));
     expect(mockPush).toHaveBeenCalledWith("/(auth)/login");
   });
 
   it("J20.2 kimliği doğrulanmış kullanıcıya form ve iletişim bilgisi gösterilir", () => {
     renderWithProviders(<SupportScreen />);
-    expect(screen.getByText("Kategori Seçin")).toBeOnTheScreen();
+    expect(screen.getByText("support.new.selectCategory")).toBeOnTheScreen();
     expect(screen.getByText("ayse@test.com")).toBeOnTheScreen();
     expect(screen.getByText("Ayşe")).toBeOnTheScreen();
   });
 
   it('J20.3 zorunlu alanlar boşken "Talep Oluştur" butonu disable', () => {
     renderWithProviders(<SupportScreen />);
-    expect(screen.getByText("Talep Oluştur")).toBeDisabled();
+    expect(screen.getByText("support.createTicket")).toBeDisabled();
   });
 
   it("J20.4 kategori+konu+açıklama dolunca buton aktifleşir", () => {
     renderWithProviders(<SupportScreen />);
     // kategori seç
-    fireEvent.press(screen.getByText("Hesap Sorunu"));
+    fireEvent.press(screen.getByText("support.new.category.account"));
     // alanları doldur (Konu, Açıklama) — bu kategoride orderId input'u yok
     const inputs = screen.UNSAFE_getAllByType(TextInput);
     fireEvent.changeText(inputs[0], "Hesabıma giremiyorum");
     fireEvent.changeText(inputs[1], "Şifre sıfırlama maili gelmiyor.");
-    expect(screen.getByText("Talep Oluştur")).not.toBeDisabled();
+    expect(screen.getByText("support.createTicket")).not.toBeDisabled();
   });
 
   it("J20.5 submit gerçek API çağrısı yapar (createTicket) ve başarı mesajı gösterir", async () => {
     mockCreateTicket.mockResolvedValueOnce({ data: { ticketNumber: "TKT-1" } });
     renderWithProviders(<SupportScreen />);
-    fireEvent.press(screen.getByText("Hesap Sorunu"));
+    fireEvent.press(screen.getByText("support.new.category.account"));
     const inputs = screen.UNSAFE_getAllByType(TextInput);
     fireEvent.changeText(inputs[0], "Hesabıma giremiyorum");
     fireEvent.changeText(inputs[1], "Şifre sıfırlama maili gelmiyor.");
-    fireEvent.press(screen.getByText("Talep Oluştur"));
+    fireEvent.press(screen.getByText("support.createTicket"));
     await waitFor(() => expect(mockCreateTicket).toHaveBeenCalledTimes(1));
     expect(mockCreateTicket).toHaveBeenCalledWith({
       subject: "Hesabıma giremiyorum",
@@ -93,20 +96,20 @@ describe("J20 · Destek talebi (support)", () => {
       message: "Şifre sıfırlama maili gelmiyor.",
     });
     expect(
-      await screen.findByText("Destek talebiniz oluşturuldu!"),
+      await screen.findByText("support.new.ticketCreated"),
     ).toBeOnTheScreen();
   });
 
   it("J20.6 API hatasında kullanıcıya hata mesajı gösterilir", async () => {
     mockCreateTicket.mockRejectedValueOnce(new Error("network"));
     renderWithProviders(<SupportScreen />);
-    fireEvent.press(screen.getByText("Hesap Sorunu"));
+    fireEvent.press(screen.getByText("support.new.category.account"));
     const inputs = screen.UNSAFE_getAllByType(TextInput);
     fireEvent.changeText(inputs[0], "Hesabıma giremiyorum");
     fireEvent.changeText(inputs[1], "Şifre sıfırlama maili gelmiyor.");
-    fireEvent.press(screen.getByText("Talep Oluştur"));
+    fireEvent.press(screen.getByText("support.createTicket"));
     expect(
-      await screen.findByText("Talep oluşturulamadı, lütfen tekrar deneyin."),
+      await screen.findByText("support.new.createFailed"),
     ).toBeOnTheScreen();
   });
 });

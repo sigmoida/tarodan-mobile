@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+
 export interface MembershipMe {
   tier?: { type?: string; name?: string };
   tierType?: string;
@@ -13,15 +15,19 @@ export interface MembershipMe {
   scheduledBillingPeriod?: string;
 }
 
-/** Planlı değişiklik kartındaki dönem etiketi. */
-export const BILLING_PERIOD_NAMES: Record<string, string> = {
-  monthly: 'aylık',
-  yearly: 'yıllık',
-};
+/**
+ * Planlı değişiklik kartındaki dönem etiketi / katman adı. `t` çağrıldığı
+ * ANDA çözülür — modül seviyesinde sabitlenirse hazır olmadan donar (bkz.
+ * UpgradePrompt, membershipTiers.buildTierNames).
+ */
+export const buildBillingPeriodNames = (t: TFunction): Record<string, string> => ({
+  monthly: t('membership.monthly'),
+  yearly: t('membership.yearly'),
+});
 
-export const TIER_NAMES: Record<string, string> = {
-  free: 'Ücretsiz Üyelik',
-  basic: 'Temel Üyelik',
-  premium: 'Premium Üyelik',
-  business: 'Business Üyelik',
-};
+export const buildTierNames = (t: TFunction): Record<string, string> => ({
+  free: t('membership.freeMembership'),
+  basic: t('membership.basicMembership'),
+  premium: t('membership.premiumMembership'),
+  business: t('membership.businessMembership'),
+});

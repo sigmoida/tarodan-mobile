@@ -23,14 +23,13 @@ export default function LanguageSettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title={t("language.language") || "Dil / Language"} />
+      <ScreenHeader title={t("language.language")} />
 
       <ScrollView contentContainerStyle={styles.scrollBody}>
         <View style={styles.infoCard}>
           <Ionicons name="language" size={18} color={colors.primary[600]!} />
           <Text style={styles.infoText}>
-            {t("language.languageInfo") ||
-              "Uygulama dilini değiştirdiğinizde tüm menü ve bildirimler seçtiğiniz dile geçer."}
+            {t("language.languageInfo")}
           </Text>
         </View>
 

@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView } from 'react-native';
 import { Button, Text, theme } from '@/ui';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ScreenHeader, EmptyState } from '@/components/common';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -16,6 +17,7 @@ const { colors } = theme;
  * Bu ekran kullanıcıyı bilgilendirir ve ayrı kurumsal kayıt akışına yönlendirir.
  */
 export default function SellerRegisterScreen() {
+  const { t } = useTranslation();
   const { isAuthenticated, user } = useAuthStore();
 
   const handleBack = () =>
@@ -24,12 +26,12 @@ export default function SellerRegisterScreen() {
   if (!isAuthenticated) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="İşletme Hesabı" onBack={handleBack} />
+        <ScreenHeader title={t('seller.businessAccountTitle')} onBack={handleBack} />
         <EmptyState
           fullscreen
           icon="briefcase-outline"
-          title="Kurumsal hesap açmak için kurumsal kayıt formunu kullanın"
-          actionLabel="Kurumsal Hesap Aç"
+          title={t('seller.useBusinessRegisterForm')}
+          actionLabel={t('seller.openBusinessAccount')}
           onAction={() => router.push('/(auth)/register-business')}
         />
       </View>
@@ -43,15 +45,15 @@ export default function SellerRegisterScreen() {
   if (isBusinessAccount) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="İşletme Hesabı" onBack={handleBack} />
+        <ScreenHeader title={t('seller.businessAccountTitle')} onBack={handleBack} />
         <ScrollView contentContainerStyle={styles.scrollBody}>
           <View style={styles.infoCard}>
             <Ionicons name="checkmark-circle" size={22} color={colors.success[600]!} />
             <Text style={styles.infoCardText}>
-              Hesabınız zaten kurumsal (işletme) hesap olarak tanımlı.
+              {t('seller.alreadyBusinessAccount')}
               {isBusinessTier
-                ? ' Business üyeliğiniz aktif.'
-                : ' Business üyeliğinizi tamamlayarak kurumsal avantajları etkinleştirin.'}
+                ? t('seller.businessMembershipActiveNote')
+                : t('seller.completeBusinessMembershipNote')}
             </Text>
           </View>
 
@@ -59,7 +61,7 @@ export default function SellerRegisterScreen() {
             testID="seller-register-continue-application"
             variant="primary"
             fullWidth
-            title="Başvurumu Tamamla / Düzenle"
+            title={t('seller.completeOrEditApplication')}
             onPress={() => router.push('/settings/business-application' as never)}
             style={styles.submitBtn}
           />
@@ -68,13 +70,13 @@ export default function SellerRegisterScreen() {
             <Button
               variant="outline"
               fullWidth
-              title="Business Üyeliğe Geç"
+              title={t('seller.switchToBusinessMembership')}
               onPress={() => router.replace('/membership')}
               style={styles.submitBtn}
             />
           ) : null}
 
-          <Button variant="ghost" fullWidth title="Geri Dön" onPress={handleBack} />
+          <Button variant="ghost" fullWidth title={t('common.goBack')} onPress={handleBack} />
         </ScrollView>
       </View>
     );
@@ -83,45 +85,42 @@ export default function SellerRegisterScreen() {
   // Bireysel hesap: işletme olmak için ayrı hesap açması gerektiğini anlat.
   return (
     <View style={styles.container}>
-      <ScreenHeader title="İşletme Hesabı" onBack={handleBack} />
+      <ScreenHeader title={t('seller.businessAccountTitle')} onBack={handleBack} />
       <ScrollView contentContainerStyle={styles.scrollBody}>
         <View style={styles.benefitsCard}>
-          <Text style={styles.benefitsTitle}>Kurumsal Satıcı Avantajları</Text>
+          <Text style={styles.benefitsTitle}>{t('seller.businessSellerBenefits')}</Text>
           <View style={styles.benefitRow}>
             <Ionicons name="checkmark-circle" size={18} color={colors.success[600]!} />
-            <Text style={styles.benefitText}>Sınırsız ilan ve daha düşük komisyon oranı</Text>
+            <Text style={styles.benefitText}>{t('seller.benefitUnlimitedListings')}</Text>
           </View>
           <View style={styles.benefitRow}>
             <Ionicons name="checkmark-circle" size={18} color={colors.success[600]!} />
-            <Text style={styles.benefitText}>Arama sonuçlarında öncelikli gösterim</Text>
+            <Text style={styles.benefitText}>{t('seller.benefitSearchPriority')}</Text>
           </View>
           <View style={styles.benefitRow}>
             <Ionicons name="checkmark-circle" size={18} color={colors.success[600]!} />
-            <Text style={styles.benefitText}>Fatura düzenleme ve toplu yükleme</Text>
+            <Text style={styles.benefitText}>{t('seller.benefitInvoicingBulkUpload')}</Text>
           </View>
           <View style={styles.benefitRow}>
             <Ionicons name="checkmark-circle" size={18} color={colors.success[600]!} />
-            <Text style={styles.benefitText}>Kurumsal rozet ve istatistik paneli</Text>
+            <Text style={styles.benefitText}>{t('seller.benefitBadgeAndStats')}</Text>
           </View>
         </View>
 
         <View style={styles.noteCard}>
           <MaterialCommunityIcons name="information-outline" size={18} color={colors.info[600]!} />
-          <Text style={styles.noteText}>
-            İşletme hesabı, bireysel hesabınızdan ayrı bir hesaptır. Mevcut hesabınız işletmeye
-            dönüştürülmez; vergi ve şirket bilgilerinizle ayrı bir kurumsal hesap açmanız gerekir.
-          </Text>
+          <Text style={styles.noteText}>{t('seller.businessAccountSeparateNote')}</Text>
         </View>
 
         <Button
           variant="primary"
           fullWidth
-          title="Kurumsal Hesap Aç"
+          title={t('seller.openBusinessAccount')}
           onPress={() => router.push('/(auth)/register-business')}
           style={styles.submitBtn}
         />
 
-        <Button variant="ghost" fullWidth title="Vazgeç" onPress={handleBack} />
+        <Button variant="ghost" fullWidth title={t('seller.cancel')} onPress={handleBack} />
       </ScrollView>
     </View>
   );

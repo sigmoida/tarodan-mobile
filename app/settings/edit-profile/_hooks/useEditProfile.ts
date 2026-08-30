@@ -1,12 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { userApi, mediaApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
-import { normalizePhoneForPayload, splitPhone } from '@/utils/phone';
-import { createProfileSchema, type ProfileForm } from '../_lib/schema';
+import {
+  isValidPhoneInput,
+  parsePhoneForPayload,
+  getPhoneInvalidMessage,
+  splitPhone,
+} from '@/utils/phone';
+import { buildProfileSchema, type ProfileForm } from '../_lib/schema';
 
 /**
  * Edit-profile controller — owns the RHF+zod form, the avatar pick + upload,
@@ -14,6 +20,7 @@ import { createProfileSchema, type ProfileForm } from '../_lib/schema';
  * the snackbar. Lifted verbatim from the monolithic screen (§12).
  */
 export function useEditProfile() {
+  const { t } = useTranslation();
   const { user, isAuthenticated, refreshUserData } = useAuthStore();
   const queryClient = useQueryClient();
 
@@ -26,6 +33,11 @@ export function useEditProfile() {
 
   const isBusinessTier = (user as any)?.membershipTier === 'business';
 
+  const profileSchema = useMemo(
+    () => buildProfileSchema(t, isBusinessTier),
+    [t, isBusinessTier],
+  );
+
   // Kayıtlı numara "+90532…" formatında gelir — ülke kodu + formatlı lokal parçaya ayır.
   const [phoneCountryCode, setPhoneCountryCode] = useState(
     () => splitPhone((user as any)?.phone || '').countryCode,
@@ -35,9 +47,11 @@ export function useEditProfile() {
     control,
     handleSubmit,
     formState: { errors },
+    setError,
+    clearErrors,
     watch,
   } = useForm<ProfileForm>({
-    resolver: zodResolver(createProfileSchema(isBusinessTier)),
+    resolver: zodResolver(profileSchema),
     defaultValues: {
       displayName: user?.displayName || '',
       bio: user?.bio || '',
@@ -71,10 +85,23 @@ export function useEditProfile() {
         avatarUrl = uploadRes.data?.key ?? uploadRes.data?.url;
       }
 
+      // Boş bırakılırsa '' gönderilir (numara silme); doluysa "+90…" normalize edilir.
+      // EMNİYET KEMERİ: `onSubmit` zaten geçirmiyor, ama çözülemeyen numara sessizce
+      // kırpılıp/uydurulup kaydedilmesin — gönderimi durdur.
+      let phone = data.phone;
+      if (phone) {
+        const parsed = parsePhoneForPayload(phone, phoneCountryCode);
+        if (!parsed) {
+          const invalid: any = new Error(getPhoneInvalidMessage());
+          invalid.isClientValidation = true;
+          throw invalid;
+        }
+        phone = parsed;
+      }
+
       const payload: Record<string, any> = {
         displayName: data.displayName,
-        // Boş bırakılırsa '' gönderilir (numara silme); doluysa "+90…" normalize edilir.
-        phone: data.phone ? normalizePhoneForPayload(data.phone, phoneCountryCode) : data.phone,
+        phone,
         bio: data.bio,
         birthDate: data.birthDate,
       };
@@ -103,12 +130,18 @@ export function useEditProfile() {
       // profilde yeni foto görünmez. Web'deki refreshUser() ile parite.
       await refreshUserData();
       queryClient.invalidateQueries({ queryKey: ['user'] });
-      setSnackbar({ visible: true, message: 'Profil güncellendi!', variant: 'success' });
+      setSnackbar({ visible: true, message: t('profile.profileUpdated'), variant: 'success' });
     },
     onError: (error: any) => {
+      // Client-side telefon reddi ağ hatası değil — alana da yaz, snackbar'da da göster.
+      if (error?.isClientValidation) {
+        setError('phone', { type: 'manual', message: error.message });
+        setSnackbar({ visible: true, message: error.message, variant: 'danger' });
+        return;
+      }
       setSnackbar({
         visible: true,
-        message: error.response?.data?.message || 'Güncelleme başarısız',
+        message: error.response?.data?.message || t('collection.updateFailed'),
         variant: 'danger',
       });
     },
@@ -128,6 +161,14 @@ export function useEditProfile() {
   };
 
   const onSubmit = (data: ProfileForm) => {
+    // Telefon opsiyonel — boş bırakmak "numarayı sil" demek. Ama DOLUYSA
+    // çözülebilmeli: eskiden fazla hane sessizce kırpılıp yanlış numara
+    // kaydediliyordu. Şema ülke kodunu bilmediği için gate burada.
+    if (data.phone?.trim() && !isValidPhoneInput(data.phone, phoneCountryCode)) {
+      setError('phone', { type: 'manual', message: getPhoneInvalidMessage() });
+      return;
+    }
+    clearErrors('phone');
     updateMutation.mutate(data);
   };
 

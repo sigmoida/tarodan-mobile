@@ -1,5 +1,28 @@
 import { api } from './client';
 
+/** Bir tarafın maliyeti. Hepsi TL ve KDV DAHİL; total = serviceFee + shipping + cashDifference. */
+export type TradePaymentQuoteSide = {
+  userId?: string;
+  side?: 'initiator' | 'receiver';
+  serviceFee: number;
+  shipping: number;
+  cashDifference: number;
+  total: number;
+  /** Denetim detayı — ekranda BASILMAZ, tek `serviceFee` satırı gösterilir. */
+  feeLines?: Array<{ productId: string; role: string; amount: number }>;
+};
+
+/**
+ * Sunucu ayrıca `commissionRuleSet` ve `ruleMatches[]` döndürüyor (2026-08-09
+ * ölçümü — delta 17 §1c'de yazmıyor). İkisi de denetim detayı; istemci OKUMAZ,
+ * eksik sanılmasın diye burada anılıyor.
+ */
+export type TradePaymentQuote = {
+  tradeId?: string;
+  initiator: TradePaymentQuoteSide;
+  receiver: TradePaymentQuoteSide;
+};
+
 // Trades API - Web ile aynı endpoint'ler
 export const tradesApi = {
   getAll: (params?: Record<string, any>) =>
@@ -33,6 +56,25 @@ export const tradesApi = {
     api.post(`/trades/${id}/confirm-receipt`),
   raiseDispute: (id: string | number, data: { reason: string; description: string; evidenceUrls?: string[] }) =>
     api.post(`/trades/${id}/dispute`, data),
+  /**
+   * Takas ödeme dökümü. v1 takasta `200` + BOŞ GÖVDE döner (ölçümle doğrulandı) —
+   * bu hata değildir, `isV2`'nin ikinci kaynağıdır. Takasın HER durumunda çalışır:
+   * kabul edilmemiş v2 takasta da dolu gövde döner, bu yüzden 0 satırlı takas v1
+   * SAYILAMAZ. `503 server.shipping.noActiveTariff`: aktif tarifede kademe yok.
+   */
+  getPaymentQuote: (id: string | number) =>
+    api.get<Partial<TradePaymentQuote>>(`/trades/${id}/payment-quote`),
+  /**
+   * Kaydedilmemiş teklifin canlı fiyatı — teklif oluşturma ekranı için.
+   * Yanıtta `tradeId`/`userId`/`side` YOKTUR (ölçümle doğrulandı). Bilinmeyen
+   * veya silinmiş `productId` sunucuda sessizce atlanır.
+   */
+  previewPaymentQuote: (body: {
+    initiatorItems: Array<{ productId: string; quantity?: number }>;
+    receiverItems: Array<{ productId: string; quantity?: number }>;
+    cashAmount?: number;
+    cashPayer?: 'initiator' | 'receiver';
+  }) => api.post<Omit<TradePaymentQuote, 'tradeId'>>('/trades/payment-quote/preview', body),
 };
 
 // Offers API - Web ile aynı endpoint'ler

@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { CONDITIONS } from '@/theme/catalog';
+import { useTranslation } from 'react-i18next';
 import { carModelsApi, productsApi } from '@/lib/api';
 import { transformImageUrl } from '@/utils/imageUrl';
 import { useRefresh } from '@/hooks/useRefresh';
@@ -12,6 +12,7 @@ import type { CarModelDetail, Product } from '../_lib/types';
  * monolithic screen (§12).
  */
 export function useModelDetail() {
+  const { t } = useTranslation();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const slugStr = String(slug ?? '');
 
@@ -51,7 +52,27 @@ export function useModelDetail() {
     return transformImageUrl(url);
   };
 
-  const conditionLabel = (c?: string) => CONDITIONS.find((x) => x.id === c)?.name ?? c ?? '';
+  // Bu ekranın durum seti `buildConditionOptions` (search/listings) ile aynı
+  // değil — 'poor' burada var, 'very_good' yok. Eskiden `@/theme/catalog`
+  // CONDITIONS'a (module-scope TR literal dizisi) bakıyordu; katalogdaki
+  // `product.condition*` anahtarlarına yerinde çevrildi (bkz. i18n-anasayfa
+  // slice raporu — "duplicate conditionLabel").
+  const conditionLabel = (c?: string) => {
+    switch (c) {
+      case 'new':
+        return t('product.conditionNew');
+      case 'like_new':
+        return t('product.conditionLikeNew');
+      case 'good':
+        return t('product.conditionGood');
+      case 'fair':
+        return t('product.conditionFair');
+      case 'poor':
+        return t('product.conditionPoor');
+      default:
+        return c ?? '';
+    }
+  };
 
   return {
     modelQuery,

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Button, Card, Chip, Divider, Text, Input, Textarea, theme } from '@/ui';
 
 import { ThemedRefreshControl } from '@/components/common';
@@ -14,6 +15,7 @@ const { colors } = theme;
 
 /** Notice, product pickers, cash, message, summary, and submit/cancel buttons. */
 export function TradeCounterBody({ f }: { f: TradeCounterController }) {
+  const { t } = useTranslation();
   const { trade } = f;
   if (!trade) return null;
 
@@ -25,13 +27,13 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
       <View style={styles.noticeCard}>
         <Ionicons name="information-circle" size={18} color={colors.info[600]!} />
         <Text style={styles.noticeText}>
-          Orijinal teklifi düzenleyip karşı tarafa yeni bir teklif gönderirsiniz. Nakit fark ekleyebilir, ürün ekleyip çıkartabilirsiniz.
+          {t('trade.counterOfferNotice')}
         </Text>
       </View>
 
       <TradeProductPicker
-        title="Vereceğim Ürünler"
-        subtitle="Takasta vermek istediğim ürünleri seçin."
+        title={t('trade.counterMyItemsTitle')}
+        subtitle={t('trade.counterMyItemsSubtitle')}
         products={f.myProducts}
         selected={f.selectedMine}
         toggle={f.toggleMine}
@@ -44,25 +46,25 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
       </View>
 
       <TradeProductPicker
-        title="İsteyeceğim Ürünler"
-        subtitle={`${f.amIInitiator ? trade.receiverName : trade.initiatorName} adlı satıcıdan istediğim ürünleri seçin.`}
+        title={t('trade.counterTheirItemsTitle')}
+        subtitle={t('trade.counterTheirItemsSubtitle', { name: f.amIInitiator ? trade.receiverName : trade.initiatorName })}
         products={f.theirProducts}
         selected={f.selectedTheirs}
         toggle={f.toggleTheirs}
       />
 
       <Card style={styles.card}>
-        <Text style={styles.section}>Nakit Fark</Text>
+        <Text style={styles.section}>{t('trade.cashDifferenceLine')}</Text>
         <View style={styles.chipsRow}>
           <Chip
-            label="Ben ödeyeceğim"
+            label={t('trade.iWillPay')}
             selected={f.cashDirection === 'offer'}
             onPress={() => f.setCashDirection('offer')}
             variant="primary"
             style={styles.chip}
           />
           <Chip
-            label="Karşı taraf ödesin"
+            label={t('trade.theyWillPay')}
             selected={f.cashDirection === 'request'}
             onPress={() => f.setCashDirection('request')}
             variant="primary"
@@ -70,7 +72,7 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
           />
         </View>
         <Input
-          label="Tutar (TL)"
+          label={t('trade.amountLabelTL')}
           value={f.cashAmount}
           onChangeText={(v: string) => f.setCashAmount(v.replace(/[^\d.]/g, ''))}
           keyboardType="numeric"
@@ -79,12 +81,12 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
       </Card>
 
       <Card style={styles.card}>
-        <Text style={styles.section}>Mesaj (opsiyonel)</Text>
+        <Text style={styles.section}>{t('trade.messageOptionalLabel')}</Text>
         <Textarea
           value={f.message}
           onChangeText={(v: string) => f.setMessage(v.slice(0, 500))}
           rows={3}
-          placeholder="Karşı tarafa not bırakın..."
+          placeholder={t('trade.counterMessagePlaceholderLong')}
           containerStyle={styles.messageInput}
         />
         <Text style={styles.charCount}>{f.message.length}/500</Text>
@@ -92,19 +94,19 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
 
       {/* Summary */}
       <Card style={styles.card}>
-        <Text style={styles.section}>Özet</Text>
+        <Text style={styles.section}>{t('trade.summaryTitle')}</Text>
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Verdiğim Toplam</Text>
+          <Text style={styles.summaryLabel}>{t('trade.myTotalGiven')}</Text>
           <Text style={styles.summaryValue}>{formatPrice(f.myTotal)}</Text>
         </View>
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>İstediğim Toplam</Text>
+          <Text style={styles.summaryLabel}>{t('trade.myTotalWanted')}</Text>
           <Text style={styles.summaryValue}>{formatPrice(f.theirTotal)}</Text>
         </View>
         {f.cashValue > 0 ? (
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>
-              {f.cashDirection === 'offer' ? 'Ödeyeceğim' : 'Alacağım'} nakit
+              {f.cashDirection === 'offer' ? t('trade.willPayCashShort') : t('trade.willReceiveCashShort')}
             </Text>
             <Text style={[styles.summaryValue, { color: colors.primary[600]! }]}>
               {formatPrice(f.cashValue)}
@@ -113,20 +115,20 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
         ) : null}
         <Divider style={{ marginVertical: theme.spacing[2] }} />
         <Text style={styles.summaryHint}>
-          {f.selectedMine.length} ürün vereceksiniz, {f.selectedTheirs.length} ürün alacaksınız.
+          {t('trade.counterSummaryHint', { myCount: f.selectedMine.length, theirCount: f.selectedTheirs.length })}
         </Text>
       </Card>
 
       <Button
         variant="primary"
-        title="Karşı Teklifi Gönder"
+        title={t('trade.sendCounterOffer')}
         onPress={f.handleSubmit}
         isLoading={f.counterMutation.isPending}
         disabled={f.counterMutation.isPending || (f.selectedMine.length === 0 && f.selectedTheirs.length === 0)}
         style={styles.submitBtn}
       />
 
-      <Button variant="ghost" title="Vazgeç" onPress={() => router.back()} />
+      <Button variant="ghost" title={t('trade.dispute.cancelCta')} onPress={() => router.back()} />
     </ScrollView>
   );
 }

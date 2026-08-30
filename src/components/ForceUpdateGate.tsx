@@ -1,18 +1,11 @@
 import { Linking, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { theme, Text, Button } from "@/ui";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
 
 const { colors, spacing, radius } = theme;
 // spacing tokens are numeric (spacing[2]=8, [5]=20, [6]=24) — see design-tokens.
-
-/** Force-update copy — single source (mobile i18n sweep, #216, migrates it). */
-const COPY = {
-  title: "Güncelleme gerekli",
-  description:
-    "Uygulamanın bu sürümü artık desteklenmiyor. Devam etmek için lütfen en son sürüme güncelleyin.",
-  button: "Şimdi güncelle",
-};
 
 /**
  * Blocking force-update gate (#233). When the API (#232) reports this build is
@@ -24,6 +17,7 @@ const COPY = {
  * renders null while loading, on any error, or on web/unknown platform.
  */
 export default function ForceUpdateGate() {
+  const { t } = useTranslation();
   const { updateRequired, storeUrl } = useForceUpdate();
   if (!updateRequired) return null;
 
@@ -37,7 +31,7 @@ export default function ForceUpdateGate() {
         />
       </View>
       <Text variant="h2" align="center" style={styles.title}>
-        {COPY.title}
+        {t("mobile.forceUpdateTitle")}
       </Text>
       <Text
         variant="body"
@@ -45,12 +39,12 @@ export default function ForceUpdateGate() {
         align="center"
         style={styles.description}
       >
-        {COPY.description}
+        {t("mobile.forceUpdateDescription")}
       </Text>
       <Button
         variant="primary"
         fullWidth
-        title={COPY.button}
+        title={t("mobile.forceUpdateButton")}
         onPress={() => storeUrl && Linking.openURL(storeUrl)}
         style={styles.button}
       />

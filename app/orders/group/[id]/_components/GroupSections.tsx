@@ -1,17 +1,21 @@
-import { View, Image, Pressable } from 'react-native';
-import { Card, StatusBadge, Text, theme } from '@/ui';
+import { useTranslation } from 'react-i18next';
+import { View, Image, Pressable, Linking } from 'react-native';
+import { Card, StatusBadge, Text, Button, theme } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getOrderProductImageUri } from '@/utils/orderProductImage';
 import { formatPrice } from '@/utils/format';
+import { deriveShipmentView } from '@/lib/shipping/tracking';
 import { styles } from '../_lib/styles';
-import { uiOrderStatusConfig, badgeStatusOf, formatDate, deriveOrderRow } from '../_lib/status';
-import type { GroupDetail, GroupOrder } from '../_lib/types';
+import { useOrderStatusConfig, badgeStatusOf, formatDate, deriveOrderRow } from '../_lib/status';
+import type { GroupDetail, GroupOrder, GroupPackage } from '../_lib/types';
 
 const { colors } = theme;
 
 /** Grup başlık kartı + (2+ üründe) ürün-bazlı iade/iptal notu. */
 export function GroupHeader({ group }: { group: GroupDetail }) {
+  const { t } = useTranslation();
+  const statusConfig = useOrderStatusConfig();
   return (
     <>
       <Card variant="elevated" padding={12} style={styles.card}>
@@ -22,10 +26,10 @@ export function GroupHeader({ group }: { group: GroupDetail }) {
               {formatDate(group.createdAt)} · {group.orders.length} ürün
             </Text>
           </View>
-          <StatusBadge status={group.status} config={uiOrderStatusConfig} size="sm" />
+          <StatusBadge status={group.status} config={statusConfig} size="sm" />
         </View>
         <View style={[styles.headerRow, styles.totalRow]}>
-          <Text variant="label">Toplam</Text>
+          <Text variant="label">{t('common.total')}</Text>
           <Text variant="label" style={styles.price}>{formatPrice(group.totalAmount)}</Text>
         </View>
       </Card>
@@ -47,6 +51,8 @@ export function GroupHeader({ group }: { group: GroupDetail }) {
 
 /** Tek ürün satırı — kendi kargo takibi + iade/iptal aksiyonu (self-gated). */
 export function GroupOrderRow({ order, multi }: { order: GroupOrder; multi: boolean }) {
+  const { t } = useTranslation();
+  const statusConfig = useOrderStatusConfig();
   const d = deriveOrderRow(order);
 
   return (
@@ -55,13 +61,15 @@ export function GroupOrderRow({ order, multi }: { order: GroupOrder; multi: bool
         <View style={styles.itemHeader}>
           <Text variant="caption" style={styles.muted}>#{order.orderNumber}</Text>
           {/* Tek siparişli grupta öğe rozeti, üstteki grup rozetiyle aynı → yalnız 2+ siparişte göster. */}
-          {multi && <StatusBadge status={badgeStatusOf(order)} config={uiOrderStatusConfig} size="sm" />}
+          {multi && <StatusBadge status={badgeStatusOf(order)} config={statusConfig} size="sm" />}
         </View>
         <View style={styles.itemContent}>
           <Image source={{ uri: getOrderProductImageUri(order.product) }} style={styles.productImage} />
           <View style={styles.itemInfo}>
             <Text variant="label" numberOfLines={2}>{order.product.title}</Text>
-            <Text variant="caption" style={styles.muted}>Satıcı: {order.seller?.displayName}</Text>
+            <Text variant="caption" style={styles.muted}>
+              {t('refund.sellerLabel', { name: order.seller?.displayName })}
+            </Text>
             <Text variant="label" style={styles.price}>{formatPrice(order.totalAmount)}</Text>
           </View>
         </View>
@@ -73,8 +81,8 @@ export function GroupOrderRow({ order, multi }: { order: GroupOrder; multi: bool
               size={16}
               color={d.isDelivered ? colors.success[600]! : colors.primary[600]!}
             />
-            <Text variant="caption" style={styles.shipmentText}>
-              {d.isDelivered ? 'Teslim Edildi' : 'Kargo Takip'}: {d.tracking}
+            <Text testID="group-tracking-text" variant="caption" style={styles.shipmentText}>
+              {d.trackingText}
             </Text>
             <Ionicons name="chevron-forward" size={16} color={colors.text.subtle} />
           </View>
@@ -92,6 +100,56 @@ export function GroupOrderRow({ order, multi }: { order: GroupOrder; multi: bool
           </View>
         )}
       </Pressable>
+    </Card>
+  );
+}
+
+/**
+ * Satıcı-bazlı paket kırılımı (B10). Yalnızca 2+ paketli grupta gösterilir —
+ * tek paketli grupta üstteki sipariş satırının kendi kargo satırı zaten aynı
+ * bilgiyi taşıyor, ayrı kart tekrar olurdu (§5 DRY).
+ *
+ * Takip linki HER ZAMAN `deriveShipmentView` ile kurulur — sunucunun
+ * `cargo.trackingUrl`'ı hiç okunmaz (bkz. `_hooks/useOrderGroup.ts`).
+ */
+export function GroupPackageCard({ pkg }: { pkg: GroupPackage }) {
+  const { t } = useTranslation();
+  const view = deriveShipmentView(pkg.cargo, pkg.cargo?.cargoCode);
+
+  return (
+    <Card variant="elevated" padding={12} style={styles.card} testID="group-package-card">
+      {pkg.seller && (
+        <Text variant="label" style={styles.packageSellerName}>
+          {t('order.sellerPackage', { name: pkg.seller.publicName || pkg.seller.displayName })}
+        </Text>
+      )}
+      {pkg.packageNumber && (
+        <View style={styles.packageInfoRow}>
+          <Text variant="caption" style={styles.muted}>{t('order.packageNumber')}</Text>
+          <Text variant="caption" style={styles.packageInfoValue}>{pkg.packageNumber}</Text>
+        </View>
+      )}
+      <View style={styles.packageInfoRow}>
+        <Text variant="caption" style={styles.muted}>{t('checkout.shipping')}</Text>
+        <Text variant="caption" style={styles.packageInfoValue}>{formatPrice(pkg.shippingCost)}</Text>
+      </View>
+      {view.cargoCode ? (
+        <View style={styles.packageInfoRow}>
+          <Text variant="caption" style={styles.muted}>{t('order.trackingNumber')}</Text>
+          <Text variant="caption" style={styles.packageInfoValue}>{view.cargoCode}</Text>
+        </View>
+      ) : view.isCodePending ? (
+        <Text variant="caption" style={styles.muted}>{t('shipping.codePending')}</Text>
+      ) : null}
+      {view.trackingUrl && (
+        <Button
+          variant="outline"
+          size="sm"
+          title={t('order.trackOnSurat')}
+          onPress={() => Linking.openURL(view.trackingUrl!)}
+          style={styles.packageTrackButton}
+        />
+      )}
     </Card>
   );
 }

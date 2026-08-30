@@ -16,12 +16,12 @@ export function AddressFormModal({ f }: { f: AddressesController }) {
     <Modal
       isOpen={f.dialogVisible}
       onClose={() => f.setDialogVisible(false)}
-      title={f.editingAddress ? 'Adresi Düzenle' : 'Yeni Adres'}
+      title={f.editingAddress ? t('address.editAddress') : t('address.newAddress')}
     >
       <ScrollView style={styles.dialogScroll}>
         <Input
           testID="address-title-input"
-          label="Adres Başlığı *"
+          label={`${t('address.addressTitleLabel')} *`}
           value={formData.title}
           onChangeText={(text) => {
             setFormData({ ...formData, title: text });
@@ -32,7 +32,8 @@ export function AddressFormModal({ f }: { f: AddressesController }) {
           containerStyle={styles.input}
         />
         <Input
-          label="Ad Soyad *"
+          testID="address-fullname-input"
+          label={`${t('address.fullName')} *`}
           value={formData.fullName}
           onChangeText={(text) => {
             setFormData({ ...formData, fullName: text });
@@ -42,7 +43,10 @@ export function AddressFormModal({ f }: { f: AddressesController }) {
           containerStyle={styles.input}
         />
         <PhoneInput
-          label="Telefon *"
+          testID="address-phone-input"
+          label={`${t('address.phone')} *`}
+          // Kaydete basmadan önce görsün: çözülemeyen numara blur'da uyarır.
+          validateOnBlur
           countryCode={formData.phoneCountryCode}
           onCountryCodeChange={(code) => setFormData({ ...formData, phoneCountryCode: code })}
           phone={formData.phone}
@@ -54,7 +58,8 @@ export function AddressFormModal({ f }: { f: AddressesController }) {
           containerStyle={styles.input}
         />
         <Input
-          label="Adres *"
+          testID="address-address-input"
+          label={`${t('address.address')} *`}
           value={formData.address}
           onChangeText={(text) => {
             setFormData({ ...formData, address: text });
@@ -83,7 +88,7 @@ export function AddressFormModal({ f }: { f: AddressesController }) {
           }}
         />
         <Input
-          label="Posta Kodu"
+          label={t('address.zipCode')}
           value={formData.postalCode}
           onChangeText={(text) => setFormData({ ...formData, postalCode: text })}
           keyboardType="numeric"
@@ -106,7 +111,7 @@ export function AddressFormModal({ f }: { f: AddressesController }) {
         <Button
           testID="address-save-button"
           variant="primary"
-          title="Kaydet"
+          title={t('mobile.save')}
           onPress={f.handleSubmit}
           isLoading={f.saveMutation.isPending}
         />

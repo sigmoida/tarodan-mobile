@@ -29,7 +29,10 @@ let mockAuth: any = {
   limits: { maxMessagesPerDay: 50 },
 };
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => mockAuth,
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = mockAuth;
+    return sel ? sel(state) : state;
+  },
 }));
 
 // Store artık client-only (getOtherParticipant + dailyMessageCount); selector-aware (#77).
@@ -104,18 +107,18 @@ describe("J16 · mesaj konuşma listesi", () => {
     mockAuth = { isAuthenticated: false, user: null, limits: null };
     renderWithProviders(<MessagesTabScreen />);
     expect(
-      screen.getByText("Mesajlarınızı görmek için giriş yapın"),
+      screen.getByText("message.loginToView"),
     ).toBeOnTheScreen();
-    fireEvent.press(screen.getByText("Giriş Yap"));
+    fireEvent.press(screen.getByText("common.login"));
     expect(mockPush).toHaveBeenCalledWith("/(auth)/login");
   });
 
   it("J16.2 thread yoksa boş durum gösterir", () => {
     mockThreadsQuery = makeThreadsQuery([]);
     renderWithProviders(<MessagesTabScreen />);
-    expect(screen.getByText("Henüz mesaj yok")).toBeOnTheScreen();
+    expect(screen.getByText("message.noMessagesYet")).toBeOnTheScreen();
     expect(
-      screen.getByText("Bir satıcıyla iletişime geçerek başlayın"),
+      screen.getByText("message.startConversationShort"),
     ).toBeOnTheScreen();
   });
 
@@ -132,14 +135,14 @@ describe("J16 · mesaj konuşma listesi", () => {
     mockMessages = makeStore({ dailyMessageCount: 45 });
     mockThreadsQuery = makeThreadsQuery([thread()]);
     renderWithProviders(<MessagesTabScreen />);
-    expect(screen.getByText("Günlük mesaj: 45/50")).toBeOnTheScreen();
+    expect(screen.getByText("message.dailyMessageCount")).toBeOnTheScreen();
   });
 
   it("J16.5 limit dolunca Premium yükseltme bağlantısı gösterir", () => {
     mockMessages = makeStore({ dailyMessageCount: 50 });
     mockThreadsQuery = makeThreadsQuery([thread()]);
     renderWithProviders(<MessagesTabScreen />);
-    fireEvent.press(screen.getByText("Premium'a Geç"));
+    fireEvent.press(screen.getByText("address.goPremium"));
     expect(mockPush).toHaveBeenCalledWith("/upgrade");
   });
 
@@ -147,6 +150,6 @@ describe("J16 · mesaj konuşma listesi", () => {
     mockMessages = makeStore({ dailyMessageCount: 5 });
     mockThreadsQuery = makeThreadsQuery([thread()]);
     renderWithProviders(<MessagesTabScreen />);
-    expect(screen.queryByText(/Günlük mesaj:/)).toBeNull();
+    expect(screen.queryByText("message.dailyMessageCount")).toBeNull();
   });
 });

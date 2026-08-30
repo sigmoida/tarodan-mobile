@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,7 +8,9 @@ import { Avatar, Badge, Text, theme } from '@/ui';
 import { buildAvatarUrl } from '@/lib/api';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/profileStyles';
-import { quickActionItems, quickActionTint, type QuickActionBadgeKey } from '../_lib/profileConstants';
+import { buildQuickActionItems, quickActionTint, type QuickActionBadgeKey } from '../_lib/profileConstants';
+import { buildLegalPages } from '../_lib/legalPages';
+import { buildInfoPages, buildAccountPages } from '../_lib/infoPages';
 import type { ProfileController } from '../_hooks/useProfile';
 
 const { colors, spacing } = theme;
@@ -18,6 +21,7 @@ type SectionProps = { f: ProfileController };
 // Profile card: avatar, name, membership + trust badges, edit button
 // ---------------------------------------------------------------------------
 export function ProfileCard({ f }: SectionProps) {
+  const { t } = useTranslation();
   const { user } = f;
   return (
     <View style={styles.profileCard}>
@@ -35,7 +39,7 @@ export function ProfileCard({ f }: SectionProps) {
           <View style={styles.membershipBadge}>
             <Ionicons name="diamond" size={14} color={colors.warning[500]!} />
             <Text variant="caption" weight="semibold" style={{ marginLeft: spacing[1] }}>
-              {f.tierLabel} Üye
+              {t('profile.tierMemberBadge', { tier: f.tierLabel })}
             </Text>
           </View>
         )}
@@ -48,7 +52,8 @@ export function ProfileCard({ f }: SectionProps) {
                 weight="semibold"
                 style={{ marginLeft: spacing[1], color: colors.warning[700]! }}
               >
-                Güven {f.trustScore}/100{f.trustLevel ? ` · ${f.trustLevel}` : ''}
+                {t('seller.trustScoreLabel', { score: f.trustScore })}
+                {f.trustLevel ? t('seller.trustScoreLevelSuffix', { level: f.trustLevel }) : ''}
               </Text>
             </View>
             <TouchableOpacity
@@ -65,7 +70,7 @@ export function ProfileCard({ f }: SectionProps) {
                 variant="caption"
                 style={{ marginLeft: spacing[1], color: colors.text.muted }}
               >
-                {f.showTrustScore ? 'Herkese açık' : 'Gizli'}
+                {f.showTrustScore ? t('mobile.profileTrustPublic') : t('mobile.profileTrustHidden')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -85,6 +90,7 @@ export function ProfileCard({ f }: SectionProps) {
 // Stats grid: listings / trades / collections / rating
 // ---------------------------------------------------------------------------
 export function ProfileStatsGrid({ f }: SectionProps) {
+  const { t } = useTranslation();
   const { stats } = f;
   return (
     <View style={styles.statsGrid}>
@@ -96,7 +102,7 @@ export function ProfileStatsGrid({ f }: SectionProps) {
           {stats?.listings || 0}
         </Text>
         <Text variant="caption" tone="muted" style={{ marginTop: spacing[1] }}>
-          İlanlarım
+          {t('nav.myListings')}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.statItem} onPress={() => router.push('/trades')}>
@@ -104,7 +110,7 @@ export function ProfileStatsGrid({ f }: SectionProps) {
           {stats?.trades || 0}
         </Text>
         <Text variant="caption" tone="muted" style={{ marginTop: spacing[1] }}>
-          Takaslar
+          {t('nav.trades')}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
@@ -115,7 +121,7 @@ export function ProfileStatsGrid({ f }: SectionProps) {
           {stats?.collections || 0}
         </Text>
         <Text variant="caption" tone="muted" style={{ marginTop: spacing[1] }}>
-          Koleksiyon
+          {t('collection.collection')}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.statItem}>
@@ -126,7 +132,7 @@ export function ProfileStatsGrid({ f }: SectionProps) {
           </Text>
         </View>
         <Text variant="caption" tone="muted" style={{ marginTop: spacing[1] }}>
-          Puan
+          {t('profile.rating')}
         </Text>
       </TouchableOpacity>
     </View>
@@ -137,6 +143,7 @@ export function ProfileStatsGrid({ f }: SectionProps) {
 // Digital garage: horizontal collection preview or empty CTA
 // ---------------------------------------------------------------------------
 export function ProfileGarageSection({ f }: SectionProps) {
+  const { t } = useTranslation();
   const { collectionItems } = f;
   return (
     <View style={styles.section}>
@@ -144,12 +151,12 @@ export function ProfileGarageSection({ f }: SectionProps) {
         <View style={styles.sectionTitleRow}>
           <Ionicons name="car-sport" size={20} color={colors.primary[600]!} />
           <Text variant="h3" style={{ marginLeft: spacing[2] }}>
-            Dijital Garajım
+            {t('profile.myDigitalGarage')}
           </Text>
         </View>
         <TouchableOpacity onPress={() => router.push('/settings/collections')}>
           <Text variant="bodySm" tone="primary" weight="medium">
-            Tümünü gör
+            {t('home.seeAll')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -181,7 +188,7 @@ export function ProfileGarageSection({ f }: SectionProps) {
                 {c.name}
               </Text>
               <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[0.5] }}>
-                {c.itemCount ?? 0} araç
+                {t('collection.vehicleCountSuffix', { count: c.itemCount ?? 0 })}
               </Text>
             </TouchableOpacity>
           ))}
@@ -191,7 +198,7 @@ export function ProfileGarageSection({ f }: SectionProps) {
           >
             <Ionicons name="add-circle" size={32} color={colors.primary[600]!} />
             <Text variant="caption" tone="primary" weight="medium" style={{ marginTop: spacing[2] }}>
-              Yeni
+              {t('common.new')}
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -202,10 +209,10 @@ export function ProfileGarageSection({ f }: SectionProps) {
         >
           <Ionicons name="add-circle" size={40} color={colors.primary[600]!} />
           <Text variant="h3" style={{ marginTop: spacing[3] }}>
-            Koleksiyon Oluştur
+            {t('collection.createCollection')}
           </Text>
           <Text variant="bodySm" tone="muted" style={{ marginTop: spacing[1] }}>
-            Araçlarını sergile ve paylaş
+            {t('profile.garageEmptyDesc')}
           </Text>
         </TouchableOpacity>
       )}
@@ -225,10 +232,15 @@ export function ProfileQuickActions({
   /** Kurumsal hesap mı (companyName + taxId var) — `requiresBusiness` öğelerini filtreler. */
   isBusiness?: boolean;
 }) {
-  const items = quickActionItems.filter((q) => !q.requiresBusiness || isBusiness);
+  const { t } = useTranslation();
+  // Dil değişince etiketler de değişsin diye liste `t`'ye bağlı kuruluyor.
+  const items = React.useMemo(
+    () => buildQuickActionItems(t).filter((q) => !q.requiresBusiness || isBusiness),
+    [t, isBusiness],
+  );
   return (
     <View style={styles.section}>
-      <Text variant="h3">Hızlı Erişim</Text>
+      <Text variant="h3">{t('mobile.profileQuickAccess')}</Text>
       <View style={styles.quickActions}>
         {items.map((q) => {
           const count = q.badgeKey ? (badges?.[q.badgeKey] ?? 0) : 0;
@@ -294,50 +306,78 @@ function MenuItem({ icon, label, onPress, tone = 'default', rightSlot, testID }:
 }
 
 export function ProfileMenuSections({ f }: SectionProps) {
+  const { t } = useTranslation();
+  const infoPages = buildInfoPages(t);
+  const accountPages = buildAccountPages(t);
+  const legalPages = buildLegalPages(t);
   return (
     <>
       <View style={styles.menuSection}>
         <Text variant="overline" tone="muted" style={{ marginBottom: spacing[3] }}>
-          Hesap Ayarları
+          {t('profile.accountSettings')}
         </Text>
 
         <MenuItem
           icon="location-outline"
-          label="Adreslerim"
+          label={t('mobile.settingsAddresses')}
           onPress={() => router.push('/settings/addresses')}
         />
         <MenuItem
           icon="card-outline"
-          label="Banka Hesabı / IBAN"
+          label={t('mobile.settingsBankAccount')}
           onPress={() => router.push('/settings/bank-account')}
+        />
+        <MenuItem
+          testID="profile-payment-methods-link"
+          icon="wallet-outline"
+          label={t('mobile.settingsPaymentMethods')}
+          onPress={() => router.push('/settings/payment-methods')}
+        />
+        <MenuItem
+          testID="profile-payment-history-link"
+          icon="time-outline"
+          label={t('mobile.settingsPaymentHistory')}
+          onPress={() => router.push('/settings/payment-history')}
+        />
+        <MenuItem
+          testID="profile-payments-link"
+          icon="cash-outline"
+          label={t('mobile.settingsPayments')}
+          onPress={() => router.push('/settings/payments')}
         />
         <MenuItem
           testID="profile-membership-link"
           icon="diamond-outline"
-          label="Üyelik Planı"
+          label={t('mobile.settingsMembershipPlan')}
           onPress={() => router.push('/membership')}
           rightSlot={f.isPaidTier ? <Badge variant="primary">{f.tierLabel}</Badge> : null}
         />
         <MenuItem
+          testID="profile-subscription-link"
+          icon="repeat-outline"
+          label={t('mobile.settingsSubscription')}
+          onPress={() => router.push('/settings/subscription')}
+        />
+        <MenuItem
           icon="notifications-outline"
-          label="Bildirim Ayarları"
+          label={t('mobile.settingsNotifications')}
           onPress={() => router.push('/settings/notifications')}
         />
         <MenuItem
           icon="shield-checkmark-outline"
-          label="Güvenlik"
+          label={t('mobile.settingsSecurity')}
           onPress={() => router.push('/settings/security')}
         />
         <MenuItem
           testID="profile-language-link"
           icon="language-outline"
-          label="Dil / Language"
+          label={t('mobile.settingsLanguage')}
           onPress={() => router.push('/settings/language')}
         />
         {f.effectiveTier.toLowerCase() === 'business' && (
           <MenuItem
             icon="business-outline"
-            label="İşletme Paneli"
+            label={t('mobile.settingsBusinessPanel')}
             tone="primary"
             onPress={() => router.push('/settings/business')}
             rightSlot={<Badge variant="warning">👑</Badge>}
@@ -345,51 +385,90 @@ export function ProfileMenuSections({ f }: SectionProps) {
         )}
         <MenuItem
           icon="stats-chart-outline"
-          label="İstatistikler"
+          label={t('mobile.settingsStatistics')}
           onPress={() => router.push('/settings/analytics')}
+        />
+        <MenuItem
+          testID="profile-saved-searches-link"
+          icon="bookmark-outline"
+          label={t('mobile.settingsSavedSearchesMine')}
+          onPress={() => router.push('/settings/saved-searches')}
+        />
+        <MenuItem
+          testID="profile-discounts-link"
+          icon="pricetag-outline"
+          label={t('mobile.settingsDiscountCoupons')}
+          onPress={() => router.push('/settings/discounts')}
         />
       </View>
 
       <View style={styles.menuSection}>
         <Text variant="overline" tone="muted" style={{ marginBottom: spacing[3] }}>
-          Destek
+          {t('mobile.pageSupport')}
         </Text>
         <MenuItem
           icon="help-circle-outline"
-          label="Yardım & SSS"
+          label={t('mobile.settingsHelpFaq')}
           onPress={() => router.push('/help')}
         />
         <MenuItem
           icon="headset-outline"
-          label="Destek Taleplerim"
+          label={t('mobile.settingsSupportTickets')}
           onPress={() => router.push('/support')}
         />
+        {accountPages.map((p) => (
+          <MenuItem
+            key={p.route}
+            testID={`profile-account-${p.route}-link`}
+            icon={p.icon}
+            label={p.label}
+            onPress={() => router.push(`/${p.route}` as never)}
+          />
+        ))}
         <MenuItem
           icon="information-circle-outline"
-          label="Hakkında"
+          label={t('mobile.settingsAbout')}
           onPress={() => router.push('/about')}
         />
       </View>
 
       <View style={styles.menuSection}>
         <Text variant="overline" tone="muted" style={{ marginBottom: spacing[3] }}>
-          Bilgi
+          {t('common.info')}
         </Text>
         <MenuItem
           icon="shield-checkmark-outline"
-          label="Orijinallik Garantisi"
+          label={t('mobile.settingsAuthenticity')}
           onPress={() => router.push('/authenticity')}
         />
         <MenuItem
           icon="book-outline"
-          label="Koleksiyoner Rehberi"
+          label={t('footer.collectorsGuide')}
           onPress={() => router.push('/collectors-guide')}
         />
         <MenuItem
           icon="receipt-outline"
-          label="Platform Hizmet Bedeli"
+          label={t('footer.platformServiceFee')}
           onPress={() => router.push('/platform-hizmet-bedeli')}
         />
+        {infoPages.map((p) => (
+          <MenuItem
+            key={p.route}
+            testID={`profile-info-${p.route}-link`}
+            icon={p.icon}
+            label={p.label}
+            onPress={() => router.push(`/${p.route}` as never)}
+          />
+        ))}
+        {legalPages.map((p) => (
+          <MenuItem
+            key={p.slug}
+            testID={`profile-legal-${p.slug}-link`}
+            icon={p.icon}
+            label={p.label}
+            onPress={() => router.push(`/sayfa/${p.slug}`)}
+          />
+        ))}
       </View>
 
       <TouchableOpacity
@@ -399,7 +478,7 @@ export function ProfileMenuSections({ f }: SectionProps) {
       >
         <Ionicons name="log-out-outline" size={22} color={colors.danger[600]!} />
         <Text variant="body" tone="danger" weight="semibold" style={{ marginLeft: spacing[2] }}>
-          Çıkış Yap
+          {t('common.logout')}
         </Text>
       </TouchableOpacity>
 
@@ -409,7 +488,7 @@ export function ProfileMenuSections({ f }: SectionProps) {
         onPress={f.handleDeleteAccount}
       >
         <Text variant="caption" tone="danger" weight="medium">
-          Hesabı Sil
+          {t('settings.deleteAccount')}
         </Text>
       </TouchableOpacity>
     </>

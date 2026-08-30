@@ -1,4 +1,5 @@
 import { View, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import {
   Text,
@@ -10,6 +11,7 @@ import {
   theme,
 } from '@/ui';
 import { Form, FormInput } from '@/ui/form';
+import { toHandle } from '@/utils/validation';
 import { useCorporateInvite } from './_hooks/useCorporateInvite';
 
 /**
@@ -18,6 +20,7 @@ import { useCorporateInvite } from './_hooks/useCorporateInvite';
  * Kullanıcı adı BİR KEZ belirlenir ve değiştirilemez.
  */
 export default function CorporateInviteScreen() {
+  const { t } = useTranslation();
   const f = useCorporateInvite();
 
   if (f.isLoading) return <ScreenLoader />;
@@ -25,13 +28,12 @@ export default function CorporateInviteScreen() {
   if (f.isInvalid) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.colors.surface.DEFAULT }}>
-        <ScreenHeader title="Kurumsal Davet" onBack={() => router.replace('/(auth)/login' as never)} />
+        <ScreenHeader title={t('auth.corporateInviteTitle')} onBack={() => router.replace('/(auth)/login' as never)} />
         <View testID="invite-invalid" style={{ padding: theme.spacing[4], gap: theme.spacing[4] }}>
-          <Alert variant="danger" title="Bağlantı geçersiz">
-            Davet bağlantısı geçersiz veya süresi dolmuş. Lütfen şirket yöneticinizden
-            yeni bir davet isteyin.
+          <Alert variant="danger" title={t('auth.corporateInviteInvalid')}>
+            {t('auth.corporateInviteInvalidDesc')}
           </Alert>
-          <Button onPress={() => router.replace('/(auth)/login' as never)}>Girişe dön</Button>
+          <Button onPress={() => router.replace('/(auth)/login' as never)}>{t('auth.backToLogin')}</Button>
         </View>
       </View>
     );
@@ -39,7 +41,7 @@ export default function CorporateInviteScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.surface.DEFAULT }}>
-      <ScreenHeader title="Kurumsal Hesabı Etkinleştir" onBack={() => router.replace('/(auth)/login' as never)} />
+      <ScreenHeader title={t('auth.corporateActivateTitle')} onBack={() => router.replace('/(auth)/login' as never)} />
       <ScrollView
         contentContainerStyle={{ padding: theme.spacing[4], gap: theme.spacing[4] }}
         keyboardShouldPersistTaps="handled"
@@ -51,36 +53,40 @@ export default function CorporateInviteScreen() {
           </Text>
         </Card>
 
-        <Alert variant="info" title="Kullanıcı adı kalıcıdır">
-          Belirlediğiniz kullanıcı adı sonradan değiştirilemez.
+        <Alert variant="info" title={t('auth.usernamePermanentTitle')}>
+          {t('settings.usernamePermanentWarningBody')}
         </Alert>
 
         <Form form={f.form}>
           <FormInput
             testID="invite-username"
             name="username"
-            label="Kullanıcı adı"
+            label={t('auth.usernameLabel')}
             placeholder="tarodan.kurumsal"
             autoCapitalize="none"
             autoCorrect={false}
+            maxLength={30}
+            // Girişte küçük harfe çevir — kullanıcı kalıcı handle'ını olduğu
+            // gibi görür, şemadaki `.toLowerCase()` emniyet kemeri.
+            transform={toHandle}
           />
           <FormInput
             testID="invite-password"
             name="password"
-            label="Şifre"
+            label={t('auth.password')}
             secureTextEntry
-            helperText="En az 8 karakter; bir küçük harf, bir büyük harf ve bir rakam."
+            helperText={t('auth.corporatePasswordHelp')}
           />
           <FormInput
             testID="invite-password-confirm"
             name="passwordConfirm"
-            label="Şifre (tekrar)"
+            label={t('auth.passwordRepeatLabel')}
             secureTextEntry
           />
         </Form>
 
         <Button testID="invite-submit" onPress={f.onSubmit} isLoading={f.isSubmitting}>
-          Hesabı etkinleştir
+          {t('auth.corporateActivateSubmit')}
         </Button>
       </ScrollView>
     </View>

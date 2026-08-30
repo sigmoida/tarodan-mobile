@@ -1,126 +1,78 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { View, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import type { TFunction } from "i18next";
 import { theme, Text, ScreenHeader } from "@/ui";
 import { useTranslation } from "react-i18next";
-import {
-  RETURN_REQUEST_DAYS,
-  DAMAGE_REPORT_DAYS,
-  COMMISSION_SUMMARY,
-} from "@/constants/legalFacts";
+import { RETURN_REQUEST_DAYS, DAMAGE_REPORT_DAYS } from "@/constants/legalFacts";
 
 const { colors } = theme;
 
-const FAQ_ITEMS = [
+type FaqItem = { q: string; a: string };
+type FaqSection = { category: string; questions: FaqItem[] };
+
+/**
+ * SSS içerikleri çeviriden geldiği için liste bir FABRİKA (bkz. `guides.tsx` /
+ * `buildQuickActionItems`). Birkaç soru/cevap burada ve `help/_lib/faq.ts`de
+ * (Yardım Merkezi) neredeyse birebir tekrar ediyordu; ortak olanlar tek
+ * kaynağa (`faqShared.*`) taşındı, yalnız bu ekrana özgü olanlar `faqPage.*`de.
+ */
+const buildFaqSections = (t: TFunction): FaqSection[] => [
   {
-    category: "Satın Alma",
+    category: t("faq.buying"),
     questions: [
-      {
-        q: "Nasıl sipariş veririm?",
-        a: 'Beğendiğiniz ürünü seçin, "Satın Al" butonuna tıklayın, teslimat adresinizi girin ve ödeme bilgilerinizi ekleyerek siparişinizi tamamlayın. Sipariş onayı e-posta ile gönderilecektir.',
-      },
-      {
-        q: "Üye olmadan alışveriş yapabilir miyim?",
-        a: "Evet, misafir olarak sipariş verebilirsiniz. Ancak sipariş geçmişi, favoriler ve satıcıyla mesajlaşma gibi özellikler için üyelik gereklidir.",
-      },
-      {
-        q: "Hangi ödeme yöntemlerini kabul ediyorsunuz?",
-        a: "Kredi kartı (Visa, Mastercard, Troy), banka kartı ve iyzico bakiyesi ile ödeme yapabilirsiniz. Tüm ödemeler 3D Secure ile güvence altındadır.",
-      },
-      {
-        q: "Teklif nasıl gönderirim?",
-        a: 'Ürün sayfasında "Teklif Ver" butonuna tıklayarak istediğiniz fiyatı yazın. Satıcı teklifinizi kabul, reddetme veya karşı teklifte bulunabilir.',
-      },
+      { q: t("faqPage.buying.howToOrder.q"), a: t("faqPage.buying.howToOrder.a") },
+      { q: t("faqShared.guestCheckout.q"), a: t("faqShared.guestCheckout.a") },
+      { q: t("faqShared.paymentMethods.q"), a: t("faqShared.paymentMethods.a") },
+      { q: t("faqPage.buying.offer.q"), a: t("faqPage.buying.offer.a") },
     ],
   },
   {
-    category: "Satış",
+    category: t("faqShared.categories.selling"),
     questions: [
-      {
-        q: "Nasıl ilan veririm?",
-        a: '"İlan Ver" butonuna tıklayın; ürün bilgilerini, kategori, durum, fiyat ve fotoğraflarını girerek ilanınızı yayınlayın. İlan onayı genellikle birkaç dakika içinde gerçekleşir.',
-      },
-      {
-        q: "Komisyon oranları nedir?",
-        a: `${COMMISSION_SUMMARY} Komisyon yalnızca satış gerçekleştiğinde kesilir.`,
-      },
-      {
-        q: "Ödememi ne zaman alırım?",
-        a: "Alıcı ürünü teslim alıp onayladıktan sonra 3 iş günü içinde tanımlı IBAN hesabınıza transfer edilir.",
-      },
-      {
-        q: "Kaç ilan verebilirim?",
-        a: "Ücretsiz üyeler aylık 5 ilan verebilir. Premium ve Pro üyeler sınırsız ilan yayınlayabilir.",
-      },
+      { q: t("faqShared.howToList.q"), a: t("faqShared.howToList.a") },
+      { q: t("faqShared.commissionRate.q"), a: t("faqShared.commissionRate.a") },
+      { q: t("faqShared.payoutTiming.q"), a: t("faqShared.payoutTiming.a") },
+      { q: t("faqPage.selling.listingLimit.q"), a: t("faqPage.selling.listingLimit.a") },
     ],
   },
   {
-    category: "Kargo ve Teslimat",
+    category: t("faq.shipping"),
     questions: [
-      {
-        q: "Kargo süresi ne kadar?",
-        a: "Satıcı 3 iş günü içinde kargoyu teslim eder. Tahmini teslimat süresi konumunuza göre 2-5 iş günüdür.",
-      },
-      {
-        q: "Kargo ücretini kim öder?",
-        a: "Kargo ücreti varsayılan olarak alıcıya aittir. Bazı satıcılar ücretsiz kargo seçeneği sunabilir. Ürün sayfasında kargo bilgileri belirtilir.",
-      },
-      {
-        q: "Siparişimi nasıl takip ederim?",
-        a: '"Siparişlerim" sayfasından veya "Sipariş Takip" menüsünden sipariş numaranız ile kargo durumunu görebilirsiniz.',
-      },
+      { q: t("faqPage.shipping.deliveryTime.q"), a: t("faqPage.shipping.deliveryTime.a") },
+      { q: t("faqPage.shipping.whoPaysShipping.q"), a: t("faqPage.shipping.whoPaysShipping.a") },
+      { q: t("faqShared.orderTracking.q"), a: t("faqShared.orderTracking.a") },
     ],
   },
   {
-    category: "Takas",
+    category: t("faq.trade"),
     questions: [
-      {
-        q: "Takas nasıl çalışır?",
-        a: '"Takas Açık" işaretli ürünlere takas teklifi gönderebilirsiniz. Kendi ürünlerinizden seçim yapın, gerekirse nakit fark ekleyin ve teklif gönderin. Karşılıklı onay ile takas başlar.',
-      },
-      {
-        q: "Takas güvenli mi?",
-        a: "Evet, Güvenli Takas sistemi ile her iki tarafın ürünleri platform garantisi altında gönderilir. Anlaşmazlık durumunda arabuluculuk yapılır.",
-      },
-      {
-        q: "Takas ücreti var mı?",
-        a: "Takas işlemi ücretsizdir. Yalnızca kargo ücretleri taraflara aittir. Premium üyeler takas özelliklerine tam erişime sahiptir.",
-      },
+      { q: t("faqShared.howTradeWorks.q"), a: t("faqShared.howTradeWorks.a") },
+      { q: t("faqShared.tradeSafety.q"), a: t("faqShared.tradeSafety.a") },
+      { q: t("faqPage.trade.tradeFee.q"), a: t("faqPage.trade.tradeFee.a") },
     ],
   },
   {
-    category: "İade ve İptal",
+    category: t("faqPage.categories.returns"),
     questions: [
       {
-        q: "İade süresi ne kadar?",
-        a: `Ürün teslim tarihinden itibaren ${RETURN_REQUEST_DAYS} gün içinde iade talebi oluşturabilirsiniz.`,
+        q: t("faqPage.returns.returnWindow.q"),
+        a: t("faqPage.returns.returnWindow.a", { days: RETURN_REQUEST_DAYS }),
       },
       {
-        q: "Hasarlı ürün geldi, ne yapmalıyım?",
-        a: `Teslim tarihinden itibaren ${DAMAGE_REPORT_DAYS} gün içinde fotoğraflı olarak destek ekibine başvurun. Hasarlı ürün iadeleri satıcı sorumluluğundadır ve tam iade yapılır.`,
+        q: t("faqPage.returns.damagedItem.q"),
+        a: t("faqPage.returns.damagedItem.a", { days: DAMAGE_REPORT_DAYS }),
       },
-      {
-        q: "Siparişimi iptal edebilir miyim?",
-        a: "Satıcı kargoya vermeden önce siparişinizi iptal edebilirsiniz. Kargoya verildikten sonra iptal mümkün değildir; iade süreci başlatılması gerekir.",
-      },
+      { q: t("faqPage.returns.cancelOrder.q"), a: t("faqPage.returns.cancelOrder.a") },
     ],
   },
   {
-    category: "Hesap ve Üyelik",
+    category: t("faqPage.categories.account"),
     questions: [
-      {
-        q: "Premium üyelik avantajları nedir?",
-        a: "Sınırsız ilan, düşük komisyon, takas özelliği, Digital Garage, öncelikli destek ve öne çıkan ilanlar gibi avantajlar sunar.",
-      },
-      {
-        q: "Şifremi unuttum.",
-        a: 'Giriş ekranındaki "Şifremi Unuttum" bağlantısına tıklayarak e-posta adresinize sıfırlama bağlantısı gönderebilirsiniz.',
-      },
-      {
-        q: "Hesabımı nasıl silerim?",
-        a: 'Profil > Ayarlar > Hesap bölümünden "Hesabı Sil" seçeneğini kullanabilirsiniz. Bu işlem kalıcıdır ve geri alınamaz.',
-      },
+      { q: t("faqShared.premiumBenefits.q"), a: t("faqShared.premiumBenefits.a") },
+      { q: t("faqShared.forgotPassword.q"), a: t("faqShared.forgotPassword.a") },
+      { q: t("faqShared.deleteAccount.q"), a: t("faqShared.deleteAccount.a") },
     ],
   },
 ];
@@ -128,6 +80,7 @@ const FAQ_ITEMS = [
 export default function FAQScreen() {
   const { t } = useTranslation();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const faqSections = useMemo(() => buildFaqSections(t), [t]);
 
   let globalIndex = -1;
 
@@ -141,7 +94,7 @@ export default function FAQScreen() {
       />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {FAQ_ITEMS.map((section) => (
+        {faqSections.map((section) => (
           <View key={section.category} style={styles.section}>
             <Text style={styles.sectionTitle}>{section.category}</Text>
             {section.questions.map((item) => {
@@ -174,9 +127,7 @@ export default function FAQScreen() {
         ))}
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Sorunuzun cevabını bulamadınız mı?
-          </Text>
+          <Text style={styles.footerText}>{t("faqPage.footer.noAnswer")}</Text>
           <TouchableOpacity
             style={styles.contactButton}
             onPress={() => router.push("/support")}
@@ -186,7 +137,9 @@ export default function FAQScreen() {
               size={18}
               color={colors.white}
             />
-            <Text style={styles.contactButtonText}>Destek Ekibine Yazın</Text>
+            <Text style={styles.contactButtonText}>
+              {t("faqPage.footer.contactSupport")}
+            </Text>
           </TouchableOpacity>
         </View>
 

@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Card, Text, StatusBadge, theme } from '@/ui';
 import { TimelineItem } from './TimelineItem';
-import { badgeStatusOf, uiOrderStatusConfig } from '../_lib/status';
+import { badgeStatusOf, useOrderStatusConfig } from '../_lib/status';
 import { formatDate } from '../_lib/format';
 import type { OrderDetail } from '../_lib/types';
 import type { OrderView } from '../_lib/derive';
@@ -11,26 +12,48 @@ const { colors } = theme;
 
 /** Sipariş numarası + rozet + durum timeline'ı. */
 export function OrderStatusCard({ order, view }: { order: OrderDetail; view: OrderView }) {
+  const { t } = useTranslation();
+  const statusConfig = useOrderStatusConfig();
   return (
     <Card variant="elevated" style={styles.card}>
       <View style={styles.statusHeader}>
-        <Text variant="caption" style={styles.orderNumber}>Sipariş #{order.orderNumber}</Text>
-        <StatusBadge status={badgeStatusOf(order)} config={uiOrderStatusConfig} size="sm" />
+        <View>
+          <Text variant="caption" style={styles.orderNumber}>
+            {t('sale.orderNumberTitle', { number: order.orderNumber })}
+          </Text>
+          {/* Kargo oluşmadan sunucu bu numarayı üretmiyor — satır kendini kapılıyor. */}
+          {order.packageNumber ? (
+            <Text variant="caption" style={styles.orderNumber}>
+              {t('order.packageNumber')} {order.packageNumber}
+            </Text>
+          ) : null}
+        </View>
+        <StatusBadge status={badgeStatusOf(order)} config={statusConfig} size="sm" />
       </View>
 
       <View style={styles.timeline}>
-        <TimelineItem icon="cart" label="Sipariş Oluşturuldu" date={formatDate(order.createdAt)} isActive />
-        <TimelineItem icon="card" label="Ödeme Yapıldı" date={formatDate(order.paidAt)} isActive={view.isPaid} />
+        <TimelineItem
+          icon="cart"
+          label={t('order.timelineCreated')}
+          date={formatDate(order.createdAt)}
+          isActive
+        />
+        <TimelineItem
+          icon="card"
+          label={t('order.timelinePaymentMade')}
+          date={formatDate(order.paidAt)}
+          isActive={view.isPaid}
+        />
         <TimelineItem
           testID="order-shipped-timeline"
           icon="cube"
-          label="Kargoya Verildi"
+          label={t('order.statusShipped')}
           date={formatDate(order.shippedAt)}
           isActive={!!order.shippedAt}
         />
         <TimelineItem
           icon="checkmark-circle"
-          label="Teslim Edildi"
+          label={t('order.statusDelivered')}
           date={formatDate(order.deliveredAt)}
           isActive={!!order.deliveredAt}
           isLast={!view.showRefundCancelStep}

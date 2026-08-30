@@ -76,7 +76,18 @@ export function useCartMergeOnLogin() {
         if (missing.length === 0) return;
 
         for (const item of missing) {
-          await cartApi.addItem(item.productId, item.quantity).catch(() => {});
+          // 4xx = sunucu bu satırı REDDETTİ (satışa uygun değil, askıda satıcı…).
+          // Eskiden hata yutuluyordu ve satır yerelde HAYALET kalıyordu: sunucuda
+          // karşılığı yok, checkout'ta patlıyor. Reddedileni düşür.
+          // 5xx/ağ geçicidir — satır korunur, bir sonraki oturumda yeniden denenir.
+          // Uyarı çıkarılmaz: bu kullanıcının tetiklemediği bir arka plan
+          // uzlaştırması, açılışta modal basmak yersiz olurdu.
+          await cartApi.addItem(item.productId, item.quantity).catch((error) => {
+            const status = (error as { response?: { status?: number } })?.response?.status;
+            if (typeof status === 'number' && status >= 400 && status < 500) {
+              useCartStore.getState().removeByProductId(item.productId);
+            }
+          });
         }
         queryClient.invalidateQueries({ queryKey: qk.cart.mine });
       } catch (error) {

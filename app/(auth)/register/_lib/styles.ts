@@ -31,6 +31,12 @@ export const styles = StyleSheet.create({
     color: colors.white,
     textDecorationLine: 'underline',
   },
+  /** Alan altındaki açıklama satırı — Input'un kendi alt boşluğunu yukarı çeker.
+   *  Negatif marj için token yok; `-theme.spacing[1]` (=-4pt) token türevi. */
+  fieldHint: {
+    marginTop: -theme.spacing[1],
+    marginBottom: theme.spacing[2],
+  },
   card: {
     width: '100%',
     backgroundColor: colors.surface.elevated,

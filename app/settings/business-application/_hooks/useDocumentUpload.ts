@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { appAlert } from '@/ui';
 import { sellerDocumentsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
@@ -11,6 +12,7 @@ import { ACCEPTED_DOCUMENT_MIME, MAX_DOCUMENT_BYTES } from '../_lib/documents';
  * kullanılır. Sunucu AI moderasyon reddinde Türkçe mesajı olduğu gibi gösterir.
  */
 export function useDocumentUpload() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [uploadingType, setUploadingType] = useState<string | null>(null);
 
@@ -25,7 +27,7 @@ export function useDocumentUpload() {
     if (!asset) return;
 
     if (typeof asset.size === 'number' && asset.size > MAX_DOCUMENT_BYTES) {
-      appAlert('Dosya çok büyük', 'En fazla 10 MB boyutunda bir dosya seçin.');
+      appAlert(t('businessApplication.fileTooLargeTitle'), t('businessApplication.fileTooLargeBody'));
       return;
     }
 
@@ -42,11 +44,14 @@ export function useDocumentUpload() {
       );
       queryClient.invalidateQueries({ queryKey: qk.sellerDocuments.list });
       queryClient.invalidateQueries({ queryKey: qk.sellerDocuments.application });
-      appAlert('Yüklendi', 'Belge yüklendi ve incelemeye alındı.');
+      appAlert(t('businessApplication.documentUploadedTitle'), t('businessApplication.documentUploadedBody'));
     } catch (e) {
       const raw = (e as { response?: { data?: { message?: string | string[] } } })?.response?.data
         ?.message;
-      appAlert('Yüklenemedi', Array.isArray(raw) ? raw.join('\n') : raw || 'Belge yüklenemedi.');
+      appAlert(
+        t('businessApplication.documentUploadFailedTitle'),
+        Array.isArray(raw) ? raw.join('\n') : raw || t('businessApplication.documentUploadFailed'),
+      );
     } finally {
       setUploadingType(null);
     }

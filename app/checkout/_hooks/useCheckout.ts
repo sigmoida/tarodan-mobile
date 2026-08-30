@@ -1,17 +1,77 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
-import { appAlert } from '@/ui';
-import { ordersApi, paymentsApi, shippingApi, addressesApi, cartApi, type OrderAddressInput } from '@/lib/api';
-import { qk } from '@/lib/query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { appAlert, alertAfterClose, type AlertDialogButton } from '@/ui';
+import {
+  ordersApi,
+  paymentsApi,
+  addressesApi,
+  toExpectedPricing,
+  type OrderAddressInput,
+  type OrderQuoteResponse,
+} from '@/lib/api';
+import { qk, retryUnlessClientError } from '@/lib/query';
 import { useCartStore } from '@/stores/cartStore';
 import { useAuthStore } from '@/stores/authStore';
 import { captureException } from '@/services/sentry';
-import { DEFAULT_COUNTRY_CODE, normalizePhoneForPayload } from '@/utils/phone';
+import { formatServerPrice, serverAmount } from '@/utils/format';
+import { indexQuoteLines } from '@/utils/quoteLines';
+import { unwrapEnvelope } from '@/utils/apiEnvelope';
+import { DEFAULT_COUNTRY_CODE, parsePhoneForPayload, getPhoneInvalidMessage } from '@/utils/phone';
 import { STOCKOUT_KEYWORDS, generateUuidV4, EMPTY_ADDRESS } from '../_lib/constants';
-import { extractApiMessage, validateGuest, validateInlineAddress } from '../_lib/validation';
+import {
+  addressPhoneError,
+  extractApiMessage,
+  validateGuest,
+  validateInlineAddress,
+} from '../_lib/validation';
 import { useCoupon } from './useCoupon';
 import type { ShippingAddressInput, SavedAddress } from '../_lib/types';
+
+/**
+ * Modal kapanma animasyonu bitmeden `appAlert` çağırmak iOS'ta donuyor.
+ * `alertAfterClose`'un kendi varsayılanıyla aynı gecikme — orada kapatma da
+ * yapılıyor, burada modal zaten kapatılmış oluyor.
+ */
+const MODAL_CLOSE_ALERT_DELAY_MS = 400;
+
+/**
+ * Payload'a girecek telefonların TAMAMI. Bir alan `null` ise o telefon bu
+ * siparişte hiç gönderilmiyor demektir (kayıtlı adres seçili → telefon
+ * sunucuda; fatura adresi kapalı; üye akışı → `guest` yok).
+ */
+interface ResolvedPhones {
+  /** `shippingAddress.inline.phone` */
+  shipping: string | null;
+  /** `billingAddress.inline.phone` */
+  billing: string | null;
+  /** `checkoutGuest.phone` (misafir iletişim) */
+  guest: string | null;
+}
+
+/**
+ * Çözülemeyen telefon — payload'a ASLA girmez. `isClientValidation` bayrağı
+ * `catch` tarafında ağ hatasından ayırt etmeye yarar (adres/profil formlarıyla
+ * aynı kalıp). Mesaj numarayı BASMAZ: PII log'a/Sentry'ye gitmez.
+ */
+class PhoneRejectedError extends Error {
+  readonly isClientValidation = true;
+  constructor(message: string) {
+    super(message);
+    this.name = 'PhoneRejectedError';
+  }
+}
+
+/**
+ * EMNİYET KEMERİ — `resolvePayloadPhones` her çağrı yerinin dalını zaten
+ * karşılıyor; bu son kapı, ileride bir dal eklenirse boş telefonun SESSİZCE
+ * payload'a girmesini (eski `normalizePhoneForPayload` davranışı) imkânsız kılar.
+ */
+const requirePhone = (phone: string | null, message: string): string => {
+  if (!phone) throw new PhoneRejectedError(message);
+  return phone;
+};
 
 /**
  * Checkout controller'ı — tüm form durumu, query'ler, kargo hesabı, payload
@@ -19,28 +79,32 @@ import type { ShippingAddressInput, SavedAddress } from '../_lib/types';
  * yalnız adımları kompoze eder. Ödeme dallanmaları orijinalden BİREBİR taşındı.
  */
 export function useCheckout() {
+  const { t } = useTranslation();
   const { buyNow } = useLocalSearchParams<{ buyNow?: string }>();
   const isBuyNow = buyNow === '1';
-  const { items: cartItems, clearCart: clearCartStore, buyNowItem, clearBuyNow } = useCartStore();
+  const {
+    items: cartItems,
+    deselectedIds,
+    onPurchaseComplete,
+    buyNowItem,
+    clearBuyNow,
+  } = useCartStore();
   const { isAuthenticated, user } = useAuthStore();
 
+  /**
+   * Ödenecek satırlar. Sepet yolunda kullanıcının SEÇTİKLERİ — uç zaten yalnız
+   * gönderilen `items`'ı fiyatlıyor ve yalnız onları sepetten düşüyor.
+   */
   const items = useMemo(
-    () => (isBuyNow ? (buyNowItem ? [buyNowItem] : []) : cartItems),
-    [isBuyNow, buyNowItem, cartItems],
+    () =>
+      isBuyNow
+        ? buyNowItem
+          ? [buyNowItem]
+          : []
+        : cartItems.filter((i) => !deselectedIds.includes(i.id)),
+    [isBuyNow, buyNowItem, cartItems, deselectedIds],
   );
-  const finalizeCart = () => {
-    if (isBuyNow) {
-      clearBuyNow();
-      return;
-    }
-    clearCartStore();
-    // Üyede sunucu sepeti de boşaltılır; yoksa satın alınan satırlar orada kalır.
-    if (isAuthenticated) {
-      cartApi.clear().catch((error) =>
-        captureException(error, { level: 'warning', tags: { flow: 'checkout.clearServerCart' } }),
-      );
-    }
-  };
+
 
   const [step, setStep] = useState(1);
 
@@ -60,44 +124,286 @@ export function useCheckout() {
   const [selectedBillingAddressId, setSelectedBillingAddressId] = useState<string | 'new'>('new');
   const [billingAddress, setBillingAddress] = useState<ShippingAddressInput>(EMPTY_ADDRESS);
 
-  const selectedCarrier = 'surat' as const;
   const paymentProvider = 'paytr' as const;
-  const [shippingCost, setShippingCost] = useState(0);
-  const [shippingLoading, setShippingLoading] = useState(false);
 
-  const [otpModalOpen, setOtpModalOpen] = useState(false);
+  const [otpModalOpenState, setOtpModalOpenState] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [otpSending, setOtpSending] = useState(false);
   const [otpExpiresIn, setOtpExpiresIn] = useState(0);
   const [otpError, setOtpError] = useState<string | null>(null);
 
+  /**
+   * OTP modalının AÇIK/KAPALI durumu, closure'dan bağımsız.
+   *
+   * React Query, çalışan bir `queryFn`'i fetch'in BAŞLADIĞI render'ın closure'ıyla
+   * yürütür. Aşağıdaki uyarı yardımcıları `otpModalOpen`'ı state'ten (closure'dan)
+   * okusaydı şu senaryoda BAYAT `false` görürdü: kupon uygulanır (quote fetch
+   * başlar, modal kapalı) → kullanıcı "Onayla ve Öde"ye basar → OTP modalı açılır
+   * → gecikmiş quote 400'ü düşer → modal AÇIKKEN `appAlert` → iOS donar.
+   */
+  const otpModalOpenRef = useRef(false);
+  const otpModalOpen = otpModalOpenState;
+  const setOtpModalOpen = (open: boolean) => {
+    otpModalOpenRef.current = open;
+    setOtpModalOpenState(open);
+  };
+  /**
+   * Modal kapanınca gösterilmek üzere bekleyen bilgilendirme (aşağıya bkz.).
+   *
+   * BİLİNEN SINIR (N5 — bilerek düzeltilmedi): ref ekranla birlikte yaşıyor.
+   * Kullanıcı modalı kapatmadan checkout'tan çıkarsa (geri / sepete dön)
+   * ertelenmiş uyarı hiç gösterilmez, sessizce kaybolur. Ertelenen olaylar
+   * yalnızca GEÇİCİ bilgilendirmeler (kupon düştü) ve düşen kuponun görsel
+   * karşılığı zaten ekranda (rozet kayboluyor); kalıcı bir kuyruk kurmak, o
+   * uyarıyı ilgisiz bir ekranın üstüne düşürme riskini getirirdi.
+   */
+  const pendingAlertRef = useRef<{ title: string; message?: string } | null>(null);
+
+  /**
+   * Mesafeli satış sözleşmesi onayı. Sunucuya İLK çağrıda gider — idempotency
+   * replay'i sonradan gelen onayı işlemez (aynı anahtarla ikinci istek ilk
+   * yanıtı tekrarlar), o yüzden "önce öde, sonra onayla" diye bir yol yok.
+   */
+  const [distanceSalesAccepted, setDistanceSalesAccepted] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' });
 
-  const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.price * it.quantity, 0), [items]);
+  const closeOtpModal = () => {
+    setOtpModalOpen(false);
+    setOtpCode('');
+    setOtpError(null);
+    const pending = pendingAlertRef.current;
+    if (pending) {
+      pendingAlertRef.current = null;
+      setTimeout(() => appAlert(pending.title, pending.message), MODAL_CLOSE_ALERT_DELAY_MS);
+    }
+  };
 
+  /**
+   * GEÇİCİ / bilgilendirici uyarı (kupon düştü, quote tazelendi…).
+   *
+   * OTP modalı açıkken `appAlert` iOS'ta donuyor; modalı KAPATMAK ise kullanıcının
+   * OTP oturumunu boşa düşürür (yeniden kod istemek zorunda kalır) — geçici bir
+   * olay bunu hak etmiyor. Uyarıyı ERTELE, modal kapanınca göster.
+   */
+  const alertDeferredWhileOtpOpen = (title: string, message?: string) => {
+    if (otpModalOpenRef.current) {
+      pendingAlertRef.current = { title, message };
+      return;
+    }
+    appAlert(title, message);
+  };
+
+  /**
+   * ENGELLEYİCİ uyarı — kullanıcı devam edemiyor, mesajı ŞİMDİ görmeli.
+   * Modal açıkken modal İÇİNDE satır içi basılır: kod alanı ve OTP oturumu korunur.
+   */
+  const alertInlineWhileOtpOpen = (title: string, message: string) => {
+    if (otpModalOpenRef.current) {
+      setOtpError(message);
+      return;
+    }
+    appAlert(title, message);
+  };
+
+  /**
+   * Akışı SONLANDIRAN uyarı (fiyat değişti, sipariş oluştu ama ödeme başlatılamadı,
+   * e-posta zaten kayıtlı → misafir akışı burada biter). Modal önce kapanır, sonra
+   * uyarı gösterilir; `buttons` verilirse aksiyonlu uyarı basılır.
+   *
+   * Bekleyen ERTELENMİŞ bilgilendirme (ör. "kupon düştü") burada DÜŞÜRÜLÜR: akış
+   * zaten sona eriyor, ve iki uyarıyı aynı anda kuyruğa koymak kullanıcıya
+   * üst üste iki dialog gösterirdi. Sonlandırıcı mesaj eyleme dönük olandır.
+   */
+  const alertAfterOtpClose = (title: string, message?: string, buttons?: AlertDialogButton[]) => {
+    if (otpModalOpenRef.current) {
+      pendingAlertRef.current = null;
+      alertAfterClose(closeOtpModal, title, message, buttons);
+      return;
+    }
+    appAlert(title, message, buttons);
+  };
+
+  // Kupon: `/discounts/validate` ile doğrulanır. Doğrulanmış kod quote'a da
+  // gönderilir (aşağıda) — sunucu `summary.productAmount`'ı "kupon sonrası ara
+  // toplam" olarak tanımlıyor; kod gitmezse bu alan indirimsiz kalır ve
+  // `summary.total` checkout'ta gerçekte tahsil edilenden FAZLA görünür.
+  const coupon = useCoupon(items, isAuthenticated);
+
+  const queryClient = useQueryClient();
+
+  /**
+   * Ödeme bittikten sonra sepet. `DELETE /cart` ÇAĞRILMAZ: sunucu satın alınan
+   * satırları transaction içinde zaten siliyor, ekstra silme hem gereksiz hem —
+   * satır seçimi geldiğinden beri — yıkıcı: seçilmeyen satırlar da uçardı.
+   * Yerelde yalnız ödenenler düşer, sunucu sepeti yeniden çekilir.
+   */
+  const finalizeCart = () => {
+    if (isBuyNow) {
+      clearBuyNow();
+      return;
+    }
+    onPurchaseComplete(items.map((i) => i.productId));
+    if (isAuthenticated) {
+      queryClient.invalidateQueries({ queryKey: qk.cart.mine });
+    }
+  };
+  const itemsSignature = useMemo(
+    () => items.map((it) => `${it.productId}:${it.quantity}`).join(','),
+    [items],
+  );
+
+  /**
+   * Quote 400'ü KUPONA mı ait?
+   *
+   * Quote kupon dışı sebeplerle de 400 döndürebilir (geçersiz `productId`, stok).
+   * Her 400'ü kupona yormak, kuponu haksız yere düşürüp "Kupon Geçersiz" başlığıyla
+   * yanlış bilgi verir. Sunucunun `i18nKey`/`message` metnine bak.
+   */
+  const isCouponRejection = (err: any, sentCouponCode?: string): boolean => {
+    if (!sentCouponCode) return false;
+    if (err?.response?.status !== 400) return false;
+    const i18nKey = typeof err?.response?.data?.i18nKey === 'string' ? err.response.data.i18nKey : '';
+    return /kupon|coupon|discount|indirim/i.test(`${i18nKey} ${extractApiMessage(err) ?? ''}`);
+  };
+
+  // Quote'un KÖKÜ korunur — `pricingHash` + `shippingTariffVersion` kökte,
+  // `pricing` içinde DEĞİL, ve order-create payload'larına aynen geri gider.
+  // `couponCode` queryKey'e DAHİL: kupon uygulanınca/kaldırılınca quote tazelenir.
   const quoteQuery = useQuery({
-    queryKey: qk.checkout.quote(items.map((it) => `${it.productId}:${it.quantity}`).join(',')),
+    queryKey: qk.checkout.quote(itemsSignature, coupon.couponCode),
     queryFn: async () => {
-      const res: any = await ordersApi.getQuote({
-        items: items.map((it) => ({ productId: it.productId, quantity: it.quantity })),
-      });
-      return (res.data?.pricing ?? res.data ?? {}) as {
-        buyerFeeAmount?: number;
-        taxAmount?: number;
-        totalAmount?: number;
-      };
+      const baseItems = items.map((it) => ({ productId: it.productId, quantity: it.quantity }));
+      const couponCode = coupon.couponCode;
+      try {
+        const res = await ordersApi.getQuote({
+          items: baseItems,
+          ...(couponCode ? { couponCode } : {}),
+        });
+        return unwrapEnvelope<OrderQuoteResponse>(res);
+      } catch (err: any) {
+        // Kupon dışı hatalar olduğu gibi yukarı gider → sorgu hata durumuna
+        // düşer, ekran ErrorState + "Tekrar Dene" gösterir (kilitlenmez).
+        if (!isCouponRejection(err, couponCode)) throw err;
+
+        // Kupon arada geçersizleşmiş (süre doldu / kullanım limiti). Kuponu düşür:
+        // bu, queryKey'i kuponsuz anahtara çevirir. Kuponsuz sonucu ÖNDEN çekip
+        // KUPONSUZ anahtara yaz — kuponsuz cevabı KUPONLU anahtar altında
+        // döndürmek önbelleği zehirliyordu: aynı kod 60 sn (staleTime) içinde
+        // yeniden uygulanırsa istek hiç gitmez, uyarı çıkmaz, "uygulandı" rozeti
+        // kalır ve sipariş ucundan bu kez ham 400 gelir.
+        coupon.remove();
+        alertDeferredWhileOtpOpen(
+          t('checkout.couponInvalidTitle'),
+          extractApiMessage(err) ?? t('checkout.couponInvalidBody'),
+        );
+        try {
+          const retryRes = await ordersApi.getQuote({ items: baseItems });
+          queryClient.setQueryData(qk.checkout.quote(itemsSignature, undefined), unwrapEnvelope<OrderQuoteResponse>(retryRes));
+        } catch {
+          // Kuponsuz deneme de başarısızsa bir şey yazma — kuponsuz anahtar
+          // kendi isteğini atar ve gerekirse hata yolunu (ErrorState) kullanır.
+        }
+        // Bu ANAHTAR gerçekten başarısız oldu; hata olarak bırak ki aynı kupon
+        // yeniden uygulanınca istek tekrar gitsin ve uyarı yine çıksın.
+        throw err;
+      }
     },
     enabled: items.length > 0,
     staleTime: 60_000,
+    // 4xx yeniden denenmez (tek kaynak — sepet aynı yüklemi kullanır, §5).
+    retry: retryUnlessClientError,
   });
-  const buyerFee = Number(quoteQuery.data?.buyerFeeAmount ?? 0);
-  const taxAmount = Number(quoteQuery.data?.taxAmount ?? 0);
+  const quote = quoteQuery.data;
+  const summary = quote?.pricing?.summary;
+  // ————————————————————————————————————————————————————————————————
+  // Gösterilen HER tutar bir sunucu alanının aynısıdır. Kapı ALAN seviyesinde:
+  // `summary != null` kontrolü alanın kendisi hakkında hiçbir şey söylemez —
+  // `Number(null)` = 0 ve `Number(undefined)` = NaN olduğu için `total: null`
+  // gelen bir yanıt "0,00 TL" yazan ETKİN bir ödeme butonu üretirdi. Sayı
+  // değilse tutar YOK sayılır → ekran yer tutucu basar, buton devre dışı kalır.
+  // ————————————————————————————————————————————————————————————————
+  const shippingCost = serverAmount(summary?.shippingAmount);
+  const productAmount = serverAmount(summary?.productAmount);
+  /** Hizmet bedeli + TÜM alıcı hizmet KDV'si — ayrı bir KDV satırı basılmaz. */
+  const serviceFeeAmount = serverAmount(summary?.serviceFeeAmount);
+  const total = serverAmount(summary?.total);
+  /**
+   * Kampanya kazançları — TOPLANAN DEĞİL, AÇIKLAMA satırları.
+   *
+   * `productAmount` / `serviceFeeAmount` zaten indirimli tutarı taşıyor; bu
+   * alanlar kazancın KAYNAĞINI söyler. Aksi halde "2 al 1 öde" ya da bir bedel
+   * kampanyası, toplam düşerken hiçbir yerde etiketlenmeden eriyordu (web bunu
+   * 2026-08-13'te düzeltti; mobil geride kalmıştı).
+   *
+   * `quantityDiscount`/`feeDiscountTotal` staging'de doğrulandı (her ölçümde 0 —
+   * hesapta aktif kampanya yok), `feeDiscounts` satırlarının DOLU hâli
+   * görülemedi; o yüzden dizi savunmacı okunur.
+   */
+  const quantityDiscount = serverAmount(summary?.quantityDiscount);
+  const feeDiscountTotal = serverAmount(summary?.feeDiscountTotal);
+  const feeDiscounts = Array.isArray(summary?.feeDiscounts) ? summary!.feeDiscounts! : [];
+  /**
+   * Sunucunun uyguladığı indirim — quote yanıtının KÖKÜNDEKİ `couponDiscount`.
+   * `/discounts/validate`'in `estimatedDiscount`'u DEĞİL: o yalnız bir tahmin ve
+   * özet satırlarıyla tutarlı değil. Özet satırı olarak basılmaz (üç satır zaten
+   * toplama eşit); yalnız kupon rozetinde bilgilendirme olarak gösterilir.
+   */
+  const couponDiscount = serverAmount(quote?.couponDiscount);
+  const shippingLoading = quoteQuery.isLoading;
 
-  // Kupon: tutar sunucudan gelir, burada yalnız gösterim için düşülür.
-  // Kesin fiyat sipariş/ödeme yanıtının otoritesindedir.
-  const coupon = useCoupon(items, isAuthenticated);
-  const total = Math.max(0, subtotal + shippingCost + buyerFee + taxAmount - coupon.discount);
+  /** Quote'un fiyatlayamadığı satırlar — bilgi amaçlı, tutar türetilmez. */
+  const unavailableItems = quote?.unavailableItems ?? [];
+
+  /**
+   * Ayrılan satırlar ödeme ÖZETİNDEN de çıkar (delta 18 §2): sunucu bunları
+   * fiyatlamadı, dolayısıyla `pricing.summary` içinde de yoklar. Özet listesinde
+   * bırakmak satırı "—" tutarıyla gösterir, ürün sayacını da şişirir
+   * ("Ara Toplam (3 ürün)" derken 2 ürünün parası çekilir). Ayrılan satırlar
+   * uyarı kartında adlarıyla gösterilir — bilgi kaybolmaz, yalnız yeri değişir.
+   */
+  // `unavailableItems` her render'da yeni dizi; kimlik yerine İÇERİĞE bağlanmalı.
+  // İmzayı ayrı bir `useMemo`'da üretmek `itemsSignature` ile aynı kalıp ve
+  // `exhaustive-deps` susturmasına gerek bırakmıyor (susturma, ileride eklenen
+  // bir bağımlılığın sessizce kaçmasına da açık kapı bırakıyordu).
+  const unavailableSignature = useMemo(
+    () => unavailableItems.map((u) => u.productId).join(','),
+    [unavailableItems],
+  );
+  const unavailableProductIds = useMemo(
+    () => new Set(unavailableSignature ? unavailableSignature.split(',') : []),
+    [unavailableSignature],
+  );
+  const payableItems = useMemo(
+    () => items.filter((i) => !unavailableProductIds.has(i.productId)),
+    [items, unavailableProductIds],
+  );
+  /** Ayrılan satırın sepetteki adı — `quote.items[]`'ta bu satır YOK, ad sepetten gelir. */
+  const cartTitleFor = (productId: string): string | undefined =>
+    items.find((i) => i.productId === productId)?.title;
+
+  // Sunucu satırı ayırdıysa sepetin yerel kopyası bayat: satır artık satın
+  // alınamaz. Sepeti tazele (silme İSTEĞİ atma — sunucu zaten kendi kararını verdi).
+  useEffect(() => {
+    if (unavailableItems.length > 0) {
+      void queryClient.invalidateQueries({ queryKey: qk.cart.mine });
+    }
+  }, [unavailableItems.length, queryClient]);
+
+  /**
+   * Satır tutarları — sunucunun `items[]` kırılımından, `productId` ile eşlenir.
+   * Sepet satırındaki `price` sepete EKLEME anında donuyor (24 saat) ve ürünlerde
+   * kampanya penceresi var; `price × quantity` çarpımı kampanya sepette
+   * beklerken biterse özet satırlarıyla ayrışıyordu. Eşleşme yoksa `null` →
+   * ekran yer tutucu basar, yerel çarpıma DÜŞMEZ.
+   */
+  const quoteLines = useMemo(() => indexQuoteLines(quote?.items), [quote]);
+  const lineSubtotalFor = (productId: string): number | null =>
+    quoteLines.get(productId)?.subtotal ?? null;
+  /** Sunucunun fiyatladığı adet; satır eşleşmezse `null` → ekran yerel adede döner. */
+  const lineQuantityFor = (productId: string): number | null =>
+    quoteLines.get(productId)?.quantity ?? null;
 
   const addressesQuery = useQuery({
     queryKey: qk.addresses.mine,
@@ -124,46 +430,23 @@ export function useCheckout() {
     return () => clearInterval(id);
   }, [otpModalOpen]);
 
-  const effectiveShippingCity = useMemo(() => {
-    if (isAuthenticated && selectedAddressId !== 'new') {
-      const a = addresses.find((x) => x.id === selectedAddressId);
-      return a?.city ?? '';
-    }
-    return shippingAddress.city;
-  }, [isAuthenticated, selectedAddressId, addresses, shippingAddress.city]);
-
-  const calculateShipping = async (city: string) => {
-    setShippingLoading(true);
-    try {
-      const response = await shippingApi
-        .getRatesByCity({ city, carrier: selectedCarrier, weight: 0.5 })
-        .catch(() => null);
-      if (response?.data?.rate) {
-        setShippingCost(response.data.rate);
-      } else {
-        const isIstanbul = city.toLowerCase().includes('istanbul');
-        setShippingCost(isIstanbul ? 34.9 : 49.9);
-      }
-    } catch {
-      setShippingCost(49.9);
-    } finally {
-      setShippingLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (effectiveShippingCity) calculateShipping(effectiveShippingCity);
-    else setShippingCost(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveShippingCity, selectedCarrier]);
+  // NOT: kargo satırı artık şehre bağlı değil — quote şehirden bağımsız (`items`
+  // gövdesi) ve `summary.total` kargoyu zaten içeriyor. Şehre bakan
+  // `effectiveShippingCity` kapısı kaldırıldı (satırlar her zaman toplama eşit).
 
   const showSnackbar = (message: string) => setSnackbar({ visible: true, message });
 
+  /**
+   * "Bu e-posta zaten kayıtlı" → misafir akışı BURADA BİTER (kullanıcı login'e
+   * yönlendirilir), dolayısıyla SONLANDIRICI: OTP modalı açıksa (kod yeniden
+   * gönderilirken bu hata gelebilir) önce kapatılır, uyarı sonra basılır. Modalı
+   * açık bırakmak anlamsız olurdu — girilecek bir kod artık yok.
+   */
   const handleEmailAlreadyRegistered = (e: any): boolean => {
     if (e?.response?.status === 409 || e?.response?.data?.code === 'EMAIL_ALREADY_REGISTERED') {
-      appAlert(
-        'Bu e-posta zaten kayıtlı',
-        extractApiMessage(e) ?? 'Bu e-posta adresi zaten kayıtlı. Lütfen giriş yapıp alışverişe devam edin.',
+      alertAfterOtpClose(
+        t('checkout.emailRegisteredTitle'),
+        extractApiMessage(e) ?? t('checkout.emailRegisteredBody'),
       );
       router.push('/(auth)/login' as any);
       return true;
@@ -171,23 +454,42 @@ export function useCheckout() {
     return false;
   };
 
+  /**
+   * Inline teslimat adresinin telefonu — alan boşsa misafir iletişim telefonuna
+   * düşer. Ülke kodu ile numara BİRLİKTE taşınır: numara `guestPhone`'dan
+   * gelirken ülke kodunu `shippingAddress`'ten okumak, `+1 415 555 0100` gibi
+   * bir girdiyi TR sanıp doğrulamayı ayrıştırırdı. `buildShippingPayload`'un
+   * eşleştirmesiyle AYNI (tek kaynak, §5).
+   */
+  const shippingPhoneSource = (): { phone: string; countryCode: string } =>
+    shippingAddress.phone.trim()
+      ? {
+          phone: shippingAddress.phone,
+          countryCode: shippingAddress.phoneCountryCode ?? DEFAULT_COUNTRY_CODE,
+        }
+      : { phone: guestPhone, countryCode: guestPhoneCountryCode };
+
   const validateStep1 = (): string | null => {
     if (!isAuthenticated) {
-      const guestErr = validateGuest(guestName, guestEmail, guestPhone);
+      const guestErr = validateGuest(guestName, guestEmail, guestPhone, guestPhoneCountryCode);
       if (guestErr) return guestErr;
     }
     if (isAuthenticated && selectedAddressId !== 'new') {
       // Kayıtlı adres seçildi → OK
     } else {
-      const phone = shippingAddress.phone.trim() || guestPhone.trim();
-      const err = validateInlineAddress({ ...shippingAddress, phone });
+      const src = shippingPhoneSource();
+      const err = validateInlineAddress({
+        ...shippingAddress,
+        phone: src.phone.trim(),
+        phoneCountryCode: src.countryCode,
+      });
       if (err) return err;
     }
     if (billingDifferent) {
       if (isAuthenticated && selectedBillingAddressId !== 'new') {
         // Kayıtlı seçildi → OK
       } else {
-        const err = validateInlineAddress(billingAddress, 'Fatura');
+        const err = validateInlineAddress(billingAddress, t('checkout.billingAddressLabel'));
         if (err) return err;
       }
     }
@@ -207,17 +509,65 @@ export function useCheckout() {
     }
   };
 
-  const buildShippingPayload = (): { id?: string; inline?: OrderAddressInput } => {
+  /**
+   * Gönderime girecek her telefonu `setLoading(true)`'dan ÖNCE çözer.
+   *
+   * ⚠️ Eskiden `normalizePhoneForPayload` geçersiz numarada sessizce `''`
+   * döndürüyordu: kullanıcı hata görmeden ham bir 400 yiyordu (öncesinde ise
+   * kırpılmış, ULAŞILAMAZ bir numara gönderiliyordu). Artık gönderim hiç
+   * başlamaz ve sebep ekranda görünür.
+   *
+   * Mesaj numarayı BASMAZ (PII log/uyarıya sızmasın).
+   */
+  const resolvePayloadPhones = (): { ok: true; phones: ResolvedPhones } | { ok: false; message: string } => {
+    const phones: ResolvedPhones = { shipping: null, billing: null, guest: null };
+
+    if (!(isAuthenticated && user)) {
+      const guest = parsePhoneForPayload(guestPhone, guestPhoneCountryCode);
+      if (!guest) return { ok: false, message: getPhoneInvalidMessage() };
+      phones.guest = guest;
+    }
+
+    // Kayıtlı adres seçiliyse inline adres hiç gönderilmiyor → çözülecek telefon yok.
+    if (!(isAuthenticated && selectedAddressId !== 'new')) {
+      const src = shippingPhoneSource();
+      const shipping = parsePhoneForPayload(src.phone, src.countryCode);
+      if (!shipping) {
+        // Boş alan ile çözülemeyen numara farklı hatalar — mesaj tek kaynaktan.
+        return { ok: false, message: addressPhoneError(src.phone, src.countryCode, t('checkout.shippingAddressLabel'))! };
+      }
+      phones.shipping = shipping;
+    }
+
+    if (billingDifferent && !(isAuthenticated && selectedBillingAddressId !== 'new')) {
+      const billing = parsePhoneForPayload(
+        billingAddress.phone,
+        billingAddress.phoneCountryCode ?? DEFAULT_COUNTRY_CODE,
+      );
+      if (!billing) {
+        return {
+          ok: false,
+          message: addressPhoneError(
+            billingAddress.phone,
+            billingAddress.phoneCountryCode ?? DEFAULT_COUNTRY_CODE,
+            t('checkout.billingAddressLabel'),
+          )!,
+        };
+      }
+      phones.billing = billing;
+    }
+
+    return { ok: true, phones };
+  };
+
+  const buildShippingPayload = (phones: ResolvedPhones): { id?: string; inline?: OrderAddressInput } => {
     if (isAuthenticated && selectedAddressId !== 'new') {
       return { id: selectedAddressId };
     }
-    const phone = shippingAddress.phone.trim()
-      ? normalizePhoneForPayload(shippingAddress.phone, shippingAddress.phoneCountryCode ?? DEFAULT_COUNTRY_CODE)
-      : normalizePhoneForPayload(guestPhone, guestPhoneCountryCode);
     return {
       inline: {
         fullName: shippingAddress.fullName.trim(),
-        phone,
+        phone: requirePhone(phones.shipping, `Teslimat adresi — ${getPhoneInvalidMessage()}`),
         city: shippingAddress.city.trim(),
         district: shippingAddress.district.trim(),
         address: shippingAddress.address.trim(),
@@ -226,7 +576,7 @@ export function useCheckout() {
     };
   };
 
-  const buildBillingPayload = (): { id?: string; inline?: OrderAddressInput } | null => {
+  const buildBillingPayload = (phones: ResolvedPhones): { id?: string; inline?: OrderAddressInput } | null => {
     if (!billingDifferent) return null;
     if (isAuthenticated && selectedBillingAddressId !== 'new') {
       return { id: selectedBillingAddressId };
@@ -234,7 +584,7 @@ export function useCheckout() {
     return {
       inline: {
         fullName: billingAddress.fullName.trim(),
-        phone: normalizePhoneForPayload(billingAddress.phone, billingAddress.phoneCountryCode ?? DEFAULT_COUNTRY_CODE),
+        phone: requirePhone(phones.billing, `Fatura adresi — ${getPhoneInvalidMessage()}`),
         city: billingAddress.city.trim(),
         district: billingAddress.district.trim(),
         address: billingAddress.address.trim(),
@@ -245,18 +595,45 @@ export function useCheckout() {
 
   const proceedCheckout = async (emailVerificationCode?: string) => {
     if (loading) return;
+    // Dört alanın DÖRDÜ de API DTO'sunda zorunlu — yarım gövde göndermek yalnız
+    // aynı 400'ü başka bir şekilde üretir. Türetici tek kaynak (`@/lib/api`).
+    const expectedPricing = toExpectedPricing(quote);
+    if (!expectedPricing) {
+      // Hata halinde mesaj FARKLI: "yükleniyor" demek yanlış olurdu — sorgu
+      // 4xx'te hiç, ağ hatasında `retry` tükendikten sonra kendiliğinden
+      // tazelenmiyor (`refetchOnWindowFocus: false`); kullanıcı özet kartındaki
+      // "Tekrar Dene" düğmesine basmalı.
+      alertInlineWhileOtpOpen(
+        quoteQuery.isError ? t('checkout.priceUnavailableTitle') : t('checkout.priceNotReadyTitle'),
+        quoteQuery.isError
+          ? t('checkout.priceUnavailableBody')
+          : t('checkout.priceNotReadyBody'),
+      );
+      return;
+    }
+    // Telefon kapısı — `setLoading(true)`'dan ÖNCE. ENGELLEYİCİ ama SONLANDIRICI
+    // değil: kullanıcı numarayı düzeltip aynı OTP oturumuyla devam edebilir, o
+    // yüzden modal açıkken satır içi basılır (modal kapatmak kodu boşa düşürürdü).
+    const resolved = resolvePayloadPhones();
+    if (!resolved.ok) {
+      alertInlineWhileOtpOpen(t('checkout.phoneInvalidTitle'), resolved.message);
+      return;
+    }
     setLoading(true);
     try {
-      const shipping = buildShippingPayload();
-      const billing = buildBillingPayload();
+      const shipping = buildShippingPayload(resolved.phones);
+      const billing = buildBillingPayload(resolved.phones);
 
       const checkoutPayload = {
+        distanceSalesAccepted,
         items: items.map((item) => ({ productId: item.productId })),
         idempotencyKey: idempotencyKeyRef.current,
         shippingAddressId: shipping.id,
         shippingAddress: shipping.inline,
         billingAddressId: billing?.id,
         billingAddress: billing?.inline,
+        // Quote'tan türetilmiş imza — dört alan gövdeye burada yayılır.
+        expectedPricing,
         // Kupon yoksa alanı hiç göndermiyoruz (backend opsiyonel bekliyor).
         ...(coupon.couponCode ? { couponCode: coupon.couponCode } : {}),
       };
@@ -265,14 +642,19 @@ export function useCheckout() {
         isAuthenticated && user
           ? await ordersApi.checkout(checkoutPayload)
           : await ordersApi.checkoutGuest({
+              // Onay misafir yolunda da İLK çağrıda gider — yasal yükümlülük
+              // üye/misafir ayrımı yapmıyor.
+              distanceSalesAccepted,
               items: checkoutPayload.items,
               idempotencyKey: checkoutPayload.idempotencyKey,
               email: guestEmail.trim().toLowerCase(),
               emailVerificationCode: emailVerificationCode ?? '',
-              phone: normalizePhoneForPayload(guestPhone, guestPhoneCountryCode),
+              // `resolvePayloadPhones` misafir dalında ÇÖZDÜ — boş geçemez.
+              phone: requirePhone(resolved.phones.guest, getPhoneInvalidMessage()),
               guestName: guestName.trim(),
               shippingAddress: shipping.inline!,
               billingAddress: billing?.inline,
+              expectedPricing,
               ...(coupon.couponCode ? { couponCode: coupon.couponCode } : {}),
             });
 
@@ -281,9 +663,13 @@ export function useCheckout() {
       const firstOrderId: string | null = data?.orders?.[0]?.orderId ?? null;
 
       if (!checkoutGroupId || !firstOrderId) {
-        appAlert(
-          'Hata',
-          'Sipariş oluşturuldu fakat ödeme başlatılamadı. Siparişlerim sayfasından devam edebilirsiniz.',
+        // SONLANDIRICI: sipariş oluştu, sepet boşaltılıyor ve kullanıcı
+        // /orders'a taşınıyor — OTP modalı açıksa (misafir onayı) önce kapanmalı,
+        // yoksa uyarı modalın üstüne düşer (iOS donması) ve kapanan ekranın
+        // üzerinde asılı kalır.
+        alertAfterOtpClose(
+          t('common.error'),
+          t('checkout.orderCreatedPaymentFailed'),
         );
         finalizeCart();
         router.replace('/orders' as any);
@@ -331,7 +717,7 @@ export function useCheckout() {
       } catch (payErr: any) {
         const msg =
           payErr?.response?.data?.message ||
-          'Ödeme başlatılamadı. Siparişinizi daha sonra siparişlerim üzerinden tamamlayabilirsiniz.';
+          t('checkout.paymentStartFailedBody');
         const status = payErr?.response?.status;
         const isStockout =
           (status === 400 || status === 409) &&
@@ -344,26 +730,71 @@ export function useCheckout() {
             return;
           }
         }
-        appAlert('Ödeme Başlatılamadı', msg, [
-          { text: 'Tamam', onPress: () => router.replace(isAuthenticated ? '/orders' : ('/' as any)) },
+        // SONLANDIRICI: butonun kendisi ekranı terk ediyor (siparişlerim / ana
+        // sayfa). Modal açıkken bu uyarıyı basmak hem donduruyor hem de altında
+        // hiçbir işe yaramayan bir OTP formu bırakıyordu → önce kapat.
+        alertAfterOtpClose(t('checkout.paymentStartFailedTitle'), msg, [
+          { text: t('common.ok'), onPress: () => router.replace(isAuthenticated ? '/orders' : ('/' as any)) },
         ]);
       }
     } catch (error: any) {
+      // Client-side telefon reddi ağ hatası DEĞİL: log'lanmaz (mesaj PII taşımaz
+      // ama gürültü de yapmasın), Sentry'ye gitmez, kullanıcıya Türkçe basılır.
+      if (error?.isClientValidation) {
+        alertInlineWhileOtpOpen(t('checkout.phoneInvalidTitle'), error.message);
+        return;
+      }
       console.error('Checkout error:', error);
       captureException(error, { level: 'error', tags: { flow: 'checkout' }, extra: { status: error?.response?.status } });
+      const status = error?.response?.status;
+      // İki ayrı çakışma, TEK dal: fiyat/kargo değişti (i18nKey ile gelir) veya
+      // komisyon seti değişti (delta 18 — `code` ile gelir). İkisinde de quote
+      // yenilenir, yeni toplam gösterilir, yeniden onay istenir. Sessiz retry YOK.
+      const isPricingConflict =
+        status === 409 && error?.response?.data?.i18nKey === 'server.shipping.pricingChanged';
+      const isCommissionConflict =
+        status === 409 && error?.response?.data?.code === 'COMMISSION_PRICING_CHANGED';
+      if (isPricingConflict || isCommissionConflict) {
+        const oldTotal = total;
+        const refreshed = await quoteQuery.refetch();
+        const newTotal = refreshed.data?.pricing?.summary?.total;
+        alertAfterOtpClose(
+          isCommissionConflict
+            ? t('checkout.commissionChangedTitle')
+            : t('checkout.pricesUpdatedTitle'),
+          isCommissionConflict
+            ? t('checkout.commissionChangedBody', {
+                oldTotal: formatServerPrice(oldTotal),
+                newTotal: formatServerPrice(newTotal),
+              })
+            : t('checkout.pricesUpdatedBody', {
+                oldTotal: formatServerPrice(oldTotal),
+                newTotal: formatServerPrice(newTotal),
+              }),
+        );
+        return;
+      }
+      // 503: aktif komisyon kuralı yok. Yeniden quote'la ÇÖZÜLMEZ — kullanıcıyı
+      // quote döngüsüne sokma, geçici platform hatası olarak bildir.
+      if (status === 503) {
+        alertAfterOtpClose(
+          t('checkout.pricingUnavailableTitle'),
+          t('checkout.pricingUnavailableBody'),
+        );
+        return;
+      }
       const errorMessage =
         error.response?.data?.message ||
         error.response?.data?.error ||
         (Array.isArray(error.response?.data?.message)
           ? error.response?.data?.message.join(', ')
-          : 'Sipariş oluşturulamadı');
-      const status = error?.response?.status;
+          : t('checkout.orderCreateFailed'));
       const isStockout =
         (status === 400 || status === 409) &&
         typeof errorMessage === 'string' &&
         STOCKOUT_KEYWORDS.some((kw) => errorMessage.toLowerCase().includes(kw.toLowerCase()));
       if (!isAuthenticated && emailVerificationCode && status === 400 && !isStockout) {
-        setOtpError(extractApiMessage(error) ?? 'Doğrulama kodu geçersiz veya süresi dolmuş.');
+        setOtpError(extractApiMessage(error) ?? t('checkout.verificationCodeInvalid'));
         return;
       }
       if (isStockout) {
@@ -373,7 +804,13 @@ export function useCheckout() {
           return;
         }
       }
-      appAlert('Hata', errorMessage);
+      // ENGELLEYİCİ (sonlandırıcı DEĞİL): buraya düşen hatalar ya geçici sunucu/ağ
+      // hataları (5xx) ya da yönlendirilecek `productId`'si olmayan stok
+      // hatalarıdır — "kod geçersiz" durumu yukarıda zaten satır içi işleniyor.
+      // Girilen OTP kodu HÂLÂ GEÇERLİ olduğu için modalı kapatmak kullanıcıyı
+      // yeni kod istemeye zorlardı; mesajı modalın İÇİNDE göster, "Onayla"ya
+      // yeniden basabilsin.
+      alertInlineWhileOtpOpen(t('common.error'), typeof errorMessage === 'string' ? errorMessage : String(errorMessage));
     } finally {
       setLoading(false);
     }
@@ -381,12 +818,12 @@ export function useCheckout() {
 
   const handleCheckout = async () => {
     if (items.length === 0) {
-      showSnackbar('Sepetiniz boş');
+      showSnackbar(t('checkout.emptyCart'));
       return;
     }
     for (const item of items) {
       if (!item.productId || typeof item.productId !== 'string' || item.productId.length < 10) {
-        appAlert('Hata', `Geçersiz ürün ID: ${item.title}`);
+        appAlert(t('common.error'), t('checkout.invalidProductId', { title: item.title }));
         return;
       }
     }
@@ -395,7 +832,7 @@ export function useCheckout() {
       return;
     }
 
-    const guestErr = validateGuest(guestName, guestEmail, guestPhone);
+    const guestErr = validateGuest(guestName, guestEmail, guestPhone, guestPhoneCountryCode);
     if (guestErr) {
       showSnackbar(guestErr);
       return;
@@ -414,16 +851,10 @@ export function useCheckout() {
       setOtpModalOpen(true);
     } catch (e: any) {
       if (handleEmailAlreadyRegistered(e)) return;
-      appAlert('Hata', extractApiMessage(e) ?? 'Doğrulama kodu gönderilemedi.');
+      appAlert(t('common.error'), extractApiMessage(e) ?? t('checkout.verificationCodeSendFailed'));
     } finally {
       setOtpSending(false);
     }
-  };
-
-  const closeOtpModal = () => {
-    setOtpModalOpen(false);
-    setOtpCode('');
-    setOtpError(null);
   };
 
   const handleOtpSubmit = async () => {
@@ -445,11 +876,11 @@ export function useCheckout() {
       setOtpCode('');
       setOtpError(null);
     } catch (e: any) {
-      if (handleEmailAlreadyRegistered(e)) {
-        setOtpModalOpen(false);
-        return;
-      }
-      setOtpError(extractApiMessage(e) ?? 'Kod gönderilemedi.');
+      // `handleEmailAlreadyRegistered` modalı `closeOtpModal` üzerinden kapatır:
+      // ham `setOtpModalOpen(false)` `otpCode`/`otpError`'ı temizlemiyor ve
+      // `pendingAlertRef`'i boşaltmıyordu → ertelenmiş bir uyarı askıda kalırdı.
+      if (handleEmailAlreadyRegistered(e)) return;
+      setOtpError(extractApiMessage(e) ?? t('checkout.codeSendFailed'));
     } finally {
       setOtpSending(false);
     }
@@ -472,16 +903,38 @@ export function useCheckout() {
     selectedBillingAddressId, setSelectedBillingAddressId,
     billingAddress, setBillingAddress,
     addresses,
-    // shipping/pricing
-    shippingCost, shippingLoading, effectiveShippingCity,
-    subtotal, buyerFee, taxAmount, total,
+    // shipping/pricing — hepsi `pricing.summary`'den AYNEN; sunucu değeri yoksa
+    // `null` (yer tutucu basılır, yerel sayı uydurulmaz).
+    shippingCost, shippingLoading,
+    productAmount, serviceFeeAmount, total,
+    quantityDiscount, feeDiscounts, feeDiscountTotal,
+    /** Quote'un fiyatlayamadığı satırlar — bilgi amaçlı, hiçbir tutar hesabına girmez. */
+    unavailableItems,
+    /** Ödemeye giren satırlar = sepet − ayrılanlar. Özet listesi ve ürün sayacı BUNU kullanır. */
+    payableItems,
+    /** Ayrılan satırın adı (sepetten) — uyarı kartı hangi ürün olduğunu yazsın diye. */
+    cartTitleFor,
+    /** Satır tutarı — sunucunun `items[].subtotal`'ı; yoksa `null` (yer tutucu). */
+    lineSubtotalFor,
+    /** Satır adedi — tutarla AYNI kaynaktan; yoksa `null` (yerel adet basılır). */
+    lineQuantityFor,
+    quoteLoading: quoteQuery.isLoading,
+    /** Quote hatası — ekran ErrorState + "Tekrar Dene" gösterir (CLAUDE.md §11). */
+    quoteError: quoteQuery.isError,
+    retryQuote: () => {
+      void quoteQuery.refetch();
+    },
     coupon,
+    /** Sunucunun uyguladığı indirim (quote kökü) — rozet bilgisi, özet satırı değil. */
+    couponDiscount,
     // ui
     loading,
     snackbar,
     dismissSnackbar: () => setSnackbar({ visible: false, message: '' }),
     handleNextStep,
     handleCheckout,
+    distanceSalesAccepted,
+    toggleDistanceSales: () => setDistanceSalesAccepted((v) => !v),
     // otp
     otpModalOpen, otpCode, setOtpCode, otpError, otpExpiresIn, otpSending,
     closeOtpModal, handleOtpSubmit, handleOtpResend,

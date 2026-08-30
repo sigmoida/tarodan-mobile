@@ -1,8 +1,10 @@
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { collectionsApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import { IMAGE_PLACEHOLDER } from '@/utils/imageUrl';
 import type { LikedCollection } from '../_lib/types';
 
 /**
@@ -10,6 +12,7 @@ import type { LikedCollection } from '../_lib/types';
  * and focus refetch. Lifted verbatim from the monolithic screen (§12).
  */
 export function useLikedCollections() {
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
@@ -50,16 +53,16 @@ export function useLikedCollections() {
     try {
       await collectionsApi.unlike(collectionId);
       queryClient.invalidateQueries({ queryKey: ['liked-collections'] });
-      setSnackbar({ visible: true, message: 'Koleksiyon beğenilerden çıkarıldı' });
+      setSnackbar({ visible: true, message: t('collection.removedFromLikes') });
     } catch (err) {
       console.error('Failed to unlike collection:', err);
-      setSnackbar({ visible: true, message: 'Bir hata oluştu' });
+      setSnackbar({ visible: true, message: t('utility.error500.title') });
     }
   };
 
   const getImageUrl = (collection: LikedCollection) => {
     if (collection.coverImageUrl) return collection.coverImageUrl;
-    return 'https://via.placeholder.com/300x200?text=Koleksiyon';
+    return IMAGE_PLACEHOLDER;
   };
 
   return {

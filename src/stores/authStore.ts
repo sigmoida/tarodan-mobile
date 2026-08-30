@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
-import { authApi, userApi } from "@/lib/api";
+import { advanceSessionEpoch, authApi, userApi } from "@/lib/api";
 import { logger } from "../services/logger";
 
 // Membership tier types
@@ -17,6 +17,8 @@ export interface User {
   avatar?: string;
   avatarUrl?: string;
   bio?: string;
+  /** `YYYY-MM-DD`. Profil düzenleme formu bunu ön-doldurur. */
+  birthDate?: string;
 
   // Membership
   membershipTier: MembershipTier;
@@ -236,7 +238,7 @@ const extractMembershipTier = (apiUser: any): MembershipTier => {
 };
 
 // Default user values for mapping API response
-const mapApiUserToUser = (apiUser: any): User => {
+export const mapApiUserToUser = (apiUser: any): User => {
   const membershipTier = extractMembershipTier(apiUser);
 
   return {
@@ -247,6 +249,7 @@ const mapApiUserToUser = (apiUser: any): User => {
     avatar: apiUser.avatar || apiUser.avatarUrl || apiUser.avatar_url,
     avatarUrl: apiUser.avatarUrl || apiUser.avatar_url,
     bio: apiUser.bio,
+    birthDate: apiUser.birthDate ?? undefined,
 
     // Membership - properly extracted
     membershipTier,
@@ -374,6 +377,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   // Web ile aynı endpoint: POST /auth/logout
   logout: async () => {
+    // İLK İŞ: oturum kuşağını ilerlet. Bu noktadan sonra tamamlanan her
+    // uçuştaki refresh kendini geçersiz sayar ve SecureStore'a yazmaz —
+    // yoksa bu arada giriş yapan kullanıcının token'ını ezerdi.
+    advanceSessionEpoch();
+
     // Bu cihazın push token'ını sunucuda deaktive et (çıkış sonrası bu cihaza
     // bildirim gitmesin). Token hâlâ geçerliyken, logout çağrısından önce yap.
     // Lazy require: push → api → authStore import zinciriyle döngü oluşmasın.
@@ -425,11 +433,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (token) {
         // Web ile aynı endpoint: GET /users/me
         const response = await userApi.getProfile();
+        // Bu istek 401 alıp sessiz refresh tetiklemiş olabilir (soğuk açılışta
+        // süresi dolmuş access token tipik). O durumda SecureStore'daki token
+        // yenilendi ve yukarıda okunan `token` artık BAYAT — store'a taze olanı
+        // yaz, yoksa store'dan okuyan tüketiciler (bearer'lı görseller, socket)
+        // ölü token'la kalır.
+        const freshToken =
+          (await SecureStore.getItemAsync("accessToken")) || token;
         const mappedUser = mapApiUserToUser(response.data);
         const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
         set({
           isAuthenticated: true,
-          token,
+          token: freshToken,
           user: mappedUser,
           limits,
           isLoading: false,

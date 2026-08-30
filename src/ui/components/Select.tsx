@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { theme } from '../lib/theme';
 
 export interface SelectOption {
@@ -34,15 +35,17 @@ export const Select: React.FC<SelectProps> = ({
   value,
   onChange,
   options,
-  placeholder = 'Seçim yapın',
+  placeholder,
   label,
   error,
   helperText,
   disabled,
   selectSize = 'md',
 }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
+  const resolvedPlaceholder = placeholder ?? t('common.selectPlaceholder');
 
   return (
     <View style={styles.container}>
@@ -66,7 +69,7 @@ export const Select: React.FC<SelectProps> = ({
             { color: selected ? colors.text.heading : colors.text.subtle },
           ]}
         >
-          {selected ? selected.label : placeholder}
+          {selected ? selected.label : resolvedPlaceholder}
         </Text>
         <Text style={styles.caret}>▾</Text>
       </Pressable>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Platform } from 'react-native';
 import { router } from 'expo-router';
@@ -8,6 +9,7 @@ import { ordersApi, refundsApi, mediaApi, paymentsApi, type RNFile } from '@/lib
 import { qk } from '@/lib/query';
 import { captureException } from '@/services/sentry';
 import { MAX_EVIDENCE_PHOTOS } from '../_lib/status';
+import type { OrderCancellationReason } from '@/lib/shared/orderCancellation';
 import type { OrderDetail } from '../_lib/types';
 
 type SnackVariant = 'success' | 'danger' | 'default';
@@ -31,6 +33,7 @@ const strMsg = (err: any, fallback: string): string => {
  * + iade modalının form durumu (sebep/açıklama/adet/kanıt foto) + snackbar.
  */
 export function useOrderActions(id: string, order: OrderDetail | undefined) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string; variant: SnackVariant }>({
@@ -43,6 +46,7 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
   const dismissSnackbar = () => setSnackbar({ visible: false, message: '', variant: 'default' });
 
   const [refundModalVisible, setRefundModalVisible] = useState(false);
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [refundReason, setRefundReason] = useState('changed_mind');
   const [refundDescription, setRefundDescription] = useState('');
   const [evidenceAssets, setEvidenceAssets] = useState<RNFile[]>([]);
@@ -80,12 +84,12 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
       setRefundDescription('');
       setEvidenceAssets([]);
       setRefundQuantity(1);
-      notify('İade talebiniz oluşturuldu.', 'success');
+      notify(t('order.refundRequestCreated'), 'success');
       invalidateOrder();
     },
     onError: (err: any) => {
       captureException(err, { level: 'error', tags: { flow: 'refund.create' }, extra: { orderId: id, reason: refundReason } });
-      notify(strMsg(err, 'İade talebi oluşturulamadı.'), 'danger');
+      notify(strMsg(err, t('order.refundRequestFailed')), 'danger');
     },
   });
 
@@ -93,23 +97,24 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
     mutationFn: (refundId: string) => refundsApi.cancel(refundId),
     onSuccess: () => {
       invalidateOrder();
-      notify('İade talebi iptal edildi.', 'success');
+      notify(t('refund.cancel.successMessage'), 'success');
     },
     onError: (err: any) => {
       captureException(err, { level: 'error', tags: { flow: 'refund.cancel' }, extra: { orderId: id } });
-      notify(strMsg(err, 'İptal başarısız.'), 'danger');
+      notify(strMsg(err, t('refund.cancel.errorMessage')), 'danger');
     },
   });
 
   const cancelOrderMutation = useMutation({
-    mutationFn: () => ordersApi.cancel(id),
+    mutationFn: (input: { reasonCode: OrderCancellationReason; reason?: string }) =>
+      ordersApi.cancel(id, input),
     onSuccess: () => {
       invalidateOrder();
-      notify('Siparişiniz iptal edildi.', 'success');
+      notify(t('order.orderCancelled'), 'success');
     },
     onError: (err: any) => {
       captureException(err, { level: 'error', tags: { flow: 'order.cancel' }, extra: { orderId: id } });
-      notify(strMsg(err, 'Sipariş iptal edilemedi.'), 'danger');
+      notify(strMsg(err, t('order.orderCancelFailed')), 'danger');
     },
   });
 
@@ -134,7 +139,7 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
     },
     onError: (err: any) => {
       captureException(err, { level: 'error', tags: { flow: 'order.payInitiate' }, extra: { orderId: id } });
-      notify(joinMsg(err, 'Ödeme başlatılamadı. Lütfen tekrar deneyin.'), 'danger');
+      notify(joinMsg(err, t('checkout.paymentInitFailedRetry')), 'danger');
     },
   });
 
@@ -144,7 +149,7 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
     if (remaining <= 0) return;
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      appAlert('İzin Gerekli', 'Fotoğraf eklemek için galeri erişim izni gerekiyor.');
+      appAlert(t('order.permissionRequired'), t('order.galleryPermissionBody'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -167,25 +172,21 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
   const handleCancelRefund = () => {
     const rr = order?.activeRefundRequest;
     if (!rr) return;
-    appAlert('İade Talebini İptal Et', 'İade talebiniz iptal edilecek. Devam edilsin mi?', [
-      { text: 'Vazgeç', style: 'cancel' },
-      { text: 'İptal Et', style: 'destructive', onPress: () => cancelRefundMutation.mutate(rr.id) },
+    appAlert(t('refund.cancel.confirmTitle'), t('refund.cancel.confirmBody'), [
+      { text: t('order.keepOrder'), style: 'cancel' },
+      { text: t('order.cancelShort'), style: 'destructive', onPress: () => cancelRefundMutation.mutate(rr.id) },
     ]);
   };
 
-  const handleCancelOrder = () => {
-    const isUnpaid = order?.status === 'pending';
-    appAlert(
-      'Siparişi İptal Et',
-      isUnpaid
-        ? 'Sipariş iptal edilecek. Devam edilsin mi?'
-        : 'Sipariş iptal edilecek ve ödemeniz iade edilecek. Devam edilsin mi?',
-      [
-        { text: 'Vazgeç', style: 'cancel' },
-        { text: 'İptal Et', style: 'destructive', onPress: () => cancelOrderMutation.mutate() },
-      ],
-    );
-  };
+  /**
+   * İptal artık bir onay kutusu DEĞİL, nedenli bir form.
+   *
+   * Sunucu `paid`/`preparing` siparişlerde `reasonCode` olmadan 400 atıyor
+   * (`server.order.cancelReasonRequired`) — eski `appAlert` akışı yalnız boş bir
+   * gövde gönderdiği için ödenmiş siparişin iptali mobilde HİÇ çalışmıyordu.
+   * Form `CancelOrderModal`'da; burada yalnız aç/kapa durumu duruyor.
+   */
+  const handleCancelOrder = () => setCancelModalVisible(true);
 
   return {
     snackbar,
@@ -213,6 +214,15 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
     cancelRefundPending: cancelRefundMutation.isPending,
     handleCancelOrder,
     cancelOrderPending: cancelOrderMutation.isPending,
+    // iptal modalı — form `CancelOrderModal`'da, burada yalnız aç/kapa durumu.
+    cancelModal: {
+      visible: cancelModalVisible,
+      close: () => setCancelModalVisible(false),
+      /** Ödemesi alınmışsa iade uyarısı gösterilir. */
+      willRefund: order?.status !== 'pending' && order?.status !== 'pending_payment',
+      confirm: (input: { reasonCode: OrderCancellationReason; reason?: string }) =>
+        cancelOrderMutation.mutate(input),
+    },
     initiatePayment: () => initiatePaymentMutation.mutate(),
     payPending: initiatePaymentMutation.isPending,
   };

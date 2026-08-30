@@ -7,7 +7,13 @@
  * (WebView) doğrudan PayTR'ye POST eder.
  *
  * 3DS zorunludur (`non_3d: "0"`), bu yüzden banka sayfası WebView'de render edilir.
+ *
+ * ⚠️ React DIŞI modül — `useTranslation` çağıramaz. Bu dosyanın attığı hatalar
+ * `CardPaymentForm`'un catch bloğunda `e.message` olarak doğrudan kullanıcıya
+ * gösterilir (bkz. `appAlert(t('payment.stoppedTitle'), e.message)`), o yüzden
+ * mesajlar `validation.ts` ile aynı kalıpla global `i18n` örneğinden okunur.
  */
+import i18n from '@/i18n/config';
 
 /** PayTR'nin tek geçerli ödeme hedefi. Başka bir action gelirse akış iptal edilir. */
 export const PAYTR_ACTION = 'https://www.paytr.com/odeme';
@@ -62,17 +68,17 @@ export function assertSafePaytrForm(res: DirectFormResponse): void {
   if (normalizeAction(res.action ?? '') !== PAYTR_ACTION) {
     throw codedError(
       'PAYTR_BAD_ACTION',
-      'Ödeme hedefi beklenmedik bir adres. Güvenliğiniz için işlem durduruldu.',
+      i18n.t('payment.unexpectedDestination'),
     );
   }
   if (!Array.isArray(res.fields) || res.fields.length === 0) {
-    throw codedError('PAYTR_NO_FIELDS', 'Ödeme formu eksik geldi. Lütfen tekrar deneyin.');
+    throw codedError('PAYTR_NO_FIELDS', i18n.t('payment.formMissing'));
   }
   for (const field of res.fields) {
     if (RAW_CARD_FIELD_NAMES.has(String(field?.name ?? '').toLowerCase())) {
       throw codedError(
         'PAYTR_RAW_CARD_FIELD',
-        'Ödeme formu beklenmedik alan içeriyor. Güvenliğiniz için işlem durduruldu.',
+        i18n.t('payment.formUnexpectedField'),
       );
     }
   }

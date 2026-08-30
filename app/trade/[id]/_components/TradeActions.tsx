@@ -4,7 +4,7 @@ import { Button, Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { TradeAddressPicker } from '@/components/common';
 import { formatPrice } from '@/utils/format';
-import type { Trade, TFn } from '../_lib/types';
+import type { Trade, TradeCashPayment, TFn } from '../_lib/types';
 
 const { colors } = theme;
 
@@ -34,7 +34,13 @@ export function TradeActions({
   cashPaid,
   cashTotal,
   cashCommission,
+  isV2,
+  myPaymentRow,
+  myPaymentPending,
+  paidCount,
+  totalCount,
   myFromWarehouseStatus,
+  hasShippedLeg,
   actions,
 }: {
   trade: Trade;
@@ -46,21 +52,48 @@ export function TradeActions({
   otherPartyId: string;
   cashPaid: boolean;
   cashTotal: number;
+  /** v1 komisyonu — `cashTotal`'a dahildir; butonun şeffaflık ibaresini açar. */
   cashCommission: number;
+  isV2: boolean;
+  myPaymentRow?: TradeCashPayment | null;
+  myPaymentPending: boolean;
+  paidCount: number;
+  totalCount: number;
   myFromWarehouseStatus?: string | null;
+  hasShippedLeg?: boolean;
   actions: TradeActionHandlers;
 }) {
+  // v1: mevcut cashTotal/cashCommission mantığı aynen korunur (para istemcide
+  // hesaplanmaz — sunucu alanının aynısı). v2: kendi satırımın toplamı
+  // sunucudan gelir (`myPaymentRow.totalAmount`); `amount + commission`
+  // türetmesi v2'de yasak (delta 17 §1e).
+  const payAmount = isV2
+    ? Number(myPaymentRow?.totalAmount ?? 0)
+    : Math.abs(cashTotal > 0 ? cashTotal : Number(trade.cashAmount ?? 0));
+  // v1'de tutar komisyonu İÇERİR; bunu söylemek şeffaflık meselesi — ibare bir
+  // yeniden düzenlemede düşmüştü, tutar doğru olduğu için de fark edilmemişti.
+  // v2'de komisyon yok (`commission` her zaman 0), ibare oraya konmaz.
+  const showsCommission = !isV2 && cashCommission > 0;
+  const payTitle = showsCommission
+    ? `${t('payment.pay')} — ${formatPrice(payAmount)} (${t('payment.commissionIncluded')})`
+    : `${t('payment.pay')} — ${formatPrice(payAmount)}`;
+  // İptal butonunun görünürlüğü TEK yerde: iade uyarısı da aynı sinyali kullanır
+  // (uyarı "iptal edersen kargo geri gelmez" der — iptal edilemeyen, terminal bir
+  // takasta anlamsızdır).
+  const canCancelNow =
+    Boolean(trade.canCancel) &&
+    (trade.status === 'pending' ? isInitiator : isInitiator || isReceiver);
   return (
     <View style={styles.actions}>
       {/* Pending: Accept/Reject/Counter for receiver */}
       {trade.status === 'pending' && isReceiver && (
         <>
           <View style={{ marginBottom: theme.spacing[3] }}>
-            <TradeAddressPicker label="Teslimat Adresi" onChange={actions.setTradeAddressId} />
+            <TradeAddressPicker label={t('address.deliveryAddress')} onChange={actions.setTradeAddressId} />
           </View>
           <Button
             variant="primary"
-            title="Kabul Et"
+            title={t('trade.acceptTrade')}
             onPress={actions.handleAccept}
             isLoading={actions.acceptPending}
             style={styles.actionButton}
@@ -68,13 +101,13 @@ export function TradeActions({
           <View style={styles.actionRow}>
             <Button
               variant="outline"
-              title="Karşı Teklif"
+              title={t('trade.counterOffer')}
               onPress={() => router.push(`/trade/counter/${id}` as any)}
               style={{ ...styles.actionButton, ...styles.actionItem }}
             />
             <Button
               variant="outline"
-              title="Reddet"
+              title={t('trade.rejectTrade')}
               onPress={actions.openReject}
               isLoading={actions.rejectPending}
               style={{ ...styles.actionButton, ...styles.actionItem, borderColor: colors.danger[600]! }}
@@ -84,7 +117,7 @@ export function TradeActions({
       )}
 
       {/* Cancel — backend-derived. Pending'de yalnızca teklifi yapan iptal edebilir. */}
-      {trade.canCancel && (trade.status === 'pending' ? isInitiator : isInitiator || isReceiver) && (
+      {canCancelNow && (
         <Button
           variant="outline"
           title={trade.status === 'pending' ? t('trade.cancel.offerCta') : t('trade.cancel.tradeCta')}
@@ -94,6 +127,16 @@ export function TradeActions({
         />
       )}
 
+      {/*
+        Kargoya verildikten sonra iade `totalAmount − shippingAmount`'tır: nakit
+        fark ve hizmet bedeli döner, KARGO DÖNMEZ (delta 17 §1f). Eşik, iptal
+        kilidiyle AYNI SİNYALDİR (`canCancelNow`): iptal edilemeyen ya da
+        tamamlanmış bir takasta bu uyarı yanlış bilgi verirdi.
+      */}
+      {isV2 && hasShippedLeg && canCancelNow ? (
+        <Text variant="caption" tone="muted">{t('trade.shippingNotRefundable')}</Text>
+      ) : null}
+
       {/* Cancel locked hint */}
       {!trade.canCancel &&
         trade.status === 'shipping_to_warehouse' &&
@@ -102,19 +145,22 @@ export function TradeActions({
           <Text variant="caption" style={styles.confirmReceiptHint}>{t('trade.cancel.lockedHint')}</Text>
         )}
 
-      {/* awaiting_payment: cashPayer must initiate the cash payment */}
+      {/*
+        v2: kapı KENDİ satırımdır — eşit takasta bile iki taraf da öder, eski
+        `cashPayerId === userId` kapısı v2'de yanlış (delta 17 §1e).
+        v1: eski kapı aynen korunur, eldeki takaslar açıldıkları modelle biter.
+      */}
       {(trade.status === 'accepted' || trade.status === 'awaiting_payment') &&
-        trade.cashPayerId === userId &&
-        !cashPaid && (
+        (isV2 ? myPaymentPending : trade.cashPayerId === userId && !cashPaid) && (
           <View style={styles.payCta}>
-            <Text variant="label" style={{ color: colors.primary[800]! }}>Ödemenizi Tamamlayın</Text>
+            <Text variant="label" style={{ color: colors.primary[800]! }}>{t('payment.completeYourPayment')}</Text>
             <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[0.5], marginBottom: theme.spacing[2.5] }}>
-              Takas kabul edildi. Devam etmek için nakit fark ödemesini tamamlayın.
+              {t('trade.completePaymentDesc')}
             </Text>
             <Button
               testID="cash-pay-button"
               variant="primary"
-              title={`Ödeme Yap — ${formatPrice(Math.abs(cashTotal > 0 ? cashTotal : Number(trade.cashAmount ?? 0)))}${cashCommission > 0 ? ' (komisyon dahil)' : ''}`}
+              title={payTitle}
               onPress={actions.cashPay}
               isLoading={actions.cashPayPending}
               disabled={actions.cashPayPending}
@@ -122,12 +168,17 @@ export function TradeActions({
             />
           </View>
         )}
+
+      {/*
+        "1/2 ödendi" TAKILMA DEĞİL: kendi ödemem geçti, karşı tarafınki bekliyor.
+        Takas `shipping_to_warehouse`'a ancak iki satır da completed olunca geçer.
+      */}
       {(trade.status === 'accepted' || trade.status === 'awaiting_payment') &&
-        trade.cashPayerId &&
-        trade.cashPayerId !== userId &&
-        !cashPaid && (
+        (isV2
+          ? !myPaymentPending && paidCount < totalCount
+          : Boolean(trade.cashPayerId) && trade.cashPayerId !== userId && !cashPaid) && (
           <Text variant="caption" style={styles.confirmReceiptHint}>
-            Karşı tarafın nakit fark ödemesi bekleniyor.
+            {t('trade.waitingCounterpartyPayment')}
           </Text>
         )}
 
@@ -137,7 +188,7 @@ export function TradeActions({
           <Button
             testID="trade-confirm-delivery-button"
             variant="primary"
-            title="Teslim Aldım"
+            title={t('trade.iReceivedIt')}
             onPress={actions.confirm}
             isLoading={actions.confirmPending}
             disabled={myFromWarehouseStatus !== 'delivered'}
@@ -160,7 +211,7 @@ export function TradeActions({
       {/* Message other party */}
       <Button
         variant="ghost"
-        title="Mesaj Gönder"
+        title={t('message.sendMessage')}
         onPress={() => router.push(`/messages/new?receiverId=${otherPartyId}`)}
         style={styles.actionButton}
       />

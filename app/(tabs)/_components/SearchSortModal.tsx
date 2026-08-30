@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Modal, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Radio, Text, theme } from '@/ui';
 
-import { SORT_OPTIONS } from '@/utils/productFilters';
+import { buildSortOptions } from '@/utils/productFilters';
 import { styles } from '../_lib/searchStyles';
 import type { SearchController } from '../_hooks/useSearch';
 
@@ -11,6 +12,8 @@ const { colors } = theme;
 
 /** Bottom-sheet sort picker (web SidebarFilters sort parity). */
 export function SearchSortModal({ f }: { f: SearchController }) {
+  const { t } = useTranslation();
+  const sortOptions = useMemo(() => buildSortOptions(t), [t]);
   return (
     <Modal
       visible={f.sortModalVisible}
@@ -26,9 +29,9 @@ export function SearchSortModal({ f }: { f: SearchController }) {
         <View style={styles.sortModalContent}>
           <View style={styles.sortModalHandle} />
           <Text variant="h2" style={styles.sortModalTitle}>
-            Sıralama
+            {t('common.sort')}
           </Text>
-          {SORT_OPTIONS.map((option) => {
+          {sortOptions.map((option) => {
             const isActive = f.filters.sortBy === option.value;
             return (
               <TouchableOpacity

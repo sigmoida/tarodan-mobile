@@ -26,7 +26,6 @@ export const styles = StyleSheet.create({
   },
   headerButtons: {
     position: 'absolute',
-    top: 50,
     left: 16,
     right: 16,
     flexDirection: 'row',

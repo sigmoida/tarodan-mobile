@@ -7,108 +7,32 @@ const { colors } = theme;
 
 // Status meta (icon + color) — üst statü banner'ı için. Yeni auto-shipping akışı
 // için yerelleştirilmiş etiketler NEW_STATUS_KEYS ile uygulanır.
-export const TRADE_STATUSES = {
-  pending: {
-    label: "Bekliyor",
-    color: colors.warning[600]!,
-    icon: "time-outline",
-  },
-  accepted: {
-    label: "Kabul Edildi",
-    color: colors.success[600]!,
-    icon: "checkmark-circle-outline",
-  },
-  rejected: {
-    label: "Reddedildi",
-    color: colors.danger[600]!,
-    icon: "close-circle-outline",
-  },
-  countered: {
-    label: "Karşı Teklif",
-    color: colors.info[600]!,
-    icon: "swap-horizontal",
-  },
-  awaiting_payment: {
-    label: "Ödeme Bekleniyor",
-    color: colors.warning[600]!,
-    icon: "card-outline",
-  },
-  shipping_to_warehouse: {
-    label: "Depoya Gönderim",
-    color: colors.info[600]!,
-    icon: "cube-outline",
-  },
-  at_warehouse: {
-    label: "Depoda",
-    color: colors.info[600]!,
-    icon: "business-outline",
-  },
-  admin_reviewing: {
-    label: "İnceleniyor",
-    color: colors.info[600]!,
-    icon: "search-outline",
-  },
-  shipping_to_recipients: {
-    label: "Alıcılara Gönderim",
-    color: colors.primary[600]!,
-    icon: "airplane-outline",
-  },
-  returning: {
-    label: "İade Sürecinde",
-    color: colors.warning[600]!,
-    icon: "return-up-back-outline",
-  },
-  // Legacy fallbacks
-  initiator_shipped: {
-    label: "Kargo Yolda",
-    color: colors.info[600]!,
-    icon: "cube-outline",
-  },
-  receiver_shipped: {
-    label: "Kargo Yolda",
-    color: colors.info[600]!,
-    icon: "cube-outline",
-  },
-  both_shipped: {
-    label: "Kargo Yolda",
-    color: colors.primary[600]!,
-    icon: "airplane-outline",
-  },
-  completed: {
-    label: "Tamamlandı",
-    color: colors.success[600]!,
-    icon: "checkmark-done-circle-outline",
-  },
-  cancelled: {
-    label: "İptal Edildi",
-    color: colors.text.muted,
-    icon: "ban-outline",
-  },
-  disputed: {
-    label: "İtiraz Var",
-    color: colors.danger[600]!,
-    icon: "warning-outline",
-  },
+// Takas durum haritası TEK kaynakta (`@/lib/shared/tradeStatus`) — üç kopya
+// hem kapsam hem kelime olarak ayrışmıştı.
+export { tradeStatusMeta as TRADE_STATUSES, useTradeStatusDetail } from '@/lib/shared/tradeStatus';
+
+// Statü açıklama anahtarları — build fonksiyonu (import-zamanı dondurulmasın, CLAUDE.md §2).
+const STATUS_DESCRIPTION_KEYS: Record<string, MessageKey> = {
+  pending: "trade.statusDescription.pending",
+  accepted: "trade.statusDescription.accepted",
+  awaiting_payment: "trade.statusDescription.awaitingPayment",
+  shipping_to_warehouse: "trade.statusDescription.shippingToWarehouse",
+  at_warehouse: "trade.statusDescription.atWarehouse",
+  admin_reviewing: "trade.statusDescription.adminReviewing",
+  shipping_to_recipients: "trade.statusDescription.shippingToRecipients",
+  returning: "trade.statusDescription.returning",
+  completed: "trade.statusMeta.completed",
+  rejected: "trade.statusDescription.rejected",
+  cancelled: "trade.statusDescription.cancelled",
+  disputed: "trade.statusDescription.disputed",
 };
 
-// Statü açıklamaları — banner altındaki bilgilendirme kartı (web parity).
-export const STATUS_DESCRIPTIONS: Record<string, string> = {
-  pending: "Karşı tarafın teklifi yanıtlaması bekleniyor.",
-  accepted: "Takas kabul edildi. Şimdi ürünler Tarodan deposuna kargolanacak.",
-  awaiting_payment:
-    "Nakit fark ödemesi bekleniyor. Ödeme tamamlanınca kargo süreci başlar.",
-  shipping_to_warehouse:
-    "Her iki taraf da ürününü Tarodan deposuna kargoluyor.",
-  at_warehouse: "Ürünler Tarodan deposuna ulaştı.",
-  admin_reviewing:
-    "Ekibimiz ürünleri inceliyor. Onay sonrası size kargolanacak.",
-  shipping_to_recipients: "Ürünler depodan size doğru kargolanıyor.",
-  returning: "Takas reddedildi. Ürünleriniz size iade ediliyor.",
-  completed: "Takas başarıyla tamamlandı.",
-  rejected: "Bu takas teklifi reddedildi.",
-  cancelled: "Bu takas iptal edildi.",
-  disputed: "Bu takas için bir itiraz açıldı. Ekibimiz inceliyor.",
-};
+/** Statü açıklamaları — banner altındaki bilgilendirme kartı (web parity). */
+export function buildStatusDescriptions(t: TFn): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(STATUS_DESCRIPTION_KEYS).map(([status, key]) => [status, t(key)]),
+  );
+}
 
 // Yeni auto-shipping akışı statülerinin i18n etiket anahtarları.
 export const NEW_STATUS_KEYS: Record<string, MessageKey> = {
@@ -245,6 +169,20 @@ export function formatCountdown(
   return days > 0 ? `${days}g ${hms}` : hms;
 }
 
+// Shipment statüsü kargoya FİİLEN verilmiş mi ("dispatched")? `pending` /
+// `label_created` henüz taşıyıcıya teslim edilmemiştir — tam iade hâlâ
+// mümkündür. Tek kaynak: hem `renderOtherShipmentHint` hem de iade-uyarısı
+// eşiği (`deriveTradeView`) bunu kullanır.
+export function isShipmentDispatched(s: string | null | undefined): boolean {
+  return (
+    s === "picked_up" ||
+    s === "in_transit" ||
+    s === "at_delivery_branch" ||
+    s === "out_for_delivery" ||
+    s === "delivered"
+  );
+}
+
 // Karşı tarafın depoya-kargo durumuna göre ipucu metni.
 export function renderOtherShipmentHint(
   s: string | null | undefined,
@@ -252,12 +190,8 @@ export function renderOtherShipmentHint(
 ): string {
   if (s === "delivered")
     return t("trade.warehouseShipping.counterpartyDelivered");
-  if (
-    s === "picked_up" ||
-    s === "in_transit" ||
-    s === "at_delivery_branch" ||
-    s === "out_for_delivery"
-  )
+  // `delivered` yukarıda döndü; burada ayrıca dışlamak gereksizdi.
+  if (isShipmentDispatched(s))
     return t("trade.warehouseShipping.counterpartyInTransit");
   if (s === "cancelled")
     return t("trade.warehouseShipping.counterpartyCancelled");

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import { Input, Radio, Text, theme } from '@/ui';
@@ -26,6 +27,7 @@ export function AddressSelector({
   inline: ShippingAddressInput;
   setInline: React.Dispatch<React.SetStateAction<ShippingAddressInput>>;
 }) {
+  const { t } = useTranslation();
   return (
     <View>
       {isAuthenticated && addresses.length > 0 ? (
@@ -40,7 +42,7 @@ export function AddressSelector({
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <Text style={styles.addressTitle}>{a.title || a.fullName}</Text>
-                  {a.isDefault ? <Text style={styles.defaultBadge}> · Varsayılan</Text> : null}
+                  {a.isDefault ? <Text style={styles.defaultBadge}> · {t('common.default')}</Text> : null}
                 </View>
                 <Text style={styles.addressLine} numberOfLines={2}>{a.fullName} · {a.phone}</Text>
                 <Text style={styles.addressLine} numberOfLines={2}>{a.address}, {a.district}/{a.city}</Text>
@@ -54,7 +56,7 @@ export function AddressSelector({
             <Radio checked={selectedId === 'new'} onChange={() => setSelectedId('new')} />
             <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="add-circle-outline" size={18} color={colors.primary[600]!} />
-              <Text style={[styles.addressTitle, { marginLeft: theme.spacing[2] }]}>Yeni Adres Ekle</Text>
+              <Text style={[styles.addressTitle, { marginLeft: theme.spacing[2] }]}>{t('checkout.addNewAddress')}</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -63,14 +65,18 @@ export function AddressSelector({
       {selectedId === 'new' ? (
         <View>
           <Input
-            label="Ad Soyad *"
+            label={t('checkout.fullNameRequired')}
             value={inline.fullName}
             onChangeText={(text: string) => setInline({ ...inline, fullName: text })}
             containerStyle={styles.input}
             testID={isBilling ? undefined : 'shipping-fullname-input'}
           />
           <PhoneInput
-            label="Telefon *"
+            testID={isBilling ? 'billing-phone-input' : 'shipping-phone-input'}
+            label={t('auth.bizPhone')}
+            // Ödeme adımına gelmeden görsün: çözülemeyen numara blur'da uyarır.
+            // Gönderimi engelleyen kuralla AYNI ayrıştırıcı (`@/utils/phone`).
+            validateOnBlur
             countryCode={inline.phoneCountryCode ?? DEFAULT_COUNTRY_CODE}
             onCountryCodeChange={(code) => setInline((prev) => ({ ...prev, phoneCountryCode: code }))}
             phone={inline.phone}
@@ -84,7 +90,7 @@ export function AddressSelector({
             onChangeDistrict={(district) => setInline((prev) => ({ ...prev, district }))}
           />
           <Input
-            label="Açık Adres *"
+            label={t('checkout.streetAddressRequired')}
             value={inline.address}
             onChangeText={(text: string) => setInline({ ...inline, address: text })}
             multiline
@@ -93,7 +99,7 @@ export function AddressSelector({
             testID={isBilling ? undefined : 'shipping-address-input'}
           />
           <Input
-            label="Posta Kodu"
+            label={t('checkout.zipCode')}
             value={inline.zipCode || ''}
             onChangeText={(text: string) => setInline({ ...inline, zipCode: text })}
             keyboardType="number-pad"

@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { theme, Text } from '@/ui';
 
 const { colors } = theme;
@@ -15,29 +17,31 @@ interface PremiumBadgeProps {
   onPress?: () => void;
 }
 
-const BADGE_CONFIG = {
+// Modül düzeyinde sabitlenirse i18next hazır olmadan çözülür ve donar —
+// bileşen `useMemo(() => buildBadgeConfig(t), [t])` ile çağırır (bkz. UpgradePrompt).
+const buildBadgeConfig = (t: TFunction) => ({
   premium: {
     icon: 'crown',
     iconType: 'material' as const,
-    label: 'Premium',
+    label: t('membership.premium'),
     color: colors.primary[600]!,
     backgroundColor: colors.primary[50]!,
   },
   verified: {
     icon: 'checkmark-shield',
     iconType: 'ionicons' as const,
-    label: 'Onaylı',
+    label: t('membership.badgeVerified'),
     color: colors.info[600]!,
     backgroundColor: colors.info[50]!,
   },
   premium_verified: {
     icon: 'shield-crown',
     iconType: 'material' as const,
-    label: 'Premium Onaylı',
+    label: t('membership.badgePremiumVerified'),
     color: colors.primary[700]!,
     backgroundColor: colors.primary[50]!,
   },
-};
+});
 
 const SIZE_CONFIG = {
   small: {
@@ -69,7 +73,9 @@ export const PremiumBadge: React.FC<PremiumBadgeProps> = ({
   showLabel = true,
   onPress,
 }) => {
-  const config = BADGE_CONFIG[type];
+  const { t } = useTranslation();
+  const badgeConfig = useMemo(() => buildBadgeConfig(t), [t]);
+  const config = badgeConfig[type];
   const sizeConfig = SIZE_CONFIG[size];
 
   const containerStyle = [
@@ -172,26 +178,27 @@ export const MembershipBadgeCard: React.FC<MembershipBadgeCardProps> = ({
   isVerified = false,
   onUpgrade,
 }) => {
+  const { t } = useTranslation();
   const isPremium = membershipTier === 'premium' || membershipTier === 'business';
 
   const tierInfo = {
     free: {
-      name: 'Ücretsiz Üye',
+      name: t('membership.memberLabelFree'),
       color: colors.text.muted,
       icon: 'account',
     },
     basic: {
-      name: 'Temel Üye',
+      name: t('membership.memberLabelBasic'),
       color: colors.info[600]!,
       icon: 'account-check',
     },
     premium: {
-      name: 'Premium Üye',
+      name: t('membership.memberLabelPremium'),
       color: colors.primary[600]!,
       icon: 'crown',
     },
     business: {
-      name: 'Kurumsal',
+      name: t('footer.corporate'),
       color: colors.primary[700]!,
       icon: 'domain',
     },
@@ -220,7 +227,7 @@ export const MembershipBadgeCard: React.FC<MembershipBadgeCardProps> = ({
 
       {!isPremium && onUpgrade && (
         <TouchableOpacity style={styles.upgradeLink} onPress={onUpgrade}>
-          <Text style={styles.upgradeLinkText}>Yükselt</Text>
+          <Text style={styles.upgradeLinkText}>{t('membership.upgrade')}</Text>
           <Ionicons name="chevron-forward" size={16} color={colors.primary[600]!} />
         </TouchableOpacity>
       )}

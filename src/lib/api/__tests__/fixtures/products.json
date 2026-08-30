@@ -1,0 +1,689 @@
+{
+  "_meta": {
+    "capturedAt": "2026-08-27",
+    "account": "ahmet@demo.com",
+    "endpoints": [
+      "GET /products?limit=2",
+      "GET /products/my?limit=20"
+    ]
+  },
+  "list": {
+    "data": [
+      {
+        "id": "dd2c4ce6-6b49-45bc-bcfe-8536d1e775b4",
+        "productCode": "U010005",
+        "sellerId": "a1f0d756-45a7-421a-9d8c-f179090f5d6d",
+        "title": "Maisto 1963 Corvette Stingray 1:24",
+        "description": "1963 Chevrolet Corvette Stingray split-window coupe. Maisto 1:24, parlak kırmızı.",
+        "price": 499,
+        "oldPrice": null,
+        "saleStartDate": "2026-08-05T07:21:17.297Z",
+        "saleEndDate": "2026-08-19T07:21:17.297Z",
+        "isOnSale": false,
+        "discountPercent": null,
+        "isBoosted": false,
+        "boostedUntil": null,
+        "originalPrice": null,
+        "salePrice": 499,
+        "condition": "good",
+        "modelCode": "SEED-0020",
+        "color": "Mavi",
+        "isBoxed": true,
+        "status": "active",
+        "rejectionReason": null,
+        "isTradeEnabled": false,
+        "tradeAvailable": false,
+        "viewCount": 416,
+        "likeCount": 0,
+        "quantity": 1,
+        "availableQuantity": 1,
+        "images": [
+          {
+            "id": "02172a64-7221-46e6-9ce3-53588e998aa5",
+            "cardKey": "staging/products/product-images/dd2c4ce6-6b49-45bc-bcfe-8536d1e775b4/2a43752b-884e-4e25-9ff2-5d786e6f56fe-card.webp",
+            "detailKey": "staging/products/product-images/dd2c4ce6-6b49-45bc-bcfe-8536d1e775b4/2a43752b-884e-4e25-9ff2-5d786e6f56fe-detail.webp",
+            "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/dd2c4ce6-6b49-45bc-bcfe-8536d1e775b4/2a43752b-884e-4e25-9ff2-5d786e6f56fe-card.webp",
+            "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/dd2c4ce6-6b49-45bc-bcfe-8536d1e775b4/2a43752b-884e-4e25-9ff2-5d786e6f56fe-detail.webp",
+            "sortOrder": 0
+          }
+        ],
+        "rating": {
+          "average": 4,
+          "count": 1
+        },
+        "seller": {
+          "id": "a1f0d756-45a7-421a-9d8c-f179090f5d6d",
+          "publicName": "REDACTED",
+          "displayName": "REDACTED",
+          "username": null,
+          "isVerified": true,
+          "sellerType": "verified",
+          "avatarUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/avatars/a1f0d756-45a7-421a-9d8c-f179090f5d6d/d0c8759a-5cc8-4e82-8a50-dd11cc0776e3.webp",
+          "listings_count": 2,
+          "productsCount": 2,
+          "totalSales": 1,
+          "rating": 5,
+          "totalRatings": 1,
+          "isPremium": true
+        },
+        "category": {
+          "id": "37ef639e-6766-4f21-976e-56d8fd8e4803",
+          "name": "Araba",
+          "slug": "araba"
+        },
+        "brand": {
+          "id": "77e4b1a0-fabb-4d18-accd-5a97259ac0e8",
+          "name": "Chevrolet",
+          "slug": "chevrolet"
+        },
+        "manufacturer": {
+          "id": "cb50f052-0c58-452e-9f3a-267d0a161525",
+          "name": "Maisto",
+          "slug": "maisto"
+        },
+        "carModel": {
+          "id": "3ef51ad8-effd-4817-a9ff-2129f953d2b0",
+          "name": "Corvette Stingray C2",
+          "slug": "chevrolet-corvette-c2",
+          "brandSlug": "chevrolet"
+        },
+        "attributes": [
+          {
+            "id": "e3c49184-6a7c-4fb6-9796-86ecaf313c9e",
+            "name": "1-24",
+            "slug": "1-24",
+            "label": "Ölçek",
+            "value": "1:24",
+            "group": "Ölçek",
+            "groupSlug": "scale",
+            "manufacturerSlug": null
+          },
+          {
+            "id": "a2534b7c-4258-48db-bc00-42fe86fc4b5e",
+            "name": "diecast",
+            "slug": "diecast",
+            "label": "Malzeme",
+            "value": "Diecast Metal",
+            "group": "Malzeme",
+            "groupSlug": "material",
+            "manufacturerSlug": null
+          },
+          {
+            "id": "5b501495-f051-47f3-bb89-0fc39d1bb665",
+            "name": "car",
+            "slug": "car",
+            "label": "Araç Türü",
+            "value": "Araba",
+            "group": "Araç Türü",
+            "groupSlug": "vehicle_type",
+            "manufacturerSlug": null
+          }
+        ],
+        "scale": "1:24",
+        "material": "Diecast Metal",
+        "year": 1963,
+        "isPreorder": false,
+        "releaseDate": "1963-01-01T00:00:00.000Z",
+        "isLimited": false,
+        "editionNumber": null,
+        "editionTotal": null,
+        "isSet": false,
+        "bundleSize": null,
+        "createdAt": "2026-07-03T07:21:16.348Z",
+        "updatedAt": "2026-08-27T00:00:02.235Z"
+      },
+      {
+        "id": "dc1bbe32-6d5b-4e85-94cf-37a975cbbfc6",
+        "productCode": "U010033",
+        "sellerId": "03db1a32-69e2-4a38-ac6f-d6fa7ea6ebc3",
+        "title": "Hot Wheels Custom Skyline GTR Widebody",
+        "description": "Custom Nissan Skyline GT-R widebody kit, metalik gece mavisi, neon yeşil aksan. Hot Wheels 1:64, tuner stil.",
+        "price": 14999,
+        "oldPrice": null,
+        "saleStartDate": null,
+        "saleEndDate": null,
+        "isOnSale": false,
+        "discountPercent": null,
+        "isBoosted": false,
+        "boostedUntil": null,
+        "originalPrice": null,
+        "salePrice": 14999,
+        "condition": "new",
+        "modelCode": "SEED-0033",
+        "color": "Siyah",
+        "isBoxed": true,
+        "status": "active",
+        "rejectionReason": null,
+        "isTradeEnabled": true,
+        "tradeAvailable": true,
+        "viewCount": 227,
+        "likeCount": 0,
+        "quantity": 1,
+        "availableQuantity": 1,
+        "images": [
+          {
+            "id": "5f697fb5-6c4d-402a-9103-538beb62e635",
+            "cardKey": "staging/products/product-images/dc1bbe32-6d5b-4e85-94cf-37a975cbbfc6/4a4de76f-0d46-4413-aa23-b32f5e98c826-card.webp",
+            "detailKey": "staging/products/product-images/dc1bbe32-6d5b-4e85-94cf-37a975cbbfc6/4a4de76f-0d46-4413-aa23-b32f5e98c826-detail.webp",
+            "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/dc1bbe32-6d5b-4e85-94cf-37a975cbbfc6/4a4de76f-0d46-4413-aa23-b32f5e98c826-card.webp",
+            "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/dc1bbe32-6d5b-4e85-94cf-37a975cbbfc6/4a4de76f-0d46-4413-aa23-b32f5e98c826-detail.webp",
+            "sortOrder": 0
+          }
+        ],
+        "rating": {
+          "average": null,
+          "count": 0
+        },
+        "seller": {
+          "id": "03db1a32-69e2-4a38-ac6f-d6fa7ea6ebc3",
+          "publicName": "REDACTED",
+          "displayName": "REDACTED",
+          "username": null,
+          "isVerified": true,
+          "sellerType": "individual",
+          "avatarUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/avatars/03db1a32-69e2-4a38-ac6f-d6fa7ea6ebc3/3776ea36-622f-4148-8a52-5078764b0808.webp",
+          "listings_count": 4,
+          "productsCount": 4,
+          "totalSales": 1,
+          "rating": 5,
+          "totalRatings": 1,
+          "isPremium": true
+        },
+        "category": {
+          "id": "37ef639e-6766-4f21-976e-56d8fd8e4803",
+          "name": "Araba",
+          "slug": "araba"
+        },
+        "brand": {
+          "id": "875291f9-f168-4b6b-a82b-dfc11dfad66b",
+          "name": "Nissan",
+          "slug": "nissan"
+        },
+        "manufacturer": {
+          "id": "749cc416-7fef-4334-87f3-52f4f14332c6",
+          "name": "Hot Wheels",
+          "slug": "hot-wheels"
+        },
+        "carModel": {
+          "id": "dcdcb76d-f71b-4158-98e7-8fd27ec4814a",
+          "name": "Skyline GT-R R34",
+          "slug": "nissan-skyline-gtr-r34",
+          "brandSlug": "nissan"
+        },
+        "attributes": [
+          {
+            "id": "160ac2b4-f1b0-4fa8-8726-343a67c35981",
+            "name": "1-64",
+            "slug": "1-64",
+            "label": "Ölçek",
+            "value": "1:64",
+            "group": "Ölçek",
+            "groupSlug": "scale",
+            "manufacturerSlug": null
+          },
+          {
+            "id": "a2534b7c-4258-48db-bc00-42fe86fc4b5e",
+            "name": "diecast",
+            "slug": "diecast",
+            "label": "Malzeme",
+            "value": "Diecast Metal",
+            "group": "Malzeme",
+            "groupSlug": "material",
+            "manufacturerSlug": null
+          },
+          {
+            "id": "5b501495-f051-47f3-bb89-0fc39d1bb665",
+            "name": "car",
+            "slug": "car",
+            "label": "Araç Türü",
+            "value": "Araba",
+            "group": "Araç Türü",
+            "groupSlug": "vehicle_type",
+            "manufacturerSlug": null
+          }
+        ],
+        "scale": "1:64",
+        "material": "Diecast Metal",
+        "year": 2020,
+        "isPreorder": false,
+        "releaseDate": "2020-01-01T00:00:00.000Z",
+        "isLimited": false,
+        "editionNumber": null,
+        "editionTotal": null,
+        "isSet": false,
+        "bundleSize": null,
+        "createdAt": "2026-07-09T07:21:16.921Z",
+        "updatedAt": "2026-08-27T00:00:01.790Z"
+      }
+    ],
+    "meta": {
+      "total": 43,
+      "page": 1,
+      "limit": 2,
+      "totalPages": 22
+    }
+  },
+  "mine": {
+    "data": [
+      {
+        "id": "d710c82f-dc6f-4c5a-ba8f-80c9669b7e22",
+        "productCode": "U010001",
+        "sellerId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "title": "Matchbox 007 Aston Martin DB5",
+        "description": "James Bond filmleriyle efsaneleşen Aston Martin DB5. Matchbox üretimi, gümüş renk, 1:64 ölçek.",
+        "price": 499,
+        "oldPrice": null,
+        "saleStartDate": null,
+        "saleEndDate": null,
+        "isOnSale": false,
+        "discountPercent": null,
+        "isBoosted": false,
+        "boostedUntil": null,
+        "originalPrice": null,
+        "salePrice": 499,
+        "condition": "good",
+        "modelCode": "SEED-0048",
+        "color": "Çok Renkli",
+        "isBoxed": true,
+        "status": "reserved",
+        "rejectionReason": null,
+        "isTradeEnabled": true,
+        "tradeAvailable": false,
+        "viewCount": 500,
+        "likeCount": 0,
+        "quantity": 1,
+        "availableQuantity": 0,
+        "images": [
+          {
+            "id": "1fc6ae8f-7eb7-453e-af56-7d41d9c4a3c3",
+            "cardKey": "staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-card.webp",
+            "detailKey": "staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-detail.webp",
+            "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-card.webp",
+            "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-detail.webp",
+            "sortOrder": 0
+          }
+        ],
+        "rating": {
+          "average": null,
+          "count": 0
+        },
+        "category": {
+          "id": "37ef639e-6766-4f21-976e-56d8fd8e4803",
+          "name": "Araba",
+          "slug": "araba"
+        },
+        "attributes": [],
+        "year": 1965,
+        "isPreorder": false,
+        "releaseDate": "1965-01-01T00:00:00.000Z",
+        "isLimited": false,
+        "editionNumber": null,
+        "editionTotal": null,
+        "isSet": false,
+        "bundleSize": null,
+        "createdAt": "2026-07-16T07:21:16.266Z",
+        "updatedAt": "2026-08-06T07:25:00.408Z"
+      },
+      {
+        "id": "7fd32332-92de-4a56-a79c-6b8a8c442aab",
+        "productCode": "U010014",
+        "sellerId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "title": "Matchbox McLaren P1",
+        "description": "McLaren P1 hipercar Matchbox 1:64 modeli. Volkan sarısı, fütüristik tasarım.",
+        "price": 4999,
+        "oldPrice": null,
+        "saleStartDate": null,
+        "saleEndDate": null,
+        "isOnSale": false,
+        "discountPercent": null,
+        "isBoosted": false,
+        "boostedUntil": null,
+        "originalPrice": null,
+        "salePrice": 4999,
+        "condition": "new",
+        "modelCode": "SEED-0031",
+        "color": "Kırmızı",
+        "isBoxed": true,
+        "status": "active",
+        "rejectionReason": null,
+        "isTradeEnabled": false,
+        "tradeAvailable": false,
+        "viewCount": 205,
+        "likeCount": 0,
+        "quantity": 1,
+        "availableQuantity": 1,
+        "images": [
+          {
+            "id": "243e9554-f86d-49b2-a988-59042094d27a",
+            "cardKey": "staging/products/product-images/7fd32332-92de-4a56-a79c-6b8a8c442aab/6aec8fad-ca4d-4560-9e4d-19c5fccc3aef-card.webp",
+            "detailKey": "staging/products/product-images/7fd32332-92de-4a56-a79c-6b8a8c442aab/6aec8fad-ca4d-4560-9e4d-19c5fccc3aef-detail.webp",
+            "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/7fd32332-92de-4a56-a79c-6b8a8c442aab/6aec8fad-ca4d-4560-9e4d-19c5fccc3aef-card.webp",
+            "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/7fd32332-92de-4a56-a79c-6b8a8c442aab/6aec8fad-ca4d-4560-9e4d-19c5fccc3aef-detail.webp",
+            "sortOrder": 0
+          }
+        ],
+        "rating": {
+          "average": null,
+          "count": 0
+        },
+        "category": {
+          "id": "37ef639e-6766-4f21-976e-56d8fd8e4803",
+          "name": "Araba",
+          "slug": "araba"
+        },
+        "attributes": [],
+        "year": 2013,
+        "isPreorder": false,
+        "releaseDate": "2013-01-01T00:00:00.000Z",
+        "isLimited": false,
+        "editionNumber": null,
+        "editionTotal": null,
+        "isSet": false,
+        "bundleSize": null,
+        "createdAt": "2026-07-09T07:21:16.512Z",
+        "updatedAt": "2026-08-27T00:00:01.441Z"
+      },
+      {
+        "id": "a3ef8e6e-c23c-45ea-bc4d-0f7def98fd90",
+        "productCode": "U010076",
+        "sellerId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "title": "Bburago Alfa Romeo Giulia GTA 1:24 - Bordo",
+        "description": "Alfa Romeo Giulia Sprint GTA'nın Bburago üretimi 1:24 modeli. Koyu bordo, İtalyan yarış ruhu.",
+        "price": 551.07,
+        "oldPrice": null,
+        "saleStartDate": null,
+        "saleEndDate": null,
+        "isOnSale": false,
+        "discountPercent": null,
+        "isBoosted": false,
+        "boostedUntil": null,
+        "originalPrice": null,
+        "salePrice": 551.07,
+        "condition": "good",
+        "modelCode": "SEED-0057",
+        "color": "Siyah",
+        "isBoxed": true,
+        "status": "sold",
+        "rejectionReason": null,
+        "isTradeEnabled": false,
+        "tradeAvailable": false,
+        "viewCount": 0,
+        "likeCount": 0,
+        "quantity": 0,
+        "availableQuantity": 0,
+        "images": [
+          {
+            "id": "6042d4a3-ef2c-4081-bccf-88fe01ce8b0b",
+            "cardKey": "staging/products/product-images/a3ef8e6e-c23c-45ea-bc4d-0f7def98fd90/3b615201-8dae-42d9-959d-6bc23efddc70-card.webp",
+            "detailKey": "staging/products/product-images/a3ef8e6e-c23c-45ea-bc4d-0f7def98fd90/3b615201-8dae-42d9-959d-6bc23efddc70-detail.webp",
+            "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/a3ef8e6e-c23c-45ea-bc4d-0f7def98fd90/3b615201-8dae-42d9-959d-6bc23efddc70-card.webp",
+            "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/a3ef8e6e-c23c-45ea-bc4d-0f7def98fd90/3b615201-8dae-42d9-959d-6bc23efddc70-detail.webp",
+            "sortOrder": 0
+          }
+        ],
+        "rating": {
+          "average": 5,
+          "count": 1
+        },
+        "category": {
+          "id": "37ef639e-6766-4f21-976e-56d8fd8e4803",
+          "name": "Araba",
+          "slug": "araba"
+        },
+        "attributes": [],
+        "year": 1965,
+        "isPreorder": false,
+        "releaseDate": "1965-01-01T00:00:00.000Z",
+        "isLimited": false,
+        "editionNumber": null,
+        "editionTotal": null,
+        "isSet": false,
+        "bundleSize": null,
+        "createdAt": "2026-07-16T07:21:28.612Z",
+        "updatedAt": "2026-08-05T07:21:32.929Z"
+      },
+      {
+        "id": "724cf9c4-6a40-4e1d-b29d-5a72d1e812b6",
+        "productCode": "U010073",
+        "sellerId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "title": "AUTOart Mercedes 300SL Gullwing 1:18 - Vitrinlik",
+        "description": "Mercedes-Benz 300SL Gullwing'in AUTOart premium 1:18 ölçekli modeli. Açılır martı kanatları, gümüş renk, vitrin kalitesi.",
+        "price": 4333.7,
+        "oldPrice": null,
+        "saleStartDate": null,
+        "saleEndDate": null,
+        "isOnSale": false,
+        "discountPercent": null,
+        "isBoosted": false,
+        "boostedUntil": null,
+        "originalPrice": null,
+        "salePrice": 4333.7,
+        "condition": "like_new",
+        "modelCode": "SEED-0054",
+        "color": "Çok Renkli",
+        "isBoxed": true,
+        "status": "suspended",
+        "rejectionReason": null,
+        "isTradeEnabled": false,
+        "tradeAvailable": false,
+        "viewCount": 0,
+        "likeCount": 0,
+        "quantity": 1,
+        "availableQuantity": 1,
+        "images": [
+          {
+            "id": "d3d3287e-bea8-4f12-9a70-81031ef89d36",
+            "cardKey": "staging/products/product-images/724cf9c4-6a40-4e1d-b29d-5a72d1e812b6/c02d052b-38b4-4c25-9131-2a592c66a085-card.webp",
+            "detailKey": "staging/products/product-images/724cf9c4-6a40-4e1d-b29d-5a72d1e812b6/c02d052b-38b4-4c25-9131-2a592c66a085-detail.webp",
+            "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/724cf9c4-6a40-4e1d-b29d-5a72d1e812b6/c02d052b-38b4-4c25-9131-2a592c66a085-card.webp",
+            "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/724cf9c4-6a40-4e1d-b29d-5a72d1e812b6/c02d052b-38b4-4c25-9131-2a592c66a085-detail.webp",
+            "sortOrder": 0
+          }
+        ],
+        "rating": {
+          "average": null,
+          "count": 0
+        },
+        "category": {
+          "id": "37ef639e-6766-4f21-976e-56d8fd8e4803",
+          "name": "Araba",
+          "slug": "araba"
+        },
+        "attributes": [],
+        "year": 1955,
+        "isPreorder": false,
+        "releaseDate": "1955-01-01T00:00:00.000Z",
+        "isLimited": false,
+        "editionNumber": null,
+        "editionTotal": null,
+        "isSet": false,
+        "bundleSize": null,
+        "createdAt": "2026-07-16T07:21:26.607Z",
+        "updatedAt": "2026-08-05T07:21:30.722Z"
+      },
+      {
+        "id": "f3225126-f1cf-4eeb-a8b3-86ef2621749b",
+        "productCode": "U010070",
+        "sellerId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "title": "Hot Wheels Ferrari 275 GTB - Kutulu Model",
+        "description": "1964 model Ferrari 275 GTB'nin Hot Wheels üretimi 1:64 ölçekli diecast modeli. Klasik kırmızı renk, koleksiyonluk durumda.",
+        "price": 1323.35,
+        "oldPrice": null,
+        "saleStartDate": null,
+        "saleEndDate": null,
+        "isOnSale": false,
+        "discountPercent": null,
+        "isBoosted": false,
+        "boostedUntil": null,
+        "originalPrice": null,
+        "salePrice": 1323.35,
+        "condition": "good",
+        "modelCode": "SEED-0051",
+        "color": "Siyah",
+        "isBoxed": true,
+        "status": "rejected",
+        "rejectionReason": null,
+        "isTradeEnabled": false,
+        "tradeAvailable": false,
+        "viewCount": 0,
+        "likeCount": 0,
+        "quantity": 1,
+        "availableQuantity": 1,
+        "images": [
+          {
+            "id": "4ddc77cc-7496-488d-b616-ff0ea10c9ca9",
+            "cardKey": "staging/products/product-images/f3225126-f1cf-4eeb-a8b3-86ef2621749b/004f0384-e7d3-43a5-a198-82a2a130a6cb-card.webp",
+            "detailKey": "staging/products/product-images/f3225126-f1cf-4eeb-a8b3-86ef2621749b/004f0384-e7d3-43a5-a198-82a2a130a6cb-detail.webp",
+            "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/f3225126-f1cf-4eeb-a8b3-86ef2621749b/004f0384-e7d3-43a5-a198-82a2a130a6cb-card.webp",
+            "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/f3225126-f1cf-4eeb-a8b3-86ef2621749b/004f0384-e7d3-43a5-a198-82a2a130a6cb-detail.webp",
+            "sortOrder": 0
+          }
+        ],
+        "rating": {
+          "average": null,
+          "count": 0
+        },
+        "category": {
+          "id": "37ef639e-6766-4f21-976e-56d8fd8e4803",
+          "name": "Araba",
+          "slug": "araba"
+        },
+        "attributes": [],
+        "year": 1964,
+        "isPreorder": false,
+        "releaseDate": "1964-01-01T00:00:00.000Z",
+        "isLimited": false,
+        "editionNumber": null,
+        "editionTotal": null,
+        "isSet": false,
+        "bundleSize": null,
+        "createdAt": "2026-07-16T07:21:24.555Z",
+        "updatedAt": "2026-08-05T07:21:30.684Z"
+      },
+      {
+        "id": "bdc9fc73-e8c5-4127-90a9-e6315ab5b586",
+        "productCode": "U010027",
+        "sellerId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "title": "Greenlight Pontiac GTO Judge",
+        "description": "Pontiac GTO Judge Greenlight 1:64. Orbit turuncu, klasik kas araba.",
+        "price": 14999,
+        "oldPrice": null,
+        "saleStartDate": null,
+        "saleEndDate": null,
+        "isOnSale": false,
+        "discountPercent": null,
+        "isBoosted": false,
+        "boostedUntil": null,
+        "originalPrice": null,
+        "salePrice": 14999,
+        "condition": "new",
+        "modelCode": "SEED-0015",
+        "color": "Siyah",
+        "isBoxed": true,
+        "status": "inactive",
+        "rejectionReason": null,
+        "isTradeEnabled": true,
+        "tradeAvailable": false,
+        "viewCount": 462,
+        "likeCount": 0,
+        "quantity": 1,
+        "availableQuantity": 1,
+        "images": [
+          {
+            "id": "07e35aef-bb2b-42b7-ac6c-7b4bff80aa58",
+            "cardKey": "staging/products/product-images/bdc9fc73-e8c5-4127-90a9-e6315ab5b586/8f462ed1-9ccc-4b09-8150-2e222c931c23-card.webp",
+            "detailKey": "staging/products/product-images/bdc9fc73-e8c5-4127-90a9-e6315ab5b586/8f462ed1-9ccc-4b09-8150-2e222c931c23-detail.webp",
+            "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/bdc9fc73-e8c5-4127-90a9-e6315ab5b586/8f462ed1-9ccc-4b09-8150-2e222c931c23-card.webp",
+            "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/bdc9fc73-e8c5-4127-90a9-e6315ab5b586/8f462ed1-9ccc-4b09-8150-2e222c931c23-detail.webp",
+            "sortOrder": 0
+          }
+        ],
+        "rating": {
+          "average": null,
+          "count": 0
+        },
+        "category": {
+          "id": "37ef639e-6766-4f21-976e-56d8fd8e4803",
+          "name": "Araba",
+          "slug": "araba"
+        },
+        "attributes": [],
+        "year": 1969,
+        "isPreorder": false,
+        "releaseDate": "1969-01-01T00:00:00.000Z",
+        "isLimited": false,
+        "editionNumber": null,
+        "editionTotal": null,
+        "isSet": false,
+        "bundleSize": null,
+        "createdAt": "2026-06-26T07:21:16.751Z",
+        "updatedAt": "2026-08-26T01:00:00.597Z"
+      },
+      {
+        "id": "57ebfe79-e79b-43e6-ae87-c3c97b7bedbb",
+        "productCode": "U010040",
+        "sellerId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "title": "Majorette Porsche Martini Racing",
+        "description": "Custom Porsche Martini yarış çizgileri, beyaz. Majorette 1:64, motorsport stili.",
+        "price": 34999,
+        "oldPrice": null,
+        "saleStartDate": null,
+        "saleEndDate": null,
+        "isOnSale": false,
+        "discountPercent": null,
+        "isBoosted": false,
+        "boostedUntil": null,
+        "originalPrice": null,
+        "salePrice": 34999,
+        "condition": "new",
+        "modelCode": "SEED-0010",
+        "color": "Beyaz",
+        "isBoxed": true,
+        "status": "inactive",
+        "rejectionReason": null,
+        "isTradeEnabled": true,
+        "tradeAvailable": false,
+        "viewCount": 442,
+        "likeCount": 0,
+        "quantity": 1,
+        "availableQuantity": 1,
+        "images": [
+          {
+            "id": "5c68a281-143b-4cfa-b9af-1a5d795ae00e",
+            "cardKey": "staging/products/product-images/57ebfe79-e79b-43e6-ae87-c3c97b7bedbb/9cf11f58-158e-4f65-8e48-96cc82048dca-card.webp",
+            "detailKey": "staging/products/product-images/57ebfe79-e79b-43e6-ae87-c3c97b7bedbb/9cf11f58-158e-4f65-8e48-96cc82048dca-detail.webp",
+            "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/57ebfe79-e79b-43e6-ae87-c3c97b7bedbb/9cf11f58-158e-4f65-8e48-96cc82048dca-card.webp",
+            "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/57ebfe79-e79b-43e6-ae87-c3c97b7bedbb/9cf11f58-158e-4f65-8e48-96cc82048dca-detail.webp",
+            "sortOrder": 0
+          }
+        ],
+        "rating": {
+          "average": null,
+          "count": 0
+        },
+        "category": {
+          "id": "37ef639e-6766-4f21-976e-56d8fd8e4803",
+          "name": "Araba",
+          "slug": "araba"
+        },
+        "attributes": [],
+        "year": 2020,
+        "isPreorder": false,
+        "releaseDate": "2020-01-01T00:00:00.000Z",
+        "isLimited": false,
+        "editionNumber": null,
+        "editionTotal": null,
+        "isSet": false,
+        "bundleSize": null,
+        "createdAt": "2026-06-22T07:21:17.056Z",
+        "updatedAt": "2026-08-22T01:00:00.660Z"
+      }
+    ],
+    "meta": {
+      "total": 7,
+      "page": 1,
+      "limit": 20,
+      "totalPages": 1
+    }
+  }
+}

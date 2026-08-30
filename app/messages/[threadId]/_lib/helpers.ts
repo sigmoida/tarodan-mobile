@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import type { Message } from '@/stores/messagesStore';
 
 export const formatTime = (dateString: string) => {
@@ -5,16 +6,18 @@ export const formatTime = (dateString: string) => {
   return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 };
 
-export const formatDate = (dateString: string) => {
+// `t` parametreli: "Bugün"/"Dün" ayracı katalogdan gelir, sayısal tarih formatı
+// (gün/ay) uygulama genelindeki sabit 'tr-TR' kararını izler (bkz. common.dateLocale).
+export const formatDate = (dateString: string, t: TFunction) => {
   const date = new Date(dateString);
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
 
   if (date.toDateString() === today.toDateString()) {
-    return 'Bugün';
+    return t('message.today');
   } else if (date.toDateString() === yesterday.toDateString()) {
-    return 'Dün';
+    return t('message.yesterday');
   } else {
     return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
   }
@@ -32,11 +35,11 @@ export const getMessageStatus = (status: Message['status']) => {
 };
 
 // Mesajları güne göre gruplar (tarih ayracı için).
-export function groupMessagesByDate(messages: Message[]): { date: string; messages: Message[] }[] {
+export function groupMessagesByDate(messages: Message[], t: TFunction): { date: string; messages: Message[] }[] {
   const grouped: { date: string; messages: Message[] }[] = [];
   let currentDate = '';
   messages.forEach((message) => {
-    const messageDate = formatDate(message.createdAt);
+    const messageDate = formatDate(message.createdAt, t);
     if (messageDate !== currentDate) {
       currentDate = messageDate;
       grouped.push({ date: messageDate, messages: [message] });

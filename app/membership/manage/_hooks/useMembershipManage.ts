@@ -1,10 +1,11 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
 import { useRefresh } from '@/hooks/useRefresh';
 import { membershipApi } from '@/lib/api';
 import { captureException } from '@/services/sentry';
-import { TIER_NAMES, BILLING_PERIOD_NAMES, type MembershipMe } from '../_lib/types';
+import { buildTierNames, buildBillingPeriodNames, type MembershipMe } from '../_lib/types';
 
 /**
  * Membership-manage controller — owns GET /membership/me, the cancel and
@@ -12,6 +13,7 @@ import { TIER_NAMES, BILLING_PERIOD_NAMES, type MembershipMe } from '../_lib/typ
  * verbatim from the monolithic screen (§12).
  */
 export function useMembershipManage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({
     visible: false,
@@ -28,8 +30,11 @@ export function useMembershipManage() {
 
   const { refreshing, onRefresh } = useRefresh(refetch);
 
+  const tierNames = buildTierNames(t);
+  const billingPeriodNames = buildBillingPeriodNames(t);
+
   const tier = (data?.tier?.type ?? data?.tierType ?? 'free').toLowerCase();
-  const tierName = data?.tier?.name ?? data?.tierName ?? TIER_NAMES[tier] ?? 'Ücretsiz Üyelik';
+  const tierName = data?.tier?.name ?? data?.tierName ?? tierNames[tier] ?? t('membership.freeMembership');
   const isPaid = tier !== 'free';
   const isCancelled = (data?.status ?? '').toLowerCase() === 'cancelled';
   const autoRenew = !!data?.autoRenew;
@@ -39,9 +44,9 @@ export function useMembershipManage() {
   const hasScheduledChange = !!scheduledTier;
   const scheduledLabel = hasScheduledChange
     ? [
-        TIER_NAMES[scheduledTier!] ?? scheduledTier!,
+        tierNames[scheduledTier!] ?? scheduledTier!,
         data?.scheduledBillingPeriod
-          ? `(${BILLING_PERIOD_NAMES[data.scheduledBillingPeriod.toLowerCase()] ?? data.scheduledBillingPeriod})`
+          ? `(${billingPeriodNames[data.scheduledBillingPeriod.toLowerCase()] ?? data.scheduledBillingPeriod})`
           : '',
       ]
         .filter(Boolean)
@@ -51,14 +56,14 @@ export function useMembershipManage() {
   const cancelMutation = useMutation({
     mutationFn: () => membershipApi.cancel(),
     onSuccess: () => {
-      setSnackbar({ visible: true, message: 'Üyelik iptal talebi alındı.' });
+      setSnackbar({ visible: true, message: t('membership.manageCancelSuccess') });
       queryClient.invalidateQueries({ queryKey: ['membership'] });
       refetch();
     },
     onError: (error: any) => {
       captureException(error, { level: 'error', tags: { flow: 'membership.cancel' } });
-      const msg = error?.response?.data?.message || 'İptal işlemi başarısız.';
-      setSnackbar({ visible: true, message: typeof msg === 'string' ? msg : 'İptal işlemi başarısız.' });
+      const msg = error?.response?.data?.message || t('membership.manageCancelError');
+      setSnackbar({ visible: true, message: typeof msg === 'string' ? msg : t('membership.manageCancelError') });
     },
   });
 
@@ -67,40 +72,40 @@ export function useMembershipManage() {
     onSuccess: (_res, next) => {
       setSnackbar({
         visible: true,
-        message: next ? 'Otomatik yenileme açıldı.' : 'Otomatik yenileme kapatıldı.',
+        message: next ? t('membership.autoRenewOn') : t('membership.autoRenewOff'),
       });
       queryClient.invalidateQueries({ queryKey: ['membership'] });
       refetch();
     },
     onError: (error: any) => {
       captureException(error, { level: 'error', tags: { flow: 'membership.autoRenew' } });
-      const msg = error?.response?.data?.message || 'İşlem başarısız.';
-      setSnackbar({ visible: true, message: typeof msg === 'string' ? msg : 'İşlem başarısız.' });
+      const msg = error?.response?.data?.message || t('listing.actionFailed');
+      setSnackbar({ visible: true, message: typeof msg === 'string' ? msg : t('listing.actionFailed') });
     },
   });
 
   const cancelScheduledChangeMutation = useMutation({
     mutationFn: () => membershipApi.cancelScheduledChange(),
     onSuccess: () => {
-      setSnackbar({ visible: true, message: 'Planlı paket değişikliği iptal edildi.' });
+      setSnackbar({ visible: true, message: t('membership.manageScheduledCancelSuccess') });
       queryClient.invalidateQueries({ queryKey: ['membership'] });
       refetch();
     },
     onError: (error: any) => {
       captureException(error, { level: 'error', tags: { flow: 'membership.cancelScheduledChange' } });
-      const msg = error?.response?.data?.message || 'İşlem başarısız.';
-      setSnackbar({ visible: true, message: typeof msg === 'string' ? msg : 'İşlem başarısız.' });
+      const msg = error?.response?.data?.message || t('listing.actionFailed');
+      setSnackbar({ visible: true, message: typeof msg === 'string' ? msg : t('listing.actionFailed') });
     },
   });
 
   const handleCancelScheduledChange = () => {
     appAlert(
-      'Planlı Değişikliği İptal Et',
-      `Dönem sonunda ${scheduledLabel ?? 'yeni'} plana geçiş iptal edilsin mi? Mevcut planınız devam eder.`,
+      t('membership.manageCancelScheduledTitle'),
+      t('membership.manageCancelScheduledBody', { tierLabel: scheduledLabel ?? t('common.new') }),
       [
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Değişikliği İptal Et',
+          text: t('membership.manageCancelScheduledButton'),
           style: 'destructive',
           onPress: () => cancelScheduledChangeMutation.mutate(),
         },
@@ -110,11 +115,11 @@ export function useMembershipManage() {
 
   const handleCancel = () => {
     appAlert(
-      'Üyeliği İptal Et',
-      'Üyeliğinizi iptal etmek istediğinize emin misiniz? Mevcut dönem sonuna kadar özelliklerinizi kullanmaya devam edebilirsiniz.',
+      t('membership.cancelMembership'),
+      t('membership.cancelConfirmDesc'),
       [
-        { text: 'Vazgeç', style: 'cancel' },
-        { text: 'İptal Et', style: 'destructive', onPress: () => cancelMutation.mutate() },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('membership.cancel'), style: 'destructive', onPress: () => cancelMutation.mutate() },
       ],
     );
   };
@@ -124,6 +129,7 @@ export function useMembershipManage() {
   };
 
   return {
+    t,
     data,
     isLoading,
     refreshing,

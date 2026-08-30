@@ -1,5 +1,6 @@
 // order'dan türetilen tüm görünüm değerleri — tek saf fonksiyon.
-import { COOLING_OFF_DAYS, REFUND_STATUS_LABELS } from './status';
+import { COOLING_OFF_DAYS, REFUND_STATUS_META } from './status';
+import i18n from '@/i18n/config';
 import type { OrderDetail } from './types';
 
 export function deriveOrderView(order: OrderDetail) {
@@ -14,8 +15,9 @@ export function deriveOrderView(order: OrderDetail) {
   const isCancelled = order.status === 'cancelled' || order.cancellationType === 'iptal';
   const isDelivered = ['delivered', 'awaiting_confirmation', 'completed'].includes(order.status);
 
+  // Kod/referans varlığı kartın kendi kapısı (bkz. OrderTrackingCard); burada
+  // yalnızca sipariş durumuna göre gösterime uygunluk türetilir.
   const showTrackingCard =
-    !!order.trackingNumber &&
     !!order.shippedAt &&
     isPostShipment &&
     !isCancelled &&
@@ -37,10 +39,13 @@ export function deriveOrderView(order: OrderDetail) {
   const isRefundedOrder = order.status === 'refunded' || hasActiveRefund;
   const showRefundCancelStep = isCancelled || isRefundedOrder;
   const refundCancelLabel: string = isCancelled
-    ? 'İptal Edildi'
+    ? i18n.t('common.cancelled')
     : order.activeRefundRequest
-      ? REFUND_STATUS_LABELS[order.activeRefundRequest.status]?.label ?? 'İade Sürecinde'
-      : 'İade Edildi';
+      ? (() => {
+          const meta = REFUND_STATUS_META[order.activeRefundRequest!.status];
+          return meta ? i18n.t(meta.labelKey) : i18n.t('order.refundInProgress');
+        })()
+      : i18n.t('order.statusRefunded');
   const refundCancelDate: string | undefined = isCancelled
     ? order.cancelledAt ?? undefined
     : order.activeRefundRequest?.refundedAt ??

@@ -11,7 +11,13 @@ MAESTRO_DIR="$MOBILE_DIR/maestro"
 
 # Benzersiz e-posta — saniye damgalı (Date.now scriptte yasak değil, bash'te serbest).
 STAMP="$(date +%s)"
+# Kullanıcı adı da koşum başına benzersiz olmalı (bir kez belirlenir, değiştirilemez).
+# ⚠️ Regex `^[a-z0-9](?:[a-z0-9._]*[a-z0-9])?$` — TİRE ve İKİ NOKTA GEÇERSİZ, yani
+# e-postadaki "maestro-j1-" deseni kullanılamaz. Damgayı rakamlara indirgeyip
+# yalnız [a-z0-9] üretiyoruz; sonuç ~19 karakter (3-30 sınırının içinde).
+STAMP_ALNUM="$(printf '%s' "$STAMP" | tr -cd '0-9')"
 REG_EMAIL="maestro-j1-${STAMP}@demo.com"
+REG_USERNAME="maestroj1${STAMP_ALNUM}"
 REG_PASSWORD="Demo123!"
 REG_NAME="Maestro Alıcı ${STAMP}"
 
@@ -22,11 +28,12 @@ ui() {
     EXPO_PUBLIC_MAESTRO_NO_AUTOLOGIN=1 \
     bash maestro/run.sh "flows/$1" \
       --env REG_EMAIL="$REG_EMAIL" \
+      --env REG_USERNAME="$REG_USERNAME" \
       --env REG_PASSWORD="$REG_PASSWORD" \
       --env REG_NAME="$REG_NAME" )
 }
 
-step "Yolculuk 1 başlıyor — alıcı: $REG_EMAIL"
+step "Yolculuk 1 başlıyor — alıcı: $REG_EMAIL (@$REG_USERNAME)"
 
 step "Segment A (UI): misafir gez + kayıt — simülatörü izle"
 ui "J1-a-register-buy.yaml"

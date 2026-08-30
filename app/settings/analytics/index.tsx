@@ -21,9 +21,9 @@ export default function AnalyticsScreen() {
     return (
       <View style={styles.centeredContainer}>
         <Ionicons name="stats-chart-outline" size={64} color={colors.primary[600]!} />
-        <Text variant="h3" style={styles.title}>Analitikler</Text>
-        <Text variant="body" style={styles.subtitle}>İstatistiklerinizi görmek için giriş yapın</Text>
-        <Button variant="primary" title="Giriş Yap" onPress={() => router.push('/(auth)/login')} style={{ alignSelf: 'center' }} />
+        <Text variant="h3" style={styles.title}>{f.t('analytics.analytics')}</Text>
+        <Text variant="body" style={styles.subtitle}>{f.t('analytics.authGateSubtitle')}</Text>
+        <Button variant="primary" title={f.t('common.login')} onPress={() => router.push('/(auth)/login')} style={{ alignSelf: 'center' }} />
       </View>
     );
   }
@@ -38,7 +38,7 @@ export default function AnalyticsScreen() {
         </View>
       ) : !f.analytics ? (
         <View style={styles.emptyContainer}>
-          <Text>Veri yüklenemedi</Text>
+          <Text>{f.t('analytics.dataLoadFailed')}</Text>
         </View>
       ) : (
         <AnalyticsContent f={f} />

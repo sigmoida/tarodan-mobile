@@ -3,6 +3,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { ordersApi } from '@/lib/api';
 import { useRefresh } from '@/hooks/useRefresh';
+import { deriveShipmentView } from '@/lib/shipping/tracking';
 import type { Order } from '../_lib/types';
 import { statusColor } from '../_lib/status';
 
@@ -29,9 +30,16 @@ export function useSaleDetail() {
   // İptal'de status 'refunded' olsa bile "İptal Edildi" göster (alıcı ile tutarlı).
   const displayStatus = order?.cancellationType === 'iptal' ? 'cancelled' : order?.status ?? '';
   const sc = statusColor(displayStatus);
-  const shipmentTracking = order?.shipment?.trackingNumber;
-  const shipmentProvider = order?.shipment?.provider ?? order?.shipment?.carrier;
+  const shipmentSummary = order?.shipment;
+  const shipmentProvider = shipmentSummary?.provider ?? shipmentSummary?.carrier;
   const isSurat = (shipmentProvider ?? '').toLowerCase() === 'surat';
+  // İKİ NUMARA tek kaynaktan türetilir (§5): `cargoCode` gerçek Sürat kodu,
+  // `trackingNumber` yalnız şubede verilecek iç referans. Sipariş özeti kodu
+  // `cargoCode` adıyla taşıdığı için yedek parametreye de o geçilir.
+  const shipmentView = deriveShipmentView(
+    shipmentSummary ? { ...shipmentSummary, provider: shipmentProvider } : null,
+    shipmentSummary?.cargoCode,
+  );
 
   const handleCall = () => {
     if (order?.buyer?.phone) {
@@ -39,11 +47,11 @@ export function useSaleDetail() {
     }
   };
 
+  // Link ELLE KURULMAZ — iç referansla kurulan link Sürat'ta "böyle bir gönderi
+  // yok" veriyordu. `deriveShipmentView` yalnız gerçek koddan URL üretir.
   const handleTrack = () => {
-    if (!shipmentTracking) return;
-    Linking.openURL(
-      `https://www.suratkargo.com.tr/KargoTakip/?kargotakipno=${encodeURIComponent(shipmentTracking)}`,
-    );
+    if (!shipmentView.trackingUrl) return;
+    Linking.openURL(shipmentView.trackingUrl);
   };
 
   return {
@@ -55,7 +63,7 @@ export function useSaleDetail() {
     onRefresh,
     displayStatus,
     sc,
-    shipmentTracking,
+    shipmentView,
     shipmentProvider,
     isSurat,
     handleCall,

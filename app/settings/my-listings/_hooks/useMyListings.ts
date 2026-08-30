@@ -86,10 +86,10 @@ export function useMyListings() {
       queryClient.invalidateQueries({ queryKey: qk.products.myListingsStats });
       queryClient.invalidateQueries({ queryKey: qk.user.statsAll });
       refreshUserData();
-      appAlert("Başarılı", "İlan deaktif edildi");
+      appAlert(t("common.success"), t("listing.deactivated"));
     },
     onError: () => {
-      appAlert("Hata", "İlan deaktif edilemedi");
+      appAlert(t("common.error"), t("listing.deactivateFailed"));
     },
   });
 
@@ -104,12 +104,12 @@ export function useMyListings() {
       queryClient.invalidateQueries({ queryKey: qk.user.statsAll });
       refreshUserData();
       appAlert(
-        "Başarılı",
-        "İlan incelemeye gönderildi. Onaylandığında yeniden yayına girer.",
+        t("common.success"),
+        t("listing.sentForReview"),
       );
     },
     onError: () => {
-      appAlert("Hata", "İlan aktif edilemedi");
+      appAlert(t("common.error"), t("listing.activateFailed"));
     },
   });
 
@@ -125,10 +125,10 @@ export function useMyListings() {
       refreshUserData();
       setDeleteDialogVisible(false);
       setSelectedListing(null);
-      appAlert("Başarılı", "İlan silindi");
+      appAlert(t("common.success"), t("listing.deleted"));
     },
     onError: () => {
-      appAlert("Hata", "İlan silinemedi");
+      appAlert(t("common.error"), t("listing.deleteFailed"));
     },
   });
 
@@ -143,14 +143,14 @@ export function useMyListings() {
       queryClient.invalidateQueries({ queryKey: qk.user.statsAll });
       refreshUserData();
       appAlert(
-        "Başarılı",
-        "İlan incelemeye gönderildi. Onaylandığında yeniden yayına girer.",
+        t("common.success"),
+        t("listing.sentForReview"),
       );
     },
     onError: () => {
       appAlert(
         "Hata",
-        "İlan yeniden yayınlanamadı. İlan limitinizi kontrol edin.",
+        t("listing.republishFailed"),
       );
     },
   });
@@ -189,12 +189,12 @@ export function useMyListings() {
         break;
       case "deactivate":
         appAlert(
-          "İlanı Deaktif Et",
-          "Bu ilan pasif hale getirilecek. Devam etmek istiyor musunuz?",
+          t("listing.deactivateTitle"),
+          t("listing.deactivateBody"),
           [
-            { text: "İptal", style: "cancel" },
+            { text: t("common.cancel"), style: "cancel" },
             {
-              text: "Deaktif Et",
+              text: t("listing.deactivateAction"),
               onPress: () => deactivateMutation.mutate(listing.id),
             },
           ],
@@ -210,11 +210,11 @@ export function useMyListings() {
         // Check listing limit before relisting — sunucu kotası (aktif sayım) baz alınır.
         if (quotaSummary?.canCreate === false) {
           appAlert(
-            "İlan Limiti",
-            "İlan limitinize ulaştınız. Yeniden yayınlamak için Premium üyeliğe geçin.",
+            t("listing.limitTitle"),
+            t("listing.limitBody"),
             [
-              { text: "İptal", style: "cancel" },
-              { text: "Premium'a Geç", onPress: () => router.push("/upgrade") },
+              { text: t("common.cancel"), style: "cancel" },
+              { text: t("address.goPremium"), onPress: () => router.push("/upgrade") },
             ],
           );
           return;

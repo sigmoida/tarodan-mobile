@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator, Pressable } from 'reac
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { theme } from '@/ui';
 
 import { styles } from '../_lib/styles';
@@ -16,6 +17,7 @@ const { colors } = theme;
  * ladder out of the thin screen.
  */
 export function ListingGates({ f }: { f: ListingFormController }) {
+  const { t } = useTranslation();
   const { authLoading, isEdit, productLoading, isAuthenticated, productNotFound, status } = f;
 
   if (authLoading || (isEdit && productLoading)) {
@@ -29,9 +31,9 @@ export function ListingGates({ f }: { f: ListingFormController }) {
   if (!isAuthenticated) {
     return (
       <SafeAreaView style={styles.centered}>
-        <Text style={styles.authText}>İlan oluşturmak için giriş yapmalısınız.</Text>
+        <Text style={styles.authText}>{t('product.loginRequiredToCreate')}</Text>
         <TouchableOpacity style={styles.primaryButton} onPress={() => router.push('/(auth)/login')}>
-          <Text style={styles.primaryButtonText}>Giriş Yap</Text>
+          <Text style={styles.primaryButtonText}>{t('common.login')}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -41,9 +43,9 @@ export function ListingGates({ f }: { f: ListingFormController }) {
     return (
       <SafeAreaView style={styles.centered}>
         <Ionicons name="alert-circle-outline" size={64} color={colors.danger[600]!} />
-        <Text style={[styles.authText, { marginTop: theme.spacing[4] }]}>İlan bulunamadı</Text>
+        <Text style={[styles.authText, { marginTop: theme.spacing[4] }]}>{t('product.listingNotFound')}</Text>
         <TouchableOpacity style={styles.primaryButton} onPress={() => router.back()}>
-          <Text style={styles.primaryButtonText}>Geri Dön</Text>
+          <Text style={styles.primaryButtonText}>{t('common.goBack')}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -53,16 +55,16 @@ export function ListingGates({ f }: { f: ListingFormController }) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Geri">
+          <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('common.back')}>
             <Ionicons name="arrow-back" size={24} color={colors.white} />
           </Pressable>
-          <Text style={styles.headerTitle}>İlanı Düzenle</Text>
+          <Text style={styles.headerTitle}>{t('product.editListing')}</Text>
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.centered}>
           <Ionicons name="lock-closed-outline" size={56} color={colors.warning[600]!} />
           <Text style={[styles.authText, { marginTop: theme.spacing[4] }]}>
-            Bu ilan rezerve durumda olduğu için düzenlenemez.
+            {t('listing.reservedCannotEdit')}
           </Text>
         </View>
       </SafeAreaView>

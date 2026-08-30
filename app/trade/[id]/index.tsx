@@ -15,10 +15,13 @@ import { deriveTradeView } from "./_lib/derive";
 import { useTrade } from "./_hooks/useTrade";
 import { useCountdown } from "./_hooks/useCountdown";
 import { useTradeActions } from "./_hooks/useTradeActions";
+import { useTradePaymentQuote } from "./_hooks/useTradePaymentQuote";
 import { TradeStatusHeader } from "./_components/TradeStatusHeader";
 import { TradeInfoCard } from "./_components/TradeInfoCard";
 import { TradeItemsCompare } from "./_components/TradeItemsCompare";
 import { TradeCashCard } from "./_components/TradeCashCard";
+import { TradePaymentsCard } from "./_components/TradePaymentsCard";
+import { TradeCostPreviewCard } from "./_components/TradeCostPreviewCard";
 import { TradeMessages } from "./_components/TradeMessages";
 import { TradeShippingSection } from "./_components/TradeShippingSection";
 import { TradeProtectionCard } from "./_components/TradeProtectionCard";
@@ -42,6 +45,7 @@ export default function TradeDetailScreen() {
   const { refreshing, onRefresh } = useRefresh(refetch);
   const now = useCountdown();
   const actions = useTradeActions(tradeId);
+  const { quote: paymentQuote } = useTradePaymentQuote(tradeId);
 
   const handleBack = () => {
     if (router.canGoBack()) router.back();
@@ -51,7 +55,7 @@ export default function TradeDetailScreen() {
   if (isLoading) {
     return (
       <View style={styles.screen}>
-        <ScreenHeader title="Takas Detayı" onBack={handleBack} />
+        <ScreenHeader title={t('trade.detailTitle')} onBack={handleBack} />
         <View style={styles.loadingContainer}>
           <Spinner size="lg" />
         </View>
@@ -62,28 +66,28 @@ export default function TradeDetailScreen() {
   if (!trade) {
     return (
       <View style={styles.screen}>
-        <ScreenHeader title="Takas Detayı" onBack={handleBack} />
+        <ScreenHeader title={t('trade.detailTitle')} onBack={handleBack} />
         <EmptyState
           fullscreen
           icon="swap-horizontal-outline"
-          title="Takas bulunamadı"
-          actionLabel="Geri Dön"
+          title={t('trade.notFoundTitle')}
+          actionLabel={t('common.goBack')}
           onAction={handleBack}
         />
       </View>
     );
   }
 
-  const view = deriveTradeView(trade, user);
+  const view = deriveTradeView(trade, user, paymentQuote);
   const copyCode = (code?: string | null) => {
     if (!code) return;
     Clipboard.setString(code);
-    actions.notify("Takip numarası kopyalandı");
+    actions.notify(t('trade.trackingCopied'));
   };
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title={`Takas #${trade.tradeNumber}`} onBack={handleBack} />
+      <ScreenHeader title={t('trade.tradeNumberTitle', { number: trade.tradeNumber })} onBack={handleBack} />
 
       <ScrollView
         style={styles.content}
@@ -91,7 +95,7 @@ export default function TradeDetailScreen() {
           <ThemedRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <TradeStatusHeader trade={trade} t={t} now={now} />
+        <TradeStatusHeader trade={trade} t={t} now={now} hasPaymentStep={view.hasPaymentStep} />
         <TradeInfoCard
           trade={trade}
           isInitiator={view.isInitiator}
@@ -111,6 +115,13 @@ export default function TradeDetailScreen() {
           cashPaid={view.cashPaid}
           cashCommission={view.cashCommission}
           cashTotal={view.cashTotal}
+          isV2={view.isV2}
+        />
+        <TradePaymentsCard view={view} otherPartyName={view.otherParty.displayName} />
+        <TradeCostPreviewCard
+          mine={view.isInitiator ? paymentQuote?.initiator ?? null : paymentQuote?.receiver ?? null}
+          theirs={view.isInitiator ? paymentQuote?.receiver ?? null : paymentQuote?.initiator ?? null}
+          lockedPaymentCount={view.totalCount}
         />
         <TradeMessages trade={trade} />
         <TradeShippingSection
@@ -131,7 +142,13 @@ export default function TradeDetailScreen() {
           cashPaid={view.cashPaid}
           cashTotal={view.cashTotal}
           cashCommission={view.cashCommission}
+          isV2={view.isV2}
+          myPaymentRow={view.myPaymentRow}
+          myPaymentPending={view.myPaymentPending}
+          paidCount={view.paidCount}
+          totalCount={view.totalCount}
           myFromWarehouseStatus={view.myFromWarehouseShipment?.status}
+          hasShippedLeg={view.hasShippedLeg}
           actions={{
             setTradeAddressId: actions.setTradeAddressId,
             handleAccept: actions.handleAccept,

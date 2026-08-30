@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { Spinner, Divider, Snackbar, Text, theme, EmptyState } from '@/ui';
@@ -26,6 +27,7 @@ import { ImageViewerModal } from './_modals/ImageViewerModal';
 const { colors } = theme;
 
 export default function ProductDetailScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams();
   const productId = String(id);
   const { isAuthenticated, user } = useAuthStore();
@@ -49,7 +51,7 @@ export default function ProductDetailScreen() {
     return (
       <View style={styles.loadingContainer}>
         <Spinner size="lg" />
-        <Text style={styles.loadingText}>Yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -58,8 +60,8 @@ export default function ProductDetailScreen() {
       <EmptyState
         fullscreen
         icon="cube-outline"
-        title="Ürün bulunamadı"
-        actionLabel="Geri Dön"
+        title={t('product.productNotFoundTitle')}
+        actionLabel={t('common.goBack')}
         onAction={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       />
     );
@@ -124,8 +126,8 @@ export default function ProductDetailScreen() {
           <View style={styles.securityNotice}>
             <Ionicons name="shield-checkmark" size={24} color={colors.success[500]!} />
             <View style={styles.securityContent}>
-              <Text style={styles.securityTitle}>Güvenli Alışveriş</Text>
-              <Text style={styles.securityText}>Ödemeniz, ürün elinize ulaşana kadar güvende tutulur.</Text>
+              <Text style={styles.securityTitle}>{t('product.secureShoppingTitle')}</Text>
+              <Text style={styles.securityText}>{t('product.secureShoppingBody')}</Text>
             </View>
           </View>
 
@@ -159,8 +161,8 @@ export default function ProductDetailScreen() {
         duration={2000}
         variant={actions.snackbar.type === 'success' ? 'success' : 'danger'}
         action={
-          actions.snackbar.type === 'success' && actions.snackbar.message.includes('sepet')
-            ? { label: 'Sepete Git', onPress: () => router.push('/cart') }
+          actions.snackbar.action === 'goToCart'
+            ? { label: t('product.goToCart'), onPress: () => router.push('/cart') }
             : undefined
         }
       >
@@ -179,7 +181,7 @@ export default function ProductDetailScreen() {
         listPrice={product.price ?? 0}
         onSuccess={() => {
           actions.setOfferModalOpen(false);
-          actions.notify('Teklifiniz gönderildi', 'success');
+          actions.notify(t('product.offerSent'), 'success');
         }}
       />
 

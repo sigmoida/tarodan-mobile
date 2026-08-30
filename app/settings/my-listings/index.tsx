@@ -47,9 +47,9 @@ export default function MyListingsScreen() {
       ) : f.isError ? (
         <View style={styles.loadingContainer}>
           <Ionicons name="cloud-offline-outline" size={64} color={colors.text.subtle} />
-          <Text style={{ fontSize: 18, fontWeight: '600', marginTop: theme.spacing[4], color: colors.text.heading }}>Yüklenemedi</Text>
-          <Text style={{ color: colors.text.subtle, marginTop: theme.spacing[2], textAlign: 'center' }}>İlanlarınız yüklenirken bir hata oluştu.</Text>
-          <Button variant="primary" title="Tekrar Dene" onPress={() => f.refetch()} style={{ marginTop: theme.spacing[4] }} />
+          <Text style={{ fontSize: 18, fontWeight: '600', marginTop: theme.spacing[4], color: colors.text.heading }}>{f.t('favorites.loadFailedTitle')}</Text>
+          <Text style={{ color: colors.text.subtle, marginTop: theme.spacing[2], textAlign: 'center' }}>{f.t('listing.loadListingsFailed')}</Text>
+          <Button variant="primary" title={f.t('common.tryAgain')} onPress={() => f.refetch()} style={{ marginTop: theme.spacing[4] }} />
         </View>
       ) : (
         <ScrollView
@@ -89,7 +89,7 @@ export default function MyListingsScreen() {
       {f.canCreateNew && (
         <FAB
           icon="add"
-          accessibilityLabel="Yeni ilan oluştur"
+          accessibilityLabel={f.t('listing.createNewA11y')}
           style={styles.fab}
           onPress={() => router.push('/(tabs)/sell')}
         />

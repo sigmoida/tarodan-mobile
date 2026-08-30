@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { theme, Text, Button, Modal, Input, Textarea, Spinner, useModalMessage, ModalMessage } from '@/ui';
 import { collectionsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
@@ -39,6 +40,7 @@ export default function AddToCollectionModal({
   productId,
   onSuccess,
 }: AddToCollectionModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const msg = useModalMessage();
 
@@ -87,7 +89,7 @@ export default function AddToCollectionModal({
       onDismiss();
     },
     onError: (e: any) => {
-      msg.error(e?.response?.data?.message || 'Ürün koleksiyona eklenemedi.');
+      msg.error(e?.response?.data?.message || t('collection.addItemFailed'));
     },
   });
 
@@ -100,7 +102,7 @@ export default function AddToCollectionModal({
       });
       const created = response.data?.data ?? response.data;
       const newId = created?.id;
-      if (!newId) throw new Error('Koleksiyon oluşturuldu fakat id alınamadı.');
+      if (!newId) throw new Error(t('collection.createNoIdError'));
       // Koleksiyona ürünü ekle
       await collectionsApi.addItem(newId, { productId });
       return { id: newId, name: newName.trim() };
@@ -111,7 +113,7 @@ export default function AddToCollectionModal({
       handleClose();
     },
     onError: (e: any) => {
-      msg.error(e?.response?.data?.message || 'Koleksiyon oluşturulamadı.');
+      msg.error(e?.response?.data?.message || t('collection.createCollectionFailed'));
     },
   });
 
@@ -127,25 +129,25 @@ export default function AddToCollectionModal({
   const handleCreateSubmit = () => {
     msg.clear();
     if (!newName.trim()) {
-      msg.error('Koleksiyon adı girin.');
+      msg.error(t('collection.nameRequiredShort'));
       return;
     }
     createCollectionMutation.mutate();
   };
 
   return (
-    <Modal isOpen={visible} onClose={handleClose} title={creating ? 'Yeni Koleksiyon' : 'Koleksiyona Ekle'}>
+    <Modal isOpen={visible} onClose={handleClose} title={creating ? t('collection.newCollectionTitle') : t('collection.addToCollection')}>
       {creating ? (
         <View>
           <Input
-            label="Koleksiyon Adı *"
+            label={t('collection.collectionNameLabel')}
             value={newName}
             onChangeText={setNewName}
             maxLength={60}
             containerStyle={styles.input}
           />
           <Textarea
-            label="Açıklama (opsiyonel)"
+            label={t('collection.descriptionOptionalLabel')}
             value={newDescription}
             onChangeText={setNewDescription}
             rows={3}
@@ -163,8 +165,8 @@ export default function AddToCollectionModal({
             />
             <Text style={styles.toggleText}>
               {newPublic
-                ? 'Herkese Açık (Diğer kullanıcılar görebilir)'
-                : 'Özel (Sadece siz görebilirsiniz)'}
+                ? t('collection.publicToggleLabel')
+                : t('collection.privateToggleLabel')}
             </Text>
             <Ionicons
               name={newPublic ? 'toggle' : 'toggle-outline'}
@@ -188,7 +190,7 @@ export default function AddToCollectionModal({
                 <View style={styles.createIcon}>
                   <Ionicons name="add" size={22} color={colors.primary[600]!} />
                 </View>
-                <Text style={styles.createText}>Yeni Koleksiyon Oluştur</Text>
+                <Text style={styles.createText}>{t('collection.createNewCollection')}</Text>
               </TouchableOpacity>
 
               {collections.length === 0 ? (
@@ -199,7 +201,7 @@ export default function AddToCollectionModal({
                     color={colors.text.subtle}
                   />
                   <Text style={styles.emptyText}>
-                    Henüz koleksiyonunuz yok. İlk koleksiyonunuzu oluşturarak başlayın.
+                    {t('collection.noCollectionsCreateFirst')}
                   </Text>
                 </View>
               ) : (
@@ -231,8 +233,8 @@ export default function AddToCollectionModal({
                         {c.name}
                       </Text>
                       <Text style={styles.collectionMeta}>
-                        {c.itemCount ?? 0} ürün ·{' '}
-                        {c.isPublic ? 'Herkese açık' : 'Özel'}
+                        {t('collection.itemCountSuffix', { count: c.itemCount ?? 0 })} ·{' '}
+                        {c.isPublic ? t('collection.publicShort') : t('collection.privateShort')}
                       </Text>
                     </View>
                     <Ionicons
@@ -253,20 +255,20 @@ export default function AddToCollectionModal({
           <>
             <Button
               variant="ghost"
-              title="Geri"
+              title={t('common.back')}
               onPress={() => setCreating(false)}
               disabled={createCollectionMutation.isPending}
             />
             <Button
               variant="primary"
-              title="Oluştur ve Ekle"
+              title={t('collection.createAndAdd')}
               onPress={handleCreateSubmit}
               isLoading={createCollectionMutation.isPending}
               disabled={!newName.trim() || createCollectionMutation.isPending}
             />
           </>
         ) : (
-          <Button variant="ghost" title="Kapat" onPress={handleClose} />
+          <Button variant="ghost" title={t('common.close')} onPress={handleClose} />
         )}
       </View>
       <ModalMessage state={msg.state} />

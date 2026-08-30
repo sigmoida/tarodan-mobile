@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
@@ -8,7 +9,7 @@ import { authApi } from '@/lib/api';
 import { signInWithGoogle } from '@/services/googleSignin';
 import { signInWithApple, isAppleAvailable } from '@/services/appleSignin';
 import { useAuthStore } from '@/stores/authStore';
-import { loginSchema, TWO_FACTOR_CODE_PATTERN, type LoginForm } from '../_lib/schema';
+import { buildLoginSchema, TWO_FACTOR_CODE_PATTERN, type LoginForm } from '../_lib/schema';
 
 /**
  * Login controller — owns the RHF form (zod), the login + resend-verification
@@ -16,6 +17,7 @@ import { loginSchema, TWO_FACTOR_CODE_PATTERN, type LoginForm } from '../_lib/sc
  * fallback submit. Lifted verbatim from the monolithic LoginScreen.
  */
 export function useLogin() {
+  const { t } = useTranslation();
   const { login } = useAuthStore();
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -24,8 +26,10 @@ export function useLogin() {
   const [appleLoading, setAppleLoading] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
 
+  // Dil değişince şema yeniden kurulur — aksi halde hata metni ilk dilde donar.
+  const schema = useMemo(() => buildLoginSchema(t), [t]);
   const form = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(schema),
   });
   const { handleSubmit, getValues, setError } = form;
 
@@ -81,11 +85,11 @@ export function useLogin() {
         const hasBusinessInfo = !!(currentUser?.companyName && currentUser?.taxId);
         if (hasBusinessInfo && !isBusinessTier) {
           appAlert(
-            'Kurumsal Üyelik',
-            'İşletme bilgilerinizi tamamlamışsınız. Kurumsal üyeliğe geçerek avantajlardan yararlanabilirsiniz.',
+            t('auth.corporateUpgradeTitle'),
+            t('auth.corporateUpgradeBody'),
             [
-              { text: 'Sonra', onPress: () => router.replace('/' as never), style: 'cancel' },
-              { text: 'Üyeliğe Geç', onPress: () => router.replace('/membership' as never) },
+              { text: t('auth.corporateUpgradeLater'), onPress: () => router.replace('/' as never), style: 'cancel' },
+              { text: t('auth.corporateUpgradeGo'), onPress: () => router.replace('/membership' as never) },
             ],
           );
           return;
@@ -98,7 +102,7 @@ export function useLogin() {
     },
     onError: (error: unknown) => {
       const e = error as { response?: { data?: { message?: string } }; message?: string };
-      const msg = e?.response?.data?.message || e?.message || 'Giriş başarısız.';
+      const msg = e?.response?.data?.message || e?.message || t('auth.loginFailed');
       console.log('❌ Login hatası:', msg);
       const lower = msg.toLowerCase();
       if (lower.includes('doğrula') || lower.includes('verify') || lower.includes('doğrulanmadı')) {
@@ -113,11 +117,11 @@ export function useLogin() {
   const resendVerificationMutation = useMutation({
     mutationFn: () => authApi.resendVerification(unverifiedEmail ?? getValues('email')),
     onSuccess: () => {
-      appAlert('Gönderildi', 'Doğrulama bağlantısı e-posta adresinize tekrar gönderildi.');
+      appAlert(t('auth.verificationResentTitle'), t('auth.verificationResentBody'));
     },
     onError: (e: unknown) => {
       const err = e as { response?: { data?: { message?: string } } };
-      appAlert('Hata', err?.response?.data?.message || 'Doğrulama bağlantısı gönderilemedi.');
+      appAlert(t('common.error'), err?.response?.data?.message || t('auth.verificationResendFailed'));
     },
   });
 
@@ -136,7 +140,7 @@ export function useLogin() {
       const refreshToken = data.tokens?.refreshToken || data.refreshToken;
       const user = data.user;
       if (!accessToken) {
-        appAlert('Hata', 'Giriş yanıtı beklenmedik biçimde geldi. Lütfen tekrar deneyin.');
+        appAlert(t('common.error'), t('auth.unexpectedLoginResponse'));
         return;
       }
       await login(accessToken, user, refreshToken);
@@ -147,9 +151,9 @@ export function useLogin() {
       // ekle: DEVELOPER_ERROR → Google Cloud'da Android OAuth client/SHA-1 eksik.
       if (e?.code === 'SIGN_IN_CANCELLED' || e?.code === '-5') return;
       const apiMsg = e?.response?.data?.message;
-      const detail = apiMsg || e?.message || 'Bilinmeyen hata';
-      const code = e?.code ? ` (kod: ${e.code})` : '';
-      appAlert('Google ile giriş başarısız', `${detail}${code}`);
+      const detail = apiMsg || e?.message || t('common.unknownError');
+      const code = e?.code ? ` (${t('common.errorCodeSuffix', { code: e.code })})` : '';
+      appAlert(t('auth.googleSignInFailedTitle'), `${detail}${code}`);
     } finally {
       setGoogleLoading(false);
     }
@@ -166,7 +170,7 @@ export function useLogin() {
       const refreshToken = data.tokens?.refreshToken || data.refreshToken;
       const user = data.user;
       if (!accessToken) {
-        appAlert('Hata', 'Giriş yanıtı beklenmedik biçimde geldi. Lütfen tekrar deneyin.');
+        appAlert(t('common.error'), t('auth.unexpectedLoginResponse'));
         return;
       }
       await login(accessToken, user, refreshToken);
@@ -175,9 +179,9 @@ export function useLogin() {
       // Kullanıcı iptali sessiz geçilir.
       if (e?.code === 'ERR_REQUEST_CANCELED') return;
       const apiMsg = e?.response?.data?.message;
-      const detail = apiMsg || e?.message || 'Bilinmeyen hata';
-      const code = e?.code ? ` (kod: ${e.code})` : '';
-      appAlert('Apple ile giriş başarısız', `${detail}${code}`);
+      const detail = apiMsg || e?.message || t('common.unknownError');
+      const code = e?.code ? ` (${t('common.errorCodeSuffix', { code: e.code })})` : '';
+      appAlert(t('auth.appleSignInFailedTitle'), `${detail}${code}`);
     } finally {
       setAppleLoading(false);
     }

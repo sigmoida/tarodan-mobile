@@ -31,13 +31,20 @@ matristeki bazı P1'leri **zaten kapatmış**. Repo üzerinde doğrulanan gerçe
 | P0 | Derin bağlantı yapılandırılmamış | `app.json:15` yalnız `scheme: "tarodan"` |
 | P0 | Kurumsal davet aktivasyonu yok | `corporate-invitation` repoda hiç geçmiyor |
 | P0 | Kurumsal belge ekranları yok | API katmanı `src/lib/api/user.ts:85` var, ekran yok |
-| P1 | Üye kupon UI'ı yok | `src/lib/api/cart.ts:53` "bilinçli eklenmedi" notu |
-| P1 | E-posta değişikliği / kullanıcı adı talebi yok | `email/request-change`, `me/username` hiç geçmiyor |
-| P1 | Telefon doğrulama ekranı yok | `authApi.sendPhoneCode` var (`auth.ts:66`), çağıran ekran yok |
-| P2 | Üyelik hakları istemcide sabit | `TIER_LIMITS` (authStore) |
-| P2 | `products/:id/click`, `products/popular` çağrılmıyor | — |
-| P2 | ~22 ekran menüden erişilemiyor | `13-parity-matrix.md` #15 |
 | P2 | Ekranlarda gömülü Türkçe metin | i18n kataloğu hazır |
+
+### Kapandı (2026-08-01)
+
+Aşağıdaki P1/P2 maddeleri bu tarihte yapılan kod denetimiyle **doğrulandı ve kapandı**;
+tabloda "hâlâ açık" görünmemeli:
+
+| Öncelik | Bulgu | Kapanış kanıtı |
+|---|---|---|
+| P1 | Üye kupon UI'ı yok | `app/checkout/_components/CouponInput.tsx`, `app/checkout/_hooks/useCoupon.ts:44-49` — `discounts/validate` ile **bilinçli** olarak yapıldı (`src/lib/api/cart.ts:53`), `POST /cart/coupon` değil |
+| P1 | E-posta değişikliği / kullanıcı adı talebi yok | `src/lib/api/auth.ts:96-100` + `app/settings/email-change/`; `src/lib/api/user.ts:31-33` + `app/settings/username/` |
+| P1 | Telefon doğrulama ekranı yok | `src/lib/api/auth.ts:92,94`, `app/settings/security/_hooks/useSecurity.ts:78,100`, rozet `_components/SecuritySections.tsx:86-91` |
+| P2 | Üyelik hakları istemcide sabit | `src/lib/api/membership.ts:8`, `src/hooks/useMembershipLimits.ts` — `TIER_LIMITS` artık yalnız yedek |
+| P2 | `products/:id/click`, `products/popular` çağrılmıyor | `src/lib/api/products.ts:32-35` + `ProductCard.tsx:92`; popüler ray `app/(tabs)/_hooks/useHomeData.ts:40` → `HomeSections.tsx:196` |
 
 ### Matriste açık görünen ama kapanmış
 
@@ -174,16 +181,30 @@ API katmanı mevcut; ekranlar yok. Zengin akış (`08-membership-corporate.md` �
 | Üyelik hakları | `TIER_LIMITS` sabiti yerine `GET /users/me` → `membership.tier` ve `GET /membership/me/limits` |
 | Tıklama + popüler ray | `POST /products/:id/click` (fire-and-forget), `GET /products/popular` |
 
+**Kapanış notu (2026-08-01):** altı maddenin **altısı da kapandı**. Üye kupon UI'ı
+yalnızca sözleşme detayında plandan sapıyor: `POST /cart/coupon` yerine
+`discounts/validate` kullanılıyor — bu **bilinçli** bir karar
+(`src/lib/api/cart.ts:53`), eksik değil. Diğer beşi (e-posta değişikliği, kullanıcı
+adı talebi, telefon doğrulama, üyelik hakları, tıklama + popüler ray) plandaki
+sözleşmeyle birebir kapandı — kanıtlar §2'deki "Kapandı (2026-08-01)" tablosunda.
+
 ---
 
 ## 6. Faz 3 — P2
 
-- Menüden erişilemeyen ~22 ekranı profil/ayarlar menüsüne bağla (`payment-methods`,
-  `payment-history`, `payments`, `subscription`, `saved-searches`, `discounts`,
-  `sales/[id]`, `sayfa/[slug]` + statik içerik sayfaları)
-- Gömülü Türkçe metinleri i18n anahtarlarına taşı (katalog hazır)
-- `GET /orders/:id/my-review` bağla
-- `typing:start` / `typing:stop` yayını
+**Kapanış notu (2026-08-01):** bu bölümün "~22 ekran" ifadesi bayattı; gerçek sayı
+**8** erişilemeyen ekrandı ve bu branch'te sekizi de kapatıldı
+(`40ae240` sales/[id] navigasyonu, `3238750` altı ayar ekranının profil menüsüne
+bağlanması, `b73d63d` CMS hukuki sayfaları). `typing:start`/`typing:stop` yayını da
+bu branch'te bağlandı (`9bec3ff`, `4b24e6c`, `c35a181`). `GET /orders/:id/my-review`
+**bilinçli olarak bağlanmadı** — işlevi sipariş DTO'sundaki
+`hasProductRating`/`hasSellerRating` ile zaten karşılanıyor
+(`app/orders/[id]/_components/OrderActionCards.tsx:62,67`); bağlamak çift kaynak
+yaratırdı.
+
+**Kalan tek P2 kalemi: i18n taşıma.** `useTranslation` kullanan 64 dosya var,
+`app/` altında 332 tsx dosya var — yani mevcut kapsam ~%19. ~270 dosyalık mekanik
+bir taşıma (L boyutu); kendi planını hak ediyor, bu spec'in kapsamı dışında.
 
 ---
 
@@ -206,6 +227,10 @@ Sistematik tarama ve tek disipline oturtma:
 Çıktı: bulgu listesi + tekrarlanan kök nedenler için paylaşılan bir layout yardımcısı
 (yeni primitive icat etmeden, `@/ui` içinde varsa onu kullanarak). Bulgular
 uygulanmadan önce sana raporlanır.
+
+**Kapanış notu (2026-08-01):** bu denetim yapıldı; rapor
+`docs/superpowers/reports/2026-08-01-layout-denetimi.md` (10 bulgu: 3 Yüksek,
+4 Orta, 3 Düşük).
 
 ---
 

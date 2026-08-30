@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import { Button, Spinner, Snackbar, Text, ScreenHeader, theme } from '@/ui';
 import { router } from 'expo-router';
@@ -17,6 +18,7 @@ const { colors } = theme;
  * composes the gate, filters, list (order + group cards), and rating modal.
  */
 export default function OrdersScreen() {
+  const { t } = useTranslation();
   const f = useOrders();
 
   const gate = OrdersGate({ f });
@@ -27,7 +29,7 @@ export default function OrdersScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Siparişlerim" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+      <ScreenHeader title={t('order.myOrders')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
 
       <OrdersFilters f={f} />
 
@@ -35,9 +37,9 @@ export default function OrdersScreen() {
       {f.ordersError ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptySubtitle}>
-            Siparişler yüklenemedi. Lütfen tekrar deneyin.
+            {t('order.loadFailedRetry')}
           </Text>
-          <Button variant="primary" title="Yenile" onPress={() => f.refetch()} style={StyleSheet.flatten([styles.emptyButton, { marginTop: theme.spacing[3] }])} />
+          <Button variant="primary" title={t('order.refresh')} onPress={() => f.refetch()} style={StyleSheet.flatten([styles.emptyButton, { marginTop: theme.spacing[3] }])} />
         </View>
       ) : f.isLoading && f.entries.length === 0 ? (
         <View style={styles.loadingContainer}>
@@ -85,7 +87,7 @@ export default function OrdersScreen() {
           f.setSnackbar({
             visible: true,
             variant: 'success',
-            message: 'Değerlendirmeniz alındı. Onaylandıktan sonra yayınlanacak.',
+            message: t('order.reviewReceived'),
           });
         }}
       />

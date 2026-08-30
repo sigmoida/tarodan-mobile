@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
@@ -13,6 +14,7 @@ import { initialForm, type Discount, type MyProduct } from '../_lib/types';
  * delete/toggle mutations. Lifted verbatim from the monolithic DiscountsScreen.
  */
 export function useDiscounts() {
+  const { t } = useTranslation();
   const { isAuthenticated, user } = useAuthStore();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<'' | 'active' | 'inactive' | 'expired'>('');
@@ -77,10 +79,10 @@ export function useDiscounts() {
       queryClient.invalidateQueries({ queryKey: qk.membership.discounts });
       setFormOpen(false);
       setForm(initialForm());
-      setSnackbar({ visible: true, message: form.id ? 'İndirim güncellendi' : 'İndirim oluşturuldu' });
+      setSnackbar({ visible: true, message: form.id ? t('discount.updated') : t('discount.created') });
     },
     onError: (e: any) => {
-      appAlert('Hata', e?.response?.data?.message || 'İndirim kaydedilemedi.');
+      appAlert(t('common.error'), e?.response?.data?.message || t('discount.saveFailed'));
     },
   });
 
@@ -88,10 +90,10 @@ export function useDiscounts() {
     mutationFn: (id: string) => discountsApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.membership.discounts });
-      setSnackbar({ visible: true, message: 'İndirim silindi' });
+      setSnackbar({ visible: true, message: t('discount.deleted') });
     },
     onError: (e: any) => {
-      appAlert('Hata', e?.response?.data?.message || 'İndirim silinemedi.');
+      appAlert(t('common.error'), e?.response?.data?.message || t('discount.deleteFailed'));
     },
   });
 
@@ -132,20 +134,20 @@ export function useDiscounts() {
 
   const handleSubmit = () => {
     if (!form.name.trim()) {
-      appAlert('Eksik', 'İndirim adı gerekli.');
+      appAlert(t('common.missing'), t('discount.nameRequired'));
       return;
     }
     const valueNum = parseFloat(form.value);
     if (!valueNum || valueNum <= 0) {
-      appAlert('Eksik', 'Geçerli bir indirim değeri girin.');
+      appAlert(t('common.missing'), t('discount.valueInvalid'));
       return;
     }
     if (form.type === 'percentage' && valueNum > 100) {
-      appAlert('Hata', 'Yüzde indirim 100\'den büyük olamaz.');
+      appAlert(t('common.error'), t('discount.percentTooHigh'));
       return;
     }
     if (form.scope === 'product' && form.targetProductIds.length === 0) {
-      appAlert('Eksik', 'Lütfen en az bir ürün seçin.');
+      appAlert(t('common.missing'), t('discount.pickAtLeastOne'));
       return;
     }
 
@@ -172,11 +174,11 @@ export function useDiscounts() {
 
   const handleDelete = (d: Discount) => {
     appAlert(
-      'İndirimi Sil',
-      `"${d.name}" indirimini silmek istediğinize emin misiniz?`,
+      t('discount.deleteTitle'),
+      t('discount.deleteConfirmNamed', { name: d.name }),
       [
-        { text: 'Vazgeç', style: 'cancel' },
-        { text: 'Sil', style: 'destructive', onPress: () => deleteMutation.mutate(d.id) },
+        { text: t('discount.discard'), style: 'cancel' },
+        { text: t('common.delete'), style: 'destructive', onPress: () => deleteMutation.mutate(d.id) },
       ],
     );
   };

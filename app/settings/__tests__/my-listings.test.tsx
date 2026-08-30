@@ -23,11 +23,14 @@ jest.mock("react-i18next", () => ({
 }));
 
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => ({
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({
     user: { listingCount: 2, membershipTier: "free" },
     limits: { maxListings: 10 },
     refreshUserData: jest.fn(),
-  }),
+  });
+    return sel ? sel(state) : state;
+  },
 }));
 
 // BoostModal native bağımlılıklarını izole et — UI dilimi dışı.
@@ -91,9 +94,9 @@ describe("J68 · İlanlarım filtre chip + durum rozeti", () => {
   it("J68.1 filtre chip'leri sunucu sayaçlarıyla render olur (Tümü/Reddedildi)", async () => {
     mockGetMyListings.mockResolvedValue({ data: { data: [listing()] } });
     renderWithProviders(<MyListingsScreen />);
-    expect(await screen.findByText("Tümü (3)")).toBeOnTheScreen();
-    expect(screen.getByText("Reddedildi (1)")).toBeOnTheScreen();
-    expect(screen.getByText("Aktif (1)")).toBeOnTheScreen();
+    expect(await screen.findByText("listing.filterAll (3)")).toBeOnTheScreen();
+    expect(screen.getByText("listing.filterRejected (1)")).toBeOnTheScreen();
+    expect(screen.getByText("listing.filterActive (1)")).toBeOnTheScreen();
   });
 
   it('J68.2 reddedilen ilan → "Reddedildi" durum rozeti gösterilir', async () => {
@@ -106,7 +109,7 @@ describe("J68 · İlanlarım filtre chip + durum rozeti", () => {
     expect(await screen.findByText("Reddedilen İlan")).toBeOnTheScreen();
     // "Reddedildi" hem chip etiketinde hem ilan rozetinde geçer → en az 2
     await waitFor(() =>
-      expect(screen.getAllByText(/Reddedildi/).length).toBeGreaterThanOrEqual(
+      expect(screen.getAllByText(/listing.filterRejected/).length).toBeGreaterThanOrEqual(
         2,
       ),
     );
@@ -115,7 +118,7 @@ describe("J68 · İlanlarım filtre chip + durum rozeti", () => {
   it("J68.3 boş liste → boş durum mesajı", async () => {
     mockGetMyListings.mockResolvedValue({ data: { data: [] } });
     renderWithProviders(<MyListingsScreen />);
-    expect(await screen.findByText("Henüz ilan yok")).toBeOnTheScreen();
+    expect(await screen.findByText("listing.noListingsYet")).toBeOnTheScreen();
   });
 });
 
@@ -135,9 +138,9 @@ describe("J133 · İlan düzenleme navigasyon wiring", () => {
     await screen.findByText("Hot Wheels Camaro");
 
     // İlan menüsünü aç (accessibilityLabel="İlan menüsü")
-    fireEvent.press(screen.getByLabelText("İlan menüsü"));
-    await screen.findByText("Düzenle");
-    fireEvent.press(screen.getByText("Düzenle"));
+    fireEvent.press(screen.getByLabelText("listing.menuAccessibility"));
+    await screen.findByText("common.edit");
+    fireEvent.press(screen.getByText("common.edit"));
 
     expect(mockPush).toHaveBeenCalledWith("/listing/L9/edit");
   });

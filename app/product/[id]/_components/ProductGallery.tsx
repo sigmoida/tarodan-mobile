@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, ScrollView, Image, Pressable, Dimensions, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { theme } from '@/ui';
 
 const { colors } = theme;
@@ -17,6 +18,7 @@ export function ProductGallery({
   onPageChange: (page: number) => void;
   onOpenViewer: (index: number) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <>
       <ScrollView
@@ -33,7 +35,7 @@ export function ProductGallery({
               key={index}
               onPress={() => onOpenViewer(index)}
               accessibilityRole="imagebutton"
-              accessibilityLabel="Fotoğrafı büyüt"
+              accessibilityLabel={t('product.zoomPhotoA11y')}
             >
               <Image source={{ uri }} style={styles.productImage} resizeMode="contain" />
             </Pressable>

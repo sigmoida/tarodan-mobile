@@ -2,6 +2,7 @@ import { View, TouchableOpacity } from 'react-native';
 import { Avatar, Badge, Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { formatMessagePreview } from '@/utils/contentFilter';
 import type { MessageThread } from '@/stores/messagesStore';
 import { styles } from '../_lib/styles';
@@ -12,6 +13,7 @@ const { colors } = theme;
 
 /** Tek sohbet satırı — avatar/okunmamış, başlık/zaman, ürün bağlamı, son mesaj. */
 export function ThreadRow({ thread, f }: { thread: MessageThread; f: MessagesTabController }) {
+  const { t } = useTranslation();
   const other = f.safeGetOther(thread);
   const hasUnread = thread.unreadCount > 0;
 
@@ -35,7 +37,7 @@ export function ThreadRow({ thread, f }: { thread: MessageThread; f: MessagesTab
             {other.displayName}
           </Text>
           <Text variant="caption" style={styles.threadTime}>
-            {thread.lastMessage ? formatTime(thread.lastMessage.createdAt) : formatTime(thread.createdAt)}
+            {thread.lastMessage ? formatTime(thread.lastMessage.createdAt, t) : formatTime(thread.createdAt, t)}
           </Text>
         </View>
 
@@ -51,15 +53,15 @@ export function ThreadRow({ thread, f }: { thread: MessageThread; f: MessagesTab
           <View style={styles.productRef}>
             <Ionicons name="chatbubble-ellipses-outline" size={12} color={colors.text.subtle} />
             <Text variant="caption" tone="muted" style={styles.productRefText} numberOfLines={1}>
-              Genel mesaj
+              {t('message.generalMessage')}
             </Text>
           </View>
         )}
 
         {/* Last message preview */}
         <Text variant="caption" style={[styles.lastMessage, hasUnread && styles.unreadText]} numberOfLines={1}>
-          {thread.lastMessage?.senderId === f.user?.id ? 'Sen: ' : ''}
-          {formatMessagePreview(thread.lastMessage?.content ?? '') || 'Henüz mesaj yok'}
+          {thread.lastMessage?.senderId === f.user?.id ? t('message.youPrefix') : ''}
+          {formatMessagePreview(thread.lastMessage?.content ?? '') || t('message.noMessagesYet')}
         </Text>
       </View>
 

@@ -2,6 +2,7 @@
  * Web paritesi: apps/web/src/app/listings/page.tsx `filters` state'i + `buildListParams`.
  * Tüm ürün arama/listeleme ekranları (Search tab, Listings) bu tek kaynağı kullanır.
  */
+import type { TFunction } from 'i18next';
 
 export type ProductFilters = {
   search: string;
@@ -52,33 +53,48 @@ export const EMPTY_FILTERS: ProductFilters = {
   customAttributes: {},
 };
 
-/** Web ProductQueryDto-uyumlu sort değerleri (search.tsx eski 'newest'/'sort' yerine). */
-export const SORT_OPTIONS: { value: string; label: string; icon: string }[] = [
-  { value: 'created_desc', label: 'En Yeni', icon: 'time-outline' },
-  { value: 'created_asc', label: 'En Eski', icon: 'time-outline' },
-  { value: 'view_count_desc', label: 'Popüler', icon: 'star-outline' },
-  { value: 'price_asc', label: 'Fiyat (Düşük)', icon: 'arrow-up' },
-  { value: 'price_desc', label: 'Fiyat (Yüksek)', icon: 'arrow-down' },
-  { value: 'rating_desc', label: 'En Yüksek Puan', icon: 'ribbon-outline' },
+/**
+ * Web ProductQueryDto-uyumlu sort değerleri (search.tsx eski 'newest'/'sort' yerine).
+ *
+ * Eskiden modül-seviyesi TR literal diziydi (`buildConditionOptions`'ın
+ * yukarıdaki gerekçesiyle AYNI kusur — `t()` hiç çağrılmadan hep Türkçe
+ * basardı). Artık `product.sort*` anahtarlarını REUSE eden bir factory;
+ * çağıran taraf `useMemo(() => buildSortOptions(t), [t])` ile kurar.
+ *
+ * `sortPriceLow`/`sortPriceHigh` katalog metni buradaki eski kısa etiketten
+ * ("Fiyat (Düşük)"/"Fiyat (Yüksek)") daha AÇIK ("Fiyat (Düşükten Yükseğe)"/
+ * "Fiyat (Yüksekten Düşüğe)") — reuse, ayrı bir kısa kopya açmak yerine.
+ */
+export const buildSortOptions = (t: TFunction): { value: string; label: string; icon: string }[] => [
+  { value: 'created_desc', label: t('product.sortNewest'), icon: 'time-outline' },
+  { value: 'created_asc', label: t('product.sortOldest'), icon: 'time-outline' },
+  { value: 'view_count_desc', label: t('product.sortPopular'), icon: 'star-outline' },
+  { value: 'price_asc', label: t('product.sortPriceLow'), icon: 'arrow-up' },
+  { value: 'price_desc', label: t('product.sortPriceHigh'), icon: 'arrow-down' },
+  { value: 'rating_desc', label: t('product.sortHighestRating'), icon: 'ribbon-outline' },
 ];
 
-/** Web SidebarFilters CONDITIONS ile aynı (slug + TR etiket). */
-export const CONDITION_OPTIONS: { value: string; label: string }[] = [
-  { value: 'new', label: 'Yeni' },
-  { value: 'like_new', label: 'Yeni Gibi' },
-  { value: 'very_good', label: 'Çok İyi' },
-  { value: 'good', label: 'İyi' },
-  { value: 'fair', label: 'Orta' },
+/**
+ * Web SidebarFilters CONDITIONS ile aynı slug seti — etiketler artık katalogdan
+ * gelir. Eskiden bu bir modül-seviyesi TR literal dizisiydi: `t()` hiç
+ * çağrılmadığı için i18next hazır olsun olmasın hep Türkçe basardı (bir yarış
+ * değil, kalıcı bir Türkçe basımıydı). `ProductFilterSheet` artık bunun yerine
+ * listing formundaki `buildConditions(t)` ile AYNI katalog anahtarlarını
+ * (`product.condition*`) kullanan bu factory'i çağırır: bileşen
+ * `useMemo(() => buildConditionOptions(t), [t])` ile — tek koşul kelime
+ * dağarcığı, iki ayrı metin seti değil.
+ */
+export const buildConditionOptions = (t: TFunction): { value: string; label: string }[] => [
+  { value: 'new', label: t('product.conditionNew') },
+  { value: 'like_new', label: t('product.conditionLikeNew') },
+  { value: 'very_good', label: t('product.conditionVeryGood') },
+  { value: 'good', label: t('product.conditionGood') },
+  { value: 'fair', label: t('product.conditionFair') },
 ];
 
-export const MATERIAL_FALLBACK: { slug: string; label: string }[] = [
-  { slug: 'diecast', label: 'Diecast (Metal)' },
-  { slug: 'resin', label: 'Resin (Reçine)' },
-  { slug: 'composite', label: 'Composite (Kompozit)' },
-  { slug: 'plastic', label: 'Plastic (Plastik)' },
-];
-
-export const SCALE_FALLBACK = ['1:18', '1:24', '1:43', '1:64', '1:87'];
+// NOT: Ölçek/malzeme için İSTEMCİ FALLBACK'İ BİLEREK YOK. Sunucu boş dizi
+// döndürebiliyor ve bu "katalogda yok" demek; yerine bir liste koymak
+// kullanıcıya karşılığı olmayan filtre seçenekleri gösteriyordu (P2 #13).
 
 /**
  * Web listings/page.tsx `buildListParams` ile birebir aynı param mantığı.

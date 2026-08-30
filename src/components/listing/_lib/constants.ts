@@ -1,24 +1,56 @@
+import type { TFunction } from 'i18next';
+import type { MessageKey } from '@/i18n/lib/generated/keys';
 import type { MaterialOption } from './types';
 
 // ---------------------------------------------------------------------------
 // ListingForm — static option lists
 // ---------------------------------------------------------------------------
-export const CONDITIONS = [
-  { value: 'new', label: 'Yeni' },
-  { value: 'like_new', label: 'Sıfır Gibi' },
-  { value: 'very_good', label: 'Mükemmel' },
-  { value: 'good', label: 'İyi' },
-  { value: 'fair', label: 'Orta' },
+/**
+ * Bir modül-seviyesi dizi i18next hazır olmadan çözülür ve ilk yüklenen dilde
+ * donardı — bu yüzden factory: bileşen `useMemo(() => buildConditions(t), [t])`
+ * ile çağırır. Etiketler zaten katalogda (`product.condition*`).
+ */
+export const buildConditions = (t: TFunction) => [
+  { value: 'new', label: t('product.conditionNew') },
+  { value: 'like_new', label: t('product.conditionLikeNew') },
+  { value: 'very_good', label: t('product.conditionVeryGood') },
+  { value: 'good', label: t('product.conditionGood') },
+  { value: 'fair', label: t('product.conditionFair') },
 ];
 
 export const FALLBACK_SCALES = ['1:18', '1:24', '1:43', '1:64', '1:87'];
 
-export const FALLBACK_MATERIALS: MaterialOption[] = [
-  { slug: 'diecast', label: 'Diecast (Metal)' },
-  { slug: 'resin', label: 'Resin (Reçine)' },
-  { slug: 'composite', label: 'Composite (Kompozit)' },
-  { slug: 'plastic', label: 'Plastic (Plastik)' },
+/**
+ * `buildConditions` ile AYNI gerekçe: modül-seviyesi TR literal dizi
+ * i18next hazır olmadan çözülüp donardı — bu yüzden factory. Çağıran
+ * (`useListingForm`) zaten `useTranslation()` sahibi; `t` değiştikçe
+ * yeniden hesaplanır.
+ */
+export const buildMaterials = (t: TFunction): MaterialOption[] => [
+  { slug: 'diecast', label: t('product.materialDiecast') },
+  { slug: 'resin', label: t('product.materialResin') },
+  { slug: 'composite', label: t('product.materialComposite') },
+  { slug: 'plastic', label: t('product.materialPlastic') },
 ];
+
+/**
+ * `GET /shipping/package-tiers` yanıtındaki `label` sunucudan geliyor ve
+ * yalnız Türkçe — yanı sıra bugünkü içerik yazım hatalı ("Kucuk Paket",
+ * "Buyuk Paket", ü/ı olmadan). `code` ise sabit ve semantik
+ * (`ShippingPackageTierCode`), o yüzden görünen metni KATALOGTAN `code`'a göre
+ * kur; yalnızca tanımadığımız bir `code` gelirse (yeni bir kademe eklenmiş
+ * olabilir) sunucunun `label`'ına düş — hiç metin göstermemektense.
+ */
+const PACKAGE_TIER_KEY: Record<string, MessageKey> = {
+  small: 'listing.packageTierSmall',
+  medium: 'listing.packageTierMedium',
+  large: 'listing.packageTierLarge',
+};
+
+export const getPackageTierLabel = (code: string, fallbackLabel: string, t: TFunction): string => {
+  const key = PACKAGE_TIER_KEY[code];
+  return key ? t(key) : fallbackLabel;
+};
 
 const currentYear = new Date().getFullYear();
 export const YEAR_OPTIONS = Array.from({ length: currentYear - 1950 + 1 }, (_, i) => currentYear - i);
@@ -27,3 +59,13 @@ export const YEAR_OPTIONS = Array.from({ length: currentYear - 1950 + 1 }, (_, i
 // listesinden dışlanır.
 export const BRAND_SLUGS = ['hot-wheels', 'hot-wheels-premium', 'hot-wheels-rlc', 'matchbox', 'tomica', 'majorette', 'maisto', 'bburago', 'welly', 'jada', 'greenlight', 'auto-world', 'mini-gt', 'tarmac-works', 'inno64', 'pop-race'];
 export const SCALE_SLUGS = ['scale-118', 'scale-124', 'scale-143', 'scale-164'];
+
+/**
+ * Ürün fotoğrafı için istemci-tarafı alt sınır.
+ *
+ * Sunucuda alt sınır YOK (`media.service.ts` yalnız 10 MB üst sınırına bakar) —
+ * bu tamamen kalite kuralı: 1 KB altında anlamlı bir ürün fotoğrafı pratikte
+ * bulunmuyor, gelen şey boş/bozuk kayıt ya da galeri yer tutucusu oluyor.
+ * Web'deki `MIN_IMAGE_BYTES` ile aynı değer (2026-08-15).
+ */
+export const MIN_IMAGE_BYTES = 1024;

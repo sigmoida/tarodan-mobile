@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, ScrollView, TouchableOpacity, Pressable, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Chip, Input, Text, theme } from '@/ui';
 
-import { SORT_OPTIONS } from '@/utils/productFilters';
+import { buildSortOptions } from '@/utils/productFilters';
 import { styles } from '../_lib/searchStyles';
 import { SearchSuggestions } from './SearchSuggestions';
 import type { SearchController } from '../_hooks/useSearch';
@@ -16,8 +17,11 @@ const { colors } = theme;
  * translateY when the results list scrolls down.
  */
 export function SearchBars({ f }: { f: SearchController }) {
+  const { t } = useTranslation();
+  const sortOptions = useMemo(() => buildSortOptions(t), [t]);
   return (
     <Animated.View
+      testID="search-collapsible-bars"
       style={[styles.collapsibleBars, { transform: [{ translateY: f.barsTranslateY }] }]}
       onLayout={f.onBarsLayout}
     >
@@ -26,7 +30,7 @@ export function SearchBars({ f }: { f: SearchController }) {
         <View style={styles.searchAnchor}>
           <Input
             testID="search-input"
-            placeholder="Model, marka veya anahtar kelime..."
+            placeholder={t('search.placeholderLong')}
             value={f.searchQuery}
             onChangeText={f.handleSearchChange}
             leftIconName="search"
@@ -64,11 +68,11 @@ export function SearchBars({ f }: { f: SearchController }) {
           style={styles.filterButton}
           onPress={() => f.setFilterModalVisible(true)}
           accessibilityRole="button"
-          accessibilityLabel="Filtrele"
+          accessibilityLabel={t('common.filter')}
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         >
           <Ionicons name="filter-outline" size={20} color={colors.text.heading} />
-          <Text style={styles.filterButtonText}>Filtrele</Text>
+          <Text style={styles.filterButtonText}>{t('common.filter')}</Text>
           {f.activeFiltersCount > 0 && (
             <View style={styles.filterBadge}>
               <Text style={styles.filterBadgeText}>{f.activeFiltersCount}</Text>
@@ -80,12 +84,12 @@ export function SearchBars({ f }: { f: SearchController }) {
           style={styles.filterButton}
           onPress={() => f.setSortModalVisible(true)}
           accessibilityRole="button"
-          accessibilityLabel="Sırala"
+          accessibilityLabel={t('common.sort')}
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         >
           <Ionicons name="swap-vertical-outline" size={20} color={colors.text.heading} />
           <Text style={styles.filterButtonText}>
-            {SORT_OPTIONS.find((s) => s.value === f.filters.sortBy)?.label || 'Sırala'}
+            {sortOptions.find((s) => s.value === f.filters.sortBy)?.label || t('common.sort')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -108,7 +112,7 @@ export function SearchBars({ f }: { f: SearchController }) {
             />
           ))}
           {f.activeChips.length > 1 && (
-            <Chip label="Temizle ✕" variant="neutral" onPress={f.clearAllFilters} />
+            <Chip label={t('search.clearFilters')} variant="neutral" onPress={f.clearAllFilters} />
           )}
         </ScrollView>
       )}
@@ -116,7 +120,7 @@ export function SearchBars({ f }: { f: SearchController }) {
       {/* Results Count */}
       <View style={styles.resultsCount}>
         <Text style={styles.resultsCountText}>
-          {f.isLoading ? 'Aranıyor...' : `${f.total} sonuç bulundu`}
+          {f.isLoading ? t('search.searching') : t('search.resultsFound', { count: f.total })}
         </Text>
       </View>
     </Animated.View>

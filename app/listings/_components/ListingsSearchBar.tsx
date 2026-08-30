@@ -1,4 +1,5 @@
 import { View, TouchableOpacity, FlatList } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Text, Input, Chip, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../_lib/styles';
@@ -8,11 +9,12 @@ const { colors } = theme;
 
 /** Arama kutusu + sırala/filtre butonları + aktif filtre çipleri. */
 export function ListingsSearchBar({ f }: { f: ListingsController }) {
+  const { t } = useTranslation();
   return (
     <>
       <View style={styles.searchSection}>
         <Input
-          placeholder="Model, marka ara..."
+          placeholder={t('nav.searchPlaceholderMobile')}
           value={f.searchQuery}
           onChangeText={f.setSearchQuery}
           onSubmitEditing={f.applySearch}
@@ -24,7 +26,7 @@ export function ListingsSearchBar({ f }: { f: ListingsController }) {
             style={styles.sortButton}
             onPress={() => f.setSortMenuVisible(true)}
             accessibilityRole="button"
-            accessibilityLabel="Sırala"
+            accessibilityLabel={t('common.sort')}
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           >
             <Ionicons name="swap-vertical" size={18} color={colors.text.muted} />
@@ -35,11 +37,11 @@ export function ListingsSearchBar({ f }: { f: ListingsController }) {
             style={styles.filterButton}
             onPress={() => f.setFilterModalVisible(true)}
             accessibilityRole="button"
-            accessibilityLabel="Filtreler"
+            accessibilityLabel={t('product.filters')}
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           >
             <Ionicons name="options-outline" size={18} color={colors.text.muted} />
-            <Text style={styles.filterButtonText}>Filtreler</Text>
+            <Text style={styles.filterButtonText}>{t('product.filters')}</Text>
             {f.activeFilterCount > 0 && (
               <View style={styles.filterBadge}>
                 <Text style={styles.filterBadgeText}>{f.activeFilterCount}</Text>
@@ -62,7 +64,7 @@ export function ListingsSearchBar({ f }: { f: ListingsController }) {
           )}
           ListFooterComponent={
             f.activeChips.length > 1 ? (
-              <Chip label="Temizle ✕" variant="neutral" onPress={f.clearFilters} />
+              <Chip label={`${t('common.clear')} ✕`} variant="neutral" onPress={f.clearFilters} />
             ) : null
           }
         />

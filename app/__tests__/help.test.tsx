@@ -26,7 +26,10 @@ import { supportApi } from "@/lib/api";
 
 let mockIsAuthenticated = false;
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => ({ isAuthenticated: mockIsAuthenticated }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: mockIsAuthenticated });
+    return sel ? sel(state) : state;
+  },
 }));
 
 jest.mock("react-i18next", () => ({
@@ -58,9 +61,9 @@ describe("Yardım Merkezi · iletişim formu", () => {
 
   it("boş form gönderiminde uyarı snackbar gösterilir, API çağrılmaz", async () => {
     renderWithProviders(<HelpScreen />);
-    fireEvent.press(screen.getByText("Gönder"));
+    fireEvent.press(screen.getByText("common.send"));
     expect(
-      await screen.findByText("Lütfen tüm alanları doldurun"),
+      await screen.findByText("common.fillAllFields"),
     ).toBeOnTheScreen();
     expect(guestContactMock).not.toHaveBeenCalled();
   });
@@ -68,9 +71,9 @@ describe("Yardım Merkezi · iletişim formu", () => {
   it("mesaj 10 karakterden kısa → reddedilir", async () => {
     renderWithProviders(<HelpScreen />);
     fillForm({ name: "Ali", email: "ali@test.com", message: "kısa" });
-    fireEvent.press(screen.getByText("Gönder"));
+    fireEvent.press(screen.getByText("common.send"));
     expect(
-      await screen.findByText("Mesaj en az 10 karakter olmalıdır."),
+      await screen.findByText("validation.messageMin"),
     ).toBeOnTheScreen();
     expect(guestContactMock).not.toHaveBeenCalled();
   });
@@ -82,9 +85,9 @@ describe("Yardım Merkezi · iletişim formu", () => {
       email: "gecersiz",
       message: "Bu yeterince uzun bir mesaj.",
     });
-    fireEvent.press(screen.getByText("Gönder"));
+    fireEvent.press(screen.getByText("common.send"));
     expect(
-      await screen.findByText("Geçerli bir e-posta adresi girin"),
+      await screen.findByText("validation.invalidEmail"),
     ).toBeOnTheScreen();
     expect(guestContactMock).not.toHaveBeenCalled();
   });
@@ -97,7 +100,7 @@ describe("Yardım Merkezi · iletişim formu", () => {
       email: "ali@test.com",
       message: "Bu yeterince uzun bir mesaj.",
     });
-    fireEvent.press(screen.getByText("Gönder"));
+    fireEvent.press(screen.getByText("common.send"));
     await waitFor(() =>
       expect(guestContactMock).toHaveBeenCalledWith({
         name: "Ali Veli",
@@ -105,7 +108,7 @@ describe("Yardım Merkezi · iletişim formu", () => {
         message: "Bu yeterince uzun bir mesaj.",
       }),
     );
-    expect(await screen.findByText(/Mesajınız gönderildi!/)).toBeOnTheScreen();
+    expect(await screen.findByText("contact.success")).toBeOnTheScreen();
     expect(createTicketMock).not.toHaveBeenCalled();
   });
 
@@ -118,17 +121,17 @@ describe("Yardım Merkezi · iletişim formu", () => {
       email: "ali@test.com",
       message: "Bu yeterince uzun bir mesaj.",
     });
-    fireEvent.press(screen.getByText("Gönder"));
+    fireEvent.press(screen.getByText("common.send"));
     await waitFor(() =>
       expect(createTicketMock).toHaveBeenCalledWith({
-        subject: "Yardım Merkezi mesajı",
+        subject: "help.ticketSubject",
         category: "other",
         message: "Bu yeterince uzun bir mesaj.",
       }),
     );
     expect(guestContactMock).not.toHaveBeenCalled();
     expect(
-      await screen.findByText(/Destek talebiniz oluşturuldu!/),
+      await screen.findByText("help.ticketCreated"),
     ).toBeOnTheScreen();
   });
 
@@ -140,9 +143,9 @@ describe("Yardım Merkezi · iletişim formu", () => {
       email: "ali@test.com",
       message: "Bu yeterince uzun bir mesaj.",
     });
-    fireEvent.press(screen.getByText("Gönder"));
+    fireEvent.press(screen.getByText("common.send"));
     expect(
-      await screen.findByText("Mesaj gönderilemedi, lütfen tekrar deneyin."),
+      await screen.findByText("contact.sendFailed"),
     ).toBeOnTheScreen();
   });
 });

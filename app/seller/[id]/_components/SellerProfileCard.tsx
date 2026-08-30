@@ -2,6 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { Avatar, Button, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { styles } from '../_lib/styles';
 import { BADGE_INFO } from '../_lib/constants';
@@ -11,6 +12,7 @@ const { colors } = theme;
 
 /** Seller header: avatar, name, location, stats, trust badge, badges, bio, message. */
 export function SellerProfileCard({ f }: { f: SellerProfileController }) {
+  const { t } = useTranslation();
   const { seller, products, ratingStats } = f;
   return (
     <View style={styles.profileCard}>
@@ -33,7 +35,9 @@ export function SellerProfileCard({ f }: { f: SellerProfileController }) {
       )}
       {seller.createdAt ? (
         <Text style={styles.memberSince}>
-          Üye: {new Date(seller.createdAt).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
+          {t('seller.memberSincePrefix', {
+            date: new Date(seller.createdAt).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' }),
+          })}
         </Text>
       ) : null}
 
@@ -41,12 +45,12 @@ export function SellerProfileCard({ f }: { f: SellerProfileController }) {
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>{seller.stats?.totalListings ?? products.length}</Text>
-          <Text style={styles.statLabel}>İlan</Text>
+          <Text style={styles.statLabel}>{t('seller.itemsListing')}</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
           <Text style={styles.statValue}>{seller.stats?.totalSales ?? 0}</Text>
-          <Text style={styles.statLabel}>Satış</Text>
+          <Text style={styles.statLabel}>{t('seller.salesLabel')}</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
@@ -57,7 +61,7 @@ export function SellerProfileCard({ f }: { f: SellerProfileController }) {
             </Text>
           </View>
           <Text style={styles.statLabel}>
-            {(ratingStats?.totalRatings ?? ratingStats?.total ?? seller.stats?.totalRatings ?? 0)} değerlendirme
+            {(ratingStats?.totalRatings ?? ratingStats?.total ?? seller.stats?.totalRatings ?? 0)} {t('seller.totalReviews')}
           </Text>
         </View>
       </View>
@@ -67,8 +71,8 @@ export function SellerProfileCard({ f }: { f: SellerProfileController }) {
         <View style={styles.trustBadge}>
           <Ionicons name="shield-checkmark" size={14} color={colors.warning[700]!} />
           <Text style={styles.trustBadgeText}>
-            Güven Skoru {seller.trustScore}/100
-            {seller.trustLevel ? ` · ${seller.trustLevel}` : ''}
+            {t('seller.trustScoreLabel', { score: seller.trustScore })}
+            {seller.trustLevel ? t('seller.trustScoreLevelSuffix', { level: seller.trustLevel }) : ''}
           </Text>
         </View>
       )}
@@ -82,7 +86,7 @@ export function SellerProfileCard({ f }: { f: SellerProfileController }) {
             return (
               <View key={badge} style={[styles.badge, { backgroundColor: info.color }]}>
                 <Ionicons name={info.icon as any} size={14} color={colors.white} />
-                <Text style={styles.badgeText}>{info.label}</Text>
+                <Text style={styles.badgeText}>{t(info.labelKey)}</Text>
               </View>
             );
           })}
@@ -95,7 +99,7 @@ export function SellerProfileCard({ f }: { f: SellerProfileController }) {
       {/* Follow Button — web seller header paritesi */}
       <Button
         variant={f.isFollowingSeller ? 'secondary' : 'outline'}
-        title={f.isFollowingSeller ? 'Takip Ediliyor' : 'Takip Et'}
+        title={f.isFollowingSeller ? t('seller.following') : t('seller.follow')}
         onPress={f.handleToggleFollow}
         style={styles.messageButton}
         icon={f.isFollowingSeller ? 'checkmark' : 'person-add-outline'}
@@ -105,14 +109,14 @@ export function SellerProfileCard({ f }: { f: SellerProfileController }) {
       {/* Message Button */}
       <Button
         variant="primary"
-        title="Mesaj Gönder"
+        title={t('seller.sendMessage')}
         onPress={f.handleMessage}
         style={styles.messageButton}
         icon="chatbubble-outline"
       />
       {!f.isAuthenticated && (
         <Text style={styles.loginNotice}>
-          Mesaj göndermek için üye girişi yapın
+          {t('seller.loginToMessage')}
         </Text>
       )}
     </View>

@@ -2,9 +2,10 @@ import { View, Pressable } from 'react-native';
 import { Card, Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { formatPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
-import { STATUS_COLORS, formatDate } from '../_lib/status';
+import { buildStatusColors, formatDate } from '../_lib/status';
 import type { Payment } from '../_lib/types';
 import type { PaymentsController } from '../_hooks/usePayments';
 
@@ -12,14 +13,16 @@ const { colors } = theme;
 
 /** Tek ödeme kartı — durum/sağlayıcı, tutar, hata, aksiyonlar (iptal/tekrar/sipariş). */
 export function PaymentCard({ p, f }: { p: Payment; f: PaymentsController }) {
-  const status = STATUS_COLORS[p.status] ?? STATUS_COLORS.pending;
+  const { t } = useTranslation();
+  const statusColors = buildStatusColors(t);
+  const status = statusColors[p.status] ?? statusColors.pending;
 
   return (
     <Card style={styles.paymentCard}>
       <View style={styles.cardHeader}>
         <View style={{ flex: 1 }}>
           <Text style={styles.orderNumber}>
-            {p.orderNumber ? `#${p.orderNumber}` : `Sipariş #${p.orderId.slice(0, 8)}`}
+            {p.orderNumber ? `#${p.orderNumber}` : t('payment.orderNumberFallback', { id: p.orderId.slice(0, 8) })}
           </Text>
           {p.product?.title ? (
             <Text style={styles.productTitle} numberOfLines={2}>{p.product.title}</Text>
@@ -52,13 +55,13 @@ export function PaymentCard({ p, f }: { p: Payment; f: PaymentsController }) {
         {p.status === 'pending' && (
           <Pressable onPress={() => f.handleCancel(p.id)} style={[styles.actionButton, styles.cancelButton]}>
             <Ionicons name="close-circle-outline" size={16} color={colors.danger[600]!} />
-            <Text style={[styles.actionLabel, { color: colors.danger[600]! }]}>İptal</Text>
+            <Text style={[styles.actionLabel, { color: colors.danger[600]! }]}>{t('common.cancel')}</Text>
           </Pressable>
         )}
         {p.status === 'failed' && (
           <Pressable onPress={() => f.handleRetry(p.id)} style={[styles.actionButton, styles.retryButton]}>
             <Ionicons name="refresh" size={16} color={colors.primary[600]!} />
-            <Text style={[styles.actionLabel, { color: colors.primary[600]! }]}>Yeniden Dene</Text>
+            <Text style={[styles.actionLabel, { color: colors.primary[600]! }]}>{t('payment.retry')}</Text>
           </Pressable>
         )}
         <Pressable
@@ -66,7 +69,7 @@ export function PaymentCard({ p, f }: { p: Payment; f: PaymentsController }) {
           style={[styles.actionButton, styles.viewButton]}
         >
           <Ionicons name="receipt-outline" size={16} color={colors.text.muted} />
-          <Text style={[styles.actionLabel, { color: colors.text.muted }]}>Sipariş</Text>
+          <Text style={[styles.actionLabel, { color: colors.text.muted }]}>{t('order.order')}</Text>
         </Pressable>
       </View>
     </Card>

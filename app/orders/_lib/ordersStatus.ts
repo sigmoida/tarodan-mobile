@@ -1,4 +1,3 @@
-import type { BadgeVariant } from '@/ui';
 import { apiStatusToUi, type UiOrderStatus } from '@/utils/orderStatus';
 
 export interface Order {
@@ -42,23 +41,10 @@ export type OrderListEntry =
 export type FilterType =
   | 'all' | 'pending' | 'processing' | 'shipped' | 'delivered' | 'completed' | 'refunds';
 
-// UI status keys -> StatusBadge config (matches semantic Badge variants)
-export const uiOrderStatusConfig: Record<string, { label: string; variant: BadgeVariant }> = {
-  pending: { label: 'Ödeme bekliyor', variant: 'warning' },
-  paid: { label: 'Ödendi', variant: 'info' },
-  processing: { label: 'Hazırlanıyor', variant: 'info' },
-  shipped: { label: 'Kargoda', variant: 'primary' },
-  delivered: { label: 'Teslim Edildi', variant: 'success' },
-  awaiting_confirmation: { label: 'Onayınız Bekleniyor', variant: 'warning' },
-  completed: { label: 'Tamamlandı', variant: 'success' },
-  cancelled: { label: 'İptal Edildi', variant: 'danger' },
-  refunded: { label: 'İade Edildi', variant: 'secondary' },
-  refund_requested: { label: 'İade Sürecinde', variant: 'danger' },
-  mixed: { label: 'Karışık Durum', variant: 'info' },
-};
+// Durum haritası ve çeviri hook'ları TEK kaynakta (`@/lib/shared/orderStatus`) —
+// bu dosya yalnız yeniden dışa aktarır ki üç rota da aynı sözlüğü görsün.
+export { uiOrderStatusMeta, useOrderStatusConfig, useStatusText } from '@/lib/shared/orderStatus';
 
-export const getStatusText = (status: UiOrderStatus) =>
-  uiOrderStatusConfig[status]?.label ?? String(status);
 
 // Rozet önceliği: aktif iade > iptal > normal durum.
 // - activeRefundRequest dolu ama tamamlanmadıysa → "İade Sürecinde" (sipariş

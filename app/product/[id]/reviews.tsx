@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, FlatList, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
 import { useState, useCallback } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -25,6 +26,7 @@ type Review = {
 };
 
 export default function ProductReviewsScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams();
   const productId = String(id);
   const [refreshing, setRefreshing] = useState(false);
@@ -90,7 +92,7 @@ export default function ProductReviewsScreen() {
 
   const renderItem = useCallback(({ item }: { item: Review }) => {
     const score = item.score ?? item.rating ?? 0;
-    const reviewerName = item.user?.displayName ?? item.userName ?? item.reviewer?.displayName ?? 'Kullanıcı';
+    const reviewerName = item.user?.displayName ?? item.userName ?? item.reviewer?.displayName ?? t('common.user');
     const reviewText = item.review ?? item.comment;
     const dateStr = item.createdAt ?? item.date;
     return (
@@ -123,7 +125,7 @@ export default function ProductReviewsScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Değerlendirmeler" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+      <ScreenHeader title={t('review.reviews')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
 
       {isLoading ? (
         <View style={styles.centered}>
@@ -146,7 +148,7 @@ export default function ProductReviewsScreen() {
                     {Number(avgScore ?? 0).toFixed(1)}
                   </Text>
                 </View>
-                <Text style={styles.summaryCount}>{total} değerlendirme</Text>
+                <Text style={styles.summaryCount}>{t('review.countLabel', { count: total })}</Text>
               </View>
             ) : null
           }
@@ -154,7 +156,7 @@ export default function ProductReviewsScreen() {
           ListEmptyComponent={
             <View style={styles.centered}>
               <Ionicons name="star-outline" size={64} color={colors.text.subtle} />
-              <Text style={styles.noReviews}>Henüz değerlendirme yok</Text>
+              <Text style={styles.noReviews}>{t('review.noReviews')}</Text>
             </View>
           }
           onEndReached={() => {

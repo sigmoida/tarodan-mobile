@@ -5,6 +5,8 @@
  * düşer. POST /products/:id/boost/initiate.
  */
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useQuery } from '@tanstack/react-query';
 import { qk } from '@/lib/query';
 import {
@@ -34,15 +36,18 @@ interface BoostOption {
 
 /** Paket yanıtını (packages[].durations[]) düz süre listesine indirger; backend
  *  eski düz-fiyat şeklini döndürdüyse onu olduğu gibi geçirir. */
-function normalizeBoostOptions(data: any): BoostOption[] {
+function normalizeBoostOptions(data: any, t: TFunction): BoostOption[] {
   if (Array.isArray(data?.packages)) {
     return data.packages.flatMap((pkg: any) =>
-      (pkg.durations ?? []).map((d: any) => ({
-        durationDays: d.durationDays,
-        price: d.price,
-        label: pkg.name ? `${pkg.name} · ${d.durationDays} gün` : `${d.durationDays} gün`,
-        packageId: pkg.id,
-      })),
+      (pkg.durations ?? []).map((d: any) => {
+        const days = t('membership.daysCount', { count: d.durationDays });
+        return {
+          durationDays: d.durationDays,
+          price: d.price,
+          label: pkg.name ? `${pkg.name} · ${days}` : days,
+          packageId: pkg.id,
+        };
+      }),
     );
   }
   return Array.isArray(data?.options) ? data.options : [];
@@ -67,6 +72,7 @@ export function BoostModal({
   boostedUntil,
   isPremium = false,
 }: BoostModalProps) {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<number | null>(null);
   const [autoRenew, setAutoRenew] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -78,7 +84,7 @@ export function BoostModal({
     queryFn: async () => {
       try {
         const res = await productsApi.getBoostOptions(listingId);
-        const opts = normalizeBoostOptions(res?.data ?? {});
+        const opts = normalizeBoostOptions(res?.data ?? {}, t);
         if (opts.length) return { options: opts, enabled: (res?.data as any)?.enabled !== false };
       } catch {
         // paket ucu yoksa/erişilemiyorsa aşağıdaki eski akışa düş
@@ -87,7 +93,7 @@ export function BoostModal({
         const res = await productsApi.getBoostPricing();
         const body: any = res?.data ?? {};
         return {
-          options: normalizeBoostOptions(body),
+          options: normalizeBoostOptions(body, t),
           enabled: body.enabled !== false,
         };
       } catch {
@@ -164,7 +170,7 @@ export function BoostModal({
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Ionicons name="rocket" size={20} color={colors.warning[500]!} />
-              <Text style={styles.headerTitle}>İlanı Öne Çıkar</Text>
+              <Text style={styles.headerTitle}>{t('boost.title')}</Text>
             </View>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close" size={22} color={colors.gray[500]!} />
@@ -173,16 +179,15 @@ export function BoostModal({
 
           <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: theme.spacing[2] }}>
             <Text style={styles.subtitle} numberOfLines={3}>
-              <Text style={styles.subtitleStrong}>{listingTitle}</Text> ilanını seçtiğiniz süre
-              boyunca arama, kategori ve ana sayfa vitrininde üst sıralarda gösterin.
+              <Text style={styles.subtitleStrong}>{listingTitle}</Text>
+              {t('boost.subtitleSuffix')}
             </Text>
 
             {hasActiveBoost && (
               <View style={styles.activeNotice}>
                 <Text style={styles.activeNoticeText}>
-                  Bu ilanda aktif öne çıkarma var: ~{remainingDays} gün kaldı. Seçtiğiniz süre kalan
-                  sürenin üstüne eklenir.
-                  {selected != null ? ` Toplam ~${remainingDays + selected} gün olacak.` : ''}
+                  {t('boost.activeNotice', { remainingDays })}
+                  {selected != null ? t('boost.activeNoticeTotal', { totalDays: remainingDays + selected }) : ''}
                 </Text>
               </View>
             )}
@@ -190,9 +195,9 @@ export function BoostModal({
             {loadingPricing ? (
               <ActivityIndicator color={colors.primary[600]!} style={{ paddingVertical: 28 }} />
             ) : !enabled ? (
-              <Text style={styles.emptyText}>Öne çıkarma şu anda kullanılamıyor.</Text>
+              <Text style={styles.emptyText}>{t('server.product.boostUnavailable')}</Text>
             ) : options.length === 0 ? (
-              <Text style={styles.emptyText}>Uygun bir öne çıkarma paketi bulunamadı.</Text>
+              <Text style={styles.emptyText}>{t('boost.noPackages')}</Text>
             ) : (
               <View style={styles.optionList}>
                 {options.map((opt) => {
@@ -222,7 +227,7 @@ export function BoostModal({
             {isPremium && enabled && options.length > 0 && (
               <View style={styles.autoRenewRow}>
                 <Text style={styles.autoRenewText}>
-                  Süre bitince otomatik yenileme hatırlatması al (Premium)
+                  {t('boost.autoRenewLabel')}
                 </Text>
                 <Switch
                   value={autoRenew}
@@ -240,7 +245,7 @@ export function BoostModal({
               onPress={onClose}
               disabled={submitting}
             >
-              <Text style={styles.btnSecondaryText}>Vazgeç</Text>
+              <Text style={styles.btnSecondaryText}>{t('listing.dismiss')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.btn, styles.btnPrimary, confirmDisabled && styles.btnDisabled]}
@@ -251,7 +256,7 @@ export function BoostModal({
                 <ActivityIndicator color={colors.white} size="small" />
               ) : (
                 <Text style={styles.btnPrimaryText}>
-                  {hasActiveBoost ? 'Süreyi Uzat ve Öde' : 'Öne Çıkar ve Öde'}
+                  {hasActiveBoost ? t('boost.extendAndPay') : t('boost.boostAndPay')}
                 </Text>
               )}
             </TouchableOpacity>

@@ -5,6 +5,7 @@
  * Strateji: docs/superpowers/specs/mobile-test-strategy.md
  */
 import React from "react";
+import { renderWithProviders } from "@/test-utils";
 import { render, screen, waitFor } from "@testing-library/react-native";
 import SecuritySettingsScreen from "../security";
 
@@ -15,7 +16,10 @@ jest.mock("expo-router", () => ({
 
 // Oturum açık kullanıcı
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => ({ isAuthenticated: true, logout: jest.fn() }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: true, logout: jest.fn() });
+    return sel ? sel(state) : state;
+  },
 }));
 
 // i18n — anahtarı aynen döndür
@@ -41,18 +45,18 @@ const mockGetTwoFactorStatus = authApi.getTwoFactorStatus as jest.Mock;
 describe("SecuritySettingsScreen — 2FA durumu", () => {
   beforeEach(() => mockGetTwoFactorStatus.mockReset());
 
-  it('sunucu isEnabled:true dönerse toggle "Aktif" gösterir', async () => {
+  it('sunucu isEnabled:true dönerse toggle "security.enabled" gösterir', async () => {
     mockGetTwoFactorStatus.mockResolvedValue({ data: { isEnabled: true } });
-    render(<SecuritySettingsScreen />);
-    await waitFor(() => expect(screen.getByText("Aktif")).toBeOnTheScreen());
+    renderWithProviders(<SecuritySettingsScreen />);
+    await waitFor(() => expect(screen.getByText("security.enabled")).toBeOnTheScreen());
     expect(mockGetTwoFactorStatus).toHaveBeenCalledTimes(1);
   });
 
-  it('sunucu isEnabled:false dönerse toggle "Devre dışı" gösterir', async () => {
+  it('sunucu isEnabled:false dönerse toggle "security.disabled" gösterir', async () => {
     mockGetTwoFactorStatus.mockResolvedValue({ data: { isEnabled: false } });
-    render(<SecuritySettingsScreen />);
+    renderWithProviders(<SecuritySettingsScreen />);
     await waitFor(() =>
-      expect(screen.getByText("Devre dışı")).toBeOnTheScreen(),
+      expect(screen.getByText("security.disabled")).toBeOnTheScreen(),
     );
   });
 });

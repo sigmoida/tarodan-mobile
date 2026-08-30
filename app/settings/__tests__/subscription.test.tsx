@@ -1,6 +1,6 @@
 /**
  * J107 · Abonelik ayarları ekranı UI dilimleri.
- * J108 · İptal butonu görünürlüğü (premium aktif → "Aboneliği İptal Et",
+ * J108 · İptal butonu görünürlüğü (premium aktif → "membership.cancelTitle",
  *        iptal edilmiş → downgrade uyarısı).
  * Yalnız MOBİL-UI: render durumları, buton/aksiyon görünürlüğü, misafir gate,
  * navigasyon wiring. Backend abonelik (tahsilat/webhook) backendOnly.
@@ -26,7 +26,10 @@ jest.mock("react-i18next", () => ({
 // authStore — varsayılan: oturum açık. Test içinde override edilebilir.
 let mockAuthState = { isAuthenticated: true };
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => mockAuthState,
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = mockAuthState;
+    return sel ? sel(state) : state;
+  },
 }));
 
 // API katmanı — controller'ın query/mutation'larını besler.
@@ -69,39 +72,39 @@ describe("J107 · abonelik ayarları (settings/subscription)", () => {
   it("misafir (oturum kapalı) → giriş yap gate gösterir", () => {
     mockAuthState = { isAuthenticated: false };
     renderWithProviders(<SubscriptionSettingsScreen />);
-    expect(screen.getByText("Giriş Yapın")).toBeOnTheScreen();
+    expect(screen.getByText("membership.loginRequiredTitle")).toBeOnTheScreen();
   });
 
   it('ücretsiz kullanıcı → "Premium\'a Yükselt" CTA gösterir', async () => {
     renderWithProviders(<SubscriptionSettingsScreen />);
-    expect(await screen.findByText("Premium'a Yükselt")).toBeOnTheScreen();
+    expect(await screen.findByText("membership.upgradeToPremium")).toBeOnTheScreen();
   });
 
   it("regresyon: AKTİF ücretsiz üyelik premium gibi gösterilmemeli", async () => {
     // Backend her kullanıcıya status=active bir ücretsiz üyelik açar (~100 yıl
     // geçerli). Eskiden isPremium yalnız isSubscriptionActive'e bakıyordu; bu
-    // yüzden ücretsiz kullanıcılar bile "Premium Üyelik" görüyordu. Artık tier
+    // yüzden ücretsiz kullanıcılar bile "membership.premiumMembership" görüyordu. Artık tier
     // tipi de kontrol edildiği için ücretsiz üyelik premium sayılmamalı.
     mockGetMembership.mockResolvedValue({
       data: {
         ...activePremiumSub,
         tierId: "free",
-        tier: { type: "free", name: "Ücretsiz Üyelik" },
+        tier: { type: "free", name: "membership.freeMembership" },
         currentPeriodEnd: new Date(Date.now() + 365 * 86400000).toISOString(),
       },
     });
     renderWithProviders(<SubscriptionSettingsScreen />);
-    expect(await screen.findByText("Ücretsiz Üyelik")).toBeOnTheScreen();
-    expect(screen.getByText("Premium'a Yükselt")).toBeOnTheScreen();
+    expect(await screen.findByText("membership.freeMembership")).toBeOnTheScreen();
+    expect(screen.getByText("membership.upgradeToPremium")).toBeOnTheScreen();
     // Premium'a özel aksiyonlar görünmemeli
-    expect(screen.queryByText("Aboneliği İptal Et")).toBeNull();
+    expect(screen.queryByText("membership.cancelTitle")).toBeNull();
   });
 
-  it('J108.1 premium aktif → "Aboneliği İptal Et" görünür', async () => {
+  it('J108.1 premium aktif → "membership.cancelTitle" görünür', async () => {
     mockGetMembership.mockResolvedValue({ data: activePremiumSub });
     renderWithProviders(<SubscriptionSettingsScreen />);
-    expect(await screen.findByText("Aboneliği İptal Et")).toBeOnTheScreen();
-    expect(screen.getByText("Premium Üyelik")).toBeOnTheScreen();
+    expect(await screen.findByText("membership.cancelTitle")).toBeOnTheScreen();
+    expect(screen.getByText("membership.premiumMembership")).toBeOnTheScreen();
   });
 
   it("J108.2 iptal edilmiş (dönem içi) abonelik → downgrade uyarısı gösterir, iptal butonu yok", async () => {
@@ -109,13 +112,13 @@ describe("J107 · abonelik ayarları (settings/subscription)", () => {
       data: { ...activePremiumSub, status: "cancelled" },
     });
     renderWithProviders(<SubscriptionSettingsScreen />);
-    expect(await screen.findByText(/gün sonra sona erecek/)).toBeOnTheScreen();
-    expect(screen.queryByText("Aboneliği İptal Et")).toBeNull();
+    expect(await screen.findByText("membership.expiringWarningTitle")).toBeOnTheScreen();
+    expect(screen.queryByText("membership.cancelTitle")).toBeNull();
   });
 
   it("ücretsiz CTA → /upgrade ekranına yönlendirir", async () => {
     renderWithProviders(<SubscriptionSettingsScreen />);
-    fireEvent.press(await screen.findByText("Premium'a Yükselt"));
+    fireEvent.press(await screen.findByText("membership.upgradeToPremium"));
     expect(pushMock).toHaveBeenCalledWith("/upgrade");
   });
 });

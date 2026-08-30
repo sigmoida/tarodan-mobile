@@ -1,12 +1,15 @@
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { styles } from '../_lib/styles';
-import { STATUS_CONFIG, formatDate, formatCurrency } from '../_lib/status';
+import { buildStatusConfig, formatDate, formatCurrency } from '../_lib/status';
 import type { Payment } from '../_lib/types';
 
 /** Tek ödeme geçmişi satırı — foto/statü ikonu, açıklama/tarih/yöntem, tutar/rozet. */
 export function PaymentHistoryItem({ item, onPress }: { item: Payment; onPress: (p: Payment) => void }) {
-  const statusCfg = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
+  const { t } = useTranslation();
+  const statusConfig = buildStatusConfig(t);
+  const statusCfg = statusConfig[item.status] || statusConfig.pending;
 
   return (
     <TouchableOpacity style={styles.paymentItem} onPress={() => onPress(item)} activeOpacity={0.7}>
@@ -19,7 +22,7 @@ export function PaymentHistoryItem({ item, onPress }: { item: Payment; onPress: 
       )}
 
       <View style={styles.paymentInfo}>
-        <Text style={styles.paymentDescription} numberOfLines={1}>{item.description || 'Ödeme'}</Text>
+        <Text style={styles.paymentDescription} numberOfLines={1}>{item.description || t('checkout.title')}</Text>
         <Text style={styles.paymentDate}>{formatDate(item.createdAt)}</Text>
         {item.method ? <Text style={styles.paymentMethod}>{item.method}</Text> : null}
       </View>

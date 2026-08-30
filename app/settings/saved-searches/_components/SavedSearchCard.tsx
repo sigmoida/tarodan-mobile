@@ -1,6 +1,7 @@
 import { View, TouchableOpacity } from 'react-native';
 import { Card, Button, IconButton, Divider, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { styles } from '../_lib/styles';
 import { formatDate, getFilterSummary } from '../_lib/helpers';
 import type { SavedSearch } from '../_lib/types';
@@ -10,6 +11,7 @@ const { colors } = theme;
 
 /** Tek kayıtlı arama kartı — sorgu/filtre özeti, çalıştır/sil, bildirim toggle. */
 export function SavedSearchCard({ search, f }: { search: SavedSearch; f: SavedSearchesController }) {
+  const { t } = useTranslation();
   return (
     <Card style={styles.searchCard}>
       <View style={styles.cardHeader}>
@@ -21,7 +23,7 @@ export function SavedSearchCard({ search, f }: { search: SavedSearch; f: SavedSe
           icon="trash-outline"
           variant="danger"
           size="sm"
-          accessibilityLabel="Aramayı sil"
+          accessibilityLabel={t('savedSearch.deleteTitle')}
           onPress={() => f.handleDelete(search)}
         />
       </View>
@@ -35,11 +37,11 @@ export function SavedSearchCard({ search, f }: { search: SavedSearch; f: SavedSe
       <View style={styles.cardFooter}>
         <View style={styles.metaInfo}>
           {search.resultCount !== undefined && (
-            <Text variant="bodySm" style={styles.metaText}>{search.resultCount} sonuç</Text>
+            <Text variant="bodySm" style={styles.metaText}>{t('savedSearch.resultCountSuffix', { count: search.resultCount })}</Text>
           )}
-          <Text variant="bodySm" style={styles.metaText}>Oluşturulma: {formatDate(search.createdAt)}</Text>
+          <Text variant="bodySm" style={styles.metaText}>{t('savedSearch.createdLabel', { date: formatDate(search.createdAt) })}</Text>
         </View>
-        <Button variant="primary" size="sm" title="Çalıştır" onPress={() => f.runSearch(search)} />
+        <Button variant="primary" size="sm" title={t('savedSearch.run')} onPress={() => f.runSearch(search)} />
       </View>
 
       {/* Notification Toggle */}
@@ -58,7 +60,7 @@ export function SavedSearchCard({ search, f }: { search: SavedSearch; f: SavedSe
           color={search.notifyEnabled ? colors.primary[600]! : colors.text.muted}
         />
         <Text style={[styles.notifyText, search.notifyEnabled && styles.notifyTextActive]}>
-          Yeni ürünlerde bildir
+          {t('savedSearch.notifyToggleLabel')}
         </Text>
       </TouchableOpacity>
     </Card>

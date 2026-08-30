@@ -3,30 +3,31 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { theme, Text, Card, ScreenHeader } from "@/ui";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 const { colors } = theme;
 
-const sections = [
-  {
-    title: "Kabul Edilen Ödeme Yöntemleri",
-    content:
-      "Tarodan üzerinde kredi kartı ve banka kartı ile güvenli ödeme yapabilirsiniz. Visa, Mastercard ve Troy kartları desteklenmektedir.",
-  },
-  {
-    icon: "shield-checkmark-outline",
-    title: "Ödeme Güvenliği",
-    content:
-      "Tüm ödemeler 256-bit SSL şifreleme ile korunmaktadır. Kart bilgileriniz PayTR güvenli altyapısı üzerinden işlenir ve sunucularımızda saklanmaz.",
-  },
-  {
-    title: "Taksit Seçenekleri",
-    content:
-      "Anlaşmalı bankalar aracılığıyla taksit seçeneklerinden yararlanabilirsiniz. Taksit detayları ödeme sayfasında kartınıza göre gösterilir.",
-  },
-];
+function useSections(t: TFunction) {
+  return [
+    {
+      title: t("paymentOptionsPage.acceptedTitle"),
+      content: t("paymentOptionsPage.acceptedContent"),
+    },
+    {
+      icon: "shield-checkmark-outline",
+      title: t("paymentOptionsPage.securityTitle"),
+      content: t("paymentOptionsPage.securityContent"),
+    },
+    {
+      title: t("paymentOptionsPage.installmentsTitle"),
+      content: t("paymentOptionsPage.installmentsContent"),
+    },
+  ];
+}
 
 export default function PaymentOptionsScreen() {
   const { t } = useTranslation();
+  const sections = useSections(t);
   return (
     <View style={styles.container}>
       <ScreenHeader
@@ -51,8 +52,12 @@ export default function PaymentOptionsScreen() {
             />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.pageTitle}>Ödeme Seçenekleri</Text>
-            <Text style={styles.pageSubtitle}>Güvenli ödeme yöntemleri</Text>
+            <Text style={styles.pageTitle}>
+              {t("mobile.pagePaymentOptions")}
+            </Text>
+            <Text style={styles.pageSubtitle}>
+              {t("paymentOptionsPage.pageSubtitle")}
+            </Text>
           </View>
         </View>
 

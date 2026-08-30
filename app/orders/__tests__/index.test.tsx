@@ -30,7 +30,10 @@ import { ordersApi } from '@/lib/api';
 
 let mockAuth = { isAuthenticated: true };
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => mockAuth,
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = mockAuth;
+    return sel ? sel(state) : state;
+  },
 }));
 
 import OrdersScreen from '../index';
@@ -43,7 +46,7 @@ const getGroupsMock = ordersApi.getGroups as jest.Mock;
 function orderFixture(overrides: Record<string, unknown> = {}) {
   return {
     id: 'order-1',
-    orderNumber: 'TRD-1001',
+    orderNumber: 'ORD-1001000000',
     status: 'delivered',
     totalAmount: 350,
     product: { id: 'p1', title: 'Deri Ceket', images: [{ url: 'http://x/y.jpg' }] },
@@ -95,7 +98,7 @@ describe('J62 · Siparişlerim listesi', () => {
     getGroupsMock.mockResolvedValue({ data: { data: [orderGroupFixture()] } });
     renderWithProviders(<OrdersScreen />);
     await waitFor(() =>
-      expect(screen.getByText('Sipariş #TRD-1001')).toBeOnTheScreen(),
+      expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen(),
     );
     expect(screen.getByText('Deri Ceket')).toBeOnTheScreen();
     // "Teslim Edildi" hem filtre chip'i hem durum rozetinde geçer
@@ -118,7 +121,7 @@ describe('J62 · Siparişlerim listesi', () => {
     getGroupsMock.mockResolvedValue({ data: { data: [orderGroupFixture({ status: 'delivered', isBuyer: false })] } });
     renderWithProviders(<OrdersScreen />);
     await waitFor(() =>
-      expect(screen.getByText('Sipariş #TRD-1001')).toBeOnTheScreen(),
+      expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen(),
     );
     expect(screen.queryByText('Ürünü Değerlendir')).toBeNull();
     expect(screen.queryByText('Teslim Aldım')).toBeNull();
@@ -128,7 +131,7 @@ describe('J62 · Siparişlerim listesi', () => {
     getGroupsMock.mockResolvedValue({ data: { data: [orderGroupFixture()] } });
     renderWithProviders(<OrdersScreen />);
     await waitFor(() =>
-      expect(screen.getByText('Sipariş #TRD-1001')).toBeOnTheScreen(),
+      expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen(),
     );
     fireEvent.press(screen.getByText('Deri Ceket'));
     expect(pushMock).toHaveBeenCalledWith('/orders/order-1');

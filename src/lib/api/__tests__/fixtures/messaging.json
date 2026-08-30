@@ -1,0 +1,69 @@
+{
+  "_meta": {
+    "capturedAt": "2026-08-27",
+    "account": "ahmet@demo.com",
+    "endpoints": [
+      "GET /messages/threads?limit=5"
+    ]
+  },
+  "threads": {
+    "threads": [
+      {
+        "id": "da2349f8-85be-4623-91cb-8b5c9a357ff6",
+        "participant1Id": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "participant1Name": "REDACTED",
+        "participant1AvatarUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/avatars/52336236-4dcb-4d6a-9995-8788c11c188d/094bcb44-2e68-461f-970f-f11a07e97341.webp",
+        "participant2Id": "61947143-1547-4890-819c-9a91c4a453dd",
+        "participant2Name": "REDACTED",
+        "participant2AvatarUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/avatars/61947143-1547-4890-819c-9a91c4a453dd/601090bc-2c72-4987-9a19-390cc0a129a9.webp",
+        "productId": "2d64698d-8459-43db-b449-583e5834f01f",
+        "productTitle": "Hot Wheels Ferrari 275 GTB",
+        "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2d64698d-8459-43db-b449-583e5834f01f/d7f18828-2500-4bf3-abf8-56edfe6db7bf-card.webp",
+        "lastMessage": {
+          "id": "31d7dd22-5426-49b6-a45b-16c01dcfe5ff",
+          "threadId": "da2349f8-85be-4623-91cb-8b5c9a357ff6",
+          "senderId": "61947143-1547-4890-819c-9a91c4a453dd",
+          "senderName": "REDACTED",
+          "receiverId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+          "receiverName": "REDACTED",
+          "content": "Teklifi gördüm, kabul edersem güvenli ödeme üzerinden ilerleyelim.",
+          "status": "sent",
+          "readAt": "2026-08-05T07:44:27.252Z",
+          "createdAt": "2026-08-04T06:21:21.774Z"
+        },
+        "unreadCount": 0,
+        "lastMessageAt": "2026-08-04T07:21:30.166Z",
+        "createdAt": "2026-08-05T07:21:21.775Z"
+      },
+      {
+        "id": "05631aee-87da-4c21-9710-a552a04fb412",
+        "participant1Id": "e7cc9927-07fe-46f8-b313-98a1892da3b4",
+        "participant1Name": "REDACTED",
+        "participant1AvatarUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/avatars/e7cc9927-07fe-46f8-b313-98a1892da3b4/b34cc11f-c5e5-445f-8ac5-53838f91b591.webp",
+        "participant2Id": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "participant2Name": "REDACTED",
+        "participant2AvatarUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/avatars/52336236-4dcb-4d6a-9995-8788c11c188d/094bcb44-2e68-461f-970f-f11a07e97341.webp",
+        "productId": "e1b54ab3-dabc-450f-a36d-34a7c6285a70",
+        "productTitle": "Minichamps Porsche 917K Gulf 1:43",
+        "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/e1b54ab3-dabc-450f-a36d-34a7c6285a70/41bfb3f7-7653-42aa-be1e-e5fd55992b07-card.webp",
+        "lastMessage": {
+          "id": "dc14f273-928c-4f6e-ab6c-f0b72b3116a4",
+          "threadId": "05631aee-87da-4c21-9710-a552a04fb412",
+          "senderId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+          "senderName": "REDACTED",
+          "receiverId": "e7cc9927-07fe-46f8-b313-98a1892da3b4",
+          "receiverName": "REDACTED",
+          "content": "Teklifi gördüm, kabul edersem güvenli ödeme üzerinden ilerleyelim.",
+          "status": "sent",
+          "createdAt": "2026-08-02T06:21:21.970Z"
+        },
+        "unreadCount": 0,
+        "lastMessageAt": "2026-08-02T07:21:21.970Z",
+        "createdAt": "2026-08-05T07:21:21.970Z"
+      }
+    ],
+    "total": 2,
+    "page": 1,
+    "pageSize": 20
+  }
+}

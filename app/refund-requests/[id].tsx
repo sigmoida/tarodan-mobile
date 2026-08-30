@@ -1,3 +1,4 @@
+import { useRefundStatusConfig } from '@/lib/shared/refundStatus';
 import { View, ScrollView, StyleSheet, Image, RefreshControl } from 'react-native';
 import {
   Button,
@@ -10,48 +11,29 @@ import {
   appAlert,
 } from '@/ui';
 import type { BadgeVariant } from '@/ui';
+import { refundReasonLabel } from '@/lib/shared/status-configs';
 import { useState, useCallback } from 'react';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { refundsApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { captureException } from '@/services/sentry';
 
 const { colors } = theme;
 
-const refundStatusConfig: Record<string, { label: string; variant: BadgeVariant }> = {
-  pending_review: { label: 'Satıcı İncelemesinde', variant: 'warning' },
-  approved: { label: 'Onaylandı', variant: 'success' },
-  wait_for_delivery: { label: 'İade Kargosu Bekleniyor', variant: 'info' },
-  return_shipment_open: { label: 'İade Kargosu Açıldı', variant: 'info' },
-  return_in_transit: { label: 'İade Kargoda', variant: 'primary' },
-  return_delivered: { label: 'Satıcıya Ulaştı', variant: 'success' },
-  refunded: { label: 'İade Edildi', variant: 'success' },
-  rejected: { label: 'Reddedildi', variant: 'danger' },
-  disputed: { label: 'İncelemede (İtiraz)', variant: 'warning' },
-  cancelled: { label: 'İptal Edildi', variant: 'danger' },
-};
-
-const reasonLabels: Record<string, string> = {
-  changed_mind: 'Vazgeçtim',
-  damaged: 'Hasarlı geldi',
-  wrong_item: 'Yanlış ürün',
-  not_as_described: 'Açıklamayla uyuşmuyor',
-  missing_parts: 'Eksik parça',
-  other: 'Diğer',
-};
-
-// Süreç (metadata.history) aksiyon adlarının Türkçe karşılığı (refund.service appendHistory).
-const actionLabels: Record<string, string> = {
-  return_opened: 'İade kargosu açıldı',
-  accepted_by_seller: 'Satıcı kabul etti',
-  rejected_by_seller: 'Satıcı reddetti',
-  cancelled_by_buyer: 'Alıcı iptal etti',
-  refund_completed: 'Para iadesi tamamlandı',
-  policy_overridden: 'Politika güncellendi',
-  return_shipping_payer_changed: 'İade kargo ücreti güncellendi',
-};
+// Süreç (metadata.history) aksiyon adlarının katalog karşılığı (refund.service appendHistory).
+const buildActionLabels = (t: TFunction): Record<string, string> => ({
+  return_opened: t('refund.history.returnOpened'),
+  accepted_by_seller: t('refund.history.acceptedBySeller'),
+  rejected_by_seller: t('refund.history.rejectedBySeller'),
+  cancelled_by_buyer: t('refund.history.cancelledByBuyer'),
+  refund_completed: t('refund.history.refundCompleted'),
+  policy_overridden: t('refund.history.policyOverridden'),
+  return_shipping_payer_changed: t('refund.history.payerChanged'),
+});
 
 function formatPrice(value?: number): string {
   const n = Number(value ?? 0);
@@ -68,10 +50,13 @@ function formatDate(value?: string): string {
 }
 
 export default function RefundDetailScreen() {
+  const { t } = useTranslation();
+  const refundStatusConfig = useRefundStatusConfig();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { isAuthenticated, user } = useAuthStore();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+  const actionLabels = buildActionLabels(t);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['refund-requests', 'detail', id],
@@ -89,13 +74,13 @@ export default function RefundDetailScreen() {
   const cancelMutation = useMutation({
     mutationFn: () => refundsApi.cancel(id as string),
     onSuccess: () => {
-      appAlert('İptal edildi', 'İade talebiniz iptal edildi.');
+      appAlert(t('common.success'), t('refund.cancel.successMessage'));
       invalidate();
       refetch();
     },
     onError: (e: any) => {
       captureException(e, { level: 'error', tags: { flow: 'refund.detail.cancel' } });
-      appAlert('Hata', e?.response?.data?.message || 'İşlem başarısız. Tekrar deneyin.');
+      appAlert(t('common.error'), e?.response?.data?.message || t('common.genericError'));
     },
   });
 
@@ -114,7 +99,7 @@ export default function RefundDetailScreen() {
   if (isLoading && !data) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="İade Detayı" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+        <ScreenHeader title={t('refund.detail.title')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
         <View style={styles.loadingContainer}><Spinner size="lg" /></View>
       </View>
     );
@@ -123,10 +108,10 @@ export default function RefundDetailScreen() {
   if (!data) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="İade Detayı" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+        <ScreenHeader title={t('refund.detail.title')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
         <View style={styles.emptyContainer}>
           <Ionicons name="alert-circle-outline" size={64} color={colors.text.subtle} />
-          <Text variant="h3" style={styles.emptyTitle}>İade talebi bulunamadı</Text>
+          <Text variant="h3" style={styles.emptyTitle}>{t('refund.detail.notFound')}</Text>
         </View>
       </View>
     );
@@ -137,12 +122,12 @@ export default function RefundDetailScreen() {
   const canCancel = isRequester && rr.status === 'pending_review';
   const history: Array<{ action?: string; at?: string; by?: string }> =
     Array.isArray(rr?.metadata?.history) ? rr.metadata.history : [];
-  const productTitle = rr.order?.product?.title ?? 'Ürün';
+  const productTitle = rr.order?.product?.title ?? t('order.product');
   const productImage = rr.order?.product?.images?.[0];
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="İade Detayı" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+      <ScreenHeader title={t('refund.detail.title')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
       <ScrollView
         style={styles.scroll}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary[600]!]} />}
@@ -172,19 +157,19 @@ export default function RefundDetailScreen() {
 
         {/* İade bilgileri */}
         <Card variant="elevated" style={styles.card}>
-          <Text variant="label" style={styles.sectionTitle}>İade Bilgileri</Text>
-          <Row label="Sebep" value={reasonLabels[rr.reason] ?? rr.reason} />
-          {rr.description ? <Row label="Açıklama" value={rr.description} /> : null}
-          {rr.order?.seller?.displayName ? <Row label="Satıcı" value={rr.order.seller.displayName} /> : null}
-          {rr.requester?.displayName && !isRequester ? <Row label="Alıcı" value={rr.requester.displayName} /> : null}
-          {rr.returnTrackingNumber ? <Row label="İade Takip No" value={rr.returnTrackingNumber} /> : null}
-          {rr.createdAt ? <Row label="Talep Tarihi" value={formatDate(rr.createdAt)} /> : null}
+          <Text variant="label" style={styles.sectionTitle}>{t('refund.detail.infoTitle')}</Text>
+          <Row label={t('common.reason')} value={refundReasonLabel(rr.reason, t)} />
+          {rr.description ? <Row label={t('common.description')} value={rr.description} /> : null}
+          {rr.order?.seller?.displayName ? <Row label={t('product.seller')} value={rr.order.seller.displayName} /> : null}
+          {rr.requester?.displayName && !isRequester ? <Row label={t('order.buyer')} value={rr.requester.displayName} /> : null}
+          {rr.returnTrackingNumber ? <Row label={t('refund.detail.trackingLabel')} value={rr.returnTrackingNumber} /> : null}
+          {rr.createdAt ? <Row label={t('refund.detail.requestDateLabel')} value={formatDate(rr.createdAt)} /> : null}
         </Card>
 
         {/* Zaman çizelgesi */}
         {history.length > 0 ? (
           <Card variant="elevated" style={styles.card}>
-            <Text variant="label" style={styles.sectionTitle}>Süreç</Text>
+            <Text variant="label" style={styles.sectionTitle}>{t('refund.detail.timelineTitle')}</Text>
             {history.map((h, i) => (
               <View key={i} style={styles.timelineRow}>
                 <View style={styles.timelineDot} />
@@ -201,11 +186,11 @@ export default function RefundDetailScreen() {
           <View style={styles.actions}>
             <Button
               variant="ghost"
-              title="Talebi İptal Et"
+              title={t('refund.cancel.cta')}
               onPress={() =>
-                appAlert('İade talebini iptal et', 'Bu iade talebini iptal etmek istediğinize emin misiniz?', [
-                  { text: 'Vazgeç', style: 'cancel' },
-                  { text: 'İptal Et', style: 'destructive', onPress: () => cancelMutation.mutate() },
+                appAlert(t('refund.cancel.confirmTitle'), t('refund.cancel.confirmBody'), [
+                  { text: t('order.cancelConfirmNo'), style: 'cancel' },
+                  { text: t('order.cancelShort'), style: 'destructive', onPress: () => cancelMutation.mutate() },
                 ])
               }
               isLoading={cancelMutation.isPending}

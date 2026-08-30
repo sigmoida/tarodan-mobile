@@ -1,122 +1,98 @@
 import { Linking } from 'react-native';
+import type { TFunction } from 'i18next';
 import {
   RETURN_REQUEST_DAYS,
-  COMMISSION_SUMMARY,
   SUPPORT_EMAIL,
   SUPPORT_PHONE,
   SUPPORT_WHATSAPP,
 } from '@/constants/legalFacts';
 
-export const FAQ_CATEGORIES = [
+export type FaqCategory = {
+  id: string;
+  title: string;
+  icon: string;
+  questions: { q: string; a: string }[];
+};
+
+/**
+ * FAQ kategorileri çeviriden geldiği için liste bir FABRİKA: modül seviyesinde
+ * kurulsaydı `t` daha hazır olmadan çalışır ve metinler ilk dilde donardı
+ * (bkz. `guides.tsx` / `buildQuickActionItems`).
+ *
+ * Birkaç soru/cevap burada ve `app/faq.tsx`de (SSS ekranı) neredeyse birebir
+ * tekrar ediyordu; ortak olanlar tek kaynağa (`faqShared.*`) taşındı, yalnız
+ * Yardım Merkezi'ne özgü olanlar `helpFaq.*`de.
+ */
+export const buildFaqCategories = (t: TFunction): FaqCategory[] => [
   {
     id: 'general',
-    title: 'Genel',
+    title: t('helpFaq.categories.general'),
     icon: 'help-circle-outline',
     questions: [
-      {
-        q: 'Tarodan nedir?',
-        a: 'Tarodan, koleksiyonerlerin diecast model arabalarını alıp satabildiği, takas yapabildiği ve koleksiyonlarını sergileyebildiği bir pazar yeridir.'
-      },
-      {
-        q: 'Nasıl üye olabilirim?',
-        a: 'Ana sayfadaki "Üye Ol" butonuna tıklayarak e-posta, telefon ve kişisel bilgilerinizi girerek ücretsiz üyelik oluşturabilirsiniz. Üyeliğinizi doğrulamak için e-posta ve SMS doğrulaması gereklidir.'
-      },
-      {
-        q: 'Premium üyelik ne sağlar?',
-        a: 'Premium üyeler sınırsız ilan yayınlayabilir, takas yapabilir, Digital Garage oluşturabilir, öne çıkan ilanlar kullanabilir ve öncelikli destek alabilir.'
-      },
-    ]
+      { q: t('helpFaq.general.whatIsTarodan.q'), a: t('helpFaq.general.whatIsTarodan.a') },
+      { q: t('helpFaq.general.howToJoin.q'), a: t('helpFaq.general.howToJoin.a') },
+      { q: t('faqShared.premiumBenefits.q'), a: t('faqShared.premiumBenefits.a') },
+    ],
   },
   {
     id: 'buying',
-    title: 'Satın Alma',
+    title: t('faq.buying'),
     icon: 'cart-outline',
     questions: [
+      { q: t('faqShared.guestCheckout.q'), a: t('faqShared.guestCheckout.a') },
+      { q: t('faqShared.paymentMethods.q'), a: t('faqShared.paymentMethods.a') },
+      { q: t('faqShared.orderTracking.q'), a: t('faqShared.orderTracking.a') },
       {
-        q: 'Üye olmadan alışveriş yapabilir miyim?',
-        a: 'Evet! Misafir olarak alışveriş yapabilirsiniz. Siparişiniz e-posta ile takip edilebilir. Ancak favorilere ekleme ve satıcıyla mesajlaşma için üyelik gereklidir.'
+        q: t('helpFaq.buying.returnPolicy.q'),
+        a: t('helpFaq.buying.returnPolicy.a', { days: RETURN_REQUEST_DAYS }),
       },
-      {
-        q: 'Ödeme yöntemleri nelerdir?',
-        a: 'Kredi kartı, banka kartı ve iyzico bakiyesi ile ödeme yapabilirsiniz. Tüm ödemeler güvenli olarak işlenir ve ürün elinize ulaşana kadar koruma altındadır.'
-      },
-      {
-        q: 'Siparişimi nasıl takip ederim?',
-        a: 'Sipariş onay e-postasındaki link ile veya "Sipariş Takip" sayfasından sipariş numaranız ve e-posta adresinizle takip edebilirsiniz.'
-      },
-      {
-        q: 'İade politikası nedir?',
-        a: `Ürün açıklamasına uymuyorsa teslim tarihinden itibaren ${RETURN_REQUEST_DAYS} gün içinde iade talep edebilirsiniz. Detaylar için satıcının iade politikasını kontrol edin.`
-      },
-    ]
+    ],
   },
   {
     id: 'selling',
-    title: 'Satış',
+    title: t('faqShared.categories.selling'),
     icon: 'pricetag-outline',
     questions: [
-      {
-        q: 'Nasıl ilan veririm?',
-        a: 'Üye girişi yaptıktan sonra "İlan Ver" butonuna tıklayarak ürün bilgilerini, fotoğraflarını ve fiyatını girerek ilan oluşturabilirsiniz.'
-      },
-      {
-        q: 'İlan ücreti var mı?',
-        a: 'Ücretsiz üyeler belirli sayıda (5-10) ücretsiz ilan verebilir. Premium üyeler sınırsız ilan yayınlayabilir.'
-      },
-      {
-        q: 'Komisyon oranı nedir?',
-        a: COMMISSION_SUMMARY
-      },
-      {
-        q: 'Ödememi ne zaman alırım?',
-        a: 'Alıcı ürünü teslim aldığını onayladıktan 3 iş günü içinde ödemeniz hesabınıza aktarılır.'
-      },
-    ]
+      { q: t('faqShared.howToList.q'), a: t('faqShared.howToList.a') },
+      { q: t('helpFaq.selling.listingFee.q'), a: t('helpFaq.selling.listingFee.a') },
+      { q: t('faqShared.commissionRate.q'), a: t('faqShared.commissionRate.a') },
+      { q: t('faqShared.payoutTiming.q'), a: t('faqShared.payoutTiming.a') },
+    ],
   },
   {
     id: 'trading',
-    title: 'Takas',
+    title: t('faq.trade'),
     icon: 'swap-horizontal',
     questions: [
-      {
-        q: 'Takas nasıl çalışır?',
-        a: 'Premium üyeler "Takas Açık" olarak işaretlenmiş ürünlere takas teklifi gönderebilir. Karşılıklı onay ile takas gerçekleşir.'
-      },
-      {
-        q: 'Takas güvenli mi?',
-        a: 'Evet, takas işlemleri platform garantisi altındadır. Her iki taraf da ürünleri göndermeden önce takas onaylanır.'
-      },
-      {
-        q: 'Fark ödemeli takas yapabilir miyim?',
-        a: 'Evet, takas teklifinde nakit fark ekleyebilirsiniz. Fark ödemesi güvenli ödeme sistemi üzerinden yapılır.'
-      },
-    ]
+      { q: t('faqShared.howTradeWorks.q'), a: t('faqShared.howTradeWorks.a') },
+      { q: t('faqShared.tradeSafety.q'), a: t('faqShared.tradeSafety.a') },
+      { q: t('helpFaq.trading.cashDifference.q'), a: t('helpFaq.trading.cashDifference.a') },
+    ],
   },
   {
     id: 'account',
-    title: 'Hesap',
+    title: t('helpFaq.categories.account'),
     icon: 'person-outline',
     questions: [
-      {
-        q: 'Şifremi unuttum, ne yapmalıyım?',
-        a: 'Giriş sayfasındaki "Şifremi Unuttum" linkine tıklayarak e-posta adresinize şifre sıfırlama bağlantısı gönderilmesini sağlayabilirsiniz.'
-      },
-      {
-        q: 'Hesabımı nasıl silerim?',
-        a: 'Profil > Ayarlar > Hesap > Hesabı Sil seçeneğinden hesabınızı kalıcı olarak silebilirsiniz. Bu işlem geri alınamaz.'
-      },
-      {
-        q: 'Premium üyeliği nasıl iptal ederim?',
-        a: 'Profil > Ayarlar > Üyelik > Aboneliği İptal Et seçeneğinden iptal edebilirsiniz. Mevcut dönem sonuna kadar premium özellikleri kullanmaya devam edersiniz.'
-      },
-    ]
+      { q: t('faqShared.forgotPassword.q'), a: t('faqShared.forgotPassword.a') },
+      { q: t('faqShared.deleteAccount.q'), a: t('faqShared.deleteAccount.a') },
+      { q: t('helpFaq.account.cancelSubscription.q'), a: t('helpFaq.account.cancelSubscription.a') },
+    ],
   },
 ];
 
-export const CONTACT_OPTIONS = [
+export type ContactOption = {
+  id: string;
+  title: string;
+  subtitle: string;
+  icon: string;
+  action: () => void;
+};
+
+export const buildContactOptions = (t: TFunction): ContactOption[] => [
   {
     id: 'email',
-    title: 'E-posta',
+    title: t('common.email'),
     subtitle: SUPPORT_EMAIL,
     icon: 'mail-outline',
     action: () => Linking.openURL(`mailto:${SUPPORT_EMAIL}`),
@@ -130,7 +106,7 @@ export const CONTACT_OPTIONS = [
   },
   {
     id: 'phone',
-    title: 'Telefon',
+    title: t('common.phone'),
     subtitle: SUPPORT_PHONE,
     icon: 'call-outline',
     action: () => Linking.openURL('tel:08501234567'),

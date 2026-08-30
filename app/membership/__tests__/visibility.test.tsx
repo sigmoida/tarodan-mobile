@@ -18,7 +18,10 @@ jest.mock("react-i18next", () => ({
 
 let mockAuthState: any = { isAuthenticated: true, user: {} };
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => mockAuthState,
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = mockAuthState;
+    return sel ? sel(state) : state;
+  },
 }));
 
 jest.mock("@/lib/api", () => ({
@@ -43,8 +46,8 @@ describe("J108 · üyelik paket görünürlük/erişim", () => {
 
   it("J108.1 bireysel free hesapta Business kartı render edilmez", async () => {
     renderWithProviders(<MembershipScreen />);
-    await waitFor(() => expect(screen.getByText("Temel")).toBeOnTheScreen());
-    expect(screen.queryByText("Business")).toBeNull();
+    await waitFor(() => expect(screen.getByText("membership.basic")).toBeOnTheScreen());
+    expect(screen.queryByText("membership.business")).toBeNull();
   });
 
   it("J108.2 kurumsal hesapta yalnız Business kartı görünür (diğer paketler gizli)", async () => {
@@ -53,9 +56,9 @@ describe("J108 · üyelik paket görünürlük/erişim", () => {
       user: { companyName: "Acme A.Ş.", taxId: "1234567890" },
     };
     renderWithProviders(<MembershipScreen />);
-    await waitFor(() => expect(screen.getByText("Business")).toBeOnTheScreen());
-    expect(screen.queryByText("Temel")).toBeNull();
-    expect(screen.queryByText("Premium")).toBeNull();
+    await waitFor(() => expect(screen.getByText("membership.business")).toBeOnTheScreen());
+    expect(screen.queryByText("membership.basic")).toBeNull();
+    expect(screen.queryByText("membership.premium")).toBeNull();
   });
 
   it("J108.3 bekleyen ödeme varsa uyarı banner gösterilir", async () => {
@@ -71,7 +74,7 @@ describe("J108 · üyelik paket görünürlük/erişim", () => {
     });
     renderWithProviders(<MembershipScreen />);
     await waitFor(() =>
-      expect(screen.getByText("Ödeme Bekleniyor – Premium")).toBeOnTheScreen(),
+      expect(screen.getByText("membership.pendingPaymentTitle")).toBeOnTheScreen(),
     );
   });
 
@@ -89,10 +92,10 @@ describe("J108 · üyelik paket görünürlük/erişim", () => {
     renderWithProviders(<MembershipScreen />);
     await waitFor(() =>
       expect(
-        screen.getByText("Ödemeyi tamamlamak için dokunun"),
+        screen.getByText("membership.pendingPaymentSubtitle"),
       ).toBeOnTheScreen(),
     );
-    fireEvent.press(screen.getByText("Ödemeyi tamamlamak için dokunun"));
+    fireEvent.press(screen.getByText("membership.pendingPaymentSubtitle"));
     expect(pushMock).toHaveBeenCalledWith(
       expect.stringContaining("/membership/checkout?tier=premium"),
     );

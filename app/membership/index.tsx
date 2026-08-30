@@ -34,7 +34,7 @@ export default function MembershipScreen() {
         {header}
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary[600]!} />
-          <Text style={styles.loadingText}>Yükleniyor...</Text>
+          <Text style={styles.loadingText}>{f.t('common.loading')}</Text>
         </View>
       </View>
     );

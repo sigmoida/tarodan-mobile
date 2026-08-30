@@ -1,4 +1,5 @@
 import { View, FlatList } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { theme, Text, Spinner, ScreenHeader } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,12 +13,13 @@ import { ListingCard } from './_components/ListingCard';
 const { colors, spacing } = theme;
 
 export default function ListingsScreen() {
+  const { t } = useTranslation();
   const f = useListings();
 
   return (
     <View style={styles.container}>
       <ScreenHeader
-        title="İlanlar"
+        title={t('common.listings')}
         onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       />
 
@@ -38,7 +40,7 @@ export default function ListingsScreen() {
       {f.isLoading ? (
         <View style={styles.loadingContainer}>
           <Spinner size="lg" />
-          <Text style={styles.loadingText}>İlanlar yükleniyor...</Text>
+          <Text style={styles.loadingText}>{t('listing.loadingListings')}</Text>
         </View>
       ) : (
         <FlatList
@@ -55,7 +57,9 @@ export default function ListingsScreen() {
             if (f.hasNextPage && !f.isFetchingNextPage) f.fetchNextPage();
           }}
           onEndReachedThreshold={0.5}
-          ListHeaderComponent={<Text style={styles.resultsCount}>{f.total} ilan bulundu</Text>}
+          ListHeaderComponent={
+            <Text style={styles.resultsCount}>{t('listing.resultsCount', { count: f.total })}</Text>
+          }
           ListFooterComponent={
             f.isFetchingNextPage ? (
               <View style={{ paddingVertical: spacing[4] }}>
@@ -68,8 +72,8 @@ export default function ListingsScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="pricetag-outline" size={64} color={colors.text.subtle} />
-              <Text style={styles.emptyTitle}>İlan bulunamadı</Text>
-              <Text style={styles.emptySubtitle}>Farklı filtreler deneyebilirsiniz</Text>
+              <Text style={styles.emptyTitle}>{t('product.listingNotFound')}</Text>
+              <Text style={styles.emptySubtitle}>{t('listing.emptyFilterHint')}</Text>
             </View>
           }
         />

@@ -1,5 +1,7 @@
+import type { TFunction } from 'i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/ui';
+import { FREE_MEMBER_LIMITS, PREMIUM_MEMBER_LIMITS } from '@/utils/membershipLimits';
 
 const { colors } = theme;
 
@@ -20,19 +22,53 @@ export const TIER_ICONS: Record<TierType, keyof typeof Ionicons.glyphMap> = {
   business: 'briefcase-outline',
 };
 
-export const TIER_FEATURES: Record<TierType, string[]> = {
-  free: ['10 ilan', '5 resim', 'Temel arama', 'Sınırlı mesajlaşma'],
-  basic: ['Admin ayarlı ilan limiti', '10 resim', 'Gelişmiş arama', 'Mesajlaşma'],
-  premium: ['Sınırsız ilan', '15 resim', 'Öncelikli arama', 'Sınırsız mesajlaşma', 'Takas', 'Koleksiyon'],
-  business: ['Sınırsız ilan', '20 resim', 'En yüksek öncelik', 'Sınırsız her şey', 'API erişimi'],
-};
+/**
+ * Katman özellik listesi — `t` çağrıldığı ANDA çözülür (bileşen
+ * `useMemo(() => buildTierFeatures(t), [t])` ile çağırmalı; modül seviyesinde
+ * SABİTLENİRSE i18next hazır olmadan çözülür ve donar — bkz. UpgradePrompt).
+ *
+ * "10 ilan" / "5 resim" / "15 resim" sayıları `FREE_MEMBER_LIMITS` /
+ * `PREMIUM_MEMBER_LIMITS`'teki gerçek sabitlerden geliyor (drift'i önlemek
+ * için buradan referanslanıyor). "20 resim" (business) için ise elle
+ * yazılmış bir sabit yok — BUSINESS_MEMBER_LIMITS diye bir kayıt
+ * `membershipLimits.ts`'de tanımlı değil; bu sayı yalnız burada yaşıyor.
+ */
+export const buildTierFeatures = (t: TFunction): Record<TierType, string[]> => ({
+  free: [
+    t('membership.tierLimitListings', { count: FREE_MEMBER_LIMITS.maxListings }),
+    t('membership.tierLimitPhotos', { count: FREE_MEMBER_LIMITS.maxImagesPerListing }),
+    t('membership.tierLimitBasicSearch'),
+    t('membership.tierLimitLimitedMessaging'),
+  ],
+  basic: [
+    t('membership.tierLimitAdminManaged'),
+    t('membership.tierLimitPhotos', { count: 10 }),
+    t('membership.tierLimitAdvancedSearch'),
+    t('membership.tierLimitMessaging'),
+  ],
+  premium: [
+    t('membership.tierLimitUnlimitedListings'),
+    t('membership.tierLimitPhotos', { count: PREMIUM_MEMBER_LIMITS.maxImagesPerListing }),
+    t('membership.tierLimitPrioritySearch'),
+    t('membership.tierLimitUnlimitedMessaging'),
+    t('membership.featureTrade'),
+    t('membership.tierLimitCollection'),
+  ],
+  business: [
+    t('membership.tierLimitUnlimitedListings'),
+    t('membership.tierLimitPhotos', { count: 20 }),
+    t('membership.tierLimitHighestPriority'),
+    t('membership.tierLimitUnlimitedEverything'),
+    t('membership.tierFeatureApiAccess'),
+  ],
+});
 
-export const TIER_NAMES: Record<TierType, string> = {
-  free: 'Ücretsiz',
-  basic: 'Temel',
-  premium: 'Premium',
-  business: 'Business',
-};
+export const buildTierNames = (t: TFunction): Record<TierType, string> => ({
+  free: t('membership.free'),
+  basic: t('membership.basic'),
+  premium: t('membership.premium'),
+  business: t('membership.business'),
+});
 
 // Fiyatları her zaman 2 ondalıkla göster (admin paneliyle birebir aynı biçim).
 // Ham hesap artığı 3 ondalığı (örn. 419,916) ve kademeler arası ondalık/tam-sayı
@@ -77,10 +113,28 @@ export function mapTiersToSettings(list: any[]): PlatformSettings {
   const basic = by('basic');
   const premium = by('premium');
   const business = by('business');
-  // Yıllık indirim %'sini premium tier fiyatından türet (monthly*12 vs yearly).
   const pm = num(premium?.monthlyPrice);
   const py = num(premium?.yearlyPrice);
-  const pct = pm && py && pm * 12 > 0 ? Math.round((1 - py / (pm * 12)) * 100) : undefined;
+  /**
+   * Yıllık indirim rozeti — TÜM ücretli katmanların oranından, EN DÜŞÜĞÜ.
+   *
+   * Eskiden yalnız premium'un oranı okunuyordu. Katmanların oranı ayrıştığı gün
+   * (admin bir katmanın yıllık fiyatını değiştirdiğinde) rozet, bazı kartlarda
+   * olandan FAZLASINI vaat ediyordu. Bugün üçü de %20 olduğu için görünür etkisi
+   * yok — yani bu sessiz bir yalan, ölçümle değil ancak okumayla yakalanır.
+   * Web aynı düzeltmeyi 2026-08-13'te yaptı; kural oradan alındı: "rozet hiçbir
+   * kartta olandan fazlasını vaat edemez."
+   */
+  const yearlyPct = (monthly?: number, yearly?: number) =>
+    monthly && yearly && monthly * 12 > 0
+      ? Math.round((1 - yearly / (monthly * 12)) * 100)
+      : undefined;
+  const discountPcts = [
+    yearlyPct(num(basic?.monthlyPrice), num(basic?.yearlyPrice)),
+    yearlyPct(pm, py),
+    yearlyPct(num(business?.monthlyPrice), num(business?.yearlyPrice)),
+  ].filter((v): v is number => typeof v === 'number' && v > 0);
+  const pct = discountPcts.length ? Math.min(...discountPcts) : undefined;
   return {
     free_listing_limit: num(free?.maxTotalListings),
     basic_listing_limit: num(basic?.maxTotalListings),

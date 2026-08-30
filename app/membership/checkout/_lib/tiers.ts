@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import { theme } from '@/ui';
 
 const { colors } = theme;
@@ -15,54 +16,71 @@ export const DEFAULT_MONTHLY: Record<string, number> = {
 export const formatTL = (n: number): string =>
   n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export const MEMBERSHIP_TIERS = {
+/**
+ * `t` çağrıldığı ANDA çözülür (bileşen `useMemo(() => buildMembershipTiers(t),
+ * [t])` ile çağırmalı — modül seviyesinde sabitlenirse hazır olmadan donar,
+ * bkz. UpgradePrompt / membershipTiers.buildTierNames).
+ *
+ * "15/50/200/1000/2/10/50" gibi sayılar bu ekrana özgü satın-alma-onayı kopyası
+ * (checkout tier tablosu) — `membershipLimits.ts`teki FREE/PREMIUM_MEMBER_LIMITS
+ * bunları TAŞIMIYOR (o sabitler farklı bir şeyi, ücretsiz/premium üyenin genel
+ * hesap limitini, tanımlıyor). Drift riski gerçek: bu üç sayı grubu
+ * `membershipTiers.ts`teki (ana /membership ekranı) ve `success.tsx`teki
+ * (satın alma sonrası ekran) rakamlarla elle senkron tutuluyor.
+ */
+export const buildMembershipTiers = (t: TFunction) => ({
   basic: {
     id: 'basic',
-    name: 'Temel',
+    name: t('membership.basic'),
     price: 49,
     period: 'ay',
     features: [
-      '15 ücretsiz ilan',
-      '50 toplam ilan',
-      'Takas özelliği',
-      'Koleksiyon oluşturma',
-      '2 öne çıkan ilan',
+      t('membership.tierFeatureFreeListings', { count: 15 }),
+      t('membership.tierFeatureTotalListings', { count: 50 }),
+      t('membership.tierFeatureTrade'),
+      t('membership.tierFeatureCollectionCreate'),
+      t('membership.tierFeatureFeaturedListings', { count: 2 }),
     ],
     color: colors.info[600]!,
   },
   premium: {
     id: 'premium',
-    name: 'Premium',
+    name: t('membership.premium'),
     price: 99,
     period: 'ay',
     features: [
-      '50 ücretsiz ilan',
-      '200 toplam ilan',
-      'Takas özelliği',
-      'Koleksiyon oluşturma',
-      '10 öne çıkan ilan',
-      'Reklamsız deneyim',
-      'Öncelikli destek',
+      t('membership.tierFeatureFreeListings', { count: 50 }),
+      t('membership.tierFeatureTotalListings', { count: 200 }),
+      t('membership.tierFeatureTrade'),
+      t('membership.tierFeatureCollectionCreate'),
+      t('membership.tierFeatureFeaturedListings', { count: 10 }),
+      // "Reklamsız deneyim" KALDIRILDI: banner'lar herkese gösteriliyor, hiçbir
+      // katman bu vaadi veremiyor. Staging'de ölçüldü (2026-08-26):
+      // `GET /membership/tiers` her katman için `isAdFree: null` döndürüyor.
+      // Web aynı vaadi 2026-08-12'de kaldırdı (`cae3d05c4`).
+      t('membership.prioritySupport'),
     ],
     color: colors.primary[600]!,
     popular: true,
   },
   business: {
     id: 'business',
-    name: 'İş',
+    name: t('membership.business'),
     price: 499,
     period: 'ay',
     features: [
-      '200 ücretsiz ilan',
-      '1000 toplam ilan',
-      'Takas özelliği',
-      'Koleksiyon oluşturma',
-      '50 öne çıkan ilan',
-      'Reklamsız deneyim',
-      'Öncelikli destek',
-      'API erişimi',
-      'Özel satıcı rozeti',
+      t('membership.tierFeatureFreeListings', { count: 200 }),
+      t('membership.tierFeatureTotalListings', { count: 1000 }),
+      t('membership.tierFeatureTrade'),
+      t('membership.tierFeatureCollectionCreate'),
+      t('membership.tierFeatureFeaturedListings', { count: 50 }),
+      t('membership.prioritySupport'),
+      t('membership.tierFeatureApiAccess'),
+      t('membership.tierFeatureSellerBadge'),
     ],
     color: colors.warning[500]!,
   },
-};
+});
+
+export type MembershipTiers = ReturnType<typeof buildMembershipTiers>;
+export type MembershipTierKey = keyof MembershipTiers;

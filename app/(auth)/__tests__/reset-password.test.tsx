@@ -61,7 +61,7 @@ describe("J46 · şifre sıfırlama (zayıf şifre)", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText("Şifre en az 8 karakter olmalıdır"),
+        screen.getByText("auth.pwRuleMinLength"),
       ).toBeOnTheScreen(),
     );
     expect(mockReset).not.toHaveBeenCalled();
@@ -74,7 +74,7 @@ describe("J46 · şifre sıfırlama (zayıf şifre)", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText("Şifre en az bir büyük harf içermelidir"),
+        screen.getByText("auth.pwRuleUppercase"),
       ).toBeOnTheScreen(),
     );
   });
@@ -85,7 +85,7 @@ describe("J46 · şifre sıfırlama (zayıf şifre)", () => {
     fireEvent.press(screen.getByText("mobile.resetPasswordButton"));
 
     await waitFor(() =>
-      expect(screen.getByText("Şifreler eşleşmiyor")).toBeOnTheScreen(),
+      expect(screen.getByText("auth.resetPasswordMismatch")).toBeOnTheScreen(),
     );
     expect(mockReset).not.toHaveBeenCalled();
   });
@@ -97,7 +97,7 @@ describe("J46 · şifre sıfırlama (zayıf şifre)", () => {
     fireEvent.press(screen.getByText("mobile.resetPasswordButton"));
 
     await waitFor(() =>
-      expect(screen.getByText(/Geçersiz veya eksik token/)).toBeOnTheScreen(),
+      expect(screen.getByText("auth.resetTokenMissing")).toBeOnTheScreen(),
     );
     expect(mockReset).not.toHaveBeenCalled();
   });
@@ -110,7 +110,7 @@ describe("J46 · şifre sıfırlama (zayıf şifre)", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText("Şifre Başarıyla Değiştirildi!"),
+        screen.getByText("auth.resetSuccessTitle"),
       ).toBeOnTheScreen(),
     );
     expect(mockReset).toHaveBeenCalledWith("valid-token", STRONG);

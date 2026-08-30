@@ -1,6 +1,9 @@
+import { useMemo } from 'react';
 import { View, StyleSheet, Modal as RNModal, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { theme, Text, Button } from '@/ui';
 
 const { colors } = theme;
@@ -11,73 +14,79 @@ interface SignupPromptProps {
   type: 'favorites' | 'message' | 'purchase' | 'trade' | 'collections';
 }
 
-const PROMPT_CONFIG = {
+// Modül düzeyinde sabitlenirse i18next hazır olmadan çözülür ve ilk yüklenen
+// dile donar — bu yüzden factory: bileşen `useMemo(() => buildPromptConfig(t), [t])`
+// ile çağırır.
+const buildPromptConfig = (t: TFunction) => ({
   favorites: {
     icon: 'heart',
-    title: 'Favorilere Ekle',
-    description: 'Beğendiğiniz ürünleri favorilere ekleyerek daha sonra kolayca bulabilirsiniz. Ücretsiz üye olun!',
-    primaryButton: 'Üye Ol',
+    title: t('product.addToFavorites'),
+    description: t('signupPrompt.favoritesDescription'),
+    primaryButton: t('common.register'),
     primaryAction: () => router.push('/(auth)/register'),
     benefits: [
-      'Sınırsız favori listesi',
-      'Fiyat değişikliği bildirimleri',
-      'Favori ürünlerinize hızlı erişim',
+      t('signupPrompt.favoritesBenefit1'),
+      t('signupPrompt.favoritesBenefit2'),
+      t('signupPrompt.favoritesBenefit3'),
     ],
   },
   message: {
     icon: 'chatbubble-ellipses',
-    title: 'Satıcıyla İletişim',
-    description: 'Satıcılarla mesajlaşmak için üye girişi yapmanız gerekiyor. Sorularınızı sorun, pazarlık yapın!',
-    primaryButton: 'Giriş Yap',
+    title: t('signupPrompt.messageTitle'),
+    description: t('signupPrompt.messageDescription'),
+    primaryButton: t('common.login'),
     primaryAction: () => router.push('/(auth)/login'),
     benefits: [
-      'Satıcılarla direkt iletişim',
-      'Pazarlık yapabilme',
-      'Ürün hakkında soru sorma',
+      t('signupPrompt.messageBenefit1'),
+      t('signupPrompt.messageBenefit2'),
+      t('signupPrompt.messageBenefit3'),
     ],
   },
   purchase: {
     icon: 'checkmark-circle',
-    title: 'Siparişiniz Tamamlandı!',
-    description: 'Siparişlerinizi kolayca takip etmek ve gelecek alışverişlerinizde avantajlar için üye olun.',
-    primaryButton: 'Üye Ol',
+    title: t('signupPrompt.purchaseTitle'),
+    description: t('signupPrompt.purchaseDescription'),
+    primaryButton: t('common.register'),
     primaryAction: () => router.push('/(auth)/register'),
     benefits: [
-      'Sipariş geçmişi',
-      'Tek tıkla yeniden sipariş',
-      'Özel indirimler',
+      t('signupPrompt.purchaseBenefit1'),
+      t('signupPrompt.purchaseBenefit2'),
+      t('signupPrompt.purchaseBenefit3'),
     ],
   },
   trade: {
     icon: 'swap-horizontal',
-    title: 'Takas Özelliği',
-    description: 'Takas teklifleri göndermek ve almak için premium üye olmanız gerekiyor. Koleksiyonunuzu büyütün!',
-    primaryButton: 'Premium Ol',
+    title: t('trade.featureTitle'),
+    description: t('signupPrompt.tradeDescription'),
+    primaryButton: t('mobile.guestGoPremium'),
     primaryAction: () => router.push('/(auth)/register'),
     benefits: [
-      'Takas teklifi gönderme',
-      'Koleksiyon değişimi',
-      'Güvenli takas garantisi',
+      t('signupPrompt.tradeBenefit1'),
+      t('signupPrompt.tradeBenefit2'),
+      t('signupPrompt.tradeBenefit3'),
     ],
   },
   collections: {
     icon: 'albums',
-    title: 'Digital Garage',
-    description: 'Kendi koleksiyonunuzu oluşturup sergilemek için premium üye olun. Diğer koleksiyonerlere ilham verin!',
-    primaryButton: 'Premium Ol',
+    title: t('mobile.guestGarageTitle'),
+    description: t('signupPrompt.collectionsDescription'),
+    primaryButton: t('mobile.guestGoPremium'),
     primaryAction: () => router.push('/(auth)/register'),
     benefits: [
-      'Sınırsız koleksiyon oluşturma',
-      'Koleksiyonunuzu paylaşma',
-      'Koleksiyoner rozetleri',
+      t('signupPrompt.collectionsBenefit1'),
+      t('signupPrompt.collectionsBenefit2'),
+      t('signupPrompt.collectionsBenefit3'),
     ],
   },
-};
+});
 
 export function SignupPrompt({ visible, onDismiss, type }: SignupPromptProps) {
+  const { t } = useTranslation();
+  const promptConfig = useMemo(() => buildPromptConfig(t), [t]);
+
   if (!visible) return null;
 
-  const config = PROMPT_CONFIG[type];
+  const config = promptConfig[type];
 
   return (
     <RNModal
@@ -132,13 +141,13 @@ export function SignupPrompt({ visible, onDismiss, type }: SignupPromptProps) {
               }}
             >
               <Text style={styles.loginLinkText}>
-                Zaten üye misiniz? <Text style={styles.loginLinkBold}>Giriş Yap</Text>
+                {t('checkout.alreadyMember')}
               </Text>
             </TouchableOpacity>
           )}
 
           <TouchableOpacity onPress={onDismiss}>
-            <Text style={styles.skipText}>Şimdilik Geç</Text>
+            <Text style={styles.skipText}>{t('signupPrompt.skipText')}</Text>
           </TouchableOpacity>
         </View>
       </View>

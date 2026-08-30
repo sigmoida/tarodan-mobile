@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { TFunction } from 'i18next';
 
 /**
  * #81: ListingForm form alanlari icin zod schema (useZodForm). watch/setValue
@@ -10,31 +11,53 @@ import { z } from 'zod';
  * Schema-DISI kalan (useState): sale/discount alanlari (salePrice/saleStartDate/
  * saleEndDate), imageKeys/imageUris, customAttributes, reservedQty, reactivate
  * alanlari, productLoading. Bunlar server/UI state.
+ *
+ * `t` argüman olarak alınıyor (i18n): zod mesajları şema KURULURKEN çözülüyor,
+ * modül seviyesinde kurulan bir şema metnini ilk yüklenen dilde donduruyordu —
+ * bkz. `src/test-utils/schema.ts`.
  */
-export const listingFormSchema = z.object({
-  title: z.string().trim().min(5, 'Başlık en az 5 karakter olmalıdır.'),
-  description: z.string().max(5000, 'Açıklama en fazla 5000 karakter olabilir.'),
-  price: z
-    .string()
-    .min(1, 'Geçerli bir fiyat giriniz.')
-    .refine((v) => !isNaN(Number(v)) && Number(v) >= 1, 'Geçerli bir fiyat giriniz.'),
-  quantity: z.string(),
-  bundleSize: z.string(),
-  categoryId: z.string(),
-  condition: z.string(),
-  brandId: z.string(),
-  carModelId: z.string(),
-  scale: z.string(),
-  material: z.string(),
-  manufacturerId: z.string(),
-  year: z.string(),
-  isTradeEnabled: z.boolean(),
-  isSet: z.boolean(),
-  status: z.string(),
-  isPreorder: z.boolean(),
-});
+export const buildListingFormSchema = (t: TFunction) =>
+  z.object({
+    title: z.string().trim().min(5, t('validation.minLength', { min: 5 })),
+    description: z.string().max(5000, t('validation.maxLength', { max: 5000 })),
+    price: z
+      .string()
+      .min(1, t('common.invalidPrice'))
+      .refine((v) => !isNaN(Number(v)) && Number(v) >= 1, t('common.invalidPrice')),
+    quantity: z.string(),
+    bundleSize: z.string(),
+    categoryId: z.string(),
+    condition: z.string(),
+    brandId: z.string(),
+    carModelId: z.string(),
+    scale: z.string(),
+    material: z.string(),
+    manufacturerId: z.string(),
+    year: z.string(),
+    isTradeEnabled: z.boolean(),
+    isSet: z.boolean(),
+    status: z.string(),
+    isPreorder: z.boolean(),
+    /**
+     * Üretici model kodu. Sunucuda OPSİYONEL (delta 18 §2a): gönderilmezse
+     * geçerli, gönderilirse trimlenir ve en fazla 100 karakter.
+     * Temizlemek için boş veya yalnız boşluk içeren string gönderilir.
+     */
+    modelCode: z.string().max(100, t('validation.maxLength', { max: 100 })),
+    /**
+     * Kargo paket boyutu — ilan başına satıcı seçer (kaldırılan desi girdisinin
+     * yerine geçti). Kodlar sunucu tarifesinden (`GET /shipping/package-tiers`)
+     * gelir; şema onları sabitlemez ki tarifeye kademe eklenince form
+     * kilitlenmesin.
+     *
+     * ZORUNLULUK burada değil `validate()`'te: hata mesajları formdaki görsel
+     * sırayla çıkmalı (başlık → kategori → fotoğraf → … → paket boyutu) ve
+     * kategori/fotoğraf zaten şema dışında, elle kontrol ediliyor.
+     */
+    shippingPackageTier: z.string(),
+  });
 
-export type ListingFormValues = z.infer<typeof listingFormSchema>;
+export type ListingFormValues = z.infer<ReturnType<typeof buildListingFormSchema>>;
 
 export const emptyListingFormValues: ListingFormValues = {
   title: '',
@@ -54,4 +77,6 @@ export const emptyListingFormValues: ListingFormValues = {
   isSet: false,
   status: 'active',
   isPreorder: false,
+  modelCode: '',
+  shippingPackageTier: '',
 };

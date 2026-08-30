@@ -84,6 +84,7 @@ jest.mock('@/components/common', () => {
 
 // API mock'ları — jest.fn() inline, sonra modülden referans alınır.
 jest.mock('@/lib/api', () => ({
+  toExpectedPricing: jest.requireActual('@/lib/api').toExpectedPricing,
   ordersApi: {
     checkout: jest.fn(),
     checkoutGuest: jest.fn(() =>
@@ -95,6 +96,22 @@ jest.mock('@/lib/api', () => ({
       Promise.resolve({ data: { success: true, expiresInSeconds: 180 } }),
     ),
     getGroups: jest.fn(),
+    // 2026-07-30 canli olcum (staging): pricingHash/shippingTariffVersion KOKTE.
+    // Rakamlar bilincli olarak subtotal(100)+shippingCost+buyerFee toplamindan
+    // FARKLI (165): kod eski yerel aritmetige donerse test kirilir.
+    getQuote: jest.fn(() =>
+      Promise.resolve({
+        data: {
+          pricingHash: '70a8bdadff29af70',
+          shippingTariffVersion: 3,
+          commissionRuleSetId: 'rs-1',
+          commissionRuleSetVersion: 7,
+          pricing: {
+            summary: { productAmount: 100, shippingAmount: 50, serviceFeeAmount: 15, total: 165 },
+          },
+        },
+      }),
+    ),
   },
   paymentsApi: {
     getPaymentMethods: jest.fn(() => Promise.resolve({ data: [] })),
@@ -104,14 +121,20 @@ jest.mock('@/lib/api', () => ({
     ),
     bypassComplete: jest.fn(() => Promise.resolve({ data: {} })),
   },
-  shippingApi: { getRatesByCity: jest.fn(() => Promise.resolve({ data: { rate: 34.9 } })) },
+  // shippingApi'de artik kargo UCRETI ucu YOK (getRatesByCity/getRates/
+  // calculateRates/getCarriers kaldirildi) - kargo yalniz quote'tan gelir.
+  // "Hic cagrilmadi" iddiasi yerine artik API yuzeyi garantisi var:
+  // src/lib/api/__tests__/orders.test.ts.
   addressesApi: { getAll: jest.fn(() => Promise.resolve({ data: [] })) },
   discountsApi: { validate: jest.fn() },
 }));
 
 // Konuk akışı: isAuthenticated=false
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ isAuthenticated: false, user: null }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: false, user: null });
+    return sel ? sel(state) : state;
+  },
 }));
 
 import { ordersApi } from '@/lib/api';
@@ -153,6 +176,15 @@ function fillAllStep1Fields() {
   fireEvent.changeText(screen.getByTestId('shipping-address-input'), 'Test Sokak No:1');
 }
 
+/**
+ * Mesafeli satış onayı (P2 #9) ödeme butonunu kapatıyor — her ödeme akışı
+ * önce kutuyu işaretlemeli, tıpkı kullanıcının yaptığı gibi.
+ */
+function acceptDistanceSales() {
+  const box = screen.queryByTestId('checkout-distance-sales-checkbox');
+  if (box) fireEvent.press(box);
+}
+
 describe('Misafir checkout OTP akışı', () => {
   beforeEach(() => {
     jest.mocked(ordersApi.sendGuestVerificationCode).mockClear();
@@ -187,6 +219,7 @@ describe('Misafir checkout OTP akışı', () => {
     });
 
     // --- Adım 3: Onayla ve Öde → OTP gönderilir ---
+    acceptDistanceSales();
     await act(async () => {
       fireEvent.press(screen.getByText(/Onayla ve Öde/));
     });
@@ -213,10 +246,19 @@ describe('Misafir checkout OTP akışı', () => {
       fireEvent.press(screen.getByTestId('guest-otp-submit'));
     });
 
-    // checkoutGuest emailVerificationCode ile çağrılmalı
+    // checkoutGuest emailVerificationCode İLE ve quote sözleşme imzasıyla çağrılmalı —
+    // dört alan API DTO'sunda zorunlu, aksi halde 400 alınır (task-1/2 brief).
     await waitFor(() => {
       expect(ordersApi.checkoutGuest).toHaveBeenCalledWith(
-        expect.objectContaining({ emailVerificationCode: '123456' }),
+        expect.objectContaining({
+          emailVerificationCode: '123456',
+          expectedPricing: {
+            expectedPricingHash: '70a8bdadff29af70',
+            expectedShippingTariffVersion: 3,
+            expectedCommissionRuleSetId: 'rs-1',
+            expectedCommissionRuleSetVersion: 7,
+          },
+        }),
       );
     });
   });
@@ -244,6 +286,7 @@ describe('Misafir checkout OTP akışı', () => {
     fireEvent.press(screen.getByText('Devam Et'));
     await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
 
+    acceptDistanceSales();
     await act(async () => {
       fireEvent.press(screen.getByText(/Onayla ve Öde/));
     });
@@ -286,6 +329,7 @@ describe('Misafir checkout OTP akışı', () => {
     fireEvent.press(screen.getByText('Devam Et'));
     await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
 
+    acceptDistanceSales();
     await act(async () => {
       fireEvent.press(screen.getByText(/Onayla ve Öde/));
     });

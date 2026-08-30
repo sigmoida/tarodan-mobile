@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { theme, Text } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
@@ -29,6 +30,7 @@ interface Props {
  *   - "Yeni adres ekle" → Adreslerim ekranına götürür; geri dönünce focus'ta tazeler.
  */
 export function TradeAddressPicker({ onChange, label }: Props) {
+  const { t } = useTranslation();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -103,7 +105,7 @@ export function TradeAddressPicker({ onChange, label }: Props) {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.name}>
                     {a.fullName}
-                    {a.isDefault ? <Text style={styles.default}>  (Varsayılan)</Text> : null}
+                    {a.isDefault ? <Text style={styles.default}>  ({t('address.default')})</Text> : null}
                   </Text>
                   <Text style={styles.sub} numberOfLines={1}>
                     {a.district}/{a.city} · {a.phone}
@@ -117,7 +119,7 @@ export function TradeAddressPicker({ onChange, label }: Props) {
           })}
 
           {addresses.length === 0 ? (
-            <Text style={styles.empty}>Kayıtlı adresiniz yok. Lütfen bir adres ekleyin.</Text>
+            <Text style={styles.empty}>{t('address.noAddressesPicker')}</Text>
           ) : null}
 
           <TouchableOpacity
@@ -126,7 +128,7 @@ export function TradeAddressPicker({ onChange, label }: Props) {
             activeOpacity={0.8}
           >
             <Ionicons name="add" size={18} color={colors.primary[600]!} />
-            <Text style={styles.addBtnText}>Yeni adres ekle</Text>
+            <Text style={styles.addBtnText}>{t('address.addNewAddress')}</Text>
           </TouchableOpacity>
         </>
       )}

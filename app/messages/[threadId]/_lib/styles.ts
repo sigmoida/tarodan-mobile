@@ -11,7 +11,6 @@ export const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: colors.primary[600]!,
-    paddingTop: 50,
     paddingBottom: theme.spacing[3],
     paddingHorizontal: theme.spacing[2],
     flexDirection: "row",
@@ -66,6 +65,15 @@ export const styles = StyleSheet.create({
   },
   messagesContent: {
     padding: theme.spacing[4],
+  },
+  // TypingIndicator görünüp kaybolunca liste footer'ının toplam yüksekliği
+  // DEĞİŞMESİN diye sabit yükseklik: göstergenin kendi paddingVertical'i
+  // (spacing[2] * 2) + caption satır yüksekliği. Eski 20pt alt boşluğun yerini
+  // alır — indikatör gizliyken de aynı boşluğu korur (layout denetimi B3).
+  typingIndicatorFooter: {
+    height:
+      theme.spacing[2] * 2 + theme.typography.fontSize.xs * theme.typography.lineHeight.normal,
+    justifyContent: "flex-end",
   },
   dateDivider: {
     flexDirection: "row",

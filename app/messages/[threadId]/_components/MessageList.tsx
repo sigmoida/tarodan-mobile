@@ -7,6 +7,7 @@ import { AppImage } from '@/components/AppImage';
 import { styles } from '../_lib/styles';
 import { formatTime, getMessageStatus } from '../_lib/helpers';
 import type { MessageThreadController } from '../_hooks/useMessageThread';
+import { TypingIndicator } from './TypingIndicator';
 
 /**
  * Grouped, date-divided message list with own/other bubbles.
@@ -14,8 +15,9 @@ import type { MessageThreadController } from '../_hooks/useMessageThread';
  * Virtualized (#74): the grouped structure is flattened into typed rows
  * (divider + message) and rendered through a FlatList so only on-screen bubbles
  * mount — unbounded chat history no longer mounts every row up front. Auto-scroll
- * keeps the same contract: onContentSizeChange → scrollToEnd (FlatList supports
- * both identically to ScrollView).
+ * is driven by `useAutoScroll` (see B3 layout fix): `onScroll` tracks distance
+ * from bottom in a ref, `onContentSizeChange` only scrolls when near the bottom
+ * or a send forced it — reading history no longer gets yanked to the end.
  */
 type Row =
   | { kind: 'divider'; key: string; date: string }
@@ -83,6 +85,11 @@ export function MessageList({ f }: { f: MessageThreadController }) {
                     variant="card"
                     style={styles.messageImage}
                     resizeMode="cover"
+                    // Mesaj ekleri API redirect uçtan gelir (`/api/media/message-attachment/{id}`)
+                    // ve JWT ister — bearer'sız istek 401 alıp sessizce placeholder'a düşüyordu
+                    // (task 4, parite P0 #4). Ürün görselleri gibi public değil, bu yüzden burada
+                    // opt-in ediyoruz.
+                    authenticated
                   />
                 ))}
               </View>
@@ -135,7 +142,17 @@ export function MessageList({ f }: { f: MessageThreadController }) {
       style={[styles.messagesList, !f.isPositioned && styles.messagesListHidden]}
       contentContainerStyle={styles.messagesContent}
       onContentSizeChange={f.handleContentSizeChange}
-      ListFooterComponent={<View style={{ height: 20 }} />}
+      onScroll={f.handleScroll}
+      scrollEventThrottle={16}
+      ListFooterComponent={
+        // TypingIndicator görünüp kaybolunca içerik yüksekliği DEĞİŞMESİN diye
+        // sabit yükseklikli bir kapsayıcıya alınır (bkz. layout denetimi B3) —
+        // aksi halde onContentSizeChange → scrollToEnd tetiklenip liste dibe
+        // fırlıyordu. Mevcut 20pt alt boşluk da bu kapsayıcıyla korunur.
+        <View style={styles.typingIndicatorFooter}>
+          <TypingIndicator visible={f.isPeerTyping} />
+        </View>
+      }
     />
   );
 }

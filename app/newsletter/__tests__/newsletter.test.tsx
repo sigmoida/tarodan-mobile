@@ -13,7 +13,8 @@ import { renderWithProviders } from '@/test-utils';
 
 let mockParams: Record<string, string> = {};
 jest.mock('expo-router', () => ({
-  router: { push: jest.fn(), back: jest.fn(), replace: jest.fn() },
+  // canGoBack: ScreenHeader sarmalayıcısı geri okunu buna göre etkinleştirir.
+  router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => true },
   useLocalSearchParams: () => mockParams,
 }));
 import { router } from 'expo-router';
@@ -49,6 +50,8 @@ describe('J39 · Bülten abone (newsletter)', () => {
   it('J39.2 geçersiz e-posta → Alert ile reddedilir, API çağrılmaz', () => {
     renderWithProviders(<NewsletterScreen />);
     fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], 'gecersiz');
+    // Rıza kutusu (P2 #12) abone olmanın kapısı — kullanıcı gibi önce işaretle.
+    fireEvent.press(screen.getByTestId('newsletter-consent'));
     fireEvent.press(screen.getByText('Abone Ol'));
     expect(alertSpy).toHaveBeenCalledWith('Eksik', 'Geçerli bir e-posta girin.');
     expect(postMock).not.toHaveBeenCalled();
@@ -58,6 +61,7 @@ describe('J39 · Bülten abone (newsletter)', () => {
     postMock.mockResolvedValue({ data: {} });
     renderWithProviders(<NewsletterScreen />);
     fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], 'Ali@Test.com');
+    fireEvent.press(screen.getByTestId('newsletter-consent'));
     fireEvent.press(screen.getByText('Abone Ol'));
     await waitFor(() =>
       expect(postMock).toHaveBeenCalledWith('/newsletter/subscribe', {
@@ -88,13 +92,13 @@ describe('J117 · Bülten abonelik iptali (unsubscribe)', () => {
   it('J117.1 token yokken e-posta giriş formu render edilir', () => {
     renderWithProviders(<NewsletterUnsubscribeScreen />);
     expect(screen.getByText('Bülten Aboneliğini İptal Et')).toBeOnTheScreen();
-    expect(screen.getByText('Aboneliğimi İptal Et')).toBeDisabled();
+    expect(screen.getByText('Abonelikten Çık')).toBeDisabled();
   });
 
   it('J117.2 geçersiz e-posta → Alert ile reddedilir', () => {
     renderWithProviders(<NewsletterUnsubscribeScreen />);
     fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], 'gecersiz');
-    fireEvent.press(screen.getByText('Aboneliğimi İptal Et'));
+    fireEvent.press(screen.getByText('Abonelikten Çık'));
     expect(alertSpy).toHaveBeenCalledWith('Eksik', 'Geçerli bir e-posta girin.');
     expect(postMock).not.toHaveBeenCalled();
   });
@@ -103,7 +107,7 @@ describe('J117 · Bülten abonelik iptali (unsubscribe)', () => {
     postMock.mockResolvedValue({ data: { success: true } });
     renderWithProviders(<NewsletterUnsubscribeScreen />);
     fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], 'Ali@Test.com');
-    fireEvent.press(screen.getByText('Aboneliğimi İptal Et'));
+    fireEvent.press(screen.getByText('Abonelikten Çık'));
     await waitFor(() =>
       expect(postMock).toHaveBeenCalledWith('/newsletter/unsubscribe', { email: 'ali@test.com' }),
     );

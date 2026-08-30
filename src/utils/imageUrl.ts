@@ -18,11 +18,29 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-export const IMAGE_PLACEHOLDER = 'https://placehold.co/400x300/f3f4f6/9ca3af?text=G%C3%B6rsel';
+/**
+ * Görsel yok yedeği — TAMAMEN yerel. Düz gri (theme `colors.gray[100]` ~
+ * `#f3f4f6`) 4x3 PNG, base64 data URI olarak gömülü. Ağ isteği yapmaz, offline
+ * çalışır; eski dış servis bağımlılıkları kaldırıldı (biri ölüydü, diğeri
+ * üçüncü parti — bkz. faz0 raporu).
+ */
+export const IMAGE_PLACEHOLDER =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAIAAAA7ljmRAAAAEUlEQVR42mP4/OUbHDHg5AAAniMiXeLfbUMAAAAASUVORK5CYII=';
 
-// React Native'in doğrudan render edebildiği lokal/uzak şemalar.
+// React Native'in doğrudan render edebildiği uzak şemalar + gömülü veri.
 const REMOTE_URI_RE = /^https?:\/\//i;
-const LOCAL_URI_RE = /^(file|content|ph|assets-library|data|blob):/i;
+const DATA_URI_RE = /^data:/i;
+/**
+ * CİHAZ-YEREL şemalar. Varsayılan olarak REDDEDİLİR: bu fonksiyona sunucudan
+ * ya da mesaj gövdesinden gelen güvenilmez metinler de düşüyor ve bunları
+ * `expo-image`'e olduğu gibi vermek yerel dosya okuma denemesine ya da alıcının
+ * kendi galerisinden bir görselin ekranda belirmesine (UI spoof) dönüşebilir.
+ *
+ * Cihazda SEÇİLEN görseller bu yoldan geçmiyor (ham `<Image source={{uri}}>`),
+ * o yüzden varsayılanı kapatmak mevcut akışları bozmuyor; gerçekten gereken
+ * çağıran `allowDeviceUris` ile açıkça izin ister.
+ */
+const DEVICE_URI_RE = /^(file|content|ph|assets-library|blob):/i;
 
 // Çıplak S3 key'lerini (örn. "dev/products/abc.jpg") çözmek için opsiyonel taban.
 const S3_PUBLIC_BASE = (process.env.EXPO_PUBLIC_S3_PUBLIC_BASE_URL || '').replace(/\/+$/, '');
@@ -91,16 +109,29 @@ function pickFromObject(obj: Record<string, unknown>, variant: ImageVariant): un
  * @param variant `card` → küçük hücreler için thumbnail (cardUrl önce);
  *   `detail` (varsayılan) → galeri/detay için tam çözünürlük (detailUrl önce).
  */
-export function resolveImageUrl(input: unknown, variant: ImageVariant = 'detail'): string {
+export interface ResolveImageOptions {
+  /**
+   * Cihaz-yerel URI'lere (`file:`, `content:`, `ph:`, …) izin ver. Yalnız
+   * kaynağın CİHAZDAN geldiği kesin olan çağıranlar açar; sunucudan veya mesaj
+   * gövdesinden gelen değerlerde ASLA açılmaz.
+   */
+  allowDeviceUris?: boolean;
+}
+
+export function resolveImageUrl(
+  input: unknown,
+  variant: ImageVariant = 'detail',
+  options: ResolveImageOptions = {},
+): string {
   if (input == null) return IMAGE_PLACEHOLDER;
 
   if (Array.isArray(input)) {
-    return input.length > 0 ? resolveImageUrl(input[0], variant) : IMAGE_PLACEHOLDER;
+    return input.length > 0 ? resolveImageUrl(input[0], variant, options) : IMAGE_PLACEHOLDER;
   }
 
   if (typeof input === 'object') {
     const picked = pickFromObject(input as Record<string, unknown>, variant);
-    return picked === undefined ? IMAGE_PLACEHOLDER : resolveImageUrl(picked, variant);
+    return picked === undefined ? IMAGE_PLACEHOLDER : resolveImageUrl(picked, variant, options);
   }
 
   if (typeof input !== 'string') return IMAGE_PLACEHOLDER;
@@ -108,8 +139,12 @@ export function resolveImageUrl(input: unknown, variant: ImageVariant = 'detail'
   const s = input.trim();
   if (!s) return IMAGE_PLACEHOLDER;
 
-  // Zaten render edilebilir (uzak veya lokal cihaz) URI.
-  if (REMOTE_URI_RE.test(s) || LOCAL_URI_RE.test(s)) return s;
+  // Zaten render edilebilir uzak URI ya da gömülü veri.
+  if (REMOTE_URI_RE.test(s) || DATA_URI_RE.test(s)) return s;
+  // Cihaz-yerel: yalnız çağıran açıkça istediyse.
+  if (DEVICE_URI_RE.test(s)) return options.allowDeviceUris ? s : IMAGE_PLACEHOLDER;
+  // Tanınmayan bir şema (`javascript:`, `intent:`, …) hiçbir koşulda geçmez.
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(s)) return IMAGE_PLACEHOLDER;
 
   // Web public relatif yolu (örn. "/photos/logolar/x.png").
   if (s.startsWith('/')) return `${webAssetHost()}${s}`;

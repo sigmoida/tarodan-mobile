@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, ScrollView, Platform, KeyboardAvoidingView, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { theme } from '@/ui';
 
 import { styles } from './_lib/styles';
@@ -16,6 +17,7 @@ import {
   ListingDetailsSection,
   ListingOptionsSection,
   ListingPricingSection,
+  ListingShippingSection,
   ListingSubmitRow,
 } from './_components/ListingSections';
 import { ListingPickers } from './_components/ListingPickers';
@@ -31,7 +33,9 @@ export type { ListingFormProps };
  * `app/listing/[id]/edit.tsx` (edit).
  */
 export default function ListingForm({ mode, productId }: ListingFormProps) {
+  const { t } = useTranslation();
   const f = useListingForm({ mode, productId });
+  const insets = useSafeAreaInsets();
 
   const gate = ListingGates({ f });
   if (gate) return gate;
@@ -39,11 +43,11 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
   return (
     <SafeAreaView style={styles.container} edges={f.isEdit ? ['bottom'] : ['top', 'bottom']}>
       {f.isEdit && (
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Geri">
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
+          <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('common.back')}>
             <Ionicons name="arrow-back" size={24} color={colors.white} />
           </Pressable>
-          <Text style={styles.headerTitle}>İlanı Düzenle</Text>
+          <Text style={styles.headerTitle}>{t('product.editListing')}</Text>
           <View style={{ width: 24 }} />
         </View>
       )}
@@ -60,6 +64,7 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
           <ListingDetailsSection f={f} />
           <ListingOptionsSection f={f} />
           <ListingPricingSection f={f} />
+          <ListingShippingSection f={f} />
           <ListingSubmitRow f={f} />
         </ScrollView>
       </KeyboardAvoidingView>

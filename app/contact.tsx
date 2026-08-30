@@ -25,6 +25,7 @@ import {
   SUPPORT_PHONE,
   SUPPORT_WHATSAPP,
 } from "@/constants/legalFacts";
+import { styles } from './_contact/_lib/styles';
 
 const { colors } = theme;
 
@@ -39,28 +40,28 @@ export default function ContactScreen() {
 
   const handleSubmit = async () => {
     if (!name || !email || !subject || !message) {
-      setSnackbar({ visible: true, message: "Lütfen tüm alanları doldurun" });
+      setSnackbar({ visible: true, message: t("common.fillAllFields") });
       return;
     }
     // Backend DTO ile parite (GuestContactDto): name @MinLength(2), message @MinLength(10).
     if (name.trim().length < 2) {
       setSnackbar({
         visible: true,
-        message: "Adınız en az 2 karakter olmalıdır.",
+        message: t("validation.displayNameMin"),
       });
       return;
     }
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
       setSnackbar({
         visible: true,
-        message: "Geçerli bir e-posta adresi girin.",
+        message: t("validation.invalidEmail"),
       });
       return;
     }
     if (message.trim().length < 10) {
       setSnackbar({
         visible: true,
-        message: "Mesaj en az 10 karakter olmalıdır.",
+        message: t("contact.messageTooShort"),
       });
       return;
     }
@@ -68,7 +69,7 @@ export default function ContactScreen() {
     setLoading(true);
     try {
       await supportApi.guestContact({ name, email, subject, message });
-      setSnackbar({ visible: true, message: "Mesajınız gönderildi!" });
+      setSnackbar({ visible: true, message: t("contact.success") });
       setName("");
       setEmail("");
       setSubject("");
@@ -76,7 +77,7 @@ export default function ContactScreen() {
     } catch {
       setSnackbar({
         visible: true,
-        message: "Mesaj gönderilemedi, lütfen tekrar deneyin.",
+        message: t("contact.sendFailed"),
       });
     } finally {
       setLoading(false);
@@ -86,13 +87,13 @@ export default function ContactScreen() {
   const contactMethods = [
     {
       icon: "mail-outline",
-      title: "E-posta",
+      title: t("common.email"),
       value: SUPPORT_EMAIL,
       action: () => Linking.openURL(`mailto:${SUPPORT_EMAIL}`),
     },
     {
       icon: "call-outline",
-      title: "Telefon",
+      title: t("common.phone"),
       value: SUPPORT_PHONE,
       action: () => Linking.openURL("tel:+902121234567"),
     },
@@ -104,8 +105,8 @@ export default function ContactScreen() {
     },
     {
       icon: "location-outline",
-      title: "Adres",
-      value: "İstanbul, Türkiye",
+      title: t("common.address"),
+      value: t("information.contactInfo.addressValue"),
       action: () => {},
     },
   ];
@@ -121,7 +122,7 @@ export default function ContactScreen() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Contact Methods */}
-        <Text style={styles.sectionTitle}>Bize Ulaşın</Text>
+        <Text style={styles.sectionTitle}>{t("guides.contactLink")}</Text>
         <View style={styles.contactMethods}>
           {contactMethods.map((method, index) => (
             <TouchableOpacity
@@ -150,16 +151,16 @@ export default function ContactScreen() {
         </View>
 
         {/* Contact Form */}
-        <Text style={styles.sectionTitle}>Mesaj Gönderin</Text>
+        <Text style={styles.sectionTitle}>{t("contact.formSectionTitle")}</Text>
         <Card style={styles.formCard}>
           <Input
-            label="Adınız"
+            label={t("checkout.guestName")}
             value={name}
             onChangeText={setName}
             style={styles.input}
           />
           <Input
-            label="E-posta"
+            label={t("common.email")}
             value={email}
             onChangeText={setEmail}
             style={styles.input}
@@ -167,13 +168,13 @@ export default function ContactScreen() {
             autoCapitalize="none"
           />
           <Input
-            label="Konu"
+            label={t("contact.subject")}
             value={subject}
             onChangeText={setSubject}
             style={styles.input}
           />
           <Textarea
-            label="Mesajınız"
+            label={t("contact.message")}
             value={message}
             onChangeText={setMessage}
             style={styles.input}
@@ -181,7 +182,7 @@ export default function ContactScreen() {
           />
           <Button
             variant="primary"
-            title="Gönder"
+            title={t("common.send")}
             onPress={handleSubmit}
             isLoading={loading}
             disabled={loading}
@@ -190,19 +191,19 @@ export default function ContactScreen() {
         </Card>
 
         {/* Working Hours */}
-        <Text style={styles.sectionTitle}>Çalışma Saatleri</Text>
+        <Text style={styles.sectionTitle}>{t("contact.hoursTitle")}</Text>
         <Card style={styles.hoursCard}>
           <View style={styles.hoursRow}>
-            <Text style={styles.hoursDay}>Pazartesi - Cuma</Text>
+            <Text style={styles.hoursDay}>{t("contact.hoursWeekdays")}</Text>
             <Text style={styles.hoursTime}>09:00 - 18:00</Text>
           </View>
           <View style={styles.hoursRow}>
-            <Text style={styles.hoursDay}>Cumartesi</Text>
+            <Text style={styles.hoursDay}>{t("contact.hoursSaturday")}</Text>
             <Text style={styles.hoursTime}>10:00 - 14:00</Text>
           </View>
           <View style={styles.hoursRow}>
-            <Text style={styles.hoursDay}>Pazar</Text>
-            <Text style={styles.hoursClosed}>Kapalı</Text>
+            <Text style={styles.hoursDay}>{t("contact.hoursSunday")}</Text>
+            <Text style={styles.hoursClosed}>{t("contact.hoursClosed")}</Text>
           </View>
         </Card>
 
@@ -216,7 +217,7 @@ export default function ContactScreen() {
             size={24}
             color={colors.primary[600]!}
           />
-          <Text style={styles.faqLinkText}>Sık Sorulan Sorular</Text>
+          <Text style={styles.faqLinkText}>{t("faq.title")}</Text>
           <Ionicons
             name="chevron-forward"
             size={20}
@@ -238,103 +239,3 @@ export default function ContactScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.alt,
-  },
-  content: {
-    flex: 1,
-    padding: theme.spacing[4],
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: colors.text.heading,
-    marginBottom: theme.spacing[3],
-    marginTop: theme.spacing[2],
-  },
-  contactMethods: {
-    backgroundColor: colors.surface.DEFAULT,
-    borderRadius: 12,
-    marginBottom: theme.spacing[6],
-  },
-  contactMethod: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: theme.spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.DEFAULT,
-  },
-  contactMethodIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.primary[50]!,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  contactMethodContent: {
-    flex: 1,
-    marginLeft: theme.spacing[4],
-  },
-  contactMethodTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.text.heading,
-  },
-  contactMethodValue: {
-    fontSize: 13,
-    color: colors.text.muted,
-    marginTop: theme.spacing[0.5],
-  },
-  formCard: {
-    backgroundColor: colors.surface.DEFAULT,
-    marginBottom: theme.spacing[6],
-  },
-  input: {
-    marginBottom: theme.spacing[3],
-    backgroundColor: colors.surface.DEFAULT,
-  },
-  submitButton: {
-    borderRadius: 12,
-    marginTop: theme.spacing[2],
-  },
-  hoursCard: {
-    backgroundColor: colors.surface.DEFAULT,
-    marginBottom: theme.spacing[6],
-  },
-  hoursRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: theme.spacing[3],
-  },
-  hoursDay: {
-    fontSize: 14,
-    color: colors.text.heading,
-  },
-  hoursTime: {
-    fontSize: 14,
-    color: colors.success[600]!,
-    fontWeight: "500",
-  },
-  hoursClosed: {
-    fontSize: 14,
-    color: colors.danger[600]!,
-    fontWeight: "500",
-  },
-  faqLink: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface.DEFAULT,
-    padding: theme.spacing[4],
-    borderRadius: 12,
-  },
-  faqLinkText: {
-    flex: 1,
-    marginLeft: theme.spacing[3],
-    fontSize: 15,
-    color: colors.primary[600]!,
-    fontWeight: "500",
-  },
-});

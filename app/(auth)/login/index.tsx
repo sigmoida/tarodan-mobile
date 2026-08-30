@@ -1,4 +1,5 @@
 import { View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pressable } from 'react-native';
@@ -18,6 +19,7 @@ const { colors } = theme;
  * header, login card, and footer links.
  */
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const f = useLogin();
 
@@ -27,7 +29,7 @@ export default function LoginScreen() {
         testID="login-back-button"
         onPress={f.continueAsGuest}
         accessibilityRole="button"
-        accessibilityLabel="Ana sayfaya dön"
+        accessibilityLabel={t('auth.backToHome')}
         hitSlop={12}
         style={[styles.backButton, { top: insets.top + 8 }]}
       >
@@ -45,20 +47,20 @@ export default function LoginScreen() {
 
         <VStack gap={2} style={{ marginTop: theme.spacing[1] }}>
           <HStack justify="center" wrap gap={2}>
-            <Text variant="body" style={styles.footerText}>Hesabınız yok mu?</Text>
+            <Text variant="body" style={styles.footerText}>{t('auth.noAccount')}</Text>
             <Text
               variant="body"
               weight="bold"
               style={styles.footerLink}
               onPress={() => router.push('/(auth)/register' as never)}
             >
-              Kayıt olun
+              {t('auth.signUp')}
             </Text>
           </HStack>
 
           <HStack justify="center" wrap gap={2}>
             <Text variant="bodySm" style={styles.footerText}>
-              İşletme sahibi misiniz?
+              {t('auth.isBusinessOwnerPrompt')}
             </Text>
             <Text
               variant="bodySm"
@@ -66,7 +68,7 @@ export default function LoginScreen() {
               style={styles.footerLink}
               onPress={() => router.push('/(auth)/register-business' as never)}
             >
-              Kurumsal hesap açın
+              {t('auth.openBusinessAccountCta')}
             </Text>
           </HStack>
         </VStack>

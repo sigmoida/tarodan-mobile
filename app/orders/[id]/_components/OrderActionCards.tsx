@@ -1,9 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, Pressable, Linking, StyleSheet } from 'react-native';
 import { Card, Text, Button, StatusBadge, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { REFUND_STATUS_LABELS } from '../_lib/status';
+import { buildTrackingUrl } from '@/lib/shipping/tracking';
+import { useRefundStatusConfig } from '../_lib/status';
 import { formatDate } from '../_lib/format';
 import type { OrderDetail } from '../_lib/types';
 import type { OrderView } from '../_lib/derive';
@@ -22,19 +24,20 @@ export function OrderCancelCard({
   onCancel: () => void;
   cancelPending: boolean;
 }) {
+  const { t } = useTranslation();
   if (!(order.isBuyer && !view.isMembershipOrder && view.isPreShipment && !order.activeRefundRequest)) return null;
   return (
     <Card variant="elevated" style={styles.card}>
-      <Text variant="label" style={styles.sectionTitle}>Sipariş İptali</Text>
+      <Text variant="label" style={styles.sectionTitle}>{t('order.cancellationSection')}</Text>
       <Text variant="caption" style={styles.confirmNote}>
-        Sipariş henüz kargoya verilmedi. İptal ederseniz ödemeniz iade edilir.
+        {t('order.guestCancelIntro')}
       </Text>
       <Button
         testID="order-cancel-button"
         variant="outline"
         icon="close-circle-outline"
         fullWidth
-        title="Siparişi İptal Et"
+        title={t('order.cancelOrder')}
         onPress={onCancel}
         isLoading={cancelPending}
         disabled={cancelPending}
@@ -54,21 +57,22 @@ export function OrderRatingButtons({
   view: OrderView;
   onRate: (type: 'product' | 'seller') => void;
 }) {
+  const { t } = useTranslation();
   if (!(view.canRate && order.isBuyer)) return null;
   return (
     <Card variant="elevated" style={styles.card}>
-      <Text variant="label" style={styles.sectionTitle}>Değerlendirme</Text>
+      <Text variant="label" style={styles.sectionTitle}>{t('order.reviewSection')}</Text>
       <View style={styles.ratingButtons}>
         {!order.hasProductRating && (
-          <Button variant="outline" icon="star" title="Ürünü Değerlendir" onPress={() => onRate('product')} style={styles.rateButton} />
+          <Button variant="outline" icon="star" title={t('order.rateProduct')} onPress={() => onRate('product')} style={styles.rateButton} />
         )}
         {!order.hasSellerRating && (
-          <Button variant="outline" icon="person" title="Satıcıyı Değerlendir" onPress={() => onRate('seller')} style={styles.rateButton} />
+          <Button variant="outline" icon="person" title={t('order.rateSeller')} onPress={() => onRate('seller')} style={styles.rateButton} />
         )}
         {order.hasProductRating && order.hasSellerRating && (
           <View style={styles.ratedMessage}>
             <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
-            <Text style={styles.ratedText}>Değerlendirmeniz alındı</Text>
+            <Text style={styles.ratedText}>{t('order.reviewReceivedShort')}</Text>
           </View>
         )}
       </View>
@@ -88,14 +92,17 @@ export function OrderRefundBanner({
   onCancelRefund: () => void;
   cancelRefundPending: boolean;
 }) {
+  const { t } = useTranslation();
+  const refundStatusConfig = useRefundStatusConfig();
   const rr = order.activeRefundRequest;
+  const returnTrackingUrl = buildTrackingUrl(rr?.returnProvider, rr?.returnTrackingNumber);
   if (!(rr && !view.isCancelled)) return null;
   return (
     <Card variant="elevated" style={styles.card} testID="refund-active-banner">
       <View style={styles.refundHeaderRow}>
         <Ionicons name="return-up-back" size={20} color={colors.info[600]!} />
-        <Text variant="label" style={styles.refundHeaderText}>İade Talebi</Text>
-        <StatusBadge status={rr.status} config={REFUND_STATUS_LABELS} size="sm" />
+        <Text variant="label" style={styles.refundHeaderText}>{t('order.refundRequest')}</Text>
+        <StatusBadge status={rr.status} config={refundStatusConfig} size="sm" />
       </View>
       {rr.refundNumber ? (
         <Text variant="caption" style={styles.refundMeta}>{rr.refundNumber} · {formatDate(rr.createdAt)}</Text>
@@ -103,19 +110,16 @@ export function OrderRefundBanner({
       {rr.status === 'return_shipment_open' && rr.returnTrackingNumber ? (
         <View style={styles.refundTrackingBox}>
           <Text variant="caption" style={styles.refundTrackingHint}>
-            Bu numarayı paketle birlikte herhangi bir Sürat şubesine bırakın:
+            {t('refund.dropOffAtSurat')}
           </Text>
           <Text style={styles.refundTrackingNumber}>{rr.returnTrackingNumber}</Text>
-          {rr.returnProvider === 'surat' ? (
+          {/* Link ELLE BİRLEŞTİRİLMEZ — tek kaynak `buildTrackingUrl`. */}
+          {returnTrackingUrl ? (
             <Button
               variant="outline"
               icon="cube"
-              title="Sürat'ta Takip Et"
-              onPress={() =>
-                Linking.openURL(
-                  `https://www.suratkargo.com.tr/KargoTakip/?kargotakipno=${encodeURIComponent(rr.returnTrackingNumber!)}`,
-                )
-              }
+              title={t('order.trackOnSurat')}
+              onPress={() => Linking.openURL(returnTrackingUrl)}
               style={{ marginTop: theme.spacing[2] }}
             />
           ) : null}
@@ -126,7 +130,7 @@ export function OrderRefundBanner({
           testID="refund-cancel-button"
           variant="outline"
           icon="close-circle-outline"
-          title="Talebi İptal Et"
+          title={t('refund.cancel.cta')}
           onPress={onCancelRefund}
           isLoading={cancelRefundPending}
           disabled={cancelRefundPending}
@@ -147,6 +151,7 @@ export function OrderRefundActionCard({
   view: OrderView;
   onOpenRefund: () => void;
 }) {
+  const { t } = useTranslation();
   const eligible =
     order.isBuyer &&
     !view.isMembershipOrder &&
@@ -160,24 +165,24 @@ export function OrderRefundActionCard({
   if (view.isPastRefundWindow) {
     return (
       <Card variant="elevated" style={styles.card}>
-        <Text variant="label" style={styles.sectionTitle}>İade Süresi Doldu</Text>
+        <Text variant="label" style={styles.sectionTitle}>{t('order.refundWindowClosed')}</Text>
         <Text variant="caption" style={styles.refundIntro}>
-          14 günlük iade süresi doldu; bu sipariş için artık iade talebi oluşturulamaz.
+          {t('order.refundWindowPassed')}
         </Text>
       </Card>
     );
   }
   return (
     <Card variant="elevated" style={styles.card}>
-      <Text variant="label" style={styles.sectionTitle}>İade İşlemleri</Text>
+      <Text variant="label" style={styles.sectionTitle}>{t('order.refundSection')}</Text>
       <Text variant="caption" style={styles.refundIntro}>
-        Teslimattan sonra 14 gün içinde sebep belirtmeden iade talep edebilirsiniz.
+        {t('order.refundEligibleIntro')}
       </Text>
       <Button
         testID="refund-request-button"
         variant="outline"
         icon="return-up-back"
-        title="İade Talep Et"
+        title={t('order.requestRefund')}
         onPress={onOpenRefund}
         style={{ marginTop: theme.spacing[2] }}
       />
@@ -187,12 +192,13 @@ export function OrderRefundActionCard({
 
 /** Yardım kartı. */
 export function OrderHelpCard() {
+  const { t } = useTranslation();
   return (
     <Card variant="elevated" style={styles.card}>
       <Pressable onPress={() => router.push('/help')}>
         <View style={styles.helpCard}>
           <Ionicons name="help-circle" size={24} color={colors.primary[600]!} />
-          <Text style={{ flex: 1, marginLeft: theme.spacing[3] }}>Yardıma mı ihtiyacınız var?</Text>
+          <Text style={{ flex: 1, marginLeft: theme.spacing[3] }}>{t('payment.needHelp')}</Text>
           <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
         </View>
       </Pressable>

@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 import { appAlert } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { STORAGE_KEY, type SavedSearch } from '../_lib/types';
@@ -13,6 +14,7 @@ import { buildSearchParams } from '../_lib/helpers';
  * Lifted verbatim from the monolithic screen (§12).
  */
 export function useSavedSearches() {
+  const { t } = useTranslation();
   const { isAuthenticated, limits } = useAuthStore();
   const queryClient = useQueryClient();
 
@@ -52,10 +54,10 @@ export function useSavedSearches() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['saved-searches'] });
-      appAlert('Başarılı', 'Arama silindi');
+      appAlert(t('common.success'), t('savedSearch.deletedMsg'));
     },
     onError: () => {
-      appAlert('Hata', 'Arama silinemedi');
+      appAlert(t('common.error'), t('savedSearch.deleteFailedMsg'));
     },
   });
 
@@ -76,9 +78,9 @@ export function useSavedSearches() {
   };
 
   const handleDelete = (search: SavedSearch) => {
-    appAlert('Aramayı Sil', `"${search.name}" aramasını silmek istediğinize emin misiniz?`, [
-      { text: 'İptal', style: 'cancel' },
-      { text: 'Sil', style: 'destructive', onPress: () => deleteMutation.mutate(search.id) },
+    appAlert(t('savedSearch.deleteTitle'), t('savedSearch.deleteConfirm', { name: search.name }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: () => deleteMutation.mutate(search.id) },
     ]);
   };
 

@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Share, Linking, TouchableOpacity, Clipboard } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { theme, Text, Button, Snackbar, Divider, Modal, useModalMessage, ModalMessage } from '@/ui';
+
+// NOT: bu bileşenin bugün hiçbir çağıranı yok (repo genelinde grep — sıfır
+// sonuç), yine de bu slice'ın kapsamında adıyla anıldığı için çevrildi.
+// Sağlayıcı adları (WhatsApp/Telegram/Twitter/Facebook/Instagram) marka —
+// çevrilmez.
 
 const { colors } = theme;
 
@@ -40,6 +46,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   shareText,
   type,
 }) => {
+  const { t } = useTranslation();
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
   const [showQR, setShowQR] = useState(false);
   const msg = useModalMessage();
@@ -62,9 +69,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     msg.clear();
     try {
       Clipboard.setString(shareUrl);
-      setSnackbar({ visible: true, message: 'Link kopyalandı!' });
+      setSnackbar({ visible: true, message: t('common.copied') });
     } catch (error) {
-      msg.error('Link kopyalanamadı');
+      msg.error(t('common.copyFailed'));
     }
   };
 
@@ -72,7 +79,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     msg.clear();
     const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(`${fullShareText}\n\n${shareUrl}`)}`;
     Linking.openURL(whatsappUrl).catch(() => {
-      msg.error('WhatsApp açılamadı');
+      msg.error(t('shareModal.whatsappOpenFailed'));
     });
   };
 
@@ -80,7 +87,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     msg.clear();
     const telegramUrl = `tg://msg_url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(fullShareText)}`;
     Linking.openURL(telegramUrl).catch(() => {
-      msg.error('Telegram açılamadı');
+      msg.error(t('shareModal.telegramOpenFailed'));
     });
   };
 
@@ -99,7 +106,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     Linking.openURL('instagram://app').catch(() => {
       Linking.openURL('https://www.instagram.com');
     });
-    setSnackbar({ visible: true, message: 'Linki kopyalayıp Instagram\'da paylaşabilirsiniz' });
+    setSnackbar({ visible: true, message: t('shareModal.instagramCopyHint') });
     handleCopyLink();
   };
 
@@ -152,7 +159,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     },
     {
       id: 'email',
-      name: 'E-posta',
+      name: t('common.email'),
       icon: 'mail',
       iconType: 'ionicons',
       color: colors.text.muted,
@@ -163,13 +170,13 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   const getTypeText = () => {
     switch (type) {
       case 'collection':
-        return 'Koleksiyonu Paylaş';
+        return t('shareModal.typeCollection');
       case 'product':
-        return 'Ürünü Paylaş';
+        return t('shareModal.typeProduct');
       case 'profile':
-        return 'Profili Paylaş';
+        return t('shareModal.typeProfile');
       default:
-        return 'Paylaş';
+        return t('product.share'); // reuse — jenerik "Paylaş"
     }
   };
 
@@ -177,7 +184,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     <Modal isOpen={visible} onClose={onDismiss} title={getTypeText()}>
       {/* Share URL Display */}
       <View style={styles.urlContainer}>
-        <Text style={styles.urlLabel}>Paylaşım Linki</Text>
+        <Text style={styles.urlLabel}>{t('shareModal.urlLabel')}</Text>
         <TouchableOpacity style={styles.urlBox} onPress={handleCopyLink}>
           <Text numberOfLines={1} style={styles.urlText}>
             {shareUrl}
@@ -195,7 +202,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       >
         <MaterialCommunityIcons name="qrcode" size={24} color={colors.primary[600]!} />
         <Text style={styles.qrToggleText}>
-          {showQR ? 'QR Kodu Gizle' : 'QR Kod Göster'}
+          {showQR ? t('shareModal.qrHide') : t('shareModal.qrShow')}
         </Text>
         <Ionicons
           name={showQR ? 'chevron-up' : 'chevron-down'}
@@ -215,7 +222,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             />
           </View>
           <Text style={styles.qrHint}>
-            Telefonunuzla tarayarak koleksiyona erişebilirsiniz
+            {t('shareModal.qrHint')}
           </Text>
         </View>
       )}
@@ -223,7 +230,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       <Divider style={styles.divider} />
 
       {/* Social Share Options */}
-      <Text style={styles.sectionTitle}>Sosyal Medyada Paylaş</Text>
+      <Text style={styles.sectionTitle}>{t('shareModal.socialShareTitle')}</Text>
       <View style={styles.shareGrid}>
         {shareOptions.map((option) => (
           <TouchableOpacity
@@ -248,7 +255,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       {/* Native Share Button */}
       <Button
         variant="primary"
-        title="Diğer Uygulamalar"
+        title={t('shareModal.otherApps')}
         onPress={handleNativeShare}
         icon="share-social"
         style={styles.shareButton}
@@ -261,12 +268,12 @@ export const ShareModal: React.FC<ShareModalProps> = ({
           onPress={() => {
             const embedCode = `<iframe src="${shareUrl}/embed" width="100%" height="400" frameborder="0"></iframe>`;
             Clipboard.setString(embedCode);
-            setSnackbar({ visible: true, message: 'Embed kodu kopyalandı!' });
+            setSnackbar({ visible: true, message: t('shareModal.embedCopied') });
           }}
         >
           <MaterialCommunityIcons name="code-tags" size={20} color={colors.primary[600]!} />
           <Text style={styles.embedText}>
-            Web sitesi için embed kodu kopyala
+            {t('shareModal.embedCopyCta')}
           </Text>
         </TouchableOpacity>
       )}

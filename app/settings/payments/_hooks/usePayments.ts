@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
@@ -12,6 +13,7 @@ import type { Payment } from '../_lib/types';
  * snackbar. Lifted verbatim from the monolithic screen (§12).
  */
 export function usePayments() {
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -34,18 +36,18 @@ export function usePayments() {
   });
 
   const handleCancel = (id: string) => {
-    appAlert('Ödemeyi İptal Et', 'Bu bekleyen ödemeyi iptal etmek istediğinize emin misiniz?', [
-      { text: 'Vazgeç', style: 'cancel' },
+    appAlert(t('payment.cancelTitle'), t('payment.cancelConfirm'), [
+      { text: t('discount.discard'), style: 'cancel' },
       {
-        text: 'İptal Et',
+        text: t('payment.cancelAction'),
         style: 'destructive',
         onPress: async () => {
           try {
             await paymentsApi.cancel(id);
-            setSnackbar({ visible: true, message: 'Ödeme iptal edildi' });
+            setSnackbar({ visible: true, message: t('payment.cancelled') });
             queryClient.invalidateQueries({ queryKey: ['my-payments'] });
           } catch (e: any) {
-            appAlert('Hata', e?.response?.data?.message || 'Ödeme iptal edilemedi.');
+            appAlert(t('common.error'), e?.response?.data?.message || t('payment.cancelFailed'));
           }
         },
       },
@@ -53,10 +55,10 @@ export function usePayments() {
   };
 
   const handleRetry = (id: string) => {
-    appAlert('Ödemeyi Yeniden Dene', 'Bu ödeme için tekrar deneme yapılacak.', [
-      { text: 'Vazgeç', style: 'cancel' },
+    appAlert(t('payment.retryTitle'), t('payment.retryConfirm'), [
+      { text: t('discount.discard'), style: 'cancel' },
       {
-        text: 'Devam',
+        text: t('common.continueShort'),
         onPress: async () => {
           try {
             const response: any = await paymentsApi.retry(id);
@@ -64,11 +66,11 @@ export function usePayments() {
             if (url) {
               router.push({ pathname: '/payment/[id]', params: { id, paymentUrl: url } } as any);
             } else {
-              setSnackbar({ visible: true, message: 'Yeniden deneme başlatıldı' });
+              setSnackbar({ visible: true, message: t('payment.retryStarted') });
               queryClient.invalidateQueries({ queryKey: ['my-payments'] });
             }
           } catch (e: any) {
-            appAlert('Hata', e?.response?.data?.message || 'Yeniden denenemedi.');
+            appAlert(t('common.error'), e?.response?.data?.message || t('payment.retryFailed'));
           }
         },
       },

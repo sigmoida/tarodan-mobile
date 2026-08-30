@@ -22,6 +22,8 @@ type Filters = Record<string, unknown> | undefined;
 export const qk = {
   auth: {
     corporateInvitation: (token: string) => ['auth', 'corporate-invitation', token] as const,
+    /** Kayıt sırasında debounce edilmiş kullanıcı adı uygunluğu sorgusu. */
+    usernameAvailability: (username: string) => ['auth', 'username-availability', username] as const,
   },
 
   products: {
@@ -49,6 +51,13 @@ export const qk = {
     /** Prefix roots for invalidation (match every filtered variant). */
     listingsAll: ["listings"] as const,
     myListingsAll: ["my-listings"] as const,
+  },
+
+  shipping: {
+    /** Kargo paket kademesi tarifesi (public) — ilan formundaki üç kart. */
+    packageTiers: ["shipping", "package-tiers"] as const,
+    /** Siparişin kargo kaydı. 404 = kargo yok (hata değil). */
+    byOrder: (orderId: string) => ["shipping", "order", orderId] as const,
   },
 
   catalog: {
@@ -83,6 +92,11 @@ export const qk = {
     all: ["trades"] as const,
     list: (filters?: Filters) => ["trades", "list", filters] as const,
     detail: (id: string) => ["trade", id] as const,
+    /** Takas ödeme dökümü (v2 fiyatlama) — v1 takasta boş gövde döner. */
+    paymentQuote: (id: string) => ["trade", id, "payment-quote"] as const,
+    /** Kaydedilmemiş teklifin canlı fiyatı — teklif oluşturma ekranı. */
+    previewQuote: (mine: unknown, theirs: unknown, cash: number, payer: string) =>
+      ["trade", "preview-quote", mine, theirs, cash, payer] as const,
     statusCounts: ["trades-status-counts"] as const,
     /** Profil menüsü rozeti: yanıt bekleyen takas sayısı. */
     pendingCount: ["trades", "pending-count"] as const,
@@ -105,6 +119,8 @@ export const qk = {
 
   membership: {
     all: ["membership"] as const,
+    /** Üyelik katmanları + fiyatları (checkout ekranı). */
+    tiers: ["membership-tiers"] as const,
     me: ["membership-me"] as const,
     discounts: ["my-discounts"] as const,
     discountProducts: ["my-products-for-discount"] as const,
@@ -117,6 +133,10 @@ export const qk = {
   },
 
   user: {
+    /** İşletme paneli istatistikleri (yalnız kurumsal hesap). */
+    businessStats: ["business-stats"] as const,
+    /** 2FA açık mı — kaynak TwoFactorSecret.isEnabled, user nesnesinde yok. */
+    twoFactorStatus: ["two-factor-status"] as const,
     detail: (id: string) => ["user", id] as const,
     stats: (id?: string) => ["user-stats", id] as const,
     /** Prefix root — invalidate every user-stats variant (with/without id). */
@@ -151,6 +171,8 @@ export const qk = {
 
   notifications: {
     unread: ["notifications-unread"] as const,
+    /** Bildirim listesi + okunmamış sayısı (tek sorgu, ikisi birlikte gelir). */
+    list: ["notifications", "list"] as const,
   },
 
   favorites: {
@@ -171,7 +193,11 @@ export const qk = {
   },
 
   checkout: {
-    quote: (sig: string) => ["checkout-quote", sig] as const,
+    /** `couponCode` anahtara dahildir — kupon değişince (uygulanınca/kaldırılınca)
+     *  quote tazelenmeli, aksi halde sunucu indirimi hesaba katmadan eski toplamı
+     *  gösteririz. */
+    quote: (sig: string, couponCode?: string) =>
+      ["checkout-quote", sig, couponCode ?? null] as const,
   },
 
   support: {

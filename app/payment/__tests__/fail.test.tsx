@@ -34,7 +34,7 @@ function infoFixture(overrides: Record<string, unknown> = {}) {
   return {
     id: 'pay-1',
     status: 'failed',
-    order: { id: 'order-1', orderNumber: 'TRD-1001' },
+    order: { id: 'order-1', orderNumber: 'ORD-1001000000' },
     ...overrides,
   };
 }

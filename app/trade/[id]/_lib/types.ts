@@ -9,12 +9,47 @@ export interface TradeShipment {
   trackingNumber?: string | null;
   status?: string | null;
   carrier?: string | null;
+  /**
+   * Gerçek taşıyıcı kodu — takip bununla yapılır.
+   *
+   * `trackingNumber` Tarodan'ın İÇ referansı (`TKS-…`); Sürat onu tanımaz ve
+   * alıcıya gösterilmez. Ayrım sipariş tarafında `deriveShipmentView` ile
+   * çözülüyor, takas tarafı bu alanı hiç bildirmediği için o yardımcıya
+   * bağlanamıyordu.
+   */
+  cargoCode?: string | null;
+  /** Sunucunun aynı bilgiyi taşıyan diğer adı; `deriveShipmentView` ikisini de okur. */
+  providerTrackingId?: string | null;
+  provider?: string | null;
 }
 
 export interface TradeCashPayment {
   id?: string;
+  /** v2: bu satırı ödeyen taraf. v1 tekil kayıtta yok. */
+  payerId?: string;
+  /** v2'de string|null — yalnız nakit fark taşıyan satırda dolu. */
+  recipientId?: string | null;
+  /** Ham nakit fark; borçlu olmayan tarafın satırında 0. */
   amount?: number;
+  /** v2: hizmet bedeli (KDV DAHİL; kampanya varsa İNDİRİM SONRASI tutar). */
+  tradeFeeAmount?: number;
+  /**
+   * Hizmet bedeli kampanyasının bu satıra verdiği indirim (İ25).
+   *
+   * Staging'de ölçüldü (2026-08-26): alan `cashPayments[]` satırının İÇİNDE
+   * dönüyor — `TradeResponseDto`'nun okunuşunun aksine takasın kökünde DEĞİL.
+   * Örnek gövdede `0`; kampanya uygulanmış bir takas bulunamadı, o yüzden
+   * dolu bir örnek üzerinde doğrulanmadı.
+   *
+   * `tradeFeeAmount` zaten indirilmiş tutar olduğu için bu alan yalnız
+   * BİLGİLENDİRME satırıdır — hiçbir toplamdan tekrar düşülmez.
+   */
+  tradeFeeDiscountAmount?: number;
+  /** v2: bu tarafın 2 bacaklık kargo bedeli. */
+  shippingAmount?: number;
+  /** v1 kalıntısı — v2 satırlarında her zaman 0. */
   commission?: number;
+  /** PayTR'nin çektiği tutar. v2'de amount + tradeFeeAmount + shippingAmount. */
   totalAmount?: number;
   status?: string;
   paidAt?: string | null;
@@ -67,6 +102,8 @@ export interface Trade {
   items?: TradeItem[];
   shipments?: TradeShipment[];
   cashPayment?: TradeCashPayment | null;
+  /** v2: her zaman var, kabulden önce []. İki satırlı olması v2 işaretidir. */
+  cashPayments?: TradeCashPayment[];
   cashCommission?: number | null;
   paymentDeadline?: string | null;
   shippingDeadline?: string | null;

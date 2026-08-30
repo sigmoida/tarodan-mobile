@@ -4,7 +4,8 @@ import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { theme } from '@/ui';
 import { api } from '@/lib/api';
-import { toMobileRoute } from '../utils/notificationRoute';
+import i18n from '@/i18n/config';
+import { notificationRoute } from '../utils/notificationRoute';
 
 const { colors } = theme;
 
@@ -111,31 +112,34 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   // Configure notification channel for Android
+  // Kanal adları Android sistem ayarlarında kullanıcıya gösterilir — React
+  // dışı bir modülüz, `paytrDirectForm.ts` ile aynı desen: global `i18n`'den
+  // ÇAĞRI ANINDA (registerForPushNotifications her çalıştığında) okunur.
   if (Platform.OS === 'android' && Notifications) {
     try {
       await Notifications.setNotificationChannelAsync('default', {
-        name: 'Varsayılan',
+        name: i18n.t('common.default'),
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: colors.danger[500],
       });
 
       await Notifications.setNotificationChannelAsync('trades', {
-        name: 'Takaslar',
+        name: i18n.t('nav.trades'),
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: colors.success[500],
       });
 
       await Notifications.setNotificationChannelAsync('messages', {
-        name: 'Mesajlar',
+        name: i18n.t('message.messages'),
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: colors.info[500],
       });
 
       await Notifications.setNotificationChannelAsync('orders', {
-        name: 'Siparişler',
+        name: i18n.t('notification.filterOrders'),
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: colors.warning[500],
@@ -188,87 +192,30 @@ export function addNotificationResponseReceivedListener(
 }
 
 /**
- * Resolve a push payload (`notification.request.content.data`) into a route
- * and navigate via Expo Router. Backend persists `notification.link` (e.g.
- * `/products/unavailable/<id>`); we honor that first, then fall back to the
- * known `type` enum so missing-link payloads still route correctly.
+ * Push payload'unu (`notification.request.content.data`) rotaya çevirip gezinir.
+ * Karar TEK katmanda (`@/utils/notificationRoute`) — uygulama içi liste de aynı
+ * fonksiyonu çağırır. Burada ikinci bir sıralama tutmak, push tap ile liste
+ * tap'inin aynı bildirimde farklı ekranlara gitmesine yol açıyordu (2026-08-11
+ * ölçümü).
  */
 export function routeFromNotification(data: any): void {
   try {
-    if (data?.link && typeof data.link === 'string') {
-      // Backend link'leri WEB rotaları için interpole edilir (ör.
-      // /messages?thread=<id>). Mobilde geçerli rotaya çevir; aksi halde
-      // /messages?thread=<id> gibi linkler boş ekran açıyordu. Eşleşme yoksa
-      // data.type tabanlı fallback'e düş.
-      const mobileRoute = toMobileRoute(data.link);
-      if (mobileRoute) {
-        router.push(mobileRoute as any);
-        return;
-      }
-    }
-    switch (data?.type) {
-      case 'order_cancelled_out_of_stock':
-      case 'offer_cancelled_out_of_stock':
-      case 'back_in_stock': {
-        const productId = data?.productId ?? data?.product_id;
-        if (productId) {
-          router.push(`/products/unavailable/${productId}` as any);
-        } else {
-          router.push('/(tabs)/notifications' as any);
-        }
-        return;
-      }
-      case 'order_reservation_released':
-      case 'order_cancelled': {
-        const orderId = data?.orderId ?? data?.order_id;
-        if (orderId) {
-          router.push(`/orders/${orderId}` as any);
-        } else {
-          router.push('/orders' as any);
-        }
-        return;
-      }
-      default:
-        break;
-    }
-
-    // Genel id-tabanlı fallback — backend push payload'unda link/type tam
-    // olmasa bile orderId/tradeId/offerId/threadId/productId/collectionId/userId
-    // gönderiyor. app/(tabs)/notifications.tsx routeForNotification ile aynı sıra.
-    const idRoute = routeFromData(data);
-    if (idRoute) {
-      router.push(idRoute as any);
+    // Push payload'u bildirim kaydının DÜZLEŞTİRİLMİŞ hâli: `type`/`link` ve
+    // kimlikler aynı nesnede gelir, `data` sarmalayıcısı yoktur. Çözümleyici
+    // ikisini de aynı şekilde okusun diye nesne hem `data` hem üst seviye verilir.
+    const target = notificationRoute({ type: data?.type, link: data?.link, data });
+    if (target) {
+      router.push(target as any);
       return;
     }
 
+    // Push'ta hedef çözülemezse bildirim listesi makul iniş noktası: kullanıcı
+    // zaten bildirime dokunarak uygulamayı açtı, boş ekranda bırakılmamalı.
+    // (Uygulama içi listede karşılığı "gezinme yok" — orada zaten listedesin.)
     router.push('/(tabs)/notifications' as any);
   } catch (err) {
     console.log('routeFromNotification failed:', (err as any)?.message);
   }
-}
-
-/**
- * data içindeki ilgili-varlık id'lerinden mobil rota türetir. Eşleştirme sırası
- * ve hedefler app/(tabs)/notifications.tsx içindeki routeForNotification ile bire
- * bir aynı tutulmalı (push tap ile in-app tap aynı yere gitsin).
- */
-function routeFromData(data: any): string | null {
-  if (!data) return null;
-  const orderId = data.orderId ?? data.order_id;
-  const tradeId = data.tradeId ?? data.trade_id;
-  const offerId = data.offerId ?? data.offer_id;
-  const threadId = data.threadId ?? data.thread_id;
-  const productId = data.productId ?? data.product_id;
-  const collectionId = data.collectionId ?? data.collection_id;
-  const userId = data.userId ?? data.user_id;
-  if (orderId) return `/orders/${orderId}`;
-  if (tradeId) return `/trade/${tradeId}`;
-  if (offerId) return `/offers/${offerId}`;
-  if (threadId) return `/messages/${threadId}`;
-  if (productId) return `/product/${productId}`;
-  if (collectionId) return `/collections/${collectionId}`;
-  if (userId) return `/seller/${userId}`;
-  return null;
 }
 
 /**

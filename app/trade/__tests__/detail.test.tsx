@@ -40,6 +40,7 @@ jest.mock("@/lib/api", () => ({
     confirmReceipt: jest.fn(),
     cancel: jest.fn(),
     raiseDispute: jest.fn(),
+    getPaymentQuote: jest.fn(() => Promise.resolve({ data: {} })),
   },
   paymentsApi: { initiateTradeCash: jest.fn() },
 }));
@@ -55,7 +56,10 @@ jest.mock("@/components/common", () => ({
 // Bu ekran useAuthStore().user'a göre initiator/receiver ayrımı yapar.
 let mockUser: { id: string } | null = { id: "user-receiver" };
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => ({ user: mockUser }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ user: mockUser });
+    return sel ? sel(state) : state;
+  },
 }));
 
 import TradeDetailScreen from "../[id]";
@@ -99,15 +103,15 @@ describe("J5 · Takas detayı durum rozetleri", () => {
     mockUser = { id: "user-receiver" };
   });
 
-  it('J5.1 takas numarası ve "Bekliyor" rozeti gösterilir', async () => {
+  it('J5.1 takas numarası ve bekleme rozeti gösterilir', async () => {
     getOneMock.mockResolvedValue({
       data: { data: tradeFixture({ status: "pending" }) },
     });
     renderWithProviders(<TradeDetailScreen />);
     await waitFor(() =>
-      expect(screen.getAllByText("Bekliyor").length).toBeGreaterThan(0),
+      expect(screen.getAllByText("trade.statusPending").length).toBeGreaterThan(0),
     );
-    expect(screen.getAllByText("Takas #TKS-501").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("trade.tradeNumberTitle").length).toBeGreaterThan(0);
   });
 
   it('J5.2 accepted → "Kabul Edildi" rozeti', async () => {
@@ -116,35 +120,38 @@ describe("J5 · Takas detayı durum rozetleri", () => {
     });
     renderWithProviders(<TradeDetailScreen />);
     await waitFor(() =>
-      expect(screen.getAllByText("Kabul Edildi").length).toBeGreaterThan(0),
+      expect(screen.getAllByText("trade.statusAccepted").length).toBeGreaterThan(0),
     );
   });
 
-  it('J5.3 shipping_to_warehouse → "Depoya Gönderim" rozeti', async () => {
+  it('J5.3 shipping_to_warehouse → depo rozeti', async () => {
     getOneMock.mockResolvedValue({
       data: { data: tradeFixture({ status: "shipping_to_warehouse" }) },
     });
     renderWithProviders(<TradeDetailScreen />);
     await waitFor(() =>
-      expect(screen.getAllByText("Depoya Gönderim").length).toBeGreaterThan(0),
+      expect(screen.getAllByText("trade.statusShippingToWarehouse").length).toBeGreaterThan(0),
     );
   });
 
-  it('J5.4 returning → "İade Sürecinde" rozeti + iade banner', async () => {
+  // Etiket katalogdan geliyor artık: aynı durum detayda "İade Sürecinde",
+  // rozette "İade Yolda", katalogda "trade.statusReturning" yazıyordu — üç farklı
+  // kelime. Tek kaynak katalog.
+  it('J5.4 returning → iade rozeti + iade banner', async () => {
     getOneMock.mockResolvedValue({
       data: { data: tradeFixture({ status: "returning" }) },
     });
     renderWithProviders(<TradeDetailScreen />);
     await waitFor(() =>
-      expect(screen.getAllByText("İade Sürecinde").length).toBeGreaterThan(0),
+      expect(screen.getAllByText("trade.statusReturning").length).toBeGreaterThan(0),
     );
-    expect(screen.getByText("Takas Reddedildi")).toBeOnTheScreen();
+    expect(screen.getByText("trade.returningBannerTitle")).toBeOnTheScreen();
   });
 
   it("J5.5 takas bulunamazsa hata durumu gösterilir", async () => {
     getOneMock.mockRejectedValue(new Error("not found"));
     renderWithProviders(<TradeDetailScreen />);
-    expect(await screen.findByText("Takas bulunamadı")).toBeOnTheScreen();
+    expect(await screen.findByText("trade.notFoundTitle")).toBeOnTheScreen();
   });
 });
 
@@ -161,9 +168,9 @@ describe("J5 · Aksiyon buton görünürlüğü", () => {
       data: { data: tradeFixture({ status: "pending" }) },
     });
     renderWithProviders(<TradeDetailScreen />);
-    await waitFor(() => expect(screen.getByText("Kabul Et")).toBeOnTheScreen());
-    expect(screen.getByText("Karşı Teklif")).toBeOnTheScreen();
-    expect(screen.getByText("Reddet")).toBeOnTheScreen();
+    await waitFor(() => expect(screen.getByText("trade.acceptTrade")).toBeOnTheScreen());
+    expect(screen.getByText("trade.counterOffer")).toBeOnTheScreen();
+    expect(screen.getByText("trade.rejectTrade")).toBeOnTheScreen();
   });
 
   it("J5.7 initiator + pending → Kabul Et butonu görünmez", async () => {
@@ -173,9 +180,9 @@ describe("J5 · Aksiyon buton görünürlüğü", () => {
     });
     renderWithProviders(<TradeDetailScreen />);
     await waitFor(() =>
-      expect(screen.getAllByText("Takas #TKS-501").length).toBeGreaterThan(0),
+      expect(screen.getAllByText("trade.tradeNumberTitle").length).toBeGreaterThan(0),
     );
-    expect(screen.queryByText("Kabul Et")).toBeNull();
+    expect(screen.queryByText("trade.acceptTrade")).toBeNull();
   });
 
   it('J5.9 receiver + pending → "Teklifi İptal Et" görünmez (aksiyonu Reddet)', async () => {
@@ -183,7 +190,7 @@ describe("J5 · Aksiyon buton görünürlüğü", () => {
       data: { data: tradeFixture({ status: "pending", canCancel: true }) },
     });
     renderWithProviders(<TradeDetailScreen />);
-    await waitFor(() => expect(screen.getByText("Reddet")).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText("trade.rejectTrade")).toBeOnTheScreen());
     expect(screen.queryByText("trade.cancel.offerCta")).toBeNull();
   });
 
@@ -196,7 +203,7 @@ describe("J5 · Aksiyon buton görünürlüğü", () => {
     await waitFor(() =>
       expect(screen.getByText("trade.cancel.offerCta")).toBeOnTheScreen(),
     );
-    expect(screen.queryByText("Reddet")).toBeNull();
+    expect(screen.queryByText("trade.rejectTrade")).toBeNull();
   });
 
   it('J5.8 "Karşı Teklif" → router.push counter ekranına', async () => {
@@ -205,9 +212,9 @@ describe("J5 · Aksiyon buton görünürlüğü", () => {
     });
     renderWithProviders(<TradeDetailScreen />);
     await waitFor(() =>
-      expect(screen.getByText("Karşı Teklif")).toBeOnTheScreen(),
+      expect(screen.getByText("trade.counterOffer")).toBeOnTheScreen(),
     );
-    fireEvent.press(screen.getByText("Karşı Teklif"));
+    fireEvent.press(screen.getByText("trade.counterOffer"));
     expect(mockPush).toHaveBeenCalledWith("/trade/counter/trade-1");
   });
 });
@@ -250,7 +257,7 @@ describe("J7 · Ödeme butonu wiring", () => {
     renderWithProviders(<TradeDetailScreen />);
     await waitFor(() =>
       expect(
-        screen.getByText("Karşı tarafın nakit fark ödemesi bekleniyor."),
+        screen.getByText("trade.waitingCounterpartyPayment"),
       ).toBeOnTheScreen(),
     );
     expect(screen.queryByTestId("cash-pay-button")).toBeNull();
@@ -283,5 +290,48 @@ describe("J7 · Ödeme butonu wiring", () => {
         }),
       ),
     );
+  });
+});
+
+/**
+ * İlerleme çubuğunun "Ödeme" adımı — v2'de eşit takasta bile vardır.
+ *
+ * `hasCash` eskiden `trade.cashAmount > 0`'dan türüyordu: eşit v2 takasta adım
+ * listeden düşüyor, `awaiting_payment` bulunamayınca çubuk "Kabul Edildi"yi
+ * aktif gösteriyordu — kullanıcı ödeme butonunu görürken çubuk ödeme diye bir
+ * aşama olmadığını söylüyordu. Kaynak artık `view.hasPaymentStep`.
+ */
+describe("Takas ilerleme çubuğu · ödeme adımı", () => {
+  const V2_ROWS = [
+    { id: "c1", payerId: "user-receiver", amount: 0, tradeFeeAmount: 120, shippingAmount: 190, commission: 0, totalAmount: 310, status: "pending" },
+    { id: "c2", payerId: "user-initiator", amount: 0, tradeFeeAmount: 120, shippingAmount: 190, commission: 0, totalAmount: 310, status: "pending" },
+  ];
+
+  beforeEach(() => {
+    getOneMock.mockReset();
+    mockPush.mockReset();
+    mockParams = { id: "trade-1" };
+    mockUser = { id: "user-receiver" };
+  });
+
+  it('eşit v2 takasta (cashAmount yok) "Ödeme" adımı çizilir', async () => {
+    getOneMock.mockResolvedValue({
+      data: {
+        data: tradeFixture({ status: "awaiting_payment", cashAmount: null, cashPayments: V2_ROWS }),
+      },
+    });
+    renderWithProviders(<TradeDetailScreen />);
+    expect(await screen.findByText("trade.stepPayment")).toBeOnTheScreen();
+  });
+
+  it('v1 nakitsiz takasta "Ödeme" adımı çizilmez (eski davranış korunur)', async () => {
+    getOneMock.mockResolvedValue({
+      data: { data: tradeFixture({ status: "awaiting_payment", cashAmount: null }) },
+    });
+    renderWithProviders(<TradeDetailScreen />);
+    await waitFor(() =>
+      expect(screen.getAllByText("trade.tradeNumberTitle").length).toBeGreaterThan(0),
+    );
+    expect(screen.queryByText("trade.stepPayment")).toBeNull();
   });
 });

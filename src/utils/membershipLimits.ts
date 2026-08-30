@@ -3,6 +3,7 @@
  * Provides helper functions for checking user membership limits and permissions
  */
 
+import type { TFunction } from 'i18next';
 import { theme } from '@/ui';
 import { useAuthStore, MembershipTier, MembershipLimits } from '../stores/authStore';
 
@@ -145,58 +146,61 @@ export const getUpgradePrompt = (action: FeatureCheck): UpgradePromptType | null
   }
 };
 
-// Get upgrade message based on prompt type
-export const getUpgradeMessage = (promptType: UpgradePromptType): { title: string; message: string } => {
+// Get upgrade message based on prompt type. `t` MUST come from a live
+// useTranslation()/schemaT call at the call site — this module is shared and
+// cannot resolve its own translator (see CLAUDE.md §8, membershipLimits is
+// state/logic, not a component/hook).
+export const getUpgradeMessage = (t: TFunction, promptType: UpgradePromptType): { title: string; message: string } => {
   switch (promptType) {
     case 'listingLimit':
       return {
-        title: 'İlan Limitine Ulaştınız',
-        message: 'Sınırsız ilan vermek için Premium üyeliğe geçin.',
+        title: t('upgradePrompt.listingLimitTitle'),
+        message: t('upgradePrompt.listingLimitMessage'),
       };
     case 'tradeFeature':
       return {
-        title: 'Takas Özelliği',
-        message: 'Takas tekliflerinde bulunmak için Premium üyeliğe geçin.',
+        title: t('trade.featureTitle'),
+        message: t('upgradePrompt.tradeFeatureMessage'),
       };
     case 'collectionFeature':
       return {
-        title: 'Dijital Garaj',
-        message: 'Koleksiyonlarınızı sergilemek için Premium üyeliğe geçin.',
+        title: t('membership.featureDigitalGarage'),
+        message: t('upgradePrompt.collectionFeatureMessage'),
       };
     case 'featureListing':
       return {
-        title: 'Öne Çıkarılan İlanlar',
-        message: 'İlanlarınızı öne çıkarmak için Premium üyeliğe geçin.',
+        title: t('upgradePrompt.featureListingTitle'),
+        message: t('upgradePrompt.featureListingMessage'),
       };
     case 'messageLimit':
       return {
-        title: 'Günlük Mesaj Limiti',
-        message: 'Sınırsız mesaj göndermek için Premium üyeliğe geçin.',
+        title: t('upgradePrompt.messageLimitTitle'),
+        message: t('upgradePrompt.messageLimitMessage'),
       };
     case 'addressLimit':
       return {
-        title: 'Adres Limiti',
-        message: 'Daha fazla adres kaydetmek için Premium üyeliğe geçin.',
+        title: t('address.limitTitle'),
+        message: t('address.limitBody', { max: FREE_MEMBER_LIMITS.maxAddresses }),
       };
     case 'savedSearchLimit':
       return {
-        title: 'Kayıtlı Arama Limiti',
-        message: 'Sınırsız arama kaydetmek için Premium üyeliğe geçin.',
+        title: t('membership.savedSearchLimitTitle'),
+        message: t('membership.savedSearchLimitMessage'),
       };
     case 'imageLimit':
       return {
-        title: 'Resim Limiti',
-        message: 'Daha fazla resim yüklemek için Premium üyeliğe geçin.',
+        title: t('upgradePrompt.imageLimitTitle'),
+        message: t('upgradePrompt.imageLimitMessage'),
       };
     case 'valueLimit':
       return {
-        title: 'Fiyat Limiti',
-        message: 'Daha yüksek değerli ilanlar vermek için Premium üyeliğe geçin.',
+        title: t('membership.valueLimitTitle'),
+        message: t('membership.valueLimitMessage'),
       };
     default:
       return {
-        title: 'Premium Özellik',
-        message: 'Bu özelliği kullanmak için Premium üyeliğe geçin.',
+        title: t('membership.premiumFeatureTitle'),
+        message: t('membership.premiumFeatureMessage'),
       };
   }
 };
@@ -245,25 +249,25 @@ export const getVerificationCriteria = (): VerificationCriteria => {
   };
 };
 
-// Get tier display info
-export const getTierDisplayInfo = (tier: MembershipTier): { name: string; color: string; icon: string } => {
+// Get tier display info. `t` from a live useTranslation()/schemaT (see note above).
+export const getTierDisplayInfo = (t: TFunction, tier: MembershipTier): { name: string; color: string; icon: string } => {
   switch (tier) {
     case 'free':
-      return { name: 'Ücretsiz Üye', color: colors.gray[500], icon: 'account' };
+      return { name: t('membership.memberLabelFree'), color: colors.gray[500], icon: 'account' };
     case 'basic':
-      return { name: 'Temel Üye', color: colors.info[600]!, icon: 'account-check' };
+      return { name: t('membership.memberLabelBasic'), color: colors.info[600]!, icon: 'account-check' };
     case 'premium':
-      return { name: 'Premium Üye', color: colors.primary[500], icon: 'crown' };
+      return { name: t('membership.memberLabelPremium'), color: colors.primary[500], icon: 'crown' };
     case 'business':
-      return { name: 'Kurumsal', color: colors.primary[700], icon: 'domain' };
+      return { name: t('footer.corporate'), color: colors.primary[700], icon: 'domain' };
     default:
-      return { name: 'Üye', color: colors.gray[500], icon: 'account' };
+      return { name: t('membership.memberLabelDefault'), color: colors.gray[500], icon: 'account' };
   }
 };
 
-// Format limit value for display
-export const formatLimit = (value: number): string => {
-  if (value === -1) return 'Sınırsız';
+// Format limit value for display. `t` from a live useTranslation()/schemaT.
+export const formatLimit = (t: TFunction, value: number): string => {
+  if (value === -1) return t('membership.unlimited');
   return value.toString();
 };
 

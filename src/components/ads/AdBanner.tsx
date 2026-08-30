@@ -63,7 +63,24 @@ function AdSlot({ ad }: { ad: ActiveAd }) {
  * Verilen konumdaki reklamlar — reklam yoksa veya üye reklamsızsa hiç çizilmez.
  */
 export function AdBanner({ position = 'header' }: { position?: string }) {
-  const { ads } = useAds(position);
+  const { ads, isAdFree, isLoading } = useAds(position);
+
+  // Reklamsız üyede yer ayırma — kalıcı boş kutu göstermiş oluruz.
+  if (isAdFree) return null;
+
+  // Query çözülmeden liste boş kalır; yer ayırmazsak reklam gelince akış
+  // ~110-130pt aşağı kayar (kullanıcı tam o an ekranın üstüne bakıyor).
+  // FALLBACK_ASPECT ile rezerve ediyoruz — gerçek reklamın oranı farklıysa
+  // yükleme sonrası küçük bir ikinci kayma kalabilir; bunu ortadan kaldırmak
+  // sunucudan önden boyut bilmeyi gerektirir, kapsam dışı.
+  if (isLoading) {
+    return (
+      <View style={styles.container} testID="ad-banner-slot-reserved">
+        <View style={[styles.slot, { aspectRatio: FALLBACK_ASPECT }]} />
+      </View>
+    );
+  }
+
   if (ads.length === 0) return null;
 
   return (

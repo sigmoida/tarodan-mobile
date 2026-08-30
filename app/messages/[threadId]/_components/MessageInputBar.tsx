@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, TextInput as RNTextInput, Image as RNImage } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Spinner, Text, theme } from '@/ui';
 
 import { styles } from '../_lib/styles';
@@ -10,6 +11,7 @@ const { colors } = theme;
 
 /** Pending-image preview bar + attach/text/send input row. */
 export function MessageInputBar({ f }: { f: MessageThreadController }) {
+  const { t } = useTranslation();
   return (
     <>
       {/* Seçilen foto önizlemesi — gönder butonuyla onaylanana dek bekler */}
@@ -21,13 +23,13 @@ export function MessageInputBar({ f }: { f: MessageThreadController }) {
             resizeMode="cover"
           />
           <Text style={styles.pendingImageText} numberOfLines={1}>
-            Fotoğraf gönderilmeye hazır
+            {t('message.pendingImageReady')}
           </Text>
           <TouchableOpacity
             style={styles.pendingImageRemove}
             onPress={() => f.setPendingImage(null)}
             disabled={f.uploadingImage || f.sending}
-            accessibilityLabel="Fotoğrafı kaldır"
+            accessibilityLabel={t('message.removeImage')}
           >
             <Ionicons name="close-circle" size={24} color={colors.text.muted} />
           </TouchableOpacity>
@@ -57,10 +59,13 @@ export function MessageInputBar({ f }: { f: MessageThreadController }) {
         <View style={styles.inputWrapper}>
           <RNTextInput
             style={styles.textInput}
-            placeholder={f.canSend ? 'Mesajınızı yazın...' : 'Mesaj limiti doldu'}
+            placeholder={f.canSend ? t('message.typeMessage') : t('message.messageLimitReached')}
             placeholderTextColor={colors.text.subtle}
             value={f.inputText}
-            onChangeText={f.setInputText}
+            onChangeText={(text) => {
+              f.setInputText(text);
+              f.notifyTyping();
+            }}
             multiline
             maxLength={1000}
             editable={f.canSend && !f.uploadingImage}

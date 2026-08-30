@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import { productsApi } from '@/lib/api';
 import { useProductFilterOptions } from '@/hooks/useProductFilterOptions';
 import {
   EMPTY_FILTERS,
-  SORT_OPTIONS,
+  buildSortOptions,
   buildListParams,
   countActiveFilters,
   extractListings,
@@ -22,6 +23,7 @@ const PAGE_SIZE = 24;
  * and the modal visibility flags. Lifted verbatim from the monolithic screen (§12).
  */
 export function useListings() {
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{
     brand?: string;
     scale?: string;
@@ -95,10 +97,11 @@ export function useListings() {
     setSearchQuery('');
   };
 
+  const sortOptions = useMemo(() => buildSortOptions(t), [t]);
   const getSortLabel = () =>
-    SORT_OPTIONS.find((o) => o.value === filters.sortBy)?.label || 'Sırala';
+    sortOptions.find((o) => o.value === filters.sortBy)?.label || t('product.sortBy');
 
-  const activeChips = buildActiveChips(filters, setFilters);
+  const activeChips = buildActiveChips(filters, setFilters, t);
 
   return {
     filters,

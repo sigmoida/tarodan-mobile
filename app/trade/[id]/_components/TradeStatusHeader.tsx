@@ -1,14 +1,14 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Card, Text, Button, StatusBadge, theme, tradeStatusConfig } from '@/ui';
+import { Card, Text, Button, StatusBadge, theme } from '@/ui';
+import { useTradeStatusConfig } from '@/lib/shared/tradeStatus';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import {
-  TRADE_STATUSES,
-  STATUS_DESCRIPTIONS,
-  NEW_STATUS_KEYS,
+  useTradeStatusDetail,
+  buildStatusDescriptions,
   STEP_FLOW_STATUSES,
   deadlineForStatus,
   formatCountdown,
@@ -19,15 +19,37 @@ import type { Trade, TFn } from '../_lib/types';
 const { colors } = theme;
 
 /** Üst statü blokları: banner + açıklama + geri sayım + stepper + tamamlandı/depo/iade kartları. */
-export function TradeStatusHeader({ trade, t, now }: { trade: Trade; t: TFn; now: number }) {
-  const statusInfoBase =
-    TRADE_STATUSES[trade.status as keyof typeof TRADE_STATUSES] || TRADE_STATUSES.pending;
-  const statusInfo = NEW_STATUS_KEYS[trade.status]
-    ? { ...statusInfoBase, label: t(NEW_STATUS_KEYS[trade.status]) }
-    : statusInfoBase;
-  const hasBadge = !!tradeStatusConfig[trade.status];
+export function TradeStatusHeader({
+  trade,
+  t,
+  now,
+  hasPaymentStep,
+}: {
+  trade: Trade;
+  t: TFn;
+  now: number;
+  /**
+   * `view.hasPaymentStep` (tek kaynak `_lib/derive.ts`). v2'de eşit takasta bile
+   * ödeme aşaması vardır; buradaki eski `cashAmount > 0` türetmesi
+   * `awaiting_payment`'ı adım listesinden düşürüp çubuğu yanlış adımda
+   * gösteriyordu.
+   */
+  hasPaymentStep: boolean;
+}) {
+  // Etiket/renk/ikon TEK kaynaktan, çevrilmiş hâlde.
+  const statusDetail = useTradeStatusDetail();
+  const statusInfoBase = statusDetail[trade.status] ?? statusDetail.pending!;
+  // `NEW_STATUS_KEYS` override'ı KALDIRILDI: paylaşılan harita zaten her durum
+  // için katalog anahtarı taşıyor, override ikinci bir anahtar seti
+  // (`trade.tradeStatus.*` vs `trade.status*`) ve dolayısıyla ikinci bir kelime
+  // seti yaratıyordu ("Depoya Gönderim" / "Depoya Gönderiliyor").
+  const statusInfo = statusInfoBase;
+  // Rozet de aynı tek kaynaktan — banner ile rozet farklı kelime göstermesin.
+  const badgeConfig = useTradeStatusConfig();
+  const hasBadge = !!badgeConfig[trade.status];
   const countdown = formatCountdown(deadlineForStatus(trade), now);
-  const statusDescription = STATUS_DESCRIPTIONS[trade.status];
+  const statusDescriptions = buildStatusDescriptions(t);
+  const statusDescription = statusDescriptions[trade.status];
 
   return (
     <>
@@ -35,7 +57,7 @@ export function TradeStatusHeader({ trade, t, now }: { trade: Trade; t: TFn; now
       <View style={[styles.statusBanner, { backgroundColor: statusInfo.color + '15' }]}>
         <Ionicons name={statusInfo.icon as any} size={24} color={statusInfo.color} />
         <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
-        {hasBadge ? <StatusBadge status={trade.status} config={tradeStatusConfig} size="sm" /> : null}
+        {hasBadge ? <StatusBadge status={trade.status} config={badgeConfig} size="sm" /> : null}
       </View>
 
       {/* Status description — özel kartı olan statülerde tekrar olmasın diye gizlenir. */}
@@ -45,7 +67,7 @@ export function TradeStatusHeader({ trade, t, now }: { trade: Trade; t: TFn; now
             <Text variant="bodySm" tone="body">{statusDescription}</Text>
             {trade.cancelReason && (trade.status === 'cancelled' || trade.status === 'rejected') ? (
               <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[1] }}>
-                Sebep: {trade.cancelReason}
+                {t('common.reason')}: {trade.cancelReason}
               </Text>
             ) : null}
           </View>
@@ -57,7 +79,7 @@ export function TradeStatusHeader({ trade, t, now }: { trade: Trade; t: TFn; now
           <Ionicons name="time-outline" size={20} color={colors.primary[600]!} />
           <View style={{ flex: 1 }}>
             <Text style={styles.countdownText}>{countdown}</Text>
-            <Text variant="caption" tone="muted">Lütfen süre dolmadan işleminizi tamamlayın</Text>
+            <Text variant="caption" tone="muted">{t('trade.countdownHint')}</Text>
           </View>
         </View>
       )}
@@ -65,10 +87,7 @@ export function TradeStatusHeader({ trade, t, now }: { trade: Trade; t: TFn; now
       {/* Progress Stepper (depo-escrow akışı) */}
       {STEP_FLOW_STATUSES.has(trade.status) && (
         <Card style={styles.card}>
-          <TradeProgressStepper
-            status={trade.status}
-            hasCash={trade.cashAmount != null && Number(trade.cashAmount) > 0}
-          />
+          <TradeProgressStepper status={trade.status} hasCash={hasPaymentStep} />
         </Card>
       )}
 
@@ -77,30 +96,30 @@ export function TradeStatusHeader({ trade, t, now }: { trade: Trade; t: TFn; now
         <Card style={{ ...styles.card, ...styles.completedCard }}>
           <View style={styles.completedHeader}>
             <Ionicons name="checkmark-done-circle" size={28} color={colors.success[600]!} />
-            <Text variant="h3" style={{ color: colors.success[700]!, flex: 1 }}>Takas Tamamlandı</Text>
+            <Text variant="h3" style={{ color: colors.success[700]!, flex: 1 }}>{t('trade.completedSummaryTitle')}</Text>
           </View>
           <Text variant="caption" tone="muted" style={{ marginBottom: theme.spacing[3] }}>
-            Takas başarıyla tamamlandı. İyi günlerde kullanın!
+            {t('trade.completedSummaryDesc')}
           </Text>
           <View style={styles.summaryDateRow}>
-            <Text variant="caption" tone="muted">Oluşturuldu</Text>
+            <Text variant="caption" tone="muted">{t('trade.createdAt')}</Text>
             <Text variant="bodySm">{format(new Date(trade.createdAt), 'd MMM yyyy', { locale: tr })}</Text>
           </View>
           {trade.acceptedAt ? (
             <View style={styles.summaryDateRow}>
-              <Text variant="caption" tone="muted">Kabul Edildi</Text>
+              <Text variant="caption" tone="muted">{t('trade.statusAccepted')}</Text>
               <Text variant="bodySm">{format(new Date(trade.acceptedAt), 'd MMM yyyy', { locale: tr })}</Text>
             </View>
           ) : null}
           {trade.completedAt ? (
             <View style={styles.summaryDateRow}>
-              <Text variant="caption" tone="muted">Tamamlandı</Text>
+              <Text variant="caption" tone="muted">{t('trade.statusCompleted')}</Text>
               <Text variant="bodySm">{format(new Date(trade.completedAt), 'd MMM yyyy', { locale: tr })}</Text>
             </View>
           ) : null}
           <View style={styles.completedActions}>
-            <Button variant="outline" title="Takaslarım" onPress={() => router.replace('/trades' as any)} style={{ flex: 1 }} />
-            <Button variant="primary" title="İlanlara Göz At" onPress={() => router.push('/search')} style={{ flex: 1 }} />
+            <Button variant="outline" title={t('trade.myTrades')} onPress={() => router.replace('/trades' as any)} style={{ flex: 1 }} />
+            <Button variant="primary" title={t('mobile.guestBrowseListings')} onPress={() => router.push('/search')} style={{ flex: 1 }} />
           </View>
         </Card>
       )}
@@ -113,9 +132,9 @@ export function TradeStatusHeader({ trade, t, now }: { trade: Trade; t: TFn; now
               <Ionicons name="shield-checkmark" size={22} color={colors.white} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text variant="label" style={{ color: colors.info[700]! }}>Ürünleriniz Tarodan Deposunda</Text>
+              <Text variant="label" style={{ color: colors.info[700]! }}>{t('trade.warehouseBannerTitle')}</Text>
               <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[0.5] }}>
-                Ekibimiz ürünleri inceliyor. İnceleme tamamlandığında bilgilendirileceksiniz.
+                {t('trade.warehouseBannerDesc')}
               </Text>
             </View>
           </View>
@@ -130,10 +149,10 @@ export function TradeStatusHeader({ trade, t, now }: { trade: Trade; t: TFn; now
               <Ionicons name="return-up-back" size={22} color={colors.white} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text variant="label" style={{ color: colors.warning[800]! }}>Takas Reddedildi</Text>
-              <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[0.5] }}>Ürünleriniz size iade ediliyor.</Text>
+              <Text variant="label" style={{ color: colors.warning[800]! }}>{t('trade.returningBannerTitle')}</Text>
+              <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[0.5] }}>{t('trade.returningBannerDesc')}</Text>
               {trade.cancelReason ? (
-                <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[1] }}>Sebep: {trade.cancelReason}</Text>
+                <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[1] }}>{t('common.reason')}: {trade.cancelReason}</Text>
               ) : null}
             </View>
           </View>

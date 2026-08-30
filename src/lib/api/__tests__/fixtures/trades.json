@@ -1,0 +1,1061 @@
+{
+  "_meta": {
+    "capturedAt": "2026-08-27",
+    "account": "ahmet@demo.com",
+    "endpoints": [
+      "GET /trades?limit=5",
+      "GET /trades/:id"
+    ]
+  },
+  "list": {
+    "trades": [
+      {
+        "id": "c3300977-08cd-4bd4-9ea7-c49bfe5588da",
+        "tradeNumber": "TKS-Z49XB93WJ6",
+        "initiatorId": "2a882a6f-5a80-4024-95cc-77ef421c39cf",
+        "initiatorName": "REDACTED",
+        "receiverId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "receiverName": "REDACTED",
+        "status": "cancelled",
+        "initiatorItems": [
+          {
+            "id": "e8514efd-0770-453c-b182-7dbd60328ed1",
+            "productId": "d22c10ef-90a5-48f9-bdf7-ebf11d97140a",
+            "productTitle": "Mini GT 1/64 Volkswagen ID. Buzz Prototype \"Rainbow\"",
+            "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/temp/146949e5-5fdd-4e6b-9913-809e8ad570e7-card.webp",
+            "productImages": [
+              {
+                "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/temp/146949e5-5fdd-4e6b-9913-809e8ad570e7-card.webp",
+                "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/temp/146949e5-5fdd-4e6b-9913-809e8ad570e7-detail.webp"
+              }
+            ],
+            "side": "initiator",
+            "quantity": 1,
+            "valueAtTrade": 10000
+          }
+        ],
+        "receiverItems": [
+          {
+            "id": "531f5d01-2d4b-46a6-aa8c-f5a4dda696cb",
+            "productId": "57ebfe79-e79b-43e6-ae87-c3c97b7bedbb",
+            "productTitle": "Majorette Porsche Martini Racing",
+            "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/57ebfe79-e79b-43e6-ae87-c3c97b7bedbb/9cf11f58-158e-4f65-8e48-96cc82048dca-card.webp",
+            "productImages": [
+              {
+                "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/57ebfe79-e79b-43e6-ae87-c3c97b7bedbb/9cf11f58-158e-4f65-8e48-96cc82048dca-card.webp",
+                "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/57ebfe79-e79b-43e6-ae87-c3c97b7bedbb/9cf11f58-158e-4f65-8e48-96cc82048dca-detail.webp"
+              }
+            ],
+            "side": "receiver",
+            "quantity": 1,
+            "valueAtTrade": 34999
+          }
+        ],
+        "cashAmount": 500,
+        "cashPayerId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "responseDeadline": "2026-08-08T11:45:47.631Z",
+        "paymentDeadline": "2026-08-07T11:45:58.846Z",
+        "shipments": [],
+        "cashPayments": [
+          {
+            "id": "d3ac9b47-be4d-4d0c-b405-b47dcecf7016",
+            "payerId": "2a882a6f-5a80-4024-95cc-77ef421c39cf",
+            "recipientId": null,
+            "amount": 0,
+            "tradeFeeAmount": 200,
+            "tradeFeeDiscountAmount": 0,
+            "shippingAmount": 200,
+            "commission": 0,
+            "totalAmount": 400,
+            "status": "pending",
+            "paidAt": null
+          },
+          {
+            "id": "4824e452-531c-4ed4-b530-409ea275290d",
+            "payerId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+            "recipientId": "2a882a6f-5a80-4024-95cc-77ef421c39cf",
+            "amount": 500,
+            "tradeFeeAmount": 200,
+            "tradeFeeDiscountAmount": 0,
+            "shippingAmount": 200,
+            "commission": 0,
+            "totalAmount": 900,
+            "status": "refunded",
+            "paidAt": "2026-08-05T11:46:15.052Z"
+          }
+        ],
+        "cashPayment": {
+          "id": "4824e452-531c-4ed4-b530-409ea275290d",
+          "payerId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+          "recipientId": "2a882a6f-5a80-4024-95cc-77ef421c39cf",
+          "amount": 500,
+          "tradeFeeAmount": 200,
+          "tradeFeeDiscountAmount": 0,
+          "shippingAmount": 200,
+          "commission": 0,
+          "totalAmount": 900,
+          "status": "refunded",
+          "paidAt": "2026-08-05T11:46:15.052Z"
+        },
+        "acceptedAt": "2026-08-05T11:45:58.846Z",
+        "cancelledAt": "2026-08-07T11:50:00.161Z",
+        "cancelReason": "Süre dolumu nedeniyle otomatik iptal",
+        "firstWarehouseArrivalAt": null,
+        "canCancel": false,
+        "version": 3,
+        "createdAt": "2026-08-05T11:45:16.045Z",
+        "updatedAt": "2026-08-07T11:50:00.942Z"
+      },
+      {
+        "id": "efeec5f8-2c0b-4aa6-b29f-3018b4809146",
+        "tradeNumber": "TKS-9MQEWD2FKR",
+        "initiatorId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "initiatorName": "REDACTED",
+        "receiverId": "2a882a6f-5a80-4024-95cc-77ef421c39cf",
+        "receiverName": "REDACTED",
+        "status": "cancelled",
+        "initiatorItems": [
+          {
+            "id": "37f35d57-15ef-4ba7-be4e-c58cdc7a3dc2",
+            "productId": "bdc9fc73-e8c5-4127-90a9-e6315ab5b586",
+            "productTitle": "Greenlight Pontiac GTO Judge",
+            "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/bdc9fc73-e8c5-4127-90a9-e6315ab5b586/8f462ed1-9ccc-4b09-8150-2e222c931c23-card.webp",
+            "productImages": [
+              {
+                "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/bdc9fc73-e8c5-4127-90a9-e6315ab5b586/8f462ed1-9ccc-4b09-8150-2e222c931c23-card.webp",
+                "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/bdc9fc73-e8c5-4127-90a9-e6315ab5b586/8f462ed1-9ccc-4b09-8150-2e222c931c23-detail.webp"
+              }
+            ],
+            "side": "initiator",
+            "quantity": 1,
+            "valueAtTrade": 14999
+          }
+        ],
+        "receiverItems": [
+          {
+            "id": "e4ad5f10-4c57-4fb3-a7f2-d73490172f86",
+            "productId": "5bc69161-56d9-4d85-8860-8aeed20078ee",
+            "productTitle": "Mini GT 1/64 Hyundai Ioniq 5N MINI GT RS-01T 2025 Tokyo Auto Salon MGT01098",
+            "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/temp/d994f743-dd5b-45a2-af88-0a64e58ac816-card.webp",
+            "productImages": [
+              {
+                "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/temp/d994f743-dd5b-45a2-af88-0a64e58ac816-card.webp",
+                "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/temp/d994f743-dd5b-45a2-af88-0a64e58ac816-detail.webp"
+              }
+            ],
+            "side": "receiver",
+            "quantity": 1,
+            "valueAtTrade": 7500
+          }
+        ],
+        "responseDeadline": "2026-08-08T11:40:15.108Z",
+        "paymentDeadline": "2026-08-07T11:40:59.520Z",
+        "shippingDeadline": "2026-08-12T11:41:58.261Z",
+        "initiatorShipment": {
+          "id": "e6146672-9b67-4f51-b5a5-5355f910e977",
+          "shipperId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+          "shipperName": "REDACTED",
+          "carrier": "surat",
+          "trackingNumber": "TKS-9MQEWD2FKR-WH-INI",
+          "cargoCode": "12516210181141",
+          "status": "cancelled",
+          "shippedAt": null,
+          "deliveredAt": null,
+          "confirmedAt": null
+        },
+        "receiverShipment": {
+          "id": "53e049ad-cd3f-40d7-8fa9-1d7365acd676",
+          "shipperId": "2a882a6f-5a80-4024-95cc-77ef421c39cf",
+          "shipperName": "REDACTED",
+          "carrier": "surat",
+          "trackingNumber": null,
+          "status": "cancelled",
+          "shippedAt": null,
+          "deliveredAt": null,
+          "confirmedAt": null
+        },
+        "shipments": [
+          {
+            "id": "e6146672-9b67-4f51-b5a5-5355f910e977",
+            "direction": "to_warehouse",
+            "senderUserId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+            "carrier": "surat",
+            "trackingNumber": "TKS-9MQEWD2FKR-WH-INI",
+            "cargoCode": "12516210181141",
+            "status": "cancelled"
+          },
+          {
+            "id": "53e049ad-cd3f-40d7-8fa9-1d7365acd676",
+            "direction": "to_warehouse",
+            "senderUserId": "2a882a6f-5a80-4024-95cc-77ef421c39cf",
+            "carrier": "surat",
+            "status": "cancelled"
+          }
+        ],
+        "cashPayments": [
+          {
+            "id": "8c7f90c8-2753-4839-813c-e4ccf5114df8",
+            "payerId": "2a882a6f-5a80-4024-95cc-77ef421c39cf",
+            "recipientId": null,
+            "amount": 0,
+            "tradeFeeAmount": 200,
+            "tradeFeeDiscountAmount": 0,
+            "shippingAmount": 200,
+            "commission": 0,
+            "totalAmount": 400,
+            "status": "refunded",
+            "paidAt": "2026-08-05T11:41:36.769Z"
+          },
+          {
+            "id": "01b15ff8-0e7f-468f-b954-b214a76aa8fc",
+            "payerId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+            "recipientId": null,
+            "amount": 0,
+            "tradeFeeAmount": 200,
+            "tradeFeeDiscountAmount": 0,
+            "shippingAmount": 200,
+            "commission": 0,
+            "totalAmount": 400,
+            "status": "refunded",
+            "paidAt": "2026-08-05T11:41:58.255Z"
+          }
+        ],
+        "cashPayment": {
+          "id": "8c7f90c8-2753-4839-813c-e4ccf5114df8",
+          "payerId": "2a882a6f-5a80-4024-95cc-77ef421c39cf",
+          "recipientId": null,
+          "amount": 0,
+          "tradeFeeAmount": 200,
+          "tradeFeeDiscountAmount": 0,
+          "shippingAmount": 200,
+          "commission": 0,
+          "totalAmount": 400,
+          "status": "refunded",
+          "paidAt": "2026-08-05T11:41:36.769Z"
+        },
+        "acceptedAt": "2026-08-05T11:40:59.520Z",
+        "cancelledAt": "2026-08-12T11:45:00.159Z",
+        "cancelReason": "Süre dolumu nedeniyle otomatik iptal",
+        "firstWarehouseArrivalAt": null,
+        "canCancel": false,
+        "version": 3,
+        "createdAt": "2026-08-05T11:40:15.118Z",
+        "updatedAt": "2026-08-12T11:45:01.440Z"
+      },
+      {
+        "id": "97cf9178-3e8c-45db-9c92-88c748571dbd",
+        "tradeNumber": "TKS-QMGCMW2PEE",
+        "initiatorId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "initiatorName": "REDACTED",
+        "receiverId": "2152e919-03e5-4945-8195-4b8078257bba",
+        "receiverName": "REDACTED",
+        "status": "admin_reviewing",
+        "initiatorItems": [
+          {
+            "id": "feb3bd76-08d4-4e87-a602-01abe8e483b5",
+            "productId": "d710c82f-dc6f-4c5a-ba8f-80c9669b7e22",
+            "productTitle": "Matchbox 007 Aston Martin DB5",
+            "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-card.webp",
+            "productImages": [
+              {
+                "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-card.webp",
+                "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-detail.webp"
+              }
+            ],
+            "side": "initiator",
+            "quantity": 1,
+            "valueAtTrade": 499
+          }
+        ],
+        "receiverItems": [
+          {
+            "id": "23bcf133-494f-4c39-b03d-d47ba07c64b3",
+            "productId": "2f94ed9b-efbe-4445-8b77-703824c790a1",
+            "productTitle": "AUTOart Mercedes 300SL Gullwing 1:18",
+            "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2f94ed9b-efbe-4445-8b77-703824c790a1/036b6acd-a750-4c00-8be3-9672a29a650b-card.webp",
+            "productImages": [
+              {
+                "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2f94ed9b-efbe-4445-8b77-703824c790a1/036b6acd-a750-4c00-8be3-9672a29a650b-card.webp",
+                "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2f94ed9b-efbe-4445-8b77-703824c790a1/036b6acd-a750-4c00-8be3-9672a29a650b-detail.webp"
+              }
+            ],
+            "side": "receiver",
+            "quantity": 1,
+            "valueAtTrade": 499
+          }
+        ],
+        "initiatorMessage": "AUTOart Mercedes 300SL Gullwing 1:18 için Matchbox 007 Aston Martin DB5 modelimi takas etmek istiyorum.",
+        "responseDeadline": "2026-08-06T07:21:24.539Z",
+        "shipments": [],
+        "cashPayments": [],
+        "acceptedAt": "2026-08-04T07:21:24.539Z",
+        "firstWarehouseArrivalAt": null,
+        "canCancel": false,
+        "version": 1,
+        "createdAt": "2026-08-04T07:21:24.539Z",
+        "updatedAt": "2026-08-05T07:21:24.539Z"
+      },
+      {
+        "id": "b562ea66-8642-425d-9976-ebf11f994341",
+        "tradeNumber": "TKS-HAAWFRTV52",
+        "initiatorId": "a1376658-3e1e-42a4-93de-733f167b26cc",
+        "initiatorName": "REDACTED",
+        "receiverId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "receiverName": "REDACTED",
+        "status": "completed",
+        "initiatorItems": [
+          {
+            "id": "7c587335-3d9b-4530-997b-1613373e7931",
+            "productId": "2d64698d-8459-43db-b449-583e5834f01f",
+            "productTitle": "Hot Wheels Ferrari 275 GTB",
+            "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2d64698d-8459-43db-b449-583e5834f01f/1ff11264-b52a-4e62-b12e-ab6721ae8ded-card.webp",
+            "productImages": [
+              {
+                "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2d64698d-8459-43db-b449-583e5834f01f/1ff11264-b52a-4e62-b12e-ab6721ae8ded-card.webp",
+                "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2d64698d-8459-43db-b449-583e5834f01f/1ff11264-b52a-4e62-b12e-ab6721ae8ded-detail.webp"
+              }
+            ],
+            "side": "initiator",
+            "quantity": 1,
+            "valueAtTrade": 474
+          }
+        ],
+        "receiverItems": [
+          {
+            "id": "5c080713-7ac0-4477-aa23-2f9393830ca8",
+            "productId": "d710c82f-dc6f-4c5a-ba8f-80c9669b7e22",
+            "productTitle": "Matchbox 007 Aston Martin DB5",
+            "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-card.webp",
+            "productImages": [
+              {
+                "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-card.webp",
+                "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-detail.webp"
+              }
+            ],
+            "side": "receiver",
+            "quantity": 1,
+            "valueAtTrade": 474
+          }
+        ],
+        "cashCommission": 0,
+        "initiatorMessage": "Merhaba! Matchbox 007 Aston Martin DB5 için Hot Wheels Ferrari 275 GTB modelimi takas etmek istiyorum. İlgilenirseniz dönüş yapabilir misiniz?",
+        "responseDeadline": "2026-08-06T07:21:21.310Z",
+        "initiatorShipment": {
+          "id": "d2eda1ca-ba7c-402e-acca-a3458011e852",
+          "shipperId": "a1376658-3e1e-42a4-93de-733f167b26cc",
+          "shipperName": "REDACTED",
+          "carrier": "surat",
+          "trackingNumber": "TKS-HAAWFRTV52-WH-INI",
+          "status": "delivered",
+          "shippedAt": "2026-08-05T07:21:21.685Z",
+          "deliveredAt": "2026-08-07T07:21:21.685Z",
+          "confirmedAt": null
+        },
+        "receiverShipment": {
+          "id": "82d3cff9-05da-4ad4-892e-a0fc22cd2e43",
+          "shipperId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+          "shipperName": "REDACTED",
+          "carrier": "surat",
+          "trackingNumber": "TKS-HAAWFRTV52-WH-REC",
+          "status": "delivered",
+          "shippedAt": "2026-08-03T07:21:21.685Z",
+          "deliveredAt": "2026-08-05T07:21:21.685Z",
+          "confirmedAt": null
+        },
+        "shipments": [
+          {
+            "id": "d2eda1ca-ba7c-402e-acca-a3458011e852",
+            "direction": "to_warehouse",
+            "senderUserId": "a1376658-3e1e-42a4-93de-733f167b26cc",
+            "carrier": "surat",
+            "trackingNumber": "TKS-HAAWFRTV52-WH-INI",
+            "status": "delivered",
+            "shippedAt": "2026-08-05T07:21:21.685Z",
+            "deliveredAt": "2026-08-07T07:21:21.685Z"
+          },
+          {
+            "id": "9e305bed-8489-4040-8c9c-a0e041783097",
+            "direction": "from_warehouse",
+            "senderUserId": "6d703dca-67a1-46b3-b010-7288e175112e",
+            "recipientUserId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+            "carrier": "surat",
+            "trackingNumber": "TKS-HAAWFRTV52-REC",
+            "status": "delivered",
+            "shippedAt": "2026-07-30T07:21:21.685Z",
+            "deliveredAt": "2026-08-01T07:21:21.685Z"
+          },
+          {
+            "id": "b2adb38b-5cf3-46d0-8428-a07a595534f5",
+            "direction": "to_warehouse",
+            "senderUserId": "a1376658-3e1e-42a4-93de-733f167b26cc",
+            "carrier": "surat",
+            "trackingNumber": "TKS-HAAWFRTV52-WH-INI",
+            "status": "picked_up",
+            "shippedAt": "2026-08-04T07:21:21.686Z"
+          },
+          {
+            "id": "82d3cff9-05da-4ad4-892e-a0fc22cd2e43",
+            "direction": "to_warehouse",
+            "senderUserId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+            "carrier": "surat",
+            "trackingNumber": "TKS-HAAWFRTV52-WH-REC",
+            "status": "delivered",
+            "shippedAt": "2026-08-03T07:21:21.685Z",
+            "deliveredAt": "2026-08-05T07:21:21.685Z"
+          }
+        ],
+        "cashPayments": [
+          {
+            "id": "ed88117c-1fac-4ee8-8d10-dc88685dbacd",
+            "payerId": "a1376658-3e1e-42a4-93de-733f167b26cc",
+            "recipientId": null,
+            "amount": 0,
+            "tradeFeeAmount": 200,
+            "tradeFeeDiscountAmount": 0,
+            "shippingAmount": 200,
+            "commission": 0,
+            "totalAmount": 400,
+            "status": "completed",
+            "paidAt": "2026-08-04T07:21:21.335Z"
+          },
+          {
+            "id": "5cd1039d-5954-42a0-87d2-ba87a8947bdd",
+            "payerId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+            "recipientId": null,
+            "amount": 0,
+            "tradeFeeAmount": 200,
+            "tradeFeeDiscountAmount": 0,
+            "shippingAmount": 200,
+            "commission": 0,
+            "totalAmount": 400,
+            "status": "completed",
+            "paidAt": "2026-08-04T07:21:21.345Z"
+          }
+        ],
+        "cashPayment": {
+          "id": "ed88117c-1fac-4ee8-8d10-dc88685dbacd",
+          "payerId": "a1376658-3e1e-42a4-93de-733f167b26cc",
+          "recipientId": null,
+          "amount": 0,
+          "tradeFeeAmount": 200,
+          "tradeFeeDiscountAmount": 0,
+          "shippingAmount": 200,
+          "commission": 0,
+          "totalAmount": 400,
+          "status": "completed",
+          "paidAt": "2026-08-04T07:21:21.335Z"
+        },
+        "acceptedAt": "2026-08-05T07:21:21.310Z",
+        "completedAt": "2026-08-04T07:21:21.310Z",
+        "firstWarehouseArrivalAt": null,
+        "canCancel": false,
+        "version": 1,
+        "createdAt": "2026-08-04T07:21:21.310Z",
+        "updatedAt": "2026-08-05T07:21:21.331Z"
+      },
+      {
+        "id": "12012f5e-4d1b-43c8-87fe-c644ea5dde24",
+        "tradeNumber": "TKS-P5HKS96CC2",
+        "initiatorId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "initiatorName": "REDACTED",
+        "receiverId": "2152e919-03e5-4945-8195-4b8078257bba",
+        "receiverName": "REDACTED",
+        "status": "cancelled",
+        "initiatorItems": [
+          {
+            "id": "ad6b1ad4-6340-4a9c-a095-b99dd18f07eb",
+            "productId": "d710c82f-dc6f-4c5a-ba8f-80c9669b7e22",
+            "productTitle": "Matchbox 007 Aston Martin DB5",
+            "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-card.webp",
+            "productImages": [
+              {
+                "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-card.webp",
+                "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-detail.webp"
+              }
+            ],
+            "side": "initiator",
+            "quantity": 1,
+            "valueAtTrade": 499
+          }
+        ],
+        "receiverItems": [
+          {
+            "id": "e09c54ac-5f18-48ba-a6ce-83f050430e57",
+            "productId": "2f94ed9b-efbe-4445-8b77-703824c790a1",
+            "productTitle": "AUTOart Mercedes 300SL Gullwing 1:18",
+            "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2f94ed9b-efbe-4445-8b77-703824c790a1/036b6acd-a750-4c00-8be3-9672a29a650b-card.webp",
+            "productImages": [
+              {
+                "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2f94ed9b-efbe-4445-8b77-703824c790a1/036b6acd-a750-4c00-8be3-9672a29a650b-card.webp",
+                "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2f94ed9b-efbe-4445-8b77-703824c790a1/036b6acd-a750-4c00-8be3-9672a29a650b-detail.webp"
+              }
+            ],
+            "side": "receiver",
+            "quantity": 1,
+            "valueAtTrade": 499
+          }
+        ],
+        "cashAmount": 150,
+        "cashPayerId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "cashCommission": 7.5,
+        "initiatorMessage": "AUTOart Mercedes 300SL Gullwing 1:18 için Matchbox 007 Aston Martin DB5 modelimi takas etmek istiyorum.",
+        "responseDeadline": "2026-08-08T07:21:24.520Z",
+        "paymentDeadline": "2026-08-06T07:21:24.520Z",
+        "shipments": [],
+        "cashPayments": [
+          {
+            "id": "b2f9029d-55b9-41c6-8917-b7578dfae470",
+            "payerId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+            "recipientId": "2152e919-03e5-4945-8195-4b8078257bba",
+            "amount": 150,
+            "tradeFeeAmount": 0,
+            "tradeFeeDiscountAmount": 0,
+            "shippingAmount": 0,
+            "commission": 7.5,
+            "totalAmount": 157.5,
+            "status": "pending",
+            "paidAt": null
+          }
+        ],
+        "cashPayment": {
+          "id": "b2f9029d-55b9-41c6-8917-b7578dfae470",
+          "payerId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+          "recipientId": "2152e919-03e5-4945-8195-4b8078257bba",
+          "amount": 150,
+          "tradeFeeAmount": 0,
+          "tradeFeeDiscountAmount": 0,
+          "shippingAmount": 0,
+          "commission": 7.5,
+          "totalAmount": 157.5,
+          "status": "pending",
+          "paidAt": null
+        },
+        "acceptedAt": "2026-08-03T07:21:24.520Z",
+        "cancelledAt": "2026-08-06T07:25:00.107Z",
+        "cancelReason": "Süre dolumu nedeniyle otomatik iptal",
+        "firstWarehouseArrivalAt": null,
+        "canCancel": false,
+        "version": 1,
+        "createdAt": "2026-08-03T07:21:24.520Z",
+        "updatedAt": "2026-08-06T07:25:00.449Z"
+      },
+      {
+        "id": "b2122b73-cc8e-48be-9fd9-a3e29dac5ae9",
+        "tradeNumber": "TKS-5HGBYAHH28",
+        "initiatorId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "initiatorName": "REDACTED",
+        "receiverId": "2152e919-03e5-4945-8195-4b8078257bba",
+        "receiverName": "REDACTED",
+        "status": "at_warehouse",
+        "initiatorItems": [
+          {
+            "id": "46d7803f-59c3-4ff1-8e18-fc50dea9096c",
+            "productId": "d710c82f-dc6f-4c5a-ba8f-80c9669b7e22",
+            "productTitle": "Matchbox 007 Aston Martin DB5",
+            "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-card.webp",
+            "productImages": [
+              {
+                "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-card.webp",
+                "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-detail.webp"
+              }
+            ],
+            "side": "initiator",
+            "quantity": 1,
+            "valueAtTrade": 499
+          }
+        ],
+        "receiverItems": [
+          {
+            "id": "3710c07c-a4db-49f3-b320-52d17f604299",
+            "productId": "2f94ed9b-efbe-4445-8b77-703824c790a1",
+            "productTitle": "AUTOart Mercedes 300SL Gullwing 1:18",
+            "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2f94ed9b-efbe-4445-8b77-703824c790a1/036b6acd-a750-4c00-8be3-9672a29a650b-card.webp",
+            "productImages": [
+              {
+                "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2f94ed9b-efbe-4445-8b77-703824c790a1/036b6acd-a750-4c00-8be3-9672a29a650b-card.webp",
+                "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2f94ed9b-efbe-4445-8b77-703824c790a1/036b6acd-a750-4c00-8be3-9672a29a650b-detail.webp"
+              }
+            ],
+            "side": "receiver",
+            "quantity": 1,
+            "valueAtTrade": 499
+          }
+        ],
+        "initiatorMessage": "AUTOart Mercedes 300SL Gullwing 1:18 için Matchbox 007 Aston Martin DB5 modelimi takas etmek istiyorum.",
+        "responseDeadline": "2026-08-08T07:21:24.531Z",
+        "shipments": [],
+        "cashPayments": [],
+        "acceptedAt": "2026-08-02T07:21:24.531Z",
+        "firstWarehouseArrivalAt": "2026-08-05T07:21:24.530Z",
+        "canCancel": false,
+        "version": 1,
+        "createdAt": "2026-08-01T07:21:24.531Z",
+        "updatedAt": "2026-08-05T07:21:24.532Z"
+      },
+      {
+        "id": "145abe9e-8b8e-4ba9-98d0-a6d51efffe33",
+        "tradeNumber": "TKS-8KY22EZK2T",
+        "initiatorId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "initiatorName": "REDACTED",
+        "receiverId": "5a79aed4-ad6f-4c45-a085-c275df24bd4b",
+        "receiverName": "REDACTED",
+        "status": "rejected",
+        "initiatorItems": [
+          {
+            "id": "304e300b-f6d7-45b7-a97d-0da70a2a6028",
+            "productId": "bdc9fc73-e8c5-4127-90a9-e6315ab5b586",
+            "productTitle": "Greenlight Pontiac GTO Judge",
+            "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/bdc9fc73-e8c5-4127-90a9-e6315ab5b586/8f462ed1-9ccc-4b09-8150-2e222c931c23-card.webp",
+            "productImages": [
+              {
+                "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/bdc9fc73-e8c5-4127-90a9-e6315ab5b586/8f462ed1-9ccc-4b09-8150-2e222c931c23-card.webp",
+                "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/bdc9fc73-e8c5-4127-90a9-e6315ab5b586/8f462ed1-9ccc-4b09-8150-2e222c931c23-detail.webp"
+              }
+            ],
+            "side": "initiator",
+            "quantity": 1,
+            "valueAtTrade": 7749
+          }
+        ],
+        "receiverItems": [
+          {
+            "id": "fb295f52-661c-47c3-a275-ff6286567fbc",
+            "productId": "dbb8eee6-e34a-42fa-ab8e-c9863d4cf345",
+            "productTitle": "Hot Wheels Porsche 911 GT3 RS",
+            "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/dbb8eee6-e34a-42fa-ab8e-c9863d4cf345/c07b0ccc-ff9d-40e8-bf38-dc11895022b3-card.webp",
+            "productImages": [
+              {
+                "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/dbb8eee6-e34a-42fa-ab8e-c9863d4cf345/c07b0ccc-ff9d-40e8-bf38-dc11895022b3-card.webp",
+                "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/dbb8eee6-e34a-42fa-ab8e-c9863d4cf345/c07b0ccc-ff9d-40e8-bf38-dc11895022b3-detail.webp"
+              }
+            ],
+            "side": "receiver",
+            "quantity": 1,
+            "valueAtTrade": 7749
+          }
+        ],
+        "cashCommission": 0,
+        "initiatorMessage": "Merhaba! Hot Wheels Porsche 911 GT3 RS için Greenlight Pontiac GTO Judge modelimi takas etmek istiyorum. İlgilenirseniz dönüş yapabilir misiniz?",
+        "responseDeadline": "2026-08-07T07:21:21.431Z",
+        "shipments": [],
+        "cashPayments": [],
+        "firstWarehouseArrivalAt": null,
+        "canCancel": false,
+        "version": 1,
+        "createdAt": "2026-08-01T07:21:21.431Z",
+        "updatedAt": "2026-08-05T07:21:21.432Z"
+      },
+      {
+        "id": "d3aa6ddb-799d-4797-9574-ca76442c9df7",
+        "tradeNumber": "TKS-YDMX637CV2",
+        "initiatorId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "initiatorName": "REDACTED",
+        "receiverId": "2152e919-03e5-4945-8195-4b8078257bba",
+        "receiverName": "REDACTED",
+        "status": "disputed",
+        "initiatorItems": [
+          {
+            "id": "7e81ee43-f958-4e03-90ce-9dd58efb0999",
+            "productId": "d710c82f-dc6f-4c5a-ba8f-80c9669b7e22",
+            "productTitle": "Matchbox 007 Aston Martin DB5",
+            "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-card.webp",
+            "productImages": [
+              {
+                "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-card.webp",
+                "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-detail.webp"
+              }
+            ],
+            "side": "initiator",
+            "quantity": 1,
+            "valueAtTrade": 499
+          }
+        ],
+        "receiverItems": [
+          {
+            "id": "5216fa2e-8fb9-4c93-b779-e95e50666f5a",
+            "productId": "2f94ed9b-efbe-4445-8b77-703824c790a1",
+            "productTitle": "AUTOart Mercedes 300SL Gullwing 1:18",
+            "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2f94ed9b-efbe-4445-8b77-703824c790a1/036b6acd-a750-4c00-8be3-9672a29a650b-card.webp",
+            "productImages": [
+              {
+                "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2f94ed9b-efbe-4445-8b77-703824c790a1/036b6acd-a750-4c00-8be3-9672a29a650b-card.webp",
+                "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2f94ed9b-efbe-4445-8b77-703824c790a1/036b6acd-a750-4c00-8be3-9672a29a650b-detail.webp"
+              }
+            ],
+            "side": "receiver",
+            "quantity": 1,
+            "valueAtTrade": 499
+          }
+        ],
+        "initiatorMessage": "AUTOart Mercedes 300SL Gullwing 1:18 için Matchbox 007 Aston Martin DB5 modelimi takas etmek istiyorum.",
+        "responseDeadline": "2026-08-06T07:21:24.545Z",
+        "shipments": [],
+        "cashPayments": [],
+        "dispute": {
+          "id": "4b4641b3-7570-48bb-a5e2-44c403232ef2",
+          "raisedById": "2152e919-03e5-4945-8195-4b8078257bba",
+          "reason": "item_not_as_described",
+          "description": "Karşı taraftan gelen ürün ilan fotoğrafındakinden farklı ve hasarlı.",
+          "resolution": null,
+          "resolvedAt": null
+        },
+        "acceptedAt": "2026-08-04T07:21:24.545Z",
+        "firstWarehouseArrivalAt": null,
+        "canCancel": false,
+        "version": 1,
+        "createdAt": "2026-07-30T07:21:24.545Z",
+        "updatedAt": "2026-08-05T07:21:24.546Z"
+      },
+      {
+        "id": "2753ebf8-e631-4448-85bb-97a441d6bea4",
+        "tradeNumber": "TKS-KT3XXANZY3",
+        "initiatorId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "initiatorName": "REDACTED",
+        "receiverId": "5a79aed4-ad6f-4c45-a085-c275df24bd4b",
+        "receiverName": "REDACTED",
+        "status": "accepted",
+        "initiatorItems": [
+          {
+            "id": "fb93be49-1f1e-4e43-85e4-9a41b03aa529",
+            "productId": "d710c82f-dc6f-4c5a-ba8f-80c9669b7e22",
+            "productTitle": "Matchbox 007 Aston Martin DB5",
+            "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-card.webp",
+            "productImages": [
+              {
+                "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-card.webp",
+                "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-detail.webp"
+              }
+            ],
+            "side": "initiator",
+            "quantity": 1,
+            "valueAtTrade": 17749
+          }
+        ],
+        "receiverItems": [
+          {
+            "id": "caa6b97a-6c58-4604-9793-14f5b1bea6d7",
+            "productId": "1ecc26ed-9533-4754-bebe-8b051505ba3f",
+            "productTitle": "Tomica Limited Vintage Toyota 2000GT - Gümüş Seri",
+            "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/1ecc26ed-9533-4754-bebe-8b051505ba3f/8608159d-2ddc-49f8-8066-e2fdf8bad909-card.webp",
+            "productImages": [
+              {
+                "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/1ecc26ed-9533-4754-bebe-8b051505ba3f/8608159d-2ddc-49f8-8066-e2fdf8bad909-card.webp",
+                "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/1ecc26ed-9533-4754-bebe-8b051505ba3f/8608159d-2ddc-49f8-8066-e2fdf8bad909-detail.webp"
+              }
+            ],
+            "side": "receiver",
+            "quantity": 1,
+            "valueAtTrade": 17749
+          }
+        ],
+        "cashCommission": 0,
+        "initiatorMessage": "Merhaba! Tomica Limited Vintage Toyota 2000GT - Gümüş Seri için Matchbox 007 Aston Martin DB5 modelimi takas etmek istiyorum. İlgilenirseniz dönüş yapabilir misiniz?",
+        "responseDeadline": "2026-08-07T07:21:21.651Z",
+        "initiatorShipment": {
+          "id": "374e2895-255f-420a-8ba1-9ea48176388b",
+          "shipperId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+          "shipperName": "REDACTED",
+          "carrier": "surat",
+          "trackingNumber": "TKS-KT3XXANZY3-WH-INI",
+          "cargoCode": "85157362219948",
+          "status": "label_created",
+          "shippedAt": null,
+          "deliveredAt": null,
+          "confirmedAt": null
+        },
+        "receiverShipment": {
+          "id": "53ceffdc-451d-4a27-9bac-58928e70b593",
+          "shipperId": "5a79aed4-ad6f-4c45-a085-c275df24bd4b",
+          "shipperName": "REDACTED",
+          "carrier": "surat",
+          "trackingNumber": null,
+          "status": "label_created",
+          "shippedAt": null,
+          "deliveredAt": null,
+          "confirmedAt": null
+        },
+        "shipments": [
+          {
+            "id": "53ceffdc-451d-4a27-9bac-58928e70b593",
+            "direction": "to_warehouse",
+            "senderUserId": "5a79aed4-ad6f-4c45-a085-c275df24bd4b",
+            "carrier": "surat",
+            "status": "label_created"
+          },
+          {
+            "id": "374e2895-255f-420a-8ba1-9ea48176388b",
+            "direction": "to_warehouse",
+            "senderUserId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+            "carrier": "surat",
+            "trackingNumber": "TKS-KT3XXANZY3-WH-INI",
+            "cargoCode": "85157362219948",
+            "status": "label_created"
+          }
+        ],
+        "cashPayments": [
+          {
+            "id": "e91224bc-5ffb-4c12-869f-4f00d4ab3232",
+            "payerId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+            "recipientId": null,
+            "amount": 0,
+            "tradeFeeAmount": 200,
+            "tradeFeeDiscountAmount": 0,
+            "shippingAmount": 200,
+            "commission": 0,
+            "totalAmount": 400,
+            "status": "pending",
+            "paidAt": null
+          },
+          {
+            "id": "85572498-c0cb-4842-95d7-99c90013db3b",
+            "payerId": "5a79aed4-ad6f-4c45-a085-c275df24bd4b",
+            "recipientId": null,
+            "amount": 0,
+            "tradeFeeAmount": 200,
+            "tradeFeeDiscountAmount": 0,
+            "shippingAmount": 200,
+            "commission": 0,
+            "totalAmount": 400,
+            "status": "pending",
+            "paidAt": null
+          }
+        ],
+        "cashPayment": {
+          "id": "e91224bc-5ffb-4c12-869f-4f00d4ab3232",
+          "payerId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+          "recipientId": null,
+          "amount": 0,
+          "tradeFeeAmount": 200,
+          "tradeFeeDiscountAmount": 0,
+          "shippingAmount": 200,
+          "commission": 0,
+          "totalAmount": 400,
+          "status": "pending",
+          "paidAt": null
+        },
+        "acceptedAt": "2026-08-01T07:21:21.651Z",
+        "firstWarehouseArrivalAt": null,
+        "canCancel": true,
+        "version": 1,
+        "createdAt": "2026-07-28T07:21:21.651Z",
+        "updatedAt": "2026-08-05T07:21:21.659Z"
+      },
+      {
+        "id": "48f1e121-930e-4815-9d2e-e334b170024f",
+        "tradeNumber": "TKS-QWJBC32449",
+        "initiatorId": "2152e919-03e5-4945-8195-4b8078257bba",
+        "initiatorName": "REDACTED",
+        "receiverId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "receiverName": "REDACTED",
+        "status": "cancelled",
+        "initiatorItems": [
+          {
+            "id": "11297473-d047-45f2-8932-eebc40df984c",
+            "productId": "8c3c38d3-adb4-4ce6-a1ad-d5bc9a78de94",
+            "productTitle": "AUTOart Lamborghini Huracan 1:18",
+            "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/8c3c38d3-adb4-4ce6-a1ad-d5bc9a78de94/265b3af6-2b95-490a-a2cd-d26279643fb6-card.webp",
+            "productImages": [
+              {
+                "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/8c3c38d3-adb4-4ce6-a1ad-d5bc9a78de94/265b3af6-2b95-490a-a2cd-d26279643fb6-card.webp",
+                "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/8c3c38d3-adb4-4ce6-a1ad-d5bc9a78de94/265b3af6-2b95-490a-a2cd-d26279643fb6-detail.webp"
+              }
+            ],
+            "side": "initiator",
+            "quantity": 1,
+            "valueAtTrade": 19999
+          }
+        ],
+        "receiverItems": [
+          {
+            "id": "2090829b-1212-4184-8a31-fc49f1843636",
+            "productId": "57ebfe79-e79b-43e6-ae87-c3c97b7bedbb",
+            "productTitle": "Majorette Porsche Martini Racing",
+            "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/57ebfe79-e79b-43e6-ae87-c3c97b7bedbb/9cf11f58-158e-4f65-8e48-96cc82048dca-card.webp",
+            "productImages": [
+              {
+                "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/57ebfe79-e79b-43e6-ae87-c3c97b7bedbb/9cf11f58-158e-4f65-8e48-96cc82048dca-card.webp",
+                "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/57ebfe79-e79b-43e6-ae87-c3c97b7bedbb/9cf11f58-158e-4f65-8e48-96cc82048dca-detail.webp"
+              }
+            ],
+            "side": "receiver",
+            "quantity": 1,
+            "valueAtTrade": 19999
+          }
+        ],
+        "cashCommission": 0,
+        "initiatorMessage": "Merhaba! Majorette Porsche Martini Racing için AUTOart Lamborghini Huracan 1:18 modelimi takas etmek istiyorum. İlgilenirseniz dönüş yapabilir misiniz?",
+        "responseDeadline": "2026-08-07T07:21:21.612Z",
+        "shipments": [],
+        "cashPayments": [],
+        "cancelledAt": "2026-08-05T11:45:58.909Z",
+        "cancelReason": "Stok tükendiği için otomatik iptal edildi",
+        "firstWarehouseArrivalAt": null,
+        "canCancel": false,
+        "version": 1,
+        "createdAt": "2026-07-27T07:21:21.612Z",
+        "updatedAt": "2026-08-05T11:45:58.910Z"
+      }
+    ],
+    "total": 10,
+    "page": 1,
+    "pageSize": 20
+  },
+  "detail": {
+    "id": "b562ea66-8642-425d-9976-ebf11f994341",
+    "tradeNumber": "TKS-HAAWFRTV52",
+    "initiatorId": "a1376658-3e1e-42a4-93de-733f167b26cc",
+    "initiatorName": "REDACTED",
+    "receiverId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+    "receiverName": "REDACTED",
+    "status": "completed",
+    "initiatorItems": [
+      {
+        "id": "7c587335-3d9b-4530-997b-1613373e7931",
+        "productId": "2d64698d-8459-43db-b449-583e5834f01f",
+        "productTitle": "Hot Wheels Ferrari 275 GTB",
+        "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2d64698d-8459-43db-b449-583e5834f01f/1ff11264-b52a-4e62-b12e-ab6721ae8ded-card.webp",
+        "productImages": [
+          {
+            "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2d64698d-8459-43db-b449-583e5834f01f/1ff11264-b52a-4e62-b12e-ab6721ae8ded-card.webp",
+            "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/2d64698d-8459-43db-b449-583e5834f01f/1ff11264-b52a-4e62-b12e-ab6721ae8ded-detail.webp"
+          }
+        ],
+        "side": "initiator",
+        "quantity": 1,
+        "valueAtTrade": 474
+      }
+    ],
+    "receiverItems": [
+      {
+        "id": "5c080713-7ac0-4477-aa23-2f9393830ca8",
+        "productId": "d710c82f-dc6f-4c5a-ba8f-80c9669b7e22",
+        "productTitle": "Matchbox 007 Aston Martin DB5",
+        "productImage": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-card.webp",
+        "productImages": [
+          {
+            "cardUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-card.webp",
+            "detailUrl": "https://amzn-tarodan.s3.eu-west-1.amazonaws.com/staging/products/product-images/d710c82f-dc6f-4c5a-ba8f-80c9669b7e22/73b0a0e5-2f3a-4a62-b40e-e8a8916c7167-detail.webp"
+          }
+        ],
+        "side": "receiver",
+        "quantity": 1,
+        "valueAtTrade": 474
+      }
+    ],
+    "cashCommission": 0,
+    "initiatorMessage": "Merhaba! Matchbox 007 Aston Martin DB5 için Hot Wheels Ferrari 275 GTB modelimi takas etmek istiyorum. İlgilenirseniz dönüş yapabilir misiniz?",
+    "responseDeadline": "2026-08-06T07:21:21.310Z",
+    "initiatorShipment": {
+      "id": "d2eda1ca-ba7c-402e-acca-a3458011e852",
+      "shipperId": "a1376658-3e1e-42a4-93de-733f167b26cc",
+      "shipperName": "REDACTED",
+      "carrier": "surat",
+      "trackingNumber": "TKS-HAAWFRTV52-WH-INI",
+      "status": "delivered",
+      "shippedAt": "2026-08-05T07:21:21.685Z",
+      "deliveredAt": "2026-08-07T07:21:21.685Z",
+      "confirmedAt": null
+    },
+    "receiverShipment": {
+      "id": "82d3cff9-05da-4ad4-892e-a0fc22cd2e43",
+      "shipperId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+      "shipperName": "REDACTED",
+      "carrier": "surat",
+      "trackingNumber": "TKS-HAAWFRTV52-WH-REC",
+      "status": "delivered",
+      "shippedAt": "2026-08-03T07:21:21.685Z",
+      "deliveredAt": "2026-08-05T07:21:21.685Z",
+      "confirmedAt": null
+    },
+    "shipments": [
+      {
+        "id": "d2eda1ca-ba7c-402e-acca-a3458011e852",
+        "direction": "to_warehouse",
+        "senderUserId": "a1376658-3e1e-42a4-93de-733f167b26cc",
+        "carrier": "surat",
+        "trackingNumber": "TKS-HAAWFRTV52-WH-INI",
+        "status": "delivered",
+        "shippedAt": "2026-08-05T07:21:21.685Z",
+        "deliveredAt": "2026-08-07T07:21:21.685Z"
+      },
+      {
+        "id": "82d3cff9-05da-4ad4-892e-a0fc22cd2e43",
+        "direction": "to_warehouse",
+        "senderUserId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "carrier": "surat",
+        "trackingNumber": "TKS-HAAWFRTV52-WH-REC",
+        "status": "delivered",
+        "shippedAt": "2026-08-03T07:21:21.685Z",
+        "deliveredAt": "2026-08-05T07:21:21.685Z"
+      },
+      {
+        "id": "9e305bed-8489-4040-8c9c-a0e041783097",
+        "direction": "from_warehouse",
+        "senderUserId": "6d703dca-67a1-46b3-b010-7288e175112e",
+        "recipientUserId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "carrier": "surat",
+        "trackingNumber": "TKS-HAAWFRTV52-REC",
+        "status": "delivered",
+        "shippedAt": "2026-07-30T07:21:21.685Z",
+        "deliveredAt": "2026-08-01T07:21:21.685Z"
+      },
+      {
+        "id": "b2adb38b-5cf3-46d0-8428-a07a595534f5",
+        "direction": "to_warehouse",
+        "senderUserId": "a1376658-3e1e-42a4-93de-733f167b26cc",
+        "carrier": "surat",
+        "trackingNumber": "TKS-HAAWFRTV52-WH-INI",
+        "status": "picked_up",
+        "shippedAt": "2026-08-04T07:21:21.686Z"
+      }
+    ],
+    "cashPayments": [
+      {
+        "id": "ed88117c-1fac-4ee8-8d10-dc88685dbacd",
+        "payerId": "a1376658-3e1e-42a4-93de-733f167b26cc",
+        "recipientId": null,
+        "amount": 0,
+        "tradeFeeAmount": 200,
+        "tradeFeeDiscountAmount": 0,
+        "shippingAmount": 200,
+        "commission": 0,
+        "totalAmount": 400,
+        "status": "completed",
+        "paidAt": "2026-08-04T07:21:21.335Z"
+      },
+      {
+        "id": "5cd1039d-5954-42a0-87d2-ba87a8947bdd",
+        "payerId": "52336236-4dcb-4d6a-9995-8788c11c188d",
+        "recipientId": null,
+        "amount": 0,
+        "tradeFeeAmount": 200,
+        "tradeFeeDiscountAmount": 0,
+        "shippingAmount": 200,
+        "commission": 0,
+        "totalAmount": 400,
+        "status": "completed",
+        "paidAt": "2026-08-04T07:21:21.345Z"
+      }
+    ],
+    "cashPayment": {
+      "id": "ed88117c-1fac-4ee8-8d10-dc88685dbacd",
+      "payerId": "a1376658-3e1e-42a4-93de-733f167b26cc",
+      "recipientId": null,
+      "amount": 0,
+      "tradeFeeAmount": 200,
+      "tradeFeeDiscountAmount": 0,
+      "shippingAmount": 200,
+      "commission": 0,
+      "totalAmount": 400,
+      "status": "completed",
+      "paidAt": "2026-08-04T07:21:21.335Z"
+    },
+    "acceptedAt": "2026-08-05T07:21:21.310Z",
+    "completedAt": "2026-08-04T07:21:21.310Z",
+    "firstWarehouseArrivalAt": null,
+    "canCancel": false,
+    "version": 1,
+    "createdAt": "2026-08-04T07:21:21.310Z",
+    "updatedAt": "2026-08-05T07:21:21.331Z"
+  }
+}

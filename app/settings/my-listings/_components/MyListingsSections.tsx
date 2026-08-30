@@ -1,4 +1,6 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
+import type { MessageKey } from '@/i18n/lib';
 import { View, ScrollView, Pressable, Image } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,7 +10,7 @@ import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
 import {
   getStatusColor,
-  getStatusText,
+  statusTextKey,
   formatDate,
   getDaysUntilExpiry,
   type Listing,
@@ -21,19 +23,20 @@ const { colors } = theme;
 // Listing-quota card with progress bar
 // ---------------------------------------------------------------------------
 export function MyListingsLimitCard({ f }: { f: MyListingsController }) {
+  const { t } = useTranslation();
   const { listingLimit, currentCount } = f;
   return (
     <Card style={styles.limitCard}>
       <View style={styles.limitHeader}>
         <View>
-          <Text variant="h3">İlan Kullanımı</Text>
+          <Text variant="h3">{t('listing.usageTitle')}</Text>
           <Text variant="bodySm" style={{ color: colors.text.muted }}>
-            {listingLimit === -1 ? 'Sınırsız' : `${currentCount}/${listingLimit} ilan hakkı kullanıldı`}
+            {listingLimit === -1 ? t('listing.usageUnlimited') : t('listing.usageCount', { used: currentCount, limit: listingLimit })}
           </Text>
         </View>
         {listingLimit !== -1 && currentCount >= listingLimit - 2 && (
           <Pressable onPress={() => router.push('/upgrade')}>
-            <Text style={styles.upgradeLink}>Premium'a Geç</Text>
+            <Text style={styles.upgradeLink}>{t('address.goPremium')}</Text>
           </Pressable>
         )}
       </View>
@@ -51,25 +54,35 @@ export function MyListingsLimitCard({ f }: { f: MyListingsController }) {
 // ---------------------------------------------------------------------------
 // Status filter chips (counts from stats)
 // ---------------------------------------------------------------------------
-const FILTER_CHIPS: Array<{ value: MyListingsController['filter']; label: string; countKey: keyof MyListingsController['counts'] }> = [
-  { value: 'all', label: 'Tümü', countKey: 'all' },
-  { value: 'active', label: 'Aktif', countKey: 'active' },
-  { value: 'pending', label: 'Beklemede', countKey: 'pending' },
-  { value: 'sold', label: 'Satıldı', countKey: 'sold' },
-  { value: 'reserved', label: 'Rezerve', countKey: 'reserved' },
-  { value: 'inactive', label: 'Deaktif', countKey: 'inactive' },
-  { value: 'rejected', label: 'Reddedildi', countKey: 'rejected' },
-  { value: 'deleted', label: 'Kaldırılan', countKey: 'deleted' },
+/**
+ * Etiketler `labelKey` olarak duruyor; modül seviyesinde `t()` çağırmak metni
+ * ilk yüklenen dilde dondururdu (aynı gerekçe `_lib/types.ts`'teki
+ * `statusTextKey`'de de var).
+ */
+const FILTER_CHIPS: Array<{
+  value: MyListingsController['filter'];
+  labelKey: MessageKey;
+  countKey: keyof MyListingsController['counts'];
+}> = [
+  { value: 'all', labelKey: 'listing.filterAll', countKey: 'all' },
+  { value: 'active', labelKey: 'listing.filterActive', countKey: 'active' },
+  { value: 'pending', labelKey: 'listing.filterPending', countKey: 'pending' },
+  { value: 'sold', labelKey: 'listing.filterSold', countKey: 'sold' },
+  { value: 'reserved', labelKey: 'listing.filterReserved', countKey: 'reserved' },
+  { value: 'inactive', labelKey: 'listing.filterInactive', countKey: 'inactive' },
+  { value: 'rejected', labelKey: 'listing.filterRejected', countKey: 'rejected' },
+  { value: 'deleted', labelKey: 'listing.filterDeleted', countKey: 'deleted' },
 ];
 
 export function MyListingsFilters({ f }: { f: MyListingsController }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.filterContainer}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
         {FILTER_CHIPS.map((c) => (
           <Chip
             key={c.value}
-            label={`${c.label} (${f.counts[c.countKey]})`}
+            label={`${t(c.labelKey)} (${f.counts[c.countKey]})`}
             selected={f.filter === c.value}
             variant={f.filter === c.value ? 'primary' : 'neutral'}
             onPress={() => f.setFilter(c.value)}
@@ -90,6 +103,7 @@ export function MyListingCard({
   listing: Listing;
   onMenu: () => void;
 }) {
+  const { t } = useTranslation();
   const daysUntilExpiry = getDaysUntilExpiry(listing.expiresAt);
 
   return (
@@ -104,7 +118,7 @@ export function MyListingCard({
           <IconButton
             icon="ellipsis-vertical"
             size="sm"
-            accessibilityLabel="İlan menüsü"
+            accessibilityLabel={t('listing.menuAccessibility')}
             onPress={onMenu}
           />
         </View>
@@ -123,21 +137,34 @@ export function MyListingCard({
           <View style={[styles.statusBadge, { backgroundColor: colors.surface.alt }]}>
             <View style={[styles.statusDot, { backgroundColor: getStatusColor(listing.status) }]} />
             <Text style={[styles.statusText, { color: getStatusColor(listing.status) }]}>
-              {getStatusText(listing.status)}
+              {statusTextKey(listing.status) ? t(statusTextKey(listing.status)!) : listing.status}
             </Text>
           </View>
         </View>
+
+        {/*
+          Red gerekçesi — satıcının ilanının NEDEN reddedildiğini öğrendiği tek
+          yer. `rejectionReason` boşken hiçbir şey çizilmez: boş bir kırmızı
+          kutu, gerekçe yokmuş gibi değil "bir şey bozuk" gibi görünür.
+        */}
+        {listing.status === 'rejected' && listing.rejectionReason ? (
+          <View style={styles.rejectionBox}>
+            <Text style={styles.rejectionText}>
+              {t('product.rejectionReason')}: {listing.rejectionReason}
+            </Text>
+          </View>
+        ) : null}
 
         {/* Expiry Warning */}
         {listing.status === 'active' && daysUntilExpiry !== null && daysUntilExpiry <= 7 && daysUntilExpiry > 0 && (
           <View style={styles.expiryWarning}>
             <Ionicons name="warning" size={14} color={colors.warning[600]!} />
-            <Text style={styles.expiryText}>{daysUntilExpiry} gün içinde süresi dolacak</Text>
+            <Text style={styles.expiryText}>{t('listing.expiresInDays', { days: daysUntilExpiry })}</Text>
           </View>
         )}
 
         {/* Created Date */}
-        <Text style={styles.dateText}>Oluşturulma: {formatDate(listing.createdAt)}</Text>
+        <Text style={styles.dateText}>{t('listing.createdAt', { date: formatDate(listing.createdAt) })}</Text>
       </View>
     </Pressable>
   );
@@ -147,16 +174,21 @@ export function MyListingCard({
 // Empty state
 // ---------------------------------------------------------------------------
 export function MyListingsEmpty({ filter }: { filter: MyListingsController['filter'] }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.emptyState}>
       <Ionicons name="pricetag-outline" size={64} color={colors.text.subtle} />
       <Text style={styles.emptyTitle}>
-        {filter === 'all' ? 'Henüz ilan yok' : `${getStatusText(filter)} ilan yok`}
+        {filter === 'all'
+          ? t('listing.noListingsYet')
+          : t('listing.noListingsInStatus', {
+              status: statusTextKey(filter) ? t(statusTextKey(filter)!) : filter,
+            })}
       </Text>
       <Text style={styles.emptyDesc}>
         {filter === 'all'
-          ? 'İlk ilanınızı oluşturmak için + butonuna tıklayın'
-          : 'Bu kategoride ilan bulunmuyor'}
+          ? t('listing.createFirstHint')
+          : t('listing.noneInCategory')}
       </Text>
     </View>
   );

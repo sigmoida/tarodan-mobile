@@ -1,9 +1,19 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { theme, Text } from '@/ui';
 
 const { colors } = theme;
+
+// NOT (§ göç raporu): bu bileşen ağacının bugün HİÇBİR çağıranı yok (repo
+// genelinde grep — sıfır sonuç); `seller.badge*` anahtarları farklı sözcüklerle
+// aynı işi yapan GÜNCEL rozet sistemi gibi görünüyor. Yine de dosya bu slice'ın
+// kapsamında adıyla anıldığı için modül-seviyesi dondurma kusuru düzeltildi —
+// `label`ler artık `build*Config(t)` fabrikalarından, ÇAĞRI ANINDA gelir.
+// `description`/`criteria` alanları JSX'te hiç render EDİLMİYOR (yalnız `icon`,
+// `color`, `label` kullanılıyor) — çevrilmedi, bkz. rapor.
 
 // Reputation levels based on users.txt
 export type ReputationLevel = 'rising_star' | 'trusted_seller' | 'elite_collector' | 'hall_of_fame';
@@ -16,47 +26,55 @@ interface ReputationBadgeProps {
   onPress?: () => void;
 }
 
-const REPUTATION_CONFIG: Record<ReputationLevel, {
+type ReputationConfigEntry = {
   icon: string;
   label: string;
   description: string;
   color: string;
   backgroundColor: string;
   criteria: string;
-}> = {
-  rising_star: {
-    icon: 'star-rising',
-    label: 'Yükselen Yıldız',
-    description: '10-50 başarılı işlem, 4.5+ puan',
-    color: colors.success[600]!,
-    backgroundColor: colors.success[50]!,
-    criteria: '10-50 işlem, 4.5+',
-  },
-  trusted_seller: {
-    icon: 'shield-check',
-    label: 'Güvenilir Satıcı',
-    description: '50-200 başarılı işlem, 4.7+ puan',
-    color: colors.info[600]!,
-    backgroundColor: colors.info[50]!,
-    criteria: '50-200 işlem, 4.7+',
-  },
-  elite_collector: {
-    icon: 'trophy',
-    label: 'Elite Koleksiyoner',
-    description: '200+ başarılı işlem, 4.8+ puan',
-    color: colors.primary[700]!,
-    backgroundColor: colors.primary[50]!,
-    criteria: '200+ işlem, 4.8+',
-  },
-  hall_of_fame: {
-    icon: 'crown',
-    label: 'Şöhretler Salonu',
-    description: '500+ işlem, 4.9+ puan, 2+ yıl üyelik',
-    color: colors.warning[600]!,
-    backgroundColor: colors.warning[50]!,
-    criteria: '500+ işlem, 4.9+, 2+ yıl',
-  },
 };
+
+/**
+ * `label` artık `t()` ile çözülür (çağrı anında); `description`/`criteria`
+ * hiç render edilmediği için TR olarak bırakıldı (üstteki nota bakın).
+ */
+function buildReputationConfig(t: TFunction): Record<ReputationLevel, ReputationConfigEntry> {
+  return {
+    rising_star: {
+      icon: 'star-rising',
+      label: t('reputation.risingStarLabel'),
+      description: '10-50 başarılı işlem, 4.5+ puan',
+      color: colors.success[600]!,
+      backgroundColor: colors.success[50]!,
+      criteria: '10-50 işlem, 4.5+',
+    },
+    trusted_seller: {
+      icon: 'shield-check',
+      label: t('reputation.trustedSellerLabel'),
+      description: '50-200 başarılı işlem, 4.7+ puan',
+      color: colors.info[600]!,
+      backgroundColor: colors.info[50]!,
+      criteria: '50-200 işlem, 4.7+',
+    },
+    elite_collector: {
+      icon: 'trophy',
+      label: t('reputation.eliteCollectorLabel'),
+      description: '200+ başarılı işlem, 4.8+ puan',
+      color: colors.primary[700]!,
+      backgroundColor: colors.primary[50]!,
+      criteria: '200+ işlem, 4.8+',
+    },
+    hall_of_fame: {
+      icon: 'crown',
+      label: t('reputation.hallOfFameLabel'),
+      description: '500+ işlem, 4.9+ puan, 2+ yıl üyelik',
+      color: colors.warning[600]!,
+      backgroundColor: colors.warning[50]!,
+      criteria: '500+ işlem, 4.9+, 2+ yıl',
+    },
+  };
+}
 
 const SIZE_CONFIG = {
   small: { iconSize: 16, fontSize: 10, padding: theme.spacing[1] },
@@ -70,7 +88,8 @@ export const ReputationBadge: React.FC<ReputationBadgeProps> = ({
   size = 'medium',
   onPress,
 }) => {
-  const config = REPUTATION_CONFIG[level];
+  const { t } = useTranslation();
+  const config = buildReputationConfig(t)[level];
   const sizeConfig = SIZE_CONFIG[size];
 
   const badgeStyle = [
@@ -114,55 +133,61 @@ interface SpecialRecognitionBadgeProps {
   size?: 'small' | 'medium';
 }
 
-const RECOGNITION_CONFIG: Record<SpecialRecognition, {
+type RecognitionConfigEntry = {
   icon: string;
   iconType: 'material' | 'ionicons';
   label: string;
   description: string;
   color: string;
-}> = {
-  fast_shipper: {
-    icon: 'rocket',
-    iconType: 'ionicons',
-    label: 'Hızlı Gönderici',
-    description: '95%+ ürünler 24 saat içinde gönderildi',
-    color: colors.info[600]!,
-  },
-  fair_trader: {
-    icon: 'handshake',
-    iconType: 'material',
-    label: 'Adil Takas',
-    description: '90%+ takas memnuniyeti',
-    color: colors.success[600]!,
-  },
-  responsive: {
-    icon: 'chatbubbles',
-    iconType: 'ionicons',
-    label: 'Hızlı Yanıt',
-    description: 'Ortalama yanıt süresi < 2 saat',
-    color: colors.primary[700]!,
-  },
-  collector_expert: {
-    icon: 'school',
-    iconType: 'material',
-    label: 'Uzman Koleksiyoner',
-    description: 'Belirli marka/kategoride uzmanlaşma',
-    color: colors.warning[600]!,
-  },
-  community_champion: {
-    icon: 'people',
-    iconType: 'ionicons',
-    label: 'Topluluk Şampiyonu',
-    description: 'Yüksek topluluk katılımı',
-    color: colors.danger[600]!,
-  },
 };
+
+/** `label` çağrı anında `t()` ile çözülür; `description` render edilmez (üstteki nota bakın). */
+function buildRecognitionConfig(t: TFunction): Record<SpecialRecognition, RecognitionConfigEntry> {
+  return {
+    fast_shipper: {
+      icon: 'rocket',
+      iconType: 'ionicons',
+      label: t('reputation.fastShipperLabel'),
+      description: '95%+ ürünler 24 saat içinde gönderildi',
+      color: colors.info[600]!,
+    },
+    fair_trader: {
+      icon: 'handshake',
+      iconType: 'material',
+      label: t('reputation.fairTraderLabel'),
+      description: '90%+ takas memnuniyeti',
+      color: colors.success[600]!,
+    },
+    responsive: {
+      icon: 'chatbubbles',
+      iconType: 'ionicons',
+      label: t('reputation.responsiveLabel'),
+      description: 'Ortalama yanıt süresi < 2 saat',
+      color: colors.primary[700]!,
+    },
+    collector_expert: {
+      icon: 'school',
+      iconType: 'material',
+      label: t('reputation.collectorExpertLabel'),
+      description: 'Belirli marka/kategoride uzmanlaşma',
+      color: colors.warning[600]!,
+    },
+    community_champion: {
+      icon: 'people',
+      iconType: 'ionicons',
+      label: t('reputation.communityChampionLabel'),
+      description: 'Yüksek topluluk katılımı',
+      color: colors.danger[600]!,
+    },
+  };
+}
 
 export const SpecialRecognitionBadge: React.FC<SpecialRecognitionBadgeProps> = ({
   type,
   size = 'small',
 }) => {
-  const config = RECOGNITION_CONFIG[type];
+  const { t } = useTranslation();
+  const config = buildRecognitionConfig(t)[type];
   const iconSize = size === 'small' ? 14 : 18;
 
   return (
@@ -193,6 +218,7 @@ export const ReputationScore: React.FC<ReputationScoreProps> = ({
   level,
   specialRecognitions = [],
 }) => {
+  const { t } = useTranslation();
   const renderStars = () => {
     const stars = [];
     const fullStars = Math.floor(rating);
@@ -221,7 +247,7 @@ export const ReputationScore: React.FC<ReputationScoreProps> = ({
       <View style={styles.scoreHeader}>
         <View style={styles.starsContainer}>{renderStars()}</View>
         <Text style={styles.ratingText}>{(rating ?? 0).toFixed(1)}</Text>
-        <Text style={styles.reviewCount}>({totalReviews} değerlendirme)</Text>
+        <Text style={styles.reviewCount}>{t('reputation.reviewCount', { count: totalReviews })}</Text>
       </View>
 
       {level && (
@@ -255,12 +281,14 @@ export const RatingBreakdown: React.FC<RatingBreakdownProps> = ({
   shipping,
   tradeFairness,
 }) => {
+  const { t } = useTranslation();
   const categories = [
-    { label: 'Ürün Doğruluğu', value: productAccuracy, weight: '40%' },
-    { label: 'İletişim', value: communication, weight: '20%' },
-    { label: 'Kargo', value: shipping, weight: '20%' },
+    { label: t('reputation.productAccuracy'), value: productAccuracy, weight: '40%' },
+    // review.communication / product.shipping REUSE — aynı sözcük, ayrı kopya değil.
+    { label: t('review.communication'), value: communication, weight: '20%' },
+    { label: t('product.shipping'), value: shipping, weight: '20%' },
     ...(tradeFairness !== undefined
-      ? [{ label: 'Takas Adaleti', value: tradeFairness, weight: '20%' }]
+      ? [{ label: t('reputation.tradeFairness'), value: tradeFairness, weight: '20%' }]
       : []),
   ];
 

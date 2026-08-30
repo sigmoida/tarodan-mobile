@@ -1,15 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
+import { unwrapEnvelope } from '@/utils/apiEnvelope';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { theme, Spinner, Text, ScreenHeader } from '@/ui';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
+import { useTranslation } from 'react-i18next';
 import { pagesApi } from '@/lib/api';
 
 const { colors } = theme;
 
-// API page.content bir HTML string'idir; düz <Text> ile basıldığında etiketler ham görünür.
-// page/[slug].tsx ile aynı WebView/htmlWrapper desenini kullanarak HTML'i doğru render et.
+// API page.content bir HTML string'idir; düz <Text> ile basıldığında etiketler ham
+// görünür. Bu yüzden WebView + htmlWrapper ile tasarım token'larına uygun render edilir.
 const htmlWrapper = (content: string) => `
   <!DOCTYPE html>
   <html>
@@ -65,34 +68,25 @@ interface PageData {
 }
 
 export default function DynamicCMSPage() {
+  const { t } = useTranslation();
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const [page, setPage] = useState<PageData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (!slug) return;
+  // CMS sayfası React Query ile (CLAUDE.md §6). Aynı slug ikinci kez açıldığında
+  // önbellekten gelir; 404 ile diğer hatalar ayrı mesaj alır (mevcut davranış).
+  const query = useQuery({
+    queryKey: qk.catalog.pages(slug),
+    enabled: !!slug,
+    retry: false,
+    queryFn: async (): Promise<PageData> => unwrapEnvelope<PageData>(await pagesApi.getBySlug(slug)),
+  });
 
-    const fetchPage = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const response: any = await pagesApi.getBySlug(slug);
-        const data = response.data?.data || response.data;
-        setPage(data);
-      } catch (err: any) {
-        if (err?.response?.status === 404) {
-          setError('Sayfa bulunamadı.');
-        } else {
-          setError('Sayfa yüklenirken bir hata oluştu.');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPage();
-  }, [slug]);
+  const page = query.data ?? null;
+  const loading = query.isLoading;
+  const error = query.error
+    ? (query.error as any)?.response?.status === 404
+      ? t('cmsPage.notFound')
+      : t('cmsPage.loadError')
+    : '';
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return null;
@@ -110,10 +104,10 @@ export default function DynamicCMSPage() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Yükleniyor..." onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+        <ScreenHeader title={t('common.loading')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
         <View style={styles.loadingContainer}>
           <Spinner size="lg" />
-          <Text style={styles.loadingText}>Sayfa yükleniyor...</Text>
+          <Text style={styles.loadingText}>{t('cmsPage.loadingText')}</Text>
         </View>
       </View>
     );
@@ -122,26 +116,21 @@ export default function DynamicCMSPage() {
   if (error) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Hata" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+        <ScreenHeader title={t('common.error')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={56} color={colors.danger[600]!} />
           <Text style={styles.errorTitle}>{error}</Text>
           <TouchableOpacity
             style={styles.retryButton}
-            onPress={() => {
-              setLoading(true);
-              setError('');
-              pagesApi.getBySlug(slug!)
-                .then((res: any) => setPage(res.data?.data || res.data))
-                .catch(() => setError('Sayfa yüklenirken bir hata oluştu.'))
-                .finally(() => setLoading(false));
-            }}
+            // Eskiden bu buton fetch'in TAMAMINI ikinci kez yazıyordu; sorgu
+            // artık tek kaynak olduğu için yalnız tazeleme yetiyor.
+            onPress={() => query.refetch()}
           >
             <Ionicons name="refresh" size={18} color={colors.white} />
-            <Text style={styles.retryButtonText}>Tekrar Dene</Text>
+            <Text style={styles.retryButtonText}>{t('common.tryAgain')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.goBackLink} onPress={() => router.back()}>
-            <Text style={styles.goBackText}>Geri Dön</Text>
+            <Text style={styles.goBackText}>{t('common.goBack')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -151,8 +140,12 @@ export default function DynamicCMSPage() {
   return (
     <View style={styles.container}>
       <ScreenHeader
-        title={page?.title || 'Sayfa'}
-        subtitle={formatDate(page?.updatedAt) ? `Son güncelleme: ${formatDate(page?.updatedAt)}` : undefined}
+        title={page?.title || t('cmsPage.fallbackTitle')}
+        subtitle={
+          formatDate(page?.updatedAt)
+            ? t('cmsPage.lastUpdatedOn', { date: formatDate(page?.updatedAt) })
+            : undefined
+        }
         onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       />
 

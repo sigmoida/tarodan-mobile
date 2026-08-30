@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Spinner, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { colors } = theme;
 
@@ -21,16 +23,18 @@ export function ProductTopBar({
   onShare: () => void;
   onFavorite: () => void;
 }) {
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   return (
-    <View style={styles.header}>
-      <Pressable onPress={onBack} style={styles.headerButton} accessibilityRole="button" accessibilityLabel="Geri">
+    <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
+      <Pressable onPress={onBack} style={styles.headerButton} accessibilityRole="button" accessibilityLabel={t('common.back')}>
         <Ionicons name="arrow-back" size={24} color={colors.white} />
       </Pressable>
       <View style={styles.headerActions}>
-        <Pressable onPress={onReport} style={styles.headerButton} accessibilityRole="button" accessibilityLabel="Raporla">
+        <Pressable onPress={onReport} style={styles.headerButton} accessibilityRole="button" accessibilityLabel={t('report.report')}>
           <Ionicons name="flag-outline" size={22} color={colors.white} />
         </Pressable>
-        <Pressable onPress={onShare} style={styles.headerButton} accessibilityRole="button" accessibilityLabel="Paylaş">
+        <Pressable onPress={onShare} style={styles.headerButton} accessibilityRole="button" accessibilityLabel={t('product.share')}>
           <Ionicons name="share-outline" size={24} color={colors.white} />
         </Pressable>
         <Pressable
@@ -38,7 +42,7 @@ export function ProductTopBar({
           style={styles.headerButton}
           disabled={favoriteLoading}
           accessibilityRole="button"
-          accessibilityLabel="Favorilere ekle"
+          accessibilityLabel={t('product.addToFavorites')}
         >
           {favoriteLoading ? (
             <Spinner size="sm" color={colors.white} />
@@ -65,7 +69,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 50,
     paddingHorizontal: theme.spacing[4],
     paddingBottom: theme.spacing[3],
   },

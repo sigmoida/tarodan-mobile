@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { supportApi } from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { useTranslation } from "react-i18next";
-import { FAQ_CATEGORIES } from "../_lib/faq";
+import { buildFaqCategories } from "../_lib/faq";
 
 /**
  * Help center controller — owns the FAQ search/accordion state, the contact
@@ -40,6 +40,8 @@ export function useHelp() {
     }
   };
 
+  const FAQ_CATEGORIES = useMemo(() => buildFaqCategories(t), [t]);
+
   const filteredFAQs =
     searchQuery.length > 2
       ? FAQ_CATEGORIES.map((cat) => ({
@@ -55,21 +57,21 @@ export function useHelp() {
   const handleSubmitContact = async () => {
     if (contactSubmitting) return;
     if (!contactName.trim() || !contactEmail.trim() || !contactMessage.trim()) {
-      showSnack("Lütfen tüm alanları doldurun", "danger");
+      showSnack(t("common.fillAllFields"), "danger");
       return;
     }
     // Backend DTO ile parite (GuestContactDto / CreateTicketDto): name @MinLength(2),
     // message @MinLength(10).
     if (contactName.trim().length < 2) {
-      showSnack("Adınız en az 2 karakter olmalıdır.", "danger");
+      showSnack(t("help.contactNameTooShort"), "danger");
       return;
     }
     if (!/^\S+@\S+\.\S+$/.test(contactEmail.trim())) {
-      showSnack("Geçerli bir e-posta adresi girin", "danger");
+      showSnack(t("validation.invalidEmail"), "danger");
       return;
     }
     if (contactMessage.trim().length < 10) {
-      showSnack("Mesaj en az 10 karakter olmalıdır.", "danger");
+      showSnack(t("validation.messageMin"), "danger");
       return;
     }
 
@@ -80,15 +82,12 @@ export function useHelp() {
         // oluştur → "Destek Taleplerim"de görünür. guestContact yalnız Redis'e yazar
         // ve kullanıcı bir daha göremez.
         await supportApi.createTicket({
-          subject: "Yardım Merkezi mesajı",
+          subject: t("help.ticketSubject"),
           category: "other",
           message: contactMessage.trim(),
         });
         setContactMessage("");
-        showSnack(
-          'Destek talebiniz oluşturuldu! "Destek Taleplerim"den takip edebilirsiniz.',
-          "success",
-        );
+        showSnack(t("help.ticketCreated"), "success");
       } else {
         // Misafir: kimlik bağlı ticket oluşturulamaz; misafir iletişim formuna düşer.
         await supportApi.guestContact({
@@ -99,13 +98,10 @@ export function useHelp() {
         setContactName("");
         setContactEmail("");
         setContactMessage("");
-        showSnack(
-          "Mesajınız gönderildi! En kısa sürede dönüş yapacağız.",
-          "success",
-        );
+        showSnack(t("contact.success"), "success");
       }
     } catch {
-      showSnack("Mesaj gönderilemedi, lütfen tekrar deneyin.", "danger");
+      showSnack(t("contact.sendFailed"), "danger");
     } finally {
       setContactSubmitting(false);
     }

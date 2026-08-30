@@ -2,6 +2,7 @@ import { View, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from '
 import { useState, useCallback } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { theme, Text, Card, Avatar, Button, Spinner, ScreenHeader } from '@/ui';
 import { useFollowing, FollowedSeller } from '@/hooks/useFollowing';
 import { useAuthStore } from '@/stores/authStore';
@@ -9,6 +10,7 @@ import { useAuthStore } from '@/stores/authStore';
 const { colors } = theme;
 
 export default function FollowingScreen() {
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
   const { following, isLoading, fetchFollowing, unfollowSeller, getFollowingCount } = useFollowing();
   const [refreshing, setRefreshing] = useState(false);
@@ -45,18 +47,18 @@ export default function FollowingScreen() {
     return (
       <View style={styles.centeredContainer}>
         <Ionicons name="people-outline" size={64} color={colors.primary[600]!} />
-        <Text variant="h2" style={styles.title}>Takip Ettiklerim</Text>
+        <Text variant="h2" style={styles.title}>{t('following.title')}</Text>
         <Text variant="body" style={styles.subtitle}>
-          Satıcıları takip etmek için giriş yapın
+          {t('following.loginSubtitle')}
         </Text>
-        <Button variant="primary" title="Giriş Yap" onPress={() => router.push('/(auth)/login')} style={{ alignSelf: 'center' }} />
+        <Button variant="primary" title={t('common.login')} onPress={() => router.push('/(auth)/login')} style={{ alignSelf: 'center' }} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title={`Takip Ettiklerim (${getFollowingCount()})`} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+      <ScreenHeader title={t('following.titleWithCount', { count: getFollowingCount() })} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
 
       {/* Content */}
       {isLoading && following.length === 0 ? (
@@ -66,11 +68,11 @@ export default function FollowingScreen() {
       ) : following.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="people-outline" size={80} color={colors.text.subtle} />
-          <Text variant="h3" style={styles.emptyTitle}>Henüz kimseyi takip etmiyorsunuz</Text>
+          <Text variant="h3" style={styles.emptyTitle}>{t('following.emptyTitle')}</Text>
           <Text variant="body" style={styles.emptySubtitle}>
-            Satıcıları takip ederek yeni ilanlarından haberdar olun
+            {t('following.emptySubtitle')}
           </Text>
-          <Button variant="primary" title="Satıcıları Keşfet" onPress={() => router.push('/(tabs)/search')} style={{ alignSelf: 'center' }} />
+          <Button variant="primary" title={t('following.exploreSellers')} onPress={() => router.push('/(tabs)/search')} style={{ alignSelf: 'center' }} />
         </View>
       ) : (
         <ScrollView
@@ -92,7 +94,7 @@ export default function FollowingScreen() {
                     <Text variant="label">{seller.displayName}</Text>
                     <View style={styles.sellerStats}>
                       <Ionicons name="pricetag" size={14} color={colors.text.muted} />
-                      <Text style={styles.statText}>{seller.listingCount} ilan</Text>
+                      <Text style={styles.statText}>{t('following.listingCountSuffix', { count: seller.listingCount })}</Text>
                       {seller.rating && (
                         <>
                           <Ionicons name="star" size={14} color={colors.warning[500]!} style={{ marginLeft: theme.spacing[3] }} />
@@ -101,14 +103,14 @@ export default function FollowingScreen() {
                       )}
                     </View>
                     <Text style={styles.followedDate}>
-                      Takip: {formatDate(seller.followedAt)}
+                      {t('following.followedSince', { date: formatDate(seller.followedAt) })}
                     </Text>
                   </View>
                   <View style={styles.actions}>
                     <Button
                       variant="outline"
                       size="sm"
-                      title="Takibi Bırak"
+                      title={t('following.unfollow')}
                       onPress={() => handleUnfollow(seller)}
                     />
                   </View>

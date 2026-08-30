@@ -4,7 +4,6 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, categoriesApi } from '@/lib/api';
-import { MATERIAL_FALLBACK, SCALE_FALLBACK } from '../utils/productFilters';
 
 export type FilterCategory = { id: string; name: string; slug: string };
 export type FilterBrand = { id: string; name: string; slug: string };
@@ -73,8 +72,14 @@ export function useProductFilterOptions(manufacturerSlug?: string): ProductFilte
     brands: data?.brands ?? [],
     manufacturers: data?.manufacturers ?? [],
     carModels: data?.carModels ?? [],
-    scales: data?.scales && data.scales.length > 0 ? data.scales : SCALE_FALLBACK,
-    materials: data?.materials && data.materials.length > 0 ? data.materials : MATERIAL_FALLBACK,
+    // Sunucu 16'lık sabit ölçek listesini KALDIRDI: boş dizi artık meşru bir
+    // yanıt ("katalogda ölçek yok"), hata değil. Eskiden boş görünce istemci
+    // listesi konuyordu ve kullanıcı katalogda karşılığı olmayan bir ölçekle
+    // filtreleyip sıfır sonuç alıyordu — uydurulmuş seçenek boş listeden kötü.
+    // Yanıt hiç gelmediyse (yükleniyor/hata) da boş: ekran `isLoading` ile
+    // ayırıyor, filtre bölümü boş listeye dayanıklı.
+    scales: data?.scales ?? [],
+    materials: data?.materials ?? [],
     customAttributes: data?.customAttributes ?? [],
     isLoading: filtersQuery.isLoading,
   };

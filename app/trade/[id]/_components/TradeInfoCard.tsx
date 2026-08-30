@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Card, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -18,14 +19,15 @@ export function TradeInfoCard({
   isInitiator: boolean;
   otherParty: { id: string; displayName: string };
 }) {
+  const { t } = useTranslation();
   return (
     <Card style={styles.card}>
       <View style={styles.tradeHeader}>
         <View style={styles.tradeHeaderTop}>
-          <Text variant="h3">Takas #{trade.tradeNumber}</Text>
+          <Text variant="h3">{t('trade.tradeNumberTitle', { number: trade.tradeNumber })}</Text>
           {trade.version && trade.version > 1 ? (
             <View style={styles.versionBadge}>
-              <Text style={styles.versionBadgeText}>Karşı Teklif #{trade.version - 1}</Text>
+              <Text style={styles.versionBadgeText}>{t('trade.counterOfferNumber', { number: trade.version - 1 })}</Text>
             </View>
           ) : null}
         </View>
@@ -42,7 +44,7 @@ export function TradeInfoCard({
           <Text style={styles.avatarText}>{otherParty.displayName.charAt(0).toUpperCase()}</Text>
         </View>
         <View style={styles.otherPartyInfo}>
-          <Text variant="body">{isInitiator ? 'Alıcı' : 'Teklif Eden'}</Text>
+          <Text variant="body">{isInitiator ? t('order.buyer') : t('trade.initiatorLabel')}</Text>
           <Text variant="label">{otherParty.displayName}</Text>
         </View>
         <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />

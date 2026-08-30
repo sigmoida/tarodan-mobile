@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { productsApi, searchApi } from '@/lib/api';
 import { useRecentSearchesStore } from '@/stores/recentSearchesStore';
@@ -22,7 +23,7 @@ import {
   extractMeta,
   type ProductFilters,
 } from '@/utils/productFilters';
-import { PAGE_SIZE, COLLAPSIBLE_ESTIMATE, conditionLabel } from '../_lib/searchConstants';
+import { PAGE_SIZE, conditionLabel } from '../_lib/searchConstants';
 
 /**
  * Search screen controller — owns filter state, the debounced search box, the
@@ -31,6 +32,7 @@ import { PAGE_SIZE, COLLAPSIBLE_ESTIMATE, conditionLabel } from '../_lib/searchC
  * Lifted verbatim from the monolithic SearchScreen.
  */
 export function useSearch() {
+  const { t } = useTranslation();
   const params = useLocalSearchParams();
 
   // Filtre state'i (web listings/page.tsx ile aynı shape)
@@ -114,7 +116,11 @@ export function useSearch() {
   const listRef = useRef<FlatList>(null);
 
   // Üst çubukları absolute bir katmanda tutup translateY ile kaydırıyoruz (liste reflow olmaz → takılmaz).
-  const [headerHeight, setHeaderHeight] = useState(COLLAPSIBLE_ESTIMATE);
+  // Yükseklik TAHMİN EDİLMEZ: 0'dan başlar ve ilk `onLayout` ölçümüyle yazılır. Ölçüm
+  // gelene kadar `barsMeasured` false'tur ve ekran listeyi gizli tutar; böylece liste
+  // yanlış bir üst boşlukla bir kare çizilip sonra yerine kaymaz.
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const barsMeasured = headerHeight > 0;
   const barsTranslateY = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(barsTranslateY, {
@@ -123,10 +129,11 @@ export function useSearch() {
       useNativeDriver: true,
     }).start();
   }, [topBarsHidden, headerHeight, barsTranslateY]);
-  const onBarsLayout = (e: LayoutChangeEvent) => {
+  const onBarsLayout = useCallback((e: LayoutChangeEvent) => {
     const h = e.nativeEvent.layout.height;
-    if (h > 0 && Math.abs(h - headerHeight) > 0.5) setHeaderHeight(h);
-  };
+    if (h <= 0) return;
+    setHeaderHeight((prev) => (Math.abs(h - prev) > 0.5 ? h : prev));
+  }, []);
 
   // Arama kutusu → filters.search (debounce 400ms)
   useEffect(() => {
@@ -237,13 +244,13 @@ export function useSearch() {
   if (filters.manufacturer) activeChips.push({ key: 'manuf', label: filters.manufacturer, onRemove: () => setFilters({ ...filters, manufacturer: '', manufacturerId: '' }) });
   if (filters.scale) activeChips.push({ key: 'scale', label: filters.scale, onRemove: () => setFilters({ ...filters, scale: '' }) });
   if (filters.material) activeChips.push({ key: 'mat', label: filters.material, onRemove: () => setFilters({ ...filters, material: '' }) });
-  if (filters.condition) activeChips.push({ key: 'cond', label: conditionLabel(filters.condition), onRemove: () => setFilters({ ...filters, condition: '' }) });
+  if (filters.condition) activeChips.push({ key: 'cond', label: conditionLabel(filters.condition, t), onRemove: () => setFilters({ ...filters, condition: '' }) });
   if (filters.minPrice || filters.maxPrice) activeChips.push({ key: 'price', label: `₺${filters.minPrice || '0'} - ₺${filters.maxPrice || '∞'}`, onRemove: () => setFilters({ ...filters, minPrice: '', maxPrice: '' }) });
-  if (filters.tradeOnly) activeChips.push({ key: 'trade', label: 'Takaslı', onRemove: () => setFilters({ ...filters, tradeOnly: false }) });
-  if (filters.discountOnly) activeChips.push({ key: 'disc', label: 'İndirimli', onRemove: () => setFilters({ ...filters, discountOnly: false }) });
-  if (filters.preOrder) activeChips.push({ key: 'pre', label: 'Ön Sipariş', onRemove: () => setFilters({ ...filters, preOrder: false }) });
-  if (filters.limited) activeChips.push({ key: 'lim', label: 'Limited', onRemove: () => setFilters({ ...filters, limited: false }) });
-  if (filters.set) activeChips.push({ key: 'set', label: 'Set', onRemove: () => setFilters({ ...filters, set: false }) });
+  if (filters.tradeOnly) activeChips.push({ key: 'trade', label: t('filter.tradeOnlyChip'), onRemove: () => setFilters({ ...filters, tradeOnly: false }) });
+  if (filters.discountOnly) activeChips.push({ key: 'disc', label: t('filter.discountOnlyLabel'), onRemove: () => setFilters({ ...filters, discountOnly: false }) });
+  if (filters.preOrder) activeChips.push({ key: 'pre', label: t('product.preOrder'), onRemove: () => setFilters({ ...filters, preOrder: false }) });
+  if (filters.limited) activeChips.push({ key: 'lim', label: t('product.limitedEdition'), onRemove: () => setFilters({ ...filters, limited: false }) });
+  if (filters.set) activeChips.push({ key: 'set', label: t('product.setBundle'), onRemove: () => setFilters({ ...filters, set: false }) });
 
   // Öneri/geçmiş paneli görünür mü? (X kapat tuşu ve input köşe stilinde kullanılır)
   const recentPanelOpen =
@@ -273,7 +280,7 @@ export function useSearch() {
     if (showRecentSearches || autocompleteOpen) closeSuggestions();
     if (y <= 4) {
       if (topBarsHidden) setTopBarsHidden(false);
-    } else if (y - prev > 6 && !topBarsHidden && y > headerHeight) {
+    } else if (y - prev > 6 && !topBarsHidden && barsMeasured && y > headerHeight) {
       setTopBarsHidden(true);
     } else if (prev - y > 6 && topBarsHidden) {
       setTopBarsHidden(false);
@@ -332,6 +339,8 @@ export function useSearch() {
     // collapsible bars + scroll
     listRef,
     headerHeight,
+    barsMeasured,
+    topBarsHidden,
     barsTranslateY,
     onBarsLayout,
     handleResultsScroll,

@@ -42,7 +42,7 @@ export function useTradeActions(id: string) {
       tradesApi.accept(id, undefined, tradeAddressId ?? undefined),
     onSuccess: () => {
       invalidate();
-      notify("Takas kabul edildi!");
+      notify(t("trade.accept.successMessage"));
     },
     onError: (error: any) => {
       captureException(error, {
@@ -50,7 +50,7 @@ export function useTradeActions(id: string) {
         tags: { flow: "trade.accept" },
         extra: { tradeId: id },
       });
-      notify(error.response?.data?.message || "İşlem başarısız");
+      notify(error.response?.data?.message || t("common.operationFailed"));
     },
   });
 
@@ -60,20 +60,20 @@ export function useTradeActions(id: string) {
       invalidate();
       setRejectVisible(false);
       setRejectReason("");
-      notify("Takas reddedildi");
+      notify(t("trade.tradeRejected"));
     },
     onError: (error: any) =>
-      notify(error.response?.data?.message || "İşlem başarısız"),
+      notify(error.response?.data?.message || t("common.operationFailed")),
   });
 
   const confirmMutation = useMutation({
     mutationFn: () => tradesApi.confirmReceipt(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.trades.detail(id) });
-      notify("Takas tamamlandı!");
+      notify(t("trade.confirmReceipt.successMessage"));
     },
     onError: (error: any) =>
-      notify(error.response?.data?.message || "İşlem başarısız"),
+      notify(error.response?.data?.message || t("common.operationFailed")),
   });
 
   const cashPayMutation = useMutation({
@@ -82,7 +82,7 @@ export function useTradeActions(id: string) {
       const data = response?.data?.data ?? response?.data ?? {};
       const paymentId = data.paymentId ?? data.id;
       if (!paymentId) {
-        notify("Ödeme başlatılamadı (paymentId eksik).");
+        notify(t("trade.cashPay.missingPaymentId"));
         return;
       }
       const paymentUrl: string | undefined = data.paymentUrl;
@@ -103,18 +103,18 @@ export function useTradeActions(id: string) {
         tags: { flow: "trade.cashPay" },
         extra: { tradeId: id },
       });
-      notify(error?.response?.data?.message || "Ödeme başlatılamadı");
+      notify(error?.response?.data?.message || t("payment.startFailed"));
     },
   });
 
   const cancelMutation = useMutation({
-    mutationFn: () => tradesApi.cancel(id, "Kullanıcı tarafından iptal edildi"),
+    mutationFn: () => tradesApi.cancel(id, t("trade.cancelledByUser")),
     onSuccess: () => {
       invalidate();
-      notify("Takas iptal edildi");
+      notify(t("trade.tradeCancelled"));
     },
     onError: (error: any) =>
-      notify(error.response?.data?.message || "İşlem başarısız"),
+      notify(error.response?.data?.message || t("common.operationFailed")),
   });
 
   const disputeMutation = useMutation({
@@ -137,29 +137,29 @@ export function useTradeActions(id: string) {
   const handleAccept = () => {
     if (!tradeAddressId) {
       appAlert(
-        "Teslimat Adresi",
-        "Lütfen bir teslimat adresi seçin veya ekleyin.",
+        t("address.deliveryAddress"),
+        t("trade.selectDeliveryAddress"),
       );
       return;
     }
     appAlert(
-      "Takası Kabul Et",
-      "Bu takas teklifini kabul etmek istediğinize emin misiniz?",
+      t("trade.accept.confirmTitle"),
+      t("trade.accept.confirmMessage"),
       [
-        { text: "İptal", style: "cancel" },
-        { text: "Kabul Et", onPress: () => acceptMutation.mutate() },
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("trade.acceptTrade"), onPress: () => acceptMutation.mutate() },
       ],
     );
   };
 
   const handleCancel = () => {
     appAlert(
-      "Takası İptal Et",
-      "Bu takas teklifini iptal etmek istediğinize emin misiniz?",
+      t("trade.cancel.tradeCta"),
+      t("trade.cancel.confirmMessage"),
       [
-        { text: "Vazgeç", style: "cancel" },
+        { text: t("trade.dispute.cancelCta"), style: "cancel" },
         {
-          text: "İptal Et",
+          text: t("trade.cancelTradeAction"),
           style: "destructive",
           onPress: () => cancelMutation.mutate(),
         },

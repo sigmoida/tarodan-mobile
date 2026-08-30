@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { qk } from "@/lib/query";
 import { router } from "expo-router";
 import { appAlert, useModalMessage, alertAfterClose } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
 import { authApi } from "@/lib/api";
 import { useTranslation } from "react-i18next";
+import {
+  getPhoneInvalidMessage,
+  parsePhoneForPayload,
+  splitPhone,
+} from "@/utils/phone";
 
 /**
  * Güvenlik ekranı controller'ı — şifre değiştirme, 2FA kurulum/kapat/yedek-kod,
@@ -28,25 +35,29 @@ export function useSecurity() {
 
   // Gerçek 2FA durumunu sunucudan çek (user nesnesinde twoFactorEnabled yok —
   // o alan yalnız AdminUser'da; normal kullanıcıda kaynak TwoFactorSecret.isEnabled).
-  useEffect(() => {
-    let active = true;
-    authApi
-      .getTwoFactorStatus()
-      .then((res) => {
-        const payload = (res.data as any)?.data ?? (res.data as any) ?? {};
-        if (active) setTwoFactorEnabled(!!payload.isEnabled);
-      })
-      .catch(() => {
-        /* sessizce yoksay: durum bilinmiyorsa kapalı varsay */
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+  // 2FA durumu React Query ile (CLAUDE.md §6). Ulaşılamazsa kapalı varsayılır —
+  // eski davranış korundu; `retry: false` çünkü tek bir hata "bilinmiyor"
+  // demek, tekrar denemek kullanıcıya bir şey kazandırmıyor.
+  const twoFactorQuery = useQuery({
+    queryKey: qk.user.twoFactorStatus,
+    retry: false,
+    queryFn: async () => {
+      const res = await authApi.getTwoFactorStatus();
+      const payload = (res.data as any)?.data ?? (res.data as any) ?? {};
+      return !!payload.isEnabled;
+    },
+  });
 
-  // Telefon doğrulama
+  useEffect(() => {
+    if (twoFactorQuery.data !== undefined) setTwoFactorEnabled(twoFactorQuery.data);
+  }, [twoFactorQuery.data]);
+
+  // Telefon doğrulama. Alan artık paylaşılan `PhoneInput` (ülke kodu + formatlı
+  // lokal parça); gönderilen değer daima `parsePhoneForPayload` çıktısı E.164.
   const [showPhoneDialog, setShowPhoneDialog] = useState(false);
-  const [phoneInput, setPhoneInput] = useState(user?.phone || "");
+  const initialPhone = splitPhone(user?.phone || "");
+  const [phoneCountryCode, setPhoneCountryCode] = useState(initialPhone.countryCode);
+  const [phoneInput, setPhoneInput] = useState(initialPhone.phone);
   const [phoneCode, setPhoneCode] = useState("");
   const [phoneStep, setPhoneStep] = useState<"enter" | "verify">("enter");
   const [phoneVerified, setPhoneVerified] = useState(!!user?.isPhoneVerified);
@@ -72,21 +83,28 @@ export function useSecurity() {
   }, [resendIn]);
 
   const handleSendPhoneCode = async () => {
+    // Çözülemeyen numarayı sunucuya sormadan burada durdur — kullanıcı reddin
+    // sebebini görsün (diğer telefon yollarıyla aynı sözleşme, Plan 4).
+    const e164 = parsePhoneForPayload(phoneInput, phoneCountryCode);
+    if (!e164) {
+      setPhoneMsg({ type: "error", text: getPhoneInvalidMessage() });
+      return;
+    }
     setLoading(true);
     setPhoneMsg(null);
     try {
-      await authApi.sendPhoneCode(phoneInput);
+      await authApi.sendPhoneCode(e164);
       setPhoneStep("verify");
       setResendIn(60);
       // Modal açık: alert yerine modal-içi bilgi mesajı (iç içe modal donmasını önler).
       setPhoneMsg({
         type: "info",
-        text: "Doğrulama kodu telefonunuza gönderildi",
+        text: t('security.phoneCodeSent'),
       });
     } catch (e: any) {
       setPhoneMsg({
         type: "error",
-        text: e?.response?.data?.message || "Kod gönderilemedi",
+        text: e?.response?.data?.message || t('security.phoneCodeSendFailed'),
       });
     } finally {
       setLoading(false);
@@ -107,14 +125,14 @@ export function useSecurity() {
       setPhoneCode("");
       setPhoneMsg(null);
       setTimeout(
-        () => appAlert("Başarılı", "Telefon numaranız doğrulandı"),
+        () => appAlert(t('common.success'), t('security.phoneVerified')),
         400,
       );
     } catch (e: any) {
       // Hata da modal açıkken: alert yerine modal-içi hata mesajı.
       setPhoneMsg({
         type: "error",
-        text: e?.response?.data?.message || "Kod hatalı",
+        text: e?.response?.data?.message || t('security.phoneCodeWrong'),
       });
     } finally {
       setLoading(false);
@@ -128,13 +146,16 @@ export function useSecurity() {
 
   // 2FA setup
   const [totpSecret, setTotpSecret] = useState("");
-  const [, setTotpQr] = useState("");
+  // Ölçüldü (staging, /security/2fa/enable): gövde `secret`, `qrCodeUrl`,
+  // `qrCodeImage`, `backupCodes` döndürüyor — `qrCode` diye bir alan yok.
+  // QR'ı çizecek olan base64 data URI `qrCodeImage`'ta.
+  const [totpQrImage, setTotpQrImage] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
 
   const handlePasswordChange = async () => {
     pwMsg.clear();
     if (newPassword !== confirmPassword) {
-      pwMsg.error("Şifreler eşleşmiyor");
+      pwMsg.error(t('validation.passwordMatch'));
       return;
     }
 
@@ -143,7 +164,7 @@ export function useSecurity() {
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!strongPassword.test(newPassword)) {
       pwMsg.error(
-        "Şifre en az 8 karakter, bir büyük harf, bir küçük harf, bir rakam ve bir özel karakter (@$!%*?&) içermelidir",
+        t('security.passwordRules'),
       );
       return;
     }
@@ -156,11 +177,11 @@ export function useSecurity() {
       setConfirmPassword("");
       alertAfterClose(
         () => setShowPasswordDialog(false),
-        "Başarılı",
-        "Şifreniz değiştirildi",
+        t('common.success'),
+        t('security.passwordChanged'),
       );
     } catch (error: any) {
-      pwMsg.error(error.response?.data?.message || "Şifre değiştirilemedi");
+      pwMsg.error(error.response?.data?.message || t('security.passwordChangeFailed'));
     } finally {
       setLoading(false);
     }
@@ -173,13 +194,13 @@ export function useSecurity() {
       const payload =
         (response.data as any)?.data ?? (response.data as any) ?? {};
       setTotpSecret(payload.secret ?? "");
-      setTotpQr(payload.qrCode ?? "");
+      setTotpQrImage(payload.qrCodeImage ?? "");
       twoFaMsg.clear();
       setShowTwoFactorSetup(true);
     } catch (error: any) {
       appAlert(
-        "Hata",
-        error.response?.data?.message || "2FA kurulumu başarısız",
+        t('common.error'),
+        error.response?.data?.message || t('security.twoFactorSetupFailed'),
       );
     } finally {
       setLoading(false);
@@ -189,7 +210,7 @@ export function useSecurity() {
   const handleVerifyTwoFactor = async () => {
     twoFaMsg.clear();
     if (verificationCode.length !== 6) {
-      twoFaMsg.error("Lütfen 6 haneli doğrulama kodunu girin");
+      twoFaMsg.error(t('security.enterSixDigitCode'));
       return;
     }
 
@@ -200,11 +221,11 @@ export function useSecurity() {
       setVerificationCode("");
       alertAfterClose(
         () => setShowTwoFactorSetup(false),
-        "Başarılı",
-        "İki faktörlü doğrulama aktifleştirildi",
+        t('common.success'),
+        t('security.twoFactorEnabled'),
       );
     } catch (error: any) {
-      twoFaMsg.error(error.response?.data?.message || "Doğrulama başarısız");
+      twoFaMsg.error(error.response?.data?.message || t('security.verificationFailed'));
     } finally {
       setLoading(false);
     }
@@ -220,7 +241,7 @@ export function useSecurity() {
   const confirmDisableTwoFactor = async () => {
     disableMsg.clear();
     if (disableCode.length !== 6) {
-      disableMsg.error("Lütfen 6 haneli doğrulama kodunu girin");
+      disableMsg.error(t('security.enterSixDigitCode'));
       return;
     }
     setLoading(true);
@@ -230,11 +251,11 @@ export function useSecurity() {
       setDisableCode("");
       alertAfterClose(
         () => setShowDisableDialog(false),
-        "Başarılı",
-        "İki faktörlü doğrulama kapatıldı",
+        t('common.success'),
+        t('security.twoFactorDisabled'),
       );
     } catch (error: any) {
-      disableMsg.error(error.response?.data?.message || "İşlem başarısız");
+      disableMsg.error(error.response?.data?.message || t('common.operationFailed'));
     } finally {
       setLoading(false);
     }
@@ -243,7 +264,7 @@ export function useSecurity() {
   const handleRegenerateBackupCodes = async () => {
     regenMsg.clear();
     if (regenerateCode.length !== 6) {
-      regenMsg.error("Lütfen 6 haneli doğrulama kodunu girin");
+      regenMsg.error(t('security.enterSixDigitCode'));
       return;
     }
     setLoading(true);
@@ -257,7 +278,7 @@ export function useSecurity() {
       setRegenerateCode("");
     } catch (error: any) {
       regenMsg.error(
-        error.response?.data?.message || "Yedek kodlar yenilenemedi",
+        error.response?.data?.message || t('security.backupCodesRegenFailed'),
       );
     } finally {
       setLoading(false);
@@ -266,12 +287,12 @@ export function useSecurity() {
 
   const handleLogoutAllDevices = () => {
     appAlert(
-      "Tüm Cihazlardan Çıkış",
-      "Tüm cihazlardan çıkış yapılacak ve tekrar giriş yapmanız gerekecek.",
+      t('security.logoutAllTitle'),
+      t('security.logoutAllBody'),
       [
-        { text: "İptal", style: "cancel" },
+        { text: t('common.cancel'), style: "cancel" },
         {
-          text: "Çıkış Yap",
+          text: t('common.logout'),
           style: "destructive",
           onPress: async () => {
             try {
@@ -279,7 +300,7 @@ export function useSecurity() {
               logout();
               router.replace("/(auth)/login");
             } catch (error) {
-              appAlert("Hata", "İşlem başarısız");
+              appAlert(t('common.error'), t('common.operationFailed'));
             }
           },
         },
@@ -299,6 +320,7 @@ export function useSecurity() {
     setShowTwoFactorSetup,
     twoFaMsg,
     totpSecret,
+    totpQrImage,
     verificationCode,
     setVerificationCode,
     handleVerifyTwoFactor,
@@ -335,6 +357,8 @@ export function useSecurity() {
     setShowPhoneDialog,
     phoneInput,
     setPhoneInput,
+    phoneCountryCode,
+    setPhoneCountryCode,
     phoneCode,
     setPhoneCode,
     phoneStep,

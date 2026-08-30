@@ -12,6 +12,7 @@ let mockParams: Record<string, string> = { id: 'order-1' };
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
   useLocalSearchParams: () => mockParams,
+  useFocusEffect: jest.fn(),
 }));
 
 // Yeni mimaride hook'lar `@/lib/api`'den import ediyor (services/api artık barrel).
@@ -24,7 +25,7 @@ jest.mock('@/lib/api', () => ({
   elogoInvoicesApi: { byOrder: jest.fn(() => Promise.resolve({ data: null })), pdf: jest.fn() },
   sellerInvoiceApi: { status: jest.fn(() => Promise.resolve({ data: null })), download: jest.fn() },
 }));
-import { api } from '@/lib/api';
+import { api, elogoInvoicesApi } from '@/lib/api';
 
 import OrderDetailScreen from '../[id]';
 
@@ -33,7 +34,7 @@ const getMock = api.get as jest.Mock;
 function orderFixture(overrides: Record<string, unknown> = {}) {
   return {
     id: 'order-1',
-    orderNumber: 'TRD-1001',
+    orderNumber: 'ORD-1001000000',
     status: 'delivered',
     totalAmount: 350,
     shippingCost: 30,
@@ -59,7 +60,7 @@ describe('J67 · Sipariş detayı render', () => {
     getMock.mockResolvedValue({ data: { data: orderFixture() } });
     renderWithProviders(<OrderDetailScreen />);
     await waitFor(() =>
-      expect(screen.getByText('Sipariş #TRD-1001')).toBeOnTheScreen(),
+      expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen(),
     );
     // "Teslim Edildi" hem rozet hem timeline etiketinde geçer
     expect(screen.getAllByText('Teslim Edildi').length).toBeGreaterThan(0);
@@ -96,14 +97,14 @@ describe('J78 · Alıcı onay butonu KALDIRILDI + escrow bilgisi', () => {
     await waitFor(() =>
       expect(screen.getByTestId('order-escrow-info')).toBeOnTheScreen(),
     );
-    expect(screen.getByText(/14 gün sonra otomatik serbest/)).toBeOnTheScreen();
+    expect(screen.getByText(/14 gün sonra serbest bırakılır/)).toBeOnTheScreen();
   });
 
   it('J78.3 alıcı değilse escrow kartı görünmez', async () => {
     getMock.mockResolvedValue({ data: { data: orderFixture({ status: 'delivered', isBuyer: false }) } });
     renderWithProviders(<OrderDetailScreen />);
     await waitFor(() =>
-      expect(screen.getByText('Sipariş #TRD-1001')).toBeOnTheScreen(),
+      expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen(),
     );
     expect(screen.queryByTestId('order-escrow-info')).toBeNull();
     expect(screen.queryByTestId('order-confirm-delivery-button')).toBeNull();
@@ -157,7 +158,7 @@ describe('J79 · İade talep butonu görünürlüğü', () => {
     });
     renderWithProviders(<OrderDetailScreen />);
     await waitFor(() =>
-      expect(screen.getByText('Sipariş #TRD-1001')).toBeOnTheScreen(),
+      expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen(),
     );
     expect(screen.queryByTestId('refund-request-button')).toBeNull();
   });
@@ -233,6 +234,44 @@ describe('Üyelik/dijital sipariş — fiziksel ürün aksiyonları gizlenir', (
   });
 });
 
+// B7 · Fatura kartları ayrı query'lerle sonradan gelir; aksiyon (iptal/iade) butonlarının
+// üstüne değil ALTINA render edilmeli, yoksa geç gelen fatura kartı dokunma hedefini kaydırır.
+describe('B7 · Fatura kartları aksiyonların altında render edilir', () => {
+  beforeEach(() => {
+    getMock.mockReset();
+    mockParams = { id: 'order-1' };
+  });
+
+  it('B7.1 fatura kartı (elogo), iade talep butonundan SONRA render edilir', async () => {
+    getMock.mockResolvedValue({
+      data: { data: orderFixture({ isBuyer: true, payment: { status: 'completed' }, activeRefundRequest: null }) },
+    });
+    (elogoInvoicesApi.byOrder as jest.Mock).mockResolvedValue({
+      data: { id: 'inv-1', invoiceNumber: 'ELG-1' },
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    await waitFor(() => expect(screen.getByTestId('refund-request-button')).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByTestId('order-invoice-card')).toBeOnTheScreen());
+
+    // Render sırasını testID listesinden çıkar (DOM/tree sırası tarama derinliği önemsiz).
+    const testIds: string[] = [];
+    const collect = (node: any) => {
+      if (!node || typeof node !== 'object') return;
+      const id = node.props?.testID;
+      if (typeof id === 'string') testIds.push(id);
+      const children = node.children;
+      if (Array.isArray(children)) children.forEach(collect);
+    };
+    collect(screen.toJSON());
+
+    const actionPos = testIds.indexOf('refund-request-button');
+    const invoicePos = testIds.indexOf('order-invoice-card');
+    expect(actionPos).toBeGreaterThan(-1);
+    expect(invoicePos).toBeGreaterThan(-1);
+    expect(actionPos).toBeLessThan(invoicePos);
+  });
+});
+
 // BULGU #25 · Sipariş timeline'ı iade/iptal durumunu yansıtmalı; mutlu-yolda bitmemeli.
 // Ayrıca biten iade rozeti "İade Sürecinde" DEĞİL "İade Edildi" göstermeli (rozet/timeline
 // tutarlılığı) ve eklenen adımın tarihi '-' olmamalı (refundedAt activeRefundRequest'ten gelir).
@@ -282,7 +321,7 @@ describe('B25 · Timeline iade/iptal yansıtması', () => {
     });
     renderWithProviders(<OrderDetailScreen />);
     await waitFor(() =>
-      expect(screen.getByText('Sipariş #TRD-1001')).toBeOnTheScreen(),
+      expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen(),
     );
     expect(screen.getByText('İade Edildi')).toBeOnTheScreen();
     expect(screen.queryByText('İade Sürecinde')).toBeNull();

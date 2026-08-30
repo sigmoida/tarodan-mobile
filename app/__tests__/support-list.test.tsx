@@ -24,7 +24,10 @@ const getMyTicketsMock = supportApi.getMyTickets as jest.Mock;
 
 let mockIsAuthenticated = true;
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ isAuthenticated: mockIsAuthenticated }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: mockIsAuthenticated });
+    return sel ? sel(state) : state;
+  },
 }));
 
 import SupportTicketsScreen from '../support';
@@ -72,10 +75,10 @@ describe('Destek Taleplerim (liste)', () => {
     expect(await screen.findByText('Henüz destek talebiniz yok')).toBeOnTheScreen();
   });
 
-  it('"Yeni Talep Oluştur" → /support/new', async () => {
+  it('"Talep Oluştur" → /support/new', async () => {
     getMyTicketsMock.mockResolvedValue({ data: { tickets: [] } });
     renderWithProviders(<SupportTicketsScreen />);
-    fireEvent.press(screen.getByText('Yeni Talep Oluştur'));
+    fireEvent.press(screen.getByText('Talep Oluştur'));
     expect(mockPush).toHaveBeenCalledWith('/support/new');
   });
 

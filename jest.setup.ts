@@ -4,6 +4,17 @@
  * Native modül mock'ları gerektikçe buraya eklenir (SecureStore, AsyncStorage, image-picker).
  */
 
+// i18n: gerçek katalogla (tr) senkron init. Ekranlar `useTranslation` kullanmaya
+// başladıkça, i18n kurulmamış bir testte `t('cart.empty')` ANAHTARI döndürüyor ve
+// Türkçe metne bakan mevcut testler sebepsiz kırılıyordu. Gerçek katalogla
+// kurunca testler kullanıcının GÖRDÜĞÜ metni doğrulamaya devam ediyor.
+// (Anahtar kullanımını kanıtlamak isteyen testler `react-i18next`'i kendi
+// dosyasında mock'lamaya devam edebilir — o mock bunu ezer.)
+import i18n from '@/i18n/config';
+
+// Cihaz dili jest ortamında `en-US` çözülüyor; testler Türkçe metne bakıyor.
+i18n.changeLanguage('tr');
+
 // Test modu: register birthDate öndolu (1990-01-01), şifre alanları maskesiz.
 // Uygulama EXPO_PUBLIC_MAESTRO==='1' ile bu davranışları açar.
 process.env.EXPO_PUBLIC_MAESTRO = '1';
@@ -68,3 +79,20 @@ beforeEach(() => {
   const { appAlert } = jest.requireMock('@/ui');
   (appAlert as jest.Mock).mockReset();
 });
+
+/**
+ * `waitFor`/`findBy*` için AÇIK süre sınırı.
+ *
+ * RNTL varsayılanı 1000 ms ve bu sınır testlerin İDDİASIYLA ilgisiz: hiçbiri
+ * "şu kadar sürede render olsun" demiyor, hepsi "sonunda görünsün" diyor.
+ * Soğuk transform + eşzamanlı yük altındaki ilk koşumlarda marjinal testler bu
+ * sınırı aşıp yanlış alarm veriyordu (2026-08-11'de `J30.5` ve `J75.2` böyle
+ * düştü; ikisi de izole ve tekrar koşumda geçiyordu).
+ *
+ * Ölçüm: sınır 150 ms'ye çekilince 8 test düşüyor — yani suite'te sınıra yakın
+ * bir küme var ve varsayılan onlara yeterli pay bırakmıyor.
+ *
+ * Sınır KALDIRILMIYOR, yükseltiliyor: hiç render olmayan bir bileşen yine
+ * düşer, yalnız daha geç. Zayıflayan bir iddia yok.
+ */
+require('@testing-library/react-native').configure({ asyncUtilTimeout: 5000 });

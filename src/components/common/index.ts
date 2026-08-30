@@ -5,14 +5,16 @@
  */
 
 export {
-  ScreenHeader,
   EmptyState,
   ErrorState,
   ScreenLoader,
 } from '@/ui';
 
+// ScreenHeader taban bileşenden DEĞİL, router'ı bilen sarmalayıcıdan gelir:
+// `onBack` geçmeyen ekranlarda ok aksi halde görünür ama ölü olurdu.
+export { ScreenHeader } from './ScreenHeader';
+
 export { default as AuthRequiredSheet } from './AuthRequiredSheet';
-export { default as CommissionPreview } from './CommissionPreview';
 export { default as CityDistrictSelector } from './CityDistrictSelector';
 export { default as PhoneInput } from './PhoneInput';
 export { TradeAddressPicker } from './TradeAddressPicker';

@@ -1,6 +1,6 @@
 /**
  * J71/J72/J90 · Ödeme başarılı sonuç ekranı — mobil UI dilimi.
- * Başarı mesajı render, sipariş özeti (sipariş no/tutar/durum), "Siparişimi Gör" ve
+ * Başarı mesajı render, sipariş özeti (sipariş no/tutar/durum), "Siparişimi Görüntüle" ve
  * "Ana Sayfaya Dön" nav butonları. Backend verify/callback/idempotency backend-only.
  */
 import React from 'react';
@@ -33,7 +33,7 @@ function infoFixture(overrides: Record<string, unknown> = {}) {
     id: 'pay-1',
     amount: 350,
     status: 'paid',
-    order: { id: 'order-1', orderNumber: 'TRD-1001' },
+    order: { id: 'order-1', orderNumber: 'ORD-1001000000' },
     ...overrides,
   };
 }
@@ -58,7 +58,7 @@ describe('J71 · Ödeme başarılı render', () => {
   it('J71.2 sipariş özeti: sipariş no, tutar ve durum rozeti', async () => {
     getStatusMock.mockResolvedValue({ data: { data: infoFixture() } });
     renderWithProviders(<PaymentSuccessScreen />);
-    expect(await screen.findByText('TRD-1001')).toBeOnTheScreen();
+    expect(await screen.findByText('ORD-1001000000')).toBeOnTheScreen();
     expect(screen.getByText('Sipariş No')).toBeOnTheScreen();
     expect(screen.getByText('Tutar')).toBeOnTheScreen();
     // status 'paid' → 'Ödendi' etiketi
@@ -74,10 +74,10 @@ describe('J72 · Ödeme başarılı navigasyon wiring', () => {
     mockParams = { paymentId: 'pay-1' };
   });
 
-  it('J72.1 "Siparişimi Gör" → ilgili sipariş detayına replace eder', async () => {
+  it('J72.1 "Siparişimi Görüntüle" → ilgili sipariş detayına replace eder', async () => {
     getStatusMock.mockResolvedValue({ data: { data: infoFixture() } });
     renderWithProviders(<PaymentSuccessScreen />);
-    const btn = await screen.findByText('Siparişimi Gör');
+    const btn = await screen.findByText('Siparişimi Görüntüle');
     fireEvent.press(btn);
     expect(replaceMock).toHaveBeenCalledWith('/orders/order-1');
   });
@@ -106,16 +106,16 @@ describe('J72 · Ödeme başarılı navigasyon wiring', () => {
     });
     renderWithProviders(<PaymentSuccessScreen />);
     await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/trade/trade-9'));
-    expect(screen.queryByText('Siparişimi Gör')).toBeNull();
+    expect(screen.queryByText('Siparişimi Görüntüle')).toBeNull();
   });
 
-  it('J72.3 misafir ödemede "Siparişimi Gör" butonu gösterilmez', async () => {
+  it('J72.3 misafir ödemede "Siparişimi Görüntüle" butonu gösterilmez', async () => {
     mockParams = { paymentId: 'pay-1', guest: '1' };
     (paymentsApi.getStatusLightGuest as jest.Mock).mockResolvedValue({
       data: { data: infoFixture() },
     });
     renderWithProviders(<PaymentSuccessScreen />);
     expect(await screen.findByText('Ana Sayfaya Dön')).toBeOnTheScreen();
-    expect(screen.queryByText('Siparişimi Gör')).toBeNull();
+    expect(screen.queryByText('Siparişimi Görüntüle')).toBeNull();
   });
 });

@@ -109,7 +109,7 @@ export default function OffersScreen() {
   return (
     <View style={styles.safeArea}>
       <ScreenHeader
-        title="Tekliflerim"
+        title={t("offer.myOffersTitle")}
         onBack={() =>
           router.canGoBack() ? router.back() : router.replace("/(tabs)")
         }
@@ -120,14 +120,14 @@ export default function OffersScreen() {
       {isLoading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary[600]!} />
-          <Text style={styles.loadingText}>Teklifler yükleniyor...</Text>
+          <Text style={styles.loadingText}>{t("offer.loadingOffers")}</Text>
         </View>
       ) : isError ? (
         // Hatayı boş durumdan ayır (eskiden appAlert; artık kalıcı ErrorState +
         // tekrar-dene). "Henüz teklif yok" bir yükleme hatasını maskelememeli.
         <ErrorState
           fullscreen
-          message="Teklifler yüklenirken bir hata oluştu"
+          message={t("offer.loadOffersFailed")}
           onRetry={() => refetch()}
         />
       ) : (

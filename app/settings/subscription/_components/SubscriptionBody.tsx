@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, ScrollView, TouchableOpacity, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -6,6 +7,7 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Card, Button, Chip, Divider, Text, theme } from '@/ui';
 
+import { PREMIUM_MEMBER_LIMITS } from '@/utils/membershipLimits';
 import { formatBillingPeriod } from '../_lib/subscription';
 import { styles } from '../_lib/styles';
 import type { SubscriptionController } from '../_hooks/useSubscription';
@@ -14,6 +16,7 @@ const { colors } = theme;
 
 /** Current plan, premium features, billing history, actions, warnings, help. */
 export function SubscriptionBody({ f }: { f: SubscriptionController }) {
+  const { t } = useTranslation();
   const { subscription, isPremium, isCancelled, daysLeft, statusInfo } = f;
 
   return (
@@ -23,7 +26,7 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
         <View style={styles.planHeader}>
           <View>
             <Text variant="h2" style={styles.planName}>
-              {subscription?.tier?.name ?? (isPremium ? 'Premium Üyelik' : 'Ücretsiz Üyelik')}
+              {subscription?.tier?.name ?? (isPremium ? t('membership.premiumMembership') : t('membership.freeMembership'))}
             </Text>
             {isPremium && statusInfo && (
               <Chip variant={f.statusChipVariant} size="sm" style={styles.statusChip} label={statusInfo.text} />
@@ -40,15 +43,15 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
 
             <View style={styles.planDetails}>
               <View style={styles.detailRow}>
-                <Text variant="body" style={styles.detailLabel}>Plan:</Text>
+                <Text variant="body" style={styles.detailLabel}>{t('membership.planLabel')}</Text>
                 <Text variant="body" style={styles.detailValue}>
-                  {formatBillingPeriod(subscription.billingPeriod)}
+                  {formatBillingPeriod(t, subscription.billingPeriod)}
                 </Text>
               </View>
 
               <View style={styles.detailRow}>
                 <Text variant="body" style={styles.detailLabel}>
-                  {isCancelled ? 'Bitiş Tarihi:' : 'Sonraki Ödeme:'}
+                  {isCancelled ? t('membership.endDateLabel') : t('membership.nextPaymentLabel')}
                 </Text>
                 <Text variant="body" style={styles.detailValue}>
                   {format(new Date(subscription.currentPeriodEnd), 'dd MMMM yyyy', { locale: tr })}
@@ -57,9 +60,9 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
 
               {daysLeft > 0 && (
                 <View style={styles.detailRow}>
-                  <Text variant="body" style={styles.detailLabel}>Kalan Süre:</Text>
+                  <Text variant="body" style={styles.detailLabel}>{t('membership.remainingLabel')}</Text>
                   <Text variant="body" style={[styles.detailValue, { color: colors.primary[600]! }]}>
-                    {daysLeft} gün
+                    {t('membership.daysCount', { count: daysLeft })}
                   </Text>
                 </View>
               )}
@@ -71,11 +74,11 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
           <>
             <Divider style={styles.divider} />
             <Text variant="body" style={styles.upgradePrompt}>
-              Premium üyelikle sınırsız ilan, takas özelliği ve daha fazlasına erişin!
+              {t('membership.freePlanPromo')}
             </Text>
             <Button
               variant="primary"
-              title="Premium'a Yükselt"
+              title={t('membership.upgradeToPremium')}
               icon="diamond"
               onPress={() => router.push('/upgrade')}
               style={styles.upgradeButton}
@@ -87,16 +90,16 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
       {/* Premium Features */}
       {isPremium && (
         <Card style={styles.card}>
-          <Text variant="h3" style={styles.sectionTitle}>Premium Özellikleriniz</Text>
+          <Text variant="h3" style={styles.sectionTitle}>{t('membership.yourPremiumFeatures')}</Text>
 
           <View style={styles.featuresGrid}>
             {[
-              { icon: 'pricetag', text: 'Sınırsız İlan' },
-              { icon: 'camera', text: '15 Fotoğraf' },
-              { icon: 'swap-horizontal', text: 'Takas' },
-              { icon: 'images', text: 'Dijital Garaj' },
-              { icon: 'star', text: 'Öne Çıkarma' },
-              { icon: 'analytics', text: 'Analitik' },
+              { icon: 'pricetag', text: t('membership.featureUnlimitedListings') },
+              { icon: 'camera', text: t('membership.photoCountFeature', { count: PREMIUM_MEMBER_LIMITS.maxImagesPerListing }) },
+              { icon: 'swap-horizontal', text: t('membership.featureTrade') },
+              { icon: 'images', text: t('membership.featureDigitalGarage') },
+              { icon: 'star', text: t('membership.featureBoost') },
+              { icon: 'analytics', text: t('membership.featureAnalytics') },
             ].map((feature, index) => (
               <View key={index} style={styles.featureItem}>
                 <View style={styles.featureIcon}>
@@ -112,7 +115,7 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
       {/* Billing History */}
       {f.billingHistory.length > 0 && (
         <Card style={styles.card}>
-          <Text variant="h3" style={styles.sectionTitle}>Fatura Geçmişi</Text>
+          <Text variant="h3" style={styles.sectionTitle}>{t('membership.invoiceHistory')}</Text>
 
           {f.billingHistory.map((payment) => (
             <TouchableOpacity
@@ -137,7 +140,7 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
                   variant={payment.status === 'paid' ? 'success' : 'danger'}
                   size="sm"
                   style={styles.paymentStatusChip}
-                  label={payment.status === 'paid' ? 'Ödendi' : 'Bekliyor'}
+                  label={payment.status === 'paid' ? t('order.statusPaid') : t('payment.statusPending')}
                 />
               </View>
               {payment.invoiceUrl && (
@@ -151,14 +154,14 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
       {/* Subscription Actions */}
       {isPremium && subscription && (
         <Card style={styles.card}>
-          <Text variant="h3" style={styles.sectionTitle}>Abonelik İşlemleri</Text>
+          <Text variant="h3" style={styles.sectionTitle}>{t('membership.subscriptionActions')}</Text>
 
           <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/upgrade')}>
             <Ionicons name="swap-vertical" size={24} color={colors.text.muted} />
             <View style={styles.actionTextWrap}>
-              <Text variant="body" style={styles.actionTitle}>Plan Değiştir</Text>
+              <Text variant="body" style={styles.actionTitle}>{t('membership.changePlan')}</Text>
               <Text variant="bodySm" style={styles.actionDesc}>
-                {subscription.billingPeriod === 'monthly' ? 'Yıllık plana geç ve tasarruf et' : 'Aylık plana geç'}
+                {subscription.billingPeriod === 'monthly' ? t('membership.switchToYearly') : t('membership.switchToMonthly')}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.text.subtle} />
@@ -171,10 +174,10 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
               <Ionicons name="close-circle-outline" size={24} color={colors.danger[600]!} />
               <View style={styles.actionTextWrap}>
                 <Text variant="body" style={[styles.actionTitle, { color: colors.danger[600]! }]}>
-                  Aboneliği İptal Et
+                  {t('membership.cancelTitle')}
                 </Text>
                 <Text variant="bodySm" style={styles.actionDesc}>
-                  Dönem sonunda premium özellikler kapanır
+                  {t('membership.cancelSubscriptionDesc')}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -183,10 +186,10 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
               <Ionicons name="refresh" size={24} color={colors.success[600]!} />
               <View style={styles.actionTextWrap}>
                 <Text variant="body" style={[styles.actionTitle, { color: colors.success[600]! }]}>
-                  Aboneliği Yeniden Aktifleştir
+                  {t('membership.reactivateSubscriptionTitle')}
                 </Text>
                 <Text variant="bodySm" style={styles.actionDesc}>
-                  Premium özelliklerinize devam edin
+                  {t('membership.reactivateSubscriptionDesc')}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -201,10 +204,10 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
             <Ionicons name="warning" size={24} color={colors.warning[600]!} />
             <View style={styles.warningText}>
               <Text variant="body" style={styles.warningTitle}>
-                Aboneliğiniz {daysLeft} gün sonra sona erecek
+                {t('membership.expiringWarningTitle', { count: daysLeft })}
               </Text>
               <Text variant="bodySm" style={styles.warningDesc}>
-                Dönem sonunda ücretsiz üyeliğe geçiş yapılacak ve bazı özellikler kısıtlanacaktır.
+                {t('membership.expiringWarningDesc')}
               </Text>
             </View>
           </View>
@@ -214,7 +217,7 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
       {/* Help */}
       <TouchableOpacity style={styles.helpLink} onPress={() => router.push('/help')}>
         <Ionicons name="help-circle" size={20} color={colors.primary[600]!} />
-        <Text style={styles.helpText}>Abonelik ile ilgili yardım</Text>
+        <Text style={styles.helpText}>{t('membership.subscriptionHelp')}</Text>
       </TouchableOpacity>
 
       <View style={{ height: 50 }} />

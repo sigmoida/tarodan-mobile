@@ -9,9 +9,13 @@ import {
 import { Card, Spinner, Text, theme, appAlert } from "@/ui";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { ScreenHeader, EmptyState } from "@/components/common";
 import { useAuthStore } from "@/stores/authStore";
 import { membershipApi } from "@/lib/api";
+import { qk } from "@/lib/query";
+import { styles } from './_payment-methods/_lib/styles';
 
 const { colors } = theme;
 
@@ -36,17 +40,19 @@ interface SavedCard {
   autoRenewEligible: boolean;
 }
 
-const CARD_TYPE_LABELS: Record<string, string> = {
-  credit: "Kredi kartı",
-  debit: "Banka kartı",
-};
+const buildCardTypeLabels = (t: TFunction): Record<string, string> => ({
+  credit: t("payment.cardTypeCredit"),
+  debit: t("payment.cardTypeDebit"),
+});
 
 export default function PaymentMethodsScreen() {
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
+  const cardTypeLabels = buildCardTypeLabels(t);
 
   const cardsQuery = useQuery({
-    queryKey: ["saved-cards"],
+    queryKey: qk.payments.savedCards,
     queryFn: async () => {
       const res = await membershipApi.listCards();
       const data: any = res.data;
@@ -58,21 +64,23 @@ export default function PaymentMethodsScreen() {
 
   const handleDelete = (card: SavedCard) => {
     appAlert(
-      "Kartı sil",
-      `${card.brand || "Kart"} •••• ${card.last4} kartını silmek istediğine emin misin? Bu kartla otomatik yenileme yapılamaz hale gelir.`,
+      t("payment.deleteCardTitle"),
+      t("payment.deleteCardBody", { brand: card.brand || t("payment.cardGenericBrand"), last4: card.last4 }),
       [
-        { text: "Vazgeç", style: "cancel" },
+        { text: t("payment.threeDSCancel"), style: "cancel" },
         {
-          text: "Sil",
+          text: t("common.delete"),
           style: "destructive",
           onPress: async () => {
             try {
               await membershipApi.deleteCard(card.id);
-              queryClient.invalidateQueries({ queryKey: ["saved-cards"] });
+              // Sunucu 200 döndüğü an listeyi tazele — PayTR tarafındaki
+              // temizliğin bitmesini BEKLEME (kart kaydı bizde zaten silindi).
+              queryClient.invalidateQueries({ queryKey: qk.payments.savedCards });
             } catch (e: any) {
               appAlert(
-                "Hata",
-                e?.response?.data?.message || "Kart silinemedi.",
+                t("common.error"),
+                e?.response?.data?.message || t("payment.deleteCardFailed"),
               );
             }
           },
@@ -85,7 +93,7 @@ export default function PaymentMethodsScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Kayıtlı Kartlarım" />
+      <ScreenHeader title={t("payment.savedCardsTitle")} />
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -96,8 +104,7 @@ export default function PaymentMethodsScreen() {
         }
       >
         <Text variant="body" tone="muted" style={styles.intro}>
-          Otomatik yenileme ve hızlı ödeme için kayıtlı kartların. Yeni kart,
-          ödeme sırasında "kartımı kaydet" ile eklenir.
+          {t("payment.savedCardsIntro")}
         </Text>
 
         {cardsQuery.isLoading ? (
@@ -107,8 +114,8 @@ export default function PaymentMethodsScreen() {
         ) : cards.length === 0 ? (
           <EmptyState
             icon="card-outline"
-            title="Kayıtlı kartın yok"
-            subtitle='Bir ödeme yaparken "kartımı kaydet" seçeneğini işaretleyerek kart ekleyebilirsin.'
+            title={t("payment.noSavedCardsTitle")}
+            subtitle={t("payment.noSavedCardsSubtitle")}
           />
         ) : (
           cards.map((c) => (
@@ -116,7 +123,7 @@ export default function PaymentMethodsScreen() {
               <Ionicons name="card" size={28} color={colors.primary[500]} />
               <View style={styles.cardInfo}>
                 <Text variant="body" style={styles.cardTitle}>
-                  {(c.brand || "Kart") + " •••• " + c.last4}
+                  {(c.brand || t("payment.cardGenericBrand")) + " •••• " + c.last4}
                 </Text>
                 <View style={styles.badges}>
                   {c.cardScheme && (
@@ -144,7 +151,7 @@ export default function PaymentMethodsScreen() {
                         },
                       ]}
                     >
-                      Varsayılan
+                      {t("payment.defaultCard")}
                     </Text>
                   )}
                   {c.autoRenewEligible ? (
@@ -158,7 +165,7 @@ export default function PaymentMethodsScreen() {
                         },
                       ]}
                     >
-                      Oto-yenilemeye uygun
+                      {t("payment.autoRenewEligibleBadge")}
                     </Text>
                   ) : (
                     <Text
@@ -171,7 +178,7 @@ export default function PaymentMethodsScreen() {
                         },
                       ]}
                     >
-                      CVV gerektirir
+                      {t("payment.cvvRequiredBadge")}
                     </Text>
                   )}
                   {c.businessCard && (
@@ -185,16 +192,16 @@ export default function PaymentMethodsScreen() {
                         },
                       ]}
                     >
-                      Kurumsal
+                      {t("footer.corporate")}
                     </Text>
                   )}
                 </View>
                 {[
                   c.bank,
-                  c.cardType ? CARD_TYPE_LABELS[c.cardType] : null,
+                  c.cardType ? cardTypeLabels[c.cardType] : null,
                 ].filter(Boolean).length > 0 ? (
                   <Text variant="caption" tone="muted">
-                    {[c.bank, c.cardType ? CARD_TYPE_LABELS[c.cardType] : null]
+                    {[c.bank, c.cardType ? cardTypeLabels[c.cardType] : null]
                       .filter(Boolean)
                       .join(" · ")}
                   </Text>
@@ -203,7 +210,7 @@ export default function PaymentMethodsScreen() {
                   <Text
                     variant="caption"
                     tone="muted"
-                  >{`Son kullanma: ${c.expMonth}/${c.expYear}`}</Text>
+                  >{t("payment.expiryLabel", { month: c.expMonth, year: c.expYear })}</Text>
                 ) : null}
               </View>
               <Pressable
@@ -228,8 +235,7 @@ export default function PaymentMethodsScreen() {
             color={colors.success[600]}
           />
           <Text variant="caption" tone="muted" style={styles.secureText}>
-            Kartların PayTR güvenli kasasında saklanır; numara/CVV bizde
-            tutulmaz.
+            {t("payment.cardsVaultNotice")}
           </Text>
         </View>
       </ScrollView>
@@ -237,35 +243,3 @@ export default function PaymentMethodsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface.DEFAULT },
-  content: { padding: theme.spacing[4], gap: theme.spacing[3] },
-  intro: { marginBottom: theme.spacing[1] },
-  center: { paddingVertical: theme.spacing[12], alignItems: "center" },
-  cardRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing[3],
-    padding: theme.spacing[3.5],
-  },
-  cardInfo: { flex: 1, gap: theme.spacing[1] },
-  cardTitle: { fontWeight: "600" },
-  badges: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing[1.5] },
-  badge: {
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: theme.spacing[0.5],
-    borderRadius: 999,
-    overflow: "hidden",
-    fontSize: 11,
-  },
-  delete: { padding: theme.spacing[2] },
-  secure: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: theme.spacing[1.5],
-    marginTop: theme.spacing[3],
-    paddingHorizontal: theme.spacing[4],
-  },
-  secureText: { flexShrink: 1 },
-});

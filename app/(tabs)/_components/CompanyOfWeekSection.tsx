@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Image, TouchableOpacity } from 'react-native';
 import { Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,7 +11,17 @@ import { styles } from '../_lib/styles';
 const { colors } = theme;
 
 /** "Haftanın Şirketi" — profil + istatistik + öne çıkan ürünler + koleksiyonlar. */
-export function CompanyOfWeekSection({ companyOfWeek }: { companyOfWeek: any }) {
+export function CompanyOfWeekSection({
+  companyOfWeek,
+  isLoading,
+}: {
+  companyOfWeek: any;
+  isLoading?: boolean;
+}) {
+  const { t } = useTranslation();
+  if (isLoading) {
+    return <View style={styles.companyOfWeekSectionReserved} testID="company-of-week-section-reserved" />;
+  }
   if (!companyOfWeek) return null;
   const c = companyOfWeek;
 
@@ -19,9 +30,9 @@ export function CompanyOfWeekSection({ companyOfWeek }: { companyOfWeek: any }) 
       <View style={styles.sectionHeader}>
         <View style={styles.sectionTitleContainer}>
           <View style={[styles.sectionIndicator, { backgroundColor: colors.warning[500]! }]} />
-          <Text style={styles.sectionTitle}>Haftanın Şirketi</Text>
+          <Text style={styles.sectionTitle}>{t('home.companyOfWeek')}</Text>
           <View style={styles.businessBadge}>
-            <Text style={styles.businessBadgeText}>👑 Business</Text>
+            <Text style={styles.businessBadgeText}>{t('home.businessBadge')}</Text>
           </View>
         </View>
       </View>
@@ -39,10 +50,10 @@ export function CompanyOfWeekSection({ companyOfWeek }: { companyOfWeek: any }) 
           )}
           <View style={styles.companyInfo}>
             <View style={styles.companyNameRow}>
-              <Text style={styles.companyNameText}>{c.displayName || c.companyName || 'Şirket'}</Text>
+              <Text style={styles.companyNameText}>{c.displayName || c.companyName || t('home.companyFallback')}</Text>
               {c.isVerified && <Ionicons name="checkmark-circle" size={18} color={colors.success[600]!} />}
             </View>
-            <Text style={styles.companyBio}>{c.bio || 'Premium Diecast araçların alım ve satımı'}</Text>
+            <Text style={styles.companyBio}>{c.bio || t('home.companyBioFallback')}</Text>
           </View>
         </View>
 
@@ -51,19 +62,19 @@ export function CompanyOfWeekSection({ companyOfWeek }: { companyOfWeek: any }) 
           <View style={styles.companyStatsGrid}>
             <View style={[styles.companyStat, { backgroundColor: colors.warning[50]! }]}>
               <Text style={[styles.companyStatValue, { color: colors.primary[600]! }]}>{c.stats.totalProducts || 0}</Text>
-              <Text style={styles.companyStatLabel}>Ürün</Text>
+              <Text style={styles.companyStatLabel}>{t('home.statProducts')}</Text>
             </View>
             <View style={[styles.companyStat, { backgroundColor: colors.success[50]! }]}>
               <Text style={[styles.companyStatValue, { color: colors.success[600]! }]}>{c.stats.totalSales || 0}</Text>
-              <Text style={styles.companyStatLabel}>Satış</Text>
+              <Text style={styles.companyStatLabel}>{t('common.sales')}</Text>
             </View>
             <View style={[styles.companyStat, { backgroundColor: colors.info[50]! }]}>
               <Text style={[styles.companyStatValue, { color: colors.info[600]! }]}>{(c.stats.totalViews || 0).toLocaleString()}</Text>
-              <Text style={styles.companyStatLabel}>Görüntülenme</Text>
+              <Text style={styles.companyStatLabel}>{t('home.statViews')}</Text>
             </View>
             <View style={[styles.companyStat, { backgroundColor: colors.danger[50]! }]}>
               <Text style={[styles.companyStatValue, { color: colors.danger[600]! }]}>{(c.stats.totalLikes || 0).toLocaleString()}</Text>
-              <Text style={styles.companyStatLabel}>Beğeni</Text>
+              <Text style={styles.companyStatLabel}>{t('home.statLikes')}</Text>
             </View>
           </View>
         )}
@@ -73,12 +84,14 @@ export function CompanyOfWeekSection({ companyOfWeek }: { companyOfWeek: any }) 
           <View style={styles.companyRating}>
             <Ionicons name="star" size={18} color={colors.warning[500]!} />
             <Text style={styles.companyRatingValue}>{c.stats.averageRating.toFixed(1)}</Text>
-            <Text style={styles.companyRatingCount}>({c.stats.totalRatings || 0} yorum)</Text>
+            <Text style={styles.companyRatingCount}>
+              {t('home.reviewCountSuffix', { count: c.stats.totalRatings || 0 })}
+            </Text>
           </View>
         )}
 
         {/* Öne Çıkan Ürünler */}
-        <Text style={styles.companySectionTitle}>Öne Çıkan Ürünler</Text>
+        <Text style={styles.companySectionTitle}>{t('home.featuredRailTitle')}</Text>
         {c.products && c.products.length > 0 && (
           <View style={styles.companyProductsGrid}>
             {c.products.slice(0, 6).map((product: any) => (
@@ -108,7 +121,7 @@ export function CompanyOfWeekSection({ companyOfWeek }: { companyOfWeek: any }) 
         {/* Koleksiyonlar */}
         {c.collections && c.collections.length > 0 && (
           <>
-            <Text style={styles.companySectionTitle}>Koleksiyonları</Text>
+            <Text style={styles.companySectionTitle}>{t('home.companyCollections')}</Text>
             {c.collections.slice(0, 2).map((collection: any) => (
               <TouchableOpacity
                 key={collection.id}
@@ -124,10 +137,16 @@ export function CompanyOfWeekSection({ companyOfWeek }: { companyOfWeek: any }) 
                 )}
                 <View style={styles.companyCollectionInfo}>
                   <Text style={styles.companyCollectionName}>{collection.name}</Text>
-                  <Text style={styles.companyCollectionMeta}>{collection.itemCount} ürün</Text>
+                  <Text style={styles.companyCollectionMeta}>
+                    {t('collection.itemCountSuffix', { count: collection.itemCount })}
+                  </Text>
                   <View style={styles.companyCollectionStats}>
-                    <Text style={styles.companyCollectionStatText}>{collection.viewCount} görüntülenme</Text>
-                    <Text style={styles.companyCollectionStatTextRed}>{collection.likeCount} beğeni</Text>
+                    <Text style={styles.companyCollectionStatText}>
+                      {t('collection.viewCountSuffix', { count: collection.viewCount })}
+                    </Text>
+                    <Text style={styles.companyCollectionStatTextRed}>
+                      {t('collection.likeCountSuffix', { count: collection.likeCount })}
+                    </Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -142,7 +161,7 @@ export function CompanyOfWeekSection({ companyOfWeek }: { companyOfWeek: any }) 
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
-            <Text style={styles.viewStoreButtonText}>Mağazayı İncele</Text>
+            <Text style={styles.viewStoreButtonText}>{t('home.viewStore')}</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>

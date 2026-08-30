@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import type { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/ui';
 
@@ -28,7 +29,17 @@ type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 /** Rozet gösterebilen hızlı erişim satırları — sayaç `useHomeBadges`'den gelir. */
 export type QuickActionBadgeKey = 'pendingOffers' | 'pendingTrades';
 
-export const quickActionItems: Array<{
+/**
+ * Hızlı erişim öğeleri.
+ *
+ * Etiketler çeviriden geldiği için liste artık bir FABRİKA: modül seviyesinde
+ * kurulsaydı `t` daha hazır olmadan çalışır ve etiketler ilk dilde donardı
+ * (aynı gerekçe zod şemalarında da geçerli — bkz. `@/utils/validation` başı).
+ *
+ * `icon` / `to` / `testID` gibi dilden bağımsız alanlar değişmedi; test bunları
+ * doğrudan okuyor.
+ */
+export type QuickActionItem = {
   icon: IoniconName;
   label: string;
   to: string;
@@ -36,21 +47,23 @@ export const quickActionItems: Array<{
   badgeKey?: QuickActionBadgeKey;
   /** Yalnızca kurumsal hesaplarda göster (companyName + taxId var demek kurumsal). */
   requiresBusiness?: boolean;
-}> = [
-  { icon: 'pricetag', label: 'İlanlarım', to: '/settings/my-listings' },
-  { icon: 'cube', label: 'Siparişlerim', to: '/orders', testID: 'profile-orders-link' },
-  { icon: 'cash', label: 'Satışlarım', to: '/sales', testID: 'profile-sales-link' },
-  { icon: 'arrow-undo', label: 'İadelerim', to: '/refund-requests', testID: 'profile-refunds-link' },
-  { icon: 'heart', label: 'Favorilerim', to: '/favorites' },
-  { icon: 'chatbubbles', label: 'Mesajlar', to: '/messages' },
-  { icon: 'albums', label: 'Beğenilen Koleksiyonlar', to: '/settings/liked-collections' },
-  { icon: 'swap-horizontal', label: 'Takaslarım', to: '/trades', testID: 'profile-trades-link', badgeKey: 'pendingTrades' },
-  { icon: 'pricetags', label: 'Tekliflerim', to: '/offers', testID: 'profile-offers-link', badgeKey: 'pendingOffers' },
-  { icon: 'stats-chart', label: 'İstatistikler', to: '/settings/analytics' },
-  { icon: 'help-circle', label: 'Yardım', to: '/help' },
+};
+
+export const buildQuickActionItems = (t: TFunction): QuickActionItem[] => [
+  { icon: 'pricetag', label: t('nav.myListings'), to: '/settings/my-listings' },
+  { icon: 'cube', label: t('nav.myOrders'), to: '/orders', testID: 'profile-orders-link' },
+  { icon: 'cash', label: t('mobile.quickMySales'), to: '/sales', testID: 'profile-sales-link' },
+  { icon: 'arrow-undo', label: t('mobile.quickRefundRequests'), to: '/refund-requests', testID: 'profile-refunds-link' },
+  { icon: 'heart', label: t('favorites.myFavorites'), to: '/favorites' },
+  { icon: 'chatbubbles', label: t('nav.messages'), to: '/messages' },
+  { icon: 'albums', label: t('collection.likedCollections'), to: '/settings/liked-collections' },
+  { icon: 'swap-horizontal', label: t('trade.myTrades'), to: '/trades', testID: 'profile-trades-link', badgeKey: 'pendingTrades' },
+  { icon: 'pricetags', label: t('mobile.quickMyOffers'), to: '/offers', testID: 'profile-offers-link', badgeKey: 'pendingOffers' },
+  { icon: 'stats-chart', label: t('mobile.settingsStatistics'), to: '/settings/analytics' },
+  { icon: 'help-circle', label: t('nav.help'), to: '/help' },
   {
     icon: 'document-text',
-    label: 'Kurumsal Başvuru',
+    label: t('mobile.quickBusinessApplication'),
     to: '/settings/business-application',
     testID: 'settings-business-application',
     requiresBusiness: true,

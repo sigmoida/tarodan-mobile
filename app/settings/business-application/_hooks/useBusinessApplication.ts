@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { appAlert } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { sellerDocumentsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { REUPLOADABLE_STATUSES } from '../_lib/documents';
 import {
-  applicationDetailsSchema,
-  stakeholderSchema,
+  buildApplicationDetailsSchema,
+  buildStakeholderSchema,
   type ApplicationDetailsForm,
   type StakeholderForm,
 } from '../_lib/schema';
@@ -36,6 +37,7 @@ const isMissingStatus = (e: unknown) => {
  * `revision_requested` belgeler için yükleme AÇIK kalır.
  */
 export function useBusinessApplication() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<BusinessApplicationTab>('details');
 
@@ -61,7 +63,7 @@ export function useBusinessApplication() {
     queryClient.invalidateQueries({ queryKey: qk.sellerDocuments.list });
   };
 
-  const detailsForm = useZodForm(applicationDetailsSchema, {
+  const detailsForm = useZodForm(buildApplicationDetailsSchema(t), {
     values: {
       companyType: application?.companyType ?? '',
       taxId: application?.taxId ?? '',
@@ -83,12 +85,12 @@ export function useBusinessApplication() {
       ),
     onSuccess: () => {
       invalidate();
-      appAlert('Kaydedildi', 'Şirket bilgileri güncellendi.');
+      appAlert(t('businessApplication.detailsSavedTitle'), t('businessApplication.detailsSavedBody'));
     },
-    onError: (e) => appAlert('Hata', errorText(e, 'Bilgiler kaydedilemedi.')),
+    onError: (e) => appAlert(t('common.error'), errorText(e, t('businessApplication.detailsSaveFailed'))),
   });
 
-  const stakeholderForm = useZodForm(stakeholderSchema, {
+  const stakeholderForm = useZodForm(buildStakeholderSchema(t), {
     defaultValues: { fullName: '', identityType: 'tckn', identityNumber: '' },
   });
 
@@ -102,18 +104,18 @@ export function useBusinessApplication() {
     onSuccess: () => {
       invalidate();
       stakeholderForm.reset({ fullName: '', identityType: 'tckn', identityNumber: '' });
-      appAlert('Eklendi', 'Şirket sahibi/ortağı eklendi.');
+      appAlert(t('businessApplication.stakeholderAddedTitle'), t('businessApplication.stakeholderAddedBody'));
     },
-    onError: (e) => appAlert('Hata', errorText(e, 'Paydaş eklenemedi.')),
+    onError: (e) => appAlert(t('common.error'), errorText(e, t('businessApplication.stakeholderAddFailed'))),
   });
 
   const submitMutation = useMutation({
     mutationFn: () => sellerDocumentsApi.submit(),
     onSuccess: () => {
       invalidate();
-      appAlert('Gönderildi', 'Başvurunuz incelemeye alındı.');
+      appAlert(t('businessApplication.submittedTitle'), t('businessApplication.submittedBody'));
     },
-    onError: (e) => appAlert('Gönderilemedi', errorText(e, 'Başvuru gönderilemedi.')),
+    onError: (e) => appAlert(t('businessApplication.submitFailedTitle'), errorText(e, t('businessApplication.submitFailed'))),
   });
 
   /** Bir belge türünün (paydaş kimliğinde stakeholderId ile) yüklenmiş kaydı. */

@@ -1,3 +1,4 @@
+import i18n from '@/i18n/config';
 import type { Message, MessageThread } from '@/stores/messagesStore';
 
 /** Canlı mesaj dizisini sınırla (#76) — uzun ömürlü thread sınırsız büyümesin. */
@@ -19,7 +20,9 @@ export function normalizeMessage(m: any): Message {
  * API thread'leri düz alanlarla döndürür (participant1Id/Name/AvatarUrl,
  * participant2...). Mobil getOtherParticipant nested participant1/participant2
  * objesi beklediği için burada düz alanları nesneye normalize ediyoruz — yoksa
- * isim 'Kullanıcı' görünür. Hem threads hem thread query'si bu helper'ı kullanır.
+ * isim yerine kullanıcı adı düşer. Hem threads hem thread query'si bu helper'ı
+ * kullanır. React-dışı saf fonksiyon — düşüş metni `paytrDirectForm.ts` ile aynı
+ * desen: global `i18n`'den ÇAĞRI ANINDA okunur.
  */
 export function normalizeThread(t: any): MessageThread {
   if (!t || typeof t !== 'object') return t;
@@ -28,7 +31,7 @@ export function normalizeThread(t: any): MessageThread {
       ? t.participant1
       : {
           id: t.participant1Id || t.sender?.id || '',
-          displayName: t.participant1Name || t.sender?.displayName || 'Kullanıcı',
+          displayName: t.participant1Name || t.sender?.displayName || i18n.t('common.user'),
           avatarUrl: t.participant1AvatarUrl || t.sender?.avatarUrl || undefined,
         };
   const participant2 =
@@ -37,7 +40,7 @@ export function normalizeThread(t: any): MessageThread {
       : {
           id: t.participant2Id || t.otherUser?.id || t.receiver?.id || '',
           displayName:
-            t.participant2Name || t.otherUser?.displayName || t.receiver?.displayName || 'Kullanıcı',
+            t.participant2Name || t.otherUser?.displayName || t.receiver?.displayName || i18n.t('common.user'),
           avatarUrl:
             t.participant2AvatarUrl || t.otherUser?.avatarUrl || t.receiver?.avatarUrl || undefined,
         };
@@ -48,6 +51,21 @@ export function normalizeThread(t: any): MessageThread {
     participant1,
     participant2,
     unreadCount: t.unreadCount || 0,
+    /**
+     * Ürün bağlamı: sunucu DÜZ alanlarda gönderiyor (`productTitle`/
+     * `productImage`), `ThreadRow` iç içe `thread.product` arıyor. Haritalama
+     * yoktu, o yüzden ürün üzerinden başlamış her konuşma listede "Genel mesaj"
+     * görünüyordu. Sunucu iç içe göndermeye geçerse onu bozmuyoruz.
+     */
+    product:
+      t.product ??
+      (t.productTitle
+        ? {
+            ...(t.productId ? { id: t.productId } : {}),
+            title: t.productTitle,
+            imageUrl: t.productImage ?? undefined,
+          }
+        : undefined),
   };
 }
 

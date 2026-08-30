@@ -7,6 +7,12 @@ export interface Sale {
   // "İptal Edildi" göstersin (alıcı orders/index ile tutarlı).
   cancellationType?: string | null;
   totalAmount: number;
+  /**
+   * Sunucunun kırılımı. `subtotal` SATICININ ürün bedeli; `totalAmount` alıcının
+   * ödediği toplam (kargo + alıcı hizmet bedeli + KDV) ve satıcı ekranında
+   * yanıltıcı. Satış detayı da bu kırılımı okuyor.
+   */
+  pricing?: { subtotal?: number; sellerNetAmount?: number };
   product: {
     id: string;
     title: string;

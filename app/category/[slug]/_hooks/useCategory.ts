@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { productsApi, categoriesApi } from '@/lib/api';
-import { SORT_OPTIONS } from '../_lib/constants';
+import { buildSortOptions } from '../_lib/constants';
 
 /**
  * Category controller — owns the category-detail query, the filtered products
@@ -10,6 +11,7 @@ import { SORT_OPTIONS } from '../_lib/constants';
  * verbatim from the monolithic screen (§12).
  */
 export function useCategory() {
+  const { t } = useTranslation();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('created_desc');
@@ -55,7 +57,8 @@ export function useCategory() {
     setRefreshing(false);
   }, [refetch]);
 
-  const getSortLabel = () => SORT_OPTIONS.find((o) => o.id === sortBy)?.name || 'Sırala';
+  const getSortLabel = () =>
+    buildSortOptions(t).find((o) => o.id === sortBy)?.name || t('common.sort');
 
   return {
     category,

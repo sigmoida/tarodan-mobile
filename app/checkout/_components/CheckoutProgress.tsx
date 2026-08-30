@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View } from 'react-native';
 import { Text, theme } from '@/ui';
@@ -8,6 +9,7 @@ const { colors } = theme;
 
 /** Adım göstergesi: Adres → Ödeme → Onay. */
 export function CheckoutProgress({ step }: { step: number }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.progressContainer}>
       {[1, 2, 3].map((s) => (
@@ -20,7 +22,7 @@ export function CheckoutProgress({ step }: { step: number }) {
             )}
           </View>
           <Text style={[styles.progressLabel, step >= s && styles.progressLabelActive]}>
-            {s === 1 ? 'Adres' : s === 2 ? 'Ödeme' : 'Onay'}
+            {s === 1 ? t('checkout.stepAddress') : s === 2 ? t('checkout.title') : t('checkout.stepConfirm')}
           </Text>
           {s < 3 ? <View style={[styles.progressLine, step > s && styles.progressLineActive]} /> : null}
         </View>

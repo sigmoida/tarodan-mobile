@@ -1,6 +1,7 @@
 import { View, ScrollView, RefreshControl } from 'react-native';
 import { theme } from '@/ui';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ScreenHeader, EmptyState, ScreenLoader } from '@/components/common';
 import { useSellerDashboard } from './_hooks/useSellerDashboard';
 import { styles } from './_lib/styles';
@@ -14,17 +15,18 @@ import {
 const { colors } = theme;
 
 export default function SellerDashboardScreen() {
+  const { t } = useTranslation();
   const f = useSellerDashboard();
 
   if (!f.isAuthenticated) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Satıcı Paneli" />
+        <ScreenHeader title={t('sellerDashboard.title')} />
         <EmptyState
           fullscreen
           icon="storefront-outline"
-          title="Satıcı paneli için giriş yapın"
-          actionLabel="Giriş Yap"
+          title={t('sellerDashboard.loginPrompt')}
+          actionLabel={t('common.login')}
           onAction={() => router.push('/(auth)/login')}
         />
       </View>
@@ -34,7 +36,7 @@ export default function SellerDashboardScreen() {
   if (f.isLoading) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Satıcı Paneli" />
+        <ScreenHeader title={t('sellerDashboard.title')} />
         <ScreenLoader />
       </View>
     );
@@ -42,7 +44,7 @@ export default function SellerDashboardScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Satıcı Paneli" subtitle={f.user?.displayName} />
+      <ScreenHeader title={t('sellerDashboard.title')} subtitle={f.user?.displayName} />
       <ScrollView
         contentContainerStyle={styles.scrollBody}
         refreshControl={

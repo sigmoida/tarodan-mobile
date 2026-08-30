@@ -6,6 +6,7 @@
  * Mevcut security.test ile ÇAKIŞMA yok: o dosya yalnız 2FA durumunu test eder.
  */
 import React from "react";
+import { renderWithProviders } from "@/test-utils";
 import { appAlert } from "@/ui";
 import {
   render,
@@ -26,7 +27,10 @@ jest.mock("react-i18next", () => ({
 // Oturum açık kullanıcı; logout izlenebilir
 const mockLogout = jest.fn();
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: () => ({ isAuthenticated: true, logout: mockLogout }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: true, logout: mockLogout });
+    return sel ? sel(state) : state;
+  },
 }));
 
 // API — fn'ler factory içinde, sonra import
@@ -57,7 +61,7 @@ describe("J48 · Güvenlik — tüm cihazlardan çıkış", () => {
   });
 
   it('J48.1 "Tüm Cihazlardan Çıkış" satırı render edilir', async () => {
-    render(<SecuritySettingsScreen />);
+    renderWithProviders(<SecuritySettingsScreen />);
     expect(screen.getByText("Tüm Cihazlardan Çıkış")).toBeOnTheScreen();
     expect(
       screen.getByText("Diğer tüm cihazlarda oturumunuzu sonlandırın"),
@@ -66,10 +70,12 @@ describe("J48 · Güvenlik — tüm cihazlardan çıkış", () => {
 
   it("J48.2 satıra basınca onay Alert tetiklenir", () => {
     const alertSpy = (appAlert as jest.Mock).mockImplementation(() => {});
-    render(<SecuritySettingsScreen />);
+    renderWithProviders(<SecuritySettingsScreen />);
     fireEvent.press(screen.getByText("Tüm Cihazlardan Çıkış"));
+    // Bu dosya `t`'yi anahtarı döndürecek şekilde mock'luyor; başlık artık
+    // katalogdan geliyor, o yüzden beklenen değer ANAHTAR.
     expect(alertSpy).toHaveBeenCalledWith(
-      "Tüm Cihazlardan Çıkış",
+      "security.logoutAllTitle",
       expect.any(String),
       expect.any(Array),
     );
@@ -85,7 +91,7 @@ describe("J48 · Güvenlik — tüm cihazlardan çıkış", () => {
         )?.onPress;
       },
     );
-    render(<SecuritySettingsScreen />);
+    renderWithProviders(<SecuritySettingsScreen />);
     fireEvent.press(screen.getByText("Tüm Cihazlardan Çıkış"));
     expect(confirmOnPress).toBeDefined();
 

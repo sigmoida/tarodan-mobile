@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { appAlert } from '@/ui';
 import { api } from '@/lib/api';
 import { useRefresh } from '@/hooks/useRefresh';
@@ -13,6 +14,7 @@ import { DEFAULT_SETTINGS, type NotificationSettings } from '../_lib/types';
  * refetch. Lifted verbatim from the monolithic screen (§12).
  */
 export function useNotificationSettings() {
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
   const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_SETTINGS);
@@ -55,7 +57,7 @@ export function useNotificationSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
-      appAlert('Başarılı', 'Bildirim ayarları kaydedildi');
+      appAlert(t('common.success'), t('settings.notificationSettingsSaved'));
     },
   });
 
