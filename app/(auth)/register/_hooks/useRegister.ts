@@ -72,7 +72,9 @@ export function useRegister() {
         displayName: data.displayName,
         email: data.email,
         password: data.password,
-        birthDate: data.birthDate,
+        // Boş bırakıldıysa alan HİÇ gönderilmez ('' göndermek sunucu tarafında
+        // "geçerli bir tarih giriniz" hatası verir); opsiyonelliğin karşılığı bu.
+        ...(data.birthDate ? { birthDate: data.birthDate } : {}),
       });
     },
     onSuccess: () => router.replace('/(auth)/login'),

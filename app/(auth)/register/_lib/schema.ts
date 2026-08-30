@@ -28,10 +28,18 @@ export const buildRegisterSchema = (t: TFunction) =>
       username: usernameSchema(t),
       displayName: displayNameSchema(t),
       email: emailSchema(t),
+      // Doğum tarihi OPSİYONEL — App Store Review 5.1.1(v) (16 Tem 2026): pazar
+      // yerinin çekirdek işlevi için gerekli olmayan kişisel veri zorunlu
+      // tutulamaz. Boş bırakılabilir; girilirse hâlâ geçerli ve 18+ olmalı.
+      // Yaş gerçekten gerektiğinde (satıcı olma / ödeme-KYC) orada zorunlu istenir.
       birthDate: z
         .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/, t('validation.birthDateRequired'))
-        .refine(isAdult, t('validation.minAge18')),
+        .optional()
+        .refine(
+          (v) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v),
+          t('validation.birthDateInvalid'),
+        )
+        .refine((v) => !v || isAdult(v), t('validation.minAge18')),
       password: strongPasswordSchema(t),
       confirmPassword: z.string(),
       acceptTerms: z.boolean().refine((val) => val, t('validation.acceptTerms')),
