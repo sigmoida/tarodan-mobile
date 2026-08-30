@@ -662,9 +662,9 @@
           ).join("")
         : '<li>Başarı yanıtı controller tarafından ayrıca belgelenmemiş; ilgili service response tipi kullanılır.</li>';
 
-      return '<details class="endpoint" id="' + stableId(endpoint) + '">' +
+      return '<details class="endpoint" id="' + escapeHtml(stableId(endpoint)) + '">' +
         '<summary>' +
-          '<span class="method ' + endpoint.method + '">' + endpoint.method + '</span>' +
+          '<span class="method ' + escapeHtml(endpoint.method) + '">' + escapeHtml(endpoint.method) + '</span>' +
           '<span class="route">' + escapeHtml(endpoint.route) + '</span>' +
           '<span class="summary-text">' + escapeHtml(endpoint.summary) + '</span>' +
           '<span class="badges">' +
@@ -782,8 +782,8 @@
       document.getElementById("required-endpoints").innerHTML = endpoints
         .filter((endpoint) => endpoint.coverage === "web-required")
         .map((endpoint) =>
-          '<tr><td><span class="method ' + endpoint.method + '">' + endpoint.method +
-          '</span></td><td><a href="#' + stableId(endpoint) + '"><code>' +
+          '<tr><td><span class="method ' + escapeHtml(endpoint.method) + '">' + escapeHtml(endpoint.method) +
+          '</span></td><td><a href="#' + escapeHtml(stableId(endpoint)) + '"><code>' +
           escapeHtml(endpoint.route) + '</code></a></td><td>' +
           escapeHtml(endpoint.domainLabel) + '</td><td>' +
           escapeHtml(authLabels[endpoint.auth]) + '</td><td>' +
