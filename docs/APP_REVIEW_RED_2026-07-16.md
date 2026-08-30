@@ -56,7 +56,7 @@ kendi kılavuzuna aykırıdır.
 
 ---
 
-## 3. Guideline 5.1.1(v) — zorunlu doğum tarihi — **MOBİL HAZIR, BACKEND BEKLENİYOR**
+## 3. Guideline 5.1.1(v) — zorunlu doğum tarihi — **MOBİL + BACKEND HAZIR, DEPLOY BEKLENİYOR**
 
 Mobil taraf: `app/(auth)/register/_lib/schema.ts:31-34` alanı zorunlu kılıyor,
 `app/(auth)/register/_components/RegisterForm.tsx:118-127` zorunlu olarak render ediyor.
@@ -89,11 +89,25 @@ uygun değil.
 - `app/(auth)/register/__tests__/schema.test.ts` — dört yeni vaka: alan yok /
   boş string geçerli, girilmişse 18+ ve biçim kuralları hâlâ geçerli.
 
-### ⚠️ Backend olmadan YAYINLANMAMALI
+### Backend tarafında yapılanlar
 
-Backend `birthDate`'i hâlâ zorunlu tutuyor. Bu hâliyle build alınırsa alanı boş
-bırakan kullanıcının kaydı `400` ile düşer. Sıra: **önce** backend `RegisterDto`da
-`birthDate` `@IsOptional()` olmalı, **sonra** mobil build. Doğrulama komutu:
+`tarodan-app` deposunda, `origin/master`'dan açılan `fix/register-birthdate-optional`
+dalı (commit `5f367de1c`, worktree: `/tmp/tarodan-api-bd`):
+
+- `RegisterDto` — `@IsOptional()` + `birthDate?: string` + `ApiPropertyOptional`.
+  `IsAdultConstraint` boş değeri zaten geçiriyordu; tek eksik `@IsDateString`'ti.
+- `AuthRegistrationService` — `birthDate` yokken atılan
+  `BadRequestException(server.auth.birthDateRequired)` kaldırıldı; 18+ kontrolü
+  yalnız değer geldiğinde uygulanıyor.
+- `prisma.user.create` — değer yoksa `birthDate: null`. Kolon zaten `DateTime?`,
+  **şema değişikliği ve migration gerekmiyor**.
+- Yeni `register-birthdate-optional.spec.ts` — 4 vaka, mutasyonla doğrulandı.
+
+### ⚠️ Sıra: önce backend deploy, sonra mobil build
+
+Backend bu dal deploy edilene kadar `birthDate`'i zorunlu tutmaya devam eder.
+Mobil build önce çıkarsa alanı boş bırakan kullanıcının kaydı `400` ile düşer.
+Deploy sonrası doğrulama komutu:
 
     curl -s -X POST https://staging.tarodan.com.tr/api/auth/register \
       -H 'Content-Type: application/json' -H 'Accept-Language: tr' \
@@ -108,7 +122,8 @@ Yanıttaki hata listesinde **"Geçerli bir tarih giriniz (YYYY-MM-DD)" kalmamal�
 
 1. ~~App Privacy etiketini düzelt (madde 2).~~ **Tamamlandı** — "Data Used to
    Track You" bölümü kaldırıldı, Coarse Location hatalı işaretiyle birlikte çıktı.
-2. Backend `birthDate` opsiyonel (madde 3) — mobil tarafı hazır, bunu bekliyor.
+2. Backend dalını (`fix/register-birthdate-optional`) merge + deploy et, aşağıdaki
+   curl ile doğrula (madde 3). Mobil build bundan SONRA çıkmalı.
 3. Yeni production build + iPad'de login doğrulaması (madde 1).
 4. Üçüne birden Resolution Center'dan tek cevap; Review Notes'a test hesabı ve
    alıcı/satıcı senaryosunu yaz.
