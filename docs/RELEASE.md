@@ -6,7 +6,7 @@ How the mobile app ships, mirroring the backend's staging/production cadence
 | Track          | Trigger                                     | Pipeline                | Where it lands                                                    |
 | -------------- | ------------------------------------------- | ----------------------- | ----------------------------------------------------------------- |
 | **Staging**    | push to `main` → auto OTA only; build is manual (`workflow_dispatch`) | `mobile-staging.yml`    | JS→OTA `staging` channel · native→internal preview build          |
-| **Production** | `mobile-v*` tag on `master`                 | `mobile-testflight.yml` | TestFlight (iOS) + Play internal (Android), after manual approval |
+| **Production** | push to `master` **with a changed `expo.version`** | `mobile-production.yml` | TestFlight (iOS). Android deferred — see below. |
 
 The golden rule (see [`EAS_UPDATE_OTA.md`](./EAS_UPDATE_OTA.md)):
 
@@ -90,29 +90,37 @@ OAuth client registered with the SHA-1 from `eas credentials -p android` — the
 same command's SHA-256 output is what the deep-links gap above needs, so both
 close from one place.
 
-## Production (tagged release)
+## Production
 
-1. **Bump the version** in a reviewed PR: set `expo.version` in
-   `apps/mobile/app.json` (e.g. `1.3.0`). This committed value is the source of
-   truth — CI verifies the tag against it and never overwrites it. Build number /
-   version code auto-increment on EAS (`appVersionSource: remote`).
-2. **Merge to `master`.**
-3. **Tag and push:**
-   ```bash
-   git checkout master && git pull
-   git tag mobile-v1.3.0        # MUST match app.json expo.version
-   git push origin mobile-v1.3.0
-   ```
-4. `mobile-testflight.yml` runs in the `production` GitHub Environment → **waits
-   for manual approval** (same gate as `deploy-production.yml`) → `eas build`
-   (iOS+Android) → `eas submit` to TestFlight + Play internal track.
-5. Promote OTA fixes for the shipped version with
-   `eas update --branch production` (JS-only; no store round-trip).
+Trigger: **a push to `master` in which `app.json`'s `expo.version` changed.**
+`mobile-production.yml` compares `expo.version` between `github.event.before` and
+`HEAD`; if it is unchanged the whole run skips, so ordinary `master` merges never
+burn an EAS build. `workflow_dispatch` bypasses the gate for a deliberate manual
+release.
 
-`workflow_dispatch` on `mobile-testflight.yml` allows a manual build/submit with
-a profile + submit toggle.
+> **There is no `mobile-v*` tag flow and no `mobile-testflight.yml`.** Both
+> belonged to the monorepo era and are gone. Tagging a release is fine as a marker
+> but triggers nothing.
 
----
+Steps:
+
+1. **Bump the version on `main`:** set `expo.version` in `app.json` (e.g. `1.0.1`).
+   This committed value is the source of truth. Build number auto-increments on
+   EAS (`appVersionSource: remote`, `autoIncrement: buildNumber`), so leave
+   `ios.buildNumber` alone.
+2. **Merge `main` → `master`.** The push triggers `mobile-production.yml`:
+   `eas build --platform ios --profile production` → `eas submit --profile
+   production --latest` → the build lands in **TestFlight**.
+3. **TestFlight is not App Review.** Submitting for review is a separate manual
+   step in App Store Connect, after you have tested the build.
+4. Promote JS-only fixes for the shipped version with
+   `eas update --branch production` — no store round-trip.
+
+**iOS only.** Android is deliberately deferred (spec 2026-07-31 §7): it needs a
+Play service account plus a dual-client `google-services.json`. `com.tarodan.app`
+has never shipped on Play.
+
+**Guard:** if `EXPO_TOKEN` is missing the workflow no-ops rather than failing.
 
 ## Required secrets & credentials (one-time)
 
