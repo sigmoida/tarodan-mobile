@@ -91,8 +91,8 @@ uygun değil.
 
 ### Backend tarafında yapılanlar
 
-`tarodan-app` deposunda, `origin/master`'dan açılan `fix/register-birthdate-optional`
-dalı (commit `5f367de1c`, worktree: `/tmp/tarodan-api-bd`):
+`tarodan-app` deposunda `fix/register-birthdate-optional` dalı, `origin/development`
+üzerine kuruldu (commit `e8fc10c81`, worktree: `/tmp/tarodan-api-bd`):
 
 - `RegisterDto` — `@IsOptional()` + `birthDate?: string` + `ApiPropertyOptional`.
   `IsAdultConstraint` boş değeri zaten geçiriyordu; tek eksik `@IsDateString`'ti.
@@ -102,6 +102,23 @@ dalı (commit `5f367de1c`, worktree: `/tmp/tarodan-api-bd`):
 - `prisma.user.create` — değer yoksa `birthDate: null`. Kolon zaten `DateTime?`,
   **şema değişikliği ve migration gerekmiyor**.
 - Yeni `register-birthdate-optional.spec.ts` — 4 vaka, mutasyonla doğrulandı.
+
+### Deploy yolu
+
+Backend deploy'u push tetiklemeli, elle sunucu işi yok:
+
+| Dal | Tetiklenen |
+| --- | --- |
+| `development` | `deploy-staging.yml` → staging |
+| `master` | `deploy-production.yml` → production |
+
+Sıra: dalı `development`'a PR et (PR gate typecheck + lint çalıştırır — lokalde
+`@tarodan/eslint-plugin` kurulu olmadığı için lint orada koşacak) → staging
+deploy'unu bekle → aşağıdaki curl ile doğrula → `development`'ı `master`'a PR et
+→ production deploy.
+
+**Not:** `origin/master` şu an `origin/development`'tan 10 commit ileride
+(development geride). `development` → `master` PR'ı yalnız bu commit'i taşır.
 
 ### ⚠️ Sıra: önce backend deploy, sonra mobil build
 
