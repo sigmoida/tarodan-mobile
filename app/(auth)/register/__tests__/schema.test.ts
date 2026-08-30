@@ -42,3 +42,38 @@ describe('registerSchema — username entegrasyonu', () => {
     expect(result.success).toBe(false);
   });
 });
+
+describe('registerSchema — doğum tarihi opsiyonel (App Review 5.1.1(v))', () => {
+  it('doğum tarihi hiç verilmezse form geçerlidir', () => {
+    const { birthDate: _drop, ...rest } = validRest;
+    const result = registerSchema.safeParse({ ...rest, username: 'gorkem' });
+    expect(result.success).toBe(true);
+  });
+
+  it('doğum tarihi boş string ise form geçerlidir (DateField dokunulmamış hâli)', () => {
+    const result = registerSchema.safeParse({
+      ...validRest,
+      birthDate: '',
+      username: 'gorkem',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('girilmişse hâlâ 18+ olmalı', () => {
+    const result = registerSchema.safeParse({
+      ...validRest,
+      birthDate: '2020-01-01',
+      username: 'gorkem',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('girilmişse hâlâ YYYY-MM-DD biçiminde olmalı', () => {
+    const result = registerSchema.safeParse({
+      ...validRest,
+      birthDate: '01/01/1990',
+      username: 'gorkem',
+    });
+    expect(result.success).toBe(false);
+  });
+});

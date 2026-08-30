@@ -119,8 +119,8 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         render={({ field: { onChange, value } }) => (
           <DateField
             testID="register-birthDate-input"
-            label={t('auth.birthDate')}
-            value={value}
+            label={`${t('auth.birthDate')} (${t('common.optional')})`}
+            value={value ?? ''}
             onChange={onChange}
             placeholder={t('auth.birthDatePlaceholder')}
             maximumDate={maxBirthDate()}
