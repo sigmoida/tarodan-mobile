@@ -34,7 +34,7 @@ jobs:
       - uses: actions/setup-node@v6
         if: steps.guard.outputs.skip == 'false'
         with:
-          node-version: 20
+          node-version: 22
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
         if: steps.guard.outputs.skip == 'false'

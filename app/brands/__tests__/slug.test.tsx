@@ -52,7 +52,17 @@ describe('J12 · Marka detay', () => {
     getAll.mockResolvedValue({ data: { data: [] } });
     renderWithProviders(<BrandDetailScreen />);
 
-    expect(await screen.findByText('Bu markaya ait ürün yok')).toBeOnTheScreen();
+    // `waitFor` + `getByText`, `findByText` DEĞİL — ekran boş durumu iki kez
+    // gösteriyor ve arada söküyor. Ürün sorgusu `enabled: !!brand?.id` olduğu
+    // için marka gelene kadar DEVRE DIŞI; devre dışı sorgu `isLoading:false`
+    // verdiğinden boş durum bir kez erkenden çizilir. Marka çözülünce queryKey
+    // ['brand-products', undefined] → ['brand-products','b1'] olarak değişir,
+    // yeni sorgu pending olur ve ProductGrid boş durumu yükleyiciyle DEĞİŞTİRİR.
+    // `findByText` elemanı o erken pencerede yakalayıp sonra toBeOnTheScreen()
+    // çalıştırırsa eleman artık ağaçta olmaz — testin flaky olma sebebi buydu
+    // (lokalde 5 koşuda 1 düşüyordu). `waitFor` her denemede yeniden sorguladığı
+    // için bayat referans kalmıyor.
+    await waitFor(() => expect(screen.getByText('Bu markaya ait ürün yok')).toBeOnTheScreen());
   });
 
   it('J12.7 ürünler yüklenemezse hata mesajı gösterilir', async () => {
@@ -60,6 +70,8 @@ describe('J12 · Marka detay', () => {
     getAll.mockRejectedValue(new Error('boom'));
     renderWithProviders(<BrandDetailScreen />);
 
-    expect(await screen.findByText('Ürünler yüklenemedi')).toBeOnTheScreen();
+    // J12.6'daki aynı bayat-referans yarışı burada da mümkün: hata durumu
+    // yükleyici penceresinden sonra çizilir.
+    await waitFor(() => expect(screen.getByText('Ürünler yüklenemedi')).toBeOnTheScreen());
   });
 });
