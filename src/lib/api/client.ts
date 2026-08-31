@@ -248,6 +248,35 @@ async function handleAuthFailure(error?: unknown): Promise<void> {
   );
 }
 
+/**
+ * Kimlik SUNAN uçlar. Buradaki 401 "oturumun bitti" değil, "kimlik
+ * doğrulanamadı" demektir — kullanıcının zaten oturumu yoktur.
+ *
+ * Canlıda ölçülen hata (31 Ağu 2026): production Apple token'ını
+ * `jwt audience invalid` ile reddedip 401 döndü; interceptor bunu oturum sonu
+ * sanıp `logout()` çalıştırdı, `logout()` içindeki `getExpoPushTokenAsync`
+ * gerçek cihazda asılı kaldı ve interceptor HİÇ reject etmedi. Giriş butonu
+ * sonsuza kadar "Giriş yapılıyor..." durumunda kaldı, kullanıcı hata görmedi.
+ *
+ * Bu listedeki uçlarda 401 doğrudan çağırana verilir; çağıran kendi hatasını
+ * gösterir. Korumalı uçlarda (örn. /users/me) davranış AYNEN korunur.
+ */
+const PUBLIC_AUTH_PATHS = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/google",
+  "/auth/apple",
+  "/auth/refresh",
+  "/auth/logout",
+  "/auth/check-email",
+  "/auth/resend-verification",
+] as const;
+
+const isPublicAuthRequest = (config?: { url?: string }): boolean => {
+  const url = config?.url ?? "";
+  return PUBLIC_AUTH_PATHS.some((path) => url.includes(path));
+};
+
 // Response interceptor - handle token refresh
 api.interceptors.response.use(
   (response) => response,
@@ -274,7 +303,11 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isPublicAuthRequest(originalRequest)
+    ) {
       originalRequest._retry = true;
       try {
         const newAccess = await refreshAccessToken();

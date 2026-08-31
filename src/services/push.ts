@@ -6,6 +6,10 @@ import { theme } from '@/ui';
 import { api } from '@/lib/api';
 import i18n from '@/i18n/config';
 import { notificationRoute } from '../utils/notificationRoute';
+import { withTimeout } from '@/utils/withTimeout';
+
+/** Push token alımı için üst sınır — çıkış akışı bundan uzun bekleyemez. */
+const PUSH_TOKEN_TIMEOUT_MS = 5000;
 
 const { colors } = theme;
 
@@ -161,7 +165,17 @@ export async function unregisterPushNotifications(): Promise<void> {
     if (!projectId) {
       return;
     }
-    const tokenResponse = await Notifications.getExpoPushTokenAsync({ projectId });
+    // ⏱ Süre sınırı: `getExpoPushTokenAsync` APNs kaydını bekler ve Expo'nun
+    // push servisine ağ isteği atar; kendi zaman aşımı YOKTUR. Gerçek cihazda
+    // asılı kaldığında çıkış akışını, o da response interceptor'ı bloklar
+    // (31 Ağu 2026, Apple girişi sonsuz spinner). Token alınamazsa sunucuya
+    // haber veremeyiz — kabul edilebilir: çıkış yerel tarafta zaten tamamlanır.
+    // `Notifications` gevşek tipli (any) — jenerik açıkça verilir.
+    const tokenResponse = await withTimeout<{ data: string }>(
+      Notifications.getExpoPushTokenAsync({ projectId }),
+      PUSH_TOKEN_TIMEOUT_MS,
+    );
+    if (!tokenResponse) return;
     // Aynı endpoint'e revoke:true ile gidiyoruz; backend bu token'ı
     // push_tokens tablosunda isActive=false yapar (notification.service.ts).
     await api.post('/notifications/push-token', {

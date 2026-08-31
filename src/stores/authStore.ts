@@ -2,6 +2,10 @@ import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
 import { advanceSessionEpoch, authApi, userApi } from "@/lib/api";
 import { logger } from "../services/logger";
+import { withTimeout } from "../utils/withTimeout";
+
+/** Çıkıştaki ağ çağrıları için üst sınır — kullanıcı bekletilmez. */
+const LOGOUT_NETWORK_TIMEOUT_MS = 5000;
 
 // Membership tier types
 export type MembershipTier = "free" | "basic" | "premium" | "business";
@@ -387,12 +391,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // Lazy require: push → api → authStore import zinciriyle döngü oluşmasın.
     try {
       const { unregisterPushNotifications } = require("../services/push");
-      await unregisterPushNotifications();
+      // Süre sınırlı: çıkış hiçbir ağ çağrısına takılıp kalmamalı. Bu await
+      // response interceptor'ın içinden de çalışıyor; asılırsa axios'un
+      // reject'ini bloklar ve arayüz sonsuz "yükleniyor"da kalır.
+      await withTimeout(unregisterPushNotifications(), LOGOUT_NETWORK_TIMEOUT_MS);
     } catch {
       /* best-effort — Expo Go'da no-op, hata oturumu engellemesin */
     }
     try {
-      await authApi.logout();
+      await withTimeout(authApi.logout(), LOGOUT_NETWORK_TIMEOUT_MS);
     } catch (error) {
       // Best-effort: report logout failures so we don't lose them silently
       // (no-op in dev/Expo Go).
