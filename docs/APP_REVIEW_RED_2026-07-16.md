@@ -172,3 +172,50 @@ girmemiş ama pazar yerlerinde sık takılan maddeler tarandı:
 
 Üçü de yalnız Android'i etkiliyor ve Android henüz yayınlanmadı, bu yüzden iOS
 gönderiminden **sonraya** bırakıldı — şimdi dokunmak gereksiz risk.
+
+---
+
+## Doğrulama sırasında bulunan ek gönderim engeli (31 Ağu 2026)
+
+TestFlight 1.0.1(6) doğrulanırken **Apple ile giriş hiç çalışmıyordu** ve
+kullanıcı hata bile görmüyordu — buton sonsuza kadar "Giriş yapılıyor..."
+durumunda kalıyordu. Reviewer bunu kesinlikle dener; `usesAppleSignIn: true`
+beyan edilmiş ve buton giriş ekranında duruyor. Düzeltilmeden gönderilse
+doğrudan 2.1(a) reddi gelirdi.
+
+İki katmanlı sebep:
+
+**1. Sunucu (yapılandırma, düzeltildi).** Production API'si Apple token'ını
+reddediyordu — canlı log:
+
+    Apple token verify failed: jwt audience invalid. expected: com.tarodan.web
+
+`APPLE_CLIENT_ID` native bundle id yerine web Services ID'sine ayarlıydı.
+`APPLE_CLIENT_ID=com.tarodan.app` eklendi (`APPLE_SERVICES_ID` korundu);
+`audience()` artık ikisini birden kabul ediyor. Kod değişikliği gerekmedi.
+Redeploy sırasında ölçülen kesinti: **11 saniye** (13:22:34→13:22:45), web
+container'ı etkilenmedi (o sırada da 200 döndü).
+
+**2. İstemci (kod, düzeltildi — commit `e1a5188`).** O 401'i response
+interceptor "oturum bitti" sanıp sessiz-çıkış makinesini çalıştırdı;
+`logout()` içindeki `getExpoPushTokenAsync` gerçek cihazda asılı kaldığı için
+interceptor HİÇ reject etmedi ve `handleApple`'ın `catch`/`finally` blokları
+çalışmadı. Bu kusur Apple'a özel değildi: **yanlış şifreyle giriş ve Google
+girişi de** aynı sonsuz spinner'a çıkıyordu.
+
+Düzeltme iPad simülatöründe uçtan uca doğrulandı: yanlış şifreyle giriş artık
+"Email veya şifre hatalı" gösteriyor ve buton normale dönüyor.
+
+### Bilinen davranış — Apple `fullName`
+
+Apple `fullName`'i yalnız İLK yetkilendirmede gönderir. Sunucu kırıkken
+denenen hesaplarda o ilk yetkilendirme harcandığı için görünen ad relay
+adresinden türetildi (`ymgshvy7nk`). Yeni kullanıcılarda sorun değil.
+Sıfırlamak için: Ayarlar → Apple Kimliği → Apple ile Oturum Aç → Tarodan →
+"Apple Kimliğini Kullanmayı Bırak", sonra yeniden giriş.
+
+### Telemetri boşluğu
+
+`EXPO_PUBLIC_SENTRY_DSN` production build env'inde tanımlı DEĞİL, yani Sentry
+production'da kapalı. Bu takılma hiçbir iz bırakmadı. Yayına çıkmadan önce
+açılmalı.
