@@ -94,7 +94,12 @@ gönderimdeki metin korunur, altına şu blok eklenir:
     Terms of service are accepted with a mandatory checkbox on the
     registration screen before an account is created.
 
-    Screen recording (physical iPhone): <link>
+    Screen recordings (physical iPhone, build 1.0.3):
+      1. Terms of Service acceptance required before account creation
+      2. Reporting a listing as inappropriate
+      3. Blocking a user: content removed from the feed instantly,
+         blocked list, and unblocking
+    https://drive.google.com/drive/folders/1YNhxWWuXQgyoaREOM9aEoCtTkdwNRIsa
 
 > **Demo hesabı uyarısı** — önceki gönderimden kalan açık madde: Review
 > Notes'taki hesabın **satıcı olması ve en az bir yayında ilanı bulunması**
@@ -158,17 +163,23 @@ kabul edilmiyor. iPhone'da Kontrol Merkezi → Ekran Kaydı. Tek parça, kesinti
 Kaydı bitirin. Dosyayı bir yere yükleyip (ör. Google Drive, herkese açık link)
 adresini Review Notes'a yazın.
 
+**Çekilen kayıtlar (2 Eyl 2026):** üç ayrı video, herkese açık Drive klasöründe —
+oturum açmadan erişilebildiği doğrulandı (anonim istekte klasör adı ve üç dosya
+da listeleniyor):
+<https://drive.google.com/drive/folders/1YNhxWWuXQgyoaREOM9aEoCtTkdwNRIsa>
+
 ---
 
 ## Göndermeden önce son kontrol
 
-- [ ] `app.json` `expo.version` = **1.0.3** ve `master`'a merge edilmiş
-      (production workflow yalnız sürüm değişince build alır).
+- [x] `app.json` `expo.version` = **1.0.3**, `master`'a merge edilmiş, build
+      TestFlight'a gönderilmiş (1.0.3 build 8) ve üç düzeltme OTA ile aynı
+      binary'ye yayınlanmış.
 - [ ] Build TestFlight'ta; **fiziksel iPhone'da** engelleme akışı elle denenmiş.
 - [ ] Review Notes'taki demo hesabı çalışıyor, **satıcı** ve en az **bir yayında
       ilanı** var.
-- [ ] Ekran kaydı fiziksel cihazda çekilmiş, linki Review Notes'ta ve link
-      oturum açmadan erişilebilir.
+- [x] Ekran kaydı fiziksel cihazda çekilmiş, linki Review Notes'ta ve link
+      oturum açmadan erişilebilir. (Üç video, Drive klasörü — doğrulandı.)
 - [ ] Test sırasında konulan engeller **kaldırılmış** (production verisi temiz).
 - [ ] Resolution Center cevabı yazılıp **Add for Review**.
 
