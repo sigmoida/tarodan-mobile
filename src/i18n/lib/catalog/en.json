@@ -1720,11 +1720,6 @@
     "tooLong": "Message cannot exceed {max} characters. Current: {current}",
     "stillSend": "{warning} Do you still want to send it?",
     "contactInfoWarning": "Personal contact information detected in your message. Communication outside the platform is not recommended for your safety.",
-    "blockUserTitle": "Block User",
-    "blockUserBody": "{name} will be blocked. This user won't be able to message you or see your listings.",
-    "blockUserError": "Something went wrong while blocking the user.",
-    "blockedTitle": "Blocked",
-    "blockedBody": "{name} has been blocked.",
     "viewProfile": "View Profile",
     "imageUploadedNoUrl": "The image was uploaded but no URL was returned.",
     "imageSendFailed": "Couldn't send the image.",
@@ -2092,7 +2087,8 @@
     "templateTrucks": "Trucks",
     "templateF1": "Formula 1",
     "templateMuscle": "Muscle Cars",
-    "templateCustom": "Custom Collection"
+    "templateCustom": "Custom Collection",
+    "report": "Report collection"
   },
   "notification": {
     "notifications": "Notifications",
@@ -2197,7 +2193,23 @@
     "corporateInfoNotice": "Corporate seller information is used for invoicing. Incorrect information may create legal liability.",
     "tierMemberBadge": "{tier} Member",
     "myDigitalGarage": "My Digital Garage",
-    "garageEmptyDesc": "Show off your cars and share them"
+    "garageEmptyDesc": "Show off your cars and share them",
+    "unblock": "Unblock",
+    "blockSeller": "Block seller",
+    "blockConfirmTitle": "Block {name}?",
+    "blockConfirmBody": "You won't see each other's listings, collections or profiles, and messages, offers and trades are closed both ways. You can lift the block any time from the Blocked Users page.",
+    "blockedToast": "{name} has been blocked",
+    "unblockedToast": "Block removed",
+    "blockFailed": "Could not block user",
+    "unblockFailed": "Could not remove the block",
+    "blockedPage": {
+      "title": "Blocked Users",
+      "description": "{count} users blocked",
+      "empty": "You haven't blocked anyone",
+      "emptyDesc": "You can block a user from their profile, a listing or your messages.",
+      "blockedAt": "Blocked on {date}",
+      "loadFailed": "Could not load blocked users"
+    }
   },
   "review": {
     "reviews": "Reviews",

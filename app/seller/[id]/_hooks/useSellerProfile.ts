@@ -181,6 +181,9 @@ export function useSellerProfile() {
   return {
     isAuthenticated,
     isLoading,
+    sellerId,
+    /** Kendi vitrinim mi? Şikayet/engelle menüsü kendine gösterilmez. */
+    isOwnProfile: !!user?.id && user.id === sellerId,
     seller,
     products,
     reviews,

@@ -19,7 +19,7 @@ export function SellerCard({
 }) {
   const { t } = useTranslation();
   return (
-    <Pressable style={styles.sellerCard} onPress={onPressSeller}>
+    <Pressable testID="product-seller-card" style={styles.sellerCard} onPress={onPressSeller}>
       <Avatar size="lg" name={seller?.displayName || t('product.seller')} source={resolveAvatarSource(seller?.avatarUrl)} />
       <View style={styles.sellerInfo}>
         <View style={styles.sellerNameRow}>

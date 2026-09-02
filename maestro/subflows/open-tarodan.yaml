@@ -5,18 +5,23 @@ appId: com.tarodan.app
     clearState: false
 - waitForAnimationToEnd:
     timeout: 5000
-- runFlow:
-    when:
-      visible: "Açılsın mı"
-    commands:
-      - tapOn: "Aç"
+# Dev-client launcher: sunucu satırına dokun, ardından iOS'un
+# "'Tarodan' ile Açılsın mı?" sistem uyarısını onayla. Sıra ÖNEMLİ — uyarı
+# ancak dokunuştan SONRA çıkar. Satır port'u da yazdığı için
+# ("http://localhost:8081") ve Maestro metni TAM eşlediği için regex şart.
 - runFlow:
     when:
       visible: "DEVELOPMENT SERVERS"
     commands:
       - tapOn:
-          text: "http://localhost"
+          text: "http://localhost.*"
           optional: true
+      - tapOn:
+          text: "Aç"
+          optional: true
+- tapOn:
+    text: "Aç"
+    optional: true
 - tapOn:
     text: "Continue"
     optional: true

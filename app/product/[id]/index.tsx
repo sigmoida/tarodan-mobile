@@ -23,6 +23,7 @@ import { SellerCard } from './_components/SellerCard';
 import { ProductReviewsPreview } from './_components/ProductReviewsPreview';
 import { ProductBottomBar } from './_components/ProductBottomBar';
 import { ImageViewerModal } from './_modals/ImageViewerModal';
+import { useUserActionsSheet } from '@/components/UserActionsSheet';
 
 const { colors } = theme;
 
@@ -45,6 +46,21 @@ export default function ProductDetailScreen() {
 
   const actions = useProductActions({ product, productId, images, isOutOfStock, isAuthenticated, user });
   const favorite = useProductFavorite({ product, productId, isAuthenticated, notify: actions.notify });
+
+  // Apple App Review 1.2: ilan detayından ilanı şikayet + satıcıyı engelle.
+  // Hook'lar erken çıkışlardan ÖNCE, koşulsuz çağrılır (CLAUDE.md §12).
+  const sellerId = product?.seller?.id ? String(product.seller.id) : '';
+  const sellerName =
+    product?.seller?.displayName || product?.seller?.companyName || t('product.seller');
+  const sellerActions = useUserActionsSheet({
+    userId: sellerId,
+    userName: sellerName,
+    showReportUser: false,
+    blockLabel: t('profile.blockSeller'),
+    notify: actions.notify,
+    onBlocked: () => (router.canGoBack() ? router.back() : router.replace('/(tabs)')),
+    extraActions: [{ label: t('product.reportListing'), onPress: actions.handleReport }],
+  });
 
   // Tüm hook'lar tamamlandı — buradan sonra erken çıkış güvenli.
   if (isLoading) {
@@ -79,7 +95,7 @@ export default function ProductDetailScreen() {
         isFavorite={favorite.isFavorite}
         favoriteLoading={favorite.favoriteLoading}
         onBack={() => router.back()}
-        onReport={actions.handleReport}
+        onReport={!sellerId || isOwner ? actions.handleReport : sellerActions.open}
         onShare={actions.handleShare}
         onFavorite={favorite.toggle}
       />
@@ -147,6 +163,8 @@ export default function ProductDetailScreen() {
         onAddToCart={actions.handleAddToCart}
         onGoToCart={() => router.push('/cart')}
       />
+
+      {sellerActions.reportModal}
 
       <ImageViewerModal
         visible={viewer.open}

@@ -72,6 +72,8 @@ export const qk = {
     all: ["collections"] as const,
     list: (filters?: Filters) => ["collections", "list", filters] as const,
     detail: (id: string) => ["collection", id] as const,
+    /** Prefix root — her `collection` detayını yakalar. */
+    detailAll: ["collection"] as const,
     browse: ["collections", "browse"] as const,
     mine: ["my-collections"] as const,
     liked: ["liked-collections"] as const,
@@ -150,7 +152,18 @@ export const qk = {
     savedSearches: ["saved-searches"] as const,
   },
 
+  blocks: {
+    /** Engellediğim kullanıcılar (Profil → Engellenen Kullanıcılar). */
+    list: ["blocked-users"] as const,
+    /** Hedefi engelledim mi? (menüde Engelle / Engeli Kaldır). */
+    status: (id: string) => ["block-status", id] as const,
+  },
+
   seller: {
+    /** Prefix root'lar — engelleme gibi çapraz invalidasyonlarda her varyantı yakalar. */
+    all: ["seller"] as const,
+    productsAll: ["seller-products"] as const,
+    collectionsAll: ["seller-collections"] as const,
     detail: (id: string) => ["seller", id] as const,
     stats: (id: string) => ["seller-stats", id] as const,
     products: (id: string) => ["seller-products", id] as const,
