@@ -16,6 +16,11 @@ const BLOCK_INVALIDATES = [
   qk.blocks.list,
   ['block-status'],
   qk.products.all,
+  // `products.all` (`["products"]`) tekil detay anahtarını (`["product", id]`)
+  // yakalamaz: engellemeden önce açılmış bir ilan sayfası önbellekten
+  // görünmeye devam ediyordu — Apple'ın "akıştan anında kalksın" şartını tam
+  // buradan deliyordu.
+  qk.products.detailAll,
   qk.products.listingsAll,
   qk.products.searchAll,
   qk.products.featuredBusiness,
