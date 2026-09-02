@@ -8,9 +8,10 @@ import { useMessagesStore } from '@/stores/messagesStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useThreadQuery, useMessagesQuery, useSendMessage, useMarkAsRead } from '@/hooks/messaging';
 import { detectViolations, embedImageInMessage, getViolationMessage } from '@/utils/contentFilter';
-import { mediaApi, userApi } from '@/lib/api';
+import { mediaApi } from '@/lib/api';
 import { getSocket } from '@/services/socket';
 import { groupMessagesByDate } from '../_lib/helpers';
+import { useBlockStatus, useBlockUser } from '@/hooks/useBlockUser';
 import { useTypingIndicator } from './useTypingIndicator';
 import { useAutoScroll } from './useAutoScroll';
 
@@ -175,29 +176,12 @@ export function useMessageThread() {
   const groupedMessages = groupMessagesByDate(messages, t);
   const other = currentThread ? getOtherParticipant(currentThread) : null;
 
-  const handleBlockUser = () => {
-    if (!other) return;
-    appAlert(
-      t('message.blockUserTitle'),
-      t('message.blockUserBody', { name: other.displayName }),
-      [
-        { text: t('discount.discard'), style: 'cancel' },
-        {
-          text: t('profile.block'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await userApi.block(other.id);
-              appAlert(t('message.blockedTitle'), t('message.blockedBody', { name: other.displayName }));
-              router.canGoBack() ? router.back() : router.replace('/(tabs)');
-            } catch {
-              appAlert(t('common.error'), t('message.blockUserError'));
-            }
-          },
-        },
-      ]
-    );
-  };
+  // Engelleme/şikayet paylaşılan hook'ta: onay, bildirim ve invalidasyon TEK
+  // yerde (Apple App Review 1.2 — satıcı profili ve ilan detayıyla aynı akış).
+  const { isBlocked } = useBlockStatus(other?.id);
+  const { requestBlock, requestUnblock } = useBlockUser({
+    onBlocked: () => (router.canGoBack() ? router.back() : router.replace('/(tabs)')),
+  });
 
   const handleHeaderMenu = () => {
     if (!other) return;
@@ -205,8 +189,14 @@ export function useMessageThread() {
       { text: t('message.viewProfile'), onPress: () => router.push(`/seller/${other.id}`) },
       // iOS'ta alert modalı kapanırken yeni bir native Modal açılırsa görünmeyebilir; kapanışı bekle.
       { text: t('profile.report'), onPress: () => setTimeout(() => setShowReportModal(true), 300) },
-      { text: t('profile.block'), style: 'destructive', onPress: handleBlockUser },
-      { text: t('discount.discard'), style: 'cancel' },
+      isBlocked
+        ? { text: t('profile.unblock'), onPress: () => requestUnblock(other.id, other.displayName) }
+        : {
+            text: t('profile.block'),
+            style: 'destructive' as const,
+            onPress: () => requestBlock(other.id, other.displayName),
+          },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 

@@ -31,7 +31,7 @@ export function ProductTopBar({
         <Ionicons name="arrow-back" size={24} color={colors.white} />
       </Pressable>
       <View style={styles.headerActions}>
-        <Pressable onPress={onReport} style={styles.headerButton} accessibilityRole="button" accessibilityLabel={t('report.report')}>
+        <Pressable testID="product-report-button" onPress={onReport} style={styles.headerButton} accessibilityRole="button" accessibilityLabel={t('report.report')}>
           <Ionicons name="flag-outline" size={22} color={colors.white} />
         </Pressable>
         <Pressable onPress={onShare} style={styles.headerButton} accessibilityRole="button" accessibilityLabel={t('product.share')}>

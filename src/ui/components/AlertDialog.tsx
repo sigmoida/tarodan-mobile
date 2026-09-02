@@ -114,11 +114,17 @@ export const AlertDialogHost: React.FC = () => {
         if (cancelable) close();
       }}
     >
+      {/* `accessible={false}`: dokunulabilir bir View, iOS'ta TÜM alt öğelerini
+          tek bir erişilebilirlik öğesine çökertir — VoiceOver diyaloğu tek blok
+          okur ve düğmeleri ayrı ayrı seçemez (otomasyon da göremez). Arka plan
+          ile kart yalnız "dışa dokununca kapat" için dokunulabilir; erişilebilir
+          öğeler başlık, mesaj ve düğmelerin kendisidir. */}
       <Pressable
+        accessible={false}
         style={styles.backdrop}
         onPress={cancelable ? () => close() : undefined}
       >
-        <Pressable style={styles.card}>
+        <Pressable accessible={false} style={styles.card}>
           <Text style={styles.title}>{title}</Text>
           {!!message && <Text style={styles.message}>{message}</Text>}
           <View style={[styles.buttonRow, vertical && styles.buttonColumn]}>

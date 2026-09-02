@@ -48,10 +48,17 @@ export const userApi = {
   getFollowStatus: (userId: string) => api.get(`/users/${userId}/follow`),
   /** Takip ettiklerim — GET /users/me/following */
   getMyFollowing: () => api.get("/users/me/following"),
-  block: (userId: string) => api.post(`/users/${userId}/block`),
+  // Engelleme (Apple App Review 1.2: kalıcı, simetrik; web ile aynı uçlar —
+  // sözleşme: ana repo `docs/USER_BLOCKING.md`).
+  /** Hedefi engelledim mi? Menüde Engelle / Engeli Kaldır ayrımı için. */
+  getBlockStatus: (userId: string) =>
+    api.get<{ blocked: boolean }>(`/users/${userId}/block`),
+  /** Engelle. `reason` yalnız admin bildiriminde görünür (≤500 karakter). */
+  block: (userId: string, reason?: string) =>
+    api.post(`/users/${userId}/block`, reason ? { reason } : {}),
   unblock: (userId: string) => api.delete(`/users/${userId}/block`),
-  /** Bloke ettiğim kullanıcılar */
-  getBlockedUsers: () => api.get("/users/me/blocked"),
+  /** Engellediğim kullanıcılar */
+  getBlockedUsers: () => api.get<BlockedUser[]>("/users/me/blocked"),
   follow: (userId: string) => api.post(`/users/${userId}/follow`),
   unfollow: (userId: string) => api.delete(`/users/${userId}/follow`),
   /** Satıcı vitrin görüntülenmesini artır — backend: POST /users/:id/view. Vitrin başına 1 kez çağrılmalı. */
@@ -73,6 +80,18 @@ export const userApi = {
   getTopCollections: (params?: { limit?: number }) =>
     api.get("/users/top-collections", { params }),
 };
+
+/** `GET /users/me/blocked` satırı: public kimlik + engelleme zamanı. */
+export interface BlockedUser {
+  id: string;
+  username?: string | null;
+  displayName: string;
+  companyName?: string | null;
+  avatarUrl?: string | null;
+  isVerified?: boolean;
+  sellerType?: string | null;
+  blockedAt: string;
+}
 
 /** Kurumsal satıcı başvuru belgeleri — backend: /users/me/seller-documents */
 export const sellerDocumentsApi = {

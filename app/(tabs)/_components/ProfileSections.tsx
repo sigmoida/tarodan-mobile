@@ -369,6 +369,12 @@ export function ProfileMenuSections({ f }: SectionProps) {
           onPress={() => router.push('/settings/security')}
         />
         <MenuItem
+          testID="profile-blocked-users-link"
+          icon="ban-outline"
+          label={t('profile.blockedPage.title')}
+          onPress={() => router.push('/settings/blocked-users')}
+        />
+        <MenuItem
           testID="profile-language-link"
           icon="language-outline"
           label={t('mobile.settingsLanguage')}
