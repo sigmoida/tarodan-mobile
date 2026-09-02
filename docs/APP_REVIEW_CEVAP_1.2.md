@@ -101,11 +101,14 @@ gönderimdeki metin korunur, altına şu blok eklenir:
          blocked list, and unblocking
     https://drive.google.com/drive/folders/1YNhxWWuXQgyoaREOM9aEoCtTkdwNRIsa
 
-> **Demo hesabı uyarısı** — önceki gönderimden kalan açık madde: Review
-> Notes'taki hesabın **satıcı olması ve en az bir yayında ilanı bulunması**
-> gerekiyor, yoksa "Profile → My Listings" boş ekran gösterir. Engelleme
-> akışının denenebilmesi için hesabın **başka bir satıcının ilanını görebiliyor**
-> olması da şart (kendi ilanında engelleme menüsü çıkmaz — doğru davranış).
+> **Demo hesabı — "My Listings" adımı Notes'tan ÇIKARILDI.** Önceki gönderimin
+> Notes'u "Profile → My Listings" diyordu ve demo hesabının ilanı olmadığı için
+> orası boş ekran gösteriyordu: inceleyene söz verilen ekranın boş çıkması
+> gereksiz bir 2.1 riski. Çözüm ilan yayınlamak değil — 1.2'nin konusu olan
+> engelleme ve şikayet **başkasının** ilanı üzerinden yapılıyor, demo hesabının
+> satıcı olmasına hiç gerek yok. Canlı pazaryerine test ilanı eklemektense
+> adımı metinden çıkardık. (Kendi ilanında engelleme menüsü zaten çıkmaz —
+> doğru davranış.)
 
 ---
 
@@ -176,8 +179,9 @@ da listeleniyor):
       TestFlight'a gönderilmiş (1.0.3 build 8) ve üç düzeltme OTA ile aynı
       binary'ye yayınlanmış.
 - [ ] Build TestFlight'ta; **fiziksel iPhone'da** engelleme akışı elle denenmiş.
-- [ ] Review Notes'taki demo hesabı çalışıyor, **satıcı** ve en az **bir yayında
-      ilanı** var.
+- [ ] Review Notes'taki demo hesabı çalışıyor (doğrulanmış e-posta, kilitli
+      değil). Satıcı olması veya ilanı bulunması GEREKMİYOR — o adım Notes'tan
+      çıkarıldı.
 - [x] Ekran kaydı fiziksel cihazda çekilmiş, linki Review Notes'ta ve link
       oturum açmadan erişilebilir. (Üç video, Drive klasörü — doğrulandı.)
 - [ ] Test sırasında konulan engeller **kaldırılmış** (production verisi temiz).
