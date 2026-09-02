@@ -207,11 +207,13 @@ app/product/[id]/_hooks/useProductActions.ts              ← ürün şikayeti
 
 ## 8. Bu iş bitince yapılacaklar
 
-1. Yeni build **1.0.3** (`app.json` `expo.version`; version-gate buna bakıyor)
-2. **Ekran kaydı** — fiziksel cihazda, sırayla: kayıt ekranındaki sözleşme
-   onayı → bir içeriği şikayet etme → bir kullanıcıyı engelleme. Apple bunu
-   Review Notes'a eklemenizi istiyor.
-3. Resolution Center'a cevap → **Add for Review**
+1. ✅ Sürüm **1.0.3**'e çekildi (`app.json` `expo.version`). Build, `master`'a
+   merge ile alınır — production workflow yalnız sürüm değişince çalışır.
+2. **Ekran kaydı** — fiziksel cihazda. Adım adım senaryo:
+   `APP_REVIEW_CEVAP_1.2.md` → "Ekran kaydı senaryosu".
+3. Resolution Center cevabı ve Review Notes metni hazır:
+   `APP_REVIEW_CEVAP_1.2.md`. Build TestFlight'a düşüp cihazda denendikten
+   sonra → **Add for Review**.
 
 ---
 

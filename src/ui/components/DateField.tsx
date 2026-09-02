@@ -64,9 +64,25 @@ function formatLocalISO(date: Date): string {
   return `${y}-${mo}-${d}`;
 }
 
-/** "31 Ocak 1990" / "January 31, 1990" — aktif dile göre okunabilir gösterim. */
+/**
+ * "31 Ocak 1990" / "January 31, 1990" — aktif dile göre okunabilir gösterim.
+ *
+ * iOS'ta (Hermes) `toLocaleDateString` saat dilimi verilmezse UTC'de
+ * biçimlendiriyor: yerel gece yarısı olan tarih, UTC+3'te BİR ÖNCEKİ güne
+ * düşüyordu (kullanıcı 1 Ocak 1990 seçiyor, alanda "31 Aralık 1989" görüyordu).
+ * Tarihi gün/ay/yıl parçalarından UTC gece yarısına taşıyıp açıkça UTC'de
+ * biçimlendiriyoruz — böylece hangi motorda olursa olsun seçilen gün yazılır.
+ */
 function formatHuman(date: Date, locale: string): string {
-  return date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+  const utcMidnight = new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+  );
+  return utcMidnight.toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
 }
 
 export const DateField: React.FC<DateFieldProps> = ({
