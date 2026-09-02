@@ -78,10 +78,11 @@ gönderimdeki metin korunur, altına şu blok eklenir:
 
     User-generated content safeguards (Guideline 1.2):
 
-    Blocking a user — any of:
-      • Seller profile → ⋮ (top right) → Block
-      • Listing detail → flag icon (top right) → Block seller
-      • Conversation → ⋮ (top right) → Block
+    Blocking a user — simplest path first:
+      1. Open any listing → tap the seller's name to open their profile
+      2. Tap ⋮ (top right) → Block → confirm
+      The same action is also available from a listing detail
+      (flag icon → Block seller) and from a conversation (⋮ → Block).
     Blocks are listed under Profile → Blocked Users and can be lifted there.
 
     Reporting content:
@@ -138,6 +139,12 @@ kabul edilmiyor. iPhone'da Kontrol Merkezi → Ekran Kaydı. Tek parça, kesinti
    onay metnini (ne olacağını anlatıyor) 2 sn göster → *Engelle*'ye bas →
    başarı mesajını göster.
 
+   > **Kaydı çekmeden önce:** TestFlight'tan kurduktan sonra uygulamayı bir
+   > kapatıp yeniden aç. 1.0.3'ün düzeltmeleri OTA ile geliyor ve
+   > `fallbackToCacheTimeout: 0` olduğu için güncelleme **ikinci açılışta**
+   > uygulanıyor. Geldiğini şöyle anlarsın: bir ilana bak, çık, satıcıyı
+   > engelle, o ilana geri dön — "Ürün bulunamadı" görmelisin.
+
 4. **İçeriğin akıştan anında düşmesi**
    Geri dönüp **Ara** sekmesinde o satıcının ilanını aratın veya ana sayfada
    listelerde artık görünmediğini gösterin. (Daha güçlüsü: engellemeden önce
@@ -164,6 +171,28 @@ adresini Review Notes'a yazın.
       oturum açmadan erişilebilir.
 - [ ] Test sırasında konulan engeller **kaldırılmış** (production verisi temiz).
 - [ ] Resolution Center cevabı yazılıp **Add for Review**.
+
+### 1.0.3'e OTA ile giden düzeltmeler (yeni build alınmadı)
+
+Ekran kaydı hazırlanırken akış cihazda sürüldü ve üç kusur çıktı; üçü de
+JS olduğu için fingerprint değişmedi (`81b5237…` = build 8) ve
+`eas update --branch production` ile aynı binary'ye yayınlandı:
+
+1. **Engellenen satıcının ilanı önbellekten görünüyordu** — invalidasyon kümesi
+   yalnız liste köklerini içeriyordu; `["products"]` tekil `["product", id]`
+   anahtarını yakalamıyor. Apple'ın "içerik akıştan anında kalksın" şartını tam
+   buradan deliyordu.
+2. **İlan detayından engelleyince onay görünmüyordu** — snackbar'ı taşıyan ekran
+   `router.back()` ile aynı anda sökülüyordu. Satıcı profili ve mesaj yolları
+   etkilenmiyordu (onlar `appAlert` kullanıyor).
+3. **Kayıt formunda İngilizce "Required" sızıyordu** — `defaultValues` bazı
+   alanları tanımsız bırakıyordu.
+
+**İnceleme açısından not:** uygulama `expo-updates` API'sini çağırmıyor ve
+`fallbackToCacheTimeout: 0`; güncelleme ikinci açılışta uygulanıyor. İnceleyenin
+ilk açılışta gömülü JS'i görme ihtimaline karşı Review Notes'ta engelleme için
+**satıcı profili yolu** öne alındı — o yol düzeltme öncesi kodda da onay mesajı
+gösteriyor (cihazda doğrulandı).
 
 ### Bu build'e giren, engellemeyle ilgisiz düzeltme
 
