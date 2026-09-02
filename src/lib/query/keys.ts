@@ -32,6 +32,9 @@ export const qk = {
     search: (query?: string, filters?: Filters) =>
       ["products-search", query, filters] as const,
     detail: (id: string) => ["product", id] as const,
+    /** Prefix root — TEKİL `product` detayları. `all` (`["products"]`) bunları
+     *  YAKALAMAZ; çapraz invalidasyonlarda ikisi birden verilmeli. */
+    detailAll: ["product"] as const,
     reviews: (id: string) => ["product-reviews", id] as const,
     /** Liste ekranlarının (home/arama/öne-çıkanlar) prefix root'ları — beğeni/
      * görüntülenme değişince hepsi tazelensin diye tek yerde. */

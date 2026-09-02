@@ -34,8 +34,15 @@ export function useRegister() {
     formState: { errors },
   } = useForm<RegisterForm>({
     resolver: zodResolver(schema),
+    // HER metin alanı '' ile başlamalı: tanımsız bırakılan alan zod'un
+    // `invalid_type_error` dalına düşüyor ve Türkçe arayüzde İngilizce
+    // "Required" yazıyordu (alanın kendi çevrilmiş mesajı yerine).
     defaultValues: {
       username: '',
+      displayName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
       acceptTerms: false,
       // Maestro spinner DateField'ı süremez; test modunda geçerli (18+) bir
       // doğum tarihi öndoldurulur. Prod'da EXPO_PUBLIC_MAESTRO unset → '' .
