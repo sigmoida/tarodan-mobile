@@ -1,0 +1,93 @@
+# G-01: Apple App Review Guideline 1.2 — kullanıcıyı engelle + engeli kaldır.
+# İlan detayında bayrak → sheet → Satıcıyı Engelle → onay → Profil →
+# Engellenen Kullanıcılar → Engeli Kaldır.
+#
+# Engel kalıcı ve simetrik olduğu için akış SONUNDA engeli kaldırır (staging
+# verisi kirlenmesin). Metin seçicileri regex: iOS hiyerarşisi etiketleri
+# ", Sepete Ekle" gibi baştaki virgülle veriyor, Maestro ise TAM eşliyor.
+appId: com.tarodan.app
+tags:
+  - regression
+env:
+  EMAIL: zeynep@demo.com
+  PASSWORD: Demo123!
+  SEARCH_TERM: Hot Wheels
+---
+- runFlow: ../subflows/open-tarodan.yaml
+
+# 1) Arama → ilan detayı
+- tapOn: "Ara"
+- extendedWaitUntil:
+    visible:
+      id: "search-input"
+    timeout: 40000
+- tapOn:
+    id: "search-input"
+- inputText: ${SEARCH_TERM}
+- extendedWaitUntil:
+    visible:
+      text: ".*₺.*"
+    timeout: 60000
+- tapOn:
+    text: ".*₺.*"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: "product-detail-add-to-cart-button"
+    timeout: 60000
+
+# 2) İlan detayındaki bayrak → şikayet/engelle sheet'i
+- tapOn:
+    id: "product-report-button"
+- extendedWaitUntil:
+    visible:
+      text: ".*Satıcıyı Engelle.*"
+    timeout: 15000
+- assertVisible:
+    text: ".*İlanı Şikayet Et.*"
+
+# 3) Satıcıyı Engelle → onay diyaloğu → engelle
+- tapOn:
+    text: ".*Satıcıyı Engelle.*"
+- extendedWaitUntil:
+    visible:
+      text: ".*engellensin mi.*"
+    timeout: 15000
+- tapOn:
+    text: "Engelle"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertNotVisible:
+    text: ".*Engelleme başarısız.*"
+
+# 4) Profil → Engellenen Kullanıcılar
+- tapOn: "Profil"
+- scrollUntilVisible:
+    element:
+      id: "profile-blocked-users-link"
+    direction: DOWN
+    visibilityPercentage: 30
+    timeout: 40000
+- tapOn:
+    id: "profile-blocked-users-link"
+- extendedWaitUntil:
+    visible:
+      text: ".*Engeli Kaldır.*"
+    timeout: 40000
+
+# 5) Engeli kaldır → liste boşalır (temizlik de bu adım)
+- tapOn:
+    text: ".*Engeli Kaldır.*"
+# Başarı diyaloğunu kapat — üstünde dururken boş durum "görünür" sayılmıyor.
+- extendedWaitUntil:
+    visible:
+      text: ".*Engel kaldırıldı.*"
+    timeout: 30000
+- tapOn:
+    text: "Tamam"
+- extendedWaitUntil:
+    visible:
+      text: ".*Engellediğiniz kullanıcı yok.*"
+    timeout: 30000
+- assertNotVisible:
+    text: ".*Network Error.*"

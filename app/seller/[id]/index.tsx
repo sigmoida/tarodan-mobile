@@ -1,9 +1,10 @@
 import { View, ScrollView } from 'react-native';
-import { Spinner, Text, ScreenHeader, EmptyState } from '@/ui';
+import { Spinner, Text, ScreenHeader, EmptyState, theme } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { ThemedRefreshControl } from '@/components/common';
+import UserActionsButton from '@/components/UserActionsSheet';
 import { styles } from './_lib/styles';
 import { useSellerProfile } from './_hooks/useSellerProfile';
 import { SellerProfileCard } from './_components/SellerProfileCard';
@@ -41,7 +42,24 @@ export default function SellerProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title={t('seller.sellerProfile')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+      <ScreenHeader
+        title={t('seller.sellerProfile')}
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+        right={
+          f.isOwnProfile ? null : (
+            // Apple App Review 1.2: satıcı profilinden şikayet + engelleme.
+            <UserActionsButton
+              testID="seller-actions-button"
+              userId={f.sellerId}
+              userName={f.seller.displayName || f.seller.companyName || ''}
+              color={theme.colors.white}
+              onBlocked={() =>
+                router.canGoBack() ? router.back() : router.replace('/(tabs)')
+              }
+            />
+          )
+        }
+      />
 
       <ScrollView
         style={styles.content}

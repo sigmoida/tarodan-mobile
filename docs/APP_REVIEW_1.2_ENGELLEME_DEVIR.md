@@ -3,6 +3,13 @@
 Bu dosya, konuşma bağlamı taşınamadığı için yazıldı. Yeni bir oturum bunu
 okuyarak kaldığı yerden devam edebilir.
 
+> **Durum (2 Eyl 2026):** backend + admin + web ana repoda **bitti**
+> (`origin/development`: `d014c1927`, `9dd975347`, `9177a4045`, `86160cc09`).
+> Mobil aktarım da bu dalda **tamamlandı** — bkz. §11. Bu dosyanın 4-6.
+> bölümleri artık **tarihsel kayıttır**; sözleşmenin tek kaynağı ana repodaki
+> `docs/USER_BLOCKING.md`'dir. Kalan iş: sürüm 1.0.3 + ekran kaydı + Resolution
+> Center cevabı (§8).
+
 ---
 
 ## 1. Nerede kaldık
@@ -232,3 +239,70 @@ app/product/[id]/_hooks/useProductActions.ts              ← ürün şikayeti
 - `docs/APP_REVIEW_CEVAP_TASLAGI.md` — Resolution Center cevabı ve Review Notes
   metinleri
 - `docs/RELEASE.md` — gerçek yayın hattı (staging OTA / production build)
+
+---
+
+## 11. Mobil aktarım — yapılanlar (2 Eyl 2026)
+
+Backend semantiği beyin fırtınasındaki karardan **daha güçlü** çıktı: engelleme
+**simetrik** (iki taraf birbirini görmez) ve okuma/etkileşim kapıları tek yerde
+(`UserBlockService.assertNotBlocked` / `assertVisibleTo`). Mobil bu sözleşmeyi
+web ile birebir aynı yüzeylerde tüketir.
+
+| Katman | Dosya | Ne yapıldı |
+| --- | --- | --- |
+| API | `src/lib/api/user.ts` | `getBlockStatus` eklendi, `block(userId, reason?)` gövde alır, `getBlockedUsers` `BlockedUser[]` tipli |
+| Query key | `src/lib/query/keys.ts` | `qk.blocks.list` / `qk.blocks.status(id)`; ayrıca `seller.all` / `seller.productsAll` / `seller.collectionsAll` / `collections.detailAll` prefix kökleri |
+| Hook | `src/hooks/useBlockUser.ts` | `useBlockStatus` + `useBlockUser`: onay diyaloğu, bildirim ve **invalidasyon kümesi** tek yerde (web `BLOCK_INVALIDATES` ile aynı küme) |
+| Ortak bileşen | `src/components/UserActionsSheet.tsx` | Şikayet Et / Engelle / Engeli Kaldır sheet'i (`useUserActionsSheet` + hazır `UserActionsButton`) — web `UserActionsMenu` karşılığı |
+| Ekran | `app/settings/blocked-users/` | Engellenenler listesi + engel kaldırma (web `profile/blocked` karşılığı) |
+| Profil menüsü | `app/(tabs)/_components/ProfileSections.tsx` | "Engellenen Kullanıcılar" satırı |
+| Satıcı profili | `app/seller/[id]/` | Başlıkta "…" menüsü: kullanıcıyı şikayet + engelle (kendi vitrininde gizli) |
+| İlan detayı | `app/product/[id]/` | Bayrak düğmesi artık sheet açar: "İlanı Şikayet Et" + "Satıcıyı Engelle" |
+| Koleksiyon detayı | `app/collections/[id]/` | Sahibi değilsen şikayet bayrağı |
+| DM | `app/messages/[threadId]/` | Elle yazılmış `userApi.block` çağrısı paylaşılan hook'a taşındı; engelliyse "Engeli Kaldır" gösterir |
+| i18n | `src/i18n/lib/catalog/{tr,en}.json` | `profile.block*` / `profile.blockedPage.*` / `collection.report` eklendi; ölü `message.block*` anahtarları silindi |
+
+Testler: `src/hooks/__tests__/useBlockUser.test.tsx` (onay kapısı, invalidasyon
+kümesi, engel durumu sorgusunun kapıları) ve
+`app/settings/__tests__/blocked-users.test.tsx` (liste, boş durum, engel kaldırma).
+
+**Doğrulama:** `npx tsc --noEmit` temiz, `pnpm lint` 0 hata,
+`pnpm test` 216 süit / 1712 test yeşil.
+
+**Simülatörde uçtan uca denendi** (iPhone 17, dev build + Metro, staging
+backend — EAS build harcanmadı). Yeni e2e akış:
+`maestro/flows/G-01-block-user.yaml` — arama → ilan detayı → bayrak menüsü
+("İlanı Şikayet Et" + "Satıcıyı Engelle") → onay → Profil → Engellenen
+Kullanıcılar → Engeli Kaldır → boş durum. Tamamı yeşil.
+
+Ayrıca elle doğrulananlar:
+- Satıcı profili başlığındaki "⋮" → Şikayet Et / Engelle sheet'i.
+- DM başlığı → Profili Görüntüle / Şikayet Et / Engelle.
+- **Apple'ın asıl şartı:** engelledikten hemen sonra `tarodan://seller/<id>` ve
+  `tarodan://product/<id>` derin bağlantıları "bulunamadı" veriyor — içerik
+  akıştan anında düşüyor.
+- Test sonunda engel kaldırıldı; staging verisi temiz bırakıldı.
+
+### Denemede çıkan üç gerçek kusur (düzeltildi)
+
+1. **`AlertDialog` erişilebilirlik**: dıştaki dokunulabilir `Pressable`'lar iOS'ta
+   tüm diyaloğu TEK erişilebilirlik öğesine çökertiyordu — VoiceOver diyaloğu tek
+   blok okuyor, düğmeleri ayrı seçemiyordu. `accessible={false}` ile düzeltildi.
+2. **`BlockedUserRow` çökmesi**: geçersiz locale/tarih ile `toLocaleDateString`
+   `RangeError` atıp satırı düşürüyordu; artık korumalı.
+3. **Tutarsız iptal etiketi**: DM menüsü "Vazgeç" (`discount.discard`), diğer
+   sheet'ler "İptal" (`common.cancel`) diyordu — hepsi `common.cancel`.
+
+Bayat kalmış `maestro/subflows/open-tarodan.yaml` de düzeltildi: dev-client
+sunucu satırı artık port'u da yazıyor (regex şart) ve iOS'un "Açılsın mı?"
+uyarısı dokunuştan SONRA çıkıyor (sıra yanlıştı).
+
+### Bu bölümdeki bilinçli kararlar
+
+- **Engelleme onayı `appAlert` üzerinden** — web'deki `useConfirm` diyaloğunun
+  karşılığı. Yanlışlıkla engelleme olmasın diye API çağrısı onaydan sonra.
+- **Bildirim kanalı çağırana bırakıldı** — snackbar'ı olan ekranlar (ilan
+  detayı) `notify` geçer, olmayanlar `appAlert` görür.
+- **İlan detayında kullanıcı şikayeti yok** — orada şikayet edilen şey ilanın
+  kendisi (web ile aynı); kullanıcıyı şikayet satıcı profilinde ve DM'de.

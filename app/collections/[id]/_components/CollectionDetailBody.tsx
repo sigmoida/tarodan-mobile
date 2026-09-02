@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedRefreshControl } from '@/components/common';
 import { transformImageUrl } from '@/utils/imageUrl';
+import ReportModal from '@/components/ReportModal';
 import { styles } from '../_lib/collectionStyles';
 import type { CollectionDetailController } from '../_hooks/useCollectionDetail';
 
@@ -18,6 +19,8 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
   const { t } = useTranslation();
   const { collection, items, id } = f;
   const insets = useSafeAreaInsets();
+  // Apple App Review 1.2: sahibi olmadığın koleksiyonu şikayet edebilmelisin.
+  const [reportVisible, setReportVisible] = useState(false);
 
   return (
     <View style={styles.container}>
@@ -39,6 +42,16 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
               <Ionicons name="create-outline" size={24} color={colors.white} />
             </TouchableOpacity>
           )}
+          {!f.isOwner && (
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => setReportVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t('collection.report')}
+            >
+              <Ionicons name="flag-outline" size={22} color={colors.white} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.headerButton} onPress={f.handleShare}>
             <Ionicons name="share-outline" size={24} color={colors.white} />
           </TouchableOpacity>
@@ -51,6 +64,14 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
           </TouchableOpacity>
         </View>
       </View>
+
+      <ReportModal
+        visible={reportVisible}
+        onDismiss={() => setReportVisible(false)}
+        type="collection"
+        targetId={String(id)}
+        targetName={collection.name}
+      />
 
       <ScrollView
         style={styles.content}

@@ -1720,11 +1720,6 @@
     "tooLong": "Mesaj {max} karakteri aşamaz. Mevcut: {current}",
     "stillSend": "{warning} Yine de göndermek istiyor musunuz?",
     "contactInfoWarning": "Mesajınızda kişisel iletişim bilgisi tespit edildi. Platform dışı iletişim güvenliğiniz için önerilmez.",
-    "blockUserTitle": "Kullanıcıyı Engelle",
-    "blockUserBody": "{name} engellenecek. Bu kullanıcı size mesaj gönderemez ve ilanlarınızı göremez.",
-    "blockUserError": "Kullanıcı engellenirken bir sorun oluştu.",
-    "blockedTitle": "Engellendi",
-    "blockedBody": "{name} engellendi.",
     "viewProfile": "Profili Görüntüle",
     "imageUploadedNoUrl": "Resim yüklendi fakat URL alınamadı.",
     "imageSendFailed": "Resim gönderilemedi.",
@@ -2092,7 +2087,8 @@
     "templateTrucks": "Kamyonlar",
     "templateF1": "Formula 1",
     "templateMuscle": "Muscle Cars",
-    "templateCustom": "Özel Koleksiyon"
+    "templateCustom": "Özel Koleksiyon",
+    "report": "Koleksiyonu Şikayet Et"
   },
   "notification": {
     "notifications": "Bildirimler",
@@ -2197,7 +2193,23 @@
     "corporateInfoNotice": "Kurumsal satıcı bilgileri fatura kesiminde kullanılır. Yanlış bilgi girişi yasal sorumluluk doğurabilir.",
     "tierMemberBadge": "{tier} Üye",
     "myDigitalGarage": "Dijital Garajım",
-    "garageEmptyDesc": "Araçlarını sergile ve paylaş"
+    "garageEmptyDesc": "Araçlarını sergile ve paylaş",
+    "unblock": "Engeli Kaldır",
+    "blockSeller": "Satıcıyı Engelle",
+    "blockConfirmTitle": "{name} engellensin mi?",
+    "blockConfirmBody": "Birbirinizin ilanlarını, koleksiyonlarını ve profillerini göremezsiniz; mesaj, teklif ve takas iki yönlü kapanır. Engeli istediğiniz zaman Engellenen Kullanıcılar sayfasından kaldırabilirsiniz.",
+    "blockedToast": "{name} engellendi",
+    "unblockedToast": "Engel kaldırıldı",
+    "blockFailed": "Engelleme başarısız",
+    "unblockFailed": "Engel kaldırılamadı",
+    "blockedPage": {
+      "title": "Engellenen Kullanıcılar",
+      "description": "{count} kullanıcı engellendi",
+      "empty": "Engellediğiniz kullanıcı yok",
+      "emptyDesc": "Bir kullanıcıyı profilinden, ilanından veya mesajlardan engelleyebilirsiniz.",
+      "blockedAt": "{date} tarihinde engellendi",
+      "loadFailed": "Engellenen kullanıcılar yüklenemedi"
+    }
   },
   "review": {
     "reviews": "Değerlendirmeler",
