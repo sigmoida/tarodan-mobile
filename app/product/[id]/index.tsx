@@ -57,7 +57,9 @@ export default function ProductDetailScreen() {
     userName: sellerName,
     showReportUser: false,
     blockLabel: t('profile.blockSeller'),
-    notify: actions.notify,
+    // Bilerek `notify` GEÇİLMİYOR: engelden sonra ekran kapanıyor, snackbar'ı
+    // taşıyan ekranla birlikte mesaj da yok oluyordu. appAlert kök seviyede
+    // duruyor ve gezinmeden sağ çıkıyor.
     onBlocked: () => (router.canGoBack() ? router.back() : router.replace('/(tabs)')),
     extraActions: [{ label: t('product.reportListing'), onPress: actions.handleReport }],
   });

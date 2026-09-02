@@ -110,6 +110,28 @@ describe('invalidasyon — engellenen anında akıştan düşer', () => {
     }
   });
 
+  it('önceden AÇILMIŞ ilan/koleksiyon/satıcı detayları da tazelenir', async () => {
+    // Regresyon: küme yalnız liste köklerini içeriyordu. `qk.products.all`
+    // (`["products"]`) tekil `["product", id]` anahtarını yakalamaz, bu yüzden
+    // engellemeden önce açılmış bir ilan sayfası önbellekten görünmeye devam
+    // ediyordu — cihazda böyle yakalandı.
+    const spy = jest.spyOn(client, 'invalidateQueries');
+    const { result } = renderHook(() => useBlockUser(), { wrapper });
+    act(() => result.current.requestBlock('u2', 'Ayşe'));
+    await confirmBlock();
+    await waitFor(() => expect(spy).toHaveBeenCalled());
+
+    const invalidated = spy.mock.calls.map((c) => (c[0] as any).queryKey as readonly unknown[]);
+    const covers = (key: readonly unknown[]) =>
+      invalidated.some((root) => root.every((seg, i) => seg === key[i]));
+
+    expect(covers(qk.products.detail('p1'))).toBe(true);
+    expect(covers(qk.collections.detail('c1'))).toBe(true);
+    expect(covers(qk.seller.detail('s1'))).toBe(true);
+    expect(covers(qk.seller.products('s1'))).toBe(true);
+    expect(covers(qk.blocks.status('u2'))).toBe(true);
+  });
+
   it('engel kaldırma da aynı kökleri tazeler', async () => {
     const spy = jest.spyOn(client, 'invalidateQueries');
     const { result } = renderHook(() => useBlockUser(), { wrapper });
