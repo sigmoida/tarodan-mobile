@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/ui';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
 import { styles } from '../_lib/membershipStyles';
 import {
@@ -33,7 +34,10 @@ export function MembershipBanners({ f }: SectionProps) {
         </TouchableOpacity>
       ) : null}
 
-      {f.hasPendingPayment && (
+      {/* Bekleyen ödeme bandı yarım kalmış PayTR ödemesini tamamlamaya çağırıyor
+          — iOS'ta satın alma çağrısı olduğu için kalkar. Hata bandı (yukarıda)
+          satın almayla ilgisi olmadığı için DOKUNULMAZ. */}
+      {f.hasPendingPayment && CAN_BUY_DIGITAL && (
         <TouchableOpacity
           style={styles.pendingBanner}
           onPress={() =>
