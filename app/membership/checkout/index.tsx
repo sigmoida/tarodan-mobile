@@ -1,6 +1,7 @@
 import { View, ScrollView } from 'react-native';
 import { Button, ScreenHeader } from '@/ui';
-import { router } from 'expo-router';
+import { router, Redirect } from 'expo-router';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { useMembershipCheckout } from './_hooks/useMembershipCheckout';
 import { styles } from './_lib/styles';
 import { formatTL } from './_lib/tiers';
@@ -13,6 +14,10 @@ import {
 
 export default function MembershipCheckoutScreen() {
   const f = useMembershipCheckout();
+
+  // Emniyet kilidi: iOS'ta uygulama içi dijital satış yok (Guideline 3.1.1).
+  // Bir upsell çağrısı gözden kaçarsa bile ödeme akışı açılmasın.
+  if (!CAN_BUY_DIGITAL) return <Redirect href="/membership" />;
 
   if (!f.isAuthenticated) return null;
 

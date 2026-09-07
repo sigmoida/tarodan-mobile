@@ -19,6 +19,12 @@ jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
   useLocalSearchParams: () => mockParams,
   useFocusEffect: () => {},
+  // [id].tsx artık `Redirect`'i expo-router'dan içe aktarıyor (iOS üyelik
+  // kilidi) — mock'ta olmazsa bu süit undefined bileşen render eder.
+  Redirect: ({ href }: { href: string }) => {
+    const { Text } = require('react-native');
+    return <Text>REDIRECT:{href}</Text>;
+  },
 }));
 import { router } from 'expo-router';
 const replaceMock = router.replace as jest.Mock;
