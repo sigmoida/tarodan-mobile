@@ -190,17 +190,22 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
               </View>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity style={styles.actionRow} onPress={f.handleReactivate}>
-              <Ionicons name="refresh" size={24} color={colors.success[600]!} />
-              <View style={styles.actionTextWrap}>
-                <Text variant="body" style={[styles.actionTitle, { color: colors.success[600]! }]}>
-                  {t('membership.reactivateSubscriptionTitle')}
-                </Text>
-                <Text variant="bodySm" style={styles.actionDesc}>
-                  {t('membership.reactivateSubscriptionDesc')}
-                </Text>
-              </View>
-            </TouchableOpacity>
+            // Otomatik yenilemeyi yeniden AÇMAK, PayTR'de yinelenen tahsilatı
+            // yeniden başlatmak demek — yani uygulama içi satın alma. iOS'ta
+            // gizli; İPTAL satırı (yukarıda) satın alma olmadığı için kalır.
+            <UpgradeCta>
+              <TouchableOpacity style={styles.actionRow} onPress={f.handleReactivate}>
+                <Ionicons name="refresh" size={24} color={colors.success[600]!} />
+                <View style={styles.actionTextWrap}>
+                  <Text variant="body" style={[styles.actionTitle, { color: colors.success[600]! }]}>
+                    {t('membership.reactivateSubscriptionTitle')}
+                  </Text>
+                  <Text variant="bodySm" style={styles.actionDesc}>
+                    {t('membership.reactivateSubscriptionDesc')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </UpgradeCta>
           )}
         </Card>
       )}
