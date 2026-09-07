@@ -7,6 +7,7 @@ import { Button, Snackbar, Text, theme } from '@/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SignupPrompt } from '@/components/SignupPrompt';
+import UpgradeCta from '@/components/UpgradeCta';
 import { styles } from '../_lib/profileStyles';
 import { benefitTints } from '../_lib/profileConstants';
 import type { ProfileController } from '../_hooks/useProfile';
@@ -142,37 +143,39 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
           ))}
         </View>
 
-        <View style={styles.premiumPromo}>
-          <View style={styles.premiumHeader}>
-            <Ionicons name="diamond" size={32} color={colors.warning[500]!} />
-            <Text variant="h2" tone="inverted" style={{ marginLeft: spacing[3] }}>
-              Premium Üyelik
+        <UpgradeCta>
+          <View style={styles.premiumPromo}>
+            <View style={styles.premiumHeader}>
+              <Ionicons name="diamond" size={32} color={colors.warning[500]!} />
+              <Text variant="h2" tone="inverted" style={{ marginLeft: spacing[3] }}>
+                Premium Üyelik
+              </Text>
+            </View>
+            <Text
+              variant="body"
+              color={colors.white}
+              style={{ marginBottom: spacing[4], opacity: 0.85 }}
+            >
+              Sınırsız ilan, takas özelliği, Digital Garage ve daha fazlası için Premium üye olun!
             </Text>
+            <View style={styles.premiumPrice}>
+              <Text variant="bodySm" color={colors.white} style={{ opacity: 0.7, marginRight: spacing[2] }}>
+                Aylık sadece
+              </Text>
+              <Text variant="displaySm" color={colors.warning[500]!} weight="bold">
+                ₺99
+              </Text>
+            </View>
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
+              title={t('mobile.guestGoPremium')}
+              onPress={() => router.push('/(auth)/register')}
+              style={{ backgroundColor: colors.warning[500]! }}
+            />
           </View>
-          <Text
-            variant="body"
-            color={colors.white}
-            style={{ marginBottom: spacing[4], opacity: 0.85 }}
-          >
-            Sınırsız ilan, takas özelliği, Digital Garage ve daha fazlası için Premium üye olun!
-          </Text>
-          <View style={styles.premiumPrice}>
-            <Text variant="bodySm" color={colors.white} style={{ opacity: 0.7, marginRight: spacing[2] }}>
-              Aylık sadece
-            </Text>
-            <Text variant="displaySm" color={colors.warning[500]!} weight="bold">
-              ₺99
-            </Text>
-          </View>
-          <Button
-            variant="primary"
-            size="lg"
-            fullWidth
-            title={t('mobile.guestGoPremium')}
-            onPress={() => router.push('/(auth)/register')}
-            style={{ backgroundColor: colors.warning[500]! }}
-          />
-        </View>
+        </UpgradeCta>
 
         <View style={{ height: 100 }} />
       </ScrollView>

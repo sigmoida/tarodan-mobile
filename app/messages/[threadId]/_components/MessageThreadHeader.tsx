@@ -7,6 +7,7 @@ import { Avatar, IconButton, Alert as UIAlert, Text, theme } from '@/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ReportModal from '@/components/ReportModal';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { styles } from '../_lib/styles';
 import type { MessageThreadController } from '../_hooks/useMessageThread';
 
@@ -79,7 +80,9 @@ export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
       {/* Message Limit Warning */}
       {!f.isUnlimited && !f.canSend && (
         <UIAlert variant="warning">
-          {t('message.dailyLimitWarning', { count: f.messageLimit })}
+          {CAN_BUY_DIGITAL
+            ? t('message.dailyLimitWarning', { count: f.messageLimit })
+            : t('message.dailyLimitReached', { count: f.messageLimit })}
         </UIAlert>
       )}
 

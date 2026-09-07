@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { appAlert } from '@/ui';
+import { CAN_BUY_DIGITAL, limitAlert } from '@/lib/purchases';
 import { authApi } from '@/lib/api';
 import { signInWithGoogle } from '@/services/googleSignin';
 import { signInWithApple, isAppleAvailable } from '@/services/appleSignin';
@@ -84,14 +85,21 @@ export function useLogin() {
         const isBusinessTier = String(membershipTier).toLowerCase().includes('business');
         const hasBusinessInfo = !!(currentUser?.companyName && currentUser?.taxId);
         if (hasBusinessInfo && !isBusinessTier) {
-          appAlert(
-            t('auth.corporateUpgradeTitle'),
-            t('auth.corporateUpgradeBody'),
-            [
-              { text: t('auth.corporateUpgradeLater'), onPress: () => router.replace('/' as never), style: 'cancel' },
-              { text: t('auth.corporateUpgradeGo'), onPress: () => router.replace('/membership' as never) },
-            ],
-          );
+          // iOS'ta bu uyarı yalnız kurumsal üyeliğe satış yapmak için var;
+          // satış yüzeyi kapalıyken gösterilecek nötr bir şey kalmıyor —
+          // "Daha sonra" düğmesinin gittiği yere sessizce geç (Guideline 3.1.3).
+          if (!CAN_BUY_DIGITAL) {
+            router.replace('/' as never);
+            return;
+          }
+          limitAlert({
+            title: t('auth.corporateUpgradeTitle'),
+            message: t('auth.corporateUpgradeBody'),
+            cancelLabel: t('auth.corporateUpgradeLater'),
+            upgradeLabel: t('auth.corporateUpgradeGo'),
+            onUpgrade: () => router.replace('/membership' as never),
+            onCancel: () => router.replace('/' as never),
+          });
           return;
         }
       } catch {

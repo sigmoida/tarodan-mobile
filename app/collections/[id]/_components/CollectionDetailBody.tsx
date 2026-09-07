@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedRefreshControl } from '@/components/common';
 import { transformImageUrl } from '@/utils/imageUrl';
 import ReportModal from '@/components/ReportModal';
+import UpgradeCta from '@/components/UpgradeCta';
 import { styles } from '../_lib/collectionStyles';
 import type { CollectionDetailController } from '../_hooks/useCollectionDetail';
 
@@ -208,24 +209,28 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
           )}
         </View>
 
-        {/* Guest Notice — premium/business üyelere ve koleksiyon sahibine gösterme */}
+        {/* Guest Notice — premium/business üyelere ve koleksiyon sahibine gösterme.
+            Metin ("Premium üye olarak...") satışa yönelik; bu yüzden yalnız düğme
+            değil, blok bütünüyle iOS'ta kapanır (Guideline 3.1.1/3.1.3). */}
         {!f.isPremiumMember && !f.isOwner && (
-          <View style={styles.guestNotice}>
-            <Ionicons name="lock-closed-outline" size={24} color={colors.text.muted} />
-            <View style={styles.noticeContent}>
-              <Text style={styles.noticeTitle}>{t('collection.guestNoticeTitle')}</Text>
-              <Text style={styles.noticeText}>
-                {t('collection.guestNoticeText')}
-              </Text>
-              <Button
-                variant="primary"
-                title={t('collection.becomePremiumCta')}
-                onPress={() => router.push(f.isAuthenticated ? '/upgrade' : '/(auth)/login')}
-                fullWidth
-                style={styles.noticeButton}
-              />
+          <UpgradeCta>
+            <View style={styles.guestNotice}>
+              <Ionicons name="lock-closed-outline" size={24} color={colors.text.muted} />
+              <View style={styles.noticeContent}>
+                <Text style={styles.noticeTitle}>{t('collection.guestNoticeTitle')}</Text>
+                <Text style={styles.noticeText}>
+                  {t('collection.guestNoticeText')}
+                </Text>
+                <Button
+                  variant="primary"
+                  title={t('collection.becomePremiumCta')}
+                  onPress={() => router.push(f.isAuthenticated ? '/upgrade' : '/(auth)/login')}
+                  fullWidth
+                  style={styles.noticeButton}
+                />
+              </View>
             </View>
-          </View>
+          </UpgradeCta>
         )}
 
         <View style={{ height: 40 }} />

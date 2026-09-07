@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { theme, Text, ScreenHeader } from "@/ui";
 import { useTranslation } from "react-i18next";
 import { SECURITY_EMAIL } from "@/constants/legalFacts";
+import { CAN_BUY_DIGITAL } from "@/lib/purchases";
 
 const { colors } = theme;
 
@@ -25,11 +26,16 @@ function useFeatures() {
       title: t("securityFeatures.paymentInfraTitle"),
       description: t("securityFeatures.paymentInfraDesc"),
     },
-    {
-      icon: "person-circle-outline" as const,
-      title: t("securityFeatures.identityTitle"),
-      description: t("securityFeatures.identityDesc"),
-    },
+    // iOS: identityDesc names the "Premium satıcılar" tier — item hidden.
+    ...(CAN_BUY_DIGITAL
+      ? [
+          {
+            icon: "person-circle-outline" as const,
+            title: t("securityFeatures.identityTitle"),
+            description: t("securityFeatures.identityDesc"),
+          },
+        ]
+      : []),
     {
       icon: "eye-off-outline" as const,
       title: t("information.security.dataPrivacy"),

@@ -11,6 +11,7 @@ import { router } from "expo-router";
 import { Controller } from "react-hook-form";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { MembershipBadgeCard } from "@/components/PremiumBadge";
+import { CAN_BUY_DIGITAL } from "@/lib/purchases";
 import { useTranslation } from "react-i18next";
 import { resolveImageUrl } from "@/utils/imageUrl";
 import { PhoneInput } from "@/components/common";
@@ -41,10 +42,13 @@ export function AvatarSection({ f }: { f: EditProfileController }) {
       </View>
 
       <View style={styles.membershipSection}>
+        {/* Kartın tamamını sarmak rozeti de gizlerdi; bu yüzden yalnız
+            onUpgrade prop'u koşullanır — undefined'ken kart yükseltme
+            düğmesini zaten render etmiyor (bkz. MembershipBadgeCard). */}
         <MembershipBadgeCard
           membershipTier={f.user?.membershipTier || "free"}
           isVerified={f.user?.isVerified}
-          onUpgrade={() => router.push("/upgrade")}
+          onUpgrade={CAN_BUY_DIGITAL ? () => router.push("/upgrade") : undefined}
         />
       </View>
     </>

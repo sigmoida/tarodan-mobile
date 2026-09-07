@@ -3,6 +3,7 @@ import { View, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { Modal, Button, Divider, Text, theme } from '@/ui';
+import UpgradeCta from '@/components/UpgradeCta';
 
 import { styles } from '../_lib/styles';
 import type { MyListingsController } from '../_hooks/useMyListings';
@@ -36,10 +37,12 @@ export function MyListingsModals({ f }: { f: MyListingsController }) {
               </Pressable>
             )}
             {menu.status === 'active' && (
-              <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('boost', menu)}>
-                <Ionicons name="rocket" size={20} color={colors.warning[600]!} />
-                <Text style={[styles.menuItemText, { color: colors.warning[700]! }]}>{t('listing.boostAction')}</Text>
-              </Pressable>
+              <UpgradeCta>
+                <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('boost', menu)}>
+                  <Ionicons name="rocket" size={20} color={colors.warning[600]!} />
+                  <Text style={[styles.menuItemText, { color: colors.warning[700]! }]}>{t('listing.boostAction')}</Text>
+                </Pressable>
+              </UpgradeCta>
             )}
             {menu.status === 'active' && (
               <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('deactivate', menu)}>

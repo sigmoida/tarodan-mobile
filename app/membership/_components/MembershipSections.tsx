@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/ui';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
 import { styles } from '../_lib/membershipStyles';
 import {
@@ -33,7 +34,10 @@ export function MembershipBanners({ f }: SectionProps) {
         </TouchableOpacity>
       ) : null}
 
-      {f.hasPendingPayment && (
+      {/* Bekleyen ödeme bandı yarım kalmış PayTR ödemesini tamamlamaya çağırıyor
+          — iOS'ta satın alma çağrısı olduğu için kalkar. Hata bandı (yukarıda)
+          satın almayla ilgisi olmadığı için DOKUNULMAZ. */}
+      {f.hasPendingPayment && CAN_BUY_DIGITAL && (
         <TouchableOpacity
           style={styles.pendingBanner}
           onPress={() =>
@@ -84,18 +88,24 @@ export function MembershipCurrentPlan({ f }: SectionProps) {
           })}
         </Text>
       )}
-      {/* Üyelik yönetimi: otomatik yenileme + kayıtlı kartlar (tüm kademeler) */}
-      <TouchableOpacity
-        style={styles.manageButton}
-        onPress={() => router.push('/membership/manage' as any)}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="settings-outline" size={16} color={colors.primary[600]!} />
-        <Text style={styles.manageButtonText}>
-          {t('membership.manageMembershipHint')}
-        </Text>
-        <Ionicons name="chevron-forward" size={16} color={colors.primary[600]!} />
-      </TouchableOpacity>
+      {/* Üyelik yönetimi: otomatik yenileme + kayıtlı kartlar (tüm kademeler).
+          Bu satırın kendisi tam olarak PayTR'nin yinelenen tahsilat
+          yönetimini tanıtıyor — iOS'ta hem FREE hem PAID kullanıcıdan
+          gizlenir. İPTAL akışı buradan değil Profil → Abonelik
+          (SubscriptionBody) üzerinden gelir ve orada iOS'ta da açıktır. */}
+      {CAN_BUY_DIGITAL && (
+        <TouchableOpacity
+          style={styles.manageButton}
+          onPress={() => router.push('/membership/manage' as any)}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="settings-outline" size={16} color={colors.primary[600]!} />
+          <Text style={styles.manageButtonText}>
+            {t('membership.manageMembershipHint')}
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.primary[600]!} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }

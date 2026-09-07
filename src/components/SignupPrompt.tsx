@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { theme, Text, Button } from '@/ui';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
 const { colors } = theme;
 
@@ -57,8 +58,10 @@ const buildPromptConfig = (t: TFunction) => ({
   trade: {
     icon: 'swap-horizontal',
     title: t('trade.featureTitle'),
-    description: t('signupPrompt.tradeDescription'),
-    primaryButton: t('mobile.guestGoPremium'),
+    description: CAN_BUY_DIGITAL
+      ? t('signupPrompt.tradeDescription')
+      : t('membership.featureUnavailableOnAccount'),
+    primaryButton: CAN_BUY_DIGITAL ? t('mobile.guestGoPremium') : t('common.register'),
     primaryAction: () => router.push('/(auth)/register'),
     benefits: [
       t('signupPrompt.tradeBenefit1'),
@@ -69,8 +72,10 @@ const buildPromptConfig = (t: TFunction) => ({
   collections: {
     icon: 'albums',
     title: t('mobile.guestGarageTitle'),
-    description: t('signupPrompt.collectionsDescription'),
-    primaryButton: t('mobile.guestGoPremium'),
+    description: CAN_BUY_DIGITAL
+      ? t('signupPrompt.collectionsDescription')
+      : t('membership.featureUnavailableOnAccount'),
+    primaryButton: CAN_BUY_DIGITAL ? t('mobile.guestGoPremium') : t('common.register'),
     primaryAction: () => router.push('/(auth)/register'),
     benefits: [
       t('signupPrompt.collectionsBenefit1'),

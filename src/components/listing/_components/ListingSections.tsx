@@ -13,6 +13,8 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { theme, DateField } from '@/ui';
+import UpgradeCta from '@/components/UpgradeCta';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
 import { styles } from '../_lib/styles';
 import { buildConditions, getPackageTierLabel } from '../_lib/constants';
@@ -92,9 +94,11 @@ export function ListingHeaderBanners({ f }: SectionProps) {
               )}
             </View>
             {!f.listingLimits.canCreateListing && (
-              <TouchableOpacity style={styles.upgradeButton} onPress={() => router.push('/(tabs)/profile')}>
-                <Text style={styles.upgradeButtonText}>{t('address.goPremium')}</Text>
-              </TouchableOpacity>
+              <UpgradeCta>
+                <TouchableOpacity style={styles.upgradeButton} onPress={() => router.push('/(tabs)/profile')}>
+                  <Text style={styles.upgradeButtonText}>{t('address.goPremium')}</Text>
+                </TouchableOpacity>
+              </UpgradeCta>
             )}
           </View>
 
@@ -418,7 +422,9 @@ export function ListingOptionsSection({ f }: SectionProps) {
           <Text style={styles.toggleHint}>
             {f.limits?.canTrade
               ? t('product.tradeKeepsOpenForTrade')
-              : t('product.tradeRequiresPremium')}
+              : CAN_BUY_DIGITAL
+              ? t('product.tradeRequiresPremium')
+              : t('membership.featureUnavailableOnAccount')}
           </Text>
         </View>
         {f.limits?.canTrade ? (
@@ -429,9 +435,11 @@ export function ListingOptionsSection({ f }: SectionProps) {
             thumbColor={colors.white}
           />
         ) : (
-          <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
-            <Text style={styles.upgradeLinkText}>{t('product.upgradeArrow')}</Text>
-          </TouchableOpacity>
+          <UpgradeCta>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
+              <Text style={styles.upgradeLinkText}>{t('product.upgradeArrow')}</Text>
+            </TouchableOpacity>
+          </UpgradeCta>
         )}
       </View>
 

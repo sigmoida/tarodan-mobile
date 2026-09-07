@@ -1,5 +1,6 @@
 import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
 import { theme, ScreenHeader } from '@/ui';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
 import { styles } from './_lib/membershipStyles';
 import { useMembership } from './_hooks/useMembership';
@@ -47,8 +48,15 @@ export default function MembershipScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <MembershipBanners f={f} />
         <MembershipCurrentPlan f={f} />
-        <MembershipBillingToggle f={f} />
-        <MembershipTierList f={f} />
+        {/* Fiyatlar ve paket kartları iOS'ta yok: uygulama içi dijital satış
+            Apple IAP'siz yapılamıyor (Guideline 3.1.1) ve fiyat göstermek
+            2.1(b)'nin "abonelik referansı" tanımına giriyor. */}
+        {CAN_BUY_DIGITAL && (
+          <>
+            <MembershipBillingToggle f={f} />
+            <MembershipTierList f={f} />
+          </>
+        )}
 
         <View style={{ height: 40 }} />
       </ScrollView>

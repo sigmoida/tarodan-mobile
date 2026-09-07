@@ -6,6 +6,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Card, Button, Text, theme } from '@/ui';
 
 import { ThemedRefreshControl } from '@/components/common';
+import UpgradeCta from '@/components/UpgradeCta';
 import { styles } from '../_lib/styles';
 import { getDayLabels, getMaxValue } from '../_lib/types';
 import type { AnalyticsController } from '../_hooks/useAnalytics';
@@ -154,25 +155,29 @@ export function AnalyticsContent({ f }: { f: AnalyticsController }) {
         </>
       )}
 
-      {/* Premium Upsell */}
+      {/* Premium Upsell — kart bütünüyle satışa yönelik metin içeriyor (başlık + Premium
+          açıklaması + özellik listesi + düğme); iOS'ta yalnız düğmeyi gizlemek yetmez,
+          kartın tamamı kapanır (Guideline 3.1.1/3.1.3). */}
       {!isPremium && (
-        <Card style={styles.premiumCard}>
-          <View style={styles.premiumHeader}>
-            <Ionicons name="diamond" size={24} color={colors.primary[600]!} />
-            <Text variant="h3" style={styles.premiumTitle}>{t('analytics.detailedAnalytics')}</Text>
-          </View>
-          <Text variant="bodySm" style={styles.premiumText}>
-            {t('analytics.premiumUpsellDesc')}
-          </Text>
-          <View style={styles.premiumFeatures}>
-            <Text style={styles.premiumFeature}>• {t('analytics.featureConversionRates')}</Text>
-            <Text style={styles.premiumFeature}>• {t('analytics.revenueTracking')}</Text>
-            <Text style={styles.premiumFeature}>• {t('analytics.featureTradeSuccessRates')}</Text>
-            <Text style={styles.premiumFeature}>• {t('analytics.featureTopPerformingListings')}</Text>
-            <Text style={styles.premiumFeature}>• {t('analytics.featureCollectionEngagement')}</Text>
-          </View>
-          <Button variant="primary" title={t('address.goPremium')} onPress={() => router.push('/upgrade')} style={styles.premiumButton} />
-        </Card>
+        <UpgradeCta>
+          <Card style={styles.premiumCard}>
+            <View style={styles.premiumHeader}>
+              <Ionicons name="diamond" size={24} color={colors.primary[600]!} />
+              <Text variant="h3" style={styles.premiumTitle}>{t('analytics.detailedAnalytics')}</Text>
+            </View>
+            <Text variant="bodySm" style={styles.premiumText}>
+              {t('analytics.premiumUpsellDesc')}
+            </Text>
+            <View style={styles.premiumFeatures}>
+              <Text style={styles.premiumFeature}>• {t('analytics.featureConversionRates')}</Text>
+              <Text style={styles.premiumFeature}>• {t('analytics.revenueTracking')}</Text>
+              <Text style={styles.premiumFeature}>• {t('analytics.featureTradeSuccessRates')}</Text>
+              <Text style={styles.premiumFeature}>• {t('analytics.featureTopPerformingListings')}</Text>
+              <Text style={styles.premiumFeature}>• {t('analytics.featureCollectionEngagement')}</Text>
+            </View>
+            <Button variant="primary" title={t('address.goPremium')} onPress={() => router.push('/upgrade')} style={styles.premiumButton} />
+          </Card>
+        </UpgradeCta>
       )}
 
       <View style={{ height: 50 }} />

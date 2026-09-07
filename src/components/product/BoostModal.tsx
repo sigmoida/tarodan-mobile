@@ -23,6 +23,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/ui';
 import { productsApi } from '@/lib/api';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
 const { colors } = theme;
 
@@ -161,6 +162,11 @@ export function BoostModal({
   };
 
   const confirmDisabled = submitting || loadingPricing || !enabled || selected == null;
+
+  // Emniyet kilidi: iOS'ta uygulama içi dijital satış yok (Guideline 3.1.1).
+  // Hook sırası bozulmasın diye erken çıkış tüm hook'lardan SONRA, JSX
+  // döndürülmeden hemen önce yapılır.
+  if (!CAN_BUY_DIGITAL) return null;
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>

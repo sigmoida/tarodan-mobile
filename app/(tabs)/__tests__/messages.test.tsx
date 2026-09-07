@@ -5,6 +5,7 @@
  * uygulaması backend-only.
  */
 import React from "react";
+import { Platform } from "react-native";
 import { screen, fireEvent } from "@testing-library/react-native";
 import { renderWithProviders } from "@/test-utils";
 
@@ -47,6 +48,21 @@ let mockUnread: any;
 jest.mock("@/hooks/messaging", () => ({
   useThreadsQuery: () => mockThreadsQuery,
   useUnreadCountQuery: () => mockUnread,
+}));
+
+// Bu süit Android/web davranışını doğruluyor: yükseltme çağrıları orada duruyor.
+// jest-expo varsayılanı `ios` olduğu için açıkça sabitliyoruz; iOS tarafını
+// app/__tests__/ios-no-digital-sales.test.tsx doğrular.
+beforeAll(() => { Platform.OS = "android"; });
+
+// `@/lib/purchases`daki CAN_BUY_DIGITAL, Platform.OS'a modül YÜKLENİRKEN bakan
+// sabit bir değer; ekran bu dosyanın en üstünde statik import edildiği için
+// yukarıdaki beforeAll'dan ÖNCE değerlenir (Platform.OS ataması geç kalır).
+// jest.mock çağrıları babel-plugin-jest-hoist ile import'ların da üstüne
+// taşındığından, bayrağı burada doğrudan mock'lamak doğru zamanlamayı garanti eder.
+jest.mock("@/lib/purchases", () => ({
+  ...jest.requireActual("@/lib/purchases"),
+  CAN_BUY_DIGITAL: true,
 }));
 
 import MessagesTabScreen from "../messages";

@@ -6,6 +6,8 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScreenHeader, EmptyState } from '@/components/common';
 import { useAuthStore } from '@/stores/authStore';
+import UpgradeCta from '@/components/UpgradeCta';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
 const { colors } = theme;
 
@@ -53,7 +55,9 @@ export default function SellerRegisterScreen() {
               {t('seller.alreadyBusinessAccount')}
               {isBusinessTier
                 ? t('seller.businessMembershipActiveNote')
-                : t('seller.completeBusinessMembershipNote')}
+                : CAN_BUY_DIGITAL
+                  ? t('seller.completeBusinessMembershipNote')
+                  : t('seller.businessAccountDetailsRecordedNote')}
             </Text>
           </View>
 
@@ -66,14 +70,17 @@ export default function SellerRegisterScreen() {
             style={styles.submitBtn}
           />
 
+          {/* Business üyeliğe geçiş yeni bir satın alma — iOS'ta gizli. */}
           {!isBusinessTier ? (
-            <Button
-              variant="outline"
-              fullWidth
-              title={t('seller.switchToBusinessMembership')}
-              onPress={() => router.replace('/membership')}
-              style={styles.submitBtn}
-            />
+            <UpgradeCta>
+              <Button
+                variant="outline"
+                fullWidth
+                title={t('seller.switchToBusinessMembership')}
+                onPress={() => router.replace('/membership')}
+                style={styles.submitBtn}
+              />
+            </UpgradeCta>
           ) : null}
 
           <Button variant="ghost" fullWidth title={t('common.goBack')} onPress={handleBack} />

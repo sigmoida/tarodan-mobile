@@ -2,12 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, BackHandler } from 'react-native';
 import { Button, Spinner, Text, theme, appAlert } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams, Redirect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { paymentsApi } from '@/lib/api';
 import { ScreenHeader, ErrorState } from '@/components/common';
 import { captureException } from '@/services/sentry';
 import CardPaymentForm from '@/components/CardPaymentForm';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
 /**
  * ⚠️ BU EKRAN BİLEREK React Query'ye TAŞINMADI (CLAUDE.md §6'nın istisnası).
@@ -53,6 +54,9 @@ export default function PaymentScreen() {
   const paymentId = params.id!;
   const isGuest = params.guest === '1';
   const isMembership = params.type === 'membership';
+  // Boost da dijital (Guideline 3.1.3(g)) — BoostModal iOS'ta zaten `null`
+  // döner ve bu yola hiç girmez, ama emniyet kilidi simetrik olsun diye burada.
+  const isBoost = params.type === 'boost';
 
   const [state, setState] = useState<{
     loading: boolean;
@@ -82,6 +86,13 @@ export default function PaymentScreen() {
   }, [paymentId]);
 
   const load = async () => {
+    // iOS'ta üyelik ödemesi kabul edilmez (Guideline 3.1.1). Yalnız JSX'i
+    // kilitlemek yetmez: render kilidi devredeyken bu effect zaten tetiklenmiş
+    // olabiliyor, kilit olmasa `load()` durum sorgusunu ATAR, bypass açıksa
+    // ödemeyi TAMAMLAR ve /membership/success'e yönlendirip <Redirect>'i
+    // ezerdi. Bu yüzden imperative tarafta da aynı reddi tekrar ediyoruz —
+    // fiziksel yol (`isMembership` false) bundan hiç etkilenmez.
+    if ((isMembership || isBoost) && !CAN_BUY_DIGITAL) return;
     try {
       setState(s => ({ ...s, loading: true, error: null }));
 
@@ -210,6 +221,13 @@ export default function PaymentScreen() {
   const routeToFail = (pid: string = paymentId) => {
     router.replace({ pathname: '/payment/fail', params: { paymentId: pid, guest: params.guest } } as any);
   };
+
+  // iOS'ta üyelik ödemesi kabul edilmez (Guideline 3.1.1). Fiziksel sipariş,
+  // sepet ve takas ödemesi bu ekrandan geçmeye DEVAM eder — 3.1.3(e) gereği
+  // onların IAP dışında kalması zorunlu. Tüm hook'lardan (ve yukarıdaki
+  // `load` closure'ından, ki `useEffect` ona referans veriyor — daha erken
+  // bir çıkış TDZ hatasına yol açardı) SONRA, JSX döndürülmeden hemen önce.
+  if ((isMembership || isBoost) && !CAN_BUY_DIGITAL) return <Redirect href="/membership" />;
 
   return (
     <View style={styles.container}>
