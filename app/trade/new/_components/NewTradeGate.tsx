@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Button, ScreenHeader, Text, theme } from '@/ui';
+import UpgradeCta from '@/components/UpgradeCta';
 
 import { getUpgradeMessage } from '@/utils/membershipLimits';
 import { styles } from '../_lib/styles';
@@ -28,26 +29,32 @@ export function NewTradeGate({ f }: { f: NewTradeController }) {
           <Text variant="h2" style={styles.premiumTitle}>{upgradeInfo.title}</Text>
           <Text variant="body" style={styles.premiumSubtitle}>{upgradeInfo.message}</Text>
 
-          <View style={styles.premiumFeatures}>
-            <View style={styles.premiumFeature}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
-              <Text style={styles.premiumFeatureText}>{t('trade.premiumFeatureCreate')}</Text>
+          {/* Ücretli kademe özellik listesi + yükseltme düğmesi iOS'ta kapalı:
+              uygulama içinde ücretli kademeden söz etmek/satmak Apple IAP'siz
+              yapılamıyor (Guideline 3.1.1 / 3.1.3). Başlık + nötr mesaj + "Geri"
+              kalır ki ekran kendini açıklasın ve kullanıcı çıkabilsin. */}
+          <UpgradeCta>
+            <View style={styles.premiumFeatures}>
+              <View style={styles.premiumFeature}>
+                <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
+                <Text style={styles.premiumFeatureText}>{t('trade.premiumFeatureCreate')}</Text>
+              </View>
+              <View style={styles.premiumFeature}>
+                <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
+                <Text style={styles.premiumFeatureText}>{t('trade.premiumFeatureCounter')}</Text>
+              </View>
+              <View style={styles.premiumFeature}>
+                <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
+                <Text style={styles.premiumFeatureText}>{t('trade.premiumFeatureCash')}</Text>
+              </View>
+              <View style={styles.premiumFeature}>
+                <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
+                <Text style={styles.premiumFeatureText}>{t('trade.premiumFeatureProtection')}</Text>
+              </View>
             </View>
-            <View style={styles.premiumFeature}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
-              <Text style={styles.premiumFeatureText}>{t('trade.premiumFeatureCounter')}</Text>
-            </View>
-            <View style={styles.premiumFeature}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
-              <Text style={styles.premiumFeatureText}>{t('trade.premiumFeatureCash')}</Text>
-            </View>
-            <View style={styles.premiumFeature}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
-              <Text style={styles.premiumFeatureText}>{t('trade.premiumFeatureProtection')}</Text>
-            </View>
-          </View>
 
-          <Button variant="primary" title={t('membership.title')} onPress={() => router.push('/membership')} style={styles.upgradeButton} />
+            <Button variant="primary" title={t('membership.title')} onPress={() => router.push('/membership')} style={styles.upgradeButton} />
+          </UpgradeCta>
           <Button variant="ghost" title={t('common.goBack')} onPress={() => router.back()} style={{ alignSelf: 'center' }} />
         </View>
       </View>

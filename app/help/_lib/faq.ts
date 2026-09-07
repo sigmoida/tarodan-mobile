@@ -6,6 +6,7 @@ import {
   SUPPORT_PHONE,
   SUPPORT_WHATSAPP,
 } from '@/constants/legalFacts';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
 export type FaqCategory = {
   id: string;
@@ -31,7 +32,10 @@ export const buildFaqCategories = (t: TFunction): FaqCategory[] => [
     questions: [
       { q: t('helpFaq.general.whatIsTarodan.q'), a: t('helpFaq.general.whatIsTarodan.a') },
       { q: t('helpFaq.general.howToJoin.q'), a: t('helpFaq.general.howToJoin.a') },
-      { q: t('faqShared.premiumBenefits.q'), a: t('faqShared.premiumBenefits.a') },
+      // iOS: describes paid-tier benefits by name — hidden.
+      ...(CAN_BUY_DIGITAL
+        ? [{ q: t('faqShared.premiumBenefits.q'), a: t('faqShared.premiumBenefits.a') }]
+        : []),
     ],
   },
   {
@@ -54,7 +58,10 @@ export const buildFaqCategories = (t: TFunction): FaqCategory[] => [
     icon: 'pricetag-outline',
     questions: [
       { q: t('faqShared.howToList.q'), a: t('faqShared.howToList.a') },
-      { q: t('helpFaq.selling.listingFee.q'), a: t('helpFaq.selling.listingFee.a') },
+      // iOS: mentions the Premium tier by name — hidden.
+      ...(CAN_BUY_DIGITAL
+        ? [{ q: t('helpFaq.selling.listingFee.q'), a: t('helpFaq.selling.listingFee.a') }]
+        : []),
       { q: t('faqShared.commissionRate.q'), a: t('faqShared.commissionRate.a') },
       { q: t('faqShared.payoutTiming.q'), a: t('faqShared.payoutTiming.a') },
     ],
@@ -64,7 +71,10 @@ export const buildFaqCategories = (t: TFunction): FaqCategory[] => [
     title: t('faq.trade'),
     icon: 'swap-horizontal',
     questions: [
-      { q: t('faqShared.howTradeWorks.q'), a: t('faqShared.howTradeWorks.a') },
+      // iOS: mentions Premium membership by name — hidden.
+      ...(CAN_BUY_DIGITAL
+        ? [{ q: t('faqShared.howTradeWorks.q'), a: t('faqShared.howTradeWorks.a') }]
+        : []),
       { q: t('faqShared.tradeSafety.q'), a: t('faqShared.tradeSafety.a') },
       { q: t('helpFaq.trading.cashDifference.q'), a: t('helpFaq.trading.cashDifference.a') },
     ],
@@ -76,7 +86,16 @@ export const buildFaqCategories = (t: TFunction): FaqCategory[] => [
     questions: [
       { q: t('faqShared.forgotPassword.q'), a: t('faqShared.forgotPassword.a') },
       { q: t('faqShared.deleteAccount.q'), a: t('faqShared.deleteAccount.a') },
-      { q: t('helpFaq.account.cancelSubscription.q'), a: t('helpFaq.account.cancelSubscription.a') },
+      // iOS: names the Premium tier — hidden (cancellation itself is
+      // covered by the in-app subscription management screen, unaffected).
+      ...(CAN_BUY_DIGITAL
+        ? [
+            {
+              q: t('helpFaq.account.cancelSubscription.q'),
+              a: t('helpFaq.account.cancelSubscription.a'),
+            },
+          ]
+        : []),
     ],
   },
 ];

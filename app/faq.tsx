@@ -6,6 +6,7 @@ import type { TFunction } from "i18next";
 import { theme, Text, ScreenHeader } from "@/ui";
 import { useTranslation } from "react-i18next";
 import { RETURN_REQUEST_DAYS, DAMAGE_REPORT_DAYS } from "@/constants/legalFacts";
+import { CAN_BUY_DIGITAL } from "@/lib/purchases";
 
 const { colors } = theme;
 
@@ -34,7 +35,10 @@ const buildFaqSections = (t: TFunction): FaqSection[] => [
       { q: t("faqShared.howToList.q"), a: t("faqShared.howToList.a") },
       { q: t("faqShared.commissionRate.q"), a: t("faqShared.commissionRate.a") },
       { q: t("faqShared.payoutTiming.q"), a: t("faqShared.payoutTiming.a") },
-      { q: t("faqPage.selling.listingLimit.q"), a: t("faqPage.selling.listingLimit.a") },
+      // iOS: mentions Premium/Pro tiers by name (Apple 3.1.1/3.1.3) — hidden.
+      ...(CAN_BUY_DIGITAL
+        ? [{ q: t("faqPage.selling.listingLimit.q"), a: t("faqPage.selling.listingLimit.a") }]
+        : []),
     ],
   },
   {
@@ -48,9 +52,14 @@ const buildFaqSections = (t: TFunction): FaqSection[] => [
   {
     category: t("faq.trade"),
     questions: [
-      { q: t("faqShared.howTradeWorks.q"), a: t("faqShared.howTradeWorks.a") },
+      // iOS: both mention Premium membership by name — hidden.
+      ...(CAN_BUY_DIGITAL
+        ? [{ q: t("faqShared.howTradeWorks.q"), a: t("faqShared.howTradeWorks.a") }]
+        : []),
       { q: t("faqShared.tradeSafety.q"), a: t("faqShared.tradeSafety.a") },
-      { q: t("faqPage.trade.tradeFee.q"), a: t("faqPage.trade.tradeFee.a") },
+      ...(CAN_BUY_DIGITAL
+        ? [{ q: t("faqPage.trade.tradeFee.q"), a: t("faqPage.trade.tradeFee.a") }]
+        : []),
     ],
   },
   {
@@ -70,7 +79,10 @@ const buildFaqSections = (t: TFunction): FaqSection[] => [
   {
     category: t("faqPage.categories.account"),
     questions: [
-      { q: t("faqShared.premiumBenefits.q"), a: t("faqShared.premiumBenefits.a") },
+      // iOS: describes paid-tier benefits by name — hidden.
+      ...(CAN_BUY_DIGITAL
+        ? [{ q: t("faqShared.premiumBenefits.q"), a: t("faqShared.premiumBenefits.a") }]
+        : []),
       { q: t("faqShared.forgotPassword.q"), a: t("faqShared.forgotPassword.a") },
       { q: t("faqShared.deleteAccount.q"), a: t("faqShared.deleteAccount.a") },
     ],

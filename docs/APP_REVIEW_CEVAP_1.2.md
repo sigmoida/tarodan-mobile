@@ -242,3 +242,42 @@ build'i tekrar veremeyeceğimiz için bilinçli olarak ertelendi:
   Bilinçli değilse 13+ öneriliyor.
 - **Anahtar kelimelerdeki marka adları** (`hot wheels`, `matchbox`) — 4.1
   metadata riski.
+
+
+---
+
+## iOS'ta dijital satış kapatıldı (6 Eyl 2026) — sürüm 1.0.4
+
+Üçüncü reddin `2.1(b)` ve `3.1.2(c)` maddeleri için. Tasarım:
+`superpowers/specs/2026-09-06-ios-dijital-satis-kapisi-design.md`, plan:
+`superpowers/plans/2026-09-06-ios-dijital-satis-kapisi.md`.
+
+**Kapatılanlar (iOS'ta):** üyelik aboneliği satışı (fiyat tablosu, aylık/yıllık
+geçişi, checkout, bekleyen ödeme bandı, otomatik yenileme anahtarı, üyelik
+yönetimi girişi), ilan öne çıkarma (boost) satın alma, ve bunlara giden 18
+yükseltme çağrısı. Kapalı özellik kapıları artık paketten söz etmiyor: "Bu
+özellik hesabınızda kullanılamıyor."
+
+**Dokunulmayanlar:** fiziksel ticaretin tamamı — ürün checkout'u, sepet, takas
+nakit farkı, kargo, komisyon, kayıtlı kartlar ve adresler. Apple `3.1.3(e)`
+fiziksel malın IAP ile satılmasını **yasakladığı** için bu yolun PayTR'de
+kalması zorunlu. `app/payment/[id].tsx` silinmedi; yalnız `type=membership`
+reddediliyor, fiziksel ödeme aynı ekrandan geçmeye devam ediyor.
+
+**İptal iOS'ta kalıyor** — abonelik iptali satın alma değil; ücretli bir üyeyi
+iptal edemez hâlde bırakmak daha kötü olurdu.
+
+Android ve web hiç etkilenmedi: kapı tek bir `Platform.OS !== 'ios'` sabitinde
+ve testler her iki tarafı da doğruluyor.
+
+### Resolution Center cevabına eklenecek paragraf
+
+    The app no longer offers any digital purchase on iOS. Membership plans and
+    listing promotion ("boost") are not sold in the app, no prices are shown,
+    and there are no links or calls to action pointing to any external purchase
+    mechanism. A member sees only their current plan and their account limits,
+    and can cancel.
+
+    Physical goods — the collectible models that are the marketplace's purpose —
+    continue to be paid for with a payment method other than in-app purchase, as
+    required by Guideline 3.1.3(e).

@@ -3,6 +3,7 @@ import { Avatar, Input, Spinner, Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import UpgradeCta from '@/components/UpgradeCta';
 import { styles } from '../_lib/styles';
 import type { User } from '../_lib/types';
 import type { NewMessageController } from '../_hooks/useNewMessage';
@@ -105,9 +106,12 @@ export function NewMessageBody({ f }: { f: NewMessageController }) {
           <Text style={styles.limitWarningText}>
             {t('message.dailyLimitReached', { count: f.limits?.maxMessagesPerDay || 50 })}
           </Text>
-          <TouchableOpacity onPress={() => router.push('/upgrade')}>
-            <Text style={styles.upgradeLink}>{t('address.goPremium')}</Text>
-          </TouchableOpacity>
+          {/* iOS'ta satın alma yok (Guideline 3.1.1); düğme yalnız Android/web'de render edilir. */}
+          <UpgradeCta>
+            <TouchableOpacity onPress={() => router.push('/upgrade')}>
+              <Text style={styles.upgradeLink}>{t('address.goPremium')}</Text>
+            </TouchableOpacity>
+          </UpgradeCta>
         </View>
       )}
     </View>

@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../_lib/styles';
 import { formatDate, formatTL } from '../_lib/helpers';
+import UpgradeCta from '@/components/UpgradeCta';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import type { MembershipManageController } from '../_hooks/useMembershipManage';
 
 const { colors } = theme;
@@ -64,28 +66,37 @@ export function CurrentPlanCard({ f }: { f: MembershipManageController }) {
             </View>
           ) : null}
 
-          <Divider style={{ marginVertical: theme.spacing[3] }} />
+          {/* Otomatik yenilemeyi yeniden AÇMAK PayTR'de yinelenen tahsilatı
+              yeniden başlatmak demek — yani uygulama içi satın alma. Yarım
+              gated bir switch (görünür ama devre dışı) yanıltıcı olurdu, bu
+              yüzden kart bütünüyle kapanır. İPTAL düğmesi (ManageActions,
+              aşağıda) satın alma olmadığı için iOS'ta da kalır. */}
+          <UpgradeCta>
+            <Divider style={{ marginVertical: theme.spacing[3] }} />
 
-          {/* Auto-renew toggle */}
-          <View style={styles.autoRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.autoTitle}>{t('membership.autoRenew')}</Text>
-              <Text style={styles.autoSub}>
-                {autoRenew
-                  ? t('membership.manageAutoRenewOnHelper')
-                  : t('membership.manageAutoRenewOffHelper')}
-              </Text>
+            {/* Auto-renew toggle */}
+            <View style={styles.autoRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.autoTitle}>{t('membership.autoRenew')}</Text>
+                <Text style={styles.autoSub}>
+                  {autoRenew
+                    ? t('membership.manageAutoRenewOnHelper')
+                    : t('membership.manageAutoRenewOffHelper')}
+                </Text>
+              </View>
+              <Switch
+                value={autoRenew}
+                onValueChange={f.handleToggleAutoRenew}
+                disabled={f.autoRenewMutation.isPending}
+              />
             </View>
-            <Switch
-              value={autoRenew}
-              onValueChange={f.handleToggleAutoRenew}
-              disabled={f.autoRenewMutation.isPending}
-            />
-          </View>
+          </UpgradeCta>
         </>
       ) : (
         <Text style={styles.helperText}>
-          {t('membership.manageFreeHelper')}
+          {CAN_BUY_DIGITAL
+            ? t('membership.manageFreeHelper')
+            : t('membership.manageFreeHelperNeutral')}
         </Text>
       )}
     </Card>
@@ -128,13 +139,17 @@ export function ManageActions({ f }: { f: MembershipManageController }) {
     <>
       {f.isPaid ? (
         <>
-          <Button
-            variant="primary"
-            title={t('membership.changePlan')}
-            icon="swap-vertical"
-            onPress={() => router.push('/membership' as any)}
-            style={styles.actionBtn}
-          />
+          {/* Plan değiştirmek yeni bir satın alma — iOS'ta gizli. */}
+          <UpgradeCta>
+            <Button
+              variant="primary"
+              title={t('membership.changePlan')}
+              icon="swap-vertical"
+              onPress={() => router.push('/membership' as any)}
+              style={styles.actionBtn}
+            />
+          </UpgradeCta>
+          {/* İptal satın alma değil — iOS'ta da kalmalı. */}
           {!f.isCancelled && (
             <Button
               variant="outline"
@@ -148,13 +163,16 @@ export function ManageActions({ f }: { f: MembershipManageController }) {
           )}
         </>
       ) : (
-        <Button
-          variant="primary"
-          title={t('membership.manageUpgradeButton')}
-          icon="arrow-up"
-          onPress={() => router.push('/membership' as any)}
-          style={styles.actionBtn}
-        />
+        // Yükseltme düğmesi — satın alma, iOS'ta gizli.
+        <UpgradeCta>
+          <Button
+            variant="primary"
+            title={t('membership.manageUpgradeButton')}
+            icon="arrow-up"
+            onPress={() => router.push('/membership' as any)}
+            style={styles.actionBtn}
+          />
+        </UpgradeCta>
       )}
 
       <View style={styles.helpBox}>

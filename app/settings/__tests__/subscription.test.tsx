@@ -10,9 +10,25 @@
  * türetme mantığını (isPremium/isCancelled/daysLeft) uçtan uca sürer.
  */
 import React from "react";
+import { Platform } from "react-native";
 import { screen, fireEvent } from "@testing-library/react-native";
 import { renderWithProviders } from "@/test-utils";
 import { resetRouterMocks, pushMock } from "@/test-utils/router-mock";
+
+// Bu süit Android/web davranışını doğruluyor: yükseltme çağrıları orada duruyor.
+// jest-expo varsayılanı `ios` olduğu için açıkça sabitliyoruz; iOS tarafını
+// app/__tests__/ios-no-digital-sales.test.tsx doğrular.
+beforeAll(() => { Platform.OS = 'android'; });
+
+// `@/lib/purchases`daki CAN_BUY_DIGITAL, Platform.OS'a modül YÜKLENİRKEN bakan
+// sabit bir değer; ekran bu dosyanın en altında statik import edildiği için
+// yukarıdaki beforeAll'dan ÖNCE değerlenir (Platform.OS ataması geç kalır).
+// jest.mock çağrıları babel-plugin-jest-hoist ile import'ların da üstüne
+// taşındığından, bayrağı burada doğrudan mock'lamak doğru zamanlamayı garanti eder.
+jest.mock("@/lib/purchases", () => ({
+  ...jest.requireActual("@/lib/purchases"),
+  CAN_BUY_DIGITAL: true,
+}));
 
 jest.mock("expo-router", () => {
   const rm = require("@/test-utils/router-mock").routerMock;

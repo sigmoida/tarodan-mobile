@@ -9,6 +9,16 @@ import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 import { resetRouterMocks } from '@/test-utils/router-mock';
 
+// Bu süit Android/web davranışını doğruluyor: premium gate'te yükseltme
+// düğmesi + özellik listesi orada duruyor. jest-expo varsayılanı `ios`
+// olduğu için CAN_BUY_DIGITAL'ı modül seviyesinde sabitliyoruz — ekran bu
+// dosyanın en altında statik import edildiği için `Platform.OS` gövde içinde
+// atansa geç kalırdı (bkz. src/utils/__tests__/ios-upgrade-copy.test.ts).
+jest.mock('@/lib/purchases', () => ({
+  ...jest.requireActual('@/lib/purchases'),
+  CAN_BUY_DIGITAL: true,
+}));
+
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
 jest.mock('@/lib/api', () => ({

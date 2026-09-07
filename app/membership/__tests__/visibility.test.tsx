@@ -10,6 +10,14 @@ import { screen, fireEvent, waitFor } from "@testing-library/react-native";
 import { renderWithProviders } from "@/test-utils";
 import { resetRouterMocks, pushMock } from "@/test-utils/router-mock";
 
+// Bu süit Android/web davranışını doğruluyor: paket kartları orada duruyor.
+// jest-expo varsayılanı `ios` olduğu için CAN_BUY_DIGITAL'ı modül seviyesinde
+// sabitliyoruz (bkz. ios-membership-screen.test.tsx).
+jest.mock("@/lib/purchases", () => ({
+  ...jest.requireActual("@/lib/purchases"),
+  CAN_BUY_DIGITAL: true,
+}));
+
 jest.mock("expo-router", () => require("@/test-utils/router-mock").routerMock);
 
 jest.mock("react-i18next", () => ({

@@ -24,6 +24,8 @@ import { useAuthStore } from "@/stores/authStore";
 import { useTranslation } from "react-i18next";
 import { resolveImageUrl } from "@/utils/imageUrl";
 import { styles } from './_collections/_lib/styles';
+import { CAN_BUY_DIGITAL } from "@/lib/purchases";
+import UpgradeCta from "@/components/UpgradeCta";
 
 const { colors, radius } = theme;
 
@@ -71,9 +73,12 @@ export default function CollectionsScreen() {
     if (!canCreateCollections) {
       setSnackbar({
         visible: true,
-        message: t("collection.premiumRequiredMsg"),
+        message: CAN_BUY_DIGITAL
+          ? t("collection.premiumRequiredMsg")
+          : t("membership.featureUnavailableOnAccount"),
       });
-      setTimeout(() => router.push("/upgrade"), 1500);
+      // iOS'ta yükseltme ekranına yönlendirme yok (Guideline 3.1.3).
+      if (CAN_BUY_DIGITAL) setTimeout(() => router.push("/upgrade"), 1500);
       return;
     }
     router.push("/collections/new");
@@ -110,25 +115,29 @@ export default function CollectionsScreen() {
           </View>
         </View>
 
-        {/* Premium Notice if not premium */}
+        {/* Premium Notice if not premium — başlığı ve açıklaması Premium'a özel
+            olduğunu söylüyor, salt düğmeyi gizlemek yetmez; kart bütünüyle
+            iOS'ta kapanır (Guideline 3.1.1/3.1.3). */}
         {!canCreateCollections && (
-          <TouchableOpacity
-            style={styles.premiumNotice}
-            onPress={() => router.push("/upgrade")}
-          >
-            <Ionicons name="diamond" size={24} color={colors.warning[500]!} />
-            <View style={styles.premiumNoticeText}>
-              <Text style={styles.premiumNoticeTitle}>{t("membership.premiumFeatureTitle")}</Text>
-              <Text style={styles.premiumNoticeDesc}>
-                {t("collection.premiumFeatureDesc")}
-              </Text>
-            </View>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={colors.text.muted}
-            />
-          </TouchableOpacity>
+          <UpgradeCta>
+            <TouchableOpacity
+              style={styles.premiumNotice}
+              onPress={() => router.push("/upgrade")}
+            >
+              <Ionicons name="diamond" size={24} color={colors.warning[500]!} />
+              <View style={styles.premiumNoticeText}>
+                <Text style={styles.premiumNoticeTitle}>{t("membership.premiumFeatureTitle")}</Text>
+                <Text style={styles.premiumNoticeDesc}>
+                  {t("collection.premiumFeatureDesc")}
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={colors.text.muted}
+              />
+            </TouchableOpacity>
+          </UpgradeCta>
         )}
 
         {isLoading ? (

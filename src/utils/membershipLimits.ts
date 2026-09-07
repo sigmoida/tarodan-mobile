@@ -5,6 +5,7 @@
 
 import type { TFunction } from 'i18next';
 import { theme } from '@/ui';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { useAuthStore, MembershipTier, MembershipLimits } from '../stores/authStore';
 
 const { colors } = theme;
@@ -151,6 +152,34 @@ export const getUpgradePrompt = (action: FeatureCheck): UpgradePromptType | null
 // cannot resolve its own translator (see CLAUDE.md §8, membershipLimits is
 // state/logic, not a component/hook).
 export const getUpgradeMessage = (t: TFunction, promptType: UpgradePromptType): { title: string; message: string } => {
+  // iOS'ta ücretli kademeden söz edilemez (Guideline 3.1.3 anti-steering +
+  // 2.1(b) "abonelik referansı"). Başlık korunur, mesaj nötrleşir: kullanıcı
+  // özelliğin adını görür, ne yapması gerektiği söylenmez.
+  if (!CAN_BUY_DIGITAL) {
+    const neutral = t('membership.featureUnavailableOnAccount');
+    switch (promptType) {
+      case 'listingLimit':
+        return { title: t('upgradePrompt.listingLimitTitle'), message: neutral };
+      case 'tradeFeature':
+        return { title: t('trade.featureTitle'), message: neutral };
+      case 'collectionFeature':
+        return { title: t('membership.featureDigitalGarage'), message: neutral };
+      case 'featureListing':
+        return { title: t('upgradePrompt.featureListingTitle'), message: neutral };
+      case 'messageLimit':
+        return { title: t('upgradePrompt.messageLimitTitle'), message: neutral };
+      case 'addressLimit':
+        return { title: t('address.limitTitle'), message: neutral };
+      case 'savedSearchLimit':
+        return { title: t('membership.savedSearchLimitTitle'), message: neutral };
+      case 'imageLimit':
+        return { title: t('upgradePrompt.imageLimitTitle'), message: neutral };
+      case 'valueLimit':
+        return { title: t('membership.valueLimitTitle'), message: neutral };
+      default:
+        return { title: t('membership.premiumFeatureTitle'), message: neutral };
+    }
+  }
   switch (promptType) {
     case 'listingLimit':
       return {

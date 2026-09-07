@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { theme, Text, ScreenHeader } from "@/ui";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
+import { CAN_BUY_DIGITAL } from "@/lib/purchases";
 
 const { colors } = theme;
 
@@ -132,8 +133,12 @@ export default function GuvenliTakasScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>{t("safeTradePage.whoCanTrade")}</Text>
-        <Text style={styles.paragraph}>{t("safeTradePage.whoCanTradeText")}</Text>
+        {CAN_BUY_DIGITAL && (
+          <>
+            <Text style={styles.sectionTitle}>{t("safeTradePage.whoCanTrade")}</Text>
+            <Text style={styles.paragraph}>{t("safeTradePage.whoCanTradeText")}</Text>
+          </>
+        )}
 
         <Text style={styles.sectionTitle}>{t("safeTradePage.cashDiffTitle")}</Text>
         <Text style={styles.paragraph}>{t("safeTradePage.cashDiffText")}</Text>
