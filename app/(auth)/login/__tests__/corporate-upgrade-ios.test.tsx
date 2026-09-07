@@ -37,7 +37,10 @@ jest.mock('react-i18next', () => ({
 
 const mockLogin = jest.fn(() => Promise.resolve());
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ login: mockLogin }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = { login: mockLogin };
+    return sel ? sel(state) : state;
+  },
 }));
 
 jest.mock('@/services/googleSignin', () => ({ signInWithGoogle: jest.fn() }));
