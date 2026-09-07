@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { appAlert } from '@/ui';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { useZodForm } from '@/ui/form';
 import { buildListingFormSchema, emptyListingFormValues } from '../_lib/schema';
 import { firstListingValidationError } from '../_lib/validate';
@@ -726,10 +727,12 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     if (!isEdit && listingLimits && !listingLimits.canCreateListing) {
       appAlert(
         t('listing.limitExceededTitle'),
-        t('listing.limitExceededBody', {
-          count: listingLimits.currentCount,
-          max: listingLimits.maxListings,
-        })
+        CAN_BUY_DIGITAL
+          ? t('listing.limitExceededBody', {
+              count: listingLimits.currentCount,
+              max: listingLimits.maxListings,
+            })
+          : t('listing.limitReachedInfo', { count: listingLimits.currentCount })
       );
       return;
     }
