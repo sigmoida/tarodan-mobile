@@ -95,9 +95,10 @@ Connect'te doğrulanacaklar:
 
 ## Göndermeden önce son kontrol
 
-- [ ] 1.0.4 build TestFlight'ta ve **fiziksel cihazda** gezildi: üyelik
-      ekranında fiyat/paket yok, ilanlarım menüsünde "Öne çıkar" yok, misafir
-      profilinde "Premium" kartı yok — ve **ürün satın alma çalışıyor**
+- [x] 1.0.4 build TestFlight'ta ve **fiziksel cihazda** gezildi (7 Eyl 2026):
+      üyelik ekranı düzelmiş ve **ürün satın alma çalışıyor**. Bu daldaki en
+      büyük regresyon riski buydu — `3.1.3(e)` fiziksel malın IAP dışında
+      kalmasını zorunlu kılıyor, yani ödemeyi bozmak da bir uyum ihlali olurdu.
 - [ ] Demo hesabı dolduruldu (ilan + koleksiyon + favori + sohbet)
 - [ ] Ekran kayıtlarının linki Review Notes'ta ve oturumsuz açılıyor
 - [ ] ASC'de Privacy Policy URL ve EULA/App Description linki dolu
