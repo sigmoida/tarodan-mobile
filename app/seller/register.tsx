@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { ScreenHeader, EmptyState } from '@/components/common';
 import { useAuthStore } from '@/stores/authStore';
 import UpgradeCta from '@/components/UpgradeCta';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
 const { colors } = theme;
 
@@ -54,7 +55,9 @@ export default function SellerRegisterScreen() {
               {t('seller.alreadyBusinessAccount')}
               {isBusinessTier
                 ? t('seller.businessMembershipActiveNote')
-                : t('seller.completeBusinessMembershipNote')}
+                : CAN_BUY_DIGITAL
+                  ? t('seller.completeBusinessMembershipNote')
+                  : t('seller.businessAccountDetailsRecordedNote')}
             </Text>
           </View>
 

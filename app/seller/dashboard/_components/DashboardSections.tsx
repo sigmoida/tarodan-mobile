@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatPrice } from '@/utils/format';
 import UpgradeCta from '@/components/UpgradeCta';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { styles } from '../_lib/styles';
 import { StatCard, QuickAction } from './DashboardPrimitives';
 import type { SellerDashboardController } from '../_hooks/useSellerDashboard';
@@ -24,7 +25,9 @@ export function WelcomeCard({ f }: { f: SellerDashboardController }) {
         <Text style={styles.welcomeSubtitle}>
           {f.isBusiness
             ? t('sellerDashboard.welcomeSubtitleBusiness')
-            : t('sellerDashboard.welcomeSubtitleIndividual')}
+            : CAN_BUY_DIGITAL
+              ? t('sellerDashboard.welcomeSubtitleIndividual')
+              : t('sellerDashboard.welcomeSubtitleIndividualNeutral')}
         </Text>
       </View>
       {!f.isBusiness ? (

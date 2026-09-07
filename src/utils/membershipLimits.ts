@@ -158,12 +158,26 @@ export const getUpgradeMessage = (t: TFunction, promptType: UpgradePromptType): 
   if (!CAN_BUY_DIGITAL) {
     const neutral = t('membership.featureUnavailableOnAccount');
     switch (promptType) {
+      case 'listingLimit':
+        return { title: t('upgradePrompt.listingLimitTitle'), message: neutral };
       case 'tradeFeature':
         return { title: t('trade.featureTitle'), message: neutral };
       case 'collectionFeature':
         return { title: t('membership.featureDigitalGarage'), message: neutral };
+      case 'featureListing':
+        return { title: t('upgradePrompt.featureListingTitle'), message: neutral };
+      case 'messageLimit':
+        return { title: t('upgradePrompt.messageLimitTitle'), message: neutral };
+      case 'addressLimit':
+        return { title: t('address.limitTitle'), message: neutral };
+      case 'savedSearchLimit':
+        return { title: t('membership.savedSearchLimitTitle'), message: neutral };
+      case 'imageLimit':
+        return { title: t('upgradePrompt.imageLimitTitle'), message: neutral };
+      case 'valueLimit':
+        return { title: t('membership.valueLimitTitle'), message: neutral };
       default:
-        return { title: t('upgradePrompt.listingLimitTitle'), message: neutral };
+        return { title: t('membership.premiumFeatureTitle'), message: neutral };
     }
   }
   switch (promptType) {
