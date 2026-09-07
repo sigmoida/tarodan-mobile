@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../_lib/styles';
 import { formatDate, formatTL } from '../_lib/helpers';
+import UpgradeCta from '@/components/UpgradeCta';
 import type { MembershipManageController } from '../_hooks/useMembershipManage';
 
 const { colors } = theme;
@@ -128,13 +129,17 @@ export function ManageActions({ f }: { f: MembershipManageController }) {
     <>
       {f.isPaid ? (
         <>
-          <Button
-            variant="primary"
-            title={t('membership.changePlan')}
-            icon="swap-vertical"
-            onPress={() => router.push('/membership' as any)}
-            style={styles.actionBtn}
-          />
+          {/* Plan değiştirmek yeni bir satın alma — iOS'ta gizli. */}
+          <UpgradeCta>
+            <Button
+              variant="primary"
+              title={t('membership.changePlan')}
+              icon="swap-vertical"
+              onPress={() => router.push('/membership' as any)}
+              style={styles.actionBtn}
+            />
+          </UpgradeCta>
+          {/* İptal satın alma değil — iOS'ta da kalmalı. */}
           {!f.isCancelled && (
             <Button
               variant="outline"
@@ -148,13 +153,16 @@ export function ManageActions({ f }: { f: MembershipManageController }) {
           )}
         </>
       ) : (
-        <Button
-          variant="primary"
-          title={t('membership.manageUpgradeButton')}
-          icon="arrow-up"
-          onPress={() => router.push('/membership' as any)}
-          style={styles.actionBtn}
-        />
+        // Yükseltme düğmesi — satın alma, iOS'ta gizli.
+        <UpgradeCta>
+          <Button
+            variant="primary"
+            title={t('membership.manageUpgradeButton')}
+            icon="arrow-up"
+            onPress={() => router.push('/membership' as any)}
+            style={styles.actionBtn}
+          />
+        </UpgradeCta>
       )}
 
       <View style={styles.helpBox}>

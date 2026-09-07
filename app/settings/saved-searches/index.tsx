@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSavedSearches } from "./_hooks/useSavedSearches";
+import UpgradeCta from "@/components/UpgradeCta";
 import { styles } from "./_lib/styles";
 import { SavedSearchCard } from "./_components/SavedSearchCard";
 
@@ -66,9 +67,12 @@ export default function SavedSearchesScreen() {
                 ? t("savedSearch.limitReached")
                 : t("savedSearch.remainingSearches", { count: f.maxSavedSearches - f.searches.length })}
             </Text>
-            <TouchableOpacity onPress={() => router.push("/upgrade")}>
-              <Text style={styles.upgradeLink}>{t("membership.premium")}</Text>
-            </TouchableOpacity>
+            {/* iOS'ta satın alma yok (Guideline 3.1.1); düğme yalnız Android/web'de render edilir. */}
+            <UpgradeCta>
+              <TouchableOpacity onPress={() => router.push("/upgrade")}>
+                <Text style={styles.upgradeLink}>{t("membership.premium")}</Text>
+              </TouchableOpacity>
+            </UpgradeCta>
           </View>
         )}
 

@@ -6,6 +6,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Card, Button, Chip, Divider, Text, theme } from '@/ui';
+import UpgradeCta from '@/components/UpgradeCta';
 
 import { PREMIUM_MEMBER_LIMITS } from '@/utils/membershipLimits';
 import { formatBillingPeriod } from '../_lib/subscription';
@@ -70,21 +71,25 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
           </>
         )}
 
-        {!isPremium && (
-          <>
-            <Divider style={styles.divider} />
-            <Text variant="body" style={styles.upgradePrompt}>
-              {t('membership.freePlanPromo')}
-            </Text>
-            <Button
-              variant="primary"
-              title={t('membership.upgradeToPremium')}
-              icon="diamond"
-              onPress={() => router.push('/upgrade')}
-              style={styles.upgradeButton}
-            />
-          </>
-        )}
+        {/* Blok bütünüyle satışa yönelik (promo metni + "Premium'a Yükselt"
+            düğmesi); iOS'ta yalnız düğmeyi gizlemek yetmez, blok tamamen kapanır. */}
+        <UpgradeCta>
+          {!isPremium && (
+            <>
+              <Divider style={styles.divider} />
+              <Text variant="body" style={styles.upgradePrompt}>
+                {t('membership.freePlanPromo')}
+              </Text>
+              <Button
+                variant="primary"
+                title={t('membership.upgradeToPremium')}
+                icon="diamond"
+                onPress={() => router.push('/upgrade')}
+                style={styles.upgradeButton}
+              />
+            </>
+          )}
+        </UpgradeCta>
       </Card>
 
       {/* Premium Features */}
@@ -156,18 +161,21 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
         <Card style={styles.card}>
           <Text variant="h3" style={styles.sectionTitle}>{t('membership.subscriptionActions')}</Text>
 
-          <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/upgrade')}>
-            <Ionicons name="swap-vertical" size={24} color={colors.text.muted} />
-            <View style={styles.actionTextWrap}>
-              <Text variant="body" style={styles.actionTitle}>{t('membership.changePlan')}</Text>
-              <Text variant="bodySm" style={styles.actionDesc}>
-                {subscription.billingPeriod === 'monthly' ? t('membership.switchToYearly') : t('membership.switchToMonthly')}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.text.subtle} />
-          </TouchableOpacity>
+          {/* Plan/dönem değişikliği yeni bir satın alma sayılır — iOS'ta gizli. */}
+          <UpgradeCta>
+            <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/upgrade')}>
+              <Ionicons name="swap-vertical" size={24} color={colors.text.muted} />
+              <View style={styles.actionTextWrap}>
+                <Text variant="body" style={styles.actionTitle}>{t('membership.changePlan')}</Text>
+                <Text variant="bodySm" style={styles.actionDesc}>
+                  {subscription.billingPeriod === 'monthly' ? t('membership.switchToYearly') : t('membership.switchToMonthly')}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.text.subtle} />
+            </TouchableOpacity>
 
-          <Divider style={styles.divider} />
+            <Divider style={styles.divider} />
+          </UpgradeCta>
 
           {!isCancelled ? (
             <TouchableOpacity style={styles.actionRow} onPress={f.handleCancel}>

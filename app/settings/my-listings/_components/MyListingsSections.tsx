@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Card, Chip, IconButton, ProgressBar, Text, theme } from '@/ui';
 
 import { resolveImageUrl } from '@/utils/imageUrl';
+import UpgradeCta from '@/components/UpgradeCta';
 import { styles } from '../_lib/styles';
 import {
   getStatusColor,
@@ -35,9 +36,12 @@ export function MyListingsLimitCard({ f }: { f: MyListingsController }) {
           </Text>
         </View>
         {listingLimit !== -1 && currentCount >= listingLimit - 2 && (
-          <Pressable onPress={() => router.push('/upgrade')}>
-            <Text style={styles.upgradeLink}>{t('address.goPremium')}</Text>
-          </Pressable>
+          // iOS'ta satın alma yok (Guideline 3.1.1); düğme yalnız Android/web'de render edilir.
+          <UpgradeCta>
+            <Pressable onPress={() => router.push('/upgrade')}>
+              <Text style={styles.upgradeLink}>{t('address.goPremium')}</Text>
+            </Pressable>
+          </UpgradeCta>
         )}
       </View>
       {listingLimit !== -1 && (
