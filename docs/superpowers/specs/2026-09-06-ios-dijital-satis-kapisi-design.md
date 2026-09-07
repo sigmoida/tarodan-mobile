@@ -159,8 +159,18 @@ bandı.
 
 `!isPremium` bloğundaki `membership.freePlanPromo` metni ve
 `membership.upgradeToPremium` düğmesi iOS'ta görünmez. Ücretli üyede: paket adı,
-yenileme tarihi ve **iptal** kalır; otomatik yenileme anahtarı ile kart
-listesi/silme kalkar.
+yenileme tarihi ve **iptal** kalır. `useSubscription`'daki
+`setAutoRenew(true)` (yeniden etkinleştirme) iOS'ta kapanır — otomatik
+yenilemeyi tekrar açmak PayTR'de yinelenen tahsilatı yeniden başlatmak, yani
+uygulama içi satın alma.
+
+**DÜZELTME (plan yazımında bulundu):** kayıtlı kart yönetimi (`settings/payment-methods`,
+`membershipApi.listCards/deleteCard`) **kapsam dışı bırakıldı**. Sebebi:
+`src/components/CardPaymentForm.tsx:163` fiziksel sipariş ödemesinde de aynı
+kart kasasını okuyor. Kaldırmak, `3.1.3(e)` gereği IAP dışında kalmak zorunda
+olan fiziksel checkout'un kayıtlı kart kolaylığını bozardı. Kayıtlı bir kartı
+görmek veya silmek zaten satın alma değil; uyum açısından bir kazanç yok,
+regresyon riski gerçek.
 
 ### 5.3 `app/membership/manage/`
 
