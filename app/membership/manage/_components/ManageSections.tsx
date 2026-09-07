@@ -65,24 +65,31 @@ export function CurrentPlanCard({ f }: { f: MembershipManageController }) {
             </View>
           ) : null}
 
-          <Divider style={{ marginVertical: theme.spacing[3] }} />
+          {/* Otomatik yenilemeyi yeniden AÇMAK PayTR'de yinelenen tahsilatı
+              yeniden başlatmak demek — yani uygulama içi satın alma. Yarım
+              gated bir switch (görünür ama devre dışı) yanıltıcı olurdu, bu
+              yüzden kart bütünüyle kapanır. İPTAL düğmesi (ManageActions,
+              aşağıda) satın alma olmadığı için iOS'ta da kalır. */}
+          <UpgradeCta>
+            <Divider style={{ marginVertical: theme.spacing[3] }} />
 
-          {/* Auto-renew toggle */}
-          <View style={styles.autoRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.autoTitle}>{t('membership.autoRenew')}</Text>
-              <Text style={styles.autoSub}>
-                {autoRenew
-                  ? t('membership.manageAutoRenewOnHelper')
-                  : t('membership.manageAutoRenewOffHelper')}
-              </Text>
+            {/* Auto-renew toggle */}
+            <View style={styles.autoRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.autoTitle}>{t('membership.autoRenew')}</Text>
+                <Text style={styles.autoSub}>
+                  {autoRenew
+                    ? t('membership.manageAutoRenewOnHelper')
+                    : t('membership.manageAutoRenewOffHelper')}
+                </Text>
+              </View>
+              <Switch
+                value={autoRenew}
+                onValueChange={f.handleToggleAutoRenew}
+                disabled={f.autoRenewMutation.isPending}
+              />
             </View>
-            <Switch
-              value={autoRenew}
-              onValueChange={f.handleToggleAutoRenew}
-              disabled={f.autoRenewMutation.isPending}
-            />
-          </View>
+          </UpgradeCta>
         </>
       ) : (
         <Text style={styles.helperText}>

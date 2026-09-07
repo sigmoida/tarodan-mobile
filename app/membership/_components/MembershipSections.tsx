@@ -88,18 +88,24 @@ export function MembershipCurrentPlan({ f }: SectionProps) {
           })}
         </Text>
       )}
-      {/* Üyelik yönetimi: otomatik yenileme + kayıtlı kartlar (tüm kademeler) */}
-      <TouchableOpacity
-        style={styles.manageButton}
-        onPress={() => router.push('/membership/manage' as any)}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="settings-outline" size={16} color={colors.primary[600]!} />
-        <Text style={styles.manageButtonText}>
-          {t('membership.manageMembershipHint')}
-        </Text>
-        <Ionicons name="chevron-forward" size={16} color={colors.primary[600]!} />
-      </TouchableOpacity>
+      {/* Üyelik yönetimi: otomatik yenileme + kayıtlı kartlar (tüm kademeler).
+          Bu satırın kendisi tam olarak PayTR'nin yinelenen tahsilat
+          yönetimini tanıtıyor — iOS'ta hem FREE hem PAID kullanıcıdan
+          gizlenir. İPTAL akışı buradan değil Profil → Abonelik
+          (SubscriptionBody) üzerinden gelir ve orada iOS'ta da açıktır. */}
+      {CAN_BUY_DIGITAL && (
+        <TouchableOpacity
+          style={styles.manageButton}
+          onPress={() => router.push('/membership/manage' as any)}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="settings-outline" size={16} color={colors.primary[600]!} />
+          <Text style={styles.manageButtonText}>
+            {t('membership.manageMembershipHint')}
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.primary[600]!} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
