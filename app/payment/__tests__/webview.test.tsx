@@ -11,6 +11,7 @@
  * Backend initiate/verify/callback/idempotency backend-only.
  */
 import React from 'react';
+import { Platform } from 'react-native';
 import { screen, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 
@@ -108,5 +109,50 @@ describe('J75 · Ödeme ekranı', () => {
     renderWithProviders(<PaymentScreen />);
     expect(await screen.findByText('Ödeme bilgisi alınamadı.')).toBeOnTheScreen();
     expect(screen.getByText('Geri Dön')).toBeOnTheScreen();
+  });
+});
+
+describe('J75.5 · iOS satın alma kilidi — imperative taraf (load side effect)', () => {
+  const bypassCompleteMock = paymentsApi.bypassComplete as jest.Mock;
+  const originalPlatformOS = Platform.OS;
+
+  beforeEach(() => {
+    getConfigMock.mockReset();
+    getStatusLightMock.mockReset();
+    bypassCompleteMock.mockReset();
+    replaceMock.mockReset();
+    // Render kilidi (<Redirect>) tek başına yeterli değil: `useEffect` zaten
+    // tetiklenmiş olabileceğinden `load()`'un KENDİSİ de reddetmeli, yoksa
+    // durum sorgusu atılır, bypass açıksa ödeme TAMAMLANIR ve
+    // /membership/success'e giderek <Redirect>'i ezer.
+    Platform.OS = 'ios';
+    // bypassEnabled=true: membership testinin `bypassComplete` hiç
+    // çağrılmadığını kanıtlaması için (guard olmasa tetiklenirdi).
+    getConfigMock.mockResolvedValue({ data: { bypassEnabled: true, recurringEnabled: false } });
+  });
+
+  afterEach(() => {
+    Platform.OS = originalPlatformOS;
+  });
+
+  it('iOS + type=membership: load() durum sorgusu ATMAZ, bypassComplete ÇAĞRILMAZ', async () => {
+    mockParams = { id: 'pay-1', type: 'membership' };
+    getStatusLightMock.mockResolvedValue({ data: { status: 'pending', orderId: 'order-1', amount: 350 } });
+    renderWithProviders(<PaymentScreen />);
+    await screen.findByText('REDIRECT:/membership');
+    expect(getStatusLightMock).not.toHaveBeenCalled();
+    expect(bypassCompleteMock).not.toHaveBeenCalled();
+    expect(replaceMock).not.toHaveBeenCalled();
+  });
+
+  it('iOS + type YOK (fiziksel ödeme): load() eskisi gibi durum sorgusu atar', async () => {
+    mockParams = { id: 'pay-1' };
+    // Bu test bypass'ı kapalı bırakıyor ki kart formuna (bypass-tamamlama
+    // yoluna değil) düştüğü doğrulanabilsin — fiziksel yolun normal akışı.
+    getConfigMock.mockResolvedValue({ data: { bypassEnabled: false, recurringEnabled: false } });
+    getStatusLightMock.mockResolvedValue({ data: { status: 'pending', orderId: 'order-1', amount: 350 } });
+    renderWithProviders(<PaymentScreen />);
+    await waitFor(() => expect(getStatusLightMock).toHaveBeenCalledWith('pay-1'));
+    expect(screen.getByTestId('card-payment-form')).toBeOnTheScreen();
   });
 });

@@ -83,6 +83,13 @@ export default function PaymentScreen() {
   }, [paymentId]);
 
   const load = async () => {
+    // iOS'ta üyelik ödemesi kabul edilmez (Guideline 3.1.1). Yalnız JSX'i
+    // kilitlemek yetmez: render kilidi devredeyken bu effect zaten tetiklenmiş
+    // olabiliyor, kilit olmasa `load()` durum sorgusunu ATAR, bypass açıksa
+    // ödemeyi TAMAMLAR ve /membership/success'e yönlendirip <Redirect>'i
+    // ezerdi. Bu yüzden imperative tarafta da aynı reddi tekrar ediyoruz —
+    // fiziksel yol (`isMembership` false) bundan hiç etkilenmez.
+    if (isMembership && !CAN_BUY_DIGITAL) return;
     try {
       setState(s => ({ ...s, loading: true, error: null }));
 
