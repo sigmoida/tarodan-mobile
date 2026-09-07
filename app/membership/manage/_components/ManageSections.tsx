@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../_lib/styles';
 import { formatDate, formatTL } from '../_lib/helpers';
 import UpgradeCta from '@/components/UpgradeCta';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import type { MembershipManageController } from '../_hooks/useMembershipManage';
 
 const { colors } = theme;
@@ -93,7 +94,9 @@ export function CurrentPlanCard({ f }: { f: MembershipManageController }) {
         </>
       ) : (
         <Text style={styles.helperText}>
-          {t('membership.manageFreeHelper')}
+          {CAN_BUY_DIGITAL
+            ? t('membership.manageFreeHelper')
+            : t('membership.manageFreeHelperNeutral')}
         </Text>
       )}
     </Card>

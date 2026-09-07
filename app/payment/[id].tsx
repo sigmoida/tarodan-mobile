@@ -54,6 +54,9 @@ export default function PaymentScreen() {
   const paymentId = params.id!;
   const isGuest = params.guest === '1';
   const isMembership = params.type === 'membership';
+  // Boost da dijital (Guideline 3.1.3(g)) — BoostModal iOS'ta zaten `null`
+  // döner ve bu yola hiç girmez, ama emniyet kilidi simetrik olsun diye burada.
+  const isBoost = params.type === 'boost';
 
   const [state, setState] = useState<{
     loading: boolean;
@@ -89,7 +92,7 @@ export default function PaymentScreen() {
     // ödemeyi TAMAMLAR ve /membership/success'e yönlendirip <Redirect>'i
     // ezerdi. Bu yüzden imperative tarafta da aynı reddi tekrar ediyoruz —
     // fiziksel yol (`isMembership` false) bundan hiç etkilenmez.
-    if (isMembership && !CAN_BUY_DIGITAL) return;
+    if ((isMembership || isBoost) && !CAN_BUY_DIGITAL) return;
     try {
       setState(s => ({ ...s, loading: true, error: null }));
 
@@ -224,7 +227,7 @@ export default function PaymentScreen() {
   // onların IAP dışında kalması zorunlu. Tüm hook'lardan (ve yukarıdaki
   // `load` closure'ından, ki `useEffect` ona referans veriyor — daha erken
   // bir çıkış TDZ hatasına yol açardı) SONRA, JSX döndürülmeden hemen önce.
-  if (isMembership && !CAN_BUY_DIGITAL) return <Redirect href="/membership" />;
+  if ((isMembership || isBoost) && !CAN_BUY_DIGITAL) return <Redirect href="/membership" />;
 
   return (
     <View style={styles.container}>

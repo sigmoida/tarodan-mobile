@@ -1856,6 +1856,7 @@
     "tierLimitUnlimitedListings": "Unlimited listings",
     "manageCancelledNote": "Your membership has been cancelled. You can keep using your features until {endDate}.",
     "manageFreeHelper": "You're currently on the free plan. Upgrade for more features.",
+    "manageFreeHelperNeutral": "You're currently on the free plan.",
     "manageScheduledChangeNote": "At the end of the period you'll switch to the {tierLabel} plan. Your current plan is valid until {endDate}.",
     "manageAutoRenewOnHelper": "You'll get a renewal reminder at the end of the period — renew with one tap.",
     "manageAutoRenewOffHelper": "Off — your membership will end at the end of the period.",
