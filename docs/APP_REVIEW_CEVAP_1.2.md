@@ -246,7 +246,7 @@ build'i tekrar veremeyeceğimiz için bilinçli olarak ertelendi:
 
 ---
 
-## iOS'ta dijital satış kapatıldı (6 Eyl 2026)
+## iOS'ta dijital satış kapatıldı (6 Eyl 2026) — sürüm 1.0.4
 
 Üçüncü reddin `2.1(b)` ve `3.1.2(c)` maddeleri için. Tasarım:
 `superpowers/specs/2026-09-06-ios-dijital-satis-kapisi-design.md`, plan:
