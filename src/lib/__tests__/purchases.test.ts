@@ -74,4 +74,14 @@ describe('limitAlert', () => {
     buttons[1].onPress();
     expect(opts.onUpgrade).toHaveBeenCalled();
   });
+
+  it('onCancel verilirse iptal düğmesine bağlanır (platformdan bağımsız)', () => {
+    Platform.OS = 'ios';
+    const onCancel = jest.fn();
+    loadModule().limitAlert({ ...opts, onCancel });
+    const buttons = mockAlert.mock.calls[0][2];
+    expect(buttons[0].text).toBe('İptal');
+    buttons[0].onPress();
+    expect(onCancel).toHaveBeenCalled();
+  });
 });

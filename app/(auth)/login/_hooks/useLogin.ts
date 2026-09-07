@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { appAlert } from '@/ui';
+import { limitAlert } from '@/lib/purchases';
 import { authApi } from '@/lib/api';
 import { signInWithGoogle } from '@/services/googleSignin';
 import { signInWithApple, isAppleAvailable } from '@/services/appleSignin';
@@ -84,14 +85,14 @@ export function useLogin() {
         const isBusinessTier = String(membershipTier).toLowerCase().includes('business');
         const hasBusinessInfo = !!(currentUser?.companyName && currentUser?.taxId);
         if (hasBusinessInfo && !isBusinessTier) {
-          appAlert(
-            t('auth.corporateUpgradeTitle'),
-            t('auth.corporateUpgradeBody'),
-            [
-              { text: t('auth.corporateUpgradeLater'), onPress: () => router.replace('/' as never), style: 'cancel' },
-              { text: t('auth.corporateUpgradeGo'), onPress: () => router.replace('/membership' as never) },
-            ],
-          );
+          limitAlert({
+            title: t('auth.corporateUpgradeTitle'),
+            message: t('auth.corporateUpgradeBody'),
+            cancelLabel: t('auth.corporateUpgradeLater'),
+            upgradeLabel: t('auth.corporateUpgradeGo'),
+            onUpgrade: () => router.replace('/membership' as never),
+            onCancel: () => router.replace('/' as never),
+          });
           return;
         }
       } catch {

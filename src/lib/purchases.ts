@@ -29,9 +29,10 @@ export function limitAlert(opts: {
   cancelLabel: string;
   upgradeLabel: string;
   onUpgrade: () => void;
+  onCancel?: () => void;
 }): void {
   const buttons: Array<{ text: string; style?: 'cancel'; onPress?: () => void }> = [
-    { text: opts.cancelLabel, style: 'cancel' },
+    { text: opts.cancelLabel, style: 'cancel', onPress: opts.onCancel },
   ];
   if (CAN_BUY_DIGITAL) {
     buttons.push({ text: opts.upgradeLabel, onPress: opts.onUpgrade });

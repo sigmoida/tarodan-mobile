@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { theme, appAlert } from "@/ui";
+import { CAN_BUY_DIGITAL, limitAlert } from "@/lib/purchases";
 import { productsApi } from "@/lib/api";
 import { qk } from "@/lib/query";
 import { useAuthStore } from "@/stores/authStore";
@@ -177,6 +178,8 @@ export function useMyListings() {
     return listing.status === filter;
   });
 
+  const listingLimit = quotaSummary?.max ?? (limits?.maxListings || 10);
+
   const handleMenuAction = (action: string, listing: Listing) => {
     setActionMenuListing(null);
 
@@ -209,14 +212,15 @@ export function useMyListings() {
       case "relist":
         // Check listing limit before relisting — sunucu kotası (aktif sayım) baz alınır.
         if (quotaSummary?.canCreate === false) {
-          appAlert(
-            t("listing.limitTitle"),
-            t("listing.limitBody"),
-            [
-              { text: t("common.cancel"), style: "cancel" },
-              { text: t("address.goPremium"), onPress: () => router.push("/upgrade") },
-            ],
-          );
+          limitAlert({
+            title: t("listing.limitTitle"),
+            message: CAN_BUY_DIGITAL
+              ? t("listing.limitBody")
+              : t("listing.limitReachedInfo", { count: listingLimit }),
+            cancelLabel: t("common.cancel"),
+            upgradeLabel: t("address.goPremium"),
+            onUpgrade: () => router.push("/upgrade"),
+          });
           return;
         }
         relistMutation.mutate(listing.id);
@@ -228,7 +232,6 @@ export function useMyListings() {
     }
   };
 
-  const listingLimit = quotaSummary?.max ?? (limits?.maxListings || 10);
   const currentCount =
     quotaSummary?.used ??
     listings.filter(

@@ -24,6 +24,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useTranslation } from "react-i18next";
 import { resolveImageUrl } from "@/utils/imageUrl";
 import { styles } from './_collections/_lib/styles';
+import { CAN_BUY_DIGITAL } from "@/lib/purchases";
 
 const { colors, radius } = theme;
 
@@ -71,9 +72,12 @@ export default function CollectionsScreen() {
     if (!canCreateCollections) {
       setSnackbar({
         visible: true,
-        message: t("collection.premiumRequiredMsg"),
+        message: CAN_BUY_DIGITAL
+          ? t("collection.premiumRequiredMsg")
+          : t("membership.featureUnavailableOnAccount"),
       });
-      setTimeout(() => router.push("/upgrade"), 1500);
+      // iOS'ta yükseltme ekranına yönlendirme yok (Guideline 3.1.3).
+      if (CAN_BUY_DIGITAL) setTimeout(() => router.push("/upgrade"), 1500);
       return;
     }
     router.push("/collections/new");

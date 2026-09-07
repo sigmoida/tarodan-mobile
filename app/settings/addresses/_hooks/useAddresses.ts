@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { appAlert } from "@/ui";
+import { limitAlert } from "@/lib/purchases";
 import {
   DEFAULT_COUNTRY_CODE,
   isValidPhoneInput,
@@ -160,14 +161,13 @@ export function useAddresses() {
 
   const openAddDialog = () => {
     if (addresses.length >= maxAddresses) {
-      appAlert(
-        t("address.limitTitle"),
-        t("address.limitBody", { max: maxAddresses }),
-        [
-          { text: t("common.cancel"), style: "cancel" },
-          { text: t("address.goPremium"), onPress: () => router.push("/upgrade") },
-        ],
-      );
+      limitAlert({
+        title: t("address.limitTitle"),
+        message: t("address.limitBody", { max: maxAddresses }),
+        cancelLabel: t("common.cancel"),
+        upgradeLabel: t("address.goPremium"),
+        onUpgrade: () => router.push("/upgrade"),
+      });
       return;
     }
     resetForm();
