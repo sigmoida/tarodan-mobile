@@ -2528,6 +2528,7 @@
     "addressPlaceholder": "Mahalle, sokak, bina, kat...",
     "limitTitle": "Adres Limiti",
     "limitBody": "Ücretsiz üyeler en fazla {max} adres kaydedebilir. Premium üyelikle daha fazla adres ekleyin.",
+    "limitReachedInfo": "En fazla {max} adres kaydedebilirsin. Yeni bir adres eklemek için mevcut adreslerinden birini sil.",
     "goPremium": "Premium'a Geç",
     "deleteConfirmNamed": "\"{title}\" adresini silmek istediğinize emin misiniz?",
     "fillRequiredFields": "Lütfen zorunlu alanları doldurun (ilçe dahil)",

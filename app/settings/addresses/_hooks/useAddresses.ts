@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { appAlert } from "@/ui";
-import { limitAlert } from "@/lib/purchases";
+import { CAN_BUY_DIGITAL, limitAlert } from "@/lib/purchases";
 import {
   DEFAULT_COUNTRY_CODE,
   isValidPhoneInput,
@@ -163,7 +163,9 @@ export function useAddresses() {
     if (addresses.length >= maxAddresses) {
       limitAlert({
         title: t("address.limitTitle"),
-        message: t("address.limitBody", { max: maxAddresses }),
+        message: CAN_BUY_DIGITAL
+          ? t("address.limitBody", { max: maxAddresses })
+          : t("address.limitReachedInfo", { max: maxAddresses }),
         cancelLabel: t("common.cancel"),
         upgradeLabel: t("address.goPremium"),
         onUpgrade: () => router.push("/upgrade"),

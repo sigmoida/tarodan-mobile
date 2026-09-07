@@ -2528,6 +2528,7 @@
     "addressPlaceholder": "Neighborhood, street, building, floor...",
     "limitTitle": "Address Limit",
     "limitBody": "Free members can save at most {max} addresses. Add more with a premium membership.",
+    "limitReachedInfo": "You can save up to {max} addresses. Delete one of your existing addresses to add a new one.",
     "goPremium": "Go Premium",
     "deleteConfirmNamed": "Are you sure you want to delete the address \"{title}\"?",
     "fillRequiredFields": "Please fill in the required fields, including the district",
