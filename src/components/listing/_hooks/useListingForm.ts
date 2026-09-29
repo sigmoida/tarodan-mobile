@@ -9,6 +9,8 @@ import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { useZodForm } from '@/ui/form';
 import { buildListingFormSchema, emptyListingFormValues } from '../_lib/schema';
 import { firstListingValidationError } from '../_lib/validate';
+import { buildColorAndBoxPayload, serverErrorMessage } from '../_lib/payload';
+import { MAX_COLORS } from '../_lib/schema';
 import { toFormValues } from '../_lib/editMapper';
 
 import { useAuthStore } from '../../../stores/authStore';
@@ -21,6 +23,7 @@ import type {
   CarModel,
   Manufacturer,
   MaterialOption,
+  ColorOption,
   ListingLimits,
   CommissionPreview,
   AttrGroup,
@@ -126,6 +129,18 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const setIsSet = (v: boolean) => form.setValue('isSet', v);
   const bundleSize = form.watch('bundleSize');
   const setBundleSize = (v: string) => form.setValue('bundleSize', v);
+  // Renk (çoklu, en fazla MAX_COLORS) ve kutu durumu — sunucuda zorunlu.
+  const colors = form.watch('colors');
+  const toggleColor = (slug: string) => {
+    const current = form.getValues('colors');
+    if (current.includes(slug)) {
+      form.setValue('colors', current.filter((c) => c !== slug));
+    } else if (current.length < MAX_COLORS) {
+      form.setValue('colors', [...current, slug]);
+    }
+  };
+  const isBoxed = form.watch('isBoxed');
+  const setIsBoxed = (v: 'boxed' | 'unboxed') => form.setValue('isBoxed', v);
 
   // Edit-only state
   const status = form.watch('status');
@@ -154,6 +169,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const [models, setModels] = useState<CarModel[]>([]);
   const [scaleList, setScaleList] = useState<string[]>([]);
   const [materialList, setMaterialList] = useState<MaterialOption[]>([]);
+  const [colorList, setColorList] = useState<ColorOption[]>([]);
   const [manufacturerList, setManufacturerList] = useState<Manufacturer[]>([]);
 
   // Manufacturer-scoped extra attributes. groupSlug -> selected attribute slugs.
@@ -412,11 +428,13 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       const data = res.data as {
         scales?: string[];
         materials?: MaterialOption[];
+        colors?: ColorOption[];
         brands?: Brand[];
         manufacturers?: Manufacturer[];
       };
       if (data.scales?.length) setScaleList(data.scales);
       if (data.materials?.length) setMaterialList(data.materials);
+      if (data.colors?.length) setColorList(data.colors);
       if (data.brands?.length) setBrands(data.brands);
       if (data.manufacturers?.length) setManufacturerList(data.manufacturers);
     } catch {
@@ -665,6 +683,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       bundleSize: isSet && Number(bundleSize) >= 2 ? Number(bundleSize) : undefined,
       images: imageKeys.length > 0 ? imageKeys : undefined,
       attributes: customAttributeSlugs.length > 0 ? customAttributeSlugs : undefined,
+      ...buildColorAndBoxPayload({ colors, isBoxed }),
     } as Record<string, any>;
   };
 
@@ -701,6 +720,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       values: form.getValues(),
       categoryId,
       imageCount: imageKeys.length,
+      isEdit,
     });
     if (error) {
       appAlert(t('common.error'), error);
@@ -795,11 +815,10 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
         return;
       }
 
-      const msg =
-        err.response?.data?.message ??
-        err.response?.data?.error ??
-        (isEdit ? t('product.updateFailed') : t('product.failedToCreateListing'));
-      appAlert(t('common.error'), typeof msg === 'string' ? msg : t('listing.actionFailed'));
+      appAlert(
+        t('common.error'),
+        serverErrorMessage(err, isEdit ? t('product.updateFailed') : t('product.failedToCreateListing')),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -868,6 +887,8 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     setYear('');
     setIsTradeEnabled(false);
     setIsSet(false);
+    form.setValue('colors', []);
+    form.setValue('isBoxed', '');
     setImageUris([]);
     setImageKeys([]);
     setCommissionPreview(null);
@@ -905,6 +926,8 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     isTradeEnabled, setIsTradeEnabled,
     isSet, setIsSet,
     bundleSize, setBundleSize,
+    colors, toggleColor, colorList,
+    isBoxed, setIsBoxed,
     // edit-only fields
     status, setStatus,
     isPreorder, setIsPreorder,

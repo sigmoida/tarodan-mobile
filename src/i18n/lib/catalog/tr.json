@@ -745,7 +745,11 @@
     "noManufacturerProducts": "Bu üreticiye ait ürün yok",
     "moreProductsComingSoon": "Yakında yeni ürünler eklenecek.",
     "productFallback": "Ürün",
-    "zoomPhotoA11y": "Fotoğrafı büyüt"
+    "zoomPhotoA11y": "Fotoğrafı büyüt",
+    "color": "Renk",
+    "boxedCondition": "Kutu durumu",
+    "boxed": "Kutulu",
+    "unboxed": "Kutusuz"
   },
   "cart": {
     "addToCartFailed": "Sepete eklenemedi",
@@ -7426,7 +7430,17 @@
     "createNewA11y": "Yeni ilan oluştur",
     "boostAction": "Öne Çıkar",
     "relistAction": "Yeniden Yayınla",
-    "deleteConfirmNamed": "\"{title}\" ilanını silmek istediğinize emin misiniz? Bu işlem geri alınamaz."
+    "deleteConfirmNamed": "\"{title}\" ilanını silmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
+    "descriptionLengthMsg": "Açıklama {min} ile {max} karakter arasında olmalıdır.",
+    "minImagesMsg": "En az {min} fotoğraf ekleyin.",
+    "brandRequiredMsg": "Lütfen bir marka seçin.",
+    "scaleRequiredMsg": "Lütfen bir ölçek seçin.",
+    "materialRequiredMsg": "Lütfen malzemeyi seçin.",
+    "manufacturerRequiredMsg": "Lütfen üreticiyi seçin.",
+    "colorRequiredMsg": "Lütfen en az bir renk seçin.",
+    "colorLimitMsg": "En fazla {max} renk seçebilirsiniz.",
+    "colorLimitHint": "En fazla {max} renk seçebilirsiniz",
+    "boxedRequiredMsg": "Lütfen ürünün kutulu olup olmadığını seçin."
   },
   "boost": {
     "title": "İlanı Öne Çıkar",

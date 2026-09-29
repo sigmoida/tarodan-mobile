@@ -123,6 +123,10 @@ export function toFormValues(p: MyProductResponse): MappedListing | null {
       // slug yazmak ise tanınmayan bir değeri geri yazardı.
       scale: str(raw.scale?.[0]?.value),
       material: str(raw.material?.[0]?.slug),
+      // Renkler `color` grubundaki niteliklerin slug'ı (katalog kodu: 'blue'),
+      // `isBoxed` `edit`te düz boolean (2026-09-29 production ölçümü).
+      colors: (raw.color ?? []).map((a) => a.slug),
+      isBoxed: e.isBoxed === true ? 'boxed' : e.isBoxed === false ? 'unboxed' : '',
     },
     images: {
       keys: usable.map((i) => ({ cardKey: i.cardKey, detailKey: i.detailKey })),

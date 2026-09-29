@@ -101,6 +101,9 @@ describe('J2 · İlan formu render + submit butonu', () => {
   });
 });
 
+// Sunucu açıklamayı 30–330 karakter arasında zorunlu tutuyor.
+const GECERLI_ACIKLAMA = 'Kutusunda, hiç oynanmamış, boyası kusursuz bir model.';
+
 describe('J18/J55 · ilan formu input validasyonu', () => {
   let alertSpy: jest.Mock;
   beforeEach(() => {
@@ -134,6 +137,7 @@ describe('J18/J55 · ilan formu input validasyonu', () => {
     renderWithProviders(<ListingForm mode="create" />);
     await screen.findByText('İlan Oluştur');
     fireEvent.changeText(screen.getByPlaceholderText("Örn: Hot Wheels '69 Camaro Z28"), 'Geçerli Başlık');
+    fireEvent.changeText(screen.getByPlaceholderText('Ürün hakkında detaylı bilgi...'), GECERLI_ACIKLAMA);
     fireEvent.changeText(screen.getByPlaceholderText('0.00'), '0');
     fireEvent.press(screen.getByText('İlan Oluştur'));
     // `common.invalidPrice` reuse (rule #1).
@@ -141,10 +145,21 @@ describe('J18/J55 · ilan formu input validasyonu', () => {
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
+  it('J55.5 açıklama 30 karakterden kısa → fiyattan önce açıklama uyarısı', async () => {
+    renderWithProviders(<ListingForm mode="create" />);
+    await screen.findByText('İlan Oluştur');
+    fireEvent.changeText(screen.getByPlaceholderText("Örn: Hot Wheels '69 Camaro Z28"), 'Geçerli Başlık');
+    fireEvent.changeText(screen.getByPlaceholderText('Ürün hakkında detaylı bilgi...'), 'kısa');
+    fireEvent.press(screen.getByText('İlan Oluştur'));
+    expect(alertSpy).toHaveBeenCalledWith('Hata', 'Açıklama 30 ile 330 karakter arasında olmalıdır.');
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
   it('J55.4 başlık+fiyat geçerli, kategori/foto yok → kategori uyarısı (create yine çağrılmaz)', async () => {
     renderWithProviders(<ListingForm mode="create" />);
     await screen.findByText('İlan Oluştur');
     fireEvent.changeText(screen.getByPlaceholderText("Örn: Hot Wheels '69 Camaro Z28"), 'Geçerli Başlık');
+    fireEvent.changeText(screen.getByPlaceholderText('Ürün hakkında detaylı bilgi...'), GECERLI_ACIKLAMA);
     fireEvent.changeText(screen.getByPlaceholderText('0.00'), '150');
     fireEvent.press(screen.getByText('İlan Oluştur'));
     expect(alertSpy).toHaveBeenCalledWith('Hata', 'Lütfen bir kategori seçin.');

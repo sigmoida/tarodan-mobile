@@ -18,6 +18,7 @@ import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
 import { styles } from '../_lib/styles';
 import { buildConditions, getPackageTierLabel } from '../_lib/constants';
+import { TITLE_MAX, DESCRIPTION_MAX, MAX_COLORS } from '../_lib/schema';
 import type { ListingFormController } from '../_hooks/useListingForm';
 
 const { colors } = theme;
@@ -228,11 +229,13 @@ export function ListingBasicInfoSection({ f }: SectionProps) {
         onChangeText={f.setTitle}
         placeholder={t('product.titlePlaceholder')}
         placeholderTextColor={colors.text.subtle}
-        maxLength={200}
+        maxLength={TITLE_MAX}
       />
-      <Text style={styles.charCount}>{f.title.length}/200</Text>
+      <Text style={styles.charCount}>{f.title.length}/{TITLE_MAX}</Text>
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('common.description')}</Text>
+      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>
+        {t('common.description')} <Text style={styles.required}>*</Text>
+      </Text>
       <TextInput
         style={[styles.input, styles.textArea]}
         value={f.description}
@@ -240,10 +243,10 @@ export function ListingBasicInfoSection({ f }: SectionProps) {
         placeholder={t('product.descriptionPlaceholder')}
         placeholderTextColor={colors.text.subtle}
         multiline
-        maxLength={5000}
+        maxLength={DESCRIPTION_MAX}
         textAlignVertical="top"
       />
-      <Text style={styles.charCount}>{f.description.length}/5000</Text>
+      <Text style={styles.charCount}>{f.description.length}/{DESCRIPTION_MAX}</Text>
     </View>
   );
 }
@@ -292,7 +295,9 @@ export function ListingDetailsSection({ f }: SectionProps) {
         ))}
       </ScrollView>
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.brand')}</Text>
+      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>
+        {t('product.brand')} <Text style={styles.required}>*</Text>
+      </Text>
       <TouchableOpacity
         style={styles.pickerButton}
         onPress={() => {
@@ -325,7 +330,9 @@ export function ListingDetailsSection({ f }: SectionProps) {
         <Text style={styles.pickerArrow}>›</Text>
       </TouchableOpacity>
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.scale')}</Text>
+      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>
+        {t('product.scale')} <Text style={styles.required}>*</Text>
+      </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
         {f.effectiveScales.map((s) => (
           <TouchableOpacity
@@ -338,7 +345,9 @@ export function ListingDetailsSection({ f }: SectionProps) {
         ))}
       </ScrollView>
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.material')}</Text>
+      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>
+        {t('product.material')} <Text style={styles.required}>*</Text>
+      </Text>
       <TouchableOpacity style={styles.pickerButton} onPress={() => f.setShowMaterialPicker(true)}>
         <Text style={f.selectedMaterial ? styles.pickerValue : styles.pickerPlaceholder}>
           {f.selectedMaterial?.label || t('product.selectMaterial')}
@@ -346,7 +355,9 @@ export function ListingDetailsSection({ f }: SectionProps) {
         <Text style={styles.pickerArrow}>›</Text>
       </TouchableOpacity>
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.manufacturer')}</Text>
+      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>
+        {t('product.manufacturer')} <Text style={styles.required}>*</Text>
+      </Text>
       <TouchableOpacity
         style={styles.pickerButton}
         onPress={() => {
@@ -359,6 +370,51 @@ export function ListingDetailsSection({ f }: SectionProps) {
         </Text>
         <Text style={styles.pickerArrow}>›</Text>
       </TouchableOpacity>
+
+      {/* Renk ve kutu durumu sunucuda zorunlu (2026-07-29, `0096579da`) — web ile
+          aynı: katalog renkleri çoklu seçim (`colors`), kutu durumu boolean. */}
+      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>
+        {t('product.color')} <Text style={styles.required}>*</Text>
+      </Text>
+      <Text style={styles.hint}>{t('listing.colorLimitHint', { max: MAX_COLORS })}</Text>
+      <View style={styles.chipWrap}>
+        {f.colorList.map((c) => {
+          const active = f.colors.includes(c.slug);
+          return (
+            <TouchableOpacity
+              key={c.slug}
+              testID={`listing-color-${c.slug}`}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: active }}
+              style={[styles.chip, styles.chipWithDot, active && styles.chipActive]}
+              onPress={() => f.toggleColor(c.slug)}
+            >
+              {c.color ? <View style={[styles.colorDot, { backgroundColor: c.color }]} /> : null}
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>{c.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>
+        {t('product.boxedCondition')} <Text style={styles.required}>*</Text>
+      </Text>
+      <View style={styles.chipRow}>
+        {(['boxed', 'unboxed'] as const).map((value) => (
+          <TouchableOpacity
+            key={value}
+            testID={`listing-${value}`}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: f.isBoxed === value }}
+            style={[styles.chip, f.isBoxed === value && styles.chipActive]}
+            onPress={() => f.setIsBoxed(value)}
+          >
+            <Text style={[styles.chipText, f.isBoxed === value && styles.chipTextActive]}>
+              {t(value === 'boxed' ? 'product.boxed' : 'product.unboxed')}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.modelCodeLabel')}</Text>
       <TextInput

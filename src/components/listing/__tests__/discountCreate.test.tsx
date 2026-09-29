@@ -105,6 +105,29 @@ function wireApi() {
   });
 }
 
+/** Sunucunun oluşturmada zorunlu tuttuğu alanlar (`create-product.dto.ts`). */
+function fillRequired(f: ReturnType<typeof useListingForm>) {
+  f.setTitle('Geçerli başlık');
+  f.setDescription('Kutusunda, hiç oynanmamış, boyası kusursuz bir model.');
+  f.setPrice('1000');
+  f.setCategoryId('c1');
+  f.setBrandId('b1');
+  f.setMaterial('diecast');
+  f.setManufacturerId('m1');
+  f.setShippingPackageTier('small');
+}
+
+async function fillAndPickImages(result: { current: ReturnType<typeof useListingForm> }) {
+  await waitFor(() => expect(result.current.hasBankAccount).toBe(true));
+  act(() => fillRequired(result.current));
+  act(() => result.current.toggleColor('blue'));
+  act(() => result.current.setIsBoxed('boxed'));
+  await act(async () => {
+    await result.current.pickImages();
+  });
+  await waitFor(() => expect(result.current.imageKeys.length).toBe(3));
+}
+
 function renderForm() {
   const queryClient = makeTestQueryClient();
   const Wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -118,15 +141,14 @@ describe('oluşturmada indirim payload', () => {
     mockGet.mockReset();
     mockPost.mockReset();
     wireApi();
+    // Sunucu en az 3 fotoğraf istiyor — yükleme 3 görsel döndürür.
     mockPost.mockResolvedValue({
-      data: [
-        {
-          cardKey: 'card-1',
-          detailKey: 'detail-1',
-          cardUrl: 'https://example.com/card-1.jpg',
-          detailUrl: 'https://example.com/detail-1.jpg',
-        },
-      ],
+      data: [1, 2, 3].map((n) => ({
+        cardKey: `card-${n}`,
+        detailKey: `detail-${n}`,
+        cardUrl: `https://example.com/card-${n}.jpg`,
+        detailUrl: `https://example.com/detail-${n}.jpg`,
+      })),
     });
     (productsApi.create as jest.Mock).mockClear();
     (appAlert as jest.Mock).mockImplementation(() => {});
@@ -138,22 +160,12 @@ describe('oluşturmada indirim payload', () => {
     // `listingLimits` yalnız gerçekten dolduğunda gönderimi bloklar (bkz.
     // `handleSubmit`); null iken kapı açık kalır, o yüzden burada onun
     // dolmasını beklemeye gerek yok — yalnız banka hesabı kapısı beklenir.
-    await waitFor(() => expect(result.current.hasBankAccount).toBe(true));
-
+    await fillAndPickImages(result);
     act(() => {
-      result.current.setTitle('Geçerli başlık');
-      result.current.setPrice('1000');
-      result.current.setCategoryId('c1');
-      result.current.setShippingPackageTier('small');
       result.current.setSalePrice('800');
       result.current.setSaleStartDate('2026-08-10');
       result.current.setSaleEndDate('2026-08-20');
     });
-
-    await act(async () => {
-      await result.current.pickImages();
-    });
-    await waitFor(() => expect(result.current.imageKeys.length).toBeGreaterThan(0));
 
     await act(async () => {
       await result.current.handleSubmit();
@@ -167,5 +179,69 @@ describe('oluşturmada indirim payload', () => {
         saleEndDate: new Date('2026-08-20').toISOString(),
       }),
     );
+  });
+});
+
+/**
+ * Sunucu 2026-07-29'dan beri (`0096579da`) rengi ve kutu durumunu zorunlu
+ * tutuyor; mobil ikisini de göndermediği için her ilan 400 alıyordu.
+ */
+describe('oluşturmada renk ve kutu durumu', () => {
+  beforeEach(() => {
+    mockGet.mockReset();
+    mockPost.mockReset();
+    wireApi();
+    mockPost.mockResolvedValue({
+      data: [1, 2, 3].map((n) => ({
+        cardKey: `card-${n}`,
+        detailKey: `detail-${n}`,
+        cardUrl: `https://example.com/card-${n}.jpg`,
+        detailUrl: `https://example.com/detail-${n}.jpg`,
+      })),
+    });
+    (productsApi.create as jest.Mock).mockReset();
+    (productsApi.create as jest.Mock).mockResolvedValue({ data: {} });
+    (appAlert as jest.Mock).mockClear();
+    (appAlert as jest.Mock).mockImplementation(() => {});
+  });
+
+  it('seçilen renkler `colors`, kutu durumu `isBoxed` olarak gönderilir', async () => {
+    const { result } = renderForm();
+    await fillAndPickImages(result);
+    act(() => result.current.toggleColor('black'));
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(productsApi.create).toHaveBeenCalledWith(
+      expect.objectContaining({ colors: ['blue', 'black'], isBoxed: true }),
+    );
+  });
+
+  it('en fazla 3 renk seçilebilir, tekrar dokunmak seçimi kaldırır', async () => {
+    const { result } = renderForm();
+    await waitFor(() => expect(result.current.hasBankAccount).toBe(true));
+    act(() => result.current.toggleColor('a'));
+    act(() => result.current.toggleColor('b'));
+    act(() => result.current.toggleColor('c'));
+    act(() => result.current.toggleColor('d'));
+    expect(result.current.colors).toEqual(['a', 'b', 'c']);
+    act(() => result.current.toggleColor('b'));
+    expect(result.current.colors).toEqual(['a', 'c']);
+  });
+
+  it('sunucu doğrulama LİSTESİ dönerse ilk gerçek mesaj gösterilir — "İşlem başarısız" değil', async () => {
+    (productsApi.create as jest.Mock).mockRejectedValue({
+      response: { status: 400, data: { message: ['Renk zorunludur', 'En az 3 resim yüklenmelidir'] } },
+    });
+    const { result } = renderForm();
+    await fillAndPickImages(result);
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(appAlert).toHaveBeenCalledWith('Hata', 'Renk zorunludur');
   });
 });

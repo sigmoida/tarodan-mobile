@@ -745,7 +745,11 @@
     "noManufacturerProducts": "This manufacturer has no products",
     "moreProductsComingSoon": "New products will be added soon.",
     "productFallback": "Product",
-    "zoomPhotoA11y": "Zoom photo"
+    "zoomPhotoA11y": "Zoom photo",
+    "color": "Color",
+    "boxedCondition": "Box",
+    "boxed": "Boxed",
+    "unboxed": "Unboxed"
   },
   "cart": {
     "addToCartFailed": "Could not add to cart",
@@ -7426,7 +7430,17 @@
     "createNewA11y": "Create new listing",
     "boostAction": "Boost",
     "relistAction": "Republish",
-    "deleteConfirmNamed": "Are you sure you want to delete \"{title}\"? This cannot be undone."
+    "deleteConfirmNamed": "Are you sure you want to delete \"{title}\"? This cannot be undone.",
+    "descriptionLengthMsg": "Description must be between {min} and {max} characters.",
+    "minImagesMsg": "Add at least {min} photos.",
+    "brandRequiredMsg": "Please select a brand.",
+    "scaleRequiredMsg": "Please select a scale.",
+    "materialRequiredMsg": "Please select the material.",
+    "manufacturerRequiredMsg": "Please select the manufacturer.",
+    "colorRequiredMsg": "Please select at least one color.",
+    "colorLimitMsg": "You can select up to {max} colors.",
+    "colorLimitHint": "Select up to {max} colors",
+    "boxedRequiredMsg": "Please choose whether the item is boxed."
   },
   "boost": {
     "title": "Boost Listing",
