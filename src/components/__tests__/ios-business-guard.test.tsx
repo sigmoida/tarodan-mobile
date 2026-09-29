@@ -19,7 +19,10 @@ jest.mock('expo-router', () => ({
 
 let mockUser: any;
 jest.mock('../../stores/authStore', () => ({
-  useAuthStore: () => ({ isAuthenticated: true, user: mockUser }),
+  useAuthStore: (sel?: (s: any) => unknown) => {
+    const state: any = { isAuthenticated: true, user: mockUser };
+    return sel ? sel(state) : state;
+  },
 }));
 
 import BusinessMembershipGuard from '../BusinessMembershipGuard';

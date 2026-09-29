@@ -12,7 +12,12 @@ jest.mock('expo-router', () => ({
   router: { replace: jest.fn(), push: jest.fn() },
   useLocalSearchParams: () => ({ tier: 'premium' }),
 }));
-jest.mock('@/stores/authStore', () => ({ useAuthStore: () => ({ refreshUserData: jest.fn() }) }));
+jest.mock('@/stores/authStore', () => ({
+  useAuthStore: (sel?: (s: any) => unknown) => {
+    const state: any = { refreshUserData: jest.fn() };
+    return sel ? sel(state) : state;
+  },
+}));
 jest.mock('@/lib/api', () => ({ paymentsApi: {} }));
 
 import MembershipSuccessScreen from '../success';
