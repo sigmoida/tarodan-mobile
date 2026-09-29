@@ -11,6 +11,7 @@ import { usePathname } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { theme } from "@/ui";
 import { logger } from "../services/logger";
+import { SHOW_DIAGNOSTICS } from "@/config/diagnostics";
 
 const { colors } = theme;
 
@@ -44,6 +45,8 @@ export function RouteTracker() {
 
 interface Props {
   children: ReactNode;
+  /** Ham teşhisi göster (varsayılan: ortam — `SHOW_DIAGNOSTICS`). */
+  showDiagnostics?: boolean;
 }
 
 interface State {
@@ -87,6 +90,7 @@ export class ErrorBoundary extends Component<Props, State> {
         error={this.state.error}
         componentStack={this.state.componentStack}
         onRetry={this.reset}
+        showDiagnostics={this.props.showDiagnostics ?? SHOW_DIAGNOSTICS}
       />
     );
   }
@@ -96,10 +100,12 @@ function FallbackScreen({
   error,
   componentStack,
   onRetry,
+  showDiagnostics,
 }: {
   error: Error | null;
   componentStack: string | null;
   onRetry: () => void;
+  showDiagnostics: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -113,9 +119,10 @@ function FallbackScreen({
       <Text style={styles.subtitle}>
         {t("mobile.errorBoundaryDescription")}
       </Text>
-      {/* TANI (geçici): staging'de gerçek hatayı ekranda göster — OTA ile teşhis.
-          Kök neden bulununca geri alınacak (__DEV__ guard'ı geri gelecek). */}
-      {error && (
+      {/* TANI: gerçek hatayı ekranda göster — YALNIZ geliştirme/staging
+          (`SHOW_DIAGNOSTICS`). Production'da kullanıcı ve App Review ham
+          console/route dökümü görmez; hata Sentry'ye gider. */}
+      {showDiagnostics && error && (
         <ScrollView style={styles.errorBox}>
           <Text style={styles.errorText}>
             {"### CONSOLE (Check the render method of ...) ###\n"}
