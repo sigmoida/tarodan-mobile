@@ -106,9 +106,12 @@ describe('Adres formu — alana yazılan telefon payload\'a ne olarak gidiyor', 
     '%s → gönderim DURUR, kırpılmış numara API\'ye SIZMAZ',
     async (input) => {
       await fillAndSave(input);
-      await waitFor(() => expect(appAlert).toHaveBeenCalled());
+      // Uyarı modal İÇİNDE (appAlert modal açıkken iOS'ta donduruyor, CLAUDE.md §12).
+      await waitFor(() => expect(screen.getByTestId('modal-message')).toBeTruthy());
+      expect(appAlert).not.toHaveBeenCalled();
       expect(post).not.toHaveBeenCalled();
-      expect(await screen.findByText(getPhoneInvalidMessage())).toBeTruthy();
+      // Alanın altında VE modal içi satırda aynı metin (iki yerde iki kural anlatılmaz).
+      expect((await screen.findAllByText(getPhoneInvalidMessage())).length).toBeGreaterThan(0);
     },
   );
 

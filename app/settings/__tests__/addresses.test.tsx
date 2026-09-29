@@ -53,14 +53,14 @@ describe("J32 · adres ekleme form validasyonu", () => {
     fireEvent.press(addBtn);
   };
 
-  it("J32.1 zorunlu alanlar boşken kaydet → uyarı, API çağrılmaz", async () => {
+  // Uyarı MODAL İÇİNDE satır mesajı olarak gösterilir: modal açıkken appAlert
+  // (kendisi de bir RN Modal) iOS'ta donmaya yol açıyordu (CLAUDE.md §12).
+  it("J32.1 zorunlu alanlar boşken kaydet → modal içi uyarı, appAlert yok, API çağrılmaz", async () => {
     renderWithProviders(<AddressesScreen />);
     await openDialog();
     fireEvent.press(screen.getByTestId("address-save-button"));
-    expect(alertSpy).toHaveBeenCalledWith(
-      "common.error",
-      "address.fillRequiredFields",
-    );
+    expect(screen.getByTestId("modal-message")).toHaveTextContent("address.fillRequiredFields");
+    expect(alertSpy).not.toHaveBeenCalled();
     expect(post).not.toHaveBeenCalled();
   });
 

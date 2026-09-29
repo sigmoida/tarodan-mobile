@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { appAlert } from "@/ui";
+import { appAlert, alertAfterClose, useModalMessage } from "@/ui";
 import { CAN_BUY_DIGITAL, limitAlert } from "@/lib/purchases";
 import {
   DEFAULT_COUNTRY_CODE,
@@ -27,6 +27,8 @@ export function useAddresses() {
   const { isAuthenticated, limits } = useAuthStore();
   const queryClient = useQueryClient();
   const [dialogVisible, setDialogVisible] = useState(false);
+  // Modal açıkken geri bildirim modal İÇİNDE (appAlert iOS'ta donduruyor, CLAUDE.md §12).
+  const formMsg = useModalMessage();
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const [formData, setFormData] = useState<AddressForm>(EMPTY_FORM());
   // Alan-bazlı görünür validasyon — boş/geçersiz alanlar kırmızı çerçeve + alt mesaj alır.
@@ -94,25 +96,28 @@ export function useAddresses() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.user.addresses });
-      setDialogVisible(false);
-      resetForm();
-      appAlert(
+      // Önce modalı kapat, SONRA uyar: modal açıkken appAlert (kendisi de bir
+      // RN Modal) iOS'ta donmaya yol açıyor (CLAUDE.md §12).
+      const message = editingAddress ? t("address.updated") : t("address.added");
+      alertAfterClose(
+        () => {
+          setDialogVisible(false);
+          resetForm();
+        },
         t("common.success"),
-        editingAddress ? t("address.updated") : t("address.added"),
+        message,
       );
     },
     onError: (err: any) => {
-      // Client-side telefon reddi ağ hatası değil — kendi Türkçe mesajını göster.
+      // Modal açık — hata modal İÇİNDE gösterilir (appAlert iOS'ta donduruyor).
+      // Client-side telefon reddi ağ hatası değil — kendi mesajını göster.
       if (err?.isClientValidation) {
         setFieldErrors((prev) => ({ ...prev, phone: err.message }));
-        appAlert(t("common.error"), err.message);
+        formMsg.error(err.message);
         return;
       }
       const msg = err?.response?.data?.message;
-      appAlert(
-        t("common.error"),
-        Array.isArray(msg) ? msg.join("\n") : msg || t("address.saveFailed"),
-      );
+      formMsg.error(Array.isArray(msg) ? msg.join("\n") : msg || t("address.saveFailed"));
     },
   });
 
@@ -145,6 +150,7 @@ export function useAddresses() {
   });
 
   const resetForm = () => {
+    formMsg.clear();
     setFormData(EMPTY_FORM());
     setEditingAddress(null);
     setFieldErrors({});
@@ -240,17 +246,19 @@ export function useAddresses() {
         !formData.address ||
         !formData.city ||
         !formData.district;
+      // Özet modal İÇİNDE (appAlert modal açıkken iOS'ta donduruyor).
       if (hasMissing) {
-        appAlert(t("common.error"), t("address.fillRequiredFields"));
+        formMsg.error(t("address.fillRequiredFields"));
       } else if (errors.address) {
-        appAlert(t("common.error"), t("address.addressMinLength"));
+        formMsg.error(t("address.addressMinLength"));
       } else {
         // Alanın altındaki mesajla AYNI metin — iki yerde iki farklı kural anlatılmasın.
-        appAlert(t("common.error"), errors.phone ?? getPhoneInvalidMessage());
+        formMsg.error(errors.phone ?? getPhoneInvalidMessage());
       }
       return;
     }
 
+    formMsg.clear();
     saveMutation.mutate(formData);
   };
 
@@ -269,6 +277,7 @@ export function useAddresses() {
     setFormData,
     fieldErrors,
     clearFieldError,
+    formMsg,
     openAddDialog,
     openEditDialog,
     handleDelete,
