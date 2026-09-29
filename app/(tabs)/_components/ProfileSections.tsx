@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Avatar, Badge, Text, theme } from '@/ui';
 
 import { buildAvatarUrl } from '@/lib/api';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/profileStyles';
 import { buildQuickActionItems, quickActionTint, type QuickActionBadgeKey } from '../_lib/profileConstants';
@@ -352,12 +353,17 @@ export function ProfileMenuSections({ f }: SectionProps) {
           onPress={() => router.push('/membership')}
           rightSlot={f.isPaidTier ? <Badge variant="primary">{f.tierLabel}</Badge> : null}
         />
-        <MenuItem
-          testID="profile-subscription-link"
-          icon="repeat-outline"
-          label={t('mobile.settingsSubscription')}
-          onPress={() => router.push('/settings/subscription')}
-        />
+        {/* iOS'ta abonelik satılmıyor (Apple 2.1(b) "references to subscriptions"):
+            ücretsiz kullanıcı bu girişi görmez. Ücretli üye görür — iOS'ta
+            aboneliğini iptal edebileceği tek yer burası. */}
+        {(CAN_BUY_DIGITAL || f.isPaidTier) && (
+          <MenuItem
+            testID="profile-subscription-link"
+            icon="repeat-outline"
+            label={t('mobile.settingsSubscription')}
+            onPress={() => router.push('/settings/subscription')}
+          />
+        )}
         <MenuItem
           icon="notifications-outline"
           label={t('mobile.settingsNotifications')}

@@ -8,6 +8,9 @@ const INFO_PAGES = buildInfoPages(i18n.t);
 const ACCOUNT_PAGES = buildAccountPages(i18n.t);
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
+// Satın almanın açık olduğu platform (Android). iOS'ta ücretsiz kullanıcı
+// "Aboneliğim"i görmez — ios-subscription-menu.test.tsx.
+jest.mock('@/lib/purchases', () => ({ CAN_BUY_DIGITAL: true }));
 
 const f: any = {
   isPaidTier: false,
