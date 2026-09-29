@@ -66,11 +66,11 @@ export const SECURITY_EMAIL = 'security@tarodan.com.tr';
 export const IP_EMAIL = 'ip@tarodan.com.tr';
 
 /**
- * Destek telefonu / WhatsApp. Gerçek hat henüz yok; tüm sayfalarda TEK ve tutarlı
- * placeholder gösterilir. Gerçek numara gelince yalnızca buradan güncellenir.
+ * Destek telefonu / WhatsApp hattı henüz YOK. Eskiden burada "0850 XXX XX XX"
+ * yer tutucusu vardı ve düğmeler uydurma numaraları arıyordu (Apple 2.1/2.3
+ * yer tutucu içerik). Gerçek hat gelince buraya sabit olarak eklenip
+ * Yardım/İletişim ekranlarına geri bağlanmalı.
  */
-export const SUPPORT_PHONE = '0850 XXX XX XX';
-export const SUPPORT_WHATSAPP = '+90 5XX XXX XX XX';
 
 // — Komisyon —
 
