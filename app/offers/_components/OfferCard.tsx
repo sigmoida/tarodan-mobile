@@ -290,15 +290,14 @@ function OfferCardBase({
               styles.payBtn,
               { alignSelf: "flex-start", marginTop: theme.spacing[3] },
             ]}
+            // Sipariş detayına git: /payment/[id] ÖDEME id'si ister (sunucu
+            // `payment.findUnique({ id })`); sipariş id'siyle "Ödeme bulunamadı"
+            // veriyordu. Detaydaki "Ödeme Yap" ödemeyi başlatıp (initiate)
+            // doğru ödeme id'siyle devam eder.
             onPress={() =>
               router.push({
-                pathname: "/payment/[id]",
-                params: {
-                  id: offer.orderId!,
-                  orderId: offer.orderId!,
-                  provider: "paytr",
-                  guest: "0",
-                },
+                pathname: "/orders/[id]",
+                params: { id: offer.orderId! },
               } as any)
             }
           >
