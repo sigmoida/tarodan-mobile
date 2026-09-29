@@ -101,3 +101,21 @@ describe('deriveShipmentView', () => {
     expect(v.cargoCode).toBe('79174212154116');
   });
 });
+
+/**
+ * Canlı test şeridi (App Review / QA) Sürat'a gönderi açmaz; takip kodu
+ * `TEST##########` (ana repo docs/mobile-parity/21). Bu kodla Sürat'ın sitesini
+ * açmak "bulunamadı" gösterip kullanıcıyı uygulamadan çıkarıyordu — kod
+ * görünür kalır, link kurulmaz.
+ */
+describe('buildTrackingUrl — test şeridi', () => {
+  it('TEST kodları için link kurmaz', () => {
+    expect(buildTrackingUrl('surat', 'TEST0000012345')).toBeNull();
+  });
+
+  it('görünümde kod kalır, link yok', () => {
+    const v = deriveShipmentView({ provider: 'surat', providerTrackingId: 'TEST0000012345', trackingNumber: 'PKG-1' });
+    expect(v.cargoCode).toBe('TEST0000012345');
+    expect(v.trackingUrl).toBeNull();
+  });
+});

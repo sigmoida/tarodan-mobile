@@ -4,6 +4,11 @@ const TRACKING_URLS: Record<string, (code: string) => string> = {
     `https://www.suratkargo.com.tr/KargoTakip/?kargotakipno=${encodeURIComponent(code)}`,
 };
 
+/** Test şeridi takip kodu (ana repo docs/mobile-parity/21: `TEST##########`). */
+export function isTestLaneTrackingCode(code: string): boolean {
+  return /^TEST\d+$/i.test(code.trim());
+}
+
 /**
  * Takip linkini KODDAN kurar. Sunucunun `trackingUrl` alanı kullanılmaz:
  * 2026-08-10 ölçümünde gerçek kod varken `null`, yokken iç referansı taşıyan
@@ -14,6 +19,9 @@ export function buildTrackingUrl(
   code: string | null | undefined,
 ): string | null {
   if (!provider || !code) return null;
+  // Canlı test şeridi (App Review / QA) taşıyıcıya gönderi açmaz; kod
+  // `TEST##########` — taşıyıcı sitesinde "bulunamadı" gösterirdi.
+  if (isTestLaneTrackingCode(code)) return null;
   const build = TRACKING_URLS[provider];
   return build ? build(code) : null;
 }
