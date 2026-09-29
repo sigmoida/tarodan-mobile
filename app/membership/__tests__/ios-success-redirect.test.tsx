@@ -6,7 +6,7 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 
 jest.mock('@/lib/purchases', () => ({ CAN_BUY_DIGITAL: false }));
-const mockRedirect = jest.fn(() => null);
+const mockRedirect = jest.fn((_p: { href: string }) => null);
 jest.mock('expo-router', () => ({
   Redirect: (p: { href: string }) => mockRedirect(p),
   router: { replace: jest.fn(), push: jest.fn() },

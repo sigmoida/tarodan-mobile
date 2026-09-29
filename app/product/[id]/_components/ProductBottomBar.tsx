@@ -3,6 +3,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Button, Text, theme } from '@/ui';
 import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { ActionTile } from './ActionTile';
 import type { PriceInfo } from '../_lib/display';
 import type { Product } from '../_lib/types';
@@ -34,6 +35,7 @@ export function ProductBottomBar({
   onGoToCart: () => void;
 }) {
   const { t } = useTranslation();
+  const { showTradeEntry } = useFeatureAccess();
   const effective = `₺${price.effectivePrice.toLocaleString('tr-TR')}`;
   const original = `₺${price.originalPrice.toLocaleString('tr-TR')}`;
 
@@ -83,7 +85,7 @@ export function ProductBottomBar({
             </Text>
           </View>
 
-          {isProductTradeOpen(product) ? (
+          {isProductTradeOpen(product) && showTradeEntry ? (
             <ActionTile testID="product-detail-trade-button" icon="swap-horizontal" label={t('product.tradeShort')} onPress={onTrade} />
           ) : (
             <View style={styles.tilePlaceholder} />

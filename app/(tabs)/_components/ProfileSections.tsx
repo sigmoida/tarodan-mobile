@@ -7,6 +7,7 @@ import { Avatar, Badge, Text, theme } from '@/ui';
 
 import { buildAvatarUrl } from '@/lib/api';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/profileStyles';
 import { buildQuickActionItems, quickActionTint, type QuickActionBadgeKey } from '../_lib/profileConstants';
@@ -146,6 +147,10 @@ export function ProfileStatsGrid({ f }: SectionProps) {
 export function ProfileGarageSection({ f }: SectionProps) {
   const { t } = useTranslation();
   const { collectionItems } = f;
+  // iOS: koleksiyon oluşturamayan kullanıcıya "Koleksiyon oluştur" kartı
+  // gösterilmez — açılan ekranda + düğmesi yok, çıkmaz sokaktı.
+  const { showCollectionEntry } = useFeatureAccess();
+  if (!showCollectionEntry && collectionItems.length === 0) return null;
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
@@ -193,6 +198,7 @@ export function ProfileGarageSection({ f }: SectionProps) {
               </Text>
             </TouchableOpacity>
           ))}
+          {showCollectionEntry && (
           <TouchableOpacity
             style={styles.collectionAddCard}
             onPress={() => router.push('/settings/collections')}
@@ -202,6 +208,7 @@ export function ProfileGarageSection({ f }: SectionProps) {
               {t('common.new')}
             </Text>
           </TouchableOpacity>
+          )}
         </ScrollView>
       ) : (
         <TouchableOpacity

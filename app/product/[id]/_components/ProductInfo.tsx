@@ -7,6 +7,7 @@ import { asLabel } from '@/utils/format';
 import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
 import { getConditionInfo, type PriceInfo } from '../_lib/display';
 import type { Product } from '../_lib/types';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 
 const { colors } = theme;
 
@@ -36,6 +37,8 @@ export function ProductInfo({
   onOpenReviews: () => void;
 }) {
   const { t } = useTranslation();
+  // iOS: yetkisi olmayana takas/koleksiyon girişi gösterilmez (bkz. useFeatureAccess).
+  const { showTradeEntry, showCollectionEntry } = useFeatureAccess();
   const [showAllDescription, setShowAllDescription] = useState(false);
   const conditionInfo = getConditionInfo(product.condition ?? '');
   const tradeOpen = isProductTradeOpen(product);
@@ -120,7 +123,7 @@ export function ProductInfo({
 
       {/* Aksiyon Bar — sahibine göre değişir. */}
       <View style={styles.actionGrid}>
-        {!isOwner && tradeOpen ? (
+        {!isOwner && tradeOpen && showTradeEntry ? (
           <Pressable style={styles.actionItem} onPress={actions.onTrade}>
             <View style={styles.actionIconWrap}>
               <Ionicons name="swap-horizontal" size={22} color={colors.primary[700]!} />
@@ -138,7 +141,7 @@ export function ProductInfo({
           </Pressable>
         )}
 
-        {isOwner && (
+        {isOwner && showCollectionEntry && (
           <Pressable style={styles.actionItem} onPress={actions.onAddToCollection}>
             <View style={styles.actionIconWrap}>
               <Ionicons name="albums-outline" size={22} color={colors.primary[700]!} />
