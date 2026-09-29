@@ -749,7 +749,11 @@
     "color": "Color",
     "boxedCondition": "Box",
     "boxed": "Boxed",
-    "unboxed": "Unboxed"
+    "unboxed": "Unboxed",
+    "tradeOpenBadge": "Open to Trade",
+    "viewCountLabel": "{count} views",
+    "favoriteCountLabel": "{count} favorites",
+    "reservedStockInfo": "Stock: {quantity} · {reserved} reserved for active trades/orders · Shown as available: {available}"
   },
   "cart": {
     "addToCartFailed": "Could not add to cart",
@@ -2216,7 +2220,11 @@
       "emptyDesc": "You can block a user from their profile, a listing or your messages.",
       "blockedAt": "Blocked on {date}",
       "loadFailed": "Could not load blocked users"
-    }
+    },
+    "guestWelcomeTitle": "Welcome!",
+    "guestWelcomeSubtitle": "Sign in to Tarodan to use every feature",
+    "guestBenefitsTitle": "What Can You Do as a Member?",
+    "guestQuickLinksTitle": "What You Can Do for Now"
   },
   "review": {
     "reviews": "Reviews",
@@ -7509,7 +7517,9 @@
     "holderLabel": "Account Holder *",
     "taxIdOptional": "Tax Number (optional)",
     "reverifyNotice": "If you update these details, your account returns to \"Not verified\" until it is checked again.",
-    "tcknInvalid": "The national ID must be 11 digits"
+    "tcknInvalid": "The national ID must be 11 digits",
+    "payoutHint": "Your sales earnings are paid out to this IBAN.",
+    "tcknOptionalLabel": "Turkish ID No. (optional)"
   },
   "shipping": {
     "codePending": "Carrier code is being prepared"
@@ -8151,5 +8161,14 @@
     "s6Title": "6. For Your Questions",
     "s6Content": "For more information about the Platform Service Fee, you can visit the Help Center or reach us at {email}.",
     "disclaimer": "This page is for informational purposes only; please review our Terms of Service and Refund Policy pages for binding contractual terms."
+  },
+  "aboutPage": {
+    "subtitle": "Turkey's diecast model car marketplace",
+    "storyTitle": "Our Story",
+    "storyText": "Tarodan was founded to give collectors and sellers a safe marketplace. We bring buyers and sellers together, and we are Turkey's most comprehensive platform for diecast model car enthusiasts to buy, sell and trade with confidence.",
+    "missionTitle": "Mission",
+    "missionText": "Our mission is to give model car enthusiasts the best shopping and trading experience. With secure payments, protected trades and a wide range of products, we make collecting accessible to everyone.",
+    "valuesTitle": "Our Values",
+    "valuesText": "Our values are reliability, transparency and respect for collecting culture. We put our users' safety first in every transaction and provide a fair, transparent marketplace."
   }
 }

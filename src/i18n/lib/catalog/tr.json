@@ -749,7 +749,11 @@
     "color": "Renk",
     "boxedCondition": "Kutu durumu",
     "boxed": "Kutulu",
-    "unboxed": "Kutusuz"
+    "unboxed": "Kutusuz",
+    "tradeOpenBadge": "Takas Açık",
+    "viewCountLabel": "{count} görüntülenme",
+    "favoriteCountLabel": "{count} favori",
+    "reservedStockInfo": "Stok: {quantity} · {reserved} adedi aktif takas/sipariş için rezerve · Satışta görünen: {available}"
   },
   "cart": {
     "addToCartFailed": "Sepete eklenemedi",
@@ -2216,7 +2220,11 @@
       "emptyDesc": "Bir kullanıcıyı profilinden, ilanından veya mesajlardan engelleyebilirsiniz.",
       "blockedAt": "{date} tarihinde engellendi",
       "loadFailed": "Engellenen kullanıcılar yüklenemedi"
-    }
+    },
+    "guestWelcomeTitle": "Hoş Geldiniz!",
+    "guestWelcomeSubtitle": "Tarodan'a giriş yaparak tüm özelliklerden yararlanın",
+    "guestBenefitsTitle": "Üye Olarak Neler Yapabilirsiniz?",
+    "guestQuickLinksTitle": "Şimdilik Şunları Yapabilirsiniz"
   },
   "review": {
     "reviews": "Değerlendirmeler",
@@ -7509,7 +7517,9 @@
     "holderLabel": "Hesap Sahibi *",
     "taxIdOptional": "Vergi No (opsiyonel)",
     "reverifyNotice": "Bilgileri güncellerseniz hesabınız yeniden doğrulanana kadar \"Doğrulanmadı\" durumuna döner.",
-    "tcknInvalid": "TC Kimlik No 11 rakam olmalı"
+    "tcknInvalid": "TC Kimlik No 11 rakam olmalı",
+    "payoutHint": "Satışlarınızdan elde ettiğiniz tutar bu IBAN'a aktarılır.",
+    "tcknOptionalLabel": "TC Kimlik No (opsiyonel)"
   },
   "shipping": {
     "codePending": "Kargo kodu hazırlanıyor"
@@ -8151,5 +8161,14 @@
     "s6Title": "6. Sorularınız İçin",
     "s6Content": "Platform Hizmet Bedeli hakkında daha fazla bilgi için Yardım Merkezi'ni ziyaret edebilir veya {email} adresinden bize ulaşabilirsiniz.",
     "disclaimer": "Bu sayfa bilgilendirme amaçlıdır; bağlayıcı sözleşme şartları için Kullanım Koşulları ve İade Politikası sayfalarımızı inceleyiniz."
+  },
+  "aboutPage": {
+    "subtitle": "Türkiye'nin diecast model araba pazarı",
+    "storyTitle": "Hikayemiz",
+    "storyText": "Tarodan, koleksiyoncular ve satıcılar için güvenli bir pazar yeri sunmak amacıyla kuruldu. Alıcı ve satıcıyı bir araya getiriyoruz. Diecast model araba tutkunlarının güvenle alım, satım ve takas yapabileceği Türkiye'nin en kapsamlı platformuyuz.",
+    "missionTitle": "Misyon",
+    "missionText": "Misyonumuz, model araba tutkunlarına en iyi alışveriş ve takas deneyimini sunmaktır. Güvenli ödeme, korumalı takas ve geniş ürün yelpazesi ile koleksiyonculuğu herkes için erişilebilir kılıyoruz.",
+    "valuesTitle": "Değerlerimiz",
+    "valuesText": "Değerlerimiz: güvenilirlik, şeffaflık ve koleksiyonculuk kültürüne saygı. Her işlemde kullanıcılarımızın güvenliğini ön planda tutarak, adil ve şeffaf bir ticaret ortamı sağlıyoruz."
   }
 }

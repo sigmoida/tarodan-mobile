@@ -1,3 +1,4 @@
+import type React from "react";
 import { View, ScrollView, StyleSheet } from "react-native";
 import { Stack, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -5,6 +6,17 @@ import { theme, Text, Card, ScreenHeader } from "@/ui";
 import { useTranslation } from "react-i18next";
 
 const { colors } = theme;
+
+// Metinler katalogda (`aboutPage.*`) — eskiden sabit Türkçe idi, İngilizce
+// cihazda (App Review) sayfanın tamamı Türkçe görünüyordu.
+const ABOUT_SECTIONS: ReadonlyArray<{
+  key: "story" | "mission" | "values";
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+}> = [
+  { key: "story", icon: "book-outline" },
+  { key: "mission", icon: "flag-outline" },
+  { key: "values", icon: "heart-outline" },
+];
 
 export default function AboutScreen() {
   const { t } = useTranslation();
@@ -24,64 +36,23 @@ export default function AboutScreen() {
             Tarodan
           </Text>
           <Text variant="body" style={styles.subtitle}>
-            Türkiye'nin diecast model araba pazarı
+            {t("aboutPage.subtitle")}
           </Text>
         </View>
 
-        <Card style={styles.card}>
-          <View style={styles.sectionHeader}>
-            <Ionicons
-              name="book-outline"
-              size={22}
-              color={colors.primary[600]!}
-            />
-            <Text variant="h3" style={styles.sectionTitle}>
-              Hikayemiz
+        {ABOUT_SECTIONS.map((section) => (
+          <Card key={section.key} style={styles.card}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name={section.icon} size={22} color={colors.primary[600]!} />
+              <Text variant="h3" style={styles.sectionTitle}>
+                {t(`aboutPage.${section.key}Title`)}
+              </Text>
+            </View>
+            <Text variant="body" style={styles.text}>
+              {t(`aboutPage.${section.key}Text`)}
             </Text>
-          </View>
-          <Text variant="body" style={styles.text}>
-            Tarodan, koleksiyoncular ve satıcılar için güvenli bir pazar yeri
-            sunmak amacıyla kuruldu. Alıcı ve satıcıyı bir araya getiriyoruz.
-            Diecast model araba tutkunlarının güvenle alım, satım ve takas
-            yapabileceği Türkiye'nin en kapsamlı platformuyuz.
-          </Text>
-        </Card>
-
-        <Card style={styles.card}>
-          <View style={styles.sectionHeader}>
-            <Ionicons
-              name="flag-outline"
-              size={22}
-              color={colors.primary[600]!}
-            />
-            <Text variant="h3" style={styles.sectionTitle}>
-              Misyon
-            </Text>
-          </View>
-          <Text variant="body" style={styles.text}>
-            Misyonumuz, model araba tutkunlarına en iyi alışveriş ve takas
-            deneyimini sunmaktır. Güvenli ödeme, korumalı takas ve geniş ürün
-            yelpazesi ile koleksiyonculuğu herkes için erişilebilir kılıyoruz.
-          </Text>
-        </Card>
-
-        <Card style={styles.card}>
-          <View style={styles.sectionHeader}>
-            <Ionicons
-              name="heart-outline"
-              size={22}
-              color={colors.primary[600]!}
-            />
-            <Text variant="h3" style={styles.sectionTitle}>
-              Değerlerimiz
-            </Text>
-          </View>
-          <Text variant="body" style={styles.text}>
-            Değerlerimiz: güvenilirlik, şeffaflık ve koleksiyonculuk kültürüne
-            saygı. Her işlemde kullanıcılarımızın güvenliğini ön planda tutarak,
-            adil ve şeffaf bir ticaret ortamı sağlıyoruz.
-          </Text>
-        </Card>
+          </Card>
+        ))}
 
         <View style={{ height: 40 }} />
       </ScrollView>

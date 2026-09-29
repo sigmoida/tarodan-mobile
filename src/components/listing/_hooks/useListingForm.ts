@@ -570,7 +570,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
 
       const usable = uploaded.filter((r: any) => r?.cardKey && r?.detailKey);
       if (usable.length !== uploaded.length) {
-        appAlert('Hata', t('product.imageUploadIncomplete'));
+        appAlert(t('common.error'), t('product.imageUploadIncomplete'));
       }
       const newKeys = usable.map((r: any) => ({
         cardKey: r.cardKey,
@@ -811,7 +811,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
           // Yeniden çekme de başarısızsa formu olduğu gibi bırak; aşağıdaki
           // uyarı yine çıkar ve kullanıcı kaydedilmediğini bilir.
         }
-        appAlert('Hata', t('product.listingChangedElsewhere'));
+        appAlert(t('common.error'), t('product.listingChangedElsewhere'));
         return;
       }
 

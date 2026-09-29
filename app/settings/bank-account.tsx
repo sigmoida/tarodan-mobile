@@ -133,7 +133,7 @@ export default function BankAccountScreen() {
   const handleDelete = () =>
     appAlert(t('bankAccount.deleteTitle'), t('bankAccount.deleteConfirm'), [
       { text: t('discount.discard'), style: 'cancel' },
-      { text: 'Sil', style: 'destructive', onPress: () => deleteMutation.mutate() },
+      { text: t('common.delete'), style: 'destructive', onPress: () => deleteMutation.mutate() },
     ]);
 
   const existing = !!accountQuery.data;
@@ -158,7 +158,7 @@ export default function BankAccountScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <Card style={styles.card}>
           <Text variant="bodySm" style={styles.hint}>
-            Satışlarınızdan elde ettiğiniz tutar bu IBAN'a aktarılır.
+            {t('bankAccount.payoutHint')}
           </Text>
 
           <Controller
@@ -199,7 +199,7 @@ export default function BankAccountScreen() {
             name="tcKimlikNo"
             render={({ field: { onChange, value } }) => (
               <Input
-                label="TC Kimlik No (opsiyonel)"
+                label={t('bankAccount.tcknOptionalLabel')}
                 value={value ?? ''}
                 onChangeText={(t) => onChange(t.replace(/\D/g, '').slice(0, 11))}
                 error={errors.tcKimlikNo?.message}
