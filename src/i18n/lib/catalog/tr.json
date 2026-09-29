@@ -326,6 +326,7 @@
     "loginFailed": "Giriş başarısız.",
     "signingIn": "Giriş yapılıyor…",
     "continueWithApple": "Apple ile devam et",
+    "loginTermsNotice": "Giriş yaparak ya da Apple veya Google ile devam ederek Kullanım Koşulları'nı ve Gizlilik Politikası'nı kabul etmiş olursunuz.",
     "continueAsGuest": "Misafir Olarak Devam Et",
     "corporateUpgradeTitle": "Kurumsal Üyelik",
     "corporateUpgradeBody": "İşletme bilgilerinizi tamamlamışsınız. Kurumsal üyeliğe geçerek avantajlardan yararlanabilirsiniz.",

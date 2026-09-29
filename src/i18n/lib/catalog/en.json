@@ -326,6 +326,7 @@
     "loginFailed": "Sign-in failed.",
     "signingIn": "Signing in…",
     "continueWithApple": "Continue with Apple",
+    "loginTermsNotice": "By signing in or continuing with Apple or Google, you agree to our Terms of Use and Privacy Policy.",
     "continueAsGuest": "Continue as Guest",
     "corporateUpgradeTitle": "Business Membership",
     "corporateUpgradeBody": "Your business details are complete. Switch to a business membership to use its benefits.",
