@@ -2370,7 +2370,8 @@
     "featuredCollectionCount": "{count} araçlık koleksiyon",
     "checkApiConnection": "API bağlantısını kontrol edin",
     "businessBadge": "👑 Business",
-    "reviewCountSuffix": "({count} yorum)"
+    "reviewCountSuffix": "({count} yorum)",
+    "noProductsYetHint": "Yeni ilanlar eklendikçe burada görünecek."
   },
   "search": {
     "search": "Ara",

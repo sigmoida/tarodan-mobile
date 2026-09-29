@@ -232,7 +232,7 @@ export function PopularProducts({
           <View style={styles.emptyContainer}>
             <Ionicons name="cube-outline" size={48} color={colors.gray[300]} />
             <Text style={styles.emptyText}>{t('home.noProductsYet')}</Text>
-            <Text style={styles.emptySubtext}>{t('home.checkApiConnection')}</Text>
+            <Text style={styles.emptySubtext}>{t('home.noProductsYetHint')}</Text>
           </View>
         ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>

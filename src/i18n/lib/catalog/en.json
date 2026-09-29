@@ -2370,7 +2370,8 @@
     "featuredCollectionCount": "{count}-vehicle collection",
     "checkApiConnection": "Check the API connection",
     "businessBadge": "👑 Business",
-    "reviewCountSuffix": "({count} reviews)"
+    "reviewCountSuffix": "({count} reviews)",
+    "noProductsYetHint": "New listings will appear here as they are added."
   },
   "search": {
     "search": "Search",
