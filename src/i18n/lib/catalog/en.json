@@ -2783,7 +2783,10 @@
     "cancelTitle": "Cancel Payment",
     "cancelAction": "Cancel It",
     "retryTitle": "Retry Payment",
-    "retryStarted": "Retry started"
+    "retryStarted": "Retry started",
+    "savedCardsIntroNeutral": "Your saved cards for faster checkout. Add a new card with \"save my card\" during payment.",
+    "deleteCardBodyNeutral": "Are you sure you want to delete the {brand} •••• {last4} card?",
+    "saveCardForLater": "Save my card for future payments"
   },
   "seller": {
     "sellerProfile": "Seller Profile",

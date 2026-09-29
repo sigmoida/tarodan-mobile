@@ -9,6 +9,7 @@ import { ScreenHeader, ErrorState } from '@/components/common';
 import { captureException } from '@/services/sentry';
 import CardPaymentForm from '@/components/CardPaymentForm';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
+import { isRecurringEnabledFor } from '@/lib/payment/recurring';
 
 /**
  * ⚠️ BU EKRAN BİLEREK React Query'ye TAŞINMADI (CLAUDE.md §6'nın istisnası).
@@ -163,7 +164,9 @@ export default function PaymentScreen() {
         target,
         amount: data.amount != null ? Number(data.amount) : undefined,
         // Kayıtlı kart yalnız giriş yapmış kullanıcıya gösterilir.
-        recurringEnabled: !!cfg.recurringEnabled && !isGuest,
+        recurringEnabled:
+          isRecurringEnabledFor(cfg, isMembership ? 'membership' : isBoost ? 'boost' : 'checkout') &&
+          !isGuest,
       });
     } catch (e: any) {
       captureException(e, {

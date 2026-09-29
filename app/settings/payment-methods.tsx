@@ -15,6 +15,7 @@ import { ScreenHeader, EmptyState } from "@/components/common";
 import { useAuthStore } from "@/stores/authStore";
 import { membershipApi } from "@/lib/api";
 import { qk } from "@/lib/query";
+import { CAN_BUY_DIGITAL } from "@/lib/purchases";
 import { styles } from './_payment-methods/_lib/styles';
 
 const { colors } = theme;
@@ -65,7 +66,7 @@ export default function PaymentMethodsScreen() {
   const handleDelete = (card: SavedCard) => {
     appAlert(
       t("payment.deleteCardTitle"),
-      t("payment.deleteCardBody", { brand: card.brand || t("payment.cardGenericBrand"), last4: card.last4 }),
+      t(CAN_BUY_DIGITAL ? "payment.deleteCardBody" : "payment.deleteCardBodyNeutral", { brand: card.brand || t("payment.cardGenericBrand"), last4: card.last4 }),
       [
         { text: t("payment.threeDSCancel"), style: "cancel" },
         {
@@ -104,7 +105,8 @@ export default function PaymentMethodsScreen() {
         }
       >
         <Text variant="body" tone="muted" style={styles.intro}>
-          {t("payment.savedCardsIntro")}
+          {/* iOS'ta abonelik satılmıyor (Apple 2.1(b)): oto-yenileme ifadesi yok. */}
+          {t(CAN_BUY_DIGITAL ? "payment.savedCardsIntro" : "payment.savedCardsIntroNeutral")}
         </Text>
 
         {cardsQuery.isLoading ? (
@@ -154,7 +156,7 @@ export default function PaymentMethodsScreen() {
                       {t("payment.defaultCard")}
                     </Text>
                   )}
-                  {c.autoRenewEligible ? (
+                  {!CAN_BUY_DIGITAL ? null : c.autoRenewEligible ? (
                     <Text
                       variant="caption"
                       style={[

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, ScrollView, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { WebView, WebViewNavigation } from 'react-native-webview';
 import { useTranslation } from 'react-i18next';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { Button, Input, Checkbox, Text, theme, appAlert } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { paymentsApi, membershipApi } from '@/lib/api';
@@ -421,7 +422,8 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
                 <Checkbox
                   checked={saveCard}
                   onChange={setSaveCard}
-                  label={t('payment.saveCardForFuture')}
+                  // iOS'ta abonelik satılmıyor (Apple 2.1(b)) — "otomatik yenileme" yok.
+                  label={t(CAN_BUY_DIGITAL ? 'payment.saveCardForFuture' : 'payment.saveCardForLater')}
                 />
               )}
             </View>

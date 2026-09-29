@@ -2783,7 +2783,10 @@
     "cancelTitle": "Ödemeyi İptal Et",
     "cancelAction": "İptal Et",
     "retryTitle": "Ödemeyi Yeniden Dene",
-    "retryStarted": "Yeniden deneme başlatıldı"
+    "retryStarted": "Yeniden deneme başlatıldı",
+    "savedCardsIntroNeutral": "Hızlı ödeme için kayıtlı kartların. Yeni kart, ödeme sırasında \"kartımı kaydet\" ile eklenir.",
+    "deleteCardBodyNeutral": "{brand} •••• {last4} kartını silmek istediğine emin misin?",
+    "saveCardForLater": "Kartımı sonraki ödemeler için kaydet"
   },
   "seller": {
     "sellerProfile": "Satıcı Profili",
