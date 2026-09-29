@@ -445,6 +445,15 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
         style={styles.payBtn}
       />
 
+      {/* 3DS Vazgeç / bağlantı hatası sonrası gerçek durum doğrulanıyor (çift
+          tahsilatı önlemek için 2 dakikaya kadar). Yalnız dönen düğme
+          uygulamanın takıldığı izlenimini veriyordu — ne olduğunu söyle. */}
+      {verifying && !threeDSHtml ? (
+        <Text testID="payment-verifying-note" variant="caption" tone="muted" style={styles.verifyingNote}>
+          {t('payment.confirmingTitle')} · {t('payment.verifyingDesc')}
+        </Text>
+      ) : null}
+
       <View style={styles.secure}>
         <Ionicons name="shield-checkmark-outline" size={14} color={colors.success[600]} />
         <Text variant="caption" tone="muted" style={styles.secureText}>
@@ -476,6 +485,7 @@ const styles = StyleSheet.create({
   expRow: { flexDirection: 'row', gap: theme.spacing[2.5] },
   expField: { flex: 1, marginBottom: theme.spacing[0] },
   payBtn: { marginTop: theme.spacing[2] },
+  verifyingNote: { marginTop: theme.spacing[2], textAlign: 'center' },
   secure: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: theme.spacing[1.5], marginTop: theme.spacing[1] },
   secureText: { flexShrink: 1 },
   webviewWrap: { flex: 1, minHeight: 480, overflow: 'hidden' },
