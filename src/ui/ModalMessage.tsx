@@ -42,10 +42,20 @@ export function alertAfterClose(
   title: string,
   message?: string,
   buttons?: AlertDialogButton[],
-  delayMs = 400,
+  delayMs = MODAL_CLOSE_DELAY_MS,
 ): void {
   close();
-  setTimeout(() => appAlert(title, message, buttons), delayMs);
+  runAfterModalClose(() => appAlert(title, message, buttons), delayMs);
+}
+
+/** Modal'ın kapanma animasyonunun bitmesi için beklenen süre. */
+export const MODAL_CLOSE_DELAY_MS = 400;
+
+/** Modal kapatıldıktan SONRA bir sonraki adımı (appAlert, başka bir Modal)
+ *  çalıştırır — aynı tick'te açmak iOS'ta donmaya yol açıyor (CLAUDE.md §12).
+ *  Kapatmayı çağıran yapar; bu yalnız bekletir. */
+export function runAfterModalClose(next: () => void, delayMs = MODAL_CLOSE_DELAY_MS): void {
+  setTimeout(next, delayMs);
 }
 
 const styles = StyleSheet.create({

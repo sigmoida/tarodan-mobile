@@ -94,6 +94,7 @@ export {
 	useModalMessage,
 	ModalMessage,
 	alertAfterClose,
+	runAfterModalClose,
 	type ModalMessageState,
 } from './ModalMessage';
 export { Spinner, type SpinnerProps } from './components/Spinner';

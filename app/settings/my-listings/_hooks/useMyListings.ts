@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { theme, appAlert } from "@/ui";
+import { theme, appAlert, alertAfterClose, runAfterModalClose } from "@/ui";
 import { CAN_BUY_DIGITAL, limitAlert } from "@/lib/purchases";
 import { productsApi } from "@/lib/api";
 import { qk } from "@/lib/query";
@@ -124,12 +124,18 @@ export function useMyListings() {
       queryClient.invalidateQueries({ queryKey: qk.products.myListingsStats });
       queryClient.invalidateQueries({ queryKey: qk.user.statsAll });
       refreshUserData();
-      setDeleteDialogVisible(false);
-      setSelectedListing(null);
-      appAlert(t("common.success"), t("listing.deleted"));
+      // Silme diyaloğu bir Modal — önce kapat, sonra uyar (CLAUDE.md §12).
+      alertAfterClose(
+        () => {
+          setDeleteDialogVisible(false);
+          setSelectedListing(null);
+        },
+        t("common.success"),
+        t("listing.deleted"),
+      );
     },
     onError: () => {
-      appAlert(t("common.error"), t("listing.deleteFailed"));
+      alertAfterClose(() => setDeleteDialogVisible(false), t("common.error"), t("listing.deleteFailed"));
     },
   });
 
@@ -149,10 +155,7 @@ export function useMyListings() {
       );
     },
     onError: () => {
-      appAlert(
-        "Hata",
-        t("listing.republishFailed"),
-      );
+      appAlert(t("common.error"), t("listing.republishFailed"));
     },
   });
 
@@ -182,6 +185,11 @@ export function useMyListings() {
 
   const handleMenuAction = (action: string, listing: Listing) => {
     setActionMenuListing(null);
+    // Eylem menüsü bir Modal: onu kapatırken AYNI tick'te appAlert ya da başka
+    // bir Modal açmak iOS'ta donmaya yol açıyor (CLAUDE.md §12). Uyarı/diyalog
+    // açan adımlar menü kapandıktan sonra çalışır; yönlendirme ve mutation
+    // hemen çalışabilir.
+    const afterMenuCloses = runAfterModalClose;
 
     switch (action) {
       case "edit":
@@ -191,28 +199,30 @@ export function useMyListings() {
         router.push(`/product/${listing.id}`);
         break;
       case "deactivate":
-        appAlert(
-          t("listing.deactivateTitle"),
-          t("listing.deactivateBody"),
-          [
-            { text: t("common.cancel"), style: "cancel" },
-            {
-              text: t("listing.deactivateAction"),
-              onPress: () => deactivateMutation.mutate(listing.id),
-            },
-          ],
+        afterMenuCloses(() =>
+          appAlert(
+            t("listing.deactivateTitle"),
+            t("listing.deactivateBody"),
+            [
+              { text: t("common.cancel"), style: "cancel" },
+              {
+                text: t("listing.deactivateAction"),
+                onPress: () => deactivateMutation.mutate(listing.id),
+              },
+            ],
+          ),
         );
         break;
       case "activate":
         reactivateMutation.mutate(listing.id);
         break;
       case "boost":
-        setBoostListing(listing);
+        afterMenuCloses(() => setBoostListing(listing));
         break;
       case "relist":
         // Check listing limit before relisting — sunucu kotası (aktif sayım) baz alınır.
         if (quotaSummary?.canCreate === false) {
-          limitAlert({
+          afterMenuCloses(() => limitAlert({
             title: t("listing.limitTitle"),
             message: CAN_BUY_DIGITAL
               ? t("listing.limitBody")
@@ -220,14 +230,14 @@ export function useMyListings() {
             cancelLabel: t("common.cancel"),
             upgradeLabel: t("address.goPremium"),
             onUpgrade: () => router.push("/upgrade"),
-          });
+          }));
           return;
         }
         relistMutation.mutate(listing.id);
         break;
       case "delete":
         setSelectedListing(listing);
-        setDeleteDialogVisible(true);
+        afterMenuCloses(() => setDeleteDialogVisible(true));
         break;
     }
   };

@@ -154,3 +154,33 @@ describe("J133 · İlan düzenleme navigasyon wiring", () => {
     expect(mockPush).toHaveBeenCalledWith("/product/L9");
   });
 });
+
+/**
+ * Eylem menüsü bir ui-native Modal. Menü kapanırken AYNI tick'te appAlert (o da
+ * bir RN Modal) açmak iOS'ta donmaya yol açıyor (CLAUDE.md §12) — uyarı menü
+ * kapandıktan sonra açılmalı.
+ */
+describe("İlanlarım · menü kapanmadan uyarı açılmaz (iOS donma)", () => {
+  beforeEach(() => {
+    mockGetMyListings.mockReset();
+    mockGetMyStats.mockReset();
+    wireStats();
+  });
+
+  it('"Pasifleştir" onayı menü kapandıktan sonra açılır', async () => {
+    const { appAlert } = jest.requireMock("@/ui") as { appAlert: jest.Mock };
+    appAlert.mockClear();
+    mockGetMyListings.mockResolvedValue({ data: { data: [listing({ id: "L9", status: "active" })] } });
+    renderWithProviders(<MyListingsScreen />);
+    await screen.findByText("Hot Wheels Camaro");
+    fireEvent.press(screen.getByLabelText("listing.menuAccessibility"));
+    await screen.findByText("listing.deactivateAction");
+
+    jest.useFakeTimers();
+    fireEvent.press(screen.getByText("listing.deactivateAction"));
+    expect(appAlert).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(500);
+    expect(appAlert).toHaveBeenCalledWith("listing.deactivateTitle", "listing.deactivateBody", expect.any(Array));
+    jest.useRealTimers();
+  });
+});
