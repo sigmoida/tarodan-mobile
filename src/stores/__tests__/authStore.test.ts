@@ -19,12 +19,14 @@ jest.mock('../../services/push', () => ({
 // kullanıyor; native modül testte kayıtlı değil. no-op mock yeterli.
 jest.mock('../resetUserStores', () => ({
   resetUserStores: jest.fn(),
+  resetServerStateForNewSession: jest.fn(() => Promise.resolve()),
 }));
 
 import * as SecureStore from 'expo-secure-store';
 
 import { useAuthStore, type User } from '../authStore';
 import { userApi } from '@/lib/api';
+import { resetServerStateForNewSession } from '../resetUserStores';
 
 const baseUser: User = {
   id: 'u1',
@@ -79,6 +81,22 @@ describe('authStore — serverLimits sızıntısı (logout)', () => {
     // henüz gelmediği için free tier'ın TIER_LIMITS değerleri geçerli olmalı.
     expect(limits?.maxListings).toBe(10);
     expect(limits?.isAdFree).toBe(false);
+  });
+});
+
+/**
+ * Misafirken önbelleğe giren canlı ilan listeleri girişten sonra ekranda
+ * kalırsa test şeridi hesabı onlara dokunduğunda `404 Ürün bulunamadı` alır.
+ * Giriş, sunucu önbelleğini yeni oturuma göre sıfırlamalı.
+ */
+describe('authStore — giriş sunucu önbelleğini sıfırlar', () => {
+  it('login, token yazıldıktan sonra resetServerStateForNewSession çağırır', async () => {
+    (resetServerStateForNewSession as jest.Mock).mockClear();
+
+    await useAuthStore.getState().login('token-new', baseUser);
+
+    expect(resetServerStateForNewSession).toHaveBeenCalledTimes(1);
+    expect(useAuthStore.getState().token).toBe('token-new');
   });
 });
 
