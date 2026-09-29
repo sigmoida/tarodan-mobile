@@ -114,3 +114,26 @@ describe('J106 · Sahiplik kontrolü (düzenle butonu)', () => {
     expect(screen.getByText('0 model')).toBeOnTheScreen();
   });
 });
+
+/**
+ * Misafir koleksiyonu şikayet ederse ReportModal açılıyor, POST /user-reports
+ * 401 dönüyor ve 401 interceptor'ı Modal açıkken oturumu kapatıp login'e
+ * atıyordu (iOS donma — CLAUDE.md §12). Ürün sayfasıyla aynı: önce giriş.
+ */
+describe('Koleksiyon şikayeti · misafir', () => {
+  beforeEach(() => {
+    getMock.mockReset();
+    mockParams = { id: 'col-1' };
+    mockAuth = { isAuthenticated: false, user: null };
+  });
+
+  it('şikayet penceresi yerine giriş uyarısı gösterir', async () => {
+    const { appAlert } = jest.requireMock('@/ui') as { appAlert: jest.Mock };
+    appAlert.mockClear();
+    getMock.mockResolvedValue({ data: collectionFixture() });
+    renderWithProviders(<CollectionDetailScreen />);
+    fireEvent.press(await screen.findByLabelText('Koleksiyonu Şikayet Et'));
+    expect(appAlert).toHaveBeenCalledWith(expect.any(String), 'Raporlamak için giriş yapmalısınız', expect.any(Array));
+    expect(screen.queryByText('Koleksiyonu Şikayet Et')).toBeNull();
+  });
+});

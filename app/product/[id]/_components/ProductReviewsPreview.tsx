@@ -4,6 +4,7 @@ import { View, Pressable, StyleSheet } from 'react-native';
 import { Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import type { ProductReview } from '../_lib/types';
+import { ReviewAuthorName } from '@/components/reviews/ReviewAuthorName';
 
 const { colors } = theme;
 
@@ -35,7 +36,7 @@ export function ProductReviewsPreview({
         return (
           <View key={review.id} style={styles.reviewCard}>
             <View style={styles.reviewHeader}>
-              <Text style={styles.reviewerName}>{reviewerName}</Text>
+              <ReviewAuthorName review={review as any} name={reviewerName} style={styles.reviewerName} />
               <View style={styles.ratingStars}>
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Ionicons
