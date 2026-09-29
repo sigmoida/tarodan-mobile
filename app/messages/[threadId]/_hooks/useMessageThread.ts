@@ -8,7 +8,7 @@ import { useMessagesStore } from '@/stores/messagesStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useThreadQuery, useMessagesQuery, useSendMessage, useMarkAsRead } from '@/hooks/messaging';
 import { detectViolations, embedImageInMessage, getViolationMessage } from '@/utils/contentFilter';
-import { mediaApi } from '@/lib/api';
+import { mediaApi, errorText } from '@/lib/api';
 import { getSocket } from '@/services/socket';
 import { groupMessagesByDate } from '../_lib/helpers';
 import { useBlockStatus, useBlockUser } from '@/hooks/useBlockUser';
@@ -163,10 +163,9 @@ export function useMessageThread() {
         // Kullanıcının kendi mesajı: konumdan bağımsız HER ZAMAN dibe kaydır.
         forceScrollToBottom();
       } catch (e: any) {
-        appAlert(
-          t('message.sendFailed'),
-          e?.message || e?.response?.data?.message || t('message.tryAgainBody')
-        );
+        // Sunucu mesajı önce: `e.message` axios'un ham "Request failed with
+        // status code 400" metni idi.
+        appAlert(t('message.sendFailed'), errorText(e, t('message.tryAgainBody')));
       }
     } finally {
       setSending(false);

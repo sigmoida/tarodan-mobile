@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { api } from '@/lib/api';
+import { api, errorText } from '@/lib/api';
+import { appAlert } from '@/ui';
 import { useMessagesStore } from '@/stores/messagesStore';
 import { useCreateThread } from '@/hooks/messaging';
 import { useAuthStore } from '@/stores/authStore';
@@ -107,8 +108,10 @@ export function useNewMessage() {
         productId: isUuid ? productId : undefined,
       });
       router.replace(`/messages/${thread.id}`);
-    } catch {
+    } catch (e) {
       setSending(false);
+      // Eskiden sessizdi: gönder'e basınca hiçbir şey olmuyordu (Apple 2.1).
+      appAlert(t('message.sendFailed'), errorText(e, t('message.tryAgainBody')));
     }
   };
 
