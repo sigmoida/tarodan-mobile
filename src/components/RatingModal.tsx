@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuthStore } from '../stores/authStore';
@@ -162,7 +163,8 @@ export default function RatingModal({
           <Text style={styles.charCount}>
             {t('ratingModal.charCount', { current: review.length, max: maxReviewChars })}
           </Text>
-          {limits?.maxReviewChars === 500 && (
+          {/* iOS'ta ücretli kademe satılmıyor (Apple 2.1(b)/3.1.3) — Premium notu yok. */}
+          {CAN_BUY_DIGITAL && limits?.maxReviewChars === 500 && (
             <Text style={styles.charLimitNote}>
               {t('ratingModal.premiumCharLimitNote')}
             </Text>

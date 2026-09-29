@@ -13,6 +13,9 @@ import { renderWithProviders } from '../../test-utils';
 jest.mock('@/lib/api', () => ({
   api: { post: jest.fn(() => Promise.resolve({ data: {} })) },
 }));
+// Satın almanın açık olduğu platform (Android). iOS'ta Premium notu gizli —
+// ios-rating-no-premium-note.test.tsx.
+jest.mock('@/lib/purchases', () => ({ CAN_BUY_DIGITAL: true }));
 import { api } from '@/lib/api';
 
 let mockLimits: { maxReviewChars: number } | undefined = { maxReviewChars: 500 };

@@ -31,3 +31,18 @@ describe('iOS profil menüsü — Aboneliğim', () => {
     expect(getByTestId('profile-subscription-link')).toBeTruthy();
   });
 });
+
+/** Aynı gerekçe: "Üyelik Planı" ücretsiz iOS kullanıcısına yalnız "Ücretsiz" gösteren bir ekran açıyordu. */
+describe('iOS profil menüsü — Üyelik Planı', () => {
+  it('ücretsiz kullanıcı görmez', () => {
+    const { queryByTestId } = render(<ProfileMenuSections f={{ ...base, isPaidTier: false }} />);
+    expect(queryByTestId('profile-membership-link')).toBeNull();
+  });
+
+  it('ücretli üye görür', () => {
+    const { getByTestId } = render(
+      <ProfileMenuSections f={{ ...base, isPaidTier: true, tierLabel: 'Premium', effectiveTier: 'premium' }} />,
+    );
+    expect(getByTestId('profile-membership-link')).toBeTruthy();
+  });
+});

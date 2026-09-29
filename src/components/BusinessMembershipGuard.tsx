@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { usePathname, router } from 'expo-router';
 import { useAuthStore } from '../stores/authStore';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
 /**
  * Web BusinessMembershipGuard karşılığı (apps/web/src/components/BusinessMembershipGuard.tsx).
@@ -46,6 +47,11 @@ export default function BusinessMembershipGuard() {
     // Onaylı ama business üyelik tier'ı yoksa üyelik sayfasına yönlendir.
     const isBusinessTier = user.membershipTier === 'business';
     if (isBusinessTier) return;
+
+    // iOS'ta üyelik satın alınamaz (CAN_BUY_DIGITAL=false): /membership'e
+    // kilitlemek hesabı kullanılamaz yapar ve uygulama dışı satın almayı şart
+    // koşar (Apple 2.1 + 3.1.1). Hesap mevcut kademesiyle devam eder.
+    if (!CAN_BUY_DIGITAL) return;
 
     // Ödeme/akış tamamlanabilsin diye üyelik ve auth yollarına izin ver.
     const allowedPrefixes = [

@@ -1,7 +1,8 @@
 import { useEffect, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { theme, Button, Text } from '@/ui';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, Redirect } from 'expo-router';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
@@ -50,7 +51,17 @@ const buildTierFeatures = (t: TFunction): Record<TierKey, TierFeature[]> => ({
   ],
 });
 
+/**
+ * iOS'ta üyelik satılmıyor (Apple 3.1.1); bu ekrana yalnız derin bağlantıyla
+ * (`tarodan://membership/success`) ulaşılabiliyordu ve kademe tanıtımı
+ * gösteriyordu. Yönlendirme sarmalayıcıda — gövdenin hook sırası sabit kalır.
+ */
 export default function MembershipSuccessScreen() {
+  if (!CAN_BUY_DIGITAL) return <Redirect href="/membership" />;
+  return <MembershipSuccessBody />;
+}
+
+function MembershipSuccessBody() {
   const { t } = useTranslation();
   const { paymentId, tier } = useLocalSearchParams<{ paymentId?: string; tier?: string }>();
   const { refreshUserData } = useAuthStore();

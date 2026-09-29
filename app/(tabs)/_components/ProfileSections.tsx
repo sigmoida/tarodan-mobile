@@ -346,16 +346,19 @@ export function ProfileMenuSections({ f }: SectionProps) {
           label={t('mobile.settingsPayments')}
           onPress={() => router.push('/settings/payments')}
         />
-        <MenuItem
-          testID="profile-membership-link"
-          icon="diamond-outline"
-          label={t('mobile.settingsMembershipPlan')}
-          onPress={() => router.push('/membership')}
-          rightSlot={f.isPaidTier ? <Badge variant="primary">{f.tierLabel}</Badge> : null}
-        />
         {/* iOS'ta abonelik satılmıyor (Apple 2.1(b) "references to subscriptions"):
-            ücretsiz kullanıcı bu girişi görmez. Ücretli üye görür — iOS'ta
-            aboneliğini iptal edebileceği tek yer burası. */}
+            ücretsiz kullanıcı "Üyelik Planı" ve "Aboneliğim" girişlerini görmez
+            (Üyelik Planı ona yalnız "Ücretsiz" gösteren bir ekran açıyordu).
+            Ücretli üye görür — iOS'ta aboneliğini iptal edebileceği tek yer. */}
+        {(CAN_BUY_DIGITAL || f.isPaidTier) && (
+          <MenuItem
+            testID="profile-membership-link"
+            icon="diamond-outline"
+            label={t('mobile.settingsMembershipPlan')}
+            onPress={() => router.push('/membership')}
+            rightSlot={f.isPaidTier ? <Badge variant="primary">{f.tierLabel}</Badge> : null}
+          />
+        )}
         {(CAN_BUY_DIGITAL || f.isPaidTier) && (
           <MenuItem
             testID="profile-subscription-link"
