@@ -61,6 +61,8 @@ export default function TermsOfServiceScreen() {
         <Text style={styles.listItem}>{t("termsPage.s10Item3")}</Text>
         <Text style={styles.listItem}>{t("termsPage.s10Item4")}</Text>
         <Text style={styles.listItem}>{t("termsPage.s10Item5")}</Text>
+        {/* Apple 1.2: uygunsuz içerik ve kötü niyetli kullanıcılara sıfır tolerans. */}
+        <Text style={styles.paragraph}>{t("termsPage.s10ZeroTolerance")}</Text>
 
         <Text style={styles.sectionTitle}>{t("termsPage.s11Title")}</Text>
         <Text style={styles.paragraph}>{t("termsPage.s11Content")}</Text>

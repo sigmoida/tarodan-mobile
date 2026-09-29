@@ -478,7 +478,7 @@ export function ProfileMenuSections({ f }: SectionProps) {
             testID={`profile-legal-${p.slug}-link`}
             icon={p.icon}
             label={p.label}
-            onPress={() => router.push(`/sayfa/${p.slug}`)}
+            onPress={() => router.push(p.route)}
           />
         ))}
       </View>
