@@ -6,7 +6,18 @@ import {
   Text,
   View,
 } from 'react-native';
+import i18n from 'i18next';
 import { theme } from '../lib/theme';
+
+/**
+ * Düğme verilmeyen uyarının varsayılan etiketi — arayüz dilinde. Eskiden sabit
+ * Türkçe "Tamam" idi; İngilizce cihazda (App Review) karışık dil görünüyordu.
+ * i18next henüz kurulmadıysa (çok erken ya da i18n'siz test) "OK"e düşer.
+ */
+function defaultOkLabel(): string {
+  const label = i18n.isInitialized ? i18n.t('common.ok') : '';
+  return label && label !== 'common.ok' ? label : 'OK';
+}
 
 export interface AlertDialogButton {
   text?: string;
@@ -44,7 +55,7 @@ export function appAlert(
   const request: AlertDialogRequest = {
     title,
     message,
-    buttons: buttons?.length ? buttons : [{ text: 'Tamam' }],
+    buttons: buttons?.length ? buttons : [{ text: defaultOkLabel() }],
     options,
   };
   if (listener) {
@@ -150,7 +161,7 @@ export const AlertDialogHost: React.FC = () => {
                       isCancel ? styles.buttonTextCancel : styles.buttonTextSolid,
                     ]}
                   >
-                    {button.text ?? 'Tamam'}
+                    {button.text ?? defaultOkLabel()}
                   </Text>
                 </Pressable>
               );
