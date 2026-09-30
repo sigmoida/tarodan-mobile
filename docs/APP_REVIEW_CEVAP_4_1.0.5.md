@@ -131,31 +131,51 @@ halde köşeli parantezli cümleyi sil.
 
 ## Review Notes (App Store Connect → App Review Information → Notes)
 
-    Demo account (isolated test environment on our production service):
-      Email:    <Apple Test e-postası>
-      Password: <şifre>
-    Please sign in with this account before testing purchases. Browsing as a
-    guest shows the live marketplace.
-    Please do not change the password or enable two-factor authentication on
-    this shared account.
+Notes alanı en fazla 4000 karakter; bu metin ~3200. `<CARD NUMBER>`, `<MM/YY>`,
+`<CVV>` PayTR paneli → Test Kartları'ndan, `<LINK>` 1.0.5 ekran kaydından
+doldurulur. Köşeli parantez yok — buradaki filtreleme cümlesi yalnız doğrulanmış
+davranışı (mesaj filtresi, ilanların yayından önce incelemeye alınması) anlatır.
 
-    Payments run in our payment provider's (PayTR) test mode; no money is taken.
-    Test card: <PayTR panelindeki test kartı — numara / SKT / CVV>
-    The 3D Secure page appears as in production. Shipping tracking numbers in
-    this environment are simulated.
+    DEMO ACCOUNT
+      Email:    homier-moving.80@icloud.com
+      Password: *toer12coeR*
+    Please sign in before testing. Please do not change the password or enable two-factor authentication on this shared account.
 
-    User-generated content (Guideline 1.2):
-      Report a listing:  listing → flag icon (top right) → Report listing
-      Block a user:      listing → flag icon → Block seller,
-                         or seller profile → ⋮ → Block,
-                         or conversation → ⋮ → Block
-      Report a user:     seller profile → ⋮ → Report
-      Unblock:           Profile → Blocked Users
-      Terms of Use:      sign-in screen (below the Apple/Google buttons),
-                         registration screen (required checkbox)
-    Screen recording (physical device, build 1.0.5): <link>
+    Tarodan is a Turkish marketplace for collectible diecast models. The app follows the device language (Turkish or English); it can also be changed in Profile → Settings. On iPad it runs full screen in portrait.
 
-    Account deletion: Profile → bottom of the page → Delete Account.
+    GUEST MODE vs DEMO ACCOUNT
+    Browsing as a guest shows our live marketplace with real sellers. The demo account is signed into an isolated test environment on our production service: it only sees listings from test sellers (currently Model Garaj and Kadıköy Diecast), and nothing done with it reaches real users. Conversations and a favorite are pre-populated. Please use the demo account for purchases.
 
-    Digital purchases (memberships, listing promotion) are not offered on iOS.
-    Physical goods are paid with PayTR, as required by Guideline 3.1.3(e).
+    PAYMENTS (test mode)
+    Collectible models are physical goods and are paid with our payment provider PayTR, as required by Guideline 3.1.3(e). For the demo account PayTR runs in test mode: no money is taken.
+      Test card:   <CARD NUMBER>
+      Expiry:      <MM/YY>   CVV: <CVV>
+    The bank's 3D Secure page appears as in production. After payment the order appears under Profile → My Orders. Shipping is simulated: the tracking number starts with "TEST" and does not move on the carrier's site, and no e-invoice is issued in this environment.
+    No digital goods (memberships, listing promotion) are sold in the iOS app.
+
+    USER-GENERATED CONTENT (Guideline 1.2)
+    Terms of Use: shown on the sign-in screen below the Apple/Google buttons ("By signing in or continuing with Apple or Google, you agree to our Terms of Use and Privacy Policy") and accepted with a required checkbox on the registration screen. Section 10 states zero tolerance for objectionable content and abusive users; reports are reviewed within 24 hours.
+
+    Filtering: new listings are held for review before they are published; messages pass a server-side filter (profanity list and administrator-managed rules) before delivery.
+
+    Report:
+      • Listing → flag icon (top right) → Report Listing
+      • Seller profile → ⋮ → Report
+      • Conversation → ⋮ → Report
+      • Collection → flag icon
+      • Review author: tap their name to open the profile
+    Block:
+      • Listing → flag icon → Block seller
+      • Seller profile (tap the seller card) → ⋮ → Block
+      • Conversation → ⋮ → Block
+    The blocked user's listings, profile and conversations disappear from the feed, search and messages immediately. Every report and block notifies our administrators. Unblock under Profile → Blocked Users.
+
+    Screen recording (physical iPhone, build 1.0.5): <LINK>
+    It shows the Terms on the sign-in and registration screens, reporting a listing and a user, blocking with the content removed from the feed, search and messages, and unblocking.
+
+    OTHER
+    • Selling: the demo account can create a listing with the + button in the tab bar. A bank account is already on file; a listing needs at least 3 photos and is reviewed before it is published.
+    • Account deletion: Profile → bottom of the page → Delete Account.
+    • Date of birth is optional at registration.
+    • No tracking, advertising or attribution SDKs, so App Tracking Transparency is not implemented.
+    • Questions: destek@tarodan.com.tr
