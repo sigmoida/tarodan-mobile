@@ -5,6 +5,7 @@ import type {
   MyProductResponse,
 } from './types';
 import { emptyListingFormValues, type ListingFormValues } from './schema';
+import { isGlobalCustomAttributeGroup } from './attributeGroups';
 
 export type MappedListing = {
   values: ListingFormValues;
@@ -24,6 +25,11 @@ export type MappedListing = {
    * gruplar bunlar.
    */
   manufacturerAttrs: Record<string, string[]>;
+  /**
+   * Genel özel gruplar (üreticisiz, sabit üçlü ve gizli dışı — ör. Nadirlik).
+   * Formda ayrı kovada tutulur ve `attributes[]` payload'ına girer.
+   */
+  globalAttrs: Record<string, string[]>;
   sale: { salePrice: string; saleStartDate: string; saleEndDate: string };
   reservedQty: number;
   isPreorder: boolean;
@@ -72,10 +78,15 @@ export function toFormValues(p: MyProductResponse): MappedListing | null {
 
   const attrs: Record<string, string[]> = {};
   const manufacturerAttrs: Record<string, string[]> = {};
+  const globalAttrs: Record<string, string[]> = {};
   for (const [group, list] of Object.entries(raw)) {
     attrs[group] = list.map((a) => a.slug);
     const scoped = list.filter((a) => a.manufacturerSlug != null).map((a) => a.slug);
     if (scoped.length) manufacturerAttrs[group] = scoped;
+    const global = list
+      .filter((a) => isGlobalCustomAttributeGroup({ slug: group, manufacturerSlug: a.manufacturerSlug }))
+      .map((a) => a.slug);
+    if (global.length) globalAttrs[group] = global;
   }
 
   // Dizi sırası kanoniktir (indeks = sortOrder). Sunucu sıralı gönderse de
@@ -134,6 +145,7 @@ export function toFormValues(p: MyProductResponse): MappedListing | null {
     },
     attrs,
     manufacturerAttrs,
+    globalAttrs,
     sale: {
       salePrice: onSale ? str(price) : '',
       saleStartDate: onSale ? day(e.saleStartDate) : '',

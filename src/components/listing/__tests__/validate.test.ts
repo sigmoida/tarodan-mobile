@@ -202,3 +202,32 @@ describe('firstListingValidationError on edit — eski ilanlar kilitlenmez', () 
     expect(firstListingValidationError(t, input)).toBe('Açıklama 30 ile 330 karakter arasında olmalıdır.');
   });
 });
+
+/**
+ * Zorunlu genel özel gruplar (Nadirlik/Bulunabilirlik). Sunucu kuralı
+ * (product-common.service `enforceRequiredGroups`): oluşturmada her zaman;
+ * güncellemede yalnız gövdede `attributes` gönderildiğinde.
+ */
+describe('firstListingValidationError — zorunlu genel gruplar', () => {
+  const rarity = [{ slug: 'nadirlik-bulunabilirlik', name: 'Nadirlik/Bulunabilirlik' }];
+
+  it('oluşturmada seçilmemiş zorunlu grup reddedilir', () => {
+    const input = { ...ok(), requiredGlobalGroups: rarity, attributeSelections: {} };
+    expect(firstListingValidationError(t, input)).toBe('Lütfen Nadirlik/Bulunabilirlik seçin.');
+  });
+
+  it('seçilmişse geçer', () => {
+    const input = { ...ok(), requiredGlobalGroups: rarity, attributeSelections: { 'nadirlik-bulunabilirlik': ['chase'] } };
+    expect(firstListingValidationError(t, input)).toBeNull();
+  });
+
+  it('düzenlemede hiç özellik seçimi gönderilmiyorsa zorunlu değil (eski ilan)', () => {
+    const input = { ...ok(), isEdit: true, requiredGlobalGroups: rarity, attributeSelections: {} };
+    expect(firstListingValidationError(t, input)).toBeNull();
+  });
+
+  it('düzenlemede başka bir özellik seçimi gönderilecekse zorunlu', () => {
+    const input = { ...ok(), isEdit: true, requiredGlobalGroups: rarity, attributeSelections: { series: ['premium'] } };
+    expect(firstListingValidationError(t, input)).toBe('Lütfen Nadirlik/Bulunabilirlik seçin.');
+  });
+});

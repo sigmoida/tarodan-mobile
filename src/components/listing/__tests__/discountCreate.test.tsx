@@ -245,3 +245,57 @@ describe('oluşturmada renk ve kutu durumu', () => {
     expect(appAlert).toHaveBeenCalledWith('Hata', 'Renk zorunludur');
   });
 });
+
+/**
+ * Genel özel grup (Nadirlik/Bulunabilirlik) — sunucu zorunlu tutuyor, mobil
+ * hiç göstermiyordu ("nadirlik eklemediniz" hatası, 2026-09-30). Web gibi:
+ * seçilmeden gönderilmez; seçim `attributes[]` içinde gider.
+ */
+describe('oluşturmada nadirlik (genel özel grup)', () => {
+  const RARITY = {
+    slug: 'nadirlik-bulunabilirlik', name: 'Nadirlik/Bulunabilirlik', manufacturerSlug: null, isRequired: true,
+    attributes: [{ slug: 'chase', label: 'Chase' }, { slug: 'bulunabilir', label: 'Bulunabilir' }],
+  };
+
+  beforeEach(() => {
+    mockGet.mockReset();
+    mockPost.mockReset();
+    wireApi();
+    const base = mockGet.getMockImplementation()!;
+    mockGet.mockImplementation((url: string, ...rest: any[]) =>
+      url === '/products/attribute-groups' ? Promise.resolve({ data: [RARITY] }) : base(url, ...rest),
+    );
+    mockPost.mockResolvedValue({
+      data: [1, 2, 3].map((n) => ({
+        cardKey: `card-${n}`, detailKey: `detail-${n}`,
+        cardUrl: `https://example.com/card-${n}.jpg`, detailUrl: `https://example.com/detail-${n}.jpg`,
+      })),
+    });
+    (productsApi.create as jest.Mock).mockReset();
+    (productsApi.create as jest.Mock).mockResolvedValue({ data: {} });
+    (appAlert as jest.Mock).mockClear();
+    (appAlert as jest.Mock).mockImplementation(() => {});
+  });
+
+  it('nadirlik seçilmeden gönderilmez', async () => {
+    const { result } = renderForm();
+    await waitFor(() => expect(result.current.globalAttrGroups).toHaveLength(1));
+    await fillAndPickImages(result);
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+    expect(productsApi.create).not.toHaveBeenCalled();
+    expect(appAlert).toHaveBeenCalledWith('Hata', 'Lütfen Nadirlik/Bulunabilirlik seçin.');
+  });
+
+  it('seçilen nadirlik attributes içinde gider', async () => {
+    const { result } = renderForm();
+    await waitFor(() => expect(result.current.globalAttrGroups).toHaveLength(1));
+    await fillAndPickImages(result);
+    act(() => result.current.setGlobalAttribute('nadirlik-bulunabilirlik', 'chase'));
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+    expect(productsApi.create).toHaveBeenCalledWith(expect.objectContaining({ attributes: ['chase'] }));
+  });
+});
