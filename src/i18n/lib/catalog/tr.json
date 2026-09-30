@@ -753,7 +753,10 @@
     "tradeOpenBadge": "Takas Açık",
     "viewCountLabel": "{count} görüntülenme",
     "favoriteCountLabel": "{count} favori",
-    "reservedStockInfo": "Stok: {quantity} · {reserved} adedi aktif takas/sipariş için rezerve · Satışta görünen: {available}"
+    "reservedStockInfo": "Stok: {quantity} · {reserved} adedi aktif takas/sipariş için rezerve · Satışta görünen: {available}",
+    "additionalDetails": "Ek Özellikler",
+    "globalAttrsHint": "Tüm ilanlar için geçerli ek alanlar. Alıcılar bunlara göre filtreleyebilir.",
+    "optionsLoadFailed": "Seçenekler yüklenemedi — sayfayı yenileyin"
   },
   "cart": {
     "addToCartFailed": "Sepete eklenemedi",
@@ -7452,7 +7455,8 @@
     "colorRequiredMsg": "Lütfen en az bir renk seçin.",
     "colorLimitMsg": "En fazla {max} renk seçebilirsiniz.",
     "colorLimitHint": "En fazla {max} renk seçebilirsiniz",
-    "boxedRequiredMsg": "Lütfen ürünün kutulu olup olmadığını seçin."
+    "boxedRequiredMsg": "Lütfen ürünün kutulu olup olmadığını seçin.",
+    "attributeRequiredMsg": "Lütfen {name} seçin."
   },
   "boost": {
     "title": "İlanı Öne Çıkar",

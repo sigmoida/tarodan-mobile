@@ -341,3 +341,21 @@ describe('toFormValues — renk ve kutu durumu', () => {
     expect(withEdit({ isBoxed: null }).values.isBoxed).toBe('');
   });
 });
+
+/** Genel özel gruplar (Nadirlik) düzenlemede dolu açılır — ayrı kovada. */
+describe('toFormValues — genel özel gruplar', () => {
+  it('nadirlik seçimi globalAttrs kovasına gelir; sabit üçlü ve üreticiye bağlı gruplar gelmez', () => {
+    const m = toFormValues({
+      ...RESPONSE,
+      edit: {
+        ...EDIT,
+        attributes: [
+          ...EDIT.attributes,
+          { groupSlug: 'nadirlik-bulunabilirlik', groupName: 'Nadirlik', slug: 'chase', value: 'Chase', displayValue: 'Chase', manufacturerSlug: null },
+          { groupSlug: 'color', groupName: 'Renk', slug: 'blue', value: 'Mavi', displayValue: 'Mavi', manufacturerSlug: null },
+        ],
+      },
+    } as unknown as MyProductResponse)!;
+    expect(m.globalAttrs).toEqual({ 'nadirlik-bulunabilirlik': ['chase'] });
+  });
+});

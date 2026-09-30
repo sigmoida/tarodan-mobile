@@ -13,6 +13,10 @@ export interface ListingValidationInput {
    * renk/kutu yok; burada zorunlu tutmak onları düzenlenemez yapardı.
    */
   isEdit?: boolean;
+  /** Zorunlu genel özel gruplar (ör. Nadirlik) — `requiredGlobalGroups`. */
+  requiredGlobalGroups?: ReadonlyArray<{ slug: string; name: string }>;
+  /** Gönderilecek TÜM özel özellik seçimleri (genel + üreticiye bağlı). */
+  attributeSelections?: Record<string, string[]>;
 }
 
 /**
@@ -44,6 +48,15 @@ export function firstListingValidationError(
     if (!v.manufacturerId) return t('listing.manufacturerRequiredMsg');
     if (v.colors.length === 0) return t('listing.colorRequiredMsg');
     if (!v.isBoxed) return t('listing.boxedRequiredMsg');
+  }
+  // Zorunlu genel özel gruplar (Nadirlik/Bulunabilirlik). Sunucu kuralı
+  // (`enforceRequiredGroups`): oluşturmada her zaman; güncellemede yalnız gövdede
+  // `attributes` gönderildiğinde — mobil onu yalnız bir seçim varken gönderir.
+  const selections = input.attributeSelections ?? {};
+  const sendsAttributes = Object.values(selections).some((s) => s.length > 0);
+  if (!input.isEdit || sendsAttributes) {
+    const missing = (input.requiredGlobalGroups ?? []).find((g) => !selections[g.slug]?.length);
+    if (missing) return t('listing.attributeRequiredMsg', { name: missing.name });
   }
   // Kargo bölümü formun en altında, bu yüzden en sonda. Sunucu kademe
   // gelmediğinde `small` VARSAYIYOR ve büyük bir ürün küçük paket bedeliyle

@@ -54,6 +54,8 @@ export const qk = {
     /** Prefix roots for invalidation (match every filtered variant). */
     listingsAll: ["listings"] as const,
     myListingsAll: ["my-listings"] as const,
+    /** İlan formu: `/products/attribute-groups` (genel özel gruplar, ör. Nadirlik). */
+    attributeGroups: ["listing-form-attr-groups"] as const,
   },
 
   shipping: {

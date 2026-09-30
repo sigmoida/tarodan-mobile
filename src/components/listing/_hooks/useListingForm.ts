@@ -11,6 +11,7 @@ import { buildListingFormSchema, emptyListingFormValues } from '../_lib/schema';
 import { firstListingValidationError } from '../_lib/validate';
 import { buildColorAndBoxPayload, serverErrorMessage } from '../_lib/payload';
 import { MAX_COLORS } from '../_lib/schema';
+import { globalCustomGroups, requiredGlobalGroups } from '../_lib/attributeGroups';
 import { toFormValues } from '../_lib/editMapper';
 
 import { useAuthStore } from '../../../stores/authStore';
@@ -174,6 +175,31 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
 
   // Manufacturer-scoped extra attributes. groupSlug -> selected attribute slugs.
   const [customAttributes, setCustomAttributes] = useState<Record<string, string[]>>({});
+
+  // Genel özel gruplar (ör. Nadirlik/Bulunabilirlik) — üreticiden BAĞIMSIZ, tek
+  // seçimli; zorunlu olanı sunucu oluşturmada şart koşuyor. Mobil bunları hiç
+  // göstermiyordu (web "Ek Özellikler" kartı). Üretici değişince sıfırlanan
+  // `customAttributes`'tan ayrı tutulur ki seçim kaybolmasın.
+  const attrGroupsQuery = useQuery({
+    queryKey: qk.products.attributeGroups,
+    queryFn: async (): Promise<AttrGroup[]> => {
+      const data = (await api.get('/products/attribute-groups')).data;
+      // Beklenmedik gövde formu çökertmesin — liste değilse grup yok say.
+      return Array.isArray(data) ? (data as AttrGroup[]) : [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const globalAttrGroups = globalCustomGroups(attrGroupsQuery.data ?? []);
+  const globalAttrGroupsFailed = attrGroupsQuery.isError;
+  const [globalAttributes, setGlobalAttributes] = useState<Record<string, string[]>>({});
+  /** Tek seçim: aynı seçeneğe tekrar dokunmak seçimi kaldırır. */
+  const setGlobalAttribute = (groupSlug: string, attrSlug: string) =>
+    setGlobalAttributes((prev) => {
+      const next = { ...prev };
+      if (next[groupSlug]?.[0] === attrSlug) delete next[groupSlug];
+      else next[groupSlug] = [attrSlug];
+      return next;
+    });
   const [manufacturerAttrGroups, setManufacturerAttrGroups] = useState<AttrGroup[]>([]);
   const [showAttrGroupPicker, setShowAttrGroupPicker] = useState<string | null>(null);
   // Holds prefilled manufacturer attributes (edit) until the groups finish loading,
@@ -268,6 +294,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     // yaptığı ölçek/malzeme değişikliğini geri yazarlar.
     const scoped = mapped.manufacturerAttrs;
     setCustomAttributes(scoped);
+    setGlobalAttributes(mapped.globalAttrs);
     // Ref YALNIZ bir köprüdür: üretici-grup efekti henüz çalışmadıysa (gruplar
     // boş) seçimleri ona taşır, efekt de tüketip `null`'lar. Gruplar ZATEN
     // yüklüyken (409 dalı) kurmak, ref'in tüketilmeden asılı kalmasına yol
@@ -658,7 +685,10 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   // Submit
   // -----------------------------------------------------------------------
   const buildBasePayload = () => {
-    const customAttributeSlugs = Object.values(customAttributes).flat().filter(Boolean);
+    const customAttributeSlugs = [
+      ...Object.values(customAttributes),
+      ...Object.values(globalAttributes),
+    ].flat().filter(Boolean);
     return {
       title,
       description: description || undefined,
@@ -721,6 +751,8 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       categoryId,
       imageCount: imageKeys.length,
       isEdit,
+      requiredGlobalGroups: requiredGlobalGroups(globalAttrGroups),
+      attributeSelections: { ...customAttributes, ...globalAttributes },
     });
     if (error) {
       appAlert(t('common.error'), error);
@@ -889,6 +921,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     setIsSet(false);
     form.setValue('colors', []);
     form.setValue('isBoxed', '');
+    setGlobalAttributes({});
     setImageUris([]);
     setImageKeys([]);
     setCommissionPreview(null);
@@ -951,6 +984,8 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     // custom attrs
     customAttributes, setCustomAttributes,
     manufacturerAttrGroups,
+    globalAttrGroups, globalAttrGroupsFailed,
+    globalAttributes, setGlobalAttribute,
     showAttrGroupPicker, setShowAttrGroupPicker,
     // loading flags
     brandsLoading,

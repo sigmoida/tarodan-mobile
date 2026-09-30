@@ -416,6 +416,45 @@ export function ListingDetailsSection({ f }: SectionProps) {
         ))}
       </View>
 
+      {/* "Ek Özellikler" — genel özel gruplar (ör. Nadirlik/Bulunabilirlik), web
+          GlobalAttributesCard ile aynı: tek seçim, zorunlu olan yıldızlı. Yüklenirken
+          ve katalog boşken çizilmez; istek düştüyse sebep yazılır (satıcı zorunlu
+          alanın neden yok olduğunu sunucu 400'ünden öğrenmemeli). */}
+      {f.globalAttrGroups.length > 0 ? (
+        <>
+          <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.additionalDetails')}</Text>
+          <Text style={styles.hint}>{t('product.globalAttrsHint')}</Text>
+          {f.globalAttrGroups.map((group) => (
+            <View key={group.slug} style={{ marginTop: theme.spacing[2] }}>
+              <Text style={styles.label}>
+                {group.name} {group.isRequired ? <Text style={styles.required}>*</Text> : null}
+              </Text>
+              <View style={styles.chipWrap}>
+                {group.attributes.map((attr) => {
+                  const active = f.globalAttributes[group.slug]?.[0] === attr.slug;
+                  return (
+                    <TouchableOpacity
+                      key={attr.slug}
+                      testID={`listing-attr-${group.slug}-${attr.slug}`}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: active }}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => f.setGlobalAttribute(group.slug, attr.slug)}
+                    >
+                      <Text style={[styles.chipText, active && styles.chipTextActive]}>{attr.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          ))}
+        </>
+      ) : f.globalAttrGroupsFailed ? (
+        <Text style={[styles.hint, { color: colors.danger[600]!, marginTop: theme.spacing[4] }]}>
+          {t('product.optionsLoadFailed')}
+        </Text>
+      ) : null}
+
       <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.modelCodeLabel')}</Text>
       <TextInput
         style={styles.input}

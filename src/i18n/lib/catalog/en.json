@@ -753,7 +753,10 @@
     "tradeOpenBadge": "Open to Trade",
     "viewCountLabel": "{count} views",
     "favoriteCountLabel": "{count} favorites",
-    "reservedStockInfo": "Stock: {quantity} · {reserved} reserved for active trades/orders · Shown as available: {available}"
+    "reservedStockInfo": "Stock: {quantity} · {reserved} reserved for active trades/orders · Shown as available: {available}",
+    "additionalDetails": "Additional details",
+    "globalAttrsHint": "Extra fields that apply to every listing. Buyers can filter by these.",
+    "optionsLoadFailed": "Options could not be loaded — refresh the page"
   },
   "cart": {
     "addToCartFailed": "Could not add to cart",
@@ -7452,7 +7455,8 @@
     "colorRequiredMsg": "Please select at least one color.",
     "colorLimitMsg": "You can select up to {max} colors.",
     "colorLimitHint": "Select up to {max} colors",
-    "boxedRequiredMsg": "Please choose whether the item is boxed."
+    "boxedRequiredMsg": "Please choose whether the item is boxed.",
+    "attributeRequiredMsg": "Please select {name}."
   },
   "boost": {
     "title": "Boost Listing",
