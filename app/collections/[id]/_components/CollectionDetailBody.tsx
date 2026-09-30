@@ -3,7 +3,8 @@ import { View, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Button, Chip, Divider, Text, theme } from '@/ui';
+import { Avatar, Button, Chip, Divider, Text, theme, appAlert } from '@/ui';
+import { useAuthStore } from '@/stores/authStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedRefreshControl } from '@/components/common';
@@ -18,6 +19,7 @@ const { colors } = theme;
 /** Cover image, header buttons, collection info, items grid, and guest notice. */
 export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
   const { t } = useTranslation();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const { collection, items, id } = f;
   const insets = useSafeAreaInsets();
   // Apple App Review 1.2: sahibi olmadığın koleksiyonu şikayet edebilmelisin.
@@ -46,7 +48,19 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
           {!f.isOwner && (
             <TouchableOpacity
               style={styles.headerButton}
-              onPress={() => setReportVisible(true)}
+              onPress={() => {
+                // Misafir: POST /user-reports 401 döner ve interceptor Modal
+                // açıkken oturumu kapatıp yönlendiriyordu (iOS donma). Ürün
+                // sayfasıyla aynı — önce giriş.
+                if (!isAuthenticated) {
+                  appAlert(t('collection.report'), t('product.signInToReport'), [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    { text: t('common.login'), onPress: () => router.push('/(auth)/login') },
+                  ]);
+                  return;
+                }
+                setReportVisible(true);
+              }}
               accessibilityRole="button"
               accessibilityLabel={t('collection.report')}
             >

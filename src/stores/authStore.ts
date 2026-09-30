@@ -371,6 +371,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
     console.log("🔐 Auth stored - Tier:", mappedUser.membershipTier);
     set({ isAuthenticated: true, token, user: mappedUser, limits });
+    // Misafir/önceki oturumdan kalan listeler yeni token'la yeniden çekilsin.
+    // Token set'ten SONRA — yeniden çekim yeni token'ı taşımalı. Beklenmez:
+    // giriş ağ çağrısına takılmasın. Lazy require: döngüsel import (logout ile aynı).
+    const { resetServerStateForNewSession } = require("./resetUserStores");
+    void resetServerStateForNewSession();
     // Tag every subsequent Sentry event with the active user.
     logger.setUser({
       id: mappedUser.id,

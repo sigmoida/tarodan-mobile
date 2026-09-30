@@ -326,6 +326,7 @@
     "loginFailed": "Giriş başarısız.",
     "signingIn": "Giriş yapılıyor…",
     "continueWithApple": "Apple ile devam et",
+    "loginTermsNotice": "Giriş yaparak ya da Apple veya Google ile devam ederek Kullanım Koşulları'nı ve Gizlilik Politikası'nı kabul etmiş olursunuz.",
     "continueAsGuest": "Misafir Olarak Devam Et",
     "corporateUpgradeTitle": "Kurumsal Üyelik",
     "corporateUpgradeBody": "İşletme bilgilerinizi tamamlamışsınız. Kurumsal üyeliğe geçerek avantajlardan yararlanabilirsiniz.",
@@ -744,7 +745,15 @@
     "noManufacturerProducts": "Bu üreticiye ait ürün yok",
     "moreProductsComingSoon": "Yakında yeni ürünler eklenecek.",
     "productFallback": "Ürün",
-    "zoomPhotoA11y": "Fotoğrafı büyüt"
+    "zoomPhotoA11y": "Fotoğrafı büyüt",
+    "color": "Renk",
+    "boxedCondition": "Kutu durumu",
+    "boxed": "Kutulu",
+    "unboxed": "Kutusuz",
+    "tradeOpenBadge": "Takas Açık",
+    "viewCountLabel": "{count} görüntülenme",
+    "favoriteCountLabel": "{count} favori",
+    "reservedStockInfo": "Stok: {quantity} · {reserved} adedi aktif takas/sipariş için rezerve · Satışta görünen: {available}"
   },
   "cart": {
     "addToCartFailed": "Sepete eklenemedi",
@@ -2211,7 +2220,11 @@
       "emptyDesc": "Bir kullanıcıyı profilinden, ilanından veya mesajlardan engelleyebilirsiniz.",
       "blockedAt": "{date} tarihinde engellendi",
       "loadFailed": "Engellenen kullanıcılar yüklenemedi"
-    }
+    },
+    "guestWelcomeTitle": "Hoş Geldiniz!",
+    "guestWelcomeSubtitle": "Tarodan'a giriş yaparak tüm özelliklerden yararlanın",
+    "guestBenefitsTitle": "Üye Olarak Neler Yapabilirsiniz?",
+    "guestQuickLinksTitle": "Şimdilik Şunları Yapabilirsiniz"
   },
   "review": {
     "reviews": "Değerlendirmeler",
@@ -2365,7 +2378,8 @@
     "featuredCollectionCount": "{count} araçlık koleksiyon",
     "checkApiConnection": "API bağlantısını kontrol edin",
     "businessBadge": "👑 Business",
-    "reviewCountSuffix": "({count} yorum)"
+    "reviewCountSuffix": "({count} yorum)",
+    "noProductsYetHint": "Yeni ilanlar eklendikçe burada görünecek."
   },
   "search": {
     "search": "Ara",
@@ -2777,7 +2791,10 @@
     "cancelTitle": "Ödemeyi İptal Et",
     "cancelAction": "İptal Et",
     "retryTitle": "Ödemeyi Yeniden Dene",
-    "retryStarted": "Yeniden deneme başlatıldı"
+    "retryStarted": "Yeniden deneme başlatıldı",
+    "savedCardsIntroNeutral": "Hızlı ödeme için kayıtlı kartların. Yeni kart, ödeme sırasında \"kartımı kaydet\" ile eklenir.",
+    "deleteCardBodyNeutral": "{brand} •••• {last4} kartını silmek istediğine emin misin?",
+    "saveCardForLater": "Kartımı sonraki ödemeler için kaydet"
   },
   "seller": {
     "sellerProfile": "Satıcı Profili",
@@ -7425,7 +7442,17 @@
     "createNewA11y": "Yeni ilan oluştur",
     "boostAction": "Öne Çıkar",
     "relistAction": "Yeniden Yayınla",
-    "deleteConfirmNamed": "\"{title}\" ilanını silmek istediğinize emin misiniz? Bu işlem geri alınamaz."
+    "deleteConfirmNamed": "\"{title}\" ilanını silmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
+    "descriptionLengthMsg": "Açıklama {min} ile {max} karakter arasında olmalıdır.",
+    "minImagesMsg": "En az {min} fotoğraf ekleyin.",
+    "brandRequiredMsg": "Lütfen bir marka seçin.",
+    "scaleRequiredMsg": "Lütfen bir ölçek seçin.",
+    "materialRequiredMsg": "Lütfen malzemeyi seçin.",
+    "manufacturerRequiredMsg": "Lütfen üreticiyi seçin.",
+    "colorRequiredMsg": "Lütfen en az bir renk seçin.",
+    "colorLimitMsg": "En fazla {max} renk seçebilirsiniz.",
+    "colorLimitHint": "En fazla {max} renk seçebilirsiniz",
+    "boxedRequiredMsg": "Lütfen ürünün kutulu olup olmadığını seçin."
   },
   "boost": {
     "title": "İlanı Öne Çıkar",
@@ -7490,7 +7517,9 @@
     "holderLabel": "Hesap Sahibi *",
     "taxIdOptional": "Vergi No (opsiyonel)",
     "reverifyNotice": "Bilgileri güncellerseniz hesabınız yeniden doğrulanana kadar \"Doğrulanmadı\" durumuna döner.",
-    "tcknInvalid": "TC Kimlik No 11 rakam olmalı"
+    "tcknInvalid": "TC Kimlik No 11 rakam olmalı",
+    "payoutHint": "Satışlarınızdan elde ettiğiniz tutar bu IBAN'a aktarılır.",
+    "tcknOptionalLabel": "TC Kimlik No (opsiyonel)"
   },
   "shipping": {
     "codePending": "Kargo kodu hazırlanıyor"
@@ -8063,6 +8092,7 @@
     "s10Item3": "• Spam veya yanıltıcı içerik",
     "s10Item4": "• Platform dışı ödeme yönlendirmesi",
     "s10Item5": "• Taciz veya uygunsuz davranış",
+    "s10ZeroTolerance": "Tarodan, uygunsuz içeriğe (hakaret, nefret söylemi, taciz, tehdit, müstehcenlik, şiddet) ve kötü niyetli kullanıcılara karşı sıfır tolerans politikası uygular. Uygunsuz bir ilanı, profili, koleksiyonu veya mesajı ilgili ekrandaki \"Şikayet Et\" seçeneğiyle bildirebilir, sizi rahatsız eden bir kullanıcıyı \"Engelle\" seçeneğiyle engelleyebilirsiniz; engellediğiniz kullanıcının içerikleri akışınızdan anında kaldırılır. Bildirimler ekibimizce 24 saat içinde incelenir; kurallara aykırı içerik kaldırılır ve içeriği paylaşan hesap askıya alınır veya kalıcı olarak kapatılır.",
     "s11Title": "11. Hesap Askıya Alma",
     "s11Content": "Kural ihlali durumunda hesabınız uyarılabilir, geçici olarak askıya alınabilir veya kalıcı olarak kapatılabilir.",
     "s12Title": "12. Sorumluluk Sınırlaması",
@@ -8131,5 +8161,14 @@
     "s6Title": "6. Sorularınız İçin",
     "s6Content": "Platform Hizmet Bedeli hakkında daha fazla bilgi için Yardım Merkezi'ni ziyaret edebilir veya {email} adresinden bize ulaşabilirsiniz.",
     "disclaimer": "Bu sayfa bilgilendirme amaçlıdır; bağlayıcı sözleşme şartları için Kullanım Koşulları ve İade Politikası sayfalarımızı inceleyiniz."
+  },
+  "aboutPage": {
+    "subtitle": "Türkiye'nin diecast model araba pazarı",
+    "storyTitle": "Hikayemiz",
+    "storyText": "Tarodan, koleksiyoncular ve satıcılar için güvenli bir pazar yeri sunmak amacıyla kuruldu. Alıcı ve satıcıyı bir araya getiriyoruz. Diecast model araba tutkunlarının güvenle alım, satım ve takas yapabileceği Türkiye'nin en kapsamlı platformuyuz.",
+    "missionTitle": "Misyon",
+    "missionText": "Misyonumuz, model araba tutkunlarına en iyi alışveriş ve takas deneyimini sunmaktır. Güvenli ödeme, korumalı takas ve geniş ürün yelpazesi ile koleksiyonculuğu herkes için erişilebilir kılıyoruz.",
+    "valuesTitle": "Değerlerimiz",
+    "valuesText": "Değerlerimiz: güvenilirlik, şeffaflık ve koleksiyonculuk kültürüne saygı. Her işlemde kullanıcılarımızın güvenliğini ön planda tutarak, adil ve şeffaf bir ticaret ortamı sağlıyoruz."
   }
 }

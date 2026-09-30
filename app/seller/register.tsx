@@ -94,6 +94,9 @@ export default function SellerRegisterScreen() {
     <View style={styles.container}>
       <ScreenHeader title={t('seller.businessAccountTitle')} onBack={handleBack} />
       <ScrollView contentContainerStyle={styles.scrollBody}>
+        {/* Ücretli Business kademesinin avantajları — iOS'ta satın alınamayan bir
+            kademeyi pazarlamak olur (Apple 3.1.1/3.1.3), orada gizli. */}
+        <UpgradeCta>
         <View style={styles.benefitsCard}>
           <Text style={styles.benefitsTitle}>{t('seller.businessSellerBenefits')}</Text>
           <View style={styles.benefitRow}>
@@ -113,6 +116,7 @@ export default function SellerRegisterScreen() {
             <Text style={styles.benefitText}>{t('seller.benefitBadgeAndStats')}</Text>
           </View>
         </View>
+        </UpgradeCta>
 
         <View style={styles.noteCard}>
           <MaterialCommunityIcons name="information-outline" size={18} color={colors.info[600]!} />

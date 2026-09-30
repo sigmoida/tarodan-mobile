@@ -287,6 +287,26 @@ export const styles = StyleSheet.create({
     marginRight: theme.spacing[2],
     backgroundColor: colors.white,
   },
+  // Renk çipleri çok sayıda — yatay kaydırma yerine satıra sarar.
+  chipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    rowGap: theme.spacing[2],
+    marginTop: theme.spacing[0.5],
+  },
+  chipWithDot: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  // Renk örneği — dolgu rengi sunucu kataloğundan (`colors[].color`) gelir.
+  colorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: theme.radius.full,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    marginRight: theme.spacing[1.5],
+  },
   chipActive: {
     backgroundColor: colors.primary[600]!,
     borderColor: colors.primary[600]!,

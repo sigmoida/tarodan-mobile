@@ -10,6 +10,7 @@ import { getImageUrl as getImageUrlFromUtils } from '@/utils/imageUrl';
 import { navToken, goScale, goBrand, goCategory } from '../_lib/nav';
 import { ProductCard } from './ProductCard';
 import { styles } from '../_lib/styles';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 
 const { colors } = theme;
 
@@ -42,6 +43,7 @@ function SectionHeader({
 
 export function HeroBanner() {
   const { t } = useTranslation();
+  const { showCollectionEntry } = useFeatureAccess();
   return (
     <View style={styles.heroBanner}>
       <LinearGradient colors={[colors.primary[50]!, colors.primary[100]!]} style={styles.heroGradient}>
@@ -51,9 +53,12 @@ export function HeroBanner() {
             <Text style={styles.heroSubtitle}>{t('home.heroSubtitle')}</Text>
             <Text style={styles.heroDescription}>{t('home.slider.marketplaceSubtitle')}</Text>
             <View style={styles.heroButtons}>
-              <TouchableOpacity style={styles.heroButtonPrimary} onPress={() => router.push('/profile')}>
-                <Text style={styles.heroButtonPrimaryText}>{t('home.heroCreateCollection')}</Text>
-              </TouchableOpacity>
+              {/* iOS: koleksiyon oluşturamayana "Koleksiyon oluştur" gösterilmez. */}
+              {showCollectionEntry && (
+                <TouchableOpacity style={styles.heroButtonPrimary} onPress={() => router.push('/profile')}>
+                  <Text style={styles.heroButtonPrimaryText}>{t('home.heroCreateCollection')}</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity style={styles.heroButtonSecondary} onPress={() => router.push('/search')}>
                 <Text style={styles.heroButtonSecondaryText}>{t('home.heroBrowseMarket')}</Text>
               </TouchableOpacity>
@@ -232,7 +237,7 @@ export function PopularProducts({
           <View style={styles.emptyContainer}>
             <Ionicons name="cube-outline" size={48} color={colors.gray[300]} />
             <Text style={styles.emptyText}>{t('home.noProductsYet')}</Text>
-            <Text style={styles.emptySubtext}>{t('home.checkApiConnection')}</Text>
+            <Text style={styles.emptySubtext}>{t('home.noProductsYetHint')}</Text>
           </View>
         ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>

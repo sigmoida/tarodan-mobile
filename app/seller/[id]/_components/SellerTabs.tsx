@@ -8,6 +8,7 @@ import { Avatar, Card, Text, theme } from '@/ui';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
 import type { SellerProfileController } from '../_hooks/useSellerProfile';
+import { ReviewAuthorName } from '@/components/reviews/ReviewAuthorName';
 
 const { colors } = theme;
 
@@ -109,7 +110,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
                   <View style={styles.reviewHeader}>
                     <Avatar size="md" source={avatarUrl} name={reviewerName.substring(0, 2).toUpperCase()} />
                     <View style={styles.reviewInfo}>
-                      <Text style={styles.reviewerName}>{reviewerName}</Text>
+                      <ReviewAuthorName review={review} name={reviewerName} style={styles.reviewerName} />
                       <View style={styles.ratingStars}>
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Ionicons
@@ -121,7 +122,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
                         ))}
                         {dateStr ? (
                           <Text style={styles.reviewDate}>
-                            {new Date(dateStr).toLocaleDateString('tr-TR')}
+                            {new Date(dateStr).toLocaleDateString(t('common.dateLocale'))}
                           </Text>
                         ) : null}
                       </View>

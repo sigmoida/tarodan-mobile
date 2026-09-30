@@ -75,11 +75,11 @@ const RESPONSE = {
 describe('toFormValues — form değerlerinin TAMAMI', () => {
   /**
    * TAM-NESNE assertion'ı: alan alan kontrol, eşleyicinin YANLIŞ doldurduğu
-   * (ör. `scale`'e slug yazan) alanları görmeden geçiyordu. Şemadaki 19 alanın
+   * (ör. `scale`'e slug yazan) alanları görmeden geçiyordu. Şemadaki 21 alanın
    * hepsi burada kilitli — yeni alan eklendiğinde bu test kırılır ve
    * kaynağının bilinçli seçilmesini zorlar.
    */
-  it('19 şema alanının tamamını ölçülmüş gövdeden türetir', () => {
+  it('21 şema alanının tamamını ölçülmüş gövdeden türetir', () => {
     expect(toFormValues(RESPONSE)!.values).toEqual({
       title: 'Mini GT Volkswagen',
       description: 'Açıklama',
@@ -100,6 +100,8 @@ describe('toFormValues — form değerlerinin TAMAMI', () => {
       isPreorder: false,
       modelCode: 'SEED-0057',
       shippingPackageTier: 'small',
+      colors: [],
+      isBoxed: '',
     });
   });
 });
@@ -302,5 +304,40 @@ describe('toFormValues — etiketler', () => {
       categoryName: 'Araba',
       manufacturerName: 'TSM',
     });
+  });
+});
+
+/**
+ * Renk ve kutu durumu — 2026-09-29 production ölçümü: renkler `edit.attributes`
+ * içinde `groupSlug: 'color'` olarak gelir (slug katalogdaki kod), `isBoxed`
+ * `edit`te düz boolean. İkisi de sunucuda zorunlu; düzenleme formu onları dolu
+ * açmazsa satıcı her kayıtta yeniden seçmek zorunda kalır.
+ */
+describe('toFormValues — renk ve kutu durumu', () => {
+  const withEdit = (patch: Record<string, unknown>) =>
+    toFormValues({ ...RESPONSE, edit: { ...EDIT, ...patch } } as unknown as MyProductResponse)!;
+
+  it('renkleri `color` grubundaki niteliklerin slug`larından alır', () => {
+    const m = withEdit({
+      attributes: [
+        ...EDIT.attributes,
+        { groupSlug: 'color', groupName: 'Renk', slug: 'blue', value: 'Mavi', displayValue: 'Mavi', manufacturerSlug: null },
+        { groupSlug: 'color', groupName: 'Renk', slug: 'black', value: 'Siyah', displayValue: 'Siyah', manufacturerSlug: null },
+      ],
+    });
+    expect(m.values.colors).toEqual(['blue', 'black']);
+  });
+
+  it('renk üretici-kapsamlı nitelik sayılmaz — `attributes[]` payload`ına girmez', () => {
+    const m = withEdit({
+      attributes: [{ groupSlug: 'color', groupName: 'Renk', slug: 'blue', value: 'Mavi', displayValue: 'Mavi', manufacturerSlug: null }],
+    });
+    expect(m.manufacturerAttrs.color).toBeUndefined();
+  });
+
+  it('isBoxed true → boxed, false → unboxed, null → seçilmemiş', () => {
+    expect(withEdit({ isBoxed: true }).values.isBoxed).toBe('boxed');
+    expect(withEdit({ isBoxed: false }).values.isBoxed).toBe('unboxed');
+    expect(withEdit({ isBoxed: null }).values.isBoxed).toBe('');
   });
 });

@@ -21,9 +21,8 @@ import {
 import { supportApi } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 import {
+  LEGAL_ENTITY,
   SUPPORT_EMAIL,
-  SUPPORT_PHONE,
-  SUPPORT_WHATSAPP,
 } from "@/constants/legalFacts";
 import { styles } from './_contact/_lib/styles';
 
@@ -91,22 +90,12 @@ export default function ContactScreen() {
       value: SUPPORT_EMAIL,
       action: () => Linking.openURL(`mailto:${SUPPORT_EMAIL}`),
     },
-    {
-      icon: "call-outline",
-      title: t("common.phone"),
-      value: SUPPORT_PHONE,
-      action: () => Linking.openURL("tel:+902121234567"),
-    },
-    {
-      icon: "logo-whatsapp",
-      title: "WhatsApp",
-      value: SUPPORT_WHATSAPP,
-      action: () => Linking.openURL("https://wa.me/905321234567"),
-    },
+    // Telefon / WhatsApp hattı henüz yok — yer tutucu numara gösterilmez.
     {
       icon: "location-outline",
       title: t("common.address"),
-      value: t("information.contactInfo.addressValue"),
+      // Sözleşmelerde yayınlanan resmi adres (künye) — tek kaynak.
+      value: LEGAL_ENTITY.address,
       action: () => {},
     },
   ];

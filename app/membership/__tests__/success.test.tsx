@@ -15,6 +15,9 @@ jest.mock('expo-router', () => ({
 }));
 
 const mockRefreshUserData = jest.fn().mockResolvedValue(undefined);
+// Satın almanın açık olduğu platform (Android). iOS'ta ekran /membership'e
+// yönlendirir — ios-success-redirect.test.tsx.
+jest.mock('@/lib/purchases', () => ({ CAN_BUY_DIGITAL: true }));
 jest.mock('@/stores/authStore', () => ({
   useAuthStore: (sel?: (state: any) => unknown) => {
     const state: any = ({ refreshUserData: mockRefreshUserData });

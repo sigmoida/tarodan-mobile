@@ -16,10 +16,32 @@ import type { TFunction } from 'i18next';
  * modül seviyesinde kurulan bir şema metnini ilk yüklenen dilde donduruyordu —
  * bkz. `src/test-utils/schema.ts`.
  */
-export const buildListingFormSchema = (t: TFunction) =>
-  z.object({
-    title: z.string().trim().min(5, t('validation.minLength', { min: 5 })),
-    description: z.string().max(5000, t('validation.maxLength', { max: 5000 })),
+/** Sunucu sınırları — `apps/api/src/modules/product/dto/create-product.dto.ts`. */
+export const TITLE_MAX = 200;
+export const DESCRIPTION_MIN = 30;
+export const DESCRIPTION_MAX = 330;
+export const MIN_IMAGES = 3;
+/** `MAX_PRODUCT_COLORS` (api `common/helpers/attribute-groups.ts`). */
+export const MAX_COLORS = 3;
+
+export const buildListingFormSchema = (t: TFunction, opts: { isEdit?: boolean } = {}) => {
+  const descriptionMsg = t('listing.descriptionLengthMsg', { min: DESCRIPTION_MIN, max: DESCRIPTION_MAX });
+  const inRange = (v: string) => v.length >= DESCRIPTION_MIN && v.length <= DESCRIPTION_MAX;
+  return z.object({
+    title: z
+      .string()
+      .trim()
+      .min(5, t('validation.minLength', { min: 5 }))
+      .max(TITLE_MAX, t('validation.maxLength', { max: TITLE_MAX })),
+    /**
+     * Sunucu (`create-product.dto.ts`) 30–330 karakter zorunlu tutuyor.
+     * Düzenlemede boş açıklama hiç gönderilmez (`description || undefined`) ve
+     * güncelleme DTO'su `PartialType` — eski ilanın boş açıklaması kaydı kilitlemez.
+     */
+    description: z
+      .string()
+      .trim()
+      .refine((v) => (opts.isEdit && v.length === 0) || inRange(v), descriptionMsg),
     price: z
       .string()
       .min(1, t('common.invalidPrice'))
@@ -55,7 +77,16 @@ export const buildListingFormSchema = (t: TFunction) =>
      * kategori/fotoğraf zaten şema dışında, elle kontrol ediliyor.
      */
     shippingPackageTier: z.string(),
+    /**
+     * Katalog renk slug'ları (`GET /products/filters` → `colors`), web gibi
+     * `colors` olarak gönderilir. Sunucu en az 1, en fazla `MAX_COLORS` ister.
+     * "En az 1" `validate()`'te — hata sırası formdaki görsel sırayı izler.
+     */
+    colors: z.array(z.string()).max(MAX_COLORS, t('listing.colorLimitMsg', { max: MAX_COLORS })),
+    /** '' (seçilmedi) | 'boxed' | 'unboxed' — sunucuya boolean gider. */
+    isBoxed: z.enum(['', 'boxed', 'unboxed']),
   });
+};
 
 export type ListingFormValues = z.infer<ReturnType<typeof buildListingFormSchema>>;
 
@@ -79,4 +110,6 @@ export const emptyListingFormValues: ListingFormValues = {
   isPreorder: false,
   modelCode: '',
   shippingPackageTier: '',
+  colors: [],
+  isBoxed: '',
 };

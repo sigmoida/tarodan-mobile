@@ -56,11 +56,13 @@ Gönderim sırası: (1) 1.0.3 build TestFlight'ta ve elle denenmiş,
 > and a collection. Each report is stored, raises an admin notification, and is
 > triaged in our admin panel.
 >
-> **Terms of service before registration.** The registration screen requires
-> the user to tick "I accept the terms of use and the privacy policy" before an
-> account can be created; the form cannot be submitted without it. The Terms of
-> Service and the Privacy Policy are linked from that line and are also
-> reachable from Profile → Settings.
+> **Terms of service before registering or signing in.** The registration
+> screen requires the user to tick "I accept the terms of use and the privacy
+> policy" before an account can be created; the form cannot be submitted
+> without it. The sign-in screen — including Sign in with Apple and Google,
+> which can create an account on first use — states that continuing means
+> accepting the Terms of Use and the Privacy Policy, with both linked right
+> there. Both documents are also reachable from Profile → Settings.
 >
 > A screen recording made on a physical iPhone is provided in the Review Notes.
 > It shows, in order: accepting the terms during registration, reporting a
@@ -92,7 +94,9 @@ gönderimdeki metin korunur, altına şu blok eklenir:
       • Collection detail → flag icon
 
     Terms of service are accepted with a mandatory checkbox on the
-    registration screen before an account is created.
+    registration screen before an account is created. The sign-in screen
+    (including Sign in with Apple / Google) shows the Terms of Use and
+    Privacy Policy links with an acceptance notice before continuing.
 
     Screen recordings (physical iPhone, build 1.0.3):
       1. Terms of Service acceptance required before account creation

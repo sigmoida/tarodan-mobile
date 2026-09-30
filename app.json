@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tarodan",
     "slug": "tarodan",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "runtimeVersion": {
       "policy": "fingerprint"
     },
@@ -17,8 +17,13 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "locales": {
+      "tr": "./locales/tr.json",
+      "en": "./locales/en.json"
+    },
     "ios": {
       "supportsTablet": true,
+      "requireFullScreen": true,
       "bundleIdentifier": "com.tarodan.app",
       "usesAppleSignIn": true,
       "associatedDomains": [
@@ -27,8 +32,11 @@
       ],
       "buildNumber": "1",
       "infoPlist": {
-        "NSCameraUsageDescription": "Ürün fotoğrafı çekmek için kamera erişimi gereklidir.",
-        "NSPhotoLibraryUsageDescription": "Ürün fotoğrafı seçmek için galeri erişimi gereklidir.",
+        "NSPhotoLibraryUsageDescription": "Tarodan; ilanınıza ürün fotoğrafı eklemeniz, mesajlara ve iade taleplerine görsel eklemeniz ve profil ya da koleksiyon görseli seçmeniz için fotoğraf galerinize erişir.",
+        "UISupportedInterfaceOrientations~ipad": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown"
+        ],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -182,15 +190,11 @@
         }
       ],
       [
-        "expo-camera",
-        {
-          "cameraPermission": "Ürün fotoğrafı çekmek için kamera erişimi gereklidir."
-        }
-      ],
-      [
         "expo-image-picker",
         {
-          "photosPermission": "Ürün fotoğrafı seçmek için galeri erişimi gereklidir."
+          "photosPermission": "Tarodan; ilanınıza ürün fotoğrafı eklemeniz, mesajlara ve iade taleplerine görsel eklemeniz ve profil ya da koleksiyon görseli seçmeniz için fotoğraf galerinize erişir.",
+          "cameraPermission": false,
+          "microphonePermission": false
         }
       ],
       [
@@ -200,7 +204,12 @@
           "color": "#EA580C"
         }
       ],
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ],
       "@react-native-community/datetimepicker",
       "expo-apple-authentication",
       [

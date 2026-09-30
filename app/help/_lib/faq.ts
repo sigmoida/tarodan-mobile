@@ -3,8 +3,6 @@ import type { TFunction } from 'i18next';
 import {
   RETURN_REQUEST_DAYS,
   SUPPORT_EMAIL,
-  SUPPORT_PHONE,
-  SUPPORT_WHATSAPP,
 } from '@/constants/legalFacts';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
@@ -116,18 +114,5 @@ export const buildContactOptions = (t: TFunction): ContactOption[] => [
     icon: 'mail-outline',
     action: () => Linking.openURL(`mailto:${SUPPORT_EMAIL}`),
   },
-  {
-    id: 'whatsapp',
-    title: 'WhatsApp',
-    subtitle: SUPPORT_WHATSAPP,
-    icon: 'logo-whatsapp',
-    action: () => Linking.openURL('https://wa.me/905551234567'),
-  },
-  {
-    id: 'phone',
-    title: t('common.phone'),
-    subtitle: SUPPORT_PHONE,
-    icon: 'call-outline',
-    action: () => Linking.openURL('tel:08501234567'),
-  },
+  // Telefon / WhatsApp hattı henüz yok — yer tutucu numara gösterilmez.
 ];

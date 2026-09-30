@@ -33,6 +33,24 @@ const BLOCK_INVALIDATES = [
   qk.collections.detailAll,
   qk.follow.following,
   qk.favorites.all,
+  // Kategori/marka/üretici/model listeleri, arama önerileri, yorumlar ve puanlar
+  // ham anahtarlarla (qk dışında) sorgulanıyor; kökleri burada — yoksa 5 dk
+  // staleTime boyunca engellenenin içeriği görünmeye devam ediyordu (Apple 1.2).
+  ['category-products'],
+  ['brand-products'],
+  ['manufacturer-products'],
+  ['model-products'],
+  ['product-unavailable-similar'],
+  ['autocomplete-rich'],
+  ['autocomplete-sellers'],
+  ['liked-collections'],
+  ['product-reviews'],
+  ['product-reviews-all'],
+  ['product-rating-stats'],
+  ['seller-ratings'],
+  qk.offers.all,
+  qk.trades.all,
+  qk.notifications.list,
 ] as const;
 
 /**

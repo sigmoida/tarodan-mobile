@@ -32,6 +32,13 @@ export interface MaterialOption {
   label: string;
 }
 
+/** `GET /products/filters` → `colors`: katalog renkleri (`color` = gösterim hex'i). */
+export interface ColorOption {
+  slug: string;
+  label: string;
+  color: string | null;
+}
+
 export interface ListingLimits {
   currentCount: number;
   maxListings: number;

@@ -24,9 +24,9 @@ describe("J126 · Hakkımızda (about) render", () => {
   it("J126.4 başlık ve içerik bölümleri görünür", () => {
     renderWithProviders(<AboutScreen />);
     expect(screen.getByText("Tarodan")).toBeOnTheScreen();
-    expect(screen.getByText("Hikayemiz")).toBeOnTheScreen();
-    expect(screen.getByText("Misyon")).toBeOnTheScreen();
-    expect(screen.getByText("Değerlerimiz")).toBeOnTheScreen();
+    expect(screen.getByText("aboutPage.storyTitle")).toBeOnTheScreen();
+    expect(screen.getByText("aboutPage.missionTitle")).toBeOnTheScreen();
+    expect(screen.getByText("aboutPage.valuesTitle")).toBeOnTheScreen();
   });
 });
 

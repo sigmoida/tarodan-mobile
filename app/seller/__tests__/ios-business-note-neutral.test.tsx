@@ -53,3 +53,24 @@ describe('iOS · seller/register kurumsal hesap notu nötr', () => {
     expect(screen.queryByText('seller.switchToBusinessMembership')).toBeNull();
   });
 });
+
+/**
+ * Bireysel hesap: ekran ücretli Business kademesinin avantajlarını listeliyordu
+ * ("Sınırsız ilan, düşük komisyon", "öncelikli gösterim") — iOS'ta satın
+ * alınamayan bir kademeyi pazarlamak (Apple 3.1.1/3.1.3). Ayrı hesap notu ve
+ * düğme kalır.
+ */
+describe('iOS · seller/register bireysel hesap — avantaj listesi yok', () => {
+  beforeEach(() => {
+    resetRouterMocks();
+    mockAuthState = { isAuthenticated: true, user: { membershipTier: 'free' } };
+  });
+
+  it('ücretli kademe avantajlarını listelemez, ayrı hesap notu kalır', () => {
+    renderWithProviders(<SellerRegisterScreen />);
+    expect(screen.queryByText('seller.businessSellerBenefits')).toBeNull();
+    expect(screen.queryByText('seller.benefitUnlimitedListings')).toBeNull();
+    expect(screen.getByText('seller.businessAccountSeparateNote')).toBeOnTheScreen();
+    expect(screen.getByText('seller.openBusinessAccount')).toBeOnTheScreen();
+  });
+});

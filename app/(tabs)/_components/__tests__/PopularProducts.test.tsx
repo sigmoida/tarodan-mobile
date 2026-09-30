@@ -43,3 +43,11 @@ it('dolu durumda sarmalayıcı aynı minHeight ile render edilir', () => {
   const wrapper = screen.getByTestId('popular-rail-content');
   expect(wrapper.props.style).toEqual(styles.popularRailContent);
 });
+
+// App Review: boş rafta geliştirici metni ("API bağlantısını kontrol edin")
+// bozuk uygulama izlenimi veriyordu (Apple 2.1). Kullanıcıya dönük bir ipucu gösterilir.
+it('boş durumda geliştirici metni göstermez', () => {
+  render(<PopularProducts items={[]} isLoading={false} cartProductIds={emptySet} onProductPress={noop} />);
+  expect(screen.queryByText(/API/)).toBeNull();
+  expect(screen.getByText('Yeni ilanlar eklendikçe burada görünecek.')).toBeTruthy();
+});

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, ScrollView, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { WebView, WebViewNavigation } from 'react-native-webview';
 import { useTranslation } from 'react-i18next';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { Button, Input, Checkbox, Text, theme, appAlert } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { paymentsApi, membershipApi } from '@/lib/api';
@@ -421,7 +422,8 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
                 <Checkbox
                   checked={saveCard}
                   onChange={setSaveCard}
-                  label={t('payment.saveCardForFuture')}
+                  // iOS'ta abonelik satılmıyor (Apple 2.1(b)) — "otomatik yenileme" yok.
+                  label={t(CAN_BUY_DIGITAL ? 'payment.saveCardForFuture' : 'payment.saveCardForLater')}
                 />
               )}
             </View>
@@ -442,6 +444,15 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
         }
         style={styles.payBtn}
       />
+
+      {/* 3DS Vazgeç / bağlantı hatası sonrası gerçek durum doğrulanıyor (çift
+          tahsilatı önlemek için 2 dakikaya kadar). Yalnız dönen düğme
+          uygulamanın takıldığı izlenimini veriyordu — ne olduğunu söyle. */}
+      {verifying && !threeDSHtml ? (
+        <Text testID="payment-verifying-note" variant="caption" tone="muted" style={styles.verifyingNote}>
+          {t('payment.confirmingTitle')} · {t('payment.verifyingDesc')}
+        </Text>
+      ) : null}
 
       <View style={styles.secure}>
         <Ionicons name="shield-checkmark-outline" size={14} color={colors.success[600]} />
@@ -474,6 +485,7 @@ const styles = StyleSheet.create({
   expRow: { flexDirection: 'row', gap: theme.spacing[2.5] },
   expField: { flex: 1, marginBottom: theme.spacing[0] },
   payBtn: { marginTop: theme.spacing[2] },
+  verifyingNote: { marginTop: theme.spacing[2], textAlign: 'center' },
   secure: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: theme.spacing[1.5], marginTop: theme.spacing[1] },
   secureText: { flexShrink: 1 },
   webviewWrap: { flex: 1, minHeight: 480, overflow: 'hidden' },

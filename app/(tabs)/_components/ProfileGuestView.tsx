@@ -22,7 +22,7 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
         <Text variant="h3" tone="inverted" weight="bold">
-          Profil
+          {t('profile.profile')}
         </Text>
         <View style={{ width: 24 }} />
       </View>
@@ -42,7 +42,7 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
             <Ionicons name="person-outline" size={48} color={colors.primary[600]!} />
           </View>
           <Text variant="h1" align="center" style={{ marginTop: spacing[4] }}>
-            Hoş Geldiniz!
+            {t('profile.guestWelcomeTitle')}
           </Text>
           <Text
             variant="body"
@@ -50,7 +50,7 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
             align="center"
             style={{ marginTop: spacing[2], marginBottom: spacing[5] }}
           >
-            Tarodan'a giriş yaparak tüm özelliklerden yararlanın
+            {t('profile.guestWelcomeSubtitle')}
           </Text>
           <Button
             testID="profile-go-login-button"
@@ -74,7 +74,7 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
 
         <View style={styles.benefitsSection}>
           <Text variant="h3" style={{ marginBottom: spacing[4] }}>
-            Üye Olarak Neler Yapabilirsiniz?
+            {t('profile.guestBenefitsTitle')}
           </Text>
 
           {[
@@ -119,7 +119,7 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
 
         <View style={styles.quickLinksSection}>
           <Text variant="label" tone="muted" style={{ marginBottom: spacing[3] }}>
-            Şimdilik Şunları Yapabilirsiniz
+            {t('profile.guestQuickLinksTitle')}
           </Text>
 
           {[

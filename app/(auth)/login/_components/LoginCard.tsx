@@ -194,6 +194,24 @@ export function LoginCard({ f }: { f: LoginController }) {
         </Pressable>
       )}
 
+      {/* Apple 1.2: koşullar kayıttan VEYA girişten önce gösterilmeli. Apple/Google
+          ile devam et ilk kullanımda hesap açar ve kayıt ekranındaki onay
+          kutusundan geçmez — bildirim bu yüzden giriş kartında da duruyor. */}
+      <View style={{ marginTop: theme.spacing[3] }}>
+        <Text variant="caption" tone="muted" align="center">
+          {t('auth.loginTermsNotice')}
+        </Text>
+        <HStack justify="center" wrap gap={1} style={{ marginTop: theme.spacing[1] }}>
+          <Text testID="login-terms-link" variant="caption" tone="primary" weight="semibold" onPress={() => router.push('/terms')}>
+            {t('footer.terms')}
+          </Text>
+          <Text variant="caption" tone="muted">{t('common.and')}</Text>
+          <Text testID="login-privacy-link" variant="caption" tone="primary" weight="semibold" onPress={() => router.push('/privacy')}>
+            {t('footer.privacy')}
+          </Text>
+        </HStack>
+      </View>
+
       <Button
         testID="continue-as-guest-button"
         variant="outline"

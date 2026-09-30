@@ -6,6 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Avatar, Badge, Text, theme } from '@/ui';
 
 import { buildAvatarUrl } from '@/lib/api';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/profileStyles';
 import { buildQuickActionItems, quickActionTint, type QuickActionBadgeKey } from '../_lib/profileConstants';
@@ -145,6 +147,10 @@ export function ProfileStatsGrid({ f }: SectionProps) {
 export function ProfileGarageSection({ f }: SectionProps) {
   const { t } = useTranslation();
   const { collectionItems } = f;
+  // iOS: koleksiyon oluşturamayan kullanıcıya "Koleksiyon oluştur" kartı
+  // gösterilmez — açılan ekranda + düğmesi yok, çıkmaz sokaktı.
+  const { showCollectionEntry } = useFeatureAccess();
+  if (!showCollectionEntry && collectionItems.length === 0) return null;
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
@@ -192,6 +198,7 @@ export function ProfileGarageSection({ f }: SectionProps) {
               </Text>
             </TouchableOpacity>
           ))}
+          {showCollectionEntry && (
           <TouchableOpacity
             style={styles.collectionAddCard}
             onPress={() => router.push('/settings/collections')}
@@ -201,6 +208,7 @@ export function ProfileGarageSection({ f }: SectionProps) {
               {t('common.new')}
             </Text>
           </TouchableOpacity>
+          )}
         </ScrollView>
       ) : (
         <TouchableOpacity
@@ -345,19 +353,27 @@ export function ProfileMenuSections({ f }: SectionProps) {
           label={t('mobile.settingsPayments')}
           onPress={() => router.push('/settings/payments')}
         />
-        <MenuItem
-          testID="profile-membership-link"
-          icon="diamond-outline"
-          label={t('mobile.settingsMembershipPlan')}
-          onPress={() => router.push('/membership')}
-          rightSlot={f.isPaidTier ? <Badge variant="primary">{f.tierLabel}</Badge> : null}
-        />
-        <MenuItem
-          testID="profile-subscription-link"
-          icon="repeat-outline"
-          label={t('mobile.settingsSubscription')}
-          onPress={() => router.push('/settings/subscription')}
-        />
+        {/* iOS'ta abonelik satılmıyor (Apple 2.1(b) "references to subscriptions"):
+            ücretsiz kullanıcı "Üyelik Planı" ve "Aboneliğim" girişlerini görmez
+            (Üyelik Planı ona yalnız "Ücretsiz" gösteren bir ekran açıyordu).
+            Ücretli üye görür — iOS'ta aboneliğini iptal edebileceği tek yer. */}
+        {(CAN_BUY_DIGITAL || f.isPaidTier) && (
+          <MenuItem
+            testID="profile-membership-link"
+            icon="diamond-outline"
+            label={t('mobile.settingsMembershipPlan')}
+            onPress={() => router.push('/membership')}
+            rightSlot={f.isPaidTier ? <Badge variant="primary">{f.tierLabel}</Badge> : null}
+          />
+        )}
+        {(CAN_BUY_DIGITAL || f.isPaidTier) && (
+          <MenuItem
+            testID="profile-subscription-link"
+            icon="repeat-outline"
+            label={t('mobile.settingsSubscription')}
+            onPress={() => router.push('/settings/subscription')}
+          />
+        )}
         <MenuItem
           icon="notifications-outline"
           label={t('mobile.settingsNotifications')}
@@ -472,7 +488,7 @@ export function ProfileMenuSections({ f }: SectionProps) {
             testID={`profile-legal-${p.slug}-link`}
             icon={p.icon}
             label={p.label}
-            onPress={() => router.push(`/sayfa/${p.slug}`)}
+            onPress={() => router.push(p.route)}
           />
         ))}
       </View>

@@ -7,6 +7,7 @@ import { captureException } from "@/services/sentry";
 import { errorFingerprint } from "./requestId";
 import { authFailureKind } from "./authFailureKind";
 import { acceptLanguageHeader } from "./acceptLanguage";
+import { neutralizeUpsellError } from "./iosNeutralErrors";
 
 // API URL çözümleme sırası:
 // 1) EXPO_PUBLIC_API_URL (production / preview / staging build'leri için zorunlu)
@@ -109,6 +110,25 @@ const attachAcceptLanguage = (instance: typeof api) => {
 };
 attachAcceptLanguage(api);
 attachAcceptLanguage(guestApi);
+
+/**
+ * iOS: sunucunun "Üyeliğinizi yükseltin" türü hata metinlerini ekrana ulaşmadan
+ * nötrleştir (Apple 3.1.1/3.1.3) — gerekçe `./iosNeutralErrors`. İKİ instance'a
+ * da takılır. Lazy `require`: `@/lib/purchases` → `@/ui` ve i18next zincirini
+ * modül yükleme sırasına bağlamamak için (`currentLocale` ile aynı desen).
+ */
+const attachUpsellNeutralizer = (instance: typeof api) => {
+  instance.interceptors.response.use(undefined, (error) => {
+    try {
+      const { CAN_BUY_DIGITAL } = require("@/lib/purchases");
+      const i18n = require("@/i18n/config").default;
+      neutralizeUpsellError(error, (k: string) => i18n.t(k), CAN_BUY_DIGITAL);
+    } catch {
+      /* nötrleştirme en iyi çaba — hata akışını asla bozmaz */
+    }
+    return Promise.reject(error);
+  });
+};
 
 // Request interceptor - add auth token
 api.interceptors.request.use(
@@ -331,3 +351,8 @@ export const parseResponse = (response: any) => {
 };
 
 export default api;
+
+// Token yenileme interceptor'ından SONRA kaydedilir: yenileme/yeniden deneme
+// önce çalışır, nötrleştirme yalnız ekrana ulaşacak son hataya uygulanır.
+attachUpsellNeutralizer(api);
+attachUpsellNeutralizer(guestApi);

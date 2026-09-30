@@ -1,0 +1,5 @@
+{
+  "ios": {
+    "NSPhotoLibraryUsageDescription": "Tarodan accesses your photo library so you can add product photos to your listings, attach images to messages and return requests, and choose a profile or collection picture."
+  }
+}

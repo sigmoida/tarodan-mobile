@@ -7,6 +7,7 @@ import { asLabel } from '@/utils/format';
 import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
 import { getConditionInfo, type PriceInfo } from '../_lib/display';
 import type { Product } from '../_lib/types';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 
 const { colors } = theme;
 
@@ -36,6 +37,8 @@ export function ProductInfo({
   onOpenReviews: () => void;
 }) {
   const { t } = useTranslation();
+  // iOS: yetkisi olmayana takas/koleksiyon girişi gösterilmez (bkz. useFeatureAccess).
+  const { showTradeEntry, showCollectionEntry } = useFeatureAccess();
   const [showAllDescription, setShowAllDescription] = useState(false);
   const conditionInfo = getConditionInfo(product.condition ?? '');
   const tradeOpen = isProductTradeOpen(product);
@@ -48,7 +51,7 @@ export function ProductInfo({
           <View style={[styles.badge, { backgroundColor: colors.success[500]! }]}>
             <Ionicons name="swap-horizontal" size={14} color={colors.white} />
             <Text style={[styles.badgeText, { marginLeft: theme.spacing[1] }]} numberOfLines={1}>
-              Takas Açık
+              {t('product.tradeOpenBadge')}
             </Text>
           </View>
         )}
@@ -78,7 +81,7 @@ export function ProductInfo({
         <Pressable style={styles.headerRatingRow} onPress={onOpenReviews}>
           <Ionicons name="star" size={16} color={colors.warning[500]!} />
           <Text style={styles.headerRatingValue}>{Number(product.rating.average).toFixed(1)}</Text>
-          <Text style={styles.headerRatingCount}>({product.rating.count} değerlendirme)</Text>
+          <Text style={styles.headerRatingCount}>{t('reputation.reviewCount', { count: product.rating.count })}</Text>
         </Pressable>
       ) : null}
 
@@ -86,17 +89,17 @@ export function ProductInfo({
       <View style={styles.quickInfo}>
         <View style={styles.quickInfoItem}>
           <Ionicons name="eye-outline" size={16} color={colors.text.muted} />
-          <Text style={styles.quickInfoText}>{product.viewCount || 0} görüntülenme</Text>
+          <Text style={styles.quickInfoText}>{t('product.viewCountLabel', { count: product.viewCount || 0 })}</Text>
         </View>
         <View style={styles.quickInfoItem}>
           <Ionicons name="heart-outline" size={16} color={colors.text.muted} />
-          <Text style={styles.quickInfoText}>{favoriteCount} favori</Text>
+          <Text style={styles.quickInfoText}>{t('product.favoriteCountLabel', { count: favoriteCount })}</Text>
         </View>
         <View style={styles.quickInfoItem}>
           <Ionicons name="time-outline" size={16} color={colors.text.muted} />
           <Text style={styles.quickInfoText}>
             {product.createdAt
-              ? new Date(product.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
+              ? new Date(product.createdAt).toLocaleDateString(t('common.dateLocale'), { day: 'numeric', month: 'short' })
               : ''}
           </Text>
         </View>
@@ -110,8 +113,11 @@ export function ProductInfo({
         <View style={styles.reservedInfoBox}>
           <Ionicons name="lock-closed-outline" size={16} color={colors.warning[700]!} />
           <Text style={styles.reservedInfoText}>
-            Stok: {product.quantity} · {product.quantity - product.availableQuantity} adedi aktif takas/sipariş
-            için rezerve · Satışta görünen: {product.availableQuantity}
+            {t('product.reservedStockInfo', {
+              quantity: product.quantity,
+              reserved: product.quantity - product.availableQuantity,
+              available: product.availableQuantity,
+            })}
           </Text>
         </View>
       ) : null}
@@ -120,7 +126,7 @@ export function ProductInfo({
 
       {/* Aksiyon Bar — sahibine göre değişir. */}
       <View style={styles.actionGrid}>
-        {!isOwner && tradeOpen ? (
+        {!isOwner && tradeOpen && showTradeEntry ? (
           <Pressable style={styles.actionItem} onPress={actions.onTrade}>
             <View style={styles.actionIconWrap}>
               <Ionicons name="swap-horizontal" size={22} color={colors.primary[700]!} />
@@ -138,7 +144,7 @@ export function ProductInfo({
           </Pressable>
         )}
 
-        {isOwner && (
+        {isOwner && showCollectionEntry && (
           <Pressable style={styles.actionItem} onPress={actions.onAddToCollection}>
             <View style={styles.actionIconWrap}>
               <Ionicons name="albums-outline" size={22} color={colors.primary[700]!} />

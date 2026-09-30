@@ -11,6 +11,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { getProductEffectivePrice } from '@/utils/productPrice';
 import { formatApiErrorMessage } from '@/utils/formatApiErrorMessage';
 import { firstQueryParam, type Product } from '../_lib/types';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 
 /**
  * New-trade wizard controller — owns the 3-step state, the target/my/their
@@ -44,11 +45,8 @@ export function useNewTrade() {
   const [tradeAddressId, setTradeAddressId] = useState<string | null>(null);
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
 
-  /** Web trades/new ile aynı: limits yüklüyse onu kullan; değilse üyelik kademesi */
-  const canTrade =
-    limits != null
-      ? !!limits.canTrade
-      : ['basic', 'premium', 'business'].includes((user?.membershipTier ?? '').toLowerCase());
+  /** Web trades/new ile aynı kural — tek kaynak `useFeatureAccess`. */
+  const { canTrade } = useFeatureAccess();
 
   const { data: targetProduct } = useQuery({
     queryKey: ['trade-target-listing', listingId],

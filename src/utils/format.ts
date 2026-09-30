@@ -116,7 +116,12 @@ export function formatPriceNumber(price: number | string | null | undefined): st
   return numPrice.toLocaleString(activeNumberLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export function formatCondition(condition: string | null | undefined, locale: string = 'tr'): string {
+// Varsayılan dil ARAYÜZ dili: eskiden sabit 'tr' idi ve ürün detayındaki durum
+// rozeti İngilizce cihazda "Yeni Gibi" gösteriyordu.
+export function formatCondition(
+  condition: string | null | undefined,
+  locale: string = i18n.language === 'en' ? 'en' : 'tr',
+): string {
   if (!condition) return locale === 'en' ? 'Unknown' : 'Bilinmiyor';
 
   const conditionMap: Record<string, { tr: string; en: string }> = {

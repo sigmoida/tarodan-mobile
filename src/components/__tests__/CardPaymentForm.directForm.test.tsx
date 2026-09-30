@@ -136,6 +136,23 @@ it('3DS açıkken Vazgeç: sert başarısız saymaz, durum sorgulaması devreye 
   jest.useRealTimers();
 });
 
+// Vazgeç sonrası doğrulama 2 dakikaya kadar sürebilir (çift tahsilatı önlemek
+// için bilinçli). Bu sürede yalnız dönen düğme vardı — kullanıcı (ve App Review)
+// uygulamanın takıldığını sanıyordu. Doğrulanırken açıklama görünür.
+it('3DS Vazgeç sonrası doğrulanırken açıklama gösterir', async () => {
+  (paymentsApi.directForm as jest.Mock).mockResolvedValue({ data: signedResponse });
+  (paymentsApi.getStatusLight as jest.Mock).mockResolvedValue({ data: { status: 'pending' } });
+  jest.useFakeTimers();
+  renderWithProviders(<CardPaymentForm target={{ orderId: 'order-1' }} onSuccess={jest.fn()} onFail={jest.fn()} />);
+  await fillCardAndSubmit();
+  await waitFor(() => expect(screen.getByTestId('paytr-webview')).toBeTruthy());
+  expect(screen.queryByTestId('payment-verifying-note')).toBeNull();
+
+  fireEvent.press(screen.getByTestId('threeds-cancel'));
+  expect(screen.getByTestId('payment-verifying-note')).toBeTruthy();
+  jest.useRealTimers();
+});
+
 it('sunucudan ham kart alanı gelirse akışı iptal eder', async () => {
   (paymentsApi.directForm as jest.Mock).mockResolvedValue({
     data: { ...signedResponse, fields: [{ name: 'card_number', value: 'x' }] },

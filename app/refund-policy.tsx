@@ -7,7 +7,6 @@ import {
   REFUND_PAYOUT_DAYS,
   DAMAGE_REPORT_DAYS,
   SUPPORT_EMAIL,
-  SUPPORT_PHONE,
 } from "@/constants/legalFacts";
 
 const { colors } = theme;
@@ -76,9 +75,6 @@ export default function RefundPolicyScreen() {
 
         <Text style={styles.contactInfo}>
           {t("legalContact.emailLabel", { value: SUPPORT_EMAIL })}
-        </Text>
-        <Text style={styles.contactInfo}>
-          {t("legalContact.phoneLabel", { value: SUPPORT_PHONE })}
         </Text>
 
         <View style={{ height: 40 }} />

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme, Text, Spinner, Divider, ScreenHeader } from '@/ui';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { ratingsApi } from '@/lib/api';
+import { ReviewAuthorName } from '@/components/reviews/ReviewAuthorName';
 
 const { colors } = theme;
 
@@ -98,7 +99,7 @@ export default function ProductReviewsScreen() {
     return (
       <View style={styles.reviewCard}>
         <View style={styles.reviewHeader}>
-          <Text style={styles.reviewerName}>{reviewerName}</Text>
+          <ReviewAuthorName review={item as any} name={reviewerName} style={styles.reviewerName} />
           <View style={styles.ratingStars}>
             {[1, 2, 3, 4, 5].map((star) => (
               <Ionicons

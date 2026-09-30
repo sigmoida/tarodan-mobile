@@ -8,6 +8,9 @@ const INFO_PAGES = buildInfoPages(i18n.t);
 const ACCOUNT_PAGES = buildAccountPages(i18n.t);
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
+// Satın almanın açık olduğu platform (Android). iOS'ta ücretsiz kullanıcı
+// "Aboneliğim"i görmez — ios-subscription-menu.test.tsx.
+jest.mock('@/lib/purchases', () => ({ CAN_BUY_DIGITAL: true }));
 
 const f: any = {
   isPaidTier: false,
@@ -45,9 +48,16 @@ describe('profil menüsü — daha önce erişilemeyen ekranlar', () => {
     },
   );
 
-  it('hukuki sayfalar CMS ekranına yönlendirir', () => {
+  // CMS sayfaları (`/pages/*`) production'da yayınlanmamış (2026-09-29: 404),
+  // menü "Sayfa bulunamadı" gösteriyordu. Hukuki metinlerin uygulamada statik
+  // ekranı var — giriş/kayıt ekranındaki linkler de onları açıyor.
+  it.each([
+    ['privacy', '/privacy'],
+    ['terms', '/terms'],
+    ['cookie-policy', '/cookies'],
+  ])('hukuki sayfa %s statik ekrana (%s) gider', (slug, route) => {
     const { getByTestId } = render(<ProfileMenuSections f={f} />);
-    fireEvent.press(getByTestId('profile-legal-privacy-link'));
-    expect(router.push).toHaveBeenCalledWith('/sayfa/privacy');
+    fireEvent.press(getByTestId(`profile-legal-${slug}-link`));
+    expect(router.push).toHaveBeenCalledWith(route);
   });
 });

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Modal, Button, Input, Text, theme } from '@/ui';
+import { Modal, Button, Input, Text, ModalMessage, theme } from '@/ui';
 
 import { CityDistrictSelector, PhoneInput } from '@/components/common';
 import { styles } from '../_lib/styles';
@@ -106,6 +106,7 @@ export function AddressFormModal({ f }: { f: AddressesController }) {
           <Text style={styles.checkboxLabel}>{t('mobile.setAsDefault')}</Text>
         </Pressable>
       </ScrollView>
+      <ModalMessage state={f.formMsg.state} />
       <View style={styles.dialogActions}>
         <Button variant="ghost" title={t('mobile.cancel')} onPress={() => f.setDialogVisible(false)} />
         <Button

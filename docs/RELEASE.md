@@ -90,6 +90,36 @@ OAuth client registered with the SHA-1 from `eas credentials -p android` — the
 same command's SHA-256 output is what the deep-links gap above needs, so both
 close from one place.
 
+**Server-side requirement — Google sign-in audience.** The client IDs in
+`eas.json` are only half of the setup, and the missing half is not on this repo:
+the API verifies the incoming `idToken` against an audience list it builds from
+`GOOGLE_CLIENT_ID_WEB`, `GOOGLE_CLIENT_ID_IOS` and `GOOGLE_CLIENT_ID_ANDROID`,
+**silently dropping the ones that are undefined**. The names are labels only —
+all three land in one list, and nothing branches on platform.
+
+What the app actually sends is the key detail: `configure()` passes
+`webClientId` as the native SDK's `serverClientID`, so the `aud` claim of the
+token is the **web** client ID (`243308404313-kdc77bd36…`), *not* the iOS one.
+Until 2026-09-07 the API only knew `1048836099670-5kdee…` — a web client from a
+**different Google Cloud project**, the one the website uses. Website sign-in
+therefore worked while mobile did not: `aud` was never in the list.
+
+The symptom is easy to misread. Google's own flow succeeds — the account picker
+appears and Google sends its "new sign-in" email — and only then does
+`POST /auth/google` return 401, surfacing as "Google ile giriş başarısız …
+(kod: `ERR_BAD_REQUEST`)". That code is axios' label for any 4xx, not a Google
+error page. The API log line names the real cause:
+`Google token verify failed: Wrong recipient, payload audience != requiredAudience`.
+
+Closing it needed no rebuild — the mobile web client ID was added to the API
+environment (in the unused `GOOGLE_CLIENT_ID_ANDROID` slot, which is also where
+it belongs for Android, whose tokens carry the same `aud`) and the API
+redeployed. Note a container's environment is fixed at creation: **redeploy, not
+restart**. Three Google Cloud projects are still in play — web `1048836099670`,
+mobile `243308404313`, and `google-services.json` `575470440212` — and they
+should eventually be consolidated. That is safe to do: account linkage keys off
+the Google `sub`, which belongs to the account, not the project.
+
 ## Production
 
 Trigger: **a push to `master` in which `app.json`'s `expo.version` changed.**

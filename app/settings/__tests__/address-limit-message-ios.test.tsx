@@ -15,7 +15,11 @@ import { Platform } from 'react-native';
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-jest.mock('@/ui', () => ({ appAlert: jest.fn() }));
+jest.mock('@/ui', () => ({
+  appAlert: jest.fn(),
+  alertAfterClose: jest.fn(),
+  useModalMessage: () => ({ state: null, info: jest.fn(), error: jest.fn(), clear: jest.fn() }),
+}));
 import { appAlert } from '@/ui';
 const mockAlert = appAlert as unknown as jest.Mock;
 

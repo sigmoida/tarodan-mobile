@@ -110,6 +110,39 @@ describe('invalidasyon — engellenen anında akıştan düşer', () => {
     }
   });
 
+  // Apple 1.2: engellenenin içeriği akıştan ANINDA kalkmalı. Bu kökler
+  // BLOCK_INVALIDATES'te yoktu; 5 dk staleTime boyunca kategori/marka/model
+  // listeleri, arama önerileri, yorumlar, teklif/takas listeleri ve bildirimler
+  // engellenen kullanıcının içeriğini göstermeye devam ediyordu.
+  it('kategori/marka/model listeleri, öneriler, yorumlar, teklif/takas ve bildirimler de tazelenir', async () => {
+    const spy = jest.spyOn(client, 'invalidateQueries');
+    const { result } = renderHook(() => useBlockUser(), { wrapper });
+    act(() => result.current.requestBlock('u2', 'Ayşe'));
+    await confirmBlock();
+    await waitFor(() => expect(spy).toHaveBeenCalled());
+
+    const invalidated = spy.mock.calls.map((c) => JSON.stringify((c[0] as any).queryKey));
+    for (const key of [
+      ['category-products'],
+      ['brand-products'],
+      ['manufacturer-products'],
+      ['model-products'],
+      ['product-unavailable-similar'],
+      ['autocomplete-rich'],
+      ['autocomplete-sellers'],
+      ['liked-collections'],
+      ['product-reviews'],
+      ['product-reviews-all'],
+      ['product-rating-stats'],
+      ['seller-ratings'],
+      qk.offers.all,
+      qk.trades.all,
+      qk.notifications.list,
+    ]) {
+      expect(invalidated).toContain(JSON.stringify(key));
+    }
+  });
+
   it('önceden AÇILMIŞ ilan/koleksiyon/satıcı detayları da tazelenir', async () => {
     // Regresyon: küme yalnız liste köklerini içeriyordu. `qk.products.all`
     // (`["products"]`) tekil `["product", id]` anahtarını yakalamaz, bu yüzden
