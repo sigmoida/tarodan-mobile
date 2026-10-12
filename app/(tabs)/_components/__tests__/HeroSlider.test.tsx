@@ -40,6 +40,7 @@ jest.mock('../HomeSections', () => {
 });
 
 import { HeroSection } from '../HeroSlider';
+import { heroReservedHeight } from '../../_lib/heroLayout';
 import * as heroView from '@/lib/hero/heroView';
 import { IMPRESSION_DWELL_MS } from '@/lib/ads/useAdImpression';
 import type { HeroSlide } from '@/lib/api/hero';
@@ -81,6 +82,13 @@ describe('HeroSection', () => {
     const api = render(<HeroSection slides={[]} locale="tr" isLoading />);
     expect(api.getByTestId('hero-reserved')).toBeTruthy();
     expect(api.queryByText('STATIC_HERO')).toBeNull();
+  });
+
+  it('rezerve alan yüksekliği ekran genişliğinden hesaplanır (sabit 380 değil)', () => {
+    const { Dimensions } = require('react-native');
+    const api = render(<HeroSection slides={[]} locale="tr" isLoading />);
+    const style = StyleSheet.flatten(api.getByTestId('hero-reserved').props.style);
+    expect(style.height).toBeCloseTo(heroReservedHeight(Dimensions.get('window').width), 5);
   });
 
   it('görünür slayt yoksa statik hero', () => {

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, ScrollView, type LayoutChangeEvent, type NativeSyntheticEvent, type NativeScrollEvent } from 'react-native';
+import { View, ScrollView, useWindowDimensions, type LayoutChangeEvent, type NativeSyntheticEvent, type NativeScrollEvent } from 'react-native';
 import { Image } from 'expo-image';
 import { Button, Text } from '@/ui';
 import { heroApi, type HeroSlide } from '@/lib/api';
@@ -7,6 +7,7 @@ import { openAdLink } from '@/lib/ads/openAdLink';
 import { useAdImpression } from '@/lib/ads/useAdImpression';
 import { useScreenActive } from '@/lib/ads/useScreenActive';
 import { heroImageUrl, pickLocalized, resolveHeroCta } from '@/lib/hero/heroView';
+import { heroReservedHeight } from '../_lib/heroLayout';
 import { heroStyles as s } from '../_lib/heroStyles';
 import { HeroBanner } from './HomeSections';
 
@@ -176,15 +177,19 @@ export function HeroSlider({
             />
           ))}
       </ScrollView>
-      {count > 1 && (
-        <View style={s.dots}>
-          {slides.map((slide, i) => (
-            <View key={slide.id} style={[s.dot, i === index && s.dotActive]} />
-          ))}
-        </View>
-      )}
+      {/* Şerit tek slaytta da yer tutar: rezerve alanla gerçek yükseklik aynı kalsın. */}
+      <View style={s.dots}>
+        {count > 1 &&
+          slides.map((slide, i) => <View key={slide.id} style={[s.dot, i === index && s.dotActive]} />)}
+      </View>
     </View>
   );
+}
+
+/** Yüklenirken slider'ın kaplayacağı yüksekliği ekran genişliğinden ayırır. */
+function HeroReserved() {
+  const { width } = useWindowDimensions();
+  return <View style={[s.reserved, { height: heroReservedHeight(width) }]} testID="hero-reserved" />;
 }
 
 /**
@@ -202,7 +207,7 @@ export function HeroSection({
   isLoading?: boolean;
   visible?: boolean;
 }) {
-  if (isLoading) return <View style={s.reserved} testID="hero-reserved" />;
+  if (isLoading) return <HeroReserved />;
   if (slides.length === 0) return <HeroBanner />;
   return <HeroSlider slides={slides} locale={locale} visible={visible} />;
 }
