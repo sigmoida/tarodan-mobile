@@ -88,3 +88,6 @@ export interface OrderDetail {
   } | null;
   [key: string]: any;
 }
+
+/** Ekranın snackbar'ına mesaj basan geri çağırım (`useOrderActions.notify`). */
+export type Notify = (message: string, variant: 'success' | 'danger' | 'default') => void;

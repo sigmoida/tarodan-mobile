@@ -162,6 +162,16 @@ describe('J79 · İade talep butonu görünürlüğü', () => {
     );
     expect(screen.queryByTestId('refund-request-button')).toBeNull();
   });
+
+  it('J79.4 iade penceresi geçmiş teslimde modal açılamaz (bilgi kartı gösterilir)', async () => {
+    const old = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+    getMock.mockResolvedValue({
+      data: { data: orderFixture({ isBuyer: true, payment: { status: 'completed' }, deliveredAt: old }) },
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    expect(await screen.findByText('İade Süresi Doldu')).toBeOnTheScreen();
+    expect(screen.queryByTestId('refund-request-button')).toBeNull();
+  });
 });
 
 /**
@@ -213,6 +223,11 @@ describe('A-1.4 · İade talebinde kanıt kuralı', () => {
     );
     fireEvent.press(screen.getByText('Talep Oluştur'));
 
+    await waitFor(() =>
+      expect(screen.getByTestId('refund-evidence-hint')).toHaveTextContent(
+        'Bu sebep için en az bir kanıt fotoğrafı gereklidir',
+      ),
+    );
     expect(createMock).not.toHaveBeenCalled();
     expect(screen.getByTestId('refund-evidence-hint')).toHaveTextContent(
       'Bu sebep için en az bir kanıt fotoğrafı gereklidir',
@@ -227,8 +242,8 @@ describe('A-1.4 · İade talebinde kanıt kuralı', () => {
     fireEvent.changeText(screen.getByTestId('refund-description-input'), 'kırık');
     fireEvent.press(screen.getByText('Talep Oluştur'));
 
+    expect(await screen.findByText('Açıklama en az 20 karakter olmalıdır')).toBeOnTheScreen();
     expect(createMock).not.toHaveBeenCalled();
-    expect(screen.getByText('Açıklama en az 20 karakter olmalıdır')).toBeOnTheScreen();
   });
 });
 
