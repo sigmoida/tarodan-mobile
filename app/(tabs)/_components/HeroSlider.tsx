@@ -12,7 +12,9 @@ import { HeroBanner } from './HomeSections';
 
 const AUTOPLAY_MS = 10_000;
 
-function HeroSlideItem({
+// Memoize: sürükleme/ilerleme state'i değişince yalnız `isCurrent`/`visible` değişen
+// slayt yeniden çizilir (props'lar ilkel ya da `select` ile kararlı referans).
+const HeroSlideItem = React.memo(function HeroSlideItem({
   slide,
   locale,
   width,
@@ -83,7 +85,7 @@ function HeroSlideItem({
       </View>
     </View>
   );
-}
+});
 
 /** Admin'in tanımladığı ana sayfa slayt şeridi (yatay sayfalama + otomatik ilerleme). */
 export function HeroSlider({

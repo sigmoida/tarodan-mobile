@@ -40,6 +40,7 @@ jest.mock('../HomeSections', () => {
 });
 
 import { HeroSection } from '../HeroSlider';
+import * as heroView from '@/lib/hero/heroView';
 import { IMPRESSION_DWELL_MS } from '@/lib/ads/useAdImpression';
 import type { HeroSlide } from '@/lib/api/hero';
 
@@ -323,5 +324,17 @@ describe('HeroSection', () => {
       });
       expect(advanced()).toBe(1);
     });
+  });
+
+  it('slayt öğesi memoize: üst durum değişince (sürükleme) değişmeyen slayt yeniden çizilmez', () => {
+    const slides = [slide({ id: 'a' }), slide({ id: 'b' })];
+    const api = render(<HeroSection slides={slides} locale="tr" />);
+    layout(api);
+    const spy = jest.spyOn(heroView, 'pickLocalized');
+    spy.mockClear();
+    // Slider state'i değişir (dragging) → slider yeniden çizilir, öğeler aynı propslarla kalır.
+    fireEvent(api.getByTestId('hero-scroller'), 'scrollBeginDrag');
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
   });
 });
