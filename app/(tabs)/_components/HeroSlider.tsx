@@ -94,7 +94,10 @@ export function HeroSlider({ slides, locale }: { slides: HeroSlide[]; locale: st
   const indexRef = useRef(index);
   indexRef.current = index;
 
-  const onLayout = (e: LayoutChangeEvent) => setWidth(Math.round(e.nativeEvent.layout.width));
+  // Gerçek (yuvarlanmamış) görünüm genişliği — `pagingEnabled` sayfayı bu genişlikle
+  // böler; yuvarlama her sayfada birikerek kaymaya yol açar. Ölçüm kenarlığı olan
+  // kabuktan değil, ScrollView'in kendisinden alınır (sayfa = görünür alan).
+  const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
 
   const goTo = useCallback(
     (i: number) => {
@@ -128,24 +131,26 @@ export function HeroSlider({ slides, locale }: { slides: HeroSlide[]; locale: st
   };
 
   return (
-    <View style={s.shell} onLayout={onLayout} testID="hero-slider">
-      {width > 0 && (
-        <ScrollView
-          ref={scroller}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onScrollBeginDrag={() => setDragging(true)}
-          // Momentum olmadan biten sürüklemede `onMomentumScrollEnd` gelmeyebilir: burada da devam et.
-          onScrollEndDrag={() => setDragging(false)}
-          onMomentumScrollEnd={onMomentumEnd}
-          scrollEventThrottle={16}
-        >
-          {slides.map((slide, i) => (
+    <View style={s.shell} testID="hero-slider">
+      {/* ScrollView her zaman bağlı: genişlik ancak kendi yerleşiminden öğrenilir. */}
+      <ScrollView
+        ref={scroller}
+        onLayout={onLayout}
+        testID="hero-scroller"
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScrollBeginDrag={() => setDragging(true)}
+        // Momentum olmadan biten sürüklemede `onMomentumScrollEnd` gelmeyebilir: burada da devam et.
+        onScrollEndDrag={() => setDragging(false)}
+        onMomentumScrollEnd={onMomentumEnd}
+        scrollEventThrottle={16}
+      >
+        {width > 0 &&
+          slides.map((slide, i) => (
             <HeroSlideItem key={slide.id} slide={slide} locale={locale} width={width} isCurrent={i === index} />
           ))}
-        </ScrollView>
-      )}
+      </ScrollView>
       {count > 1 && (
         <View style={s.dots}>
           {slides.map((slide, i) => (

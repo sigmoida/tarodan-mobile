@@ -4,7 +4,7 @@
  * `?cta=` ile TEK istek olarak sayılır, gösterim görünürlükte (mount'ta değil).
  */
 import React from 'react';
-import { ScrollView } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
 const mockRecordClick = jest.fn((..._a: unknown[]) => Promise.resolve());
@@ -57,8 +57,8 @@ const loadImage = (api: ReturnType<typeof render>, id: string) =>
     api.getByTestId(`hero-image-${id}`).props.onLoad({ nativeEvent: { source: { width: 800, height: 500 } } });
   });
 
-const layout = (api: ReturnType<typeof render>) =>
-  fireEvent(api.getByTestId('hero-slider'), 'layout', { nativeEvent: { layout: { width: 320, height: 400 } } });
+const layout = (api: ReturnType<typeof render>, width = 320) =>
+  fireEvent(api.getByTestId('hero-scroller'), 'layout', { nativeEvent: { layout: { width, height: 400 } } });
 
 describe('HeroSection', () => {
   beforeEach(() => {
@@ -147,7 +147,7 @@ describe('HeroSection', () => {
     const api = render(<HeroSection slides={three} locale="tr" />);
     layout(api);
     // Kullanıcı 3. sayfaya (320 genişlikte x=640) kaydırdı.
-    fireEvent(api.getByTestId('hero-slider').findByType(ScrollView), 'momentumScrollEnd', {
+    fireEvent(api.getByTestId('hero-scroller'), 'momentumScrollEnd', {
       nativeEvent: { contentOffset: { x: 640 } },
     });
     scrollTo.mockClear();
@@ -176,7 +176,7 @@ describe('HeroSection', () => {
       scrollTo.mockClear();
       return api;
     };
-    const scroller = (api: ReturnType<typeof render>) => api.getByTestId('hero-slider').findByType(ScrollView);
+    const scroller = (api: ReturnType<typeof render>) => api.getByTestId('hero-scroller');
     const advanced = () => scrollTo.mock.calls.filter(([a]) => a.animated === true).length;
 
     it('10 sn sonra sonraki slayta geçer', () => {
@@ -214,6 +214,31 @@ describe('HeroSection', () => {
         jest.advanceTimersByTime(AUTOPLAY);
       });
       expect(advanced()).toBe(1);
+    });
+  });
+
+  describe('genişlik', () => {
+    let scrollTo: jest.SpyInstance;
+    beforeEach(() => {
+      scrollTo = jest.spyOn(ScrollView.prototype as any, 'scrollTo').mockImplementation(() => {});
+    });
+    afterEach(() => scrollTo.mockRestore());
+
+    it('slayt genişliği yuvarlanmaz: gerçek layout.width kullanılır', () => {
+      const api = render(<HeroSection slides={[slide()]} locale="tr" />);
+      layout(api, 320.4);
+      expect(StyleSheet.flatten(api.getByTestId('hero-slide-s1').props.style).width).toBe(320.4);
+    });
+
+    it('genişlik değişince (döndürme/bölünmüş ekran) ofset current*width ile yeniden oturur', () => {
+      const api = render(<HeroSection slides={[slide({ id: 'a' }), slide({ id: 'b' })]} locale="tr" />);
+      layout(api, 320);
+      fireEvent(api.getByTestId('hero-scroller'), 'momentumScrollEnd', {
+        nativeEvent: { contentOffset: { x: 320 } },
+      });
+      scrollTo.mockClear();
+      layout(api, 480.5);
+      expect(scrollTo).toHaveBeenLastCalledWith({ x: 480.5, animated: false });
     });
   });
 });
