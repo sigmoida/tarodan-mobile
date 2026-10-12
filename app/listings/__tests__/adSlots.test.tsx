@@ -3,6 +3,7 @@
  * reklam yuvaları. Izgara 2 sütunlu satırlara bölünür; afiş tam genişlikte.
  */
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { render } from '@testing-library/react-native';
 
 const mockListings = jest.fn();
@@ -68,5 +69,23 @@ describe('/listings reklam yuvaları', () => {
     expect(queryByTestId('slot-header')).toBeTruthy();
     expect(queryByTestId('slot-footer')).toBeTruthy();
     expect(queryByTestId('slot-inline-0')).toBeNull();
+  });
+
+  it('kart satırı yatay (flexDirection: row): ikinci kart ilkinin yanında, altında değil', () => {
+    mockListings.mockReturnValue(controller(3));
+    const { getByTestId } = render(<ListingsScreen />);
+    // Kartın en yakın stilli atası = satır View'ı.
+    const rowOf = (id: string) => {
+      let node = getByTestId(`card-${id}`).parent;
+      while (node && !node.props.style) node = node.parent;
+      return node!;
+    };
+    const flat = (id: string) => StyleSheet.flatten(rowOf(id).props.style);
+    expect(flat('p1').flexDirection).toBe('row');
+    // p1 ve p2 aynı satırda; p3 ikinci satırda (tek kart, sola dayalı).
+    expect(rowOf('p1')).toBe(rowOf('p2'));
+    expect(rowOf('p3')).not.toBe(rowOf('p1'));
+    expect(flat('p3').flexDirection).toBe('row');
+    expect(flat('p3').justifyContent).toBe('space-between');
   });
 });
