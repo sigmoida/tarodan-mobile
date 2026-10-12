@@ -8,7 +8,7 @@ import { qk } from "@/lib/query";
 import { useAuthStore } from "@/stores/authStore";
 import { useTranslation } from "react-i18next";
 import type { Listing, FilterType } from "../_lib/types";
-import { activationMessageKey } from "../_lib/activation";
+import { activationMessageKey } from "@/components/listing/_lib/activation";
 
 const { colors } = theme;
 
