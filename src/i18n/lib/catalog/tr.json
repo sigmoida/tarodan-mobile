@@ -7284,7 +7284,13 @@
     "tipsSection": "Güvenlik İpuçları",
     "twoFactorSetupFailed": "2FA kurulumu başarısız",
     "twoFactorSetupModalTitle": "2FA Kurulumu",
-    "twoFactorDisableModalTitle": "2FA'yı Kapat"
+    "twoFactorDisableModalTitle": "2FA'yı Kapat",
+    "phoneSavedVerifyTitle": "Numaranızı doğrulayın",
+    "phoneSavedVerifyBody": "Profiliniz güncellendi. Yeni numaranız SMS ile doğrulanana kadar \"Doğrulanmadı\" olarak görünür.",
+    "phoneNotSavedTitle": "Numara henüz kaydedilmedi",
+    "phoneNotSavedBody": "Diğer profil bilgileriniz kaydedildi, ancak bu numara başka bir hesapta doğrulanmamış olarak duruyor. Numarayı hesabınıza almak için SMS doğrulamasını tamamlayın; doğrulama başarılı olunca numara hesabınıza geçer.",
+    "verifyNow": "Şimdi doğrula",
+    "verifyLater": "Daha sonra"
   },
   "discount": {
     "editTitle": "İndirimi Düzenle",

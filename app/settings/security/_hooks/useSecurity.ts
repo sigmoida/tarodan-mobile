@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { qk } from "@/lib/query";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { appAlert, useModalMessage, alertAfterClose } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
 import { authApi } from "@/lib/api";
@@ -82,14 +82,7 @@ export function useSecurity() {
     return () => clearInterval(id);
   }, [resendIn]);
 
-  const handleSendPhoneCode = async () => {
-    // Çözülemeyen numarayı sunucuya sormadan burada durdur — kullanıcı reddin
-    // sebebini görsün (diğer telefon yollarıyla aynı sözleşme, Plan 4).
-    const e164 = parsePhoneForPayload(phoneInput, phoneCountryCode);
-    if (!e164) {
-      setPhoneMsg({ type: "error", text: getPhoneInvalidMessage() });
-      return;
-    }
+  const sendPhoneCodeTo = async (e164: string) => {
     setLoading(true);
     setPhoneMsg(null);
     try {
@@ -110,6 +103,38 @@ export function useSecurity() {
       setLoading(false);
     }
   };
+
+  const handleSendPhoneCode = async () => {
+    // Çözülemeyen numarayı sunucuya sormadan burada durdur — kullanıcı reddin
+    // sebebini görsün (diğer telefon yollarıyla aynı sözleşme, Plan 4).
+    const e164 = parsePhoneForPayload(phoneInput, phoneCountryCode);
+    if (!e164) {
+      setPhoneMsg({ type: "error", text: getPhoneInvalidMessage() });
+      return;
+    }
+    await sendPhoneCodeTo(e164);
+  };
+
+  // B-1.7 — profilde yeni numara kaydedildi (`?verifyPhone=+90…`): web'deki gibi
+  // kaydetmek ve kanıtlamak tek hareket — pencere o numarayla açılır ve kod
+  // hemen gönderilir. Ref, aynı açılışta ikinci SMS'i (60 sn bekleme) önler.
+  const { verifyPhone } = useLocalSearchParams<{ verifyPhone?: string }>();
+  const autoSentFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isAuthenticated || !verifyPhone || autoSentFor.current === verifyPhone) return;
+    autoSentFor.current = verifyPhone;
+    const seed = splitPhone(verifyPhone);
+    setPhoneCountryCode(seed.countryCode);
+    setPhoneInput(seed.phone);
+    setPhoneStep("enter");
+    setPhoneCode("");
+    setPhoneMsg(null);
+    setPhoneVerified(false);
+    setShowPhoneDialog(true);
+    const e164 = parsePhoneForPayload(seed.phone, seed.countryCode);
+    if (e164) void sendPhoneCodeTo(e164);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, verifyPhone]);
 
   const handleVerifyPhone = async () => {
     setLoading(true);

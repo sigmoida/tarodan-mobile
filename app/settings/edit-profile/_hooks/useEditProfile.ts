@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
+import { router } from 'expo-router';
+import { appAlert } from '@/ui';
 import { userApi, mediaApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import {
@@ -13,6 +15,7 @@ import {
   splitPhone,
 } from '@/utils/phone';
 import { buildProfileSchema, type ProfileForm } from '../_lib/schema';
+import { resolvePhoneOutcome } from '../_lib/phoneOutcome';
 
 /**
  * Edit-profile controller — owns the RHF+zod form, the avatar pick + upload,
@@ -121,16 +124,44 @@ export function useEditProfile() {
         if (payload[key] === '') payload[key] = undefined;
       });
 
-      return userApi.updateProfile(payload);
+      const res = await userApi.updateProfile(payload);
+      return {
+        outcome: resolvePhoneOutcome(
+          (user as any)?.phone,
+          payload.phone,
+          (res?.data as any)?.phone,
+        ),
+        sentPhone: payload.phone as string | undefined,
+      };
     },
-    onSuccess: async () => {
+    onSuccess: async ({ outcome, sentPhone }) => {
       // Store'u taze /users/me ile güncelle: mapApiUserToUser, API'nin döndürdüğü
       // 'avatarUrl' alanını UI'ın okuduğu 'avatar' alanına eşler. Aksi halde
       // updateUser ham yanıtı sığ merge ettiği için 'avatar' bayat kalır ve
       // profilde yeni foto görünmez. Web'deki refreshUser() ile parite.
+      // Numara değiştiyse `isPhoneVerified` da burada false'a döner ("doğrulanmış
+      // üye" kriteri, authStore.isVerifiedMember).
       await refreshUserData();
       queryClient.invalidateQueries({ queryKey: ['user'] });
-      setSnackbar({ visible: true, message: t('profile.profileUpdated'), variant: 'success' });
+      if (outcome === 'unchanged' || !sentPhone) {
+        setSnackbar({ visible: true, message: t('profile.profileUpdated'), variant: 'success' });
+        return;
+      }
+      // B-1.7 — yeni numara: web gibi kaydı doğrulamaya bağla. Kaydedilmediyse
+      // (başka hesapta doğrulanmamış duruyor) başarı DEĞİL; numarayı devralmanın
+      // tek yolu SMS doğrulaması olduğu için yine oraya yönlendir. Bu ekranda
+      // açık modal yok — appAlert güvenli.
+      const goVerify = () =>
+        router.push({ pathname: '/settings/security', params: { verifyPhone: sentPhone } } as never);
+      const notSaved = outcome === 'notSaved';
+      appAlert(
+        t(notSaved ? 'security.phoneNotSavedTitle' : 'security.phoneSavedVerifyTitle'),
+        t(notSaved ? 'security.phoneNotSavedBody' : 'security.phoneSavedVerifyBody'),
+        [
+          { text: t('security.verifyLater'), style: 'cancel' },
+          { text: t('security.verifyNow'), onPress: goVerify },
+        ],
+      );
     },
     onError: (error: any) => {
       // Client-side telefon reddi ağ hatası değil — alana da yaz, snackbar'da da göster.

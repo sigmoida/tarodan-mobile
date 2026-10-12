@@ -7284,7 +7284,13 @@
     "tipsSection": "Security Tips",
     "twoFactorSetupFailed": "2FA setup failed",
     "twoFactorSetupModalTitle": "2FA Setup",
-    "twoFactorDisableModalTitle": "Turn Off 2FA"
+    "twoFactorDisableModalTitle": "Turn Off 2FA",
+    "phoneSavedVerifyTitle": "Verify your number",
+    "phoneSavedVerifyBody": "Your profile was updated. Your new number shows as \"Not verified\" until you confirm it by SMS.",
+    "phoneNotSavedTitle": "Number not saved yet",
+    "phoneNotSavedBody": "Your other profile details were saved, but this number is held unverified on another account. Complete SMS verification to move the number to your account; it is transferred once verification succeeds.",
+    "verifyNow": "Verify now",
+    "verifyLater": "Later"
   },
   "discount": {
     "editTitle": "Edit Discount",
