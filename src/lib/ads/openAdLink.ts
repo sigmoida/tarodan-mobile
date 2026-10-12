@@ -2,6 +2,7 @@ import { Linking } from 'react-native';
 import { router } from 'expo-router';
 import { pathFromUrl, stripLocalePrefix } from '@/lib/deeplinks';
 import { toMobileRoute } from '@/utils/notificationRoute';
+import { isPurchasePath } from './purchasePath';
 import { safeAdHref } from './safeAdHref';
 
 /** Uygulama içi web ekranı (`app/in-app-web.tsx`) — mobil karşılığı olmayan site yolları için. */
@@ -40,15 +41,6 @@ export type AdLinkTarget =
   | { kind: 'web'; url: string }
   /** Güvensiz şema ya da satın almaya götüren hedef → hiçbir şey açılmaz. */
   | { kind: 'blocked' };
-
-/**
- * Dijital satış (üyelik, boost/öne çıkarma) kapalı — reklam bağlantısı bu
- * ekranlara götürmemeli (Apple 3.1.1/3.1.3; Play ödeme politikası). Web ve
- * mobil yol adları birlikte listelenir. Kapı platformdan bağımsız: iki
- * mağazada da dijital satış yok.
- */
-const PURCHASE_PATH =
-  /^\/(membership|pricing|upgrade|boost|premium|subscription|profile\/(membership|boost|subscription)|settings\/subscription)(\/|$)/;
 
 /** Web yolu → mobil rota adı farklı olanlar. */
 function renamedRoute(seg: string[]): string | null {
@@ -117,14 +109,16 @@ export function resolveAdLink(linkUrl: string | null | undefined): AdLinkTarget 
 
   const path = pathFromUrl(safe) ?? '/';
   const [rawPath] = path.split('?');
+  // Sorgu (filtre) korunur; locale öneki rotadan SOYULUR (`/en/listings` diye rota yok).
+  const query = path.includes('?') ? path.slice(path.indexOf('?')) : '';
   const barePath = stripLocalePrefix(rawPath!.replace(/\/+$/, '') || '/');
 
-  if (PURCHASE_PATH.test(barePath)) return { kind: 'blocked' };
+  if (isPurchasePath(barePath)) return { kind: 'blocked' };
 
   // İlan listesi eşleyiciye VERİLMEZ: `toMobileRoute` `/listings`'i sorgusuz
   // arama sekmesine çeviriyor, reklamın filtresi (`?manufacturer=…`) düşerdi.
   // Mobil `app/listings` web ile aynı sorgu parametrelerini okuyor.
-  if (barePath === '/listings') return { kind: 'route', route: path };
+  if (barePath === '/listings') return { kind: 'route', route: `${barePath}${query}` };
 
   const seg = barePath.split('/').filter(Boolean);
   const renamed = renamedRoute(seg);
