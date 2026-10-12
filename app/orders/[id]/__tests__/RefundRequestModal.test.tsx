@@ -154,3 +154,86 @@ it('şema yalnız t değişince yeniden kurulur (her tuşta değil)', () => {
   expect(spy.mock.calls.length).toBe(builds);
   spy.mockRestore();
 });
+
+/**
+ * İnceleme 1 · URL döndürmeyen kanıt yüklemesi eskiden sessizce eleniyordu;
+ * talep kanıtsız gidip sunucudan `400 evidenceRequired` alıyordu. Artık yükleme
+ * hatası sayılır: hata modalın içinde görünür ve talep gönderilmez.
+ */
+describe('kanıt yüklemesi', () => {
+  // Yükleme → setError zinciri asenkron; act içinde boşaltılır.
+  const submit = () =>
+    act(async () => {
+      fireEvent.press(screen.getByText('Talep Oluştur'));
+    });
+
+  async function fillFaultClaim() {
+    fireEvent.press(screen.getByText('Hasarlı geldi'));
+    fireEvent.changeText(screen.getByTestId('refund-description-input'), LONG);
+    fireEvent.press(screen.getByLabelText('Fotoğraf ekle'));
+    await waitFor(() => expect(screen.getAllByTestId('refund-evidence-thumb')).toHaveLength(1));
+  }
+
+  it.each([
+    ['URL döndürmeyen yükleme', () => uploadMock.mockResolvedValueOnce({ data: {} })],
+    ['boş URL', () => uploadMock.mockResolvedValueOnce({ data: { url: '' } })],
+    ['reddedilen yükleme', () => uploadMock.mockRejectedValueOnce(new Error('network'))],
+  ])('%s: hata modalda, talep gitmez, modal açık kalır', async (_label, arrange) => {
+    arrange();
+    const onClose = jest.fn();
+    renderWithProviders(<Harness onClose={onClose} />);
+    await fillFaultClaim();
+
+    await submit();
+
+    expect(screen.getByTestId('refund-evidence-hint')).toHaveTextContent(
+      'Kanıt fotoğrafları yüklenemedi. Lütfen tekrar deneyin.',
+    );
+    expect(uploadMock).toHaveBeenCalledTimes(1);
+    expect(createMock).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByText(TITLE)).toBeOnTheScreen();
+    // Seçilen fotoğraf kaybolmaz — kullanıcı yeniden deneyebilir.
+    expect(screen.getAllByTestId('refund-evidence-thumb')).toHaveLength(1);
+  });
+
+  it('bir fotoğraf URL\'siz gelirse diğerinin URL\'siyle de gönderilmez (hepsi ya da hiçbiri)', async () => {
+    launchMock.mockResolvedValueOnce({
+      canceled: false,
+      assets: [
+        { uri: 'file:///a.jpg', fileName: 'a.jpg', mimeType: 'image/jpeg' },
+        { uri: 'file:///b.jpg', fileName: 'b.jpg', mimeType: 'image/jpeg' },
+      ],
+    });
+    uploadMock.mockResolvedValueOnce({ data: { url: 'https://cdn/a.jpg' } }).mockResolvedValueOnce({ data: {} });
+    renderWithProviders(<Harness />);
+    fireEvent.press(screen.getByText('Hasarlı geldi'));
+    fireEvent.changeText(screen.getByTestId('refund-description-input'), LONG);
+    fireEvent.press(screen.getByLabelText('Fotoğraf ekle'));
+    await waitFor(() => expect(screen.getAllByTestId('refund-evidence-thumb')).toHaveLength(2));
+
+    await submit();
+
+    expect(screen.getByTestId('refund-evidence-hint')).toHaveTextContent(
+      'Kanıt fotoğrafları yüklenemedi. Lütfen tekrar deneyin.',
+    );
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it('yükleme başarılıysa URL\'lerle gönderilir; modal talepten ÖNCE kapanır', async () => {
+    const onClose = jest.fn();
+    renderWithProviders(<Harness onClose={onClose} />);
+    await fillFaultClaim();
+
+    await submit();
+
+    await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1));
+    expect(createMock).toHaveBeenCalledWith('order-1', {
+      reason: 'damaged',
+      description: LONG,
+      evidencePhotoUrls: ['https://cdn/evidence.jpg'],
+    });
+    expect(onClose.mock.invocationCallOrder[0]).toBeLessThan(createMock.mock.invocationCallOrder[0]);
+    expect(uploadMock.mock.invocationCallOrder[0]).toBeLessThan(onClose.mock.invocationCallOrder[0]);
+  });
+});
