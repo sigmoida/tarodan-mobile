@@ -1,0 +1,190 @@
+/**
+ * B-2.3 · Yeniden-onay kapısı (delta 22). `GET /consents/me/pending` boş değilse
+ * girişte ve uygulama ön plana geldiğinde kapatılamaz ekran; tek çıkış onaylamak
+ * ya da oturumu kapatmak. Web `RequiredStepsGate` + `ConsentGate` ile aynı kurallar.
+ */
+import React from 'react';
+import { AppState, BackHandler } from 'react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { renderWithProviders } from '@/test-utils';
+import { pushMock, replaceMock, resetRouterMocks } from '@/test-utils/router-mock';
+import type { PendingConsent } from '@/lib/shared/legalConsent';
+
+let mockPathname = '/';
+jest.mock('expo-router', () => ({
+  ...jest.requireActual('@/test-utils/router-mock').routerMock,
+  usePathname: () => mockPathname,
+}));
+
+jest.mock('@/lib/api', () => ({
+  consentsApi: { getPending: jest.fn(), accept: jest.fn() },
+  errorText: jest.requireActual('@/lib/api/errorText').errorText,
+}));
+
+import { consentsApi } from '@/lib/api';
+import { qk } from '@/lib/query';
+import { useAuthStore } from '@/stores/authStore';
+import RequiredStepsGate from '../RequiredStepsGate';
+
+const mockGetPending = consentsApi.getPending as jest.Mock;
+const mockAccept = consentsApi.accept as jest.Mock;
+const mockLogout = jest.fn(() => Promise.resolve());
+
+const ALL: PendingConsent[] = [
+  { document: 'terms', version: '2026-08-05', reason: 'missing', path: '/terms' },
+  { document: 'privacy', version: '2026-08-04', reason: 'missing', path: '/privacy' },
+  { document: 'kvkk', version: '2026-08-04', reason: 'missing', path: '/privacy' },
+];
+
+function signIn(authenticated = true) {
+  useAuthStore.setState({ isAuthenticated: authenticated, isLoading: false, logout: mockLogout });
+}
+
+beforeEach(() => {
+  mockPathname = '/';
+  resetRouterMocks();
+  mockGetPending.mockReset();
+  mockAccept.mockReset();
+  mockLogout.mockClear();
+  signIn();
+});
+
+describe('B-2.3 · RequiredStepsGate (onay kapısı)', () => {
+  it('bekleyen onay yoksa hiçbir şey çizmez', async () => {
+    mockGetPending.mockResolvedValue({ data: { pending: [] } });
+    const { queryClient } = renderWithProviders(<RequiredStepsGate />);
+    await waitFor(() =>
+      expect(queryClient.getQueryState(qk.consents.pending)?.status).toBe('success'),
+    );
+    expect(screen.queryByTestId('consent-gate')).toBeNull();
+  });
+
+  it('misafirde sorgu hiç atılmaz', () => {
+    signIn(false);
+    renderWithProviders(<RequiredStepsGate />);
+    expect(mockGetPending).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('consent-gate')).toBeNull();
+  });
+
+  it('istek başarısızsa kapı açık kalır (fail-open, sunucu zorlamıyor)', async () => {
+    // Ör. ucu henüz olmayan bir sunucu: 404 (4xx yeniden denenmez).
+    mockGetPending.mockRejectedValue({ response: { status: 404 } });
+    const { queryClient } = renderWithProviders(<RequiredStepsGate />);
+    await waitFor(() =>
+      expect(queryClient.getQueryState(qk.consents.pending)?.status).toBe('error'),
+    );
+    expect(mockGetPending).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId('consent-gate')).toBeNull();
+  });
+
+  it('bekleyen belgeler varsa her biri için ayrı kutu; hepsi işaretlenmeden gönderilemez', async () => {
+    mockGetPending.mockResolvedValue({ data: { pending: ALL } });
+    renderWithProviders(<RequiredStepsGate />);
+    expect(await screen.findByTestId('consent-gate')).toBeOnTheScreen();
+    expect(screen.getByText('Devam etmek için aşağıdaki belgeleri okuyup onaylamanız gerekiyor.')).toBeOnTheScreen();
+    expect(screen.getByTestId('consent-gate-terms')).toBeOnTheScreen();
+    expect(screen.getByTestId('consent-gate-privacy')).toBeOnTheScreen();
+    expect(screen.getByTestId('consent-gate-kvkk')).toBeOnTheScreen();
+
+    const submit = screen.getByTestId('consent-gate-submit');
+    expect(submit).toBeDisabled();
+    fireEvent.press(screen.getByTestId('consent-gate-terms'));
+    fireEvent.press(screen.getByTestId('consent-gate-privacy'));
+    expect(submit).toBeDisabled();
+    fireEvent.press(screen.getByTestId('consent-gate-kvkk'));
+    expect(submit).not.toBeDisabled();
+  });
+
+  it('onay POST /consents/me/accept ile bekleyen belgeleri gönderir; kalan boşsa kapı kapanır', async () => {
+    mockGetPending.mockResolvedValue({ data: { pending: ALL } });
+    mockAccept.mockResolvedValue({ data: { pending: [] } });
+    renderWithProviders(<RequiredStepsGate />);
+    await screen.findByTestId('consent-gate');
+    for (const d of ['terms', 'privacy', 'kvkk']) fireEvent.press(screen.getByTestId(`consent-gate-${d}`));
+    fireEvent.press(screen.getByTestId('consent-gate-submit'));
+
+    await waitFor(() => expect(mockAccept).toHaveBeenCalledWith(['terms', 'privacy', 'kvkk']));
+    await waitFor(() => expect(screen.queryByTestId('consent-gate')).toBeNull());
+    // Yanıt kalan bekleyenlerdir: kapanmak için ek GET gerekmez.
+    expect(mockGetPending).toHaveBeenCalledTimes(1);
+  });
+
+  it('güncellenen belgede "güncellendi" metni gösterilir', async () => {
+    mockGetPending.mockResolvedValue({
+      data: { pending: [{ document: 'terms', version: '2026-09-01', reason: 'outdated', path: '/terms' }] },
+    });
+    renderWithProviders(<RequiredStepsGate />);
+    expect(
+      await screen.findByText(
+        'Bazı belgelerimiz güncellendi. Devam etmek için güncel metinleri okuyup onaylamanız gerekiyor.',
+      ),
+    ).toBeOnTheScreen();
+  });
+
+  it('gönderim hatası kapının içinde gösterilir, kapı açık kalır', async () => {
+    mockGetPending.mockResolvedValue({ data: { pending: [ALL[0]!] } });
+    mockAccept.mockRejectedValue({ response: { status: 429, data: { message: 'Çok fazla istek' } } });
+    renderWithProviders(<RequiredStepsGate />);
+    await screen.findByTestId('consent-gate');
+    fireEvent.press(screen.getByTestId('consent-gate-terms'));
+    fireEvent.press(screen.getByTestId('consent-gate-submit'));
+    expect(await screen.findByText('Çok fazla istek')).toBeOnTheScreen();
+    expect(screen.getByTestId('consent-gate')).toBeOnTheScreen();
+  });
+
+  it('"Çıkış Yap" oturumu kapatır ve girişe yönlendirir', async () => {
+    mockGetPending.mockResolvedValue({ data: { pending: ALL } });
+    renderWithProviders(<RequiredStepsGate />);
+    await screen.findByTestId('consent-gate');
+    fireEvent.press(screen.getByTestId('consent-gate-logout'));
+    await waitFor(() => expect(mockLogout).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/(auth)/login'));
+  });
+
+  it('belge adı metni açar; metin sayfasında kapı gizlenir', async () => {
+    mockGetPending.mockResolvedValue({ data: { pending: ALL } });
+    const view = renderWithProviders(<RequiredStepsGate />);
+    await screen.findByTestId('consent-gate');
+    fireEvent.press(screen.getByText('Kullanım Şartları'));
+    expect(pushMock).toHaveBeenCalledWith('/terms');
+
+    mockPathname = '/terms';
+    view.rerender(<RequiredStepsGate />);
+    expect(screen.queryByTestId('consent-gate')).toBeNull();
+
+    mockPathname = '/';
+    view.rerender(<RequiredStepsGate />);
+    expect(screen.getByTestId('consent-gate')).toBeOnTheScreen();
+  });
+
+  it('Android geri tuşu kapı açıkken yutulur', async () => {
+    const spy = jest.spyOn(BackHandler, 'addEventListener');
+    mockGetPending.mockResolvedValue({ data: { pending: ALL } });
+    renderWithProviders(<RequiredStepsGate />);
+    await screen.findByTestId('consent-gate');
+    const handler = spy.mock.calls.find((c) => c[0] === 'hardwareBackPress')?.[1];
+    expect(handler?.()).toBe(true);
+    spy.mockRestore();
+  });
+
+  it('uygulama ön plana gelince bekleyenler yeniden sorulur ve kapı açılır', async () => {
+    const listeners: ((s: string) => void)[] = [];
+    const spy = jest.spyOn(AppState, 'addEventListener').mockImplementation((type, fn) => {
+      if (type === 'change') listeners.push(fn as (s: string) => void);
+      return { remove: jest.fn() } as unknown as ReturnType<typeof AppState.addEventListener>;
+    });
+    mockGetPending.mockResolvedValueOnce({ data: { pending: [] } });
+    renderWithProviders(<RequiredStepsGate />);
+    await waitFor(() => expect(mockGetPending).toHaveBeenCalledTimes(1));
+    expect(screen.queryByTestId('consent-gate')).toBeNull();
+
+    // Metin uygulama arka plandayken güncellendi.
+    mockGetPending.mockResolvedValueOnce({ data: { pending: [ALL[0]!] } });
+    act(() => listeners.forEach((l) => l('background')));
+    act(() => listeners.forEach((l) => l('active')));
+
+    await waitFor(() => expect(mockGetPending).toHaveBeenCalledTimes(2));
+    expect(await screen.findByTestId('consent-gate')).toBeOnTheScreen();
+    spy.mockRestore();
+  });
+});

@@ -25,6 +25,7 @@ import { initSentry } from "@/services/sentry";
 import AnimatedSplash from "@/components/AnimatedSplash";
 import BusinessMembershipGuard from "@/components/BusinessMembershipGuard";
 import ForceUpdateGate from "@/components/ForceUpdateGate";
+import RequiredStepsGate from "@/components/required-steps/RequiredStepsGate";
 import { ErrorBoundary, RouteTracker } from "@/components/ErrorBoundary";
 
 const { colors } = theme;
@@ -157,6 +158,8 @@ export default function RootLayout() {
           <BusinessMembershipGuard />
           {/* Native Alert.alert yerine temalı dialog — appAlert() bu host'u kullanır. */}
           <AlertDialogHost />
+          {/* Zorunlu adımlar (bekleyen sözleşme onayı): girişte + ön plana gelişte kapatılamaz ekran. */}
+          <RequiredStepsGate />
           {/* Min desteklenen sürümün altındaki build'leri tam ekran bloklar (#233). */}
           <ForceUpdateGate />
           {!splashDone && (

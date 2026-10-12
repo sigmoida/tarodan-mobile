@@ -425,7 +425,9 @@
     "bizSectionCompany": "Şirket Bilgileri",
     "bizIntroTitle": "İşletme olarak ön başvuru yapın",
     "bizIntroBody": "Başvurunuz admin onayına gönderilir. Onaylandığında kullanıcı adınızı ve şifrenizi belirleyeceğiniz bir davet e-postası alırsınız.",
-    "bizSectionAuthorized": "Yetkili Bilgileri"
+    "bizSectionAuthorized": "Yetkili Bilgileri",
+    "kvkkCheckboxLabel": "KVKK Aydınlatma Metni'ni okudum ve kabul ediyorum.",
+    "mustAcceptKvkk": "KVKK Aydınlatma Metni'ni onaylamalısınız"
   },
   "brands": {
     "title": "Markalar",
@@ -3269,7 +3271,17 @@
     "purpose": "Amaç",
     "duration": "Süre",
     "important": "Önemli",
-    "dataProtectionOfficer": "Veri Koruma Görevlisi"
+    "dataProtectionOfficer": "Veri Koruma Görevlisi",
+    "kvkkTitle": "KVKK Aydınlatma Metni",
+    "marketingConsentTitle": "Ticari Elektronik İleti İzni",
+    "consentGate": {
+      "title": "Onayınız gerekiyor",
+      "intro": "Devam etmek için aşağıdaki belgeleri okuyup onaylamanız gerekiyor.",
+      "updatedIntro": "Bazı belgelerimiz güncellendi. Devam etmek için güncel metinleri okuyup onaylamanız gerekiyor.",
+      "acceptSuffix": " — okudum ve kabul ediyorum.",
+      "submit": "Onayla ve devam et",
+      "submitFailed": "Onayınız kaydedilemedi. Lütfen tekrar deneyin."
+    }
   },
   "information": {
     "about": {

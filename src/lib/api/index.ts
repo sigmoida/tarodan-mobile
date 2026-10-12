@@ -22,6 +22,7 @@ export * from "./client";
 export * from "./app-config";
 export * from "./errorText";
 export * from "./auth";
+export * from "./consents";
 export * from "./products";
 export * from "./catalog";
 export * from "./listings";

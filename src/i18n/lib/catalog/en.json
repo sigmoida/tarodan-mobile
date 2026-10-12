@@ -425,7 +425,9 @@
     "bizSectionCompany": "Company Details",
     "bizIntroTitle": "Submit a business pre-application",
     "bizIntroBody": "Your application will be sent for admin approval. Once approved, you'll receive an invitation email where you can set your username and password.",
-    "bizSectionAuthorized": "Authorized Person Details"
+    "bizSectionAuthorized": "Authorized Person Details",
+    "kvkkCheckboxLabel": "I have read and accept the KVKK Privacy Notice.",
+    "mustAcceptKvkk": "You must accept the KVKK privacy notice"
   },
   "brands": {
     "title": "Brands",
@@ -3269,7 +3271,17 @@
     "purpose": "Purpose",
     "duration": "Duration",
     "important": "Important",
-    "dataProtectionOfficer": "Data Protection Officer"
+    "dataProtectionOfficer": "Data Protection Officer",
+    "kvkkTitle": "KVKK Privacy Notice",
+    "marketingConsentTitle": "Marketing Communications Consent",
+    "consentGate": {
+      "title": "Your consent is required",
+      "intro": "To continue, please read and accept the documents below.",
+      "updatedIntro": "Some of our documents have been updated. To continue, please read and accept the current versions.",
+      "acceptSuffix": " — I have read and accept it.",
+      "submit": "Accept and continue",
+      "submitFailed": "Your consent couldn't be saved. Please try again."
+    }
   },
   "information": {
     "about": {
