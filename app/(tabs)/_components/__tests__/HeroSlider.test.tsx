@@ -161,4 +161,59 @@ describe('HeroSection', () => {
     expect(mockRecordImpression).toHaveBeenCalledWith('a');
     scrollTo.mockRestore();
   });
+
+  describe('otomatik ilerleme', () => {
+    const AUTOPLAY = 10_000;
+    let scrollTo: jest.SpyInstance;
+    beforeEach(() => {
+      scrollTo = jest.spyOn(ScrollView.prototype as any, 'scrollTo').mockImplementation(() => {});
+    });
+    afterEach(() => scrollTo.mockRestore());
+
+    const mount = () => {
+      const api = render(<HeroSection slides={[slide({ id: 'a' }), slide({ id: 'b' })]} locale="tr" />);
+      layout(api);
+      scrollTo.mockClear();
+      return api;
+    };
+    const scroller = (api: ReturnType<typeof render>) => api.getByTestId('hero-slider').findByType(ScrollView);
+    const advanced = () => scrollTo.mock.calls.filter(([a]) => a.animated === true).length;
+
+    it('10 sn sonra sonraki slayta geçer', () => {
+      mount();
+      act(() => {
+        jest.advanceTimersByTime(AUTOPLAY);
+      });
+      expect(advanced()).toBe(1);
+      expect(scrollTo).toHaveBeenLastCalledWith({ x: 320, animated: true });
+    });
+
+    it('sürükleme sırasında durur; bırakılınca yeniden sayar', () => {
+      const api = mount();
+      fireEvent(scroller(api), 'scrollBeginDrag');
+      act(() => {
+        jest.advanceTimersByTime(AUTOPLAY * 3);
+      });
+      expect(advanced()).toBe(0);
+      fireEvent(scroller(api), 'scrollEndDrag');
+      act(() => {
+        jest.advanceTimersByTime(AUTOPLAY - 1);
+      });
+      expect(advanced()).toBe(0);
+      act(() => {
+        jest.advanceTimersByTime(1);
+      });
+      expect(advanced()).toBe(1);
+    });
+
+    it('momentum bitişi de sürüklemeyi bitirir', () => {
+      const api = mount();
+      fireEvent(scroller(api), 'scrollBeginDrag');
+      fireEvent(scroller(api), 'momentumScrollEnd', { nativeEvent: { contentOffset: { x: 320 } } });
+      act(() => {
+        jest.advanceTimersByTime(AUTOPLAY);
+      });
+      expect(advanced()).toBe(1);
+    });
+  });
 });

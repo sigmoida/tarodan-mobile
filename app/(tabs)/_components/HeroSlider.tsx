@@ -85,6 +85,8 @@ function HeroSlideItem({
 export function HeroSlider({ slides, locale }: { slides: HeroSlide[]; locale: string }) {
   const [width, setWidth] = useState(0);
   const [current, setCurrent] = useState(0);
+  // Parmak ekrandayken otomatik ilerleme durur (kullanıcının elinden sayfa kaçmasın).
+  const [dragging, setDragging] = useState(false);
   const scroller = useRef<ScrollView>(null);
   const count = slides.length;
   // Liste kısalırsa (ör. bir slayt süzülür/süresi dolar) `current` geçerli aralığa çekilir.
@@ -114,12 +116,13 @@ export function HeroSlider({ slides, locale }: { slides: HeroSlide[]; locale: st
 
   // Otomatik ilerleme — her sayfa değişiminde (elle de olsa) süre yeniden başlar.
   useEffect(() => {
-    if (count < 2 || !width) return;
+    if (count < 2 || !width || dragging) return;
     const id = setTimeout(() => goTo(index + 1), AUTOPLAY_MS);
     return () => clearTimeout(id);
-  }, [count, width, index, goTo]);
+  }, [count, width, index, goTo, dragging]);
 
   const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    setDragging(false);
     if (!width) return;
     setCurrent(Math.min(count - 1, Math.max(0, Math.round(e.nativeEvent.contentOffset.x / width))));
   };
@@ -132,6 +135,9 @@ export function HeroSlider({ slides, locale }: { slides: HeroSlide[]; locale: st
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
+          onScrollBeginDrag={() => setDragging(true)}
+          // Momentum olmadan biten sürüklemede `onMomentumScrollEnd` gelmeyebilir: burada da devam et.
+          onScrollEndDrag={() => setDragging(false)}
           onMomentumScrollEnd={onMomentumEnd}
           scrollEventThrottle={16}
         >
