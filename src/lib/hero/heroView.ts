@@ -1,5 +1,7 @@
 import type { HeroCta, HeroSlide, LocalizedText, TrustBadge } from '@/lib/api/hero';
-import { resolveAdLink } from '@/lib/ads/openAdLink';
+import { pathFromUrl } from '@/lib/deeplinks';
+import { isOwnWebUrl, resolveAdLink } from '@/lib/ads/openAdLink';
+import { isPurchasePath } from '@/lib/ads/purchasePath';
 import { safeAdHref } from '@/lib/ads/safeAdHref';
 
 /**
@@ -30,11 +32,16 @@ export interface ResolvedHeroCta {
 }
 
 /**
- * Satın almaya (üyelik, boost) götüren bağlantı mı? `resolveAdLink` güvensiz
- * şemayı da `blocked` döndürür; güvenli ama `blocked` olan = satın alma hedefi.
+ * Satın almaya (üyelik, boost) götüren bağlantı mı? Yol kuralı reklam ve uygulama
+ * içi web ekranıyla TEK kaynaktan gelir (`isPurchasePath`). Yalnız site içi yol ya da
+ * kendi sitemizin adresi sayılır; dış host satın alma hedefi değildir.
  */
 export function isPurchaseHref(href: string | null | undefined): boolean {
-  return !!safeAdHref(href) && resolveAdLink(href).kind === 'blocked';
+  const safe = safeAdHref(href);
+  if (!safe) return false;
+  if (/^https?:\/\//i.test(safe) && !isOwnWebUrl(safe)) return false;
+  const path = pathFromUrl(safe);
+  return !!path && isPurchasePath(path);
 }
 
 /**
@@ -47,7 +54,7 @@ export function resolveHeroCta(
 ): ResolvedHeroCta | null {
   if (!cta) return null;
   const label = pickLocalized(cta.label, locale);
-  if (!label || resolveAdLink(cta.href).kind === 'blocked') return null;
+  if (!label || isPurchaseHref(cta.href) || resolveAdLink(cta.href).kind === 'blocked') return null;
   return { label, href: cta.href };
 }
 

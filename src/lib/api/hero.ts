@@ -48,8 +48,8 @@ export type TrustBadgeIconKey =
 
 export interface TrustBadge {
   id: string;
-  /** Liste ileride büyüyebilir → `string`; bilinmeyen anahtar çizilmez. */
-  icon: TrustBadgeIconKey | (string & {});
+  /** `TrustBadgeIconKey` değerlerinden biri; liste ileride büyüyebilir → `string`, bilinmeyen anahtar çizilmez. */
+  icon: string;
   title: LocalizedText;
   description: LocalizedText | null;
 }

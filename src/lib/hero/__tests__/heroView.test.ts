@@ -100,6 +100,10 @@ describe('resolveHeroCta / isPurchaseHref', () => {
   });
   it('isPurchaseHref: yalnız güvenli ama satın alma olan', () => {
     expect(isPurchaseHref('/pricing')).toBe(true);
+    expect(isPurchaseHref('/en/membership')).toBe(true);
+    expect(isPurchaseHref('/tr/boost/')).toBe(true);
+    expect(isPurchaseHref('https://tarodan.com.tr/en/pricing?x=1')).toBe(true);
+    expect(isPurchaseHref('https://example.org/membership')).toBe(false);
     expect(isPurchaseHref('/listings')).toBe(false);
     expect(isPurchaseHref('javascript:alert(1)')).toBe(false);
     expect(isPurchaseHref(null)).toBe(false);
