@@ -92,7 +92,7 @@ export default function PaymentMethodsScreen() {
         }
       >
         <Text variant="body" tone="muted" style={styles.intro}>
-          {/* iOS'ta abonelik satılmıyor (Apple 2.1(b)): oto-yenileme ifadesi yok. */}
+          {/* Dijital satış kapalıyken (iOS + Android) abonelik satılmıyor (Apple 2.1(b) / Play): oto-yenileme ifadesi yok. */}
           {t(CAN_BUY_DIGITAL ? "payment.savedCardsIntro" : "payment.savedCardsIntroNeutral")}
         </Text>
 

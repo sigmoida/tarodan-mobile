@@ -64,8 +64,9 @@ export default function PaymentScreen() {
   const paymentId = params.id!;
   const isGuest = params.guest === '1';
   const isMembership = params.type === 'membership';
-  // Boost da dijital (Guideline 3.1.3(g)) — BoostModal iOS'ta zaten `null`
-  // döner ve bu yola hiç girmez, ama emniyet kilidi simetrik olsun diye burada.
+  // Boost da dijital (Guideline 3.1.3(g) / Play ödeme politikası) — dijital satış
+  // kapalıyken BoostModal zaten `null` döner ve bu yola hiç girmez, ama emniyet
+  // kilidi simetrik olsun diye burada.
   const isBoost = params.type === 'boost';
 
   const [state, setState] = useState<{
@@ -114,7 +115,8 @@ export default function PaymentScreen() {
   }, [paymentId]);
 
   const load = async () => {
-    // iOS'ta üyelik ödemesi kabul edilmez (Guideline 3.1.1). Yalnız JSX'i
+    // Dijital satış kapalıyken (iOS + Android: `CAN_BUY_DIGITAL`) üyelik ödemesi
+    // kabul edilmez (Apple 3.1.1 / Play ödeme politikası). Yalnız JSX'i
     // kilitlemek yetmez: render kilidi devredeyken bu effect zaten tetiklenmiş
     // olabiliyor, kilit olmasa `load()` durum sorgusunu ATAR, bypass açıksa
     // ödemeyi TAMAMLAR ve /membership/success'e yönlendirip <Redirect>'i
@@ -263,7 +265,8 @@ export default function PaymentScreen() {
     router.replace({ pathname: '/payment/fail', params: { paymentId: pid, guest: params.guest } } as any);
   };
 
-  // iOS'ta üyelik ödemesi kabul edilmez (Guideline 3.1.1). Fiziksel sipariş,
+  // Dijital satış kapalıyken (iOS + Android) üyelik/öne çıkarma ödemesi kabul
+  // edilmez (Apple 3.1.1 / Play ödeme politikası). Fiziksel sipariş,
   // sepet ve takas ödemesi bu ekrandan geçmeye DEVAM eder — 3.1.3(e) gereği
   // onların IAP dışında kalması zorunlu. Tüm hook'lardan (ve yukarıdaki
   // `load` closure'ından, ki `useEffect` ona referans veriyor — daha erken
