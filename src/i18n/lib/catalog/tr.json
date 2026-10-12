@@ -7342,6 +7342,7 @@
     "deactivated": "İlan deaktif edildi",
     "deactivateFailed": "İlan deaktif edilemedi",
     "sentForReview": "İlan incelemeye gönderildi. Onaylandığında yeniden yayına girer.",
+    "reactivatedImmediately": "İlanınız tekrar yayında! Onay beklemeden satışa açıldı.",
     "activateFailed": "İlan aktif edilemedi",
     "deleted": "İlan silindi",
     "deleteFailed": "İlan silinemedi",

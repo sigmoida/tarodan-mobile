@@ -7342,6 +7342,7 @@
     "deactivated": "The listing has been deactivated",
     "deactivateFailed": "The listing could not be deactivated",
     "sentForReview": "The listing has been sent for review. It goes live again once approved.",
+    "reactivatedImmediately": "Your listing is live again! It was reopened for sale without waiting for approval.",
     "activateFailed": "The listing could not be activated",
     "deleted": "The listing has been deleted",
     "deleteFailed": "The listing could not be deleted",

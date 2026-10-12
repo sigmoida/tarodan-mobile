@@ -184,3 +184,45 @@ describe("İlanlarım · menü kapanmadan uyarı açılmaz (iOS donma)", () => {
     jest.useRealTimers();
   });
 });
+
+/**
+ * Parite C-1.6 · aktivasyon mesajı API'nin döndürdüğü statüye göre seçilir.
+ * İade karantinasındaki ilan doğrudan `active` olur; "incelemeye gönderildi"
+ * demek yanlış olurdu.
+ */
+describe("İlanlarım · aktivasyon mesajı yanıt statüsüne göre", () => {
+  async function relistFirstListing(responseStatus: string) {
+    const { appAlert } = jest.requireMock("@/ui") as { appAlert: jest.Mock };
+    const { productsApi } = jest.requireMock("@/lib/api") as {
+      productsApi: { update: jest.Mock };
+    };
+    appAlert.mockClear();
+    productsApi.update.mockReset();
+    productsApi.update.mockResolvedValue({ data: { id: "L9", status: responseStatus } });
+    mockGetMyListings.mockResolvedValue({
+      data: { data: [listing({ id: "L9", status: "inactive" })] },
+    });
+    renderWithProviders(<MyListingsScreen />);
+    await screen.findByText("Hot Wheels Camaro");
+    fireEvent.press(screen.getByLabelText("listing.menuAccessibility"));
+    fireEvent.press(await screen.findByText("listing.relistAction"));
+    await waitFor(() => expect(appAlert).toHaveBeenCalled());
+    return appAlert;
+  }
+
+  beforeEach(() => {
+    mockGetMyListings.mockReset();
+    mockGetMyStats.mockReset();
+    wireStats();
+  });
+
+  it("yanıt statüsü active ise doğrudan yayında mesajı gösterilir", async () => {
+    const appAlert = await relistFirstListing("active");
+    expect(appAlert).toHaveBeenCalledWith("common.success", "listing.reactivatedImmediately");
+  });
+
+  it("yanıt statüsü pending ise incelemeye gönderildi mesajı gösterilir", async () => {
+    const appAlert = await relistFirstListing("pending");
+    expect(appAlert).toHaveBeenCalledWith("common.success", "listing.sentForReview");
+  });
+});
