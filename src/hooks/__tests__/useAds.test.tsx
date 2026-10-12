@@ -46,6 +46,7 @@ describe('useAds', () => {
         ad({ id: 'img' }),
         ad({ id: 'text', imageUrl: null }),
         ad({ id: 'empty', imageUrl: '', title: '' }),
+        ad({ id: 'blank', imageUrl: '   ', title: '  ' }),
       ],
     });
     const { result } = run();

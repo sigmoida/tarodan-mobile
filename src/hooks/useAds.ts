@@ -1,11 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { adsApi, type ActiveAd } from '@/lib/api';
 import { qk } from '@/lib/query';
+import { hasAdCreative } from '@/lib/ads/creative';
 import { useAuthStore } from '@/stores/authStore';
 import { useMembershipLimits } from './useMembershipLimits';
-
-/** Çizilebilir reklam: görselli ya da (metin reklam) başlıklı. */
-const hasCreative = (ad: ActiveAd) => !!ad.imageUrl?.trim() || !!ad.title?.trim();
 
 /** Bu istemcide gösterilebilecek cihaz hedefleri. */
 const DEVICE_TARGETS = ['all', 'mobile'];
@@ -51,7 +49,7 @@ export function useAds(position: string) {
     (ad) =>
       ad.position === position &&
       DEVICE_TARGETS.includes((ad.deviceType || 'all').toLowerCase()) &&
-      hasCreative(ad),
+      hasAdCreative(ad),
   );
 
   return { ads, isAdFree, isLoading: adsQuery.isLoading };
