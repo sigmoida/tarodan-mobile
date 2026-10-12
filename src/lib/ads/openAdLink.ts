@@ -88,6 +88,20 @@ const SAME_NAME_PAGES = new Set([
   'terms',
 ]);
 
+/**
+ * Web yoluyla AYNI adla mobilde gerçek rotası olan, çok segmentli ekranlar
+ * (`app/brands/[slug]` vb.). Yalnız `app/` ağacında bulunan adlar girer —
+ * bilinmeyen rotaya push yok kuralı (test `app/` dizinini tarayarak doğrular).
+ */
+export const NATIVE_SAME_PATH_HEADS = new Set([
+  'brands',
+  'category',
+  'sayfa',
+  'models',
+  'returns-exchanges',
+  'following',
+]);
+
 function webUrlFor(linkUrl: string, path: string): string {
   if (isOwnWebUrl(linkUrl)) return linkUrl;
   const base = (process.env.EXPO_PUBLIC_WEB_URL || DEFAULT_WEB_BASE).replace(/\/+$/, '');
@@ -125,6 +139,12 @@ export function resolveAdLink(linkUrl: string | null | undefined): AdLinkTarget 
   if (renamed) return { kind: 'route', route: renamed };
   if (seg.length === 1 && SAME_NAME_PAGES.has(seg[0]!)) {
     return { kind: 'route', route: barePath };
+  }
+
+  // `toMobileRoute`'un eşlemediği ama mobilde AYNI yolla var olan ekranlar:
+  // WebView'e düşmeden native açılır (eskiden `?? path` ile push ediliyordu).
+  if (seg[0] && NATIVE_SAME_PATH_HEADS.has(seg[0])) {
+    return { kind: 'route', route: `${barePath}${query}` };
   }
 
   const mapped = toMobileRoute(path);
