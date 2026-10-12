@@ -16,6 +16,7 @@ import {
   type FilterType,
 } from "../_lib/types";
 import { useMyListingsQuery } from "./useMyListingsQuery";
+import { useExpiredCount } from "./useExpiredCount";
 import { useListingMutations } from "./useListingMutations";
 import { useRenewListings, useListingSelection } from "./useRenewListings";
 
@@ -59,12 +60,11 @@ export function useMyListings() {
   );
 
   const { data: listingsData, isLoading, isError, refetch } = useMyListingsQuery(filter);
-  // Süresi dolan ilanlar HER sekmede banner'ı ve chip sayacını besler; "Süresi dolan"
-  // sekmesindeyken aynı anahtar olduğundan ekstra istek atılmaz.
-  const { data: expiredData, refetch: refetchExpired } = useMyListingsQuery(EXPIRED_FILTER);
+  // Süresi dolan sayısı HER sekmede banner'ı ve chip sayacını besler: `limit=1` +
+  // `meta.total` (tüm listeyi çekmez, 100'de tavanlanmaz). Sekmenin kendi listesinden ayrı anahtar.
+  const { data: expiredCount = 0, refetch: refetchExpired } = useExpiredCount();
 
   const listings: Listing[] = useMemo(() => listingsData || [], [listingsData]);
-  const expiredCount = (expiredData || []).length;
 
   // Chip sayaçları — AKTİF FİLTREDEN BAĞIMSIZ stabil kaynak (GET /products/my/stats).
   // Önceden sayaçlar o an çekili (filtrelenmiş + sayfalı) listeden hesaplanıyordu →
@@ -86,7 +86,7 @@ export function useMyListings() {
     reserved: statCounts.reserved ?? 0,
     rejected: statCounts.rejected ?? 0,
     inactive: statCounts.inactive ?? 0,
-    // Stats ucunda "süresi dolan" sayacı yok → ayrı sorgudan.
+    // Stats ucunda "süresi dolan" sayacı yok → `useExpiredCount` (meta.total).
     expired: expiredCount,
     deleted: statCounts.deleted ?? 0,
   };

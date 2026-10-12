@@ -261,3 +261,27 @@ describe("C2 inceleme · 4 paylaşılan invalidation kümesi", () => {
     });
   });
 });
+
+describe("C2 inceleme · 5 süresi dolan sayacı meta.total'dan", () => {
+  it("100'den fazla süresi dolan ilan: chip/banner gerçek toplamı gösterir, liste çekilmez (limit=1)", async () => {
+    serve(Array.from({ length: 150 }, (_, i) => expired({ id: `E${i}`, title: `Dolan ${i}` })));
+    renderWithProviders(<MyListingsScreen />);
+    expect(await screen.findByText("profile.expiredListings.tab (150)")).toBeOnTheScreen();
+    expect(screen.getByText("profile.expiredListings.bannerTitle")).toBeOnTheScreen();
+
+    // "Tümü" sekmesindeyken süresi dolanlar için YALNIZ limit=1 sayaç isteği atılır.
+    const expiredCalls = mockGetMyListings.mock.calls
+      .map(([p]) => p)
+      .filter((p) => p?.inactiveReason === "expired");
+    expect(expiredCalls.length).toBeGreaterThan(0);
+    expect(expiredCalls.every((p) => p.limit === 1)).toBe(true);
+  });
+
+  it("meta yoksa gelen satır sayısına düşer", async () => {
+    mockGetMyListings.mockImplementation(async (params: Record<string, unknown> = {}) => ({
+      data: { data: params.inactiveReason === "expired" ? [expired(), expired({ id: "E2" })] : [] },
+    }));
+    renderWithProviders(<MyListingsScreen />);
+    expect(await screen.findByText("profile.expiredListings.tab (2)")).toBeOnTheScreen();
+  });
+});
