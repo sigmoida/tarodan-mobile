@@ -134,6 +134,8 @@ export default function OrderDetailScreen() {
         evidence={actions.refund.evidence}
         pickEvidence={actions.refund.pickEvidence}
         removeEvidence={actions.refund.removeEvidence}
+        requirements={actions.refund.requirements}
+        errors={actions.refund.errors}
         onSubmit={actions.refund.submit}
         isPending={actions.refund.isPending}
       />

@@ -25,7 +25,7 @@ jest.mock('@/lib/api', () => ({
   elogoInvoicesApi: { byOrder: jest.fn(() => Promise.resolve({ data: null })), pdf: jest.fn() },
   sellerInvoiceApi: { status: jest.fn(() => Promise.resolve({ data: null })), download: jest.fn() },
 }));
-import { api, elogoInvoicesApi } from '@/lib/api';
+import { api, elogoInvoicesApi, refundsApi } from '@/lib/api';
 
 import OrderDetailScreen from '../[id]';
 
@@ -161,6 +161,74 @@ describe('J79 · İade talep butonu görünürlüğü', () => {
       expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen(),
     );
     expect(screen.queryByTestId('refund-request-button')).toBeNull();
+  });
+});
+
+/**
+ * Parite A-1.4 · İade kanıtı. Sunucu `changed_mind` dışındaki her nedende kanıt
+ * fotoğrafı istiyor; mobil hepsini "isteğe bağlı" sunuyordu. Kural
+ * `_lib/schema.ts`'te; burada ekrandaki etkisi çiviliyor.
+ */
+describe('A-1.4 · İade talebinde kanıt kuralı', () => {
+  const createMock = refundsApi.create as jest.Mock;
+
+  beforeEach(() => {
+    getMock.mockReset();
+    createMock.mockReset();
+    createMock.mockResolvedValue({ data: {} });
+    mockParams = { id: 'order-1' };
+    getMock.mockResolvedValue({
+      data: { data: orderFixture({ isBuyer: true, payment: { status: 'completed' }, activeRefundRequest: null }) },
+    });
+  });
+
+  async function openRefundModal() {
+    renderWithProviders(<OrderDetailScreen />);
+    await waitFor(() => expect(screen.getByTestId('refund-request-button')).toBeOnTheScreen());
+    fireEvent.press(screen.getByTestId('refund-request-button'));
+    await waitFor(() => expect(screen.getByText('İade Talebi Oluştur')).toBeOnTheScreen());
+  }
+
+  it('vazgeçme (varsayılan): kanıt/açıklama isteğe bağlı, talep doğrudan gider', async () => {
+    await openRefundModal();
+    expect(screen.getByText('Kanıt Fotoğrafı (isteğe bağlı)')).toBeOnTheScreen();
+    expect(screen.getByText('Açıklama (isteğe bağlı)')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText('Talep Oluştur'));
+    await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1));
+    expect(createMock).toHaveBeenCalledWith('order-1', { reason: 'changed_mind' });
+  });
+
+  it('kusur nedeni: etiketler zorunlu olur, fotoğrafsız talep GÖNDERİLMEZ ve hata modalda görünür', async () => {
+    await openRefundModal();
+    fireEvent.press(screen.getByText('Hasarlı geldi'));
+
+    expect(screen.getByText('Kanıt fotoğrafları (maks 5) *')).toBeOnTheScreen();
+    expect(screen.getByText('Açıklama *')).toBeOnTheScreen();
+    expect(screen.queryByText('Kanıt Fotoğrafı (isteğe bağlı)')).toBeNull();
+
+    fireEvent.changeText(
+      screen.getByTestId('refund-description-input'),
+      'Kutunun bir köşesi ezik, aynası kırık geldi.',
+    );
+    fireEvent.press(screen.getByText('Talep Oluştur'));
+
+    expect(createMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('refund-evidence-hint')).toHaveTextContent(
+      'Bu sebep için en az bir kanıt fotoğrafı gereklidir',
+    );
+    // Açıklama yeterli → onun hatası yok.
+    expect(screen.queryByText('Açıklama en az 20 karakter olmalıdır')).toBeNull();
+  });
+
+  it('kusur nedeni: kısa açıklama satır içi hata verir', async () => {
+    await openRefundModal();
+    fireEvent.press(screen.getByText('Hasarlı geldi'));
+    fireEvent.changeText(screen.getByTestId('refund-description-input'), 'kırık');
+    fireEvent.press(screen.getByText('Talep Oluştur'));
+
+    expect(createMock).not.toHaveBeenCalled();
+    expect(screen.getByText('Açıklama en az 20 karakter olmalıdır')).toBeOnTheScreen();
   });
 });
 

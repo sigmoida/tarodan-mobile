@@ -9,6 +9,8 @@ import { ordersApi, refundsApi, mediaApi, paymentsApi, type RNFile } from '@/lib
 import { qk } from '@/lib/query';
 import { captureException } from '@/services/sentry';
 import { MAX_EVIDENCE_PHOTOS } from '../_lib/status';
+import { refundPhaseOf } from '../_lib/derive';
+import { refundRequirements, validateRefundRequest } from '../_lib/schema';
 import type { OrderCancellationReason } from '@/lib/shared/orderCancellation';
 import type { OrderDetail } from '../_lib/types';
 
@@ -51,6 +53,20 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
   const [refundDescription, setRefundDescription] = useState('');
   const [evidenceAssets, setEvidenceAssets] = useState<RNFile[]>([]);
   const [refundQuantity, setRefundQuantity] = useState(1);
+  // Hatalar ilk gönderme denemesinden sonra CANLI hesaplanır — kullanıcı alanı
+  // düzelttikçe mesaj kendiliğinden kalkar.
+  const [refundSubmitAttempted, setRefundSubmitAttempted] = useState(false);
+
+  // Kanıt/açıklama zorunluluğu sunucu politikasıyla aynı (bkz. `_lib/schema.ts`).
+  // Eskiden hepsi "opsiyonel" sunuluyordu; kusur nedenli talep sunucudan
+  // `evidenceRequired` 400'ü alıp modalın ARKASINDAKİ snackbar'a düşüyordu.
+  const refundPhase = order ? refundPhaseOf(order) : 'in_cooling_off';
+  const refundInput = {
+    reason: refundReason,
+    description: refundDescription,
+    evidenceCount: evidenceAssets.length,
+  };
+  const refundErrors = refundSubmitAttempted ? validateRefundRequest(refundInput, refundPhase, t) : {};
 
   const invalidateOrder = () => {
     queryClient.invalidateQueries({ queryKey: qk.orders.detail(id) });
@@ -61,6 +77,7 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
     setRefundModalVisible(false);
     setEvidenceAssets([]);
     setRefundQuantity(1);
+    setRefundSubmitAttempted(false);
   };
 
   const refundMutation = useMutation({
@@ -84,6 +101,7 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
       setRefundDescription('');
       setEvidenceAssets([]);
       setRefundQuantity(1);
+      setRefundSubmitAttempted(false);
       notify(t('order.refundRequestCreated'), 'success');
       invalidateOrder();
     },
@@ -169,6 +187,13 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
   const removeEvidence = (index: number) => setEvidenceAssets((prev) => prev.filter((_, i) => i !== index));
 
   // --- Handler'lar ---
+  /** Şema geçmeden istek gitmez; hatalar modalda satır içi görünür (iOS: modal üstünde uyarı yok). */
+  const submitRefund = () => {
+    setRefundSubmitAttempted(true);
+    if (Object.keys(validateRefundRequest(refundInput, refundPhase, t)).length > 0) return;
+    refundMutation.mutate();
+  };
+
   const handleCancelRefund = () => {
     const rr = order?.activeRefundRequest;
     if (!rr) return;
@@ -207,7 +232,9 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
       evidence: evidenceAssets,
       pickEvidence,
       removeEvidence,
-      submit: () => refundMutation.mutate(),
+      requirements: refundRequirements(refundReason, refundPhase),
+      errors: refundErrors,
+      submit: submitRefund,
       isPending: refundMutation.isPending,
     },
     handleCancelRefund,

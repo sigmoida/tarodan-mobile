@@ -5,10 +5,15 @@ import { Modal, Button, Input, RadioGroup, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { useRefundReasons, MAX_EVIDENCE_PHOTOS } from '../_lib/status';
 import type { RNFile } from '@/lib/api';
+import type { RefundFormErrors, refundRequirements } from '../_lib/schema';
 
 const { colors, radius } = theme;
 
-/** İade talebi modalı — kendi form durumunu prop olarak alır (controller: useOrderActions). */
+/**
+ * İade talebi modalı — kendi form durumunu prop olarak alır (controller: useOrderActions).
+ * Zorunluluklar (`requirements`) ve hatalar (`errors`) `_lib/schema.ts`'ten gelir;
+ * etiketler koşula göre "*" ya da "(isteğe bağlı)" der (web ile aynı).
+ */
 export function RefundRequestModal({
   visible,
   onClose,
@@ -22,6 +27,8 @@ export function RefundRequestModal({
   evidence,
   pickEvidence,
   removeEvidence,
+  requirements,
+  errors,
   onSubmit,
   isPending,
 }: {
@@ -37,6 +44,8 @@ export function RefundRequestModal({
   evidence: RNFile[];
   pickEvidence: () => void;
   removeEvidence: (i: number) => void;
+  requirements: ReturnType<typeof refundRequirements>;
+  errors: RefundFormErrors;
   onSubmit: () => void;
   isPending: boolean;
 }) {
@@ -46,7 +55,7 @@ export function RefundRequestModal({
     <Modal isOpen={visible} onClose={onClose} title={t('order.requestRefundTitle')}>
       <ScrollView>
         <Text variant="caption" style={styles.refundModalHint}>
-          {t('order.refundHintTop')}
+          {requirements.evidenceRequired ? t('order.refundHintFaultClaim') : t('order.refundHintTop')}
         </Text>
 
         {orderQuantity > 1 && (
@@ -83,12 +92,20 @@ export function RefundRequestModal({
           </View>
         )}
 
-        <Text variant="caption" style={styles.refundModalLabel}>{t('order.refundReasonOptional')}</Text>
+        <Text variant="caption" style={styles.refundModalLabel}>
+          {requirements.reasonRequired ? `${t('common.reason')} *` : t('order.refundReasonOptional')}
+        </Text>
         <RadioGroup value={reason} onChange={setReason} options={refundReasons} />
 
         <Input
-          label={t('order.descriptionOptionalLabel')}
-          placeholder={t('order.describeIssueOptionalPlaceholder')}
+          testID="refund-description-input"
+          label={requirements.descriptionRequired ? `${t('common.description')} *` : t('order.descriptionOptionalLabel')}
+          placeholder={
+            requirements.descriptionRequired
+              ? t('order.describeIssuePlaceholder')
+              : t('order.describeIssueOptionalPlaceholder')
+          }
+          error={errors.description}
           value={description}
           onChangeText={setDescription}
           multiline
@@ -98,9 +115,18 @@ export function RefundRequestModal({
         />
 
         <View style={styles.evidenceSection}>
-          <Text variant="caption" style={styles.refundModalLabel}>{t('order.evidencePhotoOptional')}</Text>
-          <Text variant="caption" style={styles.evidenceHint}>
-            {t('order.evidenceOptionalHint', { max: MAX_EVIDENCE_PHOTOS })}
+          <Text variant="caption" style={styles.refundModalLabel}>
+            {requirements.evidenceRequired ? `${t('order.evidencePhotosMax5')} *` : t('order.evidencePhotoOptional')}
+          </Text>
+          <Text
+            testID="refund-evidence-hint"
+            variant="caption"
+            style={[styles.evidenceHint, errors.evidence ? styles.errorText : null]}
+          >
+            {errors.evidence ??
+              (requirements.evidenceRequired
+                ? t('order.photoEvidenceRequired')
+                : t('order.evidenceOptionalHint', { max: MAX_EVIDENCE_PHOTOS }))}
           </Text>
           <View style={styles.evidenceGrid}>
             {evidence.map((a, i) => (
@@ -155,6 +181,7 @@ const styles = StyleSheet.create({
   qtyValue: { minWidth: 32, textAlign: 'center', color: colors.text.heading },
   evidenceSection: { marginTop: theme.spacing[3] },
   evidenceHint: { color: colors.text.muted, marginBottom: theme.spacing[2] },
+  errorText: { color: colors.danger[600]! },
   evidenceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing[2] },
   evidenceThumbWrap: { width: 72, height: 72, borderRadius: radius.md, overflow: 'visible' },
   evidenceThumb: { width: 72, height: 72, borderRadius: radius.md, backgroundColor: colors.gray[100] },

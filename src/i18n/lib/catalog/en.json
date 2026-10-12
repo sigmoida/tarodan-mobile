@@ -1270,6 +1270,7 @@
     "uploadInvoicePdfNotice": "Upload the invoice PDF to send to the buyer (10 MB max).",
     "noInvoiceUploadedYet": "No invoice has been uploaded for this order yet.",
     "refundHintTop": "You have the right to a refund within 14 days of delivery, without giving a reason. Reason, description, and photos are optional.",
+    "refundHintFaultClaim": "This reason is a fault claim: at least one photo and a description are required, and your request will be reviewed.",
     "descriptionOptionalLabel": "Description (optional)",
     "describeIssueOptionalPlaceholder": "Briefly describe the issue...",
     "evidenceOptionalHint": "You may add photos (up to {max}).",
