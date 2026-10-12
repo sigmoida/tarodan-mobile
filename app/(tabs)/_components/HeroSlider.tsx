@@ -87,6 +87,10 @@ export function HeroSlider({ slides, locale }: { slides: HeroSlide[]; locale: st
   const [current, setCurrent] = useState(0);
   const scroller = useRef<ScrollView>(null);
   const count = slides.length;
+  // Liste kısalırsa (ör. bir slayt süzülür/süresi dolar) `current` geçerli aralığa çekilir.
+  const index = Math.min(current, Math.max(0, count - 1));
+  const indexRef = useRef(index);
+  indexRef.current = index;
 
   const onLayout = (e: LayoutChangeEvent) => setWidth(Math.round(e.nativeEvent.layout.width));
 
@@ -99,12 +103,21 @@ export function HeroSlider({ slides, locale }: { slides: HeroSlide[]; locale: st
     [count, width],
   );
 
+  // Slayt sayısı ya da genişlik değişince state'i sınırla ve kaydırma konumunu
+  // geçerli sayfaya yeniden oturt (aksi halde ScrollView eski ofsette kalır).
+  useEffect(() => {
+    if (indexRef.current !== current) setCurrent(indexRef.current);
+    if (width) scroller.current?.scrollTo({ x: indexRef.current * width, animated: false });
+    // `current` bilerek yok: kullanıcı kaydırmasını geri sarmamalı.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [count, width]);
+
   // Otomatik ilerleme — her sayfa değişiminde (elle de olsa) süre yeniden başlar.
   useEffect(() => {
     if (count < 2 || !width) return;
-    const id = setTimeout(() => goTo(current + 1), AUTOPLAY_MS);
+    const id = setTimeout(() => goTo(index + 1), AUTOPLAY_MS);
     return () => clearTimeout(id);
-  }, [count, width, current, goTo]);
+  }, [count, width, index, goTo]);
 
   const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (!width) return;
@@ -123,14 +136,14 @@ export function HeroSlider({ slides, locale }: { slides: HeroSlide[]; locale: st
           scrollEventThrottle={16}
         >
           {slides.map((slide, i) => (
-            <HeroSlideItem key={slide.id} slide={slide} locale={locale} width={width} isCurrent={i === current} />
+            <HeroSlideItem key={slide.id} slide={slide} locale={locale} width={width} isCurrent={i === index} />
           ))}
         </ScrollView>
       )}
       {count > 1 && (
         <View style={s.dots}>
           {slides.map((slide, i) => (
-            <View key={slide.id} style={[s.dot, i === current && s.dotActive]} />
+            <View key={slide.id} style={[s.dot, i === index && s.dotActive]} />
           ))}
         </View>
       )}

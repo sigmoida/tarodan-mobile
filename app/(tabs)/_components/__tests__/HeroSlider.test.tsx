@@ -4,6 +4,7 @@
  * `?cta=` ile TEK istek olarak sayılır, gösterim görünürlükte (mount'ta değil).
  */
 import React from 'react';
+import { ScrollView } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
 const mockRecordClick = jest.fn((..._a: unknown[]) => Promise.resolve());
@@ -138,5 +139,26 @@ describe('HeroSection', () => {
       jest.advanceTimersByTime(IMPRESSION_DWELL_MS);
     });
     expect(mockRecordImpression).toHaveBeenCalledWith('s1');
+  });
+
+  it('liste kısalınca current sınırlanır, geçerli slayt görünür sayılır ve ofset yeniden oturur', () => {
+    const scrollTo = jest.spyOn(ScrollView.prototype as any, 'scrollTo').mockImplementation(() => {});
+    const three = [slide({ id: 'a' }), slide({ id: 'b' }), slide({ id: 'c' })];
+    const api = render(<HeroSection slides={three} locale="tr" />);
+    layout(api);
+    // Kullanıcı 3. sayfaya (320 genişlikte x=640) kaydırdı.
+    fireEvent(api.getByTestId('hero-slider').findByType(ScrollView), 'momentumScrollEnd', {
+      nativeEvent: { contentOffset: { x: 640 } },
+    });
+    scrollTo.mockClear();
+    api.rerender(<HeroSection slides={[three[0]!]} locale="tr" />);
+    expect(scrollTo).toHaveBeenLastCalledWith({ x: 0, animated: false });
+    // Kalan tek slayt "geçerli": görsel yüklenince gösterim sayılır.
+    loadImage(api, 'a');
+    act(() => {
+      jest.advanceTimersByTime(IMPRESSION_DWELL_MS);
+    });
+    expect(mockRecordImpression).toHaveBeenCalledWith('a');
+    scrollTo.mockRestore();
   });
 });
