@@ -5,6 +5,7 @@ import { Button, Text } from '@/ui';
 import { heroApi, type HeroSlide } from '@/lib/api';
 import { openAdLink } from '@/lib/ads/openAdLink';
 import { useAdImpression } from '@/lib/ads/useAdImpression';
+import { useScreenActive } from '@/lib/ads/useScreenActive';
 import { heroImageUrl, pickLocalized, resolveHeroCta } from '@/lib/hero/heroView';
 import { heroStyles as s } from '../_lib/heroStyles';
 import { HeroBanner } from './HomeSections';
@@ -16,18 +17,21 @@ function HeroSlideItem({
   locale,
   width,
   isCurrent,
+  visible,
 }: {
   slide: HeroSlide;
   locale: string;
   width: number;
   isCurrent: boolean;
+  /** Hero görünür alanda mı (sayfa kaydırılıp uzaklaşınca gösterim sayılmaz). */
+  visible: boolean;
 }) {
   // Görsel yüklenmeden gösterim sayılmaz (AdBanner ile aynı kural): kullanıcı henüz
   // boş bir kutu görüyor.
   const [loaded, setLoaded] = useState(false);
-  // Gösterim: slayt gerçekten ekranda (geçerli sayfa + görsel yüklü + odakta + uygulama önde)
-  // ~1 sn kalınca, slayt başına bir kez.
-  useAdImpression(slide.id, isCurrent && loaded, heroApi.recordImpression);
+  // Gösterim: slayt gerçekten ekranda (geçerli sayfa + hero görünür + görsel yüklü + odakta
+  // + uygulama önde) ~1 sn kalınca, slayt başına bir kez.
+  useAdImpression(slide.id, isCurrent && visible && loaded, heroApi.recordImpression);
 
   const title = pickLocalized(slide.title, locale);
   const subtitle = pickLocalized(slide.subtitle, locale);
@@ -82,7 +86,19 @@ function HeroSlideItem({
 }
 
 /** Admin'in tanımladığı ana sayfa slayt şeridi (yatay sayfalama + otomatik ilerleme). */
-export function HeroSlider({ slides, locale }: { slides: HeroSlide[]; locale: string }) {
+export function HeroSlider({
+  slides,
+  locale,
+  visible = true,
+}: {
+  slides: HeroSlide[];
+  locale: string;
+  /** Hero görünür alanda mı; değilse otomatik ilerleme durur, gösterim sayılmaz. */
+  visible?: boolean;
+}) {
+  // Sekme odakta değilken ya da uygulama arka plandayken de ilerleme durur.
+  const screenActive = useScreenActive();
+  const autoplay = screenActive && visible;
   const [width, setWidth] = useState(0);
   const [current, setCurrent] = useState(0);
   // Parmak ekrandayken otomatik ilerleme durur (kullanıcının elinden sayfa kaçmasın).
@@ -119,10 +135,10 @@ export function HeroSlider({ slides, locale }: { slides: HeroSlide[]; locale: st
 
   // Otomatik ilerleme — her sayfa değişiminde (elle de olsa) süre yeniden başlar.
   useEffect(() => {
-    if (count < 2 || !width || dragging) return;
+    if (count < 2 || !width || dragging || !autoplay) return;
     const id = setTimeout(() => goTo(index + 1), AUTOPLAY_MS);
     return () => clearTimeout(id);
-  }, [count, width, index, goTo, dragging]);
+  }, [count, width, index, goTo, dragging, autoplay]);
 
   const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     setDragging(false);
@@ -148,7 +164,14 @@ export function HeroSlider({ slides, locale }: { slides: HeroSlide[]; locale: st
       >
         {width > 0 &&
           slides.map((slide, i) => (
-            <HeroSlideItem key={slide.id} slide={slide} locale={locale} width={width} isCurrent={i === index} />
+            <HeroSlideItem
+              key={slide.id}
+              slide={slide}
+              locale={locale}
+              width={width}
+              isCurrent={i === index}
+              visible={visible}
+            />
           ))}
       </ScrollView>
       {count > 1 && (
@@ -170,12 +193,14 @@ export function HeroSection({
   slides,
   locale,
   isLoading,
+  visible,
 }: {
   slides: HeroSlide[];
   locale: string;
   isLoading?: boolean;
+  visible?: boolean;
 }) {
   if (isLoading) return <View style={s.reserved} testID="hero-reserved" />;
   if (slides.length === 0) return <HeroBanner />;
-  return <HeroSlider slides={slides} locale={locale} />;
+  return <HeroSlider slides={slides} locale={locale} visible={visible} />;
 }

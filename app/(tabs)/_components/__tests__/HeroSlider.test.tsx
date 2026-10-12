@@ -4,7 +4,7 @@
  * `?cta=` ile TEK istek olarak sayılır, gösterim görünürlükte (mount'ta değil).
  */
 import React from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { AppState, ScrollView, StyleSheet } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
 const mockRecordClick = jest.fn((..._a: unknown[]) => Promise.resolve());
@@ -18,12 +18,18 @@ jest.mock('@/lib/api', () => ({
 }));
 
 const mockPush = jest.fn();
+// Odak kaybını (sekme değişimi) taklit etmek için useFocusEffect temizleyicileri tutulur.
+const mockBlur: Array<() => void> = [];
 jest.mock('expo-router', () => {
   const React = require('react');
   return {
     router: { push: (...a: unknown[]) => mockPush(...a) },
     useFocusEffect: (cb: () => void | (() => void)) => {
-      React.useEffect(() => cb(), [cb]);
+      React.useEffect(() => {
+        const cleanup = cb() as () => void;
+        mockBlur.push(cleanup);
+        return cleanup;
+      }, [cb]);
     },
   };
 });
@@ -66,6 +72,7 @@ describe('HeroSection', () => {
     mockRecordClick.mockClear();
     mockRecordImpression.mockClear();
     mockPush.mockClear();
+    mockBlur.length = 0;
   });
   afterEach(() => jest.useRealTimers());
 
@@ -239,6 +246,82 @@ describe('HeroSection', () => {
       scrollTo.mockClear();
       layout(api, 480.5);
       expect(scrollTo).toHaveBeenLastCalledWith({ x: 480.5, animated: false });
+    });
+  });
+
+  describe('ekran dışındayken', () => {
+    const AUTOPLAY = 10_000;
+    let scrollTo: jest.SpyInstance;
+    // Slider ve her slayt kendi AppState dinleyicisini kaydeder; hepsine haber verilir.
+    const appListeners: Array<(s: string) => void> = [];
+    const setAppState = (st: string) => act(() => appListeners.forEach((l) => l(st)));
+    beforeEach(() => {
+      appListeners.length = 0;
+      scrollTo = jest.spyOn(ScrollView.prototype as any, 'scrollTo').mockImplementation(() => {});
+      jest.spyOn(AppState, 'addEventListener').mockImplementation(((_: string, cb: (s: string) => void) => {
+        appListeners.push(cb);
+        return { remove: jest.fn() };
+      }) as any);
+    });
+    afterEach(() => jest.restoreAllMocks());
+
+    const mount = (visible = true) => {
+      const slides = [slide({ id: 'a' }), slide({ id: 'b' })];
+      const api = render(<HeroSection slides={slides} locale="tr" visible={visible} />);
+      layout(api);
+      scrollTo.mockClear();
+      return { api, slides };
+    };
+    const advanced = () => scrollTo.mock.calls.filter(([a]) => a.animated === true).length;
+
+    it('hero görünür alanda değilken otomatik ilerleme durur; geri gelince sürer', () => {
+      const { api, slides } = mount(false);
+      act(() => {
+        jest.advanceTimersByTime(AUTOPLAY * 3);
+      });
+      expect(advanced()).toBe(0);
+      api.rerender(<HeroSection slides={slides} locale="tr" visible />);
+      act(() => {
+        jest.advanceTimersByTime(AUTOPLAY);
+      });
+      expect(advanced()).toBe(1);
+    });
+
+    it('hero görünür değilken gösterim sayılmaz', () => {
+      const { api, slides } = mount(false);
+      loadImage(api, 'a');
+      act(() => {
+        jest.advanceTimersByTime(IMPRESSION_DWELL_MS * 3);
+      });
+      expect(mockRecordImpression).not.toHaveBeenCalled();
+      api.rerender(<HeroSection slides={slides} locale="tr" visible />);
+      act(() => {
+        jest.advanceTimersByTime(IMPRESSION_DWELL_MS);
+      });
+      expect(mockRecordImpression).toHaveBeenCalledWith('a');
+    });
+
+    it('sekme odakta değilken otomatik ilerleme durur', () => {
+      mount();
+      act(() => mockBlur.forEach((f) => f()));
+      act(() => {
+        jest.advanceTimersByTime(AUTOPLAY * 3);
+      });
+      expect(advanced()).toBe(0);
+    });
+
+    it('uygulama arka plandayken otomatik ilerleme durur; öne gelince sürer', () => {
+      mount();
+      setAppState('background');
+      act(() => {
+        jest.advanceTimersByTime(AUTOPLAY * 3);
+      });
+      expect(advanced()).toBe(0);
+      setAppState('active');
+      act(() => {
+        jest.advanceTimersByTime(AUTOPLAY);
+      });
+      expect(advanced()).toBe(1);
     });
   });
 });

@@ -26,6 +26,7 @@ import { CompanyOfWeekSection } from './_components/CompanyOfWeekSection';
 import { HeroSection } from './_components/HeroSlider';
 import { TrustBadges } from './_components/TrustBadges';
 import { useHomeHero } from './_hooks/useHomeHero';
+import { useHeroVisibility } from './_hooks/useHeroVisibility';
 import { AdBanner } from '@/components/ads/AdBanner';
 
 const { colors } = theme;
@@ -52,6 +53,7 @@ export default function HomeScreen() {
     refetchProducts,
   } = useHomeData();
   const hero = useHomeHero();
+  const heroView = useHeroVisibility();
   const counts = useHomeBadges(isAuthenticated);
   const guest = useHomeGuestPrompt(isAuthenticated);
 
@@ -92,9 +94,19 @@ export default function HomeScreen() {
         style={styles.scrollView}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary[600]!]} />}
         showsVerticalScrollIndicator={false}
+        onScroll={heroView.onScroll}
+        onLayout={heroView.onViewportLayout}
+        scrollEventThrottle={64}
       >
         <AdBanner />
-        <HeroSection slides={hero.slides} locale={hero.locale} isLoading={hero.loadingSlides} />
+        <View onLayout={heroView.onHeroLayout}>
+          <HeroSection
+            slides={hero.slides}
+            locale={hero.locale}
+            isLoading={hero.loadingSlides}
+            visible={heroView.visible}
+          />
+        </View>
         <CategoriesSection categories={categories} isLoading={loadingCategories} />
         <BrandsSection />
         <ScalesSection />

@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useEffect, useRef } from 'react';
 import { adsApi } from '@/lib/api';
+import { useScreenActive } from './useScreenActive';
 
 /** Gösterim sayılması için reklamın görünür kalması gereken süre (web: 1 sn). */
 export const IMPRESSION_DWELL_MS = 1000;
@@ -24,28 +23,15 @@ export function useAdImpression(
   /** Sayaç ucu; varsayılan reklam ucu. Hero slaytı kendi ucunu verir. */
   record: (id: string) => Promise<unknown> = adsApi.recordImpression,
 ): void {
-  const [focused, setFocused] = useState(true);
-  const [appActive, setAppActive] = useState(AppState.currentState !== 'background');
+  const screenActive = useScreenActive();
   const sentFor = useRef<string | null>(null);
 
-  useFocusEffect(
-    useCallback(() => {
-      setFocused(true);
-      return () => setFocused(false);
-    }, []),
-  );
-
   useEffect(() => {
-    const sub = AppState.addEventListener('change', (s) => setAppActive(s === 'active'));
-    return () => sub.remove();
-  }, []);
-
-  useEffect(() => {
-    if (!ready || !focused || !appActive || sentFor.current === adId) return;
+    if (!ready || !screenActive || sentFor.current === adId) return;
     const timer = setTimeout(() => {
       sentFor.current = adId;
       record(adId).catch(() => {});
     }, IMPRESSION_DWELL_MS);
     return () => clearTimeout(timer);
-  }, [adId, ready, focused, appActive, record]);
+  }, [adId, ready, screenActive, record]);
 }
