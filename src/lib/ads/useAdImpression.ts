@@ -18,7 +18,12 @@ export const IMPRESSION_DWELL_MS = 1000;
  * IntersectionObserver yok); yuvalar ekranın üstünde durduğu için ekran odağı
  * + yükleme + bekleme yeterli bir vekil.
  */
-export function useAdImpression(adId: string, ready: boolean): void {
+export function useAdImpression(
+  adId: string,
+  ready: boolean,
+  /** Sayaç ucu; varsayılan reklam ucu. Hero slaytı kendi ucunu verir. */
+  record: (id: string) => Promise<unknown> = adsApi.recordImpression,
+): void {
   const [focused, setFocused] = useState(true);
   const [appActive, setAppActive] = useState(AppState.currentState !== 'background');
   const sentFor = useRef<string | null>(null);
@@ -39,8 +44,8 @@ export function useAdImpression(adId: string, ready: boolean): void {
     if (!ready || !focused || !appActive || sentFor.current === adId) return;
     const timer = setTimeout(() => {
       sentFor.current = adId;
-      adsApi.recordImpression(adId).catch(() => {});
+      record(adId).catch(() => {});
     }, IMPRESSION_DWELL_MS);
     return () => clearTimeout(timer);
-  }, [adId, ready, focused, appActive]);
+  }, [adId, ready, focused, appActive, record]);
 }

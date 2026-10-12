@@ -1,0 +1,151 @@
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { View, ScrollView, type LayoutChangeEvent, type NativeSyntheticEvent, type NativeScrollEvent } from 'react-native';
+import { Image } from 'expo-image';
+import { Button, Text } from '@/ui';
+import { heroApi, type HeroSlide } from '@/lib/api';
+import { openAdLink } from '@/lib/ads/openAdLink';
+import { useAdImpression } from '@/lib/ads/useAdImpression';
+import { heroImageUrl, pickLocalized, resolveHeroCta } from '@/lib/hero/heroView';
+import { heroStyles as s } from '../_lib/heroStyles';
+import { HeroBanner } from './HomeSections';
+
+const AUTOPLAY_MS = 10_000;
+
+function HeroSlideItem({
+  slide,
+  locale,
+  width,
+  isCurrent,
+}: {
+  slide: HeroSlide;
+  locale: string;
+  width: number;
+  isCurrent: boolean;
+}) {
+  // Gösterim: slayt gerçekten ekranda (geçerli sayfa + odakta + uygulama önde) ~1 sn kalınca, slayt başına bir kez.
+  useAdImpression(slide.id, isCurrent, heroApi.recordImpression);
+
+  const title = pickLocalized(slide.title, locale);
+  const subtitle = pickLocalized(slide.subtitle, locale);
+  const alt = pickLocalized(slide.imageAlt, locale) || title;
+  const ctas = [
+    { index: 1 as const, cta: resolveHeroCta(slide.cta1, locale) },
+    { index: 2 as const, cta: resolveHeroCta(slide.cta2, locale) },
+  ];
+
+  return (
+    <View style={{ width }} testID={`hero-slide-${slide.id}`}>
+      {/* Telefonda görsel her zaman üstte, metin altta (`imageSide` yalnız tablet yatay için). */}
+      <Image
+        source={{ uri: heroImageUrl(slide) }}
+        style={s.image}
+        contentFit="cover"
+        transition={200}
+        accessibilityLabel={alt}
+      />
+      <View style={s.body}>
+        <Text variant="h2" tone="heading" accessibilityRole="header" style={s.title}>
+          {title}
+        </Text>
+        {!!subtitle && (
+          <Text variant="body" tone="muted">
+            {subtitle}
+          </Text>
+        )}
+        <View style={s.buttons}>
+          {ctas.map(({ index, cta }) =>
+            cta ? (
+              <Button
+                key={index}
+                variant={index === 1 ? 'primary' : 'outline'}
+                fullWidth
+                title={cta.label}
+                testID={`hero-cta-${slide.id}-${index}`}
+                onPress={() => {
+                  // Tek istek: sunucu slayt toplamını ve buton sayacını birlikte artırır.
+                  heroApi.recordClick(slide.id, index).catch(() => {});
+                  openAdLink(cta.href);
+                }}
+              />
+            ) : null,
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/** Admin'in tanımladığı ana sayfa slayt şeridi (yatay sayfalama + otomatik ilerleme). */
+export function HeroSlider({ slides, locale }: { slides: HeroSlide[]; locale: string }) {
+  const [width, setWidth] = useState(0);
+  const [current, setCurrent] = useState(0);
+  const scroller = useRef<ScrollView>(null);
+  const count = slides.length;
+
+  const onLayout = (e: LayoutChangeEvent) => setWidth(Math.round(e.nativeEvent.layout.width));
+
+  const goTo = useCallback(
+    (i: number) => {
+      const next = (i + count) % count;
+      setCurrent(next);
+      scroller.current?.scrollTo({ x: next * width, animated: true });
+    },
+    [count, width],
+  );
+
+  // Otomatik ilerleme — her sayfa değişiminde (elle de olsa) süre yeniden başlar.
+  useEffect(() => {
+    if (count < 2 || !width) return;
+    const id = setTimeout(() => goTo(current + 1), AUTOPLAY_MS);
+    return () => clearTimeout(id);
+  }, [count, width, current, goTo]);
+
+  const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!width) return;
+    setCurrent(Math.min(count - 1, Math.max(0, Math.round(e.nativeEvent.contentOffset.x / width))));
+  };
+
+  return (
+    <View style={s.shell} onLayout={onLayout} testID="hero-slider">
+      {width > 0 && (
+        <ScrollView
+          ref={scroller}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={onMomentumEnd}
+          scrollEventThrottle={16}
+        >
+          {slides.map((slide, i) => (
+            <HeroSlideItem key={slide.id} slide={slide} locale={locale} width={width} isCurrent={i === current} />
+          ))}
+        </ScrollView>
+      )}
+      {count > 1 && (
+        <View style={s.dots}>
+          {slides.map((slide, i) => (
+            <View key={slide.id} style={[s.dot, i === current && s.dotActive]} />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+/**
+ * Ana sayfa hero'su: yüklenirken rezerve alan, API'den görünür slayt yoksa
+ * (boş liste, hata, hepsi `hideOnIos`/satın alma hedefli) statik yedek hero.
+ */
+export function HeroSection({
+  slides,
+  locale,
+  isLoading,
+}: {
+  slides: HeroSlide[];
+  locale: string;
+  isLoading?: boolean;
+}) {
+  if (isLoading) return <View style={s.reserved} testID="hero-reserved" />;
+  if (slides.length === 0) return <HeroBanner />;
+  return <HeroSlider slides={slides} locale={locale} />;
+}

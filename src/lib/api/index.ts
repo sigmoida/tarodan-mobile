@@ -33,6 +33,7 @@ export * from "./trades";
 export * from "./user";
 export * from "./media";
 export * from "./ads";
+export * from "./hero";
 export * from "./cart";
 
 // =============================================================================

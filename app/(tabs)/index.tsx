@@ -13,7 +13,6 @@ import { useHomeBadges } from './_hooks/useHomeBadges';
 import { useHomeGuestPrompt } from './_hooks/useHomeGuestPrompt';
 import { HomeHeader } from './_components/HomeHeader';
 import {
-  HeroBanner,
   CategoriesSection,
   BrandsSection,
   ScalesSection,
@@ -24,6 +23,9 @@ import {
   CollectionsSection,
 } from './_components/HomeSections';
 import { CompanyOfWeekSection } from './_components/CompanyOfWeekSection';
+import { HeroSection } from './_components/HeroSlider';
+import { TrustBadges } from './_components/TrustBadges';
+import { useHomeHero } from './_hooks/useHomeHero';
 import { AdBanner } from '@/components/ads/AdBanner';
 
 const { colors } = theme;
@@ -49,6 +51,7 @@ export default function HomeScreen() {
     loadingProducts,
     refetchProducts,
   } = useHomeData();
+  const hero = useHomeHero();
   const counts = useHomeBadges(isAuthenticated);
   const guest = useHomeGuestPrompt(isAuthenticated);
 
@@ -91,7 +94,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <AdBanner />
-        <HeroBanner />
+        <HeroSection slides={hero.slides} locale={hero.locale} isLoading={hero.loadingSlides} />
         <CategoriesSection categories={categories} isLoading={loadingCategories} />
         <BrandsSection />
         <ScalesSection />
@@ -101,6 +104,7 @@ export default function HomeScreen() {
         <ProductsGrid items={products} isLoading={loadingProducts} {...cardProps} />
         <CompanyOfWeekSection companyOfWeek={companyOfWeek} isLoading={loadingCompanyOfWeek} />
         <CollectionsSection collections={collections} isLoading={loadingCollections} />
+        <TrustBadges badges={hero.badges} />
         <View style={{ height: 100 }} />
       </ScrollView>
 
