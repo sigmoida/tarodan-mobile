@@ -23,7 +23,10 @@ jest.mock('@/lib/api', () => ({
 }));
 
 const mockPush = jest.fn();
-jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockPush(...a) } }));
+jest.mock('expo-router', () => ({
+  router: { push: (...a: unknown[]) => mockPush(...a) },
+  useFocusEffect: () => {},
+}));
 
 import { AdBanner } from '../AdBanner';
 

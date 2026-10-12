@@ -19,7 +19,7 @@ type TierFeature = { icon: keyof typeof Ionicons.glyphMap; label: string };
 /**
  * Kademeye özel başarı özellikleri — `checkout/_lib/tiers.ts`teki
  * `buildMembershipTiers` ile AYNI sayı/anahtar seti (15/50/200 ücretsiz ilan,
- * 2/10/50 öne çıkan ilan, "Takas özelliği"/"Koleksiyon oluşturma"/"API
+ * "Takas özelliği"/"Koleksiyon oluşturma"/"API
  * erişimi"), drift'i önlemek için oradaki `membership.tierFeature*`
  * anahtarları yeniden kullanılıyor. `t` çağrıldığı ANDA çözülür (bkz.
  * UpgradePrompt) — bileşen `useMemo(() => buildTierFeatures(t), [t])` ile
@@ -30,13 +30,11 @@ const buildTierFeatures = (t: TFunction): Record<TierKey, TierFeature[]> => ({
     { icon: 'list', label: t('membership.tierFeatureFreeListings', { count: 15 }) },
     { icon: 'swap-horizontal', label: t('membership.tierFeatureTrade') },
     { icon: 'albums', label: t('membership.tierFeatureCollectionCreate') },
-    { icon: 'star', label: t('membership.tierFeatureFeaturedListings', { count: 2 }) },
   ],
   premium: [
     { icon: 'list', label: t('membership.tierFeatureFreeListings', { count: 50 }) },
     { icon: 'swap-horizontal', label: t('membership.tierFeatureTrade') },
     { icon: 'albums', label: t('membership.tierFeatureCollectionCreate') },
-    { icon: 'star', label: t('membership.tierFeatureFeaturedListings', { count: 10 }) },
     // "Reklamsız deneyim" KALDIRILDI — banner'lar herkese gösteriliyor ve
     // sunucu her katman için `isAdFree: null` döndürüyor (staging, 2026-08-26).
     // Satın alma SONRASI ekranda duruyordu: kullanıcı parayı ödedikten sonra
@@ -45,7 +43,6 @@ const buildTierFeatures = (t: TFunction): Record<TierKey, TierFeature[]> => ({
   business: [
     { icon: 'list', label: t('membership.tierFeatureFreeListings', { count: 200 }) },
     { icon: 'swap-horizontal', label: t('membership.tierFeatureTrade') },
-    { icon: 'star', label: t('membership.tierFeatureFeaturedListings', { count: 50 }) },
     { icon: 'code-slash', label: t('membership.tierFeatureApiAccess') },
     { icon: 'ribbon', label: t('membership.tierFeatureSellerBadge') },
   ],

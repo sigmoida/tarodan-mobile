@@ -1,150 +1,170 @@
-import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Pressable, Linking } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import { theme } from '@/ui';
-import { adsApi, type ActiveAd, type AdHotspot } from '@/lib/api';
+import { theme, Text } from '@/ui';
+import { adsApi, type ActiveAd } from '@/lib/api';
 import { useAds } from '@/hooks/useAds';
-import { pathFromUrl } from '@/lib/deeplinks';
-import { toMobileRoute } from '@/utils/notificationRoute';
+import { hasAdImage } from '@/lib/ads/creative';
+import { adAspectRatio, naturalRatioOf } from '@/lib/ads/adAspect';
+import { hotspotStyle, renderableHotspots } from '@/lib/ads/hotspots';
+import { openAdLink, resolveAdLink } from '@/lib/ads/openAdLink';
+import { newRotationSeed, pickAd } from '@/lib/ads/pickAd';
+import { useAdImpression } from '@/lib/ads/useAdImpression';
+import { useFlashCountdown } from '@/lib/ads/useFlashCountdown';
 
-/** Banner en-boy oranı — sunucu width/height vermezse kullanılır. */
-const FALLBACK_ASPECT = 1200 / 300;
+/** Hotspot'a dokunuş payı (pt) — küçük bölgeler parmakla kolay vurulsun. */
+const HOTSPOT_SLOP = theme.spacing[1];
 
-/** Kendi web sitemizin host'ları — bunlara giden link uygulama içinde açılır. */
-const OWN_HOSTS = new Set(
-  ['tarodan.com.tr', 'www.tarodan.com.tr', 'staging.tarodan.com.tr', hostOf(process.env.EXPO_PUBLIC_WEB_URL)].filter(
-    (h): h is string => !!h,
-  ),
-);
+function AdSlot({ ad, position }: { ad: ActiveAd; position: string }) {
+  const hasImage = hasAdImage(ad);
+  // Görsel yüklenince kutu onun GERÇEK oranını alır (kayıtlı ölçü görselden
+  // sapabilir). Kutu = görsel olduğu için `contain` kırpmaz ve yüzdeyle
+  // konumlanan bölgeler görselin üzerinde birebir oturur.
+  const [naturalRatio, setNaturalRatio] = useState<number | null>(null);
+  const [loaded, setLoaded] = useState(!hasImage);
+  // Gösterim ilan başına bir kez, reklam görünürken (mount'ta değil) sayılır.
+  useAdImpression(ad.id, loaded);
 
-function hostOf(url: string | undefined): string | null {
-  const m = url?.match(/^https?:\/\/([^/?#]+)/i);
-  return m ? m[1]!.toLowerCase() : null;
-}
-
-/**
- * Reklam linki iç rota ("/listings?manufacturer=Hot+Wheels"), kendi sitemizin
- * mutlak adresi ("https://tarodan.com.tr/listings") ya da dış URL olabilir.
- * İlk ikisi web yolu → mobil rota eşlemesinden (derin bağlantılarla ortak
- * `toMobileRoute`) geçip uygulama içinde açılır; yalnız gerçekten dış adres
- * tarayıcıya gider.
- */
-function openAdLink(linkUrl: string) {
-  const host = hostOf(linkUrl);
-  if (host && !OWN_HOSTS.has(host)) {
-    Linking.openURL(linkUrl).catch(() => {});
-    return;
-  }
-  const path = pathFromUrl(linkUrl) ?? '/';
-  // İlan listesi eşleyiciye VERİLMEZ: `toMobileRoute` `/listings`'i sorgusuz
-  // arama sekmesine çeviriyor, reklamın filtresi (`?manufacturer=…`) düşerdi.
-  // Mobil `app/listings` web ile aynı sorgu parametrelerini okuyor.
-  const isListingIndex = path.split('?')[0]!.replace(/\/+$/, '') === '/listings';
-  router.push((isListingIndex ? path : (toMobileRoute(path) ?? path)) as any);
-}
-
-/** Görselin sınırları içinde, çizilebilir bölgeler (bozuk koordinat atlanır). */
-function renderableHotspots(ad: ActiveAd): AdHotspot[] {
-  return (ad.hotspots ?? [])
-    .filter(
-      (h) =>
-        !!h.linkUrl &&
-        h.width > 0 &&
-        h.height > 0 &&
-        h.x >= 0 &&
-        h.y >= 0 &&
-        h.x + h.width <= 1.0001 &&
-        h.y + h.height <= 1.0001,
-    )
-    .sort((a, b) => a.sortOrder - b.sortOrder);
-}
-
-const pct = (n: number) => `${n * 100}%` as const;
-
-function AdSlot({ ad }: { ad: ActiveAd }) {
-  // Gösterim ilan başına bir kez sayılır; yeniden render tekrar tetiklemesin.
-  const impressionSent = useRef(false);
-  useEffect(() => {
-    if (impressionSent.current) return;
-    impressionSent.current = true;
-    adsApi.recordImpression(ad.id).catch(() => {});
-  }, [ad.id]);
-
-  const aspectRatio = ad.width && ad.height ? ad.width / ad.height : FALLBACK_ASPECT;
   const hotspots = renderableHotspots(ad);
   // Görselli reklamda tıklama YALNIZ bölgelerden (web ile aynı kural); bölge
-  // yoksa eski/metin reklamın `linkUrl`'i tüm görseli tıklanabilir yapar.
-  const wholeLink = hotspots.length === 0 ? ad.linkUrl : null;
+  // yoksa eski/metin reklamın `linkUrl`'i tüm reklamı tıklanabilir yapar.
+  // Açılamayacak hedef (güvensiz şema, satın alma) için tıklanabilirlik yok.
+  const wholeLink =
+    hotspots.length === 0 && resolveAdLink(ad.linkUrl).kind !== 'blocked' ? ad.linkUrl : null;
 
   const handleWholePress = () => {
     // Ölçümü bekletmeden yönlendir; sayaç arka planda gider.
     adsApi.recordClick(ad.id).catch(() => {});
-    if (wholeLink) openAdLink(wholeLink);
+    openAdLink(wholeLink);
   };
 
   return (
     <Pressable
       onPress={handleWholePress}
       disabled={!wholeLink}
-      accessibilityRole={wholeLink ? 'link' : 'image'}
+      accessibilityRole={wholeLink ? 'link' : hasImage ? 'image' : 'text'}
       accessibilityLabel={ad.altText || ad.title}
       testID={`ad-banner-${ad.id}`}
       style={styles.slot}
     >
-      <Image
-        source={{ uri: ad.imageUrl }}
-        style={[styles.image, { aspectRatio }]}
-        contentFit="cover"
-        transition={200}
-        accessibilityLabel={ad.altText || ad.title}
-      />
-      {hotspots.map((h) => (
-        <Pressable
-          key={h.id}
-          onPress={() => {
-            adsApi.recordClick(ad.id, h.id).catch(() => {});
-            openAdLink(h.linkUrl);
-          }}
-          accessibilityRole="link"
-          accessibilityLabel={h.label || ad.altText || ad.title}
-          testID={`ad-hotspot-${h.id}`}
-          style={[styles.hotspot, { left: pct(h.x), top: pct(h.y), width: pct(h.width), height: pct(h.height) }]}
-        />
-      ))}
+      {hasImage ? (
+        <View style={[styles.imageBox, { aspectRatio: adAspectRatio(ad, position, naturalRatio) }]}>
+          <Image
+            source={{ uri: ad.imageUrl!.trim() }}
+            style={styles.image}
+            contentFit="contain"
+            transition={200}
+            accessibilityLabel={ad.altText || ad.title}
+            onLoad={(e) => {
+              setNaturalRatio(naturalRatioOf(e?.source));
+              setLoaded(true);
+            }}
+          />
+          {hotspots.map((h) => (
+            <Pressable
+              key={h.id}
+              onPress={() => {
+                adsApi.recordClick(ad.id, h.id).catch(() => {});
+                openAdLink(h.linkUrl);
+              }}
+              hitSlop={HOTSPOT_SLOP}
+              accessibilityRole="link"
+              accessibilityLabel={h.label || ad.altText || ad.title}
+              testID={`ad-hotspot-${h.id}`}
+              style={[styles.hotspot, hotspotStyle(h)]}
+            />
+          ))}
+        </View>
+      ) : (
+        <AdTextBody ad={ad} />
+      )}
     </Pressable>
   );
 }
 
+/** Görselsiz reklam: başlık, metin ve (varsa) kampanya kodu / flaş geri sayım. */
+function AdTextBody({ ad }: { ad: ActiveAd }) {
+  const campaign = ad.campaign;
+  const left = useFlashCountdown(campaign?.isFlashSale ? campaign.endsAt : null);
+  const code = campaign?.code;
+  return (
+    <View style={styles.textBody} testID={`ad-text-${ad.id}`}>
+      <View style={styles.textCopy}>
+        <Text variant="label" tone="heading" weight="semibold">
+          {ad.title}
+        </Text>
+        {!!ad.content && (
+          <Text variant="bodySm" tone="muted">
+            {ad.content}
+          </Text>
+        )}
+      </View>
+      {/* Gösterilecek kod ya da (süresi dolmamış) geri sayım yoksa kapsayıcı da yok. */}
+      {(!!left || !!code) && (
+        <View style={styles.chips} testID="ad-chips">
+          {left ? (
+            <View style={[styles.chip, styles.flashChip]} testID="ad-flash-countdown">
+              <Text variant="label" tone="danger" weight="semibold">
+                ⚡ {left}
+              </Text>
+            </View>
+          ) : null}
+          {code ? (
+            <View style={[styles.chip, styles.codeChip]} testID={`ad-code-${ad.id}`}>
+              <Text variant="label" tone="primary" weight="semibold">
+                {code}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      )}
+    </View>
+  );
+}
+
 /**
- * Verilen konumdaki reklamlar — reklam yoksa veya üye reklamsızsa hiç çizilmez.
+ * Verilen konumdaki reklam — yuvada TEK reklam gösterilir (web `BannerSlot` ile
+ * aynı); seçim ekran açılışı başına döner. Reklam yoksa veya üye reklamsızsa
+ * hiç çizilmez.
  */
 export function AdBanner({ position = 'header' }: { position?: string }) {
   const { ads, isAdFree, isLoading } = useAds(position);
+  // Ekran açılışı başına bir tohum + seçilen reklamın kimliği. Paylaşılan reklam
+  // sorgusu yenilenip liste uzunluğu değişse de ekrandaki reklam, listede
+  // kaldığı sürece SABİT kalır (aksi halde reklam değişir ve yeni gösterim
+  // sayılırdı); yalnız listeden düşerse yeniden seçilir. Rotasyon web'deki
+  // "sayfa yüklemesi başına" mantığına denk olarak yuva yeniden bağlanınca
+  // (ekran açılışı) olur — sekme odağı değişince DEĞİL: odak başına döndürmek
+  // her sekme geçişinde reklamı değiştirir ve yeni gösterim sayardı.
+  const [seed] = useState(newRotationSeed);
+  const [pickedId, setPickedId] = useState<string | null>(null);
+  const ad = ads.find((a) => a.id === pickedId) ?? pickAd(ads, position, seed);
+  const adId = ad?.id ?? null;
+  useEffect(() => {
+    if (adId !== pickedId) setPickedId(adId);
+  }, [adId, pickedId]);
 
   // Reklamsız üyede yer ayırma — kalıcı boş kutu göstermiş oluruz.
   if (isAdFree) return null;
 
   // Query çözülmeden liste boş kalır; yer ayırmazsak reklam gelince akış
   // ~110-130pt aşağı kayar (kullanıcı tam o an ekranın üstüne bakıyor).
-  // FALLBACK_ASPECT ile rezerve ediyoruz — gerçek reklamın oranı farklıysa
+  // Konum varsayılan oranıyla rezerve ediyoruz — gerçek reklamın oranı farklıysa
   // yükleme sonrası küçük bir ikinci kayma kalabilir; bunu ortadan kaldırmak
   // sunucudan önden boyut bilmeyi gerektirir, kapsam dışı.
   if (isLoading) {
     return (
       <View style={styles.container} testID="ad-banner-slot-reserved">
-        <View style={[styles.slot, { aspectRatio: FALLBACK_ASPECT }]} />
+        <View style={[styles.slot, { aspectRatio: adAspectRatio({ width: null, height: null }, position) }]} />
       </View>
     );
   }
 
-  if (ads.length === 0) return null;
+  if (!ad) return null;
 
   return (
     <View style={styles.container} testID="ad-banner">
-      {ads.map((ad) => (
-        <AdSlot key={ad.id} ad={ad} />
-      ))}
+      <AdSlot key={ad.id} ad={ad} position={position} />
     </View>
   );
 }
@@ -156,13 +176,31 @@ const styles = StyleSheet.create({
     // Altındaki hero kartı `marginTop: -10` ile yukarı çekiliyor (başlığın
     // kavisine oturmak için); bu boşluk olmadan kart banner'ın altını örtüyordu.
     paddingBottom: theme.spacing[4],
-    gap: theme.spacing[2],
   },
   slot: {
     borderRadius: theme.radius.lg,
     overflow: 'hidden',
     backgroundColor: theme.colors.surface.alt,
   },
-  image: { width: '100%' },
+  imageBox: { width: '100%' },
+  image: { width: '100%', height: '100%' },
   hotspot: { position: 'absolute' },
+  textBody: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: theme.spacing[3],
+    paddingHorizontal: theme.spacing[4],
+    paddingVertical: theme.spacing[3],
+  },
+  textCopy: { flexShrink: 1, minWidth: 0, gap: theme.spacing[1] },
+  chips: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2] },
+  chip: {
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: theme.spacing[3],
+    paddingVertical: theme.spacing[1],
+  },
+  codeChip: { backgroundColor: theme.colors.primary[50] },
+  flashChip: { backgroundColor: theme.colors.danger[50] },
 });

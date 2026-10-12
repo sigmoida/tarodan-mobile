@@ -21,10 +21,10 @@ export const formatTL = (n: number): string =>
  * [t])` ile çağırmalı — modül seviyesinde sabitlenirse hazır olmadan donar,
  * bkz. UpgradePrompt / membershipTiers.buildTierNames).
  *
- * "15/50/200/1000/2/10/50" gibi sayılar bu ekrana özgü satın-alma-onayı kopyası
+ * "15/50/200/1000" gibi sayılar bu ekrana özgü satın-alma-onayı kopyası
  * (checkout tier tablosu) — `membershipLimits.ts`teki FREE/PREMIUM_MEMBER_LIMITS
  * bunları TAŞIMIYOR (o sabitler farklı bir şeyi, ücretsiz/premium üyenin genel
- * hesap limitini, tanımlıyor). Drift riski gerçek: bu üç sayı grubu
+ * hesap limitini, tanımlıyor). Drift riski gerçek: bu iki sayı grubu
  * `membershipTiers.ts`teki (ana /membership ekranı) ve `success.tsx`teki
  * (satın alma sonrası ekran) rakamlarla elle senkron tutuluyor.
  */
@@ -39,7 +39,6 @@ export const buildMembershipTiers = (t: TFunction) => ({
       t('membership.tierFeatureTotalListings', { count: 50 }),
       t('membership.tierFeatureTrade'),
       t('membership.tierFeatureCollectionCreate'),
-      t('membership.tierFeatureFeaturedListings', { count: 2 }),
     ],
     color: colors.info[600]!,
   },
@@ -53,7 +52,8 @@ export const buildMembershipTiers = (t: TFunction) => ({
       t('membership.tierFeatureTotalListings', { count: 200 }),
       t('membership.tierFeatureTrade'),
       t('membership.tierFeatureCollectionCreate'),
-      t('membership.tierFeatureFeaturedListings', { count: 10 }),
+      // "Öne çıkan ilan" vaadi KALDIRILDI: sunucu `featuredListingSlots`'u kapattı
+      // (777492912); hiçbir katman bu hakkı vermiyor.
       // "Reklamsız deneyim" KALDIRILDI: banner'lar herkese gösteriliyor, hiçbir
       // katman bu vaadi veremiyor. Staging'de ölçüldü (2026-08-26):
       // `GET /membership/tiers` her katman için `isAdFree: null` döndürüyor.
@@ -73,7 +73,6 @@ export const buildMembershipTiers = (t: TFunction) => ({
       t('membership.tierFeatureTotalListings', { count: 1000 }),
       t('membership.tierFeatureTrade'),
       t('membership.tierFeatureCollectionCreate'),
-      t('membership.tierFeatureFeaturedListings', { count: 50 }),
       t('membership.prioritySupport'),
       t('membership.tierFeatureApiAccess'),
       t('membership.tierFeatureSellerBadge'),
