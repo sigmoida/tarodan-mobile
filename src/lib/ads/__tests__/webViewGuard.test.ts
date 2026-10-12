@@ -6,7 +6,7 @@ jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 
 import { isPurchasePath } from '../purchasePath';
 import { resolveAdLink } from '../openAdLink';
-import { isAllowedOwnPage, shouldAllowWebRequest } from '../webViewGuard';
+import { isAllowedOwnPage, decideWebRequest } from '../webViewGuard';
 
 const PURCHASE = [
   '/membership',
@@ -40,13 +40,13 @@ describe('webViewGuard — kendi sitemizde bile satın alma sayfaları açılmaz
   it.each(PURCHASE)('https://tarodan.com.tr%s engellenir', (p) => {
     const url = `https://tarodan.com.tr${p}`;
     expect(isAllowedOwnPage(url)).toBe(false);
-    expect(shouldAllowWebRequest(url)).toBe(false);
+    expect(decideWebRequest(url, true) === 'allow').toBe(false);
   });
 
   it('sıradan site sayfaları açılır', () => {
-    expect(shouldAllowWebRequest('https://tarodan.com.tr/blog/x')).toBe(true);
-    expect(shouldAllowWebRequest('https://tarodan.com.tr/en/blog/x?utm=1')).toBe(true);
-    expect(shouldAllowWebRequest('about:blank')).toBe(true);
+    expect(decideWebRequest('https://tarodan.com.tr/blog/x', true) === 'allow').toBe(true);
+    expect(decideWebRequest('https://tarodan.com.tr/en/blog/x?utm=1', true) === 'allow').toBe(true);
+    expect(decideWebRequest('about:blank', true) === 'allow').toBe(true);
   });
 
   it('resolveAdLink ile aynı kapıyı paylaşır (tutarlılık)', () => {

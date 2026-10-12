@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Linking } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { theme, ErrorState, ScreenHeader, Spinner } from '@/ui';
-import { isAllowedOwnPage, shouldAllowWebRequest } from '@/lib/ads/webViewGuard';
+import { decideWebRequest, isAllowedOwnPage } from '@/lib/ads/webViewGuard';
 
 /**
  * Mobil karşılığı olmayan site sayfalarını (reklam linkleri) uygulama içinde
@@ -26,11 +26,18 @@ export default function InAppWebScreen() {
           source={{ uri: target }}
           startInLoadingState
           renderLoading={() => <Spinner />}
-          onShouldStartLoadWithRequest={(req) => shouldAllowWebRequest(req.url)}
+          // Her üst çerçeve yüklemesi karar kapısından geçer: satın alma sayfaları
+          // engellenir, dış https linkleri sistem tarayıcısına gider, iframe'ler
+          // serbesttir. `isTopFrame` Android'de yok → üst çerçeve say.
+          onShouldStartLoadWithRequest={(req) => {
+            const decision = decideWebRequest(req.url, req.isTopFrame !== false);
+            if (decision === 'external') Linking.openURL(req.url).catch(() => {});
+            return decision === 'allow';
+          }}
           // Site içi (SPA/pushState) gezinmeler yukarıdaki kancadan GEÇMEZ: menüden
           // /membership'e geçilirse ekrandan çık.
           onNavigationStateChange={(nav) => {
-            if (nav.url && !shouldAllowWebRequest(nav.url)) router.back();
+            if (nav.url && decideWebRequest(nav.url, true) === 'block') router.back();
           }}
         />
       ) : (
