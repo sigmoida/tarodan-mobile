@@ -222,7 +222,6 @@ describe('J63 · Satıcı iptali yok + iptal etiketi', () => {
       data: {
         data: saleFixture({
           status: 'cancelled',
-          isBuyer: false,
           cancelReason: null,
           cancelCategory: 'buyer_cancelled',
         }),
@@ -238,7 +237,6 @@ describe('J63 · Satıcı iptali yok + iptal etiketi', () => {
       data: {
         data: saleFixture({
           status: 'cancelled',
-          isBuyer: false,
           cancelReason: 'Yönetici tarafından iptal edildi: Satıcı stok doğrulayamadı',
           cancelCategory: 'other',
         }),

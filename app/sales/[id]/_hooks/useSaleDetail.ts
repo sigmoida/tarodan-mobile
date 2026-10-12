@@ -33,9 +33,8 @@ export function useSaleDetail() {
   // İptal'de status 'refunded' olsa bile "İptal Edildi" göster (alıcı ile tutarlı).
   const displayStatus = order?.cancellationType === 'iptal' ? 'cancelled' : order?.status ?? '';
   const sc = statusColor(displayStatus);
-  // Neden iptal edildi — alıcı ekranıyla aynı tek kaynak (satıcı: "Alıcı iptal etti").
-  const cancelMessage =
-    order && displayStatus === 'cancelled' ? orderCancelMessage({ ...order, isBuyer: order.isBuyer ?? false }, t) : null;
+  // Neden iptal edildi — alıcı ekranıyla aynı tek kaynak; bu ekranı yalnız satıcı görür.
+  const cancelMessage = order && displayStatus === 'cancelled' ? orderCancelMessage(order, 'seller', t) : null;
   const shipmentSummary = order?.shipment;
   const shipmentProvider = shipmentSummary?.provider ?? shipmentSummary?.carrier;
   const isSurat = (shipmentProvider ?? '').toLowerCase() === 'surat';

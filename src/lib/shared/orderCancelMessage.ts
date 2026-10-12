@@ -28,18 +28,25 @@ export type OrderCancelCategory =
   | 'admin'
   | 'other';
 
+/**
+ * Cümleyi kimin okuduğu — `buyer_cancelled` buna göre değişir. Ekran AÇIKÇA
+ * geçer (alıcı detayı `user.id`'den, satış detayı her zaman `seller`):
+ * yanıttaki `isBuyer`'a güvenmek, alan gelmediğinde alıcıya satıcı cümlesini
+ * ("Alıcı bu siparişi iptal etti") gösteriyordu.
+ */
+export type OrderCancelAudience = 'buyer' | 'seller';
+
 export function orderCancelMessage(
   order: {
     cancelCategory?: string | null;
     cancelReason?: string | null;
-    /** Görüntüleyen alıcı mı — `buyer_cancelled` cümlesi buna göre değişir. */
-    isBuyer?: boolean | null;
   },
+  audience: OrderCancelAudience,
   t: TFunction,
 ): string | null {
   switch (order.cancelCategory) {
     case 'buyer_cancelled':
-      return order.isBuyer ? t('order.cancelMsgYouCancelled') : t('order.cancelMsgBuyerCancelled');
+      return audience === 'buyer' ? t('order.cancelMsgYouCancelled') : t('order.cancelMsgBuyerCancelled');
     case 'payment_timeout':
       return t('order.cancelMsgPaymentTimeout');
     case 'seller_no_ship':

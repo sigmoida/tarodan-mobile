@@ -8,8 +8,6 @@ export interface Order {
   cancelReason?: string | null;
   /** `cancelReason`'ın stabil kategorisi — yalnız `cancelled` siparişte dolu. */
   cancelCategory?: string | null;
-  /** Görüntüleyen alıcı mı (satıcı ekranında `false`). */
-  isBuyer?: boolean;
   totalAmount?: number;
   subtotal?: number;
   shippingCost?: number;
