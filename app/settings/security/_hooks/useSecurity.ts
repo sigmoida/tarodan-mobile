@@ -132,7 +132,13 @@ export function useSecurity() {
     setPhoneVerified(false);
     setShowPhoneDialog(true);
     const e164 = parsePhoneForPayload(seed.phone, seed.countryCode);
-    if (e164) void sendPhoneCodeTo(e164);
+    // Çözülemeyen parametre sessizce yutulmasın: pencere açık, sebebi görünsün
+    // (elle gönderimle aynı mesaj). Kullanıcı numarayı düzeltip gönderebilir.
+    if (!e164) {
+      setPhoneMsg({ type: "error", text: getPhoneInvalidMessage() });
+      return;
+    }
+    void sendPhoneCodeTo(e164);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, verifyPhone]);
 

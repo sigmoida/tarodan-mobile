@@ -4,6 +4,8 @@ import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { appAlert } from '@/ui';
 import { api } from '@/lib/api';
+// Doğrudan modül yolu: testler `@/lib/api` barrel'ını mock'luyor.
+import { errorText } from '@/lib/api/errorText';
 import { qk } from '@/lib/query';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useAuthStore } from '@/stores/authStore';
@@ -20,19 +22,26 @@ export function useNotificationSettings() {
   const queryClient = useQueryClient();
   const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_SETTINGS);
 
-  const { data: settingsData, isLoading, refetch } = useQuery({
+  // Yükleme hatası YUTULMAZ: eskiden `.catch(() => null)` ile ekran
+  // DEFAULT_SETTINGS gösteriyor, Kaydet de gerçek tercihlerin üzerine
+  // varsayılanları yazıyordu. Artık hata → ErrorState + yeniden dene, ve
+  // tercihler bir kez yüklenmeden kaydetme kapalı (`canSave`).
+  const {
+    data: settingsData,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: qk.user.notificationSettings,
     queryFn: async () => {
-      try {
-        const response = await api.get('/users/me/settings').catch(() => null);
-        return response?.data ?? null;
-      } catch (error) {
-        console.log('Failed to fetch settings');
-        return null;
-      }
+      const response = await api.get('/users/me/settings');
+      return (response?.data ?? {}) as Partial<NotificationSettings>;
     },
     enabled: isAuthenticated,
   });
+  const loaded = settingsData !== undefined;
+  /** Hiç yüklenemedi (önbellekte veri yok) → ekran ErrorState gösterir. */
+  const loadFailed = isError && !loaded;
 
   const { refreshing, onRefresh } = useRefresh(refetch);
 
@@ -62,12 +71,8 @@ export function useNotificationSettings() {
       queryClient.invalidateQueries({ queryKey: qk.user.notificationSettings });
       appAlert(t('common.success'), t('settings.notificationSettingsSaved'));
     },
-    onError: (error: any) => {
-      const msg = error?.response?.data?.message;
-      appAlert(
-        t('common.error'),
-        Array.isArray(msg) ? msg.join('\n') : msg || t('settings.settingUpdateFailed'),
-      );
+    onError: (error: unknown) => {
+      appAlert(t('common.error'), errorText(error, t('settings.settingUpdateFailed')));
     },
   });
 
@@ -76,6 +81,7 @@ export function useNotificationSettings() {
   };
 
   const handleSave = () => {
+    if (!loaded) return;
     saveMutation.mutate(settings);
   };
 
@@ -83,6 +89,9 @@ export function useNotificationSettings() {
     isAuthenticated,
     settings,
     isLoading,
+    loadFailed,
+    canSave: loaded && !saveMutation.isPending,
+    retryLoad: () => refetch(),
     refreshing,
     onRefresh,
     saveMutation,

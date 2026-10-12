@@ -13,6 +13,7 @@ import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 import { appAlert } from '@/ui';
+import { getPhoneInvalidMessage } from '@/utils/phone';
 import { phoneKey, phoneToSend, resolvePhoneOutcome } from '../edit-profile/_lib/phoneOutcome';
 
 let mockParams: Record<string, string> = {};
@@ -271,6 +272,14 @@ describe('security · ?verifyPhone= ile açılış', () => {
     await waitFor(() => expect(mockSendPhoneCode).toHaveBeenCalledWith(NEW_PHONE));
     expect(await screen.findByTestId('phone-code-input')).toBeTruthy();
     expect(mockSendPhoneCode).toHaveBeenCalledTimes(1);
+  });
+
+  it('parametre çözülemiyorsa kod gönderilmez, pencerede geçersiz numara hatası görünür', async () => {
+    mockParams = { verifyPhone: '+1415555' };
+    renderWithProviders(<SecurityScreen />);
+
+    expect(await screen.findByText(getPhoneInvalidMessage())).toBeTruthy();
+    expect(mockSendPhoneCode).not.toHaveBeenCalled();
   });
 
   it('parametre yoksa kendiliğinden kod gönderilmez', async () => {

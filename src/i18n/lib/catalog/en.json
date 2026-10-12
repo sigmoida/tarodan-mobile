@@ -2626,7 +2626,8 @@
     "usernameSetFailedTitle": "Could not be set",
     "usernameSetFailedBody": "Username could not be saved.",
     "notificationsAuthGateSubtitle": "Sign in to edit your settings",
-    "notificationSettingsSaved": "Notification settings saved"
+    "notificationSettingsSaved": "Notification settings saved",
+    "notificationSettingsLoadFailed": "Your notification preferences could not be loaded. Saving is disabled until they load so your saved preferences are not overwritten."
   },
   "analytics": {
     "analytics": "Analytics",

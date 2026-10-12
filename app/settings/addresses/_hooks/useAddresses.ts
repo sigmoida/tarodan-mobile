@@ -12,6 +12,8 @@ import {
 } from "@/utils/phone";
 import { useRefresh } from "@/hooks/useRefresh";
 import { api, addressesApi } from "@/lib/api";
+// Doğrudan modül yolu: testler `@/lib/api` barrel'ını mock'luyor.
+import { errorText } from "@/lib/api/errorText";
 import { qk } from "@/lib/query";
 import { useAuthStore } from "@/stores/authStore";
 import { useTranslation } from "react-i18next";
@@ -116,8 +118,7 @@ export function useAddresses() {
         formMsg.error(err.message);
         return;
       }
-      const msg = err?.response?.data?.message;
-      formMsg.error(Array.isArray(msg) ? msg.join("\n") : msg || t("address.saveFailed"));
+      formMsg.error(errorText(err, t("address.saveFailed")));
     },
   });
 
@@ -131,11 +132,7 @@ export function useAddresses() {
       appAlert(t("common.success"), t("address.deleted"));
     },
     onError: (err: any) => {
-      const msg = err?.response?.data?.message;
-      appAlert(
-        t("common.error"),
-        Array.isArray(msg) ? msg.join("\n") : msg || t("address.deleteFailed"),
-      );
+      appAlert(t("common.error"), errorText(err, t("address.deleteFailed")));
     },
   });
 
@@ -148,11 +145,7 @@ export function useAddresses() {
       queryClient.invalidateQueries({ queryKey: qk.user.addresses });
     },
     onError: (err: any) => {
-      const msg = err?.response?.data?.message;
-      appAlert(
-        t("common.error"),
-        Array.isArray(msg) ? msg.join("\n") : msg || t("address.defaultFailed"),
-      );
+      appAlert(t("common.error"), errorText(err, t("address.defaultFailed")));
     },
   });
 
