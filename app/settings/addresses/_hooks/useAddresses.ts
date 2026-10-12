@@ -11,7 +11,7 @@ import {
   splitPhone,
 } from "@/utils/phone";
 import { useRefresh } from "@/hooks/useRefresh";
-import { api } from "@/lib/api";
+import { api, addressesApi } from "@/lib/api";
 import { qk } from "@/lib/query";
 import { useAuthStore } from "@/stores/authStore";
 import { useTranslation } from "react-i18next";
@@ -139,13 +139,20 @@ export function useAddresses() {
     },
   });
 
-  // Set default mutation
+  // Set default mutation — API'de `PATCH /users/me/addresses/:id/default` YOK
+  // (404'tü ve yutuluyordu). Doğrusu web ile aynı: `PATCH /users/me/addresses/:id`
+  // gövdesi `{ isDefault: true }` (sunucu diğerlerinin bayrağını kendisi düşürür).
   const setDefaultMutation = useMutation({
-    mutationFn: async (addressId: string) => {
-      return api.patch(`/users/me/addresses/${addressId}/default`);
-    },
+    mutationFn: async (addressId: string) => addressesApi.setDefault(addressId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.user.addresses });
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message;
+      appAlert(
+        t("common.error"),
+        Array.isArray(msg) ? msg.join("\n") : msg || t("address.defaultFailed"),
+      );
     },
   });
 
