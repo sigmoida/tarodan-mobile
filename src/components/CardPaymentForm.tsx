@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { Button, Input, Checkbox, Text, theme, appAlert } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
-import { paymentsApi, membershipApi } from '@/lib/api';
+import { paymentsApi, membershipApi, type SavedCard } from '@/lib/api';
+import type { PaymentPurpose } from '@/lib/payment/capabilities';
 import {
 
 /**
@@ -30,29 +31,24 @@ const { colors } = theme;
 /**
  * CardPaymentForm (mobil) — TEK ödeme yüzeyi: PayTR Direct API (misafir + üye). Web paritesi.
  *  - Yeni kart (3D → WebView) ile ödeme; tüm akışlarda aynı bileşen.
- *  - recurringEnabled (PayTR Non3D yetkisi) açıkken: kayıtlı kart (Non3D) + "kartımı kaydet".
- *    Kapalıyken kayıtlı kart UI'ı ve kaydetme gizlenir (yalnız yeni-kart 3D).
+ *  - cardStorageEnabled (bu amacın PayTR mağazasında kart saklama açık + üye) iken:
+ *    o mağazanın kayıtlı kartları + "kartımı sakla". Kapalıyken yalnız yeni-kart 3D.
  * GÜVENLİK: kart no/CVV yalnız istekle PayTR'a gider; saklanmaz/loglanmaz.
  */
-
-interface SavedCard {
-  id: string;
-  last4: string;
-  brand: string | null;
-  expMonth: string | null;
-  expYear: string | null;
-  requireCvv: boolean;
-  isDefault: boolean;
-  autoRenewEligible: boolean;
-}
 
 interface Props {
   target: { orderId?: string; checkoutGroupId?: string; tradeId?: string };
   amount?: number;
   onSuccess: (paymentId: string) => void;
   onFail?: () => void;
-  /** Kayıtlı kart + "kartımı kaydet" gösterilsin mi (PayTR Non3D yetkisi açık + üye). */
-  recurringEnabled?: boolean;
+  /**
+   * Ödemenin PayTR mağazası (API delta 20). Kartlar mağazaya özeldir: yalnız bu
+   * amacın kartları listelenir — diğer mağazanın kartı direct-form'da
+   * `404 server.payment.savedCardNotFound` verir.
+   */
+  purpose?: PaymentPurpose;
+  /** Kayıtlı kart + "kartımı sakla" gösterilsin mi (`purposes[purpose].cardStorageEnabled` + üye). */
+  cardStorageEnabled?: boolean;
   /** Misafir ödemesi mi — durum yoklamasında public uç kullanılır (verify atlanır). */
   isGuest?: boolean;
   /**
@@ -70,10 +66,19 @@ const NEW_CARD = '__new__';
 const isPaidStatus = (s?: string) =>
   s === 'completed' || s === 'paid' || s === 'success' || s === 'hold_payment';
 
-export default function CardPaymentForm({ target, amount, onSuccess, onFail, recurringEnabled = false, isGuest = false, paymentId: initialPaymentId }: Props) {
+export default function CardPaymentForm({
+  target,
+  amount,
+  onSuccess,
+  onFail,
+  purpose = 'checkout',
+  cardStorageEnabled = false,
+  isGuest = false,
+  paymentId: initialPaymentId,
+}: Props) {
   const { t } = useTranslation();
   const [cards, setCards] = useState<SavedCard[]>([]);
-  const [loadingCards, setLoadingCards] = useState(recurringEnabled);
+  const [loadingCards, setLoadingCards] = useState(cardStorageEnabled);
   const [selected, setSelected] = useState<string>(NEW_CARD);
   const [processing, setProcessing] = useState(false);
   const [threeDSHtml, setThreeDSHtml] = useState<string | null>(null);
@@ -87,6 +92,7 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
   const [expMonth, setExpMonth] = useState('');
   const [expYear, setExpYear] = useState('');
   const [cvc, setCvc] = useState('');
+  // Varsayılan işaretli (web ile aynı): üyelikte oto-yenileme ancak saklanan kartla açılır.
   const [saveCard, setSaveCard] = useState(true);
   const [savedCvv, setSavedCvv] = useState('');
 
@@ -151,19 +157,23 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
   }, [threeDSHtml, verifying, paymentId, isGuest]);
 
   useEffect(() => {
-    // Kayıtlı kart listesi yalnız Non3D yetkisi açıkken (kayıtlı kartla ödeme mümkünken) alınır.
-    if (!recurringEnabled) {
+    // Kayıtlı kart listesi yalnız bu amaçta kart saklama açıkken alınır.
+    if (!cardStorageEnabled) {
       setCards([]);
       setSelected(NEW_CARD);
       setLoadingCards(false);
       return;
     }
     let alive = true;
+    setLoadingCards(true);
     (async () => {
       try {
-        const res = await membershipApi.listCards();
+        const res = await membershipApi.listCards(purpose);
         const data: any = res.data;
-        const list: SavedCard[] = Array.isArray(data) ? data : (data?.data ?? []);
+        const raw: SavedCard[] = Array.isArray(data) ? data : (data?.data ?? []);
+        // Savunma: sunucu amaca göre süzüyor; yine de başka mağazanın kartı
+        // gelirse seçilmesin (eski API `purpose` döndürmez → olduğu gibi).
+        const list = raw.filter((c) => !c.purpose || c.purpose === purpose);
         if (!alive) return;
         setCards(list);
         setSelected(list.length ? list[0].id : NEW_CARD);
@@ -176,9 +186,12 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
     return () => {
       alive = false;
     };
-  }, [recurringEnabled]);
+  }, [cardStorageEnabled, purpose]);
 
   const selectedCard = useMemo(() => cards.find((c) => c.id === selected) || null, [cards, selected]);
+  // "Oto-yenileme" metni yalnız üyelik ödemesinde — ve dijital satış açıkken
+  // (Apple 2.1(b) / Play: satılmayan aboneliğe atıf yok). Sepet: "sonraki ödemeler".
+  const renewalCopy = purpose === 'membership' && CAN_BUY_DIGITAL;
 
   const digitsOnly = (v: string) => v.replace(/\D/g, '');
 
@@ -211,7 +224,8 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
         appAlert(t('payment.missingInfoTitle'), err);
         return;
       }
-      body = { ...target, saveCard: recurringEnabled && saveCard };
+      // `saveCard` HER ZAMAN açıkça gider: gönderilmezse sunucu üyelikte kartı saklar.
+      body = { ...target, saveCard: cardStorageEnabled && saveCard };
       cardFields = cardFieldsForNewCard({
         holder,
         number,
@@ -418,13 +432,20 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
                   onChangeText={(v) => setCvc(digitsOnly(v).slice(0, 4))}
                 />
               </View>
-              {recurringEnabled && (
-                <Checkbox
-                  checked={saveCard}
-                  onChange={setSaveCard}
-                  // iOS'ta abonelik satılmıyor (Apple 2.1(b)) — "otomatik yenileme" yok.
-                  label={t(CAN_BUY_DIGITAL ? 'payment.saveCardForFuture' : 'payment.saveCardForLater')}
-                />
+              {cardStorageEnabled && (
+                <View style={styles.saveCard}>
+                  <Checkbox
+                    testID="card-save"
+                    checked={saveCard}
+                    onChange={setSaveCard}
+                    label={t(renewalCopy ? 'checkout.saveCardForRenewal' : 'checkout.saveCardPaytr')}
+                  />
+                  {renewalCopy ? (
+                    <Text variant="caption" tone="muted">
+                      {t(saveCard ? 'checkout.saveCardForRenewalHint' : 'checkout.saveCardForRenewalOffHint')}
+                    </Text>
+                  ) : null}
+                </View>
               )}
             </View>
           )}
@@ -482,6 +503,7 @@ const styles = StyleSheet.create({
   cardLabel: { flex: 1, fontWeight: '600' },
   cvvInline: { width: 80, marginBottom: theme.spacing[0] },
   newCard: { gap: theme.spacing[2.5], paddingTop: theme.spacing[1] },
+  saveCard: { gap: theme.spacing[1.5] },
   expRow: { flexDirection: 'row', gap: theme.spacing[2.5] },
   expField: { flex: 1, marginBottom: theme.spacing[0] },
   payBtn: { marginTop: theme.spacing[2] },

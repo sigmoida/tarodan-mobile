@@ -1,5 +1,6 @@
 import { api, guestApi } from './client';
 import type { DirectFormResponse } from '@/lib/payment/paytrDirectForm';
+import type { PaymentConfig } from '@/lib/payment/capabilities';
 
 // Addresses API - Web ile aynı endpoint'ler
 export const addressesApi = {
@@ -32,9 +33,11 @@ export const addressesApi = {
 
 // Payments API - Web ile aynı endpoint'ler
 export const paymentsApi = {
-  /** Public ödeme yapılandırması: bypass (dev) + kayıtlı kart/oto-yenileme (Non3D) açık mı. */
-  getConfig: () =>
-    api.get<{ bypassEnabled: boolean; recurringEnabled: boolean }>('/payments/config'),
+  /**
+   * Public ödeme yapılandırması: bypass (dev) + amaç başına kart saklama /
+   * oto-yenileme (`purposes.checkout|membership`). Okumak için `paymentCapabilities`.
+   */
+  getConfig: () => api.get<PaymentConfig>('/payments/config'),
   initiate: (orderId: string | number, provider: 'paytr' = 'paytr') =>
     api.post('/payments/initiate', { orderId, provider }),
   /** Grup ödemesi: tek ödeme checkout grubundaki tüm siparişleri kapsar */

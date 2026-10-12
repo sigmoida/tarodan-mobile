@@ -1,0 +1,56 @@
+import type { PaymentPurpose } from '@/lib/payment/capabilities';
+
+/** direct-form hedefi — ödeme durumundan türetilir. */
+export type PaymentTarget = { orderId?: string; checkoutGroupId?: string; tradeId?: string };
+
+/** `GET /payments/:id/status[-guest]` yanıtının bu ekranın okuduğu alanları. */
+export type PaymentStatusLight = {
+  status?: string;
+  orderId?: string | null;
+  checkoutGroupId?: string | null;
+  tradeId?: string | null;
+  amount?: number | string | null;
+  /** Sunucu yalnız üyelik siparişinde `true` gönderir (sanal `membership-*` ürünü). */
+  isMembershipOrder?: boolean;
+};
+
+export type PaymentKind = {
+  isMembership: boolean;
+  isBoost: boolean;
+  /**
+   * Sanal "platform hizmeti" siparişi mi (`origin = platform_service`: üyelik,
+   * öne çıkarma). Satın alma değildir; mesafeli satış kapısına girmez.
+   */
+  isPlatformService: boolean;
+  /** Kayıtlı kartın aranacağı PayTR mağazası. Öne çıkarma pazaryerindedir. */
+  purpose: PaymentPurpose;
+};
+
+/**
+ * Ödemenin türü. Üyelik, rota parametresi OLMADAN da tanınır: başarısız ödeme
+ * ekranından ya da "Ödemelerim"den yeniden denemede `type` taşınmıyor, ama
+ * sunucu durum yanıtında `isMembershipOrder` gönderiyor.
+ */
+export function paymentKindOf(type: string | undefined, status?: PaymentStatusLight | null): PaymentKind {
+  const isMembership = type === 'membership' || status?.isMembershipOrder === true;
+  const isBoost = !isMembership && type === 'boost';
+  return {
+    isMembership,
+    isBoost,
+    isPlatformService: isMembership || isBoost,
+    purpose: isMembership ? 'membership' : 'checkout',
+  };
+}
+
+/** Hedef durum yanıtından; takas id'si yanıtta yoksa rota parametresinden (yedek). */
+export function paymentTargetOf(status: PaymentStatusLight, tradeIdParam?: string): PaymentTarget {
+  return {
+    ...(status.orderId ? { orderId: String(status.orderId) } : {}),
+    ...(status.checkoutGroupId ? { checkoutGroupId: String(status.checkoutGroupId) } : {}),
+    ...(status.tradeId
+      ? { tradeId: String(status.tradeId) }
+      : tradeIdParam
+        ? { tradeId: String(tradeIdParam) }
+        : {}),
+  };
+}
