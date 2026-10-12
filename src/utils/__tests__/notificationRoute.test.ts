@@ -187,3 +187,35 @@ it('hem sipariş hem grup kimliği varsa siparişi açar', () => {
     }),
   ).toBe('/orders/0cd43fd3-376a-4ef5-b42e-6f74f15b5eec');
 });
+
+/** Parite C-1.5: üyelik bildirimleri ve audience taşımayan satıcı tipleri. */
+describe('notificationRoute — C-1.5', () => {
+  it('/membership linki mobil üyelik ekranına gider', () => {
+    for (const type of ['membership_renewal_card_required', 'membership_expiring', 'membership_expired']) {
+      expect(notificationRoute({ type, link: '/membership', data: {} })).toBe('/membership');
+    }
+    expect(toMobileRoute('/membership')).toBe('/membership');
+    expect(toMobileRoute('/en/membership')).toBe('/membership');
+  });
+
+  it('audience taşımayan satıcı tipleri SATIŞ ekranına gider', () => {
+    for (const type of [
+      'order_cancelled_seller',
+      'order_cancelled_by_platform_seller',
+      'order_preparing_extended_seller',
+      'product_sold',
+    ]) {
+      expect(notificationRoute({ type, link: '/seller/orders/o1', data: { orderId: 'o1' } })).toBe(
+        '/sales/o1',
+      );
+    }
+  });
+
+  it('alıcı tipleri (order_cancelled, *_by_platform) alıcı ekranında kalır', () => {
+    for (const type of ['order_cancelled', 'order_cancelled_by_platform', 'order_preparing_extended']) {
+      expect(notificationRoute({ type, link: '/profile/orders/o1', data: { orderId: 'o1' } })).toBe(
+        '/orders/o1',
+      );
+    }
+  });
+});
