@@ -5,6 +5,8 @@
  * (`apps/api/.../trade/dto/update-trade.dto.ts`); başka değer 400 döner. Web
  * `RaiseDisputeModal` ile aynı liste ve aynı etiket anahtarları.
  */
+import type { MessageKey } from "@/i18n/lib/generated/keys";
+
 export const DISPUTE_REASONS = [
   "not_as_described",
   "damaged",
@@ -18,7 +20,7 @@ export type DisputeReason = (typeof DISPUTE_REASONS)[number];
 export const DEFAULT_DISPUTE_REASON: DisputeReason = "not_as_described";
 
 /** Neden → i18n anahtarı (web ile aynı anahtarlar). */
-export const DISPUTE_REASON_LABEL_KEY: Record<DisputeReason, string> = {
+export const DISPUTE_REASON_LABEL_KEY: Record<DisputeReason, MessageKey> = {
   not_as_described: "trade.dispute.reasonNotAsDescribed",
   damaged: "trade.dispute.reasonShipmentDamaged",
   wrong_item: "trade.dispute.reasonWrongItem",
