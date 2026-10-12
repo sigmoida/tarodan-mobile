@@ -1,5 +1,17 @@
 import { api } from './client';
 
+/**
+ * İlan kaldırma nedeni — silme (`DELETE` gövdesi) ve pasife alma (`PATCH`)
+ * isteklerine eklenir. Alanlar API'de opsiyoneldir (eski istemci nedensiz de
+ * çalışır) ama web gibi mobil de nedeni ZORUNLU sorar. Bkz. tarodan-app
+ * `docs/LISTING_REMOVAL_REASONS.md`.
+ */
+export interface ListingRemovalPayload {
+  removalReason?: string;
+  removalPlatform?: string;
+  removalDetail?: string;
+}
+
 // Products API - Web ile aynı endpoint'ler
 export const productsApi = {
   getAll: (params?: Record<string, any>) =>
@@ -37,8 +49,18 @@ export const productsApi = {
     api.post('/products', data),
   update: (id: string | number, data: Record<string, any>) =>
     api.patch(`/products/${id}`, data),
-  delete: (id: string | number) =>
-    api.delete(`/products/${id}`),
+  /** İlanı sil; kaldırma nedeni istek GÖVDESİNDE gider (DELETE + body). */
+  delete: (id: string | number, removal?: ListingRemovalPayload) =>
+    api.delete(`/products/${id}`, removal ? { data: removal } : undefined),
+  /** İlanı pasife al (satıcı duraklatması) — kaldırma nedeniyle birlikte. */
+  deactivate: (id: string | number, removal: ListingRemovalPayload) =>
+    api.patch(`/products/${id}`, { status: 'inactive', ...removal }),
+  /** Süresi dolan tek ilanı yenile: içerik değişmediyse doğrudan `active`, aksi hâlde `pending`.
+   *  Backend: POST /products/:id/renew → `{ id, status }`. */
+  renew: (id: string) => api.post(`/products/${id}/renew`),
+  /** Süresi dolan ilanları toplu yenile (en çok 100). Her ilan KENDİ sonucuyla döner (201 gövdesinde
+   *  `ok:false` + `errorKey` olabilir — HTTP hatası değildir). Backend: POST /products/my/renew. */
+  renewMany: (ids: string[]) => api.post('/products/my/renew', { ids }),
   /** Backend: GET /products/my (web ile aynı). Daha önce farklı bir "my listings" ucu kullanılıyordu — backend'de yok. */
   getMyListings: (params?: Record<string, any>) =>
     api.get('/products/my', { params }),

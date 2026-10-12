@@ -15,7 +15,7 @@ import { globalCustomGroups, requiredGlobalGroups } from '../_lib/attributeGroup
 import { toFormValues } from '../_lib/editMapper';
 
 import { useAuthStore } from '../../../stores/authStore';
-import { api, productsApi, categoriesApi, bankAccountApi, shippingApi } from '@/lib/api';
+import { api, productsApi, categoriesApi, bankAccountApi, shippingApi, type ListingRemovalPayload } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { FALLBACK_SCALES, buildMaterials, BRAND_SLUGS, SCALE_SLUGS , MIN_IMAGE_BYTES } from '../_lib/constants';
 import type {
@@ -156,6 +156,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const [saleEndDate, setSaleEndDate] = useState('');
   const [reactivateQuantity, setReactivateQuantity] = useState('');
   const [reactivating, setReactivating] = useState(false);
+  const [removalOpen, setRemovalOpen] = useState(false);
   const [productLoading, setProductLoading] = useState(isEdit);
   const [productNotFound, setProductNotFound] = useState(false);
 
@@ -877,30 +878,25 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     }
   };
 
-  const handleDelete = () => {
-    appAlert(t('product.deleteListing'), t('listing.deleteConfirmBody'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: async () => {
-          setIsSubmitting(true);
-          try {
-            await productsApi.delete(productId!);
-            invalidateListingCaches();
-            await refreshUserData();
-            appAlert(t('listing.deletedTitle'), t('listing.deleted'), [
-              { text: t('common.ok'), onPress: () => router.back() },
-            ]);
-          } catch (err: any) {
-            const msg = err.response?.data?.message || t('listing.deleteFailed');
-            appAlert(t('common.error'), msg);
-          } finally {
-            setIsSubmitting(false);
-          }
-        },
-      },
-    ]);
+  // Silme önce NEDEN sorar (web ile aynı; `ListingRemovalModal`). Onay metni pencerenin kendisidir.
+  const handleDelete = () => setRemovalOpen(true);
+
+  /** Pencere kapandıktan SONRA çağrılır (iOS ModalFreeze): neden DELETE gövdesinde gider. */
+  const deleteWithReason = async (removal: ListingRemovalPayload) => {
+    setIsSubmitting(true);
+    try {
+      await productsApi.delete(productId!, removal);
+      invalidateListingCaches();
+      await refreshUserData();
+      appAlert(t('listing.deletedTitle'), t('listing.deleted'), [
+        { text: t('common.ok'), onPress: () => router.back() },
+      ]);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || t('listing.deleteFailed');
+      appAlert(t('common.error'), msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const resetForm = () => {
@@ -1019,6 +1015,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     handleSubmit,
     handleReactivate,
     handleDelete,
+    removalOpen,
+    closeRemoval: () => setRemovalOpen(false),
+    deleteWithReason,
   };
 }
 
