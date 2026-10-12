@@ -64,6 +64,9 @@ env:
 - inputText: ${REG_PASSWORD}
 - tapOn:
     text: "Kullanım koşullarını"
+# KVKK aydınlatma metni AYRI zorunlu kutu (B-2.3, delta 22).
+- tapOn:
+    id: "register-acceptKvkk"
 - tapOn:
     id: "register-submit-button"
 # Başarılı: login ekranına yönlendirilir VEYA verify-email gate çıkar.
