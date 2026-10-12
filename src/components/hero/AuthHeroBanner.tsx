@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { theme, Text } from '@/ui';
@@ -22,7 +22,12 @@ export function AuthHeroBanner({
   style?: StyleProp<ViewStyle>;
 }) {
   const hero = useAuthHero(placement);
-  if (!hero) return null;
+  // Görsel yüklenemezse (404, ağ) başlık/alt başlık tek başına çizilmez: yarı
+  // saydam katman altında boş bir kutu kalırdı. Hata görsel başına tutulur —
+  // admin görseli değiştirirse yeni adres yeniden denenir.
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const loadedUrl = useRef<string | null>(null);
+  if (!hero || failedUrl === hero.imageUrl) return null;
 
   return (
     <View style={[styles.box, style]} testID="auth-hero">
@@ -32,6 +37,13 @@ export function AuthHeroBanner({
         contentFit="cover"
         transition={200}
         accessibilityLabel={hero.alt}
+        testID="auth-hero-image"
+        onLoad={() => {
+          loadedUrl.current = hero.imageUrl;
+        }}
+        onError={() => {
+          if (loadedUrl.current !== hero.imageUrl) setFailedUrl(hero.imageUrl);
+        }}
       />
       {/* Metin okunaklı kalsın diye görselin üstüne yarı saydam katman. */}
       <View style={styles.scrim} />

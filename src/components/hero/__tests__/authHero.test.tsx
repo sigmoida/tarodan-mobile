@@ -3,7 +3,7 @@
  * yoksa / uç hata verirse / slayt bu istemcide gizliyse hiçbir şey çizilmez.
  */
 import React from 'react';
-import { render, waitFor } from '@testing-library/react-native';
+import { act, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const mockGetSlides = jest.fn();
@@ -78,6 +78,25 @@ describe('AuthHeroBanner', () => {
     expect(mockGetSlides).toHaveBeenCalledWith('auth_register');
     expect(getByText('Koleksiyonuna hoş geldin')).toBeTruthy();
     expect(getByText('Alt')).toBeTruthy();
+  });
+
+  it('görsel yüklenemezse (onError) hiçbir şey çizilmez; başlık da kaybolur', async () => {
+    mockGetSlides.mockResolvedValue({ data: [slide()] });
+    const { findByTestId, queryByTestId, queryByText } = renderBanner();
+    const image = await findByTestId('auth-hero-image');
+    expect(queryByText('Koleksiyonuna hoş geldin')).toBeTruthy();
+    act(() => image.props.onError({ nativeEvent: { error: 'HTTP 404' } }));
+    expect(queryByTestId('auth-hero')).toBeNull();
+    expect(queryByText('Koleksiyonuna hoş geldin')).toBeNull();
+  });
+
+  it('görsel yüklendiyse sonradan gelen onError bannerı kaldırmaz', async () => {
+    mockGetSlides.mockResolvedValue({ data: [slide()] });
+    const { findByTestId, queryByTestId } = renderBanner();
+    const image = await findByTestId('auth-hero-image');
+    act(() => image.props.onLoad({ nativeEvent: { source: { width: 800, height: 400 } } }));
+    act(() => image.props.onError({ nativeEvent: { error: 'x' } }));
+    expect(queryByTestId('auth-hero')).toBeTruthy();
   });
 
   it('liste boşsa hiçbir şey çizmez', async () => {
