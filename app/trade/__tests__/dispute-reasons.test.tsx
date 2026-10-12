@@ -93,4 +93,43 @@ describe('takas itirazı nedenleri', () => {
     expect(API_ENUM).toContain(body.reason);
     expect(body.reason).toBe('not_as_described');
   });
+
+  function setupHook() {
+    const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+    );
+    return renderHook(() => useTradeActions('t1'), { wrapper });
+  }
+
+  it('seçilen neden modal yeniden açılınca varsayılana döner', () => {
+    const { result } = setupHook();
+
+    act(() => result.current.dispute.open());
+    act(() => result.current.dispute.setReason('damaged'));
+    expect(result.current.dispute.reason).toBe('damaged');
+
+    act(() => result.current.dispute.close());
+    act(() => result.current.dispute.open());
+    expect(result.current.dispute.reason).toBe(DEFAULT_DISPUTE_REASON);
+    expect(result.current.dispute.visible).toBe(true);
+  });
+
+  it('başarılı gönderimden sonra neden varsayılana döner', async () => {
+    const { result } = setupHook();
+    (tradesApi.raiseDispute as jest.Mock).mockClear();
+
+    act(() => result.current.dispute.open());
+    act(() => {
+      result.current.dispute.setReason('not_received');
+      result.current.dispute.setDescription('Kargo takipte hareket yok, ürün gelmedi.');
+    });
+    act(() => result.current.dispute.submit());
+
+    await waitFor(() => expect(tradesApi.raiseDispute).toHaveBeenCalled());
+    expect((tradesApi.raiseDispute as jest.Mock).mock.calls[0][1].reason).toBe('not_received');
+    await waitFor(() => expect(result.current.dispute.visible).toBe(false));
+    expect(result.current.dispute.reason).toBe(DEFAULT_DISPUTE_REASON);
+    expect(result.current.dispute.description).toBe('');
+  });
 });
