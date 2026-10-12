@@ -285,3 +285,35 @@ describe("C2 inceleme · 5 süresi dolan sayacı meta.total'dan", () => {
     expect(await screen.findByText("profile.expiredListings.tab (2)")).toBeOnTheScreen();
   });
 });
+
+describe("C2 inceleme · 6 odaklanma/yenileme aynı anahtarı iki kez çekmez", () => {
+  const listCalls = (reason?: "expired") =>
+    mockGetMyListings.mock.calls
+      .map(([p]) => p)
+      .filter((p) => (reason ? p?.inactiveReason === reason && p.limit === 100 : p?.limit === 100));
+
+  it("ilk açılış: liste ve sayaç sorgusu birer kez gider (odaklanma uçuştakini iptal etmez)", async () => {
+    serve([expired()]);
+    renderWithProviders(<MyListingsScreen />);
+    await screen.findByText("profile.expiredListings.tab (1)");
+    await screen.findByText("Süresi Dolan");
+    expect(listCalls()).toHaveLength(1);
+    expect(mockGetMyListings.mock.calls.filter(([p]) => p?.limit === 1)).toHaveLength(1);
+  });
+
+  it("'Süresi dolan' sekmesinde çek-yenile: liste tek, sayaç tek istek", async () => {
+    serve([expired()]);
+    renderWithProviders(<MyListingsScreen />);
+    fireEvent.press(await screen.findByText("profile.expiredListings.tab (1)"));
+    await screen.findByText("profile.expiredListings.selectAll");
+    await waitFor(() => expect(listCalls("expired")).toHaveLength(1));
+    mockGetMyListings.mockClear();
+
+    const scroll = screen.UNSAFE_getAllByType(require("react-native").ScrollView).find((n) => n.props.refreshControl);
+    await act(async () => {
+      await scroll!.props.refreshControl.props.onRefresh();
+    });
+    expect(listCalls("expired")).toHaveLength(1);
+    expect(mockGetMyListings.mock.calls.filter(([p]) => p?.limit === 1)).toHaveLength(1);
+  });
+});

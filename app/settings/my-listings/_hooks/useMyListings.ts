@@ -94,11 +94,19 @@ export function useMyListings() {
   const { deactivate, remove, reactivate } = useListingMutations();
   const { renewOne, renewMany } = useRenewListings();
 
+  // Odaklanma ve çek-yenile AYNI yoldan geçer. `cancelRefetch:false`: uçuştaki bir
+  // istek varsa (ilk açılış, hızlı art arda tetik) onu iptal edip yeniden başlatmak
+  // yerine ona katılır → anahtar başına tek istek.
+  const refreshLists = () =>
+    Promise.all([
+      refetch({ cancelRefetch: false }),
+      refetchExpired({ cancelRefetch: false }),
+    ]);
+
   // Refresh on focus
   useFocusEffect(
     useCallback(() => {
-      refetch();
-      refetchExpired();
+      refreshLists();
       queryClient.invalidateQueries({ queryKey: qk.products.myListingsStats });
       refreshUserData();
     }, []),
@@ -106,7 +114,7 @@ export function useMyListings() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([refetch(), refetchExpired()]);
+    await refreshLists();
     queryClient.invalidateQueries({ queryKey: qk.products.myListingsStats });
     await refreshUserData();
     setRefreshing(false);
