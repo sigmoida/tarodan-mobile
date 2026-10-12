@@ -1,10 +1,13 @@
 /**
- * Sunucu `featuredListingSlots`'u kapattı (777492912): üyelik ekranları
- * "{n} öne çıkan ilan" vaat etmemeli.
+ * Sunucu `featuredListingSlots`'u kapattı (777492912): üyelik ekranları ve SSS
+ * "{n} öne çıkan ilan" / "öne çıkan ilanlar kullanabilir" vaat etmemeli.
  */
 import fs from 'fs';
 import path from 'path';
 import { buildMembershipTiers } from '../checkout/_lib/tiers';
+
+const catalog = (lng: 'tr' | 'en') =>
+  JSON.parse(fs.readFileSync(path.join(__dirname, '../../../src/i18n/lib/catalog', `${lng}.json`), 'utf8'));
 
 describe('üyelik ekranları öne çıkan ilan vaat etmez', () => {
   it('checkout kademe listesinde öne çıkan ilan satırı yok', () => {
@@ -18,5 +21,11 @@ describe('üyelik ekranları öne çıkan ilan vaat etmez', () => {
   it('satın alma sonrası ekran da anahtarı kullanmaz', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'success.tsx'), 'utf8');
     expect(src).not.toMatch(/tierFeatureFeaturedListings/);
+  });
+
+  it.each(['tr', 'en'] as const)('SSS "premium avantajları" cevabı (%s) öne çıkan ilan vaat etmez', (lng) => {
+    const answer: string = catalog(lng).faqShared.premiumBenefits.a;
+    expect(answer).toBeTruthy();
+    expect(answer).not.toMatch(/öne çıkan|featured/i);
   });
 });
