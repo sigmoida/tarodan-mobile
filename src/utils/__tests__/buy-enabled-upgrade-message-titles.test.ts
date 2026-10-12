@@ -1,4 +1,9 @@
 /**
+ * [D-2.7] DİKKAT: Android artık iOS gibi kapalı (CAN_BUY_DIGITAL=false iki
+ * platformda; bkz. src/lib/__tests__/digitalGate.platforms.test.tsx). Bu test
+ * 'satın alma AÇIK' dalını (CAN_BUY_DIGITAL mock: true) korur — IAP / Play
+ * Billing eklenip kapı açılırsa geçerli olacak davranış. Metindeki 'Android'
+ * ifadeleri tarihsel: 'satın alma açık platform' olarak okunmalı.
  * Bulgu C eşi · Android/web davranışı DEĞİŞMEMELİ — getUpgradeMessage her
  * promptType için kendi başlığını VE kendi (satış içeren) mesajını döndürmeye
  * devam eder. iOS tarafı: ios-upgrade-message-titles.test.ts.

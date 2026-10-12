@@ -11,9 +11,10 @@ import { CAN_BUY_DIGITAL } from '@/lib/purchases';
  * "Koleksiyona ekle", "Koleksiyon oluştur" kartları) gösterilsin mi?
  * - Satın almanın mümkün olduğu platformda her zaman: kapı ekranı yükseltmeye
  *   çağırır.
- * - iOS'ta (CAN_BUY_DIGITAL=false) yalnız yetkisi olana: yetkisiz kullanıcı
- *   "Bu özellik hesabınızda kullanılamıyor" çıkmazına ya da sunucunun
- *   "Üyeliğinizi yükseltin" mesajına düşüyordu (Apple 2.1 + 3.1.1).
+ * - Satın alma kapalıyken (CAN_BUY_DIGITAL=false: iOS VE Android) yalnız
+ *   yetkisi olana: yetkisiz kullanıcı "Bu özellik hesabınızda kullanılamıyor"
+ *   çıkmazına ya da sunucunun "Üyeliğinizi yükseltin" mesajına düşüyordu
+ *   (Apple 2.1 + 3.1.1; Play ödeme politikası).
  * - Misafire her zaman: giriş kapısı ilgili ekranda.
  */
 export function useFeatureAccess() {

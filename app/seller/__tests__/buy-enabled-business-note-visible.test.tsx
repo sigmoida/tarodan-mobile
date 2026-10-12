@@ -1,4 +1,9 @@
 /**
+ * [D-2.7] DİKKAT: Android artık iOS gibi kapalı (CAN_BUY_DIGITAL=false iki
+ * platformda; bkz. src/lib/__tests__/digitalGate.platforms.test.tsx). Bu test
+ * 'satın alma AÇIK' dalını (CAN_BUY_DIGITAL mock: true) korur — IAP / Play
+ * Billing eklenip kapı açılırsa geçerli olacak davranış. Metindeki 'Android'
+ * ifadeleri tarihsel: 'satın alma açık platform' olarak okunmalı.
  * Bulgu A eşi · Android/web davranışı DEĞİŞMEMELİ — kurumsal hesabı olan ama
  * Business kademesinde olmayan kullanıcı orijinal "üyeliğini tamamla" notunu
  * ve geçiş butonunu görmeye devam eder. iOS tarafı: ios-business-note-neutral.test.tsx.

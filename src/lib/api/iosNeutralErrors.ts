@@ -1,10 +1,13 @@
 /**
- * iOS'ta sunucunun ücretli kademeye çağıran hata metinlerini nötrleştirir.
+ * Dijital satış kapalıyken (iOS ve Android — `CAN_BUY_DIGITAL=false`) sunucunun
+ * ücretli kademeye çağıran hata metinlerini nötrleştirir. Dosya adı tarihsel
+ * ("ios"); koşul platforma değil `canBuyDigital` parametresine bağlıdır.
  *
  * Sunucu bazı hatalarda kullanıcıyı üyelik yükseltmeye/yenilemeye çağırıyor
  * ("Üyeliğinizi yükseltin", "Temel veya üstü üyeliğinizi yenileyin"); ekranlar
- * `response.data.message`'ı çoğu yerde olduğu gibi gösteriyor. iOS'ta kademe
- * satın alınamaz (Apple 3.1.1/3.1.3 — uygulama dışı satın almaya yönlendirme),
+ * `response.data.message`'ı çoğu yerde olduğu gibi gösteriyor. bu platformlarda kademe
+ * satın alınamaz (Apple 3.1.1/3.1.3 ve Play ödeme politikası — uygulama dışı
+ * satın almaya yönlendirme yasak),
  * bu yüzden metin hata ekrana ulaşmadan TEK yerde (axios response interceptor)
  * nötr bir mesajla değiştirilir.
  *
