@@ -14,7 +14,8 @@ export type FilterCustomAttribute = { slug: string; label: string; color: string
 export type FilterCustomAttributeGroup = {
   slug: string;
   name: string;
-  manufacturerSlug: string;
+  /** `null` = genel özel grup (üreticiden bağımsız, ör. Nadirlik); dolu = o üreticiye bağlı. */
+  manufacturerSlug: string | null;
   attributes: FilterCustomAttribute[];
 };
 
@@ -25,7 +26,10 @@ export type ProductFilterOptions = {
   carModels: FilterCarModel[];
   scales: string[];
   materials: FilterMaterial[];
-  /** Seçili üreticiye-özel attribute grupları (örn Hot Wheels). Üretici seçilmezse boş. */
+  /**
+   * Özel attribute grupları: genel olanlar (`manufacturerSlug: null`) her zaman,
+   * seçili üreticiye bağlı olanlar (örn Hot Wheels) üretici seçilince eklenir.
+   */
   customAttributes: FilterCustomAttributeGroup[];
   isLoading: boolean;
 };

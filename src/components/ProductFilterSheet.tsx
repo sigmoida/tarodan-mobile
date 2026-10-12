@@ -30,6 +30,20 @@ import type { ProductFilterOptions } from '../hooks/useProductFilterOptions';
 
 const { colors, spacing } = theme;
 
+/**
+ * Üretici değişince YALNIZ üreticiye bağlı grup seçimleri düşer. Genel özel
+ * gruplar (`manufacturerSlug: null`, ör. Nadirlik) üreticiden bağımsızdır;
+ * seçimleri kalır (delta 19). Genel olduğu `options`'tan doğrulanamayan slug
+ * (bilinmeyen/yüklenmemiş) güvenli tarafta düşürülür.
+ */
+export function keepGeneralAttributeSelections(
+  selections: Record<string, string[]> | undefined,
+  groups: ProductFilterOptions['customAttributes'],
+): Record<string, string[]> {
+  const general = new Set(groups.filter((g) => !g.manufacturerSlug).map((g) => g.slug));
+  return Object.fromEntries(Object.entries(selections ?? {}).filter(([slug]) => general.has(slug)));
+}
+
 type Props = {
   visible: boolean;
   onClose: () => void;
@@ -121,12 +135,22 @@ export default function ProductFilterSheet({
     );
 
   const selectManufacturer = (id: string, name: string) =>
-    // Üretici değişince üreticiye-özel attribute seçimlerini sıfırla (web ile parite) —
-    // başka üreticinin attribute'ları yeni üreticide anlamsız.
+    // Üretici değişince YALNIZ üreticiye-özel attribute seçimlerini sıfırla (web ile
+    // parite) — başka üreticinin attribute'ları yeni üreticide anlamsız; genel gruplar kalır.
     onChange(
       filters.manufacturerId === id
-        ? { ...filters, manufacturerId: '', manufacturer: '', customAttributes: {} }
-        : { ...filters, manufacturerId: id, manufacturer: name, customAttributes: {} },
+        ? {
+            ...filters,
+            manufacturerId: '',
+            manufacturer: '',
+            customAttributes: keepGeneralAttributeSelections(filters.customAttributes, options.customAttributes),
+          }
+        : {
+            ...filters,
+            manufacturerId: id,
+            manufacturer: name,
+            customAttributes: keepGeneralAttributeSelections(filters.customAttributes, options.customAttributes),
+          },
     );
 
   const toggleCustomAttribute = (groupSlug: string, attrSlug: string) => {
@@ -325,8 +349,8 @@ export default function ProductFilterSheet({
             </View>
           </View>
 
-          {/* Üreticiye-özel filtreler (örn Hot Wheels: Segment, Assortment...).
-              Yalnızca attribute-grubu olan bir üretici seçilince dolar. Web SidebarFilters paritesi. */}
+          {/* Özel attribute filtreleri: genel gruplar (örn Nadirlik) üretici seçmeden de gelir;
+              üreticiye-özel olanlar (örn Hot Wheels: Segment...) üretici seçilince eklenir. Web SidebarFilters paritesi. */}
           {options.customAttributes.length > 0 && (
             <>
               <Divider style={styles.divider} />

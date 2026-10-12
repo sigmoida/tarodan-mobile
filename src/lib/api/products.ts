@@ -28,11 +28,12 @@ export const productsApi = {
       scales: string[];
       manufacturers: Array<{ id: string; name: string; slug: string }>;
       materials: Array<{ slug: string; label: string }>;
-      // Yalnızca attribute-grubu olan bir üretici seçilince dolar (örn Hot Wheels).
+      // Genel gruplar (manufacturerSlug null) her zaman; üreticiye bağlılar (örn Hot Wheels)
+      // yalnız `manufacturer` verilince eklenir.
       customAttributes?: Array<{
         slug: string;
         name: string;
-        manufacturerSlug: string;
+        manufacturerSlug: string | null;
         attributes: Array<{ slug: string; label: string; color: string | null }>;
       }>;
     }>('/products/filters', { params }),

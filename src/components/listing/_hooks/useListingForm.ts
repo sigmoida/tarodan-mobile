@@ -723,7 +723,11 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       shippingPackageTier,
       bundleSize: isSet && Number(bundleSize) >= 2 ? Number(bundleSize) : undefined,
       images: imageKeys.length > 0 ? imageKeys : undefined,
-      attributes: customAttributeSlugs.length > 0 ? customAttributeSlugs : undefined,
+      // Düzenlemede boş liste `[]` GİDER: sunucu `PATCH` + `attributes` ile tüm
+      // özel grup bağlarını listeyle değiştirir; `undefined` (alanı hiç
+      // göndermemek) kullanıcının temizlediği seçimi sunucuda bırakırdı
+      // (delta 19). Oluşturmada boş liste gereksiz, alan atlanır.
+      attributes: isEdit || customAttributeSlugs.length > 0 ? customAttributeSlugs : undefined,
       ...buildColorAndBoxPayload({ colors, isBoxed }),
     } as Record<string, any>;
   };

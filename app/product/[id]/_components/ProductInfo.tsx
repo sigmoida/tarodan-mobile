@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { asLabel } from '@/utils/format';
 import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
 import { getConditionInfo, type PriceInfo } from '../_lib/display';
+import { technicalAttributeRows } from '../_lib/attributes';
 import type { Product } from '../_lib/types';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 
@@ -42,6 +43,7 @@ export function ProductInfo({
   const [showAllDescription, setShowAllDescription] = useState(false);
   const conditionInfo = getConditionInfo(product.condition ?? '');
   const tradeOpen = isProductTradeOpen(product);
+  const technicalRows = technicalAttributeRows(product.attributes);
 
   return (
     <>
@@ -215,6 +217,24 @@ export function ProductInfo({
           ) : null}
         </View>
       </View>
+
+      {/* Teknik özellikler: `attributes[]` (genel özel gruplar, üreticiye bağlı gruplar) */}
+      {technicalRows.length > 0 && (
+        <>
+          <Divider style={styles.divider} />
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('product.technicalDetails')}</Text>
+            <View style={styles.specGrid}>
+              {technicalRows.map((row) => (
+                <View key={row.key} style={styles.specItem}>
+                  <Text style={styles.specLabel}>{row.label}</Text>
+                  <Text style={styles.specValue}>{row.value}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </>
+      )}
 
       <Divider style={styles.divider} />
 
