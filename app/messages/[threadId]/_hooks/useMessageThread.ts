@@ -54,7 +54,7 @@ export function useMessageThread() {
     useCallback(() => {
       if (threadId) {
         setCurrentThreadId(threadId);
-        markAsRead.mutate(threadId);
+        markAsRead(threadId);
         getSocket()?.emit('join:thread', { threadId });
       }
       return () => {

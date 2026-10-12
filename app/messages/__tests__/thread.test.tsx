@@ -52,7 +52,7 @@ jest.mock('@/hooks/messaging', () => ({
   useThreadQuery: () => mockThreadQuery,
   useMessagesQuery: () => mockMessagesQuery,
   useSendMessage: () => ({ mutateAsync: mockSendMessage }),
-  useMarkAsRead: () => ({ mutate: mockMarkAsRead }),
+  useMarkAsRead: () => mockMarkAsRead,
 }));
 
 import { mediaApi } from '@/lib/api';

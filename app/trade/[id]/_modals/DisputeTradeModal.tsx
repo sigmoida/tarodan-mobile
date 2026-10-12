@@ -3,7 +3,11 @@ import { View, StyleSheet } from 'react-native';
 import { Modal, Button, Input, Text } from '@/ui';
 import type { TFn } from '../_lib/types';
 
-type DisputeReason = 'shipment_lost' | 'shipment_damaged' | 'wrong_item' | 'other';
+import {
+  DISPUTE_REASONS,
+  DISPUTE_REASON_LABEL_KEY,
+  type DisputeReason,
+} from '../_lib/disputeReasons';
 
 export function DisputeTradeModal({
   visible,
@@ -26,12 +30,10 @@ export function DisputeTradeModal({
   isPending: boolean;
   t: TFn;
 }) {
-  const reasons: [DisputeReason, string][] = [
-    ['shipment_lost', t('trade.dispute.reasonShipmentLost')],
-    ['shipment_damaged', t('trade.dispute.reasonShipmentDamaged')],
-    ['wrong_item', t('trade.dispute.reasonWrongItem')],
-    ['other', t('trade.dispute.reasonOther')],
-  ];
+  const reasons: [DisputeReason, string][] = DISPUTE_REASONS.map((value) => [
+    value,
+    t(DISPUTE_REASON_LABEL_KEY[value]),
+  ]);
 
   return (
     <Modal isOpen={visible} onClose={() => !isPending && onClose()} title={t('trade.dispute.modalTitle')}>

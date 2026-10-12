@@ -28,6 +28,9 @@ export function getIconForType(type: string): { icon: IoniconName; color: string
     case 'order_force_completed_by_admin':
       return { icon: 'shield-checkmark', color: theme.colors.info[500], bg: theme.colors.info[100] };
     case 'order_cancelled':
+    case 'order_cancelled_by_platform':
+    case 'order_cancelled_by_platform_seller':
+    case 'trade_cancelled_by_platform':
     case 'order_cancelled_out_of_stock':
     case 'offer_cancelled_out_of_stock':
     case 'offer_counter_declined':
@@ -45,6 +48,12 @@ export function getIconForType(type: string): { icon: IoniconName; color: string
     case 'refund_cancelled':
       return { icon: 'arrow-undo', color: theme.colors.danger[500], bg: theme.colors.danger[100] };
     case 'order_preparing_deadline_warning':
+    case 'order_preparing_extended':
+    case 'order_preparing_extended_seller':
+    case 'offer_extended':
+    case 'trade_response_extended':
+    case 'trade_payment_extended':
+    case 'trade_payment_extended_paid':
     case 'order_reservation_released':
     case 'offer_expired':
     case 'membership_expiring':

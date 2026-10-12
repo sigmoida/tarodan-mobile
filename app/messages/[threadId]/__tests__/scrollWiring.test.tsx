@@ -83,7 +83,7 @@ jest.mock('@/hooks/messaging', () => ({
   useThreadQuery: () => ({ data: mockCurrentThread }),
   useMessagesQuery: () => ({ data: [mockMessage], isLoading: false }),
   useSendMessage: () => ({ mutateAsync: mockSendMessage }),
-  useMarkAsRead: () => ({ mutate: mockMarkAsRead }),
+  useMarkAsRead: () => mockMarkAsRead,
 }));
 
 // useAutoScroll'un iç mantığı useAutoScroll.test.tsx'te zaten kilitli; burada

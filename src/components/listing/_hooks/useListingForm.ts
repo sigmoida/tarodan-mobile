@@ -13,6 +13,7 @@ import { buildColorAndBoxPayload, serverErrorMessage } from '../_lib/payload';
 import { MAX_COLORS } from '../_lib/schema';
 import { globalCustomGroups, requiredGlobalGroups } from '../_lib/attributeGroups';
 import { toFormValues } from '../_lib/editMapper';
+import { activatedStatus, activationMessageKey } from '../_lib/activation';
 
 import { useAuthStore } from '../../../stores/authStore';
 import { api, productsApi, categoriesApi, bankAccountApi, shippingApi } from '@/lib/api';
@@ -864,11 +865,13 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     }
     setReactivating(true);
     try {
-      await productsApi.update(productId!, { status: 'active', quantity: qty });
-      setStatus('pending');
+      const response = await productsApi.update(productId!, { status: 'active', quantity: qty });
+      // API'nin gerçekten döndürdüğü statü: çoğu ilan `pending`, iade
+      // karantinasındaki ilan doğrudan `active` (bkz. listing/_lib/activation).
+      setStatus(activatedStatus(response));
       setQuantity(String(qty));
       invalidateListingCaches();
-      appAlert(t('common.success'), t('listing.sentForReview'));
+      appAlert(t('common.success'), t(activationMessageKey(response)));
     } catch (err: any) {
       const msg = err.response?.data?.message || t('listing.reactivateFailed');
       appAlert(t('common.error'), msg);
