@@ -5,7 +5,7 @@
 import React from 'react';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Modal as RNModal } from 'react-native';
+import { Dimensions, Modal as RNModal, StyleSheet } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
 const mockUseAds = jest.fn();
@@ -15,6 +15,13 @@ jest.mock('@/hooks/useAds', () => ({
 
 jest.mock('@/lib/api', () => ({
   adsApi: { recordImpression: jest.fn(() => Promise.resolve()), recordClick: jest.fn(() => Promise.resolve()) },
+}));
+
+let mockInsets = { top: 0, right: 0, bottom: 0, left: 0 };
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }: { children: unknown }) => children,
+  SafeAreaView: ({ children }: { children: unknown }) => children,
+  useSafeAreaInsets: () => mockInsets,
 }));
 
 const mockCanShow = jest.fn();
@@ -173,5 +180,45 @@ describe('PopupAd', () => {
     expect(queryByTestId('popup-ad')).toBeTruthy();
     act(() => UNSAFE_getByType(RNModal).props.onRequestClose());
     expect(queryByTestId('popup-ad')).toBeNull();
+  });
+
+  describe('boyut: ekranı taşırmaz, X her zaman görünür', () => {
+    const setWindow = (width: number, height: number) =>
+      Dimensions.set({ window: { width, height, scale: 2, fontScale: 1 }, screen: { width, height, scale: 2, fontScale: 1 } });
+    afterEach(() => {
+      // Bileşen hâlâ bağlıyken pencere değişimi state güncellemesi sayılır.
+      act(() => setWindow(750, 1334));
+      mockInsets = { top: 0, right: 0, bottom: 0, left: 0 };
+    });
+
+    it('1:2 (dikey) reklam: kutu ekranın %80\'ine ve güvenli alana sığar, oran korunur', async () => {
+      setWindow(390, 600);
+      mockInsets = { top: 47, right: 0, bottom: 34, left: 0 };
+      setAds([{ ...popupAd, imageUrl: 'https://example.com/tall.png', content: null, linkUrl: null, width: 400, height: 800 }]);
+      const { getByTestId } = render(<PopupAd />);
+      await flush(POPUP_AD_DELAY_MS + 100);
+
+      const box = StyleSheet.flatten(getByTestId('ad-image-box-p1').props.style);
+      // kart = min(%80 * 600, 600 - 47 - 34 - 32) = 480; görsel kutusu = 480 - 2*24 = 432.
+      expect(box.height).toBe(432);
+      expect(box.width).toBe(216);
+      expect(box.width / box.height).toBe(0.5);
+      // Kart (sheet) toplamı: kutu + iç boşluk <= %80.
+      expect(box.height + 48).toBeLessThanOrEqual(600 * 0.8);
+      // Kapat düğmesi çizili ve kartın kendi köşesine mutlak yerleşik (akışın dışında).
+      const close = getByTestId('popup-ad-close');
+      expect(StyleSheet.flatten(close.props.style)).toMatchObject({ position: 'absolute' });
+      expect(getByTestId('popup-ad').props.style).toMatchObject({ maxHeight: 432 });
+    });
+
+    it('geniş reklam: genişlik kart içeriğine (358-48=310) sığar, oran korunur', async () => {
+      setWindow(390, 844);
+      setAds([{ ...popupAd, imageUrl: 'https://example.com/wide.png', content: null, linkUrl: null, width: 800, height: 400 }]);
+      const { getByTestId } = render(<PopupAd />);
+      await flush(POPUP_AD_DELAY_MS + 100);
+      const box = StyleSheet.flatten(getByTestId('ad-image-box-p1').props.style);
+      expect(box.width).toBe(310);
+      expect(box.height).toBe(155);
+    });
   });
 });

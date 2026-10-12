@@ -32,6 +32,11 @@ export interface AdCreativeProps {
   variant?: AdCreativeVariant;
   /** Verilirse, bağlantı açılmadan ÖNCE çağrılır ve açma `NAVIGATE_AFTER_CLOSE_MS` ertelenir (popup'ı kapatmak için). */
   onNavigate?: () => void;
+  /**
+   * `block` görselini bu kutuya sığdırır (oran korunur, ortalanır). Popup gibi
+   * yüksekliği sınırlı kapsayıcılar için; verilmezse görsel tam genişlikte olur.
+   */
+  maxSize?: { width: number; height: number };
   /** Oturumda gösterimi gönderilmiş reklamlar (bkz. `useAdSession`). */
   sentImpressions?: Set<string>;
 }
@@ -42,7 +47,14 @@ export interface AdCreativeProps {
  * Satın alma linki filtresi `resolveAdLink` içinde: açılamayacak hedef için
  * tıklanabilirlik ve hotspot yoktur.
  */
-export function AdCreative({ ad, position, variant = 'block', onNavigate, sentImpressions }: AdCreativeProps) {
+export function AdCreative({
+  ad,
+  position,
+  variant = 'block',
+  onNavigate,
+  maxSize,
+  sentImpressions,
+}: AdCreativeProps) {
   const hasImage = hasAdImage(ad);
   // Görsel yüklenince kutu onun GERÇEK oranını alır (kayıtlı ölçü görselden
   // sapabilir). Kutu = görsel olduğu için `contain` kırpmaz ve yüzdeyle
@@ -80,7 +92,9 @@ export function AdCreative({ ad, position, variant = 'block', onNavigate, sentIm
       // en büyük kutu (geniş afişte yükseklik 24'ün altına iner). Yüksekliği
       // sabit bırakıp yalnız genişliği kırpmak letterbox yapıp bölgeleri kaydırırdı.
       fitBox(ratio, TOPBAR_IMAGE_MAX_WIDTH, TOPBAR_IMAGE_HEIGHT)
-    : { aspectRatio: ratio };
+    : maxSize
+      ? fitBox(ratio, maxSize.width, maxSize.height)
+      : { aspectRatio: ratio };
 
   return (
     <Pressable
@@ -89,10 +103,10 @@ export function AdCreative({ ad, position, variant = 'block', onNavigate, sentIm
       accessibilityRole={wholeLink ? 'link' : hasImage ? 'image' : 'text'}
       accessibilityLabel={ad.altText || ad.title}
       testID={`ad-banner-${ad.id}`}
-      style={isTopbar ? styles.topbarSlot : styles.slot}
+      style={[isTopbar ? styles.topbarSlot : styles.slot, !isTopbar && hasImage && maxSize && styles.fitted]}
     >
       {hasImage ? (
-        <View style={[styles.imageBox, boxStyle]}>
+        <View style={[styles.imageBox, boxStyle]} testID={`ad-image-box-${ad.id}`}>
           <Image
             source={{ uri: ad.imageUrl!.trim() }}
             style={styles.image}
@@ -177,6 +191,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface.alt,
   },
   topbarSlot: { justifyContent: 'center' },
+  // `maxSize` ile sığdırılan görsel kapsayıcıda ortalanır.
+  fitted: { alignSelf: 'center' },
   imageBox: { width: '100%' },
   image: { width: '100%', height: '100%' },
   hotspot: { position: 'absolute' },

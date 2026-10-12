@@ -1,9 +1,11 @@
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { Modal, theme } from '@/ui';
 import { usePopupAd } from '@/lib/ads/usePopupAd';
+import { popupMediaLimits } from '@/lib/ads/popupLayout';
 import { AdCreative } from './AdCreative';
 
 /**
@@ -14,17 +16,24 @@ import { AdCreative } from './AdCreative';
  * kısa bir gecikmeyle sonra açılır (`AdCreative.onNavigate`). Modal açıkken
  * gezinme/uyarı ekranı dondurabilir.
  *
+ * Boyut: kart ekranın ~%80'ini ve güvenli alanı aşmaz (`popupMediaLimits`);
+ * görsel oranı korunarak o kutuya sığar. Kapat (X) kartın köşesine mutlak
+ * yerleşir, içerik ne kadar uzun olursa olsun görünür kalır.
+ *
  * `blocked`: başka bir Modal/istem açıkken popup çıkmaz.
  */
 export function PopupAd({ blocked = false }: { blocked?: boolean }) {
   const { t } = useTranslation();
   const { ad, close } = usePopupAd(blocked);
+  const window = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const limits = popupMediaLimits(window, insets);
 
   return (
     <Modal isOpen={!!ad} onClose={close}>
       {ad ? (
-        <View testID="popup-ad">
-          <AdCreative ad={ad} position="popup" onNavigate={close} />
+        <View testID="popup-ad" style={{ maxHeight: limits.height, overflow: 'hidden' }}>
+          <AdCreative ad={ad} position="popup" onNavigate={close} maxSize={limits} />
           <Pressable
             onPress={close}
             hitSlop={theme.spacing[2]}
