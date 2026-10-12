@@ -122,7 +122,7 @@ export function MyListingCard({
       onPress={() => router.push(`/product/${listing.id}`)}
     >
       {selection && (
-        <View style={styles.selectCheck}>
+        <View style={styles.selectCheck} testID={`select-wrap-${listing.id}`}>
           <Checkbox
             size="sm"
             checked={selection.checked}

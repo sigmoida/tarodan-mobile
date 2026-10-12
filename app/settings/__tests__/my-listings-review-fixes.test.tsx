@@ -1,0 +1,126 @@
+/**
+ * Parite C2 inceleme düzeltmeleri · İlanlarım:
+ * seçim kutusu/menü çakışması, iOS ModalFreeze, kapanış animasyonu, süresi dolan
+ * sayacı, çift refetch, silme onayında ilan adı.
+ */
+import React from "react";
+import { StyleSheet } from "react-native";
+import { screen, fireEvent, waitFor, act } from "@testing-library/react-native";
+import { renderWithProviders } from "@/test-utils";
+
+jest.mock("expo-router", () => {
+  const react = require("react");
+  return {
+    router: { push: jest.fn(), back: jest.fn(), replace: jest.fn() },
+    // Odaklanmada BİR kez çalışır (gerçek hook gibi); render başına değil.
+    useFocusEffect: (cb: () => void) => react.useEffect(cb, [cb]),
+  };
+});
+
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: (k: string, p?: Record<string, unknown>) => (p?.title ? `${k}:${p.title}` : k) }),
+}));
+
+jest.mock("@/stores/authStore", () => {
+  const refreshUserData = jest.fn();
+  return {
+    useAuthStore: (sel?: (state: any) => unknown) => {
+      const state: any = {
+        user: { listingCount: 2, membershipTier: "free" },
+        limits: { maxListings: 10 },
+        refreshUserData,
+      };
+      return sel ? sel(state) : state;
+    },
+  };
+});
+
+jest.mock("@/components/product/BoostModal", () => ({ BoostModal: () => null }));
+
+const mockGetMyListings = jest.fn();
+const mockGetMyStats = jest.fn();
+jest.mock("@/lib/api", () => ({
+  errorText: (e: any, fallback: string) => e?.response?.data?.message ?? fallback,
+  productsApi: {
+    getMyListings: (...a: any[]) => mockGetMyListings(...a),
+    getMyStats: (...a: any[]) => mockGetMyStats(...a),
+    update: jest.fn(),
+    delete: jest.fn(),
+    deactivate: jest.fn(),
+    renew: jest.fn(),
+    renewMany: jest.fn(),
+  },
+}));
+
+import MyListingsScreen from "../my-listings";
+
+function listing(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "L1",
+    title: "Hot Wheels Camaro",
+    price: 250,
+    status: "active",
+    viewCount: 12,
+    likeCount: 3,
+    images: [],
+    createdAt: new Date("2026-01-01").toISOString(),
+    updatedAt: new Date("2026-01-01").toISOString(),
+    condition: "good",
+    ...overrides,
+  };
+}
+
+const expired = (overrides = {}) =>
+  listing({ id: "E1", title: "Süresi Dolan", status: "inactive", inactiveReason: "expired", ...overrides });
+
+const api = () =>
+  (jest.requireMock("@/lib/api") as {
+    productsApi: Record<"update" | "delete" | "deactivate" | "renew" | "renewMany", jest.Mock>;
+  }).productsApi;
+const alertMock = () => (jest.requireMock("@/ui") as { appAlert: jest.Mock }).appAlert;
+
+/** Sunucu gibi: `status` / `inactiveReason` süzer, `meta.total` süzülmüş TOPLAMI verir. */
+function serve(all: Array<Record<string, unknown>>) {
+  mockGetMyListings.mockImplementation(async (params: Record<string, unknown> = {}) => {
+    const rows = all.filter(
+      (l) =>
+        (!params.status || l.status === params.status) &&
+        (!params.inactiveReason || l.inactiveReason === params.inactiveReason),
+    );
+    const limit = Number(params.limit ?? 20);
+    return { data: { data: rows.slice(0, limit), meta: { total: rows.length, page: 1, limit } } };
+  });
+}
+
+beforeEach(() => {
+  mockGetMyListings.mockReset();
+  mockGetMyStats.mockReset();
+  (["update", "delete", "deactivate", "renew", "renewMany"] as const).forEach((k) => api()[k].mockReset());
+  mockGetMyStats.mockResolvedValue({
+    data: { counts: { all: 3, active: 1, inactive: 2 }, summary: { used: 1, max: 10, canCreate: true } },
+  });
+});
+
+describe("C2 inceleme · 1 seçim kutusu ⋮ menüsünü örtmez", () => {
+  it("kutu sol üstte (sağ kenara bağlı değil); kutu da ⋮ menüsü de çalışır", async () => {
+    serve([expired()]);
+    renderWithProviders(<MyListingsScreen />);
+    fireEvent.press(await screen.findByText("profile.expiredListings.tab (1)"));
+    await screen.findByTestId("select-E1");
+
+    const wrap = StyleSheet.flatten(screen.getByTestId("select-wrap-E1").props.style);
+    expect(wrap.left).toBeDefined();
+    expect(wrap.right).toBeUndefined();
+
+    // ⋮ menüsü açılır …
+    fireEvent.press(screen.getByLabelText("listing.menuAccessibility"));
+    expect(await screen.findByText("profile.expiredListings.renew")).toBeOnTheScreen();
+    fireEvent.press(screen.getByText("common.view"));
+
+    // … ve kutu da seçim yapar: seçilince "Seçilenleri yenile" yalnız o ilanı yollar.
+    api().renewMany.mockResolvedValue({ data: { results: [{ id: "E1", ok: true, status: "active" }], renewed: 1, submitted: 0, failed: 0 } });
+    fireEvent.press(screen.getByTestId("select-E1"));
+    fireEvent.press(screen.getByText("profile.expiredListings.renewSelected"));
+    await waitFor(() => expect(api().renewMany).toHaveBeenCalledWith(["E1"]));
+  });
+});

@@ -140,10 +140,11 @@ export const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.warning[700]!,
   },
+  // Sol üst (görselin köşesi): sağ üstte ⋮ menü düğmesi var, kutu onu örtmemeli.
   selectCheck: {
     position: 'absolute',
     top: theme.spacing[2],
-    right: theme.spacing[2],
+    left: theme.spacing[2],
     zIndex: 1,
     padding: theme.spacing[1],
     borderRadius: theme.radius.md,
