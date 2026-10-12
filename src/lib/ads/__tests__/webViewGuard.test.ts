@@ -51,8 +51,8 @@ describe('webViewGuard — kendi sitemizde bile satın alma sayfaları açılmaz
 
   it('resolveAdLink ile aynı kapıyı paylaşır (tutarlılık)', () => {
     for (const p of PURCHASE) {
-      expect(resolveAdLink(p)).toEqual({ kind: 'blocked' });
-      expect(resolveAdLink(`https://tarodan.com.tr${p}`)).toEqual({ kind: 'blocked' });
+      expect(resolveAdLink(p)).toEqual({ kind: 'blocked', reason: 'purchase' });
+      expect(resolveAdLink(`https://tarodan.com.tr${p}`)).toEqual({ kind: 'blocked', reason: 'purchase' });
     }
   });
 });

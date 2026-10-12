@@ -1,8 +1,5 @@
 import type { HeroCta, HeroSlide, LocalizedText, TrustBadge } from '@/lib/api/hero';
-import { pathFromUrl } from '@/lib/deeplinks';
-import { isOwnWebUrl, resolveAdLink } from '@/lib/ads/openAdLink';
-import { isPurchasePath } from '@/lib/ads/purchasePath';
-import { safeAdHref } from '@/lib/ads/safeAdHref';
+import { isPurchaseLink, resolveAdLink } from '@/lib/ads/openAdLink';
 
 /**
  * Hero / güven rozeti görünüm kuralları — saf fonksiyonlar (web `lib/heroView.ts`
@@ -32,19 +29,6 @@ export interface ResolvedHeroCta {
 }
 
 /**
- * Satın almaya (üyelik, boost) götüren bağlantı mı? Yol kuralı reklam ve uygulama
- * içi web ekranıyla TEK kaynaktan gelir (`isPurchasePath`). Yalnız site içi yol ya da
- * kendi sitemizin adresi sayılır; dış host satın alma hedefi değildir.
- */
-export function isPurchaseHref(href: string | null | undefined): boolean {
-  const safe = safeAdHref(href);
-  if (!safe) return false;
-  if (/^https?:\/\//i.test(safe) && !isOwnWebUrl(safe)) return false;
-  const path = pathFromUrl(safe);
-  return !!path && isPurchasePath(path);
-}
-
-/**
  * CTA'yı çizilebilir hâle getirir. Bağlantıyı admin yazar: güvensiz şema,
  * satın alma hedefi ya da boş etiket varsa CTA HİÇ çizilmez (`null`).
  */
@@ -54,7 +38,8 @@ export function resolveHeroCta(
 ): ResolvedHeroCta | null {
   if (!cta) return null;
   const label = pickLocalized(cta.label, locale);
-  if (!label || isPurchaseHref(cta.href) || resolveAdLink(cta.href).kind === 'blocked') return null;
+  // Satın alma hedefi de güvensiz şema da `blocked`: ikisinde de buton çizilmez.
+  if (!label || resolveAdLink(cta.href).kind === 'blocked') return null;
   return { label, href: cta.href };
 }
 
@@ -75,8 +60,8 @@ export function visibleSlides(slides: readonly HeroSlide[] | null | undefined, l
       !s.hideOnIos &&
       !!heroImageUrl(s) &&
       !!pickLocalized(s.title, locale) &&
-      !isPurchaseHref(s.cta1?.href) &&
-      !isPurchaseHref(s.cta2?.href),
+      !isPurchaseLink(s.cta1?.href) &&
+      !isPurchaseLink(s.cta2?.href),
   );
 }
 
