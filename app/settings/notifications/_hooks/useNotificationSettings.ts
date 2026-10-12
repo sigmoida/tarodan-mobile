@@ -20,19 +20,26 @@ export function useNotificationSettings() {
   const queryClient = useQueryClient();
   const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_SETTINGS);
 
-  const { data: settingsData, isLoading, refetch } = useQuery({
+  // Yükleme hatası YUTULMAZ: eskiden `.catch(() => null)` ile ekran
+  // DEFAULT_SETTINGS gösteriyor, Kaydet de gerçek tercihlerin üzerine
+  // varsayılanları yazıyordu. Artık hata → ErrorState + yeniden dene, ve
+  // tercihler bir kez yüklenmeden kaydetme kapalı (`canSave`).
+  const {
+    data: settingsData,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: qk.user.notificationSettings,
     queryFn: async () => {
-      try {
-        const response = await api.get('/users/me/settings').catch(() => null);
-        return response?.data ?? null;
-      } catch (error) {
-        console.log('Failed to fetch settings');
-        return null;
-      }
+      const response = await api.get('/users/me/settings');
+      return (response?.data ?? {}) as Partial<NotificationSettings>;
     },
     enabled: isAuthenticated,
   });
+  const loaded = settingsData !== undefined;
+  /** Hiç yüklenemedi (önbellekte veri yok) → ekran ErrorState gösterir. */
+  const loadFailed = isError && !loaded;
 
   const { refreshing, onRefresh } = useRefresh(refetch);
 
@@ -76,6 +83,7 @@ export function useNotificationSettings() {
   };
 
   const handleSave = () => {
+    if (!loaded) return;
     saveMutation.mutate(settings);
   };
 
@@ -83,6 +91,9 @@ export function useNotificationSettings() {
     isAuthenticated,
     settings,
     isLoading,
+    loadFailed,
+    canSave: loaded && !saveMutation.isPending,
+    retryLoad: () => refetch(),
     refreshing,
     onRefresh,
     saveMutation,

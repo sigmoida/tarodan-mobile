@@ -4,6 +4,9 @@
  * Eskiden `api.patch(...).catch(() => null)` başarısız kaydı başarıya çeviriyor
  * ve kullanıcı "Bildirim ayarları kaydedildi" görüyordu. Artık hata durumunda
  * sunucu mesajı (yoksa `settings.settingUpdateFailed`) gösterilir.
+ *
+ * Yükleme de hatayı yutmuyor: GET düşerse varsayılanlar gösterilip gerçek
+ * tercihlerin üzerine yazılmasın diye ErrorState + yeniden dene, kaydetme kapalı.
  */
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
@@ -31,14 +34,23 @@ jest.mock('@/lib/api', () => ({
 }));
 import { api } from '@/lib/api';
 const patch = api.patch as jest.Mock;
+const get = api.get as jest.Mock;
 
 import NotificationSettingsScreen from '../notifications';
 
-beforeEach(() => patch.mockReset());
+beforeEach(() => {
+  patch.mockReset();
+  get.mockReset();
+  get.mockResolvedValue({ data: { pushNotifications: true } });
+});
 
 const save = async () => {
   renderWithProviders(<NotificationSettingsScreen />);
-  fireEvent.press(await screen.findByText('mobile.save'));
+  // Tercihler yüklenmeden kaydetme kapalı — önce yüklemeyi bekle.
+  await waitFor(() =>
+    expect(screen.getByTestId('notification-settings-save')).not.toBeDisabled(),
+  );
+  fireEvent.press(screen.getByText('mobile.save'));
 };
 
 describe('B-1.11 · bildirim ayarları kaydı', () => {
@@ -67,5 +79,37 @@ describe('B-1.11 · bildirim ayarları kaydı', () => {
     patch.mockRejectedValue({ response: { status: 400, data: { message: ['geçersiz alan'] } } });
     await save();
     await waitFor(() => expect(appAlert).toHaveBeenCalledWith('common.error', 'geçersiz alan'));
+  });
+});
+
+describe('bildirim ayarları yüklemesi', () => {
+  it('GET düşerse ErrorState görünür, Kaydet kapalı ve PATCH gitmez', async () => {
+    get.mockRejectedValue({ response: { status: 500, data: {} } });
+    renderWithProviders(<NotificationSettingsScreen />);
+
+    expect(await screen.findByText('settings.notificationSettingsLoadFailed')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('notification-settings-save'));
+    expect(screen.getByTestId('notification-settings-save')).toBeDisabled();
+    expect(patch).not.toHaveBeenCalled();
+  });
+
+  it('yeniden dene başarılı olunca ayarlar görünür ve kaydetme açılır', async () => {
+    get.mockRejectedValueOnce({ response: { status: 500, data: {} } });
+    renderWithProviders(<NotificationSettingsScreen />);
+
+    fireEvent.press(await screen.findByText('mobile.errorRetry'));
+    await waitFor(() =>
+      expect(screen.queryByText('settings.notificationSettingsLoadFailed')).toBeNull(),
+    );
+    expect(screen.getByTestId('notification-settings-save')).not.toBeDisabled();
+
+    patch.mockResolvedValue({ data: {} });
+    fireEvent.press(screen.getByTestId('notification-settings-save'));
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith(
+        '/users/me/settings',
+        expect.objectContaining({ pushNotifications: true }),
+      ),
+    );
   });
 });

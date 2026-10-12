@@ -2624,7 +2624,8 @@
     "usernameSetFailedTitle": "Belirlenemedi",
     "usernameSetFailedBody": "Kullanıcı adı kaydedilemedi.",
     "notificationsAuthGateSubtitle": "Ayarlarınızı düzenlemek için giriş yapın",
-    "notificationSettingsSaved": "Bildirim ayarları kaydedildi"
+    "notificationSettingsSaved": "Bildirim ayarları kaydedildi",
+    "notificationSettingsLoadFailed": "Bildirim tercihleriniz yüklenemedi. Kayıtlı tercihlerinizin üzerine yazılmaması için yüklenene kadar kaydetme kapalı."
   },
   "analytics": {
     "analytics": "Analitikler",
