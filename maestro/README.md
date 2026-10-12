@@ -3,7 +3,7 @@
 Bu klasör mobil uygulamanın e2e test akışlarını barındırır. [Maestro](https://maestro.mobile.dev) kullanılır — YAML tabanlı.
 
 > **Önemli:** Flow'lar **Expo Go değil, dev build**'i hedefler (`appId: com.tarodan.app`).
-> Test koşumu için Metro **`EXPO_PUBLIC_MAESTRO=1`** ile başlatılmalı; bu, [authStore.loadToken](../src/stores/authStore.ts) içindeki auto-login'i açar (login UI'sını atlar). En kolay yol: **`pnpm maestro:dev <flow>`** (bkz. [run.sh](run.sh)) — backend health + booted simülatör + Metro'yu garanti edip flow'u görünür simülatörde koşar.
+> Test koşumu için Metro (ya da release build) **`EXPO_PUBLIC_MAESTRO=1`** + **`EXPO_PUBLIC_MAESTRO_EMAIL`** + **`EXPO_PUBLIC_MAESTRO_PASSWORD`** ile derlenmeli; bu, [authStore.loadToken](../src/stores/authStore.ts) içindeki auto-login'i açar (login UI'sını atlar). Kapının tek kaynağı [src/config/maestro.ts](../src/config/maestro.ts). En kolay yol: **`pnpm maestro:dev <flow>`** (bkz. [run.sh](run.sh)) — backend health + booted simülatör + Metro'yu garanti edip flow'u görünür simülatörde koşar.
 
 ## Kurulum (tek seferlik)
 
@@ -232,9 +232,26 @@ defaults write com.apple.iphonesimulator HardwareKeyboardEnabled -bool true
 Maestro flow'larında login UI üzerinden geçmek yerine `authStore.loadToken`
 boot sırasında otomatik login yapar:
 
-- **Etkinleştirme**: `EXPO_PUBLIC_MAESTRO=1` env var Metro start sırasında set edilmeli.
-- **Kullanıcı override**: `EXPO_PUBLIC_MAESTRO_EMAIL` / `EXPO_PUBLIC_MAESTRO_PASSWORD`
-  (default: `zeynep@demo.com` / `Demo123!`).
+- **Kapı (tek kaynak)**: [`src/config/maestro.ts`](../src/config/maestro.ts) →
+  `IS_MAESTRO = process.env.EXPO_PUBLIC_MAESTRO === '1'`. Auto-login,
+  `EXPO_PUBLIC_MAESTRO_NO_AUTOLOGIN`, maskesiz şifre alanları (login/kayıt),
+  login `getValues()` fallback'i ve kayıt doğum tarihi ön doldurması hep bu
+  kapıyı kullanır. **`__DEV__`'e bağlı değildir**: aynı env ile derlenmiş
+  staging/preview **release** build'inde de çalışır.
+- **Zorunlu env (derleme anı)**:
+  - `EXPO_PUBLIC_MAESTRO=1`
+  - `EXPO_PUBLIC_MAESTRO_EMAIL` ve `EXPO_PUBLIC_MAESTRO_PASSWORD` — **ikisi de
+    zorunlu, kodda varsayılan YOK**. Biri eksikse auto-login yapılmaz ve açılışta
+    `[maestro] … eksik — auto-login YAPILMAYACAK` `console.warn`'ı basılır.
+    `pnpm maestro:dev` ([run.sh](run.sh)) bunları kendisi set eder
+    (varsayılan `zeynep@demo.com` / `Demo123!` yalnız bu shell script'inde, dev seed'i).
+  - `EXPO_PUBLIC_MAESTRO_NO_AUTOLOGIN=1` (opsiyonel, kayıt/misafir yolculukları):
+    yalnız `EXPO_PUBLIC_MAESTRO=1` ile birlikte etkilidir.
+- **Release (staging) build'e karşı koşum**: env'ler `expo start` değil **build**
+  sırasında verilmelidir (EAS'ta ilgili profilin `env` bloğu ya da EAS
+  environment). Aynı kanala env'siz bir OTA (`eas update`) basılırsa bundle
+  kapıyı kapalı getirir ve auto-login durur — Maestro koşulacak build'e env'siz
+  OTA gitmemeli.
 - **Davranış**: SecureStore'da token yoksa app `POST /auth/login`'u credentials
   ile çağırır, başarılıysa standart `login()` flow'undan token + user state'i
   doldurur, doğrudan home ekranına düşer. Login fail olursa normal
@@ -252,19 +269,22 @@ EXPO_PUBLIC_MAESTRO=1 \
 
 ### Production safety
 
-Auto-login kod yolu **prod build'lere sızmaz** çünkü:
+Maestro kod yolları **production build'lere sızmaz** çünkü:
 
 1. `process.env.EXPO_PUBLIC_*` Expo'nun Metro/Babel transformer'ı tarafından
-   **compile-time'da** literal string'e replace edilir. Prod build sırasında
-   `EXPO_PUBLIC_MAESTRO` set edilmediği için `process.env.EXPO_PUBLIC_MAESTRO === '1'`
-   ifadesi `undefined === '1'` (yani `false`) olarak inline'lanır ve dead-code
-   elimination şubeyi tamamen drop eder.
-2. EAS build profili (`eas.json` production) MAESTRO env var taşımaz.
-3. Test credentials hardcoded değil — fallback default sadece dev seed user'ı,
-   prod DB'de mevcut değil. Yine de gate `false` olduğu için çalıştırılmaz.
+   **compile-time'da** literal string'e replace edilir. Production build sırasında
+   `EXPO_PUBLIC_MAESTRO` set edilmediği için `IS_MAESTRO` `undefined === '1'`, yani
+   sabit `false` olur; Maestro şubeleri hiçbir koşulda çalışmaz.
+2. EAS `production` profili hiçbir `EXPO_PUBLIC_MAESTRO*` değişkeni taşımaz — bu
+   [src/config/__tests__/maestro.test.ts](../src/config/__tests__/maestro.test.ts)
+   içinde `eas.json` okunarak birim testiyle çivilidir (CI'da kırılır).
+3. Test kimlik bilgileri kodda **yok** — yalnız env'den okunur; env yoksa
+   auto-login denenmez.
 
-Şüphe halinde bundle'da `EXPO_PUBLIC_MAESTRO` literal'i grep ile aranabilir;
-prod build'de bulunmamalı.
+`__DEV__` kapısı bilinçli olarak kaldırıldı (staging release build'inde Maestro
+koşabilmek için); koruma yukarıdaki derleme-anı env'idir. Şüphe halinde bundle'da
+`EXPO_PUBLIC_MAESTRO` / test e-postası literal'i grep ile aranabilir; production
+build'de bulunmamalı.
 
 ## PayTR bypass-kapalı coverage
 
