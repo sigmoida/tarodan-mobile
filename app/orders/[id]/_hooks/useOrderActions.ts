@@ -9,7 +9,6 @@ import { ordersApi, refundsApi, mediaApi, paymentsApi, type RNFile } from '@/lib
 import { qk } from '@/lib/query';
 import { captureException } from '@/services/sentry';
 import { MAX_EVIDENCE_PHOTOS } from '../_lib/status';
-import { refundPhaseOf } from '../_lib/derive';
 import { refundRequirements, validateRefundRequest } from '../_lib/schema';
 import type { OrderCancellationReason } from '@/lib/shared/orderCancellation';
 import type { OrderDetail } from '../_lib/types';
@@ -60,13 +59,12 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
   // Kanıt/açıklama zorunluluğu sunucu politikasıyla aynı (bkz. `_lib/schema.ts`).
   // Eskiden hepsi "opsiyonel" sunuluyordu; kusur nedenli talep sunucudan
   // `evidenceRequired` 400'ü alıp modalın ARKASINDAKİ snackbar'a düşüyordu.
-  const refundPhase = order ? refundPhaseOf(order) : 'in_cooling_off';
   const refundInput = {
     reason: refundReason,
     description: refundDescription,
     evidenceCount: evidenceAssets.length,
   };
-  const refundErrors = refundSubmitAttempted ? validateRefundRequest(refundInput, refundPhase, t) : {};
+  const refundErrors = refundSubmitAttempted ? validateRefundRequest(refundInput, t) : {};
 
   const invalidateOrder = () => {
     queryClient.invalidateQueries({ queryKey: qk.orders.detail(id) });
@@ -190,7 +188,7 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
   /** Şema geçmeden istek gitmez; hatalar modalda satır içi görünür (iOS: modal üstünde uyarı yok). */
   const submitRefund = () => {
     setRefundSubmitAttempted(true);
-    if (Object.keys(validateRefundRequest(refundInput, refundPhase, t)).length > 0) return;
+    if (Object.keys(validateRefundRequest(refundInput, t)).length > 0) return;
     refundMutation.mutate();
   };
 
@@ -232,7 +230,7 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
       evidence: evidenceAssets,
       pickEvidence,
       removeEvidence,
-      requirements: refundRequirements(refundReason, refundPhase),
+      requirements: refundRequirements(refundReason),
       errors: refundErrors,
       submit: submitRefund,
       isPending: refundMutation.isPending,

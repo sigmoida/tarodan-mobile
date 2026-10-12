@@ -162,6 +162,16 @@ describe('J79 · İade talep butonu görünürlüğü', () => {
     );
     expect(screen.queryByTestId('refund-request-button')).toBeNull();
   });
+
+  it('J79.4 iade penceresi geçmiş teslimde modal açılamaz (bilgi kartı gösterilir)', async () => {
+    const old = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+    getMock.mockResolvedValue({
+      data: { data: orderFixture({ isBuyer: true, payment: { status: 'completed' }, deliveredAt: old }) },
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    expect(await screen.findByText('İade Süresi Doldu')).toBeOnTheScreen();
+    expect(screen.queryByTestId('refund-request-button')).toBeNull();
+  });
 });
 
 /**

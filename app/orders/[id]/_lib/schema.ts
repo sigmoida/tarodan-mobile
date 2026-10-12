@@ -1,10 +1,6 @@
-// İade talebi formunun zod şeması (colocated). Faz runtime'da (sipariş) belli
-// olduğundan şema bir factory ile üretilir.
+// İade talebi formunun zod şeması (colocated).
 import type { TFunction } from 'i18next';
 import { z } from 'zod';
-
-/** Talebin açıldığı faz — web `inferRefundPhase` ile aynı üç değer. */
-export type RefundPhase = 'preparing' | 'in_cooling_off' | 'past_cooling_off';
 
 /** Açıklama zorunluysa en az bu kadar karakter (web ile aynı eşik). */
 export const REFUND_DESCRIPTION_MIN = 20;
@@ -12,28 +8,27 @@ export const REFUND_DESCRIPTION_MIN = 20;
 /**
  * Hangi alan zorunlu — sunucunun iade politikasıyla AYNI karar.
  *
- * Kanıt: `changed_mind` dışındaki her neden kanıt ister, faz FARK ETMEZ.
- * Sunucuda kargo öncesi `changed_mind` dışı nedenler "other" olarak
- * `manual_review_cancellation`'a, teslim sonrası `resolveReturnPolicy`'de
- * kusur/manuel inceleme politikalarına düşer — ikisinde de `requiresEvidence`
- * true; kanıtsız istek `server.refund.evidenceRequired` ile 400 alır.
- * (`refund-creation.service.ts`, `helpers/refund-financial-policy.ts`.)
+ * Kanıt: `changed_mind` dışındaki her neden kanıt ister. Teslim sonrası
+ * `resolveReturnPolicy` kusur/manuel inceleme politikalarına düşer;
+ * `requiresEvidence` true, kanıtsız istek `server.refund.evidenceRequired`
+ * ile 400 alır (`refund-creation.service.ts`, `helpers/refund-financial-policy.ts`).
+ * Açıklama: web'deki gibi kanıt isteyen nedende zorunlu.
  *
- * Açıklama ve neden: web'deki gibi — kanıt isteyen nedenlerde ve cayma süresi
- * geçmiş (dispute) talepte açıklama zorunlu; neden yalnız dispute'ta zorunlu
- * etiketlenir.
+ * Faz YOK: modal yalnız kargo sonrası VE iade penceresi içindeyken açılıyor
+ * (`OrderRefundActionCard` kapısı). Web'in `preparing` (kargo öncesi — mobilde
+ * iptal formu) ve `past_cooling_off` (pencere kapalı — mobilde kart bilgi
+ * gösterir) fazları bu ekrandan erişilemez; kuralları da burada yok. Kapı
+ * değişirse (ör. pencere sonrası itiraz) faz buraya geri eklenmeli.
  */
-export function refundRequirements(reason: string, phase: RefundPhase) {
+export function refundRequirements(reason: string) {
   const evidenceRequired = reason !== 'changed_mind';
-  const isDispute = phase === 'past_cooling_off';
   return {
     evidenceRequired,
-    descriptionRequired: isDispute || evidenceRequired,
-    reasonRequired: isDispute,
+    descriptionRequired: evidenceRequired,
   };
 }
 
-export function refundRequestSchema(phase: RefundPhase, t: TFunction) {
+export function refundRequestSchema(t: TFunction) {
   return z
     .object({
       reason: z.string().min(1, t('validation.required')),
@@ -41,7 +36,7 @@ export function refundRequestSchema(phase: RefundPhase, t: TFunction) {
       evidenceCount: z.number().int().min(0),
     })
     .superRefine((v, ctx) => {
-      const req = refundRequirements(v.reason, phase);
+      const req = refundRequirements(v.reason);
       if (req.descriptionRequired && v.description.trim().length < REFUND_DESCRIPTION_MIN) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -65,12 +60,8 @@ export type RefundRequestInput = z.input<ReturnType<typeof refundRequestSchema>>
 export type RefundFormErrors = Partial<Record<'reason' | 'description' | 'evidence', string>>;
 
 /** Şemayı çalıştırır, hataları modalın alanlarına eşler. Geçerliyse `{}`. */
-export function validateRefundRequest(
-  input: RefundRequestInput,
-  phase: RefundPhase,
-  t: TFunction,
-): RefundFormErrors {
-  const parsed = refundRequestSchema(phase, t).safeParse(input);
+export function validateRefundRequest(input: RefundRequestInput, t: TFunction): RefundFormErrors {
+  const parsed = refundRequestSchema(t).safeParse(input);
   if (parsed.success) return {};
   const errors: RefundFormErrors = {};
   for (const issue of parsed.error.issues) {

@@ -93,7 +93,7 @@ export function RefundRequestModal({
         )}
 
         <Text variant="caption" style={styles.refundModalLabel}>
-          {requirements.reasonRequired ? `${t('common.reason')} *` : t('order.refundReasonOptional')}
+          {t('order.refundReasonOptional')}
         </Text>
         <RadioGroup value={reason} onChange={setReason} options={refundReasons} />
 
