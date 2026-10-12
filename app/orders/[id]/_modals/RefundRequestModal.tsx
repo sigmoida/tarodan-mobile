@@ -8,6 +8,7 @@ import { useRefundReasons, MAX_EVIDENCE_PHOTOS } from '../_lib/status';
 import { refundFormDefaults, refundRequestSchema, refundRequirements } from '../_lib/schema';
 import { pickEvidencePhotos } from '../_lib/pickEvidence';
 import { useDoRefundRequest } from '../_hooks/useDoRefundRequest';
+import { useUploadRefundEvidence } from '../_hooks/useUploadRefundEvidence';
 import type { Notify } from '../_lib/types';
 
 const { colors, radius } = theme;
@@ -35,7 +36,9 @@ export function RefundRequestModal({
   const refundReasons = useRefundReasons();
   const schema = useMemo(() => refundRequestSchema(t), [t]);
   const form = useZodForm(schema, { defaultValues: refundFormDefaults() });
+  const upload = useUploadRefundEvidence(orderId);
   const create = useDoRefundRequest(orderId, notify);
+  const busy = upload.isPending || create.isPending;
 
   const reason = form.watch('reason');
   const quantity = form.watch('quantity');
@@ -44,9 +47,13 @@ export function RefundRequestModal({
   const requirements = refundRequirements(reason);
 
   /** Kapatınca tüm alanlar (neden, açıklama, adet, kanıt) ve hatalar sıfırlanır. */
-  const close = () => {
+  const resetAndClose = () => {
     form.reset(refundFormDefaults());
     onClose();
+  };
+  // Kullanıcı kapatması: yükleme sürerken yok sayılır (bitince talep yine gönderilirdi).
+  const close = () => {
+    if (!upload.isPending) resetAndClose();
   };
 
   // Gönderimden sonra hatalar canlı: neden değişince açıklama/kanıt kuralı da değişir.
@@ -78,11 +85,23 @@ export function RefundRequestModal({
   };
   const removeEvidence = (index: number) => setEvidence(form.getValues('evidence').filter((_, i) => i !== index));
 
-  const onSubmit = form.handleSubmit((values) => {
+  const onSubmit = form.handleSubmit(async (values) => {
+    // Kanıt modal AÇIKKEN yüklenir: başarısız ya da URL'siz bir yükleme hatası
+    // burada, alanın altında görünür ve talep GÖNDERİLMEZ (kanıtsız istek
+    // sunucudan `evidenceRequired` 400'ü alırdı).
+    let evidencePhotoUrls: string[] = [];
+    if (values.evidence.length > 0) {
+      try {
+        evidencePhotoUrls = await upload.mutateAsync(values.evidence);
+      } catch {
+        form.setError('evidence', { type: 'upload', message: t('order.evidenceUploadFailed') });
+        return;
+      }
+    }
     // Modalı ÖNCE kapat: mutasyonun geri bildirimi (snackbar/uyarı) bir ui-native
     // Modal açıkken çıkarsa iOS donar. Değerler `values`'ta, sıfırlama güvenli.
-    close();
-    create.mutate({ values, orderQuantity });
+    resetAndClose();
+    create.mutate({ values, orderQuantity, evidencePhotoUrls });
   });
 
   return (
@@ -145,7 +164,9 @@ export function RefundRequestModal({
             name="description"
             testID="refund-description-input"
             label={
-              requirements.descriptionRequired ? `${t('common.description')} *` : t('order.descriptionOptionalLabel')
+              requirements.descriptionRequired
+                ? t('order.descriptionRequiredLabel')
+                : t('order.descriptionOptionalLabel')
             }
             placeholder={
               requirements.descriptionRequired
@@ -160,7 +181,9 @@ export function RefundRequestModal({
 
           <View style={styles.evidenceSection}>
             <Text variant="caption" style={styles.refundModalLabel}>
-              {requirements.evidenceRequired ? `${t('order.evidencePhotosMax5')} *` : t('order.evidencePhotoOptional')}
+              {requirements.evidenceRequired
+                ? t('order.evidencePhotosRequiredLabel', { max: MAX_EVIDENCE_PHOTOS })
+                : t('order.evidencePhotoOptional')}
             </Text>
             <Text
               testID="refund-evidence-hint"
@@ -204,13 +227,13 @@ export function RefundRequestModal({
           </View>
 
           <View style={styles.refundModalActions}>
-            <Button variant="ghost" title={t('trade.dispute.cancelCta')} onPress={close} />
+            <Button variant="ghost" title={t('trade.dispute.cancelCta')} onPress={close} disabled={upload.isPending} />
             <Button
               variant="primary"
               title={t('order.submitRefund')}
               onPress={onSubmit}
-              isLoading={create.isPending}
-              disabled={create.isPending}
+              isLoading={busy}
+              disabled={busy}
             />
           </View>
         </Form>
