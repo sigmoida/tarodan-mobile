@@ -171,6 +171,35 @@ describe('edit-profile · telefon değişimi sonrası', () => {
     expect(screen.queryByText('profile.profileUpdated')).toBeNull();
   });
 
+  it('notSaved sonrası form kayıtlı numaraya döner; sonraki ilgisiz kayıt uyarıyı tekrar tetiklemez', async () => {
+    updateProfile.mockResolvedValue({ data: { phone: OLD_PHONE } });
+    mockRefreshUserData.mockResolvedValue({ phone: OLD_PHONE, isPhoneVerified: true });
+    saveWithPhone('0532 123 45 67');
+
+    await waitFor(() => expect(appAlert).toHaveBeenCalledTimes(1));
+    expect((appAlert as jest.Mock).mock.calls[0]![0]).toBe('security.phoneNotSavedTitle');
+    await waitFor(() =>
+      expect(screen.getByTestId('profile-phone-input').props.value).toBe('555 111 22 33'),
+    );
+
+    // İlgisiz ikinci kayıt (bio): numara gönderilmez, yeni uyarı yok.
+    fireEvent.changeText(screen.getByPlaceholderText('mobile.bioPlaceholder'), 'merhaba');
+    fireEvent.press(screen.getByText('product.saveChanges'));
+    expect(await screen.findByText('profile.profileUpdated')).toBeTruthy();
+    expect(updateProfile).toHaveBeenCalledTimes(2);
+    expect(updateProfile.mock.calls[1]![0]).not.toHaveProperty('phone');
+    expect(appAlert).toHaveBeenCalledTimes(1);
+  });
+
+  it('notRemoved sonrası boşaltılan alan kayıtlı numaraya döner', async () => {
+    updateProfile.mockResolvedValue({ data: { phone: OLD_PHONE } });
+    mockRefreshUserData.mockResolvedValue({ phone: OLD_PHONE });
+    saveWithPhone('');
+
+    expect(await screen.findByText('security.phoneNotRemoved')).toBeTruthy();
+    expect(screen.getByTestId('profile-phone-input').props.value).toBe('555 111 22 33');
+  });
+
   it('sonuç TAZELENEN kullanıcıyla belirlenir — yanıt şekli/biçimi yanıltmaz', async () => {
     // Yanıtta telefon yok (ör. farklı bir zarf) ama /users/me yeni numarayı
     // boşluklu biçimde döndürüyor: kaydedildi sayılmalı, "notSaved" DEĞİL.

@@ -7288,11 +7288,11 @@
     "phoneSavedVerifyTitle": "Numaranızı doğrulayın",
     "phoneSavedVerifyBody": "Profiliniz güncellendi. Yeni numaranız SMS ile doğrulanana kadar \"Doğrulanmadı\" olarak görünür.",
     "phoneNotSavedTitle": "Numara henüz kaydedilmedi",
-    "phoneNotSavedBody": "Diğer profil bilgileriniz kaydedildi, ancak bu numara başka bir hesapta doğrulanmamış olarak duruyor. Numarayı hesabınıza almak için SMS doğrulamasını tamamlayın; doğrulama başarılı olunca numara hesabınıza geçer.",
+    "phoneNotSavedBody": "Diğer profil bilgileriniz kaydedildi, ancak bu numara başka bir hesapta doğrulanmamış olarak duruyor; formdaki telefon alanı hesabınızda kayıtlı değere geri alındı. Numarayı hesabınıza almak için SMS doğrulamasını tamamlayın; doğrulama başarılı olunca numara hesabınıza geçer.",
     "verifyNow": "Şimdi doğrula",
     "verifyLater": "Daha sonra",
     "phoneRemoved": "Profiliniz güncellendi, telefon numaranız kaldırıldı.",
-    "phoneNotRemoved": "Telefon numaranız kaldırılamadı. Lütfen tekrar deneyin."
+    "phoneNotRemoved": "Telefon numaranız kaldırılamadı; alan kayıtlı numaranıza geri alındı. Lütfen tekrar deneyin."
   },
   "discount": {
     "editTitle": "İndirimi Düzenle",

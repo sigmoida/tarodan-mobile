@@ -53,6 +53,7 @@ export function useEditProfile() {
     formState: { errors },
     setError,
     clearErrors,
+    setValue,
     watch,
   } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -128,7 +129,17 @@ export function useEditProfile() {
       queryClient.invalidateQueries({ queryKey: ['user'] });
       // Kayıt sonucu TAZE kullanıcıyla doğrulanır; tazeleme düştüyse PATCH
       // yanıtındaki (zarfsız kullanıcı nesnesi) telefona geri çekilinir.
-      const result = resolvePhoneOutcome(sentPhone, fresh ? fresh.phone : responsePhone);
+      const savedPhone = fresh ? fresh.phone : responsePhone;
+      const result = resolvePhoneOutcome(sentPhone, savedPhone);
+      // Numara yazılmadı/silinmedi → formu hesaptaki GERÇEK değere geri al;
+      // yoksa sonraki ilgisiz bir kayıt aynı numarayı yeniden gönderip uyarıyı
+      // tekrar tetiklerdi. Mesaj bunu kullanıcıya söylüyor.
+      if (result.outcome === 'notSaved' || result.outcome === 'notRemoved') {
+        const restored = splitPhone(savedPhone ?? '');
+        setPhoneCountryCode(restored.countryCode);
+        setValue('phone', restored.phone);
+        clearErrors('phone');
+      }
       if (result.outcome === 'unchanged') {
         setSnackbar({ visible: true, message: t('profile.profileUpdated'), variant: 'success' });
         return;
