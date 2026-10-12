@@ -197,6 +197,8 @@ describe('Misafir checkout OTP akışı', () => {
   });
 
   it('geçerli misafir formu + ödeme → OTP gönderir, kod ile checkoutGuest çağrılır', async () => {
+    // Adet > 1: misafir gövdesi de quote ile AYNI adedi taşımalı (A-1.1).
+    seedCart([{ ...SAMPLE_ITEM, quantity: 2, stock: 5 }]);
     renderWithProviders(<CheckoutScreen />);
 
     // --- Adım 1: Misafir bilgileri + Teslimat adresi ---
@@ -261,6 +263,13 @@ describe('Misafir checkout OTP akışı', () => {
         }),
       );
     });
+
+    // Satırlar quote isteğiyle BİREBİR aynı, adet dahil — ayrışırsa imza tutmaz
+    // ve sunucu 409 `pricingChanged` döner (Parite A-1.1).
+    const guestPayload = jest.mocked(ordersApi.checkoutGuest).mock.calls[0]![0];
+    expect(guestPayload.items).toEqual([{ productId: 'prod-1234567890', quantity: 2 }]);
+    const quoteBody = jest.mocked(ordersApi.getQuote).mock.calls.at(-1)![0];
+    expect(guestPayload.items).toEqual(quoteBody.items);
   });
 
   it('stok bitti (400, stok keyword) → OTP modal KAPANIR, unavailable sayfasına redirect edilir', async () => {

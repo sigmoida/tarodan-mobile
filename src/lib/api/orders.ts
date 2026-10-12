@@ -114,6 +114,17 @@ export type OrderQuoteShippingBySeller = {
   packageTier?: string;
 };
 
+/**
+ * Quote ve sipariş (`checkout` / `checkoutGuest`) gövdelerindeki satır.
+ *
+ * `quantity` sipariş uçlarında ZORUNLU tutulur: sunucu (`CheckoutItemDto`)
+ * alanı opsiyonel kabul edip `quantity ?? 1` varsayıyor, ama fiyat imzası
+ * (`pricingHash`) adede bağlı — quote'a giden adet buraya gitmezse 409
+ * `pricingChanged` döner. İki gövde aynı üreticiden çıkar
+ * (`app/checkout/_lib/lineItems.ts`).
+ */
+export type OrderLineItemInput = { productId: string; quantity: number };
+
 export type OrderQuoteResponse = {
   itemsSubtotal?: number;
   shippingAmount?: number;
@@ -214,7 +225,7 @@ export const ordersApi = {
     ),
   /** Toplu checkout (üye): sepetteki tüm ürünler tek CheckoutGroup altında, tek ödeme */
   checkout: ({ expectedPricing, ...rest }: {
-    items: Array<{ productId: string }>;
+    items: OrderLineItemInput[];
     idempotencyKey: string;
     /**
      * Mesafeli satış sözleşmesi onayı. Sunucu sözleşmesinde OPSİYONEL ama
@@ -238,7 +249,7 @@ export const ordersApi = {
   }) => api.post('/orders/checkout', { ...rest, ...expectedPricing }),
   /** Toplu checkout (misafir) */
   checkoutGuest: ({ expectedPricing, ...rest }: {
-    items: Array<{ productId: string }>;
+    items: OrderLineItemInput[];
     idempotencyKey: string;
     /**
      * Mesafeli satış sözleşmesi onayı. Sunucu sözleşmesinde OPSİYONEL ama

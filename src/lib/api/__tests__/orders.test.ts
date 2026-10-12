@@ -46,7 +46,7 @@ const EXPECTED_PRICING = {
 describe('ordersApi — expectedPricingHash / expectedShippingTariffVersion', () => {
   it('checkout (üye): dört alanı da koşulsuz gönderir', async () => {
     await ordersApi.checkout({
-      items: [{ productId: 'p1' }],
+      items: [{ productId: 'p1', quantity: 1 }],
       idempotencyKey: 'idem-1',
       distanceSalesAccepted: true,
       expectedPricing: EXPECTED_PRICING,
@@ -59,7 +59,7 @@ describe('ordersApi — expectedPricingHash / expectedShippingTariffVersion', ()
 
   it('checkoutGuest (misafir): dört alanı da koşulsuz gönderir', async () => {
     await ordersApi.checkoutGuest({
-      items: [{ productId: 'p1' }],
+      items: [{ productId: 'p1', quantity: 1 }],
       idempotencyKey: 'idem-2',
       distanceSalesAccepted: true,
       email: 'a@b.com',
@@ -119,6 +119,55 @@ describe('ordersApi — expectedPricingHash / expectedShippingTariffVersion', ()
     expect(mockApiPost).toHaveBeenCalledWith('/orders/quote', {
       items: [{ productId: 'p1', quantity: 1 }],
     });
+  });
+});
+
+/**
+ * Parite A-1.1: sunucu fiyat imzasına adedi katıyor; quote'a giden adet sipariş
+ * gövdesinde düşerse (`quantity ?? 1`) imza tutmaz → 409 `pricingChanged`.
+ * Payload üreticisi satırları adet dahil AYNEN geçirmeli.
+ */
+describe('ordersApi — sipariş gövdesi satır adedini taşır', () => {
+  const ITEMS = [
+    { productId: 'p1', quantity: 3 },
+    { productId: 'p2', quantity: 1 },
+  ];
+
+  it('checkout (üye): items adetleriyle gövdeye gider', async () => {
+    await ordersApi.checkout({
+      items: ITEMS,
+      idempotencyKey: 'idem-q1',
+      distanceSalesAccepted: true,
+      expectedPricing: EXPECTED_PRICING,
+    });
+    expect(mockApiPost).toHaveBeenCalledWith(
+      '/orders/checkout',
+      expect.objectContaining({ items: ITEMS }),
+    );
+  });
+
+  it('checkoutGuest (misafir): items adetleriyle gövdeye gider', async () => {
+    await ordersApi.checkoutGuest({
+      items: ITEMS,
+      idempotencyKey: 'idem-q2',
+      distanceSalesAccepted: true,
+      email: 'a@b.com',
+      emailVerificationCode: '123456',
+      phone: '+905321234567',
+      guestName: 'Ali Veli',
+      shippingAddress: {
+        fullName: 'Ali Veli',
+        phone: '+905321234567',
+        city: 'İstanbul',
+        district: 'Kadıköy',
+        address: 'Test Sokak No:1',
+      },
+      expectedPricing: EXPECTED_PRICING,
+    });
+    expect(mockGuestPost).toHaveBeenCalledWith(
+      '/orders/checkout/guest',
+      expect.objectContaining({ items: ITEMS }),
+    );
   });
 });
 
