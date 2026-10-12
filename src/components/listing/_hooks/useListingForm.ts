@@ -4,7 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { appAlert } from '@/ui';
+import { appAlert, alertAfterClose } from '@/ui';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { useZodForm } from '@/ui/form';
 import { buildListingFormSchema, emptyListingFormValues } from '../_lib/schema';
@@ -884,19 +884,23 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   // Silme önce NEDEN sorar (web ile aynı; `ListingRemovalModal`). Onay metni pencerenin kendisidir.
   const handleDelete = () => setRemovalOpen(true);
 
-  /** Pencere kapandıktan SONRA çağrılır (iOS ModalFreeze): neden DELETE gövdesinde gider. */
+  /**
+   * Pencere kapandıktan SONRA çağrılır: neden DELETE gövdesinde gider. Pencere
+   * kapanış animasyonu sürerken (hızlı yanıt) `appAlert` açmak iOS'ta donmaya yol
+   * açar → uyarı `alertAfterClose` ile kapanma süresi geçince çıkar.
+   */
   const deleteWithReason = async (removal: ListingRemovalPayload) => {
     setIsSubmitting(true);
     try {
       await productsApi.delete(productId!, removal);
       invalidateListingCaches();
       await refreshUserData();
-      appAlert(t('listing.deletedTitle'), t('listing.deleted'), [
+      alertAfterClose(() => {}, t('listing.deletedTitle'), t('listing.deleted'), [
         { text: t('common.ok'), onPress: () => router.back() },
       ]);
     } catch (err: any) {
       const msg = err.response?.data?.message || t('listing.deleteFailed');
-      appAlert(t('common.error'), msg);
+      alertAfterClose(() => {}, t('common.error'), msg);
     } finally {
       setIsSubmitting(false);
     }

@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { appAlert } from '@/ui';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../test-utils';
 
 jest.mock('expo-router', () => ({
@@ -20,6 +20,13 @@ jest.mock('expo-image-picker', () => ({
   })),
   MediaTypeOptions: { Images: 'Images' },
 }));
+
+/** `alertAfterClose` aynı modülden `appAlert` import eder: kaynakta da casusla. */
+jest.mock('@/ui/components/AlertDialog', () => ({
+  ...jest.requireActual('@/ui/components/AlertDialog'),
+  appAlert: jest.fn(),
+}));
+const sourceAlert = () => (jest.requireMock('@/ui/components/AlertDialog') as { appAlert: jest.Mock }).appAlert;
 
 const mockGet = jest.fn();
 const mockPost = jest.fn();
@@ -176,5 +183,35 @@ describe('düzenleme ekranı — silme nedeni', () => {
     await waitFor(() =>
       expect(productsApi.delete).toHaveBeenCalledWith('p1', { removalReason: 'changed_mind' }),
     );
+    // Başarı uyarısı pencere kapandıktan sonra gelir; bekle ki zamanlayıcı testten taşmasın.
+    await waitFor(() => expect(sourceAlert()).toHaveBeenCalledWith('Silindi', 'İlan silindi', expect.any(Array)));
+  });
+
+  describe('iOS ModalFreeze: uyarı pencere kapandıktan sonra', () => {
+    afterEach(() => jest.useRealTimers());
+
+    async function submitDelete() {
+      renderWithProviders(<ListingForm mode="edit" productId="p1" />);
+      await screen.findByText('Değişiklikleri Kaydet');
+      fireEvent.press(screen.getAllByText('İlanı Sil')[0]);
+      await screen.findByText('Evet, Sil');
+      fireEvent.press(screen.getByText('Vazgeçtim'));
+      sourceAlert().mockReset();
+      jest.useFakeTimers();
+      fireEvent.press(screen.getByText('Evet, Sil'));
+    }
+
+    it('hızlı hata yanıtı: kapanış süresi dolmadan appAlert çıkmaz', async () => {
+      (productsApi.delete as jest.Mock).mockRejectedValue({ response: { data: { message: 'Silinemedi' } } });
+      await submitDelete();
+      await act(async () => {
+        jest.advanceTimersByTime(50);
+      });
+      expect(sourceAlert()).not.toHaveBeenCalled();
+      act(() => {
+        jest.advanceTimersByTime(450);
+      });
+      expect(sourceAlert()).toHaveBeenCalledWith('Hata', 'Silinemedi', undefined);
+    });
   });
 });

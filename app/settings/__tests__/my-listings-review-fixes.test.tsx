@@ -35,6 +35,15 @@ jest.mock("@/stores/authStore", () => {
   };
 });
 
+/**
+ * `appAlert` KAYNAĞINDA da mock'lanır: `alertAfterClose` aynı modülden import eder;
+ * yalnız `@/ui` barrel'ı mock'lansaydı ertelenmiş uyarı gerçek diyaloğa giderdi.
+ */
+jest.mock("@/ui/components/AlertDialog", () => ({
+  ...jest.requireActual("@/ui/components/AlertDialog"),
+  appAlert: jest.fn(),
+}));
+
 jest.mock("@/components/product/BoostModal", () => ({ BoostModal: () => null }));
 
 const mockGetMyListings = jest.fn();
@@ -78,6 +87,19 @@ const api = () =>
     productsApi: Record<"update" | "delete" | "deactivate" | "renew" | "renewMany", jest.Mock>;
   }).productsApi;
 const alertMock = () => (jest.requireMock("@/ui") as { appAlert: jest.Mock }).appAlert;
+const sourceAlert = () =>
+  (jest.requireMock("@/ui/components/AlertDialog") as { appAlert: jest.Mock }).appAlert;
+
+async function openMenu(title: string) {
+  await screen.findByText(title);
+  fireEvent.press(screen.getByLabelText("listing.menuAccessibility"));
+}
+
+/** Menüden pasife al / sil penceresini açar (menü kapanış gecikmesi gerçek zamanda geçer). */
+async function openRemoval(menuLabel: string) {
+  await openMenu("Hot Wheels Camaro");
+  fireEvent.press(await screen.findByText(menuLabel));
+}
 
 /** Sunucu gibi: `status` / `inactiveReason` süzer, `meta.total` süzülmüş TOPLAMI verir. */
 function serve(all: Array<Record<string, unknown>>) {
@@ -95,6 +117,7 @@ function serve(all: Array<Record<string, unknown>>) {
 beforeEach(() => {
   mockGetMyListings.mockReset();
   mockGetMyStats.mockReset();
+  sourceAlert().mockReset();
   (["update", "delete", "deactivate", "renew", "renewMany"] as const).forEach((k) => api()[k].mockReset());
   mockGetMyStats.mockResolvedValue({
     data: { counts: { all: 3, active: 1, inactive: 2 }, summary: { used: 1, max: 10, canCreate: true } },
@@ -122,5 +145,44 @@ describe("C2 inceleme · 1 seçim kutusu ⋮ menüsünü örtmez", () => {
     fireEvent.press(screen.getByTestId("select-E1"));
     fireEvent.press(screen.getByText("profile.expiredListings.renewSelected"));
     await waitFor(() => expect(api().renewMany).toHaveBeenCalledWith(["E1"]));
+  });
+});
+
+describe("C2 inceleme · 2 iOS ModalFreeze: uyarı pencere kapandıktan sonra", () => {
+  afterEach(() => jest.useRealTimers());
+
+  async function submitDeactivate(outcome: "ok" | "fail") {
+    serve([listing({ id: "A1", status: "active" })]);
+    if (outcome === "ok") api().deactivate.mockResolvedValue({ data: {} });
+    else api().deactivate.mockRejectedValue({ response: { data: { message: "Sunucu reddetti" } } });
+    renderWithProviders(<MyListingsScreen />);
+    await openRemoval("listing.deactivateAction");
+    await screen.findByText("product.deactivateListingFull");
+    fireEvent.press(screen.getByText("status.listingRemoval.reason.paused_temporarily"));
+    jest.useFakeTimers();
+    fireEvent.press(screen.getByText("product.deactivate"));
+    // Yanıt (hata/başarı) anında geldi; pencere kapanışı henüz bitmedi.
+    await act(async () => {
+      jest.advanceTimersByTime(50);
+    });
+    expect(api().deactivate).toHaveBeenCalled();
+  }
+
+  it("hızlı HATA yanıtı: kapanış süresi dolmadan appAlert çıkmaz, sonra çıkar", async () => {
+    await submitDeactivate("fail");
+    expect(sourceAlert()).not.toHaveBeenCalled();
+    act(() => {
+      jest.advanceTimersByTime(450);
+    });
+    expect(sourceAlert()).toHaveBeenCalledWith("common.error", "Sunucu reddetti", undefined);
+  });
+
+  it("hızlı BAŞARI yanıtı: kapanış süresi dolmadan appAlert çıkmaz, sonra çıkar", async () => {
+    await submitDeactivate("ok");
+    expect(sourceAlert()).not.toHaveBeenCalled();
+    act(() => {
+      jest.advanceTimersByTime(450);
+    });
+    expect(sourceAlert()).toHaveBeenCalledWith("common.success", "listing.deactivated", undefined);
   });
 });
