@@ -109,6 +109,8 @@ export function resolveAdLink(linkUrl: string | null | undefined): AdLinkTarget 
 
   const path = pathFromUrl(safe) ?? '/';
   const [rawPath] = path.split('?');
+  // Sorgu (filtre) korunur; locale öneki rotadan SOYULUR (`/en/listings` diye rota yok).
+  const query = path.includes('?') ? path.slice(path.indexOf('?')) : '';
   const barePath = stripLocalePrefix(rawPath!.replace(/\/+$/, '') || '/');
 
   if (isPurchasePath(barePath)) return { kind: 'blocked' };
@@ -116,7 +118,7 @@ export function resolveAdLink(linkUrl: string | null | undefined): AdLinkTarget 
   // İlan listesi eşleyiciye VERİLMEZ: `toMobileRoute` `/listings`'i sorgusuz
   // arama sekmesine çeviriyor, reklamın filtresi (`?manufacturer=…`) düşerdi.
   // Mobil `app/listings` web ile aynı sorgu parametrelerini okuyor.
-  if (barePath === '/listings') return { kind: 'route', route: path };
+  if (barePath === '/listings') return { kind: 'route', route: `${barePath}${query}` };
 
   const seg = barePath.split('/').filter(Boolean);
   const renamed = renamedRoute(seg);
