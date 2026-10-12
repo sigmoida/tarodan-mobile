@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { theme, Text } from '@/ui';
 import { adsApi, type ActiveAd } from '@/lib/api';
 import { hasAdImage } from '@/lib/ads/creative';
-import { adAspectRatio, naturalRatioOf } from '@/lib/ads/adAspect';
+import { adAspectRatio, fitBox, naturalRatioOf } from '@/lib/ads/adAspect';
 import { hotspotStyle, renderableHotspots } from '@/lib/ads/hotspots';
 import { openAdLink, resolveAdLink } from '@/lib/ads/openAdLink';
 import { useAdImpression } from '@/lib/ads/useAdImpression';
@@ -76,7 +76,10 @@ export function AdCreative({ ad, position, variant = 'block', onNavigate, sentIm
   const ratio = adAspectRatio(ad, position, naturalRatio);
   const isTopbar = variant === 'topbar';
   const boxStyle = isTopbar
-    ? { height: TOPBAR_IMAGE_HEIGHT, width: Math.min(TOPBAR_IMAGE_MAX_WIDTH, TOPBAR_IMAGE_HEIGHT * ratio) }
+    ? // Kutu daima görselin oranında: 24pt yüksekliğe ve 200pt genişliğe sığacak
+      // en büyük kutu (geniş afişte yükseklik 24'ün altına iner). Yüksekliği
+      // sabit bırakıp yalnız genişliği kırpmak letterbox yapıp bölgeleri kaydırırdı.
+      fitBox(ratio, TOPBAR_IMAGE_MAX_WIDTH, TOPBAR_IMAGE_HEIGHT)
     : { aspectRatio: ratio };
 
   return (

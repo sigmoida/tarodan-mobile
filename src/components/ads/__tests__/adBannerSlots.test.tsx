@@ -3,6 +3,7 @@
  * yalnız header'ın yer ayırması, ortak oturumda gösterim tekrarı.
  */
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
 const mockUseAds = jest.fn();
@@ -57,6 +58,17 @@ beforeEach(() => {
   mockRecordImpression.mockClear();
 });
 
+/** Hotspot'tan yukarı çıkıp sayısal genişlikli ilk atanın (görsel kutusu) stili. */
+function imageBoxStyle(hotspot: { parent: any }) {
+  let node = hotspot.parent;
+  while (node) {
+    const st = StyleSheet.flatten(node.props.style);
+    if (st && typeof st.width === 'number') return st;
+    node = node.parent;
+  }
+  throw new Error('görsel kutusu bulunamadı');
+}
+
 describe('AdBanner — konum yuvaları', () => {
   it.each(['footer', 'inline', 'topbar'])('%s: konumu useAds\'e iletir, tek reklam çizer', (position) => {
     setAds([{ id: 'a' }, { id: 'b' }, { id: 'c' }]);
@@ -97,6 +109,50 @@ describe('AdBanner — konum yuvaları', () => {
     const { queryByTestId } = render(<AdBanner position="topbar" />);
     expect(queryByTestId('ad-hotspot-h-ok')).toBeTruthy();
     expect(queryByTestId('ad-hotspot-h-buy')).toBeNull();
+  });
+
+  it('topbar 970x90: kutu görselin oranında (200 x ~18.56), hotspot aynı kutunun yüzdesi', () => {
+    setAds([
+      {
+        position: 'topbar',
+        imageUrl: 'https://example.com/t.png',
+        width: 970,
+        height: 90,
+        linkUrl: null,
+        hotspots: [{ id: 'h1', x: 0.25, y: 0, width: 0.5, height: 1, label: 'x', linkUrl: '/listings', sortOrder: 0 }],
+      },
+    ]);
+    const { getByTestId } = render(<AdBanner position="topbar" />);
+    // Hotspot'un ebeveyni = görsel kutusu.
+    const s = imageBoxStyle(getByTestId('ad-hotspot-h1'));
+    expect(s.width).toBe(200);
+    expect(s.height).toBeCloseTo(18.557, 2);
+    expect(s.width / s.height).toBeCloseTo(970 / 90, 6);
+    // Kutu ≤ 24pt yüksekliğe ve ≤ 200pt genişliğe sığar.
+    expect(s.height).toBeLessThanOrEqual(24);
+    // Bölge kutunun yüzdesiyle konumlanır → görselin kapladığı dikdörtgenle aynı.
+    expect(StyleSheet.flatten(getByTestId('ad-hotspot-h1').props.style)).toMatchObject({
+      left: '25%',
+      width: '50%',
+      height: '100%',
+    });
+  });
+
+  it('topbar dar afiş (2:1): yükseklik 24 kalır, genişlik oranla 48', () => {
+    setAds([
+      {
+        position: 'topbar',
+        imageUrl: 'https://example.com/t.png',
+        width: 200,
+        height: 100,
+        linkUrl: null,
+        hotspots: [{ id: 'h2', x: 0, y: 0, width: 1, height: 1, label: 'x', linkUrl: '/listings', sortOrder: 0 }],
+      },
+    ]);
+    const { getByTestId } = render(<AdBanner position="topbar" />);
+    const s = imageBoxStyle(getByTestId('ad-hotspot-h2'));
+    expect(s.height).toBe(24);
+    expect(s.width).toBe(48);
   });
 
   it('yüklenirken yalnız header yer ayırır; footer/inline/topbar hiçbir şey çizmez', () => {

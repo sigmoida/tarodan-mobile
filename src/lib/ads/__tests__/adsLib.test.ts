@@ -1,7 +1,7 @@
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 
 import { pickAd } from '../pickAd';
-import { adAspectRatio, naturalRatioOf, FALLBACK_AD_RATIO } from '../adAspect';
+import { adAspectRatio, fitBox, naturalRatioOf, FALLBACK_AD_RATIO } from '../adAspect';
 import { renderableHotspots, hotspotStyle } from '../hotspots';
 import { remaining } from '../countdown';
 import { safeAdHref } from '../safeAdHref';
@@ -99,5 +99,28 @@ describe('safeAdHref', () => {
     expect(safeAdHref('//evil.com')).toBeNull();
     expect(safeAdHref('javascript:alert(1)')).toBeNull();
     expect(safeAdHref(null)).toBeNull();
+  });
+});
+
+describe('fitBox', () => {
+  it('genişlik sınırı baskınsa yükseklik oranla küçülür (970x90 → 200 x ~18.56)', () => {
+    const { width, height } = fitBox(970 / 90, 200, 24);
+    expect(width).toBe(200);
+    expect(height).toBeCloseTo(18.557, 2);
+    expect(width / height).toBeCloseTo(970 / 90, 6);
+  });
+
+  it('yükseklik sınırı baskınsa genişlik oranla daralır', () => {
+    expect(fitBox(2, 200, 24)).toEqual({ width: 48, height: 24 });
+    expect(fitBox(0.5, 480, 100)).toEqual({ width: 50, height: 100 });
+  });
+
+  it('iki sınırı da aşmaz ve oranı korur', () => {
+    for (const r of [0.3, 1, 3, 8.3, 10.78, 40]) {
+      const b = fitBox(r, 200, 24);
+      expect(b.width).toBeLessThanOrEqual(200 + 1e-9);
+      expect(b.height).toBeLessThanOrEqual(24 + 1e-9);
+      expect(b.width / b.height).toBeCloseTo(r, 6);
+    }
   });
 });
