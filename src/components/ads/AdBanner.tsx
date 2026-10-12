@@ -139,8 +139,20 @@ function FlashCountdown({ endsAt }: { endsAt: string }) {
  */
 export function AdBanner({ position = 'header' }: { position?: string }) {
   const { ads, isAdFree, isLoading } = useAds(position);
-  // Ekran açılışı başına bir tohum: aynı görünüm boyunca seçim sabit kalır.
+  // Ekran açılışı başına bir tohum + seçilen reklamın kimliği. Paylaşılan reklam
+  // sorgusu yenilenip liste uzunluğu değişse de ekrandaki reklam, listede
+  // kaldığı sürece SABİT kalır (aksi halde reklam değişir ve yeni gösterim
+  // sayılırdı); yalnız listeden düşerse yeniden seçilir. Rotasyon web'deki
+  // "sayfa yüklemesi başına" mantığına denk olarak yuva yeniden bağlanınca
+  // (ekran açılışı) olur — sekme odağı değişince DEĞİL: odak başına döndürmek
+  // her sekme geçişinde reklamı değiştirir ve yeni gösterim sayardı.
   const [seed] = useState(newRotationSeed);
+  const [pickedId, setPickedId] = useState<string | null>(null);
+  const ad = ads.find((a) => a.id === pickedId) ?? pickAd(ads, position, seed);
+  const adId = ad?.id ?? null;
+  useEffect(() => {
+    if (adId !== pickedId) setPickedId(adId);
+  }, [adId, pickedId]);
 
   // Reklamsız üyede yer ayırma — kalıcı boş kutu göstermiş oluruz.
   if (isAdFree) return null;
@@ -158,7 +170,6 @@ export function AdBanner({ position = 'header' }: { position?: string }) {
     );
   }
 
-  const ad = pickAd(ads, position, seed);
   if (!ad) return null;
 
   return (
