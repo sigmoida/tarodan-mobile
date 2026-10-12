@@ -185,6 +185,8 @@ export const qk = {
     messages: (threadId: string) =>
       ["messaging", "messages", threadId] as const,
     unreadCount: ["messaging", "unread-count"] as const,
+    /** GET /messages/daily-limit — `{ remaining, limit }` (tek platform ayarı). */
+    dailyLimit: ["messaging", "daily-limit"] as const,
   },
 
   notifications: {

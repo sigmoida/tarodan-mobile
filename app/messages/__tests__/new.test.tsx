@@ -39,16 +39,12 @@ jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (k: string) => k }),
 }));
 
-// messagesStore — client-only (canSendMessage); selector-aware mock (#77).
-const mockStore = { canSendMessage: () => true };
-jest.mock("@/stores/messagesStore", () => ({
-  useMessagesStore: (sel?: any) => (sel ? sel(mockStore) : mockStore),
-}));
-
 // createThread artık React Query mutation hook'u (#77) — mutateAsync izlenir.
 const mockCreateThread = jest.fn();
 jest.mock("@/hooks/messaging", () => ({
   useCreateThread: () => ({ mutateAsync: mockCreateThread }),
+  // Günlük hak sunucudan (GET /messages/daily-limit).
+  useDailyMessageLimit: () => ({ canSend: true, limit: 50, remaining: 50 }),
 }));
 
 // authStore — limits

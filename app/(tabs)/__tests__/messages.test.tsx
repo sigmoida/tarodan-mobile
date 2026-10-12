@@ -36,7 +36,7 @@ jest.mock("@/stores/authStore", () => ({
   },
 }));
 
-// Store artık client-only (getOtherParticipant + dailyMessageCount); selector-aware (#77).
+// Store artık client-only (getOtherParticipant); selector-aware (#77).
 let mockMessages: any;
 jest.mock("@/stores/messagesStore", () => ({
   useMessagesStore: (sel?: any) => (sel ? sel(mockMessages) : mockMessages),
@@ -45,9 +45,16 @@ jest.mock("@/stores/messagesStore", () => ({
 // threads/unread artık React Query (#77) — hook'lar mock'lanır.
 let mockThreadsQuery: any;
 let mockUnread: any;
+// GET /messages/daily-limit yanıtı (sunucu sayımı).
+let mockDaily: any = { remaining: 50, limit: 50 };
 jest.mock("@/hooks/messaging", () => ({
   useThreadsQuery: () => mockThreadsQuery,
   useUnreadCountQuery: () => mockUnread,
+  useDailyMessageLimit: () => ({
+    ...jest.requireActual("@/lib/messaging/dailyLimit").viewDailyLimit(mockDaily),
+    isLoading: false,
+    refetch: jest.fn(),
+  }),
 }));
 
 // Bu süit Android/web davranışını doğruluyor: yükseltme çağrıları orada duruyor.
@@ -91,7 +98,6 @@ function makeStore(overrides: Record<string, unknown> = {}) {
   return {
     getOtherParticipant: (t: any) =>
       t.participant1Id === "me" ? t.participant2 : t.participant1,
-    dailyMessageCount: 0,
     ...overrides,
   };
 }
@@ -115,6 +121,7 @@ describe("J16 · mesaj konuşma listesi", () => {
       limits: { maxMessagesPerDay: 50 },
     };
     mockMessages = makeStore();
+    mockDaily = { remaining: 50, limit: 50 };
     mockThreadsQuery = makeThreadsQuery([]);
     mockUnread = { data: 0 };
   });
@@ -148,14 +155,14 @@ describe("J16 · mesaj konuşma listesi", () => {
   });
 
   it("J16.4 limite yaklaşınca günlük mesaj banner gösterir", () => {
-    mockMessages = makeStore({ dailyMessageCount: 45 });
+    mockDaily = { remaining: 5, limit: 50 };
     mockThreadsQuery = makeThreadsQuery([thread()]);
     renderWithProviders(<MessagesTabScreen />);
     expect(screen.getByText("message.dailyMessageCount")).toBeOnTheScreen();
   });
 
   it("J16.5 limit dolunca Premium yükseltme bağlantısı gösterir", () => {
-    mockMessages = makeStore({ dailyMessageCount: 50 });
+    mockDaily = { remaining: 0, limit: 50 };
     mockThreadsQuery = makeThreadsQuery([thread()]);
     renderWithProviders(<MessagesTabScreen />);
     fireEvent.press(screen.getByText("address.goPremium"));
@@ -163,7 +170,7 @@ describe("J16 · mesaj konuşma listesi", () => {
   });
 
   it("J16.6 limit uzaktayken banner gizli", () => {
-    mockMessages = makeStore({ dailyMessageCount: 5 });
+    mockDaily = { remaining: 45, limit: 50 };
     mockThreadsQuery = makeThreadsQuery([thread()]);
     renderWithProviders(<MessagesTabScreen />);
     expect(screen.queryByText("message.dailyMessageCount")).toBeNull();

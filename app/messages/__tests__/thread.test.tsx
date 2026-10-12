@@ -35,7 +35,7 @@ jest.mock('@/stores/authStore', () => ({
   useAuthStore: (selector?: any) => (selector ? selector(mockAuth) : mockAuth),
 }));
 
-// Store client-only (getOtherParticipant/canSendMessage/setCurrentThreadId); selector-aware (#77).
+// Store client-only (getOtherParticipant/setCurrentThreadId); selector-aware (#77).
 let mockStore: any;
 const useMessagesStoreMock: any = (sel?: any) => (sel ? sel(mockStore) : mockStore);
 useMessagesStoreMock.getState = () => mockStore;
@@ -46,6 +46,8 @@ jest.mock('@/stores/messagesStore', () => ({
 // thread/messages artık React Query, send/markRead mutation (#77).
 let mockThreadQuery: any;
 let mockMessagesQuery: any;
+// GET /messages/daily-limit yanıtı (sunucu sayımı); null = henüz bilinmiyor.
+let mockDaily: any = { remaining: 50, limit: 50 };
 const mockSendMessage = jest.fn();
 const mockMarkAsRead = jest.fn();
 jest.mock('@/hooks/messaging', () => ({
@@ -53,6 +55,11 @@ jest.mock('@/hooks/messaging', () => ({
   useMessagesQuery: () => mockMessagesQuery,
   useSendMessage: () => ({ mutateAsync: mockSendMessage }),
   useMarkAsRead: () => mockMarkAsRead,
+  useDailyMessageLimit: () => ({
+    ...jest.requireActual('@/lib/messaging/dailyLimit').viewDailyLimit(mockDaily),
+    isLoading: false,
+    refetch: jest.fn(),
+  }),
 }));
 
 import { mediaApi } from '@/lib/api';
@@ -75,9 +82,7 @@ function message(overrides: Record<string, unknown> = {}) {
 function makeStore(overrides: Record<string, unknown> = {}) {
   return {
     getOtherParticipant: (t: any) => t.participant2,
-    canSendMessage: () => true,
     setCurrentThreadId: jest.fn(),
-    dailyMessageCount: 0,
     ...overrides,
   };
 }
@@ -101,6 +106,7 @@ describe('J103 · mesaj thread render & gönderim', () => {
     mockMarkAsRead.mockReset();
     mockAuth = { user: { id: 'me' }, limits: { maxMessagesPerDay: 50 }, token: 'test-token' };
     mockStore = makeStore();
+    mockDaily = { remaining: 50, limit: 50 };
     mockThreadQuery = makeThreadQuery();
     mockMessagesQuery = makeMessagesQuery([]);
   });
@@ -137,6 +143,7 @@ describe('J104 · içerik filtresi & mesaj limiti (UI göstergesi)', () => {
     mockMarkAsRead.mockReset();
     mockAuth = { user: { id: 'me' }, limits: { maxMessagesPerDay: 50 }, token: 'test-token' };
     mockStore = makeStore();
+    mockDaily = { remaining: 50, limit: 50 };
     mockThreadQuery = makeThreadQuery();
     mockMessagesQuery = makeMessagesQuery([]);
   });
@@ -165,22 +172,26 @@ describe('J104 · içerik filtresi & mesaj limiti (UI göstergesi)', () => {
   });
 
   it('J104.3 limit dolunca input devre dışı (placeholder değişir) ve gönderim engellenir', () => {
-    mockStore = makeStore({ canSendMessage: () => false });
+    mockDaily = { remaining: 0, limit: 30 };
     renderWithProviders(<MessageThreadScreen />);
     // canSend=false → input placeholder "Mesaj limiti doldu" + editable=false
     const input = screen.getByPlaceholderText('Mesaj limiti doldu');
     expect(input.props.editable).toBe(false);
     // "Mesajınızı yazın..." placeholder limit dolunca render edilmez
     expect(screen.queryByPlaceholderText('Mesajınızı yazın...')).toBeNull();
+    // Uyarıdaki sayı katman tablosundan DEĞİL sunucunun `limit` değerinden (30) gelir.
+    expect(screen.getByText(/\(30 mesaj\)/)).toBeOnTheScreen();
   });
 
-  it('J104.4 premium (limitsiz) kullanıcıda limit uyarısı gösterilmez', () => {
-    mockAuth = { user: { id: 'me' }, limits: { maxMessagesPerDay: -1 }, token: 'test-token' };
-    mockStore = makeStore({ canSendMessage: () => true });
-    renderWithProviders(<MessageThreadScreen />);
-    // limitsiz: aktif input placeholder'ı görünür, "limiti doldu" placeholder yok
-    expect(screen.getByPlaceholderText('Mesajınızı yazın...').props.editable).toBe(true);
-    expect(screen.queryByPlaceholderText('Mesaj limiti doldu')).toBeNull();
+  it('J104.4 hak kaldıysa (ya da limit henüz bilinmiyorsa) input aktif, uyarı yok', () => {
+    for (const daily of [{ remaining: 3, limit: 50 }, null]) {
+      mockDaily = daily;
+      const { unmount } = renderWithProviders(<MessageThreadScreen />);
+      expect(screen.getByPlaceholderText('Mesajınızı yazın...').props.editable).toBe(true);
+      expect(screen.queryByPlaceholderText('Mesaj limiti doldu')).toBeNull();
+      expect(screen.queryByText(/Günlük mesaj limitinize ulaştınız/)).toBeNull();
+      unmount();
+    }
   });
 });
 
@@ -198,6 +209,7 @@ describe('mesaj eki görselleri — bearer + şema beyaz listesi', () => {
     mockMarkAsRead.mockReset();
     mockAuth = { user: { id: 'me' }, limits: { maxMessagesPerDay: 50 }, token: 'test-token' };
     mockStore = makeStore();
+    mockDaily = { remaining: 50, limit: 50 };
     mockThreadQuery = makeThreadQuery();
     mockMessagesQuery = makeMessagesQuery([]);
   });

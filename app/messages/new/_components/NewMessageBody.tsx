@@ -104,7 +104,7 @@ export function NewMessageBody({ f }: { f: NewMessageController }) {
         <View style={styles.limitWarning}>
           <Ionicons name="warning" size={20} color={colors.warning[600]!} />
           <Text style={styles.limitWarningText}>
-            {t('message.dailyLimitReached', { count: f.limits?.maxMessagesPerDay || 50 })}
+            {t('message.dailyLimitReached', { count: f.messageLimit ?? 0 })}
           </Text>
           {/* iOS'ta satın alma yok (Guideline 3.1.1); düğme yalnız Android/web'de render edilir. */}
           <UpgradeCta>

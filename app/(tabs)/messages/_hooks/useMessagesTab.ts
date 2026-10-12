@@ -3,20 +3,20 @@ import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useMessagesStore, type MessageThread } from '@/stores/messagesStore';
 import { useAuthStore } from '@/stores/authStore';
-import { useThreadsQuery, useUnreadCountQuery } from '@/hooks/messaging';
+import { useThreadsQuery, useUnreadCountQuery, useDailyMessageLimit } from '@/hooks/messaging';
 
 /**
  * Messages-tab controller — threads/unread artık React Query (#77); focus'ta
  * refetch, search filter, güvenli participant resolver ve limit türevleri burada.
- * getOtherParticipant + dailyMessageCount hâlâ client store'dan (§8).
+ * getOtherParticipant client store'dan; günlük hak sunucudan (useDailyMessageLimit).
  */
 export function useMessagesTab() {
   const { t } = useTranslation();
-  const { isAuthenticated, user, limits } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const getOtherParticipant = useMessagesStore((s) => s.getOtherParticipant);
-  const dailyMessageCount = useMessagesStore((s) => s.dailyMessageCount);
   const { data: threads = [], isLoading, isFetched: hasLoadedThreads, refetch } = useThreadsQuery();
   const { data: unreadCount = 0 } = useUnreadCountQuery();
+  const daily = useDailyMessageLimit();
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -24,8 +24,9 @@ export function useMessagesTab() {
     useCallback(() => {
       if (isAuthenticated) {
         refetch();
+        daily.refetch();
       }
-    }, [isAuthenticated, refetch]),
+    }, [isAuthenticated, refetch, daily.refetch]),
   );
 
   const onRefresh = async () => {
@@ -60,16 +61,13 @@ export function useMessagesTab() {
     );
   });
 
-  const messageLimit = limits?.maxMessagesPerDay || 50;
-  const isUnlimited = messageLimit === -1;
-
   return {
     isAuthenticated,
     user,
     threads,
     isLoading,
     hasLoadedThreads,
-    dailyMessageCount,
+    dailyMessageCount: daily.used,
     refreshing,
     onRefresh,
     searchQuery,
@@ -77,8 +75,9 @@ export function useMessagesTab() {
     safeGetOther,
     filteredThreads,
     unreadCount,
-    messageLimit,
-    isUnlimited,
+    messageLimit: daily.limit,
+    dailyNearLimit: daily.nearLimit,
+    dailyLimitReached: !daily.canSend,
   };
 }
 

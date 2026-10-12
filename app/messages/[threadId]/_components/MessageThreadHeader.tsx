@@ -78,7 +78,7 @@ export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
       )}
 
       {/* Message Limit Warning */}
-      {!f.isUnlimited && !f.canSend && (
+      {!f.canSend && (
         <UIAlert variant="warning">
           {CAN_BUY_DIGITAL
             ? t('message.dailyLimitWarning', { count: f.messageLimit })
