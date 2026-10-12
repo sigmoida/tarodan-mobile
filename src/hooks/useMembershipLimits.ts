@@ -34,7 +34,8 @@ export type ServerLimitsDto = {
   maxImages?: number;
   canCreateCollection?: boolean;
   canTrade?: boolean;
-  isAdFree?: boolean;
+  /** Sunucu belirlerse (admin kutusu) bool; belirlemezse `null`/yok. */
+  isAdFree?: boolean | null;
 };
 
 export function mapServerLimits(dto: ServerLimitsDto | null): ServerLimitsOverride | null {
@@ -44,7 +45,10 @@ export function mapServerLimits(dto: ServerLimitsDto | null): ServerLimitsOverri
   if (dto.maxImages !== undefined) out.maxImagesPerListing = dto.maxImages;
   if (dto.canCreateCollection !== undefined) out.canCreateCollections = dto.canCreateCollection;
   if (dto.canTrade !== undefined) out.canTrade = dto.canTrade;
-  if (dto.isAdFree !== undefined) out.isAdFree = dto.isAdFree;
+  // Yalnız gerçek boolean sunucu kararıdır. `null`/eksik = "sunucu söylemiyor":
+  // anahtar HİÇ konmaz, authStore'daki sabit tier tablosu geçerli kalır
+  // (`null` konsaydı tabloyu ezip premium üyeye de reklam gösterirdi).
+  if (typeof dto.isAdFree === 'boolean') out.isAdFree = dto.isAdFree;
   return out;
 }
 
