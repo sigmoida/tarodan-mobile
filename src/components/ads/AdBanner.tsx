@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
-import { useTranslation } from 'react-i18next';
 import { theme, Text } from '@/ui';
 import { adsApi, type ActiveAd } from '@/lib/api';
 import { useAds } from '@/hooks/useAds';
 import { adAspectRatio, naturalRatioOf } from '@/lib/ads/adAspect';
-import { remaining } from '@/lib/ads/countdown';
 import { hotspotStyle, renderableHotspots } from '@/lib/ads/hotspots';
 import { openAdLink, resolveAdLink } from '@/lib/ads/openAdLink';
 import { newRotationSeed, pickAd } from '@/lib/ads/pickAd';
 import { useAdImpression } from '@/lib/ads/useAdImpression';
+import { useFlashCountdown } from '@/lib/ads/useFlashCountdown';
 
 /** Hotspot'a dokunuş payı (pt) — küçük bölgeler parmakla kolay vurulsun. */
 const HOTSPOT_SLOP = theme.spacing[1];
@@ -85,6 +84,8 @@ function AdSlot({ ad, position }: { ad: ActiveAd; position: string }) {
 /** Görselsiz reklam: başlık, metin ve (varsa) kampanya kodu / flaş geri sayım. */
 function AdTextBody({ ad }: { ad: ActiveAd }) {
   const campaign = ad.campaign;
+  const left = useFlashCountdown(campaign?.isFlashSale ? campaign.endsAt : null);
+  const code = campaign?.code;
   return (
     <View style={styles.textBody} testID={`ad-text-${ad.id}`}>
       <View style={styles.textCopy}>
@@ -97,40 +98,25 @@ function AdTextBody({ ad }: { ad: ActiveAd }) {
           </Text>
         )}
       </View>
-      {(campaign?.code || (campaign?.isFlashSale && campaign.endsAt)) && (
-        <View style={styles.chips}>
-          {campaign?.isFlashSale && campaign.endsAt ? <FlashCountdown endsAt={campaign.endsAt} /> : null}
-          {campaign?.code ? (
+      {/* Gösterilecek kod ya da (süresi dolmamış) geri sayım yoksa kapsayıcı da yok. */}
+      {(!!left || !!code) && (
+        <View style={styles.chips} testID="ad-chips">
+          {left ? (
+            <View style={[styles.chip, styles.flashChip]} testID="ad-flash-countdown">
+              <Text variant="label" tone="danger" weight="semibold">
+                ⚡ {left}
+              </Text>
+            </View>
+          ) : null}
+          {code ? (
             <View style={[styles.chip, styles.codeChip]} testID={`ad-code-${ad.id}`}>
               <Text variant="label" tone="primary" weight="semibold">
-                {campaign.code}
+                {code}
               </Text>
             </View>
           ) : null}
         </View>
       )}
-    </View>
-  );
-}
-
-/** Flaş kampanya geri sayımı — süre bitince hiçbir şey çizmez. */
-function FlashCountdown({ endsAt }: { endsAt: string }) {
-  const { t } = useTranslation();
-  const dayUnit = t('time.dayShort');
-  const [left, setLeft] = useState(() => remaining(endsAt, Date.now(), dayUnit));
-
-  useEffect(() => {
-    setLeft(remaining(endsAt, Date.now(), dayUnit));
-    const timer = setInterval(() => setLeft(remaining(endsAt, Date.now(), dayUnit)), 1000);
-    return () => clearInterval(timer);
-  }, [endsAt, dayUnit]);
-
-  if (!left) return null;
-  return (
-    <View style={[styles.chip, styles.flashChip]} testID="ad-flash-countdown">
-      <Text variant="label" tone="danger" weight="semibold">
-        ⚡ {left}
-      </Text>
     </View>
   );
 }
