@@ -93,3 +93,20 @@ describe('useAds', () => {
     expect(result.current.isAdFree).toBe(false);
   });
 });
+
+describe('useAds — kararlı referans', () => {
+  it('aynı veri ve konumda render arası AYNI dizi döner', async () => {
+    mockGetActive.mockReset();
+    setServerLimits(null);
+    mockGetActive.mockResolvedValue({ data: [ad({ id: 'a' })] });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const { result, rerender } = renderHook(() => useAds('header'), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const first = result.current.ads;
+    rerender({});
+    expect(result.current.ads).toBe(first);
+  });
+});

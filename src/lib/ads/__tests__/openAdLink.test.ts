@@ -7,7 +7,7 @@ import { Linking } from 'react-native';
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockPush(...a) } }));
 
-import { openAdLink, resolveAdLink, isOwnWebUrl } from '../openAdLink';
+import { openAdLink, resolveAdLink, isOwnWebUrl, isPurchaseLink } from '../openAdLink';
 
 const route = (r: string) => ({ kind: 'route', route: r });
 
@@ -79,7 +79,7 @@ describe('resolveAdLink — dış site ve güvenlik', () => {
   it.each(['javascript:alert(1)', 'data:text/html,x', '//evil.com/x', '/\\evil.com', 'tarodan://membership', '', '   ', null, undefined])(
     'güvensiz/boş %p engellenir',
     (input) => {
-      expect(resolveAdLink(input as any)).toEqual({ kind: 'blocked' });
+      expect(resolveAdLink(input as any)).toEqual({ kind: 'blocked', reason: 'unsafe' });
     },
   );
 });
@@ -99,7 +99,26 @@ describe('resolveAdLink — dijital satışa götüren hedefler engellenir', () 
     '/profile/boost',
     '/settings/subscription',
   ])('%s', (input) => {
-    expect(resolveAdLink(input)).toEqual({ kind: 'blocked' });
+    expect(resolveAdLink(input)).toEqual({ kind: 'blocked', reason: 'purchase' });
+  });
+
+  it.each([
+    'http://tarodan.com.tr/membership',
+    'http://www.tarodan.com.tr/en/membership/',
+    'HTTP://tarodan.com.tr/tr/boost?x=1',
+    'https://tarodan.com.tr/en/pricing',
+    '/tr/subscription',
+  ])('isPurchaseLink: %s (http, https ve locale önekli)', (input) => {
+    expect(isPurchaseLink(input)).toBe(true);
+    expect(resolveAdLink(input)).toEqual({ kind: 'blocked', reason: 'purchase' });
+  });
+
+  it('isPurchaseLink: dış host, güvensiz şema ve sıradan yollar satın alma sayılmaz', () => {
+    expect(isPurchaseLink('https://example.org/membership')).toBe(false);
+    expect(isPurchaseLink('http://example.org/membership')).toBe(false);
+    expect(isPurchaseLink('javascript:alert(1)')).toBe(false);
+    expect(isPurchaseLink('/listings')).toBe(false);
+    expect(isPurchaseLink(null)).toBe(false);
   });
 
   it('benzer adlı alakasız yollar engellenmez', () => {

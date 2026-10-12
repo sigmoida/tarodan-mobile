@@ -39,8 +39,11 @@ export type AdLinkTarget =
   | { kind: 'external'; url: string }
   /** Kendi sitemiz, mobil karşılığı yok → uygulama içi web ekranı. */
   | { kind: 'web'; url: string }
-  /** Güvensiz şema ya da satın almaya götüren hedef → hiçbir şey açılmaz. */
-  | { kind: 'blocked' };
+  /**
+   * Hiçbir şey açılmaz. `reason` engelin nedenini ayırt eder: `unsafe` = güvensiz
+   * şema/boş, `purchase` = dijital satışa (üyelik, boost) götüren hedef.
+   */
+  | { kind: 'blocked'; reason: 'unsafe' | 'purchase' };
 
 /** Web yolu → mobil rota adı farklı olanlar. */
 function renamedRoute(seg: string[]): string | null {
@@ -115,8 +118,10 @@ function webUrlFor(linkUrl: string, path: string): string {
  * uygulama içi web. Bilinmeyen bir yola ASLA `router.push` yapılmaz.
  */
 export function resolveAdLink(linkUrl: string | null | undefined): AdLinkTarget {
-  const safe = safeAdHref(linkUrl);
-  if (!safe) return { kind: 'blocked' };
+  const raw = safeAdHref(linkUrl);
+  if (!raw) return { kind: 'blocked', reason: 'unsafe' };
+  // `HTTP://…` şeması büyük harfle yazılsa da yol çözümü ve satın alma kapısı aynı çalışsın.
+  const safe = raw.replace(/^https?:\/\//i, (m) => m.toLowerCase());
 
   const host = hostOf(safe);
   if (host && !OWN_HOSTS.has(host)) return { kind: 'external', url: safe };
@@ -127,7 +132,7 @@ export function resolveAdLink(linkUrl: string | null | undefined): AdLinkTarget 
   const query = path.includes('?') ? path.slice(path.indexOf('?')) : '';
   const barePath = stripLocalePrefix(rawPath!.replace(/\/+$/, '') || '/');
 
-  if (isPurchasePath(barePath)) return { kind: 'blocked' };
+  if (isPurchasePath(barePath)) return { kind: 'blocked', reason: 'purchase' };
 
   // İlan listesi eşleyiciye VERİLMEZ: `toMobileRoute` `/listings`'i sorgusuz
   // arama sekmesine çeviriyor, reklamın filtresi (`?manufacturer=…`) düşerdi.
@@ -153,6 +158,16 @@ export function resolveAdLink(linkUrl: string | null | undefined): AdLinkTarget 
   // Kök ya da eşlenemeyen yol: bilinmeyen rotaya push yok, web uygulama içinde açılır.
   if (seg.length === 0) return { kind: 'route', route: '/' };
   return { kind: 'web', url: webUrlFor(safe, path) };
+}
+
+/**
+ * Bağlantı dijital satışa (üyelik, boost) mı götürüyor? Karar TEK yerden
+ * (`resolveAdLink`) gelir: http/https, locale öneki ve göreli yol aynı kuralla
+ * değerlendirilir. Dış host'lar satın alma hedefi sayılmaz.
+ */
+export function isPurchaseLink(linkUrl: string | null | undefined): boolean {
+  const target = resolveAdLink(linkUrl);
+  return target.kind === 'blocked' && target.reason === 'purchase';
 }
 
 /** Reklam bağlantısını aç; açılan bir şey olduysa `true`. */

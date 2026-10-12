@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { adsApi, type ActiveAd } from '@/lib/api';
+import { unwrapList } from '@/lib/api/unwrap';
 import { qk } from '@/lib/query';
 import { hasAdCreative } from '@/lib/ads/creative';
 import { useAuthStore } from '@/stores/authStore';
@@ -36,8 +38,7 @@ export function useAds(position: string) {
     queryFn: async () => {
       try {
         const res = await adsApi.getActive();
-        const body = (res.data as any)?.data ?? res.data;
-        return (Array.isArray(body) ? body : []) as ActiveAd[];
+        return unwrapList<ActiveAd>(res.data);
       } catch {
         // Reklam ikincil içerik — hata ekranı gösterme, sessizce boş geç.
         return [];
@@ -45,11 +46,18 @@ export function useAds(position: string) {
     },
   });
 
-  const ads = (adsQuery.data ?? []).filter(
-    (ad) =>
-      ad.position === position &&
-      DEVICE_TARGETS.includes((ad.deviceType || 'all').toLowerCase()) &&
-      hasAdCreative(ad),
+  // Veri + konum anahtarlı: aynı girdide AYNI dizi döner (AdBanner'ın seçimi ve
+  // efektleri her render'da yeniden tetiklenmesin).
+  const all = adsQuery.data;
+  const ads = useMemo(
+    () =>
+      (all ?? []).filter(
+        (ad) =>
+          ad.position === position &&
+          DEVICE_TARGETS.includes((ad.deviceType || 'all').toLowerCase()) &&
+          hasAdCreative(ad),
+      ),
+    [all, position],
   );
 
   return { ads, isAdFree, isLoading: adsQuery.isLoading };

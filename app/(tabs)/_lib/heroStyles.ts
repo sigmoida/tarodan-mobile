@@ -1,18 +1,15 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '@/ui';
+import { HERO_BODY_MIN_HEIGHT, HERO_BORDER_WIDTH, HERO_DOTS_HEIGHT, HERO_IMAGE_RATIO } from './heroLayout';
 
 const { colors, spacing, radius } = theme;
 
-/** Hero görsel oranı — web mobil görünümüyle aynı (16/10). */
-export const HERO_IMAGE_RATIO = 16 / 10;
-/** Yükleme sırasında hero için ayrılan yükseklik (akış kayması olmasın). */
-export const HERO_RESERVED_HEIGHT = 380;
 
 export const heroStyles = StyleSheet.create({
   reserved: {
     marginHorizontal: spacing[4],
     marginBottom: spacing[2],
-    height: HERO_RESERVED_HEIGHT,
+    // Yükseklik genişlikten hesaplanır (`heroReservedHeight`) — HeroSection satır içi verir.
     borderRadius: radius.xl,
     backgroundColor: colors.surface.alt,
   },
@@ -20,16 +17,23 @@ export const heroStyles = StyleSheet.create({
     marginHorizontal: spacing[4],
     marginBottom: spacing[2],
     borderRadius: radius.xl,
-    borderWidth: 1,
+    borderWidth: HERO_BORDER_WIDTH,
     borderColor: colors.border.DEFAULT,
     backgroundColor: colors.surface.elevated,
     overflow: 'hidden',
   },
   image: { width: '100%', aspectRatio: HERO_IMAGE_RATIO, backgroundColor: colors.surface.alt },
-  body: { padding: spacing[4], gap: spacing[2] },
+  body: { padding: spacing[4], gap: spacing[2], minHeight: HERO_BODY_MIN_HEIGHT },
   title: { textAlign: 'left' },
   buttons: { gap: spacing[2], marginTop: spacing[2] },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: spacing[2], paddingBottom: spacing[3] },
+  dots: {
+    height: HERO_DOTS_HEIGHT,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    gap: spacing[2],
+    paddingBottom: spacing[3],
+  },
   dot: { height: 8, width: 8, borderRadius: radius.full, backgroundColor: colors.border.strong },
   dotActive: { width: 24, backgroundColor: colors.primary[500] },
 });

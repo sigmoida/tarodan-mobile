@@ -3,7 +3,6 @@ import type { HeroSlide, TrustBadge } from '@/lib/api/hero';
 import {
   MAX_TRUST_BADGES,
   heroImageUrl,
-  isPurchaseHref,
   pickLocalized,
   resolveHeroCta,
   resolveTrustBadges,
@@ -84,7 +83,7 @@ describe('visibleSlides', () => {
   });
 });
 
-describe('resolveHeroCta / isPurchaseHref', () => {
+describe('resolveHeroCta / satın alma kapısı', () => {
   it('normal site içi yol çizilir; etiket dile göre', () => {
     expect(resolveHeroCta({ label: { tr: 'Gez', en: 'Browse' }, href: '/listings' }, 'en')).toEqual({
       label: 'Browse',
@@ -98,15 +97,28 @@ describe('resolveHeroCta / isPurchaseHref', () => {
     expect(resolveHeroCta({ label: { tr: '' }, href: '/listings' }, 'tr')).toBeNull();
     expect(resolveHeroCta(null, 'tr')).toBeNull();
   });
-  it('isPurchaseHref: yalnız güvenli ama satın alma olan', () => {
-    expect(isPurchaseHref('/pricing')).toBe(true);
-    expect(isPurchaseHref('/en/membership')).toBe(true);
-    expect(isPurchaseHref('/tr/boost/')).toBe(true);
-    expect(isPurchaseHref('https://tarodan.com.tr/en/pricing?x=1')).toBe(true);
-    expect(isPurchaseHref('https://example.org/membership')).toBe(false);
-    expect(isPurchaseHref('/listings')).toBe(false);
-    expect(isPurchaseHref('javascript:alert(1)')).toBe(false);
-    expect(isPurchaseHref(null)).toBe(false);
+  it('http / https / locale önekli satın alma linkli slayt gizlenir, dış host ve güvensiz şema slaytı gizlemez', () => {
+    const cta = (href: string) => ({ label: { tr: 'Git' }, href });
+    for (const href of [
+      'http://tarodan.com.tr/membership',
+      'https://tarodan.com.tr/membership',
+      'http://www.tarodan.com.tr/en/membership/',
+      'https://tarodan.com.tr/en/pricing?x=1',
+      '/tr/boost/',
+      '/en/membership',
+    ]) {
+      expect(visibleSlides([slide({ cta1: cta(href) })], 'tr')).toEqual([]);
+      expect(resolveHeroCta(cta(href), 'tr')).toBeNull();
+    }
+    for (const href of ['https://example.org/membership', 'http://example.org/membership', 'javascript:alert(1)']) {
+      expect(visibleSlides([slide({ cta1: cta(href) })], 'tr')).toHaveLength(1);
+    }
+    // Güvensiz şemada yalnız buton düşer, dış host'ta buton kalır.
+    expect(resolveHeroCta(cta('javascript:alert(1)'), 'tr')).toBeNull();
+    expect(resolveHeroCta(cta('https://example.org/membership'), 'tr')).toEqual({
+      label: 'Git',
+      href: 'https://example.org/membership',
+    });
   });
 });
 
