@@ -27,23 +27,22 @@ const { colors } = theme;
 /**
  * Fabrika biçimi: zod mesajları şema kurulurken çözülüyor, modül seviyesinde
  * kurulsa metin ilk yüklenen dilde donardı (bkz. `@/utils/validation` başı).
+ *
+ * TCKN alanı YOK (delta 23 §3, B-1.8): TCKN'nin tek kaynağı üyenin yasal
+ * kimliği. API `tcKimlikNo`'yu yalnız eski istemciler için kabul ediyor ve
+ * gönderilmezse kayıtlı değere DOKUNMUYOR (user-bank.service `resolveBankTckn`)
+ * — web formu da artık sormuyor.
  */
 const buildBankAccountSchema = (t: TFunction) =>
   z.object({
     accountHolder: z.string().min(2, t('bankAccount.holderMinLength')).max(150),
     iban: z.string().refine((v) => isValidTrIban(v), t('bankAccount.ibanInvalid')),
-    tcKimlikNo: z
-      .string()
-      .regex(/^\d{11}$/, t('bankAccount.tcknInvalid'))
-      .optional()
-      .or(z.literal('')),
     taxId: z.string().max(20).optional().or(z.literal('')),
   });
 
 type BankAccountForm = {
   accountHolder: string;
   iban: string;
-  tcKimlikNo?: string;
   taxId?: string;
 };
 
@@ -75,7 +74,7 @@ export default function BankAccountScreen() {
     formState: { errors },
   } = useForm<BankAccountForm>({
     resolver: zodResolver(schema),
-    defaultValues: { accountHolder: '', iban: '', tcKimlikNo: '', taxId: '' },
+    defaultValues: { accountHolder: '', iban: '', taxId: '' },
   });
 
   useEffect(() => {
@@ -84,7 +83,6 @@ export default function BankAccountScreen() {
       reset({
         accountHolder: acc.accountHolder || '',
         iban: formatIbanDisplay(acc.iban || ''),
-        tcKimlikNo: acc.tcKimlikNo || '',
         taxId: acc.taxId || '',
       });
     }
@@ -95,7 +93,6 @@ export default function BankAccountScreen() {
       bankAccountApi.upsert({
         accountHolder: data.accountHolder.trim(),
         iban: normalizeIban(data.iban),
-        ...(data.tcKimlikNo ? { tcKimlikNo: data.tcKimlikNo } : {}),
         ...(data.taxId ? { taxId: data.taxId } : {}),
       }),
     onSuccess: () => {
@@ -116,7 +113,7 @@ export default function BankAccountScreen() {
     mutationFn: async () => bankAccountApi.remove(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-account'] });
-      reset({ accountHolder: '', iban: '', tcKimlikNo: '', taxId: '' });
+      reset({ accountHolder: '', iban: '', taxId: '' });
       setSnackbar({ visible: true, message: t('bankAccount.deleted'), variant: 'success' });
     },
     onError: (error: any) => {
@@ -196,21 +193,6 @@ export default function BankAccountScreen() {
 
           <Controller
             control={control}
-            name="tcKimlikNo"
-            render={({ field: { onChange, value } }) => (
-              <Input
-                label={t('bankAccount.tcknOptionalLabel')}
-                value={value ?? ''}
-                onChangeText={(t) => onChange(t.replace(/\D/g, '').slice(0, 11))}
-                error={errors.tcKimlikNo?.message}
-                keyboardType="number-pad"
-                containerStyle={styles.input}
-              />
-            )}
-          />
-
-          <Controller
-            control={control}
             name="taxId"
             render={({ field: { onChange, value } }) => (
               <Input
@@ -222,12 +204,6 @@ export default function BankAccountScreen() {
               />
             )}
           />
-
-          {existing && (
-            <Text variant="bodySm" style={styles.updateWarning}>
-              {t('bankAccount.reverifyNotice')}
-            </Text>
-          )}
 
           <Button
             testID="bank-account-submit-button"

@@ -24,11 +24,6 @@ export const styles = StyleSheet.create({
   input: {
     marginBottom: theme.spacing[3],
   },
-  updateWarning: {
-    color: colors.text.muted,
-    marginTop: theme.spacing[2],
-    marginBottom: theme.spacing[1],
-  },
   submitButton: {
     marginTop: theme.spacing[4],
   },
