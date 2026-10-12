@@ -317,3 +317,25 @@ describe("C2 inceleme · 6 odaklanma/yenileme aynı anahtarı iki kez çekmez", 
     expect(mockGetMyListings.mock.calls.filter(([p]) => p?.limit === 1)).toHaveLength(1);
   });
 });
+
+describe("C2 inceleme · 8 tanınmayan toplu yenileme yanıtı hata sayılır", () => {
+  it.each([
+    ["gövdesiz", {}],
+    ["sayaçlı ama results yok", { renewed: 2, submitted: 0, failed: 0 }],
+  ])("%s yanıt: 'Başarılı' DEĞİL, hata uyarısı; liste tazelenir", async (_n, body) => {
+    serve([expired({ id: "E1", title: "Bir" })]);
+    api().renewMany.mockResolvedValue({ data: body });
+    const { queryClient } = renderWithProviders(<MyListingsScreen />);
+    const spy = jest.spyOn(queryClient, "invalidateQueries");
+    fireEvent.press(await screen.findByText("profile.expiredListings.tab (1)"));
+    fireEvent.press(await screen.findByText("profile.expiredListings.selectAll"));
+    fireEvent.press(await screen.findByText("profile.expiredListings.renewSelected"));
+
+    await waitFor(() => expect(alertMock()).toHaveBeenCalled());
+    expect(alertMock()).toHaveBeenCalledTimes(1);
+    expect(alertMock()).toHaveBeenCalledWith("common.error", "profile.expiredListings.renewFailed");
+    expect(spy.mock.calls.map(([f]) => (f as { queryKey: unknown }).queryKey)).toContainEqual(
+      qk.products.myListingsAll,
+    );
+  });
+});
