@@ -75,20 +75,16 @@ export function useCreateThread() {
 }
 
 /**
- * POST /messages/threads/:id/read — okundu işaretle. Optimistik unread sıfırlama
- * onMutate'te; ⚠️ onSuccess/onSettled'da unread-count INVALIDATE ETME (rozet-1'e-
+ * Thread açıldığında okundu işaretle. API'de `POST /messages/threads/:id/read`
+ * YOK; sunucu okundu bilgisini `GET /messages/threads/:id/messages` ile işler
+ * (useMessagesQuery). Burada yalnız optimistik unread sıfırlama yapılır
+ * (onMutate); ağ isteği atılmaz. ⚠️ unread-count INVALIDATE ETME (rozet-1'e-
  * döner tuzağı — cache.ts:applyThreadReadToCache açıklamasına bak).
  */
 export function useMarkAsRead() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (threadId: string): Promise<void> => {
-      try {
-        await messagesApi.markAsRead(threadId);
-      } catch {
-        // POST /threads/:id/read yoksa (404) — optimistik state zaten güncel.
-      }
-    },
+    mutationFn: async (_threadId: string): Promise<void> => undefined,
     onMutate: (threadId) => {
       applyThreadReadToCache(qc, threadId);
     },
