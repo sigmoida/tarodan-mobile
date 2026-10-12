@@ -47,6 +47,17 @@ jest.mock('@/lib/api', () => ({
 }));
 
 // KRİTİK SIRA: bkz. iOS eşi.
+// Kapı artık Platform'dan değil sabitten okunur; 'satın alma açık' dalı mock'la sürülür.
+// limitAlert gerçek modülde kendi (kapalı) sabitine bakar → açık dalı için aynalanır.
+jest.mock('@/lib/purchases', () => ({
+  CAN_BUY_DIGITAL: true,
+  limitAlert: (o: any) =>
+    require('@/ui').appAlert(o.title, o.message, [
+      { text: o.cancelLabel, style: 'cancel', onPress: o.onCancel },
+      { text: o.upgradeLabel, onPress: o.onUpgrade },
+    ]),
+}));
+
 Platform.OS = 'android';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { useAddresses } = require('../addresses/_hooks/useAddresses');
