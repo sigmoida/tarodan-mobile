@@ -81,7 +81,7 @@ export default function OrderDetailScreen() {
       >
         <OrderEscrowCard order={order} view={view} />
         <OrderStatusCard order={order} view={view} />
-        <OrderCancelledInfo view={view} />
+        <OrderCancelledInfo order={order} view={view} />
         <OrderPayPendingCard order={order} view={view} onPay={actions.initiatePayment} payPending={actions.payPending} />
         <OrderTrackingCard order={order} view={view} shipment={shipment} isSeller={isSeller} />
         <OrderProductCard order={order} />

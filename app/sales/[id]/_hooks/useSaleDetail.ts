@@ -1,9 +1,11 @@
 import { Linking } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { ordersApi } from '@/lib/api';
 import { useRefresh } from '@/hooks/useRefresh';
 import { deriveShipmentView } from '@/lib/shipping/tracking';
+import { orderCancelMessage } from '@/lib/shared/orderCancelMessage';
 import type { Order } from '../_lib/types';
 import { statusColor } from '../_lib/status';
 
@@ -13,6 +15,7 @@ import { statusColor } from '../_lib/status';
  * call/track Linking handlers. Lifted verbatim from the monolithic screen (§12).
  */
 export function useSaleDetail() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const { data: order, isLoading, error, refetch } = useQuery<Order | null>({
@@ -30,6 +33,9 @@ export function useSaleDetail() {
   // İptal'de status 'refunded' olsa bile "İptal Edildi" göster (alıcı ile tutarlı).
   const displayStatus = order?.cancellationType === 'iptal' ? 'cancelled' : order?.status ?? '';
   const sc = statusColor(displayStatus);
+  // Neden iptal edildi — alıcı ekranıyla aynı tek kaynak (satıcı: "Alıcı iptal etti").
+  const cancelMessage =
+    order && displayStatus === 'cancelled' ? orderCancelMessage({ ...order, isBuyer: order.isBuyer ?? false }, t) : null;
   const shipmentSummary = order?.shipment;
   const shipmentProvider = shipmentSummary?.provider ?? shipmentSummary?.carrier;
   const isSurat = (shipmentProvider ?? '').toLowerCase() === 'surat';
@@ -63,6 +69,7 @@ export function useSaleDetail() {
     onRefresh,
     displayStatus,
     sc,
+    cancelMessage,
     shipmentView,
     shipmentProvider,
     isSurat,

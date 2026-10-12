@@ -4,6 +4,12 @@ export interface Order {
   status: string;
   // Kargo öncesi iptalde status 'refunded' olur ama 'iptal' → "İptal Edildi" göster.
   cancellationType?: string | null;
+  /** Sunucunun yazdığı iptal gerekçesi (yönetici iptalinde "Yönetici tarafından iptal edildi: …"). */
+  cancelReason?: string | null;
+  /** `cancelReason`'ın stabil kategorisi — yalnız `cancelled` siparişte dolu. */
+  cancelCategory?: string | null;
+  /** Görüntüleyen alıcı mı (satıcı ekranında `false`). */
+  isBuyer?: boolean;
   totalAmount?: number;
   subtotal?: number;
   shippingCost?: number;

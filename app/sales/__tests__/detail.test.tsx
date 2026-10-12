@@ -217,6 +217,45 @@ describe('J63 · Satıcı iptali yok + iptal etiketi', () => {
     expect(screen.queryByText('İade Edildi')).toBeNull();
   });
 
+  it('A-1.10 iptal edilmiş satışta neden satıcıya görünür (alıcı iptali → "Alıcı … iptal etti")', async () => {
+    getOneMock.mockResolvedValue({
+      data: {
+        data: saleFixture({
+          status: 'cancelled',
+          isBuyer: false,
+          cancelReason: null,
+          cancelCategory: 'buyer_cancelled',
+        }),
+      },
+    });
+    renderWithProviders(<SaleDetailScreen />);
+    const message = await screen.findByTestId('sales-cancel-message');
+    expect(message).toHaveTextContent('Alıcı bu siparişi iptal etti.');
+  });
+
+  it('A-1.10 yönetici (platform) iptalinde sunucu gerekçesi aynen gösterilir', async () => {
+    getOneMock.mockResolvedValue({
+      data: {
+        data: saleFixture({
+          status: 'cancelled',
+          isBuyer: false,
+          cancelReason: 'Yönetici tarafından iptal edildi: Satıcı stok doğrulayamadı',
+          cancelCategory: 'other',
+        }),
+      },
+    });
+    renderWithProviders(<SaleDetailScreen />);
+    const message = await screen.findByTestId('sales-cancel-message');
+    expect(message).toHaveTextContent('Yönetici tarafından iptal edildi: Satıcı stok doğrulayamadı');
+  });
+
+  it('A-1.10 iptal edilmemiş satışta neden satırı yok', async () => {
+    getOneMock.mockResolvedValue({ data: { data: saleFixture({ status: 'paid' }) } });
+    renderWithProviders(<SaleDetailScreen />);
+    await waitFor(() => expect(screen.getByText('Sipariş #ORD-2001000000')).toBeOnTheScreen());
+    expect(screen.queryByTestId('sales-cancel-message')).toBeNull();
+  });
+
   it('J63.7 sipariş bulunamazsa hata durumu (ErrorState) gösterilir', async () => {
     getOneMock.mockRejectedValue(new Error('not found'));
     renderWithProviders(<SaleDetailScreen />);

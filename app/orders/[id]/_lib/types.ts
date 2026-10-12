@@ -64,6 +64,10 @@ export interface OrderDetail {
   deliveredAt?: string;
   completedAt?: string;
   cancelledAt?: string | null;
+  /** Sunucunun yazdığı iptal gerekçesi (yönetici iptalinde "Yönetici tarafından iptal edildi: …"). */
+  cancelReason?: string | null;
+  /** `cancelReason`'ın stabil kategorisi — yalnız `cancelled` siparişte dolu (bkz. `orderCancelMessage`). */
+  cancelCategory?: string | null;
   confirmationDeadline?: string;
   buyerConfirmedAt?: string;
   buyerConfirmationType?: string;

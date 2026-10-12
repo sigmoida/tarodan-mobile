@@ -7,6 +7,7 @@ import type { Shipment } from '@/lib/api';
 import { formatDate, formatPrice } from '../_lib/format';
 import { deriveShipmentView } from '@/lib/shipping/tracking';
 import { isAwaitingDropoff, shipmentStatusLabel } from '@/lib/shipping/shipmentStatus';
+import { orderCancelMessage } from '@/lib/shared/orderCancelMessage';
 import type { OrderDetail } from '../_lib/types';
 import type { OrderView } from '../_lib/derive';
 
@@ -49,16 +50,22 @@ export function OrderEscrowCard({ order, view }: { order: OrderDetail; view: Ord
   );
 }
 
-/** İptal bilgi kartı. */
-export function OrderCancelledInfo({ view }: { view: OrderView }) {
+/** İptal bilgi kartı — neden iptal edildiği (kategori/gerekçe) + iade notu. */
+export function OrderCancelledInfo({ order, view }: { order: OrderDetail; view: OrderView }) {
   const { t } = useTranslation();
   if (!view.isCancelled) return null;
+  const cancelMessage = orderCancelMessage(order, t);
   return (
     <Card variant="elevated" style={styles.card} testID="order-cancelled-info">
       <View style={styles.cancelledHeaderRow}>
         <Ionicons name="close-circle-outline" size={20} color={colors.danger[600]!} />
         <Text variant="label" style={styles.cancelledHeaderText}>{t('order.orderCancelled')}</Text>
       </View>
+      {cancelMessage ? (
+        <Text testID="order-cancel-message" variant="caption" style={styles.cancelMessage}>
+          {cancelMessage}
+        </Text>
+      ) : null}
       <Text variant="caption" style={styles.escrowText}>
         {t('order.cancelledRefundNotice')}
       </Text>
@@ -167,6 +174,7 @@ const styles = StyleSheet.create({
   escrowText: { color: colors.text.muted, lineHeight: 18 },
   cancelledHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2], marginBottom: theme.spacing[1.5] },
   cancelledHeaderText: { flex: 1, color: colors.text.heading },
+  cancelMessage: { color: colors.text.heading, lineHeight: 18, marginBottom: theme.spacing[1] },
   trackingHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing[2] },
   trackingInfo: { marginTop: theme.spacing[1] },
   trackLink: { color: colors.primary[600]!, marginTop: theme.spacing[1] },

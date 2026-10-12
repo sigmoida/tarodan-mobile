@@ -434,3 +434,57 @@ describe('B25 · Timeline iade/iptal yansıtması', () => {
     expect(within(step).queryByText('-')).toBeNull();
   });
 });
+
+/**
+ * Parite A-1.10 · İptal nedeni. Sipariş detayı `cancelReason`/`cancelCategory`'yi
+ * hiç okumuyordu; kullanıcı yalnız "İptal edildi" görüyordu. Yönetici (platform)
+ * iptalinde sunucu metni ("Yönetici tarafından iptal edildi: <etiket>") aynen basılır.
+ */
+describe('A-1.10 · İptal kartı nedeni gösterir', () => {
+  beforeEach(() => {
+    getMock.mockReset();
+    mockParams = { id: 'order-1' };
+  });
+
+  it('platform iptali: sunucunun gerekçe metni kartta görünür', async () => {
+    getMock.mockResolvedValue({
+      data: {
+        data: orderFixture({
+          status: 'cancelled',
+          cancellationType: 'iptal',
+          cancelledAt: new Date('2026-02-05').toISOString(),
+          cancelReason: 'Yönetici tarafından iptal edildi: Satıcı stok doğrulayamadı',
+          cancelCategory: 'other',
+        }),
+      },
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    const message = await screen.findByTestId('order-cancel-message');
+    expect(message).toHaveTextContent('Yönetici tarafından iptal edildi: Satıcı stok doğrulayamadı');
+  });
+
+  it('kategori → kullanıcı dostu cümle (alıcı kendi iptali)', async () => {
+    getMock.mockResolvedValue({
+      data: {
+        data: orderFixture({
+          status: 'cancelled',
+          isBuyer: true,
+          cancelReason: null,
+          cancelCategory: 'buyer_cancelled',
+        }),
+      },
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    const message = await screen.findByTestId('order-cancel-message');
+    expect(message).toHaveTextContent('Bu siparişi iptal ettiniz.');
+  });
+
+  it('gerekçe ve kategori yoksa satır hiç basılmaz', async () => {
+    getMock.mockResolvedValue({
+      data: { data: orderFixture({ status: 'cancelled', cancelReason: null, cancelCategory: null }) },
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    await screen.findByTestId('order-cancelled-info');
+    expect(screen.queryByTestId('order-cancel-message')).toBeNull();
+  });
+});

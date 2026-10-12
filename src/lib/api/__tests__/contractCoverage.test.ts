@@ -237,8 +237,9 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     'detail.buyer.isVerified',
     'detail.buyer.username',
     'detail.canReactivate',
-    'detail.cancelCategory',
-    'detail.cancelReason',
+    // `detail.cancelCategory` / `detail.cancelReason` SİLİNDİ (Parite A-1.10):
+    // sipariş detayı artık iptal nedenini gösteriyor (`OrderDetail`,
+    // `orderCancelMessage`). Liste/grup satırlarındakiler hâlâ okunmuyor.
     'detail.checkoutGroupId',
     'detail.packageId',
     'detail.pricing.buyerFeeDiscountAmount',
