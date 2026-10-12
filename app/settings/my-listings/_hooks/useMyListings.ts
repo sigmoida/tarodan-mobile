@@ -22,6 +22,9 @@ import { useRenewListings, useListingSelection } from "./useRenewListings";
 
 const { colors } = theme;
 
+/** Seçim yalnız "Süresi dolan" sekmesinde: diğer sekmelerde SABİT boş dizi (her render'da yeni `[]` değil). */
+const NONE: Listing[] = [];
+
 /** Kaldırma nedeni penceresinin hedefi: hangi ilan, hangi eylem. */
 export interface RemovalTarget {
   listing: Listing;
@@ -125,7 +128,7 @@ export function useMyListings() {
     [listings, filter],
   );
   const isExpiredTab = filter === EXPIRED_FILTER;
-  const selection = useListingSelection(isExpiredTab ? filteredListings : []);
+  const selection = useListingSelection(isExpiredTab ? filteredListings : NONE);
 
   const listingLimit = quotaSummary?.max ?? (limits?.maxListings || 10);
 

@@ -28,7 +28,9 @@ const BODY_MAX_HEIGHT = 420;
  * taşır (ilanlarım ve düzenleme ekranı ayrı mutasyon kullanır).
  *
  * ⚠️ `onSubmit`'ten ÖNCE modal kapanır: mutasyonun `appAlert`'i ui-native Modal
- * açıkken çıkarsa iOS donar (CLAUDE.md §12).
+ * açıkken çıkarsa iOS donar (CLAUDE.md §12). Bu yüzden pencerede "gönderiliyor"
+ * durumu YOKTUR (mutasyon başladığında pencere zaten kapalı); çift gönderimi
+ * çağıran ekran engeller (ör. düzenleme ekranında `isSubmitting`).
  */
 export function ListingRemovalModal({
   action,
@@ -36,7 +38,6 @@ export function ListingRemovalModal({
   listingTitle,
   onClose,
   onSubmit,
-  isPending = false,
 }: {
   action: SellerRemovalAction;
   visible: boolean;
@@ -44,7 +45,6 @@ export function ListingRemovalModal({
   listingTitle?: string;
   onClose: () => void;
   onSubmit: (removal: ListingRemovalPayload) => void;
-  isPending?: boolean;
 }) {
   const { t } = useTranslation();
   const schema = useMemo(() => listingRemovalSchema(t, action), [t, action]);
@@ -73,7 +73,7 @@ export function ListingRemovalModal({
   return (
     <Modal
       isOpen={visible}
-      onClose={() => !isPending && onClose()}
+      onClose={onClose}
       title={isDelete ? t('product.deleteListing') : t('product.deactivateListingFull')}
     >
       <ScrollView
@@ -139,11 +139,10 @@ export function ListingRemovalModal({
       </ScrollView>
 
       <View style={styles.actions}>
-        <Button variant="ghost" title={t('common.cancel')} onPress={onClose} disabled={isPending} />
+        <Button variant="ghost" title={t('common.cancel')} onPress={onClose} />
         <Button
           variant={isDelete ? 'danger' : 'primary'}
           title={isDelete ? t('collection.yesDelete') : t('product.deactivate')}
-          isLoading={isPending}
           onPress={submit}
         />
       </View>

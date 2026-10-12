@@ -57,6 +57,19 @@ jest.mock("@/components/listing/ListingRemovalModal", () => {
   };
 });
 
+/** Seçim hook'una verilen dizinin kimliği: sabit boş dizi mi, her render'da yeni mi? */
+const mockSelectionArgs: unknown[][] = [];
+jest.mock("../my-listings/_hooks/useRenewListings", () => {
+  const actual = jest.requireActual("../my-listings/_hooks/useRenewListings");
+  return {
+    ...actual,
+    useListingSelection: (listings: unknown[]) => {
+      mockSelectionArgs.push(listings);
+      return actual.useListingSelection(listings);
+    },
+  };
+});
+
 jest.mock("@/components/product/BoostModal", () => ({ BoostModal: () => null }));
 
 const mockGetMyListings = jest.fn();
@@ -132,6 +145,7 @@ beforeEach(() => {
   mockGetMyStats.mockReset();
   sourceAlert().mockReset();
   mockRemovalProps.length = 0;
+  mockSelectionArgs.length = 0;
   (["update", "delete", "deactivate", "renew", "renewMany"] as const).forEach((k) => api()[k].mockReset());
   mockGetMyStats.mockResolvedValue({
     data: { counts: { all: 3, active: 1, inactive: 2 }, summary: { used: 1, max: 10, canCreate: true } },
@@ -356,5 +370,17 @@ describe("C2 inceleme · 9 kaldırma penceresi hangi ilan olduğunu söyler", ()
     // Aynı ad listede de var: pencere açıkken ikinci bir kopya (pencere içi satır) olmalı.
     expect(screen.getAllByText("Hot Wheels Camaro").length).toBeGreaterThanOrEqual(2);
     expect(mockRemovalProps[mockRemovalProps.length - 1].listingTitle).toBe("Hot Wheels Camaro");
+  });
+});
+
+describe("C2 inceleme · 10 gereksiz render ve ölü prop", () => {
+  it("süresi dolan dışı sekmelerde seçim hook'una HER render'da aynı boş dizi verilir", async () => {
+    serve([listing({ id: "A1", status: "active" }), expired()]);
+    renderWithProviders(<MyListingsScreen />);
+    await screen.findByText("Hot Wheels Camaro");
+    fireEvent.press(screen.getByText("listing.filterActive (1)"));
+    await waitFor(() => expect(mockSelectionArgs.length).toBeGreaterThan(3));
+    expect(mockSelectionArgs.every((a) => a.length === 0)).toBe(true);
+    expect(new Set(mockSelectionArgs).size).toBe(1);
   });
 });
