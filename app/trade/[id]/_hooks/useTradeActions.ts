@@ -7,8 +7,10 @@ import { qk } from "@/lib/query";
 import { useTranslation } from "react-i18next";
 import { captureException } from "@/services/sentry";
 
-type DisputeReason =
-  "shipment_lost" | "shipment_damaged" | "wrong_item" | "other";
+import {
+  DEFAULT_DISPUTE_REASON,
+  type DisputeReason,
+} from "../_lib/disputeReasons";
 
 /**
  * Takas detay controller'ı: 6 mutation (kabul/reddet/onayla/nakit-öde/iptal/itiraz)
@@ -29,7 +31,7 @@ export function useTradeActions(id: string) {
   const [rejectReason, setRejectReason] = useState("");
   const [disputeVisible, setDisputeVisible] = useState(false);
   const [disputeReason, setDisputeReason] =
-    useState<DisputeReason>("shipment_lost");
+    useState<DisputeReason>(DEFAULT_DISPUTE_REASON);
   const [disputeDescription, setDisputeDescription] = useState("");
 
   const invalidate = () => {

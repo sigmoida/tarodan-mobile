@@ -1395,6 +1395,7 @@
       "reasonShipmentDamaged": "Item arrived damaged",
       "reasonWrongItem": "Wrong item received",
       "reasonOther": "Other",
+      "reasonNotAsDescribed": "Item not as described",
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Add details (shipping dates, photos available, etc.)",
       "minLengthError": "Description must be at least 10 characters",

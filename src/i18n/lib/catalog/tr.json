@@ -1395,6 +1395,7 @@
       "reasonShipmentDamaged": "Ürün hasarlı geldi",
       "reasonWrongItem": "Beklediğim ürün gelmedi",
       "reasonOther": "Diğer",
+      "reasonNotAsDescribed": "Ürün açıklamayla uyuşmuyor",
       "descriptionLabel": "Açıklama",
       "descriptionPlaceholder": "Sorunu detaylandırın (kargo tarihi, fotoğraf gönderebilirim, vb.)",
       "minLengthError": "Açıklama en az 10 karakter olmalı",
