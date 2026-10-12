@@ -101,6 +101,11 @@ describe('phoneToSend', () => {
     expect(phoneToSend('05321234567', '532 123 45 67', '+90')).toBeUndefined();
     expect(phoneToSend('0532 123 45 67', '0532 123 45 67', '+90')).toBeUndefined();
   });
+  it('alan boşaltıldı → kayıtlı numara varsa "" (sil), yoksa gönderilmez', () => {
+    expect(phoneToSend(OLD_PHONE, '', '+90')).toBe('');
+    expect(phoneToSend(OLD_PHONE, '   ', '+90')).toBe('');
+    expect(phoneToSend(null, '', '+90')).toBeUndefined();
+  });
   it('yeni numara → E.164; çözülemeyen → null', () => {
     expect(phoneToSend(OLD_PHONE, '0532 123 45 67', '+90')).toBe(NEW_PHONE);
     expect(phoneToSend(null, '532 123 45 67', '+90')).toBe(NEW_PHONE);
@@ -118,6 +123,11 @@ describe('resolvePhoneOutcome · tazelenen kullanıcının telefonuyla', () => {
       outcome: 'verify',
       phone: NEW_PHONE,
     });
+  });
+  it('silme: kayıtlı telefon boş → removed, hâlâ duruyor → notRemoved', () => {
+    expect(resolvePhoneOutcome('', null)).toEqual({ outcome: 'removed' });
+    expect(resolvePhoneOutcome('', '')).toEqual({ outcome: 'removed' });
+    expect(resolvePhoneOutcome('', OLD_PHONE)).toEqual({ outcome: 'notRemoved' });
   });
   it('kayıtlı telefon farklı / yok → notSaved', () => {
     expect(resolvePhoneOutcome(NEW_PHONE, OLD_PHONE)).toEqual({ outcome: 'notSaved', phone: NEW_PHONE });
@@ -189,6 +199,27 @@ describe('edit-profile · telefon değişimi sonrası', () => {
     expect(await screen.findByText('profile.profileUpdated')).toBeTruthy();
     expect(updateProfile.mock.calls[0]![0]).not.toHaveProperty('phone');
     expect(appAlert).not.toHaveBeenCalled();
+  });
+
+  it('alan boşaltılınca numara SİLİNİR: payload phone "" → "telefon kaldırıldı"', async () => {
+    updateProfile.mockResolvedValue({ data: { phone: null, isPhoneVerified: false } });
+    mockRefreshUserData.mockResolvedValue({ phone: undefined, isPhoneVerified: false });
+    saveWithPhone('');
+
+    expect(await screen.findByText('security.phoneRemoved')).toBeTruthy();
+    expect(updateProfile.mock.calls[0]![0]).toMatchObject({ phone: '' });
+    expect(screen.queryByText('profile.profileUpdated')).toBeNull();
+    expect(appAlert).not.toHaveBeenCalled();
+  });
+
+  it('silme sonrası tazelenen kullanıcıda numara hâlâ duruyorsa başarı DEĞİL', async () => {
+    updateProfile.mockResolvedValue({ data: { phone: OLD_PHONE } });
+    mockRefreshUserData.mockResolvedValue({ phone: OLD_PHONE });
+    saveWithPhone('');
+
+    expect(await screen.findByText('security.phoneNotRemoved')).toBeTruthy();
+    expect(screen.queryByText('security.phoneRemoved')).toBeNull();
+    expect(screen.queryByText('profile.profileUpdated')).toBeNull();
   });
 
   it('E.164 olmayan eski kayıtlı numara değişmeden kaydedilince "değişti" sayılmaz', async () => {

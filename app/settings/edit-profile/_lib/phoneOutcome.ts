@@ -11,9 +11,15 @@ import { parseE164TrPhone, parsePhoneForPayload, splitPhone } from '@/utils/phon
  *
  * Sonuç, kayıttan sonra TAZELENEN kullanıcının (`refreshUserData`) telefonuyla
  * belirlenir; iki taraf da aynı E.164 normalizasyonundan (`phoneKey`) geçer.
+ *
+ * Silme: API `phone: ""` kabul eder (DTO `ValidateIf` boşu atlar), servis `null`
+ * yazar ve `isPhoneVerified=false` yapar (user-profile-phone.spec "numara boş
+ * dizgiyle silinince null yazılır"; web de boş alanı `""` olarak gönderir).
  */
 export type PhoneOutcome =
   | { outcome: 'unchanged' }
+  | { outcome: 'removed' }
+  | { outcome: 'notRemoved' }
   | { outcome: 'verify' | 'notSaved'; phone: string };
 
 /**
@@ -30,6 +36,7 @@ export function phoneKey(raw: string | null | undefined): string {
 /**
  * Formdaki telefondan gönderilecek değer:
  * - `undefined` → numaraya dokunma (payload'a girmez);
+ * - `''`        → kayıtlı numarayı sil;
  * - `'+90…'`    → yeni numara;
  * - `null`      → çözülemeyen girdi, gönderim durmalı.
  *
@@ -46,7 +53,7 @@ export function phoneToSend(
   const initial = splitPhone(previousPhone ?? '');
   const text = (formPhone ?? '').trim();
   if (countryCode === initial.countryCode && text === initial.phone.trim()) return undefined;
-  if (!text) return undefined;
+  if (!text) return phoneKey(previousPhone) ? '' : undefined;
   const parsed = parsePhoneForPayload(text, countryCode);
   if (!parsed) return null;
   return phoneKey(parsed) === phoneKey(previousPhone) ? undefined : parsed;
@@ -61,6 +68,9 @@ export function resolvePhoneOutcome(
   savedPhone: string | null | undefined,
 ): PhoneOutcome {
   if (sentPhone === undefined) return { outcome: 'unchanged' };
+  if (sentPhone === '') {
+    return phoneKey(savedPhone) ? { outcome: 'notRemoved' } : { outcome: 'removed' };
+  }
   return phoneKey(savedPhone) === phoneKey(sentPhone)
     ? { outcome: 'verify', phone: sentPhone }
     : { outcome: 'notSaved', phone: sentPhone };

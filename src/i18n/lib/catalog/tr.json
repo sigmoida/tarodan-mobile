@@ -7290,7 +7290,9 @@
     "phoneNotSavedTitle": "Numara henüz kaydedilmedi",
     "phoneNotSavedBody": "Diğer profil bilgileriniz kaydedildi, ancak bu numara başka bir hesapta doğrulanmamış olarak duruyor. Numarayı hesabınıza almak için SMS doğrulamasını tamamlayın; doğrulama başarılı olunca numara hesabınıza geçer.",
     "verifyNow": "Şimdi doğrula",
-    "verifyLater": "Daha sonra"
+    "verifyLater": "Daha sonra",
+    "phoneRemoved": "Profiliniz güncellendi, telefon numaranız kaldırıldı.",
+    "phoneNotRemoved": "Telefon numaranız kaldırılamadı. Lütfen tekrar deneyin."
   },
   "discount": {
     "editTitle": "İndirimi Düzenle",

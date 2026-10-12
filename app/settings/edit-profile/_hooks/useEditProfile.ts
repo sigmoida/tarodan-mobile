@@ -14,7 +14,7 @@ import { phoneToSend, resolvePhoneOutcome } from '../_lib/phoneOutcome';
 
 type UpdateVars = {
   data: ProfileForm;
-  /** `phoneToSend` sonucu: `undefined` → numaraya dokunulmaz. */
+  /** `phoneToSend` sonucu: `undefined` → numaraya dokunulmaz, `''` → sil. */
   phone: string | undefined;
 };
 
@@ -110,7 +110,8 @@ export function useEditProfile() {
         if (payload[key] === '') payload[key] = undefined;
       });
       // Telefon yalnız DEĞİŞTİYSE gider (bkz. `phoneToSend`) — aynı numarayı
-      // yeniden göndermek sunucuda doğrulamayı düşürebilir.
+      // yeniden göndermek sunucuda doğrulamayı düşürebilir. Silme `''` olarak
+      // gider (sunucu null yazar); bu yüzden boş→undefined döngüsünden SONRA.
       if (phone !== undefined) payload.phone = phone;
 
       const res = await userApi.updateProfile(payload);
@@ -130,6 +131,14 @@ export function useEditProfile() {
       const result = resolvePhoneOutcome(sentPhone, fresh ? fresh.phone : responsePhone);
       if (result.outcome === 'unchanged') {
         setSnackbar({ visible: true, message: t('profile.profileUpdated'), variant: 'success' });
+        return;
+      }
+      if (result.outcome === 'removed') {
+        setSnackbar({ visible: true, message: t('security.phoneRemoved'), variant: 'success' });
+        return;
+      }
+      if (result.outcome === 'notRemoved') {
+        setSnackbar({ visible: true, message: t('security.phoneNotRemoved'), variant: 'danger' });
         return;
       }
       // B-1.7 — yeni numara: web gibi kaydı doğrulamaya bağla. Kaydedilmediyse

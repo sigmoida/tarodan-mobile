@@ -7290,7 +7290,9 @@
     "phoneNotSavedTitle": "Number not saved yet",
     "phoneNotSavedBody": "Your other profile details were saved, but this number is held unverified on another account. Complete SMS verification to move the number to your account; it is transferred once verification succeeds.",
     "verifyNow": "Verify now",
-    "verifyLater": "Later"
+    "verifyLater": "Later",
+    "phoneRemoved": "Your profile was updated and your phone number was removed.",
+    "phoneNotRemoved": "Your phone number could not be removed. Please try again."
   },
   "discount": {
     "editTitle": "Edit Discount",
