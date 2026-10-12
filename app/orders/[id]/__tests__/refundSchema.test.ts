@@ -11,7 +11,7 @@ import { refundRequirements, validateRefundRequest, type RefundPhase } from '../
 import { refundPhaseOf } from '../_lib/derive';
 import type { OrderDetail } from '../_lib/types';
 
-const t = i18n.t.bind(i18n) as any;
+const t = i18n.getFixedT('tr');
 const LONG = 'Kutunun bir köşesi ezik, model aracın aynası kırık geldi.';
 
 describe('refundRequirements', () => {
