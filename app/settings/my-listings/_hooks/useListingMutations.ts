@@ -31,8 +31,8 @@ export function useListingMutations() {
 
   const deactivate = useMutation({
     mutationFn: ({ id, removal }: RemovalRequest) => productsApi.deactivate(id, removal),
-    onSuccess: () => {
-      invalidate();
+    onSuccess: (_data, { id }) => {
+      invalidate(id);
       noticeAfterRemovalModal(t("common.success"), t("listing.deactivated"));
     },
     onError: (err) => {
@@ -42,8 +42,8 @@ export function useListingMutations() {
 
   const remove = useMutation({
     mutationFn: ({ id, removal }: RemovalRequest) => productsApi.delete(id, removal),
-    onSuccess: () => {
-      invalidate();
+    onSuccess: (_data, { id }) => {
+      invalidate(id);
       noticeAfterRemovalModal(t("common.success"), t("listing.deleted"));
     },
     onError: (err) => {
@@ -55,8 +55,8 @@ export function useListingMutations() {
   // Mesaj yanıttaki GERÇEK statüden gelir (karantinadaki ilan doğrudan active olur).
   const reactivate = useMutation({
     mutationFn: (listingId: string) => productsApi.update(listingId, { status: "active" }),
-    onSuccess: (response) => {
-      invalidate();
+    onSuccess: (response, listingId) => {
+      invalidate(listingId);
       appAlert(t("common.success"), t(activationMessageKey(response)));
     },
     onError: (err) => {

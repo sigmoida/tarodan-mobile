@@ -7,6 +7,7 @@ import React from "react";
 import { StyleSheet } from "react-native";
 import { screen, fireEvent, waitFor, act } from "@testing-library/react-native";
 import { renderWithProviders } from "@/test-utils";
+import { qk } from "@/lib/query";
 
 jest.mock("expo-router", () => {
   const react = require("react");
@@ -231,5 +232,32 @@ describe("C2 inceleme · 3 kapanış animasyonunda pencere kipi değişmez", () 
     expect(after.length).toBeGreaterThan(0);
     expect(after.some((p) => p.visible === false)).toBe(true);
     expect(after.every((p) => p.action === "deactivate")).toBe(true);
+  });
+});
+
+describe("C2 inceleme · 4 paylaşılan invalidation kümesi", () => {
+  it("pasife alma ürün detayını, genel listeleri ve ana sayfa akışlarını da tazeler", async () => {
+    serve([listing({ id: "A1", status: "active" })]);
+    api().deactivate.mockResolvedValue({ data: {} });
+    const { queryClient } = renderWithProviders(<MyListingsScreen />);
+    const spy = jest.spyOn(queryClient, "invalidateQueries");
+    await openRemoval("listing.deactivateAction");
+    await screen.findByText("product.deactivateListingFull");
+    fireEvent.press(screen.getByText("status.listingRemoval.reason.paused_temporarily"));
+    fireEvent.press(screen.getByText("product.deactivate"));
+    await waitFor(() => expect(api().deactivate).toHaveBeenCalled());
+
+    await waitFor(() => {
+      const keys = spy.mock.calls.map(([f]) => (f as { queryKey: unknown }).queryKey);
+      expect(keys).toEqual(
+        expect.arrayContaining([
+          qk.products.myListingsAll,
+          qk.products.detail("A1"),
+          qk.products.all,
+          qk.products.searchAll,
+          qk.products.featuredCollector,
+        ]),
+      );
+    });
   });
 });

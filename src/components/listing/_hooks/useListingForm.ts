@@ -14,6 +14,7 @@ import { MAX_COLORS } from '../_lib/schema';
 import { globalCustomGroups, requiredGlobalGroups } from '../_lib/attributeGroups';
 import { toFormValues } from '../_lib/editMapper';
 import { activatedStatus, activationMessageKey } from '../_lib/activation';
+import { invalidateListingCaches as invalidateListingCachesShared } from '../_lib/invalidate';
 
 import { useAuthStore } from '../../../stores/authStore';
 import { api, productsApi, categoriesApi, bankAccountApi, shippingApi, type ListingRemovalPayload } from '@/lib/api';
@@ -83,13 +84,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     refreshUserData,
   } = useAuthStore();
 
-  // İlan listesi/detay ekranlarının bayat kalmaması için ilgili cache'leri temizler.
-  const invalidateListingCaches = () => {
-    queryClient.invalidateQueries({ queryKey: ['my-listings'] });
-    queryClient.invalidateQueries({ queryKey: ['products'] });
-    queryClient.invalidateQueries({ queryKey: ['products-search'] });
-    if (productId) queryClient.invalidateQueries({ queryKey: ['product', productId] });
-  };
+  // İlan listesi/detay/ana sayfa ekranlarının bayat kalmaması için ilgili cache'leri
+  // temizler — İlanlarım ile ORTAK küme (`_lib/invalidate`).
+  const invalidateListingCaches = () => invalidateListingCachesShared(queryClient, productId);
 
   // #81 (hibrit): text alanları useZodForm'da; watch/setValue köprüsüyle mevcut
   // f.title/f.setTitle sözleşmesi korunur (section'lar değişmez), zod validasyon

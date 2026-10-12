@@ -30,8 +30,8 @@ export function useRenewListings() {
 
   const renewOne = useMutation({
     mutationFn: (listingId: string) => productsApi.renew(listingId),
-    onSuccess: (response) => {
-      invalidate();
+    onSuccess: (response, listingId) => {
+      invalidate(listingId);
       appAlert(t("common.success"), t(renewMessageKey(response)));
     },
     onError: (err) => {
