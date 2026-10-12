@@ -3,6 +3,9 @@
  * reklamsız üye, ve iOS ModalFreeze — bağlantı modal KAPANDIKTAN sonra açılır.
  */
 import React from 'react';
+import * as fs from 'fs';
+import * as path from 'path';
+import { Modal as RNModal } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
 const mockUseAds = jest.fn();
@@ -157,5 +160,18 @@ describe('PopupAd', () => {
     fireEvent.press(getByTestId('ad-banner-p1'));
     await flush(NAVIGATE_AFTER_CLOSE_MS + 10);
     expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it('@/ui Modal kullanır (ham RN Modal içe aktarılmaz) ve Android geri tuşu kapatır', async () => {
+    const src = fs.readFileSync(path.resolve(__dirname, '../PopupAd.tsx'), 'utf8');
+    expect(src).toMatch(/import \{[^}]*\bModal\b[^}]*\} from '@\/ui'/);
+    expect(src).not.toMatch(/Modal[^;]*from 'react-native'/);
+
+    setAds([popupAd]);
+    const { queryByTestId, UNSAFE_getByType } = render(<PopupAd />);
+    await flush(POPUP_AD_DELAY_MS + 100);
+    expect(queryByTestId('popup-ad')).toBeTruthy();
+    act(() => UNSAFE_getByType(RNModal).props.onRequestClose());
+    expect(queryByTestId('popup-ad')).toBeNull();
   });
 });
