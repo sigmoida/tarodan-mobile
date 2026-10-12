@@ -176,7 +176,10 @@ describe('J32.b · "Varsayılan Yap" satır-bazlı yükleme (bulgu #23)', () => 
       },
       { timeout: 5000 },
     );
-  });
+    // Test süresi iç `waitFor`'un 5 sn'sinden UZUN olmalı: jest'in varsayılan
+    // 5 sn'lik test sınırı, yüklü makinede iç bekleyiş bitmeden testi düşürüyordu
+    // (tam suite'te görüldü; tek başına koşumda geçiyor).
+  }, 15000);
 });
 
 /**
