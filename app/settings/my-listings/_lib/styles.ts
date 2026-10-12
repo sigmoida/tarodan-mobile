@@ -129,15 +129,47 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.danger[700]!,
   },
-  expiryWarning: {
+  hintRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: theme.spacing[1.5],
+    gap: theme.spacing[1],
   },
-  expiryText: {
+  hintText: {
+    flex: 1,
     fontSize: 11,
-    color: colors.warning[600]!,
-    marginLeft: theme.spacing[1],
+    color: colors.warning[700]!,
+  },
+  selectCheck: {
+    position: 'absolute',
+    top: theme.spacing[2],
+    right: theme.spacing[2],
+    zIndex: 1,
+    padding: theme.spacing[1],
+    borderRadius: theme.radius.md,
+    backgroundColor: colors.white,
+  },
+  expiredBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: theme.spacing[2],
+    marginHorizontal: theme.spacing[4],
+    marginBottom: theme.spacing[2],
+    paddingVertical: theme.spacing[2],
+    paddingHorizontal: theme.spacing[3],
+    borderRadius: theme.radius.lg,
+    backgroundColor: colors.surface.alt,
+  },
+  expiredBarActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing[2],
+  },
+  expiredBanner: {
+    marginHorizontal: theme.spacing[4],
+    marginBottom: theme.spacing[2],
   },
   dateText: {
     fontSize: 11,

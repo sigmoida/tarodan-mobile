@@ -5,7 +5,7 @@
  * Backend (ilan durum geçişleri, relist limiti, deaktif/sil kalıcılığı) backendOnly.
  */
 import React from "react";
-import { screen, fireEvent, waitFor } from "@testing-library/react-native";
+import { screen, fireEvent, waitFor, act } from "@testing-library/react-native";
 import { renderWithProviders } from "@/test-utils";
 
 const mockPush = jest.fn();
@@ -41,11 +41,15 @@ jest.mock("@/components/product/BoostModal", () => ({
 const mockGetMyListings = jest.fn();
 const mockGetMyStats = jest.fn();
 jest.mock("@/lib/api", () => ({
+  errorText: (_e: unknown, fallback: string) => fallback,
   productsApi: {
     getMyListings: (...a: any[]) => mockGetMyListings(...a),
     getMyStats: (...a: any[]) => mockGetMyStats(...a),
     update: jest.fn(),
     delete: jest.fn(),
+    deactivate: jest.fn(),
+    renew: jest.fn(),
+    renewMany: jest.fn(),
   },
 }));
 
@@ -167,7 +171,7 @@ describe("İlanlarım · menü kapanmadan uyarı açılmaz (iOS donma)", () => {
     wireStats();
   });
 
-  it('"Pasifleştir" onayı menü kapandıktan sonra açılır', async () => {
+  it('"Pasife al" nedeni penceresi menü kapandıktan sonra açılır (appAlert değil)', async () => {
     const { appAlert } = jest.requireMock("@/ui") as { appAlert: jest.Mock };
     appAlert.mockClear();
     mockGetMyListings.mockResolvedValue({ data: { data: [listing({ id: "L9", status: "active" })] } });
@@ -178,9 +182,12 @@ describe("İlanlarım · menü kapanmadan uyarı açılmaz (iOS donma)", () => {
 
     jest.useFakeTimers();
     fireEvent.press(screen.getByText("listing.deactivateAction"));
+    expect(screen.queryByText("product.deactivateListingFull")).toBeNull();
+    act(() => {
+      jest.advanceTimersByTime(500);
+    });
+    expect(screen.getByText("product.deactivateListingFull")).toBeOnTheScreen();
     expect(appAlert).not.toHaveBeenCalled();
-    jest.advanceTimersByTime(500);
-    expect(appAlert).toHaveBeenCalledWith("listing.deactivateTitle", "listing.deactivateBody", expect.any(Array));
     jest.useRealTimers();
   });
 });
