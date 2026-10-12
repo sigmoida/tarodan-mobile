@@ -11,12 +11,15 @@ jest.mock('@/lib/api', () => ({
   adsApi: { getActive: (...a: unknown[]) => mockGetActive(...(a as [])) },
 }));
 
-let mockLimits: { isAdFree?: boolean } | null = null;
 jest.mock('../useMembershipLimits', () => ({
-  useMembershipLimits: () => ({ limits: mockLimits, isLoading: false }),
+  useMembershipLimits: () => ({ limits: null, isLoading: false }),
 }));
 
 import { useAds } from '../useAds';
+import { useAuthStore } from '@/stores/authStore';
+
+const setServerLimits = (v: { isAdFree?: boolean } | null) =>
+  useAuthStore.setState({ serverLimits: v as any, user: { membershipTier: 'premium' } as any });
 
 const ad = (over: Record<string, unknown> = {}) => ({
   id: 'a', title: 'T', imageUrl: 'https://x/a.png', linkUrl: null, content: null, altText: null,
@@ -34,7 +37,7 @@ function run(position = 'header') {
 describe('useAds', () => {
   beforeEach(() => {
     mockGetActive.mockReset();
-    mockLimits = null;
+    setServerLimits(null);
   });
 
   it('görselsiz (metin) reklamı eler MEZ; başlıksız+görselsiz çizilemez olduğundan elenir', async () => {
@@ -60,14 +63,22 @@ describe('useAds', () => {
   });
 
   it('sunucu isAdFree:true derse uç çağrılmaz', () => {
-    mockLimits = { isAdFree: true };
+    setServerLimits({ isAdFree: true });
     const { result } = run();
     expect(result.current.isAdFree).toBe(true);
     expect(mockGetActive).not.toHaveBeenCalled();
   });
 
   it('isAdFree:false (admin kapattı) → reklam gösterilir', async () => {
-    mockLimits = { isAdFree: false };
+    setServerLimits({ isAdFree: false });
+    mockGetActive.mockResolvedValue({ data: [ad()] });
+    const { result } = run();
+    await waitFor(() => expect(result.current.ads).toHaveLength(1));
+    expect(result.current.isAdFree).toBe(false);
+  });
+
+  it('premium üye + sunucu bir şey söylemedi (serverLimits yok / isAdFree eksik) → reklam gösterilir', async () => {
+    setServerLimits({});
     mockGetActive.mockResolvedValue({ data: [ad()] });
     const { result } = run();
     await waitFor(() => expect(result.current.ads).toHaveLength(1));

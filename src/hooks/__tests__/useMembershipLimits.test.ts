@@ -38,40 +38,33 @@ describe('mapServerLimits', () => {
     expect(mapped.maxListings).toBe(0);
   });
 
-  it('isAdFree null/eksik ise anahtar HİÇ konmaz (sabit tier tablosu geçerli kalır)', () => {
-    expect('isAdFree' in mapServerLimits({ isAdFree: null })!).toBe(false);
-    expect('isAdFree' in mapServerLimits({ canTrade: true })!).toBe(false);
-    expect('isAdFree' in mapServerLimits({ isAdFree: 'yes' as any })!).toBe(false);
+  it('isAdFree null/eksik ise false yazılır (reklam gösterilir; tabloya düşülmez)', () => {
+    expect(mapServerLimits({ isAdFree: null })!.isAdFree).toBe(false);
+    expect(mapServerLimits({ canTrade: true })!.isAdFree).toBe(false);
+    expect(mapServerLimits({ isAdFree: 'yes' as any })!.isAdFree).toBe(false);
   });
 
-  it('boolean isAdFree sunucu kararıdır ve tabloyu ezer (true da false da)', () => {
-    expect(mapServerLimits({ isAdFree: true })).toEqual({ isAdFree: true });
-    expect(mapServerLimits({ isAdFree: false })).toEqual({ isAdFree: false });
+  it('boolean isAdFree sunucu kararıdır (true da false da)', () => {
+    expect(mapServerLimits({ isAdFree: true })!.isAdFree).toBe(true);
+    expect(mapServerLimits({ isAdFree: false })!.isAdFree).toBe(false);
   });
 });
 
 describe('isAdFree — authStore bindirmesi', () => {
-  // Gerçek store: sunucu boolean verirse tabloyu ezer, vermezse tablo kalır.
   const { useAuthStore } = require('@/stores/authStore');
 
   const setTier = (tier: string) =>
     useAuthStore.setState({ user: { membershipTier: tier } as any, serverLimits: null });
 
-  it('sunucu söylemezse premium tablosu (reklamsız) geçerli', () => {
+  it('premium üye + sunucu null → serverLimits.isAdFree false (sessizce reklamsız KALMAZ)', () => {
     setTier('premium');
     useAuthStore.getState().setServerLimits(mapServerLimits({ isAdFree: null })!);
-    expect(useAuthStore.getState().limits?.isAdFree).toBe(true);
+    expect(useAuthStore.getState().serverLimits?.isAdFree).toBe(false);
   });
 
-  it('sunucu isAdFree:false derse premium bile reklam görür', () => {
-    setTier('premium');
-    useAuthStore.getState().setServerLimits(mapServerLimits({ isAdFree: false })!);
-    expect(useAuthStore.getState().limits?.isAdFree).toBe(false);
-  });
-
-  it('sunucu isAdFree:true derse ücretsiz üye reklamsız olur', () => {
+  it('sunucu isAdFree:true derse ücretsiz üye de reklamsız olur', () => {
     setTier('free');
     useAuthStore.getState().setServerLimits(mapServerLimits({ isAdFree: true })!);
-    expect(useAuthStore.getState().limits?.isAdFree).toBe(true);
+    expect(useAuthStore.getState().serverLimits?.isAdFree).toBe(true);
   });
 });

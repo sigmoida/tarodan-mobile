@@ -45,10 +45,11 @@ export function mapServerLimits(dto: ServerLimitsDto | null): ServerLimitsOverri
   if (dto.maxImages !== undefined) out.maxImagesPerListing = dto.maxImages;
   if (dto.canCreateCollection !== undefined) out.canCreateCollections = dto.canCreateCollection;
   if (dto.canTrade !== undefined) out.canTrade = dto.canTrade;
-  // Yalnız gerçek boolean sunucu kararıdır. `null`/eksik = "sunucu söylemiyor":
-  // anahtar HİÇ konmaz, authStore'daki sabit tier tablosu geçerli kalır
-  // (`null` konsaydı tabloyu ezip premium üyeye de reklam gösterirdi).
-  if (typeof dto.isAdFree === 'boolean') out.isAdFree = dto.isAdFree;
+  // Reklamsızlık YALNIZ sunucu kararıdır: boolean gelirse ona uyulur; `null`/eksik
+  // = "belirlenmedi" → `false` (reklam gösterilir; web ve üretimdeki davranışla
+  // aynı). authStore'daki sabit tier tablosuna DÜŞÜLMEZ — aksi halde ücretli
+  // üye sunucu hiçbir şey demediği halde sessizce reklamsız kalırdı.
+  out.isAdFree = dto.isAdFree === true;
   return out;
 }
 
