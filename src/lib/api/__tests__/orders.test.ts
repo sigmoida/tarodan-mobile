@@ -2,10 +2,11 @@
  * `POST /orders/quote` yanıtının kökünde `pricingHash` + `shippingTariffVersion`
  * + `commissionRuleSetId` + `commissionRuleSetVersion` bulunur (2026-08-08 canlı
  * ölçüm — delta 18). API DTO'su bu dördünü order-create uçlarının (`checkout`,
- * `checkoutGuest`, `directBuy`, `createGuest`) hepsinde ZORUNLU bekliyor —
- * komisyon seti quote'tan aynen geri gönderilmezse DTO doğrulaması reddediyor.
+ * `checkoutGuest`) ikisinde de ZORUNLU bekliyor — komisyon seti quote'tan
+ * aynen geri gönderilmezse DTO doğrulaması reddediyor. (`directBuy` /
+ * `createGuest` hiç çağrılmadıkları için kaldırıldı — Parite A-1.11a.)
  *
- * Bu test dört payload üreticisinin de `toExpectedPricing`'in ürettiği
+ * Bu test iki payload üreticisinin de `toExpectedPricing`'in ürettiği
  * `ExpectedPricingSnapshot`'ı (dört `expected*` alanı) AYNEN koşulsuz alt
  * katmana geçirdiğini doğrular.
  *
@@ -81,39 +82,6 @@ describe('ordersApi — expectedPricingHash / expectedShippingTariffVersion', ()
     );
   });
 
-  it('directBuy (üye, Buy Now): dört alanı da koşulsuz gönderir', async () => {
-    await ordersApi.directBuy({
-      productId: 'p1',
-      shippingAddressId: 'addr-1',
-      expectedPricing: EXPECTED_PRICING,
-    });
-    expect(mockApiPost).toHaveBeenCalledWith(
-      '/orders/buy',
-      expect.objectContaining(EXPECTED_PRICING),
-    );
-  });
-
-  it('createGuest (misafir tekil satın alma): dört alanı da koşulsuz gönderir', async () => {
-    await ordersApi.createGuest({
-      productId: 'p1',
-      email: 'a@b.com',
-      phone: '+905321234567',
-      guestName: 'Ali Veli',
-      shippingAddress: {
-        fullName: 'Ali Veli',
-        phone: '+905321234567',
-        city: 'İstanbul',
-        district: 'Kadıköy',
-        address: 'Test Sokak No:1',
-      },
-      expectedPricing: EXPECTED_PRICING,
-    });
-    expect(mockGuestPost).toHaveBeenCalledWith(
-      '/orders/guest',
-      expect.objectContaining(EXPECTED_PRICING),
-    );
-  });
-
   it('getQuote: /orders/quote çağırır (yanıt kökünde pricingHash/shippingTariffVersion beklenir)', async () => {
     await ordersApi.getQuote({ items: [{ productId: 'p1', quantity: 1 }] });
     expect(mockApiPost).toHaveBeenCalledWith('/orders/quote', {
@@ -127,6 +95,18 @@ describe('ordersApi — expectedPricingHash / expectedShippingTariffVersion', ()
  * gövdesinde düşerse (`quantity ?? 1`) imza tutmaz → 409 `pricingChanged`.
  * Payload üreticisi satırları adet dahil AYNEN geçirmeli.
  */
+/**
+ * Parite A-1.11a: hiç çağrılmayan sipariş oluşturma sarmalayıcıları kaldırıldı
+ * (`POST /orders` API'de yok; `/orders/buy` ve `/orders/guest` mobilde
+ * kullanılmıyor — "Hızlı Al" da `checkout` üzerinden gider). Yüzey geri gelirse
+ * adet/fiyat imzası ikinci bir yoldan geçebilir.
+ */
+describe('ordersApi — ölü sipariş oluşturma sarmalayıcıları yüzeyde YOK', () => {
+  it.each(['create', 'directBuy', 'createGuest'])('%s tanımlı değil', (name) => {
+    expect((ordersApi as Record<string, unknown>)[name]).toBeUndefined();
+  });
+});
+
 describe('ordersApi — sipariş gövdesi satır adedini taşır', () => {
   const ITEMS = [
     { productId: 'p1', quantity: 3 },

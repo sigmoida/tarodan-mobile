@@ -151,7 +151,7 @@ export type OrderQuoteResponse = {
 
 /**
  * Sipariş gövdesine AYNEN geri gidecek fiyat imzası. Delta 18 ile komisyon
- * rule-set kimliği/sürümü eklendi; alanlar dört payload üreticisine dağıtılmak
+ * rule-set kimliği/sürümü eklendi; alanlar payload üreticilerine dağıtılmak
  * yerine burada toplanır — beşinci alan geldiğinde yalnız bu tip ve
  * `toExpectedPricing` değişir, çağıran hiç değişmez.
  */
@@ -194,30 +194,10 @@ export const ordersApi = {
     api.get<{ totalEarnings: number; pendingEarnings: number }>('/orders/seller/earnings'),
   getOne: (id: string | number) =>
     api.get(`/orders/${id}`),
-  create: (data: any) =>
-    api.post('/orders', data),
-  /** Buy Now — üye için doğrudan satın alma */
-  directBuy: ({ expectedPricing, ...rest }: {
-    productId: string;
-    shippingAddressId?: string;
-    shippingAddress?: OrderAddressInput;
-    billingAddressId?: string;
-    billingAddress?: OrderAddressInput;
-    /** Quote'tan türetilmiş fiyat imzası — gövdeye düz alanlar olarak yayılır. */
-    expectedPricing: ExpectedPricingSnapshot;
-  }) => api.post('/orders/buy', { ...rest, ...expectedPricing }),
-  createGuest: ({ expectedPricing, ...rest }: {
-    productId: string;
-    email: string;
-    phone: string;
-    guestName: string;
-    shippingAddress: OrderAddressInput;
-    billingAddress?: OrderAddressInput;
-    offerId?: string;
-    price?: number;
-    /** Quote'tan türetilmiş fiyat imzası — gövdeye düz alanlar olarak yayılır. */
-    expectedPricing: ExpectedPricingSnapshot;
-  }) => guestApi.post('/orders/guest', { ...rest, ...expectedPricing }),
+  /* `create` (`POST /orders` — API'de yok), `directBuy` (`/orders/buy`) ve
+     `createGuest` (`/orders/guest`) bilerek YOK: hiç çağrılmıyorlardı. "Hızlı
+     Al" da sepet gibi `checkout`/`checkoutGuest` üzerinden gider (tek ürünlü
+     `items`), böylece adet/fiyat imzası tek yoldan geçer. (Parite A-1.11a) */
   sendGuestVerificationCode: (data: { email: string; expectedCheckoutCount?: number }) =>
     guestApi.post<{ success: boolean; expiresInSeconds: number }>(
       '/orders/guest/send-verification-code',
