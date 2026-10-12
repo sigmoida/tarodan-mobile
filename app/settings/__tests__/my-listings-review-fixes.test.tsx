@@ -44,6 +44,18 @@ jest.mock("@/ui/components/AlertDialog", () => ({
   appAlert: jest.fn(),
 }));
 
+/** Gerçek pencere + verilen prop'ların kaydı: kapanış sırasında hangi kipte çizildiğini görmek için. */
+const mockRemovalProps: Array<Record<string, any>> = [];
+jest.mock("@/components/listing/ListingRemovalModal", () => {
+  const actual = jest.requireActual("@/components/listing/ListingRemovalModal");
+  return {
+    ListingRemovalModal: (props: Record<string, any>) => {
+      mockRemovalProps.push(props);
+      return actual.ListingRemovalModal(props);
+    },
+  };
+});
+
 jest.mock("@/components/product/BoostModal", () => ({ BoostModal: () => null }));
 
 const mockGetMyListings = jest.fn();
@@ -118,6 +130,7 @@ beforeEach(() => {
   mockGetMyListings.mockReset();
   mockGetMyStats.mockReset();
   sourceAlert().mockReset();
+  mockRemovalProps.length = 0;
   (["update", "delete", "deactivate", "renew", "renewMany"] as const).forEach((k) => api()[k].mockReset());
   mockGetMyStats.mockResolvedValue({
     data: { counts: { all: 3, active: 1, inactive: 2 }, summary: { used: 1, max: 10, canCreate: true } },
@@ -184,5 +197,39 @@ describe("C2 inceleme · 2 iOS ModalFreeze: uyarı pencere kapandıktan sonra", 
       jest.advanceTimersByTime(450);
     });
     expect(sourceAlert()).toHaveBeenCalledWith("common.success", "listing.deactivated", undefined);
+  });
+});
+
+describe("C2 inceleme · 3 kapanış animasyonunda pencere kipi değişmez", () => {
+  it("pasife alma penceresi kapanırken 'Sil' kipine dönmez (iptal ve gönderim)", async () => {
+    serve([listing({ id: "A1", status: "active" })]);
+    api().deactivate.mockResolvedValue({ data: {} });
+    renderWithProviders(<MyListingsScreen />);
+    await openRemoval("listing.deactivateAction");
+    await screen.findByText("product.deactivateListingFull");
+    const openIdx = mockRemovalProps.length;
+    expect(mockRemovalProps[openIdx - 1]).toMatchObject({ visible: true, action: "deactivate" });
+
+    // İptal: visible düşer, kip aynı kalır.
+    fireEvent.press(screen.getByText("common.cancel"));
+    await waitFor(() => expect(mockRemovalProps[mockRemovalProps.length - 1].visible).toBe(false));
+    expect(mockRemovalProps[mockRemovalProps.length - 1].action).toBe("deactivate");
+    expect(mockRemovalProps.slice(openIdx).every((p) => p.action === "deactivate")).toBe(true);
+  });
+
+  it("gönderimde de kip korunur", async () => {
+    serve([listing({ id: "A1", status: "active" })]);
+    api().deactivate.mockResolvedValue({ data: {} });
+    renderWithProviders(<MyListingsScreen />);
+    await openRemoval("listing.deactivateAction");
+    await screen.findByText("product.deactivateListingFull");
+    fireEvent.press(screen.getByText("status.listingRemoval.reason.paused_temporarily"));
+    const before = mockRemovalProps.length;
+    fireEvent.press(screen.getByText("product.deactivate"));
+    await waitFor(() => expect(api().deactivate).toHaveBeenCalled());
+    const after = mockRemovalProps.slice(before);
+    expect(after.length).toBeGreaterThan(0);
+    expect(after.some((p) => p.visible === false)).toBe(true);
+    expect(after.every((p) => p.action === "deactivate")).toBe(true);
   });
 });

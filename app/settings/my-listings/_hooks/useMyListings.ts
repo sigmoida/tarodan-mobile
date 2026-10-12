@@ -42,7 +42,15 @@ export function useMyListings() {
   const [actionMenuListing, setActionMenuListing] = useState<Listing | null>(
     null,
   );
+  // Hedef (ilan + eylem) pencere KAPANDIKTAN sonra da durur; yalnız `removalOpen`
+  // düşer. Aksi halde kapanış animasyonunda pencere varsayılan "Sil" kipine dönüp
+  // pasife alma ekranı kapanırken kırmızı "Evet, Sil" gösterirdi. Sonraki açılış üzerine yazar.
   const [removalTarget, setRemovalTarget] = useState<RemovalTarget | null>(null);
+  const [removalOpen, setRemovalOpen] = useState(false);
+  const openRemoval = (target: RemovalTarget) => {
+    setRemovalTarget(target);
+    setRemovalOpen(true);
+  };
   const [boostListing, setBoostListing] = useState<Listing | null>(null);
   const isPremiumUser = Boolean(
     (user as any)?.isPremium ||
@@ -145,7 +153,7 @@ export function useMyListings() {
         break;
       case "deactivate":
         // Neden ZORUNLU sorulur (web ile aynı) — pasife alma nedenle birlikte gider.
-        afterMenuCloses(() => setRemovalTarget({ listing, action: "deactivate" }));
+        afterMenuCloses(() => openRemoval({ listing, action: "deactivate" }));
         break;
       case "activate":
         reactivate.mutate(listing.id);
@@ -161,7 +169,7 @@ export function useMyListings() {
         else reactivate.mutate(listing.id);
         break;
       case "delete":
-        afterMenuCloses(() => setRemovalTarget({ listing, action: "delete" }));
+        afterMenuCloses(() => openRemoval({ listing, action: "delete" }));
         break;
     }
   };
@@ -170,7 +178,7 @@ export function useMyListings() {
   const submitRemoval = (removal: ListingRemovalPayload) => {
     if (!removalTarget) return;
     const { listing, action } = removalTarget;
-    setRemovalTarget(null);
+    setRemovalOpen(false);
     if (action === "delete") remove.mutate({ id: listing.id, removal });
     else deactivate.mutate({ id: listing.id, removal });
   };
@@ -217,7 +225,8 @@ export function useMyListings() {
     actionMenuListing,
     setActionMenuListing,
     removalTarget,
-    closeRemoval: () => setRemovalTarget(null),
+    removalOpen,
+    closeRemoval: () => setRemovalOpen(false),
     submitRemoval,
     boostListing,
     setBoostListing,
