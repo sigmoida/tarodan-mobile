@@ -196,6 +196,23 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         <Text variant="bodySm" tone="danger">{errors.acceptTerms.message}</Text>
       ) : null}
 
+      <Controller
+        control={control}
+        name="acceptKvkk"
+        render={({ field: { onChange, value } }) => (
+          <Checkbox
+            testID="register-acceptKvkk"
+            checked={value}
+            onChange={() => onChange(!value)}
+            label={t('auth.kvkkCheckboxLabel')}
+            error={errors.acceptKvkk?.message}
+          />
+        )}
+      />
+      {errors.acceptKvkk?.message ? (
+        <Text variant="bodySm" tone="danger">{errors.acceptKvkk.message}</Text>
+      ) : null}
+
       <HStack justify="center" wrap gap={1} style={{ marginTop: 8 }}>
         <Text variant="bodySm" tone="primary" weight="semibold" onPress={() => router.push('/terms')}>
           {t('footer.terms')}
@@ -203,6 +220,18 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         <Text variant="bodySm" tone="muted">{t('common.and')}</Text>
         <Text variant="bodySm" tone="primary" weight="semibold" onPress={() => router.push('/privacy')}>
           {t('footer.privacy')}
+        </Text>
+      </HStack>
+      <HStack justify="center">
+        <Text
+          variant="bodySm"
+          tone="primary"
+          weight="semibold"
+          testID="register-kvkk-link"
+          // Ayrı KVKK sayfası yok; web gibi gizlilik/aydınlatma metnine gider.
+          onPress={() => router.push('/privacy')}
+        >
+          {t('legal.kvkkTitle')}
         </Text>
       </HStack>
 

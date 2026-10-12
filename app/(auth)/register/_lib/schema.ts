@@ -43,6 +43,9 @@ export const buildRegisterSchema = (t: TFunction) =>
       password: strongPasswordSchema(t),
       confirmPassword: z.string(),
       acceptTerms: z.boolean().refine((val) => val, t('validation.acceptTerms')),
+      // KVKK aydınlatma metni AYRI kutu (web ile aynı; delta 22). Sunucuya
+      // `acceptedConsents` olarak gider, bkz. `registrationConsentDocuments`.
+      acceptKvkk: z.boolean().refine((val) => val, t('auth.mustAcceptKvkk')),
     })
     .refine((data) => data.password === data.confirmPassword, {
       message: t('validation.passwordMatch'),

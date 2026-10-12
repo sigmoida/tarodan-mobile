@@ -1,4 +1,5 @@
 import { api, guestApi } from './client';
+import type { ConsentDocumentKey } from '@/lib/shared/legalConsent';
 
 // Auth API - Web ile aynı endpoint'ler
 export const authApi = {
@@ -27,6 +28,8 @@ export const authApi = {
     phone?: string;
     birthDate?: string;
     acceptsMarketingEmails?: boolean;
+    /** Kayıt formunda onaylanan zorunlu belgeler (terms, privacy, kvkk); sürüm sunucuda damgalanır. */
+    acceptedConsents?: ConsentDocumentKey[];
   }) => api.post('/auth/register', data),
   /**
    * Kullanıcı adı uygunluğu — public, throttle **30/dk**. Yalnız "bu isim alınmış
