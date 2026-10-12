@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { theme, Text } from '@/ui';
 import { adsApi, type ActiveAd } from '@/lib/api';
 import { useAds } from '@/hooks/useAds';
+import { hasAdImage } from '@/lib/ads/creative';
 import { adAspectRatio, naturalRatioOf } from '@/lib/ads/adAspect';
 import { hotspotStyle, renderableHotspots } from '@/lib/ads/hotspots';
 import { openAdLink, resolveAdLink } from '@/lib/ads/openAdLink';
@@ -15,7 +16,7 @@ import { useFlashCountdown } from '@/lib/ads/useFlashCountdown';
 const HOTSPOT_SLOP = theme.spacing[1];
 
 function AdSlot({ ad, position }: { ad: ActiveAd; position: string }) {
-  const hasImage = !!ad.imageUrl;
+  const hasImage = hasAdImage(ad);
   // Görsel yüklenince kutu onun GERÇEK oranını alır (kayıtlı ölçü görselden
   // sapabilir). Kutu = görsel olduğu için `contain` kırpmaz ve yüzdeyle
   // konumlanan bölgeler görselin üzerinde birebir oturur.
@@ -49,7 +50,7 @@ function AdSlot({ ad, position }: { ad: ActiveAd; position: string }) {
       {hasImage ? (
         <View style={[styles.imageBox, { aspectRatio: adAspectRatio(ad, position, naturalRatio) }]}>
           <Image
-            source={{ uri: ad.imageUrl! }}
+            source={{ uri: ad.imageUrl!.trim() }}
             style={styles.image}
             contentFit="contain"
             transition={200}

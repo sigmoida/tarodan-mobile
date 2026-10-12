@@ -1,4 +1,5 @@
 import type { ActiveAd, AdHotspot } from '@/lib/api';
+import { hasAdImage } from './creative';
 import { resolveAdLink } from './openAdLink';
 
 /** Oranları (0–1) görsel kutusuna göre yüzde konumlandırmaya çevirir. */
@@ -15,7 +16,7 @@ export function hotspotStyle(h: Pick<AdHotspot, 'x' | 'y' | 'width' | 'height'>)
  * yoktur — tek `linkUrl` kullanılır. Eski API yanıtında `hotspots` yoksa `[]`.
  */
 export function renderableHotspots(ad: Pick<ActiveAd, 'imageUrl' | 'hotspots'>): AdHotspot[] {
-  if (!ad.imageUrl) return [];
+  if (!hasAdImage(ad)) return [];
   return (ad.hotspots ?? [])
     .filter(
       (h) =>
