@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { adsApi, type ActiveAd } from '@/lib/api';
 import { qk } from '@/lib/query';
+import { useAuthStore } from '@/stores/authStore';
 import { useMembershipLimits } from './useMembershipLimits';
 
 /** Çizilebilir reklam: görselli ya da (metin reklam) başlıklı. */
@@ -17,16 +18,17 @@ const DEVICE_TARGETS = ['all', 'mobile'];
  * liste döndürürdü. Bu yüzden tüm aktif reklamlar tek sorguda çekilip filtre
  * istemcide yapılır (liste küçük, tek query tüm ekranlarda paylaşılır).
  *
- * Reklamsızlık: `GET /membership/me/limits` boolean `isAdFree` döndürürse (admin
- * kutusu) ONA uyulur — `mapServerLimits` bunu authStore'daki `limits`e bindirir.
- * Sunucu söylemezse (`null`/alan yok) authStore'daki sabit tier tablosu
- * (premium/business reklamsız) geçerli kalır.
+ * Reklamsızlık YALNIZ sunucu kararıdır: `GET /membership/me/limits` boolean
+ * `isAdFree` döndürürse (admin kutusu) ONA uyulur; `null`/eksik ya da henüz
+ * yüklenmemiş/misafir = reklam gösterilir (web ile aynı). authStore'daki sabit
+ * tier tablosuna (`limits`) BAKILMAZ — ücretli üye sunucu söylemeden sessizce
+ * reklamsız kalmasın. `mapServerLimits` null'ı `false`a çevirip `serverLimits`e yazar.
  *
  * Metin (görselsiz) reklam da döner: görsel YA DA başlık varsa çizilebilir.
  */
 export function useAds(position: string) {
-  const { limits } = useMembershipLimits();
-  const isAdFree = limits?.isAdFree === true;
+  useMembershipLimits(); // sunucu hakkını çeker ve `serverLimits`e yazar
+  const isAdFree = useAuthStore((s) => s.serverLimits?.isAdFree) === true;
 
   const adsQuery = useQuery({
     queryKey: qk.ads.active,
