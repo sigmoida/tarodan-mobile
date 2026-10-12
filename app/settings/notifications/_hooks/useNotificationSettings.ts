@@ -4,6 +4,8 @@ import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { appAlert } from '@/ui';
 import { api } from '@/lib/api';
+// Doğrudan modül yolu: testler `@/lib/api` barrel'ını mock'luyor.
+import { errorText } from '@/lib/api/errorText';
 import { qk } from '@/lib/query';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useAuthStore } from '@/stores/authStore';
@@ -69,12 +71,8 @@ export function useNotificationSettings() {
       queryClient.invalidateQueries({ queryKey: qk.user.notificationSettings });
       appAlert(t('common.success'), t('settings.notificationSettingsSaved'));
     },
-    onError: (error: any) => {
-      const msg = error?.response?.data?.message;
-      appAlert(
-        t('common.error'),
-        Array.isArray(msg) ? msg.join('\n') : msg || t('settings.settingUpdateFailed'),
-      );
+    onError: (error: unknown) => {
+      appAlert(t('common.error'), errorText(error, t('settings.settingUpdateFailed')));
     },
   });
 

@@ -82,6 +82,16 @@ describe('B-1.11 · bildirim ayarları kaydı', () => {
   });
 });
 
+describe('hata metni · errorText', () => {
+  it('boş mesaj dizisi → yedek metin (boş uyarı gösterilmez)', async () => {
+    patch.mockRejectedValue({ response: { status: 400, data: { message: [] } } });
+    await save();
+    await waitFor(() =>
+      expect(appAlert).toHaveBeenCalledWith('common.error', 'settings.settingUpdateFailed'),
+    );
+  });
+});
+
 describe('bildirim ayarları yüklemesi', () => {
   it('GET düşerse ErrorState görünür, Kaydet kapalı ve PATCH gitmez', async () => {
     get.mockRejectedValue({ response: { status: 500, data: {} } });
