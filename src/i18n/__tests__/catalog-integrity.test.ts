@@ -151,6 +151,13 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     // İçerik filtresi etiketleri: platform/marka adları, çevrilmez.
     'message.violationLabelWhatsapp',
     'message.violationLabelTelegram',
+    // İlan kaldırma nedeni platformları: marka adları, çevrilmez (web kataloğunda da aynı).
+    'status.listingRemoval.platform.letgo',
+    'status.listingRemoval.platform.instagram',
+    'status.listingRemoval.platform.dolap',
+    'status.listingRemoval.platform.sahibinden',
+    // Yalnız "{title}: {reason}" şablonu; çevrilecek sözcük yok.
+    'profile.expiredListings.failedItem',
   ]);
 
   /**
