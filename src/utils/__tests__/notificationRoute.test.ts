@@ -224,14 +224,45 @@ describe('notificationRoute — C-1.5', () => {
     ).toBe('/sales/o1');
   });
 
-  it('audience, link desenine göre önceliklidir; ikisi de yoksa alıcı ekranı', () => {
+  it('sıra: audience, link deseni, son çare tip adı', () => {
     expect(
       notificationRoute({ type: 'order_paid', link: '/profile/orders/o1', data: { orderId: 'o1', audience: 'seller' } }),
     ).toBe('/sales/o1');
-    // Tip adı tek başına satıcı saymaz (ikinci bir tip listesi tutulmaz).
-    expect(notificationRoute({ type: 'order_cancelled_seller', link: null, data: { orderId: 'o1' } })).toBe(
-      '/orders/o1',
-    );
+    // audience=buyer tip yedeğinden önce gelir
+    expect(
+      notificationRoute({ type: 'order_cancelled_seller', link: null, data: { orderId: 'o1', audience: 'buyer' } }),
+    ).toBe('/orders/o1');
+    // başka bir (alıcı) link varsa tip yedeğine düşülmez
+    expect(
+      notificationRoute({ type: 'order_cancelled_seller', link: '/profile/orders/o1', data: { orderId: 'o1' } }),
+    ).toBe('/orders/o1');
+  });
+
+  it("push dokunuşu: link ve audience yokken tip yedeği satıcıyı /sales'e götürür", () => {
+    // Push payload'ı `{ ...dto.data, type }` — push.ts: notificationRoute({ type: data.type, link: data.link, data }).
+    for (const type of [
+      'order_cancelled_seller',
+      'order_cancelled_by_platform_seller',
+      'order_preparing_extended_seller',
+      'product_sold',
+      'cargo_movement_missing',
+      'refund_request_received_seller',
+      'refund_return_shipped_seller',
+      'refund_return_delivered_seller',
+      'refund_completed_seller',
+      'refund_auto_accepted_seller',
+    ]) {
+      expect(notificationRoute({ type, link: undefined, data: { orderId: 'o1', type } })).toBe('/sales/o1');
+    }
+    // type yalnız data içinde gelse de çalışır
+    expect(notificationRoute({ data: { orderId: 'o1', type: 'order_cancelled_seller' } })).toBe('/sales/o1');
+  });
+
+  it('push dokunuşu: alıcı tipleri (link/audience yok) alıcı ekranında kalır', () => {
+    for (const type of ['order_cancelled', 'order_cancelled_by_platform', 'order_shipped', 'refund_approved']) {
+      expect(notificationRoute({ type, data: { orderId: 'o1', type } })).toBe('/orders/o1');
+    }
+    expect(notificationRoute({ data: { orderId: 'o1', type: 'order_cancelled' } })).toBe('/orders/o1');
   });
 
   it('toMobileRoute: /seller/orders/:id -> /sales/:id, satıcı profili aynı kalır', () => {

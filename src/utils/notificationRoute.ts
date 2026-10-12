@@ -166,14 +166,38 @@ const OUT_OF_STOCK_TYPES = new Set([
 /**
  * Link web'in SATICI sipariş yolu mu (`/seller/orders/:id`)? API satıcıya giden
  * ve `audience` taşımayan tiplerde (order_cancelled_seller, product_sold,
- * refund_*_seller …) hedefi bu desenle üretir — tip listesini burada ÇOĞALTMAYIZ,
- * link'in kendisi hedef kitleyi söyler (`notification-link.ts` tek kaynak).
+ * refund_*_seller …) hedefi bu desenle üretir (`notification-link.ts`).
  */
 function isSellerOrderLink(link: string | null | undefined): boolean {
   const path = safePathFromLink(link);
   if (!path) return false;
   const clean = stripLocalePrefix(path.split('?')[0]!.replace(/\/+$/, ''));
   return clean === '/seller/orders' || clean.startsWith('/seller/orders/');
+}
+
+/**
+ * SON ÇARE: `audience` da `link` de yokken tip adından satıcı say. Push
+ * payload'ı `{ ...dto.data, type }` — `link` yalnız in-app kayıtta tutuluyor
+ * (notification-dispatch.service.ts), yani push dokunuşunda satıcı tipleri
+ * `audience`/`link` taşımaz. Liste API'de SELLER_ORDER kullanan tiplerdir:
+ * `*_seller` son ekli sipariş/iade tipleri + product_sold + cargo_movement_missing.
+ * TODO: sunucu push verisine `audience` ya da `link` eklediğinde bu yedek
+ * kaldırılabilir (sunucu işi S5).
+ */
+function isSellerOrderType(type: string | null | undefined): boolean {
+  if (!type) return false;
+  return type.endsWith('_seller') || type === 'product_sold' || type === 'cargo_movement_missing';
+}
+
+/** Sipariş bildiriminin hedef kitlesi: önce audience, sonra link deseni, en son tip. */
+function isSellerAudience(n: NotificationLike | null | undefined): boolean {
+  const d = n?.data || {};
+  if (d.audience === 'seller') return true;
+  if (d.audience === 'buyer') return false;
+  const links = [d.link, n?.link].filter(Boolean);
+  if (links.length > 0) return links.some(isSellerOrderLink);
+  // Push payload'ında `type` data içinde de gelir.
+  return isSellerOrderType(n?.type ?? d.type);
 }
 
 export function notificationRoute(n: NotificationLike | null | undefined): string | null {
@@ -190,10 +214,9 @@ export function notificationRoute(n: NotificationLike | null | undefined): strin
   }
 
   // `audience` aynı tipin alıcı/satıcı ekranını seçer; satıcı sipariş ekranı ayrı.
-  // Yalnız satıcıya giden tiplerde API `audience` göndermez; hedef kitle link'in
-  // `/seller/orders/…` desenindedir. Sıra: önce `audience`, sonra link.
-  const isSeller =
-    d.audience === 'seller' || isSellerOrderLink(d.link) || isSellerOrderLink(n?.link);
+  // Yalnız satıcıya giden tiplerde API `audience` göndermez; sıra: `audience`,
+  // link deseni, son çare tip adı (bkz. isSellerAudience).
+  const isSeller = isSellerAudience(n);
 
   const orderId = d.orderId ?? d.order_id;
   const groupId = d.checkoutGroupId ?? d.checkout_group_id;
