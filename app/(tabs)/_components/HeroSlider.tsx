@@ -22,8 +22,12 @@ function HeroSlideItem({
   width: number;
   isCurrent: boolean;
 }) {
-  // Gösterim: slayt gerçekten ekranda (geçerli sayfa + odakta + uygulama önde) ~1 sn kalınca, slayt başına bir kez.
-  useAdImpression(slide.id, isCurrent, heroApi.recordImpression);
+  // Görsel yüklenmeden gösterim sayılmaz (AdBanner ile aynı kural): kullanıcı henüz
+  // boş bir kutu görüyor.
+  const [loaded, setLoaded] = useState(false);
+  // Gösterim: slayt gerçekten ekranda (geçerli sayfa + görsel yüklü + odakta + uygulama önde)
+  // ~1 sn kalınca, slayt başına bir kez.
+  useAdImpression(slide.id, isCurrent && loaded, heroApi.recordImpression);
 
   const title = pickLocalized(slide.title, locale);
   const subtitle = pickLocalized(slide.subtitle, locale);
@@ -42,6 +46,8 @@ function HeroSlideItem({
         contentFit="cover"
         transition={200}
         accessibilityLabel={alt}
+        testID={`hero-image-${slide.id}`}
+        onLoad={() => setLoaded(true)}
       />
       <View style={s.body}>
         <Text variant="h2" tone="heading" accessibilityRole="header" style={s.title}>

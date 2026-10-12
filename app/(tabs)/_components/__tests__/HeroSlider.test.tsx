@@ -51,6 +51,11 @@ const slide = (over: Partial<HeroSlide> = {}): HeroSlide => ({
   ...over,
 });
 
+const loadImage = (api: ReturnType<typeof render>, id: string) =>
+  act(() => {
+    api.getByTestId(`hero-image-${id}`).props.onLoad({ nativeEvent: { source: { width: 800, height: 500 } } });
+  });
+
 const layout = (api: ReturnType<typeof render>) =>
   fireEvent(api.getByTestId('hero-slider'), 'layout', { nativeEvent: { layout: { width: 320, height: 400 } } });
 
@@ -108,6 +113,7 @@ describe('HeroSection', () => {
     const api = render(<HeroSection slides={[slide(), slide({ id: 's2' })]} locale="tr" />);
     layout(api);
     expect(mockRecordImpression).not.toHaveBeenCalled();
+    loadImage(api, 's1');
     act(() => {
       jest.advanceTimersByTime(IMPRESSION_DWELL_MS);
     });
@@ -118,5 +124,19 @@ describe('HeroSection', () => {
       jest.advanceTimersByTime(IMPRESSION_DWELL_MS);
     });
     expect(mockRecordImpression).toHaveBeenCalledTimes(1);
+  });
+
+  it('görsel yüklenmeden gösterim sayılmaz; yüklenince ~1 sn sonra sayılır', () => {
+    const api = render(<HeroSection slides={[slide()]} locale="tr" />);
+    layout(api);
+    act(() => {
+      jest.advanceTimersByTime(IMPRESSION_DWELL_MS * 3);
+    });
+    expect(mockRecordImpression).not.toHaveBeenCalled();
+    loadImage(api, 's1');
+    act(() => {
+      jest.advanceTimersByTime(IMPRESSION_DWELL_MS);
+    });
+    expect(mockRecordImpression).toHaveBeenCalledWith('s1');
   });
 });
