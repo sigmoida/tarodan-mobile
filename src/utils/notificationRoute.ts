@@ -79,9 +79,13 @@ export function toMobileRoute(link: string): string | null {
     case 'product':
     case 'products': // /products/unavailable/:id
     case 'collections':
-    case 'seller':
     case 'favorites':
     case 'pricing':
+      return path;
+    // web satıcı sipariş yolu /seller/orders/:id → mobil satış detayı /sales/:id;
+    // diğer /seller/:id yolları (satıcı profili) mobilde aynı ad.
+    case 'seller':
+      if (id === 'orders') return seg[2] ? `/sales/${seg[2]}` : '/sales';
       return path;
     // Üyelik bildirimleri (süre doluyor / doldu / kart gerekli): web /membership →
     // mobil üyelik ekranı. Dijital satış kapalıyken ekran yalnız bilgi gösterir.
@@ -160,21 +164,17 @@ const OUT_OF_STOCK_TYPES = new Set([
 ]);
 
 /**
- * Yalnız satıcıya giden, `audience` taşımayan tipler (API `notification-link.ts`
- * SELLER_ORDER). Bunlar `/sales/:id`'ye gider.
+ * Link web'in SATICI sipariş yolu mu (`/seller/orders/:id`)? API satıcıya giden
+ * ve `audience` taşımayan tiplerde (order_cancelled_seller, product_sold,
+ * refund_*_seller …) hedefi bu desenle üretir — tip listesini burada ÇOĞALTMAYIZ,
+ * link'in kendisi hedef kitleyi söyler (`notification-link.ts` tek kaynak).
  */
-const SELLER_ORDER_TYPES = new Set([
-  'order_cancelled_seller',
-  'order_cancelled_by_platform_seller',
-  'order_preparing_extended_seller',
-  'product_sold',
-  'cargo_movement_missing',
-  'refund_request_received_seller',
-  'refund_return_shipped_seller',
-  'refund_return_delivered_seller',
-  'refund_completed_seller',
-  'refund_auto_accepted_seller',
-]);
+function isSellerOrderLink(link: string | null | undefined): boolean {
+  const path = safePathFromLink(link);
+  if (!path) return false;
+  const clean = stripLocalePrefix(path.split('?')[0]!.replace(/\/+$/, ''));
+  return clean === '/seller/orders' || clean.startsWith('/seller/orders/');
+}
 
 export function notificationRoute(n: NotificationLike | null | undefined): string | null {
   const d = n?.data || {};
@@ -190,9 +190,10 @@ export function notificationRoute(n: NotificationLike | null | undefined): strin
   }
 
   // `audience` aynı tipin alıcı/satıcı ekranını seçer; satıcı sipariş ekranı ayrı.
-  // Yalnız satıcıya giden tiplerde API `audience` göndermez (hedef kitle tipten
-  // belli) — tip adından satıcı say, yoksa satıcı alıcı ekranına düşer.
-  const isSeller = d.audience === 'seller' || (!!n?.type && SELLER_ORDER_TYPES.has(n.type));
+  // Yalnız satıcıya giden tiplerde API `audience` göndermez; hedef kitle link'in
+  // `/seller/orders/…` desenindedir. Sıra: önce `audience`, sonra link.
+  const isSeller =
+    d.audience === 'seller' || isSellerOrderLink(d.link) || isSellerOrderLink(n?.link);
 
   const orderId = d.orderId ?? d.order_id;
   const groupId = d.checkoutGroupId ?? d.checkout_group_id;
