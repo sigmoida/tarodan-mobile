@@ -22,7 +22,7 @@ export const DEFAULT_DISPUTE_REASON: DisputeReason = "not_as_described";
 /** Neden → i18n anahtarı (web ile aynı anahtarlar). */
 export const DISPUTE_REASON_LABEL_KEY: Record<DisputeReason, MessageKey> = {
   not_as_described: "trade.dispute.reasonNotAsDescribed",
-  damaged: "trade.dispute.reasonShipmentDamaged",
+  damaged: "trade.dispute.reasonDamaged",
   wrong_item: "trade.dispute.reasonWrongItem",
-  not_received: "trade.dispute.reasonShipmentLost",
+  not_received: "trade.dispute.reasonNotReceived",
 };
