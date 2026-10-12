@@ -339,3 +339,22 @@ describe("C2 inceleme · 8 tanınmayan toplu yenileme yanıtı hata sayılır", 
     );
   });
 });
+
+describe("C2 inceleme · 9 kaldırma penceresi hangi ilan olduğunu söyler", () => {
+  it("kalıcı silme: onay cümlesi ilan adını içerir", async () => {
+    serve([listing({ id: "A1", status: "active", title: "Hot Wheels Camaro" })]);
+    renderWithProviders(<MyListingsScreen />);
+    await openRemoval("common.delete");
+    expect(await screen.findByText("listing.deleteConfirmNamed:Hot Wheels Camaro")).toBeOnTheScreen();
+  });
+
+  it("pasife alma: başlık satırı ilanın adını gösterir", async () => {
+    serve([listing({ id: "A1", status: "active", title: "Hot Wheels Camaro" })]);
+    renderWithProviders(<MyListingsScreen />);
+    await openRemoval("listing.deactivateAction");
+    await screen.findByText("product.deactivateListingFull");
+    // Aynı ad listede de var: pencere açıkken ikinci bir kopya (pencere içi satır) olmalı.
+    expect(screen.getAllByText("Hot Wheels Camaro").length).toBeGreaterThanOrEqual(2);
+    expect(mockRemovalProps[mockRemovalProps.length - 1].listingTitle).toBe("Hot Wheels Camaro");
+  });
+});

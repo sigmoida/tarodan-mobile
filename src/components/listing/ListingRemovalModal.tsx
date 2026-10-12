@@ -33,12 +33,15 @@ const BODY_MAX_HEIGHT = 420;
 export function ListingRemovalModal({
   action,
   visible,
+  listingTitle,
   onClose,
   onSubmit,
   isPending = false,
 }: {
   action: SellerRemovalAction;
   visible: boolean;
+  /** Hangi ilanın kaldırıldığı: kalıcı silmede onay cümlesinde, pasife almada başlık satırında. */
+  listingTitle?: string;
   onClose: () => void;
   onSubmit: (removal: ListingRemovalPayload) => void;
   isPending?: boolean;
@@ -78,6 +81,11 @@ export function ListingRemovalModal({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {listingTitle ? (
+          <Text style={styles.listingName} numberOfLines={3}>
+            {isDelete ? t('listing.deleteConfirmNamed', { title: listingTitle }) : listingTitle}
+          </Text>
+        ) : null}
         <Text style={styles.description}>
           {isDelete ? t('product.removal.deleteDescription') : t('product.removal.deactivateDescription')}
         </Text>
@@ -145,6 +153,12 @@ export function ListingRemovalModal({
 
 const styles = StyleSheet.create({
   body: { maxHeight: BODY_MAX_HEIGHT },
+  listingName: {
+    color: colors.text.heading,
+    fontSize: typography.fontSize.base,
+    fontWeight: '600',
+    marginBottom: spacing[2],
+  },
   description: { color: colors.text.body, marginBottom: spacing[4] },
   label: {
     color: colors.text.heading,

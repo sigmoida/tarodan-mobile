@@ -826,6 +826,7 @@ export function ListingSubmitRow({ f }: SectionProps) {
         <ListingRemovalModal
           action="delete"
           visible={f.removalOpen}
+          listingTitle={f.title}
           onClose={f.closeRemoval}
           onSubmit={f.deleteWithReason}
         />

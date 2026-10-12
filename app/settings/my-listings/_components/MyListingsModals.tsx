@@ -73,6 +73,7 @@ export function MyListingsModals({ f }: { f: MyListingsController }) {
       <ListingRemovalModal
         action={f.removalTarget?.action ?? 'delete'}
         visible={f.removalOpen}
+        listingTitle={f.removalTarget?.listing.title}
         onClose={f.closeRemoval}
         onSubmit={f.submitRemoval}
       />

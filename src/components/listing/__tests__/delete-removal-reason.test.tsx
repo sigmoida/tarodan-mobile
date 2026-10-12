@@ -175,6 +175,10 @@ describe('düzenleme ekranı — silme nedeni', () => {
     // Eski düz onay uyarısı (appAlert) açılmaz — pencerenin kendisi onaydır.
     expect(appAlert).not.toHaveBeenCalled();
     await screen.findByText('Evet, Sil');
+    // Hangi ilanın silineceği pencerede yazar.
+    expect(
+      screen.getByText('"Geçerli başlık" ilanını silmek istediğinize emin misiniz? Bu işlem geri alınamaz.'),
+    ).toBeOnTheScreen();
 
     fireEvent.press(screen.getByText('Evet, Sil'));
     expect(productsApi.delete).not.toHaveBeenCalled();
