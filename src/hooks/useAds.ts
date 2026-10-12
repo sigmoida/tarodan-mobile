@@ -3,6 +3,9 @@ import { adsApi, type ActiveAd } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useMembershipLimits } from './useMembershipLimits';
 
+/** Çizilebilir reklam: görselli ya da (metin reklam) başlıklı. */
+const hasCreative = (ad: ActiveAd) => !!ad.imageUrl?.trim() || !!ad.title?.trim();
+
 /** Bu istemcide gösterilebilecek cihaz hedefleri. */
 const DEVICE_TARGETS = ['all', 'mobile'];
 
@@ -14,8 +17,12 @@ const DEVICE_TARGETS = ['all', 'mobile'];
  * liste döndürürdü. Bu yüzden tüm aktif reklamlar tek sorguda çekilip filtre
  * istemcide yapılır (liste küçük, tek query tüm ekranlarda paylaşılır).
  *
- * Premium/business üyeler reklamsızdır — `isAdFree` sunucudan gelir, istemcideki
- * sabit tier tablosundan değil (yönetici limitleri değiştirebilir).
+ * Reklamsızlık: `GET /membership/me/limits` boolean `isAdFree` döndürürse (admin
+ * kutusu) ONA uyulur — `mapServerLimits` bunu authStore'daki `limits`e bindirir.
+ * Sunucu söylemezse (`null`/alan yok) authStore'daki sabit tier tablosu
+ * (premium/business reklamsız) geçerli kalır.
+ *
+ * Metin (görselsiz) reklam da döner: görsel YA DA başlık varsa çizilebilir.
  */
 export function useAds(position: string) {
   const { limits } = useMembershipLimits();
@@ -42,7 +49,7 @@ export function useAds(position: string) {
     (ad) =>
       ad.position === position &&
       DEVICE_TARGETS.includes((ad.deviceType || 'all').toLowerCase()) &&
-      !!ad.imageUrl,
+      hasCreative(ad),
   );
 
   return { ads, isAdFree, isLoading: adsQuery.isLoading };
