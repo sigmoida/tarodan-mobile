@@ -2,7 +2,6 @@ import React from "react";
 import {
   View,
   ScrollView,
-  StyleSheet,
   Pressable,
   RefreshControl,
 } from "react-native";
@@ -14,6 +13,7 @@ import type { TFunction } from "i18next";
 import { ScreenHeader, EmptyState } from "@/components/common";
 import { useAuthStore } from "@/stores/authStore";
 import { membershipApi, type SavedCard } from "@/lib/api";
+import { unwrapSavedCards } from "@/lib/payment/savedCards";
 import { qk } from "@/lib/query";
 import { CAN_BUY_DIGITAL } from "@/lib/purchases";
 import { styles } from './_payment-methods/_lib/styles';
@@ -41,12 +41,8 @@ export default function PaymentMethodsScreen() {
 
   const cardsQuery = useQuery({
     queryKey: qk.payments.savedCards,
-    queryFn: async () => {
-      const res = await membershipApi.listCards();
-      const data: any = res.data;
-      const list: SavedCard[] = Array.isArray(data) ? data : (data?.data ?? []);
-      return list;
-    },
+    // Amaçsız: iki mağazanın kartları birlikte (rozet hangisi olduğunu söyler).
+    queryFn: async () => unwrapSavedCards((await membershipApi.listCards()).data),
     enabled: isAuthenticated,
   });
 

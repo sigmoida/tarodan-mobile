@@ -6,6 +6,7 @@ import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { Button, Input, Checkbox, Text, theme, appAlert } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { paymentsApi, membershipApi, type SavedCard } from '@/lib/api';
+import { unwrapSavedCards } from '@/lib/payment/savedCards';
 import type { PaymentPurpose } from '@/lib/payment/capabilities';
 import { buildDirectFormBody, type DirectFormBody } from '@/lib/payment/directFormBody';
 import { DistanceSalesConsent } from '@/components/payment/DistanceSalesConsent';
@@ -179,8 +180,7 @@ export default function CardPaymentForm({
     (async () => {
       try {
         const res = await membershipApi.listCards(purpose);
-        const data: any = res.data;
-        const raw: SavedCard[] = Array.isArray(data) ? data : (data?.data ?? []);
+        const raw = unwrapSavedCards(res.data);
         // Savunma: sunucu amaca göre süzüyor; yine de başka mağazanın kartı
         // gelirse seçilmesin (eski API `purpose` döndürmez → olduğu gibi).
         const list = raw.filter((c) => !c.purpose || c.purpose === purpose);
