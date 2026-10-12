@@ -13,33 +13,20 @@ import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { ScreenHeader, EmptyState } from "@/components/common";
 import { useAuthStore } from "@/stores/authStore";
-import { membershipApi } from "@/lib/api";
+import { membershipApi, type SavedCard } from "@/lib/api";
 import { qk } from "@/lib/query";
 import { CAN_BUY_DIGITAL } from "@/lib/purchases";
 import { styles } from './_payment-methods/_lib/styles';
+import { SavedCardBadges } from './_payment-methods/_components/SavedCardBadges';
 
 const { colors } = theme;
 
 /**
  * Kayıtlı Kartlarım (mobil) — web profile/payment-methods paritesi.
  * Kart EKLEME ödeme sırasında ("kartımı kaydet") olur; burada listele + sil.
- * PAN/CVV asla gösterilmez/saklanmaz.
+ * PAN/CVV asla gösterilmez/saklanmaz. Liste amaçsız istenir (iki mağazanın
+ * kartları birlikte); her kartın mağazası rozetle gösterilir (API delta 20).
  */
-
-interface SavedCard {
-  id: string;
-  last4: string;
-  brand: string | null;
-  bank: string | null;
-  cardType: string | null;
-  cardScheme: string | null;
-  businessCard: boolean | null;
-  expMonth: string | null;
-  expYear: string | null;
-  requireCvv: boolean;
-  isDefault: boolean;
-  autoRenewEligible: boolean;
-}
 
 const buildCardTypeLabels = (t: TFunction): Record<string, string> => ({
   credit: t("payment.cardTypeCredit"),
@@ -127,77 +114,7 @@ export default function PaymentMethodsScreen() {
                 <Text variant="body" style={styles.cardTitle}>
                   {(c.brand || t("payment.cardGenericBrand")) + " •••• " + c.last4}
                 </Text>
-                <View style={styles.badges}>
-                  {c.cardScheme && (
-                    <Text
-                      variant="caption"
-                      style={[
-                        styles.badge,
-                        {
-                          backgroundColor: colors.surface.alt,
-                          color: colors.text.muted,
-                        },
-                      ]}
-                    >
-                      {c.cardScheme.toUpperCase()}
-                    </Text>
-                  )}
-                  {c.isDefault && (
-                    <Text
-                      variant="caption"
-                      style={[
-                        styles.badge,
-                        {
-                          backgroundColor: colors.primary[50],
-                          color: colors.primary[700],
-                        },
-                      ]}
-                    >
-                      {t("payment.defaultCard")}
-                    </Text>
-                  )}
-                  {!CAN_BUY_DIGITAL ? null : c.autoRenewEligible ? (
-                    <Text
-                      variant="caption"
-                      style={[
-                        styles.badge,
-                        {
-                          backgroundColor: colors.success[50],
-                          color: colors.success[600],
-                        },
-                      ]}
-                    >
-                      {t("payment.autoRenewEligibleBadge")}
-                    </Text>
-                  ) : (
-                    <Text
-                      variant="caption"
-                      style={[
-                        styles.badge,
-                        {
-                          backgroundColor: colors.warning[50],
-                          color: colors.warning[600],
-                        },
-                      ]}
-                    >
-                      {t("payment.cvvRequiredBadge")}
-                    </Text>
-                  )}
-                  {c.businessCard && (
-                    <Text
-                      variant="caption"
-                      style={[
-                        styles.badge,
-                        {
-                          backgroundColor: colors.info[50],
-                          color: colors.info[600],
-                        },
-                      ]}
-                    >
-                      {t("footer.corporate")}
-                    </Text>
-                  )}
-                </View>
+                <SavedCardBadges card={c} />
                 {[
                   c.bank,
                   c.cardType ? cardTypeLabels[c.cardType] : null,

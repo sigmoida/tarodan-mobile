@@ -2675,6 +2675,8 @@
     "cardHolderRequired": "Kart üzerindeki ismi girin",
     "cardNumberInvalid": "Geçerli bir kart numarası girin",
     "cardNumberPlaceholder": "Kart numarası",
+    "cardPurposeCheckout": "Sepet",
+    "cardPurposeMembership": "Üyelik",
     "cardSecureNotice": "Kart bilgileriniz saklanmaz; PayTR ile 256-bit SSL üzerinden işlenir.",
     "connectionIssueTitle": "Bağlantı sorunu",
     "cvvInvalid": "CVV geçersiz",

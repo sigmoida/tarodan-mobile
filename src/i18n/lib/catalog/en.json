@@ -2675,6 +2675,8 @@
     "cardHolderRequired": "Enter the name on the card",
     "cardNumberInvalid": "Enter a valid card number",
     "cardNumberPlaceholder": "Card number",
+    "cardPurposeCheckout": "Cart",
+    "cardPurposeMembership": "Membership",
     "cardSecureNotice": "Your card details are never stored; they're processed via PayTR with 256-bit SSL.",
     "connectionIssueTitle": "Connection issue",
     "cvvInvalid": "CVV is invalid",
