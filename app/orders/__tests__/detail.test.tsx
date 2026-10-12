@@ -223,6 +223,11 @@ describe('A-1.4 · İade talebinde kanıt kuralı', () => {
     );
     fireEvent.press(screen.getByText('Talep Oluştur'));
 
+    await waitFor(() =>
+      expect(screen.getByTestId('refund-evidence-hint')).toHaveTextContent(
+        'Bu sebep için en az bir kanıt fotoğrafı gereklidir',
+      ),
+    );
     expect(createMock).not.toHaveBeenCalled();
     expect(screen.getByTestId('refund-evidence-hint')).toHaveTextContent(
       'Bu sebep için en az bir kanıt fotoğrafı gereklidir',
@@ -237,8 +242,8 @@ describe('A-1.4 · İade talebinde kanıt kuralı', () => {
     fireEvent.changeText(screen.getByTestId('refund-description-input'), 'kırık');
     fireEvent.press(screen.getByText('Talep Oluştur'));
 
+    expect(await screen.findByText('Açıklama en az 20 karakter olmalıdır')).toBeOnTheScreen();
     expect(createMock).not.toHaveBeenCalled();
-    expect(screen.getByText('Açıklama en az 20 karakter olmalıdır')).toBeOnTheScreen();
   });
 });
 

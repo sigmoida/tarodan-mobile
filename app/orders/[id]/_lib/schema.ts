@@ -1,6 +1,7 @@
 // İade talebi formunun zod şeması (colocated).
 import type { TFunction } from 'i18next';
 import { z } from 'zod';
+import type { RNFile } from '@/lib/api';
 
 /** Açıklama zorunluysa en az bu kadar karakter (web ile aynı eşik). */
 export const REFUND_DESCRIPTION_MIN = 20;
@@ -28,12 +29,22 @@ export function refundRequirements(reason: string) {
   };
 }
 
+/** Formun başlangıç değerleri — açılışta ve kapatınca hepsi buna döner. */
+export function refundFormDefaults(): RefundFormValues {
+  return { reason: 'changed_mind', description: '', evidence: [], quantity: 1 };
+}
+
+/**
+ * İade formunun şeması (`useZodForm`). Kanıt fotoğrafları da formun alanı —
+ * kapatınca `reset` neden/açıklama/adet/kanıtın hepsini birlikte sıfırlar.
+ */
 export function refundRequestSchema(t: TFunction) {
   return z
     .object({
       reason: z.string().min(1, t('validation.required')),
       description: z.string(),
-      evidenceCount: z.number().int().min(0),
+      evidence: z.array(z.custom<RNFile>()),
+      quantity: z.number().int().min(1),
     })
     .superRefine((v, ctx) => {
       const req = refundRequirements(v.reason);
@@ -44,29 +55,28 @@ export function refundRequestSchema(t: TFunction) {
           message: t('order.descriptionMin20'),
         });
       }
-      if (req.evidenceRequired && v.evidenceCount === 0) {
+      if (req.evidenceRequired && v.evidence.length === 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ['evidenceCount'],
+          path: ['evidence'],
           message: t('order.photoEvidenceRequired'),
         });
       }
     });
 }
 
-export type RefundRequestInput = z.input<ReturnType<typeof refundRequestSchema>>;
+export type RefundFormValues = z.input<ReturnType<typeof refundRequestSchema>>;
 
-/** Modalın satır içi gösterdiği hatalar (alan → ilk mesaj). */
-export type RefundFormErrors = Partial<Record<'reason' | 'description' | 'evidence', string>>;
-
-/** Şemayı çalıştırır, hataları modalın alanlarına eşler. Geçerliyse `{}`. */
-export function validateRefundRequest(input: RefundRequestInput, t: TFunction): RefundFormErrors {
-  const parsed = refundRequestSchema(t).safeParse(input);
-  if (parsed.success) return {};
-  const errors: RefundFormErrors = {};
-  for (const issue of parsed.error.issues) {
-    const field = issue.path[0] === 'evidenceCount' ? 'evidence' : (issue.path[0] as keyof RefundFormErrors);
-    if (!errors[field]) errors[field] = issue.message;
-  }
-  return errors;
+/** `POST /orders/:id/refund` gövdesi — formdan ve yüklenen kanıt URL'lerinden. */
+export function buildRefundBody(
+  values: RefundFormValues,
+  orderQuantity: number,
+  evidencePhotoUrls: string[],
+): { reason: string; description?: string; evidencePhotoUrls?: string[]; refundQuantity?: number } {
+  const body: ReturnType<typeof buildRefundBody> = { reason: values.reason };
+  const desc = values.description.trim();
+  if (desc.length > 0) body.description = desc;
+  if (orderQuantity > 1 && values.quantity < orderQuantity) body.refundQuantity = values.quantity;
+  if (evidencePhotoUrls.length > 0) body.evidencePhotoUrls = evidencePhotoUrls;
+  return body;
 }
