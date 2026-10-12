@@ -130,7 +130,12 @@ interface AuthState {
   logout: () => Promise<void>;
   loadToken: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
-  refreshUserData: () => Promise<void>;
+  /**
+   * GET /users/me ile store'daki kullanıcıyı tazeler. Tazelenen kullanıcıyı
+   * döndürür; istek başarısızsa `null` (store dokunulmadan kalır) — çağıran,
+   * kaydın sonucunu bayat veriyle doğrulamasın diye bunu ayırt edebilir.
+   */
+  refreshUserData: () => Promise<User | null>;
 
   // Helpers
   canCreateListing: () => boolean;
@@ -535,12 +540,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const mappedUser = mapApiUserToUser(response.data);
       const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
       set({ user: mappedUser, limits });
+      return mappedUser;
     } catch (error) {
       console.error("Failed to refresh user data:", error);
       logger.captureException(error, {
         level: "warning",
         tags: { flow: "auth.refreshUserData" },
       });
+      return null;
     }
   },
 

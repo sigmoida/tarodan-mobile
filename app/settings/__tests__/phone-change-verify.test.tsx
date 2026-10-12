@@ -13,7 +13,7 @@ import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 import { appAlert } from '@/ui';
-import { resolvePhoneOutcome } from '../edit-profile/_lib/phoneOutcome';
+import { phoneKey, phoneToSend, resolvePhoneOutcome } from '../edit-profile/_lib/phoneOutcome';
 
 let mockParams: Record<string, string> = {};
 jest.mock('expo-router', () => ({
@@ -27,19 +27,17 @@ jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string) => k }),
 }));
 
-const mockRefreshUserData = jest.fn(() => Promise.resolve());
+const OLD_PHONE = '+905551112233';
+// refreshUserData taze kullanıcıyı döndürür (düşerse null). Varsayılan: null →
+// hook PATCH yanıtına geri çekilir.
+const mockRefreshUserData = jest.fn((): Promise<any> => Promise.resolve(null));
+let mockUser: any;
 jest.mock('@/stores/authStore', () => ({
   useAuthStore: (sel?: (state: any) => unknown) => {
     const state: any = {
       isAuthenticated: true,
       logout: jest.fn(),
-      user: {
-        displayName: 'Test',
-        email: 't@b.com',
-        membershipTier: 'free',
-        phone: '+905551112233',
-        isPhoneVerified: true,
-      },
+      user: mockUser,
       refreshUserData: mockRefreshUserData,
     };
     return sel ? sel(state) : state;
@@ -66,24 +64,64 @@ const NEW_PHONE = '+905321234567';
 
 beforeEach(() => {
   mockParams = {};
+  mockUser = {
+    displayName: 'Test',
+    email: 't@b.com',
+    membershipTier: 'free',
+    phone: OLD_PHONE,
+    isPhoneVerified: true,
+  };
+  mockRefreshUserData.mockReset();
+  mockRefreshUserData.mockResolvedValue(null);
   updateProfile.mockReset();
   mockSendPhoneCode.mockClear();
-  mockRefreshUserData.mockClear();
   resetRouterMocks();
 });
 
-describe('resolvePhoneOutcome', () => {
-  it('numara gönderilmedi / değişmedi → unchanged', () => {
-    expect(resolvePhoneOutcome('+905551112233', undefined, '+905551112233')).toBe('unchanged');
-    expect(resolvePhoneOutcome('+905551112233', '+905551112233', '+905551112233')).toBe('unchanged');
+describe('phoneKey · aynı E.164 normalizasyonu', () => {
+  it('biçim farkı aynı anahtarı verir; boş → ""', () => {
+    expect(phoneKey('0532 123 45 67')).toBe(NEW_PHONE);
+    expect(phoneKey('+90 532 123 45 67')).toBe(NEW_PHONE);
+    expect(phoneKey(NEW_PHONE)).toBe(NEW_PHONE);
+    expect(phoneKey(null)).toBe('');
   });
-  it('yeni numara yanıtta aynen → verify', () => {
-    expect(resolvePhoneOutcome('+905551112233', NEW_PHONE, NEW_PHONE)).toBe('verify');
-    expect(resolvePhoneOutcome(null, NEW_PHONE, NEW_PHONE)).toBe('verify');
+  it('çözülemeyen eski kayıt boşluksuz ham hâliyle kalır', () => {
+    expect(phoneKey('+49 30 1234567')).toBe('+49301234567');
   });
-  it('yeni numara yanıtta yok/farklı → notSaved', () => {
-    expect(resolvePhoneOutcome('+905551112233', NEW_PHONE, '+905551112233')).toBe('notSaved');
-    expect(resolvePhoneOutcome(undefined, NEW_PHONE, null)).toBe('notSaved');
+});
+
+describe('phoneToSend', () => {
+  it('alana dokunulmadı → gönderilmez (undefined)', () => {
+    expect(phoneToSend(OLD_PHONE, '555 111 22 33', '+90')).toBeUndefined();
+  });
+  it('aynı numara başka biçimde yazıldı → gönderilmez', () => {
+    expect(phoneToSend(OLD_PHONE, '0555 111 22 33', '+90')).toBeUndefined();
+  });
+  it('E.164 olmayan eski kayıt, değişmeden → gönderilmez (değişti sayılmaz)', () => {
+    expect(phoneToSend('05321234567', '532 123 45 67', '+90')).toBeUndefined();
+    expect(phoneToSend('0532 123 45 67', '0532 123 45 67', '+90')).toBeUndefined();
+  });
+  it('yeni numara → E.164; çözülemeyen → null', () => {
+    expect(phoneToSend(OLD_PHONE, '0532 123 45 67', '+90')).toBe(NEW_PHONE);
+    expect(phoneToSend(null, '532 123 45 67', '+90')).toBe(NEW_PHONE);
+    expect(phoneToSend(OLD_PHONE, '05321234567890', '+90')).toBeNull();
+  });
+});
+
+describe('resolvePhoneOutcome · tazelenen kullanıcının telefonuyla', () => {
+  it('gönderilmedi → unchanged', () => {
+    expect(resolvePhoneOutcome(undefined, OLD_PHONE)).toEqual({ outcome: 'unchanged' });
+  });
+  it('kayıtlı telefon gönderilenle aynı (biçim farkı önemsiz) → verify', () => {
+    expect(resolvePhoneOutcome(NEW_PHONE, NEW_PHONE)).toEqual({ outcome: 'verify', phone: NEW_PHONE });
+    expect(resolvePhoneOutcome(NEW_PHONE, '+90 532 123 45 67')).toEqual({
+      outcome: 'verify',
+      phone: NEW_PHONE,
+    });
+  });
+  it('kayıtlı telefon farklı / yok → notSaved', () => {
+    expect(resolvePhoneOutcome(NEW_PHONE, OLD_PHONE)).toEqual({ outcome: 'notSaved', phone: NEW_PHONE });
+    expect(resolvePhoneOutcome(NEW_PHONE, null)).toEqual({ outcome: 'notSaved', phone: NEW_PHONE });
   });
 });
 
@@ -113,7 +151,7 @@ describe('edit-profile · telefon değişimi sonrası', () => {
   });
 
   it('numara başka hesapta doğrulanmamış (yanıtta eski numara) → başarı değil, açıklayıcı uyarı', async () => {
-    updateProfile.mockResolvedValue({ data: { phone: '+905551112233', isPhoneVerified: true } });
+    updateProfile.mockResolvedValue({ data: { phone: OLD_PHONE, isPhoneVerified: true } });
     saveWithPhone('0532 123 45 67');
 
     await waitFor(() => expect(appAlert).toHaveBeenCalled());
@@ -123,12 +161,44 @@ describe('edit-profile · telefon değişimi sonrası', () => {
     expect(screen.queryByText('profile.profileUpdated')).toBeNull();
   });
 
-  it('numara değişmedi → eskisi gibi "Profil güncellendi", uyarı yok', async () => {
-    updateProfile.mockResolvedValue({ data: { phone: '+905551112233' } });
+  it('sonuç TAZELENEN kullanıcıyla belirlenir — yanıt şekli/biçimi yanıltmaz', async () => {
+    // Yanıtta telefon yok (ör. farklı bir zarf) ama /users/me yeni numarayı
+    // boşluklu biçimde döndürüyor: kaydedildi sayılmalı, "notSaved" DEĞİL.
+    updateProfile.mockResolvedValue({ data: { user: { phone: NEW_PHONE } } });
+    mockRefreshUserData.mockResolvedValue({ phone: '+90 532 123 45 67', isPhoneVerified: false });
+    saveWithPhone('0532 123 45 67');
+
+    await waitFor(() => expect(appAlert).toHaveBeenCalled());
+    expect((appAlert as jest.Mock).mock.calls[0]![0]).toBe('security.phoneSavedVerifyTitle');
+  });
+
+  it('tazelenen kullanıcıda eski numara → notSaved (yanıtta yeni numara olsa bile)', async () => {
+    updateProfile.mockResolvedValue({ data: { phone: NEW_PHONE } });
+    mockRefreshUserData.mockResolvedValue({ phone: OLD_PHONE, isPhoneVerified: true });
+    saveWithPhone('0532 123 45 67');
+
+    await waitFor(() => expect(appAlert).toHaveBeenCalled());
+    expect((appAlert as jest.Mock).mock.calls[0]![0]).toBe('security.phoneNotSavedTitle');
+  });
+
+  it('numara değişmedi → telefon payload\'a girmez, "Profil güncellendi", uyarı yok', async () => {
+    updateProfile.mockResolvedValue({ data: { phone: OLD_PHONE } });
     renderWithProviders(<EditProfileScreen />);
     fireEvent.press(screen.getByText('product.saveChanges'));
 
     expect(await screen.findByText('profile.profileUpdated')).toBeTruthy();
+    expect(updateProfile.mock.calls[0]![0]).not.toHaveProperty('phone');
+    expect(appAlert).not.toHaveBeenCalled();
+  });
+
+  it('E.164 olmayan eski kayıtlı numara değişmeden kaydedilince "değişti" sayılmaz', async () => {
+    mockUser = { ...mockUser, phone: '05321234567' };
+    updateProfile.mockResolvedValue({ data: { phone: '05321234567' } });
+    renderWithProviders(<EditProfileScreen />);
+    fireEvent.press(screen.getByText('product.saveChanges'));
+
+    expect(await screen.findByText('profile.profileUpdated')).toBeTruthy();
+    expect(updateProfile.mock.calls[0]![0]).not.toHaveProperty('phone');
     expect(appAlert).not.toHaveBeenCalled();
   });
 });
