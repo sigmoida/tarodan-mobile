@@ -1,6 +1,7 @@
 import type { MessageKey } from '@/i18n/lib';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { neutralizeUpsellError } from '@/lib/api/iosNeutralErrors';
+import { activatedStatus } from '@/components/listing/_lib/activation';
 
 /** `POST /products/my/renew` yanıtında ilan başına sonuç (apps/api `RenewalItemResult`). */
 export type RenewItem =
@@ -105,4 +106,17 @@ export function renewSummary(
     isError: batch.failed > 0 && batch.renewed + batch.submitted === 0,
     message: lines.join('\n'),
   };
+}
+
+/**
+ * Süresi dolan ilanın TEK yenilemesinin mesajı (web `profile.expiredListings.*`):
+ * yayına döndü ya da içeriği değiştiği için onaya düştü. Statü okuma kuralı
+ * (`activatedStatus`) düzenleme formuyla ortaktır.
+ */
+export function renewMessageKey(
+  response: Parameters<typeof activatedStatus>[0],
+): 'profile.expiredListings.renewed' | 'profile.expiredListings.submitted' {
+  return activatedStatus(response) === 'active'
+    ? 'profile.expiredListings.renewed'
+    : 'profile.expiredListings.submitted';
 }

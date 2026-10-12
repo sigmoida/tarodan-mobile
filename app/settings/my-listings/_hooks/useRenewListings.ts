@@ -4,8 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { MessageKey } from "@/i18n/lib";
 import { appAlert } from "@/ui";
 import { productsApi, errorText } from "@/lib/api";
-import { readRenewBatch, renewSummary, type RenewTexts } from "../_lib/renewal";
-import { renewMessageKey } from "../_lib/activation";
+import { readRenewBatch, renewMessageKey, renewSummary, type RenewTexts } from "../_lib/renewal";
 import { useInvalidateMyListings } from "./useInvalidateMyListings";
 
 /** Çeviri bağımlılıkları: `exists` yoksa (testte i18n mock'u) her anahtar var sayılır. */

@@ -129,6 +129,7 @@ export function useTradeActions(id: string) {
       invalidate();
       setDisputeVisible(false);
       setDisputeDescription("");
+      setDisputeReason(DEFAULT_DISPUTE_REASON);
       notify(t("trade.dispute.successMessage"));
     },
     onError: (error: any) =>
@@ -196,7 +197,10 @@ export function useTradeActions(id: string) {
     // itiraz modal
     dispute: {
       visible: disputeVisible,
-      open: () => setDisputeVisible(true),
+      open: () => {
+        setDisputeReason(DEFAULT_DISPUTE_REASON);
+        setDisputeVisible(true);
+      },
       close: () => setDisputeVisible(false),
       reason: disputeReason,
       setReason: setDisputeReason,

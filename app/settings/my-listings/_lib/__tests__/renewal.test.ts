@@ -3,8 +3,8 @@
  * axios interceptor'ından geçmediği için istemci çevirir ve dijital satış kapalıyken
  * üyelik satışı ima eden metni elle nötrler (`iosNeutralErrors` eşlemesi).
  */
-import { readRenewBatch, renewErrorText, renewSummary, type RenewTexts } from "../renewal";
-import { activationMessageKey, renewMessageKey, responseStatus } from "../activation";
+import { readRenewBatch, renewErrorText, renewMessageKey, renewSummary, type RenewTexts } from "../renewal";
+import { activationMessageKey } from "@/components/listing/_lib/activation";
 
 const CATALOG: Record<string, string> = {
   "server.product.renewNotExpired": "Yalnızca süresi dolmuş ilanlar yenilenebilir.",
@@ -101,12 +101,6 @@ describe("renewSummary", () => {
 });
 
 describe("yanıt statüsüne göre mesaj", () => {
-  it("düz ve zarflı gövdede statü okunur", () => {
-    expect(responseStatus({ data: { status: "active" } })).toBe("active");
-    expect(responseStatus({ data: { data: { status: "pending" } } })).toBe("pending");
-    expect(responseStatus(undefined)).toBeUndefined();
-  });
-
   it("aktivasyon ve yenileme mesajı statüye bağlı", () => {
     expect(activationMessageKey({ data: { status: "active" } })).toBe("listing.reactivatedImmediately");
     expect(activationMessageKey({ data: { status: "pending" } })).toBe("listing.sentForReview");

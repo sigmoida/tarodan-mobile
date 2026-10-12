@@ -1,4 +1,6 @@
+import { useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { messagesApi } from '@/lib/api';
 import i18n from '@/i18n/config';
 import { useAuthStore } from '@/stores/authStore';
@@ -76,17 +78,24 @@ export function useCreateThread() {
 
 /**
  * Thread açıldığında okundu işaretle. API'de `POST /messages/threads/:id/read`
- * YOK; sunucu okundu bilgisini `GET /messages/threads/:id/messages` ile işler
- * (useMessagesQuery). Burada yalnız optimistik unread sıfırlama yapılır
- * (onMutate); ağ isteği atılmaz. ⚠️ unread-count INVALIDATE ETME (rozet-1'e-
- * döner tuzağı — cache.ts:applyThreadReadToCache açıklamasına bak).
+ * YOK; sunucu okundu bilgisini `GET /messages/threads/:id/messages` sırasında
+ * işler. İki adım:
+ *  1. Yerel unread'i (thread listesi + rozet) optimistik sıfırla.
+ *  2. Mesaj sorgusunu invalidate et → GET tetiklenir. Global staleTime 5 dk
+ *     olduğundan bu olmadan, kapalı thread'e socket'ten mesaj gelip 5 dk içinde
+ *     thread açılınca önbellekten servis edilir: sunucuda okunmamış kalır,
+ *     rozet geri gelir, yeni mesaj da görünmezdi. `cancelRefetch: false` ile
+ *     ilk açılıştaki uçuştaki GET iptal edilip tekrarlanmaz.
+ * ⚠️ unread-count INVALIDATE ETME (rozet-1'e-döner tuzağı — cache.ts:
+ * applyThreadReadToCache açıklamasına bak).
  */
-export function useMarkAsRead() {
+export function useMarkAsRead(): (threadId: string) => void {
   const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (_threadId: string): Promise<void> => undefined,
-    onMutate: (threadId) => {
+  return useCallback(
+    (threadId: string) => {
       applyThreadReadToCache(qc, threadId);
+      qc.invalidateQueries({ queryKey: qk.messaging.messages(threadId) }, { cancelRefetch: false });
     },
-  });
+    [qc],
+  );
 }

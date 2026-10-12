@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { appAlert } from "@/ui";
 import { productsApi, errorText, type ListingRemovalPayload } from "@/lib/api";
-import { activationMessageKey } from "../_lib/activation";
+import { activationMessageKey } from "@/components/listing/_lib/activation";
 import { useInvalidateMyListings } from "./useInvalidateMyListings";
 
 /** Kaldırma nedeniyle birlikte giden istek (pasife alma / silme). */
