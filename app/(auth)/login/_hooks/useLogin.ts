@@ -11,6 +11,7 @@ import { signInWithGoogle } from '@/services/googleSignin';
 import { signInWithApple, isAppleAvailable } from '@/services/appleSignin';
 import { useAuthStore } from '@/stores/authStore';
 import { buildLoginSchema, TWO_FACTOR_CODE_PATTERN, type LoginForm } from '../_lib/schema';
+import { IS_MAESTRO } from '@/config/maestro';
 
 /**
  * Login controller — owns the RHF form (zod), the login + resend-verification
@@ -215,10 +216,10 @@ export function useLogin() {
   /**
    * Maestro fallback: hook-form handleSubmit bazen Maestro tap akışında
    * silently fail oluyor. Test ortamında getValues() ile direkt mutate.
-   * Production'da EXPO_PUBLIC_MAESTRO unset → branch dead-code.
+   * Production'da IS_MAESTRO derlemede false → branch dead-code.
    */
   const handleLoginPress = () => {
-    if (process.env.EXPO_PUBLIC_MAESTRO === '1') {
+    if (IS_MAESTRO) {
       const v = getValues();
       // Maestro tap akışı RHF handleSubmit'i atlar; ama 2FA kodu yine de burada
       // doğrulanmalı — aksi halde geçersiz kod (örn. "12") sunucuya gider.

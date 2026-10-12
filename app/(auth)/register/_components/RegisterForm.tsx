@@ -8,6 +8,7 @@ import { styles } from '../_lib/styles';
 import { maxBirthDate } from '../_lib/schema';
 import { toHandle } from '@/utils/validation';
 import type { RegisterController } from '../_hooks/useRegister';
+import { IS_MAESTRO } from '@/config/maestro';
 
 /** Kayıt form kartı — kullanıcı adı/ad/e-posta/doğum/şifre/onay alanları + sözleşme linkleri + gönder. */
 export function RegisterForm({ f }: { f: RegisterController }) {
@@ -142,7 +143,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
             onChangeText={onChange}
             // Maestro: iOS secureTextEntry'ye yazamıyor + "Automatic Strong Password"
             // kaplaması çıkıyor. Test modunda maskeyi kapat (login.tsx ile aynı). Prod: maskeli.
-            secureTextEntry={process.env.EXPO_PUBLIC_MAESTRO !== '1'}
+            secureTextEntry={!IS_MAESTRO}
             // Maskesizken iOS otomatik öneri fazladan karakter ekliyor (şifre eşleşmez).
             autoCorrect={false}
             autoComplete="off"
@@ -168,7 +169,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
             placeholder="••••••••"
             value={value}
             onChangeText={onChange}
-            secureTextEntry={process.env.EXPO_PUBLIC_MAESTRO !== '1'}
+            secureTextEntry={!IS_MAESTRO}
             autoCorrect={false}
             autoComplete="off"
             autoCapitalize="none"

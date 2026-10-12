@@ -8,6 +8,7 @@ import { authApi } from '@/lib/api';
 import { registrationConsentDocuments } from '@/lib/shared/legalConsent';
 import { buildRegisterSchema, type RegisterForm } from '../_lib/schema';
 import { useUsernameAvailability } from './useUsernameAvailability';
+import { IS_MAESTRO } from '@/config/maestro';
 
 /**
  * "Bu e-posta zaten kayıtlı" — kasıtlı olarak fırlatılan, KULLANICIYA
@@ -47,8 +48,8 @@ export function useRegister() {
       acceptTerms: false,
       acceptKvkk: false,
       // Maestro spinner DateField'ı süremez; test modunda geçerli (18+) bir
-      // doğum tarihi öndoldurulur. Prod'da EXPO_PUBLIC_MAESTRO unset → '' .
-      birthDate: process.env.EXPO_PUBLIC_MAESTRO === '1' ? '1990-01-01' : '',
+      // doğum tarihi öndoldurulur. Prod'da IS_MAESTRO false → '' .
+      birthDate: IS_MAESTRO ? '1990-01-01' : '',
     },
   });
 

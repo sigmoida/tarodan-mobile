@@ -3,6 +3,7 @@ import * as SecureStore from "expo-secure-store";
 import { advanceSessionEpoch, authApi, userApi } from "@/lib/api";
 import { logger } from "../services/logger";
 import { withTimeout } from "../utils/withTimeout";
+import { IS_MAESTRO_NO_AUTOLOGIN, getMaestroAutoLoginCredentials } from "@/config/maestro";
 
 /** Çıkıştaki ağ çağrıları için üst sınır — kullanıcı bekletilmez. */
 const LOGOUT_NETWORK_TIMEOUT_MS = 5000;
@@ -129,7 +130,12 @@ interface AuthState {
   logout: () => Promise<void>;
   loadToken: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
-  refreshUserData: () => Promise<void>;
+  /**
+   * GET /users/me ile store'daki kullanıcıyı tazeler. Tazelenen kullanıcıyı
+   * döndürür; istek başarısızsa `null` (store dokunulmadan kalır) — çağıran,
+   * kaydın sonucunu bayat veriyle doğrulamasın diye bunu ayırt edebilir.
+   */
+  refreshUserData: () => Promise<User | null>;
 
   // Helpers
   canCreateListing: () => boolean;
@@ -349,31 +355,6 @@ const calculateProfileCompletion = (user: any): number => {
   return Math.round((completed / fields.length) * 100);
 };
 
-/**
- * Maestro e2e auto-login kimlik bilgisi — YALNIZ dev build'de ve açıkça
- * verilmişse (B-5.6a). Eskiden env yoksa koda gömülü demo hesabına
- * düşülüyordu: koruma yalnız derleme anı env inline'ına (dead-code
- * elimination) dayanıyordu ve kaynakta sabit bir kimlik bilgisi duruyordu. Artık:
- * - `__DEV__` false (release/OTA bundle) → hiçbir koşulda null;
- * - `EXPO_PUBLIC_MAESTRO !== '1'` ya da `EXPO_PUBLIC_MAESTRO_NO_AUTOLOGIN === '1'` → null;
- * - e-posta/şifre env'de yoksa → null (gömülü varsayılan YOK).
- * `maestro/run.sh` ikisini de her zaman set ediyor; akışlar etkilenmez.
- * `process.env.EXPO_PUBLIC_*` erişimleri DOĞRUDAN kalmalı: Expo bunları
- * derlemede literal'e çeviriyor, bir değişkene/parametreye almak inline'ı bozar.
- */
-export function getMaestroAutoLoginCredentials(): {
-  email: string;
-  password: string;
-} | null {
-  if (!__DEV__) return null;
-  if (process.env.EXPO_PUBLIC_MAESTRO !== "1") return null;
-  if (process.env.EXPO_PUBLIC_MAESTRO_NO_AUTOLOGIN === "1") return null;
-  const email = process.env.EXPO_PUBLIC_MAESTRO_EMAIL;
-  const password = process.env.EXPO_PUBLIC_MAESTRO_PASSWORD;
-  if (!email || !password) return null;
-  return { email, password };
-}
-
 export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
   isLoading: true,
@@ -453,7 +434,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Maestro register/guest journey: keychain (SecureStore) clearState'i atlatıp
       // önceki oturumun token'ını taşıyabiliyor. NO_AUTOLOGIN modunda token'ı temizle
       // ki gerçekten çıkışlı (misafir) başlansın. Yalnız test gate'i — prod'da unset.
-      if (process.env.EXPO_PUBLIC_MAESTRO_NO_AUTOLOGIN === "1") {
+      if (IS_MAESTRO_NO_AUTOLOGIN) {
         await SecureStore.deleteItemAsync("accessToken");
         await SecureStore.deleteItemAsync("refreshToken");
         set({
@@ -467,6 +448,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return;
       }
       const token = await SecureStore.getItemAsync("accessToken");
+      // Token yoksa Maestro kimliğine bir kez bak (kapı kapalıysa null).
+      const maestroCredentials = token ? null : getMaestroAutoLoginCredentials();
       if (token) {
         // Web ile aynı endpoint: GET /users/me
         const response = await userApi.getProfile();
@@ -486,12 +469,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           limits,
           isLoading: false,
         });
-      } else if (getMaestroAutoLoginCredentials()) {
+      } else if (maestroCredentials) {
         // Maestro test bypass: auto-login with seeded credentials so that
-        // e2e flows skip the login UI entirely. Yalnız dev build + açık env
-        // (bkz. getMaestroAutoLoginCredentials) — release'te __DEV__ false.
+        // e2e flows skip the login UI entirely. Yalnız EXPO_PUBLIC_MAESTRO=1
+        // build'i + env'deki kimlik (bkz. src/config/maestro.ts).
         try {
-          const { email, password } = getMaestroAutoLoginCredentials()!;
+          const { email, password } = maestroCredentials;
           console.log("🤖 Maestro auto-login as", email);
           const response = await authApi.login(email, password);
           const data: any = response.data;
@@ -557,12 +540,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const mappedUser = mapApiUserToUser(response.data);
       const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
       set({ user: mappedUser, limits });
+      return mappedUser;
     } catch (error) {
       console.error("Failed to refresh user data:", error);
       logger.captureException(error, {
         level: "warning",
         tags: { flow: "auth.refreshUserData" },
       });
+      return null;
     }
   },
 

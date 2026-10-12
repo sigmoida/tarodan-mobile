@@ -8,14 +8,15 @@ import { router } from 'expo-router';
 import { appAlert } from '@/ui';
 import { userApi, mediaApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
-import {
-  isValidPhoneInput,
-  parsePhoneForPayload,
-  getPhoneInvalidMessage,
-  splitPhone,
-} from '@/utils/phone';
+import { getPhoneInvalidMessage, splitPhone } from '@/utils/phone';
 import { buildProfileSchema, type ProfileForm } from '../_lib/schema';
-import { resolvePhoneOutcome } from '../_lib/phoneOutcome';
+import { phoneToSend, resolvePhoneOutcome } from '../_lib/phoneOutcome';
+
+type UpdateVars = {
+  data: ProfileForm;
+  /** `phoneToSend` sonucu: `undefined` → numaraya dokunulmaz, `''` → sil. */
+  phone: string | undefined;
+};
 
 /**
  * Edit-profile controller — owns the RHF+zod form, the avatar pick + upload,
@@ -52,6 +53,7 @@ export function useEditProfile() {
     formState: { errors },
     setError,
     clearErrors,
+    setValue,
     watch,
   } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -75,7 +77,7 @@ export function useEditProfile() {
   }, [user]);
 
   const updateMutation = useMutation({
-    mutationFn: async (data: ProfileForm) => {
+    mutationFn: async ({ data, phone }: UpdateVars) => {
       // 1. Avatar yerel olarak değiştiyse önce /media/upload/avatar'a yükle (web ile aynı akış),
       //    dönen anahtarı (key) avatarUrl olarak JSON PATCH ile gönder.
       let avatarUrl: string | undefined;
@@ -88,23 +90,8 @@ export function useEditProfile() {
         avatarUrl = uploadRes.data?.key ?? uploadRes.data?.url;
       }
 
-      // Boş bırakılırsa '' gönderilir (numara silme); doluysa "+90…" normalize edilir.
-      // EMNİYET KEMERİ: `onSubmit` zaten geçirmiyor, ama çözülemeyen numara sessizce
-      // kırpılıp/uydurulup kaydedilmesin — gönderimi durdur.
-      let phone = data.phone;
-      if (phone) {
-        const parsed = parsePhoneForPayload(phone, phoneCountryCode);
-        if (!parsed) {
-          const invalid: any = new Error(getPhoneInvalidMessage());
-          invalid.isClientValidation = true;
-          throw invalid;
-        }
-        phone = parsed;
-      }
-
       const payload: Record<string, any> = {
         displayName: data.displayName,
-        phone,
         bio: data.bio,
         birthDate: data.birthDate,
       };
@@ -123,28 +110,46 @@ export function useEditProfile() {
       Object.keys(payload).forEach((key) => {
         if (payload[key] === '') payload[key] = undefined;
       });
+      // Telefon yalnız DEĞİŞTİYSE gider (bkz. `phoneToSend`) — aynı numarayı
+      // yeniden göndermek sunucuda doğrulamayı düşürebilir. Silme `''` olarak
+      // gider (sunucu null yazar); bu yüzden boş→undefined döngüsünden SONRA.
+      if (phone !== undefined) payload.phone = phone;
 
       const res = await userApi.updateProfile(payload);
-      return {
-        outcome: resolvePhoneOutcome(
-          (user as any)?.phone,
-          payload.phone,
-          (res?.data as any)?.phone,
-        ),
-        sentPhone: payload.phone as string | undefined,
-      };
+      return { sentPhone: phone, responsePhone: (res?.data as any)?.phone as string | undefined };
     },
-    onSuccess: async ({ outcome, sentPhone }) => {
+    onSuccess: async ({ sentPhone, responsePhone }) => {
       // Store'u taze /users/me ile güncelle: mapApiUserToUser, API'nin döndürdüğü
       // 'avatarUrl' alanını UI'ın okuduğu 'avatar' alanına eşler. Aksi halde
       // updateUser ham yanıtı sığ merge ettiği için 'avatar' bayat kalır ve
       // profilde yeni foto görünmez. Web'deki refreshUser() ile parite.
       // Numara değiştiyse `isPhoneVerified` da burada false'a döner ("doğrulanmış
       // üye" kriteri, authStore.isVerifiedMember).
-      await refreshUserData();
+      const fresh = await refreshUserData();
       queryClient.invalidateQueries({ queryKey: ['user'] });
-      if (outcome === 'unchanged' || !sentPhone) {
+      // Kayıt sonucu TAZE kullanıcıyla doğrulanır; tazeleme düştüyse PATCH
+      // yanıtındaki (zarfsız kullanıcı nesnesi) telefona geri çekilinir.
+      const savedPhone = fresh ? fresh.phone : responsePhone;
+      const result = resolvePhoneOutcome(sentPhone, savedPhone);
+      // Numara yazılmadı/silinmedi → formu hesaptaki GERÇEK değere geri al;
+      // yoksa sonraki ilgisiz bir kayıt aynı numarayı yeniden gönderip uyarıyı
+      // tekrar tetiklerdi. Mesaj bunu kullanıcıya söylüyor.
+      if (result.outcome === 'notSaved' || result.outcome === 'notRemoved') {
+        const restored = splitPhone(savedPhone ?? '');
+        setPhoneCountryCode(restored.countryCode);
+        setValue('phone', restored.phone);
+        clearErrors('phone');
+      }
+      if (result.outcome === 'unchanged') {
         setSnackbar({ visible: true, message: t('profile.profileUpdated'), variant: 'success' });
+        return;
+      }
+      if (result.outcome === 'removed') {
+        setSnackbar({ visible: true, message: t('security.phoneRemoved'), variant: 'success' });
+        return;
+      }
+      if (result.outcome === 'notRemoved') {
+        setSnackbar({ visible: true, message: t('security.phoneNotRemoved'), variant: 'danger' });
         return;
       }
       // B-1.7 — yeni numara: web gibi kaydı doğrulamaya bağla. Kaydedilmediyse
@@ -152,8 +157,8 @@ export function useEditProfile() {
       // tek yolu SMS doğrulaması olduğu için yine oraya yönlendir. Bu ekranda
       // açık modal yok — appAlert güvenli.
       const goVerify = () =>
-        router.push({ pathname: '/settings/security', params: { verifyPhone: sentPhone } } as never);
-      const notSaved = outcome === 'notSaved';
+        router.push({ pathname: '/settings/security', params: { verifyPhone: result.phone } } as never);
+      const notSaved = result.outcome === 'notSaved';
       appAlert(
         t(notSaved ? 'security.phoneNotSavedTitle' : 'security.phoneSavedVerifyTitle'),
         t(notSaved ? 'security.phoneNotSavedBody' : 'security.phoneSavedVerifyBody'),
@@ -164,12 +169,6 @@ export function useEditProfile() {
       );
     },
     onError: (error: any) => {
-      // Client-side telefon reddi ağ hatası değil — alana da yaz, snackbar'da da göster.
-      if (error?.isClientValidation) {
-        setError('phone', { type: 'manual', message: error.message });
-        setSnackbar({ visible: true, message: error.message, variant: 'danger' });
-        return;
-      }
       setSnackbar({
         visible: true,
         message: error.response?.data?.message || t('collection.updateFailed'),
@@ -192,15 +191,16 @@ export function useEditProfile() {
   };
 
   const onSubmit = (data: ProfileForm) => {
-    // Telefon opsiyonel — boş bırakmak "numarayı sil" demek. Ama DOLUYSA
-    // çözülebilmeli: eskiden fazla hane sessizce kırpılıp yanlış numara
-    // kaydediliyordu. Şema ülke kodunu bilmediği için gate burada.
-    if (data.phone?.trim() && !isValidPhoneInput(data.phone, phoneCountryCode)) {
+    // Telefon opsiyonel. DOLUYSA çözülebilmeli: eskiden fazla hane sessizce
+    // kırpılıp yanlış numara kaydediliyordu. Şema ülke kodunu bilmediği için
+    // gate burada; çözülemeyen numara gönderilmez.
+    const phone = phoneToSend((user as any)?.phone, data.phone, phoneCountryCode);
+    if (phone === null) {
       setError('phone', { type: 'manual', message: getPhoneInvalidMessage() });
       return;
     }
     clearErrors('phone');
-    updateMutation.mutate(data);
+    updateMutation.mutate({ data, phone });
   };
 
   const bioLength = watch('bio')?.length || 0;
