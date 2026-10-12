@@ -81,6 +81,11 @@ describe('remaining', () => {
     expect(remaining(new Date(now + 3_725_000).toISOString(), now)).toBe('01:02:05');
     expect(remaining(new Date(now + (3 * 86400 + 4 * 3600 + 12 * 60) * 1000).toISOString(), now)).toBe('3g 04:12');
   });
+  it('gün birimi dışarıdan gelir (tr: g, en: d); varsayılan g', () => {
+    const iso = new Date(now + (2 * 86400 + 3600) * 1000).toISOString();
+    expect(remaining(iso, now)).toBe('2g 01:00');
+    expect(remaining(iso, now, 'd')).toBe('2d 01:00');
+  });
   it('bitmiş ya da geçersiz tarihte null', () => {
     expect(remaining(new Date(now - 1000).toISOString(), now)).toBeNull();
     expect(remaining('not-a-date', now)).toBeNull();

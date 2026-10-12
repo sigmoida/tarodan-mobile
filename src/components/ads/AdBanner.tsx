@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
+import { useTranslation } from 'react-i18next';
 import { theme, Text } from '@/ui';
 import { adsApi, type ActiveAd } from '@/lib/api';
 import { useAds } from '@/hooks/useAds';
@@ -114,13 +115,15 @@ function AdTextBody({ ad }: { ad: ActiveAd }) {
 
 /** Flaş kampanya geri sayımı — süre bitince hiçbir şey çizmez. */
 function FlashCountdown({ endsAt }: { endsAt: string }) {
-  const [left, setLeft] = useState(() => remaining(endsAt));
+  const { t } = useTranslation();
+  const dayUnit = t('time.dayShort');
+  const [left, setLeft] = useState(() => remaining(endsAt, Date.now(), dayUnit));
 
   useEffect(() => {
-    setLeft(remaining(endsAt));
-    const timer = setInterval(() => setLeft(remaining(endsAt)), 1000);
+    setLeft(remaining(endsAt, Date.now(), dayUnit));
+    const timer = setInterval(() => setLeft(remaining(endsAt, Date.now(), dayUnit)), 1000);
     return () => clearInterval(timer);
-  }, [endsAt]);
+  }, [endsAt, dayUnit]);
 
   if (!left) return null;
   return (
