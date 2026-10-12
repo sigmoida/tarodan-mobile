@@ -756,7 +756,21 @@
     "reservedStockInfo": "Stok: {quantity} · {reserved} adedi aktif takas/sipariş için rezerve · Satışta görünen: {available}",
     "additionalDetails": "Ek Özellikler",
     "globalAttrsHint": "Tüm ilanlar için geçerli ek alanlar. Alıcılar bunlara göre filtreleyebilir.",
-    "optionsLoadFailed": "Seçenekler yüklenemedi — sayfayı yenileyin"
+    "optionsLoadFailed": "Seçenekler yüklenemedi — sayfayı yenileyin",
+    "deactivateListingFull": "İlanı Pasife Al",
+    "removal": {
+      "deleteDescription": "İlan kalıcı olarak kaldırılır ve yeniden açılamaz. Neden kaldırdığınızı seçin.",
+      "deactivateDescription": "İlan vitrinden kalkar; istediğiniz zaman yeniden satışa açabilirsiniz. Neden pasife aldığınızı seçin.",
+      "reasonLabel": "Neden",
+      "reasonPlaceholder": "Bir neden seçin",
+      "platformLabel": "Hangi platformda sattınız?",
+      "platformPlaceholder": "Platform seçin",
+      "detailLabel": "Açıklama (isteğe bağlı)",
+      "detailRequiredLabel": "Açıklama",
+      "detailPlaceholder": "Eklemek istediğiniz bir not varsa yazın",
+      "otherPlatformPlaceholder": "Ürünü hangi platformda sattığınızı yazın",
+      "privacyNote": "Bu bilgi yalnız Tarodan ekibi tarafından görülür, ilan sayfasında gösterilmez."
+    }
   },
   "cart": {
     "addToCartFailed": "Sepete eklenemedi",
@@ -2228,7 +2242,31 @@
     "guestWelcomeTitle": "Hoş Geldiniz!",
     "guestWelcomeSubtitle": "Tarodan'a giriş yaparak tüm özelliklerden yararlanın",
     "guestBenefitsTitle": "Üye Olarak Neler Yapabilirsiniz?",
-    "guestQuickLinksTitle": "Şimdilik Şunları Yapabilirsiniz"
+    "guestQuickLinksTitle": "Şimdilik Şunları Yapabilirsiniz",
+    "listingStatus": {
+      "expired": "Süresi doldu"
+    },
+    "expiredListings": {
+      "tab": "Süresi dolan",
+      "bannerTitle": "{count} ilanınızın süresi doldu",
+      "bannerDescription": "Tek tıkla yenileyebilirsiniz. İçeriği değişmemiş ilanlar doğrudan yayına döner.",
+      "cardHint": "Süresi doldu. Yenileyerek yeniden yayına alın.",
+      "renew": "Yenile",
+      "renewing": "Yenileniyor...",
+      "select": "İlanı seç",
+      "selectAll": "Tümünü seç",
+      "clearSelection": "Seçimi temizle",
+      "renewSelected": "Seçilenleri yenile ({count})",
+      "renewed": "İlan yenilendi ve yayında",
+      "submitted": "İlan onaya gönderildi; onaylanınca yayına girer",
+      "renewFailed": "İlan yenilenemedi",
+      "bulkRenewed": "{count} ilan yenilendi ve yayında",
+      "bulkSubmitted": "{count} ilan onaya gönderildi",
+      "bulkFailed": "{count} ilan yenilenemedi",
+      "failedItem": "{title}: {reason}",
+      "empty": "Süresi dolan ilanınız yok.",
+      "emptyDescription": "Süresi dolan ilanlarınız burada listelenir."
+    }
   },
   "review": {
     "reviews": "Değerlendirmeler",
@@ -2462,7 +2500,19 @@
     "birthDateInvalid": "Lütfen geçerli bir doğum tarihi seçin",
     "mustBeAdult": "18 yaşından büyük olmalısınız",
     "companyNameRequired": "Şirket adı zorunludur",
-    "sixDigitCode": "6 haneli kodu girin"
+    "sixDigitCode": "6 haneli kodu girin",
+    "listingRemoval": {
+      "reason_required": "Lütfen bir neden seçin",
+      "reason_not_allowed": "Bu neden bu işlem için seçilemez",
+      "platform_required": "Lütfen ürünü sattığınız platformu seçin",
+      "platform_invalid": "Geçersiz platform",
+      "platform_not_allowed": "Platform yalnız başka bir platformda satışta seçilebilir",
+      "violation_required": "Lütfen ihlal türünü seçin",
+      "violation_invalid": "Geçersiz ihlal türü",
+      "violation_not_allowed": "İhlal türü yalnız kural ihlalinde seçilebilir",
+      "detail_required": "Lütfen kısaca açıklayın",
+      "detail_too_long": "Açıklama en fazla {max} karakter olabilir"
+    }
   },
   "time": {
     "justNow": "Az önce",
@@ -7165,7 +7215,10 @@
       "updateConflict": "Ürün başka bir işlem tarafından güncellendi. Lütfen yenileyin.",
       "userIdNotFound": "Kullanıcı kimliği bulunamadı",
       "userNotFound": "Kullanıcı bulunamadı",
-      "viewForbidden": "Bu ürünü görüntüleme yetkiniz yok"
+      "viewForbidden": "Bu ürünü görüntüleme yetkiniz yok",
+      "corporateSalesSuspended": "Kurumsal üyeliğiniz geçerli olmadığı için satış yetkiniz askıya alındı. İlanlarınızı satışa açmak için İşletme üyeliğinizi yenileyin.",
+      "renewNotExpired": "Yalnızca süresi dolmuş ilanlar yenilenebilir.",
+      "renewFailed": "İlan yenilenemedi. Lütfen tekrar deneyin."
     },
     "refund": {
       "alreadyActive": "Bu sipariş için zaten aktif bir iade talebi var",
@@ -7240,6 +7293,29 @@
       "price_changed_mind": "Fiyat Nedeniyle Vazgeçtim",
       "unavailable_at_address": "Adreste Bulunamayacağım",
       "other": "Diğer"
+    },
+    "listingRemoval": {
+      "unknown": "Bilinmiyor",
+      "reason": {
+        "not_given": "Neden belirtilmedi",
+        "changed_mind": "Vazgeçtim",
+        "sold_elsewhere": "Başka bir platformda sattım",
+        "paused_temporarily": "Geçici olarak durdurdum",
+        "expired": "İlan süresi doldu",
+        "out_of_stock": "Stok tükendi",
+        "traded": "Tarodan'da takas edildi",
+        "return_quarantine": "İade kontrolü bekliyor",
+        "seller_suspended": "Satıcı hesabı askıya alındı",
+        "policy_violation": "Kural ihlali"
+      },
+      "platform": {
+        "letgo": "Letgo",
+        "instagram": "Instagram",
+        "dolap": "Dolap",
+        "sahibinden": "Sahibinden",
+        "in_person": "Elden satış",
+        "other": "Diğer"
+      }
     }
   },
   "security": {
