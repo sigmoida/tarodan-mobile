@@ -164,7 +164,9 @@ export function RefundRequestModal({
             name="description"
             testID="refund-description-input"
             label={
-              requirements.descriptionRequired ? `${t('common.description')} *` : t('order.descriptionOptionalLabel')
+              requirements.descriptionRequired
+                ? t('order.descriptionRequiredLabel')
+                : t('order.descriptionOptionalLabel')
             }
             placeholder={
               requirements.descriptionRequired
@@ -179,7 +181,9 @@ export function RefundRequestModal({
 
           <View style={styles.evidenceSection}>
             <Text variant="caption" style={styles.refundModalLabel}>
-              {requirements.evidenceRequired ? `${t('order.evidencePhotosMax5')} *` : t('order.evidencePhotoOptional')}
+              {requirements.evidenceRequired
+                ? t('order.evidencePhotosRequiredLabel', { max: MAX_EVIDENCE_PHOTOS })
+                : t('order.evidencePhotoOptional')}
             </Text>
             <Text
               testID="refund-evidence-hint"

@@ -10,6 +10,7 @@ import React, { useState } from 'react';
 import { Pressable, Text } from 'react-native';
 import { act, screen, fireEvent, waitFor, within } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
+import i18n from '@/i18n/config';
 
 jest.mock('expo-image-picker', () => ({
   requestMediaLibraryPermissionsAsync: jest.fn(),
@@ -235,5 +236,25 @@ describe('kanıt yüklemesi', () => {
     });
     expect(onClose.mock.invocationCallOrder[0]).toBeLessThan(createMock.mock.invocationCallOrder[0]);
     expect(uploadMock.mock.invocationCallOrder[0]).toBeLessThan(onClose.mock.invocationCallOrder[0]);
+  });
+});
+
+/** İnceleme 7 · Zorunlu/isteğe bağlı etiketlerin ikisi de katalogdan (string birleştirme yok). */
+describe('alan etiketleri', () => {
+  it('kusur nedeninde zorunlu etiketler, vazgeçmede isteğe bağlı etiketler', () => {
+    renderWithProviders(<Harness />);
+    expect(screen.getByText('Açıklama (isteğe bağlı)')).toBeOnTheScreen();
+    expect(screen.getByText('Kanıt Fotoğrafı (isteğe bağlı)')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText('Hasarlı geldi'));
+    expect(screen.getByText('Açıklama *')).toBeOnTheScreen();
+    expect(screen.getByText('Kanıt fotoğrafları (maks 5) *')).toBeOnTheScreen();
+  });
+
+  it('zorunlu etiket anahtarları iki dilde de var', () => {
+    const en = i18n.getFixedT('en');
+    expect(en('order.descriptionRequiredLabel')).toBe('Description *');
+    expect(en('order.evidencePhotosRequiredLabel', { max: 5 })).toBe('Evidence photos (max 5) *');
+    expect(en('order.descriptionOptionalLabel')).toBe('Description (optional)');
   });
 });

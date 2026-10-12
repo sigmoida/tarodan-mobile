@@ -1272,6 +1272,8 @@
     "refundHintTop": "Teslimattan sonra 14 gün içinde sebep belirtmeden iade hakkınız vardır. Sebep, açıklama ve fotoğraf isteğe bağlıdır.",
     "refundHintFaultClaim": "Bu neden bir kusur iddiasıdır: en az bir kanıt fotoğrafı ve açıklama gerekir; talebiniz incelemeye alınır.",
     "evidenceUploadFailed": "Kanıt fotoğrafları yüklenemedi. Lütfen tekrar deneyin.",
+    "descriptionRequiredLabel": "Açıklama *",
+    "evidencePhotosRequiredLabel": "Kanıt fotoğrafları (maks {max}) *",
     "descriptionOptionalLabel": "Açıklama (isteğe bağlı)",
     "describeIssueOptionalPlaceholder": "Sorunu kısaca anlatın...",
     "evidenceOptionalHint": "Dilerseniz fotoğraf ekleyin (en fazla {max}).",
