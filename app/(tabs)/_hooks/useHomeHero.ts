@@ -1,16 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { heroApi, type HeroSlide, type TrustBadge } from '@/lib/api';
+import { unwrapList } from '@/lib/api/unwrap';
 import { qk } from '@/lib/query';
 import { resolveTrustBadges, visibleSlides } from '@/lib/hero/heroView';
 
 /** Sunucu `Cache-Control: max-age=60` — zamanlanmış slayt en geç bir dakikada görünür. */
 const STALE_MS = 60_000;
-
-const asList = <T>(body: unknown): T[] => {
-  const data = (body as { data?: unknown })?.data ?? body;
-  return Array.isArray(data) ? (data as T[]) : [];
-};
 
 /**
  * Ana sayfa hero slaytları + güven rozetleri (admin'den yönetilir, web ile aynı).
@@ -29,7 +25,7 @@ export function useHomeHero() {
     queryFn: async () => {
       try {
         const res = await heroApi.getSlides('home');
-        return asList<HeroSlide>(res.data);
+        return unwrapList<HeroSlide>(res.data);
       } catch {
         return [];
       }
@@ -42,7 +38,7 @@ export function useHomeHero() {
     queryFn: async () => {
       try {
         const res = await heroApi.getTrustBadges();
-        return asList<TrustBadge>(res.data);
+        return unwrapList<TrustBadge>(res.data);
       } catch {
         return [];
       }

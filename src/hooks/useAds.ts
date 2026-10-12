@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { adsApi, type ActiveAd } from '@/lib/api';
+import { unwrapList } from '@/lib/api/unwrap';
 import { qk } from '@/lib/query';
 import { hasAdCreative } from '@/lib/ads/creative';
 import { useAuthStore } from '@/stores/authStore';
@@ -36,8 +37,7 @@ export function useAds(position: string) {
     queryFn: async () => {
       try {
         const res = await adsApi.getActive();
-        const body = (res.data as any)?.data ?? res.data;
-        return (Array.isArray(body) ? body : []) as ActiveAd[];
+        return unwrapList<ActiveAd>(res.data);
       } catch {
         // Reklam ikincil içerik — hata ekranı gösterme, sessizce boş geç.
         return [];
