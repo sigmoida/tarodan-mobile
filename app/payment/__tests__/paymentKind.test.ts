@@ -1,4 +1,4 @@
-import { paymentKindOf, paymentTargetOf } from '../_lib/paymentKind';
+import { needsDistanceSalesConsent, paymentKindOf, paymentTargetOf, type PaymentTarget } from '../_lib/paymentKind';
 
 describe('paymentKindOf', () => {
   it('rota parametresi yoksa sepet/sipariş: checkout', () => {
@@ -35,5 +35,30 @@ describe('paymentTargetOf', () => {
   it('takas id\'si durumda yoksa rota parametresinden', () => {
     expect(paymentTargetOf({}, 't1')).toEqual({ tradeId: 't1' });
     expect(paymentTargetOf({ tradeId: 't2' }, 't1')).toEqual({ tradeId: 't2' });
+  });
+});
+
+describe('needsDistanceSalesConsent — API kapısıyla aynı kapsam', () => {
+  const plain = paymentKindOf(undefined);
+  const decide = (target: PaymentTarget, kind = plain, acceptedAtCheckout = false) =>
+    needsDistanceSalesConsent({ target, kind, acceptedAtCheckout });
+
+  it('teklif siparişi (tekil sipariş, platform hizmeti değil): ZORUNLU', () => {
+    expect(decide({ orderId: 'o1' })).toBe(true);
+  });
+
+  it('üyelik / öne çıkarma (origin = platform_service): yok', () => {
+    expect(decide({ orderId: 'o1' }, paymentKindOf('membership'))).toBe(false);
+    expect(decide({ orderId: 'o1' }, paymentKindOf(undefined, { isMembershipOrder: true }))).toBe(false);
+    expect(decide({ orderId: 'o1' }, paymentKindOf('boost'))).toBe(false);
+  });
+
+  it('takas ücreti: yok', () => {
+    expect(decide({ tradeId: 't1' })).toBe(false);
+  });
+
+  it('sepet grubu: checkout\'tan yeni geldiyse yok (onay 3. adımda), sonradan dönülürse ZORUNLU', () => {
+    expect(decide({ checkoutGroupId: 'g1' }, plain, true)).toBe(false);
+    expect(decide({ checkoutGroupId: 'g1' }, plain, false)).toBe(true);
   });
 });

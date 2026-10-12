@@ -1,6 +1,7 @@
 import { api, guestApi } from './client';
 import type { DirectFormResponse } from '@/lib/payment/paytrDirectForm';
 import type { PaymentConfig } from '@/lib/payment/capabilities';
+import type { DirectFormBody } from '@/lib/payment/directFormBody';
 
 // Addresses API - Web ile aynı endpoint'ler
 export const addressesApi = {
@@ -88,13 +89,9 @@ export const paymentsApi = {
    * Gövdeye kart verisi KOYULAMAZ: backend `assertNoRawCardData` ile gövdenin her
    * seviyesinde kart alan adlarını arar ve 400 döner. (Eski `POST /payments/process-direct`
    * API'den kaldırıldı; kart-verisi sınırı testi varlığını yasaklıyor.)
+   *
+   * Gövde `buildDirectFormBody` ile kurulur (`distanceSalesAccepted` dahil — teklif
+   * siparişinde mesafeli satış onayı yalnız burada gider).
    */
-  directForm: (body: {
-    paymentId?: string;
-    orderId?: string;
-    checkoutGroupId?: string;
-    tradeId?: string;
-    savedCardId?: string;
-    saveCard?: boolean;
-  }) => api.post<DirectFormResponse>('/payments/direct-form', body),
+  directForm: (body: DirectFormBody) => api.post<DirectFormResponse>('/payments/direct-form', body),
 };

@@ -7,6 +7,8 @@ import { Button, Input, Checkbox, Text, theme, appAlert } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { paymentsApi, membershipApi, type SavedCard } from '@/lib/api';
 import type { PaymentPurpose } from '@/lib/payment/capabilities';
+import { buildDirectFormBody, type DirectFormBody } from '@/lib/payment/directFormBody';
+import { DistanceSalesConsent } from '@/components/payment/DistanceSalesConsent';
 import {
 
 /**
@@ -49,6 +51,12 @@ interface Props {
   purpose?: PaymentPurpose;
   /** Kayıtlı kart + "kartımı sakla" gösterilsin mi (`purposes[purpose].cardStorageEnabled` + üye). */
   cardStorageEnabled?: boolean;
+  /**
+   * Mesafeli satış onay kutusu zorunlu mu (ödeme ekranı karar verir — API kapısıyla
+   * aynı kapsam). Açıksa kutu işaretlenmeden ödeme başlamaz ve onay direct-form
+   * gövdesinde (`distanceSalesAccepted`) gider.
+   */
+  requireDistanceSalesConsent?: boolean;
   /** Misafir ödemesi mi — durum yoklamasında public uç kullanılır (verify atlanır). */
   isGuest?: boolean;
   /**
@@ -73,6 +81,7 @@ export default function CardPaymentForm({
   onFail,
   purpose = 'checkout',
   cardStorageEnabled = false,
+  requireDistanceSalesConsent = false,
   isGuest = false,
   paymentId: initialPaymentId,
 }: Props) {
@@ -95,6 +104,7 @@ export default function CardPaymentForm({
   // Varsayılan işaretli (web ile aynı): üyelikte oto-yenileme ancak saklanan kartla açılır.
   const [saveCard, setSaveCard] = useState(true);
   const [savedCvv, setSavedCvv] = useState('');
+  const [distanceSalesAccepted, setDistanceSalesAccepted] = useState(false);
 
   // Sonucu yalnız bir kez bildir (poll + WebView yönlendirmesi yarışabilir).
   const resolvedRef = useRef(false);
@@ -208,14 +218,11 @@ export default function CardPaymentForm({
 
   async function submit() {
     if (processing) return;
+    // Düğme zaten kapalı; yine de onaysız satın alma isteği hiç gitmesin.
+    if (requireDistanceSalesConsent && !distanceSalesAccepted) return;
+    const consent = requireDistanceSalesConsent ? distanceSalesAccepted : undefined;
 
-    let body: {
-      orderId?: string;
-      checkoutGroupId?: string;
-      tradeId?: string;
-      savedCardId?: string;
-      saveCard?: boolean;
-    };
+    let body: DirectFormBody;
     let cardFields: { name: string; value: string }[];
 
     if (selected === NEW_CARD) {
@@ -224,8 +231,11 @@ export default function CardPaymentForm({
         appAlert(t('payment.missingInfoTitle'), err);
         return;
       }
-      // `saveCard` HER ZAMAN açıkça gider: gönderilmezse sunucu üyelikte kartı saklar.
-      body = { ...target, saveCard: cardStorageEnabled && saveCard };
+      body = buildDirectFormBody({
+        target,
+        card: { kind: 'new', save: cardStorageEnabled && saveCard },
+        distanceSalesAccepted: consent,
+      });
       cardFields = cardFieldsForNewCard({
         holder,
         number,
@@ -238,7 +248,11 @@ export default function CardPaymentForm({
         appAlert(t('payment.cvvRequiredTitle'), t('payment.cvvRequiredBody'));
         return;
       }
-      body = { ...target, savedCardId: selected };
+      body = buildDirectFormBody({
+        target,
+        card: { kind: 'saved', id: selected },
+        distanceSalesAccepted: consent,
+      });
       cardFields = cardFieldsForSavedCard(selectedCard?.requireCvv ? savedCvv : undefined);
     }
 
@@ -452,11 +466,20 @@ export default function CardPaymentForm({
         </View>
       )}
 
+      {requireDistanceSalesConsent ? (
+        <DistanceSalesConsent
+          testID="payment-distance-sales-checkbox"
+          checked={distanceSalesAccepted}
+          onToggle={() => setDistanceSalesAccepted((v) => !v)}
+          style={styles.consent}
+        />
+      ) : null}
+
       <Button
         testID="card-submit"
         onPress={submit}
         isLoading={processing}
-        disabled={loadingCards}
+        disabled={loadingCards || (requireDistanceSalesConsent && !distanceSalesAccepted)}
         fullWidth
         title={
           amount != null
@@ -506,6 +529,7 @@ const styles = StyleSheet.create({
   saveCard: { gap: theme.spacing[1.5] },
   expRow: { flexDirection: 'row', gap: theme.spacing[2.5] },
   expField: { flex: 1, marginBottom: theme.spacing[0] },
+  consent: { marginTop: theme.spacing[2] },
   payBtn: { marginTop: theme.spacing[2] },
   verifyingNote: { marginTop: theme.spacing[2], textAlign: 'center' },
   secure: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: theme.spacing[1.5], marginTop: theme.spacing[1] },

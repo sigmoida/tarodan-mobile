@@ -10,7 +10,13 @@ import { captureException } from '@/services/sentry';
 import CardPaymentForm from '@/components/CardPaymentForm';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { paymentCapabilities, SAFE_PAYMENT_CONFIG, type PaymentConfig, type PaymentPurpose } from '@/lib/payment/capabilities';
-import { paymentKindOf, paymentTargetOf, type PaymentStatusLight, type PaymentTarget } from './_lib/paymentKind';
+import {
+  needsDistanceSalesConsent,
+  paymentKindOf,
+  paymentTargetOf,
+  type PaymentStatusLight,
+  type PaymentTarget,
+} from './_lib/paymentKind';
 
 /**
  * ⚠️ BU EKRAN BİLEREK React Query'ye TAŞINMADI (CLAUDE.md §6'nın istisnası).
@@ -51,6 +57,8 @@ export default function PaymentScreen() {
     /** Takas nakit farkı ödemesi: başarı → /trade/{tradeId} */
     tradeId?: string;
     tradeCash?: string;
+    /** Checkout yönlendirmesi: sepet grubu (onay 3. adımda alındı). */
+    groupId?: string;
   }>();
 
   const paymentId = params.id!;
@@ -73,6 +81,8 @@ export default function PaymentScreen() {
     isMembership: boolean;
     /** Durum yanıtı üyelik dedi ve dijital satış kapalı → ödeme formu yok. */
     digitalBlocked: boolean;
+    /** Mesafeli satış onay kutusu (satın alma + onay henüz bu akışta alınmadı). */
+    requireDistanceSalesConsent: boolean;
   }>({
     loading: true,
     error: null,
@@ -81,6 +91,7 @@ export default function PaymentScreen() {
     cardStorageEnabled: false,
     isMembership,
     digitalBlocked: false,
+    requireDistanceSalesConsent: false,
   });
 
   const resolvedRef = useRef(false);
@@ -184,6 +195,13 @@ export default function PaymentScreen() {
         amount: data.amount != null ? Number(data.amount) : undefined,
         purpose: kind.purpose,
         isMembership: kind.isMembership,
+        requireDistanceSalesConsent: needsDistanceSalesConsent({
+          target,
+          kind,
+          // Checkout yalnız onay kutusu işaretliyken ödemeye yönlendirir ve
+          // `groupId` taşır; sonradan dönülen grup ödemesinde parametre yok.
+          acceptedAtCheckout: !!params.groupId,
+        }),
         // Kayıtlı kart yalnız giriş yapmış kullanıcıya gösterilir.
         cardStorageEnabled: paymentCapabilities(cfg, kind.purpose).cardStorageEnabled && !isGuest,
       }));
@@ -279,6 +297,7 @@ export default function PaymentScreen() {
             amount={state.amount}
             purpose={state.purpose}
             cardStorageEnabled={state.cardStorageEnabled}
+            requireDistanceSalesConsent={state.requireDistanceSalesConsent}
             isGuest={isGuest}
             paymentId={paymentId}
             onSuccess={(pid) => routeToSuccess(pid, state.isMembership)}
