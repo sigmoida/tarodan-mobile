@@ -2624,7 +2624,8 @@
     "usernameSetFailedTitle": "Could not be set",
     "usernameSetFailedBody": "Username could not be saved.",
     "notificationsAuthGateSubtitle": "Sign in to edit your settings",
-    "notificationSettingsSaved": "Notification settings saved"
+    "notificationSettingsSaved": "Notification settings saved",
+    "notificationSettingsLoadFailed": "Your notification preferences could not be loaded. Saving is disabled until they load so your saved preferences are not overwritten."
   },
   "analytics": {
     "analytics": "Analytics",
@@ -7284,7 +7285,15 @@
     "tipsSection": "Security Tips",
     "twoFactorSetupFailed": "2FA setup failed",
     "twoFactorSetupModalTitle": "2FA Setup",
-    "twoFactorDisableModalTitle": "Turn Off 2FA"
+    "twoFactorDisableModalTitle": "Turn Off 2FA",
+    "phoneSavedVerifyTitle": "Verify your number",
+    "phoneSavedVerifyBody": "Your profile was updated. Your new number shows as \"Not verified\" until you confirm it by SMS.",
+    "phoneNotSavedTitle": "Number not saved yet",
+    "phoneNotSavedBody": "Your other profile details were saved, but this number is held unverified on another account; the phone field was reset to the number saved on your account. Complete SMS verification to move the number to your account; it is transferred once verification succeeds.",
+    "verifyNow": "Verify now",
+    "verifyLater": "Later",
+    "phoneRemoved": "Your profile was updated and your phone number was removed.",
+    "phoneNotRemoved": "Your phone number could not be removed; the field was reset to your saved number. Please try again."
   },
   "discount": {
     "editTitle": "Edit Discount",

@@ -12,6 +12,7 @@ import SecuritySettingsScreen from "../security";
 // expo-router
 jest.mock("expo-router", () => ({
   router: { replace: jest.fn(), push: jest.fn(), back: jest.fn() },
+  useLocalSearchParams: () => ({}),
 }));
 
 // Oturum açık kullanıcı

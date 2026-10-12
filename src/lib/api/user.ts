@@ -145,10 +145,11 @@ export const sellerDocumentsApi = {
 // Seller Bank Account (IBAN) — backend: GET/PATCH/DELETE /users/me/bank-account
 export const bankAccountApi = {
   get: () => api.get("/users/me/bank-account"),
+  // `tcKimlikNo` BİLEREK yok (delta 23 §3): TCKN'nin tek kaynağı yasal kimlik;
+  // API alanı eski istemciler için kabul ediyor, gönderilmezse kayıtlı değere dokunmuyor.
   upsert: (data: {
     accountHolder: string;
     iban: string;
-    tcKimlikNo?: string;
     taxId?: string;
   }) => api.patch("/users/me/bank-account", data),
   remove: () => api.delete("/users/me/bank-account"),

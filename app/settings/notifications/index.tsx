@@ -1,5 +1,5 @@
 import { View, ScrollView, TouchableOpacity } from "react-native";
-import { Button, Spinner, Text, ScreenHeader, theme } from "@/ui";
+import { Button, ErrorState, Spinner, Text, ScreenHeader, theme } from "@/ui";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedRefreshControl } from "@/components/common";
@@ -47,10 +47,12 @@ export default function NotificationSettingsScreen() {
         }
         right={
           <TouchableOpacity
+            testID="notification-settings-save"
             onPress={f.handleSave}
-            disabled={f.saveMutation.isPending}
+            disabled={!f.canSave}
+            accessibilityState={{ disabled: !f.canSave }}
           >
-            <Text style={styles.saveButton}>
+            <Text style={[styles.saveButton, !f.canSave && styles.saveButtonDisabled]}>
               {f.saveMutation.isPending ? t("collection.saving") : t("mobile.save")}
             </Text>
           </TouchableOpacity>
@@ -61,6 +63,11 @@ export default function NotificationSettingsScreen() {
         <View style={styles.loadingContainer}>
           <Spinner size="lg" />
         </View>
+      ) : f.loadFailed ? (
+        <ErrorState
+          message={t("settings.notificationSettingsLoadFailed")}
+          onRetry={f.retryLoad}
+        />
       ) : (
         <ScrollView
           style={styles.content}
