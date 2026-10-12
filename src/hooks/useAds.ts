@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { adsApi, type ActiveAd } from '@/lib/api';
 import { unwrapList } from '@/lib/api/unwrap';
@@ -45,11 +46,18 @@ export function useAds(position: string) {
     },
   });
 
-  const ads = (adsQuery.data ?? []).filter(
-    (ad) =>
-      ad.position === position &&
-      DEVICE_TARGETS.includes((ad.deviceType || 'all').toLowerCase()) &&
-      hasAdCreative(ad),
+  // Veri + konum anahtarlı: aynı girdide AYNI dizi döner (AdBanner'ın seçimi ve
+  // efektleri her render'da yeniden tetiklenmesin).
+  const all = adsQuery.data;
+  const ads = useMemo(
+    () =>
+      (all ?? []).filter(
+        (ad) =>
+          ad.position === position &&
+          DEVICE_TARGETS.includes((ad.deviceType || 'all').toLowerCase()) &&
+          hasAdCreative(ad),
+      ),
+    [all, position],
   );
 
   return { ads, isAdFree, isLoading: adsQuery.isLoading };

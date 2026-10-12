@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { heroApi, type HeroSlide, type TrustBadge } from '@/lib/api';
@@ -7,6 +8,9 @@ import { resolveTrustBadges, visibleSlides } from '@/lib/hero/heroView';
 
 /** Sunucu `Cache-Control: max-age=60` — zamanlanmış slayt en geç bir dakikada görünür. */
 const STALE_MS = 60_000;
+
+/** Veri yokken sabit referans — her render'da yeni `[]` dönmesin. */
+const NONE: never[] = [];
 
 /**
  * Ana sayfa hero slaytları + güven rozetleri (admin'den yönetilir, web ile aynı).
@@ -19,9 +23,15 @@ export function useHomeHero() {
   const { i18n } = useTranslation();
   const locale = i18n.language;
 
+  // `select` yalnız veri ya da dil değişince yeniden çalışır; sonuç render'lar
+  // arasında AYNI referanstır (slider ve rozet şeridi gereksiz yeniden çizilmez).
+  const selectSlides = useCallback((list: HeroSlide[]) => visibleSlides(list, locale), [locale]);
+  const selectBadges = useCallback((list: TrustBadge[]) => resolveTrustBadges(list, locale), [locale]);
+
   const slidesQuery = useQuery({
     queryKey: qk.hero.slides('home'),
     staleTime: STALE_MS,
+    select: selectSlides,
     queryFn: async () => {
       try {
         const res = await heroApi.getSlides('home');
@@ -35,6 +45,7 @@ export function useHomeHero() {
   const badgesQuery = useQuery({
     queryKey: qk.hero.trustBadges,
     staleTime: STALE_MS,
+    select: selectBadges,
     queryFn: async () => {
       try {
         const res = await heroApi.getTrustBadges();
@@ -47,8 +58,8 @@ export function useHomeHero() {
 
   return {
     locale,
-    slides: visibleSlides(slidesQuery.data, locale),
+    slides: slidesQuery.data ?? NONE,
     loadingSlides: slidesQuery.isLoading,
-    badges: resolveTrustBadges(badgesQuery.data, locale),
+    badges: badgesQuery.data ?? NONE,
   };
 }
