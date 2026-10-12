@@ -23,6 +23,8 @@ export function useAdImpression(
   ready: boolean,
   /** Sayaç ucu; varsayılan reklam ucu. Hero slaytı kendi ucunu verir. */
   record: (id: string) => Promise<unknown> = adsApi.recordImpression,
+  /** Oturum kümesi: gösterimi zaten gönderilmiş reklam yeniden bağlansa da sayılmaz. */
+  sent?: Set<string>,
 ): void {
   const [focused, setFocused] = useState(true);
   const [appActive, setAppActive] = useState(AppState.currentState !== 'background');
@@ -41,11 +43,12 @@ export function useAdImpression(
   }, []);
 
   useEffect(() => {
-    if (!ready || !focused || !appActive || sentFor.current === adId) return;
+    if (!ready || !focused || !appActive || sentFor.current === adId || sent?.has(adId)) return;
     const timer = setTimeout(() => {
       sentFor.current = adId;
+      sent?.add(adId);
       record(adId).catch(() => {});
     }, IMPRESSION_DWELL_MS);
     return () => clearTimeout(timer);
-  }, [adId, ready, focused, appActive, record]);
+  }, [adId, ready, focused, appActive, record, sent]);
 }
