@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { appAlert } from '@/ui';
 import { api } from '@/lib/api';
+import { qk } from '@/lib/query';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useAuthStore } from '@/stores/authStore';
 import { DEFAULT_SETTINGS, type NotificationSettings } from '../_lib/types';
@@ -20,7 +21,7 @@ export function useNotificationSettings() {
   const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_SETTINGS);
 
   const { data: settingsData, isLoading, refetch } = useQuery({
-    queryKey: ['notification-settings'],
+    queryKey: qk.user.notificationSettings,
     queryFn: async () => {
       try {
         const response = await api.get('/users/me/settings').catch(() => null);
@@ -51,13 +52,22 @@ export function useNotificationSettings() {
 
   // Anahtarlar PATCH /users/me/settings (UpdateNotificationSettingsDto) ile birebir;
   // backend bu tercihleri gönderim yollarında uygular (Bulgu #9 fix).
+  // B-1.11: hata artık yutulmuyor — eskiden `.catch(() => null)` başarısız
+  // kaydı başarı sayıp "kaydedildi" diyordu. Yerel seçimler korunur, kullanıcı
+  // yeniden deneyebilir.
   const saveMutation = useMutation({
-    mutationFn: async (newSettings: NotificationSettings) => {
-      return api.patch('/users/me/settings', newSettings).catch(() => null);
-    },
+    mutationFn: async (newSettings: NotificationSettings) =>
+      api.patch('/users/me/settings', newSettings),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
+      queryClient.invalidateQueries({ queryKey: qk.user.notificationSettings });
       appAlert(t('common.success'), t('settings.notificationSettingsSaved'));
+    },
+    onError: (error: any) => {
+      const msg = error?.response?.data?.message;
+      appAlert(
+        t('common.error'),
+        Array.isArray(msg) ? msg.join('\n') : msg || t('settings.settingUpdateFailed'),
+      );
     },
   });
 
