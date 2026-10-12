@@ -14,6 +14,7 @@ import { MAX_COLORS } from '../_lib/schema';
 import { globalCustomGroups, requiredGlobalGroups } from '../_lib/attributeGroups';
 import { toFormValues } from '../_lib/editMapper';
 import { activatedStatus, activationMessageKey } from '../_lib/activation';
+import { useDispatchAddress } from './useDispatchAddress';
 
 import { useAuthStore } from '../../../stores/authStore';
 import { api, productsApi, categoriesApi, bankAccountApi, shippingApi, type ListingRemovalPayload } from '@/lib/api';
@@ -82,6 +83,14 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     limits,
     refreshUserData,
   } = useAuthStore();
+
+  // Kargo çıkış adresi kapısı (yalnız yeni ilan): adresi/cep numarası geçersiz
+  // satıcının siparişinde koli açılamaz. Kural `_lib/dispatchAddress.ts`'te.
+  const {
+    hasDispatchAddress,
+    needsFix: dispatchAddressNeedsFix,
+    isLoading: dispatchAddressLoading,
+  } = useDispatchAddress(!isEdit && isAuthenticated);
 
   // İlan listesi/detay ekranlarının bayat kalmaması için ilgili cache'leri temizler.
   const invalidateListingCaches = () => {
@@ -778,6 +787,21 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       return;
     }
 
+    if (!isEdit && !hasDispatchAddress) {
+      appAlert(
+        t(dispatchAddressNeedsFix ? 'listing.dispatchAddressFixTitle' : 'listing.dispatchAddressRequiredTitle'),
+        t('address.dispatchPromptDesc'),
+        [
+          { text: t('listing.dismiss'), style: 'cancel' },
+          {
+            text: t(dispatchAddressNeedsFix ? 'address.dispatchFixButton' : 'address.dispatchAddButton'),
+            onPress: () => router.push('/settings/addresses'),
+          },
+        ],
+      );
+      return;
+    }
+
     if (!isEdit && listingLimits && !listingLimits.canCreateListing) {
       appAlert(
         t('listing.limitExceededTitle'),
@@ -937,6 +961,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     productNotFound,
     hasBankAccount,
     bankAccountQuery,
+    hasDispatchAddress,
+    dispatchAddressNeedsFix,
+    dispatchAddressLoading,
     // limits
     limitsLoading,
     listingLimits,

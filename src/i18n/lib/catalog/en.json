@@ -2554,6 +2554,9 @@
     "languageInfo": "When you change the app language, all menus and notifications switch to your selected language."
   },
   "address": {
+    "dispatchPromptDesc": "You need to enter a valid address.",
+    "dispatchAddButton": "Add Address",
+    "dispatchFixButton": "Edit Address",
     "myAddresses": "My Addresses",
     "manageAddresses": "Manage your delivery addresses",
     "newAddress": "New Address",
@@ -7459,6 +7462,8 @@
     "bankAccountBannerTitle": "Add a bank account before listing",
     "bankAccountBannerBody": "An IBAN is required so we can transfer your sales proceeds to you.",
     "addIban": "Add IBAN",
+    "dispatchAddressRequiredTitle": "Add a pickup address before creating a listing",
+    "dispatchAddressFixTitle": "Your pickup address needs fixing",
     "currentUnlimited": "Current listings: {count} (Unlimited)",
     "quotaLine": "Listing quota: {count} / {max}",
     "remainingCount": "Remaining: {count}",

@@ -2554,6 +2554,9 @@
     "languageInfo": "Uygulama dilini değiştirdiğinizde tüm menü ve bildirimler seçtiğiniz dile geçer."
   },
   "address": {
+    "dispatchPromptDesc": "Geçerli bir adres girmeniz gerekmektedir.",
+    "dispatchAddButton": "Adres Ekle",
+    "dispatchFixButton": "Adresi Düzenle",
     "myAddresses": "Adreslerim",
     "manageAddresses": "Teslimat adreslerinizi yönetin",
     "newAddress": "Yeni Adres",
@@ -7459,6 +7462,8 @@
     "bankAccountBannerTitle": "İlan vermeden önce banka hesabı ekleyin",
     "bankAccountBannerBody": "Satışlarınızdan elde edeceğiniz tutarın aktarılabilmesi için IBAN gereklidir.",
     "addIban": "IBAN Ekle",
+    "dispatchAddressRequiredTitle": "İlan vermeden önce kargo çıkış adresi eklemelisiniz",
+    "dispatchAddressFixTitle": "Kargo çıkış adresinizi düzeltmelisiniz",
     "currentUnlimited": "Mevcut İlan: {count} (Sınırsız)",
     "quotaLine": "İlan Hakkı: {count} / {max}",
     "remainingCount": "Kalan: {count}",
