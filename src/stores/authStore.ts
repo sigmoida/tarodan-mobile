@@ -349,6 +349,31 @@ const calculateProfileCompletion = (user: any): number => {
   return Math.round((completed / fields.length) * 100);
 };
 
+/**
+ * Maestro e2e auto-login kimlik bilgisi — YALNIZ dev build'de ve açıkça
+ * verilmişse (B-5.6a). Eskiden env yoksa koda gömülü demo hesabına
+ * düşülüyordu: koruma yalnız derleme anı env inline'ına (dead-code
+ * elimination) dayanıyordu ve kaynakta sabit bir kimlik bilgisi duruyordu. Artık:
+ * - `__DEV__` false (release/OTA bundle) → hiçbir koşulda null;
+ * - `EXPO_PUBLIC_MAESTRO !== '1'` ya da `EXPO_PUBLIC_MAESTRO_NO_AUTOLOGIN === '1'` → null;
+ * - e-posta/şifre env'de yoksa → null (gömülü varsayılan YOK).
+ * `maestro/run.sh` ikisini de her zaman set ediyor; akışlar etkilenmez.
+ * `process.env.EXPO_PUBLIC_*` erişimleri DOĞRUDAN kalmalı: Expo bunları
+ * derlemede literal'e çeviriyor, bir değişkene/parametreye almak inline'ı bozar.
+ */
+export function getMaestroAutoLoginCredentials(): {
+  email: string;
+  password: string;
+} | null {
+  if (!__DEV__) return null;
+  if (process.env.EXPO_PUBLIC_MAESTRO !== "1") return null;
+  if (process.env.EXPO_PUBLIC_MAESTRO_NO_AUTOLOGIN === "1") return null;
+  const email = process.env.EXPO_PUBLIC_MAESTRO_EMAIL;
+  const password = process.env.EXPO_PUBLIC_MAESTRO_PASSWORD;
+  if (!email || !password) return null;
+  return { email, password };
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
   isLoading: true,
@@ -461,20 +486,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           limits,
           isLoading: false,
         });
-      } else if (
-        process.env.EXPO_PUBLIC_MAESTRO === "1" &&
-        process.env.EXPO_PUBLIC_MAESTRO_NO_AUTOLOGIN !== "1"
-      ) {
+      } else if (getMaestroAutoLoginCredentials()) {
         // Maestro test bypass: auto-login with seeded credentials so that
-        // e2e flows skip the login UI entirely. Code path is gated behind
-        // EXPO_PUBLIC_MAESTRO and excluded from prod bundles by Expo's
-        // compile-time env replacement (env var unset → branch dead-code
-        // eliminated).
+        // e2e flows skip the login UI entirely. Yalnız dev build + açık env
+        // (bkz. getMaestroAutoLoginCredentials) — release'te __DEV__ false.
         try {
-          const email =
-            process.env.EXPO_PUBLIC_MAESTRO_EMAIL || "zeynep@demo.com";
-          const password =
-            process.env.EXPO_PUBLIC_MAESTRO_PASSWORD || "Demo123!";
+          const { email, password } = getMaestroAutoLoginCredentials()!;
           console.log("🤖 Maestro auto-login as", email);
           const response = await authApi.login(email, password);
           const data: any = response.data;
