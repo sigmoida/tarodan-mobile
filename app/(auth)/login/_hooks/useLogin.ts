@@ -171,8 +171,7 @@ export function useLogin() {
     if (appleLoading) return;
     setAppleLoading(true);
     try {
-      const { identityToken, fullName } = await signInWithApple();
-      const response = await authApi.loginWithApple(identityToken, fullName);
+      const response = await authApi.loginWithApple(await signInWithApple());
       const data = response.data as any;
       const accessToken = data.tokens?.accessToken || data.accessToken;
       const refreshToken = data.tokens?.refreshToken || data.refreshToken;

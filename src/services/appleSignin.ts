@@ -15,11 +15,24 @@ export async function isAppleAvailable(): Promise<boolean> {
   }
 }
 
+export interface AppleSignInResult {
+  identityToken: string;
+  /** Yalnız ilk yetkilendirmede gelir. */
+  fullName?: string;
+  /**
+   * Tek kullanımlık, kısa ömürlü (5 dk) kod. Sunucu bunu Apple'da refresh
+   * token'a çevirip saklar ve hesap silmede Apple token'ını iptal eder
+   * (Apple 5.1.1(v)). Apple her girişte üretir; gelmezse alan gönderilmez.
+   */
+  authorizationCode?: string;
+}
+
 /**
- * Apple ile giriş; backend'e gönderilecek identityToken (+ ilk seferde fullName) döner.
+ * Apple ile giriş; backend'e gönderilecek identityToken (+ ilk seferde fullName,
+ * + authorizationCode) döner.
  * Kullanıcı iptal ederse ERR_REQUEST_CANCELED fırlatır (çağıran sessiz geçer).
  */
-export async function signInWithApple(): Promise<{ identityToken: string; fullName?: string }> {
+export async function signInWithApple(): Promise<AppleSignInResult> {
   const credential = await AppleAuthentication.signInAsync({
     requestedScopes: [
       AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
@@ -33,5 +46,6 @@ export async function signInWithApple(): Promise<{ identityToken: string; fullNa
   if (!identityToken) throw new Error(i18n.t('auth.appleIdentityTokenMissing'));
   const parts = [credential.fullName?.givenName, credential.fullName?.familyName].filter(Boolean);
   const fullName = parts.length ? parts.join(' ') : undefined;
-  return { identityToken, fullName };
+  const authorizationCode = credential.authorizationCode ?? undefined;
+  return { identityToken, fullName, authorizationCode };
 }
