@@ -7,9 +7,22 @@ name: Master Flow (source guard + hotfix back-merge)
 # "Master source guard" job'ı ruleset'te master için ZORUNLU check olmalı. Bu
 # workflow'a path filtresi KONMAZ: zorunlu bir check atlanırsa PR sonsuza dek
 # "Expected — waiting" kalır.
+#
+# Neden `pull_request_target` (pull_request değil): pull_request, workflow
+# dosyasını PR'ın HEAD'inden okur — PR bu dosyayı değiştirip guard'ı her zaman
+# yeşil yapabilirdi. pull_request_target dosyayı HEDEF daldan (master) okur, PR
+# değiştiremez. Bu tetikleyici tehlikeli olabilir (yazma yetkili token + gizli
+# değerler) ama YALNIZ PR kodu çalıştırılırsa; burada:
+#   - source-guard hiçbir şeyi checkout ETMEZ, yalnız olay meta verisini okur;
+#   - PR'dan gelen her değer (dal adı, repo adı) yalnız `env:` üzerinden okunur,
+#     `run:` içine `${{ }}` ile enjekte edilmez (script injection yok);
+#   - hotfix-backmerge yalnız merge edilmiş, aynı depodaki hotfix/* PR'ında
+#     koşar ve PR'ın kodunu değil master'ı checkout eder.
+# Not: dosya master'dan okunduğu için guard, bu dosya master'a girdikten SONRA
+# devreye girer (ruleset'e zorunlu check'i o zaman ekle).
 
 on:
-  pull_request:
+  pull_request_target:
     branches: [master]
     # edited: PR'ın hedef dalı sonradan master'a çevrilirse de guard koşsun.
     types: [opened, reopened, synchronize, edited, closed]
@@ -23,6 +36,7 @@ jobs:
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # PR kodu checkout EDİLMEZ (pull_request_target güvenliği; bkz. dosya başı).
     steps:
       - name: Source branch must be development or hotfix/*
         env:
@@ -47,7 +61,11 @@ jobs:
     name: Hotfix back-merge PR (master → development)
     # hotfix/* PR'ı master'a merge edildiğinde: master'daki düzeltme development'a
     # geri taşınmazsa bir sonraki development → master sürümü onu geri alır.
-    if: github.event.action == 'closed' && github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'hotfix/')
+    if: >-
+      github.event.action == 'closed' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'hotfix/')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

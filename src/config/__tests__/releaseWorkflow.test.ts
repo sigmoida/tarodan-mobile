@@ -313,13 +313,35 @@ describe('concurrency', () => {
 
 describe('master akışı', () => {
   it('"Master source guard" master PR\'larında koşar, path filtresi yok', () => {
-    const pr = masterFlow.on.pull_request as { branches: string[]; paths?: unknown; 'paths-ignore'?: unknown };
+    const pr = masterFlow.on.pull_request_target as { branches: string[]; paths?: unknown; 'paths-ignore'?: unknown };
     expect(pr.branches).toEqual(['master']);
     expect(pr.paths).toBeUndefined();
     expect(pr['paths-ignore']).toBeUndefined();
     const guard = masterFlow.jobs['source-guard'];
     expect(guard.name).toBe('Master source guard');
     expect(runs(guard)).toMatch(/development\|hotfix\/\*\)/);
+  });
+
+  it('guard PR\'ın değiştiremeyeceği tetikleyicide (pull_request_target) ve güvenli', () => {
+    // pull_request workflow dosyasını PR head'inden okur → PR guard'ı yeşile çevirebilirdi.
+    expect(masterFlow.on).not.toHaveProperty('pull_request');
+    const guard = masterFlow.jobs['source-guard'];
+    // PR kodu checkout edilmez.
+    expect(guard.steps!.some((s) => (s.uses ?? '').startsWith('actions/checkout'))).toBe(false);
+    // Dal adı yalnız env'den; run içinde ifade yok.
+    for (const job of Object.values(masterFlow.jobs)) {
+      expect(runs(job)).not.toContain('${{');
+    }
+    const step = guard.steps!.find((s) => s.run);
+    expect(step?.env?.HEAD_REF).toBe('${{ github.event.pull_request.head.ref }}');
+    expect(step?.run).toContain('"$HEAD_REF"');
+  });
+
+  it('back-merge yalnız aynı depodan gelen hotfix\'te ve master\'ı checkout eder', () => {
+    const job = masterFlow.jobs['hotfix-backmerge'];
+    expect(job.if).toContain('github.event.pull_request.head.repo.full_name == github.repository');
+    const co = job.steps!.find((s) => (s.uses ?? '').startsWith('actions/checkout')) as Step & { with?: { ref?: string } };
+    expect(co.with?.ref).toBe('master');
   });
 
   it('hotfix merge\'ünde development\'a geri birleştirme PR\'ı açılır', () => {
