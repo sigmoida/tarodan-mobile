@@ -1,15 +1,14 @@
 import React from "react";
 import { View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { Card, Button, IconButton, Text, theme } from "@/ui";
-
+import { Badge, Button, IconButton, Text } from "@/ui";
 import { useTranslation } from "react-i18next";
 import { styles } from "../_lib/styles";
 import type { Address } from "../_lib/types";
 
-const { colors } = theme;
-
-/** A single saved-address card with edit/delete/set-default actions. */
+/**
+ * Tek kayıtlı adres satırı — web profil `AddressesSection` satırı: çerçeveli kutu, başlık +
+ * "Varsayılan" rozeti, ad, telefon, adres; sağda düzenle / sil. Satır başı süs ikonu yok.
+ */
 export function AddressCard({
   address,
   onEdit,
@@ -24,59 +23,54 @@ export function AddressCard({
   setDefaultPending: boolean;
 }) {
   const { t } = useTranslation();
+  const postal = address.zipCode ?? address.postalCode;
   return (
-    <Card style={styles.addressCard}>
-      <View style={styles.cardHeader}>
+    <View style={styles.row}>
+      <View style={styles.rowBody}>
         <View style={styles.titleRow}>
-          <Ionicons name="location" size={20} color={colors.primary[600]!} />
-          <Text variant="body" style={styles.addressTitle}>
-            {address.title}
-          </Text>
-          {address.isDefault && (
-            <View style={styles.defaultBadge}>
-              <Text style={styles.defaultBadgeText}>{t("mobile.default")}</Text>
-            </View>
-          )}
+          {address.title ? (
+            <Text variant="label" numberOfLines={1} style={styles.addressTitle}>
+              {address.title}
+            </Text>
+          ) : null}
+          {address.isDefault && <Badge size="sm">{t("mobile.default")}</Badge>}
         </View>
-        <View style={styles.cardActions}>
-          <IconButton
-            icon="pencil"
+        <Text variant="bodySm" weight="medium" tone="heading">
+          {address.fullName}
+        </Text>
+        <Text variant="bodySm" tone="muted">
+          {t("sale.phoneLabel", { phone: address.phone })}
+        </Text>
+        <Text variant="bodySm" tone="muted" style={styles.addressDetail}>
+          {address.address}, {address.district}, {address.city}
+          {postal ? ` ${postal}` : ""}
+        </Text>
+        {!address.isDefault && (
+          <Button
+            variant="link"
             size="sm"
-            accessibilityLabel={t("address.editAddress")}
-            onPress={onEdit}
+            title={t("address.makeDefault")}
+            onPress={onSetDefault}
+            isLoading={setDefaultPending}
+            style={styles.defaultButton}
           />
-          <IconButton
-            icon="trash-outline"
-            variant="danger"
-            size="sm"
-            accessibilityLabel={t("address.deleteAddress")}
-            onPress={onDelete}
-          />
-        </View>
+        )}
       </View>
-
-      <Text variant="body">{address.fullName}</Text>
-      <Text variant="bodySm" style={styles.addressDetail}>
-        {address.address}
-      </Text>
-      <Text variant="bodySm" style={styles.addressDetail}>
-        {address.district}, {address.city}{" "}
-        {address.zipCode ?? address.postalCode ?? ""}
-      </Text>
-      <Text variant="bodySm" style={styles.addressDetail}>
-        {t("sale.phoneLabel", { phone: address.phone })}
-      </Text>
-
-      {!address.isDefault && (
-        <Button
-          variant="ghost"
+      <View style={styles.rowActions}>
+        <IconButton
+          icon="pencil-outline"
           size="sm"
-          title={t("address.makeDefault")}
-          onPress={onSetDefault}
-          isLoading={setDefaultPending}
-          style={styles.defaultButton}
+          accessibilityLabel={t("address.editAddress")}
+          onPress={onEdit}
         />
-      )}
-    </Card>
+        <IconButton
+          icon="trash-outline"
+          variant="danger"
+          size="sm"
+          accessibilityLabel={t("address.deleteAddress")}
+          onPress={onDelete}
+        />
+      </View>
+    </View>
   );
 }
