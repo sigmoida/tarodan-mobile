@@ -54,6 +54,24 @@ export const EMPTY_FILTERS: ProductFilters = {
 };
 
 /**
+ * Üretici değişince/kalkınca YALNIZ üreticiye bağlı grup seçimleri düşer. Genel özel
+ * gruplar (`manufacturerSlug: null`, ör. Nadirlik) üreticiden bağımsızdır; seçimleri
+ * kalır (delta 19). Genel olduğu `groups`'tan doğrulanamayan slug (bilinmeyen/yüklenmemiş)
+ * güvenli tarafta düşürülür.
+ *
+ * TEK KAYNAK: filtre sayfası (seç/kaldır), arama sekmesi çipi ve Tüm ilanlar çipi
+ * üretici kalkarken bunu kullanır; biri unutulursa kaldırılan üreticinin seçimi
+ * isteğe bayat olarak girmeye devam eder.
+ */
+export function keepGeneralAttributeSelections(
+  selections: Record<string, string[]> | undefined,
+  groups: ReadonlyArray<{ slug: string; manufacturerSlug?: string | null }>,
+): Record<string, string[]> {
+  const general = new Set(groups.filter((g) => !g.manufacturerSlug).map((g) => g.slug));
+  return Object.fromEntries(Object.entries(selections ?? {}).filter(([slug]) => general.has(slug)));
+}
+
+/**
  * Web ProductQueryDto-uyumlu sort değerleri (search.tsx eski 'newest'/'sort' yerine).
  *
  * Eskiden modül-seviyesi TR literal diziydi (`buildConditionOptions`'ın

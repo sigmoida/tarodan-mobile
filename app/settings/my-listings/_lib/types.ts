@@ -13,7 +13,6 @@ export interface Listing {
   images: Array<{ url: string }>;
   createdAt: string;
   updatedAt: string;
-  expiresAt?: string;
   condition: string;
   category?: { name: string };
   boostedUntil?: string | null;
@@ -27,10 +26,53 @@ export interface Listing {
    * kutu, gerekçe yokmuş gibi değil "bir şey bozuk" gibi görünür).
    */
   rejectionReason?: string | null;
+  /**
+   * Pasif ilanın davranış işareti (`GET /products/my`): `expired` (süresi doldu,
+   * yenilenebilir) ya da `return_quarantine` (iade stoğu geri yükledi). Statüsü
+   * `inactive` olmayan ilanda boştur. Bkz. `product-common.service.ts`.
+   */
+  inactiveReason?: string | null;
 }
 
 export type FilterType =
-  | 'all' | 'active' | 'pending' | 'sold' | 'reserved' | 'inactive' | 'rejected' | 'deleted';
+  | 'all' | 'active' | 'pending' | 'sold' | 'reserved' | 'inactive' | 'expired' | 'rejected' | 'deleted';
+
+/** Sekme değeri "Süresi dolan" (sunucuda `status=inactive` + `inactiveReason=expired`). */
+export const EXPIRED_FILTER = 'expired' as const;
+
+/** İlanın süresi dolmuş mu (pasif + neden `expired`)? Tek yüklem — sekme, rozet ve menü bunu okur. */
+export const isExpiredListing = (listing: Pick<Listing, 'status' | 'inactiveReason'>): boolean =>
+  listing.status === 'inactive' && listing.inactiveReason === EXPIRED_FILTER;
+
+/** Rozet/etiket için etkin durum: süresi dolan ilan "expired" gösterilir (web `listingStatusKey`). */
+export const effectiveStatus = (listing: Pick<Listing, 'status' | 'inactiveReason'>): string =>
+  isExpiredListing(listing) ? EXPIRED_FILTER : listing.status;
+
+/** `GET /products/my` sorgu parametreleri — sekme değerinden (web `listingFilterParams`). */
+export function listingFilterParams(filter: FilterType): Record<string, string> {
+  if (filter === EXPIRED_FILTER) return { status: 'inactive', inactiveReason: 'expired' };
+  return filter === 'all' ? {} : { status: filter };
+}
+
+/** İstemci tarafı sekme eşlemesi (liste zaten sunucuda süzülür; yarış anında yanlış ilan görünmesin). */
+export const matchesFilter = (listing: Listing, filter: FilterType): boolean => {
+  if (filter === 'all') return true;
+  if (filter === EXPIRED_FILTER) return isExpiredListing(listing);
+  return listing.status === filter;
+};
+
+/**
+ * Pasif ilanın NEDEN pasif olduğunu açıklayan katalog anahtarı (kartta ipucu).
+ * `expired` yenileme çağrısı taşır; `return_quarantine` bekleme açıklamasıdır.
+ */
+export const inactiveHintKey = (
+  listing: Pick<Listing, 'status' | 'inactiveReason'>,
+): MessageKey | null => {
+  if (listing.status !== 'inactive') return null;
+  if (listing.inactiveReason === EXPIRED_FILTER) return 'profile.expiredListings.cardHint';
+  if (listing.inactiveReason === 'return_quarantine') return 'status.listingRemoval.reason.return_quarantine';
+  return null;
+};
 
 export const getStatusColor = (status: string) => {
   switch (status) {
@@ -40,6 +82,7 @@ export const getStatusColor = (status: string) => {
     case 'rejected': return colors.danger[600]!;
     case 'reserved': return colors.primary[600]!;
     case 'inactive': return colors.text.subtle;
+    case 'expired': return colors.warning[600]!;
     case 'deleted': return colors.danger[600]!;
     case 'suspended': return colors.warning[700]!;
     default: return colors.text.muted;
@@ -61,6 +104,7 @@ export const statusTextKey = (status: string): MessageKey | null => {
     case 'rejected': return 'listing.filterRejected';
     case 'reserved': return 'listing.filterReserved';
     case 'inactive': return 'listing.filterInactive';
+    case 'expired': return 'profile.listingStatus.expired';
     case 'deleted': return 'listing.statusDeleted';
     case 'suspended': return 'listing.statusSuspended';
     default: return null;
@@ -70,12 +114,4 @@ export const statusTextKey = (status: string): MessageKey | null => {
 export const formatDate = (dateString: string) => {
   const date = new Date(dateString);
   return date.toLocaleDateString('tr-TR');
-};
-
-export const getDaysUntilExpiry = (expiresAt?: string) => {
-  if (!expiresAt) return null;
-  const expires = new Date(expiresAt);
-  const now = new Date();
-  const diff = expires.getTime() - now.getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
 };

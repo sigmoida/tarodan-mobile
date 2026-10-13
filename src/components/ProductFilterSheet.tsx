@@ -25,7 +25,7 @@ import {
   theme,
 } from '@/ui';
 import type { ProductFilters } from '../utils/productFilters';
-import { buildConditionOptions } from '../utils/productFilters';
+import { buildConditionOptions, keepGeneralAttributeSelections } from '../utils/productFilters';
 import type { ProductFilterOptions } from '../hooks/useProductFilterOptions';
 
 const { colors, spacing } = theme;
@@ -121,12 +121,22 @@ export default function ProductFilterSheet({
     );
 
   const selectManufacturer = (id: string, name: string) =>
-    // Üretici değişince üreticiye-özel attribute seçimlerini sıfırla (web ile parite) —
-    // başka üreticinin attribute'ları yeni üreticide anlamsız.
+    // Üretici değişince YALNIZ üreticiye-özel attribute seçimlerini sıfırla (web ile
+    // parite) — başka üreticinin attribute'ları yeni üreticide anlamsız; genel gruplar kalır.
     onChange(
       filters.manufacturerId === id
-        ? { ...filters, manufacturerId: '', manufacturer: '', customAttributes: {} }
-        : { ...filters, manufacturerId: id, manufacturer: name, customAttributes: {} },
+        ? {
+            ...filters,
+            manufacturerId: '',
+            manufacturer: '',
+            customAttributes: keepGeneralAttributeSelections(filters.customAttributes, options.customAttributes),
+          }
+        : {
+            ...filters,
+            manufacturerId: id,
+            manufacturer: name,
+            customAttributes: keepGeneralAttributeSelections(filters.customAttributes, options.customAttributes),
+          },
     );
 
   const toggleCustomAttribute = (groupSlug: string, attrSlug: string) => {
@@ -325,8 +335,8 @@ export default function ProductFilterSheet({
             </View>
           </View>
 
-          {/* Üreticiye-özel filtreler (örn Hot Wheels: Segment, Assortment...).
-              Yalnızca attribute-grubu olan bir üretici seçilince dolar. Web SidebarFilters paritesi. */}
+          {/* Özel attribute filtreleri: genel gruplar (örn Nadirlik) üretici seçmeden de gelir;
+              üreticiye-özel olanlar (örn Hot Wheels: Segment...) üretici seçilince eklenir. Web SidebarFilters paritesi. */}
           {options.customAttributes.length > 0 && (
             <>
               <Divider style={styles.divider} />

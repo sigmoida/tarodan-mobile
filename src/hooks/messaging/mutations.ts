@@ -5,6 +5,8 @@ import { messagesApi } from '@/lib/api';
 import i18n from '@/i18n/config';
 import { useAuthStore } from '@/stores/authStore';
 import { useMessagesStore } from '@/stores/messagesStore';
+import { isCachedLimitExhausted, type DailyLimit } from '@/lib/messaging/dailyLimit';
+import type { QueryClient } from '@tanstack/react-query';
 import type { Message, MessageThread } from '@/stores/messagesStore';
 import { normalizeMessage, normalizeThread } from '@/lib/messaging/normalize';
 import {
@@ -26,7 +28,27 @@ export class DailyMessageLimitError extends Error {
   }
 }
 
-/** POST /messages/threads/:id/messages — gönder + optimistik cache + günlük sayaç. */
+/**
+ * Günlük hak önbelleği (`qk.messaging.dailyLimit`): gönderimden önce BUGÜN alınmış
+ * "hak bitti" kaydı varsa isteği atmadan reddet; gönderimden sonra hakkı bir düşür
+ * ve sunucu sayımıyla eşitlemek için tazele. Sayaç store'da DEĞİL, sunucuda.
+ */
+function assertDailyLimitLeft(qc: QueryClient): void {
+  const key = qk.messaging.dailyLimit;
+  const state = qc.getQueryState<DailyLimit | null>(key);
+  if (isCachedLimitExhausted(qc.getQueryData<DailyLimit | null>(key), state?.dataUpdatedAt)) {
+    throw new DailyMessageLimitError();
+  }
+}
+
+function consumeDailyMessage(qc: QueryClient): void {
+  qc.setQueryData<DailyLimit | null>(qk.messaging.dailyLimit, (d) =>
+    d ? { ...d, remaining: Math.max(0, d.remaining - 1) } : d,
+  );
+  qc.invalidateQueries({ queryKey: qk.messaging.dailyLimit });
+}
+
+/** POST /messages/threads/:id/messages — gönder + optimistik cache + günlük hak. */
 export function useSendMessage() {
   const qc = useQueryClient();
   return useMutation({
@@ -37,7 +59,7 @@ export function useSendMessage() {
       threadId: string;
       content: string;
     }): Promise<Message> => {
-      if (!useMessagesStore.getState().canSendMessage()) throw new DailyMessageLimitError();
+      assertDailyLimitLeft(qc);
       const res = await messagesApi.sendMessage(threadId, content);
       return normalizeMessage(res.data);
     },
@@ -45,7 +67,7 @@ export function useSendMessage() {
       const myUserId = useAuthStore.getState().user?.id;
       const isOpen = useMessagesStore.getState().currentThreadId === threadId;
       applyIncomingToCache(qc, threadId, message, { isOpen, myUserId });
-      useMessagesStore.getState().incrementDailyCount();
+      consumeDailyMessage(qc);
     },
   });
 }
@@ -63,15 +85,16 @@ export function useCreateThread() {
       content: string;
       productId?: string;
     }): Promise<MessageThread> => {
-      if (!useMessagesStore.getState().canSendMessage()) throw new DailyMessageLimitError();
+      assertDailyLimitLeft(qc);
       const res = await messagesApi.createThread({ participantId: recipientId, productId });
       const newThread = res.data;
       if (content) await messagesApi.sendMessage(newThread.id, content);
       return normalizeThread(newThread);
     },
-    onSuccess: (thread) => {
+    onSuccess: (thread, { content }) => {
       prependThreadToCache(qc, thread);
-      useMessagesStore.getState().incrementDailyCount();
+      // Thread açmak mesaj sayılmaz; yalnız ilk mesaj gönderildiyse hak düşer.
+      if (content) consumeDailyMessage(qc);
     },
   });
 }

@@ -149,6 +149,12 @@ export const styles = StyleSheet.create({
     color: colors.text.heading,
     fontWeight: '500',
   },
+  fieldError: {
+    fontSize: 12,
+    color: colors.danger[600]!,
+    marginTop: theme.spacing[1],
+    marginBottom: theme.spacing[2.5],
+  },
   dateRow: {
     flexDirection: 'row',
     gap: theme.spacing[2.5],

@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { theme, DateField } from '@/ui';
 import UpgradeCta from '@/components/UpgradeCta';
+import { ListingRemovalModal } from '../ListingRemovalModal';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
 import { styles } from '../_lib/styles';
@@ -820,6 +821,15 @@ export function ListingSubmitRow({ f }: SectionProps) {
           <Ionicons name="trash-outline" size={18} color={colors.danger[600]!} />
           <Text style={styles.deleteButtonText}>{t('product.deleteListing')}</Text>
         </TouchableOpacity>
+      )}
+      {f.isEdit && (
+        <ListingRemovalModal
+          action="delete"
+          visible={f.removalOpen}
+          listingTitle={f.title}
+          onClose={f.closeRemoval}
+          onSubmit={f.deleteWithReason}
+        />
       )}
     </>
   );

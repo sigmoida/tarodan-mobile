@@ -17,10 +17,9 @@ export function resetUserStores(): void {
   useCartStore.getState().clearBuyNow();
 
   // #77: mesaj server-state'i artık React Query'de (qk.messaging.*) — queryClient.clear()
-  // aşağıda onu da temizler. Store yalnız client state tutar (aktif thread + günlük sayaç).
+  // aşağıda onu da temizler. Store yalnız client state tutar (aktif thread).
   useMessagesStore.setState({
     currentThreadId: null,
-    dailyMessageCount: 0,
   });
 
   // Bildirim + mesaj rozeti dahil tüm react-query önbelleği (örn. 'notifications-unread').

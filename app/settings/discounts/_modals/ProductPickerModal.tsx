@@ -6,40 +6,43 @@ import { Modal, Button, Spinner, Text, theme } from '@/ui';
 
 import { formatPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
-import type { DiscountsController } from '../_hooks/useDiscounts';
+import { useDiscountProducts } from '../_hooks/useDiscountProducts';
 
 const { colors } = theme;
 
 /** Multi-select product picker for product-scoped discounts. */
-export function ProductPickerModal({ f }: { f: DiscountsController }) {
+export function ProductPickerModal({
+  visible,
+  selectedIds,
+  onChange,
+  onClose,
+}: {
+  visible: boolean;
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+  onClose: () => void;
+}) {
   const { t } = useTranslation();
-  const { form, setForm } = f;
+  const { products, isLoading } = useDiscountProducts(visible);
   return (
-    <Modal
-      isOpen={f.productPickerOpen}
-      onClose={() => f.setProductPickerOpen(false)}
-      title={t('discount.pickProducts')}
-    >
+    <Modal isOpen={visible} onClose={onClose} title={t('discount.pickProducts')}>
       <ScrollView style={styles.dialogScroll}>
-        {f.productsQuery.isLoading ? (
+        {isLoading ? (
           <View style={{ paddingVertical: theme.spacing[6], alignItems: 'center' }}>
             <Spinner size="lg" />
           </View>
-        ) : f.products.length === 0 ? (
+        ) : products.length === 0 ? (
           <Text style={styles.emptyProducts}>{t('discount.noActiveProducts')}</Text>
         ) : (
-          f.products.map((p) => {
-            const checked = form.targetProductIds.includes(p.id);
+          products.map((p) => {
+            const checked = selectedIds.includes(p.id);
             return (
               <Pressable
                 key={p.id}
                 style={styles.productRow}
-                onPress={() => {
-                  const next = checked
-                    ? form.targetProductIds.filter((id) => id !== p.id)
-                    : [...form.targetProductIds, p.id];
-                  setForm({ ...form, targetProductIds: next });
-                }}
+                onPress={() =>
+                  onChange(checked ? selectedIds.filter((id) => id !== p.id) : [...selectedIds, p.id])
+                }
               >
                 <Ionicons
                   name={checked ? 'checkbox' : 'square-outline'}
@@ -58,7 +61,7 @@ export function ProductPickerModal({ f }: { f: DiscountsController }) {
         )}
       </ScrollView>
       <View style={styles.dialogActions}>
-        <Button variant="primary" title={t('common.ok')} onPress={() => f.setProductPickerOpen(false)} />
+        <Button variant="primary" title={t('common.ok')} onPress={onClose} />
       </View>
     </Modal>
   );

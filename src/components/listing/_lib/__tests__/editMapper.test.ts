@@ -359,3 +359,21 @@ describe('toFormValues — genel özel gruplar', () => {
     expect(m.globalAttrs).toEqual({ 'nadirlik-bulunabilirlik': ['chase'] });
   });
 });
+
+describe('toFormValues — gizli gruplar', () => {
+  it('gizli grup (vehicle_type) hiçbir kovaya girmez: attributes[] besleyen kovalar temiz kalır', () => {
+    const m = toFormValues({
+      ...RESPONSE,
+      edit: {
+        ...EDIT,
+        attributes: [
+          ...EDIT.attributes,
+          { groupSlug: 'vehicle_type', groupName: 'Araç tipi', slug: 'suv', value: 'SUV', displayValue: 'SUV', manufacturerSlug: null },
+          { groupSlug: 'vehicle_type', groupName: 'Araç tipi', slug: 'sedan', value: 'Sedan', displayValue: 'Sedan', manufacturerSlug: 'hot-wheels' },
+        ],
+      },
+    } as unknown as MyProductResponse)!;
+    expect(m.globalAttrs).toEqual({});
+    expect(m.manufacturerAttrs).toEqual({ series: ['premium'] });
+  });
+});

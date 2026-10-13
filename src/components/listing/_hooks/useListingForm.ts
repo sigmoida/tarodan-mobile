@@ -14,9 +14,12 @@ import { MAX_COLORS } from '../_lib/schema';
 import { globalCustomGroups, requiredGlobalGroups } from '../_lib/attributeGroups';
 import { toFormValues } from '../_lib/editMapper';
 import { activatedStatus, activationMessageKey } from '../_lib/activation';
+import { useDispatchAddress } from './useDispatchAddress';
+import { invalidateListingCaches as invalidateListingCachesShared } from '../_lib/invalidate';
+import { useDeleteListing } from './useDeleteListing';
 
 import { useAuthStore } from '../../../stores/authStore';
-import { api, productsApi, categoriesApi, bankAccountApi, shippingApi } from '@/lib/api';
+import { api, productsApi, categoriesApi, bankAccountApi, shippingApi, type ListingRemovalPayload } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { FALLBACK_SCALES, buildMaterials, BRAND_SLUGS, SCALE_SLUGS , MIN_IMAGE_BYTES } from '../_lib/constants';
 import type {
@@ -83,13 +86,19 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     refreshUserData,
   } = useAuthStore();
 
-  // İlan listesi/detay ekranlarının bayat kalmaması için ilgili cache'leri temizler.
-  const invalidateListingCaches = () => {
-    queryClient.invalidateQueries({ queryKey: ['my-listings'] });
-    queryClient.invalidateQueries({ queryKey: ['products'] });
-    queryClient.invalidateQueries({ queryKey: ['products-search'] });
-    if (productId) queryClient.invalidateQueries({ queryKey: ['product', productId] });
-  };
+  // Kargo çıkış adresi kapısı (yalnız yeni ilan): adresi/cep numarası geçersiz
+  // satıcının siparişinde koli açılamaz. Kural `_lib/dispatchAddress.ts`'te.
+  const {
+    hasDispatchAddress,
+    needsFix: dispatchAddressNeedsFix,
+    isLoading: dispatchAddressLoading,
+    isError: dispatchAddressError,
+    refetch: refetchDispatchAddress,
+  } = useDispatchAddress(!isEdit && isAuthenticated);
+
+  // İlan listesi/detay/ana sayfa ekranlarının bayat kalmaması için ilgili cache'leri
+  // temizler — İlanlarım ile ORTAK küme (`_lib/invalidate`).
+  const invalidateListingCaches = () => invalidateListingCachesShared(queryClient, productId);
 
   // #81 (hibrit): text alanları useZodForm'da; watch/setValue köprüsüyle mevcut
   // f.title/f.setTitle sözleşmesi korunur (section'lar değişmez), zod validasyon
@@ -157,6 +166,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const [saleEndDate, setSaleEndDate] = useState('');
   const [reactivateQuantity, setReactivateQuantity] = useState('');
   const [reactivating, setReactivating] = useState(false);
+  const [removalOpen, setRemovalOpen] = useState(false);
   const [productLoading, setProductLoading] = useState(isEdit);
   const [productNotFound, setProductNotFound] = useState(false);
 
@@ -713,7 +723,11 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       shippingPackageTier,
       bundleSize: isSet && Number(bundleSize) >= 2 ? Number(bundleSize) : undefined,
       images: imageKeys.length > 0 ? imageKeys : undefined,
-      attributes: customAttributeSlugs.length > 0 ? customAttributeSlugs : undefined,
+      // Düzenlemede boş liste `[]` GİDER: sunucu `PATCH` + `attributes` ile tüm
+      // özel grup bağlarını listeyle değiştirir; `undefined` (alanı hiç
+      // göndermemek) kullanıcının temizlediği seçimi sunucuda bırakırdı
+      // (delta 19). Oluşturmada boş liste gereksiz, alan atlanır.
+      attributes: isEdit || customAttributeSlugs.length > 0 ? customAttributeSlugs : undefined,
       ...buildColorAndBoxPayload({ colors, isBoxed }),
     } as Record<string, any>;
   };
@@ -772,6 +786,23 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
         [
           { text: t('listing.dismiss'), style: 'cancel' },
           { text: t('listing.addIban'), onPress: () => router.push('/settings/bank-account') },
+        ],
+      );
+      return;
+    }
+
+    // Durum BİLİNMİYORSA (yükleniyor/hata) "adres ekle" denmez: form zaten
+    // bu durumda gösterilmiyor (`DispatchAddressGate`); buraya yalnız bilinen eksik düşer.
+    if (!isEdit && !dispatchAddressLoading && !dispatchAddressError && !hasDispatchAddress) {
+      appAlert(
+        t(dispatchAddressNeedsFix ? 'listing.dispatchAddressFixTitle' : 'listing.dispatchAddressRequiredTitle'),
+        t('address.dispatchPromptDesc'),
+        [
+          { text: t('listing.dismiss'), style: 'cancel' },
+          {
+            text: t(dispatchAddressNeedsFix ? 'address.dispatchFixButton' : 'address.dispatchAddButton'),
+            onPress: () => router.push('/settings/addresses'),
+          },
         ],
       );
       return;
@@ -880,31 +911,12 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     }
   };
 
-  const handleDelete = () => {
-    appAlert(t('product.deleteListing'), t('listing.deleteConfirmBody'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: async () => {
-          setIsSubmitting(true);
-          try {
-            await productsApi.delete(productId!);
-            invalidateListingCaches();
-            await refreshUserData();
-            appAlert(t('listing.deletedTitle'), t('listing.deleted'), [
-              { text: t('common.ok'), onPress: () => router.back() },
-            ]);
-          } catch (err: any) {
-            const msg = err.response?.data?.message || t('listing.deleteFailed');
-            appAlert(t('common.error'), msg);
-          } finally {
-            setIsSubmitting(false);
-          }
-        },
-      },
-    ]);
-  };
+  // Silme önce NEDEN sorar (web ile aynı; `ListingRemovalModal`). Onay metni pencerenin kendisidir.
+  const handleDelete = () => setRemovalOpen(true);
+
+  /** Pencere kapandıktan SONRA çağrılır; mutasyon + uyarı `useDeleteListing`te. */
+  const deleteListing = useDeleteListing(productId);
+  const deleteWithReason = (removal: ListingRemovalPayload) => deleteListing.mutate(removal);
 
   const resetForm = () => {
     setTitle('');
@@ -941,6 +953,11 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     productNotFound,
     hasBankAccount,
     bankAccountQuery,
+    hasDispatchAddress,
+    dispatchAddressNeedsFix,
+    dispatchAddressLoading,
+    dispatchAddressError,
+    refetchDispatchAddress,
     // limits
     limitsLoading,
     listingLimits,
@@ -993,7 +1010,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     // loading flags
     brandsLoading,
     modelsLoading,
-    isSubmitting,
+    isSubmitting: isSubmitting || deleteListing.isPending,
     // commission
     commissionPreview,
     commissionLoading,
@@ -1022,6 +1039,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     handleSubmit,
     handleReactivate,
     handleDelete,
+    removalOpen,
+    closeRemoval: () => setRemovalOpen(false),
+    deleteWithReason,
   };
 }
 

@@ -49,11 +49,6 @@ export const styles = StyleSheet.create({
     color: colors.warning[600]!,
     fontSize: 13,
   },
-  upgradeLink: {
-    color: colors.primary[600]!,
-    fontWeight: '600',
-    fontSize: 13,
-  },
   searchContainer: {
     padding: theme.spacing[3],
     backgroundColor: colors.surface.DEFAULT,

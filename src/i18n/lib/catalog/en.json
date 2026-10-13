@@ -756,7 +756,21 @@
     "reservedStockInfo": "Stock: {quantity} · {reserved} reserved for active trades/orders · Shown as available: {available}",
     "additionalDetails": "Additional details",
     "globalAttrsHint": "Extra fields that apply to every listing. Buyers can filter by these.",
-    "optionsLoadFailed": "Options could not be loaded — refresh the page"
+    "optionsLoadFailed": "Options could not be loaded — refresh the page",
+    "deactivateListingFull": "Deactivate Listing",
+    "removal": {
+      "deleteDescription": "The listing is removed permanently and cannot be reopened. Please tell us why you are removing it.",
+      "deactivateDescription": "The listing leaves the storefront; you can put it back on sale at any time. Please tell us why you are deactivating it.",
+      "reasonLabel": "Reason",
+      "reasonPlaceholder": "Choose a reason",
+      "platformLabel": "Where did you sell it?",
+      "platformPlaceholder": "Choose a platform",
+      "detailLabel": "Note (optional)",
+      "detailRequiredLabel": "Note",
+      "detailPlaceholder": "Anything you would like to add",
+      "otherPlatformPlaceholder": "Tell us where you sold the item",
+      "privacyNote": "Only the Tarodan team sees this; it is never shown on the listing page."
+    }
   },
   "cart": {
     "addToCartFailed": "Could not add to cart",
@@ -2231,7 +2245,31 @@
     "guestWelcomeTitle": "Welcome!",
     "guestWelcomeSubtitle": "Sign in to Tarodan to use every feature",
     "guestBenefitsTitle": "What Can You Do as a Member?",
-    "guestQuickLinksTitle": "What You Can Do for Now"
+    "guestQuickLinksTitle": "What You Can Do for Now",
+    "listingStatus": {
+      "expired": "Expired"
+    },
+    "expiredListings": {
+      "tab": "Expired",
+      "bannerTitle": "{count} of your listings have expired",
+      "bannerDescription": "Renew them in one click. Listings whose content has not changed go straight back live.",
+      "cardHint": "Expired. Renew it to put it back live.",
+      "renew": "Renew",
+      "renewing": "Renewing...",
+      "select": "Select listing",
+      "selectAll": "Select all",
+      "clearSelection": "Clear selection",
+      "renewSelected": "Renew selected ({count})",
+      "renewed": "Listing renewed and live",
+      "submitted": "Listing sent for approval; it goes live once approved",
+      "renewFailed": "The listing could not be renewed",
+      "bulkRenewed": "{count} listings renewed and live",
+      "bulkSubmitted": "{count} listings sent for approval",
+      "bulkFailed": "{count} listings could not be renewed",
+      "failedItem": "{title}: {reason}",
+      "empty": "You have no expired listings.",
+      "emptyDescription": "Your expired listings are listed here."
+    }
   },
   "review": {
     "reviews": "Reviews",
@@ -2465,7 +2503,19 @@
     "birthDateInvalid": "Please select a valid birth date",
     "mustBeAdult": "You must be over 18 years old",
     "companyNameRequired": "Company name is required",
-    "sixDigitCode": "Enter the 6-digit code"
+    "sixDigitCode": "Enter the 6-digit code",
+    "listingRemoval": {
+      "reason_required": "Please choose a reason",
+      "reason_not_allowed": "This reason cannot be chosen for this action",
+      "platform_required": "Please choose where you sold the item",
+      "platform_invalid": "Invalid platform",
+      "platform_not_allowed": "A platform can only be chosen when the item was sold elsewhere",
+      "violation_required": "Please choose the type of violation",
+      "violation_invalid": "Invalid violation type",
+      "violation_not_allowed": "A violation type can only be chosen for a policy violation",
+      "detail_required": "Please add a short explanation",
+      "detail_too_long": "The explanation can be at most {max} characters"
+    }
   },
   "time": {
     "justNow": "Just now",
@@ -2508,6 +2558,9 @@
     "languageInfo": "When you change the app language, all menus and notifications switch to your selected language."
   },
   "address": {
+    "dispatchPromptDesc": "You need to enter a valid address.",
+    "dispatchAddButton": "Add Address",
+    "dispatchFixButton": "Edit Address",
     "myAddresses": "My Addresses",
     "manageAddresses": "Manage your delivery addresses",
     "newAddress": "New Address",
@@ -7183,7 +7236,10 @@
       "updateConflict": "The product was updated by another process. Please refresh.",
       "userIdNotFound": "User ID not found",
       "userNotFound": "User not found",
-      "viewForbidden": "You do not have permission to view this product"
+      "viewForbidden": "You do not have permission to view this product",
+      "corporateSalesSuspended": "Your selling capability is suspended because your corporate membership is not active. Renew your Business membership to list products for sale.",
+      "renewNotExpired": "Only expired listings can be renewed.",
+      "renewFailed": "The listing could not be renewed. Please try again."
     },
     "refund": {
       "alreadyActive": "There is already an active refund request for this order",
@@ -7258,6 +7314,29 @@
       "price_changed_mind": "Changed My Mind Over Price",
       "unavailable_at_address": "I Won't Be at the Address",
       "other": "Other"
+    },
+    "listingRemoval": {
+      "unknown": "Unknown",
+      "reason": {
+        "not_given": "No reason given",
+        "changed_mind": "Changed my mind",
+        "sold_elsewhere": "Sold on another platform",
+        "paused_temporarily": "Paused temporarily",
+        "expired": "Listing expired",
+        "out_of_stock": "Out of stock",
+        "traded": "Traded on Tarodan",
+        "return_quarantine": "Awaiting return check",
+        "seller_suspended": "Seller account suspended",
+        "policy_violation": "Policy violation"
+      },
+      "platform": {
+        "letgo": "Letgo",
+        "instagram": "Instagram",
+        "dolap": "Dolap",
+        "sahibinden": "Sahibinden",
+        "in_person": "Sold in person",
+        "other": "Other"
+      }
     }
   },
   "security": {
@@ -7314,6 +7393,20 @@
     "phoneNotRemoved": "Your phone number could not be removed; the field was reset to your saved number. Please try again."
   },
   "discount": {
+    "typeBogo": "Buy X, Get Y Free (automatic)",
+    "typeBulk": "Bulk Purchase Discount (automatic)",
+    "buyQuantityLabel": "Buy how many? *",
+    "buyQuantityPlaceholder": "e.g. 2 (for buy 3 pay 2, enter 2)",
+    "getQuantityLabel": "How many free? *",
+    "getQuantityPlaceholder": "e.g. 1",
+    "minQuantityLabel": "Minimum quantity? *",
+    "minQuantityPlaceholder": "e.g. 3 (3 of the same item)",
+    "autoCampaignNote": "Quantity-based campaigns need no code: they apply automatically once the cart meets the condition.",
+    "bogoSummary": "Buy {buy}, get {get} free (automatic)",
+    "bulkSummary": "{value}% off when buying {min} or more (automatic)",
+    "buyQuantityMin1": "The 'buy' quantity must be at least 1",
+    "getQuantityMin1": "The 'free' quantity must be at least 1",
+    "minQuantityMin2": "The minimum quantity must be 2 or more",
     "editTitle": "Edit Discount",
     "newTitle": "New Discount",
     "nameLabel": "Discount Name *",
@@ -7351,6 +7444,7 @@
     "valueInvalid": "Enter a valid discount value.",
     "percentTooHigh": "A percentage discount cannot exceed 100.",
     "pickAtLeastOne": "Please pick at least one item.",
+    "dateInvalid": "Enter a valid date (YYYY-MM-DD).",
     "deleteTitle": "Delete Discount",
     "myDiscountsTitle": "My Discounts",
     "loginRequiredBody": "You need to sign in to manage your discounts.",
@@ -7410,6 +7504,8 @@
     "bankAccountBannerTitle": "Add a bank account before listing",
     "bankAccountBannerBody": "An IBAN is required so we can transfer your sales proceeds to you.",
     "addIban": "Add IBAN",
+    "dispatchAddressRequiredTitle": "Add a pickup address before creating a listing",
+    "dispatchAddressFixTitle": "Your pickup address needs fixing",
     "currentUnlimited": "Current listings: {count} (Unlimited)",
     "quotaLine": "Listing quota: {count} / {max}",
     "remainingCount": "Remaining: {count}",

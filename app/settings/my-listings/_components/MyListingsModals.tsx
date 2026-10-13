@@ -2,15 +2,17 @@ import React from 'react';
 import { View, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
-import { Modal, Button, Divider, Text, theme } from '@/ui';
+import { Modal, Divider, Text, theme } from '@/ui';
+import { ListingRemovalModal } from '@/components/listing/ListingRemovalModal';
 import UpgradeCta from '@/components/UpgradeCta';
 
 import { styles } from '../_lib/styles';
 import type { MyListingsController } from '../_hooks/useMyListings';
+import { isExpiredListing } from '../_lib/types';
 
 const { colors } = theme;
 
-/** Per-listing action menu + delete confirmation dialog. */
+/** Per-listing action menu + kaldırma nedeni penceresi (silme / pasife alma). */
 export function MyListingsModals({ f }: { f: MyListingsController }) {
   const { t } = useTranslation();
   const menu = f.actionMenuListing;
@@ -53,7 +55,9 @@ export function MyListingsModals({ f }: { f: MyListingsController }) {
             {menu.status === 'inactive' && (
               <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('relist', menu)}>
                 <Ionicons name="refresh" size={20} color={colors.text.heading} />
-                <Text style={styles.menuItemText}>{t('listing.relistAction')}</Text>
+                <Text style={styles.menuItemText}>
+                  {isExpiredListing(menu) ? t('profile.expiredListings.renew') : t('listing.relistAction')}
+                </Text>
               </Pressable>
             )}
             <Divider />
@@ -65,25 +69,14 @@ export function MyListingsModals({ f }: { f: MyListingsController }) {
         )}
       </Modal>
 
-      {/* Delete Confirmation Dialog */}
-      <Modal
-        isOpen={f.deleteDialogVisible}
-        onClose={() => f.setDeleteDialogVisible(false)}
-        title={t('product.deleteListing')}
-      >
-        <Text style={{ marginBottom: theme.spacing[4], color: colors.text.body }}>
-          {t('listing.deleteConfirmNamed', { title: f.selectedListing?.title ?? '' })}
-        </Text>
-        <View style={styles.dialogActions}>
-          <Button variant="ghost" title={t('common.cancel')} onPress={() => f.setDeleteDialogVisible(false)} />
-          <Button
-            variant="danger"
-            title={t('common.delete')}
-            isLoading={f.deleteMutation.isPending}
-            onPress={() => f.selectedListing && f.deleteMutation.mutate(f.selectedListing.id)}
-          />
-        </View>
-      </Modal>
+      {/* Kaldırma nedeni: silme onayı + pasife alma — neden zorunlu (web ile aynı) */}
+      <ListingRemovalModal
+        action={f.removalTarget?.action ?? 'delete'}
+        visible={f.removalOpen}
+        listingTitle={f.removalTarget?.listing.title}
+        onClose={f.closeRemoval}
+        onSubmit={f.submitRemoval}
+      />
     </>
   );
 }

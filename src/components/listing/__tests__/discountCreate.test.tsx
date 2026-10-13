@@ -44,6 +44,11 @@ jest.mock('@/lib/api', () => ({
     delete: jest.fn(),
   },
   categoriesApi: { getAll: jest.fn(async () => ({ data: { data: [] } })) },
+  addressesApi: {
+    getAll: jest.fn(async () => ({
+      data: [{ id: 'a1', isDefault: true, phone: '+905321234567', city: 'İstanbul', district: 'Kadıköy', address: 'Moda Cd. 1' }],
+    })),
+  },
   shippingApi: { getPackageTiers: () => mockGet('/shipping/package-tiers') },
   bankAccountApi: {
     get: jest.fn(async () => ({
