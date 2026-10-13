@@ -5,6 +5,7 @@ import { appAlert } from '@/ui';
 import { userApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { getRestrictionMessage, GuestAction } from '@/utils/guestRestrictions';
+import { describeDeleteAccountError } from '../_lib/deleteAccountError';
 
 /**
  * Profile actions controller — logout, account deletion, and the guest
@@ -39,8 +40,24 @@ export function useProfileActions() {
               await userApi.deleteAccount();
               await logout();
               router.replace('/(auth)/login');
-            } catch (e: any) {
-              appAlert(t('common.error'), e?.response?.data?.message || t('profile.deleteAccountFailed'));
+            } catch (e) {
+              // B-2.6: engel listesi gösterilir; aktif ilan engelinde ilanlarım
+              // ekranına net bir yol verilir (yalnız navigasyon — ilanları
+              // kapatmak üyenin kararı).
+              const failure = describeDeleteAccountError(e, t('profile.deleteAccountFailed'));
+              appAlert(
+                failure.blocked ? t('profile.cannotDeleteAccount') : t('common.error'),
+                failure.message,
+                failure.hasActiveListings
+                  ? [
+                      { text: t('common.close'), style: 'cancel' },
+                      {
+                        text: t('profile.deleteBlockedManageListings'),
+                        onPress: () => router.push('/settings/my-listings'),
+                      },
+                    ]
+                  : undefined,
+              );
             }
           },
         },

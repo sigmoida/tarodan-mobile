@@ -2229,7 +2229,8 @@
     "guestWelcomeTitle": "Welcome!",
     "guestWelcomeSubtitle": "Sign in to Tarodan to use every feature",
     "guestBenefitsTitle": "What Can You Do as a Member?",
-    "guestQuickLinksTitle": "What You Can Do for Now"
+    "guestQuickLinksTitle": "What You Can Do for Now",
+    "deleteBlockedManageListings": "Manage my listings"
   },
   "review": {
     "reviews": "Reviews",

@@ -2229,7 +2229,8 @@
     "guestWelcomeTitle": "Hoş Geldiniz!",
     "guestWelcomeSubtitle": "Tarodan'a giriş yaparak tüm özelliklerden yararlanın",
     "guestBenefitsTitle": "Üye Olarak Neler Yapabilirsiniz?",
-    "guestQuickLinksTitle": "Şimdilik Şunları Yapabilirsiniz"
+    "guestQuickLinksTitle": "Şimdilik Şunları Yapabilirsiniz",
+    "deleteBlockedManageListings": "İlanlarımı yönet"
   },
   "review": {
     "reviews": "Değerlendirmeler",
