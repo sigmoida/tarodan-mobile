@@ -31,7 +31,27 @@ export function isIconName(name: string): name is IconName {
 const d = (p: IconPathData): string => (typeof p === 'string' ? p : p[0]);
 const evenOdd = (p: IconPathData): boolean => typeof p !== 'string';
 
-export const Icon: React.FC<IconProps> = ({
+/**
+ * `<Path>` elemanları ad+varyant başına BİR KEZ üretilir ve her render'da aynı referansla
+ * kullanılır: React aynı element referansını görünce alt ağacı yeniden uzlaştırmaz (listelerde
+ * kart başına 2-4 ikon çiziliyor). Path dizisi ve `d` seçimi de her render'da tekrarlanmaz.
+ */
+const pathElementCache = new Map<string, React.ReactElement[]>();
+function getPathElements(name: IconName, variant: IconVariant): React.ReactElement[] {
+  const key = `${name}:${variant}`;
+  let cached = pathElementCache.get(key);
+  if (!cached) {
+    const def = ICON_PATHS[name];
+    const paths = def[variant] ?? def.outline;
+    cached = paths.map((p, i) => (
+      <Path key={i} d={d(p)} fillRule={evenOdd(p) ? 'evenodd' : undefined} clipRule={evenOdd(p) ? 'evenodd' : undefined} />
+    ));
+    pathElementCache.set(key, cached);
+  }
+  return cached;
+}
+
+const IconBase: React.FC<IconProps> = ({
   name,
   variant = 'outline',
   size = theme.iconSize.md,
@@ -48,7 +68,6 @@ export const Icon: React.FC<IconProps> = ({
     if (__DEV__) console.warn('[Icon] bilinmeyen ikon adı (testID/çağıran yerden bulun)');
     return null;
   }
-  const paths = def[variant] ?? def.outline;
   const solid = variant === 'solid';
   const a11y = accessibilityLabel
     ? ({ accessible: true, accessibilityRole: 'image', accessibilityLabel } as const)
@@ -67,9 +86,11 @@ export const Icon: React.FC<IconProps> = ({
       testID={testID ?? `icon-${name}`}
       {...a11y}
     >
-      {paths.map((p, i) => (
-        <Path key={i} d={d(p)} fillRule={evenOdd(p) ? 'evenodd' : undefined} clipRule={evenOdd(p) ? 'evenodd' : undefined} />
-      ))}
+      {getPathElements(name, variant)}
     </Svg>
   );
 };
+
+/** Aynı prop'larla yeniden çizilmez (liste kartlarında ebeveyn render'ı ikonları tetiklemesin). */
+export const Icon = React.memo(IconBase);
+Icon.displayName = 'Icon';

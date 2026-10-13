@@ -155,12 +155,17 @@ export const Text: React.FC<TextProps> = ({
 }) => {
   const resolvedTone = tone ?? variantDefaultTone[variant];
   const resolvedColor = color ?? toneColor(resolvedTone);
-  const flat = StyleSheet.flatten([
-    variantStyle[variant],
-    { color: resolvedColor, textAlign: align },
-    weight ? { fontWeight: weightMap[weight] } : null,
-    style,
-  ]);
+  // Kararlı `style` (StyleSheet) ile aynı girdilerde düzleştirme tekrarlanmaz.
+  const flat = React.useMemo(
+    () =>
+      StyleSheet.flatten([
+        variantStyle[variant],
+        { color: resolvedColor, textAlign: align },
+        weight ? { fontWeight: weightMap[weight] } : null,
+        style,
+      ]),
+    [variant, resolvedColor, align, weight, style],
+  );
   const [brand, inherit] = useBrandTextStyle(flat);
 
   return (
