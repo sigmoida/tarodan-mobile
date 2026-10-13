@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/ui';
@@ -23,6 +23,9 @@ export function useEmailChangeFlow() {
   const refreshAccount = useRefreshAccount();
 
   const [phase, setPhase] = useState<EmailPhase>('idle');
+  // Uçuştaki istek yanıtı geldiğinde güncel aşamayı okumak için (closure bayat kalır).
+  const phaseRef = useRef<EmailPhase>(phase);
+  phaseRef.current = phase;
   const [pendingEmail, setPendingEmail] = useState('');
   const [resendIn, setResendIn] = useState(0);
 
@@ -41,6 +44,9 @@ export function useEmailChangeFlow() {
   const request = useMutation({
     mutationFn: (newEmail: string) => authApi.requestEmailChange(newEmail),
     onSuccess: (_res, newEmail) => {
+      // Sunucu cooldown'u başladı; kullanıcı bu arada "Vazgeç" dediyse akışı yeniden açma.
+      setResendIn(EMAIL_CODE_RESEND_SECONDS);
+      if (phaseRef.current === 'idle') return;
       setPendingEmail(newEmail);
       codeForm.reset({ code: '' });
       setPhase('codeSent');

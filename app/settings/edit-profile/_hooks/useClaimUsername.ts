@@ -42,7 +42,11 @@ export function useClaimUsername() {
       // karar vermesi gereken bir durum → dialog. Açık modal yok, appAlert güvenli.
       const httpStatus = (e as { response?: { status?: number } })?.response?.status;
       const message = errorText(e, t('settings.usernameSetFailedBody'));
-      if (httpStatus === 409) form.setError('username', { type: 'server', message });
+      if (httpStatus === 409) {
+        form.setError('username', { type: 'server', message });
+        // Başka cihazda belirlenmiş olabilir: hesabı yenile ki bölüm salt okunura dönsün.
+        void refreshAccount();
+      }
       else appAlert(t('settings.usernameSetFailedTitle'), message);
     },
   });
