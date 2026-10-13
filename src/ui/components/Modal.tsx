@@ -9,12 +9,20 @@ import {
 } from 'react-native';
 import { theme } from '../lib/theme';
 
+export type ModalVariant = 'card' | 'bare';
+
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
   closeOnBackdrop?: boolean;
+  /**
+   * `card` (varsayılan): beyaz, yuvarlak köşeli, iç boşluklu kart.
+   * `bare`: kart zemini ve iç boşluk yok; içerik (ör. kenardan kenara görsel/reklam)
+   * kendi zeminini çizer. Kapatma davranışı (geri tuşu, arka plan) aynıdır.
+   */
+  variant?: ModalVariant;
 }
 
 const { colors, radius, spacing, typography } = theme;
@@ -25,6 +33,7 @@ export const Modal: React.FC<ModalProps> = ({
   title,
   children,
   closeOnBackdrop = true,
+  variant = 'card',
 }) => {
   return (
     <RNModal
@@ -41,7 +50,7 @@ export const Modal: React.FC<ModalProps> = ({
           style={styles.backdrop}
           onPress={closeOnBackdrop ? onClose : undefined}
         >
-          <Pressable style={styles.sheet}>
+          <Pressable style={[styles.sheet, variant === 'bare' && styles.sheetBare]}>
             {title && <Text style={styles.title}>{title}</Text>}
             {children}
           </Pressable>
@@ -68,6 +77,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: radius.xl,
     padding: spacing[6],
+  },
+  sheetBare: {
+    backgroundColor: colors.transparent,
+    borderRadius: 0,
+    padding: 0,
   },
   title: {
     fontSize: typography.fontSize.lg,

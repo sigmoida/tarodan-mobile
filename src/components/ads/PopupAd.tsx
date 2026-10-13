@@ -5,11 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { Modal, theme } from '@/ui';
 import { usePopupAd } from '@/lib/ads/usePopupAd';
+import { hasAdImage } from '@/lib/ads/creative';
 import { popupMediaLimits } from '@/lib/ads/popupLayout';
 import { AdCreative } from './AdCreative';
 
 /**
- * Popup reklamı (modal, `@/ui` Modal). Kapatma: X, arka plan, geri tuşu (Android).
+ * Popup reklamı (modal, `@/ui` Modal `bare`: beyaz kart ve iç boşluk yok, web gibi kenardan kenara). Kapatma: X, arka plan, geri tuşu (Android).
  * Açılış kuralları (24 saat sınırı, gecikme, engeller) `usePopupAd`'de.
  *
  * iOS ModalFreeze: reklam bağlantısına dokunulunca modal ÖNCE kapanır, bağlantı
@@ -30,9 +31,17 @@ export function PopupAd({ blocked = false }: { blocked?: boolean }) {
   const limits = popupMediaLimits(window, insets);
 
   return (
-    <Modal isOpen={!!ad} onClose={close}>
+    <Modal isOpen={!!ad} onClose={close} variant="bare">
       {ad ? (
-        <View testID="popup-ad" style={{ maxHeight: limits.height, overflow: 'hidden' }}>
+        <View
+          testID="popup-ad"
+          style={{
+            maxHeight: limits.height,
+            overflow: 'hidden',
+            // Görselli reklam kutusuna sarılır: X görselin köşesinde kalır.
+            ...(hasAdImage(ad) ? { alignSelf: 'center' as const } : null),
+          }}
+        >
           <AdCreative ad={ad} position="popup" onNavigate={close} maxSize={limits} />
           <Pressable
             onPress={close}

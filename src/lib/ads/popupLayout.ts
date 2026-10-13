@@ -2,9 +2,12 @@ import { theme } from '@/ui';
 
 /** Popup kartının ekran yüksekliğine oranla en büyük yüksekliği. */
 export const POPUP_MAX_HEIGHT_RATIO = 0.8;
-/** `@/ui` Modal'ın kart genişlik sınırı ve iç boşluğu (bkz. src/ui/components/Modal.tsx). */
+/**
+ * `@/ui` Modal'ın kart genişlik sınırı (bkz. src/ui/components/Modal.tsx). Popup
+ * `bare` varyantını kullanır: kartta iç boşluk yok, reklam kenardan kenara.
+ */
 const MODAL_MAX_WIDTH = 480;
-const MODAL_PADDING = theme.spacing[6];
+const MODAL_PADDING = 0;
 const BACKDROP_PADDING = theme.spacing[4];
 
 export interface PopupMediaLimits {
@@ -18,8 +21,7 @@ export interface PopupMediaLimits {
 
 /**
  * Popup görselinin sığacağı en büyük kutu. Kart ekranın ~%80'ini ve güvenli
- * alanı (çentik/ana çubuk) aşmaz; görsel kutusu Modal'ın iç boşluğu düşülmüş
- * alana sığar. Böylece uzun (ör. 1:2) bir reklam kartı taşırmaz ve kapat
+ * alanı (çentik/ana çubuk) aşmaz; görsel kutusu kartın tamamıdır (iç boşluk yok). Böylece uzun (ör. 1:2) bir reklam kartı taşırmaz ve kapat
  * düğmesi her zaman ekranda kalır. Oran korunur: sığdırmayı `fitBox` yapar.
  */
 export function popupMediaLimits(

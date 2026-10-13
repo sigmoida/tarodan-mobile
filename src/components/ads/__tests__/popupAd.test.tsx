@@ -229,6 +229,23 @@ describe('PopupAd', () => {
     expect(queryByTestId('popup-ad')).toBeNull();
   });
 
+  it('bare Modal: beyaz kart zemini ve iç boşluk yok, kenardan kenara', async () => {
+    setAds([popupAd]);
+    const { getByTestId } = render(<PopupAd />);
+    await flush(POPUP_AD_DELAY_MS + 100);
+    // popup-ad -> sheet (Pressable) -> backdrop
+    let node = getByTestId('popup-ad').parent;
+    let sheet: StyleSheet.NamedStyles<unknown>[string] | undefined;
+    while (node && !sheet) {
+      const st = StyleSheet.flatten(node.props.style);
+      if (st && st.maxWidth === 480) sheet = st;
+      node = node.parent;
+    }
+    expect(sheet).toBeDefined();
+    expect(sheet?.padding).toBe(0);
+    expect(sheet?.backgroundColor).toBe('transparent');
+  });
+
   describe('boyut: ekranı taşırmaz, X her zaman görünür', () => {
     const setWindow = (width: number, height: number) =>
       Dimensions.set({ window: { width, height, scale: 2, fontScale: 1 }, screen: { width, height, scale: 2, fontScale: 1 } });
@@ -246,26 +263,25 @@ describe('PopupAd', () => {
       await flush(POPUP_AD_DELAY_MS + 100);
 
       const box = StyleSheet.flatten(getByTestId('ad-image-box-p1').props.style);
-      // kart = min(%80 * 600, 600 - 47 - 34 - 32) = 480; görsel kutusu = 480 - 2*24 = 432.
-      expect(box.height).toBe(432);
-      expect(box.width).toBe(216);
+      // kart = min(%80 * 600, 600 - 47 - 34 - 32) = 480; bare kartta iç boşluk yok, kutu = 480.
+      expect(box.height).toBe(480);
+      expect(box.width).toBe(240);
       expect(box.width / box.height).toBe(0.5);
-      // Kart (sheet) toplamı: kutu + iç boşluk <= %80.
-      expect(box.height + 48).toBeLessThanOrEqual(600 * 0.8);
+      expect(box.height).toBeLessThanOrEqual(600 * 0.8);
       // Kapat düğmesi çizili ve kartın kendi köşesine mutlak yerleşik (akışın dışında).
       const close = getByTestId('popup-ad-close');
       expect(StyleSheet.flatten(close.props.style)).toMatchObject({ position: 'absolute' });
-      expect(getByTestId('popup-ad').props.style).toMatchObject({ maxHeight: 432 });
+      expect(getByTestId('popup-ad').props.style).toMatchObject({ maxHeight: 480, alignSelf: 'center' });
     });
 
-    it('geniş reklam: genişlik kart içeriğine (358-48=310) sığar, oran korunur', async () => {
+    it('geniş reklam: genişlik kartın tamamına (390-32=358) sığar, oran korunur', async () => {
       setWindow(390, 844);
       setAds([{ ...popupAd, imageUrl: 'https://example.com/wide.png', content: null, linkUrl: null, width: 800, height: 400 }]);
       const { getByTestId } = render(<PopupAd />);
       await flush(POPUP_AD_DELAY_MS + 100);
       const box = StyleSheet.flatten(getByTestId('ad-image-box-p1').props.style);
-      expect(box.width).toBe(310);
-      expect(box.height).toBe(155);
+      expect(box.width).toBe(358);
+      expect(box.height).toBe(179);
     });
   });
 });

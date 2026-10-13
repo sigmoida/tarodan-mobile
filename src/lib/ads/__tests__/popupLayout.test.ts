@@ -2,11 +2,11 @@ import { popupMediaLimits, POPUP_MAX_HEIGHT_RATIO } from '../popupLayout';
 import { fitBox } from '../adAspect';
 
 describe('popupMediaLimits', () => {
-  it('kart ekranın %80\'ini aşmaz; görsel kutusu iç boşluk (2x24) düşülmüş alandır', () => {
+  it('kart ekranın %80\'ini aşmaz; bare kartta iç boşluk yok: görsel kutusu kartın tamamıdır', () => {
     const l = popupMediaLimits({ width: 390, height: 844 }, { top: 0, bottom: 0 });
     expect(l.cardMaxHeight).toBeCloseTo(844 * POPUP_MAX_HEIGHT_RATIO, 6);
-    expect(l.height).toBeCloseTo(844 * 0.8 - 48, 6);
-    expect(l.width).toBe(390 - 32 - 48);
+    expect(l.height).toBeCloseTo(844 * 0.8, 6);
+    expect(l.width).toBe(390 - 32);
   });
 
   it('güvenli alan %80\'den fazla yerse o baskın olur', () => {
@@ -15,7 +15,7 @@ describe('popupMediaLimits', () => {
   });
 
   it('tablet: kart genişliği 480\'de kalır', () => {
-    expect(popupMediaLimits({ width: 1024, height: 1366 }, { top: 0, bottom: 0 }).width).toBe(480 - 48);
+    expect(popupMediaLimits({ width: 1024, height: 1366 }, { top: 0, bottom: 0 }).width).toBe(480);
   });
 
   it('çok küçük pencerede negatif boyut üretmez', () => {
