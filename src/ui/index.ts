@@ -85,7 +85,17 @@ export {
 	type RadioGroupOption,
 } from './components/Radio';
 export { Card, type CardProps } from './components/Card';
-export { Badge, type BadgeProps, type BadgeVariant } from './components/Badge';
+export {
+	Badge,
+	type BadgeProps,
+	type BadgeVariant,
+	type BadgeAppearance,
+} from './components/Badge';
+export {
+	ProductBadge,
+	type ProductBadgeProps,
+	type ProductBadgeVariant,
+} from './components/ProductBadge';
 export { Alert, type AlertProps, type AlertVariant } from './components/Alert';
 export {
 	Modal,
