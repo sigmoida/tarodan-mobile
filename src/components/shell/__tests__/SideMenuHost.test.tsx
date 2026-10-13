@@ -1,6 +1,6 @@
 import React from 'react';
 import { BackHandler, Text, View } from 'react-native';
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { fireGestureHandler, getByGestureTestId } from 'react-native-gesture-handler/jest-utils';
 import { State } from 'react-native-gesture-handler';
 import { SideMenuProvider, useSideMenu } from '../SideMenuContext';
@@ -26,8 +26,8 @@ function setup() {
   return render(
     <SideMenuProvider>
       <Trigger />
-      <SideMenuHost>
-        <Text testID="menu-content">içerik</Text>
+      <SideMenuHost menu={<Text testID="menu-content">içerik</Text>}>
+        <Text testID="app-content">uygulama</Text>
       </SideMenuHost>
     </SideMenuProvider>,
   );
@@ -56,10 +56,12 @@ afterEach(() => {
 });
 
 describe('SideMenuHost', () => {
-  it('kapalıyken hiçbir şey çizmez (içerik bağlı değil)', () => {
+  it('kapalıyken panel/menü içeriği bağlı değil; uygulama içeriği hep çizili', () => {
     setup();
     expect(screen.queryByTestId('side-menu')).toBeNull();
     expect(screen.queryByTestId('menu-content')).toBeNull();
+    expect(screen.queryByTestId('side-menu-overlay')).toBeNull();
+    expect(screen.getByTestId('app-content')).toBeTruthy();
   });
 
   it('open() ile panel + örtü + içerik çizilir; panel modal erişilebilirlik kabında', () => {
@@ -69,8 +71,25 @@ describe('SideMenuHost', () => {
     expect(screen.getByTestId('side-menu')).toBeTruthy();
     expect(screen.getByTestId('side-menu-overlay')).toBeTruthy();
     expect(screen.getByTestId('menu-content')).toBeTruthy();
-    expect(screen.getByTestId('side-menu-root').props.accessibilityViewIsModal).toBe(true);
-    expect(screen.getByText('Menü')).toBeTruthy();
+    expect(screen.getByTestId('side-menu').props.accessibilityViewIsModal).toBe(true);
+    // Başlık ("Menü") ve X düğmesi yok.
+    expect(screen.queryByText('Menü')).toBeNull();
+    expect(screen.queryByTestId('side-menu-close')).toBeNull();
+    // Push düzeni: panel ve uygulama içeriği AYNI kayan taşıyıcının içinde.
+    const track = screen.getByTestId('side-menu-track');
+    expect(within(track).getByTestId('side-menu')).toBeTruthy();
+    // Açıkken ekran okuyucudan gizli olduğu için gizli öğeler de dahil.
+    expect(within(track).getByTestId('app-content', { includeHiddenElements: true })).toBeTruthy();
+  });
+
+  it('açıkken uygulama içeriği ekran okuyucudan gizlenir ve aynı örnek kalır (sökülmez)', () => {
+    setup();
+    const before = screen.getByTestId('app-content');
+    fireEvent.press(screen.getByTestId('open'));
+    flush();
+    const after = screen.getByTestId('app-content', { includeHiddenElements: true });
+    expect(after).toBe(before);
+    expect(after.parent?.parent?.props.accessibilityElementsHidden).toBe(true);
   });
 
   it('örtüye dokunma menüyü kapatır ve animasyon bitince söker', () => {
@@ -83,11 +102,21 @@ describe('SideMenuHost', () => {
     expect(screen.queryByTestId('side-menu')).toBeNull();
   });
 
-  it('kapat (x) düğmesi menüyü kapatır', () => {
+  it('gizli erişilebilirlik "Menüyü kapat" öğesi menüyü kapatır; iOS escape da kapatır', () => {
     setup();
     fireEvent.press(screen.getByTestId('open'));
     flush();
-    fireEvent.press(screen.getByTestId('side-menu-close'));
+    const hidden = screen.getByTestId('side-menu-a11y-close');
+    expect(hidden.props.accessibilityLabel).toBe('Menüyü kapat');
+    fireEvent.press(hidden);
+    flush();
+    expect(screen.queryByTestId('side-menu')).toBeNull();
+
+    fireEvent.press(screen.getByTestId('open'));
+    flush();
+    act(() => {
+      screen.getByTestId('side-menu').props.onAccessibilityEscape();
+    });
     flush();
     expect(screen.queryByTestId('side-menu')).toBeNull();
   });
@@ -112,8 +141,12 @@ describe('SideMenuHost', () => {
     setup();
     fireEvent.press(screen.getByTestId('open'));
     flush();
+    // jest-utils, kayıt anındaki (kapalı → enabled:false) jest nesnesini döndürür; gerçekte
+    // GestureDetector `enabled`i native'e günceller. Testte açık durumu elle yansıt.
+    const panGesture = getByGestureTestId('side-menu-pan');
+    panGesture.config.enabled = true;
     act(() => {
-      fireGestureHandler(getByGestureTestId('side-menu-pan'), [
+      fireGestureHandler(panGesture, [
         { state: State.BEGAN, translationX: 0, velocityX: 0 },
         { state: State.ACTIVE, translationX: -20, velocityX: -100 },
         { translationX: -150, velocityX: -200 },
@@ -146,5 +179,14 @@ describe('SideMenuHost', () => {
   it('genişlik: ekranın %80i, en fazla 340pt', () => {
     expect(sideMenuWidth(390)).toBe(312);
     expect(sideMenuWidth(600)).toBe(SIDE_MENU_MAX_WIDTH);
+  });
+
+  it('kapanış sürerken panel dokunuşa kapalı (çift basış koruması)', () => {
+    setup();
+    fireEvent.press(screen.getByTestId('open'));
+    flush();
+    expect(screen.getByTestId('side-menu').props.pointerEvents).toBe('auto');
+    fireEvent.press(screen.getByTestId('side-menu-overlay'));
+    expect(screen.getByTestId('side-menu').props.pointerEvents).toBe('none');
   });
 });

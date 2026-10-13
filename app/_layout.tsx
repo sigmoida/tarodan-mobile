@@ -184,14 +184,15 @@ export default function RootLayout() {
               aynı (`stackScreenOptions`). Ölü headerStyle/headerTintColor seçenekleri kaldırıldı:
               biri native header'ı açarsa sessizce turuncu/beyaz native başlık çıkarıyordu. */}
           <SideMenuProvider>
-            <Stack screenOptions={stackScreenOptions}>
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="(auth)" />
-            </Stack>
-            {/* Ana Sayfa yan menüsü (hamburger): Stack'in üstünde, AlertDialog/Toast'un altında.
-                İçerik (DrawerMenu) yalnız menü açıkken bağlanır. */}
-            <SideMenuHost>
-              <DrawerMenu />
+            {/* Ana Sayfa yan menüsü (hamburger) "push" çekmece: tüm navigasyon görünümü (Stack, tab bar
+                dahil) menü genişliği kadar sağa kayar, panel soldan onunla gelir. Menü içeriği
+                (DrawerMenu) yalnız açıkken bağlanır. Toast/AlertDialog host'ları aşağıda, bu sarmalayıcının
+                DIŞINDA → kaymazlar. */}
+            <SideMenuHost menu={<DrawerMenu />}>
+              <Stack screenOptions={stackScreenOptions}>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="(auth)" />
+              </Stack>
             </SideMenuHost>
           </SideMenuProvider>
           {/* Global mesaj socket köprüsü (#77) — provider altında setQueryData için. */}
