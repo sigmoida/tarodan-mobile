@@ -1,17 +1,18 @@
 import React from 'react';
-import { View, TouchableOpacity, TextInput as RNTextInput, Image as RNImage } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Image as RNImage } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Spinner, Text, theme } from '@/ui';
+import { IconButton, Input, Spinner, Text } from '@/ui';
 
 import { styles } from '../_lib/styles';
 import type { MessageThreadController } from '../_hooks/useMessageThread';
 
-const { colors } = theme;
-
-/** Pending-image preview bar + attach/text/send input row. */
+/**
+ * Pending-image preview bar + attach/text/send input row. PageShell'in sabit alt barına
+ * (`footer`) konur: üst çizgi ve güvenli alan orada.
+ */
 export function MessageInputBar({ f }: { f: MessageThreadController }) {
   const { t } = useTranslation();
+  const sendDisabled = (!f.inputText.trim() && !f.pendingImage) || !f.canSend || f.sending;
   return (
     <>
       {/* Seçilen foto önizlemesi — gönder butonuyla onaylanana dek bekler */}
@@ -22,45 +23,35 @@ export function MessageInputBar({ f }: { f: MessageThreadController }) {
             style={styles.pendingImageThumb}
             resizeMode="cover"
           />
-          <Text style={styles.pendingImageText} numberOfLines={1}>
+          <Text variant="bodySm" tone="muted" style={styles.pendingImageText} numberOfLines={1}>
             {t('message.pendingImageReady')}
           </Text>
-          <TouchableOpacity
-            style={styles.pendingImageRemove}
+          <IconButton
+            icon="close"
+            size="sm"
+            accessibilityLabel={t('message.removeImage')}
             onPress={() => f.setPendingImage(null)}
             disabled={f.uploadingImage || f.sending}
-            accessibilityLabel={t('message.removeImage')}
-          >
-            <Ionicons name="close-circle" size={24} color={colors.text.muted} />
-          </TouchableOpacity>
+          />
         </View>
       )}
 
       {/* Input */}
       <View style={styles.inputContainer}>
-        <TouchableOpacity
-          style={[
-            styles.attachButton,
-            (!f.canSend || f.uploadingImage) && styles.attachButtonDisabled,
-          ]}
-          onPress={f.handleAttachImage}
-          disabled={!f.canSend || f.uploadingImage}
-        >
-          {f.uploadingImage ? (
-            <Spinner size="sm" />
-          ) : (
-            <Ionicons
-              name="image-outline"
-              size={24}
-              color={f.canSend ? colors.primary[600]! : colors.text.subtle}
-            />
-          )}
-        </TouchableOpacity>
+        {f.uploadingImage ? (
+          <Spinner size="sm" />
+        ) : (
+          <IconButton
+            icon="image-outline"
+            size="md"
+            accessibilityLabel={t('message.attachImage')}
+            onPress={f.handleAttachImage}
+            disabled={!f.canSend}
+          />
+        )}
         <View style={styles.inputWrapper}>
-          <RNTextInput
-            style={styles.textInput}
+          <Input
             placeholder={f.canSend ? t('message.typeMessage') : t('message.messageLimitReached')}
-            placeholderTextColor={colors.text.subtle}
             value={f.inputText}
             onChangeText={(text) => {
               f.setInputText(text);
@@ -71,20 +62,14 @@ export function MessageInputBar({ f }: { f: MessageThreadController }) {
             editable={f.canSend && !f.uploadingImage}
           />
         </View>
-        <TouchableOpacity
-          style={[
-            styles.sendButton,
-            ((!f.inputText.trim() && !f.pendingImage) || !f.canSend || f.sending) && styles.sendButtonDisabled,
-          ]}
+        <IconButton
+          icon="send"
+          variant="primary"
+          size="md"
+          accessibilityLabel={t('common.send')}
           onPress={f.handleSend}
-          disabled={(!f.inputText.trim() && !f.pendingImage) || !f.canSend || f.sending}
-        >
-          <Ionicons
-            name="send"
-            size={24}
-            color={((!f.inputText.trim() && !f.pendingImage) || !f.canSend) ? colors.text.subtle : colors.white}
-          />
-        </TouchableOpacity>
+          disabled={sendDisabled}
+        />
       </View>
     </>
   );

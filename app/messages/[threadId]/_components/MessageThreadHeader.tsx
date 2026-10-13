@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -10,9 +10,12 @@ import ReportModal from '@/components/ReportModal';
 import { styles } from '../_lib/styles';
 import type { MessageThreadController } from '../_hooks/useMessageThread';
 
-const { colors } = theme;
+const { colors, iconSize } = theme;
 
-/** Chat header (avatar, name, product), report modal, product banner + alerts. */
+/**
+ * Sohbet üst bölümü (web ChatHeader: beyaz bar, geri + avatar + ad/ürün + menü), şikayet
+ * modalı, ürün bağlantı satırı ve uyarılar. PageShell'in `header` slotuna konur.
+ */
 export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
   const { t } = useTranslation();
   const { other, currentThread } = f;
@@ -21,11 +24,16 @@ export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
     <>
       {/* Header */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
-        <TouchableOpacity onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.white} />
-        </TouchableOpacity>
+        <Pressable
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
+        >
+          <Ionicons name="chevron-back" size={iconSize.lg} color={colors.text.heading} />
+        </Pressable>
 
-        <TouchableOpacity
+        <Pressable
           style={styles.headerContent}
           onPress={() => other && router.push(`/seller/${other.id}`)}
         >
@@ -35,14 +43,14 @@ export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
             name={other?.displayName?.charAt(0) || '?'}
           />
           <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle}>{other?.displayName || t('common.loading')}</Text>
+            <Text variant="label" numberOfLines={1}>{other?.displayName || t('common.loading')}</Text>
             {currentThread?.product && (
-              <Text style={styles.headerSubtitle} numberOfLines={1}>
+              <Text variant="caption" tone="primary" numberOfLines={1}>
                 {currentThread.product.title}
               </Text>
             )}
           </View>
-        </TouchableOpacity>
+        </Pressable>
 
         <IconButton
           icon="ellipsis-vertical"
@@ -64,29 +72,30 @@ export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
 
       {/* Product Banner */}
       {currentThread?.product && (
-        <TouchableOpacity
+        <Pressable
           style={styles.productBanner}
           onPress={() => router.push(`/product/${currentThread.product?.id}`)}
         >
-          <Ionicons name="pricetag" size={16} color={colors.primary[600]!} />
-          <Text style={styles.productBannerText} numberOfLines={1}>
+          <Text variant="bodySm" tone="primary" style={styles.productBannerText} numberOfLines={1}>
             {currentThread.product.title}
           </Text>
-          <Ionicons name="chevron-forward" size={16} color={colors.text.muted} />
-        </TouchableOpacity>
+          <Ionicons name="chevron-forward" size={iconSize.sm} color={colors.text.muted} />
+        </Pressable>
       )}
 
       {/* Message Limit Warning */}
       {!f.canSend && (
         // Limit platform genelinde tek değer (katmana göre değişmez); yükseltme vaadi yok.
-        <UIAlert variant="warning">{t('message.dailyLimitReached', { count: f.messageLimit })}</UIAlert>
+        <View style={styles.alertWrap}>
+          <UIAlert variant="warning">{t('message.dailyLimitReached', { count: f.messageLimit })}</UIAlert>
+        </View>
       )}
 
       {/* İçerik filtresi uyarısı */}
       {f.filterWarning ? (
-        <UIAlert variant="warning">
-          {f.filterWarning}
-        </UIAlert>
+        <View style={styles.alertWrap}>
+          <UIAlert variant="warning">{f.filterWarning}</UIAlert>
+        </View>
       ) : null}
     </>
   );

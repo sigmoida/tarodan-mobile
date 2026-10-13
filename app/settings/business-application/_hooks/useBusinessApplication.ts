@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { sellerDocumentsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
@@ -85,7 +85,7 @@ export function useBusinessApplication() {
       ),
     onSuccess: () => {
       invalidate();
-      appAlert(t('businessApplication.detailsSavedTitle'), t('businessApplication.detailsSavedBody'));
+      toast.success(t('businessApplication.detailsSavedBody'));
     },
     onError: (e) => appAlert(t('common.error'), errorText(e, t('businessApplication.detailsSaveFailed'))),
   });
@@ -104,7 +104,7 @@ export function useBusinessApplication() {
     onSuccess: () => {
       invalidate();
       stakeholderForm.reset({ fullName: '', identityType: 'tckn', identityNumber: '' });
-      appAlert(t('businessApplication.stakeholderAddedTitle'), t('businessApplication.stakeholderAddedBody'));
+      toast.success(t('businessApplication.stakeholderAddedBody'));
     },
     onError: (e) => appAlert(t('common.error'), errorText(e, t('businessApplication.stakeholderAddFailed'))),
   });
@@ -113,7 +113,7 @@ export function useBusinessApplication() {
     mutationFn: () => sellerDocumentsApi.submit(),
     onSuccess: () => {
       invalidate();
-      appAlert(t('businessApplication.submittedTitle'), t('businessApplication.submittedBody'));
+      toast.success(t('businessApplication.submittedBody'));
     },
     onError: (e) => appAlert(t('businessApplication.submitFailedTitle'), errorText(e, t('businessApplication.submitFailed'))),
   });

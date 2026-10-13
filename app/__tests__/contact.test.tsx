@@ -1,13 +1,14 @@
 /**
  * J116 · İletişim ekranı — mobil UI dilimi.
- * Boş/kısa mesaj reddi (snackbar validasyonu), geçerli form gönderiminde
- * guestContact çağrısı + başarı snackbar, FAQ navigasyonu.
+ * Boş/kısa mesaj reddi (toast validasyonu), geçerli form gönderiminde
+ * guestContact çağrısı + başarı toast, FAQ navigasyonu.
  * Backend mesaj işleme/e-posta backend-only.
  */
 import React from "react";
 import { TextInput } from "react-native";
 import { screen, fireEvent, waitFor } from "@testing-library/react-native";
 import { renderWithProviders } from "@/test-utils";
+import { ToastHost } from "@/ui";
 
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), back: jest.fn(), replace: jest.fn() },
@@ -27,6 +28,15 @@ jest.mock("react-i18next", () => ({
 import ContactScreen from "../contact";
 
 const guestContactMock = supportApi.guestContact as jest.Mock;
+
+/** Geri bildirim toast olduğu için ekranın yanında global ToastHost de bağlanır (kökteki gibi). */
+const renderContact = () =>
+  renderWithProviders(
+    <>
+      <ContactScreen />
+      <ToastHost />
+    </>,
+  );
 
 /** Form input'larını sırasıyla doldurur: Adınız, E-posta, Konu, Mesajınız. */
 function fillForm(values: {
@@ -48,8 +58,8 @@ describe("J116 · İletişim (contact)", () => {
     mockPush.mockReset();
   });
 
-  it("J116.1 boş form gönderiminde uyarı snackbar gösterilir, API çağrılmaz", async () => {
-    renderWithProviders(<ContactScreen />);
+  it("J116.1 boş form gönderiminde uyarı toast gösterilir, API çağrılmaz", async () => {
+    renderContact();
     fireEvent.press(screen.getByText("common.send"));
     expect(
       await screen.findByText("common.fillAllFields"),
@@ -58,7 +68,7 @@ describe("J116 · İletişim (contact)", () => {
   });
 
   it("J116.2 mesaj 10 karakterden kısa → reddedilir", async () => {
-    renderWithProviders(<ContactScreen />);
+    renderContact();
     fillForm({
       name: "Ali",
       email: "ali@test.com",
@@ -73,7 +83,7 @@ describe("J116 · İletişim (contact)", () => {
   });
 
   it("J116.3 geçersiz e-posta → reddedilir", async () => {
-    renderWithProviders(<ContactScreen />);
+    renderContact();
     fillForm({
       name: "Ali",
       email: "gecersiz",
@@ -87,9 +97,9 @@ describe("J116 · İletişim (contact)", () => {
     expect(guestContactMock).not.toHaveBeenCalled();
   });
 
-  it("J116.4 geçerli form → guestContact çağrılır ve başarı snackbar", async () => {
+  it("J116.4 geçerli form → guestContact çağrılır ve başarı toast", async () => {
     guestContactMock.mockResolvedValue({});
-    renderWithProviders(<ContactScreen />);
+    renderContact();
     fillForm({
       name: "Ali Veli",
       email: "ali@test.com",
@@ -109,7 +119,7 @@ describe("J116 · İletişim (contact)", () => {
   });
 
   it("J116.5 SSS bağlantısı /help ekranına yönlendirir", () => {
-    renderWithProviders(<ContactScreen />);
+    renderContact();
     fireEvent.press(screen.getByText("faq.title"));
     expect(mockPush).toHaveBeenCalledWith("/help");
   });

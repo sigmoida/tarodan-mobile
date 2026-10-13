@@ -199,11 +199,12 @@ describe("İlanlarım · menü kapanmadan uyarı açılmaz (iOS donma)", () => {
  */
 describe("İlanlarım · aktivasyon mesajı yanıt statüsüne göre", () => {
   async function relistFirstListing(responseStatus: string) {
-    const { appAlert } = jest.requireMock("@/ui") as { appAlert: jest.Mock };
+    const toastSuccess = jest
+      .spyOn((jest.requireMock("@/ui") as { toast: { success: () => number } }).toast, "success")
+      .mockImplementation(() => 1);
     const { productsApi } = jest.requireMock("@/lib/api") as {
       productsApi: { update: jest.Mock };
     };
-    appAlert.mockClear();
     productsApi.update.mockReset();
     productsApi.update.mockResolvedValue({ data: { id: "L9", status: responseStatus } });
     mockGetMyListings.mockResolvedValue({
@@ -213,8 +214,8 @@ describe("İlanlarım · aktivasyon mesajı yanıt statüsüne göre", () => {
     await screen.findByText("Hot Wheels Camaro");
     fireEvent.press(screen.getByLabelText("listing.menuAccessibility"));
     fireEvent.press(await screen.findByText("listing.relistAction"));
-    await waitFor(() => expect(appAlert).toHaveBeenCalled());
-    return appAlert;
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalled());
+    return toastSuccess;
   }
 
   beforeEach(() => {
@@ -224,12 +225,14 @@ describe("İlanlarım · aktivasyon mesajı yanıt statüsüne göre", () => {
   });
 
   it("yanıt statüsü active ise doğrudan yayında mesajı gösterilir", async () => {
-    const appAlert = await relistFirstListing("active");
-    expect(appAlert).toHaveBeenCalledWith("common.success", "listing.reactivatedImmediately");
+    const toastSuccess = await relistFirstListing("active");
+    expect(toastSuccess).toHaveBeenCalledWith("listing.reactivatedImmediately");
+    toastSuccess.mockRestore();
   });
 
   it("yanıt statüsü pending ise incelemeye gönderildi mesajı gösterilir", async () => {
-    const appAlert = await relistFirstListing("pending");
-    expect(appAlert).toHaveBeenCalledWith("common.success", "listing.sentForReview");
+    const toastSuccess = await relistFirstListing("pending");
+    expect(toastSuccess).toHaveBeenCalledWith("listing.sentForReview");
+    toastSuccess.mockRestore();
   });
 });

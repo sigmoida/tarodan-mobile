@@ -7,7 +7,6 @@ import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 export type FaqCategory = {
   id: string;
   title: string;
-  icon: string;
   questions: { q: string; a: string }[];
 };
 
@@ -28,7 +27,6 @@ export const buildFaqCategories = (t: TFunction, timing: TimingMessageValues): F
   {
     id: 'general',
     title: t('helpFaq.categories.general'),
-    icon: 'help-circle-outline',
     questions: [
       { q: t('helpFaq.general.whatIsTarodan.q'), a: t('helpFaq.general.whatIsTarodan.a') },
       { q: t('helpFaq.general.howToJoin.q'), a: t('helpFaq.general.howToJoin.a') },
@@ -41,7 +39,6 @@ export const buildFaqCategories = (t: TFunction, timing: TimingMessageValues): F
   {
     id: 'buying',
     title: t('faq.buying'),
-    icon: 'cart-outline',
     questions: [
       { q: t('faqShared.guestCheckout.q'), a: t('faqShared.guestCheckout.a') },
       { q: t('faqShared.paymentMethods.q'), a: t('faqShared.paymentMethods.a') },
@@ -55,7 +52,6 @@ export const buildFaqCategories = (t: TFunction, timing: TimingMessageValues): F
   {
     id: 'selling',
     title: t('faqShared.categories.selling'),
-    icon: 'pricetag-outline',
     questions: [
       { q: t('faqShared.howToList.q'), a: t('faqShared.howToList.a') },
       // iOS: mentions the Premium tier by name — hidden.
@@ -70,7 +66,6 @@ export const buildFaqCategories = (t: TFunction, timing: TimingMessageValues): F
   {
     id: 'trading',
     title: t('faq.trade'),
-    icon: 'swap-horizontal',
     questions: [
       // iOS: mentions Premium membership by name — hidden.
       ...(CAN_BUY_DIGITAL
@@ -83,7 +78,6 @@ export const buildFaqCategories = (t: TFunction, timing: TimingMessageValues): F
   {
     id: 'account',
     title: t('helpFaq.categories.account'),
-    icon: 'person-outline',
     questions: [
       { q: t('faqShared.forgotPassword.q'), a: t('faqShared.forgotPassword.a') },
       { q: t('faqShared.deleteAccount.q'), a: t('faqShared.deleteAccount.a') },
@@ -105,7 +99,6 @@ export type ContactOption = {
   id: string;
   title: string;
   subtitle: string;
-  icon: string;
   action: () => void;
 };
 
@@ -114,7 +107,6 @@ export const buildContactOptions = (t: TFunction): ContactOption[] => [
     id: 'email',
     title: t('common.email'),
     subtitle: SUPPORT_EMAIL,
-    icon: 'mail-outline',
     action: () => Linking.openURL(`mailto:${SUPPORT_EMAIL}`),
   },
   // Telefon / WhatsApp hattı henüz yok — yer tutucu numara gösterilmez.

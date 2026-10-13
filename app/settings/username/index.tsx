@@ -1,8 +1,8 @@
-import { View, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import { StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Card, ScreenHeader, Text, theme } from '@/ui';
+import { Alert, Button, SectionCard, Text, theme } from '@/ui';
 import { Form, FormInput } from '@/ui/form';
+import { PageShell } from '@/components/common/PageShell';
 import { toHandle } from '@/utils/validation';
 import { useClaimUsername } from './_hooks/useClaimUsername';
 
@@ -11,25 +11,24 @@ export default function UsernameScreen() {
   const f = useClaimUsername();
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={t('settings.usernameLink')} onBack={() => router.back()} />
-      <View style={styles.body}>
-        {f.claimed ? (
-          <Card testID="username-claimed">
-            <Text variant="h3">@{f.currentUsername}</Text>
-            <Text variant="bodySm" style={styles.hint}>
-              {t('settings.usernameClaimedHint')}
-            </Text>
-          </Card>
-        ) : (
-          <>
-            <Alert
-              variant="warning"
-              title={t('settings.usernamePermanentWarningTitle')}
-              testID="username-permanent-warning"
-            >
-              {t('settings.usernamePermanentWarningBody')}
-            </Alert>
+    <PageShell title={t('settings.usernameLink')}>
+      {f.claimed ? (
+        <SectionCard testID="username-claimed">
+          <Text variant="h3">@{f.currentUsername}</Text>
+          <Text variant="bodySm" style={styles.hint}>
+            {t('settings.usernameClaimedHint')}
+          </Text>
+        </SectionCard>
+      ) : (
+        <>
+          <Alert
+            variant="warning"
+            title={t('settings.usernamePermanentWarningTitle')}
+            testID="username-permanent-warning"
+          >
+            {t('settings.usernamePermanentWarningBody')}
+          </Alert>
+          <SectionCard bodyStyle={styles.form}>
             <Form form={f.form}>
               <FormInput
                 name="username"
@@ -50,15 +49,14 @@ export default function UsernameScreen() {
                 testID="username-submit"
               />
             </Form>
-          </>
-        )}
-      </View>
-    </View>
+          </SectionCard>
+        </>
+      )}
+    </PageShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.surface.DEFAULT },
-  body: { padding: theme.spacing[4], gap: theme.spacing[4] },
+  form: { gap: theme.spacing[3] },
   hint: { color: theme.colors.text.muted, marginTop: theme.spacing[1] },
 });

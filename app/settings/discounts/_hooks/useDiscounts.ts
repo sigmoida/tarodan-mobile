@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { discountsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
@@ -21,9 +21,6 @@ export function useDiscounts() {
   const [formOpen, setFormOpen] = useState(false);
   // Düzenlenen indirim (null = yeni). Kapanış animasyonu boyunca korunur.
   const [editing, setEditing] = useState<Discount | null>(null);
-  const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>(
-    { visible: false, message: '' },
-  );
 
   const discountsQuery = useQuery({
     queryKey: qk.membership.discounts,
@@ -57,7 +54,7 @@ export function useDiscounts() {
     mutationFn: (id: string) => discountsApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.membership.discounts });
-      setSnackbar({ visible: true, message: t('discount.deleted') });
+      toast.success(t('discount.deleted'));
     },
     onError: (e: any) => {
       appAlert(t('common.error'), e?.response?.data?.message || t('discount.deleteFailed'));
@@ -84,7 +81,7 @@ export function useDiscounts() {
 
   const closeForm = () => setFormOpen(false);
 
-  const showSaved = (message: string) => setSnackbar({ visible: true, message });
+  const showSaved = (message: string) => toast.success(message);
 
   const handleDelete = (d: Discount) => {
     appAlert(
@@ -118,9 +115,6 @@ export function useDiscounts() {
     handleDelete,
     // mutations
     toggleActiveMutation,
-    // snackbar
-    snackbar,
-    setSnackbar,
   };
 }
 

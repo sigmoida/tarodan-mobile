@@ -1,13 +1,9 @@
-import { View, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { theme, Text, Button } from '@/ui';
+import { Alert, Button } from '@/ui';
+import { GateScreen } from '@/components/common/GateScreen';
 import { useAuthStore } from '@/stores/authStore';
 import { resetBannedRedirect } from '@/lib/api';
-
-const { colors } = theme;
 
 /**
  * Banlı kullanıcı ekranı. API interceptor'ı USER_BANNED (403) yakalayınca
@@ -27,50 +23,28 @@ export default function BannedScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <GateScreen
+      icon="ban-outline"
+      title={t('mobile.bannedTitle')}
+      description={t('mobile.bannedDescription')}
+      actions={
+        <>
+          <Button
+            variant="primary"
+            fullWidth
+            title={t('mobile.bannedCreateSupport')}
+            onPress={() => router.push('/support')}
+          />
+          <Button variant="outline" fullWidth title={t('common.logout')} onPress={handleLogout} />
+        </>
+      }
+    >
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
-      <View style={styles.content}>
-        <Ionicons name="ban-outline" size={64} color={colors.danger[600]!} />
-        <Text variant="h2" style={styles.title}>{t('mobile.bannedTitle')}</Text>
-        <Text variant="body" style={styles.text}>
-          {t('mobile.bannedDescription')}
-        </Text>
-        {reason ? (
-          <View style={styles.reasonBox}>
-            <Text variant="caption" style={styles.reasonLabel}>{t('mobile.bannedReasonLabel')}</Text>
-            <Text variant="body" style={styles.reasonText}>{reason}</Text>
-          </View>
-        ) : null}
-        <Button
-          variant="primary"
-          title={t('mobile.bannedCreateSupport')}
-          onPress={() => router.push('/support')}
-          style={styles.button}
-        />
-        <Button
-          variant="outline"
-          title={t('common.logout')}
-          onPress={handleLogout}
-          style={styles.button}
-        />
-      </View>
-    </SafeAreaView>
+      {reason ? (
+        <Alert variant="danger" title={t('mobile.bannedReasonLabel')}>
+          {reason}
+        </Alert>
+      ) : null}
+    </GateScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface.DEFAULT },
-  content: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: theme.spacing[6] },
-  title: { marginTop: theme.spacing[4], fontWeight: 'bold', color: colors.text.heading },
-  text: { marginTop: theme.spacing[2], textAlign: 'center', color: colors.text.muted },
-  reasonBox: {
-    marginTop: theme.spacing[4],
-    padding: theme.spacing[3],
-    borderRadius: theme.radius.xl,
-    backgroundColor: colors.danger[50]!,
-    alignSelf: 'stretch',
-  },
-  reasonLabel: { color: colors.danger[600]!, fontWeight: 'bold' },
-  reasonText: { marginTop: theme.spacing[1], color: colors.text.heading },
-  button: { marginTop: theme.spacing[4], alignSelf: 'stretch' },
-});

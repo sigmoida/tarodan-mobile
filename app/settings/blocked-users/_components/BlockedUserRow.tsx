@@ -36,11 +36,11 @@ export function BlockedUserRow({
     <View style={styles.row}>
       <Avatar size="md" source={item.avatarUrl || undefined} name={name.charAt(0) || '?'} />
       <View style={styles.rowInfo}>
-        <Text style={styles.rowName} numberOfLines={1}>
+        <Text variant="label" numberOfLines={1}>
           {name}
         </Text>
         {blockedAt ? (
-          <Text style={styles.rowMeta}>{t('profile.blockedPage.blockedAt', { date: blockedAt })}</Text>
+          <Text variant="caption" style={styles.rowMeta}>{t('profile.blockedPage.blockedAt', { date: blockedAt })}</Text>
         ) : null}
       </View>
       <Button

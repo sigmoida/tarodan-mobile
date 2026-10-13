@@ -12,7 +12,7 @@
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
-import { appAlert } from '@/ui';
+import { appAlert, ToastHost } from '@/ui';
 import { getPhoneInvalidMessage } from '@/utils/phone';
 import { phoneKey, phoneToSend, resolvePhoneOutcome } from '../edit-profile/_lib/phoneOutcome';
 
@@ -138,7 +138,12 @@ describe('resolvePhoneOutcome · tazelenen kullanıcının telefonuyla', () => {
 
 describe('edit-profile · telefon değişimi sonrası', () => {
   const saveWithPhone = (phone: string) => {
-    renderWithProviders(<EditProfileScreen />);
+    renderWithProviders(
+      <>
+        <EditProfileScreen />
+        <ToastHost />
+      </>,
+    );
     fireEvent.changeText(screen.getByTestId('profile-phone-input'), phone);
     fireEvent.press(screen.getByText('product.saveChanges'));
   };
@@ -223,7 +228,12 @@ describe('edit-profile · telefon değişimi sonrası', () => {
 
   it('numara değişmedi → telefon payload\'a girmez, "Profil güncellendi", uyarı yok', async () => {
     updateProfile.mockResolvedValue({ data: { phone: OLD_PHONE } });
-    renderWithProviders(<EditProfileScreen />);
+    renderWithProviders(
+      <>
+        <EditProfileScreen />
+        <ToastHost />
+      </>,
+    );
     fireEvent.press(screen.getByText('product.saveChanges'));
 
     expect(await screen.findByText('profile.profileUpdated')).toBeTruthy();
@@ -255,7 +265,12 @@ describe('edit-profile · telefon değişimi sonrası', () => {
   it('E.164 olmayan eski kayıtlı numara değişmeden kaydedilince "değişti" sayılmaz', async () => {
     mockUser = { ...mockUser, phone: '05321234567' };
     updateProfile.mockResolvedValue({ data: { phone: '05321234567' } });
-    renderWithProviders(<EditProfileScreen />);
+    renderWithProviders(
+      <>
+        <EditProfileScreen />
+        <ToastHost />
+      </>,
+    );
     fireEvent.press(screen.getByText('product.saveChanges'));
 
     expect(await screen.findByText('profile.profileUpdated')).toBeTruthy();

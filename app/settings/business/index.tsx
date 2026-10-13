@@ -1,9 +1,6 @@
-import { View, ScrollView } from 'react-native';
-import { Spinner, Button, ScreenHeader, theme, RawText } from '@/ui';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { PageShell } from '@/components/common/PageShell';
 
-import { styles } from './_lib/styles';
 import { useBusinessStats } from './_hooks/useBusinessStats';
 import {
   BusinessCompanyHeader,
@@ -11,53 +8,34 @@ import {
   BusinessTabContent,
 } from './_components/BusinessSections';
 
-const { colors } = theme;
-
 /**
  * Business dashboard — THIN screen. The `useBusinessStats` controller owns the
- * stats fetch, auth redirect, and tab state; this file renders the loading/error
- * gates and composes the company header, tabs, and tab content.
+ * stats fetch, auth redirect, and tab state; PageShell renders the loading/error
+ * states and the screen composes the company header, tabs, and tab content.
  */
 export default function BusinessDashboardScreen() {
   const f = useBusinessStats();
-
-  if (f.loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Spinner size="lg" />
-        <RawText style={styles.loadingText}>{f.t('business.loadingStats')}</RawText>
-      </View>
-    );
-  }
-
-  if (f.error) {
-    return (
-      <View style={styles.container}>
-        <ScreenHeader title={f.t('mobile.settingsBusiness')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
-        <View style={styles.errorContainer}>
-          <Ionicons name="warning-outline" size={64} color={colors.danger[600]!} />
-          <RawText style={styles.errorText}>{f.error}</RawText>
-          {f.error.includes('şirket adı') || f.error.includes('companyName') ? (
-            <Button variant="primary" title={f.t('business.addCompanyName')} onPress={() => router.push('/settings/edit-profile')} />
-          ) : (
-            <Button variant="primary" title={f.t('seller.openBusinessAccount')} onPress={() => router.push('/seller/register')} />
-          )}
-        </View>
-      </View>
-    );
-  }
+  const onBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
+  const needsCompanyName = !!f.error && (f.error.includes('şirket adı') || f.error.includes('companyName'));
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={f.t('mobile.settingsBusiness')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <BusinessCompanyHeader f={f} />
-        <BusinessTabs f={f} />
-        <BusinessTabContent f={f} />
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </View>
+    <PageShell
+      title={f.t('mobile.settingsBusiness')}
+      onBack={onBack}
+      loading={f.loading}
+      empty={!!f.error}
+      // Hata durumunda eylem: şirket adı eksikse profile, değilse işletme hesabı açmaya.
+      emptyState={{
+        icon: 'alert-circle-outline',
+        title: f.error ?? '',
+        actionLabel: needsCompanyName ? f.t('business.addCompanyName') : f.t('seller.openBusinessAccount'),
+        onAction: () =>
+          needsCompanyName ? router.push('/settings/edit-profile') : router.push('/seller/register'),
+      }}
+    >
+      <BusinessCompanyHeader f={f} />
+      <BusinessTabs f={f} />
+      <BusinessTabContent f={f} />
+    </PageShell>
   );
 }

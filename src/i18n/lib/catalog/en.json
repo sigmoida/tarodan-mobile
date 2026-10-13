@@ -427,7 +427,9 @@
     "bizIntroBody": "Your application will be sent for admin approval. Once approved, you'll receive an invitation email where you can set your username and password.",
     "bizSectionAuthorized": "Authorized Person Details",
     "kvkkCheckboxLabel": "I have read and accept the KVKK Privacy Notice.",
-    "mustAcceptKvkk": "You must accept the KVKK privacy notice"
+    "mustAcceptKvkk": "You must accept the KVKK privacy notice",
+    "individualApplication": "Individual Application",
+    "corporateApplication": "Corporate Application"
   },
   "brands": {
     "title": "Brands",
@@ -2297,7 +2299,26 @@
       "emptyDescription": "Your expired listings are listed here."
     },
     "deleteBlockedManageListings": "Manage my listings",
-    "deleteBlockedReservedNote": "{count} of your listings are reserved for a sale, so they cannot be closed or deleted right now. This block clears once the sale is completed or cancelled; you can follow it under My Sales."
+    "deleteBlockedReservedNote": "{count} of your listings are reserved for a sale, so they cannot be closed or deleted right now. This block clears once the sale is completed or cancelled; you can follow it under My Sales.",
+    "sidebar": {
+      "alisveris": "Shopping",
+      "indirimlerim": "My Discounts",
+      "finans": "Finance",
+      "odemelerim": "My Payments",
+      "odemeYontemleri": "Payment Methods",
+      "iadeTalepleri": "Refund Requests",
+      "koleksiyon": "Collection",
+      "takipEttiklerim": "Following",
+      "kayitliAramalar": "Saved Searches",
+      "analiz": "Analysis",
+      "istatistikler": "Statistics",
+      "analitik": "Analytics",
+      "iletisim": "Communication",
+      "hesap": "Account",
+      "isletme": "Business",
+      "guvenlik": "Security",
+      "engellenenler": "Blocked Users"
+    }
   },
   "review": {
     "reviews": "Reviews",
@@ -8760,6 +8781,14 @@
       "description": "Kept for our legal obligations; never public.",
       "lockedNote": "These details cannot be changed once saved. If something is wrong, contact our support team.",
       "notProvided": "Not provided yet"
+    }
+  },
+  "page": {
+    "messages": {
+      "messageticks": {
+        "okundu": "Read",
+        "iletildi": "Delivered"
+      }
     }
   }
 }

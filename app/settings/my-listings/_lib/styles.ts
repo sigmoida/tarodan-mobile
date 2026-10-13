@@ -1,72 +1,39 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '@/ui';
 
-const { colors, radius } = theme;
+const { colors, radius, radiusRole, spacing } = theme;
 
-// İlan yönetimi ekranının route-local stylesheet'i (monolitten birebir taşındı).
+/** Liste satırındaki ilan görseli (pt). */
+const THUMB = 100;
+/** Durum noktası (pt). */
+const DOT = 6;
+
+// İlan yönetimi ekranının route-local stylesheet'i — web Card/SectionCard dili, token'lı.
 export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.alt,
-  },
-  limitCard: {
-    margin: theme.spacing[4],
-    marginBottom: theme.spacing[2],
-  },
-  limitHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing[2],
-  },
-  upgradeLink: {
-    color: colors.primary[600]!,
-    fontWeight: '600',
-  },
   progressBar: {
-    height: 8,
-    borderRadius: radius.sm,
-  },
-  filterContainer: {
-    backgroundColor: colors.white,
-    paddingVertical: theme.spacing[3],
-    paddingHorizontal: theme.spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.DEFAULT,
+    marginTop: spacing[2],
   },
   chipRow: {
-    gap: theme.spacing[2],
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  content: {
-    flex: 1,
-    padding: theme.spacing[4],
+    gap: spacing[2],
   },
   listingCard: {
-    backgroundColor: colors.white,
-    borderRadius: radius.lg,
-    padding: theme.spacing[3],
+    backgroundColor: colors.surface.elevated,
+    borderRadius: radiusRole.card,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    padding: spacing[3],
     flexDirection: 'row',
-    marginBottom: theme.spacing[3],
-    elevation: 2,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
   listingImage: {
-    width: 100,
-    height: 100,
-    borderRadius: radius.md,
+    width: THUMB,
+    height: THUMB,
+    borderRadius: radiusRole.productCard,
     backgroundColor: colors.surface.alt,
   },
   listingInfo: {
     flex: 1,
-    marginLeft: theme.spacing[3],
+    marginLeft: spacing[3],
+    gap: spacing[1],
   },
   listingHeader: {
     flexDirection: 'row',
@@ -75,79 +42,46 @@ export const styles = StyleSheet.create({
   },
   listingTitle: {
     flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.heading,
-  },
-  listingPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.primary[600]!,
-    marginTop: theme.spacing[1],
   },
   listingStats: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: theme.spacing[2],
     flexWrap: 'wrap',
+    gap: spacing[3],
   },
   stat: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: theme.spacing[4],
-  },
-  statText: {
-    fontSize: 12,
-    color: colors.text.muted,
-    marginLeft: theme.spacing[1],
+    gap: spacing[1],
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: theme.spacing[1],
-    borderRadius: radius.lg,
+    gap: spacing[1],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[0.5],
+    borderRadius: radiusRole.badge,
+    backgroundColor: colors.surface.alt,
   },
   statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: theme.spacing[1],
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '500',
+    width: DOT,
+    height: DOT,
+    borderRadius: radius.full,
   },
   rejectionBox: {
-    marginTop: theme.spacing[2],
-    paddingVertical: theme.spacing[2],
-    paddingHorizontal: theme.spacing[3],
-    borderRadius: theme.radius.lg,
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
+    borderRadius: radiusRole.card,
     backgroundColor: colors.danger[50]!,
-  },
-  rejectionText: {
-    fontSize: 12,
-    color: colors.danger[700]!,
-  },
-  hintRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: theme.spacing[1.5],
-    gap: theme.spacing[1],
-  },
-  hintText: {
-    flex: 1,
-    fontSize: 11,
-    color: colors.warning[700]!,
   },
   // Sol üst (görselin köşesi): sağ üstte ⋮ menü düğmesi var, kutu onu örtmemeli.
   selectCheck: {
     position: 'absolute',
-    top: theme.spacing[2],
-    left: theme.spacing[2],
+    top: spacing[2],
+    left: spacing[2],
     zIndex: 1,
-    padding: theme.spacing[1],
-    borderRadius: theme.radius.md,
+    padding: spacing[1],
+    borderRadius: radius.md,
     backgroundColor: colors.white,
   },
   expiredBar: {
@@ -155,64 +89,28 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: theme.spacing[2],
-    marginHorizontal: theme.spacing[4],
-    marginBottom: theme.spacing[2],
-    paddingVertical: theme.spacing[2],
-    paddingHorizontal: theme.spacing[3],
-    borderRadius: theme.radius.lg,
+    gap: spacing[2],
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
+    borderRadius: radiusRole.card,
     backgroundColor: colors.surface.alt,
   },
   expiredBarActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing[2],
+    gap: spacing[2],
   },
-  expiredBanner: {
-    marginHorizontal: theme.spacing[4],
-    marginBottom: theme.spacing[2],
-  },
-  dateText: {
-    fontSize: 11,
-    color: colors.text.subtle,
-    marginTop: theme.spacing[1],
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.heading,
-    marginTop: theme.spacing[4],
-  },
-  emptyDesc: {
-    fontSize: 14,
-    color: colors.text.muted,
-    marginTop: theme.spacing[2],
-    textAlign: 'center',
+  bannerButton: {
+    marginTop: spacing[2],
+    alignSelf: 'flex-start',
   },
   fab: {
     position: 'absolute',
-    right: 16,
-    bottom: 24,
+    right: spacing[4],
+    bottom: spacing[6],
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: theme.spacing[3],
-    gap: theme.spacing[3],
-  },
-  menuItemText: {
-    fontSize: 15,
-    color: colors.text.heading,
-  },
-  dialogActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: theme.spacing[2],
-    marginTop: theme.spacing[3],
+    minHeight: theme.minTouchTarget,
+    justifyContent: 'center',
   },
 });

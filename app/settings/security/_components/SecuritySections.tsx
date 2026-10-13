@@ -1,49 +1,37 @@
 import React from 'react';
-import { View, ScrollView, TouchableOpacity } from 'react-native';
-import { Card, Switch, Button, Text, theme } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Pressable } from 'react-native';
+import { Badge, Switch, Button, SectionCard, Text } from '@/ui';
 import { splitPhone } from '@/utils/phone';
 
 import { styles } from '../_lib/styles';
 import type { SecurityController } from '../_hooks/useSecurity';
 
-const { colors } = theme;
-
-/** Password / 2FA / phone-verification / sessions / tips cards. */
+/** Password / 2FA / phone-verification / sessions / tips sections (SectionCard). */
 export function SecuritySections({ f }: { f: SecurityController }) {
   const { t } = f;
   return (
-    <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+    <>
       {/* Password Section */}
-      <Text style={styles.sectionTitle}>{t('mobile.password')}</Text>
-      <Card style={styles.card}>
-        <TouchableOpacity
+      <SectionCard title={t('mobile.password')}>
+        <Pressable
           style={styles.settingRow}
           onPress={() => { f.pwMsg.clear(); f.setShowPasswordDialog(true); }}
         >
-          <View style={styles.settingInfo}>
-            <Ionicons name="lock-closed-outline" size={24} color={colors.primary[600]!} />
-            <View style={styles.settingText}>
-              <Text style={styles.settingTitle}>{t('security.changePasswordTitle')}</Text>
-              <Text style={styles.settingSubtitle}>{t('security.lastChangeUnknown')}</Text>
-            </View>
+          <View style={styles.settingText}>
+            <Text variant="body" weight="medium">{t('security.changePasswordTitle')}</Text>
+            <Text variant="bodySm" tone="muted">{t('security.lastChangeUnknown')}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.text.subtle} />
-        </TouchableOpacity>
-      </Card>
+        </Pressable>
+      </SectionCard>
 
       {/* Two-Factor Auth */}
-      <Text style={styles.sectionTitle}>{t('security.twoFactorSection')}</Text>
-      <Card style={styles.card}>
+      <SectionCard title={t('security.twoFactorSection')}>
         <View style={styles.settingRow}>
-          <View style={styles.settingInfo}>
-            <Ionicons name="shield-checkmark-outline" size={24} color={colors.primary[600]!} />
-            <View style={styles.settingText}>
-              <Text style={styles.settingTitle}>2FA</Text>
-              <Text style={styles.settingSubtitle}>
-                {f.twoFactorEnabled ? t('security.enabled') : t('security.disabled')}
-              </Text>
-            </View>
+          <View style={styles.settingText}>
+            <Text variant="body" weight="medium">2FA</Text>
+            <Text variant="bodySm" tone="muted">
+              {f.twoFactorEnabled ? t('security.enabled') : t('security.disabled')}
+            </Text>
           </View>
           <Switch
             value={f.twoFactorEnabled}
@@ -56,7 +44,7 @@ export function SecuritySections({ f }: { f: SecurityController }) {
             }}
           />
         </View>
-        <Text style={styles.infoText}>{t('security.twoFactorDesc')}</Text>
+        <Text variant="bodySm" tone="muted" style={styles.infoText}>{t('security.twoFactorDesc')}</Text>
         {f.twoFactorEnabled ? (
           <Button
             variant="outline"
@@ -67,31 +55,27 @@ export function SecuritySections({ f }: { f: SecurityController }) {
               f.regenMsg.clear();
               f.setShowRegenerateDialog(true);
             }}
-            style={{ marginTop: theme.spacing[3] }}
+            style={styles.actionButton}
           />
         ) : null}
-      </Card>
+      </SectionCard>
 
       {/* Phone Verification */}
-      <Text style={styles.sectionTitle}>{t('security.phoneSection')}</Text>
-      <Card style={styles.card}>
-        <View style={styles.settingRow}>
-          <View style={styles.settingInfo}>
-            <Ionicons name="call-outline" size={24} color={colors.primary[600]!} />
-            <View style={styles.settingText}>
-              <Text style={styles.settingTitle}>{t('security.phoneVerificationTitle')}</Text>
-              <Text style={styles.settingSubtitle}>
-                {f.phoneVerified ? t('security.phoneVerifiedNotice') : t('security.phoneVerifyHint')}
-              </Text>
-            </View>
-          </View>
+      <SectionCard
+        title={t('security.phoneSection')}
+        badge={
+          f.phoneVerified ? (
+            <Badge variant="success" size="sm">{t('security.verified')}</Badge>
+          ) : undefined
+        }
+      >
+        <View style={styles.settingText}>
+          <Text variant="body" weight="medium">{t('security.phoneVerificationTitle')}</Text>
+          <Text variant="bodySm" tone="muted">
+            {f.phoneVerified ? t('security.phoneVerifiedNotice') : t('security.phoneVerifyHint')}
+          </Text>
         </View>
-        {f.phoneVerified ? (
-          <View style={styles.verifiedBadge}>
-            <Ionicons name="checkmark-circle" size={18} color={colors.success[600]!} />
-            <Text style={styles.verifiedText}>{t('security.verified')}</Text>
-          </View>
-        ) : (
+        {!f.phoneVerified && (
           <Button
             title={t('security.verify')}
             onPress={() => {
@@ -106,51 +90,32 @@ export function SecuritySections({ f }: { f: SecurityController }) {
               f.setShowPhoneDialog(true);
             }}
             testID="phone-verify-button"
-            style={{ marginTop: theme.spacing[3] }}
+            style={styles.actionButton}
           />
         )}
-      </Card>
+      </SectionCard>
 
       {/* Sessions */}
-      <Text style={styles.sectionTitle}>{t('mobile.sessions')}</Text>
-      <Card style={styles.card}>
-        <TouchableOpacity style={styles.settingRow} onPress={f.handleLogoutAllDevices}>
-          <View style={styles.settingInfo}>
-            <Ionicons name="log-out-outline" size={24} color={colors.danger[600]!} />
-            <View style={styles.settingText}>
-              <Text style={[styles.settingTitle, { color: colors.danger[600]! }]}>
-                Tüm Cihazlardan Çıkış
-              </Text>
-              <Text style={styles.settingSubtitle}>
-                Diğer tüm cihazlarda oturumunuzu sonlandırın
-              </Text>
-            </View>
+      <SectionCard title={t('mobile.sessions')}>
+        <Pressable style={styles.settingRow} onPress={f.handleLogoutAllDevices}>
+          <View style={styles.settingText}>
+            <Text variant="body" weight="medium" tone="danger">
+              Tüm Cihazlardan Çıkış
+            </Text>
+            <Text variant="bodySm" tone="muted">
+              Diğer tüm cihazlarda oturumunuzu sonlandırın
+            </Text>
           </View>
-        </TouchableOpacity>
-      </Card>
+        </Pressable>
+      </SectionCard>
 
       {/* Security Tips */}
-      <Text style={styles.sectionTitle}>{t('security.tipsSection')}</Text>
-      <Card style={styles.tipsCard}>
-        <View style={styles.tipItem}>
-          <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
-          <Text style={styles.tipText}>{t('mobile.tipStrongPassword')}</Text>
-        </View>
-        <View style={styles.tipItem}>
-          <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
-          <Text style={styles.tipText}>{t('mobile.tipTwoFactor')}</Text>
-        </View>
-        <View style={styles.tipItem}>
-          <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
-          <Text style={styles.tipText}>{t('mobile.tipChangePassword')}</Text>
-        </View>
-        <View style={styles.tipItem}>
-          <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
-          <Text style={styles.tipText}>{t('mobile.tipReportSuspicious')}</Text>
-        </View>
-      </Card>
-
-      <View style={{ height: 40 }} />
-    </ScrollView>
+      <SectionCard title={t('security.tipsSection')} bodyStyle={styles.tips}>
+        <Text variant="bodySm">• {t('mobile.tipStrongPassword')}</Text>
+        <Text variant="bodySm">• {t('mobile.tipTwoFactor')}</Text>
+        <Text variant="bodySm">• {t('mobile.tipChangePassword')}</Text>
+        <Text variant="bodySm">• {t('mobile.tipReportSuspicious')}</Text>
+      </SectionCard>
+    </>
   );
 }

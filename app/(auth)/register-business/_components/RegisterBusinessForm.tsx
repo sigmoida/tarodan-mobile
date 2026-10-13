@@ -1,6 +1,5 @@
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
 import { Controller } from 'react-hook-form';
 import { Button, Checkbox, Text, VStack, theme } from '@/ui';
 import { Form, FormInput } from '@/ui/form';
@@ -8,7 +7,7 @@ import { DEFAULT_COUNTRY_CODE, formatTrPhoneField, getPhonePlaceholder } from '@
 import { styles } from '../_lib/styles';
 import type { RegisterBusinessController } from '../_hooks/useRegisterBusiness';
 
-const { colors, spacing } = theme;
+const { spacing } = theme;
 
 /** `formatTrPhoneField` baştaki `0`/`90`'ı soyduğu için placeholder da lokal biçim. */
 const TR_PHONE_PLACEHOLDER = getPhonePlaceholder(DEFAULT_COUNTRY_CODE);
@@ -26,12 +25,11 @@ export function RegisterBusinessForm({ f }: { f: RegisterBusinessController }) {
   const busy = f.registerMutation.isPending || isSubmitting;
 
   return (
-    <View style={styles.card}>
+    <View style={styles.form}>
       <VStack gap={3}>
         <View style={styles.infoCard}>
-          <Ionicons name="business" size={24} color={colors.primary[600]!} />
-          <Text variant="h3" align="center">{t('auth.bizIntroTitle')}</Text>
-          <Text variant="bodySm" tone="muted" align="center">
+          <Text variant="h3">{t('auth.bizIntroTitle')}</Text>
+          <Text variant="bodySm" tone="muted">
             {t('auth.bizIntroBody')}
           </Text>
         </View>

@@ -1,16 +1,12 @@
 import React from "react";
-import {
-  View,
-  ScrollView,
-  Pressable,
-  RefreshControl,
-} from "react-native";
-import { Card, Spinner, Text, theme, appAlert } from "@/ui";
-import { Ionicons } from "@expo/vector-icons";
+import { View } from "react-native";
+import { EmptyState, IconButton, SectionCard, Text, appAlert } from "@/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { ScreenHeader, EmptyState } from "@/components/common";
+import { AuthGatePage } from "@/components/common/AuthGatePage";
+import { PageShell } from "@/components/common/PageShell";
+import { RowListSkeleton } from "@/components/common/RowListSkeleton";
 import { useAuthStore } from "@/stores/authStore";
 import { membershipApi, type SavedCard } from "@/lib/api";
 import { useSavedCards } from "@/lib/payment/useSavedCards";
@@ -19,13 +15,12 @@ import { CAN_BUY_DIGITAL } from "@/lib/purchases";
 import { styles } from './_payment-methods/_lib/styles';
 import { SavedCardBadges } from './_payment-methods/_components/SavedCardBadges';
 
-const { colors } = theme;
-
 /**
  * Kayıtlı Kartlarım (mobil) — web profile/payment-methods paritesi.
  * Kart EKLEME ödeme sırasında ("kartımı kaydet") olur; burada listele + sil.
  * PAN/CVV asla gösterilmez/saklanmaz. Liste amaçsız istenir (iki mağazanın
  * kartları birlikte, web gibi); rozetler web `SavedCardCard` ile aynı.
+ * PageShell + tek SectionCard; kart satırı başı ikonu yok.
  */
 
 const buildCardTypeLabels = (t: TFunction): Record<string, string> => ({
@@ -38,6 +33,7 @@ export default function PaymentMethodsScreen() {
   const { isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
   const cardTypeLabels = buildCardTypeLabels(t);
+  const title = t("payment.savedCardsTitle");
 
   // Amaçsız: iki mağazanın kartları birlikte (web gibi).
   const cardsQuery = useSavedCards({ enabled: isAuthenticated });
@@ -70,48 +66,41 @@ export default function PaymentMethodsScreen() {
     );
   };
 
+  if (!isAuthenticated) {
+    return <AuthGatePage title={title} icon="card-outline" subtitle={t("auth.loginToContinue")} />;
+  }
+
   const cards = cardsQuery.data ?? [];
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={t("payment.savedCardsTitle")} />
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={cardsQuery.isFetching}
-            onRefresh={() => cardsQuery.refetch()}
-          />
-        }
-      >
-        <Text variant="body" tone="muted" style={styles.intro}>
-          {/* Dijital satış kapalıyken (iOS + Android) abonelik satılmıyor (Apple 2.1(b) / Play): oto-yenileme ifadesi yok. */}
-          {t(CAN_BUY_DIGITAL ? "payment.savedCardsIntro" : "payment.savedCardsIntroNeutral")}
-        </Text>
+    <PageShell
+      title={title}
+      refreshing={cardsQuery.isFetching && !cardsQuery.isLoading}
+      onRefresh={() => cardsQuery.refetch()}
+      loading={cardsQuery.isLoading}
+      loadingFallback={<RowListSkeleton rows={3} />}
+    >
+      <Text variant="bodySm" tone="muted">
+        {/* Dijital satış kapalıyken (iOS + Android) abonelik satılmıyor (Apple 2.1(b) / Play): oto-yenileme ifadesi yok. */}
+        {t(CAN_BUY_DIGITAL ? "payment.savedCardsIntro" : "payment.savedCardsIntroNeutral")}
+      </Text>
 
-        {cardsQuery.isLoading ? (
-          <View style={styles.center}>
-            <Spinner />
-          </View>
-        ) : cards.length === 0 ? (
-          <EmptyState
-            icon="card-outline"
-            title={t("payment.noSavedCardsTitle")}
-            subtitle={t("payment.noSavedCardsSubtitle")}
-          />
-        ) : (
-          cards.map((c) => (
-            <Card key={c.id} style={styles.cardRow}>
-              <Ionicons name="card" size={28} color={colors.primary[500]} />
+      {cards.length === 0 ? (
+        <EmptyState
+          icon="card-outline"
+          title={t("payment.noSavedCardsTitle")}
+          subtitle={t("payment.noSavedCardsSubtitle")}
+        />
+      ) : (
+        <SectionCard bodyStyle={styles.list}>
+          {cards.map((c) => (
+            <View key={c.id} style={styles.cardRow}>
               <View style={styles.cardInfo}>
-                <Text variant="body" style={styles.cardTitle}>
+                <Text variant="label">
                   {(c.brand || t("payment.cardGenericBrand")) + " •••• " + c.last4}
                 </Text>
                 <SavedCardBadges card={c} />
-                {[
-                  c.bank,
-                  c.cardType ? cardTypeLabels[c.cardType] : null,
-                ].filter(Boolean).length > 0 ? (
+                {[c.bank, c.cardType ? cardTypeLabels[c.cardType] : null].filter(Boolean).length > 0 ? (
                   <Text variant="caption" tone="muted">
                     {[c.bank, c.cardType ? cardTypeLabels[c.cardType] : null]
                       .filter(Boolean)
@@ -119,40 +108,27 @@ export default function PaymentMethodsScreen() {
                   </Text>
                 ) : null}
                 {c.expMonth && c.expYear ? (
-                  <Text
-                    variant="caption"
-                    tone="muted"
-                  >{t("payment.expiryLabel", { month: c.expMonth, year: c.expYear })}</Text>
+                  <Text variant="caption" tone="muted">
+                    {t("payment.expiryLabel", { month: c.expMonth, year: c.expYear })}
+                  </Text>
                 ) : null}
               </View>
-              <Pressable
+              <IconButton
                 testID={`card-delete-${c.id}`}
+                icon="trash-outline"
+                variant="danger"
+                size="sm"
+                accessibilityLabel={t("common.delete")}
                 onPress={() => handleDelete(c)}
-                hitSlop={10}
-                style={styles.delete}
-              >
-                <Ionicons
-                  name="trash-outline"
-                  size={22}
-                  color={colors.danger[500]}
-                />
-              </Pressable>
-            </Card>
-          ))
-        )}
+              />
+            </View>
+          ))}
+        </SectionCard>
+      )}
 
-        <View style={styles.secure}>
-          <Ionicons
-            name="shield-checkmark-outline"
-            size={16}
-            color={colors.success[600]}
-          />
-          <Text variant="caption" tone="muted" style={styles.secureText}>
-            {t("payment.cardsVaultNotice")}
-          </Text>
-        </View>
-      </ScrollView>
-    </View>
+      <Text variant="caption" tone="muted" style={styles.secureText}>
+        {t("payment.cardsVaultNotice")}
+      </Text>
+    </PageShell>
   );
 }
-

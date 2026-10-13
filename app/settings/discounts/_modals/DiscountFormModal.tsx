@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, ScrollView, Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Modal, Button, Switch, Chip, Text, ModalMessage, useModalMessage, theme } from '@/ui';
+import { View, ScrollView } from 'react-native';
+import { Modal, ModalFooter, Button, Switch, Chip, Text, ModalMessage, useModalMessage } from '@/ui';
 import { useZodForm, Form, FormInput } from '@/ui/form';
 import type { MessageKey } from '@/i18n/lib';
 
@@ -17,8 +16,6 @@ import {
 import { isQuantityType, type Discount, type DiscountType } from '../_lib/types';
 import { useSaveDiscount } from '../_hooks/useSaveDiscount';
 import { ProductPickerModal } from './ProductPickerModal';
-
-const { colors } = theme;
 
 const TYPE_CHIPS: Array<{ type: DiscountType; labelKey: MessageKey }> = [
   { type: 'percentage', labelKey: 'discount.typePercent' },
@@ -101,10 +98,19 @@ export function DiscountFormModal({
       isOpen={visible}
       onClose={onClose}
       title={discount ? t('discount.editTitle') : t('discount.newTitle')}
+      footer={
+        <ModalFooter
+          onCancel={onClose}
+          onConfirm={onSubmit}
+          cancelLabel={t('discount.discard')}
+          confirmLabel={discount ? t('discount.update') : t('discount.create')}
+          disabled={save.isPending}
+        />
+      }
     >
       <Form form={form}>
         <ScrollView style={styles.dialogScroll} keyboardShouldPersistTaps="handled">
-          <View style={{ paddingVertical: theme.spacing[2] }}>
+          <View style={styles.formBody}>
             <FormInput name="name" label={t('discount.nameLabel')} containerStyle={styles.input} />
             <FormInput
               name="description"
@@ -114,7 +120,7 @@ export function DiscountFormModal({
               containerStyle={styles.input}
             />
             {isQuantityType(type) ? (
-              <Text style={styles.sectionLabel}>{t('discount.autoCampaignNote')}</Text>
+              <Text variant="bodySm" tone="muted" style={styles.sectionLabel}>{t('discount.autoCampaignNote')}</Text>
             ) : (
               <FormInput
                 name="code"
@@ -125,8 +131,8 @@ export function DiscountFormModal({
               />
             )}
 
-            <Text style={styles.sectionLabel}>{t('discount.typeLabel')}</Text>
-            <View style={[styles.toggleRow, { flexWrap: 'wrap' }]}>
+            <Text variant="label" style={styles.sectionLabel}>{t('discount.typeLabel')}</Text>
+            <View style={[styles.toggleRow, styles.toggleRowWrap]}>
               {TYPE_CHIPS.map((c) => (
                 <Chip
                   key={c.type}
@@ -179,7 +185,7 @@ export function DiscountFormModal({
               </>
             )}
 
-            <Text style={styles.sectionLabel}>{t('discount.scopeLabel')}</Text>
+            <Text variant="label" style={styles.sectionLabel}>{t('discount.scopeLabel')}</Text>
             <View style={styles.toggleRow}>
               <Chip
                 label={t('discount.scopeAllStore')}
@@ -201,22 +207,24 @@ export function DiscountFormModal({
 
             {scope === 'product' ? (
               <>
-                <Pressable style={styles.productPickerRow} onPress={() => setPickerOpen(true)}>
-                  <Ionicons name="cube-outline" size={20} color={colors.primary[600]!} />
-                  <Text style={styles.productPickerText}>
-                    {targetProductIds.length > 0
+                <Button
+                  variant="outline"
+                  fullWidth
+                  title={
+                    targetProductIds.length > 0
                       ? t('discount.productsSelectedCount', { count: targetProductIds.length })
-                      : t('discount.pickProducts')}
-                  </Text>
-                  <Ionicons name="chevron-forward" size={18} color={colors.text.subtle} />
-                </Pressable>
+                      : t('discount.pickProducts')
+                  }
+                  onPress={() => setPickerOpen(true)}
+                  style={styles.productPickerRow}
+                />
                 {errors.targetProductIds?.message ? (
-                  <Text style={styles.fieldError}>{errors.targetProductIds.message}</Text>
+                  <Text variant="caption" tone="danger" style={styles.fieldError}>{errors.targetProductIds.message}</Text>
                 ) : null}
               </>
             ) : null}
 
-            <Text style={styles.sectionLabel}>{t('discount.validityLabel')}</Text>
+            <Text variant="label" style={styles.sectionLabel}>{t('discount.validityLabel')}</Text>
             <View style={styles.dateRow}>
               <FormInput
                 name="startDate"
@@ -232,7 +240,7 @@ export function DiscountFormModal({
               />
             </View>
 
-            <Text style={styles.sectionLabel}>{t('discount.limitsLabel')}</Text>
+            <Text variant="label" style={styles.sectionLabel}>{t('discount.limitsLabel')}</Text>
             <FormInput
               name="minCartValue"
               label={t('discount.minCartLabel')}
@@ -263,11 +271,11 @@ export function DiscountFormModal({
             />
 
             <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>{t('discount.stackable')}</Text>
+              <Text variant="bodySm">{t('discount.stackable')}</Text>
               <Switch value={isStackable} onValueChange={(v: boolean) => set('isStackable', v)} />
             </View>
             <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>{t('discount.active')}</Text>
+              <Text variant="bodySm">{t('discount.active')}</Text>
               <Switch value={isActive} onValueChange={(v: boolean) => set('isActive', v)} />
             </View>
           </View>
@@ -275,21 +283,6 @@ export function DiscountFormModal({
       </Form>
 
       <ModalMessage state={formMsg.state} />
-      <View style={styles.dialogActions}>
-        <Button
-          variant="ghost"
-          title={t('discount.discard')}
-          onPress={onClose}
-          disabled={save.isPending}
-        />
-        <Button
-          variant="primary"
-          title={discount ? t('discount.update') : t('discount.create')}
-          onPress={onSubmit}
-          isLoading={save.isPending}
-          disabled={save.isPending}
-        />
-      </View>
     </Modal>
     <ProductPickerModal
       visible={pickerOpen}

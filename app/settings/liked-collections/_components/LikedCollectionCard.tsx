@@ -1,14 +1,12 @@
-import { View, Image, TouchableOpacity } from 'react-native';
-import { Text, theme } from '@/ui';
+import { View, Image, Pressable } from 'react-native';
+import { Button, Text } from '@/ui';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { styles } from '../_lib/styles';
 import type { LikedCollection } from '../_lib/types';
 import type { LikedCollectionsController } from '../_hooks/useLikedCollections';
 
-const { colors } = theme;
-
-/** Tek beğenilen koleksiyon kartı — kapak, istatistik, beğeniyi kaldır. */
+/** Tek beğenilen koleksiyon kartı — web kart dili: kapak, ad, sahibi, sayılar, beğeniyi kaldır. */
 export function LikedCollectionCard({
   collection,
   f,
@@ -16,39 +14,29 @@ export function LikedCollectionCard({
   collection: LikedCollection;
   f: LikedCollectionsController;
 }) {
+  const { t } = useTranslation();
   return (
-    <TouchableOpacity
+    <Pressable
       style={styles.collectionCard}
       onPress={() => router.push(`/collections/${collection.id}`)}
     >
       <Image source={{ uri: f.getImageUrl(collection) }} style={styles.collectionImage} resizeMode="cover" />
-      <View style={styles.collectionOverlay}>
-        <View style={styles.collectionStats}>
-          <View style={styles.collectionStat}>
-            <Ionicons name="images-outline" size={12} color={colors.white} />
-            <Text style={styles.collectionStatText}>{collection.itemCount || 0}</Text>
-          </View>
-          <View style={styles.collectionStat}>
-            <Ionicons name="heart" size={12} color={colors.white} />
-            <Text style={styles.collectionStatText}>{collection.likeCount || 0}</Text>
-          </View>
-        </View>
-        <TouchableOpacity
-          style={styles.unlikeButton}
-          onPress={(e) => {
-            e.stopPropagation();
-            f.handleUnlike(collection.id);
-          }}
-        >
-          <Ionicons name="heart-dislike" size={16} color={colors.white} />
-        </TouchableOpacity>
-      </View>
       <View style={styles.collectionInfo}>
-        <Text style={styles.collectionName} numberOfLines={1}>{collection.name}</Text>
+        <Text variant="label" numberOfLines={1}>{collection.name}</Text>
         {collection.userName ? (
-          <Text style={styles.ownerName} numberOfLines={1}>{collection.userName}</Text>
+          <Text variant="caption" numberOfLines={1}>{collection.userName}</Text>
         ) : null}
+        <View style={styles.collectionMetaRow}>
+          <Text variant="caption">{t('collection.vehicleCountSuffix', { count: collection.itemCount || 0 })}</Text>
+          <Text variant="caption">{collection.likeCount || 0} {t('collection.likes')}</Text>
+        </View>
+        <Button
+          variant="outline"
+          size="sm"
+          title={t('common.remove')}
+          onPress={() => f.handleUnlike(collection.id)}
+        />
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }

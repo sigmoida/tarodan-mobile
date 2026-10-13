@@ -1,108 +1,59 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '@/ui';
 
-const { colors } = theme;
+const { colors, spacing, radiusRole } = theme;
 
-// Güvenlik ekranının route-local stylesheet'i (monolitten birebir taşındı).
+/** 2FA QR görseli kenarı (pt). */
+const QR_SIZE = 200;
+
+// Güvenlik ekranının route-local stylesheet'i — SectionCard satırları, token'lı.
 export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.alt,
-  },
-  content: {
-    flex: 1,
-    padding: theme.spacing[4],
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text.heading,
-    marginBottom: theme.spacing[3],
-    marginTop: theme.spacing[4],
-  },
-  card: {
-    backgroundColor: colors.surface.DEFAULT,
-    marginBottom: theme.spacing[2],
-  },
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: theme.spacing[2],
-  },
-  settingInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
+    gap: spacing[3],
+    minHeight: theme.minTouchTarget,
   },
   settingText: {
-    marginLeft: theme.spacing[4],
     flex: 1,
-  },
-  settingTitle: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: colors.text.heading,
-  },
-  settingSubtitle: {
-    fontSize: 13,
-    color: colors.text.muted,
-    marginTop: theme.spacing[0.5],
+    gap: spacing[0.5],
   },
   infoText: {
-    fontSize: 13,
-    color: colors.text.muted,
-    marginTop: theme.spacing[3],
-    lineHeight: 18,
+    marginTop: spacing[3],
   },
-  tipsCard: {
-    backgroundColor: colors.gray[100],
+  actionButton: {
+    marginTop: spacing[3],
   },
-  tipItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: theme.spacing[3],
-  },
-  tipText: {
-    marginLeft: theme.spacing[3],
-    fontSize: 14,
-    color: colors.text.heading,
+  tips: {
+    gap: spacing[2],
   },
   dialogInput: {
-    marginBottom: theme.spacing[3],
+    marginBottom: spacing[3],
   },
   dialogText: {
-    fontSize: 14,
-    color: colors.text.muted,
-    marginBottom: theme.spacing[4],
-    lineHeight: 20,
+    marginBottom: spacing[4],
+  },
+  dialogStack: {
+    gap: spacing[3],
+  },
+  qrImage: {
+    width: QR_SIZE,
+    height: QR_SIZE,
+    alignSelf: 'center',
   },
   secretContainer: {
     backgroundColor: colors.gray[100],
-    padding: theme.spacing[3],
-    borderRadius: theme.radius.xl,
-    marginBottom: theme.spacing[4],
+    padding: spacing[3],
+    borderRadius: radiusRole.card,
+    marginBottom: spacing[4],
   },
   secretText: {
     fontFamily: 'monospace',
-    fontSize: 14,
-    color: colors.text.heading,
     textAlign: 'center',
   },
-  dialogActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: theme.spacing[2],
-    marginTop: theme.spacing[2],
-  },
-  verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[1.5],
-    marginTop: theme.spacing[2],
-  },
-  verifiedText: {
-    color: colors.success[600]!,
-    fontWeight: '600',
+  phoneMessage: {
+    marginTop: spacing[3],
+    textAlign: 'center',
   },
 });
