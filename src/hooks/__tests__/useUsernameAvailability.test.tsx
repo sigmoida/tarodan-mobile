@@ -12,7 +12,7 @@ jest.mock('@/lib/api', () => ({
   authApi: { checkUsernameAvailability: jest.fn() },
 }));
 import { authApi } from '@/lib/api';
-import { useUsernameAvailability } from '../_hooks/useUsernameAvailability';
+import { useUsernameAvailability } from '../useUsernameAvailability';
 
 const mockCheck = authApi.checkUsernameAvailability as jest.Mock;
 
@@ -163,5 +163,33 @@ describe('useUsernameAvailability', () => {
     const callsSoFar = mockCheck.mock.calls.length;
     await jest.advanceTimersByTimeAsync(10_000);
     expect(mockCheck.mock.calls.length).toBe(callsSoFar);
+  });
+
+  // Uç kullanıcının KENDİ (otomatik atanmış) adı için de `false` döner; oysa aynı
+  // adı belirlemek sunucuda başarılı. Mobil bunu sormadan "uygun" saymalı.
+  it('kendi mevcut adı sorgulanmaz ve uygun sayılır', async () => {
+    mockCheck.mockResolvedValue({ data: { available: false } });
+    const { result } = renderHook(
+      ({ v }: { v: string }) => useUsernameAvailability(v, 'otomatik.ad'),
+      { wrapper: Wrapper, initialProps: { v: 'otomatik.ad' } },
+    );
+
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(mockCheck).not.toHaveBeenCalled();
+    expect(result.current.available).toBe(true);
+    expect(result.current.checking).toBe(false);
+  });
+
+  it('kendi adından farklı bir ad yine sorgulanır', async () => {
+    mockCheck.mockResolvedValue({ data: { available: false } });
+    const { rerender, result } = renderHook(
+      ({ v }: { v: string }) => useUsernameAvailability(v, 'otomatik.ad'),
+      { wrapper: Wrapper, initialProps: { v: 'otomatik.ad' } },
+    );
+    rerender({ v: 'baska.ad' });
+
+    await jest.advanceTimersByTimeAsync(400);
+    await waitFor(() => expect(mockCheck).toHaveBeenCalledWith('baska.ad'));
+    await waitFor(() => expect(result.current.available).toBe(false));
   });
 });

@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button, Checkbox, DateField, HStack, Input, Spinner, Text, theme, Icon } from '@/ui';
+import { Button, Checkbox, DateField, HStack, Input, Text } from '@/ui';
+import { useUsernameFieldStatus } from '@/hooks/useUsernameFieldStatus';
 import { Controller } from 'react-hook-form';
 import { router } from 'expo-router';
 import { styles } from '../_lib/styles';
@@ -14,40 +15,8 @@ export function RegisterForm({ f }: { f: RegisterController }) {
   const { t } = useTranslation();
   const { control, errors, registerMutation, usernameAvailability } = f;
 
-  // Kullanıcı adı durum slotu — TEK öncelik sırası (Input tek satır gösterir):
-  //   1) zod format hatası (submit sonrası)  2) ham biçim uyarısı (ANINDA, submit
-  //   beklemeden — N-1: Türkçe büyük harf 'İ'.toLowerCase() birleşik noktalı 'i'
-  //   üretir, alanda gözle doğru görünür ama regex'i geçmez)  3) "kontrol
-  //   ediliyor"  4) uygunluk sonucu.
-  // "Kontrol ediliyor" ADIMI ATLANMAZ: aksi halde henüz sorulmamış bir ad için
-  // eski sonucun kırmızısı görünür ve buton sessizce kilitli kalır.
-  const { available, checking, isThrottled, isFormatInvalid } = usernameAvailability;
-  const usernameFormatError = errors.username?.message;
-  const usernameRawFormatWarning =
-    !usernameFormatError && isFormatInvalid
-      ? t('auth.usernameInvalidFormat')
-      : undefined;
-  const usernameTakenError =
-    !usernameFormatError && !usernameRawFormatWarning && !checking && available === false
-      ? t('auth.usernameTaken')
-      : undefined;
-  const usernameError = usernameFormatError || usernameRawFormatWarning || usernameTakenError;
-  const usernameHelper = usernameError
-    ? undefined
-    : checking
-      ? t('auth.usernameChecking')
-      : isThrottled
-        ? t('auth.usernameRateLimited')
-        : available === true
-          ? t('auth.usernameAvailable')
-          : undefined;
-  const usernameStatusIcon = checking
-    ? <Spinner size="sm" />
-    : usernameError
-      ? null
-      : available === true
-        ? <Icon name="check-circle" variant="solid" size={20} color={theme.colors.success[600]} />
-        : null;
+  // Durum slotu (hata önceliği, yardım metni, ikon): `useUsernameFieldStatus` tek kaynak.
+  const username = useUsernameFieldStatus(usernameAvailability, errors.username?.message);
 
   return (
     <View style={styles.form}>
@@ -58,7 +27,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
           <Input
             testID="register-username-input"
             label={t('auth.usernameLabel')}
-            rightIcon={usernameStatusIcon}
+            rightIcon={username.statusIcon}
             placeholder="kaan.merakli"
             value={value}
             // Girişte küçük harfe çevir: alan gerçekten kaydedilecek handle'ı
@@ -69,8 +38,8 @@ export function RegisterForm({ f }: { f: RegisterController }) {
             autoCapitalize="none"
             autoCorrect={false}
             spellCheck={false}
-            error={usernameError}
-            helperText={usernameHelper}
+            error={username.error}
+            helperText={username.helper}
           />
         )}
       />
