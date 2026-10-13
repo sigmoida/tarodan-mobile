@@ -1,10 +1,10 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { ScrollView, View, Image } from 'react-native';
+import { ScrollView, View } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { Avatar, Chip, EmptyState, SectionCard, Text, theme, Icon } from '@/ui';
 
-import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
 import type { TabType } from '../_lib/types';
 import { StatCard, ProductRow, CollectionRow } from './BusinessRows';
@@ -35,7 +35,7 @@ export function BusinessCompanyHeader({ f }: { f: BusinessController }) {
     <SectionCard>
       <View style={styles.companyInfo}>
         {stats?.company.avatarUrl ? (
-          <Image source={{ uri: resolveImageUrl(stats.company.avatarUrl) }} style={styles.companyAvatar} />
+          <AppImage source={stats.company.avatarUrl} style={styles.companyAvatar} />
         ) : (
           <Avatar size="xl" name={name || '?'} />
         )}

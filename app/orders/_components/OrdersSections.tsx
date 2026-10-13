@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
-import { View, ScrollView, Pressable, Image } from 'react-native';
+import { View, ScrollView, Pressable } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { Chip, SectionCard, StatusBadge, Text, theme, Icon } from '@/ui';
 
 import { getOrderProductImageUri } from '@/utils/orderProductImage';
@@ -99,9 +100,9 @@ export function OrderGroupCard({
           <View style={styles.line}>
             <View style={styles.thumbRow}>
               {thumbs.map((order, idx) => (
-                <Image
+                <AppImage
                   key={order.id}
-                  source={{ uri: getOrderProductImageUri(order.product) }}
+                  source={getOrderProductImageUri(order.product, 'card')}
                   style={[styles.thumb, idx > 0 && styles.thumbOverlap]}
                 />
               ))}

@@ -1,8 +1,8 @@
-import { View, Image, Pressable, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar, Text, theme, Icon } from '@/ui';
-import { transformImageUrl } from '@/utils/imageUrl';
 
 const { colors, iconSize, spacing, radiusRole } = theme;
 
@@ -23,7 +23,7 @@ export function CollectionCard({ item }: { item: any }) {
     >
       <View style={styles.cover}>
         {cover ? (
-          <Image source={{ uri: transformImageUrl(cover) }} style={styles.coverImage} resizeMode="cover" />
+          <AppImage source={cover} recyclingKey={String(item.id)} style={styles.coverImage} resizeMode="cover" />
         ) : null}
       </View>
       <View style={styles.body}>

@@ -1,4 +1,5 @@
-import { View, Pressable, Image } from 'react-native';
+import { View, Pressable } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { Alert, Chip, IconButton, SectionCard, Switch, Text, Input, Textarea } from '@/ui';
 import { Controller } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -19,7 +20,7 @@ export function NewCollectionForm({ f }: { f: NewCollectionController }) {
         accessibilityLabel={t('collection.addCoverPhoto')}
       >
         {f.coverImage ? (
-          <Image source={{ uri: f.coverImage }} style={styles.coverImage} />
+          <AppImage source={f.coverImage} variant="detail" allowDeviceUris style={styles.coverImage} />
         ) : (
           <View style={styles.coverPlaceholder}>
             <Text variant="bodySm" tone="muted">

@@ -1,9 +1,9 @@
 import React from 'react';
-import { Image, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar, Button, SectionCard, Text, theme, Icon } from '@/ui';
-import { getImageUrl } from '@/utils/imageUrl';
 import { formatCount } from '@/utils/format';
 import { homeStyles as styles } from '../_lib/homeStyles';
 
@@ -31,7 +31,7 @@ function Thumbs({ items }: { items: Array<{ key: string; uri: string; onPress: (
     <View style={styles.thumbGrid}>
       {items.map((it) => (
         <Pressable key={it.key} onPress={it.onPress} style={styles.thumb} accessibilityRole="button">
-          <Image source={{ uri: it.uri }} style={styles.fill} resizeMode="cover" />
+          <AppImage source={it.uri} style={styles.fill} resizeMode="cover" />
         </Pressable>
       ))}
     </View>
@@ -76,7 +76,7 @@ function CollectorSpotlight({ collector }: { collector: any }) {
       <Thumbs
         items={items.map((it) => ({
           key: it.id,
-          uri: getImageUrl(it.productImage),
+          uri: it.productImage,
           onPress: () => it.productId && router.push(`/product/${it.productId}`),
         }))}
       />
@@ -126,7 +126,7 @@ function BusinessSpotlight({ business }: { business: any }) {
       <Thumbs
         items={products.map((p) => ({
           key: p.id,
-          uri: getImageUrl(p.image),
+          uri: p.image,
           onPress: () => router.push(`/product/${p.id}`),
         }))}
       />

@@ -1,4 +1,5 @@
-import { View, Image } from 'react-native';
+import { View } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge, Text, theme, Icon, ListRowCard } from '@/ui';
 import { styles } from '../_lib/styles';
@@ -15,7 +16,7 @@ export function PaymentHistoryItem({ item, onPress }: { item: Payment; onPress: 
   return (
     <ListRowCard gap={0} onPress={() => onPress(item)}>
       {item.imageUrl ? (
-        <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
+        <AppImage source={item.imageUrl} recyclingKey={String(item.id)} style={styles.productImage} />
       ) : (
         <View style={[styles.statusIconContainer, { backgroundColor: theme.colors.surface.alt }]}>
           <Icon name={statusCfg.icon} variant="solid" size={theme.iconSize.lg} color={statusCfg.color} />

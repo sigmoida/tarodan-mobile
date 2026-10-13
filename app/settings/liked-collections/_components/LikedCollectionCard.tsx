@@ -1,4 +1,5 @@
-import { View, Image, Pressable } from 'react-native';
+import { View, Pressable } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { Button, Text } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -20,7 +21,7 @@ export function LikedCollectionCard({
       style={styles.collectionCard}
       onPress={() => router.push(`/collections/${collection.id}`)}
     >
-      <Image source={{ uri: f.getImageUrl(collection) }} style={styles.collectionImage} resizeMode="cover" />
+      <AppImage source={f.getImageUrl(collection)} recyclingKey={String(collection.id)} style={styles.collectionImage} resizeMode="cover" />
       <View style={styles.collectionInfo}>
         <Text variant="label" numberOfLines={1}>{collection.name}</Text>
         {collection.userName ? (

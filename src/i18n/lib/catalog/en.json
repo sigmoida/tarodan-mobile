@@ -768,6 +768,7 @@
     "moreProductsComingSoon": "New products will be added soon.",
     "productFallback": "Product",
     "zoomPhotoA11y": "Zoom photo",
+    "galleryPageA11y": "Photo {current} of {total}.",
     "color": "Color",
     "boxedCondition": "Box condition",
     "boxed": "Boxed",

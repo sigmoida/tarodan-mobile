@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
-import { View, Image, Pressable, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { SectionCard, Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { formatCondition } from '@/utils/format';
@@ -16,7 +17,7 @@ export function OrderProductCard({ order }: { order: OrderDetail }) {
   return (
     <SectionCard>
       <Pressable onPress={() => router.push(`/product/${order.product.id}`)} style={styles.productCard}>
-        <Image source={{ uri: getOrderProductImageUri(order.product) }} style={styles.productImage} />
+        <AppImage source={getOrderProductImageUri(order.product, 'card')} style={styles.productImage} />
         <View style={styles.productInfo}>
           <Text variant="body" weight="medium" tone="heading" numberOfLines={2}>{order.product.title}</Text>
           <Text variant="bodySm" tone="muted">

@@ -172,3 +172,40 @@ describe('AppImage — başarısız bearer yüklemesi görünür olur (I2)', () 
     expect(UNSAFE_getByType(Image).props.recyclingKey).toBe('p1');
   });
 });
+
+describe('AppImage — hata yer tutucusu, cihaz URI, varyant', () => {
+  beforeEach(() => {
+    (useAuthStore as any).setState({ token: null });
+  });
+
+  it('yükleme hatasında sade gri yer tutucuya düşer; kaynak değişince yeniden dener', () => {
+    const { UNSAFE_getByType, rerender } = render(<AppImage source="https://cdn.example.com/a.jpg" />);
+    act(() => UNSAFE_getByType(Image).props.onError());
+    expect(UNSAFE_getByType(Image).props.source.uri).toMatch(/^data:image\/png/);
+
+    rerender(<AppImage source="https://cdn.example.com/b.jpg" />);
+    expect(UNSAFE_getByType(Image).props.source).toEqual({ uri: 'https://cdn.example.com/b.jpg' });
+  });
+
+  it('cihaz-yerel URI varsayılan reddedilir; allowDeviceUris ile geçer', () => {
+    const { UNSAFE_getByType, rerender } = render(<AppImage source="file:///var/cover.jpg" />);
+    expect(UNSAFE_getByType(Image).props.source.uri).toMatch(/^data:image\/png/);
+    rerender(<AppImage source="file:///var/cover.jpg" allowDeviceUris />);
+    expect(UNSAFE_getByType(Image).props.source).toEqual({ uri: 'file:///var/cover.jpg' });
+  });
+
+  it('varyant: kart küçük (cardUrl), detay büyük (detailUrl) görseli seçer; cache memory-disk', () => {
+    const src = { cardUrl: 'https://x/card.jpg', detailUrl: 'https://x/detail.jpg' };
+    const { UNSAFE_getByType, rerender } = render(<AppImage source={src} />);
+    expect(UNSAFE_getByType(Image).props.source.uri).toBe('https://x/card.jpg');
+    expect(UNSAFE_getByType(Image).props.cachePolicy).toBe('memory-disk');
+    rerender(<AppImage source={src} variant="detail" />);
+    expect(UNSAFE_getByType(Image).props.source.uri).toBe('https://x/detail.jpg');
+  });
+
+  it('accessibilityLabel verilirse erişilebilir görsel olur', () => {
+    const { UNSAFE_getByType } = render(<AppImage source="https://x/a.jpg" accessibilityLabel="Ürün" />);
+    expect(UNSAFE_getByType(Image).props.accessible).toBe(true);
+    expect(UNSAFE_getByType(Image).props.accessibilityLabel).toBe('Ürün');
+  });
+});

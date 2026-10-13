@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
-import { View, Pressable, Image } from 'react-native';
+import { View, Pressable } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
 import { Button, SectionCard, StatusBadge, Text, theme, ButtonRow } from '@/ui';
 
@@ -41,8 +42,9 @@ export function OrderCard({
       </View>
 
       <Pressable onPress={open} style={styles.line} accessibilityRole="button">
-        <Image
-          source={{ uri: getOrderProductImageUri(order.product) }}
+        <AppImage
+          source={getOrderProductImageUri(order.product, 'card')}
+          recyclingKey={String(order.id)}
           style={compact ? styles.imageSm : styles.image}
         />
         <View style={styles.info}>
