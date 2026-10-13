@@ -18,14 +18,12 @@ export const acceptKind = (as: AcceptAs): OfferConfirmKind =>
  */
 export const OFFER_CONFIRM: Record<
   OfferConfirmKind,
-  { title: MessageKey; description: MessageKey; destructive: boolean; dismiss: MessageKey }
+  { title: MessageKey; description: MessageKey; destructive: boolean }
 > = {
-  acceptSeller: { title: "offer.acceptConfirmTitle", description: "offer.acceptConfirmDescSeller", destructive: false, dismiss: "common.cancel" },
-  acceptBuyer: { title: "offer.acceptConfirmTitle", description: "offer.acceptConfirmDescBuyer", destructive: false, dismiss: "common.cancel" },
-  reject: { title: "offer.rejectConfirmTitle", description: "offer.rejectConfirmDesc", destructive: true, dismiss: "common.cancel" },
-  // "İptal" bir İPTAL diyaloğunda belirsiz (neyi iptal?): web'in iptal diyalogları gibi "Vazgeç"
-  // (`order.cancelConfirmNo`, web trade/üyelik iptali).
-  cancel: { title: "offer.cancelConfirmTitle", description: "offer.cancelConfirmDesc", destructive: true, dismiss: "order.cancelConfirmNo" },
+  acceptSeller: { title: "offer.acceptConfirmTitle", description: "offer.acceptConfirmDescSeller", destructive: false },
+  acceptBuyer: { title: "offer.acceptConfirmTitle", description: "offer.acceptConfirmDescBuyer", destructive: false },
+  reject: { title: "offer.rejectConfirmTitle", description: "offer.rejectConfirmDesc", destructive: true },
+  cancel: { title: "offer.cancelConfirmTitle", description: "offer.cancelConfirmDesc", destructive: true },
 };
 
 type OfferOrderState = { status?: string; orderStatus?: string | null };
