@@ -21,8 +21,9 @@ export default function LoginScreen() {
     <AuthShell
       title={t('auth.loginTitle')}
       hero="auth_default"
-      showBack={router.canGoBack()}
-      onBack={f.continueAsGuest}
+      // Şifre / Google-only adımında geri oku 1. adıma (e-posta) döner; 1. adımda ekrandan çıkar.
+      showBack={f.step !== 'email' || router.canGoBack()}
+      onBack={f.step !== 'email' ? f.back : f.continueAsGuest}
       footer={
         <AuthFooterLink
           prompt={t('auth.noAccount')}

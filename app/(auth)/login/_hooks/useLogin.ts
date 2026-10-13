@@ -41,7 +41,7 @@ export function useLogin() {
   const form = useZodForm(schema, {
     defaultValues: { email: '', password: '', twoFactorCode: '' },
   });
-  const { handleSubmit, getValues, setError, setValue, trigger } = form;
+  const { handleSubmit, getValues, setError, setValue, trigger, clearErrors } = form;
 
   const loginMutation = useMutation({
     mutationFn: (data: LoginForm) =>
@@ -177,6 +177,7 @@ export function useLogin() {
     loginMutation.reset();
     setValue('password', '');
     setValue('twoFactorCode', '');
+    clearErrors(['password', 'twoFactorCode']);
   };
 
   // Google ile açılmış (şifresiz) hesap için şifre belirleme bağlantısı (web `sendSetPassword`).
