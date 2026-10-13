@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { asLabel } from '@/utils/format';
 import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
 import { getConditionInfo, type PriceInfo } from '../_lib/display';
-import { technicalAttributeRows } from '../_lib/attributes';
+import { colorValue, materialValue, scaleValue, technicalAttributeRows } from '../_lib/attributes';
 import type { Product } from '../_lib/types';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 
@@ -44,6 +44,9 @@ export function ProductInfo({
   const conditionInfo = getConditionInfo(product.condition ?? '');
   const tradeOpen = isProductTradeOpen(product);
   const technicalRows = technicalAttributeRows(product.attributes);
+  const scale = scaleValue(product);
+  const material = materialValue(product);
+  const color = colorValue(product);
 
   return (
     <>
@@ -184,10 +187,16 @@ export function ProductInfo({
               <Text style={styles.specValue}>{asLabel(product.brand)}</Text>
             </View>
           ) : null}
-          {asLabel(product.scale) ? (
+          {scale ? (
             <View style={styles.specItem}>
               <Text style={styles.specLabel}>{t('product.scale')}</Text>
-              <Text style={styles.specValue}>{asLabel(product.scale)}</Text>
+              <Text style={styles.specValue}>{scale}</Text>
+            </View>
+          ) : null}
+          {material ? (
+            <View style={styles.specItem}>
+              <Text style={styles.specLabel}>{t('product.material')}</Text>
+              <Text style={styles.specValue}>{material}</Text>
             </View>
           ) : null}
           <View style={styles.specItem}>
@@ -218,13 +227,19 @@ export function ProductInfo({
         </View>
       </View>
 
-      {/* Teknik özellikler: `attributes[]` (genel özel gruplar, üreticiye bağlı gruplar) */}
-      {technicalRows.length > 0 && (
+      {/* Teknik özellikler (web `ProductSpecs`): renk + `attributes[]` (genel özel/üreticiye bağlı gruplar) */}
+      {(technicalRows.length > 0 || !!color) && (
         <>
           <Divider style={styles.divider} />
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('product.technicalDetails')}</Text>
             <View style={styles.specGrid}>
+              {color ? (
+                <View style={styles.specItem}>
+                  <Text style={styles.specLabel}>{t('product.color')}</Text>
+                  <Text style={styles.specValue}>{color}</Text>
+                </View>
+              ) : null}
               {technicalRows.map((row) => (
                 <View key={row.key} style={styles.specItem}>
                   <Text style={styles.specLabel}>{row.label}</Text>

@@ -55,11 +55,38 @@ describe('ProductInfo teknik özellikler', () => {
     expect(screen.getByText('Teknik özellikler')).toBeTruthy();
     expect(screen.getByText('Nadirlik')).toBeTruthy();
     expect(screen.getByText('Nadir')).toBeTruthy();
-    expect(screen.queryByText('Mavi')).toBeNull();
-    expect(screen.queryByText('1:64')).toBeNull();
+    // Ölçek/renk kendi satırında BİR kez görünür, teknik listede tekrar etmez.
+    expect(screen.getAllByText('Mavi')).toHaveLength(1);
+    expect(screen.getAllByText('1:64')).toHaveLength(1);
+    expect(screen.queryByText('Ölçek')).toBeTruthy();
+    expect(screen.getAllByText('Renk')).toHaveLength(1);
   });
 
-  it('gösterilecek nitelik yoksa bölüm hiç çizilmez', () => {
+  it('malzeme ve renk web gibi görünür: malzeme Detaylar, renk Teknik özellikler kartında', () => {
+    renderInfo({ material: 'Diecast', color: 'Mavi, Kırmızı' });
+
+    expect(screen.getByText('Malzeme')).toBeTruthy();
+    expect(screen.getByText('Diecast')).toBeTruthy();
+    expect(screen.getByText('Teknik özellikler')).toBeTruthy();
+    expect(screen.getByText('Renk')).toBeTruthy();
+    expect(screen.getByText('Mavi, Kırmızı')).toBeTruthy();
+  });
+
+  it('products.color/material boşsa nitelik gruplarından türetir (renkler virgülle)', () => {
+    renderInfo({
+      attributes: [
+        { id: '1', label: 'Renk', value: 'Mavi', groupSlug: 'color' },
+        { id: '2', label: 'Renk', value: 'Kırmızı', groupSlug: 'color' },
+        { id: '3', label: 'Malzeme', value: 'Plastik', groupSlug: 'material' },
+      ],
+    });
+
+    expect(screen.getByText('Mavi, Kırmızı')).toBeTruthy();
+    expect(screen.getByText('Plastik')).toBeTruthy();
+    expect(screen.getByText('Teknik özellikler')).toBeTruthy();
+  });
+
+  it('gösterilecek nitelik ve renk yoksa bölüm hiç çizilmez', () => {
     renderInfo({ attributes: [{ id: '2', label: 'Ölçek', value: '1:64', groupSlug: 'scale' }] });
     expect(screen.queryByText('Teknik özellikler')).toBeNull();
 
