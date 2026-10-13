@@ -183,6 +183,43 @@ describe('B-2.3 · RequiredStepsGate (onay kapısı)', () => {
     expect(screen.getByTestId('consent-gate')).toBeOnTheScreen();
   });
 
+  it('eski gönderim hatası kapı yeniden açılınca kaybolur; işaretler korunur', async () => {
+    mockGetPending.mockResolvedValue({ data: { pending: ALL } });
+    mockAccept.mockRejectedValue({ response: { status: 429, data: { message: 'Çok fazla istek' } } });
+    const view = renderWithProviders(<RequiredStepsGate />);
+    await screen.findByTestId('consent-gate');
+    for (const d of ['terms', 'privacy', 'kvkk']) fireEvent.press(screen.getByTestId(`consent-gate-${d}`));
+    fireEvent.press(screen.getByTestId('consent-gate-submit'));
+    expect(await screen.findByText('Çok fazla istek')).toBeOnTheScreen();
+
+    // Metni okuyup dönüyor: kapı yeniden açılıyor.
+    mockPathname = '/terms';
+    view.rerender(<RequiredStepsGate />);
+    mockPathname = '/';
+    view.rerender(<RequiredStepsGate />);
+    await screen.findByTestId('consent-gate');
+    // Mutasyon sıfırlaması react-query bildirimiyle bir sonraki tikte gelir.
+    await waitFor(() => expect(screen.queryByText('Çok fazla istek')).toBeNull());
+    expect(screen.getByTestId('consent-gate-submit')).not.toBeDisabled();
+  });
+
+  it('oturum değişince (çıkış → giriş) eski hata görünmez', async () => {
+    mockGetPending.mockResolvedValue({ data: { pending: [ALL[0]!] } });
+    mockAccept.mockRejectedValue({ response: { status: 429, data: { message: 'Çok fazla istek' } } });
+    renderWithProviders(<RequiredStepsGate />);
+    await screen.findByTestId('consent-gate');
+    fireEvent.press(screen.getByTestId('consent-gate-terms'));
+    fireEvent.press(screen.getByTestId('consent-gate-submit'));
+    expect(await screen.findByText('Çok fazla istek')).toBeOnTheScreen();
+
+    act(() => signIn(false));
+    expect(screen.queryByTestId('consent-gate')).toBeNull();
+    act(() => signIn(true));
+    await screen.findByTestId('consent-gate');
+    expect(screen.queryByText('Çok fazla istek')).toBeNull();
+    expect(screen.getByTestId('consent-gate-submit')).toBeDisabled();
+  });
+
   it('"Çıkış Yap" oturumu kapatır ve girişe yönlendirir', async () => {
     mockGetPending.mockResolvedValue({ data: { pending: ALL } });
     renderWithProviders(<RequiredStepsGate />);

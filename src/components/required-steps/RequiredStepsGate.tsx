@@ -6,6 +6,7 @@ import { useRequiredSteps } from '@/hooks/useRequiredSteps';
 import type { RequiredStep } from '@/lib/requiredSteps';
 import { isLegalTextPath } from '@/lib/shared/legalConsent';
 import { ConsentGate } from './ConsentGate';
+import { RequiredStepVisibleProvider } from './RequiredStepShell';
 
 /**
  * Zorunlu adımların TEK montaj noktası (web `RequiredStepsGate`), kök düzende
@@ -30,7 +31,7 @@ export default function RequiredStepsGate() {
     return () => sub.remove();
   }, [visible]);
 
-  if (!visible || active === null) return null;
+  if (active === null) return null;
 
   const onLogout = async () => {
     await logout();
@@ -40,10 +41,12 @@ export default function RequiredStepsGate() {
   // Record: yeni bir adım `REQUIRED_STEPS`e eklenince görünümü yazılmadan
   // derleme geçmez.
   const views: Record<RequiredStep, () => ReactNode> = {
-    consents: () => (
-      <ConsentGate pending={consents.pending} onLogout={onLogout} />
-    ),
+    consents: () => <ConsentGate pending={consents.pending} onLogout={onLogout} />,
   };
 
-  return <>{views[active]()}</>;
+  // Adım görünümü adım aktif olduğu sürece bağlı kalır; yasal metin
+  // sayfasında yalnız kabuk gizlenir (işaretler korunur).
+  return (
+    <RequiredStepVisibleProvider value={visible}>{views[active]()}</RequiredStepVisibleProvider>
+  );
 }

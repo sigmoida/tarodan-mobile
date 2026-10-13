@@ -13,7 +13,8 @@ import {
 import type { PendingConsentsController } from '@/hooks/usePendingConsents';
 import { useDoAcceptConsents } from '@/hooks/useDoAcceptConsents';
 import { consentGateSchema } from './consentGateSchema';
-import { RequiredStepShell } from './RequiredStepShell';
+import { useAuthStore } from '@/stores/authStore';
+import { RequiredStepShell, useRequiredStepVisible } from './RequiredStepShell';
 
 /**
  * Yeniden-onay ekranı (web `ConsentGate`) — onayı olmayan ya da onayladığı
@@ -31,6 +32,15 @@ export function ConsentGate({
 }) {
   const { t } = useTranslation();
   const accept = useDoAcceptConsents();
+  const visible = useRequiredStepVisible();
+  const userId = useAuthStore((s) => s.user?.id);
+  // Eski gönderim hatası görünür kalmasın: kapı her (yeniden) açıldığında ve
+  // oturum değiştiğinde mutasyon state'i sıfırlanır. Hata satır içi
+  // gösterilir, `appAlert` yok (kapı tam ekran; iOS ModalFreeze).
+  const { reset: resetAccept } = accept;
+  useEffect(() => {
+    if (visible) resetAccept();
+  }, [visible, userId, resetAccept]);
   const schema = useMemo(() => consentGateSchema(pending), [pending]);
   const form = useZodForm(schema, { defaultValues: { accepted: [] } });
   const accepted = form.watch('accepted');

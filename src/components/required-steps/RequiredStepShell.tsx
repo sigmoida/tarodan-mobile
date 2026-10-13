@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,6 +7,17 @@ import { Alert, Button, Text, theme } from '@/ui';
 const { colors, spacing, radius } = theme;
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+
+/**
+ * Adım ekranda mı? Kapı (`RequiredStepsGate`) adım görünümünü, adım aktif
+ * olduğu sürece bağlı tutar; yasal metin sayfasındayken yalnız kabuk gizlenir.
+ * Böylece adımın state'i (işaretler) metni okuyup dönünce korunur.
+ */
+const RequiredStepVisibleContext = createContext(true);
+export const RequiredStepVisibleProvider = RequiredStepVisibleContext.Provider;
+export function useRequiredStepVisible(): boolean {
+  return useContext(RequiredStepVisibleContext);
+}
 
 export interface RequiredStepAction {
   label: string;
@@ -52,6 +63,8 @@ export function RequiredStepShell({
   testID,
 }: RequiredStepShellProps) {
   const insets = useSafeAreaInsets();
+  const visible = useRequiredStepVisible();
+  if (!visible) return null;
   return (
     <View
       style={[styles.overlay, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
