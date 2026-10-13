@@ -8,6 +8,7 @@ import {
   paymentsApi,
   addressesApi,
   toExpectedPricing,
+  type ExpectedPricingSnapshot,
   type OrderAddressInput,
   type OrderQuoteResponse,
 } from '@/lib/api';
@@ -38,6 +39,8 @@ import type { ShippingAddressInput, SavedAddress } from '../_lib/types';
  * yapılıyor, burada modal zaten kapatılmış oluyor.
  */
 const MODAL_CLOSE_ALERT_DELAY_MS = 400;
+
+type ServerPrice = number | string | null | undefined;
 
 /**
  * Payload'a girecek telefonların TAMAMI. Bir alan `null` ise o telefon bu
@@ -633,6 +636,21 @@ export function useCheckout() {
     return { expectedPricing, resolved };
   };
 
+  /**
+   * "Fiyat güncellendi, tekrar onaylayın" — 409 akışının uyarısı ile kapı
+   * sonrası fiyat güvencesinin TEK kaynağı. Sipariş GÖNDERİLMEZ; kullanıcı yeni
+   * toplamı görür ve düğmeye yeniden basarak onaylar.
+   */
+  const alertPricesChanged = (commission: boolean, oldTotal: ServerPrice, newTotal: ServerPrice) => {
+    const totals = { oldTotal: formatServerPrice(oldTotal), newTotal: formatServerPrice(newTotal) };
+    alertAfterOtpClose(
+      commission ? t('checkout.commissionChangedTitle') : t('checkout.pricesUpdatedTitle'),
+      commission
+        ? t('checkout.commissionChangedBody', totals)
+        : t('checkout.pricesUpdatedBody', totals),
+    );
+  };
+
   const proceedCheckout = async (emailVerificationCode?: string) => {
     if (loading) return;
     const ready = checkoutReadiness();
@@ -778,20 +796,7 @@ export function useCheckout() {
         const oldTotal = total;
         const refreshed = await quoteQuery.refetch();
         const newTotal = refreshed.data?.pricing?.summary?.total;
-        alertAfterOtpClose(
-          isCommissionConflict
-            ? t('checkout.commissionChangedTitle')
-            : t('checkout.pricesUpdatedTitle'),
-          isCommissionConflict
-            ? t('checkout.commissionChangedBody', {
-                oldTotal: formatServerPrice(oldTotal),
-                newTotal: formatServerPrice(newTotal),
-              })
-            : t('checkout.pricesUpdatedBody', {
-                oldTotal: formatServerPrice(oldTotal),
-                newTotal: formatServerPrice(newTotal),
-              }),
-        );
+        alertPricesChanged(isCommissionConflict, oldTotal, newTotal);
         return;
       }
       // 503: aktif komisyon kuralı yok. Yeniden quote'la ÇÖZÜLMEZ — kullanıcıyı
@@ -836,31 +841,75 @@ export function useCheckout() {
     }
   };
 
-  // Son commit'in `proceedCheckout`'u: `await` sonrası (kimlik kapısı) bayat
-  // closure yerine. Atama `useLayoutEffect`'te (useEvent kalıbı), render'da değil.
-  const proceedCheckoutRef = useLatestRef(proceedCheckout);
-
-  const handleCheckout = async () => {
+  /** Satır kontrolleri (boş sepet, geçersiz `productId`). Sorun varsa uyarır, `false` döner. */
+  const itemsReady = (): boolean => {
     if (items.length === 0) {
       showSnackbar(t('checkout.emptyCart'));
-      return;
+      return false;
     }
     for (const item of items) {
       if (!item.productId || typeof item.productId !== 'string' || item.productId.length < 10) {
         appAlert(t('common.error'), t('checkout.invalidProductId', { title: item.title }));
-        return;
+        return false;
       }
     }
+    return true;
+  };
+
+  /**
+   * Kullanıcının ONAYLADIĞI şey: fiyat imzası (dört alan) + satırlar (adet
+   * dahil) + kupon. Kapıdan önce ve sonra bu anahtar karşılaştırılır.
+   */
+  const confirmedKey = (expectedPricing: ExpectedPricingSnapshot) =>
+    JSON.stringify([expectedPricing, itemsSignature, coupon.couponCode ?? null]);
+  const commissionKey = (p: ExpectedPricingSnapshot) =>
+    `${p.expectedCommissionRuleSetId}:${p.expectedCommissionRuleSetVersion}`;
+
+  /**
+   * Kimlik kapısından SONRA, son commit'in değerleriyle çalışır (ref üzerinden).
+   * Kapı dakikalarca açık kalabilir: bu sırada sepet boşalmış, satırlar ya da
+   * quote değişmiş olabilir. Satır kontrolleri yeniden koşar; kullanıcının
+   * basarken gördüğü tutar/satırlar değiştiyse sipariş GÖNDERİLMEZ — 409'daki
+   * gibi yeni toplam gösterilir, yeniden onay (tekrar basış) beklenir. Hiçbir
+   * şey değişmediyse GÜNCEL değerlerle (adres/telefon/onay kutusu) devam edilir.
+   */
+  const resumeAfterIdentity = async (pressed: { key: string; total: number | null; commissionKey: string }) => {
+    if (!itemsReady()) return;
+    if (loading) return;
+    const ready = checkoutReadiness();
+    if (!ready) return;
+    if (confirmedKey(ready.expectedPricing) !== pressed.key) {
+      alertPricesChanged(
+        commissionKey(ready.expectedPricing) !== pressed.commissionKey,
+        pressed.total,
+        total,
+      );
+      return;
+    }
+    await proceedCheckout();
+  };
+  // Son commit'in fonksiyonu: `await` sonrası (kimlik kapısı) bayat closure
+  // yerine. Atama `useLayoutEffect`'te (useEvent kalıbı), render'da değil.
+  const resumeAfterIdentityRef = useLatestRef(resumeAfterIdentity);
+
+  const handleCheckout = async () => {
+    if (!itemsReady()) return;
     if (isAuthenticated && user) {
       // B-2.4: yasal kimlik ihtiyaç anında. Vazgeçerse ödeme başlamaz. Misafir
       // dalında yok (hesap yok); OTP yolu da `proceedCheckout`'u çağırdığı için
       // kapı onun içinde değil, burada.
-      // Önce ucuz yerel kontroller; kapı dakikalarca açık kalabilir, kapıdan
-      // sonra GÜNCEL render'ın `proceedCheckout`'u (taze quote/yükleme/adres)
-      // çalışır — bu closure'ınki bayat olurdu.
-      if (loading || !checkoutReadiness()) return;
+      // Önce ucuz yerel kontroller; basış anındaki tutar/satırlar saklanır ve
+      // kapıdan sonra güncel değerlerle karşılaştırılır (`resumeAfterIdentity`).
+      if (loading) return;
+      const ready = checkoutReadiness();
+      if (!ready) return;
+      const pressed = {
+        key: confirmedKey(ready.expectedPricing),
+        total,
+        commissionKey: commissionKey(ready.expectedPricing),
+      };
       if (!(await requireIdentity())) return;
-      await proceedCheckoutRef.current();
+      await resumeAfterIdentityRef.current(pressed);
       return;
     }
 

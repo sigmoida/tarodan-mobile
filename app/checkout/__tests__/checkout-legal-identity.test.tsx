@@ -87,6 +87,18 @@ const SAMPLE_ITEM = {
   addedAt: Date.now(),
 };
 
+async function pressPayButton() {
+  await act(async () => {
+    fireEvent.press(screen.getByText(/Onayla ve Öde/));
+  });
+}
+
+async function refetchQuote(queryClient: import('@tanstack/react-query').QueryClient) {
+  await act(async () => {
+    await queryClient.refetchQueries({ queryKey: ['checkout-quote'] });
+  });
+}
+
 async function pressPay() {
   const { queryClient } = renderWithProviders(<CheckoutScreen />);
   await waitFor(() => expect(screen.getByText('Ali Veli')).toBeOnTheScreen());
@@ -97,19 +109,17 @@ async function pressPay() {
   await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
   const box = screen.queryByTestId('checkout-distance-sales-checkbox');
   if (box) fireEvent.press(box);
-  await act(async () => {
-    fireEvent.press(screen.getByText(/Onayla ve Öde/));
-  });
+  await pressPayButton();
   return queryClient;
 }
 
-const QUOTE = (pricingHash?: string) => ({
+const QUOTE = (pricingHash?: string, total = 165, commissionRuleSetVersion = 1) => ({
   data: {
     ...(pricingHash ? { pricingHash } : {}),
     shippingTariffVersion: 1,
     commissionRuleSetId: 'rs-1',
-    commissionRuleSetVersion: 1,
-    pricing: { summary: { productAmount: 100, shippingAmount: 50, serviceFeeAmount: 15, total: 165 } },
+    commissionRuleSetVersion,
+    pricing: { summary: { productAmount: total - 65, shippingAmount: 50, serviceFeeAmount: 15, total } },
   },
 });
 
@@ -164,21 +174,95 @@ describe('Sepet ödemesi · yasal kimlik kapısı', () => {
     expect(ordersApi.checkout).not.toHaveBeenCalled();
   });
 
-  it('kapı açıkken quote tazelenirse ödeme GÜNCEL fiyat imzasıyla gider (bayat closure yok)', async () => {
-    const queryClient = await pressPay();
-    await waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true));
+  describe('kapıdan sonra fiyat güvencesi (B4 inceleme 2 · 1)', () => {
+    it('kapı açıkken quote DEĞİŞİRSE sipariş gitmez, yeni tutar gösterilip yeniden onay istenir', async () => {
+      const queryClient = await pressPay();
+      await waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true));
 
-    // Kapı dakikalarca açık kalabilir; bu sırada quote yenilenir.
-    jest.mocked(ordersApi.getQuote).mockResolvedValue(QUOTE('h2') as any);
-    await act(async () => {
-      await queryClient.refetchQueries({ queryKey: ['checkout-quote'] });
+      // Kapı dakikalarca açık kalabilir; bu sırada fiyat değişir.
+      jest.mocked(ordersApi.getQuote).mockResolvedValue(QUOTE('h2', 175) as any);
+      await refetchQuote(queryClient);
+      jest.mocked(appAlert).mockClear();
+
+      act(() => settleLegalIdentityRequest(true));
+      await waitFor(() =>
+        expect(appAlert).toHaveBeenCalledWith(
+          'Fiyatlar Güncellendi',
+          expect.stringMatching(/Önceki toplam: 165,00.*\n.*Yeni toplam: 175,00/s),
+          undefined,
+        ),
+      );
+      expect(ordersApi.checkout).not.toHaveBeenCalled();
+
+      // Yeniden onay: kullanıcı yeni tutarı görüp tekrar basar → YENİ imzayla gider.
+      await pressPayButton();
+      await waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true));
+      act(() => settleLegalIdentityRequest(true));
+      await waitFor(() => expect(ordersApi.checkout).toHaveBeenCalledTimes(1));
+      expect(jest.mocked(ordersApi.checkout).mock.calls[0]![0]).toEqual(
+        expect.objectContaining({ expectedPricing: expect.objectContaining({ expectedPricingHash: 'h2' }) }),
+      );
     });
 
-    act(() => settleLegalIdentityRequest(true));
-    await waitFor(() => expect(ordersApi.checkout).toHaveBeenCalledTimes(1));
-    expect(jest.mocked(ordersApi.checkout).mock.calls[0]![0]).toEqual(
-      expect.objectContaining({ expectedPricing: expect.objectContaining({ expectedPricingHash: 'h2' }) }),
-    );
+    it('komisyon seti değişirse komisyon uyarısı (409 ile aynı metin), sipariş gitmez', async () => {
+      const queryClient = await pressPay();
+      await waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true));
+
+      jest.mocked(ordersApi.getQuote).mockResolvedValue(QUOTE('h1', 165, 2) as any);
+      await refetchQuote(queryClient);
+
+      act(() => settleLegalIdentityRequest(true));
+      await waitFor(() =>
+        expect(appAlert).toHaveBeenCalledWith('Komisyon oranları güncellendi', expect.any(String), undefined),
+      );
+      expect(ordersApi.checkout).not.toHaveBeenCalled();
+    });
+
+    it('kapı açıkken quote yenilenip DEĞİŞMEDİYSE sipariş aynı imzayla gider', async () => {
+      const queryClient = await pressPay();
+      await waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true));
+
+      await refetchQuote(queryClient);
+      const quoteCalls = jest.mocked(ordersApi.getQuote).mock.calls.length;
+      expect(quoteCalls).toBeGreaterThan(1);
+
+      act(() => settleLegalIdentityRequest(true));
+      await waitFor(() => expect(ordersApi.checkout).toHaveBeenCalledTimes(1));
+      expect(jest.mocked(ordersApi.checkout).mock.calls[0]![0]).toEqual(
+        expect.objectContaining({
+          expectedPricing: expect.objectContaining({ expectedPricingHash: 'h1' }),
+          items: [{ productId: SAMPLE_ITEM.productId, quantity: 1 }],
+        }),
+      );
+      expect(jest.mocked(appAlert).mock.calls.map((c) => c[0])).not.toContain('Fiyatlar Güncellendi');
+    });
+
+    it('kapı açıkken sepet boşalırsa satır kontrolü yeniden koşar, sipariş gitmez', async () => {
+      await pressPay();
+      await waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true));
+
+      act(() => useCartStore.setState({ items: [] }));
+
+      await settleGateAndWait(true);
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 50));
+      });
+      expect(ordersApi.checkout).not.toHaveBeenCalled();
+    });
+
+    it('kapı açıkken satır adedi değişirse sipariş gitmez', async () => {
+      await pressPay();
+      await waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true));
+
+      act(() => useCartStore.setState({ items: [{ ...SAMPLE_ITEM, quantity: 2 }] as any }));
+
+      jest.mocked(appAlert).mockClear();
+      await settleGateAndWait(true);
+      // Yeni satırların quote'u gelene dek "hazır değil", gelince "güncellendi" —
+      // her iki durumda da sipariş GÖNDERİLMEZ.
+      await waitFor(() => expect(appAlert).toHaveBeenCalled());
+      expect(ordersApi.checkout).not.toHaveBeenCalled();
+    });
   });
 
   it('muaf hesap (required:false) → kapı açılmaz, ödeme doğrudan başlar', async () => {
