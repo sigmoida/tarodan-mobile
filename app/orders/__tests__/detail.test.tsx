@@ -92,13 +92,15 @@ describe('J78 · Alıcı onay butonu KALDIRILDI + escrow bilgisi', () => {
     expect(screen.queryByTestId('order-confirm-delivery-button')).toBeNull();
   });
 
-  it('J78.2 escrow metni teslim+14 gün der; "onaylayınca para serbest" DEMEZ', async () => {
+  it('J78.2 escrow metni iade süresini (14 gün) ve ödemeyi ayrı anlatır; "onaylayınca para serbest" DEMEZ', async () => {
     getMock.mockResolvedValue({ data: { data: orderFixture({ status: 'delivered', isBuyer: true }) } });
     renderWithProviders(<OrderDetailScreen />);
     await waitFor(() =>
       expect(screen.getByTestId('order-escrow-info')).toBeOnTheScreen(),
     );
-    expect(screen.getByText(/14 gün sonra serbest bırakılır/)).toBeOnTheScreen();
+    expect(screen.getByText(/14 gün içinde iade talep edebilirsiniz/)).toBeOnTheScreen();
+    expect(screen.getByText(/1 gün sonra serbest bırakılır/)).toBeOnTheScreen();
+    expect(screen.queryByText(/onayla/i)).toBeNull();
   });
 
   it('J78.3 alıcı değilse escrow kartı görünmez', async () => {

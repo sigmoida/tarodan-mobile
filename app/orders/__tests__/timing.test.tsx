@@ -123,21 +123,46 @@ describe('A-3.1 · iade butonu sunucu damgasına bağlı', () => {
 });
 
 describe('A-3.1 · satıcı ödeme tarihi sunucudan', () => {
-  it("escrow kartı sunucunun escrowReleaseAt'ini ve politikanın gün sayısını basar", async () => {
-    policyMock.mockResolvedValue({ data: { returnWindowDays: { value: 21, unit: 'days' } } });
-    const release = '2026-02-05T09:00:00.000Z';
-    serveOrder({ deliveredAt: '2026-01-10T09:00:00.000Z', escrowReleaseAt: release });
-    renderWithProviders(<OrderDetailScreen />);
-    const expectedDate = new Date(release).toLocaleDateString('tr-TR', {
+  const fmt = (iso: string) =>
+    new Date(iso).toLocaleDateString('tr-TR', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
     });
+
+  it('escrow kartı iade penceresi sonunu ve ödeme tarihini AYRI gösterir (tarih ile metin çelişmez)', async () => {
+    const windowEnd = '2026-02-04T09:00:00.000Z';
+    const release = '2026-02-05T09:00:00.000Z';
+    serveOrder({ deliveredAt: '2026-01-21T09:00:00.000Z', returnWindowEndsAt: windowEnd, escrowReleaseAt: release });
+    renderWithProviders(<OrderDetailScreen />);
     expect(
       await screen.findByText(
-        `Satıcıya ödeme teslimden 21 gün sonra serbest bırakılır (${expectedDate}). O tarihe kadar iade talep edebilirsiniz.`,
+        `${fmt(windowEnd)} tarihine kadar iade talep edebilirsiniz. Açık bir iade talebi yoksa satıcıya ödeme ${fmt(release)} tarihinde serbest bırakılır.`,
+      ),
+    ).toBeOnTheScreen();
+  });
+
+  it('damga yoksa iki tarih de politikadan: pencere sonu = teslim + 21, ödeme = + grace', async () => {
+    policyMock.mockResolvedValue({ data: { returnWindowDays: { value: 21, unit: 'days' } } });
+    serveOrder({ deliveredAt: '2026-01-10T09:00:00.000Z' });
+    renderWithProviders(<OrderDetailScreen />);
+    expect(
+      await screen.findByText(
+        `${fmt('2026-01-31T09:00:00.000Z')} tarihine kadar iade talep edebilirsiniz. Açık bir iade talebi yoksa satıcıya ödeme ${fmt('2026-02-01T09:00:00.000Z')} tarihinde serbest bırakılır.`,
+      ),
+    ).toBeOnTheScreen();
+  });
+});
+
+describe('A-3 inceleme #1 · tarihsiz escrow metni', () => {
+  it('teslim tarihi yoksa: pencere günü ve grace günü ayrı söylenir', async () => {
+    serveOrder({ deliveredAt: null });
+    renderWithProviders(<OrderDetailScreen />);
+    expect(
+      await screen.findByText(
+        'Teslimden sonra 14 gün içinde iade talep edebilirsiniz. Açık bir iade talebi yoksa satıcıya ödeme bu süre dolduktan 1 gün sonra serbest bırakılır.',
       ),
     ).toBeOnTheScreen();
   });

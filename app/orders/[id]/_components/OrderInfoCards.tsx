@@ -14,8 +14,12 @@ import type { OrderView } from '../_lib/derive';
 const { colors } = theme;
 
 /**
- * Ödeme güvencesi (escrow) kartı. Tarih sunucunun hold'a yazdığı
- * `escrowReleaseAt` (yoksa pencere sonu + payout grace); gün sayısı `view.timing`.
+ * Ödeme güvencesi (escrow) kartı. İKİ AYRI TARİH: iade penceresinin sonu
+ * (`returnWindowEndsAt`) ve satıcı ödeme tarihi (sunucunun hold'a yazdığı
+ * `escrowReleaseAt`; yoksa pencere sonu + payout grace). Web metni ödeme
+ * tarihini "teslimden N gün sonra" ve "o tarihe kadar iade" diye anlatıyordu;
+ * ödeme tarihi pencere sonundan grace kadar sonra olduğu için ikisi çelişiyordu.
+ * Gün sayıları `view.timing` (siparişin kendi damgası).
  */
 export function OrderEscrowCard({ order, view }: { order: OrderDetail; view: OrderView }) {
   const { t } = useTranslation();
@@ -41,10 +45,11 @@ export function OrderEscrowCard({ order, view }: { order: OrderDetail; view: Ord
         <Text variant="caption" style={styles.escrowText}>
           {t('order.paymentOnHoldRefund')}
         </Text>
-      ) : view.payoutReleaseDate ? (
-        <Text variant="caption" style={styles.escrowText}>
+      ) : view.payoutReleaseDate && view.refundWindowEnd ? (
+        <Text variant="caption" style={styles.escrowText} testID="order-escrow-dates">
           {t('order.payoutReleaseWithDate', {
             ...timingValues,
+            refundDeadline: formatDate(view.refundWindowEnd.toISOString()),
             date: formatDate(view.payoutReleaseDate.toISOString()),
           })}
         </Text>

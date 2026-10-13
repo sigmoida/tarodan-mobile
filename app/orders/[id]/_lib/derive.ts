@@ -4,7 +4,7 @@ import i18n from '@/i18n/config';
 import type { PublicTimingPolicy } from '@/lib/api/timingRules';
 import { preparingDeadlineNoticeOf, type PreparingDeadlineAudience } from '@/lib/shared/preparingDeadline';
 import { isMembershipOrder as isMembership } from '@/lib/shared/membershipOrder';
-import { computePayoutDate, isPastRefundWindow, orderTimingValues } from './timing';
+import { computePayoutDate, isPastRefundWindow, orderTimingValues, returnWindowEnd } from './timing';
 import type { OrderDetail } from './types';
 
 /**
@@ -45,6 +45,9 @@ export function deriveOrderView(
     order.payment?.status === 'completed' ||
     ['processing', 'shipped', 'delivered', 'awaiting_confirmation', 'completed'].includes(order.status);
 
+  // İade penceresinin sonu ile satıcı ödeme tarihi AYRI tarihlerdir (arada
+  // payout grace var); escrow kartı ikisini ayrı gösterir.
+  const refundWindowEnd = returnWindowEnd(order, policy);
   const payoutReleaseDate = computePayoutDate(order, policy);
   const hasActiveRefund = !!order.activeRefundRequest;
 
@@ -78,6 +81,7 @@ export function deriveOrderView(
     isDelivered,
     showTrackingCard,
     isPaid,
+    refundWindowEnd,
     payoutReleaseDate,
     hasActiveRefund,
     isRefundedOrder,
