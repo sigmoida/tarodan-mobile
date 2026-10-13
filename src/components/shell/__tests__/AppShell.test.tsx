@@ -4,6 +4,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { ScreenHeader, theme } from '@/ui';
 import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
 import { AppShell, APP_SHELL_BAR_HEIGHT } from '../AppShell';
+import { SideMenuProvider, useSideMenu } from '../SideMenuContext';
 
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 jest.mock('expo-status-bar', () => ({
@@ -29,7 +30,7 @@ beforeEach(() => {
 });
 
 describe('AppShell — tek satır beyaz bar', () => {
-  it('beyaz bar (ScreenHeader ile aynı zemin + alt çizgi), logo yok; arama alanı + bildirim + sepet (sayaçlı) ve içerik', () => {
+  it('beyaz bar (ScreenHeader ile aynı zemin + alt çizgi), logo yok; hamburger + arama alanı + sepet (sayaçlı), bildirim yok ve içerik', () => {
     render(
       <AppShell>
         <Text>içerik</Text>
@@ -41,12 +42,36 @@ describe('AppShell — tek satır beyaz bar', () => {
       borderBottomColor: theme.colors.border.DEFAULT,
     });
     expect(screen.queryByLabelText('Tarodan')).toBeNull();
+    expect(screen.getByTestId('home-menu-button')).toBeTruthy();
     expect(screen.getByTestId('home-search-input')).toBeTruthy();
-    expect(screen.getByTestId('app-shell-notifications')).toBeTruthy();
+    // Bildirim alt menüye taşındı: üst barda yok.
+    expect(screen.queryByTestId('app-shell-notifications')).toBeNull();
     expect(screen.getByText('2')).toBeTruthy();
     expect(screen.getByText('içerik')).toBeTruthy();
     fireEvent.press(screen.getByTestId('app-shell-cart'));
     expect(pushMock).toHaveBeenCalledWith('/cart');
+  });
+
+  it('hamburger solda (ilk öğe), "Menü" etiketli; dokununca yan menüyü açar', () => {
+    function State() {
+      const { isOpen } = useSideMenu();
+      return <Text testID="menu-state">{isOpen ? 'open' : 'closed'}</Text>;
+    }
+    render(
+      <SideMenuProvider>
+        <State />
+        <AppShell />
+      </SideMenuProvider>,
+    );
+    const btn = screen.getByTestId('home-menu-button');
+    expect(btn.props.accessibilityLabel).toBe('Menü');
+    const row = screen.getByTestId('app-shell-bar').children[0] as { children: unknown[] };
+    const order = (row as unknown as { props: { children: Array<{ props?: { testID?: string } }> } }).props.children
+      .map((c) => c?.props?.testID);
+    expect(order).toEqual(['home-menu-button', 'home-search-input', 'app-shell-cart']);
+    expect(screen.getByTestId('menu-state').children.join('')).toBe('closed');
+    fireEvent.press(btn);
+    expect(screen.getByTestId('menu-state').children.join('')).toBe('open');
   });
 
   it('arama alanı sahte alandır: dokununca /search?focus=1 açar', () => {
@@ -81,11 +106,9 @@ describe('AppShell — tek satır beyaz bar', () => {
     expect(pushMock.mock.calls.filter((c) => String(c[0]).startsWith('/search'))).toHaveLength(1);
   });
 
-  it('StatusBar bildirmez (kök varsayılanı koyu içerik kalır); ikonlar primary-600', () => {
+  it('StatusBar bildirmez (kök varsayılanı koyu içerik kalır)', () => {
     render(<AppShell />);
     expect(screen.queryByTestId('status-bar')).toBeNull();
-    const bell = screen.getByTestId('app-shell-notifications');
-    expect(bell).toBeTruthy();
   });
 
   it('arama alanı açık gri (gray-100) zemin + muted yer tutucu', () => {

@@ -4,6 +4,7 @@ import * as Router from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { HeaderIconButton, ScreenHeader, theme, useHeaderTopInset } from '@/ui';
 import { SearchField } from './SearchField';
+import { useSideMenu } from './SideMenuContext';
 import { useShellCounts } from './useShellCounts';
 import { APP_SHELL_BAR_HEIGHT } from './tabBarLayout';
 
@@ -11,7 +12,7 @@ const { colors, spacing } = theme;
 
 export interface AppShellProps {
   /**
-   * `search` (varsayılan): arama alanı + bildirim + sepet — YALNIZ Ana Sayfa.
+   * `search` (varsayılan): hamburger (yan menü) + arama alanı + sepet — YALNIZ Ana Sayfa.
    * `title`: standart beyaz başlıklı üst bar (ScreenHeader ile aynı görünüm, geri oku yok) — diğer
    * tüm sekme kökleri.
    */
@@ -50,8 +51,8 @@ function useOpenSearch(): () => void {
 }
 
 /**
- * Sekme köklerinin kabuğu. Ana Sayfa (`variant="search"`): tek satır [arama alanı][bildirim][sepet],
- * logo yok, ikonlar zeminsiz, alt menü pasif ikonuyla aynı gri (`theme.inactiveIconColor`, `HeaderIconButton`). Diğer sekme kökleri
+ * Sekme köklerinin kabuğu. Ana Sayfa (`variant="search"`): tek satır [hamburger][arama alanı][sepet]
+ * (bildirim alt menüde; hamburger yan menüyü açar), logo yok, ikonlar zeminsiz, alt menü pasif ikonuyla aynı gri (`theme.inactiveIconColor`, `HeaderIconButton`). Diğer sekme kökleri
  * (`variant="title"`): `ScreenHeader` ile AYNI bar (geri oku yok → boş kutu çizilmez, başlık
  * sayfa kenar boşluğundan başlar), isteğe bağlı sağ aksiyon. İki varyantta da beyaz zemin + alt çizgi
  * ve aynı yükseklik (`theme.headerHeight`). Bu bilinçli bir web sapmasıdır (web telefonda logo +
@@ -69,6 +70,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   const { t } = useTranslation();
   const counts = useShellCounts();
   const openSearch = useOpenSearch();
+  const { open: openMenu } = useSideMenu();
 
   if (variant === 'title') {
     return (
@@ -89,17 +91,16 @@ export const AppShell: React.FC<AppShellProps> = ({
     <View style={styles.root} testID={testID}>
       <View style={[styles.bar, { paddingTop: topInset }]} testID="app-shell-bar">
         <View style={styles.row}>
+          <HeaderIconButton
+            tone="muted"
+            icon="bars-3"
+            label={t('nav.menu')}
+            testID="home-menu-button"
+            onPress={openMenu}
+          />
           <SearchField
             testID="home-search-input"
             onPress={openSearch}
-          />
-          <HeaderIconButton
-            tone="muted"
-            icon="bell"
-            label={t('nav.notifications')}
-            count={counts.notificationCount}
-            testID="app-shell-notifications"
-            onPress={() => Router.router.push('/notifications')}
           />
           <HeaderIconButton
             tone="muted"
@@ -128,8 +129,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.elevated,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.DEFAULT,
-    // İkon kutusu 44pt, görsel 24: sağ kenarda ikonun görünür kenarı yine 16pt gutter'a oturur.
-    paddingLeft: spacing[4],
+    // İkon kutusu 44pt, görsel 24: iki kenarda da ikonun görünür kenarı 16pt gutter'a oturur.
+    paddingLeft: spacing[1.5],
     paddingRight: spacing[1.5],
     zIndex: 1,
   },
