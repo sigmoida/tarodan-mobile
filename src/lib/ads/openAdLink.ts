@@ -105,10 +105,15 @@ export const NATIVE_SAME_PATH_HEADS = new Set([
   'following',
 ]);
 
+/** Kendi sitemizde bir yolun mutlak adresi (env'deki web adresi > prod). */
+export function ownWebPageUrl(path: string): string {
+  const base = (process.env.EXPO_PUBLIC_WEB_URL || DEFAULT_WEB_BASE).replace(/\/+$/, '');
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
 function webUrlFor(linkUrl: string, path: string): string {
   if (isOwnWebUrl(linkUrl)) return linkUrl;
-  const base = (process.env.EXPO_PUBLIC_WEB_URL || DEFAULT_WEB_BASE).replace(/\/+$/, '');
-  return `${base}${path}`;
+  return ownWebPageUrl(path);
 }
 
 /**
