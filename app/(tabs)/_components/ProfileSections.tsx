@@ -2,54 +2,56 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { Avatar, Badge, Button, Divider, Text, theme, Icon } from '@/ui';
+import { Badge, Button, Divider, Text, theme } from '@/ui';
 
 import { buildAvatarUrl } from '@/lib/api';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
-import { buildProfileMenuGroups, selectProfileSections, type ProfileMenuItem } from '../_lib/profileMenu';
+import { buildProfileMenuGroups, selectProfileSections } from '../_lib/profileMenu';
 import type { ProfileController } from '../_hooks/useProfile';
+import { ProfileHeader } from './ProfileHeader';
+import { ProfileRow } from './ProfileRow';
 
-const { colors, spacing, radiusRole, typography, minTouchTarget } = theme;
+const { spacing, radius, typography } = theme;
 
 type SectionProps = { f: ProfileController };
 
 // ---------------------------------------------------------------------------
-// Kimlik başlığı: avatar, ad, e-posta, üyelik rozeti, güven skoru, düzenle
-// (web ProfileSidebar "Identity header")
+// Kimlik başlığı (Storytel "Profilim"): ortalı büyük avatar, ad, e-posta, üyelik rozeti,
+// ortalı çerçeveli "Profili düzenle" düğmesi, güven skoru.
 // ---------------------------------------------------------------------------
 export function ProfileCard({ f }: SectionProps) {
   const { t } = useTranslation();
   const { user } = f;
   return (
-    <View style={styles.identity}>
-      <View style={styles.identityRow}>
-        <Avatar
-          size="lg"
-          name={user?.displayName || 'U'}
-          source={user?.avatar && user?.id ? buildAvatarUrl(String(user.id), user.avatar) : undefined}
-        />
-        <View style={styles.identityText}>
-          <Text variant="label" numberOfLines={1}>
-            {user?.displayName || t('nav.account')}
+    <ProfileHeader
+      name={user?.displayName || 'U'}
+      source={user?.avatar && user?.id ? buildAvatarUrl(String(user.id), user.avatar) : undefined}
+    >
+      <View style={styles.identityText}>
+        <Text variant="h2" align="center" numberOfLines={1} testID="profile-name">
+          {user?.displayName || t('nav.account')}
+        </Text>
+        {user?.email ? (
+          <Text variant="bodySm" tone="muted" align="center" numberOfLines={1}>
+            {user.email}
           </Text>
-          <Text variant="caption" numberOfLines={1}>
-            {user?.email}
-          </Text>
-          {f.isPaidTier ? (
-            <View style={styles.tierBadge}>
-              <Badge variant="default" size="sm">
-                {t('profile.tierMemberBadge', { tier: f.tierLabel })}
-              </Badge>
-            </View>
-          ) : null}
-        </View>
-        <Button
-          variant="outline"
-          size="sm"
-          title={t('common.edit')}
-          onPress={() => router.push('/settings/edit-profile')}
-        />
+        ) : null}
+        {f.isPaidTier ? (
+          <View style={styles.tierBadge}>
+            <Badge variant="default" size="sm">
+              {t('profile.tierMemberBadge', { tier: f.tierLabel })}
+            </Badge>
+          </View>
+        ) : null}
       </View>
+      <Button
+        testID="profile-edit-button"
+        variant="outline"
+        size="md"
+        title={t('profile.editProfile')}
+        style={styles.editButton}
+        onPress={() => router.push('/settings/edit-profile')}
+      />
       {f.isPremiumProfile && f.trustScore != null ? (
         <View style={styles.trustRow}>
           <Badge variant="warning" size="sm">
@@ -68,31 +70,7 @@ export function ProfileCard({ f }: SectionProps) {
           </Pressable>
         </View>
       ) : null}
-    </View>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Menü satırı (ikonsuz) — web ProfileSidebar bağlantısı: etiket + metin rozeti
-// ---------------------------------------------------------------------------
-function MenuRow({ item }: { item: ProfileMenuItem }) {
-  const primary = item.tone === 'primary';
-  return (
-    <Pressable
-      testID={item.testID}
-      accessibilityRole="link"
-      onPress={() => router.push(item.to as never)}
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-    >
-      <Text variant="bodySm" tone={primary ? 'primary' : 'body'} weight={primary ? 'medium' : 'regular'} style={styles.rowLabel} numberOfLines={1}>
-        {item.label}
-      </Text>
-      {item.rightBadge ? (
-        <Badge variant="default" size="sm">
-          {item.rightBadge}
-        </Badge>
-      ) : null}
-    </Pressable>
+    </ProfileHeader>
   );
 }
 
@@ -130,56 +108,52 @@ export function ProfileMenuSections({
             {group.title}
           </Text>
           {group.items.map((item) => (
-            <MenuRow key={item.key} item={item} />
+            <ProfileRow
+              key={item.key}
+              testID={item.testID}
+              icon={item.icon}
+              label={item.label}
+              tone={item.tone}
+              rightBadge={item.rightBadge}
+              onPress={() => router.push(item.to as never)}
+            />
           ))}
         </View>
       ))}
 
-      <Divider />
-      <Pressable
+      <Divider style={styles.divider} />
+      <ProfileRow
         testID="profile-logout-button"
-        accessibilityRole="button"
-        style={({ pressed }) => [styles.logout, pressed && styles.rowPressed]}
+        role="button"
+        icon="arrow-left-on-rectangle"
+        label={t('common.logout')}
+        chevron={false}
         onPress={f.handleLogout}
-      >
-        <Icon name="arrow-left-on-rectangle" size={theme.iconSize.md} color={colors.danger[600]!} />
-        <Text variant="bodySm" tone="danger">
-          {t('common.logout')}
-        </Text>
-      </Pressable>
+      />
     </>
   );
 }
 
-/** Hesabı sil — kartın dışında, küçük danger metin bağlantısı. */
+/** Hesabı sil — listenin en altında, danger metin satırı (ikon/chevron yok). */
 export function ProfileDeleteAccount({ f }: SectionProps) {
   const { t } = useTranslation();
   return (
-    <Pressable
+    <ProfileRow
       testID="profile-delete-account-button"
-      accessibilityRole="button"
-      style={styles.deleteAccount}
+      role="button"
+      tone="danger"
+      label={t('settings.deleteAccount')}
+      chevron={false}
       onPress={f.handleDeleteAccount}
-      hitSlop={spacing[2]}
-    >
-      <Text variant="caption" tone="danger">
-        {t('settings.deleteAccount')}
-      </Text>
-    </Pressable>
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  identity: {
-    padding: spacing[4],
-    gap: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.subtle,
-  },
-  identityRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[3] },
-  identityText: { flex: 1, minWidth: 0, gap: spacing[0.5] },
+  identityText: { alignItems: 'center', gap: spacing[0.5], maxWidth: '100%' },
   tierBadge: { flexDirection: 'row', marginTop: spacing[1] },
-  trustRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing[2] },
+  editButton: { alignSelf: 'center', borderRadius: radius.full, paddingHorizontal: spacing[6] },
+  trustRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing[3] },
   group: { paddingBottom: spacing[1] },
   groupTitle: {
     paddingHorizontal: spacing[4],
@@ -188,24 +162,5 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize['2xs'],
     letterSpacing: typography.fontSize['2xs'] * 0.1,
   },
-  row: {
-    minHeight: minTouchTarget,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-  },
-  rowPressed: { backgroundColor: colors.surface.alt },
-  rowLabel: { flex: 1 },
-  logout: {
-    minHeight: minTouchTarget,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-    paddingHorizontal: spacing[4],
-    borderBottomLeftRadius: radiusRole.section,
-    borderBottomRightRadius: radiusRole.section,
-  },
-  deleteAccount: { alignSelf: 'center', paddingVertical: spacing[4] },
+  divider: { marginVertical: spacing[1] },
 });

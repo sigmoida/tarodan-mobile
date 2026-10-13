@@ -1,9 +1,9 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
-import { Button, Card, SectionCard, Text, theme } from '@/ui';
+import { Button, Card, Text, theme, type IconName } from '@/ui';
 
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
@@ -12,10 +12,12 @@ import { SignupPrompt } from '@/components/SignupPrompt';
 import UpgradeCta from '@/components/UpgradeCta';
 import { formatPrice } from '@/utils/format';
 import type { ProfileController } from '../_hooks/useProfile';
+import { ProfileHeader } from './ProfileHeader';
+import { ProfileRow } from './ProfileRow';
 
-const { colors, spacing, minTouchTarget } = theme;
+const { colors, spacing, radius } = theme;
 
-/** Misafir profil: karşılama, üyelik faydaları, hızlı bağlantılar. Web gibi sade; ikon yok. */
+/** Misafir profil: ortalı boş avatar, giriş/kayıt düğmeleri, düz bağlantı satırları (ikon + chevron), üyelik faydaları. */
 export function ProfileGuestView({ f }: { f: ProfileController }) {
   const { t } = useTranslation();
   const tabInset = useTabBarInset();
@@ -27,12 +29,13 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
     { title: t('mobile.guestFavTitle'), desc: t('mobile.guestFavDesc') },
     { title: t('mobile.guestGarageTitle'), desc: t('mobile.guestGarageDesc') },
   ];
-  const quickLinks = [
-    { label: t('mobile.guestBrowseListings'), to: '/search' },
-    { label: t('collection.exploreCollections'), to: '/collections' },
-    { label: t('cart.myCart'), to: '/cart' },
-    { label: t('mobile.guestOrderTrack'), to: '/order-track' },
-    { label: t('help.title'), to: '/help' },
+  const quickLinks: { label: string; to: string; icon: IconName; testID?: string }[] = [
+    { label: t('mobile.guestBrowseListings'), to: '/search', icon: 'magnifying-glass' },
+    { label: t('collection.exploreCollections'), to: '/collections', icon: 'rectangle-stack' },
+    { label: t('cart.myCart'), to: '/cart', icon: 'shopping-cart' },
+    { label: t('mobile.guestOrderTrack'), to: '/order-track', icon: 'truck' },
+    { label: t('help.title'), to: '/help', icon: 'question-mark-circle' },
+    { label: t('mobile.settingsLanguage'), to: '/settings/language', icon: 'flag', testID: 'profile-language-link' },
   ];
 
   return (
@@ -40,32 +43,56 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
       <Animated.ScrollView
         {...tabScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={[styles.content, { paddingBottom: tabInset }]}
+        contentContainerStyle={{ paddingBottom: tabInset }}
         showsVerticalScrollIndicator={false}
       >
-        <Card variant="bordered" style={styles.welcome}>
-          <Text variant="h3">{t('profile.guestWelcomeTitle')}</Text>
-          <Text variant="bodySm" tone="muted">
-            {t('profile.guestWelcomeSubtitle')}
-          </Text>
-          <Button
-            testID="profile-go-login-button"
-            variant="primary"
-            size="lg"
-            fullWidth
-            title={t('auth.loginTitle')}
-            onPress={() => router.push('/(auth)/login')}
-          />
-          <Button
-            variant="outline"
-            size="lg"
-            fullWidth
-            title={t('auth.freeSignUp')}
-            onPress={() => router.push('/(auth)/register')}
-          />
-        </Card>
+        <ProfileHeader>
+          <View style={styles.welcome}>
+            <Text variant="h2" align="center">
+              {t('profile.guestWelcomeTitle')}
+            </Text>
+            <Text variant="bodySm" tone="muted" align="center">
+              {t('profile.guestWelcomeSubtitle')}
+            </Text>
+          </View>
+          <View style={styles.actions}>
+            <Button
+              testID="profile-go-login-button"
+              variant="primary"
+              size="lg"
+              fullWidth
+              style={styles.pill}
+              title={t('auth.loginTitle')}
+              onPress={() => router.push('/(auth)/login')}
+            />
+            <Button
+              testID="profile-go-register-button"
+              variant="outline"
+              size="lg"
+              fullWidth
+              style={styles.pill}
+              title={t('auth.freeSignUp')}
+              onPress={() => router.push('/(auth)/register')}
+            />
+          </View>
+        </ProfileHeader>
 
-        <SectionCard title={t('profile.guestBenefitsTitle')} bodyStyle={styles.benefits}>
+        <View style={styles.list}>
+          {quickLinks.map((q) => (
+            <ProfileRow
+              key={q.label}
+              testID={q.testID}
+              icon={q.icon}
+              label={q.label}
+              onPress={() => router.push(q.to as never)}
+            />
+          ))}
+        </View>
+
+        <View style={styles.benefits}>
+          <Text variant="overline" tone="subtle">
+            {t('profile.guestBenefitsTitle')}
+          </Text>
           {benefits.map((b) => (
             <View key={b.title} style={styles.benefit}>
               <Text variant="label">{b.title}</Text>
@@ -74,23 +101,7 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
               </Text>
             </View>
           ))}
-        </SectionCard>
-
-        <Card variant="bordered" padding={0} style={styles.links}>
-          <Text variant="overline" tone="subtle" style={styles.linksTitle}>
-            {t('profile.guestQuickLinksTitle')}
-          </Text>
-          {quickLinks.map((q) => (
-            <Pressable
-              key={q.label}
-              accessibilityRole="link"
-              style={({ pressed }) => [styles.linkRow, pressed && styles.linkRowPressed]}
-              onPress={() => router.push(q.to as never)}
-            >
-              <Text variant="bodySm">{q.label}</Text>
-            </Pressable>
-          ))}
-        </Card>
+        </View>
 
         <UpgradeCta>
           <Card variant="bordered" style={styles.promo}>
@@ -125,17 +136,11 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing[4], gap: spacing[4] },
-  welcome: { gap: spacing[3] },
-  benefits: { gap: spacing[3] },
+  welcome: { alignItems: 'center', gap: spacing[1] },
+  actions: { alignSelf: 'stretch', gap: spacing[3] },
+  pill: { borderRadius: radius.full },
+  list: { paddingBottom: spacing[2] },
+  benefits: { padding: spacing[4], gap: spacing[3] },
   benefit: { gap: spacing[0.5] },
-  links: { overflow: 'hidden' },
-  linksTitle: { padding: spacing[4], paddingBottom: spacing[1] },
-  linkRow: {
-    minHeight: minTouchTarget,
-    justifyContent: 'center',
-    paddingHorizontal: spacing[4],
-  },
-  linkRowPressed: { backgroundColor: colors.surface.alt },
-  promo: { gap: spacing[2] },
+  promo: { gap: spacing[2], marginHorizontal: spacing[4], marginBottom: spacing[4] },
 });

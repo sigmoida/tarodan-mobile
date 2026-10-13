@@ -6,18 +6,29 @@ import {
   type ImageSourcePropType,
 } from 'react-native';
 import { theme } from '../lib/theme';
+import { Icon } from '../icons';
 import { RawText } from './Text';
 
 export interface AvatarProps {
   source?: ImageSourcePropType | string;
   name?: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  /** `neutral` = açık gri zemin + başlık renginde baş harf (profil başlığı); varsayılan marka tonu. */
+  tone?: 'brand' | 'neutral';
+  /** `icon` = fotoğraf yoksa baş harf yerine `user` ikonu (misafir / adsız). */
+  placeholder?: 'initials' | 'icon';
 }
 
 const { colors } = theme;
-const sizeMap = { sm: 28, md: 40, lg: 56, xl: 80 } as const;
+const sizeMap = { sm: 28, md: 40, lg: 56, xl: 80, '2xl': 120 } as const;
 
-export const Avatar: React.FC<AvatarProps> = ({ source, name, size = 'md' }) => {
+export const Avatar: React.FC<AvatarProps> = ({
+  source,
+  name,
+  size = 'md',
+  tone = 'brand',
+  placeholder = 'initials',
+}) => {
   const s = sizeMap[size];
   const [failed, setFailed] = React.useState(false);
 
@@ -53,6 +64,7 @@ export const Avatar: React.FC<AvatarProps> = ({ source, name, size = 'md' }) => 
     <View
       style={[
         styles.base,
+        tone === 'neutral' && styles.baseNeutral,
         { width: s, height: s, borderRadius: s / 2 },
       ]}
     >
@@ -62,8 +74,14 @@ export const Avatar: React.FC<AvatarProps> = ({ source, name, size = 'md' }) => 
           style={{ width: s, height: s, borderRadius: s / 2 }}
           onError={() => setFailed(true)}
         />
+      ) : placeholder === 'icon' ? (
+        <Icon name="user" size={s * 0.5} color={colors.text.subtle} />
       ) : (
-        <RawText style={[styles.initials, { fontSize: s * 0.4 }]}>{initials}</RawText>
+        <RawText
+          style={[styles.initials, tone === 'neutral' && styles.initialsNeutral, { fontSize: s * 0.4 }]}
+        >
+          {initials}
+        </RawText>
       )}
     </View>
   );
@@ -76,6 +94,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
+  baseNeutral: { backgroundColor: colors.gray[100] },
+  initialsNeutral: { color: colors.text.heading },
   initials: {
     color: colors.primary[700]!,
     fontWeight: '700',

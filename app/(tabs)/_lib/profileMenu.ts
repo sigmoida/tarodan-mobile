@@ -1,4 +1,5 @@
 import type { TFunction } from 'i18next';
+import type { IconName } from '@/ui';
 import { buildAccountPages, buildInfoPages } from './infoPages';
 import { buildLegalPages } from './legalPages';
 
@@ -18,6 +19,8 @@ export interface ProfileMenuItem {
   tone?: 'default' | 'primary';
   /** Satırın sağında metin rozeti (ör. üyelik katmanı). */
   rightBadge?: string;
+  /** Profil sekmesi satırının sol ikonu (outline). Yan menü kendi ikonunu `drawerIcons.ts`'ten alır. */
+  icon?: IconName;
   /** Yalnız üyeye görünür (misafire açık bir grubun içinde bile). */
   authOnly?: boolean;
 }
@@ -61,14 +64,33 @@ export const DEFAULT_MENU_CONTEXT: ProfileMenuContext = {
   isBusinessTier: false,
 };
 
+/** Profil sekmesi (Hesap grubu) satır ikonları — satır anahtarına göre. */
+const PROFILE_ICONS: Record<string, IconName> = {
+  addresses: 'map-pin',
+  'bank-account': 'building-library',
+  membership: 'sparkles',
+  subscription: 'credit-card',
+  business: 'building-storefront',
+  'business-application': 'briefcase',
+  'notification-settings': 'bell',
+  'account-newsletter': 'envelope',
+  security: 'lock-closed',
+  blocked: 'no-symbol',
+  language: 'flag',
+};
+
+function withProfileIcons(items: ProfileMenuItem[]): ProfileMenuItem[] {
+  return items.map((i) => (PROFILE_ICONS[i.key] ? { ...i, icon: PROFILE_ICONS[i.key] } : i));
+}
+
 /**
  * Menü modeli — TEK kaynak. Web `ProfileSidebar`'ın gruplu yapısı (Alışveriş · Finans · Koleksiyon ·
  * Analiz · İletişim · Hesap) + mobil-özel "Bilgi" grubu (hukuki/bilgi sayfalarının tek girişi).
  * Her grup bir `surface`'e aittir: `profile` (Profil sekmesi: yalnız Hesap) ya da `drawer`
  * (Ana Sayfa yan menüsü: Favoriler + diğer tüm gruplar). Seçiciler: `selectProfileSections`,
  * `selectDrawerSections`. Etiketler web'in i18n anahtarlarıdır; web'de karşılığı olmayan mobil
- * ekranlar (banka hesabı, ödeme geçmişi, dil…) ilgili gruba eklenir. Model ikon taşımaz
- * (yan menü ikonları `drawerIcons.ts`'te, satır anahtarına göre).
+ * ekranlar (banka hesabı, ödeme geçmişi, dil…) ilgili gruba eklenir. Profil (Hesap) satırları `icon` taşır;
+ * yan menü ikonları `drawerIcons.ts`'te, satır anahtarına göre.
  *
  * Fabrika: etiketler çeviriden geldiği için modül düzeyinde kurulmaz (dil değişince yenilenir).
  */
@@ -206,7 +228,7 @@ export function buildProfileMenuGroups(
       key: 'account',
       title: t('profile.sidebar.hesap'),
       surface: 'profile',
-      items: [
+      items: withProfileIcons([
         { key: 'addresses', label: t('mobile.settingsAddresses'), to: '/settings/addresses' },
         { key: 'bank-account', label: t('mobile.settingsBankAccount'), to: '/settings/bank-account' },
         ...(ctx.showMembership
@@ -261,7 +283,7 @@ export function buildProfileMenuGroups(
           to: '/settings/language',
           testID: 'profile-language-link',
         },
-      ],
+      ]),
     },
     {
       key: 'info',

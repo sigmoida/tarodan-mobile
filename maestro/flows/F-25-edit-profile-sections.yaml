@@ -17,7 +17,7 @@ tags:
 - tapOn:
     id: "tab-profile"
 - tapOn:
-    text: "Düzenle"
+    id: "profile-edit-button"
 - extendedWaitUntil:
     visible:
       id: "edit-profile-save"

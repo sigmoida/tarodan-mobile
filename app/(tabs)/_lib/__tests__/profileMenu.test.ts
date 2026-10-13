@@ -88,13 +88,28 @@ describe('buildProfileMenuGroups', () => {
     expect(all.find((i) => i.key === 'offers')?.badgeKey).toBe('pendingOffers');
   });
 
-  it('satır anahtarları ve rotalar tekil; hiçbir satırda ₺ ya da ikon alanı yok', () => {
+  it('satır anahtarları ve rotalar tekil; hiçbir satırda ₺ yok', () => {
     const all = items({ showMembership: true, isBusiness: true, isBusinessTier: true });
     expect(new Set(all.map((i) => i.key)).size).toBe(all.length);
     for (const i of all) {
       expect(i.to.startsWith('/')).toBe(true);
       expect(i.label).not.toMatch(/₺/);
-      expect(i).not.toHaveProperty('icon');
+    }
+  });
+
+  it('Hesap (profil) satırlarının tümü ikon taşır; yan menü satırları taşımaz (kendi eşlemesi var)', () => {
+    const groups = buildProfileMenuGroups(schemaT, {
+      showMembership: true,
+      isBusiness: true,
+      isBusinessTier: true,
+      isPaidTier: true,
+      tierLabel: 'Pro',
+    });
+    for (const g of groups) {
+      for (const i of g.items) {
+        if (g.surface === 'profile') expect(i.icon).toBeTruthy();
+        else expect(i).not.toHaveProperty('icon');
+      }
     }
   });
 
