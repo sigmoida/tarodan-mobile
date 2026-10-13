@@ -23,7 +23,94 @@
 //      bu yüzden EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED bayrağı o işe kadar "false".
 // Adım adım: docs/ANDROID_RELEASE.md
 
+const fs = require('fs');
+const path = require('path');
+
 const STAGING_SUFFIX = '.staging';
+
+// Staging Android'in Firebase yapılandırması. Gradle google-services eklentisi,
+// dosyada derlenen paketin istemcisi yoksa build'i durdurur; production dosyası
+// (`./google-services.json`, yalnız com.tarodan.app) staging paketine UYMAZ, bu
+// yüzden staging ASLA ona sessizce düşmez. Öncelik sırası:
+//   1. GOOGLE_SERVICES_JSON_STAGING — EAS "file" tipi ortam değişkeni (önerilen:
+//      dosya repoya girmez; `eas env:create --type file`, bkz. docs/ANDROID_RELEASE.md)
+//   2. repo kökünde ./google-services.staging.json
+//   3. ikisi de yoksa: Android build bağlamında AÇIK HATA (aşağıya bak).
+const STAGING_GOOGLE_SERVICES_ENV = 'GOOGLE_SERVICES_JSON_STAGING';
+const STAGING_GOOGLE_SERVICES_LOCAL = './google-services.staging.json';
+
+/**
+ * Bu işlem Android native projesini mi üretiyor/derliyor? Yalnız bu durumda
+ * eksik google-services.json hata sayılır: iOS build'i ve `eas update` (OTA)
+ * aynı config'i değerlendirir ama Android dosyasına hiç dokunmaz; onları
+ * kırmamalı. `eas build` makinesinde EAS_BUILD_PLATFORM kesin ayarlıdır.
+ */
+function isAndroidNativeContext(env, argv) {
+  if (env.EAS_BUILD_PLATFORM === 'android') return true;
+  const args = argv.slice(2);
+  return (
+    args.includes('run:android') ||
+    (args.includes('prebuild') && /android|all/.test(args.join(' ')))
+  );
+}
+
+/**
+ * Staging için `android.googleServicesFile` değerini seçer. Dosya okunabiliyorsa
+ * içinde derlenen paketin istemcisi olduğunu da doğrular (yanlış dosyayı —
+ * örn. production'ınkini — Gradle'dan önce, anlaşılır bir mesajla yakalar).
+ *
+ * `opts` yalnız test içindir.
+ */
+function resolveStagingGoogleServicesFile(opts = {}) {
+  const {
+    env = process.env,
+    argv = process.argv,
+    root = __dirname,
+    exists = fs.existsSync,
+    read = (p) => fs.readFileSync(p, 'utf8'),
+    packageName,
+  } = opts;
+
+  const fromEnv = (env[STAGING_GOOGLE_SERVICES_ENV] ?? '').trim();
+  let file = null;
+  if (fromEnv) file = fromEnv;
+  else if (exists(path.join(root, STAGING_GOOGLE_SERVICES_LOCAL))) file = STAGING_GOOGLE_SERVICES_LOCAL;
+
+  if (!file) {
+    if (isAndroidNativeContext(env, argv)) {
+      throw new Error(
+        `[app.config] Staging Android build'i için google-services.json bulunamadı. ` +
+          `${STAGING_GOOGLE_SERVICES_ENV} (EAS "file" tipi ortam değişkeni) ya da repo kökünde ` +
+          `${STAGING_GOOGLE_SERVICES_LOCAL} gerekli; ikisi de yok. Production dosyası ` +
+          `(./google-services.json) "${packageName}" paketini içermez, bu yüzden ona düşülmez. ` +
+          `Firebase'e "${packageName}" Android uygulamasını ekleyip dosyayı indirin: docs/ANDROID_RELEASE.md`,
+      );
+    }
+    // iOS build / OTA / yerel `expo config`: Android dosyası kullanılmaz. Var
+    // olmayan yol bilerek bırakılır; Android'e geçilirse dosya-yok hatası verir.
+    return STAGING_GOOGLE_SERVICES_LOCAL;
+  }
+
+  const resolved = path.isAbsolute(file) ? file : path.join(root, file);
+  if (packageName && exists(resolved)) {
+    let packages = null;
+    try {
+      packages = (JSON.parse(read(resolved)).client ?? []).map(
+        (c) => c?.client_info?.android_client_info?.package_name,
+      );
+    } catch {
+      packages = null; // okunamadı/ayrıştırılamadı: Gradle kendi hatasını verir
+    }
+    if (packages && !packages.includes(packageName)) {
+      throw new Error(
+        `[app.config] ${file} "${packageName}" paketinin istemcisini içermiyor ` +
+          `(bulunanlar: ${packages.filter(Boolean).join(', ') || 'hiçbiri'}). ` +
+          `Staging için Firebase'de "${packageName}" Android uygulamasının dosyasını indirin.`,
+      );
+    }
+  }
+  return file;
+}
 
 // Staging alan adı(ları): src/lib/deeplinks/paths.json tek
 // kaynak. app.json'daki production config staging host'unu İÇERMEZ (Play/App
@@ -75,6 +162,7 @@ module.exports = ({ config }) => {
   // Staging'de de universal link isteniyorsa iki iş birlikte yapılmalı:
   // AASA'ya `.staging` appID'si eklenmeli VE portal'da yetenek açılmalı.
   const { associatedDomains: _productionOnly, ...stagingIos } = config.ios;
+  const stagingAndroidPackage = `${config.android.package}${STAGING_SUFFIX}`;
 
   return {
     ...config,
@@ -89,8 +177,11 @@ module.exports = ({ config }) => {
     // ile aynı olmak ZORUNDA (appConfig.test.ts kilitler).
     android: {
       ...config.android,
-      package: `${config.android.package}${STAGING_SUFFIX}`,
+      package: stagingAndroidPackage,
+      googleServicesFile: resolveStagingGoogleServicesFile({ packageName: stagingAndroidPackage }),
       intentFilters: withStagingHosts(config.android?.intentFilters),
     },
   };
 };
+
+module.exports.resolveStagingGoogleServicesFile = resolveStagingGoogleServicesFile;
