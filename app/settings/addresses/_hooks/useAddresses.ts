@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { appAlert, alertAfterClose, useModalMessage } from "@/ui";
+import { appAlert, toast, useModalMessage } from "@/ui";
 import { CAN_BUY_DIGITAL, limitAlert } from "@/lib/purchases";
 import {
   DEFAULT_COUNTRY_CODE,
@@ -95,17 +95,12 @@ export function useAddresses() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.user.addresses });
-      // Önce modalı kapat, SONRA uyar: modal açıkken appAlert (kendisi de bir
-      // RN Modal) iOS'ta donmaya yol açıyor (CLAUDE.md §12).
+      // Başarı bilgisi toast (appAlert değil — modal açıkken iOS'ta donduruyordu, CLAUDE.md §12);
+      // modal kapanırken toast görünür kalır.
       const message = editingAddress ? t("address.updated") : t("address.added");
-      alertAfterClose(
-        () => {
-          setDialogVisible(false);
-          resetForm();
-        },
-        t("common.success"),
-        message,
-      );
+      setDialogVisible(false);
+      resetForm();
+      toast.success(message);
     },
     onError: (err: any) => {
       // Modal açık — hata modal İÇİNDE gösterilir (appAlert iOS'ta donduruyor).
@@ -126,7 +121,7 @@ export function useAddresses() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.user.addresses });
-      appAlert(t("common.success"), t("address.deleted"));
+      toast.success(t("address.deleted"));
     },
     onError: (err: any) => {
       appAlert(t("common.error"), errorText(err, t("address.deleteFailed")));
