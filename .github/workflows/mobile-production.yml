@@ -336,7 +336,6 @@ jobs:
           set -euo pipefail
           version="$(scripts/ci/release.sh app-version app.json)"
           tag="v$version"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
@@ -347,20 +346,35 @@ jobs:
               echo "::warning::$tag zaten $at commit'inde; taşınmadı (bu koşu $SHA)."
             fi
           else
-            latest="$(git tag -l 'v[0-9]*' | sed 's/^v//' | sort -V | tail -n1)"
+            # Yalnız X.Y.Z etiketleri (v1.0.6-rc.1 gibi bir etiket sort -V'de 1.0.6'dan
+            # büyük görünüp gerçek sürümü engellemesin).
+            latest="$(git tag -l 'v*' | sed 's/^v//' | { grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' || true; } | sort -V | tail -n1)"
             if [ -n "$latest" ] && ! scripts/ci/release.sh version-gt "$version" "$latest"; then
-              # ör. revert sonrası eski sürümle elle mode=build: canlıdakini yanlış etiketleme.
-              echo "::warning::$version, yayınlanmış en büyük etiketten (v$latest) büyük değil — etiket/Release oluşturulmadı."
+              # ör. revert sonrası eski sürümle elle mode=build: canlıdakini yanlış
+              # etiketleme, development'ı da ilerletme.
+              echo "::warning::$version, yayınlanmış en büyük etiketten (v$latest) büyük değil — etiket/Release oluşturulmadı, development'a dokunulmadı."
+              echo "skip=true" >> "$GITHUB_OUTPUT"
               exit 0
             fi
             git tag -a "$tag" "$SHA" -m "Tarodan $version"
-            git push origin "refs/tags/$tag"
+            if ! git push origin "refs/tags/$tag" 2>"$RUNNER_TEMP/tag-push.err"; then
+              # Aynı sürümün başka bir koşusu etiketi az önce attıysa sorun değil.
+              if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+                echo "::warning::$tag başka bir koşu tarafından zaten oluşturulmuş."
+              else
+                cat "$RUNNER_TEMP/tag-push.err" >&2
+                exit 1
+              fi
+            fi
           fi
           if ! gh release view "$tag" >/dev/null 2>&1; then
-            gh release create "$tag" --verify-tag --title "Tarodan $version" --generate-notes
+            gh release create "$tag" --verify-tag --title "Tarodan $version" --generate-notes \
+              || gh release view "$tag" >/dev/null  # eşzamanlı koşu oluşturduysa yeter
           fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Move development to the next patch version
         id: bump
+        if: steps.tag.outputs.skip != 'true'
         env:
           RELEASED: ${{ steps.tag.outputs.version }}
         run: |
@@ -381,13 +395,13 @@ jobs:
             next="$("$RUNNER_TEMP/release.sh" app-version app.json)"
             git add app.json
             git commit -q -m "chore(release): development $next ($RELEASED yayına gönderildi)"
-            if git push -q origin HEAD:development; then
+            if git push -q origin HEAD:development 2>"$RUNNER_TEMP/push.err"; then
               { echo "bumped=true"; echo "version=$next"; } >> "$GITHUB_OUTPUT"
               exit 0
             fi
             # development arada ilerlediyse: yeniden oku, yeniden dene.
-            echo "::warning::development'a push reddedildi (deneme $attempt) — yeniden deneniyor."
-            sleep $((attempt * 10))
+            echo "::warning::development'a push reddedildi (deneme $attempt): $(head -c 300 "$RUNNER_TEMP/push.err")"
+            if [ "$attempt" -lt 3 ]; then sleep $((attempt * 10)); fi
           done
           echo "::error::development'ın sürümü $RELEASED sonrasına çekilemedi; elle güncelle."
           exit 1

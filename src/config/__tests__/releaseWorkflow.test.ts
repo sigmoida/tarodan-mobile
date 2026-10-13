@@ -289,8 +289,10 @@ describe('production', () => {
     // Sürüm hesabı tek yerde (release.sh), master'daki kopyayla.
     expect(all).toContain('GITHUB_OUTPUT=/dev/null "$RUNNER_TEMP/release.sh" bump-version "$RELEASED" app.json');
     expect(all).toContain('scripts/ci/release.sh app-version app.json');
-    // Yayınlanmış en büyük etiketten eski sürüm etiketlenmez.
+    // Yayınlanmış en büyük X.Y.Z etiketinden eski sürüm etiketlenmez, development da ilerletilmez.
     expect(all).toContain('release.sh version-gt "$version" "$latest"');
+    expect(all).toContain("grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+$'");
+    expect(job.steps!.find((s) => s.id === 'bump')?.if).toBe("steps.tag.outputs.skip != 'true'");
     expect(all).toContain('git push -q origin HEAD:development');
     const start = job.steps!.find((s) => (s.run ?? '').includes('gh workflow run mobile-staging.yml --ref development'));
     expect(start?.if).toBe("steps.bump.outputs.bumped == 'true'");
