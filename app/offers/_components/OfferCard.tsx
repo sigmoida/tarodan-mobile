@@ -11,7 +11,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import type { TFunction } from "i18next";
 import { theme, StatusBadge } from "@/ui";
-import { useStatusConfig, offerStatusConfig } from "@/lib/shared/status-configs";
+import { useOfferStatusConfig } from "@/lib/shared/offerStatus";
 import { transformImageUrl } from "@/utils/imageUrl";
 import type { Offer, TabType } from "../_lib/types";
 import type { TimingMessageValues } from "@/lib/shared/timingPolicy";
@@ -56,7 +56,7 @@ function OfferCardBase({
   onOpenCounter,
   onOpenBuyerCounter,
 }: OfferCardProps) {
-  const statusConfig = useStatusConfig(offerStatusConfig);
+  const statusConfig = useOfferStatusConfig();
   const otherUser = tab === "received" ? offer.buyer : offer.seller;
   const timeRemaining =
     offer.status === "pending" ? getTimeRemaining(offer.expiresAt, t) : null;
