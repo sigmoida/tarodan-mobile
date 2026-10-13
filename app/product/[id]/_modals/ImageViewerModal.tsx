@@ -2,12 +2,13 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 // Tam ekran görsel görüntüleyici (web ProductLightbox): `@/ui` Modal bir diyalog kartıdır; burada çerçevesiz,
 // tam ekran native Modal gerekir (jest + zoom jesti için GestureHandlerRootView modalın İÇİNDE).
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
-import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { FlatList, Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Icon, Text, theme, useHeaderTopInset } from '@/ui';
+import { AppImage } from '@/components/AppImage';
 import ZoomableImage from '@/components/product/ZoomableImage';
 
 const { colors, spacing, radius } = theme;
@@ -37,7 +38,13 @@ export function ImageViewerModal({
   onClose: () => void;
 }) {
   return (
-    <Modal visible={visible} animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="fade"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={onClose}
+    >
       {/* Modal Android'de yeni native pencere açtığı için root view modal içinde olmalı */}
       <GestureHandlerRootView style={styles.container}>
         {visible ? <ViewerBody images={images} initialIndex={initialIndex} onClose={onClose} /> : null}
@@ -163,7 +170,12 @@ function ViewerBody({
                   accessibilityState={{ selected }}
                   style={[styles.thumb, selected && styles.thumbSelected]}
                 >
-                  <Image source={{ uri: imageUri(item) }} style={styles.thumbImage} resizeMode="cover" />
+                  <AppImage
+                    source={imageUri(item)}
+                    recyclingKey={String(i)}
+                    style={styles.thumbImage}
+                    contentFit="cover"
+                  />
                 </Pressable>
               );
             }}

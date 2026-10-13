@@ -1,4 +1,5 @@
-import { Dimensions, Image, StyleSheet } from 'react-native';
+import { Dimensions, StyleSheet } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -113,7 +114,7 @@ export default function ZoomableImage({
     <GestureDetector gesture={gesture}>
       <Animated.View style={styles.page}>
         <Animated.View style={animatedStyle}>
-          <Image source={{ uri }} style={styles.image} resizeMode="contain" />
+          <AppImage source={uri} variant="detail" style={styles.image} contentFit="contain" />
         </Animated.View>
       </Animated.View>
     </GestureDetector>

@@ -3,7 +3,7 @@ import { Animated, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { theme, useHeaderTopInset } from '@/ui';
 import { FLOATING_BUTTON_SIZE, FloatingIconButton } from './FloatingIconButton';
-import { GALLERY_SIZE } from '../_lib/layout';
+import { useGallerySize } from '../_lib/layout';
 
 const { colors, spacing } = theme;
 
@@ -33,7 +33,8 @@ export function ProductTopBar({
   // satırda dikey ortalı.
   const rowTop = topInset + (theme.headerHeight - FLOATING_BUTTON_SIZE) / 2;
   const barHeight = topInset + theme.headerHeight;
-  const revealAt = GALLERY_SIZE - barHeight;
+  const gallerySize = useGallerySize();
+  const revealAt = gallerySize - barHeight;
   const opacity = solid
     ? 1
     : scrollY.interpolate({

@@ -768,6 +768,7 @@
     "moreProductsComingSoon": "Yakında yeni ürünler eklenecek.",
     "productFallback": "Ürün",
     "zoomPhotoA11y": "Fotoğrafı büyüt",
+    "galleryPageA11y": "{total} fotoğraftan {current}.",
     "color": "Renk",
     "boxedCondition": "Kutu durumu",
     "boxed": "Kutulu",
