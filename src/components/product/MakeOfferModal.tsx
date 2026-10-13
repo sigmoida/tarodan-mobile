@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMutation } from '@tanstack/react-query';
 import { theme, Text, Button, Modal, Input, Textarea, useModalMessage, ModalMessage } from '@/ui';
 import { offersApi } from '@/lib/api';
+import { IS_MAESTRO } from '@/config/maestro';
 import { formatPrice } from '../../utils/format';
 
 const { colors } = theme;
@@ -102,7 +103,7 @@ export default function MakeOfferModal({
           onChangeText={(v: string) => setAmount(v.replace(/[^\d.,]/g, '').replace(',', '.'))}
           // Maestro: numeric klavyede return tuşu yok → hideKeyboard çalışmıyor.
           // Test modunda default klavye (return var); input zaten rakam-dışını filtreler.
-          keyboardType={process.env.EXPO_PUBLIC_MAESTRO === '1' ? 'default' : 'numeric'}
+          keyboardType={IS_MAESTRO ? 'default' : 'numeric'}
           containerStyle={styles.input}
           placeholder={t('offer.amountPlaceholderExample')}
         />
