@@ -1,8 +1,8 @@
 import { View, FlatList, RefreshControl } from 'react-native';
-import { theme, Chip, Spinner, Text, Input, ScreenHeader } from '@/ui';
+import { theme, Chip, EmptyState, Input, pageListContentStyle, SkeletonCard } from '@/ui';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { PageShell } from '@/components/common/PageShell';
 import { useCollectionsBrowse } from './_hooks/useCollectionsBrowse';
 import { styles } from './_lib/browseStyles';
 import { CollectionBrowseCard } from './_components/CollectionBrowseCard';
@@ -10,44 +10,33 @@ import { CollectionsInfoCard } from './_components/CollectionsInfoCard';
 
 const { colors } = theme;
 
+/**
+ * Koleksiyonlar (web `/collections`): PageShell + arama, Tümü/Popüler/Yeni çipleri ve 2 sütun
+ * koleksiyon kartları; yüklenirken iskelet, boşken EmptyState.
+ */
 export default function CollectionsScreen() {
   const { t } = useTranslation();
   const f = useCollectionsBrowse();
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader
-        title={t('collection.collections')}
-        onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-      />
-
-      {/* Search */}
-      <View style={styles.searchSection}>
-        <Input
-          placeholder={t('collection.browsePlaceholder')}
-          value={f.searchQuery}
-          onChangeText={f.setSearchQuery}
-          leftIconName="search"
-        />
-      </View>
-
-      {/* Filters */}
-      <View style={styles.filterRow}>
-        <Chip label={t('common.all')} selected={f.activeFilter === 'all'} onPress={() => f.setActiveFilter('all')} variant="primary" />
-        <Chip label={t('common.popular')} selected={f.activeFilter === 'popular'} onPress={() => f.setActiveFilter('popular')} variant="primary" />
-        <Chip label={t('common.new')} selected={f.activeFilter === 'recent'} onPress={() => f.setActiveFilter('recent')} variant="primary" />
-      </View>
-
-      {/* Virtualized (#74): the grid IS the scroll container. Header = section title,
-          footer = info card + spacer. */}
+    <PageShell
+      title={t('collection.collections')}
+      mode="list"
+      onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+    >
       <FlatList
         data={f.isLoading ? [] : f.filteredCollections}
-        renderItem={({ item }) => <CollectionBrowseCard item={item} />}
+        renderItem={({ item }) => (
+          <View style={styles.cell}>
+            <CollectionBrowseCard item={item} />
+          </View>
+        )}
         keyExtractor={(item) => item.id}
         numColumns={2}
-        columnWrapperStyle={styles.collectionRow}
-        style={styles.content}
+        columnWrapperStyle={styles.row}
+        contentContainerStyle={[pageListContentStyle, styles.footer]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={f.isRefetching}
@@ -57,28 +46,44 @@ export default function CollectionsScreen() {
           />
         }
         ListHeaderComponent={
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('collection.browseSectionTitle')}</Text>
+          <View style={styles.header}>
+            <Input
+              placeholder={t('collection.browsePlaceholder')}
+              value={f.searchQuery}
+              onChangeText={f.setSearchQuery}
+              leftIconName="search"
+            />
+            <View style={styles.chips}>
+              <Chip label={t('common.all')} selected={f.activeFilter === 'all'} onPress={() => f.setActiveFilter('all')} />
+              <Chip
+                label={t('common.popular')}
+                selected={f.activeFilter === 'popular'}
+                onPress={() => f.setActiveFilter('popular')}
+              />
+              <Chip label={t('common.new')} selected={f.activeFilter === 'recent'} onPress={() => f.setActiveFilter('recent')} />
+            </View>
           </View>
         }
         ListEmptyComponent={
           f.isLoading ? (
-            <Spinner size="lg" />
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="albums-outline" size={64} color={colors.gray[500]} />
-              <Text style={styles.emptyTitle}>{t('collection.browseEmptyTitle')}</Text>
-              <Text style={styles.emptySubtitle}>{t('search.tryDifferent')}</Text>
+            <View style={styles.skeletons} testID="collections-skeleton">
+              <View style={styles.cell}>
+                <SkeletonCard />
+              </View>
+              <View style={styles.cell}>
+                <SkeletonCard />
+              </View>
             </View>
+          ) : (
+            <EmptyState
+              icon="albums-outline"
+              title={t('collection.browseEmptyTitle')}
+              subtitle={t('search.tryDifferent')}
+            />
           )
         }
-        ListFooterComponent={
-          <>
-            {!f.isPremiumMember && <CollectionsInfoCard isAuthenticated={f.isAuthenticated} />}
-            <View style={{ height: 40 }} />
-          </>
-        }
+        ListFooterComponent={f.isPremiumMember ? null : <CollectionsInfoCard isAuthenticated={f.isAuthenticated} />}
       />
-    </View>
+    </PageShell>
   );
 }

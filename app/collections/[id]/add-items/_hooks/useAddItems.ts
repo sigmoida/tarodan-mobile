@@ -2,6 +2,7 @@ import { useState, useMemo, useRef } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { toast } from '@/ui';
 import { productsApi, collectionsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { OPTIMISTIC, type Listing } from '../_lib/types';
@@ -19,7 +20,6 @@ export function useAddItems() {
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState('');
-  const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
   // o an POST/DELETE bekleyen productId'ler (satır spinner'ı + tekrar-tıklama kilidi)
   const [pending, setPending] = useState<Record<string, boolean>>({});
   // Sunucu haritasının ÜZERİNE binen yerel katman: itemId (eklendi) | null (çıkarıldı).
@@ -81,18 +81,18 @@ export function useAddItems() {
     try {
       if (!adding) {
         await collectionsApi.removeItem(collectionId, itemId!);
-        setSnackbar({ visible: true, message: t('collection.removedFromCollection') });
+        toast.success(t('collection.removedFromCollection'));
       } else {
         try {
           const res = await collectionsApi.addItem(collectionId, { productId: listing.id });
           const newItem = res.data?.data || res.data;
           if (newItem?.id) patchOverlay(listing.id, newItem.id);
-          setSnackbar({ visible: true, message: t('collection.addedToCollectionSingle') });
+          toast.success(t('collection.addedToCollectionSingle'));
         } catch (e: any) {
           const msg = e?.response?.data?.message || '';
           // Yarış/eskimiş durum: ürün zaten ekliyse hata gösterme, ekli kabul et.
           if (e?.response?.status === 400 && /zaten/i.test(msg)) {
-            setSnackbar({ visible: true, message: t('collection.alreadyInCollectionMsg') });
+            toast(t('collection.alreadyInCollectionMsg'));
           } else {
             throw e;
           }
@@ -109,7 +109,7 @@ export function useAddItems() {
         delete next[listing.id];
         return next;
       });
-      setSnackbar({ visible: true, message: e?.response?.data?.message || t('common.operationFailed') });
+      toast.error(e?.response?.data?.message || t('common.operationFailed'));
     } finally {
       inFlight.current -= 1;
       setPending((p) => ({ ...p, [listing.id]: false }));
@@ -125,8 +125,6 @@ export function useAddItems() {
   return {
     search,
     setSearch,
-    snackbar,
-    setSnackbar,
     pending,
     listings,
     filtered,
