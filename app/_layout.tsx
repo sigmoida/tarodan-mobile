@@ -17,7 +17,7 @@ import { NotoSans_400Regular } from "@expo-google-fonts/noto-sans/400Regular";
 import { NotoSans_500Medium } from "@expo-google-fonts/noto-sans/500Medium";
 import { NotoSans_600SemiBold } from "@expo-google-fonts/noto-sans/600SemiBold";
 import { NotoSans_700Bold } from "@expo-google-fonts/noto-sans/700Bold";
-import { theme, AlertDialogHost, BrandFontProvider } from "@/ui";
+import { theme, AlertDialogHost, BrandFontProvider, ToastHost } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
 import { useCartMergeOnLogin } from '@/hooks/useServerCart';
 import { useMembershipLimits } from '@/hooks/useMembershipLimits';
@@ -197,6 +197,8 @@ export default function RootLayout() {
               kapanınca çıkar). Eskiden kapıya bağlı koşullu bağlanıyordu; söküm, kapanma
               zamanlayıcısını temizleyip basılan düğmenin `onPress`'ini kaybettiriyordu. */}
           <AlertDialogHost suspended={gateShown} />
+          {/* Global toast (web react-hot-toast karşılığı): toast.success / toast.error / toast(). */}
+          <ToastHost />
           {/* Zorunlu adımlar (bekleyen sözleşme onayı): girişte + ön plana gelişte kapatılamaz ekran. */}
           {/* Kapılar native Modal: soğuk açılışta splash bitmeden gösterilmez (ready). */}
           <RequiredStepsGate ready={splashDone} />

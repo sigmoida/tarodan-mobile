@@ -66,6 +66,12 @@ export {
 	type SnackbarProps,
 	type SnackbarVariant,
 } from './components/Snackbar';
+export {
+	toast,
+	ToastHost,
+	type ToastKind,
+	type ToastOptions,
+} from './components/Toast';
 export { Input, type InputProps } from './components/Input';
 export {
 	Label,

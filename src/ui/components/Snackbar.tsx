@@ -20,6 +20,13 @@ export interface SnackbarProps {
   action?: { label: string; onPress: () => void };
   children?: React.ReactNode;
   style?: ViewStyle;
+  /**
+   * `bar` (varsayılan): koyu şerit, mevcut kullanım. `toast`: web react-hot-toast görünümü —
+   * beyaz kart, gölge, solda durum ikonu (`icon`). Global `toast()` API bunu kullanır.
+   */
+  appearance?: 'bar' | 'toast';
+  /** Mesajın solunda (toast görünümünde durum ikonu). */
+  icon?: React.ReactNode;
   testID?: string;
 }
 
@@ -38,6 +45,8 @@ export const Snackbar: React.FC<SnackbarProps> = ({
   onDismiss,
   duration = 4000,
   variant = 'default',
+  appearance = 'bar',
+  icon,
   action,
   children,
   style,
@@ -72,8 +81,17 @@ export const Snackbar: React.FC<SnackbarProps> = ({
       style={[styles.wrapper, { opacity, transform: [{ translateY }] }, style]}
       testID={testID}
     >
-      <View style={[styles.bar, { backgroundColor: variantBg[variant] }]}>
-        <RawText style={styles.message}>{children}</RawText>
+      <View
+        style={
+          appearance === 'toast'
+            ? [styles.bar, styles.toast]
+            : [styles.bar, { backgroundColor: variantBg[variant] }]
+        }
+      >
+        {icon ? <View style={styles.icon}>{icon}</View> : null}
+        <RawText style={[styles.message, appearance === 'toast' && styles.toastMessage]}>
+          {children}
+        </RawText>
         {action ? (
           <Pressable onPress={action.onPress} hitSlop={6}>
             <RawText style={styles.actionLabel}>{action.label.toUpperCase()}</RawText>
@@ -112,6 +130,17 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     flex: 1,
     marginRight: spacing[3],
+  },
+  toast: {
+    backgroundColor: colors.surface.elevated,
+    maxWidth: 360,
+    ...theme.shadow.medium,
+  },
+  toastMessage: {
+    color: colors.text.body,
+  },
+  icon: {
+    marginRight: spacing[2],
   },
   actionLabel: {
     color: colors.primary[300]!,
