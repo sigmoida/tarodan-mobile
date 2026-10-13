@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Pressable, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Card, Text, theme } from '@/ui';
+import { SectionCard, Text, theme } from '@/ui';
 
 import { formatPrice } from '@/utils/format';
 import { transformImageUrl } from '@/utils/imageUrl';
@@ -27,11 +27,10 @@ export function TradeProductPicker({
 }) {
   const { t } = useTranslation();
   return (
-    <Card style={styles.card}>
-      <Text style={styles.section}>{title}</Text>
-      <Text style={styles.sectionSubtitle}>{subtitle}</Text>
+    <SectionCard title={title}>
+      <Text variant="caption" tone="muted">{subtitle}</Text>
       {products.length === 0 ? (
-        <Text style={styles.emptyText}>{t('trade.noEligibleProducts')}</Text>
+        <Text variant="bodySm" tone="subtle" style={styles.emptyText}>{t('trade.noEligibleProducts')}</Text>
       ) : (
         <View style={styles.grid}>
           {products.map(p => {
@@ -52,18 +51,20 @@ export function TradeProductPicker({
                   {isSelected ? (
                     <View style={styles.selectedOverlay}>
                       <View style={styles.checkBadge}>
-                        <Ionicons name="checkmark" size={16} color={colors.white} />
+                        <Ionicons name="checkmark" size={theme.iconSize.sm} color={colors.white} />
                       </View>
                     </View>
                   ) : null}
                 </View>
-                <Text style={styles.productTitle} numberOfLines={2}>{p.title}</Text>
-                <Text style={styles.productPrice}>{formatPrice(p.price)}</Text>
+                <Text variant="bodySm" weight="semibold" tone="heading" numberOfLines={2}>{p.title}</Text>
+                <Text variant="bodySm" weight="bold" style={{ color: theme.priceColor.card }}>
+                  {formatPrice(p.price)}
+                </Text>
               </Pressable>
             );
           })}
         </View>
       )}
-    </Card>
+    </SectionCard>
   );
 }

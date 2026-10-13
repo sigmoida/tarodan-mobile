@@ -3,8 +3,6 @@ import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Modal, Button, Input, Text, theme } from '@/ui';
 
-const { colors } = theme;
-
 export function RejectTradeModal({
   visible,
   onClose,
@@ -39,11 +37,10 @@ export function RejectTradeModal({
       <View style={styles.modalActions}>
         <Button variant="outline" title={t('trade.dispute.cancelCta')} onPress={onClose} disabled={isPending} />
         <Button
-          variant="primary"
+          variant="danger"
           title={t('trade.rejectTrade')}
           onPress={onSubmit}
           isLoading={isPending}
-          style={{ backgroundColor: colors.danger[600]! }}
         />
       </View>
     </Modal>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { tradesApi, productsApi } from '@/lib/api';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useAuthStore } from '@/stores/authStore';
@@ -20,7 +20,6 @@ export function useTradeCounter() {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
-  const [snack, setSnack] = useState<string | null>(null);
 
   const handleBack = () => {
     if (router.canGoBack()) router.back();
@@ -123,7 +122,7 @@ export function useTradeCounter() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trade', id] });
       queryClient.invalidateQueries({ queryKey: ['trades'] });
-      setSnack(t('trade.counterOfferSent'));
+      toast.success(t('trade.counterOfferSent'));
       setTimeout(() => router.replace(`/trade/${id}` as any), 1200);
     },
     onError: (e: any) =>
@@ -202,8 +201,6 @@ export function useTradeCounter() {
     submitPending: checkingIdentity || counterMutation.isPending,
     refreshing,
     onRefresh,
-    snack,
-    setSnack,
   };
 }
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Modal, Button, Input, Text } from '@/ui';
+import { Modal, Button, Input, Text, theme } from '@/ui';
 import type { TFn } from '../_lib/types';
 
 import {
@@ -37,15 +37,15 @@ export function DisputeTradeModal({
 
   return (
     <Modal isOpen={visible} onClose={() => !isPending && onClose()} title={t('trade.dispute.modalTitle')}>
-      <Text variant="caption" style={{ marginBottom: 12 }}>{t('trade.dispute.modalIntro')}</Text>
-      <View style={{ marginBottom: 12 }}>
+      <Text variant="caption" style={{ marginBottom: theme.spacing[3] }} tone="muted">{t('trade.dispute.modalIntro')}</Text>
+      <View style={{ marginBottom: theme.spacing[3] }}>
         {reasons.map(([value, label]) => (
           <Button
             key={value}
             variant={reason === value ? 'primary' : 'outline'}
             title={label}
             onPress={() => setReason(value)}
-            style={{ marginBottom: 6 }}
+            style={{ marginBottom: theme.spacing[1.5] }}
           />
         ))}
       </View>
@@ -56,7 +56,7 @@ export function DisputeTradeModal({
         multiline
         numberOfLines={4}
         placeholder={t('trade.dispute.descriptionPlaceholder')}
-        containerStyle={{ marginBottom: 12 }}
+        containerStyle={{ marginBottom: theme.spacing[3] }}
         inputStyle={{ minHeight: 100 }}
       />
       <View style={styles.modalActions}>
@@ -68,5 +68,5 @@ export function DisputeTradeModal({
 }
 
 const styles = StyleSheet.create({
-  modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 8 },
+  modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: theme.spacing[3], marginTop: theme.spacing[2] },
 });
