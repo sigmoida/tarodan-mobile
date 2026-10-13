@@ -128,6 +128,21 @@ describe('authStore — mapApiUserToUser kullanıcı adı alanları', () => {
     expect(user?.username).toBe('kaan.merakli');
     expect(user?.usernameClaimed).toBe(true);
   });
+
+  // `GET /users/me` `usernameClaimed` bool'u değil ham `usernameClaimedAt` döner.
+  it('usernameClaimedAt doluysa usernameClaimed true, null ise false olur', async () => {
+    (userApi.getProfile as jest.Mock).mockResolvedValueOnce({
+      data: { ...baseUser, username: 'kaan', usernameClaimedAt: '2026-08-14T18:41:56.421Z' },
+    });
+    await useAuthStore.getState().refreshUserData();
+    expect(useAuthStore.getState().user?.usernameClaimed).toBe(true);
+
+    (userApi.getProfile as jest.Mock).mockResolvedValueOnce({
+      data: { ...baseUser, username: 'kaan-abc', usernameClaimedAt: null },
+    });
+    await useAuthStore.getState().refreshUserData();
+    expect(useAuthStore.getState().user?.usernameClaimed).toBe(false);
+  });
 });
 
 /**

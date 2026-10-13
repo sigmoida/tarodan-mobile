@@ -331,7 +331,16 @@ export const mapApiUserToUser = (apiUser: any): User => {
 
     // Kullanıcı adı (bir kez belirlenir, değiştirilemez)
     username: apiUser.username,
-    usernameClaimed: apiUser.usernameClaimed ?? apiUser.username_claimed,
+    // Giriş/kayıt yanıtı `usernameClaimed` bool'u verir; `GET /users/me` ise ham
+    // `usernameClaimedAt` (tarih|null) döner. İkisini de karşıla — aksi halde
+    // `refreshUserData` sonrası bayrak sessizce `undefined` olur ve belirlenmiş
+    // kullanıcı adı "belirlenebilir" görünürdü.
+    usernameClaimed:
+      apiUser.usernameClaimed ??
+      apiUser.username_claimed ??
+      (apiUser.usernameClaimedAt !== undefined
+        ? apiUser.usernameClaimedAt != null
+        : undefined),
   };
 };
 
