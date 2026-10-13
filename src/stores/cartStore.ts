@@ -74,23 +74,8 @@ interface CartState {
 
 const CART_EXPIRY_HOURS = 24;
 
-/** API tavanı: sunucu DTO'su sepet/sipariş adedini 99 ile sınırlar. */
-const CART_MAX_QTY = 99;
-
-/**
- * Bir sepet satırının çıkabileceği azami adet: yakalanan stok ile sipariş-başı
- * limitin küçüğü, API tavanı (99) ile sınırlı. Bilgi yoksa 99'a düşer
- * (eski davranış; gerçek doğrulama yine checkout'ta yapılır).
- */
-export function maxAllowedQty(item: {
-  stock?: number | null;
-  maxQuantityPerOrder?: number | null;
-}): number {
-  const caps = [item.stock, item.maxQuantityPerOrder].filter(
-    (n): n is number => typeof n === 'number' && n > 0,
-  );
-  return caps.length ? Math.min(CART_MAX_QTY, ...caps) : CART_MAX_QTY;
-}
+export { maxAllowedQty } from './cartLimits';
+import { maxAllowedQty } from './cartLimits';
 
 /** Sepetten düşen satırların seçim kaydını da düşürür (bayat id birikmesin). */
 function pruneDeselected(deselectedIds: string[], removedItemIds: string[]): string[] {

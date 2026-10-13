@@ -42,8 +42,8 @@ jest.mock('@/hooks/useFavorites', () => ({
   }),
 }));
 
-jest.mock('@/stores/cartStore', () => ({
-  useCartStore: () => ({
+jest.mock('@/stores/cartStore', () => {
+  const useCartStore: any = () => ({
     // `useCartSync.add` reddedilen eklemeyi geri alabilmek için ÖNCEKİ satırı
     // okur; sahte store da o alanı taşımalı.
     items: mockState.items,
@@ -51,8 +51,11 @@ jest.mock('@/stores/cartStore', () => ({
     removeByProductId: mockState.removeByProductId,
     updateQuantity: mockState.updateQuantity,
     isInCart: mockState.isInCart,
-  }),
-}));
+  });
+  // `useCartSync.add` eklenen farkı `getState()` ile okur.
+  useCartStore.getState = () => ({ items: mockState.items });
+  return { useCartStore };
+});
 
 import FavoritesScreen from '../favorites';
 

@@ -4,16 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { Button, QuantityStepper, theme } from '@/ui';
 import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { cartQuantityLimit } from '../_lib/quantity';
 import type { Product } from '../_lib/types';
 
 const { spacing } = theme;
 
-/** Adet seçici yalnız satılabilir, stoğu 1'den fazla ilanda (web); tavan: müsait stok ∧ 20. */
-export function quantityLimit(product: Product, isOwner: boolean): number | null {
-  const available = product.availableQuantity ?? product.quantity;
-  const show = !isOwner && product.status === 'active' && available != null && available > 1;
-  return show ? Math.min(available as number, 20) : null;
-}
+export const quantityLimit = cartQuantityLimit;
 
 /** Web "Hemen Al" düğmesinin etiketi: satıldı / rezerve / stok bitti / Hemen Al. */
 function buyLabel(product: Product, hasStock: boolean, t: (k: any) => string): string {

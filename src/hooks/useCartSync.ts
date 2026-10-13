@@ -57,13 +57,18 @@ export function useCartSync() {
     add: (item: NewCartItem, quantity = 1) => {
       // Geri alma için ÖNCEKİ hâli sakla: satır zaten varsa adet artıyor,
       // reddedilince satırı silmek değil eski adede dönmek doğru olan.
-      const before = store.items.find((i) => i.productId === item.productId);
+      const before = useCartStore.getState().items.find((i) => i.productId === item.productId);
       // Tek adette eski çağrı biçimi korunur (varsayılan 1); yalnız adet seçici >1 verir.
       if (quantity > 1) store.addItem(item, quantity);
       else store.addItem(item);
+      // Sunucuya istenen değil, store'un GERÇEKTEN eklediği fark gider: store stok/sipariş
+      // tavanında sessizce kırpıyor; ham `quantity` gönderilirse yerel ve sunucu sepeti ayrışır.
+      const after = useCartStore.getState().items.find((i) => i.productId === item.productId);
+      const added = (after?.quantity ?? 0) - (before?.quantity ?? 0);
+      if (added <= 0) return; // tavandaydı: yerel değişmedi, sunucu çağrısı yok
       // Aksiyonlar zustand'da kararlı referans; geri alma bayat closure'dan da
       // güvenle çağrılır (state'i çağrı anında okurlar).
-      mirror(() => cartApi.addItem(item.productId, quantity), 'cart.add', (message) => {
+      mirror(() => cartApi.addItem(item.productId, added), 'cart.add', (message) => {
         if (before) store.updateQuantity(before.id, before.quantity);
         else store.removeByProductId(item.productId);
         appAlert(i18n.t('cart.addToCartFailedTitle'), message);

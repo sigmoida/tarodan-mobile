@@ -2,7 +2,7 @@ import { logger, safeError } from '@/services/logger';
 import i18n from '@/i18n/config';
 import type { MessageKey } from '@/i18n/lib';
 import { useTranslation } from 'react-i18next';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Share } from 'react-native';
 import { router } from 'expo-router';
 import { appAlert, toast } from '@/ui';
@@ -12,6 +12,7 @@ import { useCartSync } from '@/hooks/useCartSync';
 import { getImageUrl as getImageUrlFromUtils } from '@/utils/imageUrl';
 import { asLabel, formatPrice } from '@/utils/format';
 import { buildShareContent, productShareUrl } from '@/utils/share';
+import { clampCartQuantity } from '../_lib/quantity';
 import type { Product } from '../_lib/types';
 
 type NotifyType = 'success' | 'error';
@@ -79,6 +80,15 @@ export function useProductActions({
 
   // Adet seçici (web QuantityStepper): yalnız stoğu 1'den fazla ilanlarda gösterilir.
   const [quantity, setQuantity] = useState(1);
+  // Ürün yenilenir ve stok/tavan düşerse seçili adet tavana iner.
+  const isOwnerProduct = !!product?.seller?.id && user?.id === product.seller.id;
+  useEffect(() => {
+    if (!product) return;
+    setQuantity((q) => {
+      const next = clampCartQuantity(q, product, isOwnerProduct);
+      return next === q ? q : next;
+    });
+  }, [product, isOwnerProduct]);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
 
@@ -96,7 +106,7 @@ export function useProductActions({
   const handleAddToCart = () => {
     if (!product) return;
     if (isOutOfStock) return notify(t('cart.outOfStock'), 'error');
-    cart.add(buildCartItem(product, images) as any, quantity);
+    cart.add(buildCartItem(product, images) as any, clampCartQuantity(quantity, product, isOwnerProduct));
     notify(t('product.addedToCartExclaim'), 'success');
   };
 
@@ -114,7 +124,7 @@ export function useProductActions({
   const handleBuyNow = () => {
     if (!product) return;
     if (isOutOfStock) return notify(t('cart.outOfStock'), 'error');
-    setBuyNow(buildCartItem(product, images) as any, quantity);
+    setBuyNow(buildCartItem(product, images) as any, clampCartQuantity(quantity, product, isOwnerProduct));
     router.push('/checkout?buyNow=1' as any);
   };
 
