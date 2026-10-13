@@ -6,7 +6,7 @@ import { Controller } from 'react-hook-form';
 import { Button, HStack, Input, Text } from '@/ui';
 import { styles } from '../_lib/styles';
 import type { LoginController } from '../_hooks/useLogin';
-import { SocialButtons } from './SocialButtons';
+import { SocialButtons } from '@/components/auth/SocialButtons';
 
 /**
  * Adım 1 (web "identify"): Google / Apple, "VEYA" ayıracı, e-posta, "Devam Et". E-posta
@@ -18,7 +18,7 @@ export function EmailStep({ f }: { f: LoginController }) {
 
   return (
     <View style={styles.form}>
-      <SocialButtons f={f} />
+      <SocialButtons social={f.social} busy={f.loginMutation.isPending} testIDPrefix="login" />
 
       <View style={styles.dividerRow}>
         <View style={styles.dividerLine} />

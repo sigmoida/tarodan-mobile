@@ -1,5 +1,5 @@
 import { logger } from '@/services/logger';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
@@ -7,8 +7,7 @@ import { appAlert, toast } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { CAN_BUY_DIGITAL, limitAlert } from '@/lib/purchases';
 import { authApi } from '@/lib/api';
-import { signInWithGoogle } from '@/services/googleSignin';
-import { signInWithApple, isAppleAvailable } from '@/services/appleSignin';
+import { useSocialSignIn } from '@/hooks/useSocialSignIn';
 import { useAuthStore } from '@/stores/authStore';
 import { buildLoginSchema, TWO_FACTOR_CODE_PATTERN, type LoginForm } from '../_lib/schema';
 import { IS_MAESTRO } from '@/config/maestro';
@@ -34,9 +33,8 @@ export function useLogin() {
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [requires2FA, setRequires2FA] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [appleLoading, setAppleLoading] = useState(false);
-  const [appleAvailable, setAppleAvailable] = useState(false);
+  const social = useSocialSignIn();
+  const { googleLoading, appleLoading, appleAvailable, handleGoogle, handleApple } = social;
 
   // Dil değişince şema yeniden kurulur — aksi halde hata metni ilk dilde donar.
   const schema = useMemo(() => buildLoginSchema(t), [t]);
@@ -188,67 +186,6 @@ export function useLogin() {
     onError: () => toast.error(t('auth.couldNotSendEmail')),
   });
 
-  useEffect(() => {
-    isAppleAvailable().then(setAppleAvailable);
-  }, []);
-
-  const handleGoogle = async () => {
-    if (googleLoading) return;
-    setGoogleLoading(true);
-    try {
-      const idToken = await signInWithGoogle();
-      const response = await authApi.loginWithGoogle(idToken);
-      const data = response.data as any;
-      const accessToken = data.tokens?.accessToken || data.accessToken;
-      const refreshToken = data.tokens?.refreshToken || data.refreshToken;
-      const user = data.user;
-      if (!accessToken) {
-        appAlert(t('common.error'), t('auth.unexpectedLoginResponse'));
-        return;
-      }
-      await login(accessToken, user, refreshToken);
-      router.push('/' as never);
-    } catch (e: any) {
-      // İptal sessiz geçilir; diğer her hata KULLANICIYA gösterilir (önceden
-      // sessiz yutuluyordu → "takılıyor" görüntüsü). Native status code'u da
-      // ekle: DEVELOPER_ERROR → Google Cloud'da Android OAuth client/SHA-1 eksik.
-      if (e?.code === 'SIGN_IN_CANCELLED' || e?.code === '-5') return;
-      const apiMsg = e?.response?.data?.message;
-      const detail = apiMsg || e?.message || t('common.unknownError');
-      const code = e?.code ? ` (${t('common.errorCodeSuffix', { code: e.code })})` : '';
-      appAlert(t('auth.googleSignInFailedTitle'), `${detail}${code}`);
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
-
-  const handleApple = async () => {
-    if (appleLoading) return;
-    setAppleLoading(true);
-    try {
-      const response = await authApi.loginWithApple(await signInWithApple());
-      const data = response.data as any;
-      const accessToken = data.tokens?.accessToken || data.accessToken;
-      const refreshToken = data.tokens?.refreshToken || data.refreshToken;
-      const user = data.user;
-      if (!accessToken) {
-        appAlert(t('common.error'), t('auth.unexpectedLoginResponse'));
-        return;
-      }
-      await login(accessToken, user, refreshToken);
-      router.push('/' as never);
-    } catch (e: any) {
-      // Kullanıcı iptali sessiz geçilir.
-      if (e?.code === 'ERR_REQUEST_CANCELED') return;
-      const apiMsg = e?.response?.data?.message;
-      const detail = apiMsg || e?.message || t('common.unknownError');
-      const code = e?.code ? ` (${t('common.errorCodeSuffix', { code: e.code })})` : '';
-      appAlert(t('auth.appleSignInFailedTitle'), `${detail}${code}`);
-    } finally {
-      setAppleLoading(false);
-    }
-  };
-
   const onSubmit = (data: LoginForm) => {
     setErrorMessage(null);
     loginMutation.mutate(data);
@@ -309,6 +246,7 @@ export function useLogin() {
     setUnverifiedEmail,
     errorMessage,
     requires2FA,
+    social,
     googleLoading,
     appleLoading,
     appleAvailable,

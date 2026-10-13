@@ -430,7 +430,24 @@
     "mustAcceptKvkk": "You must accept the KVKK privacy notice",
     "individualApplication": "Individual Application",
     "corporateApplication": "Corporate Application",
-    "usernamePlaceholder": "example.user"
+    "usernamePlaceholder": "example.user",
+    "kvkkAgreeRich": "I have read and accept the <kvkk>KVKK Privacy Notice</kvkk>.",
+    "usernameImmutableHint": "Used in your profile URL and cannot be changed later.",
+    "username": "Profile Username",
+    "authorizedFullName": "Authorized Person",
+    "authorizedFullNamePlaceholder": "Authorized person's full name",
+    "companyLegalName": "Full Legal Company Name",
+    "companyLegalNamePlaceholder": "e.g. Tarodan Technology Incorporated",
+    "companyTitle": "Company Title",
+    "companyTitlePlaceholder": "e.g. Tarodan Technology Inc.",
+    "companyAddress": "Company Address",
+    "companyAddressPlaceholder": "Street, building, district, and city",
+    "companyEmail": "Company Email",
+    "companyEmailPlaceholder": "corporate@company.com",
+    "kepAddress": "Registered Email Address",
+    "kepAddressPlaceholder": "company@registered-mail.example",
+    "companyPhone": "Phone Number",
+    "submitCorporateApplication": "Submit Corporate Application"
   },
   "brands": {
     "title": "Brands",
@@ -2343,7 +2360,8 @@
     "usernameImmutable": "Username cannot be changed",
     "usernameAutoAssigned": "Current: @{username} (assigned automatically)",
     "usernameConfirmTitle": "Username will be permanent",
-    "usernameConfirmBody": "It will be set as @{username} and cannot be changed later. Continue?"
+    "usernameConfirmBody": "It will be set as @{username} and cannot be changed later. Continue?",
+    "displayNamePlaceholder": "Your name"
   },
   "review": {
     "reviews": "Reviews",

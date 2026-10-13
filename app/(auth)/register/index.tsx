@@ -16,13 +16,13 @@ export default function RegisterScreen() {
   return (
     <AuthShell
       title={t('auth.createAccount')}
-      description={t('auth.joinCommunity')}
       hero="auth_register"
       onBack={f.handleBack}
       footer={
         <AuthFooterLink
           prompt={t('auth.hasAccount')}
           linkLabel={t('common.login')}
+          testID="register-login-link"
           onPress={() => router.push('/(auth)/login')}
         />
       }

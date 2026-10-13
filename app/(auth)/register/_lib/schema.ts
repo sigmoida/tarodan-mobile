@@ -4,6 +4,7 @@ import {
   displayNameSchema,
   emailSchema,
   isAdult,
+  optionalTrPhoneSchema,
   strongPasswordSchema,
   usernameSchema,
 } from '@/utils/validation';
@@ -28,6 +29,9 @@ export const buildRegisterSchema = (t: TFunction) =>
       username: usernameSchema(t),
       displayName: displayNameSchema(t),
       email: emailSchema(t),
+      // Telefon OPSİYONEL (web aynı: etiketsiz/yıldızsız). Dolduysa E.164'e normalize edilir
+      // (`+905XXXXXXXXX`, sunucu `IsTrPhone`); boş → `undefined` (payload'a hiç girmez).
+      phone: optionalTrPhoneSchema(t),
       // Doğum tarihi OPSİYONEL — App Store Review 5.1.1(v) (16 Tem 2026): pazar
       // yerinin çekirdek işlevi için gerekli olmayan kişisel veri zorunlu
       // tutulamaz. Boş bırakılabilir; girilirse hâlâ geçerli ve 18+ olmalı.
@@ -46,6 +50,8 @@ export const buildRegisterSchema = (t: TFunction) =>
       // KVKK aydınlatma metni AYRI kutu (web ile aynı; delta 22). Sunucuya
       // `acceptedConsents` olarak gider, bkz. `registrationConsentDocuments`.
       acceptKvkk: z.boolean().refine((val) => val, t('auth.mustAcceptKvkk')),
+      // Pazarlama e-postası izni — zorunlu değil (web `acceptsMarketingEmails`).
+      acceptsMarketingEmails: z.boolean().optional(),
     })
     .refine((data) => data.password === data.confirmPassword, {
       message: t('validation.passwordMatch'),

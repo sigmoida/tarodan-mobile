@@ -86,3 +86,28 @@ describe('registerSchema — KVKK ayrı onay (B-2.3, delta 22)', () => {
     if (!result.success) expect(result.error.issues[0]?.path).toEqual(['acceptKvkk']);
   });
 });
+
+describe('registerSchema — telefon opsiyonel (web parite), E.164 olarak normalize edilir', () => {
+  it('telefon verilmezse / boşsa form geçerli, phone undefined', () => {
+    const result = registerSchema.safeParse({ ...validRest, username: 'gorkem', phone: '' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.phone).toBeUndefined();
+  });
+
+  it('geçerli TR cep numarası +90 ile E.164 olur', () => {
+    const result = registerSchema.safeParse({ ...validRest, username: 'gorkem', phone: '532 123 45 67' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.phone).toBe('+905321234567');
+  });
+
+  it('çözülemeyen telefon reddedilir (sessizce düşürülmez)', () => {
+    const result = registerSchema.safeParse({ ...validRest, username: 'gorkem', phone: '12345' });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.issues[0]?.path).toEqual(['phone']);
+  });
+
+  it('pazarlama izni zorunlu değildir', () => {
+    const result = registerSchema.safeParse({ ...validRest, username: 'gorkem' });
+    expect(result.success).toBe(true);
+  });
+});

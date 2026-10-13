@@ -1,13 +1,13 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
+import { useZodForm } from '@/ui/form';
 import { authApi } from '@/lib/api';
 import { registrationConsentDocuments } from '@/lib/shared/legalConsent';
 import { buildRegisterSchema, type RegisterForm } from '../_lib/schema';
 import { useUsernameAvailability } from '@/hooks/useUsernameAvailability';
+import { useSocialSignIn } from '@/hooks/useSocialSignIn';
 import { IS_MAESTRO } from '@/config/maestro';
 
 /**
@@ -34,8 +34,7 @@ export function useRegister() {
     handleSubmit,
     watch,
     formState: { errors },
-  } = useForm<RegisterForm>({
-    resolver: zodResolver(schema),
+  } = useZodForm(schema, {
     // HER metin alanı '' ile başlamalı: tanımsız bırakılan alan zod'un
     // `invalid_type_error` dalına düşüyor ve Türkçe arayüzde İngilizce
     // "Required" yazıyordu (alanın kendi çevrilmiş mesajı yerine).
@@ -43,10 +42,12 @@ export function useRegister() {
       username: '',
       displayName: '',
       email: '',
+      phone: '',
       password: '',
       confirmPassword: '',
       acceptTerms: false,
       acceptKvkk: false,
+      acceptsMarketingEmails: false,
       // Maestro spinner DateField'ı süremez; test modunda geçerli (18+) bir
       // doğum tarihi öndoldurulur. Prod'da IS_MAESTRO false → '' .
       birthDate: IS_MAESTRO ? '1990-01-01' : '',
@@ -54,7 +55,9 @@ export function useRegister() {
   });
 
   const usernameValue = watch('username') ?? '';
+  const passwordValue = watch('password') ?? '';
   const usernameAvailability = useUsernameAvailability(usernameValue);
+  const social = useSocialSignIn();
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterForm) => {
@@ -82,6 +85,9 @@ export function useRegister() {
         displayName: data.displayName,
         email: data.email,
         password: data.password,
+        // Telefon boşsa HİÇ gönderilmez; doluysa E.164 (şema normalize eder).
+        ...(data.phone ? { phone: data.phone } : {}),
+        acceptsMarketingEmails: data.acceptsMarketingEmails === true,
         // Boş bırakıldıysa alan HİÇ gönderilmez ('' göndermek sunucu tarafında
         // "geçerli bir tarih giriniz" hatası verir); opsiyonelliğin karşılığı bu.
         ...(data.birthDate ? { birthDate: data.birthDate } : {}),
@@ -111,6 +117,8 @@ export function useRegister() {
     onSubmit,
     handleBack,
     usernameAvailability,
+    passwordValue,
+    social,
   };
 }
 

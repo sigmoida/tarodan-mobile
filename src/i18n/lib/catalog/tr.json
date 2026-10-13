@@ -430,7 +430,24 @@
     "mustAcceptKvkk": "KVKK Aydınlatma Metni'ni onaylamalısınız",
     "individualApplication": "Bireysel Başvuru",
     "corporateApplication": "Kurumsal Başvuru",
-    "usernamePlaceholder": "ornek.kullanici"
+    "usernamePlaceholder": "ornek.kullanici",
+    "kvkkAgreeRich": "<kvkk>KVKK Aydınlatma Metni</kvkk>'ni okudum ve kabul ediyorum.",
+    "usernameImmutableHint": "Profil adresinizde kullanılır ve daha sonra değiştirilemez.",
+    "username": "Profil Kullanıcı Adı",
+    "authorizedFullName": "Yetkili Ad Soyad",
+    "authorizedFullNamePlaceholder": "Yetkili kişinin adı ve soyadı",
+    "companyLegalName": "Şirket Tam Adı",
+    "companyLegalNamePlaceholder": "Örn. Tarodan Teknoloji Anonim Şirketi",
+    "companyTitle": "Şirket Ünvanı",
+    "companyTitlePlaceholder": "Örn. Tarodan Teknoloji A.Ş.",
+    "companyAddress": "Şirket Adresi",
+    "companyAddressPlaceholder": "Mahalle, cadde, bina ve ilçe bilgileri",
+    "companyEmail": "Şirket E-posta Adresi",
+    "companyEmailPlaceholder": "kurumsal@sirket.com",
+    "kepAddress": "Şirket KEP Adresi",
+    "kepAddressPlaceholder": "sirket@hs01.kep.tr",
+    "companyPhone": "Telefon Numarası",
+    "submitCorporateApplication": "Kurumsal Başvuruyu Gönder"
   },
   "brands": {
     "title": "Markalar",
@@ -2343,7 +2360,8 @@
     "usernameImmutable": "Kullanıcı adı değiştirilemez",
     "usernameAutoAssigned": "Şu an: @{username} (otomatik atandı)",
     "usernameConfirmTitle": "Kullanıcı adı kalıcı olacak",
-    "usernameConfirmBody": "@{username} olarak belirlenecek ve sonra değiştirilemez. Devam edilsin mi?"
+    "usernameConfirmBody": "@{username} olarak belirlenecek ve sonra değiştirilemez. Devam edilsin mi?",
+    "displayNamePlaceholder": "Adınız"
   },
   "review": {
     "reviews": "Değerlendirmeler",

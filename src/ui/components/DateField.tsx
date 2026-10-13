@@ -138,6 +138,10 @@ export const DateField: React.FC<DateFieldProps> = ({
         ]}
       >
         <RawText
+          // Yan yana (yarım genişlik) yerleşimde "30 Ağustos 1990" iki satıra sarmasın.
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
           style={[
             styles.value,
             { color: selectedDate ? colors.text.body : colors.text.subtle },

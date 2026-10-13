@@ -6,7 +6,7 @@
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
-import { routerMock, resetRouterMocks } from '@/test-utils/router-mock';
+import { routerMock, resetRouterMocks, pushMock } from '@/test-utils/router-mock';
 
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
@@ -17,6 +17,15 @@ jest.mock('@/lib/api', () => ({
   },
 }));
 import { authApi } from '@/lib/api';
+
+jest.mock('@/services/googleSignin', () => ({
+  signInWithGoogle: jest.fn(),
+  isGoogleConfigured: () => true,
+}));
+jest.mock('@/services/appleSignin', () => ({
+  signInWithApple: jest.fn(),
+  isAppleAvailable: () => Promise.resolve(true),
+}));
 import RegisterScreen from '../register';
 
 const mockRegister = authApi.register as jest.Mock;
@@ -83,6 +92,94 @@ describe('J43 · aynı email ile kayıt reddi (register)', () => {
     fireEvent.press(screen.getByTestId('register-submit-button'));
 
     expect(await screen.findAllByText("KVKK Aydınlatma Metni'ni onaylamalısınız")).not.toHaveLength(0);
+    expect(mockRegister).not.toHaveBeenCalled();
+  });
+});
+
+describe('bireysel kayıt — düzen ve alanlar', () => {
+  beforeEach(() => {
+    mockRegister.mockReset();
+    resetRouterMocks();
+  });
+
+  it('başlık üst barda; içerikte büyük başlık/logo yok; sekmeler en üstte (Bireysel seçili)', () => {
+    renderWithProviders(<RegisterScreen />);
+    expect(screen.getByRole('header', { name: 'Hesap Oluştur' })).toBeOnTheScreen();
+    expect(screen.getAllByText('Hesap Oluştur')).toHaveLength(1);
+    expect(screen.queryByTestId('brand-logo')).toBeNull();
+    expect(screen.getByTestId('register-tab-individual').props.accessibilityState.selected).toBe(true);
+  });
+
+  it('web sırası: Görünen Ad, kullanıcı adı (+ değiştirilemez ipucu), e-posta, telefon (+90) ve doğum tarihi, şifreler, gereksinimler', () => {
+    renderWithProviders(<RegisterScreen />);
+    expect(screen.getByText(/Görünen Ad/)).toBeOnTheScreen();
+    expect(screen.getByText(/Profil Kullanıcı Adı/)).toBeOnTheScreen();
+    expect(screen.getByText('Profil adresinizde kullanılır ve daha sonra değiştirilemez.')).toBeOnTheScreen();
+    expect(screen.getByTestId('register-phone-input')).toBeOnTheScreen();
+    expect(screen.getByText('+90')).toBeOnTheScreen();
+    expect(screen.getByTestId('register-birthDate-input')).toBeOnTheScreen();
+    expect(screen.getByTestId('password-checklist')).toBeOnTheScreen();
+  });
+
+  it('T.C. Kimlik / Ad / Soyad bloğu YOK (kimlik ihtiyaç anında sorulur — App Store 5.1.1)', () => {
+    renderWithProviders(<RegisterScreen />);
+    expect(screen.queryByText(/T\.C\. Kimlik/i)).toBeNull();
+    expect(screen.queryByText(/Yasal/i)).toBeNull();
+  });
+
+  it('onaylar: metin içi Kullanım Şartları / Gizlilik / KVKK bağlantıları ilgili sayfaya gider', () => {
+    renderWithProviders(<RegisterScreen />);
+    fireEvent.press(screen.getByText('Kullanım Şartları'));
+    expect(pushMock).toHaveBeenCalledWith('/terms');
+    fireEvent.press(screen.getByText('Gizlilik Politikası'));
+    expect(pushMock).toHaveBeenCalledWith('/privacy');
+    fireEvent.press(screen.getByTestId('register-kvkk-link'));
+    expect(pushMock).toHaveBeenCalledWith('/privacy');
+    expect(screen.getByTestId('register-acceptMarketing')).toBeOnTheScreen();
+  });
+
+  it('Google/Apple outline düğmeleri ve "Zaten hesabınız var mı? Giriş Yap" altta', async () => {
+    renderWithProviders(<RegisterScreen />);
+    expect(screen.getByTestId('register-google-button')).toBeOnTheScreen();
+    await waitFor(() => expect(screen.getByTestId('register-apple-button')).toBeOnTheScreen());
+    expect(screen.getByText(/Zaten hesabınız var mı\?/)).toBeOnTheScreen();
+    fireEvent.press(screen.getByTestId('register-login-link'));
+    expect(pushMock).toHaveBeenCalledWith('/(auth)/login');
+  });
+
+  it('telefon +90 önekli biçimlenir ve E.164 olarak gönderilir; pazarlama izni taşınır', async () => {
+    mockRegister.mockResolvedValue({ data: { id: 'u1' } });
+    renderWithProviders(<RegisterScreen />);
+    fillValidFormExceptResult();
+    fireEvent.changeText(screen.getByTestId('register-phone-input'), '5321234567');
+    expect(screen.getByTestId('register-phone-input').props.value).toBe('532 123 45 67');
+    fireEvent.press(screen.getByTestId('register-acceptMarketing'));
+    fireEvent.press(screen.getByTestId('register-submit-button'));
+
+    await waitFor(() => expect(mockRegister).toHaveBeenCalledTimes(1));
+    const body = mockRegister.mock.calls[0][0];
+    expect(body.phone).toBe('+905321234567');
+    expect(body.acceptsMarketingEmails).toBe(true);
+  });
+
+  it('telefon boşsa gönderilmez; pazarlama izni varsayılan kapalı', async () => {
+    mockRegister.mockResolvedValue({ data: { id: 'u1' } });
+    renderWithProviders(<RegisterScreen />);
+    fillValidFormExceptResult();
+    fireEvent.press(screen.getByTestId('register-submit-button'));
+
+    await waitFor(() => expect(mockRegister).toHaveBeenCalledTimes(1));
+    const body = mockRegister.mock.calls[0][0];
+    expect(body).not.toHaveProperty('phone');
+    expect(body.acceptsMarketingEmails).toBe(false);
+  });
+
+  it('geçersiz telefon alan altında hata verir, kayıt gönderilmez', async () => {
+    renderWithProviders(<RegisterScreen />);
+    fillValidFormExceptResult();
+    fireEvent.changeText(screen.getByTestId('register-phone-input'), '12345');
+    fireEvent.press(screen.getByTestId('register-submit-button'));
+    await waitFor(() => expect(screen.getByText('Geçerli bir telefon numarası girin')).toBeOnTheScreen());
     expect(mockRegister).not.toHaveBeenCalled();
   });
 });

@@ -28,6 +28,7 @@ function Harness() {
     notRegistered: false,
     identify: jest.fn(),
     identifying: false,
+    social: { googleLoading: false, appleLoading: false, appleAvailable: true, handleGoogle: jest.fn(), handleApple: jest.fn() },
     unverifiedEmail: null,
     setUnverifiedEmail: jest.fn(),
     resendVerificationMutation: { isPending: false, mutate: jest.fn() },

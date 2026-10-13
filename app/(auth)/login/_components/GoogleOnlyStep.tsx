@@ -5,7 +5,7 @@ import { Button, Text } from '@/ui';
 import { styles } from '../_lib/styles';
 import type { LoginController } from '../_hooks/useLogin';
 import { ResolvedEmail } from './ResolvedEmail';
-import { SocialButtons } from './SocialButtons';
+import { SocialButtons } from '@/components/auth/SocialButtons';
 
 /**
  * Adım 2 (alternatif, web "googleOnly"): hesap Google ile açılmış, şifresi yok. Google ile giriş
@@ -21,7 +21,7 @@ export function GoogleOnlyStep({ f }: { f: LoginController }) {
       <Text testID="login-google-only-notice" variant="bodySm" tone="body" style={styles.notice}>
         {t('auth.googleOnlyAccount')}
       </Text>
-      <SocialButtons f={f} apple={false} />
+      <SocialButtons social={f.social} busy={f.loginMutation.isPending} apple={false} testIDPrefix="login" />
       <Button
         testID="login-set-password-button"
         variant="outline"

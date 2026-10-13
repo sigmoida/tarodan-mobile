@@ -100,7 +100,7 @@ it('slayt yoksa görsel alanı hiç çizilmez', async () => {
   await waitFor(() => expect(mockGetSlides).toHaveBeenCalledWith('auth_default'));
   await act(async () => {}); // sorgu sonucunun render'ı
   expect(screen.queryByTestId('auth-hero')).toBeNull();
-  expect(screen.getByTestId('login-submit-button')).toBeOnTheScreen();
+  expect(screen.getByTestId('login-continue-button')).toBeOnTheScreen();
 });
 
 it('şifre unuttum ekranında görsel yok (web minimal çerçeve)', () => {

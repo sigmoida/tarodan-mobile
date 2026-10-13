@@ -5,7 +5,7 @@
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
-import { resetRouterMocks, pushMock, backMock } from '@/test-utils/router-mock';
+import { resetRouterMocks, pushMock, backMock, replaceMock, canGoBackMock } from '@/test-utils/router-mock';
 
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
@@ -77,9 +77,17 @@ describe('J24 · şifremi unuttum (nötr cevap)', () => {
     expect(pushMock).toHaveBeenCalledWith('/(auth)/login');
   });
 
-  it('geri butonu router.back çağırır', () => {
+  it('üst bardaki geri oku router.back çağırır', () => {
+    canGoBackMock.mockReturnValue(true);
     renderWithProviders(<ForgotPasswordScreen />);
-    fireEvent.press(screen.getByText('Geri Dön'));
+    fireEvent.press(screen.getByLabelText('Geri'));
     expect(backMock).toHaveBeenCalled();
+  });
+
+  it('geçmiş yoksa geri oku girişe replace eder', () => {
+    canGoBackMock.mockReturnValue(false);
+    renderWithProviders(<ForgotPasswordScreen />);
+    fireEvent.press(screen.getByLabelText('Geri'));
+    expect(replaceMock).toHaveBeenCalledWith('/(auth)/login');
   });
 });

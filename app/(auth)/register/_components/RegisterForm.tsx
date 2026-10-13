@@ -1,16 +1,28 @@
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button, Checkbox, DateField, HStack, Input, Text } from '@/ui';
-import { useUsernameFieldStatus } from '@/hooks/useUsernameFieldStatus';
 import { Controller } from 'react-hook-form';
-import { router } from 'expo-router';
+import { Button, DateField, Input, Text } from '@/ui';
+import { useUsernameFieldStatus } from '@/hooks/useUsernameFieldStatus';
+import { PasswordChecklist } from '@/components/auth/PasswordChecklist';
+import { PhonePrefix } from '@/components/auth/PhonePrefix';
+import { SocialButtons } from '@/components/auth/SocialButtons';
+import { DEFAULT_COUNTRY_CODE, formatTrPhoneField, getPhonePlaceholder } from '@/utils/phone';
+import { toHandle } from '@/utils/validation';
+import { IS_MAESTRO } from '@/config/maestro';
 import { styles } from '../_lib/styles';
 import { maxBirthDate } from '../_lib/schema';
-import { toHandle } from '@/utils/validation';
 import type { RegisterController } from '../_hooks/useRegister';
-import { IS_MAESTRO } from '@/config/maestro';
+import { RegisterConsents } from './RegisterConsents';
 
-/** Kayıt form kartı — kullanıcı adı/ad/e-posta/doğum/şifre/onay alanları + sözleşme linkleri + gönder. */
+/** `formatTrPhoneField` baştaki `0`/`90`'ı soyduğu için placeholder lokal biçim (`+90` önek solda). */
+const PHONE_PLACEHOLDER = getPhonePlaceholder(DEFAULT_COUNTRY_CODE);
+
+/**
+ * Bireysel kayıt formu (web `RegisterForm` sırası): Görünen Ad, Profil Kullanıcı Adı, E-posta,
+ * Telefon + Doğum Tarihi (yan yana), Şifre, Şifre Tekrar, şifre gereksinimleri, onaylar,
+ * Üye Ol, Google/Apple. Web'deki Ad/Soyad/T.C. Kimlik bloğu BİLEREK yok: kimlik, ihtiyaç anında
+ * (ödeme/ilan/takas) sorulur — kayıtta sorulmaz (App Store 5.1.1).
+ */
 export function RegisterForm({ f }: { f: RegisterController }) {
   const { t } = useTranslation();
   const { control, errors, registerMutation, usernameAvailability } = f;
@@ -22,18 +34,36 @@ export function RegisterForm({ f }: { f: RegisterController }) {
     <View style={styles.form}>
       <Controller
         control={control}
+        name="displayName"
+        render={({ field: { onChange, value } }) => (
+          <Input
+            testID="register-displayName-input"
+            label={t('profile.displayName')}
+            required
+            placeholder={t('profile.displayNamePlaceholder')}
+            value={value}
+            onChangeText={onChange}
+            autoComplete="nickname"
+            error={errors.displayName?.message}
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
         name="username"
         render={({ field: { onChange, value } }) => (
           <Input
             testID="register-username-input"
-            label={t('auth.usernameLabel')}
+            label={t('auth.username')}
+            required
             rightIcon={username.statusIcon}
-            placeholder="kaan.merakli"
+            placeholder={t('auth.usernamePlaceholder')}
             value={value}
             // Girişte küçük harfe çevir: alan gerçekten kaydedilecek handle'ı
             // gösterir (sessiz dönüşüm yok) ve karışık girdi de uygunluk
             // kontrolünden geçer. Şemadaki `.toLowerCase()` emniyet kemeri.
-            onChangeText={(t) => onChange(toHandle(t))}
+            onChangeText={(text) => onChange(toHandle(text))}
             maxLength={30}
             autoCapitalize="none"
             autoCorrect={false}
@@ -44,23 +74,8 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         )}
       />
       <Text variant="bodySm" tone="muted" style={styles.fieldHint}>
-        {t('settings.usernameClaimedHint')}
+        {t('auth.usernameImmutableHint')}
       </Text>
-
-      <Controller
-        control={control}
-        name="displayName"
-        render={({ field: { onChange, value } }) => (
-          <Input
-            testID="register-displayName-input"
-            label={t('auth.fullNameLabel')}
-            placeholder={t('auth.fullNamePlaceholder')}
-            value={value}
-            onChangeText={onChange}
-            error={errors.displayName?.message}
-          />
-        )}
-      />
 
       <Controller
         control={control}
@@ -69,31 +84,57 @@ export function RegisterForm({ f }: { f: RegisterController }) {
           <Input
             testID="register-email-input"
             label={t('auth.email')}
+            required
             placeholder={t('auth.emailPlaceholder')}
             value={value}
             onChangeText={onChange}
             keyboardType="email-address"
             autoCapitalize="none"
+            autoComplete="email"
             error={errors.email?.message}
           />
         )}
       />
 
-      <Controller
-        control={control}
-        name="birthDate"
-        render={({ field: { onChange, value } }) => (
-          <DateField
-            testID="register-birthDate-input"
-            label={`${t('auth.birthDate')} (${t('common.optional')})`}
-            value={value ?? ''}
-            onChange={onChange}
-            placeholder={t('auth.birthDatePlaceholder')}
-            maximumDate={maxBirthDate()}
-            error={errors.birthDate?.message}
+      <View style={styles.pair}>
+        <View style={styles.pairItem}>
+          <Controller
+            control={control}
+            name="phone"
+            render={({ field: { onChange, value } }) => (
+              <Input
+                testID="register-phone-input"
+                label={t('auth.phone')}
+                leftIcon={<PhonePrefix />}
+                placeholder={PHONE_PLACEHOLDER}
+                value={value ?? ''}
+                onChangeText={(text) => onChange(formatTrPhoneField(text))}
+                keyboardType="phone-pad"
+                textContentType="telephoneNumber"
+                autoComplete="tel"
+                error={errors.phone?.message}
+              />
+            )}
           />
-        )}
-      />
+        </View>
+        <View style={styles.pairItem}>
+          <Controller
+            control={control}
+            name="birthDate"
+            render={({ field: { onChange, value } }) => (
+              <DateField
+                testID="register-birthDate-input"
+                label={t('auth.birthDate')}
+                value={value ?? ''}
+                onChange={onChange}
+                placeholder={t('auth.birthDatePlaceholder')}
+                maximumDate={maxBirthDate()}
+                error={errors.birthDate?.message}
+              />
+            )}
+          />
+        </View>
+      </View>
 
       <Controller
         control={control}
@@ -102,11 +143,12 @@ export function RegisterForm({ f }: { f: RegisterController }) {
           <Input
             testID="register-password-input"
             label={t('auth.password')}
+            required
             placeholder="••••••••"
             value={value}
             onChangeText={onChange}
             // Maestro: iOS secureTextEntry'ye yazamıyor + "Automatic Strong Password"
-            // kaplaması çıkıyor. Test modunda maskeyi kapat (login.tsx ile aynı). Prod: maskeli.
+            // kaplaması çıkıyor. Test modunda maskeyi kapat (login ile aynı). Prod: maskeli.
             secureTextEntry={!IS_MAESTRO}
             // Maskesizken iOS otomatik öneri fazladan karakter ekliyor (şifre eşleşmez).
             autoCorrect={false}
@@ -118,9 +160,6 @@ export function RegisterForm({ f }: { f: RegisterController }) {
           />
         )}
       />
-      <Text variant="bodySm" tone="muted" style={styles.fieldHint}>
-        {t('auth.passwordHint')}
-      </Text>
 
       <Controller
         control={control}
@@ -129,6 +168,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
           <Input
             testID="register-confirmPassword-input"
             label={t('auth.confirmPassword')}
+            required
             placeholder="••••••••"
             value={value}
             onChangeText={onChange}
@@ -143,61 +183,9 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         )}
       />
 
-      <Controller
-        control={control}
-        name="acceptTerms"
-        render={({ field: { onChange, value } }) => (
-          <Checkbox
-            testID="register-acceptTerms"
-            checked={value}
-            onChange={() => onChange(!value)}
-            label={t('auth.termsCheckboxLabel')}
-            error={errors.acceptTerms?.message}
-          />
-        )}
-      />
-      {errors.acceptTerms?.message ? (
-        <Text variant="bodySm" tone="danger">{errors.acceptTerms.message}</Text>
-      ) : null}
+      <PasswordChecklist password={f.passwordValue} />
 
-      <Controller
-        control={control}
-        name="acceptKvkk"
-        render={({ field: { onChange, value } }) => (
-          <Checkbox
-            testID="register-acceptKvkk"
-            checked={value}
-            onChange={() => onChange(!value)}
-            label={t('auth.kvkkCheckboxLabel')}
-            error={errors.acceptKvkk?.message}
-          />
-        )}
-      />
-      {errors.acceptKvkk?.message ? (
-        <Text variant="bodySm" tone="danger">{errors.acceptKvkk.message}</Text>
-      ) : null}
-
-      <HStack wrap gap={1} style={styles.legalLinks}>
-        <Text variant="bodySm" tone="primary" weight="semibold" onPress={() => router.push('/terms')}>
-          {t('footer.terms')}
-        </Text>
-        <Text variant="bodySm" tone="muted">{t('common.and')}</Text>
-        <Text variant="bodySm" tone="primary" weight="semibold" onPress={() => router.push('/privacy')}>
-          {t('footer.privacy')}
-        </Text>
-      </HStack>
-      <HStack>
-        <Text
-          variant="bodySm"
-          tone="primary"
-          weight="semibold"
-          testID="register-kvkk-link"
-          // Ayrı KVKK sayfası yok; web gibi gizlilik/aydınlatma metnine gider.
-          onPress={() => router.push('/privacy')}
-        >
-          {t('legal.kvkkTitle')}
-        </Text>
-      </HStack>
+      <RegisterConsents f={f} />
 
       {registerMutation.isError ? (
         <Text variant="bodySm" tone="danger">
@@ -215,12 +203,14 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         variant="primary"
         size="lg"
         fullWidth
-        title={t('auth.registerSubmit')}
+        title={t('common.register')}
         onPress={f.handleSubmit(f.onSubmit)}
         isLoading={registerMutation.isPending}
         disabled={registerMutation.isPending || usernameAvailability.available === false}
         style={styles.submit}
       />
+
+      <SocialButtons social={f.social} busy={registerMutation.isPending} testIDPrefix="register" />
     </View>
   );
 }
