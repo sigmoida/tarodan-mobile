@@ -61,6 +61,12 @@ export const priceColor = {
 /** Sayaç rozeti (sepet/mesaj/bildirim adedi) zemini — web danger-500. */
 export const counterBadgeColor = colors.danger[500] as string;
 
+/**
+ * Pasif/yardımcı bar ikonu rengi — alt menüdeki pasif sekme ikonu ile üst bardaki sekme-kökü
+ * ikonları (bildirim, sepet) AYNI gri. Tek kaynak; sabit renk yazılmaz.
+ */
+export const inactiveIconColor = colors.text.subtle as string;
+
 export const roles = {
   iconSize,
   controlHeight,
@@ -69,4 +75,5 @@ export const roles = {
   radiusRole,
   priceColor,
   counterBadgeColor,
+  inactiveIconColor,
 } as const;

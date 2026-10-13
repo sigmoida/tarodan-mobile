@@ -5,6 +5,7 @@ import {
   duration,
   headerHeight,
   iconSize,
+  inactiveIconColor,
   minTouchTarget,
   nativeShadows,
   priceColor,
@@ -52,7 +53,7 @@ const colors = {
  * Native theme — flattened tokens optimised for StyleSheet.
  *
  * Rol token'ları (bkz. `src/theme/roles.ts`): `iconSize`, `controlHeight`, `minTouchTarget`,
- * `headerHeight` (üst bar içerik yüksekliği, 52), `radiusRole`, `priceColor`, `counterBadgeColor`; RN gölge preset'leri `shadow`
+ * `headerHeight` (üst bar içerik yüksekliği, 52), `radiusRole`, `priceColor`, `counterBadgeColor`, `inactiveIconColor` (alt menü pasif ikonu = üst bar sekme-kökü ikonları); RN gölge preset'leri `shadow`
  * (`{ ...theme.shadow.soft }`); hareket süreleri `duration` (ms, sayı).
  */
 export const theme = {
@@ -69,6 +70,7 @@ export const theme = {
   radiusRole,
   priceColor,
   counterBadgeColor,
+  inactiveIconColor,
 } as const;
 
 export type Theme = typeof theme;

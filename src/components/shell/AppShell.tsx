@@ -51,7 +51,7 @@ function useOpenSearch(): () => void {
 
 /**
  * Sekme köklerinin kabuğu. Ana Sayfa (`variant="search"`): tek satır [arama alanı][bildirim][sepet],
- * logo yok, ikonlar zeminsiz primary-600 (`HeaderIconButton`). Diğer sekme kökleri
+ * logo yok, ikonlar zeminsiz, alt menü pasif ikonuyla aynı gri (`theme.inactiveIconColor`, `HeaderIconButton`). Diğer sekme kökleri
  * (`variant="title"`): `ScreenHeader` ile AYNI bar (geri oku yok → boş kutu çizilmez, başlık
  * sayfa kenar boşluğundan başlar), isteğe bağlı sağ aksiyon. İki varyantta da beyaz zemin + alt çizgi
  * ve aynı yükseklik (`theme.headerHeight`). Bu bilinçli bir web sapmasıdır (web telefonda logo +
@@ -94,7 +94,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             onPress={openSearch}
           />
           <HeaderIconButton
-            tone="primary"
+            tone="muted"
             icon="bell"
             label={t('nav.notifications')}
             count={counts.notificationCount}
@@ -102,7 +102,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             onPress={() => Router.router.push('/notifications')}
           />
           <HeaderIconButton
-            tone="primary"
+            tone="muted"
             icon="shopping-cart"
             label={t('nav.cart')}
             count={counts.cartCount}
