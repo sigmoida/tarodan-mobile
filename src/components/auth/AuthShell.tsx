@@ -1,29 +1,19 @@
 import React from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text, theme, useHeaderTopInset, Icon } from '@/ui';
-import { BrandLogo } from '@/components/BrandLogo';
+import { StyleSheet, View } from 'react-native';
+import { Text, theme } from '@/ui';
+import { PageShell } from '@/components/common/PageShell';
 import { AuthHeroBanner } from '@/components/hero/AuthHeroBanner';
 import type { AuthHeroPlacement } from '@/components/hero/useAuthHero';
 
-export interface AuthBackLink {
-  label: string;
-  onPress: () => void;
-  testID?: string;
-}
-
 export interface AuthShellProps {
+  /** Üst bar başlığı — içerikte tekrar edilmez (logo ve büyük başlık yok). */
   title: string;
+  /** Durum ekranlarında (gönderildi / doğrulandı …) formun üstünde kısa açıklama paragrafı. */
   description?: React.ReactNode;
-  /** Başlığın üstünde "← etiket" bağlantısı (web `AuthCard` `backHref`/`backLabel`). */
-  back?: AuthBackLink;
+  /** Geri oku; verilmezse `PageShell` varsayılanı (`goBackOrHome`). */
+  onBack?: () => void;
+  /** Geri okunu gösterme kararı (varsayılan: göster). Giriş ana girişse `false`. */
+  showBack?: boolean;
   /** Yönetimden gelen auth görseli (yalnız geniş ekranda çizilir); verilmezse yok. */
   hero?: AuthHeroPlacement;
   /** Formun altında ikincil bağlantılar (web `AuthCard` `footer`). */
@@ -38,124 +28,68 @@ const { colors, spacing } = theme;
 const MAX_WIDTH = 448;
 
 /**
- * TÜM giriş/kayıt ekranlarının ortak kabuğu — web `(auth)` çerçevesinin (`AuthHeroFrame` /
- * `(minimal)` + `AuthCard`) telefon görünümü: beyaz zemin, solda logo, ardından sola dayalı
- * başlık + açıklama, form, ikincil bağlantılar. Çerçeve/kart/gölge yok; turuncu zemin yok.
- * Başlık her ekranda aynı yerde. Ekran yalnız alanlarını (ya da durum içeriğini) `children`
- * olarak verir.
+ * TÜM giriş/kayıt ekranlarının ortak kabuğu — standart `PageShell` (cam/beyaz üst bar, geri oku,
+ * klavye + güvenli alan) üstüne kartsız, beyaz zeminli sade içerik: opsiyonel açıklama, form,
+ * ikincil bağlantılar. Başlık YALNIZ üst barda; logo ve içerik başlığı yok. Ekran yalnız
+ * alanlarını (ya da durum içeriğini) `children` olarak verir.
  */
 export const AuthShell: React.FC<AuthShellProps> = ({
   title,
   description,
-  back,
+  onBack,
+  showBack = true,
   hero,
   footer,
   testID,
   children,
-}) => {
-  const insets = useSafeAreaInsets();
-  const topInset = useHeaderTopInset();
-  return (
-    <KeyboardAvoidingView
-      style={styles.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      testID={testID}
-    >
-      <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingTop: topInset + spacing[6], paddingBottom: insets.bottom + spacing[8] },
-        ]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.column}>
-          <BrandLogo />
+}) => (
+  <PageShell
+    title={title}
+    onBack={onBack}
+    showBack={showBack}
+    testID={testID}
+    contentStyle={styles.page}
+  >
+    <View style={styles.column}>
+      {hero ? <AuthHeroBanner placement={hero} style={styles.hero} /> : null}
 
-          {hero ? <AuthHeroBanner placement={hero} style={styles.hero} /> : null}
+      {description ? (
+        typeof description === 'string' ? (
+          <Text variant="bodySm" tone="muted">
+            {description}
+          </Text>
+        ) : (
+          description
+        )
+      ) : null}
 
-          <View style={styles.body}>
-            {back ? (
-              <Pressable
-                testID={back.testID}
-                onPress={back.onPress}
-                accessibilityRole="button"
-                accessibilityLabel={back.label}
-                hitSlop={spacing[3]}
-                style={styles.back}
-              >
-                <Icon name="arrow-left" size={theme.iconSize.sm} color={colors.text.muted} />
-                <Text variant="bodySm" tone="muted">
-                  {back.label}
-                </Text>
-              </Pressable>
-            ) : null}
+      <View style={styles.content}>{children}</View>
 
-            <View style={styles.header}>
-              <Text variant="h1" tone="heading" accessibilityRole="header">
-                {title}
-              </Text>
-              {description ? (
-                typeof description === 'string' ? (
-                  <Text variant="bodySm" tone="muted">
-                    {description}
-                  </Text>
-                ) : (
-                  description
-                )
-              ) : null}
-            </View>
-
-            <View style={styles.content}>{children}</View>
-
-            {footer ? <View style={styles.footer}>{footer}</View> : null}
-          </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
-  );
-};
+      {footer ? <View style={styles.footer}>{footer}</View> : null}
+    </View>
+  </PageShell>
+);
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
+  /** Kartsız beyaz zemin — `PageShell` gövdesi varsayılan olarak surface rengindedir. */
+  page: {
     backgroundColor: colors.surface.elevated,
-  },
-  scroll: {
-    flexGrow: 1,
-    paddingHorizontal: spacing[6],
   },
   column: {
     width: '100%',
     maxWidth: MAX_WIDTH,
     alignSelf: 'center',
-    alignItems: 'flex-start',
+    gap: spacing[4],
   },
   hero: {
-    marginTop: spacing[6],
     borderRadius: theme.radiusRole.section,
-  },
-  body: {
-    width: '100%',
-    marginTop: spacing[8],
-  },
-  back: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: spacing[2],
-    marginBottom: spacing[6],
-  },
-  header: {
-    marginBottom: spacing[6],
-    gap: spacing[1],
   },
   content: {
     width: '100%',
+    // Input kendi alt boşluğunu (8) taşır: 8 + 8 = web `space-y-4` (16).
     gap: spacing[2],
   },
   footer: {
-    marginTop: spacing[6],
     gap: spacing[2],
   },
 });

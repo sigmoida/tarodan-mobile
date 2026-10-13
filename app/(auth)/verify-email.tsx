@@ -118,7 +118,7 @@ export default function VerifyEmailScreen() {
           ? t('auth.verifyInstructionsWithEmail', { email: user.email })
           : t('auth.verifyInstructions')
       }
-      back={{ label: t('common.back'), onPress: goHome }}
+      onBack={goHome}
     >
       <Input
         label={t('auth.verifyCodeLabel')}

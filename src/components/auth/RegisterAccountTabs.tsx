@@ -6,13 +6,13 @@ import { Text, theme } from '@/ui';
 
 export type RegisterAccountKind = 'individual' | 'corporate';
 
-const { colors, spacing, radiusRole, minTouchTarget } = theme;
+const { colors, spacing, radius, minTouchTarget, shadow } = theme;
 
 /**
  * Kayıt ekranlarının üstündeki Bireysel / Kurumsal başvuru sekmeleri (web `RegisterAccountTabs`):
- * iki eşit sütun, `bg-surface` kutuda; seçili sekme primary-600 zemin + ters renk metin, diğeri
- * muted. Sekmeler iki ayrı ROTAYA gider (web'de de ayrı sayfalar); `replace` ile — geri
- * tuşuyla sekmeler arasında dolaşılmaz.
+ * iki eşit sütun, gri hap kutuda; seçili sekme beyaz hap (hafif gölge) + başlık rengi metin,
+ * diğeri muted — üst bardaki cam/hap diliyle uyumlu, vurgu rengi yok. Sekmeler iki ayrı ROTAYA
+ * gider (web'de de ayrı sayfalar); `replace` ile — geri tuşuyla sekmeler arasında dolaşılmaz.
  */
 export const RegisterAccountTabs: React.FC<{ active: RegisterAccountKind }> = ({ active }) => {
   const { t } = useTranslation();
@@ -36,7 +36,7 @@ export const RegisterAccountTabs: React.FC<{ active: RegisterAccountKind }> = ({
             }}
             style={[styles.tab, selected && styles.tabActive]}
           >
-            <Text variant="bodySm" weight="semibold" tone={selected ? 'inverted' : 'muted'}>
+            <Text variant="bodySm" weight="semibold" tone={selected ? 'heading' : 'muted'}>
               {item.label}
             </Text>
           </Pressable>
@@ -51,8 +51,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 0,
     padding: spacing[1],
-    borderRadius: radiusRole.button,
-    backgroundColor: colors.surface.DEFAULT,
+    borderRadius: radius.full,
+    backgroundColor: colors.surface.alt,
   },
   tab: {
     flex: 1,
@@ -60,10 +60,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing[3],
-    borderRadius: radiusRole.button,
+    borderRadius: radius.full,
   },
   tabActive: {
-    backgroundColor: colors.primary[600],
+    backgroundColor: colors.surface.elevated,
+    ...shadow.soft,
   },
 });
 

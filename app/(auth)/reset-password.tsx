@@ -68,10 +68,7 @@ export default function ResetPasswordScreen() {
     <AuthShell
       title={t("auth.resetTitle")}
       description={t("auth.resetSubtitle")}
-      back={{
-        label: t("common.login"),
-        onPress: () => router.replace("/(auth)/login"),
-      }}
+      onBack={() => router.replace("/(auth)/login")}
     >
       <Input
         label={t("mobile.newPassword")}

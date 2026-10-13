@@ -18,7 +18,7 @@ export default function RegisterScreen() {
       title={t('auth.createAccount')}
       description={t('auth.joinCommunity')}
       hero="auth_register"
-      back={{ label: t('common.back'), onPress: f.handleBack }}
+      onBack={f.handleBack}
       footer={
         <AuthFooterLink
           prompt={t('auth.hasAccount')}

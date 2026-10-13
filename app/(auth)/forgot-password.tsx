@@ -57,7 +57,7 @@ export default function ForgotPasswordScreen() {
     <AuthShell
       title={t('auth.forgotPassword')}
       description={t('auth.forgotSubtitle')}
-      back={{ label: t('common.goBack'), onPress: () => router.back() }}
+      onBack={() => (router.canGoBack() ? router.back() : router.replace('/(auth)/login'))}
     >
       <Controller
         control={control}

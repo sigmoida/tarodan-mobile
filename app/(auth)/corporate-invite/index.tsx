@@ -23,7 +23,7 @@ export default function CorporateInviteScreen() {
     return (
       <AuthShell
         title={t('auth.corporateInviteTitle')}
-        back={{ label: t('auth.backToLogin'), onPress: toLogin }}
+        onBack={toLogin}
       >
         <View testID="invite-invalid" style={styles.stack}>
           <Alert variant="danger" title={t('auth.corporateInviteInvalid')}>
@@ -39,7 +39,7 @@ export default function CorporateInviteScreen() {
     <AuthShell
       title={t('auth.corporateActivateTitle')}
       hero="auth_default"
-      back={{ label: t('auth.backToLogin'), onPress: toLogin }}
+      onBack={toLogin}
     >
       <View style={styles.stack}>
         <View style={styles.company}>

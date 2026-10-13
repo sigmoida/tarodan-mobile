@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { RawText, theme } from '@/ui';
 import { AuthShell } from '../AuthShell';
@@ -13,45 +13,61 @@ jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 jest.mock('@/components/hero/AuthHeroBanner', () => ({ AuthHeroBanner: () => null }));
 
 describe('AuthShell', () => {
-  it('beyaz zemin, sola dayalı başlık + açıklama, form ve alt bağlantılar', () => {
+  beforeEach(() => resetRouterMocks());
+
+  it('başlık YALNIZ üst barda; logo yok, içerikte başlık tekrarı yok', () => {
     render(
-      <AuthShell
-        testID="auth"
-        title="Tekrar hoş geldiniz"
-        description="Hesabınıza giriş yapın"
-        footer={<RawText>alt bağlantı</RawText>}
-      >
+      <AuthShell title="Giriş Yap" footer={<RawText>alt bağlantı</RawText>}>
         <RawText>form</RawText>
       </AuthShell>,
     );
-    expect(screen.getByText('Tekrar hoş geldiniz')).toBeTruthy();
-    expect(screen.getByText('Hesabınıza giriş yapın')).toBeTruthy();
+    // Tek bir "Giriş Yap" metni: üst bardaki başlık (içerikte ikinci h1 yok).
+    expect(screen.getAllByText('Giriş Yap')).toHaveLength(1);
+    expect(screen.getByRole('header', { name: 'Giriş Yap' })).toBeTruthy();
+    expect(screen.queryByTestId('brand-logo')).toBeNull();
     expect(screen.getByText('form')).toBeTruthy();
     expect(screen.getByText('alt bağlantı')).toBeTruthy();
-    expect(StyleSheet.flatten(screen.getByTestId('auth').props.style).backgroundColor).toBe(
+  });
+
+  it('içerik beyaz zeminde çizilir (kartsız)', () => {
+    render(
+      <AuthShell title="X" testID="auth">
+        <RawText>form</RawText>
+      </AuthShell>,
+    );
+    const scroll = screen.UNSAFE_getByType(ScrollView);
+    expect(StyleSheet.flatten(scroll.props.contentContainerStyle).backgroundColor).toBe(
       theme.colors.surface.elevated,
     );
   });
 
-  it('geri bağlantısı etiketiyle çizilir ve basılınca çağrılır', () => {
-    const onPress = jest.fn();
+  it('açıklama verilirse formun üstünde paragraf olarak çizilir', () => {
     render(
-      <AuthShell title="X" back={{ label: 'Ana sayfaya dön', onPress, testID: 'geri' }}>
+      <AuthShell title="X" description="Bağlantı gönderildi">
         <RawText>form</RawText>
       </AuthShell>,
     );
-    fireEvent.press(screen.getByTestId('geri'));
-    expect(onPress).toHaveBeenCalledTimes(1);
-    expect(screen.getByText('Ana sayfaya dön')).toBeTruthy();
+    expect(screen.getByText('Bağlantı gönderildi')).toBeTruthy();
   });
 
-  it('geri bağlantısı verilmezse çizilmez', () => {
+  it('geri oku basılınca onBack çağrılır', () => {
+    const onBack = jest.fn();
     render(
-      <AuthShell title="X">
+      <AuthShell title="X" onBack={onBack}>
         <RawText>form</RawText>
       </AuthShell>,
     );
-    expect(screen.queryByTestId('geri')).toBeNull();
+    fireEvent.press(screen.getByLabelText('Geri'));
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('showBack=false iken geri oku çizilmez', () => {
+    render(
+      <AuthShell title="X" showBack={false}>
+        <RawText>form</RawText>
+      </AuthShell>,
+    );
+    expect(screen.queryByLabelText('Geri')).toBeNull();
   });
 });
 

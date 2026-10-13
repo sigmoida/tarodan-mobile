@@ -17,10 +17,7 @@ export default function RegisterBusinessScreen() {
     <AuthShell
       title={t('auth.registerBusinessTitle')}
       hero="auth_register"
-      back={{
-        label: t('common.back'),
-        onPress: () => (router.canGoBack() ? router.back() : router.replace('/(tabs)')),
-      }}
+      onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       footer={
         <AuthFooterLink
           prompt={t('auth.hasAccount')}
