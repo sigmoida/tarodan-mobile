@@ -132,6 +132,16 @@ export {
 } from './ModalMessage';
 export { Spinner, type SpinnerProps } from './components/Spinner';
 export {
+	Stepper,
+	useStepper,
+	type StepperProps,
+	type StepperStep,
+} from './components/Stepper';
+export {
+	QuantityStepper,
+	type QuantityStepperProps,
+} from './components/QuantityStepper';
+export {
 	Skeleton,
 	SkeletonText,
 	SkeletonCard,
