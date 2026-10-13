@@ -1,45 +1,47 @@
-import { View, ScrollView, RefreshControl } from 'react-native';
-import { Chip, Snackbar, Spinner, theme } from '@/ui';
-import { router } from 'expo-router';
+import { ScrollView } from 'react-native';
+import { Chip, EmptyState } from '@/ui';
 import { useTranslation } from 'react-i18next';
-import { ScreenHeader, EmptyState } from '@/components/common';
+import { AuthGatePage } from '@/components/common/AuthGatePage';
+import { PageShell } from '@/components/common/PageShell';
+import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { usePayments } from './_hooks/usePayments';
 import { styles } from './_lib/styles';
 import { buildStatusOptions } from './_lib/status';
 import { PaymentCard } from './_components/PaymentCard';
 
-const { colors } = theme;
-
+/**
+ * Ödemelerim — PageShell (Skeleton, çekip yenileme) + durum filtre çipleri + ödeme kartları.
+ * Sorgu/filtre/iptal `usePayments`, yeniden deneme `useDoRetryPayment`'ta; bilgi mesajları toast.
+ */
 export default function PaymentsScreen() {
   const { t } = useTranslation();
   const f = usePayments();
   const statusOptions = buildStatusOptions(t);
+  const title = t('mobile.settingsPayments');
 
   if (!f.isAuthenticated) {
     return (
-      <View style={styles.container}>
-        <ScreenHeader title={t('mobile.settingsPayments')} />
-        <EmptyState
-          icon="lock-closed-outline"
-          title={t('listing.loginRequiredTitle')}
-          subtitle={t('payment.myPaymentsLoginSubtitle')}
-          actionLabel={t('common.login')}
-          onAction={() => router.push('/(auth)/login' as any)}
-        />
-      </View>
+      <AuthGatePage
+        title={title}
+        icon="lock-closed-outline"
+        subtitle={t('payment.myPaymentsLoginSubtitle')}
+      />
     );
   }
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={t('mobile.settingsPayments')} />
-
+    <PageShell
+      title={title}
+      loading={f.paymentsQuery.isLoading}
+      loadingFallback={<RowListSkeleton rows={4} />}
+      refreshing={f.paymentsQuery.isFetching && !f.paymentsQuery.isLoading}
+      onRefresh={() => f.paymentsQuery.refetch()}
+    >
       {/* Status filtresi */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.filterRow}
-        style={styles.filterScroll}
       >
         {statusOptions.map((opt) => (
           <Chip
@@ -48,16 +50,11 @@ export default function PaymentsScreen() {
             variant="primary"
             selected={f.statusFilter === opt.value}
             onPress={() => f.setStatusFilter(opt.value)}
-            style={styles.filterChip}
           />
         ))}
       </ScrollView>
 
-      {f.paymentsQuery.isLoading ? (
-        <View style={styles.loading}>
-          <Spinner size="lg" />
-        </View>
-      ) : f.payments.length === 0 ? (
+      {f.payments.length === 0 ? (
         <EmptyState
           icon="card-outline"
           title={t('payment.noPaymentsTitle')}
@@ -68,31 +65,8 @@ export default function PaymentsScreen() {
           }
         />
       ) : (
-        <ScrollView
-          style={styles.list}
-          contentContainerStyle={{ padding: theme.spacing[4], paddingBottom: theme.spacing[8] }}
-          refreshControl={
-            <RefreshControl
-              refreshing={f.paymentsQuery.isFetching}
-              onRefresh={() => f.paymentsQuery.refetch()}
-              colors={[colors.primary[600]!]}
-            />
-          }
-        >
-          {f.payments.map((p) => (
-            <PaymentCard key={p.id} p={p} f={f} />
-          ))}
-        </ScrollView>
+        f.payments.map((p) => <PaymentCard key={p.id} p={p} f={f} />)
       )}
-
-      <Snackbar
-        visible={f.snackbar.visible}
-        onDismiss={() => f.setSnackbar({ visible: false, message: '' })}
-        duration={2000}
-        variant="success"
-      >
-        {f.snackbar.message}
-      </Snackbar>
-    </View>
+    </PageShell>
   );
 }

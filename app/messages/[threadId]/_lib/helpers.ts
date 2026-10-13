@@ -23,17 +23,6 @@ export const formatDate = (dateString: string, t: TFunction) => {
   }
 };
 
-export const getMessageStatus = (status: Message['status']) => {
-  switch (status) {
-    case 'sent': return '✓';
-    case 'delivered': return '✓✓';
-    case 'read': return '✓✓';
-    case 'pending_approval': return '⏳';
-    case 'rejected': return '❌';
-    default: return '';
-  }
-};
-
 // Mesajları güne göre gruplar (tarih ayracı için).
 export function groupMessagesByDate(messages: Message[], t: TFunction): { date: string; messages: Message[] }[] {
   const grouped: { date: string; messages: Message[] }[] = [];

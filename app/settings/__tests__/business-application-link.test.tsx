@@ -4,13 +4,13 @@
  * Brief'teki orijinal test `../index` (app/settings/index.tsx) ve
  * `../../business-pending` import ediyordu — bu dosyalar repoda yok
  * (bkz. repo-notes.md). Gerçek konumlar:
- *   - Menü girişi: app/(tabs)/_lib/profileConstants.ts → quickActionItems
+ *   - Menü girişi: app/(tabs)/_lib/profileMenu.ts → buildProfileMenuGroups (Hesap grubu)
  *     (app/(tabs)/_components/ProfileSections.tsx içinde render edilir)
  *   - Durum ekranı: app/business-pending.tsx
  *   - Kilit: src/components/BusinessMembershipGuard.tsx
  *
  * Menü girişi için `useProfile`'ın tüm bağımlılıklarını (React Query, çoklu
- * store) mock'lamak yerine `quickActionItems`'ı doğrudan içe aktarıp
+ * store) mock'lamak yerine `buildProfileMenuGroups`'ı doğrudan içe aktarıp
  * varlığını + hedef rotasını doğrulayan bir birim testi yazıldı (brief'in
  * kabul ettiği alternatif). business-pending ve guard için gerçek davranış
  * testleri yazıldı.
@@ -23,13 +23,19 @@
 import React from 'react';
 import { render, fireEvent, screen, waitFor } from '@testing-library/react-native';
 
-import { buildQuickActionItems } from '../../(tabs)/_lib/profileConstants';
+import { buildProfileMenuGroups } from '../../(tabs)/_lib/profileMenu';
 import { schemaT } from '@/test-utils';
 
-// Liste artık `t`'yi argüman alan bir FABRİKA (etiketler çeviriden gelir).
-// Bu test dilden bağımsız alanları (`testID`, `to`, `requiresBusiness`)
-// sınıyor, o yüzden gerçek katalogla bir kez kurmak yeter.
-const quickActionItems = buildQuickActionItems(schemaT);
+// Menü bir FABRİKA (etiketler çeviriden gelir). Bu test dilden bağımsız alanları
+// (`testID`, `to`) ve kurumsal hesap kapısını sınıyor, o yüzden gerçek katalogla kurmak yeter.
+const menuItems = (isBusiness: boolean) =>
+  buildProfileMenuGroups(schemaT, {
+    isBusiness,
+    showMembership: false,
+    isPaidTier: false,
+    tierLabel: '',
+    isBusinessTier: false,
+  }).flatMap((g) => g.items);
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
@@ -61,12 +67,16 @@ beforeEach(() => {
   mockPathname = '/settings/business-application';
 });
 
-describe('quickActionItems — Kurumsal Başvuru girişi', () => {
-  it('hızlı erişim listesinde doğru rotayla yer alır', () => {
-    const entry = quickActionItems.find((q) => q.testID === 'settings-business-application');
+describe('profil menüsü — Kurumsal Başvuru girişi', () => {
+  it('kurumsal hesapta Hesap grubunda doğru rotayla yer alır', () => {
+    const entry = menuItems(true).find((q) => q.testID === 'settings-business-application');
     expect(entry).toBeDefined();
     expect(entry?.to).toBe('/settings/business-application');
     expect(entry?.label).toBe('Kurumsal Başvuru');
+  });
+
+  it('bireysel hesapta görünmez', () => {
+    expect(menuItems(false).find((q) => q.testID === 'settings-business-application')).toBeUndefined();
   });
 });
 

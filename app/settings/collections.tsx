@@ -1,227 +1,103 @@
-import {
-  View,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  RefreshControl,
-} from "react-native";
-import {
-  FAB,
-  Snackbar,
-  Spinner,
-  Text,
-  theme,
-  ScreenHeader,
-} from "@/ui";
+import { View, Pressable, Image } from "react-native";
+import { Badge, EmptyState, FAB, SectionCard, Text } from "@/ui";
 import { router } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { Ionicons } from "@expo/vector-icons";
-import { api } from "@/lib/api";
-import { qk } from "@/lib/query";
-import { useAuthStore } from "@/stores/authStore";
-import { useTranslation } from "react-i18next";
 import { resolveImageUrl } from "@/utils/imageUrl";
-import { styles } from './_collections/_lib/styles';
-import { CAN_BUY_DIGITAL } from "@/lib/purchases";
+import { AuthGatePage } from "@/components/common/AuthGatePage";
+import { PageShell } from "@/components/common/PageShell";
+import { RowListSkeleton } from "@/components/common/RowListSkeleton";
 import UpgradeCta from "@/components/UpgradeCta";
+import { useMyCollections } from "./_collections/_hooks/useMyCollections";
+import { styles } from "./_collections/_lib/styles";
 
-const { colors, radius } = theme;
-
-// Mock collections for demo when API fails
+/**
+ * Koleksiyonlarım — PageShell + web gibi 2 sütun kart ızgarası. Sorgu ve "yeni" kapısı
+ * `useMyCollections`'ta; premium notu iOS'ta kapalı (UpgradeCta).
+ */
 export default function CollectionsScreen() {
-  const { t } = useTranslation();
-  const { limits, isAuthenticated } = useAuthStore();
-  const [refreshing, setRefreshing] = useState(false);
-  const [snackbar, setSnackbar] = useState({ visible: false, message: "" });
+  const f = useMyCollections();
+  const { t } = f;
+  const title = t("mobile.settingsCollections");
 
-  const canCreateCollections = limits?.canCreateCollections || false;
-
-  const {
-    data: collectionsData,
-    isLoading,
-    refetch,
-  } = useQuery({
-    queryKey: qk.collections.mine,
-    queryFn: async () => {
-      try {
-        const response = await api.get("/collections/me");
-        // API şekli: { collections, total, page, pageSize }
-        return (
-          response.data?.collections ??
-          response.data?.data ??
-          (Array.isArray(response.data) ? response.data : [])
-        );
-      } catch (error) {
-        console.log("Koleksiyonlar yüklenemedi");
-        return [];
-      }
-    },
-    enabled: isAuthenticated,
-  });
-
-  const collections = Array.isArray(collectionsData) ? collectionsData : [];
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await refetch();
-    setRefreshing(false);
-  };
-
-  const handleCreateCollection = () => {
-    if (!canCreateCollections) {
-      setSnackbar({
-        visible: true,
-        message: CAN_BUY_DIGITAL
-          ? t("collection.premiumRequiredMsg")
-          : t("membership.featureUnavailableOnAccount"),
-      });
-      // iOS'ta yükseltme ekranına yönlendirme yok (Guideline 3.1.3).
-      if (CAN_BUY_DIGITAL) setTimeout(() => router.push("/upgrade"), 1500);
-      return;
-    }
-    router.push("/collections/new");
-  };
+  if (!f.isAuthenticated) {
+    return <AuthGatePage title={title} icon="albums-outline" subtitle={t("auth.loginToContinue")} />;
+  }
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader
-        title={t("mobile.settingsCollections")}
-        onBack={() =>
-          router.canGoBack() ? router.back() : router.replace("/(tabs)")
-        }
-      />
-
-      <ScrollView
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[colors.primary[600]!]}
+    <PageShell
+      title={title}
+      onBack={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)"))}
+      loading={f.isLoading}
+      loadingFallback={<RowListSkeleton rows={4} />}
+      refreshing={f.refreshing}
+      onRefresh={f.onRefresh}
+      overlay={
+        f.canCreateCollections ? (
+          <FAB
+            icon="add"
+            accessibilityLabel={t("collection.createNewCollection")}
+            style={styles.fab}
+            onPress={f.handleCreateCollection}
           />
-        }
-      >
-        {/* Info Banner */}
-        <View style={styles.infoBanner}>
-          <Ionicons name="car-sport" size={32} color={colors.primary[600]!} />
-          <View style={styles.infoBannerText}>
-            <Text style={styles.infoBannerTitle}>{t("mobile.guestGarageTitle")}</Text>
-            <Text style={styles.infoBannerDesc}>
-              {t("collection.garageDesc")}
-            </Text>
-          </View>
-        </View>
+        ) : null
+      }
+    >
+      <SectionCard title={t("mobile.guestGarageTitle")}>
+        <Text variant="bodySm" tone="muted">
+          {t("collection.garageDesc")}
+        </Text>
+      </SectionCard>
 
-        {/* Premium Notice if not premium — başlığı ve açıklaması Premium'a özel
-            olduğunu söylüyor, salt düğmeyi gizlemek yetmez; kart bütünüyle
-            iOS'ta kapanır (Guideline 3.1.1/3.1.3). */}
-        {!canCreateCollections && (
-          <UpgradeCta>
-            <TouchableOpacity
-              style={styles.premiumNotice}
-              onPress={() => router.push("/upgrade")}
-            >
-              <Ionicons name="diamond" size={24} color={colors.warning[500]!} />
-              <View style={styles.premiumNoticeText}>
-                <Text style={styles.premiumNoticeTitle}>{t("membership.premiumFeatureTitle")}</Text>
-                <Text style={styles.premiumNoticeDesc}>
-                  {t("collection.premiumFeatureDesc")}
-                </Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={colors.text.muted}
-              />
-            </TouchableOpacity>
-          </UpgradeCta>
-        )}
-
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <Spinner size="lg" />
-          </View>
-        ) : (
-          <>
-            {/* Collections Grid */}
-            <View style={styles.collectionsGrid}>
-              {collections.map((collection: any) => (
-                <TouchableOpacity
-                  key={collection.id}
-                  style={styles.collectionCard}
-                  onPress={() => router.push(`/collections/${collection.id}`)}
-                >
-                  <Image
-                    source={{
-                      uri: resolveImageUrl(
-                        collection.coverImageUrl ?? collection.coverImage,
-                      ),
-                    }}
-                    style={styles.collectionImage}
-                  />
-                  <View style={styles.collectionOverlay}>
-                    {!collection.isPublic && (
-                      <View style={styles.privateBadge}>
-                        <Ionicons
-                          name="lock-closed"
-                          size={12}
-                          color={colors.white}
-                        />
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.collectionInfo}>
-                    <Text style={styles.collectionName} numberOfLines={1}>
-                      {collection.name}
-                    </Text>
-                    <Text style={styles.collectionMeta}>
-                      {t("collection.vehicleCountSuffix", { count: collection.itemCount || 0 })}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+      {/* Premium Notice if not premium — başlığı ve açıklaması Premium'a özel
+          olduğunu söylüyor, salt düğmeyi gizlemek yetmez; kart bütünüyle
+          iOS'ta kapanır (Guideline 3.1.1/3.1.3). */}
+      {!f.canCreateCollections && (
+        <UpgradeCta>
+          <Pressable style={styles.premiumNotice} onPress={() => router.push("/upgrade")}>
+            <View style={styles.premiumNoticeText}>
+              <Text variant="label">{t("membership.premiumFeatureTitle")}</Text>
+              <Text variant="caption">{t("collection.premiumFeatureDesc")}</Text>
             </View>
-
-            {/* Empty State */}
-            {collections.length === 0 && (
-              <View style={styles.emptyState}>
-                <Ionicons
-                  name="albums-outline"
-                  size={64}
-                  color={colors.text.subtle}
-                />
-                <Text style={styles.emptyTitle}>{t("collection.noCollections")}</Text>
-                <Text style={styles.emptyDesc}>
-                  {t("collection.emptyCreateHint")}
-                </Text>
-              </View>
-            )}
-          </>
-        )}
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
-
-      {canCreateCollections && (
-        <FAB
-          icon="add"
-          accessibilityLabel={t("collection.createNewCollection")}
-          style={styles.fab}
-          onPress={handleCreateCollection}
-        />
+          </Pressable>
+        </UpgradeCta>
       )}
 
-      <Snackbar
-        visible={snackbar.visible}
-        onDismiss={() => setSnackbar({ ...snackbar, visible: false })}
-        duration={2000}
-      >
-        {snackbar.message}
-      </Snackbar>
-    </View>
+      {f.collections.length === 0 ? (
+        <EmptyState
+          icon="albums-outline"
+          title={t("collection.noCollections")}
+          subtitle={t("collection.emptyCreateHint")}
+        />
+      ) : (
+        <View style={styles.collectionsGrid}>
+          {f.collections.map((collection: any) => (
+            <Pressable
+              key={collection.id}
+              style={styles.collectionCard}
+              onPress={() => router.push(`/collections/${collection.id}`)}
+            >
+              <Image
+                source={{ uri: resolveImageUrl(collection.coverImageUrl ?? collection.coverImage) }}
+                style={styles.collectionImage}
+              />
+              <View style={styles.collectionInfo}>
+                <Text variant="label" numberOfLines={1}>
+                  {collection.name}
+                </Text>
+                <View style={styles.collectionMetaRow}>
+                  <Text variant="caption">
+                    {t("collection.vehicleCountSuffix", { count: collection.itemCount || 0 })}
+                  </Text>
+                  {!collection.isPublic && (
+                    <Badge variant="outline" size="sm">
+                      {t("collection.isPrivate")}
+                    </Badge>
+                  )}
+                </View>
+              </View>
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </PageShell>
   );
 }
-

@@ -1,54 +1,31 @@
 import React from 'react';
-import { View, TouchableOpacity } from 'react-native';
-import { Text, theme } from '@/ui';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Pressable } from 'react-native';
+import { Text } from '@/ui';
 import { styles } from '../_lib/styles';
 
-const { colors } = theme;
-
-/** İstatistik kartı — ikon + değer + etiket, opsiyonel dokunma. */
+/** İstatistik kartı — değer + etiket (ikonsuz), opsiyonel dokunma. */
 export function StatCard({
-  icon,
   label,
   value,
-  color,
   onPress,
 }: {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
   label: string;
   value: string | number;
-  color: string;
   onPress?: () => void;
 }) {
   return (
-    <TouchableOpacity style={styles.statCard} onPress={onPress} activeOpacity={0.8} disabled={!onPress}>
-      <View style={[styles.statIconWrap, { backgroundColor: color + '20' }]}>
-        <Ionicons name={icon} size={20} color={color} />
-      </View>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </TouchableOpacity>
+    <Pressable style={styles.statCard} onPress={onPress} disabled={!onPress}>
+      <Text variant="h2">{value}</Text>
+      <Text variant="caption">{label}</Text>
+    </Pressable>
   );
 }
 
-/** Hızlı işlem butonu — yuvarlak ikon + etiket. */
-export function QuickAction({
-  icon,
-  label,
-  onPress,
-  color = colors.primary[600]!,
-}: {
-  icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-  label: string;
-  onPress: () => void;
-  color?: string;
-}) {
+/** Hızlı işlem satırı — yalnız etiket (web sade liste). */
+export function QuickAction({ label, onPress }: { label: string; onPress: () => void }) {
   return (
-    <TouchableOpacity style={styles.quickAction} onPress={onPress} activeOpacity={0.8}>
-      <View style={[styles.quickIconWrap, { backgroundColor: color + '20' }]}>
-        <MaterialCommunityIcons name={icon} size={22} color={color} />
-      </View>
-      <Text style={styles.quickLabel}>{label}</Text>
-    </TouchableOpacity>
+    <Pressable style={styles.quickAction} onPress={onPress} accessibilityRole="link">
+      <Text variant="body">{label}</Text>
+    </Pressable>
   );
 }

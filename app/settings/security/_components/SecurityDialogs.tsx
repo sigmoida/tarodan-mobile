@@ -1,21 +1,36 @@
 import React from 'react';
-import { View, TouchableOpacity, Image } from 'react-native';
-import { Modal, Button, Spinner, Input, Text, ModalMessage, theme } from '@/ui';
+import { View, Pressable, Image } from 'react-native';
+import { Button, Modal, ModalFooter, Spinner, Input, Text, ModalMessage } from '@/ui';
 
 import { PhoneInput } from '@/components/common';
 
 import { styles } from '../_lib/styles';
 import type { SecurityController } from '../_hooks/useSecurity';
 
-const { colors } = theme;
-
 /** All 5 security modals: password change, 2FA setup/disable, phone verify, backup codes. */
 export function SecurityDialogs({ f }: { f: SecurityController }) {
   const { t } = f;
+  const closePassword = () => { f.setShowPasswordDialog(false); f.pwMsg.clear(); };
+  const closeSetup = () => { f.setShowTwoFactorSetup(false); f.twoFaMsg.clear(); };
+  const closeDisable = () => { f.setShowDisableDialog(false); f.disableMsg.clear(); };
+  const closeRegenerate = () => { f.setShowRegenerateDialog(false); f.regenMsg.clear(); };
   return (
     <>
       {/* Password Change Dialog */}
-      <Modal isOpen={f.showPasswordDialog} onClose={() => { f.setShowPasswordDialog(false); f.pwMsg.clear(); }} title={t('security.changePasswordTitle')}>
+      <Modal
+        isOpen={f.showPasswordDialog}
+        onClose={closePassword}
+        title={t('security.changePasswordTitle')}
+        footer={
+          <ModalFooter
+            onCancel={closePassword}
+            onConfirm={f.handlePasswordChange}
+            cancelLabel={t('mobile.cancel')}
+            confirmLabel={t('mobile.change')}
+            disabled={f.loading}
+          />
+        }
+      >
         <Input
           label={t('security.currentPassword')}
           value={f.currentPassword}
@@ -37,28 +52,37 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
           secureTextEntry
           containerStyle={styles.dialogInput}
         />
-        <View style={styles.dialogActions}>
-          <Button variant="ghost" title={t('mobile.cancel')} onPress={() => { f.setShowPasswordDialog(false); f.pwMsg.clear(); }} />
-          <Button variant="primary" title={t('mobile.change')} onPress={f.handlePasswordChange} isLoading={f.loading} />
-        </View>
         <ModalMessage state={f.pwMsg.state} />
       </Modal>
 
       {/* 2FA Setup Dialog */}
-      <Modal isOpen={f.showTwoFactorSetup} onClose={() => { f.setShowTwoFactorSetup(false); f.twoFaMsg.clear(); }} title={t('security.twoFactorSetupModalTitle')}>
-        <Text style={styles.dialogText}>
+      <Modal
+        isOpen={f.showTwoFactorSetup}
+        onClose={closeSetup}
+        title={t('security.twoFactorSetupModalTitle')}
+        footer={
+          <ModalFooter
+            onCancel={closeSetup}
+            onConfirm={f.handleVerifyTwoFactor}
+            cancelLabel={t('mobile.cancel')}
+            confirmLabel={t('mobile.verify')}
+            disabled={f.loading}
+          />
+        }
+      >
+        <Text variant="bodySm" tone="muted" style={styles.dialogText}>
           Google Authenticator veya benzeri bir uygulamayı kullanarak aşağıdaki kodu tarayın veya manuel olarak girin:
         </Text>
         {f.totpQrImage ? (
           <Image
             source={{ uri: f.totpQrImage }}
-            style={{ width: 200, height: 200, alignSelf: 'center' }}
+            style={styles.qrImage}
             accessibilityLabel={t('security.twoFactorQrAlt')}
           />
         ) : null}
         {f.totpSecret ? (
           <View style={styles.secretContainer}>
-            <Text style={styles.secretText}>{f.totpSecret}</Text>
+            <Text variant="bodySm" style={styles.secretText}>{f.totpSecret}</Text>
           </View>
         ) : (
           <Spinner size="sm" />
@@ -71,16 +95,26 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
           maxLength={6}
           containerStyle={styles.dialogInput}
         />
-        <View style={styles.dialogActions}>
-          <Button variant="ghost" title={t('mobile.cancel')} onPress={() => { f.setShowTwoFactorSetup(false); f.twoFaMsg.clear(); }} />
-          <Button variant="primary" title={t('mobile.verify')} onPress={f.handleVerifyTwoFactor} isLoading={f.loading} />
-        </View>
         <ModalMessage state={f.twoFaMsg.state} />
       </Modal>
 
       {/* 2FA Disable Dialog — backend geçerli TOTP kodu ister */}
-      <Modal isOpen={f.showDisableDialog} onClose={() => { f.setShowDisableDialog(false); f.disableMsg.clear(); }} title={t('security.twoFactorDisableModalTitle')}>
-        <Text style={styles.dialogText}>
+      <Modal
+        isOpen={f.showDisableDialog}
+        onClose={closeDisable}
+        title={t('security.twoFactorDisableModalTitle')}
+        footer={
+          <ModalFooter
+            onCancel={closeDisable}
+            onConfirm={f.confirmDisableTwoFactor}
+            cancelLabel={t('mobile.cancel')}
+            confirmLabel={t('security.disableTwoFactor')}
+            destructive
+            disabled={f.loading}
+          />
+        }
+      >
+        <Text variant="bodySm" tone="muted" style={styles.dialogText}>
           İki faktörlü doğrulamayı kapatmak için uygulamanızdaki 6 haneli kodu girin.
         </Text>
         <Input
@@ -91,17 +125,13 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
           maxLength={6}
           containerStyle={styles.dialogInput}
         />
-        <View style={styles.dialogActions}>
-          <Button variant="ghost" title={t('mobile.cancel')} onPress={() => { f.setShowDisableDialog(false); f.disableMsg.clear(); }} />
-          <Button variant="danger" title={t('security.disableTwoFactor')} onPress={f.confirmDisableTwoFactor} isLoading={f.loading} />
-        </View>
         <ModalMessage state={f.disableMsg.state} />
       </Modal>
 
       {/* Phone Verification Dialog */}
       <Modal isOpen={f.showPhoneDialog} onClose={() => { f.setShowPhoneDialog(false); f.setPhoneMsg(null); }} title={t('security.phoneVerificationTitle')}>
         {f.phoneStep === 'enter' ? (
-          <View style={{ gap: theme.spacing[3] }}>
+          <View style={styles.dialogStack}>
             <PhoneInput
               label={t('security.phoneNumber')}
               // Gönderime basmadan görsün: çözülemeyen numara blur'da uyarır.
@@ -119,7 +149,7 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
             <Button title={t('security.sendCode')} onPress={f.handleSendPhoneCode} disabled={f.loading || !f.phoneInput} isLoading={f.loading} />
           </View>
         ) : (
-          <View style={{ gap: theme.spacing[3] }}>
+          <View style={styles.dialogStack}>
             <Input
               label={t('security.verificationCodeLower')}
               value={f.phoneCode}
@@ -131,21 +161,19 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
               containerStyle={styles.dialogInput}
             />
             <Button title={t('security.verify')} onPress={f.handleVerifyPhone} disabled={f.loading || f.phoneCode.length !== 6} isLoading={f.loading} />
-            <TouchableOpacity onPress={f.handleSendPhoneCode} disabled={f.resendIn > 0 || f.loading}>
-              <Text style={{ color: colors.text.muted, textAlign: 'center' }}>
+            <Pressable onPress={f.handleSendPhoneCode} disabled={f.resendIn > 0 || f.loading}>
+              <Text variant="bodySm" tone="muted" align="center">
                 {f.resendIn > 0 ? t('security.resendIn', { seconds: f.resendIn }) : t('security.resendCode')}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         )}
         {f.phoneMsg && (
           <Text
             testID="phone-message"
-            style={{
-              marginTop: theme.spacing[3],
-              textAlign: 'center',
-              color: f.phoneMsg.type === 'error' ? colors.danger[600]! : colors.text.muted,
-            }}
+            variant="bodySm"
+            tone={f.phoneMsg.type === 'error' ? 'danger' : 'muted'}
+            style={styles.phoneMessage}
           >
             {f.phoneMsg.text}
           </Text>
@@ -155,28 +183,38 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
       {/* 2FA Backup Codes Regenerate Dialog */}
       <Modal
         isOpen={f.showRegenerateDialog}
-        onClose={() => { f.setShowRegenerateDialog(false); f.regenMsg.clear(); }}
+        onClose={closeRegenerate}
         title={t('security.regenerateBackupCodes')}
+        footer={
+          f.newBackupCodes ? (
+            <Button variant="primary" fullWidth title={t('common.ok')} onPress={() => f.setShowRegenerateDialog(false)} />
+          ) : (
+            <ModalFooter
+              onCancel={closeRegenerate}
+              onConfirm={f.handleRegenerateBackupCodes}
+              cancelLabel={t('mobile.cancel')}
+              confirmLabel={t('security.regenerate')}
+              disabled={f.loading}
+            />
+          )
+        }
       >
         {f.newBackupCodes ? (
           <>
-            <Text style={styles.dialogText}>
+            <Text variant="bodySm" tone="muted" style={styles.dialogText}>
               Yeni yedek kodlarınız. Güvenli bir yerde saklayın — eski kodlar artık geçersiz.
             </Text>
             <View style={styles.secretContainer}>
               {f.newBackupCodes.map((code) => (
-                <Text key={code} style={styles.secretText}>
+                <Text key={code} variant="bodySm" style={styles.secretText}>
                   {code}
                 </Text>
               ))}
             </View>
-            <View style={styles.dialogActions}>
-              <Button variant="primary" title={t('common.ok')} onPress={() => f.setShowRegenerateDialog(false)} />
-            </View>
           </>
         ) : (
           <>
-            <Text style={styles.dialogText}>
+            <Text variant="bodySm" tone="muted" style={styles.dialogText}>
               Yeni yedek kodlar üretmek için uygulamanızdaki 6 haneli kodu girin.
             </Text>
             <Input
@@ -187,10 +225,6 @@ export function SecurityDialogs({ f }: { f: SecurityController }) {
               maxLength={6}
               containerStyle={styles.dialogInput}
             />
-            <View style={styles.dialogActions}>
-              <Button variant="ghost" title={t('mobile.cancel')} onPress={() => { f.setShowRegenerateDialog(false); f.regenMsg.clear(); }} />
-              <Button variant="primary" title={t('security.regenerate')} onPress={f.handleRegenerateBackupCodes} isLoading={f.loading} />
-            </View>
             <ModalMessage state={f.regenMsg.state} />
           </>
         )}

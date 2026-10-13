@@ -25,7 +25,7 @@ export interface MenuPage {
  * - `pricing` — ekran değil, `/membership`'a bilinçli bir yönlendirme.
  *
  * Etiketler çeviriden geldiği için liste bir FABRİKA: modül seviyesinde kurulsaydı
- * `t` daha hazır olmadan çalışır ve etiketler ilk dilde donardı (bkz. `profileConstants`
+ * `t` daha hazır olmadan çalışır ve etiketler ilk dilde donardı (bkz. `profileMenu`
  * başındaki aynı gerekçe). `route`/`icon` dilden bağımsız, testler bunları doğrudan okur.
  */
 export const buildInfoPages = (t: TFunction): ReadonlyArray<MenuPage> => [

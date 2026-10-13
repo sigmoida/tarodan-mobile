@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
-import { Modal, Divider, Text, theme } from '@/ui';
+import { Modal, Divider, Text } from '@/ui';
 import { ListingRemovalModal } from '@/components/listing/ListingRemovalModal';
 import UpgradeCta from '@/components/UpgradeCta';
 
@@ -10,9 +9,7 @@ import { styles } from '../_lib/styles';
 import type { MyListingsController } from '../_hooks/useMyListings';
 import { isExpiredListing } from '../_lib/types';
 
-const { colors } = theme;
-
-/** Per-listing action menu + kaldırma nedeni penceresi (silme / pasife alma). */
+/** Per-listing action menu (ikonsuz metin satırları) + kaldırma nedeni penceresi (silme / pasife alma). */
 export function MyListingsModals({ f }: { f: MyListingsController }) {
   const { t } = useTranslation();
   const menu = f.actionMenuListing;
@@ -28,42 +25,40 @@ export function MyListingsModals({ f }: { f: MyListingsController }) {
           <View>
             {menu.status !== 'deleted' && (
               <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('view', menu)}>
-                <Ionicons name="eye" size={20} color={colors.text.heading} />
-                <Text style={styles.menuItemText}>{t('common.view')}</Text>
+                <Text variant="body">{t('common.view')}</Text>
               </Pressable>
             )}
             {menu.status !== 'sold' && menu.status !== 'deleted' && menu.status !== 'suspended' && (
               <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('edit', menu)}>
-                <Ionicons name="pencil" size={20} color={colors.text.heading} />
-                <Text style={styles.menuItemText}>{t('common.edit')}</Text>
+                <Text variant="body">{t('common.edit')}</Text>
               </Pressable>
             )}
             {menu.status === 'active' && (
               <UpgradeCta>
                 <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('boost', menu)}>
-                  <Ionicons name="rocket" size={20} color={colors.warning[600]!} />
-                  <Text style={[styles.menuItemText, { color: colors.warning[700]! }]}>{t('listing.boostAction')}</Text>
+                  <Text variant="body" tone="warning">
+                    {t('listing.boostAction')}
+                  </Text>
                 </Pressable>
               </UpgradeCta>
             )}
             {menu.status === 'active' && (
               <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('deactivate', menu)}>
-                <Ionicons name="pause-circle" size={20} color={colors.text.heading} />
-                <Text style={styles.menuItemText}>{t('listing.deactivateAction')}</Text>
+                <Text variant="body">{t('listing.deactivateAction')}</Text>
               </Pressable>
             )}
             {menu.status === 'inactive' && (
               <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('relist', menu)}>
-                <Ionicons name="refresh" size={20} color={colors.text.heading} />
-                <Text style={styles.menuItemText}>
+                <Text variant="body">
                   {isExpiredListing(menu) ? t('profile.expiredListings.renew') : t('listing.relistAction')}
                 </Text>
               </Pressable>
             )}
             <Divider />
             <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('delete', menu)}>
-              <Ionicons name="trash" size={20} color={colors.danger[600]!} />
-              <Text style={[styles.menuItemText, { color: colors.danger[600]! }]}>{t('common.delete')}</Text>
+              <Text variant="body" tone="danger">
+                {t('common.delete')}
+              </Text>
             </Pressable>
           </View>
         )}

@@ -1,70 +1,65 @@
-import { View, ScrollView, RefreshControl } from 'react-native';
-import { tabDiag } from '@/components/_tabDiag';
-import { Text, theme } from '@/ui';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { tabDiag } from '@/components/_tabDiag';
+import { AppShell } from '@/components/shell/AppShell';
+import { Card, PageHeader, theme } from '@/ui';
 
-import { styles } from './_lib/profileStyles';
 import { useProfile } from './_hooks/useProfile';
 import { useHomeBadges } from './_hooks/useHomeBadges';
 import { ProfileGuestView } from './_components/ProfileGuestView';
 import {
   ProfileCard,
-  ProfileStatsGrid,
-  ProfileGarageSection,
-  ProfileQuickActions,
+  ProfileDeleteAccount,
   ProfileMenuSections,
 } from './_components/ProfileSections';
 
-const { colors } = theme;
+const { colors, spacing } = theme;
 
 /**
- * Profile tab — THIN screen. The `useProfile` controller owns all queries,
- * the trust-visibility mutation, and logout/delete/guest actions; this file
- * only branches guest vs. authenticated and composes the sections.
+ * Profil sekmesi — sekme kökü (AppShell). Web `ProfileSidebar`'ın gruplu, ikonsuz listesi:
+ * kimlik başlığı + Alışveriş / Finans / Koleksiyon / Analiz / İletişim / Hesap / Bilgi.
+ * `useProfile` tüm sorgu ve eylemlerin sahibi; ekran yalnız misafir/üye dallanması ve kompozisyon.
  */
 function ProfileScreen() {
   const f = useProfile();
   const { t } = useTranslation();
   // Hook sırası sabit kalsın diye erken return'den ÖNCE çağrılır (CLAUDE.md §12).
   const badges = useHomeBadges(f.isAuthenticated);
-  const insets = useSafeAreaInsets();
 
   if (!f.isAuthenticated) return <ProfileGuestView f={f} />;
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
-        <Text variant="h3" tone="inverted" weight="bold">
-          {t('profile.profile')}
-        </Text>
-      </View>
-
+    <AppShell>
       <ScrollView
-        style={styles.scrollView}
+        contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={f.refreshing}
             onRefresh={f.onRefresh}
-            tintColor={colors.primary[600]!}
+            tintColor={colors.primary[600]}
             colors={[colors.primary[600]!]}
           />
         }
       >
-        <ProfileCard f={f} />
-        <ProfileStatsGrid f={f} />
-        <ProfileGarageSection f={f} />
-        <ProfileQuickActions
-          badges={{ pendingOffers: badges.pendingOffers, pendingTrades: badges.pendingTrades }}
-          isBusiness={!!(f.user?.companyName && f.user?.taxId)}
-        />
-        <ProfileMenuSections f={f} />
-
-        <View style={{ height: 100 }} />
+        <PageHeader title={t('profile.profile')} />
+        <Card variant="bordered" padding={0} style={styles.card}>
+          <ProfileCard f={f} />
+          <ProfileMenuSections
+            f={f}
+            badges={{ pendingOffers: badges.pendingOffers, pendingTrades: badges.pendingTrades }}
+            isBusiness={!!(f.user?.companyName && f.user?.taxId)}
+          />
+        </Card>
+        <ProfileDeleteAccount f={f} />
       </ScrollView>
-    </View>
+    </AppShell>
   );
 }
+
+const styles = StyleSheet.create({
+  content: { padding: spacing[4], gap: spacing[2], paddingBottom: spacing[8] },
+  card: { overflow: 'hidden' },
+});
 
 export default tabDiag('profile', ProfileScreen);

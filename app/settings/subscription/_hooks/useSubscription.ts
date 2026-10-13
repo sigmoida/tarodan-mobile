@@ -1,7 +1,7 @@
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import { useFocusEffect } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { appAlert } from "@/ui";
+import { appAlert, toast } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
 import { membershipApi, paymentsApi } from "@/lib/api";
 import { qk } from "@/lib/query";
@@ -24,12 +24,6 @@ export function useSubscription() {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
-
-  const [snackbar, setSnackbar] = useState<{
-    visible: boolean;
-    message: string;
-    variant?: "default" | "success" | "danger";
-  }>({ visible: false, message: "" });
 
   const subscriptionQuery = useQuery<Subscription | null>({
     queryKey: qk.subscription.current,
@@ -82,18 +76,10 @@ export function useSubscription() {
       await queryClient.invalidateQueries({
         queryKey: qk.subscription.current,
       });
-      setSnackbar({
-        visible: true,
-        message: t('membership.cancelled'),
-        variant: "success",
-      });
+      toast.success(t('membership.cancelled'));
     },
     onError: (error: any) => {
-      setSnackbar({
-        visible: true,
-        message: error?.response?.data?.message || t('membership.cancelFailed'),
-        variant: "danger",
-      });
+      toast.error(error?.response?.data?.message || t('membership.cancelFailed'));
     },
   });
 
@@ -104,18 +90,10 @@ export function useSubscription() {
       await queryClient.invalidateQueries({
         queryKey: qk.subscription.current,
       });
-      setSnackbar({
-        visible: true,
-        message: t('membership.reactivated'),
-        variant: "success",
-      });
+      toast.success(t('membership.reactivated'));
     },
     onError: (error: any) => {
-      setSnackbar({
-        visible: true,
-        message: error?.response?.data?.message || t('membership.reactivateFailed'),
-        variant: "danger",
-      });
+      toast.error(error?.response?.data?.message || t('membership.reactivateFailed'));
     },
   });
 
@@ -170,8 +148,6 @@ export function useSubscription() {
     isLoading,
     handleCancel,
     handleReactivate,
-    snackbar,
-    setSnackbar,
     isPremium,
     isCancelled,
     daysLeft,

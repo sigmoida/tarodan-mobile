@@ -1,8 +1,7 @@
-import { View, ScrollView, Pressable, RefreshControl } from 'react-native';
-import { FAB, Button, Spinner, Text, ScreenHeader, theme } from '@/ui';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-
+import { FAB, TopBarAction } from '@/ui';
+import { PageShell } from '@/components/common/PageShell';
+import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { BoostModal } from '@/components/product/BoostModal';
 import { styles } from './_lib/styles';
 import { useMyListings } from './_hooks/useMyListings';
@@ -16,93 +15,80 @@ import {
 } from './_components/MyListingsSections';
 import { MyListingsModals } from './_components/MyListingsModals';
 
-const { colors } = theme;
-
 /**
  * My listings management — THIN screen. The `useMyListings` controller owns the
  * queries, mutations, quota derivation, and action-menu dispatch; this file
- * composes the limit card, filters, list, modals, boost modal, and FAB.
+ * composes the limit card, filters, list, modals, boost modal, and FAB. PageShell:
+ * Skeleton / hata + yeniden dene / çekip yenileme; modallar ve FAB `overlay` slotunda.
  */
 export default function MyListingsScreen() {
   const f = useMyListings();
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader
-        title={f.t('mobile.settingsMyListings')}
-        onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-        right={
-          <Pressable onPress={() => router.push('/settings/analytics')}>
-            <Ionicons name="stats-chart" size={theme.iconSize.lg} color={colors.text.heading} />
-          </Pressable>
-        }
-      />
+    <PageShell
+      title={f.t('mobile.settingsMyListings')}
+      onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+      right={
+        <TopBarAction
+          icon="stats-chart"
+          accessibilityLabel={f.t('mobile.settingsStatistics')}
+          onPress={() => router.push('/settings/analytics')}
+        />
+      }
+      loading={f.isLoading}
+      loadingFallback={<RowListSkeleton rows={4} />}
+      error={f.isError ? true : undefined}
+      errorTitle={f.t('favorites.loadFailedTitle')}
+      errorMessage={f.t('listing.loadListingsFailed')}
+      onRetry={() => f.refetch()}
+      refreshing={f.refreshing}
+      onRefresh={f.onRefresh}
+      overlay={
+        <>
+          <MyListingsModals f={f} />
 
+          {/* Boost / Öne Çıkar Modal */}
+          <BoostModal
+            visible={f.boostListing !== null}
+            onClose={() => f.setBoostListing(null)}
+            listingId={f.boostListing?.id ?? ''}
+            listingTitle={f.boostListing?.title ?? ''}
+            boostedUntil={f.boostListing?.boostedUntil ?? null}
+            isPremium={f.isPremiumUser}
+          />
+
+          {/* FAB */}
+          {f.canCreateNew && (
+            <FAB
+              icon="add"
+              accessibilityLabel={f.t('listing.createNewA11y')}
+              style={styles.fab}
+              onPress={() => router.push('/(tabs)/sell')}
+            />
+          )}
+        </>
+      }
+    >
       <MyListingsLimitCard f={f} />
       <MyListingsFilters f={f} />
       <MyListingsExpiredBanner f={f} />
       <MyListingsExpiredBar f={f} />
 
       {/* Listings */}
-      {f.isLoading ? (
-        <View style={styles.loadingContainer}>
-          <Spinner size="lg" />
-        </View>
-      ) : f.isError ? (
-        <View style={styles.loadingContainer}>
-          <Ionicons name="cloud-offline-outline" size={64} color={colors.text.subtle} />
-          <Text style={{ fontSize: 18, fontWeight: '600', marginTop: theme.spacing[4], color: colors.text.heading }}>{f.t('favorites.loadFailedTitle')}</Text>
-          <Text style={{ color: colors.text.subtle, marginTop: theme.spacing[2], textAlign: 'center' }}>{f.t('listing.loadListingsFailed')}</Text>
-          <Button variant="primary" title={f.t('common.tryAgain')} onPress={() => f.refetch()} style={{ marginTop: theme.spacing[4] }} />
-        </View>
-      ) : (
-        <ScrollView
-          style={styles.content}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={f.refreshing} onRefresh={f.onRefresh} colors={[colors.primary[600]!]} />
+      {f.filteredListings.map((listing) => (
+        <MyListingCard
+          key={listing.id}
+          listing={listing}
+          onMenu={() => f.setActionMenuListing(listing)}
+          selection={
+            f.isExpiredTab
+              ? { checked: f.selection.selected.has(listing.id), onToggle: () => f.selection.toggle(listing.id) }
+              : undefined
           }
-        >
-          {f.filteredListings.map((listing) => (
-            <MyListingCard
-              key={listing.id}
-              listing={listing}
-              onMenu={() => f.setActionMenuListing(listing)}
-              selection={
-                f.isExpiredTab
-                  ? { checked: f.selection.selected.has(listing.id), onToggle: () => f.selection.toggle(listing.id) }
-                  : undefined
-              }
-            />
-          ))}
-
-          {f.filteredListings.length === 0 && !f.isLoading && <MyListingsEmpty filter={f.filter} />}
-
-          <View style={{ height: 100 }} />
-        </ScrollView>
-      )}
-
-      <MyListingsModals f={f} />
-
-      {/* Boost / Öne Çıkar Modal */}
-      <BoostModal
-        visible={f.boostListing !== null}
-        onClose={() => f.setBoostListing(null)}
-        listingId={f.boostListing?.id ?? ''}
-        listingTitle={f.boostListing?.title ?? ''}
-        boostedUntil={f.boostListing?.boostedUntil ?? null}
-        isPremium={f.isPremiumUser}
-      />
-
-      {/* FAB */}
-      {f.canCreateNew && (
-        <FAB
-          icon="add"
-          accessibilityLabel={f.t('listing.createNewA11y')}
-          style={styles.fab}
-          onPress={() => router.push('/(tabs)/sell')}
         />
-      )}
-    </View>
+      ))}
+
+      {f.filteredListings.length === 0 && !f.isLoading && <MyListingsEmpty filter={f.filter} />}
+    </PageShell>
   );
 }

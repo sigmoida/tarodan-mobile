@@ -1,14 +1,11 @@
 import React from 'react';
-import { View, ScrollView, Pressable } from 'react-native';
+import { View, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
-import { Modal, Button, Spinner, Text, theme } from '@/ui';
+import { Button, Checkbox, Modal, Spinner, Text } from '@/ui';
 
 import { formatPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
 import { useDiscountProducts } from '../_hooks/useDiscountProducts';
-
-const { colors } = theme;
 
 /** Multi-select product picker for product-scoped discounts. */
 export function ProductPickerModal({
@@ -25,44 +22,36 @@ export function ProductPickerModal({
   const { t } = useTranslation();
   const { products, isLoading } = useDiscountProducts(visible);
   return (
-    <Modal isOpen={visible} onClose={onClose} title={t('discount.pickProducts')}>
+    <Modal
+      isOpen={visible}
+      onClose={onClose}
+      title={t('discount.pickProducts')}
+      footer={<Button variant="primary" fullWidth title={t('common.ok')} onPress={onClose} />}
+    >
       <ScrollView style={styles.dialogScroll}>
         {isLoading ? (
-          <View style={{ paddingVertical: theme.spacing[6], alignItems: 'center' }}>
+          <View style={styles.pickerLoading}>
             <Spinner size="lg" />
           </View>
         ) : products.length === 0 ? (
-          <Text style={styles.emptyProducts}>{t('discount.noActiveProducts')}</Text>
+          <Text variant="bodySm" tone="muted" style={styles.emptyProducts}>{t('discount.noActiveProducts')}</Text>
         ) : (
           products.map((p) => {
             const checked = selectedIds.includes(p.id);
             return (
-              <Pressable
-                key={p.id}
-                style={styles.productRow}
-                onPress={() =>
-                  onChange(checked ? selectedIds.filter((id) => id !== p.id) : [...selectedIds, p.id])
-                }
-              >
-                <Ionicons
-                  name={checked ? 'checkbox' : 'square-outline'}
-                  size={22}
-                  color={checked ? colors.primary[600]! : colors.text.subtle}
+              <View key={p.id} style={styles.productRow}>
+                <Checkbox
+                  checked={checked}
+                  onChange={() =>
+                    onChange(checked ? selectedIds.filter((id) => id !== p.id) : [...selectedIds, p.id])
+                  }
+                  label={`${p.title} · ${formatPrice(p.price)}`}
                 />
-                <View style={{ flex: 1, marginLeft: theme.spacing[3] }}>
-                  <Text style={styles.productTitle} numberOfLines={1}>
-                    {p.title}
-                  </Text>
-                  <Text style={styles.productPrice}>{formatPrice(p.price)}</Text>
-                </View>
-              </Pressable>
+              </View>
             );
           })
         )}
       </ScrollView>
-      <View style={styles.dialogActions}>
-        <Button variant="primary" title={t('common.ok')} onPress={onClose} />
-      </View>
     </Modal>
   );
 }

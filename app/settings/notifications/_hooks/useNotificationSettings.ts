@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { api } from '@/lib/api';
 // Doğrudan modül yolu: testler `@/lib/api` barrel'ını mock'luyor.
 import { errorText } from '@/lib/api/errorText';
@@ -69,7 +69,7 @@ export function useNotificationSettings() {
       api.patch('/users/me/settings', newSettings),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.user.notificationSettings });
-      appAlert(t('common.success'), t('settings.notificationSettingsSaved'));
+      toast.success(t('settings.notificationSettingsSaved'));
     },
     onError: (error: unknown) => {
       appAlert(t('common.error'), errorText(error, t('settings.settingUpdateFailed')));

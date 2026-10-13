@@ -1,16 +1,21 @@
 import React from 'react';
 import { View, FlatList } from 'react-native';
-import { Avatar, Spinner, Text } from '@/ui';
+import { Avatar, Text, theme } from '@/ui';
 
 import { parseMessageContent } from '@/utils/contentFilter';
 import { AppImage } from '@/components/AppImage';
+import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { styles } from '../_lib/styles';
-import { formatTime, getMessageStatus } from '../_lib/helpers';
+import { formatTime } from '../_lib/helpers';
 import type { MessageThreadController } from '../_hooks/useMessageThread';
+import { MessageTicks } from './MessageTicks';
 import { TypingIndicator } from './TypingIndicator';
 
+const { colors } = theme;
+
 /**
- * Grouped, date-divided message list with own/other bubbles.
+ * Grouped, date-divided message list with own/other bubbles (web MessageBubble: kendi balonu
+ * primary-500, karşı taraf çerçeveli beyaz; okundu işareti turuncu çift tik).
  *
  * Virtualized (#74): the grouped structure is flattened into typed rows
  * (divider + message) and rendered through a FlatList so only on-screen bubbles
@@ -48,7 +53,7 @@ export function MessageList({ f }: { f: MessageThreadController }) {
         return (
           <View style={styles.dateDivider}>
             <View style={styles.dateDividerLine} />
-            <Text style={styles.dateDividerText}>{item.date}</Text>
+            <Text variant="caption" style={styles.dateDividerText}>{item.date}</Text>
             <View style={styles.dateDividerLine} />
           </View>
         );
@@ -95,28 +100,15 @@ export function MessageList({ f }: { f: MessageThreadController }) {
               </View>
             ) : null}
             {parsed.text ? (
-              <Text
-                style={[styles.messageText, isOwn ? styles.messageTextOwn : styles.messageTextOther]}
-              >
+              <Text variant="bodySm" color={isOwn ? colors.text.inverted : colors.text.heading}>
                 {parsed.text}
               </Text>
             ) : null}
             <View style={styles.messageFooter}>
-              <Text
-                style={[styles.messageTime, isOwn ? styles.messageTimeOwn : styles.messageTimeOther]}
-              >
+              <Text variant="caption" color={isOwn ? colors.overlay.white70 : colors.text.subtle}>
                 {formatTime(message.createdAt)}
               </Text>
-              {isOwn && (
-                <Text
-                  style={[
-                    styles.messageStatus,
-                    message.status === 'read' && styles.messageStatusRead,
-                  ]}
-                >
-                  {getMessageStatus(message.status)}
-                </Text>
-              )}
+              {isOwn && <MessageTicks status={message.status} />}
             </View>
           </View>
         </View>
@@ -128,7 +120,7 @@ export function MessageList({ f }: { f: MessageThreadController }) {
   if (f.isLoadingMessages && f.messages.length === 0) {
     return (
       <View style={styles.loadingContainer}>
-        <Spinner size="lg" />
+        <RowListSkeleton rows={6} />
       </View>
     );
   }

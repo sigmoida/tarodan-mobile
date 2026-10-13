@@ -12,6 +12,9 @@ export interface ModalFooterProps {
   /** Yıkıcı onay (sil, vazgeç…) → danger. */
   destructive?: boolean;
   disabled?: boolean;
+  /** Ana aksiyon / İptal düğmesi için test kimliği. */
+  confirmTestID?: string;
+  cancelTestID?: string;
 }
 
 /**
@@ -32,6 +35,8 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({
   confirmLabel,
   destructive = false,
   disabled = false,
+  confirmTestID,
+  cancelTestID,
 }) => {
   const { t } = useTranslation();
   return (
@@ -42,12 +47,14 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({
         onPress={onConfirm}
         disabled={disabled}
         fullWidth
+        testID={confirmTestID}
       />
       <Button
         variant="outline"
         title={cancelLabel ?? t('common.cancel')}
         onPress={onCancel}
         fullWidth
+        testID={cancelTestID}
       />
     </View>
   );

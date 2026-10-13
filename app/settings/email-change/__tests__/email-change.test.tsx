@@ -11,7 +11,9 @@ jest.mock('@/lib/api', () => ({
   },
 }));
 
-jest.mock('expo-router', () => ({ router: { back: jest.fn(), push: jest.fn() } }));
+jest.mock('expo-router', () => ({
+  router: { back: jest.fn(), push: jest.fn(), canGoBack: jest.fn(() => true) },
+}));
 
 // Not: brief testi düz `render` ile yazıyordu; useEmailChange useMutation kullandığı için
 // QueryClientProvider gerekiyor (aksi halde "No QueryClient set" hatası). Repo'nun kendi

@@ -53,9 +53,9 @@ it('kartlar amaçsız istenir; rozetler web ile aynı (amaç rozeti yok)', async
 
   // Web kuralı: `autoRenewEligible` değilse "CVV gerektirir" (sepet kartı CVV istemese de).
   expect(screen.getAllByTestId('card-badge-cvv')).toHaveLength(1);
-  expect(screen.getByTestId('card-badge-cvv').props.children).toBe('CVV gerektirir');
+  expect(screen.getByTestId('card-badge-cvv')).toHaveTextContent('CVV gerektirir');
   expect(screen.getAllByTestId('card-badge-autoRenew')).toHaveLength(1);
-  expect(screen.getByTestId('card-badge-autoRenew').props.children).toBe('Oto-yenilemeye uygun');
+  expect(screen.getByTestId('card-badge-autoRenew')).toHaveTextContent('Oto-yenilemeye uygun');
 });
 
 it('kart silinince ödeme formunun amaçlı listesi de (`qk.payments.savedCards(amaç)`) tazelenir', async () => {

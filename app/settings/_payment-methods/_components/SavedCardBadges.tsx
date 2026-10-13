@@ -1,20 +1,19 @@
 import React from 'react';
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Text, theme } from '@/ui';
+import { Badge, type BadgeProps } from '@/ui';
 import type { SavedCard } from '@/lib/api';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { savedCardBadges, type CardBadgeTone } from '../_lib/badges';
 import { styles } from '../_lib/styles';
 
-const { colors } = theme;
-
-const TONE: Record<CardBadgeTone, { backgroundColor: string; color: string }> = {
-  neutral: { backgroundColor: colors.surface.alt, color: colors.text.muted },
-  primary: { backgroundColor: colors.primary[50], color: colors.primary[700] },
-  success: { backgroundColor: colors.success[50]!, color: colors.success[600]! },
-  warning: { backgroundColor: colors.warning[50]!, color: colors.warning[600]! },
-  info: { backgroundColor: colors.info[50]!, color: colors.info[600]! },
+/** Rozet tonu → web Badge varyantı (tek sözlük). */
+const VARIANT: Record<CardBadgeTone, NonNullable<BadgeProps['variant']>> = {
+  neutral: 'outline',
+  primary: 'default',
+  success: 'success',
+  warning: 'warning',
+  info: 'info',
 };
 
 /** Kayıtlı kart satırının rozetleri (şema, varsayılan, oto-yenileme/CVV, kurumsal — web gibi). */
@@ -25,9 +24,9 @@ export function SavedCardBadges({ card }: { card: SavedCard }) {
   return (
     <View style={styles.badges}>
       {badges.map((b) => (
-        <Text key={b.key} testID={`card-badge-${b.key}`} variant="caption" style={[styles.badge, TONE[b.tone]]}>
+        <Badge key={b.key} testID={`card-badge-${b.key}`} size="sm" variant={VARIANT[b.tone]}>
           {b.label}
-        </Text>
+        </Badge>
       ))}
     </View>
   );

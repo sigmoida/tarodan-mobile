@@ -1,9 +1,7 @@
 import { useEffect } from 'react';
-import { View } from 'react-native';
-import { ScreenHeader } from '@/ui';
 import { router } from 'expo-router';
+import { PageShell } from '@/components/common/PageShell';
 
-import { styles } from './_lib/styles';
 import { useSecurity } from './_hooks/useSecurity';
 import { SecuritySections } from './_components/SecuritySections';
 import { SecurityDialogs } from './_components/SecurityDialogs';
@@ -11,7 +9,7 @@ import { SecurityDialogs } from './_components/SecurityDialogs';
 /**
  * Security settings — THIN screen. The `useSecurity` controller owns all state,
  * the 2FA/password/phone flows, and the 4 modal-message instances; this file
- * composes the header, the setting cards, and the dialogs.
+ * composes the PageShell, the setting sections, and the dialogs (overlay slot).
  */
 export default function SecuritySettingsScreen() {
   const f = useSecurity();
@@ -24,11 +22,12 @@ export default function SecuritySettingsScreen() {
   if (!f.isAuthenticated) return null;
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={f.t('mobile.settingsSecurity')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
-
+    <PageShell
+      title={f.t('mobile.settingsSecurity')}
+      onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+      overlay={<SecurityDialogs f={f} />}
+    >
       <SecuritySections f={f} />
-      <SecurityDialogs f={f} />
-    </View>
+    </PageShell>
   );
 }

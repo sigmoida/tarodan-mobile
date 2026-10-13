@@ -205,13 +205,18 @@ describe("C2 inceleme · 2 iOS ModalFreeze: uyarı pencere kapandıktan sonra", 
     expect(sourceAlert()).toHaveBeenCalledWith("common.error", "Sunucu reddetti", undefined);
   });
 
-  it("hızlı BAŞARI yanıtı: kapanış süresi dolmadan appAlert çıkmaz, sonra çıkar", async () => {
+  it("hızlı BAŞARI yanıtı: diyalog açılmaz, bilgi toast olur", async () => {
+    const success = jest
+      .spyOn((jest.requireMock("@/ui") as { toast: { success: () => number } }).toast, "success")
+      .mockImplementation(() => 1);
     await submitDeactivate("ok");
     expect(sourceAlert()).not.toHaveBeenCalled();
+    expect(success).toHaveBeenCalledWith("listing.deactivated");
     act(() => {
       jest.advanceTimersByTime(450);
     });
-    expect(sourceAlert()).toHaveBeenCalledWith("common.success", "listing.deactivated", undefined);
+    expect(sourceAlert()).not.toHaveBeenCalled();
+    success.mockRestore();
   });
 });
 

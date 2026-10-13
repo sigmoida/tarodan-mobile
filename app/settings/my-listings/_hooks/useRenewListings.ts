@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type { MessageKey } from "@/i18n/lib";
-import { appAlert } from "@/ui";
+import { appAlert, toast } from "@/ui";
 import { productsApi, errorText } from "@/lib/api";
 import {
   readRenewBatch,
@@ -38,7 +38,7 @@ export function useRenewListings() {
     mutationFn: (listingId: string) => productsApi.renew(listingId),
     onSuccess: (response, listingId) => {
       invalidate(listingId);
-      appAlert(t("common.success"), t(renewMessageKey(response)));
+      toast.success(t(renewMessageKey(response)));
     },
     onError: (err) => {
       appAlert(t("common.error"), errorText(err, t("profile.expiredListings.renewFailed")));
@@ -56,7 +56,10 @@ export function useRenewListings() {
     onSuccess: ({ batch, titles }) => {
       invalidate();
       const { isError, message } = renewSummary(batch, (id) => titles[id] ?? id, texts);
-      appAlert(t(isError ? "common.error" : "common.success"), message);
+      // Başarısız ilan varsa mesaj okunması gereken detay (başlıklar) taşır → diyalog;
+      // tam başarı yalnız bilgi → toast.
+      if (batch.failed > 0) appAlert(t(isError ? "common.error" : "common.success"), message);
+      else toast.success(message);
     },
     onError: (err) => {
       // Tanınmayan yanıt şeklinde (UnexpectedRenewResponseError) sunucu yenilemeyi

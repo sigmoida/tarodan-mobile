@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { toast } from '@/ui';
 import { collectionsApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { IMAGE_PLACEHOLDER } from '@/utils/imageUrl';
@@ -17,7 +18,6 @@ export function useLikedCollections() {
   const { isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
-  const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['liked-collections'],
@@ -59,10 +59,10 @@ export function useLikedCollections() {
     try {
       await collectionsApi.unlike(collectionId);
       queryClient.invalidateQueries({ queryKey: ['liked-collections'] });
-      setSnackbar({ visible: true, message: t('collection.removedFromLikes') });
+      toast.success(t('collection.removedFromLikes'));
     } catch (err) {
       logger.error('Failed to unlike collection', { err: safeError(err) });
-      setSnackbar({ visible: true, message: t('utility.error500.title') });
+      toast.error(t('utility.error500.title'));
     }
   };
 
@@ -81,8 +81,6 @@ export function useLikedCollections() {
     onRefresh,
     handleUnlike,
     getImageUrl,
-    snackbar,
-    setSnackbar,
   };
 }
 

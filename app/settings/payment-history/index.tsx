@@ -1,67 +1,55 @@
-import { View, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
-import { ScreenHeader, theme, RawText } from '@/ui';
+import { FlatList } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { EmptyState, pageListContentStyle } from '@/ui';
+import { AuthGatePage } from '@/components/common/AuthGatePage';
+import { PageShell } from '@/components/common/PageShell';
+import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { usePaymentHistory } from './_hooks/usePaymentHistory';
-import { styles } from './_lib/styles';
 import { PaymentHistoryItem } from './_components/PaymentHistoryItem';
 
+/** Ödeme geçmişi — PageShell (Skeleton) + web Card satırları; boşken EmptyState. */
 export default function PaymentHistoryScreen() {
   const { t } = useTranslation();
   const f = usePaymentHistory();
+  const title = t('mobile.settingsPaymentHistory');
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
   if (!f.isAuthenticated) {
     return (
-      <View style={styles.container}>
-        <ScreenHeader title={t('mobile.settingsPaymentHistory')} onBack={back} />
-        <View style={styles.centeredContainer}>
-          <Ionicons name="log-in-outline" size={48} color={theme.colors.gray[400]} />
-          <RawText style={styles.emptyTitle}>{t('membership.loginRequiredTitle')}</RawText>
-          <RawText style={styles.emptySubtitle}>{t('payment.myPaymentsLoginSubtitle')}</RawText>
-          <TouchableOpacity style={styles.loginButton} onPress={() => router.push('/(auth)/login')}>
-            <RawText style={styles.loginButtonText}>{t('common.login')}</RawText>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <AuthGatePage
+        title={title}
+        onBack={back}
+        icon="log-in-outline"
+        emptyTitle={t('membership.loginRequiredTitle')}
+        subtitle={t('payment.myPaymentsLoginSubtitle')}
+      />
     );
   }
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={t('mobile.settingsPaymentHistory')} onBack={back} />
-
-      {f.isLoading ? (
-        <View style={styles.centeredContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary[500]} />
-        </View>
-      ) : (
-        <FlatList
-          data={f.payments}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <PaymentHistoryItem item={item} onPress={f.handlePaymentPress} />}
-          contentContainerStyle={f.payments.length === 0 ? styles.emptyListContainer : styles.listContent}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          refreshControl={
-            <RefreshControl
-              refreshing={f.isRefreshing}
-              onRefresh={() => f.fetchPayments()}
-              colors={[theme.colors.primary[500]]}
-              tintColor={theme.colors.primary[500]}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <View style={styles.emptyIconCircle}>
-                <Ionicons name="receipt-outline" size={48} color={theme.colors.gray[400]} />
-              </View>
-              <RawText style={styles.emptyTitle}>{t('payment.noHistory')}</RawText>
-              <RawText style={styles.emptySubtitle}>{t('payment.noPaymentsSubtitle')}</RawText>
-            </View>
-          }
-        />
-      )}
-    </View>
+    <PageShell
+      title={title}
+      onBack={back}
+      mode="list"
+      loading={f.isLoading}
+      loadingFallback={<RowListSkeleton rows={5} />}
+    >
+      <FlatList
+        data={f.payments}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <PaymentHistoryItem item={item} onPress={f.handlePaymentPress} />}
+        contentContainerStyle={pageListContentStyle}
+        refreshing={f.isRefreshing}
+        onRefresh={() => f.fetchPayments()}
+        ListEmptyComponent={
+          <EmptyState
+            icon="receipt-outline"
+            title={t('payment.noHistory')}
+            subtitle={t('payment.noPaymentsSubtitle')}
+          />
+        }
+      />
+    </PageShell>
   );
 }

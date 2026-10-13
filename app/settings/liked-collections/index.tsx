@@ -1,25 +1,14 @@
-import {
-  View,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-} from "react-native";
-import {
-  Spinner,
-  Snackbar,
-  Text,
-  ScreenHeader,
-  theme,
-} from "@/ui";
+import { View } from "react-native";
 import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { PageShell } from "@/components/common/PageShell";
+import { AuthGatePage } from "@/components/common/AuthGatePage";
+import { RowListSkeleton } from "@/components/common/RowListSkeleton";
 import { useLikedCollections } from "./_hooks/useLikedCollections";
 import { styles } from "./_lib/styles";
 import { LikedCollectionCard } from "./_components/LikedCollectionCard";
 
-const { colors } = theme;
-
+/** Beğenilen koleksiyonlar — PageShell (Skeleton / hata + yeniden dene / boş durum) + 2 sütun kart ızgarası. */
 export default function LikedCollectionsScreen() {
   const { t } = useTranslation();
   const f = useLikedCollections();
@@ -30,98 +19,44 @@ export default function LikedCollectionsScreen() {
 
   if (!f.isAuthenticated) {
     return (
-      <View style={styles.container}>
-        <ScreenHeader title={title} onBack={back} />
-        <View style={styles.emptyContainer}>
-          <Ionicons name="heart-outline" size={64} color={colors.text.subtle} />
-          <Text style={styles.emptyTitle}>{t("collection.authGateTitle")}</Text>
-          <Text style={styles.emptySubtitle}>
-            {t("collection.likedLoginSubtitle")}
-          </Text>
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={() => router.push("/(auth)/login")}
-          >
-            <Text style={styles.loginButtonText}>{t("common.login")}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <AuthGatePage
+        title={title}
+        onBack={back}
+        emptyTitle={t("collection.authGateTitle")}
+        icon="heart-outline"
+        subtitle={t("collection.likedLoginSubtitle")}
+      />
     );
   }
 
+  const isEmpty = !f.isLoading && !f.error && f.collections.length === 0;
+
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={title} onBack={back} />
-
-      {f.isLoading ? (
-        <View style={styles.loadingContainer}>
-          <Spinner size="lg" />
-          <Text style={styles.loadingText}>{t("common.loading")}</Text>
-        </View>
-      ) : f.error ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons
-            name="alert-circle-outline"
-            size={64}
-            color={colors.danger[600]!}
-          />
-          <Text style={styles.emptyTitle}>{t("common.error")}</Text>
-          <Text style={styles.emptySubtitle}>
-            {t("collection.likedLoadErrorDesc")}
-          </Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={() => f.refetch()}
-          >
-            <Text style={styles.retryButtonText}>{t("collection.tryAgain")}</Text>
-          </TouchableOpacity>
-        </View>
-      ) : f.collections.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons
-            name="albums-outline"
-            size={64}
-            color={colors.text.subtle}
-          />
-          <Text style={styles.emptyTitle}>{t("collection.noLikedCollections")}</Text>
-          <Text style={styles.emptySubtitle}>
-            {t("collection.likedEmptySubtitle")}
-          </Text>
-          <TouchableOpacity
-            style={styles.browseButton}
-            onPress={() => router.push("/collections")}
-          >
-            <Text style={styles.browseButtonText}>{t("collection.exploreCollections")}</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <ScrollView
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={f.refreshing} onRefresh={f.onRefresh} />
-          }
-        >
-          <View style={styles.collectionsGrid}>
-            {f.collections.map((collection) => (
-              <LikedCollectionCard
-                key={collection.id}
-                collection={collection}
-                f={f}
-              />
-            ))}
-          </View>
-          <View style={{ height: 100 }} />
-        </ScrollView>
-      )}
-
-      <Snackbar
-        visible={f.snackbar.visible}
-        onDismiss={() => f.setSnackbar({ ...f.snackbar, visible: false })}
-        duration={2000}
-      >
-        {f.snackbar.message}
-      </Snackbar>
-    </View>
+    <PageShell
+      title={title}
+      onBack={back}
+      loading={f.isLoading}
+      loadingFallback={<RowListSkeleton rows={4} />}
+      error={f.error ? true : undefined}
+      errorTitle={t("common.error")}
+      errorMessage={t("collection.likedLoadErrorDesc")}
+      onRetry={() => f.refetch()}
+      empty={isEmpty}
+      emptyState={{
+        icon: "albums-outline",
+        title: t("collection.noLikedCollections"),
+        subtitle: t("collection.likedEmptySubtitle"),
+        actionLabel: t("collection.exploreCollections"),
+        onAction: () => router.push("/collections"),
+      }}
+      refreshing={f.refreshing}
+      onRefresh={f.onRefresh}
+    >
+      <View style={styles.collectionsGrid}>
+        {f.collections.map((collection) => (
+          <LikedCollectionCard key={collection.id} collection={collection} f={f} />
+        ))}
+      </View>
+    </PageShell>
   );
 }

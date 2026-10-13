@@ -1,91 +1,63 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '@/ui';
 
-const { colors } = theme;
+const { colors, spacing, radius, radiusRole } = theme;
 
-// Route-local stylesheet (§12). Monolitten BİREBİR taşındı.
+/** Satır solundaki tip ikonu / ürün görseli kutusu ve okunmamış noktası (pt). */
+const LEADING = 40;
+const DOT = 8;
+
+// Route-local stylesheet (§12) — satırlar web Card (bordered, rounded-lg), token'lı.
 export const styles = StyleSheet.create({
-  footerSpinner: { paddingVertical: theme.spacing[4] },
-  // SafeAreaView'in kendisi turuncu → status bar inset'i de turuncu olur
-  // (anasayfa/profil header'larıyla aynı). İçerik gri arka planı `body`'den alır.
-  container: {
-    flex: 1,
-    backgroundColor: colors.primary[600],
-  },
-  body: {
-    flex: 1,
-    backgroundColor: theme.colors.gray[50],
-  },
-  header: {
-    paddingHorizontal: theme.spacing[4],
-    paddingVertical: theme.spacing[3],
+  footerSpinner: { paddingVertical: spacing[4] },
+  headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.primary[600],
+    gap: spacing[2],
   },
-  // Turuncu header üstünde okunması için beyaz rozet (home/profil deseni).
-  headerBadge: {
-    backgroundColor: colors.white,
-  },
-  markAllText: {
-    color: colors.white,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[2],
-  },
-  backBtn: {
-    marginLeft: -4,
-    marginRight: theme.spacing[0.5],
-    padding: theme.spacing[0.5],
-  },
-  titleSpacing: { marginBottom: theme.spacing[1] },
-  messageSpacing: { marginBottom: theme.spacing[1.5] },
-  list: {
-    padding: theme.spacing[4],
-  },
+  separator: { height: spacing[2] },
+  titleSpacing: { marginBottom: spacing[1] },
+  messageSpacing: { marginBottom: spacing[1.5] },
   emptyList: {
     flexGrow: 1,
   },
   item: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: theme.colors.white,
-    padding: theme.spacing[3.5],
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.colors.border.DEFAULT,
+    backgroundColor: colors.surface.elevated,
+    padding: spacing[3.5],
+    borderRadius: radiusRole.card,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
   },
   itemUnread: {
-    backgroundColor: theme.colors.primary[50],
-    borderColor: theme.colors.primary[500],
+    backgroundColor: colors.primary[50],
+    borderColor: colors.primary[200],
   },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: LEADING,
+    height: LEADING,
+    borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: theme.spacing[3],
+    marginRight: spacing[3],
   },
   thumb: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.radius.lg,
-    marginRight: theme.spacing[3],
-    backgroundColor: theme.colors.gray[50],
+    width: LEADING,
+    height: LEADING,
+    borderRadius: radiusRole.productCard,
+    marginRight: spacing[3],
+    backgroundColor: colors.surface.alt,
   },
   content: {
     flex: 1,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.primary[500],
-    marginLeft: theme.spacing[2],
-    marginTop: theme.spacing[1.5],
+    width: DOT,
+    height: DOT,
+    borderRadius: radius.full,
+    backgroundColor: colors.primary[500],
+    marginLeft: spacing[2],
+    marginTop: spacing[1.5],
   },
 });

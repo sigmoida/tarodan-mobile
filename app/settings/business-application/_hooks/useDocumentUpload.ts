@@ -2,7 +2,7 @@ import { useState } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { sellerDocumentsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { ACCEPTED_DOCUMENT_MIME, MAX_DOCUMENT_BYTES } from '../_lib/documents';
@@ -44,7 +44,7 @@ export function useDocumentUpload() {
       );
       queryClient.invalidateQueries({ queryKey: qk.sellerDocuments.list });
       queryClient.invalidateQueries({ queryKey: qk.sellerDocuments.application });
-      appAlert(t('businessApplication.documentUploadedTitle'), t('businessApplication.documentUploadedBody'));
+      toast.success(t('businessApplication.documentUploadedBody'));
     } catch (e) {
       const raw = (e as { response?: { data?: { message?: string | string[] } } })?.response?.data
         ?.message;

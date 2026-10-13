@@ -1,55 +1,43 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, ScrollView, TouchableOpacity } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Button, Snackbar, Text, theme } from '@/ui';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Button, Card, PageHeader, SectionCard, Text, theme } from '@/ui';
 
+import { AppShell } from '@/components/shell/AppShell';
 import { SignupPrompt } from '@/components/SignupPrompt';
 import UpgradeCta from '@/components/UpgradeCta';
-import { styles } from '../_lib/profileStyles';
-import { benefitTints } from '../_lib/profileConstants';
+import { formatPrice } from '@/utils/format';
 import type { ProfileController } from '../_hooks/useProfile';
 
-const { colors, spacing, radius } = theme;
+const { colors, spacing, minTouchTarget } = theme;
 
-/** Unauthenticated profile: welcome, benefits, quick links, premium promo. */
+/** Misafir profil: karşılama, üyelik faydaları, hızlı bağlantılar. Web gibi sade; ikon yok. */
 export function ProfileGuestView({ f }: { f: ProfileController }) {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
-  return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
-        <Text variant="h3" tone="inverted" weight="bold">
-          {t('profile.profile')}
-        </Text>
-        <View style={{ width: 24 }} />
-      </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.guestWelcome}>
-          <View
-            style={{
-              width: 80,
-              height: 80,
-              borderRadius: radius.full,
-              backgroundColor: colors.primary[50]!,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Ionicons name="person-outline" size={48} color={colors.primary[600]!} />
-          </View>
-          <Text variant="h1" align="center" style={{ marginTop: spacing[4] }}>
-            {t('profile.guestWelcomeTitle')}
-          </Text>
-          <Text
-            variant="body"
-            tone="muted"
-            align="center"
-            style={{ marginTop: spacing[2], marginBottom: spacing[5] }}
-          >
+  const benefits = [
+    { title: t('mobile.guestListTitle'), desc: t('mobile.guestListDesc') },
+    { title: t('mobile.guestTradeTitle'), desc: t('mobile.guestTradeDesc') },
+    { title: t('mobile.guestFavTitle'), desc: t('mobile.guestFavDesc') },
+    { title: t('mobile.guestGarageTitle'), desc: t('mobile.guestGarageDesc') },
+  ];
+  const quickLinks = [
+    { label: t('mobile.guestBrowseListings'), to: '/search' },
+    { label: t('collection.exploreCollections'), to: '/collections' },
+    { label: t('cart.myCart'), to: '/cart' },
+    { label: t('mobile.guestOrderTrack'), to: '/order-track' },
+    { label: t('help.title'), to: '/help' },
+  ];
+
+  return (
+    <AppShell>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <PageHeader title={t('profile.profile')} />
+
+        <Card variant="bordered" style={styles.welcome}>
+          <Text variant="h3">{t('profile.guestWelcomeTitle')}</Text>
+          <Text variant="bodySm" tone="muted">
             {t('profile.guestWelcomeSubtitle')}
           </Text>
           <Button
@@ -57,10 +45,8 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
             variant="primary"
             size="lg"
             fullWidth
-            icon="log-in-outline"
             title={t('auth.loginTitle')}
             onPress={() => router.push('/(auth)/login')}
-            style={styles.loginButton}
           />
           <Button
             variant="outline"
@@ -68,131 +54,80 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
             fullWidth
             title={t('auth.freeSignUp')}
             onPress={() => router.push('/(auth)/register')}
-            style={styles.registerButton}
           />
-        </View>
+        </Card>
 
-        <View style={styles.benefitsSection}>
-          <Text variant="h3" style={{ marginBottom: spacing[4] }}>
-            {t('profile.guestBenefitsTitle')}
-          </Text>
-
-          {[
-            {
-              icon: 'pricetag' as const,
-              title: t('mobile.guestListTitle'),
-              desc: t('mobile.guestListDesc'),
-              tint: benefitTints[0],
-            },
-            {
-              icon: 'swap-horizontal' as const,
-              title: t('mobile.guestTradeTitle'),
-              desc: t('mobile.guestTradeDesc'),
-              tint: benefitTints[1],
-            },
-            {
-              icon: 'heart' as const,
-              title: t('mobile.guestFavTitle'),
-              desc: t('mobile.guestFavDesc'),
-              tint: benefitTints[2],
-            },
-            {
-              icon: 'car-sport' as const,
-              title: t('mobile.guestGarageTitle'),
-              desc: t('mobile.guestGarageDesc'),
-              tint: benefitTints[3],
-            },
-          ].map((b) => (
-            <View key={b.title} style={styles.benefitCard}>
-              <View style={[styles.benefitIcon, { backgroundColor: b.tint.bg }]}>
-                <Ionicons name={b.icon} size={24} color={b.tint.fg} />
-              </View>
-              <View style={styles.benefitContent}>
-                <Text variant="label">{b.title}</Text>
-                <Text variant="bodySm" tone="muted" style={{ marginTop: spacing[1] }}>
-                  {b.desc}
-                </Text>
-              </View>
+        <SectionCard title={t('profile.guestBenefitsTitle')} bodyStyle={styles.benefits}>
+          {benefits.map((b) => (
+            <View key={b.title} style={styles.benefit}>
+              <Text variant="label">{b.title}</Text>
+              <Text variant="bodySm" tone="muted">
+                {b.desc}
+              </Text>
             </View>
           ))}
-        </View>
+        </SectionCard>
 
-        <View style={styles.quickLinksSection}>
-          <Text variant="label" tone="muted" style={{ marginBottom: spacing[3] }}>
+        <Card variant="bordered" padding={0} style={styles.links}>
+          <Text variant="overline" tone="subtle" style={styles.linksTitle}>
             {t('profile.guestQuickLinksTitle')}
           </Text>
-
-          {[
-            { icon: 'search-outline' as const, label: t('mobile.guestBrowseListings'), to: '/search' },
-            { icon: 'albums-outline' as const, label: t('collection.exploreCollections'), to: '/collections' },
-            { icon: 'cart-outline' as const, label: t('cart.myCart'), to: '/cart' },
-            { icon: 'location-outline' as const, label: t('mobile.guestOrderTrack'), to: '/order-track' },
-            { icon: 'help-circle-outline' as const, label: t('help.title'), to: '/help' },
-          ].map((q) => (
-            <TouchableOpacity
+          {quickLinks.map((q) => (
+            <Pressable
               key={q.label}
-              style={styles.quickLinkItem}
+              accessibilityRole="link"
+              style={({ pressed }) => [styles.linkRow, pressed && styles.linkRowPressed]}
               onPress={() => router.push(q.to as never)}
             >
-              <Ionicons name={q.icon} size={22} color={colors.primary[600]!} />
-              <Text variant="body" style={styles.quickLinkText}>
-                {q.label}
-              </Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.text.subtle} />
-            </TouchableOpacity>
+              <Text variant="bodySm">{q.label}</Text>
+            </Pressable>
           ))}
-        </View>
+        </Card>
 
         <UpgradeCta>
-          <View style={styles.premiumPromo}>
-            <View style={styles.premiumHeader}>
-              <Ionicons name="diamond" size={32} color={colors.warning[500]!} />
-              <Text variant="h2" tone="inverted" style={{ marginLeft: spacing[3] }}>
-                Premium Üyelik
-              </Text>
-            </View>
-            <Text
-              variant="body"
-              color={colors.white}
-              style={{ marginBottom: spacing[4], opacity: 0.85 }}
-            >
+          <Card variant="bordered" style={styles.promo}>
+            <Text variant="h3">Premium Üyelik</Text>
+            <Text variant="bodySm" tone="muted">
               Sınırsız ilan, takas özelliği, Digital Garage ve daha fazlası için Premium üye olun!
             </Text>
-            <View style={styles.premiumPrice}>
-              <Text variant="bodySm" color={colors.white} style={{ opacity: 0.7, marginRight: spacing[2] }}>
-                Aylık sadece
-              </Text>
-              <Text variant="displaySm" color={colors.warning[500]!} weight="bold">
-                ₺99
-              </Text>
-            </View>
+            <Text variant="bodySm" tone="muted">
+              Aylık sadece
+            </Text>
+            <Text variant="h2" color={colors.primary[600]!}>
+              {formatPrice(99)}
+            </Text>
             <Button
               variant="primary"
               size="lg"
               fullWidth
               title={t('mobile.guestGoPremium')}
               onPress={() => router.push('/(auth)/register')}
-              style={{ backgroundColor: colors.warning[500]! }}
             />
-          </View>
+          </Card>
         </UpgradeCta>
-
-        <View style={{ height: 100 }} />
       </ScrollView>
-
-      <Snackbar
-        visible={f.snackbarVisible}
-        onDismiss={() => f.setSnackbarVisible(false)}
-        duration={2000}
-      >
-        {f.snackbarMessage}
-      </Snackbar>
 
       <SignupPrompt
         visible={f.showPrompt}
         onDismiss={() => f.setShowPrompt(false)}
         type={f.promptType}
       />
-    </View>
+    </AppShell>
   );
 }
+
+const styles = StyleSheet.create({
+  content: { padding: spacing[4], gap: spacing[4], paddingBottom: spacing[8] },
+  welcome: { gap: spacing[3] },
+  benefits: { gap: spacing[3] },
+  benefit: { gap: spacing[0.5] },
+  links: { overflow: 'hidden' },
+  linksTitle: { padding: spacing[4], paddingBottom: spacing[1] },
+  linkRow: {
+    minHeight: minTouchTarget,
+    justifyContent: 'center',
+    paddingHorizontal: spacing[4],
+  },
+  linkRowPressed: { backgroundColor: colors.surface.alt },
+  promo: { gap: spacing[2] },
+});

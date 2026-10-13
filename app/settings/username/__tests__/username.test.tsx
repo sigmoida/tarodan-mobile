@@ -8,7 +8,9 @@ jest.mock('@/lib/api', () => ({
   userApi: { claimUsername: jest.fn(() => Promise.resolve({ data: { username: 'kaan.merakli', usernameClaimed: true } })) },
 }));
 
-jest.mock('expo-router', () => ({ router: { back: jest.fn() } }));
+jest.mock('expo-router', () => ({
+  router: { back: jest.fn(), canGoBack: jest.fn(() => true) },
+}));
 
 const mockUser = { username: '', usernameClaimed: false };
 jest.mock('@/stores/authStore', () => ({
