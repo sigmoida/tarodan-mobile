@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Modal, Button, Switch, Chip, Input, Text, theme } from '@/ui';
 
 import { styles } from '../_lib/styles';
+import { isQuantityType } from '../_lib/types';
 import type { DiscountsController } from '../_hooks/useDiscounts';
 
 const { colors } = theme;
@@ -35,16 +36,20 @@ export function DiscountFormModal({ f }: { f: DiscountsController }) {
             numberOfLines={2}
             containerStyle={styles.input}
           />
-          <Input
-            label={t('discount.couponCodeLabel')}
-            value={form.code}
-            onChangeText={(v: string) => setForm({ ...form, code: v.toUpperCase() })}
-            autoCapitalize="characters"
-            containerStyle={styles.input}
-          />
+          {isQuantityType(form.type) ? (
+            <Text style={styles.sectionLabel}>{t('discount.autoCampaignNote')}</Text>
+          ) : (
+            <Input
+              label={t('discount.couponCodeLabel')}
+              value={form.code}
+              onChangeText={(v: string) => setForm({ ...form, code: v.toUpperCase() })}
+              autoCapitalize="characters"
+              containerStyle={styles.input}
+            />
+          )}
 
           <Text style={styles.sectionLabel}>{t('discount.typeLabel')}</Text>
-          <View style={styles.toggleRow}>
+          <View style={[styles.toggleRow, { flexWrap: 'wrap' }]}>
             <Chip
               label={t('discount.typePercent')}
               selected={form.type === 'percentage'}
@@ -57,15 +62,60 @@ export function DiscountFormModal({ f }: { f: DiscountsController }) {
               variant={form.type === 'fixed_amount' ? 'primary' : 'neutral'}
               onPress={() => setForm({ ...form, type: 'fixed_amount' })}
             />
+            <Chip
+              label={t('discount.typeBogo')}
+              selected={form.type === 'bogo'}
+              variant={form.type === 'bogo' ? 'primary' : 'neutral'}
+              onPress={() => setForm({ ...form, type: 'bogo' })}
+            />
+            <Chip
+              label={t('discount.typeBulk')}
+              selected={form.type === 'bulk_quantity'}
+              variant={form.type === 'bulk_quantity' ? 'primary' : 'neutral'}
+              onPress={() => setForm({ ...form, type: 'bulk_quantity' })}
+            />
           </View>
 
-          <Input
-            label={form.type === 'percentage' ? t('discount.valueLabelPercent') : t('discount.valueLabelFixed')}
-            value={form.value}
-            onChangeText={(v: string) => setForm({ ...form, value: v.replace(',', '.') })}
-            keyboardType="numeric"
-            containerStyle={styles.input}
-          />
+          {form.type === 'bogo' ? (
+            <>
+              <Input
+                label={t('discount.buyQuantityLabel')}
+                placeholder={t('discount.buyQuantityPlaceholder')}
+                value={form.buyQuantity}
+                onChangeText={(v: string) => setForm({ ...form, buyQuantity: v.replace(/[^0-9]/g, '') })}
+                keyboardType="numeric"
+                containerStyle={styles.input}
+              />
+              <Input
+                label={t('discount.getQuantityLabel')}
+                placeholder={t('discount.getQuantityPlaceholder')}
+                value={form.getQuantity}
+                onChangeText={(v: string) => setForm({ ...form, getQuantity: v.replace(/[^0-9]/g, '') })}
+                keyboardType="numeric"
+                containerStyle={styles.input}
+              />
+            </>
+          ) : (
+            <>
+              {form.type === 'bulk_quantity' ? (
+                <Input
+                  label={t('discount.minQuantityLabel')}
+                  placeholder={t('discount.minQuantityPlaceholder')}
+                  value={form.minQuantity}
+                  onChangeText={(v: string) => setForm({ ...form, minQuantity: v.replace(/[^0-9]/g, '') })}
+                  keyboardType="numeric"
+                  containerStyle={styles.input}
+                />
+              ) : null}
+              <Input
+                label={form.type === 'fixed_amount' ? t('discount.valueLabelFixed') : t('discount.valueLabelPercent')}
+                value={form.value}
+                onChangeText={(v: string) => setForm({ ...form, value: v.replace(',', '.') })}
+                keyboardType="numeric"
+                containerStyle={styles.input}
+              />
+            </>
+          )}
 
           <Text style={styles.sectionLabel}>{t('discount.scopeLabel')}</Text>
           <View style={styles.toggleRow}>

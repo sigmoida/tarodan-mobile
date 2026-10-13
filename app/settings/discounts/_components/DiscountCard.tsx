@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Card, IconButton, Switch, Text, theme } from '@/ui';
 
 import { styles } from '../_lib/styles';
-import { formatDate, valueLabel, type Discount } from '../_lib/types';
+import { formatDate, quantitySummary, valueLabel, type Discount } from '../_lib/types';
 
 const { colors } = theme;
 
@@ -22,6 +22,7 @@ export function DiscountCard({
   onDelete: () => void;
 }) {
   const { t } = useTranslation();
+  const summary = quantitySummary(d, t);
   return (
     <Card style={styles.discountCard}>
       <View style={styles.cardHeader}>
@@ -41,6 +42,7 @@ export function DiscountCard({
       </View>
 
       {d.description ? <Text style={styles.discountDesc}>{d.description}</Text> : null}
+      {summary ? <Text style={styles.discountDesc}>{summary}</Text> : null}
 
       <View style={styles.metaRow}>
         <View style={styles.metaItem}>

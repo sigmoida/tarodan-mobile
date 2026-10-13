@@ -7,6 +7,7 @@ import { discountsApi, productsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useRefresh } from '@/hooks/useRefresh';
 import { initialForm, type Discount, type MyProduct } from '../_lib/types';
+import { buildDiscountPayload, discountFormError, isRangeError } from '../_lib/form';
 
 /**
  * Seller discount/coupon management controller — owns the discounts + products
@@ -118,6 +119,9 @@ export function useDiscounts() {
       description: d.description ?? '',
       type: d.type,
       value: String(d.value),
+      buyQuantity: d.buyQuantity?.toString() ?? '',
+      getQuantity: d.getQuantity?.toString() ?? '',
+      minQuantity: d.minQuantity?.toString() ?? '',
       scope: d.scope === 'product' ? 'product' : 'seller',
       targetProductIds: d.targetProductIds ?? [],
       minCartValue: d.minCartValue?.toString() ?? '',
@@ -133,43 +137,12 @@ export function useDiscounts() {
   };
 
   const handleSubmit = () => {
-    if (!form.name.trim()) {
-      appAlert(t('common.missing'), t('discount.nameRequired'));
+    const errorKey = discountFormError(form);
+    if (errorKey) {
+      appAlert(isRangeError(errorKey) ? t('common.error') : t('common.missing'), t(errorKey));
       return;
     }
-    const valueNum = parseFloat(form.value);
-    if (!valueNum || valueNum <= 0) {
-      appAlert(t('common.missing'), t('discount.valueInvalid'));
-      return;
-    }
-    if (form.type === 'percentage' && valueNum > 100) {
-      appAlert(t('common.error'), t('discount.percentTooHigh'));
-      return;
-    }
-    if (form.scope === 'product' && form.targetProductIds.length === 0) {
-      appAlert(t('common.missing'), t('discount.pickAtLeastOne'));
-      return;
-    }
-
-    const payload: any = {
-      code: form.code.trim() || undefined,
-      name: form.name.trim(),
-      description: form.description.trim() || undefined,
-      type: form.type,
-      value: valueNum,
-      scope: form.scope,
-      targetProductIds: form.scope === 'product' ? form.targetProductIds : [],
-      minCartValue: form.minCartValue ? parseFloat(form.minCartValue) : undefined,
-      maxDiscountAmount: form.maxDiscountAmount ? parseFloat(form.maxDiscountAmount) : undefined,
-      usageLimitTotal: form.usageLimitTotal ? parseInt(form.usageLimitTotal, 10) : undefined,
-      usageLimitPerUser: parseInt(form.usageLimitPerUser, 10) || 1,
-      isStackable: form.isStackable,
-      isActive: form.isActive,
-      startDate: new Date(form.startDate).toISOString(),
-      endDate: new Date(form.endDate).toISOString(),
-    };
-
-    saveMutation.mutate(payload);
+    saveMutation.mutate(buildDiscountPayload(form));
   };
 
   const handleDelete = (d: Discount) => {

@@ -1,0 +1,59 @@
+import { buildDiscountPayload, discountFormError } from '../form';
+import { initialForm, quantitySummary, valueLabel, type Discount } from '../types';
+
+const base = () => ({ ...initialForm(), name: 'Kampanya' });
+
+describe('discountFormError', () => {
+  it('bogo: al/bedava en az 1 olmalı; değer istenmez', () => {
+    const f = { ...base(), type: 'bogo' as const, value: '' };
+    expect(discountFormError(f)).toBe('discount.buyQuantityMin1');
+    expect(discountFormError({ ...f, buyQuantity: '2' })).toBe('discount.getQuantityMin1');
+    expect(discountFormError({ ...f, buyQuantity: '2', getQuantity: '0' })).toBe('discount.getQuantityMin1');
+    expect(discountFormError({ ...f, buyQuantity: '2', getQuantity: '1' })).toBeNull();
+  });
+  it('bulk_quantity: en az adet >= 2, yüzde 1-100', () => {
+    const f = { ...base(), type: 'bulk_quantity' as const, value: '15' };
+    expect(discountFormError(f)).toBe('discount.minQuantityMin2');
+    expect(discountFormError({ ...f, minQuantity: '1' })).toBe('discount.minQuantityMin2');
+    expect(discountFormError({ ...f, minQuantity: '3' })).toBeNull();
+    expect(discountFormError({ ...f, minQuantity: '3', value: '150' })).toBe('discount.percentTooHigh');
+    expect(discountFormError({ ...f, minQuantity: '3', value: '0' })).toBe('discount.valueInvalid');
+  });
+  it('mevcut kurallar korunur', () => {
+    expect(discountFormError({ ...base(), name: ' ' })).toBe('discount.nameRequired');
+    expect(discountFormError({ ...base(), value: '-5' })).toBe('discount.valueInvalid');
+    expect(discountFormError({ ...base(), value: '150' })).toBe('discount.percentTooHigh');
+    expect(discountFormError({ ...base(), scope: 'product' })).toBe('discount.pickAtLeastOne');
+    expect(discountFormError(base())).toBeNull();
+  });
+});
+
+describe('buildDiscountPayload', () => {
+  it('bogo: kodsuz, value 0, buy/get sayı; minQuantity yok', () => {
+    const p = buildDiscountPayload({ ...base(), type: 'bogo', code: 'ABC', buyQuantity: '2', getQuantity: '1' });
+    expect(p).toMatchObject({ type: 'bogo', code: undefined, value: 0, buyQuantity: 2, getQuantity: 1, minQuantity: undefined });
+  });
+  it('bulk_quantity: kodsuz, minQuantity + yüzde value', () => {
+    const p = buildDiscountPayload({ ...base(), type: 'bulk_quantity', code: 'ABC', minQuantity: '3', value: '15' });
+    expect(p).toMatchObject({ type: 'bulk_quantity', code: undefined, value: 15, minQuantity: 3, buyQuantity: undefined, getQuantity: undefined });
+  });
+  it('yüzde: kod korunur, adet alanları gitmez', () => {
+    const p = buildDiscountPayload({ ...base(), code: ' yaz10 ', buyQuantity: '2', minQuantity: '3' });
+    expect(p).toMatchObject({ type: 'percentage', code: 'yaz10', value: 10, buyQuantity: undefined, minQuantity: undefined });
+  });
+});
+
+describe('gösterim', () => {
+  const t = (k: string, p?: Record<string, unknown>) => `${k}:${JSON.stringify(p)}`;
+  const d = (o: Partial<Discount>) => ({ value: 0, type: 'percentage', ...o }) as Discount;
+  it('valueLabel', () => {
+    expect(valueLabel(d({ type: 'bogo', buyQuantity: 2, getQuantity: 1 }))).toBe('2+1');
+    expect(valueLabel(d({ type: 'bulk_quantity', value: 15 }))).toBe('%15');
+    expect(valueLabel(d({ type: 'percentage', value: 10 }))).toBe('%10');
+  });
+  it('quantitySummary yalnız adet koşullu türlerde', () => {
+    expect(quantitySummary(d({ type: 'bogo', buyQuantity: 2, getQuantity: 1 }), t as any)).toContain('discount.bogoSummary');
+    expect(quantitySummary(d({ type: 'bulk_quantity', minQuantity: 3, value: 15 }), t as any)).toContain('discount.bulkSummary');
+    expect(quantitySummary(d({ type: 'percentage' }), t as any)).toBeNull();
+  });
+});
