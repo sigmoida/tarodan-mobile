@@ -8,7 +8,11 @@ import React from 'react';
 import { Modal as RNModal, Platform } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { AlertDialogHost, appAlert } from '../AlertDialog';
-import { MODAL_CLOSE_DELAY_MS, MODAL_DISMISS_TIMEOUT_MS } from '../../lib/modal-timing';
+import {
+  MODAL_CLOSE_DELAY_MS,
+  MODAL_DISMISS_TIMEOUT_MS,
+  MODAL_PRESENT_RETRY_MS,
+} from '../../lib/modal-timing';
 
 const realAlert = appAlert;
 
@@ -79,7 +83,7 @@ describe('Android (onDismiss yok): sabit süre', () => {
       realAlert('B', undefined, [{ text: 'b' }]);
     });
     fireEvent.press(screen.getByText('a'));
-    act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS));
+    act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS * 2)); // kapanış + onPress sonrası oturma
     expect(screen.getByText('B')).toBeTruthy();
     fireEvent.press(screen.getByText('b'));
     act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS));
@@ -146,5 +150,91 @@ describe('iOS: RNModal onDismiss', () => {
     fireEvent.press(screen.getByText('Evet'));
     act(() => jest.advanceTimersByTime(MODAL_DISMISS_TIMEOUT_MS));
     expect(onPress).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('kuyruktaki alert ile onPress\'in açtığı modal çakışmaz', () => {
+  /** onPress'i bir native Modal (seçici) açan düğme + kuyrukta ikinci alert. */
+  function Harness() {
+    const [pickerOpen, setPickerOpen] = React.useState(false);
+    React.useEffect(() => {
+      realAlert('A', undefined, [{ text: 'a', onPress: () => { events.push('onPress'); setPickerOpen(true); } }]);
+      realAlert('B', undefined, [{ text: 'b' }]);
+    }, []);
+    return (
+      <>
+        <AlertDialogHost />
+        {pickerOpen && <RNModal visible testID="picker"><></></RNModal>}
+      </>
+    );
+  }
+  let events: string[];
+  beforeEach(() => {
+    events = [];
+    setPlatform('android');
+  });
+
+  it('onPress önce çalışır; sıradaki alert aynı tick\'te değil, bir pencere sonra açılır', () => {
+    render(<Harness />);
+    expect(screen.getByText('A')).toBeTruthy();
+    fireEvent.press(screen.getByText('a'));
+
+    act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS));
+    expect(events).toEqual(['onPress']);
+    expect(screen.getByTestId('picker')).toBeTruthy(); // seçici açıldı
+    expect(screen.queryByText('B')).toBeNull(); // B aynı anda sunulmadı (iOS reddederdi)
+
+    act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS - 1));
+    expect(screen.queryByText('B')).toBeNull();
+    act(() => jest.advanceTimersByTime(1));
+    expect(screen.getByText('B')).toBeTruthy(); // ikisi de kaybolmadı, sırayla göründü
+  });
+
+  it('B de kapanınca host boşalır (busy takılı kalmaz), yeni alert görünür', () => {
+    render(<Harness />);
+    fireEvent.press(screen.getByText('a'));
+    act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS * 2));
+    fireEvent.press(screen.getByText('b'));
+    act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS));
+    act(() => realAlert('Son', undefined, [{ text: 'z' }]));
+    expect(screen.getByText('Son')).toBeTruthy();
+  });
+});
+
+describe('iOS sunum watchdog\'u (onShow gelmezse yeniden dener)', () => {
+  beforeEach(() => setPlatform('ios'));
+
+  it('onShow gelmezse modal yeniden bağlanır, gelirse bir daha denemez', () => {
+    render(<AlertDialogHost />);
+    act(() => realAlert('Başlık', undefined, [{ text: 'Tamam' }]));
+    const first = screen.getByText('Başlık');
+
+    act(() => jest.advanceTimersByTime(MODAL_PRESENT_RETRY_MS - 1));
+    expect(screen.getByText('Başlık')).toBe(first); // henüz yeniden denenmedi
+    act(() => jest.advanceTimersByTime(1));
+    const second = screen.getByText('Başlık');
+    expect(second).not.toBe(first); // yeniden bağlandı (sunum tekrar denendi)
+
+    act(() => modal().props.onShow()); // bu sefer sunuldu
+    act(() => jest.advanceTimersByTime(MODAL_PRESENT_RETRY_MS * 3));
+    expect(screen.getByText('Başlık')).toBe(second);
+  });
+
+  it('reddedilen B sonunda görünür; host oturum boyunca kilitli kalmaz', () => {
+    render(<AlertDialogHost />);
+    act(() => {
+      realAlert('A', undefined, [{ text: 'a' }]);
+      realAlert('B', undefined, [{ text: 'b' }]);
+    });
+    act(() => modal().props.onShow());
+    fireEvent.press(screen.getByText('a'));
+    act(() => modal().props.onDismiss());
+    expect(screen.getByText('B')).toBeTruthy(); // B sunuldu ama iOS reddetti: onShow yok
+    act(() => jest.advanceTimersByTime(MODAL_PRESENT_RETRY_MS));
+    act(() => modal().props.onShow()); // yeniden denemede sunuldu
+    fireEvent.press(screen.getByText('b'));
+    act(() => modal().props.onDismiss());
+    act(() => realAlert('Son', undefined, [{ text: 'z' }]));
+    expect(screen.getByText('Son')).toBeTruthy();
   });
 });
