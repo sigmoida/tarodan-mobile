@@ -10,7 +10,7 @@ const { colors } = theme;
 /** Statü/role-göre aksiyonlar — satıcı kabul/karşı/red, alıcı iptal. Self-gates. */
 export function OfferDetailActions({ f }: { f: OfferDetailController }) {
   const { t } = useTranslation();
-  const { offer, isPending, isSeller, isBuyer, acceptMutation, rejectMutation, cancelMutation, counterMutation } = f;
+  const { offer, isPending, isSeller, isBuyer, counterMutation, accepting, rejecting, cancelling } = f;
   if (!offer) return null;
 
   return (
@@ -24,8 +24,8 @@ export function OfferDetailActions({ f }: { f: OfferDetailController }) {
           <Button
             variant="success"
             onPress={f.requestAccept}
-            isLoading={acceptMutation.isPending}
-            disabled={acceptMutation.isPending || rejectMutation.isPending || counterMutation.isPending}
+            isLoading={accepting}
+            disabled={accepting || rejecting || counterMutation.isPending}
             icon="checkmark"
             fullWidth
             style={styles.actionBtn}
@@ -35,7 +35,7 @@ export function OfferDetailActions({ f }: { f: OfferDetailController }) {
           <Button
             variant="outline"
             onPress={f.openCounter}
-            disabled={counterMutation.isPending}
+            disabled={accepting || rejecting || counterMutation.isPending}
             icon="swap-horizontal"
             fullWidth
             style={{ ...styles.actionBtn, borderColor: colors.info[600]! }}
@@ -46,7 +46,8 @@ export function OfferDetailActions({ f }: { f: OfferDetailController }) {
           <Button
             variant="outline"
             onPress={f.requestReject}
-            disabled={rejectMutation.isPending}
+            isLoading={rejecting}
+            disabled={accepting || rejecting || counterMutation.isPending}
             icon="close"
             fullWidth
             style={{ ...styles.actionBtn, borderColor: colors.danger[600]! }}
@@ -62,7 +63,8 @@ export function OfferDetailActions({ f }: { f: OfferDetailController }) {
         <Button
           variant="outline"
           onPress={f.requestCancel}
-          isLoading={cancelMutation.isPending}
+          isLoading={cancelling}
+          disabled={cancelling}
           icon="trash-outline"
           fullWidth
           style={{ ...styles.actionBtn, borderColor: colors.danger[600]!, margin: theme.spacing[4] }}

@@ -23,7 +23,13 @@ function defaultOkLabel(): string {
 
 export interface AlertDialogButton {
   text?: string;
+  /**
+   * Diyalog kapanış animasyonu BİTTİKTEN sonra çalışır (ModalFreeze). Kullanıcıya dönük
+   * "işlem başladı" geri bildirimi için `onSelect`'i kullan.
+   */
   onPress?: () => void;
+  /** Düğmeye basıldığı AN (kapanışı beklemeden, senkron) çalışır: bekleme durumu / spinner için. */
+  onSelect?: () => void;
   style?: 'default' | 'cancel' | 'destructive';
 }
 
@@ -122,6 +128,7 @@ export const AlertDialogHost: React.FC = () => {
   const close = (button?: AlertDialogButton) => {
     if (!current || closingRef.current) return; // çift basış: ikinci kapanış yok
     closingRef.current = true;
+    button?.onSelect?.();
     const request = current;
     afterCloseRef.current = () => {
       if (button) button.onPress?.();

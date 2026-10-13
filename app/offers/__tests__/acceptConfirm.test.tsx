@@ -119,6 +119,73 @@ describe('liste: satıcı gelen teklifi kabul eder', () => {
   });
 });
 
+/**
+ * Onaydan sonraki boşluk: diyalog kapanışı bitene dek mutasyon başlamaz (`AlertDialogHost`).
+ * Bu arada kart "bekliyor" olmalı: onay basıldığı AN (`onSelect`) spinner + devre dışı;
+ * ikinci basış ikinci onay/mutasyon açmaz.
+ */
+describe('onay basıldığı an bekliyor durumu (çift basış yok)', () => {
+  it('liste: onSelect -> spinner, ikinci basış yeni diyalog açmaz, tek mutasyon', async () => {
+    getAll.mockResolvedValue({ data: { data: [base()] } });
+    let resolveAccept!: () => void;
+    accept.mockImplementation(() => new Promise<void>((r) => (resolveAccept = () => r())));
+    mount(<OffersScreen />);
+    await screen.findByText('Vintage Kamera');
+    await flushPolicy();
+
+    fireEvent.press(screen.getByText('Kabul Et'));
+    const c = lastConfirm();
+    const callsAfterFirst = alertMock.mock.calls.length;
+    act(() => (c.confirm as { onSelect?: () => void }).onSelect?.());
+
+    // mutasyon henüz başlamadı ama kart bekliyor
+    expect(accept).not.toHaveBeenCalled();
+    expect(screen.queryByText('Kabul Et')).toBeNull();
+    fireEvent.press(screen.getByText('Reddet')); // devre dışı düğme
+    expect(alertMock.mock.calls.length).toBe(callsAfterFirst);
+
+    act(() => c.confirm.onPress());
+    await waitFor(() => expect(accept).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('Kabul Et')).toBeNull(); // mutasyon sürerken de bekliyor
+
+    await act(async () => resolveAccept());
+    await waitFor(() => expect(screen.getByText('Kabul Et')).toBeOnTheScreen());
+  });
+
+  it('liste: mutasyon hata verince bekliyor kalkar', async () => {
+    getAll.mockResolvedValue({ data: { data: [base()] } });
+    accept.mockRejectedValue(new Error('x'));
+    mount(<OffersScreen />);
+    await screen.findByText('Vintage Kamera');
+    await flushPolicy();
+    fireEvent.press(screen.getByText('Kabul Et'));
+    const c = lastConfirm();
+    act(() => (c.confirm as { onSelect?: () => void }).onSelect?.());
+    act(() => c.confirm.onPress());
+    await waitFor(() => expect(screen.getByText('Kabul Et')).toBeOnTheScreen());
+  });
+
+  it('detay: onSelect -> düğmeler devre dışı/spinner, ikinci basış yeni diyalog açmaz', async () => {
+    getOne.mockResolvedValue({ data: { data: base() } });
+    mount(<OfferDetailScreen />);
+    await screen.findByText('Vintage Kamera');
+    await flushPolicy();
+
+    fireEvent.press(screen.getByText('Kabul Et'));
+    const c = lastConfirm();
+    const callsAfterFirst = alertMock.mock.calls.length;
+    act(() => (c.confirm as { onSelect?: () => void }).onSelect?.());
+
+    expect(accept).not.toHaveBeenCalled();
+    expect(screen.queryByText('Kabul Et')).toBeNull(); // spinner
+    fireEvent.press(screen.getByText('Reddet'));
+    expect(alertMock.mock.calls.length).toBe(callsAfterFirst);
+
+    act(() => c.confirm.onPress());
+    await waitFor(() => expect(accept).toHaveBeenCalledTimes(1));
+  });
+});
+
 describe('liste: alıcı karşı teklifi kabul eder', () => {
   it('alıcı sürümü metni gösterilir', async () => {
     mockTab = 'sent';

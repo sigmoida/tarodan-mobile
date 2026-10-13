@@ -44,6 +44,20 @@ describe('Android (onDismiss yok): sabit süre', () => {
     expect(screen.queryByText('Başlık')).toBeNull();
   });
 
+  it('onSelect basıldığı an çalışır, onPress kapanış bitince', () => {
+    const calls: string[] = [];
+    render(<AlertDialogHost />);
+    act(() =>
+      realAlert('Başlık', undefined, [
+        { text: 'Evet', onSelect: () => calls.push('select'), onPress: () => calls.push('press') },
+      ]),
+    );
+    fireEvent.press(screen.getByText('Evet'));
+    expect(calls).toEqual(['select']);
+    act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS));
+    expect(calls).toEqual(['select', 'press']);
+  });
+
   it('kuyruktaki alert 50 ms değil, kapanış bitince açılır', () => {
     render(<AlertDialogHost />);
     act(() => {
