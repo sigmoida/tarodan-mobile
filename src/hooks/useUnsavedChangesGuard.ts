@@ -29,8 +29,19 @@ import { confirm } from '@/ui';
  * Çok adımlı gönderim (ör. iade: kanıt yükle → talep gönder): ara adımdan sonra
  * `await canProceed()` — "vazgeç?" onayı açıksa kararı bekler; "Değişiklikleri Sil"
  * seçildiyse ya da ekran kapandıysa `false` döner ve ikinci adım ATILMAZ.
+ *
+ * `copy`: varsayılan "kaydedilmemiş değişiklikler" metni yerine başka bir çıkış uyarısı
+ * (ör. tek seferlik yedek kodlar ekrandayken).
  */
-export function useUnsavedChangesGuard(dirty: boolean) {
+export interface LeaveGuardCopy {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  cancelLabel?: string;
+  destructive?: boolean;
+}
+
+export function useUnsavedChangesGuard(dirty: boolean, copy?: LeaveGuardCopy) {
   const { t } = useTranslation();
   const navigation = useNavigation();
   const [pendingLeave, setPendingLeave] = useState<(() => void) | null>(null);
@@ -56,13 +67,15 @@ export function useUnsavedChangesGuard(dirty: boolean) {
 
   usePreventRemove(dirty && !pendingLeave, ({ data }) => {
     // `confirm()` kapanış SONRASI çözülür (AlertDialog sözleşmesi) → dispatch iOS-güvenli.
-    const pending = confirm({
-      title: t('common.unsavedChanges'),
-      message: t('common.unsavedChangesDescription'),
-      confirmLabel: t('common.discardChanges'),
-      cancelLabel: t('common.continueEditing'),
-      destructive: true,
-    }).then((discard) => {
+    const pending = confirm(
+      copy ?? {
+        title: t('common.unsavedChanges'),
+        message: t('common.unsavedChangesDescription'),
+        confirmLabel: t('common.discardChanges'),
+        cancelLabel: t('common.continueEditing'),
+        destructive: true,
+      },
+    ).then((discard) => {
       if (decision.current === pending) decision.current = null;
       if (discard) {
         leaving.current = true; // onay anından itibaren bekleyen gönderim adımları durur

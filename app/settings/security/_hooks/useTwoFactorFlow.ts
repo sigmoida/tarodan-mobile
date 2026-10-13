@@ -94,8 +94,7 @@ export function useTwoFactorFlow() {
       const source = shownCodes?.source;
       setShownCodes(null);
       if (source === 'setup') {
-        leaveGuard.allowLeave();
-        goBackOrHome();
+        leaveGuard.leave(goBackOrHome);
       }
     },
     // Diyaloglar (yalnız aç/kapa)

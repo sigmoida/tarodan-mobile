@@ -7,7 +7,7 @@ import React from 'react';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { appAlert, toast } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
-import { backMock, canGoBackMock, resetRouterMocks } from '@/test-utils/router-mock';
+import { backMock, canGoBackMock, navigationDispatchMock, resetRouterMocks } from '@/test-utils/router-mock';
 import i18n from '@/i18n/config';
 
 jest.mock('@/ui', () => {
@@ -24,11 +24,9 @@ jest.mock('@/ui', () => {
 jest.mock('expo-router', () => jest.requireActual('@/test-utils/router-mock').routerMock);
 
 // Native-stack çıkış koruması: `usePreventRemove`'un son durumunu ve geri çağırımını yakala.
-const mockDispatch = jest.fn();
 const mockPrevent: { active: boolean; cb?: (e: { data: { action: unknown } }) => void } = { active: false };
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
-  useNavigation: () => ({ dispatch: mockDispatch }),
   usePreventRemove: (active: boolean, cb: (e: { data: { action: unknown } }) => void) => {
     mockPrevent.active = active;
     mockPrevent.cb = cb;
@@ -74,7 +72,7 @@ beforeEach(() => {
   successMock.mockClear();
   errorMock.mockClear();
   resetRouterMocks();
-  mockDispatch.mockClear();
+  navigationDispatchMock.mockClear();
   mockPrevent.active = false;
   mockPrevent.cb = undefined;
   canGoBackMock.mockReturnValue(true);
@@ -145,7 +143,7 @@ describe('yedek kodlar görünümünden çıkış', () => {
     await act(async () => {
       alertMock.mock.calls[0]![2].find((b: { style?: string }) => b.style === 'cancel').onPress();
     });
-    expect(mockDispatch).not.toHaveBeenCalled();
+    expect(navigationDispatchMock).not.toHaveBeenCalled();
 
     // Onay ("Tamam, kaydettim") → bekletilen çıkış sürer
     act(() => mockPrevent.cb!({ data: { action: leaveAction } }));
@@ -153,17 +151,16 @@ describe('yedek kodlar görünümünden çıkış', () => {
     await act(async () => {
       alertMock.mock.calls[1]![2].find((b: { style?: string }) => b.style !== 'cancel').onPress();
     });
-    expect(mockDispatch).toHaveBeenCalledWith(leaveAction);
+    expect(navigationDispatchMock).toHaveBeenCalledWith(leaveAction);
   });
 
   it('"Tamam, kaydettim" bilinçli çıkış: onay sorulmaz', async () => {
     await reachCodes();
     fireEvent.press(screen.getByTestId('backup-codes-ack'));
-    expect(backMock).toHaveBeenCalled();
-    // Navigasyon kaldırmayı tetiklerse koruma onaysız geçirir.
-    act(() => mockPrevent.cb!({ data: { action: leaveAction } }));
+    // Koruma kalkar (kodlar görünümü kapandı), çıkış onaysız gerçekleşir.
+    await waitFor(() => expect(backMock).toHaveBeenCalled());
+    expect(mockPrevent.active).toBe(false);
     expect(appAlert).not.toHaveBeenCalled();
-    expect(mockDispatch).toHaveBeenCalledWith(leaveAction);
   });
 
   it('kurulum/tanıtım görünümünde koruma kapalı', async () => {
