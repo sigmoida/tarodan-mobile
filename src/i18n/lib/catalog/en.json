@@ -8195,5 +8195,34 @@
     "missionText": "Our mission is to give model car enthusiasts the best shopping and trading experience. With secure payments, protected trades and a wide range of products, we make collecting accessible to everyone.",
     "valuesTitle": "Our Values",
     "valuesText": "Our values are reliability, transparency and respect for collecting culture. We put our users' safety first in every transaction and provide a fair, transparent marketplace."
+  },
+  "identity": {
+    "legalFirstName": "First name",
+    "legalLastName": "Last name",
+    "nationalId": "Turkish ID number (T.C. Kimlik No)",
+    "nationalIdPlaceholder": "11-digit number",
+    "legalNameHint": "Write it as it appears on your ID card.",
+    "registerHint": "We keep your name and Turkish ID number to meet our legal obligations; they are not shown on your profile or shared with other members.",
+    "validation": {
+      "nameInvalid": "Use letters only (2–50 characters).",
+      "nationalIdInvalid": "Enter a valid Turkish ID number."
+    },
+    "gate": {
+      "title": "We need your identity details",
+      "intro": "To meet our legal obligations we must keep every member's first name, last name and Turkish ID number on file. These details are not shown on your profile or listings and are never shared with other members.",
+      "lockedNote": "Once saved you cannot change these details yourself; if something is wrong, contact our support team.",
+      "prefilledHint": "Filled in from the number on your bank account; please check it.",
+      "submit": "Save and continue",
+      "saved": "Your identity details have been saved.",
+      "whenNeeded": "We ask for these only once, before actions such as paying, listing an item, trading or adding a bank account.",
+      "privacyLink": "Read how we process your personal data in our Privacy Notice (KVKK).",
+      "submitFailed": "Your identity details could not be saved. Please try again."
+    },
+    "profile": {
+      "title": "Identity details",
+      "description": "Kept for our legal obligations; never public.",
+      "lockedNote": "These details cannot be changed once saved. If something is wrong, contact our support team.",
+      "notProvided": "Not provided yet"
+    }
   }
 }

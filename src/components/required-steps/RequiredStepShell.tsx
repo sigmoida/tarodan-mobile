@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Alert, Button, Text, theme } from '@/ui';
@@ -58,49 +58,56 @@ export function RequiredStepShell({
       accessibilityViewIsModal
       testID={testID}
     >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.iconCircle}>
-          <Ionicons name={icon} size={40} color={colors.primary[600]!} />
+      {/* Kimlik adımında form var: klavye alt düğmeleri ve alanları örtmesin. */}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <View style={styles.iconCircle}>
+            <Ionicons name={icon} size={40} color={colors.primary[600]!} />
+          </View>
+          <Text variant="h2" align="center" style={styles.title} accessibilityRole="header">
+            {title}
+          </Text>
+          <Text variant="body" tone="muted" align="center" style={styles.intro}>
+            {intro}
+          </Text>
+          <View style={styles.body}>{children}</View>
+          {error ? (
+            <Alert variant="danger" testID={testID ? `${testID}-error` : undefined}>
+              {error}
+            </Alert>
+          ) : null}
+        </ScrollView>
+        <View style={styles.footer}>
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            title={primary.label}
+            onPress={primary.onPress}
+            disabled={primary.disabled || primary.isLoading}
+            isLoading={primary.isLoading}
+            testID={primary.testID}
+          />
+          <Button
+            variant="ghost"
+            fullWidth
+            title={secondary.label}
+            onPress={secondary.onPress}
+            disabled={secondary.disabled}
+            isLoading={secondary.isLoading}
+            testID={secondary.testID}
+          />
         </View>
-        <Text variant="h2" align="center" style={styles.title} accessibilityRole="header">
-          {title}
-        </Text>
-        <Text variant="body" tone="muted" align="center" style={styles.intro}>
-          {intro}
-        </Text>
-        <View style={styles.body}>{children}</View>
-        {error ? (
-          <Alert variant="danger" testID={testID ? `${testID}-error` : undefined}>
-            {error}
-          </Alert>
-        ) : null}
-      </ScrollView>
-      <View style={styles.footer}>
-        <Button
-          variant="primary"
-          size="lg"
-          fullWidth
-          title={primary.label}
-          onPress={primary.onPress}
-          disabled={primary.disabled || primary.isLoading}
-          isLoading={primary.isLoading}
-          testID={primary.testID}
-        />
-        <Button
-          variant="ghost"
-          fullWidth
-          title={secondary.label}
-          onPress={secondary.onPress}
-          disabled={secondary.disabled}
-          isLoading={secondary.isLoading}
-          testID={secondary.testID}
-        />
-      </View>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     // ForceUpdateGate (9999) bunun üstünde kalmalı: güncelleme zorunluysa önce o.

@@ -31,6 +31,11 @@ export const qk = {
     pending: ['consents', 'me', 'pending'] as const,
   },
 
+  legalIdentity: {
+    /** GET /legal-identity/me — ihtiyaç anında kimlik kapısı + profildeki salt-okunur bölüm. */
+    me: ['legal-identity', 'me'] as const,
+  },
+
   products: {
     all: ["products"] as const,
     list: (filters?: Filters) => ["products", "list", filters] as const,

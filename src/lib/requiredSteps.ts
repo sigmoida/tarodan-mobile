@@ -5,15 +5,15 @@
  * binmez; biri tamamlanınca sıradaki açılır.
  *
  * Web'den fark (Apple 5.1.1): web'de yasal kimlik girişte istenir; mobilde
- * kimlik İHTİYAÇ ANINDA istenir. Yine de aynı sıraya eklenecek bir adımdır
- * (B3): "durumu" girişte değil, bir işlem kimlik istediğinde `pending` olur.
- * Sıra hukuki önceliktir: önce sözleşme onayları (kimlik verisini işlemenin
- * dayanağı KVKK metnidir), sonra kimlik.
+ * kimlik İHTİYAÇ ANINDA istenir. Yine de aynı sıradaki bir adımdır: "durumu"
+ * girişte değil, bir işlem `ensureLegalIdentity()` çağırdığında `pending`
+ * olur. Sıra hukuki önceliktir: önce sözleşme onayları (kimlik verisini
+ * işlemenin dayanağı KVKK metnidir), sonra kimlik.
  *
  * Zorlama yalnız istemcidedir: sunucu bekleyen adımı olan üyenin isteklerini
  * reddetmez. Bu yüzden istek başarısız olursa adım `done` sayılır (fail-open).
  */
-export const REQUIRED_STEPS = ['consents'] as const;
+export const REQUIRED_STEPS = ['consents', 'legalIdentity'] as const;
 export type RequiredStep = (typeof REQUIRED_STEPS)[number];
 
 /**

@@ -6,6 +6,7 @@ import { useRequiredSteps } from '@/hooks/useRequiredSteps';
 import type { RequiredStep } from '@/lib/requiredSteps';
 import { isLegalTextPath } from '@/lib/shared/legalConsent';
 import { ConsentGate } from './ConsentGate';
+import { LegalIdentityGate } from './LegalIdentityGate';
 
 /**
  * Zorunlu adımların TEK montaj noktası (web `RequiredStepsGate`), kök düzende
@@ -13,22 +14,28 @@ import { ConsentGate } from './ConsentGate';
  * tamamlanması gereken adımlar `REQUIRED_STEPS` sırasıyla, HER SEFERİNDE
  * YALNIZ BİRİ tam ekran gösterilir.
  *
- * Kapatılamaz: Android geri tuşu kapı açıkken yutulur; tek çıkış adımı
- * tamamlamak ya da oturumu kapatmaktır. Yasal metin sayfaları muaftır ki üye
- * onaylayacağı metni okuyabilsin (geri dönünce kapı yeniden görünür).
+ * Kapatılamaz: onay adımında Android geri tuşu yutulur, tek çıkış onaylamak
+ * ya da oturumu kapatmaktır. İhtiyaç anında açılan kimlik adımının alternatif
+ * çıkışı "Vazgeç"tir (işlem iptal); geri tuşu da onu yapar. Yasal metin
+ * sayfaları muaftır ki üye okuyacağı metne ulaşabilsin (geri dönünce kapı
+ * yeniden görünür).
  */
 export default function RequiredStepsGate() {
   const pathname = usePathname();
-  const { active, consents } = useRequiredSteps();
+  const { active, consents, legalIdentity } = useRequiredSteps();
   const logout = useAuthStore((s) => s.logout);
 
   const visible = active !== null && !isLegalTextPath(pathname);
 
+  const cancelIdentity = legalIdentity.cancel;
   useEffect(() => {
     if (!visible) return undefined;
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (active === 'legalIdentity') cancelIdentity();
+      return true;
+    });
     return () => sub.remove();
-  }, [visible]);
+  }, [visible, active, cancelIdentity]);
 
   if (!visible || active === null) return null;
 
@@ -43,6 +50,16 @@ export default function RequiredStepsGate() {
     consents: () => (
       <ConsentGate pending={consents.pending} accept={consents.accept} onLogout={onLogout} />
     ),
+    // `missing` değişirse (ör. sunucu yeni bir eksik bildirdi) form yeni
+    // şemayla baştan kurulur.
+    legalIdentity: () =>
+      legalIdentity.status ? (
+        <LegalIdentityGate
+          key={legalIdentity.status.missing.join(',')}
+          status={legalIdentity.status}
+          onCancel={legalIdentity.cancel}
+        />
+      ) : null,
   };
 
   return <>{views[active]()}</>;

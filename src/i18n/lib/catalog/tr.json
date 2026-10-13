@@ -8195,5 +8195,34 @@
     "missionText": "Misyonumuz, model araba tutkunlarına en iyi alışveriş ve takas deneyimini sunmaktır. Güvenli ödeme, korumalı takas ve geniş ürün yelpazesi ile koleksiyonculuğu herkes için erişilebilir kılıyoruz.",
     "valuesTitle": "Değerlerimiz",
     "valuesText": "Değerlerimiz: güvenilirlik, şeffaflık ve koleksiyonculuk kültürüne saygı. Her işlemde kullanıcılarımızın güvenliğini ön planda tutarak, adil ve şeffaf bir ticaret ortamı sağlıyoruz."
+  },
+  "identity": {
+    "legalFirstName": "Ad",
+    "legalLastName": "Soyad",
+    "nationalId": "T.C. Kimlik Numarası",
+    "nationalIdPlaceholder": "11 haneli numara",
+    "legalNameHint": "Nüfus cüzdanınızdaki gibi yazın.",
+    "registerHint": "Ad, soyad ve T.C. Kimlik Numaranız yasal yükümlülüklerimiz gereği saklanır; profilinizde görünmez ve başka üyelerle paylaşılmaz.",
+    "validation": {
+      "nameInvalid": "Yalnız harf kullanın (2–50 karakter).",
+      "nationalIdInvalid": "Geçerli bir T.C. Kimlik Numarası girin."
+    },
+    "gate": {
+      "title": "Kimlik bilgileriniz gerekiyor",
+      "intro": "Yasal yükümlülüklerimiz gereği her üyemizin adını, soyadını ve T.C. Kimlik Numarasını kayıt altında tutmamız gerekiyor. Bu bilgiler profilinizde ya da ilanlarınızda görünmez, başka üyelerle paylaşılmaz.",
+      "lockedNote": "Kaydettikten sonra bu bilgileri kendiniz değiştiremezsiniz; hatalıysa destek ekibimize yazabilirsiniz.",
+      "prefilledHint": "Banka hesabınıza girdiğiniz numarayla dolduruldu; lütfen kontrol edin.",
+      "submit": "Kaydet ve devam et",
+      "saved": "Kimlik bilgileriniz kaydedildi.",
+      "whenNeeded": "Bu bilgiler yalnızca bir kez, ödeme, ilan verme, takas ya da banka hesabı ekleme gibi işlemlerden önce istenir.",
+      "privacyLink": "Kişisel verilerinizin nasıl işlendiğini KVKK Aydınlatma Metni'nde okuyabilirsiniz.",
+      "submitFailed": "Kimlik bilgileriniz kaydedilemedi. Lütfen tekrar deneyin."
+    },
+    "profile": {
+      "title": "Kimlik bilgileri",
+      "description": "Yasal yükümlülüğümüz için saklanır; herkese açık değildir.",
+      "lockedNote": "Bu bilgiler kaydedildikten sonra değiştirilemez. Hatalıysa destek ekibimizle iletişime geçin.",
+      "notProvided": "Henüz girilmedi"
+    }
   }
 }
