@@ -1,8 +1,8 @@
-import { View, Image, Pressable } from 'react-native';
+import { View, Pressable } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { useTranslation } from 'react-i18next';
 import { SectionCard, Text } from '@/ui';
 import { router } from 'expo-router';
-import { transformImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
 import type { Brand, CarModel } from '../_lib/types';
 
@@ -31,7 +31,7 @@ export function ModelsBrandSection({ brand, models }: { brand: Brand; models: Ca
           >
             <View style={styles.modelImage}>
               {m.image ? (
-                <Image source={{ uri: transformImageUrl(m.image) }} style={styles.modelImageFill} />
+                <AppImage source={m.image} recyclingKey={String(m.id ?? m.slug)} style={styles.modelImageFill} />
               ) : null}
             </View>
             <View style={styles.modelBody}>

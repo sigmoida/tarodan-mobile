@@ -55,8 +55,8 @@ describe("J14 · üyelik paket listesi (membership/index)", () => {
     renderWithProviders(<MembershipScreen />);
     await waitFor(() => expect(screen.getByText("membership.basic")).toBeOnTheScreen());
     expect(screen.getByText("membership.premium")).toBeOnTheScreen();
-    // Free kullanıcı için mevcut plan özeti
-    expect(screen.getByText("membership.currentPlan")).toBeOnTheScreen();
+    // Free kullanıcı için mevcut plan özeti (özet kartı başlığı + web gibi mevcut kartın düğme etiketi)
+    expect(screen.getAllByText("membership.currentPlan").length).toBeGreaterThan(0);
   });
 
   it("J14.2 aylık/yıllık toggle render edilir", async () => {
@@ -65,12 +65,12 @@ describe("J14 · üyelik paket listesi (membership/index)", () => {
     expect(screen.getByText("membership.yearly")).toBeOnTheScreen();
   });
 
-  it('J14.3 "Yükselt" → checkout ekranına tier+period ile yönlendirir', async () => {
+  it('J14.3 "Devam Et" → checkout ekranına tier+period ile yönlendirir', async () => {
     renderWithProviders(<MembershipScreen />);
     await waitFor(() =>
-      expect(screen.getAllByText("membership.upgrade").length).toBeGreaterThan(0),
+      expect(screen.getAllByText("common.continue").length).toBeGreaterThan(0),
     );
-    fireEvent.press(screen.getAllByText("membership.upgrade")[0]);
+    fireEvent.press(screen.getAllByText("common.continue")[0]);
     expect(pushMock).toHaveBeenCalledWith(
       expect.stringContaining("/membership/checkout?tier="),
     );

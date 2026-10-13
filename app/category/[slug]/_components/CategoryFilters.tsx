@@ -28,7 +28,12 @@ export function CategoryFilters({ f, count }: { f: CategoryController; count?: n
       layout={f.layout}
       onLayoutChange={f.setLayout}
       extra={
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scaleChips}>
+        <ScrollView
+          horizontal
+          keyboardShouldPersistTaps="handled"
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scaleChips}
+        >
           <Chip label={t('common.all')} selected={!f.selectedScale} onPress={() => f.setSelectedScale('')} />
           {SCALES.slice(0, 6).map((scale) => (
             <Chip

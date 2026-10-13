@@ -5,6 +5,7 @@ import { useRefresh } from "@/hooks/useRefresh";
 import { useAuthStore } from "@/stores/authStore";
 import { tradeViewerRole } from "@/lib/shared/tradeStatus";
 import { useTranslation } from "react-i18next";
+import { toast } from "@/ui";
 import { deriveTradeView } from "./_lib/derive";
 import { useTrade } from "./_hooks/useTrade";
 import { useCountdown } from "./_hooks/useCountdown";
@@ -74,7 +75,7 @@ export default function TradeDetailScreen() {
   const copyCode = (code?: string | null) => {
     if (!code) return;
     Clipboard.setString(code);
-    actions.notify(t('trade.trackingCopied'));
+    toast.success(t('trade.trackingCopied'));
   };
 
   return (
@@ -91,7 +92,6 @@ export default function TradeDetailScreen() {
             reason={actions.reject.reason}
             setReason={actions.reject.setReason}
             onSubmit={actions.reject.submit}
-            isPending={actions.reject.isPending}
           />
           <DisputeTradeModal
             visible={actions.dispute.visible}
@@ -101,7 +101,7 @@ export default function TradeDetailScreen() {
             description={actions.dispute.description}
             setDescription={actions.dispute.setDescription}
             onSubmit={actions.dispute.submit}
-            isPending={actions.dispute.isPending}
+            error={actions.dispute.error}
             t={t}
           />
         </>

@@ -34,7 +34,8 @@ export const minTouchTarget = 44;
 
 /**
  * Radius rolleri — web'deki gibi: ürün kartı `rounded` (4); kart, bölüm, buton, input ve rozet
- * `rounded-lg` (6); modal `rounded-xl` (8); chip ve avatar `full`.
+ * `rounded-lg` (6); modal `rounded-xl` (8); alttan açılan sheet'in üst köşeleri `2xl` (10);
+ * chip ve avatar `full`.
  */
 export const radiusRole = {
   productCard: radius.DEFAULT,
@@ -44,6 +45,7 @@ export const radiusRole = {
   input: radius.lg,
   badge: radius.lg,
   modal: radius.xl,
+  sheet: radius['2xl'],
   chip: radius.full,
   avatar: radius.full,
 } as const;

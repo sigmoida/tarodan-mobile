@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { router } from "expo-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { appAlert, toast } from "@/ui";
 import { tradesApi, paymentsApi } from "@/lib/api";
-import { qk } from "@/lib/query";
+import { qk, useAppMutation } from "@/lib/query";
 import { useTranslation } from "react-i18next";
 import { captureException } from "@/services/sentry";
 import { useRequireLegalIdentityFor } from "@/hooks/useLegalIdentity";
@@ -15,19 +14,20 @@ import {
 
 /**
  * Takas detay controller'ı: 6 mutation (kabul/reddet/onayla/nakit-öde/iptal/itiraz)
- * + toast bildirimi + iki modalın (reddet/itiraz) UI durumu + teslimat adresi. Tüm iş
- * mantığı ekrandan buraya taşındı; index yalnız kompozisyon yapar.
+ * + iki modalın (reddet/itiraz) UI durumu + teslimat adresi. Geri bildirim
+ * (`toast.success` / `toast.error` + invalidate) `useAppMutation`'dadır.
+ *
+ * Modal kuralı (CLAUDE.md §12): doğrulama modal İÇİNDE satır içi gösterilir
+ * (toast, açık native Modal'ın altında kalır); geçerliyse modal ÖNCE kapanır,
+ * mutation SONRA başlar — modal `isPending` beklemez. Sonuç toast'ı kapalı
+ * modalın üstünde görünür.
  */
 export function useTradeActions(id: string) {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   // Aksiyon başına hedef: kabul kontrol edilirken nakit ödeme yükleniyor
   // görünmesin (ve tersi).
   const { requireIdentityFor, checkingTarget } =
     useRequireLegalIdentityFor<"accept" | "cashPay">();
-
-  // Bilgi/başarı/doğrulama mesajları toast (web react-hot-toast); onay diyalogları appAlert.
-  const notify = (message: string) => toast(message);
 
   const [tradeAddressId, setTradeAddressId] = useState<string | null>(null);
 
@@ -37,58 +37,49 @@ export function useTradeActions(id: string) {
   const [disputeReason, setDisputeReason] =
     useState<DisputeReason>(DEFAULT_DISPUTE_REASON);
   const [disputeDescription, setDisputeDescription] = useState("");
+  const [disputeError, setDisputeError] = useState<string | null>(null);
 
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: qk.trades.detail(id) });
-    queryClient.invalidateQueries({ queryKey: qk.trades.all });
-  };
+  // Kabul/reddet/iptal/itiraz: detay + tüm takas listeleri; onayla yalnız detay.
+  const detailAndLists = [qk.trades.detail(id), qk.trades.all] as const;
 
-  const acceptMutation = useMutation({
-    mutationFn: () =>
-      tradesApi.accept(id, undefined, tradeAddressId ?? undefined),
-    onSuccess: () => {
-      invalidate();
-      notify(t("trade.accept.successMessage"));
+  const acceptMutation = useAppMutation(
+    () => tradesApi.accept(id, undefined, tradeAddressId ?? undefined),
+    {
+      invalidates: detailAndLists,
+      success: () => t("trade.accept.successMessage"),
+      error: () => t("common.operationFailed"),
+      onError: (error) =>
+        captureException(error, {
+          level: "error",
+          tags: { flow: "trade.accept" },
+          extra: { tradeId: id },
+        }),
     },
-    onError: (error: any) => {
-      captureException(error, {
-        level: "error",
-        tags: { flow: "trade.accept" },
-        extra: { tradeId: id },
-      });
-      notify(error.response?.data?.message || t("common.operationFailed"));
+  );
+
+  const rejectMutation = useAppMutation(
+    (reason: string | undefined) => tradesApi.reject(id, reason),
+    {
+      invalidates: detailAndLists,
+      success: () => t("trade.tradeRejected"),
+      error: () => t("common.operationFailed"),
+      onSuccess: () => setRejectReason(""),
     },
+  );
+
+  const confirmMutation = useAppMutation(() => tradesApi.confirmReceipt(id), {
+    invalidates: [qk.trades.detail(id)],
+    success: () => t("trade.confirmReceipt.successMessage"),
+    error: () => t("common.operationFailed"),
   });
 
-  const rejectMutation = useMutation({
-    mutationFn: () => tradesApi.reject(id, rejectReason.trim() || undefined),
-    onSuccess: () => {
-      invalidate();
-      setRejectVisible(false);
-      setRejectReason("");
-      notify(t("trade.tradeRejected"));
-    },
-    onError: (error: any) =>
-      notify(error.response?.data?.message || t("common.operationFailed")),
-  });
-
-  const confirmMutation = useMutation({
-    mutationFn: () => tradesApi.confirmReceipt(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: qk.trades.detail(id) });
-      notify(t("trade.confirmReceipt.successMessage"));
-    },
-    onError: (error: any) =>
-      notify(error.response?.data?.message || t("common.operationFailed")),
-  });
-
-  const cashPayMutation = useMutation({
-    mutationFn: () => paymentsApi.initiateTradeCash(id),
+  const cashPayMutation = useAppMutation(() => paymentsApi.initiateTradeCash(id), {
+    error: () => t("payment.startFailed"),
     onSuccess: (response: any) => {
       const data = response?.data?.data ?? response?.data ?? {};
       const paymentId = data.paymentId ?? data.id;
       if (!paymentId) {
-        notify(t("trade.cashPay.missingPaymentId"));
+        toast.error(t("trade.cashPay.missingPaymentId"));
         return;
       }
       const paymentUrl: string | undefined = data.paymentUrl;
@@ -103,42 +94,38 @@ export function useTradeActions(id: string) {
         },
       } as any);
     },
-    onError: (error: any) => {
+    onError: (error) =>
       captureException(error, {
         level: "error",
         tags: { flow: "trade.cashPay" },
         extra: { tradeId: id },
-      });
-      notify(error?.response?.data?.message || t("payment.startFailed"));
-    },
-  });
-
-  const cancelMutation = useMutation({
-    mutationFn: () => tradesApi.cancel(id, t("trade.cancelledByUser")),
-    onSuccess: () => {
-      invalidate();
-      notify(t("trade.tradeCancelled"));
-    },
-    onError: (error: any) =>
-      notify(error.response?.data?.message || t("common.operationFailed")),
-  });
-
-  const disputeMutation = useMutation({
-    mutationFn: () =>
-      tradesApi.raiseDispute(id, {
-        reason: disputeReason,
-        description: disputeDescription.trim(),
       }),
-    onSuccess: () => {
-      invalidate();
-      setDisputeVisible(false);
-      setDisputeDescription("");
-      setDisputeReason(DEFAULT_DISPUTE_REASON);
-      notify(t("trade.dispute.successMessage"));
-    },
-    onError: (error: any) =>
-      notify(error.response?.data?.message || t("trade.dispute.errorMessage")),
   });
+
+  const cancelMutation = useAppMutation(
+    () => tradesApi.cancel(id, t("trade.cancelledByUser")),
+    {
+      invalidates: detailAndLists,
+      success: () => t("trade.tradeCancelled"),
+      error: () => t("common.operationFailed"),
+    },
+  );
+
+  const disputeMutation = useAppMutation(
+    (body: { reason: DisputeReason; description: string }) =>
+      tradesApi.raiseDispute(id, body),
+    {
+      invalidates: detailAndLists,
+      success: () => t("trade.dispute.successMessage"),
+      error: () => t("trade.dispute.errorMessage"),
+      // Modal gönderimde zaten kapandı; başarıda taslak sıfırlanır, hatada metin korunur
+      // (kullanıcı yeniden açıp tekrar deneyebilsin).
+      onSuccess: () => {
+        setDisputeDescription("");
+        setDisputeReason(DEFAULT_DISPUTE_REASON);
+      },
+    },
+  );
 
   // --- Handler'lar (aksiyon butonlarından) ---
   const handleAccept = async () => {
@@ -179,15 +166,23 @@ export function useTradeActions(id: string) {
   };
 
   const submitDispute = () => {
-    if (disputeDescription.trim().length < 10) {
-      notify(t("trade.dispute.minLengthError"));
+    const description = disputeDescription.trim();
+    if (description.length < 10) {
+      // Modal açık: toast altında kalırdı — alan altında satır içi göster.
+      setDisputeError(t("trade.dispute.minLengthError"));
       return;
     }
-    disputeMutation.mutate();
+    setDisputeError(null);
+    setDisputeVisible(false); // §12: önce kapat,
+    disputeMutation.mutate({ reason: disputeReason, description }); // sonra gönder.
+  };
+
+  const submitReject = () => {
+    setRejectVisible(false); // §12: önce kapat, sonra gönder.
+    rejectMutation.mutate(rejectReason.trim() || undefined);
   };
 
   return {
-    notify,
     // teslimat adresi
     setTradeAddressId,
     // reddet modal
@@ -197,23 +192,26 @@ export function useTradeActions(id: string) {
       close: () => setRejectVisible(false),
       reason: rejectReason,
       setReason: setRejectReason,
-      submit: () => rejectMutation.mutate(),
-      isPending: rejectMutation.isPending,
+      submit: submitReject,
     },
     // itiraz modal
     dispute: {
       visible: disputeVisible,
       open: () => {
         setDisputeReason(DEFAULT_DISPUTE_REASON);
+        setDisputeError(null);
         setDisputeVisible(true);
       },
       close: () => setDisputeVisible(false),
       reason: disputeReason,
       setReason: setDisputeReason,
       description: disputeDescription,
-      setDescription: setDisputeDescription,
+      setDescription: (v: string) => {
+        setDisputeDescription(v);
+        if (disputeError) setDisputeError(null);
+      },
+      error: disputeError,
       submit: submitDispute,
-      isPending: disputeMutation.isPending,
     },
     // aksiyonlar
     handleAccept,

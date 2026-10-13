@@ -1,21 +1,16 @@
-import { useMutation } from '@tanstack/react-query';
-import { appAlert, toast } from '@/ui';
 import i18n from '@/i18n/config';
 import { offersApi } from '@/lib/api';
-import { formatApiErrorMessage } from '@/utils/formatApiErrorMessage';
-import { useInvalidateOffers } from './useInvalidateOffers';
+import { useAppMutation } from '@/lib/query';
+import { OFFER_INVALIDATES } from '../_lib/invalidates';
 
-/** Alıcının (daha düşük) karşı teklifi (BuyerCounterModal sahiplenir). */
+/** Alıcının (daha düşük) karşı teklifi (BuyerCounterModal sahiplenir; modal KAPANDIKTAN sonra tetiklenir). */
 export function useDoBuyerCounter() {
-  const invalidate = useInvalidateOffers();
-  return useMutation({
-    mutationFn: ({ id, amount }: { id: string; amount: number }) =>
-      offersApi.buyerCounter(id, amount),
-    onSuccess: () => {
-      invalidate();
-      toast.success(i18n.t('offer.buyerCounterSent'));
+  return useAppMutation(
+    ({ id, amount }: { id: string; amount: number }) => offersApi.buyerCounter(id, amount),
+    {
+      invalidates: OFFER_INVALIDATES,
+      success: () => i18n.t('offer.buyerCounterSent'),
+      error: () => i18n.t('offer.counterFailed'),
     },
-    onError: (err) =>
-      appAlert(i18n.t('common.error'), formatApiErrorMessage(err, i18n.t('offer.counterFailed'))),
-  });
+  );
 }

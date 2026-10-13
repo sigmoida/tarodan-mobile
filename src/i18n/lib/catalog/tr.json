@@ -5,6 +5,7 @@
     "logout": "Çıkış Yap",
     "save": "Kaydet",
     "cancel": "İptal",
+    "giveUp": "Vazgeç",
     "delete": "Sil",
     "edit": "Düzenle",
     "search": "Ara",
@@ -439,7 +440,7 @@
     "companyLegalName": "Şirket Tam Adı",
     "companyLegalNamePlaceholder": "Örn. Tarodan Teknoloji Anonim Şirketi",
     "companyTitle": "Şirket Ünvanı",
-    "companyTitlePlaceholder": "Örn. Tarodan Teknoloji A.Ş.",
+    "companyTitlePlaceholder": "Örn. ABC Ltd. Şti.",
     "companyAddress": "Şirket Adresi",
     "companyAddressPlaceholder": "Mahalle, cadde, bina ve ilçe bilgileri",
     "companyEmail": "Şirket E-posta Adresi",
@@ -503,6 +504,10 @@
     "year": "Yıl",
     "category": "Kategori",
     "images": "Fotoğraflar",
+    "basicInfo": "Temel Bilgiler",
+    "imageUpload": {
+      "removeImage": "{index}. görseli kaldır"
+    },
     "views": "görüntülenme",
     "likes": "beğeni",
     "noReviewsShort": "Değerlendirme yok",
@@ -768,6 +773,7 @@
     "moreProductsComingSoon": "Yakında yeni ürünler eklenecek.",
     "productFallback": "Ürün",
     "zoomPhotoA11y": "Fotoğrafı büyüt",
+    "galleryPageA11y": "{total} fotoğraftan {current}.",
     "color": "Renk",
     "boxedCondition": "Kutu durumu",
     "boxed": "Kutulu",
@@ -8188,7 +8194,9 @@
     "discountOnlyLabel": "Sadece İndirimli",
     "tradeOnlyChip": "Takaslı",
     "resultsLoading": "Sonuçlar yükleniyor…",
-    "showResultsCount": "{count} Sonuç Göster"
+    "showResultsCount": "{count} Sonuç Göster",
+    "showAllOptions": "Tümünü göster ({count})",
+    "refineSearchHint": "Daha fazlası için aramayı kullanın"
   },
   "signupPrompt": {
     "favoritesDescription": "Beğendiğiniz ürünleri favorilere ekleyerek daha sonra kolayca bulabilirsiniz. Ücretsiz üye olun!",

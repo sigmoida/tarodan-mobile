@@ -1,14 +1,11 @@
 import React from 'react';
-import { View, ActivityIndicator } from 'react-native';
-import { theme } from '@/ui';
+import { ScreenLoader } from '@/ui';
 
-import { styles } from '../_lib/styles';
-
-/** Ön koşul kapısı (IBAN / kargo adresi) okunurken gösterilen TEK yükleniyor göstergesi. */
+/**
+ * Ön koşul kapısı (IBAN / kargo adresi) okunurken gösterilen TEK yükleniyor göstergesi.
+ * Form gövdesi içinde (kota kartının altında) çizildiği için tam ekran değil: standart
+ * `ScreenLoader`, `fullscreen={false}`.
+ */
 export function GateLoading() {
-  return (
-    <View style={styles.limitsPlaceholder}>
-      <ActivityIndicator size="small" color={theme.colors.primary[600]!} />
-    </View>
-  );
+  return <ScreenLoader fullscreen={false} />;
 }

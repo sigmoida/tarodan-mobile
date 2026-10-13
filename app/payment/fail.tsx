@@ -6,6 +6,7 @@ import { paymentsApi } from '@/lib/api';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 import { forgetPaymentCapabilityIfFinal } from '@/lib/payment/paymentCapability';
 import { PageShell } from '@/components/common/PageShell';
+import { useHardwareBackToHome } from '@/hooks/useBlockHardwareBack';
 import { PaymentResultCard } from '@/components/payment/PaymentResultCard';
 
 /**
@@ -44,6 +45,8 @@ export default function PaymentFailScreen() {
   const [retrying, setRetrying] = useState(false);
   const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
   const isGuest = guest === '1';
+  // Sonuç ekranı: donanım geri tuşu ödeme formuna/sepete DÖNMEZ — ana sayfaya; tekrar deneme düğmede.
+  useHardwareBackToHome();
 
   useEffect(() => {
     const load = async () => {

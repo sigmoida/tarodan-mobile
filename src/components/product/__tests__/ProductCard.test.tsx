@@ -56,14 +56,27 @@ describe('ProductCard — grid', () => {
     expect(screen.queryByText('STOKTA YOK')).toBeNull();
   });
 
-  it('rozetler: sponsorlu, takas, bedel kampanyası (yalnız ilki)', () => {
+  it('rozetler: en çok 2 — öncelik sponsorlu > takas > bedel kampanyası', () => {
     render(
       <ProductCard product={{ ...base, isBoosted: true, tradeAvailable: true, feeCampaigns: ['Kargo Bedava', 'Diğer'] } as never} />,
     );
     expect(screen.getByText('Sponsorlu')).toBeTruthy();
     expect(screen.getByText('Takas')).toBeTruthy();
+    expect(screen.queryByText('Kargo Bedava')).toBeNull();
+    expect(screen.queryByText('Diğer')).toBeNull();
+  });
+
+  it('rozetler: sponsorlu yoksa takas + bedel kampanyası (yalnız ilki) görünür', () => {
+    render(<ProductCard product={{ ...base, tradeAvailable: true, feeCampaigns: ['Kargo Bedava', 'Diğer'] } as never} />);
+    expect(screen.queryByText('Sponsorlu')).toBeNull();
+    expect(screen.getByText('Takas')).toBeTruthy();
     expect(screen.getByText('Kargo Bedava')).toBeTruthy();
     expect(screen.queryByText('Diğer')).toBeNull();
+  });
+
+  it('rozet etiketi tek satır: uzun kampanya metni ellipsis ile kırpılır', () => {
+    render(<ProductCard product={{ ...base, feeCampaigns: ['Çok uzun bir kampanya adı burada yer alıyor'] } as never} />);
+    expect(screen.getByText('Çok uzun bir kampanya adı burada yer alıyor').props.numberOfLines).toBe(1);
   });
 
   it('meta satırı: puan (varsa), beğeni, görüntülenme; showMeta=false ile gizlenir', () => {

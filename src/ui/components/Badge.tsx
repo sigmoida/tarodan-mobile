@@ -110,11 +110,15 @@ export const Badge: React.FC<BadgeProps> = ({
       style={[styles.base, style]}
       {...rest}
     >
-      <RawText style={[pillTextStyle(size, vs.text), textStyle]}>{content}</RawText>
+      <RawText numberOfLines={1} style={[pillTextStyle(size, vs.text), styles.label, textStyle]}>
+        {content}
+      </RawText>
     </Pill>
   );
 };
 
 const styles = StyleSheet.create({
-  base: { alignSelf: 'flex-start' },
+  // Uzun etiket (kampanya/durum metni) rozeti büyütmez: tek satır, taşarsa ellipsis.
+  base: { alignSelf: 'flex-start', maxWidth: '100%' },
+  label: { flexShrink: 1 },
 });

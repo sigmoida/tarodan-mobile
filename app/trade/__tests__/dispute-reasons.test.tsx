@@ -64,7 +64,6 @@ describe('takas itirazı nedenleri', () => {
         description=""
         setDescription={() => {}}
         onSubmit={() => {}}
-        isPending={false}
         t={((k: string) => k) as any}
       />,
     );

@@ -73,7 +73,7 @@ export default function VerifyEmailScreen() {
 
   if (status === 'verifying') {
     return (
-      <AuthShell title={t('auth.verifyingEmail')}>
+      <AuthShell title={t('auth.verifyingEmail')} description={t('auth.pleaseWait')}>
         <Spinner color={colors.primary[600]} />
       </AuthShell>
     );

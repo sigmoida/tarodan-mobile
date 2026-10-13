@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { appAlert, toast } from '@/ui';
+import { apiErrorMessage } from '@/lib/api/errorText';
 import { useRefresh } from '@/hooks/useRefresh';
 import { membershipApi } from '@/lib/api';
 import { captureException } from '@/services/sentry';
@@ -51,42 +52,39 @@ export function useMembershipManage() {
   const cancelMutation = useMutation({
     mutationFn: () => membershipApi.cancel(),
     onSuccess: () => {
-      toast(t('membership.manageCancelSuccess'));
+      toast.success(t('membership.manageCancelSuccess'));
       queryClient.invalidateQueries({ queryKey: ['membership'] });
       refetch();
     },
     onError: (error: any) => {
       captureException(error, { level: 'error', tags: { flow: 'membership.cancel' } });
-      const msg = error?.response?.data?.message || t('membership.manageCancelError');
-      toast(typeof msg === 'string' ? msg : t('membership.manageCancelError'));
+      toast.error(apiErrorMessage(error, t('membership.manageCancelError')));
     },
   });
 
   const autoRenewMutation = useMutation({
     mutationFn: (next: boolean) => membershipApi.setAutoRenew(next),
     onSuccess: (_res, next) => {
-      toast(next ? t('membership.autoRenewOn') : t('membership.autoRenewOff'));
+      toast.success(next ? t('membership.autoRenewOn') : t('membership.autoRenewOff'));
       queryClient.invalidateQueries({ queryKey: ['membership'] });
       refetch();
     },
     onError: (error: any) => {
       captureException(error, { level: 'error', tags: { flow: 'membership.autoRenew' } });
-      const msg = error?.response?.data?.message || t('listing.actionFailed');
-      toast(typeof msg === 'string' ? msg : t('listing.actionFailed'));
+      toast.error(apiErrorMessage(error, t('listing.actionFailed')));
     },
   });
 
   const cancelScheduledChangeMutation = useMutation({
     mutationFn: () => membershipApi.cancelScheduledChange(),
     onSuccess: () => {
-      toast(t('membership.manageScheduledCancelSuccess'));
+      toast.success(t('membership.manageScheduledCancelSuccess'));
       queryClient.invalidateQueries({ queryKey: ['membership'] });
       refetch();
     },
     onError: (error: any) => {
       captureException(error, { level: 'error', tags: { flow: 'membership.cancelScheduledChange' } });
-      const msg = error?.response?.data?.message || t('listing.actionFailed');
-      toast(typeof msg === 'string' ? msg : t('listing.actionFailed'));
+      toast.error(apiErrorMessage(error, t('listing.actionFailed')));
     },
   });
 

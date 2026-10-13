@@ -1,7 +1,3 @@
-// TANI/WORKAROUND (gecici): screens 4.16 + New Architecture tab bar'i bozuk
-// ciziyor; native ekranlari kapatinca duz RN view ile dogru cizilir.
-import { enableScreens } from "react-native-screens";
-enableScreens(false);
 
 import { useEffect, useState } from "react";
 import { StyleSheet } from "react-native";

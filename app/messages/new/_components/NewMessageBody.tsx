@@ -1,5 +1,5 @@
 import { View, Pressable } from 'react-native';
-import { Alert, Avatar, Input, SectionCard, Spinner, Text, Textarea } from '@/ui';
+import { Alert, Avatar, EmptyState, Input, SectionCard, Spinner, Text, Textarea } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { styles } from '../_lib/styles';
@@ -44,9 +44,13 @@ export function NewMessageBody({ f }: { f: NewMessageController }) {
             )}
 
             {f.searchQuery.length >= 2 && !f.searchSupported && (
-              <Text variant="bodySm" tone="muted" align="center" style={styles.noResults}>
-                {t('message.userSearchUnsupported')}
-              </Text>
+              <EmptyState
+                placement="inline"
+                testID="user-search-unsupported"
+                icon="magnifying-glass"
+                title={t('common.noResults')}
+                subtitle={t('message.userSearchUnsupported')}
+              />
             )}
           </View>
         ) : (

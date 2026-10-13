@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Image, Pressable } from 'react-native';
+import { View, Pressable } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Alert, Avatar, Button, EmptyState, SectionCard, Text, theme, Icon } from '@/ui';
 import { ProductCard } from '@/components/product';
-import { transformImageUrl } from '@/utils/imageUrl';
 import UpgradeCta from '@/components/UpgradeCta';
 import { styles } from '../_lib/collectionStyles';
 import type { CollectionDetailController } from '../_hooks/useCollectionDetail';
@@ -34,13 +34,10 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
         <View style={styles.topRow}>
           <View style={styles.cover}>
             {cover ? (
-              <Image source={{ uri: transformImageUrl(cover) }} style={styles.coverImage} resizeMode="cover" />
+              <AppImage source={cover} variant="detail" style={styles.coverImage} resizeMode="cover" />
             ) : null}
           </View>
           <View style={styles.headInfo}>
-            <Text variant="h1" accessibilityRole="header">
-              {collection.name}
-            </Text>
             {collection.description ? (
               <Text variant="bodySm" tone="muted">
                 {collection.description}

@@ -1,26 +1,8 @@
 import type { TFunction } from 'i18next';
-import type { IconName } from '@/ui';
-import { theme } from '@/ui';
 import { FREE_MEMBER_LIMITS, PREMIUM_MEMBER_LIMITS } from '@/utils/membershipLimits';
-
-const { colors } = theme;
 
 export const TIER_ORDER = ['free', 'basic', 'premium', 'business'] as const;
 export type TierType = (typeof TIER_ORDER)[number];
-
-export const TIER_COLORS: Record<TierType, string> = {
-  free: colors.gray[500]!,
-  basic: colors.info[600]!,
-  premium: colors.primary[600]!,
-  business: colors.warning[500]!,
-};
-
-export const TIER_ICONS: Record<TierType, IconName> = {
-  free: 'user',
-  basic: 'star',
-  premium: 'sparkles',
-  business: 'briefcase',
-};
 
 /**
  * Katman özellik listesi — `t` çağrıldığı ANDA çözülür (bileşen

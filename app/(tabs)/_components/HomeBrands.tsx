@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Image, Pressable, ScrollView } from 'react-native';
+import { Pressable, ScrollView } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { Text } from '@/ui';
-import { resolveImageUrl } from '@/utils/imageUrl';
 import { goBrand } from '../_lib/nav';
 import { homeStyles as styles } from '../_lib/homeStyles';
 
@@ -17,8 +17,8 @@ function BrandMark({ brand }: { brand: Manufacturer }) {
     );
   }
   return (
-    <Image
-      source={{ uri: resolveImageUrl(brand.logo) }}
+    <AppImage
+      source={brand.logo}
       style={styles.brandLogo}
       resizeMode="contain"
       accessibilityLabel={brand.name}

@@ -5,7 +5,7 @@
  */
 import React from 'react';
 import { appAlert } from '@/ui';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../test-utils';
 
 jest.mock('expo-router', () => ({
@@ -117,6 +117,15 @@ describe('düzenleme formu · yeniden aktivasyon mesajı yanıt statüsüne gör
       ),
     );
     expect(productsApi.update).toHaveBeenCalledWith('p1', { status: 'active', quantity: 3 });
+  });
+
+  it('düzenlemede Kaydet PageShell alt çubuğunda (klavyeyle yükselir), Sil gövdede', async () => {
+    renderWithProviders(<ListingForm mode="edit" productId="p1" />);
+    await screen.findByPlaceholderText('Stok Miktarı');
+    const footer = screen.getByTestId('page-shell-footer');
+    expect(within(footer).getByTestId('listing-submit-button')).toBeTruthy();
+    expect(within(footer).queryByText('İlanı Sil')).toBeNull();
+    expect(screen.getByText('İlanı Sil')).toBeTruthy();
   });
 
   it('API pending döndürürse "incelemeye gönderildi" gösterir', async () => {

@@ -82,6 +82,8 @@ export const qk = {
   },
 
   shipping: {
+    /** Prefix root — tüm kargo sorguları. */
+    all: ["shipping"] as const,
     /** Kargo paket kademesi tarifesi (public) — ilan formundaki üç kart. */
     packageTiers: ["shipping", "package-tiers"] as const,
     /** Siparişin kargo kaydı. 404 = kargo yok (hata değil). */
@@ -151,6 +153,8 @@ export const qk = {
     all: ["offers"] as const,
     list: (type?: string) => ["offers", "list", type] as const,
     detail: (id: string) => ["offer", id] as const,
+    /** Prefix root — TEKİL `offer` detayları (`all` = `["offers"]` bunları YAKALAMAZ). */
+    detailAll: ["offer"] as const,
     /** Batch komisyon önizlemesi — teklif id kümesine göre anahtarlı. */
     commissionPreview: (ids: string[]) =>
       ["offers", "commission-preview", ids] as const,

@@ -10,7 +10,7 @@ import { preparingDeadlineNoticeOf } from '@/lib/shared/preparingDeadline';
 import { useTimingValues } from '@/hooks/useTimingPolicy';
 import { useDeadlineNow } from '@/hooks/useDeadlineNow';
 import { useOrderElogoInvoices } from '@/hooks/useOrderElogoInvoices';
-import { appAlert } from '@/ui';
+import { toast } from '@/ui';
 import type { Order } from '../_lib/types';
 import { statusColor } from '../_lib/status';
 
@@ -40,7 +40,7 @@ export function useSaleDetail() {
   const elogo = useOrderElogoInvoices(
     String(id ?? ''),
     !!order && order.status !== 'pending_payment' && order.status !== 'cancelled',
-    (message) => appAlert(message),
+    (message) => toast.error(message),
   );
   // Pull-to-refresh siparişle birlikte e-Arşiv listesini de yeniler.
   const { refreshing, onRefresh } = useRefresh(refetch, elogo.refresh);

@@ -17,7 +17,7 @@ export function DisputeTradeModal({
   description,
   setDescription,
   onSubmit,
-  isPending,
+  error,
   t,
 }: {
   visible: boolean;
@@ -27,7 +27,8 @@ export function DisputeTradeModal({
   description: string;
   setDescription: (v: string) => void;
   onSubmit: () => void;
-  isPending: boolean;
+  /** Satır içi doğrulama hatası (toast açık Modal'ın altında kalır). */
+  error?: string | null;
   t: TFn;
 }) {
   const reasons: [DisputeReason, string][] = DISPUTE_REASONS.map((value) => [
@@ -36,7 +37,7 @@ export function DisputeTradeModal({
   ]);
 
   return (
-    <Modal isOpen={visible} onClose={() => !isPending && onClose()} title={t('trade.dispute.modalTitle')}>
+    <Modal isOpen={visible} onClose={onClose} title={t('trade.dispute.modalTitle')}>
       <Text variant="caption" style={{ marginBottom: theme.spacing[3] }} tone="muted">{t('trade.dispute.modalIntro')}</Text>
       <View style={{ marginBottom: theme.spacing[3] }}>
         {reasons.map(([value, label]) => (
@@ -56,12 +57,13 @@ export function DisputeTradeModal({
         multiline
         numberOfLines={4}
         placeholder={t('trade.dispute.descriptionPlaceholder')}
+        error={error ?? undefined}
         containerStyle={{ marginBottom: theme.spacing[3] }}
         inputStyle={{ minHeight: 100 }}
       />
       <ButtonRow style={{ marginTop: theme.spacing[2] }}>
-        <Button variant="outline" title={t('trade.dispute.cancelCta')} onPress={onClose} disabled={isPending} />
-        <Button variant="primary" title={t('trade.dispute.submitCta')} onPress={onSubmit} isLoading={isPending} />
+        <Button variant="outline" title={t('trade.dispute.cancelCta')} onPress={onClose} />
+        <Button variant="primary" title={t('trade.dispute.submitCta')} onPress={onSubmit} />
       </ButtonRow>
     </Modal>
   );

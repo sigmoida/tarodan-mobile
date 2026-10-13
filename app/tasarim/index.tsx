@@ -2,6 +2,7 @@ import { Redirect } from 'expo-router';
 import { PageShell } from '@/components/common/PageShell';
 import { shouldShowDiagnostics } from '@/config/diagnostics';
 import { Showcase } from './_components/Showcase';
+import { SheetShowcase } from './_components/SheetShowcase';
 
 /**
  * /tasarim — @/ui tasarım vitrini. YALNIZ geliştirme ve staging/preview build'lerinde açılır
@@ -15,6 +16,7 @@ export default function DesignShowcaseScreen() {
   return (
     <PageShell title="Tasarım">
       <Showcase />
+      <SheetShowcase />
     </PageShell>
   );
 }

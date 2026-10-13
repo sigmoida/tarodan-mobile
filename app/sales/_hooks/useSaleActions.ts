@@ -1,18 +1,18 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import i18n from '@/i18n/config';
 import { ordersApi, shippingApi, type Shipment } from '@/lib/api';
+import { qk, useAppMutation } from '@/lib/query';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
 import type { Sale } from '../_lib/types';
 
 /**
  * Seller sale-status controller — owns the prepare/ship mutation and the ship
- * dialog state + the two action handlers. Owns appAlert + invalidateQueries
- * (§6). Lifted verbatim from the monolithic screen.
+ * dialog state + the two action handlers. Owns the feedback + invalidation
+ * (`useAppMutation`, §6). Ship dialog closes BEFORE the mutation fires (§12:
+ * a result alert/toast must never compete with an open native Modal).
  */
 export function useSaleActions() {
-  const queryClient = useQueryClient();
   const [shipDialog, setShipDialog] = useState<{ visible: boolean; order: Sale | null }>({
     visible: false,
     order: null,
@@ -24,8 +24,8 @@ export function useSaleActions() {
    *   - "shipped"     → önce OKU, kayıt yoksa ONAR
    * Bu mutasyon hangi durumun istendiğine göre doğru endpoint'i çağırır.
    */
-  const updateStatusMutation = useMutation({
-    mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {
+  const updateStatusMutation = useAppMutation(
+    async ({ orderId, status }: { orderId: string; status: string }) => {
       if (status === 'processing' || status === 'preparing') {
         return ordersApi.markAsPreparing(orderId);
       }
@@ -51,31 +51,31 @@ export function useSaleActions() {
       }
       throw new Error(i18n.t('order.unsupportedStatus'));
     },
-    /**
-     * İKİ DAL, İKİ MESAJ. Hiçbirinde sipariş durumu DEĞİŞMİYOR: backend
-     * `createShipment` yalnız kaydı açar, sipariş `shipped`'e şube kabulüyle
-     * geçer. "Sipariş durumu güncellendi" demek satıcıya olmayan bir ilerleme
-     * bildiriyor ve aynı butona tekrar tekrar bastırıyordu.
-     * `markAsPreparing` (result yok) eski mesajını korur — orada durum
-     * gerçekten değişiyor.
-     */
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['shipping'] });
-      setShipDialog({ visible: false, order: null });
-      if (!result || !('alreadyExisted' in result)) {
-        appAlert(i18n.t('common.success'), i18n.t('order.statusUpdated'));
-        return;
-      }
-      appAlert(
-        i18n.t(result.alreadyExisted ? 'order.shipmentRecordExistsTitle' : 'order.shipmentRecordCreatedTitle'),
-        i18n.t(result.alreadyExisted ? 'order.shipmentRecordExists' : 'order.shipmentRecordCreated'),
-      );
+    {
+      invalidates: [qk.orders.all, qk.shipping.all],
+      error: () => i18n.t('order.statusUpdateFailed'),
+      /**
+       * İKİ DAL, İKİ MESAJ. Hiçbirinde sipariş durumu DEĞİŞMİYOR: backend
+       * `createShipment` yalnız kaydı açar, sipariş `shipped`'e şube kabulüyle
+       * geçer. "Sipariş durumu güncellendi" demek satıcıya olmayan bir ilerleme
+       * bildiriyor ve aynı butona tekrar tekrar bastırıyordu.
+       * `markAsPreparing` (result yok) eski mesajını korur — orada durum
+       * gerçekten değişiyor (kısa başarı → toast). Kargo kaydı mesajları satıcının
+       * şubede yapacağı işi anlatır (çok cümleli yönerge) → başlıklı diyalog; modal
+       * gönderimde zaten kapandığı için açık Modal ile yarışmaz.
+       */
+      onSuccess: (result) => {
+        if (!result || !('alreadyExisted' in result)) {
+          toast.success(i18n.t('order.statusUpdated'));
+          return;
+        }
+        appAlert(
+          i18n.t(result.alreadyExisted ? 'order.shipmentRecordExistsTitle' : 'order.shipmentRecordCreatedTitle'),
+          i18n.t(result.alreadyExisted ? 'order.shipmentRecordExists' : 'order.shipmentRecordCreated'),
+        );
+      },
     },
-    onError: (e: any) => {
-      appAlert(i18n.t('common.error'), e?.response?.data?.message || e?.message || i18n.t('order.statusUpdateFailed'));
-    },
-  });
+  );
 
   const handleMarkAsProcessing = (order: Sale) => {
     appAlert(
@@ -92,8 +92,10 @@ export function useSaleActions() {
   };
 
   const handleShip = () => {
-    if (!shipDialog.order) return;
-    updateStatusMutation.mutate({ orderId: shipDialog.order.id, status: 'shipped' });
+    const order = shipDialog.order;
+    if (!order) return;
+    setShipDialog({ visible: false, order: null }); // §12: önce kapat,
+    updateStatusMutation.mutate({ orderId: order.id, status: 'shipped' }); // sonra gönder.
   };
 
   return {

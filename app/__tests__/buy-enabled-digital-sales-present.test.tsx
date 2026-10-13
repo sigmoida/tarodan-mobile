@@ -70,7 +70,7 @@ describe('Android: dijital satış çağrıları yerinde — üyelik ekranı', (
     resetRouterMocks();
     mockAuthState = { isAuthenticated: true, user: {} };
     mockGetMembership.mockResolvedValue({
-      data: { tier: { type: 'premium', name: 'Premium' }, pendingPayment: null },
+      data: { tier: { type: 'free', name: 'Ücretsiz' }, pendingPayment: null },
     });
     mockGetTiers.mockResolvedValue({ data: [] });
   });

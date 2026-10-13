@@ -5,6 +5,7 @@
     "logout": "Logout",
     "save": "Save",
     "cancel": "Cancel",
+    "giveUp": "Cancel",
     "delete": "Delete",
     "edit": "Edit",
     "search": "Search",
@@ -439,7 +440,7 @@
     "companyLegalName": "Full Legal Company Name",
     "companyLegalNamePlaceholder": "e.g. Tarodan Technology Incorporated",
     "companyTitle": "Company Title",
-    "companyTitlePlaceholder": "e.g. Tarodan Technology Inc.",
+    "companyTitlePlaceholder": "e.g. ABC Ltd.",
     "companyAddress": "Company Address",
     "companyAddressPlaceholder": "Street, building, district, and city",
     "companyEmail": "Company Email",
@@ -503,6 +504,10 @@
     "year": "Year",
     "category": "Category",
     "images": "Images",
+    "basicInfo": "Basic Information",
+    "imageUpload": {
+      "removeImage": "Remove image {index}"
+    },
     "views": "views",
     "likes": "likes",
     "noReviewsShort": "No reviews",
@@ -768,6 +773,7 @@
     "moreProductsComingSoon": "New products will be added soon.",
     "productFallback": "Product",
     "zoomPhotoA11y": "Zoom photo",
+    "galleryPageA11y": "Photo {current} of {total}.",
     "color": "Color",
     "boxedCondition": "Box condition",
     "boxed": "Boxed",
@@ -8188,7 +8194,9 @@
     "discountOnlyLabel": "Discounted Only",
     "tradeOnlyChip": "Tradeable",
     "resultsLoading": "Loading results…",
-    "showResultsCount": "Show {count} Results"
+    "showResultsCount": "Show {count} Results",
+    "showAllOptions": "Show all ({count})",
+    "refineSearchHint": "Use search to see more"
   },
   "signupPrompt": {
     "favoritesDescription": "Add items you like to your favorites so you can find them again easily. Sign up for free!",

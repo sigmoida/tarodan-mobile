@@ -1,14 +1,12 @@
 // Sipariş mutasyonlarının hata mesajı biçimleri — tek kaynak.
+import { apiErrorLines } from '@/lib/api/errorText';
 
 type ApiError = { response?: { data?: { message?: unknown } } } | null | undefined;
 const messageOf = (err: unknown): unknown => (err as ApiError)?.response?.data?.message;
 
-/** Ödeme akışının (initiate) hata formu: array ise join'le, sonra string değilse fallback. */
-export const joinMsg = (err: unknown, fallback: string): string => {
-  const raw = messageOf(err);
-  const msg = Array.isArray(raw) ? raw.join(', ') : raw || fallback;
-  return typeof msg === 'string' ? msg : fallback;
-};
+/** Ödeme akışının (initiate) hata formu: dizi ', ' ile birleşir; mesaj yoksa fallback. Tek kaynak: `apiErrorLines`. */
+export const joinMsg = (err: unknown, fallback: string): string =>
+  apiErrorLines(err).join(', ') || fallback;
 
 /**
  * refund/cancelRefund/cancelOrder'ın ORİJİNAL hata formu: string mesajı göster,

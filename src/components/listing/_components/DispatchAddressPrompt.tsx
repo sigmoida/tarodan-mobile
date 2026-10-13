@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
-import { styles } from '../_lib/styles';
-import { RawText } from '@/ui';
+import { RequirementPrompt } from './RequirementPrompt';
+
+const goAddresses = () => router.push('/settings/addresses');
 
 /**
  * Kargo çıkış adresi ekleme/düzeltme istemi (web `AddressGate`): yalnız BİLİNEN eksikte.
@@ -13,19 +13,12 @@ import { RawText } from '@/ui';
 export function DispatchAddressPrompt({ needsFix }: { needsFix: boolean }) {
   const { t } = useTranslation();
   return (
-    <View style={styles.ibanBanner}>
-      <RawText style={styles.ibanBannerTitle}>
-        {t(needsFix ? 'listing.dispatchAddressFixTitle' : 'listing.dispatchAddressRequiredTitle')}
-      </RawText>
-      <RawText style={styles.ibanBannerBody}>{t('address.dispatchPromptDesc')}</RawText>
-      <TouchableOpacity
-        style={styles.ibanBannerButton}
-        onPress={() => router.push('/settings/addresses')}
-      >
-        <RawText style={styles.ibanBannerButtonText}>
-          {t(needsFix ? 'address.dispatchFixButton' : 'address.dispatchAddButton')}
-        </RawText>
-      </TouchableOpacity>
-    </View>
+    <RequirementPrompt
+      testID="listing-address-prompt"
+      title={t(needsFix ? 'listing.dispatchAddressFixTitle' : 'listing.dispatchAddressRequiredTitle')}
+      body={t('address.dispatchPromptDesc')}
+      actionLabel={t(needsFix ? 'address.dispatchFixButton' : 'address.dispatchAddButton')}
+      onAction={goAddresses}
+    />
   );
 }

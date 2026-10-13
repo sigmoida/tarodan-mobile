@@ -31,7 +31,8 @@ export function ListingRequirementGate({ f }: { f: ListingFormController }) {
       if (bank === 'error') f.refetchBankAccount();
       if (address === 'error') f.refetchDispatchAddress();
     };
-    return <ErrorState onRetry={retry} />;
+    // Form gövdesinde, kota kartının altında: kompakt yerleşim.
+    return <ErrorState placement="inline" onRetry={retry} />;
   }
 
   return (
