@@ -60,7 +60,7 @@ describe('ScreenHeader kullanımları (beyaz üst bar)', () => {
   // Yalnız taramanın çalıştığını doğrular: ekranlar PageShell'e geçtikçe doğrudan
   // ScreenHeader kullanımı azalıyor (PageShell içte kendisi kullanır), sabit büyük eşik kırılır.
   it('kullanımlar bulunur (tarama çalışıyor)', () => {
-    expect(total).toBeGreaterThan(5);
+    expect(total).toBeGreaterThan(0);
   });
 
   it('hiçbirinde beyaz renk ya da variant yok', () => {
