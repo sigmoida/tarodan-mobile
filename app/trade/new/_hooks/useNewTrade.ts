@@ -12,6 +12,7 @@ import { getProductEffectivePrice } from '@/utils/productPrice';
 import { formatApiErrorMessage } from '@/utils/formatApiErrorMessage';
 import { firstQueryParam, type Product } from '../_lib/types';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 
 /**
  * New-trade wizard controller — owns the 3-step state, the target/my/their
@@ -20,6 +21,7 @@ import { useFeatureAccess } from '@/hooks/useFeatureAccess';
  */
 export function useNewTrade() {
   const { t } = useTranslation();
+  const requireIdentity = useRequireLegalIdentity();
   const params = useLocalSearchParams<{
     listing?: string | string[];
     productId?: string | string[];
@@ -196,7 +198,7 @@ export function useNewTrade() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const cashVal = parseFloat(cashAmount.replace(',', '.')) || 0;
     if (selectedMyItems.length === 0 && cashVal <= 0) {
       appAlert(t('common.error'), t('trade.selectAtLeastOne'));
@@ -210,6 +212,8 @@ export function useNewTrade() {
       appAlert(t('address.deliveryAddress'), t('trade.selectDeliveryAddress'));
       return;
     }
+    // B-2.4: takas başlamadan yasal kimlik; vazgeçerse teklif gönderilmez.
+    if (!(await requireIdentity())) return;
     createTradeMutation.mutate();
   };
 

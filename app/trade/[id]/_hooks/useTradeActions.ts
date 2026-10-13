@@ -6,6 +6,7 @@ import { tradesApi, paymentsApi } from "@/lib/api";
 import { qk } from "@/lib/query";
 import { useTranslation } from "react-i18next";
 import { captureException } from "@/services/sentry";
+import { useRequireLegalIdentity } from "@/hooks/useLegalIdentity";
 
 import {
   DEFAULT_DISPUTE_REASON,
@@ -20,6 +21,7 @@ import {
 export function useTradeActions(id: string) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const requireIdentity = useRequireLegalIdentity();
 
   const [snackbar, setSnackbar] = useState({ visible: false, message: "" });
   const notify = (message: string) => setSnackbar({ visible: true, message });
@@ -216,7 +218,11 @@ export function useTradeActions(id: string) {
     cancelPending: cancelMutation.isPending,
     confirm: () => confirmMutation.mutate(),
     confirmPending: confirmMutation.isPending,
-    cashPay: () => cashPayMutation.mutate(),
+    // B-2.4: nakit ödeme başlamadan yasal kimlik; vazgeçerse ödeme başlamaz.
+    cashPay: async () => {
+      if (!(await requireIdentity())) return;
+      cashPayMutation.mutate();
+    },
     cashPayPending: cashPayMutation.isPending,
     rejectPending: rejectMutation.isPending,
   };
