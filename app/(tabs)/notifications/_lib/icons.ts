@@ -91,7 +91,8 @@ export function getIconForType(type: string): { icon: IconName; color: string; b
       return { icon: 'arrow-trending-down', color: theme.colors.success[500], bg: theme.colors.success[100] };
     case 'wishlist_item_sold':
     case 'wishlist_sold':
-      return { icon: 'heart', color: theme.colors.danger[500], bg: theme.colors.danger[100] };
+      // Favorideki ürün satıldı: kalp (product_liked) ile karışmasın -> "artık yok" işareti.
+      return { icon: 'no-symbol', color: theme.colors.danger[500], bg: theme.colors.danger[100] };
     case 'back_in_stock':
       return { icon: 'arrow-path', color: theme.colors.success[500], bg: theme.colors.success[100] };
 
