@@ -2,13 +2,12 @@ import { Linking } from 'react-native';
 import { router } from 'expo-router';
 import { pathFromUrl, stripLocalePrefix } from '@/lib/deeplinks';
 import { toMobileRoute } from '@/utils/notificationRoute';
+import { ownWebPageUrl } from '@/lib/web';
 import { isPurchasePath } from './purchasePath';
 import { safeAdHref } from './safeAdHref';
 
 /** Uygulama içi web ekranı (`app/in-app-web.tsx`) — mobil karşılığı olmayan site yolları için. */
 export const IN_APP_WEB_ROUTE = '/in-app-web';
-
-const DEFAULT_WEB_BASE = 'https://tarodan.com.tr';
 
 function hostOf(url: string | undefined): string | null {
   const m = url?.match(/^https?:\/\/([^/?#]+)/i);
@@ -104,12 +103,6 @@ export const NATIVE_SAME_PATH_HEADS = new Set([
   'returns-exchanges',
   'following',
 ]);
-
-/** Kendi sitemizde bir yolun mutlak adresi (env'deki web adresi > prod). */
-export function ownWebPageUrl(path: string): string {
-  const base = (process.env.EXPO_PUBLIC_WEB_URL || DEFAULT_WEB_BASE).replace(/\/+$/, '');
-  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
-}
 
 function webUrlFor(linkUrl: string, path: string): string {
   if (isOwnWebUrl(linkUrl)) return linkUrl;

@@ -22,7 +22,7 @@ jest.mock('react-native-webview', () => ({
   },
 }));
 
-import { ownWebPageUrl } from '@/lib/ads/openAdLink';
+import { ownWebPageUrl } from '@/lib/web';
 import InAppWebScreen from '../in-app-web';
 
 const lastWebView = () => mockWebViewProps[mockWebViewProps.length - 1]!;

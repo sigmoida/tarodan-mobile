@@ -1,10 +1,10 @@
 import { Platform } from 'react-native';
 import type { ShareContent, ShareOptions } from 'react-native';
 
-const WEB_URL = (process.env.EXPO_PUBLIC_WEB_URL || 'https://tarodan.com.tr').replace(/\/+$/, '');
+import { ownWebPageUrl } from '@/lib/web';
 
-export const productShareUrl = (id: string) => `${WEB_URL}/listings/${id}`;
-export const collectionShareUrl = (id: string) => `${WEB_URL}/collections/${id}`;
+export const productShareUrl = (id: string) => ownWebPageUrl(`/listings/${id}`);
+export const collectionShareUrl = (id: string) => ownWebPageUrl(`/collections/${id}`);
 
 // Link her iki platformda da message'a gömülür → "Kopyala" seçilince link düşmez.
 // iOS'ta ayrıca ayrı `url` alanı kalır (zengin önizleme/şablon için).
