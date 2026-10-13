@@ -6,7 +6,7 @@ export default function SettingsLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: theme.colors.gray[50] },
+        contentStyle: { backgroundColor: theme.colors.surface.DEFAULT },
       }}
     />
   );
