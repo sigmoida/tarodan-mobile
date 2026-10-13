@@ -29,6 +29,9 @@ function ctrl(over: Record<string, unknown> = {}): any {
     showReportModal: false,
     setShowReportModal: jest.fn(),
     handleHeaderMenu: jest.fn(),
+    headerMenuOpen: false,
+    closeHeaderMenu: jest.fn(),
+    headerMenuActions: [],
     ...over,
   };
 }

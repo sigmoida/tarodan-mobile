@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Avatar, TopBarAction, Alert as UIAlert, Text, theme, Icon } from '@/ui';
+import { ActionSheet, Avatar, TopBarAction, Alert as UIAlert, Text, theme, Icon } from '@/ui';
 import { ScreenHeader } from '@/components/common/ScreenHeader';
 
 import ReportModal from '@/components/ReportModal';
@@ -12,8 +12,8 @@ import type { MessageThreadController } from '../_hooks/useMessageThread';
 const { colors, iconSize } = theme;
 
 /**
- * Sohbet üst bölümü (web ChatHeader: beyaz bar, geri + avatar + ad/ürün + menü), şikayet
- * modalı, ürün bağlantı satırı ve uyarılar. PageShell'in `header` slotuna konur.
+ * Sohbet üst bölümü (web ChatHeader: beyaz bar, geri + avatar + ad/ürün + menü), menü
+ * ActionSheet'i, şikayet modalı, ürün bağlantı satırı ve uyarılar. PageShell'in `header` slotuna konur.
  */
 export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
   const { t } = useTranslation();
@@ -54,6 +54,17 @@ export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
           />
         }
       />
+
+      {other && (
+        <ActionSheet
+          isOpen={f.headerMenuOpen}
+          onClose={f.closeHeaderMenu}
+          title={other.displayName}
+          actions={f.headerMenuActions}
+          cancelLabel={t('common.cancel')}
+          testID="thread-menu-sheet"
+        />
+      )}
 
       {other && (
         <ReportModal

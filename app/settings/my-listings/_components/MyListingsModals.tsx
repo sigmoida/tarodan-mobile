@@ -1,68 +1,30 @@
 import React from 'react';
-import { View, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Modal, Divider, Text } from '@/ui';
+import { ActionSheet } from '@/ui';
 import { ListingRemovalModal } from '@/components/listing/ListingRemovalModal';
-import UpgradeCta from '@/components/UpgradeCta';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
-import { styles } from '../_lib/styles';
 import type { MyListingsController } from '../_hooks/useMyListings';
-import { isExpiredListing } from '../_lib/types';
+import { buildListingMenuActions } from '../_lib/menu';
 
-/** Per-listing action menu (ikonsuz metin satırları) + kaldırma nedeni penceresi (silme / pasife alma). */
+/**
+ * İlan eylem menüsü (ActionSheet; sil yıkıcı) + kaldırma nedeni penceresi (silme / pasife alma).
+ * Menü satırları sheet TAMAMEN kapandıktan sonra çalışır; kaldırma penceresi / öne çıkar
+ * penceresi / kota uyarısı bu yüzden zamanlayıcı olmadan güvenle açılır (§12).
+ */
 export function MyListingsModals({ f }: { f: MyListingsController }) {
   const { t } = useTranslation();
   const menu = f.actionMenuListing;
   return (
     <>
-      {/* Action Menu Modal */}
-      <Modal
-        isOpen={f.actionMenuListing !== null}
-        onClose={() => f.setActionMenuListing(null)}
+      <ActionSheet
+        isOpen={f.actionMenuOpen}
+        onClose={f.closeActionMenu}
         title={t('common.actions')}
-      >
-        {menu && (
-          <View>
-            {menu.status !== 'deleted' && (
-              <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('view', menu)}>
-                <Text variant="body">{t('common.view')}</Text>
-              </Pressable>
-            )}
-            {menu.status !== 'sold' && menu.status !== 'deleted' && menu.status !== 'suspended' && (
-              <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('edit', menu)}>
-                <Text variant="body">{t('common.edit')}</Text>
-              </Pressable>
-            )}
-            {menu.status === 'active' && (
-              <UpgradeCta>
-                <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('boost', menu)}>
-                  <Text variant="body" tone="warning">
-                    {t('listing.boostAction')}
-                  </Text>
-                </Pressable>
-              </UpgradeCta>
-            )}
-            {menu.status === 'active' && (
-              <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('deactivate', menu)}>
-                <Text variant="body">{t('listing.deactivateAction')}</Text>
-              </Pressable>
-            )}
-            {menu.status === 'inactive' && (
-              <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('relist', menu)}>
-                <Text variant="body">
-                  {isExpiredListing(menu) ? t('profile.expiredListings.renew') : t('listing.relistAction')}
-                </Text>
-              </Pressable>
-            )}
-            <Divider />
-            <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('delete', menu)}>
-              <Text variant="body" tone="danger">
-                {t('common.delete')}
-              </Text>
-            </Pressable>
-          </View>
-        )}
-      </Modal>
+        actions={menu ? buildListingMenuActions(menu, t, f.handleMenuAction, CAN_BUY_DIGITAL) : []}
+        cancelLabel={t('common.cancel')}
+        testID="listing-menu-sheet"
+      />
 
       {/* Kaldırma nedeni: silme onayı + pasife alma — neden zorunlu (web ile aynı) */}
       <ListingRemovalModal

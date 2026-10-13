@@ -1,12 +1,10 @@
 import { logger, safeError } from '@/services/logger';
 import i18n from '@/i18n/config';
-import type { MessageKey } from '@/i18n/lib';
 import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { Share } from 'react-native';
 import { router } from 'expo-router';
-import { appAlert, toast } from '@/ui';
-import { userReportsApi } from '@/lib/api';
+import { toast } from '@/ui';
 import { useCartStore } from '@/stores/cartStore';
 import { useCartSync } from '@/hooks/useCartSync';
 import { getImageUrl as getImageUrlFromUtils } from '@/utils/imageUrl';
@@ -16,22 +14,6 @@ import { clampCartQuantity } from '../_lib/quantity';
 import type { Product } from '../_lib/types';
 
 type NotifyType = 'success' | 'error';
-
-/**
- * Rapor nedenleri — modül seviyesinde olduğu için `t` çağıramaz; katalog
- * ANAHTARI tutulur, çeviri hook'un içinde yapılır (durum haritalarıyla aynı
- * desen). 'Spam' her iki dilde de aynı, çevrilmiyor.
- */
-const REPORT_REASONS: Array<{ key: string; labelKey: MessageKey | null; fallback?: string }> = [
-  { key: 'spam', labelKey: null, fallback: 'Spam' },
-  { key: 'fake_product', labelKey: 'product.reportReasonFake' },
-  { key: 'scam', labelKey: 'report.reasonScam' },
-  { key: 'counterfeit', labelKey: 'admin.reports.reason.counterfeit' },
-  { key: 'wrong_category', labelKey: 'admin.reports.reason.wrongCategory' },
-  { key: 'misleading_info', labelKey: 'admin.reports.reason.misleadingInfo' },
-  { key: 'inappropriate_content', labelKey: 'report.reasonInappropriate' },
-  { key: 'other', labelKey: 'product.other' },
-];
 
 function buildCartItem(product: Product, images: any[]) {
   return {
@@ -91,6 +73,7 @@ export function useProductActions({
   }, [product, isOwnerProduct]);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   /** Bilgi ve başarı mesajları toast (web react-hot-toast); hata da toast, onay isteyenler appAlert. */
   const notify = (message: string, type: NotifyType) =>
@@ -174,27 +157,10 @@ export function useProductActions({
     }
   };
 
+  /** Ürün şikayeti: tek yüzey `ReportModal` (neden listesi + açıklama + gönderim orada). */
   const handleReport = () => {
     if (!isAuthenticated) return notify(t('product.signInToReport'), 'error');
-    appAlert(
-      t('product.reportListingTitle'),
-      t('product.reportReasonPrompt'),
-      [
-        ...REPORT_REASONS.map((reason) => ({
-          text: reason.labelKey ? t(reason.labelKey) : reason.fallback!,
-          onPress: async () => {
-            try {
-              await userReportsApi.create({ type: 'product', targetId: productId, reason: reason.key as any });
-              notify(t('product.reportReceived'), 'success');
-            } catch (error: any) {
-              notify(error.response?.data?.message || t('report.submitFailed'), 'error');
-            }
-          },
-        })),
-        { text: t('common.cancel'), style: 'cancel' as const },
-      ],
-      { cancelable: true },
-    );
+    setReportOpen(true);
   };
 
   return {
@@ -206,6 +172,8 @@ export function useProductActions({
     setOfferModalOpen,
     collectionModalOpen,
     setCollectionModalOpen,
+    reportOpen,
+    setReportOpen,
     handleAddToCart,
     handleCartToggle,
     handleBuyNow,
