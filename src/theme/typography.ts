@@ -10,17 +10,19 @@ export const fontFamily = {
 } as const;
 
 export const fontSize = {
-  // Caption / badge micro-text. The smallest step below `xs`; use this instead
-  // of arbitrary `text-[10px]`/`text-[11px]` values for dense labels/badges.
+  // Mobil ölçek (iOS HIG'e yakın). Web ölçeği (xs 12 / sm 14 / base 16 / xl 20 / 2xl 24 / 3xl 30 / 4xl 36)
+  // telefonda iri kaldı; TEK yerden küçültüldü — Text variant'ları, Button/Input/Chip/Badge
+  // ve `typography.fontSize.*` okuyan her stil buradan beslenir. Yeni ölçek dışı sayı yazma.
+  // Dense label / rozet mikro metni (`text-[10px]` yerine).
   "2xs": 10,
-  xs: 12,
-  sm: 14,
-  base: 16,
-  lg: 18,
-  xl: 20,
-  "2xl": 24,
-  "3xl": 30,
-  "4xl": 36,
+  xs: 11,
+  sm: 13,
+  base: 15,
+  lg: 17,
+  xl: 19,
+  "2xl": 22,
+  "3xl": 26,
+  "4xl": 30,
 } as const;
 
 export const fontWeight = {

@@ -20,7 +20,7 @@ export const styles = StyleSheet.create({
     padding: theme.spacing[6],
   },
   authText: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.text.muted,
     marginBottom: theme.spacing[4],
     textAlign: 'center',
@@ -33,12 +33,12 @@ export const styles = StyleSheet.create({
     paddingBottom: theme.spacing[10],
   },
   pageTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
     color: colors.text.heading,
   },
   pageSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.text.muted,
     marginTop: theme.spacing[1],
     marginBottom: theme.spacing[4],
@@ -55,7 +55,7 @@ export const styles = StyleSheet.create({
     borderColor: colors.warning[300]!,
   },
   ibanBannerTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.warning[800]!,
     marginBottom: theme.spacing[1],
@@ -76,7 +76,7 @@ export const styles = StyleSheet.create({
   ibanBannerButtonText: {
     color: colors.white,
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 13,
   },
   limitsPlaceholder: {
     backgroundColor: colors.gray[200],
@@ -109,14 +109,14 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   limitsTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   limitsTitleOk: { color: colors.success[800]! },
   limitsTitleExceeded: { color: colors.danger[800]! },
   limitsTitlePremium: { color: colors.warning[800]! },
   limitsRemaining: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.text.subtle,
     marginTop: theme.spacing[0.5],
   },
@@ -178,7 +178,7 @@ export const styles = StyleSheet.create({
     }),
   },
   sectionHeader: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: colors.text.muted,
     letterSpacing: 1,
@@ -187,7 +187,7 @@ export const styles = StyleSheet.create({
 
   // Labels
   label: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.text.muted,
     marginBottom: theme.spacing[1.5],
@@ -202,12 +202,12 @@ export const styles = StyleSheet.create({
     marginTop: theme.spacing[0.5],
   },
   hint: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.text.subtle,
     marginTop: theme.spacing[1],
   },
   reservedHint: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.warning[700]!,
     marginTop: theme.spacing[1],
   },
@@ -255,7 +255,7 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   pickerArrow: {
-    fontSize: 20,
+    fontSize: 19,
     color: colors.text.subtle,
     marginLeft: theme.spacing[2],
   },
@@ -353,16 +353,16 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface.alt,
   },
   imageUploadIcon: {
-    fontSize: 28,
+    fontSize: 26,
     marginBottom: theme.spacing[1.5],
   },
   imageUploadLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
     color: colors.text.muted,
   },
   imageUploadCount: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.text.subtle,
     marginTop: theme.spacing[1],
   },
@@ -413,7 +413,7 @@ export const styles = StyleSheet.create({
   },
   imageRemoveText: {
     color: colors.white,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
 
@@ -439,7 +439,7 @@ export const styles = StyleSheet.create({
     color: colors.text.heading,
   },
   toggleHint: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.text.muted,
     marginTop: theme.spacing[0.5],
   },
@@ -572,7 +572,7 @@ export const styles = StyleSheet.create({
     color: colors.text.heading,
   },
   modalClose: {
-    fontSize: 20,
+    fontSize: 19,
     color: colors.text.subtle,
     fontWeight: '600',
   },
@@ -610,14 +610,14 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
   },
   checkMark: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.primary[600]!,
     fontWeight: '700',
   },
   emptyText: {
     textAlign: 'center',
     color: colors.text.subtle,
-    fontSize: 14,
+    fontSize: 13,
     marginTop: theme.spacing[8],
     marginBottom: theme.spacing[8],
   },

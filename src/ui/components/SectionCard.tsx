@@ -136,11 +136,11 @@ const styles = StyleSheet.create({
   },
   title: {
     flexShrink: 1,
-    fontSize: typography.fontSize['2xl'],
-    lineHeight: typography.fontSize['2xl'] * typography.lineHeight.snug,
+    fontSize: typography.fontSize.lg,
+    lineHeight: typography.fontSize.lg * typography.lineHeight.snug,
     fontWeight: typography.fontWeight.bold,
     // web `tracking-tight` = -0.025em
-    letterSpacing: typography.fontSize['2xl'] * -0.025,
+    letterSpacing: typography.fontSize.lg * -0.025,
     color: colors.text.heading,
   },
   action: {

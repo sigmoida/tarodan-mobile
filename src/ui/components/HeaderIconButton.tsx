@@ -4,7 +4,7 @@ import { theme } from '../lib/theme';
 import { CountBadge } from './CountBadge';
 import { RefIcon, type IconRef, type IconVariant } from '../icons';
 
-export type HeaderIconTone = 'onBrand' | 'onSurface';
+export type HeaderIconTone = 'primary' | 'onSurface';
 
 export interface HeaderIconButtonProps {
   /** Heroicons adı (geçiş: eski Ionicons adları da çözülür). */
@@ -15,7 +15,7 @@ export interface HeaderIconButtonProps {
   onPress: () => void;
   /** İkonun sağ üstünde sayaç rozeti (danger-500, 99+). 0 çizilmez. */
   count?: number;
-  /** `onBrand`: turuncu bar üstünde beyaz ikon; `onSurface`: beyaz bar üstünde başlık renginde. */
+  /** `primary`: beyaz bar üstünde primary-600 ikon (tab kökü AppShell); `onSurface`: beyaz bar üstünde başlık renginde. */
   tone?: HeaderIconTone;
   disabled?: boolean;
   testID?: string;
@@ -40,9 +40,9 @@ export const HeaderIconButton: React.FC<HeaderIconButtonProps> = ({
   disabled,
   testID,
 }) => {
-  const onBrand = tone === 'onBrand';
-  const iconColor = onBrand ? colors.text.inverted : colors.text.heading;
-  const ringColor = onBrand ? colors.primary[600] : colors.surface.elevated;
+  const iconColor = tone === 'primary' ? colors.primary[600] : colors.text.heading;
+  // Her iki ton da beyaz barda: rozet halkası bar zemini (beyaz) → rozet net ayrışır.
+  const ringColor = colors.surface.elevated;
   return (
     <Pressable
       onPress={onPress}
@@ -54,7 +54,7 @@ export const HeaderIconButton: React.FC<HeaderIconButtonProps> = ({
       android_ripple={{
         borderless: true,
         radius: minTouchTarget / 2,
-        color: onBrand ? colors.overlay.white20 : colors.overlay.black10,
+        color: colors.overlay.black10,
       }}
       style={({ pressed }) => [
         styles.box,

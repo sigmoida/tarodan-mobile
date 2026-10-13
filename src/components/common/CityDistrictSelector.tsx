@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary[50]!,
   },
   rowText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.text.heading,
   },
 });

@@ -35,11 +35,11 @@ export function tabDiag(
       if (this.state.err) {
         return (
           <View style={{ flex: 1, padding: 40, paddingTop: 80, backgroundColor: colors.danger[50] }}>
-            <RawText style={{ color: colors.danger[700], fontSize: 18, fontWeight: 'bold' }}>
+            <RawText style={{ color: colors.danger[700], fontSize: 17, fontWeight: 'bold' }}>
               ### TAB CRASHED: {name} ###
             </RawText>
             <ScrollView style={{ marginTop: 16 }}>
-              <RawText style={{ color: colors.danger[800], fontFamily: 'Courier', fontSize: 12 }}>
+              <RawText style={{ color: colors.danger[800], fontFamily: 'Courier', fontSize: 11 }}>
                 {this.state.err?.message}
                 {'\n\n'}
                 {this.state.err?.stack ?? ''}

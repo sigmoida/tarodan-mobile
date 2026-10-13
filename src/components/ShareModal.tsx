@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
   urlLabel: {
     color: colors.text.muted,
     marginBottom: theme.spacing[1],
-    fontSize: 12,
+    fontSize: 11,
   },
   urlBox: {
     flexDirection: 'row',
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: colors.text.heading,
     marginRight: theme.spacing[2],
-    fontSize: 12,
+    fontSize: 11,
   },
   divider: {
     marginVertical: theme.spacing[3],
@@ -341,12 +341,12 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing[3],
     color: colors.text.muted,
     textAlign: 'center',
-    fontSize: 12,
+    fontSize: 11,
   },
   sectionTitle: {
     marginBottom: theme.spacing[3],
     color: colors.text.heading,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   shareGrid: {
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
   shareLabel: {
     textAlign: 'center',
     color: colors.text.heading,
-    fontSize: 12,
+    fontSize: 11,
   },
   shareButton: {
     marginBottom: theme.spacing[3],
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
   embedText: {
     marginLeft: theme.spacing[2],
     color: colors.primary[600]!,
-    fontSize: 12,
+    fontSize: 11,
   },
 });
 

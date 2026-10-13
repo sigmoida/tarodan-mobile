@@ -191,14 +191,14 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing[4],
   },
   title: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text.heading,
     textAlign: 'center',
     marginBottom: theme.spacing[2],
   },
   description: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.text.muted,
     textAlign: 'center',
     lineHeight: 20,
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing[2.5],
   },
   benefitText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.text.heading,
     flex: 1,
   },
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing[4],
   },
   loginLinkText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.text.muted,
   },
   loginLinkBold: {
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   skipText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.text.muted,
   },
 });

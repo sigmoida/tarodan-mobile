@@ -52,7 +52,7 @@ describe('Text / RawText marka fontu', () => {
     expect(styleOf('Başlık')).toMatchObject({
       fontFamily: 'NotoSans_600SemiBold',
       fontWeight: 'normal',
-      letterSpacing: -0.16,
+      letterSpacing: -0.15,
     });
     expect(styleOf('Ham')).toMatchObject({
       fontFamily: 'NotoSans_400Regular',

@@ -27,8 +27,8 @@ export const SearchField: React.FC<SearchFieldProps> = ({ onPress, placeholder, 
       accessibilityLabel={label}
       style={styles.field}
     >
-      <Icon name="magnifying-glass" size={iconSize.md} color={colors.text.subtle} />
-      <Text variant="body" tone="subtle" numberOfLines={1} style={styles.placeholder}>
+      <Icon name="magnifying-glass" size={iconSize.md} color={colors.text.muted} />
+      <Text variant="body" tone="muted" numberOfLines={1} style={styles.placeholder}>
         {label}
       </Text>
     </Pressable>
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     gap: spacing[2],
     paddingHorizontal: spacing[3],
     borderRadius: radiusRole.input,
-    backgroundColor: colors.surface.elevated,
+    backgroundColor: colors.gray[100],
   },
   placeholder: {
     flex: 1,

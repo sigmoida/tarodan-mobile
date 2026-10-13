@@ -28,15 +28,17 @@ beforeEach(() => {
   mockTop = 0;
 });
 
-describe('AppShell — tek satır marka barı', () => {
-  it('primary-600 bar, logo yok; arama alanı + bildirim + sepet (sayaçlı) ve içerik', () => {
+describe('AppShell — tek satır beyaz bar', () => {
+  it('beyaz bar (ScreenHeader ile aynı zemin + alt çizgi), logo yok; arama alanı + bildirim + sepet (sayaçlı) ve içerik', () => {
     render(
       <AppShell>
         <Text>içerik</Text>
       </AppShell>,
     );
     expect(StyleSheet.flatten(screen.getByTestId('app-shell-bar').props.style)).toMatchObject({
-      backgroundColor: theme.colors.primary[600],
+      backgroundColor: theme.colors.surface.elevated,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border.DEFAULT,
     });
     expect(screen.queryByLabelText('Tarodan')).toBeNull();
     expect(screen.getByTestId('home-search-input')).toBeTruthy();
@@ -66,6 +68,9 @@ describe('AppShell — tek satır marka barı', () => {
     const stackRow = StyleSheet.flatten(screen.getByTestId('screen-header-row').props.style);
     // Tab kökü <-> yığın ekranı: barın alt kenarı aynı y'de (inset + satır yüksekliği).
     expect(stackBar.paddingTop).toBe(shellBar.paddingTop);
+    // Aynı zemin + alt çizgi kuralı.
+    expect(stackBar.backgroundColor).toBe(shellBar.backgroundColor);
+    expect(stackBar.borderBottomColor).toBe(shellBar.borderBottomColor);
     expect(stackRow.height).toBe(APP_SHELL_BAR_HEIGHT);
   });
 
@@ -76,8 +81,16 @@ describe('AppShell — tek satır marka barı', () => {
     expect(pushMock.mock.calls.filter((c) => String(c[0]).startsWith('/search'))).toHaveLength(1);
   });
 
-  it('odaktayken StatusBar açık içerik (bildirimsel)', () => {
+  it('StatusBar bildirmez (kök varsayılanı koyu içerik kalır); ikonlar primary-600', () => {
     render(<AppShell />);
-    expect(screen.getByTestId('status-bar').props.children).toBe('light');
+    expect(screen.queryByTestId('status-bar')).toBeNull();
+    const bell = screen.getByTestId('app-shell-notifications');
+    expect(bell).toBeTruthy();
+  });
+
+  it('arama alanı açık gri (gray-100) zemin + muted yer tutucu', () => {
+    render(<AppShell />);
+    const field = StyleSheet.flatten(screen.getByTestId('home-search-input').props.style);
+    expect(field.backgroundColor).toBe(theme.colors.gray[100]);
   });
 });

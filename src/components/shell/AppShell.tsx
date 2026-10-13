@@ -1,35 +1,19 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import * as Router from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import { HeaderIconButton, theme, useHeaderTopInset } from '@/ui';
 import { SearchField } from './SearchField';
 import { useShellCounts } from './useShellCounts';
 import { APP_SHELL_BAR_HEIGHT } from './tabBarLayout';
 
-const { colors, spacing, shadow } = theme;
+const { colors, spacing } = theme;
 
 export interface AppShellProps {
   children?: React.ReactNode;
   /** İçerik kabına ek stil. */
   contentStyle?: StyleProp<ViewStyle>;
   testID?: string;
-}
-
-const noopFocusEffect = (_cb: () => void | (() => void)) => undefined;
-
-/** Ekran odaktayken true — bildirimsel (StatusBar bileşeni için); imperatif set/restore yarışı yok. */
-function useIsScreenFocused(): boolean {
-  const [focused, setFocused] = useState(false);
-  const useFocus = (Router.useFocusEffect ?? noopFocusEffect) as typeof noopFocusEffect;
-  useFocus(
-    useCallback(() => {
-      setFocused(true);
-      return () => setFocused(false);
-    }, []),
-  );
-  return focused;
 }
 
 /** Arama alanına çift dokunuşta iki /search açılmasın: bu süre içinde ikinci dokunuş yok sayılır. */
@@ -57,21 +41,19 @@ function useOpenSearch(): () => void {
 
 /**
  * Sekme köklerinin kabuğu — TÜM tab köklerinde (Ana Sayfa, Favoriler, Mesajlar, Profil, İlan Ver)
- * aynı bar, aynı yükseklik: primary-600 zemin, tek satır [arama alanı][bildirim][sepet].
- * Logo yok; ikonlar zeminsiz (`HeaderIconButton`). Sayfa başlığı gerekiyorsa barın altında
+ * aynı bar, aynı yükseklik: beyaz zemin (ScreenHeader ile aynı), tek satır
+ * [arama alanı][bildirim][sepet]. Logo yok; ikonlar zeminsiz primary-600 (`HeaderIconButton`). Sayfa başlığı gerekiyorsa barın altında
  * `PageHeader` ile verilir. Bu bilinçli bir web sapmasıdır (web telefonda logo + ikincil arama satırı).
- * Odaktayken StatusBar açık içerik.
+ * StatusBar koyu içerik (kök layout varsayılanı) — kabuk StatusBar'a dokunmaz.
  */
 export const AppShell: React.FC<AppShellProps> = ({ children, contentStyle, testID }) => {
   const topInset = useHeaderTopInset();
   const { t } = useTranslation();
   const counts = useShellCounts();
-  const focused = useIsScreenFocused();
   const openSearch = useOpenSearch();
 
   return (
     <View style={styles.root} testID={testID}>
-      {focused ? <StatusBar style="light" /> : null}
       <View style={[styles.bar, { paddingTop: topInset }]} testID="app-shell-bar">
         <View style={styles.row}>
           <SearchField
@@ -79,7 +61,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, contentStyle, test
             onPress={openSearch}
           />
           <HeaderIconButton
-            tone="onBrand"
+            tone="primary"
             icon="bell"
             label={t('nav.notifications')}
             count={counts.notificationCount}
@@ -87,7 +69,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, contentStyle, test
             onPress={() => Router.router.push('/notifications')}
           />
           <HeaderIconButton
-            tone="onBrand"
+            tone="primary"
             icon="shopping-cart"
             label={t('nav.cart')}
             count={counts.cartCount}
@@ -109,13 +91,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.DEFAULT,
   },
   bar: {
-    backgroundColor: colors.primary[600],
+    // ScreenHeader ile aynı kural: beyaz (surface.elevated) zemin + 1px alt çizgi, gölge yok.
+    backgroundColor: colors.surface.elevated,
     borderBottomWidth: 1,
-    borderBottomColor: colors.primary[700],
+    borderBottomColor: colors.border.DEFAULT,
     // İkon kutusu 44pt, görsel 24: sağ kenarda ikonun görünür kenarı yine 16pt gutter'a oturur.
     paddingLeft: spacing[4],
     paddingRight: spacing[1.5],
-    ...shadow.soft,
     zIndex: 1,
   },
   row: {

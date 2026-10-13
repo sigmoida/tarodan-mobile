@@ -146,14 +146,14 @@ const styles = StyleSheet.create({
     padding: theme.spacing[6],
   },
   title: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "700",
     color: theme.colors.gray[900],
     marginTop: theme.spacing[4],
     textAlign: "center",
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: theme.colors.gray[600],
     textAlign: "center",
     marginTop: theme.spacing[2],
@@ -182,6 +182,6 @@ const styles = StyleSheet.create({
   buttonText: {
     color: colors.white,
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: 15,
   },
 });
