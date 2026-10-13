@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { appAlert, toast } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { paymentsApi } from '@/lib/api';
@@ -32,6 +32,9 @@ export function usePayments() {
       return Array.isArray(list) ? list : [];
     },
     enabled: isAuthenticated,
+    // Filtre değişince eski liste kalır; isLoading yalnız ilk yüklemede true olur,
+    // böylece PageShell çipleri unmount etmez.
+    placeholderData: keepPreviousData,
   });
 
   const handleCancel = (id: string) => {
