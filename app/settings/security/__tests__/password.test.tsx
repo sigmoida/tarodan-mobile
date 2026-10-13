@@ -74,9 +74,10 @@ describe('settings/security/password', () => {
   });
 
   it('başarı: istek gider, geri dönülür, toast', async () => {
+    // Mevcut şifre olduğu gibi gider (kırpma yok — boşluk şifrenin parçası olabilir).
     fill(' Eski1234! ', 'Yeni1234!', 'Yeni1234!');
     await waitFor(() => expect(backMock).toHaveBeenCalled());
-    expect(mockChangePassword).toHaveBeenCalledWith('Eski1234!', 'Yeni1234!');
+    expect(mockChangePassword).toHaveBeenCalledWith(' Eski1234! ', 'Yeni1234!');
     expect(successMock).toHaveBeenCalledWith(i18n.t('settings.passwordChanged'));
   });
 

@@ -4,18 +4,36 @@
  * mutation (§12); yenilenen kodlar diyalogda değil ekranın kartında gösterilir.
  */
 import React from 'react';
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { toast } from '@/ui';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { appAlert, toast } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
 import { backMock, canGoBackMock, resetRouterMocks } from '@/test-utils/router-mock';
 import i18n from '@/i18n/config';
 
-jest.mock('@/ui', () => ({
-  ...jest.requireActual('@/ui'),
-  appAlert: jest.fn(),
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn(), dismiss: jest.fn() }),
-}));
+jest.mock('@/ui', () => {
+  const actual = jest.requireActual('@/ui');
+  const { confirmWith } = jest.requireActual('@/ui/components/AlertDialog');
+  const appAlert = jest.fn();
+  return {
+    ...actual,
+    appAlert,
+    confirm: (options: unknown) => confirmWith(appAlert, options),
+    toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn(), dismiss: jest.fn() }),
+  };
+});
 jest.mock('expo-router', () => jest.requireActual('@/test-utils/router-mock').routerMock);
+
+// Native-stack çıkış koruması: `usePreventRemove`'un son durumunu ve geri çağırımını yakala.
+const mockDispatch = jest.fn();
+const mockPrevent: { active: boolean; cb?: (e: { data: { action: unknown } }) => void } = { active: false };
+jest.mock('@react-navigation/native', () => ({
+  ...jest.requireActual('@react-navigation/native'),
+  useNavigation: () => ({ dispatch: mockDispatch }),
+  usePreventRemove: (active: boolean, cb: (e: { data: { action: unknown } }) => void) => {
+    mockPrevent.active = active;
+    mockPrevent.cb = cb;
+  },
+}));
 jest.mock('@/stores/authStore', () => ({
   useAuthStore: (sel?: (state: Record<string, unknown>) => unknown) => {
     const state: Record<string, unknown> = { isAuthenticated: true, user: { id: 'u1' } };
@@ -56,6 +74,9 @@ beforeEach(() => {
   successMock.mockClear();
   errorMock.mockClear();
   resetRouterMocks();
+  mockDispatch.mockClear();
+  mockPrevent.active = false;
+  mockPrevent.cb = undefined;
   canGoBackMock.mockReturnValue(true);
 });
 
@@ -99,6 +120,56 @@ describe('kurulum', () => {
     fireEvent.press(screen.getByTestId('two-factor-verify'));
     await waitFor(() => expect(errorMock).toHaveBeenCalledWith('Geçersiz kod'));
     expect(screen.getByTestId('two-factor-secret')).toBeTruthy();
+  });
+});
+
+describe('yedek kodlar görünümünden çıkış', () => {
+  async function reachCodes() {
+    renderWithProviders(<TwoFactorScreen />);
+    fireEvent.press(await screen.findByTestId('two-factor-start'));
+    fireEvent.changeText(await screen.findByTestId('two-factor-code-input'), '123456');
+    fireEvent.press(screen.getByTestId('two-factor-verify'));
+    await screen.findByTestId('backup-codes-card');
+  }
+  const leaveAction = { type: 'GO_BACK' };
+
+  it('kodlar ekrandayken çıkış korunur; onaylanınca çıkılır, iptalde kalınır', async () => {
+    await reachCodes();
+    expect(mockPrevent.active).toBe(true);
+
+    const alertMock = appAlert as jest.Mock;
+    // İptal → kalınır
+    act(() => mockPrevent.cb!({ data: { action: leaveAction } }));
+    await waitFor(() => expect(alertMock).toHaveBeenCalledTimes(1));
+    expect(alertMock.mock.calls[0]![0]).toBe(i18n.t('security.leaveBackupCodesTitle'));
+    await act(async () => {
+      alertMock.mock.calls[0]![2].find((b: { style?: string }) => b.style === 'cancel').onPress();
+    });
+    expect(mockDispatch).not.toHaveBeenCalled();
+
+    // Onay ("Tamam, kaydettim") → bekletilen çıkış sürer
+    act(() => mockPrevent.cb!({ data: { action: leaveAction } }));
+    await waitFor(() => expect(alertMock).toHaveBeenCalledTimes(2));
+    await act(async () => {
+      alertMock.mock.calls[1]![2].find((b: { style?: string }) => b.style !== 'cancel').onPress();
+    });
+    expect(mockDispatch).toHaveBeenCalledWith(leaveAction);
+  });
+
+  it('"Tamam, kaydettim" bilinçli çıkış: onay sorulmaz', async () => {
+    await reachCodes();
+    fireEvent.press(screen.getByTestId('backup-codes-ack'));
+    expect(backMock).toHaveBeenCalled();
+    // Navigasyon kaldırmayı tetiklerse koruma onaysız geçirir.
+    act(() => mockPrevent.cb!({ data: { action: leaveAction } }));
+    expect(appAlert).not.toHaveBeenCalled();
+    expect(mockDispatch).toHaveBeenCalledWith(leaveAction);
+  });
+
+  it('kurulum/tanıtım görünümünde koruma kapalı', async () => {
+    renderWithProviders(<TwoFactorScreen />);
+    await screen.findByTestId('two-factor-start');
+    expect(mockPrevent.active).toBe(false);
   });
 });
 

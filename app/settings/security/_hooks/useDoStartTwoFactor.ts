@@ -7,5 +7,7 @@ import { toTwoFactorSetup } from '../_lib/types';
 export function useDoStartTwoFactor() {
   return useAppMutation(async () => toTwoFactorSetup((await authApi.setupTwoFactor()).data), {
     error: () => i18n.t('profile.twoFactor.setupFailed'),
+    // Gizli anahtar / yedek kodlar MutationCache'te (varsayılan 5 dk) tutulmasın.
+    mutation: { gcTime: 0 },
   });
 }

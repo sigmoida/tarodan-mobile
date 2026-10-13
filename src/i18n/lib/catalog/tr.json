@@ -7958,7 +7958,9 @@
     "verifyLater": "Daha sonra",
     "phoneRemoved": "Profiliniz güncellendi, telefon numaranız kaldırıldı.",
     "phoneNotRemoved": "Telefon numaranız kaldırılamadı; alan kayıtlı numaranıza geri alındı. Lütfen tekrar deneyin.",
-    "logoutAllHint": "Diğer tüm cihazlarda oturumunuzu sonlandırın"
+    "logoutAllHint": "Diğer tüm cihazlarda oturumunuzu sonlandırın",
+    "leaveBackupCodesTitle": "Yedek kodları kaydettiniz mi?",
+    "leaveBackupCodesBody": "Bu kodlar yalnızca bir kez gösterilir. Ekrandan çıkarsanız bir daha göremezsiniz."
   },
   "discount": {
     "typeBogo": "Al X, Y Bedava (otomatik)",

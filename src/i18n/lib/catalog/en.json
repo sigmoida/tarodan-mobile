@@ -7958,7 +7958,9 @@
     "verifyLater": "Later",
     "phoneRemoved": "Your profile was updated and your phone number was removed.",
     "phoneNotRemoved": "Your phone number could not be removed; the field was reset to your saved number. Please try again.",
-    "logoutAllHint": "End your session on all other devices"
+    "logoutAllHint": "End your session on all other devices",
+    "leaveBackupCodesTitle": "Did you save your backup codes?",
+    "leaveBackupCodesBody": "These codes are shown only once. If you leave this screen, you won't be able to see them again."
   },
   "discount": {
     "typeBogo": "Buy X, Get Y Free (automatic)",

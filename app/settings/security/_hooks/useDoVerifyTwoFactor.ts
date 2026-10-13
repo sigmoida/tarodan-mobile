@@ -14,6 +14,8 @@ export function useDoVerifyTwoFactor() {
       invalidates: [qk.user.twoFactorStatus],
       success: () => i18n.t('security.twoFactorEnabled'),
       error: () => i18n.t('profile.twoFactor.verifyFailed'),
+      // Gizli anahtar / yedek kodlar MutationCache'te (varsayılan 5 dk) tutulmasın.
+      mutation: { gcTime: 0 },
     },
   );
 }

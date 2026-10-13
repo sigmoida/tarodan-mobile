@@ -6,7 +6,7 @@ import { useAppMutation } from '@/lib/query';
 export function useDoChangePassword() {
   return useAppMutation(
     ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) =>
-      authApi.changePassword(currentPassword.trim(), newPassword),
+      authApi.changePassword(currentPassword, newPassword),
     {
       success: () => i18n.t('settings.passwordChanged'),
       error: () => i18n.t('security.passwordChangeFailed'),

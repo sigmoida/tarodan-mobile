@@ -10,6 +10,8 @@ export function useDoRegenerateBackupCodes() {
     {
       invalidates: [qk.user.twoFactorStatus],
       error: () => i18n.t('profile.twoFactor.regenerateFailed'),
+      // Gizli anahtar / yedek kodlar MutationCache'te (varsayılan 5 dk) tutulmasın.
+      mutation: { gcTime: 0 },
     },
   );
 }

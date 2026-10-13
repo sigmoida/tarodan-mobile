@@ -5,7 +5,7 @@
  * hesapta DOĞRULANMAMIŞ duruyorsa numarayı yazmaz ama yine 200 döner (yanıttaki
  * telefon eski numara). Eskiden mobil her iki durumda da "Profil güncellendi"
  * diyordu. Artık:
- *  - numara kaydedildi → "Numaranızı doğrulayın" + Şimdi doğrula → güvenlik ekranı
+ *  - numara kaydedildi → "Numaranızı doğrulayın" + Şimdi doğrula → telefon doğrulama ekranı
  *  - numara kaydedilmedi → başarı DEĞİL, açıklayıcı uyarı (+ yine doğrulama yolu)
  *  - güvenlik ekranı `?verifyPhone=` ile açılınca telefon doğrulama EKRANINA geçer ve kod
  *    orada bir kez gider.
@@ -150,7 +150,7 @@ describe('edit-profile · telefon değişimi sonrası', () => {
     fireEvent.press(screen.getByText('product.saveChanges'));
   };
 
-  it('numara kaydedildi → doğrulama uyarısı, "Şimdi doğrula" güvenlik ekranına götürür', async () => {
+  it('numara kaydedildi → doğrulama uyarısı, "Şimdi doğrula" doğrudan telefon doğrulama ekranına götürür', async () => {
     updateProfile.mockResolvedValue({ data: { phone: NEW_PHONE, isPhoneVerified: false } });
     saveWithPhone('0532 123 45 67');
 
@@ -163,7 +163,7 @@ describe('edit-profile · telefon değişimi sonrası', () => {
 
     buttons.find((b: any) => b.text === 'security.verifyNow').onPress();
     expect(pushMock).toHaveBeenCalledWith({
-      pathname: '/settings/security',
+      pathname: '/settings/security/phone',
       params: { verifyPhone: NEW_PHONE },
     });
   });
@@ -282,7 +282,7 @@ describe('edit-profile · telefon değişimi sonrası', () => {
 });
 
 describe('security · ?verifyPhone= ile açılış', () => {
-  it('güvenlik ekranı doğrulama ekranına aynı parametreyle geçer (kendisi kod göndermez)', async () => {
+  it('eski derin bağlantı: güvenlik hub\'ı doğrulama ekranına aynı parametreyle geçer (kendisi kod göndermez)', async () => {
     mockParams = { verifyPhone: NEW_PHONE };
     renderWithProviders(<SecurityScreen />);
 

@@ -9,6 +9,7 @@ import type { ShownBackupCodes, TwoFactorSetup } from '../_lib/types';
 import { useTwoFactorStatus } from './useTwoFactorStatus';
 import { useDoStartTwoFactor } from './useDoStartTwoFactor';
 import { useDoVerifyTwoFactor } from './useDoVerifyTwoFactor';
+import { useBackupCodesLeaveGuard } from './useBackupCodesLeaveGuard';
 
 /** Ekranın o anki görünümü — gövde ve alt çubuk buna göre seçilir. */
 export type TwoFactorView = 'intro' | 'setup' | 'codes' | 'enabled';
@@ -42,6 +43,9 @@ export function useTwoFactorFlow() {
       : status.isEnabled
         ? 'enabled'
         : 'intro';
+
+  // Tek seferlik kodlar ekrandayken geri/kaydırma çıkışı onaya bağlı.
+  const leaveGuard = useBackupCodesLeaveGuard(view === 'codes');
 
   const copy = (text: string) => {
     Clipboard.setString(text);
@@ -89,7 +93,10 @@ export function useTwoFactorFlow() {
     ackCodes: () => {
       const source = shownCodes?.source;
       setShownCodes(null);
-      if (source === 'setup') goBackOrHome();
+      if (source === 'setup') {
+        leaveGuard.allowLeave();
+        goBackOrHome();
+      }
     },
     // Diyaloglar (yalnız aç/kapa)
     dialog,
