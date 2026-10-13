@@ -232,7 +232,8 @@ Android'de bu dosyanın **içeriğini** hash'ler (yolunu değil; ölçüldü). E
 ile `eas update` job'u aynı içeriği görmezse runtime fingerprint'i eşleşmez ve
 staging OTA'ları Android staging cihazlarına hiç ulaşmaz. OTA job'unda EAS file
 değişkeni yoktur, repo dosyası her zaman vardır. Dosya yoksa hash da değişir
-(`e49478f…` ↔ `9ee3e91…`). Bu yüzden repo dosyası her yerde aynı kaynaktır.
+(ölçüldü). Kontrol: `EXPO_PUBLIC_ENVIRONMENT=preview npx expo-updates fingerprint:generate
+--platform android` env değişkeni varken/yokken aynı hash vermeli. Bu yüzden repo dosyası her yerde aynı kaynaktır.
 
 **EAS değişkeni (isteğe bağlı yedek):** `GOOGLE_SERVICES_JSON_STAGING` `preview`
 ortamında zaten yüklü ve repo dosyasıyla **aynı içerikte**. Repo dosyası yerindeyken
