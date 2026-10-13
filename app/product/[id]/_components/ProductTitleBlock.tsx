@@ -26,7 +26,7 @@ export function ProductTitleBlock({
   return (
     <View style={styles.block}>
       <View style={styles.titleRow}>
-        <Text variant="h1" style={styles.title} accessibilityRole="header">
+        <Text variant="h2" style={styles.title} accessibilityRole="header">
           {product.title}
         </Text>
         {product.status === 'sold' ? (
@@ -39,7 +39,7 @@ export function ProductTitleBlock({
       <View style={styles.priceBlock}>
         {price.onSale ? (
           <View style={styles.oldRow}>
-            <Text variant="h2" weight="regular" tone="subtle" style={styles.struck} testID="product-price-old">
+            <Text variant="body" weight="regular" tone="subtle" style={styles.struck} testID="product-price-old">
               {formatPrice(price.originalPrice)}
             </Text>
             {price.discountPct > 0 ? (
