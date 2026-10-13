@@ -10,6 +10,7 @@ import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { useZodForm } from '@/ui/form';
 import { buildListingFormSchema, emptyListingFormValues } from '../_lib/schema';
 import { firstListingValidationError } from '../_lib/validate';
+import { listingGateView } from '../_lib/gates';
 import { buildColorAndBoxPayload, serverErrorMessage } from '../_lib/payload';
 import { MAX_COLORS } from '../_lib/schema';
 import { globalCustomGroups, requiredGlobalGroups } from '../_lib/attributeGroups';
@@ -789,11 +790,39 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const handleSubmit = async () => {
     if (!validate()) return;
 
-    // KAPALI BAŞARISIZ: hesap doğrulanamıyorsa (yükleniyor / hata) gönderim engellenir.
-    // `hasBankAccount` yalnız veri GELMİŞSE true olur; form normalde bu durumda zaten
-    // gösterilmiyor (`ListingRequirementGate`), bu satır kapıyı aşan her yolu (hızlı çift dokunma,
-    // gecikmeli sorgu) sunucuya gitmeden keser.
-    if (!isEdit && !hasBankAccount) {
+    // GÖNDERİM KAPISI — `ListingRequirementGate` ile AYNI kaynak (`listingGateView`), iki guard
+    // aynı semantiği izler. Form normalde bu durumda gizli; bu blok kapıyı aşan her yolu
+    // (hızlı çift dokunma, gecikmiş sorgu) sunucuya gitmeden keser:
+    //  - durum BİLİNMİYOR (yükleniyor / hata): gönderim engellenir ama "IBAN/adres ekle" DENMEZ;
+    //    "doğrulanıyor / tekrar dene" gösterilir (hata ise yeniden dene düğmesiyle).
+    //  - KESİN eksik: ekleme istemi (önce IBAN, sonra adres).
+    const gate = listingGateView({
+      isEdit,
+      hasBankAccount,
+      bankAccountLoading,
+      bankAccountError,
+      hasDispatchAddress,
+      dispatchAddressLoading,
+      dispatchAddressError,
+    });
+    if (gate.view === 'error') {
+      appAlert(t('listing.requirementsErrorTitle'), t('listing.requirementsErrorBody'), [
+        { text: t('listing.dismiss'), style: 'cancel' },
+        {
+          text: t('common.tryAgain'),
+          onPress: () => {
+            if (gate.bank === 'error') refetchBankAccount();
+            if (gate.address === 'error') refetchDispatchAddress();
+          },
+        },
+      ]);
+      return;
+    }
+    if (gate.view === 'loading') {
+      appAlert(t('listing.requirementsPendingTitle'), t('listing.requirementsPendingBody'));
+      return;
+    }
+    if (gate.bank === 'missing') {
       appAlert(
         t('listing.bankAccountRequiredTitle'),
         t('listing.bankAccountRequiredBody'),
@@ -804,10 +833,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       );
       return;
     }
-
-    // Durum BİLİNMİYORSA (yükleniyor/hata) "adres ekle" denmez: form zaten
-    // bu durumda gösterilmiyor (`ListingRequirementGate`); buraya yalnız bilinen eksik düşer.
-    if (!isEdit && !dispatchAddressLoading && !dispatchAddressError && !hasDispatchAddress) {
+    if (gate.address === 'missing') {
       appAlert(
         t(dispatchAddressNeedsFix ? 'listing.dispatchAddressFixTitle' : 'listing.dispatchAddressRequiredTitle'),
         t('address.dispatchPromptDesc'),

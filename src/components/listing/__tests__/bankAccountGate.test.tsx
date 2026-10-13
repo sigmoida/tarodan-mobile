@@ -130,10 +130,12 @@ describe('useListingForm: gönderimde IBAN kapısı kapalı başarısız', () =>
 
   beforeEach(() => (productsApi.create as jest.Mock).mockClear());
 
-  it('yüklenirken: ilan oluşturulmaz, IBAN istemi çıkar', async () => {
+  it('yüklenirken: ilan oluşturulmaz, "IBAN ekle" DENMEZ, doğrulanıyor mesajı çıkar', async () => {
     await submit(() => mockGetBank.mockReturnValue(new Promise(() => {})));
     expect(productsApi.create).not.toHaveBeenCalled();
-    expect(appAlert).toHaveBeenCalledWith('Banka Hesabı Gerekli', expect.any(String), expect.any(Array));
+    const titles = (appAlert as jest.Mock).mock.calls.map((c) => c[0]);
+    expect(titles).toContain('Bilgileriniz doğrulanıyor');
+    expect(titles).not.toContain('Banka Hesabı Gerekli');
   });
 
   it('okuma hatasında: ilan oluşturulmaz', async () => {
@@ -144,10 +146,12 @@ describe('useListingForm: gönderimde IBAN kapısı kapalı başarısız', () =>
       await result.current.handleSubmit();
     });
     expect(productsApi.create).not.toHaveBeenCalled();
-    expect(appAlert).toHaveBeenCalled();
+    const titles = (appAlert as jest.Mock).mock.calls.map((c) => c[0]);
+    expect(titles).toContain('Bilgileriniz doğrulanamadı');
+    expect(titles).not.toContain('Banka Hesabı Gerekli');
   });
 
-  it('hesap yoksa: ilan oluşturulmaz', async () => {
+  it('hesap yoksa (kesin eksik): ilan oluşturulmaz, IBAN ekleme istemi çıkar', async () => {
     mockGetBank.mockResolvedValue({ data: null });
     const { result } = renderForm();
     await waitFor(() => expect(result.current.bankAccountLoading).toBe(false));
@@ -155,6 +159,7 @@ describe('useListingForm: gönderimde IBAN kapısı kapalı başarısız', () =>
       await result.current.handleSubmit();
     });
     expect(productsApi.create).not.toHaveBeenCalled();
+    expect(appAlert).toHaveBeenCalledWith('Banka Hesabı Gerekli', expect.any(String), expect.any(Array));
   });
 
   it('hesap varsa IBAN kapısı geçilir (sonraki kontrollere ilerler)', async () => {
