@@ -235,7 +235,7 @@ describe('PopupAd', () => {
     await flush(POPUP_AD_DELAY_MS + 100);
     // popup-ad -> sheet (Pressable) -> backdrop
     let node = getByTestId('popup-ad').parent;
-    let sheet: StyleSheet.NamedStyles<unknown>[string] | undefined;
+    let sheet: Record<string, unknown> | undefined;
     while (node && !sheet) {
       const st = StyleSheet.flatten(node.props.style);
       if (st && st.maxWidth === 480) sheet = st;

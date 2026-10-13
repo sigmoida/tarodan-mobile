@@ -71,29 +71,54 @@ export const membershipApi = {
 };
 
 /** İndirim / kupon / kampanya */
+/** API `DiscountType`: yüzde / sabit tutar + adet koşullu kampanyalar (bogo, bulk_quantity). */
+export type DiscountType = 'percentage' | 'fixed_amount' | 'bogo' | 'bulk_quantity';
+export type DiscountScope = 'global' | 'category' | 'product' | 'seller';
+
+/**
+ * `POST /discounts` gövdesi (API `CreateDiscountDto`). Adet koşullu türler kodsuz-otomatiktir:
+ * - `bogo`: `buyQuantity` al, `getQuantity` bedava (`value` 0),
+ * - `bulk_quantity`: en az `minQuantity` adet, `value` yüzde.
+ */
+export interface CreateDiscountPayload {
+  code?: string;
+  name: string;
+  description?: string;
+  type: DiscountType;
+  value: number;
+  scope: DiscountScope;
+  categoryId?: string;
+  targetProductIds?: string[];
+  minCartValue?: number;
+  maxDiscountAmount?: number;
+  /** `bulk_quantity`: kampanyanın başladığı en az adet (>= 1; form >= 2 ister). */
+  minQuantity?: number;
+  /** `bogo`: kaç tane alınca (Buy X). */
+  buyQuantity?: number;
+  /** `bogo`: kaç tane bedava (Get Y). */
+  getQuantity?: number;
+  usageLimitTotal?: number;
+  usageLimitPerUser?: number;
+  isStackable?: boolean;
+  priority?: number;
+  isActive?: boolean;
+  startDate: string;
+  endDate: string;
+}
+
+/**
+ * `PATCH /discounts/:id` gövdesi (API `UpdateDiscountDto` = kısmi). Temizlenen isteğe
+ * bağlı alan `null` gider: `undefined` JSON'dan düşer ve sunucu eski değeri korurdu.
+ */
+export type UpdateDiscountPayload = {
+  [K in keyof CreateDiscountPayload]?: CreateDiscountPayload[K] | null;
+};
+
 export const discountsApi = {
   getAll: (params?: Record<string, any>) => api.get('/discounts', { params }),
   getOne: (id: string) => api.get(`/discounts/${id}`),
-  create: (data: {
-    code?: string;
-    name: string;
-    description?: string;
-    type: 'percentage' | 'fixed_amount';
-    value: number;
-    scope: 'global' | 'category' | 'product' | 'seller';
-    categoryId?: string;
-    targetProductIds?: string[];
-    minCartValue?: number;
-    maxDiscountAmount?: number;
-    usageLimitTotal?: number;
-    usageLimitPerUser?: number;
-    isStackable?: boolean;
-    priority?: number;
-    isActive?: boolean;
-    startDate: string;
-    endDate: string;
-  }) => api.post('/discounts', data),
-  update: (id: string, data: Record<string, any>) =>
+  create: (data: CreateDiscountPayload) => api.post('/discounts', data),
+  update: (id: string, data: UpdateDiscountPayload) =>
     api.patch(`/discounts/${id}`, data),
   delete: (id: string) => api.delete(`/discounts/${id}`),
   validate: (data: {

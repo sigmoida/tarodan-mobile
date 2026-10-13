@@ -1,6 +1,8 @@
 import type { MessageKey } from '@/i18n/lib';
 
-export type DiscountType = 'percentage' | 'fixed_amount' | 'bogo' | 'bulk_quantity';
+import type { DiscountType } from '@/lib/api';
+
+export type { DiscountType };
 export type DiscountScope = 'seller' | 'product';
 
 export interface Discount {
