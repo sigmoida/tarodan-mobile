@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { paymentsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
@@ -10,7 +10,7 @@ import { useDoRetryPayment } from './useDoRetryPayment';
 
 /**
  * Payments-history controller — owns the GET /payments/me query + status filter,
- * the cancel (pending) handler and the snackbar; retry (failed → kimlik → onay →
+ * the cancel (pending) handler (info → toast); retry (failed → kimlik → onay →
  * paymentUrl webview) lives in `useDoRetryPayment`. Lifted from the monolithic
  * screen (§12).
  */
@@ -19,11 +19,7 @@ export function usePayments() {
   const { isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
-  const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({
-    visible: false,
-    message: '',
-  });
-  const retry = useDoRetryPayment((message) => setSnackbar({ visible: true, message }));
+  const retry = useDoRetryPayment((message) => toast.success(message));
 
   const paymentsQuery = useQuery({
     queryKey: [...qk.payments.mine, statusFilter],
@@ -47,7 +43,7 @@ export function usePayments() {
         onPress: async () => {
           try {
             await paymentsApi.cancel(id);
-            setSnackbar({ visible: true, message: t('payment.cancelled') });
+            toast.success(t('payment.cancelled'));
             queryClient.invalidateQueries({ queryKey: qk.payments.mine });
           } catch (e: any) {
             appAlert(t('common.error'), e?.response?.data?.message || t('payment.cancelFailed'));
@@ -63,8 +59,6 @@ export function usePayments() {
     payments: paymentsQuery.data ?? [],
     statusFilter,
     setStatusFilter,
-    snackbar,
-    setSnackbar,
     handleCancel,
     handleRetry: retry.start,
     /** Kimlik kontrolü ya da retry sürüyor → TÜM "Tekrar Dene" düğmeleri devre dışı. */

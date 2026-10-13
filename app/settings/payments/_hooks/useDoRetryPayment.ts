@@ -21,7 +21,7 @@ import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
  * ikinci basış yok sayılır (değişken üzerine yazılıp spinner başka karta
  * kaymasın diye senkron ref koruması da var — aynı render içindeki çift basış).
  */
-export function useDoRetryPayment(showSnackbar: (message: string) => void) {
+export function useDoRetryPayment(notify: (message: string) => void) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { requireIdentity, isChecking } = useRequireLegalIdentity();
@@ -41,7 +41,7 @@ export function useDoRetryPayment(showSnackbar: (message: string) => void) {
         router.push({ pathname: '/payment/[id]', params: { id: paymentId, paymentUrl: url } } as any);
         return;
       }
-      showSnackbar(t('payment.retryStarted'));
+      notify(t('payment.retryStarted'));
       void queryClient.invalidateQueries({ queryKey: qk.payments.mine });
     },
     onError: (e: any) => {
