@@ -65,11 +65,15 @@ export function useEditProfile() {
     },
   });
 
+  // Yalnız avatar DEĞERİ değişince eşle (`user` nesnesi her e-posta/kullanıcı adı
+  // tazelemesinde yenilenir). Henüz kaydedilmemiş yerel seçim (http olmayan URI)
+  // sunucudan gelen değerle ezilmez — presigned URL her çekimde farklı gelir.
   useEffect(() => {
     if (user?.avatar) {
-      setAvatar(user.avatar);
+      const serverAvatar = user.avatar;
+      setAvatar((prev) => (prev && !prev.startsWith('http') ? prev : serverAvatar));
     }
-  }, [user]);
+  }, [user?.avatar]);
 
   const updateMutation = useMutation({
     mutationFn: async ({ data, phone }: UpdateVars) => {
@@ -122,6 +126,9 @@ export function useEditProfile() {
       // üye" kriteri, authStore.isVerifiedMember).
       const fresh = await refreshUserData();
       queryClient.invalidateQueries({ queryKey: ['user'] });
+      // Yerel seçim yüklendi → sunucudaki değere dön (yoksa bir sonraki kayıtta
+      // aynı fotoğraf yeniden yüklenirdi).
+      if (fresh?.avatar) setAvatar(fresh.avatar);
       // Kayıt sonucu TAZE kullanıcıyla doğrulanır; tazeleme düştüyse PATCH
       // yanıtındaki (zarfsız kullanıcı nesnesi) telefona geri çekilinir.
       const savedPhone = fresh ? fresh.phone : responsePhone;
