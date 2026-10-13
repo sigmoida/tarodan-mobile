@@ -46,31 +46,6 @@ export const FILTERS: Array<{ value: '' | 'active' | 'inactive' | 'expired'; lab
   { value: 'expired', labelKey: 'discount.filterExpired' },
 ];
 
-export const initialForm = () => ({
-  id: '' as string | undefined,
-  code: '',
-  name: '',
-  description: '',
-  type: 'percentage' as DiscountType,
-  value: '10',
-  // bogo: "X al" / "Y bedava"; bulk_quantity: en az adet. Input'tan geldiği için string.
-  buyQuantity: '',
-  getQuantity: '',
-  minQuantity: '',
-  scope: 'seller' as DiscountScope,
-  targetProductIds: [] as string[],
-  minCartValue: '',
-  maxDiscountAmount: '',
-  usageLimitTotal: '',
-  usageLimitPerUser: '1',
-  isStackable: false,
-  isActive: true,
-  startDate: new Date().toISOString().split('T')[0],
-  endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-});
-
-export type DiscountForm = ReturnType<typeof initialForm>;
-
 // İndirim kartı sunum yardımcıları.
 export const formatDate = (s: string) => new Date(s).toLocaleDateString('tr-TR');
 

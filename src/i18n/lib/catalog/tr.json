@@ -7417,6 +7417,7 @@
     "valueInvalid": "Geçerli bir indirim değeri girin.",
     "percentTooHigh": "Yüzde indirim 100'den büyük olamaz.",
     "pickAtLeastOne": "Lütfen en az bir ürün seçin.",
+    "dateInvalid": "Geçerli bir tarih girin (YYYY-AA-GG).",
     "deleteTitle": "İndirimi Sil",
     "myDiscountsTitle": "İndirimlerim",
     "loginRequiredBody": "İndirimlerinizi yönetmek için giriş yapmalısınız.",

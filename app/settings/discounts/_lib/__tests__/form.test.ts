@@ -1,32 +1,8 @@
-import { buildDiscountPayload, discountFormError } from '../form';
-import { initialForm, quantitySummary, valueLabel, type Discount } from '../types';
+import { buildDiscountPayload } from '../form';
+import { discountDefaultValues } from '../schema';
+import { quantitySummary, valueLabel, type Discount } from '../types';
 
-const base = () => ({ ...initialForm(), name: 'Kampanya' });
-
-describe('discountFormError', () => {
-  it('bogo: al/bedava en az 1 olmalı; değer istenmez', () => {
-    const f = { ...base(), type: 'bogo' as const, value: '' };
-    expect(discountFormError(f)).toBe('discount.buyQuantityMin1');
-    expect(discountFormError({ ...f, buyQuantity: '2' })).toBe('discount.getQuantityMin1');
-    expect(discountFormError({ ...f, buyQuantity: '2', getQuantity: '0' })).toBe('discount.getQuantityMin1');
-    expect(discountFormError({ ...f, buyQuantity: '2', getQuantity: '1' })).toBeNull();
-  });
-  it('bulk_quantity: en az adet >= 2, yüzde 1-100', () => {
-    const f = { ...base(), type: 'bulk_quantity' as const, value: '15' };
-    expect(discountFormError(f)).toBe('discount.minQuantityMin2');
-    expect(discountFormError({ ...f, minQuantity: '1' })).toBe('discount.minQuantityMin2');
-    expect(discountFormError({ ...f, minQuantity: '3' })).toBeNull();
-    expect(discountFormError({ ...f, minQuantity: '3', value: '150' })).toBe('discount.percentTooHigh');
-    expect(discountFormError({ ...f, minQuantity: '3', value: '0' })).toBe('discount.valueInvalid');
-  });
-  it('mevcut kurallar korunur', () => {
-    expect(discountFormError({ ...base(), name: ' ' })).toBe('discount.nameRequired');
-    expect(discountFormError({ ...base(), value: '-5' })).toBe('discount.valueInvalid');
-    expect(discountFormError({ ...base(), value: '150' })).toBe('discount.percentTooHigh');
-    expect(discountFormError({ ...base(), scope: 'product' })).toBe('discount.pickAtLeastOne');
-    expect(discountFormError(base())).toBeNull();
-  });
-});
+const base = () => ({ ...discountDefaultValues(), name: 'Kampanya' });
 
 describe('buildDiscountPayload', () => {
   it('bogo: kodsuz, value 0, buy/get sayı; minQuantity yok', () => {

@@ -7417,6 +7417,7 @@
     "valueInvalid": "Enter a valid discount value.",
     "percentTooHigh": "A percentage discount cannot exceed 100.",
     "pickAtLeastOne": "Please pick at least one item.",
+    "dateInvalid": "Enter a valid date (YYYY-MM-DD).",
     "deleteTitle": "Delete Discount",
     "myDiscountsTitle": "My Discounts",
     "loginRequiredBody": "You need to sign in to manage your discounts.",
