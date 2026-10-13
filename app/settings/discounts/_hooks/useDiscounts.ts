@@ -1,38 +1,25 @@
 import { useState, useMemo } from 'react';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { appAlert, toast } from '@/ui';
+import { appAlert } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { discountsApi } from '@/lib/api';
-import { qk } from '@/lib/query';
+import { qk, useAppMutation } from '@/lib/query';
 import { useRefresh } from '@/hooks/useRefresh';
-import type { Discount } from '../_lib/types';
+import { discountRoutes, type Discount } from '../_lib/types';
+import { useDiscountsQuery } from './useDiscountsQuery';
 
 /**
- * Seller discount/coupon management controller — owns the discounts query,
- * filter state, the open/close state of the form modal, and the delete/toggle
- * mutations. The form modal owns its own `useZodForm` + save mutation.
+ * İndirim LİSTESİ denetleyicisi — sorgu + filtre, yeni/düzenle ekranına
+ * yönlendirme, silme onayı ve sil/aktiflik mutasyonları (`useAppMutation`:
+ * geçersiz kılma + toast tek yerden). Form ayrı ekranlarda (`new`, `[id]/edit`).
  */
 export function useDiscounts() {
   const { t } = useTranslation();
   const { isAuthenticated, user } = useAuthStore();
-  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<'' | 'active' | 'inactive' | 'expired'>('');
-  const [formOpen, setFormOpen] = useState(false);
-  // Düzenlenen indirim (null = yeni). Kapanış animasyonu boyunca korunur.
-  const [editing, setEditing] = useState<Discount | null>(null);
 
-  const discountsQuery = useQuery({
-    queryKey: qk.membership.discounts,
-    queryFn: async () => {
-      const response = await discountsApi.getAll({ limit: 100 });
-      const data: any = response.data;
-      const items: Discount[] = data?.items ?? data?.data ?? data ?? [];
-      return Array.isArray(items) ? items : [];
-    },
-    enabled: isAuthenticated,
-  });
-
+  const discountsQuery = useDiscountsQuery();
   const { refreshing, onRefresh } = useRefresh(discountsQuery.refetch);
 
   const filteredDiscounts = useMemo(() => {
@@ -50,38 +37,22 @@ export function useDiscounts() {
     return list;
   }, [discountsQuery.data, filter]);
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => discountsApi.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: qk.membership.discounts });
-      toast.success(t('discount.deleted'));
-    },
-    onError: (e: any) => {
-      appAlert(t('common.error'), e?.response?.data?.message || t('discount.deleteFailed'));
-    },
+  const deleteMutation = useAppMutation((id: string) => discountsApi.delete(id), {
+    invalidates: [qk.membership.discounts],
+    success: t('discount.deleted'),
+    error: t('discount.deleteFailed'),
   });
 
-  const toggleActiveMutation = useMutation({
-    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
-      discountsApi.update(id, { isActive }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: qk.membership.discounts });
+  const toggleActiveMutation = useAppMutation(
+    ({ id, isActive }: { id: string; isActive: boolean }) => discountsApi.update(id, { isActive }),
+    {
+      invalidates: [qk.membership.discounts],
+      error: t('discount.saveFailed'),
     },
-  });
+  );
 
-  const openCreate = () => {
-    setEditing(null);
-    setFormOpen(true);
-  };
-
-  const openEdit = (d: Discount) => {
-    setEditing(d);
-    setFormOpen(true);
-  };
-
-  const closeForm = () => setFormOpen(false);
-
-  const showSaved = (message: string) => toast.success(message);
+  const openCreate = () => router.push(discountRoutes.new as never);
+  const openEdit = (d: Discount) => router.push(discountRoutes.edit(d.id) as never);
 
   const handleDelete = (d: Discount) => {
     appAlert(
@@ -105,15 +76,10 @@ export function useDiscounts() {
     filteredDiscounts,
     refreshing,
     onRefresh,
-    // form modal (kendi form + mutasyonunu taşır)
-    formOpen,
-    editing,
+    // navigation + actions
     openCreate,
     openEdit,
-    closeForm,
-    showSaved,
     handleDelete,
-    // mutations
     toggleActiveMutation,
   };
 }

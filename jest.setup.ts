@@ -71,6 +71,15 @@ jest.mock('@react-native-google-signin/google-signin', () => ({
 // mount edilmez) → global jest.fn mock. Testler `appAlert as jest.Mock` ile erişir.
 // `confirm()` aynı mock üstünden çalışır: testler onu da `appAlert` çağrısı olarak görür ve
 // düğmelerin `onPress`'iyle (iptal → false, onay → true) çözer.
+// usePreventRemove (taslak koruması): gerçeği navigator dışında atar → kayıt tutan eş
+// (`emitBeforeRemove()` ile çıkış taklit edilir; bkz. src/test-utils/router-mock.ts).
+jest.mock('@react-navigation/native', () => ({
+  ...jest.requireActual('@react-navigation/native'),
+  usePreventRemove: (...args: [boolean, (o: { data: { action: unknown } }) => void]) =>
+    // eslint-disable-next-line @typescript-eslint/no-var-requires -- jest.mock fabrikası içi
+    require('@/test-utils/router-mock').usePreventRemoveMock(...args),
+}));
+
 jest.mock('@/ui', () => {
   const actual = jest.requireActual('@/ui');
   const { confirmWith } = jest.requireActual('@/ui/components/AlertDialog');

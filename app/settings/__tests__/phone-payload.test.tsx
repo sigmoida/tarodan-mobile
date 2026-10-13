@@ -12,6 +12,7 @@ import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 import { appAlert, toast } from '@/ui';
 import { getPhoneInvalidMessage } from '@/utils/phone';
+import { backMock, canGoBackMock, resetRouterMocks } from '@/test-utils/router-mock';
 
 jest.mock('expo-router', () => ({
   ...require('@/test-utils/router-mock').routerMock,
@@ -62,7 +63,7 @@ jest.mock('@/lib/api', () => ({
 }));
 import { api, userApi } from '@/lib/api';
 
-import AddressesScreen from '../addresses';
+import NewAddressScreen from '../addresses/new';
 import EditProfileScreen from '../edit-profile';
 
 const post = api.post as jest.Mock;
@@ -70,13 +71,14 @@ const updateProfile = userApi.updateProfile as jest.Mock;
 
 describe('Adres formu — alana yazılan telefon payload\'a ne olarak gidiyor', () => {
   beforeEach(() => {
+    resetRouterMocks();
+    canGoBackMock.mockReturnValue(true);
     post.mockClear();
     (appAlert as jest.Mock).mockImplementation(() => {});
   });
 
   const fillAndSave = async (phone: string) => {
-    renderWithProviders(<AddressesScreen />);
-    fireEvent.press(await screen.findByText('address.addNewAddress'));
+    renderWithProviders(<NewAddressScreen />);
     fireEvent.changeText(screen.getByTestId('address-title-input'), 'Ev');
     fireEvent.changeText(screen.getByTestId('address-fullname-input'), 'Ayşe Yılmaz');
     fireEvent.changeText(screen.getByTestId('address-phone-input'), phone);
@@ -102,12 +104,12 @@ describe('Adres formu — alana yazılan telefon payload\'a ne olarak gidiyor', 
     expect(post.mock.calls[0]![1]).toMatchObject({ phone: '+905321234567' });
   });
 
-  it('başarılı kayıt: modal kapanır, bilgi toast olur (appAlert değil)', async () => {
+  it('başarılı kayıt: ekran geri döner (router.back), bilgi toast olur (appAlert değil)', async () => {
     const success = jest.spyOn(toast, 'success').mockImplementation(() => 1);
     await fillAndSave('0532 123 45 67');
     await waitFor(() => expect(success).toHaveBeenCalledWith('address.added'));
     expect(appAlert).not.toHaveBeenCalled();
-    expect(screen.queryByTestId('address-save-button')).toBeNull();
+    expect(backMock).toHaveBeenCalledTimes(1);
     success.mockRestore();
   });
 
@@ -115,18 +117,18 @@ describe('Adres formu — alana yazılan telefon payload\'a ne olarak gidiyor', 
     '%s → gönderim DURUR, kırpılmış numara API\'ye SIZMAZ',
     async (input) => {
       await fillAndSave(input);
-      // Uyarı modal İÇİNDE (appAlert modal açıkken iOS'ta donduruyor, CLAUDE.md §12).
-      await waitFor(() => expect(screen.getByTestId('modal-message')).toBeTruthy());
+      // Uyarı satır içi: alanın altında VE alt çubuktaki özet satırında AYNI metin
+      // (iki yerde iki kural anlatılmaz); appAlert yok.
+      await waitFor(() =>
+        expect(screen.getAllByText(getPhoneInvalidMessage()).length).toBeGreaterThanOrEqual(2),
+      );
       expect(appAlert).not.toHaveBeenCalled();
       expect(post).not.toHaveBeenCalled();
-      // Alanın altında VE modal içi satırda aynı metin (iki yerde iki kural anlatılmaz).
-      expect((await screen.findAllByText(getPhoneInvalidMessage())).length).toBeGreaterThan(0);
     },
   );
 
   it('fazla haneli girdi alanda KIRPILMAZ — kullanıcı yazdığını görür', async () => {
-    renderWithProviders(<AddressesScreen />);
-    fireEvent.press(await screen.findByText('address.addNewAddress'));
+    renderWithProviders(<NewAddressScreen />);
     const input = screen.getByTestId('address-phone-input');
     fireEvent.changeText(input, '05321234567890');
     // Kırpma olsaydı burada "532 123 45 67" görünür, 890 sessizce kaybolurdu.
@@ -134,8 +136,7 @@ describe('Adres formu — alana yazılan telefon payload\'a ne olarak gidiyor', 
   });
 
   it('blur\'da hata görünür, numara düzeltilince anında kalkar', async () => {
-    renderWithProviders(<AddressesScreen />);
-    fireEvent.press(await screen.findByText('address.addNewAddress'));
+    renderWithProviders(<NewAddressScreen />);
     const input = screen.getByTestId('address-phone-input');
 
     fireEvent.changeText(input, '00905321234567');
