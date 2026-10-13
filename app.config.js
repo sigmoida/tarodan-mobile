@@ -64,9 +64,10 @@ function isAndroidNativeContext(env, argv) {
 }
 
 /**
- * Staging için `android.googleServicesFile` değerini seçer. Dosya okunabiliyorsa
- * içinde derlenen paketin istemcisi olduğunu da doğrular (yanlış dosyayı —
- * örn. production'ınkini — Gradle'dan önce, anlaşılır bir mesajla yakalar).
+ * Staging için `android.googleServicesFile` değerini seçer. Android native
+ * bağlamında dosya okunabiliyorsa içinde derlenen paketin istemcisi olduğunu da
+ * doğrular (yanlış dosyayı — örn. production'ınkini — Gradle'dan önce,
+ * anlaşılır bir mesajla yakalar). Diğer bağlamlarda doğrulama yapılmaz.
  *
  * `opts` yalnız test içindir.
  */
@@ -101,7 +102,10 @@ function resolveStagingGoogleServicesFile(opts = {}) {
   }
 
   const resolved = path.isAbsolute(file) ? file : path.join(root, file);
-  if (packageName && exists(resolved)) {
+  // Paket doğrulaması da YALNIZ Android native bağlamında: iOS build'i, `eas update`
+  // ve `expo start` aynı config'i değerlendirir ama Android dosyasına dokunmaz;
+  // dosyadaki bir eksik onları kırmamalı.
+  if (packageName && isAndroidNativeContext(env, argv) && exists(resolved)) {
     let packages = null;
     try {
       packages = (JSON.parse(read(resolved)).client ?? []).map(

@@ -155,15 +155,26 @@ describe('staging android.googleServicesFile seçimi', () => {
     expect(file).not.toBe('./google-services.json');
   });
 
-  it('dosya staging paketini içermiyorsa (ör. production dosyası) hata verir', () => {
-    expect(() =>
-      resolve({
-        env: {},
-        exists: () => true,
-        read: () => fileFor('com.tarodan.app'),
-        packageName: STAGING,
-      }),
-    ).toThrow(/"com\.tarodan\.app\.staging" paketinin istemcisini içermiyor/);
+  describe('dosya staging paketini içermiyorsa (ör. production dosyası)', () => {
+    const wrongFile = (env: Record<string, string>, argv: string[]) =>
+      resolve({ env, argv, exists: () => true, read: () => fileFor('com.tarodan.app'), packageName: STAGING });
+
+    it.each([
+      ['EAS Android build', { EAS_BUILD_PLATFORM: 'android' }, ['node', 'eas']],
+      ['expo run:android', {}, ['node', 'expo', 'run:android']],
+      ['expo prebuild --platform android', {}, ['node', 'expo', 'prebuild', '--platform', 'android']],
+    ])('%s: hata verir', (_n, env, argv) => {
+      expect(() => wrongFile(env, argv)).toThrow(/"com\.tarodan\.app\.staging" paketinin istemcisini içermiyor/);
+    });
+
+    it.each([
+      ['iOS EAS build', { EAS_BUILD_PLATFORM: 'ios' }, ['node', 'eas']],
+      ['eas update (OTA)', {}, ['node', 'eas', 'update']],
+      ['expo start', {}, ['node', 'expo', 'start']],
+      ['expo prebuild --platform ios', {}, ['node', 'expo', 'prebuild', '--platform', 'ios']],
+    ])('%s: hata VERMEZ (Android dosyası kullanılmıyor)', (_n, env, argv) => {
+      expect(wrongFile(env, argv)).toBe('./google-services.staging.json');
+    });
   });
 
   it('bozuk JSON Gradle\'a bırakılır (burada çökmez)', () => {
