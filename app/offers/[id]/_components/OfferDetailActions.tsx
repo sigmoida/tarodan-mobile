@@ -8,7 +8,7 @@ import { FirstToPayNote } from '../../_components/FirstToPayNote';
 /** Statü/role-göre aksiyonlar — satıcı kabul/karşı/red, alıcı iptal. Self-gates. */
 export function OfferDetailActions({ f }: { f: OfferDetailController }) {
   const { t } = useTranslation();
-  const { offer, isPending, isSeller, isBuyer, counterMutation, accepting, rejecting, cancelling } = f;
+  const { offer, isPending, isSeller, isBuyer, accepting, rejecting, cancelling } = f;
   if (!offer) return null;
 
   return (
@@ -21,7 +21,7 @@ export function OfferDetailActions({ f }: { f: OfferDetailController }) {
             variant="success"
             onPress={f.requestAccept}
             isLoading={accepting}
-            disabled={accepting || rejecting || counterMutation.isPending}
+            disabled={accepting || rejecting}
             fullWidth
           >
             {t('offer.acceptOffer')}
@@ -29,7 +29,7 @@ export function OfferDetailActions({ f }: { f: OfferDetailController }) {
           <Button
             variant="outline"
             onPress={f.openCounter}
-            disabled={accepting || rejecting || counterMutation.isPending}
+            disabled={accepting || rejecting}
             fullWidth
           >
             {t('offer.counterOfferCta')}
@@ -38,7 +38,7 @@ export function OfferDetailActions({ f }: { f: OfferDetailController }) {
             variant="danger"
             onPress={f.requestReject}
             isLoading={rejecting}
-            disabled={accepting || rejecting || counterMutation.isPending}
+            disabled={accepting || rejecting}
             fullWidth
           >
             {t('offer.rejectOffer')}
