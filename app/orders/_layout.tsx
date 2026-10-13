@@ -11,11 +11,6 @@ export default function OrdersLayout() {
         ...stackScreenOptions,
         contentStyle: { backgroundColor: colors.surface.DEFAULT },
       }}
-    >
-      {/* Form ekranları (eskiden modal). Kirli formdan çıkış `useFormScreenExit` onayından
-          geçer; iOS kaydırarak geri dönüş o onayı atlayamasın diye kapalı. */}
-      <Stack.Screen name="[id]/refund" options={{ gestureEnabled: false }} />
-      <Stack.Screen name="[id]/review" options={{ gestureEnabled: false }} />
-    </Stack>
+    />
   );
 }

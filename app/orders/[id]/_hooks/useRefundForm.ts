@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useZodForm } from '@/ui/form';
-import { useFormScreenExit } from '@/hooks/useFormScreenExit';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { goBackOrHome } from '@/components/common/goBackOrHome';
 import { MAX_EVIDENCE_PHOTOS } from '../_lib/status';
 import { refundFormDefaults, refundRequestSchema, refundRequirements, type RefundFormValues } from '../_lib/schema';
 import { pickEvidencePhotos } from '../_lib/pickEvidence';
@@ -15,15 +16,15 @@ import { useUploadRefundEvidence } from './useUploadRefundEvidence';
  * `_lib/schema.ts`'te, değişmedi.
  *
  * Ekran farkı: istek boyunca ekran açık kalır (düğme yükleniyor); başarıda
- * `useFormScreenExit` geri çıkar, kirli formla geri çıkışta onay ister.
+ * geri çıkılır; kirli formla geri çıkışta onay (`useUnsavedChangesGuard`).
  */
 export function useRefundForm(orderId: string, orderQuantity: number) {
   const { t } = useTranslation();
   const schema = useMemo(() => refundRequestSchema(t), [t]);
   const form = useZodForm(schema, { defaultValues: refundFormDefaults() });
-  const { leave, isOpen } = useFormScreenExit(form.formState.isDirty);
+  const guard = useUnsavedChangesGuard(form.formState.isDirty);
   const upload = useUploadRefundEvidence(orderId);
-  const create = useDoRefundRequest(orderId, { onCreated: leave });
+  const create = useDoRefundRequest(orderId, { onCreated: () => guard.leave(goBackOrHome) });
   const busy = upload.isPending || create.isPending;
 
   const reason = form.watch('reason');
@@ -64,8 +65,9 @@ export function useRefundForm(orderId: string, orderQuantity: number) {
         form.setError('evidence', { type: 'upload', message: t('order.evidenceUploadFailed') });
         return;
       }
-      // Yükleme sürerken kullanıcı vazgeçip ekrandan çıktıysa talep GÖNDERİLMEZ.
-      if (!isOpen()) return;
+      // Para akışı: yükleme sürerken "vazgeç?" onayı açıldıysa karar beklenir;
+      // "Değişiklikleri Sil" seçildiyse / ekran kapandıysa talep GÖNDERİLMEZ.
+      if (!(await guard.canProceed())) return;
     }
     create.mutate({ values, orderQuantity, evidencePhotoUrls });
   });

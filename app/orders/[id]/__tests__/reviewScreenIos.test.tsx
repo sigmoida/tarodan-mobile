@@ -9,10 +9,8 @@ import { renderWithProviders } from '@/test-utils';
 
 jest.mock('expo-router', () => ({
   ...require('@/test-utils/router-mock').routerMock,
-  useNavigation: () => require('@/test-utils/preventRemove').navigationStub,
   useLocalSearchParams: () => ({ id: 'o1', type: 'product' }),
 }));
-jest.mock('@react-navigation/native', () => require('@/test-utils/preventRemove').navigationNativeMock);
 jest.mock('@/lib/purchases', () => ({ CAN_BUY_DIGITAL: false }));
 jest.mock('@/lib/api', () => ({
   api: {

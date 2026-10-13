@@ -11,8 +11,7 @@ import React from 'react';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { toast } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
-import { backMock, canGoBackMock, resetRouterMocks } from '@/test-utils/router-mock';
-import { emitRemove, resetPreventRemove } from '@/test-utils/preventRemove';
+import { backMock, canGoBackMock, emitBeforeRemove, resetRouterMocks } from '@/test-utils/router-mock';
 import { tradesApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useDisputeDraftStore } from '@/stores/disputeDraftStore';
@@ -23,10 +22,8 @@ jest.mock('react-i18next', () => ({
 }));
 jest.mock('expo-router', () => ({
   ...require('@/test-utils/router-mock').routerMock,
-  useNavigation: () => require('@/test-utils/preventRemove').navigationStub,
   useLocalSearchParams: () => ({ id: 't1' }),
 }));
-jest.mock('@react-navigation/native', () => require('@/test-utils/preventRemove').navigationNativeMock);
 jest.mock('@/lib/api', () => ({ tradesApi: { raiseDispute: jest.fn() } }));
 
 const raiseMock = tradesApi.raiseDispute as jest.Mock;
@@ -38,7 +35,6 @@ let errorSpy: jest.SpyInstance;
 beforeEach(() => {
   jest.clearAllMocks();
   resetRouterMocks();
-  resetPreventRemove();
   canGoBackMock.mockReturnValue(true);
   useDisputeDraftStore.getState().clearAll();
   raiseMock.mockResolvedValue({ data: {} });
@@ -72,7 +68,7 @@ it('kısa açıklama: istek ve toast yok, hata alanın altında; yazmaya başlay
   expect(screen.queryByText('trade.dispute.minLengthError')).toBeNull();
 });
 
-it('geçerli: kırpılmış açıklama + varsayılan neden gider; önce geri çık, sonra başarı toast; taslak silinir', async () => {
+it('geçerli: kırpılmış açıklama + varsayılan neden gider; geri çık + başarı toast; taslak silinir', async () => {
   let resolve!: (v: unknown) => void;
   raiseMock.mockReturnValue(new Promise((r) => (resolve = r)));
   const { queryClient } = renderWithProviders(<TradeDisputeScreen />);
@@ -89,8 +85,7 @@ it('geçerli: kırpılmış açıklama + varsayılan neden gider; önce geri ç�
 
   await act(async () => resolve({ data: {} }));
   await waitFor(() => expect(successSpy).toHaveBeenCalledWith('trade.dispute.successMessage'));
-  expect(backMock).toHaveBeenCalledTimes(1);
-  expect(backMock.mock.invocationCallOrder[0]).toBeLessThan(successSpy.mock.invocationCallOrder[0]);
+  await waitFor(() => expect(backMock).toHaveBeenCalledTimes(1));
   expect(useDisputeDraftStore.getState().drafts.t1).toBeUndefined();
   const keys = invalidate.mock.calls.map(([f]) => f?.queryKey);
   expect(keys).toEqual(expect.arrayContaining([qk.trades.detail('t1'), qk.trades.all]));
@@ -120,7 +115,7 @@ it('sunucu mesajı yoksa itiraz yedek metni', async () => {
 it('taslak korunur: çıkış onaysız, yeniden açınca açıklama geri gelir', async () => {
   const first = renderWithProviders(<TradeDisputeScreen />);
   fireEvent.changeText(input(), 'Yarım kalan itiraz metni');
-  expect(emitRemove().prevented).toBe(false);
+  expect(emitBeforeRemove().prevented).toBe(false);
   first.unmount();
 
   renderWithProviders(<TradeDisputeScreen />);

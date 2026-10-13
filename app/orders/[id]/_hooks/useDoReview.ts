@@ -17,7 +17,7 @@ export interface ReviewTarget {
  * `RatingModal`'ın iki mutasyonu tek hook'ta, `type` ile seçilir; uç noktalar ve
  * gövdeler aynı. Invalidation eskisinin üst kümesi: sipariş listeleri + detay
  * (`hasProductRating`/`hasSellerRating`), puanlanan ürün/satıcı ve yorum listeleri.
- * Başarı: `onDone` (geri çık) SONRA `toast.success`; hata `toast.error`, ekran kalır.
+ * Başarı: `onDone` (geri çıkışı başlatır) + `toast.success` (kök katmanda, navigasyonu aşar); hata `toast.error`, ekran kalır.
  */
 export function useDoReview(target: ReviewTarget, { onDone }: { onDone: () => void }) {
   const { t } = useTranslation();

@@ -9,16 +9,13 @@ import { StyleSheet } from 'react-native';
 import { act, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { toast } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
-import { backMock, canGoBackMock, resetRouterMocks } from '@/test-utils/router-mock';
-import { emitRemove, resetPreventRemove } from '@/test-utils/preventRemove';
+import { backMock, canGoBackMock, emitBeforeRemove, resetRouterMocks } from '@/test-utils/router-mock';
 
 let mockParams: Record<string, string> = { id: 'order-1', type: 'product' };
 jest.mock('expo-router', () => ({
   ...require('@/test-utils/router-mock').routerMock,
-  useNavigation: () => require('@/test-utils/preventRemove').navigationStub,
   useLocalSearchParams: () => mockParams,
 }));
-jest.mock('@react-navigation/native', () => require('@/test-utils/preventRemove').navigationNativeMock);
 jest.mock('@/lib/api', () => ({
   api: { get: jest.fn() },
   ratingsApi: { createProductRating: jest.fn(), createUserRating: jest.fn() },
@@ -47,7 +44,6 @@ let errorSpy: jest.SpyInstance;
 beforeEach(() => {
   jest.clearAllMocks();
   resetRouterMocks();
-  resetPreventRemove();
   canGoBackMock.mockReturnValue(true);
   mockParams = { id: 'order-1', type: 'product' };
   mockLimits = { maxReviewChars: 500 };
@@ -117,7 +113,7 @@ describe('J109 · 0 puan engeli — Gönder kapalı', () => {
     expect(sellerMock).not.toHaveBeenCalled();
   });
 
-  it('geçerli puanla ürün uç noktasına gider; önce geri çıkılır, sonra başarı toast', async () => {
+  it('geçerli puanla ürün uç noktasına gider; geri çıkılır + başarı toast', async () => {
     await renderScreen();
     fireEvent.press(star(5));
     fireEvent.changeText(screen.getByTestId('review-title-input'), 'Harika');
@@ -134,8 +130,7 @@ describe('J109 · 0 puan engeli — Gönder kapalı', () => {
     await waitFor(() =>
       expect(successSpy).toHaveBeenCalledWith('Değerlendirmeniz alındı. Onaylandıktan sonra yayınlanacak.'),
     );
-    expect(backMock).toHaveBeenCalledTimes(1);
-    expect(backMock.mock.invocationCallOrder[0]).toBeLessThan(successSpy.mock.invocationCallOrder[0]);
+    await waitFor(() => expect(backMock).toHaveBeenCalledTimes(1));
   });
 
   it('sunucu hatası: toast.error, ekran kalır', async () => {
@@ -195,9 +190,40 @@ describe('J110 · Satıcıyı puanla + karakter limiti', () => {
 
 it('kirli form: geri çıkış onay ister; temiz form serbest', async () => {
   await renderScreen();
-  expect(emitRemove().prevented).toBe(false);
+  expect(emitBeforeRemove().prevented).toBe(false);
   fireEvent.press(star(2));
-  expect(emitRemove().prevented).toBe(true);
+  expect(emitBeforeRemove().prevented).toBe(true);
+});
+
+it.each([
+  ['product', { hasProductRating: true }],
+  ['seller', { hasSellerRating: true }],
+])('%s zaten puanlandıysa form yerine bilgi durumu (derin bağlantı / bayat liste)', async (type, flags) => {
+  mockParams = { id: 'order-1', type };
+  getMock.mockResolvedValue({
+    data: {
+      data: {
+        id: 'order-1',
+        status: 'delivered',
+        product: { id: 'prod-1', title: 'Vintage Kamera' },
+        seller: { id: 's1', displayName: 'Ahmet Satıcı' },
+        ...flags,
+      },
+    },
+  });
+  renderWithProviders(<OrderReviewScreen />);
+  expect(await screen.findByTestId('review-already-rated')).toBeOnTheScreen();
+  expect(screen.getByText('Değerlendirmeniz alındı')).toBeOnTheScreen();
+  expect(screen.queryByTestId('review-submit-button')).toBeNull();
+});
+
+it('diğer taraf puanlandıysa bu tarafın formu açılır', async () => {
+  mockParams = { id: 'order-1', type: 'seller' };
+  getMock.mockResolvedValue({
+    data: { data: { id: 'order-1', product: { id: 'prod-1' }, seller: { id: 's1' }, hasProductRating: true } },
+  });
+  await renderScreen();
+  expect(screen.queryByTestId('review-already-rated')).toBeNull();
 });
 
 it('bilinmeyen ?type ürün sayılır', async () => {

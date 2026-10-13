@@ -16,7 +16,7 @@ export interface RefundRequestVars {
 
 /**
  * İade talebi oluşturma (iade EKRANI sahiplenir). Başarıda sipariş setini
- * tazeler, `onCreated` (ekrandan geri çık) SONRA `toast.success` — toast kök
+ * tazeler, `onCreated` (ekrandan geri çıkışı başlatır) + `toast.success` — toast kök
  * katmanda, navigasyonu aşar. Hata `toast.error`, ekran açık kalır, kullanıcı
  * yeniden dener. Hata metni orders paritesi: yalnız string sunucu mesajı
  * (`strMsg`), dizi mesajda yedek metin.

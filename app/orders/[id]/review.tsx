@@ -14,6 +14,8 @@ import { ReviewFormFields } from './_components/ReviewFormFields';
  * (liste ve detaydaki "Ürünü/Satıcıyı Değerlendir" iter). Eskiden `RatingModal`'dı.
  * Hedef (ürün adı / satıcı) sipariş sorgusundan; detaydan gelince önbellekte hazır.
  * Gönder alt çubukta; başarı geri çık + toast, hata toast.error (ekran kalır).
+ * Bu taraf zaten puanlandıysa (`hasProductRating` / `hasSellerRating` — derin bağlantı,
+ * bayat liste) form yerine bilgi durumu gösterilir.
  */
 export default function OrderReviewScreen() {
   const { t } = useTranslation();
@@ -28,6 +30,8 @@ export default function OrderReviewScreen() {
     sellerId: order?.seller?.id,
   });
   const title = type === 'product' ? t('ratingModal.titleProduct') : t('ratingModal.titleSeller');
+  const targetName = type === 'product' ? order?.product?.title : order?.seller?.displayName;
+  const alreadyRated = type === 'product' ? !!order?.hasProductRating : !!order?.hasSellerRating;
 
   if (isLoading) return <PageShell title={title} loading />;
   if (!order) {
@@ -41,6 +45,23 @@ export default function OrderReviewScreen() {
           subtitle: t('emptyState.notFoundHint'),
           actionLabel: t('common.goBack'),
           onAction: goBackOrHome,
+        }}
+      />
+    );
+  }
+
+  if (alreadyRated) {
+    return (
+      <PageShell
+        title={title}
+        empty
+        emptyState={{
+          icon: 'star',
+          title: t('order.reviewReceivedShort'),
+          subtitle: targetName || title,
+          actionLabel: t('common.goBack'),
+          onAction: goBackOrHome,
+          testID: 'review-already-rated',
         }}
       />
     );
@@ -67,7 +88,7 @@ export default function OrderReviewScreen() {
         <ReviewFormFields
           review={review}
           type={type}
-          targetName={type === 'product' ? order.product?.title : order.seller?.displayName}
+          targetName={targetName}
         />
       </PageShell>
     </Form>

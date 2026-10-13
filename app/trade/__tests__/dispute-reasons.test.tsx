@@ -26,10 +26,8 @@ jest.mock('react-i18next', () => ({
 }));
 jest.mock('expo-router', () => ({
   ...require('@/test-utils/router-mock').routerMock,
-  useNavigation: () => require('@/test-utils/preventRemove').navigationStub,
   useLocalSearchParams: () => ({ id: 't1' }),
 }));
-jest.mock('@react-navigation/native', () => require('@/test-utils/preventRemove').navigationNativeMock);
 jest.mock('@/lib/api', () => ({
   tradesApi: { raiseDispute: jest.fn().mockResolvedValue({ data: {} }) },
 }));

@@ -7,7 +7,7 @@ import type { DisputeReason } from '../_lib/disputeReasons';
 
 /**
  * Takas itirazı açar (itiraz EKRANI sahiplenir). Invalidation eskisiyle aynı
- * (detay + tüm takas listeleri). Başarı: taslak silinir, `onDone` (geri çık) SONRA
+ * (detay + tüm takas listeleri). Başarı: taslak silinir, `onDone` (geri çıkışı başlatır) +
  * `toast.success`. Hata: `toast.error(sunucu mesajı | yedek)`, ekran ve taslak kalır.
  */
 export function useDoRaiseDispute(tradeId: string, { onDone }: { onDone: () => void }) {

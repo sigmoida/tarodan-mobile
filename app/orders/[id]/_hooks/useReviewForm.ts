@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useZodForm } from '@/ui/form';
 import { useAuthStore } from '@/stores/authStore';
-import { useFormScreenExit } from '@/hooks/useFormScreenExit';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { goBackOrHome } from '@/components/common/goBackOrHome';
 import { DEFAULT_REVIEW_MAX_CHARS, reviewFormDefaults, reviewSchema } from '../_lib/reviewSchema';
 import { useDoReview, type ReviewTarget } from './useDoReview';
 
@@ -17,8 +18,8 @@ export function useReviewForm(target: ReviewTarget) {
   const maxReviewChars = limits?.maxReviewChars || DEFAULT_REVIEW_MAX_CHARS;
   const schema = useMemo(() => reviewSchema(t, maxReviewChars), [t, maxReviewChars]);
   const form = useZodForm(schema, { defaultValues: reviewFormDefaults() });
-  const { leave } = useFormScreenExit(form.formState.isDirty);
-  const submit = useDoReview(target, { onDone: leave });
+  const guard = useUnsavedChangesGuard(form.formState.isDirty);
+  const submit = useDoReview(target, { onDone: () => guard.leave(goBackOrHome) });
 
   const score = form.watch('score');
   const reviewLength = form.watch('review').length;

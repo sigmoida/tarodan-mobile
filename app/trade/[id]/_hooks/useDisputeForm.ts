@@ -1,7 +1,8 @@
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useZodForm } from '@/ui/form';
-import { useFormScreenExit } from '@/hooks/useFormScreenExit';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { goBackOrHome } from '@/components/common/goBackOrHome';
 import { useDisputeDraftStore } from '@/stores/disputeDraftStore';
 import { disputeBody, disputeFormDefaults, disputeSchema } from '../_lib/schema';
 import type { DisputeReason } from '../_lib/disputeReasons';
@@ -25,9 +26,10 @@ export function useDisputeForm(tradeId: string) {
     // doğrulama her tuşta hatayı geri getirirdi.
     reValidateMode: 'onSubmit',
   });
-  // Taslak korunduğu için çıkışta onay yok (`dirty` = false); `leave` yalnız başarıda.
-  const { leave } = useFormScreenExit(false);
-  const raise = useDoRaiseDispute(tradeId, { onDone: leave });
+  // Taslak korunduğu için çıkışta onay yok (`dirty` = false); koruma yalnız `leave` için:
+  // başarı ekran kapandıktan sonra gelirse önceki ekranı kapatmaz.
+  const guard = useUnsavedChangesGuard(false);
+  const raise = useDoRaiseDispute(tradeId, { onDone: () => guard.leave(goBackOrHome) });
 
   useEffect(() => {
     const sub = form.watch((values, { name }) => {
