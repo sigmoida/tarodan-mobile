@@ -5,7 +5,7 @@ How the mobile app ships, mirroring the backend's staging/production cadence
 
 | Track          | Trigger                                     | Pipeline                | Where it lands                                                    |
 | -------------- | ------------------------------------------- | ----------------------- | ----------------------------------------------------------------- |
-| **Staging**    | push to `main` → auto OTA only; build is manual (`workflow_dispatch`) | `mobile-staging.yml`    | JS→OTA `staging` channel · native→internal preview build          |
+| **Staging**    | push to `development` → auto OTA only; build is manual (`workflow_dispatch`) | `mobile-staging.yml`    | JS→OTA `staging` channel · native→internal preview build          |
 | **Production** | push to `master` **with a changed `expo.version`** | `mobile-production.yml` | TestFlight (iOS). Android deferred — see below. |
 
 The golden rule (see [`EAS_UPDATE_OTA.md`](./EAS_UPDATE_OTA.md)):
@@ -16,7 +16,7 @@ The golden rule (see [`EAS_UPDATE_OTA.md`](./EAS_UPDATE_OTA.md)):
 
 ## Staging (continuous)
 
-Every push to `main` runs `mobile-staging.yml`, which decides automatically:
+Every push to `development` runs `mobile-staging.yml`, which decides automatically:
 
 - **JS/asset-only** → `eas update --branch staging`, published for free. Testers
   on a `staging` build (the `preview` profile, channel `staging`) get it on next
@@ -43,15 +43,15 @@ Android testers install straight from EAS internal distribution — no Play Stor
 no account setup on their side.
 
 ```bash
-gh workflow run mobile-staging.yml --ref main -f mode=build
+gh workflow run mobile-staging.yml --ref development -f mode=build
 ```
 
 `platform` defaults to `android`, so this burns **no iOS build credit**. For a
 staging TestFlight release you must say so explicitly:
 
 ```bash
-gh workflow run mobile-staging.yml --ref main -f mode=build -f platform=ios
-gh workflow run mobile-staging.yml --ref main -f mode=build -f platform=all
+gh workflow run mobile-staging.yml --ref development -f mode=build -f platform=ios
+gh workflow run mobile-staging.yml --ref development -f mode=build -f platform=all
 ```
 
 When the run finishes, the job summary carries a **"Staging APK hazır"** block
