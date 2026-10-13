@@ -5,38 +5,6 @@ import { Card, Text, Button, theme } from '@/ui';
 
 const { colors } = theme;
 
-/** eLogo e-Arşiv faturası — yalnız HAZIRSA. */
-export function OrderElogoInvoiceCard({
-  elogoInvoice,
-  onView,
-  downloading,
-}: {
-  elogoInvoice: any;
-  onView: () => void;
-  downloading: boolean;
-}) {
-  const { t } = useTranslation();
-  if (!elogoInvoice?.id) return null;
-  return (
-    <Card variant="elevated" style={styles.card} testID="order-invoice-card">
-      <Text variant="label" style={styles.sectionTitle}>{t('order.invoice')}</Text>
-      <Text variant="caption" style={styles.hint}>
-        {elogoInvoice.invoiceNumber
-          ? t('order.invoiceSentToEmailWithNumber', { number: elogoInvoice.invoiceNumber })
-          : t('order.invoiceSentToEmail')}
-      </Text>
-      <Button
-        variant="outline"
-        fullWidth
-        onPress={onView}
-        isLoading={downloading}
-        disabled={downloading}
-        title={t('order.viewDownloadInvoice')}
-      />
-    </Card>
-  );
-}
-
 /** Kurumsal satıcı faturası (elle yüklenen PDF). */
 export function OrderSellerInvoiceCard({
   sellerInvoice,

@@ -11,6 +11,7 @@ import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import { useOrderShipment } from '@/hooks/useOrderShipment';
 import { useTimingPolicy } from '@/hooks/useTimingPolicy';
+import { ElogoInvoiceList } from '@/components/orders/ElogoInvoiceList';
 import { PreparingDeadlineNotice } from '@/components/orders/PreparingDeadlineNotice';
 import { deriveOrderView } from './_lib/derive';
 import { useOrder } from './_hooks/useOrder';
@@ -20,7 +21,7 @@ import { OrderStatusCard } from './_components/OrderStatusCard';
 import { OrderEscrowCard, OrderCancelledInfo, OrderPayPendingCard, OrderTrackingCard } from './_components/OrderInfoCards';
 import { OrderProductCard, OrderSellerCard } from './_components/OrderProductSeller';
 import { OrderAddressCard, OrderPriceSummary } from './_components/OrderAddressPrice';
-import { OrderElogoInvoiceCard, OrderSellerInvoiceCard } from './_components/OrderInvoiceCards';
+import { OrderSellerInvoiceCard } from './_components/OrderInvoiceCards';
 import {
   OrderCancelCard,
   OrderRatingButtons,
@@ -105,7 +106,11 @@ export default function OrderDetailScreen() {
         {/* B7: fatura verileri ayrı query'lerle sonradan gelir (bkz. useOrderInvoices); dokunulan
             aksiyon kartlarının (iptal/değerlendirme/iade) ALTINDA render edilir ki geç gelen
             içerik hiçbir dokunma hedefini kaydırmasın. */}
-        <OrderElogoInvoiceCard elogoInvoice={invoices.elogoInvoice} onView={invoices.viewInvoice} downloading={invoices.downloadingInvoice} />
+        <ElogoInvoiceList
+          invoices={invoices.elogoInvoices}
+          onOpen={invoices.openElogoInvoice}
+          openingId={invoices.openingElogoInvoiceId}
+        />
         <OrderSellerInvoiceCard
           sellerInvoice={invoices.sellerInvoice}
           onView={invoices.viewSellerInvoice}

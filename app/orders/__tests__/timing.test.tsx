@@ -1,14 +1,16 @@
 /**
- * Parite A-3.1 · Sipariş detayı ekranında süreler.
+ * Parite A-3.1 / A-3.4 · Sipariş detayı ekranında süreler ve e-Arşiv belgeleri.
  *
  * - İade butonu sunucunun `returnWindowEndsAt` damgasına bağlı (sabit 14 gün
  *   15. günde gizliyordu, sunucu kabul ederken).
  * - Gün/saat sayıları `GET /timing-rules`'tan gelir (metinde sabit 14/24 yok).
  * - Satıcı ödeme tarihi sunucunun `escrowReleaseAt`'i.
  * - Hazırlık son tarihi ve tek seferlik uzatma notu (web `PreparingDeadlineNotice`).
+ * - e-Arşiv: taraf başına üç belge listelenir, her biri ayrı açılır.
  */
 import React from 'react';
-import { screen } from '@testing-library/react-native';
+import { Linking } from 'react-native';
+import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 
 jest.mock('expo-router', () => ({
@@ -24,15 +26,17 @@ jest.mock('@/lib/api', () => ({
   mediaApi: { uploadRefundEvidence: jest.fn() },
   paymentsApi: { initiate: jest.fn() },
   timingRulesApi: { getPolicy: jest.fn() },
-  elogoInvoicesApi: { byOrder: jest.fn(() => Promise.resolve({ data: null })), pdf: jest.fn() },
+  elogoInvoicesApi: { byOrderAll: jest.fn(), pdf: jest.fn() },
   sellerInvoiceApi: { status: jest.fn(() => Promise.resolve({ data: null })), download: jest.fn() },
 }));
-import { api, timingRulesApi } from '@/lib/api';
+import { api, elogoInvoicesApi, timingRulesApi } from '@/lib/api';
 import OrderDetailScreen from '../[id]';
 
 const DAY_MS = 86_400_000;
 const getMock = api.get as jest.Mock;
 const policyMock = timingRulesApi.getPolicy as jest.Mock;
+const invoicesMock = elogoInvoicesApi.byOrderAll as jest.Mock;
+const pdfMock = elogoInvoicesApi.pdf as jest.Mock;
 
 function orderFixture(overrides: Record<string, unknown> = {}) {
   return {
@@ -59,6 +63,9 @@ beforeEach(() => {
   getMock.mockReset();
   policyMock.mockReset();
   policyMock.mockRejectedValue(new Error('offline')); // varsayılan: geri düşüş politikası
+  invoicesMock.mockReset();
+  invoicesMock.mockResolvedValue({ data: [] });
+  pdfMock.mockReset();
 });
 
 describe('A-3.1 · iade butonu sunucu damgasına bağlı', () => {
@@ -156,5 +163,61 @@ describe('A-3.1 · hazırlık son tarihi notu', () => {
     await screen.findByText('Sipariş #ORD-1001000000');
     expect(screen.queryByTestId('preparing-deadline-notice')).toBeNull();
     expect(screen.queryByTestId('preparing-deadline-extended')).toBeNull();
+  });
+});
+
+describe('A-3.4 · e-Arşiv belgeleri listelenir', () => {
+  const INVOICES = [
+    { id: 'inv-1', invoiceNumber: 'TRD2026000000001', label: 'Platform hizmet bedeli' },
+    { id: 'inv-2', invoiceNumber: 'TRD2026000000002', label: 'Kargo payı' },
+    { id: 'inv-3', invoiceNumber: null, label: 'Komisyon' },
+  ];
+
+  it('üç belge ayrı satırda, numarası olanlar "No:" ile', async () => {
+    invoicesMock.mockResolvedValue({ data: INVOICES });
+    serveOrder();
+    renderWithProviders(<OrderDetailScreen />);
+    expect(await screen.findByText('Platform hizmet bedeli')).toBeOnTheScreen();
+    expect(screen.getByText('Kargo payı')).toBeOnTheScreen();
+    expect(screen.getByText('Komisyon')).toBeOnTheScreen();
+    expect(screen.getByText('No: TRD2026000000001')).toBeOnTheScreen();
+    expect(screen.getByText('No: TRD2026000000002')).toBeOnTheScreen();
+    expect(invoicesMock).toHaveBeenCalledWith('order-1');
+  });
+
+  it('dokunulan belge kendi PDF adresiyle açılır', async () => {
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    invoicesMock.mockResolvedValue({ data: INVOICES });
+    pdfMock.mockResolvedValue({ data: { url: 'https://s3/inv-2.pdf' } });
+    serveOrder();
+    renderWithProviders(<OrderDetailScreen />);
+    fireEvent.press(await screen.findByTestId('order-invoice-open-inv-2'));
+    await waitFor(() => expect(openURL).toHaveBeenCalledWith('https://s3/inv-2.pdf'));
+    expect(pdfMock).toHaveBeenCalledWith('inv-2');
+    openURL.mockRestore();
+  });
+
+  it('PDF hazır değilse snackbar "Fatura henüz hazır değil"', async () => {
+    invoicesMock.mockResolvedValue({ data: INVOICES });
+    pdfMock.mockResolvedValue({ data: {} });
+    serveOrder();
+    renderWithProviders(<OrderDetailScreen />);
+    fireEvent.press(await screen.findByTestId('order-invoice-open-inv-1'));
+    expect(await screen.findByText('Fatura henüz hazır değil')).toBeOnTheScreen();
+  });
+
+  it('iade edilmiş siparişte de belgeler görünür; ödeme bekleyende istek atılmaz (web kuralı)', async () => {
+    invoicesMock.mockResolvedValue({ data: INVOICES });
+    serveOrder({ status: 'refunded' });
+    const first = renderWithProviders(<OrderDetailScreen />);
+    expect(await screen.findByText('Platform hizmet bedeli')).toBeOnTheScreen();
+    first.unmount();
+
+    invoicesMock.mockClear();
+    serveOrder({ status: 'pending_payment', payment: { status: 'pending' } });
+    renderWithProviders(<OrderDetailScreen />);
+    await screen.findByText('Sipariş #ORD-1001000000');
+    expect(invoicesMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('order-invoice-card')).toBeNull();
   });
 });

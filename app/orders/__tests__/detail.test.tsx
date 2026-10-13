@@ -22,7 +22,7 @@ jest.mock('@/lib/api', () => ({
   refundsApi: { create: jest.fn(), cancel: jest.fn() },
   mediaApi: { uploadRefundEvidence: jest.fn() },
   paymentsApi: { initiate: jest.fn(), bypassComplete: jest.fn() },
-  elogoInvoicesApi: { byOrder: jest.fn(() => Promise.resolve({ data: null })), pdf: jest.fn() },
+  elogoInvoicesApi: { byOrderAll: jest.fn(() => Promise.resolve({ data: [] })), pdf: jest.fn() },
   sellerInvoiceApi: { status: jest.fn(() => Promise.resolve({ data: null })), download: jest.fn() },
 }));
 import { api, elogoInvoicesApi, refundsApi } from '@/lib/api';
@@ -330,8 +330,8 @@ describe('B7 · Fatura kartları aksiyonların altında render edilir', () => {
     getMock.mockResolvedValue({
       data: { data: orderFixture({ isBuyer: true, payment: { status: 'completed' }, activeRefundRequest: null }) },
     });
-    (elogoInvoicesApi.byOrder as jest.Mock).mockResolvedValue({
-      data: { id: 'inv-1', invoiceNumber: 'ELG-1' },
+    (elogoInvoicesApi.byOrderAll as jest.Mock).mockResolvedValue({
+      data: [{ id: 'inv-1', invoiceNumber: 'ELG-1', label: 'Platform hizmet bedeli' }],
     });
     renderWithProviders(<OrderDetailScreen />);
     await waitFor(() => expect(screen.getByTestId('refund-request-button')).toBeOnTheScreen());

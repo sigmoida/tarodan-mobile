@@ -1,6 +1,8 @@
 /**
- * Parite A-3.1 · API yüzeyi: `GET /timing-rules` herkese açık (oturumsuz
- * istemciyle çağrılır).
+ * Parite A-3.1 / A-3.4 · API yüzeyi.
+ *  - `GET /timing-rules` herkese açık (oturumsuz istemciyle çağrılır).
+ *  - e-Arşiv belgeleri `/elogo/invoices/by-order/:id/all` ile LİSTE olarak okunur;
+ *    tekil uç (yalnız ilk belge) artık çağrılmaz.
  */
 jest.mock('../client', () => ({
   api: { get: jest.fn(() => Promise.resolve({ data: [] })) },
@@ -9,6 +11,7 @@ jest.mock('../client', () => ({
 
 import { api, guestApi } from '../client';
 import { timingRulesApi, PUBLIC_TIMING_RULE_IDS } from '../timingRules';
+import { elogoInvoicesApi } from '../orders';
 
 beforeEach(() => jest.clearAllMocks());
 
@@ -36,5 +39,16 @@ describe('timingRulesApi', () => {
       'returnDropoffDays',
       'returnInspectionHours',
     ]);
+  });
+});
+
+describe('elogoInvoicesApi', () => {
+  it('siparişin TÜM belgelerini /all ucundan ister', async () => {
+    await elogoInvoicesApi.byOrderAll('order-1');
+    expect(api.get).toHaveBeenCalledWith('/elogo/invoices/by-order/order-1/all');
+  });
+
+  it('tekil (yalnız ilk belgeyi döndüren) uç yüzeyde yok', () => {
+    expect((elogoInvoicesApi as Record<string, unknown>).byOrder).toBeUndefined();
   });
 });

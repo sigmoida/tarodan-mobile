@@ -8,6 +8,8 @@ import { deriveShipmentView } from '@/lib/shipping/tracking';
 import { orderCancelMessage } from '@/lib/shared/orderCancelMessage';
 import { preparingDeadlineNoticeOf } from '@/lib/shared/preparingDeadline';
 import { useTimingValues } from '@/hooks/useTimingPolicy';
+import { useOrderElogoInvoices } from '@/hooks/useOrderElogoInvoices';
+import { appAlert } from '@/ui';
 import type { Order } from '../_lib/types';
 import { statusColor } from '../_lib/status';
 
@@ -32,6 +34,13 @@ export function useSaleDetail() {
 
   const { refreshing, onRefresh } = useRefresh(refetch);
   const timingValues = useTimingValues();
+  // e-Arşiv belgeleri (satıcıya da taraf başına üç belge kesilir) — web kuralı:
+  // ödeme öncesi ve iptal edilmiş siparişte yok. Bu ekran API statüsünü okur.
+  const elogo = useOrderElogoInvoices(
+    String(id ?? ''),
+    !!order && order.status !== 'pending_payment' && order.status !== 'cancelled',
+    (message) => appAlert(message),
+  );
 
   // İptal'de status 'refunded' olsa bile "İptal Edildi" göster (alıcı ile tutarlı).
   const displayStatus = order?.cancellationType === 'iptal' ? 'cancelled' : order?.status ?? '';
@@ -75,6 +84,7 @@ export function useSaleDetail() {
     sc,
     cancelMessage,
     preparingNotice,
+    elogo,
     shipmentView,
     shipmentProvider,
     isSurat,

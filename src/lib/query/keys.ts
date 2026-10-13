@@ -91,6 +91,8 @@ export const qk = {
     list: (filters?: Filters) => ["orders", "list", filters] as const,
     detail: (id: string) => ["order", id] as const,
     elogoInvoice: (id: string) => ["elogo-invoice", id] as const,
+    /** Siparişin TÜM e-Arşiv belgeleri (`/elogo/invoices/by-order/:id/all`). */
+    elogoInvoices: (id: string) => ["elogo-invoices", id] as const,
     sellerInvoice: (id: string) => ["seller-invoice", id] as const,
     sellerPending: ["seller-pending-orders"] as const,
   },
