@@ -11,18 +11,15 @@ import { act, screen, fireEvent, waitFor, within } from '@testing-library/react-
 import { appAlert, toast } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
 import i18n from '@/i18n/config';
-import {
-  backMock,
-  canGoBackMock,
-  emitBeforeRemove,
-  navigationDispatchMock,
-  resetRouterMocks,
-} from '@/test-utils/router-mock';
+import { backMock, canGoBackMock, resetRouterMocks } from '@/test-utils/router-mock';
+import { emitRemove, preventRemoveDispatchMock, resetPreventRemove } from '@/test-utils/preventRemove';
 
 jest.mock('expo-router', () => ({
   ...require('@/test-utils/router-mock').routerMock,
+  useNavigation: () => require('@/test-utils/preventRemove').navigationStub,
   useLocalSearchParams: () => ({ id: 'order-1' }),
 }));
+jest.mock('@react-navigation/native', () => require('@/test-utils/preventRemove').navigationNativeMock);
 jest.mock('expo-image-picker', () => ({
   requestMediaLibraryPermissionsAsync: jest.fn(),
   launchImageLibraryAsync: jest.fn(),
@@ -69,6 +66,7 @@ let errorSpy: jest.SpyInstance;
 beforeEach(() => {
   jest.clearAllMocks();
   resetRouterMocks();
+  resetPreventRemove();
   canGoBackMock.mockReturnValue(true);
   getMock.mockResolvedValue({ data: { data: order() } });
   createMock.mockResolvedValue({ data: {} });
@@ -280,28 +278,41 @@ describe('kanıt yüklemesi', () => {
 describe('kaydedilmemiş içerik koruması', () => {
   it('temiz form: geri çıkış serbest (onay yok)', async () => {
     await renderScreen();
-    expect(emitBeforeRemove().prevented).toBe(false);
+    expect(emitRemove().prevented).toBe(false);
     expect(alertMock).not.toHaveBeenCalled();
   });
 
-  it('kirli form: geri çıkış (geri oku / Android geri) onay ister; "Değişiklikleri Sil" çıkar', async () => {
+  it('kirli form: geri çıkış (geri oku / iOS kaydırma / Android geri) onay ister', async () => {
     await renderScreen();
     fireEvent.changeText(screen.getByTestId('refund-description-input'), 'yarım kalan metin');
 
-    const { prevented, action } = emitBeforeRemove();
+    const { prevented, action } = emitRemove();
     expect(prevented).toBe(true);
     expect(alertMock).toHaveBeenCalledTimes(1);
+    expect(alertMock.mock.calls[0][0]).toBe(i18n.t('common.unsavedChanges'));
     const buttons = alertMock.mock.calls[0][2] as { text: string; onPress?: () => void }[];
-    buttons.find((b) => b.text === i18n.t('common.discardChanges'))!.onPress!();
-    expect(navigationDispatchMock).toHaveBeenCalledWith(action);
+
+    // "Düzenlemeye Devam Et": ekran kalır.
+    buttons.find((b) => b.text === i18n.t('common.continueEditing'))!.onPress!();
+    await act(async () => {});
+    expect(preventRemoveDispatchMock).not.toHaveBeenCalled();
+
+    // "Değişiklikleri Sil": bekletilen eylem gönderilir.
+    emitRemove(action);
+    const again = alertMock.mock.calls[1][2] as { text: string; onPress?: () => void }[];
+    again.find((b) => b.text === i18n.t('common.discardChanges'))!.onPress!();
+    await waitFor(() => expect(preventRemoveDispatchMock).toHaveBeenCalledWith(action));
   });
 
-  it('başarılı gönderimden sonra çıkış onaysız', async () => {
+  it('başarılı gönderimden sonra çıkış onaysız (kirli form olsa da)', async () => {
     await renderScreen();
     fireEvent.changeText(screen.getByTestId('refund-description-input'), 'not');
     await submit();
     await waitFor(() => expect(backMock).toHaveBeenCalledTimes(1));
-    expect(emitBeforeRemove().prevented).toBe(false);
+    // Geri çıkış engelden geçer ama onay sorulmadan eylem gönderilir.
+    const { action } = emitRemove();
+    expect(alertMock).not.toHaveBeenCalled();
+    expect(preventRemoveDispatchMock).toHaveBeenCalledWith(action);
   });
 });
 

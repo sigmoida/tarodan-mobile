@@ -11,7 +11,8 @@ import React from 'react';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { toast } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
-import { backMock, canGoBackMock, emitBeforeRemove, resetRouterMocks } from '@/test-utils/router-mock';
+import { backMock, canGoBackMock, resetRouterMocks } from '@/test-utils/router-mock';
+import { emitRemove, resetPreventRemove } from '@/test-utils/preventRemove';
 import { tradesApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useDisputeDraftStore } from '@/stores/disputeDraftStore';
@@ -22,8 +23,10 @@ jest.mock('react-i18next', () => ({
 }));
 jest.mock('expo-router', () => ({
   ...require('@/test-utils/router-mock').routerMock,
+  useNavigation: () => require('@/test-utils/preventRemove').navigationStub,
   useLocalSearchParams: () => ({ id: 't1' }),
 }));
+jest.mock('@react-navigation/native', () => require('@/test-utils/preventRemove').navigationNativeMock);
 jest.mock('@/lib/api', () => ({ tradesApi: { raiseDispute: jest.fn() } }));
 
 const raiseMock = tradesApi.raiseDispute as jest.Mock;
@@ -35,6 +38,7 @@ let errorSpy: jest.SpyInstance;
 beforeEach(() => {
   jest.clearAllMocks();
   resetRouterMocks();
+  resetPreventRemove();
   canGoBackMock.mockReturnValue(true);
   useDisputeDraftStore.getState().clearAll();
   raiseMock.mockResolvedValue({ data: {} });
@@ -116,7 +120,7 @@ it('sunucu mesajı yoksa itiraz yedek metni', async () => {
 it('taslak korunur: çıkış onaysız, yeniden açınca açıklama geri gelir', async () => {
   const first = renderWithProviders(<TradeDisputeScreen />);
   fireEvent.changeText(input(), 'Yarım kalan itiraz metni');
-  expect(emitBeforeRemove().prevented).toBe(false);
+  expect(emitRemove().prevented).toBe(false);
   first.unmount();
 
   renderWithProviders(<TradeDisputeScreen />);

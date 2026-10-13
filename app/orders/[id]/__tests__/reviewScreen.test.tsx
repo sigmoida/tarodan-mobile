@@ -9,13 +9,16 @@ import { StyleSheet } from 'react-native';
 import { act, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { toast } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
-import { backMock, canGoBackMock, emitBeforeRemove, resetRouterMocks } from '@/test-utils/router-mock';
+import { backMock, canGoBackMock, resetRouterMocks } from '@/test-utils/router-mock';
+import { emitRemove, resetPreventRemove } from '@/test-utils/preventRemove';
 
 let mockParams: Record<string, string> = { id: 'order-1', type: 'product' };
 jest.mock('expo-router', () => ({
   ...require('@/test-utils/router-mock').routerMock,
+  useNavigation: () => require('@/test-utils/preventRemove').navigationStub,
   useLocalSearchParams: () => mockParams,
 }));
+jest.mock('@react-navigation/native', () => require('@/test-utils/preventRemove').navigationNativeMock);
 jest.mock('@/lib/api', () => ({
   api: { get: jest.fn() },
   ratingsApi: { createProductRating: jest.fn(), createUserRating: jest.fn() },
@@ -44,6 +47,7 @@ let errorSpy: jest.SpyInstance;
 beforeEach(() => {
   jest.clearAllMocks();
   resetRouterMocks();
+  resetPreventRemove();
   canGoBackMock.mockReturnValue(true);
   mockParams = { id: 'order-1', type: 'product' };
   mockLimits = { maxReviewChars: 500 };
@@ -191,9 +195,9 @@ describe('J110 · Satıcıyı puanla + karakter limiti', () => {
 
 it('kirli form: geri çıkış onay ister; temiz form serbest', async () => {
   await renderScreen();
-  expect(emitBeforeRemove().prevented).toBe(false);
+  expect(emitRemove().prevented).toBe(false);
   fireEvent.press(star(2));
-  expect(emitBeforeRemove().prevented).toBe(true);
+  expect(emitRemove().prevented).toBe(true);
 });
 
 it('bilinmeyen ?type ürün sayılır', async () => {
