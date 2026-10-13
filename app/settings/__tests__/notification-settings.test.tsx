@@ -11,7 +11,7 @@
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
@@ -54,12 +54,13 @@ const save = async () => {
 };
 
 describe('B-1.11 · bildirim ayarları kaydı', () => {
-  it('başarılı kayıt → "kaydedildi"', async () => {
+  it('başarılı kayıt → "kaydedildi" toast olur (diyalog değil)', async () => {
+    const success = jest.spyOn(toast, 'success').mockImplementation(() => 1);
     patch.mockResolvedValue({ data: {} });
     await save();
-    await waitFor(() =>
-      expect(appAlert).toHaveBeenCalledWith('common.success', 'settings.notificationSettingsSaved'),
-    );
+    await waitFor(() => expect(success).toHaveBeenCalledWith('settings.notificationSettingsSaved'));
+    expect(appAlert).not.toHaveBeenCalled();
+    success.mockRestore();
     expect(patch).toHaveBeenCalledWith('/users/me/settings', expect.any(Object));
   });
 
@@ -93,13 +94,12 @@ describe('hata metni · errorText', () => {
 });
 
 describe('bildirim ayarları yüklemesi', () => {
-  it('GET düşerse ErrorState görünür, Kaydet kapalı ve PATCH gitmez', async () => {
+  it('GET düşerse ErrorState görünür, Kaydet hiç çizilmez ve PATCH gitmez', async () => {
     get.mockRejectedValue({ response: { status: 500, data: {} } });
     renderWithProviders(<NotificationSettingsScreen />);
 
     expect(await screen.findByText('settings.notificationSettingsLoadFailed')).toBeTruthy();
-    fireEvent.press(screen.getByTestId('notification-settings-save'));
-    expect(screen.getByTestId('notification-settings-save')).toBeDisabled();
+    expect(screen.queryByTestId('notification-settings-save')).toBeNull();
     expect(patch).not.toHaveBeenCalled();
   });
 
