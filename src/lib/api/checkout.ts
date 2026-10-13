@@ -1,6 +1,6 @@
 import { api, guestApi } from './client';
 import type { DirectFormResponse } from '@/lib/payment/paytrDirectForm';
-import { paymentCapabilityHeaders, rememberPaymentCapability } from '@/lib/payment/paymentCapability';
+import { rememberPaymentCapability, withPaymentCapability } from '@/lib/payment/paymentCapability';
 
 /**
  * Ödeme başlat + yanıttaki `paymentAccessToken`'ı sakla (web `initiatePayment`).
@@ -41,6 +41,13 @@ export const addressesApi = {
   setDefault: (id: string) => api.patch(`/users/me/addresses/${id}`, { isDefault: true }),
 };
 
+/**
+ * Yetki belirteci taşıyan ödeme uçları (`/payments/:id/...`, direct-form) bu
+ * sarmalayıcılardan geçer: `X-Payment-Capability` başlığı tek yerden eklenir.
+ */
+const paymentHttp = withPaymentCapability(api);
+const guestPaymentHttp = withPaymentCapability(guestApi);
+
 // Payments API - Web ile aynı endpoint'ler
 export const paymentsApi = {
   /** Public ödeme yapılandırması: bypass (dev) + kayıtlı kart/oto-yenileme (Non3D) açık mı. */
@@ -63,11 +70,11 @@ export const paymentsApi = {
     api.get(`/payments/${paymentId}`),
   /** POST /payments/:id/verify — PayTR ödemesini aktif doğrula (web ile parite) */
   verify: (paymentId: string) =>
-    api.post(`/payments/${paymentId}/verify`, {}, { headers: paymentCapabilityHeaders(paymentId) }),
+    paymentHttp.post(`/payments/${paymentId}/verify`, {}),
   getStatusLight: (paymentId: string) =>
-    api.get(`/payments/${paymentId}/status`, { headers: paymentCapabilityHeaders(paymentId) }),
+    paymentHttp.get(`/payments/${paymentId}/status`),
   getStatusLightGuest: (paymentId: string) =>
-    guestApi.get(`/payments/${paymentId}/status-guest`, { headers: paymentCapabilityHeaders(paymentId) }),
+    guestPaymentHttp.get(`/payments/${paymentId}/status-guest`),
   getMyPayments: (params?: {
     status?: string;
     provider?: string;
@@ -80,7 +87,7 @@ export const paymentsApi = {
     api.post(`/payments/${paymentId}/cancel`),
   /** Fail sayfasında; hâlâ pending ise rezervasyonu serbest bırakır */
   confirmFailed: (paymentId: string) =>
-    api.post(`/payments/${paymentId}/confirm-failed`, {}, { headers: paymentCapabilityHeaders(paymentId) }),
+    paymentHttp.post(`/payments/${paymentId}/confirm-failed`, {}),
   /** Test bypass: PAYMENT_BYPASS=true iken tek kart başarılı */
   bypassComplete: (paymentId: string, cardNumber?: string) =>
     api.post(
@@ -108,7 +115,5 @@ export const paymentsApi = {
     savedCardId?: string;
     saveCard?: boolean;
   }) =>
-    api.post<DirectFormResponse>('/payments/direct-form', body, {
-      headers: paymentCapabilityHeaders(body.paymentId),
-    }),
+    paymentHttp.post<DirectFormResponse>('/payments/direct-form', body),
 };
