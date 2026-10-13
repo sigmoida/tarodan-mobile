@@ -41,6 +41,13 @@ export const DocText: React.FC<{
   </Text>
 );
 
+/** Bölüm içi alt başlık (adım başlığı gibi): semibold, heading rengi. */
+export const DocSubheading: React.FC<{ children?: React.ReactNode }> = ({ children }) => (
+  <Text variant="bodySm" weight="semibold" tone="heading" style={styles.subheading}>
+    {children}
+  </Text>
+);
+
 /** Madde listesi (web `ul`/`ol`): işaretçi metin karakteri, ikon değil. */
 export const DocList: React.FC<{ items: React.ReactNode[]; ordered?: boolean; small?: boolean }> = ({
   items,
@@ -174,6 +181,9 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: spacing[2],
+  },
+  subheading: {
+    marginTop: spacing[2],
   },
   list: {
     gap: spacing[2],
