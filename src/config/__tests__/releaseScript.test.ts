@@ -21,6 +21,8 @@ type EasJson = { build: Record<string, { channel?: string; env?: Record<string, 
 const realEasJson = (): EasJson => JSON.parse(fs.readFileSync(path.join(ROOT, 'eas.json'), 'utf8'));
 
 const TODAY = new Date().toISOString().slice(0, 10);
+/** Senaryolardaki app.json sürümü (build'lerin varsayılan appVersion'ı da bu). */
+const TEST_VERSION = '1.0.5';
 
 /** eas-cli 24.x BuildFragment şeklinde bir build. */
 const build = (o: {
@@ -46,7 +48,7 @@ const build = (o: {
     platform,
     buildProfile: profile,
     distribution: profile === 'preview' ? 'INTERNAL' : 'STORE',
-    appVersion: o.appVersion ?? '1.0.5',
+    appVersion: o.appVersion ?? TEST_VERSION,
     appIdentifier: o.appIdentifier ?? (env === 'production' ? 'com.tarodan.app' : 'com.tarodan.app.staging'),
     runtime: { id: `rt-${runtime}`, version: runtime },
     fingerprint: { id: `f-${runtime}`, hash: runtime },
@@ -108,7 +110,11 @@ function run(args: string[], opts: RunOpts = {}) {
   fs.mkdirSync(path.join(root, 'scripts/ci'), { recursive: true });
   const script = path.join(root, 'scripts/ci/release.sh');
   fs.copyFileSync(SCRIPT, script);
-  fs.copyFileSync(path.join(ROOT, 'app.json'), path.join(root, 'app.json'));
+  // Senaryolar sabit bir sürümle (TEST_VERSION) koşar: gerçek app.json'un sürümü
+  // her yayında değişir, testler ona bağlı kalmamalı.
+  const appJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf8'));
+  appJson.expo.version = TEST_VERSION;
+  fs.writeFileSync(path.join(root, 'app.json'), JSON.stringify(appJson));
   const eas = opts.easJson ? opts.easJson(realEasJson()) : realEasJson();
   fs.writeFileSync(path.join(root, 'eas.json'), typeof eas === 'string' ? eas : JSON.stringify(eas));
 
