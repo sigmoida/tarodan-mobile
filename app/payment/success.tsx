@@ -91,8 +91,8 @@ export default function PaymentSuccessScreen() {
       const verifyOptions = { guest: guest === '1' };
       let last: PaymentInfo | null = null;
       // Döngünün gönderdiği son verify'ın sözü + herhangi biri ödemeyi tamamladı mı.
-      // Uçuş kaydına (`pendingVerify`) güvenilmez: verify son durum okuması sürerken
-      // biterse kayıt düşer ve "tamamlandı" sonucu kaybolurdu.
+      // Uçuş kaydına güvenilmez: verify son durum okuması sürerken biterse kayıt
+      // düşer ve "tamamlandı" sonucu kaybolurdu.
       let lastVerify: Promise<boolean> | null = null;
       let verifyCompleted = false;
       for (let attempt = 0; attempt < 5 && !cancelled; attempt++) {

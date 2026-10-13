@@ -24,9 +24,8 @@ import {
   cardFieldsForSavedCard,
   PAYTR_ACTION,
 } from '@/lib/payment/paytrDirectForm';
-import { createVerifyPacer, type VerifyPacer } from '@/lib/payment/verifyPacer';
+import { PAYMENT_POLL_DURATION_MS, PAYMENT_STATUS_POLL_MS, startVerifyLoop } from '@/lib/payment/verifyPacer';
 import { isPaidPaymentStatus } from '@/lib/payment/status';
-import { useThreeDSReturn } from '@/lib/payment/useThreeDSReturn';
 
 const { colors } = theme;
 
@@ -110,11 +109,6 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
     onFailRef.current?.();
   };
 
-  // Yoklamanın verify temposu. 3DS sürerken seyrek; kullanıcı 3DS'ten dönünce
-  // (WebView bankadan PayTR'ye döndü ya da uygulama öne geldi) erken faz başlar.
-  const pacerRef = useRef<VerifyPacer | null>(null);
-  const threeDSReturn = useThreeDSReturn(!!threeDSHtml, () => pacerRef.current?.markReturned());
-
   // 3DS WebView açıkken VEYA directForm ağ/timeout hatası sonrası (verifying) ödeme
   // durumunu yokla. PayTR'ın dönüş yönlendirmesi (merchant_ok_url) WebView içinde her zaman
   // /payment/success URL'ine ulaşmayabilir; bu durumda kullanıcı PayTR'ın "ödeme alınıyor"
@@ -125,42 +119,45 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
     if (!paymentId || !(threeDSHtml || verifying)) return;
     let alive = true;
     let timer: ReturnType<typeof setTimeout>;
-    let tries = 0;
+    const deadline = Date.now() + PAYMENT_POLL_DURATION_MS;
     // verify PayTR durumunu sunucuda sorgular ve ödemeyi aktive eder (idempotent):
     // callback gecikse ya da hiç gelmese de ödeme tamamlanır. Misafir de çağırır
-    // (`X-Payment-Capability` ile, `guestApi`'den). Sunucu dakikada 10 verify'a izin
-    // veriyor ve her çağrıda PayTR'yi sorguluyor: verify ARKADA, zaman aşımlı ve
-    // seyrek gider (3DS sürerken ~30 sn'de bir; kullanıcı dönünce ilk ~10 sn her
-    // tur, sonra ~15 sn'de bir; global bütçe). Durum okuması onu BEKLEMEZ.
-    // 3DS'siz yoklamada (zaman aşımı, 3DS iptali) erken faz hemen başlar.
-    const verifyPacer = createVerifyPacer(paymentId, { guest: isGuest, awaitingReturn: !!threeDSHtml });
-    pacerRef.current = verifyPacer;
+    // (`X-Payment-Capability` ile, `guestApi`'den). Sabit tempo (`verifyPacer`):
+    // ilki ~3 sn'de, sonra 10 sn'de bir, arkada; durum okuması onu BEKLEMEZ. 3DS'in
+    // hangi aşamada olduğuna (banka sayfası, uygulama geçişi) bakılmaz.
+    const stopVerify = startVerifyLoop(paymentId, { guest: isGuest });
     const poll = async () => {
-      tries += 1;
-      verifyPacer.tick();
       try {
         const res: any = isGuest
           ? await paymentsApi.getStatusLightGuest(paymentId)
           : await paymentsApi.getStatusLight(paymentId);
         const data = res?.data?.data ?? res?.data ?? {};
         if (!alive) return;
-        if (isPaidPaymentStatus(data.status)) { resolveSuccess(paymentId); return; }
-        if (data.status === 'failed') { resolveFail(); return; }
+        if (isPaidPaymentStatus(data.status)) resolveSuccess(paymentId);
+        else if (data.status === 'failed') resolveFail();
       } catch { /* yoksay, tekrar dene */ }
-      if (alive && !resolvedRef.current && tries < 40) {
-        timer = setTimeout(poll, 3000);
-      } else if (alive && !resolvedRef.current && verifying && !threeDSHtml) {
-        // poll tükendi (terminal duruma ulaşılamadı)
+      if (!alive) return;
+      if (resolvedRef.current) {
+        stopVerify();
+        return;
+      }
+      if (Date.now() < deadline) {
+        timer = setTimeout(poll, PAYMENT_STATUS_POLL_MS);
+        return;
+      }
+      // Yoklama süresi doldu (terminal duruma ulaşılamadı).
+      stopVerify();
+      if (verifying && !threeDSHtml) {
         setVerifying(false);
         setProcessing(false);
         appAlert(t('payment.connectionIssueTitle'), t('payment.verifyTimeoutBody'));
       }
     };
-    timer = setTimeout(poll, 3000);
+    timer = setTimeout(poll, PAYMENT_STATUS_POLL_MS);
     return () => {
       alive = false;
       clearTimeout(timer);
-      if (pacerRef.current === verifyPacer) pacerRef.current = null;
+      stopVerify();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threeDSHtml, verifying, paymentId, isGuest]);
@@ -300,8 +297,6 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
       if (paymentId) resolveSuccess(paymentId);
     } else if (url.includes('/payment/fail') || url.includes('/payment/failure')) {
       resolveFail();
-    } else {
-      threeDSReturn.onNavigate(url);
     }
   }
 

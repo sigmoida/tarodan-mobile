@@ -2,8 +2,9 @@
  * Verify temposu, bütçesi ve zaman aşımı (`verifyPacer.ts`).
  *
  * Sunucu: `POST /payments/:id/verify` → `@Throttle({ default: { limit: 10, ttl: 60000 } })`,
- * her çağrıda PayTR durum sorgusu. İstemci kayan 60 sn'de en fazla 8 verify gönderir,
- * yoklamada ilk ~10 sn her tur, sonra ~15 sn'de bir; verify hiç beklenmek zorunda değil.
+ * her çağrıda PayTR durum sorgusu. İstemci kayan 60 sn'de en fazla 8 verify gönderir
+ * (yoklama en fazla 6, kalan sonuç ekranlarına); yoklamada verify ilki ~3 sn'de, sonra
+ * sabit 10 sn'de bir gider. Verify hiç beklenmek zorunda değil.
  */
 jest.mock('@/lib/api', () => ({
   paymentsApi: { verify: jest.fn(), verifyGuest: jest.fn() },
@@ -12,11 +13,14 @@ jest.mock('@/lib/api', () => ({
 import { paymentsApi } from '@/lib/api';
 import {
   __resetVerifyPacer,
-  createVerifyPacer,
-  pendingVerify,
+  PAYMENT_POLL_DURATION_MS,
   requestVerify,
+  startVerifyLoop,
+  verifyBudgetWaitMs,
   VERIFY_BUDGET_PER_MIN,
-  VERIFY_DURING_3DS_INTERVAL_MS,
+  VERIFY_LOOP_FIRST_MS,
+  VERIFY_LOOP_INTERVAL_MS,
+  VERIFY_POLL_BUDGET_PER_MIN,
   VERIFY_SERVER_LIMIT_PER_MIN,
   VERIFY_TIMEOUT_MS,
   VERIFY_WINDOW_MS,
@@ -92,11 +96,11 @@ describe('requestVerify', () => {
     const second = requestVerify('p-1');
     expect(second).toBe(first);
     expect(verify).toHaveBeenCalledTimes(1);
-    expect(pendingVerify('p-1')).toBe(first);
 
     resolve({ data: { completed: true } });
     await expect(first).resolves.toBe(true);
-    await expect(pendingVerify('p-1')).resolves.toBe(false); // uçuşta yok
+    await requestVerify('p-1'); // uçuşta yok: yenisi gider
+    expect(verify).toHaveBeenCalledTimes(2);
   });
 
   it('zaman aşımı: yanıt gelmezse false ile çözülür, uçuş kaydı düşer, sonraki verify gider', async () => {
@@ -115,100 +119,68 @@ describe('requestVerify', () => {
   });
 });
 
-describe('createVerifyPacer (yoklama temposu)', () => {
-  /** 3 sn'de bir yoklama turu, `seconds` boyunca. */
-  async function pollFor(seconds: number, pacer = createVerifyPacer('p-1')) {
-    for (let t = 3; t <= seconds; t += 3) {
-      await jest.advanceTimersByTimeAsync(3000);
-      pacer.tick();
-    }
-  }
+describe('startVerifyLoop (yoklama temposu: faz yok, sabit aralık)', () => {
+  const secondsSince = (start: number) => sends.map((t) => (t - start) / 1000);
 
-  it('ilk ~10 sn her tur (3, 6, 9. sn), sonra ~15 sn\'de bir (24, 39, 54…)', async () => {
+  it('ilki ~3 sn\'de, sonra 10 sn\'de bir (3, 13, 23, 33, 43, 53)', async () => {
     const start = Date.now();
-    await pollFor(60);
-    expect(sends.map((t) => (t - start) / 1000)).toEqual([3, 6, 9, 24, 39, 54]);
+    const stop = startVerifyLoop('p-1');
+    await jest.advanceTimersByTimeAsync(60_000);
+    stop();
+    expect(VERIFY_LOOP_FIRST_MS).toBe(3000);
+    expect(VERIFY_LOOP_INTERVAL_MS).toBe(10_000);
+    expect(secondsSince(start)).toEqual([3, 13, 23, 33, 43, 53]);
   });
 
-  it('120 sn yoklama (kart formunun 40 turu): her 60 sn pencerede ≤ bütçe < sunucu sınırı', async () => {
-    await pollFor(120);
-    expect(maxPerWindow(sends)).toBeLessThanOrEqual(VERIFY_BUDGET_PER_MIN);
-    expect(maxPerWindow(sends)).toBeLessThan(VERIFY_SERVER_LIMIT_PER_MIN);
+  it('yoklama süresi boyunca (4 dk) düzenli; her 60 sn pencerede ≤ yoklama payı (6) < bütçe (8)', async () => {
+    const start = Date.now();
+    const stop = startVerifyLoop('p-1');
+    await jest.advanceTimersByTimeAsync(PAYMENT_POLL_DURATION_MS);
+    stop();
+    expect(PAYMENT_POLL_DURATION_MS).toBeGreaterThanOrEqual(3 * 60_000);
+    const seconds = secondsSince(start);
+    expect(seconds).toHaveLength(24);
+    seconds.slice(1).forEach((s, i) => expect(s - seconds[i]).toBe(10)); // aralık sabit
+    expect(maxPerWindow(sends)).toBe(VERIFY_POLL_BUDGET_PER_MIN);
+    expect(VERIFY_POLL_BUDGET_PER_MIN).toBeLessThan(VERIFY_BUDGET_PER_MIN);
   });
 
-  it('art arda yoklamalar (3DS iptal → doğrulama, başarı ekranı) aynı bütçeden düşer', async () => {
-    await pollFor(57); // kart formu
-    await pollFor(9, createVerifyPacer('p-1')); // yeniden başlayan yoklama: yeni erken evre
-    for (let i = 0; i < 5; i++) {
-      // başarı ekranı döngüsü (1,5 sn arayla 5 deneme)
-      void requestVerify('p-1');
-      await jest.advanceTimersByTimeAsync(1500);
-    }
-    expect(maxPerWindow(sends)).toBeLessThanOrEqual(VERIFY_BUDGET_PER_MIN);
+  it('art arda yoklamalar (3DS iptal → doğrulama) yoklama payını aşamaz; sonuç ekranına yer kalır', async () => {
+    let stop = startVerifyLoop('p-1');
+    await jest.advanceTimersByTimeAsync(55_000);
+    stop();
+    stop = startVerifyLoop('p-1'); // yeniden başlayan yoklama: ilk verify yine 3 sn'de
+    await jest.advanceTimersByTimeAsync(5_000);
+    stop();
+    expect(maxPerWindow(sends)).toBeLessThanOrEqual(VERIFY_POLL_BUDGET_PER_MIN);
+    // Sonuç ekranı (varsayılan, tüm bütçe) hâlâ gönderebilir.
+    expect(verifyBudgetWaitMs()).toBe(0);
+    expect(verifyBudgetWaitMs({ poll: true })).toBeGreaterThan(0);
   });
 
-  it('misafir pacer verifyGuest çağırır; tick hiç beklemez ve fırlatmaz', async () => {
-    verifyGuest.mockImplementation(() => new Promise(() => undefined));
-    const pacer = createVerifyPacer('p-1', { guest: true });
+  it('misafir döngüsü verifyGuest çağırır; durdurulunca verify gitmez', async () => {
+    const stop = startVerifyLoop('p-1', { guest: true });
     await jest.advanceTimersByTimeAsync(3000);
-    expect(pacer.tick()).toBeUndefined();
     expect(verifyGuest).toHaveBeenCalledWith('p-1', { timeout: VERIFY_TIMEOUT_MS });
     expect(verify).not.toHaveBeenCalled();
+    stop();
+    await jest.advanceTimersByTimeAsync(60_000);
+    expect(verifyGuest).toHaveBeenCalledTimes(1);
   });
 });
 
-describe('createVerifyPacer: 3DS sürerken seyrek, erken faz dönüşte başlar', () => {
-  async function pollFor(seconds: number, pacer: ReturnType<typeof createVerifyPacer>) {
-    for (let t = 3; t <= seconds; t += 3) {
-      await jest.advanceTimersByTimeAsync(3000);
-      pacer.tick();
+describe('verifyBudgetWaitMs (bütçede yer açılmasına kalan süre)', () => {
+  it('yer varsa 0; dolunca en eski gönderimin pencereden çıkışına kalan süre', async () => {
+    expect(verifyBudgetWaitMs()).toBe(0);
+    for (let i = 0; i < VERIFY_BUDGET_PER_MIN; i++) {
+      void requestVerify(`p-${i}`);
+      await jest.advanceTimersByTimeAsync(1000); // 0, 1, …, 7. sn
     }
-  }
-  const secondsSince = (start: number) => sends.map((t) => (t - start) / 1000);
-
-  it('dönüş yokken verify yalnız 30 sn\'de bir (30, 60, 90, 120. sn)', async () => {
-    const start = Date.now();
-    await pollFor(120, createVerifyPacer('p-1', { awaitingReturn: true }));
-    expect(VERIFY_DURING_3DS_INTERVAL_MS).toBe(30_000);
-    expect(secondsSince(start)).toEqual([30, 60, 90, 120]);
-  });
-
-  it('erken faz 3DS sayfasının açılışından değil dönüşten sayılır', async () => {
-    const start = Date.now();
-    const pacer = createVerifyPacer('p-1', { awaitingReturn: true });
-    await pollFor(42, pacer); // 3DS 42 sn sürdü: yalnız 30. sn
-    pacer.markReturned();
-    await pollFor(36, pacer); // dönüşten sonra 36 sn daha (78. sn'ye kadar)
-    // Dönüş 42. sn: 45/48/51. sn her tur (ilk ~10 sn), sonra 15 sn'de bir (66).
-    expect(secondsSince(start)).toEqual([30, 45, 48, 51, 66]);
-  });
-
-  it('markReturned bir kez sayılır (tekrar çağrı erken fazı uzatmaz)', async () => {
-    const start = Date.now();
-    const pacer = createVerifyPacer('p-1', { awaitingReturn: true });
-    pacer.markReturned();
-    await pollFor(9, pacer);
-    pacer.markReturned();
-    await pollFor(15, pacer);
-    expect(secondsSince(start)).toEqual([3, 6, 9, 24]);
-  });
-
-  it('awaitingReturn yoksa (3DS\'siz yoklama) erken faz hemen başlar — eski tempo', async () => {
-    const start = Date.now();
-    await pollFor(30, createVerifyPacer('p-1'));
-    expect(secondsSince(start)).toEqual([3, 6, 9, 24]);
-  });
-
-  it('3DS 57 sn + dönüş + başarı ekranı (5 deneme): her 60 sn pencerede ≤ bütçe; başarı ekranı tam bütçe bulur', async () => {
-    const pacer = createVerifyPacer('p-1', { awaitingReturn: true });
-    await pollFor(57, pacer);
-    const formSends = sends.length;
-    expect(formSends).toBe(1);
-    for (let i = 0; i < 5; i++) {
-      void requestVerify('p-1');
-      await jest.advanceTimersByTimeAsync(1500);
-    }
-    expect(sends.length - formSends).toBe(5);
-    expect(maxPerWindow(sends)).toBeLessThanOrEqual(VERIFY_BUDGET_PER_MIN);
+    // Şimdi 8. sn: ilk gönderim (0. sn) 60. sn'de çıkar.
+    expect(verifyBudgetWaitMs()).toBe(52_000);
+    // Yoklama payı (6) 6. gönderimle doldu: 3. gönderim (2. sn) çıkınca yer açılır.
+    expect(verifyBudgetWaitMs({ poll: true })).toBe(54_000);
+    await jest.advanceTimersByTimeAsync(52_000);
+    expect(verifyBudgetWaitMs()).toBe(0);
   });
 });
