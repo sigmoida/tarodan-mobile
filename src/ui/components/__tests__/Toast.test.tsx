@@ -1,6 +1,7 @@
 import React from 'react';
 import { AccessibilityInfo, StyleSheet, View } from 'react-native';
 import { act, render, screen, within } from '@testing-library/react-native';
+import { NavigationContext } from '@react-navigation/native';
 import { Snackbar, toast, ToastHost, ToastLayer, useToastBottomInset } from '@/ui';
 import { isSwipeDismiss, resetToastForTests, TOAST_GAP, toastBottom } from '../Toast';
 
@@ -320,9 +321,107 @@ describe('konum: klavye ve alt engeller', () => {
     expect(bottomOf()).toBe(300 + 70 + TOAST_GAP);
   });
 
-  it('toastBottom: modal katmanı kendi bottomOffset\'ini kullanır', () => {
-    expect(toastBottom({ keyboardOverlap: 0, safeBottom: 34, inset: null, bottomOffset: 80 })).toBe(80 + TOAST_GAP);
+  it('toastBottom: engel yoksa güvenli alan; klavyede yalnız klavyeyle kalkan engel eklenir', () => {
+    expect(toastBottom({ keyboardOverlap: 0, safeBottom: 34, inset: { value: 80, followsKeyboard: false } })).toBe(80 + TOAST_GAP);
     expect(toastBottom({ keyboardOverlap: 0, safeBottom: 34, inset: null })).toBe(34 + 8 + TOAST_GAP);
+    expect(toastBottom({ keyboardOverlap: 300, safeBottom: 34, inset: { value: 80, followsKeyboard: false } })).toBe(300 + TOAST_GAP);
+  });
+
+  it('modal/sheet katmanı: bottomOffset (alt çubuk) üstünde; followsKeyboard ile klavyede de', () => {
+    const view = render(
+      <>
+        <ToastHost />
+        <ToastLayer bottomOffset={72} followsKeyboard />
+      </>,
+    );
+    act(() => {
+      toast('x', { duration: 0 });
+    });
+    expect(bottomOf()).toBe(72 + TOAST_GAP);
+    mockKeyboardHeight = 300;
+    view.rerender(
+      <>
+        <ToastHost />
+        <ToastLayer bottomOffset={72} followsKeyboard />
+      </>,
+    );
+    expect(bottomOf()).toBe(300 + 72 + TOAST_GAP);
+  });
+
+  describe('kayıtlar yalnız ekran odaktayken geçerli', () => {
+    type Listener = () => void;
+    function fakeNavigation(initial: boolean) {
+      let focused = initial;
+      const listeners: Record<string, Listener[]> = { focus: [], blur: [] };
+      return {
+        isFocused: () => focused,
+        addListener: (type: 'focus' | 'blur', cb: Listener) => {
+          listeners[type]!.push(cb);
+          return () => {
+            listeners[type] = listeners[type]!.filter((l) => l !== cb);
+          };
+        },
+        set(next: boolean) {
+          focused = next;
+          act(() => listeners[next ? 'focus' : 'blur']!.forEach((l) => l()));
+        },
+      };
+    }
+    const Screen = ({ nav, value }: { nav: ReturnType<typeof fakeNavigation>; value: number | null }) => (
+      <NavigationContext.Provider value={nav as never}>
+        <Obstacle value={value} />
+      </NavigationContext.Provider>
+    );
+
+    it('sekme çubuğu itilen ekranın altında kalınca (blur) toast onu hesaba katmaz; dönünce yine katar', () => {
+      const tabs = fakeNavigation(true);
+      render(
+        <>
+          <ToastHost />
+          <Screen nav={tabs} value={90} />
+        </>,
+      );
+      act(() => {
+        toast('x', { duration: 0 });
+      });
+      expect(bottomOf()).toBe(90 + TOAST_GAP);
+      tabs.set(false); // footer'sız yığın ekranı itildi
+      expect(bottomOf()).toBe(8 + TOAST_GAP);
+      tabs.set(true); // geri dönüldü
+      expect(bottomOf()).toBe(90 + TOAST_GAP);
+    });
+
+    it('A ekranının alt çubuğu, üstüne B itilince geçerli kalmaz; B\'nin alt çubuğu geçerli', () => {
+      const a = fakeNavigation(true);
+      const b = fakeNavigation(true);
+      const view = render(
+        <>
+          <ToastHost />
+          <Screen nav={a} value={76} />
+        </>,
+      );
+      act(() => {
+        toast('x', { duration: 0 });
+      });
+      expect(bottomOf()).toBe(76 + TOAST_GAP);
+      a.set(false);
+      view.rerender(
+        <>
+          <ToastHost />
+          <Screen nav={a} value={76} />
+          <Screen nav={b} value={null} />
+        </>,
+      );
+      expect(bottomOf()).toBe(8 + TOAST_GAP);
+      view.rerender(
+        <>
+          <ToastHost />
+          <Screen nav={a} value={76} />
+          <Screen nav={b} value={100} />
+        </>,
+      );
+      expect(bottomOf()).toBe(100 + TOAST_GAP);
+    });
   });
 });
 

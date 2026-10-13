@@ -51,6 +51,7 @@ import {
   type BottomSheetSize,
 } from '../lib/sheetMotion';
 import { SheetHeader } from './SheetHeader';
+import { ToastLayer } from './Toast';
 
 export type { BottomSheetSize };
 
@@ -345,6 +346,13 @@ function SheetSurface({
   const layout = sheetLayout(size, containerHeight, topInset, keyboardLift);
   const bottomPad = sheetBottomPadding(insets.bottom, keyboardOpen);
 
+  // Alt çubuk yüksekliği (güvenli alan / klavye payı dahil): toast onun üstünde dursun.
+  const [footerHeight, setFooterHeight] = useState(0);
+  const onFooterLayout = useCallback((e: LayoutChangeEvent) => {
+    const h = e.nativeEvent.layout.height;
+    setFooterHeight((prev) => (Math.abs(prev - h) > 0.5 ? h : prev));
+  }, []);
+
   const onSheetLayout = useCallback(
     (e: LayoutChangeEvent) => {
       sheetHeight.value = e.nativeEvent.layout.height;
@@ -503,10 +511,18 @@ function SheetSurface({
             </View>
           )}
           {footer ? (
-            <View testID={`${testID}-footer`} style={[styles.footer, { paddingBottom: bottomPad }]}>
+            <View
+              testID={`${testID}-footer`}
+              style={[styles.footer, { paddingBottom: bottomPad }]}
+              onLayout={onFooterLayout}
+            >
               {footer}
             </View>
           ) : null}
+          {/* Toast sheet yüzeyinin İÇİNDE, alt çubuğun üstünde (kök host sheet'in native penceresinin
+              ALTINDA kalır). Sheet klavyeye göre zaten kalkıyor: katman klavyeyi ayrıca saymaz.
+              Yüzeyin içinde olduğu için ekran okuyucu ve otomasyon da görür (accessibilityViewIsModal). */}
+          <ToastLayer bottomOffset={footer ? footerHeight : undefined} keyboardAware={false} />
         </Animated.View>
       </View>
     </GestureHandlerRootView>

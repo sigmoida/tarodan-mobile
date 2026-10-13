@@ -354,9 +354,16 @@ and turns them into **errors**, so write new code warning-free.
   the web doesn't have is removed by default.
 - **Feedback:** info/success → `toast` / `toast.success` (`@/ui`, web react-hot-toast
   equivalent). Anything that needs confirmation, or an error the user must act on →
-  `appAlert` dialog. (A toast sits under an open native Modal — close the modal first.)
-  `appAlert` button order: the `cancel`-styled button is always last; the others keep the
-  order the caller gave (never reversed).
+  `appAlert` dialog. Yes/no confirmation → `if (!(await confirm({ title, message, destructive })))
+  return;` (`@/ui`, web ConfirmProvider signature; resolves after the dialog has closed, so a
+  following toast/navigation/modal is iOS-safe). Toasts draw in the topmost layer (`ToastLayer`
+  inside `@/ui` `Modal`, `AlertDialog`, `BottomSheet`), so they are visible over open dialogs/sheets
+  and sit above the keyboard / tab bar / `PageShell` footer (`useToastBottomInset`, focus-scoped).
+  `appAlert` buttons: two buttons that fit sit side by side with `cancel` on the LEFT; stacked
+  (labels don't fit, or 3+ buttons) the `cancel`-styled button is at the BOTTOM; the others keep
+  the caller's order (never reversed). `cancelable` defaults to `true` when there is a `cancel`
+  button or a single button (Android back / backdrop = pressing that button); pass
+  `cancelable: false` for alerts the user must read (payment uncertainty).
 - **Bottom sheets: one primitive family.** Everything that slides up from the bottom is
   `BottomSheet` / `SelectSheet` / `ActionSheet` (`@/ui`) — never a sheet hand-built on a raw RN
   `Modal`. `BottomSheet` owns grabber + `SheetHeader`, drag-to-close, Android back, the fixed

@@ -9,6 +9,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react-n
 import { fireGestureHandler, getByGestureTestId } from 'react-native-gesture-handler/jest-utils';
 import { State } from 'react-native-gesture-handler';
 import { BottomSheet, useBottomSheet, theme } from '@/ui';
+import { resetToastForTests, toast, TOAST_GAP, ToastHost } from '../Toast';
 import {
   keyboardResizedWindow,
   revealScrollOffset,
@@ -289,6 +290,27 @@ describe('BottomSheet · footer, güvenli alan ve klavye', () => {
     render(<Harness footer={footer} />);
     expect(StyleSheet.flatten(screen.getByTestId('sheet').props.style).marginBottom).toBe(300);
     expect(StyleSheet.flatten(screen.getByTestId('sheet-footer').props.style).paddingBottom).toBe(spacing[3]);
+  });
+
+  it('toast sheet yüzeyinin İÇİNDE, alt çubuğun üstünde çizilir (klavye açıkken de çubuğa göre)', () => {
+    resetToastForTests();
+    render(
+      <>
+        <ToastHost />
+        <Harness footer={footer} />
+      </>,
+    );
+    fireEvent(screen.getByTestId('sheet-footer'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 390, height: 86 } },
+    });
+    act(() => {
+      toast.error('Sheet üstünde', { duration: 0 });
+    });
+    const card = within(screen.getByTestId('sheet')).getByTestId('toast');
+    expect(within(card).getByText('Sheet üstünde')).toBeTruthy();
+    expect(screen.getAllByTestId('toast')).toHaveLength(1);
+    expect(StyleSheet.flatten(card.props.style).bottom).toBe(86 + TOAST_GAP);
+    resetToastForTests();
   });
 
   it('footer yoksa gövde alt boşluğu güvenli alan kadar', () => {

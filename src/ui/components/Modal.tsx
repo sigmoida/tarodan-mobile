@@ -98,6 +98,9 @@ export const Modal: React.FC<ModalProps> = ({
         styles.body,
         hasHeader && !title && styles.bodyAfterHeader,
         flushBody && styles.bodyFlush,
+        // Kaydırmasız gövde (çağıranın kendi ScrollView'ı): küçülme zinciri burada da sürmeli, aksi
+        // halde içteki ScrollView klavye açıkken alt şeridin üstüne taşar.
+        !scrollable && styles.bodyShrink,
       ]}
     >
       {children}

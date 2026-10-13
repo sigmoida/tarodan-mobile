@@ -251,12 +251,25 @@ describe('Modal: gövde kaydırma, güvenli alan, klavye, toast katmanı', () =>
   });
 
   it("scrollable={false}: kendi ScrollView'ını taşıyan gövdede çift kaydırma yok", () => {
-    const { queryByTestId } = render(
-      <Modal isOpen onClose={jest.fn()} scrollable={false}>
+    const { queryByTestId, getByText } = render(
+      <Modal isOpen onClose={jest.fn()} scrollable={false} title="Başlık" footer={<Text>alt</Text>}>
         <Text>içerik</Text>
       </Modal>,
     );
     expect(queryByTestId('modal-body-scroll')).toBeNull();
+    // Küçülme zinciri kart → gövde sarmalayıcı → padding'li gövde boyunca kesintisiz: çağıranın
+    // ScrollView'ı klavye açıkken alt şeridin üstüne taşmaz, kalan alana küçülür.
+    const chain: Record<string, unknown>[] = [];
+    let cur = getByText('içerik') as unknown as N | null;
+    while (cur) {
+      const st = flat(cur);
+      if (st && typeof st.maxWidth === 'number') break; // kart
+      if (st && Object.keys(st).length) chain.push(st);
+      cur = cur.parent;
+    }
+    expect(chain.length).toBeGreaterThanOrEqual(2);
+    for (const st of chain) expect(st).toMatchObject({ flexShrink: 1, minHeight: 0 });
+    expect(sheetOf(getByText('içerik'))?.flexShrink).toBe(1);
   });
 
   it('fitContent varsayılan olarak kaydırmasız (içeriğe oturan kart)', () => {

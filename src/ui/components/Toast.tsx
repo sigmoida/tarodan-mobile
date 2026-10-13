@@ -14,6 +14,7 @@ import { zIndex } from '@/theme';
 import { theme } from '../lib/theme';
 import { getGlassView } from '../lib/glass';
 import { useKeyboardOverlap } from '../lib/keyboard';
+import { useScreenFocused } from '../lib/screenFocus';
 import {
   dismissToast,
   getToastSnapshot,
@@ -97,25 +98,30 @@ export function toastBottom(params: {
   keyboardOverlap: number;
   safeBottom: number;
   inset: { value: number; followsKeyboard: boolean } | null;
-  bottomOffset?: number;
 }): number {
-  const { keyboardOverlap, safeBottom, inset, bottomOffset } = params;
+  const { keyboardOverlap, safeBottom, inset } = params;
   if (keyboardOverlap > 0) {
     return keyboardOverlap + (inset?.followsKeyboard ? inset.value : 0) + TOAST_GAP;
   }
-  return (bottomOffset ?? inset?.value ?? safeBottom + spacing[2]) + TOAST_GAP;
+  return (inset?.value ?? safeBottom + spacing[2]) + TOAST_GAP;
 }
 
 /**
  * Ekranın dibindeki bir engeli kök toast katmanına bildirir (toast onun üstünde durur). `value` =
  * engelin ekranın alt kenarından üst kenarına yüksekliği (güvenli alan dahil); `null` = şu an engel
- * yok (kayıt sırasını korur). En son bağlanan kayıt geçerlidir: yığına itilen ekranın alt çubuğu,
- * altta kalan sekme çubuğunun önüne geçer; ekran kapanınca kayıt da kalkar.
+ * yok (kayıt sırasını korur).
+ *
+ * Kayıt yalnız bulunduğu ekran ODAKTAYKEN geçerlidir (`useScreenFocused`): üstüne ekran itilince
+ * (ya da sekme değişince) kendiliğinden düşer, geri dönünce yeniden geçerli olur. Böylece altta
+ * bağlı kalan sekme çubuğu / önceki ekranın alt çubuğu itilen ekrandaki toast'ı yukarı itmez.
+ * Odakta birden çok kayıt varsa en son bağlanan geçerlidir; ekran kapanınca kayıt da kalkar.
  */
 export function useToastBottomInset(value: number | null | undefined, followsKeyboard = false): void {
+  const focused = useScreenFocused();
+  const effective = focused ? (value ?? null) : null;
   const keyRef = useRef<number | null>(null);
-  const latest = useRef({ value: value ?? null, followsKeyboard });
-  latest.current = { value: value ?? null, followsKeyboard };
+  const latest = useRef({ value: effective, followsKeyboard });
+  latest.current = { value: effective, followsKeyboard };
   useEffect(() => {
     const key = registerToastInset();
     keyRef.current = key;
@@ -126,8 +132,8 @@ export function useToastBottomInset(value: number | null | undefined, followsKey
     };
   }, []);
   useEffect(() => {
-    if (keyRef.current != null) updateToastInset(keyRef.current, value ?? null, followsKeyboard);
-  }, [value, followsKeyboard]);
+    if (keyRef.current != null) updateToastInset(keyRef.current, effective, followsKeyboard);
+  }, [effective, followsKeyboard]);
 }
 
 const ICON: Record<ToastKind, React.ReactNode> = {
@@ -148,6 +154,13 @@ export interface ToastLayerProps {
    * Verilmezse güvenli alanın altı. Kök katman bunun yerine `useToastBottomInset` kayıtlarını kullanır.
    */
   bottomOffset?: number;
+  /** `bottomOffset` engeli klavyeyle birlikte yukarı çıkıyor mu. */
+  followsKeyboard?: boolean;
+  /**
+   * Katman klavyeyi kendisi hesaba katsın mı (varsayılan açık). Klavyeye göre zaten kaldırılan bir
+   * yüzeyin İÇİNE konan katman (BottomSheet) `false` verir: konum o yüzeyin altına göredir.
+   */
+  keyboardAware?: boolean;
 }
 
 /**
@@ -155,14 +168,28 @@ export interface ToastLayerProps {
  * çok katman bağlıyken yalnız en son bağlanan çizer. Tam ekran, dokunuşu geçiren (`box-none`) bir
  * kapsayıcıdır; pencerenin içeriğinden SONRA (en üstte) konmalı.
  */
-export const ToastLayer: React.FC<ToastLayerProps> = ({ bottomOffset }) => (
-  <ToastLayerImpl root={false} bottomOffset={bottomOffset} />
+export const ToastLayer: React.FC<ToastLayerProps> = ({
+  bottomOffset,
+  followsKeyboard = false,
+  keyboardAware = true,
+}) => (
+  <ToastLayerImpl
+    root={false}
+    bottomOffset={bottomOffset}
+    followsKeyboard={followsKeyboard}
+    keyboardAware={keyboardAware}
+  />
 );
 
 /** Kök toast katmanı — `app/_layout.tsx`'te BİR KEZ. */
 export const ToastHost: React.FC = () => <ToastLayerImpl root />;
 
-const ToastLayerImpl: React.FC<{ root: boolean; bottomOffset?: number }> = ({ root, bottomOffset }) => {
+const ToastLayerImpl: React.FC<{
+  root: boolean;
+  bottomOffset?: number;
+  followsKeyboard?: boolean;
+  keyboardAware?: boolean;
+}> = ({ root, bottomOffset, followsKeyboard = false, keyboardAware = true }) => {
   const [layerId, setLayerId] = useState<number | null>(null);
   useEffect(() => {
     const id = registerToastLayer();
@@ -175,10 +202,13 @@ const ToastLayerImpl: React.FC<{ root: boolean; bottomOffset?: number }> = ({ ro
   const insets = useSafeAreaInsets();
   const keyboard = useKeyboardOverlap();
   const bottom = toastBottom({
-    keyboardOverlap: keyboard.overlap,
+    keyboardOverlap: keyboardAware ? keyboard.overlap : 0,
     safeBottom: insets.bottom,
-    inset: root ? snap.inset : null,
-    bottomOffset: root ? undefined : bottomOffset,
+    inset: root
+      ? snap.inset
+      : bottomOffset != null && bottomOffset > 0
+        ? { value: bottomOffset, followsKeyboard }
+        : null,
   });
 
   return (
