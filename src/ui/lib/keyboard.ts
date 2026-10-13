@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import type { LayoutChangeEvent } from 'react-native';
+import { Platform, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { keyboardBottomInset, useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 
@@ -34,4 +34,39 @@ export function useKeyboardOverlap(): { overlap: number; keyboardHeight: number;
   }, []);
   const resizedBy = Math.max(0, size.maxHeight - size.height);
   return { overlap: keyboardOverlap(keyboardHeight, bottom, resizedBy), keyboardHeight, onLayout };
+}
+
+export interface KeyboardAvoid {
+  /** `KeyboardAvoidingView` davranışı: iOS `padding`; Android `undefined` (KAV kaçmaz, dolgu kaçar). */
+  behavior: 'padding' | undefined;
+  /**
+   * Android: kapsayıcıya verilecek alt dolgu = klavyenin yüzeyle örtüşmesi (işletim sistemi pencereyi
+   * zaten küçülttüyse o kadarı düşülmüş → çift kaçış yok). iOS'ta 0 (KAV kaçar).
+   */
+  bottomInset: number;
+  /** Klavye açık mı (kaçış kapalıyken hep `false`). Açıkken alt çubuk güvenli alan boşluğunu düşer. */
+  keyboardOpen: boolean;
+  /** Android'de dolguyu alan TAM EKRAN kapsayıcıya verilir (pencere küçülmesi ölçümü). */
+  onLayout: ((e: LayoutChangeEvent) => void) | undefined;
+}
+
+/**
+ * Tam ekran bir yüzeyin (PageShell gövdesi + sabit alt çubuk) klavyeden kaçışı — TEK kanca.
+ *
+ * - iOS: `KeyboardAvoidingView behavior="padding"` (kanıtlanmış davranış, değişmedi).
+ * - Android (kenardan kenara; `softwareKeyboardLayoutMode` verilmedi → Expo varsayılanı `resize`):
+ *   kenardan kenara pencerede `adjustResize` yüzeyi güvenilir biçimde küçültmüyor, KAV `height`
+ *   modu da güvenli alanı hesaba katmıyor (`FullScreenGate` notu). Bu yüzden KAV yerine kapsayıcıya
+ *   `bottomInset` kadar alt dolgu verilir; pencere yine de küçüldüyse `useKeyboardOverlap` bunu
+ *   ölçüp düşer → eksik ya da çift kaçış yok.
+ */
+export function useKeyboardAvoid(enabled = true): KeyboardAvoid {
+  const { overlap, keyboardHeight, onLayout } = useKeyboardOverlap();
+  const android = Platform.OS === 'android';
+  return {
+    behavior: android ? undefined : 'padding',
+    bottomInset: enabled && android ? overlap : 0,
+    keyboardOpen: enabled && keyboardHeight > 0,
+    onLayout: android ? onLayout : undefined,
+  };
 }

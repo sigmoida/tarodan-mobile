@@ -1,6 +1,6 @@
 import React, { createContext, useContext } from 'react';
 import type { TextStyle } from 'react-native';
-import { bodyLetterSpacing, brandFontStyle } from '@/theme';
+import { bodyLetterSpacing, brandFontStyle, maxFontScale, type FontScaleRole } from '@/theme';
 
 /**
  * Marka fontu (Noto Sans) yüklendi mi? Kök layout `useFonts` sonucunu buradan verir.
@@ -59,6 +59,22 @@ export function useBrandTextStyle(flat: TextStyle): [TextStyle | null, TextInher
     : undefined;
   if (!font && letterSpacing == null) return [null, inherit];
   return [{ ...(font ?? {}), ...(letterSpacing != null ? { letterSpacing } : {}) }, inherit];
+}
+
+/**
+ * Metnin `maxFontSizeMultiplier` değeri (dinamik yazı boyutu üst sınırı, `maxFontScale`):
+ * - Çağıran açıkça verdiyse (sayı ya da `null`) o kullanılır.
+ * - İç içe metinde (ebeveyn `Text`/`RawText` içinde) `undefined`: RN sınırı ebeveynden miras
+ *   verir; buton etiketinin içindeki kalın parça buton sınırını (1.2) korur, gövde sınırını almaz.
+ * - Aksi halde rolün sınırı.
+ */
+export function useMaxFontSizeMultiplier(
+  explicit: number | null | undefined,
+  role: FontScaleRole,
+): number | null | undefined {
+  const nested = useContext(TextInheritContext) !== null;
+  if (explicit !== undefined) return explicit;
+  return nested ? undefined : maxFontScale[role];
 }
 
 /** Çocuklarda element varsa miras context'i ile sarar (salt metinde ek düğüm yok). */

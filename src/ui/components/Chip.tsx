@@ -9,6 +9,7 @@ import { touchSlop } from './Button';
 import { RawText } from './Text';
 import { Icon, type IconName } from '../icons';
 import { pillBoxStyle, pillTextStyle, type PillSize } from './Pill';
+import { androidRipple, rippleClip, showPressedStyle } from '../lib/pressableFeedback';
 
 export type ChipVariant = 'neutral' | 'primary' | 'success' | 'danger' | 'warning' | 'info';
 export type ChipSize = 'sm' | 'md';
@@ -34,7 +35,7 @@ export interface ChipProps extends Omit<PressableProps, 'style'> {
   style?: ViewStyle;
 }
 
-const { colors, typography } = theme;
+const { colors, typography, spacing } = theme;
 
 /** Etiket modu tonları (salt gösterim). */
 const tagStyle: Record<ChipVariant, { bg: string; text: string }> = {
@@ -55,7 +56,11 @@ const toggleStyle = {
   off: { bg: 'transparent', text: colors.text.muted, border: colors.border.DEFAULT },
 } as const;
 
-/** Çip = tam yuvarlak hap (Pill tabanı): sm → Pill sm (px-2 text-xs) h24; md → Pill lg (px-3 text-sm) h32. */
+/**
+ * Çip = tam yuvarlak hap (Pill tabanı): sm → Pill sm (px-2 text-xs) h24; md → Pill lg (px-3 text-sm) h32.
+ * `height` ASGARİ yüksekliktir (`minHeight` + küçük dikey dolgu): normal yazı ölçeğinde çip tam bu
+ * boydadır, büyük ölçekte etiket kırpılmadan büyür.
+ */
 const sizeMap: Record<ChipSize, { height: number; pill: PillSize }> = {
   sm: { height: 24, pill: 'sm' },
   md: { height: 32, pill: 'lg' },
@@ -92,16 +97,18 @@ export const Chip: React.FC<ChipProps> = ({
       disabled={disabled || !onPress}
       onPress={onPress}
       hitSlop={hitSlop ?? (onPress ? touchSlop(ss.height) : undefined)}
+      android_ripple={onPress ? androidRipple() : undefined}
       style={({ pressed }) => [
         pillBoxStyle(ss.pill, 'full'),
-        trailingIcon ? { gap: theme.spacing[1] } : null,
+        onPress ? rippleClip() : null,
+        trailingIcon ? { gap: spacing[1] } : null,
         {
-          height: ss.height,
-          paddingVertical: 0,
+          minHeight: ss.height,
+          paddingVertical: spacing[0.5],
           borderWidth: 1,
           backgroundColor: bg,
           borderColor: look.border,
-          opacity: disabled ? 0.5 : pressed && onPress ? 0.85 : 1,
+          opacity: disabled ? 0.5 : onPress && showPressedStyle(pressed) ? 0.85 : 1,
         },
         style,
       ]}
@@ -109,7 +116,11 @@ export const Chip: React.FC<ChipProps> = ({
       accessibilityState={isOn === undefined ? undefined : { selected: isOn }}
       {...rest}
     >
-      <RawText style={pillTextStyle(ss.pill, fg, typography.fontWeight.regular)} numberOfLines={1}>
+      <RawText
+        style={pillTextStyle(ss.pill, fg, typography.fontWeight.regular)}
+        numberOfLines={1}
+        maxFontSizeMultiplier={typography.maxFontScale.control}
+      >
         {label}
       </RawText>
       {trailingIcon ? <Icon name={trailingIcon} size={theme.iconSize.sm} color={fg} /> : null}

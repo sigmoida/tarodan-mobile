@@ -39,6 +39,24 @@ export const lineHeight = {
   relaxed: 1.7,
 } as const;
 
+/**
+ * Dinamik yazı boyutu (iOS "Daha Büyük Metin" / Android "Yazı tipi boyutu") üst sınırı — rol bazlı
+ * TEK kaynak (`maxFontSizeMultiplier`). Kullanıcı ölçeği bu oranın üstüne çıksa da metin en çok
+ * bu kadar büyür; altındaki ölçekler aynen uygulanır.
+ * - `body`: gövde / açıklama / etiket metni (`Text` gövde varyantları, `RawText` varsayılanı).
+ * - `heading`: başlıklar (`Text` display/h1–h3) — zaten iri; dar ekranda tek satırı korur.
+ * - `control`: sabit yükseklikli kontrol etiketi (Button, Chip, Badge/Pill, CountBadge, sekme
+ *   etiketi, Input/Textarea metni) — kutu `minHeight` ile büyür ama taşma/kırpılma olmasın.
+ * Global `Text.defaultProps` YOK: bileşenler bu değeri prop olarak verir.
+ */
+export const maxFontScale = {
+  body: 1.35,
+  heading: 1.25,
+  control: 1.2,
+} as const;
+
+export type FontScaleRole = keyof typeof maxFontScale;
+
 /** Web gövdesi `letter-spacing: -0.01em` — RN'de pt cinsinden: fontSize × bu katsayı. */
 export const bodyLetterSpacingEm = -0.01;
 
@@ -117,6 +135,7 @@ export const typography = {
   fontSize,
   fontWeight,
   lineHeight,
+  maxFontScale,
 } as const;
 
 export type Typography = typeof typography;
