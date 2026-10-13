@@ -41,7 +41,7 @@ describe('appAlert düğme dizilimi', () => {
   const order = () =>
     screen
       .getAllByRole('button')
-      .map((el) => el.findAll((n) => typeof n.props.children === 'string')[0]?.props.children as string);
+      .map((el) => el.findAll((n: { props: { children?: unknown } }) => typeof n.props.children === 'string')[0]?.props.children as string);
 
   it('menü [Profil, Şikayet, Engelle(destructive), İptal] → aynı sıra, İptal en altta', () => {
     render(<AlertDialogHost />);

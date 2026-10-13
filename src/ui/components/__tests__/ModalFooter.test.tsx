@@ -13,7 +13,7 @@ describe('ModalFooter', () => {
     render(<ModalFooter onConfirm={onConfirm} onCancel={onCancel} confirmLabel="Kaydet" cancelLabel="Vazgeç" />);
     const labels = screen
       .getAllByRole('button')
-      .map((el) => el.findAll((n) => typeof n.props.children === 'string')[0]?.props.children);
+      .map((el) => el.findAll((n: { props: { children?: unknown } }) => typeof n.props.children === 'string')[0]?.props.children);
     expect(labels).toEqual(['Kaydet', 'Vazgeç']);
     fireEvent.press(screen.getByText('Kaydet'));
     fireEvent.press(screen.getByText('Vazgeç'));
