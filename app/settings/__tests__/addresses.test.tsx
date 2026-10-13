@@ -152,9 +152,12 @@ describe('J32.b · "Varsayılan Yap" satır-bazlı yükleme (bulgu #23)', () => 
 
     fireEvent.press(buttons[0]!);
 
-    // a1 pending → başlığı spinner ile değişir; a2 dokunulmadığı için "Varsayılan Yap" kalır.
+    // a1 pending → web Button gibi etiket kalır, düğme kilitli/meşgul (spinner etiketin önünde);
+    // a2 dokunulmadığı için açık kalır.
     await waitFor(() => {
-      expect(screen.getAllByText("address.makeDefault")).toHaveLength(1);
+      const [first, second] = screen.getAllByText("address.makeDefault");
+      expect(first).toBeDisabled();
+      expect(second).not.toBeDisabled();
     });
     // B-1.3: var olmayan `/default` ucu değil, web ile aynı `addressesApi.setDefault`
     // (PATCH /users/me/addresses/:id { isDefault: true }) — payload'ı api testi doğrular.
