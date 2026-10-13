@@ -138,6 +138,18 @@ describe('ikincil CTA satırı', () => {
     expect(screen.getByTestId('product-detail-offer-button').props.accessibilityState?.disabled).toBe(true);
   });
 
+  it('iki eylem yan yana eşit genişlikte; takas açıkken üçü alt alta (etiket sarmaz)', () => {
+    const flat = (id: string) => Object.assign({}, ...[screen.getByTestId(id).props.style].flat());
+    const { unmount } = secondary();
+    expect(flat('product-detail-offer-button').flex).toBe(1);
+    expect(flat('product-detail-add-to-cart-button').flex).toBe(1);
+    unmount();
+    secondary({ tradeAvailable: true });
+    expect(flat('product-detail-trade-button').flex).toBeUndefined();
+    expect(flat('product-detail-offer-button').alignSelf).toBe('stretch');
+    expect(flat('product-detail-add-to-cart-button').alignSelf).toBe('stretch');
+  });
+
   it('sahipte hiç çizilmez', () => {
     secondary({}, { isOwner: true });
     expect(screen.queryByText('Teklif Ver')).toBeNull();
