@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Image, TouchableOpacity } from 'react-native';
+import { View, Image, Pressable } from 'react-native';
 import { Text } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -22,10 +22,9 @@ function NotificationRowBase({
   const { icon, color, bg } = getIconForType(item.type);
 
   return (
-    <TouchableOpacity
+    <Pressable
       style={[styles.item, isUnread && styles.itemUnread]}
       onPress={() => onPress(item)}
-      activeOpacity={0.75}
     >
       {STOCKOUT_TYPES.has(item.type) && item.data?.productImage ? (
         <Image source={{ uri: resolveImageUrl(item.data.productImage) }} style={styles.thumb} />
@@ -51,7 +50,7 @@ function NotificationRowBase({
         </Text>
       </View>
       {isUnread ? <View style={styles.dot} /> : null}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
