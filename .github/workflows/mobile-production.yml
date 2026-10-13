@@ -223,6 +223,10 @@ jobs:
     name: iOS build + submit (production → App Store Connect)
     needs: plan
     if: ${{ !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.ios == 'build' }}
+    outputs:
+      # Build'in id'si; job başarılıysa build + submit tamamlanmıştır (recheck'in
+      # build'siz "skip"inde boş). release-bookkeeping buna bakar.
+      build_id: ${{ steps.build.outputs.build_id }}
     runs-on: ubuntu-latest
     # Store build + submit: `production-build` (yalnız master, onaysız). App
     # Review'a gönderim zaten App Store Connect'te elle.
@@ -243,6 +247,7 @@ jobs:
           MODE: ${{ inputs.mode || 'auto' }}
         run: scripts/ci/release.sh recheck ios production
       - name: EAS build + submit (iOS, production)
+        id: build
         # Submit build'i App Store Connect'e (TestFlight) yükler. İncelemeye
         # gönderim (Submit for Review) App Store Connect'te ELLE yapılır.
         if: steps.recheck.outputs.action == 'build'
@@ -255,6 +260,10 @@ jobs:
     needs: plan
     # Play Console hesabı + service account + ilk elle yükleme bitene kadar KAPALI.
     if: ${{ vars.ANDROID_RELEASE_ENABLED == 'true' && !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.android == 'build' }}
+    outputs:
+      # Build'in id'si; job başarılıysa build + submit tamamlanmıştır (recheck'in
+      # build'siz "skip"inde boş). release-bookkeeping buna bakar.
+      build_id: ${{ steps.build.outputs.build_id }}
     runs-on: ubuntu-latest
     environment: production-build
     timeout-minutes: 120
@@ -281,6 +290,7 @@ jobs:
         if: steps.recheck.outputs.action == 'build'
         run: scripts/ci/release.sh assert-app-id android production com.tarodan.app
       - name: EAS build + submit (Android AAB, production → Play internal track)
+        id: build
         # eas.json submit.production.android.track = internal. Production track'e
         # yükseltme Play Console'da ELLE.
         if: steps.recheck.outputs.action == 'build'
@@ -290,23 +300,28 @@ jobs:
 
   release-bookkeeping:
     name: After release — tag, GitHub Release, next development version
-    # Bir store build'i master'dan başarıyla gönderildiyse (sürüm ya da sürümü
-    # artırılmış hotfix): 1) yayınlanan commit'e v<sürüm> etiketi, 2) PR'lardan
-    # üretilmiş notlarla GitHub Release, 3) development geride ya da eşitse bir
-    # sonraki YAMA sürümüne (1.2.4 → 1.2.5) çekilir ve staging tetiklenir. Elle
-    # verilmiş daha büyük sürüme (1.3.0) dokunulmaz. Hepsi tekrar çalıştırılabilir:
-    # etiket/Release varsa ve development zaten ilerideyse hiçbir şey yapmaz.
-    # Yalnız OTA (hotfix) ve takılan (blocked) koşular bunu tetiklemez.
+    # Bir store build'i master'dan GERÇEKTEN gönderildiyse (build job'ı başarılı VE
+    # build id'si dolu; recheck'in build'siz "skip"i sayılmaz): 1) yayınlanan
+    # commit'e v<sürüm> etiketi, 2) PR'lardan üretilmiş notlarla GitHub Release,
+    # 3) development geride ya da eşitse bir sonraki YAMA sürümüne (1.2.4 → 1.2.5)
+    # çekilir ve staging başlatılır. Diğer platform başarısız ya da takılmış olsa
+    # da çalışır: o sürümün bir binary'si mağazaya gitmiştir. Elle verilmiş daha
+    # büyük sürüme (1.3.0) dokunulmaz; yayınlanmış en büyük etiketten eski bir
+    # sürüm etiketlenmez. Tekrar çalıştırılabilir (etiket/Release varsa, development
+    # zaten ilerideyse hiçbir şey yapmaz). Yalnız OTA olan koşular tetiklemez.
     needs: [plan, build-ios, build-android]
-    if: ${{ !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.blocked == '' && (needs.build-ios.result == 'success' || needs.build-android.result == 'success') && needs.build-ios.result != 'failure' && needs.build-android.result != 'failure' }}
+    if: ${{ !cancelled() && needs.plan.outputs.decided == 'true' && ((needs.build-ios.result == 'success' && needs.build-ios.outputs.build_id != '') || (needs.build-android.result == 'success' && needs.build-android.outputs.build_id != '')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # EAS token'ı gerekmez (environment yok); yalnız GitHub'a yazar.
     permissions:
       contents: write  # etiket, GitHub Release, development'a sürüm commit'i
       actions: write   # staging'i workflow_dispatch ile başlatmak
+    # Commit başına: farklı yayınların işleri birbirini kuyrukta düşürmez (GitHub
+    # aynı grupta bekleyen işi yenisi gelince iptal eder); development push'u
+    # yarışırsa aşağıdaki yeniden deneme çözer.
     concurrency:
-      group: mobile-production-bookkeeping
+      group: mobile-production-bookkeeping-${{ github.sha }}
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
@@ -319,7 +334,7 @@ jobs:
           SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          version="$(node -p "require('./app.json').expo.version")"
+          version="$(scripts/ci/release.sh app-version app.json)"
           tag="v$version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           git config user.name "github-actions[bot]"
@@ -332,6 +347,12 @@ jobs:
               echo "::warning::$tag zaten $at commit'inde; taşınmadı (bu koşu $SHA)."
             fi
           else
+            latest="$(git tag -l 'v[0-9]*' | sed 's/^v//' | sort -V | tail -n1)"
+            if [ -n "$latest" ] && ! scripts/ci/release.sh version-gt "$version" "$latest"; then
+              # ör. revert sonrası eski sürümle elle mode=build: canlıdakini yanlış etiketleme.
+              echo "::warning::$version, yayınlanmış en büyük etiketten (v$latest) büyük değil — etiket/Release oluşturulmadı."
+              exit 0
+            fi
             git tag -a "$tag" "$SHA" -m "Tarodan $version"
             git push origin "refs/tags/$tag"
           fi
@@ -346,22 +367,27 @@ jobs:
           set -euo pipefail
           # master'daki script kullanılır (development'a geçmeden önce kopyalanır).
           cp scripts/ci/release.sh "$RUNNER_TEMP/release.sh"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           for attempt in 1 2 3; do
             git fetch -q origin development
             git switch -q -C bump-development origin/development
-            "$RUNNER_TEMP/release.sh" bump-version "$RELEASED" app.json
+            # Çıktılar yalnız sonuç kesinleşince yazılır (deneme başına değil).
+            GITHUB_OUTPUT=/dev/null "$RUNNER_TEMP/release.sh" bump-version "$RELEASED" app.json
             if git diff --quiet -- app.json; then
+              echo "bumped=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
-            next="$(node -p "require('./app.json').expo.version")"
+            next="$("$RUNNER_TEMP/release.sh" app-version app.json)"
             git add app.json
             git commit -q -m "chore(release): development $next ($RELEASED yayına gönderildi)"
             if git push -q origin HEAD:development; then
+              { echo "bumped=true"; echo "version=$next"; } >> "$GITHUB_OUTPUT"
               exit 0
             fi
             # development arada ilerlediyse: yeniden oku, yeniden dene.
             echo "::warning::development'a push reddedildi (deneme $attempt) — yeniden deneniyor."
-            sleep 5
+            sleep $((attempt * 10))
           done
           echo "::error::development'ın sürümü $RELEASED sonrasına çekilemedi; elle güncelle."
           exit 1

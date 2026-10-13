@@ -19,6 +19,8 @@
 #       O profilin son BİTMİŞ build'inin appVersion'ı (yoksa boş).
 #   release.sh version-gt   <a> <b>
 #       a > b (semver, sort -V) ise 0, değilse 1 ile çıkar.
+#   release.sh app-version  [app.json]
+#       expo.version'ı basar (göreli/mutlak yol; require() kullanmaz).
 #   release.sh bump-version <yayınlanan-sürüm> [app.json]
 #       Yayın sonrası development'ın sürümünü bir sonraki yamaya çeker (geride ya
 #       da eşitse); daha büyükse dokunmaz. GITHUB_OUTPUT: bumped, version.
@@ -260,19 +262,37 @@ version_gt() {
   [ "$1" != "$2" ] && [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -n1)" = "$1" ]
 }
 
+# X.Y.Z (yalnız rakam, üç parça) değilse 1 ile döner.
+is_xyz() {
+  case "$1" in
+    *[!0-9.]*|.*|*.|*..*|'') return 1 ;;
+  esac
+  [ "$(printf '%s' "$1" | tr -cd . | wc -c | tr -d ' ')" = 2 ]
+}
+
+# app.json'daki expo.version (dosya göreli ya da mutlak yol olabilir; require()
+# KULLANILMAZ — göreli yolu paket adı sanar).
+app_version() {
+  local file="${1:-$ROOT/app.json}"
+  node -e '
+    const j = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+    const v = j && j.expo && j.expo.version;
+    if (typeof v !== "string" || !v) { console.error(`${process.argv[1]}: expo.version yok`); process.exit(1); }
+    console.log(v);
+  ' "$file" || die "app.json sürümü okunamadı ($file)"
+}
+
 # Yayın sonrası: development'ın sürümü yayınlanan sürümden büyük değilse onu bir
 # sonraki YAMA sürümüne çeker (1.2.4 yayınlandı → 1.2.5). Elle verilmiş daha büyük
 # bir sürüme (ör. 1.3.0) dokunmaz. Yalnız `expo.version` satırı değişir (dosyanın
-# geri kalanı bayt bayt aynı kalır). GITHUB_OUTPUT: bumped=true|false, version=<sonuç>.
+# geri kalanı bayt bayt aynı kalır). İki sürüm de X.Y.Z olmalı; değilse durur
+# (ör. "1.2.4-rc.1", sort -V'de 1.2.4'ten büyük görünüp sessizce atlanmasın).
+# GITHUB_OUTPUT: bumped=true|false, version=<sonuç>.
 bump_version() {
   local released="$1" file="${2:-$ROOT/app.json}" current next
-  case "$released" in
-    *[!0-9.]*|.*|*.|*..*|'') die "bump-version: '$released' X.Y.Z biçiminde değil" ;;
-  esac
-  [ "$(printf '%s' "$released" | tr -cd . | wc -c | tr -d ' ')" = 2 ] \
-    || die "bump-version: '$released' X.Y.Z biçiminde değil"
-  current="$(node -p 'require(process.argv[1]).expo.version' "$file")" \
-    || die "bump-version: $file okunamadı"
+  is_xyz "$released" || die "bump-version: yayınlanan sürüm '$released' X.Y.Z biçiminde değil"
+  current="$(app_version "$file")" || exit 1
+  is_xyz "$current" || die "bump-version: development'ın sürümü '$current' X.Y.Z biçiminde değil — elle düzelt"
   if version_gt "$current" "$released"; then
     echo "development zaten ileride: $current > $released — dokunulmadı."
     output bumped=false "version=$current"
@@ -722,6 +742,7 @@ case "$cmd" in
   recheck) recheck "$@" ;;
   await-binary) await_binary "$@" ;;
   bump-version) bump_version "$@" ;;
+  app-version) app_version "$@" ;;
   build-submit) build_submit "$@" ;;
   *) die "bilinmeyen komut: '$cmd' (bkz. dosya başı)" ;;
 esac
