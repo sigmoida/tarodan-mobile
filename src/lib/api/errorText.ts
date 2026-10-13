@@ -70,7 +70,11 @@ export function apiErrorMessage(
   return fallback;
 }
 
-/** Eski ad — satırları `\n` ile birleştirir (26 çağıran). */
+/**
+ * Eski ad (26 çağıran): `apiErrorMessage(e, fallback, 'all')`'ın SADECE gövde kısmı — satırlar `\n`
+ * ile birleşir; ağ hatası `e.message`'ı ("Network Error") ve `statusCode` eki GÖSTERİLMEZ, doğrudan
+ * `fallback` döner (hesap silme vb. ekranlar bunu kilitliyor: deleteAccountError.test).
+ */
 export function errorText(e: unknown, fallback: string): string {
-  return apiErrorMessage(e, fallback, 'all');
+  return apiErrorLines(e).join('\n') || fallback;
 }

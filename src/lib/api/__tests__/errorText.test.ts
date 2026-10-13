@@ -95,9 +95,13 @@ describe('apiErrorMessage — tek kaynak', () => {
     expect(apiErrorMessage('boom', 'fb')).toBe('fb');
   });
 
-  it('errorText = apiErrorMessage(..., "all") (eski ad)', () => {
+  it('errorText = apiErrorMessage(..., "all") gövde kısmı; ağ hatası / statusCode ekini GÖSTERMEZ', () => {
     const e = body({ message: ['a', 'b'] });
     expect(errorText(e, 'fb')).toBe(apiErrorMessage(e, 'fb', 'all'));
+    // apiErrorMessage ağ mesajını gösterir, errorText fallback verir (deleteAccountError sözleşmesi)
+    expect(errorText(new Error('Network Error'), 'fb')).toBe('fb');
+    expect(errorText(body({ statusCode: 500 }), 'fb')).toBe('fb');
+    expect(errorText(body({ error: 'Forbidden' }), 'fb')).toBe('Forbidden');
   });
 });
 
