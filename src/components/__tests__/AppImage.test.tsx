@@ -164,4 +164,11 @@ describe('AppImage — başarısız bearer yüklemesi görünür olur (I2)', () 
     expect(warn).not.toHaveBeenCalled();
     expect(onError).toHaveBeenCalledTimes(1);
   });
+
+  it('recyclingKey expo-image\'e geçer (FlashList hücre geri dönüşümü)', () => {
+    const { UNSAFE_getByType } = render(
+      <AppImage source="https://cdn.example.com/product.jpg" recyclingKey="p1" />
+    );
+    expect(UNSAFE_getByType(Image).props.recyclingKey).toBe('p1');
+  });
 });

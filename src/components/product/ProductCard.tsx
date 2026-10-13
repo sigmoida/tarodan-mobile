@@ -186,6 +186,7 @@ function ProductCardBase({
           <View style={styles.listImage}>
             <AppImage
               source={imageSource}
+              recyclingKey={product.id}
               variant="card"
               style={[styles.fill, outOfStock && styles.dimmed]}
               resizeMode="cover"
@@ -242,6 +243,7 @@ function ProductCardBase({
         <View style={styles.gridImage}>
           <AppImage
             source={imageSource}
+            recyclingKey={product.id}
             variant="card"
             style={[styles.fill, outOfStock && styles.dimmed]}
             resizeMode="cover"
