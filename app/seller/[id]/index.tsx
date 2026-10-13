@@ -1,76 +1,56 @@
-import { View, ScrollView } from 'react-native';
-import { Spinner, Text, ScreenHeader, EmptyState, theme } from '@/ui';
+import { View } from 'react-native';
+import { theme } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
-import { ThemedRefreshControl } from '@/components/common';
+import { PageShell } from '@/components/common/PageShell';
 import UserActionsButton from '@/components/UserActionsSheet';
-import { styles } from './_lib/styles';
 import { useSellerProfile } from './_hooks/useSellerProfile';
 import { SellerProfileCard } from './_components/SellerProfileCard';
 import { SellerTabs } from './_components/SellerTabs';
 
 /**
- * Seller public profile — THIN screen. The `useSellerProfile` controller owns
- * the 5 queries, refresh, active tab, and message handler; this file renders
- * the loading/not-found gates and composes the profile card + tabs.
+ * Satıcı herkese açık profili — PageShell (üstte şikayet/engelle menüsü) içinde başlık kartı ve
+ * sekmeler. `useSellerProfile` 5 sorgu, yenileme, aktif sekme ve mesaj/takip işleyicilerinin sahibi.
  */
 export default function SellerProfileScreen() {
   const { t } = useTranslation();
   const f = useSellerProfile();
-
-  if (f.isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Spinner size="lg" />
-        <Text style={styles.loadingText}>{t('common.loading')}</Text>
-      </View>
-    );
-  }
-
-  if (!f.seller) {
-    return (
-      <EmptyState
-        fullscreen
-        icon="person-outline"
-        title={t('seller.notFound')}
-        actionLabel={t('common.goBack')}
-        onAction={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-      />
-    );
-  }
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader
-        title={t('seller.sellerProfile')}
-        onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-        right={
-          f.isOwnProfile ? null : (
-            // Apple App Review 1.2: satıcı profilinden şikayet + engelleme.
-            <UserActionsButton
-              testID="seller-actions-button"
-              userId={f.sellerId}
-              userName={f.seller.displayName || f.seller.companyName || ''}
-              color={theme.colors.text.heading}
-              onBlocked={() =>
-                router.canGoBack() ? router.back() : router.replace('/(tabs)')
-              }
-            />
-          )
-        }
-      />
-
-      <ScrollView
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<ThemedRefreshControl refreshing={f.refreshing} onRefresh={f.onRefresh} />}
-      >
-        <SellerProfileCard f={f} />
-        <SellerTabs f={f} />
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </View>
+    <PageShell
+      title={t('seller.sellerProfile')}
+      onBack={goBack}
+      loading={f.isLoading}
+      empty={!f.isLoading && !f.seller}
+      emptyState={{
+        icon: 'person-outline',
+        title: t('seller.notFound'),
+        actionLabel: t('common.goBack'),
+        onAction: goBack,
+      }}
+      refreshing={f.refreshing}
+      onRefresh={f.onRefresh}
+      right={
+        f.seller && !f.isOwnProfile ? (
+          // Apple App Review 1.2: satıcı profilinden şikayet + engelleme.
+          <UserActionsButton
+            testID="seller-actions-button"
+            userId={f.sellerId}
+            userName={f.seller.displayName || f.seller.companyName || ''}
+            color={theme.colors.text.heading}
+            onBlocked={goBack}
+          />
+        ) : undefined
+      }
+    >
+      {f.seller ? (
+        <View style={{ gap: theme.spacing[4] }}>
+          <SellerProfileCard f={f} />
+          <SellerTabs f={f} />
+        </View>
+      ) : null}
+    </PageShell>
   );
 }

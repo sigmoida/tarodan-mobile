@@ -1,105 +1,56 @@
 import React from 'react';
-import { View, TouchableOpacity, Image, Pressable } from 'react-native';
-import { router } from 'expo-router';
+import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Card, Text, theme } from '@/ui';
+import { Avatar, EmptyState, SectionCard, SegmentedButtons, Text, theme } from '@/ui';
 
-import { resolveImageUrl } from '@/utils/imageUrl';
+import { ProductCard } from '@/components/product';
+import { CollectionCard } from '@/components/collection/CollectionCard';
 import { styles } from '../_lib/styles';
 import type { SellerProfileController } from '../_hooks/useSellerProfile';
 import { ReviewAuthorName } from '@/components/reviews/ReviewAuthorName';
-import { ProductPrice } from '@/components/product/ProductPrice';
 
-const { colors } = theme;
+const { colors, iconSize } = theme;
 
-// Küçük boş-durum yardımcı bileşeni.
-function TabEmpty({ icon, text }: { icon: React.ComponentProps<typeof Ionicons>['name']; text: string }) {
-  return (
-    <View style={{ alignItems: 'center', padding: theme.spacing[8] }}>
-      <Ionicons name={icon} size={48} color={colors.text.subtle} />
-      <Text style={{ color: colors.text.muted, marginTop: theme.spacing[2], fontSize: 14 }}>{text}</Text>
-    </View>
-  );
-}
+type Tab = SellerProfileController['activeTab'];
 
-/** Tab bar + active tab content (listings / reviews / collections). */
+/** Sekme çubuğu + içerik (web `SellerProfileClient`): ilanlar (ProductCard), değerlendirmeler, koleksiyonlar. */
 export function SellerTabs({ f }: { f: SellerProfileController }) {
   const { t } = useTranslation();
   const { activeTab, products, reviews, collections } = f;
   return (
     <>
-      {/* Tabs */}
-      <View style={styles.tabs}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'listings' && styles.tabActive]}
-          onPress={() => f.setActiveTab('listings')}
-        >
-          <Ionicons name="grid-outline" size={20} color={activeTab === 'listings' ? colors.primary[600]! : colors.text.muted} />
-          <Text numberOfLines={1} style={[styles.tabText, activeTab === 'listings' && styles.tabTextActive]}>
-            {t('seller.listingsCount', { count: products.length })}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'reviews' && styles.tabActive]}
-          onPress={() => f.setActiveTab('reviews')}
-        >
-          <Ionicons name="star-outline" size={20} color={activeTab === 'reviews' ? colors.primary[600]! : colors.text.muted} />
-          <Text numberOfLines={1} style={[styles.tabText, activeTab === 'reviews' && styles.tabTextActive]}>
-            {t('seller.reviewsCount', { count: reviews.length })}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'collections' && styles.tabActive]}
-          onPress={() => f.setActiveTab('collections')}
-        >
-          <Ionicons name="albums-outline" size={20} color={activeTab === 'collections' ? colors.primary[600]! : colors.text.muted} />
-          <Text numberOfLines={1} style={[styles.tabText, activeTab === 'collections' && styles.tabTextActive]}>
-            {t('seller.collectionsCount', { count: collections.length })}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <SegmentedButtons<Tab>
+        density="small"
+        style={styles.tabs}
+        value={activeTab}
+        onValueChange={f.setActiveTab}
+        options={[
+          { value: 'listings', label: t('seller.listingsCount', { count: products.length }) },
+          { value: 'reviews', label: t('seller.reviewsCount', { count: reviews.length }) },
+          { value: 'collections', label: t('seller.collectionsCount', { count: collections.length }) },
+        ]}
+      />
 
-      {/* Tab Content */}
-      {activeTab === 'listings' && (
-        products.length === 0 ? (
-          <TabEmpty icon="cube-outline" text={t('product.noListings')} />
+      {activeTab === 'listings' &&
+        (products.length === 0 ? (
+          <EmptyState size="compact" icon="search-outline" title={t('seller.noActiveListings')} />
         ) : (
-          <View style={styles.listingsGrid}>
+          <View style={styles.grid}>
             {products.map((product: any) => (
-              <Pressable
-                key={product.id}
-                onPress={() => router.push(`/product/${product.id}`)}
-                style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
-              >
-                <Card style={styles.productCard} padding={0}>
-                  <Image
-                    source={{ uri: resolveImageUrl(product.images) }}
-                    style={styles.productImage}
-                    resizeMode="cover"
-                  />
-                  {product.tradeAvailable && (
-                    <View style={styles.tradeBadge}>
-                      <Ionicons name="swap-horizontal" size={12} color={colors.white} />
-                    </View>
-                  )}
-                  <View style={styles.productContent}>
-                    <Text style={styles.productTitle} numberOfLines={2}>{product.title}</Text>
-                    <ProductPrice product={product} style={styles.productPrice} />
-                  </View>
-                </Card>
-              </Pressable>
+              <View key={product.id} style={styles.cell}>
+                <ProductCard product={product} />
+              </View>
             ))}
           </View>
-        )
-      )}
+        ))}
 
-      {activeTab === 'reviews' && (
-        <View style={styles.reviewsList}>
-          {reviews.length === 0 ? (
-            <TabEmpty icon="star-outline" text={t('review.noReviews')} />
-          ) : (
-            reviews.map((review: any) => {
+      {activeTab === 'reviews' &&
+        (reviews.length === 0 ? (
+          <EmptyState size="compact" icon="star-outline" title={t('review.noReviews')} />
+        ) : (
+          <SectionCard title={t('review.reviews')}>
+            {reviews.map((review: any, i: number) => {
               // Kullanıcı/satıcı değerlendirmesi DTO'su: { score, comment, createdAt, giverName, giver: { displayName, avatarUrl } }
               const score = review.score ?? review.rating ?? 0;
               const reviewerName =
@@ -107,71 +58,48 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
               const dateStr = review.createdAt ?? review.date;
               const avatarUrl = review.giver?.avatarUrl ?? review.reviewer?.avatarUrl;
               return (
-                <View key={review.id} style={styles.reviewCard}>
-                  <View style={styles.reviewHeader}>
+                <View key={review.id} style={[styles.review, i > 0 && styles.reviewDivided]}>
+                  <View style={styles.reviewHead}>
                     <Avatar size="md" source={avatarUrl} name={reviewerName.substring(0, 2).toUpperCase()} />
                     <View style={styles.reviewInfo}>
-                      <ReviewAuthorName review={review} name={reviewerName} style={styles.reviewerName} />
-                      <View style={styles.ratingStars}>
+                      <ReviewAuthorName review={review} name={reviewerName} />
+                      <View style={styles.stars}>
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Ionicons
                             key={star}
                             name={star <= score ? 'star' : 'star-outline'}
-                            size={14}
-                            color={colors.warning[500]!}
+                            size={iconSize.sm}
+                            color={colors.warning[400]!}
                           />
                         ))}
                         {dateStr ? (
-                          <Text style={styles.reviewDate}>
+                          <Text variant="caption" tone="muted">
+                            {' '}
                             {new Date(dateStr).toLocaleDateString(t('common.dateLocale'))}
                           </Text>
                         ) : null}
                       </View>
                     </View>
                   </View>
-                  {review.comment ? (
-                    <Text style={styles.reviewComment}>{review.comment}</Text>
-                  ) : null}
+                  {review.comment ? <Text variant="bodySm">{review.comment}</Text> : null}
                 </View>
               );
-            })
-          )}
-        </View>
-      )}
+            })}
+          </SectionCard>
+        ))}
 
-      {activeTab === 'collections' && (
-        collections.length === 0 ? (
-          <TabEmpty icon="albums-outline" text={t('seller.noCollections')} />
+      {activeTab === 'collections' &&
+        (collections.length === 0 ? (
+          <EmptyState size="compact" icon="albums-outline" title={t('seller.noCollections')} />
         ) : (
-          <View style={styles.listingsGrid}>
+          <View style={styles.grid}>
             {collections.map((collection: any) => (
-              <Pressable
-                key={collection.id}
-                onPress={() => router.push(`/collections/${collection.id}`)}
-                style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
-              >
-                <Card style={styles.productCard} padding={0}>
-                  {collection.coverImageUrl ? (
-                    <Image
-                      source={{ uri: resolveImageUrl(collection.coverImageUrl) }}
-                      style={styles.productImage}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View style={[styles.productImage, { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface.alt }]}>
-                      <Ionicons name="albums-outline" size={32} color={colors.text.subtle} />
-                    </View>
-                  )}
-                  <View style={styles.productContent}>
-                    <Text style={styles.productTitle} numberOfLines={2}>{collection.name}</Text>
-                    <Text style={styles.productPrice}>{t('payment.itemsCount', { count: collection.itemCount ?? 0 })}</Text>
-                  </View>
-                </Card>
-              </Pressable>
+              <View key={collection.id} style={styles.cell}>
+                <CollectionCard item={collection} />
+              </View>
             ))}
           </View>
-        )
-      )}
+        ))}
     </>
   );
 }

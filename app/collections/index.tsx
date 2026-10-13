@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { PageShell } from '@/components/common/PageShell';
 import { useCollectionsBrowse } from './_hooks/useCollectionsBrowse';
 import { styles } from './_lib/browseStyles';
-import { CollectionBrowseCard } from './_components/CollectionBrowseCard';
+import { CollectionCard } from '@/components/collection/CollectionCard';
 import { CollectionsInfoCard } from './_components/CollectionsInfoCard';
 
 const { colors } = theme;
@@ -28,7 +28,7 @@ export default function CollectionsScreen() {
         data={f.isLoading ? [] : f.filteredCollections}
         renderItem={({ item }) => (
           <View style={styles.cell}>
-            <CollectionBrowseCard item={item} />
+            <CollectionCard item={item} />
           </View>
         )}
         keyExtractor={(item) => item.id}

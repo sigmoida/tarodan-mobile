@@ -1,18 +1,17 @@
-import { View, Image, Pressable } from 'react-native';
+import { View, Image, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar, Text, theme } from '@/ui';
 import { transformImageUrl } from '@/utils/imageUrl';
-import { styles } from '../_lib/browseStyles';
 
-const { colors, iconSize } = theme;
+const { colors, iconSize, spacing, radiusRole } = theme;
 
 /**
  * Koleksiyon kartı (web `CollectionCard`): kare kapak, ad (2 satır), açıklama (1 satır),
  * "N araç" + görüntülenme/beğeni sayaçları ve sahip altlığı. Ürün kartıyla aynı çerçeve.
  */
-export function CollectionBrowseCard({ item }: { item: any }) {
+export function CollectionCard({ item }: { item: any }) {
   const { t } = useTranslation();
   const cover = item.coverImageUrl ?? item.coverImage;
   const ownerName = item.userName || item.user?.displayName || t('collection.anonymous');
@@ -70,3 +69,36 @@ export function CollectionBrowseCard({ item }: { item: any }) {
     </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  card: {
+    flex: 1,
+    overflow: 'hidden',
+    borderRadius: radiusRole.productCard,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    backgroundColor: colors.surface.elevated,
+  },
+  pressed: { opacity: 0.85 },
+  cover: { aspectRatio: 1, backgroundColor: colors.surface.alt },
+  coverImage: { width: '100%', height: '100%' },
+  body: { flex: 1, padding: spacing[2.5], gap: spacing[0.5] },
+  meta: {
+    marginTop: 'auto',
+    paddingTop: spacing[2],
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  counters: { flexDirection: 'row', alignItems: 'center', gap: spacing[3] },
+  counter: { flexDirection: 'row', alignItems: 'center', gap: spacing[1] },
+  owner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1.5],
+    borderTopWidth: 1,
+    borderTopColor: colors.border.subtle,
+    paddingHorizontal: spacing[2.5],
+    paddingVertical: spacing[1.5],
+  },
+});

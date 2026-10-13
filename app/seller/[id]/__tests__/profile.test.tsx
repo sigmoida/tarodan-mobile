@@ -1,0 +1,123 @@
+/**
+ * Satıcı profili (web SellerProfileClient): başlık kartı + sayaçlar, sekmeler (İlanlar / Değerlendirmeler /
+ * Koleksiyonlar), bulunamadı durumu, kendi profilinde Mesaj/Takip yok.
+ */
+import React from 'react';
+import { fireEvent, render, screen } from '@testing-library/react-native';
+
+jest.mock('expo-router', () => ({
+  router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(() => true) },
+  useLocalSearchParams: () => ({ id: 's1' }),
+}));
+jest.mock('@/lib/api', () => ({
+  productsApi: { recordClick: jest.fn(() => Promise.resolve({ data: {} })) },
+}));
+jest.mock('@/components/UserActionsSheet', () => ({ __esModule: true, default: () => null }));
+
+const mockProfile = jest.fn();
+jest.mock('../_hooks/useSellerProfile', () => ({ useSellerProfile: () => mockProfile() }));
+
+import SellerProfileScreen from '../index';
+
+const base = () => ({
+  isAuthenticated: true,
+  isLoading: false,
+  sellerId: 's1',
+  isOwnProfile: false,
+  seller: {
+    id: 's1',
+    displayName: 'Ali Veli',
+    isVerified: true,
+    followersCount: 3,
+    stats: { totalListings: 2, totalSales: 5, totalTrades: 1, averageRating: 4.5, totalRatings: 2 },
+    badges: ['fast_shipper'],
+  },
+  products: [
+    { id: 'p1', title: 'Ferrari F40', price: 100, images: [] },
+    { id: 'p2', title: 'Supra', price: 80, images: [] },
+  ],
+  reviews: [{ id: 'r1', score: 5, comment: 'Harika satıcı', giver: { displayName: 'Mehmet' } }],
+  collections: [{ id: 'c1', name: 'Garajım', itemCount: 4 }],
+  ratingStats: null,
+  activeTab: 'listings' as const,
+  setActiveTab: jest.fn(),
+  refreshing: false,
+  onRefresh: jest.fn(),
+  handleMessage: jest.fn(),
+  isFollowingSeller: false,
+  followBusy: false,
+  handleToggleFollow: jest.fn(),
+});
+
+describe('satıcı profili', () => {
+  beforeEach(() => mockProfile.mockReset());
+
+  it('başlık kartı: ad, doğrulanmış rozeti, sayaçlar (İlanlar/Satış/Takas/Puan)', () => {
+    mockProfile.mockReturnValue(base());
+    render(<SellerProfileScreen />);
+    expect(screen.getByText('Ali Veli')).toBeTruthy();
+    expect(screen.getByText('Doğrulanmış')).toBeTruthy();
+    expect(screen.getByText('Satış')).toBeTruthy();
+    expect(screen.getByText('Takas')).toBeTruthy();
+    expect(screen.getByText('Puan')).toBeTruthy();
+    expect(screen.getByText('4.5')).toBeTruthy();
+    expect(screen.getByText(/3 Takipçi/)).toBeTruthy();
+  });
+
+  it('ilanlar sekmesi ProductCard ızgarası; sekme sayıları etikette', () => {
+    mockProfile.mockReturnValue(base());
+    render(<SellerProfileScreen />);
+    expect(screen.getByText('Ferrari F40')).toBeTruthy();
+    expect(screen.getByText('Supra')).toBeTruthy();
+    expect(screen.getByText('İlanlar (2)')).toBeTruthy();
+    expect(screen.getByText('Değerlendirmeler (1)')).toBeTruthy();
+    expect(screen.getByText('Koleksiyonlar (1)')).toBeTruthy();
+  });
+
+  it('sekmeye basınca setActiveTab', () => {
+    const f = base();
+    mockProfile.mockReturnValue(f);
+    render(<SellerProfileScreen />);
+    fireEvent.press(screen.getByText('Koleksiyonlar (1)'));
+    expect(f.setActiveTab).toHaveBeenCalledWith('collections');
+  });
+
+  it('değerlendirmeler ve koleksiyonlar sekmeleri içerik çizer', () => {
+    mockProfile.mockReturnValue({ ...base(), activeTab: 'reviews' });
+    const { unmount } = render(<SellerProfileScreen />);
+    expect(screen.getByText('Harika satıcı')).toBeTruthy();
+    unmount();
+    mockProfile.mockReturnValue({ ...base(), activeTab: 'collections' });
+    render(<SellerProfileScreen />);
+    expect(screen.getByText('Garajım')).toBeTruthy();
+  });
+
+  it('boş ilan listesi için tek boş durum metni', () => {
+    mockProfile.mockReturnValue({ ...base(), products: [] });
+    render(<SellerProfileScreen />);
+    expect(screen.getByText('Bu satıcının henüz aktif ilanı yok.')).toBeTruthy();
+  });
+
+  it('kendi profilinde Mesaj ve Takip düğmeleri yok', () => {
+    mockProfile.mockReturnValue({ ...base(), isOwnProfile: true });
+    render(<SellerProfileScreen />);
+    expect(screen.queryByText('Takip Et')).toBeNull();
+    expect(screen.queryByText('Mesaj')).toBeNull();
+  });
+
+  it('başka profilde Mesaj ve Takip Et çalışır', () => {
+    const f = base();
+    mockProfile.mockReturnValue(f);
+    render(<SellerProfileScreen />);
+    fireEvent.press(screen.getByText('Mesaj'));
+    expect(f.handleMessage).toHaveBeenCalled();
+    fireEvent.press(screen.getByText('Takip Et'));
+    expect(f.handleToggleFollow).toHaveBeenCalled();
+  });
+
+  it('satıcı bulunamazsa boş durum', () => {
+    mockProfile.mockReturnValue({ ...base(), seller: null });
+    render(<SellerProfileScreen />);
+    expect(screen.getByText('Satıcı Bulunamadı')).toBeTruthy();
+  });
+});
