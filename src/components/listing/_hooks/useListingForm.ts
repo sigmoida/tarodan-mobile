@@ -787,7 +787,23 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     return true;
   };
 
+  /**
+   * Gönderim re-entry guard'ı. `isSubmitting` state'i bir sonraki render'a kadar güncellenmez:
+   * aynı karede gelen iki dokunuş ikisi de `false` görüp `productsApi.create`'i iki kez
+   * çağırır (çift ilan). Ref senkron okunur, ikinci çağrı daha girişte kesilir.
+   */
+  const submitInFlightRef = useRef(false);
   const handleSubmit = async () => {
+    if (submitInFlightRef.current) return;
+    submitInFlightRef.current = true;
+    try {
+      await submitListing();
+    } finally {
+      submitInFlightRef.current = false;
+    }
+  };
+
+  const submitListing = async () => {
     if (!validate()) return;
 
     // GÖNDERİM KAPISI — `ListingRequirementGate` ile AYNI kaynak (`listingGateView`), iki guard
