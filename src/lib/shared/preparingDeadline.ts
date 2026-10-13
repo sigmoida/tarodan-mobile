@@ -17,6 +17,7 @@
  */
 import type { TFunction } from 'i18next';
 import { isMembershipOrder } from './membershipOrder';
+import { SERVER_TIME_ZONE, activeDateLocale } from './timingPolicy';
 
 export type PreparingDeadlineAudience = 'buyer' | 'seller';
 
@@ -88,11 +89,15 @@ export function preparingDeadlineNoticeOf(
   };
 }
 
-/** Web `formatDateTime` ile aynı biçim: `GG.AA.YYYY SS:DD` (tr-TR). */
+/**
+ * Web `formatDateTime` biçimi (`GG.AA.YYYY SS:DD`); saat sunucunun diliminde
+ * (`Europe/Istanbul`), sayı/ayraç düzeni uygulamanın dilinde.
+ */
 export function formatDeadline(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleString('tr-TR', {
+  return d.toLocaleString(activeDateLocale(), {
+    timeZone: SERVER_TIME_ZONE,
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',

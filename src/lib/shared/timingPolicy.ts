@@ -10,6 +10,7 @@
  * Ayrıştırma kasıtlı bağışıktır: eksik, sayı olmayan ya da 1'den küçük kayıt
  * yalnız KENDİ kimliği için geri düşer; kalan kimlikler sunucu değeriyle kalır.
  */
+import i18n from '@/i18n/config';
 import {
   PUBLIC_TIMING_RULE_IDS,
   type PublicTimingPolicy,
@@ -79,12 +80,49 @@ export function timingMessageValues(policy: PublicTimingPolicy): TimingMessageVa
   ) as TimingMessageValues;
 }
 
-/** Takvim günü toplama (backend `returnWindowEndsAt` ile aynı aritmetik). */
+/**
+ * Sunucunun iş takvimi saat dilimi (API `common/helpers/tr-calendar.ts` →
+ * `TR_TIME_ZONE`). Süre tarihleri (iade penceresi sonu, ödeme tarihi, kargoya
+ * verme son tarihi) bu dilimde biçimlenir — cihaz başka dilimdeyse de kullanıcı
+ * sunucunun uyguladığı saati görür.
+ */
+export const SERVER_TIME_ZONE = 'Europe/Istanbul';
+
+const DAY_MS = 86_400_000;
+
+/**
+ * Takvim günü toplama — sunucu `returnWindowEndsAt` / `escrowReleaseAt` ile
+ * AYNI sonuç. Sunucu `setDate(getDate() + n)` ile `TZ` tanımsız (UTC) süreçte
+ * hesaplar; Türkiye de 2016'dan beri sabit UTC+03 (yaz saati yok). İki dilimde
+ * de takvim günü tam 24 saattir, bu yüzden hesap milisaniye üzerinden yapılır.
+ * Cihazın yerel `setDate`'i KULLANILMAZ: yaz saatli bir dilimde (ör. Avrupa)
+ * geçiş gününü aşan pencere bir saat kayardı.
+ */
 export function addCalendarDays(from: string | number | Date, days: number): Date | null {
   const date = new Date(from);
   if (Number.isNaN(date.getTime())) return null;
-  date.setDate(date.getDate() + days);
-  return date;
+  return new Date(date.getTime() + days * DAY_MS);
+}
+
+/** Tarih biçimi için aktif dilin `Intl` etiketi (çağrı anında okunur). */
+export function activeDateLocale(): string {
+  return i18n.language === 'en' ? 'en-US' : 'tr-TR';
+}
+
+/**
+ * Süre tarihlerinin gösterimi — sunucu saat diliminde (`SERVER_TIME_ZONE`) ve
+ * uygulamanın dilinde: "13 Ekim 2026 14:30" / "October 13, 2026 at 02:30 PM".
+ */
+export function formatPolicyDate(date: Date): string {
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString(activeDateLocale(), {
+    timeZone: SERVER_TIME_ZONE,
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 /** ISO metni tarihe çevirir; boş ya da bozuksa `null`. */

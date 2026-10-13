@@ -155,3 +155,15 @@ describe('gün sayısı siparişin kendi damgasından gelir (orderTimingValues)'
     ).toBe(21);
   });
 });
+
+describe('A-3 inceleme #8 · hazırlık notu ekranın "şimdi"sine göre', () => {
+  it('son tarih geçince deriveOrderView notu kaldırır', () => {
+    const o = order({
+      status: 'processing',
+      deliveredAt: undefined,
+      preparingDeadline: '2026-10-13T12:00:00.000Z',
+    });
+    expect(deriveOrderView(o, policy(14), new Date('2026-10-13T11:59:00.000Z')).preparingNotice).not.toBeNull();
+    expect(deriveOrderView(o, policy(14), new Date('2026-10-13T12:00:01.000Z')).preparingNotice).toBeNull();
+  });
+});

@@ -6,6 +6,7 @@
  */
 import i18n from '@/i18n/config';
 import {
+  formatDeadline,
   preparingDeadlineCopy,
   preparingDeadlineNoticeOf,
   type PreparingDeadlineOrder,
@@ -107,5 +108,20 @@ describe('preparingDeadlineCopy (web anahtarları)', () => {
     expect(seller.body).toBe(t('order.preparingExtendedSeller'));
     const buyer = preparingDeadlineCopy({ deadline: DEADLINE, extended: true, audience: 'buyer' }, t);
     expect(buyer.body).toMatch(/Kargoya verilene kadar siparişi iptal edebilirsiniz\.$/);
+  });
+});
+
+describe('A-3 inceleme #8 · formatDeadline', () => {
+  const originalTz = process.env.TZ;
+  afterEach(() => {
+    process.env.TZ = originalTz;
+    return i18n.changeLanguage('tr');
+  });
+
+  it('İstanbul saatiyle ve uygulamanın dilinde (sabit tr-TR değil)', async () => {
+    process.env.TZ = 'UTC';
+    expect(formatDeadline('2026-10-10T21:30:00.000Z')).toBe('11.10.2026 00:30');
+    await i18n.changeLanguage('en');
+    expect(formatDeadline('2026-10-10T21:30:00.000Z')).toMatch(/^10\/11\/2026,?\s12:30\sAM$/);
   });
 });

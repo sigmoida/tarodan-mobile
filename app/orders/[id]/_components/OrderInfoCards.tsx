@@ -4,7 +4,8 @@ import { View, Pressable, Linking, StyleSheet } from 'react-native';
 import { Card, Text, Button, StatusBadge, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import type { Shipment } from '@/lib/api';
-import { formatDate, formatPrice } from '../_lib/format';
+import { formatPrice } from '../_lib/format';
+import { formatPolicyDate } from '@/lib/shared/timingPolicy';
 import { deriveShipmentView } from '@/lib/shipping/tracking';
 import { isAwaitingDropoff, shipmentStatusLabel } from '@/lib/shipping/shipmentStatus';
 import { orderCancelMessage, type OrderCancelAudience } from '@/lib/shared/orderCancelMessage';
@@ -52,8 +53,8 @@ export function OrderEscrowCard({ order, view }: { order: OrderDetail; view: Ord
         <Text variant="caption" style={styles.escrowText} testID="order-escrow-dates">
           {t('order.payoutReleaseWithDate', {
             ...timingValues,
-            refundDeadline: formatDate(view.refundWindowEnd.toISOString()),
-            date: formatDate(view.payoutReleaseDate.toISOString()),
+            refundDeadline: formatPolicyDate(view.refundWindowEnd),
+            date: formatPolicyDate(view.payoutReleaseDate),
           })}
         </Text>
       ) : (

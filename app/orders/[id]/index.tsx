@@ -10,6 +10,7 @@ import RatingModal from '@/components/RatingModal';
 import { qk } from '@/lib/query';
 import { useOrderShipment } from '@/hooks/useOrderShipment';
 import { useTimingPolicy } from '@/hooks/useTimingPolicy';
+import { useDeadlineNow } from '@/hooks/useDeadlineNow';
 import { ElogoInvoiceList } from '@/components/orders/ElogoInvoiceList';
 import { PreparingDeadlineNotice } from '@/components/orders/PreparingDeadlineNotice';
 import { deriveOrderView } from './_lib/derive';
@@ -49,6 +50,7 @@ export default function OrderDetailScreen() {
   const { refreshing, onRefresh } = useRefresh(refetch, invoices.refreshElogoInvoices);
   const { shipment } = useOrderShipment(id);
   const policy = useTimingPolicy();
+  const now = useDeadlineNow(order?.preparingDeadline);
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
@@ -75,7 +77,7 @@ export default function OrderDetailScreen() {
   // değil). Bayrak yoksa alıcı varsayılır: alıcıya satıcı cümlesi çıkmaz.
   const isSeller = !!order.isSeller;
   const audience = isSeller ? 'seller' : 'buyer';
-  const view = deriveOrderView(order, policy);
+  const view = deriveOrderView(order, policy, now);
 
   return (
     <View style={styles.container}>

@@ -124,7 +124,8 @@ describe('A-3.1 · iade butonu sunucu damgasına bağlı', () => {
 
 describe('A-3.1 · satıcı ödeme tarihi sunucudan', () => {
   const fmt = (iso: string) =>
-    new Date(iso).toLocaleDateString('tr-TR', {
+    new Date(iso).toLocaleString('tr-TR', {
+      timeZone: 'Europe/Istanbul',
       day: 'numeric',
       month: 'long',
       year: 'numeric',

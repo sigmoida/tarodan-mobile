@@ -8,6 +8,7 @@ import { deriveShipmentView } from '@/lib/shipping/tracking';
 import { orderCancelMessage } from '@/lib/shared/orderCancelMessage';
 import { preparingDeadlineNoticeOf } from '@/lib/shared/preparingDeadline';
 import { useTimingValues } from '@/hooks/useTimingPolicy';
+import { useDeadlineNow } from '@/hooks/useDeadlineNow';
 import { useOrderElogoInvoices } from '@/hooks/useOrderElogoInvoices';
 import { appAlert } from '@/ui';
 import type { Order } from '../_lib/types';
@@ -33,6 +34,7 @@ export function useSaleDetail() {
   });
 
   const timingValues = useTimingValues();
+  const now = useDeadlineNow(order?.preparingDeadline);
   // e-Arşiv belgeleri (satıcıya da taraf başına üç belge kesilir) — web kuralı:
   // ödeme öncesi ve iptal edilmiş siparişte yok. Bu ekran API statüsünü okur.
   const elogo = useOrderElogoInvoices(
@@ -50,7 +52,7 @@ export function useSaleDetail() {
   const cancelMessage = order && displayStatus === 'cancelled' ? orderCancelMessage(order, 'seller', t, timingValues) : null;
   // Kargoya verme son tarihi (uzatıldıysa "son süre") — okuyucu siparişin
   // `isSeller`/`isBuyer` bayraklarından (web); ikisi de yoksa not yok.
-  const preparingNotice = order ? preparingDeadlineNoticeOf(order) : null;
+  const preparingNotice = order ? preparingDeadlineNoticeOf(order, now) : null;
   const shipmentSummary = order?.shipment;
   const shipmentProvider = shipmentSummary?.provider ?? shipmentSummary?.carrier;
   const isSurat = (shipmentProvider ?? '').toLowerCase() === 'surat';

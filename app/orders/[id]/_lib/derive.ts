@@ -11,12 +11,17 @@ import type { OrderDetail } from './types';
  * `policy`: `GET /timing-rules` (yüklenene kadar varsayılanlar). İade penceresi
  * ve satıcı ödeme tarihi önce sunucu damgasından okunur (bkz. `./timing`).
  * Hazırlık notunun okuyucusu siparişin `isSeller`/`isBuyer` bayraklarından.
+ * `now`: ekranın `useDeadlineNow`'ı — son tarih geçince not kalkar.
  *
  * `timing`: kartların `t()` çağrılarına geçtiği ICU parametreleri — kartlar
  * kendi `useTimingValues`'ını çağırmaz, değer tek yerden (buradan) gelir. Gün
  * sayıları siparişin kendi damgalarından (bkz. `orderTimingValues`).
  */
-export function deriveOrderView(order: OrderDetail, policy: PublicTimingPolicy) {
+export function deriveOrderView(
+  order: OrderDetail,
+  policy: PublicTimingPolicy,
+  now: Date = new Date(),
+) {
   const isMembershipOrder = isMembership(order);
 
   const canRate = !isMembershipOrder && ['delivered', 'completed'].includes(order.status);
@@ -65,7 +70,7 @@ export function deriveOrderView(order: OrderDetail, policy: PublicTimingPolicy) 
       undefined;
 
   const pastRefundWindow = isPastRefundWindow(order, policy);
-  const preparingNotice = preparingDeadlineNoticeOf(order);
+  const preparingNotice = preparingDeadlineNoticeOf(order, now);
   const timing = orderTimingValues(order, policy);
 
   return {

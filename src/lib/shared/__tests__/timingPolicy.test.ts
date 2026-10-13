@@ -3,9 +3,11 @@
  * `packages/types/src/timing-policy.ts` aynası).
  */
 import { PUBLIC_TIMING_RULE_IDS } from '@/lib/api/timingRules';
+import i18n from '@/i18n/config';
 import {
   FALLBACK_TIMING_POLICY,
   addCalendarDays,
+  formatPolicyDate,
   parseTimingPolicy,
   timingMessageValues,
 } from '../timingPolicy';
@@ -62,5 +64,28 @@ describe('addCalendarDays', () => {
   it('takvim günü ekler; bozuk tarihte null', () => {
     expect(addCalendarDays('2026-01-01T10:00:00.000Z', 14)?.toISOString()).toBe('2026-01-15T10:00:00.000Z');
     expect(addCalendarDays('garbage', 14)).toBeNull();
+  });
+});
+
+describe('A-3 inceleme #8 · saat dilimi', () => {
+  const originalTz = process.env.TZ;
+  afterEach(() => {
+    process.env.TZ = originalTz;
+    return i18n.changeLanguage('tr');
+  });
+
+  it('yedek tarih hesabı cihazın yaz saatinden etkilenmez (sunucu: UTC süreç, TR sabit +03)', () => {
+    process.env.TZ = 'Europe/Berlin'; // 25 Ekim 2026'da yaz saati biter
+    expect(addCalendarDays('2026-10-20T10:00:00.000Z', 14)?.toISOString()).toBe('2026-11-03T10:00:00.000Z');
+    process.env.TZ = 'America/New_York';
+    expect(addCalendarDays('2026-10-20T10:00:00.000Z', 14)?.toISOString()).toBe('2026-11-03T10:00:00.000Z');
+  });
+
+  it('süre tarihi İstanbul saatiyle ve uygulamanın dilinde biçimlenir', async () => {
+    process.env.TZ = 'America/New_York';
+    const date = new Date('2026-10-13T21:30:00.000Z'); // İstanbul: 14 Ekim 00:30
+    expect(formatPolicyDate(date)).toBe('14 Ekim 2026 00:30');
+    await i18n.changeLanguage('en');
+    expect(formatPolicyDate(date)).toMatch(/^October 14, 2026.*12:30\sAM$/);
   });
 });
