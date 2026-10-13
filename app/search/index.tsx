@@ -18,6 +18,9 @@ import { SearchBars } from './_components/SearchBars';
 
 const { colors, spacing } = theme;
 
+// Kararlı anahtar: yalnız `id` (index YOK) — sayfa kayması/yeniden sıralamada hücreler sökülmesin.
+const keyExtractor = (item: any) => String(item.id);
+
 /**
  * Arama — yığın ekranı (`/search`), THIN screen. The `useSearch` controller owns filters, debounced
  * search, autocomplete, the infinite product query, and scroll/collapse state;
@@ -58,7 +61,7 @@ export default function SearchScreen() {
             style={f.barsMeasured ? undefined : styles.listHidden}
             contentContainerStyle={[styles.listContent, { paddingTop: f.headerHeight }]}
             columnWrapperStyle={columns > 1 ? styles.listRow : undefined}
-            keyExtractor={(item, index) => `${item.id}-${index}`}
+            keyExtractor={keyExtractor}
             renderItem={renderResult}
             // #82: virtualizasyon ayarı — sonsuz arama sonuçlarında bellek/kaydırma.
             windowSize={7}

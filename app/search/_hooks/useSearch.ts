@@ -179,17 +179,27 @@ export function useSearch() {
     },
     getNextPageParam: (last) =>
       last.meta.page < last.meta.totalPages ? last.meta.page + 1 : undefined,
-    // Bound resident pages (#76): image-heavy feed — react-query trims trailing
-    // pages past this window instead of holding every scrolled page for gcTime.
-    maxPages: 5,
+    // NOT: `maxPages` bilerek YOK. 6. sayfada react-query ilk sayfayı atınca dizi 24 öğe kayıyor,
+    // liste sıçrıyordu; kart başına yük hafif olduğundan tüm sayfaları tutmak bellek sorunu değil.
     getPreviousPageParam: (first) =>
       first.meta.page > 1 ? first.meta.page - 1 : undefined,
   });
 
-  const products: any[] = useMemo(
-    () => data?.pages.flatMap((p) => p.items) ?? [],
-    [data],
-  );
+  // Sayfalar arası tekilleştirme: sayfalama sırasında bir ilan iki sayfada da dönebilir
+  // (araya yeni ilan girerse kayma olur); `keyExtractor` yalnız `item.id` kullandığı için
+  // yinelenen id'ler listeden elenir.
+  const products: any[] = useMemo(() => {
+    const seen = new Set<string>();
+    const out: any[] = [];
+    for (const page of data?.pages ?? []) {
+      for (const item of page.items) {
+        if (seen.has(item.id)) continue;
+        seen.add(item.id);
+        out.push(item);
+      }
+    }
+    return out;
+  }, [data]);
   const total = data?.pages[0]?.meta.total ?? 0;
 
   const activeFiltersCount = useMemo(() => countActiveFilters(filters), [filters]);

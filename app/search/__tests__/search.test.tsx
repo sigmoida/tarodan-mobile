@@ -80,6 +80,15 @@ describe('catalog-search · arama ekranı (J52/J53)', () => {
     expect(screen.getByText('2 sonuç bulundu')).toBeOnTheScreen();
   });
 
+  it('J52 · yinelenen id tek karta indirilir (keyExtractor yalnız id)', async () => {
+    mockGetAll.mockResolvedValue(
+      mockListResponse([makeProduct('p1', 'Ferrari F40'), makeProduct('p1', 'Ferrari F40')]),
+    );
+    renderWithProviders(<SearchScreen />);
+
+    await waitFor(() => expect(screen.getAllByTestId('search-result-card').length).toBe(1));
+  });
+
   it('J52 · boş sonuç → tek boş durum metni "Henüz ilan yok" görünür', async () => {
     mockGetAll.mockResolvedValue(mockListResponse([]));
     renderWithProviders(<SearchScreen />);
