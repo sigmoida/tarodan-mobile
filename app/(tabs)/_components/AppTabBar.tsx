@@ -2,11 +2,16 @@ import { View, Pressable, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { theme, RawText } from "@/ui";
+import { theme, RawText, CountBadge } from "@/ui";
 import { useUnreadCountQuery } from "@/hooks/messaging";
 import { useTranslation } from "react-i18next";
 
-const { colors } = theme;
+const { colors, spacing, typography, iconSize, radius } = theme;
+
+/** Sekme çubuğu satır yüksekliği (güvenli alan hariç). */
+const BAR_HEIGHT = 56;
+/** Orta "+" düğmesi. */
+const SELL_SIZE = 48;
 
 // Sadece görünür sekmeler — sırasıyla. href:null olan (create,
 // notifications/index) kasıtlı olarak dışarıda bırakılır.
@@ -37,10 +42,10 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
   const activeName = state.routes[state.index]?.name;
 
   return (
-    <View style={[styles.bar, { paddingBottom: bottom, height: 56 + bottom }]}>
+    <View style={[styles.bar, { paddingBottom: bottom, height: BAR_HEIGHT + bottom }]}>
       {VISIBLE.map((tab) => {
         const focused = activeName === tab.name;
-        const color = focused ? colors.primary[600]! : colors.text.subtle;
+        const color = focused ? colors.primary[600] : colors.text.subtle;
         const iconName = (focused ? tab.icon : tab.iconOutline) as keyof typeof Ionicons.glyphMap;
 
         return (
@@ -55,17 +60,17 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
           >
             {tab.sell ? (
               <View style={styles.sellButton}>
-                <Ionicons name="add" size={28} color={colors.white} />
+                <Ionicons name="add" size={iconSize.lg + 4} color={colors.text.inverted} />
               </View>
             ) : (
               <View>
-                <Ionicons name={iconName} size={24} color={color} />
-                {tab.badge && unreadCount > 0 && (
-                  <View style={styles.badge}>
-                    <RawText style={styles.badgeText}>
-                      {unreadCount > 99 ? "99+" : unreadCount}
-                    </RawText>
-                  </View>
+                <Ionicons name={iconName} size={iconSize.lg} color={color} />
+                {tab.badge && (
+                  <CountBadge
+                    count={unreadCount}
+                    ringColor={colors.surface.elevated}
+                    style={styles.badge}
+                  />
                 )}
               </View>
             )}
@@ -82,13 +87,15 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
 }
 
 const styles = StyleSheet.create({
+  // Platform kalıbı (web'de karşılığı yok); renk/yazı/rozet web diliyle: beyaz yüzey, ince
+  // üst çizgi, aktif primary-600, pasif subtle, sayaç danger-500.
   bar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.surface.DEFAULT,
-    borderTopColor: colors.border.subtle,
+    backgroundColor: colors.surface.elevated,
+    borderTopColor: colors.border.DEFAULT,
     borderTopWidth: 1,
-    paddingTop: theme.spacing[2],
+    paddingTop: spacing[2],
   },
   item: {
     flex: 1,
@@ -96,35 +103,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   sellButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.primary[600]!,
+    width: SELL_SIZE,
+    height: SELL_SIZE,
+    borderRadius: radius.full,
+    backgroundColor: colors.primary[600],
     justifyContent: "center",
     alignItems: "center",
   },
   label: {
-    fontSize: 11,
-    fontWeight: "600",
-    marginTop: theme.spacing[0.5],
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.medium,
+    marginTop: spacing[0.5],
   },
   badge: {
-    position: "absolute",
-    right: -10,
-    top: -5,
-    backgroundColor: colors.danger[600]!,
-    borderRadius: 12,
-    minWidth: 20,
-    height: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 5,
-    borderWidth: 2,
-    borderColor: colors.surface.DEFAULT,
-  },
-  badgeText: {
-    color: colors.white,
-    fontSize: 10,
-    fontWeight: "bold",
+    top: -spacing[1],
+    right: -spacing[2.5],
   },
 });
