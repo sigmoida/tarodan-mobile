@@ -1,16 +1,17 @@
 import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { heroApi, type HeroSlide, type TrustBadge } from '@/lib/api';
+import { heroApi, type TrustBadge } from '@/lib/api';
 import { unwrapList } from '@/lib/api/unwrap';
 import { qk } from '@/lib/query';
-import { resolveTrustBadges, visibleSlides } from '@/lib/hero/heroView';
+import { resolveTrustBadges, type ResolvedTrustBadge } from '@/lib/hero/heroView';
+import { useHeroSlides } from '@/lib/hero/useHeroSlides';
 
 /** Sunucu `Cache-Control: max-age=60` — zamanlanmış slayt en geç bir dakikada görünür. */
 const STALE_MS = 60_000;
 
 /** Veri yokken sabit referans — her render'da yeni `[]` dönmesin. */
-const NONE: never[] = [];
+const NONE: ResolvedTrustBadge[] = [];
 
 /**
  * Ana sayfa hero slaytları + güven rozetleri (admin'den yönetilir, web ile aynı).
@@ -23,24 +24,12 @@ export function useHomeHero() {
   const { i18n } = useTranslation();
   const locale = i18n.language;
 
-  // `select` yalnız veri ya da dil değişince yeniden çalışır; sonuç render'lar
-  // arasında AYNI referanstır (slider ve rozet şeridi gereksiz yeniden çizilmez).
-  const selectSlides = useCallback((list: HeroSlide[]) => visibleSlides(list, locale), [locale]);
-  const selectBadges = useCallback((list: TrustBadge[]) => resolveTrustBadges(list, locale), [locale]);
+  // Slayt sorgusu auth görseliyle ORTAK (`useHeroSlides`): tek queryKey/şekil.
+  const { slides, isLoading: loadingSlides } = useHeroSlides('home');
 
-  const slidesQuery = useQuery({
-    queryKey: qk.hero.slides('home'),
-    staleTime: STALE_MS,
-    select: selectSlides,
-    queryFn: async () => {
-      try {
-        const res = await heroApi.getSlides('home');
-        return unwrapList<HeroSlide>(res.data);
-      } catch {
-        return [];
-      }
-    },
-  });
+  // `select` yalnız veri ya da dil değişince yeniden çalışır; sonuç render'lar
+  // arasında AYNI referanstır (rozet şeridi gereksiz yeniden çizilmez).
+  const selectBadges = useCallback((list: TrustBadge[]) => resolveTrustBadges(list, locale), [locale]);
 
   const badgesQuery = useQuery({
     queryKey: qk.hero.trustBadges,
@@ -58,8 +47,8 @@ export function useHomeHero() {
 
   return {
     locale,
-    slides: slidesQuery.data ?? NONE,
-    loadingSlides: slidesQuery.isLoading,
+    slides,
+    loadingSlides,
     badges: badgesQuery.data ?? NONE,
   };
 }

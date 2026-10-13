@@ -3,7 +3,7 @@
  * yoksa / uç hata verirse / slayt bu istemcide gizliyse hiçbir şey çizilmez.
  */
 import React from 'react';
-import { act, render, waitFor } from '@testing-library/react-native';
+import { act, render, renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const mockGetSlides = jest.fn();
@@ -17,7 +17,9 @@ jest.mock('react-i18next', () => ({
 }));
 
 import { AuthHeroBanner } from '../AuthHeroBanner';
-import { pickAuthHero } from '../useAuthHero';
+import { authHeroFrom, useAuthHero } from '../useAuthHero';
+import { useHeroSlides } from '@/lib/hero/useHeroSlides';
+import { qk } from '@/lib/query';
 
 const slide = (over: Record<string, unknown> = {}) => ({
   id: 's1',
@@ -48,9 +50,9 @@ beforeEach(() => {
   mockLang = 'tr';
 });
 
-describe('pickAuthHero', () => {
-  it('ilk görünür slaytı alır; mobil görsel, dile göre metin, alt yoksa başlık', () => {
-    const hero = pickAuthHero([slide(), slide({ id: 's2' })], 'tr');
+describe('authHeroFrom', () => {
+  it('ilk slaytı alır; mobil görsel, dile göre metin, alt yoksa başlık', () => {
+    const hero = authHeroFrom([slide(), slide({ id: 's2' })] as any, 'tr');
     expect(hero).toMatchObject({
       id: 's1',
       imageUrl: 'https://cdn.example/mobile.jpg',
@@ -58,15 +60,50 @@ describe('pickAuthHero', () => {
       subtitle: 'Alt',
       alt: 'Koleksiyonuna hoş geldin',
     });
-    expect(pickAuthHero([slide()], 'en')).toMatchObject({ title: 'Welcome', subtitle: 'Sub' });
+    expect(authHeroFrom([slide()] as any, 'en')).toMatchObject({ title: 'Welcome', subtitle: 'Sub' });
   });
 
-  it('hideOnIos / satın alma hedefli / boş liste / bozuk gövde → null', () => {
-    expect(pickAuthHero([slide({ hideOnIos: true })], 'tr')).toBeNull();
-    expect(pickAuthHero([slide({ cta1: { label: { tr: 'Al' }, href: '/membership' } })], 'tr')).toBeNull();
-    expect(pickAuthHero([], 'tr')).toBeNull();
-    expect(pickAuthHero(undefined, 'tr')).toBeNull();
-    expect(pickAuthHero({ data: [slide()] }, 'tr')).not.toBeNull();
+  it('boş liste → null', () => {
+    expect(authHeroFrom([], 'tr')).toBeNull();
+  });
+});
+
+describe('ortak hero sorgusu (useHeroSlides)', () => {
+  const wrap = (client: QueryClient) => ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+
+  it('home ve auth AYNI önbellek şeklini (düz dizi) ve aynı anahtarı paylaşır; zarflı gövde de açılır', async () => {
+    mockGetSlides.mockResolvedValue({ data: { data: [slide({ placement: 'auth_default' })] } });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const a = renderHook(() => useHeroSlides('auth_default'), { wrapper: wrap(client) });
+    const b = renderHook(() => useAuthHero('auth_default'), { wrapper: wrap(client) });
+    await waitFor(() => expect(a.result.current.slides).toHaveLength(1));
+    await waitFor(() => expect(b.result.current).not.toBeNull());
+    expect(mockGetSlides).toHaveBeenCalledTimes(1); // tek istek, tek sorgu
+    const cached = client.getQueryData(qk.hero.slides('auth_default'));
+    expect(Array.isArray(cached)).toBe(true); // zarf değil, düz liste
+    expect(cached).toHaveLength(1);
+  });
+
+  it('süzme tek yerde: hideOnIos ve satın alma hedefli CTA slaytı gizlenir', async () => {
+    mockGetSlides.mockResolvedValue({
+      data: [slide({ id: 'h', hideOnIos: true }), slide({ id: 'b', cta1: { label: { tr: 'Al' }, href: '/membership' } })],
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useHeroSlides('auth_default'), { wrapper: wrap(client) });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.slides).toEqual([]);
+  });
+
+  it('veri/dil değişmedikçe render arası AYNI dizi referansı', async () => {
+    mockGetSlides.mockResolvedValue({ data: [slide()] });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result, rerender } = renderHook(() => useHeroSlides('home'), { wrapper: wrap(client) });
+    await waitFor(() => expect(result.current.slides).toHaveLength(1));
+    const first = result.current.slides;
+    rerender({});
+    expect(result.current.slides).toBe(first);
   });
 });
 
@@ -97,6 +134,13 @@ describe('AuthHeroBanner', () => {
     act(() => image.props.onLoad({ nativeEvent: { source: { width: 800, height: 400 } } }));
     act(() => image.props.onError({ nativeEvent: { error: 'x' } }));
     expect(queryByTestId('auth-hero')).toBeTruthy();
+  });
+
+  it('hideOnIos / satın alma hedefli slayt → hiçbir şey çizmez', async () => {
+    mockGetSlides.mockResolvedValue({ data: [slide({ hideOnIos: true })] });
+    const { queryByTestId } = renderBanner();
+    await waitFor(() => expect(mockGetSlides).toHaveBeenCalled());
+    expect(queryByTestId('auth-hero')).toBeNull();
   });
 
   it('liste boşsa hiçbir şey çizmez', async () => {
