@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Button, Spinner, Text, theme } from '@/ui';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { View } from 'react-native';
+import { Badge, Button, SectionCard, Spinner, theme } from '@/ui';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -12,9 +10,8 @@ import { requestVerify } from '@/lib/payment/verifyPacer';
 import { forgetPaymentCapabilityIfFinal } from '@/lib/payment/paymentCapability';
 import { isFailedPaymentStatus, isPaidPaymentStatus } from '@/lib/payment/status';
 import { formatPrice } from '@/utils/format';
-import { styles } from './_success/_lib/styles';
-
-const { colors } = theme;
+import { PageShell } from '@/components/common/PageShell';
+import { PaymentResultCard, PaymentResultRow } from '@/components/payment/PaymentResultCard';
 
 // Web'deki OrderStatusLabels ile uyumlu durum etiketleri
 const buildStatusLabels = (t: TFunction): Record<string, string> => ({
@@ -163,105 +160,70 @@ export default function PaymentSuccessScreen() {
   const isCompleted = isPaidPaymentStatus(info?.status);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollBody}>
-        <View style={styles.iconWrap}>
-          <Ionicons
-            name={isCompleted ? 'checkmark-circle' : 'time-outline'}
-            size={96}
-            color={isCompleted ? colors.success[600]! : colors.warning[600]!}
-          />
-        </View>
-
-        <Text style={styles.title}>
-          {isCompleted ? t('payment.successTitle') : t('payment.confirmingTitle')}
-        </Text>
-        <Text style={styles.subtitle}>
-          {isCompleted
+    <PageShell title={t('checkout.title')} showBack={false}>
+      <PaymentResultCard
+        tone={isCompleted ? 'success' : 'warning'}
+        title={isCompleted ? t('payment.successTitle') : t('payment.confirmingTitle')}
+        description={
+          isCompleted
             ? isTrade
               ? t('payment.tradeCashReceivedDesc')
               : t('payment.orderReceivedDesc')
-            : t('payment.verifyingDesc')}
-        </Text>
-
+            : t('payment.verifyingDesc')
+        }
+        actions={
+          <>
+            {isTrade && tid ? (
+              <Button
+                variant="primary"
+                title={t('trade.backToTrade')}
+                fullWidth
+                onPress={() => router.replace(`/trade/${tid}` as any)}
+              />
+            ) : checkoutGroupId && guest !== '1' ? (
+              <Button
+                variant="primary"
+                title={t('payment.viewMyOrder')}
+                fullWidth
+                onPress={() => router.replace(`/orders/group/${checkoutGroupId}` as any)}
+              />
+            ) : orderId && guest !== '1' ? (
+              <Button
+                variant="primary"
+                title={t('payment.viewMyOrder')}
+                fullWidth
+                onPress={() => router.replace(`/orders/${orderId}` as any)}
+              />
+            ) : null}
+            <Button variant="outline" title={t('auth.goToHome')} fullWidth onPress={() => router.replace('/')} />
+          </>
+        }
+      >
         {loading ? (
-          <View style={{ marginTop: theme.spacing[6] }}>
-            <Spinner size="md" />
-          </View>
+          <Spinner size="md" />
         ) : info ? (
-          <View style={styles.summaryCard}>
+          <SectionCard title={t('payment.detailsTitle')} bodyStyle={{ gap: theme.spacing[3] }}>
             {info.groupNumber ? (
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('order.orderNumber')}</Text>
-                <Text style={styles.summaryValue}>{info.groupNumber}</Text>
-              </View>
+              <PaymentResultRow label={t('order.orderNumber')}>{info.groupNumber}</PaymentResultRow>
             ) : info.order?.orderNumber ? (
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('order.orderNumber')}</Text>
-                <Text style={styles.summaryValue}>{info.order.orderNumber}</Text>
-              </View>
+              <PaymentResultRow label={t('order.orderNumber')}>{info.order.orderNumber}</PaymentResultRow>
             ) : null}
             {info.orders && info.orders.length > 1 ? (
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('payment.orderCountLabel')}</Text>
-                <Text style={styles.summaryValue}>{info.orders.length}</Text>
-              </View>
+              <PaymentResultRow label={t('payment.orderCountLabel')}>{info.orders.length}</PaymentResultRow>
             ) : null}
             {info.amount ? (
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('common.amount')}</Text>
-                <Text style={[styles.summaryValue, { color: colors.primary[600]!, fontSize: 18 }]}>
-                  {formatPrice(info.amount)}
-                </Text>
-              </View>
+              <PaymentResultRow label={t('common.amount')}>{formatPrice(info.amount)}</PaymentResultRow>
             ) : null}
             {info.status ? (
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('common.status')}</Text>
-                <Text style={[styles.summaryValue, { color: colors.success[600]! }]}>
+              <PaymentResultRow label={t('common.status')}>
+                <Badge variant={isCompleted ? 'success' : 'warning'}>
                   {statusLabels[info.status] ?? info.status}
-                </Text>
-              </View>
+                </Badge>
+              </PaymentResultRow>
             ) : null}
-          </View>
+          </SectionCard>
         ) : null}
-
-        <View style={styles.actions}>
-          {isTrade && tid ? (
-            <Button
-              variant="primary"
-              title={t('trade.backToTrade')}
-              fullWidth
-              onPress={() => router.replace(`/trade/${tid}` as any)}
-              style={styles.btn}
-            />
-          ) : checkoutGroupId && guest !== '1' ? (
-            <Button
-              variant="primary"
-              title={t('payment.viewMyOrder')}
-              fullWidth
-              onPress={() => router.replace(`/orders/group/${checkoutGroupId}` as any)}
-              style={styles.btn}
-            />
-          ) : orderId && guest !== '1' ? (
-            <Button
-              variant="primary"
-              title={t('payment.viewMyOrder')}
-              fullWidth
-              onPress={() => router.replace(`/orders/${orderId}` as any)}
-              style={styles.btn}
-            />
-          ) : null}
-          <Button
-            variant="outline"
-            title={t('auth.goToHome')}
-            fullWidth
-            onPress={() => router.replace('/')}
-            style={styles.btn}
-          />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      </PaymentResultCard>
+    </PageShell>
   );
 }
-

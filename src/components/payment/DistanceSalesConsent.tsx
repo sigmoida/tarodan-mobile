@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { View, Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Checkbox, Text, theme } from '@/ui';
@@ -37,11 +37,11 @@ export function DistanceSalesConsent({
         onChange={() => onToggle()}
         label={t('checkout.distanceSalesConsent')}
       />
-      <TouchableOpacity onPress={() => router.push('/distance-sales')} style={styles.linkWrap}>
+      <Pressable onPress={() => router.push('/distance-sales')} style={styles.linkWrap} hitSlop={12} accessibilityRole="link">
         <Text variant="caption" style={styles.link}>
           {t('checkout.distanceSalesConsentLink')}
         </Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }

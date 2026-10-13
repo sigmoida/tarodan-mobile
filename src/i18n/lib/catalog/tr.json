@@ -1023,7 +1023,7 @@
     "serviceFee": "Hizmet Bedeli",
     "payNow": "Ödeme Yap",
     "buyNowNotice": "Yalnız seçtiğiniz ürün ödenecek; sepetinizdeki diğer ürünler yerinde kalır.",
-    "paytrNotice": "Ödemeniz PayTR güvenli altyapısı üzerinden alınır. Kart bilgileriniz Tarodan'a kaydedilmez; \"Ödeme Yap\"a bastığınızda PayTR'nin 3D Secure ödeme sayfası açılır.",
+    "paytrNotice": "Ödemeniz PayTR güvenli altyapısı üzerinden alınır. Kart bilgileriniz Tarodan'a kaydedilmez; \"Ödeme Yap\"a bastığınızda kart bilgilerinizi gireceğiniz güvenli ödeme ekranı açılır.",
     "distanceSalesRequired": "Devam etmek için mesafeli satış sözleşmesini onaylayın"
   },
   "order": {

@@ -1023,7 +1023,7 @@
     "serviceFee": "Service fee",
     "payNow": "Pay now",
     "buyNowNotice": "Only the item you selected will be paid for; the rest of your cart stays put.",
-    "paytrNotice": "Your payment is processed on PayTR's secure infrastructure. Your card details are not stored by Tarodan; the PayTR 3D Secure payment page opens when you tap \"Pay now\".",
+    "paytrNotice": "Your payment is processed on PayTR's secure infrastructure. Your card details are not stored by Tarodan; tapping \"Pay now\" opens the secure payment screen where you enter your card details.",
     "distanceSalesRequired": "Accept the distance sales agreement to continue"
   },
   "order": {
