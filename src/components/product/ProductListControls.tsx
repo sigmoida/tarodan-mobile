@@ -37,13 +37,8 @@ export function ProductListControls({
           title={t('product.filters')}
           onPress={onFilter}
           accessibilityLabel={t('product.filters')}
-          rightIcon={
-            filterCount > 0 ? (
-              <View style={styles.count} testID="filter-count">
-                <RawText style={styles.countText}>{filterCount}</RawText>
-              </View>
-            ) : undefined
-          }
+          count={filterCount}
+          countTestID="filter-count"
         />
       ) : null}
       {layout && onLayoutChange ? (
@@ -70,16 +65,4 @@ export function ProductListControls({
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing[2] },
-  // Web: px-1.5 py-0.5 bg-primary-500 text-2xs font-bold rounded-sm.
-  count: {
-    paddingHorizontal: spacing[1.5],
-    paddingVertical: spacing[0.5],
-    borderRadius: radius.sm,
-    backgroundColor: colors.primary[500],
-  },
-  countText: {
-    fontSize: typography.fontSize['2xs'],
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.inverted,
-  },
 });

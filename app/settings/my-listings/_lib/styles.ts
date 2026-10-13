@@ -54,15 +54,6 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing[1],
   },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[0.5],
-    borderRadius: radiusRole.badge,
-    backgroundColor: colors.surface.alt,
-  },
   statusDot: {
     width: DOT,
     height: DOT,

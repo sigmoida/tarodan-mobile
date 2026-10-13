@@ -157,17 +157,6 @@ export const styles = StyleSheet.create({
   toggleTextActive: {
     color: colors.white,
   },
-  discountBadge: {
-    backgroundColor: colors.success[100]!,
-    paddingHorizontal: theme.spacing[1.5],
-    paddingVertical: theme.spacing[0.5],
-    borderRadius: theme.radius.lg,
-  },
-  discountBadgeText: {
-    fontSize: theme.typography.fontSize['2xs'],
-    fontWeight: theme.typography.fontWeight.bold,
-    color: colors.success[800]!,
-  },
 
   // Tier Cards
   tierCardsContainer: {
@@ -190,36 +179,22 @@ export const styles = StyleSheet.create({
     elevation: 2,
     minHeight: 420,
   },
+  // Köşe kurdelesi: yalnız konum + köşe yarıçapı; boyut/renk/yazı `Pill` tabanından.
   popularBadge: {
     position: 'absolute',
     top: 0,
     right: 0,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[1],
+    borderRadius: 0,
     borderTopRightRadius: theme.radius['2xl'],
     borderBottomLeftRadius: theme.radius.lg,
-  },
-  popularBadgeText: {
-    color: colors.white,
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.bold,
   },
   currentBadge: {
     position: 'absolute',
     top: 0,
     left: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[1],
-    paddingHorizontal: theme.spacing[2.5],
-    paddingVertical: theme.spacing[1],
+    borderRadius: 0,
     borderTopLeftRadius: theme.radius['2xl'],
     borderBottomRightRadius: theme.radius.lg,
-  },
-  currentBadgeText: {
-    color: colors.white,
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.bold,
   },
   tierIconCircle: {
     width: 44,

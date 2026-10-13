@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { MessageKey } from '@/i18n/lib';
 import { View, ScrollView, Pressable, Image } from 'react-native';
 import { router } from 'expo-router';
-import { Alert, Button, Checkbox, Chip, EmptyState, IconButton, ProgressBar, SectionCard, Text, theme, Icon } from '@/ui';
+import { Alert, Button, Checkbox, Chip, EmptyState, IconButton, ProgressBar, SectionCard, Text, theme, Icon, Pill } from '@/ui';
 
 import { resolveImageUrl } from '@/utils/imageUrl';
 import UpgradeCta from '@/components/UpgradeCta';
@@ -157,12 +157,15 @@ export function MyListingCard({
             <Icon name="heart" size={STAT_ICON} color={colors.text.muted} />
             <Text variant="caption">{listing.likeCount || 0}</Text>
           </View>
-          <View style={styles.statusBadge}>
-            <View style={[styles.statusDot, { backgroundColor: getStatusColor(status) }]} />
-            <Text variant="caption" weight="medium" color={getStatusColor(status)}>
-              {statusTextKey(status) ? t(statusTextKey(status)!) : status}
-            </Text>
-          </View>
+          <Pill
+            size="sm"
+            background={colors.surface.alt}
+            color={getStatusColor(status)}
+            weight={theme.typography.fontWeight.medium}
+            icon={<View style={[styles.statusDot, { backgroundColor: getStatusColor(status) }]} />}
+          >
+            {statusTextKey(status) ? t(statusTextKey(status)!) : status}
+          </Pill>
         </View>
 
         {/*

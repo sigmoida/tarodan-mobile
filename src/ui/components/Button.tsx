@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { theme } from '../lib/theme';
 import { RawText } from './Text';
+import { Pill } from './Pill';
 import { RefIcon, type IconRef, type IconVariant } from '../icons';
 import { useButtonGroup } from '../lib/buttonGroup';
 
@@ -43,6 +44,9 @@ export interface ButtonProps extends Omit<PressableProps, 'style'> {
   icon?: IconRef;
   iconVariant?: IconVariant;
   iconPosition?: 'left' | 'right';
+  /** Etiketin sonunda küçük sayaç (ör. aktif filtre sayısı); 0/undefined çizilmez. */
+  count?: number;
+  countTestID?: string;
   fullWidth?: boolean;
   children?: React.ReactNode;
   /** Button label. Alias for children; useful when passing icons via slots. */
@@ -90,6 +94,8 @@ export const Button: React.FC<ButtonProps> = ({
   icon,
   iconVariant,
   iconPosition = 'left',
+  count,
+  countTestID,
   children,
   title,
   style,
@@ -150,6 +156,18 @@ export const Button: React.FC<ButtonProps> = ({
         ) : (
           label
         )}
+        {count ? (
+          <Pill
+            size="count"
+            background={colors.primary[500]}
+            color={colors.text.inverted}
+            weight={typography.fontWeight.bold}
+            style={styles.count}
+            testID={countTestID ?? 'button-count'}
+          >
+            {String(count)}
+          </Pill>
+        ) : null}
         {resolvedRightIcon && <View style={styles.iconRight}>{resolvedRightIcon}</View>}
       </View>
     </Pressable>
@@ -179,6 +197,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     flexShrink: 1,
   },
+  // Web: bg-primary-500 text-2xs font-bold rounded-sm (Pill count tabanı).
+  count: { marginLeft: spacing[2], borderRadius: theme.radius.sm },
   iconLeft: { marginRight: spacing[2] },
   iconRight: { marginLeft: spacing[2] },
 });

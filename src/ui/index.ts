@@ -50,7 +50,21 @@ export {
 	type ScreenHeaderVariant,
 	type TopBarActionProps,
 } from './components/ScreenHeader';
-export { CountBadge, type CountBadgeProps } from './components/CountBadge';
+export {
+	CountBadge,
+	BADGE_ANCHOR_OFFSET,
+	type CountBadgeProps,
+} from './components/CountBadge';
+export { BadgeAnchor, type BadgeAnchorProps } from './components/BadgeAnchor';
+export {
+	Pill,
+	pillBoxStyle,
+	pillTextStyle,
+	pillMetrics,
+	type PillProps,
+	type PillSize,
+	type PillShape,
+} from './components/Pill';
 export {
 	PageShell,
 	PAGE_GUTTER,

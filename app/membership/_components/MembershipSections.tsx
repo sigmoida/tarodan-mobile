@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, ScrollView, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { theme, RawText, Icon } from '@/ui';
+import { theme, RawText, Icon, Badge, Pill } from '@/ui';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { formatPrice } from '@/utils/format';
 
@@ -127,9 +127,9 @@ export function MembershipBillingToggle({ f }: SectionProps) {
         onPress={() => f.setBillingPeriod('yearly')}
       >
         <RawText style={[styles.toggleText, f.billingPeriod === 'yearly' && styles.toggleTextActive]}>{t('membership.yearly')}</RawText>
-        <View style={styles.discountBadge}>
-          <RawText style={styles.discountBadgeText}>{t('membership.discountBadge', { percent: f.settings.yearly_discount_percentage ?? 20 })}</RawText>
-        </View>
+        <Badge variant="success" size="sm">
+          {t('membership.discountBadge', { percent: f.settings.yearly_discount_percentage ?? 20 })}
+        </Badge>
       </Pressable>
     </View>
   );
@@ -151,17 +151,23 @@ function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
     <View style={[styles.tierCard, isCurrent && { borderColor: color, borderWidth: 2 }]}>
       {/* Popular badge for premium */}
       {tier === 'premium' && (
-        <View style={[styles.popularBadge, { backgroundColor: color }]}>
-          <RawText style={styles.popularBadgeText}>{t('membership.mostPopular')}</RawText>
-        </View>
+        <Pill size="md" background={color} color={colors.white} weight={theme.typography.fontWeight.bold} style={styles.popularBadge}>
+          {t('membership.mostPopular')}
+        </Pill>
       )}
 
       {/* Current plan badge */}
       {isCurrent && (
-        <View style={[styles.currentBadge, { backgroundColor: color }]}>
-          <Icon name="check-circle" variant="solid" size={14} color={colors.white} />
-          <RawText style={styles.currentBadgeText}>{t('membership.currentPlanBadge')}</RawText>
-        </View>
+        <Pill
+          size="md"
+          background={color}
+          color={colors.white}
+          weight={theme.typography.fontWeight.bold}
+          icon={<Icon name="check-circle" variant="solid" size={14} color={colors.white} />}
+          style={styles.currentBadge}
+        >
+          {t('membership.currentPlanBadge')}
+        </Pill>
       )}
 
       <View style={[styles.tierIconCircle, { backgroundColor: color + '15' }]}>

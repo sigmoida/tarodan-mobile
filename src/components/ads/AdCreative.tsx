@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
-import { theme, Text } from '@/ui';
+import { theme, Text, Pill } from '@/ui';
 import { adsApi, type ActiveAd } from '@/lib/api';
 import { hasAdImage } from '@/lib/ads/creative';
 import { adAspectRatio, fitBox, naturalRatioOf } from '@/lib/ads/adAspect';
@@ -168,18 +168,24 @@ function AdTextBody({ ad }: { ad: ActiveAd }) {
       {(!!left || !!code) && (
         <View style={styles.chips} testID="ad-chips">
           {left ? (
-            <View style={[styles.chip, styles.flashChip]} testID="ad-flash-countdown">
-              <Text variant="label" tone="danger" weight="semibold">
-                ⚡ {left}
-              </Text>
-            </View>
+            <Pill
+              testID="ad-flash-countdown"
+              size="md"
+              background={theme.colors.danger[50]}
+              color={theme.colors.danger[700]}
+            >
+              {`⚡ ${left}`}
+            </Pill>
           ) : null}
           {code ? (
-            <View style={[styles.chip, styles.codeChip]} testID={`ad-code-${ad.id}`}>
-              <Text variant="label" tone="primary" weight="semibold">
-                {code}
-              </Text>
-            </View>
+            <Pill
+              testID={`ad-code-${ad.id}`}
+              size="md"
+              background={theme.colors.primary[50]}
+              color={theme.colors.primary[600]}
+            >
+              {code}
+            </Pill>
           ) : null}
         </View>
       )}
@@ -210,11 +216,4 @@ const styles = StyleSheet.create({
   },
   textCopy: { flexShrink: 1, minWidth: 0, gap: theme.spacing[1] },
   chips: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2] },
-  chip: {
-    borderRadius: theme.radius.lg,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[1],
-  },
-  codeChip: { backgroundColor: theme.colors.primary[50] },
-  flashChip: { backgroundColor: theme.colors.danger[50] },
 });

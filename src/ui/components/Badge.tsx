@@ -1,9 +1,10 @@
 import React from 'react';
-import { StyleSheet, View, type ViewProps } from 'react-native';
+import { StyleSheet, type ViewProps } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { StatusConfig, WebStatusVariant } from '@/lib/shared';
 import { theme } from '../lib/theme';
 import { RawText } from './Text';
+import { Pill, pillTextStyle } from './Pill';
 
 /**
  * Badge varyantları. Web `@tarodan/ui` Badge'in 5 durum varyantı — `default` (marka tonu),
@@ -37,7 +38,7 @@ export interface BadgeProps extends ViewProps {
   textStyle?: React.ComponentProps<typeof RawText>['style'];
 }
 
-const { colors, radiusRole, spacing, typography } = theme;
+const { colors } = theme;
 
 type Look = { bg: string; text: string; border?: string };
 
@@ -66,13 +67,6 @@ const solidStyle: Record<BadgeVariant, Look> = {
   outline: { bg: colors.surface.DEFAULT, text: colors.text.heading, border: colors.border.DEFAULT },
   destructive: { bg: colors.danger[600], text: colors.text.inverted },
 };
-
-/** Web: sm px-2 py-0.5 text-xs · md px-2.5 py-1 text-sm · lg px-3 py-2 text-sm. */
-const sizePadding = {
-  sm: { px: spacing[2], py: spacing[0.5], font: typography.fontSize.xs },
-  md: { px: spacing[2.5], py: spacing[1], font: typography.fontSize.sm },
-  lg: { px: spacing[3], py: spacing[2], font: typography.fontSize.sm },
-} as const;
 
 export const Badge: React.FC<BadgeProps> = ({
   variant,
@@ -106,41 +100,21 @@ export const Badge: React.FC<BadgeProps> = ({
   }
 
   const vs = (appearance === 'solid' ? solidStyle : softStyle)[resolvedVariant];
-  const ss = sizePadding[size];
   return (
-    <View
-      style={[
-        styles.base,
-        {
-          backgroundColor: vs.bg,
-          borderColor: vs.border ?? 'transparent',
-          borderWidth: vs.border ? 1 : 0,
-          paddingHorizontal: ss.px,
-          paddingVertical: ss.py,
-        },
-        style,
-      ]}
+    <Pill
+      size={size}
+      shape="badge"
+      background={vs.bg}
+      borderColor={vs.border}
+      icon={icon}
+      style={[styles.base, style]}
       {...rest}
     >
-      {icon}
-      <RawText
-        style={[
-          { color: vs.text, fontSize: ss.font, fontWeight: typography.fontWeight.semibold },
-          textStyle,
-        ]}
-      >
-        {content}
-      </RawText>
-    </View>
+      <RawText style={[pillTextStyle(size, vs.text), textStyle]}>{content}</RawText>
+    </Pill>
   );
 };
 
 const styles = StyleSheet.create({
-  base: {
-    borderRadius: radiusRole.badge,
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-  },
+  base: { alignSelf: 'flex-start' },
 });

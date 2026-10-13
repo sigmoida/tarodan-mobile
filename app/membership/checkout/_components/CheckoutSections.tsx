@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { SectionCard, Text, theme, Icon } from '@/ui';
+import { SectionCard, Text, theme, Icon, Pill } from '@/ui';
 import { router } from 'expo-router';
 import { formatPrice } from '@/utils/format';
 import { useTranslation } from 'react-i18next';
@@ -21,9 +21,9 @@ export function PlanCard({ f }: { f: MembershipCheckoutController }) {
           </Text>
         </View>
         {'popular' in tier && tier.popular && (
-          <View style={[styles.popularBadge, { backgroundColor: tier.color }]}>
-            <Text style={styles.popularBadgeText}>{t('common.popular')}</Text>
-          </View>
+          <Pill size="md" background={tier.color} color={colors.white} weight={theme.typography.fontWeight.bold}>
+            {t('common.popular')}
+          </Pill>
         )}
       </View>
       <View style={styles.featuresCompact}>

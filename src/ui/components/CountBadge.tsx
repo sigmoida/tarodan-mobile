@@ -1,58 +1,56 @@
 import React from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { theme } from '../lib/theme';
-import { RawText } from './Text';
+import { Pill } from './Pill';
 
 export interface CountBadgeProps {
   count: number;
-  /** Varsayılan: ikonun sağ üst köşesine oturur (web `absolute -top-0.5 -right-0.5`). */
+  /**
+   * `false` (varsayılan): ikonun SAĞ ÜST köşesine sabit ofsetle oturur (web `absolute -top-0.5
+   * -right-0.5`) — kapsayıcı `relative` olmalı ya da `BadgeAnchor` kullanılmalı. `true`: akışta
+   * (satır içi sayaç, ör. liste satırı okunmamış sayısı).
+   */
+  inline?: boolean;
   style?: StyleProp<ViewStyle>;
   /** Zemin rengi farklı bir yüzeyde ayrışsın diye halka (ör. sekme çubuğu). */
   ringColor?: string;
   testID?: string;
 }
 
-const { colors, radius, spacing, typography, counterBadgeColor } = theme;
-const SIZE = 18;
+const { colors, spacing, counterBadgeColor } = theme;
+
+/** İkon rozetinin sağ üst köşe ofseti — TEK kaynak (CountBadge ve BadgeAnchor). */
+export const BADGE_ANCHOR_OFFSET = -spacing[0.5];
 
 /**
  * Sayaç rozeti — web `CountBadge`: danger-500, h18 min-w18, `text-2xs` 600, 99+ sınırı.
  * Sepet, mesaj ve bildirim ikonlarının üstünde; 0 ve altında çizilmez.
  */
-export const CountBadge: React.FC<CountBadgeProps> = ({ count, style, ringColor, testID }) => {
+export const CountBadge: React.FC<CountBadgeProps> = ({ count, inline, style, ringColor, testID }) => {
   if (!count || count <= 0) return null;
   return (
-    <View
+    <Pill
       testID={testID}
       pointerEvents="none"
+      size="count"
+      shape="full"
+      background={counterBadgeColor}
+      color={colors.text.inverted}
       style={[
-        styles.badge,
+        inline ? null : styles.anchored,
         ringColor ? { borderWidth: 2, borderColor: ringColor } : null,
         style,
       ]}
     >
-      <RawText style={styles.text}>{count > 99 ? '99+' : String(count)}</RawText>
-    </View>
+      {count > 99 ? '99+' : String(count)}
+    </Pill>
   );
 };
 
 const styles = StyleSheet.create({
-  badge: {
+  anchored: {
     position: 'absolute',
-    top: -spacing[0.5],
-    right: -spacing[0.5],
-    minWidth: SIZE,
-    height: SIZE,
-    paddingHorizontal: spacing[1],
-    borderRadius: radius.full,
-    backgroundColor: counterBadgeColor,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  text: {
-    color: colors.text.inverted,
-    fontSize: typography.fontSize['2xs'],
-    lineHeight: typography.fontSize['2xs'] * typography.lineHeight.tight,
-    fontWeight: typography.fontWeight.semibold,
+    top: BADGE_ANCHOR_OFFSET,
+    right: BADGE_ANCHOR_OFFSET,
   },
 });

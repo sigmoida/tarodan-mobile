@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { theme, DateField, RawText, RawTextInput, Icon } from '@/ui';
+import { theme, DateField, RawText, RawTextInput, Icon, Pill } from '@/ui';
 import UpgradeCta from '@/components/UpgradeCta';
 import { ListingRemovalModal } from '../ListingRemovalModal';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
@@ -181,9 +181,15 @@ export function ListingImagesSection({ f }: SectionProps) {
             <View key={`img-${index}`} style={styles.imageThumbWrap}>
               <Image source={{ uri }} style={styles.imageThumb} />
               {index === 0 && (
-                <View style={styles.coverBadge}>
-                  <RawText style={styles.coverBadgeText}>{t('listing.coverBadge')}</RawText>
-                </View>
+                <Pill
+                  size="sm"
+                  background={colors.primary[600]!}
+                  color={colors.white}
+                  weight={theme.typography.fontWeight.bold}
+                  style={styles.coverBadge}
+                >
+                  {t('listing.coverBadge')}
+                </Pill>
               )}
               <TouchableOpacity style={styles.imageRemoveBtn} onPress={() => f.removeImage(index)}>
                 <RawText style={styles.imageRemoveText}>✕</RawText>

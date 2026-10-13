@@ -1,19 +1,22 @@
 import React from 'react';
 import {
   Pressable,
-  StyleSheet,
   type PressableProps,
   type ViewStyle,
 } from 'react-native';
 import { theme } from '../lib/theme';
 import { touchSlop } from './Button';
 import { RawText } from './Text';
+import { Icon, type IconName } from '../icons';
+import { pillBoxStyle, pillTextStyle, type PillSize } from './Pill';
 
 export type ChipVariant = 'neutral' | 'primary' | 'success' | 'danger' | 'warning' | 'info';
 export type ChipSize = 'sm' | 'md';
 
 export interface ChipProps extends Omit<PressableProps, 'style'> {
   label: string;
+  /** Etiketin sonunda işlev ikonu (ör. kaldırılabilir filtre çipi için `x-mark`). */
+  trailingIcon?: IconName;
   /**
    * Yalnız ETİKET modunda (seçim durumu verilmeyen, salt gösterim çipi) renk tonu.
    * Seçilebilir çipte (`selected`/`active` verildiğinde) yok sayılır: web Chip'i gibi.
@@ -31,7 +34,7 @@ export interface ChipProps extends Omit<PressableProps, 'style'> {
   style?: ViewStyle;
 }
 
-const { colors, radiusRole, spacing, typography } = theme;
+const { colors, typography } = theme;
 
 /** Etiket modu tonları (salt gösterim). */
 const tagStyle: Record<ChipVariant, { bg: string; text: string }> = {
@@ -52,13 +55,15 @@ const toggleStyle = {
   off: { bg: 'transparent', text: colors.text.muted, border: colors.border.DEFAULT },
 } as const;
 
-const sizeMap: Record<ChipSize, { height: number; px: number; font: number }> = {
-  sm: { height: 24, px: spacing[2], font: typography.fontSize.xs },
-  md: { height: 32, px: spacing[3], font: typography.fontSize.sm },
+/** Çip = tam yuvarlak hap (Pill tabanı): sm → Pill sm (px-2 text-xs) h24; md → Pill lg (px-3 text-sm) h32. */
+const sizeMap: Record<ChipSize, { height: number; pill: PillSize }> = {
+  sm: { height: 24, pill: 'sm' },
+  md: { height: 32, pill: 'lg' },
 };
 
 export const Chip: React.FC<ChipProps> = ({
   label,
+  trailingIcon,
   variant = 'neutral',
   size = 'sm',
   selected,
@@ -88,10 +93,12 @@ export const Chip: React.FC<ChipProps> = ({
       onPress={onPress}
       hitSlop={hitSlop ?? (onPress ? touchSlop(ss.height) : undefined)}
       style={({ pressed }) => [
-        styles.base,
+        pillBoxStyle(ss.pill, 'full'),
+        trailingIcon ? { gap: theme.spacing[1] } : null,
         {
           height: ss.height,
-          paddingHorizontal: ss.px,
+          paddingVertical: 0,
+          borderWidth: 1,
           backgroundColor: bg,
           borderColor: look.border,
           opacity: disabled ? 0.5 : pressed && onPress ? 0.85 : 1,
@@ -102,18 +109,11 @@ export const Chip: React.FC<ChipProps> = ({
       accessibilityState={isOn === undefined ? undefined : { selected: isOn }}
       {...rest}
     >
-      <RawText style={{ color: fg, fontSize: ss.font }} numberOfLines={1}>
+      <RawText style={pillTextStyle(ss.pill, fg, typography.fontWeight.regular)} numberOfLines={1}>
         {label}
       </RawText>
+      {trailingIcon ? <Icon name={trailingIcon} size={theme.iconSize.sm} color={fg} /> : null}
     </Pressable>
   );
 };
 
-const styles = StyleSheet.create({
-  base: {
-    borderRadius: radiusRole.chip,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

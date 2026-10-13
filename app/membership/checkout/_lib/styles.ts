@@ -40,16 +40,6 @@ export const styles = StyleSheet.create({
     fontWeight: theme.typography.fontWeight.regular,
     color: colors.text.muted,
   },
-  popularBadge: {
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[1],
-    borderRadius: theme.radius.lg,
-  },
-  popularBadgeText: {
-    color: colors.white,
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.bold,
-  },
   featuresCompact: {
     gap: theme.spacing[2],
   },

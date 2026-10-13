@@ -407,19 +407,11 @@ export const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  // Konum yalnız burada; boyut/renk/yazı `Pill` tabanından.
   coverBadge: {
     position: 'absolute',
     bottom: 4,
     left: 4,
-    backgroundColor: colors.primary[600]!,
-    paddingHorizontal: theme.spacing[1.5],
-    paddingVertical: theme.spacing[0.5],
-    borderRadius: theme.radius.md,
-  },
-  coverBadgeText: {
-    color: colors.white,
-    fontSize: 10,
-    fontWeight: '700',
   },
   imageRemoveBtn: {
     position: 'absolute',

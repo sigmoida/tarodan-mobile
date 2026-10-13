@@ -1,9 +1,9 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { RawText, theme, Icon } from '@/ui';
+import { Chip, RawText, theme } from '@/ui';
 
-const { colors, spacing, typography, radiusRole, iconSize } = theme;
+const { colors, spacing, typography } = theme;
 
 export interface ActiveFilterChip {
   key: string;
@@ -35,17 +35,14 @@ export function ActiveFilterChips({
     >
       <RawText style={styles.label}>{t('product.filters')}:</RawText>
       {chips.map((chip) => (
-        <Pressable
+        <Chip
           key={chip.key}
+          selected
+          label={chip.label}
+          trailingIcon="x-mark"
           onPress={chip.onRemove}
-          hitSlop={theme.spacing[2]}
-          accessibilityRole="button"
           accessibilityLabel={`${t('common.remove')}: ${chip.label}`}
-          style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
-        >
-          <RawText style={styles.chipText}>{chip.label}</RawText>
-          <Icon name="x-mark" size={iconSize.sm} color={colors.primary[600]!} />
-        </Pressable>
+        />
       ))}
       <Pressable onPress={onClear} hitSlop={theme.spacing[2]} accessibilityRole="button" style={styles.clear}>
         <RawText style={styles.clearText}>{t('product.clearFilters')}</RawText>
@@ -67,24 +64,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginRight: spacing[1],
-  },
-  // Web Chip, seçili: border-primary-200 bg-primary-500/10 text-primary-600, rounded-full.
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: radiusRole.chip,
-    borderWidth: 1,
-    borderColor: colors.primary[200],
-    backgroundColor: colors.primary[50],
-  },
-  pressed: { opacity: 0.7 },
-  chipText: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.primary[600],
   },
   clear: { paddingHorizontal: spacing[1] },
   clearText: {
