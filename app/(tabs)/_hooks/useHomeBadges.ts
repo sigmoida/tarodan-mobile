@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { notificationsApi, offersApi, tradesApi } from '@/lib/api';
+import { offersApi, tradesApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useCartStore } from '@/stores/cartStore';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useUnreadCountQuery } from '@/hooks/messaging';
+import { useNotificationUnreadCount } from '@/hooks/useNotificationUnreadCount';
 
 /**
  * Header rozet sayaçları: sepet / favori / mesaj / bildirim. Favoriler `useFavorites`,
@@ -20,22 +21,7 @@ export function useHomeBadges(isAuthenticated: boolean) {
   const favCount = favItems.length;
   const { data: messageUnreadCount = 0 } = useUnreadCountQuery();
 
-  const { data: unreadData } = useQuery({
-    queryKey: qk.notifications.unread,
-    enabled: isAuthenticated,
-    refetchInterval: 60000,
-    refetchOnWindowFocus: true,
-    queryFn: async () => {
-      try {
-        const response = await notificationsApi.getUnreadCount();
-        const body = response.data as { count?: number; data?: { count?: number } } | undefined;
-        return body?.count ?? body?.data?.count ?? 0;
-      } catch {
-        return 0;
-      }
-    },
-  });
-  const unreadCount = typeof unreadData === 'number' ? unreadData : 0;
+  const unreadCount = useNotificationUnreadCount(isAuthenticated);
 
   /** Profil menüsü rozetleri: yanıt bekleyen teklif / takas. Bildirim sayacıyla
    *  aynı desen — hata durumunda 0, rozet gizlenir. */
