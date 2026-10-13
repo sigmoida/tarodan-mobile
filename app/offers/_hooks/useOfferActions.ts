@@ -16,24 +16,33 @@ import { acceptKind, type AcceptAs, type OfferConfirmKind } from '../_lib/accept
  * (web gibi önce onay diyaloğu; kabulde ödeme süresi + "ilk ödeyen alır"). Onay sonrası
  * mutasyon modal kapanma süresi kadar gecikir (ModalFreeze, bkz. `useConfirmOffer`).
  *
- * `pendingOfferId`: o an işlemde olan teklifin id'si (kart üzerinde spinner için). Onay
- * basıldığı AN kurulur (mutasyon, diyalog kapanışı bitince başlar; arada kart boş kalıp ikinci
- * basışa izin vermesin) ve mutasyon bitince (`onSettled`) kalkar.
+ * `pendingOfferIds`: o an işlemde olan tekliflerin id'leri (kart üzerinde spinner için). BİR SET:
+ * birden çok teklif aynı anda bekleyebilir (A'nın kabulü sürerken B onaylanabilir). Bir teklif
+ * onay basıldığı AN girer (mutasyon, diyalog kapanışı bitince başlar; arada kart boş kalıp ikinci
+ * basışa izin vermesin) ve YALNIZ kendi mutasyonu bitince (`onSettled`, kendi id'siyle) çıkar:
+ * başka teklifin bekleme durumu ne açılır ne temizlenir.
  */
 export function useOfferActions() {
   const invalidate = useInvalidateOffers();
   const confirm = useConfirmOffer();
-  // Onaylandı ama mutasyon henüz bitmedi (ertelenmiş başlangıç dahil).
-  const [confirmedId, setConfirmedId] = useState<string | null>(null);
-  const confirmedRef = useRef<string | null>(null);
-  const settle = useCallback(() => {
-    confirmedRef.current = null;
-    setConfirmedId(null);
+  // Onaylandı ama mutasyonu henüz bitmedi (ertelenmiş başlangıç dahil), teklif id'si başına.
+  // Ref senkron guard (çift basış), state yeniden çizim için aynı kümenin kopyası.
+  const pendingRef = useRef<Set<string>>(new Set());
+  const [pendingOfferIds, setPendingOfferIds] = useState<ReadonlySet<string>>(() => new Set());
+  const markPending = useCallback((id: string) => {
+    if (pendingRef.current.has(id)) return;
+    pendingRef.current.add(id);
+    setPendingOfferIds(new Set(pendingRef.current));
+  }, []);
+  const settle = useCallback((id: string) => {
+    if (!pendingRef.current.delete(id)) return;
+    setPendingOfferIds(new Set(pendingRef.current));
   }, []);
 
   const accept = useMutation({
     mutationFn: (id: string) => offersApi.accept(id),
-    onSettled: settle,
+    onMutate: markPending, // doğrudan çağrı (onaysız) da bekliyor sayılır
+    onSettled: (_data, _err, id) => settle(id),
     onSuccess: () => {
       invalidate();
       appAlert(i18n.t('common.success'), i18n.t('offer.offerAccepted'));
@@ -44,7 +53,8 @@ export function useOfferActions() {
 
   const reject = useMutation({
     mutationFn: (id: string) => offersApi.reject(id),
-    onSettled: settle,
+    onMutate: markPending, // doğrudan çağrı (onaysız) da bekliyor sayılır
+    onSettled: (_data, _err, id) => settle(id),
     onSuccess: () => {
       invalidate();
       appAlert(i18n.t('common.success'), i18n.t('offer.offerRejected'));
@@ -55,7 +65,8 @@ export function useOfferActions() {
 
   const cancel = useMutation({
     mutationFn: (id: string) => offersApi.cancel(id),
-    onSettled: settle,
+    onMutate: markPending, // doğrudan çağrı (onaysız) da bekliyor sayılır
+    onSettled: (_data, _err, id) => settle(id),
     onSuccess: () => {
       invalidate();
       appAlert(i18n.t('common.success'), i18n.t('offer.offerCancelled'));
@@ -70,17 +81,14 @@ export function useOfferActions() {
   /** Aynı teklifte onay bekleyen / süren işlem varken yenisini başlatma (çift basış). */
   const request = useCallback(
     (id: string, kind: OfferConfirmKind, run: (id: string) => void) => {
-      if (confirmedRef.current === id) return;
+      if (pendingRef.current.has(id)) return;
       confirm(
         kind,
         () => run(id),
-        () => {
-          confirmedRef.current = id;
-          setConfirmedId(id);
-        },
+        () => markPending(id),
       );
     },
-    [confirm],
+    [confirm, markPending],
   );
   const requestAccept = useCallback(
     (id: string, as: AcceptAs) => request(id, acceptKind(as), acceptMutate),
@@ -95,13 +103,6 @@ export function useOfferActions() {
     [request, cancelMutate],
   );
 
-  const pendingOfferId =
-    confirmedId ||
-    (accept.isPending && accept.variables) ||
-    (reject.isPending && reject.variables) ||
-    (cancel.isPending && cancel.variables) ||
-    null;
-
   return {
     accept: accept.mutate,
     requestAccept,
@@ -109,6 +110,6 @@ export function useOfferActions() {
     requestCancel,
     reject: reject.mutate,
     cancel: cancel.mutate,
-    pendingOfferId,
+    pendingOfferIds,
   };
 }
