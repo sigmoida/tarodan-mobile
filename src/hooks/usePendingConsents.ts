@@ -49,7 +49,13 @@ export function usePendingConsents() {
     mutationFn: async (documents: ConsentDocumentKey[]) =>
       (await consentsApi.accept(documents)).data?.pending ?? [],
     // Yanıt KALAN bekleyenlerdir: kapı ek bir istek beklemeden kapanır.
-    onSuccess: (remaining) => queryClient.setQueryData(qk.consents.pending, remaining),
+    // Önce uçuştaki GET iptal edilir: onaydan ÖNCE başlamış (ör. ön plana
+    // dönüş) bir istek sonradan dönüp eski listeyi önbelleğe yazarsa kapı
+    // yeniden açılırdı.
+    onSuccess: async (remaining) => {
+      await queryClient.cancelQueries({ queryKey: qk.consents.pending });
+      queryClient.setQueryData(qk.consents.pending, remaining);
+    },
   });
 
   const pending = enabled ? (query.data ?? EMPTY) : EMPTY;

@@ -109,6 +109,33 @@ describe('B-2.3 · RequiredStepsGate (onay kapısı)', () => {
     expect(mockGetPending).toHaveBeenCalledTimes(1);
   });
 
+  it('onaydan önce başlayan eski GET sonradan dönse de kapıyı yeniden açmaz', async () => {
+    mockGetPending.mockResolvedValueOnce({ data: { pending: ALL } });
+    const { queryClient } = renderWithProviders(<RequiredStepsGate />);
+    await screen.findByTestId('consent-gate');
+    for (const d of ['terms', 'privacy', 'kvkk']) fireEvent.press(screen.getByTestId(`consent-gate-${d}`));
+
+    // Onay sürerken bir yeniden sorgu (ör. ön plana dönüş) uçuşta kalıyor.
+    let resolveStale!: (v: unknown) => void;
+    mockGetPending.mockImplementationOnce(() => new Promise((r) => (resolveStale = r)));
+    act(() => {
+      void queryClient.refetchQueries({ queryKey: qk.consents.pending });
+    });
+    await waitFor(() => expect(mockGetPending).toHaveBeenCalledTimes(2));
+
+    mockAccept.mockResolvedValue({ data: { pending: [] } });
+    fireEvent.press(screen.getByTestId('consent-gate-submit'));
+    await waitFor(() => expect(screen.queryByTestId('consent-gate')).toBeNull());
+
+    // Eski GET (onay öncesi liste) şimdi dönüyor: önbelleğe yazılmamalı.
+    await act(async () => {
+      resolveStale({ data: { pending: ALL } });
+    });
+    expect(queryClient.getQueryData(qk.consents.pending)).toEqual([]);
+    expect(screen.queryByTestId('consent-gate')).toBeNull();
+    // İptal + yeniden render yüklü makinede 5 sn sınırına yaklaşabiliyor.
+  }, 15000);
+
   it('güncellenen belgede "güncellendi" metni gösterilir', async () => {
     mockGetPending.mockResolvedValue({
       data: { pending: [{ document: 'terms', version: '2026-09-01', reason: 'outdated', path: '/terms' }] },
