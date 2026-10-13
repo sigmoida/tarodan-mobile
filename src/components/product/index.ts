@@ -3,6 +3,7 @@ export type { ProductCardProduct, ProductCardLayout, ProductCardProps } from './
 export { ProductGrid, default as ProductGridDefault } from './ProductGrid';
 export { ProductGridSkeleton, ProductListEmpty, PRODUCT_GRID_GAP, useProductCellWidth } from './ProductListStates';
 export { ProductListControls } from './ProductListControls';
+export { ProductListToolbar, type ProductListToolbarProps } from './ProductListToolbar';
 export { ProductSortModal } from './ProductSortModal';
 export { ActiveFilterChips, type ActiveFilterChip } from './ActiveFilterChips';
 export { OutOfStockOverlay } from './OutOfStockOverlay';

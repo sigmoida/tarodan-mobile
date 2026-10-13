@@ -3,11 +3,13 @@
  * ProductListControls (filtre sayısı + ızgara/liste), ActiveFilterChips, SimilarProductsCard.
  */
 import React from 'react';
+import { View } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { ProductGrid } from '../ProductGrid';
 import { ProductSortModal } from '../ProductSortModal';
 import { ProductListControls } from '../ProductListControls';
 import { ActiveFilterChips } from '../ActiveFilterChips';
+import { ProductListToolbar } from '../ProductListToolbar';
 import { SimilarProductsCard } from '../SimilarProductsCard';
 import { buildSortOptions, buildListParams, EMPTY_FILTERS } from '@/utils/productFilters';
 import i18n from '@/i18n/config';
@@ -130,15 +132,53 @@ describe('ActiveFilterChips', () => {
     expect(screen.queryByTestId('active-filter-chips')).toBeNull();
   });
 
-  it('her çip kaldırılabilir; "Filtreleri Temizle" hepsini temizler', () => {
+  it('her çip kaldırılabilir; "Temizle" metin düğmesi hepsini temizler', () => {
     const onRemove = jest.fn();
     const onClear = jest.fn();
     render(<ActiveFilterChips chips={[{ key: 'k', label: 'Hot Wheels', onRemove }]} onClear={onClear} />);
-    expect(screen.getByText('Filtreler:')).toBeTruthy();
     fireEvent.press(screen.getByLabelText('Kaldır: Hot Wheels'));
     expect(onRemove).toHaveBeenCalled();
-    fireEvent.press(screen.getByText('Filtreleri Temizle'));
+    fireEvent.press(screen.getByText('Temizle'));
     expect(onClear).toHaveBeenCalled();
+  });
+});
+
+describe('ProductListToolbar', () => {
+  const chip = { key: 'brand', label: 'Hot Wheels', onRemove: jest.fn() };
+
+  it('sıra: arama → denetimler → sonuç sayısı → çipler + Temizle', () => {
+    const onClear = jest.fn();
+    render(
+      <ProductListToolbar
+        search={<View testID="tb-search" />}
+        sortLabel="En Yeni"
+        onSort={() => undefined}
+        onFilter={() => undefined}
+        filterCount={1}
+        layout="grid"
+        onLayoutChange={() => undefined}
+        resultLabel="61 ürün bulundu"
+        chips={[chip]}
+        onClearFilters={onClear}
+      />,
+    );
+    const order = ['tb-search', 'product-list-controls', 'result-count', 'active-filter-chips'].map((id) =>
+      JSON.stringify(screen.toJSON()).indexOf(`"testID":"${id}"`),
+    );
+    expect(order.every((i) => i >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(screen.getByTestId('filter-button')).toBeTruthy();
+    expect(screen.getByTestId('sort-button')).toBeTruthy();
+    expect(screen.getByText('61 ürün bulundu')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('clear-filters'));
+    expect(onClear).toHaveBeenCalled();
+  });
+
+  it('sonuç sayısı ve çip yoksa yalnız denetim satırı', () => {
+    render(<ProductListToolbar sortLabel="En Yeni" onSort={() => undefined} />);
+    expect(screen.getByTestId('product-list-controls')).toBeTruthy();
+    expect(screen.queryByTestId('result-count')).toBeNull();
+    expect(screen.queryByTestId('active-filter-chips')).toBeNull();
   });
 });
 

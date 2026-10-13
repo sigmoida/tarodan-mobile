@@ -29,13 +29,15 @@ export default function SearchScreen() {
   const cellWidth = useProductCellWidth();
 
   // Stable renderItem (#75) — memoized ProductCard bails out on unchanged rows.
+  const isList = f.layout === 'list';
+  const columns = isList ? 1 : SEARCH_NUM_COLUMNS;
   const renderResult = useCallback(
     ({ item }: { item: any }) => (
-      <View style={{ width: cellWidth }}>
-        <ProductCard testID="search-result-card" product={item} />
+      <View style={{ width: isList ? '100%' : cellWidth }}>
+        <ProductCard testID="search-result-card" product={item} layout={isList ? 'list' : 'grid'} />
       </View>
     ),
-    [cellWidth],
+    [cellWidth, isList],
   );
 
   return (
@@ -51,10 +53,11 @@ export default function SearchScreen() {
             testID="search-results-list"
             ref={f.listRef}
             data={f.products}
-            numColumns={SEARCH_NUM_COLUMNS}
+            key={`search-${columns}`}
+            numColumns={columns}
             style={f.barsMeasured ? undefined : styles.listHidden}
             contentContainerStyle={[styles.listContent, { paddingTop: f.headerHeight }]}
-            columnWrapperStyle={styles.listRow}
+            columnWrapperStyle={columns > 1 ? styles.listRow : undefined}
             keyExtractor={(item, index) => `${item.id}-${index}`}
             renderItem={renderResult}
             // #82: virtualizasyon ayarı — sonsuz arama sonuçlarında bellek/kaydırma.

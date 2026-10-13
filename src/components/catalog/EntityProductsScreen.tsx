@@ -2,7 +2,7 @@ import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Badge, PageHeader, RawText, theme } from '@/ui';
+import { RawText, Text, theme } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { ProductGrid } from '@/components/product';
 import { resolveImageUrl } from '@/utils/imageUrl';
@@ -11,8 +11,8 @@ import { useEntityProducts, type CatalogEntityKind } from './useEntityProducts';
 const { colors, spacing, typography, radiusRole } = theme;
 
 /**
- * Marka / üretici detayı (web `ManufacturerDetailClient`): PageShell + başlık bandı (ad, "N Aktif
- * ilanlar" rozeti), logo ve üreticinin ürünleri tek ürün ızgarasında. `/brands/:slug` ve
+ * Marka / üretici detayı (web `ManufacturerDetailClient`): PageShell (ad üst barda) + logo ve "N Aktif
+ * ilanlar" muted satırı, altında üreticinin ürünleri tek ürün ızgarasında. `/brands/:slug` ve
  * `/ureticiler/:slug` aynı ekranı kullanır; fark yalnız API ve boş durum metni.
  */
 export function EntityProductsScreen({ kind }: { kind: CatalogEntityKind }) {
@@ -39,16 +39,6 @@ export function EntityProductsScreen({ kind }: { kind: CatalogEntityKind }) {
         ListHeaderComponent={
           entity ? (
             <View style={styles.header}>
-              <PageHeader
-                title={entity.name}
-                actions={
-                  typeof entity.productCount === 'number' ? (
-                    <Badge variant="default" size="sm">
-                      {entity.productCount} {t('brands.activeListings')}
-                    </Badge>
-                  ) : undefined
-                }
-              />
               <View style={styles.logoWrap}>
                 {entity.logo ? (
                   <Image source={{ uri: resolveImageUrl(entity.logo) }} style={styles.logo} resizeMode="contain" />
@@ -56,6 +46,11 @@ export function EntityProductsScreen({ kind }: { kind: CatalogEntityKind }) {
                   <RawText style={styles.logoFallback}>{entity.name.charAt(0).toUpperCase()}</RawText>
                 )}
               </View>
+              {typeof entity.productCount === 'number' ? (
+                <Text variant="caption" tone="muted" testID="entity-product-count">
+                  {entity.productCount} {t('brands.activeListings')}
+                </Text>
+              ) : null}
             </View>
           ) : null
         }

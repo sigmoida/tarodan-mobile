@@ -13,22 +13,20 @@ export interface InfoSection {
 }
 
 /**
- * Bilgi sayfası kabuğu (web `DocPage`): PageShell + PageHeader (başlık + açıklama) + tek
+ * Bilgi sayfası kabuğu (web `DocPage`): PageShell (başlık üst barda) + PageHeader (yalnız açıklama) + tek
  * SectionCard içinde bölümler — her bölüm lg/600 başlık + gövde metni. Süs ikonu yok; yalnız
  * web'de de başlığın yanında duran işlevsel ikon (`icon`) çizilir.
  */
 export function InfoPage({
   title,
-  pageTitle,
   description,
   sections,
   footer,
   testID,
 }: {
-  /** Üst bar başlığı. */
+  /** Üst bar başlığı — içerikte tekrar edilmez. */
   title: string;
-  /** İçerik başlığı (verilmezse çizilmez). */
-  pageTitle?: string;
+  /** Başlık altı kısa açıklama (küçük muted metin). */
   description?: string;
   sections: InfoSection[];
   footer?: React.ReactNode;
@@ -36,7 +34,7 @@ export function InfoPage({
 }) {
   return (
     <PageShell title={title} testID={testID}>
-      {pageTitle || description ? <PageHeader title={pageTitle} description={description} /> : null}
+      {description ? <PageHeader description={description} /> : null}
       <SectionCard bodyStyle={styles.sections}>
         {sections.map((s, i) => (
           <View key={s.title ?? i} style={styles.section}>

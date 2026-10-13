@@ -66,7 +66,7 @@ describe('Intl.PluralRules olmayan ortam (Hermes)', () => {
       await i18n.changeLanguage(lng);
       const icuKeys = leaves(catalogs[lng]).filter(([, v]) => ICU_RE.test(v));
       for (const [key] of icuKeys) {
-        const out = i18n.t(key as never, params as never) as string;
+        const out = String(i18n.t(key as never, params as never));
         expect(out).not.toMatch(/plural|select|\{|\}/);
       }
     }

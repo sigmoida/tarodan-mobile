@@ -6,8 +6,8 @@ import { useCategory } from './_hooks/useCategory';
 import { CategoryFilters } from './_components/CategoryFilters';
 
 /**
- * Kategori — PageShell + tek ürün ızgarası (`ProductGrid`): arama, sıralama ve ölçek çipleri liste
- * başlığında, sonuç sayısı altında. Kontrolcü `useCategory`; ekran yalnız kompozisyon.
+ * Kategori — PageShell + tek ürün ızgarası (`ProductGrid`): ortak `ProductListToolbar` (arama, sıralama,
+ * ızgara/liste, ölçek çipleri, sonuç sayısı) liste başlığında. Kontrolcü `useCategory`; ekran yalnız kompozisyon.
  */
 export default function CategoryScreen() {
   const { t } = useTranslation();
@@ -32,6 +32,7 @@ export default function CategoryScreen() {
     >
       <ProductGrid
         items={(f.products as any[]) ?? []}
+        layout={f.layout}
         loading={f.isLoading}
         refreshing={f.refreshing}
         onRefresh={f.onRefresh}

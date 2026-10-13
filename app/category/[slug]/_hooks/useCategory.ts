@@ -19,6 +19,8 @@ export function useCategory() {
   const [selectedScale, setSelectedScale] = useState('');
   const [sortMenuVisible, setSortMenuVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  // Izgara / liste görünümü (web ProductLayoutSelector) — ortak araç çubuğu anahtarı.
+  const [layout, setLayout] = useState<'grid' | 'list'>('grid');
 
   const { data: category } = useQuery({
     queryKey: ['category', slug],
@@ -77,6 +79,8 @@ export function useCategory() {
     setSelectedScale,
     sortMenuVisible,
     setSortMenuVisible,
+    layout,
+    setLayout,
     getSortLabel,
   };
 }

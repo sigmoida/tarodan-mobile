@@ -54,6 +54,8 @@ export function useSearch() {
 
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [sortModalVisible, setSortModalVisible] = useState(false);
+  // Izgara / liste görünümü (web ProductLayoutSelector) — araç çubuğu anahtarı.
+  const [layout, setLayout] = useState<'grid' | 'list'>('grid');
 
   // Arama artık yığın ekranı: her `router.push('/search?…')` taze bir ekran kurar, bu yüzden
   // filtreler yukarıda URL parametrelerinden bir kez başlatılır (eski `navToken` tekrar-uygulama
@@ -321,6 +323,8 @@ export function useSearch() {
     handleResultsScroll,
     showScrollTop,
     scrollToTop,
+    layout,
+    setLayout,
     // modals
     filterModalVisible,
     setFilterModalVisible,

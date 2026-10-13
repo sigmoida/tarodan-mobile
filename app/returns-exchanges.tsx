@@ -11,7 +11,6 @@ export default function ReturnsExchangesScreen() {
   return (
     <InfoPage
       title={t("mobile.pageReturns")}
-      pageTitle={t("mobile.pageReturns")}
       description={t("returnsExchangesPage.pageSubtitle")}
       sections={[
         {
