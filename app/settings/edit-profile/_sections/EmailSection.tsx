@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Badge, Button, HStack, SectionCard, Text } from '@/ui';
+import { Badge, Button, ButtonRow, HStack, SectionCard, Text } from '@/ui';
 import { Form, FormInput } from '@/ui/form';
 import { useEmailChangeFlow } from '../_hooks/useEmailChangeFlow';
 import { styles, ACTION_GAP } from '../_lib/styles';
@@ -56,21 +56,21 @@ export function EmailSection() {
               autoCorrect={false}
               testID="email-change-input"
             />
-            <HStack gap={ACTION_GAP} align="center" wrap>
+            <ButtonRow>
               <Button
-                variant="outline"
+                variant="primary"
                 title={t('profile.sendCode')}
                 onPress={f.submitEmail}
                 isLoading={f.isRequesting}
                 testID="email-change-request"
               />
               <Button
-                variant="link"
+                variant="outline"
                 title={t('profile.giveUp')}
                 onPress={f.cancel}
                 testID="email-change-cancel"
               />
-            </HStack>
+            </ButtonRow>
           </Form>
         )}
 
@@ -89,14 +89,22 @@ export function EmailSection() {
               transform={(text) => text.replace(/\D/g, '')}
               testID="email-change-code"
             />
-            <HStack gap={ACTION_GAP} align="center" wrap>
+            <ButtonRow>
               <Button
-                variant="outline"
+                variant="primary"
                 title={t('profile.verify')}
                 onPress={f.submitCode}
                 isLoading={f.isVerifying}
                 testID="email-change-verify"
               />
+              <Button
+                variant="outline"
+                title={t('profile.giveUp')}
+                onPress={f.cancel}
+                testID="email-change-cancel"
+              />
+            </ButtonRow>
+            <HStack justify="space-between" align="center" wrap>
               <Button
                 variant="link"
                 title={
@@ -108,19 +116,11 @@ export function EmailSection() {
                 disabled={f.resendIn > 0 || f.isRequesting}
                 testID="email-change-resend"
               />
-            </HStack>
-            <HStack gap={ACTION_GAP} align="center" wrap>
               <Button
                 variant="link"
                 title={t('profile.fixEmail')}
                 onPress={f.fixEmail}
                 testID="email-change-fix"
-              />
-              <Button
-                variant="link"
-                title={t('profile.giveUp')}
-                onPress={f.cancel}
-                testID="email-change-cancel"
               />
             </HStack>
           </Form>
