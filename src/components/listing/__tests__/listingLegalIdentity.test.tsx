@@ -171,6 +171,48 @@ describe('İlan verme · yasal kimlik kapısı', () => {
     );
   });
 
+  it('kapı açıkken biten görsel yüklemesi ve alan değişikliği payload içinde (bayat closure yok)', async () => {
+    const { result } = await renderFilledForm();
+    act(() => {
+      void result.current.handleSubmit();
+    });
+    await gateOpened();
+
+    // Kapı açıkken: başlık değişir, bir görsel daha yüklenir.
+    mockPost.mockResolvedValueOnce({
+      data: [{ cardKey: 'card-4', detailKey: 'detail-4', cardUrl: 'https://example.com/card-4.jpg' }],
+    });
+    act(() => result.current.setTitle('Güncel başlık'));
+    await act(async () => {
+      await result.current.pickImages();
+    });
+    await waitFor(() => expect(result.current.imageKeys.length).toBe(4));
+
+    act(() => settleLegalIdentityRequest(true));
+    await waitFor(() => expect(productsApi.create).toHaveBeenCalledTimes(1));
+    const payload = (productsApi.create as jest.Mock).mock.calls[0]![0];
+    expect(payload.title).toBe('Güncel başlık');
+    expect(payload.images).toEqual([
+      { cardKey: 'card-1', detailKey: 'detail-1' },
+      { cardKey: 'card-2', detailKey: 'detail-2' },
+      { cardKey: 'card-3', detailKey: 'detail-3' },
+      { cardKey: 'card-4', detailKey: 'detail-4' },
+    ]);
+  });
+
+  it('kapı açıkken form geçersizleşirse kurallar yeniden koşar, ilan gitmez', async () => {
+    const { result } = await renderFilledForm();
+    act(() => {
+      void result.current.handleSubmit();
+    });
+    await gateOpened();
+
+    act(() => result.current.setTitle(''));
+    await settleGateAndWait(true);
+    expect(productsApi.create).not.toHaveBeenCalled();
+    expect(appAlert).toHaveBeenCalledWith('Hata', expect.any(String));
+  });
+
   it('Vazgeç → ilan oluşturulmaz, form gönderiliyor durumuna geçmez', async () => {
     const { result } = await renderFilledForm();
     act(() => {

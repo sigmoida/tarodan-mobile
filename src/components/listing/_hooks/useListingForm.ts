@@ -18,6 +18,7 @@ import { useDispatchAddress } from './useDispatchAddress';
 import { invalidateListingCaches as invalidateListingCachesShared } from '../_lib/invalidate';
 import { useDeleteListing } from './useDeleteListing';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
+import { useLatestRef } from '@/hooks/useLatestRef';
 
 import { useAuthStore } from '../../../stores/authStore';
 import { api, productsApi, categoriesApi, bankAccountApi, shippingApi, type ListingRemovalPayload } from '@/lib/api';
@@ -825,8 +826,29 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
 
     // B-2.4: yeni ilan yayımlanmadan yasal kimlik; vazgeçerse ilan gönderilmez.
     // Düzenlemede sorulmaz (ilan zaten verildi).
-    if (!isEdit && !(await requireIdentity())) return;
+    if (!isEdit) {
+      if (!(await requireIdentity())) return;
+      // Kapı dakikalarca açık kalabilir (bu arada görsel yüklemesi biter, alan
+      // değişir): payload bu closure'dan DEĞİL, son commit'in durumundan kurulur.
+      await publishAfterGateRef.current();
+      return;
+    }
+    await publish();
+  };
 
+  /**
+   * Kimlik kapısından sonra, SON commit'in form durumuyla: kurallar yeniden
+   * koşar (kapı açıkken değişen durum geçersiz olabilir), sonra gönderim.
+   */
+  const publishAfterGate = async () => {
+    if (!validate()) return;
+    await publish();
+  };
+  // useEvent kalıbı — atama `useLayoutEffect`'te, render sırasında değil.
+  const publishAfterGateRef = useLatestRef(publishAfterGate);
+
+  /** Gönderim: oluşturma (`POST`) ya da düzenleme (`PATCH`) + sonuç uyarısı. */
+  const publish = async () => {
     setIsSubmitting(true);
     try {
       if (!isEdit) {
