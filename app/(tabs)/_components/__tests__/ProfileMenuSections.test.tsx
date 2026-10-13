@@ -5,14 +5,16 @@
  *  - Diğer gruplar (Alışveriş, Finans, …) Ana Sayfa yan menüsünde: DrawerMenu.test.tsx.
  */
 import React from 'react';
-import { screen } from '@testing-library/react-native';
+import { fireEvent, screen } from '@testing-library/react-native';
 import i18n from '@/i18n/config';
 import { renderWithProviders } from '@/test-utils';
-import { ProfileMenuSections } from '../ProfileSections';
+import { router } from 'expo-router';
+import { ProfileCard, ProfileDeleteAccount, ProfileMenuSections } from '../ProfileSections';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 
 const f: any = {
+  user: { id: 'u1', displayName: 'Ayşe Yılmaz', email: 'ayse@example.com' },
   isPaidTier: false,
   tierLabel: 'Free',
   effectiveTier: 'free',
@@ -61,4 +63,69 @@ it('hesap ayarları satırları profilde kalır (adresler, banka hesabı, güven
 it('çıkış satırı kalır', () => {
   renderWithProviders(<ProfileMenuSections f={f} />);
   expect(screen.getByTestId('profile-logout-button')).toBeTruthy();
+});
+
+it('çıkış ve hesap silme satırlarında chevron yok; hesap silme basınca eylemi çağırır', () => {
+  renderWithProviders(
+    <>
+      <ProfileMenuSections f={f} />
+      <ProfileDeleteAccount f={f} />
+    </>,
+  );
+  expect(screen.queryByTestId('profile-logout-button-chevron')).toBeNull();
+  expect(screen.queryByTestId('profile-delete-account-button-chevron')).toBeNull();
+  fireEvent.press(screen.getByTestId('profile-delete-account-button'));
+  expect(f.handleDeleteAccount).toHaveBeenCalled();
+  fireEvent.press(screen.getByTestId('profile-logout-button'));
+  expect(f.handleLogout).toHaveBeenCalled();
+});
+
+it('her menü satırında sağ chevron var ve satır rotaya gider', () => {
+  renderWithProviders(<ProfileMenuSections f={f} />);
+  expect(screen.getByTestId('profile-language-link-chevron')).toBeTruthy();
+  expect(screen.getByTestId('profile-blocked-users-link-chevron')).toBeTruthy();
+  fireEvent.press(screen.getByTestId('profile-language-link'));
+  expect(router.push).toHaveBeenCalledWith('/settings/language');
+});
+
+it('ücretli üyede üyelik/abonelik satırları ve katman rozeti görünür', () => {
+  renderWithProviders(<ProfileMenuSections f={{ ...f, isPaidTier: true, tierLabel: 'Premium' }} />);
+  expect(screen.getByTestId('profile-membership-link')).toBeTruthy();
+  expect(screen.getByTestId('profile-subscription-link')).toBeTruthy();
+  expect(screen.getByText('Premium')).toBeTruthy();
+});
+
+it('işletme paneli yalnız business katmanında görünür', () => {
+  renderWithProviders(<ProfileMenuSections f={f} />);
+  expect(screen.queryByText(i18n.t('mobile.settingsBusinessPanel'))).toBeNull();
+  screen.unmount();
+  renderWithProviders(
+    <ProfileMenuSections f={{ ...f, isPaidTier: true, tierLabel: 'Business', effectiveTier: 'business' }} />,
+  );
+  expect(screen.getByText(i18n.t('mobile.settingsBusinessPanel'))).toBeTruthy();
+});
+
+describe('ProfileCard — ortalı kimlik başlığı', () => {
+  it('ad, e-posta ve "Profili düzenle" düğmesi render edilir; düğme düzenleme ekranına gider', () => {
+    renderWithProviders(<ProfileCard f={f} />);
+    expect(screen.getByText('Ayşe Yılmaz')).toBeTruthy();
+    expect(screen.getByText('ayse@example.com')).toBeTruthy();
+    expect(screen.getByText('AY')).toBeTruthy(); // fotoğrafsız avatar baş harfleri
+    expect(screen.getByText(i18n.t('profile.editProfile'))).toBeTruthy();
+    fireEvent.press(screen.getByTestId('profile-edit-button'));
+    expect(router.push).toHaveBeenCalledWith('/settings/edit-profile');
+  });
+
+  it('avatar 120pt daire', () => {
+    renderWithProviders(<ProfileCard f={f} />);
+    const json = JSON.stringify(screen.toJSON());
+    expect(json).toContain('"width":120');
+    expect(json).toContain('"height":120');
+    expect(json).toContain('"borderRadius":60');
+  });
+
+  it('ücretli üyede katman rozeti görünür', () => {
+    renderWithProviders(<ProfileCard f={{ ...f, isPaidTier: true, tierLabel: 'Premium' }} />);
+    expect(screen.getByText(i18n.t('profile.tierMemberBadge', { tier: 'Premium' }))).toBeTruthy();
+  });
 });
