@@ -91,7 +91,7 @@ export const emailSchema = (t: TFunction) =>
  *
  * TEK KAYNAK — kayıt (`app/(auth)/register`), kurumsal davet
  * (`app/(auth)/corporate-invite`) ve kullanıcı adı talebi
- * (`app/settings/username`) ekranlarının üçü de buradan alır. Daha önce üç ayrı
+ * (`app/settings/edit-profile`, kullanıcı adı bölümü) ekranlarının üçü de buradan alır. Daha önce üç ayrı
  * kopya vardı ve davranışları sessizce ayrışmıştı (biri `Gorkem`'i kabul edip
  * dönüştürüyor, biri reddediyordu).
  */
@@ -101,7 +101,7 @@ export const USERNAME_PATTERN = /^[a-z0-9](?:[a-z0-9._]*[a-z0-9])?$/;
  * Kullanıcı adı alanının görüntü dönüşümü — bugün yalnız küçük harfe çevirir.
  * TEK KAYNAK: register (`RegisterForm.tsx`), kurumsal davet
  * (`corporate-invite/index.tsx`) ve kullanıcı adı talebi
- * (`settings/username/index.tsx`) ekranlarının üçü de buradan alır (önceden
+ * (`settings/edit-profile/_sections/UsernameSection.tsx`) ekranlarının üçü de buradan alır (önceden
  * üç ayrı `(t) => t.toLowerCase()` kopyası vardı, §5).
  *
  * ⚠️ Bilinçli olarak transliterasyon YAPMAZ (`ı→i`, `ş→s`, `ğ→g` gibi bir eşleme
