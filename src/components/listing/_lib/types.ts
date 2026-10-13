@@ -66,6 +66,11 @@ export interface ListingFormProps {
   mode: 'create' | 'edit';
   /** Required when mode === 'edit'. */
   productId?: string;
+  /**
+   * AppShell (sekme kökü) içinde çizilir: üst bar kabuktan gelir, alt boşluk yüzen hap için
+   * `useTabBarInset`ten — form kendi üst/alt güvenli alanını eklemez.
+   */
+  embedded?: boolean;
 }
 
 // ---------------------------------------------------------------------------

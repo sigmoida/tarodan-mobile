@@ -16,13 +16,15 @@ const { colors } = theme;
  * form, or `null` when the form itself should render. Keeps the early-return
  * ladder out of the thin screen.
  */
-export function ListingGates({ f }: { f: ListingFormController }) {
+export function ListingGates({ f, embedded = false }: { f: ListingFormController; embedded?: boolean }) {
+  // Sekme kabuğunda (embedded) üst bar AppShell'den gelir; güvenli alan kenarı eklenmez.
+  const edges = embedded && !f.isEdit ? ([] as const) : undefined;
   const { t } = useTranslation();
   const { authLoading, isEdit, productLoading, isAuthenticated, productNotFound, status } = f;
 
   if (authLoading || (isEdit && productLoading)) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView style={styles.centered} edges={edges}>
         <ActivityIndicator size="large" color={colors.primary[600]!} />
       </SafeAreaView>
     );
@@ -30,7 +32,7 @@ export function ListingGates({ f }: { f: ListingFormController }) {
 
   if (!isAuthenticated) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView style={styles.centered} edges={edges}>
         <RawText style={styles.authText}>{t('product.loginRequiredToCreate')}</RawText>
         <TouchableOpacity style={styles.primaryButton} onPress={() => router.push('/(auth)/login')}>
           <RawText style={styles.primaryButtonText}>{t('common.login')}</RawText>
@@ -41,7 +43,7 @@ export function ListingGates({ f }: { f: ListingFormController }) {
 
   if (isEdit && productNotFound) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView style={styles.centered} edges={edges}>
         <Ionicons name="alert-circle-outline" size={64} color={colors.danger[600]!} />
         <RawText style={[styles.authText, { marginTop: theme.spacing[4] }]}>{t('product.listingNotFound')}</RawText>
         <TouchableOpacity style={styles.primaryButton} onPress={() => router.back()}>

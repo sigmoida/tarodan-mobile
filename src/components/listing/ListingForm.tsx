@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { theme, RawText } from '@/ui';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
 
 import { styles } from './_lib/styles';
 import type { ListingFormProps } from './_lib/types';
@@ -34,16 +35,17 @@ export type { ListingFormProps };
  * sections, and picker modals. Consumed by `app/(tabs)/sell.tsx` (create) and
  * `app/listing/[id]/edit.tsx` (edit).
  */
-export default function ListingForm({ mode, productId }: ListingFormProps) {
+export default function ListingForm({ mode, productId, embedded = false }: ListingFormProps) {
   const { t } = useTranslation();
   const f = useListingForm({ mode, productId });
   const insets = useSafeAreaInsets();
+  const tabInset = useTabBarInset();
 
-  const gate = ListingGates({ f });
+  const gate = ListingGates({ f, embedded });
   if (gate) return gate;
 
   return (
-    <SafeAreaView style={styles.container} edges={f.isEdit ? ['bottom'] : ['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={f.isEdit ? ['bottom'] : embedded ? [] : ['top', 'bottom']}>
       {f.isEdit && (
         <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
           <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('common.back')}>
@@ -57,7 +59,7 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, embedded && { paddingBottom: tabInset }]}
           keyboardShouldPersistTaps="handled"
         >
           <ListingHeaderBanners f={f} />
