@@ -9,7 +9,7 @@ import type { ProductSeller } from '../_lib/types';
 const { colors, spacing, iconSize } = theme;
 
 /**
- * Satıcı kartı (web `SellerCard`): SectionCard "Satıcı" içinde avatar + ad (doğrulanmışsa onay işareti)
+ * Satıcı kartı (web `SellerCard`): SectionCard "Satıcı" içinde avatar + ad
  * + puan + satış sayısı; altında "Mesaj Gönder" (secondary) ve "Profili Gör" (outline). Sahip kendi
  * ilanında butonları görmez.
  */
@@ -37,9 +37,6 @@ export function SellerCard({
             <Text variant="body" weight="semibold" numberOfLines={1} style={styles.name}>
               {seller.displayName}
             </Text>
-            {seller.verified ? (
-              <Ionicons name="checkmark-circle" size={iconSize.sm} color={colors.success[500]!} />
-            ) : null}
           </View>
           <View style={styles.statsRow}>
             {rating > 0 ? (

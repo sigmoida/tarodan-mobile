@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, QuantityStepper, theme } from '@/ui';
 import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
@@ -7,7 +7,10 @@ import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { cartQuantityLimit } from '../_lib/quantity';
 import type { Product } from '../_lib/types';
 
-const { spacing } = theme;
+const { spacing, controlHeight } = theme;
+
+/** Bu genişliğin altında (küçük telefonlar) ikili satır da alt alta dizilir: etiket asla sarmaz. */
+const SIDE_BY_SIDE_MIN_WIDTH = 360;
 
 export const quantityLimit = cartQuantityLimit;
 
@@ -20,8 +23,10 @@ function buyLabel(product: Product, hasStock: boolean, t: (k: any) => string): s
 }
 
 /**
- * Sabit alt bar (platform kalıbı; web'in birincil satırı): adet seçici + "Hemen Al". Sahipte
- * "Düzenle" (+ koleksiyon izni varsa "Koleksiyona Ekle"). Etiketler web ile aynı.
+ * Sabit alt bar = web `ProductInfo`'nun birincil satırı (adet seçici + "Hemen Al") platformun
+ * sabit-bar kalıbına sabitlenmiş hâli. Bilerek SADE: fiyat yok (başlığın altında), ikincil/küçük
+ * metin yok, düğmelerde ikon yok, etiket tek satır; adet seçici ve düğme aynı yükseklikte.
+ * Sahipte "Düzenle" (+ koleksiyon izni varsa "Koleksiyona Ekle"), ikisi de lg. Etiketler web ile aynı.
  */
 export function ProductBuyBar({
   product,
@@ -52,6 +57,7 @@ export function ProductBuyBar({
         {showCollectionEntry ? (
           <Button
             variant="secondary"
+            size="lg"
             title={t('collection.addToCollection')}
             onPress={onAddToCollection}
             fullWidth
@@ -71,6 +77,7 @@ export function ProductBuyBar({
           value={quantity}
           onChange={onQuantity}
           max={max}
+          style={styles.stretch}
           decreaseLabel={t('cart.decreaseQuantity')}
           increaseLabel={t('cart.increaseQuantity')}
         />
@@ -81,7 +88,7 @@ export function ProductBuyBar({
         title={buyLabel(product, hasStock, t as any)}
         onPress={onBuyNow}
         disabled={isOutOfStock || product.status !== 'active' || !hasStock}
-        style={styles.flex}
+        style={styles.buy}
       />
     </View>
   );
@@ -106,11 +113,16 @@ export function ProductSecondaryActions({
   const { t } = useTranslation();
   // iOS: yetkisi olmayana takas girişi gösterilmez (bkz. useFeatureAccess).
   const { showTradeEntry } = useFeatureAccess();
+  const { width } = useWindowDimensions();
   if (isOwner) return null;
   const active = product.status === 'active';
   const tradeOpen = isProductTradeOpen(product) && showTradeEntry;
+  // Web `grid-cols-3`/`grid-cols-2` telefonda sıkışır ve etiketler sarar. Üç eylem (Takas) ya da dar
+  // ekran: alt alta, tam genişlik; iki eylem geniş telefonda yan yana eşit genişlikte.
+  const stacked = tradeOpen || width < SIDE_BY_SIDE_MIN_WIDTH;
+  const cell = stacked ? undefined : styles.cell;
   return (
-    <View style={styles.grid}>
+    <View style={stacked ? styles.stack : styles.pair}>
       {tradeOpen ? (
         <Button
           testID="product-detail-trade-button"
@@ -118,7 +130,7 @@ export function ProductSecondaryActions({
           title={t('product.trade')}
           onPress={onTrade}
           disabled={!active}
-          style={styles.cell}
+          fullWidth
         />
       ) : null}
       <Button
@@ -127,7 +139,8 @@ export function ProductSecondaryActions({
         title={t('product.makeOffer')}
         onPress={onMakeOffer}
         disabled={!active}
-        style={styles.cell}
+        fullWidth={stacked}
+        style={cell}
       />
       <Button
         testID={inCart ? 'product-detail-remove-from-cart-button' : 'product-detail-add-to-cart-button'}
@@ -135,7 +148,8 @@ export function ProductSecondaryActions({
         title={inCart ? t('product.removeFromCart') : t('product.addToCart')}
         onPress={onCartToggle}
         disabled={!active}
-        style={styles.cell}
+        fullWidth={stacked}
+        style={cell}
         textStyle={inCart ? styles.dangerText : undefined}
       />
     </View>
@@ -143,10 +157,12 @@ export function ProductSecondaryActions({
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing[3] },
-  flex: { flex: 1 },
+  row: { flexDirection: 'row', alignItems: 'stretch', gap: spacing[3] },
+  // Adet seçici (kenarlık + iç boşlukla ~50pt) ile düğme aynı yüksekliğe gerilir.
+  stretch: { alignSelf: 'stretch' },
+  buy: { flex: 1, alignSelf: 'stretch', height: undefined, minHeight: controlHeight.lg },
   stack: { gap: spacing[2] },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] },
-  cell: { flexGrow: 1, flexBasis: '30%' },
+  pair: { flexDirection: 'row', gap: spacing[2] },
+  cell: { flex: 1, alignSelf: 'stretch' },
   dangerText: { color: theme.colors.danger[600] },
 });
