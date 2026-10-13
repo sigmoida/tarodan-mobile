@@ -26,6 +26,7 @@
 const fs = require('fs');
 const path = require('path');
 
+// Yalnız iOS bundle id eki; Android staging paketi paths.json'dan gelir.
 const STAGING_SUFFIX = '.staging';
 
 // Staging Android'in Firebase yapılandırması. Gradle google-services eklentisi,
@@ -160,10 +161,11 @@ function resolveStagingGoogleServicesFile(opts = {}) {
   return file;
 }
 
-// Staging alan adı(ları): src/lib/deeplinks/paths.json tek
-// kaynak. app.json'daki production config staging host'unu İÇERMEZ (Play/App
-// Store incelemesinde görünmesin); yalnız staging profilinde devreye girer.
-const { stagingHosts } = require('./src/lib/deeplinks/paths.json');
+// Staging alan adı(ları) ve Android paket adı: src/lib/deeplinks/paths.json tek
+// kaynak (`stagingHosts`, `stagingAndroidPackage`; burada ikinci bir tanım YOK).
+// app.json'daki production config staging host'unu İÇERMEZ (Play/App Store
+// incelemesinde görünmesin); yalnız staging profilinde devreye girer.
+const { stagingHosts, stagingAndroidPackage } = require('./src/lib/deeplinks/paths.json');
 
 /**
  * Android intent filter'larında `host` değerlerini staging host'larıyla DEĞİŞTİRİR.
@@ -223,7 +225,6 @@ module.exports = ({ config }) => {
   // Staging'de de universal link isteniyorsa iki iş birlikte yapılmalı:
   // AASA'ya `.staging` appID'si eklenmeli VE portal'da yetenek açılmalı.
   const { associatedDomains: _productionOnly, ...stagingIos } = config.ios;
-  const stagingAndroidPackage = `${config.android.package}${STAGING_SUFFIX}`;
 
   return {
     ...config,
@@ -234,8 +235,7 @@ module.exports = ({ config }) => {
     },
     // Android: iOS ile aynı model — staging paketi ayrı bir uygulama
     // (`com.tarodan.app.staging`) ve yalnız staging alan adındaki App Links'i
-    // yakalar. Paket adı `<prod>.staging`; paths.json'daki `stagingAndroidPackage`
-    // ile aynı olmak ZORUNDA (appConfig.test.ts kilitler).
+    // yakalar. Paket adı paths.json `stagingAndroidPackage`'dan okunur (tek kaynak).
     android: {
       ...config.android,
       package: stagingAndroidPackage,

@@ -47,6 +47,21 @@ describe('Android paket adı — staging .staging alır, production almaz', () =
     },
   );
 
+  it('staging paket adı TEK kaynaktan: paths.json stagingAndroidPackage (app.config.js\'de ikinci tanım yok)', () => {
+    const pathsFile = path.resolve(__dirname, '../../lib/deeplinks/paths.json');
+    const real = JSON.parse(fs.readFileSync(pathsFile, 'utf8'));
+    let isolated: (ctx: { config: Cfg }) => Cfg = makeConfig;
+    jest.isolateModules(() => {
+      jest.doMock(pathsFile, () => ({ ...real, stagingAndroidPackage: 'com.example.kaynak.testi' }));
+      isolated = require('../../../app.config.js');
+    });
+    jest.dontMock(pathsFile);
+    process.env.EXPO_PUBLIC_ENVIRONMENT = 'preview';
+    expect(isolated({ config: base() }).android.package).toBe('com.example.kaynak.testi');
+    // gerçek değer: prod paket + ".staging" (iki yerde ayrı ayrı tanımlı değil, tutarlı)
+    expect(real.stagingAndroidPackage).toBe(`${real.androidPackage}.staging`);
+  });
+
   it('iOS ile aynı model: iki platformun staging kimliği aynı ek', () => {
     const cfg = withEnv('preview');
     expect(cfg.ios.bundleIdentifier).toBe(cfg.android.package);
