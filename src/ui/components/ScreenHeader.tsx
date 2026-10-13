@@ -117,10 +117,11 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
         <ScrollEdge barHeight={topPad + TOP_BAR_HEIGHT} scrollY={scrollY} testID={`${testID}-edge`} />
       ) : null}
       <View style={styles.row} testID={`${testID}-row`} pointerEvents="box-none">
-        <View style={[styles.side, { width: sideW }]} testID={`${testID}-left`}>
-          <View style={styles.sideInner} onLayout={onLeftLayout}>
+        {/* Boş yan slotlar dokunuşu yutmasın (alttaki listenin sürüklenmesi): box-none. */}
+        <View style={[styles.side, { width: sideW }]} testID={`${testID}-left`} pointerEvents="box-none">
+          <View style={styles.sideInner} onLayout={onLeftLayout} pointerEvents="box-none">
             {leading ? (
-              <View style={styles.leadingBox}>{leading}</View>
+              <View style={styles.leadingBox} pointerEvents="box-none">{leading}</View>
             ) : showBack ? (
               <GlassIconButton
                 icon="chevron-left"
@@ -148,8 +149,8 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
           )}
         </View>
 
-        <View style={[styles.side, styles.sideRight, { width: sideW }]} testID={`${testID}-right`}>
-          <View style={[styles.sideInner, styles.rightInner]} onLayout={onRightLayout}>
+        <View style={[styles.side, styles.sideRight, { width: sideW }]} testID={`${testID}-right`} pointerEvents="box-none">
+          <View style={[styles.sideInner, styles.rightInner]} onLayout={onRightLayout} pointerEvents="box-none">
             {right}
           </View>
         </View>
