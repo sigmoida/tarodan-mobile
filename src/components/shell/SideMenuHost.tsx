@@ -142,6 +142,8 @@ export function SideMenuHost({ children }: { children: React.ReactNode }) {
     <GestureDetector gesture={pan}>
       <View
         style={styles.root}
+        // Kapanış animasyonu sürerken (≈250ms) satırlar/örtü dokunuşa kapalı: çift basış iki push üretmesin.
+        pointerEvents={isOpen ? 'auto' : 'none'}
         accessibilityViewIsModal
         importantForAccessibility="yes"
         testID="side-menu-root"

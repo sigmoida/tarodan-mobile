@@ -1,4 +1,5 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import * as Router from 'expo-router';
 
 export interface SideMenuApi {
   isOpen: boolean;
@@ -20,6 +21,16 @@ export function SideMenuProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setOpen] = useState(false);
   const open = useCallback(() => setOpen(true), []);
   const close = useCallback(() => setOpen(false), []);
+  // Menü açıkken dışarıdan gezinme gelirse (push bildirimi, derin bağlantı, oturum düşüp login)
+  // yeni ekran menünün altında kalmasın: rota değişince menü kapanır.
+  // `* as Router`: expo-router'ı kısmi mock'layan testlerde usePathname yoksa no-op (AppShell ile aynı kalıp).
+  const pathname = Router.usePathname?.() ?? '';
+  const lastPath = useRef(pathname);
+  useEffect(() => {
+    if (lastPath.current === pathname) return;
+    lastPath.current = pathname;
+    setOpen(false);
+  }, [pathname]);
   const value = useMemo(() => ({ isOpen, open, close }), [isOpen, open, close]);
   return <SideMenuContext.Provider value={value}>{children}</SideMenuContext.Provider>;
 }

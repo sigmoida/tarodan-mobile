@@ -81,6 +81,7 @@ export function DrawerMenu() {
 
   const go = useCallback(
     (to: string) => {
+      // Çift basış: kapanış animasyonu sürerken SideMenuHost kökü pointerEvents='none'.
       close();
       router.push(to as never);
     },
