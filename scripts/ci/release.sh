@@ -24,17 +24,30 @@
 #   release.sh plan         <staging|production>
 #       Platform başına karar (fingerprint → OTA / build / skip). Girdiler env'den:
 #       MODE (auto|ota|build|apk), PLATFORM (all|ios|android), ANDROID_ENABLED,
-#       COMMIT_MSG, SHA. Çıktılar GITHUB_OUTPUT'a: message, <p>
+#       COMMIT_MSG, SHA, SOURCE_REF (production: master'a merge edilen PR'ın dalı).
+#       Çıktılar GITHUB_OUTPUT'a: message, <p>
 #       (ota|build|wait|skip|blocked), <p>_fp, ota_matrix (OTA job'unun matrix'i:
 #       [{platform, fp}] — concurrency platform+runtime başına), blocked (engellenen
 #       platformlar), decided=true (EN SON yazılır: yalnız tüm kararlar
 #       tamamlandıysa; downstream job'lar buna bakar) + staging'de apk.
 #       `blocked` bir platformu durdurur, diğerini DEĞİL; workflow plan job'unu
 #       sonda kırmızıya çevirir. Workflow'lardaki tek karar döngüsü budur.
+#       production + mode=auto iki türlüdür (SOURCE_REF'e göre):
+#         sürüm  (development ya da bilinmeyen kaynak): HER ZAMAN store build'i;
+#                expo.version son production build'inden büyük değilse blocked.
+#                Production OTA'sı bu yoldan ASLA çıkmaz.
+#         hotfix (hotfix/*): fingerprint kararı — JS ise onaylı OTA, native ise
+#                build (VERSION-GATE'e tabi).
 #   release.sh recheck      <ios|android> <staging|production>
 #       Build job'ı kilidi aldıktan sonra (FP, MODE env'den) yeniden sorgular;
-#       GITHUB_OUTPUT'a action=build|ota|skip yazar. staging: arada build
-#       başladıysa ota; production: onaysız OTA'ya düşmez, skip + uyarı.
+#       GITHUB_OUTPUT'a action=build|ota|skip ve await=true|false yazar. staging:
+#       arada build başladıysa ota (await=true) ya da bittiyse ota; production:
+#       onaysız OTA'ya düşmez, skip + uyarı.
+#   release.sh await-binary <ios|android> <staging|production> <runtime-version>
+#       Bu runtime'ın derlenen build'i kalmayana kadar bekler (gönderim beklenmez;
+#       AWAIT_MINUTES, varsayılan 75; AWAIT_INTERVAL sn, varsayılan 60; ANDROID_ENABLED
+#       plan'daki gibi). Staging OTA'sı derlenen build'den SONRA yayınlansın diye
+#       (ota_matrix'te "await":true, recheck'te await=true).
 #   release.sh guard-ref    <staging|production>
 #       Koşunun ref'i bu ortama yayın yapabilir mi (REF, MODE env'den)?
 #       production: yalnız refs/heads/master. staging: refs/heads/development;
@@ -224,15 +237,20 @@ classify_builds() {
   ' "$1" "$2" "$ROOT/eas.json"
 }
 
+# [exclude-sha]: o commit'ten alınmış build'ler sayılmaz. Plan bir koşu yeniden
+# çalıştırıldığında (ör. bir platform takıldı, "Re-run") kendi az önce aldığı
+# build'i "son production build'i" sanıp "sürüm artmadı" demesin.
 last_store_version() {
-  local platform="$1" profile="$2" out
+  local platform="$1" profile="$2" exclude="${3:-}" out
   out="$(eas build:list --platform "$platform" --build-profile "$profile" \
-    --status finished --limit 1 --json --non-interactive)" \
+    --status finished --limit 20 --json --non-interactive)" \
     || die "eas build:list başarısız ($platform/$profile)"
   printf '%s' "$out" | node -e '
     let s=""; process.stdin.on("data",d=>s+=d).on("end",()=>{
-      const b = JSON.parse(s || "[]")[0]; if (b && b.appVersion) console.log(b.appVersion);
-    });'
+      const ex = process.argv[1];
+      const b = JSON.parse(s || "[]").find((x) => !ex || x.gitCommitHash !== ex);
+      if (b && b.appVersion) console.log(b.appVersion);
+    });' "$exclude"
 }
 
 version_gt() {
@@ -401,7 +419,7 @@ plan() {
   env_config "$env"
   local mode="${MODE:-auto}" want="${PLATFORM:-all}" android_enabled="${ANDROID_ENABLED:-false}"
   local sha="${SHA:-0000000}" msg version="" p fp state build_id decision last text
-  local ota="" blocked=""
+  local ota="" blocked="" kind="" source="${SOURCE_REF:-}" gated await
   msg="$(printf '%s' "${COMMIT_MSG:-manual $env ($mode) ${sha:0:7}}" | head -n1)"
   output "message=$msg"
 
@@ -414,6 +432,14 @@ plan() {
   fi
   if [ "$env" = production ]; then
     version="$(node -p "require(process.argv[1]).expo.version" "$ROOT/app.json")"
+    # Merge'ün türü. Kaynak bilinmiyorsa (API okunamadı, elle tetikleme) SÜRÜM
+    # sayılır: en kötü ihtimalle bir hotfix "sürümü artır" hatasıyla durur; asla
+    # onaysız ya da istenmemiş bir OTA hazırlanmaz.
+    case "$source" in
+      hotfix/*) kind=hotfix ;;
+      *) kind=release ;;
+    esac
+    echo "production: kaynak '${source:-?}' → $kind (mode=$mode)"
   fi
 
   for p in ios android; do
@@ -432,19 +458,64 @@ plan() {
     [ "$build_id" != "$state" ] || build_id=""
     echo "$p: fingerprint=$fp binary=${state}"
 
-    case "$mode:${state%% *}" in
-      ota:*) decision=ota ;;
-      build:*) decision=build ;;
-      *:available) decision=ota ;;
-      *:pending)
-        # Binary henüz YOK (derleniyor ya da gönderimi sürüyor): OTA ona
-        # ulaşacak mı belirsiz → yayınlanmaz; ikinci bir build de alınmaz.
-        decision="wait"
-        echo "::warning::$p: bu runtime ($fp) için build/gönderim sürüyor ($build_id) — OTA yayınlanmadı, ikinci build alınmadı. Bitince JS farkı için: gh workflow run mobile-$env.yml --ref $BRANCH -f mode=ota -f platform=$p" ;;
-      *) decision=build ;;
-    esac
-    if [ "$decision" = ota ] && [ "${state%% *}" != available ]; then
-      echo "::warning::$p: bu runtime ($fp) için gönderilmiş bir $env binary'si yok ($state) — OTA elle istendi, hiçbir binary'ye ULAŞMAYABİLİR."
+    gated=false await=false
+    if [ "$env" = production ] && [ "$mode" = auto ] && [ "$kind" = release ]; then
+      # SÜRÜM: development → master merge'ü HER ZAMAN store build'idir; yalnız JS
+      # değişmiş olsa da OTA'ya düşmez. Önce sürüm kapısı (VERSION-GATE; aşağıdaki
+      # kıyasın aynısı, bu commit'in kendi build'leri hariç): artmamışsa ne build ne
+      # OTA — ve koşu kırmızı.
+      gated=true
+      last="$(last_store_version "$p" "$BUILD_PROFILE" "$sha")"
+      if [ -n "$last" ] && ! version_gt "$version" "$last"; then
+        echo "::error::$p: sürüm merge'ü (kaynak: ${source:-bilinmiyor}) ama app.json expo.version ($version) son production build'inin sürümünden ($last) büyük değil — store build ALINMADI, OTA da yok. Yeni sürüm için development'ta expo.version'ı artırıp yeni PR aç. Aynı sürümün yeni build'i (ör. App Review reddi, sürüm henüz yayınlanmadıysa): gh workflow run mobile-production.yml --ref master -f mode=build -f platform=$p. DİKKAT: master artık yayınlanmamış kod içeriyor; buradan çıkacak bir OTA (hotfix/* ya da mode=ota) o kodu da canlıya taşır. Merge yalnız uygulamaya girmeyen dosyaları (test, CI, belge) değiştirdiyse bu hata yok sayılabilir."
+        decision=blocked
+      else
+        case "${state%% *}" in
+          available)
+            decision=skip
+            echo "::notice::$p: bu sürümün production binary'si zaten gönderilmiş ($build_id) — ikinci build alınmadı." ;;
+          pending)
+            decision="wait"
+            echo "::warning::$p: bu sürümün production build'i/gönderimi sürüyor ($build_id) — ikinci build alınmadı." ;;
+          *)
+            decision=build
+            echo "$p: sürüm ${last:-<ilk build>} → $version" ;;
+        esac
+      fi
+    else
+      case "$mode:${state%% *}" in
+        build:*) decision=build ;;
+        *:available)
+          decision=ota
+          if [ "$env" = production ]; then
+            # Gönderilmiş ≠ yayınlanmış: OTA yalnız bu runtime'ın binary'sine iner.
+            echo "::warning::$p: production OTA'sı yalnız bu runtime'ın binary'sine iner (build $build_id, app.json $version). Bu sürüm mağazada henüz yayınlanmadıysa (ör. incelemede) canlıdaki önceki sürümün kullanıcıları bu düzeltmeyi ALMAZ."
+          fi ;;
+        *:pending)
+          if [ "$env" = staging ]; then
+            # Binary geliyor ve AYNI runtime'ı taşıyor: OTA, build bitene kadar
+            # bekleyip (await-binary) yayınlanır. Beklemek şart: expo-updates bir
+            # güncellemeyi yalnız commitTime'ı gömülü JS'inkinden (build anı)
+            # YENİYSE uygular; build JS'i paketlemeden önce yayınlanan bir OTA o
+            # build'e hiç inmezdi. Yayınlanmasa da build sürerken gelen push'un
+            # JS'i hiçbir cihaza ulaşmazdı.
+            decision=ota
+            await=true
+            echo "::notice::$p: bu runtime ($fp) için build/gönderim sürüyor ($build_id) — OTA, build bitince yayınlanacak."
+          elif [ "$mode" = ota ]; then
+            decision=ota
+            echo "::warning::$p: bu runtime ($fp) için build/gönderim sürüyor ($build_id) — OTA elle istendi; onaylanırsa binary'den ÖNCE çıkabilir ve ona İNMEYEBİLİR."
+          else
+            # Production OTA'sı onay ister; binary'si henüz olmayan bir runtime'a
+            # onay istenmez. İkinci bir build de alınmaz.
+            decision="wait"
+            echo "::warning::$p: bu runtime ($fp) için build/gönderim sürüyor ($build_id) — OTA yayınlanmadı, ikinci build alınmadı. Bitince JS farkı için: gh workflow run mobile-$env.yml --ref $BRANCH -f mode=ota -f platform=$p"
+          fi ;;
+        ota:*)
+          decision=ota
+          echo "::warning::$p: bu runtime ($fp) için gönderilmiş bir $env binary'si yok ($state) — OTA elle istendi, hiçbir binary'ye ULAŞMAYABİLİR." ;;
+        *) decision=build ;;
+      esac
     fi
     if [ "$decision" = build ] && [ "$env" = staging ] && [ "$p" = android ] && [ "$android_enabled" != true ]; then
       echo "::notice::android: native değişti ama vars.ANDROID_RELEASE_ENABLED != 'true' — Android build atlandı. Ad-hoc APK için: gh workflow run mobile-staging.yml --ref development -f mode=apk"
@@ -456,8 +527,9 @@ plan() {
     # (push tabanıyla değil): iptal edilmiş bir önceki koşu ya da çok commit'li
     # bir merge kapıyı yanıltamaz. Kapı PLATFORM BAŞINADIR: iOS'un kapısı
     # takılırsa Android'in OTA'sı yine çıkar (ve tersi); koşu sonda kırmızı olur.
-    if [ "$decision" = build ] && [ "$env" = production ]; then
-      last="$(last_store_version "$p" "$BUILD_PROFILE")"
+    # Sürüm merge'ünde kapı yukarıda zaten uygulandı (gated).
+    if [ "$decision" = build ] && [ "$env" = production ] && [ "$gated" != true ]; then
+      last="$(last_store_version "$p" "$BUILD_PROFILE" "$sha")"
       if [ -n "$last" ] && ! version_gt "$version" "$last"; then
         text="$p: native değişti (fingerprint $fp için production build'i yok) ama app.json expo.version ($version) son production build'inin sürümünden ($last) büyük değil. Bu merge'de expo.version'ı artır (ör. development'ta app.json'u güncelleyip yeni bir PR aç)."
         if [ "$mode" = build ]; then
@@ -476,11 +548,17 @@ plan() {
 
     output "$p=$decision"
     case "$decision" in
-      ota) ota="$ota{\"platform\":\"$p\",\"fp\":\"$fp\"}," ;;
+      ota)
+        if [ "$await" = true ]; then
+          ota="$ota{\"platform\":\"$p\",\"fp\":\"$fp\",\"await\":true},"
+        else
+          ota="$ota{\"platform\":\"$p\",\"fp\":\"$fp\"},"
+        fi ;;
       blocked) blocked="$blocked $p" ;;
     esac
     summary "### $p → \`$decision\`" "- fingerprint: \`$fp\`" "- binary: $state"
     if [ -n "$version" ]; then summary "- app.json expo.version: \`$version\`"; fi
+    if [ -n "$kind" ]; then summary "- merge: \`${source:-bilinmiyor}\` → $kind (mode=$mode)"; fi
   done
 
   output "ota_matrix=[${ota%,}]"
@@ -489,7 +567,7 @@ plan() {
 }
 
 recheck() {
-  local platform="$1" env="$2" state=none action=build guard
+  local platform="$1" env="$2" state=none action=build guard await=false
   env_config "$env"
   [ -n "${FP:-}" ] || die "recheck: FP (plan'ın fingerprint'i) boş"
   if [ "${MODE:-auto}" != build ]; then
@@ -500,8 +578,11 @@ recheck() {
       action=ota
       echo "::notice::Bu runtime için arada gönderilmiş bir binary oluştu (${state#* }) — build yerine OTA." ;;
     staging:pending)
-      action=skip
-      echo "::warning::Bu runtime için arada bir build/gönderim başlamış (${state#* }) — ikinci build alınmadı, OTA da yayınlanmadı (binary henüz yok)." ;;
+      # plan'daki staging kuralıyla aynı: ikinci build yok; OTA o build bitince
+      # yayınlanır (await-binary — commitTime gömülü JS'ten yeni olsun diye).
+      action=ota
+      await=true
+      echo "::notice::Bu runtime için arada bir build/gönderim başlamış (${state#* }) — ikinci build alınmadı; OTA, o build bitince yayınlanacak." ;;
     production:available|production:pending)
       # Production OTA onay ister; burada sessizce OTA'ya dönülmez.
       action=skip
@@ -516,7 +597,62 @@ recheck() {
       blocked) output "action=skip"; return 1 ;;
     esac
   fi
+  output "await=$await"
   output "action=$action"
+}
+
+# Bu runtime'ın DERLENEN build'i kalmayana kadar bekler (staging OTA'sı; bkz.
+# plan'daki pending kuralı). Gönderim (TestFlight / Play) BEKLENMEZ: commitTime
+# yarışı için build'in JS'i paketlemiş olması yeter; build bittikten sonra
+# yayınlanan OTA, gömülü JS'ten her zaman yenidir.
+#   - EAS sorgusu geçici olarak başarısız olursa yeniden denenir (bekleme bir
+#     API hatası yüzünden OTA'yı kaybetmesin).
+#   - Süre saatle ölçülür (AWAIT_MINUTES, varsayılan 75 — job sınırı 120 dk); dolarsa
+#     uyarıyla döner ve OTA yine yayınlanır.
+# Build başarısız/iptal olursa da döner: OTA zararsızdır (bu runtime'da binary yok).
+await_binary() {
+  local platform="$1" env="$2" fp="$3" limit="${AWAIT_MINUTES:-75}" interval="${AWAIT_INTERVAL:-60}" start n
+  env_config "$env"
+  [ -n "$fp" ] || die "await-binary: fingerprint boş"
+  start=$SECONDS
+  while :; do
+    if n="$(builds_in_flight "$platform" "$(binary_profiles "$env" "$platform")" "$fp" "$CHANNEL")"; then
+      if [ "$n" = 0 ]; then
+        echo "$platform: runtime $fp için derlenen build kalmadı — OTA yayınlanıyor."
+        return 0
+      fi
+    else
+      echo "::warning::$platform: EAS build listesi okunamadı — yeniden denenecek."
+    fi
+    if [ $((SECONDS - start + interval)) -ge $((limit * 60)) ]; then
+      echo "::warning::$platform: runtime $fp için build $limit dk sonra hâlâ derleniyor (ya da durum okunamıyor) — OTA yine yayınlanıyor."
+      return 0
+    fi
+    sleep "$interval"
+  done
+}
+
+# Bu runtime'ın kuyrukta / derlenen build sayısı (gönderim durumu hariç). EAS
+# sorgusu başarısızsa 1 ile döner (çağıran yeniden dener).
+builds_in_flight() {
+  local platform="$1" profiles="$2" runtime="$3" channel="${4:-}" profile out n total=0
+  local -a list
+  IFS=, read -r -a list <<< "$profiles"
+  for profile in "${list[@]}"; do
+    local args=(build:list --platform "$platform" --build-profile "$profile"
+      --runtime-version "$runtime" --limit 50 --json --non-interactive)
+    if [ -n "$channel" ]; then args+=(--channel "$channel"); fi
+    out="$(eas "${args[@]}")" || return 1
+    n="$(printf '%s' "$out" | node -e '
+      let s=""; process.stdin.on("data",d=>s+=d).on("end",()=>{
+        const rt = (b) => (b.runtime && b.runtime.version) || b.runtimeVersion;
+        const flying = new Set(["NEW", "IN_QUEUE", "IN_PROGRESS", "PENDING_CANCEL"]);
+        const st = (b) => String(b.status || "").toUpperCase().replace(/-/g, "_");
+        console.log(JSON.parse(s || "[]").filter((b) => rt(b) === process.argv[1] && flying.has(st(b))).length);
+      });' "$runtime")" || return 1
+    total=$((total + n))
+  done
+  echo "$total"
 }
 
 guard_ref() {
@@ -547,6 +683,7 @@ case "$cmd" in
   publish-ota) publish_ota "$@" ;;
   plan) plan "$@" ;;
   recheck) recheck "$@" ;;
+  await-binary) await_binary "$@" ;;
   build-submit) build_submit "$@" ;;
   *) die "bilinmeyen komut: '$cmd' (bkz. dosya başı)" ;;
 esac

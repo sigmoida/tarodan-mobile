@@ -1,7 +1,8 @@
 /**
  * Yayın hattı sözleşmesi (docs/RELEASE.md):
  *   development push → CI → fingerprint → staging OTA ya da build (otomatik)
- *   master merge     → CI → fingerprint → onaylı production OTA ya da store build
+ *   master merge     → CI → development'tan: store build (sürüm artmalı) ·
+ *                      hotfix/*'tan: fingerprint → onaylı production OTA ya da store build
  *   master PR'ı      → "Master source guard" (yalnız development / hotfix/*)
  *   hotfix merge     → master → development geri birleştirme PR'ı
  *   Android          → tüm build/submit job'ları vars.ANDROID_RELEASE_ENABLED'a bağlı
@@ -78,6 +79,15 @@ describe('tetikleyiciler', () => {
   it('production: master push + elle tetikleme', () => {
     expect(production.on.push).toMatchObject({ branches: ['master'] });
     expect(production.on).toHaveProperty('workflow_dispatch');
+  });
+
+  it('production: yalnız test/CI/belge değiştiren merge koşmaz (sürüm kuralı onları kırmızı yapmasın)', () => {
+    const ignored = (production.on.push as { 'paths-ignore': string[] })['paths-ignore'];
+    expect(ignored).toEqual(
+      expect.arrayContaining(['docs/**', '.github/**', 'scripts/ci/**', '**/__tests__/**', '**/*.test.ts', '**/*.test.tsx']),
+    );
+    // Uygulama kodu, config ve native girdiler asla yok sayılmaz.
+    for (const p of ignored) expect([p, /^(src|app|plugins|assets)\b|app\.json|eas\.json|package\.json/.test(p)]).toEqual([p, false]);
   });
 
   it('hiçbir yayın workflow\'u zamanlanmış (cron) koşmaz', () => {
@@ -196,6 +206,27 @@ describe('staging', () => {
   it('OTA staging dalına, preview env\'iyle yayınlanır', () => {
     expect(runs(staging.jobs.ota)).toContain('publish-ota staging "$OTA_PLATFORM" preview');
   });
+
+  it('derlenen build\'in runtime\'ına OTA, build bittikten SONRA yayınlanır (await-binary)', () => {
+    const steps = staging.jobs.ota.steps!;
+    const wait = steps.findIndex((s) => (s.run ?? '').includes('release.sh await-binary "$OTA_PLATFORM" staging "$FP"'));
+    const publish = steps.findIndex((s) => (s.run ?? '').includes('publish-ota'));
+    expect(wait).toBeGreaterThan(-1);
+    expect(wait).toBeLessThan(publish);
+    expect(steps[wait].if).toBe('${{ matrix.await }}');
+    expect(steps[wait].env?.FP).toBe('${{ matrix.fp }}');
+    const androidEnabled = "${{ vars.ANDROID_RELEASE_ENABLED == 'true' }}";
+    expect(steps[wait].env?.ANDROID_ENABLED).toBe(androidEnabled);
+    for (const p of ['ios', 'android']) {
+      const bs = staging.jobs[`build-${p}`].steps!;
+      const w = bs.findIndex((s) => s.run === `scripts/ci/release.sh await-binary ${p} staging "$FP"`);
+      const o = bs.findIndex((s) => (s.run ?? '').includes(`publish-ota staging ${p} preview`));
+      expect([p, w > -1 && w < o]).toEqual([p, true]);
+      expect(bs[w].if).toBe("steps.recheck.outputs.action == 'ota' && steps.recheck.outputs.await == 'true'");
+      expect(bs[w].env?.FP).toBe(`\${{ needs.plan.outputs.${p}_fp }}`);
+      expect(bs[w].env?.ANDROID_ENABLED).toBe(androidEnabled);
+    }
+  });
 });
 
 describe('production', () => {
@@ -211,6 +242,32 @@ describe('production', () => {
 
   it('iOS production build + submit production profiliyle', () => {
     expect(runs(production.jobs['build-ios'])).toContain('build-submit ios production production');
+  });
+
+  it('sürüm/hotfix ayrımı: merge edilen PR\'ın dalı plan\'a SOURCE_REF olarak gider', () => {
+    const steps = production.jobs.plan.steps!;
+    const source = steps.find((s) => s.id === 'source');
+    expect(source?.if).toContain("github.event_name == 'push'");
+    // PR, merge commit'iyle eşleşerek ve yalnız bu depodan bulunur.
+    expect(source?.run).toContain('repos/$REPO/commits/$SHA/pulls');
+    expect(source?.run).toContain('pulls?state=closed&base=master');
+    expect(source?.run).toContain('.merge_commit_sha == env.SHA');
+    expect(source?.run).toContain('.base.ref == "master"');
+    expect(source?.run).toContain('.head.repo.full_name == env.REPO');
+    // Okuma hatası sessizce yutulmaz (uyarı), ama sürüm sayılır (güvenli taraf).
+    expect(source?.run).toContain('::warning::');
+    // PR'dan gelen hiçbir değer run'a ${{ }} ile enjekte edilmez.
+    expect(source?.run).not.toContain('${{');
+    expect(source?.env?.GH_TOKEN).toBe('${{ github.token }}');
+    const decide = steps.find((s) => s.id === 'decide');
+    expect(decide?.env?.SOURCE_REF).toBe('${{ steps.source.outputs.ref }}');
+    expect(steps.indexOf(source!)).toBeLessThan(steps.indexOf(decide!));
+    expect(production.jobs.plan.permissions).toEqual({ contents: 'read', 'pull-requests': 'read' });
+  });
+
+  it('staging plan\'ı SOURCE_REF almaz (kural yalnız production\'da)', () => {
+    const decide = staging.jobs.plan.steps!.find((s) => s.id === 'decide');
+    expect(decide?.env?.SOURCE_REF).toBeUndefined();
   });
 
   it('VERSION-GATE: native değişikliğinde expo.version son production build\'inden büyük olmalı', () => {

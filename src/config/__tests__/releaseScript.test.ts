@@ -34,6 +34,7 @@ const build = (o: {
   appIdentifier?: string;
   createdAt?: string;
   message?: string;
+  commit?: string;
 }): Build => {
   const platform = o.platform ?? 'IOS';
   const profile = o.profile ?? 'staging';
@@ -52,6 +53,7 @@ const build = (o: {
     updateChannel: { id: 'c', name: o.channel ?? (profile === 'production' ? 'production' : 'staging') },
     createdAt: o.createdAt ?? `${TODAY}T00:00:00.000Z`,
     ...(o.message ? { message: o.message } : {}),
+    ...(o.commit ? { gitCommitHash: o.commit } : {}),
   };
 };
 
@@ -69,6 +71,8 @@ type RunOpts = {
   builds?: Build[];
   submissions?: Submission[];
   buildResult?: unknown;
+  /** Ardışık sorgular için build listeleri (FAKE_BUILDS_SEQ): her biri bir sorguya. */
+  buildsSeq?: Build[][];
 };
 
 function run(args: string[], opts: RunOpts = {}) {
@@ -80,13 +84,23 @@ function run(args: string[], opts: RunOpts = {}) {
   if (opts.builds) fs.writeFileSync(path.join(dir, 'builds.json'), JSON.stringify(opts.builds));
   if (opts.submissions) fs.writeFileSync(path.join(dir, 'submissions.json'), JSON.stringify(opts.submissions));
   if (opts.buildResult) fs.writeFileSync(path.join(dir, 'build-result.json'), JSON.stringify(opts.buildResult));
+  const seqEnv: Record<string, string> = {};
+  if (opts.buildsSeq) {
+    // 'FAIL' (dizi yerine) o sorguyu geçici EAS hatasıyla düşürür.
+    const names = opts.buildsSeq.map((b, i) => {
+      if ((b as unknown) === 'FAIL') return 'FAIL';
+      fs.writeFileSync(path.join(dir, `seq-${i}.json`), JSON.stringify(b));
+      return `seq-${i}.json`;
+    });
+    seqEnv.FAKE_BUILDS_SEQ = names.join(',');
+  }
 
   // Runner'dan sızabilecek değişkenleri temizle; testler kendi env'ini verir.
   const base = { ...process.env };
   for (const k of Object.keys(base)) {
     if (k.startsWith('EXPO_PUBLIC_') || k.startsWith('GITHUB_')) delete base[k];
   }
-  for (const k of ['MODE', 'PLATFORM', 'ANDROID_ENABLED', 'COMMIT_MSG', 'SHA', 'FP']) delete base[k];
+  for (const k of ['MODE', 'PLATFORM', 'ANDROID_ENABLED', 'COMMIT_MSG', 'SHA', 'FP', 'SOURCE_REF']) delete base[k];
 
   // Script HER ZAMAN geçici bir kök dizinden koşar: build-submit eas-build.json'u
   // kökte yazar; testler repoya asla dosya bırakmamalı.
@@ -107,6 +121,7 @@ function run(args: string[], opts: RunOpts = {}) {
       FAKE_DIR: dir,
       GITHUB_OUTPUT: outFile,
       GITHUB_STEP_SUMMARY: summaryFile,
+      ...seqEnv,
       ...opts.env,
     },
   });
@@ -186,7 +201,11 @@ describe('release.sh plan — karar döngüsü tek yerde (DRY)', () => {
   });
 
   it('production: Android değişken kapalıyken tamamen atlanır', () => {
-    const r = plan('production', { builds: [build({ id: 'p', profile: 'production' })], submissions: [submission('p')] });
+    const r = plan('production', {
+      env: { SOURCE_REF: 'hotfix/x' },
+      builds: [build({ id: 'p', profile: 'production' })],
+      submissions: [submission('p')],
+    });
     expect(r.outputs.android).toBe('skip');
     expect(r.outputs.ios).toBe('ota');
     expect(r.easCalls('build:list').every((l) => l.includes('--platform ios'))).toBe(true);
@@ -382,9 +401,34 @@ describe('release.sh build-state — yalnız bitmiş + gönderilmiş build "bina
   });
 });
 
-describe('release.sh plan — bekleyen build için OTA da ikinci build de yok', () => {
-  it('staging: derlenen build varken → wait + uyarı', () => {
+describe('release.sh plan — bekleyen build: ikinci build yok; staging OTA yine çıkar, production bekler', () => {
+  it('staging: derlenen build varken → OTA, build bitince yayınlanmak üzere (await), uyarısız', () => {
     const r = plan('staging', { env: { PLATFORM: 'ios' }, builds: [build({ id: 'b1', status: 'IN_PROGRESS' })] });
+    expect(r.outputs.ios).toBe('ota');
+    expect(JSON.parse(r.outputs.ota_matrix)).toEqual([{ platform: 'ios', fp: 'fp-ios-preview', await: true }]);
+    expect(r.all).toContain('::notice::ios: bu runtime');
+    expect(r.all).not.toContain('ULAŞMAYABİLİR');
+    expect(r.easCalls('build')).toHaveLength(0);
+  });
+
+  it('staging: bitmiş ama TestFlight gönderimi süren build varken de OTA', () => {
+    const b = build({ id: 'b1' });
+    const r = plan('staging', { env: { PLATFORM: 'ios' }, builds: [b], submissions: [submission('b1', 'IN_PROGRESS')] });
+    expect(r.outputs.ios).toBe('ota');
+    expect(JSON.parse(r.outputs.ota_matrix)[0].await).toBe(true);
+  });
+
+  it('staging: binary hazırsa OTA beklemez (await yok)', () => {
+    const ios = shipped('ios-1');
+    const r = plan('staging', { env: { PLATFORM: 'ios' }, builds: [ios.b], submissions: [ios.s] });
+    expect(JSON.parse(r.outputs.ota_matrix)).toEqual([{ platform: 'ios', fp: 'fp-ios-preview' }]);
+  });
+
+  it('production (hotfix): derlenen build varken → wait + uyarı, OTA yok', () => {
+    const r = plan('production', {
+      env: { PLATFORM: 'ios', SOURCE_REF: 'hotfix/x' },
+      builds: [build({ id: 'p1', profile: 'production', status: 'IN_PROGRESS' })],
+    });
     expect(r.outputs.ios).toBe('wait');
     expect(r.outputs.ota_matrix).toBe('[]');
     expect(r.all).toContain('::warning::ios: bu runtime');
@@ -402,12 +446,138 @@ describe('release.sh plan — bekleyen build için OTA da ikinci build de yok', 
     expect(r.all).toContain('ULAŞMAYABİLİR');
   });
 
-  it('recheck staging: arada başlamış build → skip (OTA da yok)', () => {
+  it('recheck staging: arada başlamış build → ikinci build yok, OTA o build bitince (await)', () => {
     const r = run(['recheck', 'ios', 'staging'], {
       env: { FP: 'fp-ios-preview' },
       builds: [build({ id: 'b1', status: 'IN_QUEUE' })],
     });
+    expect(r.outputs).toMatchObject({ action: 'ota', await: 'true' });
+    expect(r.easCalls('build')).toHaveLength(0);
+  });
+
+  it('recheck staging: arada gönderilmiş binary → OTA beklemeden', () => {
+    const ios = shipped('ios-1');
+    const r = run(['recheck', 'ios', 'staging'], { env: { FP: 'fp-ios-preview' }, builds: [ios.b], submissions: [ios.s] });
+    expect(r.outputs).toMatchObject({ action: 'ota', await: 'false' });
+  });
+
+  it('recheck production: arada başlamış build → skip (onaysız OTA yok)', () => {
+    const r = run(['recheck', 'ios', 'production'], {
+      env: { FP: 'fp-ios-production' },
+      builds: [build({ id: 'p1', profile: 'production', status: 'IN_QUEUE' })],
+    });
     expect(r.outputs.action).toBe('skip');
+  });
+});
+
+describe('release.sh plan — production: sürüm merge\'ü her zaman store build\'i, hotfix fingerprint\'le', () => {
+  // Canlıdaki binary: app.json sürümüyle (1.0.5) bitmiş + gönderilmiş production build'i.
+  const live = shipped('live', { profile: 'production' });
+  const liveAnd = shipped('live-a', { platform: 'ANDROID', profile: 'production' });
+  const older = build({ id: 'old', profile: 'production', runtime: 'eski', appVersion: '1.0.4' });
+
+  it.each([['development'], [''], ['feature/x']])(
+    'sürüm (kaynak "%s"): yalnız JS değişti, sürüm artmadı → blocked, OTA HAZIRLANMAZ',
+    (source) => {
+      const r = plan('production', { env: { PLATFORM: 'ios', SOURCE_REF: source }, builds: [live.b], submissions: [live.s] });
+      expect(r.status).toBe(0);
+      expect(r.outputs).toMatchObject({ ios: 'blocked', ota_matrix: '[]', blocked: 'ios', decided: 'true' });
+      expect(r.all).toContain("::error::ios: sürüm merge'ü");
+      expect(r.all).toContain('mode=build');
+      // master artık yayınlanmamış kod taşır: OTA önerilmez, aksine uyarılır.
+      expect(r.all).not.toContain('-f mode=ota');
+      expect(r.all).toContain('DİKKAT');
+    },
+  );
+
+  it('sürüm koşusu yeniden çalıştırılınca kendi build\'ini "son sürüm" saymaz (skip, blocked değil)', () => {
+    // Bu commit'ten (SHA) alınmış 1.0.5 build'i bitip gönderilmiş; önceki sürüm 1.0.4.
+    const mine = shipped('mine', { profile: 'production', commit: 'abcdef1234' });
+    const prev = build({ id: 'prev', profile: 'production', runtime: 'eski', appVersion: '1.0.4', commit: 'eski' });
+    const r = plan('production', {
+      env: { PLATFORM: 'ios', SOURCE_REF: 'development' },
+      builds: [mine.b, prev],
+      submissions: [mine.s],
+    });
+    expect(r.outputs).toMatchObject({ ios: 'skip', blocked: '', ota_matrix: '[]' });
+    expect(r.all).toContain('zaten gönderilmiş');
+  });
+
+  it('sürüm: başka bir commit aynı sürümle build almışsa yine blocked (sürüm artmadı)', () => {
+    const other = shipped('other', { profile: 'production', commit: 'baska' });
+    const r = plan('production', { env: { PLATFORM: 'ios', SOURCE_REF: 'development' }, builds: [other.b], submissions: [other.s] });
+    expect(r.outputs.ios).toBe('blocked');
+  });
+
+  it('sürüm: native değişti, sürüm artmadı → blocked', () => {
+    const r = plan('production', { env: { PLATFORM: 'ios', SOURCE_REF: 'development' }, builds: [build({ id: 'x', profile: 'production', runtime: 'eski' })] });
+    expect(r.outputs).toMatchObject({ ios: 'blocked', ota_matrix: '[]' });
+  });
+
+  it('sürüm: expo.version son production build\'inden büyük → build (iOS ve Android)', () => {
+    const olderAnd = build({ id: 'old-a', platform: 'ANDROID', profile: 'production', runtime: 'eski', appVersion: '1.0.4' });
+    const r = plan('production', { env: { SOURCE_REF: 'development', ANDROID_ENABLED: 'true' }, builds: [older, olderAnd] });
+    expect(r.outputs).toMatchObject({ ios: 'build', android: 'build', ota_matrix: '[]', blocked: '' });
+    expect(r.all).toContain('ios: sürüm 1.0.4 → 1.0.5');
+    expect(r.summary).toContain('`development` → release');
+  });
+
+  it('sürüm: ilk production build\'i → build', () => {
+    expect(plan('production', { env: { PLATFORM: 'ios', SOURCE_REF: 'development' } }).outputs.ios).toBe('build');
+  });
+
+  it('sürüm: bu runtime\'ın build\'i sürüyorsa ikinci build yok (wait)', () => {
+    const r = plan('production', {
+      env: { PLATFORM: 'ios', SOURCE_REF: 'development' },
+      builds: [older, build({ id: 'run', profile: 'production', status: 'IN_PROGRESS' })],
+    });
+    expect(r.outputs.ios).toBe('wait');
+  });
+
+  it('sürüm: fingerprint döngüsü koruması sürüm build\'ine de uygulanır', () => {
+    const mm = (id: string) =>
+      build({ id, profile: 'production', runtime: `eas-${id}`, message: `ci-fp:ci-${id}`, appVersion: '1.0.0' });
+    const r = plan('production', { env: { PLATFORM: 'ios', SOURCE_REF: 'development' }, builds: [mm('a'), mm('b')] });
+    expect(r.outputs.ios).toBe('blocked');
+  });
+
+  it('hotfix: yalnız JS → onaylı OTA (iki platform)', () => {
+    const r = plan('production', {
+      env: { SOURCE_REF: 'hotfix/odeme', ANDROID_ENABLED: 'true' },
+      builds: [live.b, liveAnd.b],
+      submissions: [live.s, liveAnd.s],
+    });
+    expect(r.outputs).toMatchObject({ ios: 'ota', android: 'ota', blocked: '' });
+    expect(JSON.parse(r.outputs.ota_matrix)).toEqual([
+      { platform: 'ios', fp: 'fp-ios-production' },
+      { platform: 'android', fp: 'fp-android-production' },
+    ]);
+    expect(r.summary).toContain('`hotfix/odeme` → hotfix');
+    // Gönderilmiş ≠ yayınlanmış: canlıdaki eski sürüme inmeyebileceği söylenir.
+    expect(r.all).toContain('canlıdaki önceki sürümün kullanıcıları bu düzeltmeyi ALMAZ');
+  });
+
+  it('hotfix: native değişti, sürüm artmadı → blocked (VERSION-GATE)', () => {
+    const r = plan('production', {
+      env: { PLATFORM: 'ios', SOURCE_REF: 'hotfix/x' },
+      builds: [build({ id: 'x', profile: 'production', runtime: 'eski' })],
+    });
+    expect(r.outputs.ios).toBe('blocked');
+    expect(r.all).toContain('::error::ios: native değişti');
+  });
+
+  it('hotfix: sürüm artırılmış native düzeltme → build', () => {
+    expect(plan('production', { env: { PLATFORM: 'ios', SOURCE_REF: 'hotfix/x' }, builds: [older] }).outputs.ios).toBe('build');
+  });
+
+  it('elle mode=ota kaynaktan bağımsız onaylı OTA', () => {
+    const r = plan('production', { env: { PLATFORM: 'ios', MODE: 'ota' }, builds: [live.b], submissions: [live.s] });
+    expect(r.outputs).toMatchObject({ ios: 'ota', blocked: '' });
+  });
+
+  it('elle mode=build aynı sürümün build\'ini alır (kapı yalnız uyarı)', () => {
+    const r = plan('production', { env: { PLATFORM: 'ios', MODE: 'build' }, builds: [live.b], submissions: [live.s] });
+    expect(r.outputs).toMatchObject({ ios: 'build', blocked: '' });
   });
 });
 
@@ -418,8 +588,12 @@ describe('release.sh plan — VERSION-GATE platform başına', () => {
   const iosOld = build({ id: 'ios-old', profile: 'production', runtime: 'eski', appVersion: '9.9.9' });
   const and = shipped('and-1', { platform: 'ANDROID', profile: 'production' });
 
-  it('iOS kapısı takılırsa iOS blocked, Android OTA yine çıkar', () => {
-    const r = plan('production', { env: ANDROID, builds: [iosOld, and.b], submissions: [and.s] });
+  it('hotfix: iOS kapısı takılırsa iOS blocked, Android OTA yine çıkar', () => {
+    const r = plan('production', {
+      env: { ...ANDROID, SOURCE_REF: 'hotfix/x' },
+      builds: [iosOld, and.b],
+      submissions: [and.s],
+    });
     expect(r.status).toBe(0);
     expect(r.outputs).toMatchObject({
       ios: 'blocked',
@@ -621,4 +795,75 @@ describe('release.sh — Android paket doğrulaması (yanlış Play uygulamasın
       expect(r.easCalls('submit')).toHaveLength(0);
     },
   );
+});
+
+describe('release.sh await-binary — staging OTA\'sı derlenen build\'den SONRA çıkar', () => {
+  const FP = 'fp-ios-preview';
+  const pending = [build({ id: 'b1', status: 'IN_PROGRESS' })];
+  const fast = { AWAIT_INTERVAL: '0' };
+  const runtimeQueries = (r: ReturnType<typeof run>) =>
+    r.easCalls('build:list').filter((l) => l.includes('--runtime-version'));
+
+  it('derleme bitince döner; TestFlight gönderimini BEKLEMEZ', () => {
+    const r = run(['await-binary', 'ios', 'staging', FP], {
+      env: fast,
+      buildsSeq: [pending, pending, [build({ id: 'b1' })]],
+      submissions: [submission('b1', 'IN_PROGRESS')],
+    });
+    expect(r.status).toBe(0);
+    expect(runtimeQueries(r)).toHaveLength(3);
+    expect(r.easCalls('submit:list')).toHaveLength(0);
+    expect(r.all).toContain('OTA yayınlanıyor');
+    expect(r.all).not.toContain('::warning::');
+  });
+
+  it('build başarısız olursa da döner (OTA zararsız: binary yok)', () => {
+    const r = run(['await-binary', 'ios', 'staging', FP], {
+      env: fast,
+      buildsSeq: [pending, [build({ id: 'b1', status: 'ERRORED' })]],
+    });
+    expect(r.status).toBe(0);
+    expect(runtimeQueries(r)).toHaveLength(2);
+  });
+
+  it('geçici EAS hatası beklemeyi düşürmez, yeniden denenir', () => {
+    const r = run(['await-binary', 'ios', 'staging', FP], {
+      env: fast,
+      buildsSeq: [pending, 'FAIL' as unknown as Build[], [build({ id: 'b1' })]],
+    });
+    expect(r.status).toBe(0);
+    expect(r.all).toContain('::warning::ios: EAS build listesi okunamadı');
+    expect(r.all).toContain('OTA yayınlanıyor');
+  });
+
+  it('süre dolarsa uyarıyla döner, sonsuza dek beklemez', () => {
+    const r = run(['await-binary', 'ios', 'staging', FP], { env: { ...fast, AWAIT_MINUTES: '0' }, builds: pending });
+    expect(r.status).toBe(0);
+    expect(runtimeQueries(r)).toHaveLength(1);
+    expect(r.all).toContain('::warning::ios: runtime fp-ios-preview');
+  });
+
+  it('Android kapalıyken derlenen ad-hoc APK (preview) beklenir', () => {
+    const apk = [build({ id: 'apk', platform: 'ANDROID', profile: 'preview', status: 'IN_PROGRESS' })];
+    const r = run(['await-binary', 'android', 'staging', 'fp-android-preview'], {
+      env: { ...fast, AWAIT_MINUTES: '0' },
+      builds: apk,
+    });
+    expect(r.all).toContain('hâlâ derleniyor');
+    expect(runtimeQueries(r).some((l) => l.includes('--build-profile preview'))).toBe(true);
+  });
+
+  it('Android açıkken preview APK sayılmaz (yalnız staging AAB beklenir)', () => {
+    const apk = [build({ id: 'apk', platform: 'ANDROID', profile: 'preview', status: 'IN_PROGRESS' })];
+    const r = run(['await-binary', 'android', 'staging', 'fp-android-preview'], {
+      env: { ...fast, ANDROID_ENABLED: 'true' },
+      builds: apk,
+    });
+    expect(r.all).toContain('derlenen build kalmadı');
+    expect(runtimeQueries(r).every((l) => l.includes('--build-profile staging'))).toBe(true);
+  });
+
+  it('fingerprint boşsa durur', () => {
+    expect(run(['await-binary', 'ios', 'staging', '']).status).not.toBe(0);
+  });
 });
