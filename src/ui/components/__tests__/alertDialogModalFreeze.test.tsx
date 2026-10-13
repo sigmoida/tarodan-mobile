@@ -6,8 +6,8 @@
  */
 import React from 'react';
 import { BackHandler, Modal as RNModal, Platform } from 'react-native';
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { AlertDialogHost, appAlert } from '../AlertDialog';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
+import { AlertDialogHost, appAlert, resetAlertQueueForTests } from '../AlertDialog';
 import {
   MODAL_CLOSE_DELAY_MS,
   MODAL_DISMISS_TIMEOUT_MS,
@@ -24,6 +24,8 @@ const originalOS = Platform.OS;
 
 beforeEach(() => jest.useFakeTimers());
 afterEach(() => {
+  cleanup(); // host söküldü: gösterdiği/bekleyen alert'ler modül kuyruğuna döner
+  resetAlertQueueForTests(); // ...testler arasında sızmasın
   jest.useRealTimers();
   setPlatform(originalOS as 'ios' | 'android');
 });

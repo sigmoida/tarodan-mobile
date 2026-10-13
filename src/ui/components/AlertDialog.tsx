@@ -79,9 +79,29 @@ export function appAlert(
   }
 }
 
+/**
+ * YALNIZ TEST: modül kuyruğunu boşaltır. Sökülen host gösterdiği/bekleyen alert'leri bu kuyruğa
+ * geri verir (bkz. `AlertDialogHost` cleanup); testler arasında sızmasın diye `cleanup()`'tan
+ * sonra çağrılır. `@/ui`'dan export edilmez.
+ */
+export function resetAlertQueueForTests(): void {
+  queue.length = 0;
+}
+
 const { colors, radius, spacing, typography } = theme;
 
-export const AlertDialogHost: React.FC = () => {
+export interface AlertDialogHostProps {
+  /**
+   * Kapı (tam ekran zorunlu güncelleme / zorunlu adım) açıkken `true`: host BAĞLI kalır ama yeni
+   * alert sunmaz, kuyrukta bekletir; açık bir alert varsa kuyruğun başına geri koyup gizler.
+   * Kapı kapanınca (`false`) kuyruk sırayla akar. Eskiden kapı açıkken host sökülüyordu: kapanma
+   * zamanlayıcısı temizlenir, basılan düğmenin `onPress`'i hiç çalışmaz ve ona bağlı akış
+   * (ör. teklif ekranının "bekliyor" durumu) kalıcı takılırdı.
+   */
+  suspended?: boolean;
+}
+
+export const AlertDialogHost: React.FC<AlertDialogHostProps> = ({ suspended = false }) => {
   const [current, setCurrent] = useState<AlertDialogRequest | null>(null);
   // Diyalog kapanıyor (RNModal `visible=false`) ama henüz tamamen kalkmadı.
   const [closing, setClosing] = useState(false);
@@ -96,17 +116,24 @@ export const AlertDialogHost: React.FC = () => {
   const pendingRef = useRef<AlertDialogRequest[]>([]);
   const afterCloseRef = useRef<(() => void) | null>(null);
   const closingRef = useRef(false);
+  const currentRef = useRef<AlertDialogRequest | null>(null);
+  const suspendedRef = useRef(suspended);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const setCurrentRequest = (request: AlertDialogRequest | null) => {
+    currentRef.current = request;
+    setCurrent(request);
+  };
+
   const showRequest = (request: AlertDialogRequest) => {
     busyRef.current = true;
-    setCurrent(request);
+    setCurrentRequest(request);
   };
 
   useEffect(() => {
     listener = (request) => {
-      if (busyRef.current) {
+      if (busyRef.current || suspendedRef.current) {
         pendingRef.current.push(request);
         return;
       }
@@ -120,17 +147,53 @@ export const AlertDialogHost: React.FC = () => {
       listener = null;
       if (timerRef.current) clearTimeout(timerRef.current);
       if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+      timerRef.current = null;
+      settleTimerRef.current = null;
+      // Sökülürken hiçbir alert kaybolmasın: gösterilen (kapanmıyorsa) ve bekleyenler modül
+      // kuyruğuna sırayla geri döner, bir sonraki host'ta akar.
+      const restore = [
+        ...(currentRef.current && !closingRef.current ? [currentRef.current] : []),
+        ...pendingRef.current,
+      ];
+      pendingRef.current = [];
+      queue.unshift(...restore);
+      currentRef.current = null;
+      busyRef.current = false;
+      // Düğmeye basılmış, kapanış bekliyordu: zamanlayıcı da gittiğine göre `onPress`'i
+      // kaybetmeyiz, hemen çalıştırırız (alert'leri kuyruğun sonuna girer: listener null).
+      if (closingRef.current) {
+        closingRef.current = false;
+        const afterClose = afterCloseRef.current;
+        afterCloseRef.current = null;
+        afterClose?.();
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Kapı açılırken/kapanırken: bkz. `AlertDialogHostProps.suspended`.
+  useEffect(() => {
+    suspendedRef.current = suspended;
+    if (suspended) {
+      // Açık (kapanmayan) alert'i kuyruğun BAŞINA geri koy ve gizle; kapı kapanınca yeniden çıkar.
+      if (currentRef.current && !closingRef.current) {
+        pendingRef.current.unshift(currentRef.current);
+        busyRef.current = false;
+        setCurrentRequest(null);
+      }
+    } else if (!busyRef.current && pendingRef.current.length) {
+      showRequest(pendingRef.current.shift()!);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suspended]);
 
   /** Oturma bitti (ya da hiç gerekmedi): sıradaki diyalog açılabilir. */
   const releaseBusy = () => {
     settleTimerRef.current = null;
     setSettling(false);
-    const next = pendingRef.current.shift() ?? null;
+    const next = suspendedRef.current ? null : (pendingRef.current.shift() ?? null);
     busyRef.current = !!next;
-    if (next) setCurrent(next);
+    if (next) setCurrentRequest(next);
   };
 
   /**
@@ -150,7 +213,7 @@ export const AlertDialogHost: React.FC = () => {
     const afterClose = afterCloseRef.current;
     afterCloseRef.current = null;
     setClosing(false);
-    setCurrent(null); // busyRef true kalır: oturma bitene dek yeni diyalog sunulmaz
+    setCurrentRequest(null); // busyRef true kalır: oturma bitene dek yeni diyalog sunulmaz
     try {
       afterClose?.();
     } finally {
