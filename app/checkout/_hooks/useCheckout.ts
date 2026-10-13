@@ -15,6 +15,7 @@ import { qk, retryUnlessClientError } from '@/lib/query';
 import { useCartStore } from '@/stores/cartStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
+import { useLatestRef } from '@/hooks/useLatestRef';
 import { captureException } from '@/services/sentry';
 import { formatServerPrice, serverAmount } from '@/utils/format';
 import { indexQuoteLines } from '@/utils/quoteLines';
@@ -835,9 +836,9 @@ export function useCheckout() {
     }
   };
 
-  // Her render'da güncellenir: `await` sonrası (kimlik kapısı) bayat closure yerine.
-  const proceedCheckoutRef = useRef(proceedCheckout);
-  proceedCheckoutRef.current = proceedCheckout;
+  // Son commit'in `proceedCheckout`'u: `await` sonrası (kimlik kapısı) bayat
+  // closure yerine. Atama `useLayoutEffect`'te (useEvent kalıbı), render'da değil.
+  const proceedCheckoutRef = useLatestRef(proceedCheckout);
 
   const handleCheckout = async () => {
     if (items.length === 0) {
