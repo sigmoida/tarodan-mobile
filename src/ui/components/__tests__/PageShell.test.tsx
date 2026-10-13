@@ -47,6 +47,54 @@ describe('PageShell', () => {
   });
 });
 
+describe('PageShell overlay slotu', () => {
+  const Draft = () => {
+    const [v, setV] = React.useState('');
+    return (
+      <>
+        <RawText testID="draft">{v || 'boş'}</RawText>
+        <RawText onPress={() => setV('yazıldı')}>yaz</RawText>
+      </>
+    );
+  };
+
+  it('loading ve error durumunda children unmount olur ama overlay (modal) yerinde kalır', () => {
+    const { rerender } = render(
+      <PageShell title="X" overlay={<RawText>modal</RawText>}>
+        <RawText>içerik</RawText>
+      </PageShell>,
+    );
+    expect(screen.getByText('modal')).toBeTruthy();
+    rerender(
+      <PageShell title="X" loading overlay={<RawText>modal</RawText>}>
+        <RawText>içerik</RawText>
+      </PageShell>,
+    );
+    expect(screen.queryByText('içerik')).toBeNull();
+    expect(screen.getByText('modal')).toBeTruthy();
+    rerender(
+      <PageShell title="X" error={new Error('x')} overlay={<RawText>modal</RawText>}>
+        <RawText>içerik</RawText>
+      </PageShell>,
+    );
+    expect(screen.getByText('modal')).toBeTruthy();
+  });
+
+  it('overlay içindeki durum loading geçişinde kaybolmaz (açık form modalı veri kaybetmez)', () => {
+    const el = (loading: boolean) => (
+      <PageShell title="X" loading={loading} overlay={<Draft />}>
+        <RawText>içerik</RawText>
+      </PageShell>
+    );
+    const { rerender } = render(el(false));
+    fireEvent.press(screen.getByText('yaz'));
+    expect(screen.getByTestId('draft')).toHaveTextContent('yazıldı');
+    rerender(el(true));
+    rerender(el(false));
+    expect(screen.getByTestId('draft')).toHaveTextContent('yazıldı');
+  });
+});
+
 describe('PageHeader', () => {
   it('vurgu çubuğu + 2xl kalın başlık + açıklama; onBack verilince chevron', () => {
     const onBack = jest.fn();

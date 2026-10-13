@@ -39,38 +39,37 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <>
-      <PageShell
-        title={t("mobile.settingsEditProfile")}
-        onBack={onBack}
-        footer={
-          <Button
-            variant="primary"
-            size="lg"
-            fullWidth
-            title={t("product.saveChanges")}
-            onPress={f.handleSubmit(f.onSubmit)}
-            isLoading={f.updateMutation.isPending}
-            disabled={f.updateMutation.isPending}
-          />
-        }
-      >
-        <AvatarSection f={f} />
-        <PersonalInfoCard f={f} />
-        <LegalIdentityCard />
-        <BusinessInfoCard f={f} />
-        <AccountLinks />
-      </PageShell>
-
-      <Snackbar
-        visible={f.snackbar.visible}
-        onDismiss={() => f.setSnackbar({ ...f.snackbar, visible: false })}
-        duration={3000}
-        variant={f.snackbar.variant ?? "default"}
-        style={styles.snackbar}
-      >
-        {f.snackbar.message}
-      </Snackbar>
-    </>
+    <PageShell
+      title={t("mobile.settingsEditProfile")}
+      onBack={onBack}
+      footer={
+        <Button
+          variant="primary"
+          size="lg"
+          fullWidth
+          title={t("product.saveChanges")}
+          onPress={f.handleSubmit(f.onSubmit)}
+          isLoading={f.updateMutation.isPending}
+          disabled={f.updateMutation.isPending}
+        />
+      }
+      overlay={
+        <Snackbar
+          visible={f.snackbar.visible}
+          onDismiss={() => f.setSnackbar({ ...f.snackbar, visible: false })}
+          duration={3000}
+          variant={f.snackbar.variant ?? "default"}
+          style={styles.snackbar}
+        >
+          {f.snackbar.message}
+        </Snackbar>
+      }
+    >
+      <AvatarSection f={f} />
+      <PersonalInfoCard f={f} />
+      <LegalIdentityCard />
+      <BusinessInfoCard f={f} />
+      <AccountLinks />
+    </PageShell>
   );
 }

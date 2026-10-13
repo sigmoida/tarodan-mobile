@@ -302,7 +302,9 @@ and turns them into **errors**, so write new code warning-free.
   primary-500 brand bar, StatusBar goes light while focused). Stack screens use
   `PageShell` (`@/components/common/PageShell` — white top bar with back arrow,
   title, optional right action, optional fixed bottom bar, keyboard + safe area, and
-  `loading` / `empty` / `error` + `onRetry` states). Inside content use `PageHeader`
+  `loading` / `empty` / `error` + `onRetry` states; `loading`/`error` **unmount `children`**,
+  so modals, sheets and Snackbars go in the always-rendered `overlay` prop — an open form
+  modal inside `children` would lose its input). Inside content use `PageHeader`
   for the page title band and `SectionCard` (+ `SectionCardAction` "Tümünü gör ›") for
   sections. Don't hand-roll a header or a bordered section. Reference screens to copy:
   `app/(tabs)/messages` (tab root), `app/settings/addresses` (list),

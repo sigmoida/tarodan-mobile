@@ -43,6 +43,12 @@ export interface PageShellProps
   children?: React.ReactNode;
   /** Sabit alt bar (ana aksiyon) — üst çizgili, güvenli alan dahil. */
   footer?: React.ReactNode;
+  /**
+   * Modallar / sheet'ler / Snackbar için HER ZAMAN render edilen slot. `loading` ya da `error`
+   * durumunda `children` unmount edilir; açık bir form modalı `children` içinde olursa o anda
+   * kapanır ve girilen veri kaybolur. Ekran modallarını `children` DEĞİL buraya koyar.
+   */
+  overlay?: React.ReactNode;
   /** Klavye açılınca gövde ve alt bar yukarı kaçar (varsayılan açık). */
   keyboardAware?: boolean;
   /** Yükleniyor: varsayılan Skeleton (liste/kart), `spinner` yalnız ilk açılışta. */
@@ -87,6 +93,7 @@ export const PageShell: React.FC<PageShellProps> = ({
   mode = 'scroll',
   children,
   footer,
+  overlay,
   keyboardAware = true,
   loading = false,
   loadingVariant = 'skeleton',
@@ -195,6 +202,7 @@ export const PageShell: React.FC<PageShellProps> = ({
       ) : (
         content
       )}
+      {overlay}
     </View>
   );
 };

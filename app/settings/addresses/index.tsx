@@ -43,6 +43,7 @@ export default function AddressesScreen() {
       loading={f.isLoading}
       refreshing={f.refreshing}
       onRefresh={f.onRefresh}
+      overlay={<AddressFormModal f={f} />}
     >
       <SectionCard
         badge={
@@ -81,8 +82,6 @@ export default function AddressesScreen() {
           ))
         )}
       </SectionCard>
-
-      <AddressFormModal f={f} />
     </PageShell>
   );
 }
