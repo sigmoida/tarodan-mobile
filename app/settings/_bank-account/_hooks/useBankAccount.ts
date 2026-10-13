@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { bankAccountApi, errorText } from '@/lib/api';
 import { qk } from '@/lib/query';
@@ -11,15 +11,9 @@ import { formatIbanDisplay } from '@/utils/iban';
 import { buildBankAccountSchema, EMPTY_BANK_ACCOUNT, type BankAccountForm } from '../_lib/schema';
 import { sameBankAccountPayload, toBankAccountPayload } from '../_lib/payload';
 
-type SnackbarState = {
-  visible: boolean;
-  message: string;
-  variant?: 'default' | 'success' | 'danger';
-};
-
 /**
  * Banka hesabı ekranının kontrolcüsü: hesap sorgusu, form, kaydet/sil
- * mutasyonları ve snackbar. Kaydetmeden ÖNCE yasal kimlik istenir (B-2.4,
+ * mutasyonları ve toast bildirimleri. Kaydetmeden ÖNCE yasal kimlik istenir (B-2.4,
  * ihtiyaç anında): hesap satıcı ödemesi içindir ve devlet bildirimi için
  * üyenin kimliği kayıtlı olmalıdır. Üye kimlik adımında vazgeçerse kayıt
  * yapılmaz.
@@ -38,7 +32,6 @@ export function useBankAccount() {
   const schema = useMemo(() => buildBankAccountSchema(t), [t]);
   const form = useZodForm(schema, { defaultValues: EMPTY_BANK_ACCOUNT });
   const { reset, getValues } = form;
-  const [snackbar, setSnackbar] = useState<SnackbarState>({ visible: false, message: '' });
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
@@ -68,14 +61,10 @@ export function useBankAccount() {
     mutationFn: async (data: BankAccountForm) => bankAccountApi.upsert(toBankAccountPayload(data)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.user.bankAccount });
-      setSnackbar({ visible: true, message: t('bankAccount.saved'), variant: 'success' });
+      toast.success(t('bankAccount.saved'));
     },
     onError: (error) =>
-      setSnackbar({
-        visible: true,
-        message: errorText(error, t('bankAccount.saveFailed')).split('\n')[0]!,
-        variant: 'danger',
-      }),
+      toast.error(errorText(error, t('bankAccount.saveFailed')).split('\n')[0]!),
   });
 
   const deleteMutation = useMutation({
@@ -83,14 +72,9 @@ export function useBankAccount() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.user.bankAccount });
       reset(EMPTY_BANK_ACCOUNT);
-      setSnackbar({ visible: true, message: t('bankAccount.deleted'), variant: 'success' });
+      toast.success(t('bankAccount.deleted'));
     },
-    onError: (error) =>
-      setSnackbar({
-        visible: true,
-        message: errorText(error, t('bankAccount.deleteFailed')),
-        variant: 'danger',
-      }),
+    onError: (error) => toast.error(errorText(error, t('bankAccount.deleteFailed'))),
   });
 
   const save = async (data: BankAccountForm) => {
@@ -98,7 +82,7 @@ export function useBankAccount() {
     const proceed = await requireIdentity();
     if (!proceed || !mounted.current) return;
     if (!sameBankAccountPayload(data, getValues())) {
-      setSnackbar({ visible: true, message: t('bankAccount.resubmitAfterIdentity') });
+      toast(t('bankAccount.resubmitAfterIdentity'));
       return;
     }
     upsertMutation.mutate(data);
@@ -117,7 +101,5 @@ export function useBankAccount() {
     onSubmit: form.handleSubmit(save),
     isSaving: checkingIdentity || upsertMutation.isPending,
     confirmDelete,
-    snackbar,
-    dismissSnackbar: () => setSnackbar((s) => ({ ...s, visible: false })),
   };
 }

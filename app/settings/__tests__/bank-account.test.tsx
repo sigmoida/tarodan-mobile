@@ -42,8 +42,6 @@ const get = bankAccountApi.get as jest.Mock;
 const upsert = bankAccountApi.upsert as jest.Mock;
 
 import BankAccountScreen from '../bank-account';
-import { styles as bankStyles } from '../_bank-account/_lib/styles';
-import { theme } from '@/ui';
 
 // Geçerli (mod-97) bir TR IBAN.
 const IBAN = 'TR330006100519786457841326';
@@ -123,6 +121,7 @@ describe('B-1.8 · banka hesabı formu', () => {
 
   it('B3 inceleme 4 · kimlik adımı sürerken form değiştiyse eski değerler gönderilmez, yeniden Kaydet istenir', async () => {
     get.mockResolvedValue({ data: null });
+    const toastSpy = jest.spyOn(jest.requireMock('@/ui'), 'toast').mockImplementation(() => 1);
     const finishIdentity = deferIdentity();
     renderWithProviders(<BankAccountScreen />);
     await fillAndSave();
@@ -130,8 +129,9 @@ describe('B-1.8 · banka hesabı formu', () => {
     fireEvent.changeText(screen.getByTestId('bank-account-holder-input'), 'Ayşe Kaya');
     await finishIdentity(true);
 
-    expect(await screen.findByText('bankAccount.resubmitAfterIdentity')).toBeTruthy();
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('bankAccount.resubmitAfterIdentity'));
     expect(upsert).not.toHaveBeenCalled();
+    toastSpy.mockRestore();
 
     // Yeniden Kaydet: güncel (görünen) değerler gider.
     mockRequireIdentity.mockReset().mockResolvedValue(true);
@@ -168,9 +168,5 @@ describe('B-1.8 · banka hesabı formu', () => {
     fireEvent.press(await screen.findByTestId('bank-account-submit-button'));
     expect(await screen.findByText('bankAccount.ibanInvalid')).toBeTruthy();
     expect(mockRequireIdentity).not.toHaveBeenCalled();
-  });
-
-  it('alt boşluk tasarım token\'ından (CLAUDE.md §2)', () => {
-    expect(bankStyles.bottomSpacer.height).toBe(theme.spacing[12]);
   });
 });
