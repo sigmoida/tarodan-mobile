@@ -58,7 +58,9 @@ export function useCartSync() {
       // Geri alma için ÖNCEKİ hâli sakla: satır zaten varsa adet artıyor,
       // reddedilince satırı silmek değil eski adede dönmek doğru olan.
       const before = store.items.find((i) => i.productId === item.productId);
-      store.addItem(item, quantity);
+      // Tek adette eski çağrı biçimi korunur (varsayılan 1); yalnız adet seçici >1 verir.
+      if (quantity > 1) store.addItem(item, quantity);
+      else store.addItem(item);
       // Aksiyonlar zustand'da kararlı referans; geri alma bayat closure'dan da
       // güvenle çağrılır (state'i çağrı anında okurlar).
       mirror(() => cartApi.addItem(item.productId, quantity), 'cart.add', (message) => {

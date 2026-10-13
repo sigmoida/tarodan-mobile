@@ -6,10 +6,8 @@ const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
 /** Safe-area'yı elle sabitleyen dosyalar — hepsi insets'e taşındı. */
 const MIGRATED = [
-  'app/(tabs)/_lib/styles.ts',
   'app/(tabs)/_lib/searchStyles.ts',
   'app/(tabs)/_lib/profileStyles.ts',
-  'app/product/[id]/_components/ProductTopBar.tsx',
   'app/messages/[threadId]/_lib/styles.ts',
   'src/components/listing/_lib/styles.ts',
   'app/collections/[id]/_lib/collectionStyles.ts',
