@@ -199,6 +199,25 @@ describe('"ilk ödeyen alır" notu', () => {
     expect(screen.queryByTestId('first-to-pay-note')).toBeNull();
   });
 
+  it.each(['cancelled', 'expired', 'refunded', null, undefined])(
+    'ödeme beklenmeyen sipariş durumunda (%s) not yok (Öde düğmesiyle aynı kural)',
+    async (orderStatus) => {
+      getAll.mockResolvedValue({ data: { data: [acceptedUnpaid({ orderStatus })] } });
+      mount(<OffersScreen />);
+      await screen.findByText('Vintage Kamera');
+      await flushPolicy();
+      expect(screen.queryByTestId('first-to-pay-note')).toBeNull();
+    },
+  );
+
+  it('detayda da iptal edilmiş siparişte not yok', async () => {
+    getOne.mockResolvedValue({ data: { data: base({ status: 'accepted', orderStatus: 'cancelled' }) } });
+    mount(<OfferDetailScreen />);
+    await screen.findByText('Vintage Kamera');
+    await flushPolicy();
+    expect(screen.queryByTestId('first-to-pay-note')).toBeNull();
+  });
+
   it('bekleyen (kabul edilmemiş) teklifte not yok', async () => {
     getAll.mockResolvedValue({ data: { data: [base()] } });
     mount(<OffersScreen />);

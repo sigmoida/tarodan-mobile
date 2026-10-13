@@ -24,15 +24,19 @@ export const OFFER_CONFIRM: Record<
   acceptBuyer: { title: "offer.acceptConfirmTitle", description: "offer.acceptConfirmDescBuyer", destructive: false },
 };
 
-/** Ödemesi tamamlanmış sipariş durumları (web `PAID_ORDER_STATUSES`). */
-const PAID_ORDER_STATUSES = ["paid", "preparing", "shipped", "delivered", "completed"];
-
-export const isOfferOrderPaid = (offer: { status?: string; orderStatus?: string | null }): boolean =>
-  offer.status === "accepted" && PAID_ORDER_STATUSES.includes(offer.orderStatus ?? "");
+type OfferOrderState = { status?: string; orderStatus?: string | null };
 
 /**
- * Kabul edilmiş ama ÖDENMEMİŞ teklifte "ilk ödeyen alır" notu (web `OfferCard`):
- * stok ancak ödemede rezerve edildiği için aynı ürüne birden fazla kabul olabilir.
+ * Kabul edilmiş ve siparişi ÖDEME BEKLEYEN teklif (`orderStatus === 'pending_payment'`).
+ * Kartın "Öde" düğmesi ile "ilk ödeyen alır" notu AYNI kuraldan gider; iptal / süresi dolmuş /
+ * henüz bilinmeyen sipariş durumunda ikisi de görünmez.
  */
-export const showFirstToPayNote = (offer: { status?: string; orderStatus?: string | null }): boolean =>
-  offer.status === "accepted" && !isOfferOrderPaid(offer);
+export const isOfferAwaitingPayment = (offer: OfferOrderState): boolean =>
+  offer.status === "accepted" && offer.orderStatus === "pending_payment";
+
+/**
+ * "İlk ödeyen alır" notu (web `OfferCard`): stok ancak ödemede rezerve edildiği için aynı
+ * ürüne birden fazla kabul olabilir. Not yalnız ödeme beklenirken anlamlıdır.
+ * (Web bunu `!paid` ile gösterir; iptal edilmiş siparişte de görünür; mobil sapma.)
+ */
+export const showFirstToPayNote = isOfferAwaitingPayment;
