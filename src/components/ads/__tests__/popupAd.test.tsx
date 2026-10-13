@@ -26,9 +26,11 @@ jest.mock('react-native-safe-area-context', () => ({
 
 const mockCanShow = jest.fn();
 const mockMark = jest.fn(() => Promise.resolve());
+const mockClear = jest.fn(() => Promise.resolve());
 jest.mock('@/lib/ads/popupFrequency', () => ({
   canShowPopupAd: () => mockCanShow(),
   markPopupAdShown: () => mockMark(),
+  clearPopupAdShown: () => mockClear(),
 }));
 
 const mockPush = jest.fn();
@@ -59,8 +61,8 @@ const popupAd = {
   deviceType: 'all',
 };
 
-const setAds = (ads: unknown[], isAdFree = false) =>
-  mockUseAds.mockReturnValue({ ads, isAdFree, isLoading: false });
+const setAds = (ads: unknown[], isAdFree = false, limitsReady = true) =>
+  mockUseAds.mockReturnValue({ ads, isAdFree, limitsReady, isLoading: false });
 
 /** Gecikmeyi ve asenkron depo okumalarını işle. */
 const flush = async (ms: number) => {
@@ -76,6 +78,7 @@ beforeEach(() => {
   mockUseAds.mockReset();
   mockCanShow.mockReset().mockResolvedValue(true);
   mockMark.mockClear();
+  mockClear.mockClear();
   mockPush.mockClear();
 });
 afterEach(() => jest.useRealTimers());
@@ -167,6 +170,50 @@ describe('PopupAd', () => {
     fireEvent.press(getByTestId('ad-banner-p1'));
     await flush(NAVIGATE_AFTER_CLOSE_MS + 10);
     expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it('girişli üyede limitler (limitsReady) yüklenmeden aday seçilmez, sayaç başlamaz', async () => {
+    setAds([popupAd], false, false);
+    const { queryByTestId, rerender } = render(<PopupAd />);
+    await flush(POPUP_AD_DELAY_MS * 2);
+    expect(queryByTestId('popup-ad')).toBeNull();
+    expect(mockMark).not.toHaveBeenCalled();
+
+    // Limitler geldi (reklamsız değil): sayaç ŞİMDİ başlar, tam gecikme kadar bekler.
+    setAds([popupAd], false, true);
+    rerender(<PopupAd />);
+    await flush(POPUP_AD_DELAY_MS - 200);
+    expect(queryByTestId('popup-ad')).toBeNull();
+    await flush(400);
+    expect(queryByTestId('popup-ad')).toBeTruthy();
+  });
+
+  it('limitler reklamsız çıkarsa popup hiç açılmaz, damga yazılmaz', async () => {
+    setAds([popupAd], false, false);
+    const { queryByTestId, rerender } = render(<PopupAd />);
+    await flush(POPUP_AD_DELAY_MS - 500);
+    setAds([popupAd], true, true);
+    rerender(<PopupAd />);
+    await flush(POPUP_AD_DELAY_MS * 2);
+    expect(queryByTestId('popup-ad')).toBeNull();
+    expect(mockMark).not.toHaveBeenCalled();
+  });
+
+  it('popup açıkken isAdFree true olursa kapanır ve damga geri alınır', async () => {
+    setAds([popupAd]);
+    const { queryByTestId, rerender } = render(<PopupAd />);
+    await flush(POPUP_AD_DELAY_MS + 100);
+    expect(queryByTestId('popup-ad')).toBeTruthy();
+    expect(mockMark).toHaveBeenCalledTimes(1);
+
+    setAds([popupAd], true);
+    rerender(<PopupAd />);
+    await flush(10);
+    expect(queryByTestId('popup-ad')).toBeNull();
+    expect(mockClear).toHaveBeenCalledTimes(1);
+    // Yeniden açılmaz.
+    await flush(POPUP_AD_DELAY_MS * 2);
+    expect(queryByTestId('popup-ad')).toBeNull();
   });
 
   it('@/ui Modal kullanır (ham RN Modal içe aktarılmaz) ve Android geri tuşu kapatır', async () => {

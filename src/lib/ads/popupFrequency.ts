@@ -30,3 +30,16 @@ export async function markPopupAdShown(now: number = Date.now()): Promise<void> 
     // sonraki açılışta tekrar çıkabilir; sessizce geç
   }
 }
+
+/**
+ * Gösterim damgasını geri alır: popup açıldıktan sonra gösterilmemesi gerektiği
+ * anlaşılırsa (ör. üye sonradan reklamsız çıktı) kullanıcı 24 saat boyunca
+ * görmediği bir popup için kilitlenmesin. Silinemezse sessizce geçer.
+ */
+export async function clearPopupAdShown(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(POPUP_AD_STORAGE_KEY);
+  } catch {
+    // yazılmış damga kalırsa en kötü 24 saat popup çıkmaz; sessizce geç
+  }
+}

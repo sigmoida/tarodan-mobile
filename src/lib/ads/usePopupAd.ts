@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useFocusEffect } from 'expo-router';
 import { useAds } from '@/hooks/useAds';
 import type { ActiveAd } from '@/lib/api';
 import { newRotationSeed, pickAd } from './pickAd';
-import { canShowPopupAd, markPopupAdShown } from './popupFrequency';
+import { canShowPopupAd, clearPopupAdShown, markPopupAdShown } from './popupFrequency';
+import { useScreenActive } from './useScreenActive';
 
 /**
  * Ekran hazır olduktan sonra popup'ın açılmasına kadar bekleme. Web 3 sn; burada
@@ -19,11 +19,16 @@ export const POPUP_AD_DELAY_MS = 3500;
  * `POPUP_AD_DELAY_MS` sonra. Bir engel gecikme süresinde çıkarsa sayaç iptal
  * olur, kalkınca yeniden başlar. Gösterim anında damga atılır — kapatılmasa da
  * uygulama yeniden açılınca tekrar çıkmaz. Reklamsız üyede/reklam yoksa hiç çıkmaz.
+ *
+ * Reklamsız üye yarışı: girişli kullanıcıda üyelik hakları (`limitsReady`)
+ * belli olmadan aday seçilmez ve sayaç başlamaz (misafirde beklenmez). Popup
+ * açıkken `isAdFree` true olursa popup kapanır ve az önce atılan damga geri
+ * alınır — üye görmediği/görmemesi gereken bir popup için 24 saat kilitlenmez.
  */
 export function usePopupAd(blocked: boolean): { ad: ActiveAd | null; close: () => void } {
-  const { ads, isAdFree } = useAds('popup');
+  const { ads, isAdFree, limitsReady } = useAds('popup');
   const [seed] = useState(newRotationSeed);
-  const candidate = isAdFree ? null : pickAd(ads, 'popup', seed);
+  const candidate = isAdFree || !limitsReady ? null : pickAd(ads, 'popup', seed);
   const candidateRef = useRef(candidate);
   candidateRef.current = candidate;
   const blockedRef = useRef(blocked);
@@ -33,14 +38,9 @@ export function usePopupAd(blocked: boolean): { ad: ActiveAd | null; close: () =
   const [capAllows, setCapAllows] = useState<boolean | null>(null);
   const [shown, setShown] = useState<ActiveAd | null>(null);
   const [done, setDone] = useState(false);
-  const [focused, setFocused] = useState(true);
-
-  useFocusEffect(
-    useCallback(() => {
-      setFocused(true);
-      return () => setFocused(false);
-    }, []),
-  );
+  const markedRef = useRef<Promise<void> | null>(null);
+  // Ekran odakta + uygulama önde (hero/gösterim sayacıyla aynı tek kaynak).
+  const focused = useScreenActive();
 
   useEffect(() => {
     let cancelled = false;
@@ -66,13 +66,21 @@ export function usePopupAd(blocked: boolean): { ad: ActiveAd | null; close: () =
       // Beklerken bir engel çıktıysa açma — engel kalkınca sayaç yeniden kurulur.
       if (cancelled || !ad || blockedRef.current) return;
       setShown(ad);
-      void markPopupAdShown();
+      markedRef.current = markPopupAdShown();
     }, POPUP_AD_DELAY_MS);
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
   }, [hasCandidate, capAllows, done, shown, blocked, focused]);
+
+  // Açıkken üye reklamsız çıktı: kapat, damgayı geri al (yazım bitince sil).
+  useEffect(() => {
+    if (!isAdFree || !shown) return;
+    setShown(null);
+    setDone(true);
+    void (markedRef.current ?? Promise.resolve()).then(() => clearPopupAdShown());
+  }, [isAdFree, shown]);
 
   const close = useCallback(() => {
     setShown(null);

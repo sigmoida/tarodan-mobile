@@ -1,16 +1,19 @@
 const mockGet = jest.fn();
 const mockSet = jest.fn();
+const mockRemove = jest.fn();
 jest.mock('@react-native-async-storage/async-storage', () => ({
   __esModule: true,
   default: {
     getItem: (...a: unknown[]) => mockGet(...a),
     setItem: (...a: unknown[]) => mockSet(...a),
+    removeItem: (...a: unknown[]) => mockRemove(...a),
   },
 }));
 
 import {
   canShowPopupAd,
   markPopupAdShown,
+  clearPopupAdShown,
   POPUP_AD_INTERVAL_MS,
   POPUP_AD_STORAGE_KEY,
 } from '../popupFrequency';
@@ -20,6 +23,7 @@ const NOW = 1_800_000_000_000;
 beforeEach(() => {
   mockGet.mockReset();
   mockSet.mockReset();
+  mockRemove.mockReset();
 });
 
 describe('canShowPopupAd', () => {
@@ -59,5 +63,15 @@ describe('markPopupAdShown', () => {
   it('yazma hatası fırlatmaz', async () => {
     mockSet.mockRejectedValue(new Error('quota'));
     await expect(markPopupAdShown(NOW)).resolves.toBeUndefined();
+  });
+});
+
+describe('clearPopupAdShown', () => {
+  it('damgayı siler; silinemezse fırlatmaz', async () => {
+    mockRemove.mockResolvedValue(undefined);
+    await clearPopupAdShown();
+    expect(mockRemove).toHaveBeenCalledWith(POPUP_AD_STORAGE_KEY);
+    mockRemove.mockRejectedValue(new Error('disk'));
+    await expect(clearPopupAdShown()).resolves.toBeUndefined();
   });
 });
