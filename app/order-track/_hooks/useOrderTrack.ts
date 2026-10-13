@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { api } from '@/lib/api';
 import i18n from '@/i18n/config';
+import { toast } from '@/ui';
 import { canGuestCancel, type OrderStatus } from '../_lib/status';
 import { useGuestOrderCancel } from './useGuestOrderCancel';
 
@@ -28,20 +29,12 @@ export function useOrderTrack() {
   const [error, setError] = useState('');
   const [order, setOrder] = useState<OrderStatus | null>(null);
 
-  const [snackbar, setSnackbar] = useState<{
-    visible: boolean;
-    message: string;
-    variant: 'success' | 'danger';
-  }>({ visible: false, message: '', variant: 'success' });
-  const notify = useCallback(
-    (message: string, variant: 'success' | 'danger') =>
-      setSnackbar({ visible: true, message, variant }),
-    [],
-  );
-  const dismissSnackbar = useCallback(
-    () => setSnackbar((s) => ({ ...s, visible: false })),
-    [],
-  );
+  // Bilgi/başarı = toast, hata = toast.error (web react-hot-toast). Açık Modal'ın altında kalır:
+  // iptal modalı onay anında kapanır (CancelOrderModal), mutasyon sonucu sonra bildirilir.
+  const notify = useCallback((message: string, variant: 'success' | 'danger') => {
+    if (variant === 'danger') toast.error(message);
+    else toast.success(message);
+  }, []);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
 
   /**
@@ -108,8 +101,6 @@ export function useOrderTrack() {
     error,
     order,
     handleTrack,
-    snackbar,
-    dismissSnackbar,
     /**
      * Misafir iptali. Kapı `canGuestCancel` — kargoya verilmiş siparişte sunucu
      * zaten 400 atıyor, butonu göstermek kullanıcıyı o hataya yürütmek olurdu.
