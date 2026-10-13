@@ -45,13 +45,13 @@ export interface RequiredStepShellProps {
 }
 
 /**
- * Zorunlu adımların ortak tam ekran kabuğu. Yüzey ve z-sırası ortak
- * `FullScreenGate`ten (katman `requiredSteps`, `ForceUpdateGate`in altında).
- * ui `Modal` DEĞİL: iOS ModalFreeze riski yok
- * (gönderim hatası `appAlert` yerine kabuğun içinde `error` olarak gösterilir)
- * ve yasal metin sayfasına geçildiğinde katman yalnızca gizlenir. Kapatılamaz: arka
- * plana dokunmak ya da kaydırmak hiçbir şeyi kapatmaz, Android geri tuşunu
- * kapı (`RequiredStepsGate`) yutar.
+ * Zorunlu adımların ortak tam ekran kabuğu. Yüzey, sunum ve öncelik ortak
+ * `FullScreenGate`ten: native tam ekran Modal (katman `requiredSteps`,
+ * `ForceUpdateGate`in altında); açık ekran modallarının ve uyarıların üstünde
+ * kalır. Kapatılamaz: kapatma düğmesi yok, Android geri tuşu yutulur. Yasal
+ * metin sayfasındayken yalnız kabuk gizlenir (`useRequiredStepVisible`).
+ * Kabuğun içinde `appAlert` KULLANILMAZ (iOS ModalFreeze): gönderim hatası
+ * `error` olarak satır içi gösterilir.
  */
 export function RequiredStepShell({
   icon,
