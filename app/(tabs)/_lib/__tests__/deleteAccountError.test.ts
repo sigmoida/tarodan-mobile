@@ -32,6 +32,13 @@ describe('describeDeleteAccountError', () => {
     expect(r.blocked).toBe(true);
   });
 
+  it('başlık errorText ile: dizi mesaj birleşir, boş mesaj fallback\'e düşer', () => {
+    const arr = { response: { status: 400, data: { message: ['A', '', 'B'], errors: ['x'] } } };
+    expect(describeDeleteAccountError(arr, 'f').message).toBe('A\nB\n• x');
+    const empty = { response: { status: 400, data: { message: '', errors: ['x'] } } };
+    expect(describeDeleteAccountError(empty, 'Hesap silinemedi').message).toBe('Hesap silinemedi\n• x');
+  });
+
   it('ağ hatası: fallback metin, engel yok', () => {
     expect(describeDeleteAccountError(new Error('Network'), 'Hesap silinemedi')).toEqual({
       message: 'Hesap silinemedi',

@@ -11,6 +11,8 @@
  * yol gösterilir. Diğer engeller (sipariş, iade, ödeme) kullanıcının
  * beklemesi gereken süreçlerdir; yalnız metin gösterilir.
  */
+import { errorText } from '@/lib/api';
+
 export interface DeleteAccountFailure {
   message: string;
   /** Sunucu engel listesi döndü (silme kuralı; ağ/sunucu hatası değil). */
@@ -20,7 +22,6 @@ export interface DeleteAccountFailure {
 }
 
 interface DeleteBlockedBody {
-  message?: string | string[];
   errors?: unknown;
   details?: { activeProducts?: unknown };
 }
@@ -30,15 +31,14 @@ export function describeDeleteAccountError(
   fallback: string,
 ): DeleteAccountFailure {
   const data = (error as { response?: { data?: DeleteBlockedBody } })?.response?.data;
-  const head = Array.isArray(data?.message)
-    ? data.message.filter(Boolean).join('\n')
-    : data?.message;
+  // Başlık: ortak `errorText` (dizi mesaj, boş mesaj → fallback).
+  const head = errorText(error, fallback);
   const reasons = Array.isArray(data?.errors)
     ? data.errors.filter((e): e is string => typeof e === 'string' && e.length > 0)
     : [];
   const activeProducts = Number(data?.details?.activeProducts ?? 0);
 
-  const lines = [head || fallback, ...reasons.map((r) => `• ${r}`)];
+  const lines = [head, ...reasons.map((r) => `• ${r}`)];
   return {
     message: lines.join('\n'),
     blocked: reasons.length > 0,
