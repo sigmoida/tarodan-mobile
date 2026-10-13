@@ -1,9 +1,9 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MessageKey } from '@/i18n/lib';
-import { View, ScrollView, Pressable, Image } from 'react-native';
+import { View, ScrollView, Image } from 'react-native';
 import { router } from 'expo-router';
-import { Alert, Button, Checkbox, Chip, EmptyState, IconButton, ProgressBar, SectionCard, Text, theme, Icon, Pill, ButtonRow } from '@/ui';
+import { Alert, Button, Checkbox, Chip, EmptyState, IconButton, ProgressBar, SectionCard, Text, theme, Icon, Pill, ButtonRow, ListRowCard } from '@/ui';
 
 import { resolveImageUrl } from '@/utils/imageUrl';
 import UpgradeCta from '@/components/UpgradeCta';
@@ -120,10 +120,7 @@ export function MyListingCard({
   const hintKey = inactiveHintKey(listing);
 
   return (
-    <Pressable
-      style={styles.listingCard}
-      onPress={() => router.push(`/product/${listing.id}`)}
-    >
+    <ListRowCard gap={0} style={styles.listingCard} onPress={() => router.push(`/product/${listing.id}`)}>
       {selection && (
         <View style={styles.selectCheck} testID={`select-wrap-${listing.id}`}>
           <Checkbox
@@ -191,7 +188,7 @@ export function MyListingCard({
         {/* Created Date */}
         <Text variant="caption" tone="subtle">{t('listing.createdAt', { date: formatDate(listing.createdAt) })}</Text>
       </View>
-    </Pressable>
+    </ListRowCard>
   );
 }
 

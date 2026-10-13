@@ -6,16 +6,6 @@ const { colors, spacing, radius } = theme;
 
 export const styles = StyleSheet.create({
   // --- Sipariş kalemleri (web OrderItemsCard) ---
-  noticeBox: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    marginBottom: spacing[4],
-    padding: spacing[3],
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.warning[200]!,
-    backgroundColor: colors.warning[50]!,
-  },
   itemList: { gap: spacing[3] },
   item: {
     flexDirection: 'row',

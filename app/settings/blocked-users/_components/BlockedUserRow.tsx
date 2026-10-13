@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Button, Text } from '@/ui';
+import { Avatar, Button, Text, ListRowCard } from '@/ui';
 import type { BlockedUser } from '@/lib/api';
 
 import { styles } from '../_lib/styles';
@@ -33,7 +33,7 @@ export function BlockedUserRow({
   const blockedAt = formatBlockedAt(item.blockedAt, t('common.dateLocale'));
 
   return (
-    <View style={styles.row}>
+    <ListRowCard style={styles.row}>
       <Avatar size="md" source={item.avatarUrl || undefined} name={name.charAt(0) || '?'} />
       <View style={styles.rowInfo}>
         <Text variant="label" numberOfLines={1}>
@@ -50,6 +50,6 @@ export function BlockedUserRow({
         disabled={busy}
         onPress={() => onUnblock(item.id, name)}
       />
-    </View>
+    </ListRowCard>
   );
 }

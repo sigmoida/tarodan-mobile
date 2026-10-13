@@ -4,7 +4,7 @@ import { View, Pressable, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Button, Chip, Divider, SectionCard, Text, theme, Icon } from '@/ui';
+import { Button, Chip, Divider, SectionCard, Text, theme, Icon, Alert } from '@/ui';
 import UpgradeCta from '@/components/UpgradeCta';
 
 import { PREMIUM_MEMBER_LIMITS } from '@/utils/membershipLimits';
@@ -173,14 +173,9 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
 
       {/* Downgrade Warning */}
       {isCancelled && daysLeft > 0 && (
-        <View style={styles.warning}>
-          <Text variant="label" tone="warning">
-            {t('membership.expiringWarningTitle', { count: daysLeft })}
-          </Text>
-          <Text variant="bodySm" tone="warning">
-            {t('membership.expiringWarningDesc')}
-          </Text>
-        </View>
+        <Alert variant="warning" title={t('membership.expiringWarningTitle', { count: daysLeft })}>
+          {t('membership.expiringWarningDesc')}
+        </Alert>
       )}
 
       {/* Help */}

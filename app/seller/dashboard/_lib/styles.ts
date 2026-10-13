@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '@/ui';
 
-const { colors, spacing, radiusRole } = theme;
+const { colors, spacing } = theme;
 
 // Satıcı panosu route-local stylesheet'i — SectionCard/Card dili, token'lı.
 export const styles = StyleSheet.create({
@@ -13,16 +13,7 @@ export const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing[3],
   },
-  statCard: {
-    flexBasis: '47%',
-    flexGrow: 1,
-    backgroundColor: colors.surface.elevated,
-    borderRadius: radiusRole.card,
-    padding: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    gap: spacing[1],
-  },
+  statCard: { flexBasis: '47%', flexGrow: 1 },
   quickAction: {
     minHeight: theme.minTouchTarget,
     justifyContent: 'center',

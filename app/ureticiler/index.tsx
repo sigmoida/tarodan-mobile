@@ -1,8 +1,8 @@
 import React from 'react';
-import { FlatList, Image, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, Image, RefreshControl, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { EmptyState, ErrorState, Input, RawText, SkeletonAvatar, SkeletonText, Text, pageListContentStyle, theme } from '@/ui';
+import { EmptyState, ErrorState, Input, RawText, SkeletonAvatar, SkeletonText, Text, pageListContentStyle, theme, ListRowCard } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { useManufacturers, type Manufacturer } from './_hooks/useManufacturers';
@@ -14,11 +14,7 @@ function ManufacturerRow({ item }: { item: Manufacturer }) {
   const { t } = useTranslation();
   const count = item.productCount ?? item._count?.products;
   return (
-    <Pressable
-      onPress={() => router.push(`/ureticiler/${item.slug}` as any)}
-      accessibilityRole="button"
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-    >
+    <ListRowCard onPress={() => router.push(`/ureticiler/${item.slug}` as any)}>
       <View style={styles.logoWrap}>
         {item.logo ? (
           <Image source={{ uri: resolveImageUrl(item.logo) }} style={styles.logo} resizeMode="contain" />
@@ -36,7 +32,7 @@ function ManufacturerRow({ item }: { item: Manufacturer }) {
           </Text>
         ) : null}
       </View>
-    </Pressable>
+    </ListRowCard>
   );
 }
 
@@ -76,12 +72,12 @@ export default function ManufacturersScreen() {
           f.isLoading ? (
             <View style={styles.skeleton} testID="manufacturers-skeleton">
               {SKELETON_ROWS.map((i) => (
-                <View key={i} style={styles.row}>
+                <ListRowCard key={i}>
                   <SkeletonAvatar />
                   <View style={styles.body}>
                     <SkeletonText lines={2} />
                   </View>
-                </View>
+                </ListRowCard>
               ))}
             </View>
           ) : f.error ? (
@@ -102,17 +98,6 @@ export default function ManufacturersScreen() {
 const styles = StyleSheet.create({
   content: { ...pageListContentStyle, gap: spacing[2], flexGrow: 1 },
   skeleton: { gap: spacing[2] },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-    padding: spacing[3],
-    borderRadius: radiusRole.card,
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    backgroundColor: colors.surface.elevated,
-  },
-  pressed: { opacity: 0.85 },
   logoWrap: {
     width: spacing[12],
     height: spacing[12],

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable } from 'react-native';
-import { Text } from '@/ui';
+import { Text, ListRowCard } from '@/ui';
 import { styles } from '../_lib/styles';
 
 /** İstatistik kartı — değer + etiket (ikonsuz), opsiyonel dokunma. */
@@ -14,10 +14,10 @@ export function StatCard({
   onPress?: () => void;
 }) {
   return (
-    <Pressable style={styles.statCard} onPress={onPress} disabled={!onPress}>
+    <ListRowCard direction="column" gap={1} style={styles.statCard} onPress={onPress} disabled={!onPress}>
       <Text variant="h2">{value}</Text>
       <Text variant="caption">{label}</Text>
-    </Pressable>
+    </ListRowCard>
   );
 }
 

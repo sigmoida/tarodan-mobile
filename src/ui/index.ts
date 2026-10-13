@@ -136,6 +136,7 @@ export {
 	type RadioGroupOption,
 } from './components/Radio';
 export { Card, type CardProps } from './components/Card';
+export { ListRowCard, type ListRowCardProps } from './components/ListRowCard';
 export {
 	SectionCard,
 	SectionCardAction,

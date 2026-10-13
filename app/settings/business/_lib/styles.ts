@@ -49,16 +49,7 @@ export const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing[3],
   },
-  statCard: {
-    width: '47%',
-    backgroundColor: colors.surface.elevated,
-    borderRadius: radiusRole.card,
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    padding: spacing[4],
-    alignItems: 'center',
-    gap: spacing[1],
-  },
+  statCard: { width: '47%', alignItems: 'center', gap: spacing[1] },
   weeklyStatsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',

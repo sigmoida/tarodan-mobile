@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '@/ui';
 
-const { colors, spacing, radiusRole } = theme;
+const { colors, spacing } = theme;
 
 // Abonelik ayarları ekranının route-local stylesheet'i — SectionCard/Card dili, token'lı.
 export const styles = StyleSheet.create({
@@ -37,13 +37,5 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: spacing[2],
     gap: spacing[0.5],
-  },
-  warning: {
-    backgroundColor: colors.warning[50]!,
-    borderRadius: radiusRole.card,
-    borderWidth: 1,
-    borderColor: colors.warning[200]!,
-    padding: spacing[4],
-    gap: spacing[1],
   },
 });

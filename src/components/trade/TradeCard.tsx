@@ -1,11 +1,11 @@
 import { useTradeStatusConfig, tradeViewerRole } from '@/lib/shared/tradeStatus';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, StyleSheet, Image, Pressable } from 'react-native';
+import { View, StyleSheet, Image } from 'react-native';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { theme, Text, StatusBadge, Avatar, Icon } from '@/ui';
+import { theme, Text, StatusBadge, Avatar, Icon, ListRowCard } from '@/ui';
 import { formatPrice } from '../../utils/format';
 import { transformImageUrl, IMAGE_PLACEHOLDER } from '../../utils/imageUrl';
 
@@ -146,10 +146,7 @@ function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
   };
 
   return (
-    <Pressable
-      onPress={handlePress}
-      style={({ pressed }) => [styles.card, pressed && { opacity: 0.92 }]}
-    >
+    <ListRowCard direction="column" gap={0} onPress={handlePress} style={styles.card}>
       {/* Header */}
       <View style={styles.header}>
         <Avatar name={otherUserName} size="md" />
@@ -204,19 +201,12 @@ function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
           <Icon name="chevron-right" size={14} color={colors.primary[600]!} />
         </View>
       </View>
-    </Pressable>
+    </ListRowCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface.elevated,
-    borderRadius: theme.radiusRole.card,
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    padding: spacing[3.5],
-    marginBottom: spacing[3],
-  },
+  card: { marginBottom: spacing[3] },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

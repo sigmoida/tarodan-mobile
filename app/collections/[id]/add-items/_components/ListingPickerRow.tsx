@@ -1,5 +1,5 @@
 import { View, Image, Pressable } from 'react-native';
-import { Button, Text } from '@/ui';
+import { Button, Text, ListRowCard } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { resolveImageUrl } from '@/utils/imageUrl';
@@ -15,7 +15,7 @@ export function ListingPickerRow({ listing, f }: { listing: Listing; f: AddItems
   const busy = !!f.pending[listing.id];
 
   return (
-    <View style={styles.row}>
+    <ListRowCard>
       <Pressable
         style={styles.rowContent}
         onPress={() => router.push(`/product/${listing.id}`)}
@@ -41,6 +41,6 @@ export function ListingPickerRow({ listing, f }: { listing: Listing; f: AddItems
         disabled={busy}
         accessibilityLabel={added ? t('collection.removeFromCollection') : t('collection.addToCollection')}
       />
-    </View>
+    </ListRowCard>
   );
 }

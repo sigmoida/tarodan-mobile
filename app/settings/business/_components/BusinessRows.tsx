@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Image, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { Text, theme, Icon } from '@/ui';
+import { Text, theme, Icon, Card } from '@/ui';
 
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
@@ -11,10 +11,10 @@ import { formatPrice } from '@/utils/format';
 // Stat Card Component (ikonsuz: değer + etiket)
 export function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <View style={styles.statCard}>
+    <Card variant="bordered" style={styles.statCard}>
       <Text variant="h2">{value.toLocaleString()}</Text>
       <Text variant="caption">{label}</Text>
-    </View>
+    </Card>
   );
 }
 

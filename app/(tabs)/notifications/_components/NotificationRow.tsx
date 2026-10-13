@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Image, Pressable } from 'react-native';
-import { Icon, Text } from '@/ui';
+import { View, Image } from 'react-native';
+import { Icon, Text, ListRowCard } from '@/ui';
 import { useTranslation } from 'react-i18next';
 import { formatRelativeDate } from '@/utils/format';
 import { resolveImageUrl } from '@/utils/imageUrl';
@@ -21,10 +21,7 @@ function NotificationRowBase({
   const { icon, color, bg } = getIconForType(item.type);
 
   return (
-    <Pressable
-      style={[styles.item, isUnread && styles.itemUnread]}
-      onPress={() => onPress(item)}
-    >
+    <ListRowCard gap={0} style={[styles.item, isUnread && styles.itemUnread]} onPress={() => onPress(item)}>
       {STOCKOUT_TYPES.has(item.type) && item.data?.productImage ? (
         <Image source={{ uri: resolveImageUrl(item.data.productImage) }} style={styles.thumb} />
       ) : (
@@ -49,7 +46,7 @@ function NotificationRowBase({
         </Text>
       </View>
       {isUnread ? <View style={styles.dot} /> : null}
-    </Pressable>
+    </ListRowCard>
   );
 }
 

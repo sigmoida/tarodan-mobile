@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { Button, SectionCard, Text, theme, Icon } from '@/ui';
+import { Button, SectionCard, Text, theme, Icon, Card } from '@/ui';
 
 import UpgradeCta from '@/components/UpgradeCta';
 import { styles } from '../_lib/styles';
@@ -14,12 +14,12 @@ const { colors } = theme;
 
 function OverviewCard({ value, label }: { value: string | number; label: string }) {
   return (
-    <View style={styles.overviewCard}>
+    <Card variant="bordered" style={styles.overviewCard}>
       <Text variant="h2">{value}</Text>
       <Text variant="caption" align="center">
         {label}
       </Text>
-    </View>
+    </Card>
   );
 }
 

@@ -14,16 +14,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing[3],
   },
-  overviewCard: {
-    flex: 1,
-    alignItems: 'center',
-    gap: spacing[1],
-    backgroundColor: colors.surface.elevated,
-    borderRadius: radiusRole.card,
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    padding: spacing[4],
-  },
+  overviewCard: { flex: 1, alignItems: 'center', gap: spacing[1] },
   simpleChart: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { theme, Text, Icon } from '@/ui';
+import { theme, Text, Icon, ListRowCard } from '@/ui';
 import { router, useFocusEffect } from 'expo-router';
 import { addressesApi } from '@/lib/api';
 
@@ -89,12 +89,7 @@ export function TradeAddressPicker({ onChange, label }: Props) {
           {addresses.map((a) => {
             const active = selectedId === a.id;
             return (
-              <TouchableOpacity
-                key={a.id}
-                style={[styles.card, active && styles.cardActive]}
-                onPress={() => select(a.id)}
-                activeOpacity={0.8}
-              >
+              <ListRowCard key={a.id} gap={2.5} style={[styles.card, active && styles.cardActive]} onPress={() => select(a.id)}>
                 <Icon
                   name={active ? 'check-circle' : 'minus-circle'}
                   size={20}
@@ -113,7 +108,7 @@ export function TradeAddressPicker({ onChange, label }: Props) {
                     {a.address}
                   </Text>
                 </View>
-              </TouchableOpacity>
+              </ListRowCard>
             );
           })}
 
@@ -139,15 +134,7 @@ const styles = StyleSheet.create({
   container: { gap: theme.spacing[2] },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[1.5], marginBottom: theme.spacing[1] },
   label: { fontSize: 14, fontWeight: '600', color: colors.text.heading },
-  card: {
-    flexDirection: 'row',
-    gap: theme.spacing[2.5],
-    padding: theme.spacing[3],
-    borderRadius: theme.radius['2xl'],
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    backgroundColor: colors.surface.DEFAULT,
-  },
+  card: { alignItems: 'stretch' },
   cardActive: { borderColor: colors.primary[500]!, backgroundColor: colors.primary[50]! },
   name: { fontSize: 14, fontWeight: '600', color: colors.text.heading },
   default: { fontSize: 12, color: colors.primary[600]!, fontWeight: '500' },

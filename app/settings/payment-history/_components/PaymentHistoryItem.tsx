@@ -1,6 +1,6 @@
-import { View, Pressable, Image } from 'react-native';
+import { View, Image } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { StatusBadge, Text, theme, Icon } from '@/ui';
+import { StatusBadge, Text, theme, Icon, ListRowCard } from '@/ui';
 import { styles } from '../_lib/styles';
 import { buildStatusConfig, formatDate, formatCurrency } from '../_lib/status';
 import type { Payment } from '../_lib/types';
@@ -13,7 +13,7 @@ export function PaymentHistoryItem({ item, onPress }: { item: Payment; onPress: 
   const statusCfg = statusConfig[statusKey]!;
 
   return (
-    <Pressable style={styles.paymentItem} onPress={() => onPress(item)}>
+    <ListRowCard gap={0} onPress={() => onPress(item)}>
       {item.imageUrl ? (
         <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
       ) : (
@@ -38,6 +38,6 @@ export function PaymentHistoryItem({ item, onPress }: { item: Payment; onPress: 
         <Text variant="label">{formatCurrency(item.amount)}</Text>
         <StatusBadge status={statusKey} config={statusConfig} size="sm" />
       </View>
-    </Pressable>
+    </ListRowCard>
   );
 }

@@ -8,15 +8,6 @@ const THUMB = 44;
 
 // Route-local stylesheet (§12) — satırlar web Card (bordered, rounded-lg).
 export const styles = StyleSheet.create({
-  paymentItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface.elevated,
-    borderRadius: radiusRole.card,
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    padding: spacing[4],
-  },
   statusIconContainer: {
     width: THUMB,
     height: THUMB,

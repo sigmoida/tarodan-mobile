@@ -16,14 +16,7 @@ export const styles = StyleSheet.create({
   chipRow: {
     gap: spacing[2],
   },
-  listingCard: {
-    backgroundColor: colors.surface.elevated,
-    borderRadius: radiusRole.card,
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    padding: spacing[3],
-    flexDirection: 'row',
-  },
+  listingCard: { alignItems: 'stretch' },
   listingImage: {
     width: THUMB,
     height: THUMB,

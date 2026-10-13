@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Avatar, Badge, Button, SectionCard, Text, ButtonRow } from '@/ui';
+import { Avatar, Badge, Button, SectionCard, Text, ButtonRow, Card } from '@/ui';
 import { useTranslation } from 'react-i18next';
 
 import { styles } from '../_lib/styles';
@@ -9,12 +9,12 @@ import type { SellerProfileController } from '../_hooks/useSellerProfile';
 
 function Metric({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <View style={styles.metric}>
+    <Card variant="bordered" style={styles.metric}>
       <Text variant="h2">{value}</Text>
       <Text variant="caption" tone="muted">
         {label}
       </Text>
-    </View>
+    </Card>
   );
 }
 

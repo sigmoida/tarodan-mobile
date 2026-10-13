@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Image, View } from 'react-native';
-import { SectionCard, Text, theme, Icon } from '@/ui';
+import { SectionCard, Text, theme, Icon, Alert } from '@/ui';
 import { transformImageUrl } from '@/utils/imageUrl';
 import { formatServerPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
@@ -20,12 +20,13 @@ export function CheckoutItemsSection({ c }: { c: Ctrl }) {
   return (
     <SectionCard title={t('checkout.orderSummary')} testID="checkout-items">
       {c.isBuyNow ? (
-        <View style={styles.noticeBox}>
-          <Icon name="information-circle" size={theme.iconSize.lg} color={theme.colors.warning[800]!} />
-          <Text variant="bodySm" style={{ flex: 1, color: theme.colors.warning[800]! }}>
-            {t('checkout.buyNowNotice')}
-          </Text>
-        </View>
+        <Alert
+          variant="warning"
+          style={{ marginBottom: theme.spacing[4] }}
+          icon={<Icon name="information-circle" size={theme.iconSize.lg} color={theme.colors.warning[800]!} />}
+        >
+          {t('checkout.buyNowNotice')}
+        </Alert>
       ) : null}
 
       <View style={styles.itemList}>

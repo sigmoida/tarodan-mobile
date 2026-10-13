@@ -21,15 +21,7 @@ export const styles = StyleSheet.create({
   emptyList: {
     flexGrow: 1,
   },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: colors.surface.elevated,
-    padding: spacing[3.5],
-    borderRadius: radiusRole.card,
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-  },
+  item: { alignItems: 'flex-start' },
   itemUnread: {
     backgroundColor: colors.primary[50],
     borderColor: colors.primary[200],
