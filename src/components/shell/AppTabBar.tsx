@@ -126,7 +126,7 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
       >
         {TABS.map((tab) => {
           const focused = activeName === tab.name;
-          const color = focused ? colors.primary[600]! : colors.text.subtle;
+          const color = focused ? colors.primary[600]! : theme.inactiveIconColor;
           const label = t(tab.labelKey);
 
           return (
