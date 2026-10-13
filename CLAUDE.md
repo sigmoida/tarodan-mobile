@@ -314,6 +314,18 @@ and turns them into **errors**, so write new code warning-free.
   Screens that still draw their own orange header (home, search, profile, message
   thread, product top bar, listing form, …) are being moved onto the shells; don't
   add new ones.
+- **One top bar, one inset formula.** Bar height, title position and back arrow are identical on
+  every screen: `ScreenHeader`/`PageShell` = safe-area top (`useHeaderTopInset()` from `@/ui`, the
+  only source — never read `insets.top`, never `SafeAreaView edges` with `'top'`) + fixed
+  `theme.headerHeight` (52) content, left-aligned single-line title (`Text` h3), `chevron-back`
+  24 heading-colour arrow (44pt hit area). Need a custom title (chat avatar+name)? use the
+  `titleSlot`/`leading`/`right` slots, not a hand-drawn bar. Back with no history →
+  `goBackOrHome()` (`router.replace('/(tabs)')`), the arrow is never dead. Modal/sheet titles are
+  `SheetHeader` (title left, close right, same height; `fullScreen` adds the Android top inset —
+  pair it with `statusBarTranslucent`). Stack layouts spread `stackScreenOptions`
+  (`@/lib/navigation/screenOptions`: no native header, `slide_from_right`). Enforced by
+  `tarodan/no-custom-screen-header` + `tarodan/no-native-header` (warnings; exempt files are listed
+  inside the rule) and the `screenShells` jest scan (every `app/**` screen contains a shell).
 - **Icons carry function only:** back, close, search, cart, favourite, share, menu,
   filter, status icons, and icons the web shows in the same place. Decorative icons
   (in titles, list-row leading, inside buttons, section heads) are removed; an icon
