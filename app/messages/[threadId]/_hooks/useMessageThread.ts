@@ -3,7 +3,7 @@ import { FlatList, Platform } from 'react-native';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
-import { appAlert } from '@/ui';
+import { appAlert, type ActionSheetAction } from '@/ui';
 import { useMessagesStore } from '@/stores/messagesStore';
 import { useAuthStore } from '@/stores/authStore';
 import {
@@ -45,6 +45,7 @@ export function useMessageThread() {
   const [pendingImage, setPendingImage] = useState<{ uri: string; name: string; type: string } | null>(null);
   const [filterWarning, setFilterWarning] = useState<string | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   // İlk açılışta liste en alta konumlanana dek gizli tutulur (zıplama görünmesin).
   const [isPositioned, setIsPositioned] = useState(false);
   const scrollViewRef = useRef<FlatList>(null);
@@ -195,22 +196,26 @@ export function useMessageThread() {
     onBlocked: () => (router.canGoBack() ? router.back() : router.replace('/(tabs)')),
   });
 
+  // Başlık menüsü (ActionSheet): her eylem sheet TAMAMEN kapandıktan sonra çalışır, bu yüzden
+  // şikayet modalı / engel onayı (appAlert) zamanlayıcı hack'i olmadan açılır (§12).
   const handleHeaderMenu = () => {
-    if (!other) return;
-    appAlert(other.displayName, undefined, [
-      { text: t('message.viewProfile'), onPress: () => router.push(`/seller/${other.id}`) },
-      // iOS'ta alert modalı kapanırken yeni bir native Modal açılırsa görünmeyebilir; kapanışı bekle.
-      { text: t('profile.report'), onPress: () => setTimeout(() => setShowReportModal(true), 300) },
-      isBlocked
-        ? { text: t('profile.unblock'), onPress: () => requestUnblock(other.id, other.displayName) }
-        : {
-            text: t('profile.block'),
-            style: 'destructive' as const,
-            onPress: () => requestBlock(other.id, other.displayName),
-          },
-      { text: t('common.cancel'), style: 'cancel' },
-    ]);
+    if (other) setHeaderMenuOpen(true);
   };
+  const closeHeaderMenu = () => setHeaderMenuOpen(false);
+  const headerMenuActions: ActionSheetAction[] = other
+    ? [
+        { key: 'profile', label: t('message.viewProfile'), onPress: () => router.push(`/seller/${other.id}`) },
+        { key: 'report', label: t('profile.report'), onPress: () => setShowReportModal(true) },
+        isBlocked
+          ? { key: 'unblock', label: t('profile.unblock'), onPress: () => requestUnblock(other.id, other.displayName) }
+          : {
+              key: 'block',
+              label: t('profile.block'),
+              destructive: true,
+              onPress: () => requestBlock(other.id, other.displayName),
+            },
+      ]
+    : [];
 
   return {
     user,
@@ -244,6 +249,9 @@ export function useMessageThread() {
     handleAttachImage,
     handleSend,
     handleHeaderMenu,
+    headerMenuOpen,
+    closeHeaderMenu,
+    headerMenuActions,
   };
 }
 

@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { theme, runAfterModalClose } from "@/ui";
+import { theme } from "@/ui";
 import { CAN_BUY_DIGITAL, limitAlert } from "@/lib/purchases";
 import { productsApi, type ListingRemovalPayload } from "@/lib/api";
 import { qk } from "@/lib/query";
@@ -43,9 +43,16 @@ export function useMyListings() {
   const { user, limits, refreshUserData } = useAuthStore();
   const [filter, setFilter] = useState<FilterType>("all");
   const [refreshing, setRefreshing] = useState(false);
+  // Eylem menüsü (ActionSheet): ilan menü KAPANIRKEN de durur (satırlar kaybolmasın); yalnız
+  // `actionMenuOpen` düşer. Satır eylemi sheet tamamen kapandıktan sonra çalışır.
   const [actionMenuListing, setActionMenuListing] = useState<Listing | null>(
     null,
   );
+  const [actionMenuOpen, setActionMenuOpen] = useState(false);
+  const openActionMenu = (listing: Listing) => {
+    setActionMenuListing(listing);
+    setActionMenuOpen(true);
+  };
   // Hedef (ilan + eylem) pencere KAPANDIKTAN sonra da durur; yalnız `removalOpen`
   // düşer. Aksi halde kapanış animasyonunda pencere varsayılan "Sil" kipine dönüp
   // pasife alma ekranı kapanırken kırmızı "Evet, Sil" gösterirdi. Sonraki açılış üzerine yazar.
@@ -133,9 +140,9 @@ export function useMyListings() {
   const listingLimit = quotaSummary?.max ?? (limits?.maxListings || 10);
 
   /** Yenileme/yeniden açma yeni bir aktif ilan sayılır: sunucu kotası (aktif sayım) baz alınır. */
-  const quotaBlocksReopen = (afterMenuCloses: (fn: () => void) => void) => {
+  const quotaBlocksReopen = () => {
     if (quotaSummary?.canCreate !== false) return false;
-    afterMenuCloses(() => limitAlert({
+    limitAlert({
       title: t("listing.limitTitle"),
       message: CAN_BUY_DIGITAL
         ? t("listing.limitBody")
@@ -143,18 +150,16 @@ export function useMyListings() {
       cancelLabel: t("common.cancel"),
       upgradeLabel: t("address.goPremium"),
       onUpgrade: () => router.push("/upgrade"),
-    }));
+    });
     return true;
   };
 
+  /**
+   * Menü satırı eylemi. ActionSheet satırı sheet TAMAMEN kapandıktan sonra çağırır
+   * (`runAfterClose`); bu yüzden uyarı/diyalog açan adımlar (kaldırma penceresi, öne çıkar,
+   * kota uyarısı) ek bekleme olmadan güvenle açılır (CLAUDE.md §12).
+   */
   const handleMenuAction = (action: string, listing: Listing) => {
-    setActionMenuListing(null);
-    // Eylem menüsü bir Modal: onu kapatırken AYNI tick'te appAlert ya da başka
-    // bir Modal açmak iOS'ta donmaya yol açıyor (CLAUDE.md §12). Uyarı/diyalog
-    // açan adımlar menü kapandıktan sonra çalışır; yönlendirme ve mutation
-    // hemen çalışabilir.
-    const afterMenuCloses = runAfterModalClose;
-
     switch (action) {
       case "edit":
         router.push(`/listing/${listing.id}/edit`);
@@ -164,23 +169,23 @@ export function useMyListings() {
         break;
       case "deactivate":
         // Neden ZORUNLU sorulur (web ile aynı) — pasife alma nedenle birlikte gider.
-        afterMenuCloses(() => openRemoval({ listing, action: "deactivate" }));
+        openRemoval({ listing, action: "deactivate" });
         break;
       case "activate":
         reactivate.mutate(listing.id);
         break;
       case "boost":
-        afterMenuCloses(() => setBoostListing(listing));
+        setBoostListing(listing);
         break;
       case "relist":
-        if (quotaBlocksReopen(afterMenuCloses)) return;
+        if (quotaBlocksReopen()) return;
         // Süresi dolan ilan /renew ile (içerik değişmediyse doğrudan yayına döner);
         // diğer pasif ilan (karantina dahil) PATCH status=active ile.
         if (isExpiredListing(listing)) renewOne.mutate(listing.id);
         else reactivate.mutate(listing.id);
         break;
       case "delete":
-        afterMenuCloses(() => openRemoval({ listing, action: "delete" }));
+        openRemoval({ listing, action: "delete" });
         break;
     }
   };
@@ -234,7 +239,9 @@ export function useMyListings() {
     counts,
     // modals / selection
     actionMenuListing,
-    setActionMenuListing,
+    actionMenuOpen,
+    openActionMenu,
+    closeActionMenu: () => setActionMenuOpen(false),
     removalTarget,
     removalOpen,
     closeRemoval: () => setRemovalOpen(false),

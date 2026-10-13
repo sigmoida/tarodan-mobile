@@ -98,7 +98,11 @@ export const Pill: React.FC<PillProps> = ({
   >
     {icon}
     {typeof children === 'string' || typeof children === 'number' ? (
-      <RawText numberOfLines={numberOfLines} style={[pillTextStyle(size, color, weight), styles.text, textStyle]}>
+      <RawText
+        numberOfLines={numberOfLines}
+        maxFontSizeMultiplier={typography.maxFontScale.control}
+        style={[pillTextStyle(size, color, weight), styles.text, textStyle]}
+      >
         {children}
       </RawText>
     ) : (

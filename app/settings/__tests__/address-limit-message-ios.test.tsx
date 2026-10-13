@@ -52,6 +52,14 @@ jest.mock('@/lib/api', () => ({
 Platform.OS = 'ios';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { useAddresses } = require('../addresses/_hooks/useAddresses');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { useAddressActions } = require('../addresses/_hooks/useAddressActions');
+
+/** Liste ekranının bileşimi: sorgu + eylemler (limit kapısı `openAdd`'de). */
+const useListScreen = () => {
+  const f = useAddresses();
+  return { ...f, ...useAddressActions(f.addresses, f.maxAddresses) };
+};
 
 const wrapper = ({ children }: { children: React.ReactNode }) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -61,15 +69,17 @@ const wrapper = ({ children }: { children: React.ReactNode }) => {
 beforeEach(() => jest.clearAllMocks());
 
 it('iOS: adres limiti mesajı nötr `address.limitReachedInfo` — `address.limitBody` DEĞİL', async () => {
-  const { result } = renderHook(() => useAddresses(), { wrapper });
+  const { result } = renderHook(() => useListScreen(), { wrapper });
 
   await waitFor(() => expect(result.current.addresses).toHaveLength(1));
 
   act(() => {
-    result.current.openAddDialog();
+    result.current.openAdd();
   });
 
   expect(mockAlert).toHaveBeenCalledTimes(1);
+  // Limit doluyken form ekranına GİDİLMEZ.
+  expect(require('expo-router').router.push).not.toHaveBeenCalled();
   const [, message, buttons] = mockAlert.mock.calls[0];
   expect(message).toBe('address.limitReachedInfo');
   expect(buttons).toHaveLength(1);

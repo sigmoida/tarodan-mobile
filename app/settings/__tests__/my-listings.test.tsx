@@ -5,6 +5,7 @@
  * Backend (ilan durum geçişleri, relist limiti, deaktif/sil kalıcılığı) backendOnly.
  */
 import React from "react";
+import { Modal } from "react-native";
 import { screen, fireEvent, waitFor, act } from "@testing-library/react-native";
 import { renderWithProviders } from "@/test-utils";
 
@@ -144,7 +145,20 @@ describe("J133 · İlan düzenleme navigasyon wiring", () => {
     // İlan menüsünü aç (accessibilityLabel="İlan menüsü")
     fireEvent.press(screen.getByLabelText("listing.menuAccessibility"));
     await screen.findByText("common.edit");
+    // Eylem ActionSheet kapandıktan SONRA çalışır (runAfterClose; iOS onDismiss / üst sınır).
+    jest.useFakeTimers();
     fireEvent.press(screen.getByText("common.edit"));
+    act(() => {
+      jest.advanceTimersByTime(1000); // kapanış animasyonu + söküm
+    });
+    act(() => {
+      // iOS native Modal onDismiss → kuyruk
+      screen.UNSAFE_queryAllByType(Modal).forEach((m) => m.props.onDismiss?.());
+    });
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+    jest.useRealTimers();
 
     expect(mockPush).toHaveBeenCalledWith("/listing/L9/edit");
   });
@@ -184,7 +198,13 @@ describe("İlanlarım · menü kapanmadan uyarı açılmaz (iOS donma)", () => {
     fireEvent.press(screen.getByText("listing.deactivateAction"));
     expect(screen.queryByText("product.deactivateListingFull")).toBeNull();
     act(() => {
-      jest.advanceTimersByTime(500);
+      jest.advanceTimersByTime(1000); // kapanış animasyonu + söküm
+    });
+    act(() => {
+      screen.UNSAFE_queryAllByType(Modal).forEach((m) => m.props.onDismiss?.());
+    });
+    act(() => {
+      jest.runOnlyPendingTimers();
     });
     expect(screen.getByText("product.deactivateListingFull")).toBeOnTheScreen();
     expect(appAlert).not.toHaveBeenCalled();

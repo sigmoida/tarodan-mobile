@@ -16,9 +16,11 @@ describe('Button (web @tarodan/ui ölçüleri)', () => {
     ['md', 40],
     ['lg', 48],
     ['xl', 56],
-  ] as const)('%s yüksekliği %i', (size, height) => {
+  ] as const)('%s asgari yüksekliği %i (büyük yazı ölçeğinde kırpılmadan büyür)', (size, height) => {
     render(<Button size={size} title="Kaydet" />);
-    expect(buttonStyle().height).toBe(height);
+    // Sabit `height` yerine `minHeight`: normal ölçekte düğme tam bu boyda, büyük ölçekte büyür.
+    expect(buttonStyle().minHeight).toBe(height);
+    expect(buttonStyle().height).toBeUndefined();
     expect(buttonStyle().borderRadius).toBe(theme.radius.lg);
   });
 

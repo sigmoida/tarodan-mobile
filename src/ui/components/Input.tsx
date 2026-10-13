@@ -45,6 +45,8 @@ const { colors, radiusRole, spacing, typography, controlHeight, iconSize } = the
 /**
  * Web `@tarodan/ui` Input: sm h-8 px-2.5 · md h-10 px-3 · lg h-12 px-4. Metin her boyutta 16:
  * web telefon genişliğinde `CONTROL_TEXT` = `text-base` (16px altı iOS'ta odakta yakınlaştırır).
+ * `height` Input'ta ASGARİ yüksekliktir (`minHeight` + küçük dikey dolgu): normal yazı ölçeğinde
+ * alan tam bu boydadır, büyük ölçekte (metin en çok `maxFontScale.control`, `RawTextInput`) büyür.
  */
 export const inputSizeStyle = {
   sm: { height: controlHeight.sm, px: spacing[2.5], font: typography.fontSize.base },
@@ -126,7 +128,7 @@ export const Input: React.FC<InputProps> = ({
           { paddingHorizontal: ss.px },
           multiline
             ? { minHeight: MULTILINE_MIN_HEIGHT, paddingVertical: spacing[2], alignItems: 'flex-start' }
-            : { height: ss.height },
+            : { minHeight: ss.height, paddingVertical: spacing[1] },
           { borderColor, backgroundColor: disabled ? colors.surface.DEFAULT : colors.surface.elevated },
           fieldStyle,
         ]}

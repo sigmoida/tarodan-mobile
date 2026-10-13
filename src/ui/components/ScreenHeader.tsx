@@ -141,7 +141,11 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
                 {title}
               </Text>
               {subtitle ? (
-                <RawText style={styles.subtitle} numberOfLines={1}>
+                <RawText
+                  style={styles.subtitle}
+                  numberOfLines={1}
+                  maxFontSizeMultiplier={theme.typography.maxFontScale.control}
+                >
                   {subtitle}
                 </RawText>
               ) : null}
@@ -224,7 +228,11 @@ export const TopBarLabel: React.FC<{ children: React.ReactNode; testID?: string 
 
 const TopBarPill: React.FC<{ children: React.ReactNode; disabled?: boolean }> = ({ children, disabled }) => (
   <GlassSurface shape="pill" size={PILL_HEIGHT} pointerEvents="none" style={styles.pill}>
-    <RawText numberOfLines={1} style={[styles.textAction, disabled && styles.disabled]}>
+    <RawText
+      numberOfLines={1}
+      maxFontSizeMultiplier={theme.typography.maxFontScale.control}
+      style={[styles.textAction, disabled && styles.disabled]}
+    >
       {children}
     </RawText>
   </GlassSurface>

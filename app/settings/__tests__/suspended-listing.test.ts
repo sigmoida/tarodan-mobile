@@ -33,7 +33,7 @@ describe('suspended ilan durumu', () => {
     // Sunucu askıdaki ilanın düzenlenmesini reddediyor; butonu göstermek
     // kullanıcıyı doğrudan o hataya yürütür.
     const source = require('fs').readFileSync(
-      require('path').resolve(__dirname, '../my-listings/_components/MyListingsModals.tsx'),
+      require('path').resolve(__dirname, '../my-listings/_lib/menu.ts'),
       'utf8',
     );
     expect(source).toContain("'suspended'");

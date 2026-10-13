@@ -3,9 +3,6 @@ import { theme } from '@/ui';
 
 const { colors, spacing, radiusRole } = theme;
 
-/** Form modalının kaydırma alanı üst sınırı (pt). */
-const DIALOG_SCROLL_MAX_HEIGHT = 420;
-
 // Adresler ekranının route-local stylesheet'i — D1b referans düzeni (token'lar).
 export const styles = StyleSheet.create({
   // SectionCard gövdesi: satırlar arası web `space-y-3`.
@@ -45,10 +42,7 @@ export const styles = StyleSheet.create({
   defaultButton: {
     marginTop: spacing[2],
   },
-  // --- Form modalı (AddressFormModal) ---
-  dialogScroll: {
-    maxHeight: DIALOG_SCROLL_MAX_HEIGHT,
-  },
+  // --- Form ekranı (AddressForm) ---
   input: {
     marginBottom: spacing[3],
   },

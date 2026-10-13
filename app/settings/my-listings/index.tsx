@@ -79,7 +79,7 @@ export default function MyListingsScreen() {
         <MyListingCard
           key={listing.id}
           listing={listing}
-          onMenu={() => f.setActionMenuListing(listing)}
+          onMenu={() => f.openActionMenu(listing)}
           selection={
             f.isExpiredTab
               ? { checked: f.selection.selected.has(listing.id), onToggle: () => f.selection.toggle(listing.id) }

@@ -39,6 +39,13 @@ export interface MyProduct {
   status?: string;
 }
 
+/** İndirim formu rotaları (liste → yeni / düzenle → ürün seçici; düz stack push). */
+export const discountRoutes = {
+  new: '/settings/discounts/new',
+  edit: (id: string) => `/settings/discounts/${id}/edit`,
+  products: '/settings/discounts/products',
+} as const;
+
 // Etiketler `labelKey` olarak duruyor; modül seviyesinde `t()` çağırmak metni
 // ilk yüklenen dilde dondururdu (aynı gerekçe my-listings/_lib/types.ts'teki
 // `statusTextKey`'de de var). Ekran `t(opt.labelKey)` ile çözer.

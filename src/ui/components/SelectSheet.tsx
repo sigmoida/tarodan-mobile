@@ -9,6 +9,7 @@ import { CheckboxIndicator } from './Checkbox';
 import { EmptyState } from './EmptyState';
 import { Input } from './Input';
 import { RadioIndicator } from './Radio';
+import { Spinner } from './Spinner';
 import { Text } from './Text';
 
 export interface SelectSheetOption<V extends string = string> {
@@ -35,6 +36,17 @@ interface SelectSheetBaseProps<V extends string> {
   /** Varsayılan: aramalı listede `large` (filtrelerken yükseklik zıplamasın), aksi `fit`. */
   size?: BottomSheetSize;
   closeLabel?: string;
+  /**
+   * Seçenekler yükleniyorsa liste yerine ortalanmış `Spinner` (`${testID}-loading`); arama
+   * kutusu görünür kalır.
+   */
+  loading?: boolean;
+  /**
+   * Sabit satır yüksekliği (pt): yüzlerce satırlı listelerde (marka/model) `getItemLayout`
+   * verilir, FlatList ölçmeden kaydırır. Etiket tek satıra iner, `description` çizilmez.
+   * Verilmezse satır içeriğe göre büyür (en çok 2 satır).
+   */
+  rowHeight?: number;
   /** Köke; satırlar `${testID}-option-${value}`, arama `${testID}-search`. */
   testID?: string;
 }
@@ -60,6 +72,9 @@ export type SelectSheetProps<V extends string = string> = SelectSheetSingleProps
 
 const { colors, spacing, controlHeight } = theme;
 
+/** Liste içerik kabının üst/alt boşluğu (`listContent.paddingVertical`) — `getItemLayout` ofseti. */
+const LIST_PADDING = spacing[2];
+
 /** Türkçe büyük/küçük harf duyarsız arama (İ/ı). */
 function normalize(s: string): string {
   return s.toLocaleLowerCase('tr').trim();
@@ -84,6 +99,8 @@ export function SelectSheet<V extends string = string>(props: SelectSheetProps<V
     emptySubtitle,
     size,
     closeLabel,
+    loading = false,
+    rowHeight,
     testID = 'select-sheet',
   } = props;
   const { t } = useTranslation();
@@ -133,10 +150,23 @@ export function SelectSheet<V extends string = string>(props: SelectSheetProps<V
         multiple={multiple}
         selected={isSelected(item.value)}
         onPress={onPressOption}
+        rowHeight={rowHeight}
         testID={`${testID}-option-${item.value}`}
       />
     ),
-    [multiple, isSelected, onPressOption, testID],
+    [multiple, isSelected, onPressOption, rowHeight, testID],
+  );
+
+  const getItemLayout = useMemo(
+    () =>
+      rowHeight === undefined
+        ? undefined
+        : (_data: ArrayLike<SelectSheetOption<V>> | null | undefined, index: number) => ({
+            length: rowHeight,
+            offset: LIST_PADDING + rowHeight * index,
+            index,
+          }),
+    [rowHeight],
   );
 
   const footer = multiple ? (
@@ -189,25 +219,32 @@ export function SelectSheet<V extends string = string>(props: SelectSheetProps<V
           />
         </View>
       ) : null}
-      <FlatList
-        data={visible as SelectSheetOption<V>[]}
-        keyExtractor={(o) => o.value}
-        renderItem={renderItem}
-        keyboardShouldPersistTaps="handled"
-        style={styles.list}
-        contentContainerStyle={styles.listContent}
-        initialNumToRender={16}
-        ListEmptyComponent={
-          <EmptyState
-            placement="inline"
-            icon="magnifying-glass"
-            title={emptyTitle ?? t('common.noResults')}
-            subtitle={emptySubtitle ?? (query ? t('models.emptySearchHint') : t('emptyState.optionsHint'))}
-            testID={`${testID}-empty`}
-          />
-        }
-        testID={`${testID}-list`}
-      />
+      {loading ? (
+        <View style={styles.loading} testID={`${testID}-loading`}>
+          <Spinner size="lg" />
+        </View>
+      ) : (
+        <FlatList
+          data={visible as SelectSheetOption<V>[]}
+          keyExtractor={(o) => o.value}
+          renderItem={renderItem}
+          getItemLayout={getItemLayout}
+          keyboardShouldPersistTaps="handled"
+          style={styles.list}
+          contentContainerStyle={styles.listContent}
+          initialNumToRender={16}
+          ListEmptyComponent={
+            <EmptyState
+              placement="inline"
+              icon="magnifying-glass"
+              title={emptyTitle ?? t('common.noResults')}
+              subtitle={emptySubtitle ?? (query ? t('models.emptySearchHint') : t('emptyState.optionsHint'))}
+              testID={`${testID}-empty`}
+            />
+          }
+          testID={`${testID}-list`}
+        />
+      )}
     </BottomSheet>
   );
 }
@@ -217,10 +254,18 @@ interface SelectSheetRowProps<V extends string> {
   multiple: boolean;
   selected: boolean;
   onPress: (value: V) => void;
+  rowHeight?: number;
   testID: string;
 }
 
-function SelectSheetRowInner<V extends string>({ option, multiple, selected, onPress, testID }: SelectSheetRowProps<V>) {
+function SelectSheetRowInner<V extends string>({
+  option,
+  multiple,
+  selected,
+  onPress,
+  rowHeight,
+  testID,
+}: SelectSheetRowProps<V>) {
   return (
     <Pressable
       testID={testID}
@@ -231,6 +276,7 @@ function SelectSheetRowInner<V extends string>({ option, multiple, selected, onP
       android_ripple={Platform.OS === 'android' ? { color: colors.overlay.black10 } : undefined}
       style={({ pressed }) => [
         styles.row,
+        rowHeight !== undefined && { height: rowHeight, minHeight: rowHeight, paddingVertical: 0 },
         selected && styles.rowSelected,
         pressed && Platform.OS === 'ios' && styles.rowPressed,
         option.disabled && styles.rowDisabled,
@@ -238,10 +284,10 @@ function SelectSheetRowInner<V extends string>({ option, multiple, selected, onP
     >
       {multiple ? <CheckboxIndicator checked={selected} /> : <RadioIndicator checked={selected} />}
       <View style={styles.rowText}>
-        <Text variant="body" weight={selected ? 'semibold' : 'regular'} numberOfLines={2}>
+        <Text variant="body" weight={selected ? 'semibold' : 'regular'} numberOfLines={rowHeight === undefined ? 2 : 1}>
           {option.label}
         </Text>
-        {option.description ? (
+        {option.description && rowHeight === undefined ? (
           <Text variant="caption" tone="muted" numberOfLines={1}>
             {option.description}
           </Text>
@@ -261,7 +307,8 @@ const styles = StyleSheet.create({
   },
   searchInput: { marginBottom: 0 },
   list: { flexGrow: 0, flexShrink: 1 },
-  listContent: { paddingVertical: spacing[2] },
+  listContent: { paddingVertical: LIST_PADDING },
+  loading: { paddingVertical: spacing[8], alignItems: 'center' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
