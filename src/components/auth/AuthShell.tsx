@@ -106,7 +106,7 @@ export const AuthShell: React.FC<AuthShellProps> = ({
               ) : null}
             </View>
 
-            {children}
+            <View style={styles.content}>{children}</View>
 
             {footer ? <View style={styles.footer}>{footer}</View> : null}
           </View>
@@ -149,6 +149,10 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: spacing[6],
     gap: spacing[1],
+  },
+  content: {
+    width: '100%',
+    gap: spacing[2],
   },
   footer: {
     marginTop: spacing[6],

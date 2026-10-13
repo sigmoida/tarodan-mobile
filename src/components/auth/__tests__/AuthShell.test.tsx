@@ -5,6 +5,7 @@ import { RawText, theme } from '@/ui';
 import { AuthShell } from '../AuthShell';
 import { AuthFooterLink } from '../AuthFooterLink';
 import { RegisterAccountTabs } from '../RegisterAccountTabs';
+import { PasswordChecklist, passwordChecks } from '../PasswordChecklist';
 import { replaceMock, resetRouterMocks } from '@/test-utils/router-mock';
 
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
@@ -77,5 +78,28 @@ describe('RegisterAccountTabs', () => {
     render(<RegisterAccountTabs active="corporate" />);
     fireEvent.press(screen.getByTestId('register-tab-corporate'));
     expect(replaceMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('PasswordChecklist', () => {
+  it('kuralları web ile aynı hesaplar', () => {
+    expect(passwordChecks('Abcdef12')).toEqual({
+      hasMinLength: true,
+      hasUppercase: true,
+      hasLowercase: true,
+      hasNumber: true,
+    });
+    expect(passwordChecks('abc')).toEqual({
+      hasMinLength: false,
+      hasUppercase: false,
+      hasLowercase: true,
+      hasNumber: false,
+    });
+  });
+
+  it('dört gereksinim satırını çizer', () => {
+    render(<PasswordChecklist password="abc" />);
+    expect(screen.getByTestId('password-checklist')).toBeTruthy();
+    expect(screen.getByText('Büyük harf (A-Z)')).toBeTruthy();
   });
 });
