@@ -2458,7 +2458,7 @@
     "clearHistory": "Clear History",
     "clearAll": "Clear All",
     "didYouMean": "Did you mean?",
-    "resultsFound": "results found",
+    "resultsFound": "{count, plural, one {# result found} other {# results found}}",
     "filterResults": "Filter Results",
     "searchPlaceholder": "Search products, brands, categories",
     "popularSearches": "Popular Searches",

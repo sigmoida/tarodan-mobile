@@ -2458,7 +2458,7 @@
     "clearHistory": "Geçmişi Temizle",
     "clearAll": "Tümünü Temizle",
     "didYouMean": "Bunu mu demek istediniz?",
-    "resultsFound": "sonuç bulundu",
+    "resultsFound": "{count, plural, other {# sonuç bulundu}}",
     "filterResults": "Sonuçları Filtrele",
     "searchPlaceholder": "Ürün, marka, kategori ara",
     "popularSearches": "Popüler Aramalar",
