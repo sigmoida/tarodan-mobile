@@ -16,12 +16,23 @@ export interface ProfileMenuItem {
   tone?: 'default' | 'primary';
   /** Satırın sağında metin rozeti (ör. üyelik katmanı). */
   rightBadge?: string;
+  /** Yalnız üyeye görünür (misafire açık bir grubun içinde bile). */
+  authOnly?: boolean;
 }
+
+/** Menünün çizildiği yüzey: Profil sekmesi (hesap) ya da Ana Sayfa yan menüsü (drawer). */
+export type ProfileMenuSurface = 'profile' | 'drawer';
 
 export interface ProfileMenuGroup {
   key: string;
   /** Web ProfileSidebar grup başlığı (`profile.sidebar.*`). */
   title: string;
+  /** Grubun gösterildiği yüzey — her grup TEK yüzeyde (profil ile yan menü ayrışık). */
+  surface: ProfileMenuSurface;
+  /** Yan menüde başlıksız, üstte sabit tek satırlar (açılır-kapanır değil). */
+  pinned?: boolean;
+  /** Misafire de gösterilir (yan menüde: yardım + bilgi/hukuki). */
+  guest?: boolean;
   items: ProfileMenuItem[];
 }
 
@@ -39,15 +50,30 @@ export interface ProfileMenuContext {
   isBusinessTier: boolean;
 }
 
+/** Bağlam gerektirmeyen yüzeyler (yan menü) için nötr bağlam: koşullu satırlar Hesap grubunda. */
+export const DEFAULT_MENU_CONTEXT: ProfileMenuContext = {
+  isBusiness: false,
+  showMembership: false,
+  isPaidTier: false,
+  tierLabel: '',
+  isBusinessTier: false,
+};
+
 /**
- * Profil menüsü — web `ProfileSidebar`'ın gruplu yapısı (Alışveriş · Finans · Koleksiyon ·
+ * Menü modeli — TEK kaynak. Web `ProfileSidebar`'ın gruplu yapısı (Alışveriş · Finans · Koleksiyon ·
  * Analiz · İletişim · Hesap) + mobil-özel "Bilgi" grubu (hukuki/bilgi sayfalarının tek girişi).
- * Etiketler web'in i18n anahtarlarıdır; web'de karşılığı olmayan mobil ekranlar (banka hesabı,
- * ödeme geçmişi, dil…) ilgili gruba eklenir. Satırlarda ikon yok (sade liste).
+ * Her grup bir `surface`'e aittir: `profile` (Profil sekmesi: yalnız Hesap) ya da `drawer`
+ * (Ana Sayfa yan menüsü: Favoriler + diğer tüm gruplar). Seçiciler: `selectProfileSections`,
+ * `selectDrawerSections`. Etiketler web'in i18n anahtarlarıdır; web'de karşılığı olmayan mobil
+ * ekranlar (banka hesabı, ödeme geçmişi, dil…) ilgili gruba eklenir. Model ikon taşımaz
+ * (yan menü ikonları `drawerIcons.ts`'te, satır anahtarına göre).
  *
  * Fabrika: etiketler çeviriden geldiği için modül düzeyinde kurulmaz (dil değişince yenilenir).
  */
-export function buildProfileMenuGroups(t: TFunction, ctx: ProfileMenuContext): ProfileMenuGroup[] {
+export function buildProfileMenuGroups(
+  t: TFunction,
+  ctx: ProfileMenuContext = DEFAULT_MENU_CONTEXT,
+): ProfileMenuGroup[] {
   const accountPages = buildAccountPages(t);
   /** Hesap sayfası satırı (testID `profile-account-<route>-link`); `label` verilirse etiketi ezer. */
   const accountItem = (route: string, label?: string): ProfileMenuItem[] => {
@@ -65,8 +91,18 @@ export function buildProfileMenuGroups(t: TFunction, ctx: ProfileMenuContext): P
   };
   const groups: ProfileMenuGroup[] = [
     {
+      key: 'pinned',
+      title: '',
+      surface: 'drawer',
+      pinned: true,
+      items: [
+        { key: 'favorites', label: t('nav.favorites'), to: '/favorites', testID: 'profile-favorites-link' },
+      ],
+    },
+    {
       key: 'commerce',
       title: t('profile.sidebar.alisveris'),
+      surface: 'drawer',
       items: [
         { key: 'listings', label: t('nav.myListings'), to: '/settings/my-listings' },
         { key: 'orders', label: t('order.myOrders'), to: '/orders', testID: 'profile-orders-link' },
@@ -96,6 +132,7 @@ export function buildProfileMenuGroups(t: TFunction, ctx: ProfileMenuContext): P
     {
       key: 'finance',
       title: t('profile.sidebar.finans'),
+      surface: 'drawer',
       items: [
         {
           key: 'payments',
@@ -121,15 +158,14 @@ export function buildProfileMenuGroups(t: TFunction, ctx: ProfileMenuContext): P
           to: '/refund-requests',
           testID: 'profile-refunds-link',
         },
-        { key: 'bank-account', label: t('mobile.settingsBankAccount'), to: '/settings/bank-account' },
       ],
     },
     {
       key: 'collection',
       title: t('profile.sidebar.koleksiyon'),
+      surface: 'drawer',
       items: [
         { key: 'collections', label: t('collection.myCollections'), to: '/settings/collections' },
-        { key: 'favorites', label: t('nav.favorites'), to: '/favorites' },
         {
           key: 'liked-collections',
           label: t('collection.likedCollections'),
@@ -148,6 +184,7 @@ export function buildProfileMenuGroups(t: TFunction, ctx: ProfileMenuContext): P
     {
       key: 'insights',
       title: t('profile.sidebar.analiz'),
+      surface: 'drawer',
       items: [
         { key: 'analytics', label: t('profile.sidebar.istatistikler'), to: '/settings/analytics' },
       ],
@@ -155,18 +192,21 @@ export function buildProfileMenuGroups(t: TFunction, ctx: ProfileMenuContext): P
     {
       key: 'messaging',
       title: t('profile.sidebar.iletisim'),
+      surface: 'drawer',
+      guest: true,
+      // Mesajlar ve Bildirimler alt menü sekmeleri — burada tekrarlanmaz.
       items: [
-        { key: 'messages', label: t('nav.messages'), to: '/messages' },
-        { key: 'notifications', label: t('nav.notifications'), to: '/notifications' },
-        { key: 'support', label: t('mobile.settingsSupportTickets'), to: '/support' },
+        { key: 'support', label: t('mobile.settingsSupportTickets'), to: '/support', authOnly: true },
         { key: 'help', label: t('mobile.settingsHelpFaq'), to: '/help' },
       ],
     },
     {
       key: 'account',
       title: t('profile.sidebar.hesap'),
+      surface: 'profile',
       items: [
         { key: 'addresses', label: t('mobile.settingsAddresses'), to: '/settings/addresses' },
+        { key: 'bank-account', label: t('mobile.settingsBankAccount'), to: '/settings/bank-account' },
         ...(ctx.showMembership
           ? [
               {
@@ -223,7 +263,9 @@ export function buildProfileMenuGroups(t: TFunction, ctx: ProfileMenuContext): P
     },
     {
       key: 'info',
-      title: t('common.info'),
+      title: t('mobile.menuInfoLegal'),
+      surface: 'drawer',
+      guest: true,
       items: [
         { key: 'about', label: t('mobile.settingsAbout'), to: '/about' },
         { key: 'authenticity', label: t('mobile.settingsAuthenticity'), to: '/authenticity' },
@@ -245,4 +287,25 @@ export function buildProfileMenuGroups(t: TFunction, ctx: ProfileMenuContext): P
     },
   ];
   return groups;
+}
+
+/** Profil sekmesinde gösterilecek gruplar (yalnız profille ilgili: Hesap). */
+export function selectProfileSections(groups: ProfileMenuGroup[]): ProfileMenuGroup[] {
+  return groups.filter((g) => g.surface === 'profile');
+}
+
+/**
+ * Yan menüde gösterilecek gruplar. Misafirde yalnız `guest` işaretli gruplar ve içlerinden
+ * `authOnly` olmayan satırlar kalır; satırı kalmayan grup düşer.
+ */
+export function selectDrawerSections(
+  groups: ProfileMenuGroup[],
+  opts: { isGuest: boolean },
+): ProfileMenuGroup[] {
+  const drawer = groups.filter((g) => g.surface === 'drawer');
+  if (!opts.isGuest) return drawer;
+  return drawer
+    .filter((g) => g.guest)
+    .map((g) => ({ ...g, items: g.items.filter((i) => !i.authOnly) }))
+    .filter((g) => g.items.length > 0);
 }

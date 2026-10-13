@@ -1,9 +1,15 @@
 /**
- * Profil menüsü (web ProfileSidebar grupları): grup sırası/başlıkları, mağaza kapısı (üyelik/abonelik
- * satırları), kurumsal satırlar ve rota/testID sözleşmesi.
+ * Menü modeli (web ProfileSidebar grupları): grup sırası/başlıkları, yüzey ayrımı (profil / yan
+ * menü), misafir seçimi, mağaza kapısı (üyelik/abonelik satırları), kurumsal satırlar ve
+ * rota/testID sözleşmesi.
  */
 import { schemaT } from '@/test-utils';
-import { buildProfileMenuGroups, type ProfileMenuContext } from '../profileMenu';
+import {
+  buildProfileMenuGroups,
+  selectDrawerSections,
+  selectProfileSections,
+  type ProfileMenuContext,
+} from '../profileMenu';
 
 const base: ProfileMenuContext = {
   isBusiness: false,
@@ -16,14 +22,49 @@ const items = (ctx: Partial<ProfileMenuContext> = {}) =>
   buildProfileMenuGroups(schemaT, { ...base, ...ctx }).flatMap((g) => g.items);
 
 describe('buildProfileMenuGroups', () => {
-  it('web ProfileSidebar sırası: Alışveriş, Finans, Koleksiyon, Analiz, İletişim, Hesap, Bilgi', () => {
+  it('web ProfileSidebar sırası: Favoriler (sabit), Alışveriş, Finans, Koleksiyon, Analiz, İletişim, Hesap, Bilgi', () => {
     const groups = buildProfileMenuGroups(schemaT, base);
     expect(groups.map((g) => g.key)).toEqual([
-      'commerce', 'finance', 'collection', 'insights', 'messaging', 'account', 'info',
+      'pinned', 'commerce', 'finance', 'collection', 'insights', 'messaging', 'account', 'info',
     ]);
-    expect(groups.slice(0, 6).map((g) => g.title)).toEqual([
+    expect(groups.slice(1, 7).map((g) => g.title)).toEqual([
       'Alışveriş', 'Finans', 'Koleksiyon', 'Analiz', 'İletişim', 'Hesap',
     ]);
+  });
+
+  it('yüzey ayrımı: profilde yalnız Hesap; yan menüde Hesap hariç hepsi; hiçbir grup iki yüzeyde değil', () => {
+    const groups = buildProfileMenuGroups(schemaT, base);
+    expect(selectProfileSections(groups).map((g) => g.key)).toEqual(['account']);
+    expect(selectDrawerSections(groups, { isGuest: false }).map((g) => g.key)).toEqual([
+      'pinned', 'commerce', 'finance', 'collection', 'insights', 'messaging', 'info',
+    ]);
+    const profileKeys = selectProfileSections(groups).flatMap((g) => g.items.map((i) => i.key));
+    const drawerKeys = selectDrawerSections(groups, { isGuest: false }).flatMap((g) => g.items.map((i) => i.key));
+    expect(profileKeys.filter((k) => drawerKeys.includes(k))).toEqual([]);
+  });
+
+  it('Hesap grubu: adresler, banka hesabı/IBAN, bildirim ayarları, güvenlik, dil, engellenenler', () => {
+    const keys = selectProfileSections(buildProfileMenuGroups(schemaT, base)).flatMap((g) =>
+      g.items.map((i) => i.key),
+    );
+    expect(keys).toEqual(
+      expect.arrayContaining(['addresses', 'bank-account', 'notification-settings', 'security', 'language', 'blocked']),
+    );
+  });
+
+  it('Favoriler yan menüde başlıksız sabit grupta; Mesajlar/Bildirimler (alt menü sekmeleri) tekrarlanmaz', () => {
+    const groups = buildProfileMenuGroups(schemaT, base);
+    const pinned = groups.find((g) => g.pinned);
+    expect(pinned?.items.map((i) => i.to)).toEqual(['/favorites']);
+    const all = groups.flatMap((g) => g.items);
+    expect(all.filter((i) => i.to === '/favorites')).toHaveLength(1);
+    expect(all.some((i) => i.to === '/messages' || i.to === '/notifications')).toBe(false);
+  });
+
+  it('misafir seçimi: yalnız guest gruplar (İletişim → yardım, Bilgi); authOnly satırlar düşer', () => {
+    const guest = selectDrawerSections(buildProfileMenuGroups(schemaT, base), { isGuest: true });
+    expect(guest.map((g) => g.key)).toEqual(['messaging', 'info']);
+    expect(guest[0]!.items.map((i) => i.key)).toEqual(['help']);
   });
 
   it('üyelik/abonelik satırları yalnız satın alma açıkken ya da ücretli üyede gelir (Apple 2.1(b))', () => {

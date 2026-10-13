@@ -4062,7 +4062,8 @@
     "maintenanceTitle": "Under Maintenance",
     "maintenanceDescription": "We are currently performing maintenance. We will be back shortly.",
     "pagePlatformFee": "Platform Service Fee",
-    "splashTagline": "The safe address for secondhand"
+    "splashTagline": "The safe address for secondhand",
+    "menuInfoLegal": "Info & Legal"
   },
   "refund": {
     "cancel": {
