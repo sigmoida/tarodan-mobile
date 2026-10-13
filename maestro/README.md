@@ -172,6 +172,41 @@ Daha sağlam flow'lar için `testID` prop'larını kritik UI öğelerine eklemek
 - **PayTR iframe (sandbox kart)**: WebView içine Maestro tıklayamaz; PayTR yolu için ayrı strateji (manual veya MockServer) gerekecek.
 - **Java warning** (`restricted method in java.lang.System`): Maestro 2.5 + JDK 25 cosmetic uyarısı, görmezden gel.
 
+## EAS `maestro` profili (release build'e karşı koşum)
+
+Maestro staging **release** build'ine karşı koşacaksa (dev client / Metro yok)
+`EXPO_PUBLIC_MAESTRO=1` derleme anında bundle'a gömülmelidir. Bu bayrak maskesiz
+şifre alanı ve auto-login açar; bu yüzden **insan testçilere giden hiçbir build'de
+olmamalı**. Bu iş için `eas.json`'da `preview`'dan türeyen ayrı bir profil var:
+
+| Profil | `extends` | Kanal | `EXPO_PUBLIC_MAESTRO` | Kime |
+|---|---|---|---|---|
+| `preview` | - | `staging` | yok | iç testçiler (APK / ad-hoc IPA) |
+| `staging` | - | `staging` | yok | TestFlight "Tarodan Staging" |
+| `production` | - | `production` | yok | mağaza |
+| **`maestro`** | `preview` | **`maestro`** | **`1`** | yalnız Maestro koşumu |
+
+- `maestro` profili preview'ın staging API/Web adreslerini ve `EXPO_PUBLIC_ENVIRONMENT=preview`
+  değerini devralır (iOS paket adı `com.tarodan.app.staging`, Android `com.tarodan.app`);
+  iOS için `ios.simulator: true` (Maestro gerçek iOS cihaza bağlanmaz, `.app` üretir).
+- Kendi `maestro` kanalı olduğundan staging OTA'ları (`eas update --branch staging`) bu
+  build'e ulaşmaz, tersi de geçerli.
+- Kimlik bilgileri (`EXPO_PUBLIC_MAESTRO_EMAIL` / `EXPO_PUBLIC_MAESTRO_PASSWORD`) `eas.json`'a
+  YAZILMAZ; yalnız bu profile özel bir EAS ortamından verilir. Aynı değişkenleri
+  `preview`/`production` EAS ortamına koyma: `EXPO_PUBLIC_*` değerleri o ortamdaki TÜM
+  build'lere gömülür.
+- Bayrak ve profil koruması `src/config/__tests__/easProfiles.test.ts` ile çivilidir:
+  `development`/`preview`/`staging`/`production` profillerinde ve `.github/workflows/*`
+  içinde `EXPO_PUBLIC_MAESTRO*` bulunursa test kırılır; `maestro` profili `preview`'dan
+  türemeli ve ayrı kanal taşımalıdır.
+
+```bash
+eas build --profile maestro --platform ios      # simülatör .app
+eas build --profile maestro --platform android  # APK
+```
+
+Bu profilin çıktısı mağazaya/TestFlight'a **gönderilmez** (`eas submit` yok).
+
 ## CI entegrasyonu
 
 İki ayrı katmanda otomatik koruma vardır:

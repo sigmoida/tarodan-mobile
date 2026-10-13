@@ -39,6 +39,16 @@
         "EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED": "false"
       }
     },
+    "maestro": {
+      "extends": "preview",
+      "channel": "maestro",
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_MAESTRO": "1"
+      }
+    },
     "production": {
       "distribution": "store",
       "channel": "production",
