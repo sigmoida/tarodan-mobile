@@ -1,15 +1,17 @@
-import { View, TouchableOpacity, Image } from "react-native";
+import { View, Pressable, Image } from "react-native";
 import {
+  Alert,
   Avatar,
-  Card,
+  Badge,
+  Button,
   DateField,
   Input,
-  Text,
+  SectionCard,
   theme,
 } from "@/ui";
 import { router } from "expo-router";
 import { Controller } from "react-hook-form";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { MembershipBadgeCard } from "@/components/PremiumBadge";
 import { CAN_BUY_DIGITAL } from "@/lib/purchases";
 import { useTranslation } from "react-i18next";
@@ -19,59 +21,55 @@ import { styles } from "../_lib/styles";
 import { MAX_BIO_LENGTH, minBirthDate } from "../_lib/schema";
 import type { EditProfileController } from "../_hooks/useEditProfile";
 
-const { colors } = theme;
+const { colors, iconSize } = theme;
 
-/** Avatar seçici + üyelik rozeti başlığı. */
+/** Avatar seçici (kamera rozeti işlev taşır: fotoğraf değiştir) + üyelik rozeti. */
 export function AvatarSection({ f }: { f: EditProfileController }) {
+  const { t } = useTranslation();
   return (
     <>
       <View style={styles.avatarSection}>
-        <TouchableOpacity onPress={f.pickAvatar}>
+        <Pressable
+          onPress={f.pickAvatar}
+          accessibilityRole="button"
+          accessibilityLabel={t("profile.changePhoto")}
+        >
           {f.avatar ? (
-            <Image
-              source={{ uri: resolveImageUrl(f.avatar) }}
-              style={styles.avatar}
-            />
+            <Image source={{ uri: resolveImageUrl(f.avatar) }} style={styles.avatar} />
           ) : (
             <Avatar size="xl" name={f.user?.displayName || "U"} />
           )}
           <View style={styles.avatarEditBadge}>
-            <Ionicons name="camera" size={18} color={colors.white} />
+            <Ionicons name="camera" size={iconSize.sm} color={colors.text.inverted} />
           </View>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
-      <View style={styles.membershipSection}>
-        {/* Kartın tamamını sarmak rozeti de gizlerdi; bu yüzden yalnız
-            onUpgrade prop'u koşullanır — undefined'ken kart yükseltme
-            düğmesini zaten render etmiyor (bkz. MembershipBadgeCard). */}
-        <MembershipBadgeCard
-          membershipTier={f.user?.membershipTier || "free"}
-          isVerified={f.user?.isVerified}
-          onUpgrade={CAN_BUY_DIGITAL ? () => router.push("/upgrade") : undefined}
-        />
-      </View>
+      {/* Kartın tamamını sarmak rozeti de gizlerdi; bu yüzden yalnız onUpgrade prop'u
+          koşullanır — undefined'ken kart yükseltme düğmesini zaten render etmiyor. */}
+      <MembershipBadgeCard
+        membershipTier={f.user?.membershipTier || "free"}
+        isVerified={f.user?.isVerified}
+        onUpgrade={CAN_BUY_DIGITAL ? () => router.push("/upgrade") : undefined}
+      />
     </>
   );
 }
 
-/** Kişisel bilgiler kartı — isim / e-posta (salt okunur) / telefon / doğum / bio. */
+/** Kişisel bilgiler — isim / e-posta (salt okunur) / telefon / doğum / bio. */
 export function PersonalInfoCard({ f }: { f: EditProfileController }) {
   const { t } = useTranslation();
   const { control, errors } = f;
 
   return (
-    <Card style={styles.card}>
-      <Text variant="h3" style={styles.sectionTitle}>
-        {t("profile.personalInfo")}
-      </Text>
-
+    <SectionCard title={t("profile.personalInfo")}>
       <Controller
         control={control}
         name="displayName"
         render={({ field: { onChange, value } }) => (
           <Input
-            label={`${t("profile.displayName")} *`}
+            label={t("profile.displayName")}
+            required
             value={value}
             onChangeText={onChange}
             error={errors.displayName?.message}
@@ -85,11 +83,9 @@ export function PersonalInfoCard({ f }: { f: EditProfileController }) {
         label={t("auth.emailAddress")}
         value={f.user?.email || ""}
         editable={false}
+        helperText={t("profile.emailChangeNote")}
         containerStyle={styles.input}
       />
-      <Text variant="bodySm" style={styles.hintText}>
-        {`🔒 ${t("profile.emailChangeNote")}`}
-      </Text>
 
       <Controller
         control={control}
@@ -137,61 +133,43 @@ export function PersonalInfoCard({ f }: { f: EditProfileController }) {
             multiline
             numberOfLines={4}
             maxLength={MAX_BIO_LENGTH}
-            containerStyle={styles.input}
+            containerStyle={styles.lastInput}
             placeholder={t("mobile.bioPlaceholder")}
             error={errors.bio?.message}
           />
         )}
       />
-    </Card>
+    </SectionCard>
   );
 }
 
-/** İşletme bilgileri kartı — sadece business tier'da render edilir. */
+/** İşletme bilgileri — yalnız business üyelikte. */
 export function BusinessInfoCard({ f }: { f: EditProfileController }) {
   const { t } = useTranslation();
   if (!f.isBusinessTier) return null;
   const { control, errors } = f;
 
   return (
-    <Card style={styles.card}>
-      <View style={styles.businessHeader}>
-        <View style={styles.premiumFeatureHeader}>
-          <MaterialCommunityIcons
-            name="office-building"
-            size={20}
-            color={colors.primary[600]!}
-          />
-          <Text variant="h3" style={styles.premiumFeatureTitle}>
-            {t("sellerDashboard.businessInfo")}
-          </Text>
-        </View>
-        <View style={styles.tierBadge}>
-          <Text variant="bodySm" style={styles.tierBadgeText}>
-            {t("profile.businessMembershipBadge")}
-          </Text>
-        </View>
-      </View>
-
+    <SectionCard
+      title={t("sellerDashboard.businessInfo")}
+      badge={<Badge size="sm">{t("profile.businessMembershipBadge")}</Badge>}
+    >
       <Controller
         control={control}
         name="companyName"
         render={({ field: { onChange, value } }) => (
           <Input
-            label={`${t("profile.companyLegalNameLabel")} *`}
+            label={t("profile.companyLegalNameLabel")}
+            required
             value={value}
             onChangeText={onChange}
             placeholder={t("profile.companyPlaceholder")}
             containerStyle={styles.input}
             error={errors.companyName?.message}
+            helperText={f.companyNameValue ? undefined : t("profile.companyNameRequiredWarning")}
           />
         )}
       />
-      {!f.companyNameValue && (
-        <Text variant="bodySm" style={styles.warningText}>
-          {`⚠️ ${t("profile.companyNameRequiredWarning")}`}
-        </Text>
-      )}
 
       <Controller
         control={control}
@@ -200,9 +178,7 @@ export function BusinessInfoCard({ f }: { f: EditProfileController }) {
           <Input
             label={t("auth.taxId")}
             value={value}
-            onChangeText={(text) =>
-              onChange(text.replace(/\D/g, "").slice(0, 11))
-            }
+            onChangeText={(text) => onChange(text.replace(/\D/g, "").slice(0, 11))}
             keyboardType="number-pad"
             placeholder="1234567890"
             containerStyle={styles.input}
@@ -226,11 +202,30 @@ export function BusinessInfoCard({ f }: { f: EditProfileController }) {
         )}
       />
 
-      <View style={styles.infoBox}>
-        <Text variant="bodySm" style={styles.infoBoxText}>
-          {`ℹ️ ${t("profile.corporateInfoNotice")}`}
-        </Text>
-      </View>
-    </Card>
+      <Alert variant="info">{t("profile.corporateInfoNotice")}</Alert>
+    </SectionCard>
+  );
+}
+
+/** Hesap bağlantıları — e-posta ve kullanıcı adı değişikliği ayrı ekranlarda. */
+export function AccountLinks() {
+  const { t } = useTranslation();
+  return (
+    <View style={styles.links}>
+      <Button
+        variant="outline"
+        fullWidth
+        title={t("settings.emailChangeLink")}
+        onPress={() => router.push("/settings/email-change" as never)}
+        testID="edit-profile-email-change"
+      />
+      <Button
+        variant="outline"
+        fullWidth
+        title={t("settings.usernameLink")}
+        onPress={() => router.push("/settings/username" as never)}
+        testID="edit-profile-username"
+      />
+    </View>
   );
 }

@@ -1,90 +1,76 @@
-import { View, ScrollView, TouchableOpacity } from "react-native";
-import { Button, Snackbar, Text, ScreenHeader } from "@/ui";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { Button, Snackbar } from "@/ui";
+import { PageShell } from "@/components/common/PageShell";
 import { useEditProfile } from "./_hooks/useEditProfile";
 import { styles } from "./_lib/styles";
 import {
+  AccountLinks,
   AvatarSection,
   PersonalInfoCard,
   BusinessInfoCard,
 } from "./_components/EditProfileSections";
 import { LegalIdentityCard } from "./_components/LegalIdentityCard";
 
+/**
+ * Profili düzenle — D1b REFERANS EKRANI (form): PageShell (beyaz üst bar, klavye kaçınma,
+ * sabit alt bar = tek ana aksiyon) + bölümler web'deki gibi SectionCard. Form/mutasyon
+ * `useEditProfile`'da; ekran yalnız kompozisyon.
+ */
 export default function EditProfileScreen() {
   const { t } = useTranslation();
   const f = useEditProfile();
+  const onBack = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)"));
 
   if (!f.isAuthenticated) {
     return (
-      <View style={styles.centeredContainer}>
-        <Text variant="h3">{t("membership.loginRequiredTitle")}</Text>
-        <Button
-          variant="primary"
-          title={t("common.login")}
-          onPress={() => router.push("/(auth)/login")}
-          style={{ alignSelf: "center" }}
-        />
-      </View>
+      <PageShell
+        title={t("mobile.settingsEditProfile")}
+        onBack={onBack}
+        empty
+        emptyState={{
+          icon: "person-outline",
+          title: t("membership.loginRequiredTitle"),
+          actionLabel: t("common.login"),
+          onAction: () => router.push("/(auth)/login"),
+        }}
+      />
     );
   }
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader
+    <>
+      <PageShell
         title={t("mobile.settingsEditProfile")}
-        onBack={() =>
-          router.canGoBack() ? router.back() : router.replace("/(tabs)")
+        onBack={onBack}
+        footer={
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            title={t("product.saveChanges")}
+            onPress={f.handleSubmit(f.onSubmit)}
+            isLoading={f.updateMutation.isPending}
+            disabled={f.updateMutation.isPending}
+          />
         }
-        right={
-          <TouchableOpacity onPress={f.handleSubmit(f.onSubmit)}>
-            <Text style={styles.saveButton}>{t("mobile.save")}</Text>
-          </TouchableOpacity>
-        }
-      />
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      >
         <AvatarSection f={f} />
         <PersonalInfoCard f={f} />
         <LegalIdentityCard />
         <BusinessInfoCard f={f} />
-
-        <Button
-          variant="ghost"
-          title={t("settings.emailChangeLink")}
-          onPress={() => router.push('/settings/email-change' as never)}
-          testID="edit-profile-email-change"
-        />
-
-        <Button
-          variant="ghost"
-          title={t("settings.usernameLink")}
-          onPress={() => router.push('/settings/username' as never)}
-          testID="edit-profile-username"
-        />
-
-        <Button
-          variant="primary"
-          fullWidth
-          title={t("product.saveChanges")}
-          icon="checkmark"
-          onPress={f.handleSubmit(f.onSubmit)}
-          isLoading={f.updateMutation.isPending}
-          disabled={f.updateMutation.isPending}
-          style={styles.submitButton}
-        />
-
-        <View style={{ height: 50 }} />
-      </ScrollView>
+        <AccountLinks />
+      </PageShell>
 
       <Snackbar
         visible={f.snackbar.visible}
         onDismiss={() => f.setSnackbar({ ...f.snackbar, visible: false })}
         duration={3000}
         variant={f.snackbar.variant ?? "default"}
+        style={styles.snackbar}
       >
         {f.snackbar.message}
       </Snackbar>
-    </View>
+    </>
   );
 }

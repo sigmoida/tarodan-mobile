@@ -1,110 +1,56 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '@/ui';
 
-const { colors, radius } = theme;
+const { colors, radius, spacing } = theme;
 
-// Route-local paylaşılan stylesheet (§12). Monolitten BİREBİR taşındı.
+/** Profil fotoğrafı (yükleme sonrası önizleme) — Avatar `xl` ile aynı çap. */
+const AVATAR_SIZE = 80;
+/** Fotoğrafın sağ altındaki kamera rozeti. */
+const EDIT_BADGE_SIZE = 28;
+/** Sabit alt barın (lg düğme + iç boşluk) üstünde kalsın. */
+const SNACKBAR_BOTTOM = 96;
+
+// Route-local stylesheet (§12) — D1b referans düzeni: token'lar, bölümler SectionCard.
 export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.alt,
-  },
-  centeredContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: theme.spacing[4],
-  },
-  saveButton: {
-    color: colors.primary[600],
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  content: {
-    flex: 1,
-    padding: theme.spacing[4],
-  },
   avatarSection: {
     alignItems: 'center',
-    marginBottom: theme.spacing[4],
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: radius.full,
   },
   avatarEditBadge: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: colors.primary[600]!,
-    width: 32,
-    height: 32,
-    borderRadius: theme.radius['3xl'],
+    backgroundColor: colors.primary[600],
+    width: EDIT_BADGE_SIZE,
+    height: EDIT_BADGE_SIZE,
+    borderRadius: radius.full,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: colors.surface.elevated,
   },
-  membershipSection: {
-    marginBottom: theme.spacing[4],
-  },
-  card: {
-    marginBottom: theme.spacing[4],
-    backgroundColor: colors.surface.DEFAULT,
-  },
-  sectionTitle: {
-    marginBottom: theme.spacing[4],
-    color: colors.text.heading,
-  },
   input: {
-    marginBottom: theme.spacing[3],
+    marginBottom: spacing[3],
   },
-  hintText: {
-    color: colors.text.muted,
-    marginTop: theme.spacing[1],
+  lastInput: {
+    marginBottom: 0,
   },
-  warningText: {
-    color: colors.primary[600]!,
-    marginTop: -6,
-    marginBottom: theme.spacing[2],
+  links: {
+    gap: spacing[2],
   },
-  premiumFeatureHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  snackbar: {
+    bottom: SNACKBAR_BOTTOM,
   },
-  premiumFeatureTitle: {
-    marginLeft: theme.spacing[2],
-    color: colors.primary[700]!,
+  // LegalIdentityCard
+  legalDescription: {
+    marginBottom: spacing[3],
   },
-  businessHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: theme.spacing[4],
-  },
-  tierBadge: {
-    backgroundColor: colors.primary[50]!,
-    paddingHorizontal: theme.spacing[2.5],
-    paddingVertical: theme.spacing[1],
-    borderRadius: radius.full ?? 999,
-  },
-  tierBadgeText: {
-    color: colors.primary[600]!,
-    fontWeight: '600',
-  },
-  infoBox: {
-    backgroundColor: colors.info[50]!,
-    borderWidth: 1,
-    borderColor: colors.info[100]!,
-    padding: theme.spacing[3],
-    borderRadius: radius.md,
-    marginTop: theme.spacing[1],
-  },
-  infoBoxText: {
-    color: colors.info[700]!,
-  },
-  submitButton: {
-    marginTop: theme.spacing[2],
+  legalRow: {
+    marginBottom: spacing[3],
+    gap: spacing[1],
   },
 });
