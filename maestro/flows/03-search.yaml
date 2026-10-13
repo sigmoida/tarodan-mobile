@@ -5,8 +5,7 @@ tags:
   - smoke
 ---
 - runFlow: ../subflows/open-tarodan.yaml
-- tapOn:
-    text: "Ara"
+- runFlow: ../subflows/open-search.yaml
 - extendedWaitUntil:
     visible:
       text: ".*sonuç bulundu.*"

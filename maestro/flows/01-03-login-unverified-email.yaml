@@ -16,7 +16,7 @@ tags:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 # Eğer önceki flow'dan login kalmışsa logout yap (login ekranına yönlendirir).
 - runFlow: ../subflows/logout.yaml
 # Profil'de go-login varsa tıkla; logout zaten login ekranına yönlendirdiyse atla.

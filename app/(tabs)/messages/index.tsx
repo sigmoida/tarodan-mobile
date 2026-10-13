@@ -6,6 +6,7 @@
 import { FlatList, RefreshControl, View } from "react-native";
 import { tabDiag } from "@/components/_tabDiag";
 import { AppShell } from "@/components/shell/AppShell";
+import { useTabBarInset } from "@/components/shell/tabBarLayout";
 import {
   Alert,
   Badge,
@@ -28,6 +29,7 @@ const SKELETON_ROWS = [0, 1, 2, 3, 4];
 function MessagesTabScreen() {
   const { t } = useTranslation();
   const f = useMessagesTab();
+  const tabInset = useTabBarInset();
 
   if (!f.isAuthenticated) {
     return (
@@ -96,7 +98,7 @@ function MessagesTabScreen() {
             />
           )
         }
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: tabInset }]}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl

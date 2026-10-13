@@ -1,0 +1,19 @@
+# Arama ekranını aç: üst bardaki (AppShell) arama alanına dokun -> /search?focus=1.
+# "Ara" sekmesi kalktı (alt menü: Ana Sayfa, Favoriler, +, Mesajlar, Profil); arama artık
+# yığın ekranı ve tek giriş yolu tab köklerindeki arama alanı.
+# Ön koşul: bir tab kökü açık (ana sayfa). Tab çubuğu görünüyorsa önce Ana Sayfa sekmesine geçilir.
+appId: ${APP_ID}
+---
+- tapOn:
+    id: "tab-home"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "home-search-input"
+    timeout: 30000
+- tapOn:
+    id: "home-search-input"
+- extendedWaitUntil:
+    visible:
+      id: "search-input"
+    timeout: 20000

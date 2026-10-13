@@ -89,7 +89,7 @@ describe('üretici şeridi', () => {
     expect(screen.queryByTestId('home-brands')).toBeNull();
     rerender(<BrandsStrip items={[{ id: 'm1', name: 'Hot Wheels' }]} />);
     fireEvent.press(screen.getByText('Hot Wheels'));
-    expect(router.navigate).toHaveBeenCalledWith(expect.stringContaining('/search?manufacturer=Hot%20Wheels'));
+    expect(router.push).toHaveBeenCalledWith(expect.stringContaining('/search?manufacturer=Hot%20Wheels'));
   });
 });
 

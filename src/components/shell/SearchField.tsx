@@ -1,0 +1,54 @@
+import React from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { Pressable, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Text, theme } from '@/ui';
+
+const { colors, spacing, iconSize, controlHeight, radiusRole } = theme;
+
+export interface SearchFieldProps {
+  onPress: () => void;
+  /** Boşken gösterilen metin; verilmezse web ile aynı `nav.searchPlaceholder`. */
+  placeholder?: string;
+  testID?: string;
+}
+
+/**
+ * Üst bardaki arama alanı — dokununca arama ekranını açan SAHTE alan (düzenlenemez). Arama,
+ * öneri ve son aramalar tek yerde (arama ekranı) yaşar; tab kökleri yalnız oraya götürür.
+ */
+export const SearchField: React.FC<SearchFieldProps> = ({ onPress, placeholder, testID }) => {
+  const { t } = useTranslation();
+  const label = placeholder ?? t('nav.searchPlaceholder');
+  return (
+    <Pressable
+      onPress={onPress}
+      testID={testID}
+      accessibilityRole="search"
+      accessibilityLabel={label}
+      style={styles.field}
+    >
+      <Ionicons name="search-outline" size={iconSize.md} color={colors.text.subtle} />
+      <Text variant="body" tone="subtle" numberOfLines={1} style={styles.placeholder}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+};
+
+const styles = StyleSheet.create({
+  field: {
+    flex: 1,
+    minWidth: 0,
+    height: controlHeight.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    paddingHorizontal: spacing[3],
+    borderRadius: radiusRole.input,
+    backgroundColor: colors.surface.elevated,
+  },
+  placeholder: {
+    flex: 1,
+  },
+});

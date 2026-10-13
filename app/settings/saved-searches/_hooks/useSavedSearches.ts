@@ -74,7 +74,7 @@ export function useSavedSearches() {
   });
 
   const runSearch = (search: SavedSearch) => {
-    router.push(`/(tabs)/search?${buildSearchParams(search)}`);
+    router.push(`/search?${buildSearchParams(search)}`);
   };
 
   const handleDelete = (search: SavedSearch) => {

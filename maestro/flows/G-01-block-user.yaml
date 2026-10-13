@@ -16,7 +16,7 @@ env:
 - runFlow: ../subflows/open-tarodan.yaml
 
 # 1) Arama → ilan detayı
-- tapOn: "Ara"
+- runFlow: ../subflows/open-search.yaml
 - extendedWaitUntil:
     visible:
       id: "search-input"
@@ -61,7 +61,8 @@ env:
     text: ".*Engelleme başarısız.*"
 
 # 4) Profil → Engellenen Kullanıcılar
-- tapOn: "Profil"
+- tapOn:
+    id: "tab-profile"
 - scrollUntilVisible:
     element:
       id: "profile-blocked-users-link"

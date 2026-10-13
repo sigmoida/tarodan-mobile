@@ -12,14 +12,13 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
       visible: "Çıkış Yap"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
-- tapOn:
-    text: "Ara"
+- runFlow: ../subflows/open-search.yaml
 - extendedWaitUntil:
     visible:
       id: "search-input"
@@ -44,7 +43,7 @@ env:
     optional: true
 # Profil → Favoriler
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - scrollUntilVisible:
     element:
       text: "Favorilerim|Favori"

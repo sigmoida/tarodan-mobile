@@ -1,5 +1,5 @@
 /**
- * J57 · favori listesi ekranı: misafir CTA, boş durum, dolu liste render.
+ * J57 · favori listesi ekranı (sekme kökü): misafir CTA, boş durum, dolu liste render.
  * J21 · favoriden çıkar butonu (handleRemove → removeFromFavorites çağrısı).
  * Sadece MOBİL-UI: render/durum gösterimi + navigasyon wiring.
  */
@@ -8,10 +8,13 @@ import { screen, fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
 
-jest.mock('expo-router', () => {
-  const rm = require('@/test-utils/router-mock').routerMock;
-  return { ...rm, useFocusEffect: (cb: any) => cb() };
-});
+jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
+
+// AppShell marka barı sayaçları bu süitin konusu değil.
+jest.mock('@/components/shell/useShellCounts', () => ({
+  useShellCounts: () => ({ cartCount: 0, notificationCount: 0, messageCount: 0, favoriteCount: 0 }),
+}));
+jest.mock('expo-status-bar', () => ({ StatusBar: () => null, setStatusBarStyle: jest.fn() }));
 
 const mockState = {
   isAuthenticated: true,
@@ -101,7 +104,7 @@ describe('J57 · favoriler ekranı — boş durum', () => {
     renderWithProviders(<FavoritesScreen />);
     expect(screen.getByText('Henüz favoriniz yok')).toBeOnTheScreen();
     fireEvent.press(screen.getByText('Ürünleri Keşfet'));
-    expect(pushMock).toHaveBeenCalledWith('/(tabs)/search');
+    expect(pushMock).toHaveBeenCalledWith('/search');
   });
 });
 

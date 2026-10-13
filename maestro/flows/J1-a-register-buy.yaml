@@ -60,8 +60,7 @@ tags:
       id: "home-search-input"
     timeout: 120000
 # 2. Arama → ilk ürün detay
-- tapOn:
-    text: "Ara"
+- runFlow: ../subflows/open-search.yaml
 - extendedWaitUntil:
     visible:
       id: "search-input"
@@ -101,7 +100,7 @@ tags:
       text: "Profil"
     timeout: 10000
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - extendedWaitUntil:
     visible:
       id: "profile-go-login-button"

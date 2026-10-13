@@ -1,9 +1,8 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { tabDiag } from '@/components/_tabDiag';
 import { View, FlatList, RefreshControl } from 'react-native';
 import { ErrorState, FAB, Spinner, theme } from '@/ui';
-import { AppShell } from '@/components/shell/AppShell';
+import { PageShell } from '@/components/common/PageShell';
 import {
   ProductCard,
   ProductGridSkeleton,
@@ -20,11 +19,11 @@ import { SearchBars } from './_components/SearchBars';
 const { colors, spacing } = theme;
 
 /**
- * Search tab — THIN screen. The `useSearch` controller owns filters, debounced
+ * Arama — yığın ekranı (`/search`), THIN screen. The `useSearch` controller owns filters, debounced
  * search, autocomplete, the infinite product query, and scroll/collapse state;
- * this file composes the shell, collapsible bars, results list, and modals.
+ * this file composes the PageShell, collapsible bars, results list, and modals.
  */
-function SearchScreen() {
+export default function SearchScreen() {
   const { t } = useTranslation();
   const f = useSearch();
   const cellWidth = useProductCellWidth();
@@ -40,7 +39,7 @@ function SearchScreen() {
   );
 
   return (
-    <AppShell>
+    <PageShell title={t('common.search')} mode="list" keyboardAware={false}>
       <View style={styles.container}>
         {/* Üst çubuklar absolute katmanda; kaydırınca translateY ile yukarı kayar (liste reflow olmaz) */}
         <View style={styles.resultsArea}>
@@ -132,8 +131,6 @@ function SearchScreen() {
           onClose={() => f.setSortModalVisible(false)}
         />
       </View>
-    </AppShell>
+    </PageShell>
   );
 }
-
-export default tabDiag('search', SearchScreen);
