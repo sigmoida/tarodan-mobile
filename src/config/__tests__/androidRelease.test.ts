@@ -6,6 +6,8 @@
  *
  * Adım adım kurulum: docs/ANDROID_RELEASE.md
  */
+import * as fs from 'fs';
+import * as path from 'path';
 import appJson from '../../../app.json';
 import { deepLinkConfig } from '../../lib/deeplinks';
 
@@ -171,13 +173,67 @@ describe('staging android.googleServicesFile seçimi', () => {
   });
 
   it('repoda google-services.json hâlâ yalnız production paketini içerir', () => {
-    const fs = require('fs') as typeof import('fs');
-    const path = require('path') as typeof import('path');
     const json = JSON.parse(
       fs.readFileSync(path.resolve(__dirname, '../../../google-services.json'), 'utf8'),
     );
     const pkgs = json.client.map((c: any) => c.client_info.android_client_info.package_name);
     expect(pkgs).toContain('com.tarodan.app');
     expect(pkgs).not.toContain(STAGING);
+  });
+});
+
+describe('eas.json — Android build ve submit profilleri', () => {
+  type AndroidBuild = { buildType?: string; autoIncrement?: string | boolean };
+  type Eas = {
+    build: Record<string, { distribution?: string; channel?: string; android?: AndroidBuild; env?: Record<string, string> }>;
+    submit: Record<string, { android?: Record<string, unknown>; ios?: Record<string, unknown> }>;
+  };
+  const eas = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../../eas.json'), 'utf8')) as Eas;
+
+  it('staging: Play için AAB, versionCode otomatik artar, store dağıtımı', () => {
+    expect(eas.build.staging!.distribution).toBe('store');
+    expect(eas.build.staging!.android).toEqual({ buildType: 'app-bundle', autoIncrement: 'versionCode' });
+  });
+
+  it('staging, preview ortamını kullanır (app.config.js .staging paketini seçsin)', () => {
+    expect(eas.build.staging!.env!.EXPO_PUBLIC_ENVIRONMENT).toBe('preview');
+    expect(eas.build.staging!.channel).toBe('staging');
+  });
+
+  it('production: AAB, store dağıtımı, versionCode otomatik artar', () => {
+    expect(eas.build.production!.distribution).toBe('store');
+    expect(eas.build.production!.android).toEqual({ buildType: 'app-bundle', autoIncrement: 'versionCode' });
+  });
+
+  it('preview ad-hoc APK kalır (internal dağıtım) ve staging paketini üretir', () => {
+    expect(eas.build.preview!.distribution).toBe('internal');
+    expect(eas.build.preview!.android!.buildType).toBe('apk');
+    // paket adını EXPO_PUBLIC_ENVIRONMENT=preview belirler → .staging
+    expect(eas.build.preview!.env!.EXPO_PUBLIC_ENVIRONMENT).toBe('preview');
+    expect(withEnv(eas.build.preview!.env!.EXPO_PUBLIC_ENVIRONMENT).android.package).toBe(
+      'com.tarodan.app.staging',
+    );
+  });
+
+  it('submit.staging.android: internal track, completed (inceleme gerektirmez)', () => {
+    expect(eas.submit.staging!.android).toEqual({ track: 'internal', releaseStatus: 'completed' });
+  });
+
+  it('submit.production.android: internal track (closed/production Play Console\'dan terfi)', () => {
+    expect(eas.submit.production!.android).toEqual({ track: 'internal' });
+  });
+
+  it.each(['staging', 'production'])(
+    'submit.%s.android: servis hesabı anahtarı repoda YOK (EAS credentials\'ta)',
+    (name) => {
+      const android = eas.submit[name]!.android!;
+      expect(android).not.toHaveProperty('serviceAccountKeyPath');
+      expect(JSON.stringify(android)).not.toMatch(/\.json/);
+    },
+  );
+
+  it('iOS submit profilleri etkilenmedi', () => {
+    expect(eas.submit.staging!.ios!.ascAppId).toBe('6794634529');
+    expect(eas.submit.production!.ios!.ascAppId).toBe('6786614139');
   });
 });
