@@ -36,7 +36,10 @@ switch (args[0]) {
     const profile = flag('--build-profile') ?? flag('-e');
     if (profile) b = b.filter((x) => x.buildProfile === profile);
     const rv = flag('--runtime-version');
-    if (rv) b = b.filter((x) => (x.runtime && x.runtime.version) === rv);
+    // Sunucu filtresi. JSON'da runtime alanı hiç olmayan build, "sunucu eşledi ama
+    // CLI'nin JSON şekli değişti" durumunu taklit eder ve filtreden geçer.
+    const rtOf = (x) => (x.runtime && x.runtime.version) || x.runtimeVersion;
+    if (rv) b = b.filter((x) => rtOf(x) === undefined || rtOf(x) === rv);
     const st = flag('--status');
     if (st) b = b.filter((x) => x.status === enumOf(st));
     const ch = flag('--channel');

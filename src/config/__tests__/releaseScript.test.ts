@@ -48,7 +48,6 @@ const build = (o: {
     appVersion: o.appVersion ?? '1.0.5',
     appIdentifier: o.appIdentifier ?? (env === 'production' ? 'com.tarodan.app' : 'com.tarodan.app.staging'),
     runtime: { id: `rt-${runtime}`, version: runtime },
-    runtimeVersion: runtime, // eski eas-cli alanı (geçici)
     fingerprint: { id: `f-${runtime}`, hash: runtime },
     updateChannel: { id: 'c', name: o.channel ?? (profile === 'production' ? 'production' : 'staging') },
     createdAt: o.createdAt ?? `${TODAY}T00:00:00.000Z`,
@@ -310,5 +309,102 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
     const r = plan('staging', { easJson: withEnv('staging', { EXPO_PUBLIC_ENVIRONMENT: undefined }) });
     expect(r.status).not.toBe(0);
     expect(r.log.some((l) => l.includes('fingerprint:generate'))).toBe(false);
+  });
+});
+
+describe('release.sh build-state — yalnız bitmiş + gönderilmiş build "binary mevcut"', () => {
+  const FP = 'fp-ios-preview';
+  const state = (builds: Build[], submissions: Submission[] = [], profiles = 'staging') =>
+    run(['build-state', 'ios', profiles, FP, 'staging'], { builds, submissions });
+
+  it.each([
+    ['kuyrukta', 'IN_QUEUE'],
+    ['yeni', 'NEW'],
+    ['derleniyor', 'IN_PROGRESS'],
+  ])('%s build → pending (mevcut değil)', (_n, status) => {
+    expect(state([build({ id: 'b1', status })]).stdout.trim()).toBe('pending b1');
+  });
+
+  it('bitmiş ama hiç gönderilmemiş store build\'i → none', () => {
+    const r = state([build({ id: 'b1' })]);
+    expect(r.stdout.trim()).toBe('none');
+    expect(r.easCalls('submit:list')).toHaveLength(1);
+  });
+
+  it('bitmiş, gönderimi başarısız → none', () => {
+    expect(state([build({ id: 'b1' })], [submission('b1', 'ERRORED')]).stdout.trim()).toBe('none');
+  });
+
+  it.each(['AWAITING_BUILD', 'IN_QUEUE', 'IN_PROGRESS'])('bitmiş, gönderimi %s → pending', (st) => {
+    expect(state([build({ id: 'b1' })], [submission('b1', st)]).stdout.trim()).toBe('pending b1');
+  });
+
+  it('bitmiş + gönderimi başarılı → available', () => {
+    expect(state([build({ id: 'b1' })], [submission('b1')]).stdout.trim()).toBe('available b1');
+  });
+
+  it('başka build\'in gönderimi sayılmaz', () => {
+    expect(state([build({ id: 'b1' })], [submission('other')]).stdout.trim()).toBe('none');
+  });
+
+  it('hatalı/iptal build\'ler sayılmaz', () => {
+    const r = state([build({ id: 'e', status: 'ERRORED' }), build({ id: 'c', status: 'CANCELED' })]);
+    expect(r.stdout.trim()).toBe('none');
+    expect(r.easCalls('submit:list')).toHaveLength(0);
+  });
+
+  it('submit gerektirmeyen (internal/preview) build bitmişse yeter', () => {
+    const apk = build({ id: 'apk', platform: 'ANDROID', profile: 'preview', runtime: FP });
+    const r = run(['build-state', 'android', 'staging,preview', FP, 'staging'], { builds: [apk] });
+    expect(r.stdout.trim()).toBe('available apk');
+    expect(r.easCalls('submit:list')).toHaveLength(0);
+  });
+
+  it('eski eas-cli şekli (runtimeVersion) de tanınır', () => {
+    const { runtime: _r, ...b } = build({ id: 'old' });
+    const r = state([{ ...b, runtimeVersion: FP }], [submission('old')]);
+    expect(r.stdout.trim()).toBe('available old');
+  });
+
+  it('tanınmayan JSON şekli → uyarı + none (güvenli taraf: OTA değil)', () => {
+    const { runtime: _r, ...b } = build({ id: 'x' });
+    const r = state([b], [submission('x')]);
+    expect(r.stdout.trim()).toBe('none');
+    expect(r.all).toContain('JSON şekli tanınmadı');
+  });
+
+  it('eas build:list hata verirse durur', () => {
+    const r = run(['build-state', 'ios', 'staging', FP], { env: { FAKE_EAS_FAIL_BUILD_LIST: '1' } });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('eas build:list başarısız');
+  });
+});
+
+describe('release.sh plan — bekleyen build için OTA da ikinci build de yok', () => {
+  it('staging: derlenen build varken → wait + uyarı', () => {
+    const r = plan('staging', { env: { PLATFORM: 'ios' }, builds: [build({ id: 'b1', status: 'IN_PROGRESS' })] });
+    expect(r.outputs.ios).toBe('wait');
+    expect(r.outputs.ota_platform).toBe('none');
+    expect(r.all).toContain('::warning::ios: bu runtime');
+  });
+
+  it('production: bitmiş ama gönderilmemiş build → build (VERSION-GATE\'e tabi)', () => {
+    const b = build({ id: 'p1', profile: 'production', appVersion: '1.0.4' });
+    const r = plan('production', { env: { PLATFORM: 'ios' }, builds: [b] });
+    expect(r.outputs.ios).toBe('build');
+  });
+
+  it('mode=ota binary yokken uyarır ama elle istendiği için OTA', () => {
+    const r = plan('staging', { env: { PLATFORM: 'ios', MODE: 'ota' } });
+    expect(r.outputs.ios).toBe('ota');
+    expect(r.all).toContain('ULAŞMAYABİLİR');
+  });
+
+  it('recheck staging: arada başlamış build → skip (OTA da yok)', () => {
+    const r = run(['recheck', 'ios', 'staging'], {
+      env: { FP: 'fp-ios-preview' },
+      builds: [build({ id: 'b1', status: 'IN_QUEUE' })],
+    });
+    expect(r.outputs.action).toBe('skip');
   });
 });

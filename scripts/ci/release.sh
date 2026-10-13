@@ -9,9 +9,12 @@
 #       Profil env'iyle (ör. EXPO_PUBLIC_ENVIRONMENT=preview) runtime fingerprint'i
 #       hesaplar. runtimeVersion politikası `fingerprint` olduğu için bu değer,
 #       aynı commit'ten alınacak build'in runtimeVersion'ına eşittir.
-#   release.sh find-build   <ios|android> <profile[,profile...]> <runtime-version> [channel]
-#       Bu runtime için hata/iptal DIŞI bir EAS build'i varsa id'sini basar
-#       (bitmiş YA DA kuyrukta/derleniyor). Yoksa boş çıktı.
+#   release.sh build-state  <ios|android> <profile[,profile...]> <runtime-version> [channel]
+#       Bu runtime için binary durumu, tek satır:
+#         available <id>  bitmiş VE (store profiliyse) gönderimi başarılı build
+#         pending <id>    kuyrukta / derleniyor / bitti ama gönderimi sürüyor
+#         none            yukarıdakilerin hiçbiri (hata, iptal, gönderimi
+#                         başarısız ya da hiç gönderilmemiş build sayılmaz)
 #   release.sh last-store-version <ios|android> <build-profile>
 #       O profilin son BİTMİŞ build'inin appVersion'ı (yoksa boş).
 #   release.sh version-gt   <a> <b>
@@ -119,34 +122,84 @@ fingerprint() {
   )
 }
 
-# Hata/iptal dışı her durum "bu runtime için binary var ya da geliyor" demektir.
-# Derlenmekte olan bir build'i saymak, ardışık iki push'un aynı runtime için iki
-# build harcamasını önler: ikinci push OTA yayınlar, build bitince o OTA'yı çeker.
-find_build() {
+# EAS verisi (eas-cli 24.x, `--help` ve kaynak ile doğrulandı):
+#   eas build:list --json  → GraphQL BuildFragment dizisi: id, status
+#     (NEW|IN_QUEUE|IN_PROGRESS|PENDING_CANCEL|FINISHED|ERRORED|CANCELED),
+#     buildProfile, distribution, runtime.version (eski sürümlerde
+#     runtimeVersion), appVersion, appIdentifier, message, createdAt.
+#     Build'in gönderimleri bu çıktıda YOK.
+#   eas submit:list --json → SubmissionWithSubmittedBuildFragment dizisi: status
+#     (AWAITING_BUILD|IN_QUEUE|IN_PROGRESS|FINISHED|ERRORED|CANCELED),
+#     submittedBuild.id. Profil filtresi yok; son 50 gönderim okunur.
+# "Binary mevcut" yalnız `available`dır. Belirsiz her şey (tanınmayan JSON,
+# gönderimi görünmeyen build) mevcut SAYILMAZ: OTA yerine build/bekle kararı
+# çıkar; en kötü ihtimalle fazladan bir build harcanır (kota koruması plan'da),
+# asla binary'si olmayan bir runtime'a "binary var" denmez.
+build_state() {
   local platform="$1" profiles="$2" runtime="$3" channel="${4:-}"
-  local profile out found
+  local profile tmp state
   local -a list
+  tmp="$(mktemp -d)"
   IFS=, read -r -a list <<< "$profiles"
   for profile in "${list[@]}"; do
     local args=(build:list --platform "$platform" --build-profile "$profile"
-      --runtime-version "$runtime" --limit 20 --json --non-interactive)
-    [ -n "$channel" ] && args+=(--channel "$channel")
-    out="$(eas "${args[@]}")" || die "eas build:list başarısız ($platform/$profile)"
-    found="$(printf '%s' "$out" | node -e '
-      let s=""; process.stdin.on("data",d=>s+=d).on("end",()=>{
-        const runtime = process.argv[1];
-        const dead = new Set(["errored","canceled","cancelled","pending_cancel","pending-cancel"]);
-        const builds = JSON.parse(s || "[]");
-        const hit = builds.find(b => b.runtimeVersion === runtime &&
-          !dead.has(String(b.status || "").toLowerCase()));
-        if (hit) console.log(hit.id);
-      });
-    ' "$runtime")"
-    if [ -n "$found" ]; then
-      echo "$found"
-      return 0
-    fi
+      --runtime-version "$runtime" --limit 50 --json --non-interactive)
+    if [ -n "$channel" ]; then args+=(--channel "$channel"); fi
+    eas "${args[@]}" > "$tmp/builds-$profile.json" \
+      || die "eas build:list başarısız ($platform/$profile)"
   done
+  state="$(classify_builds "$tmp" "$runtime")"
+  if [ "$state" = need-submissions ]; then
+    eas submit:list --platform "$platform" --limit 50 --json --non-interactive > "$tmp/submissions.json" \
+      || die "eas submit:list başarısız ($platform)"
+    state="$(classify_builds "$tmp" "$runtime")"
+  fi
+  rm -rf "$tmp"
+  echo "$state"
+}
+
+classify_builds() {
+  node -e '
+    const fs = require("fs"), path = require("path");
+    const [dir, runtime, easJsonPath] = process.argv.slice(1);
+    const eas = require(easJsonPath);
+    const norm = (s) => String(s || "").toLowerCase().replace(/-/g, "_");
+    const builds = [];
+    for (const f of fs.readdirSync(dir).filter((f) => f.startsWith("builds-"))) {
+      const raw = fs.readFileSync(path.join(dir, f), "utf8");
+      builds.push(...JSON.parse(raw || "[]"));
+    }
+    const rt = (b) => (b.runtime && b.runtime.version) || b.runtimeVersion;
+    if (builds.length && !builds.some((b) => rt(b))) {
+      console.error("::warning::eas build:list JSON şekli tanınmadı (runtime.version/runtimeVersion yok) — hiçbir build mevcut sayılmadı. eas-cli sürümünü kontrol et.");
+    }
+    const ours = builds.filter((b) => rt(b) === runtime);
+    const needsSubmit = (b) => {
+      const p = eas.build && eas.build[b.buildProfile];
+      return p ? p.distribution === "store" : norm(b.distribution) !== "internal";
+    };
+    const subFile = path.join(dir, "submissions.json");
+    const subs = fs.existsSync(subFile) ? JSON.parse(fs.readFileSync(subFile, "utf8") || "[]") : null;
+    const subStatuses = (id) =>
+      (subs || []).filter((s) => s.submittedBuild && s.submittedBuild.id === id).map((s) => norm(s.status));
+    const running = new Set(["new", "in_queue", "in_progress"]);
+    const subRunning = new Set(["awaiting_build", "in_queue", "in_progress"]);
+    const decide = () => {
+      let pending = null;
+      for (const b of ours) {
+        const st = norm(b.status);
+        if (running.has(st)) { pending = pending || b.id; continue; }
+        if (st !== "finished") continue;
+        if (!needsSubmit(b)) return "available " + b.id;
+        if (subs === null) return "need-submissions";
+        const ss = subStatuses(b.id);
+        if (ss.includes("finished")) return "available " + b.id;
+        if (ss.some((x) => subRunning.has(x))) pending = pending || b.id;
+      }
+      return pending ? "pending " + pending : "none";
+    };
+    console.log(decide());
+  ' "$1" "$2" "$ROOT/eas.json"
 }
 
 last_store_version() {
@@ -194,11 +247,11 @@ build_submit() {
 output() { printf '%s\n' "$@" >> "${GITHUB_OUTPUT:-/dev/stdout}"; }
 summary() { printf '%s\n' "$@" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"; }
 
-# Ortam → EAS build profili / kanalı.
+# Ortam → EAS build profili / kanalı / yayın dalı.
 env_config() {
   case "$1" in
-    staging) BUILD_PROFILE=staging CHANNEL=staging ;;
-    production) BUILD_PROFILE=production CHANNEL=production ;;
+    staging) BUILD_PROFILE=staging CHANNEL=staging BRANCH=development ;;
+    production) BUILD_PROFILE=production CHANNEL=production BRANCH=master ;;
     *) die "bilinmeyen ortam: '$1' (staging|production)" ;;
   esac
 }
@@ -222,7 +275,7 @@ plan() {
   local env="$1"
   env_config "$env"
   local mode="${MODE:-auto}" want="${PLATFORM:-all}" android_enabled="${ANDROID_ENABLED:-false}"
-  local sha="${SHA:-0000000}" msg version="" p fp build_id decision last text
+  local sha="${SHA:-0000000}" msg version="" p fp state build_id decision last text
   local ota=""
   msg="$(printf '%s' "${COMMIT_MSG:-manual $env ($mode) ${sha:0:7}}" | head -n1)"
   output "message=$msg"
@@ -247,16 +300,24 @@ plan() {
     fi
     fp="$(fingerprint "$BUILD_PROFILE" "$p")"
     output "${p}_fp=$fp"
-    build_id="$(find_build "$p" "$(binary_profiles "$env" "$p")" "$fp" "$CHANNEL")"
-    echo "$p: fingerprint=$fp existing-build=${build_id:-none}"
+    state="$(build_state "$p" "$(binary_profiles "$env" "$p")" "$fp" "$CHANNEL")"
+    build_id="${state#* }"
+    [ "$build_id" != "$state" ] || build_id=""
+    echo "$p: fingerprint=$fp binary=${state}"
 
-    case "$mode" in
-      ota) decision=ota ;;
-      build) decision=build ;;
-      *) if [ -n "$build_id" ]; then decision=ota; else decision=build; fi ;;
+    case "$mode:${state%% *}" in
+      ota:*) decision=ota ;;
+      build:*) decision=build ;;
+      *:available) decision=ota ;;
+      *:pending)
+        # Binary henüz YOK (derleniyor ya da gönderimi sürüyor): OTA ona
+        # ulaşacak mı belirsiz → yayınlanmaz; ikinci bir build de alınmaz.
+        decision="wait"
+        echo "::warning::$p: bu runtime ($fp) için build/gönderim sürüyor ($build_id) — OTA yayınlanmadı, ikinci build alınmadı. Bitince JS farkı için: gh workflow run mobile-$env.yml --ref $BRANCH -f mode=ota -f platform=$p" ;;
+      *) decision=build ;;
     esac
-    if [ "$decision" = ota ] && [ -z "$build_id" ]; then
-      echo "::warning::$p: bu runtime ($fp) için $env build'i yok — OTA yayınlanacak ama hiçbir binary'ye ULAŞMAYACAK."
+    if [ "$decision" = ota ] && [ "${state%% *}" != available ]; then
+      echo "::warning::$p: bu runtime ($fp) için gönderilmiş bir $env binary'si yok ($state) — OTA elle istendi, hiçbir binary'ye ULAŞMAYABİLİR."
     fi
     if [ "$decision" = build ] && [ "$env" = staging ] && [ "$p" = android ] && [ "$android_enabled" != true ]; then
       echo "::notice::android: native değişti ama vars.ANDROID_RELEASE_ENABLED != 'true' — Android build atlandı. Ad-hoc APK için: gh workflow run mobile-staging.yml --ref development -f mode=apk"
@@ -283,7 +344,7 @@ plan() {
 
     output "$p=$decision"
     [ "$decision" = ota ] && ota="$ota $p"
-    summary "### $p → \`$decision\`" "- fingerprint: \`$fp\`" "- mevcut build: ${build_id:-yok}"
+    summary "### $p → \`$decision\`" "- fingerprint: \`$fp\`" "- binary: $state"
     [ -n "$version" ] && summary "- app.json expo.version: \`$version\`"
   done
 
@@ -295,22 +356,24 @@ plan() {
 }
 
 recheck() {
-  local platform="$1" env="$2" existing="" action=build
+  local platform="$1" env="$2" state=none action=build
   env_config "$env"
   [ -n "${FP:-}" ] || die "recheck: FP (plan'ın fingerprint'i) boş"
   if [ "${MODE:-auto}" != build ]; then
-    existing="$(find_build "$platform" "$BUILD_PROFILE" "$FP" "$CHANNEL")"
+    state="$(build_state "$platform" "$BUILD_PROFILE" "$FP" "$CHANNEL")"
   fi
-  if [ -n "$existing" ]; then
-    if [ "$env" = staging ]; then
+  case "$env:${state%% *}" in
+    staging:available)
       action=ota
-      echo "::notice::Bu runtime için arada bir build başlamış ($existing) — build yerine OTA."
-    else
+      echo "::notice::Bu runtime için arada gönderilmiş bir binary oluştu (${state#* }) — build yerine OTA." ;;
+    staging:pending)
+      action=skip
+      echo "::warning::Bu runtime için arada bir build/gönderim başlamış (${state#* }) — ikinci build alınmadı, OTA da yayınlanmadı (binary henüz yok)." ;;
+    production:available|production:pending)
       # Production OTA onay ister; burada sessizce OTA'ya dönülmez.
       action=skip
-      echo "::warning::Bu runtime için arada bir production build'i başlamış ($existing) — ikinci build alınmadı. JS farkı varsa: gh workflow run mobile-production.yml --ref master -f mode=ota -f platform=$platform"
-    fi
-  fi
+      echo "::warning::Bu runtime için arada bir production build'i oluştu ($state) — ikinci build alınmadı. JS farkı varsa: gh workflow run mobile-production.yml --ref master -f mode=ota -f platform=$platform" ;;
+  esac
   output "action=$action"
 }
 
@@ -319,7 +382,7 @@ shift || true
 case "$cmd" in
   profile-env) profile_env "$@" ;;
   fingerprint) fingerprint "$@" ;;
-  find-build) find_build "$@" ;;
+  build-state) build_state "$@" ;;
   last-store-version) last_store_version "$@" ;;
   version-gt) version_gt "$@" ;;
   publish-ota) publish_ota "$@" ;;

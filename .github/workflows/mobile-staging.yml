@@ -7,9 +7,12 @@ name: Mobile Staging (CI → fingerprint → OTA or build)
 #   2. plan      Her platform için runtime fingerprint'i hesaplanır
 #                (`expo-updates fingerprint:generate`, staging profilinin env'iyle →
 #                EXPO_PUBLIC_ENVIRONMENT=preview, yani `.staging` kimlikli config)
-#                ve EAS'te bu runtimeVersion'a sahip bir staging build'i aranır.
-#                  var  → OTA   (eas update --branch staging)
-#                  yok  → build (yeni native binary gerekiyor)
+#                ve EAS'te bu runtimeVersion için binary durumu okunur
+#                (release.sh build-state):
+#                  available → OTA   (bitmiş VE TestFlight/Play'e gönderilmiş build)
+#                  pending   → bekle (derleniyor / gönderiliyor: OTA da ikinci
+#                              build de yok, uyarı)
+#                  none      → build (yeni native binary gerekiyor)
 #                Platformlar AYRI değerlendirilir: iOS OTA alırken Android build
 #                alabilir (fingerprint platform başına farklıdır).
 #   3. ota       eas update --branch staging --platform <yalnız OTA'lık platformlar>

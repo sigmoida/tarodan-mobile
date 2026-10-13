@@ -6,8 +6,9 @@ name: Mobile Production (CI → fingerprint → approved OTA or store build)
 #   2. plan      Fingerprint `production` profilinin env'iyle
 #                (EXPO_PUBLIC_ENVIRONMENT=production → com.tarodan.app) hesaplanır,
 #                EAS'teki production build'leriyle karşılaştırılır.
-#                  build var → OTA
-#                  build yok → native değişti → STORE BUILD. Bu durumda app.json
+#                  binary var (bitmiş + gönderilmiş) → OTA
+#                  build/gönderim sürüyor → bekle (uyarı; OTA da build de yok)
+#                  binary yok → native değişti → STORE BUILD. Bu durumda app.json
 #                    `expo.version` son production build'inin sürümünden BÜYÜK
 #                    olmalı; değilse plan anlaşılır bir hatayla DURUR (bkz.
 #                    "VERSION-GATE" adımı). Not: expo.version fingerprint'e girer,
