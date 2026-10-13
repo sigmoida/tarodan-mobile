@@ -2,19 +2,23 @@
  * İptal edilmiş siparişin "neden iptal edildi" cümlesi — alıcı (`app/orders/[id]`)
  * ve satıcı (`app/sales/[id]`) sipariş detayının TEK kaynağı.
  *
- * Sunucu ham `cancelReason`'ı stabil bir `cancelCategory`'ye eşliyor
- * (`order-common.service.ts` → `deriveCancelCategory`); cümle kategoriden
- * kurulur. Web'in `getCancelMessage`'ıyla aynı eşleme
- * (`profile/(commerce)/orders/[id]/_lib/types.ts`).
+ * Web `getCancelMessage` + `OrderBanners` ile BİREBİR
+ * (`profile/(commerce)/orders/[id]/_lib/types.ts`, `_sections/OrderBanners.tsx`).
+ * Web'de alıcı ve satıcı AYNI sayfayı görür (`/seller/orders/[id]` →
+ * `/profile/orders/[id]` yönlendirmesi), yani kurallar iki ekranda da aynı:
  *
- * `other` / bilinmeyen kategori: sunucunun yazdığı metin ham basılır. Yönetici
- * (platform) iptali buraya düşer — sunucu "Yönetici tarafından iptal edildi:
- * <etiket>" yazıyor. Web'den TEK sapma: alıcı iptali açıklamasız yapıldıysa
- * sunucu metin yerine iptal KODUNU (`changed_mind`) yazıyor; web onu ham
- * basıyor, burada katalog etiketine çevrilir.
+ * - Yalnız `status === 'cancelled'` siparişte cümle var (web banner kapısı;
+ *   sunucu `cancelCategory`'yi de yalnız o durumda doldurur). Kargo öncesi
+ *   ödenmiş iptal (`cancellationType: 'iptal'`, status `refunded`) için web
+ *   neden göstermez → burada da `null`.
+ * - Kategori → katalog cümlesi.
+ * - `other` / bilinmeyen kategori: sunucunun yazdığı `cancelReason` ham basılır
+ *   — alıcının serbest notu da dahil, satıcıya da (web aynı; sunucu bu alanı
+ *   "taraflara görünür" diye yazıyor: `refund/helpers/pre-shipment-cancellation.ts`).
+ *   Yönetici iptalinde metin sunucuda Türkçe üretilir; EN arayüzde de Türkçe
+ *   görünür (web ile aynı, sunucu işi).
  */
 import type { TFunction } from 'i18next';
-import { reasonLabelKey } from './orderCancellation';
 
 /** Sunucunun `cancelCategory` değerleri (yalnız `status === 'cancelled'` iken dolu). */
 export type OrderCancelCategory =
@@ -38,12 +42,15 @@ export type OrderCancelAudience = 'buyer' | 'seller';
 
 export function orderCancelMessage(
   order: {
+    /** API durumu; mobil UI normalizasyonu da `cancelled`'ı aynen bırakır. */
+    status?: string | null;
     cancelCategory?: string | null;
     cancelReason?: string | null;
   },
   audience: OrderCancelAudience,
   t: TFunction,
 ): string | null {
+  if (order.status !== 'cancelled') return null;
   switch (order.cancelCategory) {
     case 'buyer_cancelled':
       return audience === 'buyer' ? t('order.cancelMsgYouCancelled') : t('order.cancelMsgBuyerCancelled');
@@ -62,10 +69,9 @@ export function orderCancelMessage(
     case 'admin':
       return t('order.cancelMsgAdmin');
     default: {
+      // other / bilinmeyen: sunucunun yazdığı serbest metin ham haliyle (web).
       const raw = order.cancelReason?.trim();
-      if (!raw) return null;
-      const key = reasonLabelKey(raw);
-      return key ? t(key) : raw;
+      return raw ? raw : null;
     }
   }
 }

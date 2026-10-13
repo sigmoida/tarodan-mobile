@@ -511,6 +511,22 @@ describe('A-1.10 · İptal kartı nedeni gösterir', () => {
     }
   });
 
+  it('inceleme 5 · ödenmiş kargo öncesi iptalde (refunded + iptal) neden satırı yok (web ile aynı)', async () => {
+    getMock.mockResolvedValue({
+      data: {
+        data: orderFixture({
+          status: 'refunded',
+          cancellationType: 'iptal',
+          cancelReason: 'changed_mind',
+          cancelCategory: null,
+        }),
+      },
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    await screen.findByTestId('order-cancelled-info');
+    expect(screen.queryByTestId('order-cancel-message')).toBeNull();
+  });
+
   it('gerekçe ve kategori yoksa satır hiç basılmaz', async () => {
     getMock.mockResolvedValue({
       data: { data: orderFixture({ status: 'cancelled', cancelReason: null, cancelCategory: null }) },
