@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { paymentsApi } from '@/lib/api';
+import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 
 /**
  * ⚠️ BU EKRAN BİLEREK React Query'ye TAŞINMADI (CLAUDE.md §6'nın istisnası).
@@ -43,6 +44,7 @@ export default function PaymentFailScreen() {
   const [loading, setLoading] = useState(true);
   const [info, setInfo] = useState<PaymentInfo | null>(null);
   const [retrying, setRetrying] = useState(false);
+  const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
 
   useEffect(() => {
     const load = async () => {
@@ -65,6 +67,9 @@ export default function PaymentFailScreen() {
 
   const handleRetry = async () => {
     if (!paymentId) return;
+    // B4: yeniden deneme yeni bir ödeme başlatır — önce yasal kimlik (misafirde
+    // kapı yok). Vazgeçerse istek gitmez.
+    if (!(await requireIdentity())) return;
     try {
       setRetrying(true);
       await paymentsApi.retry(paymentId);
@@ -109,8 +114,9 @@ export default function PaymentFailScreen() {
             title={t('payment.retry')}
             fullWidth
             onPress={handleRetry}
-            isLoading={retrying}
-            disabled={retrying || !paymentId}
+            isLoading={retrying || checkingIdentity}
+            disabled={retrying || checkingIdentity || !paymentId}
+            testID="payment-retry-button"
             style={styles.btn}
           />
           {tradeId ? (

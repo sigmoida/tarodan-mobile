@@ -14,9 +14,6 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
-// Uyarıyı gözlemlenebilir yap; @/ui'nin geri kalanı gerçek.
-jest.mock('@/ui', () => ({ ...jest.requireActual('@/ui'), appAlert: jest.fn() }));
-
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
 jest.mock('@/lib/api', () => ({
@@ -66,7 +63,7 @@ jest.mock('@/lib/api', () => ({
 }));
 
 import { legalIdentityApi, ordersApi } from '@/lib/api';
-import { appAlert } from '@/ui';
+import { appAlert } from '@/ui'; // jest.setup'ta global jest.fn
 import { useAuthStore } from '@/stores/authStore';
 import { useCartStore } from '@/stores/cartStore';
 import {

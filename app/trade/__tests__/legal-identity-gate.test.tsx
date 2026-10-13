@@ -21,6 +21,7 @@ jest.mock('@/hooks/useFeatureAccess', () => ({
 jest.mock('@/lib/api', () => ({
   legalIdentityApi: { getStatus: jest.fn(), submit: jest.fn() },
   tradesApi: {
+    accept: jest.fn(() => Promise.resolve({ data: {} })),
     create: jest.fn(() => Promise.resolve({ data: { id: 'trade-1' } })),
     previewPaymentQuote: jest.fn(() => Promise.resolve({ data: {} })),
   },
@@ -35,6 +36,7 @@ jest.mock('@/lib/api', () => ({
 }));
 
 import { legalIdentityApi, paymentsApi, tradesApi } from '@/lib/api';
+import { appAlert } from '@/ui'; // jest.setup'ta global jest.fn
 import { useAuthStore } from '@/stores/authStore';
 import {
   settleLegalIdentityRequest,
@@ -157,6 +159,59 @@ describe('Takas nakit ödemesi · yasal kimlik kapısı', () => {
       await result.current.cashPay();
     });
     expect(paymentsApi.initiateTradeCash).toHaveBeenCalledTimes(1);
+    expect(useLegalIdentityRequestStore.getState().requested).toBe(false);
+  });
+});
+
+describe('Takas kabulü · yasal kimlik kapısı (B4 inceleme 5)', () => {
+  function readyToAccept() {
+    const hook = renderHook(() => useTradeActions('trade-1'), { wrapper });
+    act(() => hook.result.current.setTradeAddressId('addr-1'));
+    return hook;
+  }
+
+  /** Onay penceresindeki "Takası Kabul Et" düğmesine bas. */
+  const pressConfirm = () => {
+    const buttons = (appAlert as jest.Mock).mock.calls.at(-1)![2] as Array<{ style?: string; onPress?: () => void }>;
+    act(() => buttons.find((b) => b.style !== 'cancel')!.onPress!());
+  };
+
+  it('kimlik eksik → onaydan ÖNCE kapı açılır; kaydedilince onay, sonra kabul isteği', async () => {
+    const { result } = readyToAccept();
+    act(() => {
+      void result.current.handleAccept();
+    });
+
+    await gateOpened();
+    // Kapı açıkken onay penceresi yok (iOS iki modalı aynı anda sunamaz).
+    expect(appAlert).not.toHaveBeenCalled();
+    expect(result.current.acceptPending).toBe(true);
+
+    await settleGateAndWait(true);
+    expect(appAlert).toHaveBeenCalledTimes(1);
+    pressConfirm();
+    await waitFor(() => expect(tradesApi.accept).toHaveBeenCalledWith('trade-1', undefined, 'addr-1'));
+  });
+
+  it('Vazgeç → onay penceresi de kabul isteği de yok', async () => {
+    const { result } = readyToAccept();
+    act(() => {
+      void result.current.handleAccept();
+    });
+
+    await gateOpened();
+    await settleGateAndWait(false);
+    expect(appAlert).not.toHaveBeenCalled();
+    expect(tradesApi.accept).not.toHaveBeenCalled();
+    expect(result.current.acceptPending).toBe(false);
+  });
+
+  it('teslimat adresi seçilmemişse kimlik sorulmaz', async () => {
+    const { result } = renderHook(() => useTradeActions('trade-1'), { wrapper });
+    await act(async () => {
+      await result.current.handleAccept();
+    });
+    expect(legalIdentityApi.getStatus).not.toHaveBeenCalled();
     expect(useLegalIdentityRequestStore.getState().requested).toBe(false);
   });
 });

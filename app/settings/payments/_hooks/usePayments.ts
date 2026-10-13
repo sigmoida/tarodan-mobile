@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { paymentsApi } from '@/lib/api';
+import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 import type { Payment } from '../_lib/types';
 
 /**
@@ -17,6 +18,9 @@ export function usePayments() {
   const { isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
+  /** Kimliği kontrol edilen yeniden deneme (kartında yükleniyor gösterilir). */
+  const [retryTargetId, setRetryTargetId] = useState<string | null>(null);
   const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({
     visible: false,
     message: '',
@@ -54,7 +58,11 @@ export function usePayments() {
     ]);
   };
 
-  const handleRetry = (id: string) => {
+  const handleRetry = async (id: string) => {
+    // B4: yeniden deneme yeni bir ödeme başlatır — önce yasal kimlik. Kapı onay
+    // penceresinden ÖNCE (`appAlert` kapanırken native kapı açılırsa iOS donar).
+    setRetryTargetId(id);
+    if (!(await requireIdentity())) return;
     appAlert(t('payment.retryTitle'), t('payment.retryConfirm'), [
       { text: t('discount.discard'), style: 'cancel' },
       {
@@ -87,6 +95,8 @@ export function usePayments() {
     setSnackbar,
     handleCancel,
     handleRetry,
+    /** Kimliği kontrol edilen ödeme; o kartın "Tekrar Dene"si yükleniyor, hepsi devre dışı. */
+    retryCheckingId: checkingIdentity ? retryTargetId : null,
   };
 }
 

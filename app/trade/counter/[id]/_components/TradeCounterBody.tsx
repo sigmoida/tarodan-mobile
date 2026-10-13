@@ -123,8 +123,9 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
         variant="primary"
         title={t('trade.sendCounterOffer')}
         onPress={f.handleSubmit}
-        isLoading={f.counterMutation.isPending}
-        disabled={f.counterMutation.isPending || (f.selectedMine.length === 0 && f.selectedTheirs.length === 0)}
+        testID="trade-counter-submit"
+        isLoading={f.submitPending}
+        disabled={f.submitPending || (f.selectedMine.length === 0 && f.selectedTheirs.length === 0)}
         style={styles.submitBtn}
       />
 

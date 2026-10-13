@@ -139,7 +139,7 @@ export function useTradeActions(id: string) {
   });
 
   // --- Handler'lar (aksiyon butonlarından) ---
-  const handleAccept = () => {
+  const handleAccept = async () => {
     if (!tradeAddressId) {
       appAlert(
         t("address.deliveryAddress"),
@@ -147,6 +147,10 @@ export function useTradeActions(id: string) {
       );
       return;
     }
+    // B4: kabul takası başlatır — önce yasal kimlik. Kapı onay penceresinden
+    // ÖNCE: `appAlert` kapanırken native kapı açılırsa iOS donar; kapı kendi
+    // kapanışını bekleyip çözüldüğü için onay güvenle açılır.
+    if (!(await requireIdentity())) return;
     appAlert(
       t("trade.accept.confirmTitle"),
       t("trade.accept.confirmMessage"),
@@ -214,7 +218,7 @@ export function useTradeActions(id: string) {
     // aksiyonlar
     handleAccept,
     handleCancel,
-    acceptPending: acceptMutation.isPending,
+    acceptPending: checkingIdentity || acceptMutation.isPending,
     cancelPending: cancelMutation.isPending,
     confirm: () => confirmMutation.mutate(),
     confirmPending: confirmMutation.isPending,

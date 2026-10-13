@@ -30,6 +30,10 @@ jest.mock('@/stores/authStore', () => ({
   },
 }));
 
+// Kapı bu testin konusu değil (bkz. legal-identity-gate.test): geçti say.
+jest.mock('@/hooks/useLegalIdentity', () =>
+  require('@/test-utils/legalIdentity').legalIdentityGatePassMock);
+
 import TradeCounterScreen from '../[id]';
 
 const getOneMock = tradesApi.getOne as jest.Mock;

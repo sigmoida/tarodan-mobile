@@ -202,9 +202,10 @@ export function useRequireLegalIdentity(): RequireLegalIdentity {
   const requireIdentity = useCallback(async () => {
     if (inFlight.current) return false;
     inFlight.current = true;
-    const slow = legalIdentityCheckNeeded(client);
-    if (slow) setIsChecking(true);
+    let slow = false;
     try {
+      slow = legalIdentityCheckNeeded(client);
+      if (slow) setIsChecking(true);
       return await ensureLegalIdentity(client);
     } finally {
       inFlight.current = false;
