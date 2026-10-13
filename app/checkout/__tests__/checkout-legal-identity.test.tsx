@@ -195,8 +195,14 @@ describe('Sepet ödemesi · yasal kimlik kapısı', () => {
       expect(ordersApi.checkout).not.toHaveBeenCalled();
 
       // Yeniden onay: kullanıcı yeni tutarı görüp tekrar basar → YENİ imzayla gider.
+      // İlk deneme (loading/checkingIdentity) bitmeden düğme kapalı; yavaş CI'da basış yutulmasın.
+      await waitFor(() => expect(screen.getByTestId('checkout-pay-button')).toBeEnabled(), {
+        timeout: 5000,
+      });
       await pressPayButton();
-      await waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true));
+      await waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true), {
+        timeout: 5000,
+      });
       act(() => settleLegalIdentityRequest(true));
       await waitFor(() => expect(ordersApi.checkout).toHaveBeenCalledTimes(1));
       expect(jest.mocked(ordersApi.checkout).mock.calls[0]![0]).toEqual(
