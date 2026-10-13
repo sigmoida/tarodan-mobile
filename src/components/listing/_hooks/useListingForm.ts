@@ -789,9 +789,11 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const handleSubmit = async () => {
     if (!validate()) return;
 
-    // Durum BİLİNMİYORSA (yükleniyor/hata) "IBAN ekle" denmez: form zaten bu
-    // durumda gösterilmiyor (`BankAccountGate`); buraya yalnız bilinen eksik düşer.
-    if (!isEdit && !bankAccountLoading && !bankAccountError && !hasBankAccount) {
+    // KAPALI BAŞARISIZ: hesap doğrulanamıyorsa (yükleniyor / hata) gönderim engellenir.
+    // `hasBankAccount` yalnız veri GELMİŞSE true olur; form normalde bu durumda zaten
+    // gösterilmiyor (`BankAccountGate`), bu satır kapıyı aşan her yolu (hızlı çift dokunma,
+    // gecikmeli sorgu) sunucuya gitmeden keser.
+    if (!isEdit && !hasBankAccount) {
       appAlert(
         t('listing.bankAccountRequiredTitle'),
         t('listing.bankAccountRequiredBody'),

@@ -50,6 +50,13 @@ jest.mock('../../../stores/authStore', () => ({
   },
 }));
 
+// Doğrulamayı geçir: gönderimdeki IBAN kapısına ulaşılsın (asıl denenen o).
+jest.mock('../_lib/validate', () => ({
+  ...jest.requireActual('../_lib/validate'),
+  firstListingValidationError: () => null,
+}));
+
+import { productsApi } from '@/lib/api';
 import { useListingForm } from '../_hooks/useListingForm';
 import { BankAccountGate, bankGateBlocks } from '../_components/BankAccountGate';
 
@@ -83,7 +90,7 @@ beforeEach(() => {
 });
 
 describe('useListingForm: IBAN durumu', () => {
-  it('yüklenirken eksik sayılmaz (yükleniyor açık, hata kapalı) ve gönderimde "IBAN ekle" uyarısı yok', async () => {
+  it('yüklenirken yükleniyor açık, hata kapalı, hesap yok (gönderim ayrı testte engellenir)', async () => {
     mockGetBank.mockReturnValue(new Promise(() => {}));
     const { result } = renderForm();
     await waitFor(() => expect(result.current.bankAccountLoading).toBe(true));
@@ -116,6 +123,62 @@ describe('useListingForm: IBAN durumu', () => {
     const { result } = renderForm('edit');
     expect(result.current.hasBankAccount).toBe(true);
     expect(mockGetBank).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Kapalı başarısız: hesap DOĞRULANAMIYORSA (yükleniyor / hata) gönderim engellenir; ilan
+ * sunucuya gitmez. Form bu durumda zaten gizli (`BankAccountGate`), bu son savunma hattı.
+ */
+describe('useListingForm: gönderimde IBAN kapısı kapalı başarısız', () => {
+  const submit = async (setup: () => void) => {
+    setup();
+    const { result } = renderForm();
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+    return result;
+  };
+
+  beforeEach(() => (productsApi.create as jest.Mock).mockClear());
+
+  it('yüklenirken: ilan oluşturulmaz, IBAN istemi çıkar', async () => {
+    await submit(() => mockGetBank.mockReturnValue(new Promise(() => {})));
+    expect(productsApi.create).not.toHaveBeenCalled();
+    expect(appAlert).toHaveBeenCalledWith('Banka Hesabı Gerekli', expect.any(String), expect.any(Array));
+  });
+
+  it('okuma hatasında: ilan oluşturulmaz', async () => {
+    mockGetBank.mockRejectedValue(new Error('network'));
+    const { result } = renderForm();
+    await waitFor(() => expect(result.current.bankAccountError).toBe(true), { timeout: 5000 });
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+    expect(productsApi.create).not.toHaveBeenCalled();
+    expect(appAlert).toHaveBeenCalled();
+  });
+
+  it('hesap yoksa: ilan oluşturulmaz', async () => {
+    mockGetBank.mockResolvedValue({ data: null });
+    const { result } = renderForm();
+    await waitFor(() => expect(result.current.bankAccountLoading).toBe(false));
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+    expect(productsApi.create).not.toHaveBeenCalled();
+  });
+
+  it('hesap varsa IBAN kapısı geçilir (sonraki kontrollere ilerler)', async () => {
+    mockGetBank.mockResolvedValue({ data: ACCOUNT });
+    const { result } = renderForm();
+    await waitFor(() => expect(result.current.hasBankAccount).toBe(true));
+    (appAlert as jest.Mock).mockClear();
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+    const titles = (appAlert as jest.Mock).mock.calls.map((c) => c[0]);
+    expect(titles).not.toContain('Banka Hesabı Gerekli');
   });
 });
 
