@@ -10,7 +10,9 @@ import { useTranslation } from 'react-i18next';
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
-import { Modal } from './Modal';
+import { BottomSheet } from './BottomSheet';
+import { Button } from './Button';
+import { ButtonRow } from './ButtonRow';
 import { theme } from '../lib/theme';
 // Bazı ekran testleri `react-i18next`'i yalnız `{ t }` döndürecek şekilde
 // mock'luyor (useTranslation().i18n undefined kalır) — aktif dili doğrudan
@@ -39,6 +41,9 @@ export interface DateFieldProps {
 }
 
 const { colors, radius, spacing, typography } = theme;
+
+/** iOS `UIDatePicker` spinner'ının doğal yüksekliği (pt). */
+const IOS_SPINNER_HEIGHT = 216;
 
 /** i18n dili -> `Intl`/native picker locale etiketi (bkz. `@/utils/format`). */
 function activeDateLocale(language: string): string {
@@ -166,10 +171,32 @@ export const DateField: React.FC<DateFieldProps> = ({
       ) : null}
 
       {Platform.OS === 'ios' ? (
-        <Modal
+        <BottomSheet
           isOpen={show}
           onClose={() => setShow(false)}
           title={label ?? resolvedPlaceholder}
+          scrollable={false}
+          testID={testID ? `${testID}-sheet` : 'date-field-sheet'}
+          footer={
+            <ButtonRow>
+              <Button
+                key="cancel"
+                variant="outline"
+                title={t('common.giveUp')}
+                onPress={() => setShow(false)}
+              />
+              <Button
+                key="confirm"
+                variant="primary"
+                title={t('common.ok')}
+                onPress={() => {
+                  onChange(formatLocalISO(draft));
+                  setShow(false);
+                }}
+                testID={testID ? `${testID}-confirm` : undefined}
+              />
+            </ButtonRow>
+          }
         >
           <DateTimePicker
             value={draft}
@@ -182,26 +209,7 @@ export const DateField: React.FC<DateFieldProps> = ({
             onChange={onIOSChange}
             style={styles.iosPicker}
           />
-          <View style={styles.iosButtons}>
-            <Pressable
-              onPress={() => setShow(false)}
-              style={styles.iosBtn}
-              accessibilityRole="button"
-            >
-              <RawText style={styles.iosBtnGhost}>{t('seller.cancel')}</RawText>
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                onChange(formatLocalISO(draft));
-                setShow(false);
-              }}
-              style={[styles.iosBtn, styles.iosBtnPrimary]}
-              accessibilityRole="button"
-            >
-              <RawText style={styles.iosBtnPrimaryText}>{t('common.ok')}</RawText>
-            </Pressable>
-          </View>
-        </Modal>
+        </BottomSheet>
       ) : null}
     </View>
   );
@@ -228,31 +236,8 @@ const styles = StyleSheet.create({
   },
   iosPicker: {
     alignSelf: 'center',
-    // iOS spinner Modal içinde explicit boyut almazsa 0 yüksekliğe çöküp
-    // görünmez oluyor. Sabit yükseklik/genişlik ver.
+    // iOS spinner explicit boyut almazsa 0 yüksekliğe çöküp görünmez oluyor (sistem spinner'ı 216pt).
     width: '100%',
-    height: 200,
-  },
-  iosButtons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: spacing[2],
-    marginTop: spacing[4],
-  },
-  iosBtn: {
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[4],
-    borderRadius: radius.lg,
-  },
-  iosBtnPrimary: {
-    backgroundColor: colors.primary[600]!,
-  },
-  iosBtnGhost: {
-    color: colors.text.muted,
-    fontWeight: '600',
-  },
-  iosBtnPrimaryText: {
-    color: colors.white,
-    fontWeight: '600',
+    height: IOS_SPINNER_HEIGHT,
   },
 });
