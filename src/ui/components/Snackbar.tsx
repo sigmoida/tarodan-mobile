@@ -3,11 +3,11 @@ import {
   Animated,
   Pressable,
   StyleSheet,
-  Text,
   View,
   type ViewStyle,
 } from 'react-native';
 import { theme } from '../lib/theme';
+import { RawText } from './Text';
 
 export type SnackbarVariant = 'default' | 'success' | 'danger' | 'warning' | 'info';
 
@@ -73,10 +73,10 @@ export const Snackbar: React.FC<SnackbarProps> = ({
       testID={testID}
     >
       <View style={[styles.bar, { backgroundColor: variantBg[variant] }]}>
-        <Text style={styles.message}>{children}</Text>
+        <RawText style={styles.message}>{children}</RawText>
         {action ? (
           <Pressable onPress={action.onPress} hitSlop={6}>
-            <Text style={styles.actionLabel}>{action.label.toUpperCase()}</Text>
+            <RawText style={styles.actionLabel}>{action.label.toUpperCase()}</RawText>
           </Pressable>
         ) : null}
       </View>

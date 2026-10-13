@@ -5,11 +5,11 @@ import {
   Platform,
   Pressable,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import { theme } from '../lib/theme';
 import { IconButton, iconButtonBoxSize, type IconButtonSize } from './IconButton';
+import { RawText } from './Text';
 
 /** Kart genişliği: `md` (varsayılan) 480pt, `lg` 512pt (web `max-w-lg`). */
 export type ModalSize = 'md' | 'lg';
@@ -90,7 +90,7 @@ export const Modal: React.FC<ModalProps> = ({
           >
             {hasHeader && (
               <View style={[styles.header, title ? styles.headerTitled : styles.headerCloseOnly]}>
-                {title ? <Text style={styles.title}>{title}</Text> : <View style={styles.fill} />}
+                {title ? <RawText style={styles.title}>{title}</RawText> : <View style={styles.fill} />}
                 {showCloseButton && (
                   <IconButton
                     icon="close"

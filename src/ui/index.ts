@@ -17,10 +17,13 @@ export {
 } from './components/IconButton';
 export {
 	Text,
+	RawText,
 	type TextProps,
+	type RawTextProps,
 	type TextVariant,
 	type TextTone,
 } from './components/Text';
+export { BrandFontProvider, useBrandFont } from './lib/font';
 export { Stack, VStack, HStack, type StackProps } from './components/Stack';
 export {
 	Screen,

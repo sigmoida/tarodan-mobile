@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import {
   Controller,
   FormProvider,
@@ -9,6 +9,7 @@ import {
 } from 'react-hook-form';
 import { Input, type InputProps } from '../Input';
 import { theme } from '../../lib/theme';
+import { RawText } from '../Text';
 
 /**
  * RHF-connected form primitives for React Native. Pair with `useZodForm`:
@@ -87,7 +88,7 @@ export function FormError() {
   if (!message) return null;
   return (
     <View style={styles.banner}>
-      <Text style={styles.text}>{message}</Text>
+      <RawText style={styles.text}>{message}</RawText>
     </View>
   );
 }

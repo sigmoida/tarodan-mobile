@@ -1,6 +1,7 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { theme } from '../lib/theme';
+import { RawText } from './Text';
 
 export interface RadioProps {
   checked: boolean;
@@ -55,7 +56,7 @@ export const Radio: React.FC<RadioProps> = ({
           />
         )}
       </View>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && <RawText style={styles.label}>{label}</RawText>}
     </Pressable>
   );
 };

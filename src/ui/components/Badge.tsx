@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, View, type ViewProps } from 'react-native';
+import { StyleSheet, View, type ViewProps } from 'react-native';
 import type { StatusVariant } from '@/lib/shared';
 import { theme } from '../lib/theme';
+import { RawText } from './Text';
 
 /** Native badge variants — the canonical shared semantic vocabulary. */
 export type BadgeVariant = StatusVariant;
@@ -57,9 +58,9 @@ export const Badge: React.FC<BadgeProps> = ({
       ]}
       {...rest}
     >
-      <Text style={{ color: vs.text, fontSize: ss.font, fontWeight: '600' }}>
+      <RawText style={{ color: vs.text, fontSize: ss.font, fontWeight: '600' }}>
         {children}
-      </Text>
+      </RawText>
     </View>
   );
 };

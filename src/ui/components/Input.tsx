@@ -3,7 +3,6 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   Pressable,
   StyleSheet,
-  Text,
   TextInput,
   View,
   type StyleProp,
@@ -13,6 +12,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { theme } from '../lib/theme';
+import { RawText } from './Text';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -111,7 +111,7 @@ export const Input: React.FC<InputProps> = ({
 
   return (
     <View style={[styles.container, containerStyle, style as StyleProp<ViewStyle>]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && <RawText style={styles.label}>{label}</RawText>}
       <View
         style={[
           styles.field,
@@ -146,9 +146,9 @@ export const Input: React.FC<InputProps> = ({
         {resolvedRightIcon && <View style={styles.iconRight}>{resolvedRightIcon}</View>}
       </View>
       {(error || helperText) && (
-        <Text style={[styles.helper, error ? styles.errorText : null]}>
+        <RawText style={[styles.helper, error ? styles.errorText : null]}>
           {error || helperText}
-        </Text>
+        </RawText>
       )}
     </View>
   );

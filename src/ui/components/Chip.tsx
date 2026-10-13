@@ -2,11 +2,11 @@ import React from 'react';
 import {
   Pressable,
   StyleSheet,
-  Text,
   type PressableProps,
   type ViewStyle,
 } from 'react-native';
 import { theme } from '../lib/theme';
+import { RawText } from './Text';
 
 export type ChipVariant = 'neutral' | 'primary' | 'success' | 'danger' | 'warning' | 'info';
 export type ChipSize = 'sm' | 'md';
@@ -73,7 +73,7 @@ export const Chip: React.FC<ChipProps> = ({
       accessibilityRole={onPress ? 'button' : undefined}
       {...rest}
     >
-      <Text
+      <RawText
         style={{
           color: fg,
           fontSize: ss.font,
@@ -82,7 +82,7 @@ export const Chip: React.FC<ChipProps> = ({
         numberOfLines={1}
       >
         {label}
-      </Text>
+      </RawText>
     </Pressable>
   );
 };

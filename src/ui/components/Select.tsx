@@ -4,11 +4,11 @@ import {
   Modal as RNModal,
   Pressable,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { theme } from '../lib/theme';
+import { RawText } from './Text';
 
 export interface SelectOption {
   value: string;
@@ -49,7 +49,7 @@ export const Select: React.FC<SelectProps> = ({
 
   return (
     <View style={styles.container}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && <RawText style={styles.label}>{label}</RawText>}
       <Pressable
         disabled={disabled}
         onPress={() => setOpen(true)}
@@ -63,20 +63,20 @@ export const Select: React.FC<SelectProps> = ({
         ]}
         accessibilityRole="combobox"
       >
-        <Text
+        <RawText
           style={[
             styles.value,
             { color: selected ? colors.text.heading : colors.text.subtle },
           ]}
         >
           {selected ? selected.label : resolvedPlaceholder}
-        </Text>
-        <Text style={styles.caret}>▾</Text>
+        </RawText>
+        <RawText style={styles.caret}>▾</RawText>
       </Pressable>
       {(error || helperText) && (
-        <Text style={[styles.helper, error ? styles.errorText : null]}>
+        <RawText style={[styles.helper, error ? styles.errorText : null]}>
           {error || helperText}
-        </Text>
+        </RawText>
       )}
 
       <RNModal
@@ -103,14 +103,14 @@ export const Select: React.FC<SelectProps> = ({
                     item.disabled ? { opacity: 0.5 } : null,
                   ]}
                 >
-                  <Text
+                  <RawText
                     style={[
                       styles.optionText,
                       item.value === value && styles.optionTextSelected,
                     ]}
                   >
                     {item.label}
-                  </Text>
+                  </RawText>
                 </Pressable>
               )}
             />

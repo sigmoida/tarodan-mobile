@@ -10,7 +10,14 @@ import { StatusBar } from "expo-status-bar";
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as SplashScreen from "expo-splash-screen";
 import Constants from "expo-constants";
-import { theme, AlertDialogHost } from "@/ui";
+import { useFonts } from "expo-font";
+// Noto Sans (web ile aynı aile ve ağırlıklar). Alt yoldan import: paket kökü 18 dosyanın
+// hepsini paketlerdi; yalnız kullanılan 4 ağırlık bundle'a girer.
+import { NotoSans_400Regular } from "@expo-google-fonts/noto-sans/400Regular";
+import { NotoSans_500Medium } from "@expo-google-fonts/noto-sans/500Medium";
+import { NotoSans_600SemiBold } from "@expo-google-fonts/noto-sans/600SemiBold";
+import { NotoSans_700Bold } from "@expo-google-fonts/noto-sans/700Bold";
+import { theme, AlertDialogHost, BrandFontProvider } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
 import { useCartMergeOnLogin } from '@/hooks/useServerCart';
 import { useMembershipLimits } from '@/hooks/useMembershipLimits';
@@ -31,6 +38,9 @@ import { useFullScreenGateShown } from "@/components/common/FullScreenGate";
 import { ErrorBoundary, RouteTracker } from "@/components/ErrorBoundary";
 
 const { colors } = theme;
+
+/** Marka fontu için splash'in en fazla bekleyeceği süre (ms). */
+const FONT_WAIT_MAX_MS = 4000;
 
 // Initialize Sentry as early as possible. No-ops in Expo Go or when
 // EXPO_PUBLIC_SENTRY_DSN is unset (see services/sentry.ts guard); real
@@ -89,6 +99,26 @@ export default function RootLayout() {
   // Tam ekran kapı (zorunlu güncelleme / zorunlu adım) açıkken temalı uyarı
   // ertelenir: kapının üstüne binmesin, iOS'ta modal üstüne modal kilitlenmesin.
   const gateShown = useFullScreenGateShown();
+  // Marka fontu. Yüklenene kadar splash kalır (appReady'ye katılır). Hata olursa sistem
+  // fontuyla devam edilir: BrandFontProvider `false` kalır, hiçbir metin kayıtsız aile adı
+  // almaz. Anahtar adları `brandFontFiles` (src/theme/typography.ts) ile aynı olmalı.
+  const [fontsLoaded, fontError] = useFonts({
+    NotoSans_400Regular,
+    NotoSans_500Medium,
+    NotoSans_600SemiBold,
+    NotoSans_700Bold,
+  });
+  // Emniyet: yükleme hiç sonuçlanmazsa splash sonsuza dek kalmasın — süre dolunca sistem
+  // fontuyla açılır; font sonradan yüklenirse metinler o an marka fontuna geçer.
+  const [fontWaitExpired, setFontWaitExpired] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setFontWaitExpired(true), FONT_WAIT_MAX_MS);
+    return () => clearTimeout(id);
+  }, []);
+  const fontsSettled = fontsLoaded || !!fontError || fontWaitExpired;
+  useEffect(() => {
+    if (fontError) logger.warn("Brand font load failed", { err: safeError(fontError) });
+  }, [fontError]);
 
   useEffect(() => {
     async function prepare() {
@@ -143,6 +173,7 @@ export default function RootLayout() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <LocaleProvider>
+        <BrandFontProvider ready={fontsLoaded && !fontError}>
           <StatusBar style="auto" />
           <RouteTracker />
           <Stack
@@ -173,10 +204,11 @@ export default function RootLayout() {
           <ForceUpdateGate ready={splashDone} />
           {!splashDone && (
             <AnimatedSplash
-              appReady={appReady}
+              appReady={appReady && fontsSettled}
               onFinish={() => setSplashDone(true)}
             />
           )}
+        </BrandFontProvider>
         </LocaleProvider>
       </QueryClientProvider>
     </ErrorBoundary>

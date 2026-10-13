@@ -4,13 +4,13 @@ import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
-  Text,
   View,
   type PressableProps,
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
 import { theme } from '../lib/theme';
+import { RawText } from './Text';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -110,7 +110,7 @@ export const Button: React.FC<ButtonProps> = ({
         <View style={styles.row}>
           {resolvedLeftIcon && <View style={styles.iconLeft}>{resolvedLeftIcon}</View>}
           {typeof label === 'string' ? (
-            <Text
+            <RawText
               style={[
                 styles.text,
                 { color: vs.text, fontSize: ss.font, fontWeight: '600' },
@@ -118,7 +118,7 @@ export const Button: React.FC<ButtonProps> = ({
               ]}
             >
               {label}
-            </Text>
+            </RawText>
           ) : (
             label
           )}

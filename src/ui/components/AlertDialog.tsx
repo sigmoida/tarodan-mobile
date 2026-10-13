@@ -5,7 +5,6 @@ import {
   Platform,
   Pressable,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import i18n from 'i18next';
@@ -16,6 +15,7 @@ import {
   MODAL_PRESENT_RETRY_MS,
   MODAL_SHIELD_MAX_MS,
 } from '../lib/modal-timing';
+import { RawText } from './Text';
 
 /**
  * Düğme verilmeyen uyarının varsayılan etiketi — arayüz dilinde. Eskiden sabit
@@ -332,8 +332,8 @@ export const AlertDialogHost: React.FC<AlertDialogHostProps> = ({ suspended = fa
         onPress={cancelable ? () => close() : undefined}
       >
         <Pressable accessible={false} style={styles.card}>
-          <Text style={styles.title}>{title}</Text>
-          {!!message && <Text style={styles.message}>{message}</Text>}
+          <RawText style={styles.title}>{title}</RawText>
+          {!!message && <RawText style={styles.message}>{message}</RawText>}
           <View style={[styles.buttonRow, vertical && styles.buttonColumn]}>
             {buttons.map((button, index) => {
               const isCancel = button.style === 'cancel';
@@ -351,14 +351,14 @@ export const AlertDialogHost: React.FC<AlertDialogHostProps> = ({ suspended = fa
                   ]}
                   accessibilityRole="button"
                 >
-                  <Text
+                  <RawText
                     style={[
                       styles.buttonText,
                       isCancel ? styles.buttonTextCancel : styles.buttonTextSolid,
                     ]}
                   >
                     {button.text ?? defaultOkLabel()}
-                  </Text>
+                  </RawText>
                 </Pressable>
               );
             })}
