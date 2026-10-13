@@ -48,9 +48,10 @@ export default function MembershipScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <MembershipBanners f={f} />
         <MembershipCurrentPlan f={f} />
-        {/* Fiyatlar ve paket kartları iOS'ta yok: uygulama içi dijital satış
-            Apple IAP'siz yapılamıyor (Guideline 3.1.1) ve fiyat göstermek
-            2.1(b)'nin "abonelik referansı" tanımına giriyor. */}
+        {/* Fiyatlar ve paket kartları iOS ve Android'de yok: uygulama içi dijital
+            satış IAP/Play Billing'siz yapılamıyor (Guideline 3.1.1, Play ödeme
+            politikası) ve fiyat göstermek 2.1(b)'nin "abonelik referansı"
+            tanımına giriyor. */}
         {CAN_BUY_DIGITAL && (
           <>
             <MembershipBillingToggle f={f} />

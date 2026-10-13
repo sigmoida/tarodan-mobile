@@ -1,4 +1,9 @@
 /**
+ * [D-2.7] DİKKAT: Android artık iOS gibi kapalı (CAN_BUY_DIGITAL=false iki
+ * platformda; bkz. src/lib/__tests__/digitalGate.platforms.test.tsx). Bu test
+ * 'satın alma AÇIK' dalını (CAN_BUY_DIGITAL mock: true) korur — IAP / Play
+ * Billing eklenip kapı açılırsa geçerli olacak davranış. Metindeki 'Android'
+ * ifadeleri tarihsel: 'satın alma açık platform' olarak okunmalı.
  * Android eşi (bkz. corporate-upgrade-ios.test.tsx): kurumsal yükseltme
  * uyarısı Android/web'de DEĞİŞMEDEN gösterilmeye devam eder.
  */
@@ -52,6 +57,17 @@ jest.mock('@/lib/api', () => ({
 }));
 
 // KRİTİK SIRA: bkz. iOS eşi — Platform.OS, useLogin require edilmeden önce set edilmeli.
+// Kapı artık Platform'dan değil sabitten okunur; 'satın alma açık' dalı mock'la sürülür.
+// limitAlert gerçek modülde kendi (kapalı) sabitine bakar → açık dalı için aynalanır.
+jest.mock('@/lib/purchases', () => ({
+  CAN_BUY_DIGITAL: true,
+  limitAlert: (o: any) =>
+    require('@/ui').appAlert(o.title, o.message, [
+      { text: o.cancelLabel, style: 'cancel', onPress: o.onCancel },
+      { text: o.upgradeLabel, onPress: o.onUpgrade },
+    ]),
+}));
+
 Platform.OS = 'android';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { useLogin } = require('../_hooks/useLogin');

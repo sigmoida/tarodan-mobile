@@ -1,10 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useEffect, useRef } from 'react';
 import { adsApi } from '@/lib/api';
+import { useScreenActive } from './useScreenActive';
 
 /** Gösterim sayılması için reklamın görünür kalması gereken süre (web: 1 sn). */
 export const IMPRESSION_DWELL_MS = 1000;
+
+/**
+ * Oturum kümesindeki anahtar: yuva + reklam. Aynı reklamı gösteren iki yuva
+ * AYRI sayılır (web'de her `BannerSlot` kendi gösterimini sayar).
+ */
+export const impressionKey = (slotId: string, adId: string) => `${slotId}\u0000${adId}`;
 
 /**
  * Gösterim sayacı — mount'ta değil, reklam GERÇEKTEN görünürken.
@@ -18,29 +23,27 @@ export const IMPRESSION_DWELL_MS = 1000;
  * IntersectionObserver yok); yuvalar ekranın üstünde durduğu için ekran odağı
  * + yükleme + bekleme yeterli bir vekil.
  */
-export function useAdImpression(adId: string, ready: boolean): void {
-  const [focused, setFocused] = useState(true);
-  const [appActive, setAppActive] = useState(AppState.currentState !== 'background');
+export function useAdImpression(
+  adId: string,
+  ready: boolean,
+  /** Sayaç ucu; varsayılan reklam ucu. Hero slaytı kendi ucunu verir. */
+  record: (id: string) => Promise<unknown> = adsApi.recordImpression,
+  /** Oturum kümesi: gösterimi zaten gönderilmiş reklam yeniden bağlansa da sayılmaz. */
+  sent?: Set<string>,
+  /** Yuva kimliği (`sent` anahtarı = yuva + reklam); verilmezse yalnız reklam kimliği. */
+  slotId?: string,
+): void {
+  const screenActive = useScreenActive();
   const sentFor = useRef<string | null>(null);
-
-  useFocusEffect(
-    useCallback(() => {
-      setFocused(true);
-      return () => setFocused(false);
-    }, []),
-  );
+  const key = slotId === undefined ? adId : impressionKey(slotId, adId);
 
   useEffect(() => {
-    const sub = AppState.addEventListener('change', (s) => setAppActive(s === 'active'));
-    return () => sub.remove();
-  }, []);
-
-  useEffect(() => {
-    if (!ready || !focused || !appActive || sentFor.current === adId) return;
+    if (!ready || !screenActive || sentFor.current === adId || sent?.has(key)) return;
     const timer = setTimeout(() => {
       sentFor.current = adId;
-      adsApi.recordImpression(adId).catch(() => {});
+      sent?.add(key);
+      record(adId).catch(() => {});
     }, IMPRESSION_DWELL_MS);
     return () => clearTimeout(timer);
-  }, [adId, ready, focused, appActive]);
+  }, [adId, key, ready, screenActive, record, sent]);
 }

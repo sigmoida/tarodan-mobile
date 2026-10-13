@@ -86,5 +86,14 @@ export function useMembershipLimits() {
     if (query.data) setServerLimits(query.data);
   }, [query.data, setServerLimits]);
 
-  return { limits, isLoading: query.isLoading };
+  return {
+    limits,
+    isLoading: query.isLoading,
+    /**
+     * Uç yanıtlandı ama sunucu hakkı alınamadı (hata / boş gövde): `serverLimits`
+     * hiç yazılmayacak. "Henüz yüklenmedi"den ayırt etmek için — beklemeyi
+     * sonsuza uzatmasın (reklam kararı bu durumda varsayılana düşer).
+     */
+    settledWithoutLimits: query.isFetched && !query.data,
+  };
 }

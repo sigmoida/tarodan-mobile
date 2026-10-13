@@ -13,7 +13,6 @@ import { useHomeBadges } from './_hooks/useHomeBadges';
 import { useHomeGuestPrompt } from './_hooks/useHomeGuestPrompt';
 import { HomeHeader } from './_components/HomeHeader';
 import {
-  HeroBanner,
   CategoriesSection,
   BrandsSection,
   ScalesSection,
@@ -24,7 +23,13 @@ import {
   CollectionsSection,
 } from './_components/HomeSections';
 import { CompanyOfWeekSection } from './_components/CompanyOfWeekSection';
+import { HeroSection } from './_components/HeroSlider';
+import { TrustBadges } from './_components/TrustBadges';
+import { useHomeHero } from './_hooks/useHomeHero';
+import { useHeroVisibility } from './_hooks/useHeroVisibility';
 import { AdBanner } from '@/components/ads/AdBanner';
+import { PopupAd } from '@/components/ads/PopupAd';
+import { useAdSession } from '@/lib/ads/useAdSession';
 
 const { colors } = theme;
 
@@ -49,8 +54,12 @@ export default function HomeScreen() {
     loadingProducts,
     refetchProducts,
   } = useHomeData();
+  const hero = useHomeHero();
+  const heroView = useHeroVisibility();
   const counts = useHomeBadges(isAuthenticated);
   const guest = useHomeGuestPrompt(isAuthenticated);
+  // Yuvalar (topbar/header/footer) aynı tohumu ve gösterim kümesini paylaşır.
+  const adSession = useAdSession();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -89,9 +98,20 @@ export default function HomeScreen() {
         style={styles.scrollView}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary[600]!]} />}
         showsVerticalScrollIndicator={false}
+        onScroll={heroView.onScroll}
+        onLayout={heroView.onViewportLayout}
+        scrollEventThrottle={64}
       >
-        <AdBanner />
-        <HeroBanner />
+        <AdBanner position="topbar" session={adSession} />
+        <AdBanner position="header" session={adSession} />
+        <View onLayout={heroView.onHeroLayout}>
+          <HeroSection
+            slides={hero.slides}
+            locale={hero.locale}
+            isLoading={hero.loadingSlides}
+            visible={heroView.visible}
+          />
+        </View>
         <CategoriesSection categories={categories} isLoading={loadingCategories} />
         <BrandsSection />
         <ScalesSection />
@@ -101,8 +121,13 @@ export default function HomeScreen() {
         <ProductsGrid items={products} isLoading={loadingProducts} {...cardProps} />
         <CompanyOfWeekSection companyOfWeek={companyOfWeek} isLoading={loadingCompanyOfWeek} />
         <CollectionsSection collections={collections} isLoading={loadingCollections} />
+        <AdBanner position="footer" session={adSession} />
+        <TrustBadges badges={hero.badges} />
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Popup reklam: misafir kayıt istemi açıkken çıkmaz (iki Modal birden iOS'u dondurur). */}
+      <PopupAd blocked={guest.showPrompt} />
 
       {guest.promptType && (
         <SignupPrompt visible={guest.showPrompt} onDismiss={guest.dismissPrompt} type={guest.promptType} />

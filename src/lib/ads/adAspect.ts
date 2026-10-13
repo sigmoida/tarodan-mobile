@@ -39,3 +39,18 @@ export function naturalRatioOf(
     ? source.width / source.height
     : null;
 }
+
+/**
+ * Verilen oranda (`ratio` = en/boy) kutuyu `maxWidth` x `maxHeight` içine
+ * sığdırır: oran HER ZAMAN korunur, iki sınır da aşılmaz. Kutu görselin oranını
+ * taşıdığı için `contain` kırpma/letterbox yapmaz ve yüzdeyle konumlanan
+ * tıklanabilir bölgeler görselin gerçekte kapladığı dikdörtgenle çakışır.
+ */
+export function fitBox(
+  ratio: number,
+  maxWidth: number,
+  maxHeight: number,
+): { width: number; height: number } {
+  const width = Math.min(maxWidth, maxHeight * ratio);
+  return { width, height: width / ratio };
+}

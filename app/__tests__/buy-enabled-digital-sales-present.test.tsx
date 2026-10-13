@@ -1,4 +1,9 @@
 /**
+ * [D-2.7] DİKKAT: Android artık iOS gibi kapalı (CAN_BUY_DIGITAL=false iki
+ * platformda; bkz. src/lib/__tests__/digitalGate.platforms.test.tsx). Bu test
+ * 'satın alma AÇIK' dalını (CAN_BUY_DIGITAL mock: true) korur — IAP / Play
+ * Billing eklenip kapı açılırsa geçerli olacak davranış. Metindeki 'Android'
+ * ifadeleri tarihsel: 'satın alma açık platform' olarak okunmalı.
  * Kapının Android'i ETKİLEMEDİĞİNİ kanıtlayan eş süit
  * (bkz. ios-no-digital-sales.test.tsx). Kapı yalnız iOS'a özel — birisi
  * `CAN_BUY_DIGITAL`'ı platform ayrımı olmadan kapatırsa (ör. "uyumluluk

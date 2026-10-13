@@ -241,6 +241,13 @@ export const qk = {
     active: ["ads", "active"] as const,
   },
 
+  hero: {
+    /** GET /hero-slides?placement= — admin'den yönetilen vitrin slaytları. */
+    slides: (placement: string) => ["hero", "slides", placement] as const,
+    /** GET /trust-badges — ana sayfa güven rozetleri. */
+    trustBadges: ["hero", "trust-badges"] as const,
+  },
+
   membershipLimits: {
     /** GET /membership/me/limits — reklamsız üyelik kontrolü için. */
     mine: ["membership", "limits"] as const,

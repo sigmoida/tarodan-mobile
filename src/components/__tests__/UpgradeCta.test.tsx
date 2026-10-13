@@ -1,5 +1,5 @@
 /**
- * Yükseltme çağrıları iOS'ta hiç render edilmemeli (Guideline 2.1(b):
+ * Yükseltme çağrıları iOS ve Android'de hiç render edilmemeli (Guideline 2.1(b):
  * "references to subscriptions"). Sarmalayıcı, çağrı yerlerinin stilini
  * değiştirmeden onları tek noktadan gizler.
  */
@@ -28,8 +28,8 @@ it('iOS: hiçbir şey render etmez', () => {
   expect(screen.queryByText("Premium'a Geç")).toBeNull();
 });
 
-it('Android: çocukları aynen render eder', () => {
+it('Android: iOS gibi hiçbir şey render etmez (Play Billing yok)', () => {
   Platform.OS = 'android';
   renderCta();
-  expect(screen.getByText("Premium'a Geç")).toBeTruthy();
+  expect(screen.queryByText("Premium'a Geç")).toBeNull();
 });

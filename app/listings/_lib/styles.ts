@@ -77,7 +77,8 @@ export const styles = StyleSheet.create({
   emptyTitle: { marginTop: theme.spacing[4], fontSize: 18, fontWeight: 'bold', color: colors.text.heading },
   emptySubtitle: { marginTop: theme.spacing[2], fontSize: 14, color: colors.text.muted, textAlign: 'center' },
   listingsContent: { padding: theme.spacing[4] },
-  listRow: { justifyContent: 'space-between' },
+  // Satır = 2 kart yan yana (eskiden FlatList columnWrapperStyle sağlıyordu).
+  listRow: { flexDirection: 'row', justifyContent: 'space-between' },
   resultsCount: { fontSize: 13, color: colors.text.muted, marginBottom: theme.spacing[3] },
   productCard: {
     width: CARD_WIDTH,

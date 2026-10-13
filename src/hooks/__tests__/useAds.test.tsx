@@ -3,7 +3,7 @@
  * vermezse authStore'daki sabit tablo (bugünkü davranış).
  */
 import React from 'react';
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const mockGetActive = jest.fn();
@@ -11,8 +11,13 @@ jest.mock('@/lib/api', () => ({
   adsApi: { getActive: (...a: unknown[]) => mockGetActive(...(a as [])) },
 }));
 
+let mockSettledWithoutLimits = false;
 jest.mock('../useMembershipLimits', () => ({
-  useMembershipLimits: () => ({ limits: null, isLoading: false }),
+  useMembershipLimits: () => ({
+    limits: null,
+    isLoading: false,
+    settledWithoutLimits: mockSettledWithoutLimits,
+  }),
 }));
 
 import { useAds } from '../useAds';
@@ -91,5 +96,51 @@ describe('useAds', () => {
     const { result } = run();
     await waitFor(() => expect(result.current.ads).toHaveLength(1));
     expect(result.current.isAdFree).toBe(false);
+  });
+});
+
+describe('useAds — limitsReady (reklamsız üye yarışı)', () => {
+  beforeEach(() => {
+    mockGetActive.mockReset();
+    mockGetActive.mockResolvedValue({ data: [] });
+    mockSettledWithoutLimits = false;
+    useAuthStore.setState({ isAuthenticated: false, serverLimits: null });
+  });
+  afterEach(() => useAuthStore.setState({ isAuthenticated: false, serverLimits: null }));
+
+  it('misafirde limit beklenmez: hazır', () => {
+    expect(run().result.current.limitsReady).toBe(true);
+  });
+
+  it('girişli üyede serverLimits yazılana dek hazır DEĞİL, yazılınca hazır', () => {
+    useAuthStore.setState({ isAuthenticated: true, serverLimits: null });
+    const { result, rerender } = run();
+    expect(result.current.limitsReady).toBe(false);
+    act(() => useAuthStore.setState({ serverLimits: { isAdFree: false } as any }));
+    rerender({});
+    expect(result.current.limitsReady).toBe(true);
+  });
+
+  it('girişli üyede hak alınamadığı kesinleşirse (hata) sonsuza dek beklemez', () => {
+    useAuthStore.setState({ isAuthenticated: true, serverLimits: null });
+    mockSettledWithoutLimits = true;
+    expect(run().result.current.limitsReady).toBe(true);
+  });
+});
+
+describe('useAds — kararlı referans', () => {
+  it('aynı veri ve konumda render arası AYNI dizi döner', async () => {
+    mockGetActive.mockReset();
+    setServerLimits(null);
+    mockGetActive.mockResolvedValue({ data: [ad({ id: 'a' })] });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const { result, rerender } = renderHook(() => useAds('header'), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const first = result.current.ads;
+    rerender({});
+    expect(result.current.ads).toBe(first);
   });
 });
