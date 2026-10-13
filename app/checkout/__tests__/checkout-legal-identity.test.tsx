@@ -14,6 +14,9 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
+// Uyarıyı gözlemlenebilir yap; @/ui'nin geri kalanı gerçek.
+jest.mock('@/ui', () => ({ ...jest.requireActual('@/ui'), appAlert: jest.fn() }));
+
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
 jest.mock('@/lib/api', () => ({
@@ -63,6 +66,7 @@ jest.mock('@/lib/api', () => ({
 }));
 
 import { legalIdentityApi, ordersApi } from '@/lib/api';
+import { appAlert } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { useCartStore } from '@/stores/cartStore';
 import {
@@ -87,7 +91,7 @@ const SAMPLE_ITEM = {
 };
 
 async function pressPay() {
-  renderWithProviders(<CheckoutScreen />);
+  const { queryClient } = renderWithProviders(<CheckoutScreen />);
   await waitFor(() => expect(screen.getByText('Ali Veli')).toBeOnTheScreen());
   fireEvent.press(screen.getByText('Ali Veli'));
   fireEvent.press(screen.getByText('Devam Et'));
@@ -99,11 +103,23 @@ async function pressPay() {
   await act(async () => {
     fireEvent.press(screen.getByText(/Onayla ve Öde/));
   });
+  return queryClient;
 }
+
+const QUOTE = (pricingHash?: string) => ({
+  data: {
+    ...(pricingHash ? { pricingHash } : {}),
+    shippingTariffVersion: 1,
+    commissionRuleSetId: 'rs-1',
+    commissionRuleSetVersion: 1,
+    pricing: { summary: { productAmount: 100, shippingAmount: 50, serviceFeeAmount: 15, total: 165 } },
+  },
+});
 
 describe('Sepet ödemesi · yasal kimlik kapısı', () => {
   beforeEach(() => {
     jest.mocked(ordersApi.checkout).mockClear();
+    jest.mocked(ordersApi.getQuote).mockReset().mockResolvedValue(QUOTE('h1') as any);
     mockGetStatus.mockReset().mockResolvedValue({ data: MISSING_LEGAL_IDENTITY });
     useAuthStore.setState({
       isAuthenticated: true,
@@ -135,6 +151,35 @@ describe('Sepet ödemesi · yasal kimlik kapısı', () => {
     await waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true));
     await act(async () => settleLegalIdentityRequest(false));
     expect(ordersApi.checkout).not.toHaveBeenCalled();
+  });
+
+  it('fiyat imzası hazır değilse kimlik SORULMAZ (ucuz yerel kontrol kapıdan önce)', async () => {
+    jest.mocked(ordersApi.getQuote).mockResolvedValue(QUOTE(undefined) as any);
+    await pressPay();
+
+    await waitFor(() =>
+      expect(appAlert).toHaveBeenCalledWith('Fiyat Bilgisi Hazır Değil', expect.any(String)),
+    );
+    expect(mockGetStatus).not.toHaveBeenCalled();
+    expect(useLegalIdentityRequestStore.getState().requested).toBe(false);
+    expect(ordersApi.checkout).not.toHaveBeenCalled();
+  });
+
+  it('kapı açıkken quote tazelenirse ödeme GÜNCEL fiyat imzasıyla gider (bayat closure yok)', async () => {
+    const queryClient = await pressPay();
+    await waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true));
+
+    // Kapı dakikalarca açık kalabilir; bu sırada quote yenilenir.
+    jest.mocked(ordersApi.getQuote).mockResolvedValue(QUOTE('h2') as any);
+    await act(async () => {
+      await queryClient.refetchQueries({ queryKey: ['checkout-quote'] });
+    });
+
+    act(() => settleLegalIdentityRequest(true));
+    await waitFor(() => expect(ordersApi.checkout).toHaveBeenCalledTimes(1));
+    expect(jest.mocked(ordersApi.checkout).mock.calls[0]![0]).toEqual(
+      expect.objectContaining({ expectedPricing: expect.objectContaining({ expectedPricingHash: 'h2' }) }),
+    );
   });
 
   it('muaf hesap (required:false) → kapı açılmaz, ödeme doğrudan başlar', async () => {

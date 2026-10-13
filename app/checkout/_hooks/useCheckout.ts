@@ -597,8 +597,14 @@ export function useCheckout() {
     };
   };
 
-  const proceedCheckout = async (emailVerificationCode?: string) => {
-    if (loading) return;
+  /**
+   * Gönderimden önceki UCUZ yerel kontroller (fiyat imzası hazır mı, telefonlar
+   * çözülüyor mu). `proceedCheckout`'un ilk iki adımı AYNEN buraya taşındı;
+   * üye dalında kimlik kapısından ÖNCE de çağrılır — fiyat hazır değilken ya da
+   * telefon hatalıyken üyeye önce kimlik sorulmasın. Sorun varsa uyarıyı
+   * kendisi basar ve `null` döner.
+   */
+  const checkoutReadiness = () => {
     // Dört alanın DÖRDÜ de API DTO'sunda zorunlu — yarım gövde göndermek yalnız
     // aynı 400'ü başka bir şekilde üretir. Türetici tek kaynak (`@/lib/api`).
     const expectedPricing = toExpectedPricing(quote);
@@ -613,7 +619,7 @@ export function useCheckout() {
           ? t('checkout.priceUnavailableBody')
           : t('checkout.priceNotReadyBody'),
       );
-      return;
+      return null;
     }
     // Telefon kapısı — `setLoading(true)`'dan ÖNCE. ENGELLEYİCİ ama SONLANDIRICI
     // değil: kullanıcı numarayı düzeltip aynı OTP oturumuyla devam edebilir, o
@@ -621,8 +627,16 @@ export function useCheckout() {
     const resolved = resolvePayloadPhones();
     if (!resolved.ok) {
       alertInlineWhileOtpOpen(t('checkout.phoneInvalidTitle'), resolved.message);
-      return;
+      return null;
     }
+    return { expectedPricing, resolved };
+  };
+
+  const proceedCheckout = async (emailVerificationCode?: string) => {
+    if (loading) return;
+    const ready = checkoutReadiness();
+    if (!ready) return;
+    const { expectedPricing, resolved } = ready;
     setLoading(true);
     try {
       const shipping = buildShippingPayload(resolved.phones);
@@ -821,6 +835,10 @@ export function useCheckout() {
     }
   };
 
+  // Her render'da güncellenir: `await` sonrası (kimlik kapısı) bayat closure yerine.
+  const proceedCheckoutRef = useRef(proceedCheckout);
+  proceedCheckoutRef.current = proceedCheckout;
+
   const handleCheckout = async () => {
     if (items.length === 0) {
       showSnackbar(t('checkout.emptyCart'));
@@ -836,8 +854,12 @@ export function useCheckout() {
       // B-2.4: yasal kimlik ihtiyaç anında. Vazgeçerse ödeme başlamaz. Misafir
       // dalında yok (hesap yok); OTP yolu da `proceedCheckout`'u çağırdığı için
       // kapı onun içinde değil, burada.
+      // Önce ucuz yerel kontroller; kapı dakikalarca açık kalabilir, kapıdan
+      // sonra GÜNCEL render'ın `proceedCheckout`'u (taze quote/yükleme/adres)
+      // çalışır — bu closure'ınki bayat olurdu.
+      if (loading || !checkoutReadiness()) return;
       if (!(await requireIdentity())) return;
-      await proceedCheckout();
+      await proceedCheckoutRef.current();
       return;
     }
 
