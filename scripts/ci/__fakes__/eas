@@ -37,6 +37,7 @@ switch (args[0]) {
     }
     // FAKE_BUILDS_SEQ="a.json,b.json": runtime filtreli ardışık sorgular sırayla bu
     // dosyaları okur (sonuncusu tekrar eder) — bekleyen build'in bitişini taklit eder.
+    // "FAIL" girdisi o sorguyu başarısız kılar (geçici EAS hatası).
     let source = 'builds.json';
     if (process.env.FAKE_BUILDS_SEQ && args.includes('--runtime-version')) {
       const seq = process.env.FAKE_BUILDS_SEQ.split(',');
@@ -44,6 +45,10 @@ switch (args[0]) {
       const n = fs.existsSync(counter) ? Number(fs.readFileSync(counter, 'utf8')) : 0;
       fs.writeFileSync(counter, String(n + 1));
       source = seq[Math.min(n, seq.length - 1)];
+      if (source === 'FAIL') {
+        console.error('fake eas: build:list geçici hata (FAKE)');
+        process.exit(1);
+      }
     }
     let b = readJson(source, []);
     const platform = flag('--platform');

@@ -86,8 +86,13 @@ function run(args: string[], opts: RunOpts = {}) {
   if (opts.buildResult) fs.writeFileSync(path.join(dir, 'build-result.json'), JSON.stringify(opts.buildResult));
   const seqEnv: Record<string, string> = {};
   if (opts.buildsSeq) {
-    opts.buildsSeq.forEach((b, i) => fs.writeFileSync(path.join(dir, `seq-${i}.json`), JSON.stringify(b)));
-    seqEnv.FAKE_BUILDS_SEQ = opts.buildsSeq.map((_, i) => `seq-${i}.json`).join(',');
+    // 'FAIL' (dizi yerine) o sorguyu geçici EAS hatasıyla düşürür.
+    const names = opts.buildsSeq.map((b, i) => {
+      if ((b as unknown) === 'FAIL') return 'FAIL';
+      fs.writeFileSync(path.join(dir, `seq-${i}.json`), JSON.stringify(b));
+      return `seq-${i}.json`;
+    });
+    seqEnv.FAKE_BUILDS_SEQ = names.join(',');
   }
 
   // Runner'dan sızabilecek değişkenleri temizle; testler kendi env'ini verir.
@@ -799,42 +804,63 @@ describe('release.sh await-binary — staging OTA\'sı derlenen build\'den SONRA
   const runtimeQueries = (r: ReturnType<typeof run>) =>
     r.easCalls('build:list').filter((l) => l.includes('--runtime-version'));
 
-  it('build bitip gönderilince döner', () => {
-    const done = shipped('b1');
+  it('derleme bitince döner; TestFlight gönderimini BEKLEMEZ', () => {
     const r = run(['await-binary', 'ios', 'staging', FP], {
       env: fast,
-      buildsSeq: [pending, pending, [done.b]],
-      submissions: [done.s],
+      buildsSeq: [pending, pending, [build({ id: 'b1' })]],
+      submissions: [submission('b1', 'IN_PROGRESS')],
     });
     expect(r.status).toBe(0);
     expect(runtimeQueries(r)).toHaveLength(3);
+    expect(r.easCalls('submit:list')).toHaveLength(0);
     expect(r.all).toContain('OTA yayınlanıyor');
     expect(r.all).not.toContain('::warning::');
   });
 
   it('build başarısız olursa da döner (OTA zararsız: binary yok)', () => {
-    const failed = build({ id: 'b1', status: 'ERRORED' });
-    const r = run(['await-binary', 'ios', 'staging', FP], { env: fast, buildsSeq: [pending, [failed]] });
+    const r = run(['await-binary', 'ios', 'staging', FP], {
+      env: fast,
+      buildsSeq: [pending, [build({ id: 'b1', status: 'ERRORED' })]],
+    });
     expect(r.status).toBe(0);
     expect(runtimeQueries(r)).toHaveLength(2);
   });
 
-  it('süre dolarsa uyarıyla döner, sonsuza dek beklemez', () => {
-    const r = run(['await-binary', 'ios', 'staging', FP], { env: { ...fast, AWAIT_TRIES: '3' }, builds: pending });
+  it('geçici EAS hatası beklemeyi düşürmez, yeniden denenir', () => {
+    const r = run(['await-binary', 'ios', 'staging', FP], {
+      env: fast,
+      buildsSeq: [pending, 'FAIL' as unknown as Build[], [build({ id: 'b1' })]],
+    });
     expect(r.status).toBe(0);
-    expect(runtimeQueries(r)).toHaveLength(3);
+    expect(r.all).toContain('::warning::ios: EAS build listesi okunamadı');
+    expect(r.all).toContain('OTA yayınlanıyor');
+  });
+
+  it('süre dolarsa uyarıyla döner, sonsuza dek beklemez', () => {
+    const r = run(['await-binary', 'ios', 'staging', FP], { env: { ...fast, AWAIT_MINUTES: '0' }, builds: pending });
+    expect(r.status).toBe(0);
+    expect(runtimeQueries(r)).toHaveLength(1);
     expect(r.all).toContain('::warning::ios: runtime fp-ios-preview');
   });
 
-  it('Android kapalıyken ad-hoc APK (preview) build\'ini de bekler', () => {
-    const apk = (status: string) => [build({ id: 'apk', platform: 'ANDROID', profile: 'preview', status })];
+  it('Android kapalıyken derlenen ad-hoc APK (preview) beklenir', () => {
+    const apk = [build({ id: 'apk', platform: 'ANDROID', profile: 'preview', status: 'IN_PROGRESS' })];
     const r = run(['await-binary', 'android', 'staging', 'fp-android-preview'], {
-      env: fast,
-      buildsSeq: [apk('IN_PROGRESS'), apk('IN_PROGRESS'), apk('FINISHED')],
+      env: { ...fast, AWAIT_MINUTES: '0' },
+      builds: apk,
     });
-    expect(r.status).toBe(0);
-    expect(r.all).toContain('android: bu runtime');
+    expect(r.all).toContain('hâlâ derleniyor');
     expect(runtimeQueries(r).some((l) => l.includes('--build-profile preview'))).toBe(true);
+  });
+
+  it('Android açıkken preview APK sayılmaz (yalnız staging AAB beklenir)', () => {
+    const apk = [build({ id: 'apk', platform: 'ANDROID', profile: 'preview', status: 'IN_PROGRESS' })];
+    const r = run(['await-binary', 'android', 'staging', 'fp-android-preview'], {
+      env: { ...fast, ANDROID_ENABLED: 'true' },
+      builds: apk,
+    });
+    expect(r.all).toContain('derlenen build kalmadı');
+    expect(runtimeQueries(r).every((l) => l.includes('--build-profile staging'))).toBe(true);
   });
 
   it('fingerprint boşsa durur', () => {

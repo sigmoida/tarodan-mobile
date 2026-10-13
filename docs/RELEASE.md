@@ -50,8 +50,9 @@ Workflow her yayın öncesi, platform başına:
    - **available** — bitmiş **ve** gönderimi başarılı (TestFlight / Play) build;
      gönderim gerektirmeyen `preview` APK'sı için bitmiş olması yeter → **OTA**
    - **pending** — kuyrukta / derleniyor / bitti ama gönderimi sürüyor →
-     ikinci build **yok**. Staging'de **OTA yine çıkar**, ama o build bitene
-     kadar bekleyip (`release.sh await-binary`, en çok 100 dk) yayınlanır:
+     ikinci build **yok**. Staging'de **OTA yine çıkar**, ama o build'in
+     derlemesi bitene kadar bekleyip (`release.sh await-binary`, en çok 75 dk;
+     TestFlight/Play gönderimi beklenmez, geçici EAS hatası yeniden denenir) yayınlanır:
      expo-updates bir güncellemeyi yalnız zaman damgası (commitTime) gömülü
      JS'inkinden yeniyse uygular, build anından önce yayınlanan bir OTA o build'e
      inmezdi. Production'da **bekle**: OTA onaylıdır, binary'si henüz olmayan

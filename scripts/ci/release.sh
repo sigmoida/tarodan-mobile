@@ -44,9 +44,10 @@
 #       arada build başladıysa ota (await=true) ya da bittiyse ota; production:
 #       onaysız OTA'ya düşmez, skip + uyarı.
 #   release.sh await-binary <ios|android> <staging|production> <runtime-version>
-#       Bu runtime'ın build'i `pending` olmaktan çıkana kadar bekler (AWAIT_TRIES ×
-#       AWAIT_INTERVAL sn, varsayılan 100 × 60). Staging OTA'sı, sürmekte olan
-#       build'den SONRA yayınlansın diye (ota_matrix'te "await":true).
+#       Bu runtime'ın derlenen build'i kalmayana kadar bekler (gönderim beklenmez;
+#       AWAIT_MINUTES, varsayılan 75; AWAIT_INTERVAL sn, varsayılan 60; ANDROID_ENABLED
+#       plan'daki gibi). Staging OTA'sı derlenen build'den SONRA yayınlansın diye
+#       (ota_matrix'te "await":true, recheck'te await=true).
 #   release.sh guard-ref    <staging|production>
 #       Koşunun ref'i bu ortama yayın yapabilir mi (REF, MODE env'den)?
 #       production: yalnız refs/heads/master. staging: refs/heads/development;
@@ -600,29 +601,58 @@ recheck() {
   output "action=$action"
 }
 
-# Bu runtime'ın derlenen/gönderilen build'i bitene kadar bekler (staging OTA'sı
-# için; bkz. plan'daki pending kuralı). Durum `pending` olmaktan çıkınca döner:
-#   available → binary hazır; OTA'nın commitTime'ı artık gömülü JS'ten yeni.
-#   none      → build/gönderim başarısız ya da iptal; OTA zararsız (bu runtime'da
-#               binary yok), yine yayınlanır — sonraki binary bu runtime'ı taşırsa
-#               zaten kendi gömülü JS'iyle daha yeni olur.
-# Süre dolarsa uyarıyla döner: gönderim (App Store Connect işlemesi) uzamıştır;
-# build bittiyse gömülü JS'in zamanı zaten geçmiştir, OTA güvenle yayınlanır.
+# Bu runtime'ın DERLENEN build'i kalmayana kadar bekler (staging OTA'sı; bkz.
+# plan'daki pending kuralı). Gönderim (TestFlight / Play) BEKLENMEZ: commitTime
+# yarışı için build'in JS'i paketlemiş olması yeter; build bittikten sonra
+# yayınlanan OTA, gömülü JS'ten her zaman yenidir.
+#   - EAS sorgusu geçici olarak başarısız olursa yeniden denenir (bekleme bir
+#     API hatası yüzünden OTA'yı kaybetmesin).
+#   - Süre saatle ölçülür (AWAIT_MINUTES, varsayılan 75 — job sınırı 120 dk); dolarsa
+#     uyarıyla döner ve OTA yine yayınlanır.
+# Build başarısız/iptal olursa da döner: OTA zararsızdır (bu runtime'da binary yok).
 await_binary() {
-  local platform="$1" env="$2" fp="$3" tries="${AWAIT_TRIES:-100}" interval="${AWAIT_INTERVAL:-60}" i=0 state=""
+  local platform="$1" env="$2" fp="$3" limit="${AWAIT_MINUTES:-75}" interval="${AWAIT_INTERVAL:-60}" start n
   env_config "$env"
   [ -n "$fp" ] || die "await-binary: fingerprint boş"
-  i=0
-  while [ "$i" -lt "$tries" ]; do
-    state="$(build_state "$platform" "$(binary_profiles "$env" "$platform")" "$fp" "$CHANNEL")"
-    if [ "${state%% *}" != pending ]; then
-      echo "$platform: bu runtime'ın ($fp) build'i artık $state — OTA yayınlanıyor."
+  start=$SECONDS
+  while :; do
+    if n="$(builds_in_flight "$platform" "$(binary_profiles "$env" "$platform")" "$fp" "$CHANNEL")"; then
+      if [ "$n" = 0 ]; then
+        echo "$platform: runtime $fp için derlenen build kalmadı — OTA yayınlanıyor."
+        return 0
+      fi
+    else
+      echo "::warning::$platform: EAS build listesi okunamadı — yeniden denenecek."
+    fi
+    if [ $((SECONDS - start + interval)) -ge $((limit * 60)) ]; then
+      echo "::warning::$platform: runtime $fp için build $limit dk sonra hâlâ derleniyor (ya da durum okunamıyor) — OTA yine yayınlanıyor."
       return 0
     fi
-    i=$((i + 1))
     sleep "$interval"
   done
-  echo "::warning::$platform: runtime $fp için build/gönderim $((tries * interval / 60)) dk sonra hâlâ sürüyor (${state#* }) — OTA yine yayınlanıyor."
+}
+
+# Bu runtime'ın kuyrukta / derlenen build sayısı (gönderim durumu hariç). EAS
+# sorgusu başarısızsa 1 ile döner (çağıran yeniden dener).
+builds_in_flight() {
+  local platform="$1" profiles="$2" runtime="$3" channel="${4:-}" profile out n total=0
+  local -a list
+  IFS=, read -r -a list <<< "$profiles"
+  for profile in "${list[@]}"; do
+    local args=(build:list --platform "$platform" --build-profile "$profile"
+      --runtime-version "$runtime" --limit 50 --json --non-interactive)
+    if [ -n "$channel" ]; then args+=(--channel "$channel"); fi
+    out="$(eas "${args[@]}")" || return 1
+    n="$(printf '%s' "$out" | node -e '
+      let s=""; process.stdin.on("data",d=>s+=d).on("end",()=>{
+        const rt = (b) => (b.runtime && b.runtime.version) || b.runtimeVersion;
+        const flying = new Set(["NEW", "IN_QUEUE", "IN_PROGRESS", "PENDING_CANCEL"]);
+        const st = (b) => String(b.status || "").toUpperCase().replace(/-/g, "_");
+        console.log(JSON.parse(s || "[]").filter((b) => rt(b) === process.argv[1] && flying.has(st(b))).length);
+      });' "$runtime")" || return 1
+    total=$((total + n))
+  done
+  echo "$total"
 }
 
 guard_ref() {

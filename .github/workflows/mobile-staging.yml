@@ -190,8 +190,8 @@ jobs:
         include: ${{ fromJSON(needs.plan.outputs.ota_matrix) }}
     runs-on: ubuntu-latest
     environment: staging
-    # await: aynı runtime'ın build'i + TestFlight gönderimi bitene kadar bekleyebilir
-    # (gönderim bir kez 53 dk sürdü); bekleme release.sh'de 100 dk ile sınırlı.
+    # await: aynı runtime'ın build'i derlenirken bitmesini bekleyebilir (gönderim
+    # beklenmez); bekleme release.sh'de 75 dk ile sınırlı.
     timeout-minutes: 120
     # Kuyruk platform + runtime BAŞINA ve iptalsiz: başka runtime'ın (ör. native
     # değişiklik getiren) ya da diğer platformun push'u bu runtime'ın bekleyen
@@ -214,6 +214,7 @@ jobs:
         env:
           OTA_PLATFORM: ${{ matrix.platform }}
           FP: ${{ matrix.fp }}
+          ANDROID_ENABLED: ${{ vars.ANDROID_RELEASE_ENABLED == 'true' }}  # plan'la aynı binary profilleri
         run: scripts/ci/release.sh await-binary "$OTA_PLATFORM" staging "$FP"
       - name: Publish OTA to staging
         # Env eas.json `preview` profilinden yüklenir (release.sh publish-ota) —
@@ -254,6 +255,7 @@ jobs:
         if: steps.recheck.outputs.action == 'ota' && steps.recheck.outputs.await == 'true'
         env:
           FP: ${{ needs.plan.outputs.ios_fp }}
+          ANDROID_ENABLED: ${{ vars.ANDROID_RELEASE_ENABLED == 'true' }}  # plan'la aynı binary profilleri
         run: scripts/ci/release.sh await-binary ios staging "$FP"
       - name: Publish OTA instead (build exists or is in flight for this runtime)
         if: steps.recheck.outputs.action == 'ota'
@@ -294,6 +296,7 @@ jobs:
         if: steps.recheck.outputs.action == 'ota' && steps.recheck.outputs.await == 'true'
         env:
           FP: ${{ needs.plan.outputs.android_fp }}
+          ANDROID_ENABLED: ${{ vars.ANDROID_RELEASE_ENABLED == 'true' }}  # plan'la aynı binary profilleri
         run: scripts/ci/release.sh await-binary android staging "$FP"
       - name: Publish OTA instead (build exists or is in flight for this runtime)
         if: steps.recheck.outputs.action == 'ota'

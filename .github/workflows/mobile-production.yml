@@ -135,8 +135,8 @@ jobs:
       - name: Which branch was merged? (development = release, hotfix/* = hotfix)
         # master'a yalnız PR ile girilir (ruleset + Master source guard), yani push
         # bir PR merge'üdür. Okunamazsa boş kalır → release.sh SÜRÜM sayar (güvenli
-        # taraf: OTA hazırlanmaz; hotfix en kötü "sürümü artır" hatasıyla durur ve
-        # elle mode=ota ister). Dal adı yalnız env'den okunur (enjeksiyon yok).
+        # taraf: OTA hazırlanmaz; hotfix en kötü "sürümü artır" hatasıyla durur).
+        # Dal adı yalnız env'den okunur (enjeksiyon yok).
         id: source
         if: steps.guard.outputs.skip != 'true' && github.event_name == 'push'
         env:
@@ -144,15 +144,19 @@ jobs:
           REPO: ${{ github.repository }}
           SHA: ${{ github.sha }}
         # PR, merge commit'iyle eşleşerek bulunur (merge_commit_sha == push'un sha'sı;
-        # merge, squash ve rebase'te de doğru). commits/<sha>/pulls KULLANILMAZ:
-        # commit varsayılan dala (development) back-merge ile girince o uç yalnız
-        # development PR'ını döndürür ve yeniden çalıştırılan bir hotfix koşusu
-        # sürüm sanılırdı. Yalnız bu depodaki dallar sayılır (fork PR'ı hotfix sayılmaz).
+        # merge, squash ve rebase'te de doğru); yalnız bu depodaki dallar sayılır (fork
+        # PR'ı hotfix sayılmaz). Önce commit'in PR'ları sorulur; boş dönerse (ör. commit
+        # back-merge ile varsayılan dala girdikten sonra yeniden çalıştırma) master'a
+        # kapanan son 100 PR'a bakılır.
         run: |
           err="$(mktemp)"
-          if ! ref="$(gh api "repos/$REPO/pulls?state=closed&base=master&sort=updated&direction=desc&per_page=50" \
-            --jq '[.[] | select(.merge_commit_sha == env.SHA and .head.repo.full_name == env.REPO)][0].head.ref // ""' 2>"$err")"; then
-            echo "::warning::Merge edilen PR okunamadı — merge SÜRÜM sayılacak. gh: $(head -c 500 "$err")"
+          q='[.[] | select(.merge_commit_sha == env.SHA and .base.ref == "master" and .head.repo.full_name == env.REPO)][0].head.ref // ""'
+          if ! ref="$(gh api "repos/$REPO/commits/$SHA/pulls" --jq "$q" 2>"$err")"; then
+            echo "::warning::commit'in PR'ları okunamadı: $(head -c 300 "$err")"
+            ref=""
+          fi
+          if [ -z "$ref" ] && ! ref="$(gh api "repos/$REPO/pulls?state=closed&base=master&sort=updated&direction=desc&per_page=100" --jq "$q" 2>"$err")"; then
+            echo "::warning::master PR listesi okunamadı — merge SÜRÜM sayılacak. gh: $(head -c 300 "$err")"
             ref=""
           fi
           echo "Merge edilen PR'ın dalı: '${ref:-bulunamadı}'"

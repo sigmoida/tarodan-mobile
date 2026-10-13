@@ -215,6 +215,8 @@ describe('staging', () => {
     expect(wait).toBeLessThan(publish);
     expect(steps[wait].if).toBe('${{ matrix.await }}');
     expect(steps[wait].env?.FP).toBe('${{ matrix.fp }}');
+    const androidEnabled = "${{ vars.ANDROID_RELEASE_ENABLED == 'true' }}";
+    expect(steps[wait].env?.ANDROID_ENABLED).toBe(androidEnabled);
     for (const p of ['ios', 'android']) {
       const bs = staging.jobs[`build-${p}`].steps!;
       const w = bs.findIndex((s) => s.run === `scripts/ci/release.sh await-binary ${p} staging "$FP"`);
@@ -222,6 +224,7 @@ describe('staging', () => {
       expect([p, w > -1 && w < o]).toEqual([p, true]);
       expect(bs[w].if).toBe("steps.recheck.outputs.action == 'ota' && steps.recheck.outputs.await == 'true'");
       expect(bs[w].env?.FP).toBe(`\${{ needs.plan.outputs.${p}_fp }}`);
+      expect(bs[w].env?.ANDROID_ENABLED).toBe(androidEnabled);
     }
   });
 });
@@ -246,10 +249,11 @@ describe('production', () => {
     const source = steps.find((s) => s.id === 'source');
     expect(source?.if).toContain("github.event_name == 'push'");
     // PR, merge commit'iyle eşleşerek ve yalnız bu depodan bulunur.
+    expect(source?.run).toContain('repos/$REPO/commits/$SHA/pulls');
     expect(source?.run).toContain('pulls?state=closed&base=master');
     expect(source?.run).toContain('.merge_commit_sha == env.SHA');
+    expect(source?.run).toContain('.base.ref == "master"');
     expect(source?.run).toContain('.head.repo.full_name == env.REPO');
-    expect(source?.run).not.toContain('commits/$SHA/pulls');
     // Okuma hatası sessizce yutulmaz (uyarı), ama sürüm sayılır (güvenli taraf).
     expect(source?.run).toContain('::warning::');
     // PR'dan gelen hiçbir değer run'a ${{ }} ile enjekte edilmez.
