@@ -6,9 +6,9 @@ import React from 'react';
 import { View } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { FloatingIconButton, FLOATING_BUTTON_SIZE } from '../_components/FloatingIconButton';
-import { getGlassView } from '../_lib/glass';
+import { getGlassView } from '@/ui/lib/glass';
 
-jest.mock('../_lib/glass', () => ({ getGlassView: jest.fn(() => null) }));
+jest.mock('@/ui/lib/glass', () => ({ getGlassView: jest.fn(() => null) }));
 const getGlassViewMock = getGlassView as jest.Mock;
 
 function Glass(props: any) {

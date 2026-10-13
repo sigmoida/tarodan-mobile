@@ -57,6 +57,19 @@ export {
 	BADGE_ANCHOR_OFFSET,
 	type CountBadgeProps,
 } from './components/CountBadge';
+export {
+	GlassSurface,
+	TINT_FILL_OPACITY,
+	type GlassSurfaceProps,
+	type GlassShape,
+} from './components/GlassSurface';
+export {
+	GlassIconButton,
+	GLASS_ICON_BUTTON_SIZE,
+	type GlassIconButtonProps,
+	type GlassIconTone,
+} from './components/GlassIconButton';
+export { getGlassView, resetGlassCache, type GlassViewComponent } from './lib/glass';
 export { BadgeAnchor, type BadgeAnchorProps } from './components/BadgeAnchor';
 export {
 	Pill,
