@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { appAlert } from '@/ui';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../test-utils';
 
 jest.mock('expo-router', () => ({
@@ -21,9 +21,17 @@ jest.mock('expo-image-picker', () => ({
   MediaTypeOptions: { Images: 'Images' },
 }));
 
+/** `alertAfterClose` aynı modülden `appAlert` import eder: kaynakta da casusla. */
+jest.mock('@/ui/components/AlertDialog', () => ({
+  ...jest.requireActual('@/ui/components/AlertDialog'),
+  appAlert: jest.fn(),
+}));
+const sourceAlert = () => (jest.requireMock('@/ui/components/AlertDialog') as { appAlert: jest.Mock }).appAlert;
+
 const mockGet = jest.fn();
 const mockPost = jest.fn();
 jest.mock('@/lib/api', () => ({
+  errorText: jest.requireActual('@/lib/api/errorText').errorText,
   api: { get: (...a: any[]) => mockGet(...a), post: (...a: any[]) => mockPost(...a), patch: jest.fn() },
   productsApi: {
     create: jest.fn(async () => ({ data: {} })),
@@ -167,6 +175,10 @@ describe('düzenleme ekranı — silme nedeni', () => {
     // Eski düz onay uyarısı (appAlert) açılmaz — pencerenin kendisi onaydır.
     expect(appAlert).not.toHaveBeenCalled();
     await screen.findByText('Evet, Sil');
+    // Hangi ilanın silineceği pencerede yazar.
+    expect(
+      screen.getByText('"Geçerli başlık" ilanını silmek istediğinize emin misiniz? Bu işlem geri alınamaz.'),
+    ).toBeOnTheScreen();
 
     fireEvent.press(screen.getByText('Evet, Sil'));
     expect(productsApi.delete).not.toHaveBeenCalled();
@@ -176,5 +188,75 @@ describe('düzenleme ekranı — silme nedeni', () => {
     await waitFor(() =>
       expect(productsApi.delete).toHaveBeenCalledWith('p1', { removalReason: 'changed_mind' }),
     );
+    // Başarı uyarısı pencere kapandıktan sonra gelir; bekle ki zamanlayıcı testten taşmasın.
+    await waitFor(() => expect(sourceAlert()).toHaveBeenCalledWith('Silindi', 'İlan silindi', expect.any(Array)));
+  });
+
+  describe('iOS ModalFreeze: uyarı pencere kapandıktan sonra', () => {
+    afterEach(() => jest.useRealTimers());
+
+    async function submitDelete() {
+      renderWithProviders(<ListingForm mode="edit" productId="p1" />);
+      await screen.findByText('Değişiklikleri Kaydet');
+      fireEvent.press(screen.getAllByText('İlanı Sil')[0]);
+      await screen.findByText('Evet, Sil');
+      fireEvent.press(screen.getByText('Vazgeçtim'));
+      sourceAlert().mockReset();
+      jest.useFakeTimers();
+      fireEvent.press(screen.getByText('Evet, Sil'));
+    }
+
+    it('hızlı hata yanıtı: kapanış süresi dolmadan appAlert çıkmaz', async () => {
+      (productsApi.delete as jest.Mock).mockRejectedValue({ response: { data: { message: 'Silinemedi' } } });
+      await submitDelete();
+      await act(async () => {
+        jest.advanceTimersByTime(50);
+      });
+      expect(sourceAlert()).not.toHaveBeenCalled();
+      act(() => {
+        jest.advanceTimersByTime(450);
+      });
+      expect(sourceAlert()).toHaveBeenCalledWith('Hata', 'Silinemedi', undefined);
+    });
+
+    it('i18nKey taşıyan sunucu hatası: sunucunun (dile göre) çevirdiği message gösterilir', async () => {
+      (productsApi.delete as jest.Mock).mockRejectedValue({
+        response: { status: 409, data: { message: 'Listing cannot be deleted while a trade is open', i18nKey: 'server.product.hasOpenTrade' } },
+      });
+      await submitDelete();
+      await act(async () => {
+        jest.advanceTimersByTime(50);
+      });
+      act(() => {
+        jest.advanceTimersByTime(450);
+      });
+      expect(sourceAlert()).toHaveBeenCalledWith('Hata', 'Listing cannot be deleted while a trade is open', undefined);
+    });
+
+    it('gövdesiz hata: katalogdaki yedek metin', async () => {
+      (productsApi.delete as jest.Mock).mockRejectedValueOnce({ message: 'Network Error' });
+      await submitDelete();
+      await act(async () => {
+        jest.advanceTimersByTime(50);
+      });
+      act(() => {
+        jest.advanceTimersByTime(450);
+      });
+      expect(sourceAlert()).toHaveBeenCalledWith('Hata', 'İlan silinemedi', undefined);
+    });
+
+    it('dizi biçimli message (doğrulama hatası) tek metne birleşir; ham dizi uyarıya gitmez', async () => {
+      (productsApi.delete as jest.Mock).mockRejectedValue({
+        response: { status: 400, data: { message: ['Neden geçersiz', 'Platform eksik'] } },
+      });
+      await submitDelete();
+      await act(async () => {
+        jest.advanceTimersByTime(50);
+      });
+      act(() => {
+        jest.advanceTimersByTime(450);
+      });
+      expect(sourceAlert()).toHaveBeenCalledWith('Hata', 'Neden geçersiz\nPlatform eksik', undefined);
+    });
   });
 });

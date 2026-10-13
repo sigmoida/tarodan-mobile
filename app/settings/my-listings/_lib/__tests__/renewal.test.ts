@@ -3,7 +3,7 @@
  * axios interceptor'ından geçmediği için istemci çevirir ve dijital satış kapalıyken
  * üyelik satışı ima eden metni elle nötrler (`iosNeutralErrors` eşlemesi).
  */
-import { readRenewBatch, renewErrorText, renewMessageKey, renewSummary, type RenewTexts } from "../renewal";
+import { readRenewBatch, UnexpectedRenewResponseError, renewErrorText, renewMessageKey, renewSummary, type RenewTexts } from "../renewal";
 import { activationMessageKey } from "@/components/listing/_lib/activation";
 
 const CATALOG: Record<string, string> = {
@@ -93,10 +93,35 @@ describe("renewSummary", () => {
     expect(renewSummary(only, (id) => id, texts(true)).isError).toBe(true);
   });
 
-  it("düz ve zarflı gövdeyi aynı okur; boş gövde güvenli", () => {
-    const flat = { results: [], renewed: 2, submitted: 1, failed: 0 };
-    expect(readRenewBatch(flat)).toEqual(readRenewBatch({ data: flat }));
-    expect(readRenewBatch(undefined)).toEqual({ results: [], renewed: 0, submitted: 0, failed: 0 });
+  it("düz (gerçek API) ve zarflı gövdeyi aynı okur; sayılar results'tan türer", () => {
+    const flat = {
+      results: [
+        { id: "a", ok: true, status: "active" },
+        { id: "b", ok: true, status: "pending" },
+        { id: "c", ok: false, errorKey: "server.product.renewFailed" },
+      ],
+      // Sunucu sayaçları okunmaz (tutarsız olsa da results esas):
+      renewed: 9,
+      submitted: 9,
+      failed: 9,
+    };
+    expect(readRenewBatch(flat)).toEqual({ results: flat.results, renewed: 1, submitted: 1, failed: 1 });
+    expect(readRenewBatch({ data: flat })).toEqual(readRenewBatch(flat));
+  });
+
+  it.each([
+    ["undefined", undefined],
+    ["null", null],
+    ["metin", "OK"],
+    ["boş nesne", {}],
+    ["results dizi değil", { results: "x", renewed: 1 }],
+    ["boş results", { results: [], renewed: 0, submitted: 0, failed: 0 }],
+    ["zarfın içi boş", { data: {} }],
+    ["bozuk öğe (ok yok)", { results: [{ id: "a" }] }],
+    ["bozuk öğe (geçersiz statü)", { results: [{ id: "a", ok: true, status: "inactive" }] }],
+    ["başarısız öğede errorKey yok", { results: [{ id: "a", ok: false }] }],
+  ])("tanınmayan şekil hata sayılır, boş 'başarılı' üretilmez: %s", (_label, raw) => {
+    expect(() => readRenewBatch(raw)).toThrow(UnexpectedRenewResponseError);
   });
 });
 

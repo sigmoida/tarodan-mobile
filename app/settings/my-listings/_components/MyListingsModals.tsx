@@ -72,7 +72,8 @@ export function MyListingsModals({ f }: { f: MyListingsController }) {
       {/* Kaldırma nedeni: silme onayı + pasife alma — neden zorunlu (web ile aynı) */}
       <ListingRemovalModal
         action={f.removalTarget?.action ?? 'delete'}
-        visible={f.removalTarget !== null}
+        visible={f.removalOpen}
+        listingTitle={f.removalTarget?.listing.title}
         onClose={f.closeRemoval}
         onSubmit={f.submitRemoval}
       />

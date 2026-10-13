@@ -4,7 +4,13 @@ import { useTranslation } from "react-i18next";
 import type { MessageKey } from "@/i18n/lib";
 import { appAlert } from "@/ui";
 import { productsApi, errorText } from "@/lib/api";
-import { readRenewBatch, renewMessageKey, renewSummary, type RenewTexts } from "../_lib/renewal";
+import {
+  readRenewBatch,
+  renewMessageKey,
+  renewSummary,
+  UnexpectedRenewResponseError,
+  type RenewTexts,
+} from "../_lib/renewal";
 import { useInvalidateMyListings } from "./useInvalidateMyListings";
 
 /** Çeviri bağımlılıkları: `exists` yoksa (testte i18n mock'u) her anahtar var sayılır. */
@@ -30,8 +36,8 @@ export function useRenewListings() {
 
   const renewOne = useMutation({
     mutationFn: (listingId: string) => productsApi.renew(listingId),
-    onSuccess: (response) => {
-      invalidate();
+    onSuccess: (response, listingId) => {
+      invalidate(listingId);
       appAlert(t("common.success"), t(renewMessageKey(response)));
     },
     onError: (err) => {
@@ -53,6 +59,9 @@ export function useRenewListings() {
       appAlert(t(isError ? "common.error" : "common.success"), message);
     },
     onError: (err) => {
+      // Tanınmayan yanıt şeklinde (UnexpectedRenewResponseError) sunucu yenilemeyi
+      // yapmış olabilir: sonucu bilmediğimiz için liste yine tazelenir.
+      if (err instanceof UnexpectedRenewResponseError) invalidate();
       appAlert(t("common.error"), errorText(err, t("profile.expiredListings.renewFailed")));
     },
   });

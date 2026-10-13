@@ -28,20 +28,23 @@ const BODY_MAX_HEIGHT = 420;
  * taşır (ilanlarım ve düzenleme ekranı ayrı mutasyon kullanır).
  *
  * ⚠️ `onSubmit`'ten ÖNCE modal kapanır: mutasyonun `appAlert`'i ui-native Modal
- * açıkken çıkarsa iOS donar (CLAUDE.md §12).
+ * açıkken çıkarsa iOS donar (CLAUDE.md §12). Bu yüzden pencerede "gönderiliyor"
+ * durumu YOKTUR (mutasyon başladığında pencere zaten kapalı); çift gönderimi
+ * çağıran ekran engeller (ör. düzenleme ekranında `isSubmitting`).
  */
 export function ListingRemovalModal({
   action,
   visible,
+  listingTitle,
   onClose,
   onSubmit,
-  isPending = false,
 }: {
   action: SellerRemovalAction;
   visible: boolean;
+  /** Hangi ilanın kaldırıldığı: kalıcı silmede onay cümlesinde, pasife almada başlık satırında. */
+  listingTitle?: string;
   onClose: () => void;
   onSubmit: (removal: ListingRemovalPayload) => void;
-  isPending?: boolean;
 }) {
   const { t } = useTranslation();
   const schema = useMemo(() => listingRemovalSchema(t, action), [t, action]);
@@ -70,7 +73,7 @@ export function ListingRemovalModal({
   return (
     <Modal
       isOpen={visible}
-      onClose={() => !isPending && onClose()}
+      onClose={onClose}
       title={isDelete ? t('product.deleteListing') : t('product.deactivateListingFull')}
     >
       <ScrollView
@@ -78,6 +81,11 @@ export function ListingRemovalModal({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {listingTitle ? (
+          <Text style={styles.listingName} numberOfLines={3}>
+            {isDelete ? t('listing.deleteConfirmNamed', { title: listingTitle }) : listingTitle}
+          </Text>
+        ) : null}
         <Text style={styles.description}>
           {isDelete ? t('product.removal.deleteDescription') : t('product.removal.deactivateDescription')}
         </Text>
@@ -131,11 +139,10 @@ export function ListingRemovalModal({
       </ScrollView>
 
       <View style={styles.actions}>
-        <Button variant="ghost" title={t('common.cancel')} onPress={onClose} disabled={isPending} />
+        <Button variant="ghost" title={t('common.cancel')} onPress={onClose} />
         <Button
           variant={isDelete ? 'danger' : 'primary'}
           title={isDelete ? t('collection.yesDelete') : t('product.deactivate')}
-          isLoading={isPending}
           onPress={submit}
         />
       </View>
@@ -145,6 +152,12 @@ export function ListingRemovalModal({
 
 const styles = StyleSheet.create({
   body: { maxHeight: BODY_MAX_HEIGHT },
+  listingName: {
+    color: colors.text.heading,
+    fontSize: typography.fontSize.base,
+    fontWeight: '600',
+    marginBottom: spacing[2],
+  },
   description: { color: colors.text.body, marginBottom: spacing[4] },
   label: {
     color: colors.text.heading,

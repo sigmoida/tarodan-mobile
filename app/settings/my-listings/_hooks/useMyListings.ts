@@ -16,10 +16,14 @@ import {
   type FilterType,
 } from "../_lib/types";
 import { useMyListingsQuery } from "./useMyListingsQuery";
+import { useExpiredCount } from "./useExpiredCount";
 import { useListingMutations } from "./useListingMutations";
 import { useRenewListings, useListingSelection } from "./useRenewListings";
 
 const { colors } = theme;
+
+/** Seçim yalnız "Süresi dolan" sekmesinde: diğer sekmelerde SABİT boş dizi (her render'da yeni `[]` değil). */
+const NONE: Listing[] = [];
 
 /** Kaldırma nedeni penceresinin hedefi: hangi ilan, hangi eylem. */
 export interface RemovalTarget {
@@ -42,7 +46,15 @@ export function useMyListings() {
   const [actionMenuListing, setActionMenuListing] = useState<Listing | null>(
     null,
   );
+  // Hedef (ilan + eylem) pencere KAPANDIKTAN sonra da durur; yalnız `removalOpen`
+  // düşer. Aksi halde kapanış animasyonunda pencere varsayılan "Sil" kipine dönüp
+  // pasife alma ekranı kapanırken kırmızı "Evet, Sil" gösterirdi. Sonraki açılış üzerine yazar.
   const [removalTarget, setRemovalTarget] = useState<RemovalTarget | null>(null);
+  const [removalOpen, setRemovalOpen] = useState(false);
+  const openRemoval = (target: RemovalTarget) => {
+    setRemovalTarget(target);
+    setRemovalOpen(true);
+  };
   const [boostListing, setBoostListing] = useState<Listing | null>(null);
   const isPremiumUser = Boolean(
     (user as any)?.isPremium ||
@@ -51,12 +63,11 @@ export function useMyListings() {
   );
 
   const { data: listingsData, isLoading, isError, refetch } = useMyListingsQuery(filter);
-  // Süresi dolan ilanlar HER sekmede banner'ı ve chip sayacını besler; "Süresi dolan"
-  // sekmesindeyken aynı anahtar olduğundan ekstra istek atılmaz.
-  const { data: expiredData, refetch: refetchExpired } = useMyListingsQuery(EXPIRED_FILTER);
+  // Süresi dolan sayısı HER sekmede banner'ı ve chip sayacını besler: `limit=1` +
+  // `meta.total` (tüm listeyi çekmez, 100'de tavanlanmaz). Sekmenin kendi listesinden ayrı anahtar.
+  const { data: expiredCount = 0, refetch: refetchExpired } = useExpiredCount();
 
   const listings: Listing[] = useMemo(() => listingsData || [], [listingsData]);
-  const expiredCount = (expiredData || []).length;
 
   // Chip sayaçları — AKTİF FİLTREDEN BAĞIMSIZ stabil kaynak (GET /products/my/stats).
   // Önceden sayaçlar o an çekili (filtrelenmiş + sayfalı) listeden hesaplanıyordu →
@@ -78,7 +89,7 @@ export function useMyListings() {
     reserved: statCounts.reserved ?? 0,
     rejected: statCounts.rejected ?? 0,
     inactive: statCounts.inactive ?? 0,
-    // Stats ucunda "süresi dolan" sayacı yok → ayrı sorgudan.
+    // Stats ucunda "süresi dolan" sayacı yok → `useExpiredCount` (meta.total).
     expired: expiredCount,
     deleted: statCounts.deleted ?? 0,
   };
@@ -86,11 +97,19 @@ export function useMyListings() {
   const { deactivate, remove, reactivate } = useListingMutations();
   const { renewOne, renewMany } = useRenewListings();
 
+  // Odaklanma ve çek-yenile AYNI yoldan geçer. `cancelRefetch:false`: uçuştaki bir
+  // istek varsa (ilk açılış, hızlı art arda tetik) onu iptal edip yeniden başlatmak
+  // yerine ona katılır → anahtar başına tek istek.
+  const refreshLists = () =>
+    Promise.all([
+      refetch({ cancelRefetch: false }),
+      refetchExpired({ cancelRefetch: false }),
+    ]);
+
   // Refresh on focus
   useFocusEffect(
     useCallback(() => {
-      refetch();
-      refetchExpired();
+      refreshLists();
       queryClient.invalidateQueries({ queryKey: qk.products.myListingsStats });
       refreshUserData();
     }, []),
@@ -98,7 +117,7 @@ export function useMyListings() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([refetch(), refetchExpired()]);
+    await refreshLists();
     queryClient.invalidateQueries({ queryKey: qk.products.myListingsStats });
     await refreshUserData();
     setRefreshing(false);
@@ -109,7 +128,7 @@ export function useMyListings() {
     [listings, filter],
   );
   const isExpiredTab = filter === EXPIRED_FILTER;
-  const selection = useListingSelection(isExpiredTab ? filteredListings : []);
+  const selection = useListingSelection(isExpiredTab ? filteredListings : NONE);
 
   const listingLimit = quotaSummary?.max ?? (limits?.maxListings || 10);
 
@@ -145,7 +164,7 @@ export function useMyListings() {
         break;
       case "deactivate":
         // Neden ZORUNLU sorulur (web ile aynı) — pasife alma nedenle birlikte gider.
-        afterMenuCloses(() => setRemovalTarget({ listing, action: "deactivate" }));
+        afterMenuCloses(() => openRemoval({ listing, action: "deactivate" }));
         break;
       case "activate":
         reactivate.mutate(listing.id);
@@ -161,7 +180,7 @@ export function useMyListings() {
         else reactivate.mutate(listing.id);
         break;
       case "delete":
-        afterMenuCloses(() => setRemovalTarget({ listing, action: "delete" }));
+        afterMenuCloses(() => openRemoval({ listing, action: "delete" }));
         break;
     }
   };
@@ -170,7 +189,7 @@ export function useMyListings() {
   const submitRemoval = (removal: ListingRemovalPayload) => {
     if (!removalTarget) return;
     const { listing, action } = removalTarget;
-    setRemovalTarget(null);
+    setRemovalOpen(false);
     if (action === "delete") remove.mutate({ id: listing.id, removal });
     else deactivate.mutate({ id: listing.id, removal });
   };
@@ -217,7 +236,8 @@ export function useMyListings() {
     actionMenuListing,
     setActionMenuListing,
     removalTarget,
-    closeRemoval: () => setRemovalTarget(null),
+    removalOpen,
+    closeRemoval: () => setRemovalOpen(false),
     submitRemoval,
     boostListing,
     setBoostListing,

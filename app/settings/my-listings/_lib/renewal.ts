@@ -17,15 +17,44 @@ export interface RenewBatch {
   failed: number;
 }
 
-/** Yanıt zarflı (`{data}`) ya da düz gelebilir. */
+/** Yanıt beklenen biçimde değil — sonuç "0 yenilendi" diye UYDURULMAZ, çağıran hata gösterir. */
+export class UnexpectedRenewResponseError extends Error {
+  constructor() {
+    super("Unexpected response shape from POST /products/my/renew");
+    this.name = "UnexpectedRenewResponseError";
+  }
+}
+
+const isRenewItem = (item: unknown): item is RenewItem => {
+  const i = item as { id?: unknown; ok?: unknown; status?: unknown; errorKey?: unknown } | null;
+  if (!i || typeof i.id !== "string") return false;
+  if (i.ok === true) return i.status === "active" || i.status === "pending";
+  return i.ok === false && typeof i.errorKey === "string";
+};
+
+/**
+ * `POST /products/my/renew` gövdesini okur. API (apps/api `RenewalBatchResult`, global
+ * zarf yok) düz `{ results, renewed, submitted, failed }` döner (HTTP 201); bir proxy/
+ * gelecekteki sarmalayıcı için `{ data: {...} }` zarfı da açılır. Başka her şekil
+ * (`undefined`, `results` yok/boş, bozuk öğe) `UnexpectedRenewResponseError` fırlatır:
+ * eskiden sessizce "0 yenilendi" sayılıp boş bir "Başarılı" gösteriliyordu.
+ *
+ * Sayılar `results`'tan türetilir (tek doğruluk kaynağı); sunucu sayaçları okunmaz.
+ */
 export function readRenewBatch(raw: unknown): RenewBatch {
-  const body = raw as { data?: RenewBatch } & Partial<RenewBatch>;
-  const batch = body?.data?.results ? body.data : body;
+  const hasResults = (v: unknown): v is { results: unknown[] } =>
+    Array.isArray((v as { results?: unknown } | null | undefined)?.results);
+  const body = (raw as { data?: unknown } | null | undefined)?.data;
+  const batch = hasResults(raw) ? raw : hasResults(body) ? body : null;
+  if (!batch || batch.results.length === 0 || !batch.results.every(isRenewItem)) {
+    throw new UnexpectedRenewResponseError();
+  }
+  const results = batch.results as RenewItem[];
   return {
-    results: batch?.results ?? [],
-    renewed: batch?.renewed ?? 0,
-    submitted: batch?.submitted ?? 0,
-    failed: batch?.failed ?? 0,
+    results,
+    renewed: results.filter((r) => r.ok && r.status === "active").length,
+    submitted: results.filter((r) => r.ok && r.status === "pending").length,
+    failed: results.filter((r) => !r.ok).length,
   };
 }
 

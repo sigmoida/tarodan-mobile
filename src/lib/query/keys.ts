@@ -49,6 +49,8 @@ export const qk = {
     myListings: (filters?: Filters | string) =>
       ["my-listings", filters] as const,
     myListingsStats: ["my-listings-stats"] as const,
+    /** İlanlarım "Süresi dolan" sayacı (`limit=1` + `meta.total`). `my-listings` kökünün altında → `myListingsAll` ile tazelenir. */
+    myListingsExpiredCount: ["my-listings", "expired-count"] as const,
     myFeatured: ["my-featured-listings"] as const,
     listings: (filters?: Filters) => ["listings", filters] as const,
     /** Prefix roots for invalidation (match every filtered variant). */

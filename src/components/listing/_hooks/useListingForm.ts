@@ -15,6 +15,8 @@ import { globalCustomGroups, requiredGlobalGroups } from '../_lib/attributeGroup
 import { toFormValues } from '../_lib/editMapper';
 import { activatedStatus, activationMessageKey } from '../_lib/activation';
 import { useDispatchAddress } from './useDispatchAddress';
+import { invalidateListingCaches as invalidateListingCachesShared } from '../_lib/invalidate';
+import { useDeleteListing } from './useDeleteListing';
 
 import { useAuthStore } from '../../../stores/authStore';
 import { api, productsApi, categoriesApi, bankAccountApi, shippingApi, type ListingRemovalPayload } from '@/lib/api';
@@ -92,13 +94,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     isLoading: dispatchAddressLoading,
   } = useDispatchAddress(!isEdit && isAuthenticated);
 
-  // İlan listesi/detay ekranlarının bayat kalmaması için ilgili cache'leri temizler.
-  const invalidateListingCaches = () => {
-    queryClient.invalidateQueries({ queryKey: ['my-listings'] });
-    queryClient.invalidateQueries({ queryKey: ['products'] });
-    queryClient.invalidateQueries({ queryKey: ['products-search'] });
-    if (productId) queryClient.invalidateQueries({ queryKey: ['product', productId] });
-  };
+  // İlan listesi/detay/ana sayfa ekranlarının bayat kalmaması için ilgili cache'leri
+  // temizler — İlanlarım ile ORTAK küme (`_lib/invalidate`).
+  const invalidateListingCaches = () => invalidateListingCachesShared(queryClient, productId);
 
   // #81 (hibrit): text alanları useZodForm'da; watch/setValue köprüsüyle mevcut
   // f.title/f.setTitle sözleşmesi korunur (section'lar değişmez), zod validasyon
@@ -912,23 +910,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   // Silme önce NEDEN sorar (web ile aynı; `ListingRemovalModal`). Onay metni pencerenin kendisidir.
   const handleDelete = () => setRemovalOpen(true);
 
-  /** Pencere kapandıktan SONRA çağrılır (iOS ModalFreeze): neden DELETE gövdesinde gider. */
-  const deleteWithReason = async (removal: ListingRemovalPayload) => {
-    setIsSubmitting(true);
-    try {
-      await productsApi.delete(productId!, removal);
-      invalidateListingCaches();
-      await refreshUserData();
-      appAlert(t('listing.deletedTitle'), t('listing.deleted'), [
-        { text: t('common.ok'), onPress: () => router.back() },
-      ]);
-    } catch (err: any) {
-      const msg = err.response?.data?.message || t('listing.deleteFailed');
-      appAlert(t('common.error'), msg);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  /** Pencere kapandıktan SONRA çağrılır; mutasyon + uyarı `useDeleteListing`te. */
+  const deleteListing = useDeleteListing(productId);
+  const deleteWithReason = (removal: ListingRemovalPayload) => deleteListing.mutate(removal);
 
   const resetForm = () => {
     setTitle('');
@@ -1020,7 +1004,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     // loading flags
     brandsLoading,
     modelsLoading,
-    isSubmitting,
+    isSubmitting: isSubmitting || deleteListing.isPending,
     // commission
     commissionPreview,
     commissionLoading,
