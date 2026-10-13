@@ -13,10 +13,10 @@ const fieldOf = () => {
 };
 
 describe('Input (web @tarodan/ui)', () => {
-  it('md: h40, metin 16, rounded-lg, border-border', () => {
+  it('md: h40, metin base, rounded-lg, border-border', () => {
     render(<Input placeholder="Ad" testID="in" />);
     const field = { props: { style: fieldOf() } };
-    expect(StyleSheet.flatten(screen.getByTestId('in').props.style).fontSize).toBe(16);
+    expect(StyleSheet.flatten(screen.getByTestId('in').props.style).fontSize).toBe(theme.typography.fontSize.base);
     expect(StyleSheet.flatten(field?.props.style)).toMatchObject({
       height: 40,
       borderRadius: theme.radius.lg,
@@ -32,7 +32,7 @@ describe('Input (web @tarodan/ui)', () => {
     );
     rerender(<Input testID="in" error="Zorunlu alan" />);
     expect(StyleSheet.flatten(screen.getByText('Zorunlu alan').props.style)).toMatchObject({
-      fontSize: 14,
+      fontSize: theme.typography.fontSize.sm,
       color: colors.danger[600],
     });
   });
@@ -59,7 +59,7 @@ describe('Label', () => {
   it('sm/500 ağırlık, body rengi', () => {
     render(<Label>Telefon</Label>);
     expect(StyleSheet.flatten(screen.getByText('Telefon').props.style)).toMatchObject({
-      fontSize: 14,
+      fontSize: theme.typography.fontSize.sm,
       fontWeight: '500',
       color: colors.text.body,
     });

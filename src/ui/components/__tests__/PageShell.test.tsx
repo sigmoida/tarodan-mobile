@@ -101,7 +101,7 @@ describe('PageHeader', () => {
     const { rerender } = render(<PageHeader title="Mesajlar" description="Tüm konuşmalar" />);
     expect(screen.getByTestId('page-header-accent')).toBeTruthy();
     expect(StyleSheet.flatten(screen.getByText('Mesajlar').props.style)).toMatchObject({
-      fontSize: 24,
+      fontSize: theme.typography.fontSize.xl,
       fontWeight: '700',
     });
     expect(screen.getByText('Tüm konuşmalar')).toBeTruthy();

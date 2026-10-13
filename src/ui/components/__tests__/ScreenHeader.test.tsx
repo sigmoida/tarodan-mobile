@@ -17,7 +17,7 @@ describe('ScreenHeader — sade beyaz üst bar (web)', () => {
     });
     expect(screen.getByTestId('icon-chevron-left').props.stroke).toBe(colors.text.heading);
     expect(StyleSheet.flatten(screen.getByText('Adreslerim').props.style)).toMatchObject({
-      fontSize: 18,
+      fontSize: theme.typography.fontSize.lg,
       fontWeight: '600',
     });
     fireEvent.press(screen.getByLabelText('Geri'));

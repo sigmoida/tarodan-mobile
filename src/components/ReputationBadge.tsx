@@ -77,8 +77,8 @@ function buildReputationConfig(t: TFunction): Record<ReputationLevel, Reputation
 
 const SIZE_CONFIG = {
   small: { iconSize: 16, fontSize: 10, padding: theme.spacing[1] },
-  medium: { iconSize: 20, fontSize: 12, padding: theme.spacing[1.5] },
-  large: { iconSize: 28, fontSize: 14, padding: theme.spacing[2.5] },
+  medium: { iconSize: 20, fontSize: 11, padding: theme.spacing[1.5] },
+  large: { iconSize: 28, fontSize: 13, padding: theme.spacing[2.5] },
 };
 
 export const ReputationBadge: React.FC<ReputationBadgeProps> = ({
@@ -338,13 +338,13 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     marginLeft: theme.spacing[2],
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: 'bold',
     color: colors.text.heading,
   },
   reviewCount: {
     marginLeft: theme.spacing[1],
-    fontSize: 12,
+    fontSize: 11,
     color: colors.text.muted,
   },
   levelContainer: {
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
   },
   breakdownLabel: {
     width: 100,
-    fontSize: 12,
+    fontSize: 11,
     color: colors.text.muted,
   },
   breakdownBarContainer: {
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
   },
   breakdownValue: {
     width: 30,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: colors.text.heading,
     textAlign: 'right',

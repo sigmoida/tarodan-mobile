@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   },
   targetInfo: {
     textAlign: 'center',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
     marginBottom: theme.spacing[4],
     color: colors.text.heading,
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing[4],
     marginBottom: theme.spacing[2],
     color: colors.text.heading,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   reasonItem: {
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   charCount: {
     textAlign: 'right',
     marginTop: theme.spacing[1],
-    fontSize: 12,
+    fontSize: 11,
     color: colors.text.muted,
   },
   warningBox: {
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   warningText: {
     flex: 1,
     color: colors.warning[600]!,
-    fontSize: 12,
+    fontSize: 11,
   },
   errorText: {
     textAlign: 'center',
@@ -294,6 +294,6 @@ const styles = StyleSheet.create({
   successText: {
     flex: 1,
     color: colors.success[600]!,
-    fontSize: 12,
+    fontSize: 11,
   },
 });

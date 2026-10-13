@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   },
   targetInfo: {
     textAlign: 'center',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     marginBottom: theme.spacing[4],
     color: colors.primary[600]!,
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     marginTop: theme.spacing[2],
-    fontSize: 14,
+    fontSize: 13,
     color: colors.text.muted,
   },
   input: {
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   },
   charCount: {
     textAlign: 'right',
-    fontSize: 12,
+    fontSize: 11,
     color: colors.text.muted,
   },
   charLimitNote: {
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   criteriaTitle: {
     marginBottom: theme.spacing[2],
     color: colors.text.muted,
-    fontSize: 12,
+    fontSize: 11,
   },
   criteriaItem: {
     flexDirection: 'row',

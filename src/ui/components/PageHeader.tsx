@@ -115,8 +115,8 @@ const styles = StyleSheet.create({
   },
   title: {
     flexShrink: 1,
-    fontSize: typography.fontSize['2xl'],
-    lineHeight: typography.fontSize['2xl'] * typography.lineHeight.snug,
+    fontSize: typography.fontSize.xl,
+    lineHeight: typography.fontSize.xl * typography.lineHeight.snug,
     fontWeight: typography.fontWeight.bold,
     color: colors.text.heading,
   },

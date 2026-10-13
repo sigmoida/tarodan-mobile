@@ -49,14 +49,14 @@ const SIZE_CONFIG = {
   },
   medium: {
     iconSize: 18,
-    fontSize: 12,
+    fontSize: 11,
     padding: theme.spacing[1.5],
     borderRadius: theme.radius['2xl'],
     gap: theme.spacing[1],
   },
   large: {
     iconSize: 24,
-    fontSize: 14,
+    fontSize: 13,
     padding: theme.spacing[2],
     borderRadius: 12,
     gap: theme.spacing[1.5],
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     marginLeft: theme.spacing[2],
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 13,
   },
   upgradeLink: {
     flexDirection: 'row',
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   upgradeLinkText: {
     color: colors.primary[600]!,
     fontWeight: '500',
-    fontSize: 12,
+    fontSize: 11,
   },
 });
 

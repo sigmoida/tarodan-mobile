@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   },
   optionActive: { borderColor: colors.warning[500]!, backgroundColor: colors.warning[50]! },
   optionLeft: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2.5] },
-  optionLabel: { fontSize: 14, fontWeight: '600', color: colors.gray[900]! },
+  optionLabel: { fontSize: 13, fontWeight: '600', color: colors.gray[900]! },
   optionPrice: { fontSize: 15, fontWeight: '700', color: colors.primary[600]! },
   autoRenewRow: {
     flexDirection: 'row',

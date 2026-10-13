@@ -24,7 +24,7 @@ describe('SectionCard (web @tarodan/ui)', () => {
       backgroundColor: colors.primary[500],
     });
     expect(StyleSheet.flatten(screen.getByText('Popüler').props.style)).toMatchObject({
-      fontSize: 24,
+      fontSize: theme.typography.fontSize.lg,
       fontWeight: '700',
     });
     expect(screen.getByText('içerik')).toBeTruthy();

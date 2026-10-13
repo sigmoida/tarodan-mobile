@@ -19,11 +19,11 @@ describe('EmptyState / ErrorState (web @tarodan/ui)', () => {
       backgroundColor: theme.colors.surface.alt,
     });
     expect(StyleSheet.flatten(screen.getByText('Favori yok').props.style)).toMatchObject({
-      fontSize: 18,
+      fontSize: theme.typography.fontSize.lg,
       fontWeight: '600',
     });
     expect(StyleSheet.flatten(screen.getByText('Beğendiklerin burada').props.style)).toMatchObject({
-      fontSize: 14,
+      fontSize: theme.typography.fontSize.sm,
       color: theme.colors.text.muted,
     });
   });
