@@ -3,11 +3,13 @@ import { StyleSheet } from 'react-native';
 import { render, renderHook, screen } from '@testing-library/react-native';
 import {
   SCROLL_EDGE_FULL_AT,
+  ShellScrollProvider,
   pageScrollOffset,
   pageScrollProps,
   scrollEdgeOpacity,
   usePageScrollHandler,
   usePageScrollValue,
+  useResetScrollOnBind,
   useShellPageScroll,
   useShellScrollState,
   withTopInset,
@@ -79,9 +81,9 @@ describe('hook’lar', () => {
       const s = useShellScrollState(undefined, false);
       bound = s.bound;
       return (
-        <s.Provider>
+        <ShellScrollProvider value={s.ctx}>
           <Child enabled={enabled} />
-        </s.Provider>
+        </ShellScrollProvider>
       );
     }
     const { rerender } = render(<Shell enabled />);
@@ -89,6 +91,20 @@ describe('hook’lar', () => {
     rerender(<Shell enabled={false} />);
     expect(bound).toBe(false);
     expect(screen).toBeTruthy();
+  });
+
+  it('useResetScrollOnBind: bağlanma durumu değişince bayat ofset 0’a çekilir', () => {
+    const { result, rerender } = renderHook(
+      ({ bound }: { bound: boolean }) => {
+        const v = usePageScrollValue();
+        useResetScrollOnBind(v.scrollY, bound);
+        return v;
+      },
+      { initialProps: { bound: false } },
+    );
+    result.current.scrollY.value = 80;
+    rerender({ bound: true });
+    expect(result.current.scrollY.value).toBe(0);
   });
 
   it('useShellScrollState: ekranın verdiği sinyal ya da kabuğun kendi scroll’u bağlıdır', () => {

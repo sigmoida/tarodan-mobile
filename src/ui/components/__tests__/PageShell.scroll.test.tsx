@@ -97,6 +97,30 @@ describe('PageShell scroll modu — otomatik bağlama', () => {
   });
 });
 
+describe('PageShell — topInset değişince çocuklar yeniden mount OLMAZ (form verisi korunur)', () => {
+  it('güvenli alan 0 → 47 (ilk kare / hotspot çubuğu) mount sayısını artırmaz', () => {
+    const mounts = jest.fn();
+    function Child() {
+      React.useEffect(() => {
+        mounts();
+      }, []);
+      return <RawText>form</RawText>;
+    }
+    const ui = (
+      <PageShell title="Adres" mode="static">
+        <Child />
+      </PageShell>
+    );
+    mockTop = 0;
+    const { rerender } = render(ui);
+    mockTop = 47;
+    rerender(ui);
+    mockTop = 67;
+    rerender(ui);
+    expect(mounts).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('PageShell list/static — ekranın kendi listesi', () => {
   it('bağlanmamış: gövde bar altında başlar, şerit sabit hafif beyaz (hiçbir ekran okunamaz kalmaz)', () => {
     render(

@@ -10,7 +10,12 @@ import {
 } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useShellScrollState, type PageScrollValue } from '../lib/pageScroll';
+import {
+  ShellScrollProvider,
+  useResetScrollOnBind,
+  useShellScrollState,
+  type PageScrollValue,
+} from '../lib/pageScroll';
 import { theme } from '../lib/theme';
 import { ScreenHeader, type ScreenHeaderProps } from './ScreenHeader';
 import { EmptyState, type EmptyStateProps } from './EmptyState';
@@ -138,6 +143,8 @@ export const PageShell: React.FC<PageShellProps> = ({
   const underBar = hasBar && contentVisible && shell.bound;
   const barInset = hasBar ? own.topInset : 0;
   const edgeY = mode === 'scroll' ? own.scrollY : shell.page.scrollY;
+  // Liste (yeniden) bağlanınca (loading → içerik) bayat ofset şeridi opak bırakmasın.
+  useResetScrollOnBind(edgeY, underBar);
 
   const topBar = customHeader ? (
     header
@@ -229,7 +236,7 @@ export const PageShell: React.FC<PageShellProps> = ({
   return (
     <View style={styles.root} testID={testID}>
       {customHeader ? topBar : null}
-      <shell.Provider>
+      <ShellScrollProvider value={shell.ctx}>
         {keyboardAware ? (
           <KeyboardAvoidingView
             style={styles.fill}
@@ -240,7 +247,7 @@ export const PageShell: React.FC<PageShellProps> = ({
         ) : (
           content
         )}
-      </shell.Provider>
+      </ShellScrollProvider>
       {customHeader ? null : topBar}
       {overlay}
     </View>

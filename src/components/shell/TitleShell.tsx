@@ -1,6 +1,13 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { ScreenHeader, theme, useShellScrollState, type PageScrollValue } from '@/ui';
+import {
+  ScreenHeader,
+  ShellScrollProvider,
+  theme,
+  useResetScrollOnBind,
+  useShellScrollState,
+  type PageScrollValue,
+} from '@/ui';
 
 const { colors } = theme;
 
@@ -26,16 +33,17 @@ export interface TitleShellProps {
  */
 export const TitleShell: React.FC<TitleShellProps> = ({ title, right, scroll, children, contentStyle, testID }) => {
   const shell = useShellScrollState(scroll, false);
+  useResetScrollOnBind(shell.page.scrollY, shell.bound);
   return (
     <View style={styles.root} testID={testID}>
-      <shell.Provider>
+      <ShellScrollProvider value={shell.ctx}>
         <View
           testID="app-shell-content"
           style={[styles.content, !shell.bound && { paddingTop: shell.own.topInset }, contentStyle]}
         >
           {children}
         </View>
-      </shell.Provider>
+      </ShellScrollProvider>
       <ScreenHeader
         title={title ?? ''}
         showBack={false}

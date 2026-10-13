@@ -7,6 +7,8 @@ export {
 	usePageScrollValue,
 	useShellPageScroll,
 	useShellScrollState,
+	useResetScrollOnBind,
+	ShellScrollProvider,
 	scrollEdgeOpacity,
 	SCROLL_EDGE_FULL_AT,
 	withTopInset,

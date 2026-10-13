@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useLayoutEffect, useMemo, useState } from 'react';
 import { Platform, StyleSheet, type ScrollViewProps, type StyleProp, type ViewStyle } from 'react-native';
 import { useAnimatedScrollHandler, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { useHeaderBarInset } from './header';
@@ -149,12 +149,33 @@ interface ShellScrollContextValue {
 
 const ShellScrollContext = createContext<ShellScrollContextValue | null>(null);
 
+/**
+ * Kabuk bağlamı sağlayıcısı. Modül seviyesinde SABİT bileşen: tipi hiç değişmez, bu yüzden
+ * `topInset` gibi değerler değişse bile kabuğun altındaki ağaç yeniden mount OLMAZ (form verisi ve
+ * kaydırma konumu korunur). Bileşen `useMemo` ile ÜRETİLMEZ.
+ */
+export function ShellScrollProvider({ value, children }: { value: ShellScrollContextValue; children?: React.ReactNode }) {
+  return <ShellScrollContext.Provider value={value}>{children}</ShellScrollContext.Provider>;
+}
+
+export type { ShellScrollContextValue };
+
 export interface ShellScroll {
   page: PageScrollValue;
   /** Kaydırma sinyali bir listeye bağlı mı (bağlıysa gövde bar altında başlamaz, liste inset'i verir). */
   bound: boolean;
-  /** Çocuklara `useShellPageScroll` ile verilen bağlam. */
-  Provider: React.FC<{ children?: React.ReactNode }>;
+  /** `<ShellScrollProvider value={ctx}>` ile çocuklara verilen bağlam (`useShellPageScroll`). */
+  ctx: ShellScrollContextValue;
+}
+
+/**
+ * Kenar efektinin kaynağı bir listeye (yeniden) bağlandığında ya da ayrıldığında `scrollY`'yi 0'a
+ * çeker: loading → içerik geçişinde yeni liste ilk kaydırmaya kadar bayat ofsetle opak şerit göstermez.
+ */
+export function useResetScrollOnBind(scrollY: SharedValue<number>, bound: boolean): void {
+  useLayoutEffect(() => {
+    scrollY.value = 0;
+  }, [scrollY, bound]);
 }
 
 /**
@@ -167,19 +188,7 @@ export function useShellScrollState(provided: PageScrollValue | undefined, bindO
   const page = provided ?? own;
   const bound = !!provided || childBound || bindOwn;
   const ctx = useMemo<ShellScrollContextValue>(() => ({ page: own, setBound: setChildBound }), [own]);
-  const Provider = useMemo<ShellScroll['Provider']>(
-    () =>
-      function ShellScrollProvider({ children }) {
-        return <ShellScrollContext.Provider value={ctx}>{children}</ShellScrollContext.Provider>;
-      },
-    [ctx],
-  );
-  // Bağlı olmayan gövdede sinyal bayat kalmasın (efekt sabit şeride döner).
-  const reset = useCallback(() => {
-    if (!bound) own.scrollY.value = 0;
-  }, [bound, own.scrollY]);
-  useLayoutEffect(reset, [reset]);
-  return { page, bound, Provider, own };
+  return { page, bound, ctx, own };
 }
 
 /**

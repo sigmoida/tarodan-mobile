@@ -253,6 +253,26 @@ describe('AppShell variant="title" — yüzen ortalı bar + kaydırma kenarı', 
     expect(StyleSheet.flatten(screen.getByTestId('app-shell-bar-edge').props.style).backgroundColor).toBeUndefined();
   });
 
+  it('topInset değişince gövde yeniden mount olmaz (girilen veri korunur)', () => {
+    const mounts = jest.fn();
+    function Child() {
+      React.useEffect(() => {
+        mounts();
+      }, []);
+      return <Text>form</Text>;
+    }
+    const ui = (
+      <AppShell variant="title" title="Profil">
+        <Child />
+      </AppShell>
+    );
+    mockTop = 0;
+    const { rerender } = render(ui);
+    mockTop = 47;
+    rerender(ui);
+    expect(mounts).toHaveBeenCalledTimes(1);
+  });
+
   it('tek handler: useTabBarScrollHandler(…, scrollY) hem alt menü hem üst bar sinyali için tek onScroll döner', () => {
     const { result } = renderHook(() => {
       const page = usePageScrollValue();
