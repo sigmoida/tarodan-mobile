@@ -4,8 +4,10 @@ import { enableScreens } from "react-native-screens";
 enableScreens(false);
 
 import { useEffect, useState } from "react";
+import { StyleSheet } from "react-native";
 import { logger, safeError } from "@/services/logger";
 import { Stack } from "expo-router";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as SplashScreen from "expo-splash-screen";
@@ -38,6 +40,9 @@ import RequiredStepsGate from "@/components/required-steps/RequiredStepsGate";
 import { useFullScreenGateShown } from "@/components/common/FullScreenGate";
 import { ErrorBoundary, RouteTracker } from "@/components/ErrorBoundary";
 import { stackScreenOptions } from "@/lib/navigation/screenOptions";
+import { SideMenuProvider } from "@/components/shell/SideMenuContext";
+import { SideMenuHost } from "@/components/shell/SideMenuHost";
+import { DrawerMenu } from "./(tabs)/_components/DrawerMenu";
 
 
 // Initialize Sentry as early as possible. No-ops in Expo Go or when
@@ -166,6 +171,7 @@ export default function RootLayout() {
   // router.push daha yapılırsa aynı ekran iki kez açılır.
 
   return (
+    <GestureHandlerRootView style={styles.root}>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <LocaleProvider>
@@ -177,10 +183,17 @@ export default function RootLayout() {
           {/* Native header HİÇ açılmaz (üst bar JS'te, tek bileşen); geçiş animasyonu tüm Stack'lerde
               aynı (`stackScreenOptions`). Ölü headerStyle/headerTintColor seçenekleri kaldırıldı:
               biri native header'ı açarsa sessizce turuncu/beyaz native başlık çıkarıyordu. */}
-          <Stack screenOptions={stackScreenOptions}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="(auth)" />
-          </Stack>
+          <SideMenuProvider>
+            <Stack screenOptions={stackScreenOptions}>
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="(auth)" />
+            </Stack>
+            {/* Ana Sayfa yan menüsü (hamburger): Stack'in üstünde, AlertDialog/Toast'un altında.
+                İçerik (DrawerMenu) yalnız menü açıkken bağlanır. */}
+            <SideMenuHost>
+              <DrawerMenu />
+            </SideMenuHost>
+          </SideMenuProvider>
           {/* Global mesaj socket köprüsü (#77) — provider altında setQueryData için. */}
           <MessagingSocketBridge />
           <CartMergeBridge />
@@ -208,5 +221,10 @@ export default function RootLayout() {
         </LocaleProvider>
       </QueryClientProvider>
     </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});

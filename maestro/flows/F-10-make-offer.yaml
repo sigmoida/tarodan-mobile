@@ -87,9 +87,8 @@ env:
 - assertVisible:
     text: ".*gönderildi.*"
 - assertNotVisible: ".*Hata.*"
-# Profil → Tekliflerim → Verdiğim Teklifler
-- tapOn:
-    id: "tab-profile"
+# Yan menü → Tekliflerim → Verdiğim Teklifler
+- runFlow: ../subflows/open-side-menu.yaml
 - scrollUntilVisible:
     element:
       id: "profile-offers-link"

@@ -1,11 +1,12 @@
 /**
- * Profil menüsü (web ProfileSidebar'ın gruplu yapısı):
+ * Profil menüsü — yalnız profille ilgili grup (Hesap) + çıkış:
  *  - I2 regresyonu: "Kurumsal Başvuru" yalnızca kurumsal hesaplarda (companyName + taxId) görünür.
  *    Bireysel kullanıcıda tıklayınca useBusinessApplication 400/404 alıyor ve üç boş sekme gösteriyordu.
- *  - Grup başlıkları web `profile.sidebar.*` etiketleri; sayaç rozeti danger-500 (bekleyen teklif/takas).
+ *  - Diğer gruplar (Alışveriş, Finans, …) Ana Sayfa yan menüsünde: DrawerMenu.test.tsx.
  */
 import React from 'react';
 import { screen } from '@testing-library/react-native';
+import i18n from '@/i18n/config';
 import { renderWithProviders } from '@/test-utils';
 import { ProfileMenuSections } from '../ProfileSections';
 
@@ -29,29 +30,32 @@ it('kurumsal hesapta "Kurumsal Başvuru" öğesini gösterir', () => {
   expect(screen.getByTestId('settings-business-application')).toBeTruthy();
 });
 
-it('web ProfileSidebar grup başlıklarını gösterir', () => {
+it('yalnız Hesap grubunu gösterir; yan menü grupları profilde yok', () => {
   renderWithProviders(<ProfileMenuSections f={f} />);
-  // overline varyantı büyük harfe çevirir ama metin düğümü özgün kalır.
-  for (const title of ['Alışveriş', 'Finans', 'Koleksiyon', 'Analiz', 'İletişim', 'Hesap']) {
-    expect(screen.getByText(title)).toBeTruthy();
+  expect(screen.getByText('Hesap')).toBeTruthy();
+  for (const title of ['Alışveriş', 'Finans', 'Koleksiyon', 'Analiz', 'İletişim', 'Bilgi ve Yasal']) {
+    expect(screen.queryByText(title)).toBeNull();
+  }
+  for (const id of ['profile-orders-link', 'profile-offers-link', 'profile-payments-link', 'profile-info-about-link']) {
+    expect(screen.queryByTestId(id)).toBeNull();
   }
 });
 
-it('bekleyen teklif/takas sayaçlarını satırda rozet olarak gösterir (99+ sınırı)', () => {
-  renderWithProviders(
-    <ProfileMenuSections f={f} badges={{ pendingOffers: 3, pendingTrades: 120 }} />,
-  );
-  expect(screen.getByTestId('profile-offers-link-badge')).toBeTruthy();
-  expect(screen.getByText('3')).toBeTruthy();
-  expect(screen.getByText('99+')).toBeTruthy();
-});
-
-it('sayaç 0 ise rozet çizilmez', () => {
-  renderWithProviders(
-    <ProfileMenuSections f={f} badges={{ pendingOffers: 0, pendingTrades: 0 }} />,
-  );
-  expect(screen.queryByTestId('profile-offers-link-badge')).toBeNull();
-  expect(screen.queryByTestId('profile-trades-link-badge')).toBeNull();
+it('hesap ayarları satırları profilde kalır (adresler, banka hesabı, güvenlik, bildirim, dil, engellenenler)', () => {
+  renderWithProviders(<ProfileMenuSections f={f} />);
+  for (const key of [
+    'mobile.settingsAddresses',
+    'mobile.settingsBankAccount',
+    'profile.sidebar.guvenlik',
+    'mobile.settingsNotifications',
+    'mobile.settingsLanguage',
+    'profile.sidebar.engellenenler',
+  ] as const) {
+    expect(screen.getByText(i18n.t(key))).toBeTruthy();
+  }
+  expect(screen.getByTestId('profile-language-link')).toBeTruthy();
+  expect(screen.getByTestId('profile-blocked-users-link')).toBeTruthy();
+  expect(screen.getByTestId('profile-account-newsletter-link')).toBeTruthy();
 });
 
 it('çıkış satırı kalır', () => {

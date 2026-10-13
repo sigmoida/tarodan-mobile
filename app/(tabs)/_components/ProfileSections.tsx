@@ -6,7 +6,7 @@ import { Avatar, Badge, Button, Divider, Text, theme, Icon } from '@/ui';
 
 import { buildAvatarUrl } from '@/lib/api';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
-import { buildProfileMenuGroups, type ProfileBadgeKey, type ProfileMenuItem } from '../_lib/profileMenu';
+import { buildProfileMenuGroups, selectProfileSections, type ProfileMenuItem } from '../_lib/profileMenu';
 import type { ProfileController } from '../_hooks/useProfile';
 
 const { colors, spacing, radiusRole, typography, minTouchTarget } = theme;
@@ -73,14 +73,9 @@ export function ProfileCard({ f }: SectionProps) {
 }
 
 // ---------------------------------------------------------------------------
-// Menü satırı (ikonsuz) — web ProfileSidebar bağlantısı: etiket + sayaç rozeti
+// Menü satırı (ikonsuz) — web ProfileSidebar bağlantısı: etiket + metin rozeti
 // ---------------------------------------------------------------------------
-interface MenuRowProps {
-  item: ProfileMenuItem;
-  count?: number;
-}
-
-function MenuRow({ item, count = 0 }: MenuRowProps) {
+function MenuRow({ item }: { item: ProfileMenuItem }) {
   const primary = item.tone === 'primary';
   return (
     <Pressable
@@ -97,25 +92,17 @@ function MenuRow({ item, count = 0 }: MenuRowProps) {
           {item.rightBadge}
         </Badge>
       ) : null}
-      {count > 0 ? (
-        <Badge variant="danger" appearance="solid" size="sm" testID={item.testID ? `${item.testID}-badge` : undefined}>
-          {count > 99 ? '99+' : String(count)}
-        </Badge>
-      ) : null}
     </Pressable>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Gruplu menü + çıkış + hesabı sil
+// Profille ilgili menü (yalnız Hesap grubu) + çıkış. Diğer gruplar Ana Sayfa yan menüsünde.
 // ---------------------------------------------------------------------------
 export function ProfileMenuSections({
   f,
-  badges,
   isBusiness,
 }: SectionProps & {
-  /** Bekleyen iş sayaçları (`useHomeBadges`). Verilmezse rozet çizilmez. */
-  badges?: Partial<Record<ProfileBadgeKey, number>>;
   /** Kurumsal hesap mı (companyName + taxId var) — "Kurumsal Başvuru" satırını gösterir. */
   isBusiness?: boolean;
 }) {
@@ -123,7 +110,7 @@ export function ProfileMenuSections({
   // Dil değişince etiketler de değişsin diye liste `t`'ye bağlı kuruluyor.
   const groups = React.useMemo(
     () =>
-      buildProfileMenuGroups(t, {
+      selectProfileSections(buildProfileMenuGroups(t, {
         isBusiness: !!isBusiness,
         // iOS'ta abonelik satılmıyor (Apple 2.1(b)): ücretsiz kullanıcı "Üyelik Planı" ve
         // "Aboneliğim" girişlerini görmez. Ücretli üye görür — iOS'ta aboneliğini iptal
@@ -132,7 +119,7 @@ export function ProfileMenuSections({
         isPaidTier: f.isPaidTier,
         tierLabel: f.tierLabel,
         isBusinessTier: f.effectiveTier.toLowerCase() === 'business',
-      }),
+      })),
     [t, isBusiness, f.isPaidTier, f.tierLabel, f.effectiveTier],
   );
   return (
@@ -143,11 +130,7 @@ export function ProfileMenuSections({
             {group.title}
           </Text>
           {group.items.map((item) => (
-            <MenuRow
-              key={item.key}
-              item={item}
-              count={item.badgeKey ? (badges?.[item.badgeKey] ?? 0) : 0}
-            />
+            <MenuRow key={item.key} item={item} />
           ))}
         </View>
       ))}

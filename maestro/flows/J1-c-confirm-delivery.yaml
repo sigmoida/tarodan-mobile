@@ -62,9 +62,8 @@ tags:
       - tapOn:
           text: "Şimdi Değil"
           optional: true
-# 9. Siparişlerim → Teslim Aldım
-- tapOn:
-    id: "tab-profile"
+# 9. Yan menü → Siparişlerim → Teslim Aldım
+- runFlow: ../subflows/open-side-menu.yaml
 - extendedWaitUntil:
     visible:
       id: "profile-orders-link"

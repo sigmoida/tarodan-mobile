@@ -4062,7 +4062,8 @@
     "maintenanceTitle": "Bakım Çalışması",
     "maintenanceDescription": "Şu an bakım çalışması yapılıyor. Kısa süre sonra tekrar hizmetinizdeyiz.",
     "pagePlatformFee": "Platform Hizmet Bedeli",
-    "splashTagline": "İkinci elin güvenli adresi"
+    "splashTagline": "İkinci elin güvenli adresi",
+    "menuInfoLegal": "Bilgi ve Yasal"
   },
   "refund": {
     "cancel": {

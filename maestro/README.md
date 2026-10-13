@@ -168,8 +168,9 @@ maestro/
     ├── open-tarodan.yaml      # Expo Go → Tarodan launch
     ├── login-as.yaml          # Profil → Giriş Yap formu (zeynep, hard-coded)
     ├── logout.yaml            # Profil → Çıkış Yap
-    ├── open-first-order.yaml  # Profil → Siparişlerim → ilk kart
-    ├── open-first-trade.yaml  # Profil → Takaslarım → liste
+    ├── open-side-menu.yaml    # Ana Sayfa → hamburger (`home-menu-button`) → yan menü (`side-menu`); Alışveriş/Finans/Koleksiyon/Analiz/Destek/Bilgi satırları artık burada
+    ├── open-first-order.yaml  # Yan menü → Siparişlerim → ilk kart
+    ├── open-first-trade.yaml  # Yan menü → Takaslarım → liste
     └── open-search.yaml       # Üst bar arama alanına dokun → /search (Ara sekmesi yok)
 ```
 

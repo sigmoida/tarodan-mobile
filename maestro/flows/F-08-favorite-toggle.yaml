@@ -41,18 +41,10 @@ env:
 - tapOn:
     id: "product-favorite-button"
     optional: true
-# Profil → Favoriler
+# Yan menü → Favoriler (menünün en üstünde sabit satır)
+- runFlow: ../subflows/open-side-menu.yaml
 - tapOn:
-    id: "tab-profile"
-- scrollUntilVisible:
-    element:
-      text: "Favorilerim|Favori"
-    direction: DOWN
-    timeout: 10000
-    optional: true
-- tapOn:
-    text: "Favorilerim|Favori"
-    optional: true
+    id: "profile-favorites-link"
 - extendedWaitUntil:
     visible:
       text: "Favoriler|Favori"

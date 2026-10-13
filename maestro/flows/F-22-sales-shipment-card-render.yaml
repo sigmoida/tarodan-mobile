@@ -5,13 +5,9 @@ tags:
   - regression
 ---
 - runFlow: ../subflows/open-tarodan.yaml
+- runFlow: ../subflows/open-side-menu.yaml
 - tapOn:
-    id: "tab-profile"
-- runFlow:
-    when:
-      visible: "Satışlarım"
-    commands:
-      - tapOn: "Satışlarım"
+    id: "profile-sales-link"
 - extendedWaitUntil:
     visible:
       text: "Sipariş"
