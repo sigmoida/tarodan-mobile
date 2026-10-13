@@ -34,6 +34,7 @@ const build = (o: {
   appIdentifier?: string;
   createdAt?: string;
   message?: string;
+  commit?: string;
 }): Build => {
   const platform = o.platform ?? 'IOS';
   const profile = o.profile ?? 'staging';
@@ -52,6 +53,7 @@ const build = (o: {
     updateChannel: { id: 'c', name: o.channel ?? (profile === 'production' ? 'production' : 'staging') },
     createdAt: o.createdAt ?? `${TODAY}T00:00:00.000Z`,
     ...(o.message ? { message: o.message } : {}),
+    ...(o.commit ? { gitCommitHash: o.commit } : {}),
   };
 };
 
@@ -69,6 +71,8 @@ type RunOpts = {
   builds?: Build[];
   submissions?: Submission[];
   buildResult?: unknown;
+  /** Ardışık sorgular için build listeleri (FAKE_BUILDS_SEQ): her biri bir sorguya. */
+  buildsSeq?: Build[][];
 };
 
 function run(args: string[], opts: RunOpts = {}) {
@@ -80,6 +84,11 @@ function run(args: string[], opts: RunOpts = {}) {
   if (opts.builds) fs.writeFileSync(path.join(dir, 'builds.json'), JSON.stringify(opts.builds));
   if (opts.submissions) fs.writeFileSync(path.join(dir, 'submissions.json'), JSON.stringify(opts.submissions));
   if (opts.buildResult) fs.writeFileSync(path.join(dir, 'build-result.json'), JSON.stringify(opts.buildResult));
+  const seqEnv: Record<string, string> = {};
+  if (opts.buildsSeq) {
+    opts.buildsSeq.forEach((b, i) => fs.writeFileSync(path.join(dir, `seq-${i}.json`), JSON.stringify(b)));
+    seqEnv.FAKE_BUILDS_SEQ = opts.buildsSeq.map((_, i) => `seq-${i}.json`).join(',');
+  }
 
   // Runner'dan sızabilecek değişkenleri temizle; testler kendi env'ini verir.
   const base = { ...process.env };
@@ -107,6 +116,7 @@ function run(args: string[], opts: RunOpts = {}) {
       FAKE_DIR: dir,
       GITHUB_OUTPUT: outFile,
       GITHUB_STEP_SUMMARY: summaryFile,
+      ...seqEnv,
       ...opts.env,
     },
   });
@@ -387,10 +397,10 @@ describe('release.sh build-state — yalnız bitmiş + gönderilmiş build "bina
 });
 
 describe('release.sh plan — bekleyen build: ikinci build yok; staging OTA yine çıkar, production bekler', () => {
-  it('staging: derlenen build varken → OTA (build bitince bu güncellemeyi alır), uyarısız', () => {
+  it('staging: derlenen build varken → OTA, build bitince yayınlanmak üzere (await), uyarısız', () => {
     const r = plan('staging', { env: { PLATFORM: 'ios' }, builds: [build({ id: 'b1', status: 'IN_PROGRESS' })] });
     expect(r.outputs.ios).toBe('ota');
-    expect(JSON.parse(r.outputs.ota_matrix)).toEqual([{ platform: 'ios', fp: 'fp-ios-preview' }]);
+    expect(JSON.parse(r.outputs.ota_matrix)).toEqual([{ platform: 'ios', fp: 'fp-ios-preview', await: true }]);
     expect(r.all).toContain('::notice::ios: bu runtime');
     expect(r.all).not.toContain('ULAŞMAYABİLİR');
     expect(r.easCalls('build')).toHaveLength(0);
@@ -400,6 +410,13 @@ describe('release.sh plan — bekleyen build: ikinci build yok; staging OTA yine
     const b = build({ id: 'b1' });
     const r = plan('staging', { env: { PLATFORM: 'ios' }, builds: [b], submissions: [submission('b1', 'IN_PROGRESS')] });
     expect(r.outputs.ios).toBe('ota');
+    expect(JSON.parse(r.outputs.ota_matrix)[0].await).toBe(true);
+  });
+
+  it('staging: binary hazırsa OTA beklemez (await yok)', () => {
+    const ios = shipped('ios-1');
+    const r = plan('staging', { env: { PLATFORM: 'ios' }, builds: [ios.b], submissions: [ios.s] });
+    expect(JSON.parse(r.outputs.ota_matrix)).toEqual([{ platform: 'ios', fp: 'fp-ios-preview' }]);
   });
 
   it('production (hotfix): derlenen build varken → wait + uyarı, OTA yok', () => {
@@ -424,13 +441,19 @@ describe('release.sh plan — bekleyen build: ikinci build yok; staging OTA yine
     expect(r.all).toContain('ULAŞMAYABİLİR');
   });
 
-  it('recheck staging: arada başlamış build → ikinci build yok, OTA', () => {
+  it('recheck staging: arada başlamış build → ikinci build yok, OTA o build bitince (await)', () => {
     const r = run(['recheck', 'ios', 'staging'], {
       env: { FP: 'fp-ios-preview' },
       builds: [build({ id: 'b1', status: 'IN_QUEUE' })],
     });
-    expect(r.outputs.action).toBe('ota');
+    expect(r.outputs).toMatchObject({ action: 'ota', await: 'true' });
     expect(r.easCalls('build')).toHaveLength(0);
+  });
+
+  it('recheck staging: arada gönderilmiş binary → OTA beklemeden', () => {
+    const ios = shipped('ios-1');
+    const r = run(['recheck', 'ios', 'staging'], { env: { FP: 'fp-ios-preview' }, builds: [ios.b], submissions: [ios.s] });
+    expect(r.outputs).toMatchObject({ action: 'ota', await: 'false' });
   });
 
   it('recheck production: arada başlamış build → skip (onaysız OTA yok)', () => {
@@ -456,9 +479,30 @@ describe('release.sh plan — production: sürüm merge\'ü her zaman store buil
       expect(r.outputs).toMatchObject({ ios: 'blocked', ota_matrix: '[]', blocked: 'ios', decided: 'true' });
       expect(r.all).toContain("::error::ios: sürüm merge'ü");
       expect(r.all).toContain('mode=build');
-      expect(r.all).toContain('hotfix/');
+      // master artık yayınlanmamış kod taşır: OTA önerilmez, aksine uyarılır.
+      expect(r.all).not.toContain('-f mode=ota');
+      expect(r.all).toContain('DİKKAT');
     },
   );
+
+  it('sürüm koşusu yeniden çalıştırılınca kendi build\'ini "son sürüm" saymaz (skip, blocked değil)', () => {
+    // Bu commit'ten (SHA) alınmış 1.0.5 build'i bitip gönderilmiş; önceki sürüm 1.0.4.
+    const mine = shipped('mine', { profile: 'production', commit: 'abcdef1234' });
+    const prev = build({ id: 'prev', profile: 'production', runtime: 'eski', appVersion: '1.0.4', commit: 'eski' });
+    const r = plan('production', {
+      env: { PLATFORM: 'ios', SOURCE_REF: 'development' },
+      builds: [mine.b, prev],
+      submissions: [mine.s],
+    });
+    expect(r.outputs).toMatchObject({ ios: 'skip', blocked: '', ota_matrix: '[]' });
+    expect(r.all).toContain('zaten gönderilmiş');
+  });
+
+  it('sürüm: başka bir commit aynı sürümle build almışsa yine blocked (sürüm artmadı)', () => {
+    const other = shipped('other', { profile: 'production', commit: 'baska' });
+    const r = plan('production', { env: { PLATFORM: 'ios', SOURCE_REF: 'development' }, builds: [other.b], submissions: [other.s] });
+    expect(r.outputs.ios).toBe('blocked');
+  });
 
   it('sürüm: native değişti, sürüm artmadı → blocked', () => {
     const r = plan('production', { env: { PLATFORM: 'ios', SOURCE_REF: 'development' }, builds: [build({ id: 'x', profile: 'production', runtime: 'eski' })] });
@@ -504,6 +548,8 @@ describe('release.sh plan — production: sürüm merge\'ü her zaman store buil
       { platform: 'android', fp: 'fp-android-production' },
     ]);
     expect(r.summary).toContain('`hotfix/odeme` → hotfix');
+    // Gönderilmiş ≠ yayınlanmış: canlıdaki eski sürüme inmeyebileceği söylenir.
+    expect(r.all).toContain('canlıdaki önceki sürümün kullanıcıları bu düzeltmeyi ALMAZ');
   });
 
   it('hotfix: native değişti, sürüm artmadı → blocked (VERSION-GATE)', () => {
@@ -744,4 +790,54 @@ describe('release.sh — Android paket doğrulaması (yanlış Play uygulamasın
       expect(r.easCalls('submit')).toHaveLength(0);
     },
   );
+});
+
+describe('release.sh await-binary — staging OTA\'sı derlenen build\'den SONRA çıkar', () => {
+  const FP = 'fp-ios-preview';
+  const pending = [build({ id: 'b1', status: 'IN_PROGRESS' })];
+  const fast = { AWAIT_INTERVAL: '0' };
+  const runtimeQueries = (r: ReturnType<typeof run>) =>
+    r.easCalls('build:list').filter((l) => l.includes('--runtime-version'));
+
+  it('build bitip gönderilince döner', () => {
+    const done = shipped('b1');
+    const r = run(['await-binary', 'ios', 'staging', FP], {
+      env: fast,
+      buildsSeq: [pending, pending, [done.b]],
+      submissions: [done.s],
+    });
+    expect(r.status).toBe(0);
+    expect(runtimeQueries(r)).toHaveLength(3);
+    expect(r.all).toContain('OTA yayınlanıyor');
+    expect(r.all).not.toContain('::warning::');
+  });
+
+  it('build başarısız olursa da döner (OTA zararsız: binary yok)', () => {
+    const failed = build({ id: 'b1', status: 'ERRORED' });
+    const r = run(['await-binary', 'ios', 'staging', FP], { env: fast, buildsSeq: [pending, [failed]] });
+    expect(r.status).toBe(0);
+    expect(runtimeQueries(r)).toHaveLength(2);
+  });
+
+  it('süre dolarsa uyarıyla döner, sonsuza dek beklemez', () => {
+    const r = run(['await-binary', 'ios', 'staging', FP], { env: { ...fast, AWAIT_TRIES: '3' }, builds: pending });
+    expect(r.status).toBe(0);
+    expect(runtimeQueries(r)).toHaveLength(3);
+    expect(r.all).toContain('::warning::ios: runtime fp-ios-preview');
+  });
+
+  it('Android kapalıyken ad-hoc APK (preview) build\'ini de bekler', () => {
+    const apk = (status: string) => [build({ id: 'apk', platform: 'ANDROID', profile: 'preview', status })];
+    const r = run(['await-binary', 'android', 'staging', 'fp-android-preview'], {
+      env: fast,
+      buildsSeq: [apk('IN_PROGRESS'), apk('IN_PROGRESS'), apk('FINISHED')],
+    });
+    expect(r.status).toBe(0);
+    expect(r.all).toContain('android: bu runtime');
+    expect(runtimeQueries(r).some((l) => l.includes('--build-profile preview'))).toBe(true);
+  });
+
+  it('fingerprint boşsa durur', () => {
+    expect(run(['await-binary', 'ios', 'staging', '']).status).not.toBe(0);
+  });
 });

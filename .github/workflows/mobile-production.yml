@@ -48,11 +48,18 @@ name: Mobile Production (CI → release = store build · hotfix = approved OTA)
 on:
   push:
     branches: [master]
+    # Yalnız bunları değiştiren bir merge koşmaz: uygulamaya girmezler. Sürüm
+    # merge'ü her zaman store build'i istediği için, aksi halde salt test/CI
+    # değişikliği "sürümü artır" hatasıyla kırmızı olurdu.
     paths-ignore:
       - 'docs/**'
       - '**/*.md'
       - 'maestro/**'
       - '.github/**'
+      - 'scripts/ci/**'
+      - '**/__tests__/**'
+      - '**/*.test.ts'
+      - '**/*.test.tsx'
   workflow_dispatch:
     inputs:
       mode:
@@ -136,10 +143,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           SHA: ${{ github.sha }}
+        # PR, merge commit'iyle eşleşerek bulunur (merge_commit_sha == push'un sha'sı;
+        # merge, squash ve rebase'te de doğru). commits/<sha>/pulls KULLANILMAZ:
+        # commit varsayılan dala (development) back-merge ile girince o uç yalnız
+        # development PR'ını döndürür ve yeniden çalıştırılan bir hotfix koşusu
+        # sürüm sanılırdı. Yalnız bu depodaki dallar sayılır (fork PR'ı hotfix sayılmaz).
         run: |
-          ref="$(gh api "repos/$REPO/commits/$SHA/pulls" \
-            --jq '[.[] | select(.base.ref == "master" and .merged_at != null)][0].head.ref // ""' 2>/dev/null)" || ref=""
-          echo "Merge edilen PR'ın dalı: '${ref:-okunamadı}'"
+          err="$(mktemp)"
+          if ! ref="$(gh api "repos/$REPO/pulls?state=closed&base=master&sort=updated&direction=desc&per_page=50" \
+            --jq '[.[] | select(.merge_commit_sha == env.SHA and .head.repo.full_name == env.REPO)][0].head.ref // ""' 2>"$err")"; then
+            echo "::warning::Merge edilen PR okunamadı — merge SÜRÜM sayılacak. gh: $(head -c 500 "$err")"
+            ref=""
+          fi
+          echo "Merge edilen PR'ın dalı: '${ref:-bulunamadı}'"
           echo "ref=$ref" >> "$GITHUB_OUTPUT"
       - name: Decide per platform + VERSION-GATE
         id: decide

@@ -50,10 +50,12 @@ Workflow her yayın öncesi, platform başına:
    - **available** — bitmiş **ve** gönderimi başarılı (TestFlight / Play) build;
      gönderim gerektirmeyen `preview` APK'sı için bitmiş olması yeter → **OTA**
    - **pending** — kuyrukta / derleniyor / bitti ama gönderimi sürüyor →
-     ikinci build **yok**. Staging'de **OTA yine çıkar**: gelen binary aynı
-     runtime'ı taşır ve bitince bu güncellemeyi alır (expo-updates kendi gömülü
-     JS'inden eski bir güncellemeyi uygulamaz). Production'da **bekle**: OTA
-     onaylıdır, binary'si henüz olmayan runtime'a onay istenmez; uyarı basar.
+     ikinci build **yok**. Staging'de **OTA yine çıkar**, ama o build bitene
+     kadar bekleyip (`release.sh await-binary`, en çok 100 dk) yayınlanır:
+     expo-updates bir güncellemeyi yalnız zaman damgası (commitTime) gömülü
+     JS'inkinden yeniyse uygular, build anından önce yayınlanan bir OTA o build'e
+     inmezdi. Production'da **bekle**: OTA onaylıdır, binary'si henüz olmayan
+     runtime'a onay istenmez; uyarı basar.
    - **none** — hata, iptal, gönderimi başarısız ya da hiç gönderilmemiş →
      **build**
    Belirsiz her şey (tanınmayan CLI JSON'u dahil) "binary var" sayılmaz.
@@ -97,8 +99,9 @@ ci (lint + tsc + test)
   da aynı runtime'ın daha yeni kodudur). Başlamış bir **build/submit asla iptal
   edilmez**. Build job'ı kilidi
   aldıktan sonra yeniden sorgular (`release.sh recheck`); arada aynı runtime
-  için bir build başladıysa ya da gönderildiyse ikinci build almaz, OTA yayınlar.
-  Böylece build sürerken gelen bir push'un JS'i de testçilere ulaşır.
+  için bir build başladıysa ya da gönderildiyse ikinci build almaz, OTA yayınlar
+  (build sürüyorsa önce onun bitmesini bekler). Böylece build sürerken gelen bir
+  push'un JS'i de testçilere ulaşır.
 - **Ref koruması:** elle tetikleme yalnız `development`'ta; `mode=apk` ayrıca
   `vars.STAGING_APK_BRANCHES`'teki dallardan (bkz. aşağı).
 - Submit `--latest` ile değil **build id** ile yapılır (paralel biten başka
@@ -192,7 +195,16 @@ build'inin `appVersion`'ından büyük** olmalı (`sort -V`). Değilse o platfor
 - **Aynı sürümün yeni build'i** (ör. App Review reddetti, sürüm henüz yayınlanmadı):
   `gh workflow run mobile-production.yml --ref master -f mode=build -f platform=ios`
   (`mode=build` kapıyı yalnız uyarıya çevirir).
-- **Acil JS düzeltmesi:** `hotfix/<ad>` dalından PR (onaylı OTA) ya da `mode=ota`.
+- Merge yalnız uygulamaya girmeyen dosyaları değiştirdiyse hata yok sayılabilir
+  (salt test/CI/belge merge'leri zaten koşu başlatmaz, bkz. `paths-ignore`).
+
+> ⚠️ Kapı takıldığında master **yayınlanmamış kod** taşır. Bu durumda master'dan
+> çıkan her OTA (`hotfix/*` merge'ü ya da `mode=ota`) o kodu da canlıya götürür.
+> Önce sürümü artırıp merge'ü tamamla.
+
+Koşu yeniden çalıştırılırsa (ör. bir platform takıldı → "Re-run"), o commit'in
+kendi aldığı build kıyasa girmez: zaten gönderilmiş platform `skip` olur, yanlış
+"sürüm artmadı" hatası çıkmaz.
 
 Kıyas push tabanıyla değil son production build'iyle yapılır; böylece iptal
 edilmiş bir önceki koşu ya da çok commit'li bir merge kapıyı yanıltamaz. Build
@@ -214,7 +226,15 @@ yapılır** — workflow bunu yapmaz.
 da elle `mode=ota` ile oluşur; sürüm merge'ü onu hiç oluşturmaz. İki platform
 için iki job beklerse tek "Review deployments" onayı ikisini de açar. Daha yeni
 bir master push'u, başka bir runtime'ın ya da platformun onay bekleyen OTA'sını
-**iptal etmez**. OTA yalnız aynı runtime'lı (canlıdaki) binary'lere iner.
+**iptal etmez**.
+
+**Gönderilmiş ≠ yayınlanmış.** OTA yalnız aynı runtime'lı binary'ye iner; plan
+"binary var" derken App Store Connect / Play'e **gönderilmiş** build'i kastediyor.
+master'a yeni bir sürüm merge edilip henüz mağazada yayınlanmadıysa (ör.
+incelemede), master'dan çıkan hotfix OTA'sı yalnız o yeni sürüme iner; canlıdaki
+önceki sürümün kullanıcıları düzeltmeyi **almaz** (plan bunu uyarı olarak yazar).
+O arada acil bir canlı düzeltme gerekiyorsa yol yeni sürümün yayınlanmasıdır
+(gerekirse App Store'dan hızlandırılmış inceleme istenir).
 
 ### Elle tetikleme
 
@@ -242,6 +262,8 @@ Başka bir ref'ten tetiklenirse `plan` durur (`release.sh guard-ref`; ayrıca
 2. `hotfix/<ad>` → `master` PR'ı aç (guard izin verir), merge et. Yalnız JS
    değiştiyse production OTA'sı hazırlanır ve **onayını bekler** (Actions →
    koşu → "Review deployments"). Native değiştiyse sürümü artır; store build'i alınır.
+   OTA, master'daki sürümün binary'sine iner: master'da henüz yayınlanmamış bir
+   sürüm varsa canlı kullanıcılara ulaşmaz (yukarıda "Gönderilmiş ≠ yayınlanmış").
 3. Merge sonrası `master-flow.yml` → **`Hotfix back-merge PR (master → development)`**
    job'ı master'ın merge commit'inden `backmerge/<ad>-<PR no>` dalını açar ve
    `development`'a PR açar. **Çakışma olsa da PR açılır**; çakışmayı o dalda

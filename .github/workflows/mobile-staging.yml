@@ -11,8 +11,9 @@ name: Mobile Staging (CI → fingerprint → OTA or build)
 #                (release.sh build-state):
 #                  available → OTA   (bitmiş VE TestFlight/Play'e gönderilmiş build)
 #                  pending   → OTA   (aynı runtime'ın build'i derleniyor /
-#                              gönderiliyor: ikinci build alınmaz; build bitince
-#                              bu push'un güncellemesini alır)
+#                              gönderiliyor: ikinci build alınmaz; OTA job'u o
+#                              build bitene kadar bekler, sonra yayınlar —
+#                              release.sh await-binary)
 #                  none      → build (yeni native binary gerekiyor)
 #                Platformlar AYRI değerlendirilir: iOS OTA alırken Android build
 #                alabilir (fingerprint platform başına farklıdır).
@@ -184,12 +185,14 @@ jobs:
     if: ${{ !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.ota_matrix != '[]' && needs.plan.outputs.ota_matrix != '' }}
     strategy:
       fail-fast: false
-      # Platform başına bir job: [{platform, fp}] (release.sh plan).
+      # Platform başına bir job: [{platform, fp, await?}] (release.sh plan).
       matrix:
         include: ${{ fromJSON(needs.plan.outputs.ota_matrix) }}
     runs-on: ubuntu-latest
     environment: staging
-    timeout-minutes: 30
+    # await: aynı runtime'ın build'i + TestFlight gönderimi bitene kadar bekleyebilir
+    # (gönderim bir kez 53 dk sürdü); bekleme release.sh'de 100 dk ile sınırlı.
+    timeout-minutes: 120
     # Kuyruk platform + runtime BAŞINA ve iptalsiz: başka runtime'ın (ör. native
     # değişiklik getiren) ya da diğer platformun push'u bu runtime'ın bekleyen
     # (production'da onay bekleyen) OTA'sını İPTAL ETMEZ. Aynı runtime'ın OTA'ları
@@ -203,6 +206,15 @@ jobs:
       - uses: ./.github/actions/setup-eas
         with:
           expo-token: ${{ secrets.EXPO_TOKEN }}
+      - name: Wait for the in-flight build of this runtime
+        # Plan bu runtime'ın build'ini derlenirken gördü (pending). OTA o build'den
+        # SONRA çıkmalı: expo-updates yalnız gömülü JS'inden yeni (commitTime)
+        # güncellemeyi uygular.
+        if: ${{ matrix.await }}
+        env:
+          OTA_PLATFORM: ${{ matrix.platform }}
+          FP: ${{ matrix.fp }}
+        run: scripts/ci/release.sh await-binary "$OTA_PLATFORM" staging "$FP"
       - name: Publish OTA to staging
         # Env eas.json `preview` profilinden yüklenir (release.sh publish-ota) —
         # `eas update` profil env'ini kendisi okumaz. preview ve staging profillerinin
@@ -237,7 +249,13 @@ jobs:
           MODE: ${{ inputs.mode || 'auto' }}
           MAX_BUILDS_PER_DAY: ${{ vars.STAGING_MAX_BUILDS_PER_DAY || '2' }}
         run: scripts/ci/release.sh recheck ios staging
-      - name: Publish OTA instead (build already exists for this runtime)
+      - name: Wait for the in-flight build of this runtime
+        # recheck aynı runtime'ın build'ini derlenirken buldu: OTA o build'den sonra.
+        if: steps.recheck.outputs.action == 'ota' && steps.recheck.outputs.await == 'true'
+        env:
+          FP: ${{ needs.plan.outputs.ios_fp }}
+        run: scripts/ci/release.sh await-binary ios staging "$FP"
+      - name: Publish OTA instead (build exists or is in flight for this runtime)
         if: steps.recheck.outputs.action == 'ota'
         env:
           MSG: ${{ needs.plan.outputs.message }}
@@ -271,7 +289,13 @@ jobs:
           MODE: ${{ inputs.mode || 'auto' }}
           MAX_BUILDS_PER_DAY: ${{ vars.STAGING_MAX_BUILDS_PER_DAY || '2' }}
         run: scripts/ci/release.sh recheck android staging
-      - name: Publish OTA instead (build already exists for this runtime)
+      - name: Wait for the in-flight build of this runtime
+        # recheck aynı runtime'ın build'ini derlenirken buldu: OTA o build'den sonra.
+        if: steps.recheck.outputs.action == 'ota' && steps.recheck.outputs.await == 'true'
+        env:
+          FP: ${{ needs.plan.outputs.android_fp }}
+        run: scripts/ci/release.sh await-binary android staging "$FP"
+      - name: Publish OTA instead (build exists or is in flight for this runtime)
         if: steps.recheck.outputs.action == 'ota'
         env:
           MSG: ${{ needs.plan.outputs.message }}
