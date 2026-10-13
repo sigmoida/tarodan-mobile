@@ -89,7 +89,7 @@ const SAMPLE_ITEM = {
 
 async function pressPayButton() {
   await act(async () => {
-    fireEvent.press(screen.getByText(/Onayla ve Öde/));
+    fireEvent.press(screen.getByText('Ödeme Yap'));
   });
 }
 
@@ -103,10 +103,7 @@ async function pressPay() {
   const { queryClient } = renderWithProviders(<CheckoutScreen />);
   await waitFor(() => expect(screen.getByText('Ali Veli')).toBeOnTheScreen());
   fireEvent.press(screen.getByText('Ali Veli'));
-  fireEvent.press(screen.getByText('Devam Et'));
-  await waitFor(() => expect(screen.getByText('Kargo Seçimi')).toBeOnTheScreen());
-  fireEvent.press(screen.getByText('Devam Et'));
-  await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
+  await waitFor(() => expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen());
   const box = screen.queryByTestId('checkout-distance-sales-checkbox');
   if (box) fireEvent.press(box);
   await pressPayButton();

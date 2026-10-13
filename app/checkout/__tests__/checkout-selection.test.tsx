@@ -96,13 +96,10 @@ const line = (productId: string, title: string) => ({
 async function payThrough() {
   await waitFor(() => expect(screen.getByText('Ali Veli')).toBeOnTheScreen());
   fireEvent.press(screen.getByText('Ali Veli'));
-  fireEvent.press(screen.getByText('Devam Et'));
-  await waitFor(() => expect(screen.getByText('Kargo Seçimi')).toBeOnTheScreen());
-  fireEvent.press(screen.getByText('Devam Et'));
-  await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
+  await waitFor(() => expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen());
   acceptDistanceSales();
   await act(async () => {
-    fireEvent.press(screen.getByText(/Onayla ve Öde/));
+    fireEvent.press(screen.getByText('Ödeme Yap'));
   });
 }
 
@@ -135,15 +132,12 @@ describe('Checkout · seçili satırlar ve ödeme sonrası sepet', () => {
     renderWithProviders(<CheckoutScreen />);
     await waitFor(() => expect(screen.getByText('Ali Veli')).toBeOnTheScreen());
     fireEvent.press(screen.getByText('Ali Veli'));
-    fireEvent.press(screen.getByText('Devam Et'));
-    await waitFor(() => expect(screen.getByText('Kargo Seçimi')).toBeOnTheScreen());
-    fireEvent.press(screen.getByText('Devam Et'));
-    await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen());
     // eslint-disable-next-line no-console
 
     acceptDistanceSales();
     await act(async () => {
-      fireEvent.press(screen.getByText(/Onayla ve Öde/));
+      fireEvent.press(screen.getByText('Ödeme Yap'));
     });
 
     await waitFor(() => expect(ordersApi.checkout).toHaveBeenCalled());

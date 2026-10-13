@@ -214,10 +214,10 @@ describe('Kupon → quote sözleşmesi', () => {
     expect(screen.getByTestId('coupon-input')).toBeOnTheScreen();
 
     // Quote kuponsuz yenilenmiş — toplam indirimsiz değere (165,00 TL) döner,
-    // ekran çalışır durumda kalır (hâlâ "Devam Et" ile ilerlenebilir) ve fiyat
-    // hatası ekranı GÖSTERİLMEZ (kuponsuz sonuç önden cache'e yazıldı).
+    // ekran çalışır durumda kalır ("Ödeme Yap" görünür) ve fiyat hatası ekranı
+    // GÖSTERİLMEZ (kuponsuz sonuç önden cache'e yazıldı).
     await waitFor(() => expect(screen.getByText('165,00 TL')).toBeOnTheScreen());
-    expect(screen.getByText('Devam Et')).toBeOnTheScreen();
+    expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen();
     expect(screen.queryByTestId('order-summary-error')).toBeNull();
   });
 

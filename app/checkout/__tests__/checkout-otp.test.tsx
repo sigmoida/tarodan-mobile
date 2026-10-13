@@ -3,9 +3,8 @@
  *
  * Akış:
  * 1. Sepette ürün var, konuk (isAuthenticated=false).
- * 2. Adım 1: misafir bilgileri + teslimat adresi doldur → Devam Et.
- * 3. Adım 2: Devam Et (ödeme adımı doğrulamasız ilerler).
- * 4. Adım 3: "Onayla ve Öde" → sendGuestVerificationCode çağrılır → OTP modal açılır.
+ * 2. Tek sayfa: misafir bilgileri + teslimat adresi doldur.
+ * 3. "Ödeme Yap" → sendGuestVerificationCode çağrılır → OTP modal açılır.
  * 5. 6 haneli kodu gir → "Doğrula ve Öde" → checkoutGuest çağrılır.
  * 6. (Ekstra) 400 hatası aldığında modal açık kalır, hata mesajı görünür.
  */
@@ -201,29 +200,14 @@ describe('Misafir checkout OTP akışı', () => {
     seedCart([{ ...SAMPLE_ITEM, quantity: 2, stock: 5 }]);
     renderWithProviders(<CheckoutScreen />);
 
-    // --- Adım 1: Misafir bilgileri + Teslimat adresi ---
+    // --- Tek sayfa: Misafir bilgileri + Teslimat adresi ---
     fillAllStep1Fields();
+    await waitFor(() => expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen());
 
-    // Devam Et → Step 2
-    fireEvent.press(screen.getByText('Devam Et'));
-
-    // Validasyon hatası yoksa Step 2'ye geçildi ("Devam Et" hala görünür)
-    await waitFor(() => {
-      expect(screen.getByText('Devam Et')).toBeOnTheScreen();
-    });
-
-    // Step 2'de Devam Et → Step 3
-    fireEvent.press(screen.getByText('Devam Et'));
-
-    await waitFor(() => {
-      // Step 3'te "Onayla ve Öde" butonu görünmeli
-      expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen();
-    });
-
-    // --- Adım 3: Onayla ve Öde → OTP gönderilir ---
+    // --- Ödeme Yap → OTP gönderilir ---
     acceptDistanceSales();
     await act(async () => {
-      fireEvent.press(screen.getByText(/Onayla ve Öde/));
+      fireEvent.press(screen.getByText('Ödeme Yap'));
     });
 
     await waitFor(() => {
@@ -290,14 +274,11 @@ describe('Misafir checkout OTP akışı', () => {
 
     fillAllStep1Fields();
 
-    fireEvent.press(screen.getByText('Devam Et'));
-    await waitFor(() => expect(screen.getByText('Devam Et')).toBeOnTheScreen());
-    fireEvent.press(screen.getByText('Devam Et'));
-    await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen());
 
     acceptDistanceSales();
     await act(async () => {
-      fireEvent.press(screen.getByText(/Onayla ve Öde/));
+      fireEvent.press(screen.getByText('Ödeme Yap'));
     });
 
     await waitFor(() => expect(screen.getByTestId('guest-otp-input')).toBeOnTheScreen());
@@ -333,14 +314,11 @@ describe('Misafir checkout OTP akışı', () => {
 
     fillAllStep1Fields();
 
-    fireEvent.press(screen.getByText('Devam Et'));
-    await waitFor(() => expect(screen.getByText('Devam Et')).toBeOnTheScreen());
-    fireEvent.press(screen.getByText('Devam Et'));
-    await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen());
 
     acceptDistanceSales();
     await act(async () => {
-      fireEvent.press(screen.getByText(/Onayla ve Öde/));
+      fireEvent.press(screen.getByText('Ödeme Yap'));
     });
 
     await waitFor(() => expect(screen.getByTestId('guest-otp-input')).toBeOnTheScreen());

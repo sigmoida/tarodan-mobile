@@ -5,7 +5,7 @@
  * N2 — I2 turunda konan kapı NESNE seviyesindeydi: `summary != null ? Number(...)`.
  * `Number(null)` = 0 ve `Number(undefined)` = NaN olduğu için `summary` gelip
  * alanı boş dönen bir yanıt I2'nin öldürdüğü senaryoyu geri getiriyordu:
- * "Onayla ve Öde (0,00 TL)" yazan ETKİN bir buton. Kapı artık alan seviyesinde.
+ * "Ödeme Yap" etiketli ETKİN bir buton + "0,00 TL" toplam. Kapı artık alan seviyesinde.
  *
  * N1 — satır tutarı `item.price * item.quantity` ile İSTEMCİDE çarpılıyordu.
  * Sepetteki `price` ekleme anında donuyor (24 saat) ve ürünlerde kampanya
@@ -87,13 +87,10 @@ const quoteWithSummary = (summary: Record<string, unknown>, items?: unknown[]) =
   },
 });
 
-async function goToStep3() {
+async function goToPay() {
   await waitFor(() => expect(screen.getByText('Ali Veli')).toBeOnTheScreen());
   fireEvent.press(screen.getByText('Ali Veli'));
-  fireEvent.press(screen.getByText('Devam Et'));
-  await waitFor(() => expect(screen.getByText('Kargo Seçimi')).toBeOnTheScreen());
-  fireEvent.press(screen.getByText('Devam Et'));
-  await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
+  await waitFor(() => expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen());
 }
 
 /**
@@ -123,18 +120,19 @@ describe('N2 · tutar alanı sayı değilse tutar YOK sayılır', () => {
     );
 
     renderWithProviders(<CheckoutScreen />);
-    await goToStep3();
+    await goToPay();
 
     // Sorgu hata vermedi (200), yalnız `total` boş. Tutar basılmıyor VE kullanıcıya
     // çıkış yolu veriliyor — "—" satırlarıyla sebepsiz kilitlenmiyor.
     await waitFor(() => expect(screen.getByTestId('order-summary-error')).toBeOnTheScreen());
     expect(screen.queryByText('0,00 TL')).toBeNull();
-    expect(screen.getByText('Onayla ve Öde')).toBeOnTheScreen();
-    expect(screen.queryByText(/Onayla ve Öde \(/)).toBeNull();
+    expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen();
+    // Düğmeye tutar basılmaz (yalnız "Ödeme Yap").
+    expect(screen.queryByText(/Ödeme Yap \(/)).toBeNull();
 
     acceptDistanceSales();
     await act(async () => {
-      fireEvent.press(screen.getByText('Onayla ve Öde'));
+      fireEvent.press(screen.getByText('Ödeme Yap'));
     });
     expect(ordersApi.checkout).not.toHaveBeenCalled();
   });
@@ -147,15 +145,15 @@ describe('N2 · tutar alanı sayı değilse tutar YOK sayılır', () => {
     );
 
     renderWithProviders(<CheckoutScreen />);
-    await goToStep3();
+    await goToPay();
 
     await waitFor(() => expect(screen.getByTestId('order-summary-error')).toBeOnTheScreen());
     expect(screen.queryByText('0,00 TL')).toBeNull();
-    expect(screen.getByText('Onayla ve Öde')).toBeOnTheScreen();
+    expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen();
 
     acceptDistanceSales();
     await act(async () => {
-      fireEvent.press(screen.getByText('Onayla ve Öde'));
+      fireEvent.press(screen.getByText('Ödeme Yap'));
     });
     expect(ordersApi.checkout).not.toHaveBeenCalled();
   });
@@ -171,7 +169,7 @@ describe('N2 · tutar alanı sayı değilse tutar YOK sayılır', () => {
   });
 });
 
-describe('N1 · adım 3 satır tutarı sunucudan gelir', () => {
+describe('N1 · ürün satırı tutarı sunucudan gelir', () => {
   beforeEach(() => {
     mocked(ordersApi.checkout).mockReset();
     mocked(ordersApi.getQuote).mockReset();
@@ -193,7 +191,7 @@ describe('N1 · adım 3 satır tutarı sunucudan gelir', () => {
     );
 
     renderWithProviders(<CheckoutScreen />);
-    await goToStep3();
+    await goToPay();
 
     await waitFor(() =>
       expect(screen.getByTestId('order-item-subtotal')).toHaveTextContent('1.771,20 TL'),
@@ -212,7 +210,7 @@ describe('N1 · adım 3 satır tutarı sunucudan gelir', () => {
     );
 
     renderWithProviders(<CheckoutScreen />);
-    await goToStep3();
+    await goToPay();
 
     await waitFor(() => expect(screen.getByTestId('order-item-subtotal')).toHaveTextContent('—'));
     expect(screen.queryByText('1.239,84 TL')).toBeNull();

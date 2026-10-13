@@ -83,7 +83,9 @@ const requirePhone = (phone: string | null, message: string): string => {
 /**
  * Checkout controller'ı — tüm form durumu, query'ler, kargo hesabı, payload
  * kurucuları ve ödeme akışı (`proceedCheckout` + misafir OTP) burada. Ekran
- * yalnız adımları kompoze eder. Ödeme dallanmaları orijinalden BİREBİR taşındı.
+ * yalnız bölümleri kompoze eder (web gibi tek sayfa; adım durumu yok). Ödeme
+ * dallanmaları orijinalden BİREBİR taşındı — tek sayfaya geçişte eklenen tek şey,
+ * eski adım-1 "Devam Et" kapısının `handleCheckout`'un başına taşınması.
  */
 export function useCheckout() {
   const { t } = useTranslation();
@@ -112,8 +114,6 @@ export function useCheckout() {
     [isBuyNow, buyNowItem, cartItems, deselectedIds],
   );
 
-
-  const [step, setStep] = useState(1);
   const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
 
   const idempotencyKeyRef = useRef(generateUuidV4());
@@ -478,7 +478,12 @@ export function useCheckout() {
         }
       : { phone: guestPhone, countryCode: guestPhoneCountryCode };
 
-  const validateStep1 = (): string | null => {
+  /**
+   * Teslimat/fatura/iletişim alanları. Eskiden 3 adımlı akışın 1. adımının
+   * "Devam Et" kapısıydı; tek sayfada ödeme düğmesine basışın ilk kapısı
+   * (`handleCheckout`) — kural AYNI, yalnız çağrıldığı yer değişti.
+   */
+  const validateAddressForm = (): string | null => {
     if (!isAuthenticated) {
       const guestErr = validateGuest(guestName, guestEmail, guestPhone, guestPhoneCountryCode);
       if (guestErr) return guestErr;
@@ -503,19 +508,6 @@ export function useCheckout() {
       }
     }
     return null;
-  };
-
-  const handleNextStep = () => {
-    if (step === 1) {
-      const err = validateStep1();
-      if (err) return showSnackbar(err);
-      setStep(2);
-      return;
-    }
-    if (step === 2) {
-      setStep(3);
-      return;
-    }
   };
 
   /**
@@ -895,6 +887,14 @@ export function useCheckout() {
 
   const handleCheckout = async () => {
     if (!itemsReady()) return;
+    // Tek sayfa: adres/iletişim doğrulaması artık adım geçişinde değil burada.
+    // Kimlik kapısından ve OTP kodu isteğinden ÖNCE — eksik formda kullanıcıya
+    // ne kimlik ne e-posta kodu sorulur.
+    const formErr = validateAddressForm();
+    if (formErr) {
+      showSnackbar(formErr);
+      return;
+    }
     if (isAuthenticated && user) {
       // B-2.4: yasal kimlik ihtiyaç anında. Vazgeçerse ödeme başlamaz. Misafir
       // dalında yok (hesap yok); OTP yolu da `proceedCheckout`'u çağırdığı için
@@ -971,8 +971,8 @@ export function useCheckout() {
   return {
     isAuthenticated,
     items,
-    step,
-    setStep,
+    /** "Hemen Al" ile gelindi: yalnız tek ürün ödenir (web `buyNowNotice`). */
+    isBuyNow,
     // guest
     guestName, setGuestName,
     guestEmail, setGuestEmail,
@@ -1013,7 +1013,6 @@ export function useCheckout() {
     loading: loading || checkingIdentity,
     snackbar,
     dismissSnackbar: () => setSnackbar({ visible: false, message: '' }),
-    handleNextStep,
     handleCheckout,
     distanceSalesAccepted,
     toggleDistanceSales: () => setDistanceSalesAccepted((v) => !v),

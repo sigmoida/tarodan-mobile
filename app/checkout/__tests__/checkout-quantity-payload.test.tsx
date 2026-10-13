@@ -117,14 +117,11 @@ describe('Checkout · adet quote ile aynı gönderilir (A-1.1)', () => {
 
     await waitFor(() => expect(screen.getByText('Ali Veli')).toBeOnTheScreen());
     fireEvent.press(screen.getByText('Ali Veli'));
-    fireEvent.press(screen.getByText('Devam Et'));
-    await waitFor(() => expect(screen.getByText('Kargo Seçimi')).toBeOnTheScreen());
-    fireEvent.press(screen.getByText('Devam Et'));
-    await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen());
 
     acceptDistanceSales();
     await act(async () => {
-      fireEvent.press(screen.getByText(/Onayla ve Öde/));
+      fireEvent.press(screen.getByText('Ödeme Yap'));
     });
 
     await waitFor(() => expect(ordersApi.checkout).toHaveBeenCalledTimes(1));
