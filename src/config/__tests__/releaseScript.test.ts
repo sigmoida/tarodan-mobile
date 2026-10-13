@@ -193,7 +193,7 @@ describe('release.sh plan — karar döngüsü tek yerde (DRY)', () => {
     expect(r.easCalls('build:list').every((l) => l.includes('--platform ios'))).toBe(true);
   });
 
-  it('ota_platform: iki platform OTA ise all', () => {
+  it('ota_matrix: OTA\'lık her platform kendi fingerprint\'iyle', () => {
     const ios = shipped('i');
     const and = shipped('a', { platform: 'ANDROID' });
     const r = plan('staging', {
@@ -201,7 +201,10 @@ describe('release.sh plan — karar döngüsü tek yerde (DRY)', () => {
       builds: [ios.b, and.b],
       submissions: [ios.s, and.s],
     });
-    expect(r.outputs.ota_platform).toBe('all');
+    expect(JSON.parse(r.outputs.ota_matrix)).toEqual([
+      { platform: 'ios', fp: 'fp-ios-preview' },
+      { platform: 'android', fp: 'fp-android-preview' },
+    ]);
   });
 });
 
@@ -384,7 +387,7 @@ describe('release.sh plan — bekleyen build için OTA da ikinci build de yok', 
   it('staging: derlenen build varken → wait + uyarı', () => {
     const r = plan('staging', { env: { PLATFORM: 'ios' }, builds: [build({ id: 'b1', status: 'IN_PROGRESS' })] });
     expect(r.outputs.ios).toBe('wait');
-    expect(r.outputs.ota_platform).toBe('none');
+    expect(r.outputs.ota_matrix).toBe('[]');
     expect(r.all).toContain('::warning::ios: bu runtime');
   });
 
@@ -422,7 +425,7 @@ describe('release.sh plan — VERSION-GATE platform başına', () => {
     expect(r.outputs).toMatchObject({
       ios: 'blocked',
       android: 'ota',
-      ota_platform: 'android',
+      ota_matrix: '[{"platform":"android","fp":"fp-android-production"}]',
       blocked: 'ios',
       decided: 'true',
     });
@@ -432,7 +435,7 @@ describe('release.sh plan — VERSION-GATE platform başına', () => {
   it('iki platform da takılırsa ikisi de blocked, OTA yok', () => {
     const andOld = build({ id: 'a-old', platform: 'ANDROID', profile: 'production', runtime: 'eski', appVersion: '9.9.9' });
     const r = plan('production', { env: ANDROID, builds: [iosOld, andOld] });
-    expect(r.outputs).toMatchObject({ ios: 'blocked', android: 'blocked', blocked: 'ios android', ota_platform: 'none' });
+    expect(r.outputs).toMatchObject({ ios: 'blocked', android: 'blocked', blocked: 'ios android', ota_matrix: '[]' });
   });
 
   it('sürüm artmışsa build', () => {

@@ -255,13 +255,26 @@ describe('concurrency', () => {
   it.each([
     ['staging', staging],
     ['production', production],
-  ])('%s: OTA eskiyse iptal edilir, build asla iptal edilmez', (_n, w) => {
+  ])('%s: bekleyen OTA başka runtime/platform push\'uyla iptal edilmez, build asla', (n, w) => {
     expect(w.concurrency).toBeUndefined();
-    expect(w.jobs.ota.concurrency?.['cancel-in-progress']).toBe(true);
-    expect(w.jobs.plan.concurrency?.['cancel-in-progress']).toBe(true);
+    const ota = w.jobs.ota as Job & { strategy?: { matrix?: { include?: string } } };
+    expect(ota.strategy?.matrix?.include).toBe('${{ fromJSON(needs.plan.outputs.ota_matrix) }}');
+    expect(ota.concurrency).toEqual({
+      group: `mobile-${n}-ota-\${{ matrix.platform }}-\${{ matrix.fp }}`,
+      'cancel-in-progress': false,
+    });
+    expect(runs(ota)).toContain('"$OTA_PLATFORM"');
+    expect(ota.steps!.find((s) => (s.run ?? '').includes('publish-ota'))?.env?.OTA_PLATFORM).toBe('${{ matrix.platform }}');
+    expect(w.jobs.plan.concurrency?.['cancel-in-progress']).toBe(false);
     for (const id of ['build-ios', 'build-android']) {
       expect([id, w.jobs[id].concurrency?.['cancel-in-progress']]).toEqual([id, false]);
     }
+  });
+
+  it('CI yalnız PR\'da eski koşuyu iptal eder (yayın koşusunun OTA\'sı düşmez)', () => {
+    expect((ci.concurrency as { 'cancel-in-progress': unknown })['cancel-in-progress']).toBe(
+      "${{ github.event_name == 'pull_request' }}",
+    );
   });
 
   it('EXPO_TOKEN guard korunur', () => {

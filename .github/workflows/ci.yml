@@ -11,11 +11,13 @@ on:
 
 # Çağrıldığında github.* çağıranın bağlamıdır. event_name gruba girer ki elle
 # tetiklenen bir staging koşusunun CI'ı, aynı daldaki bir push'unkini (ya da
-# tersini) iptal etmesin. Aynı türden yeni bir koşu eskisini iptal eder; eski
-# koşunun yayın job'ları da `needs: ci` yüzünden atlanır (eskimiş OTA çıkmaz).
+# tersini) iptal etmesin. Yalnız PR'larda yeni koşu eskisini iptal eder.
+# Yayın koşularında (push/dispatch → workflow_call) İPTAL YOK: iptal edilen CI,
+# o koşunun yayın job'larını da düşürür; yeni push başka bir runtime'a aitse eski
+# runtime'ın OTA'sı hiç çıkmazdı.
 concurrency:
   group: ci-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check:

@@ -24,8 +24,9 @@ name: Mobile Production (CI → fingerprint → approved OTA or store build)
 #                track'e yükseltme Play Console'da ELLE (kişisel hesap: önce 12
 #                testçi / 14 gün kapalı test şartı).
 #
-# Concurrency: plan/ota cancel-in-progress (bekleyen eski bir onay, yenisi gelince
-# düşer — yenisi zaten her şeyi içerir); build-* asla iptal edilmez.
+# Concurrency: plan iptalsiz; ota matrix'i platform + runtime başına iptalsiz
+# (onay bekleyen bir OTA'yı başka runtime'ın push'u düşürmez); build-* asla
+# iptal edilmez.
 #
 # Elle tetikleme yalnız master ref'inde anlamlıdır (plan başka ref'te durur):
 #   gh workflow run mobile-production.yml --ref master -f mode=auto
@@ -72,14 +73,16 @@ jobs:
     timeout-minutes: 20
     concurrency:
       group: mobile-production-plan-${{ github.event_name }}
-      cancel-in-progress: true
+      # İptalsiz: yeni bir push eski koşunun kararını (ve onun runtime'ına ait
+      # OTA'yı) düşürmesin; plan'lar sırayla koşar.
+      cancel-in-progress: false
     outputs:
       skip: ${{ steps.guard.outputs.skip }}
       ios: ${{ steps.decide.outputs.ios }}
       android: ${{ steps.decide.outputs.android }}
       ios_fp: ${{ steps.decide.outputs.ios_fp }}
       android_fp: ${{ steps.decide.outputs.android_fp }}
-      ota_platform: ${{ steps.decide.outputs.ota_platform }}
+      ota_matrix: ${{ steps.decide.outputs.ota_matrix }}
       message: ${{ steps.decide.outputs.message }}
       blocked: ${{ steps.decide.outputs.blocked }}
       decided: ${{ steps.decide.outputs.decided }}
@@ -128,17 +131,27 @@ jobs:
           exit 1
 
   ota:
-    name: OTA → production (requires approval)
+    name: OTA → production ${{ matrix.platform }} (requires approval)
     needs: plan
-    if: ${{ !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.ota_platform != 'none' && needs.plan.outputs.ota_platform != '' }}
+    if: ${{ !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.ota_matrix != '[]' && needs.plan.outputs.ota_matrix != '' }}
+    strategy:
+      fail-fast: false
+      # Platform başına bir job: [{platform, fp}] (release.sh plan).
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.ota_matrix) }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # Production OTA onaysız ÇIKMAZ: GitHub Environment "production" required
     # reviewers ile korunur (Settings → Environments → production).
     environment: production
+    # Kuyruk platform + runtime BAŞINA ve iptalsiz: başka runtime'ın (ör. native
+    # değişiklik getiren) ya da diğer platformun push'u bu runtime'ın bekleyen
+    # (production'da onay bekleyen) OTA'sını İPTAL ETMEZ. Aynı runtime'ın OTA'ları
+    # sırayla çıkar (eski yeniyi asla ezmez); GitHub, aynı grupta bekleyen
+    # İKİNCİ job'ı üçüncüsü gelince düşürür — o da aynı runtime'ın daha yeni kodu.
     concurrency:
-      group: mobile-production-ota
-      cancel-in-progress: true
+      group: mobile-production-ota-${{ matrix.platform }}-${{ matrix.fp }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-eas
@@ -146,7 +159,7 @@ jobs:
           expo-token: ${{ secrets.EXPO_TOKEN }}
       - name: Publish OTA to production
         env:
-          OTA_PLATFORM: ${{ needs.plan.outputs.ota_platform }}
+          OTA_PLATFORM: ${{ matrix.platform }}
           MSG: ${{ needs.plan.outputs.message }}
         run: scripts/ci/release.sh publish-ota production "$OTA_PLATFORM" production "$MSG"
 

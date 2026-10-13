@@ -25,7 +25,8 @@
 #       Platform başına karar (fingerprint → OTA / build / skip). Girdiler env'den:
 #       MODE (auto|ota|build|apk), PLATFORM (all|ios|android), ANDROID_ENABLED,
 #       COMMIT_MSG, SHA. Çıktılar GITHUB_OUTPUT'a: message, <p>
-#       (ota|build|wait|skip|blocked), <p>_fp, ota_platform, blocked (engellenen
+#       (ota|build|wait|skip|blocked), <p>_fp, ota_matrix (OTA job'unun matrix'i:
+#       [{platform, fp}] — concurrency platform+runtime başına), blocked (engellenen
 #       platformlar), decided=true (EN SON yazılır: yalnız tüm kararlar
 #       tamamlandıysa; downstream job'lar buna bakar) + staging'de apk.
 #       `blocked` bir platformu durdurur, diğerini DEĞİL; workflow plan job'unu
@@ -364,7 +365,7 @@ plan() {
 
   if [ "$env" = staging ]; then
     if [ "$mode" = apk ]; then
-      output apk=true ios=skip android=skip ota_platform=none blocked= decided=true
+      output apk=true ios=skip android=skip 'ota_matrix=[]' blocked= decided=true
       return 0
     fi
     output apk=false
@@ -431,18 +432,14 @@ plan() {
 
     output "$p=$decision"
     case "$decision" in
-      ota) ota="$ota $p" ;;
+      ota) ota="$ota{\"platform\":\"$p\",\"fp\":\"$fp\"}," ;;
       blocked) blocked="$blocked $p" ;;
     esac
     summary "### $p → \`$decision\`" "- fingerprint: \`$fp\`" "- binary: $state"
     [ -n "$version" ] && summary "- app.json expo.version: \`$version\`"
   done
 
-  case "$ota" in
-    "") output ota_platform=none ;;
-    " ios android") output ota_platform=all ;;
-    *) output "ota_platform=${ota# }" ;;
-  esac
+  output "ota_matrix=[${ota%,}]"
   output "blocked=${blocked# }"
   output decided=true
 }
