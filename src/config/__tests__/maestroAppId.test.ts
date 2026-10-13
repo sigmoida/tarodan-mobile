@@ -24,7 +24,7 @@ const appId = (platform?: string, target?: string, env: Record<string, string> =
   const args = [path.join(MAESTRO, 'app-id.sh'), ...(platform ? [platform] : []), ...(target ? [target] : [])];
   const res = spawnSync('bash', args, {
     encoding: 'utf8',
-    env: { PATH: process.env.PATH ?? '', ...env },
+    env: { ...process.env, APP_ID: undefined, ...env },
   });
   return { out: res.stdout.trim(), code: res.status, err: res.stderr };
 };
@@ -68,6 +68,7 @@ describe('maestro/app-id.sh', () => {
   });
 
   it('iOS staging: app.config.js\'in preview bundle id\'si', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const withVariant = require('../../../app.config') as (a: { config: unknown }) => {
       ios: { bundleIdentifier: string };
       android: { package: string };

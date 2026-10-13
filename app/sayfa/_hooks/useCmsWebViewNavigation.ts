@@ -34,7 +34,7 @@ export function useCmsWebViewNavigation(platform: string = Platform.OS) {
       if (!userInitiated) return false;
 
       if (decision.action === 'app') router.push(decision.route as Href);
-      else void Linking.openURL(decision.url).catch(() => {});
+      else void Linking.openURL(decision.url).catch(() => undefined);
       return false;
     },
     [platform],

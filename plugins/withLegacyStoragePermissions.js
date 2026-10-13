@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { AndroidConfig, withAndroidManifest } = require('@expo/config-plugins');
 
 /**

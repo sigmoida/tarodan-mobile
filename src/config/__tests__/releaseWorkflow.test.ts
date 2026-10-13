@@ -3,6 +3,7 @@
  * Play service account + Firebase çift-client google-services.json gerekiyor).
  * Android submit'i bu önkoşullar karşılanmadan geri eklenirse prod yayını kırar.
  */
+import { spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -97,8 +98,6 @@ describe('build kotası koruması', () => {
  * host'larını okuduğu için bu dosya da native sayılır.
  */
 describe('staging OTA sınıflandırıcısı (native_re)', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { spawnSync } = require('child_process') as typeof import('child_process');
   const nativeRe = staging.match(/native_re='([^']+)'/)?.[1] ?? '';
   const isNative = (file: string) =>
     spawnSync('grep', ['-qE', nativeRe], { input: `${file}\n` }).status === 0;
