@@ -2,22 +2,49 @@ import React from 'react';
 import { View, Image, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { theme, RawText } from '@/ui';
+import { Text, theme } from '@/ui';
 
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
 import type { ProductStats, CollectionStats } from '../_lib/types';
 import { formatPrice } from '@/utils/format';
 
-const { colors } = theme;
-
-// Stat Card Component
-export function StatCard({ icon, label, value, color }: { icon: string; label: string; value: number; color: string }) {
+// Stat Card Component (ikonsuz: değer + etiket)
+export function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <View style={[styles.statCard, { borderLeftColor: color }]}>
-      <Ionicons name={icon as any} size={24} color={color} />
-      <RawText style={styles.statValue}>{value.toLocaleString()}</RawText>
-      <RawText style={styles.statLabel}>{label}</RawText>
+    <View style={styles.statCard}>
+      <Text variant="h2">{value.toLocaleString()}</Text>
+      <Text variant="caption">{label}</Text>
+    </View>
+  );
+}
+
+function RankBadge({ index }: { index: number }) {
+  return (
+    <View style={styles.productRank}>
+      <Text variant="caption" weight="bold" tone="heading">
+        {index + 1}
+      </Text>
+    </View>
+  );
+}
+
+/** Görüntülenme / beğeni sayıları — web kart meta satırındaki gibi küçük ikonlu (işlevsel ayrım). */
+function StatsColumn({ views, likes, highlight }: { views: number; likes: number; highlight?: 'views' | 'likes' }) {
+  return (
+    <View style={styles.productStats}>
+      <View style={styles.productStatItem}>
+        <Ionicons name="eye-outline" size={theme.iconSize.sm} color={theme.colors.text.muted} />
+        <Text variant="caption" tone={highlight === 'views' ? 'info' : 'muted'}>
+          {views.toLocaleString()}
+        </Text>
+      </View>
+      <View style={styles.productStatItem}>
+        <Ionicons name="heart-outline" size={theme.iconSize.sm} color={theme.colors.text.muted} />
+        <Text variant="caption" tone={highlight === 'likes' ? 'danger' : 'muted'}>
+          {likes.toLocaleString()}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -26,34 +53,21 @@ export function StatCard({ icon, label, value, color }: { icon: string; label: s
 export function ProductRow({ product, index, metric }: { product: ProductStats; index: number; metric: 'views' | 'likes' }) {
   return (
     <Pressable style={styles.productRow} onPress={() => router.push(`/product/${product.id}`)}>
-      <View style={styles.productRank}>
-        <RawText style={styles.productRankText}>{index + 1}</RawText>
-      </View>
+      <RankBadge index={index} />
       {product.image ? (
         <Image source={{ uri: resolveImageUrl(product.image) }} style={styles.productImage} />
       ) : (
-        <View style={[styles.productImage, styles.productImagePlaceholder]}>
-          <RawText>📦</RawText>
-        </View>
+        <View style={styles.productImage} />
       )}
       <View style={styles.productInfo}>
-        <RawText style={styles.productTitle} numberOfLines={1}>{product.title}</RawText>
-        <RawText style={styles.productPrice}>{formatPrice(product.price)}</RawText>
+        <Text variant="label" numberOfLines={1}>
+          {product.title}
+        </Text>
+        <Text variant="caption" tone="primary">
+          {formatPrice(product.price)}
+        </Text>
       </View>
-      <View style={styles.productStats}>
-        <View style={styles.productStatItem}>
-          <Ionicons name="eye" size={14} color={metric === 'views' ? colors.info[600]! : colors.text.muted} />
-          <RawText style={[styles.productStatText, metric === 'views' && { color: colors.info[600]! }]}>
-            {(product.viewCount ?? 0).toLocaleString()}
-          </RawText>
-        </View>
-        <View style={styles.productStatItem}>
-          <Ionicons name="heart" size={14} color={metric === 'likes' ? colors.danger[600]! : colors.text.muted} />
-          <RawText style={[styles.productStatText, metric === 'likes' && { color: colors.danger[600]! }]}>
-            {(product.likeCount ?? 0).toLocaleString()}
-          </RawText>
-        </View>
-      </View>
+      <StatsColumn views={product.viewCount ?? 0} likes={product.likeCount ?? 0} highlight={metric} />
     </Pressable>
   );
 }
@@ -62,34 +76,21 @@ export function ProductRow({ product, index, metric }: { product: ProductStats; 
 export function CollectionRow({ collection, index }: { collection: CollectionStats; index: number }) {
   return (
     <Pressable style={styles.productRow} onPress={() => router.push(`/collections/${collection.id}`)}>
-      <View style={styles.productRank}>
-        <RawText style={styles.productRankText}>{index + 1}</RawText>
-      </View>
+      <RankBadge index={index} />
       {collection.coverImage ? (
         <Image source={{ uri: resolveImageUrl(collection.coverImage) }} style={styles.productImage} />
       ) : (
-        <View style={[styles.productImage, styles.productImagePlaceholder]}>
-          <RawText>📚</RawText>
-        </View>
+        <View style={styles.productImage} />
       )}
       <View style={styles.productInfo}>
-        <RawText style={styles.productTitle} numberOfLines={1}>{collection.name}</RawText>
-        <RawText style={styles.productPrice}>{collection.itemCount} ürün</RawText>
+        <Text variant="label" numberOfLines={1}>
+          {collection.name}
+        </Text>
+        <Text variant="caption" tone="primary">
+          {collection.itemCount} ürün
+        </Text>
       </View>
-      <View style={styles.productStats}>
-        <View style={styles.productStatItem}>
-          <Ionicons name="eye" size={14} color={colors.info[600]!} />
-          <RawText style={[styles.productStatText, { color: colors.info[600]! }]}>
-            {collection.viewCount.toLocaleString()}
-          </RawText>
-        </View>
-        <View style={styles.productStatItem}>
-          <Ionicons name="heart" size={14} color={colors.danger[600]!} />
-          <RawText style={[styles.productStatText, { color: colors.danger[600]! }]}>
-            {collection.likeCount.toLocaleString()}
-          </RawText>
-        </View>
-      </View>
+      <StatsColumn views={collection.viewCount} likes={collection.likeCount} />
     </Pressable>
   );
 }
