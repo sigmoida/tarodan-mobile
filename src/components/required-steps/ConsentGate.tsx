@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -7,8 +7,8 @@ import { useZodForm } from '@/ui/form';
 import { errorText } from '@/lib/api';
 import {
   CONSENT_DOCUMENT_I18N_KEYS,
+  consentCheckKey,
   legalRouteFor,
-  type ConsentDocumentKey,
 } from '@/lib/shared/legalConsent';
 import type { PendingConsentsController } from '@/hooks/usePendingConsents';
 import { useDoAcceptConsents } from '@/hooks/useDoAcceptConsents';
@@ -36,12 +36,20 @@ export function ConsentGate({
   const accepted = form.watch('accepted');
   const [loggingOut, setLoggingOut] = useState(false);
 
-  const toggle = (document: ConsentDocumentKey, on: boolean) =>
+  // İşaret belge + SÜRÜM anahtarıyla tutulur: kapı açıkken gelen yeni sürüm
+  // (ön plana dönüş) eski işareti devralmaz. Listede artık olmayan anahtarlar
+  // da ayıklanır.
+  const keys = pending.map(consentCheckKey).join('|');
+  useEffect(() => {
+    const current = keys.split('|');
+    const kept = form.getValues('accepted').filter((k) => current.includes(k));
+    form.setValue('accepted', kept);
+  }, [keys, form]);
+
+  const toggle = (key: string, on: boolean) =>
     form.setValue(
       'accepted',
-      on
-        ? [...accepted.filter((d) => d !== document), document]
-        : accepted.filter((d) => d !== document),
+      on ? [...accepted.filter((k) => k !== key), key] : accepted.filter((k) => k !== key),
     );
 
   const updated = pending.some((p) => p.reason === 'outdated');
@@ -90,12 +98,13 @@ export function ConsentGate({
       {pending.map((p) => {
         const name = t(CONSENT_DOCUMENT_I18N_KEYS[p.document]);
         const route = legalRouteFor(p.path);
+        const key = consentCheckKey(p);
         return (
           <Checkbox
-            key={p.document}
+            key={key}
             testID={`consent-gate-${p.document}`}
-            checked={accepted.includes(p.document)}
-            onChange={(on) => toggle(p.document, on)}
+            checked={accepted.includes(key)}
+            onChange={(on) => toggle(key, on)}
             disabled={busy}
             label={
               <>

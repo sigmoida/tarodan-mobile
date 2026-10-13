@@ -136,6 +136,30 @@ describe('B-2.3 · RequiredStepsGate (onay kapısı)', () => {
     // İptal + yeniden render yüklü makinede 5 sn sınırına yaklaşabiliyor.
   }, 15000);
 
+  it('kapı açıkken belgenin yeni sürümü gelirse eski işaret devralınmaz', async () => {
+    mockGetPending.mockResolvedValueOnce({ data: { pending: [ALL[0]!] } });
+    const { queryClient } = renderWithProviders(<RequiredStepsGate />);
+    await screen.findByTestId('consent-gate');
+    fireEvent.press(screen.getByTestId('consent-gate-terms'));
+    expect(screen.getByTestId('consent-gate-submit')).not.toBeDisabled();
+
+    // Ön plana dönüşte şartların yeni sürümü geliyor.
+    mockGetPending.mockResolvedValueOnce({
+      data: { pending: [{ ...ALL[0]!, version: '2026-09-01', reason: 'outdated' }] },
+    });
+    await act(async () => {
+      await queryClient.refetchQueries({ queryKey: qk.consents.pending });
+    });
+    await screen.findByText(
+      'Bazı belgelerimiz güncellendi. Devam etmek için güncel metinleri okuyup onaylamanız gerekiyor.',
+    );
+    expect(screen.getByTestId('consent-gate-submit')).toBeDisabled();
+
+    // Yeni sürüm yeniden işaretlenince gönderilebilir.
+    fireEvent.press(screen.getByTestId('consent-gate-terms'));
+    expect(screen.getByTestId('consent-gate-submit')).not.toBeDisabled();
+  });
+
   it('güncellenen belgede "güncellendi" metni gösterilir', async () => {
     mockGetPending.mockResolvedValue({
       data: { pending: [{ document: 'terms', version: '2026-09-01', reason: 'outdated', path: '/terms' }] },

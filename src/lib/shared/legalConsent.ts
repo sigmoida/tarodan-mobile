@@ -69,12 +69,25 @@ export function isLegalTextPath(pathname: string | null | undefined): boolean {
   return IN_APP_LEGAL_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
-/** Kapı ancak bekleyen belgelerin HEPSİ işaretlenince gönderilebilir (web `canSubmitConsents`). */
+/**
+ * Bir onay kutusunun kimliği: belge + SÜRÜM (`terms@2026-08-05`). İşaret
+ * sürüme bağlıdır: kapı açıkken (ör. ön plana dönüşte) belgenin yeni sürümü
+ * gelirse kullanıcının eski sürüme koyduğu işaret yenisine geçmez; yeni metin
+ * yeniden işaretlenmeden gönderilemez.
+ */
+export function consentCheckKey(p: Pick<PendingConsent, 'document' | 'version'>): string {
+  return `${p.document}@${p.version}`;
+}
+
+/**
+ * Kapı ancak bekleyen belgelerin HEPSİ, bekledikleri sürümle işaretlenince
+ * gönderilebilir (web `canSubmitConsents`; mobilde anahtar `consentCheckKey`).
+ */
 export function canSubmitConsents(
   pending: readonly PendingConsent[],
-  checked: ReadonlySet<ConsentDocumentKey>,
+  checked: ReadonlySet<string>,
 ): boolean {
-  return pending.length > 0 && pending.every((p) => checked.has(p.document));
+  return pending.length > 0 && pending.every((p) => checked.has(consentCheckKey(p)));
 }
 
 /**
