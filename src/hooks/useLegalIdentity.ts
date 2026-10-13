@@ -15,6 +15,7 @@ import { useAuthStore } from '@/stores/authStore';
 import {
   openLegalIdentityRequest,
   settleLegalIdentityRequest,
+  showLegalIdentitySavedNotice,
   useLegalIdentityRequestStore,
 } from '@/stores/legalIdentityRequestStore';
 import { useRefetchOnForeground } from './useRefetchOnForeground';
@@ -56,8 +57,9 @@ export function useLegalIdentityStatus() {
 
 /**
  * Eksik alanları gönder (yalnız eksikler — dolu alan 409). Yanıt güncel
- * durumdur: önbelleğe yazılır (kapı ve profil ek istek atmadan tazelenir) ve
- * artık eksik yoksa bekleyen işlem devam eder.
+ * durumdur: önbelleğe yazılır (kapı ve profil ek istek atmadan tazelenir),
+ * "kaydedildi" bildirimi sıraya girer ve artık eksik yoksa bekleyen işlem
+ * devam eder.
  */
 export function useSubmitLegalIdentity() {
   const client = useQueryClient();
@@ -66,6 +68,9 @@ export function useSubmitLegalIdentity() {
       (await legalIdentityApi.submit(body)).data,
     onSuccess: (status) => {
       client.setQueryData(legalIdentityQueryOptions.queryKey, status);
+      // Web `successMessage` ile aynı bildirim; kapı kapanınca gösterilir
+      // (`LegalIdentitySavedNotice`) — kapının içinde bildirim yok.
+      showLegalIdentitySavedNotice();
       if (!needsLegalIdentity(status)) settleLegalIdentityRequest(true);
     },
   });

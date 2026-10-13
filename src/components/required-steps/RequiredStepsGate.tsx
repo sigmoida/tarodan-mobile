@@ -6,6 +6,7 @@ import type { RequiredStep } from '@/lib/requiredSteps';
 import { isLegalTextPath } from '@/lib/shared/legalConsent';
 import { ConsentGate } from './ConsentGate';
 import { LegalIdentityGate } from './LegalIdentityGate';
+import { LegalIdentitySavedNotice } from './LegalIdentitySavedNotice';
 import { RequiredStepVisibleProvider } from './RequiredStepShell';
 
 /**
@@ -37,8 +38,6 @@ export default function RequiredStepsGate({
 
   const visible = ready && active !== null && !isLegalTextPath(pathname);
 
-  if (active === null) return null;
-
   const onLogout = async () => {
     await logout();
     router.replace('/(auth)/login');
@@ -62,7 +61,13 @@ export default function RequiredStepsGate({
 
   // Adım görünümü adım aktif olduğu sürece bağlı kalır; yasal metin
   // sayfasında yalnız kabuk gizlenir (işaretler korunur).
+  // Kimlik kayıt bildirimi her zaman bağlı; tam ekran kapı kapanınca görünür.
   return (
-    <RequiredStepVisibleProvider value={visible}>{views[active]()}</RequiredStepVisibleProvider>
+    <>
+      {active !== null ? (
+        <RequiredStepVisibleProvider value={visible}>{views[active]()}</RequiredStepVisibleProvider>
+      ) : null}
+      <LegalIdentitySavedNotice />
+    </>
   );
 }

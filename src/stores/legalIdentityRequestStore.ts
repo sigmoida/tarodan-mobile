@@ -13,11 +13,26 @@ import { create } from 'zustand';
  */
 interface LegalIdentityRequestState {
   requested: boolean;
+  /**
+   * "Kimlik bilgileriniz kaydedildi" bildirimi bekliyor (web
+   * `successMessage: identity.gate.saved`). Kapı katmanı kapanınca gösterilir.
+   */
+  savedNotice: boolean;
 }
 
 export const useLegalIdentityRequestStore = create<LegalIdentityRequestState>(() => ({
   requested: false,
+  savedNotice: false,
 }));
+
+/** Kayıt başarılı: bildirim kapı kapanınca çıksın. */
+export function showLegalIdentitySavedNotice(): void {
+  useLegalIdentityRequestStore.setState({ savedNotice: true });
+}
+
+export function dismissLegalIdentitySavedNotice(): void {
+  useLegalIdentityRequestStore.setState({ savedNotice: false });
+}
 
 let waiters: Array<(completed: boolean) => void> = [];
 

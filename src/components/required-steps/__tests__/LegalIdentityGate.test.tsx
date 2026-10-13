@@ -81,7 +81,7 @@ beforeEach(() => {
   mockGetStatus.mockReset();
   mockSubmit.mockReset();
   useAuthStore.setState({ isAuthenticated: true, isLoading: false });
-  useLegalIdentityRequestStore.setState({ requested: false });
+  useLegalIdentityRequestStore.setState({ requested: false, savedNotice: false });
 });
 
 describe('B-2.4 · ensureLegalIdentity (ihtiyaç anında kimlik)', () => {
@@ -192,6 +192,35 @@ describe('B-2.4 · ensureLegalIdentity (ihtiyaç anında kimlik)', () => {
     expect(mockSubmit.mock.calls[0]![0]).toEqual({ legalLastName: 'Öz-Demir', nationalId: VALID_TCKN });
     await waitFor(() => expect(result.value).toBe(true));
     expect(screen.queryByTestId('identity-gate')).toBeNull();
+  });
+
+  it('kayıt başarılı: "kaydedildi" bildirimi kapı kapandıktan sonra görünür (web successMessage)', async () => {
+    mockGetStatus.mockResolvedValue({ data: status({ missing: ['nationalId'] }) });
+    mockSubmit.mockResolvedValue({ data: COMPLETE });
+    const { queryClient } = setup();
+    await request(queryClient);
+    expect(screen.queryByTestId('identity-saved-notice')).toBeNull();
+
+    fireEvent.changeText(await screen.findByTestId('identity-gate-nationalId'), VALID_TCKN);
+    fireEvent.press(screen.getByTestId('identity-gate-submit'));
+
+    expect(await screen.findByText('Kimlik bilgileriniz kaydedildi.')).toBeOnTheScreen();
+    expect(screen.queryByTestId('identity-gate')).toBeNull();
+    expect(screen.UNSAFE_queryAllByType(Modal)).toHaveLength(0);
+  });
+
+  it('kapı açık kaldıkça (sunucu hâlâ eksik diyor) bildirim kapının üstünde çıkmaz', async () => {
+    mockGetStatus.mockResolvedValue({ data: status({ missing: ['nationalId'] }) });
+    mockSubmit.mockResolvedValue({ data: status({ missing: ['legalLastName'] }) });
+    const { queryClient } = setup();
+    await request(queryClient);
+
+    fireEvent.changeText(await screen.findByTestId('identity-gate-nationalId'), VALID_TCKN);
+    fireEvent.press(screen.getByTestId('identity-gate-submit'));
+    await waitFor(() => expect(useLegalIdentityRequestStore.getState().savedNotice).toBe(true));
+
+    expect(screen.getByTestId('identity-gate')).toBeOnTheScreen();
+    expect(screen.queryByTestId('identity-saved-notice')).toBeNull();
   });
 
   it('sunucu hatası kapının içinde gösterilir, kapı açık kalır', async () => {
