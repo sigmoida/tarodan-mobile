@@ -1,18 +1,24 @@
-import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Modal, Keyboard } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View, StyleSheet, Pressable, Keyboard } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { theme, Input, SheetHeader, Text, Icon } from '@/ui';
+import { theme, SelectSheet, Text, Icon, type SelectSheetOption } from '@/ui';
 import { turkeyLocations, getDistrictsForCity } from '../../utils/turkeyLocations';
 
 const { colors } = theme;
+
+/** İl (81) ve ilçe listeleri sabit satır yüksekliğiyle sanal kayar (`SelectSheet.rowHeight`). */
+const ROW_HEIGHT = 48;
+
+/** Sabit seçenek listesi: il adları hiç değişmez, bir kez hesaplanır. */
+const CITY_OPTIONS: SelectSheetOption[] = turkeyLocations.map((c) => ({ value: c.name, label: c.name }));
 
 /**
  * Web `CityDistrictSelector` bileşeninin mobile karşılığı.
  *
  * - 81 il + tüm ilçeler `turkeyLocations`'tan gelir.
  * - İl seçildiğinde ilçe listesi otomatik bağımlı güncellenir.
- * - "Search" yazılınca arama yapılır.
- * - Boş alan dokunulduğunda alttan modal liste açar.
+ * - Alana dokunulduğunda alttan aranabilir `SelectSheet` listesi açılır (arama sheet içinde
+ *   tutulur, her açılışta sıfırlanır).
  */
 interface Props {
   city: string;
@@ -36,199 +42,113 @@ export function CityDistrictSelector({
   districtError,
 }: Props) {
   const { t } = useTranslation();
-  const [cityModal, setCityModal] = useState(false);
-  const [districtModal, setDistrictModal] = useState(false);
-  const [citySearch, setCitySearch] = useState('');
-  const [districtSearch, setDistrictSearch] = useState('');
+  const [cityOpen, setCityOpen] = useState(false);
+  const [districtOpen, setDistrictOpen] = useState(false);
 
-  const filteredCities = useMemo(() => {
-    const q = citySearch.toLocaleLowerCase('tr-TR').trim();
-    if (!q) return turkeyLocations;
-    return turkeyLocations.filter(c => c.name.toLocaleLowerCase('tr-TR').includes(q));
-  }, [citySearch]);
+  const districtOptions = useMemo<SelectSheetOption[]>(
+    () => getDistrictsForCity(city).map((d) => ({ value: d, label: d })),
+    [city],
+  );
 
-  const districts = useMemo(() => getDistrictsForCity(city), [city]);
-  const filteredDistricts = useMemo(() => {
-    const q = districtSearch.toLocaleLowerCase('tr-TR').trim();
-    if (!q) return districts;
-    return districts.filter(d => d.toLocaleLowerCase('tr-TR').includes(q));
-  }, [districts, districtSearch]);
+  const closeCity = useCallback(() => setCityOpen(false), []);
+  const closeDistrict = useCallback(() => setDistrictOpen(false), []);
 
-  const selectCity = (next: string) => {
-    if (next !== city) {
-      onChangeCity(next);
-      // İl değişince ilçe sıfırlanır (web ile aynı davranış)
-      onChangeDistrict('');
-    }
-    setCityModal(false);
-    setCitySearch('');
-  };
+  const selectCity = useCallback(
+    (next: string) => {
+      if (next !== city) {
+        onChangeCity(next);
+        // İl değişince ilçe sıfırlanır (web ile aynı davranış)
+        onChangeDistrict('');
+      }
+    },
+    [city, onChangeCity, onChangeDistrict],
+  );
 
-  const selectDistrict = (next: string) => {
-    onChangeDistrict(next);
-    setDistrictModal(false);
-    setDistrictSearch('');
-  };
-
-  // Modal'ı açmadan önce klavyeyi kapat: aksi halde iOS'ta pageSheet,
-  // açık klavyenin arkasında kalıp "açılmıyor / seçilemiyor" gibi görünür.
-  const openCityModal = () => {
+  // Sheet'i açmadan önce klavyeyi kapat: açık klavye, sheet'in arkasında kalıp
+  // "açılmıyor / seçilemiyor" gibi görünmesin.
+  const openCity = () => {
     Keyboard.dismiss();
-    setCityModal(true);
+    setCityOpen(true);
   };
 
-  const openDistrictModal = () => {
+  const openDistrict = () => {
     if (!city) return;
     Keyboard.dismiss();
-    setDistrictModal(true);
+    setDistrictOpen(true);
   };
 
   return (
     <View>
-      <TouchableOpacity
-        activeOpacity={0.7}
-        onPress={openCityModal}
-        style={[
-          styles.fakeInput,
-          cityError && styles.fakeInputError,
-        ]}
+      <Pressable
+        onPress={openCity}
+        style={({ pressed }) => [styles.fakeInput, cityError && styles.fakeInputError, pressed && styles.pressed]}
+        accessibilityRole="button"
+        testID="city-select-trigger"
       >
-        <View style={{ flex: 1 }}>
-          <Text style={styles.fakeLabel}>{`${t('address.city')} *`}</Text>
-          <Text
-            style={[
-              styles.fakeValue,
-              !city && styles.fakePlaceholder,
-            ]}
-            numberOfLines={1}
-          >
+        <View style={styles.fill}>
+          <Text variant="caption" tone="muted">{`${t('address.city')} *`}</Text>
+          <Text variant="body" tone={city ? 'heading' : 'subtle'} numberOfLines={1}>
             {city || t('common.selectCityPlaceholder')}
           </Text>
         </View>
-        <Icon name="chevron-down" size={18} color={colors.text.muted} />
-      </TouchableOpacity>
+        <Icon name="chevron-down" size={theme.iconSize.sm} color={colors.text.muted} />
+      </Pressable>
 
       {!hideDistrict ? (
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={openDistrictModal}
+        <Pressable
+          onPress={openDistrict}
           disabled={!city}
-          style={[
+          style={({ pressed }) => [
             styles.fakeInput,
             districtError && styles.fakeInputError,
             !city && styles.fakeInputDisabled,
+            pressed && styles.pressed,
           ]}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !city }}
+          testID="district-select-trigger"
         >
-          <View style={{ flex: 1 }}>
-            <Text style={styles.fakeLabel}>{`${t('address.district')} *`}</Text>
-            <Text
-              style={[
-                styles.fakeValue,
-                !district && styles.fakePlaceholder,
-              ]}
-              numberOfLines={1}
-            >
+          <View style={styles.fill}>
+            <Text variant="caption" tone="muted">{`${t('address.district')} *`}</Text>
+            <Text variant="body" tone={district ? 'heading' : 'subtle'} numberOfLines={1}>
               {district || (city ? t('common.selectDistrictPlaceholder') : t('common.selectCityFirst'))}
             </Text>
           </View>
-          <Icon name="chevron-down" size={18} color={colors.text.muted} />
-        </TouchableOpacity>
+          <Icon name="chevron-down" size={theme.iconSize.sm} color={colors.text.muted} />
+        </Pressable>
       ) : null}
 
-      {/* City modal — uygulama genelinde kanıtlanmış pageSheet deseni
-          (bkz. ProductFilterSheet). transparent + absolute bottom-sheet
-          deseni iOS'ta klavye/dokunma sorunlarına yol açıyordu. */}
-      <Modal
-        visible={cityModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        statusBarTranslucent
-        onRequestClose={() => setCityModal(false)}
-      >
-        <View style={styles.modalContainer}>
-          <SheetHeader
-            title={t('common.selectCity')}
-            onClose={() => setCityModal(false)}
-            closeLabel={t('common.close')}
-            fullScreen
-          />
-          <View style={styles.sheetSearch}>
-            <Input
-              placeholder={t('common.searchCity')}
-              value={citySearch}
-              onChangeText={setCitySearch}
-              leftIconName="magnifying-glass"
-            />
-          </View>
-          <FlatList
-            data={filteredCities}
-            keyExtractor={(item) => item.name}
-            keyboardShouldPersistTaps="handled"
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[styles.row, city === item.name && styles.rowSelected]}
-                onPress={() => selectCity(item.name)}
-              >
-                <Text style={styles.rowText}>{item.name}</Text>
-                {city === item.name ? (
-                  <Icon name="check" size={18} color={colors.primary[600]!} />
-                ) : null}
-              </TouchableOpacity>
-            )}
-          />
-        </View>
-      </Modal>
+      <SelectSheet
+        isOpen={cityOpen}
+        onClose={closeCity}
+        title={t('common.selectCity')}
+        options={CITY_OPTIONS}
+        value={city || null}
+        onSelect={selectCity}
+        searchable
+        searchPlaceholder={t('common.searchCity')}
+        rowHeight={ROW_HEIGHT}
+        testID="city-sheet"
+      />
 
-      {/* District modal */}
-      <Modal
-        visible={districtModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        statusBarTranslucent
-        onRequestClose={() => setDistrictModal(false)}
-      >
-        <View style={styles.modalContainer}>
-          <SheetHeader
-            title={`${t('common.selectDistrict')} (${city})`}
-            onClose={() => setDistrictModal(false)}
-            closeLabel={t('common.close')}
-            fullScreen
-          />
-          <View style={styles.sheetSearch}>
-            <Input
-              placeholder={t('common.searchDistrict')}
-              value={districtSearch}
-              onChangeText={setDistrictSearch}
-              leftIconName="magnifying-glass"
-            />
-          </View>
-          <FlatList
-            data={filteredDistricts}
-            keyExtractor={(item) => item}
-            keyboardShouldPersistTaps="handled"
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[styles.row, district === item && styles.rowSelected]}
-                onPress={() => selectDistrict(item)}
-              >
-                <Text style={styles.rowText}>{item}</Text>
-                {district === item ? (
-                  <Icon name="check" size={18} color={colors.primary[600]!} />
-                ) : null}
-              </TouchableOpacity>
-            )}
-          />
-        </View>
-      </Modal>
+      <SelectSheet
+        isOpen={districtOpen}
+        onClose={closeDistrict}
+        title={`${t('common.selectDistrict')} (${city})`}
+        options={districtOptions}
+        value={district || null}
+        onSelect={onChangeDistrict}
+        searchable
+        searchPlaceholder={t('common.searchDistrict')}
+        rowHeight={ROW_HEIGHT}
+        testID="district-sheet"
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  input: {
-    marginBottom: theme.spacing[3],
-    backgroundColor: colors.surface.DEFAULT,
-  },
+  fill: { flex: 1 },
   fakeInput: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -238,7 +158,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     paddingHorizontal: theme.spacing[3.5],
     paddingVertical: theme.spacing[2.5],
-    minHeight: 56,
+    minHeight: theme.controlHeight.xl,
     marginBottom: theme.spacing[3],
   },
   fakeInputError: {
@@ -248,42 +168,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.alt,
     opacity: 0.6,
   },
-  fakeLabel: {
-    fontSize: 11,
-    color: colors.text.muted,
-    marginBottom: theme.spacing[0.5],
-  },
-  fakeValue: {
-    fontSize: 15,
-    color: colors.text.heading,
-  },
-  fakePlaceholder: {
-    color: colors.text.subtle,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: colors.surface.DEFAULT,
-  },
-  sheetSearch: {
-    paddingHorizontal: theme.spacing[4],
-    paddingVertical: theme.spacing[3],
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing[4],
-    paddingVertical: theme.spacing[3.5],
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border.subtle,
-  },
-  rowSelected: {
-    backgroundColor: colors.primary[50]!,
-  },
-  rowText: {
-    fontSize: 13,
-    color: colors.text.heading,
-  },
+  pressed: { opacity: 0.7 },
 });
 
 export default CityDistrictSelector;
