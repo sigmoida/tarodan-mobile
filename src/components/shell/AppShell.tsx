@@ -1,14 +1,13 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import * as Router from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { HeaderIconButton, theme } from '@/ui';
+import { HeaderIconButton, theme, useHeaderTopInset } from '@/ui';
 import { SearchField } from './SearchField';
 import { useShellCounts } from './useShellCounts';
 
-const { colors, spacing, shadow, minTouchTarget } = theme;
+const { colors, spacing, shadow, headerHeight } = theme;
 
 export interface AppShellProps {
   children?: React.ReactNode;
@@ -32,6 +31,29 @@ function useIsScreenFocused(): boolean {
   return focused;
 }
 
+/** Arama alanına çift dokunuşta iki /search açılmasın: bu süre içinde ikinci dokunuş yok sayılır. */
+const SEARCH_TAP_LOCK_MS = 800;
+
+/** Arama ekranını açar; kısa kilit çift dokunuşu tek açılışa indirir. */
+function useOpenSearch(): () => void {
+  const locked = useRef(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
+  return useCallback(() => {
+    if (locked.current) return;
+    locked.current = true;
+    timer.current = setTimeout(() => {
+      locked.current = false;
+    }, SEARCH_TAP_LOCK_MS);
+    Router.router.push('/search?focus=1');
+  }, []);
+}
+
 /**
  * Sekme köklerinin kabuğu — TÜM tab köklerinde (Ana Sayfa, Favoriler, Mesajlar, Profil, İlan Ver)
  * aynı bar, aynı yükseklik: primary-600 zemin, tek satır [arama alanı][bildirim][sepet].
@@ -40,19 +62,20 @@ function useIsScreenFocused(): boolean {
  * Odaktayken StatusBar açık içerik.
  */
 export const AppShell: React.FC<AppShellProps> = ({ children, contentStyle, testID }) => {
-  const insets = useSafeAreaInsets();
+  const topInset = useHeaderTopInset();
   const { t } = useTranslation();
   const counts = useShellCounts();
   const focused = useIsScreenFocused();
+  const openSearch = useOpenSearch();
 
   return (
     <View style={styles.root} testID={testID}>
       {focused ? <StatusBar style="light" /> : null}
-      <View style={[styles.bar, { paddingTop: insets.top }]} testID="app-shell-bar">
+      <View style={[styles.bar, { paddingTop: topInset }]} testID="app-shell-bar">
         <View style={styles.row}>
           <SearchField
             testID="home-search-input"
-            onPress={() => Router.router.push('/search?focus=1')}
+            onPress={openSearch}
           />
           <HeaderIconButton
             tone="onBrand"
@@ -77,8 +100,12 @@ export const AppShell: React.FC<AppShellProps> = ({ children, contentStyle, test
   );
 };
 
-/** Bar içerik satırı yüksekliği (güvenli alan hariç): ikon kutusu + üst/alt boşluk. */
-export const APP_SHELL_BAR_HEIGHT = minTouchTarget + spacing[2] * 2;
+/**
+ * Bar içerik satırı yüksekliği (güvenli alan hariç) = `theme.headerHeight`, yığın ekranlarının
+ * ScreenHeader satırıyla AYNI: tab kökü <-> yığın ekranı geçişinde barın alt kenarı aynı y'de
+ * kalır. Arama alanı (40) ve 44pt ikon kutuları bu satırda dikey ortalanır.
+ */
+export const APP_SHELL_BAR_HEIGHT = headerHeight;
 
 const styles = StyleSheet.create({
   root: {
@@ -99,7 +126,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: APP_SHELL_BAR_HEIGHT,
-    paddingVertical: spacing[2],
     gap: spacing[1],
   },
   content: {
