@@ -11,12 +11,11 @@ import CardPaymentForm from '@/components/CardPaymentForm';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { paymentCapabilities, SAFE_PAYMENT_CONFIG, type PaymentConfig, type PaymentPurpose } from '@/lib/payment/capabilities';
 import {
-  needsDistanceSalesConsent,
   paymentKindOf,
   paymentTargetOf,
   type PaymentStatusLight,
-  type PaymentTarget,
 } from './_lib/paymentKind';
+import type { DirectFormTarget } from '@/lib/payment/directFormBody';
 
 /**
  * ⚠️ BU EKRAN BİLEREK React Query'ye TAŞINMADI (CLAUDE.md §6'nın istisnası).
@@ -57,8 +56,6 @@ export default function PaymentScreen() {
     /** Takas nakit farkı ödemesi: başarı → /trade/{tradeId} */
     tradeId?: string;
     tradeCash?: string;
-    /** Checkout yönlendirmesi: sepet grubu (onay 3. adımda alındı). */
-    groupId?: string;
   }>();
 
   const paymentId = params.id!;
@@ -72,7 +69,7 @@ export default function PaymentScreen() {
   const [state, setState] = useState<{
     loading: boolean;
     error: string | null;
-    target: PaymentTarget | null;
+    target: DirectFormTarget | null;
     amount?: number;
     /** Kayıtlı kartların aranacağı PayTR mağazası (API delta 20). */
     purpose: PaymentPurpose;
@@ -82,8 +79,6 @@ export default function PaymentScreen() {
     isMembership: boolean;
     /** Durum yanıtı üyelik dedi ve dijital satış kapalı → ödeme formu yok. */
     digitalBlocked: boolean;
-    /** Mesafeli satış onay kutusu (satın alma + onay henüz bu akışta alınmadı). */
-    requireDistanceSalesConsent: boolean;
   }>({
     loading: true,
     error: null,
@@ -92,7 +87,6 @@ export default function PaymentScreen() {
     cardStorageEnabled: false,
     isMembership,
     digitalBlocked: false,
-    requireDistanceSalesConsent: false,
   });
 
   const resolvedRef = useRef(false);
@@ -126,18 +120,17 @@ export default function PaymentScreen() {
     try {
       setState(s => ({ ...s, loading: true, error: null }));
 
-      // Public ödeme yapılandırması (bypass + amaç başına kart saklama).
-      let cfg: PaymentConfig = SAFE_PAYMENT_CONFIG;
-      try {
-        cfg = (await paymentsApi.getConfig()).data ?? SAFE_PAYMENT_CONFIG;
-      } catch {
-        /* config alınamazsa güvenli varsayılan: yalnız yeni-kart, bypass kapalı */
-      }
-
-      // Ödeme durumunu yükle (hedef + tutar + tamamlandı/başarısız kontrolü).
-      const res: any = isGuest
-        ? await paymentsApi.getStatusLightGuest(paymentId)
-        : await paymentsApi.getStatusLight(paymentId);
+      // Public ödeme yapılandırması (bypass + amaç başına kart saklama) ve ödeme
+      // durumu (hedef + tutar + tamamlandı/başarısız) birbirinden bağımsız →
+      // aynı anda. Config hatası güvenli varsayılana düşer (yalnız yeni kart,
+      // bypass kapalı); durum hatası aşağıdaki catch'e gider.
+      const [cfg, res] = await Promise.all([
+        paymentsApi
+          .getConfig()
+          .then((r): PaymentConfig => r.data ?? SAFE_PAYMENT_CONFIG)
+          .catch((): PaymentConfig => SAFE_PAYMENT_CONFIG),
+        isGuest ? paymentsApi.getStatusLightGuest(paymentId) : paymentsApi.getStatusLight(paymentId),
+      ]);
       const data: PaymentStatusLight = res?.data?.data ?? res?.data ?? {};
       const kind = paymentKindOf(params.type, data);
 
@@ -197,13 +190,6 @@ export default function PaymentScreen() {
         amount: data.amount != null ? Number(data.amount) : undefined,
         purpose: kind.purpose,
         isMembership: kind.isMembership,
-        requireDistanceSalesConsent: needsDistanceSalesConsent({
-          target,
-          kind,
-          // Checkout yalnız onay kutusu işaretliyken ödemeye yönlendirir ve
-          // `groupId` taşır; sonradan dönülen grup ödemesinde parametre yok.
-          acceptedAtCheckout: !!params.groupId,
-        }),
         // Kayıtlı kart yalnız giriş yapmış kullanıcıya gösterilir.
         cardStorageEnabled: paymentCapabilities(cfg, kind.purpose).cardStorageEnabled && !isGuest,
       }));
@@ -300,7 +286,6 @@ export default function PaymentScreen() {
             amount={state.amount}
             purpose={state.purpose}
             cardStorageEnabled={state.cardStorageEnabled}
-            requireDistanceSalesConsent={state.requireDistanceSalesConsent}
             isGuest={isGuest}
             paymentId={paymentId}
             onSuccess={(pid) => routeToSuccess(pid, state.isMembership)}

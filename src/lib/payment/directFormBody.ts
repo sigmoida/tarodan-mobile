@@ -4,6 +4,10 @@
  * Gövdeye kart verisi KOYULMAZ (sunucu `assertNoRawCardData` ile reddeder); kart
  * alanları yalnız WebView'in PayTR'ye POST ettiği HTML'e eklenir.
  */
+/**
+ * Ödeme hedefi — TEK tip: ödeme ekranı (`paymentTargetOf`), `CardPaymentForm`
+ * ve direct-form gövdesi bunu kullanır (web `PaymentTarget`).
+ */
 export type DirectFormTarget = { orderId?: string; checkoutGroupId?: string; tradeId?: string };
 
 export type DirectFormBody = DirectFormTarget & {
@@ -24,13 +28,19 @@ export type DirectFormCard =
 
 export function buildDirectFormBody(input: {
   target: DirectFormTarget;
+  /**
+   * Ödenecek kayıt (web `useCardPayment`: `paymentId: resolved.paymentId`). Misafir
+   * için zorunlu: sunucu `X-Payment-Capability` belirtecini bu id'ye karşı doğrular.
+   */
+  paymentId?: string;
   card: DirectFormCard;
   /** Onay kutusu bu ekranda gösterildiyse durumu; gösterilmediyse `undefined` (alan gönderilmez). */
   distanceSalesAccepted?: boolean;
 }): DirectFormBody {
-  const { target, card, distanceSalesAccepted } = input;
+  const { target, paymentId, card, distanceSalesAccepted } = input;
   return {
     ...target,
+    ...(paymentId ? { paymentId } : {}),
     // `saveCard` yeni kartta HER ZAMAN açıkça gider: gönderilmezse sunucu üyelikte kartı saklar.
     ...(card.kind === 'new' ? { saveCard: card.save } : { savedCardId: card.id }),
     ...(distanceSalesAccepted !== undefined ? { distanceSalesAccepted } : {}),

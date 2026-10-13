@@ -1,9 +1,8 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Text, theme } from '@/ui';
+import { Checkbox, Text, theme } from '@/ui';
 
 const { colors } = theme;
 
@@ -11,10 +10,12 @@ const { colors } = theme;
  * Mesafeli satış sözleşmesi onayı — ödeme düğmesinin ön koşulu (web
  * `components/payment/DistanceSalesConsent` aynası).
  *
- * Sepet checkout'u (3. adım) ve ödeme ekranı (teklif siparişi vb.) aynı onayı
- * ister; metin ve sözleşme bağlantısı tek yerde durur ki biri güncellenip
- * diğeri eskide kalmasın. Onayın kendisi çağıranın state'idir (checkout sipariş
- * gövdesiyle, ödeme ekranı direct-form gövdesiyle sunucuya yazar).
+ * Sepet checkout'u (3. adım) ve ödeme ekranı aynı onayı ister; metin ve
+ * sözleşme bağlantısı tek yerde durur ki biri güncellenip diğeri eskide
+ * kalmasın. Kutu `@/ui` `Checkbox` (CLAUDE.md §1). Bağlantı kutunun dokunma
+ * alanının DIŞINDA: "Sözleşmeyi oku"ya basmak onayı değiştirmez. Onayın kendisi
+ * çağıranın state'idir (checkout sipariş gövdesiyle, ödeme ekranı direct-form
+ * gövdesiyle sunucuya yazar).
  */
 export function DistanceSalesConsent({
   checked,
@@ -29,42 +30,27 @@ export function DistanceSalesConsent({
 }) {
   const { t } = useTranslation();
   return (
-    <View style={[styles.row, style]}>
-      <TouchableOpacity
+    <View style={style}>
+      <Checkbox
         testID={testID}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked }}
-        onPress={onToggle}
-        hitSlop={8}
-      >
-        <Ionicons
-          name={checked ? 'checkbox' : 'square-outline'}
-          size={22}
-          color={checked ? colors.primary[600]! : colors.text.muted}
-        />
+        checked={checked}
+        onChange={() => onToggle()}
+        label={t('checkout.distanceSalesConsent')}
+      />
+      <TouchableOpacity onPress={() => router.push('/distance-sales')} style={styles.linkWrap}>
+        <Text variant="caption" style={styles.link}>
+          {t('checkout.distanceSalesConsentLink')}
+        </Text>
       </TouchableOpacity>
-      <View style={styles.body}>
-        <Text variant="caption">{t('checkout.distanceSalesConsent')}</Text>
-        <TouchableOpacity onPress={() => router.push('/distance-sales')}>
-          <Text variant="caption" style={styles.link}>
-            {t('checkout.distanceSalesConsentLink')}
-          </Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: theme.spacing[2],
-  },
-  body: { flex: 1 },
+  // Metinle hizalı: Checkbox kutusu (md = 20pt) + aradaki boşluk.
+  linkWrap: { marginLeft: theme.spacing[5] + theme.spacing[2], marginTop: theme.spacing[1] },
   link: {
     color: colors.primary[600],
     textDecorationLine: 'underline',
-    marginTop: theme.spacing[1],
   },
 });

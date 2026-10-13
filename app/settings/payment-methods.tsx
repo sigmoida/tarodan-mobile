@@ -7,13 +7,13 @@ import {
 } from "react-native";
 import { Card, Spinner, Text, theme, appAlert } from "@/ui";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { ScreenHeader, EmptyState } from "@/components/common";
 import { useAuthStore } from "@/stores/authStore";
 import { membershipApi, type SavedCard } from "@/lib/api";
-import { unwrapSavedCards } from "@/lib/payment/savedCards";
+import { useSavedCards } from "@/lib/payment/useSavedCards";
 import { qk } from "@/lib/query";
 import { CAN_BUY_DIGITAL } from "@/lib/purchases";
 import { styles } from './_payment-methods/_lib/styles';
@@ -25,7 +25,7 @@ const { colors } = theme;
  * Kayıtlı Kartlarım (mobil) — web profile/payment-methods paritesi.
  * Kart EKLEME ödeme sırasında ("kartımı kaydet") olur; burada listele + sil.
  * PAN/CVV asla gösterilmez/saklanmaz. Liste amaçsız istenir (iki mağazanın
- * kartları birlikte); her kartın mağazası rozetle gösterilir (API delta 20).
+ * kartları birlikte, web gibi); rozetler web `SavedCardCard` ile aynı.
  */
 
 const buildCardTypeLabels = (t: TFunction): Record<string, string> => ({
@@ -39,12 +39,8 @@ export default function PaymentMethodsScreen() {
   const queryClient = useQueryClient();
   const cardTypeLabels = buildCardTypeLabels(t);
 
-  const cardsQuery = useQuery({
-    queryKey: qk.payments.savedCards,
-    // Amaçsız: iki mağazanın kartları birlikte (rozet hangisi olduğunu söyler).
-    queryFn: async () => unwrapSavedCards((await membershipApi.listCards()).data),
-    enabled: isAuthenticated,
-  });
+  // Amaçsız: iki mağazanın kartları birlikte (web gibi).
+  const cardsQuery = useSavedCards({ enabled: isAuthenticated });
 
   const handleDelete = (card: SavedCard) => {
     appAlert(
@@ -60,7 +56,8 @@ export default function PaymentMethodsScreen() {
               await membershipApi.deleteCard(card.id);
               // Sunucu 200 döndüğü an listeyi tazele — PayTR tarafındaki
               // temizliğin bitmesini BEKLEME (kart kaydı bizde zaten silindi).
-              queryClient.invalidateQueries({ queryKey: qk.payments.savedCards });
+              // Prefix: ödeme formunun amaçlı listeleri de tazelenir.
+              queryClient.invalidateQueries({ queryKey: qk.payments.savedCardsAll });
             } catch (e: any) {
               appAlert(
                 t("common.error"),
@@ -129,6 +126,7 @@ export default function PaymentMethodsScreen() {
                 ) : null}
               </View>
               <Pressable
+                testID={`card-delete-${c.id}`}
                 onPress={() => handleDelete(c)}
                 hitSlop={10}
                 style={styles.delete}

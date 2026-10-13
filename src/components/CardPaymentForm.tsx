@@ -5,29 +5,27 @@ import { useTranslation } from 'react-i18next';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { Button, Input, Checkbox, Text, theme, appAlert } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
-import { paymentsApi, membershipApi, type SavedCard } from '@/lib/api';
-import { unwrapSavedCards } from '@/lib/payment/savedCards';
+import { paymentsApi } from '@/lib/api';
 import type { PaymentPurpose } from '@/lib/payment/capabilities';
-import { buildDirectFormBody, type DirectFormBody } from '@/lib/payment/directFormBody';
+import { buildDirectFormBody, type DirectFormBody, type DirectFormTarget } from '@/lib/payment/directFormBody';
+import { useSavedCards } from '@/lib/payment/useSavedCards';
 import { DistanceSalesConsent } from '@/components/payment/DistanceSalesConsent';
 import {
-
-/**
- * ⚠️ BU BİLEŞEN BİLEREK React Query'ye TAŞINMADI (CLAUDE.md §6'nın istisnası).
- *
- * Buradaki effect'ler 3DS sonrası ödeme durumunu YOKLUYOR: sabit aralıklarla
- * sorup nihai sonuca göre yönlendiriyorlar. React Query'nin yeniden deneme ve
- * odakta tazeleme semantiği bu yoklamayı öngörülemez hâle getirir; ödeme
- * akışında zamanlama davranışın kendisidir.
- *
- * Yoklama elle, tek-sefer korumalarıyla yazıldı ve öyle kalmalı.
- */
   assertSafePaytrForm,
   buildPaytrFormHtml,
   cardFieldsForNewCard,
   cardFieldsForSavedCard,
   PAYTR_ACTION,
 } from '@/lib/payment/paytrDirectForm';
+
+/**
+ * ⚠️ 3DS SONRASI DURUM YOKLAMASI BİLEREK React Query'de DEĞİL (CLAUDE.md §6'nın
+ * istisnası). Aşağıdaki effect ödeme durumunu sabit aralıklarla sorup nihai
+ * sonuca göre yönlendiriyor; React Query'nin yeniden deneme ve odakta tazeleme
+ * semantiği bu yoklamayı öngörülemez hâle getirir — ödeme akışında zamanlama
+ * davranışın kendisidir. Yoklama elle, tek-sefer korumalarıyla yazıldı ve öyle
+ * kalmalı. Saf okuma olan kayıtlı kart listesi ise query hook'ta (`useSavedCards`).
+ */
 
 const { colors } = theme;
 
@@ -40,7 +38,7 @@ const { colors } = theme;
  */
 
 interface Props {
-  target: { orderId?: string; checkoutGroupId?: string; tradeId?: string };
+  target: DirectFormTarget;
   amount?: number;
   onSuccess: (paymentId: string) => void;
   onFail?: () => void;
@@ -52,17 +50,12 @@ interface Props {
   purpose?: PaymentPurpose;
   /** Kayıtlı kart + "kartımı sakla" gösterilsin mi (`purposes[purpose].cardStorageEnabled` + üye). */
   cardStorageEnabled?: boolean;
-  /**
-   * Mesafeli satış onay kutusu zorunlu mu (ödeme ekranı karar verir — API kapısıyla
-   * aynı kapsam). Açıksa kutu işaretlenmeden ödeme başlamaz ve onay direct-form
-   * gövdesinde (`distanceSalesAccepted`) gider.
-   */
-  requireDistanceSalesConsent?: boolean;
   /** Misafir ödemesi mi — durum yoklamasında public uç kullanılır (verify atlanır). */
   isGuest?: boolean;
   /**
    * Çağıran ekranın (/payment/[id]) zaten bildiği ödeme referansı — form mount olmadan
-   * ÖNCE sipariş/grup/takas için oluşturulmuş paymentId. directForm ağ/timeout hatası
+   * ÖNCE sipariş/grup/takas için oluşturulmuş paymentId. Web gibi direct-form gövdesine
+   * girer (misafirde `X-Payment-Capability` ile birlikte zorunlu). directForm ağ/timeout hatası
    * verirse (sunucu charge'ı işlemiş olabilir) bu referansla mevcut poll/verify güvenlik
    * ağı devreye alınır; sert "başarısız" gösterilmez.
    */
@@ -82,14 +75,19 @@ export default function CardPaymentForm({
   onFail,
   purpose = 'checkout',
   cardStorageEnabled = false,
-  requireDistanceSalesConsent = false,
   isGuest = false,
   paymentId: initialPaymentId,
 }: Props) {
   const { t } = useTranslation();
-  const [cards, setCards] = useState<SavedCard[]>([]);
-  const [loadingCards, setLoadingCards] = useState(cardStorageEnabled);
-  const [selected, setSelected] = useState<string>(NEW_CARD);
+  // Kayıtlı kart listesi yalnız bu amaçta kart saklama açıkken alınır.
+  const cardsQuery = useSavedCards({ purpose, enabled: cardStorageEnabled });
+  const cards = useMemo(() => (cardStorageEnabled ? cardsQuery.data ?? [] : []), [cardStorageEnabled, cardsQuery.data]);
+  const loadingCards = cardStorageEnabled && cardsQuery.isLoading;
+  // Kullanıcı seçmediyse (ya da seçtiği kart listeden düştüyse) ilk kart, yoksa
+  // yeni kart — web `useCardPayment`'taki otomatik seçimle aynı.
+  const [picked, setPicked] = useState<string | null>(null);
+  const selected =
+    picked === NEW_CARD || (picked && cards.some((c) => c.id === picked)) ? picked : cards[0]?.id ?? NEW_CARD;
   const [processing, setProcessing] = useState(false);
   const [threeDSHtml, setThreeDSHtml] = useState<string | null>(null);
   const [paymentId, setPaymentId] = useState<string | null>(null);
@@ -167,37 +165,6 @@ export default function CardPaymentForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threeDSHtml, verifying, paymentId, isGuest]);
 
-  useEffect(() => {
-    // Kayıtlı kart listesi yalnız bu amaçta kart saklama açıkken alınır.
-    if (!cardStorageEnabled) {
-      setCards([]);
-      setSelected(NEW_CARD);
-      setLoadingCards(false);
-      return;
-    }
-    let alive = true;
-    setLoadingCards(true);
-    (async () => {
-      try {
-        const res = await membershipApi.listCards(purpose);
-        const raw = unwrapSavedCards(res.data);
-        // Savunma: sunucu amaca göre süzüyor; yine de başka mağazanın kartı
-        // gelirse seçilmesin (eski API `purpose` döndürmez → olduğu gibi).
-        const list = raw.filter((c) => !c.purpose || c.purpose === purpose);
-        if (!alive) return;
-        setCards(list);
-        setSelected(list.length ? list[0].id : NEW_CARD);
-      } catch {
-        if (alive) setCards([]);
-      } finally {
-        if (alive) setLoadingCards(false);
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [cardStorageEnabled, purpose]);
-
   const selectedCard = useMemo(() => cards.find((c) => c.id === selected) || null, [cards, selected]);
   // "Oto-yenileme" metni yalnız üyelik ödemesinde — ve dijital satış açıkken
   // (Apple 2.1(b) / Play: satılmayan aboneliğe atıf yok). Sepet: "sonraki ödemeler".
@@ -218,9 +185,8 @@ export default function CardPaymentForm({
 
   async function submit() {
     if (processing) return;
-    // Düğme zaten kapalı; yine de onaysız satın alma isteği hiç gitmesin.
-    if (requireDistanceSalesConsent && !distanceSalesAccepted) return;
-    const consent = requireDistanceSalesConsent ? distanceSalesAccepted : undefined;
+    // Düğme zaten kapalı; yine de onaysız ödeme isteği hiç gitmesin.
+    if (!distanceSalesAccepted) return;
 
     let body: DirectFormBody;
     let cardFields: { name: string; value: string }[];
@@ -233,8 +199,9 @@ export default function CardPaymentForm({
       }
       body = buildDirectFormBody({
         target,
+        paymentId: initialPaymentId,
         card: { kind: 'new', save: cardStorageEnabled && saveCard },
-        distanceSalesAccepted: consent,
+        distanceSalesAccepted,
       });
       cardFields = cardFieldsForNewCard({
         holder,
@@ -250,8 +217,9 @@ export default function CardPaymentForm({
       }
       body = buildDirectFormBody({
         target,
+        paymentId: initialPaymentId,
         card: { kind: 'saved', id: selected },
-        distanceSalesAccepted: consent,
+        distanceSalesAccepted,
       });
       cardFields = cardFieldsForSavedCard(selectedCard?.requireCvv ? savedCvv : undefined);
     }
@@ -358,7 +326,7 @@ export default function CardPaymentForm({
           {cards.map((c) => (
             <Pressable
               key={c.id}
-              onPress={() => setSelected(c.id)}
+              onPress={() => setPicked(c.id)}
               style={[styles.row, selected === c.id && styles.rowActive]}
             >
               <Ionicons
@@ -385,7 +353,7 @@ export default function CardPaymentForm({
           ))}
 
           <Pressable
-            onPress={() => setSelected(NEW_CARD)}
+            onPress={() => setPicked(NEW_CARD)}
             style={[styles.row, selected === NEW_CARD && styles.rowActive]}
           >
             <Ionicons
@@ -466,20 +434,20 @@ export default function CardPaymentForm({
         </View>
       )}
 
-      {requireDistanceSalesConsent ? (
-        <DistanceSalesConsent
-          testID="payment-distance-sales-checkbox"
-          checked={distanceSalesAccepted}
-          onToggle={() => setDistanceSalesAccepted((v) => !v)}
-          style={styles.consent}
-        />
-      ) : null}
+      {/* Web `PaymentReady` ile aynı: hedefi olan HER ödemede (sipariş, sepet
+          grubu, takas nakit farkı) kutu var; işaretlenmeden ödeme yok. */}
+      <DistanceSalesConsent
+        testID="payment-distance-sales-checkbox"
+        checked={distanceSalesAccepted}
+        onToggle={() => setDistanceSalesAccepted((v) => !v)}
+        style={styles.consent}
+      />
 
       <Button
         testID="card-submit"
         onPress={submit}
         isLoading={processing}
-        disabled={loadingCards || (requireDistanceSalesConsent && !distanceSalesAccepted)}
+        disabled={loadingCards || !distanceSalesAccepted}
         fullWidth
         title={
           amount != null

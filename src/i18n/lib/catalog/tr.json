@@ -2700,7 +2700,6 @@
     "payShort": "Öde",
     "payWithNewCard": "Yeni kart ile öde",
     "processingMaybeBody": "Ödemeniz işleniyor olabilir. Lütfen ''Siparişlerim'' bölümünden kontrol edin.",
-    "saveCardForFuture": "Kartımı sonraki ödemeler ve otomatik yenileme için kaydet",
     "stoppedTitle": "Ödeme durduruldu",
     "threeDSCancel": "Vazgeç",
     "verifyTimeoutBody": "Ödemenizin durumunu doğrulayamadık. Ödeme yapıldıysa ''Siparişlerim'' bölümünde görünür; aksi halde tekrar deneyebilirsiniz.",
@@ -2812,8 +2811,7 @@
     "retryTitle": "Ödemeyi Yeniden Dene",
     "retryStarted": "Yeniden deneme başlatıldı",
     "savedCardsIntroNeutral": "Hızlı ödeme için kayıtlı kartların. Yeni kart, ödeme sırasında \"kartımı kaydet\" ile eklenir.",
-    "deleteCardBodyNeutral": "{brand} •••• {last4} kartını silmek istediğine emin misin?",
-    "saveCardForLater": "Kartımı sonraki ödemeler için kaydet"
+    "deleteCardBodyNeutral": "{brand} •••• {last4} kartını silmek istediğine emin misin?"
   },
   "seller": {
     "sellerProfile": "Satıcı Profili",

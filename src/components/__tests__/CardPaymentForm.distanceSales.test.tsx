@@ -1,10 +1,10 @@
 /**
- * Teklif siparişi ödemesinde mesafeli satış onayı (API delta 22 §3).
+ * Ödeme ekranında mesafeli satış onayı (API delta 22 §3, web `PaymentReady`).
  *
  * Teklif siparişinin checkout adımı yok: onay yalnız direct-form gövdesinde
  * (`distanceSalesAccepted`) gidebilir. Sunucu `distance_sales_consent_required`
  * açıkken kayıtsız + onaysız satın almayı `400 server.consent.distanceSalesRequired`
- * ile reddeder. Web: `PaymentReady` — kutu işaretlenmeden "Ödeme Yap" kapalı.
+ * ile reddeder. Web gibi kutu HER hedefte var; işaretlenmeden "Ödeme Yap" kapalı.
  */
 import React from 'react';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
@@ -59,7 +59,7 @@ beforeEach(() => {
 
 it('onay zorunlu: kutu işaretlenmeden ödeme düğmesi kapalı, istek GİTMEZ', async () => {
   renderWithProviders(
-    <CardPaymentForm target={{ orderId: 'offer-order-1' }} requireDistanceSalesConsent onSuccess={jest.fn()} />,
+    <CardPaymentForm target={{ orderId: 'offer-order-1' }} onSuccess={jest.fn()} />,
   );
   fillNewCard();
   const pay = screen.getByTestId('card-submit');
@@ -71,7 +71,7 @@ it('onay zorunlu: kutu işaretlenmeden ödeme düğmesi kapalı, istek GİTMEZ',
 
 it('onay verilince gövdede `distanceSalesAccepted: true` (yeni kart)', async () => {
   renderWithProviders(
-    <CardPaymentForm target={{ orderId: 'offer-order-1' }} requireDistanceSalesConsent onSuccess={jest.fn()} />,
+    <CardPaymentForm target={{ orderId: 'offer-order-1' }} onSuccess={jest.fn()} />,
   );
   fillNewCard();
   fireEvent.press(screen.getByTestId('payment-distance-sales-checkbox'));
@@ -100,7 +100,6 @@ it('kayıtlı kartla da onay gövdede', async () => {
       target={{ orderId: 'offer-order-1' }}
       purpose="checkout"
       cardStorageEnabled
-      requireDistanceSalesConsent
       onSuccess={jest.fn()}
     />,
   );
@@ -118,7 +117,7 @@ it('kayıtlı kartla da onay gövdede', async () => {
 
 it('onayı geri alınca düğme yeniden kapanır', async () => {
   renderWithProviders(
-    <CardPaymentForm target={{ orderId: 'o' }} requireDistanceSalesConsent onSuccess={jest.fn()} />,
+    <CardPaymentForm target={{ orderId: 'o' }} onSuccess={jest.fn()} />,
   );
   const box = screen.getByTestId('payment-distance-sales-checkbox');
   fireEvent.press(box);
@@ -127,13 +126,28 @@ it('onayı geri alınca düğme yeniden kapanır', async () => {
   await waitFor(() => expect(screen.getByTestId('card-submit')).toBeDisabled());
 });
 
-it('onay gerekmiyorsa (takas / üyelik / checkout\'tan gelen grup) kutu yok, alan gönderilmez', async () => {
+it('takas nakit farkında da kutu var ve onay gövdede (web gibi)', async () => {
   renderWithProviders(<CardPaymentForm target={{ tradeId: 't-1' }} onSuccess={jest.fn()} />);
-  expect(screen.queryByTestId('payment-distance-sales-checkbox')).toBeNull();
+  expect(screen.getByTestId('payment-distance-sales-checkbox')).toBeOnTheScreen();
   fillNewCard();
+  fireEvent.press(screen.getByTestId('payment-distance-sales-checkbox'));
   fireEvent.press(screen.getByTestId('card-submit'));
   await waitFor(() => expect(directFormMock).toHaveBeenCalledTimes(1));
-  const body = directFormMock.mock.calls[0][0];
-  expect(body).toEqual({ tradeId: 't-1', saveCard: false });
-  expect(body).not.toHaveProperty('distanceSalesAccepted');
+  expect(directFormMock.mock.calls[0][0]).toEqual({ tradeId: 't-1', saveCard: false, distanceSalesAccepted: true });
+});
+
+it('misafir: gövdede paymentId (sunucu capability ile birlikte ister; yoksa 403)', async () => {
+  renderWithProviders(
+    <CardPaymentForm target={{ checkoutGroupId: 'g-1' }} isGuest paymentId="pay-1" onSuccess={jest.fn()} />,
+  );
+  fillNewCard();
+  fireEvent.press(screen.getByTestId('payment-distance-sales-checkbox'));
+  fireEvent.press(screen.getByTestId('card-submit'));
+  await waitFor(() => expect(directFormMock).toHaveBeenCalledTimes(1));
+  expect(directFormMock.mock.calls[0][0]).toEqual({
+    checkoutGroupId: 'g-1',
+    paymentId: 'pay-1',
+    saveCard: false,
+    distanceSalesAccepted: true,
+  });
 });

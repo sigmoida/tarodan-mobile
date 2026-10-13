@@ -1,3 +1,6 @@
+/**
+ * Kayıtlı kart rozetleri — web `SavedCardCard` ile birebir.
+ */
 import type { TFunction } from 'i18next';
 import type { SavedCard } from '@/lib/api';
 import { savedCardBadges } from '../_lib/badges';
@@ -19,48 +22,34 @@ const keys = (card: Partial<SavedCard>, canBuy = true) =>
   savedCardBadges({ ...base, ...card }, t, canBuy).map((b) => b.label);
 
 describe('savedCardBadges', () => {
-  it('mağaza rozeti: sepet / üyelik (API delta 20 P2)', () => {
-    expect(keys({ purpose: 'checkout' })).toContain('payment.cardPurposeCheckout');
-    expect(keys({ purpose: 'membership' })).toContain('payment.cardPurposeMembership');
+  it('amaç (mağaza) rozeti yok — web gibi', () => {
+    expect(keys({ purpose: 'checkout' })).not.toContain('payment.cardPurposeCheckout');
+    expect(keys({ purpose: 'membership', autoRenewEligible: true })).not.toContain('payment.cardPurposeMembership');
   });
 
-  it('eski API (purpose yok): mağaza rozeti yok', () => {
-    expect(keys({})).toEqual([]);
+  it('"CVV gerektirir" `!autoRenewEligible` iken — `requireCvv`\'den bağımsız (web kuralı)', () => {
+    // Web'in bilinen tutarsızlığı birebir: CVV istemeyen sepet kartı da rozeti alır.
+    expect(keys({ purpose: 'checkout', requireCvv: false, autoRenewEligible: false })).toEqual(['payment.cvvRequiredBadge']);
+    expect(keys({ requireCvv: true, autoRenewEligible: false })).toEqual(['payment.cvvRequiredBadge']);
   });
 
-  it('CVV istemeyen sepet kartı "CVV gerektirir" GÖSTERMEZ (eski ternary hatası)', () => {
-    const labels = keys({ purpose: 'checkout', requireCvv: false, autoRenewEligible: false });
-    expect(labels).not.toContain('payment.cvvRequiredBadge');
-    expect(labels).not.toContain('payment.autoRenewEligibleBadge');
-  });
-
-  it('CVV isteyen kart: CVV rozeti', () => {
-    expect(keys({ purpose: 'checkout', requireCvv: true })).toContain('payment.cvvRequiredBadge');
-  });
-
-  it('üyelik kartı oto-yenilemeye uygun — yalnız dijital satış açıkken', () => {
+  it('oto-yenilemeye uygun kart: CVV rozeti yok, oto-yenileme rozeti dijital satış açıkken', () => {
     const card = { purpose: 'membership' as const, autoRenewEligible: true };
-    expect(keys(card, true)).toContain('payment.autoRenewEligibleBadge');
-    expect(keys(card, false)).not.toContain('payment.autoRenewEligibleBadge');
-    // mağaza rozeti nötr bilgi — iki durumda da var
-    expect(keys(card, false)).toContain('payment.cardPurposeMembership');
+    expect(keys(card, true)).toEqual(['payment.autoRenewEligibleBadge']);
+    // Apple 2.1(b) / Play: kapalıyken abonelik atfı yok; web'in "değilse CVV" dalına da düşmez.
+    expect(keys(card, false)).toEqual([]);
   });
 
-  it('sıra: şema, varsayılan, mağaza, oto-yenileme, CVV, kurumsal', () => {
-    expect(
-      keys({
-        cardScheme: 'visa',
-        isDefault: true,
-        purpose: 'membership',
-        autoRenewEligible: true,
-        requireCvv: true,
-        businessCard: true,
-      }),
-    ).toEqual([
+  it('sıra web ile aynı: şema, varsayılan, oto-yenileme/CVV, kurumsal', () => {
+    expect(keys({ cardScheme: 'visa', isDefault: true, autoRenewEligible: true, businessCard: true })).toEqual([
       'VISA',
       'payment.defaultCard',
-      'payment.cardPurposeMembership',
       'payment.autoRenewEligibleBadge',
+      'footer.corporate',
+    ]);
+    expect(keys({ cardScheme: 'visa', isDefault: true, autoRenewEligible: false, businessCard: true })).toEqual([
+      'VISA',
+      'payment.defaultCard',
       'payment.cvvRequiredBadge',
       'footer.corporate',
     ]);

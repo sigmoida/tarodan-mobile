@@ -26,7 +26,7 @@ describe('buildDirectFormBody', () => {
     ).toEqual({ orderId: 'order-1', savedCardId: 'card-9', distanceSalesAccepted: true });
   });
 
-  it('onay kutusu gösterilmediyse (takas / üyelik / checkout\'tan gelen grup) alan HİÇ gönderilmez', () => {
+  it('onay verilmezse (undefined) alan HİÇ gönderilmez — saf üretici', () => {
     const body = buildDirectFormBody({ target: { tradeId: 't-1' }, card: { kind: 'new', save: false } });
     expect(body).toEqual({ tradeId: 't-1', saveCard: false });
     expect(body).not.toHaveProperty('distanceSalesAccepted');
@@ -47,6 +47,20 @@ describe('buildDirectFormBody', () => {
         distanceSalesAccepted: true,
       }),
     ).toEqual({ checkoutGroupId: 'g-1', saveCard: true, distanceSalesAccepted: true });
+  });
+
+  it('paymentId gövdeye girer (web `useCardPayment`; misafirde capability ile zorunlu)', () => {
+    expect(
+      buildDirectFormBody({
+        target: { checkoutGroupId: 'g-1' },
+        paymentId: 'pay-1',
+        card: { kind: 'saved', id: 'card-9' },
+        distanceSalesAccepted: true,
+      }),
+    ).toEqual({ checkoutGroupId: 'g-1', paymentId: 'pay-1', savedCardId: 'card-9', distanceSalesAccepted: true });
+    expect(buildDirectFormBody({ target: { orderId: 'o' }, card: { kind: 'new', save: false } })).not.toHaveProperty(
+      'paymentId',
+    );
   });
 
   it('gövdede kart verisi alanı yok', () => {

@@ -1,14 +1,17 @@
 /**
- * Ödeme ekranı → mesafeli satış onay kutusu ne zaman zorunlu (API delta 22 §3).
+ * Ödeme ekranı → mesafeli satış onay kutusu (web `PaymentReady` paritesi).
  *
- * API kapısı (`ensureForPayment`): tekil sipariş `origin ≠ platform_service` +
- * sepet grubu. Takas, üyelik, öne çıkarma kapı dışı. Sepet checkout'u onayı 3.
- * adımda aldığı için ondan gelen grup ödemesinde kutu tekrar sorulmaz; gruba
- * sonradan dönülürse (başarısız ödeme / Ödemelerim) web'deki gibi istenir.
+ * Web `/payment/[id]` hedefi olan HER ödemede kutuyu gösterir, işaretlenmeden
+ * "Ödeme Yap"ı kapalı tutar ve `distanceSalesAccepted`'ı direct-form gövdesine
+ * koyar (takas nakit farkı dahil). Checkout'tan dönülen sepet grubunda da kutu
+ * yeniden sorulur — mobilin eski `groupId` kısayolu kaldırıldı. Üyelik/öne
+ * çıkarma dijital satış kapalıyken bu ekrana hiç ulaşmaz (`/membership`
+ * yönlendirmesi, `purpose.test.tsx`); açık olduğu yolda da web gibi kutu var.
  */
 import React from 'react';
-import { screen } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
+import { PAYTR_ACTION } from '@/lib/payment/paytrDirectForm';
 
 let mockParams: Record<string, string> = { id: 'pay-1' };
 jest.mock('expo-router', () => ({
@@ -20,7 +23,6 @@ jest.mock('expo-router', () => ({
     return <Text>REDIRECT:{href}</Text>;
   },
 }));
-// Üyelik/öne çıkarma yollarının kart formuna ulaşabildiği durum (Android, D2 öncesi).
 jest.mock('@/lib/purchases', () => ({ CAN_BUY_DIGITAL: true }));
 jest.mock('@/lib/api', () => ({
   paymentsApi: {
@@ -28,17 +30,19 @@ jest.mock('@/lib/api', () => ({
     getStatusLight: jest.fn(),
     getStatusLightGuest: jest.fn(),
     bypassComplete: jest.fn(),
+    directForm: jest.fn(),
+    verify: jest.fn(() => Promise.resolve({})),
   },
+  membershipApi: { listCards: jest.fn(() => Promise.resolve({ data: [] })) },
 }));
 import { paymentsApi } from '@/lib/api';
 
-jest.mock('@/components/CardPaymentForm', () => {
+jest.mock('react-native-webview', () => {
   const React = require('react');
-  const { Text } = require('react-native');
+  const { View } = require('react-native');
   return {
-    __esModule: true,
-    default: ({ requireDistanceSalesConsent }: any) =>
-      React.createElement(Text, { testID: 'card-payment-form' }, `consent:${String(requireDistanceSalesConsent)}`),
+    WebView: () => React.createElement(View, { testID: 'paytr-webview' }),
+    WebViewNavigation: {},
   };
 });
 jest.mock('@/services/sentry', () => ({ captureException: jest.fn() }));
@@ -47,69 +51,72 @@ import PaymentScreen from '../[id]';
 
 const getStatusLightMock = paymentsApi.getStatusLight as jest.Mock;
 const getStatusLightGuestMock = paymentsApi.getStatusLightGuest as jest.Mock;
+const directFormMock = paymentsApi.directForm as jest.Mock;
 
-async function consentShown(): Promise<string> {
-  return (await screen.findByTestId('card-payment-form')).props.children as string;
-}
+const BOX = 'payment-distance-sales-checkbox';
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockParams = { id: 'pay-1' };
   (paymentsApi.getConfig as jest.Mock).mockResolvedValue({ data: { bypassEnabled: false } });
+  directFormMock.mockResolvedValue({
+    data: { paymentId: 'pay-1', action: PAYTR_ACTION, method: 'POST', fields: [{ name: 'merchant_id', value: '1' }] },
+  });
 });
 
-it('teklif siparişi (sipariş detayından "Öde"): kutu ZORUNLU', async () => {
-  mockParams = { id: 'pay-1', orderId: 'order-1', guest: '0' };
+async function expectBoxGatesPay() {
+  expect(await screen.findByTestId(BOX)).toBeOnTheScreen();
+  expect(screen.getByTestId('card-submit')).toBeDisabled();
+}
+
+it('teklif siparişi: kutu var, işaretlenmeden "Ödeme Yap" kapalı', async () => {
+  mockParams = { id: 'pay-1', guest: '0' };
   getStatusLightMock.mockResolvedValue({ data: { status: 'pending', orderId: 'order-1', amount: 500 } });
   renderWithProviders(<PaymentScreen />);
-  expect(await consentShown()).toBe('consent:true');
+  await expectBoxGatesPay();
 });
 
-it('sepet checkout\'undan gelen grup ödemesi (`groupId` param): kutu yok — onay 3. adımda alındı', async () => {
+it('checkout\'tan dönülen sepet grubu (`groupId` param): kutu YENİDEN sorulur (web gibi)', async () => {
   mockParams = { id: 'pay-1', orderId: 'order-1', groupId: 'g-1', guest: '0' };
   getStatusLightMock.mockResolvedValue({ data: { status: 'pending', checkoutGroupId: 'g-1', amount: 500 } });
   renderWithProviders(<PaymentScreen />);
-  expect(await consentShown()).toBe('consent:false');
+  await expectBoxGatesPay();
 });
 
-it('misafir checkout\'u da aynı', async () => {
+it('misafir sepet grubu: kutu var', async () => {
   mockParams = { id: 'pay-1', orderId: 'order-1', groupId: 'g-1', guest: '1' };
   getStatusLightGuestMock.mockResolvedValue({ data: { status: 'pending', checkoutGroupId: 'g-1', amount: 500 } });
   renderWithProviders(<PaymentScreen />);
-  expect(await consentShown()).toBe('consent:false');
+  await expectBoxGatesPay();
 });
 
-it('grup ödemesine sonradan dönüş (başarısız ödeme → tekrar dene): kutu ZORUNLU', async () => {
-  mockParams = { id: 'pay-1', guest: '0' };
-  getStatusLightMock.mockResolvedValue({ data: { status: 'pending', checkoutGroupId: 'g-1', amount: 500 } });
-  renderWithProviders(<PaymentScreen />);
-  expect(await consentShown()).toBe('consent:true');
-});
-
-it('takas nakit farkı: kutu yok', async () => {
+it('takas nakit farkı: kutu var ve onay gövdeye gider', async () => {
   mockParams = { id: 'pay-1', tradeCash: '1', tradeId: 't-1' };
   getStatusLightMock.mockResolvedValue({ data: { status: 'pending', tradeId: 't-1', amount: 50 } });
   renderWithProviders(<PaymentScreen />);
-  expect(await consentShown()).toBe('consent:false');
+  await expectBoxGatesPay();
+
+  fireEvent.changeText(screen.getByTestId('card-holder'), 'Ahmet Yılmaz');
+  fireEvent.changeText(screen.getByTestId('card-number'), '4111111111111111');
+  fireEvent.changeText(screen.getByTestId('card-exp-month'), '07');
+  fireEvent.changeText(screen.getByTestId('card-exp-year'), '28');
+  fireEvent.changeText(screen.getByTestId('card-cvc'), '123');
+  fireEvent.press(screen.getByTestId(BOX));
+  await waitFor(() => expect(screen.getByTestId('card-submit')).not.toBeDisabled());
+  fireEvent.press(screen.getByTestId('card-submit'));
+
+  await waitFor(() => expect(directFormMock).toHaveBeenCalledTimes(1));
+  expect(directFormMock.mock.calls[0][0]).toEqual({
+    tradeId: 't-1',
+    paymentId: 'pay-1',
+    saveCard: false,
+    distanceSalesAccepted: true,
+  });
 });
 
-it('üyelik ve öne çıkarma (platform hizmeti): kutu yok', async () => {
+it('üyelik (dijital satış açık yolu): web gibi kutu var', async () => {
   mockParams = { id: 'pay-1', type: 'membership' };
   getStatusLightMock.mockResolvedValue({ data: { status: 'pending', orderId: 'order-m', amount: 99 } });
-  const first = renderWithProviders(<PaymentScreen />);
-  expect(await consentShown()).toBe('consent:false');
-  first.unmount();
-
-  mockParams = { id: 'pay-2', type: 'boost' };
-  getStatusLightMock.mockResolvedValue({ data: { status: 'pending', orderId: 'order-b', amount: 49 } });
   renderWithProviders(<PaymentScreen />);
-  expect(await consentShown()).toBe('consent:false');
-});
-
-it('üyelik, rota `type` olmadan (durum yanıtı `isMembershipOrder`): kutu yok', async () => {
-  getStatusLightMock.mockResolvedValue({
-    data: { status: 'pending', orderId: 'order-m', amount: 99, isMembershipOrder: true },
-  });
-  renderWithProviders(<PaymentScreen />);
-  expect(await consentShown()).toBe('consent:false');
+  await expectBoxGatesPay();
 });

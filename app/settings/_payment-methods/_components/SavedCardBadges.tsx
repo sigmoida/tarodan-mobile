@@ -17,7 +17,7 @@ const TONE: Record<CardBadgeTone, { backgroundColor: string; color: string }> = 
   info: { backgroundColor: colors.info[50]!, color: colors.info[600]! },
 };
 
-/** Kayıtlı kart satırının rozetleri (şema, varsayılan, mağaza, oto-yenileme/CVV, kurumsal). */
+/** Kayıtlı kart satırının rozetleri (şema, varsayılan, oto-yenileme/CVV, kurumsal — web gibi). */
 export function SavedCardBadges({ card }: { card: SavedCard }) {
   const { t } = useTranslation();
   const badges = savedCardBadges(card, t, CAN_BUY_DIGITAL);
