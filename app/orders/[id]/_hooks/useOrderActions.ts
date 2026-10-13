@@ -5,6 +5,7 @@ import { useMutation } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
 import { ordersApi, refundsApi, paymentsApi } from '@/lib/api';
 import { captureException } from '@/services/sentry';
+import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 import type { OrderCancellationReason } from '@/lib/shared/orderCancellation';
 import type { OrderDetail } from '../_lib/types';
 import { joinMsg, strMsg } from '../_lib/errors';
@@ -32,6 +33,7 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
   const [refundModalVisible, setRefundModalVisible] = useState(false);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const invalidateOrder = useInvalidateOrder(id);
+  const requireIdentity = useRequireLegalIdentity();
 
   const cancelRefundMutation = useMutation({
     mutationFn: (refundId: string) => refundsApi.cancel(refundId),
@@ -128,7 +130,12 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
       confirm: (input: { reasonCode: OrderCancellationReason; reason?: string }) =>
         cancelOrderMutation.mutate(input),
     },
-    initiatePayment: () => initiatePaymentMutation.mutate(),
+    // B-2.4: ödeme başlamadan yasal kimlik (teklif siparişi de buradan ödenir).
+    // Vazgeçerse ödeme başlamaz.
+    initiatePayment: async () => {
+      if (!(await requireIdentity())) return;
+      initiatePaymentMutation.mutate();
+    },
     payPending: initiatePaymentMutation.isPending,
   };
 }
