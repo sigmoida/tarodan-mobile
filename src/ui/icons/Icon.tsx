@@ -44,7 +44,8 @@ export const Icon: React.FC<IconProps> = ({
   // Sunucu/dinamik kaynaklı bilinmeyen ad çökertmez: hiçbir şey çizilmez (dev'de uyarı).
   const def = isIconName(name) ? ICON_PATHS[name] : undefined;
   if (!def) {
-    if (__DEV__) console.warn(`[Icon] bilinmeyen ikon adı: "${String(name)}"`);
+    // Sabit metin: konsol sızıntı taraması değişkenli console.* çağrısına izin vermez.
+    if (__DEV__) console.warn('[Icon] bilinmeyen ikon adı (testID/çağıran yerden bulun)');
     return null;
   }
   const paths = def[variant] ?? def.outline;

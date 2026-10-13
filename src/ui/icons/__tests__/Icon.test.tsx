@@ -38,7 +38,7 @@ describe('Icon (Heroicons)', () => {
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     render(<Icon name={'yok-boyle-ikon' as never} testID="x" />);
     expect(screen.queryByTestId('x')).toBeNull();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('yok-boyle-ikon'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('bilinmeyen ikon'));
     warn.mockRestore();
   });
 
