@@ -23,7 +23,10 @@ jest.mock('@/hooks/useBlockUser', () => ({
 
 let mockAuthed = true;
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ isAuthenticated: mockAuthed }),
+  useAuthStore: (sel?: (state: { isAuthenticated: boolean }) => unknown) => {
+    const state = { isAuthenticated: mockAuthed };
+    return sel ? sel(state) : state;
+  },
 }));
 
 // Şikayet penceresi: yalnız `visible` bayrağını görünür kılan kuklalık.
