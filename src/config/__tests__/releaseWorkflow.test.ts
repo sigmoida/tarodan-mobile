@@ -1,91 +1,238 @@
 /**
- * Prod yayın hattı sözleşmesi. Android bilinçli olarak ertelendi (spec §7:
- * Play service account + Firebase çift-client google-services.json gerekiyor).
- * Android submit'i bu önkoşullar karşılanmadan geri eklenirse prod yayını kırar.
+ * Yayın hattı sözleşmesi (docs/RELEASE.md):
+ *   development push → CI → fingerprint → staging OTA ya da build (otomatik)
+ *   master merge     → CI → fingerprint → onaylı production OTA ya da store build
+ *   master PR'ı      → "Master source guard" (yalnız development / hotfix/*)
+ *   hotfix merge     → master → development geri birleştirme PR'ı
+ *   Android          → tüm build/submit job'ları vars.ANDROID_RELEASE_ENABLED'a bağlı
+ *
+ * Workflow'lar YAML olarak parse edilir (`yaml`, metro-config üzerinden zaten
+ * kurulu — yeni bağımlılık değil); yorum satırlarındaki kelimeler testleri
+ * yanıltmaz.
  */
 import * as fs from 'fs';
 import * as path from 'path';
+import { parse } from 'yaml';
 
 const ROOT = path.resolve(__dirname, '../../..');
 const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
-const workflow = read('.github/workflows/mobile-production.yml');
-const staging = read('.github/workflows/mobile-staging.yml');
-const simulator = read('.github/workflows/mobile-build.yml');
 
-/** `on:` bloğunu (ilk üst-seviye anahtara kadar) ayıklar. */
-const triggerBlock = (yml: string) => yml.match(/^on:\n([\s\S]*?)^\S/m)?.[1] ?? '';
+type Step = { name?: string; uses?: string; run?: string; if?: string; env?: Record<string, string> };
+type Job = {
+  name?: string;
+  needs?: string | string[];
+  if?: string;
+  uses?: string;
+  environment?: string | { name: string };
+  concurrency?: { group: string; 'cancel-in-progress'?: boolean };
+  permissions?: Record<string, string>;
+  steps?: Step[];
+};
+type Workflow = {
+  on: Record<string, unknown>;
+  concurrency?: unknown;
+  permissions?: Record<string, string>;
+  jobs: Record<string, Job>;
+};
 
-describe('mobile-production workflow', () => {
-  it('yalnız iOS build eder — Android ertelendi', () => {
-    expect(workflow).toContain('--platform ios --profile production');
-    expect(workflow).not.toContain('--platform all');
-    expect(workflow).not.toContain('-p all');
+const wf = (rel: string) => parse(read(rel)) as Workflow;
+const staging = wf('.github/workflows/mobile-staging.yml');
+const production = wf('.github/workflows/mobile-production.yml');
+const ci = wf('.github/workflows/ci.yml');
+const masterFlow = wf('.github/workflows/master-flow.yml');
+const simulator = wf('.github/workflows/mobile-build.yml');
+
+const needsOf = (job: Job) => ([] as string[]).concat(job.needs ?? []);
+const runs = (job: Job) => (job.steps ?? []).map((s) => s.run ?? '').join('\n');
+const envName = (job: Job) =>
+  typeof job.environment === 'string' ? job.environment : job.environment?.name;
+
+describe('CI kapısı', () => {
+  it('ci.yml yeniden kullanılabilir ve push\'ta ayrıca koşmaz (çift CI yok)', () => {
+    expect(ci.on).toHaveProperty('workflow_call');
+    expect(ci.on).toHaveProperty('pull_request');
+    expect(ci.on).not.toHaveProperty('push');
   });
 
-  it('Android submit adımı içermez', () => {
-    expect(workflow).not.toContain('eas submit --platform android');
-    expect(workflow).not.toContain('eas submit -p android');
-  });
-
-  it('iOS submit adımı korunur', () => {
-    expect(workflow).toContain(
-      'eas submit --platform ios --profile production --latest --non-interactive',
-    );
-  });
-
-  it('master push ile tetiklenir', () => {
-    expect(workflow).toMatch(/branches:\s*\[master\]/);
-  });
-
-  it('sürüm kapısı korunur (her master merge build tetiklemez)', () => {
-    expect(workflow).toContain("require('./app.json').expo.version");
-    expect(workflow).toContain('vergate');
-  });
-
-  it('EXPO_TOKEN guard korunur', () => {
-    expect(workflow).toContain('secrets.EXPO_TOKEN');
+  it.each([
+    ['staging', staging],
+    ['production', production],
+  ])('%s: CI çağrılır ve plan ona bağlıdır', (_n, w) => {
+    expect(w.jobs.ci.uses).toBe('./.github/workflows/ci.yml');
+    expect(needsOf(w.jobs.plan)).toContain('ci');
+    for (const id of ['ota', 'build-ios', 'build-android']) {
+      expect([id, needsOf(w.jobs[id])]).toEqual([id, expect.arrayContaining(['plan'])]);
+    }
   });
 });
 
-/**
- * EAS iOS build kotası aylık 15. Hiçbir workflow kendiliğinden build ALMAMALI —
- * build yalnız insan komutuyla (workflow_dispatch) alınır. OTA bu kurala dahil
- * değildir: kotadan düşmez.
- */
-describe('build kotası koruması', () => {
+describe('tetikleyiciler', () => {
+  it('staging: development push + elle tetikleme (mode/platform)', () => {
+    expect(staging.on.push).toMatchObject({ branches: ['development'] });
+    const inputs = (staging.on.workflow_dispatch as { inputs: Record<string, { options: string[] }> })
+      .inputs;
+    expect(inputs.mode.options).toEqual(expect.arrayContaining(['auto', 'ota', 'build', 'apk']));
+    expect(inputs.platform.options).toEqual(['all', 'ios', 'android']);
+  });
+
+  it('production: master push + elle tetikleme', () => {
+    expect(production.on.push).toMatchObject({ branches: ['master'] });
+    expect(production.on).toHaveProperty('workflow_dispatch');
+  });
+
+  it('hiçbir yayın workflow\'u zamanlanmış (cron) koşmaz', () => {
+    for (const w of [staging, production, simulator]) {
+      expect(w.on).not.toHaveProperty('schedule');
+    }
+  });
+
   it('simulator build workflow yalnız elle tetiklenir', () => {
-    const on = triggerBlock(simulator);
-    expect(on).toContain('workflow_dispatch');
-    expect(on).not.toContain('push:');
-    expect(on).not.toContain('pull_request:');
+    expect(Object.keys(simulator.on)).toEqual(['workflow_dispatch']);
+  });
+});
+
+describe('native/JS kararı fingerprint ile', () => {
+  it.each([
+    ['staging', staging, 'staging'],
+    ['production', production, 'production'],
+  ])('%s: plan fingerprint hesaplar ve EAS build\'lerini sorgular', (_n, w, profile) => {
+    const plan = runs(w.jobs.plan);
+    expect(plan).toContain(`fingerprint ${profile} "$p"`);
+    expect(plan).toContain('find-build "$p"');
   });
 
-  it('staging workflow zamanlanmış (cron) build almaz', () => {
-    // Yalnız `on:` bloğuna bakılır — açıklama yorumlarında "cron" geçebilir.
-    const on = triggerBlock(staging);
-    expect(on).not.toContain('schedule');
-    expect(on).not.toContain('cron');
+  it('eski native_re dosya-listesi sınıflandırması kalmadı', () => {
+    for (const w of [staging, production]) {
+      const all = Object.values(w.jobs).map(runs).join('\n');
+      expect(all).not.toContain('native_re');
+      expect(all).not.toContain('git diff --name-only');
+    }
   });
 
-  it('staging otomatik build moduna DÜŞEMEZ', () => {
-    // Değişmez: mod çıktısına build YALNIZ elle tetiklemeden gelebilir, yani
-    // `mode=${DISPATCH_MODE}` üzerinden. Sabit `mode=build` yazan bir satır
-    // olsaydı push veya cron o yoldan otomatik build alabilirdi.
-    expect(staging).not.toMatch(/echo "mode=build" >> "\$GITHUB_OUTPUT"/);
-    expect(staging).toMatch(/echo "mode=\$\{DISPATCH_MODE\}" >> "\$GITHUB_OUTPUT"/);
-    expect(staging).toMatch(/echo "mode=ota" >> "\$GITHUB_OUTPUT"/);
-    expect(staging).toMatch(/echo "mode=none" >> "\$GITHUB_OUTPUT"/);
+  // Yorum satırları hariç: açıklamalar yasaklı kalıpları anabilir.
+  const shCode = () =>
+    read('scripts/ci/release.sh')
+      .split('\n')
+      .filter((l) => !l.trim().startsWith('#'))
+      .join('\n');
+
+  it('release.sh expo-updates fingerprint:generate\'i --platform ile çağırır', () => {
+    const sh = shCode();
+    expect(sh).toContain('npx expo-updates fingerprint:generate --platform "$platform"');
+    expect(sh).toMatch(/build:list[\s\S]*--runtime-version/);
   });
 
-  it('staging native değişiklikte kullanıcıyı elle build almaya yönlendirir', () => {
-    expect(staging).toContain('::warning::');
-    expect(staging).toContain('-f mode=build');
+  it('submit --latest değil, build id ile yapılır', () => {
+    const sh = shCode();
+    expect(sh).toContain('--id "$id"');
+    expect(sh).not.toMatch(/eas submit[^\n]*--latest/);
+  });
+});
+
+describe('staging', () => {
+  it('iOS build staging profiliyle alınıp staging submit profiliyle gönderilir', () => {
+    expect(runs(staging.jobs['build-ios'])).toContain('build-submit ios staging staging');
   });
 
-  it('prod build yalnız sürüm kapısı veya elle tetikleme ile çalışır', () => {
-    // Build adımının koşulu: vergate geçti VEYA workflow_dispatch.
-    expect(workflow).toMatch(
-      /EAS build \(iOS, production\)[\s\S]*?if:[\s\S]*?vergate\.outputs\.changed == 'true' \|\| github\.event_name == 'workflow_dispatch'/,
-    );
+  it('Android Play build/submit staging profiliyle (AAB → internal)', () => {
+    expect(runs(staging.jobs['build-android'])).toContain('build-submit android staging staging');
+  });
+
+  it('ad-hoc preview APK yalnız elle ve submit\'siz', () => {
+    const apk = staging.jobs.apk;
+    expect(apk.if).toContain("github.event_name == 'workflow_dispatch'");
+    expect(runs(apk)).toContain('build-submit android preview -');
+  });
+
+  it('OTA staging dalına, preview env\'iyle yayınlanır', () => {
+    expect(runs(staging.jobs.ota)).toContain('publish-ota staging "$OTA_PLATFORM" preview');
+  });
+});
+
+describe('production', () => {
+  it('production OTA `environment: production` onayına bağlı', () => {
+    expect(envName(production.jobs.ota)).toBe('production');
+    expect(runs(production.jobs.ota)).toContain('publish-ota production "$OTA_PLATFORM" production');
+  });
+
+  it('store build job\'ları onay environment\'ı istemez (onay yalnız OTA için)', () => {
+    expect(envName(production.jobs['build-ios'])).toBeUndefined();
+  });
+
+  it('iOS production build + submit production profiliyle', () => {
+    expect(runs(production.jobs['build-ios'])).toContain('build-submit ios production production');
+  });
+
+  it('VERSION-GATE: native değişikliğinde expo.version son production build\'inden büyük olmalı', () => {
+    const plan = runs(production.jobs.plan);
+    expect(plan).toContain("require('./app.json').expo.version");
+    expect(plan).toContain('last-store-version "$p" production');
+    expect(plan).toContain('version-gt "$version" "$last"');
+    expect(plan).toMatch(/::error::\$text[\s\S]*exit 1/);
+  });
+
+  it('yalnız master ref\'inden yayınlanır', () => {
+    const step = production.jobs.plan.steps!.find((s) => s.name === 'Only master ships to production');
+    expect(step?.if).toContain("github.ref != 'refs/heads/master'");
+  });
+});
+
+describe('Android hazır ama değişkenle kapalı', () => {
+  it.each([
+    ['staging', staging],
+    ['production', production],
+  ])('%s: build-android vars.ANDROID_RELEASE_ENABLED == \'true\' ister', (_n, w) => {
+    expect(w.jobs['build-android'].if).toContain("vars.ANDROID_RELEASE_ENABLED == 'true'");
+  });
+
+  it('production Android submit production profiliyle (track eas.json\'da internal)', () => {
+    expect(runs(production.jobs['build-android'])).toContain('build-submit android production production');
+  });
+});
+
+describe('concurrency', () => {
+  it.each([
+    ['staging', staging],
+    ['production', production],
+  ])('%s: OTA eskiyse iptal edilir, build asla iptal edilmez', (_n, w) => {
+    expect(w.concurrency).toBeUndefined();
+    expect(w.jobs.ota.concurrency?.['cancel-in-progress']).toBe(true);
+    expect(w.jobs.plan.concurrency?.['cancel-in-progress']).toBe(true);
+    for (const id of ['build-ios', 'build-android']) {
+      expect([id, w.jobs[id].concurrency?.['cancel-in-progress']]).toEqual([id, false]);
+    }
+  });
+
+  it('EXPO_TOKEN guard korunur', () => {
+    for (const w of [staging, production]) {
+      expect(w.jobs.plan.steps!.some((s) => s.env?.HAS_TOKEN?.includes('secrets.EXPO_TOKEN'))).toBe(true);
+    }
+  });
+});
+
+describe('master akışı', () => {
+  it('"Master source guard" master PR\'larında koşar, path filtresi yok', () => {
+    const pr = masterFlow.on.pull_request as { branches: string[]; paths?: unknown; 'paths-ignore'?: unknown };
+    expect(pr.branches).toEqual(['master']);
+    expect(pr.paths).toBeUndefined();
+    expect(pr['paths-ignore']).toBeUndefined();
+    const guard = masterFlow.jobs['source-guard'];
+    expect(guard.name).toBe('Master source guard');
+    expect(runs(guard)).toMatch(/development\|hotfix\/\*\)/);
+  });
+
+  it('hotfix merge\'ünde development\'a geri birleştirme PR\'ı açılır', () => {
+    const job = masterFlow.jobs['hotfix-backmerge'];
+    expect(job.if).toContain('github.event.pull_request.merged == true');
+    expect(job.if).toContain("startsWith(github.event.pull_request.head.ref, 'hotfix/')");
+    expect(job.permissions).toEqual({ contents: 'write', 'pull-requests': 'write' });
+    expect(runs(job)).toContain('gh pr create');
+    expect(runs(job)).toContain('--base development');
+  });
+
+  it('workflow düzeyinde yetkiler salt-okunur', () => {
+    for (const w of [staging, production, masterFlow]) {
+      expect(w.permissions).toEqual({ contents: 'read' });
+    }
   });
 });
