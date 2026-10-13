@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import { HStack, Screen, Text, VStack, theme } from '@/ui';
 
 import { BrandLogo } from '@/components/BrandLogo';
+import { AuthHeroBanner } from '@/components/hero/AuthHeroBanner';
 import { styles } from './_lib/styles';
 import { useLogin } from './_hooks/useLogin';
 import { LoginCard } from './_components/LoginCard';
@@ -37,6 +38,9 @@ export default function LoginScreen() {
       </Pressable>
 
       <VStack gap={5}>
+        {/* Yönetimden gelen auth görseli (web `AuthHeroFrame`); yoksa hiçbir şey. */}
+        <AuthHeroBanner placement="auth_default" style={styles.authHero} />
+
         {/* Markalı başlık — turuncu zemin üzerinde Tarodan logosu (logo şeffaf;
             beyaz "TARO" ancak turuncu arka planda görünür) + slogan */}
         <View style={styles.brandHeader}>
