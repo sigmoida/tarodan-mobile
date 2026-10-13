@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text, theme } from '@/ui';
+import { Text, theme, useHeaderTopInset } from '@/ui';
 import { BrandLogo } from '@/components/BrandLogo';
 import { AuthHeroBanner } from '@/components/hero/AuthHeroBanner';
 import type { AuthHeroPlacement } from '@/components/hero/useAuthHero';
@@ -55,6 +55,7 @@ export const AuthShell: React.FC<AuthShellProps> = ({
   children,
 }) => {
   const insets = useSafeAreaInsets();
+  const topInset = useHeaderTopInset();
   return (
     <KeyboardAvoidingView
       style={styles.root}
@@ -64,7 +65,7 @@ export const AuthShell: React.FC<AuthShellProps> = ({
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
-          { paddingTop: insets.top + spacing[6], paddingBottom: insets.bottom + spacing[8] },
+          { paddingTop: topInset + spacing[6], paddingBottom: insets.bottom + spacing[8] },
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}

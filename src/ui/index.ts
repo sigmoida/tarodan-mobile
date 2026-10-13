@@ -1,6 +1,7 @@
 /** @format */
 
 export { theme, type Theme } from './lib/theme';
+export { useHeaderTopInset } from './lib/header';
 
 export {
 	Button,
@@ -38,6 +39,10 @@ export {
 	type ScreenHeaderVariant,
 	type TopBarActionProps,
 } from './components/ScreenHeader';
+export {
+	SheetHeader,
+	type SheetHeaderProps,
+} from './components/SheetHeader';
 export { CountBadge, type CountBadgeProps } from './components/CountBadge';
 export {
 	PageShell,

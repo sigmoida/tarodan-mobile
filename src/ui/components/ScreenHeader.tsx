@@ -1,18 +1,11 @@
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  Platform,
-  Pressable,
-  StatusBar,
-  StyleSheet,
-  View,
-  type ViewStyle,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { RawText } from './Text';
+import { RawText, Text } from './Text';
 import { CountBadge } from './CountBadge';
 import { theme } from '../lib/theme';
+import { useHeaderTopInset } from '../lib/header';
 
 /**
  * @deprecated Eski turuncu/açık ayrımı. Yığın ekranlarının üst barı artık TEK görünüm: web'in
@@ -27,42 +20,71 @@ export interface ScreenHeaderProps {
   variant?: ScreenHeaderVariant;
   onBack?: () => void;
   showBack?: boolean;
+  /**
+   * Geri okunun yerine özel öncül düğüm (ör. kapat X). Aynı kutu ölçüsünde çizilir; verilirse
+   * `showBack`/`onBack` yok sayılır.
+   */
+  leading?: React.ReactNode;
+  /** Başlık + alt başlık yerine özel içerik (ör. sohbet: avatar + ad + ürün). Tek satır sığmalı. */
+  titleSlot?: React.ReactNode;
   /** Sağ aksiyon(lar). Beyaz zemin: ikonlar başlık rengi olmalı — `TopBarAction` kullanın. */
   right?: React.ReactNode;
-  /** Varsayılan sola hizalı (web PageHeader gibi geri oku + başlık). */
+  /**
+   * @deprecated Başlık HER ZAMAN sola hizalı (iki platformda aynı). Prop geriye uyum için
+   * kabul edilir, görünümü değiştirmez.
+   */
   centerTitle?: boolean;
+  /**
+   * Şeffaf varyant (galeri / görsel üstüne bindirme): zemin ve alt çizgi yok. Konumlandırma
+   * çağıranın işi (`style` ile `position: 'absolute'`). Yükseklik ve geri oku aynı kalır.
+   */
+  transparent?: boolean;
   style?: ViewStyle;
+  testID?: string;
 }
 
-const { colors, spacing, typography, iconSize, minTouchTarget } = theme;
+const { colors, spacing, typography, iconSize, minTouchTarget, headerHeight } = theme;
 
-/** Üst bar satır yüksekliği (güvenli alan hariç). */
-export const TOP_BAR_HEIGHT = 52;
+/** Üst bar satır yüksekliği (güvenli alan hariç) — rol token'ı `theme.headerHeight`. */
+export const TOP_BAR_HEIGHT = headerHeight;
 const ICON_BOX = 40;
 
 /**
- * Yığın ekranlarının üst barı (PageShell'in barı da bu): surface-elevated zemin, alt kenarlık,
- * geri oku (24, başlık rengi), tek satır başlık (lg/600), opsiyonel sağ aksiyon. Güvenli alanın
- * üstü dahil. StatusBar koyu içerik ister (kök layout varsayılanı).
+ * Yığın ekranlarının üst barı (PageShell'in barı da bu) — uygulamadaki TEK standart: güvenli
+ * alan (`useHeaderTopInset`) + SABİT `headerHeight` içerik; surface-elevated zemin, 1px alt
+ * çizgi (gölge yok); solda geri oku (chevron-back, 24, başlık rengi, 44pt dokunma alanı), SOLA
+ * hizalı tek satır başlık (h3: lg/600, ellipsis), sağda aksiyon slotu. StatusBar koyu içerik
+ * ister (kök layout varsayılanı).
  */
 export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   title,
   subtitle,
   onBack,
   showBack = true,
+  leading,
+  titleSlot,
   right,
-  centerTitle = false,
+  transparent = false,
   style,
+  testID = 'screen-header',
 }) => {
-  const insets = useSafeAreaInsets();
+  const topPad = useHeaderTopInset();
   const { t } = useTranslation();
-  const topPad = Math.max(insets.top, Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight ?? 24));
-  const align = centerTitle ? 'center' : 'left';
 
   return (
-    <View style={[styles.container, { paddingTop: topPad }, style]}>
-      <View style={styles.row}>
-        {showBack ? (
+    <View
+      testID={testID}
+      style={[
+        styles.container,
+        transparent && styles.containerTransparent,
+        { paddingTop: topPad },
+        style,
+      ]}
+    >
+      <View style={styles.row} testID={`${testID}-row`}>
+        {leading ? (
+          <View style={styles.iconBtn}>{leading}</View>
+        ) : showBack ? (
           <Pressable
             onPress={onBack}
             disabled={!onBack}
@@ -73,30 +95,27 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
           >
             <Ionicons name="chevron-back" size={iconSize.lg} color={colors.text.heading} />
           </Pressable>
-        ) : centerTitle ? (
-          <View style={styles.iconBtn} />
         ) : (
-          <View style={styles.leadingGap} />
+          // Geri oku olmasa da aynı boş kutu: başlık her ekranda AYNI x konumunda başlar.
+          <View style={styles.iconBtn} />
         )}
 
-        <View style={[styles.titleWrap, centerTitle && styles.titleCenter]}>
-          <RawText
-            style={[styles.title, { textAlign: align }]}
-            numberOfLines={1}
-            accessibilityRole="header"
-          >
-            {title}
-          </RawText>
-          {subtitle ? (
-            <RawText style={[styles.subtitle, { textAlign: align }]} numberOfLines={1}>
-              {subtitle}
-            </RawText>
-          ) : null}
+        <View style={styles.titleWrap}>
+          {titleSlot ?? (
+            <>
+              <Text variant="h3" numberOfLines={1} accessibilityRole="header">
+                {title}
+              </Text>
+              {subtitle ? (
+                <RawText style={styles.subtitle} numberOfLines={1}>
+                  {subtitle}
+                </RawText>
+              ) : null}
+            </>
+          )}
         </View>
 
-        <View style={styles.rightSlot}>
-          {right ?? (centerTitle ? <View style={styles.iconBtn} /> : null)}
-        </View>
+        <View style={styles.rightSlot}>{right}</View>
       </View>
     </View>
   );
@@ -159,10 +178,14 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border.DEFAULT,
     paddingHorizontal: spacing[2],
   },
+  containerTransparent: {
+    backgroundColor: colors.transparent,
+    borderBottomWidth: 0,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: TOP_BAR_HEIGHT,
+    height: TOP_BAR_HEIGHT,
     gap: spacing[1],
   },
   iconBtn: {
@@ -171,9 +194,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: theme.radiusRole.button,
-  },
-  leadingGap: {
-    width: spacing[2],
   },
   textBtn: {
     minHeight: ICON_BOX,
@@ -190,13 +210,7 @@ const styles = StyleSheet.create({
   titleWrap: {
     flex: 1,
     minWidth: 0,
-  },
-  titleCenter: { alignItems: 'center' },
-  title: {
-    fontSize: typography.fontSize.lg,
-    lineHeight: typography.fontSize.lg * typography.lineHeight.snug,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.heading,
+    justifyContent: 'center',
   },
   subtitle: {
     marginTop: spacing[0.5],

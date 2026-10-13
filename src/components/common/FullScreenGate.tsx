@@ -3,7 +3,7 @@ import { Modal, Platform, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { create } from 'zustand';
-import { theme } from '@/ui';
+import { theme, useHeaderTopInset } from '@/ui';
 import { keyboardBottomInset, useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 
 const { colors, spacing, radius } = theme;
@@ -83,6 +83,7 @@ export interface FullScreenGateProps {
  */
 export function FullScreenGate({ layer, children, onBackPress, testID }: FullScreenGateProps) {
   const insets = useSafeAreaInsets();
+  const topInset = useHeaderTopInset();
   // Klavye: kapı kenardan kenara bir Modal (statusBar/navigationBarTranslucent);
   // Android'de edge-to-edge pencerede `adjustResize` yüzeyi küçültmez ve klavye
   // alttaki düğmeleri örter. Alt boşluk klavye yüksekliğine göre büyür, böylece
@@ -127,7 +128,7 @@ export function FullScreenGate({ layer, children, onBackPress, testID }: FullScr
       onShow={() => setPresented(true)}
     >
       <View
-        style={[styles.surface, { paddingTop: insets.top, paddingBottom }]}
+        style={[styles.surface, { paddingTop: topInset, paddingBottom }]}
         accessibilityViewIsModal
         testID={testID}
       >

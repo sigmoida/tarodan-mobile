@@ -41,6 +41,18 @@ function screenHeaderElements(source: string): string[] {
   return found;
 }
 
+/** Süslü parantez içlerini (JSX prop değerleri: titleSlot/right içindeki `<Text variant=…>`) atar. */
+function topLevelProps(el: string): string {
+  let depth = 0;
+  let out = '';
+  for (const c of el) {
+    if (c === '{') depth++;
+    else if (c === '}') depth--;
+    else if (depth === 0) out += c;
+  }
+  return out;
+}
+
 const WHITE = /colors\.white|color=["']white["']|text\.inverted|#fff/i;
 
 describe('ScreenHeader kullanımları (beyaz üst bar)', () => {
@@ -52,7 +64,7 @@ describe('ScreenHeader kullanımları (beyaz üst bar)', () => {
         total++;
         const rel = path.relative(ROOT, file);
         if (WHITE.test(el)) offenders.push(`${rel}: beyaz renk`);
-        if (/\bvariant=/.test(el)) offenders.push(`${rel}: kaldırılan variant prop'u`);
+        if (/\bvariant=/.test(topLevelProps(el))) offenders.push(`${rel}: kaldırılan variant prop'u`);
       }
     }
   }

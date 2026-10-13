@@ -3,6 +3,7 @@ import {
   controlHeight,
   counterBadgeColor,
   duration,
+  headerHeight,
   iconSize,
   minTouchTarget,
   nativeShadows,
@@ -51,7 +52,7 @@ const colors = {
  * Native theme — flattened tokens optimised for StyleSheet.
  *
  * Rol token'ları (bkz. `src/theme/roles.ts`): `iconSize`, `controlHeight`, `minTouchTarget`,
- * `radiusRole`, `priceColor`, `counterBadgeColor`; RN gölge preset'leri `shadow`
+ * `headerHeight` (üst bar içerik yüksekliği, 52), `radiusRole`, `priceColor`, `counterBadgeColor`; RN gölge preset'leri `shadow`
  * (`{ ...theme.shadow.soft }`); hareket süreleri `duration` (ms, sayı).
  */
 export const theme = {
@@ -64,6 +65,7 @@ export const theme = {
   iconSize,
   controlHeight,
   minTouchTarget,
+  headerHeight,
   radiusRole,
   priceColor,
   counterBadgeColor,

@@ -30,7 +30,10 @@ export const pageListContentStyle: ViewStyle = {
 export type PageShellMode = 'scroll' | 'list' | 'static';
 
 export interface PageShellProps
-  extends Pick<ScreenHeaderProps, 'subtitle' | 'onBack' | 'showBack' | 'right' | 'centerTitle'> {
+  extends Pick<
+      ScreenHeaderProps,
+      'subtitle' | 'onBack' | 'showBack' | 'right' | 'centerTitle' | 'leading' | 'titleSlot'
+    > {
   /** Üst bar başlığı. `header` verilmezse beyaz üst bar bununla çizilir. */
   title?: string;
   /** Üst barın yerine özel düğüm; `false` = üst bar yok (ör. tam ekran akış). */
@@ -89,6 +92,8 @@ export const PageShell: React.FC<PageShellProps> = ({
   showBack,
   right,
   centerTitle,
+  leading,
+  titleSlot,
   header,
   mode = 'scroll',
   children,
@@ -124,6 +129,8 @@ export const PageShell: React.FC<PageShellProps> = ({
         showBack={showBack}
         right={right}
         centerTitle={centerTitle}
+        leading={leading}
+        titleSlot={titleSlot}
       />
     );
 
