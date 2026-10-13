@@ -5,10 +5,15 @@ import { rememberPaymentCapability, withPaymentCapability } from '@/lib/payment/
 /**
  * Ödeme başlat + yanıttaki `paymentAccessToken`'ı sakla (web `initiatePayment`).
  * Misafir sonraki public ödeme uçlarında (`X-Payment-Capability`) bununla yetkilenir.
+ *
+ * Depo yazımı beklenmez: bellek kopyası senkron yazılır, sonraki istekler onu
+ * okur; AsyncStorage yazımı arkada biter (kullanıcı kart bilgisini girip banka
+ * uygulamasına geçmeden çok önce). Böylece ödeme başlatma depoya bağımlı olmaz.
+ * `rememberPaymentCapability` hiç fırlatmaz.
  */
 async function initiatePayment<T>(request: Promise<T>): Promise<T> {
   const response = await request;
-  rememberPaymentCapability(response);
+  void rememberPaymentCapability(response);
   return response;
 }
 

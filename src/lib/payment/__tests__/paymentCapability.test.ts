@@ -1,20 +1,37 @@
 /**
  * Ödeme yetki belirteci deposu (`paymentCapability.ts`).
  */
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AxiosInstance } from 'axios';
 import {
   __resetPaymentCapabilities,
   capabilityPaymentId,
+  PAYMENT_CAPABILITY_TTL_MS,
   paymentCapabilityHeaders,
   rememberPaymentCapability,
   withPaymentCapability,
 } from '../paymentCapability';
 
 const PAY = 'pay-1';
+const KEY = `payment-capability.${PAY}`;
 const CAP = { 'X-Payment-Capability': 'cap-token' };
+const T0 = Date.UTC(2026, 9, 13, 9, 0, 0);
 
-beforeEach(() => {
+/** Uygulama yeniden başladı: bellek boş, AsyncStorage duruyor. */
+const restartApp = () => __resetPaymentCapabilities();
+
+beforeEach(async () => {
   __resetPaymentCapabilities();
+  await AsyncStorage.clear();
+  jest.clearAllMocks();
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
 });
 
 describe('zarf açma (unwrapEnvelope)', () => {
@@ -102,5 +119,93 @@ describe('withPaymentCapability (ödeme API sarmalayıcısı)', () => {
     const err = Object.assign(new Error('403'), { response: { status: 403 } });
     client.post.mockRejectedValueOnce(err);
     await expect(http.post(`/payments/${PAY}/confirm-failed`, {})).rejects.toBe(err);
+  });
+});
+
+describe('kalıcılık (AsyncStorage, 2 saat TTL)', () => {
+  const nowAt = (t: number) => jest.spyOn(Date, 'now').mockReturnValue(t);
+
+  it('belirteç paymentId anahtarıyla, sunucudaki 2 saatlik ömürle yazılır', async () => {
+    nowAt(T0);
+    await rememberPaymentCapability({ data: { paymentId: PAY, paymentAccessToken: 'cap-token' } });
+    expect(PAYMENT_CAPABILITY_TTL_MS).toBe(2 * 60 * 60 * 1000);
+    expect(JSON.parse((await AsyncStorage.getItem(KEY)) as string)).toEqual({
+      token: 'cap-token',
+      expiresAt: T0 + PAYMENT_CAPABILITY_TTL_MS,
+    });
+  });
+
+  it('uygulama kapanıp açılınca (bellek boş) belirteç depodan okunur', async () => {
+    nowAt(T0);
+    await rememberPaymentCapability({ data: { paymentId: PAY, paymentAccessToken: 'cap-token' } });
+    restartApp();
+    nowAt(T0 + 30 * 60 * 1000); // banka uygulamasından 30 dk sonra dönüş
+    expect(await paymentCapabilityHeaders(PAY)).toEqual(CAP);
+  });
+
+  it('süre dolmadan hemen önce geçerli, dolunca depodan silinir ve yok sayılır', async () => {
+    nowAt(T0);
+    await rememberPaymentCapability({ data: { paymentId: PAY, paymentAccessToken: 'cap-token' } });
+    restartApp();
+    nowAt(T0 + PAYMENT_CAPABILITY_TTL_MS - 1);
+    expect(await paymentCapabilityHeaders(PAY)).toEqual(CAP);
+
+    restartApp();
+    nowAt(T0 + PAYMENT_CAPABILITY_TTL_MS);
+    expect(await paymentCapabilityHeaders(PAY)).toEqual({});
+    expect(await AsyncStorage.getItem(KEY)).toBeNull();
+  });
+
+  it('bellek kopyasının da süresi dolar (uygulama hiç kapanmasa da), depodan silinir', async () => {
+    nowAt(T0);
+    await rememberPaymentCapability({ data: { paymentId: PAY, paymentAccessToken: 'cap-token' } });
+    nowAt(T0 + PAYMENT_CAPABILITY_TTL_MS + 1);
+    expect(await paymentCapabilityHeaders(PAY)).toEqual({});
+    expect(await AsyncStorage.getItem(KEY)).toBeNull();
+  });
+
+  it('bozuk kayıt yok sayılır ve silinir', async () => {
+    await AsyncStorage.setItem(KEY, 'not-json');
+    expect(await paymentCapabilityHeaders(PAY)).toEqual({});
+    expect(await AsyncStorage.getItem(KEY)).toBeNull();
+  });
+
+  it('yeni belirteç eskisinin üstüne yazılır (aynı ödeme yeniden başlatıldı)', async () => {
+    await rememberPaymentCapability({ data: { paymentId: PAY, paymentAccessToken: 'old' } });
+    await rememberPaymentCapability({ data: { paymentId: PAY, paymentAccessToken: 'cap-token' } });
+    expect(await paymentCapabilityHeaders(PAY)).toEqual(CAP);
+    restartApp();
+    expect(await paymentCapabilityHeaders(PAY)).toEqual(CAP);
+  });
+
+  it('aynı süreçte depo ödeme başına bir kez okunur (yoklama her turda depoya gitmez)', async () => {
+    for (let i = 0; i < 5; i++) expect(await paymentCapabilityHeaders('unknown')).toEqual({});
+    expect(AsyncStorage.getItem).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('depo hatası yedeği (yalnız bellek)', () => {
+  it('setItem reddederse fırlatmaz; aynı süreçte bellek kopyası kullanılır', async () => {
+    (AsyncStorage.setItem as jest.Mock).mockRejectedValueOnce(new Error('disk full'));
+    await expect(
+      rememberPaymentCapability({ data: { paymentId: PAY, paymentAccessToken: 'cap-token' } }),
+    ).resolves.toBeUndefined();
+    expect(await paymentCapabilityHeaders(PAY)).toEqual(CAP);
+  });
+
+  it('getItem reddederse fırlatmaz, başlık boş; sonraki istek yeniden dener', async () => {
+    await rememberPaymentCapability({ data: { paymentId: PAY, paymentAccessToken: 'cap-token' } });
+    restartApp();
+    (AsyncStorage.getItem as jest.Mock).mockRejectedValueOnce(new Error('io'));
+    expect(await paymentCapabilityHeaders(PAY)).toEqual({});
+    expect(await paymentCapabilityHeaders(PAY)).toEqual(CAP);
+  });
+
+  it('removeItem reddederse fırlatmaz (süresi dolan yine yok sayılır)', async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(T0);
+    await rememberPaymentCapability({ data: { paymentId: PAY, paymentAccessToken: 'cap-token' } });
+    (AsyncStorage.removeItem as jest.Mock).mockRejectedValueOnce(new Error('io'));
+    jest.spyOn(Date, 'now').mockReturnValue(T0 + PAYMENT_CAPABILITY_TTL_MS + 1);
+    expect(await paymentCapabilityHeaders(PAY)).toEqual({});
   });
 });

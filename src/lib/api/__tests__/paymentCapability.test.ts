@@ -17,6 +17,11 @@ jest.mock('../client', () => ({
   },
 }));
 
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, guestApi } from '../client';
 import { paymentsApi } from '../checkout';
 import { __resetPaymentCapabilities } from '@/lib/payment/paymentCapability';
@@ -30,10 +35,14 @@ const PAY = '7f9c2b1e-0000-4000-8000-000000000001';
 const GROUP = '7f9c2b1e-0000-4000-8000-0000000000aa';
 const CAP = { 'X-Payment-Capability': 'cap-token' };
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.clearAllMocks();
   __resetPaymentCapabilities();
+  await AsyncStorage.clear();
 });
+
+/** Arkada süren depo yazımının bitmesini bekle. */
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 async function guestInitiate() {
   guestPost.mockResolvedValueOnce({ data: { paymentId: PAY, paymentAccessToken: 'cap-token' } });
@@ -97,4 +106,26 @@ it('belirteç başka ödemeye sızmaz', async () => {
   await paymentsApi.directForm({ checkoutGroupId: GROUP, paymentId: 'another-payment', saveCard: false });
   expect(guestGet).toHaveBeenCalledWith('/payments/another-payment/status-guest', { headers: {} });
   expect(apiPost).toHaveBeenLastCalledWith('/payments/direct-form', expect.anything(), { headers: {} });
+});
+
+it('banka uygulamasında süreç ölse de: belirteç depoda, dönüşte durum/verify/confirm-failed başlıklı', async () => {
+  await guestInitiate();
+  await flush();
+  expect(await AsyncStorage.getItem(`payment-capability.${PAY}`)).toContain('cap-token');
+
+  __resetPaymentCapabilities(); // uygulama yeniden başladı: bellek boş
+  await paymentsApi.getStatusLightGuest(PAY);
+  await paymentsApi.verify(PAY);
+  await paymentsApi.confirmFailed(PAY);
+  expect(guestGet).toHaveBeenCalledWith(`/payments/${PAY}/status-guest`, { headers: CAP });
+  expect(apiPost).toHaveBeenCalledWith(`/payments/${PAY}/verify`, {}, { headers: CAP });
+  expect(apiPost).toHaveBeenCalledWith(`/payments/${PAY}/confirm-failed`, {}, { headers: CAP });
+});
+
+it('depo yazımı başarısız olsa da initiate bozulmaz, aynı süreçte başlık gider', async () => {
+  (AsyncStorage.setItem as jest.Mock).mockRejectedValueOnce(new Error('disk full'));
+  await guestInitiate();
+  await flush();
+  await paymentsApi.getStatusLightGuest(PAY);
+  expect(guestGet).toHaveBeenCalledWith(`/payments/${PAY}/status-guest`, { headers: CAP });
 });
