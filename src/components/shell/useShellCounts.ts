@@ -15,5 +15,6 @@ export function useShellCounts() {
   const notificationCount = useNotificationUnreadCount(isAuthenticated);
   const { data: messageCount = 0 } = useUnreadCountQuery();
   const { items: favoriteItems } = useFavorites();
-  return { cartCount, notificationCount, messageCount, favoriteCount: favoriteItems.length };
+  // `?.`: kısmi useFavorites sahteleri (ürün detay testleri) items vermeyebilir.
+  return { cartCount, notificationCount, messageCount, favoriteCount: favoriteItems?.length ?? 0 };
 }
