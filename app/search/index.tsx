@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, FlatList, RefreshControl } from 'react-native';
+import { View, RefreshControl } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { ErrorState, FAB, Spinner, theme } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import {
@@ -145,7 +146,7 @@ export default function SearchScreen() {
 
           {/* Results — liste yükleme/boş durumda da MONTE kalır (sökülüp yeniden
               yerleşmesin diye); üst çubuklar ölçülene kadar yalnızca görünmez. */}
-          <FlatList
+          <Animated.FlatList
             testID="search-results-list"
             ref={f.listRef}
             data={f.products}

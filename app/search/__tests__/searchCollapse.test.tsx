@@ -32,6 +32,7 @@ jest.mock('@/hooks/useProductFilterOptions', () => ({
 jest.mock('@/components/ProductFilterSheet', () => () => null);
 
 import { useSearch } from '../_hooks/useSearch';
+import { nextBarsHidden, shouldShowScrollTop } from '../_lib/barsCollapse';
 import SearchScreen from '..';
 
 const mockGetAll = productsApi.getAll as jest.Mock;
@@ -52,8 +53,15 @@ const mockListResponse = (items: any[]) => ({
 const layoutEvent = (height: number) =>
   ({ nativeEvent: { layout: { x: 0, y: 0, width: 320, height } } }) as any;
 
-const scrollEvent = (y: number) =>
-  ({ nativeEvent: { contentOffset: { y }, contentSize: { height: 4000, width: 320 }, layoutMeasurement: { height: 800, width: 320 } } }) as any;
+// Reanimated scroll handler jest'te `{ workletEventHandler }` döner; worklet'i doğrudan çağırıyoruz
+// (UI thread'i yok → shared value'lar ve `scheduleOnRN` aynı thread'de eşzamanlı çalışır).
+const fireScroll = (controller: ReturnType<typeof useSearch>, y: number) =>
+  (controller.handleResultsScroll as any).workletEventHandler.worklet({
+    eventName: 'onScroll',
+    contentOffset: { x: 0, y },
+    contentSize: { height: 4000, width: 320 },
+    layoutMeasurement: { height: 800, width: 320 },
+  });
 
 function hookWrapper(queryClient: QueryClient) {
   return ({ children }: { children: React.ReactNode }) => (
@@ -88,38 +96,85 @@ describe('B6 · arama üst çubukları — ölçüm ve collapse', () => {
     expect(result.current.barsMeasured).toBe(true);
   });
 
-  it('aşağı kaydırınca çubuklar gizlenir, yukarı kaydırınca geri gelir', () => {
-    const { result } = renderHook(() => useSearch(), {
-      wrapper: hookWrapper(makeTestQueryClient()),
+  // Kaydırma kararı artık UI thread'inde (Reanimated scroll handler). Kural saf bir worklet'te
+  // (`nextBarsHidden`) → burada doğrudan, ardından gerçek handler üzerinden uçtan uca test edilir.
+  describe('nextBarsHidden (saf kural)', () => {
+    it('aşağı kaydırınca çubuklar gizlenir, yukarı kaydırınca geri gelir', () => {
+      // Eşiğin (headerHeight) altındaki aşağı kaydırma çubuklara dokunmaz.
+      expect(nextBarsHidden(120, 0, false, true, 200)).toBe(false);
+      // Eşiği geçen aşağı kaydırma → gizle.
+      expect(nextBarsHidden(320, 120, false, true, 200)).toBe(true);
+      // Gizliyken aşağı devam → gizli kalır.
+      expect(nextBarsHidden(400, 320, true, true, 200)).toBe(true);
+      // Yukarı kaydırma → geri getir.
+      expect(nextBarsHidden(240, 320, true, true, 200)).toBe(false);
     });
 
-    act(() => result.current.onBarsLayout(layoutEvent(200)));
-    expect(result.current.topBarsHidden).toBe(false);
+    it('küçük hareket (<=6pt) ve ölçülmemiş çubuk durumu değiştirmez', () => {
+      expect(nextBarsHidden(325, 320, false, true, 200)).toBe(false);
+      expect(nextBarsHidden(318, 320, true, true, 200)).toBe(true);
+      expect(nextBarsHidden(900, 0, false, false, 0)).toBe(false);
+    });
 
-    // Eşiğin (headerHeight) altındaki aşağı kaydırma çubuklara dokunmaz.
-    act(() => result.current.handleResultsScroll(scrollEvent(120)));
-    expect(result.current.topBarsHidden).toBe(false);
+    it('en üste dönünce çubuklar her koşulda geri gelir', () => {
+      expect(nextBarsHidden(0, 400, true, true, 200)).toBe(false);
+      expect(nextBarsHidden(4, 400, true, true, 200)).toBe(false);
+    });
 
-    // Eşiği geçen aşağı kaydırma → gizle.
-    act(() => result.current.handleResultsScroll(scrollEvent(320)));
-    expect(result.current.topBarsHidden).toBe(true);
-
-    // Yukarı kaydırma → geri getir.
-    act(() => result.current.handleResultsScroll(scrollEvent(240)));
-    expect(result.current.topBarsHidden).toBe(false);
+    it('"en üste dön" eşiği 600pt', () => {
+      expect(shouldShowScrollTop(600)).toBe(false);
+      expect(shouldShowScrollTop(601)).toBe(true);
+    });
   });
 
-  it('en üste dönünce çubuklar her koşulda geri gelir', () => {
+  it('gerçek scroll handler: aşağı kaydırınca çubuklar gizlenir, yukarı kaydırınca geri gelir', () => {
     const { result } = renderHook(() => useSearch(), {
       wrapper: hookWrapper(makeTestQueryClient()),
     });
 
     act(() => result.current.onBarsLayout(layoutEvent(200)));
-    act(() => result.current.handleResultsScroll(scrollEvent(400)));
-    expect(result.current.topBarsHidden).toBe(true);
+    expect(result.current.barsHidden.value).toBe(false);
 
-    act(() => result.current.handleResultsScroll(scrollEvent(0)));
-    expect(result.current.topBarsHidden).toBe(false);
+    act(() => fireScroll(result.current, 120));
+    expect(result.current.barsHidden.value).toBe(false);
+
+    act(() => fireScroll(result.current, 320));
+    expect(result.current.barsHidden.value).toBe(true);
+
+    act(() => fireScroll(result.current, 240));
+    expect(result.current.barsHidden.value).toBe(false);
+
+    // En üste dönünce her koşulda geri gelir.
+    act(() => fireScroll(result.current, 500));
+    expect(result.current.barsHidden.value).toBe(true);
+    act(() => fireScroll(result.current, 0));
+    expect(result.current.barsHidden.value).toBe(false);
+  });
+
+  it('gerçek scroll handler: açık öneri/geçmiş paneli kaydırınca kapanır', async () => {
+    const { result } = renderHook(() => useSearch(), {
+      wrapper: hookWrapper(makeTestQueryClient()),
+    });
+    act(() => result.current.onInputFocus());
+    expect(result.current.showRecentSearches).toBe(true);
+
+    await act(async () => fireScroll(result.current, 30));
+    await waitFor(() => expect(result.current.showRecentSearches).toBe(false));
+    expect(result.current.autocompleteOpen).toBe(false);
+  });
+
+  it('gerçek scroll handler: 600pt eşiğinde "en üste dön" JS state\'ine yansır', async () => {
+    const { result } = renderHook(() => useSearch(), {
+      wrapper: hookWrapper(makeTestQueryClient()),
+    });
+    expect(result.current.showScrollTop).toBe(false);
+
+    // scheduleOnRN JS thread'ine asenkron döner → bekle.
+    await act(async () => fireScroll(result.current, 700));
+    await waitFor(() => expect(result.current.showScrollTop).toBe(true));
+
+    await act(async () => fireScroll(result.current, 10));
+    await waitFor(() => expect(result.current.showScrollTop).toBe(false));
   });
 
   it('liste yükleme sırasında sökülmez; iskelet boş-durum yuvasında gösterilir', async () => {

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Animated, type LayoutChangeEvent } from 'react-native';
+import { View, type LayoutChangeEvent } from 'react-native';
+import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import { ProductListToolbar } from '@/components/product';
 import { buildSortOptions } from '@/utils/productFilters';
 import { styles } from '../_lib/searchStyles';
@@ -11,7 +12,7 @@ import type { SearchController } from '../_hooks/useSearch';
 export interface SearchBarsProps
   extends Omit<SearchInputBoxProps, 'initialValue' | 'command' | 'onEmptyChange'>,
     SearchSuggestionsProps {
-  translateY: Animated.Value;
+  translateY: SharedValue<number>;
   onBarsLayout: (e: LayoutChangeEvent) => void;
   initialQuery: string;
   inputCommand: SearchInputBoxProps['command'];
@@ -59,10 +60,8 @@ function SearchBarsBase({
 }: SearchBarsProps) {
   const { t } = useTranslation();
   const sortOptions = useMemo(() => buildSortOptions(t), [t]);
-  const barsStyle = useMemo(
-    () => [styles.collapsibleBars, { transform: [{ translateY }] }],
-    [translateY],
-  );
+  const slideStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
+  const barsStyle = useMemo(() => [styles.collapsibleBars, slideStyle], [slideStyle]);
   return (
     <Animated.View testID="search-collapsible-bars" style={barsStyle} onLayout={onBarsLayout}>
       <ProductListToolbar

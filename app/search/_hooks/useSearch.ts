@@ -1,12 +1,11 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { FlatList, Keyboard, type LayoutChangeEvent } from 'react-native';
 import {
-  FlatList,
-  Keyboard,
-  Animated,
-  type LayoutChangeEvent,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-} from 'react-native';
+  useAnimatedScrollHandler,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import {
   keepPreviousData,
   useInfiniteQuery,
@@ -31,6 +30,11 @@ import {
   type ProductFilters,
 } from '@/utils/productFilters';
 import { PAGE_SIZE, conditionLabel } from '../_lib/searchConstants';
+import {
+  BARS_ANIM_MS,
+  nextBarsHidden,
+  shouldShowScrollTop,
+} from '../_lib/barsCollapse';
 
 // Kararlı boş dizi: `sellerAutoRes.data ?? []` her render'da yeni referans üretiyordu.
 const EMPTY_SELLERS: any[] = [];
@@ -105,10 +109,10 @@ export function useSearch() {
   const [showRecentSearches, setShowRecentSearches] = useState(false);
 
   // Sonuç listesi aşağı kaydırılınca üst çubukları (arama + filtre) gizle, yukarı kaydırınca geri getir.
-  const [topBarsHidden, setTopBarsHidden] = useState(false);
+  // Karar ve animasyon UI thread'inde (Reanimated scroll handler + shared value); JS'e yalnız
+  // eşik geçişleri (en üste dön düğmesi, öneri panelini kapatma) döner.
   // Liste yeterince aşağı inince "en üste dön" butonunu göster.
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const lastScrollY = useRef(0);
   const listRef = useRef<FlatList>(null);
 
   // Üst çubukları absolute bir katmanda tutup translateY ile kaydırıyoruz (liste reflow olmaz → takılmaz).
@@ -117,14 +121,19 @@ export function useSearch() {
   // yanlış bir üst boşlukla bir kare çizilip sonra yerine kaymaz.
   const [headerHeight, setHeaderHeight] = useState(0);
   const barsMeasured = headerHeight > 0;
-  const barsTranslateY = useRef(new Animated.Value(0)).current;
+  const barsTranslateY = useSharedValue(0);
+  const barsHidden = useSharedValue(false);
+  const headerHeightSV = useSharedValue(0);
+  const lastScrollY = useSharedValue(0);
+  const scrollTopVisible = useSharedValue(false);
+  const panelsOpenSV = useSharedValue(false);
   useEffect(() => {
-    Animated.timing(barsTranslateY, {
-      toValue: topBarsHidden ? -headerHeight : 0,
-      duration: 220,
-      useNativeDriver: true,
-    }).start();
-  }, [topBarsHidden, headerHeight, barsTranslateY]);
+    headerHeightSV.value = headerHeight;
+    // Çubuklar gizliyken yükseklik değişirse (çip eklendi/çıktı) yeni yüksekliğe göre hizala.
+    if (barsHidden.value) {
+      barsTranslateY.value = withTiming(-headerHeight, { duration: BARS_ANIM_MS });
+    }
+  }, [headerHeight, headerHeightSV, barsHidden, barsTranslateY]);
   const onBarsLayout = useCallback((e: LayoutChangeEvent) => {
     const h = e.nativeEvent.layout.height;
     if (h <= 0) return;
@@ -328,22 +337,42 @@ export function useSearch() {
     [setInputText, closeSuggestions],
   );
 
-  const handleResultsScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const y = e.nativeEvent.contentOffset.y;
-    const prev = lastScrollY.current;
-    // Sonuçları kaydırınca öneri/geçmiş panelini ve klavyeyi tamamen kapat.
-    if (showRecentSearches || autocompleteOpen) closeSuggestions();
-    if (y <= 4) {
-      if (topBarsHidden) setTopBarsHidden(false);
-    } else if (y - prev > 6 && !topBarsHidden && barsMeasured && y > headerHeight) {
-      setTopBarsHidden(true);
-    } else if (prev - y > 6 && topBarsHidden) {
-      setTopBarsHidden(false);
-    }
-    if (y > 600 && !showScrollTop) setShowScrollTop(true);
-    else if (y <= 600 && showScrollTop) setShowScrollTop(false);
-    lastScrollY.current = y;
-  };
+  // Paneller açık mı? UI thread'indeki scroll handler JS state'ini okuyamaz → shared value'ya yansıt.
+  const panelsOpen = showRecentSearches || autocompleteOpen;
+  useEffect(() => {
+    panelsOpenSV.value = panelsOpen;
+  }, [panelsOpen, panelsOpenSV]);
+
+  // UI thread'inde çalışır (worklet): her karede JS'e düşmez.
+  const handleResultsScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      const y = e.contentOffset.y;
+      // Sonuçları kaydırınca öneri/geçmiş panelini ve klavyeyi tamamen kapat (JS'e tek sefer).
+      if (panelsOpenSV.value) {
+        panelsOpenSV.value = false;
+        scheduleOnRN(closeSuggestions);
+      }
+      const hidden = nextBarsHidden(
+        y,
+        lastScrollY.value,
+        barsHidden.value,
+        headerHeightSV.value > 0,
+        headerHeightSV.value,
+      );
+      if (hidden !== barsHidden.value) {
+        barsHidden.value = hidden;
+        barsTranslateY.value = withTiming(hidden ? -headerHeightSV.value : 0, {
+          duration: BARS_ANIM_MS,
+        });
+      }
+      const showTop = shouldShowScrollTop(y);
+      if (showTop !== scrollTopVisible.value) {
+        scrollTopVisible.value = showTop;
+        scheduleOnRN(setShowScrollTop, showTop);
+      }
+      lastScrollY.value = y;
+    },
+  });
 
   const scrollToTop = () => {
     listRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -401,7 +430,7 @@ export function useSearch() {
     listRef,
     headerHeight,
     barsMeasured,
-    topBarsHidden,
+    barsHidden,
     barsTranslateY,
     onBarsLayout,
     handleResultsScroll,
