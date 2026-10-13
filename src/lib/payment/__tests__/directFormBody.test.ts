@@ -49,6 +49,20 @@ describe('buildDirectFormBody', () => {
     ).toEqual({ checkoutGroupId: 'g-1', saveCard: true, distanceSalesAccepted: true });
   });
 
+  it('paymentId gövdeye girer (web `useCardPayment`; misafirde capability ile zorunlu)', () => {
+    expect(
+      buildDirectFormBody({
+        target: { checkoutGroupId: 'g-1' },
+        paymentId: 'pay-1',
+        card: { kind: 'saved', id: 'card-9' },
+        distanceSalesAccepted: true,
+      }),
+    ).toEqual({ checkoutGroupId: 'g-1', paymentId: 'pay-1', savedCardId: 'card-9', distanceSalesAccepted: true });
+    expect(buildDirectFormBody({ target: { orderId: 'o' }, card: { kind: 'new', save: false } })).not.toHaveProperty(
+      'paymentId',
+    );
+  });
+
   it('gövdede kart verisi alanı yok', () => {
     const body = buildDirectFormBody({ target: { orderId: 'o' }, card: { kind: 'new', save: true }, distanceSalesAccepted: true });
     const keys = Object.keys(body).join(',').toLowerCase();

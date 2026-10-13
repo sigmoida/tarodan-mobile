@@ -135,3 +135,19 @@ it('takas nakit farkında da kutu var ve onay gövdede (web gibi)', async () => 
   await waitFor(() => expect(directFormMock).toHaveBeenCalledTimes(1));
   expect(directFormMock.mock.calls[0][0]).toEqual({ tradeId: 't-1', saveCard: false, distanceSalesAccepted: true });
 });
+
+it('misafir: gövdede paymentId (sunucu capability ile birlikte ister; yoksa 403)', async () => {
+  renderWithProviders(
+    <CardPaymentForm target={{ checkoutGroupId: 'g-1' }} isGuest paymentId="pay-1" onSuccess={jest.fn()} />,
+  );
+  fillNewCard();
+  fireEvent.press(screen.getByTestId('payment-distance-sales-checkbox'));
+  fireEvent.press(screen.getByTestId('card-submit'));
+  await waitFor(() => expect(directFormMock).toHaveBeenCalledTimes(1));
+  expect(directFormMock.mock.calls[0][0]).toEqual({
+    checkoutGroupId: 'g-1',
+    paymentId: 'pay-1',
+    saveCard: false,
+    distanceSalesAccepted: true,
+  });
+});

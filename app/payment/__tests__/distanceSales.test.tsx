@@ -106,7 +106,12 @@ it('takas nakit farkı: kutu var ve onay gövdeye gider', async () => {
   fireEvent.press(screen.getByTestId('card-submit'));
 
   await waitFor(() => expect(directFormMock).toHaveBeenCalledTimes(1));
-  expect(directFormMock.mock.calls[0][0]).toMatchObject({ tradeId: 't-1', distanceSalesAccepted: true });
+  expect(directFormMock.mock.calls[0][0]).toEqual({
+    tradeId: 't-1',
+    paymentId: 'pay-1',
+    saveCard: false,
+    distanceSalesAccepted: true,
+  });
 });
 
 it('üyelik (dijital satış açık yolu): web gibi kutu var', async () => {

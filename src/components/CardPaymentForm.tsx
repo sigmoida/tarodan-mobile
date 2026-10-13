@@ -56,7 +56,8 @@ interface Props {
   isGuest?: boolean;
   /**
    * Çağıran ekranın (/payment/[id]) zaten bildiği ödeme referansı — form mount olmadan
-   * ÖNCE sipariş/grup/takas için oluşturulmuş paymentId. directForm ağ/timeout hatası
+   * ÖNCE sipariş/grup/takas için oluşturulmuş paymentId. Web gibi direct-form gövdesine
+   * girer (misafirde `X-Payment-Capability` ile birlikte zorunlu). directForm ağ/timeout hatası
    * verirse (sunucu charge'ı işlemiş olabilir) bu referansla mevcut poll/verify güvenlik
    * ağı devreye alınır; sert "başarısız" gösterilmez.
    */
@@ -225,6 +226,7 @@ export default function CardPaymentForm({
       }
       body = buildDirectFormBody({
         target,
+        paymentId: initialPaymentId,
         card: { kind: 'new', save: cardStorageEnabled && saveCard },
         distanceSalesAccepted,
       });
@@ -242,6 +244,7 @@ export default function CardPaymentForm({
       }
       body = buildDirectFormBody({
         target,
+        paymentId: initialPaymentId,
         card: { kind: 'saved', id: selected },
         distanceSalesAccepted,
       });
