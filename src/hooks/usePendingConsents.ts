@@ -1,11 +1,10 @@
-import { useEffect, useRef } from 'react';
-import { AppState, type AppStateStatus } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { consentsApi } from '@/lib/api';
 import { qk, retryUnlessClientError } from '@/lib/query';
 import { requiredStepState } from '@/lib/requiredSteps';
 import type { ConsentDocumentKey, PendingConsent } from '@/lib/shared/legalConsent';
 import { useAuthStore } from '@/stores/authStore';
+import { useRefetchOnForeground } from './useRefetchOnForeground';
 
 const EMPTY: PendingConsent[] = [];
 
@@ -17,7 +16,7 @@ const EMPTY: PendingConsent[] = [];
  *
  * Ne zaman sorulur: giriş (oturum açılınca sorgu etkinleşir), soğuk açılış
  * (`loadToken` bitince) ve uygulama ön plana her geldiğinde — metin uygulama
- * arka plandayken güncellenmiş olabilir.
+ * arka plandayken güncellenmiş olabilir (`useRefetchOnForeground`).
  */
 export function usePendingConsents() {
   const queryClient = useQueryClient();
@@ -33,23 +32,20 @@ export function usePendingConsents() {
     retry: retryUnlessClientError,
   });
 
-  const { refetch } = query;
-  const appState = useRef<AppStateStatus>(AppState.currentState);
-  useEffect(() => {
-    if (!enabled) return undefined;
-    const sub = AppState.addEventListener('change', (next) => {
-      const cameToForeground = appState.current !== 'active' && next === 'active';
-      appState.current = next;
-      if (cameToForeground) void refetch();
-    });
-    return () => sub.remove();
-  }, [enabled, refetch]);
+  // Ön plana dönüşte yalnız BU sorgu yenilenir (global focusManager değil).
+  useRefetchOnForeground(qk.consents.pending, { enabled });
 
   const accept = useMutation({
     mutationFn: async (documents: ConsentDocumentKey[]) =>
       (await consentsApi.accept(documents)).data?.pending ?? [],
     // Yanıt KALAN bekleyenlerdir: kapı ek bir istek beklemeden kapanır.
-    onSuccess: (remaining) => queryClient.setQueryData(qk.consents.pending, remaining),
+    // Önce uçuştaki GET iptal edilir: onaydan ÖNCE başlamış (ör. ön plana
+    // dönüş) bir istek sonradan dönüp eski listeyi önbelleğe yazarsa kapı
+    // yeniden açılırdı.
+    onSuccess: async (remaining) => {
+      await queryClient.cancelQueries({ queryKey: qk.consents.pending });
+      queryClient.setQueryData(qk.consents.pending, remaining);
+    },
   });
 
   const pending = enabled ? (query.data ?? EMPTY) : EMPTY;
