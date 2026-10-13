@@ -51,7 +51,7 @@ function MessagesTabScreen() {
     <View style={styles.listHeader}>
       <PageHeader
         title={t("mobile.messagesTitle")}
-        badge={f.unreadCount > 0 ? <Badge variant="danger">{f.unreadCount}</Badge> : null}
+        badge={f.unreadCount > 0 ? <Badge variant="danger" appearance="solid" size="sm">{f.unreadCount}</Badge> : null}
       />
       {f.dailyNearLimit && f.messageLimit != null && f.dailyMessageCount != null ? (
         <Alert variant="warning">

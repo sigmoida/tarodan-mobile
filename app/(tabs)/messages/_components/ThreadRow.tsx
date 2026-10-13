@@ -61,7 +61,11 @@ export function ThreadRow({ thread, f }: { thread: MessageThread; f: MessagesTab
         </Text>
       </View>
 
-      {hasUnread && <Badge style={styles.unreadBadge}>{thread.unreadCount}</Badge>}
+      {hasUnread && (
+        <Badge variant="danger" appearance="solid" size="sm" style={styles.unreadBadge}>
+          {thread.unreadCount > 99 ? "99+" : thread.unreadCount}
+        </Badge>
+      )}
     </Pressable>
   );
 }
