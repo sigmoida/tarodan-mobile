@@ -3,11 +3,10 @@ import React, { useState } from 'react';
 // tam ekran, şeffaf native Modal gerekir (jest + zoom jesti için GestureHandlerRootView modalın İÇİNDE).
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import { Modal, ScrollView, Pressable, Dimensions, StyleSheet } from 'react-native';
-import { theme } from '@/ui';
+import { theme, useHeaderTopInset } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ZoomableImage from '@/components/product/ZoomableImage';
 
 const { colors } = theme;
@@ -27,12 +26,13 @@ export function ImageViewerModal({
 }) {
   const { t } = useTranslation();
   const [zoomed, setZoomed] = useState(false);
-  const insets = useSafeAreaInsets();
+  const topInset = useHeaderTopInset();
 
   return (
     <Modal
       visible={visible}
       transparent
+      statusBarTranslucent
       animationType="fade"
       onRequestClose={onClose}
       onShow={() => setZoomed(false)}
@@ -40,7 +40,7 @@ export function ImageViewerModal({
       {/* Modal Android'de yeni native pencere açtığı için root view modal içinde olmalı */}
       <GestureHandlerRootView style={styles.viewerContainer}>
         <Pressable
-          style={[styles.viewerClose, { top: Math.max(insets.top, theme.spacing[3]) }]}
+          style={[styles.viewerClose, { top: topInset + theme.spacing[2] }]}
           onPress={onClose}
           accessibilityRole="button"
           accessibilityLabel={t('common.close')}
