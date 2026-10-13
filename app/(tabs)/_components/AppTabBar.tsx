@@ -1,8 +1,8 @@
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Pressable, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { theme } from "@/ui";
+import { theme, RawText } from "@/ui";
 import { useUnreadCountQuery } from "@/hooks/messaging";
 import { useTranslation } from "react-i18next";
 
@@ -62,17 +62,17 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
                 <Ionicons name={iconName} size={24} color={color} />
                 {tab.badge && unreadCount > 0 && (
                   <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
+                    <RawText style={styles.badgeText}>
                       {unreadCount > 99 ? "99+" : unreadCount}
-                    </Text>
+                    </RawText>
                   </View>
                 )}
               </View>
             )}
             {!!tab.labelKey && (
-              <Text style={[styles.label, { color }]} numberOfLines={1}>
+              <RawText style={[styles.label, { color }]} numberOfLines={1}>
                 {t(tab.labelKey)}
-              </Text>
+              </RawText>
             )}
           </Pressable>
         );

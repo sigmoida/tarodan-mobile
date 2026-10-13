@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Pressable } from 'react-native';
+import { View, TouchableOpacity, ActivityIndicator, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { theme } from '@/ui';
+import { theme, RawText } from '@/ui';
 
 import { styles } from '../_lib/styles';
 import type { ListingFormController } from '../_hooks/useListingForm';
@@ -31,9 +31,9 @@ export function ListingGates({ f }: { f: ListingFormController }) {
   if (!isAuthenticated) {
     return (
       <SafeAreaView style={styles.centered}>
-        <Text style={styles.authText}>{t('product.loginRequiredToCreate')}</Text>
+        <RawText style={styles.authText}>{t('product.loginRequiredToCreate')}</RawText>
         <TouchableOpacity style={styles.primaryButton} onPress={() => router.push('/(auth)/login')}>
-          <Text style={styles.primaryButtonText}>{t('common.login')}</Text>
+          <RawText style={styles.primaryButtonText}>{t('common.login')}</RawText>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -43,9 +43,9 @@ export function ListingGates({ f }: { f: ListingFormController }) {
     return (
       <SafeAreaView style={styles.centered}>
         <Ionicons name="alert-circle-outline" size={64} color={colors.danger[600]!} />
-        <Text style={[styles.authText, { marginTop: theme.spacing[4] }]}>{t('product.listingNotFound')}</Text>
+        <RawText style={[styles.authText, { marginTop: theme.spacing[4] }]}>{t('product.listingNotFound')}</RawText>
         <TouchableOpacity style={styles.primaryButton} onPress={() => router.back()}>
-          <Text style={styles.primaryButtonText}>{t('common.goBack')}</Text>
+          <RawText style={styles.primaryButtonText}>{t('common.goBack')}</RawText>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -58,14 +58,14 @@ export function ListingGates({ f }: { f: ListingFormController }) {
           <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('common.back')}>
             <Ionicons name="arrow-back" size={24} color={colors.white} />
           </Pressable>
-          <Text style={styles.headerTitle}>{t('product.editListing')}</Text>
+          <RawText style={styles.headerTitle}>{t('product.editListing')}</RawText>
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.centered}>
           <Ionicons name="lock-closed-outline" size={56} color={colors.warning[600]!} />
-          <Text style={[styles.authText, { marginTop: theme.spacing[4] }]}>
+          <RawText style={[styles.authText, { marginTop: theme.spacing[4] }]}>
             {t('listing.reservedCannotEdit')}
-          </Text>
+          </RawText>
         </View>
       </SafeAreaView>
     );

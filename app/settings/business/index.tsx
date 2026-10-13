@@ -1,5 +1,5 @@
-import { View, ScrollView, Text } from 'react-native';
-import { Spinner, Button, ScreenHeader, theme } from '@/ui';
+import { View, ScrollView } from 'react-native';
+import { Spinner, Button, ScreenHeader, theme, RawText } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -25,7 +25,7 @@ export default function BusinessDashboardScreen() {
     return (
       <View style={styles.loadingContainer}>
         <Spinner size="lg" />
-        <Text style={styles.loadingText}>{f.t('business.loadingStats')}</Text>
+        <RawText style={styles.loadingText}>{f.t('business.loadingStats')}</RawText>
       </View>
     );
   }
@@ -36,7 +36,7 @@ export default function BusinessDashboardScreen() {
         <ScreenHeader title={f.t('mobile.settingsBusiness')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
         <View style={styles.errorContainer}>
           <Ionicons name="warning-outline" size={64} color={colors.danger[600]!} />
-          <Text style={styles.errorText}>{f.error}</Text>
+          <RawText style={styles.errorText}>{f.error}</RawText>
           {f.error.includes('şirket adı') || f.error.includes('companyName') ? (
             <Button variant="primary" title={f.t('business.addCompanyName')} onPress={() => router.push('/settings/edit-profile')} />
           ) : (

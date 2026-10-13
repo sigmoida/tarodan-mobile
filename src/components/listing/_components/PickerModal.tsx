@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
@@ -9,7 +8,7 @@ import {
   FlatList,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { theme } from '@/ui';
+import { theme, RawText } from '@/ui';
 
 import { styles } from '../_lib/styles';
 
@@ -64,9 +63,9 @@ export function PickerModal({
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{title}</Text>
+            <RawText style={styles.modalTitle}>{title}</RawText>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Text style={styles.modalClose}>✕</Text>
+              <RawText style={styles.modalClose}>✕</RawText>
             </TouchableOpacity>
           </View>
 
@@ -89,7 +88,7 @@ export function PickerModal({
               keyExtractor={(item) => keyExtractor(item)}
               keyboardShouldPersistTaps="handled"
               ListEmptyComponent={
-                <Text style={styles.emptyText}>{emptyText || t('common.noResults')}</Text>
+                <RawText style={styles.emptyText}>{emptyText || t('common.noResults')}</RawText>
               }
               renderItem={({ item }) => {
                 const isSelected = keyExtractor(item) === selectedId;
@@ -101,10 +100,10 @@ export function PickerModal({
                       onClose();
                     }}
                   >
-                    <Text style={[styles.modalItemText, isSelected && styles.modalItemTextSelected]}>
+                    <RawText style={[styles.modalItemText, isSelected && styles.modalItemTextSelected]}>
                       {labelExtractor(item)}
-                    </Text>
-                    {isSelected && <Text style={styles.checkMark}>✓</Text>}
+                    </RawText>
+                    {isSelected && <RawText style={styles.checkMark}>✓</RawText>}
                   </TouchableOpacity>
                 );
               }}

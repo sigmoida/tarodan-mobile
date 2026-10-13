@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, ScrollView } from 'react-native';
 import { colors } from '@/theme';
 import { SHOW_DIAGNOSTICS } from '@/config/diagnostics';
 import { ErrorBoundary } from './ErrorBoundary';
+import { RawText } from '@/ui';
 
 // TANI (geçici): her tab ekranını kendi hata sınırına sarar. Çöken tab tüm
 // app'i düşürmek yerine adını + hatasını gösterir → hangi tab bozuk anlaşılır.
@@ -34,15 +35,15 @@ export function tabDiag(
       if (this.state.err) {
         return (
           <View style={{ flex: 1, padding: 40, paddingTop: 80, backgroundColor: colors.danger[50] }}>
-            <Text style={{ color: colors.danger[700], fontSize: 18, fontWeight: 'bold' }}>
+            <RawText style={{ color: colors.danger[700], fontSize: 18, fontWeight: 'bold' }}>
               ### TAB CRASHED: {name} ###
-            </Text>
+            </RawText>
             <ScrollView style={{ marginTop: 16 }}>
-              <Text style={{ color: colors.danger[800], fontFamily: 'Courier', fontSize: 12 }}>
+              <RawText style={{ color: colors.danger[800], fontFamily: 'Courier', fontSize: 12 }}>
                 {this.state.err?.message}
                 {'\n\n'}
                 {this.state.err?.stack ?? ''}
-              </Text>
+              </RawText>
             </ScrollView>
           </View>
         );

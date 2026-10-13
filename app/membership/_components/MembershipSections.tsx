@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, ScrollView, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '@/ui';
+import { theme, RawText } from '@/ui';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
 import { styles } from '../_lib/membershipStyles';
@@ -29,8 +29,8 @@ export function MembershipBanners({ f }: SectionProps) {
       {f.error ? (
         <TouchableOpacity style={styles.errorBanner} onPress={f.fetchData} activeOpacity={0.8}>
           <Ionicons name="alert-circle" size={18} color={colors.danger[600]!} />
-          <Text style={styles.errorBannerText}>{f.error}</Text>
-          <Text style={styles.errorBannerRetry}>{t('common.tryAgain')}</Text>
+          <RawText style={styles.errorBannerText}>{f.error}</RawText>
+          <RawText style={styles.errorBannerRetry}>{t('common.tryAgain')}</RawText>
         </TouchableOpacity>
       ) : null}
 
@@ -48,12 +48,12 @@ export function MembershipBanners({ f }: SectionProps) {
         >
           <Ionicons name="warning" size={22} color={colors.warning[800]!} />
           <View style={styles.pendingBannerText}>
-            <Text style={styles.pendingTitle}>
+            <RawText style={styles.pendingTitle}>
               {t('membership.pendingPaymentTitle', {
                 tierName: membership?.pendingPayment?.tierName || membership?.pendingTierName || t('membership.planFallback'),
               })}
-            </Text>
-            <Text style={styles.pendingSubtitle}>{t('membership.pendingPaymentSubtitle')}</Text>
+            </RawText>
+            <RawText style={styles.pendingSubtitle}>{t('membership.pendingPaymentSubtitle')}</RawText>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.warning[800]!} />
         </TouchableOpacity>
@@ -73,12 +73,12 @@ export function MembershipCurrentPlan({ f }: SectionProps) {
       <View style={[styles.currentPlanIcon, { backgroundColor: TIER_COLORS[currentTier] + '20' }]}>
         <Ionicons name={TIER_ICONS[currentTier]} size={28} color={TIER_COLORS[currentTier]} />
       </View>
-      <Text style={styles.currentPlanLabel}>{t('membership.currentPlan')}</Text>
-      <Text style={[styles.currentPlanName, { color: TIER_COLORS[currentTier] }]}>
+      <RawText style={styles.currentPlanLabel}>{t('membership.currentPlan')}</RawText>
+      <RawText style={[styles.currentPlanName, { color: TIER_COLORS[currentTier] }]}>
         {tierNames[currentTier]}
-      </Text>
+      </RawText>
       {membership?.currentPeriodEnd && currentTier !== 'free' && (
-        <Text style={styles.currentPlanExpiry}>
+        <RawText style={styles.currentPlanExpiry}>
           {t('membership.renewalLabel', {
             date: new Date(membership.currentPeriodEnd).toLocaleDateString('tr-TR', {
               year: 'numeric',
@@ -86,7 +86,7 @@ export function MembershipCurrentPlan({ f }: SectionProps) {
               day: 'numeric',
             }),
           })}
-        </Text>
+        </RawText>
       )}
       {/* Üyelik yönetimi: otomatik yenileme + kayıtlı kartlar (tüm kademeler).
           Bu satırın kendisi tam olarak PayTR'nin yinelenen tahsilat
@@ -100,9 +100,9 @@ export function MembershipCurrentPlan({ f }: SectionProps) {
           activeOpacity={0.8}
         >
           <Ionicons name="settings-outline" size={16} color={colors.primary[600]!} />
-          <Text style={styles.manageButtonText}>
+          <RawText style={styles.manageButtonText}>
             {t('membership.manageMembershipHint')}
-          </Text>
+          </RawText>
           <Ionicons name="chevron-forward" size={16} color={colors.primary[600]!} />
         </TouchableOpacity>
       )}
@@ -121,15 +121,15 @@ export function MembershipBillingToggle({ f }: SectionProps) {
         style={[styles.toggleButton, f.billingPeriod === 'monthly' && styles.toggleButtonActive]}
         onPress={() => f.setBillingPeriod('monthly')}
       >
-        <Text style={[styles.toggleText, f.billingPeriod === 'monthly' && styles.toggleTextActive]}>{t('membership.monthly')}</Text>
+        <RawText style={[styles.toggleText, f.billingPeriod === 'monthly' && styles.toggleTextActive]}>{t('membership.monthly')}</RawText>
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.toggleButton, f.billingPeriod === 'yearly' && styles.toggleButtonActive]}
         onPress={() => f.setBillingPeriod('yearly')}
       >
-        <Text style={[styles.toggleText, f.billingPeriod === 'yearly' && styles.toggleTextActive]}>{t('membership.yearly')}</Text>
+        <RawText style={[styles.toggleText, f.billingPeriod === 'yearly' && styles.toggleTextActive]}>{t('membership.yearly')}</RawText>
         <View style={styles.discountBadge}>
-          <Text style={styles.discountBadgeText}>{t('membership.discountBadge', { percent: f.settings.yearly_discount_percentage ?? 20 })}</Text>
+          <RawText style={styles.discountBadgeText}>{t('membership.discountBadge', { percent: f.settings.yearly_discount_percentage ?? 20 })}</RawText>
         </View>
       </TouchableOpacity>
     </View>
@@ -153,7 +153,7 @@ function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
       {/* Popular badge for premium */}
       {tier === 'premium' && (
         <View style={[styles.popularBadge, { backgroundColor: color }]}>
-          <Text style={styles.popularBadgeText}>{t('membership.mostPopular')}</Text>
+          <RawText style={styles.popularBadgeText}>{t('membership.mostPopular')}</RawText>
         </View>
       )}
 
@@ -161,7 +161,7 @@ function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
       {isCurrent && (
         <View style={[styles.currentBadge, { backgroundColor: color }]}>
           <Ionicons name="checkmark-circle" size={14} color={colors.white} />
-          <Text style={styles.currentBadgeText}>{t('membership.currentPlanBadge')}</Text>
+          <RawText style={styles.currentBadgeText}>{t('membership.currentPlanBadge')}</RawText>
         </View>
       )}
 
@@ -169,23 +169,23 @@ function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
         <Ionicons name={TIER_ICONS[tier]} size={24} color={color} />
       </View>
 
-      <Text style={[styles.tierName, { color }]}>{tierNames[tier]}</Text>
+      <RawText style={[styles.tierName, { color }]}>{tierNames[tier]}</RawText>
 
       <View style={styles.tierPriceRow}>
         {price === 0 ? (
-          <Text style={styles.tierPriceFree}>{t('membership.free')}</Text>
+          <RawText style={styles.tierPriceFree}>{t('membership.free')}</RawText>
         ) : (
           <>
-            <Text style={styles.tierPrice}>{formatTL(price)} ₺</Text>
-            <Text style={styles.tierPricePeriod}>{f.billingPeriod === 'monthly' ? t('membership.perMonth') : t('membership.perYear')}</Text>
+            <RawText style={styles.tierPrice}>{formatTL(price)} ₺</RawText>
+            <RawText style={styles.tierPricePeriod}>{f.billingPeriod === 'monthly' ? t('membership.perMonth') : t('membership.perYear')}</RawText>
           </>
         )}
       </View>
 
       {f.billingPeriod === 'yearly' && price > 0 && (
-        <Text style={styles.tierMonthlyEquiv}>
+        <RawText style={styles.tierMonthlyEquiv}>
           {t('membership.monthlyEquivLabel', { amount: Math.round(price / 12).toLocaleString('tr-TR') })}
-        </Text>
+        </RawText>
       )}
 
       <View style={styles.tierDivider} />
@@ -194,7 +194,7 @@ function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
         {features.map((feat, idx) => (
           <View key={idx} style={styles.tierFeatureRow}>
             <Ionicons name="checkmark-circle" size={16} color={color} />
-            <Text style={styles.tierFeatureText}>{feat}</Text>
+            <RawText style={styles.tierFeatureText}>{feat}</RawText>
           </View>
         ))}
       </View>
@@ -213,7 +213,7 @@ function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
         onPress={() => f.handleTierAction(tier)}
         disabled={isCurrent || tier === 'free'}
       >
-        <Text
+        <RawText
           style={[
             styles.tierButtonText,
             isCurrent
@@ -230,7 +230,7 @@ function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
               : isUpgrade
                 ? t('membership.upgrade')
                 : t('membership.lowerPlanButton')}
-        </Text>
+        </RawText>
       </TouchableOpacity>
     </View>
   );

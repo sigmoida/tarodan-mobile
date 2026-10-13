@@ -1,9 +1,10 @@
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { View, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { styles } from '../_lib/styles';
 import { buildStatusConfig, formatDate, formatCurrency } from '../_lib/status';
 import type { Payment } from '../_lib/types';
+import { RawText } from '@/ui';
 
 /** Tek ödeme geçmişi satırı — foto/statü ikonu, açıklama/tarih/yöntem, tutar/rozet. */
 export function PaymentHistoryItem({ item, onPress }: { item: Payment; onPress: (p: Payment) => void }) {
@@ -22,15 +23,15 @@ export function PaymentHistoryItem({ item, onPress }: { item: Payment; onPress: 
       )}
 
       <View style={styles.paymentInfo}>
-        <Text style={styles.paymentDescription} numberOfLines={1}>{item.description || t('checkout.title')}</Text>
-        <Text style={styles.paymentDate}>{formatDate(item.createdAt)}</Text>
-        {item.method ? <Text style={styles.paymentMethod}>{item.method}</Text> : null}
+        <RawText style={styles.paymentDescription} numberOfLines={1}>{item.description || t('checkout.title')}</RawText>
+        <RawText style={styles.paymentDate}>{formatDate(item.createdAt)}</RawText>
+        {item.method ? <RawText style={styles.paymentMethod}>{item.method}</RawText> : null}
       </View>
 
       <View style={styles.paymentRight}>
-        <Text style={styles.paymentAmount}>{formatCurrency(item.amount)}</Text>
+        <RawText style={styles.paymentAmount}>{formatCurrency(item.amount)}</RawText>
         <View style={[styles.statusBadge, { backgroundColor: statusCfg.color + '15' }]}>
-          <Text style={[styles.statusBadgeText, { color: statusCfg.color }]}>{statusCfg.label}</Text>
+          <RawText style={[styles.statusBadgeText, { color: statusCfg.color }]}>{statusCfg.label}</RawText>
         </View>
       </View>
     </TouchableOpacity>

@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
@@ -9,7 +8,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
-import { theme, ScreenHeader, ErrorState } from "@/ui";
+import { theme, ScreenHeader, ErrorState, RawText } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
 import { useTimingValues } from "@/hooks/useTimingPolicy";
 import { useTranslation } from "react-i18next";
@@ -124,7 +123,7 @@ export default function OffersScreen() {
       {isLoading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary[600]!} />
-          <Text style={styles.loadingText}>{t("offer.loadingOffers")}</Text>
+          <RawText style={styles.loadingText}>{t("offer.loadingOffers")}</RawText>
         </View>
       ) : isError ? (
         // Hatayı boş durumdan ayır (eskiden appAlert; artık kalıcı ErrorState +

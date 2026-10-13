@@ -1,5 +1,5 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
-import { ScreenHeader, theme } from '@/ui';
+import { View, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { ScreenHeader, theme, RawText } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -18,10 +18,10 @@ export default function PaymentHistoryScreen() {
         <ScreenHeader title={t('mobile.settingsPaymentHistory')} onBack={back} />
         <View style={styles.centeredContainer}>
           <Ionicons name="log-in-outline" size={48} color={theme.colors.gray[400]} />
-          <Text style={styles.emptyTitle}>{t('membership.loginRequiredTitle')}</Text>
-          <Text style={styles.emptySubtitle}>{t('payment.myPaymentsLoginSubtitle')}</Text>
+          <RawText style={styles.emptyTitle}>{t('membership.loginRequiredTitle')}</RawText>
+          <RawText style={styles.emptySubtitle}>{t('payment.myPaymentsLoginSubtitle')}</RawText>
           <TouchableOpacity style={styles.loginButton} onPress={() => router.push('/(auth)/login')}>
-            <Text style={styles.loginButtonText}>{t('common.login')}</Text>
+            <RawText style={styles.loginButtonText}>{t('common.login')}</RawText>
           </TouchableOpacity>
         </View>
       </View>
@@ -56,8 +56,8 @@ export default function PaymentHistoryScreen() {
               <View style={styles.emptyIconCircle}>
                 <Ionicons name="receipt-outline" size={48} color={theme.colors.gray[400]} />
               </View>
-              <Text style={styles.emptyTitle}>{t('payment.noHistory')}</Text>
-              <Text style={styles.emptySubtitle}>{t('payment.noPaymentsSubtitle')}</Text>
+              <RawText style={styles.emptyTitle}>{t('payment.noHistory')}</RawText>
+              <RawText style={styles.emptySubtitle}>{t('payment.noPaymentsSubtitle')}</RawText>
             </View>
           }
         />

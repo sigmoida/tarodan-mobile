@@ -1,10 +1,10 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { View, Image, Pressable, Text } from 'react-native';
+import { View, Image, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Card, theme } from '@/ui';
+import { Card, theme, RawText } from '@/ui';
 
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
@@ -38,19 +38,19 @@ export function BusinessCompanyHeader({ f }: { f: BusinessController }) {
           <Image source={{ uri: resolveImageUrl(stats.company.avatarUrl) }} style={styles.companyAvatar} />
         ) : (
           <View style={styles.companyAvatarPlaceholder}>
-            <Text style={styles.companyAvatarText}>🏢</Text>
+            <RawText style={styles.companyAvatarText}>🏢</RawText>
           </View>
         )}
         <View style={styles.companyDetails}>
           <View style={styles.companyNameRow}>
-            <Text style={styles.companyName}>
+            <RawText style={styles.companyName}>
               {stats?.company.name || stats?.company.displayName}
-            </Text>
+            </RawText>
             {stats?.company.isVerified && (
               <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
             )}
           </View>
-          <Text style={styles.companyTitle}>📊 {t('mobile.settingsBusinessPanel')}</Text>
+          <RawText style={styles.companyTitle}>📊 {t('mobile.settingsBusinessPanel')}</RawText>
         </View>
       </View>
     </LinearGradient>
@@ -71,9 +71,9 @@ export function BusinessTabs({ f }: { f: BusinessController }) {
           onPress={() => f.setActiveTab(tab.id)}
         >
           <Ionicons name={tab.icon as any} size={18} color={f.activeTab === tab.id ? colors.primary[600]! : colors.text.muted} />
-          <Text style={[styles.tabText, f.activeTab === tab.id && styles.tabTextActive]}>
+          <RawText style={[styles.tabText, f.activeTab === tab.id && styles.tabTextActive]}>
             {tab.label}
-          </Text>
+          </RawText>
         </Pressable>
       ))}
     </View>
@@ -103,43 +103,43 @@ export function BusinessTabContent({ f }: { f: BusinessController }) {
         {/* Revenue Card */}
         <Card style={styles.revenueCard} padding={0}>
           <LinearGradient colors={[colors.success[100]!, colors.success[50]!]} style={styles.revenueGradient}>
-            <Text style={styles.revenueLabel}>{t('business.totalRevenue')}</Text>
-            <Text style={styles.revenueValue}>₺{stats.overview.totalRevenue.toLocaleString('tr-TR')}</Text>
+            <RawText style={styles.revenueLabel}>{t('business.totalRevenue')}</RawText>
+            <RawText style={styles.revenueValue}>₺{stats.overview.totalRevenue.toLocaleString('tr-TR')}</RawText>
           </LinearGradient>
         </Card>
 
         {/* Weekly Stats */}
         <Card style={styles.weeklyCard}>
-          <Text style={styles.sectionTitle}>{t('business.thisWeek')}</Text>
+          <RawText style={styles.sectionTitle}>{t('business.thisWeek')}</RawText>
           <View style={styles.weeklyStatsRow}>
             <View style={styles.weeklyStat}>
               <Ionicons name="eye" size={20} color={colors.info[600]!} />
-              <Text style={styles.weeklyStatValue}>{stats.weekly.views.toLocaleString()}</Text>
-              <Text style={styles.weeklyStatLabel}>{t('home.statViews')}</Text>
+              <RawText style={styles.weeklyStatValue}>{stats.weekly.views.toLocaleString()}</RawText>
+              <RawText style={styles.weeklyStatLabel}>{t('home.statViews')}</RawText>
             </View>
             <View style={styles.weeklyStat}>
               <Ionicons name="heart" size={20} color={colors.danger[600]!} />
-              <Text style={styles.weeklyStatValue}>{stats.weekly.likes.toLocaleString()}</Text>
-              <Text style={styles.weeklyStatLabel}>{t('home.statLikes')}</Text>
+              <RawText style={styles.weeklyStatValue}>{stats.weekly.likes.toLocaleString()}</RawText>
+              <RawText style={styles.weeklyStatLabel}>{t('home.statLikes')}</RawText>
             </View>
           </View>
         </Card>
 
         {/* Collection Stats */}
         <Card style={styles.collectionStatsCard}>
-          <Text style={styles.sectionTitle}>{t('business.collectionStats')}</Text>
+          <RawText style={styles.sectionTitle}>{t('business.collectionStats')}</RawText>
           <View style={styles.weeklyStatsRow}>
             <View style={styles.weeklyStat}>
-              <Text style={[styles.weeklyStatValue, { color: colors.info[600]! }]}>
+              <RawText style={[styles.weeklyStatValue, { color: colors.info[600]! }]}>
                 {stats.overview.collectionViews.toLocaleString()}
-              </Text>
-              <Text style={styles.weeklyStatLabel}>{t('business.totalViews')}</Text>
+              </RawText>
+              <RawText style={styles.weeklyStatLabel}>{t('business.totalViews')}</RawText>
             </View>
             <View style={styles.weeklyStat}>
-              <Text style={[styles.weeklyStatValue, { color: colors.danger[600]! }]}>
+              <RawText style={[styles.weeklyStatValue, { color: colors.danger[600]! }]}>
                 {stats.overview.collectionLikes.toLocaleString()}
-              </Text>
-              <Text style={styles.weeklyStatLabel}>{t('business.totalLikes')}</Text>
+              </RawText>
+              <RawText style={styles.weeklyStatLabel}>{t('business.totalLikes')}</RawText>
             </View>
           </View>
         </Card>
@@ -150,22 +150,22 @@ export function BusinessTabContent({ f }: { f: BusinessController }) {
   if (activeTab === 'products') {
     return (
       <View style={styles.tabContent}>
-        <Text style={styles.sectionTitle}>{t('business.mostViewedProducts')}</Text>
+        <RawText style={styles.sectionTitle}>{t('business.mostViewedProducts')}</RawText>
         {stats.topProducts?.byViews?.length > 0 ? (
           stats.topProducts.byViews.map((product, index) => (
             <ProductRow key={product.id} product={product} index={index} metric="views" />
           ))
         ) : (
-          <Text style={styles.emptyText}>{t('business.noProductStats')}</Text>
+          <RawText style={styles.emptyText}>{t('business.noProductStats')}</RawText>
         )}
 
-        <Text style={[styles.sectionTitle, { marginTop: theme.spacing[6] }]}>{t('business.mostLikedProducts')}</Text>
+        <RawText style={[styles.sectionTitle, { marginTop: theme.spacing[6] }]}>{t('business.mostLikedProducts')}</RawText>
         {stats.topProducts?.byLikes?.length > 0 ? (
           stats.topProducts.byLikes.map((product, index) => (
             <ProductRow key={product.id} product={product} index={index} metric="likes" />
           ))
         ) : (
-          <Text style={styles.emptyText}>{t('business.noProductStats')}</Text>
+          <RawText style={styles.emptyText}>{t('business.noProductStats')}</RawText>
         )}
       </View>
     );
@@ -174,13 +174,13 @@ export function BusinessTabContent({ f }: { f: BusinessController }) {
   // collections
   return (
     <View style={styles.tabContent}>
-      <Text style={styles.sectionTitle}>{t('business.mostPopularCollections')}</Text>
+      <RawText style={styles.sectionTitle}>{t('business.mostPopularCollections')}</RawText>
       {stats.topCollections?.length > 0 ? (
         stats.topCollections.map((collection, index) => (
           <CollectionRow key={collection.id} collection={collection} index={index} />
         ))
       ) : (
-        <Text style={styles.emptyText}>{t('business.noCollectionStats')}</Text>
+        <RawText style={styles.emptyText}>{t('business.noCollectionStats')}</RawText>
       )}
     </View>
   );
