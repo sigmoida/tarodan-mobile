@@ -64,7 +64,12 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                   <View style={styles.accent} testID="page-header-accent" />
                 )}
                 {typeof title === 'string' || typeof title === 'number' ? (
-                  <RawText style={styles.title} numberOfLines={1} accessibilityRole="header">
+                  <RawText
+                    style={styles.title}
+                    numberOfLines={1}
+                    accessibilityRole="header"
+                    maxFontSizeMultiplier={typography.maxFontScale.heading}
+                  >
                     {title}
                   </RawText>
                 ) : (

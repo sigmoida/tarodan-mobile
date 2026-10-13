@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { SignupPrompt } from '@/components/SignupPrompt';
 import MakeOfferModal from '@/components/product/MakeOfferModal';
 import AddToCollectionModal from '@/components/product/AddToCollectionModal';
+import ReportModal from '@/components/ReportModal';
 import { resolveProductImages, isProductOutOfStock, getProductPriceInfo } from './_lib/display';
 import { useProduct } from './_hooks/useProduct';
 import { useProductReviews } from './_hooks/useProductReviews';
@@ -141,7 +142,7 @@ export default function ProductDetailScreen() {
               />
             ) : null}
           </ProductTopBar>
-          {sellerActions.reportModal}
+          {sellerActions.sheets}
           {ready ? (
             <>
               <ImageViewerModal
@@ -160,6 +161,13 @@ export default function ProductDetailScreen() {
                   actions.setOfferModalOpen(false);
                   actions.notify(t('product.offerSent'), 'success');
                 }}
+              />
+              <ReportModal
+                visible={actions.reportOpen}
+                onDismiss={() => actions.setReportOpen(false)}
+                type="product"
+                targetId={productId}
+                targetName={product.title}
               />
               <AddToCollectionModal
                 visible={actions.collectionModalOpen}

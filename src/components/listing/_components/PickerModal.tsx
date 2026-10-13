@@ -1,17 +1,8 @@
-import React from 'react';
-import {
-  View,
-  TouchableOpacity,
-  ActivityIndicator,
-  Modal,
-  FlatList,
-} from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { theme, RawText, RawTextInput, EmptyState } from '@/ui';
+import React, { useCallback, useMemo } from 'react';
+import { SelectSheet, type SelectSheetOption } from '@/ui';
 
-import { styles } from '../_lib/styles';
-
-const { colors } = theme;
+/** Marka/model listeleri yüzlerce satır: sabit satır yüksekliği ile sanal liste ölçmeden kayar. */
+const PICKER_ROW_HEIGHT = 48;
 
 export interface PickerModalProps {
   visible: boolean;
@@ -20,6 +11,10 @@ export interface PickerModalProps {
   data: any[];
   onSelect: (item: any) => void;
   selectedId: string;
+  /**
+   * Verilirse sheet aranabilir olur. Arama metni sheet'in içinde tutulur (her açılışta sıfırlanır);
+   * değer ve `onSearchChange` yalnız "aranabilir mi" bilgisi olarak okunur.
+   */
   searchValue?: string;
   onSearchChange?: (t: string) => void;
   keyExtractor: (item: any) => string;
@@ -27,12 +22,13 @@ export interface PickerModalProps {
   emptyText?: string;
   loading?: boolean;
   modalKey?: string;
+  testID?: string;
 }
 
 /**
- * Bottom-sheet picker used for category/brand/model/material/manufacturer/year
- * and manufacturer-scoped attribute selections. Lifted verbatim from the
- * monolith's `renderPickerModal` helper.
+ * Kategori / marka / model / malzeme / üretici / yıl / nitelik seçicisi — `SelectSheet` üstünde
+ * ince bir uyarlayıcı (arama + sanal liste, Android geri tuşu, sürükle-kapat). Satıra basınca
+ * `onSelect(item)` çağrılır ve sheet kapanır.
  */
 export function PickerModal({
   visible,
@@ -48,68 +44,43 @@ export function PickerModal({
   emptyText,
   loading,
   modalKey,
+  testID = 'picker-sheet',
 }: PickerModalProps) {
-  const { t } = useTranslation();
-  const filtered =
-    searchValue !== undefined
-      ? data.filter((item) =>
-          labelExtractor(item).toLowerCase().includes((searchValue || '').toLowerCase())
-        )
-      : data;
+  const searchable = onSearchChange !== undefined || searchValue !== undefined;
+
+  // Kapanış animasyonu sürerken liste boşalmasın diye `visible`'a bağlı değil (map ucuz).
+  const { options, byValue } = useMemo(() => {
+    const map = new Map<string, any>();
+    const list: SelectSheetOption[] = data.map((item) => {
+      const value = keyExtractor(item);
+      map.set(value, item);
+      return { value, label: labelExtractor(item) };
+    });
+    return { options: list, byValue: map };
+  }, [data, keyExtractor, labelExtractor]);
+
+  const handleSelect = useCallback(
+    (value: string) => {
+      const item = byValue.get(value);
+      if (item !== undefined) onSelect(item);
+    },
+    [byValue, onSelect],
+  );
 
   return (
-    <Modal key={modalKey} visible={visible} animationType="slide" transparent>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <RawText style={styles.modalTitle}>{title}</RawText>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <RawText style={styles.modalClose}>✕</RawText>
-            </TouchableOpacity>
-          </View>
-
-          {onSearchChange !== undefined && (
-            <RawTextInput
-              style={styles.modalSearch}
-              placeholder={t('common.searchPlaceholder')}
-              placeholderTextColor={colors.text.subtle}
-              value={searchValue}
-              onChangeText={onSearchChange}
-              autoCorrect={false}
-            />
-          )}
-
-          {loading ? (
-            <ActivityIndicator size="large" color={colors.primary[600]!} style={{ marginTop: theme.spacing[8] }} />
-          ) : (
-            <FlatList
-              data={filtered}
-              keyExtractor={(item) => keyExtractor(item)}
-              keyboardShouldPersistTaps="handled"
-              ListEmptyComponent={
-                <EmptyState placement="inline" icon="magnifying-glass" title={emptyText || t('common.noResults')} subtitle={searchValue ? t('search.tryDifferent') : t('emptyState.optionsHint')} />
-              }
-              renderItem={({ item }) => {
-                const isSelected = keyExtractor(item) === selectedId;
-                return (
-                  <TouchableOpacity
-                    style={[styles.modalItem, isSelected && styles.modalItemSelected]}
-                    onPress={() => {
-                      onSelect(item);
-                      onClose();
-                    }}
-                  >
-                    <RawText style={[styles.modalItemText, isSelected && styles.modalItemTextSelected]}>
-                      {labelExtractor(item)}
-                    </RawText>
-                    {isSelected && <RawText style={styles.checkMark}>✓</RawText>}
-                  </TouchableOpacity>
-                );
-              }}
-            />
-          )}
-        </View>
-      </View>
-    </Modal>
+    <SelectSheet
+      key={modalKey}
+      isOpen={visible}
+      onClose={onClose}
+      title={title}
+      options={options}
+      value={selectedId || null}
+      onSelect={handleSelect}
+      searchable={searchable}
+      emptyTitle={emptyText}
+      loading={loading}
+      rowHeight={PICKER_ROW_HEIGHT}
+      testID={testID}
+    />
   );
 }

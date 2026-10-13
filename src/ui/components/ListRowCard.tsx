@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, View, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 import { theme } from '../lib/theme';
+import { androidRipple, rippleClip, showPressedStyle } from '../lib/pressableFeedback';
 
 export interface ListRowCardProps extends Omit<PressableProps, 'style' | 'children'> {
   children?: React.ReactNode;
@@ -17,7 +18,7 @@ const { colors, radiusRole, spacing } = theme;
 /**
  * Liste satırı kartı — uygulamadaki TEK "çerçeveli satır" (web `Card variant="bordered"` + `p-4`):
  * `border-border` 1px, `rounded-md` (radiusRole.card = 6), `surface-elevated`. `onPress` verilirse
- * dokunulabilir (basılı: hafif opaklık). Ekranlarda elle border+radius+padding veren View
+ * dokunulabilir (basılı: iOS hafif opaklık, Android ripple — köşeye kırpılmış). Ekranlarda elle border+radius+padding veren View
  * çizilmez; bölüm kartı için `SectionCard`, serbest kutu için `Card`.
  */
 export const ListRowCard: React.FC<ListRowCardProps> = ({
@@ -46,7 +47,14 @@ export const ListRowCard: React.FC<ListRowCardProps> = ({
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [styles.card, base, pressed && styles.pressed, style]}
+      android_ripple={androidRipple()}
+      style={({ pressed }) => [
+        styles.card,
+        rippleClip(),
+        base,
+        showPressedStyle(pressed) && styles.pressed,
+        style,
+      ]}
       {...rest}
     >
       {children}

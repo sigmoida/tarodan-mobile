@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { theme } from '../lib/theme';
 import { touchSlop } from './Button';
 import { RawText } from './Text';
+import { androidRipple, rippleClip, showPressedStyle } from '../lib/pressableFeedback';
 
 import { Icon } from '../icons';
 const { colors, radius, radiusRole, spacing, typography, iconSize } = theme;
@@ -55,7 +56,11 @@ export const SectionCard: React.FC<SectionCardProps> = ({
             {title != null && <View style={styles.accent} testID="section-card-accent" />}
             {title != null &&
               (typeof title === 'string' || typeof title === 'number' ? (
-                <RawText style={styles.title} accessibilityRole="header">
+                <RawText
+                  style={styles.title}
+                  accessibilityRole="header"
+                  maxFontSizeMultiplier={typography.maxFontScale.heading}
+                >
                   {title}
                 </RawText>
               ) : (
@@ -85,6 +90,7 @@ const ACTION_HEIGHT = spacing[1.5] * 2 + ACTION_LINE_HEIGHT;
 /**
  * Web ana sayfa bölümlerindeki "Tümünü gör ›" bağlantısı: `rounded-md border bg-surface-elevated
  * px-3 py-1.5 text-sm font-medium text-body` + 16'lık sağ ok. Dokunma alanı hitSlop ile 44.
+ * Basılı: iOS zemin `surface`, Android ripple (köşeye kırpılmış).
  */
 export const SectionCardAction: React.FC<SectionCardActionProps> = ({ onPress, label, testID }) => {
   const { t } = useTranslation();
@@ -96,9 +102,16 @@ export const SectionCardAction: React.FC<SectionCardActionProps> = ({ onPress, l
       accessibilityRole="link"
       accessibilityLabel={text}
       testID={testID}
-      style={({ pressed }) => [styles.actionButton, pressed && styles.pressed]}
+      android_ripple={androidRipple()}
+      style={({ pressed }) => [
+        styles.actionButton,
+        rippleClip(),
+        showPressedStyle(pressed) && styles.pressed,
+      ]}
     >
-      <RawText style={styles.actionText}>{text}</RawText>
+      <RawText style={styles.actionText} maxFontSizeMultiplier={typography.maxFontScale.control}>
+        {text}
+      </RawText>
       <Icon name="chevron-right" size={iconSize.sm} color={colors.text.body} />
     </Pressable>
   );

@@ -85,8 +85,4 @@ export const styles = StyleSheet.create({
     right: spacing[4],
     bottom: spacing[6],
   },
-  menuItem: {
-    minHeight: theme.minTouchTarget,
-    justifyContent: 'center',
-  },
 });

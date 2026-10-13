@@ -36,7 +36,7 @@ env:
       id: "product-report-button"
     timeout: 60000
 
-# 2) İlan detayındaki bayrak → şikayet/engelle sheet'i
+# 2) İlan detayındaki bayrak → şikayet/engelle eylem menüsü (ActionSheet; eylem sheet kapandıktan sonra çalışır)
 - tapOn:
     id: "product-report-button"
 - extendedWaitUntil:

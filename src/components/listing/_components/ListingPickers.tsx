@@ -16,6 +16,7 @@ export function ListingPickers({ f }: { f: ListingFormController }) {
     <>
       <PickerModal
         visible={f.showCategoryPicker}
+        testID="picker-category"
         onClose={() => f.setShowCategoryPicker(false)}
         title={t('product.selectCategory')}
         data={f.flatCategories}
@@ -30,6 +31,7 @@ export function ListingPickers({ f }: { f: ListingFormController }) {
 
       <PickerModal
         visible={f.showBrandPicker}
+        testID="picker-brand"
         onClose={() => f.setShowBrandPicker(false)}
         title={t('product.selectBrand')}
         data={f.brands}
@@ -48,6 +50,7 @@ export function ListingPickers({ f }: { f: ListingFormController }) {
 
       <PickerModal
         visible={f.showModelPicker}
+        testID="picker-model"
         onClose={() => f.setShowModelPicker(false)}
         title={t('product.selectModel')}
         data={f.models}
@@ -61,6 +64,7 @@ export function ListingPickers({ f }: { f: ListingFormController }) {
 
       <PickerModal
         visible={f.showMaterialPicker}
+        testID="picker-material"
         onClose={() => f.setShowMaterialPicker(false)}
         title={t('product.selectMaterial')}
         data={f.effectiveMaterials}
@@ -73,6 +77,7 @@ export function ListingPickers({ f }: { f: ListingFormController }) {
 
       <PickerModal
         visible={f.showManufacturerPicker}
+        testID="picker-manufacturer"
         onClose={() => f.setShowManufacturerPicker(false)}
         title={t('product.selectManufacturer')}
         data={f.manufacturerList}
@@ -87,6 +92,7 @@ export function ListingPickers({ f }: { f: ListingFormController }) {
 
       <PickerModal
         visible={f.showYearPicker}
+        testID="picker-year"
         onClose={() => f.setShowYearPicker(false)}
         title={t('product.selectYear')}
         data={YEAR_OPTIONS}
@@ -103,6 +109,7 @@ export function ListingPickers({ f }: { f: ListingFormController }) {
           <PickerModal
             key={group.slug}
             modalKey={group.slug}
+            testID={`picker-attr-${group.slug}`}
             visible={f.showAttrGroupPicker === group.slug}
             onClose={() => f.setShowAttrGroupPicker(null)}
             title={t('product.selectAttribute', { name: group.name })}
