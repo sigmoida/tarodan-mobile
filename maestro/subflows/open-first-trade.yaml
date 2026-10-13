@@ -3,7 +3,7 @@
 appId: ${APP_ID}
 ---
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - extendedWaitUntil:
     visible:
       id: "profile-trades-link"

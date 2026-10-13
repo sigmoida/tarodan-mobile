@@ -10,9 +10,11 @@ appId: ${APP_ID}
 - extendedWaitUntil:
     visible:
       id: "home-search-input"
+      index: 0
     timeout: 30000
 - tapOn:
     id: "home-search-input"
+    index: 0
 - extendedWaitUntil:
     visible:
       id: "search-input"
