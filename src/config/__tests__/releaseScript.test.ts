@@ -75,6 +75,8 @@ type RunOpts = {
   buildResult?: unknown;
   /** Ardışık sorgular için build listeleri (FAKE_BUILDS_SEQ): her biri bir sorguya. */
   buildsSeq?: Build[][];
+  /** Koşudan sonra okunacak dosyalar (geçici köke göre). */
+  readFiles?: string[];
 };
 
 function run(args: string[], opts: RunOpts = {}) {
@@ -114,7 +116,7 @@ function run(args: string[], opts: RunOpts = {}) {
   // her yayında değişir, testler ona bağlı kalmamalı.
   const appJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf8'));
   appJson.expo.version = TEST_VERSION;
-  fs.writeFileSync(path.join(root, 'app.json'), JSON.stringify(appJson));
+  fs.writeFileSync(path.join(root, 'app.json'), `${JSON.stringify(appJson, null, 2)}\n`);
   const eas = opts.easJson ? opts.easJson(realEasJson()) : realEasJson();
   fs.writeFileSync(path.join(root, 'eas.json'), typeof eas === 'string' ? eas : JSON.stringify(eas));
 
@@ -130,13 +132,19 @@ function run(args: string[], opts: RunOpts = {}) {
       ...seqEnv,
       ...opts.env,
     },
+    maxBuffer: 16 * 1024 * 1024,
   });
+  // Süreç başlatılamadı / tampon taştı: boş çıktıyla yanıltıcı bir assertion yerine
+  // asıl hatayı göster (CI'da bir kez nedeni görünmeyen "undefined" çıktı).
+  if (res.error) throw res.error;
   const outputs: Record<string, string> = {};
   for (const line of fs.readFileSync(outFile, 'utf8').split('\n')) {
     const i = line.indexOf('=');
     if (i > 0) outputs[line.slice(0, i)] = line.slice(i + 1);
   }
   const log = fs.readFileSync(path.join(dir, 'log'), 'utf8').split('\n').filter(Boolean);
+  const files: Record<string, string> = {};
+  for (const f of opts.readFiles ?? []) files[f] = fs.readFileSync(path.join(root, f), 'utf8');
   const result = {
     status: res.status,
     stdout: res.stdout,
@@ -146,6 +154,7 @@ function run(args: string[], opts: RunOpts = {}) {
     log,
     summary: fs.existsSync(summaryFile) ? fs.readFileSync(summaryFile, 'utf8') : '',
     easCalls: (cmd: string) => log.filter((l) => l.startsWith(`eas ${cmd} `)),
+    files,
   };
   fs.rmSync(dir, { recursive: true, force: true });
   return result;
@@ -873,3 +882,96 @@ describe('release.sh await-binary — staging OTA\'sı derlenen build\'den SONRA
     expect(run(['await-binary', 'ios', 'staging', '']).status).not.toBe(0);
   });
 });
+
+describe('release.sh bump-version — yayın sonrası development bir sonraki yamaya geçer', () => {
+  const bump = (released: string) => run(['bump-version', released], { readFiles: ['app.json'] });
+  const versionOf = (r: ReturnType<typeof bump>) => JSON.parse(r.files['app.json']).expo.version;
+  // Senaryolarda development'taki (geçici kök) sürüm TEST_VERSION'dır.
+  const original = () => {
+    const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf8'));
+    j.expo.version = TEST_VERSION;
+    return `${JSON.stringify(j, null, 2)}\n`;
+  };
+
+  it('yayınlanan sürüm development\'takiyle aynıysa → sonraki yama', () => {
+    const r = bump(TEST_VERSION);
+    expect(r.status).toBe(0);
+    expect(versionOf(r)).toBe('1.0.6');
+    expect(r.outputs).toMatchObject({ bumped: 'true', version: '1.0.6' });
+  });
+
+  it('development geride kaldıysa (ör. hotfix sürümü) → yayınlananın sonraki yaması', () => {
+    const r = bump('1.0.9');
+    expect(versionOf(r)).toBe('1.0.10');
+  });
+
+  it('development zaten ilerideyse (elle 1.1.0 gibi) dokunmaz', () => {
+    const r = bump('1.0.4');
+    expect(r.status).toBe(0);
+    expect(r.files['app.json']).toBe(original());
+    expect(r.outputs).toMatchObject({ bumped: 'false', version: TEST_VERSION });
+  });
+
+  it('yalnız sürüm alanı değişir, dosyanın geri kalanı aynı kalır', () => {
+    const r = bump(TEST_VERSION);
+    expect(r.files['app.json']).toBe(original().replace(`"version": "${TEST_VERSION}"`, '"version": "1.0.6"'));
+  });
+
+  it.each([['1.0'], ['abc'], ['1.0.5-beta'], ['1..5'], ['']])('X.Y.Z olmayan sürüm (%s) → durur', (v) => {
+    const r = bump(v);
+    expect(r.status).not.toBe(0);
+    expect(r.files['app.json']).toBe(original());
+  });
+});
+
+describe('release.sh — CI\'daki gibi çağrı (kopyalanmış script, göreli app.json)', () => {
+  // release-bookkeeping: master'daki script $RUNNER_TEMP'e kopyalanır, development
+  // checkout'unda göreli `app.json` ile çağrılır.
+  const ciLike = (args: string[], version = '1.0.6') => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'release-ci-'));
+    const repo = path.join(tmp, 'repo');
+    const runnerTemp = path.join(tmp, 'runner-temp');
+    fs.mkdirSync(repo);
+    fs.mkdirSync(runnerTemp);
+    fs.copyFileSync(SCRIPT, path.join(runnerTemp, 'release.sh'));
+    const appJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf8'));
+    appJson.expo.version = version;
+    fs.writeFileSync(path.join(repo, 'app.json'), `${JSON.stringify(appJson, null, 2)}\n`);
+    const out = path.join(tmp, 'out');
+    fs.writeFileSync(out, '');
+    const res = spawnSync('bash', [path.join(runnerTemp, 'release.sh'), ...args], {
+      cwd: repo,
+      encoding: 'utf8',
+      env: { ...process.env, GITHUB_OUTPUT: out },
+    });
+    const result = {
+      status: res.status,
+      all: `${res.stdout}\n${res.stderr}`,
+      version: JSON.parse(fs.readFileSync(path.join(repo, 'app.json'), 'utf8')).expo.version,
+      outputs: fs.readFileSync(out, 'utf8'),
+    };
+    fs.rmSync(tmp, { recursive: true, force: true });
+    return result;
+  };
+
+  it('bump-version göreli app.json ile çalışır', () => {
+    const r = ciLike(['bump-version', '1.0.6', 'app.json']);
+    expect(r.status).toBe(0);
+    expect(r.version).toBe('1.0.7');
+    expect(r.outputs).toContain('bumped=true');
+  });
+
+  it('app-version göreli app.json\'u okur', () => {
+    const r = ciLike(['app-version', 'app.json'], '2.3.4');
+    expect(r.status).toBe(0);
+    expect(r.all.trim()).toContain('2.3.4');
+  });
+
+  it.each([['1.2.4-rc.1'], ['1.2']])('development sürümü X.Y.Z değilse (%s) durur, sessizce atlamaz', (v) => {
+    const r = ciLike(['bump-version', '1.2.3', 'app.json'], v);
+    expect(r.status).not.toBe(0);
+    expect(r.version).toBe(v);
+    expect(r.all).toContain('X.Y.Z');
+  });
+});
+
