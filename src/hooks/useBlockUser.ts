@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { userApi } from '@/lib/api';
 import { qk } from '@/lib/query';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 
 /**
@@ -80,7 +80,7 @@ export function useBlockUser(options?: {
   /** Engel konduktan sonra (ör. DM ekranından çıkmak için). */
   onBlocked?: () => void;
   onUnblocked?: () => void;
-  /** Snackbar'ı olan ekranlar kendi bildirimini geçer; yoksa appAlert kullanılır. */
+  /** Kendi bildirimini geçmeyen ekranda başarı toast, hata appAlert olur. */
   notify?: (message: string, type: 'success' | 'error') => void;
 }) {
   const { t } = useTranslation();
@@ -94,7 +94,8 @@ export function useBlockUser(options?: {
 
   const tell = (message: string, type: 'success' | 'error') => {
     if (options?.notify) options.notify(message, type);
-    else appAlert(type === 'error' ? t('common.error') : t('common.success'), message);
+    else if (type === 'success') toast.success(message);
+    else appAlert(t('common.error'), message);
   };
 
   const blockMutation = useMutation({
