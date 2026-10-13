@@ -14,11 +14,13 @@ jest.mock('expo-router', () => ({
   useFocusEffect: jest.fn(),
 }));
 jest.mock('@/components/ProductFilterSheet', () => () => null);
-jest.mock('../_components/ListingsSearchBar', () => ({ ListingsSearchBar: () => null }));
-jest.mock('../_components/ListingsSortModal', () => ({ ListingsSortModal: () => null }));
-jest.mock('../_components/ListingCard', () => {
+jest.mock('../_components/ListingsHeader', () => {
+  const { AdBanner } = require('@/components/ads/AdBanner');
+  return { ListingsHeader: () => <AdBanner position="header" /> };
+});
+jest.mock('@/components/product/ProductCard', () => {
   const { Text } = require('react-native');
-  return { ListingCard: ({ item }: { item: { id: string } }) => <Text testID={`card-${item.id}`}>{item.id}</Text> };
+  return { ProductCard: ({ product }: { product: { id: string } }) => <Text testID={`card-${product.id}`}>{product.id}</Text> };
 });
 jest.mock('@/components/ads/AdBanner', () => {
   const { Text } = require('react-native');
@@ -35,8 +37,11 @@ const controller = (n: number) => ({
   isLoading: false,
   listings: Array.from({ length: n }, (_, i) => ({ id: `p${i + 1}` })),
   total: n,
-  filters: {},
+  filters: { sortBy: 'created_desc' },
   options: {},
+  sortMenuVisible: false,
+  setSortMenuVisible: jest.fn(),
+  activeFilterCount: 0,
   filterModalVisible: false,
   setFilterModalVisible: jest.fn(),
   setFilters: jest.fn(),
@@ -77,10 +82,10 @@ describe('/listings reklam yuvaları', () => {
   it('kart satırı yatay (flexDirection: row): ikinci kart ilkinin yanında, altında değil', () => {
     mockListings.mockReturnValue(controller(3));
     const { getByTestId } = render(<ListingsScreen />);
-    // Kartın en yakın stilli atası = satır View'ı.
+    // Kartın atası olan ilk flexDirection:row View'ı = satır (kart bir hücre View'ına sarılı).
     const rowOf = (id: string) => {
       let node = getByTestId(`card-${id}`).parent;
-      while (node && !node.props.style) node = node.parent;
+      while (node && StyleSheet.flatten(node.props.style)?.flexDirection !== 'row') node = node.parent;
       return node!;
     };
     const flat = (id: string) => StyleSheet.flatten(rowOf(id).props.style);
