@@ -1,11 +1,8 @@
 import React from 'react';
-import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
-import { EmptyState } from '@/ui';
-import { ScreenHeader } from '@/components/common';
+import { PageShell } from '@/components/common/PageShell';
 
-import { styles } from '../_lib/styles';
 import type { DiscountsController } from '../_hooks/useDiscounts';
 
 /**
@@ -14,34 +11,37 @@ import type { DiscountsController } from '../_hooks/useDiscounts';
  */
 export function DiscountsGate({ f }: { f: DiscountsController }) {
   const { t } = useTranslation();
+  const title = t('discount.myDiscountsTitle');
 
   if (!f.isAuthenticated) {
     return (
-      <View style={styles.gateContainer}>
-        <ScreenHeader title={t('discount.myDiscountsTitle')} />
-        <EmptyState
-          icon="lock-closed-outline"
-          title={t('listing.loginRequiredTitle')}
-          subtitle={t('discount.loginRequiredBody')}
-          actionLabel={t('common.login')}
-          onAction={() => router.push('/(auth)/login' as any)}
-        />
-      </View>
+      <PageShell
+        title={title}
+        empty
+        emptyState={{
+          icon: 'lock-closed-outline',
+          title: t('listing.loginRequiredTitle'),
+          subtitle: t('discount.loginRequiredBody'),
+          actionLabel: t('common.login'),
+          onAction: () => router.push('/(auth)/login' as any),
+        }}
+      />
     );
   }
 
   if (f.user && f.user.isSeller === false) {
     return (
-      <View style={styles.gateContainer}>
-        <ScreenHeader title={t('discount.myDiscountsTitle')} />
-        <EmptyState
-          icon="storefront-outline"
-          title={t('discount.sellerRequiredTitle')}
-          subtitle={t('discount.sellerRequiredBody')}
-          actionLabel={t('discount.becomeSeller')}
-          onAction={() => router.push('/seller/register' as any)}
-        />
-      </View>
+      <PageShell
+        title={title}
+        empty
+        emptyState={{
+          icon: 'storefront-outline',
+          title: t('discount.sellerRequiredTitle'),
+          subtitle: t('discount.sellerRequiredBody'),
+          actionLabel: t('discount.becomeSeller'),
+          onAction: () => router.push('/seller/register' as any),
+        }}
+      />
     );
   }
 
