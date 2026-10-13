@@ -79,6 +79,7 @@ describe('Çerez politikası ekranı', () => {
     expect(replaceMock).toHaveBeenCalledWith('/(tabs)');
 
     canGoBackMock.mockReturnValue(true);
+    renderWithProviders(<CookiePolicyScreen />);
     lastWebView().onNavigationStateChange({ url: ownWebPageUrl('/pricing') });
     expect(backMock).toHaveBeenCalledTimes(1);
   });

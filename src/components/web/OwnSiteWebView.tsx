@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Linking } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useTranslation } from 'react-i18next';
@@ -27,12 +27,21 @@ export function OwnSiteWebView({
 }) {
   const { t } = useTranslation();
   const target = typeof url === 'string' && isAllowedOwnPage(url) ? url : null;
+  const webRef = useRef<WebView>(null);
+  // `onNavigationStateChange` aynı engelli adres için birden çok kez gelir
+  // (yükleme başladı / bitti / başlık değişti). Ekrandan çıkış TEK sefer:
+  // aksi halde `router.back()` iki ekran geri giderdi.
+  const left = useRef(false);
+  useEffect(() => {
+    left.current = false;
+  }, [target]);
 
   return (
     <View style={styles.root} testID={testID}>
       <ScreenHeader title={title} onBack={onBack} />
       {target ? (
         <WebView
+          ref={webRef}
           source={{ uri: target }}
           startInLoadingState
           renderLoading={() => <Spinner />}
@@ -47,7 +56,10 @@ export function OwnSiteWebView({
           // Site içi (SPA/pushState) gezinmeler yukarıdaki kancadan GEÇMEZ: menüden
           // /membership'e geçilirse ekrandan çık.
           onNavigationStateChange={(nav) => {
-            if (nav.url && decideWebRequest(nav.url, true) === 'block') onBack();
+            if (left.current || !nav.url || decideWebRequest(nav.url, true) !== 'block') return;
+            left.current = true;
+            webRef.current?.stopLoading();
+            onBack();
           }}
         />
       ) : (
