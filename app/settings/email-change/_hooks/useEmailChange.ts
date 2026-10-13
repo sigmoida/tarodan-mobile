@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { authApi, errorText } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
@@ -25,7 +25,7 @@ export function useEmailChange() {
     onSuccess: (_res, newEmail) => {
       setPendingEmail(newEmail);
       setStep('code');
-      appAlert(t('profile.codeSent'), t('checkout.otpSentToEmail', { email: newEmail }));
+      toast.success(t('checkout.otpSentToEmail', { email: newEmail }));
     },
     onError: (e) =>
       appAlert(t('auth.failedToSend'), errorText(e, t('checkout.guestEmailSendCodeFailed'))),
@@ -36,7 +36,7 @@ export function useEmailChange() {
     onSuccess: (res) => {
       const email = (res.data as { email?: string })?.email;
       if (email) updateUser({ email });
-      appAlert(t('settings.emailUpdatedTitle'), t('settings.emailUpdatedBody'));
+      toast.success(t('settings.emailUpdatedBody'));
       router.back();
     },
     onError: (e) =>
