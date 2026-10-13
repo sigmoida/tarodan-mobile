@@ -22,15 +22,23 @@
  * ya da hata verirse yalnız bellek kopyası kullanılır (akış aynı süreçte yine
  * tamamlanır).
  *
+ * Sahiplik: her kayıt kimin adına alındığını taşır (`owner`: hesap id'si,
+ * misafirken alındıysa `null`). Başlık yalnız aynı kimliğe eklenir:
+ *  - misafir istekleri (`guestApi`, `{ guest: true }`) yalnız sahipsiz
+ *    (misafirken alınmış) belirteçleri;
+ *  - oturum istekleri (`api`) yalnız o anki hesabın belirteçlerini (oturum
+ *    yokken kimlik `null`: yine yalnız sahipsizleri).
+ * Zorunlu çıkışta (401) belirteçler silinmez: A'nın süren ödemesi A yeniden
+ * girince belirteciyle sürer, ama aradaki misafir oturumunda kullanılamaz.
+ * Sahibi bilinmeyen (eski biçim) kayıt hiçbir kimliğe eklenmez.
+ *
  * Temizlik: ödeme kesinleşince (ödendi, iade, iptal) kayıt silinir
  * (`forgetPaymentCapabilityIfFinal`, sonuç ekranları + iptal). `failed` kesin
  * değil: "Tekrar Dene" aynı ödemeyi aynı belirteçle yeniden açar. Kullanıcının
  * KENDİ çıkışında tüm `payment-capability.*` kayıtları silinir
- * (`clearAllPaymentCapabilities`, `resetUserStores('user')`): ortak cihazda A'nın
- * belirteci B'nin oturumunda kalmaz. Zorunlu çıkışta (401) silinmez — süren
- * ödeme (3DS) belirteciyle sonuçlanabilsin; başka bir hesapla girişte silinir
- * (`bindPaymentCapabilitiesToAccount`). Açılışta süresi dolmuş kayıtlar
- * süpürülür (`sweepExpiredPaymentCapabilities`).
+ * (`clearAllPaymentCapabilities`, `resetUserStores('user')`). Girişte başka
+ * hesapların belirteçleri silinir (`bindPaymentCapabilitiesToAccount`). Açılışta
+ * süresi dolmuş kayıtlar süpürülür (`sweepExpiredPaymentCapabilities`).
  */
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
@@ -59,14 +67,13 @@ export const CLOCK_ROLLBACK_TOLERANCE_MS = 60_000;
 /** AsyncStorage anahtarı — web `sessionStorage` anahtarıyla aynı. */
 const KEY_PREFIX = 'payment-capability.';
 const storageKey = (paymentId: string) => `${KEY_PREFIX}${paymentId}`;
-/**
- * Saklı belirteçlerin ait olduğu hesap. Önek dışında (`-owner`): süpürme ve
- * belirteç taraması bu anahtarı belirteç sanmaz.
- */
-const OWNER_KEY = 'payment-capability-owner';
 
-/** `storedAt`: kayıt anı (cihaz saati); saat geri alınmasını yakalamak için. */
-type Entry = { token: string; expiresAt: number; storedAt?: number };
+/**
+ * `storedAt`: kayıt anı (cihaz saati); saat geri alınmasını yakalamak için.
+ * `owner`: belirteç kimin adına alındı — hesap id'si, misafirse `null`;
+ * `undefined` = bilinmiyor (eski biçim), hiçbir kimliğe eklenmez.
+ */
+type Entry = { token: string; expiresAt: number; storedAt?: number; owner?: string | null };
 
 const BASE64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
@@ -160,8 +167,11 @@ let clearing: Promise<void> | null = null;
  * yazılmış kayıt bu süreçte belleğe yüklenmez.
  */
 let clearedAt: number | null = null;
-/** Belirteçlerin hesabı (bellek kopyası). `undefined` = bu süreçte depodan okunmadı. */
-let owner: string | null | undefined;
+/**
+ * O anki kimlik: oturum açıksa hesap id'si (`bindPaymentCapabilitiesToAccount`,
+ * giriş ve açılış), yoksa `null` (misafir; çıkışta sıfırlanır).
+ */
+let account: string | null = null;
 
 /**
  * AsyncStorage ilk kullanımda yüklenir. Native modül yoksa paket import anında
@@ -186,13 +196,23 @@ function parseEntry(raw: string | null): Entry | null {
   try {
     const value = JSON.parse(raw) as Partial<Entry> | null;
     if (typeof value?.token !== 'string' || typeof value.expiresAt !== 'number') return null;
-    return typeof value.storedAt === 'number'
-      ? { token: value.token, expiresAt: value.expiresAt, storedAt: value.storedAt }
-      : { token: value.token, expiresAt: value.expiresAt };
+    const entry: Entry = { token: value.token, expiresAt: value.expiresAt };
+    if (typeof value.storedAt === 'number') entry.storedAt = value.storedAt;
+    if (value.owner === null || typeof value.owner === 'string') entry.owner = value.owner;
+    return entry;
   } catch {
     return null;
   }
 }
+
+/** Kayıt bu kimliğe eklenebilir mi: misafir yalnız sahipsizi, oturum yalnız kendi hesabınınkini. */
+function usableBy(entry: Entry, guest: boolean): boolean {
+  return entry.owner === (guest ? null : account);
+}
+
+/** Girişte kalabilir mi: misafir (sahipsiz) ya da bu hesabın kaydı. */
+const keptForAccount = (entry: Entry | null | undefined, accountId: string): boolean =>
+  !!entry && (entry.owner === null || entry.owner === accountId);
 
 async function removeStored(paymentId: string): Promise<void> {
   try {
@@ -224,31 +244,46 @@ async function hydrate(paymentId: string): Promise<void> {
   if (raw && !entry) await removeStored(paymentId); // bozuk kayıt
 }
 
-async function readCapability(paymentId: string): Promise<string | null> {
+async function readCapability(paymentId: string, guest: boolean): Promise<string | null> {
   if (!memory.has(paymentId)) await hydrate(paymentId);
   const entry = memory.get(paymentId);
   if (!entry) return null;
-  if (isLive(entry, Date.now())) return entry.token;
-  // Süresi doldu (ya da saat geri alındı): sunucu da reddeder. Sil ve yok say.
-  memory.set(paymentId, null);
-  await removeStored(paymentId);
-  return null;
+  if (!isLive(entry, Date.now())) {
+    // Süresi doldu (ya da saat geri alındı): sunucu da reddeder. Sil ve yok say.
+    memory.set(paymentId, null);
+    await removeStored(paymentId);
+    return null;
+  }
+  // Başka kimliğin belirteci: eklenmez, ama silinmez (sahibi geri dönebilir).
+  return usableBy(entry, guest) ? entry.token : null;
 }
 
 type InitiateBody = { paymentId?: unknown; paymentAccessToken?: unknown };
 
+/** `guest`: misafir uçlarından (`guestApi`) gelen/giden istek — yalnız sahipsiz belirteçler. */
+export type CapabilityScope = { guest?: boolean };
+
 /**
- * Başlatma yanıtında belirteç varsa sakla (`{ data }` zarfı da olur). Bellek
+ * Başlatma yanıtında belirteç varsa sakla (`{ data }` zarfı da olur). Sahibi:
+ * misafir başlatmada (`initiate-guest`) `null`, üyede o anki hesap. Bellek
  * kopyası senkron yazılır (aynı süreçteki sonraki istekler depoyu beklemez);
  * dönen söz yalnız depo yazımını bekler. Hiç fırlatmaz.
  */
-export async function rememberPaymentCapability(response: unknown): Promise<void> {
+export async function rememberPaymentCapability(
+  response: unknown,
+  { guest = false }: CapabilityScope = {},
+): Promise<void> {
   const data = unwrapEnvelope<InitiateBody>(response as { data?: unknown } | null | undefined);
   if (typeof data.paymentId !== 'string' || typeof data.paymentAccessToken !== 'string') return;
   const now = Date.now();
   const lifetime = capabilityLifetimeMs(data.paymentAccessToken, now);
   if (lifetime <= 0) return; // zaten dolmuş: sunucu reddeder, saklama
-  const entry: Entry = { token: data.paymentAccessToken, expiresAt: now + lifetime, storedAt: now };
+  const entry: Entry = {
+    token: data.paymentAccessToken,
+    expiresAt: now + lifetime,
+    storedAt: now,
+    owner: guest ? null : account,
+  };
   memory.set(data.paymentId, entry);
   const startedIn = generation;
   try {
@@ -285,23 +320,22 @@ async function storedCapabilityKeys(store: KeyValueStore): Promise<string[]> {
 }
 
 /**
- * Kullanıcının kendi çıkışı ya da hesap değişimi: tüm `payment-capability.*`
- * kayıtlarını (ve hesap işaretini) sil. Ortak cihazda A'nın belirteci B'nin
- * oturumunda kalmasın. Bellek senkron temizlenir (çağıran beklemese de sonraki
- * istek başlıksız gider); depo silinene kadar depodan okuma yapılmaz. Hiç
- * fırlatmaz.
+ * Kullanıcının kendi çıkışı: tüm `payment-capability.*` kayıtlarını sil, kimliği
+ * misafire döndür. Ortak cihazda A'nın belirteci sonraki oturumda kalmasın.
+ * Bellek senkron temizlenir (çağıran beklemese de sonraki istek başlıksız
+ * gider); depo silinene kadar depodan okuma yapılmaz. Hiç fırlatmaz.
  */
 export function clearAllPaymentCapabilities(): Promise<void> {
   generation += 1;
   clearedAt = Date.now();
   memory.clear();
-  owner = null;
+  account = null;
   const store = persistentStorage();
   if (!store) return Promise.resolve();
   const run = (async () => {
     try {
       const keys = await storedCapabilityKeys(store);
-      await store.multiRemove([...keys, OWNER_KEY]);
+      if (keys.length > 0) await store.multiRemove(keys);
     } catch {
       /* silinemedi: okunduğunda süresi dolan yine yok sayılır; sonraki açılış süpürür */
     }
@@ -314,33 +348,43 @@ export function clearAllPaymentCapabilities(): Promise<void> {
 }
 
 /**
- * Girişte (ve açılışta oturum yüklenince) çağrılır: saklı belirteçler başka bir
- * hesaba aitse hepsini sil, sonra bu hesabı işaretle.
- *
- * Neden: zorunlu çıkış (401) belirteçleri silmez — 3DS sürerken başka bir
- * isteğin 401'i süren ödemeyi düşürmesin; aynı kullanıcı yeniden girince
- * ödeme belirteciyle sonuçlanır. Ama ortak cihazda başka biri girerse önceki
- * hesabın belirteçleri onun oturumunda kalmamalı. İşaret yoksa (kullanıcı
- * kendi çıkışını yaptı ya da hiç giriş olmadı) mevcut kayıtlar misafir
- * akışındandır ve dokunulmaz. Hiç fırlatmaz.
+ * Zorunlu çıkış (401): kimlik misafire döner, belirteçler KALIR. A'nın süren
+ * ödemesi (3DS) A yeniden girince belirteciyle sürer; aradaki misafir oturumu
+ * A'nın belirtecini kullanamaz (sahibi A).
+ */
+export function unbindPaymentCapabilityAccount(): void {
+  account = null;
+}
+
+/**
+ * Girişte (ve açılışta oturum yüklenince) çağrılır: kimliği bu hesap yapar ve
+ * başka hesapların (ya da sahibi bilinmeyen) belirteçlerini bellek + depodan
+ * siler. Misafir (sahipsiz) ve bu hesabın belirteçleri kalır. Kimlik hemen
+ * değişir: başlık kuralı (`usableBy`) silme bitmeden de başka hesabın
+ * belirtecini eklemez. Hiç fırlatmaz.
  */
 export async function bindPaymentCapabilitiesToAccount(accountId: string | null | undefined): Promise<void> {
   if (!accountId) return;
-  const store = persistentStorage();
-  let previous = owner;
-  if (previous === undefined) {
-    try {
-      previous = (await store?.getItem(OWNER_KEY)) ?? null;
-    } catch {
-      previous = null;
-    }
+  account = accountId;
+  for (const [paymentId, entry] of memory) {
+    if (entry && !keptForAccount(entry, accountId)) memory.set(paymentId, null);
   }
-  if (previous && previous !== accountId) await clearAllPaymentCapabilities();
-  owner = accountId;
+  const store = persistentStorage();
+  if (!store) return;
+  let stale: string[];
   try {
-    await store?.setItem(OWNER_KEY, accountId);
+    const keys = await storedCapabilityKeys(store);
+    if (keys.length === 0) return;
+    stale = (await store.multiGet(keys))
+      .filter(([, raw]) => !keptForAccount(parseEntry(raw), accountId))
+      .map(([key]) => key);
   } catch {
-    /* yazılamadı: bu süreçte bellek kopyası yeter */
+    return; // okunamadı: başlık kuralı yine başka hesabın belirtecini eklemez
+  }
+  try {
+    if (stale.length > 0) await store.multiRemove(stale);
+  } catch {
+    /* silinemedi: başlık kuralı yine eklemez; sonraki giriş yeniden dener */
   }
 }
 
@@ -368,13 +412,17 @@ export async function sweepExpiredPaymentCapabilities(now: number = Date.now()):
   }
 }
 
-/** Bu ödemenin yetki başlığı; belirteç yoksa boş (üye, kendi oturumuyla yetkili). Hiç fırlatmaz. */
+/**
+ * Bu ödemenin yetki başlığı; bu kimliğe ait belirteç yoksa boş (üye, kendi
+ * oturumuyla yetkili). Hiç fırlatmaz.
+ */
 export async function paymentCapabilityHeaders(
   paymentId: string | undefined | null,
+  { guest = false }: CapabilityScope = {},
 ): Promise<Record<string, string>> {
   if (!paymentId) return {};
   try {
-    const token = await readCapability(paymentId);
+    const token = await readCapability(paymentId, guest);
     return token ? { 'X-Payment-Capability': token } : {};
   } catch {
     return {};
@@ -393,18 +441,22 @@ type HttpClient = Pick<AxiosInstance, 'get' | 'post'>;
  * yeni bir uç yolu farklı biçimde olsa da belirteç yanlış ödemeye gitmez ya da
  * sessizce düşmez. Belirteç başka ödemeye sızmaz: başlık yalnız verilen ödemenin.
  *
+ * `{ guest: true }` (misafir istemcisi) yalnız sahipsiz belirteçleri ekler;
+ * varsayılan (oturum istemcisi) yalnız o anki hesabınkileri.
+ *
  * Genel axios interceptor'ı yerine bilerek ayrı sarmalayıcı: yalnız buradan
  * geçen ödeme uçları etkilenir, diğer isteklerin yolu değişmez.
  */
 export function withPaymentCapability(
   client: HttpClient,
+  scope: CapabilityScope = {},
 ): (paymentId: string | undefined | null) => HttpClient {
   return (paymentId) => {
     const withHeader = async (config?: AxiosRequestConfig): Promise<AxiosRequestConfig> => ({
       ...config,
       headers: {
         ...(config?.headers as Record<string, string> | undefined),
-        ...(await paymentCapabilityHeaders(paymentId)),
+        ...(await paymentCapabilityHeaders(paymentId, scope)),
       },
     });
     return {
@@ -423,5 +475,5 @@ export function __resetPaymentCapabilities(): void {
   storage = undefined;
   clearing = null;
   clearedAt = null;
-  owner = undefined;
+  account = null;
 }

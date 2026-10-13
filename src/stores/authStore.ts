@@ -377,7 +377,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
     console.log("🔐 Auth stored - Tier:", mappedUser.membershipTier);
     set({ isAuthenticated: true, token, user: mappedUser, limits });
-    // Ödeme yetki belirteçleri başka bir hesaba aitse (zorunlu çıkıştan kalmış) sil.
+    // Ödeme yetki belirteci kimliği bu hesap; başka hesabın belirteçleri (zorunlu
+    // çıkıştan kalmış) silinir.
     void bindPaymentCapabilitiesToAccount(mappedUser.id);
     // Misafir/önceki oturumdan kalan listeler yeni token'la yeniden çekilsin.
     // Token set'ten SONRA — yeniden çekim yeni token'ı taşımalı. Beklenmez:
@@ -472,7 +473,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           limits,
           isLoading: false,
         });
-        // Belirteç hesabı işaretli değilse (önceki sürüm) bu oturumla işaretle.
+        // Ödeme yetki belirteci kimliği bu hesap (açılışta yüklenen oturum).
         void bindPaymentCapabilitiesToAccount(mappedUser.id);
       } else if (
         process.env.EXPO_PUBLIC_MAESTRO === "1" &&

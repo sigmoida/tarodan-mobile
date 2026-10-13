@@ -20,6 +20,7 @@ import {
   paymentCapabilityHeaders,
   rememberPaymentCapability,
   sweepExpiredPaymentCapabilities,
+  unbindPaymentCapabilityAccount,
   withPaymentCapability,
 } from '../paymentCapability';
 
@@ -132,6 +133,7 @@ describe('kalıcılık (AsyncStorage)', () => {
       token: 'cap-token',
       expiresAt: FALLBACK_EXPIRES,
       storedAt: T0,
+      owner: null, // oturum yokken alındı: sahipsiz (misafir)
     });
   });
 
@@ -164,10 +166,19 @@ describe('kalıcılık (AsyncStorage)', () => {
     expect(await AsyncStorage.getItem(KEY)).toBeNull();
   });
 
-  it('storedAt\'sız eski kayıt (önceki sürüm) okunmaya devam eder', async () => {
+  it('storedAt\'sız kayıt okunmaya devam eder', async () => {
     nowAt(T0);
-    await AsyncStorage.setItem(KEY, JSON.stringify({ token: 'cap-token', expiresAt: T0 + 60_000 }));
+    await AsyncStorage.setItem(KEY, JSON.stringify({ token: 'cap-token', expiresAt: T0 + 60_000, owner: null }));
     expect(await paymentCapabilityHeaders(PAY)).toEqual(CAP);
+  });
+
+  it('sahibi bilinmeyen kayıt (owner alanı yok, eski biçim) hiçbir kimliğe eklenmez', async () => {
+    nowAt(T0);
+    await AsyncStorage.setItem(KEY, JSON.stringify({ token: 'cap-token', expiresAt: T0 + 60_000, storedAt: T0 }));
+    expect(await paymentCapabilityHeaders(PAY)).toEqual({});
+    expect(await paymentCapabilityHeaders(PAY, { guest: true })).toEqual({});
+    await bindPaymentCapabilitiesToAccount('user-a');
+    expect(await paymentCapabilityHeaders(PAY)).toEqual({});
   });
 
   it('bozuk kayıt yok sayılır ve silinir', async () => {
@@ -422,56 +433,100 @@ describe('temizlik: kesin sonuç, çıkış, açılış süpürmesi', () => {
   });
 });
 
-describe('hesap değişimi (bindPaymentCapabilitiesToAccount)', () => {
-  const remember = (paymentId: string, token = 'cap-token') =>
-    rememberPaymentCapability({ data: { paymentId, paymentAccessToken: token } });
-  const OWNER = 'payment-capability-owner';
+describe('sahiplik: belirteç yalnız alındığı kimliğe eklenir', () => {
+  const remember = (paymentId: string, scope?: { guest?: boolean }) =>
+    rememberPaymentCapability({ data: { paymentId, paymentAccessToken: `cap-${paymentId}` } }, scope);
+  const cap = (paymentId: string) => ({ 'X-Payment-Capability': `cap-${paymentId}` });
+  const stored = async (paymentId: string) =>
+    JSON.parse((await AsyncStorage.getItem(`payment-capability.${paymentId}`)) as string);
+  const capabilityKeys = async () =>
+    (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith('payment-capability')).sort();
 
-  it('işaret yokken (misafir akışı / önceki sürüm): kayıtlara dokunmaz, hesabı işaretler', async () => {
-    await remember(PAY);
+  it('misafir başlatma: sahipsiz kayıt; misafir istekleri ekler, hesap oturumu eklemez', async () => {
+    await remember('guest-pay', { guest: true });
+    expect((await stored('guest-pay')).owner).toBeNull();
+    expect(await paymentCapabilityHeaders('guest-pay', { guest: true })).toEqual(cap('guest-pay'));
+    expect(await paymentCapabilityHeaders('guest-pay')).toEqual(cap('guest-pay')); // oturum yok: kimlik misafir
     await bindPaymentCapabilitiesToAccount('user-a');
-    expect(await paymentCapabilityHeaders(PAY)).toEqual(CAP);
-    expect(await AsyncStorage.getItem(OWNER)).toBe('user-a');
+    expect(await paymentCapabilityHeaders('guest-pay')).toEqual({}); // A'nın oturumu misafirinkini eklemez
+    expect(await paymentCapabilityHeaders('guest-pay', { guest: true })).toEqual(cap('guest-pay'));
   });
 
-  it('aynı hesap yeniden girer (zorunlu çıkış sonrası): belirteç kalır', async () => {
-    await bindPaymentCapabilitiesToAccount('user-a');
-    await remember(PAY);
-    await bindPaymentCapabilitiesToAccount('user-a');
-    expect(await paymentCapabilityHeaders(PAY)).toEqual(CAP);
-  });
-
-  it('başka hesap girer: önceki hesabın belirteçleri (bellek + depo) silinir, yeni hesap işaretlenir', async () => {
+  it('üye başlatma: kayıt hesabın; misafir istekleri eklemez, aynı hesap ekler', async () => {
     await bindPaymentCapabilitiesToAccount('user-a');
     await remember('pay-a');
-    await bindPaymentCapabilitiesToAccount('user-b');
-    expect(await paymentCapabilityHeaders('pay-a')).toEqual({});
-    expect(await AsyncStorage.getItem('payment-capability.pay-a')).toBeNull();
-    expect(await AsyncStorage.getItem(OWNER)).toBe('user-b');
+    expect((await stored('pay-a')).owner).toBe('user-a');
+    expect(await paymentCapabilityHeaders('pay-a')).toEqual(cap('pay-a'));
+    expect(await paymentCapabilityHeaders('pay-a', { guest: true })).toEqual({});
   });
 
-  it('işaret depodan okunur: yeniden başlatmadan sonra başka hesap girse de silinir', async () => {
+  it('misafir başlatma oturum açıkken bile sahipsiz yazılır ({ guest: true })', async () => {
+    await bindPaymentCapabilitiesToAccount('user-a');
+    await remember('guest-pay', { guest: true });
+    expect((await stored('guest-pay')).owner).toBeNull();
+  });
+
+  it('zorunlu çıkış (unbind): kayıt kalır ama misafir kimliğine eklenmez; aynı hesap girince (yeniden başlatma dahil) eklenir', async () => {
+    await bindPaymentCapabilitiesToAccount('user-a');
+    await remember('pay-a');
+    unbindPaymentCapabilityAccount();
+    expect(await paymentCapabilityHeaders('pay-a')).toEqual({});
+    expect(await paymentCapabilityHeaders('pay-a', { guest: true })).toEqual({});
+    expect(await capabilityKeys()).toEqual(['payment-capability.pay-a']);
+
+    await bindPaymentCapabilitiesToAccount('user-a');
+    expect(await paymentCapabilityHeaders('pay-a')).toEqual(cap('pay-a'));
+    restartApp();
+    await bindPaymentCapabilitiesToAccount('user-a');
+    expect(await paymentCapabilityHeaders('pay-a')).toEqual(cap('pay-a'));
+  });
+
+  it('başka hesap girer: önceki hesabın belirteçleri (bellek + depo) silinir; misafirinkiler kalır', async () => {
+    await bindPaymentCapabilitiesToAccount('user-a');
+    await remember('pay-a');
+    unbindPaymentCapabilityAccount();
+    await remember('guest-pay', { guest: true });
+    await bindPaymentCapabilitiesToAccount('user-b');
+    expect(await paymentCapabilityHeaders('pay-a')).toEqual({});
+    expect(await capabilityKeys()).toEqual(['payment-capability.guest-pay']);
+    expect(await paymentCapabilityHeaders('guest-pay', { guest: true })).toEqual(cap('guest-pay'));
+  });
+
+  it('yeniden başlatmadan sonra başka hesap girer: depodaki sahip bilgisinden silinir', async () => {
     await bindPaymentCapabilitiesToAccount('user-a');
     await remember('pay-a');
     restartApp();
     await bindPaymentCapabilitiesToAccount('user-b');
     expect(await paymentCapabilityHeaders('pay-a')).toEqual({});
+    expect(await capabilityKeys()).toEqual([]);
   });
 
-  it('kullanıcının kendi çıkışı (clearAll) işareti de siler: sonraki misafir belirteci girişte kalır', async () => {
-    await bindPaymentCapabilitiesToAccount('user-a');
-    await clearAllPaymentCapabilities();
-    expect(await AsyncStorage.getItem(OWNER)).toBeNull();
-    await remember('guest-pay'); // çıkıştan sonra misafir ödemesi
+  it('girişte sahibi bilinmeyen ya da bozuk kayıtlar da silinir', async () => {
+    await AsyncStorage.setItem('payment-capability.legacy', JSON.stringify({ token: 't', expiresAt: Date.now() + 60_000 }));
+    await AsyncStorage.setItem('payment-capability.corrupt', 'not-json');
     await bindPaymentCapabilitiesToAccount('user-b');
-    expect(await paymentCapabilityHeaders('guest-pay')).toEqual(CAP);
+    expect(await capabilityKeys()).toEqual([]);
+  });
+
+  it('misafir sarmalayıcısı ({ guest: true }) yalnız sahipsiz belirteci ekler', async () => {
+    const client = { get: jest.fn().mockResolvedValue({ data: {} }), post: jest.fn() };
+    const guestHttp = withPaymentCapability(client as unknown as Pick<AxiosInstance, 'get' | 'post'>, { guest: true });
+    await bindPaymentCapabilitiesToAccount('user-a');
+    await remember('pay-a');
+    unbindPaymentCapabilityAccount();
+    await guestHttp('pay-a').get('/payments/pay-a/status-guest');
+    expect(client.get).toHaveBeenLastCalledWith('/payments/pay-a/status-guest', { headers: {} });
+    await remember('guest-pay', { guest: true });
+    await guestHttp('guest-pay').get('/payments/guest-pay/status-guest');
+    expect(client.get).toHaveBeenLastCalledWith('/payments/guest-pay/status-guest', { headers: cap('guest-pay') });
   });
 
   it('boş hesap id\'si yok sayılır; depo hataları fırlatmaz', async () => {
     await expect(bindPaymentCapabilitiesToAccount(undefined)).resolves.toBeUndefined();
-    expect(await AsyncStorage.getItem(OWNER)).toBeNull();
-    (AsyncStorage.getItem as jest.Mock).mockRejectedValueOnce(new Error('io'));
-    (AsyncStorage.setItem as jest.Mock).mockRejectedValueOnce(new Error('io'));
+    (AsyncStorage.getAllKeys as jest.Mock).mockRejectedValueOnce(new Error('io'));
     await expect(bindPaymentCapabilitiesToAccount('user-a')).resolves.toBeUndefined();
+    await remember('pay-b', { guest: false });
+    (AsyncStorage.multiRemove as jest.Mock).mockRejectedValueOnce(new Error('io'));
+    await expect(bindPaymentCapabilitiesToAccount('user-b')).resolves.toBeUndefined();
   });
 });
