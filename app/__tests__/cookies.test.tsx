@@ -75,6 +75,21 @@ describe('Çerez politikası (native)', () => {
     expect(getByText(containing(i18n.t('legal.cookies.necessaryDesc')))).toBeTruthy();
   });
 
+  it('en: başlık, not ve etiketler İngilizce; bağlayıcı belge gövdesi Türkçe (web gibi)', async () => {
+    await i18n.changeLanguage('en');
+    const { getByText } = render(<CookiePolicyScreen />);
+    // Arayüz metni çevrilir.
+    expect(getByText('1. What Is a Cookie?')).toBeTruthy();
+    expect(getByText(`${i18n.t('legal.lastUpdated')}: August 2, 2026`)).toBeTruthy();
+    expect(getByText(containing(`Email: ${LEGAL_ENTITY.email}`))).toBeTruthy();
+    expect(getByText(containing(`Phone: ${LEGAL_ENTITY.phone}`))).toBeTruthy();
+    expect(getByText(/^Stored Data: IP adresi/)).toBeTruthy();
+    expect(getByText(/^Logs within the scope of Law No\. 5651/)).toBeTruthy();
+    expect(getByText(/^Important: If you block strictly necessary cookies/)).toBeTruthy();
+    // Gövde Türkçe kalır.
+    expect(getByText(/^Çerezler, web siteleri tarafından/)).toBeTruthy();
+  });
+
   it('rota yasal metin yolu olarak kalır (onay kapısı bu sayfada gizlenir)', () => {
     expect(isLegalTextPath('/cookies')).toBe(true);
   });

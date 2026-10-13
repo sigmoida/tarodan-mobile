@@ -11,6 +11,10 @@
  * - Tablolar başlıklı gruplara, bağlantılar düz metne dönüşür (native, çevrimdışı).
  * - İletişim: web'deki "0850 XXX XX XX" yer tutucu telefon yerine künyedeki
  *   (`LEGAL_ENTITY`) gerçek telefon ve e-posta.
+ * - Dil: bağlayıcı gövde (paragraflar, tablo içerikleri) iki dilde Türkçe (web
+ *   gibi); başlıklar, notlar, sütun/iletişim etiketleri ve tarih EN'de
+ *   İngilizce (web EN kataloğunda bunlar da Türkçe — mobil sapma, bkz.
+ *   `catalog-integrity` muafiyeti).
  */
 import { LEGAL_ENTITY } from '@/constants/legalFacts';
 import type { LegalBlock, LegalPart, Translate } from './types';
