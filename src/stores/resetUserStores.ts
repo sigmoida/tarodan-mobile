@@ -1,5 +1,5 @@
 import { queryClient } from '../lib/queryClient';
-import { clearAllPaymentCapabilities } from '@/lib/payment/paymentCapability';
+import { clearAllPaymentCapabilities, unbindPaymentCapabilityAccount } from '@/lib/payment/paymentCapability';
 import { useCartStore } from './cartStore';
 import { useMessagesStore } from './messagesStore';
 
@@ -36,10 +36,12 @@ export function resetUserStores(reason: LogoutReason = 'user'): void {
 
   // Ödeme yetki belirteçleri (`payment-capability.*`) yalnız kullanıcının KENDİ
   // çıkışında silinir: ortak cihazda çıkan kullanıcının belirteci sonraki
-  // oturumda kalmasın. Zorunlu çıkışta (401) silinmez: 3DS sürerken başka bir
-  // isteğin 401'i süren ödemenin belirtecini düşürmesin. Başka bir hesapla
-  // girişte `bindPaymentCapabilitiesToAccount` (authStore.login) siler.
+  // oturumda kalmasın. Zorunlu çıkışta (401) silinmez — 3DS sürerken başka bir
+  // isteğin 401'i süren ödemeyi düşürmesin, A yeniden girince sürsün — ama kimlik
+  // misafire döner: her belirteç sahibini taşıdığı için A'nınki misafir oturumunda
+  // eklenmez. Başka bir hesapla girişte `bindPaymentCapabilitiesToAccount` siler.
   if (reason === 'user') void clearAllPaymentCapabilities();
+  else unbindPaymentCapabilityAccount();
 }
 
 /**

@@ -41,15 +41,6 @@ import { membershipApi } from '@/lib/api';
 import { __resetPaymentCapabilities, rememberPaymentCapability } from '@/lib/payment/paymentCapability';
 import { __resetVerifyPacer, VERIFY_TIMEOUT_MS } from '@/lib/payment/verifyPacer';
 import CardPaymentForm from '../CardPaymentForm';
-import { AppState } from 'react-native';
-
-/** Kullanıcı 3DS'ten (banka uygulamasından) döndü: verify'ın erken fazı başlar. */
-function backFromBankApp() {
-  const listeners = (AppState.addEventListener as jest.Mock).mock.calls.filter(([event]) => event === 'change');
-  const listener = listeners[listeners.length - 1][1] as (state: string) => void;
-  listener('background');
-  listener('active');
-}
 
 const apiPost = api.post as jest.Mock;
 const apiGet = api.get as jest.Mock;
@@ -137,7 +128,6 @@ describe.each([
       { headers },
     ]);
 
-    backFromBankApp();
     await jest.advanceTimersByTimeAsync(3000);
     await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(PAY));
     expect(onFail).not.toHaveBeenCalled();
@@ -155,7 +145,7 @@ it('üye, paymentId bilinmiyorsa gövde eskisi gibi (paymentId yok)', async () =
   expect(directFormCall()?.[1]).toEqual({ orderId: 'order-1', saveCard: false, distanceSalesAccepted: true });
 });
 
-it('üye, kayıtlı kart: gövdede paymentId + savedCardId', async () => {
+it('üye, kayıtlı kart (Non3D): gövdede paymentId + savedCardId; verify banka sayfası olmadan ~3 sn\'de başlar', async () => {
   listCards.mockResolvedValueOnce({
     data: [{ id: 'card-1', last4: '4242', brand: 'visa', expMonth: '12', expYear: '30', requireCvv: false, isDefault: true, autoRenewEligible: true }],
   });
@@ -164,11 +154,13 @@ it('üye, kayıtlı kart: gövdede paymentId + savedCardId', async () => {
       ? Promise.resolve({ data: { ...signed, savedCard: true, requireCvv: false } })
       : Promise.resolve({ data: {} }),
   );
+  apiGet.mockResolvedValue({ data: { status: 'pending' } });
   renderWithProviders(
     <CardPaymentForm target={{ checkoutGroupId: 'g-1' }} paymentId={PAY} cardStorageEnabled onSuccess={jest.fn()} />,
   );
   await waitFor(() => expect(screen.getByText(/4242/)).toBeTruthy());
   fireEvent.press(screen.getByTestId('payment-distance-sales-checkbox'));
+  jest.useFakeTimers();
   fireEvent.press(screen.getByTestId('card-submit'));
   await waitFor(() => expect(directFormCall()).toBeTruthy());
   expect(directFormCall()?.[1]).toEqual({
@@ -177,4 +169,10 @@ it('üye, kayıtlı kart: gövdede paymentId + savedCardId', async () => {
     savedCardId: 'card-1',
     distanceSalesAccepted: true,
   });
+
+  const verifyCalls = () => apiPost.mock.calls.filter(([url]) => url === `/payments/${PAY}/verify`);
+  await jest.advanceTimersByTimeAsync(2999);
+  expect(verifyCalls()).toHaveLength(0);
+  await jest.advanceTimersByTimeAsync(1);
+  expect(verifyCalls()).toEqual([[`/payments/${PAY}/verify`, {}, { timeout: VERIFY_TIMEOUT_MS, headers: {} }]]);
 });

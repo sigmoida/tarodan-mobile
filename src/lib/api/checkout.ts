@@ -13,16 +13,18 @@ import {
  * Ödeme başlat + yanıttaki `paymentAccessToken`'ı sakla (web `initiatePayment`).
  * Misafir sonraki public ödeme uçlarında (`X-Payment-Capability`) bununla yetkilenir;
  * üyede de saklanır (web gibi): oturum ödeme ortasında düşerse durum yoklaması,
- * verify ve confirm-failed belirteçle çalışmaya devam eder.
+ * verify ve confirm-failed belirteçle çalışmaya devam eder. Kayıt kimin adına
+ * alındığını taşır (`guest` → sahipsiz, yoksa o anki hesap): misafir istekleri
+ * yalnız sahipsiz, üye istekleri yalnız aynı hesabın belirtecini ekler.
  *
  * Depo yazımı beklenmez: bellek kopyası senkron yazılır, sonraki istekler onu
  * okur; AsyncStorage yazımı arkada biter (kullanıcı kart bilgisini girip banka
  * uygulamasına geçmeden çok önce). Böylece ödeme başlatma depoya bağımlı olmaz.
  * `rememberPaymentCapability` hiç fırlatmaz.
  */
-async function initiatePayment<T>(request: Promise<T>): Promise<T> {
+async function initiatePayment<T>(request: Promise<T>, scope: { guest?: boolean } = {}): Promise<T> {
   const response = await request;
-  void rememberPaymentCapability(response);
+  void rememberPaymentCapability(response, scope);
   return response;
 }
 
@@ -64,9 +66,11 @@ export const addressesApi = {
  * Bearer eklemez, 401'de refresh/çıkış yapmaz, `USER_BANNED`'da yönlendirmez.
  * `api` ise cihazda kalmış bir token'ı ekler; misafir ödeme ortasında 401 alırsa
  * interceptor çıkış yaptırıp login ekranına atardı. Üye yolu `api`'den gider.
+ * Misafir sarmalayıcı yalnız misafirken alınmış (sahipsiz) belirteci ekler:
+ * zorunlu çıkıştan kalan bir hesabın belirteci misafir oturumunda kullanılamaz.
  */
 const paymentHttp = withPaymentCapability(api);
-const guestPaymentHttp = withPaymentCapability(guestApi);
+const guestPaymentHttp = withPaymentCapability(guestApi, { guest: true });
 
 // Payments API - Web ile aynı endpoint'ler
 export const paymentsApi = {
@@ -81,10 +85,10 @@ export const paymentsApi = {
   initiateGroup: (checkoutGroupId: string, provider: 'paytr' = 'paytr') =>
     initiatePayment(api.post('/payments/initiate', { checkoutGroupId, provider })),
   initiateGuest: (orderId: string | number, provider: 'paytr' = 'paytr') =>
-    initiatePayment(guestApi.post('/payments/initiate-guest', { orderId, provider })),
+    initiatePayment(guestApi.post('/payments/initiate-guest', { orderId, provider }), { guest: true }),
   /** Grup ödemesi (misafir) */
   initiateGroupGuest: (checkoutGroupId: string, provider: 'paytr' = 'paytr') =>
-    initiatePayment(guestApi.post('/payments/initiate-guest', { checkoutGroupId, provider })),
+    initiatePayment(guestApi.post('/payments/initiate-guest', { checkoutGroupId, provider }), { guest: true }),
   /** Takas nakit fark ödemesi başlat */
   initiateTradeCash: (tradeId: string) =>
     api.post('/payments/initiate-trade-cash', { tradeId }),

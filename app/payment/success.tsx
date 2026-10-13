@@ -91,8 +91,8 @@ export default function PaymentSuccessScreen() {
       const verifyOptions = { guest: guest === '1' };
       let last: PaymentInfo | null = null;
       // Döngünün gönderdiği son verify'ın sözü + herhangi biri ödemeyi tamamladı mı.
-      // Uçuş kaydına (`pendingVerify`) güvenilmez: verify son durum okuması sürerken
-      // biterse kayıt düşer ve "tamamlandı" sonucu kaybolurdu.
+      // Uçuş kaydına güvenilmez: verify son durum okuması sürerken biterse kayıt
+      // düşer ve "tamamlandı" sonucu kaybolurdu.
       let lastVerify: Promise<boolean> | null = null;
       let verifyCompleted = false;
       for (let attempt = 0; attempt < 5 && !cancelled; attempt++) {
@@ -129,6 +129,14 @@ export default function PaymentSuccessScreen() {
         }
       }
       if (cancelled) return;
+      // Başarısız ödeme bu ekrana düştüyse (merchant ok URL'i, derin bağlantı)
+      // sonsuz "doğrulanıyor" yerine başarısız ekranına git (web
+      // `usePaymentSuccess` gibi, takas yönlendirmesinden önce): üye orada
+      // "Tekrar Dene"yi, misafir "İlanlara / Ana Sayfaya Dön"ü bulur.
+      if (isFailedPaymentStatus(last?.status)) {
+        router.replace({ pathname: '/payment/fail', params: { paymentId, ...(guest ? { guest } : {}) } });
+        return;
+      }
       // Ödeme kesinleştiyse yetki belirteci artık gereksiz: kaydı sil.
       void forgetPaymentCapabilityIfFinal(paymentId, last?.status);
 

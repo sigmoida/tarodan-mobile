@@ -24,7 +24,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, guestApi } from '../client';
 import { paymentsApi } from '../checkout';
 import { buildDirectFormBody } from '@/lib/payment/directFormBody';
-import { __resetPaymentCapabilities } from '@/lib/payment/paymentCapability';
+import {
+  __resetPaymentCapabilities,
+  bindPaymentCapabilitiesToAccount,
+  unbindPaymentCapabilityAccount,
+} from '@/lib/payment/paymentCapability';
 
 const apiPost = api.post as jest.Mock;
 const apiGet = api.get as jest.Mock;
@@ -180,4 +184,28 @@ it('iptal başarısızsa kayıt kalır', async () => {
   await expect(paymentsApi.cancel(PAY)).rejects.toThrow('403');
   await paymentsApi.getStatusLightGuest(PAY);
   expect(guestGet).toHaveBeenLastCalledWith(`/payments/${PAY}/status-guest`, { headers: CAP });
+});
+
+describe('sahiplik: misafir uçları yalnız misafirken alınmış belirteci ekler', () => {
+  it('initiate-guest belirteci sahipsiz yazılır (oturum açık olsa da); misafir uçları ekler', async () => {
+    await bindPaymentCapabilitiesToAccount('user-a');
+    await guestInitiate();
+    await flush();
+    expect(JSON.parse((await AsyncStorage.getItem(`payment-capability.${PAY}`)) as string).owner).toBeNull();
+    await paymentsApi.getStatusLightGuest(PAY);
+    expect(guestGet).toHaveBeenCalledWith(`/payments/${PAY}/status-guest`, { headers: CAP });
+  });
+
+  it('üye initiate belirteci hesabın: zorunlu çıkıştan sonra misafir uçları eklemez', async () => {
+    await bindPaymentCapabilitiesToAccount('user-a');
+    apiPost.mockResolvedValueOnce({ data: { paymentId: PAY, paymentAccessToken: 'cap-token' } });
+    await paymentsApi.initiateGroup(GROUP);
+    await flush();
+    expect(JSON.parse((await AsyncStorage.getItem(`payment-capability.${PAY}`)) as string).owner).toBe('user-a');
+    unbindPaymentCapabilityAccount();
+    await paymentsApi.getStatusLightGuest(PAY);
+    await paymentsApi.verifyGuest(PAY);
+    expect(guestGet).toHaveBeenCalledWith(`/payments/${PAY}/status-guest`, { headers: {} });
+    expect(guestPost).toHaveBeenCalledWith(`/payments/${PAY}/verify`, {}, { headers: {} });
+  });
 });

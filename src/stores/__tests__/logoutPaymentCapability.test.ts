@@ -7,8 +7,9 @@
  *    kayıtlar silinir.
  *  - Zorunlu çıkış (401 → `client.ts` `handleAuthFailure` →
  *    `logout({ reason: 'forced' })`): kayıtlar KALIR (3DS sürerken başka bir
- *    isteğin 401'i süren ödemeyi düşürmesin). Başka bir hesapla girişte
- *    (`login` → `bindPaymentCapabilitiesToAccount`) silinir.
+ *    isteğin 401'i süren ödemeyi düşürmesin) ama sahibi A olduğu için aradaki
+ *    misafir kimliğine eklenmez; A yeniden girince eklenir. Başka bir hesapla
+ *    girişte (`login` → `bindPaymentCapabilitiesToAccount`) silinir.
  * Açılışta (`loadToken`) süresi dolmuş kayıtlar süpürülür.
  *
  * Gerçek `authStore` + gerçek `resetUserStores`; ağ ve push mock'lu.
@@ -85,7 +86,7 @@ it('A çıkış yapınca A\'nın belirteci B\'nin oturumunda (ve yeniden başlat
   expect(await paymentCapabilityHeaders('pay-a')).toEqual({});
 });
 
-describe('zorunlu çıkış (401): süren ödemenin belirteci kalır', () => {
+describe('zorunlu çıkış (401): süren ödemenin belirteci kalır, yalnız A\'ya eklenir', () => {
   async function aStartsPaymentThenSessionDrops() {
     await useAuthStore.getState().login('token-a', user('a'));
     await rememberPaymentCapability({ data: { paymentId: 'pay-a', paymentAccessToken: 'cap-a' } });
@@ -93,11 +94,19 @@ describe('zorunlu çıkış (401): süren ödemenin belirteci kalır', () => {
     await flush();
   }
 
-  it('belirteç bellekte ve depoda kalır (başarı ekranı durumu onunla okur)', async () => {
+  it('belirteç depoda kalır ama oturumsuz (misafir) kimliğe eklenmez', async () => {
     await aStartsPaymentThenSessionDrops();
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
-    expect(await paymentCapabilityHeaders('pay-a')).toEqual({ 'X-Payment-Capability': 'cap-a' });
     expect(await capabilityKeys()).toEqual(['payment-capability.pay-a']);
+    expect(await paymentCapabilityHeaders('pay-a')).toEqual({});
+    expect(await paymentCapabilityHeaders('pay-a', { guest: true })).toEqual({});
+  });
+
+  it('A yeniden girince belirteç yine eklenir (süren ödeme devam eder)', async () => {
+    await aStartsPaymentThenSessionDrops();
+    await useAuthStore.getState().login('token-a2', user('a'));
+    await flush();
+    expect(await paymentCapabilityHeaders('pay-a')).toEqual({ 'X-Payment-Capability': 'cap-a' });
   });
 
   it('aynı hesap yeniden girer (yeniden başlatma dahil): belirteç kalır', async () => {
@@ -116,7 +125,7 @@ describe('zorunlu çıkış (401): süren ödemenin belirteci kalır', () => {
     expect(await capabilityKeys()).toEqual([]);
   });
 
-  it('oturum açılışta yüklendiyse (login çağrılmadan, önceki sürümden): hesap yine işaretlenir', async () => {
+  it('oturum açılışta yüklendiyse (login çağrılmadan): belirteç yine o hesabın', async () => {
     (SecureStore.getItemAsync as jest.Mock).mockImplementation((key: string) =>
       Promise.resolve(key === 'accessToken' ? 'token-a' : null),
     );
@@ -133,7 +142,7 @@ describe('zorunlu çıkış (401): süren ödemenin belirteci kalır', () => {
     expect(await paymentCapabilityHeaders('pay-a')).toEqual({});
   });
 
-  it('başka hesap yeniden başlatmadan sonra girer: yine silinir (hesap işareti depoda)', async () => {
+  it('başka hesap yeniden başlatmadan sonra girer: yine silinir (sahip bilgisi kayıtta)', async () => {
     await aStartsPaymentThenSessionDrops();
     __resetPaymentCapabilities();
     await useAuthStore.getState().login('token-b', user('b'));
