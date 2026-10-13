@@ -19,7 +19,7 @@ export function DiscountsGate({ f }: { f: DiscountsController }) {
         title={title}
         empty
         emptyState={{
-          icon: 'lock-closed-outline',
+          icon: 'lock-closed',
           title: t('listing.loginRequiredTitle'),
           subtitle: t('discount.loginRequiredBody'),
           actionLabel: t('common.login'),
@@ -35,7 +35,7 @@ export function DiscountsGate({ f }: { f: DiscountsController }) {
         title={title}
         empty
         emptyState={{
-          icon: 'storefront-outline',
+          icon: 'building-storefront',
           title: t('discount.sellerRequiredTitle'),
           subtitle: t('discount.sellerRequiredBody'),
           actionLabel: t('discount.becomeSeller'),

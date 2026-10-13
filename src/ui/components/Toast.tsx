@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import { AccessibilityInfo } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { zIndex } from '@/theme';
 import { theme } from '../lib/theme';
 import { Snackbar } from './Snackbar';
 
+import { Icon } from '../icons';
 /**
  * Global toast — web'deki `react-hot-toast`'un karşılığı (`toast(...)`, `toast.success(...)`,
  * `toast.error(...)`). Bilgi ve başarı mesajları için; onay isteyen ya da kullanıcının bir şey
@@ -76,8 +76,8 @@ const BOTTOM_OFFSET = spacing[16];
 
 const ICON: Record<ToastKind, React.ReactNode> = {
   blank: null,
-  success: <Ionicons name="checkmark-circle" size={iconSize.md} color={colors.success[500]} />,
-  error: <Ionicons name="close-circle" size={iconSize.md} color={colors.danger[500]} />,
+  success: <Icon name="check-circle" variant="solid" size={iconSize.md} color={colors.success[500]} />,
+  error: <Icon name="x-circle" variant="solid" size={iconSize.md} color={colors.danger[500]} />,
 };
 
 export const ToastHost: React.FC = () => {

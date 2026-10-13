@@ -35,7 +35,7 @@ export function ListingPickerRow({ listing, f }: { listing: Listing; f: AddItems
       <Button
         size="sm"
         variant={added ? 'primary' : 'outline'}
-        icon={added ? 'checkmark' : 'add'}
+        icon={added ? 'check' : 'plus'}
         onPress={() => f.toggle(listing)}
         isLoading={busy}
         disabled={busy}

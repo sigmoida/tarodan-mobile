@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import {
   Platform,
   Pressable,
@@ -22,6 +21,7 @@ import { RawText } from './Text';
 import { FieldMessage, Label } from './Label';
 import { fieldBorderColor } from './Input';
 
+import { Icon } from '../icons';
 export interface DateFieldProps {
   label?: string;
   /** ISO date string "YYYY-MM-DD" (or empty/undefined when unset). */
@@ -145,7 +145,7 @@ export const DateField: React.FC<DateFieldProps> = ({
         >
           {selectedDate ? formatHuman(selectedDate, dateLocale) : resolvedPlaceholder}
         </RawText>
-        <Ionicons name="calendar-outline" size={theme.iconSize.md} color={colors.text.subtle} />
+        <Icon name="calendar" size={theme.iconSize.md} color={colors.text.subtle} />
       </Pressable>
 
       <FieldMessage error={error} helperText={helperText} />

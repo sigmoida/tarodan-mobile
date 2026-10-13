@@ -143,7 +143,7 @@ export default function TradesScreen() {
             </View>
           ) : (
             <EmptyState
-              icon="swap-horizontal"
+              icon="arrows-right-left"
               title={t('trade.noTrades')}
               description={filter === 'all' ? t('trade.noTradesHint') : t('trade.noTradesFilteredHint')}
               actionLabel={t('trade.searchListingsCta')}

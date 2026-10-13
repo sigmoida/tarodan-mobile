@@ -87,7 +87,7 @@ export function ConsentGate({
   return (
     <RequiredStepShell
       testID="consent-gate"
-      icon="document-text-outline"
+      icon="document-text"
       title={t('legal.consentGate.title')}
       intro={updated ? t('legal.consentGate.updatedIntro') : t('legal.consentGate.intro')}
       error={accept.isError ? errorText(accept.error, t('legal.consentGate.submitFailed')) : null}

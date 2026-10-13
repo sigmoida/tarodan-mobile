@@ -2,8 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Avatar, Badge, Button, Divider, Text, theme } from '@/ui';
+import { Avatar, Badge, Button, Divider, Text, theme, Icon } from '@/ui';
 
 import { buildAvatarUrl } from '@/lib/api';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
@@ -160,7 +159,7 @@ export function ProfileMenuSections({
         style={({ pressed }) => [styles.logout, pressed && styles.rowPressed]}
         onPress={f.handleLogout}
       >
-        <Ionicons name="log-out-outline" size={theme.iconSize.md} color={colors.danger[600]!} />
+        <Icon name="arrow-left-on-rectangle" size={theme.iconSize.md} color={colors.danger[600]!} />
         <Text variant="bodySm" tone="danger">
           {t('common.logout')}
         </Text>

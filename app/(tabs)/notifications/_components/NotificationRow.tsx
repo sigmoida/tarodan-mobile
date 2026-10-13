@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Image, Pressable } from 'react-native';
-import { Text } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon, Text } from '@/ui';
 import { useTranslation } from 'react-i18next';
 import { formatRelativeDate } from '@/utils/format';
 import { resolveImageUrl } from '@/utils/imageUrl';
@@ -30,7 +29,7 @@ function NotificationRowBase({
         <Image source={{ uri: resolveImageUrl(item.data.productImage) }} style={styles.thumb} />
       ) : (
         <View style={[styles.iconContainer, { backgroundColor: bg }]}>
-          <Ionicons name={icon} size={20} color={color} />
+          <Icon name={icon} variant="solid" size={20} color={color} />
         </View>
       )}
       <View style={styles.content}>

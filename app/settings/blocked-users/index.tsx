@@ -25,7 +25,7 @@ export default function BlockedUsersScreen() {
     return (
       <AuthGatePage
         title={title}
-        icon="ban-outline"
+        icon="no-symbol"
         subtitle={t('profile.blockedPage.emptyDesc')}
       />
     );
@@ -46,7 +46,7 @@ export default function BlockedUsersScreen() {
         contentContainerStyle={pageListContentStyle}
         ListEmptyComponent={
           <EmptyState
-            icon="ban-outline"
+            icon="no-symbol"
             title={f.isError ? t('profile.blockedPage.loadFailed') : t('profile.blockedPage.empty')}
             subtitle={t('profile.blockedPage.emptyDesc')}
           />

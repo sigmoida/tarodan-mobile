@@ -62,7 +62,7 @@ export default function OrderDetailScreen() {
         onBack={back}
         empty
         emptyState={{
-          icon: 'receipt-outline',
+          icon: 'receipt-percent',
           title: t('order.orderNotFound'),
           actionLabel: t('common.goBack'),
           onAction: back,

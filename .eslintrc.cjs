@@ -69,6 +69,8 @@ const DESIGN_WARNINGS = {
   'tarodan/no-raw-style-values': 'warn',
   // '₺' → formatPrice ("1.234,50 TL").
   'tarodan/no-lira-symbol': 'warn',
+  // Button'da ikon yalnız izinli işlev ikonları için (dalga 3).
+  'tarodan/restrict-button-icon': 'warn',
   // Ham RN Text/TouchableOpacity/Modal → @/ui (Text/RawText, Button/Pressable, Modal).
   '@typescript-eslint/no-restricted-imports': [
     'warn',

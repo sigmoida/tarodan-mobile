@@ -27,7 +27,7 @@ export default function CheckoutScreen() {
         title={t('checkout.title')}
         empty
         emptyState={{
-          icon: 'cart-outline',
+          icon: 'shopping-cart',
           title: t('checkout.emptyCart'),
           description: t('checkout.emptyCartDesc'),
           actionLabel: t('checkout.startShopping'),

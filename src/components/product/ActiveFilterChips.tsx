@@ -1,8 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { RawText, theme } from '@/ui';
+import { RawText, theme, Icon } from '@/ui';
 
 const { colors, spacing, typography, radiusRole, iconSize } = theme;
 
@@ -45,7 +44,7 @@ export function ActiveFilterChips({
           style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
         >
           <RawText style={styles.chipText}>{chip.label}</RawText>
-          <Ionicons name="close" size={iconSize.sm} color={colors.primary[600]!} />
+          <Icon name="x-mark" size={iconSize.sm} color={colors.primary[600]!} />
         </Pressable>
       ))}
       <Pressable onPress={onClear} hitSlop={theme.spacing[2]} accessibilityRole="button" style={styles.clear}>

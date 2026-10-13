@@ -1,7 +1,6 @@
 import { View } from 'react-native';
-import { SectionCard, Text, theme } from '@/ui';
+import { SectionCard, Text, theme, Icon } from '@/ui';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { formatPrice } from '@/utils/format';
 import { useTranslation } from 'react-i18next';
 import { styles } from '../_lib/styles';
@@ -30,7 +29,7 @@ export function PlanCard({ f }: { f: MembershipCheckoutController }) {
       <View style={styles.featuresCompact}>
         {tier.features.slice(0, 3).map((feature, index) => (
           <View key={index} style={styles.featureItem}>
-            <Ionicons name="checkmark-circle" size={16} color={tier.color} />
+            <Icon name="check-circle" variant="solid" size={16} color={tier.color} />
             <Text style={styles.featureText}>{feature}</Text>
           </View>
         ))}

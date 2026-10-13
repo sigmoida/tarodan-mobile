@@ -123,14 +123,14 @@ describe('J103 · mesaj thread render & gönderim', () => {
   it('J103.2 sadece boşluk içeren input ile gönder çağrılmaz', () => {
     renderWithProviders(<MessageThreadScreen />);
     fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın'), '   ');
-    fireEvent.press(screen.UNSAFE_getByProps({ name: 'send' }).parent);
+    fireEvent.press(screen.getByTestId('message-send'));
     expect(mockSendMessage).not.toHaveBeenCalled();
   });
 
   it('J103.3 geçerli mesaj gönderilir', async () => {
     renderWithProviders(<MessageThreadScreen />);
     fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın'), 'Merhaba');
-    const sendBtn = screen.UNSAFE_getByProps({ name: 'send' }).parent;
+    const sendBtn = screen.getByTestId('message-send');
     fireEvent.press(sendBtn);
     await waitFor(() =>
       expect(mockSendMessage).toHaveBeenCalledWith({ threadId: 't1', content: 'Merhaba' }),
@@ -153,7 +153,7 @@ describe('J104 · içerik filtresi & mesaj limiti (UI göstergesi)', () => {
   it('J104.1 telefon numarası içeren mesaj engellenir + uyarı gösterilir', async () => {
     renderWithProviders(<MessageThreadScreen />);
     fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın'), 'ara beni 0532 123 45 67');
-    fireEvent.press(screen.UNSAFE_getByProps({ name: 'send' }).parent);
+    fireEvent.press(screen.getByTestId('message-send'));
     await waitFor(() =>
       expect(screen.getByText(/Güvenliğiniz için bu mesaj gönderilemiyor/)).toBeOnTheScreen(),
     );
@@ -166,7 +166,7 @@ describe('J104 · içerik filtresi & mesaj limiti (UI göstergesi)', () => {
       screen.getByPlaceholderText('Mesajınızı yazın'),
       'TR12 3456 7890 1234 5678 9012 34',
     );
-    fireEvent.press(screen.UNSAFE_getByProps({ name: 'send' }).parent);
+    fireEvent.press(screen.getByTestId('message-send'));
     await waitFor(() =>
       expect(screen.getByText(/Güvenliğiniz için bu mesaj gönderilemiyor/)).toBeOnTheScreen(),
     );
@@ -288,10 +288,10 @@ describe('mesaj eki görselleri — bearer + şema beyaz listesi', () => {
     renderWithProviders(<MessageThreadScreen />);
     fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın'), 'şuna bak');
     await waitFor(() =>
-      fireEvent.press(screen.UNSAFE_getByProps({ name: 'image-outline' }).parent),
+      fireEvent.press(screen.getByTestId('message-attach')),
     );
     await waitFor(() => expect(mediaApi.uploadMessageImage).not.toHaveBeenCalled());
-    fireEvent.press(screen.UNSAFE_getByProps({ name: 'send' }).parent);
+    fireEvent.press(screen.getByTestId('message-send'));
 
     await waitFor(() =>
       expect(mockSendMessage).toHaveBeenCalledWith({

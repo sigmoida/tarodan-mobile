@@ -23,7 +23,7 @@ export default function EditCollectionScreen() {
       loading={f.isLoading}
       empty={gate}
       emptyState={{
-        icon: notOwner ? 'lock-closed-outline' : 'albums-outline',
+        icon: notOwner ? 'lock-closed' : 'rectangle-stack',
         title: notOwner ? t('collection.noEditPermission') : t('collection.collectionNotFound'),
         actionLabel: t('common.goBack'),
         onAction: goBack,

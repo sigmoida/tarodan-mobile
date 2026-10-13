@@ -20,7 +20,7 @@ export function NewMessageBody({ f }: { f: NewMessageController }) {
               placeholder={t('message.searchUserPlaceholder')}
               value={f.searchQuery}
               onChangeText={f.setSearchQuery}
-              leftIconName="search"
+              leftIconName="magnifying-glass"
             />
 
             {f.searchLoading && (

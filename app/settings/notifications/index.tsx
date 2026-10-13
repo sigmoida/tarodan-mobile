@@ -22,7 +22,7 @@ export default function NotificationSettingsScreen() {
         onBack={onBack}
         empty
         emptyState={{
-          icon: "notifications-outline",
+          icon: "bell",
           title,
           subtitle: t("settings.notificationsAuthGateSubtitle"),
           actionLabel: t("common.login"),

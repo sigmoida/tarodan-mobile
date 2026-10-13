@@ -1,5 +1,6 @@
 import type { HeroCta, HeroSlide, LocalizedText, TrustBadge } from '@/lib/api/hero';
 import { isPurchaseLink, resolveAdLink } from '@/lib/ads/openAdLink';
+import type { IconName } from '@/ui';
 
 /**
  * Hero / güven rozeti görünüm kuralları — saf fonksiyonlar (web `lib/heroView.ts`
@@ -65,14 +66,17 @@ export function visibleSlides(slides: readonly HeroSlide[] | null | undefined, l
   );
 }
 
-/** Rozet ikon anahtarı → MaterialCommunityIcons adı. Bilinmeyen anahtar rozeti gizler. */
-export const TRUST_BADGE_ICON_NAMES: Record<string, string> = {
-  'shield-check': 'shield-check-outline',
-  truck: 'truck-outline',
-  'arrow-path': 'autorenew',
-  'credit-card': 'credit-card-outline',
-  'rectangle-stack': 'layers-outline',
-  'arrows-right-left': 'swap-horizontal',
+/**
+ * Rozet ikon anahtarı (API: `TRUST_BADGE_ICONS`, web Heroicons adları) → `Icon` adı. Anahtarlar
+ * web ile birebir aynı olduğu için eşleme kimlik; bilinmeyen anahtar rozeti gizler.
+ */
+export const TRUST_BADGE_ICON_NAMES: Record<string, IconName> = {
+  'shield-check': 'shield-check',
+  truck: 'truck',
+  'arrow-path': 'arrow-path',
+  'credit-card': 'credit-card',
+  'rectangle-stack': 'rectangle-stack',
+  'arrows-right-left': 'arrows-right-left',
 };
 
 /** Telefonda en çok kaç rozet çizilir (3 sütun × 4 satır) — sunucuda üst sınır yok. */
@@ -80,7 +84,7 @@ export const MAX_TRUST_BADGES = 12;
 
 export interface ResolvedTrustBadge {
   id: string;
-  icon: string;
+  icon: IconName;
   title: string;
   description: string;
 }

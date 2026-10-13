@@ -19,7 +19,7 @@ export default function CollectionsScreen() {
   const title = t("mobile.settingsCollections");
 
   if (!f.isAuthenticated) {
-    return <AuthGatePage title={title} icon="albums-outline" subtitle={t("auth.loginToContinue")} />;
+    return <AuthGatePage title={title} icon="rectangle-stack" subtitle={t("auth.loginToContinue")} />;
   }
 
   return (
@@ -33,7 +33,7 @@ export default function CollectionsScreen() {
       overlay={
         f.canCreateCollections ? (
           <FAB
-            icon="add"
+            icon="plus"
             accessibilityLabel={t("collection.createNewCollection")}
             style={styles.fab}
             onPress={f.handleCreateCollection}
@@ -63,7 +63,7 @@ export default function CollectionsScreen() {
 
       {f.collections.length === 0 ? (
         <EmptyState
-          icon="albums-outline"
+          icon="rectangle-stack"
           title={t("collection.noCollections")}
           subtitle={t("collection.emptyCreateHint")}
         />

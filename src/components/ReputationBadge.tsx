@@ -1,9 +1,8 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { theme, Text } from '@/ui';
+import { theme, Text, Icon, type IconName } from '@/ui';
 
 const { colors } = theme;
 
@@ -27,7 +26,7 @@ interface ReputationBadgeProps {
 }
 
 type ReputationConfigEntry = {
-  icon: string;
+  icon: IconName;
   label: string;
   description: string;
   color: string;
@@ -42,7 +41,7 @@ type ReputationConfigEntry = {
 function buildReputationConfig(t: TFunction): Record<ReputationLevel, ReputationConfigEntry> {
   return {
     rising_star: {
-      icon: 'star-rising',
+      icon: 'star',
       label: t('reputation.risingStarLabel'),
       description: '10-50 başarılı işlem, 4.5+ puan',
       color: colors.success[600]!,
@@ -66,7 +65,7 @@ function buildReputationConfig(t: TFunction): Record<ReputationLevel, Reputation
       criteria: '200+ işlem, 4.8+',
     },
     hall_of_fame: {
-      icon: 'crown',
+      icon: 'sparkles',
       label: t('reputation.hallOfFameLabel'),
       description: '500+ işlem, 4.9+ puan, 2+ yıl üyelik',
       color: colors.warning[600]!,
@@ -103,11 +102,7 @@ export const ReputationBadge: React.FC<ReputationBadgeProps> = ({
 
   const content = (
     <>
-      <MaterialCommunityIcons
-        name={config.icon as any}
-        size={sizeConfig.iconSize}
-        color={config.color}
-      />
+      <Icon name={config.icon} variant="solid" size={sizeConfig.iconSize} color={config.color} />
       {showLabel && (
         <Text style={[styles.label, { color: config.color, fontSize: sizeConfig.fontSize }]}>
           {config.label}
@@ -134,8 +129,7 @@ interface SpecialRecognitionBadgeProps {
 }
 
 type RecognitionConfigEntry = {
-  icon: string;
-  iconType: 'material' | 'ionicons';
+  icon: IconName;
   label: string;
   description: string;
   color: string;
@@ -145,36 +139,31 @@ type RecognitionConfigEntry = {
 function buildRecognitionConfig(t: TFunction): Record<SpecialRecognition, RecognitionConfigEntry> {
   return {
     fast_shipper: {
-      icon: 'rocket',
-      iconType: 'ionicons',
+      icon: 'rocket-launch',
       label: t('reputation.fastShipperLabel'),
       description: '95%+ ürünler 24 saat içinde gönderildi',
       color: colors.info[600]!,
     },
     fair_trader: {
-      icon: 'handshake',
-      iconType: 'material',
+      icon: 'scale',
       label: t('reputation.fairTraderLabel'),
       description: '90%+ takas memnuniyeti',
       color: colors.success[600]!,
     },
     responsive: {
-      icon: 'chatbubbles',
-      iconType: 'ionicons',
+      icon: 'chat-bubble-left-right',
       label: t('reputation.responsiveLabel'),
       description: 'Ortalama yanıt süresi < 2 saat',
       color: colors.primary[700]!,
     },
     collector_expert: {
-      icon: 'school',
-      iconType: 'material',
+      icon: 'academic-cap',
       label: t('reputation.collectorExpertLabel'),
       description: 'Belirli marka/kategoride uzmanlaşma',
       color: colors.warning[600]!,
     },
     community_champion: {
-      icon: 'people',
-      iconType: 'ionicons',
+      icon: 'user-group',
       label: t('reputation.communityChampionLabel'),
       description: 'Yüksek topluluk katılımı',
       color: colors.danger[600]!,
@@ -192,11 +181,7 @@ export const SpecialRecognitionBadge: React.FC<SpecialRecognitionBadgeProps> = (
 
   return (
     <View style={[styles.recognitionBadge, { borderColor: colors.border.subtle }]}>
-      {config.iconType === 'material' ? (
-        <MaterialCommunityIcons name={config.icon as any} size={iconSize} color={config.color} />
-      ) : (
-        <Ionicons name={config.icon as any} size={iconSize} color={config.color} />
-      )}
+      <Icon name={config.icon} variant="solid" size={iconSize} color={config.color} />
       <Text style={[styles.recognitionLabel, { color: config.color }]}>
         {config.label}
       </Text>
@@ -227,15 +212,15 @@ export const ReputationScore: React.FC<ReputationScoreProps> = ({
     for (let i = 0; i < 5; i++) {
       if (i < fullStars) {
         stars.push(
-          <Ionicons key={i} name="star" size={18} color={colors.warning[500]!} />
+          <Icon key={i} name="star" variant="solid" size={18} color={colors.warning[500]!} />
         );
       } else if (i === fullStars && hasHalfStar) {
         stars.push(
-          <Ionicons key={i} name="star-half" size={18} color={colors.warning[500]!} />
+          <Icon key={i} name="star" variant="solid" size={18} color={colors.warning[500]!} />
         );
       } else {
         stars.push(
-          <Ionicons key={i} name="star-outline" size={18} color={colors.warning[500]!} />
+          <Icon key={i} name="star" size={18} color={colors.warning[500]!} />
         );
       }
     }

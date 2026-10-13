@@ -20,7 +20,7 @@ export function HomeSearch({
       onChangeText={onChange}
       onSubmitEditing={onSearch}
       returnKeyType="search"
-      leftIconName="search"
+      leftIconName="magnifying-glass"
       testID="home-search-input"
     />
   );

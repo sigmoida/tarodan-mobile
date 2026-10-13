@@ -74,3 +74,36 @@ describe('tarodan/no-lira-symbol', () => {
     expect(reports).toHaveLength(3);
   });
 });
+
+describe('tarodan/restrict-button-icon', () => {
+  const attr = (name: string, value: any) => ({
+    type: 'JSXAttribute',
+    name: { type: 'JSXIdentifier', name },
+    value,
+  });
+  const visit = (tag: string, attrs: any[]) => {
+    const { reports, context } = makeContext();
+    plugin.rules['restrict-button-icon']
+      .create(context)
+      .JSXOpeningElement({ type: 'JSXOpeningElement', name: { type: 'JSXIdentifier', name: tag }, attributes: attrs });
+    return reports.length;
+  };
+  const lit = (value: string) => ({ type: 'Literal', value });
+
+  it('izinli işlev ikonları serbest', () => {
+    expect(visit('Button', [attr('icon', lit('share'))])).toBe(0);
+    expect(visit('Button', [attr('icon', { type: 'JSXExpressionContainer', expression: lit('funnel') })])).toBe(0);
+  });
+
+  it('izin dışı ad, sabit olmayan değer ve leftIcon/rightIcon uyarı verir', () => {
+    expect(visit('Button', [attr('icon', lit('sparkles'))])).toBe(1);
+    expect(visit('Button', [attr('icon', { type: 'JSXExpressionContainer', expression: { type: 'Identifier', name: 'x' } })])).toBe(1);
+    expect(visit('Button', [attr('leftIcon', null)])).toBe(1);
+    expect(visit('Button', [attr('rightIcon', null)])).toBe(1);
+  });
+
+  it('Button dışındaki bileşenlere dokunmaz', () => {
+    expect(visit('IconButton', [attr('icon', lit('sparkles'))])).toBe(0);
+    expect(visit('Input', [attr('rightIcon', null)])).toBe(0);
+  });
+});

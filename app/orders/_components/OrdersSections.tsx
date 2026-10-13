@@ -1,8 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, ScrollView, Pressable, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Chip, SectionCard, StatusBadge, Text, theme } from '@/ui';
+import { Chip, SectionCard, StatusBadge, Text, theme, Icon } from '@/ui';
 
 import { getOrderProductImageUri } from '@/utils/orderProductImage';
 import type { UiOrderStatus } from '@/utils/orderStatus';
@@ -129,7 +128,7 @@ export function OrderGroupCard({
               <Text variant="body" weight="semibold" style={{ color: theme.priceColor.detail }}>
                 {formatOrderPrice(group.totalAmount)}
               </Text>
-              <Ionicons
+              <Icon
                 name={isExpanded ? 'chevron-up' : 'chevron-down'}
                 size={theme.iconSize.md}
                 color={theme.colors.text.muted}

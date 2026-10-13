@@ -5,9 +5,9 @@ import { QuantityStepper, Stepper, useStepper } from '@/ui';
 describe('Stepper (web @tarodan/ui)', () => {
   it('tamamlanan ✓, geçerli numara, hata ✕', () => {
     render(<Stepper steps={['Adres', 'Ödeme', { label: 'İptal', error: true }]} current={1} />);
-    expect(screen.getByText('Ionicons:checkmark')).toBeTruthy();
+    expect(screen.getByTestId('icon-check')).toBeTruthy();
     expect(screen.getByText('2')).toBeTruthy();
-    expect(screen.getByText('Ionicons:close')).toBeTruthy();
+    expect(screen.getByTestId('icon-x-mark')).toBeTruthy();
   });
 
   it('onStepClick yalnız geçmiş/geçerli adımlarda', () => {

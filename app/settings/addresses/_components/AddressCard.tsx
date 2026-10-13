@@ -58,13 +58,13 @@ export function AddressCard({
       </View>
       <View style={styles.rowActions}>
         <IconButton
-          icon="pencil-outline"
+          icon="pencil"
           size="sm"
           accessibilityLabel={t("address.editAddress")}
           onPress={onEdit}
         />
         <IconButton
-          icon="trash-outline"
+          icon="trash"
           variant="danger"
           size="sm"
           accessibilityLabel={t("address.deleteAddress")}

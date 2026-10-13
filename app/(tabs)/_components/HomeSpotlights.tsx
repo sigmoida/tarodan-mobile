@@ -1,9 +1,8 @@
 import React from 'react';
 import { Image, Pressable, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Button, SectionCard, Text, theme } from '@/ui';
+import { Avatar, Button, SectionCard, Text, theme, Icon } from '@/ui';
 import { getImageUrl } from '@/utils/imageUrl';
 import { formatCount } from '@/utils/format';
 import { homeStyles as styles } from '../_lib/homeStyles';
@@ -45,7 +44,7 @@ function VerifiedName({ name, verified }: { name: string; verified?: boolean }) 
       <Text variant="bodySm" weight="bold" numberOfLines={1} style={styles.flexShrink}>
         {name}
       </Text>
-      {verified ? <Ionicons name="checkmark-circle" size={iconSize.sm} color={colors.success[500]!} /> : null}
+      {verified ? <Icon name="check-circle" variant="solid" size={iconSize.sm} color={colors.success[500]!} /> : null}
     </View>
   );
 }
@@ -107,7 +106,7 @@ function BusinessSpotlight({ business }: { business: any }) {
           </Text>
           {stats.averageRating > 0 ? (
             <View style={styles.ratingRow}>
-              <Ionicons name="star" size={iconSize.sm} color={colors.warning[400]!} />
+              <Icon name="star" variant="solid" size={iconSize.sm} color={colors.warning[400]!} />
               <Text variant="caption" weight="semibold">
                 {Number(stats.averageRating).toFixed(1)}
               </Text>

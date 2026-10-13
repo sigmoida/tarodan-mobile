@@ -24,7 +24,7 @@ export default function ModelsScreen() {
           placeholder={t('models.searchPlaceholder')}
           value={f.search}
           onChangeText={f.setSearch}
-          leftIconName="search"
+          leftIconName="magnifying-glass"
         />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           <Chip label={t('models.allBrands')} selected={f.selectedBrand === 'all'} onPress={() => f.setSelectedBrand('all')} />
@@ -36,7 +36,7 @@ export default function ModelsScreen() {
 
       {f.grouped.length === 0 ? (
         <EmptyState
-          icon="car-outline"
+          icon="truck"
           title={t('models.noResults')}
           subtitle={f.search ? t('models.emptySearchHint') : t('models.emptyHint')}
         />

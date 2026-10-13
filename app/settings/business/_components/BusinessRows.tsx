@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, Image, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Text, theme } from '@/ui';
+import { Text, theme, Icon } from '@/ui';
 
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
@@ -34,13 +33,13 @@ function StatsColumn({ views, likes, highlight }: { views: number; likes: number
   return (
     <View style={styles.productStats}>
       <View style={styles.productStatItem}>
-        <Ionicons name="eye-outline" size={theme.iconSize.sm} color={theme.colors.text.muted} />
+        <Icon name="eye" size={theme.iconSize.sm} color={theme.colors.text.muted} />
         <Text variant="caption" tone={highlight === 'views' ? 'info' : 'muted'}>
           {views.toLocaleString()}
         </Text>
       </View>
       <View style={styles.productStatItem}>
-        <Ionicons name="heart-outline" size={theme.iconSize.sm} color={theme.colors.text.muted} />
+        <Icon name="heart" size={theme.iconSize.sm} color={theme.colors.text.muted} />
         <Text variant="caption" tone={highlight === 'likes' ? 'danger' : 'muted'}>
           {likes.toLocaleString()}
         </Text>

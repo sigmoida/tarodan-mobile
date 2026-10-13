@@ -17,7 +17,7 @@ export default function ModelDetailScreen() {
       loading={f.modelQuery.isLoading}
       empty={notFound}
       emptyState={{
-        icon: 'sad-outline',
+        icon: 'face-frown',
         title: t('models.noResults'),
         subtitle: t('models.notFoundDesc'),
         actionLabel: t('models.backToModels'),

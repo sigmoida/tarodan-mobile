@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Text, theme } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
+import { Text, theme, Icon } from '@/ui';
 import { STEP_FLOW_STATUSES, STATUS_TO_STEP_KEY } from '../_lib/status';
 
 const { colors } = theme;
@@ -43,7 +42,7 @@ export function TradeProgressStepper({ status, hasCash }: { status: string; hasC
               />
               <View style={[styles.stepCircle, done ? styles.stepDone : active ? styles.stepActive : styles.stepFuture]}>
                 {done ? (
-                  <Ionicons name="checkmark" size={14} color={colors.white} />
+                  <Icon name="check" size={14} color={colors.white} />
                 ) : (
                   <Text style={[styles.stepNum, { color: active ? colors.white : colors.text.muted }]}>{i + 1}</Text>
                 )}

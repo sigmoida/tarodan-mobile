@@ -1,8 +1,7 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Badge, Input, SectionCard, Text, theme } from '@/ui';
+import { Badge, Input, SectionCard, Text, theme, Icon } from '@/ui';
 import { DocAccordionItem, DocLink } from '@/components/content/DocBlocks';
 
 import { styles } from '../_lib/styles';
@@ -19,7 +18,7 @@ export function HelpFaq({ f }: { f: HelpController }) {
           placeholder={f.t('helpFaq.searchPlaceholder')}
           value={f.searchQuery}
           onChangeText={f.handleSearch}
-          leftIconName="search"
+          leftIconName="magnifying-glass"
         />
         <View style={styles.quickLinks}>
           <DocLink label={f.t('mobile.guestOrderTrack')} onPress={() => router.push('/order-track')} />
@@ -45,7 +44,7 @@ export function HelpFaq({ f }: { f: HelpController }) {
                 <Badge variant="outline" size="sm">
                   {category.questions.length}
                 </Badge>
-                <Ionicons
+                <Icon
                   name={open ? 'chevron-up' : 'chevron-down'}
                   size={iconSize.md}
                   color={colors.text.muted}

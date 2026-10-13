@@ -1,12 +1,10 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import type { Ionicons } from '@expo/vector-icons';
-import { Alert, Button, Text, theme } from '@/ui';
+import { Alert, Button, Text, theme, type IconName } from '@/ui';
 import { FullScreenGate, FullScreenGateIcon } from '@/components/common/FullScreenGate';
 
 const { colors, spacing } = theme;
 
-type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 /**
  * Adım ekranda mı? Kapı (`RequiredStepsGate`) adım görünümünü, adım aktif
@@ -28,7 +26,7 @@ export interface RequiredStepAction {
 }
 
 export interface RequiredStepShellProps {
-  icon: IoniconName;
+  icon: IconName;
   title: string;
   intro: string;
   /** Adımın gövdesi (onay kutuları, kimlik formu…). */

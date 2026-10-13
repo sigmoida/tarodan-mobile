@@ -1,8 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Text, theme } from '@/ui';
+import { Text, theme, Icon } from '@/ui';
 
 const { colors, spacing, radius, radiusRole } = theme;
 
@@ -23,7 +22,7 @@ export const PasswordRequirement: React.FC<{ met: boolean; text: string }> = ({ 
   <View style={styles.requirement}>
     <View style={[styles.mark, met ? styles.markMet : styles.markUnmet]}>
       {met ? (
-        <Ionicons name="checkmark" size={10} color={colors.success[600]} />
+        <Icon name="check" size={10} color={colors.success[600]} />
       ) : (
         <View style={styles.dot} />
       )}

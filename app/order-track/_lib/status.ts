@@ -1,5 +1,5 @@
 import type { TFunction } from 'i18next';
-import { theme } from '@/ui';
+import { theme, type IconName } from '@/ui';
 import type { MessageKey } from '@/i18n/lib';
 import { orderStatusConfig } from '@/lib/shared/status-configs';
 import { statusVariantSolid } from '@/lib/shared/status-colors';
@@ -41,19 +41,19 @@ export interface OrderStatus {
 // modül saf olduğu için çeviri `getStatusInfo`/`getClosedTrackHint`'e verilen
 // `t` ile render anında yapılır. İkon yalnız zaman çizelgesi / kapalı-durum
 // bloğu içindir (işlevsel); durum rozetinde ikon yok.
-const STATUS_ICON: Record<string, string> = {
-  pending_payment: 'time-outline',
-  paid: 'checkmark-circle-outline',
-  preparing: 'construct-outline',
-  shipped: 'car-outline',
-  delivered: 'checkmark-done-outline',
-  completed: 'trophy-outline',
-  cancelled: 'close-circle-outline',
-  refunded: 'return-down-back-outline',
-  refund_requested: 'return-down-back-outline',
+const STATUS_ICON: Record<string, IconName> = {
+  pending_payment: 'clock',
+  paid: 'check-circle',
+  preparing: 'wrench-screwdriver',
+  shipped: 'truck',
+  delivered: 'check-badge',
+  completed: 'trophy',
+  cancelled: 'x-circle',
+  refunded: 'arrow-uturn-left',
+  refund_requested: 'arrow-uturn-left',
 };
 
-export const STATUS_META: Record<string, { labelKey: MessageKey; color: string; icon: string }> =
+export const STATUS_META: Record<string, { labelKey: MessageKey; color: string; icon: IconName }> =
   Object.fromEntries(
     Object.entries(STATUS_ICON).map(([status, icon]) => {
       const def = orderStatusConfig[status]!;
@@ -95,7 +95,7 @@ export const getStatusInfo = (status: string, t: TFunction) => {
   const meta = STATUS_META[status];
   return meta
     ? { label: t(meta.labelKey), color: meta.color, icon: meta.icon }
-    : { label: status, color: colors.gray[500]!, icon: 'help-circle-outline' };
+    : { label: status, color: colors.gray[500]!, icon: 'question-mark-circle' };
 };
 
 export const formatTrackDate = (dateString: string) => {

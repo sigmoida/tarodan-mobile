@@ -2,11 +2,10 @@ import { useTradeStatusConfig, tradeViewerRole } from '@/lib/shared/tradeStatus'
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, StyleSheet, Image, Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { theme, Text, StatusBadge, Avatar } from '@/ui';
+import { theme, Text, StatusBadge, Avatar, Icon } from '@/ui';
 import { formatPrice } from '../../utils/format';
 import { transformImageUrl, IMAGE_PLACEHOLDER } from '../../utils/imageUrl';
 
@@ -172,7 +171,7 @@ function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
           <View style={styles.swapCircle}>
-            <Ionicons name="swap-vertical" size={15} color={colors.primary[600]!} />
+            <Icon name="arrows-up-down" size={15} color={colors.primary[600]!} />
           </View>
           <View style={styles.dividerLine} />
         </View>
@@ -202,7 +201,7 @@ function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
           <Text variant="caption" tone="primary" weight="medium">
             {t('common.details')}
           </Text>
-          <Ionicons name="chevron-forward" size={14} color={colors.primary[600]!} />
+          <Icon name="chevron-right" size={14} color={colors.primary[600]!} />
         </View>
       </View>
     </Pressable>

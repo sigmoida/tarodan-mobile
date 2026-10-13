@@ -1,10 +1,9 @@
 import { useMemo } from 'react';
 import { View, StyleSheet, Modal as RNModal, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { theme, Text, Button } from '@/ui';
+import { theme, Text, Button, Icon } from '@/ui';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
 const { colors } = theme;
@@ -20,7 +19,7 @@ interface SignupPromptProps {
 // ile çağırır.
 const buildPromptConfig = (t: TFunction) => ({
   favorites: {
-    icon: 'heart',
+    icon: 'heart' as const,
     title: t('product.addToFavorites'),
     description: t('signupPrompt.favoritesDescription'),
     primaryButton: t('common.register'),
@@ -32,7 +31,7 @@ const buildPromptConfig = (t: TFunction) => ({
     ],
   },
   message: {
-    icon: 'chatbubble-ellipses',
+    icon: 'chat-bubble-left-ellipsis' as const,
     title: t('signupPrompt.messageTitle'),
     description: t('signupPrompt.messageDescription'),
     primaryButton: t('common.login'),
@@ -44,7 +43,7 @@ const buildPromptConfig = (t: TFunction) => ({
     ],
   },
   purchase: {
-    icon: 'checkmark-circle',
+    icon: 'check-circle' as const,
     title: t('signupPrompt.purchaseTitle'),
     description: t('signupPrompt.purchaseDescription'),
     primaryButton: t('common.register'),
@@ -56,7 +55,7 @@ const buildPromptConfig = (t: TFunction) => ({
     ],
   },
   trade: {
-    icon: 'swap-horizontal',
+    icon: 'arrows-right-left' as const,
     title: t('trade.featureTitle'),
     description: CAN_BUY_DIGITAL
       ? t('signupPrompt.tradeDescription')
@@ -70,7 +69,7 @@ const buildPromptConfig = (t: TFunction) => ({
     ],
   },
   collections: {
-    icon: 'albums',
+    icon: 'rectangle-stack' as const,
     title: t('mobile.guestGarageTitle'),
     description: CAN_BUY_DIGITAL
       ? t('signupPrompt.collectionsDescription')
@@ -104,12 +103,12 @@ export function SignupPrompt({ visible, onDismiss, type }: SignupPromptProps) {
         <View style={styles.container}>
           {/* Close Button */}
           <TouchableOpacity style={styles.closeButton} onPress={onDismiss}>
-            <Ionicons name="close" size={24} color={colors.text.muted} />
+            <Icon name="x-mark" size={24} color={colors.text.muted} />
           </TouchableOpacity>
 
           {/* Icon */}
           <View style={styles.iconContainer}>
-            <Ionicons name={config.icon as any} size={48} color={colors.primary[600]!} />
+            <Icon name={config.icon} size={48} color={colors.primary[600]!} />
           </View>
 
           {/* Title & Description */}
@@ -120,7 +119,7 @@ export function SignupPrompt({ visible, onDismiss, type }: SignupPromptProps) {
           <View style={styles.benefitsList}>
             {config.benefits.map((benefit, index) => (
               <View key={index} style={styles.benefitItem}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
+                <Icon name="check-circle" variant="solid" size={20} color={colors.success[600]!} />
                 <Text style={styles.benefitText}>{benefit}</Text>
               </View>
             ))}

@@ -34,7 +34,7 @@ export default function DiscountsScreen() {
       overlay={
         <>
           <FAB
-            icon="add"
+            icon="plus"
             accessibilityLabel={t('discount.createNewA11y')}
             style={styles.fab}
             onPress={f.openCreate}
@@ -63,7 +63,7 @@ export default function DiscountsScreen() {
 
       {f.filteredDiscounts.length === 0 ? (
         <EmptyState
-          icon="pricetag-outline"
+          icon="tag"
           title={t('discount.emptyTitle')}
           subtitle={t('discount.emptySubtitle')}
           actionLabel={t('discount.newTitle')}

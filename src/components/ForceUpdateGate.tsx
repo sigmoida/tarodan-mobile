@@ -37,7 +37,7 @@ export default function ForceUpdateGate({
   return (
     <FullScreenGate layer="forceUpdate" testID="force-update-gate">
       <View style={styles.content}>
-        <FullScreenGateIcon name="cloud-download-outline" size={96} />
+        <FullScreenGateIcon name="cloud-arrow-down" size={96} />
         <Text variant="h2" align="center" style={styles.title}>
           {t("mobile.forceUpdateTitle")}
         </Text>

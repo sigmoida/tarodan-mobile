@@ -60,7 +60,7 @@ export default function MyListingsScreen() {
           {/* FAB */}
           {f.canCreateNew && (
             <FAB
-              icon="add"
+              icon="plus"
               accessibilityLabel={f.t('listing.createNewA11y')}
               style={styles.fab}
               onPress={() => router.push('/(tabs)/sell')}

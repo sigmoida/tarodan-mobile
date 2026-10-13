@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Alert, SectionCard, Text, Button, StatusBadge, theme } from '@/ui';
+import { Alert, SectionCard, Text, Button, StatusBadge, theme, Icon } from '@/ui';
 import { useTradeStatusConfig, type TradeViewerRole } from '@/lib/shared/tradeStatus';
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -58,7 +57,7 @@ export function TradeStatusHeader({
     <>
       {/* Status Banner — durum ikonu işlevsel (durumu anlatır), kalır */}
       <View style={[styles.statusBanner, { backgroundColor: statusInfo.color + '15' }]}>
-        <Ionicons name={statusInfo.icon as any} size={theme.iconSize.lg} color={statusInfo.color} />
+        <Icon name={statusInfo.icon} size={theme.iconSize.lg} color={statusInfo.color} />
         <Text variant="body" weight="semibold" style={[styles.statusText, { color: statusInfo.color }]}>
           {statusInfo.label}
         </Text>

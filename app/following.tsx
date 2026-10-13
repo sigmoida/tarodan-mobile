@@ -1,9 +1,8 @@
 import { View, Pressable, StyleSheet } from 'react-native';
 import { useState, useCallback } from 'react';
 import { router, useFocusEffect } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { theme, Text, Card, Avatar, Button } from '@/ui';
+import { theme, Text, Card, Avatar, Button, Icon } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { AuthGatePage } from '@/components/common/AuthGatePage';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
@@ -51,7 +50,7 @@ export default function FollowingScreen() {
     return (
       <AuthGatePage
         title={t('following.title')}
-        icon="people-outline"
+        icon="user-group"
         subtitle={t('following.loginSubtitle')}
       />
     );
@@ -65,7 +64,7 @@ export default function FollowingScreen() {
       loadingFallback={<RowListSkeleton rows={4} />}
       empty={!isLoading && following.length === 0}
       emptyState={{
-        icon: 'people-outline',
+        icon: 'user-group',
         title: t('following.emptyTitle'),
         subtitle: t('following.emptySubtitle'),
         actionLabel: t('following.exploreSellers'),
@@ -85,7 +84,7 @@ export default function FollowingScreen() {
                   <Text variant="caption">{t('following.listingCountSuffix', { count: seller.listingCount })}</Text>
                   {seller.rating && (
                     <>
-                      <Ionicons name="star" size={iconSize.sm} color={colors.warning[500]!} style={styles.ratingIcon} />
+                      <Icon name="star" variant="solid" size={iconSize.sm} color={colors.warning[500]!} style={styles.ratingIcon} />
                       <Text variant="caption">{seller.rating.toFixed(1)}</Text>
                     </>
                   )}

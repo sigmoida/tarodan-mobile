@@ -18,7 +18,7 @@ export default function BankAccountScreen() {
   const title = t('mobile.settingsBankAccount');
 
   if (!f.isAuthenticated) {
-    return <AuthGatePage title={title} icon="card-outline" subtitle={t('auth.loginToContinue')} />;
+    return <AuthGatePage title={title} icon="credit-card" subtitle={t('auth.loginToContinue')} />;
   }
 
   return (

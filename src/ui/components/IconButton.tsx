@@ -1,5 +1,4 @@
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import {
   ActivityIndicator,
   Pressable,
@@ -8,8 +7,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { theme } from '../lib/theme';
-
-type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+import { RefIcon, type IconRef, type IconVariant } from '../icons';
 
 /**
  * Web `@tarodan/ui` IconButton varyantları: primary, secondary, outline, ghost (varsayılan),
@@ -29,7 +27,10 @@ export type IconButtonVariant =
 export type IconButtonSize = 'xs' | 'sm' | 'md' | 'lg';
 
 export interface IconButtonProps extends Omit<PressableProps, 'style'> {
-  icon: IoniconName;
+  /** Heroicons adı (web ile aynı). Geçiş: eski Ionicons adları da çözülür. */
+  icon: IconRef;
+  /** `outline` (varsayılan) ya da dolu durum için `solid`. */
+  iconVariant?: IconVariant;
   variant?: IconButtonVariant;
   size?: IconButtonSize;
   /** Override icon color (otherwise derived from variant). */
@@ -68,6 +69,7 @@ const variantStyle: Record<IconButtonVariant, { bg: string; fg: string; border?:
 
 export const IconButton: React.FC<IconButtonProps> = ({
   icon,
+  iconVariant,
   variant = 'ghost',
   size = 'md',
   color,
@@ -107,7 +109,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
       {isLoading ? (
         <ActivityIndicator size="small" color={fg} />
       ) : (
-        <Ionicons name={icon} size={ss.icon} color={fg} />
+        <RefIcon icon={icon} variant={iconVariant} size={ss.icon} color={fg} />
       )}
     </Pressable>
   );

@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { SectionCard, Text, theme } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
+import { SectionCard, Text, theme, Icon } from '@/ui';
 import { router } from 'expo-router';
 import { formatPrice } from '@/utils/format';
 import { CompareItemRow } from './CompareItemRow';
@@ -55,7 +54,7 @@ export function TradeItemsCompare({
       <ItemSide label={t('trade.yourItems')} items={myItems} total={myTotal} />
       <View style={styles.arrowRow}>
         <View style={styles.arrowLine} />
-        <Ionicons name="swap-vertical" size={theme.iconSize.lg} color={colors.primary[600]!} />
+        <Icon name="arrows-up-down" size={theme.iconSize.lg} color={colors.primary[600]!} />
         <View style={styles.arrowLine} />
       </View>
       <ItemSide label={t('trade.otherPartyItemsLabel', { name: otherPartyName })} items={theirItems} total={theirTotal} />

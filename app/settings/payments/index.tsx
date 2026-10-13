@@ -23,7 +23,7 @@ export default function PaymentsScreen() {
     return (
       <AuthGatePage
         title={title}
-        icon="lock-closed-outline"
+        icon="lock-closed"
         subtitle={t('payment.myPaymentsLoginSubtitle')}
       />
     );
@@ -56,7 +56,7 @@ export default function PaymentsScreen() {
 
       {f.payments.length === 0 ? (
         <EmptyState
-          icon="card-outline"
+          icon="credit-card"
           title={t('payment.noPaymentsTitle')}
           subtitle={
             f.statusFilter

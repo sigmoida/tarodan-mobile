@@ -34,7 +34,7 @@ function MessagesTabScreen() {
       <AppShell>
         <EmptyState
           fullscreen
-          icon="chatbubbles-outline"
+          icon="chat-bubble-left-right"
           title={t("mobile.messagesTitle")}
           subtitle={t("message.loginToView")}
           actionLabel={t("common.login")}
@@ -62,7 +62,7 @@ function MessagesTabScreen() {
         placeholder={t("mobile.searchInMessages")}
         value={f.searchQuery}
         onChangeText={f.setSearchQuery}
-        leftIconName="search"
+        leftIconName="magnifying-glass"
         containerStyle={styles.search}
       />
     </View>
@@ -88,7 +88,7 @@ function MessagesTabScreen() {
             </View>
           ) : (
             <EmptyState
-              icon="chatbubble-ellipses-outline"
+              icon="chat-bubble-left-ellipsis"
               title={f.searchQuery ? t("common.noResults") : t("message.noMessagesYet")}
               subtitle={
                 f.searchQuery ? t("message.tryDifferentSearch") : t("message.startConversationShort")

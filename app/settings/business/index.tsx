@@ -26,7 +26,7 @@ export default function BusinessDashboardScreen() {
       empty={!!f.error}
       // Hata durumunda eylem: şirket adı eksikse profile, değilse işletme hesabı açmaya.
       emptyState={{
-        icon: 'alert-circle-outline',
+        icon: 'exclamation-circle',
         title: f.error ?? '',
         actionLabel: needsCompanyName ? f.t('business.addCompanyName') : f.t('seller.openBusinessAccount'),
         onAction: () =>

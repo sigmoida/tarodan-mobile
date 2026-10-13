@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, Pressable, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { SectionCard, Text, theme } from '@/ui';
+import { SectionCard, Text, theme, Icon } from '@/ui';
 
 import { formatPrice } from '@/utils/format';
 import { transformImageUrl } from '@/utils/imageUrl';
@@ -51,7 +50,7 @@ export function TradeProductPicker({
                   {isSelected ? (
                     <View style={styles.selectedOverlay}>
                       <View style={styles.checkBadge}>
-                        <Ionicons name="checkmark" size={theme.iconSize.sm} color={colors.white} />
+                        <Icon name="check" size={theme.iconSize.sm} color={colors.white} />
                       </View>
                     </View>
                   ) : null}

@@ -1,8 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Input, Radio, Text, theme } from '@/ui';
+import { Input, Radio, Text, theme, Icon } from '@/ui';
 import { CityDistrictSelector, PhoneInput } from '@/components/common';
 import { DEFAULT_COUNTRY_CODE } from '@/utils/phone';
 import { styles } from '../_lib/styles';
@@ -62,7 +61,7 @@ export function AddressSelector({
           >
             <Radio checked={selectedId === 'new'} onChange={() => setSelectedId('new')} />
             <View style={[styles.addressCardBody, { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2] }]}>
-              <Ionicons name="add" size={theme.iconSize.lg} color={theme.colors.text.muted} />
+              <Icon name="plus" size={theme.iconSize.lg} color={theme.colors.text.muted} />
               <Text variant="body" weight="semibold" tone="heading">{t('checkout.addNewAddress')}</Text>
             </View>
           </Pressable>

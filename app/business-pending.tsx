@@ -21,7 +21,7 @@ export default function BusinessPendingScreen() {
 
   return (
     <GateScreen
-      icon="time-outline"
+      icon="clock"
       title={t('businessGuard.pendingTitle')}
       description={t('businessGuard.pendingBody', { company: user?.companyName ?? '' })}
       actions={

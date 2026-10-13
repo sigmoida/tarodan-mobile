@@ -14,13 +14,13 @@ describe('IconButton (web @tarodan/ui)', () => {
   });
 
   it('varsayılan ghost: zeminsiz, muted ikon, rounded-lg', () => {
-    render(<IconButton icon="close" accessibilityLabel="Kapat" />);
+    render(<IconButton icon="x-mark" accessibilityLabel="Kapat" />);
     expect(boxStyle()).toMatchObject({ backgroundColor: 'transparent', borderRadius: theme.radius.lg });
-    expect(screen.getByText('Ionicons:close').props.color).toBe(theme.colors.text.muted);
+    expect(screen.getByTestId('icon-x-mark').props.stroke).toBe(theme.colors.text.muted);
   });
 
   it('eski takma adlar çalışır (solid → primary)', () => {
-    render(<IconButton icon="add" variant="solid" accessibilityLabel="Ekle" />);
+    render(<IconButton icon="plus" variant="solid" accessibilityLabel="Ekle" />);
     expect(boxStyle().backgroundColor).toBe(theme.colors.primary[600]);
   });
 

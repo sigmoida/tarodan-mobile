@@ -15,7 +15,7 @@ export function CategoryFilters({ f, count }: { f: CategoryController; count?: n
         placeholder={t('common.search')}
         value={f.searchQuery}
         onChangeText={f.setSearchQuery}
-        leftIconName="search"
+        leftIconName="magnifying-glass"
       />
 
       <ProductListControls sortLabel={f.getSortLabel()} onSort={() => f.setSortMenuVisible(true)} />

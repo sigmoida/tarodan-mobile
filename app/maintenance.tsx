@@ -7,7 +7,7 @@ export default function MaintenanceScreen() {
   const { t } = useTranslation();
   return (
     <GateScreen
-      icon="construct-outline"
+      icon="wrench-screwdriver"
       title={t('mobile.maintenanceTitle')}
       description={t('mobile.maintenanceDescription')}
     >

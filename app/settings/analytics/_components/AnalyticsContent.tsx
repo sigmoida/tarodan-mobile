@@ -2,8 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Button, SectionCard, Text, theme } from '@/ui';
+import { Button, SectionCard, Text, theme, Icon } from '@/ui';
 
 import UpgradeCta from '@/components/UpgradeCta';
 import { styles } from '../_lib/styles';
@@ -83,10 +82,10 @@ export function AnalyticsContent({ f }: { f: AnalyticsController }) {
             <View style={styles.listingInfo}>
               <Text variant="bodySm" numberOfLines={1}>{listing.title}</Text>
               <View style={styles.listingStats}>
-                <Ionicons name="eye-outline" size={theme.iconSize.sm} color={colors.text.muted} />
+                <Icon name="eye" size={theme.iconSize.sm} color={colors.text.muted} />
                 <Text variant="caption">{listing.views}</Text>
-                <Ionicons
-                  name="heart-outline"
+                <Icon
+                  name="heart"
                   size={theme.iconSize.sm}
                   color={colors.text.muted}
                   style={styles.listingStatGap}

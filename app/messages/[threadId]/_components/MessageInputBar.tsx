@@ -27,7 +27,7 @@ export function MessageInputBar({ f }: { f: MessageThreadController }) {
             {t('message.pendingImageReady')}
           </Text>
           <IconButton
-            icon="close"
+            icon="x-mark"
             size="sm"
             accessibilityLabel={t('message.removeImage')}
             onPress={() => f.setPendingImage(null)}
@@ -42,7 +42,8 @@ export function MessageInputBar({ f }: { f: MessageThreadController }) {
           <Spinner size="sm" />
         ) : (
           <IconButton
-            icon="image-outline"
+            testID="message-attach"
+            icon="photo"
             size="md"
             accessibilityLabel={t('message.attachImage')}
             onPress={f.handleAttachImage}
@@ -63,7 +64,8 @@ export function MessageInputBar({ f }: { f: MessageThreadController }) {
           />
         </View>
         <IconButton
-          icon="send"
+          testID="message-send"
+          icon="paper-airplane"
           variant="primary"
           size="md"
           accessibilityLabel={t('common.send')}

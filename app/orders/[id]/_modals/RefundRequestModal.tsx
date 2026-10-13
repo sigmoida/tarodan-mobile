@@ -1,9 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import React, { useMemo } from 'react';
 import { View, ScrollView, Image, Pressable, StyleSheet } from 'react-native';
-import { Modal, Button, RadioGroup, Text, theme } from '@/ui';
+import { Modal, Button, RadioGroup, Text, theme, Icon } from '@/ui';
 import { useZodForm, Form, FormInput } from '@/ui/form';
-import { Ionicons } from '@expo/vector-icons';
 import { useRefundReasons, MAX_EVIDENCE_PHOTOS } from '../_lib/status';
 import { refundFormDefaults, refundRequestSchema, refundRequirements } from '../_lib/schema';
 import { pickEvidencePhotos } from '../_lib/pickEvidence';
@@ -134,7 +133,7 @@ export function RefundRequestModal({
                   style={[styles.qtyBtn, quantity <= 1 && styles.qtyBtnDisabled]}
                   hitSlop={6}
                 >
-                  <Ionicons name="remove" size={20} color={colors.text.heading} />
+                  <Icon name="minus" size={20} color={colors.text.heading} />
                 </Pressable>
                 <Text testID="refund-qty-value" variant="h3" style={styles.qtyValue}>
                   {quantity}
@@ -148,7 +147,7 @@ export function RefundRequestModal({
                   style={[styles.qtyBtn, quantity >= orderQuantity && styles.qtyBtnDisabled]}
                   hitSlop={6}
                 >
-                  <Ionicons name="add" size={20} color={colors.text.heading} />
+                  <Icon name="plus" size={20} color={colors.text.heading} />
                 </Pressable>
               </View>
             </View>
@@ -212,7 +211,7 @@ export function RefundRequestModal({
                     accessibilityRole="button"
                     accessibilityLabel={t('order.removePhotoA11y')}
                   >
-                    <Ionicons name="close" size={14} color={colors.white} />
+                    <Icon name="x-mark" size={14} color={colors.white} />
                   </Pressable>
                 </View>
               ))}
@@ -223,7 +222,7 @@ export function RefundRequestModal({
                   accessibilityRole="button"
                   accessibilityLabel={t('order.addPhotoA11y')}
                 >
-                  <Ionicons name="camera-outline" size={22} color={colors.text.muted} />
+                  <Icon name="camera" size={22} color={colors.text.muted} />
                   <Text style={styles.evidenceAddText}>{t('common.add')}</Text>
                 </Pressable>
               ) : null}

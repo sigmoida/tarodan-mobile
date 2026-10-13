@@ -21,7 +21,7 @@ export default function SellerDashboardScreen() {
         title={title}
         empty
         emptyState={{
-          icon: 'storefront-outline',
+          icon: 'building-storefront',
           title: t('sellerDashboard.loginPrompt'),
           actionLabel: t('common.login'),
           onAction: () => router.push('/(auth)/login'),

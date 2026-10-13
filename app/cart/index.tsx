@@ -26,7 +26,7 @@ export default function CartScreen() {
         onBack={back}
         empty
         emptyState={{
-          icon: 'cart-outline',
+          icon: 'shopping-cart',
           title: t('cart.empty'),
           description: t('cart.emptyDesc'),
           actionLabel: t('cart.browseListings'),

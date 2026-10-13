@@ -111,9 +111,83 @@ const noLiraSymbol = {
   },
 };
 
+/**
+ * Düğmede ikon istisnadır: yalnız işlev ikonları (paylaş, favori, sepet, filtre, sırala, ekle,
+ * geri/kapat, arama). Marka logoları (Google/Apple) `leftIcon` düğümüyle verilir ve satır
+ * üstü `eslint-disable-next-line tarodan/restrict-button-icon` ile istisna işaretlenir. Bu listede olmayan `icon="..."`,
+ * her `leftIcon` / `rightIcon` ve dinamik `icon={...}` UYARI verir (dalga 3, CLAUDE.md §14).
+ */
+const BUTTON_ICON_ALLOWED = new Set([
+  'share',
+  'heart',
+  'shopping-cart',
+  'shopping-bag',
+  'funnel',
+  'arrows-up-down',
+  'plus',
+  'check',
+  'x-mark',
+  'arrow-left',
+  'chevron-left',
+  'magnifying-glass',
+]);
+
+/** Sabit dizge ya da `cond ? 'a' : 'b'` (iç içe) -> Literal listesi; başka ifade -> null. */
+function literalsOf(expr) {
+  if (!expr) return null;
+  if (expr.type === 'Literal') return [expr];
+  if (expr.type === 'ConditionalExpression') {
+    const a = literalsOf(expr.consequent);
+    const b = literalsOf(expr.alternate);
+    return a && b ? [...a, ...b] : null;
+  }
+  return null;
+}
+
+/** @type {import('eslint').Rule.RuleModule} */
+const restrictButtonIcon = {
+  meta: {
+    type: 'suggestion',
+    docs: { description: 'Button ikon prop\'ları yalnız izinli işlev ikonları için' },
+    schema: [],
+    messages: {
+      icon: "Button'da dekoratif ikon yok — '{{name}}' izinli listede değil (paylaş, favori, sepet, filtre, sırala, ekle, geri/kapat). Bkz. CLAUDE.md §14.",
+      slot: "Button'a '{{prop}}' ile ikon düğümü verme; izinli işlev ikonları için 'icon=\"...\"' kullan.",
+      dynamic: "Button 'icon' değeri sabit değil — izinli listeye uyduğu doğrulanamıyor.",
+    },
+  },
+  create(context) {
+    return {
+      JSXOpeningElement(node) {
+        if (node.name.type !== 'JSXIdentifier' || node.name.name !== 'Button') return;
+        for (const attr of node.attributes) {
+          if (attr.type !== 'JSXAttribute' || attr.name.type !== 'JSXIdentifier') continue;
+          const prop = attr.name.name;
+          if (prop === 'leftIcon' || prop === 'rightIcon') {
+            context.report({ node: attr, messageId: 'slot', data: { prop } });
+          } else if (prop === 'icon') {
+            const v = attr.value;
+            const lits = v && v.type === 'Literal' ? [v] : v && v.type === 'JSXExpressionContainer' ? literalsOf(v.expression) : null;
+            if (!lits) {
+              context.report({ node: attr, messageId: 'dynamic' });
+            } else {
+              for (const l of lits) {
+                if (typeof l.value !== 'string' || !BUTTON_ICON_ALLOWED.has(l.value)) {
+                  context.report({ node: attr, messageId: 'icon', data: { name: String(l.value) } });
+                }
+              }
+            }
+          }
+        }
+      },
+    };
+  },
+};
+
 module.exports = {
   rules: {
     'no-raw-style-values': noRawStyleValues,
     'no-lira-symbol': noLiraSymbol,
+    'restrict-button-icon': restrictButtonIcon,
   },
 };

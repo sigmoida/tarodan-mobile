@@ -1,8 +1,7 @@
 import React from 'react';
 import { type ViewStyle } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
-import { Alert, theme } from '@/ui';
+import { Alert, theme, Icon } from '@/ui';
 import {
   preparingDeadlineCopy,
   type PreparingDeadlineNotice as Notice,
@@ -33,7 +32,7 @@ export function PreparingDeadlineNotice({
       testID="preparing-deadline-extended"
       variant="warning"
       title={title}
-      icon={<Ionicons name="warning-outline" size={theme.iconSize.md} color={colors.warning[600]!} />}
+      icon={<Icon name="exclamation-triangle" size={theme.iconSize.md} color={colors.warning[600]!} />}
       style={style}
     >
       {body}

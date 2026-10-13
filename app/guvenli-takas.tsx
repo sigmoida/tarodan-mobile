@@ -1,6 +1,5 @@
 import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { Button, SectionCard, theme } from "@/ui";
+import { Button, SectionCard, theme, Icon } from "@/ui";
 import { useTranslation } from "react-i18next";
 import { CAN_BUY_DIGITAL } from "@/lib/purchases";
 import { ContentPage } from "@/components/content/ContentPage";
@@ -36,8 +35,8 @@ export default function GuvenliTakasScreen() {
               key={n}
               title={t(`safeTradePage.guarantee${n}`)}
               leading={
-                <Ionicons
-                  name="checkmark-circle"
+                <Icon
+                  name="check-circle" variant="solid"
                   size={theme.iconSize.md}
                   color={theme.colors.primary[500]}
                 />

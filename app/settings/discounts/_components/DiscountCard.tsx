@@ -73,13 +73,13 @@ export function DiscountCard({
         </View>
         <View style={styles.iconActions}>
           <IconButton
-            icon="pencil"
+            icon="pencil" iconVariant="solid"
             size="sm"
             accessibilityLabel={t('discount.editTitle')}
             onPress={onEdit}
           />
           <IconButton
-            icon="trash-outline"
+            icon="trash"
             variant="danger"
             size="sm"
             accessibilityLabel={t('discount.deleteTitle')}

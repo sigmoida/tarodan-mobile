@@ -16,7 +16,7 @@ export function SavedSearchCard({ search, f }: { search: SavedSearch; f: SavedSe
           {search.name}
         </Text>
         <IconButton
-          icon="trash-outline"
+          icon="trash"
           variant="danger"
           size="sm"
           accessibilityLabel={t('savedSearch.deleteTitle')}

@@ -1,8 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { theme, Text } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
+import { theme, Text, Icon } from '@/ui';
 import { router, useFocusEffect } from 'expo-router';
 import { addressesApi } from '@/lib/api';
 
@@ -78,7 +77,7 @@ export function TradeAddressPicker({ onChange, label }: Props) {
     <View style={styles.container}>
       {label ? (
         <View style={styles.labelRow}>
-          <Ionicons name="location-outline" size={16} color={colors.primary[600]!} />
+          <Icon name="map-pin" size={16} color={colors.primary[600]!} />
           <Text style={styles.label}>{label}</Text>
         </View>
       ) : null}
@@ -96,11 +95,11 @@ export function TradeAddressPicker({ onChange, label }: Props) {
                 onPress={() => select(a.id)}
                 activeOpacity={0.8}
               >
-                <Ionicons
-                  name={active ? 'radio-button-on' : 'radio-button-off'}
+                <Icon
+                  name={active ? 'check-circle' : 'minus-circle'}
                   size={20}
                   color={active ? colors.primary[600]! : colors.text.muted}
-                  style={{ marginTop: theme.spacing[0.5] }}
+                  style={{ marginTop: theme.spacing[0.5] }} variant="solid"
                 />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.name}>
@@ -127,7 +126,7 @@ export function TradeAddressPicker({ onChange, label }: Props) {
             onPress={() => router.push('/settings/addresses' as any)}
             activeOpacity={0.8}
           >
-            <Ionicons name="add" size={18} color={colors.primary[600]!} />
+            <Icon name="plus" size={18} color={colors.primary[600]!} />
             <Text style={styles.addBtnText}>{t('address.addNewAddress')}</Text>
           </TouchableOpacity>
         </>

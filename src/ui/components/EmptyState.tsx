@@ -1,15 +1,13 @@
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 import { Button } from './Button';
 import { Text } from './Text';
 import { theme } from '../lib/theme';
-
-type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+import { RefIcon, type IconRef } from '../icons';
 
 export interface EmptyStateProps {
   /** İkon adı; `false` ikonsuz çizer (web `icon={false}`). */
-  icon?: IoniconName | false;
+  icon?: IconRef | false;
   title: string;
   subtitle?: string;
   /** `subtitle` için web adı. */
@@ -34,7 +32,7 @@ export const emptyStateMetrics = {
 } as const;
 
 interface StateLayoutProps {
-  icon: IoniconName | false;
+  icon: IconRef | false;
   title: string;
   description?: string;
   size: 'default' | 'compact';
@@ -56,7 +54,7 @@ export const StateLayout: React.FC<StateLayoutProps> = ({
     <View style={[styles.container, { paddingVertical: m.py }, fullscreen && styles.fullscreen]}>
       {icon !== false ? (
         <View style={[styles.iconCircle, { width: m.circle, height: m.circle }]}>
-          <Ionicons name={icon} size={m.icon} color={colors.text.subtle} />
+          <RefIcon icon={icon} size={m.icon} color={colors.text.subtle} />
         </View>
       ) : null}
       <Text variant="h3" weight="semibold" align="center" style={styles.title}>
@@ -73,7 +71,7 @@ export const StateLayout: React.FC<StateLayoutProps> = ({
 };
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
-  icon = 'file-tray-outline',
+  icon = 'inbox',
   title,
   subtitle,
   description,

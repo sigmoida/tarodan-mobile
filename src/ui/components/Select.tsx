@@ -6,13 +6,13 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { theme } from '../lib/theme';
 import { RawText } from './Text';
 import { FieldMessage, Label } from './Label';
 import { fieldBorderColor, inputSizeStyle } from './Input';
 
+import { Icon } from '../icons';
 export interface SelectOption {
   value: string;
   label: string;
@@ -81,7 +81,7 @@ export const Select: React.FC<SelectProps> = ({
         >
           {selected ? selected.label : resolvedPlaceholder}
         </RawText>
-        <Ionicons name="chevron-down" size={iconSize.sm} color={colors.text.subtle} />
+        <Icon name="chevron-down" size={iconSize.sm} color={colors.text.subtle} />
       </Pressable>
       <FieldMessage error={error} helperText={helperText} />
 
@@ -120,7 +120,7 @@ export const Select: React.FC<SelectProps> = ({
                     {item.label}
                   </RawText>
                   {item.value === value ? (
-                    <Ionicons name="checkmark" size={iconSize.sm} color={colors.primary[600]} />
+                    <Icon name="check" size={iconSize.sm} color={colors.primary[600]} />
                   ) : null}
                 </Pressable>
               )}

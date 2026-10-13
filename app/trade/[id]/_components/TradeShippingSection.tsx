@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Pressable, Linking, StyleSheet } from 'react-native';
-import { SectionCard, Text, Button, theme } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
+import { SectionCard, Text, Button, theme, Icon } from '@/ui';
 import { buildTrackingUrl, deriveShipmentView } from '@/lib/shipping/tracking';
 import { ShipmentStatusChip } from './ShipmentStatusChip';
 import { renderOtherShipmentHint } from '../_lib/status';
@@ -86,8 +85,8 @@ export function TradeShippingSection({
       {(myTrackingNumber || theirTrackingNumber) && (
         <SectionCard title={t('trade.shippingStatus.title')} bodyStyle={styles.stack}>
           <View style={styles.shippingRow}>
-            <Ionicons
-              name={myTrackingNumber ? 'checkmark-circle' : 'ellipse-outline'}
+            <Icon
+              name={myTrackingNumber ? 'check-circle' : 'minus-circle'} variant={myTrackingNumber ? 'solid' : 'outline'}
               size={20}
               color={myTrackingNumber ? colors.success[600]! : colors.text.muted}
             />
@@ -96,8 +95,8 @@ export function TradeShippingSection({
             </Text>
           </View>
           <View style={styles.shippingRow}>
-            <Ionicons
-              name={theirTrackingNumber ? 'checkmark-circle' : 'ellipse-outline'}
+            <Icon
+              name={theirTrackingNumber ? 'check-circle' : 'minus-circle'} variant={theirTrackingNumber ? 'solid' : 'outline'}
               size={20}
               color={theirTrackingNumber ? colors.success[600]! : colors.text.muted}
             />

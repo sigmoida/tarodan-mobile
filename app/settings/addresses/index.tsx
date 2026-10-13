@@ -24,7 +24,7 @@ export default function AddressesScreen() {
         onBack={onBack}
         empty
         emptyState={{
-          icon: 'location-outline',
+          icon: 'map-pin',
           title,
           subtitle: f.t('address.authGateSubtitle'),
           actionLabel: f.t('common.login'),
@@ -53,7 +53,7 @@ export default function AddressesScreen() {
         }
         action={
           canAdd && f.addresses.length > 0 ? (
-            <Button size="sm" icon="add" title={f.t('address.newAddress')} onPress={f.openAddDialog} />
+            <Button size="sm" icon="plus" title={f.t('address.newAddress')} onPress={f.openAddDialog} />
           ) : undefined
         }
         bodyStyle={styles.list}
@@ -61,7 +61,7 @@ export default function AddressesScreen() {
         {f.addresses.length === 0 ? (
           <EmptyState
             size="compact"
-            icon="location-outline"
+            icon="map-pin"
             title={f.t('mobile.noSavedAddress')}
             subtitle={f.t('address.emptySubtitle')}
             actionLabel={f.t('address.addNewAddress')}

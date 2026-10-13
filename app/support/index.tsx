@@ -1,8 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, SectionCard, SkeletonText, StatusBadge, Text, theme } from '@/ui';
+import { Button, EmptyState, SectionCard, SkeletonText, StatusBadge, Text, theme, Icon } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { buildTicketStatusConfig } from './_lib/status';
 import { buildCategoryLabels, formatTicketDate, type TicketSummary } from './_lib/types';
@@ -42,7 +41,7 @@ function TicketRow({
           {ticket.createdAt ? ` · ${formatTicketDate(ticket.createdAt)}` : ''}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={theme.iconSize.md} color={colors.text.subtle} />
+      <Icon name="chevron-right" size={theme.iconSize.md} color={colors.text.subtle} />
     </Pressable>
   );
 }
@@ -63,7 +62,7 @@ export default function SupportTicketsScreen() {
         title={title}
         empty
         emptyState={{
-          icon: 'headset-outline',
+          icon: 'lifebuoy',
           title,
           subtitle: t('support.ticketsLoginPrompt'),
           actionLabel: t('common.login'),
@@ -102,7 +101,7 @@ export default function SupportTicketsScreen() {
         ) : f.tickets.length === 0 ? (
           <EmptyState
             size="compact"
-            icon="chatbubbles-outline"
+            icon="chat-bubble-left-right"
             title={t('support.emptyTitle')}
             subtitle={t('support.emptySubtitle')}
           />

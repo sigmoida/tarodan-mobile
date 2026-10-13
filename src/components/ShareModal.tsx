@@ -1,9 +1,9 @@
 import { logger, safeError } from '@/services/logger';
 import React, { useState } from 'react';
 import { View, StyleSheet, Share, Linking, TouchableOpacity, Clipboard } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { theme, Text, Button, Snackbar, Divider, Modal, useModalMessage, ModalMessage } from '@/ui';
+import { theme, Text, Button, Snackbar, Divider, Modal, useModalMessage, ModalMessage, Icon, type IconName } from '@/ui';
 
 // NOT: bu bileşenin bugün hiçbir çağıranı yok (repo genelinde grep — sıfır
 // sonuç), yine de bu slice'ın kapsamında adıyla anıldığı için çevrildi.
@@ -33,8 +33,10 @@ interface ShareModalProps {
 interface ShareOption {
   id: string;
   name: string;
-  icon: string;
-  iconType: 'ionicons' | 'material';
+  /** Marka logosu (Ionicons) — Heroicons'ta marka yok. */
+  icon?: string;
+  /** Marka olmayan seçenekler Heroicons kullanır. */
+  heroIcon?: IconName;
   color: string;
   action: () => void;
 }
@@ -122,15 +124,13 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       id: 'whatsapp',
       name: 'WhatsApp',
       icon: 'logo-whatsapp',
-      iconType: 'ionicons',
       color: colors.success[600]!,
       action: handleWhatsAppShare,
     },
     {
       id: 'telegram',
       name: 'Telegram',
-      icon: 'send',
-      iconType: 'ionicons',
+      heroIcon: 'paper-airplane',
       color: colors.info[600]!,
       action: handleTelegramShare,
     },
@@ -138,7 +138,6 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       id: 'twitter',
       name: 'Twitter / X',
       icon: 'logo-twitter',
-      iconType: 'ionicons',
       color: colors.info[600]!,
       action: handleTwitterShare,
     },
@@ -146,7 +145,6 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       id: 'facebook',
       name: 'Facebook',
       icon: 'logo-facebook',
-      iconType: 'ionicons',
       color: colors.info[700]!,
       action: handleFacebookShare,
     },
@@ -154,15 +152,13 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       id: 'instagram',
       name: 'Instagram',
       icon: 'logo-instagram',
-      iconType: 'ionicons',
       color: colors.danger[600]!,
       action: handleInstagramShare,
     },
     {
       id: 'email',
       name: t('common.email'),
-      icon: 'mail',
-      iconType: 'ionicons',
+      heroIcon: 'envelope',
       color: colors.text.muted,
       action: handleEmailShare,
     },
@@ -190,7 +186,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
           <Text numberOfLines={1} style={styles.urlText}>
             {shareUrl}
           </Text>
-          <Ionicons name="copy-outline" size={20} color={colors.primary[600]!} />
+          <Icon name="clipboard-document" size={20} color={colors.primary[600]!} />
         </TouchableOpacity>
       </View>
 
@@ -201,11 +197,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({
         style={styles.qrToggle}
         onPress={() => setShowQR(!showQR)}
       >
-        <MaterialCommunityIcons name="qrcode" size={24} color={colors.primary[600]!} />
+        <Icon name="qr-code" size={24} color={colors.primary[600]!} />
         <Text style={styles.qrToggleText}>
           {showQR ? t('shareModal.qrHide') : t('shareModal.qrShow')}
         </Text>
-        <Ionicons
+        <Icon
           name={showQR ? 'chevron-up' : 'chevron-down'}
           size={20}
           color={colors.text.muted}
@@ -240,11 +236,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             onPress={option.action}
           >
             <View style={[styles.shareIcon, { backgroundColor: colors.surface.alt }]}>
-              <Ionicons
-                name={option.icon as any}
-                size={24}
-                color={option.color}
-              />
+              {option.heroIcon ? (
+                <Icon name={option.heroIcon} size={24} color={option.color} />
+              ) : (
+                <Ionicons name={option.icon as any} size={24} color={option.color} />
+              )}
             </View>
             <Text style={styles.shareLabel}>{option.name}</Text>
           </TouchableOpacity>
@@ -258,7 +254,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
         variant="primary"
         title={t('shareModal.otherApps')}
         onPress={handleNativeShare}
-        icon="share-social"
+        icon="share"
         style={styles.shareButton}
       />
 
@@ -272,7 +268,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             setSnackbar({ visible: true, message: t('shareModal.embedCopied') });
           }}
         >
-          <MaterialCommunityIcons name="code-tags" size={20} color={colors.primary[600]!} />
+          <Icon name="code-bracket" size={20} color={colors.primary[600]!} />
           <Text style={styles.embedText}>
             {t('shareModal.embedCopyCta')}
           </Text>

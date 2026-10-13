@@ -51,7 +51,7 @@ export default function CollectionsScreen() {
               placeholder={t('collection.browsePlaceholder')}
               value={f.searchQuery}
               onChangeText={f.setSearchQuery}
-              leftIconName="search"
+              leftIconName="magnifying-glass"
             />
             <View style={styles.chips}>
               <Chip label={t('common.all')} selected={f.activeFilter === 'all'} onPress={() => f.setActiveFilter('all')} />
@@ -76,7 +76,7 @@ export default function CollectionsScreen() {
             </View>
           ) : (
             <EmptyState
-              icon="albums-outline"
+              icon="rectangle-stack"
               title={t('collection.browseEmptyTitle')}
               subtitle={t('search.tryDifferent')}
             />

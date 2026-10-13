@@ -29,7 +29,7 @@ export default function OrdersScreen() {
         onBack={back}
         empty
         emptyState={{
-          icon: 'receipt-outline',
+          icon: 'receipt-percent',
           title: t('order.signInToView'),
           actionLabel: t('common.login'),
           onAction: () => router.push('/(auth)/login'),
@@ -76,7 +76,7 @@ export default function OrdersScreen() {
         </View>
       ) : f.entries.length === 0 ? (
         <EmptyState
-          icon="receipt-outline"
+          icon="receipt-percent"
           title={emptyTitle}
           description={t('order.startShopping')}
           actionLabel={t('order.exploreProducts')}

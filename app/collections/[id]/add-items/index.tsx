@@ -29,7 +29,7 @@ export default function AddCollectionItemsScreen() {
             placeholder={t('collection.searchListingsPlaceholder')}
             value={f.search}
             onChangeText={f.setSearch}
-            leftIconName="search"
+            leftIconName="magnifying-glass"
             autoCorrect={false}
           />
         }
@@ -40,12 +40,12 @@ export default function AddCollectionItemsScreen() {
             </View>
           ) : f.listings.length === 0 ? (
             <EmptyState
-              icon="cube-outline"
+              icon="cube"
               title={t('collection.noActiveListings')}
               action={<Button title={t('product.createListing')} onPress={() => router.push('/(tabs)/sell')} />}
             />
           ) : (
-            <EmptyState icon="search-outline" title={t('collection.noSearchMatch')} />
+            <EmptyState icon="magnifying-glass" title={t('collection.noSearchMatch')} />
           )
         }
       />

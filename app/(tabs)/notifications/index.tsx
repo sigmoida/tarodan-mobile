@@ -31,7 +31,7 @@ export default function NotificationsScreen() {
         onBack={f.handleBack}
         empty
         emptyState={{
-          icon: 'notifications-outline',
+          icon: 'bell',
           title: t('notification.loginToView'),
           subtitle: t('notification.loginPromptDesc'),
           actionLabel: t('common.login'),
@@ -76,7 +76,7 @@ export default function NotificationsScreen() {
         onRefresh={f.handleRefresh}
         ListEmptyComponent={
           <EmptyState
-            icon="notifications-outline"
+            icon="bell"
             title={t('notification.noneYet')}
             subtitle={t('notification.emptyListDesc')}
           />

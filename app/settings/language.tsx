@@ -1,9 +1,8 @@
 import React from "react";
 import { Pressable, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { type Locale } from "@/i18n/lib";
-import { SectionCard, Text, theme } from "@/ui";
+import { SectionCard, Text, theme, Icon } from "@/ui";
 import { PageShell } from "@/components/common/PageShell";
 import { useLocale, localeNames } from "@/i18n/LocaleProvider";
 
@@ -44,7 +43,7 @@ export default function LanguageSettingsScreen() {
               {localeNames[l]}
             </Text>
             {locale === l ? (
-              <Ionicons name="checkmark" size={iconSize.lg} color={colors.primary[600]!} />
+              <Icon name="check" size={iconSize.lg} color={colors.primary[600]!} />
             ) : null}
           </Pressable>
         ))}

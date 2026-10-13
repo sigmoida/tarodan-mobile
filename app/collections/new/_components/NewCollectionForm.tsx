@@ -29,7 +29,7 @@ export function NewCollectionForm({ f }: { f: NewCollectionController }) {
         )}
         {f.coverImage ? (
           <IconButton
-            icon="close"
+            icon="x-mark"
             accessibilityLabel={t('collection.removeCoverPhoto')}
             size="sm"
             variant="solid"

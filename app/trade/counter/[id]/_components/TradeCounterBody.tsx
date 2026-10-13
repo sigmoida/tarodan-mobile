@@ -1,9 +1,8 @@
 import React from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Chip, Input, SectionCard, Text, Textarea, theme } from '@/ui';
+import { Alert, Button, Chip, Input, SectionCard, Text, Textarea, theme, Icon } from '@/ui';
 
 import { formatPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
@@ -31,7 +30,7 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
       />
 
       <View style={styles.swapWrap}>
-        <Ionicons name="swap-vertical" size={theme.iconSize.lg} color={colors.primary[600]!} />
+        <Icon name="arrows-up-down" size={theme.iconSize.lg} color={colors.primary[600]!} />
       </View>
 
       <TradeProductPicker

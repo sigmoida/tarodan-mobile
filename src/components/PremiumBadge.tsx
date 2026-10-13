@@ -1,9 +1,8 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { theme, Text } from '@/ui';
+import { theme, Text, Icon, type IconName } from '@/ui';
 
 const { colors } = theme;
 
@@ -21,22 +20,19 @@ interface PremiumBadgeProps {
 // bileşen `useMemo(() => buildBadgeConfig(t), [t])` ile çağırır (bkz. UpgradePrompt).
 const buildBadgeConfig = (t: TFunction) => ({
   premium: {
-    icon: 'crown',
-    iconType: 'material' as const,
+    icon: 'sparkles' as IconName,
     label: t('membership.premium'),
     color: colors.primary[600]!,
     backgroundColor: colors.primary[50]!,
   },
   verified: {
-    icon: 'checkmark-shield',
-    iconType: 'ionicons' as const,
+    icon: 'check-badge' as IconName,
     label: t('membership.badgeVerified'),
     color: colors.info[600]!,
     backgroundColor: colors.info[50]!,
   },
   premium_verified: {
-    icon: 'shield-crown',
-    iconType: 'material' as const,
+    icon: 'check-badge' as IconName,
     label: t('membership.badgePremiumVerified'),
     color: colors.primary[700]!,
     backgroundColor: colors.primary[50]!,
@@ -91,19 +87,7 @@ export const PremiumBadge: React.FC<PremiumBadgeProps> = ({
 
   const content = (
     <>
-      {config.iconType === 'material' ? (
-        <MaterialCommunityIcons
-          name={config.icon as any}
-          size={sizeConfig.iconSize}
-          color={config.color}
-        />
-      ) : (
-        <Ionicons
-          name={config.icon as any}
-          size={sizeConfig.iconSize}
-          color={config.color}
-        />
-      )}
+      <Icon name={config.icon} variant="solid" size={sizeConfig.iconSize} color={config.color} />
       {showLabel && (
         <Text
           style={[
@@ -147,16 +131,17 @@ export const InlinePremiumBadge: React.FC<InlinePremiumBadgeProps> = ({
   return (
     <View style={styles.inlineContainer}>
       {isPremium && (
-        <MaterialCommunityIcons
-          name="crown"
+        <Icon
+          name="sparkles"
+          variant="solid"
           size={iconSize}
           color={colors.primary[600]!}
           style={styles.inlineIcon}
         />
       )}
       {isVerified && (
-        <Ionicons
-          name="checkmark-circle"
+        <Icon
+          name="check-circle" variant="solid"
           size={iconSize}
           color={colors.info[600]!}
           style={styles.inlineIcon}
@@ -185,39 +170,35 @@ export const MembershipBadgeCard: React.FC<MembershipBadgeCardProps> = ({
     free: {
       name: t('membership.memberLabelFree'),
       color: colors.text.muted,
-      icon: 'account',
+      icon: 'user' as IconName,
     },
     basic: {
       name: t('membership.memberLabelBasic'),
       color: colors.info[600]!,
-      icon: 'account-check',
+      icon: 'user-circle' as IconName,
     },
     premium: {
       name: t('membership.memberLabelPremium'),
       color: colors.primary[600]!,
-      icon: 'crown',
+      icon: 'sparkles' as IconName,
     },
     business: {
       name: t('footer.corporate'),
       color: colors.primary[700]!,
-      icon: 'domain',
+      icon: 'building-office-2' as IconName,
     },
   }[membershipTier];
 
   return (
     <View style={[styles.cardContainer, { borderColor: colors.border.DEFAULT }]}>
       <View style={styles.cardHeader}>
-        <MaterialCommunityIcons
-          name={tierInfo.icon as any}
-          size={24}
-          color={tierInfo.color}
-        />
+        <Icon name={tierInfo.icon} variant="solid" size={24} color={tierInfo.color} />
         <Text style={[styles.cardTitle, { color: tierInfo.color }]}>
           {tierInfo.name}
         </Text>
         {isVerified && (
-          <Ionicons
-            name="checkmark-circle"
+          <Icon
+            name="check-circle" variant="solid"
             size={18}
             color={colors.success[600]!}
             style={{ marginLeft: theme.spacing[1] }}
@@ -228,7 +209,7 @@ export const MembershipBadgeCard: React.FC<MembershipBadgeCardProps> = ({
       {!isPremium && onUpgrade && (
         <TouchableOpacity style={styles.upgradeLink} onPress={onUpgrade}>
           <Text style={styles.upgradeLinkText}>{t('membership.upgrade')}</Text>
-          <Ionicons name="chevron-forward" size={16} color={colors.primary[600]!} />
+          <Icon name="chevron-right" size={16} color={colors.primary[600]!} />
         </TouchableOpacity>
       )}
     </View>

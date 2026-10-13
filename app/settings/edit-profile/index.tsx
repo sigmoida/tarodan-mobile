@@ -29,7 +29,7 @@ export default function EditProfileScreen() {
         onBack={onBack}
         empty
         emptyState={{
-          icon: "person-outline",
+          icon: "user",
           title: t("membership.loginRequiredTitle"),
           actionLabel: t("common.login"),
           onAction: () => router.push("/(auth)/login"),

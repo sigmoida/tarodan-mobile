@@ -80,7 +80,7 @@ export function ProductGrid({
   ) : loading ? (
     <ProductGridSkeleton layout={layout} />
   ) : emptyTitle ? (
-    <EmptyState icon="search-outline" title={emptyTitle} subtitle={emptySubtitle} />
+    <EmptyState icon="magnifying-glass" title={emptyTitle} subtitle={emptySubtitle} />
   ) : (
     <ProductListEmpty filtered={filtered} onClearFilters={onClearFilters} />
   );

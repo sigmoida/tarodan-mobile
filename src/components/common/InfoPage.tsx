@@ -1,14 +1,13 @@
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
-import { PageHeader, SectionCard, Text, theme } from '@/ui';
+import { PageHeader, SectionCard, Text, theme, Icon, type IconName } from '@/ui';
 import { PageShell } from './PageShell';
 
 export interface InfoSection {
   title?: string;
   content?: string;
   /** Web'de başlığın yanında olan işlevsel ikon (ör. güvenlik kalkanı). */
-  icon?: React.ComponentProps<typeof Ionicons>['name'];
+  icon?: IconName;
   /** Gövde yerine özel düğüm (liste vb.). */
   children?: React.ReactNode;
 }
@@ -44,7 +43,7 @@ export function InfoPage({
             {s.title ? (
               <View style={styles.titleRow}>
                 {s.icon ? (
-                  <Ionicons name={s.icon} size={theme.iconSize.md} color={theme.colors.success[600]!} />
+                  <Icon name={s.icon} size={theme.iconSize.md} color={theme.colors.success[600]!} />
                 ) : null}
                 <Text variant="h3" tone="heading">
                   {s.title}

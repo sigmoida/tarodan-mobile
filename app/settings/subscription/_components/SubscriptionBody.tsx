@@ -2,10 +2,9 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Pressable, Linking } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Button, Chip, Divider, SectionCard, Text, theme } from '@/ui';
+import { Button, Chip, Divider, SectionCard, Text, theme, Icon } from '@/ui';
 import UpgradeCta from '@/components/UpgradeCta';
 
 import { PREMIUM_MEMBER_LIMITS } from '@/utils/membershipLimits';
@@ -123,7 +122,7 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
                 />
               </View>
               {payment.invoiceUrl && (
-                <Ionicons name="download-outline" size={theme.iconSize.md} color={theme.colors.primary[600]!} />
+                <Icon name="arrow-down-tray" size={theme.iconSize.md} color={theme.colors.primary[600]!} />
               )}
             </Pressable>
           ))}

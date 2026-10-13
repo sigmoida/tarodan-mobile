@@ -1,10 +1,9 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Ionicons } from '@expo/vector-icons';
+import type { IconName } from '@/ui';
 import { tradeStatusConfig, type StatusConfig, type StatusConfigDef } from './status-configs';
 import { statusVariantSolid } from './status-colors';
 
-type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
 /**
  * Takas durumu → etiket anahtarı + rozet varyantı. **Tek kaynak: web.**
@@ -85,24 +84,24 @@ export function tradeStatusMetaFor(role?: TradeViewerRole): Record<string, Statu
  * ikon taşımaz (web'de de yok).
  */
 const TRADE_STATUS_ICON: Record<string, IconName> = {
-  pending: 'time-outline',
-  accepted: 'checkmark-circle-outline',
-  rejected: 'close-circle-outline',
-  countered: 'swap-horizontal-outline',
-  awaiting_payment: 'card-outline',
-  shipping_to_warehouse: 'cube-outline',
-  at_warehouse: 'business-outline',
-  admin_reviewing: 'search-outline',
-  shipping_to_recipients: 'send-outline',
-  returning: 'return-up-back-outline',
-  initiator_shipped: 'cube-outline',
-  receiver_shipped: 'cube-outline',
-  both_shipped: 'cube-outline',
-  initiator_received: 'checkmark-outline',
-  receiver_received: 'checkmark-outline',
-  completed: 'checkmark-done-outline',
-  cancelled: 'close-circle-outline',
-  disputed: 'alert-circle-outline',
+  pending: 'clock',
+  accepted: 'check-circle',
+  rejected: 'x-circle',
+  countered: 'arrows-right-left',
+  awaiting_payment: 'credit-card',
+  shipping_to_warehouse: 'cube',
+  at_warehouse: 'building-office-2',
+  admin_reviewing: 'magnifying-glass',
+  shipping_to_recipients: 'paper-airplane',
+  returning: 'arrow-uturn-left',
+  initiator_shipped: 'cube',
+  receiver_shipped: 'cube',
+  both_shipped: 'cube',
+  initiator_received: 'check',
+  receiver_received: 'check',
+  completed: 'check-badge',
+  cancelled: 'x-circle',
+  disputed: 'exclamation-circle',
 };
 
 /** Rozet/çip tüketicileri için çevrilmiş config. */
@@ -134,7 +133,7 @@ export function useTradeStatusDetail(role?: TradeViewerRole): Record<
           {
             label: t(meta.labelKey),
             color: statusVariantSolid(meta.variant),
-            icon: TRADE_STATUS_ICON[status] ?? 'help-circle-outline',
+            icon: TRADE_STATUS_ICON[status] ?? 'question-mark-circle',
           },
         ]),
       ),

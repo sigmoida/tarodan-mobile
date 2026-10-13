@@ -1,16 +1,15 @@
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, type PressableProps, type ViewStyle } from 'react-native';
 import { theme } from '../lib/theme';
 import { RawText } from './Text';
-
-type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+import { RefIcon, type IconRef, type IconVariant } from '../icons';
 
 export type FABVariant = 'primary' | 'secondary';
 export type FABSize = 'sm' | 'md' | 'lg';
 
 export interface FABProps extends Omit<PressableProps, 'style'> {
-  icon: IoniconName;
+  icon: IconRef;
+  iconVariant?: IconVariant;
   label?: string;
   variant?: FABVariant;
   size?: FABSize;
@@ -33,6 +32,7 @@ const variantStyle: Record<FABVariant, { bg: string; fg: string }> = {
 
 export const FAB: React.FC<FABProps> = ({
   icon,
+  iconVariant,
   label,
   variant = 'primary',
   size = 'md',
@@ -62,7 +62,7 @@ export const FAB: React.FC<FABProps> = ({
       accessibilityLabel={accessibilityLabel}
       {...rest}
     >
-      <Ionicons name={icon} size={ss.icon} color={vs.fg} />
+      <RefIcon icon={icon} variant={iconVariant} size={ss.icon} color={vs.fg} />
       {extended && (
         <RawText
           style={{

@@ -52,7 +52,7 @@ export function ProductListEmpty({
   const { t } = useTranslation();
   return (
     <EmptyState
-      icon="search-outline"
+      icon="magnifying-glass"
       title={t('product.noListings')}
       subtitle={filtered ? t('product.tryAdjustingFilters') : t('home.beTheFirst')}
       action={

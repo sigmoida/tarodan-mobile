@@ -110,7 +110,7 @@ export function CollectionEditBody({ f }: { f: CollectionEditController }) {
                 </Text>
               </Pressable>
               <IconButton
-                icon="close"
+                icon="x-mark"
                 accessibilityLabel={t('collection.removeProduct')}
                 size="sm"
                 onPress={() => f.handleRemoveItem(item.id, item.productTitle)}

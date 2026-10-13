@@ -1,9 +1,9 @@
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { theme } from '../lib/theme';
 import { RawText } from './Text';
 
+import { Icon } from '../icons';
 /**
  * Web `@tarodan/ui` Stepper'ın native karşılığı — çok adımlı akışlar (checkout, iade durumu…).
  * Tamamlanan adım ✓, geçerli adım vurgulu, gelecek adımlar soluk; `error` adımı kırmızı ✕.
@@ -83,9 +83,9 @@ export const Stepper: React.FC<StepperProps> = ({
         const icon =
           step.icon ??
           (tone === 'error' ? (
-            <Ionicons name="close" size={iconSize.sm} color={ct.fg} />
+            <Icon name="x-mark" size={iconSize.sm} color={ct.fg} />
           ) : tone === 'done' ? (
-            <Ionicons name="checkmark" size={iconSize.sm} color={ct.fg} />
+            <Icon name="check" size={iconSize.sm} color={ct.fg} />
           ) : (
             <RawText style={[styles.number, { color: ct.fg }]}>{i + 1}</RawText>
           ));

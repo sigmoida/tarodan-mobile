@@ -21,7 +21,7 @@ export default function BusinessRejectedScreen() {
 
   return (
     <GateScreen
-      icon="close-circle-outline"
+      icon="x-circle"
       title={t('businessGuard.rejectedTitle')}
       description={t('businessGuard.rejectedBody', { company: user?.companyName ?? '' })}
       actions={

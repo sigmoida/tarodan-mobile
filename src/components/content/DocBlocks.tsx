@@ -1,7 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Text, theme } from '@/ui';
+import { Text, theme, Icon } from '@/ui';
 
 const { colors, spacing, radiusRole, iconSize } = theme;
 
@@ -136,7 +135,7 @@ export const DocAccordionItem: React.FC<{
       <Text weight="semibold" tone="heading" style={styles.accordionQuestion}>
         {question}
       </Text>
-      <Ionicons
+      <Icon
         name={expanded ? 'chevron-up' : 'chevron-down'}
         size={iconSize.md}
         color={colors.text.muted}
@@ -166,7 +165,7 @@ export const DocLink: React.FC<{ label: string; onPress: () => void; testID?: st
     <Text variant="body" style={styles.linkText}>
       {label}
     </Text>
-    <Ionicons name="chevron-forward" size={iconSize.sm} color={colors.primary[500]} />
+    <Icon name="chevron-right" size={iconSize.sm} color={colors.primary[500]} />
   </Pressable>
 );
 

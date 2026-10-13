@@ -1,9 +1,8 @@
 import React, { useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Text, Input, Textarea, Button, SectionCard, theme } from '@/ui';
+import { Text, Input, Textarea, Button, SectionCard, theme, Icon } from '@/ui';
 import { DocLink } from '@/components/content/DocBlocks';
 
 import { styles } from '../_lib/styles';
@@ -35,7 +34,7 @@ export function HelpContact({ f }: { f: HelpController }) {
                 {option.subtitle}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={iconSize.md} color={colors.text.muted} />
+            <Icon name="chevron-right" size={iconSize.md} color={colors.text.muted} />
           </Pressable>
         ))}
       </SectionCard>

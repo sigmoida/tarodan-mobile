@@ -69,7 +69,7 @@ export default function ManufacturersScreen() {
             value={f.search}
             onChangeText={f.setSearch}
             placeholder={t('product.searchManufacturers')}
-            leftIconName="search"
+            leftIconName="magnifying-glass"
           />
         }
         ListEmptyComponent={
@@ -88,7 +88,7 @@ export default function ManufacturersScreen() {
             <ErrorState onRetry={() => f.refetch()} />
           ) : (
             <EmptyState
-              icon="search-outline"
+              icon="magnifying-glass"
               title={f.hasAny ? t('common.noResults') : t('product.noManufacturersYet')}
               subtitle={f.hasAny ? t('search.tryDifferent') : undefined}
             />

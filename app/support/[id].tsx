@@ -54,7 +54,7 @@ export default function SupportTicketDetailScreen() {
         onBack={onBack}
         loading={f.isLoading}
         empty={!f.isLoading}
-        emptyState={{ icon: 'alert-circle-outline', title: t('support.notFound') }}
+        emptyState={{ icon: 'exclamation-circle', title: t('support.notFound') }}
       />
     );
   }

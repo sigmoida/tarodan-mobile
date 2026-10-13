@@ -1,8 +1,7 @@
 import { View, Image, Pressable, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Text, theme } from '@/ui';
+import { Avatar, Text, theme, Icon } from '@/ui';
 import { transformImageUrl } from '@/utils/imageUrl';
 
 const { colors, iconSize, spacing, radiusRole } = theme;
@@ -43,7 +42,7 @@ export function CollectionCard({ item }: { item: any }) {
           <View style={styles.counters}>
             {item.viewCount !== undefined ? (
               <View style={styles.counter}>
-                <Ionicons name="eye" size={iconSize.sm} color={colors.primary[500]!} />
+                <Icon name="eye" variant="solid" size={iconSize.sm} color={colors.primary[500]!} />
                 <Text variant="caption" tone="subtle">
                   {item.viewCount}
                 </Text>
@@ -51,7 +50,7 @@ export function CollectionCard({ item }: { item: any }) {
             ) : null}
             {item.likeCount !== undefined ? (
               <View style={styles.counter}>
-                <Ionicons name="heart" size={iconSize.sm} color={colors.danger[500]!} />
+                <Icon name="heart" variant="solid" size={iconSize.sm} color={colors.danger[500]!} />
                 <Text variant="caption" tone="subtle">
                   {item.likeCount}
                 </Text>

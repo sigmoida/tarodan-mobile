@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button, Card, Text, theme } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
+import { Button, Card, Text, theme, Icon } from '@/ui';
 
 /**
  * Faz 4C.2 — Mobile 48h pencere banner'ı.
@@ -72,7 +71,7 @@ export function AwaitingConfirmationBanner({
   return (
     <Card style={[styles.card, { backgroundColor: styleSet.bg, borderColor: styleSet.border }]}>
       <View style={styles.headerRow}>
-        <Ionicons name="time-outline" size={24} color={styleSet.text} />
+        <Icon name="clock" size={24} color={styleSet.text} />
         <Text variant="body" style={{ color: styleSet.text, fontWeight: '600' }}>
           {t('trade.confirmationBanner.title')}
         </Text>

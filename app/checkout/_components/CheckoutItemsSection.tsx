@@ -1,8 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Image, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { SectionCard, Text, theme } from '@/ui';
+import { SectionCard, Text, theme, Icon } from '@/ui';
 import { transformImageUrl } from '@/utils/imageUrl';
 import { formatServerPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
@@ -22,7 +21,7 @@ export function CheckoutItemsSection({ c }: { c: Ctrl }) {
     <SectionCard title={t('checkout.orderSummary')} testID="checkout-items">
       {c.isBuyNow ? (
         <View style={styles.noticeBox}>
-          <Ionicons name="information-circle-outline" size={theme.iconSize.lg} color={theme.colors.warning[800]!} />
+          <Icon name="information-circle" size={theme.iconSize.lg} color={theme.colors.warning[800]!} />
           <Text variant="bodySm" style={{ flex: 1, color: theme.colors.warning[800]! }}>
             {t('checkout.buyNowNotice')}
           </Text>

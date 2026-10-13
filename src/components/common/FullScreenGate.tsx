@@ -1,9 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Modal, Platform, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { create } from 'zustand';
-import { theme } from '@/ui';
+import { Icon, theme, type IconName } from '@/ui';
 import { keyboardBottomInset, useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 
 const { colors, spacing, radius } = theme;
@@ -137,13 +136,11 @@ export function FullScreenGate({ layer, children, onBackPress, testID }: FullScr
   );
 }
 
-type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
-
 /** Kapıların ortak ikon dairesi. */
-export function FullScreenGateIcon({ name, size = 80 }: { name: IoniconName; size?: number }) {
+export function FullScreenGateIcon({ name, size = 80 }: { name: IconName; size?: number }) {
   return (
     <View style={[styles.iconCircle, { width: size, height: size }]}>
-      <Ionicons name={name} size={size / 2} color={colors.primary[600]!} />
+      <Icon name={name} size={size / 2} color={colors.primary[600]!} />
     </View>
   );
 }

@@ -23,7 +23,7 @@ export default function SupportScreen() {
         onBack={back}
         empty
         emptyState={{
-          icon: "headset-outline",
+          icon: "lifebuoy",
           title: t("auth.loginRequired"),
           subtitle: t("support.new.loginRequiredSubtitle"),
           actionLabel: t("common.login"),

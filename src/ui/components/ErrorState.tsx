@@ -33,7 +33,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
   const { t } = useTranslation();
   return (
     <StateLayout
-      icon="alert-circle-outline"
+      icon="exclamation-circle"
       title={title ?? t('mobile.errorSomethingWrong')}
       description={message ?? t('mobile.errorBoundaryDescription')}
       size={size}

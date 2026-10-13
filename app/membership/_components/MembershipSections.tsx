@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, ScrollView, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { theme, RawText } from '@/ui';
+import { theme, RawText, Icon } from '@/ui';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { formatPrice } from '@/utils/format';
 
@@ -28,7 +27,7 @@ export function MembershipBanners({ f }: SectionProps) {
     <>
       {f.error ? (
         <Pressable style={styles.errorBanner} onPress={f.fetchData}>
-          <Ionicons name="alert-circle" size={18} color={colors.danger[600]!} />
+          <Icon name="exclamation-circle" variant="solid" size={18} color={colors.danger[600]!} />
           <RawText style={styles.errorBannerText}>{f.error}</RawText>
           <RawText style={styles.errorBannerRetry}>{t('common.tryAgain')}</RawText>
         </Pressable>
@@ -46,7 +45,7 @@ export function MembershipBanners({ f }: SectionProps) {
             )
           }
         >
-          <Ionicons name="warning" size={22} color={colors.warning[800]!} />
+          <Icon name="exclamation-triangle" variant="solid" size={22} color={colors.warning[800]!} />
           <View style={styles.pendingBannerText}>
             <RawText style={styles.pendingTitle}>
               {t('membership.pendingPaymentTitle', {
@@ -55,7 +54,7 @@ export function MembershipBanners({ f }: SectionProps) {
             </RawText>
             <RawText style={styles.pendingSubtitle}>{t('membership.pendingPaymentSubtitle')}</RawText>
           </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.warning[800]!} />
+          <Icon name="chevron-right" size={20} color={colors.warning[800]!} />
         </Pressable>
       )}
     </>
@@ -71,7 +70,7 @@ export function MembershipCurrentPlan({ f }: SectionProps) {
   return (
     <View style={styles.currentPlanCard}>
       <View style={[styles.currentPlanIcon, { backgroundColor: TIER_COLORS[currentTier] + '20' }]}>
-        <Ionicons name={TIER_ICONS[currentTier]} size={28} color={TIER_COLORS[currentTier]} />
+        <Icon name={TIER_ICONS[currentTier]} size={28} color={TIER_COLORS[currentTier]} />
       </View>
       <RawText style={styles.currentPlanLabel}>{t('membership.currentPlan')}</RawText>
       <RawText style={[styles.currentPlanName, { color: TIER_COLORS[currentTier] }]}>
@@ -99,11 +98,11 @@ export function MembershipCurrentPlan({ f }: SectionProps) {
           onPress={() => router.push('/membership/manage' as any)}
          
         >
-          <Ionicons name="settings-outline" size={16} color={colors.primary[600]!} />
+          <Icon name="cog-6-tooth" size={16} color={colors.primary[600]!} />
           <RawText style={styles.manageButtonText}>
             {t('membership.manageMembershipHint')}
           </RawText>
-          <Ionicons name="chevron-forward" size={16} color={colors.primary[600]!} />
+          <Icon name="chevron-right" size={16} color={colors.primary[600]!} />
         </Pressable>
       )}
     </View>
@@ -160,13 +159,13 @@ function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
       {/* Current plan badge */}
       {isCurrent && (
         <View style={[styles.currentBadge, { backgroundColor: color }]}>
-          <Ionicons name="checkmark-circle" size={14} color={colors.white} />
+          <Icon name="check-circle" variant="solid" size={14} color={colors.white} />
           <RawText style={styles.currentBadgeText}>{t('membership.currentPlanBadge')}</RawText>
         </View>
       )}
 
       <View style={[styles.tierIconCircle, { backgroundColor: color + '15' }]}>
-        <Ionicons name={TIER_ICONS[tier]} size={24} color={color} />
+        <Icon name={TIER_ICONS[tier]} size={24} color={color} />
       </View>
 
       <RawText style={[styles.tierName, { color }]}>{tierNames[tier]}</RawText>
@@ -193,7 +192,7 @@ function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
       <View style={styles.tierFeatures}>
         {features.map((feat, idx) => (
           <View key={idx} style={styles.tierFeatureRow}>
-            <Ionicons name="checkmark-circle" size={16} color={color} />
+            <Icon name="check-circle" variant="solid" size={16} color={color} />
             <RawText style={styles.tierFeatureText}>{feat}</RawText>
           </View>
         ))}

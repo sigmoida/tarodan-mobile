@@ -24,7 +24,7 @@ export default function RefundRequestsScreen() {
         onBack={back}
         empty
         emptyState={{
-          icon: 'receipt-outline',
+          icon: 'receipt-percent',
           title: t('order.myRefundRequests'),
           description: t('refund.authGateSubtitle'),
           actionLabel: t('common.login'),

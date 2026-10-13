@@ -133,7 +133,7 @@ describe('resolveTrustBadges', () => {
 
   it('ikon eşlenir, metin dile göre seçilir', () => {
     expect(resolveTrustBadges([badge()], 'en')).toEqual([
-      { id: 'b1', icon: 'truck-outline', title: 'Fast shipping', description: 'Açıklama' },
+      { id: 'b1', icon: 'truck', title: 'Fast shipping', description: 'Açıklama' },
     ]);
   });
   it('bilinmeyen ikon anahtarı ve başlıksız rozet gösterilmez', () => {

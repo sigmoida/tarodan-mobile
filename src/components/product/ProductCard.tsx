@@ -1,10 +1,9 @@
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { AppImage } from '@/components/AppImage';
-import { ProductBadge, Text, theme } from '@/ui';
+import { ProductBadge, Text, theme, Icon } from '@/ui';
 import { productsApi } from '@/lib/api';
 import {
   ProductPriceFields,
@@ -72,7 +71,7 @@ export interface ProductCardProps {
 function MetaItem({ icon, color, children }: { icon: 'star' | 'heart' | 'eye'; color: string; children: React.ReactNode }) {
   return (
     <View style={styles.metaItem}>
-      <Ionicons name={icon} size={iconSize.sm} color={color} />
+      <Icon name={icon} variant={icon === 'eye' ? 'outline' : 'solid'} size={iconSize.sm} color={color} />
       {children}
     </View>
   );
@@ -171,7 +170,7 @@ function ProductCardBase({
   };
 
   const imageSource = product.imageUrl ?? product.images;
-  const tradeIcon = <Ionicons name="swap-horizontal" size={iconSize.sm} color={colors.text.inverted} />;
+  const tradeIcon = <Icon name="arrows-right-left" size={iconSize.sm} color={colors.text.inverted} />;
 
   if (layout === 'list') {
     return (

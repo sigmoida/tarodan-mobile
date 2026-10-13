@@ -24,7 +24,7 @@ export default function BannedScreen() {
 
   return (
     <GateScreen
-      icon="ban-outline"
+      icon="no-symbol"
       title={t('mobile.bannedTitle')}
       description={t('mobile.bannedDescription')}
       actions={

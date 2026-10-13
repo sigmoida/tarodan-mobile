@@ -1,7 +1,6 @@
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
-import { SectionCard, Text, theme } from '@/ui';
+import { SectionCard, Text, theme, Icon, type IconName } from '@/ui';
 
 export type PaymentResultTone = 'success' | 'warning' | 'danger';
 
@@ -9,11 +8,11 @@ const { colors, spacing } = theme;
 
 const toneStyle: Record<
   PaymentResultTone,
-  { icon: React.ComponentProps<typeof Ionicons>['name']; bg: string; fg: string }
+  { icon: IconName; bg: string; fg: string }
 > = {
-  success: { icon: 'checkmark-circle-outline', bg: colors.success[100]!, fg: colors.success[500]! },
-  warning: { icon: 'time-outline', bg: colors.warning[100]!, fg: colors.warning[600]! },
-  danger: { icon: 'close-circle-outline', bg: colors.danger[100]!, fg: colors.danger[500]! },
+  success: { icon: 'check-circle', bg: colors.success[100]!, fg: colors.success[500]! },
+  warning: { icon: 'clock', bg: colors.warning[100]!, fg: colors.warning[600]! },
+  danger: { icon: 'x-circle', bg: colors.danger[100]!, fg: colors.danger[500]! },
 };
 
 /**
@@ -40,7 +39,7 @@ export function PaymentResultCard({
   return (
     <SectionCard testID={testID} bodyStyle={styles.body} style={styles.card}>
       <View style={[styles.circle, { backgroundColor: s.bg }]}>
-        <Ionicons name={s.icon} size={theme.iconSize.lg * 2} color={s.fg} />
+        <Icon name={s.icon} size={theme.iconSize.lg * 2} color={s.fg} />
       </View>
       <Text variant="displaySm" tone="heading" align="center">
         {title}

@@ -67,7 +67,7 @@ export default function PaymentMethodsScreen() {
   };
 
   if (!isAuthenticated) {
-    return <AuthGatePage title={title} icon="card-outline" subtitle={t("auth.loginToContinue")} />;
+    return <AuthGatePage title={title} icon="credit-card" subtitle={t("auth.loginToContinue")} />;
   }
 
   const cards = cardsQuery.data ?? [];
@@ -87,7 +87,7 @@ export default function PaymentMethodsScreen() {
 
       {cards.length === 0 ? (
         <EmptyState
-          icon="card-outline"
+          icon="credit-card"
           title={t("payment.noSavedCardsTitle")}
           subtitle={t("payment.noSavedCardsSubtitle")}
         />
@@ -115,7 +115,7 @@ export default function PaymentMethodsScreen() {
               </View>
               <IconButton
                 testID={`card-delete-${c.id}`}
-                icon="trash-outline"
+                icon="trash"
                 variant="danger"
                 size="sm"
                 accessibilityLabel={t("common.delete")}

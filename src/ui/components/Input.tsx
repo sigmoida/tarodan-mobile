@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import {
   Pressable,
   StyleSheet,
@@ -12,9 +11,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import { theme } from '../lib/theme';
 import { RawTextInput } from './RawTextInput';
+import { Icon, RefIcon, type IconRef } from '../icons';
 import { FieldMessage, Label } from './Label';
-
-type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 /**
  * Not: `style` dış sarmalayıcıya (container) uygulanır — margin/yerleşim için.
@@ -29,10 +27,10 @@ export interface InputProps extends TextInputProps {
   /** Pass a custom node. Takes precedence over `leftIconName`. */
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
-  /** Convenience: Ionicon by name on the left. */
-  leftIconName?: IoniconName;
-  /** Convenience: Ionicon by name on the right. */
-  rightIconName?: IoniconName;
+  /** Convenience: Heroicons adı, solda (geçiş: Ionicons adları da çözülür). */
+  leftIconName?: IconRef;
+  /** Convenience: Heroicons adı, sağda. */
+  rightIconName?: IconRef;
   /** When true and `secureTextEntry`, show a tap-to-toggle visibility eye on the right. */
   togglePasswordVisibility?: boolean;
   inputSize?: 'sm' | 'md' | 'lg';
@@ -94,7 +92,7 @@ export const Input: React.FC<InputProps> = ({
   const resolvedLeftIcon =
     leftIcon ??
     (leftIconName ? (
-      <Ionicons name={leftIconName} size={iconSize.md} color={colors.text.subtle} />
+      <RefIcon icon={leftIconName} size={iconSize.md} color={colors.text.subtle} />
     ) : null);
 
   const showEye = togglePasswordVisibility && secureTextEntry;
@@ -107,14 +105,14 @@ export const Input: React.FC<InputProps> = ({
         accessibilityRole="button"
         accessibilityLabel={passwordHidden ? t('common.showPassword') : t('common.hidePassword')}
       >
-        <Ionicons
-          name={passwordHidden ? 'eye-outline' : 'eye-off-outline'}
+        <Icon
+          name={passwordHidden ? 'eye' : 'eye-slash'}
           size={iconSize.md}
           color={colors.text.subtle}
         />
       </Pressable>
     ) : rightIconName ? (
-      <Ionicons name={rightIconName} size={iconSize.md} color={colors.text.subtle} />
+      <RefIcon icon={rightIconName} size={iconSize.md} color={colors.text.subtle} />
     ) : null);
 
   const effectiveSecure = secureTextEntry ? passwordHidden : false;

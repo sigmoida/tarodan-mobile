@@ -1,5 +1,4 @@
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import {
   ActivityIndicator,
   Pressable,
@@ -12,8 +11,8 @@ import {
 } from 'react-native';
 import { theme } from '../lib/theme';
 import { RawText } from './Text';
-
-type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+import { RefIcon, type IconRef, type IconVariant } from '../icons';
+import { useButtonGroup } from '../lib/buttonGroup';
 
 /** Web `@tarodan/ui` Button varyantları (adlar aynı). */
 export type ButtonVariant =
@@ -35,8 +34,14 @@ export interface ButtonProps extends Omit<PressableProps, 'style'> {
   /** Pass a custom node (e.g. an SVG). Takes precedence over `icon`. */
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
-  /** Convenience: render an Ionicon by name. Position controlled by `iconPosition`. */
-  icon?: IoniconName;
+  /**
+   * Heroicons adı. Düğmede ikon İSTİSNADIR (varsayılan ikonsuz): yalnız web'in aynı yerde ikon
+   * gösterdiği ya da işlev taşıyan (paylaş, favori, sepet, filtre, sırala, geri/kapat, ekle)
+   * yerlerde. Dekoratif ikon `tarodan/restrict-button-icon` lint uyarısı verir.
+   * Konum `iconPosition` ile.
+   */
+  icon?: IconRef;
+  iconVariant?: IconVariant;
   iconPosition?: 'left' | 'right';
   fullWidth?: boolean;
   children?: React.ReactNode;
@@ -83,6 +88,7 @@ export const Button: React.FC<ButtonProps> = ({
   leftIcon,
   rightIcon,
   icon,
+  iconVariant,
   iconPosition = 'left',
   children,
   title,
@@ -96,7 +102,10 @@ export const Button: React.FC<ButtonProps> = ({
   const ss = sizeStyle[size];
   const isLink = variant === 'link';
   const label = title ?? children;
-  const ionIconNode = icon ? <Ionicons name={icon} size={ss.icon} color={vs.text} /> : null;
+  const grouped = useButtonGroup();
+  const ionIconNode = icon ? (
+    <RefIcon icon={icon} variant={iconVariant} size={ss.icon} color={vs.text} />
+  ) : null;
   const resolvedLeftIcon = leftIcon ?? (iconPosition === 'left' ? ionIconNode : null);
   const resolvedRightIcon = rightIcon ?? (iconPosition === 'right' ? ionIconNode : null);
   const visualHeight = isLink ? ss.font * 1.5 : ss.height;
@@ -112,7 +121,7 @@ export const Button: React.FC<ButtonProps> = ({
           borderColor: vs.border ?? 'transparent',
           borderWidth: vs.border ? 1 : 0,
           opacity: disabled || isLoading ? 0.5 : pressed ? 0.85 : 1,
-          alignSelf: fullWidth ? 'stretch' : 'flex-start',
+          alignSelf: fullWidth || grouped ? 'stretch' : 'flex-start',
         },
         isLink ? styles.link : { height: ss.height, paddingHorizontal: ss.px },
         style,
@@ -129,6 +138,7 @@ export const Button: React.FC<ButtonProps> = ({
         )}
         {typeof label === 'string' ? (
           <RawText
+            numberOfLines={1}
             style={[
               styles.text,
               { color: vs.text, fontSize: ss.font, fontWeight: typography.fontWeight.medium },
@@ -160,9 +170,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    // Dar alanda etiket (tek satır) kapsayıcıdan taşmasın diye satır kutusu da küçülebilir.
+    flexShrink: 1,
+    minWidth: 0,
   },
+  // Web `whitespace-nowrap`: etiket ASLA sarmaz (tek satır). Sığdırma işini `ButtonRow` yapar.
   text: {
     textAlign: 'center',
+    flexShrink: 1,
   },
   iconLeft: { marginRight: spacing[2] },
   iconRight: { marginLeft: spacing[2] },

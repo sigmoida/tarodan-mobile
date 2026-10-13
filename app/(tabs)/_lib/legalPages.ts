@@ -1,4 +1,4 @@
-import type { Ionicons } from '@expo/vector-icons';
+import type { IconName } from '@/ui';
 import type { TFunction } from 'i18next';
 
 /**
@@ -29,9 +29,9 @@ export const buildLegalPages = (
   /** Uygulamadaki statik ekran. */
   route: '/privacy' | '/terms' | '/cookies';
   label: string;
-  icon: React.ComponentProps<typeof Ionicons>['name'];
+  icon: IconName;
 }> => [
-  { slug: 'privacy', route: '/privacy', label: t('mobile.pagePrivacy'), icon: 'lock-closed-outline' },
-  { slug: 'terms', route: '/terms', label: t('mobile.pageTerms'), icon: 'document-text-outline' },
-  { slug: 'cookie-policy', route: '/cookies', label: t('mobile.pageCookies'), icon: 'shield-outline' },
+  { slug: 'privacy', route: '/privacy', label: t('mobile.pagePrivacy'), icon: 'lock-closed' },
+  { slug: 'terms', route: '/terms', label: t('mobile.pageTerms'), icon: 'document-text' },
+  { slug: 'cookie-policy', route: '/cookies', label: t('mobile.pageCookies'), icon: 'shield-check' },
 ];

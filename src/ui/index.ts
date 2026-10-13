@@ -8,6 +8,7 @@ export {
 	type ButtonVariant,
 	type ButtonSize,
 } from './components/Button';
+export { ButtonRow, type ButtonRowProps } from './components/ButtonRow';
 export {
 	IconButton,
 	type IconButtonProps,
@@ -23,6 +24,16 @@ export {
 	type TextVariant,
 	type TextTone,
 } from './components/Text';
+export {
+	Icon,
+	isIconName,
+	resolveIcon,
+	type IconProps,
+	type IconName,
+	type IconVariant,
+	type IconRef,
+	type LegacyIoniconName,
+} from './icons';
 export { RawTextInput } from './components/RawTextInput';
 export { BrandFontProvider, useBrandFont } from './lib/font';
 export { Stack, VStack, HStack, type StackProps } from './components/Stack';

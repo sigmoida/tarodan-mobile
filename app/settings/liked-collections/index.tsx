@@ -23,7 +23,7 @@ export default function LikedCollectionsScreen() {
         title={title}
         onBack={back}
         emptyTitle={t("collection.authGateTitle")}
-        icon="heart-outline"
+        icon="heart"
         subtitle={t("collection.likedLoginSubtitle")}
       />
     );
@@ -43,7 +43,7 @@ export default function LikedCollectionsScreen() {
       onRetry={() => f.refetch()}
       empty={isEmpty}
       emptyState={{
-        icon: "albums-outline",
+        icon: "rectangle-stack",
         title: t("collection.noLikedCollections"),
         subtitle: t("collection.likedEmptySubtitle"),
         actionLabel: t("collection.exploreCollections"),

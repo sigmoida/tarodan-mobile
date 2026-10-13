@@ -1,8 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Avatar, EmptyState, SectionCard, SegmentedButtons, Text, theme } from '@/ui';
+import { Avatar, EmptyState, SectionCard, SegmentedButtons, Text, theme, Icon } from '@/ui';
 
 import { ProductCard } from '@/components/product';
 import { CollectionCard } from '@/components/collection/CollectionCard';
@@ -34,7 +33,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
 
       {activeTab === 'listings' &&
         (products.length === 0 ? (
-          <EmptyState size="compact" icon="search-outline" title={t('seller.noActiveListings')} />
+          <EmptyState size="compact" icon="magnifying-glass" title={t('seller.noActiveListings')} />
         ) : (
           <View style={styles.grid}>
             {products.map((product: any) => (
@@ -47,7 +46,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
 
       {activeTab === 'reviews' &&
         (reviews.length === 0 ? (
-          <EmptyState size="compact" icon="star-outline" title={t('review.noReviews')} />
+          <EmptyState size="compact" icon="star" title={t('review.noReviews')} />
         ) : (
           <SectionCard title={t('review.reviews')}>
             {reviews.map((review: any, i: number) => {
@@ -65,9 +64,9 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
                       <ReviewAuthorName review={review} name={reviewerName} />
                       <View style={styles.stars}>
                         {[1, 2, 3, 4, 5].map((star) => (
-                          <Ionicons
+                          <Icon
                             key={star}
-                            name={star <= score ? 'star' : 'star-outline'}
+                            name={star <= score ? 'star' : 'star'} variant={star <= score ? 'solid' : 'outline'}
                             size={iconSize.sm}
                             color={colors.warning[400]!}
                           />
@@ -90,7 +89,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
 
       {activeTab === 'collections' &&
         (collections.length === 0 ? (
-          <EmptyState size="compact" icon="albums-outline" title={t('seller.noCollections')} />
+          <EmptyState size="compact" icon="rectangle-stack" title={t('seller.noCollections')} />
         ) : (
           <View style={styles.grid}>
             {collections.map((collection: any) => (

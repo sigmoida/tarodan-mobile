@@ -1,9 +1,8 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { theme, Button, Modal, Text } from '@/ui';
+import { theme, Button, Modal, Text, Icon } from '@/ui';
 
 const { colors } = theme;
 
@@ -46,7 +45,7 @@ export function AuthRequiredSheet({
     <Modal isOpen={visible} onClose={onDismiss} title={resolvedTitle}>
       <View style={styles.body}>
         <View style={styles.iconCircle}>
-          <Ionicons name="lock-closed-outline" size={32} color={colors.primary[600]!} />
+          <Icon name="lock-closed" size={32} color={colors.primary[600]!} />
         </View>
         <Text variant="body" tone="muted" style={styles.message}>
           {resolvedMessage}

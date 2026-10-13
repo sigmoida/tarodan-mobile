@@ -25,7 +25,7 @@ export default function SellerProfileScreen() {
       loading={f.isLoading}
       empty={!f.isLoading && !f.seller}
       emptyState={{
-        icon: 'person-outline',
+        icon: 'user',
         title: t('seller.notFound'),
         actionLabel: t('common.goBack'),
         onAction: goBack,

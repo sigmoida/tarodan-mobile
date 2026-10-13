@@ -1,9 +1,8 @@
 import React from 'react';
 import { View, Image, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Alert, Avatar, Button, EmptyState, SectionCard, Text, theme } from '@/ui';
+import { Alert, Avatar, Button, EmptyState, SectionCard, Text, theme, Icon } from '@/ui';
 import { ProductCard } from '@/components/product';
 import { transformImageUrl } from '@/utils/imageUrl';
 import UpgradeCta from '@/components/UpgradeCta';
@@ -64,13 +63,13 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
 
         <View style={styles.counters}>
           <View style={styles.counter}>
-            <Ionicons name="eye" size={iconSize.sm} color={colors.primary[500]!} />
+            <Icon name="eye" variant="solid" size={iconSize.sm} color={colors.primary[500]!} />
             <Text variant="bodySm" tone="subtle">
               {collection.viewCount} {t('collection.views')}
             </Text>
           </View>
           <View style={styles.counter}>
-            <Ionicons name="heart" size={iconSize.sm} color={colors.danger[500]!} />
+            <Icon name="heart" variant="solid" size={iconSize.sm} color={colors.danger[500]!} />
             <Text variant="bodySm" tone="subtle">
               {f.likeCount} {t('collection.likes')}
             </Text>
@@ -91,7 +90,7 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
         {items.length === 0 ? (
           <EmptyState
             size="compact"
-            icon="cube-outline"
+            icon="cube"
             title={t('collection.noProductsYet')}
             actionLabel={f.isOwner ? t('collection.addFirstProduct') : undefined}
             onAction={f.isOwner ? () => router.push(`/collections/${id}/add-items`) : undefined}

@@ -44,7 +44,7 @@ export function ListingsHeader({ f, session }: { f: ListingsController; session:
         onChangeText={f.setSearchQuery}
         onSubmitEditing={f.applySearch}
         returnKeyType="search"
-        leftIconName="search"
+        leftIconName="magnifying-glass"
       />
       <ActiveFilterChips chips={f.activeChips} onClear={f.clearFilters} />
     </View>

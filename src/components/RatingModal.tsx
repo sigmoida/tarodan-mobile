@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuthStore } from '../stores/authStore';
-import { theme, Text, Button, Modal, Input, Textarea } from '@/ui';
+import { theme, Text, Button, Modal, Input, Textarea, Icon } from '@/ui';
 
 const { colors } = theme;
 
@@ -122,8 +121,8 @@ export default function RatingModal({
                 onPress={() => setRating(star)}
                 style={styles.starButton}
               >
-                <Ionicons
-                  name={star <= rating ? 'star' : 'star-outline'}
+                <Icon
+                  name={star <= rating ? 'star' : 'star'} variant={star <= rating ? 'solid' : 'outline'}
                   size={40}
                   color={star <= rating ? colors.warning[500]! : colors.text.subtle}
                 />
@@ -178,19 +177,19 @@ export default function RatingModal({
               {t('ratingModal.criteriaTitle')}
             </Text>
             <View style={styles.criteriaItem}>
-              <Ionicons name="checkmark-circle" size={16} color={colors.success[600]!} />
+              <Icon name="check-circle" variant="solid" size={16} color={colors.success[600]!} />
               <Text style={styles.criteriaText}>{t('ratingModal.criteriaProductAccuracy')}</Text>
             </View>
             <View style={styles.criteriaItem}>
-              <Ionicons name="checkmark-circle" size={16} color={colors.success[600]!} />
+              <Icon name="check-circle" variant="solid" size={16} color={colors.success[600]!} />
               <Text style={styles.criteriaText}>{t('ratingModal.criteriaCommunication')}</Text>
             </View>
             <View style={styles.criteriaItem}>
-              <Ionicons name="checkmark-circle" size={16} color={colors.success[600]!} />
+              <Icon name="check-circle" variant="solid" size={16} color={colors.success[600]!} />
               <Text style={styles.criteriaText}>{t('ratingModal.criteriaShipping')}</Text>
             </View>
             <View style={styles.criteriaItem}>
-              <Ionicons name="checkmark-circle" size={16} color={colors.success[600]!} />
+              <Icon name="check-circle" variant="solid" size={16} color={colors.success[600]!} />
               <Text style={styles.criteriaText}>{t('ratingModal.criteriaTradeFairness')}</Text>
             </View>
           </View>

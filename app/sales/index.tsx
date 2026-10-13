@@ -28,7 +28,7 @@ export default function SalesScreen() {
         onBack={back}
         empty
         emptyState={{
-          icon: 'storefront-outline',
+          icon: 'building-storefront',
           title: t('sellerDashboard.mySales'),
           description: t('sale.authGateSubtitle'),
           actionLabel: t('common.login'),
@@ -67,7 +67,7 @@ export default function SalesScreen() {
             </View>
           ) : (
             <EmptyState
-              icon="cart-outline"
+              icon="shopping-cart"
               title={t('sale.emptyTitle')}
               description={t('sale.emptySubtitle')}
               actionLabel={t('product.createListing')}

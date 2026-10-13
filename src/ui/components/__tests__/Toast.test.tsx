@@ -18,7 +18,7 @@ describe('toast (web react-hot-toast karşılığı)', () => {
       toast.success('Kaydedildi');
     });
     expect(screen.getByText('Kaydedildi')).toBeTruthy();
-    expect(screen.getByText('Ionicons:checkmark-circle')).toBeTruthy();
+    expect(screen.getByTestId('icon-check-circle')).toBeTruthy();
     act(() => {
       jest.advanceTimersByTime(2100);
     });

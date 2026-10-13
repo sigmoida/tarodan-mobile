@@ -25,7 +25,7 @@ export default function CollectionDetailScreen() {
       loading={f.isLoading}
       empty={!f.isLoading && !f.collection}
       emptyState={{
-        icon: 'albums-outline',
+        icon: 'rectangle-stack',
         title: t('collection.collectionNotFound'),
         actionLabel: t('common.goBack'),
         onAction: goBack,

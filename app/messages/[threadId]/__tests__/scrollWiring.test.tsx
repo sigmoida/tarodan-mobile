@@ -126,7 +126,7 @@ describe('mesaj thread — auto-scroll kabloları (review fix #1)', () => {
   it("mesaj gönderme akışı forceScrollToBottom'ı çağırır (useMessageThread.ts:159)", async () => {
     renderWithProviders(<MessageThreadScreen />);
     fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın'), 'Merhaba');
-    fireEvent.press(screen.UNSAFE_getByProps({ name: 'send' }).parent);
+    fireEvent.press(screen.getByTestId('message-send'));
 
     await waitFor(() => expect(mockSendMessage).toHaveBeenCalled());
     // Regresyon: handleSend içindeki forceScrollToBottom() çağrısı silinirse bu

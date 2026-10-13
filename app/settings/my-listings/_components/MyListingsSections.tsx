@@ -3,8 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { MessageKey } from '@/i18n/lib';
 import { View, ScrollView, Pressable, Image } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Alert, Button, Checkbox, Chip, EmptyState, IconButton, ProgressBar, SectionCard, Text, theme } from '@/ui';
+import { Alert, Button, Checkbox, Chip, EmptyState, IconButton, ProgressBar, SectionCard, Text, theme, Icon } from '@/ui';
 
 import { resolveImageUrl } from '@/utils/imageUrl';
 import UpgradeCta from '@/components/UpgradeCta';
@@ -151,11 +150,11 @@ export function MyListingCard({
         {/* Stats */}
         <View style={styles.listingStats}>
           <View style={styles.stat}>
-            <Ionicons name="eye-outline" size={STAT_ICON} color={colors.text.muted} />
+            <Icon name="eye" size={STAT_ICON} color={colors.text.muted} />
             <Text variant="caption">{listing.viewCount}</Text>
           </View>
           <View style={styles.stat}>
-            <Ionicons name="heart-outline" size={STAT_ICON} color={colors.text.muted} />
+            <Icon name="heart" size={STAT_ICON} color={colors.text.muted} />
             <Text variant="caption">{listing.likeCount || 0}</Text>
           </View>
           <View style={styles.statusBadge}>
@@ -201,7 +200,7 @@ export function MyListingsEmpty({ filter }: { filter: MyListingsController['filt
   if (filter === 'expired') {
     return (
       <EmptyState
-        icon="time-outline"
+        icon="clock"
         title={t('profile.expiredListings.empty')}
         subtitle={t('profile.expiredListings.emptyDescription')}
       />
@@ -209,7 +208,7 @@ export function MyListingsEmpty({ filter }: { filter: MyListingsController['filt
   }
   return (
     <EmptyState
-      icon="pricetag-outline"
+      icon="tag"
       title={
         filter === 'all'
           ? t('listing.noListingsYet')

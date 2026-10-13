@@ -1,5 +1,4 @@
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import {
   Pressable,
   StyleSheet,
@@ -12,6 +11,7 @@ import { theme } from '../lib/theme';
 import { touchSlop } from './Button';
 import { RawText } from './Text';
 
+import { Icon } from '../icons';
 const { colors, radius, radiusRole, spacing, typography, iconSize } = theme;
 
 export interface SectionCardProps {
@@ -99,7 +99,7 @@ export const SectionCardAction: React.FC<SectionCardActionProps> = ({ onPress, l
       style={({ pressed }) => [styles.actionButton, pressed && styles.pressed]}
     >
       <RawText style={styles.actionText}>{text}</RawText>
-      <Ionicons name="chevron-forward" size={iconSize.sm} color={colors.text.body} />
+      <Icon name="chevron-right" size={iconSize.sm} color={colors.text.body} />
     </Pressable>
   );
 };

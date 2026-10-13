@@ -67,7 +67,7 @@ export function Showcase() {
       <SectionCard title="IconButton">
         <View style={styles.wrap}>
           {ICON_VARIANTS.map((v) => (
-            <IconButton key={v} variant={v} icon="heart-outline" accessibilityLabel={v} />
+            <IconButton key={v} variant={v} icon="heart" accessibilityLabel={v} />
           ))}
         </View>
       </SectionCard>

@@ -1,5 +1,4 @@
-import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
+import type { IconName } from '@/ui';
 
 export interface Notification {
   id: string;
@@ -21,8 +20,6 @@ export interface Notification {
     userId?: string;
   };
 }
-
-export type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 export const STOCKOUT_TYPES = new Set([
   'order_cancelled_out_of_stock',

@@ -15,7 +15,7 @@ export default function PaymentOptionsScreen() {
           content: t("paymentOptionsPage.acceptedContent"),
         },
         {
-          icon: "shield-checkmark-outline",
+          icon: "shield-check",
           title: t("paymentOptionsPage.securityTitle"),
           content: t("paymentOptionsPage.securityContent"),
         },

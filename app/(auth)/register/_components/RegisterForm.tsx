@@ -1,7 +1,6 @@
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
-import { Button, Checkbox, DateField, HStack, Input, Spinner, Text, theme } from '@/ui';
+import { Button, Checkbox, DateField, HStack, Input, Spinner, Text, theme, Icon } from '@/ui';
 import { Controller } from 'react-hook-form';
 import { router } from 'expo-router';
 import { styles } from '../_lib/styles';
@@ -47,7 +46,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
     : usernameError
       ? null
       : available === true
-        ? <Ionicons name="checkmark-circle" size={20} color={theme.colors.success[600]} />
+        ? <Icon name="check-circle" variant="solid" size={20} color={theme.colors.success[600]} />
         : null;
 
   return (

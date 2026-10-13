@@ -20,7 +20,7 @@ export default function PaymentHistoryScreen() {
       <AuthGatePage
         title={title}
         onBack={back}
-        icon="log-in-outline"
+        icon="arrow-right-on-rectangle"
         emptyTitle={t('membership.loginRequiredTitle')}
         subtitle={t('payment.myPaymentsLoginSubtitle')}
       />
@@ -44,7 +44,7 @@ export default function PaymentHistoryScreen() {
         onRefresh={() => f.fetchPayments()}
         ListEmptyComponent={
           <EmptyState
-            icon="receipt-outline"
+            icon="receipt-percent"
             title={t('payment.noHistory')}
             subtitle={t('payment.noPaymentsSubtitle')}
           />

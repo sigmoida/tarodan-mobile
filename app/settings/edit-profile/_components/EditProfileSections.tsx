@@ -1,17 +1,7 @@
 import { View, Pressable, Image } from "react-native";
-import {
-  Alert,
-  Avatar,
-  Badge,
-  Button,
-  DateField,
-  Input,
-  SectionCard,
-  theme,
-} from "@/ui";
+import { Alert, Avatar, Badge, Button, DateField, Input, SectionCard, theme, Icon } from "@/ui";
 import { router } from "expo-router";
 import { Controller } from "react-hook-form";
-import { Ionicons } from "@expo/vector-icons";
 import { MembershipBadgeCard } from "@/components/PremiumBadge";
 import { CAN_BUY_DIGITAL } from "@/lib/purchases";
 import { useTranslation } from "react-i18next";
@@ -40,7 +30,7 @@ export function AvatarSection({ f }: { f: EditProfileController }) {
             <Avatar size="xl" name={f.user?.displayName || "U"} />
           )}
           <View style={styles.avatarEditBadge}>
-            <Ionicons name="camera" size={iconSize.sm} color={colors.text.inverted} />
+            <Icon name="camera" variant="solid" size={iconSize.sm} color={colors.text.inverted} />
           </View>
         </Pressable>
       </View>

@@ -1,10 +1,10 @@
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { theme } from '../lib/theme';
 import { RawText } from './Text';
 
+import { Icon } from '../icons';
 /**
  * Adet seçici (− [n] +) — web `@tarodan/ui` QuantityStepper. Stok duyarlı: `max`'ta `+`,
  * `min`'de (varsayılan 1) `−` kilitlenir. `onChange` yalnız sınır içi değerle çağrılır.
@@ -73,7 +73,7 @@ export const QuantityStepper: React.FC<QuantityStepperProps> = ({
         isDisabled && styles.disabled,
       ]}
     >
-      <Ionicons name={kind === 'dec' ? 'remove' : 'add'} size={iconSize.sm} color={colors.text.body} />
+      <Icon name={kind === 'dec' ? 'minus' : 'plus'} size={iconSize.sm} color={colors.text.body} />
     </Pressable>
   );
 

@@ -8,9 +8,8 @@ import {
   Switch,
 } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { theme, DateField, RawText, RawTextInput } from '@/ui';
+import { theme, DateField, RawText, RawTextInput, Icon } from '@/ui';
 import UpgradeCta from '@/components/UpgradeCta';
 import { ListingRemovalModal } from '../ListingRemovalModal';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
@@ -797,7 +796,7 @@ export function ListingSubmitRow({ f }: SectionProps) {
       {/* Delete (edit only) */}
       {f.isEdit && (
         <TouchableOpacity style={styles.deleteButton} onPress={f.handleDelete} disabled={f.isSubmitting}>
-          <Ionicons name="trash-outline" size={18} color={colors.danger[600]!} />
+          <Icon name="trash" size={18} color={colors.danger[600]!} />
           <RawText style={styles.deleteButtonText}>{t('product.deleteListing')}</RawText>
         </TouchableOpacity>
       )}

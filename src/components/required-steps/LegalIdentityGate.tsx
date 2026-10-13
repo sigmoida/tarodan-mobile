@@ -72,7 +72,7 @@ export function LegalIdentityGate({
   return (
     <RequiredStepShell
       testID="identity-gate"
-      icon="id-card-outline"
+      icon="identification"
       title={t('identity.gate.title')}
       intro={t('identity.gate.intro')}
       error={submit.isError ? errorText(submit.error, t('identity.gate.submitFailed')) : null}

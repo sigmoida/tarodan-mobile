@@ -108,7 +108,7 @@ export default function OffersScreen() {
         onBack={back}
         empty
         emptyState={{
-          icon: "pricetag-outline",
+          icon: "tag",
           title: t("offer.myOffersTitle"),
           description: t("offer.authGateSubtitle"),
           actionLabel: t("common.login"),

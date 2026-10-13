@@ -33,7 +33,7 @@ export function ProductListControls({
         <Button
           variant="outline"
           size="sm"
-          icon="funnel-outline"
+          icon="funnel"
           title={t('product.filters')}
           onPress={onFilter}
           accessibilityLabel={t('product.filters')}
@@ -49,7 +49,7 @@ export function ProductListControls({
       {layout && onLayoutChange ? (
         <IconButton
           testID="layout-toggle"
-          icon={layout === 'grid' ? 'list-outline' : 'grid-outline'}
+          icon={layout === 'grid' ? 'list-bullet' : 'squares-2x2'}
           size="sm"
           variant="ghost"
           accessibilityLabel={layout === 'grid' ? t('product.layoutList') : t('product.layoutGrid')}
@@ -59,7 +59,7 @@ export function ProductListControls({
       <Button
         variant="outline"
         size="sm"
-        icon="swap-vertical-outline"
+        icon="arrows-up-down"
         title={sortLabel}
         onPress={onSort}
         accessibilityLabel={t('common.sort')}

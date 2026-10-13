@@ -1,7 +1,5 @@
-import type { Ionicons } from '@expo/vector-icons';
+import type { IconName } from '@/ui';
 import type { TFunction } from 'i18next';
-
-type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
 export interface MenuPage {
   /** `app/` altındaki rota (ör. `size-guide` → `/size-guide`). */
@@ -29,18 +27,18 @@ export interface MenuPage {
  * başındaki aynı gerekçe). `route`/`icon` dilden bağımsız, testler bunları doğrudan okur.
  */
 export const buildInfoPages = (t: TFunction): ReadonlyArray<MenuPage> => [
-  { route: 'guides', label: t('mobile.pageGuides'), icon: 'library-outline' },
-  { route: 'size-guide', label: t('mobile.pageSizeGuide'), icon: 'resize-outline' },
-  { route: 'guvenli-takas', label: t('mobile.pageSafeTrade'), icon: 'swap-horizontal-outline' },
-  { route: 'buyer-protection', label: t('mobile.pageBuyerProtection'), icon: 'shield-half-outline' },
-  { route: 'returns-exchanges', label: t('mobile.pageReturns'), icon: 'refresh-outline' },
-  { route: 'refund-policy', label: t('mobile.pageRefundPolicy'), icon: 'cash-outline' },
-  { route: 'shipping-delivery', label: t('mobile.pageShipping'), icon: 'cube-outline' },
-  { route: 'payment-options', label: t('mobile.pagePaymentOptions'), icon: 'card-outline' },
-  { route: 'security-features', label: t('mobile.pageSecurityFeatures'), icon: 'lock-closed-outline' },
-  { route: 'distance-sales', label: t('mobile.pageDistanceSales'), icon: 'document-outline' },
-  { route: 'seller-agreement', label: t('mobile.pageSellerAgreement'), icon: 'briefcase-outline' },
-  { route: 'intellectual-property', label: t('footer.intellectualProperty'), icon: 'ribbon-outline' },
+  { route: 'guides', label: t('mobile.pageGuides'), icon: 'building-library' },
+  { route: 'size-guide', label: t('mobile.pageSizeGuide'), icon: 'arrows-pointing-out' },
+  { route: 'guvenli-takas', label: t('mobile.pageSafeTrade'), icon: 'arrows-right-left' },
+  { route: 'buyer-protection', label: t('mobile.pageBuyerProtection'), icon: 'shield-check' },
+  { route: 'returns-exchanges', label: t('mobile.pageReturns'), icon: 'arrow-path' },
+  { route: 'refund-policy', label: t('mobile.pageRefundPolicy'), icon: 'banknotes' },
+  { route: 'shipping-delivery', label: t('mobile.pageShipping'), icon: 'cube' },
+  { route: 'payment-options', label: t('mobile.pagePaymentOptions'), icon: 'credit-card' },
+  { route: 'security-features', label: t('mobile.pageSecurityFeatures'), icon: 'lock-closed' },
+  { route: 'distance-sales', label: t('mobile.pageDistanceSales'), icon: 'document-text' },
+  { route: 'seller-agreement', label: t('mobile.pageSellerAgreement'), icon: 'briefcase' },
+  { route: 'intellectual-property', label: t('footer.intellectualProperty'), icon: 'check-badge' },
 ];
 
 /**
@@ -48,6 +46,6 @@ export const buildInfoPages = (t: TFunction): ReadonlyArray<MenuPage> => [
  * bilgi listesinden ayrı, hesap bölümünde gösterilirler.
  */
 export const buildAccountPages = (t: TFunction): ReadonlyArray<MenuPage> => [
-  { route: 'following', label: t('mobile.settingsFollowing'), icon: 'people-outline' },
-  { route: 'newsletter', label: t('mobile.settingsNewsletter'), icon: 'mail-outline' },
+  { route: 'following', label: t('mobile.settingsFollowing'), icon: 'user-group' },
+  { route: 'newsletter', label: t('mobile.settingsNewsletter'), icon: 'envelope' },
 ];

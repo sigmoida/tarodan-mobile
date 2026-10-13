@@ -1,11 +1,8 @@
 import React from 'react';
 import { View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Text, theme } from '@/ui';
+import { Icon, Text, theme } from '@/ui';
 import type { ResolvedTrustBadge } from '@/lib/hero/heroView';
 import { badgeStyles as s } from '../_lib/heroStyles';
-
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 /**
  * Ana sayfa güven rozeti şeridi (admin'den, web ile aynı). Telefonda 3 sütun;
@@ -24,12 +21,7 @@ export function TrustBadges({ badges }: { badges: ResolvedTrustBadge[] }) {
             accessible
             accessibilityLabel={b.description ? `${b.title}. ${b.description}` : b.title}
           >
-            <MaterialCommunityIcons
-              name={b.icon as IconName}
-              size={22}
-              color={theme.colors.primary[500]}
-              style={s.icon}
-            />
+            <Icon name={b.icon} size={22} color={theme.colors.primary[500]} style={s.icon} />
             <Text variant="caption" tone="heading" weight="semibold" align="center" numberOfLines={2}>
               {b.title}
             </Text>

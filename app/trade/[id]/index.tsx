@@ -60,7 +60,7 @@ export default function TradeDetailScreen() {
         onBack={handleBack}
         empty
         emptyState={{
-          icon: "swap-horizontal-outline",
+          icon: "arrows-right-left",
           title: t('trade.notFoundTitle'),
           actionLabel: t('common.goBack'),
           onAction: handleBack,

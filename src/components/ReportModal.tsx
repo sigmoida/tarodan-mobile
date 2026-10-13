@@ -1,11 +1,10 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { userReportsApi } from '@/lib/api';
-import { theme, Text, Button, Modal, Textarea } from '@/ui';
+import { theme, Text, Button, Modal, Textarea, Icon } from '@/ui';
 
 const { colors } = theme;
 
@@ -165,10 +164,10 @@ export default function ReportModal({
             ]}
             onPress={() => setReason(r.value)}
           >
-            <Ionicons
-              name={reason === r.value ? 'radio-button-on' : 'radio-button-off'}
+            <Icon
+              name={reason === r.value ? 'check-circle' : 'minus-circle'}
               size={20}
-              color={reason === r.value ? colors.primary[600]! : colors.text.muted}
+              color={reason === r.value ? colors.primary[600]! : colors.text.muted} variant="solid"
             />
             <Text style={styles.reasonText}>{r.label}</Text>
           </TouchableOpacity>
@@ -186,7 +185,7 @@ export default function ReportModal({
         <Text style={styles.charCount}>{description.length}/500</Text>
 
         <View style={styles.warningBox}>
-          <Ionicons name="warning" size={20} color={colors.warning[600]!} />
+          <Icon name="exclamation-triangle" variant="solid" size={20} color={colors.warning[600]!} />
           <Text style={styles.warningText}>
             {t('report.falseReportWarning')}
           </Text>
@@ -200,7 +199,7 @@ export default function ReportModal({
 
         {reportMutation.isSuccess ? (
           <View style={styles.successBox}>
-            <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
+            <Icon name="check-circle" variant="solid" size={20} color={colors.success[600]!} />
             <Text style={styles.successText}>
               {t('report.submitSuccess')}
             </Text>

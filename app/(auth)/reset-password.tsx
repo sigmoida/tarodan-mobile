@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import { Button, HStack, Input, Text, theme } from "@/ui";
+import { Button, HStack, Input, Text, theme, Icon } from "@/ui";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { PasswordChecklist } from "@/components/auth/PasswordChecklist";
 import { authApi } from "@/lib/api";
@@ -98,10 +97,10 @@ export default function ResetPasswordScreen() {
 
       {confirmPassword ? (
         <HStack gap={2} align="center" style={styles.match}>
-          <Ionicons
-            name={passwordsMatch ? "checkmark-circle" : "close-circle"}
+          <Icon
+            name={passwordsMatch ? 'check-circle' : 'x-circle'}
             size={theme.iconSize.sm}
-            color={passwordsMatch ? colors.success[600] : colors.danger[600]}
+            color={passwordsMatch ? colors.success[600] : colors.danger[600]} variant="solid"
           />
           <Text variant="bodySm" tone={passwordsMatch ? "success" : "danger"}>
             {passwordsMatch ? t("common.success") : t("mobile.passwordsDontMatch")}

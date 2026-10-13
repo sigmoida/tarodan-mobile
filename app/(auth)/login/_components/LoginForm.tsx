@@ -149,7 +149,9 @@ export function LoginForm({ f }: { f: LoginController }) {
           variant="outline"
           size="lg"
           fullWidth
-          icon="logo-google"
+          // Marka logosu (web aynı yerde Google logosu gösterir) — dekoratif ikon kuralının istisnası.
+          // eslint-disable-next-line tarodan/restrict-button-icon
+          leftIcon={<Ionicons name="logo-google" size={theme.iconSize.md} color={colors.text.body} />}
           title={f.googleLoading ? t('auth.signingIn') : t('auth.continueWithGoogle')}
           accessibilityLabel={t('auth.continueWithGoogle')}
           onPress={f.handleGoogle}

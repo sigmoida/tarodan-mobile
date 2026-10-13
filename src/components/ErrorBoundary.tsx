@@ -5,10 +5,9 @@ import {
   StyleSheet,
   ScrollView,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { usePathname } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { theme, RawText } from "@/ui";
+import { theme, RawText, Icon } from "@/ui";
 import { logger } from "../services/logger";
 import { SHOW_DIAGNOSTICS } from "@/config/diagnostics";
 
@@ -109,8 +108,8 @@ function FallbackScreen({
   const { t } = useTranslation();
   return (
     <View style={styles.container}>
-      <Ionicons
-        name="warning-outline"
+      <Icon
+        name="exclamation-triangle"
         size={64}
         color={theme.colors.danger[500]}
       />

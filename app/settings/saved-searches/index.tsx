@@ -19,7 +19,7 @@ export default function SavedSearchesScreen() {
       <AuthGatePage
         title={t("mobile.settingsSavedSearches")}
         emptyTitle={t("savedSearch.title")}
-        icon="search-outline"
+        icon="magnifying-glass"
         subtitle={t("savedSearch.loginSubtitle")}
       />
     );
@@ -62,7 +62,7 @@ export default function SavedSearchesScreen() {
 
       {f.searches.length === 0 ? (
         <EmptyState
-          icon="search-outline"
+          icon="magnifying-glass"
           title={t("savedSearch.emptyTitle")}
           subtitle={t("savedSearch.emptySubtitle")}
           actionLabel={t("savedSearch.goToSearch")}

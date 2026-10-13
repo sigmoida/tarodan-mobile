@@ -2,8 +2,7 @@ import React from 'react';
 import { View, Image } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
-import { Button, Card, Chip, Divider, Spinner, Text, Input, Textarea, theme } from '@/ui';
+import { Button, Card, Chip, Divider, Spinner, Text, Input, Textarea, theme, Icon } from '@/ui';
 
 import { TradeAddressPicker } from '@/components/common';
 import { ProductCard } from '@/components/product';
@@ -31,8 +30,8 @@ function TradePick({ product, isSelected, onToggle }: { product: Product; isSele
       onPress={onToggle}
       style={{ marginBottom: theme.spacing[3] }}
       overlay={
-        <Ionicons
-          name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
+        <Icon
+          name={isSelected ? 'check-circle' : 'minus-circle'} variant={isSelected ? 'solid' : 'outline'}
           size={theme.iconSize.lg}
           color={isSelected ? colors.primary[600]! : colors.text.subtle}
         />
@@ -81,7 +80,7 @@ export function Step1MyItems({ f }: StepProps) {
       ) : f.myProducts?.length === 0 ? (
         <Card style={styles.emptyCard}>
           <View style={styles.emptyContent}>
-            <Ionicons name="pricetag-outline" size={48} color={colors.text.subtle} />
+            <Icon name="tag" size={48} color={colors.text.subtle} />
             <Text variant="body" style={styles.emptyText}>
               {t('trade.noListingsForTrade')}
             </Text>
@@ -124,7 +123,7 @@ export function Step2TheirItems({ f }: StepProps) {
       ) : f.theirProducts?.length === 0 ? (
         <Card style={styles.emptyCard}>
           <View style={styles.emptyContent}>
-            <Ionicons name="swap-horizontal" size={48} color={colors.text.subtle} />
+            <Icon name="arrows-right-left" size={48} color={colors.text.subtle} />
             <Text variant="body" style={styles.emptyText}>
               {t('trade.noProductsFromSeller')}
             </Text>
@@ -285,7 +284,7 @@ export function Step3Review({ f }: StepProps) {
       {/* Trade Protection Info */}
       <Card style={styles.protectionCard}>
         <View style={styles.protectionContent}>
-          <Ionicons name="shield-checkmark" size={24} color={colors.success[600]!} />
+          <Icon name="shield-check" variant="solid" size={24} color={colors.success[600]!} />
           <View style={styles.protectionText}>
             <Text variant="label">{t('trade.safeTradeTitle')}</Text>
             <Text variant="caption" style={styles.protectionDesc}>

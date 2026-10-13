@@ -85,7 +85,7 @@ export function CartItemRow({ item, f }: { item: any; f: CartController }) {
           increaseLabel={t('cart.increaseQuantity')}
         />
         <IconButton
-          icon="trash-outline"
+          icon="trash"
           variant="danger"
           size="sm"
           accessibilityLabel={t('cart.removeItem')}

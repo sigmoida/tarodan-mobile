@@ -1,7 +1,6 @@
 import { View, Pressable, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { StatusBadge, Text, theme } from '@/ui';
+import { StatusBadge, Text, theme, Icon } from '@/ui';
 import { styles } from '../_lib/styles';
 import { buildStatusConfig, formatDate, formatCurrency } from '../_lib/status';
 import type { Payment } from '../_lib/types';
@@ -19,7 +18,7 @@ export function PaymentHistoryItem({ item, onPress }: { item: Payment; onPress: 
         <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
       ) : (
         <View style={[styles.statusIconContainer, { backgroundColor: theme.colors.surface.alt }]}>
-          <Ionicons name={statusCfg.icon as any} size={theme.iconSize.lg} color={statusCfg.color} />
+          <Icon name={statusCfg.icon} variant="solid" size={theme.iconSize.lg} color={statusCfg.color} />
         </View>
       )}
 

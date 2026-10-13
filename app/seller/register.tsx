@@ -29,7 +29,7 @@ export default function SellerRegisterScreen() {
         onBack={handleBack}
         empty
         emptyState={{
-          icon: 'briefcase-outline',
+          icon: 'briefcase',
           title: t('seller.useBusinessRegisterForm'),
           actionLabel: t('seller.openBusinessAccount'),
           onAction: () => router.push('/(auth)/register-business'),

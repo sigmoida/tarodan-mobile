@@ -18,7 +18,7 @@ export default function AnalyticsScreen() {
       <AuthGatePage
         title={title}
         emptyTitle={f.t('analytics.analytics')}
-        icon="stats-chart-outline"
+        icon="chart-bar"
         subtitle={f.t('analytics.authGateSubtitle')}
       />
     );
@@ -30,7 +30,7 @@ export default function AnalyticsScreen() {
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       loading={f.isLoading}
       empty={!f.isLoading && !f.analytics}
-      emptyState={{ icon: 'stats-chart-outline', title: f.t('analytics.dataLoadFailed') }}
+      emptyState={{ icon: 'chart-bar', title: f.t('analytics.dataLoadFailed') }}
       refreshing={f.refreshing}
       onRefresh={f.onRefresh}
     >

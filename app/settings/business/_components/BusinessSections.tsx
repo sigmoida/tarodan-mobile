@@ -2,8 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { ScrollView, View, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Avatar, Chip, SectionCard, Text, theme } from '@/ui';
+import { Avatar, Chip, SectionCard, Text, theme, Icon } from '@/ui';
 
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
@@ -46,7 +45,7 @@ export function BusinessCompanyHeader({ f }: { f: BusinessController }) {
               {name}
             </Text>
             {stats?.company.isVerified && (
-              <Ionicons name="checkmark-circle" size={theme.iconSize.md} color={colors.success[600]!} />
+              <Icon name="check-circle" variant="solid" size={theme.iconSize.md} color={colors.success[600]!} />
             )}
           </View>
           <Text variant="bodySm" tone="primary">

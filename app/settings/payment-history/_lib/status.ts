@@ -1,25 +1,26 @@
 import type { TFunction } from 'i18next';
+import type { IconName } from '@/ui';
 import { formatPrice } from '@/utils/format';
 import { buildPaymentStatusConfig } from '@/lib/payment/status';
 import { statusVariantSolid } from '@/lib/shared/status-colors';
 import type { StatusConfig } from '@/lib/shared/status-configs';
 
 /** Satır başındaki durum ikonu (foto yokken) — işlevsel; rozet ikon taşımaz. */
-const STATUS_ICON: Record<string, string> = {
-  completed: 'checkmark-circle',
-  paid: 'checkmark-circle',
-  success: 'checkmark-circle',
-  hold_payment: 'checkmark-circle',
-  failed: 'close-circle',
-  pending: 'time',
-  processing: 'time',
+const STATUS_ICON: Record<string, IconName> = {
+  completed: 'check-circle',
+  paid: 'check-circle',
+  success: 'check-circle',
+  hold_payment: 'check-circle',
+  failed: 'x-circle',
+  pending: 'clock',
+  processing: 'clock',
   // İade edilen ödeme "Bekliyor" değil, açıkça "İade Edildi" gösterilmeli (web ile tutarlı).
-  refunded: 'arrow-undo',
-  refund_requested: 'time',
-  cancelled: 'close-circle',
+  refunded: 'arrow-uturn-left',
+  refund_requested: 'clock',
+  cancelled: 'x-circle',
 };
 
-export type PaymentHistoryStatus = StatusConfig & { color: string; icon: string };
+export type PaymentHistoryStatus = StatusConfig & { color: string; icon: IconName };
 
 /**
  * Renk + etiket web `paymentStatusConfig` ile aynı (`@/lib/payment/status`);
@@ -29,7 +30,7 @@ export const buildStatusConfig = (t: TFunction): Record<string, PaymentHistorySt
   Object.fromEntries(
     Object.entries(buildPaymentStatusConfig(t)).map(([status, cfg]) => [
       status,
-      { ...cfg, color: statusVariantSolid(cfg.variant), icon: STATUS_ICON[status] ?? 'time' },
+      { ...cfg, color: statusVariantSolid(cfg.variant), icon: STATUS_ICON[status] ?? 'clock' },
     ]),
   );
 
