@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button, theme, appAlert } from '@/ui';
+import { Button, theme } from '@/ui';
 import { styles } from '../_lib/styles';
 import type { OfferDetailController } from '../_hooks/useOfferDetail';
 import { FirstToPayNote } from '../../_components/FirstToPayNote';
@@ -45,12 +45,7 @@ export function OfferDetailActions({ f }: { f: OfferDetailController }) {
           </Button>
           <Button
             variant="outline"
-            onPress={() =>
-              appAlert(t('offer.rejectOffer'), t('offer.rejectConfirmBody'), [
-                { text: t('trade.dispute.cancelCta'), style: 'cancel' },
-                { text: t('offer.rejectOffer'), style: 'destructive', onPress: () => rejectMutation.mutate() },
-              ])
-            }
+            onPress={f.requestReject}
             disabled={rejectMutation.isPending}
             icon="close"
             fullWidth
@@ -66,12 +61,7 @@ export function OfferDetailActions({ f }: { f: OfferDetailController }) {
       {isPending && isBuyer && !offer.buyerMustAccept ? (
         <Button
           variant="outline"
-          onPress={() =>
-            appAlert(t('offer.cancelOffer'), t('offer.cancelConfirmBody'), [
-              { text: t('trade.dispute.cancelCta'), style: 'cancel' },
-              { text: t('offer.cancelOffer'), style: 'destructive', onPress: () => cancelMutation.mutate() },
-            ])
-          }
+          onPress={f.requestCancel}
           isLoading={cancelMutation.isPending}
           icon="trash-outline"
           fullWidth

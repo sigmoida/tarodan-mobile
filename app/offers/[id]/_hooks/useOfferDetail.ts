@@ -90,6 +90,9 @@ export function useOfferDetail() {
 
   /** Detaydan kabul yalnız satıcıdır (gelen teklif); web gibi önce onay. */
   const requestAccept = () => confirm('acceptSeller', () => acceptMutation.mutate());
+  /** Reddet / iptal: liste kartıyla aynı onay (`useConfirmOffer`). */
+  const requestReject = () => confirm('reject', () => rejectMutation.mutate());
+  const requestCancel = () => confirm('cancel', () => cancelMutation.mutate());
 
   const firstImg =
     Array.isArray(offer?.product?.images) && offer!.product!.images.length > 0
@@ -148,6 +151,8 @@ export function useOfferDetail() {
     onRefresh,
     acceptMutation,
     requestAccept,
+    requestReject,
+    requestCancel,
     timing,
     rejectMutation,
     cancelMutation,

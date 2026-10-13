@@ -37,6 +37,8 @@ import OfferDetailScreen from '../[id]';
 const getAll = offersApi.getAll as jest.Mock;
 const getOne = offersApi.getOne as jest.Mock;
 const accept = offersApi.accept as jest.Mock;
+const reject = offersApi.reject as jest.Mock;
+const cancel = offersApi.cancel as jest.Mock;
 
 const base = (over: Record<string, unknown> = {}) => ({
   id: 'o1',
@@ -72,6 +74,8 @@ beforeEach(() => {
   getAll.mockReset();
   getOne.mockReset();
   accept.mockReset().mockResolvedValue({ data: {} });
+  reject.mockReset().mockResolvedValue({ data: {} });
+  cancel.mockReset().mockResolvedValue({ data: {} });
   mockUser = { id: 's1' };
   mockTab = undefined;
 });
@@ -244,5 +248,118 @@ describe('detay: satıcı kabul eder', () => {
     getOne.mockResolvedValue({ data: { data: base({ status: 'accepted', orderStatus: 'pending_payment' }) } });
     mount(<OfferDetailScreen />);
     expect(await screen.findByText(/Alıcının 36 saatlik ödeme süresi var/)).toBeOnTheScreen();
+  });
+});
+
+/**
+ * Reddet / iptal de GERİ ALINAMAZ (web `useOfferAction.run` üçünde de onay ister): liste
+ * kartı ve detay aynı diyaloğu (başlık, metin, yıkıcı Onayla) ve aynı gecikmeli
+ * mutasyonu kullanır.
+ */
+describe('reddet ve iptal onay ister (liste = detay = web)', () => {
+  afterEach(() => jest.useRealTimers());
+
+  const expectConfirmedAfterDelay = async (
+    press: () => void,
+    api: jest.Mock,
+    title: string,
+    body: RegExp,
+  ) => {
+    jest.useFakeTimers();
+    press();
+    const c = lastConfirm();
+    expect(c.title).toBe(title);
+    expect(c.message).toMatch(body);
+    expect(c.message).toMatch(/geri alınamaz/);
+    expect(c.confirm.text).toBe('Onayla');
+    expect(c.cancel.text).toBe('İptal');
+    expect((c.confirm as { style?: string }).style).toBe('destructive');
+    expect(api).not.toHaveBeenCalled();
+
+    act(() => c.confirm.onPress());
+    await act(async () => {});
+    expect(api).not.toHaveBeenCalled(); // aynı tick'te değil (ModalFreeze)
+    await act(async () => {
+      jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS);
+    });
+    expect(api).toHaveBeenCalledWith('o1');
+  };
+
+  it('liste (gelen): Reddet', async () => {
+    getAll.mockResolvedValue({ data: { data: [base()] } });
+    mount(<OffersScreen />);
+    await screen.findByText('Vintage Kamera');
+    await flushPolicy();
+    await expectConfirmedAfterDelay(
+      () => fireEvent.press(screen.getByText('Reddet')),
+      reject,
+      'Teklifi reddet',
+      /reddetmek istediğinizden emin misiniz/,
+    );
+  });
+
+  it('liste (gönderilen, karşı teklif): Reddet', async () => {
+    mockTab = 'sent';
+    getAll.mockResolvedValue({ data: { data: [base({ buyerMustAccept: true })] } });
+    mount(<OffersScreen />);
+    await screen.findByText('Vintage Kamera');
+    await flushPolicy();
+    await expectConfirmedAfterDelay(
+      () => fireEvent.press(screen.getByText('Reddet')),
+      reject,
+      'Teklifi reddet',
+      /reddetmek istediğinizden emin misiniz/,
+    );
+  });
+
+  it('liste (gönderilen): İptal Et', async () => {
+    mockTab = 'sent';
+    getAll.mockResolvedValue({ data: { data: [base()] } });
+    mount(<OffersScreen />);
+    await screen.findByText('Vintage Kamera');
+    await flushPolicy();
+    await expectConfirmedAfterDelay(
+      () => fireEvent.press(screen.getByText('İptal Et')),
+      cancel,
+      'Teklifi iptal et',
+      /iptal etmek istediğinizden emin misiniz/,
+    );
+  });
+
+  it('liste: vazgeçilirse API çağrılmaz', async () => {
+    getAll.mockResolvedValue({ data: { data: [base()] } });
+    mount(<OffersScreen />);
+    await screen.findByText('Vintage Kamera');
+    fireEvent.press(screen.getByText('Reddet'));
+    lastConfirm().cancel.onPress?.();
+    await act(async () => {});
+    expect(reject).not.toHaveBeenCalled();
+  });
+
+  it('detay (satıcı): Reddet', async () => {
+    getOne.mockResolvedValue({ data: { data: base() } });
+    mount(<OfferDetailScreen />);
+    await screen.findByText('Vintage Kamera');
+    await flushPolicy();
+    await expectConfirmedAfterDelay(
+      () => fireEvent.press(screen.getByText('Reddet')),
+      reject,
+      'Teklifi reddet',
+      /reddetmek istediğinizden emin misiniz/,
+    );
+  });
+
+  it('detay (alıcı): Teklifi İptal Et', async () => {
+    mockUser = { id: 'b1' };
+    getOne.mockResolvedValue({ data: { data: base() } });
+    mount(<OfferDetailScreen />);
+    await screen.findByText('Vintage Kamera');
+    await flushPolicy();
+    await expectConfirmedAfterDelay(
+      () => fireEvent.press(screen.getByText('Teklifi İptal Et')),
+      cancel,
+      'Teklifi iptal et',
+      /iptal etmek istediğinizden emin misiniz/,
+    );
   });
 });

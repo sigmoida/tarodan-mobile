@@ -12,9 +12,9 @@ import { acceptKind, type AcceptAs } from '../_lib/accept';
  * Kabul / reddet / iptal mutation'ları — snackbar (appAlert) + invalidateQueries
  * sahibi. Ekran manuel refetch etmez; liste otomatik tazelenir.
  *
- * `accept` ONAYSIZ kabuldür; kullanıcıya dönük akış `requestAccept`tir (web gibi önce
- * onay diyaloğu: ödeme süresi + "ilk ödeyen alır"). Onay sonrası mutasyon modal kapanma
- * süresi kadar gecikir (ModalFreeze, bkz. `useConfirmOffer`).
+ * `accept`/`reject`/`cancel` ONAYSIZ mutasyonlardır; kullanıcıya dönük akış `request*`tir
+ * (web gibi önce onay diyaloğu; kabulde ödeme süresi + "ilk ödeyen alır"). Onay sonrası
+ * mutasyon modal kapanma süresi kadar gecikir (ModalFreeze, bkz. `useConfirmOffer`).
  *
  * `pendingOfferId`: o an işlemde olan teklifin id'si (kart üzerinde spinner için).
  */
@@ -53,9 +53,19 @@ export function useOfferActions() {
   });
 
   const acceptMutate = accept.mutate;
+  const rejectMutate = reject.mutate;
+  const cancelMutate = cancel.mutate;
   const requestAccept = useCallback(
     (id: string, as: AcceptAs) => confirm(acceptKind(as), () => acceptMutate(id)),
     [confirm, acceptMutate],
+  );
+  const requestReject = useCallback(
+    (id: string) => confirm('reject', () => rejectMutate(id)),
+    [confirm, rejectMutate],
+  );
+  const requestCancel = useCallback(
+    (id: string) => confirm('cancel', () => cancelMutate(id)),
+    [confirm, cancelMutate],
   );
 
   const pendingOfferId =
@@ -67,6 +77,8 @@ export function useOfferActions() {
   return {
     accept: accept.mutate,
     requestAccept,
+    requestReject,
+    requestCancel,
     reject: reject.mutate,
     cancel: cancel.mutate,
     pendingOfferId,

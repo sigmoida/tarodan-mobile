@@ -36,6 +36,7 @@ export interface OfferCardProps {
   timing: TimingMessageValues;
   /** Kabul ONAY ister (`useOfferActions.requestAccept`): `as` = kabulü kimin yaptığı. */
   onAccept: (id: string, as: AcceptAs) => void;
+  /** Reddet / iptal de ONAY ister (`requestReject` / `requestCancel`). */
   onReject: (id: string) => void;
   onCancel: (id: string) => void;
   onOpenCounter: (offer: Offer) => void;

@@ -5,8 +5,8 @@ import type { MessageKey } from "@/i18n/lib";
 /** Kabulü KİM yapıyor: satıcı gelen teklifi mi, alıcı karşı teklifi mi? */
 export type AcceptAs = "seller" | "buyer";
 
-/** Onay istenen geri alınamaz işlemler (şimdilik kabul: satıcı / alıcı). */
-export type OfferConfirmKind = "acceptSeller" | "acceptBuyer";
+/** Onay istenen geri alınamaz işlemler: kabul (satıcı / alıcı), reddet, iptal. */
+export type OfferConfirmKind = "acceptSeller" | "acceptBuyer" | "reject" | "cancel";
 
 /** Kabulün `AcceptAs` karşılığı. */
 export const acceptKind = (as: AcceptAs): OfferConfirmKind =>
@@ -14,7 +14,7 @@ export const acceptKind = (as: AcceptAs): OfferConfirmKind =>
 
 /**
  * Onay diyaloğu metinleri (web `useOfferAction.run`). Kabul ürünü kilitlemediği için iki
- * taraf farklı uyarılır.
+ * taraf farklı uyarılır; reddet/iptal "geri alınamaz" ve yıkıcı düğmeyle sorulur.
  */
 export const OFFER_CONFIRM: Record<
   OfferConfirmKind,
@@ -22,6 +22,8 @@ export const OFFER_CONFIRM: Record<
 > = {
   acceptSeller: { title: "offer.acceptConfirmTitle", description: "offer.acceptConfirmDescSeller", destructive: false },
   acceptBuyer: { title: "offer.acceptConfirmTitle", description: "offer.acceptConfirmDescBuyer", destructive: false },
+  reject: { title: "offer.rejectConfirmTitle", description: "offer.rejectConfirmDesc", destructive: true },
+  cancel: { title: "offer.cancelConfirmTitle", description: "offer.cancelConfirmDesc", destructive: true },
 };
 
 type OfferOrderState = { status?: string; orderStatus?: string | null };

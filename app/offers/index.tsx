@@ -62,7 +62,7 @@ export default function OffersScreen() {
     refetch,
   } = useOffers(activeTab, isAuthenticated);
   const estimatedNetByOfferId = useCommissionPreview(offers, activeTab);
-  const { requestAccept, reject, cancel, pendingOfferId } = useOfferActions();
+  const { requestAccept, requestReject, requestCancel, pendingOfferId } = useOfferActions();
   const timing = useTimingValues();
 
   // Stable renderItem (#75) — memoized OfferCard skips rows that didn't change.
@@ -82,8 +82,8 @@ export default function OffersScreen() {
         t={t}
         timing={timing}
         onAccept={requestAccept}
-        onReject={reject}
-        onCancel={cancel}
+        onReject={requestReject}
+        onCancel={requestCancel}
         onOpenCounter={setCounterOffer}
         onOpenBuyerCounter={setBuyerCounterOffer}
       />
@@ -95,8 +95,8 @@ export default function OffersScreen() {
       t,
       timing,
       requestAccept,
-      reject,
-      cancel,
+      requestReject,
+      requestCancel,
     ],
   );
 
