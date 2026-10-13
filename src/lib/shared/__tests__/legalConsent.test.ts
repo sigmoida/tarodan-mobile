@@ -3,7 +3,6 @@
  * `(auth)/_lib/auth.ts registrationConsentDocuments` ile aynı).
  */
 import {
-  ACCOUNT_REQUIRED_CONSENTS,
   canSubmitConsents,
   isLegalTextPath,
   legalRouteFor,
@@ -19,10 +18,6 @@ const p = (document: PendingConsent['document']): PendingConsent => ({
 });
 
 describe('legalConsent', () => {
-  it('hesap için zorunlu belgeler terms + privacy + kvkk', () => {
-    expect(ACCOUNT_REQUIRED_CONSENTS).toEqual(['terms', 'privacy', 'kvkk']);
-  });
-
   it('kayıt kutuları → acceptedConsents', () => {
     expect(registrationConsentDocuments({ acceptTerms: true, acceptKvkk: true })).toEqual([
       'terms',

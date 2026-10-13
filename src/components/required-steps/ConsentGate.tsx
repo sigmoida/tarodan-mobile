@@ -1,16 +1,18 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Checkbox, Text } from '@/ui';
+import { useZodForm } from '@/ui/form';
 import { errorText } from '@/lib/api';
 import {
   CONSENT_DOCUMENT_I18N_KEYS,
-  canSubmitConsents,
   legalRouteFor,
   type ConsentDocumentKey,
 } from '@/lib/shared/legalConsent';
 import type { PendingConsentsController } from '@/hooks/usePendingConsents';
+import { useDoAcceptConsents } from '@/hooks/useDoAcceptConsents';
+import { consentGateSchema } from './consentGateSchema';
 import { RequiredStepShell } from './RequiredStepShell';
 
 /**
@@ -23,32 +25,37 @@ import { RequiredStepShell } from './RequiredStepShell';
  */
 export function ConsentGate({
   pending,
-  accept,
   onLogout,
-}: Pick<PendingConsentsController, 'pending' | 'accept'> & {
+}: Pick<PendingConsentsController, 'pending'> & {
   onLogout: () => Promise<void>;
 }) {
   const { t } = useTranslation();
-  const [checked, setChecked] = useState<Set<ConsentDocumentKey>>(new Set());
+  const accept = useDoAcceptConsents();
+  const schema = useMemo(() => consentGateSchema(pending), [pending]);
+  const form = useZodForm(schema, { defaultValues: { accepted: [] } });
+  const accepted = form.watch('accepted');
   const [loggingOut, setLoggingOut] = useState(false);
 
   const toggle = (document: ConsentDocumentKey, on: boolean) =>
-    setChecked((prev) => {
-      const next = new Set(prev);
-      if (on) next.add(document);
-      else next.delete(document);
-      return next;
-    });
+    form.setValue(
+      'accepted',
+      on
+        ? [...accepted.filter((d) => d !== document), document]
+        : accepted.filter((d) => d !== document),
+    );
 
   const updated = pending.some((p) => p.reason === 'outdated');
   const busy = accept.isPending || loggingOut;
+  // Gönder düğmesi şemadan beslenir: "hepsi işaretli" kuralı tek yerde.
+  const canSubmit = schema.safeParse({ accepted }).success;
 
-  const submit = () =>
+  const submit = form.handleSubmit(() =>
     accept.mutate(
       pending.map((p) => p.document),
       // Kapı yeniden açılırsa (yeni sürüm) kutular boş başlasın.
-      { onSuccess: () => setChecked(new Set()) },
-    );
+      { onSuccess: () => form.reset({ accepted: [] }) },
+    ),
+  );
 
   const logout = async () => {
     setLoggingOut(true);
@@ -68,8 +75,8 @@ export function ConsentGate({
       error={accept.isError ? errorText(accept.error, t('legal.consentGate.submitFailed')) : null}
       primary={{
         label: t('legal.consentGate.submit'),
-        onPress: submit,
-        disabled: !canSubmitConsents(pending, checked) || loggingOut,
+        onPress: () => void submit(),
+        disabled: !canSubmit || loggingOut,
         isLoading: accept.isPending,
         testID: 'consent-gate-submit',
       }}
@@ -87,7 +94,7 @@ export function ConsentGate({
           <Checkbox
             key={p.document}
             testID={`consent-gate-${p.document}`}
-            checked={checked.has(p.document)}
+            checked={accepted.includes(p.document)}
             onChange={(on) => toggle(p.document, on)}
             disabled={busy}
             label={

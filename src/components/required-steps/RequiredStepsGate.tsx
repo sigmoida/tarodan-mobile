@@ -41,7 +41,7 @@ export default function RequiredStepsGate() {
   // derleme geçmez.
   const views: Record<RequiredStep, () => ReactNode> = {
     consents: () => (
-      <ConsentGate pending={consents.pending} accept={consents.accept} onLogout={onLogout} />
+      <ConsentGate pending={consents.pending} onLogout={onLogout} />
     ),
   };
 

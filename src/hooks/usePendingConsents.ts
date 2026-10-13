@@ -1,8 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { consentsApi } from '@/lib/api';
 import { qk, retryUnlessClientError } from '@/lib/query';
 import { requiredStepState } from '@/lib/requiredSteps';
-import type { ConsentDocumentKey, PendingConsent } from '@/lib/shared/legalConsent';
+import type { PendingConsent } from '@/lib/shared/legalConsent';
 import { useAuthStore } from '@/stores/authStore';
 import { useRefetchOnForeground } from './useRefetchOnForeground';
 
@@ -17,9 +17,10 @@ const EMPTY: PendingConsent[] = [];
  * Ne zaman sorulur: giriş (oturum açılınca sorgu etkinleşir), soğuk açılış
  * (`loadToken` bitince) ve uygulama ön plana her geldiğinde — metin uygulama
  * arka plandayken güncellenmiş olabilir (`useRefetchOnForeground`).
+ *
+ * Yalnız OKUMA: onay yazma yolu `useDoAcceptConsents` (kapı onu kullanır).
  */
 export function usePendingConsents() {
-  const queryClient = useQueryClient();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isLoading = useAuthStore((s) => s.isLoading);
   const enabled = isAuthenticated && !isLoading;
@@ -35,19 +36,6 @@ export function usePendingConsents() {
   // Ön plana dönüşte yalnız BU sorgu yenilenir (global focusManager değil).
   useRefetchOnForeground(qk.consents.pending, { enabled });
 
-  const accept = useMutation({
-    mutationFn: async (documents: ConsentDocumentKey[]) =>
-      (await consentsApi.accept(documents)).data?.pending ?? [],
-    // Yanıt KALAN bekleyenlerdir: kapı ek bir istek beklemeden kapanır.
-    // Önce uçuştaki GET iptal edilir: onaydan ÖNCE başlamış (ör. ön plana
-    // dönüş) bir istek sonradan dönüp eski listeyi önbelleğe yazarsa kapı
-    // yeniden açılırdı.
-    onSuccess: async (remaining) => {
-      await queryClient.cancelQueries({ queryKey: qk.consents.pending });
-      queryClient.setQueryData(qk.consents.pending, remaining);
-    },
-  });
-
   const pending = enabled ? (query.data ?? EMPTY) : EMPTY;
   const state = requiredStepState({
     enabled,
@@ -55,7 +43,7 @@ export function usePendingConsents() {
     needed: pending.length > 0,
   });
 
-  return { pending, accept, state };
+  return { pending, state };
 }
 
 export type PendingConsentsController = ReturnType<typeof usePendingConsents>;

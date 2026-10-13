@@ -19,9 +19,6 @@ export const CONSENT_DOCUMENT_KEYS = [
 
 export type ConsentDocumentKey = (typeof CONSENT_DOCUMENT_KEYS)[number];
 
-/** Hesap için zorunlu belgeler — kayıt formu ve yeniden-onay kapısı bunları ister. */
-export const ACCOUNT_REQUIRED_CONSENTS: readonly ConsentDocumentKey[] = ['terms', 'privacy', 'kvkk'];
-
 /** Yeniden-onay sebebi: hiç kaydı yok mu, yoksa eski sürümü mü onaylamış. */
 export type PendingConsentReason = 'missing' | 'outdated';
 
