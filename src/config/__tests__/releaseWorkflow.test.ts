@@ -265,6 +265,30 @@ describe('production', () => {
     expect(production.jobs.plan.permissions).toEqual({ contents: 'read', 'pull-requests': 'read' });
   });
 
+  it('yayın sonrası: etiket + GitHub Release + development sonraki yama + staging', () => {
+    const job = production.jobs['release-bookkeeping'];
+    expect(needsOf(job)).toEqual(expect.arrayContaining(['plan', 'build-ios', 'build-android']));
+    // Yalnız bir store build'i başarıyla gönderildiyse; takılan koşu ya da yalnız OTA tetiklemez.
+    expect(job.if).toContain("needs.plan.outputs.blocked == ''");
+    expect(job.if).toContain("needs.build-ios.result == 'success' || needs.build-android.result == 'success'");
+    expect(job.if).toContain("needs.build-ios.result != 'failure'");
+    expect(job.if).toContain("needs.build-android.result != 'failure'");
+    expect(job.permissions).toEqual({ contents: 'write', actions: 'write' });
+    expect(envName(job)).toBeUndefined();
+    expect(JSON.stringify(job)).not.toContain('EXPO_TOKEN');
+    const all = runs(job);
+    expect(all).toContain('git tag -a "$tag" "$SHA"');
+    expect(all).toContain('gh release create "$tag" --verify-tag');
+    expect(all).toContain('--generate-notes');
+    // Sürüm hesabı tek yerde (release.sh), master'daki kopyayla.
+    expect(all).toContain('"$RUNNER_TEMP/release.sh" bump-version "$RELEASED" app.json');
+    expect(all).toContain('git push -q origin HEAD:development');
+    const start = job.steps!.find((s) => (s.run ?? '').includes('gh workflow run mobile-staging.yml --ref development'));
+    expect(start?.if).toBe("steps.bump.outputs.bumped == 'true'");
+    // Olay verisi run'a enjekte edilmez.
+    for (const s of job.steps!) expect([s.name, (s.run ?? '').includes('${{')]).toEqual([s.name, false]);
+  });
+
   it('staging plan\'ı SOURCE_REF almaz (kural yalnız production\'da)', () => {
     const decide = staging.jobs.plan.steps!.find((s) => s.id === 'decide');
     expect(decide?.env?.SOURCE_REF).toBeUndefined();

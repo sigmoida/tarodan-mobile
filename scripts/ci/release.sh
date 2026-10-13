@@ -19,6 +19,9 @@
 #       O profilin son BİTMİŞ build'inin appVersion'ı (yoksa boş).
 #   release.sh version-gt   <a> <b>
 #       a > b (semver, sort -V) ise 0, değilse 1 ile çıkar.
+#   release.sh bump-version <yayınlanan-sürüm> [app.json]
+#       Yayın sonrası development'ın sürümünü bir sonraki yamaya çeker (geride ya
+#       da eşitse); daha büyükse dokunmaz. GITHUB_OUTPUT: bumped, version.
 #   release.sh publish-ota  <eas-branch> <ios|android|all> <build-profile> <message>
 #       Profil env'ini yükleyip `eas update` yayınlar.
 #   release.sh plan         <staging|production>
@@ -255,6 +258,40 @@ last_store_version() {
 
 version_gt() {
   [ "$1" != "$2" ] && [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -n1)" = "$1" ]
+}
+
+# Yayın sonrası: development'ın sürümü yayınlanan sürümden büyük değilse onu bir
+# sonraki YAMA sürümüne çeker (1.2.4 yayınlandı → 1.2.5). Elle verilmiş daha büyük
+# bir sürüme (ör. 1.3.0) dokunmaz. Yalnız `expo.version` satırı değişir (dosyanın
+# geri kalanı bayt bayt aynı kalır). GITHUB_OUTPUT: bumped=true|false, version=<sonuç>.
+bump_version() {
+  local released="$1" file="${2:-$ROOT/app.json}" current next
+  case "$released" in
+    *[!0-9.]*|.*|*.|*..*|'') die "bump-version: '$released' X.Y.Z biçiminde değil" ;;
+  esac
+  [ "$(printf '%s' "$released" | tr -cd . | wc -c | tr -d ' ')" = 2 ] \
+    || die "bump-version: '$released' X.Y.Z biçiminde değil"
+  current="$(node -p 'require(process.argv[1]).expo.version' "$file")" \
+    || die "bump-version: $file okunamadı"
+  if version_gt "$current" "$released"; then
+    echo "development zaten ileride: $current > $released — dokunulmadı."
+    output bumped=false "version=$current"
+    return 0
+  fi
+  next="${released%.*}.$(( 10#${released##*.} + 1 ))"
+  node -e '
+    const fs = require("fs");
+    const [file, from, to] = process.argv.slice(1);
+    const src = fs.readFileSync(file, "utf8");
+    const re = new RegExp(`("version"\\s*:\\s*")${from.replace(/\./g, "\\.")}(")`, "g");
+    const hits = src.match(re) || [];
+    if (hits.length !== 1) { console.error(`${file}: "version": "${from}" tam bir kez bulunmalı (${hits.length})`); process.exit(1); }
+    const out = src.replace(re, `$1${to}$2`);
+    if (JSON.parse(out).expo.version !== to) { console.error("expo.version güncellenemedi"); process.exit(1); }
+    fs.writeFileSync(file, out);
+  ' "$file" "$current" "$next" || die "bump-version: $file güncellenemedi"
+  echo "development sürümü: $current → $next ($released yayına gönderildi)"
+  output bumped=true "version=$next"
 }
 
 publish_ota() {
@@ -684,6 +721,7 @@ case "$cmd" in
   plan) plan "$@" ;;
   recheck) recheck "$@" ;;
   await-binary) await_binary "$@" ;;
+  bump-version) bump_version "$@" ;;
   build-submit) build_submit "$@" ;;
   *) die "bilinmeyen komut: '$cmd' (bkz. dosya başı)" ;;
 esac

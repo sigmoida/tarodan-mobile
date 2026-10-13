@@ -248,12 +248,44 @@ gh workflow run mobile-production.yml --ref master -f mode=build -f platform=ios
 Başka bir ref'ten tetiklenirse `plan` durur (`release.sh guard-ref`; ayrıca
 `production-build` / `production` environment'ları yalnız master'a açık).
 
+### Sürüm numarası: development hep bir sonraki sürümü taşır
+
+Canlıda 1.2.3 varken staging'de yapılan her şey **1.2.4**'tür; testçi TestFlight'ta
+"1.2.4 (n)" görür ve canlıdakiyle karıştırmaz. Build numarası ayrıdır, EAS'te
+otomatik artar ve sürüm değişince sıfırlanmaz.
+
+| Sürüm parçası | Ne zaman | Kim |
+| --- | --- | --- |
+| Yama (1.2.**4**) | Her yayından sonra | **Otomatik** (aşağıda) |
+| Ara (1.**3**.0) / ana (**2**.0.0) | Özellik grubu / büyük değişiklik | Elle: development'ta `app.json` → `expo.version` |
+
+### Yayın sonrası (otomatik): etiket, sürüm notu, sonraki sürüm
+
+`release-bookkeeping` job'ı, master'dan bir store build'i başarıyla
+gönderildiğinde (sürüm ya da sürümü artırılmış hotfix) koşar:
+
+1. Yayınlanan commit'e **`v<sürüm>`** git etiketi atar (`v1.2.4`). "Canlıda hangi
+   kod var?" sorusunun cevabı ve hotfix'in başlayacağı nokta budur. Aynı sürümün
+   ikinci build'inde (ör. App Review reddi sonrası `mode=build`) etiket taşınmaz.
+2. PR başlıklarından üretilmiş notlarla bir **GitHub Release** açar (depo herkese
+   açık olduğu için Release'ler de açıktır).
+3. development'ın sürümü yayınlananınkinden büyük değilse onu **bir sonraki
+   yamaya** çeker (`release.sh bump-version`; 1.2.4 → 1.2.5), development'a
+   `chore(release): development 1.2.5 (1.2.4 yayına gönderildi)` commit'ini atar ve
+   staging'i başlatır (sürüm fingerprint'e girer → yeni staging build'i). Elle
+   verilmiş daha büyük bir sürüme (1.3.0) dokunmaz.
+
+Yalnız OTA olan hotfix'ler, takılan (blocked) ya da build'i başarısız koşular bu
+adımı tetiklemez. Adım tekrar çalıştırılabilir: etiket/Release varsa ve
+development zaten ilerideyse hiçbir şey yapmaz.
+
 ### Sürüm akışı (özet)
 
-1. `development`'ta `app.json` `expo.version`'ı artır (ör. `1.0.6` → `1.0.7`).
-   Bu staging'de de yeni bir build demektir (sürüm fingerprint'e girer).
+1. development zaten bir sonraki sürümdedir (otomatik). Ara/ana sürüm istiyorsan
+   `app.json` → `expo.version`'ı elle değiştir (ör. `1.2.5` → `1.3.0`).
 2. `development` → `master` PR'ı aç; CI + `Master source guard` yeşil olunca merge et.
-3. `mobile-production.yml` iOS ve (açıksa) Android store build'ini alıp gönderir.
+3. `mobile-production.yml` iOS ve (açıksa) Android store build'ini alıp gönderir;
+   ardından etiketi, Release'i ve development'ın sonraki sürümünü ayarlar.
 4. App Store Connect'te build'i test et, **incelemeye elle gönder**; Play'de
    internal'dan ileri kanallara **elle** terfi et.
 
@@ -265,6 +297,9 @@ Başka bir ref'ten tetiklenirse `plan` durur (`release.sh guard-ref`; ayrıca
    koşu → "Review deployments"). Native değiştiyse sürümü artır; store build'i alınır.
    OTA, master'daki sürümün binary'sine iner: master'da henüz yayınlanmamış bir
    sürüm varsa canlı kullanıcılara ulaşmaz (yukarıda "Gönderilmiş ≠ yayınlanmış").
+   Hotfix sürümü artırdıysa (ör. 1.2.5) ve development de 1.2.5'teyse, yayın
+   sonrası adım development'ı 1.2.6'ya çeker; back-merge PR'ında `app.json`
+   sürüm satırı çakışırsa **development'ınkini (büyük olanı)** tut.
 3. Merge sonrası `master-flow.yml` → **`Hotfix back-merge PR (master → development)`**
    job'ı master'ın merge commit'inden `backmerge/<ad>-<PR no>` dalını açar ve
    `development`'a PR açar. **Çakışma olsa da PR açılır**; çakışmayı o dalda
@@ -353,9 +388,11 @@ Submit kimlik bilgileri EAS sunucularında durur, repoya girmez. Ayrıntı:
 JS düzeltmesi → staging          development'a push (otomatik OTA)
 Native değişiklik → staging      development'a push (otomatik build + TestFlight/Play internal)
 Ad-hoc APK                       gh workflow run mobile-staging.yml --ref development -f mode=apk
-Production sürümü                expo.version artır → development → master PR → merge
-                                 → otomatik store build (iOS + açıksa Android)
+Production sürümü                development → master PR → merge
+                                 → otomatik store build (iOS + açıksa Android) + etiket + Release
+                                 → development otomatik bir sonraki yamaya geçer
                                  → App Store Connect'te incelemeye ELLE gönder
+Ara/ana sürüm (1.3.0)            development'ta app.json expo.version'ı elle değiştir
 Acil JS düzeltmesi → production  hotfix/<ad> → master PR → merge → OTA'yı onayla (Review deployments)
                                  → otomatik back-merge PR'ını merge et
 Aynı sürümün yeni build'i        gh workflow run mobile-production.yml --ref master -f mode=build -f platform=ios

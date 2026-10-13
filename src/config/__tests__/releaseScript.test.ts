@@ -75,6 +75,8 @@ type RunOpts = {
   buildResult?: unknown;
   /** Ardışık sorgular için build listeleri (FAKE_BUILDS_SEQ): her biri bir sorguya. */
   buildsSeq?: Build[][];
+  /** Koşudan sonra okunacak dosyalar (geçici köke göre). */
+  readFiles?: string[];
 };
 
 function run(args: string[], opts: RunOpts = {}) {
@@ -114,7 +116,7 @@ function run(args: string[], opts: RunOpts = {}) {
   // her yayında değişir, testler ona bağlı kalmamalı.
   const appJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf8'));
   appJson.expo.version = TEST_VERSION;
-  fs.writeFileSync(path.join(root, 'app.json'), JSON.stringify(appJson));
+  fs.writeFileSync(path.join(root, 'app.json'), `${JSON.stringify(appJson, null, 2)}\n`);
   const eas = opts.easJson ? opts.easJson(realEasJson()) : realEasJson();
   fs.writeFileSync(path.join(root, 'eas.json'), typeof eas === 'string' ? eas : JSON.stringify(eas));
 
@@ -137,6 +139,8 @@ function run(args: string[], opts: RunOpts = {}) {
     if (i > 0) outputs[line.slice(0, i)] = line.slice(i + 1);
   }
   const log = fs.readFileSync(path.join(dir, 'log'), 'utf8').split('\n').filter(Boolean);
+  const files: Record<string, string> = {};
+  for (const f of opts.readFiles ?? []) files[f] = fs.readFileSync(path.join(root, f), 'utf8');
   const result = {
     status: res.status,
     stdout: res.stdout,
@@ -146,6 +150,7 @@ function run(args: string[], opts: RunOpts = {}) {
     log,
     summary: fs.existsSync(summaryFile) ? fs.readFileSync(summaryFile, 'utf8') : '',
     easCalls: (cmd: string) => log.filter((l) => l.startsWith(`eas ${cmd} `)),
+    files,
   };
   fs.rmSync(dir, { recursive: true, force: true });
   return result;
@@ -873,3 +878,45 @@ describe('release.sh await-binary — staging OTA\'sı derlenen build\'den SONRA
     expect(run(['await-binary', 'ios', 'staging', '']).status).not.toBe(0);
   });
 });
+
+describe('release.sh bump-version — yayın sonrası development bir sonraki yamaya geçer', () => {
+  const bump = (released: string) => run(['bump-version', released], { readFiles: ['app.json'] });
+  const versionOf = (r: ReturnType<typeof bump>) => JSON.parse(r.files['app.json']).expo.version;
+  // Senaryolarda development'taki (geçici kök) sürüm TEST_VERSION'dır.
+  const original = () => {
+    const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf8'));
+    j.expo.version = TEST_VERSION;
+    return `${JSON.stringify(j, null, 2)}\n`;
+  };
+
+  it('yayınlanan sürüm development\'takiyle aynıysa → sonraki yama', () => {
+    const r = bump(TEST_VERSION);
+    expect(r.status).toBe(0);
+    expect(versionOf(r)).toBe('1.0.6');
+    expect(r.outputs).toMatchObject({ bumped: 'true', version: '1.0.6' });
+  });
+
+  it('development geride kaldıysa (ör. hotfix sürümü) → yayınlananın sonraki yaması', () => {
+    const r = bump('1.0.9');
+    expect(versionOf(r)).toBe('1.0.10');
+  });
+
+  it('development zaten ilerideyse (elle 1.1.0 gibi) dokunmaz', () => {
+    const r = bump('1.0.4');
+    expect(r.status).toBe(0);
+    expect(r.files['app.json']).toBe(original());
+    expect(r.outputs).toMatchObject({ bumped: 'false', version: TEST_VERSION });
+  });
+
+  it('yalnız sürüm alanı değişir, dosyanın geri kalanı aynı kalır', () => {
+    const r = bump(TEST_VERSION);
+    expect(r.files['app.json']).toBe(original().replace(`"version": "${TEST_VERSION}"`, '"version": "1.0.6"'));
+  });
+
+  it.each([['1.0'], ['abc'], ['1.0.5-beta'], ['1..5'], ['']])('X.Y.Z olmayan sürüm (%s) → durur', (v) => {
+    const r = bump(v);
+    expect(r.status).not.toBe(0);
+    expect(r.files['app.json']).toBe(original());
+  });
+});
+
