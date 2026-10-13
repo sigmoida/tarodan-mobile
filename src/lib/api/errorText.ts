@@ -50,8 +50,9 @@ export function apiErrorLines(e: unknown): string[] {
  * Tek hata metni.
  * - `mode: 'first'` (varsayılan; toast): dizi ise ilk eleman.
  * - `mode: 'all'` (alert / satır içi): satırlar `\n` ile birleşik.
- * Gövde yoksa `e.message` (ör. "Network Error"); gövde var ama mesaj yoksa ve
- * `statusCode` sayıysa `"<fallback> (<kod>)"`; aksi halde `fallback`.
+ * Gövde yoksa: axios hatasında (ağ / zaman aşımı / boş gövde — "Network Error" gibi İngilizce
+ * teknik metin) `fallback`; axios olmayan `Error`da (kodun kendi fırlattığı mesaj) `e.message`.
+ * Gövde var ama mesaj yoksa ve `statusCode` sayıysa `"<fallback> (<kod>)"`; aksi halde `fallback`.
  */
 export function apiErrorMessage(
   e: unknown,
@@ -64,7 +65,8 @@ export function apiErrorMessage(
   const ax = e as ApiErrorShape | null | undefined;
   const data = ax?.response?.data;
   if (!data) {
-    return typeof ax?.message === 'string' && ax.message ? ax.message : fallback;
+    const isAxios = !!(ax as { isAxiosError?: unknown } | null | undefined)?.isAxiosError;
+    return !isAxios && typeof ax?.message === 'string' && ax.message ? ax.message : fallback;
   }
   if (typeof data.statusCode === 'number') return `${fallback} (${data.statusCode})`;
   return fallback;

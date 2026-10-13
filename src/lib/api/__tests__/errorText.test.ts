@@ -81,6 +81,14 @@ describe('apiErrorMessage — tek kaynak', () => {
 
   it('ax.message dalı: gövde YOKSA (ağ hatası) e.message; boşsa fallback', () => {
     expect(apiErrorMessage(new Error('Network Error'), 'fb')).toBe('Network Error');
+    // axios ağ hatası / boş gövde: İngilizce teknik metin yerine fallback
+    expect(apiErrorMessage({ isAxiosError: true, message: 'Network Error' }, 'fb')).toBe('fb');
+    expect(
+      apiErrorMessage(
+        { isAxiosError: true, message: 'Request failed with status code 502', response: { data: '' } },
+        'fb',
+      ),
+    ).toBe('fb');
     expect(apiErrorMessage({ message: '' }, 'fb')).toBe('fb');
     // gövde varsa e.message KULLANILMAZ
     expect(apiErrorMessage({ message: 'Request failed', response: { data: {} } }, 'fb')).toBe('fb');
