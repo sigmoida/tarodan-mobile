@@ -1,8 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import { View, FlatList, StyleSheet, RefreshControl } from 'react-native';
+import { View, StyleSheet, RefreshControl } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useState, useCallback } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { EmptyState, SectionCard, SkeletonText, Spinner, Text, pageListContentStyle, theme, Icon } from '@/ui';
+import { EmptyState, SectionCard, SkeletonText, Spinner, Text, pageListContentStyle, theme, Icon, usePageScrollHandler } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { useAllProductReviews } from './_hooks/useAllProductReviews';
 import { ReviewRow } from './_components/ReviewRow';
@@ -19,6 +20,7 @@ export default function ProductReviewsScreen() {
   const productId = String(id);
   const f = useAllProductReviews(productId, !!id);
   const [refreshing, setRefreshing] = useState(false);
+  const page = usePageScrollHandler();
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -30,13 +32,15 @@ export default function ProductReviewsScreen() {
     <PageShell
       title={t('review.reviews')}
       mode="list"
+      scroll={page}
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
     >
-      <FlatList
+      <Animated.FlatList
+        {...page.listProps}
         data={f.isLoading ? [] : f.reviews}
         keyExtractor={(item, index) => item.id ?? String(index)}
         renderItem={({ item, index }) => <ReviewRow review={item} divided={index > 0} />}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={page.contentStyle(styles.content)}
         ListHeaderComponent={
           f.average != null || f.total > 0 ? (
             <SectionCard style={styles.summary}>
@@ -74,6 +78,7 @@ export default function ProductReviewsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
+            progressViewOffset={page.topInset}
             colors={[colors.primary[600]!]}
             tintColor={colors.primary[600]!}
           />

@@ -5,10 +5,10 @@
  * "Sepete git" eylemli olduğundan Snackbar (toast eylem desteklemez); Snackbar `overlay`'de durur.
  * URL `/favorites`.
  */
-import { FlatList } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, ErrorState, Snackbar, pageListContentStyle } from '@/ui';
+import { Button, EmptyState, ErrorState, Snackbar, pageListContentStyle, usePageScrollHandler } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { useFavoritesScreen } from './_hooks/useFavoritesScreen';
@@ -18,6 +18,7 @@ import { FavoriteCard } from './_components/FavoriteCard';
 export default function FavoritesScreen() {
   const { t } = useTranslation();
   const f = useFavoritesScreen();
+  const page = usePageScrollHandler();
 
   if (!f.isAuthenticated) {
     return (
@@ -44,6 +45,7 @@ export default function FavoritesScreen() {
     <PageShell
       title={`${t('favorites.myFavorites')} (${f.getFavoriteCount()})`}
       mode="list"
+      scroll={page}
       overlay={
         <Snackbar
           visible={f.snackbar.visible}
@@ -55,10 +57,11 @@ export default function FavoritesScreen() {
         </Snackbar>
       }
     >
-      <FlatList
+      <Animated.FlatList
+        {...page.listProps}
         data={initialLoading || loadFailed ? [] : f.items}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={pageListContentStyle}
+        contentContainerStyle={page.contentStyle(pageListContentStyle)}
         refreshing={f.refreshing}
         onRefresh={f.onRefresh}
         ListEmptyComponent={

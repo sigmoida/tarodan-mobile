@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
-import { View, FlatList, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Chip, EmptyState, ErrorState, SkeletonCard, pageListContentStyle, theme } from '@/ui';
+import { Chip, EmptyState, ErrorState, SkeletonCard, pageListContentStyle, theme, usePageScrollHandler } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { tradesApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
@@ -41,6 +42,7 @@ export default function TradesScreen() {
   const { isAuthenticated, user } = useAuthStore();
   const [filter, setFilter] = useState<TradesTabFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
+  const page = usePageScrollHandler();
 
   const { data: tradesPayload, isLoading, isError, refetch } = useQuery({
     queryKey: ['trades', filter],
@@ -110,10 +112,11 @@ export default function TradesScreen() {
   }
 
   return (
-    <PageShell title={t('trade.myTrades')} onBack={handleBack} mode="list">
-      <FlatList
+    <PageShell title={t('trade.myTrades')} onBack={handleBack} mode="list" scroll={page}>
+      <Animated.FlatList
+        {...page.listProps}
         data={isError || isLoading ? [] : tradesList}
-        contentContainerStyle={pageListContentStyle}
+        contentContainerStyle={page.contentStyle(pageListContentStyle)}
         refreshing={refreshing}
         onRefresh={onRefresh}
         keyExtractor={(item) => item.id.toString()}

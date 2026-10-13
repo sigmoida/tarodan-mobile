@@ -1,5 +1,6 @@
-import { FlatList, View } from 'react-native';
-import { Button, EmptyState, Input, SkeletonText, pageListContentStyle } from '@/ui';
+import { View } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { Button, EmptyState, Input, SkeletonText, pageListContentStyle, usePageScrollHandler } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PageShell } from '@/components/common/PageShell';
@@ -11,18 +12,21 @@ import { ListingPickerRow } from './_components/ListingPickerRow';
 export default function AddCollectionItemsScreen() {
   const { t } = useTranslation();
   const f = useAddItems();
+  const page = usePageScrollHandler();
 
   return (
     <PageShell
       title={t('collection.addProduct')}
       mode="list"
+      scroll={page}
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
     >
-      <FlatList
+      <Animated.FlatList
+        {...page.listProps}
         data={f.isLoading ? [] : f.filtered}
         keyExtractor={(listing) => listing.id}
         renderItem={({ item }) => <ListingPickerRow listing={item} f={f} />}
-        contentContainerStyle={[pageListContentStyle, styles.list]}
+        contentContainerStyle={page.contentStyle([pageListContentStyle, styles.list])}
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <Input
