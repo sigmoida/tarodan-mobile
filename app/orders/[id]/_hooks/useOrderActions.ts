@@ -15,8 +15,8 @@ type SnackVariant = 'success' | 'danger' | 'default';
 
 /**
  * Sipariş detay controller'ı: iade-iptal/sipariş-iptal/ödeme-başlat mutation'ları
- * + modalların aç/kapa durumu + toast bildirimi. İade talebinin formu ve mutasyonu
- * `RefundRequestModal`'da (CLAUDE.md §6).
+ * + iptal modalının aç/kapa durumu + toast bildirimi. İade talebi ayrı ekran
+ * (`../refund.tsx`, form + mutasyon `useRefundForm`'da — CLAUDE.md §6).
  */
 export function useOrderActions(id: string, order: OrderDetail | undefined) {
   const { t } = useTranslation();
@@ -29,7 +29,6 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
     else toast(message);
   };
 
-  const [refundModalVisible, setRefundModalVisible] = useState(false);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const invalidateOrder = useInvalidateOrder(id);
   const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
@@ -107,13 +106,6 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
   return {
     notify,
     invalidateOrder,
-    // iade modalı
-    // iade modalı — form + mutasyon `RefundRequestModal`'da, burada yalnız aç/kapa durumu.
-    refundModal: {
-      visible: refundModalVisible,
-      open: () => setRefundModalVisible(true),
-      close: () => setRefundModalVisible(false),
-    },
     handleCancelRefund,
     cancelRefundPending: cancelRefundMutation.isPending,
     handleCancelOrder,

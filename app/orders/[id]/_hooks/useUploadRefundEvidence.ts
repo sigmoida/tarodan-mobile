@@ -3,12 +3,12 @@ import { mediaApi, type RNFile } from '@/lib/api';
 import { captureException } from '@/services/sentry';
 
 /**
- * Kanıt fotoğraflarını yükler, URL'lerini döner (RefundRequestModal sahiplenir).
+ * Kanıt fotoğraflarını yükler, URL'lerini döner (iade ekranı sahiplenir).
  *
  * URL döndürmeyen bir yükleme HATADIR: eskiden sessizce eleniyor, talep kanıtsız
  * gidip sunucudan `400 evidenceRequired` alıyordu. Hepsi ya da hiçbiri — bir
- * fotoğraf bile URL'siz gelirse mutasyon düşer; geri bildirim yok, modal hatayı
- * kendi içinde gösterir (yükleme modal AÇIKKEN yapılır, talep gönderilmez).
+ * fotoğraf bile URL'siz gelirse mutasyon düşer; geri bildirim yok, ekran hatayı
+ * kanıt alanının altında gösterir (talep gönderilmez).
  */
 export function useUploadRefundEvidence(orderId: string) {
   return useMutation({

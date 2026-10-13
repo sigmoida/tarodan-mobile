@@ -15,8 +15,8 @@ export const REFUND_DESCRIPTION_MIN = 20;
  * ile 400 alır (`refund-creation.service.ts`, `helpers/refund-financial-policy.ts`).
  * Açıklama: web'deki gibi kanıt isteyen nedende zorunlu.
  *
- * Faz YOK: modal yalnız kargo sonrası VE iade penceresi içindeyken açılıyor
- * (`OrderRefundActionCard` kapısı). Web'in `preparing` (kargo öncesi — mobilde
+ * Faz YOK: iade ekranına yalnız kargo sonrası VE iade penceresi içindeyken
+ * gidiliyor (`OrderRefundActionCard` kapısı). Web'in `preparing` (kargo öncesi — mobilde
  * iptal formu) ve `past_cooling_off` (pencere kapalı — mobilde kart bilgi
  * gösterir) fazları bu ekrandan erişilemez; kuralları da burada yok. Kapı
  * değişirse (ör. pencere sonrası itiraz) faz buraya geri eklenmeli.
@@ -29,14 +29,14 @@ export function refundRequirements(reason: string) {
   };
 }
 
-/** Formun başlangıç değerleri — açılışta ve kapatınca hepsi buna döner. */
+/** Formun başlangıç değerleri — ekran her açılışta bunlarla başlar (kirli/temiz karşılaştırması da buna göre). */
 export function refundFormDefaults(): RefundFormValues {
   return { reason: 'changed_mind', description: '', evidence: [], quantity: 1 };
 }
 
 /**
  * İade formunun şeması (`useZodForm`). Kanıt fotoğrafları da formun alanı —
- * kapatınca `reset` neden/açıklama/adet/kanıtın hepsini birlikte sıfırlar.
+ * ekrandan çıkınca neden/açıklama/adet/kanıtın hepsi birlikte gider.
  */
 export function refundRequestSchema(t: TFunction) {
   return z

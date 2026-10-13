@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigation } from 'expo-router';
 // expo-router `usePreventRemove`'u yeniden dışa vermiyor; aynı (tekil) react-navigation
 // kopyasından alınır — bkz. `src/ui/lib/screenFocus.ts`. expo-router `useNavigation()`
@@ -22,12 +22,27 @@ import { confirm } from '@/ui';
  * Çıkış izni (kayıt başarılı / "Değişiklikleri Sil"): `leave(go)` korumayı TEK
  * render için kapatır, `go()` (router.back / bekleyen eylem) koruma kalktıktan
  * SONRA çalışır, ardından koruma yeniden kurulur — ekran bir nedenle kalırsa
- * sonraki düzenlemeler korumasız kalmaz.
+ * sonraki düzenlemeler korumasız kalmaz. Ekran o sırada artık açık değilse
+ * (istek sürerken kullanıcı vazgeçip çıktı) `leave` hiçbir şey yapmaz: geç gelen
+ * başarı bir önceki ekranı da kapatmaz.
+ *
+ * Çok adımlı gönderim (ör. iade: kanıt yükle → talep gönder): ara adımdan sonra
+ * `await canProceed()` — "vazgeç?" onayı açıksa kararı bekler; "Değişiklikleri Sil"
+ * seçildiyse ya da ekran kapandıysa `false` döner ve ikinci adım ATILMAZ.
  */
 export function useUnsavedChangesGuard(dirty: boolean) {
   const { t } = useTranslation();
   const navigation = useNavigation();
   const [pendingLeave, setPendingLeave] = useState<(() => void) | null>(null);
+  // Açık onay diyaloğunun kararı (true = vazgeç) ve "ekrandan çıkılıyor" bayrağı.
+  const decision = useRef<Promise<boolean> | null>(null);
+  const leaving = useRef(false);
+  useEffect(() => {
+    leaving.current = false;
+    return () => {
+      leaving.current = true;
+    };
+  }, []);
 
   const leave = useCallback((go: () => void) => setPendingLeave(() => go), []);
 
@@ -41,16 +56,27 @@ export function useUnsavedChangesGuard(dirty: boolean) {
 
   usePreventRemove(dirty && !pendingLeave, ({ data }) => {
     // `confirm()` kapanış SONRASI çözülür (AlertDialog sözleşmesi) → dispatch iOS-güvenli.
-    void confirm({
+    const pending = confirm({
       title: t('common.unsavedChanges'),
       message: t('common.unsavedChangesDescription'),
       confirmLabel: t('common.discardChanges'),
       cancelLabel: t('common.continueEditing'),
       destructive: true,
     }).then((discard) => {
-      if (discard) leave(() => navigation.dispatch(data.action));
+      if (decision.current === pending) decision.current = null;
+      if (discard) {
+        leaving.current = true; // onay anından itibaren bekleyen gönderim adımları durur
+        leave(() => navigation.dispatch(data.action));
+      }
+      return discard;
     });
+    decision.current = pending;
   });
 
-  return { leave };
+  const canProceed = useCallback(async () => {
+    if (decision.current) await decision.current;
+    return !leaving.current;
+  }, []);
+
+  return { leave, canProceed };
 }

@@ -1,20 +1,21 @@
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
-import { EmptyState, ErrorState, SkeletonCard, toast } from '@/ui';
+import { EmptyState, ErrorState, SkeletonCard } from '@/ui';
 import { router } from 'expo-router';
 
-import RatingModal from '@/components/RatingModal';
 import { PageShell } from '@/components/common/PageShell';
 import { styles } from './_lib/ordersStyles';
 import type { Order } from './_lib/ordersStatus';
 import { useOrders } from './_hooks/useOrders';
+import { openOrderReview } from './[id]/_lib/routes';
 import { OrderCard } from './_components/OrderCard';
 import { OrdersFilters, OrderGroupCard, useOrdersEmptyTitle } from './_components/OrdersSections';
 
 /**
- * Siparişlerim (alıcı) — İNCE ekran. `useOrders` kontrolcüsü gruplu/düz sorguyu, filtreyi, accordion
- * ve değerlendirme modalı durumunu taşır; burası PageShell + filtre chip'leri + liste + modalı
- * kompoze eder. Yükleme Skeleton, boş/hata durumu filtre chip'lerini gizlemez.
+ * Siparişlerim (alıcı) — İNCE ekran. `useOrders` kontrolcüsü gruplu/düz sorguyu, filtreyi ve
+ * accordion durumunu taşır; burası PageShell + filtre chip'leri + listeyi kompoze eder.
+ * "Değerlendir" ayrı form ekranını iter (`/orders/[id]/review`). Yükleme Skeleton, boş/hata
+ * durumu filtre chip'lerini gizlemez.
  */
 export default function OrdersScreen() {
   const { t } = useTranslation();
@@ -39,8 +40,7 @@ export default function OrdersScreen() {
     );
   }
 
-  const onRate = (type: 'product' | 'seller', order: Order) =>
-    f.setRatingModal({ visible: true, type, order });
+  const onRate = (type: 'product' | 'seller', order: Order) => openOrderReview(order.id, type);
 
   return (
     <PageShell
@@ -48,22 +48,6 @@ export default function OrdersScreen() {
       onBack={back}
       refreshing={f.refreshing}
       onRefresh={f.onRefresh}
-      overlay={
-        <RatingModal
-          visible={f.ratingModal.visible}
-          onDismiss={() => f.setRatingModal({ ...f.ratingModal, visible: false })}
-          type={f.ratingModal.type}
-          orderId={f.ratingModal.order?.id || ''}
-          productId={f.ratingModal.order?.product.id}
-          sellerId={f.ratingModal.order?.seller.id}
-          productTitle={f.ratingModal.order?.product.title}
-          sellerName={f.ratingModal.order?.seller.displayName}
-          onSuccess={() => {
-            f.refetch();
-            toast.success(t('order.reviewReceived'));
-          }}
-        />
-      }
     >
       <OrdersFilters f={f} />
 

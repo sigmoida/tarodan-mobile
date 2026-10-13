@@ -22,12 +22,11 @@ import { TradeShippingSection } from "./_components/TradeShippingSection";
 import { TradeProtectionCard } from "./_components/TradeProtectionCard";
 import { TradeActions } from "./_components/TradeActions";
 import { RejectTradeModal } from "./_modals/RejectTradeModal";
-import { DisputeTradeModal } from "./_modals/DisputeTradeModal";
 
 /**
  * Takas detayı — İNCE ekran: PageShell + durum başlığı + SectionCard dizisi + eylemler. Türetilmiş
- * değerler `deriveTradeView`'da, mutasyonlar `useTradeActions`'ta; bildirimler toast, modallar
- * `overlay`'de (yükleme/hata durumunda unmount olmaz).
+ * değerler `deriveTradeView`'da, mutasyonlar `useTradeActions`'ta; bildirimler toast, reddet modalı
+ * `overlay`'de (yükleme/hata durumunda unmount olmaz). İtiraz ayrı form ekranı (`./dispute`).
  */
 export default function TradeDetailScreen() {
   const { t } = useTranslation();
@@ -85,26 +84,13 @@ export default function TradeDetailScreen() {
       refreshing={refreshing}
       onRefresh={onRefresh}
       overlay={
-        <>
-          <RejectTradeModal
-            visible={actions.reject.visible}
-            onClose={actions.reject.close}
-            reason={actions.reject.reason}
-            setReason={actions.reject.setReason}
-            onSubmit={actions.reject.submit}
-          />
-          <DisputeTradeModal
-            visible={actions.dispute.visible}
-            onClose={actions.dispute.close}
-            reason={actions.dispute.reason}
-            setReason={actions.dispute.setReason}
-            description={actions.dispute.description}
-            setDescription={actions.dispute.setDescription}
-            onSubmit={actions.dispute.submit}
-            error={actions.dispute.error}
-            t={t}
-          />
-        </>
+        <RejectTradeModal
+          visible={actions.reject.visible}
+          onClose={actions.reject.close}
+          reason={actions.reject.reason}
+          setReason={actions.reject.setReason}
+          onSubmit={actions.reject.submit}
+        />
       }
     >
       <TradeStatusHeader
@@ -179,7 +165,7 @@ export default function TradeDetailScreen() {
           cashPayPending: actions.cashPayPending,
           confirm: actions.confirm,
           confirmPending: actions.confirmPending,
-          openDispute: actions.dispute.open,
+          openDispute: actions.openDispute,
         }}
       />
     </PageShell>

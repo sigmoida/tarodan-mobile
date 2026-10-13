@@ -387,7 +387,7 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     //
     // ── BOŞLUK — Plan B ──────────────────────────────────────────────────
     // `dispute.raisedById` / `resolution` / `resolvedAt`: mobil "itiraz aç"
-    // YAZMA akışını sunuyor (`useTradeActions.ts` → `DisputeTradeModal`) ama
+    // YAZMA akışını sunuyor (`trade/[id]/dispute.tsx` → `useDoRaiseDispute`) ama
     // açılmış bir itirazın SONUCUNU hiçbir yerde okumuyor/göstermiyor — bir
     // takas `disputed` olduktan sonra kullanıcı çözümü öğrenemiyor. Yazma var,
     // okuma yok.

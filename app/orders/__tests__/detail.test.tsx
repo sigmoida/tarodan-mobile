@@ -25,7 +25,8 @@ jest.mock('@/lib/api', () => ({
   elogoInvoicesApi: { byOrderAll: jest.fn(() => Promise.resolve({ data: [] })), pdf: jest.fn() },
   sellerInvoiceApi: { status: jest.fn(() => Promise.resolve({ data: null })), download: jest.fn() },
 }));
-import { api, elogoInvoicesApi, refundsApi } from '@/lib/api';
+import { router } from 'expo-router';
+import { api, elogoInvoicesApi } from '@/lib/api';
 
 import { useAuthStore } from '@/stores/authStore';
 import OrderDetailScreen from '../[id]';
@@ -157,6 +158,27 @@ describe('J78 · Alıcı onay butonu KALDIRILDI + escrow bilgisi', () => {
   });
 });
 
+describe('Değerlendirme', () => {
+  beforeEach(() => {
+    getMock.mockReset();
+    mockParams = { id: 'order-1' };
+    (router.push as jest.Mock).mockClear();
+  });
+
+  it('"Satıcıyı Değerlendir" değerlendirme ekranını iter (eskiden modal)', async () => {
+    getMock.mockResolvedValue({
+      data: { data: orderFixture({ status: 'delivered', isBuyer: true, hasProductRating: true, hasSellerRating: false }) },
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    fireEvent.press(await screen.findByText('Satıcıyı Değerlendir'));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/orders/[id]/review',
+      params: { id: 'order-1', type: 'seller' },
+    });
+    expect(screen.queryByText('Ürünü Değerlendir')).toBeNull();
+  });
+});
+
 describe('J79 · İade talep butonu görünürlüğü', () => {
   beforeEach(() => {
     getMock.mockReset();
@@ -173,7 +195,7 @@ describe('J79 · İade talep butonu görünürlüğü', () => {
     );
   });
 
-  it('J79.2 iade modalı açılır ve nedenler listelenir', async () => {
+  it('J79.2 "İade Talep Et" iade talebi ekranını iter (eskiden modal)', async () => {
     getMock.mockResolvedValue({
       data: { data: orderFixture({ isBuyer: true, payment: { status: 'completed' } }) },
     });
@@ -182,10 +204,7 @@ describe('J79 · İade talep butonu görünürlüğü', () => {
       expect(screen.getByTestId('refund-request-button')).toBeOnTheScreen(),
     );
     fireEvent.press(screen.getByTestId('refund-request-button'));
-    await waitFor(() =>
-      expect(screen.getByText('İade Talebi Oluştur')).toBeOnTheScreen(),
-    );
-    expect(screen.getByText('Hasarlı geldi')).toBeOnTheScreen();
+    expect(router.push).toHaveBeenCalledWith({ pathname: '/orders/[id]/refund', params: { id: 'order-1' } });
   });
 
   it('J79.3 ödeme tamamlanmadıysa "İade Talep Et" görünmez', async () => {
@@ -210,78 +229,8 @@ describe('J79 · İade talep butonu görünürlüğü', () => {
   });
 });
 
-/**
- * Parite A-1.4 · İade kanıtı. Sunucu `changed_mind` dışındaki her nedende kanıt
- * fotoğrafı istiyor; mobil hepsini "isteğe bağlı" sunuyordu. Kural
- * `_lib/schema.ts`'te; burada ekrandaki etkisi çiviliyor.
- */
-describe('A-1.4 · İade talebinde kanıt kuralı', () => {
-  const createMock = refundsApi.create as jest.Mock;
-
-  beforeEach(() => {
-    getMock.mockReset();
-    createMock.mockReset();
-    createMock.mockResolvedValue({ data: {} });
-    mockParams = { id: 'order-1' };
-    getMock.mockResolvedValue({
-      data: { data: orderFixture({ isBuyer: true, payment: { status: 'completed' }, activeRefundRequest: null }) },
-    });
-  });
-
-  async function openRefundModal() {
-    renderWithProviders(<OrderDetailScreen />);
-    await waitFor(() => expect(screen.getByTestId('refund-request-button')).toBeOnTheScreen());
-    fireEvent.press(screen.getByTestId('refund-request-button'));
-    await waitFor(() => expect(screen.getByText('İade Talebi Oluştur')).toBeOnTheScreen());
-  }
-
-  it('vazgeçme (varsayılan): kanıt/açıklama isteğe bağlı, talep doğrudan gider', async () => {
-    await openRefundModal();
-    expect(screen.getByText('Kanıt Fotoğrafı (isteğe bağlı)')).toBeOnTheScreen();
-    expect(screen.getByText('Açıklama (isteğe bağlı)')).toBeOnTheScreen();
-
-    fireEvent.press(screen.getByText('Talep Oluştur'));
-    await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1));
-    expect(createMock).toHaveBeenCalledWith('order-1', { reason: 'changed_mind' });
-  });
-
-  it('kusur nedeni: etiketler zorunlu olur, fotoğrafsız talep GÖNDERİLMEZ ve hata modalda görünür', async () => {
-    await openRefundModal();
-    fireEvent.press(screen.getByText('Hasarlı geldi'));
-
-    expect(screen.getByText('Kanıt fotoğrafları (maks 5) *')).toBeOnTheScreen();
-    expect(screen.getByText('Açıklama *')).toBeOnTheScreen();
-    expect(screen.queryByText('Kanıt Fotoğrafı (isteğe bağlı)')).toBeNull();
-
-    fireEvent.changeText(
-      screen.getByTestId('refund-description-input'),
-      'Kutunun bir köşesi ezik, aynası kırık geldi.',
-    );
-    fireEvent.press(screen.getByText('Talep Oluştur'));
-
-    await waitFor(() =>
-      expect(screen.getByTestId('refund-evidence-hint')).toHaveTextContent(
-        'Bu sebep için en az bir kanıt fotoğrafı gereklidir',
-      ),
-    );
-    expect(createMock).not.toHaveBeenCalled();
-    expect(screen.getByTestId('refund-evidence-hint')).toHaveTextContent(
-      'Bu sebep için en az bir kanıt fotoğrafı gereklidir',
-    );
-    // Açıklama yeterli → onun hatası yok.
-    expect(screen.queryByText('Açıklama en az 20 karakter olmalıdır')).toBeNull();
-  });
-
-  it('kusur nedeni: kısa açıklama satır içi hata verir', async () => {
-    await openRefundModal();
-    fireEvent.press(screen.getByText('Hasarlı geldi'));
-    fireEvent.changeText(screen.getByTestId('refund-description-input'), 'kırık');
-    fireEvent.press(screen.getByText('Talep Oluştur'));
-
-    expect(await screen.findByText('Açıklama en az 20 karakter olmalıdır')).toBeOnTheScreen();
-    expect(createMock).not.toHaveBeenCalled();
-  });
-});
+// Parite A-1.4 · İade kanıtı kuralı (kusur nedeninde kanıt + açıklama zorunlu) iade talebi
+// ekranına taşındı: `app/orders/[id]/__tests__/refundScreen.test.tsx`.
 
 describe('Üyelik/dijital sipariş — fiziksel ürün aksiyonları gizlenir', () => {
   beforeEach(() => {

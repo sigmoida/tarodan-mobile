@@ -2,6 +2,7 @@ import { queryClient } from '../lib/queryClient';
 import { clearAllPaymentCapabilities, unbindPaymentCapabilityAccount } from '@/lib/payment/paymentCapability';
 import { useCartStore } from './cartStore';
 import { useMessagesStore } from './messagesStore';
+import { useDisputeDraftStore } from './disputeDraftStore';
 
 /**
  * Çıkışın kaynağı: `user` = kullanıcının kendi çıkışı (profil, ban/onay
@@ -29,6 +30,9 @@ export function resetUserStores(reason: LogoutReason = 'user'): void {
   useMessagesStore.setState({
     currentThreadId: null,
   });
+
+  // Takas itirazı taslakları kullanıcıya özel — sonraki oturuma kalmasın.
+  useDisputeDraftStore.getState().clearAll();
 
   // Bildirim + mesaj rozeti dahil tüm react-query önbelleği (örn. 'notifications-unread').
   queryClient.clear();
