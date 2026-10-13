@@ -157,9 +157,10 @@ export function useEditProfile() {
       // B-1.7 — yeni numara: web gibi kaydı doğrulamaya bağla. Kaydedilmediyse
       // (başka hesapta doğrulanmamış duruyor) başarı DEĞİL; numarayı devralmanın
       // tek yolu SMS doğrulaması olduğu için yine oraya yönlendir. Bu ekranda
-      // açık modal yok — appAlert güvenli.
+      // açık modal yok — appAlert güvenli. Doğrudan telefon doğrulama ekranı (kod orada
+      // bir kez gider); güvenlik hub'ı aynı parametreyi eski derin bağlantılar için yönlendirir.
       const goVerify = () =>
-        router.push({ pathname: '/settings/security', params: { verifyPhone: result.phone } } as never);
+        router.push({ pathname: '/settings/security/phone', params: { verifyPhone: result.phone } });
       const notSaved = result.outcome === 'notSaved';
       appAlert(
         t(notSaved ? 'security.phoneNotSavedTitle' : 'security.phoneSavedVerifyTitle'),

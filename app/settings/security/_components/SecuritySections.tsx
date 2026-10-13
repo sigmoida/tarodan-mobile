@@ -1,21 +1,25 @@
 import React from 'react';
 import { View, Pressable } from 'react-native';
-import { Badge, Switch, Button, SectionCard, Text } from '@/ui';
-import { splitPhone } from '@/utils/phone';
+import { useTranslation } from 'react-i18next';
+import { Badge, Button, SectionCard, Text, theme } from '@/ui';
 
 import { styles } from '../_lib/styles';
-import type { SecurityController } from '../_hooks/useSecurity';
+import type { SecurityHub } from '../_hooks/useSecurityHub';
 
-/** Password / 2FA / phone-verification / sessions / tips sections (SectionCard). */
-export function SecuritySections({ f }: { f: SecurityController }) {
-  const { t } = f;
+const ripple = { color: theme.colors.overlay.black10 };
+
+/** Şifre / 2FA / telefon doğrulama / oturumlar / ipuçları bölümleri (SectionCard). */
+export function SecuritySections({ f }: { f: SecurityHub }) {
+  const { t } = useTranslation();
   return (
     <>
-      {/* Password Section */}
       <SectionCard title={t('mobile.password')}>
         <Pressable
           style={styles.settingRow}
-          onPress={() => { f.pwMsg.clear(); f.setShowPasswordDialog(true); }}
+          onPress={f.openPassword}
+          android_ripple={ripple}
+          accessibilityRole="button"
+          testID="security-password-row"
         >
           <View style={styles.settingText}>
             <Text variant="body" weight="medium">{t('security.changePasswordTitle')}</Text>
@@ -24,43 +28,30 @@ export function SecuritySections({ f }: { f: SecurityController }) {
         </Pressable>
       </SectionCard>
 
-      {/* Two-Factor Auth */}
-      <SectionCard title={t('security.twoFactorSection')}>
+      <SectionCard
+        title={t('security.twoFactorSection')}
+        badge={
+          f.twoFactorEnabled ? (
+            <Badge variant="success" size="sm">{t('common.active')}</Badge>
+          ) : undefined
+        }
+      >
         <View style={styles.settingRow}>
-          <View style={styles.settingText}>
-            <Text variant="body" weight="medium">2FA</Text>
-            <Text variant="bodySm" tone="muted">
-              {f.twoFactorEnabled ? t('security.enabled') : t('security.disabled')}
-            </Text>
-          </View>
-          <Switch
-            value={f.twoFactorEnabled}
-            onValueChange={(value: boolean) => {
-              if (value) {
-                f.handleSetupTwoFactor();
-              } else {
-                f.handleDisableTwoFactor();
-              }
-            }}
-          />
-        </View>
-        <Text variant="bodySm" tone="muted" style={styles.infoText}>{t('security.twoFactorDesc')}</Text>
-        {f.twoFactorEnabled ? (
+          <Text variant="bodySm" tone="muted" style={styles.settingText}>
+            {f.twoFactorEnabled
+              ? t('profile.security.twoFactorOn')
+              : t('profile.security.twoFactorOff')}
+          </Text>
           <Button
             variant="outline"
-            title={t('security.regenerateBackupCodes')}
-            onPress={() => {
-              f.setNewBackupCodes(null);
-              f.setRegenerateCode('');
-              f.regenMsg.clear();
-              f.setShowRegenerateDialog(true);
-            }}
-            style={styles.actionButton}
+            size="sm"
+            title={f.twoFactorEnabled ? t('profile.security.manage') : t('profile.security.setUp')}
+            onPress={f.openTwoFactor}
+            testID="two-factor-manage-button"
           />
-        ) : null}
+        </View>
       </SectionCard>
 
-      {/* Phone Verification */}
       <SectionCard
         title={t('security.phoneSection')}
         badge={
@@ -78,38 +69,31 @@ export function SecuritySections({ f }: { f: SecurityController }) {
         {!f.phoneVerified && (
           <Button
             title={t('security.verify')}
-            onPress={() => {
-              // Kayıtlı numara E.164 saklanıyor; alan ülke kodu + lokal parça
-              // istiyor, ikisine ayır (yoksa "+90" tekrar yazılmış görünürdü).
-              const seed = splitPhone(f.user?.phone || '');
-              f.setPhoneCountryCode(seed.countryCode);
-              f.setPhoneInput(seed.phone);
-              f.setPhoneStep('enter');
-              f.setPhoneCode('');
-              f.setPhoneMsg(null);
-              f.setShowPhoneDialog(true);
-            }}
+            onPress={f.openPhone}
             testID="phone-verify-button"
             style={styles.actionButton}
           />
         )}
       </SectionCard>
 
-      {/* Sessions */}
       <SectionCard title={t('mobile.sessions')}>
-        <Pressable style={styles.settingRow} onPress={f.handleLogoutAllDevices}>
+        <Pressable
+          style={styles.settingRow}
+          onPress={f.logoutAllDevices}
+          disabled={f.logoutAllPending}
+          android_ripple={ripple}
+          accessibilityRole="button"
+          testID="security-logout-all"
+        >
           <View style={styles.settingText}>
             <Text variant="body" weight="medium" tone="danger">
-              Tüm Cihazlardan Çıkış
+              {t('security.logoutAllTitle')}
             </Text>
-            <Text variant="bodySm" tone="muted">
-              Diğer tüm cihazlarda oturumunuzu sonlandırın
-            </Text>
+            <Text variant="bodySm" tone="muted">{t('security.logoutAllHint')}</Text>
           </View>
         </Pressable>
       </SectionCard>
 
-      {/* Security Tips */}
       <SectionCard title={t('security.tipsSection')} bodyStyle={styles.tips}>
         <Text variant="bodySm">• {t('mobile.tipStrongPassword')}</Text>
         <Text variant="bodySm">• {t('mobile.tipTwoFactor')}</Text>

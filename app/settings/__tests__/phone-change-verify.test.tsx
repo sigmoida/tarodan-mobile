@@ -5,9 +5,10 @@
  * hesapta DOĞRULANMAMIŞ duruyorsa numarayı yazmaz ama yine 200 döner (yanıttaki
  * telefon eski numara). Eskiden mobil her iki durumda da "Profil güncellendi"
  * diyordu. Artık:
- *  - numara kaydedildi → "Numaranızı doğrulayın" + Şimdi doğrula → güvenlik ekranı
+ *  - numara kaydedildi → "Numaranızı doğrulayın" + Şimdi doğrula → telefon doğrulama ekranı
  *  - numara kaydedilmedi → başarı DEĞİL, açıklayıcı uyarı (+ yine doğrulama yolu)
- *  - güvenlik ekranı `?verifyPhone=` ile açılınca pencere açılır ve kod bir kez gider.
+ *  - güvenlik ekranı `?verifyPhone=` ile açılınca telefon doğrulama EKRANINA geçer ve kod
+ *    orada bir kez gider.
  */
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
@@ -60,6 +61,7 @@ const updateProfile = userApi.updateProfile as jest.Mock;
 
 import EditProfileScreen from '../edit-profile';
 import SecurityScreen from '../security';
+import PhoneVerificationScreen from '../security/phone';
 
 const NEW_PHONE = '+905321234567';
 
@@ -148,7 +150,7 @@ describe('edit-profile · telefon değişimi sonrası', () => {
     fireEvent.press(screen.getByText('product.saveChanges'));
   };
 
-  it('numara kaydedildi → doğrulama uyarısı, "Şimdi doğrula" güvenlik ekranına götürür', async () => {
+  it('numara kaydedildi → doğrulama uyarısı, "Şimdi doğrula" doğrudan telefon doğrulama ekranına götürür', async () => {
     updateProfile.mockResolvedValue({ data: { phone: NEW_PHONE, isPhoneVerified: false } });
     saveWithPhone('0532 123 45 67');
 
@@ -161,7 +163,7 @@ describe('edit-profile · telefon değişimi sonrası', () => {
 
     buttons.find((b: any) => b.text === 'security.verifyNow').onPress();
     expect(pushMock).toHaveBeenCalledWith({
-      pathname: '/settings/security',
+      pathname: '/settings/security/phone',
       params: { verifyPhone: NEW_PHONE },
     });
   });
@@ -280,26 +282,40 @@ describe('edit-profile · telefon değişimi sonrası', () => {
 });
 
 describe('security · ?verifyPhone= ile açılış', () => {
-  it('pencere açılır ve kod o numaraya BİR kez gönderilir', async () => {
+  it('eski derin bağlantı: güvenlik hub\'ı doğrulama ekranına aynı parametreyle geçer (kendisi kod göndermez)', async () => {
     mockParams = { verifyPhone: NEW_PHONE };
     renderWithProviders(<SecurityScreen />);
+
+    await waitFor(() =>
+      expect(pushMock).toHaveBeenCalledWith({
+        pathname: '/settings/security/phone',
+        params: { verifyPhone: NEW_PHONE },
+      }),
+    );
+    expect(mockSendPhoneCode).not.toHaveBeenCalled();
+  });
+
+  it('doğrulama ekranı: kod o numaraya BİR kez gönderilir, kod adımı açılır', async () => {
+    mockParams = { verifyPhone: NEW_PHONE };
+    renderWithProviders(<PhoneVerificationScreen />);
 
     await waitFor(() => expect(mockSendPhoneCode).toHaveBeenCalledWith(NEW_PHONE));
     expect(await screen.findByTestId('phone-code-input')).toBeTruthy();
     expect(mockSendPhoneCode).toHaveBeenCalledTimes(1);
   });
 
-  it('parametre çözülemiyorsa kod gönderilmez, pencerede geçersiz numara hatası görünür', async () => {
+  it('parametre çözülemiyorsa kod gönderilmez, alanda geçersiz numara hatası görünür', async () => {
     mockParams = { verifyPhone: '+1415555' };
-    renderWithProviders(<SecurityScreen />);
+    renderWithProviders(<PhoneVerificationScreen />);
 
     expect(await screen.findByText(getPhoneInvalidMessage())).toBeTruthy();
     expect(mockSendPhoneCode).not.toHaveBeenCalled();
   });
 
-  it('parametre yoksa kendiliğinden kod gönderilmez', async () => {
+  it('parametre yoksa kendiliğinden kod gönderilmez, yönlendirme yok', async () => {
     renderWithProviders(<SecurityScreen />);
     expect(await screen.findByText('security.verified')).toBeTruthy();
     expect(mockSendPhoneCode).not.toHaveBeenCalled();
+    expect(pushMock).not.toHaveBeenCalled();
   });
 });
