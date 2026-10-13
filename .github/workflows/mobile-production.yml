@@ -98,13 +98,14 @@ jobs:
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
-      - name: Only master ships to production
-        if: steps.guard.outputs.skip != 'true' && github.ref != 'refs/heads/master'
-        run: |
-          echo "::error::Production yalnız master'dan yayınlanır (ref: $GITHUB_REF)."
-          exit 1
       - uses: actions/checkout@v7
         if: steps.guard.outputs.skip != 'true'
+      - name: Only master ships to production
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          REF: ${{ github.ref }}
+          MODE: ${{ inputs.mode || 'auto' }}
+        run: scripts/ci/release.sh guard-ref production
       - uses: ./.github/actions/setup-eas
         if: steps.guard.outputs.skip != 'true'
         with:

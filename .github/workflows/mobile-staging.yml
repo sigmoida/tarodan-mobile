@@ -58,6 +58,10 @@ name: Mobile Staging (CI → fingerprint → OTA or build)
 #   mode=apk    YALNIZ ad-hoc Android APK (preview profili, EAS internal
 #               distribution) — Play'siz bir müşteriye/testçiye link göndermek için.
 #   gh workflow run mobile-staging.yml --ref development -f mode=apk
+#   Ref koruması: yalnız refs/heads/development; mode=apk ayrıca
+#   vars.STAGING_APK_BRANCHES'teki dallardan (boşlukla ayrılmış glob, ör.
+#   "development feature/*"; varsayılan yalnız development). O dalların
+#   `staging` environment'ının deployment-branch kuralına da eklenmesi gerekir.
 #
 # Guard: EXPO_TOKEN yoksa no-op.
 
@@ -130,6 +134,16 @@ jobs:
           fi
       - uses: actions/checkout@v7
         if: steps.guard.outputs.skip != 'true'
+      - name: Only development ships to staging (ad-hoc APK — allowed branches)
+        # workflow_dispatch herhangi bir daldan tetiklenebilir; production'daki
+        # korumanın aynısı (release.sh guard-ref). APK modu Play'e/OTA'ya
+        # dokunmadığı için vars.STAGING_APK_BRANCHES'teki dallardan da çalışır.
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          REF: ${{ github.ref }}
+          MODE: ${{ inputs.mode || 'auto' }}
+          APK_BRANCHES: ${{ vars.STAGING_APK_BRANCHES || 'development' }}
+        run: scripts/ci/release.sh guard-ref staging
       - uses: ./.github/actions/setup-eas
         if: steps.guard.outputs.skip != 'true'
         with:

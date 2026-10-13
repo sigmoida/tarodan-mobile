@@ -35,6 +35,11 @@
 #       Build job'ı kilidi aldıktan sonra (FP, MODE env'den) yeniden sorgular;
 #       GITHUB_OUTPUT'a action=build|ota|skip yazar. staging: arada build
 #       başladıysa ota; production: onaysız OTA'ya düşmez, skip + uyarı.
+#   release.sh guard-ref    <staging|production>
+#       Koşunun ref'i bu ortama yayın yapabilir mi (REF, MODE env'den)?
+#       production: yalnız refs/heads/master. staging: refs/heads/development;
+#       YALNIZ mode=apk iken APK_BRANCHES (vars.STAGING_APK_BRANCHES, boşlukla
+#       ayrılmış glob'lar, varsayılan "development") dalları da. Değilse durur.
 #   release.sh build-submit <ios|android> <build-profile> <submit-profile|->
 #       `eas build --wait` alır, build id'sini çıkarır ve (submit profili `-`
 #       değilse) TAM O build'i `eas submit --id` ile gönderir. `--latest`
@@ -473,12 +478,28 @@ recheck() {
   output "action=$action"
 }
 
+guard_ref() {
+  local env="$1" ref="${REF:-}" mode="${MODE:-auto}" branch pattern
+  env_config "$env"
+  [ "$ref" = "refs/heads/$BRANCH" ] && { echo "OK: $ref → $env"; return 0; }
+  if [ "$env" = staging ] && [ "$mode" = apk ] && [ "${ref#refs/heads/}" != "$ref" ]; then
+    branch="${ref#refs/heads/}"
+    for pattern in ${APK_BRANCHES:-development}; do
+      # shellcheck disable=SC2254 # desen bilerek glob (ör. feature/*)
+      case "$branch" in $pattern) echo "OK: $ref → ad-hoc APK (izinli: $pattern)"; return 0 ;; esac
+    done
+    die "ad-hoc APK '$branch' dalından istenmiş; izinli dallar (vars.STAGING_APK_BRANCHES): ${APK_BRANCHES:-development}"
+  fi
+  die "$env yalnız refs/heads/$BRANCH'ten yayınlanır (ref: '${ref:-?}', mode: $mode)."
+}
+
 cmd="${1:-}"
 shift || true
 case "$cmd" in
   profile-env) profile_env "$@" ;;
   fingerprint) fingerprint "$@" ;;
   build-state) build_state "$@" ;;
+  guard-ref) guard_ref "$@" ;;
   last-store-version) last_store_version "$@" ;;
   version-gt) version_gt "$@" ;;
   publish-ota) publish_ota "$@" ;;

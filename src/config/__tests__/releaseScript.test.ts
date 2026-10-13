@@ -543,3 +543,33 @@ describe('release.sh — build kotası ve fingerprint döngüsü koruması', () 
     expect(r.outputs.action).toBe('skip');
   });
 });
+
+describe('release.sh guard-ref — elle tetiklemede ref koruması', () => {
+  const guard = (env: string, REF: string, extra: Record<string, string> = {}) =>
+    run(['guard-ref', env], { env: { REF, ...extra } });
+
+  it.each([
+    ['staging', 'refs/heads/development', {}],
+    ['staging', 'refs/heads/development', { MODE: 'apk' }],
+    ['staging', 'refs/heads/feature/x', { MODE: 'apk', APK_BRANCHES: 'development feature/*' }],
+    ['production', 'refs/heads/master', {}],
+  ])('%s %s %j → izinli', (env, ref, extra) => {
+    expect(guard(env, ref, extra).status).toBe(0);
+  });
+
+  it.each([
+    ['staging', 'refs/heads/feature/x', {}],
+    ['staging', 'refs/heads/feature/x', { MODE: 'ota' }],
+    ['staging', 'refs/heads/feature/x', { MODE: 'build', APK_BRANCHES: 'feature/*' }],
+    ['staging', 'refs/heads/feature/x', { MODE: 'apk' }],
+    ['staging', 'refs/tags/development', { MODE: 'apk' }],
+    ['staging', 'refs/heads/master', {}],
+    ['production', 'refs/heads/development', {}],
+    ['production', 'refs/heads/hotfix/x', { MODE: 'build' }],
+    ['production', '', {}],
+  ])('%s %s %j → durur', (env, ref, extra) => {
+    const r = guard(env, ref, extra);
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('::error::');
+  });
+});

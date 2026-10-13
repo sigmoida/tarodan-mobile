@@ -232,9 +232,21 @@ describe('production', () => {
     }
   });
 
-  it('yalnız master ref\'inden yayınlanır', () => {
-    const step = production.jobs.plan.steps!.find((s) => s.name === 'Only master ships to production');
-    expect(step?.if).toContain("github.ref != 'refs/heads/master'");
+  it.each([
+    ['production', production],
+    ['staging', staging],
+  ])('%s: ref koruması EAS kurulumundan ÖNCE release.sh guard-ref ile', (n, w) => {
+    const steps = w.jobs.plan.steps!;
+    const guard = steps.findIndex((s) => (s.run ?? '').includes(`release.sh guard-ref ${n}`));
+    const setup = steps.findIndex((s) => s.uses === './.github/actions/setup-eas');
+    expect(guard).toBeGreaterThan(-1);
+    expect(guard).toBeLessThan(setup);
+    expect(steps[guard].env?.REF).toBe('${{ github.ref }}');
+  });
+
+  it('staging APK dalları vars.STAGING_APK_BRANCHES\'ten (varsayılan yalnız development)', () => {
+    const step = staging.jobs.plan.steps!.find((s) => (s.run ?? '').includes('guard-ref'));
+    expect(step?.env?.APK_BRANCHES).toBe("${{ vars.STAGING_APK_BRANCHES || 'development' }}");
   });
 });
 
