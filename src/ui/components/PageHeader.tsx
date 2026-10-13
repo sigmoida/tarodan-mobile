@@ -7,6 +7,8 @@ import { RawText } from './Text';
 
 export interface PageHeaderProps {
   title?: React.ReactNode;
+  /** Başlığın yanında (ör. okunmamış adet rozeti) — SectionCard `badge` ile aynı. */
+  badge?: React.ReactNode;
   /** Başlık altı kısa açıklama (web `text-sm text-muted`). */
   description?: React.ReactNode;
   /** Sağ/alt aksiyonlar (oluştur düğmesi, sıralama, durum rozeti…). Telefonda başlığın altında. */
@@ -29,6 +31,7 @@ const { colors, spacing, typography, radius, iconSize } = theme;
  */
 export const PageHeader: React.FC<PageHeaderProps> = ({
   title,
+  badge,
   description,
   actions,
   breadcrumb,
@@ -67,6 +70,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                 ) : (
                   title
                 )}
+                {badge}
               </View>
             )}
             {description != null &&
