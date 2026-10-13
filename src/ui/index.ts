@@ -69,6 +69,7 @@ export {
 	type GlassIconButtonProps,
 	type GlassIconTone,
 } from './components/GlassIconButton';
+export { usePressScale, PRESS_SCALE, PRESS_SPRING } from './lib/pressScale';
 export { getGlassView, resetGlassCache, type GlassViewComponent } from './lib/glass';
 export { BadgeAnchor, type BadgeAnchorProps } from './components/BadgeAnchor';
 export {

@@ -61,10 +61,13 @@ afterEach(() => {
 });
 
 describe('DrawerMenu — üye', () => {
-  it('Favoriler üstte tek satır; ana başlıklar profileMenu gruplarından; Hesap/Mesajlar/Bildirimler yok', () => {
+  it('Favoriler Alışveriş grubunun ilk satırı; ana başlıklar profileMenu gruplarından; Hesap/Mesajlar/Bildirimler yok', () => {
     setup();
     expect(screen.getByTestId('side-menu')).toBeTruthy();
     expect(screen.getByTestId('profile-favorites-link')).toBeTruthy();
+    const commerce = screen.getByTestId('side-menu-section-commerce');
+    expect(within(commerce).getByTestId('profile-favorites-link')).toBeTruthy();
+    expect(screen.queryByTestId('side-menu-section-pinned')).toBeNull();
     for (const title of ['Alışveriş', 'Finans', 'Koleksiyon', 'Analiz', 'İletişim', 'Bilgi ve Yasal']) {
       expect(screen.getByText(title)).toBeTruthy();
     }
@@ -147,8 +150,8 @@ describe('DrawerMenu — üye', () => {
     const toggle = () => screen.getByTestId('side-menu-section-commerce-toggle');
     expect(screen.queryByText('Menü')).toBeNull();
     expect(screen.queryByTestId('side-menu-close')).toBeNull();
-    // Üstte sabit Favoriler + 6 başlıklı grup → her grubun üstünde 6 ayırıcı.
-    expect(screen.getAllByTestId('side-menu-divider')).toHaveLength(6);
+    // 6 başlıklı grup → ilk grubun üstü hariç her grubun üstünde 5 ayırıcı.
+    expect(screen.getAllByTestId('side-menu-divider')).toHaveLength(5);
     expect(within(toggle()).getByTestId('icon-chevron-down')).toBeTruthy();
     expect(within(toggle()).queryByTestId('icon-chevron-right')).toBeNull();
     fireEvent.press(toggle());
