@@ -63,8 +63,11 @@
 # bundle localhost'a bakar. Değerleri doğrudan eas.json'dan okumak eski "workflow
 # env bloğunu eas.json ile elle senkron tut" kuralını kopyasız hale getirir.
 set -euo pipefail
-# Bash < 4.4'te `x="$(...)"` içindeki alt kabuk set -e'yi DÜŞÜRÜR; hata ortada
-# kalır. CI (ubuntu, bash 5) bunu açar; macOS'un bash 3.2'sinde yok (yerel test).
+# Bash `x="$(...)"` içindeki alt kabukta set -e'yi DÜŞÜRÜR (inherit_errexit
+# yoksa): iç içe komut ikamelerinde hata ortada kalır. CI (bash 5) bunu açar;
+# macOS'un bash 3.2'sinde yok. Bu yüzden iç içe ikamelerde ayrıca açıkça
+# `|| die` / `|| exit 1` kullanılır — ikisinde de aynı davranış (testler iki
+# sürümde de koşuldu).
 shopt -s inherit_errexit 2>/dev/null || true
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -167,11 +170,11 @@ build_state() {
     eas "${args[@]}" > "$tmp/builds-$profile.json" \
       || die "eas build:list başarısız ($platform/$profile)"
   done
-  state="$(classify_builds "$tmp" "$runtime")"
+  state="$(classify_builds "$tmp" "$runtime")" || die "EAS build listesi çözümlenemedi"
   if [ "$state" = need-submissions ]; then
     eas submit:list --platform "$platform" --limit 50 --json --non-interactive > "$tmp/submissions.json" \
       || die "eas submit:list başarısız ($platform)"
-    state="$(classify_builds "$tmp" "$runtime")"
+    state="$(classify_builds "$tmp" "$runtime")" || die "EAS build listesi çözümlenemedi"
   fi
   rm -rf "$tmp"
   echo "$state"
@@ -346,7 +349,7 @@ build_history() {
 # Sonucu stdout'a yazar: build | skip | blocked.
 build_guard() {
   local env="$1" platform="$2" hist today streak last max limit
-  hist="$(build_history "$platform" "$BUILD_PROFILE")"
+  hist="$(build_history "$platform" "$BUILD_PROFILE")" || exit 1
   today="$(printf '%s' "$hist" | sed -E 's/.*today=([0-9]+).*/\1/')"
   streak="$(printf '%s' "$hist" | sed -E 's/.*streak=([0-9]+).*/\1/')"
   last="${hist##*last=}"
@@ -409,7 +412,9 @@ plan() {
     fi
     output apk=false
   fi
-  [ "$env" = production ] && version="$(node -p "require(process.argv[1]).expo.version" "$ROOT/app.json")"
+  if [ "$env" = production ]; then
+    version="$(node -p "require(process.argv[1]).expo.version" "$ROOT/app.json")"
+  fi
 
   for p in ios android; do
     if [ "$want" != all ] && [ "$want" != "$p" ]; then
@@ -475,7 +480,7 @@ plan() {
       blocked) blocked="$blocked $p" ;;
     esac
     summary "### $p → \`$decision\`" "- fingerprint: \`$fp\`" "- binary: $state"
-    [ -n "$version" ] && summary "- app.json expo.version: \`$version\`"
+    if [ -n "$version" ]; then summary "- app.json expo.version: \`$version\`"; fi
   done
 
   output "ota_matrix=[${ota%,}]"
@@ -484,7 +489,7 @@ plan() {
 }
 
 recheck() {
-  local platform="$1" env="$2" state=none action=build
+  local platform="$1" env="$2" state=none action=build guard
   env_config "$env"
   [ -n "${FP:-}" ] || die "recheck: FP (plan'ın fingerprint'i) boş"
   if [ "${MODE:-auto}" != build ]; then
@@ -504,7 +509,9 @@ recheck() {
   esac
   # Kilit beklenirken başka build'ler alınmış olabilir: korumaları yeniden uygula.
   if [ "$action" = build ] && [ "${MODE:-auto}" = auto ]; then
-    case "$(build_guard "$env" "$platform")" in
+    # Önce değişkene: `case "$(…)"` içindeki hata set -e'ye ulaşmaz.
+    guard="$(build_guard "$env" "$platform")"
+    case "$guard" in
       skip) action=skip ;;
       blocked) output "action=skip"; return 1 ;;
     esac

@@ -30,6 +30,11 @@ if (fail) {
 
 switch (args[0]) {
   case 'build:list': {
+    // Yalnız geçmiş sorgusunu (runtime filtresiz: kota/döngü koruması) düşür.
+    if (process.env.FAKE_EAS_FAIL_HISTORY && !args.includes('--runtime-version')) {
+      console.error('fake eas: build:list (geçmiş) başarısız (FAKE)');
+      process.exit(1);
+    }
     let b = readJson('builds.json', []);
     const platform = flag('--platform');
     if (platform && platform !== 'all') b = b.filter((x) => x.platform === platform.toUpperCase());

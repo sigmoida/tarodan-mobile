@@ -533,6 +533,16 @@ describe('release.sh — build kotası ve fingerprint döngüsü koruması', () 
     expect(r.outputs.action).toBe('skip');
   });
 
+  it.each([
+    ['plan', () => plan('staging', { env: { PLATFORM: 'ios', FAKE_EAS_FAIL_HISTORY: '1' } })],
+    ['recheck', () => run(['recheck', 'ios', 'staging'], { env: { FP: 'fp-ios-preview', FAKE_EAS_FAIL_HISTORY: '1' } })],
+  ])('%s: koruma sorgusu (build geçmişi) hata verirse build\'e DÜŞMEZ, durur', (_n, go) => {
+    const r = go();
+    expect(r.status).not.toBe(0);
+    expect(r.outputs.action).toBeUndefined();
+    expect(r.outputs.ios).toBeUndefined();
+  });
+
   it('recheck: döngü tespitinde job kırmızı, build yok', () => {
     const r = run(['recheck', 'ios', 'staging'], {
       env: { FP: 'fp-ios-preview' },
