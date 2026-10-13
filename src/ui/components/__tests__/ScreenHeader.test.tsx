@@ -24,6 +24,20 @@ describe('ScreenHeader — sade beyaz üst bar (web)', () => {
     expect(onBack).toHaveBeenCalled();
   });
 
+  it('geri oku yokken boş kutu çizilmez; başlık sayfa kenar boşluğundan (spacing[4]) başlar', () => {
+    const { rerender } = render(<ScreenHeader title="Profil" showBack={false} />);
+    expect(screen.queryByLabelText('Geri')).toBeNull();
+    const row = screen.getByTestId('screen-header-row');
+    // Satırda yalnız başlık + sağ slot: geri oku yeri kadar boş kutu yok.
+    expect(row.children).toHaveLength(2);
+    const container = StyleSheet.flatten(screen.getByTestId('screen-header').props.style);
+    const titleWrap = StyleSheet.flatten((row.children[0] as any).props.style);
+    expect((container.paddingHorizontal as number) + (titleWrap.paddingLeft as number)).toBe(theme.spacing[4]);
+    // Geri okuyla: üç çocuk (düğme, başlık, sağ slot), başlığa ek dolgu yok.
+    rerender(<ScreenHeader title="Adres" onBack={jest.fn()} />);
+    expect(screen.getByTestId('screen-header-row').children).toHaveLength(3);
+  });
+
   it('TopBarAction: ikon başlık renginde, metin primary-600; sayaç rozeti', () => {
     const onPress = jest.fn();
     render(

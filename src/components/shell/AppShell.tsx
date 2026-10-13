@@ -52,8 +52,8 @@ function useOpenSearch(): () => void {
 /**
  * Sekme köklerinin kabuğu. Ana Sayfa (`variant="search"`): tek satır [arama alanı][bildirim][sepet],
  * logo yok, ikonlar zeminsiz primary-600 (`HeaderIconButton`). Diğer sekme kökleri
- * (`variant="title"`): `ScreenHeader` ile AYNI bar (geri oku yerine boş kutu: başlık yığın
- * ekranlarıyla aynı x'te başlar), isteğe bağlı sağ aksiyon. İki varyantta da beyaz zemin + alt çizgi
+ * (`variant="title"`): `ScreenHeader` ile AYNI bar (geri oku yok → boş kutu çizilmez, başlık
+ * sayfa kenar boşluğundan başlar), isteğe bağlı sağ aksiyon. İki varyantta da beyaz zemin + alt çizgi
  * ve aynı yükseklik (`theme.headerHeight`). Bu bilinçli bir web sapmasıdır (web telefonda logo +
  * ikincil arama satırı). StatusBar koyu içerik (kök layout varsayılanı) — kabuk StatusBar'a dokunmaz.
  */
