@@ -8753,5 +8753,13 @@
       "lockedNote": "Bu bilgiler kaydedildikten sonra değiştirilemez. Hatalıysa destek ekibimizle iletişime geçin.",
       "notProvided": "Henüz girilmedi"
     }
+  },
+  "page": {
+    "listings": {
+      "listingstoolbar": {
+        "aZ": "A-Z",
+        "zA": "Z-A"
+      }
+    }
   }
 }
