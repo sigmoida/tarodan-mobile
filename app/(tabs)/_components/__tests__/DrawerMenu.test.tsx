@@ -4,13 +4,14 @@
  */
 import React from 'react';
 import { Text } from 'react-native';
-import { act, fireEvent, screen } from '@testing-library/react-native';
+import { act, fireEvent, screen, within } from '@testing-library/react-native';
 import { renderWithProviders, pushMock, resetRouterMocks } from '@/test-utils';
 import { SideMenuProvider, useSideMenu } from '@/components/shell/SideMenuContext';
 import { SideMenuHost } from '@/components/shell/SideMenuHost';
 import { useAuthStore } from '@/stores/authStore';
 import { useSideMenuStore } from '@/stores/sideMenuStore';
 import { DrawerMenu } from '../DrawerMenu';
+import { DrawerMenuRow } from '../DrawerMenuRow';
 
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 jest.mock('expo-status-bar', () => ({ StatusBar: () => null, setStatusBarStyle: jest.fn() }));
@@ -34,8 +35,8 @@ function setup() {
   const utils = renderWithProviders(
     <SideMenuProvider>
       <Probe />
-      <SideMenuHost>
-        <DrawerMenu />
+      <SideMenuHost menu={<DrawerMenu />}>
+        <Text>uygulama</Text>
       </SideMenuHost>
     </SideMenuProvider>,
   );
@@ -141,6 +142,20 @@ describe('DrawerMenu — üye', () => {
     expect(screen.getByTestId('profile-orders-link')).toBeTruthy();
   });
 
+  it('chevron yönü: açıkken aşağı, kapalıyken sağ; başlık/X yok; gruplar arası tam genişlik çizgi', () => {
+    setup();
+    const toggle = () => screen.getByTestId('side-menu-section-commerce-toggle');
+    expect(screen.queryByText('Menü')).toBeNull();
+    expect(screen.queryByTestId('side-menu-close')).toBeNull();
+    // Üstte sabit Favoriler + 6 başlıklı grup → her grubun üstünde 6 ayırıcı.
+    expect(screen.getAllByTestId('side-menu-divider')).toHaveLength(6);
+    expect(within(toggle()).getByTestId('icon-chevron-down')).toBeTruthy();
+    expect(within(toggle()).queryByTestId('icon-chevron-right')).toBeNull();
+    fireEvent.press(toggle());
+    expect(within(toggle()).getByTestId('icon-chevron-right')).toBeTruthy();
+    expect(within(toggle()).queryByTestId('icon-chevron-down')).toBeNull();
+  });
+
   it('kapalı grup durumu oturum boyunca hatırlanır (menü kapanıp açılınca)', () => {
     setup();
     fireEvent.press(screen.getByTestId('side-menu-section-finance-toggle'));
@@ -203,5 +218,15 @@ describe('DrawerMenu — misafir', () => {
     setup();
     fireEvent.press(screen.getByTestId('side-menu-register'));
     expect(pushMock).toHaveBeenCalledWith('/(auth)/register');
+  });
+});
+
+describe('DrawerMenuRow — açıklama', () => {
+  it('description verilirse etiketin altında çizilir, yoksa çizilmez', () => {
+    const base = { key: 'orders', label: 'Siparişlerim', to: '/orders', testID: 'row-a' };
+    const { rerender } = renderWithProviders(<DrawerMenuRow item={base} onPress={jest.fn()} />);
+    expect(screen.queryByTestId('row-a-description')).toBeNull();
+    rerender(<DrawerMenuRow item={{ ...base, description: 'Reklamsız göz atma' }} onPress={jest.fn()} />);
+    expect(screen.getByText('Reklamsız göz atma')).toBeTruthy();
   });
 });
