@@ -504,6 +504,10 @@
     "year": "Year",
     "category": "Category",
     "images": "Images",
+    "basicInfo": "Basic Information",
+    "imageUpload": {
+      "removeImage": "Remove image {index}"
+    },
     "views": "views",
     "likes": "likes",
     "noReviewsShort": "No reviews",

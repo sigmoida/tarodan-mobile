@@ -504,6 +504,10 @@
     "year": "Yıl",
     "category": "Kategori",
     "images": "Fotoğraflar",
+    "basicInfo": "Temel Bilgiler",
+    "imageUpload": {
+      "removeImage": "{index}. görseli kaldır"
+    },
     "views": "görüntülenme",
     "likes": "beğeni",
     "noReviewsShort": "Değerlendirme yok",
