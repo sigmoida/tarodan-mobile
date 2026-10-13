@@ -40,17 +40,17 @@ function valuesInGroup(attributes: unknown, slug: string): string[] {
 }
 
 /** Ölçek satırı: `product.scale` (API türetir), boşsa ölçek grubunun değeri (web ile aynı). */
-export function scaleValue(product: { scale?: unknown; attributes?: unknown }): string {
+export function scaleValue(product: Record<string, any>): string {
   return asLabel(product.scale) || valuesInGroup(product.attributes, SCALE_GROUP_SLUG)[0] || '';
 }
 
 /** Malzeme satırı: `product.material`, boşsa malzeme grubunun değeri (web ile aynı). */
-export function materialValue(product: { material?: unknown; attributes?: unknown }): string {
+export function materialValue(product: Record<string, any>): string {
   return asLabel(product.material) || valuesInGroup(product.attributes, MATERIAL_GROUP_SLUG)[0] || '';
 }
 
 /** Renk satırı: `product.color`, boşsa renk grubunun değerleri virgülle (web ile aynı). */
-export function colorValue(product: { color?: unknown; attributes?: unknown }): string {
+export function colorValue(product: Record<string, any>): string {
   return (
     asLabel(product.color) ||
     valuesInGroup(product.attributes, COLOR_GROUP_SLUG).join(COLOR_LABEL_SEPARATOR)
