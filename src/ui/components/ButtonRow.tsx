@@ -12,6 +12,12 @@ export interface ButtonRowProps {
    * her biri tam genişlikte. `stack`: her zaman alt alta.
    */
   layout?: 'auto' | 'stack';
+  /**
+   * Alt alta dizilince sıra. `same` (varsayılan): yan yanaki sırayla aynı. `reverse`: ters — web
+   * ModalFooter/ConfirmDialog `flex-col-reverse sm:flex-row` düzeni: yan yana [İptal][Onay], alt alta
+   * Onay üstte, İptal altta. Çocuklar YAN YANA sırayla verilir.
+   */
+  stackOrder?: 'same' | 'reverse';
   style?: StyleProp<ViewStyle>;
   testID?: string;
 }
@@ -37,6 +43,7 @@ export const ButtonRow: React.FC<ButtonRowProps> = ({
   children,
   gap = spacing[2],
   layout = 'auto',
+  stackOrder = 'same',
   style,
   testID,
 }) => {
@@ -90,6 +97,8 @@ export const ButtonRow: React.FC<ButtonRowProps> = ({
   }
 
   const ready = !measuring || (measured && width > 0) || gaveUp;
+  const order = items.map((_, i) => i);
+  if (stackedNow && stackOrder === 'reverse') order.reverse();
 
   return (
     <View style={[styles.container, style]} onLayout={onContainerLayout} testID={testID}>
@@ -98,9 +107,9 @@ export const ButtonRow: React.FC<ButtonRowProps> = ({
           testID={testID ? `${testID}-items` : undefined}
           style={[stackedNow ? styles.stack : styles.row, { gap }, !ready && styles.pending]}
         >
-          {items.map((child, i) => (
+          {order.map((i) => (
             <View key={keys[i]} style={stackedNow ? styles.stackItem : styles.rowItem}>
-              {child}
+              {items[i]}
             </View>
           ))}
         </View>

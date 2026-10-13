@@ -5,9 +5,19 @@
  * davranışı (geri tuşu / arka plan) her durumda aynı.
  */
 import React from 'react';
-import { Modal as RNModal, StyleSheet, Text } from 'react-native';
-import { fireEvent, render } from '@testing-library/react-native';
+import { Modal as RNModal, Platform, StyleSheet, Text } from 'react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
 import { Modal, MODAL_MAX_WIDTH } from '../Modal';
+import { resetToastForTests, toast, ToastHost } from '../Toast';
+
+let mockKeyboardHeight = 0;
+jest.mock('@/hooks/useKeyboardHeight', () => ({
+  ...jest.requireActual('@/hooks/useKeyboardHeight'),
+  useKeyboardHeight: () => mockKeyboardHeight,
+}));
+afterEach(() => {
+  mockKeyboardHeight = 0;
+});
 
 type N = { parent: N | null; props: { style?: unknown; testID?: string } };
 const flat = (n: N) => StyleSheet.flatten(n.props.style as never) as Record<string, unknown> | undefined;
@@ -210,5 +220,114 @@ describe('Modal: fitContent', () => {
     expect(sheet?.width).toBe('auto');
     expect(sheet?.maxWidth).toBe(512);
     expect(sheet?.backgroundColor).not.toBe('transparent');
+  });
+});
+
+describe('Modal: gövde kaydırma, güvenli alan, klavye, toast katmanı', () => {
+  const inside = (node: unknown, pred: (n: N & { type?: unknown }) => boolean) => {
+    let cur = node as (N & { type?: unknown }) | null;
+    while (cur) {
+      if (pred(cur)) return true;
+      cur = cur.parent as (N & { type?: unknown }) | null;
+    }
+    return false;
+  };
+
+  it('gövde ScrollView (başlık + alt şerit sabit); kart pencereye sığmazsa küçülür', () => {
+    const { getByTestId, getByText } = render(
+      <Modal isOpen onClose={jest.fn()} title="Başlık" footer={<Text>alt</Text>}>
+        <Text>içerik</Text>
+      </Modal>,
+    );
+    const scroll = getByTestId('modal-body-scroll');
+    expect(scroll.type).toBe('RCTScrollView');
+    expect(StyleSheet.flatten(scroll.props.style)).toMatchObject({ flexGrow: 0, flexShrink: 1 });
+    expect(scroll.props.keyboardShouldPersistTaps).toBe('handled');
+    const inScroll = (label: string) => inside(getByText(label), (n) => n.props.testID === 'modal-body-scroll');
+    expect(inScroll('içerik')).toBe(true);
+    expect(inScroll('Başlık')).toBe(false);
+    expect(inScroll('alt')).toBe(false);
+    expect(sheetOf(getByText('içerik'))?.flexShrink).toBe(1);
+  });
+
+  it("scrollable={false}: kendi ScrollView'ını taşıyan gövdede çift kaydırma yok", () => {
+    const { queryByTestId } = render(
+      <Modal isOpen onClose={jest.fn()} scrollable={false}>
+        <Text>içerik</Text>
+      </Modal>,
+    );
+    expect(queryByTestId('modal-body-scroll')).toBeNull();
+  });
+
+  it('fitContent varsayılan olarak kaydırmasız (içeriğe oturan kart)', () => {
+    const { queryByTestId } = render(
+      <Modal isOpen onClose={jest.fn()} fitContent>
+        <Text>içerik</Text>
+      </Modal>,
+    );
+    expect(queryByTestId('modal-body-scroll')).toBeNull();
+  });
+
+  it('kenardan kenara (Android status/nav bar saydam); arka plan güvenli alan kadar içeriden', () => {
+    const { UNSAFE_getByType, getByTestId } = render(
+      <Modal isOpen onClose={jest.fn()}>
+        <Text>içerik</Text>
+      </Modal>,
+    );
+    const modal = UNSAFE_getByType(RNModal);
+    expect(modal.props.statusBarTranslucent).toBe(true);
+    expect(modal.props.navigationBarTranslucent).toBe(true);
+    const backdrop = StyleSheet.flatten(getByTestId('modal-backdrop').props.style);
+    expect(backdrop.paddingTop).toBe(16); // jest güvenli alan 0 + spacing[4]
+    expect(backdrop.paddingBottom).toBe(16);
+  });
+
+  it('klavye açık: Android kenardan kenara pencerede alt boşluk klavye kadar (pencere küçüldüyse düşülür); iOS KeyboardAvoidingView', () => {
+    const original = Platform.OS;
+    const setOS = (os: string) => Object.defineProperty(Platform, 'OS', { configurable: true, get: () => os });
+    mockKeyboardHeight = 280;
+    try {
+      setOS('android');
+      const android = render(
+        <Modal isOpen onClose={jest.fn()}>
+          <Text>içerik</Text>
+        </Modal>,
+      );
+      const pad = () => StyleSheet.flatten(android.getByTestId('modal-backdrop').props.style).paddingBottom;
+      expect(pad()).toBe(280 + 8);
+      // İşletim sistemi pencereyi yine de küçülttüyse (adjustResize) çift kaçış yok.
+      const root = android.getByTestId('modal-root');
+      fireEvent(root, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 640 } } });
+      fireEvent(root, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 360 } } });
+      expect(pad()).toBe(8);
+      android.unmount();
+
+      setOS('ios');
+      const ios = render(
+        <Modal isOpen onClose={jest.fn()}>
+          <Text>içerik</Text>
+        </Modal>,
+      );
+      expect(StyleSheet.flatten(ios.getByTestId('modal-backdrop').props.style).paddingBottom).toBe(8);
+    } finally {
+      setOS(original);
+    }
+  });
+
+  it('toast modalın native penceresinde çizilir (ToastLayer bağlı)', () => {
+    resetToastForTests();
+    const { getByText } = render(
+      <>
+        <ToastHost />
+        <Modal isOpen onClose={jest.fn()}>
+          <Text>içerik</Text>
+        </Modal>
+      </>,
+    );
+    act(() => {
+      toast.error('Modal üstünde');
+    });
+    expect(inside(getByText('Modal üstünde'), (n) => n.type === RNModal)).toBe(true);
+    resetToastForTests();
   });
 });

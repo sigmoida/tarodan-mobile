@@ -1,7 +1,8 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { fireEvent, render, screen } from '@testing-library/react-native';
-import { PageHeader, PageShell, RawText, theme } from '@/ui';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { PageHeader, PageShell, RawText, theme, toast, ToastHost } from '@/ui';
+import { resetToastForTests, TOAST_GAP } from '../Toast';
 
 describe('PageShell', () => {
   it('beyaz üst bar + surface zemin + içerik + sabit alt bar', () => {
@@ -16,6 +17,36 @@ describe('PageShell', () => {
     expect(StyleSheet.flatten(screen.getByTestId('ps').props.style).backgroundColor).toBe(
       theme.colors.surface.DEFAULT,
     );
+  });
+
+  it('alt çubuk varken toast çubuğun üstünde (kök toast katmanına bildirilir); çubuk kalkınca geri döner', () => {
+    resetToastForTests();
+    const view = render(
+      <>
+        <ToastHost />
+        <PageShell title="Sepet" footer={<RawText>Öde</RawText>}>
+          <RawText>içerik</RawText>
+        </PageShell>
+      </>,
+    );
+    fireEvent(screen.getByTestId('page-shell-footer'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 390, height: 76 } },
+    });
+    act(() => {
+      toast('Sepete eklendi', { duration: 0 });
+    });
+    const bottom = () => StyleSheet.flatten(screen.getByTestId('toast').props.style).bottom;
+    expect(bottom()).toBe(76 + TOAST_GAP);
+    view.rerender(
+      <>
+        <ToastHost />
+        <PageShell title="Sepet" loading footer={<RawText>Öde</RawText>}>
+          <RawText>içerik</RawText>
+        </PageShell>
+      </>,
+    );
+    expect(bottom()).toBe(theme.spacing[2] + TOAST_GAP);
+    resetToastForTests();
   });
 
   it('loading → Skeleton, içerik ve alt bar yok', () => {

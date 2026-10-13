@@ -69,10 +69,18 @@ jest.mock('@react-native-google-signin/google-signin', () => ({
 
 // appAlert: native Alert.alert yerine geçen temalı dialog (AlertDialogHost testte
 // mount edilmez) → global jest.fn mock. Testler `appAlert as jest.Mock` ile erişir.
-jest.mock('@/ui', () => ({
-  ...jest.requireActual('@/ui'),
-  appAlert: jest.fn(),
-}));
+// `confirm()` aynı mock üstünden çalışır: testler onu da `appAlert` çağrısı olarak görür ve
+// düğmelerin `onPress`'iyle (iptal → false, onay → true) çözer.
+jest.mock('@/ui', () => {
+  const actual = jest.requireActual('@/ui');
+  const { confirmWith } = jest.requireActual('@/ui/components/AlertDialog');
+  const appAlert = jest.fn();
+  return {
+    ...actual,
+    appAlert,
+    confirm: (options: unknown) => confirmWith(appAlert, options),
+  };
+});
 
 // FlashList v2: jest'te yerel ölçüm yok → ebeveyn/hücre ölçümlerini sabitle (liste hücreleri render olsun).
 // NOT: paketin kendi `jestSetup.js`'i 2.0.2'de çalışmıyor (var olmayan `RecyclerView` export'unu

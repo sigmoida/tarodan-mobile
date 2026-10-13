@@ -148,6 +148,10 @@ export {
 export {
 	toast,
 	ToastHost,
+	ToastLayer,
+	useToastBottomInset,
+	type ToastLayerProps,
+	type ToastId,
 	type ToastKind,
 	type ToastOptions,
 } from './components/Toast';
@@ -207,9 +211,11 @@ export {
 export { ModalFooter, type ModalFooterProps } from './components/ModalFooter';
 export {
 	appAlert,
+	confirm,
 	AlertDialogHost,
 	type AlertDialogButton,
 	type AlertDialogOptions,
+	type ConfirmOptions,
 } from './components/AlertDialog';
 export {
 	useModalMessage,

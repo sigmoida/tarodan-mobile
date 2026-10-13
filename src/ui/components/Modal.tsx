@@ -4,12 +4,16 @@ import {
   Modal as RNModal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../lib/theme';
+import { useKeyboardOverlap } from '../lib/keyboard';
 import { IconButton, iconButtonBoxSize, type IconButtonSize } from './IconButton';
 import { SheetHeader } from './SheetHeader';
+import { ToastLayer } from './Toast';
 
 /** Kart genişliği: `md` (varsayılan) 480pt, `lg` 512pt (web `max-w-lg`). */
 export type ModalSize = 'md' | 'lg';
@@ -43,10 +47,17 @@ export interface ModalProps {
    */
   fitContent?: boolean;
   /**
-   * Alt şerit (web Dialog `footer`): üst çizgili, `px-6 py-4`. Düğmeler için `ModalFooter`
-   * kullanın — web gibi mobilde tam genişlik, ana aksiyon üstte (ters sıra).
+   * Alt şerit (web Dialog `footer`): üst çizgili, `px-6 py-4`, kaydırılmaz (gövde kayar). Düğmeler
+   * için `ModalFooter` kullanın — sığarsa yan yana [İptal][Ana aksiyon], sığmazsa alt alta ana aksiyon
+   * üstte.
    */
   footer?: React.ReactNode;
+  /**
+   * Gövde `ScrollView` (varsayılan; `fitContent` ile kapalı): kart pencereye (güvenli alanlar +
+   * klavye) sığmazsa başlık ve alt şerit yerinde kalır, yalnız gövde kayar. Kendi `ScrollView`'ını
+   * taşıyan gövdeler `false` verir (çift kaydırma olmasın) — gövde yine de kalan alana küçülür.
+   */
+  scrollable?: boolean;
 }
 
 const { colors, radius, spacing } = theme;
@@ -69,64 +80,97 @@ export const Modal: React.FC<ModalProps> = ({
   flushBody = false,
   fitContent = false,
   footer,
+  scrollable = !fitContent,
 }) => {
   const hasHeader = !!title || showCloseButton;
+  const insets = useSafeAreaInsets();
+  const keyboard = useKeyboardOverlap();
+  // Kart pencereye sığar: üstte güvenli alan, altta güvenli alan ya da klavye. iOS'ta klavyeyi
+  // KeyboardAvoidingView (padding, klavye animasyonuyla) kaçar; Android kenardan kenara pencerede
+  // `adjustResize` küçültmez → klavye payı burada (pencere yine de küçüldüyse o kadarı düşülür).
+  const keyboardOpen = keyboard.keyboardHeight > 0;
+  const paddingBottom = keyboardOpen
+    ? (Platform.OS === 'ios' ? 0 : keyboard.overlap) + spacing[2]
+    : insets.bottom + spacing[4];
+  const body = (
+    <View
+      style={[
+        styles.body,
+        hasHeader && !title && styles.bodyAfterHeader,
+        flushBody && styles.bodyFlush,
+      ]}
+    >
+      {children}
+    </View>
+  );
   return (
     <RNModal
       visible={isOpen}
       transparent
       animationType="fade"
+      statusBarTranslucent
+      navigationBarTranslucent
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.fill}
-      >
-        <Pressable
-          style={styles.backdrop}
-          onPress={closeOnBackdrop ? onClose : undefined}
+      <View style={styles.fill} onLayout={keyboard.onLayout} testID="modal-root">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          enabled={Platform.OS === 'ios'}
+          style={styles.fill}
         >
           <Pressable
-            style={[
-              styles.sheet,
-              { maxWidth: MODAL_MAX_WIDTH[size] },
-              fitContent && styles.sheetFit,
-              flushBody && styles.sheetFlush,
-            ]}
+            style={[styles.backdrop, { paddingTop: insets.top + spacing[4], paddingBottom }]}
+            onPress={closeOnBackdrop ? onClose : undefined}
+            testID="modal-backdrop"
           >
-            {title ? (
-              <SheetHeader
-                title={title}
-                paddingX={6}
-                onClose={showCloseButton ? onClose : undefined}
-                closeLabel={closeLabel}
-                closeTestID="modal-close"
-              />
-            ) : showCloseButton ? (
-              <View style={[styles.header, styles.headerCloseOnly]}>
-                <View style={styles.fill} />
-                <IconButton
-                  icon="x-mark"
-                  size={CLOSE_BUTTON_SIZE}
-                  accessibilityLabel={closeLabel ?? 'Close'}
-                  onPress={onClose}
-                  testID="modal-close"
-                />
-              </View>
-            ) : null}
-            <View
+            <Pressable
+              accessibilityViewIsModal
               style={[
-                styles.body,
-                hasHeader && !title && styles.bodyAfterHeader,
-                flushBody && styles.bodyFlush,
+                styles.sheet,
+                { maxWidth: MODAL_MAX_WIDTH[size] },
+                fitContent && styles.sheetFit,
+                flushBody && styles.sheetFlush,
               ]}
             >
-              {children}
-            </View>
-            {footer ? <View style={styles.footer}>{footer}</View> : null}
+              {title ? (
+                <SheetHeader
+                  title={title}
+                  paddingX={6}
+                  onClose={showCloseButton ? onClose : undefined}
+                  closeLabel={closeLabel}
+                  closeTestID="modal-close"
+                />
+              ) : showCloseButton ? (
+                <View style={[styles.header, styles.headerCloseOnly]}>
+                  <View style={styles.fill} />
+                  <IconButton
+                    icon="x-mark"
+                    size={CLOSE_BUTTON_SIZE}
+                    accessibilityLabel={closeLabel ?? 'Close'}
+                    onPress={onClose}
+                    testID="modal-close"
+                  />
+                </View>
+              ) : null}
+              {scrollable ? (
+                <ScrollView
+                  style={styles.bodyScroll}
+                  keyboardShouldPersistTaps="handled"
+                  bounces={false}
+                  testID="modal-body-scroll"
+                >
+                  {body}
+                </ScrollView>
+              ) : (
+                <View style={styles.bodyShrink}>{body}</View>
+              )}
+              {footer ? <View style={styles.footer}>{footer}</View> : null}
+            </Pressable>
           </Pressable>
-        </Pressable>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+        {/* Toast bu native pencerede çizilsin (kök host modalın ALTINDA kalır). */}
+        <ToastLayer />
+      </View>
     </RNModal>
   );
 };
@@ -140,12 +184,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.overlay.black50,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing[4],
+    paddingHorizontal: spacing[4],
   },
+  // Kart içeriği kadar uzar; pencereye sığmazsa küçülür (yalnız gövde küçülür: başlık/alt şerit sabit).
   sheet: {
     width: '100%',
+    flexShrink: 1,
     backgroundColor: colors.surface.elevated,
     borderRadius: radius.xl,
+  },
+  bodyScroll: {
+    flexGrow: 0,
+    flexShrink: 1,
+  },
+  bodyShrink: {
+    flexShrink: 1,
+    minHeight: 0,
   },
   // İçeriğe oturan kart (backdrop `alignItems: center` olduğu için ortalanır).
   sheetFit: {

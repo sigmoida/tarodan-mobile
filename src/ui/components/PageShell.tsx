@@ -22,6 +22,7 @@ import { EmptyState, type EmptyStateProps } from './EmptyState';
 import { ErrorState } from './ErrorState';
 import { ScreenLoader } from './ScreenLoader';
 import { SkeletonText } from './Skeleton';
+import { useToastBottomInset } from './Toast';
 
 /** Sayfa kenar boşluğu (web telefon `px-4`) ve bölüm aralığı (web PageShell `space-y-4`). */
 export const PAGE_GUTTER = theme.spacing[4];
@@ -218,6 +219,14 @@ export const PageShell: React.FC<PageShellProps> = ({
     body = <View style={[styles.fill, contentStyle]}>{children}</View>;
   }
 
+  // Alt çubuk varken toast onun üstünde dursun (kök toast katmanına bildirilir; iOS'ta çubuk
+  // KeyboardAvoidingView ile klavyenin üstüne çıkar, toast da onunla).
+  const [footerHeight, setFooterHeight] = React.useState(0);
+  useToastBottomInset(
+    showFooter && footerHeight > 0 ? footerHeight : null,
+    keyboardAware && Platform.OS === 'ios',
+  );
+
   // Bar altından kaymayan gövde (yükleniyor / boş / hata / bağlanmamış liste) bar kadar aşağıdan başlar.
   const content = (
     <>
@@ -225,6 +234,7 @@ export const PageShell: React.FC<PageShellProps> = ({
       {showFooter ? (
         <View
           style={[styles.footer, { paddingBottom: spacing[3] + insets.bottom }]}
+          onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
           testID="page-shell-footer"
         >
           {footer}

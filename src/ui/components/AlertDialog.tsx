@@ -4,9 +4,12 @@ import {
   Modal as RNModal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
+  useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import i18n from 'i18next';
 import { theme } from '../lib/theme';
 import {
@@ -15,8 +18,10 @@ import {
   MODAL_PRESENT_RETRY_MS,
   MODAL_SHIELD_MAX_MS,
 } from '../lib/modal-timing';
-import { RawText } from './Text';
-import { MODAL_MAX_WIDTH } from './Modal';
+import { Button, type ButtonVariant } from './Button';
+import { ButtonRow } from './ButtonRow';
+import { Text } from './Text';
+import { ToastLayer } from './Toast';
 
 /**
  * Düğme verilmeyen uyarının varsayılan etiketi — arayüz dilinde. Eskiden sabit
@@ -24,8 +29,13 @@ import { MODAL_MAX_WIDTH } from './Modal';
  * i18next henüz kurulmadıysa (çok erken ya da i18n'siz test) "OK"e düşer.
  */
 function defaultOkLabel(): string {
-  const label = i18n.isInitialized ? i18n.t('common.ok') : '';
-  return label && label !== 'common.ok' ? label : 'OK';
+  return translate('common.ok', 'OK');
+}
+
+/** Arayüz dilinde etiket; i18next kurulmadıysa / anahtar yoksa `fallback`. */
+function translate(key: 'common.ok' | 'common.cancel' | 'common.confirm', fallback: string): string {
+  const label: string = i18n.isInitialized ? i18n.t(key) : '';
+  return label && label !== key ? label : fallback;
 }
 
 export interface AlertDialogButton {
@@ -41,6 +51,13 @@ export interface AlertDialogButton {
 }
 
 export interface AlertDialogOptions {
+  /**
+   * Android geri tuşu ve arka plana dokunma diyaloğu kapatır mı. Varsayılan: `cancel` stilli düğme
+   * varsa ya da tek düğmeliyse `true` (Material: geri = iptal), aksi halde `false`. Kapatma, `cancel`
+   * düğmesine (yoksa tek düğmeye) basmakla aynıdır — `onPress`'i kapanış bitince çalışır — ve
+   * ardından `onDismiss` çağrılır. Kullanıcının mutlaka okuması gereken tek düğmeli uyarılar
+   * (ödeme belirsizliği vb.) açıkça `cancelable: false` verir.
+   */
   cancelable?: boolean;
   onDismiss?: () => void;
 }
@@ -89,7 +106,110 @@ export function resetAlertQueueForTests(): void {
   queue.length = 0;
 }
 
-const { colors, radiusRole, spacing, typography, controlHeight } = theme;
+export interface ConfirmOptions {
+  title: string;
+  message?: string;
+  /** Onay düğmesi (varsayılan "Onayla"). */
+  confirmLabel?: string;
+  /** İptal düğmesi (varsayılan "İptal"). */
+  cancelLabel?: string;
+  /** Yıkıcı işlem (sil, iptal et…) → onay düğmesi danger. */
+  destructive?: boolean;
+}
+
+type AlertFn = (
+  title: string,
+  message?: string,
+  buttons?: AlertDialogButton[],
+  options?: AlertDialogOptions,
+) => void;
+
+/**
+ * `confirm`'ün uygulaması; diyaloğu açan fonksiyon parametre — testlerde global `appAlert` mock'u
+ * üstünden çalışsın diye (`jest.setup.ts`). Uygulama kodu `confirm`'ü kullanır.
+ */
+export function confirmWith(
+  alert: AlertFn,
+  { title, message, confirmLabel, cancelLabel, destructive = false }: ConfirmOptions,
+): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    alert(
+      title,
+      message,
+      [
+        {
+          text: cancelLabel ?? translate('common.cancel', 'Cancel'),
+          style: 'cancel',
+          onPress: () => resolve(false),
+        },
+        {
+          text: confirmLabel ?? translate('common.confirm', 'Confirm'),
+          style: destructive ? 'destructive' : 'default',
+          onPress: () => resolve(true),
+        },
+      ],
+      { cancelable: true, onDismiss: () => resolve(false) },
+    );
+  });
+}
+
+/**
+ * Onay diyaloğu — web `ConfirmProvider`'ın `confirm()`'ü ile aynı imza:
+ * `if (!(await confirm({ title, message, destructive: true }))) return;`
+ *
+ * `appAlert` üstünde; söz diyalog TAMAMEN kapandıktan SONRA çözülür (ModalFreeze sözleşmesi), yani
+ * `await`'ten sonra açılan modal / galeri / toast / navigasyon iOS'ta güvenlidir. İptal, geri tuşu ve
+ * arka plan dokunuşu `false` döner. Web'deki "diyalog açık kalıp async `onConfirm` bekle" kalıbı
+ * bilerek YOK (iOS donması): onaydan sonra işlemi çağıran yürütür, sonucu toast'la bildirir.
+ */
+export function confirm(options: ConfirmOptions): Promise<boolean> {
+  return confirmWith(appAlert, options);
+}
+
+/**
+ * Düğme düzeni. Alt alta düzende `cancel` stilli düğme HER ZAMAN en altta; diğerleri çağıranın
+ * verdiği sırada (ters çevirme yok). İki düğme etiketleri eşit paya sığıyorsa yan yana: iptal SOLDA
+ * (web ModalFooter `sm:flex-row`, iOS/Material diyalog düzeni) — sığmazsa `ButtonRow
+ * stackOrder="reverse"` alt alta çevirir (onay üstte, iptal altta). 3+ düğme hep alt alta.
+ */
+export function alertButtonLayout(buttons: AlertDialogButton[]): {
+  ordered: { button: AlertDialogButton; index: number }[];
+  layout: 'auto' | 'stack';
+  stackOrder: 'same' | 'reverse';
+} {
+  const indexed = buttons.map((button, index) => ({ button, index }));
+  const cancel = indexed.filter(({ button }) => button.style === 'cancel');
+  const others = indexed.filter(({ button }) => button.style !== 'cancel');
+  if (buttons.length === 2 && cancel.length === 1) {
+    return { ordered: [...cancel, ...others], layout: 'auto', stackOrder: 'reverse' };
+  }
+  return {
+    ordered: [...others, ...cancel],
+    layout: buttons.length === 2 ? 'auto' : 'stack',
+    stackOrder: 'same',
+  };
+}
+
+function buttonVariant(button: AlertDialogButton): ButtonVariant {
+  if (button.style === 'cancel') return 'outline';
+  if (button.style === 'destructive') return 'danger';
+  return 'primary';
+}
+
+/** Arka plan / geri tuşu ile kapatma hangi düğmeye basmak sayılır (bkz. `cancelable`). */
+function dismissButton(buttons: AlertDialogButton[]): AlertDialogButton | undefined {
+  return buttons.find((b) => b.style === 'cancel') ?? (buttons.length === 1 ? buttons[0] : undefined);
+}
+
+/** `cancelable` verilmediyse: iptal düğmesi varsa ya da tek düğmeliyse kapatılabilir. */
+export function isAlertCancelable(buttons: AlertDialogButton[], options?: AlertDialogOptions): boolean {
+  return options?.cancelable ?? (buttons.length === 1 || buttons.some((b) => b.style === 'cancel'));
+}
+
+const { colors, radiusRole, spacing } = theme;
+
+/** Kart genişliği: telefon diyaloğu — min(340, ekran - 48). */
+export const ALERT_MAX_WIDTH = 340;
 
 export interface AlertDialogHostProps {
   /**
@@ -227,7 +347,11 @@ export const AlertDialogHost: React.FC<AlertDialogHostProps> = ({ suspended = fa
     }
   };
 
-  const close = (button?: AlertDialogButton) => {
+  /**
+   * `dismissed`: düğmeye değil arka plana / geri tuşuna basıldı (`cancelable`). Kapatma, `cancel`
+   * düğmesine (yoksa tek düğmeye) basmak sayılır; ardından `options.onDismiss` de çalışır.
+   */
+  const close = (button?: AlertDialogButton, dismissed = false) => {
     if (!current || closingRef.current) return; // çift basış: ikinci kapanış yok
     closingRef.current = true;
     const request = current;
@@ -237,11 +361,15 @@ export const AlertDialogHost: React.FC<AlertDialogHostProps> = ({ suspended = fa
       // `onSelect` fırlatsa da kapanış ve zamanlayıcı kurulur: aksi halde `closingRef` true
       // kalır, diyalog ekranda asılı durur ve host oturum boyunca kilitlenirdi. Hata yutulmaz
       // (bu bloktan sonra çağırana yeniden fırlar); yalnız host durumu korunur.
-      const hasAfterClose = button ? !!button.onPress : !!request.options?.onDismiss;
+      const onDismiss = dismissed ? request.options?.onDismiss : undefined;
+      const hasAfterClose = !!button?.onPress || !!onDismiss;
       afterCloseRef.current = hasAfterClose
         ? () => {
-            if (button) button.onPress?.();
-            else request.options?.onDismiss?.();
+            try {
+              button?.onPress?.();
+            } finally {
+              onDismiss?.();
+            }
           }
         : null;
       setClosing(true);
@@ -304,29 +432,50 @@ export const AlertDialogHost: React.FC<AlertDialogHostProps> = ({ suspended = fa
 
   if (!current) return shield;
 
-  const { title, message, buttons, options } = current;
-  const cancelable = options?.cancelable ?? false;
-  // Web ConfirmDialog'un telefon görünümü: düğmeler tam genişlik, alt alta; `cancel` stilli düğme
-  // HER ZAMAN en altta (onay üstte, iptal altta). Diğerlerinin sırası çağıranın verdiği gibi
-  // KORUNUR (ters çevirme yok) — [Profil, Şikayet, Engelle, İptal] menüsü aynı sırada kalır.
-  const indexed = buttons.map((button, index) => ({ button, index }));
-  const ordered = [
-    ...indexed.filter(({ button }) => button.style !== 'cancel'),
-    ...indexed.filter(({ button }) => button.style === 'cancel'),
-  ];
-
   return (
     <>
+      <AlertDialogView
+        request={current}
+        visible={!closing}
+        attempt={attempt}
+        onShow={() => setPresented(true)}
+        onDismissed={finishClose}
+        onClose={close}
+      />
+      {shield}
+    </>
+  );
+};
+
+/** Diyalog görünümü — host'un kuyruk / kalkan / donma korumasından ayrı; yalnız çizim + düğme düzeni. */
+const AlertDialogView: React.FC<{
+  request: AlertDialogRequest;
+  visible: boolean;
+  attempt: number;
+  onShow: () => void;
+  onDismissed: () => void;
+  onClose: (button?: AlertDialogButton, dismissed?: boolean) => void;
+}> = ({ request, visible, attempt, onShow, onDismissed, onClose }) => {
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const { title, message, buttons, options } = request;
+  const cancelable = isAlertCancelable(buttons, options);
+  const dismiss = () => onClose(dismissButton(buttons), true);
+  const { ordered, layout, stackOrder } = alertButtonLayout(buttons);
+  const cardWidth = Math.min(ALERT_MAX_WIDTH, width - spacing[12]);
+
+  return (
     <RNModal
       key={attempt}
-      visible={!closing}
-      onShow={() => setPresented(true)}
-      onDismiss={finishClose}
+      visible={visible}
+      onShow={onShow}
+      onDismiss={onDismissed}
       transparent
       animationType="fade"
       statusBarTranslucent
+      navigationBarTranslucent
       onRequestClose={() => {
-        if (cancelable) close();
+        if (cancelable) dismiss();
       }}
     >
       {/* `accessible={false}`: dokunulabilir bir View, iOS'ta TÜM alt öğelerini
@@ -336,53 +485,50 @@ export const AlertDialogHost: React.FC<AlertDialogHostProps> = ({ suspended = fa
           öğeler başlık, mesaj ve düğmelerin kendisidir. */}
       <Pressable
         accessible={false}
-        style={styles.backdrop}
-        onPress={cancelable ? () => close() : undefined}
+        style={[
+          styles.backdrop,
+          { paddingTop: insets.top + spacing[6], paddingBottom: insets.bottom + spacing[6] },
+        ]}
+        onPress={cancelable ? dismiss : undefined}
+        testID="alert-dialog-backdrop"
       >
-        <Pressable accessible={false} style={styles.card}>
-          <View style={styles.header}>
-            <RawText style={styles.title} accessibilityRole="header">
-              {title}
-            </RawText>
-          </View>
+        <Pressable
+          accessible={false}
+          accessibilityViewIsModal
+          style={[styles.card, { width: cardWidth }]}
+          testID="alert-dialog"
+        >
+          <Text variant="h3" weight="bold" align="center" accessibilityRole="header">
+            {title}
+          </Text>
           {!!message && (
-            <View style={styles.body}>
-              <RawText style={styles.message}>{message}</RawText>
-            </View>
+            <ScrollView style={styles.body} bounces={false} testID="alert-dialog-body">
+              <Text variant="bodySm" tone="muted" align="center">
+                {message}
+              </Text>
+            </ScrollView>
           )}
-          <View style={styles.footer}>
-            {ordered.map(({ button, index }) => {
-              const isCancel = button.style === 'cancel';
-              const isDestructive = button.style === 'destructive';
-              return (
-                <Pressable
-                  key={`${button.text ?? 'btn'}-${index}`}
-                  onPress={() => close(button)}
-                  style={({ pressed }) => [
-                    styles.button,
-                    isCancel ? styles.buttonCancel : styles.buttonSolid,
-                    isDestructive && styles.buttonDestructive,
-                    pressed && styles.pressed,
-                  ]}
-                  accessibilityRole="button"
-                >
-                  <RawText
-                    style={[
-                      styles.buttonText,
-                      isCancel ? styles.buttonTextCancel : styles.buttonTextSolid,
-                    ]}
-                  >
-                    {button.text ?? defaultOkLabel()}
-                  </RawText>
-                </Pressable>
-              );
-            })}
-          </View>
+          <ButtonRow
+            layout={layout}
+            stackOrder={stackOrder}
+            style={styles.footer}
+            testID="alert-dialog-buttons"
+          >
+            {ordered.map(({ button, index }) => (
+              <Button
+                key={`${button.text ?? 'btn'}-${index}`}
+                variant={buttonVariant(button)}
+                title={button.text ?? defaultOkLabel()}
+                onPress={() => onClose(button)}
+                fullWidth
+              />
+            ))}
+          </ButtonRow>
         </Pressable>
       </Pressable>
+      {/* Toast bu native pencerede çizilsin (kök host diyaloğun ALTINDA kalır). */}
+      <ToastLayer />
     </RNModal>
-    {shield}
-    </>
   );
 };
 
@@ -397,76 +543,25 @@ const styles = StyleSheet.create({
     backgroundColor: colors.overlay.black50,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing[6],
+    paddingHorizontal: spacing[6],
   },
-  // Web Dialog kartı: rounded-xl, surface-elevated; başlık / gövde / alt şerit çizgilerle ayrılır.
+  // Telefon diyaloğu: ortalı başlık + mesaj, altta düğmeler. Uzun mesajda yalnız gövde kayar (kart
+  // pencereye sığana dek küçülür). iOS gölge, Android elevation (`shadow.elevated` ikisini de verir).
   card: {
-    width: '100%',
-    maxWidth: MODAL_MAX_WIDTH.md,
+    flexShrink: 1,
     backgroundColor: colors.surface.elevated,
     borderRadius: radiusRole.modal,
-    overflow: 'hidden',
-  },
-  header: {
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.DEFAULT,
-  },
-  title: {
-    fontSize: typography.fontSize.lg,
-    lineHeight: typography.fontSize.lg * 1.25,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.heading,
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[6],
+    paddingBottom: spacing[5],
+    ...theme.shadow.elevated,
   },
   body: {
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-  },
-  message: {
-    fontSize: typography.fontSize.sm,
-    lineHeight: typography.fontSize.sm * 1.5,
-    color: colors.text.body,
+    flexGrow: 0,
+    flexShrink: 1,
+    marginTop: spacing[2],
   },
   footer: {
-    gap: spacing[2],
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[4],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.DEFAULT,
-  },
-  // Web Button md: h-10, rounded-lg, text-sm/500.
-  button: {
-    alignSelf: 'stretch',
-    height: controlHeight.md,
-    borderRadius: radiusRole.button,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing[4],
-  },
-  buttonSolid: {
-    backgroundColor: colors.primary[600],
-  },
-  buttonDestructive: {
-    backgroundColor: colors.danger[600],
-  },
-  // Web ModalFooter: İptal = outline.
-  buttonCancel: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-  buttonText: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
-  },
-  buttonTextSolid: {
-    color: colors.text.inverted,
-  },
-  buttonTextCancel: {
-    color: colors.text.body,
+    marginTop: spacing[5],
   },
 });

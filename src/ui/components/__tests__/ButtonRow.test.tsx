@@ -62,6 +62,28 @@ describe('ButtonRow', () => {
     expect(direction()).toBe('column');
   });
 
+  it('stackOrder="reverse": yan yana verilen sırayla, alt alta ters (web flex-col-reverse)', () => {
+    render(
+      <ButtonRow testID="row" gap={8} stackOrder="reverse">
+        <Button title="Vazgeç" variant="outline" />
+        <Button title="Teklifi Gönder" />
+      </ButtonRow>,
+    );
+    const labels = () =>
+      screen
+        .getAllByRole('button')
+        .map((el) => el.findAll((n: { props: { children?: unknown } }) => typeof n.props.children === 'string')[0]?.props.children);
+    fireEvent(screen.getByTestId('row'), 'layout', layout(320));
+    fireEvent(measure(0), 'layout', layout(90));
+    fireEvent(measure(1), 'layout', layout(140));
+    expect(direction()).toBe('row');
+    expect(labels()).toEqual(['Vazgeç', 'Teklifi Gönder']);
+    fireEvent(screen.getByTestId('row'), 'layout', layout(240));
+    fireEvent(measure(1), 'layout', layout(160));
+    expect(direction()).toBe('column');
+    expect(labels()).toEqual(['Teklifi Gönder', 'Vazgeç']);
+  });
+
   it('layout="stack" her zaman alt alta', () => {
     render(
       <ButtonRow testID="row" layout="stack">

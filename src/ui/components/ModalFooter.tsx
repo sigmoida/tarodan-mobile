@@ -1,8 +1,7 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { theme } from '../lib/theme';
 import { Button } from './Button';
+import { ButtonRow } from './ButtonRow';
 
 export interface ModalFooterProps {
   onCancel: () => void;
@@ -18,9 +17,10 @@ export interface ModalFooterProps {
 }
 
 /**
- * Web `@tarodan/ui` ModalFooter'ın telefon görünümü: İptal (outline) + ana aksiyon
- * (primary / danger), `flex-col-reverse` → tam genişlik, ana aksiyon ÜSTTE. Bütün diyalog
- * düğmeleri aynı dizilimi kullansın diye tek kaynak.
+ * Web `@tarodan/ui` ModalFooter (`flex-col-reverse sm:flex-row`): İptal (outline) + ana aksiyon
+ * (primary / danger). Etiketler eşit paya sığıyorsa YAN YANA eşit genişlik [İptal][Ana aksiyon];
+ * sığmıyorsa alt alta tam genişlik, ana aksiyon ÜSTTE (`ButtonRow stackOrder="reverse"`). Etiket
+ * asla sarmaz. Bütün diyalog düğmeleri aynı dizilimi kullansın diye tek kaynak.
  *
  * **`isLoading` bilerek YOK (iOS ModalFreeze, CLAUDE.md §12):** web'deki "mutasyon bitene kadar
  * diyaloğu açık tut" kalıbı native'de yapılmaz — bir mutasyonun `appAlert`'i açık bir ui-native
@@ -40,28 +40,22 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({
 }) => {
   const { t } = useTranslation();
   return (
-    <View style={styles.column}>
+    <ButtonRow stackOrder="reverse" testID="modal-footer">
       <Button
+        key="cancel"
+        variant="outline"
+        title={cancelLabel ?? t('common.cancel')}
+        onPress={onCancel}
+        testID={cancelTestID}
+      />
+      <Button
+        key="confirm"
         variant={destructive ? 'danger' : 'primary'}
         title={confirmLabel ?? t('common.save')}
         onPress={onConfirm}
         disabled={disabled}
-        fullWidth
         testID={confirmTestID}
       />
-      <Button
-        variant="outline"
-        title={cancelLabel ?? t('common.cancel')}
-        onPress={onCancel}
-        fullWidth
-        testID={cancelTestID}
-      />
-    </View>
+    </ButtonRow>
   );
 };
-
-const styles = StyleSheet.create({
-  column: {
-    gap: theme.spacing[2],
-  },
-});
