@@ -4,7 +4,8 @@ import { View, Pressable, Linking, StyleSheet } from 'react-native';
 import { Card, Text, Button, StatusBadge, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import type { Shipment } from '@/lib/api';
-import { formatDate, formatPrice } from '../_lib/format';
+import { formatPrice } from '../_lib/format';
+import { formatPolicyDate } from '@/lib/shared/timingPolicy';
 import { deriveShipmentView } from '@/lib/shipping/tracking';
 import { isAwaitingDropoff, shipmentStatusLabel } from '@/lib/shipping/shipmentStatus';
 import { orderCancelMessage, type OrderCancelAudience } from '@/lib/shared/orderCancelMessage';
@@ -13,13 +14,24 @@ import type { OrderView } from '../_lib/derive';
 
 const { colors } = theme;
 
-/** Ödeme güvencesi (escrow) kartı. */
+/** Escrow kartının göründüğü (UI) statüler — web `["delivered", "awaiting_buyer_confirmation"]`. */
+const ESCROW_STATUSES: readonly string[] = ['delivered', 'awaiting_confirmation'];
+
+/**
+ * Ödeme güvencesi (escrow) kartı. İKİ AYRI TARİH: iade penceresinin sonu
+ * (`returnWindowEndsAt`) ve satıcı ödeme tarihi (sunucunun hold'a yazdığı
+ * `escrowReleaseAt`; yoksa pencere sonu + payout grace). Web metni ödeme
+ * tarihini "teslimden N gün sonra" ve "o tarihe kadar iade" diye anlatıyordu;
+ * ödeme tarihi pencere sonundan grace kadar sonra olduğu için ikisi çelişiyordu.
+ * Gün sayıları `view.timing` (siparişin kendi damgası).
+ */
 export function OrderEscrowCard({ order, view }: { order: OrderDetail; view: OrderView }) {
   const { t } = useTranslation();
-  if (
-    !(order.isBuyer !== false && !view.isMembershipOrder && view.isPostShipment && !view.isCancelled && order.status !== 'refunded')
-  )
-    return null;
+  const timingValues = view.timing;
+  // Web `EscrowInfoCard` ile birebir: yalnız alıcıya, yalnız teslim edilmiş
+  // (`delivered` / `awaiting_buyer_confirmation` → UI `awaiting_confirmation`)
+  // ve üyelik olmayan siparişte. Kargodaki ya da tamamlanmış siparişte yok.
+  if (!order.isBuyer || !ESCROW_STATUSES.includes(order.status) || view.isMembershipOrder) return null;
   return (
     <Card variant="elevated" style={styles.card} testID="order-escrow-info">
       <View style={styles.escrowHeaderRow}>
@@ -37,13 +49,17 @@ export function OrderEscrowCard({ order, view }: { order: OrderDetail; view: Ord
         <Text variant="caption" style={styles.escrowText}>
           {t('order.paymentOnHoldRefund')}
         </Text>
-      ) : view.payoutReleaseDate ? (
-        <Text variant="caption" style={styles.escrowText}>
-          {t('order.payoutReleaseWithDate', { date: formatDate(view.payoutReleaseDate.toISOString()) })}
+      ) : view.payoutReleaseDate && view.refundWindowEnd ? (
+        <Text variant="caption" style={styles.escrowText} testID="order-escrow-dates">
+          {t('order.payoutReleaseWithDate', {
+            ...timingValues,
+            refundDeadline: formatPolicyDate(view.refundWindowEnd),
+            date: formatPolicyDate(view.payoutReleaseDate),
+          })}
         </Text>
       ) : (
         <Text variant="caption" style={styles.escrowText}>
-          {t('order.payoutRelease')}
+          {t('order.payoutRelease', timingValues)}
         </Text>
       )}
     </Card>
@@ -63,7 +79,7 @@ export function OrderCancelledInfo({
 }) {
   const { t } = useTranslation();
   if (!view.isCancelled) return null;
-  const cancelMessage = orderCancelMessage(order, audience, t);
+  const cancelMessage = orderCancelMessage(order, audience, t, view.timing);
   return (
     <Card variant="elevated" style={styles.card} testID="order-cancelled-info">
       <View style={styles.cancelledHeaderRow}>

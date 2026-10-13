@@ -21,6 +21,8 @@ jest.mock("expo-router", () => ({
 
 jest.mock("@/lib/api", () => ({
   supportApi: { guestContact: jest.fn(), createTicket: jest.fn() },
+  // SSS iade süresi politikadan (A-3 inceleme #7); bu dilimde geri düşüş yeter.
+  timingRulesApi: { getPolicy: jest.fn(() => Promise.reject(new Error("offline"))) },
 }));
 import { supportApi } from "@/lib/api";
 

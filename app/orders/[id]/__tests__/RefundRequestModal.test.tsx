@@ -28,6 +28,7 @@ import { mediaApi, refundsApi } from '@/lib/api';
 import * as schemaModule from '../_lib/schema';
 import * as refundHook from '../_hooks/useDoRefundRequest';
 import { RefundRequestModal } from '../_modals/RefundRequestModal';
+import { FALLBACK_TIMING_POLICY, timingMessageValues } from '@/lib/shared/timingPolicy';
 
 const createMock = refundsApi.create as jest.Mock;
 const uploadMock = mediaApi.uploadRefundEvidence as jest.Mock;
@@ -53,6 +54,7 @@ function Harness({ onClose, notify = jest.fn() }: { onClose?: () => void; notify
         orderId="order-1"
         orderQuantity={1}
         notify={notify}
+        timingValues={timingMessageValues(FALLBACK_TIMING_POLICY)}
       />
     </>
   );

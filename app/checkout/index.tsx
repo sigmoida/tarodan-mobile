@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { View, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Button, Snackbar, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -13,6 +13,7 @@ import { OrderSummary } from './_components/OrderSummary';
 import { CheckoutUnavailableItems } from './_components/CheckoutUnavailableItems';
 import { CouponInput } from './_components/CouponInput';
 import { OtpModal } from './_modals/OtpModal';
+import { DistanceSalesConsent } from '@/components/payment/DistanceSalesConsent';
 
 const { colors } = theme;
 
@@ -75,29 +76,12 @@ export default function CheckoutScreen() {
             kapatıyor. Yasal yükümlülük; onay sunucuya İLK çağrıda gidiyor
             (idempotency replay sonradan geleni işlemez). */}
         {c.step === 3 ? (
-          <View style={styles.consentRow}>
-            <TouchableOpacity
-              testID="checkout-distance-sales-checkbox"
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: c.distanceSalesAccepted }}
-              onPress={c.toggleDistanceSales}
-              hitSlop={8}
-            >
-              <Ionicons
-                name={c.distanceSalesAccepted ? 'checkbox' : 'square-outline'}
-                size={22}
-                color={c.distanceSalesAccepted ? theme.colors.primary[600]! : theme.colors.text.muted}
-              />
-            </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text variant="caption">{t('checkout.distanceSalesConsent')}</Text>
-              <TouchableOpacity onPress={() => router.push('/distance-sales')}>
-                <Text variant="caption" style={styles.consentLink}>
-                  {t('checkout.distanceSalesConsentLink')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          <DistanceSalesConsent
+            testID="checkout-distance-sales-checkbox"
+            checked={c.distanceSalesAccepted}
+            onToggle={c.toggleDistanceSales}
+            style={styles.consentRow}
+          />
         ) : null}
 
         <View style={{ height: 120 }} />

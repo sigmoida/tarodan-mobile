@@ -1,5 +1,18 @@
 import { api, guestApi } from './client';
 import type { DirectFormResponse } from '@/lib/payment/paytrDirectForm';
+import type { PaymentConfig } from '@/lib/payment/capabilities';
+import type { DirectFormBody } from '@/lib/payment/directFormBody';
+import { paymentCapabilityHeaders, rememberPaymentCapability } from '@/lib/payment/paymentCapability';
+
+/**
+ * Ödeme başlat + yanıttaki `paymentAccessToken`'ı sakla (web `initiatePayment`).
+ * Misafir sonraki public ödeme uçlarında (`X-Payment-Capability`) bununla yetkilenir.
+ */
+async function initiatePayment<T>(request: Promise<T>): Promise<T> {
+  const response = await request;
+  rememberPaymentCapability(response);
+  return response;
+}
 
 // Addresses API - Web ile aynı endpoint'ler
 export const addressesApi = {
@@ -32,19 +45,21 @@ export const addressesApi = {
 
 // Payments API - Web ile aynı endpoint'ler
 export const paymentsApi = {
-  /** Public ödeme yapılandırması: bypass (dev) + kayıtlı kart/oto-yenileme (Non3D) açık mı. */
-  getConfig: () =>
-    api.get<{ bypassEnabled: boolean; recurringEnabled: boolean }>('/payments/config'),
+  /**
+   * Public ödeme yapılandırması: bypass (dev) + amaç başına kart saklama /
+   * oto-yenileme (`purposes.checkout|membership`). Okumak için `paymentCapabilities`.
+   */
+  getConfig: () => api.get<PaymentConfig>('/payments/config'),
   initiate: (orderId: string | number, provider: 'paytr' = 'paytr') =>
-    api.post('/payments/initiate', { orderId, provider }),
+    initiatePayment(api.post('/payments/initiate', { orderId, provider })),
   /** Grup ödemesi: tek ödeme checkout grubundaki tüm siparişleri kapsar */
   initiateGroup: (checkoutGroupId: string, provider: 'paytr' = 'paytr') =>
-    api.post('/payments/initiate', { checkoutGroupId, provider }),
+    initiatePayment(api.post('/payments/initiate', { checkoutGroupId, provider })),
   initiateGuest: (orderId: string | number, provider: 'paytr' = 'paytr') =>
-    guestApi.post('/payments/initiate-guest', { orderId, provider }),
+    initiatePayment(guestApi.post('/payments/initiate-guest', { orderId, provider })),
   /** Grup ödemesi (misafir) */
   initiateGroupGuest: (checkoutGroupId: string, provider: 'paytr' = 'paytr') =>
-    guestApi.post('/payments/initiate-guest', { checkoutGroupId, provider }),
+    initiatePayment(guestApi.post('/payments/initiate-guest', { checkoutGroupId, provider })),
   /** Takas nakit fark ödemesi başlat */
   initiateTradeCash: (tradeId: string) =>
     api.post('/payments/initiate-trade-cash', { tradeId }),
@@ -52,11 +67,11 @@ export const paymentsApi = {
     api.get(`/payments/${paymentId}`),
   /** POST /payments/:id/verify — PayTR ödemesini aktif doğrula (web ile parite) */
   verify: (paymentId: string) =>
-    api.post(`/payments/${paymentId}/verify`),
+    api.post(`/payments/${paymentId}/verify`, {}, { headers: paymentCapabilityHeaders(paymentId) }),
   getStatusLight: (paymentId: string) =>
-    api.get(`/payments/${paymentId}/status`),
+    api.get(`/payments/${paymentId}/status`, { headers: paymentCapabilityHeaders(paymentId) }),
   getStatusLightGuest: (paymentId: string) =>
-    guestApi.get(`/payments/${paymentId}/status-guest`),
+    guestApi.get(`/payments/${paymentId}/status-guest`, { headers: paymentCapabilityHeaders(paymentId) }),
   getMyPayments: (params?: {
     status?: string;
     provider?: string;
@@ -69,7 +84,7 @@ export const paymentsApi = {
     api.post(`/payments/${paymentId}/cancel`),
   /** Fail sayfasında; hâlâ pending ise rezervasyonu serbest bırakır */
   confirmFailed: (paymentId: string) =>
-    api.post(`/payments/${paymentId}/confirm-failed`),
+    api.post(`/payments/${paymentId}/confirm-failed`, {}, { headers: paymentCapabilityHeaders(paymentId) }),
   /** Test bypass: PAYMENT_BYPASS=true iken tek kart başarılı */
   bypassComplete: (paymentId: string, cardNumber?: string) =>
     api.post(
@@ -85,13 +100,13 @@ export const paymentsApi = {
    * Gövdeye kart verisi KOYULAMAZ: backend `assertNoRawCardData` ile gövdenin her
    * seviyesinde kart alan adlarını arar ve 400 döner. (Eski `POST /payments/process-direct`
    * API'den kaldırıldı; kart-verisi sınırı testi varlığını yasaklıyor.)
+   *
+   * Gövde `buildDirectFormBody` ile kurulur (`distanceSalesAccepted` dahil — teklif
+   * siparişinde mesafeli satış onayı yalnız burada gider). Web gibi `paymentId`
+   * gövdede ve yetki belirteci başlıkta: misafir ikisi olmadan 403 alır.
    */
-  directForm: (body: {
-    paymentId?: string;
-    orderId?: string;
-    checkoutGroupId?: string;
-    tradeId?: string;
-    savedCardId?: string;
-    saveCard?: boolean;
-  }) => api.post<DirectFormResponse>('/payments/direct-form', body),
+  directForm: (body: DirectFormBody) =>
+    api.post<DirectFormResponse>('/payments/direct-form', body, {
+      headers: paymentCapabilityHeaders(body.paymentId),
+    }),
 };

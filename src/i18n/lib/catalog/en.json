@@ -867,6 +867,10 @@
     "confirmAndPayWithAmount": "Confirm and Pay ({amount})",
     "emailNotificationTitle": "Email Notification",
     "getSupport": "Get support",
+    "saveCardForRenewal": "Save my card for automatic renewal",
+    "saveCardForRenewalHint": "Your card is stored securely by PayTR and your membership renews automatically at the end of each period. You can turn auto-renewal off at any time.",
+    "saveCardForRenewalOffHint": "If you do not save your card, auto-renewal stays off and you will need to purchase your membership again when the period ends.",
+    "saveCardPaytr": "Save my card with PayTR for future payments",
     "startShopping": "Start Shopping",
     "successDescription": "Your order has been successfully created. It will be shipped once the seller confirms it.",
     "supportQuestion": "Having an issue?",
@@ -1135,7 +1139,7 @@
     "notPaidCancelInstead": "This order is not paid; cancel it instead",
     "cancelMsgYouCancelled": "You cancelled this order.",
     "cancelMsgBuyerCancelled": "The buyer cancelled this order.",
-    "cancelMsgPaymentTimeout": "This order was automatically cancelled because payment wasn't completed within 24 hours.",
+    "cancelMsgPaymentTimeout": "This order was automatically cancelled because payment wasn't completed within {orderPaymentWindowHours, plural, one {# hour} other {# hours}}.",
     "cancelMsgSellerNoShip": "The seller didn't ship within the allowed time, so the order was cancelled.",
     "cancelMsgStockout": "This order was cancelled because the product is out of stock.",
     "cancelMsgTradeReserved": "This order was cancelled because the product was reserved for a trade.",
@@ -1161,8 +1165,8 @@
     "expiredReactivate": "This order expired before payment. You can reactivate it to complete payment.",
     "paymentRefunded": "The payment has been refunded.",
     "refundToOriginalMethod": "If a payment was made, the refund will be processed to your original payment method.",
-    "payoutReleaseWithDate": "Payment to the seller is released 14 days after delivery (on {date}). You have until then to request a refund.",
-    "payoutRelease": "Payment to the seller is released 14 days after delivery. You can request a refund during this window.",
+    "payoutReleaseWithDate": "You can request a refund until {refundDeadline}. If there is no open refund request, payment to the seller is released on {date}.",
+    "payoutRelease": "You can request a refund within {returnWindowDays, plural, one {# day} other {# days}} of delivery. If there is no open refund request, payment to the seller is released {payoutGraceDays, plural, one {# day} other {# days}} after that window closes.",
     "paymentOnHoldRefund": "Payment is on hold until the open refund request is resolved.",
     "cargoRefInstructions": "Hand this number to the Sürat Kargo branch when delivering your package. The shipment is already registered — the branch will retrieve all details automatically.",
     "trackingAppearsAfterDropoff": "Once the branch receives your package, the Sürat tracking number will appear here automatically (within 30 minutes).",
@@ -1171,10 +1175,9 @@
     "cargoCodePending": "Your cargo number is being generated. It will appear here in a few minutes. We will notify you when it is ready.",
     "cargoOneParcelPerOrder": "Have more than one order? Prepare a SEPARATE parcel for each order and hand each one in with its own cargo code — do not combine multiple orders into one parcel; otherwise your other orders will appear unshipped.",
     "cargoFeeCoveredNotice": "Shipping is paid by Tarodan; the branch will not charge you. The branch may measure the package on drop-off.",
-    "refundWindowPassed": "The 14-day refund window has passed; a refund can no longer be requested for this order.",
+    "refundWindowPassed": "The {returnWindowDays}-day refund window has passed; a refund can no longer be requested for this order.",
     "cancelOrderConfirm": "Cancel this order? Your payment will be refunded.",
     "refundTitle": "Refund",
-    "refundShippedInfo": "The order has shipped. You can request a refund within 14 days of delivery — no reason or photo required.",
     "cancelNotShippedInfo": "The order hasn't shipped yet. You can cancel it now and your payment will be refunded.",
     "invoiceSentToEmail": "Your invoice has been sent to your email address.",
     "viewDownloadInvoice": "View / Download Invoice",
@@ -1190,8 +1193,6 @@
     "descriptionMin20": "Description must be at least 20 characters",
     "photoEvidenceRequired": "Photo evidence is required for this reason",
     "refundPhasePreparing": "The seller has not shipped yet. Your refund will be processed instantly.",
-    "refundPhaseCoolingOff": "You're within the 14-day right-of-withdrawal window. Your request will be approved automatically and a return shipping label will be created — drop the package off at any Sürat branch.",
-    "refundPhasePastCoolingOff": "The cooling-off period has expired. Your request will be reviewed by the seller and admin team.",
     "refundQuantityHint": "This order has {quantity} items. Choose how many to return.",
     "describeIssuePlaceholder": "Please describe the issue in detail (min 20 chars)",
     "evidencePhotosMax5": "Evidence photos (max 5)",
@@ -1223,6 +1224,7 @@
     "heldForRefund": "On hold for a refund",
     "cancelledRefundNotice": "This order was cancelled. Your payment has been refunded; it may take a few business days to appear on your bank statement.",
     "invoiceOpenFailed": "The invoice could not be opened",
+    "invoiceListLoadFailed": "Invoices could not be loaded.",
     "invoiceUploadFailed": "The invoice could not be uploaded.",
     "fileTooLarge": "File is too large (10 MB maximum).",
     "orderCancelFailed": "The order could not be cancelled.",
@@ -1279,13 +1281,12 @@
     "refresh": "Refresh",
     "rateProduct": "Rate the Product",
     "rateSeller": "Rate the Seller",
-    "refundEligibleIntro": "You can request a refund within 14 days of delivery without giving a reason.",
-    "invoiceSentToEmailWithNumber": "Your invoice has been sent to your email address · No: {number}",
+    "refundEligibleIntro": "You can request a refund within {returnWindowDays, plural, one {# day} other {# days}} of delivery without giving a reason.",
     "viewDownloadSellerInvoice": "View / Download Seller Invoice",
     "replaceInvoice": "Replace Invoice",
     "uploadInvoicePdfNotice": "Upload the invoice PDF to send to the buyer (10 MB max).",
     "noInvoiceUploadedYet": "No invoice has been uploaded for this order yet.",
-    "refundHintTop": "You have the right to a refund within 14 days of delivery, without giving a reason. Reason, description, and photos are optional.",
+    "refundHintTop": "You have the right to a refund within {returnWindowDays, plural, one {# day} other {# days}} of delivery, without giving a reason. Reason, description, and photos are optional.",
     "refundHintFaultClaim": "This reason is a fault claim: at least one photo and a description are required, and your request will be reviewed.",
     "evidenceUploadFailed": "Evidence photos could not be uploaded. Please try again.",
     "descriptionRequiredLabel": "Description *",
@@ -1310,7 +1311,13 @@
     "trackHelpText": "If you have a question about your order, you can contact our support team.",
     "trackHelpCta": "Get Support",
     "trackQueryFailed": "Could not look up the order",
-    "addressNotSetYet": "The shipping address has not been set yet. It will be added once you complete payment."
+    "addressNotSetYet": "The shipping address has not been set yet. It will be added once you complete payment.",
+    "preparingDeadlineTitle": "Ship-by date: {date}",
+    "preparingDeadlineSeller": "You need to ship this order by this date.",
+    "preparingDeadlineBuyer": "The seller has to ship this order by this date at the latest.",
+    "preparingExtendedTitle": "Shipping deadline extended once — new deadline: {date}",
+    "preparingExtendedSeller": "Your shipping deadline passed and was extended once. This is the final deadline; if the order is not shipped by then, it is cancelled automatically and the buyer refunded in full.",
+    "preparingExtendedBuyer": "The seller could not ship on time and was given one extension. If the order is not shipped by this date, it is cancelled automatically and your payment refunded in full. You can cancel the order any time before it ships."
   },
   "trade": {
     "featureTitle": "Trading",
@@ -1655,6 +1662,9 @@
     "offerMessage": "Message (optional)",
     "sendOffer": "Send Offer",
     "acceptOffer": "Accept",
+    "acceptConfirmDescSeller": "Accepting creates an order at the offered price and starts the buyer's {orderPaymentWindowHours}-hour payment window. Accepting does not lock the product: other offers stay open and whoever pays first gets it.",
+    "acceptConfirmDescBuyer": "Accepting the counter-offer creates an order at that price and you must pay within {orderPaymentWindowHours, plural, one {# hour} other {# hours}}. The product is reserved at payment; if another buyer pays for it first, your order cannot be fulfilled.",
+    "firstToPayWinsSeller": "The buyer has {orderPaymentWindowHours, plural, one {# hour} other {# hours}} to pay. The product is reserved once payment completes; until then other offers stay open.",
     "rejectOffer": "Reject",
     "counterOffer": "Counter Offer",
     "cancelOffer": "Cancel",
@@ -2732,6 +2742,8 @@
     "cardHolderRequired": "Enter the name on the card",
     "cardNumberInvalid": "Enter a valid card number",
     "cardNumberPlaceholder": "Card number",
+    "cardPurposeCheckout": "Cart",
+    "cardPurposeMembership": "Membership",
     "cardSecureNotice": "Your card details are never stored; they're processed via PayTR with 256-bit SSL.",
     "connectionIssueTitle": "Connection issue",
     "cvvInvalid": "CVV is invalid",
@@ -2746,7 +2758,6 @@
     "payShort": "Pay",
     "payWithNewCard": "Pay with a new card",
     "processingMaybeBody": "Your payment may still be processing. Please check under ''My Orders''.",
-    "saveCardForFuture": "Save my card for future payments and auto-renewal",
     "stoppedTitle": "Payment stopped",
     "threeDSCancel": "Cancel",
     "verifyTimeoutBody": "We couldn't verify your payment status. If the payment went through, it will appear under ''My Orders''; otherwise you can try again.",
@@ -2858,8 +2869,7 @@
     "retryTitle": "Retry Payment",
     "retryStarted": "Retry started",
     "savedCardsIntroNeutral": "Your saved cards for faster checkout. Add a new card with \"save my card\" during payment.",
-    "deleteCardBodyNeutral": "Are you sure you want to delete the {brand} •••• {last4} card?",
-    "saveCardForLater": "Save my card for future payments"
+    "deleteCardBodyNeutral": "Are you sure you want to delete the {brand} •••• {last4} card?"
   },
   "seller": {
     "sellerProfile": "Seller Profile",
@@ -3186,7 +3196,7 @@
     },
     "payoutTiming": {
       "q": "When do I get paid?",
-      "a": "Once the buyer receives and confirms the item, the payment is transferred to your registered IBAN account within 3 business days."
+      "a": "After delivery the buyer has {returnWindowDays, plural, one {# day} other {# days}} to request a refund. Once that window closes with no open refund request, your payment is transferred to your registered IBAN {payoutGraceDays, plural, one {# day} other {# days}} later. Buyer confirmation does not bring the payout forward."
     },
     "howTradeWorks": {
       "q": "How does trading work?",
@@ -3237,7 +3247,7 @@
     "shipping": {
       "deliveryTime": {
         "q": "How long does shipping take?",
-        "a": "The seller ships within 3 business days. Estimated delivery is 2–5 business days after that, depending on your location."
+        "a": "The seller ships within {preparingDeadlineDays, plural, one {# business day} other {# business days}}. Estimated delivery is 2–5 business days after that, depending on your location."
       },
       "whoPaysShipping": {
         "q": "Who pays for shipping?",

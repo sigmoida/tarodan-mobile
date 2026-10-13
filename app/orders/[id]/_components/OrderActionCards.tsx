@@ -152,6 +152,8 @@ export function OrderRefundActionCard({
   onOpenRefund: () => void;
 }) {
   const { t } = useTranslation();
+  const timingValues = view.timing;
+  // Pencere kapısı sunucu damgasından (`returnWindowEndsAt`) — bkz. `_lib/timing`.
   const eligible =
     order.isBuyer &&
     !view.isMembershipOrder &&
@@ -167,7 +169,7 @@ export function OrderRefundActionCard({
       <Card variant="elevated" style={styles.card}>
         <Text variant="label" style={styles.sectionTitle}>{t('order.refundWindowClosed')}</Text>
         <Text variant="caption" style={styles.refundIntro}>
-          {t('order.refundWindowPassed')}
+          {t('order.refundWindowPassed', timingValues)}
         </Text>
       </Card>
     );
@@ -176,7 +178,7 @@ export function OrderRefundActionCard({
     <Card variant="elevated" style={styles.card}>
       <Text variant="label" style={styles.sectionTitle}>{t('order.refundSection')}</Text>
       <Text variant="caption" style={styles.refundIntro}>
-        {t('order.refundEligibleIntro')}
+        {t('order.refundEligibleIntro', timingValues)}
       </Text>
       <Button
         testID="refund-request-button"

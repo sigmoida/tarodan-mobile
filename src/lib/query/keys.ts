@@ -102,7 +102,8 @@ export const qk = {
     all: ["orders"] as const,
     list: (filters?: Filters) => ["orders", "list", filters] as const,
     detail: (id: string) => ["order", id] as const,
-    elogoInvoice: (id: string) => ["elogo-invoice", id] as const,
+    /** Siparişin TÜM e-Arşiv belgeleri (`/elogo/invoices/by-order/:id/all`). */
+    elogoInvoices: (id: string) => ["elogo-invoices", id] as const,
     sellerInvoice: (id: string) => ["seller-invoice", id] as const,
     sellerPending: ["seller-pending-orders"] as const,
   },
@@ -148,7 +149,13 @@ export const qk = {
 
   payments: {
     mine: ["my-payments"] as const,
-    savedCards: ["saved-cards"] as const,
+    /** Prefix kök — kart silinince her amacın listesi birlikte tazelenir. */
+    savedCardsAll: ["saved-cards"] as const,
+    /**
+     * Kayıtlı kartlar, PayTR mağazasına (amaç) göre: `checkout` / `membership`;
+     * amaçsız = iki mağaza birlikte (Kayıtlı Kartlarım).
+     */
+    savedCards: (purpose?: string) => ["saved-cards", purpose ?? "all"] as const,
   },
 
   user: {
@@ -276,5 +283,10 @@ export const qk = {
   sellerDocuments: {
     list: ["seller-documents"] as const,
     application: ["seller-documents", "application"] as const,
+  },
+
+  timingPolicy: {
+    /** GET /timing-rules — admin'den yönetilen herkese açık politika süreleri. */
+    all: ["timing-policy"] as const,
   },
 } as const;

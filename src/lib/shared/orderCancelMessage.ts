@@ -19,6 +19,7 @@
  *   görünür (web ile aynı, sunucu işi).
  */
 import type { TFunction } from 'i18next';
+import type { TimingMessageValues } from '@/lib/shared/timingPolicy';
 
 /** Sunucunun `cancelCategory` değerleri (yalnız `status === 'cancelled'` iken dolu). */
 export type OrderCancelCategory =
@@ -49,13 +50,15 @@ export function orderCancelMessage(
   },
   audience: OrderCancelAudience,
   t: TFunction,
+  /** Politika süreleri (`useTimingValues`) — zaman aşımı cümlesindeki saat. */
+  timing: TimingMessageValues,
 ): string | null {
   if (order.status !== 'cancelled') return null;
   switch (order.cancelCategory) {
     case 'buyer_cancelled':
       return audience === 'buyer' ? t('order.cancelMsgYouCancelled') : t('order.cancelMsgBuyerCancelled');
     case 'payment_timeout':
-      return t('order.cancelMsgPaymentTimeout');
+      return t('order.cancelMsgPaymentTimeout', timing);
     case 'seller_no_ship':
       return t('order.cancelMsgSellerNoShip');
     case 'stockout':

@@ -1,4 +1,24 @@
 import { api, guestApi } from './client';
+import type { PaymentPurpose } from '@/lib/payment/capabilities';
+
+/** `GET /membership/cards` satırı (maskeli; PAN/CVV yok). */
+export interface SavedCard {
+  id: string;
+  last4: string;
+  brand: string | null;
+  bank?: string | null;
+  cardType?: string | null;
+  cardScheme?: string | null;
+  businessCard?: boolean | null;
+  expMonth: string | null;
+  expYear: string | null;
+  requireCvv: boolean;
+  isDefault: boolean;
+  /** Yalnız üyelik mağazasındaki CVV istemeyen kartta `true` (API delta 20). */
+  autoRenewEligible: boolean;
+  /** Kartın saklandığı PayTR mağazası. Eski API döndürmeyebilir. */
+  purpose?: PaymentPurpose;
+}
 
 // Membership API - Web ile aynı endpoint'ler
 export const membershipApi = {
@@ -28,8 +48,15 @@ export const membershipApi = {
   /** Otomatik yenilemeyi aç/kapa — backend: PATCH /membership/auto-renew */
   setAutoRenew: (autoRenew: boolean) =>
     api.patch('/membership/auto-renew', { autoRenew }),
-  /** Kayıtlı kartları listele (maskeli; PAN/CVV içermez) — GET /membership/cards */
-  listCards: () => api.get('/membership/cards'),
+  /**
+   * Kayıtlı kartları listele (maskeli; PAN/CVV içermez) — GET /membership/cards.
+   *
+   * Ödeme ekranı `purpose` VERMELİ: kartlar PayTR mağazasına özeldir, diğer
+   * mağazanın kartıyla direct-form `404 server.payment.savedCardNotFound` döner.
+   * Amaçsız çağrı (kart yönetimi ekranı) tüm aktif kartları döndürür.
+   */
+  listCards: (purpose?: PaymentPurpose) =>
+    api.get<SavedCard[]>('/membership/cards', purpose ? { params: { purpose } } : undefined),
   /** Kayıtlı kartı sil (PayTR'dan da silinir) — DELETE /membership/cards/:id */
   deleteCard: (id: string) => api.delete(`/membership/cards/${id}`),
   /** Üyelik ödemesini başlat — backend: POST /membership/payments/initiate */

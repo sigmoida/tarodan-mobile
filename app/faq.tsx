@@ -5,7 +5,9 @@ import { Ionicons } from "@expo/vector-icons";
 import type { TFunction } from "i18next";
 import { theme, Text, ScreenHeader } from "@/ui";
 import { useTranslation } from "react-i18next";
-import { RETURN_REQUEST_DAYS, DAMAGE_REPORT_DAYS } from "@/constants/legalFacts";
+import { DAMAGE_REPORT_DAYS } from "@/constants/legalFacts";
+import { useTimingValues } from "@/hooks/useTimingPolicy";
+import type { TimingMessageValues } from "@/lib/shared/timingPolicy";
 import { CAN_BUY_DIGITAL } from "@/lib/purchases";
 
 const { colors } = theme;
@@ -18,8 +20,11 @@ type FaqSection = { category: string; questions: FaqItem[] };
  * `buildQuickActionItems`). Birkaç soru/cevap burada ve `help/_lib/faq.ts`de
  * (Yardım Merkezi) neredeyse birebir tekrar ediyordu; ortak olanlar tek
  * kaynağa (`faqShared.*`) taşındı, yalnız bu ekrana özgü olanlar `faqPage.*`de.
+ *
+ * Süreler (iade penceresi, hazırlık süresi) admin'in Süreler ve Kurallar
+ * ekranından gelir (`GET /timing-rules`) — sabit 14 gün değil.
  */
-const buildFaqSections = (t: TFunction): FaqSection[] => [
+const buildFaqSections = (t: TFunction, timing: TimingMessageValues): FaqSection[] => [
   {
     category: t("faq.buying"),
     questions: [
@@ -34,7 +39,8 @@ const buildFaqSections = (t: TFunction): FaqSection[] => [
     questions: [
       { q: t("faqShared.howToList.q"), a: t("faqShared.howToList.a") },
       { q: t("faqShared.commissionRate.q"), a: t("faqShared.commissionRate.a") },
-      { q: t("faqShared.payoutTiming.q"), a: t("faqShared.payoutTiming.a") },
+      // Ödeme: teslim + iade penceresi + payout grace (alıcı onayı öne çekmez).
+      { q: t("faqShared.payoutTiming.q"), a: t("faqShared.payoutTiming.a", timing) },
       // iOS: mentions Premium/Pro tiers by name (Apple 3.1.1/3.1.3) — hidden.
       ...(CAN_BUY_DIGITAL
         ? [{ q: t("faqPage.selling.listingLimit.q"), a: t("faqPage.selling.listingLimit.a") }]
@@ -44,7 +50,10 @@ const buildFaqSections = (t: TFunction): FaqSection[] => [
   {
     category: t("faq.shipping"),
     questions: [
-      { q: t("faqPage.shipping.deliveryTime.q"), a: t("faqPage.shipping.deliveryTime.a") },
+      {
+        q: t("faqPage.shipping.deliveryTime.q"),
+        a: t("faqPage.shipping.deliveryTime.a", timing),
+      },
       { q: t("faqPage.shipping.whoPaysShipping.q"), a: t("faqPage.shipping.whoPaysShipping.a") },
       { q: t("faqShared.orderTracking.q"), a: t("faqShared.orderTracking.a") },
     ],
@@ -67,7 +76,7 @@ const buildFaqSections = (t: TFunction): FaqSection[] => [
     questions: [
       {
         q: t("faqPage.returns.returnWindow.q"),
-        a: t("faqPage.returns.returnWindow.a", { days: RETURN_REQUEST_DAYS }),
+        a: t("faqPage.returns.returnWindow.a", { days: timing.returnWindowDays }),
       },
       {
         q: t("faqPage.returns.damagedItem.q"),
@@ -91,8 +100,9 @@ const buildFaqSections = (t: TFunction): FaqSection[] => [
 
 export default function FAQScreen() {
   const { t } = useTranslation();
+  const timing = useTimingValues();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
-  const faqSections = useMemo(() => buildFaqSections(t), [t]);
+  const faqSections = useMemo(() => buildFaqSections(t, timing), [t, timing]);
 
   let globalIndex = -1;
 

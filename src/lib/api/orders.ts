@@ -350,13 +350,29 @@ export const ordersApi = {
     api.post('/orders/commission-preview-batch', { items }),
 };
 
+/**
+ * Siparişin HAZIR e-Arşiv belgelerinden biri. Tek alışverişte taraf başına
+ * ÜÇ hizmet belgesi kesilir (komisyon, hizmet bedeli, kargo payı); `label`
+ * sunucunun belge açıklamasıdır (ör. "Platform hizmet bedeli").
+ */
+export interface ElogoInvoice {
+  id: string;
+  invoiceNumber: string | null;
+  type?: string;
+  label: string;
+  total?: number | string | null;
+  issuedAt?: string | null;
+}
+
 // eLogo e-Arşiv (gerçek yasal fatura) API
 export const elogoInvoicesApi = {
-  /** Siparişe ait kullanıcının e-Arşiv faturası (yoksa null) — buton hazırsa çıksın */
-  byOrder: (orderId: string) =>
-    api.get<{ id: string; invoiceNumber: string; label?: string; total?: number } | null>(
-      `/elogo/invoices/by-order/${orderId}`,
-    ),
+  /**
+   * Siparişe ait kullanıcının TÜM e-Arşiv belgeleri (web `useElogoInvoices`).
+   * Tekil `/by-order/:id` ucu yalnız ilk belgeyi döndürür — kullanıcı diğer
+   * ikisine ulaşamıyordu; o uç eski sürümler için sunucuda duruyor.
+   */
+  byOrderAll: (orderId: string) =>
+    api.get<ElogoInvoice[]>(`/elogo/invoices/by-order/${orderId}/all`),
   /** Fatura PDF — S3 presigned URL döner ({ url }) */
   pdf: (id: string) => api.get<{ url?: string; invoiceNumber?: string }>(`/elogo/invoices/${id}/pdf`),
 };
