@@ -1,266 +1,91 @@
 import { StyleSheet } from 'react-native';
-import { theme } from '@/ui';
+import { theme, PAGE_GUTTER } from '@/ui';
 
-const { colors } = theme;
+const { spacing, radiusRole } = theme;
 
-// Üyelik ekranının route-local stylesheet'i (monolitten birebir taşındı).
+/** Plan kartı genişliği: ekran genişliğinin oranı (yanındaki kartın kenarı görünsün) + üst sınır. */
+export const TIER_CARD_WIDTH_RATIO = 0.78;
+export const TIER_CARD_MAX_WIDTH = 340;
+/** Plan kartları arası boşluk — `snapToInterval` ile aynı sabitten. */
+export const TIER_CARD_GAP = spacing[3];
+
+/**
+ * Üyelik ekranının route-local stylesheet'i. Renk/yazı tipi/gölge burada yok: yüzeyler `Card` /
+ * `SectionCard` / `Alert`, metinler `Text` varyantları, düğmeler `Button` / `SegmentedButtons`.
+ */
 export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.alt,
+  // Hata bandı
+  errorBody: {
+    gap: spacing[1],
+    alignItems: 'flex-start',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: theme.spacing[3],
+  // Bekleyen ödeme bandı (tek dokunuşla checkout'a gider) — Alert köşesiyle aynı yarıçap.
+  pendingPressable: {
+    borderRadius: radiusRole.card,
+    overflow: 'hidden',
   },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[2],
-    margin: theme.spacing[4],
-    padding: theme.spacing[3],
-    borderRadius: theme.radius['2xl'],
-    backgroundColor: colors.danger[50]!,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.danger[600]!,
+
+  // Mevcut plan
+  planBody: {
+    gap: spacing[2],
   },
-  errorBannerText: {
-    flex: 1,
-    fontSize: theme.typography.fontSize.sm,
-    color: colors.danger[600]!,
+  manageRow: {
+    marginTop: spacing[1],
+    paddingVertical: spacing[3],
   },
-  errorBannerRetry: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: colors.danger[600]!,
-  },
-  loadingText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: colors.text.muted,
-  },
-  scrollView: {
+  manageRowText: {
     flex: 1,
   },
 
-  // Pending Payment Banner
-  pendingBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.warning[100]!,
-    borderColor: colors.warning[500]!,
-    borderWidth: 1,
-    marginHorizontal: theme.spacing[4],
-    marginTop: theme.spacing[4],
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing[3.5],
-    gap: theme.spacing[2.5],
+  // Aylık / yıllık seçici
+  toggle: {
+    gap: spacing[2],
   },
-  pendingBannerText: {
+  discountBadge: {
+    alignSelf: 'center',
+  },
+
+  // Plan şeridi: sayfa kenar boşluğuna taşar (kenardan kenara), içerik aynı boşlukla başlar.
+  strip: {
+    marginHorizontal: -PAGE_GUTTER,
+  },
+  stripContent: {
+    paddingHorizontal: PAGE_GUTTER,
+    paddingBottom: spacing[1],
+    gap: TIER_CARD_GAP,
+  },
+
+  // Plan kartı
+  tierBody: {
     flex: 1,
+    gap: spacing[3],
   },
-  pendingTitle: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: colors.warning[800]!,
-  },
-  pendingSubtitle: {
-    fontSize: theme.typography.fontSize.xs,
-    color: colors.warning[700]!,
-    marginTop: theme.spacing[0.5],
-  },
-
-  // Current Plan Card
-  currentPlanCard: {
-    backgroundColor: colors.surface.elevated,
-    marginHorizontal: theme.spacing[4],
-    marginTop: theme.spacing[4],
-    borderRadius: theme.radius['3xl'],
-    padding: theme.spacing[5],
-    alignItems: 'center',
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  currentPlanIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: theme.radius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: theme.spacing[3],
-  },
-  currentPlanLabel: {
-    fontSize: theme.typography.fontSize.sm,
-    color: colors.text.muted,
-    marginBottom: theme.spacing[1],
-  },
-  currentPlanName: {
-    fontSize: theme.typography.fontSize['2xl'],
-    fontWeight: theme.typography.fontWeight.bold,
-  },
-  currentPlanExpiry: {
-    fontSize: theme.typography.fontSize.xs,
-    color: colors.text.subtle,
-    marginTop: theme.spacing[1.5],
-  },
-  manageButton: {
+  badgeRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[1.5],
-    marginTop: theme.spacing[3],
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[2],
-    borderRadius: theme.radius.xl,
-    backgroundColor: colors.primary[50]!,
-  },
-  manageButtonText: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: colors.primary[600]!,
-  },
-
-  // Toggle
-  toggleContainer: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface.elevated,
-    marginHorizontal: theme.spacing[4],
-    marginTop: theme.spacing[5],
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing[1],
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  toggleButton: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: theme.spacing[2.5],
-    borderRadius: theme.radius['2xl'],
-    gap: theme.spacing[1.5],
-  },
-  toggleButtonActive: {
-    backgroundColor: colors.primary[600]!,
-  },
-  toggleText: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: colors.text.muted,
-  },
-  toggleTextActive: {
-    color: colors.white,
-  },
-
-  // Tier Cards
-  tierCardsContainer: {
-    paddingHorizontal: theme.spacing[4],
-    paddingTop: theme.spacing[5],
-    paddingBottom: theme.spacing[2],
-    gap: theme.spacing[3],
-  },
-  tierCard: {
-    width: 280,
-    backgroundColor: colors.surface.elevated,
-    borderRadius: theme.radius['3xl'],
-    padding: theme.spacing[5],
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-    minHeight: 420,
-  },
-  // Köşe kurdelesi: yalnız konum + köşe yarıçapı; boyut/renk/yazı `Pill` tabanından.
-  popularBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    borderRadius: 0,
-    borderTopRightRadius: theme.radius['2xl'],
-    borderBottomLeftRadius: theme.radius.lg,
-  },
-  currentBadge: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    borderRadius: 0,
-    borderTopLeftRadius: theme.radius['2xl'],
-    borderBottomRightRadius: theme.radius.lg,
-  },
-  tierIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: theme.radius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: theme.spacing[3],
-    marginBottom: theme.spacing[2.5],
-  },
-  tierName: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.bold,
-    marginBottom: theme.spacing[1],
+    flexWrap: 'wrap',
+    gap: spacing[2],
   },
   tierPriceRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'baseline',
-    marginBottom: theme.spacing[0.5],
-  },
-  tierPriceFree: {
-    fontSize: theme.typography.fontSize['2xl'],
-    fontWeight: theme.typography.fontWeight.bold,
-    color: colors.text.heading,
-  },
-  tierPrice: {
-    fontSize: theme.typography.fontSize['2xl'],
-    fontWeight: theme.typography.fontWeight.bold,
-    color: colors.text.heading,
-  },
-  tierPricePeriod: {
-    fontSize: theme.typography.fontSize.sm,
-    color: colors.text.muted,
-    marginLeft: theme.spacing[0.5],
-  },
-  tierMonthlyEquiv: {
-    fontSize: theme.typography.fontSize.xs,
-    color: colors.text.subtle,
-    marginBottom: theme.spacing[0.5],
-  },
-  tierDivider: {
-    height: 1,
-    backgroundColor: colors.border.DEFAULT,
-    marginVertical: theme.spacing[3.5],
+    columnGap: spacing[1],
   },
   tierFeatures: {
-    gap: theme.spacing[2.5],
+    gap: spacing[2.5],
   },
   tierFeatureRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[2],
+    alignItems: 'flex-start',
+    gap: spacing[2],
+  },
+  tierFeatureIcon: {
+    marginTop: spacing[0.5],
   },
   tierFeatureText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: colors.text.heading,
     flex: 1,
   },
-  tierButton: {
-    marginTop: theme.spacing[4],
-    paddingVertical: theme.spacing[3],
-    borderRadius: theme.radius['2xl'],
-    alignItems: 'center',
-  },
-  tierButtonText: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.bold,
+  tierSpacer: {
+    flex: 1,
   },
 });

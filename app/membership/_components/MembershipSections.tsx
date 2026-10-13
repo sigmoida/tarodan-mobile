@@ -1,20 +1,32 @@
 import React from 'react';
-import { View, ScrollView, Pressable } from 'react-native';
+import { View, ScrollView, Pressable, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
-import { theme, RawText, Icon, Badge, Pill } from '@/ui';
+import {
+  theme,
+  PAGE_GUTTER,
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Divider,
+  Icon,
+  ListRowCard,
+  SectionCard,
+  SegmentedButtons,
+  Text,
+  type SegmentedOption,
+} from '@/ui';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { formatPrice } from '@/utils/format';
 
-import { styles } from '../_lib/membershipStyles';
 import {
-  TIER_COLORS,
-  TIER_ICONS,
-  buildTierNames,
-  type TierType,
-} from '../_lib/membershipTiers';
+  styles,
+  TIER_CARD_GAP,
+  TIER_CARD_MAX_WIDTH,
+  TIER_CARD_WIDTH_RATIO,
+} from '../_lib/membershipStyles';
+import { TIER_COLORS, buildTierNames, type TierType } from '../_lib/membershipTiers';
 import type { MembershipController } from '../_hooks/useMembership';
-
-const { colors } = theme;
 
 type SectionProps = { f: MembershipController };
 
@@ -26,11 +38,14 @@ export function MembershipBanners({ f }: SectionProps) {
   return (
     <>
       {f.error ? (
-        <Pressable style={styles.errorBanner} onPress={f.fetchData}>
-          <Icon name="exclamation-circle" variant="solid" size={18} color={colors.danger[600]!} />
-          <RawText style={styles.errorBannerText}>{f.error}</RawText>
-          <RawText style={styles.errorBannerRetry}>{t('common.tryAgain')}</RawText>
-        </Pressable>
+        <Alert variant="danger" testID="membership-error">
+          <View style={styles.errorBody}>
+            <Text variant="bodySm" tone="danger">
+              {f.error}
+            </Text>
+            <Button variant="link" size="sm" title={t('common.tryAgain')} onPress={f.fetchData} />
+          </View>
+        </Alert>
       ) : null}
 
       {/* Bekleyen ödeme bandı yarım kalmış PayTR ödemesini tamamlamaya çağırıyor
@@ -38,23 +53,23 @@ export function MembershipBanners({ f }: SectionProps) {
           satın almayla ilgisi olmadığı için DOKUNULMAZ. */}
       {f.hasPendingPayment && CAN_BUY_DIGITAL && (
         <Pressable
-          style={styles.pendingBanner}
+          style={styles.pendingPressable}
+          accessibilityRole="button"
+          android_ripple={{ color: theme.colors.overlay.black10, foreground: true }}
           onPress={() =>
             router.push(
               `/membership/checkout?tier=${membership?.pendingPayment?.tierType || membership?.pendingTierType || 'premium'}&period=monthly`
             )
           }
         >
-          <Icon name="exclamation-triangle" variant="solid" size={22} color={colors.warning[800]!} />
-          <View style={styles.pendingBannerText}>
-            <RawText style={styles.pendingTitle}>
-              {t('membership.pendingPaymentTitle', {
-                tierName: membership?.pendingPayment?.tierName || membership?.pendingTierName || t('membership.planFallback'),
-              })}
-            </RawText>
-            <RawText style={styles.pendingSubtitle}>{t('membership.pendingPaymentSubtitle')}</RawText>
-          </View>
-          <Icon name="chevron-right" size={20} color={colors.warning[800]!} />
+          <Alert
+            variant="warning"
+            title={t('membership.pendingPaymentTitle', {
+              tierName: membership?.pendingPayment?.tierName || membership?.pendingTierName || t('membership.planFallback'),
+            })}
+          >
+            {t('membership.pendingPaymentSubtitle')}
+          </Alert>
         </Pressable>
       )}
     </>
@@ -68,16 +83,12 @@ export function MembershipCurrentPlan({ f }: SectionProps) {
   const { currentTier, membership, t } = f;
   const tierNames = buildTierNames(t);
   return (
-    <View style={styles.currentPlanCard}>
-      <View style={[styles.currentPlanIcon, { backgroundColor: TIER_COLORS[currentTier] + '20' }]}>
-        <Icon name={TIER_ICONS[currentTier]} size={28} color={TIER_COLORS[currentTier]} />
-      </View>
-      <RawText style={styles.currentPlanLabel}>{t('membership.currentPlan')}</RawText>
-      <RawText style={[styles.currentPlanName, { color: TIER_COLORS[currentTier] }]}>
+    <SectionCard title={t('membership.currentPlan')} bodyStyle={styles.planBody}>
+      <Text variant="h2" color={TIER_COLORS[currentTier]}>
         {tierNames[currentTier]}
-      </RawText>
+      </Text>
       {membership?.currentPeriodEnd && currentTier !== 'free' && (
-        <RawText style={styles.currentPlanExpiry}>
+        <Text variant="caption" tone="subtle">
           {t('membership.renewalLabel', {
             date: new Date(membership.currentPeriodEnd).toLocaleDateString('tr-TR', {
               year: 'numeric',
@@ -85,52 +96,46 @@ export function MembershipCurrentPlan({ f }: SectionProps) {
               day: 'numeric',
             }),
           })}
-        </RawText>
+        </Text>
       )}
       {/* Üyelik yönetimi: otomatik yenileme + kayıtlı kartlar (tüm kademeler).
           Bu satırın kendisi tam olarak PayTR'nin yinelenen tahsilat
           yönetimini tanıtıyor — iOS'ta hem FREE hem PAID kullanıcıdan
           gizlenir. İPTAL akışı buradan değil Profil → Abonelik
-          (SubscriptionBody) üzerinden gelir ve orada iOS'ta da açıktır. */}
+          (SubscriptionBody) üzerinden gelir ve orada iOS'ta da açıktır.
+          Etiket uzun (iki bölümlü) olduğu için düğme değil, sarabilen satır kartı. */}
       {CAN_BUY_DIGITAL && (
-        <Pressable
-          style={styles.manageButton}
+        <ListRowCard
+          padding={3}
+          style={styles.manageRow}
           onPress={() => router.push('/membership/manage' as any)}
-         
         >
-          <Icon name="cog-6-tooth" size={16} color={colors.primary[600]!} />
-          <RawText style={styles.manageButtonText}>
+          <Text variant="bodySm" weight="semibold" tone="primary" style={styles.manageRowText}>
             {t('membership.manageMembershipHint')}
-          </RawText>
-          <Icon name="chevron-right" size={16} color={colors.primary[600]!} />
-        </Pressable>
+          </Text>
+        </ListRowCard>
       )}
-    </View>
+    </SectionCard>
   );
 }
 
 // ---------------------------------------------------------------------------
 // Billing period toggle (monthly / yearly)
 // ---------------------------------------------------------------------------
+type Period = MembershipController['billingPeriod'];
+
 export function MembershipBillingToggle({ f }: SectionProps) {
   const { t } = f;
+  const options: SegmentedOption<Period>[] = [
+    { value: 'monthly', label: t('membership.monthly') },
+    { value: 'yearly', label: t('membership.yearly') },
+  ];
   return (
-    <View style={styles.toggleContainer}>
-      <Pressable
-        style={[styles.toggleButton, f.billingPeriod === 'monthly' && styles.toggleButtonActive]}
-        onPress={() => f.setBillingPeriod('monthly')}
-      >
-        <RawText style={[styles.toggleText, f.billingPeriod === 'monthly' && styles.toggleTextActive]}>{t('membership.monthly')}</RawText>
-      </Pressable>
-      <Pressable
-        style={[styles.toggleButton, f.billingPeriod === 'yearly' && styles.toggleButtonActive]}
-        onPress={() => f.setBillingPeriod('yearly')}
-      >
-        <RawText style={[styles.toggleText, f.billingPeriod === 'yearly' && styles.toggleTextActive]}>{t('membership.yearly')}</RawText>
-        <Badge variant="success" size="sm">
-          {t('membership.discountBadge', { percent: f.settings.yearly_discount_percentage ?? 20 })}
-        </Badge>
-      </Pressable>
+    <View style={styles.toggle}>
+      <SegmentedButtons value={f.billingPeriod} onValueChange={f.setBillingPeriod} options={options} />
+      <Badge variant="success" size="sm" style={styles.discountBadge}>
+        {t('membership.discountBadge', { percent: f.settings.yearly_discount_percentage ?? 20 })}
+      </Badge>
     </View>
   );
 }
@@ -138,7 +143,7 @@ export function MembershipBillingToggle({ f }: SectionProps) {
 // ---------------------------------------------------------------------------
 // Horizontal tier cards
 // ---------------------------------------------------------------------------
-function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
+function TierCard({ f, tier, width }: { f: MembershipController; tier: TierType; width: number }) {
   const { t } = f;
   const tierNames = buildTierNames(t);
   const price = f.getPrice(tier);
@@ -146,113 +151,114 @@ function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
   const isUpgrade = f.tierIndex(tier) > f.tierIndex(f.currentTier);
   const color = TIER_COLORS[tier];
   const features = f.getFeatures(tier);
+  const isPopular = tier === 'premium';
 
   return (
-    <View style={[styles.tierCard, isCurrent && { borderColor: color, borderWidth: 2 }]}>
-      {/* Popular badge for premium */}
-      {tier === 'premium' && (
-        <Pill size="md" background={color} color={colors.white} weight={theme.typography.fontWeight.bold} style={styles.popularBadge}>
-          {t('membership.mostPopular')}
-        </Pill>
-      )}
-
-      {/* Current plan badge */}
-      {isCurrent && (
-        <Pill
-          size="md"
-          background={color}
-          color={colors.white}
-          weight={theme.typography.fontWeight.bold}
-          icon={<Icon name="check-circle" variant="solid" size={14} color={colors.white} />}
-          style={styles.currentBadge}
-        >
-          {t('membership.currentPlanBadge')}
-        </Pill>
-      )}
-
-      <View style={[styles.tierIconCircle, { backgroundColor: color + '15' }]}>
-        <Icon name={TIER_ICONS[tier]} size={24} color={color} />
-      </View>
-
-      <RawText style={[styles.tierName, { color }]}>{tierNames[tier]}</RawText>
-
-      <View style={styles.tierPriceRow}>
-        {price === 0 ? (
-          <RawText style={styles.tierPriceFree}>{t('membership.free')}</RawText>
-        ) : (
-          <>
-            <RawText style={styles.tierPrice}>{formatPrice(price)}</RawText>
-            <RawText style={styles.tierPricePeriod}>{f.billingPeriod === 'monthly' ? t('membership.perMonth') : t('membership.perYear')}</RawText>
-          </>
-        )}
-      </View>
-
-      {f.billingPeriod === 'yearly' && price > 0 && (
-        <RawText style={styles.tierMonthlyEquiv}>
-          {t('membership.monthlyEquivLabel', { amount: Math.round(price / 12).toLocaleString('tr-TR') })}
-        </RawText>
-      )}
-
-      <View style={styles.tierDivider} />
-
-      <View style={styles.tierFeatures}>
-        {features.map((feat, idx) => (
-          <View key={idx} style={styles.tierFeatureRow}>
-            <Icon name="check-circle" variant="solid" size={16} color={color} />
-            <RawText style={styles.tierFeatureText}>{feat}</RawText>
+    <Card
+      variant="bordered"
+      padding={5}
+      style={[{ width }, isCurrent && { borderColor: color, borderWidth: 2 }]}
+    >
+      <View style={styles.tierBody}>
+        {(isPopular || isCurrent) && (
+          <View style={styles.badgeRow}>
+            {isPopular && (
+              <Badge variant="default" size="sm">
+                {t('membership.mostPopular')}
+              </Badge>
+            )}
+            {isCurrent && (
+              <Badge variant="outline" size="sm">
+                {t('membership.currentPlanBadge')}
+              </Badge>
+            )}
           </View>
-        ))}
-      </View>
+        )}
 
-      <View style={{ flex: 1 }} />
+        <Text variant="h3" color={color} numberOfLines={1}>
+          {tierNames[tier]}
+        </Text>
 
-      <Pressable
-        style={[
-          styles.tierButton,
-          isCurrent
-            ? { backgroundColor: color + '15', borderColor: color, borderWidth: 1 }
-            : isUpgrade
-              ? { backgroundColor: color }
-              : { backgroundColor: colors.gray[100]! },
-        ]}
-        onPress={() => f.handleTierAction(tier)}
-        disabled={isCurrent || tier === 'free'}
-      >
-        <RawText
-          style={[
-            styles.tierButtonText,
+        <View style={styles.tierPriceRow}>
+          {price === 0 ? (
+            <Text variant="h1">{t('membership.free')}</Text>
+          ) : (
+            <>
+              <Text variant="h1">{formatPrice(price)}</Text>
+              <Text variant="bodySm" tone="muted">
+                {f.billingPeriod === 'monthly' ? t('membership.perMonth') : t('membership.perYear')}
+              </Text>
+            </>
+          )}
+        </View>
+
+        {f.billingPeriod === 'yearly' && price > 0 && (
+          <Text variant="caption" tone="subtle">
+            {t('membership.monthlyEquivLabel', { amount: Math.round(price / 12).toLocaleString('tr-TR') })}
+          </Text>
+        )}
+
+        <Divider />
+
+        <View style={styles.tierFeatures}>
+          {features.map((feat, idx) => (
+            <View key={idx} style={styles.tierFeatureRow}>
+              <Icon
+                name="check"
+                size={theme.iconSize.sm}
+                color={color}
+                style={styles.tierFeatureIcon}
+              />
+              <Text variant="bodySm" style={styles.tierFeatureText}>
+                {feat}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.tierSpacer} />
+
+        <Button
+          fullWidth
+          variant={isCurrent || tier === 'free' ? 'outline' : isUpgrade ? 'primary' : 'secondary'}
+          onPress={() => f.handleTierAction(tier)}
+          disabled={isCurrent || tier === 'free'}
+          title={
             isCurrent
-              ? { color }
-              : isUpgrade
-                ? { color: colors.white }
-                : { color: colors.text.subtle },
-          ]}
-        >
-          {isCurrent
-            ? t('membership.currentPlanBadge')
-            : tier === 'free'
-              ? t('membership.free')
-              : isUpgrade
-                ? t('membership.upgrade')
-                : t('membership.lowerPlanButton')}
-        </RawText>
-      </Pressable>
-    </View>
+              ? t('membership.currentPlanBadge')
+              : tier === 'free'
+                ? t('membership.free')
+                : isUpgrade
+                  ? t('membership.upgrade')
+                  : t('membership.lowerPlanButton')
+          }
+        />
+      </View>
+    </Card>
   );
 }
 
 export function MembershipTierList({ f }: SectionProps) {
+  const { width: windowWidth } = useWindowDimensions();
+  const single = f.visibleTiers.length === 1;
+  // Tek kart (kurumsal hesap) tam genişlik; birden çoksa komşu kartın kenarı görünecek oranda.
+  const cardWidth = single
+    ? windowWidth - PAGE_GUTTER * 2
+    : Math.min(Math.round(windowWidth * TIER_CARD_WIDTH_RATIO), TIER_CARD_MAX_WIDTH);
+
   return (
     <ScrollView
       horizontal
+      nestedScrollEnabled
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.tierCardsContainer}
+      style={styles.strip}
+      contentContainerStyle={styles.stripContent}
       decelerationRate="fast"
-      snapToInterval={280 + 12}
+      snapToInterval={cardWidth + TIER_CARD_GAP}
       snapToAlignment="start"
     >
       {f.visibleTiers.map((tier) => (
-        <TierCard key={tier} f={f} tier={tier} />
+        <TierCard key={tier} f={f} tier={tier} width={cardWidth} />
       ))}
     </ScrollView>
   );

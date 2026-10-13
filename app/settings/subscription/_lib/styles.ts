@@ -32,10 +32,10 @@ export const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: spacing[1],
   },
-  actionRow: {
-    minHeight: theme.minTouchTarget,
-    justifyContent: 'center',
-    paddingVertical: spacing[2],
-    gap: spacing[0.5],
+  actions: {
+    gap: spacing[4],
+  },
+  actionBlock: {
+    gap: spacing[2],
   },
 });
