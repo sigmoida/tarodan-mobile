@@ -1,16 +1,15 @@
 import { useEffect, useMemo } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { theme, Button, Text } from '@/ui';
+import { View } from 'react-native';
+import { Button, SectionCard, Text, theme } from '@/ui';
+import { PageShell } from '@/components/common/PageShell';
+import { PaymentResultCard } from '@/components/payment/PaymentResultCard';
 import { router, useLocalSearchParams, Redirect } from 'expo-router';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
 import { requestVerify, verifyBudgetWaitMs } from '@/lib/payment/verifyPacer';
 import type { TFunction } from 'i18next';
-
-const { colors } = theme;
 
 /** Verify denemeleri: PayTR durum sorgusu ödemeden birkaç sn sonra "ödendi" dönebilir. */
 const VERIFY_ATTEMPTS = 5;
@@ -19,7 +18,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 type TierKey = 'basic' | 'premium' | 'business';
 
-type TierFeature = { icon: keyof typeof Ionicons.glyphMap; label: string };
+type TierFeature = { label: string };
 
 /**
  * Kademeye özel başarı özellikleri — `checkout/_lib/tiers.ts`teki
@@ -32,24 +31,24 @@ type TierFeature = { icon: keyof typeof Ionicons.glyphMap; label: string };
  */
 const buildTierFeatures = (t: TFunction): Record<TierKey, TierFeature[]> => ({
   basic: [
-    { icon: 'list', label: t('membership.tierFeatureFreeListings', { count: 15 }) },
-    { icon: 'swap-horizontal', label: t('membership.tierFeatureTrade') },
-    { icon: 'albums', label: t('membership.tierFeatureCollectionCreate') },
+    { label: t('membership.tierFeatureFreeListings', { count: 15 }) },
+    { label: t('membership.tierFeatureTrade') },
+    { label: t('membership.tierFeatureCollectionCreate') },
   ],
   premium: [
-    { icon: 'list', label: t('membership.tierFeatureFreeListings', { count: 50 }) },
-    { icon: 'swap-horizontal', label: t('membership.tierFeatureTrade') },
-    { icon: 'albums', label: t('membership.tierFeatureCollectionCreate') },
+    { label: t('membership.tierFeatureFreeListings', { count: 50 }) },
+    { label: t('membership.tierFeatureTrade') },
+    { label: t('membership.tierFeatureCollectionCreate') },
     // "Reklamsız deneyim" KALDIRILDI — banner'lar herkese gösteriliyor ve
     // sunucu her katman için `isAdFree: null` döndürüyor (staging, 2026-08-26).
     // Satın alma SONRASI ekranda duruyordu: kullanıcı parayı ödedikten sonra
     // karşılığı olmayan bir vaat okuyordu.
   ],
   business: [
-    { icon: 'list', label: t('membership.tierFeatureFreeListings', { count: 200 }) },
-    { icon: 'swap-horizontal', label: t('membership.tierFeatureTrade') },
-    { icon: 'code-slash', label: t('membership.tierFeatureApiAccess') },
-    { icon: 'ribbon', label: t('membership.tierFeatureSellerBadge') },
+    { label: t('membership.tierFeatureFreeListings', { count: 200 }) },
+    { label: t('membership.tierFeatureTrade') },
+    { label: t('membership.tierFeatureApiAccess') },
+    { label: t('membership.tierFeatureSellerBadge') },
   ],
 });
 
@@ -114,107 +113,32 @@ function MembershipSuccessBody() {
   }, [paymentId, refreshUserData, queryClient]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        {/* Success Icon */}
-        <View style={styles.iconContainer}>
-          <Ionicons name="checkmark-circle" size={100} color={colors.success[600]!} />
-        </View>
-
-        {/* Title */}
-        <Text style={styles.title}>{t('membership.successTitle')}</Text>
-
-        {/* Description */}
-        <Text style={styles.description}>
-          {t('membership.successDescription', { tierName })}
-        </Text>
-
-        {/* Features */}
-        <View style={styles.features}>
+    <PageShell title={t('membership.checkoutTitle')} showBack={false}>
+      <PaymentResultCard
+        tone="success"
+        title={t('membership.successTitle')}
+        description={t('membership.successDescription', { tierName })}
+        actions={
+          <>
+            <Button variant="primary" title={t('error.goHome')} fullWidth onPress={() => router.replace('/(tabs)')} />
+            <Button
+              variant="outline"
+              title={t('membership.successViewListings')}
+              fullWidth
+              onPress={() => router.push('/settings/my-listings')}
+            />
+          </>
+        }
+      >
+        <SectionCard bodyStyle={{ gap: theme.spacing[2] }}>
           {features.map((feat) => (
-            <View key={feat.label} style={styles.featureItem}>
-              <Ionicons name={feat.icon} size={24} color={colors.primary[600]!} />
-              <Text style={styles.featureText}>{feat.label}</Text>
+            <View key={feat.label} style={{ flexDirection: 'row', gap: theme.spacing[2] }}>
+              <Text variant="body" tone="muted">•</Text>
+              <Text variant="body" tone="heading" style={{ flex: 1 }}>{feat.label}</Text>
             </View>
           ))}
-        </View>
-
-        {/* Buttons */}
-        <View style={styles.buttons}>
-          <Button
-            variant="primary"
-            title={t('error.goHome')}
-            fullWidth
-            onPress={() => router.replace('/(tabs)')}
-            style={styles.primaryButton}
-          />
-          <Button
-            variant="outline"
-            title={t('membership.successViewListings')}
-            fullWidth
-            onPress={() => router.push('/settings/my-listings')}
-            style={styles.secondaryButton}
-          />
-        </View>
-      </View>
-    </View>
+        </SectionCard>
+      </PaymentResultCard>
+    </PageShell>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.DEFAULT,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.spacing[8],
-  },
-  iconContainer: {
-    marginBottom: theme.spacing[6],
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.text.heading,
-    marginBottom: theme.spacing[3],
-  },
-  description: {
-    fontSize: 15,
-    color: colors.text.muted,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: theme.spacing[8],
-  },
-  features: {
-    width: '100%',
-    backgroundColor: colors.surface.alt,
-    borderRadius: theme.radius['3xl'],
-    padding: theme.spacing[5],
-    marginBottom: theme.spacing[8],
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: theme.spacing[4],
-  },
-  featureText: {
-    marginLeft: theme.spacing[4],
-    fontSize: 15,
-    color: colors.text.heading,
-    fontWeight: '500',
-  },
-  buttons: {
-    width: '100%',
-    gap: theme.spacing[3],
-  },
-  primaryButton: {
-    borderRadius: 12,
-  },
-  secondaryButton: {
-    borderRadius: 12,
-    borderColor: colors.primary[600]!,
-  },
-});

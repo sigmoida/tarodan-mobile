@@ -1,16 +1,16 @@
 import React from 'react';
-import { View, ScrollView, TouchableOpacity } from 'react-native';
+import { View, ScrollView, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { theme, RawText } from '@/ui';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
+import { formatPrice } from '@/utils/format';
 
 import { styles } from '../_lib/membershipStyles';
 import {
   TIER_COLORS,
   TIER_ICONS,
   buildTierNames,
-  formatTL,
   type TierType,
 } from '../_lib/membershipTiers';
 import type { MembershipController } from '../_hooks/useMembership';
@@ -27,18 +27,18 @@ export function MembershipBanners({ f }: SectionProps) {
   return (
     <>
       {f.error ? (
-        <TouchableOpacity style={styles.errorBanner} onPress={f.fetchData} activeOpacity={0.8}>
+        <Pressable style={styles.errorBanner} onPress={f.fetchData}>
           <Ionicons name="alert-circle" size={18} color={colors.danger[600]!} />
           <RawText style={styles.errorBannerText}>{f.error}</RawText>
           <RawText style={styles.errorBannerRetry}>{t('common.tryAgain')}</RawText>
-        </TouchableOpacity>
+        </Pressable>
       ) : null}
 
       {/* Bekleyen ödeme bandı yarım kalmış PayTR ödemesini tamamlamaya çağırıyor
           — iOS'ta satın alma çağrısı olduğu için kalkar. Hata bandı (yukarıda)
           satın almayla ilgisi olmadığı için DOKUNULMAZ. */}
       {f.hasPendingPayment && CAN_BUY_DIGITAL && (
-        <TouchableOpacity
+        <Pressable
           style={styles.pendingBanner}
           onPress={() =>
             router.push(
@@ -56,7 +56,7 @@ export function MembershipBanners({ f }: SectionProps) {
             <RawText style={styles.pendingSubtitle}>{t('membership.pendingPaymentSubtitle')}</RawText>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.warning[800]!} />
-        </TouchableOpacity>
+        </Pressable>
       )}
     </>
   );
@@ -94,17 +94,17 @@ export function MembershipCurrentPlan({ f }: SectionProps) {
           gizlenir. İPTAL akışı buradan değil Profil → Abonelik
           (SubscriptionBody) üzerinden gelir ve orada iOS'ta da açıktır. */}
       {CAN_BUY_DIGITAL && (
-        <TouchableOpacity
+        <Pressable
           style={styles.manageButton}
           onPress={() => router.push('/membership/manage' as any)}
-          activeOpacity={0.8}
+         
         >
           <Ionicons name="settings-outline" size={16} color={colors.primary[600]!} />
           <RawText style={styles.manageButtonText}>
             {t('membership.manageMembershipHint')}
           </RawText>
           <Ionicons name="chevron-forward" size={16} color={colors.primary[600]!} />
-        </TouchableOpacity>
+        </Pressable>
       )}
     </View>
   );
@@ -117,13 +117,13 @@ export function MembershipBillingToggle({ f }: SectionProps) {
   const { t } = f;
   return (
     <View style={styles.toggleContainer}>
-      <TouchableOpacity
+      <Pressable
         style={[styles.toggleButton, f.billingPeriod === 'monthly' && styles.toggleButtonActive]}
         onPress={() => f.setBillingPeriod('monthly')}
       >
         <RawText style={[styles.toggleText, f.billingPeriod === 'monthly' && styles.toggleTextActive]}>{t('membership.monthly')}</RawText>
-      </TouchableOpacity>
-      <TouchableOpacity
+      </Pressable>
+      <Pressable
         style={[styles.toggleButton, f.billingPeriod === 'yearly' && styles.toggleButtonActive]}
         onPress={() => f.setBillingPeriod('yearly')}
       >
@@ -131,7 +131,7 @@ export function MembershipBillingToggle({ f }: SectionProps) {
         <View style={styles.discountBadge}>
           <RawText style={styles.discountBadgeText}>{t('membership.discountBadge', { percent: f.settings.yearly_discount_percentage ?? 20 })}</RawText>
         </View>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }
@@ -176,7 +176,7 @@ function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
           <RawText style={styles.tierPriceFree}>{t('membership.free')}</RawText>
         ) : (
           <>
-            <RawText style={styles.tierPrice}>{formatTL(price)} ₺</RawText>
+            <RawText style={styles.tierPrice}>{formatPrice(price)}</RawText>
             <RawText style={styles.tierPricePeriod}>{f.billingPeriod === 'monthly' ? t('membership.perMonth') : t('membership.perYear')}</RawText>
           </>
         )}
@@ -201,7 +201,7 @@ function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
 
       <View style={{ flex: 1 }} />
 
-      <TouchableOpacity
+      <Pressable
         style={[
           styles.tierButton,
           isCurrent
@@ -231,7 +231,7 @@ function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
                 ? t('membership.upgrade')
                 : t('membership.lowerPlanButton')}
         </RawText>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }

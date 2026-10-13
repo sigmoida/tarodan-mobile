@@ -1,10 +1,9 @@
-import { View, ScrollView } from 'react-native';
-import { Button, ScreenHeader } from '@/ui';
+import { Button } from '@/ui';
 import { router, Redirect } from 'expo-router';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
+import { formatPrice } from '@/utils/format';
+import { PageShell } from '@/components/common/PageShell';
 import { useMembershipCheckout } from './_hooks/useMembershipCheckout';
-import { styles } from './_lib/styles';
-import { formatTL } from './_lib/tiers';
 import {
   PlanCard,
   PaymentMethodCard,
@@ -12,6 +11,7 @@ import {
   CheckoutTerms,
 } from './_components/CheckoutSections';
 
+/** Üyelik ödemesi — PageShell + SectionCard dizisi; "Öde" sabit alt barda. (Yalnız görünüm: dijital satış kapısı değişmedi.) */
 export default function MembershipCheckoutScreen() {
   const f = useMembershipCheckout();
 
@@ -22,30 +22,25 @@ export default function MembershipCheckoutScreen() {
   if (!f.isAuthenticated) return null;
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader
-        title={f.t('membership.checkoutTitle')}
-        onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-      />
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <PlanCard f={f} />
-        <PaymentMethodCard />
-        <OrderSummary f={f} />
-        <CheckoutTerms />
-
+    <PageShell
+      title={f.t('membership.checkoutTitle')}
+      onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+      footer={
         <Button
           variant="primary"
-          title={f.loading ? f.t('checkout.processing') : f.t('membership.checkoutPayButton', { price: `₺${formatTL(f.displayPrice)}` })}
+          size="lg"
+          title={f.t('membership.checkoutPayButton', { price: formatPrice(f.displayPrice) })}
           onPress={f.handlePayment}
           isLoading={f.loading}
           disabled={f.loading}
           fullWidth
-          style={styles.payButton}
         />
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </View>
+      }
+    >
+      <PlanCard f={f} />
+      <PaymentMethodCard />
+      <OrderSummary f={f} />
+      <CheckoutTerms />
+    </PageShell>
   );
 }

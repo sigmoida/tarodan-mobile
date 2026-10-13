@@ -1,48 +1,33 @@
 import { View } from 'react-native';
-import { Button, Card, Divider, Switch, Text, theme } from '@/ui';
+import { Alert, Badge, Button, Divider, SectionCard, Switch, Text, theme } from '@/ui';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../_lib/styles';
 import { formatDate, formatTL } from '../_lib/helpers';
 import UpgradeCta from '@/components/UpgradeCta';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import type { MembershipManageController } from '../_hooks/useMembershipManage';
 
-const { colors } = theme;
-
 /** Mevcut plan kartı — tier rozeti, durum, dönem/ödeme bilgileri, otomatik yenileme. */
 export function CurrentPlanCard({ f }: { f: MembershipManageController }) {
   const { data, tierName, isPaid, isCancelled, autoRenew, t } = f;
 
   return (
-    <Card style={styles.card}>
+    <SectionCard
+      bodyStyle={styles.body}
+    >
       <View style={styles.headerRow}>
-        <View style={styles.tierBadge}>
-          <Ionicons name="sparkles-outline" size={16} color={colors.primary[600]!} />
-          <Text style={styles.tierText}>{tierName}</Text>
-        </View>
+        <Badge variant="default">{tierName}</Badge>
         {isPaid ? (
-          isCancelled ? (
-            <View style={styles.activeRow}>
-              <Ionicons name="close-circle" size={18} color={colors.warning[600]!} />
-              <Text style={[styles.activeText, { color: colors.warning[600]! }]}>{t('common.cancelled')}</Text>
-            </View>
-          ) : (
-            <View style={styles.activeRow}>
-              <Ionicons name="checkmark-circle" size={18} color={colors.success[600]!} />
-              <Text style={styles.activeText}>{t('common.active')}</Text>
-            </View>
-          )
+          <Badge variant={isCancelled ? 'warning' : 'success'} size="sm">
+            {isCancelled ? t('common.cancelled') : t('common.active')}
+          </Badge>
         ) : null}
       </View>
 
       {isPaid && isCancelled ? (
-        <View style={styles.cancelledNote}>
-          <Ionicons name="information-circle-outline" size={16} color={colors.warning[600]!} />
-          <Text style={styles.cancelledNoteText}>
-            {t('membership.manageCancelledNote', { endDate: formatDate(data?.currentPeriodEnd) })}
-          </Text>
-        </View>
+        <Alert variant="warning">
+          {t('membership.manageCancelledNote', { endDate: formatDate(data?.currentPeriodEnd) })}
+        </Alert>
       ) : null}
 
       {isPaid ? (
@@ -93,13 +78,13 @@ export function CurrentPlanCard({ f }: { f: MembershipManageController }) {
           </UpgradeCta>
         </>
       ) : (
-        <Text style={styles.helperText}>
+        <Text variant="bodySm" tone="muted">
           {CAN_BUY_DIGITAL
             ? t('membership.manageFreeHelper')
             : t('membership.manageFreeHelperNeutral')}
         </Text>
       )}
-    </Card>
+    </SectionCard>
   );
 }
 
@@ -109,26 +94,21 @@ export function ScheduledChangeCard({ f }: { f: MembershipManageController }) {
   if (!f.hasScheduledChange) return null;
 
   return (
-    <Card style={styles.card}>
-      <View style={styles.cancelledNote}>
-        <Ionicons name="calendar-outline" size={16} color={colors.info[600]!} />
-        <Text style={styles.cancelledNoteText}>
-          {t('membership.manageScheduledChangeNote', {
-            tierLabel: f.scheduledLabel,
-            endDate: formatDate(f.data?.currentPeriodEnd),
-          })}
-        </Text>
-      </View>
+    <SectionCard bodyStyle={styles.body}>
+      <Alert variant="info">
+        {t('membership.manageScheduledChangeNote', {
+          tierLabel: f.scheduledLabel,
+          endDate: formatDate(f.data?.currentPeriodEnd),
+        })}
+      </Alert>
       <Button
-        variant="outline"
+        variant="danger"
         title={t('membership.manageCancelScheduledButton')}
-        icon="close-circle-outline"
         onPress={f.handleCancelScheduledChange}
         isLoading={f.cancelScheduledChangeMutation.isPending}
         disabled={f.cancelScheduledChangeMutation.isPending}
-        style={{ ...styles.actionBtn, borderColor: colors.danger[600]! }}
       />
-    </Card>
+    </SectionCard>
   );
 }
 
@@ -144,21 +124,17 @@ export function ManageActions({ f }: { f: MembershipManageController }) {
             <Button
               variant="primary"
               title={t('membership.changePlan')}
-              icon="swap-vertical"
               onPress={() => router.push('/membership' as any)}
-              style={styles.actionBtn}
             />
           </UpgradeCta>
           {/* İptal satın alma değil — iOS'ta da kalmalı. */}
           {!f.isCancelled && (
             <Button
-              variant="outline"
+              variant="danger"
               title={t('membership.cancelMembership')}
-              icon="close-circle-outline"
               onPress={f.handleCancel}
               isLoading={f.cancelMutation.isPending}
               disabled={f.cancelMutation.isPending}
-              style={{ ...styles.actionBtn, borderColor: colors.danger[600]! }}
             />
           )}
         </>
@@ -168,19 +144,12 @@ export function ManageActions({ f }: { f: MembershipManageController }) {
           <Button
             variant="primary"
             title={t('membership.manageUpgradeButton')}
-            icon="arrow-up"
             onPress={() => router.push('/membership' as any)}
-            style={styles.actionBtn}
           />
         </UpgradeCta>
       )}
 
-      <View style={styles.helpBox}>
-        <Ionicons name="information-circle-outline" size={18} color={colors.info[600]!} />
-        <Text style={styles.helpText}>
-          {t('membership.manageHelpText')}
-        </Text>
-      </View>
+      <Alert variant="info">{t('membership.manageHelpText')}</Alert>
     </>
   );
 }

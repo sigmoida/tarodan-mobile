@@ -18,6 +18,7 @@ export const styles = StyleSheet.create({
     padding: theme.spacing[4],
     gap: theme.spacing[3],
   },
+  body: { gap: theme.spacing[3] },
   card: {
     backgroundColor: colors.surface.DEFAULT,
   },
@@ -33,11 +34,11 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.primary[50]!,
     paddingHorizontal: theme.spacing[2.5],
     paddingVertical: theme.spacing[1.5],
-    borderRadius: 999,
+    borderRadius: theme.radius['3xl'],
   },
   tierText: {
     color: colors.primary[600]!,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
   },
   activeRow: {
     flexDirection: 'row',
@@ -46,8 +47,8 @@ export const styles = StyleSheet.create({
   },
   activeText: {
     color: colors.success[600]!,
-    fontWeight: '600',
-    fontSize: 13,
+    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: theme.typography.fontSize.sm,
   },
   cancelledNote: {
     flexDirection: 'row',
@@ -61,8 +62,8 @@ export const styles = StyleSheet.create({
   cancelledNoteText: {
     flex: 1,
     color: colors.warning[600]!,
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: theme.typography.fontSize.xs,
+    lineHeight: theme.typography.fontSize.xs * theme.typography.lineHeight.snug,
   },
   kvRow: {
     flexDirection: 'row',
@@ -71,12 +72,12 @@ export const styles = StyleSheet.create({
   },
   kvLabel: {
     color: colors.text.muted,
-    fontSize: 13,
+    fontSize: theme.typography.fontSize.sm,
   },
   kvValue: {
     color: colors.text.heading,
-    fontWeight: '600',
-    fontSize: 13,
+    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: theme.typography.fontSize.sm,
   },
   autoRow: {
     flexDirection: 'row',
@@ -84,20 +85,20 @@ export const styles = StyleSheet.create({
     gap: theme.spacing[3],
   },
   autoTitle: {
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: colors.text.heading,
     marginBottom: theme.spacing[0.5],
   },
   autoSub: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.xs,
     color: colors.text.muted,
-    lineHeight: 17,
+    lineHeight: theme.typography.fontSize.xs * theme.typography.lineHeight.snug,
   },
   helperText: {
-    fontSize: 13,
+    fontSize: theme.typography.fontSize.sm,
     color: colors.text.muted,
     marginTop: theme.spacing[3],
-    lineHeight: 18,
+    lineHeight: theme.typography.fontSize.sm * theme.typography.lineHeight.snug,
   },
   actionBtn: {
     borderRadius: theme.radius['2xl'],
@@ -114,7 +115,7 @@ export const styles = StyleSheet.create({
   helpText: {
     flex: 1,
     color: colors.info[600]!,
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: theme.typography.fontSize.xs,
+    lineHeight: theme.typography.fontSize.xs * theme.typography.lineHeight.snug,
   },
 });
