@@ -33,7 +33,7 @@ export default function MyListingsScreen() {
         onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
         right={
           <Pressable onPress={() => router.push('/settings/analytics')}>
-            <Ionicons name="stats-chart" size={24} color={colors.white} />
+            <Ionicons name="stats-chart" size={theme.iconSize.lg} color={colors.text.heading} />
           </Pressable>
         }
       />

@@ -32,9 +32,13 @@ export {
 } from './components/Screen';
 export {
 	ScreenHeader,
+	TopBarAction,
+	TOP_BAR_HEIGHT,
 	type ScreenHeaderProps,
 	type ScreenHeaderVariant,
+	type TopBarActionProps,
 } from './components/ScreenHeader';
+export { CountBadge, type CountBadgeProps } from './components/CountBadge';
 export { EmptyState, type EmptyStateProps } from './components/EmptyState';
 export { ErrorState, type ErrorStateProps } from './components/ErrorState';
 export {

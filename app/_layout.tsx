@@ -174,7 +174,9 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <LocaleProvider>
         <BrandFontProvider ready={fontsLoaded && !fontError}>
-          <StatusBar style="auto" />
+          {/* Yığın ekranları beyaz üst bar: koyu içerik. Turuncu marka barlı sekme kökleri (AppShell)
+              odaktayken açık içeriğe çevirir. */}
+          <StatusBar style="dark" />
           <RouteTracker />
           <Stack
             screenOptions={{

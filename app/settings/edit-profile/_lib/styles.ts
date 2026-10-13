@@ -16,7 +16,7 @@ export const styles = StyleSheet.create({
     gap: theme.spacing[4],
   },
   saveButton: {
-    color: colors.white,
+    color: colors.primary[600],
     fontWeight: '600',
     fontSize: 16,
   },

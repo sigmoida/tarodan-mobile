@@ -17,8 +17,8 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface.DEFAULT,
   },
   headerCount: {
-    color: colors.white,
-    opacity: 0.8,
+    color: colors.text.muted,
+    paddingHorizontal: theme.spacing[2],
   },
   title: {
     marginTop: theme.spacing[4],

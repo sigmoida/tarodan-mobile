@@ -17,7 +17,7 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface.DEFAULT,
   },
   saveButton: {
-    color: colors.white,
+    color: colors.primary[600],
     fontWeight: '600',
   },
   saveButtonDisabled: {
