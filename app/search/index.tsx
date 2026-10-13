@@ -156,13 +156,15 @@ export default function SearchScreen() {
 
           {/* Results — liste yükleme/boş durumda da MONTE kalır (sökülüp yeniden
               yerleşmesin diye); üst çubuklar ölçülene kadar yalnızca görünmez. */}
-          <AnimatedFlashList
+          {/* Gizleme FlashList'e `style` ile verilemez (Reanimated style'ı diziye çevirir, RecyclerView
+              dış View'da nesne olarak yayar → opacity kaybolur): sarmalayıcı View'a uygulanır. */}
+          <View testID="search-results-wrap" style={f.barsMeasured ? styles.listWrap : styles.listWrapHidden}>
+            <AnimatedFlashList
             testID="search-results-list"
             ref={f.listRef}
             data={f.products}
             key={`search-${columns}`}
             numColumns={columns}
-            style={f.barsMeasured ? undefined : styles.listHidden}
             contentContainerStyle={contentContainerStyle}
             keyExtractor={keyExtractor}
             renderItem={renderResult}
@@ -178,6 +180,7 @@ export default function SearchScreen() {
             ListFooterComponent={listFooter}
             ListEmptyComponent={listEmpty}
           />
+          </View>
         </View>
 
         {/* En üste dön butonu — liste yeterince aşağı inince görünür */}

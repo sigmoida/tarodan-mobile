@@ -204,10 +204,11 @@ describe('B6 · arama üst çubukları — ölçüm ve collapse', () => {
     // FlashList v2: `style` kapsayıcı View'a, `contentContainerStyle` kaydırma bileşenine gider; ikisini de
     // ana bileşenin prop'larından okuruz (en dıştaki testID eşleşmesi = AnimatedFlashList elemanı).
     const listProps = () => screen.UNSAFE_getAllByProps({ testID: 'search-results-list' })[0]!.props;
+    const wrapStyle = () => flatten(screen.getByTestId('search-results-wrap').props.style);
     const flatten = (s: any): any => (StyleSheet.flatten(s) ?? {}) as any;
 
     // Ölçüm gelmeden liste görünmez (opacity 0) ve üst boşluk 0.
-    expect(flatten(listProps().style).opacity).toBe(0);
+    expect(wrapStyle().opacity).toBe(0);
     expect(flatten(listProps().contentContainerStyle).paddingTop).toBe(0);
 
     const bars = screen.getByTestId('search-collapsible-bars');
@@ -215,7 +216,7 @@ describe('B6 · arama üst çubukları — ölçüm ve collapse', () => {
       bars.props.onLayout(layoutEvent(212));
     });
 
-    expect(flatten(listProps().style).opacity).toBeUndefined();
+    expect(wrapStyle().opacity).toBeUndefined();
     expect(flatten(listProps().contentContainerStyle).paddingTop).toBe(212);
   });
 

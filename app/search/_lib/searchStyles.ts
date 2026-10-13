@@ -123,7 +123,8 @@ export const styles = StyleSheet.create({
   cellRight: { paddingLeft: spacing[1.5] },
   // Üst çubuklar ölçülene kadar liste görünmez ama YERLEŞİR (opacity, display değil):
   // doğru üst boşlukla tek seferde konumlanır, kullanıcı ara kareyi görmez.
-  listHidden: { opacity: 0 },
+  listWrap: { flex: 1 },
+  listWrapHidden: { flex: 1, opacity: 0 },
   listFooter: { paddingVertical: spacing[4] },
   scrollTopFab: { position: 'absolute', right: spacing[4], bottom: spacing[6], zIndex: 50 },
 });
