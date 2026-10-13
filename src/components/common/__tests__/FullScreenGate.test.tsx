@@ -5,7 +5,7 @@
  * denenir.
  */
 import React from 'react';
-import { Modal, Platform, Text } from 'react-native';
+import { Keyboard, Modal, Platform, StyleSheet, Text } from 'react-native';
 import { act, render, renderHook, screen } from '@testing-library/react-native';
 import {
   FULL_SCREEN_GATE_LAYERS,
@@ -14,6 +14,7 @@ import {
   topFullScreenGate,
   useFullScreenGateShown,
 } from '../FullScreenGate';
+import { keyboardBottomInset } from '@/hooks/useKeyboardHeight';
 
 const modals = () => screen.UNSAFE_queryAllByType(Modal);
 
@@ -109,5 +110,59 @@ describe('FullScreenGate', () => {
     act(() => second.props.onShow());
     act(() => jest.advanceTimersByTime(GATE_PRESENT_RETRY_MS * 3));
     expect(modals()[0]).toBe(second);
+  });
+
+  describe('B3 inceleme 9 · klavye alt düğmeleri örtmez', () => {
+    const realOS = Platform.OS;
+    let handlers: Record<string, (e?: unknown) => void>;
+    beforeEach(() => {
+      handlers = {};
+      jest.spyOn(Keyboard, 'addListener').mockImplementation(((
+        type: string,
+        fn: (e?: unknown) => void,
+      ) => {
+        handlers[type] = fn;
+        return { remove: jest.fn() };
+      }) as never);
+    });
+    afterEach(() => {
+      Platform.OS = realOS;
+      jest.restoreAllMocks();
+    });
+
+    const bottom = () => StyleSheet.flatten(screen.getByTestId('gate').props.style).paddingBottom;
+    const renderGate = () =>
+      render(
+        <FullScreenGate layer="requiredSteps" testID="gate">
+          <Text>form</Text>
+        </FullScreenGate>,
+      );
+
+    it('Android (kenardan kenara Modal): klavye açılınca alt boşluk klavye kadar büyür, kapanınca döner', () => {
+      Platform.OS = 'android';
+      renderGate();
+      expect(Object.keys(handlers)).toEqual(['keyboardDidShow', 'keyboardDidHide']);
+      expect(bottom()).toBe(0);
+      act(() => handlers.keyboardDidShow!({ endCoordinates: { height: 300 } }));
+      expect(bottom()).toBe(300);
+      act(() => handlers.keyboardDidHide!());
+      expect(bottom()).toBe(0);
+    });
+
+    it('iOS: klavye animasyonuyla (will*) aynı anda', () => {
+      renderGate();
+      expect(Object.keys(handlers)).toEqual(['keyboardWillShow', 'keyboardWillHide']);
+      act(() => handlers.keyboardWillShow!({ endCoordinates: { height: 336 } }));
+      expect(bottom()).toBe(336);
+    });
+
+    it('güvenli alan: Android klavye ölçüsü gezinti çubuğunu içermez, iOS içerir', () => {
+      Platform.OS = 'android';
+      expect(keyboardBottomInset(0, 24)).toBe(24);
+      expect(keyboardBottomInset(300, 24)).toBe(324);
+      Platform.OS = 'ios';
+      expect(keyboardBottomInset(0, 34)).toBe(34);
+      expect(keyboardBottomInset(336, 34)).toBe(336);
+    });
   });
 });
