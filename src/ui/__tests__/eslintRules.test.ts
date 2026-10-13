@@ -75,6 +75,99 @@ describe('tarodan/no-lira-symbol', () => {
   });
 });
 
+describe('tarodan/no-custom-screen-header', () => {
+  const rule = () => plugin.rules['no-custom-screen-header'];
+  const run = (filename: string, visit: (v: any) => void) => {
+    const reports: unknown[] = [];
+    const v = rule().create({ filename, report: (r: unknown) => reports.push(r) });
+    visit(v);
+    return reports.length;
+  };
+  const insetsCall = { type: 'CallExpression', callee: { type: 'Identifier', name: 'useSafeAreaInsets' } };
+  const member = (obj: any, prop: string) => ({
+    type: 'MemberExpression',
+    computed: false,
+    object: obj,
+    property: { type: 'Identifier', name: prop },
+  });
+  const attr = (name: string, value: any) => ({
+    type: 'JSXAttribute',
+    name: { name },
+    value,
+  });
+  const jsx = (name: string, attributes: any[]) => ({
+    type: 'JSXOpeningElement',
+    name: { type: 'JSXIdentifier', name },
+    attributes,
+  });
+  const SCREEN = '/repo/app/orders/index.tsx';
+
+  it('insets.top (değişken, doğrudan çağrı ve destructuring)', () => {
+    expect(
+      run(SCREEN, (v) => {
+        v.VariableDeclarator({ type: 'VariableDeclarator', id: { type: 'Identifier', name: 'insets' }, init: insetsCall });
+        v.MemberExpression(member({ type: 'Identifier', name: 'insets' }, 'top'));
+        v.MemberExpression(member({ type: 'Identifier', name: 'insets' }, 'bottom'));
+      }),
+    ).toBe(1);
+    expect(run(SCREEN, (v) => v.MemberExpression(member(insetsCall, 'top')))).toBe(1);
+    expect(
+      run(SCREEN, (v) =>
+        v.VariableDeclarator({
+          type: 'VariableDeclarator',
+          id: { type: 'ObjectPattern', properties: [{ type: 'Property', key: { type: 'Identifier', name: 'top' } }] },
+          init: insetsCall,
+        }),
+      ),
+    ).toBe(1);
+  });
+
+  it("SafeAreaView: edges içinde 'top' ya da edges yok → uyarı; yalnız bottom serbest", () => {
+    const edges = (...e: string[]) =>
+      attr('edges', {
+        type: 'JSXExpressionContainer',
+        expression: { type: 'ArrayExpression', elements: e.map((x) => ({ type: 'Literal', value: x })) },
+      });
+    expect(run(SCREEN, (v) => v.JSXOpeningElement(jsx('SafeAreaView', [])))).toBe(1);
+    expect(run(SCREEN, (v) => v.JSXOpeningElement(jsx('SafeAreaView', [edges('top', 'bottom')])))).toBe(1);
+    expect(run(SCREEN, (v) => v.JSXOpeningElement(jsx('SafeAreaView', [edges('bottom')])))).toBe(0);
+  });
+
+  it('elle geri ikonu (arrow-back / chevron-back); başka ikon serbest', () => {
+    const icon = (n: string) => jsx('Ionicons', [attr('name', { type: 'Literal', value: n })]);
+    expect(run(SCREEN, (v) => v.JSXOpeningElement(icon('arrow-back')))).toBe(1);
+    expect(run(SCREEN, (v) => v.JSXOpeningElement(icon('chevron-back')))).toBe(1);
+    expect(run(SCREEN, (v) => v.JSXOpeningElement(icon('close')))).toBe(0);
+  });
+
+  it('izinli dosyalar muaf (AuthShell, kapılar, @/ui, shell)', () => {
+    for (const f of [
+      '/repo/src/components/auth/AuthShell.tsx',
+      '/repo/src/components/common/FullScreenGate.tsx',
+      '/repo/src/components/common/GateScreen.tsx',
+      '/repo/src/components/shell/AppShell.tsx',
+      '/repo/src/ui/components/ScreenHeader.tsx',
+      '/repo/app/product/[id]/_modals/ImageViewerModal.tsx',
+    ]) {
+      expect(run(f, (v) => v.JSXOpeningElement && v.JSXOpeningElement?.(jsx('SafeAreaView', [])))).toBe(0);
+    }
+  });
+});
+
+describe('tarodan/no-native-header', () => {
+  const visit = (value: any) => {
+    const reports: unknown[] = [];
+    plugin.rules['no-native-header']
+      .create({ report: (r: unknown) => reports.push(r) })
+      .Property({ type: 'Property', key: { type: 'Identifier', name: 'headerShown' }, value });
+    return reports.length;
+  };
+  it('headerShown: true yasak, false serbest', () => {
+    expect(visit({ type: 'Literal', value: true })).toBe(1);
+    expect(visit({ type: 'Literal', value: false })).toBe(0);
+  });
+});
+
 describe('tarodan/restrict-button-icon', () => {
   const attr = (name: string, value: any) => ({
     type: 'JSXAttribute',

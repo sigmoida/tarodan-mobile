@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { Button, Card, PageHeader, SectionCard, Text, theme } from '@/ui';
 
 import { AppShell } from '@/components/shell/AppShell';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { SignupPrompt } from '@/components/SignupPrompt';
 import UpgradeCta from '@/components/UpgradeCta';
 import { formatPrice } from '@/utils/format';
@@ -15,6 +16,7 @@ const { colors, spacing, minTouchTarget } = theme;
 /** Misafir profil: karşılama, üyelik faydaları, hızlı bağlantılar. Web gibi sade; ikon yok. */
 export function ProfileGuestView({ f }: { f: ProfileController }) {
   const { t } = useTranslation();
+  const tabInset = useTabBarInset();
 
   const benefits = [
     { title: t('mobile.guestListTitle'), desc: t('mobile.guestListDesc') },
@@ -32,7 +34,10 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
 
   return (
     <AppShell>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: tabInset }]}
+        showsVerticalScrollIndicator={false}
+      >
         <PageHeader title={t('profile.profile')} />
 
         <Card variant="bordered" style={styles.welcome}>
@@ -117,7 +122,7 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing[4], gap: spacing[4], paddingBottom: spacing[8] },
+  content: { padding: spacing[4], gap: spacing[4] },
   welcome: { gap: spacing[3] },
   benefits: { gap: spacing[3] },
   benefit: { gap: spacing[0.5] },

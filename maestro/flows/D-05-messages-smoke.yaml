@@ -7,14 +7,14 @@ tags:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
       visible: "Çıkış Yap"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
 - tapOn:
-    text: "Mesajlar"
+    id: "tab-messages"
 - waitForAnimationToEnd
 - assertNotVisible: ".*Network Error.*"
 - assertNotVisible: ".*Bir hata oluştu.*"

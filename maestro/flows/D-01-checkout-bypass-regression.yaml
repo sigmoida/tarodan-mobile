@@ -14,8 +14,7 @@ env:
   PASSWORD: Demo123!
 ---
 - runFlow: ../subflows/open-tarodan.yaml
-- tapOn:
-    text: "Ara"
+- runFlow: ../subflows/open-search.yaml
 - extendedWaitUntil:
     visible:
       text: ".*sonuç bulundu.*|.*[0-9],[0-9][0-9] TL.*"

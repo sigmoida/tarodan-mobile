@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Modal, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { theme, Input, Text } from '@/ui';
+import { theme, Input, SheetHeader, Text } from '@/ui';
 import { turkeyLocations, getDistrictsForCity } from '../../utils/turkeyLocations';
 
 const { colors } = theme;
@@ -143,15 +143,16 @@ export function CityDistrictSelector({
         visible={cityModal}
         animationType="slide"
         presentationStyle="pageSheet"
+        statusBarTranslucent
         onRequestClose={() => setCityModal(false)}
       >
         <View style={styles.modalContainer}>
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>{t('common.selectCity')}</Text>
-            <TouchableOpacity onPress={() => setCityModal(false)} hitSlop={8}>
-              <Ionicons name="close" size={22} color={colors.text.muted} />
-            </TouchableOpacity>
-          </View>
+          <SheetHeader
+            title={t('common.selectCity')}
+            onClose={() => setCityModal(false)}
+            closeLabel={t('common.close')}
+            fullScreen
+          />
           <View style={styles.sheetSearch}>
             <Input
               placeholder={t('common.searchCity')}
@@ -184,15 +185,16 @@ export function CityDistrictSelector({
         visible={districtModal}
         animationType="slide"
         presentationStyle="pageSheet"
+        statusBarTranslucent
         onRequestClose={() => setDistrictModal(false)}
       >
         <View style={styles.modalContainer}>
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>{`${t('common.selectDistrict')} (${city})`}</Text>
-            <TouchableOpacity onPress={() => setDistrictModal(false)} hitSlop={8}>
-              <Ionicons name="close" size={22} color={colors.text.muted} />
-            </TouchableOpacity>
-          </View>
+          <SheetHeader
+            title={`${t('common.selectDistrict')} (${city})`}
+            onClose={() => setDistrictModal(false)}
+            closeLabel={t('common.close')}
+            fullScreen
+          />
           <View style={styles.sheetSearch}>
             <Input
               placeholder={t('common.searchDistrict')}
@@ -262,20 +264,6 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: colors.surface.DEFAULT,
-  },
-  sheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing[4],
-    paddingVertical: theme.spacing[3.5],
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border.DEFAULT,
-  },
-  sheetTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text.heading,
   },
   sheetSearch: {
     paddingHorizontal: theme.spacing[4],

@@ -4,7 +4,7 @@
 appId: ${APP_ID}
 ---
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
       visible:

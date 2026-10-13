@@ -71,6 +71,10 @@ const DESIGN_WARNINGS = {
   'tarodan/no-lira-symbol': 'warn',
   // Button'da ikon yalnız izinli işlev ikonları için (dalga 3).
   'tarodan/restrict-button-icon': 'warn',
+  // Elle üst bar / insets.top / SafeAreaView top / elle geri ikonu → ScreenHeader, PageShell,
+  // AppShell, useHeaderTopInset. headerShown: true (native header) yasak.
+  'tarodan/no-custom-screen-header': 'warn',
+  'tarodan/no-native-header': 'warn',
   // Ham RN Text/TouchableOpacity/Modal → @/ui (Text/RawText, Button/Pressable, Modal).
   '@typescript-eslint/no-restricted-imports': [
     'warn',

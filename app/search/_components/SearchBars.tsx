@@ -30,6 +30,7 @@ export function SearchBars({ f }: { f: SearchController }) {
         <View style={styles.searchAnchor}>
           <Input
             testID="search-input"
+            autoFocus={f.autoFocusSearch}
             placeholder={t('search.placeholderLong')}
             value={f.searchQuery}
             onChangeText={f.handleSearchChange}

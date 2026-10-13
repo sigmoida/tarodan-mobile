@@ -3,7 +3,7 @@
  * Yükleniyor → ürün render (başlık/fiyat), bulunamadı durumu, alıcı aksiyonları.
  */
 import React from 'react';
-import { screen, waitFor } from '@testing-library/react-native';
+import { screen, waitFor, within } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 
 jest.mock('expo-router', () => ({
@@ -84,6 +84,35 @@ describe('Ürün detay ekranı', () => {
     await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
     expect(screen.getByTestId('product-detail-buy-now-button')).toBeOnTheScreen();
     expect(screen.getByTestId('product-detail-add-to-cart-button')).toBeOnTheScreen();
+  });
+
+  it('yüzen adalar: geri, şikayet, paylaş, favori, sepet; üst bar başlığı yok', async () => {
+    getOneMock.mockResolvedValue({ data: { data: productFixture() } });
+    renderWithProviders(<ProductDetailScreen />);
+
+    await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
+    for (const id of [
+      'product-back-button',
+      'product-report-button',
+      'product-favorite-button',
+      'product-cart-button',
+    ]) {
+      expect(screen.getByTestId(id)).toBeOnTheScreen();
+    }
+    expect(screen.getByLabelText('Paylaş')).toBeOnTheScreen();
+  });
+
+  it('alt sabit bar sade: fiyat yok, yalnız adet seçici + Hemen Al', async () => {
+    getOneMock.mockResolvedValue({ data: { data: productFixture() } });
+    renderWithProviders(<ProductDetailScreen />);
+
+    await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
+    const footer = within(screen.getByTestId('page-shell-footer'));
+    expect(footer.getByText('Hemen Al')).toBeOnTheScreen();
+    expect(footer.queryByText(/TL/)).toBeNull();
+    expect(footer.queryByText('Sepete Ekle')).toBeNull();
+    // Fiyat başlığın altında, sayfa içeriğinde.
+    expect(screen.getByTestId('product-price')).toBeOnTheScreen();
   });
 
   it('stokta yok üründe pasif buton gösterir', async () => {

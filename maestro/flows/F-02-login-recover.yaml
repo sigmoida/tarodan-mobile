@@ -9,7 +9,7 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow: ../subflows/logout.yaml
 - runFlow:
     when:

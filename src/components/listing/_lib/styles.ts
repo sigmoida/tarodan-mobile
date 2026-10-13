@@ -25,19 +25,6 @@ export const styles = StyleSheet.create({
     marginBottom: theme.spacing[4],
     textAlign: 'center',
   },
-  header: {
-    backgroundColor: colors.primary[600]!,
-    paddingBottom: theme.spacing[4],
-    paddingHorizontal: theme.spacing[5],
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.white,
-  },
   scroll: {
     flex: 1,
   },
@@ -557,18 +544,6 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.danger[600]!,
   },
-  primaryButton: {
-    backgroundColor: colors.primary[600]!,
-    paddingHorizontal: 28,
-    paddingVertical: theme.spacing[3.5],
-    borderRadius: theme.radius['2xl'],
-  },
-  primaryButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-
   // Modal
   modalOverlay: {
     flex: 1,

@@ -55,37 +55,15 @@ export function useSearch() {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [sortModalVisible, setSortModalVisible] = useState(false);
 
-  // Anasayfadan gelen filtreleri uygula. Ara kalıcı bir tab olduğu için ekran ilk
-  // mount'tan sonra yeniden kurulmaz; bu yüzden parametreleri reaktif izleyip her taze
-  // navigasyonda (benzersiz `t` token'ı) filtreleri sıfırdan kurarız. Token'sız giriş
-  // (kullanıcı sadece Ara tab'ına basınca) mevcut filtreleri korur.
-  const navToken = params.t as string | undefined;
-  const lastTokenRef = useRef<string | undefined>(undefined);
+  // Arama artık yığın ekranı: her `router.push('/search?…')` taze bir ekran kurar, bu yüzden
+  // filtreler yukarıda URL parametrelerinden bir kez başlatılır (eski `navToken` tekrar-uygulama
+  // hilesi gerekmez). `focus=1` (üst bardaki arama alanından gelince) kutuya otomatik odaklanır.
+  const autoFocusSearch = params.focus === '1';
   useEffect(() => {
-    if (!navToken || navToken === lastTokenRef.current) return;
-    lastTokenRef.current = navToken;
-
-    if (params.reset) {
-      setFilters({ ...EMPTY_FILTERS });
-      setSearchQuery('');
-      return;
-    }
-    const next: ProductFilters = {
-      ...EMPTY_FILTERS,
-      search: (params.q as string) || '',
-      category: (params.category as string) || '',
-      categoryId: (params.categoryId as string) || '',
-      brand: (params.brand as string) || '',
-      brandId: (params.brandId as string) || '',
-      manufacturer: (params.manufacturer as string) || '',
-      manufacturerId: (params.manufacturerId as string) || '',
-      scale: (params.scale as string) || '',
-    };
-    setFilters(next);
-    setSearchQuery(next.search);
     if (params.openFilter) setFilterModalVisible(true);
-    // navToken değişiminde URL parametrelerini bir kez uygula (kasıtlı sınırlı bağımlılık)
-  }, [navToken]);
+    // yalnız ilk açılışta
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Seçili üreticinin slug'ını çöz ki üreticiye-özel filtreler (HW vb.) yüklensin.
   const baseOptions = useProductFilterOptions();
@@ -299,6 +277,7 @@ export function useSearch() {
     setFilters,
     searchQuery,
     setSearchQuery,
+    autoFocusSearch,
     handleSearchChange,
     clearAllFilters,
     activeChips,

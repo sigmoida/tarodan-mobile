@@ -54,7 +54,7 @@ export function toMobileRoute(link: string): string | null {
     case 'listings': {
       // web: ürün detayı /listings/:id → mobil /product/:id; /listings/:id/edit →
       // mobil ilan düzenleme; liste → arama
-      if (!id) return '/(tabs)/search';
+      if (!id) return '/search';
       return seg[2] === 'edit' ? `/listing/${id}/edit` : `/product/${id}`;
     }
     case 'trades':

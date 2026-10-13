@@ -58,10 +58,10 @@ tags:
 - extendedWaitUntil:
     visible:
       id: "home-search-input"
+      index: 0
     timeout: 120000
 # 2. Arama → ilk ürün detay
-- tapOn:
-    text: "Ara"
+- runFlow: ../subflows/open-search.yaml
 - extendedWaitUntil:
     visible:
       id: "search-input"
@@ -98,10 +98,10 @@ tags:
 # 3. Kayıt ol: Profil tab'ine git (back sonrası tab bar görünür)
 - extendedWaitUntil:
     visible:
-      text: "Profil"
+      id: "tab-profile"
     timeout: 10000
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - extendedWaitUntil:
     visible:
       id: "profile-go-login-button"

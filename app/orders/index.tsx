@@ -80,7 +80,7 @@ export default function OrdersScreen() {
           title={emptyTitle}
           description={t('order.startShopping')}
           actionLabel={t('order.exploreProducts')}
-          onAction={() => router.push('/(tabs)/search')}
+          onAction={() => router.push('/search')}
         />
       ) : (
         <View style={styles.list}>

@@ -58,7 +58,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                     accessibilityLabel={backLabel ?? t('common.back')}
                     style={styles.back}
                   >
-                    <Ionicons name="chevron-back" size={iconSize.lg} color={colors.text.muted} />
+                    <Ionicons name="chevron-back" size={iconSize.lg} color={colors.text.heading} />
                   </Pressable>
                 ) : (
                   <View style={styles.accent} testID="page-header-accent" />

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { theme } from '../lib/theme';
 import { IconButton, iconButtonBoxSize, type IconButtonSize } from './IconButton';
-import { RawText } from './Text';
+import { SheetHeader } from './SheetHeader';
 
 /** Kart genişliği: `md` (varsayılan) 480pt, `lg` 512pt (web `max-w-lg`). */
 export type ModalSize = 'md' | 'lg';
@@ -49,7 +49,7 @@ export interface ModalProps {
   footer?: React.ReactNode;
 }
 
-const { colors, radius, spacing, typography } = theme;
+const { colors, radius, spacing } = theme;
 
 /** Kapat düğmesinin boyutu — başlık satırı yüksekliği de bundan türer. */
 const CLOSE_BUTTON_SIZE: IconButtonSize = 'sm';
@@ -94,20 +94,26 @@ export const Modal: React.FC<ModalProps> = ({
               flushBody && styles.sheetFlush,
             ]}
           >
-            {hasHeader && (
-              <View style={[styles.header, title ? styles.headerTitled : styles.headerCloseOnly]}>
-                {title ? <RawText style={styles.title}>{title}</RawText> : <View style={styles.fill} />}
-                {showCloseButton && (
-                  <IconButton
-                    icon="close"
-                    size={CLOSE_BUTTON_SIZE}
-                    accessibilityLabel={closeLabel ?? 'Close'}
-                    onPress={onClose}
-                    testID="modal-close"
-                  />
-                )}
+            {title ? (
+              <SheetHeader
+                title={title}
+                paddingX={6}
+                onClose={showCloseButton ? onClose : undefined}
+                closeLabel={closeLabel}
+                closeTestID="modal-close"
+              />
+            ) : showCloseButton ? (
+              <View style={[styles.header, styles.headerCloseOnly]}>
+                <View style={styles.fill} />
+                <IconButton
+                  icon="close"
+                  size={CLOSE_BUTTON_SIZE}
+                  accessibilityLabel={closeLabel ?? 'Close'}
+                  onPress={onClose}
+                  testID="modal-close"
+                />
               </View>
-            )}
+            ) : null}
             <View
               style={[
                 styles.body,
@@ -155,22 +161,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing[2],
   },
-  // Web Dialog başlığı: `border-b px-6 py-4`.
-  headerTitled: {
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.DEFAULT,
-  },
   headerCloseOnly: {
     padding: spacing[2],
-  },
-  title: {
-    flex: 1,
-    fontSize: typography.fontSize.lg,
-    lineHeight: typography.fontSize.lg * 1.25,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.heading,
   },
   // Web Dialog gövdesi: `px-6 py-5`.
   body: {

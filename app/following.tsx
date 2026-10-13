@@ -68,7 +68,7 @@ export default function FollowingScreen() {
         title: t('following.emptyTitle'),
         subtitle: t('following.emptySubtitle'),
         actionLabel: t('following.exploreSellers'),
-        onAction: () => router.push('/(tabs)/search'),
+        onAction: () => router.push('/search'),
       }}
       refreshing={refreshing}
       onRefresh={onRefresh}

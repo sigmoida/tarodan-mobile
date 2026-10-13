@@ -1,12 +1,10 @@
 import { Stack } from 'expo-router';
+import { stackScreenOptions } from '@/lib/navigation/screenOptions';
 
 export default function BrandsLayout() {
   return (
     <Stack
-      screenOptions={{
-        headerShown: false,
-        animation: 'slide_from_right',
-      }}
+      screenOptions={stackScreenOptions}
     />
   );
 }

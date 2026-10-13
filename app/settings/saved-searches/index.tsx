@@ -66,7 +66,7 @@ export default function SavedSearchesScreen() {
           title={t("savedSearch.emptyTitle")}
           subtitle={t("savedSearch.emptySubtitle")}
           actionLabel={t("savedSearch.goToSearch")}
-          onAction={() => router.push("/(tabs)/search")}
+          onAction={() => router.push("/search")}
         />
       ) : (
         f.searches.map((search) => (

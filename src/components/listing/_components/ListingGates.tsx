@@ -1,15 +1,37 @@
 import React from 'react';
-import { View, TouchableOpacity, ActivityIndicator, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { theme, RawText } from '@/ui';
+import { Button, theme, RawText } from '@/ui';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
+import { PageShell } from '@/components/common/PageShell';
+import { goBackOrHome } from '@/components/common/goBackOrHome';
 
 import { styles } from '../_lib/styles';
 import type { ListingFormController } from '../_hooks/useListingForm';
 
 const { colors } = theme;
+
+/**
+ * Kapı ekranlarının çerçevesi. Düzenleme modunda standart beyaz üst bar (`PageShell`: geri oku,
+ * başlık sola, ortak yükseklik); oluşturma modu `sell` sekme kökünün (AppShell) içinde açılır, bu
+ * yüzden yalnız ortalanmış gövde çizer.
+ */
+export function ListingGateFrame({ isEdit, children }: { isEdit: boolean; children: React.ReactNode }) {
+  const { t } = useTranslation();
+  const tabInset = useTabBarInset();
+  if (!isEdit) {
+    // Sekme kökünde yüzen hap var: ortalanan içerik hapın altına girmesin.
+    return <View style={[styles.centered, { paddingBottom: tabInset }]}>{children}</View>;
+  }
+  const body = <View style={styles.centered}>{children}</View>;
+  return (
+    <PageShell title={t('product.editListing')} mode="static" padding={false}>
+      {body}
+    </PageShell>
+  );
+}
 
 /**
  * Renders the appropriate loading / auth / not-found / reserved gate for the
@@ -22,52 +44,39 @@ export function ListingGates({ f }: { f: ListingFormController }) {
 
   if (authLoading || (isEdit && productLoading)) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <ListingGateFrame isEdit={isEdit}>
         <ActivityIndicator size="large" color={colors.primary[600]!} />
-      </SafeAreaView>
+      </ListingGateFrame>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <ListingGateFrame isEdit={isEdit}>
         <RawText style={styles.authText}>{t('product.loginRequiredToCreate')}</RawText>
-        <TouchableOpacity style={styles.primaryButton} onPress={() => router.push('/(auth)/login')}>
-          <RawText style={styles.primaryButtonText}>{t('common.login')}</RawText>
-        </TouchableOpacity>
-      </SafeAreaView>
+        <Button title={t('common.login')} onPress={() => router.push('/(auth)/login')} />
+      </ListingGateFrame>
     );
   }
 
   if (isEdit && productNotFound) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <ListingGateFrame isEdit>
         <Ionicons name="alert-circle-outline" size={64} color={colors.danger[600]!} />
         <RawText style={[styles.authText, { marginTop: theme.spacing[4] }]}>{t('product.listingNotFound')}</RawText>
-        <TouchableOpacity style={styles.primaryButton} onPress={() => router.back()}>
-          <RawText style={styles.primaryButtonText}>{t('common.goBack')}</RawText>
-        </TouchableOpacity>
-      </SafeAreaView>
+        <Button title={t('common.goBack')} onPress={goBackOrHome} />
+      </ListingGateFrame>
     );
   }
 
   if (isEdit && status === 'reserved') {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('common.back')}>
-            <Ionicons name="arrow-back" size={24} color={colors.white} />
-          </Pressable>
-          <RawText style={styles.headerTitle}>{t('product.editListing')}</RawText>
-          <View style={{ width: 24 }} />
-        </View>
-        <View style={styles.centered}>
-          <Ionicons name="lock-closed-outline" size={56} color={colors.warning[600]!} />
-          <RawText style={[styles.authText, { marginTop: theme.spacing[4] }]}>
-            {t('listing.reservedCannotEdit')}
-          </RawText>
-        </View>
-      </SafeAreaView>
+      <ListingGateFrame isEdit>
+        <Ionicons name="lock-closed-outline" size={56} color={colors.warning[600]!} />
+        <RawText style={[styles.authText, { marginTop: theme.spacing[4] }]}>
+          {t('listing.reservedCannotEdit')}
+        </RawText>
+      </ListingGateFrame>
     );
   }
 

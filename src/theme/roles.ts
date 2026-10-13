@@ -22,6 +22,13 @@ export const controlHeight = {
   xl: 56,
 } as const;
 
+/**
+ * Üst bar (ScreenHeader / SheetHeader) içerik yüksekliği — güvenli alan (status bar / çentik)
+ * HARİÇ. Tüm yığın ekranlarında, tab köklerinde ve sheet başlıklarında aynı sabit; ekran
+ * kendi yüksekliğini seçmez. Güvenli alan `useHeaderTopInset()` ile eklenir.
+ */
+export const headerHeight = 52;
+
 /** Asgari dokunma alanı (Apple HIG / WCAG). Görsel ölçü küçükse fark `hitSlop` ile kapatılır. */
 export const minTouchTarget = 44;
 
@@ -58,6 +65,7 @@ export const roles = {
   iconSize,
   controlHeight,
   minTouchTarget,
+  headerHeight,
   radiusRole,
   priceColor,
   counterBadgeColor,

@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Snackbar, theme } from '@/ui';
+import { Snackbar, theme, useHeaderTopInset } from '@/ui';
 import { useFullScreenGateShown } from '@/components/common/FullScreenGate';
 import {
   dismissLegalIdentitySavedNotice,
@@ -19,7 +18,7 @@ import {
  */
 export function LegalIdentitySavedNotice() {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
+  const topInset = useHeaderTopInset();
   const pending = useLegalIdentityRequestStore((s) => s.savedNotice);
   const gateShown = useFullScreenGateShown();
 
@@ -28,7 +27,7 @@ export function LegalIdentitySavedNotice() {
       visible={pending && !gateShown}
       onDismiss={dismissLegalIdentitySavedNotice}
       variant="success"
-      style={{ top: insets.top + theme.spacing[2], bottom: 'auto' }}
+      style={{ top: topInset + theme.spacing[2], bottom: 'auto' }}
       testID="identity-saved-notice"
     >
       {t('identity.gate.saved')}

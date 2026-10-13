@@ -6,7 +6,7 @@ tags:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
       visible: "Satışlarım"
