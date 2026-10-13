@@ -83,6 +83,20 @@ const two = () => [
   base({ id: 'o2', productId: 'p2', product: { id: 'p2', title: 'Kamera İki', price: 300 } }),
 ];
 
+/**
+ * Web Button gibi: bekleyen teklifte etiket KALIR, düğme kilitlenir (spinner + devre dışı).
+ * "Etkin kabul düğmeleri" = kilitli olmayanlar.
+ */
+const enabledAccepts = () =>
+  screen.getAllByText('Kabul Et').filter((el) => {
+    try {
+      expect(el).not.toBeDisabled();
+      return true;
+    } catch {
+      return false;
+    }
+  });
+
 /** İlk bekleyen onay diyaloğunu onayla: onSelect (an) + onPress (kapanış sonrası). */
 const confirmLast = () => {
   const { confirm } = lastConfirm();
@@ -106,13 +120,13 @@ describe('liste: teklif başına bekleme', () => {
     fireEvent.press(screen.getAllByText('Kabul Et')[0]!);
     confirmLast();
     await waitFor(() => expect(accept).toHaveBeenCalledWith('o1'));
-    expect(screen.getAllByText('Kabul Et')).toHaveLength(1); // yalnız B'nin düğmesi kaldı
+    expect(enabledAccepts()).toHaveLength(1); // yalnız B'nin düğmesi etkin kaldı
 
     // A sürerken B (o2) onaylanır
-    fireEvent.press(screen.getByText('Kabul Et'));
+    fireEvent.press(enabledAccepts()[0]!);
     confirmLast();
     await waitFor(() => expect(accept).toHaveBeenCalledWith('o2'));
-    expect(screen.queryByText('Kabul Et')).toBeNull(); // ikisi de bekliyor: A'nın butonları AÇILMADI
+    expect(enabledAccepts()).toHaveLength(0); // ikisi de bekliyor: A'nın butonları AÇILMADI
 
     // A'nın Reddet'ine basmak yeni onay açmaz, A'ya ikinci kabul gitmez
     const alertsBefore = alertMock.mock.calls.length;
@@ -122,7 +136,7 @@ describe('liste: teklif başına bekleme', () => {
 
     // A biter: yalnız A açılır, B hâlâ bekliyor
     await act(async () => resolvers.o1!());
-    await waitFor(() => expect(screen.getAllByText('Kabul Et')).toHaveLength(1));
+    await waitFor(() => expect(enabledAccepts()).toHaveLength(1));
     // kalan düğme o1'in (ilk kart), o2 hâlâ spinner: o2'nin Reddet'i devre dışı
     const alertsAfterA = alertMock.mock.calls.length;
     fireEvent.press(screen.getAllByText('Reddet')[1]!);
@@ -130,7 +144,7 @@ describe('liste: teklif başına bekleme', () => {
 
     // B de biter: ikisi de açık
     await act(async () => resolvers.o2!());
-    await waitFor(() => expect(screen.getAllByText('Kabul Et')).toHaveLength(2));
+    await waitFor(() => expect(enabledAccepts()).toHaveLength(2));
   });
 
   it('A\'nın hatası B\'nin bekleme durumunu temizlemez', async () => {
@@ -148,13 +162,13 @@ describe('liste: teklif başına bekleme', () => {
     await flushPolicy();
     fireEvent.press(screen.getAllByText('Kabul Et')[0]!);
     confirmLast();
-    fireEvent.press(screen.getByText('Kabul Et'));
+    fireEvent.press(enabledAccepts()[0]!);
     confirmLast();
     await waitFor(() => expect(accept).toHaveBeenCalledTimes(2));
 
     await act(async () => rejectA(new Error('x')));
-    await waitFor(() => expect(screen.getAllByText('Kabul Et')).toHaveLength(1)); // yalnız A açıldı
+    await waitFor(() => expect(enabledAccepts()).toHaveLength(1)); // yalnız A açıldı
     await act(async () => resolveB());
-    await waitFor(() => expect(screen.getAllByText('Kabul Et')).toHaveLength(2));
+    await waitFor(() => expect(enabledAccepts()).toHaveLength(2));
   });
 });

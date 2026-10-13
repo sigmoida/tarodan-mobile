@@ -1,10 +1,6 @@
-import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Modal, Input, Text, theme } from '@/ui';
-import { styles } from '../_lib/styles';
 import type { OfferDetailController } from '../_hooks/useOfferDetail';
-
-const { colors } = theme;
 
 /** Karşı teklif tutarı modalı — validasyon controller'ın submitCounter'ında. */
 export function CounterDialog({ f }: { f: OfferDetailController }) {
@@ -14,8 +10,24 @@ export function CounterDialog({ f }: { f: OfferDetailController }) {
       isOpen={f.counterDialog}
       onClose={() => f.setCounterDialog(false)}
       title={t('offer.counterOffer')}
+      footer={
+        <>
+          <Button
+            variant="primary"
+            onPress={f.submitCounter}
+            isLoading={f.counterMutation.isPending}
+            disabled={f.counterMutation.isPending || f.counterValue <= 0}
+            fullWidth
+          >
+            {t('common.submit')}
+          </Button>
+          <Button variant="outline" onPress={() => f.setCounterDialog(false)} fullWidth style={{ marginTop: theme.spacing[2] }}>
+            {t('trade.dispute.cancelCta')}
+          </Button>
+        </>
+      }
     >
-      <Text style={{ marginBottom: theme.spacing[3], color: colors.text.muted }}>
+      <Text variant="bodySm" tone="muted" style={{ marginBottom: theme.spacing[3] }}>
         {t('offer.enterCounterAmountBody')}
       </Text>
       <Input
@@ -24,19 +36,6 @@ export function CounterDialog({ f }: { f: OfferDetailController }) {
         onChangeText={f.setCounterAmount}
         keyboardType="numeric"
       />
-      <View style={styles.dialogActions}>
-        <Button variant="ghost" onPress={() => f.setCounterDialog(false)}>
-          {t('trade.dispute.cancelCta')}
-        </Button>
-        <Button
-          variant="primary"
-          onPress={f.submitCounter}
-          isLoading={f.counterMutation.isPending}
-          disabled={f.counterMutation.isPending || f.counterValue <= 0}
-        >
-          {t('common.submit')}
-        </Button>
-      </View>
     </Modal>
   );
 }

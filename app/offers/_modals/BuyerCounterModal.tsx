@@ -1,14 +1,11 @@
 import React, { useEffect, useMemo } from 'react';
-import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Modal, Button, theme, RawText } from '@/ui';
+import { Modal, ModalFooter, Text } from '@/ui';
 import { useZodForm, Form, FormInput } from '@/ui/form';
 import { buyerCounterSchema } from '../_lib/schema';
 import { formatPrice } from '../_lib/status';
 import { useDoBuyerCounter } from '../_hooks/useDoBuyerCounter';
 import type { Offer } from '../_lib/types';
-
-const { spacing, colors, typography } = theme;
 
 /**
  * Alıcının, satıcının karşı teklifinden DAHA DÜŞÜK teklifi. Kendi form +
@@ -42,43 +39,32 @@ export function BuyerCounterModal({
   });
 
   return (
-    <Modal isOpen={!!offer} onClose={onClose} title={t('offer.lowerOffer')}>
+    <Modal
+      isOpen={!!offer}
+      onClose={onClose}
+      title={t('offer.lowerOffer')}
+      footer={
+        <ModalFooter
+          onCancel={onClose}
+          onConfirm={onSubmit}
+          cancelLabel={t('trade.dispute.cancelCta')}
+          confirmLabel={t('common.submit')}
+        />
+      }
+    >
       <Form form={form}>
-        <RawText style={styles.subtitle}>
+        <Text variant="bodySm" tone="muted">
           {t('offer.sellerCounterSubtitle', {
             amount: offer ? formatPrice(refAmount) : '—',
           })}
-        </RawText>
+        </Text>
         <FormInput
           name="amount"
           placeholder={t('offer.newAmountPlaceholderTl')}
           keyboardType="numeric"
           autoFocus
         />
-        <View style={styles.actions}>
-          <Button variant="secondary" onPress={onClose} title={t('trade.dispute.cancelCta')} />
-          <Button
-            variant="primary"
-            onPress={onSubmit}
-            isLoading={buyerCounter.isPending}
-            title={t('common.submit')}
-          />
-        </View>
       </Form>
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  subtitle: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.muted,
-    marginBottom: spacing[3],
-    lineHeight: 18,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    marginTop: spacing[4],
-  },
-});
