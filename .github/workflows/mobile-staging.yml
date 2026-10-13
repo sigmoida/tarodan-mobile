@@ -109,6 +109,8 @@ jobs:
       ota_platform: ${{ steps.decide.outputs.ota_platform }}
       apk: ${{ steps.decide.outputs.apk }}
       message: ${{ steps.decide.outputs.message }}
+      blocked: ${{ steps.decide.outputs.blocked }}
+      decided: ${{ steps.decide.outputs.decided }}
     steps:
       - name: Guard — skip if EXPO_TOKEN missing
         id: guard
@@ -138,11 +140,20 @@ jobs:
           SHA: ${{ github.sha }}
         # Karar döngüsünün TEK kopyası: scripts/ci/release.sh plan (production ile ortak).
         run: scripts/ci/release.sh plan staging
+      - name: Fail if a platform is blocked (other platforms still ship)
+        # Plan job'u kırmızı olur ama downstream job'lar `!cancelled()` +
+        # `decided == 'true'` ile koştuğu için engellenmeyen platform yayınlanır.
+        if: steps.decide.outputs.blocked != ''
+        env:
+          BLOCKED: ${{ steps.decide.outputs.blocked }}
+        run: |
+          echo "::error::Engellenen platform(lar): $BLOCKED — ayrıntı yukarıdaki ::error:: satırlarında."
+          exit 1
 
   ota:
     name: OTA → staging
     needs: plan
-    if: needs.plan.outputs.skip != 'true' && needs.plan.outputs.ota_platform != 'none' && needs.plan.outputs.ota_platform != ''
+    if: ${{ !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.ota_platform != 'none' && needs.plan.outputs.ota_platform != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # Daha yeni bir push gelince yayınlanmakta olan (artık eskimiş) OTA iptal edilir.
@@ -167,7 +178,7 @@ jobs:
   build-ios:
     name: iOS build → TestFlight (Tarodan Staging)
     needs: plan
-    if: needs.plan.outputs.skip != 'true' && needs.plan.outputs.ios == 'build'
+    if: ${{ !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.ios == 'build' }}
     runs-on: ubuntu-latest
     # Build ~7 dk ama submit App Store Connect'in işlemesini bekliyor (2026-08-04:
     # 53 dk). 60 dk'da kesilip yanıltıcı "cancelled" bırakıyordu.
@@ -199,7 +210,7 @@ jobs:
     name: Android build → Play internal (Tarodan Staging)
     needs: plan
     # Play hesabı + service account + ilk elle yükleme bitene kadar KAPALI.
-    if: vars.ANDROID_RELEASE_ENABLED == 'true' && needs.plan.outputs.skip != 'true' && needs.plan.outputs.android == 'build'
+    if: ${{ vars.ANDROID_RELEASE_ENABLED == 'true' && !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.android == 'build' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     concurrency:
@@ -232,7 +243,7 @@ jobs:
     # Yalnız elle: gh workflow run mobile-staging.yml --ref development -f mode=apk
     # Play'e bağlı değil (EAS internal distribution), bu yüzden
     # ANDROID_RELEASE_ENABLED'a bağlanmadı.
-    if: github.event_name == 'workflow_dispatch' && needs.plan.outputs.skip != 'true' && needs.plan.outputs.apk == 'true'
+    if: ${{ github.event_name == 'workflow_dispatch' && !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.apk == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:

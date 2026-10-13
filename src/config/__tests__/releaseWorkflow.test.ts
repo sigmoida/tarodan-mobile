@@ -197,6 +197,19 @@ describe('production', () => {
     expect(sh).toContain('version_gt "$version" "$last"');
   });
 
+  it.each([
+    ['staging', staging],
+    ['production', production],
+  ])('%s: engellenen platform diğerini durdurmaz, koşu sonda kırmızı', (_n, w) => {
+    const fail = w.jobs.plan.steps!.find((s) => s.if === "steps.decide.outputs.blocked != ''");
+    expect(fail?.run).toContain('exit 1');
+    const downstream = Object.entries(w.jobs).filter(([id]) => !['ci', 'plan'].includes(id));
+    for (const [id, job] of downstream) {
+      expect([id, job.if]).toEqual([id, expect.stringContaining('!cancelled()')]);
+      expect([id, job.if]).toEqual([id, expect.stringContaining("needs.plan.outputs.decided == 'true'")]);
+    }
+  });
+
   it('yalnız master ref\'inden yayınlanır', () => {
     const step = production.jobs.plan.steps!.find((s) => s.name === 'Only master ships to production');
     expect(step?.if).toContain("github.ref != 'refs/heads/master'");

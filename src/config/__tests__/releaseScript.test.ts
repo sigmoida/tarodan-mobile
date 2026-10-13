@@ -408,3 +408,55 @@ describe('release.sh plan — bekleyen build için OTA da ikinci build de yok', 
     expect(r.outputs.action).toBe('skip');
   });
 });
+
+describe('release.sh plan — VERSION-GATE platform başına', () => {
+  const ANDROID = { ANDROID_ENABLED: 'true' };
+  // iOS: native değişti (bu runtime için build yok), son production build'i 1.0.5
+  // = app.json sürümü → kapı takılır. Android: binary var → OTA.
+  const iosOld = build({ id: 'ios-old', profile: 'production', runtime: 'eski', appVersion: '9.9.9' });
+  const and = shipped('and-1', { platform: 'ANDROID', profile: 'production' });
+
+  it('iOS kapısı takılırsa iOS blocked, Android OTA yine çıkar', () => {
+    const r = plan('production', { env: ANDROID, builds: [iosOld, and.b], submissions: [and.s] });
+    expect(r.status).toBe(0);
+    expect(r.outputs).toMatchObject({
+      ios: 'blocked',
+      android: 'ota',
+      ota_platform: 'android',
+      blocked: 'ios',
+      decided: 'true',
+    });
+    expect(r.all).toContain('::error::ios: native değişti');
+  });
+
+  it('iki platform da takılırsa ikisi de blocked, OTA yok', () => {
+    const andOld = build({ id: 'a-old', platform: 'ANDROID', profile: 'production', runtime: 'eski', appVersion: '9.9.9' });
+    const r = plan('production', { env: ANDROID, builds: [iosOld, andOld] });
+    expect(r.outputs).toMatchObject({ ios: 'blocked', android: 'blocked', blocked: 'ios android', ota_platform: 'none' });
+  });
+
+  it('sürüm artmışsa build', () => {
+    const older = build({ id: 'ios-old', profile: 'production', runtime: 'eski', appVersion: '1.0.0' });
+    const r = plan('production', { env: { PLATFORM: 'ios' }, builds: [older] });
+    expect(r.outputs).toMatchObject({ ios: 'build', blocked: '', decided: 'true' });
+  });
+
+  it('ilk production build\'inde kapı geçer', () => {
+    expect(plan('production', { env: { PLATFORM: 'ios' } }).outputs.ios).toBe('build');
+  });
+
+  it('mode=build kapıyı uyarıya çevirir', () => {
+    const r = plan('production', { env: { PLATFORM: 'ios', MODE: 'build' }, builds: [iosOld] });
+    expect(r.outputs).toMatchObject({ ios: 'build', blocked: '' });
+    expect(r.all).toContain('::warning::ios: native değişti');
+  });
+
+  it('decided=true en son yazılır; hata olursa hiç yazılmaz', () => {
+    const ok = plan('staging', { env: { PLATFORM: 'ios' } });
+    const keys = Object.keys(ok.outputs);
+    expect(keys[keys.length - 1]).toBe('decided');
+    const broken = plan('staging', { env: { PLATFORM: 'ios', FAKE_EAS_FAIL_BUILD_LIST: '1' } });
+    expect(broken.status).not.toBe(0);
+    expect(broken.outputs.decided).toBeUndefined();
+  });
+});

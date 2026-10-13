@@ -24,8 +24,12 @@
 #   release.sh plan         <staging|production>
 #       Platform başına karar (fingerprint → OTA / build / skip). Girdiler env'den:
 #       MODE (auto|ota|build|apk), PLATFORM (all|ios|android), ANDROID_ENABLED,
-#       COMMIT_MSG, SHA. Çıktılar GITHUB_OUTPUT'a: message, <p>, <p>_fp,
-#       ota_platform (+ staging'de apk). Workflow'lardaki tek karar döngüsü budur.
+#       COMMIT_MSG, SHA. Çıktılar GITHUB_OUTPUT'a: message, <p>
+#       (ota|build|wait|skip|blocked), <p>_fp, ota_platform, blocked (engellenen
+#       platformlar), decided=true (EN SON yazılır: yalnız tüm kararlar
+#       tamamlandıysa; downstream job'lar buna bakar) + staging'de apk.
+#       `blocked` bir platformu durdurur, diğerini DEĞİL; workflow plan job'unu
+#       sonda kırmızıya çevirir. Workflow'lardaki tek karar döngüsü budur.
 #   release.sh recheck      <ios|android> <staging|production>
 #       Build job'ı kilidi aldıktan sonra (FP, MODE env'den) yeniden sorgular;
 #       GITHUB_OUTPUT'a action=build|ota|skip yazar. staging: arada build
@@ -276,13 +280,13 @@ plan() {
   env_config "$env"
   local mode="${MODE:-auto}" want="${PLATFORM:-all}" android_enabled="${ANDROID_ENABLED:-false}"
   local sha="${SHA:-0000000}" msg version="" p fp state build_id decision last text
-  local ota=""
+  local ota="" blocked=""
   msg="$(printf '%s' "${COMMIT_MSG:-manual $env ($mode) ${sha:0:7}}" | head -n1)"
   output "message=$msg"
 
   if [ "$env" = staging ]; then
     if [ "$mode" = apk ]; then
-      output apk=true ios=skip android=skip ota_platform=none
+      output apk=true ios=skip android=skip ota_platform=none blocked= decided=true
       return 0
     fi
     output apk=false
@@ -327,7 +331,8 @@ plan() {
     # VERSION-GATE (production): yeni bir store binary'si yeni bir sürüm ister.
     # Karşılaştırma son BİTMİŞ production build'inin appVersion'ıyla yapılır
     # (push tabanıyla değil): iptal edilmiş bir önceki koşu ya da çok commit'li
-    # bir merge kapıyı yanıltamaz.
+    # bir merge kapıyı yanıltamaz. Kapı PLATFORM BAŞINADIR: iOS'un kapısı
+    # takılırsa Android'in OTA'sı yine çıkar (ve tersi); koşu sonda kırmızı olur.
     if [ "$decision" = build ] && [ "$env" = production ]; then
       last="$(last_store_version "$p" "$BUILD_PROFILE")"
       if [ -n "$last" ] && ! version_gt "$version" "$last"; then
@@ -336,14 +341,17 @@ plan() {
           echo "::warning::$text — mode=build ile elle istendi, devam ediliyor."
         else
           echo "::error::$text"
-          exit 1
+          decision=blocked
         fi
       fi
-      echo "$p: sürüm ${last:-<ilk build>} → $version"
+      [ "$decision" = blocked ] || echo "$p: sürüm ${last:-<ilk build>} → $version"
     fi
 
     output "$p=$decision"
-    [ "$decision" = ota ] && ota="$ota $p"
+    case "$decision" in
+      ota) ota="$ota $p" ;;
+      blocked) blocked="$blocked $p" ;;
+    esac
     summary "### $p → \`$decision\`" "- fingerprint: \`$fp\`" "- binary: $state"
     [ -n "$version" ] && summary "- app.json expo.version: \`$version\`"
   done
@@ -353,6 +361,8 @@ plan() {
     " ios android") output ota_platform=all ;;
     *) output "ota_platform=${ota# }" ;;
   esac
+  output "blocked=${blocked# }"
+  output decided=true
 }
 
 recheck() {
