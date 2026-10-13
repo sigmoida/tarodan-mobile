@@ -23,11 +23,6 @@ const { colors } = theme;
 // FlashList'in kendi geri dönüşüm takibi etkilenmez).
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList<any>);
 
-// Hücre stilleri modül düzeyinde sabit (renderItem'da yeni dizi/nesne üretilmesin).
-const CELL_SINGLE = styles.cell;
-const CELL_LEFT = [styles.cell, styles.cellLeft];
-const CELL_RIGHT = [styles.cell, styles.cellRight];
-
 // Kararlı anahtar: yalnız `id` (index YOK) — sayfa kayması/yeniden sıralamada hücreler sökülmesin.
 const keyExtractor = (item: any) => String(item.id);
 
@@ -44,13 +39,14 @@ export default function SearchScreen() {
   const isList = f.layout === 'list';
   const columns = isList ? 1 : SEARCH_NUM_COLUMNS;
   const renderResult = useCallback(
-    ({ item, index }: ListRenderItemInfo<any>) => (
-      // Hücre genişliğini FlashList verir; sütun boşluğu hücre dolgusuyla (iç kenarlar yarım yarım).
-      <View style={columns === 1 ? CELL_SINGLE : index % columns === 0 ? CELL_LEFT : CELL_RIGHT}>
+    ({ item }: ListRenderItemInfo<any>) => (
+      // Hücre genişliğini FlashList verir; sütun boşluğu SİMETRİK hücre dolgusuyla. index'e bağlı değil:
+      // FlashList hücresi index değişince yeniden render etmez, başa öğe girerse sol/sağ ters kalırdı.
+      <View style={styles.cell}>
         <ProductCard testID="search-result-card" product={item} layout={isList ? 'list' : 'grid'} />
       </View>
     ),
-    [columns, isList],
+    [isList],
   );
 
   // Liste prop'ları kararlı kalsın: ekran render olsa da liste boş yere uzlaştırılmasın.
