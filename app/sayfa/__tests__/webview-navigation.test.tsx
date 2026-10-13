@@ -1,14 +1,15 @@
 /**
  * CMS WebView'i içerikteki bağlantılarla gezinmemeli:
+ *  - dış açılış YALNIZ kullanıcı dokunuşuyla olur (script/meta-refresh/iframe değil);
  *  - kendi alan adımız ve göreli bağlantılar (`/sayfa/kvkk`) UYGULAMA İÇİNDE açılır;
  *  - eşlenemeyen ya da dış bağlantılar sistem tarayıcısına gider;
  *  - `javascript:` / özel şemalar engellenir.
  */
 import React from 'react';
-import { Linking } from 'react-native';
-import { screen, waitFor } from '@testing-library/react-native';
+import { Linking, Platform } from 'react-native';
+import { act, screen, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
-import { decideCmsNavigation } from '../_lib/navigation';
+import { decideCmsNavigation, isUserInitiated } from '../_lib/navigation';
 
 let mockParams: Record<string, string> = { slug: 'gizlilik' };
 const mockPush = jest.fn();
@@ -38,6 +39,7 @@ import { pagesApi } from '@/lib/api';
 import CMSPageScreen from '../[slug]';
 
 const WEB = 'https://tarodan.com.tr';
+const CLICK = { navigationType: 'click' } as const;
 
 describe('decideCmsNavigation — sayfa kendisi ve dış/şema kararları', () => {
   it.each([
@@ -172,14 +174,14 @@ describe('CMS WebView bağlantısı', () => {
 
   it('dış bağlantı WebView içinde yüklenmez, sistemde açılır', async () => {
     const props = await lastProps();
-    expect(props.onShouldStartLoadWithRequest({ url: 'https://x.y', isTopFrame: true })).toBe(false);
+    expect(props.onShouldStartLoadWithRequest({ url: 'https://x.y', isTopFrame: true, ...CLICK })).toBe(false);
     expect(openURL).toHaveBeenCalledWith('https://x.y');
     expect(mockPush).not.toHaveBeenCalled();
   });
 
   it('göreli /sayfa/kvkk uygulama içinde açılır, tarayıcı açılmaz', async () => {
     const props = await lastProps();
-    expect(props.onShouldStartLoadWithRequest({ url: '/sayfa/kvkk', isTopFrame: true })).toBe(false);
+    expect(props.onShouldStartLoadWithRequest({ url: '/sayfa/kvkk', isTopFrame: true, ...CLICK })).toBe(false);
     expect(mockPush).toHaveBeenCalledWith('/sayfa/kvkk');
     expect(openURL).not.toHaveBeenCalled();
   });
@@ -187,7 +189,7 @@ describe('CMS WebView bağlantısı', () => {
   it('kendi alan adımızdaki bağlantı uygulama içinde açılır', async () => {
     const props = await lastProps();
     expect(
-      props.onShouldStartLoadWithRequest({ url: 'https://tarodan.com.tr/sayfa/kvkk', isTopFrame: true }),
+      props.onShouldStartLoadWithRequest({ url: 'https://tarodan.com.tr/sayfa/kvkk', isTopFrame: true, ...CLICK }),
     ).toBe(false);
     expect(mockPush).toHaveBeenCalledWith('/sayfa/kvkk');
     expect(openURL).not.toHaveBeenCalled();
@@ -195,7 +197,7 @@ describe('CMS WebView bağlantısı', () => {
 
   it('eşlenemeyen kendi-alan bağlantısı sistem tarayıcısına düşer', async () => {
     const props = await lastProps();
-    props.onShouldStartLoadWithRequest({ url: 'https://tarodan.com.tr/gizlilik', isTopFrame: true });
+    props.onShouldStartLoadWithRequest({ url: 'https://tarodan.com.tr/gizlilik', isTopFrame: true, ...CLICK });
     expect(openURL).toHaveBeenCalledWith('https://tarodan.com.tr/gizlilik');
     expect(mockPush).not.toHaveBeenCalled();
   });
@@ -218,5 +220,130 @@ describe('CMS WebView bağlantısı', () => {
   it('Android yeni pencere (target=_blank) kapalı', async () => {
     const props = await lastProps();
     expect(props.setSupportMultipleWindows).toBe(false);
+  });
+});
+
+describe('isUserInitiated', () => {
+  it.each([
+    // iOS: yalnız click
+    [{ platform: 'ios', navigationType: 'click', isTopFrame: true, initialLoadDone: false }, true],
+    [{ platform: 'ios', navigationType: 'click', isTopFrame: true, initialLoadDone: true }, true],
+    [{ platform: 'ios', navigationType: 'other', isTopFrame: true, initialLoadDone: true }, false],
+    [{ platform: 'ios', navigationType: 'formsubmit', isTopFrame: true, initialLoadDone: true }, false],
+    [{ platform: 'ios', navigationType: 'reload', isTopFrame: true, initialLoadDone: true }, false],
+    [{ platform: 'ios', initialLoadDone: true }, false],
+    // iframe asla
+    [{ platform: 'ios', navigationType: 'click', isTopFrame: false, initialLoadDone: true }, false],
+    [{ platform: 'android', isTopFrame: false, initialLoadDone: true }, false],
+    // Android: navigationType hep 'other'; ilk yüklemeden sonraki ana çerçeve
+    [{ platform: 'android', navigationType: 'other', isTopFrame: true, initialLoadDone: true }, true],
+    [{ platform: 'android', navigationType: 'other', isTopFrame: true, initialLoadDone: false }, false],
+    [{ platform: 'android', isTopFrame: true, initialLoadDone: false }, false],
+    // bilinmeyen platform
+    [{ platform: 'web', navigationType: 'click', isTopFrame: true, initialLoadDone: true }, false],
+  ] as const)('%j -> %s', (req, expected) => {
+    expect(isUserInitiated(req)).toBe(expected);
+  });
+});
+
+describe('CMS WebView — dış açılış yalnız kullanıcı dokunuşuyla', () => {
+  const originalOS = Platform.OS;
+  let openURL: jest.SpyInstance;
+  beforeEach(() => {
+    mockWebViewProps.length = 0;
+    mockPush.mockClear();
+    mockParams = { slug: 'gizlilik' };
+    (pagesApi.getBySlug as jest.Mock).mockResolvedValue({
+      data: { data: { id: 'p1', slug: 'gizlilik', title: 'Gizlilik', content: '<p>x</p>' } },
+    });
+    openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true as never);
+  });
+  afterEach(() => {
+    openURL.mockRestore();
+    Platform.OS = originalOS;
+  });
+
+  const props = async (os: 'ios' | 'android') => {
+    Platform.OS = os;
+    renderWithProviders(<CMSPageScreen />);
+    await waitFor(() => expect(screen.getByText('Gizlilik')).toBeOnTheScreen());
+    return mockWebViewProps[mockWebViewProps.length - 1]!;
+  };
+
+  describe('iOS', () => {
+    it('click -> tarayıcı açılır', async () => {
+      const p = await props('ios');
+      expect(
+        p.onShouldStartLoadWithRequest({ url: 'https://x.y', isTopFrame: true, navigationType: 'click' }),
+      ).toBe(false);
+      expect(openURL).toHaveBeenCalledWith('https://x.y');
+    });
+
+    it.each(['other', 'formsubmit', 'reload', 'backforward'])(
+      'script / meta-refresh (%s) -> ne yüklenir ne açılır',
+      async (navigationType) => {
+        const p = await props('ios');
+        expect(p.onShouldStartLoadWithRequest({ url: 'https://x.y', isTopFrame: true, navigationType })).toBe(false);
+        expect(
+          p.onShouldStartLoadWithRequest({ url: '/sayfa/kvkk', isTopFrame: true, navigationType }),
+        ).toBe(false);
+        expect(
+          p.onShouldStartLoadWithRequest({ url: 'mailto:a@b.co', isTopFrame: true, navigationType }),
+        ).toBe(false);
+        expect(openURL).not.toHaveBeenCalled();
+        expect(mockPush).not.toHaveBeenCalled();
+      },
+    );
+
+    it('iframe kaynaklı yönlendirme (tıklama olsa bile) açmaz', async () => {
+      const p = await props('ios');
+      p.onShouldStartLoadWithRequest({ url: 'mailto:a@b.co', isTopFrame: false, navigationType: 'click' });
+      p.onShouldStartLoadWithRequest({ url: '/sayfa/kvkk', isTopFrame: false, navigationType: 'click' });
+      expect(openURL).not.toHaveBeenCalled();
+      expect(mockPush).not.toHaveBeenCalled();
+    });
+
+    it('iframe içi web sayfası (video) yine yüklenir', async () => {
+      const p = await props('ios');
+      expect(
+        p.onShouldStartLoadWithRequest({
+          url: 'https://www.youtube.com/embed/x',
+          isTopFrame: false,
+          navigationType: 'other',
+        }),
+      ).toBe(true);
+    });
+  });
+
+  describe('Android', () => {
+    it('ilk yükleme bitmeden gelen yönlendirme (meta-refresh / satır içi script) engellenir', async () => {
+      const p = await props('android');
+      expect(p.onShouldStartLoadWithRequest({ url: 'https://x.y', isTopFrame: true })).toBe(false);
+      expect(p.onShouldStartLoadWithRequest({ url: '/sayfa/kvkk', isTopFrame: true })).toBe(false);
+      expect(openURL).not.toHaveBeenCalled();
+      expect(mockPush).not.toHaveBeenCalled();
+    });
+
+    it('ilk yüklemeden sonraki ana çerçeve gezinmesi açılır (dış -> tarayıcı, iç -> uygulama)', async () => {
+      const p = await props('android');
+      act(() => p.onLoadEnd());
+      expect(p.onShouldStartLoadWithRequest({ url: 'https://x.y', isTopFrame: true })).toBe(false);
+      expect(openURL).toHaveBeenCalledWith('https://x.y');
+      p.onShouldStartLoadWithRequest({ url: '/sayfa/kvkk', isTopFrame: true });
+      expect(mockPush).toHaveBeenCalledWith('/sayfa/kvkk');
+    });
+
+    it('yükleme bitse de javascript: / özel şema engelli, iframe açmaz', async () => {
+      const p = await props('android');
+      act(() => p.onLoadEnd());
+      p.onShouldStartLoadWithRequest({ url: 'javascript:alert(1)', isTopFrame: true });
+      p.onShouldStartLoadWithRequest({ url: 'mailto:a@b.co', isTopFrame: false });
+      expect(openURL).not.toHaveBeenCalled();
+    });
+
+    it('sayfa ilk yüklemesi (about:blank) her zaman serbest', async () => {
+      const p = await props('android');
+      expect(p.onShouldStartLoadWithRequest({ url: 'about:blank' })).toBe(true);
+    });
   });
 });

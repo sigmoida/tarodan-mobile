@@ -5,6 +5,12 @@
  * özel şema bağlantıları çalışır). Kural: sayfa kendi içinde kalır, kendi
  * alan adımıza ve göreli (`/sayfa/kvkk`) bağlantılar UYGULAMA İÇİNDE açılır,
  * eşlenemeyen / dış bağlantılar sistem tarayıcısına gider, gerisi engellenir.
+ *
+ * İki ayrı soru ve iki ayrı fonksiyon:
+ *  - `decideCmsNavigation`: bu istekle NE yapılır (allow | app | external | block)?
+ *  - `isUserInitiated`: app/external, kullanıcı dokunuşundan mı geldi? Script
+ *    (`location=`), `<meta http-equiv=refresh>` ve iframe kaynaklı yönlendirmeler
+ *    kullanıcı bilmeden uygulamayı/tarayıcıyı açmasın.
  */
 import { deepLinkConfig, isNeverNavigatePath, pathFromUrl, stripLocalePrefix } from '@/lib/deeplinks';
 import { toMobileRoute } from '@/utils/notificationRoute';
@@ -102,4 +108,26 @@ export function decideCmsNavigation(url: string, isTopFrame?: boolean): CmsDecis
     }
   }
   return { action: 'external', url: target };
+}
+
+/**
+ * Gezinme kullanıcı dokunuşundan mı geldi?
+ *  - iOS: WebView `navigationType === 'click'` verir; script/meta-refresh `other`.
+ *  - Android: `navigationType` hep `other` ve dokunuş bilgisi yok; ilk yükleme
+ *    bittikten sonra gelen ana çerçeve gezinmeleri kullanıcıdan sayılır
+ *    (yükleme SIRASINDA gelenler — `<meta http-equiv=refresh>`, satır içi
+ *    script — engellenir). Sayfa yüklendikten sonra zamanlayıcıyla yapılan
+ *    script yönlendirmesi Android'de dokunuştan ayırt EDİLEMEZ; kabul edilen sınır.
+ *  - Gömülü çerçeve: asla.
+ */
+export function isUserInitiated(req: {
+  platform: string;
+  navigationType?: string;
+  isTopFrame?: boolean;
+  initialLoadDone: boolean;
+}): boolean {
+  if (req.isTopFrame === false) return false;
+  if (req.platform === 'ios') return req.navigationType === 'click';
+  if (req.platform === 'android') return req.initialLoadDone;
+  return false;
 }
