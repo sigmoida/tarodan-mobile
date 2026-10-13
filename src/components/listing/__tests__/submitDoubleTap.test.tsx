@@ -33,6 +33,9 @@ jest.mock('@/lib/api', () => ({
 const mockAuthUser = { membershipTier: 'free', listingCount: 0 };
 const mockAuthLimits = { maxListings: 10, maxImagesPerListing: 5, canTrade: false };
 const mockRefreshUserData = jest.fn(async () => {});
+// B4 kimlik kapısı bu testin konusu değil: kapı geçti sayılır.
+jest.mock('@/hooks/useLegalIdentity', () =>
+  require('@/test-utils/legalIdentity').legalIdentityGatePassMock);
 jest.mock('../../../stores/authStore', () => ({
   useAuthStore: (sel?: (state: any) => unknown) => {
     const state: any = {
