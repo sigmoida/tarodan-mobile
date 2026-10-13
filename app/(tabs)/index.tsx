@@ -10,6 +10,7 @@ import { useGuestStore } from '@/stores/guestStore';
 import { SignupPrompt } from '@/components/SignupPrompt';
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
+import { floatingBarScrollProps, useFloatingBarInset } from '@/components/shell/floatingBar';
 import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { homeStyles as styles } from './_lib/homeStyles';
 import { useHomeData } from './_hooks/useHomeData';
@@ -49,6 +50,8 @@ export default function HomeScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const tabInset = useTabBarInset();
+  // Üst bar içeriğin üstünde yüzer: liste bar yüksekliği kadar boşlukla başlar (iOS contentInset / Android padding).
+  const barInset = useFloatingBarInset();
 
 
   // API bağlantı kontrolü (yalnız log — davranış korunur).
@@ -79,10 +82,12 @@ export default function HomeScreen() {
     <AppShell>
       <Animated.ScrollView
         style={styles.scroll}
+        {...floatingBarScrollProps(barInset)}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
+            progressViewOffset={barInset}
             colors={[colors.primary[600]!]}
             tintColor={colors.primary[600]!}
           />

@@ -4,6 +4,8 @@ import {
   TAB_BAR_TOP_ZONE,
   TAB_BAR_MIN_SCROLL_RANGE,
   reduceTabBarScroll,
+  pillHideStyle,
+  pillContentOpacity,
   shouldExpandOnMeasure,
   type TabBarScrollState,
 } from '../tabBarScroll';
@@ -111,5 +113,27 @@ describe('shouldExpandOnMeasure — kaydırma olayı gelmeyen içerik değişiml
 
   it('uzun içerik + aşağıda => açılmaz (daralma korunur)', () => {
     expect(shouldExpandOnMeasure(3000, 800, TAB_BAR_TOP_ZONE + 1)).toBe(false);
+  });
+});
+
+describe('pillHideStyle — hap gizlenme stili', () => {
+  it('fallback: opacity + küçük kayma + küçülme', () => {
+    expect(pillHideStyle(false, 0, 16, 120, 0.9)).toEqual({ opacity: 1, transform: [{ translateY: 0 }, { scale: 1 }] });
+    const hidden = pillHideStyle(false, 1, 16, 120, 0.9) as unknown as { opacity: number; transform: Array<Record<string, number>> };
+    expect(hidden.opacity).toBe(0);
+    expect(hidden.transform[0]).toEqual({ translateY: 16 });
+    expect(hidden.transform[1]!.scale).toBeCloseTo(0.9);
+  });
+
+  it('cam: opacity ANAHTARI YOK (native cam kaybolur); ekran dışına kayar', () => {
+    for (const p of [0, 0.5, 1]) expect(pillHideStyle(true, p, 16, 120, 0.9)).not.toHaveProperty('opacity');
+    expect(pillHideStyle(true, 1, 16, 120, 0.9).transform?.[0]).toEqual({ translateY: 120 });
+    expect(pillHideStyle(true, 0, 16, 120, 0.9).transform?.[0]).toEqual({ translateY: 0 });
+  });
+
+  it('içerik opaklığı: camda ilerlemeyle azalır, fallback\'te sabit 1', () => {
+    expect(pillContentOpacity(true, 0.25)).toBe(0.75);
+    expect(pillContentOpacity(true, 1)).toBe(0);
+    expect(pillContentOpacity(false, 1)).toBe(1);
   });
 });

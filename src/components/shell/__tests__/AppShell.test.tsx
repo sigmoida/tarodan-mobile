@@ -1,10 +1,11 @@
 import React from 'react';
 import { StyleSheet, Text } from 'react-native';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { ScreenHeader, theme } from '@/ui';
 import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
 import { AppShell, APP_SHELL_BAR_HEIGHT } from '../AppShell';
 import { SideMenuProvider, useSideMenu } from '../SideMenuContext';
+import { TabBarCollapseProvider, useTabBarCollapsed } from '../TabBarCollapse';
 
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 jest.mock('expo-status-bar', () => ({
@@ -36,7 +37,7 @@ describe('AppShell — tek satır beyaz bar', () => {
         <Text>içerik</Text>
       </AppShell>,
     );
-    expect(StyleSheet.flatten(screen.getByTestId('app-shell-bar').props.style)).toMatchObject({
+    expect(StyleSheet.flatten(screen.getByTestId('app-shell-bar-bg').props.style)).toMatchObject({
       backgroundColor: theme.colors.surface.elevated,
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.border.DEFAULT,
@@ -65,10 +66,11 @@ describe('AppShell — tek satır beyaz bar', () => {
     );
     const btn = screen.getByTestId('home-menu-button');
     expect(btn.props.accessibilityLabel).toBe('Menü');
-    const row = screen.getByTestId('app-shell-bar').children[0] as { children: unknown[] };
-    const order = (row as unknown as { props: { children: Array<{ props?: { testID?: string } }> } }).props.children
-      .map((c) => c?.props?.testID);
-    expect(order).toEqual(['home-menu-button', 'home-search-input', 'app-shell-cart']);
+    const row = screen.getByTestId('app-shell-bar-row') as unknown as {
+      props: { children: Array<{ props?: { testID?: string } }> };
+    };
+    const order = row.props.children.map((c) => c?.props?.testID);
+    expect(order).toEqual(['home-menu-button', 'home-search-wrap', 'app-shell-cart']);
     expect(screen.getByTestId('menu-state').children.join('')).toBe('closed');
     fireEvent.press(btn);
     expect(screen.getByTestId('menu-state').children.join('')).toBe('open');
@@ -84,7 +86,10 @@ describe('AppShell — tek satır beyaz bar', () => {
     mockTop = 47;
     const { unmount } = render(<AppShell />);
     expect(APP_SHELL_BAR_HEIGHT).toBe(theme.headerHeight);
-    const shellBar = StyleSheet.flatten(screen.getByTestId('app-shell-bar').props.style);
+    const shellBar = {
+      ...StyleSheet.flatten(screen.getByTestId('app-shell-bar').props.style),
+      ...StyleSheet.flatten(screen.getByTestId('app-shell-bar-bg').props.style),
+    };
     expect(shellBar.paddingTop).toBe(47);
     unmount();
 
@@ -115,6 +120,65 @@ describe('AppShell — tek satır beyaz bar', () => {
     render(<AppShell />);
     const field = StyleSheet.flatten(screen.getByTestId('home-search-input').props.style);
     expect(field.backgroundColor).toBe(theme.colors.gray[100]);
+  });
+});
+
+let collapsedRef: { value: boolean } | null = null;
+function Capture() {
+  collapsedRef = useTabBarCollapsed();
+  return null;
+}
+
+describe('AppShell - yuzen bar: kaydirinca arama gizlenir, cam butonlar kalir', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  function setup() {
+    render(
+      <TabBarCollapseProvider>
+        <Capture />
+        <AppShell />
+      </TabBarCollapseProvider>,
+    );
+  }
+  const wrap = () => screen.getByTestId('home-search-wrap', { includeHiddenElements: true });
+
+  it('liste basinda arama alani gorunur ve dokunulabilir', () => {
+    setup();
+    expect(wrap().props.pointerEvents).toBe('auto');
+    expect(wrap().props.accessibilityElementsHidden).toBe(false);
+    fireEvent.press(screen.getByTestId('home-search-input'));
+    expect(pushMock).toHaveBeenCalledWith('/search?focus=1');
+  });
+
+  it('daralinca arama alani dokunmaya + ekran okuyucuya kapanir; menu ve sepet yerinde ve calisir', async () => {
+    setup();
+    act(() => {
+      collapsedRef!.value = true;
+      jest.advanceTimersByTime(300);
+    });
+    await waitFor(() => expect(wrap().props.pointerEvents).toBe('none'));
+    expect(wrap().props.accessibilityElementsHidden).toBe(true);
+    expect(wrap().props.importantForAccessibility).toBe('no-hide-descendants');
+    fireEvent.press(screen.getByTestId('home-search-input', { includeHiddenElements: true }));
+    expect(pushMock).not.toHaveBeenCalledWith('/search?focus=1');
+    fireEvent.press(screen.getByTestId('app-shell-cart'));
+    expect(pushMock).toHaveBeenCalledWith('/cart');
+    expect(screen.getByTestId('home-menu-button')).toBeTruthy();
+  });
+
+  it('yukari kaydirinca / liste basina gelince arama geri gelir', async () => {
+    setup();
+    act(() => {
+      collapsedRef!.value = true;
+      jest.advanceTimersByTime(300);
+    });
+    await waitFor(() => expect(wrap().props.pointerEvents).toBe('none'));
+    act(() => {
+      collapsedRef!.value = false;
+      jest.advanceTimersByTime(300);
+    });
+    await waitFor(() => expect(wrap().props.pointerEvents).toBe('auto'));
   });
 });
 
