@@ -1,4 +1,5 @@
 import { logger, safeError } from '@/services/logger';
+import { goBackOrHome } from '@/components/common/goBackOrHome';
 import { useState, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -922,8 +923,11 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
         resetForm();
         router.push('/settings/my-listings');
         toast.success(t('product.listingCreated'));
-        await refreshUserData();
-        await updateListingLimits();
+        // İlan oluştu: tazeleme hatası "oluşturulamadı" uyarısına düşmesin (form zaten sıfır →
+        // kullanıcı yinelenen ilan göndermesin). Yalnız günlüğe.
+        refreshUserData()
+          .then(() => updateListingLimits())
+          .catch((e) => logger.warn('[listing] create sonrası tazeleme başarısız', { err: safeError(e) }));
       } else {
         const payload: Record<string, any> = {
           ...buildBasePayload(),
@@ -936,7 +940,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
         await productsApi.update(productId!, payload);
         invalidateListingCaches();
 
-        router.back();
+        goBackOrHome();
         toast.success(t('product.listingUpdated'));
       }
     } catch (err: any) {
