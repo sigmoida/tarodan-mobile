@@ -16,15 +16,16 @@
  * ömrü (bellek). Uygulama kapanırsa misafir ödemeye dönemez — web'de sekme
  * kapanınca olduğu gibi. Belirteç kalıcı depoya yazılmaz.
  */
+import { unwrapEnvelope } from '@/utils/apiEnvelope';
+
 const tokens = new Map<string, string>();
 
-type InitiateBody = { paymentId?: unknown; paymentAccessToken?: unknown; data?: InitiateBody };
+type InitiateBody = { paymentId?: unknown; paymentAccessToken?: unknown };
 
-/** Başlatma yanıtında belirteç varsa sakla (`{ data }` sarmalı da olur). */
+/** Başlatma yanıtında belirteç varsa sakla (`{ data }` zarfı da olur). */
 export function rememberPaymentCapability(response: unknown): void {
-  const body = (response as { data?: InitiateBody } | null | undefined)?.data;
-  const data = body?.data ?? body;
-  if (typeof data?.paymentId === 'string' && typeof data?.paymentAccessToken === 'string') {
+  const data = unwrapEnvelope<InitiateBody>(response as { data?: unknown } | null | undefined);
+  if (typeof data.paymentId === 'string' && typeof data.paymentAccessToken === 'string') {
     tokens.set(data.paymentId, data.paymentAccessToken);
   }
 }
