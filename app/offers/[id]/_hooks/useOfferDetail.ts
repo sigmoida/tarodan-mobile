@@ -8,6 +8,8 @@ import { useRefresh } from '@/hooks/useRefresh';
 import { formatPrice } from '@/utils/format';
 import { useAuthStore } from '@/stores/authStore';
 import type { Offer } from '../_lib/types';
+import { useTimingValues } from '@/hooks/useTimingPolicy';
+import { useConfirmAccept } from '../../_hooks/useConfirmAccept';
 import { statusColor } from '../_lib/status';
 
 /**
@@ -35,6 +37,8 @@ export function useOfferDetail() {
   });
 
   const { refreshing, onRefresh } = useRefresh(refetch);
+  const confirmAccept = useConfirmAccept();
+  const timing = useTimingValues();
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['offer', id] });
@@ -83,6 +87,9 @@ export function useOfferDetail() {
     onError: (e: any) =>
       appAlert(i18n.t('common.error'), e?.response?.data?.message || i18n.t('offer.counterFailed')),
   });
+
+  /** Detaydan kabul yalnız satıcıdır (gelen teklif); web gibi önce onay. */
+  const requestAccept = () => confirmAccept('seller', () => acceptMutation.mutate());
 
   const firstImg =
     Array.isArray(offer?.product?.images) && offer!.product!.images.length > 0
@@ -140,6 +147,8 @@ export function useOfferDetail() {
     refreshing,
     onRefresh,
     acceptMutation,
+    requestAccept,
+    timing,
     rejectMutation,
     cancelMutation,
     counterMutation,

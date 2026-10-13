@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, theme, appAlert } from '@/ui';
 import { styles } from '../_lib/styles';
 import type { OfferDetailController } from '../_hooks/useOfferDetail';
+import { FirstToPayNote } from '../../_components/FirstToPayNote';
 
 const { colors } = theme;
 
@@ -14,11 +15,15 @@ export function OfferDetailActions({ f }: { f: OfferDetailController }) {
 
   return (
     <>
+      <View style={styles.noteWrap}>
+        <FirstToPayNote offer={offer} isSeller={isSeller} timing={f.timing} />
+      </View>
+
       {isPending && isSeller ? (
         <View style={styles.actionsStack}>
           <Button
             variant="success"
-            onPress={() => acceptMutation.mutate()}
+            onPress={f.requestAccept}
             isLoading={acceptMutation.isPending}
             disabled={acceptMutation.isPending || rejectMutation.isPending || counterMutation.isPending}
             icon="checkmark"

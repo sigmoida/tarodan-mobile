@@ -22,7 +22,7 @@ it('ödeme bekleyen kabul edilmiş teklif → sipariş detayına gider', () => {
   };
   render(
     <OfferCard offer={offer} tab="sent" isPending={false} t={i18n.t}
-      onAccept={jest.fn()} onReject={jest.fn()} onCancel={jest.fn()} onOpenCounter={jest.fn()} onOpenBuyerCounter={jest.fn()} />,
+      timing={{} as any} onAccept={jest.fn()} onReject={jest.fn()} onCancel={jest.fn()} onOpenCounter={jest.fn()} onOpenBuyerCounter={jest.fn()} />,
   );
   fireEvent.press(screen.getByText(i18n.t('offer.payAmount', { amount: '' }).trim().split(' ')[0]!, { exact: false }));
   expect(mockPush).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/orders/[id]', params: { id: 'ord-1' } }));
