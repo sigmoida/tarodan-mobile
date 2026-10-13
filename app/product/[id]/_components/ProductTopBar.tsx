@@ -1,8 +1,7 @@
 import React from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { theme } from '@/ui';
+import { theme, useHeaderTopInset } from '@/ui';
 import { FLOATING_BUTTON_SIZE, FloatingIconButton } from './FloatingIconButton';
 import { GALLERY_SIZE } from '../_lib/layout';
 
@@ -14,7 +13,7 @@ const FADE_DISTANCE = spacing[6];
 /**
  * Ürün detayının üst katmanı: galerinin üstünde yüzen adalar — solda geri, sağda `children`
  * (şikayet, paylaş, favori, sepet). Adalar durum çubuğu / Dynamic Island'ın altından başlar
- * (`insets.top`). Galeri kaydırılıp bittiğinde adaların arkasında beyaz bir üst bar belirir ki
+ * (`useHeaderTopInset`). Galeri kaydırılıp bittiğinde adaların arkasında beyaz bir üst bar belirir ki
  * içerik saatle / adalarla çakışmasın. `solid`: galeri yokken (yükleniyor / bulunamadı) hep görünür.
  */
 export function ProductTopBar({
@@ -29,9 +28,11 @@ export function ProductTopBar({
   children?: React.ReactNode;
 }) {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
-  const rowTop = insets.top + spacing[2];
-  const barHeight = rowTop + FLOATING_BUTTON_SIZE + spacing[2];
+  const topInset = useHeaderTopInset();
+  // Beliren beyaz bar diğer tüm ekranlarla AYNI yükseklikte (inset + headerHeight); adalar bu
+  // satırda dikey ortalı.
+  const rowTop = topInset + (theme.headerHeight - FLOATING_BUTTON_SIZE) / 2;
+  const barHeight = topInset + theme.headerHeight;
   const revealAt = GALLERY_SIZE - barHeight;
   const opacity = solid
     ? 1

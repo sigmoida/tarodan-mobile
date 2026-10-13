@@ -1,7 +1,6 @@
 import React from 'react';
 import { Animated, RefreshControl, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { theme } from '@/ui';
+import { theme, useHeaderTopInset } from '@/ui';
 
 /**
  * Ürün detayının kaydırma gövdesi. PageShell'in kendi ScrollView'u yerine kullanılır: galeri
@@ -19,7 +18,7 @@ export function ProductScrollView({
   onRefresh: () => void;
   children: React.ReactNode;
 }) {
-  const insets = useSafeAreaInsets();
+  const topInset = useHeaderTopInset();
   return (
     <Animated.ScrollView
       style={styles.fill}
@@ -30,7 +29,7 @@ export function ProductScrollView({
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          progressViewOffset={insets.top}
+          progressViewOffset={topInset}
           colors={[theme.colors.primary[600]]}
           tintColor={theme.colors.primary[600]}
         />

@@ -6,8 +6,9 @@ import { useTranslation } from 'react-i18next';
 import { HeaderIconButton, theme, useHeaderTopInset } from '@/ui';
 import { SearchField } from './SearchField';
 import { useShellCounts } from './useShellCounts';
+import { APP_SHELL_BAR_HEIGHT } from './tabBarLayout';
 
-const { colors, spacing, shadow, headerHeight } = theme;
+const { colors, spacing, shadow } = theme;
 
 export interface AppShellProps {
   children?: React.ReactNode;
@@ -100,12 +101,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, contentStyle, test
   );
 };
 
-/**
- * Bar içerik satırı yüksekliği (güvenli alan hariç) = `theme.headerHeight`, yığın ekranlarının
- * ScreenHeader satırıyla AYNI: tab kökü <-> yığın ekranı geçişinde barın alt kenarı aynı y'de
- * kalır. Arama alanı (40) ve 44pt ikon kutuları bu satırda dikey ortalanır.
- */
-export const APP_SHELL_BAR_HEIGHT = headerHeight;
+export { APP_SHELL_BAR_HEIGHT };
 
 const styles = StyleSheet.create({
   root: {

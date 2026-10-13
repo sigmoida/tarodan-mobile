@@ -1,7 +1,15 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '@/ui';
 
-const { spacing } = theme;
+const { spacing, headerHeight } = theme;
+
+/**
+ * Bar içerik satırı yüksekliği (güvenli alan hariç) = `theme.headerHeight`, yığın ekranlarının
+ * ScreenHeader satırıyla AYNI: tab kökü <-> yığın ekranı geçişinde barın alt kenarı aynı y'de
+ * kalır. Arama alanı (40) ve 44pt ikon kutuları bu satırda dikey ortalanır.
+ */
+export const APP_SHELL_BAR_HEIGHT = headerHeight;
+
 
 /** Yüzen alt menü (hap) yüksekliği. */
 export const TAB_PILL_HEIGHT = 64;

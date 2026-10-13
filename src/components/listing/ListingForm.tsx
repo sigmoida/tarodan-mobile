@@ -3,8 +3,7 @@ import { View, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useHeaderTopInset } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
-import { APP_SHELL_BAR_HEIGHT } from '@/components/shell/AppShell';
-import { useTabBarInset } from '@/components/shell/tabBarLayout';
+import { APP_SHELL_BAR_HEIGHT, useTabBarInset } from '@/components/shell/tabBarLayout';
 
 import { styles } from './_lib/styles';
 import type { ListingFormProps } from './_lib/types';
