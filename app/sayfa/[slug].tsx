@@ -1,15 +1,24 @@
 import { useQuery } from '@tanstack/react-query';
 import { qk } from '@/lib/query';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import { theme, Spinner, Text, ScreenHeader } from '@/ui';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import { useTranslation } from 'react-i18next';
 import { pagesApi } from '@/lib/api';
+import { decideCmsNavigation } from './_lib/navigation';
 
 const { colors } = theme;
+
+// CMS içeriği WebView içinde gezinmesin: dış bağlantılar sistemde açılır,
+// bilinmeyen şemalar (javascript:, özel şemalar) engellenir. Bkz. _lib/navigation.
+const handleShouldStartLoad = (request: { url: string; isTopFrame?: boolean }) => {
+  const decision = decideCmsNavigation(request.url, request.isTopFrame);
+  if (decision === 'external') void Linking.openURL(request.url).catch(() => {});
+  return decision === 'allow';
+};
 
 // API page.content bir HTML string'idir; düz <Text> ile basıldığında etiketler ham
 // görünür. Bu yüzden WebView + htmlWrapper ile tasarım token'larına uygun render edilir.
@@ -156,6 +165,8 @@ export default function DynamicCMSPage() {
         startInLoadingState
         javaScriptEnabled
         scalesPageToFit={false}
+        onShouldStartLoadWithRequest={handleShouldStartLoad}
+        setSupportMultipleWindows={false}
       />
     </View>
   );
