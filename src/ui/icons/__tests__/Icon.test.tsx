@@ -34,6 +34,14 @@ describe('Icon (Heroicons)', () => {
     expect(screen.getByLabelText('Bildirimler')).toBeTruthy();
   });
 
+  it('bilinmeyen ad: çökmez, null döner, dev\'de uyarır', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    render(<Icon name={'yok-boyle-ikon' as never} testID="x" />);
+    expect(screen.queryByTestId('x')).toBeNull();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('yok-boyle-ikon'));
+    warn.mockRestore();
+  });
+
   it('her ikonun iki varyantı da dolu', () => {
     for (const [name, def] of Object.entries(ICON_PATHS)) {
       expect(def.outline.length).toBeGreaterThan(0);

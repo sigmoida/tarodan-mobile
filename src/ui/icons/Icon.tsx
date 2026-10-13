@@ -41,7 +41,13 @@ export const Icon: React.FC<IconProps> = ({
   testID,
   accessibilityLabel,
 }) => {
-  const paths = ICON_PATHS[name][variant];
+  // Sunucu/dinamik kaynaklı bilinmeyen ad çökertmez: hiçbir şey çizilmez (dev'de uyarı).
+  const def = isIconName(name) ? ICON_PATHS[name] : undefined;
+  if (!def) {
+    if (__DEV__) console.warn(`[Icon] bilinmeyen ikon adı: "${String(name)}"`);
+    return null;
+  }
+  const paths = def[variant] ?? def.outline;
   const solid = variant === 'solid';
   const a11y = accessibilityLabel
     ? ({ accessible: true, accessibilityRole: 'image', accessibilityLabel } as const)
