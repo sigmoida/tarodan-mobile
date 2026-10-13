@@ -40,6 +40,7 @@ export function FavoriteCard({ item, f }: { item: WishlistItem; f: FavoritesScre
         <View style={styles.actions}>
           <IconButton
             icon="heart"
+            iconVariant="solid"
             accessibilityLabel={t('favorites.removeFromFavorites')}
             size="md"
             color={colors.danger[600]!}

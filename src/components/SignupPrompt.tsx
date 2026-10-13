@@ -108,7 +108,7 @@ export function SignupPrompt({ visible, onDismiss, type }: SignupPromptProps) {
 
           {/* Icon */}
           <View style={styles.iconContainer}>
-            <Icon name={config.icon} size={48} color={colors.primary[600]!} />
+            <Icon name={config.icon} variant="solid" size={48} color={colors.primary[600]!} />
           </View>
 
           {/* Title & Description */}

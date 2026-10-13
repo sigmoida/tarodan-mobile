@@ -237,7 +237,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
           >
             <View style={[styles.shareIcon, { backgroundColor: colors.surface.alt }]}>
               {option.heroIcon ? (
-                <Icon name={option.heroIcon} size={24} color={option.color} />
+                <Icon name={option.heroIcon} variant="solid" size={24} color={option.color} />
               ) : (
                 <Ionicons name={option.icon as any} size={24} color={option.color} />
               )}
