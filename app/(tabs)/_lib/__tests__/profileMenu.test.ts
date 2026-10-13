@@ -22,12 +22,12 @@ const items = (ctx: Partial<ProfileMenuContext> = {}) =>
   buildProfileMenuGroups(schemaT, { ...base, ...ctx }).flatMap((g) => g.items);
 
 describe('buildProfileMenuGroups', () => {
-  it('web ProfileSidebar sırası: Favoriler (sabit), Alışveriş, Finans, Koleksiyon, Analiz, İletişim, Hesap, Bilgi', () => {
+  it('web ProfileSidebar sırası: Alışveriş, Finans, Koleksiyon, Analiz, İletişim, Hesap, Bilgi', () => {
     const groups = buildProfileMenuGroups(schemaT, base);
     expect(groups.map((g) => g.key)).toEqual([
-      'pinned', 'commerce', 'finance', 'collection', 'insights', 'messaging', 'account', 'info',
+      'commerce', 'finance', 'collection', 'insights', 'messaging', 'account', 'info',
     ]);
-    expect(groups.slice(1, 7).map((g) => g.title)).toEqual([
+    expect(groups.slice(0, 6).map((g) => g.title)).toEqual([
       'Alışveriş', 'Finans', 'Koleksiyon', 'Analiz', 'İletişim', 'Hesap',
     ]);
   });
@@ -36,7 +36,7 @@ describe('buildProfileMenuGroups', () => {
     const groups = buildProfileMenuGroups(schemaT, base);
     expect(selectProfileSections(groups).map((g) => g.key)).toEqual(['account']);
     expect(selectDrawerSections(groups, { isGuest: false }).map((g) => g.key)).toEqual([
-      'pinned', 'commerce', 'finance', 'collection', 'insights', 'messaging', 'info',
+      'commerce', 'finance', 'collection', 'insights', 'messaging', 'info',
     ]);
     const profileKeys = selectProfileSections(groups).flatMap((g) => g.items.map((i) => i.key));
     const drawerKeys = selectDrawerSections(groups, { isGuest: false }).flatMap((g) => g.items.map((i) => i.key));
@@ -52,10 +52,11 @@ describe('buildProfileMenuGroups', () => {
     );
   });
 
-  it('Favoriler yan menüde başlıksız sabit grupta; Mesajlar/Bildirimler (alt menü sekmeleri) tekrarlanmaz', () => {
+  it('Favoriler Alışveriş grubunun İLK satırı (sabit grup yok); Mesajlar/Bildirimler (alt menü sekmeleri) tekrarlanmaz', () => {
     const groups = buildProfileMenuGroups(schemaT, base);
-    const pinned = groups.find((g) => g.pinned);
-    expect(pinned?.items.map((i) => i.to)).toEqual(['/favorites']);
+    expect(groups.some((g) => g.key === 'pinned')).toBe(false);
+    const commerce = groups.find((g) => g.key === 'commerce');
+    expect(commerce?.items[0]).toMatchObject({ key: 'favorites', to: '/favorites', testID: 'profile-favorites-link' });
     const all = groups.flatMap((g) => g.items);
     expect(all.filter((i) => i.to === '/favorites')).toHaveLength(1);
     expect(all.some((i) => i.to === '/messages' || i.to === '/notifications')).toBe(false);

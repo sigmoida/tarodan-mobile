@@ -34,8 +34,6 @@ export interface ProfileMenuGroup {
   title: string;
   /** Grubun gösterildiği yüzey — her grup TEK yüzeyde (profil ile yan menü ayrışık). */
   surface: ProfileMenuSurface;
-  /** Yan menüde başlıksız, üstte sabit tek satırlar (açılır-kapanır değil). */
-  pinned?: boolean;
   /** Misafire de gösterilir (yan menüde: yardım + bilgi/hukuki). */
   guest?: boolean;
   items: ProfileMenuItem[];
@@ -87,7 +85,7 @@ function withProfileIcons(items: ProfileMenuItem[]): ProfileMenuItem[] {
  * Menü modeli — TEK kaynak. Web `ProfileSidebar`'ın gruplu yapısı (Alışveriş · Finans · Koleksiyon ·
  * Analiz · İletişim · Hesap) + mobil-özel "Bilgi" grubu (hukuki/bilgi sayfalarının tek girişi).
  * Her grup bir `surface`'e aittir: `profile` (Profil sekmesi: yalnız Hesap) ya da `drawer`
- * (Ana Sayfa yan menüsü: Favoriler + diğer tüm gruplar). Seçiciler: `selectProfileSections`,
+ * (Ana Sayfa yan menüsü: Hesap hariç tüm gruplar; Favoriler Alışveriş'in ilk satırı). Seçiciler: `selectProfileSections`,
  * `selectDrawerSections`. Etiketler web'in i18n anahtarlarıdır; web'de karşılığı olmayan mobil
  * ekranlar (banka hesabı, ödeme geçmişi, dil…) ilgili gruba eklenir. Profil (Hesap) satırları `icon` taşır;
  * yan menü ikonları `drawerIcons.ts`'te, satır anahtarına göre.
@@ -115,19 +113,12 @@ export function buildProfileMenuGroups(
   };
   const groups: ProfileMenuGroup[] = [
     {
-      key: 'pinned',
-      title: '',
-      surface: 'drawer',
-      pinned: true,
-      items: [
-        { key: 'favorites', label: t('nav.favorites'), to: '/favorites', testID: 'profile-favorites-link' },
-      ],
-    },
-    {
       key: 'commerce',
       title: t('profile.sidebar.alisveris'),
       surface: 'drawer',
       items: [
+        // Favoriler: Alışveriş grubunun ilk satırı (misafirde grup gizli olduğundan satır da gizli).
+        { key: 'favorites', label: t('nav.favorites'), to: '/favorites', testID: 'profile-favorites-link' },
         { key: 'listings', label: t('nav.myListings'), to: '/settings/my-listings' },
         { key: 'orders', label: t('order.myOrders'), to: '/orders', testID: 'profile-orders-link' },
         { key: 'sales', label: t('mobile.quickMySales'), to: '/sales', testID: 'profile-sales-link' },

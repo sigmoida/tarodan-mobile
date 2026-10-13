@@ -65,7 +65,7 @@ function DrawerSection({
 
 /**
  * Ana Sayfa yan menüsünün içeriği (`SideMenuHost` panelinde; başlık/X yok, güvenli alanın hemen altından başlar). Gruplar `profileMenu.ts`'ten
- * (`selectDrawerSections`): üstte sabit Favoriler, altında açılır-kapanır başlıklar. Misafirde
+ * (`selectDrawerSections`): hepsi açılır-kapanır başlıklar (Favoriler Alışveriş'in ilk satırı). Misafirde
  * üstte Giriş Yap / Kayıt Ol, altında yalnız misafire açık gruplar. Satıra basınca ÖNCE menü
  * kapanır, sonra yönlendirilir.
  */
@@ -122,11 +122,7 @@ export function DrawerMenu() {
               <Divider color={colors.border.DEFAULT} />
             </View>
           ) : null}
-          {group.pinned ? (
-            group.items.map((item) => <DrawerMenuRow key={item.key} item={item} onPress={go} />)
-          ) : (
-            <DrawerSection group={group} badges={badges} onNavigate={go} />
-          )}
+          <DrawerSection group={group} badges={badges} onNavigate={go} />
         </View>
       ))}
     </ScrollView>
