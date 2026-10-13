@@ -119,6 +119,30 @@ describe('requestVerify', () => {
   });
 });
 
+describe('requestVerify({ awaitResult }) — sonuç ekranı sonucu bekler', () => {
+  it('kısa zaman aşımı yok: 15 sn süren verify terk edilmez, asıl sonuçla çözülür', async () => {
+    verify.mockImplementationOnce(
+      () => new Promise((resolve) => setTimeout(() => resolve({ data: { completed: true } }), 15_000)),
+    );
+    const result = requestVerify('p-1', { awaitResult: true });
+    expect(verify.mock.calls[0]).toEqual(['p-1']); // { timeout } verilmedi: istemcinin genel süresi
+    let settled = false;
+    void result.then(() => (settled = true));
+    await jest.advanceTimersByTimeAsync(VERIFY_TIMEOUT_MS + 1000);
+    expect(settled).toBe(false);
+    await jest.advanceTimersByTimeAsync(4000);
+    await expect(result).resolves.toBe(true);
+  });
+
+  it('beklerken uçuş kaydı durur: aynı ödemeye ikinci verify gitmez', async () => {
+    verify.mockImplementationOnce(() => new Promise(() => undefined));
+    void requestVerify('p-1', { awaitResult: true });
+    await jest.advanceTimersByTimeAsync(VERIFY_TIMEOUT_MS * 2);
+    void requestVerify('p-1', { awaitResult: true });
+    expect(verify).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('startVerifyLoop (yoklama temposu: faz yok, sabit aralık)', () => {
   const secondsSince = (start: number) => sends.map((t) => (t - start) / 1000);
 

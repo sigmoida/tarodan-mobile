@@ -46,6 +46,11 @@ export type VerifyOptions = {
   guest?: boolean;
   /** Kart formu yoklaması: bütçenin yoklama payından (`VERIFY_POLL_BUDGET_PER_MIN`) düşer. */
   poll?: boolean;
+  /**
+   * Sonucu bekle (üyelik başarı ekranı): 10 sn'lik kısa zaman aşımı yok,
+   * istemcinin genel zaman aşımı geçerli. Söz verify'ın asıl sonucuyla çözülür.
+   */
+  awaitResult?: boolean;
 };
 
 /** Kayan pencere: gönderilen verify'ların zamanları (tüm ödemeler). */
@@ -66,10 +71,10 @@ export function verifyBudgetWaitMs({ poll = false }: Pick<VerifyOptions, 'poll'>
   return sentAt[sentAt.length - limit] + VERIFY_WINDOW_MS - now;
 }
 
-function sendVerify(paymentId: string, guest: boolean): Promise<unknown> {
-  const config = { timeout: VERIFY_TIMEOUT_MS };
+function sendVerify(paymentId: string, guest: boolean, awaitResult: boolean): Promise<unknown> {
+  const send = guest ? paymentsApi.verifyGuest : paymentsApi.verify;
   try {
-    return guest ? paymentsApi.verifyGuest(paymentId, config) : paymentsApi.verify(paymentId, config);
+    return awaitResult ? send(paymentId) : send(paymentId, { timeout: VERIFY_TIMEOUT_MS });
   } catch (e) {
     return Promise.reject(e);
   }
@@ -80,10 +85,11 @@ function sendVerify(paymentId: string, guest: boolean): Promise<unknown> {
  * Söz, verify ödemeyi tamamladıysa (`completed: true`) `true`; bütçe dolu, hata
  * (429 dahil) ya da zaman aşımında `false` ile çözülür. Hiç reddetmez.
  * Aynı ödeme için uçuşta verify varsa yenisini göndermez, onu döner.
+ * Bütçe doluyken beklemek isteyen sonuç ekranı önce `verifyBudgetWaitMs` kadar bekler.
  */
 export function requestVerify(
   paymentId: string,
-  { guest = false, poll = false }: VerifyOptions = {},
+  { guest = false, poll = false, awaitResult = false }: VerifyOptions = {},
 ): Promise<boolean> {
   const pending = inFlight.get(paymentId);
   if (pending) return pending;
@@ -91,15 +97,20 @@ export function requestVerify(
   if (verifyBudgetWaitMs({ poll }, now) > 0) return Promise.resolve(false);
   sentAt.push(now);
 
-  const request = sendVerify(paymentId, guest).then(
+  const request = sendVerify(paymentId, guest, awaitResult).then(
     (res) => unwrapEnvelope<{ completed?: unknown }>(res as { data?: unknown } | null | undefined).completed === true,
     () => false,
   );
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const timedOut = new Promise<boolean>((resolve) => {
-    timer = setTimeout(() => resolve(false), VERIFY_TIMEOUT_MS);
-  });
-  const settled: Promise<boolean> = Promise.race([request, timedOut]).then((completed) => {
+  const outcome = awaitResult
+    ? request
+    : Promise.race([
+        request,
+        new Promise<boolean>((resolve) => {
+          timer = setTimeout(() => resolve(false), VERIFY_TIMEOUT_MS);
+        }),
+      ]);
+  const settled: Promise<boolean> = outcome.then((completed) => {
     clearTimeout(timer);
     if (inFlight.get(paymentId) === settled) inFlight.delete(paymentId);
     return completed;
