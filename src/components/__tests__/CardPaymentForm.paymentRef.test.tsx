@@ -41,6 +41,15 @@ import { membershipApi } from '@/lib/api';
 import { __resetPaymentCapabilities, rememberPaymentCapability } from '@/lib/payment/paymentCapability';
 import { __resetVerifyPacer, VERIFY_TIMEOUT_MS } from '@/lib/payment/verifyPacer';
 import CardPaymentForm from '../CardPaymentForm';
+import { AppState } from 'react-native';
+
+/** Kullanıcı 3DS'ten (banka uygulamasından) döndü: verify'ın erken fazı başlar. */
+function backFromBankApp() {
+  const listeners = (AppState.addEventListener as jest.Mock).mock.calls.filter(([event]) => event === 'change');
+  const listener = listeners[listeners.length - 1][1] as (state: string) => void;
+  listener('background');
+  listener('active');
+}
 
 const apiPost = api.post as jest.Mock;
 const apiGet = api.get as jest.Mock;
@@ -126,6 +135,7 @@ describe.each([
       { headers },
     ]);
 
+    backFromBankApp();
     await jest.advanceTimersByTimeAsync(3000);
     await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(PAY));
     expect(onFail).not.toHaveBeenCalled();
