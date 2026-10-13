@@ -4,6 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/ui';
 import { ordersApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/api/errorText';
 import { qk } from '@/lib/query';
 import { captureException } from '@/services/sentry';
 import type { OrderCancellationReason } from '@/lib/shared/orderCancellation';
@@ -94,8 +95,7 @@ export function useOrderGroup() {
         tags: { flow: 'order.cancelGroup' },
         extra: { status: err?.response?.status },
       });
-      const raw = err?.response?.data?.message;
-      toast.error(typeof raw === 'string' ? raw : t('order.orderCancelFailed'));
+      toast.error(apiErrorMessage(err, t('order.orderCancelFailed')));
     },
   });
 

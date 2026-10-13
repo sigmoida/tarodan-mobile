@@ -3,7 +3,8 @@ import { router, useFocusEffect } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import { appAlert, confirm, toast } from '@/ui';
+import { confirm } from '@/ui';
+import { qk, useAppMutation } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import { STORAGE_KEY, type SavedSearch } from '../_lib/types';
 import { buildSearchParams } from '../_lib/helpers';
@@ -45,21 +46,19 @@ export function useSavedSearches() {
     }, [isAuthenticated]),
   );
 
-  const deleteMutation = useMutation({
-    mutationFn: async (searchId: string) => {
+  const deleteMutation = useAppMutation(
+    async (searchId: string) => {
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       const list: SavedSearch[] = stored ? JSON.parse(stored) : [];
       const next = list.filter((s) => s.id !== searchId);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['saved-searches'] });
-      toast.success(t('savedSearch.deletedMsg'));
+    {
+      invalidates: [qk.user.savedSearches],
+      success: t('savedSearch.deletedMsg'),
+      error: t('savedSearch.deleteFailedMsg'),
     },
-    onError: () => {
-      appAlert(t('common.error'), t('savedSearch.deleteFailedMsg'));
-    },
-  });
+  );
 
   const toggleNotificationMutation = useMutation({
     mutationFn: async ({ searchId, notifyEnabled }: { searchId: string; notifyEnabled: boolean }) => {

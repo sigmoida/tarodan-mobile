@@ -11,7 +11,7 @@ import React from 'react';
 import { act } from 'react';
 import { renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { makeTestQueryClient } from '../../../test-utils';
 import { MISSING_LEGAL_IDENTITY, settleGateAndWait } from '@/test-utils/legalIdentity';
 
@@ -143,6 +143,7 @@ const gateOpened = () =>
   waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true));
 
 describe('İlan verme · yasal kimlik kapısı', () => {
+  let toastError: jest.SpyInstance;
   beforeEach(() => {
     mockGet.mockReset();
     mockPost.mockReset();
@@ -150,9 +151,13 @@ describe('İlan verme · yasal kimlik kapısı', () => {
     (productsApi.create as jest.Mock).mockClear();
     (legalIdentityApi.getStatus as jest.Mock).mockReset().mockResolvedValue({ data: MISSING_LEGAL_IDENTITY });
     (appAlert as jest.Mock).mockImplementation(() => {});
+    toastError = jest.spyOn(toast, 'error').mockImplementation(() => 1);
   });
 
-  afterEach(() => act(() => settleLegalIdentityRequest(false)));
+  afterEach(() => {
+    toastError.mockRestore();
+    act(() => settleLegalIdentityRequest(false));
+  });
 
   it('kimlik eksik → kapı açılır, ilan gitmez; kaydedilince ilan oluşturulur', async () => {
     const { result } = await renderFilledForm();
@@ -210,7 +215,7 @@ describe('İlan verme · yasal kimlik kapısı', () => {
     act(() => result.current.setTitle(''));
     await settleGateAndWait(true);
     expect(productsApi.create).not.toHaveBeenCalled();
-    expect(appAlert).toHaveBeenCalledWith('Hata', expect.any(String));
+    expect(toastError).toHaveBeenCalledWith(expect.any(String));
   });
 
   it('Vazgeç → ilan oluşturulmaz, form gönderiliyor durumuna geçmez', async () => {

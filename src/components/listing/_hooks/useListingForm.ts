@@ -5,7 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { useZodForm } from '@/ui/form';
 import { buildListingFormSchema, emptyListingFormValues } from '../_lib/schema';
@@ -24,6 +24,7 @@ import { useLatestRef } from '@/hooks/useLatestRef';
 
 import { useAuthStore } from '../../../stores/authStore';
 import { api, productsApi, categoriesApi, bankAccountApi, shippingApi, type ListingRemovalPayload } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/api/errorText';
 import { qk } from '@/lib/query';
 import { FALLBACK_SCALES, buildMaterials, BRAND_SLUGS, SCALE_SLUGS , MIN_IMAGE_BYTES } from '../_lib/constants';
 import type {
@@ -469,7 +470,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       const cats = res.data?.data || res.data || [];
       setCategories(cats);
     } catch {
-      appAlert(t('common.error'), t('listing.categoriesLoadFailed'));
+      toast.error(t('listing.categoriesLoadFailed'));
     }
   };
 
@@ -490,7 +491,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       if (data.brands?.length) setBrands(data.brands);
       if (data.manufacturers?.length) setManufacturerList(data.manufacturers);
     } catch {
-      appAlert(t('common.error'), t('listing.filtersLoadFailed'));
+      toast.error(t('listing.filtersLoadFailed'));
     } finally {
       setBrandsLoading(false);
     }
@@ -504,7 +505,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       const data = Array.isArray(res.data) ? res.data : res.data?.data || [];
       setModels(data);
     } catch {
-      appAlert(t('common.error'), t('listing.modelsLoadFailed'));
+      toast.error(t('listing.modelsLoadFailed'));
     } finally {
       setModelsLoading(false);
     }
@@ -622,7 +623,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
 
       const usable = uploaded.filter((r: any) => r?.cardKey && r?.detailKey);
       if (usable.length !== uploaded.length) {
-        appAlert(t('common.error'), t('product.imageUploadIncomplete'));
+        toast.error(t('product.imageUploadIncomplete'));
       }
       const newKeys = usable.map((r: any) => ({
         cardKey: r.cardKey,
@@ -636,8 +637,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       // yol açar (delta 18 §2d).
       setImageUris((prev) => [...prev, ...newPreviewUrls]);
     } catch (err: any) {
-      const msg = err.response?.data?.message || t('listing.imageUploadFailed');
-      appAlert(t('common.error'), msg);
+      toast.error(apiErrorMessage(err, t('listing.imageUploadFailed')));
     } finally {
       setUploadingImages(false);
     }
@@ -784,7 +784,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       attributeSelections: { ...customAttributes, ...globalAttributes },
     });
     if (error) {
-      appAlert(t('common.error'), error);
+      toast.error(error);
       return false;
     }
     return true;
@@ -916,16 +916,12 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
           quantity: quantity ? Number(quantity) : 1,
         });
 
-        appAlert(t('common.success'), t('product.listingCreated'), [
-          {
-            text: t('common.ok'),
-            onPress: () => {
-              resetForm();
-              router.push('/settings/my-listings');
-            },
-          },
-        ]);
         invalidateListingCaches();
+        // Önce ekran değişir, sonra toast — "Tamam" bekletme yok. Kalan istekler (yetki / limit
+        // tazeleme) ekran değiştikten sonra sürer.
+        resetForm();
+        router.push('/settings/my-listings');
+        toast.success(t('product.listingCreated'));
         await refreshUserData();
         await updateListingLimits();
       } else {
@@ -940,9 +936,8 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
         await productsApi.update(productId!, payload);
         invalidateListingCaches();
 
-        appAlert(t('common.success'), t('product.listingUpdated'), [
-          { text: t('common.ok'), onPress: () => router.back() },
-        ]);
+        router.back();
+        toast.success(t('product.listingUpdated'));
       }
     } catch (err: any) {
       // İyimser kilit / atomik görsel yazımı çakışması (delta 18 §2d).
@@ -975,7 +970,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const handleReactivate = async () => {
     const qty = Number(reactivateQuantity);
     if (!qty || qty < 1) {
-      appAlert(t('common.error'), t('listing.invalidQuantity'));
+      toast.error(t('listing.invalidQuantity'));
       return;
     }
     setReactivating(true);
@@ -986,10 +981,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       setStatus(activatedStatus(response));
       setQuantity(String(qty));
       invalidateListingCaches();
-      appAlert(t('common.success'), t(activationMessageKey(response)));
+      toast.success(t(activationMessageKey(response)));
     } catch (err: any) {
-      const msg = err.response?.data?.message || t('listing.reactivateFailed');
-      appAlert(t('common.error'), msg);
+      toast.error(apiErrorMessage(err, t('listing.reactivateFailed')));
     } finally {
       setReactivating(false);
     }

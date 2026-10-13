@@ -1,6 +1,6 @@
 import React from "react";
 import { View } from "react-native";
-import { EmptyState, IconButton, SectionCard, Text, appAlert } from "@/ui";
+import { EmptyState, IconButton, SectionCard, Text, appAlert, toast } from "@/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -9,6 +9,7 @@ import { PageShell } from "@/components/common/PageShell";
 import { RowListSkeleton } from "@/components/common/RowListSkeleton";
 import { useAuthStore } from "@/stores/authStore";
 import { membershipApi, type SavedCard } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/api/errorText";
 import { useSavedCards } from "@/lib/payment/useSavedCards";
 import { qk } from "@/lib/query";
 import { CAN_BUY_DIGITAL } from "@/lib/purchases";
@@ -55,10 +56,7 @@ export default function PaymentMethodsScreen() {
               // Prefix: ödeme formunun amaçlı listeleri de tazelenir.
               queryClient.invalidateQueries({ queryKey: qk.payments.savedCardsAll });
             } catch (e: any) {
-              appAlert(
-                t("common.error"),
-                e?.response?.data?.message || t("payment.deleteCardFailed"),
-              );
+              toast.error(apiErrorMessage(e, t("payment.deleteCardFailed")));
             }
           },
         },

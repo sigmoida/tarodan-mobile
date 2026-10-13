@@ -1,36 +1,29 @@
 import { StyleSheet } from 'react-native';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Modal, ModalFooter, Text, appAlert, toast, theme } from '@/ui';
+import { Modal, ModalFooter, Text, theme } from '@/ui';
 import { Form, FormInput, useZodForm } from '@/ui/form';
 import { sellerDocumentsApi } from '@/lib/api';
-import { qk } from '@/lib/query';
+import { qk, useAppMutation } from '@/lib/query';
 import { buildAppealSchema, type AppealForm } from '../_lib/schema';
 
 type Props = { documentId: string | null; onClose: () => void };
 
 /**
  * Belge kararına itiraz. Kendi form + mutation'ını sahiplenir.
- * ⚠️ appAlert modal AÇIKKEN çalışırsa iOS donuyor → modal mutation'dan ÖNCE kapanır.
+ * ⚠️ Geri bildirim modal AÇIKKEN çalışırsa iOS donuyor / toast altta kalıyor → modal mutation'dan ÖNCE kapanır.
  */
 export function AppealModal({ documentId, onClose }: Props) {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const form = useZodForm(buildAppealSchema(t));
 
-  const mutation = useMutation({
-    mutationFn: ({ id, note }: { id: string; note: string }) =>
-      sellerDocumentsApi.appeal(id, note),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: qk.sellerDocuments.list });
-      toast.success(t('businessApplication.appealSentBody'));
+  const mutation = useAppMutation(
+    ({ id, note }: { id: string; note: string }) => sellerDocumentsApi.appeal(id, note),
+    {
+      invalidates: [qk.sellerDocuments.list],
+      success: t('businessApplication.appealSentBody'),
+      error: t('businessApplication.appealFailed'),
     },
-    onError: (e: unknown) => {
-      const raw = (e as { response?: { data?: { message?: string | string[] } } })?.response
-        ?.data?.message;
-      appAlert(t('common.error'), Array.isArray(raw) ? raw.join('\n') : raw || t('businessApplication.appealFailed'));
-    },
-  });
+  );
 
   const onSubmit = form.handleSubmit((values: AppealForm) => {
     const id = documentId;

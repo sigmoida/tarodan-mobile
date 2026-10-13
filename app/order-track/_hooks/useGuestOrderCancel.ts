@@ -13,9 +13,9 @@
  * `onSettled` ile takip isteği yeniden koşuluyor: kullanıcı iptalin sonucunu
  * aynı kartta görüyor.
  */
-import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ordersApi } from '@/lib/api';
+import { useAppMutation } from '@/lib/query';
 import { captureException } from '@/services/sentry';
 import type { OrderCancellationReason } from '@/lib/shared/orderCancellation';
 
@@ -28,37 +28,35 @@ export function useGuestOrderCancel({
   orderNumber,
   email,
   onDone,
-  notify,
 }: {
   orderNumber: string;
   email: string;
   /** İptalden sonra siparişi yeniden sorgula (başarı ve hata — durum her iki halde de tazelenmeli). */
   onDone: () => void;
-  notify: (message: string, variant: 'success' | 'danger') => void;
 }) {
   const { t } = useTranslation();
 
-  return useMutation({
-    mutationFn: (input: GuestCancelInput) =>
+  // Bilgi/başarı = toast, hata = toast.error (web react-hot-toast). Açık Modal'ın altında kalır:
+  // iptal modalı onay anında kapanır (CancelOrderModal), mutasyon sonucu sonra bildirilir.
+  return useAppMutation(
+    (input: GuestCancelInput) =>
       ordersApi.cancelGuest({
         orderNumber: orderNumber.trim(),
         email: email.trim().toLowerCase(),
         ...input,
       }),
-    onSuccess: () => notify(t('order.guestCancelDone'), 'success'),
-    onError: (err: any) => {
-      captureException(err, {
-        level: 'error',
-        tags: { flow: 'order.guestCancel' },
-        // PII yok: sipariş numarası ve e-posta GÖNDERİLMEZ, yalnız durum kodu.
-        extra: { status: err?.response?.status },
-      });
-      const raw = err?.response?.data?.message;
-      notify(
-        typeof raw === 'string' ? raw : t('order.guestCancelFailed'),
-        'danger',
-      );
+    {
+      success: t('order.guestCancelDone'),
+      error: t('order.guestCancelFailed'),
+      onError: (err: any) => {
+        captureException(err, {
+          level: 'error',
+          tags: { flow: 'order.guestCancel' },
+          // PII yok: sipariş numarası ve e-posta GÖNDERİLMEZ, yalnız durum kodu.
+          extra: { status: err?.response?.status },
+        });
+      },
+      mutation: { onSettled: onDone },
     },
-    onSettled: onDone,
-  });
+  );
 }

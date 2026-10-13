@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Input, SectionCard, appAlert, theme } from '@/ui';
+import { Button, Input, SectionCard, theme, toast } from '@/ui';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMutation } from '@tanstack/react-query';
 import { guestApi } from '@/lib/api';
+import { useAppMutation } from '@/lib/query';
 import { ContentPage } from '@/components/content/ContentPage';
 import { DocText } from '@/components/content/DocBlocks';
 
@@ -15,29 +15,31 @@ export default function NewsletterUnsubscribeScreen() {
   const { t } = useTranslation();
   const { token: tokenParam } = useLocalSearchParams<{ token?: string }>();
   const [email, setEmail] = useState('');
+  // Alan doğrulaması: satır içi (toast/diyalog değil).
+  const [emailError, setEmailError] = useState<string | undefined>();
   const [success, setSuccess] = useState(false);
 
-  const unsubscribeMutation = useMutation({
-    mutationFn: async (data: { email?: string; token?: string }) => {
+  const unsubscribeMutation = useAppMutation(
+    async (data: { email?: string; token?: string }) => {
       // Web ile birebir: token akışı GET ?token=..., e-posta akışı POST { email }.
       if (data.token) {
         return guestApi.get(`/newsletter/unsubscribe?token=${encodeURIComponent(data.token)}`);
       }
       return guestApi.post('/newsletter/unsubscribe', { email: data.email });
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onSuccess: (res: any) => {
-      // API 2xx döner ama gövdede success:false ile başarısız olabilir (geçersiz e-posta vb.).
-      if (res?.data?.success === false) {
-        appAlert(t('common.error'), res.data.message || t('marketing.newsletter.unsubscribeFailed'));
-        return;
-      }
-      setSuccess(true);
+    {
+      error: t('marketing.newsletter.unsubscribeFailed'),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      onSuccess: (res: any) => {
+        // API 2xx döner ama gövdede success:false ile başarısız olabilir (geçersiz e-posta vb.).
+        if (res?.data?.success === false) {
+          toast.error(res.data.message || t('marketing.newsletter.unsubscribeFailed'));
+          return;
+        }
+        setSuccess(true);
+      },
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onError: (e: any) =>
-      appAlert(t('common.error'), e?.response?.data?.message || t('marketing.newsletter.unsubscribeFailed')),
-  });
+  );
 
   // Token ile gelindiyse otomatik iptal
   useEffect(() => {
@@ -48,8 +50,8 @@ export default function NewsletterUnsubscribeScreen() {
   }, [tokenParam]);
 
   const handleSubmit = () => {
-    if (!/^\S+@\S+\.\S+$/.test(email))
-      return appAlert(t('common.missing'), t('marketing.newsletter.emailInvalid'));
+    if (!/^\S+@\S+\.\S+$/.test(email)) return setEmailError(t('marketing.newsletter.emailInvalid'));
+    setEmailError(undefined);
     unsubscribeMutation.mutate({ email: email.trim().toLowerCase() });
   };
 
@@ -76,7 +78,11 @@ export default function NewsletterUnsubscribeScreen() {
           <Input
             label={`${t('marketing.newsletter.emailLabel')} *`}
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => {
+              setEmail(text);
+              setEmailError(undefined);
+            }}
+            error={emailError}
             keyboardType="email-address"
             autoCapitalize="none"
             containerStyle={{ marginTop: theme.spacing[4] }}

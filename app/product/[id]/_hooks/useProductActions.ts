@@ -13,8 +13,6 @@ import { buildShareContent, productShareUrl } from '@/utils/share';
 import { clampCartQuantity } from '../_lib/quantity';
 import type { Product } from '../_lib/types';
 
-type NotifyType = 'success' | 'error';
-
 function buildCartItem(product: Product, images: any[]) {
   return {
     productId: product.id,
@@ -75,22 +73,18 @@ export function useProductActions({
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
 
-  /** Bilgi ve başarı mesajları toast (web react-hot-toast); hata da toast, onay isteyenler appAlert. */
-  const notify = (message: string, type: NotifyType) =>
-    type === 'success' ? toast.success(message) : toast.error(message);
-
   const requireAuth = (message: string) => {
     if (isAuthenticated) return true;
-    notify(message, 'error');
+    toast.error(message);
     setTimeout(() => router.push('/(auth)/login' as any), 1500);
     return false;
   };
 
   const handleAddToCart = () => {
     if (!product) return;
-    if (isOutOfStock) return notify(t('cart.outOfStock'), 'error');
+    if (isOutOfStock) return toast.error(t('cart.outOfStock'));
     cart.add(buildCartItem(product, images) as any, clampCartQuantity(quantity, product, isOwnerProduct));
-    notify(t('product.addedToCartExclaim'), 'success');
+    toast.success(t('product.addedToCartExclaim'));
   };
 
   /** Web gibi: sepetteyse çıkarır, değilse ekler. */
@@ -98,7 +92,7 @@ export function useProductActions({
     if (!product) return;
     if (isInCart(productId)) {
       cart.removeByProductId(productId);
-      notify(t('product.removedFromCart'), 'success');
+      toast.success(t('product.removedFromCart'));
       return;
     }
     handleAddToCart();
@@ -106,7 +100,7 @@ export function useProductActions({
 
   const handleBuyNow = () => {
     if (!product) return;
-    if (isOutOfStock) return notify(t('cart.outOfStock'), 'error');
+    if (isOutOfStock) return toast.error(t('cart.outOfStock'));
     setBuyNow(buildCartItem(product, images) as any, clampCartQuantity(quantity, product, isOwnerProduct));
     router.push('/checkout?buyNow=1' as any);
   };
@@ -122,7 +116,7 @@ export function useProductActions({
   const handleTrade = () => {
     if (!product) return;
     if (!requireAuth(t('product.signInToTrade'))) return;
-    if (!product.seller?.id) return notify(t('trade.sellerNotFound'), 'error');
+    if (!product.seller?.id) return toast.error(t('trade.sellerNotFound'));
     router.push(`/trade/new?targetProductId=${productId}&targetSellerId=${product.seller.id}` as any);
   };
 
@@ -130,7 +124,7 @@ export function useProductActions({
     if (!product) return;
     if (!requireAuth(t('product.signInToOffer'))) return;
     if (product.seller?.id && user?.id === product.seller.id) {
-      return notify(t('product.cannotOfferOwn'), 'error');
+      return toast.error(t('product.cannotOfferOwn'));
     }
     setOfferModalOpen(true);
   };
@@ -159,12 +153,11 @@ export function useProductActions({
 
   /** Ürün şikayeti: tek yüzey `ReportModal` (neden listesi + açıklama + gönderim orada). */
   const handleReport = () => {
-    if (!isAuthenticated) return notify(t('product.signInToReport'), 'error');
+    if (!isAuthenticated) return toast.error(t('product.signInToReport'));
     setReportOpen(true);
   };
 
   return {
-    notify,
     quantity,
     setQuantity,
     inCart: isInCart(productId),

@@ -4,7 +4,7 @@ import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import { useCartStore, type CartItem } from '@/stores/cartStore';
 import { captureException } from '@/services/sentry';
-import { appAlert } from '@/ui';
+import { toast } from '@/ui';
 import i18n from '@/i18n/config';
 import { errorText } from '@/lib/api/errorText';
 
@@ -71,7 +71,7 @@ export function useCartSync() {
       mirror(() => cartApi.addItem(item.productId, added), 'cart.add', (message) => {
         if (before) store.updateQuantity(before.id, before.quantity);
         else store.removeByProductId(item.productId);
-        appAlert(i18n.t('cart.addToCartFailedTitle'), message);
+        toast.error(message);
       });
     },
 

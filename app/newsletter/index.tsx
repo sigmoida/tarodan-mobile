@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Checkbox, Input, SectionCard, appAlert, theme, toast } from '@/ui';
+import { Button, Checkbox, Input, SectionCard, theme } from '@/ui';
 import { router } from 'expo-router';
-import { useMutation } from '@tanstack/react-query';
 import { guestApi } from '@/lib/api';
+import { useAppMutation } from '@/lib/query';
 import { ContentPage } from '@/components/content/ContentPage';
 import { DocLink } from '@/components/content/DocBlocks';
 
@@ -15,6 +15,8 @@ import { DocLink } from '@/components/content/DocBlocks';
 export default function NewsletterScreen() {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
+  // Alan doğrulaması: satır içi (toast/diyalog değil).
+  const [emailError, setEmailError] = useState<string | undefined>();
   /**
    * KVKK/ETK açık rızası — İŞARETSİZ başlar ve abonelik kapısıdır.
    *
@@ -24,8 +26,8 @@ export default function NewsletterScreen() {
    */
   const [consent, setConsent] = useState(false);
 
-  const subscribeMutation = useMutation({
-    mutationFn: async () => {
+  const subscribeMutation = useAppMutation(
+    async () => {
       // Web paritesi (newsletter/page.tsx): NewsletterSubscribeDto yalnızca email/newsletter
       // kabul eder; backend 'name' alanını desteklemez (whitelist ile sessizce strip edilir).
       return guestApi.post('/newsletter/subscribe', {
@@ -34,19 +36,20 @@ export default function NewsletterScreen() {
         newsletter: consent,
       });
     },
-    onSuccess: () => {
-      toast.success(t('marketing.newsletter.successMessage'));
-      setEmail('');
-      setConsent(false);
-      router.back();
+    {
+      success: t('marketing.newsletter.successMessage'),
+      error: t('marketing.newsletter.subscriptionFailed'),
+      onSuccess: () => {
+        setEmail('');
+        setConsent(false);
+        router.back();
+      },
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onError: (e: any) =>
-      appAlert(t('common.error'), e?.response?.data?.message || t('marketing.newsletter.subscriptionFailed')),
-  });
+  );
 
   const handleSubmit = () => {
-    if (!/^\S+@\S+\.\S+$/.test(email)) return appAlert(t('common.missing'), t('marketing.newsletter.emailInvalid'));
+    if (!/^\S+@\S+\.\S+$/.test(email)) return setEmailError(t('marketing.newsletter.emailInvalid'));
+    setEmailError(undefined);
     subscribeMutation.mutate();
   };
 
@@ -57,7 +60,11 @@ export default function NewsletterScreen() {
           testID="newsletter-email"
           label={`${t('marketing.newsletter.emailLabel')} *`}
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(text) => {
+            setEmail(text);
+            setEmailError(undefined);
+          }}
+          error={emailError}
           keyboardType="email-address"
           autoCapitalize="none"
         />

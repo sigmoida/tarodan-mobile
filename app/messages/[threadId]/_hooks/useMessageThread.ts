@@ -3,7 +3,7 @@ import { FlatList, Platform } from 'react-native';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
-import { appAlert, type ActionSheetAction } from '@/ui';
+import { appAlert, toast, type ActionSheetAction } from '@/ui';
 import { useMessagesStore } from '@/stores/messagesStore';
 import { useAuthStore } from '@/stores/authStore';
 import {
@@ -14,7 +14,8 @@ import {
   useDailyMessageLimit,
 } from '@/hooks/messaging';
 import { detectViolations, embedImageInMessage, getViolationMessage } from '@/utils/contentFilter';
-import { mediaApi, errorText } from '@/lib/api';
+import { mediaApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/api/errorText';
 import { getSocket } from '@/services/socket';
 import { groupMessagesByDate } from '../_lib/helpers';
 import { useBlockStatus, useBlockUser } from '@/hooks/useBlockUser';
@@ -163,7 +164,7 @@ export function useMessageThread() {
           // kurmak `parseMessageContent` ile sessizce birbirinden ayrılabilirdi.
           content = embedImageInMessage(trimmed, url);
         } catch (e: any) {
-          appAlert(t('common.error'), e?.response?.data?.message || t('message.imageSendFailed'));
+          toast.error(apiErrorMessage(e, t('message.imageSendFailed')));
           return;
         } finally {
           setUploadingImage(false);
@@ -179,7 +180,7 @@ export function useMessageThread() {
       } catch (e: any) {
         // Sunucu mesajı önce: `e.message` axios'un ham "Request failed with
         // status code 400" metni idi.
-        appAlert(t('message.sendFailed'), errorText(e, t('message.tryAgainBody')));
+        toast.error(apiErrorMessage(e, t('message.sendFailed')));
       }
     } finally {
       setSending(false);

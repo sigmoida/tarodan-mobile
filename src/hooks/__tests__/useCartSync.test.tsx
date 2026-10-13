@@ -14,7 +14,7 @@
 import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -62,11 +62,14 @@ const rejectWith = (status: number, message?: string) =>
   });
 
 describe('useCartSync · sunucu eklemeyi reddederse', () => {
+  let toastError: jest.SpyInstance;
   beforeEach(() => {
     (cartApi.addItem as jest.Mock).mockReset();
     (appAlert as jest.Mock).mockClear();
+    toastError = jest.spyOn(toast, 'error').mockImplementation(() => 1);
     useCartStore.setState({ items: [], deselectedIds: [] });
   });
+  afterEach(() => toastError.mockRestore());
 
   it('4xx: iyimser satır GERİ ALINIR', async () => {
     rejectWith(409, 'Bu satıcı şu an satış yapamıyor');
@@ -84,9 +87,7 @@ describe('useCartSync · sunucu eklemeyi reddederse', () => {
 
     act(() => result.current.add(ITEM));
 
-    await waitFor(() =>
-      expect(appAlert).toHaveBeenCalledWith(expect.any(String), 'Bu satıcı şu an satış yapamıyor'),
-    );
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith('Bu satıcı şu an satış yapamıyor'));
   });
 
   it('4xx mesajsız gelse de kullanıcı bilgilendirilir', async () => {
@@ -95,7 +96,7 @@ describe('useCartSync · sunucu eklemeyi reddederse', () => {
 
     act(() => result.current.add(ITEM));
 
-    await waitFor(() => expect(appAlert).toHaveBeenCalled());
+    await waitFor(() => expect(toastError).toHaveBeenCalled());
     await waitFor(() => expect(useCartStore.getState().items).toHaveLength(0));
   });
 
@@ -110,6 +111,7 @@ describe('useCartSync · sunucu eklemeyi reddederse', () => {
       await Promise.resolve();
     });
     expect(useCartStore.getState().items).toHaveLength(1);
+    expect(toastError).not.toHaveBeenCalled();
     expect(appAlert).not.toHaveBeenCalled();
   });
 

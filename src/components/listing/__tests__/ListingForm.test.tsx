@@ -1,16 +1,16 @@
 /**
  * J2/J18/J55/J56 · İlan oluşturma formu (ListingForm, mode="create") — mobil UI dilimi.
- * Form validasyonu (başlık<5, fiyat<1, boş başlık) → appAlert uyarısı + submit ENGELLENİR,
+ * Form validasyonu (başlık<5, fiyat<1, boş başlık) → toast.error uyarısı + submit ENGELLENİR,
  * submit butonu render, komisyon önizleme bölümü (fiyat girişi → /orders/commission-preview).
  *
- * NOT: Bu form inline doğrulamayı appAlert ile yapar (testID'li hata banner'ı YOK),
- * bu yüzden uyarı Alert spy üzerinden + productsApi.create'in ÇAĞRILMADIĞI ile doğrulanır.
+ * NOT: Bu form doğrulamayı toast.error ile yapar (testID'li hata banner'ı YOK),
+ * bu yüzden uyarı toast.error spy üzerinden + productsApi.create'in ÇAĞRILMADIĞI ile doğrulanır.
  * Foto zorunluluğu validate() içinde ("En az bir fotoğraf ekleyin"): galeri seçimi
  * native ImagePicker gerektirdiği için happy-path create akışı (gerçek foto upload) E2E/backend.
  * Backend (komisyon hesabı, ilan oluşturma kalıcılığı, limit zorlaması) backendOnly.
  */
 import React from 'react';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import {  } from 'react-native';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../test-utils';
@@ -111,21 +111,21 @@ describe('J2 · İlan formu render + submit butonu', () => {
 const GECERLI_ACIKLAMA = 'Kutusunda, hiç oynanmamış, boyası kusursuz bir model.';
 
 describe('J18/J55 · ilan formu input validasyonu', () => {
-  let alertSpy: jest.Mock;
+  let toastErrorSpy: jest.SpyInstance;
   beforeEach(() => {
     mockGet.mockReset();
     mockCreate.mockClear();
     wireApi();
-    alertSpy = (appAlert as jest.Mock).mockImplementation(() => {});
+    toastErrorSpy = jest.spyOn(toast, 'error').mockImplementation(() => 1);
   });
-  afterEach(() => alertSpy.mockRestore());
+  afterEach(() => toastErrorSpy.mockRestore());
 
   it('J55.1 boş başlık → submit reddedilir, "Başlık en az 5 karakter" uyarısı', async () => {
     renderWithProviders(<ListingForm mode="create" />);
     await screen.findByText('İlan Oluştur');
     fireEvent.press(screen.getByText('İlan Oluştur'));
     // `validation.minLength` reuse (rule #1): generic ICU template.
-    expect(alertSpy).toHaveBeenCalledWith('Hata', 'En az 5 karakter olmalıdır');
+    expect(toastErrorSpy).toHaveBeenCalledWith('En az 5 karakter olmalıdır');
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
@@ -135,7 +135,7 @@ describe('J18/J55 · ilan formu input validasyonu', () => {
     fireEvent.changeText(screen.getByPlaceholderText("Örn: Hot Wheels '69 Camaro Z28"), 'Abc');
     fireEvent.press(screen.getByText('İlan Oluştur'));
     // `validation.minLength` reuse (rule #1): generic ICU template.
-    expect(alertSpy).toHaveBeenCalledWith('Hata', 'En az 5 karakter olmalıdır');
+    expect(toastErrorSpy).toHaveBeenCalledWith('En az 5 karakter olmalıdır');
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
@@ -147,7 +147,7 @@ describe('J18/J55 · ilan formu input validasyonu', () => {
     fireEvent.changeText(screen.getByPlaceholderText('0.00'), '0');
     fireEvent.press(screen.getByText('İlan Oluştur'));
     // `common.invalidPrice` reuse (rule #1).
-    expect(alertSpy).toHaveBeenCalledWith('Hata', 'Lütfen geçerli bir fiyat girin');
+    expect(toastErrorSpy).toHaveBeenCalledWith('Lütfen geçerli bir fiyat girin');
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
@@ -157,7 +157,7 @@ describe('J18/J55 · ilan formu input validasyonu', () => {
     fireEvent.changeText(screen.getByPlaceholderText("Örn: Hot Wheels '69 Camaro Z28"), 'Geçerli Başlık');
     fireEvent.changeText(screen.getByPlaceholderText('Ürün hakkında detaylı bilgi'), 'kısa');
     fireEvent.press(screen.getByText('İlan Oluştur'));
-    expect(alertSpy).toHaveBeenCalledWith('Hata', 'Açıklama 30 ile 330 karakter arasında olmalıdır.');
+    expect(toastErrorSpy).toHaveBeenCalledWith('Açıklama 30 ile 330 karakter arasında olmalıdır.');
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
@@ -168,7 +168,7 @@ describe('J18/J55 · ilan formu input validasyonu', () => {
     fireEvent.changeText(screen.getByPlaceholderText('Ürün hakkında detaylı bilgi'), GECERLI_ACIKLAMA);
     fireEvent.changeText(screen.getByPlaceholderText('0.00'), '150');
     fireEvent.press(screen.getByText('İlan Oluştur'));
-    expect(alertSpy).toHaveBeenCalledWith('Hata', 'Lütfen bir kategori seçin.');
+    expect(toastErrorSpy).toHaveBeenCalledWith('Lütfen bir kategori seçin.');
     expect(mockCreate).not.toHaveBeenCalled();
   });
 });

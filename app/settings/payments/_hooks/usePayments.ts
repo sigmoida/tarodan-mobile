@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { appAlert, toast } from '@/ui';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { appAlert } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { paymentsApi } from '@/lib/api';
-import { qk } from '@/lib/query';
+import { qk, useAppMutation } from '@/lib/query';
 import type { Payment } from '../_lib/types';
 import { useDoRetryPayment } from './useDoRetryPayment';
 
@@ -17,9 +17,8 @@ import { useDoRetryPayment } from './useDoRetryPayment';
 export function usePayments() {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
-  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
-  const retry = useDoRetryPayment((message) => toast.success(message));
+  const retry = useDoRetryPayment();
 
   const paymentsQuery = useQuery({
     queryKey: [...qk.payments.mine, statusFilter],
@@ -37,21 +36,19 @@ export function usePayments() {
     placeholderData: keepPreviousData,
   });
 
+  const cancelMutation = useAppMutation((id: string) => paymentsApi.cancel(id), {
+    invalidates: [qk.payments.mine],
+    success: t('payment.cancelled'),
+    error: t('payment.cancelFailed'),
+  });
+
   const handleCancel = (id: string) => {
     appAlert(t('payment.cancelTitle'), t('payment.cancelConfirm'), [
       { text: t('discount.discard'), style: 'cancel' },
       {
         text: t('payment.cancelAction'),
         style: 'destructive',
-        onPress: async () => {
-          try {
-            await paymentsApi.cancel(id);
-            toast.success(t('payment.cancelled'));
-            queryClient.invalidateQueries({ queryKey: qk.payments.mine });
-          } catch (e: any) {
-            appAlert(t('common.error'), e?.response?.data?.message || t('payment.cancelFailed'));
-          }
-        },
+        onPress: () => cancelMutation.mutate(id),
       },
     ]);
   };

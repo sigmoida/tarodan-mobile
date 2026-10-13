@@ -7,6 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { appAlert, toast } from '@/ui';
 import { api } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/api/errorText';
 import { useAuthStore } from '@/stores/authStore';
 import { buildCollectionEditSchema, type CollectionForm, type Collection } from '../_lib/collectionEditSchema';
 
@@ -87,7 +88,7 @@ export function useCollectionEdit() {
       toast.success(t('collection.collectionUpdated'));
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || t('collection.updateFailed'));
+      toast.error(apiErrorMessage(error, t('collection.updateFailed')));
     },
   });
 
@@ -101,7 +102,7 @@ export function useCollectionEdit() {
       setTimeout(() => router.replace('/collections'), 1500);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || t('collection.deleteFailed'));
+      toast.error(apiErrorMessage(error, t('collection.deleteFailed')));
     },
   });
 
@@ -113,7 +114,7 @@ export function useCollectionEdit() {
       toast.success(t('collection.productRemoved'));
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || t('collection.removeFailed'));
+      toast.error(apiErrorMessage(error, t('collection.removeFailed')));
     },
   });
 

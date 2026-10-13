@@ -7,6 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/ui';
 import { api, collectionsApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/api/errorText';
 import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import { buildCollectionSchema, type CollectionForm } from '../_lib/schema';
@@ -104,7 +105,7 @@ export function useNewCollection() {
       setTimeout(() => router.replace(`/collections/${res.data.id}`), 1500);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || t('collection.createCollectionFailed'));
+      toast.error(apiErrorMessage(error, t('collection.createCollectionFailed')));
     },
   });
 

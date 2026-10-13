@@ -1,10 +1,10 @@
 import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
 import { paymentsApi } from '@/lib/api';
-import { qk } from '@/lib/query';
+import { qk, useAppMutation } from '@/lib/query';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 
 /**
@@ -21,9 +21,8 @@ import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
  * ikinci basış yok sayılır (değişken üzerine yazılıp spinner başka karta
  * kaymasın diye senkron ref koruması da var — aynı render içindeki çift basış).
  */
-export function useDoRetryPayment(notify: (message: string) => void) {
+export function useDoRetryPayment() {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const { requireIdentity, isChecking } = useRequireLegalIdentity();
   const starting = useRef(false);
 
@@ -31,23 +30,23 @@ export function useDoRetryPayment(notify: (message: string) => void) {
     mutationFn: (_paymentId: string) => requireIdentity(),
   });
 
-  const retry = useMutation({
-    mutationFn: async (paymentId: string) => {
+  const retry = useAppMutation(
+    async (paymentId: string) => {
       const response: any = await paymentsApi.retry(paymentId);
       return (response?.data?.paymentUrl ?? response?.data?.data?.paymentUrl) as string | undefined;
     },
-    onSuccess: (url, paymentId) => {
-      if (url) {
-        router.push({ pathname: '/payment/[id]', params: { id: paymentId, paymentUrl: url } } as any);
-        return;
-      }
-      notify(t('payment.retryStarted'));
-      void queryClient.invalidateQueries({ queryKey: qk.payments.mine });
+    {
+      invalidates: [qk.payments.mine],
+      // Ödeme sayfasına gidiliyorsa toast yok; yalnız sayfasız başlatmada bilgi.
+      success: (url) => (url ? '' : t('payment.retryStarted')),
+      error: t('payment.retryFailed'),
+      onSuccess: (url, paymentId) => {
+        if (url) {
+          router.push({ pathname: '/payment/[id]', params: { id: paymentId, paymentUrl: url } } as any);
+        }
+      },
     },
-    onError: (e: any) => {
-      appAlert(t('common.error'), e?.response?.data?.message || t('payment.retryFailed'));
-    },
-  });
+  );
 
   const busy = identity.isPending || retry.isPending;
 

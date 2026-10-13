@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { theme, Text, Alert, Button, Modal, Input, Textarea, useModalMessage, ModalMessage, ButtonRow } from '@/ui';
 import { offersApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/api/errorText';
 import { IS_MAESTRO } from '@/config/maestro';
 import { formatPrice } from '../../utils/format';
 
@@ -76,7 +77,7 @@ export default function MakeOfferModal({
       onSuccess?.();
       handleClose();
     } catch (e: any) {
-      msg.error(e?.response?.data?.message || t('product.offerFailed'));
+      msg.error(apiErrorMessage(e, t('product.offerFailed')));
     }
   };
 
