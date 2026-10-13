@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
-import { EmptyState, ErrorState, Spinner, pageListContentStyle, theme } from '@/ui';
+import { RefreshControl, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { EmptyState, ErrorState, Spinner, pageListContentStyle, theme, useShellPageScroll } from '@/ui';
 import { ProductCard, type ProductCardLayout, type ProductCardProduct } from './ProductCard';
 import { PRODUCT_GRID_GAP, ProductGridSkeleton, ProductListEmpty, useProductCellWidth } from './ProductListStates';
 
@@ -33,10 +34,33 @@ interface ProductGridBaseProps {
   testID?: string;
 }
 
+// Kararlı anahtar: yalnız `id` (index YOK) — sayfa kayması/yeniden sıralamada hücreler sökülmesin.
+const keyExtractor = (item: ProductCardProduct) => String(item.id);
+
+interface GridCellProps {
+  item: ProductCardProduct;
+  layout: ProductCardLayout;
+  width: number;
+  showMeta: boolean;
+  onItemPress?: (product: ProductCardProduct) => void;
+}
+
+/** Tek hücre: `onPress` ürün başına KARARLI kalır (memo'lu `ProductCard` kaydırmada yeniden çizilmez). */
+const GridCell = React.memo(function GridCell({ item, layout, width, showMeta, onItemPress }: GridCellProps) {
+  const handlePress = useCallback(() => onItemPress?.(item), [onItemPress, item]);
+  return (
+    <View style={layout === 'list' ? styles.listCell : { width }}>
+      <ProductCard product={item} layout={layout} showMeta={showMeta} onPress={onItemPress ? handlePress : undefined} />
+    </View>
+  );
+});
+
 /**
  * Ürün listelerinin TEK ızgara/listesi: 2 sütun (web `grid-cols-2 gap-3`) ya da tek sütun liste, sonsuz
  * kaydırma, çekip yenileme; yükleniyor = iskelet, boş = tek boş durum, hata = ErrorState.
  * Kartlar memo'lu `ProductCard`; `renderItem` kararlı (kaydırmada satırlar yeniden çizilmez).
+ * Bir kabuğun (`PageShell mode="list"` / `AppShell`) altındaysa listeyi kabuğun kaydırma kenarı
+ * sinyaline OTOMATİK bağlar (içerik üst barın altından kayar, ekranlar değişmez); kabuk yoksa düz liste.
  */
 export function ProductGrid({
   items,
@@ -64,17 +88,14 @@ export function ProductGrid({
 
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<ProductCardProduct>) => (
-      <View style={layout === 'list' ? styles.listCell : { width: cellWidth }}>
-        <ProductCard
-          product={item}
-          layout={layout}
-          showMeta={showMeta}
-          onPress={onItemPress ? () => onItemPress(item) : undefined}
-        />
-      </View>
+      <GridCell item={item} layout={layout} width={cellWidth} showMeta={showMeta} onItemPress={onItemPress} />
     ),
     [layout, showMeta, onItemPress, cellWidth],
   );
+
+  // Kabuk kaydırma sinyali (yoksa null → bağlanmaz). iOS `contentInset` + Android üst dolgusu
+  // `contentStyle` ile tek yerden verilir; `ListHeaderComponent` ek boşluk almaz (çift boşluk yok).
+  const page = useShellPageScroll();
 
   const empty = errorMessage ? (
     <ErrorState message={errorMessage} onRetry={onRetry} />
@@ -87,14 +108,17 @@ export function ProductGrid({
   );
 
   return (
-    <FlatList
+    <Animated.FlatList
       testID={testID}
       key={`${layout}-${columns}`}
       data={loading || errorMessage ? [] : items}
-      keyExtractor={(item, index) => `${item.id}-${index}`}
+      keyExtractor={keyExtractor}
       renderItem={renderItem}
       numColumns={columns}
-      contentContainerStyle={styles.content}
+      {...(page?.listProps ?? null)}
+      contentContainerStyle={page ? page.contentStyle(styles.content) : styles.content}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
       columnWrapperStyle={columns > 1 ? styles.row : undefined}
       ListHeaderComponent={ListHeaderComponent}
       ListEmptyComponent={empty}
@@ -114,6 +138,7 @@ export function ProductGrid({
             onRefresh={onRefresh}
             colors={[colors.primary[600]!]}
             tintColor={colors.primary[600]!}
+            progressViewOffset={page?.topInset}
           />
         ) : undefined
       }
