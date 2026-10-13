@@ -166,7 +166,7 @@ maestro/
 │   └── 05-ilanlarim-diagnostic.yaml # ✅ İlanlarım ekranı açılır + boş hata yok
 └── subflows/            # paylaşılan parça akışlar
     ├── open-tarodan.yaml      # Expo Go → Tarodan launch
-    ├── login-as.yaml          # Profil → Giriş Yap formu (zeynep, hard-coded)
+    ├── login-as.yaml          # Profil → Giriş Yap (iki aşamalı: e-posta → login-continue-button → şifre; zeynep, hard-coded)
     ├── logout.yaml            # Profil → Çıkış Yap
     ├── open-side-menu.yaml    # Ana Sayfa → hamburger (`home-menu-button`) → yan menü (`side-menu`); Alışveriş/Finans/Koleksiyon/Analiz/Destek/Bilgi satırları artık burada
     ├── open-first-order.yaml  # Yan menü → Siparişlerim → ilk kart

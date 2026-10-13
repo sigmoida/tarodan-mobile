@@ -29,8 +29,9 @@ env:
     timeout: 15000
 - assertVisible:
     id: "login-email-input"
+# Giriş iki aşamalı: logout sonrası 1. adım (e-posta + Devam Et) görünür, şifre alanı henüz yok.
 - assertVisible:
-    id: "login-password-input"
+    id: "login-continue-button"
 - assertNotVisible: "zeynep@demo.com"
 - assertNotVisible: ".*Network Error.*"
 - assertNotVisible: ".*Bir hata oluştu.*"

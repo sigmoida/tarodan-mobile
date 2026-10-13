@@ -112,9 +112,9 @@ tags:
     visible:
       id: "login-email-input"
     timeout: 15000
-# Login ekranından "Kayıt Ol" linkine git
+# Login ekranından "Üye Ol" linkine git
 - tapOn:
-    text: "Kayıt Ol"
+    id: "login-register-link"
 - extendedWaitUntil:
     visible:
       id: "register-displayName-input"
@@ -146,12 +146,22 @@ tags:
 - hideKeyboard
 - waitForAnimationToEnd:
     timeout: 2000
+- scrollUntilVisible:
+    element:
+      id: "register-acceptTerms"
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: "register-acceptTerms"
 # KVKK aydınlatma metni AYRI zorunlu kutu (B-2.3, delta 22).
 - tapOn:
     id: "register-acceptKvkk"
 # birthDate MAESTRO modunda öndolu (1990-01-01); dokunma.
+- scrollUntilVisible:
+    element:
+      id: "register-submit-button"
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: "register-submit-button"
 # Başarılı kayıt → login ekranına döner (register.tsx onSuccess router.replace login)

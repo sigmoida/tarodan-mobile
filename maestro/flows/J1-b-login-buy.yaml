@@ -49,6 +49,13 @@ tags:
       - tapOn:
           id: "login-email-input"
       - inputText: "${REG_EMAIL}"
+      # Giriş iki aşamalı (web gibi): e-posta -> Devam Et -> şifre.
+      - tapOn:
+          id: "login-continue-button"
+      - extendedWaitUntil:
+          visible:
+            id: "login-password-input"
+          timeout: 15000
       - tapOn:
           id: "login-password-input"
       - inputText: "${REG_PASSWORD}"
