@@ -39,13 +39,14 @@ export default function OrderDetailScreen() {
   const queryClient = useQueryClient();
 
   const { data: order, isLoading, refetch } = useOrder(id);
-  const { refreshing, onRefresh } = useRefresh(refetch);
   const [ratingModal, setRatingModal] = useState<{ visible: boolean; type: 'product' | 'seller' }>({
     visible: false,
     type: 'product',
   });
   const actions = useOrderActions(String(id), order ?? undefined);
   const invoices = useOrderInvoices(String(id), order?.status, actions.notify);
+  // Pull-to-refresh siparişle birlikte e-Arşiv listesini de yeniler.
+  const { refreshing, onRefresh } = useRefresh(refetch, invoices.refreshElogoInvoices);
   const { shipment } = useOrderShipment(id);
   const policy = useTimingPolicy();
 
@@ -110,6 +111,8 @@ export default function OrderDetailScreen() {
           invoices={invoices.elogoInvoices}
           onOpen={invoices.openElogoInvoice}
           openingId={invoices.openingElogoInvoiceId}
+          loadFailed={invoices.elogoLoadFailed}
+          onRetry={invoices.refreshElogoInvoices}
         />
         <OrderSellerInvoiceCard
           sellerInvoice={invoices.sellerInvoice}

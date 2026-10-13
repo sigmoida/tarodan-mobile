@@ -15,7 +15,10 @@ const NOT_READY = 'not-ready';
  * tıklanmayan belgelerin düğmesini de kilitliyordu.
  *
  * `enabled`: ödeme öncesi / iptal edilmiş siparişte istek atılmaz (web kuralı;
- * çağıran kendi statü adlarıyla hesaplar). `onError`: ekranın geri bildirimi.
+ * çağıran kendi statü adlarıyla hesaplar). `onError`: PDF açma hatasının
+ * geri bildirimi. Liste hatası `loadFailed` ile kartta satır olarak gösterilir
+ * (web hatayı `[]`'a çeviriyor — web'e de önerilir). `refresh`: ekranın
+ * pull-to-refresh'i sipariş sorgusuyla birlikte bunu da çağırır.
  */
 export function useOrderElogoInvoices(
   orderId: string,
@@ -24,18 +27,20 @@ export function useOrderElogoInvoices(
 ) {
   const { t } = useTranslation();
 
-  const { data } = useQuery({
+  const active = !!orderId && enabled;
+  // Hata `[]`'a çevrilmez: "belge yok" ile "yüklenemedi" ayrı durumlardır
+  // (uç belge yoksa zaten `[]` döner). Hata satırı + "Tekrar Dene" çizilir.
+  const query = useQuery({
     queryKey: qk.orders.elogoInvoices(orderId),
-    enabled: !!orderId && enabled,
+    enabled: active,
     queryFn: async (): Promise<ElogoInvoice[]> => {
-      try {
-        const res = await elogoInvoicesApi.byOrderAll(orderId);
-        return Array.isArray(res.data) ? res.data : [];
-      } catch {
-        return [];
-      }
+      const res = await elogoInvoicesApi.byOrderAll(orderId);
+      return Array.isArray(res.data) ? res.data : [];
     },
   });
+  // Pull-to-refresh / tekrar dene: kapalı sorgu (ödeme öncesi / iptal)
+  // `refetch` ile zorla çekilmesin.
+  const refresh = () => (active ? query.refetch() : Promise.resolve());
 
   const open = useMutation({
     mutationFn: async (invoiceId: string) => {
@@ -54,7 +59,10 @@ export function useOrderElogoInvoices(
   });
 
   return {
-    invoices: enabled ? (data ?? []) : [],
+    invoices: enabled ? (query.data ?? []) : [],
+    /** Liste hiç yüklenemedi (eldeki eski liste varsa o gösterilir). */
+    loadFailed: active && query.isError && !query.data,
+    refresh,
     openInvoice: (invoiceId: string) => open.mutate(invoiceId),
     openingId: open.isPending ? (open.variables ?? null) : null,
   };

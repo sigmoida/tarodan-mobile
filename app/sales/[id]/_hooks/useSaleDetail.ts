@@ -32,7 +32,6 @@ export function useSaleDetail() {
     enabled: !!id,
   });
 
-  const { refreshing, onRefresh } = useRefresh(refetch);
   const timingValues = useTimingValues();
   // e-Arşiv belgeleri (satıcıya da taraf başına üç belge kesilir) — web kuralı:
   // ödeme öncesi ve iptal edilmiş siparişte yok. Bu ekran API statüsünü okur.
@@ -41,6 +40,8 @@ export function useSaleDetail() {
     !!order && order.status !== 'pending_payment' && order.status !== 'cancelled',
     (message) => appAlert(message),
   );
+  // Pull-to-refresh siparişle birlikte e-Arşiv listesini de yeniler.
+  const { refreshing, onRefresh } = useRefresh(refetch, elogo.refresh);
 
   // İptal'de status 'refunded' olsa bile "İptal Edildi" göster (alıcı ile tutarlı).
   const displayStatus = order?.cancellationType === 'iptal' ? 'cancelled' : order?.status ?? '';

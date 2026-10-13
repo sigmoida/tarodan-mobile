@@ -230,6 +230,8 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
         invoices={f.elogo.invoices}
         onOpen={f.elogo.openInvoice}
         openingId={f.elogo.openingId}
+        loadFailed={f.elogo.loadFailed}
+        onRetry={f.elogo.refresh}
         style={[styles.card, styles.flush]}
       />
     </>

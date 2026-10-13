@@ -1211,6 +1211,7 @@
     "heldForRefund": "İade nedeniyle bekletiliyor",
     "cancelledRefundNotice": "Bu sipariş iptal edildi. Ödemeniz iade işlemine alındı; bankanıza yansıması birkaç iş günü sürebilir.",
     "invoiceOpenFailed": "Fatura açılamadı",
+    "invoiceListLoadFailed": "Faturalar yüklenemedi.",
     "invoiceUploadFailed": "Fatura yüklenemedi.",
     "fileTooLarge": "Dosya çok büyük (en fazla 10 MB).",
     "orderCancelFailed": "Sipariş iptal edilemedi.",

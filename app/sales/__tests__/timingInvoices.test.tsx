@@ -6,8 +6,8 @@
  *  - e-Arşiv belgeleri satıcıya da liste olarak gösterilir.
  */
 import React from 'react';
-import { Linking } from 'react-native';
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { Linking, RefreshControl } from 'react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 import { appAlert } from '@/ui';
 
@@ -146,5 +146,20 @@ describe('A-3.4 · satıcıya e-Arşiv belgeleri', () => {
     renderWithProviders(<SaleDetailScreen />);
     await screen.findByText('Deri Ceket');
     expect(invoicesMock).not.toHaveBeenCalled();
+  });
+
+  it('A-3 inceleme #5 · liste hatası boş sayılmaz; pull-to-refresh listeyi de yeniler', async () => {
+    invoicesMock.mockRejectedValueOnce(new Error('500'));
+    serve({ status: 'delivered' });
+    renderWithProviders(<SaleDetailScreen />);
+    expect(await screen.findByTestId('order-invoice-load-failed')).toBeOnTheScreen();
+
+    invoicesMock.mockResolvedValue({ data: [{ id: 'inv-1', invoiceNumber: 'TRD1', label: 'Komisyon' }] });
+    await act(async () => {
+      await screen.UNSAFE_getByType(RefreshControl).props.onRefresh();
+    });
+    expect(getOneMock).toHaveBeenCalledTimes(2);
+    expect(await screen.findByText('Komisyon')).toBeOnTheScreen();
+    expect(screen.queryByTestId('order-invoice-load-failed')).toBeNull();
   });
 });

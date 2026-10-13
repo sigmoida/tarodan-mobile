@@ -95,6 +95,9 @@ export function useOrderInvoices(id: string, orderStatus: string | undefined, no
     elogoInvoices: elogo.invoices,
     openElogoInvoice: elogo.openInvoice,
     openingElogoInvoiceId: elogo.openingId,
+    elogoLoadFailed: elogo.loadFailed,
+    /** Pull-to-refresh ve "Tekrar Dene" — e-Arşiv listesini yeniden çeker. */
+    refreshElogoInvoices: elogo.refresh,
     sellerInvoice,
     viewSellerInvoice,
     downloadingSellerInvoice,

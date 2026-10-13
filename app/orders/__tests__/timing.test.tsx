@@ -9,8 +9,8 @@
  * - e-Arşiv: taraf başına üç belge listelenir, her biri ayrı açılır.
  */
 import React from 'react';
-import { Linking } from 'react-native';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { Linking, RefreshControl } from 'react-native';
+import { act, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 
 jest.mock('expo-router', () => ({
@@ -281,5 +281,31 @@ describe('A-3.4 · e-Arşiv belgeleri listelenir', () => {
     await screen.findByText('Sipariş #ORD-1001000000');
     expect(invoicesMock).not.toHaveBeenCalled();
     expect(screen.queryByTestId('order-invoice-card')).toBeNull();
+  });
+
+  it('A-3 inceleme #5 · liste yüklenemezse boş sayılmaz: hata satırı + Tekrar Dene', async () => {
+    invoicesMock.mockRejectedValueOnce(new Error('500')).mockResolvedValue({ data: INVOICES });
+    serveOrder();
+    renderWithProviders(<OrderDetailScreen />);
+    expect(await screen.findByTestId('order-invoice-load-failed')).toBeOnTheScreen();
+    expect(screen.getByText('Faturalar yüklenemedi.')).toBeOnTheScreen();
+    fireEvent.press(screen.getByTestId('order-invoice-retry'));
+    expect(await screen.findByText('Platform hizmet bedeli')).toBeOnTheScreen();
+    expect(screen.queryByTestId('order-invoice-load-failed')).toBeNull();
+  });
+
+  it('A-3 inceleme #5 · pull-to-refresh sipariş ile birlikte e-Arşiv listesini de yeniler', async () => {
+    invoicesMock.mockResolvedValue({ data: [] });
+    serveOrder();
+    renderWithProviders(<OrderDetailScreen />);
+    await waitFor(() => expect(invoicesMock).toHaveBeenCalledTimes(1));
+    invoicesMock.mockResolvedValue({ data: INVOICES });
+    const ordersBefore = getMock.mock.calls.filter(([url]) => url === '/orders/order-1').length;
+    await act(async () => {
+      await screen.UNSAFE_getByType(RefreshControl).props.onRefresh();
+    });
+    expect(invoicesMock).toHaveBeenCalledTimes(2);
+    expect(getMock.mock.calls.filter(([url]) => url === '/orders/order-1').length).toBe(ordersBefore + 1);
+    expect(await screen.findByText('Platform hizmet bedeli')).toBeOnTheScreen();
   });
 });

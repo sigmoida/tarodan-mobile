@@ -1211,6 +1211,7 @@
     "heldForRefund": "On hold for a refund",
     "cancelledRefundNotice": "This order was cancelled. Your payment has been refunded; it may take a few business days to appear on your bank statement.",
     "invoiceOpenFailed": "The invoice could not be opened",
+    "invoiceListLoadFailed": "Invoices could not be loaded.",
     "invoiceUploadFailed": "The invoice could not be uploaded.",
     "fileTooLarge": "File is too large (10 MB maximum).",
     "orderCancelFailed": "The order could not be cancelled.",

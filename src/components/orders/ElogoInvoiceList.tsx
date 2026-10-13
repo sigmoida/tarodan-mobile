@@ -10,22 +10,48 @@ const { colors, radius } = theme;
 /**
  * e-Arşiv belgeleri — HER HİZMET İÇİN AYRI belge kesilir (komisyon, hizmet
  * bedeli, kargo payı), bu yüzden kart tek değil listedir (web
- * `InvoicesSection`). Belge yoksa hiçbir şey çizmez.
+ * `InvoicesSection`). Belge yoksa hiçbir şey çizmez; liste yüklenemediyse
+ * hata satırı ve "Tekrar Dene" çizer.
  */
 export function ElogoInvoiceList({
   invoices,
   onOpen,
   openingId,
+  loadFailed = false,
+  onRetry,
   style,
 }: {
   invoices: ElogoInvoice[];
   onOpen: (invoiceId: string) => void;
   /** Açılmakta olan belge — yalnız o satırın düğmesi bekler. */
   openingId: string | null;
+  /** Liste yüklenemedi → hata satırı + "Tekrar Dene" (boş liste ile karışmaz). */
+  loadFailed?: boolean;
+  onRetry?: () => void;
   /** Ekranın kart stiline uydurmak için (ör. satış detayı `gap` kullanır). */
   style?: StyleProp<ViewStyle>;
 }) {
   const { t } = useTranslation();
+  if (loadFailed && invoices.length === 0) {
+    return (
+      <Card variant="elevated" style={[styles.card, style]} testID="order-invoice-card">
+        <Text variant="label" style={styles.sectionTitle}>{t('order.invoice')}</Text>
+        <View style={styles.row} testID="order-invoice-load-failed">
+          <Ionicons name="alert-circle-outline" size={20} color={colors.danger[600]!} />
+          <Text style={styles.rowBody}>{t('order.invoiceListLoadFailed')}</Text>
+          {onRetry ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onPress={onRetry}
+              title={t('common.tryAgain')}
+              testID="order-invoice-retry"
+            />
+          ) : null}
+        </View>
+      </Card>
+    );
+  }
   if (invoices.length === 0) return null;
   return (
     <Card variant="elevated" style={[styles.card, style]} testID="order-invoice-card">
