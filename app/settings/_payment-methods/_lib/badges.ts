@@ -5,18 +5,18 @@ export type CardBadgeTone = 'neutral' | 'primary' | 'success' | 'warning' | 'inf
 export type CardBadge = { key: string; label: string; tone: CardBadgeTone };
 
 /**
- * Kayıtlı kart rozetleri — tek kaynak.
+ * Kayıtlı kart rozetleri — tek kaynak. Web `SavedCardCard` ile birebir:
+ * şema, varsayılan, `autoRenewEligible ? "Oto-yenilemeye uygun" : "CVV gerektirir"`,
+ * kurumsal. Amaç (mağaza) rozeti yok — web'de de yok.
  *
- * API delta 20 (P2): kartın mağazası (`purpose`: "Sepet" / "Üyelik") gösterilir —
- * sepet ödemesinde yalnız sepet kartları, üyelikte yalnız üyelik kartları çıkar;
- * rozet kullanıcıya hangi kartın nerede kullanılacağını söyler.
+ * Web'in bu kuralı mağaza ayrımıyla tutarsız: `autoRenewEligible` yalnız üyelik
+ * kartında `true` (`membership && !requireCvv`), bu yüzden CVV istemeyen sepet
+ * kartı da "CVV gerektirir" görünür. Mobil yine de web'i kopyalar (kullanıcı
+ * kuralı); düzeltme web/sunucu önerisi olarak handoff'ta.
  *
- * `autoRenewEligible` artık yalnız üyelik kartında `true` (`membership && !requireCvv`).
- * Eskiden "uygun değilse CVV gerektirir" varsayılıyordu; mağaza ayrımıyla bu yanlış
- * (CVV istemeyen sepet kartı "CVV gerektirir" görünürdü) → CVV rozeti `requireCvv`'den.
- *
- * Oto-yenileme rozeti yalnız dijital satış açıkken (Apple 2.1(b) / Play: satılmayan
- * aboneliğe atıf yok). Amaç rozeti nötr bilgi — satın alma çağrısı değil.
+ * Tek mağaza sapması: "Oto-yenilemeye uygun" yalnız dijital satış açıkken
+ * (Apple 2.1(b) / Play: satılmayan aboneliğe atıf yok). Kapalıyken uygun kartta
+ * o rozet hiç çıkmaz; "CVV gerektirir" kuralı web'le aynı kalır.
  */
 export function savedCardBadges(card: SavedCard, t: TFunction, canBuyDigital: boolean): CardBadge[] {
   const badges: CardBadge[] = [];
@@ -24,15 +24,13 @@ export function savedCardBadges(card: SavedCard, t: TFunction, canBuyDigital: bo
     badges.push({ key: 'scheme', label: card.cardScheme.toUpperCase(), tone: 'neutral' });
   }
   if (card.isDefault) badges.push({ key: 'default', label: t('payment.defaultCard'), tone: 'primary' });
-  if (card.purpose === 'checkout') {
-    badges.push({ key: 'purpose', label: t('payment.cardPurposeCheckout'), tone: 'info' });
-  } else if (card.purpose === 'membership') {
-    badges.push({ key: 'purpose', label: t('payment.cardPurposeMembership'), tone: 'info' });
+  if (card.autoRenewEligible) {
+    if (canBuyDigital) {
+      badges.push({ key: 'autoRenew', label: t('payment.autoRenewEligibleBadge'), tone: 'success' });
+    }
+  } else {
+    badges.push({ key: 'cvv', label: t('payment.cvvRequiredBadge'), tone: 'warning' });
   }
-  if (canBuyDigital && card.autoRenewEligible) {
-    badges.push({ key: 'autoRenew', label: t('payment.autoRenewEligibleBadge'), tone: 'success' });
-  }
-  if (card.requireCvv) badges.push({ key: 'cvv', label: t('payment.cvvRequiredBadge'), tone: 'warning' });
   if (card.businessCard) badges.push({ key: 'business', label: t('footer.corporate'), tone: 'info' });
   return badges;
 }

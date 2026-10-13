@@ -25,7 +25,7 @@ const { colors } = theme;
  * Kayıtlı Kartlarım (mobil) — web profile/payment-methods paritesi.
  * Kart EKLEME ödeme sırasında ("kartımı kaydet") olur; burada listele + sil.
  * PAN/CVV asla gösterilmez/saklanmaz. Liste amaçsız istenir (iki mağazanın
- * kartları birlikte); her kartın mağazası rozetle gösterilir (API delta 20).
+ * kartları birlikte, web gibi); rozetler web `SavedCardCard` ile aynı.
  */
 
 const buildCardTypeLabels = (t: TFunction): Record<string, string> => ({
@@ -41,7 +41,7 @@ export default function PaymentMethodsScreen() {
 
   const cardsQuery = useQuery({
     queryKey: qk.payments.savedCards,
-    // Amaçsız: iki mağazanın kartları birlikte (rozet hangisi olduğunu söyler).
+    // Amaçsız: iki mağazanın kartları birlikte (web gibi).
     queryFn: async () => unwrapSavedCards((await membershipApi.listCards()).data),
     enabled: isAuthenticated,
   });

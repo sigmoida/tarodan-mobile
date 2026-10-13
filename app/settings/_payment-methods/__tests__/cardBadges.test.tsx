@@ -1,6 +1,7 @@
 /**
- * Kayıtlı Kartlarım — iki mağazanın kartları birlikte listelenir (amaçsız istek),
- * her kartta mağaza rozeti ("Sepet" / "Üyelik") görünür (API delta 20 P2).
+ * Kayıtlı Kartlarım — iki mağazanın kartları birlikte listelenir (amaçsız istek,
+ * web gibi). Rozetler web `SavedCardCard` ile aynı: amaç rozeti yok; uygun kartta
+ * "Oto-yenilemeye uygun", değilse "CVV gerektirir".
  */
 import React from 'react';
 import { screen, waitFor } from '@testing-library/react-native';
@@ -39,16 +40,17 @@ jest.mock('@/stores/authStore', () => ({
 import { membershipApi } from '@/lib/api';
 import PaymentMethodsScreen from '../../payment-methods';
 
-it('kartlar amaçsız istenir ve her kartta mağaza rozeti var', async () => {
+it('kartlar amaçsız istenir; rozetler web ile aynı (amaç rozeti yok)', async () => {
   renderWithProviders(<PaymentMethodsScreen />);
   await waitFor(() => expect(screen.getByText(/1111/)).toBeOnTheScreen());
   expect(membershipApi.listCards).toHaveBeenCalledWith();
 
-  const purposes = screen.getAllByTestId('card-badge-purpose').map((n) => n.props.children);
-  expect(purposes).toEqual(['Sepet', 'Üyelik']);
+  expect(screen.queryAllByTestId('card-badge-purpose')).toHaveLength(0);
+  expect(screen.queryByText('Sepet')).toBeNull();
 
-  // CVV istemeyen sepet kartında "CVV gerektirir" yok; üyelik kartı oto-yenilemeye uygun.
-  expect(screen.queryByText('CVV gerektirir')).toBeNull();
+  // Web kuralı: `autoRenewEligible` değilse "CVV gerektirir" (sepet kartı CVV istemese de).
+  expect(screen.getAllByTestId('card-badge-cvv')).toHaveLength(1);
+  expect(screen.getByTestId('card-badge-cvv').props.children).toBe('CVV gerektirir');
   expect(screen.getAllByTestId('card-badge-autoRenew')).toHaveLength(1);
   expect(screen.getByTestId('card-badge-autoRenew').props.children).toBe('Oto-yenilemeye uygun');
 });
