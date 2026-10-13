@@ -339,6 +339,11 @@ and turns them into **errors**, so write new code warning-free.
   shows the old one struck through.
 - **Status:** colour + label only from the web-identical maps in `src/lib/shared`
   (`status-configs.ts`, `useStatusConfig`). Never a local status map in a screen.
+- **One product card.** Every product tile is `ProductCard` (`@/components/product`; grid + list,
+  mirrors web `ProductCard` at phone width) — never a local card. Lists use `ProductGrid`
+  (skeleton → single empty state → error), sort via `ProductSortModal`, active filters via
+  `ActiveFilterChips`; collection tiles are `CollectionCard` (`@/components/collection`). No favourite
+  heart / "in cart" pill on cards (web has none).
 - **Tap targets ≥ 44pt** — visuals may stay at the web size, close the gap with
   `hitSlop` (Button/IconButton/Chip already do).
 - **Loading:** list and card screens use `Skeleton*` (web-like); a full-screen
