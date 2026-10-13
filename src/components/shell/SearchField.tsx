@@ -1,9 +1,9 @@
 import React from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Text, theme, Icon } from '@/ui';
+import { Text, theme, Icon, GLASS_ICON_BUTTON_SIZE } from '@/ui';
 
-const { colors, spacing, iconSize, controlHeight, radiusRole } = theme;
+const { colors, spacing, iconSize, radius } = theme;
 
 export interface SearchFieldProps {
   onPress: () => void;
@@ -37,14 +37,16 @@ export const SearchField: React.FC<SearchFieldProps> = ({ onPress, placeholder, 
 
 const styles = StyleSheet.create({
   field: {
-    flex: 1,
+    // Yükseklik = cam ikon düğmesi çapı (tek sabit); tam yuvarlak hap. `flex: 1` YOK: sarmalayıcı
+    // yüksekliği içerikten gelir, satır dikey ortalar (flex:1 sütunda barı taşırıyordu).
+    alignSelf: 'stretch',
     minWidth: 0,
-    height: controlHeight.md,
+    height: GLASS_ICON_BUTTON_SIZE,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[2],
     paddingHorizontal: spacing[3],
-    borderRadius: radiusRole.input,
+    borderRadius: radius.full,
     backgroundColor: colors.gray[100],
   },
   placeholder: {

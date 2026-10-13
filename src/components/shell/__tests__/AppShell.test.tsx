@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { ScreenHeader, theme } from '@/ui';
+import { GLASS_ICON_BUTTON_SIZE, ScreenHeader, theme } from '@/ui';
 import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
 import { AppShell, APP_SHELL_BAR_HEIGHT } from '../AppShell';
 import { SideMenuProvider, useSideMenu } from '../SideMenuContext';
@@ -120,6 +120,15 @@ describe('AppShell — tek satır beyaz bar', () => {
     render(<AppShell />);
     const field = StyleSheet.flatten(screen.getByTestId('home-search-input').props.style);
     expect(field.backgroundColor).toBe(theme.colors.gray[100]);
+  });
+
+  it('arama alanı yüksekliği = cam düğme çapı, tam yuvarlak; sarmalayıcı aynı yükseklikte', () => {
+    render(<AppShell />);
+    const field = StyleSheet.flatten(screen.getByTestId('home-search-input').props.style);
+    expect(field.height).toBe(GLASS_ICON_BUTTON_SIZE);
+    expect(field.borderRadius).toBe(theme.radius.full);
+    expect(StyleSheet.flatten(screen.getByTestId('home-search-wrap').props.style).height).toBe(GLASS_ICON_BUTTON_SIZE);
+    expect(GLASS_ICON_BUTTON_SIZE).toBeLessThanOrEqual(APP_SHELL_BAR_HEIGHT);
   });
 });
 
