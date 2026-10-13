@@ -1,6 +1,14 @@
 import {
   colors as baseColors,
+  controlHeight,
+  counterBadgeColor,
+  duration,
+  iconSize,
+  minTouchTarget,
+  nativeShadows,
+  priceColor,
   radius,
+  radiusRole,
   spacing,
   typography,
   type ColorScale,
@@ -41,12 +49,24 @@ const colors = {
 
 /**
  * Native theme — flattened tokens optimised for StyleSheet.
+ *
+ * Rol token'ları (bkz. `src/theme/roles.ts`): `iconSize`, `controlHeight`, `minTouchTarget`,
+ * `radiusRole`, `priceColor`, `counterBadgeColor`; RN gölge preset'leri `shadow`
+ * (`{ ...theme.shadow.soft }`); hareket süreleri `duration` (ms, sayı).
  */
 export const theme = {
   colors,
   radius,
   spacing,
   typography,
+  shadow: nativeShadows,
+  duration,
+  iconSize,
+  controlHeight,
+  minTouchTarget,
+  radiusRole,
+  priceColor,
+  counterBadgeColor,
 } as const;
 
 export type Theme = typeof theme;
