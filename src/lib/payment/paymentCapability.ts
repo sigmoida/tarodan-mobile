@@ -172,6 +172,12 @@ let clearedAt: number | null = null;
  * giriş ve açılış), yoksa `null` (misafir; çıkışta sıfırlanır).
  */
 let account: string | null = null;
+/**
+ * Oturum kuşağı: her giriş, çıkış ve zorunlu çıkışta artar. Giriş temizliği
+ * depo okumasını beklerken oturum değiştiyse (çıkış, başka hesapla giriş) okuma
+ * dönünce hiçbir şey yapmaz — yeni oturumun belirteçlerini silmez.
+ */
+let sessionEpoch = 0;
 
 /**
  * AsyncStorage ilk kullanımda yüklenir. Native modül yoksa paket import anında
@@ -327,6 +333,7 @@ async function storedCapabilityKeys(store: KeyValueStore): Promise<string[]> {
  */
 export function clearAllPaymentCapabilities(): Promise<void> {
   generation += 1;
+  sessionEpoch += 1;
   clearedAt = Date.now();
   memory.clear();
   account = null;
@@ -353,6 +360,7 @@ export function clearAllPaymentCapabilities(): Promise<void> {
  * A'nın belirtecini kullanamaz (sahibi A).
  */
 export function unbindPaymentCapabilityAccount(): void {
+  sessionEpoch += 1;
   account = null;
 }
 
@@ -361,13 +369,18 @@ export function unbindPaymentCapabilityAccount(): void {
  * başka hesapların (ya da sahibi bilinmeyen) belirteçlerini bellek + depodan
  * siler. Misafir (sahipsiz) ve bu hesabın belirteçleri kalır. Kimlik hemen
  * değişir: başlık kuralı (`usableBy`) silme bitmeden de başka hesabın
- * belirtecini eklemez. Hiç fırlatmaz.
+ * belirtecini eklemez. Depo okuması beklenirken oturum değişirse (çıkış, başka
+ * hesapla giriş) okuma dönünce hiçbir şey yapılmaz (`sessionEpoch`). Hiç
+ * fırlatmaz.
  */
 export async function bindPaymentCapabilitiesToAccount(accountId: string | null | undefined): Promise<void> {
   if (!accountId) return;
+  const epoch = ++sessionEpoch;
   account = accountId;
+  // Bellekten düşür (`null` değil: depodaki kayıt silinene dek "yok" sayılmasın;
+  // bu giriş yarıda kalırsa sahibi geri döndüğünde depodan yeniden okunur).
   for (const [paymentId, entry] of memory) {
-    if (entry && !keptForAccount(entry, accountId)) memory.set(paymentId, null);
+    if (entry && !keptForAccount(entry, accountId)) memory.delete(paymentId);
   }
   const store = persistentStorage();
   if (!store) return;
@@ -381,6 +394,8 @@ export async function bindPaymentCapabilitiesToAccount(accountId: string | null 
   } catch {
     return; // okunamadı: başlık kuralı yine başka hesabın belirtecini eklemez
   }
+  // Okuma beklenirken oturum değişti: sonuç eski oturuma ait, dokunma.
+  if (epoch !== sessionEpoch) return;
   try {
     if (stale.length > 0) await store.multiRemove(stale);
   } catch {

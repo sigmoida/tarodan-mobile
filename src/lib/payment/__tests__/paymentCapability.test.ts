@@ -530,3 +530,63 @@ describe('sahiplik: belirteç yalnız alındığı kimliğe eklenir', () => {
     await expect(bindPaymentCapabilitiesToAccount('user-b')).resolves.toBeUndefined();
   });
 });
+
+describe('giriş temizliği yarışı: depo okuması beklenirken oturum değişirse', () => {
+  const remember = (paymentId: string, scope?: { guest?: boolean }) =>
+    rememberPaymentCapability({ data: { paymentId, paymentAccessToken: `cap-${paymentId}` } }, scope);
+  const cap = (paymentId: string) => ({ 'X-Payment-Capability': `cap-${paymentId}` });
+  const stored = async (paymentId: string) =>
+    JSON.parse((await AsyncStorage.getItem(`payment-capability.${paymentId}`)) as string);
+
+  /** Sonraki `multiGet`'i kapı açılana dek bekletir (giriş temizliğinin okuması). */
+  function holdNextMultiGet() {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const realMultiGet = (AsyncStorage.multiGet as jest.Mock).getMockImplementation()!;
+    (AsyncStorage.multiGet as jest.Mock).mockImplementationOnce(async (keys: string[]) => {
+      const rows = await realMultiGet(keys);
+      await gate;
+      return rows;
+    });
+    return release;
+  }
+
+  it('B\'nin okuması sürerken B çıkıp A geri girdi: okuma dönünce A\'nın belirteci silinmez', async () => {
+    await bindPaymentCapabilitiesToAccount('user-a');
+    await remember('pay-a');
+    unbindPaymentCapabilityAccount(); // A zorunlu çıkış
+
+    const release = holdNextMultiGet();
+    const bindB = bindPaymentCapabilitiesToAccount('user-b'); // okuma pay-a'yı (sahibi A) görecek
+    unbindPaymentCapabilityAccount(); // B'nin oturumu da düştü
+    await bindPaymentCapabilitiesToAccount('user-a'); // A geri girdi
+    release();
+    await bindB;
+
+    expect(await stored('pay-a')).toMatchObject({ owner: 'user-a' });
+    expect(await paymentCapabilityHeaders('pay-a')).toEqual(cap('pay-a'));
+  });
+
+  it('okuma sürerken çıkış yapıldı: okuma dönünce kimlik B\'ye geri yazılmaz', async () => {
+    const release = holdNextMultiGet();
+    await remember('guest-old', { guest: true }); // okunacak bir kayıt olsun
+    const bindB = bindPaymentCapabilitiesToAccount('user-b');
+    unbindPaymentCapabilityAccount();
+    release();
+    await bindB;
+
+    await remember('pay-after'); // çıkıştan sonra başlatılan ödeme
+    expect((await stored('pay-after')).owner).toBeNull(); // B adına değil
+  });
+
+  it('okuma sürerken kullanıcı çıkışı (clearAll): okuma dönünce eski okumaya göre bir şey yapılmaz, sonraki misafir belirteci kalır', async () => {
+    await remember('pay-x');
+    const release = holdNextMultiGet();
+    const bindB = bindPaymentCapabilitiesToAccount('user-b');
+    await clearAllPaymentCapabilities();
+    await remember('guest-pay', { guest: true });
+    release();
+    await bindB;
+    expect(await paymentCapabilityHeaders('guest-pay', { guest: true })).toEqual(cap('guest-pay'));
+  });
+});
