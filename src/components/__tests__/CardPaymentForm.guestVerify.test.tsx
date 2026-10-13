@@ -26,20 +26,26 @@ jest.mock('@/lib/api', () => ({
   membershipApi: { listCards: jest.fn(() => Promise.resolve({ data: [] })) },
 }));
 
+/** WebView'in son `onNavigationStateChange`'i: 3DS gezinmesini (banka → PayTR) taklit etmek için. */
+let mockWebViewNav: ((nav: { url: string }) => void) | undefined;
 jest.mock('react-native-webview', () => {
   /* eslint-disable @typescript-eslint/no-var-requires */
   const React = require('react');
   const { View } = require('react-native');
   /* eslint-enable @typescript-eslint/no-var-requires */
   return {
-    WebView: () => React.createElement(View, { testID: 'paytr-webview' }),
+    WebView: (props: { onNavigationStateChange?: (nav: { url: string }) => void }) => {
+      mockWebViewNav = props.onNavigationStateChange;
+      return React.createElement(View, { testID: 'paytr-webview' });
+    },
     WebViewNavigation: {},
   };
 });
 
+import { AppState } from 'react-native';
 import { api, guestApi } from '@/lib/api/client';
 import { __resetPaymentCapabilities, rememberPaymentCapability } from '@/lib/payment/paymentCapability';
-import { __resetVerifyPacer, VERIFY_TIMEOUT_MS } from '@/lib/payment/verifyPacer';
+import { __resetVerifyPacer, VERIFY_DURING_3DS_INTERVAL_MS, VERIFY_TIMEOUT_MS } from '@/lib/payment/verifyPacer';
 import CardPaymentForm from '../CardPaymentForm';
 
 const apiPost = api.post as jest.Mock;
@@ -69,6 +75,21 @@ function fillCardAndSubmit() {
 
 const verifyCalls = () => guestPost.mock.calls.filter(([url]) => url === `/payments/${PAY}/verify`);
 
+/** 3DS: PayTR → banka (ACS) → PayTR. Kullanıcı bankada onayladı, PayTR sonucu işliyor. */
+function bankPageThenBackToPaytr() {
+  mockWebViewNav?.({ url: PAYTR_ACTION });
+  mockWebViewNav?.({ url: 'https://acs.examplebank.com.tr/3ds/challenge' });
+  mockWebViewNav?.({ url: 'https://www.paytr.com/odeme/guvenli/sonuc' });
+}
+
+/** Kullanıcı banka uygulamasından döndü (uygulama arka plandan öne geldi). */
+function backFromBankApp() {
+  const listeners = (AppState.addEventListener as jest.Mock).mock.calls.filter(([event]) => event === 'change');
+  const listener = listeners[listeners.length - 1][1] as (state: string) => void;
+  listener('background');
+  listener('active');
+}
+
 /** Misafir akışında `api` (Bearer ekleyen, 401'de çıkış yaptıran) hiç kullanılmadı. */
 const expectNoAuthenticatedClient = () => {
   expect(apiPost).not.toHaveBeenCalled();
@@ -93,7 +114,7 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-it('misafir 3DS yoklaması: verify başlıkla turun başında arkada başlar (beklenmez), ödendiyse başarı', async () => {
+it('misafir 3DS yoklaması: kullanıcı 3DS\'ten dönünce verify başlıkla turun başında arkada başlar, ödendiyse başarı', async () => {
   jest.useFakeTimers();
   const onSuccess = jest.fn();
   renderWithProviders(
@@ -102,6 +123,7 @@ it('misafir 3DS yoklaması: verify başlıkla turun başında arkada başlar (be
   fillCardAndSubmit();
   await waitFor(() => expect(screen.getByTestId('paytr-webview')).toBeTruthy());
   expect(verifyCalls()).toHaveLength(0);
+  bankPageThenBackToPaytr();
 
   await jest.advanceTimersByTimeAsync(3000);
   await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(PAY));
@@ -148,8 +170,67 @@ it('verify hata verse de (ör. 429) yoklama status-guest ile sürer', async () =
   );
   fillCardAndSubmit();
   await waitFor(() => expect(screen.getByTestId('paytr-webview')).toBeTruthy());
+  backFromBankApp();
 
   await jest.advanceTimersByTimeAsync(3000);
   await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(PAY));
   expect(verifyCalls()).toHaveLength(1);
+});
+
+describe('3DS sürerken verify seyrek, erken faz kullanıcı dönünce başlar', () => {
+  beforeEach(() => {
+    guestGet.mockResolvedValue({ data: { status: 'pending' } });
+  });
+
+  async function open3DS() {
+    jest.useFakeTimers();
+    renderWithProviders(
+      <CardPaymentForm target={{ checkoutGroupId: 'g-1' }} isGuest paymentId={PAY} onSuccess={jest.fn()} />,
+    );
+    fillCardAndSubmit();
+    await waitFor(() => expect(screen.getByTestId('paytr-webview')).toBeTruthy());
+  }
+
+  it('dönüş yokken: durum her 3 sn okunur, verify yalnız 30 sn\'de bir', async () => {
+    await open3DS();
+    await jest.advanceTimersByTimeAsync(VERIFY_DURING_3DS_INTERVAL_MS - 1000);
+    expect(guestGet).toHaveBeenCalledTimes(9);
+    expect(verifyCalls()).toHaveLength(0);
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(verifyCalls()).toHaveLength(1);
+    await jest.advanceTimersByTimeAsync(VERIFY_DURING_3DS_INTERVAL_MS - 3000);
+    expect(verifyCalls()).toHaveLength(1);
+    await jest.advanceTimersByTimeAsync(3000);
+    expect(verifyCalls()).toHaveLength(2);
+  });
+
+  it('WebView bankadan PayTR\'ye dönünce sonraki turlarda verify gider (erken faz)', async () => {
+    await open3DS();
+    await jest.advanceTimersByTimeAsync(12_000);
+    expect(verifyCalls()).toHaveLength(0);
+    bankPageThenBackToPaytr();
+    await jest.advanceTimersByTimeAsync(9000);
+    expect(verifyCalls()).toHaveLength(3); // 15, 18, 21. sn
+  });
+
+  it('yalnız PayTR sayfası (banka sayfası görülmeden) dönüş sayılmaz', async () => {
+    await open3DS();
+    mockWebViewNav?.({ url: PAYTR_ACTION });
+    mockWebViewNav?.({ url: 'https://www.paytr.com/odeme/guvenli/form' });
+    await jest.advanceTimersByTimeAsync(12_000);
+    expect(verifyCalls()).toHaveLength(0);
+  });
+
+  it('banka uygulamasından dönüş (arka plan → ön plan) erken fazı başlatır; inactive → active başlatmaz', async () => {
+    await open3DS();
+    const listeners = (AppState.addEventListener as jest.Mock).mock.calls.filter(([event]) => event === 'change');
+    const listener = listeners[listeners.length - 1][1] as (state: string) => void;
+    listener('inactive'); // ör. bildirim merkezi
+    listener('active');
+    await jest.advanceTimersByTimeAsync(6000);
+    expect(verifyCalls()).toHaveLength(0);
+    backFromBankApp();
+    await jest.advanceTimersByTimeAsync(3000);
+    expect(verifyCalls()).toHaveLength(1);
+  });
 });

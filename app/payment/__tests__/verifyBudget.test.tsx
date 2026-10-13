@@ -43,6 +43,7 @@ jest.mock('react-native-webview', () => {
   };
 });
 
+import { AppState } from 'react-native';
 import { api, guestApi } from '@/lib/api/client';
 import { __resetPaymentCapabilities, rememberPaymentCapability } from '@/lib/payment/paymentCapability';
 import {
@@ -70,6 +71,14 @@ function fillCardAndSubmit() {
   // Mesafeli satış onayı her ödemede zorunlu (A2, web `PaymentReady`).
   fireEvent.press(screen.getByTestId('payment-distance-sales-checkbox'));
   fireEvent.press(screen.getByTestId('card-submit'));
+}
+
+/** Kullanıcı 3DS'ten (banka uygulamasından) döndü: verify'ın erken fazı başlar. */
+function backFromBankApp() {
+  const listeners = (AppState.addEventListener as jest.Mock).mock.calls.filter(([event]) => event === 'change');
+  const listener = listeners[listeners.length - 1][1] as (state: string) => void;
+  listener('background');
+  listener('active');
 }
 
 const maxPerWindow = (times: number[]) =>
@@ -136,6 +145,7 @@ describe.each([
     verifyReply = () => new Promise(() => undefined);
     status = () => 'completed';
     const { onSuccess } = await startPolling();
+    backFromBankApp();
 
     await jest.advanceTimersByTimeAsync(3000);
     await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(PAY));
@@ -149,12 +159,14 @@ describe.each([
     expect(maxPerWindow(verifyAt)).toBeLessThanOrEqual(VERIFY_SERVER_LIMIT_PER_MIN);
   });
 
-  it('kart formu ~57 sn yoklar, ardından başarı ekranı: toplam verify her 60 sn pencerede ≤ sınır', async () => {
+  it('kart formu ~57 sn yoklar (45. sn\'de 3DS\'ten döner), ardından başarı ekranı: toplam verify her 60 sn pencerede ≤ sınır', async () => {
     const { onSuccess, start } = await startPolling();
     // Ödeme 57. sn'de kesinleşir (kart formu bunu görür); başarı ekranı yine de
     // durum "pending" okuyup 5 deneme yapar — en kötü durum.
     status = () => (Date.now() - start >= 57_000 && !onSuccess.mock.calls.length ? 'completed' : 'pending');
-    await jest.advanceTimersByTimeAsync(57_000);
+    await jest.advanceTimersByTimeAsync(45_000);
+    backFromBankApp();
+    await jest.advanceTimersByTimeAsync(12_000);
     await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(PAY));
     screen.unmount();
 
@@ -163,6 +175,22 @@ describe.each([
     await jest.advanceTimersByTimeAsync(30_000);
 
     expect(verifyAt.length).toBeGreaterThan(6); // başarı ekranı da verify gönderdi
+    expect(maxPerWindow(verifyAt)).toBeLessThanOrEqual(VERIFY_SERVER_LIMIT_PER_MIN);
+  });
+
+  it('3DS 57 sn sürer (dönüş algılanmadı): kart formu seyrek, başarı ekranının 5 verify\'ı bütçeden tam karşılanır', async () => {
+    const { onSuccess, start } = await startPolling();
+    status = () => (Date.now() - start >= 57_000 && !onSuccess.mock.calls.length ? 'completed' : 'pending');
+    await jest.advanceTimersByTimeAsync(57_000);
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(PAY));
+    expect(verifyAt.map((t) => (t - start) / 1000)).toEqual([30]); // 3DS sürerken 30 sn'de bir
+    screen.unmount();
+
+    mockParams = { paymentId: PAY, ...(isGuest ? { guest: '1' } : {}) };
+    renderWithProviders(<PaymentSuccessScreen />);
+    await jest.advanceTimersByTimeAsync(30_000);
+
+    expect(verifyAt).toHaveLength(1 + 5); // başarı ekranı 5 denemenin hepsinde verify gönderebildi
     expect(maxPerWindow(verifyAt)).toBeLessThanOrEqual(VERIFY_SERVER_LIMIT_PER_MIN);
   });
 });

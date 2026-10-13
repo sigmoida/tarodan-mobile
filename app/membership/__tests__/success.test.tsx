@@ -29,6 +29,8 @@ jest.mock('@/lib/api', () => ({
   paymentsApi: { verify: jest.fn().mockResolvedValue({ data: { completed: true } }) },
 }));
 
+import { paymentsApi } from '@/lib/api';
+import { __resetVerifyPacer, requestVerify, VERIFY_BUDGET_PER_MIN, VERIFY_TIMEOUT_MS } from '@/lib/payment/verifyPacer';
 import MembershipSuccessScreen from '../success';
 
 describe('J14 · üyelik başarı ekranı (membership/success)', () => {
@@ -36,6 +38,7 @@ describe('J14 · üyelik başarı ekranı (membership/success)', () => {
     resetRouterMocks();
     mockRefreshUserData.mockClear();
     mockParams = {};
+    __resetVerifyPacer();
   });
 
   it('J14.S1 tier=business → "İş" gösterir, "Premium" yazmaz', async () => {
@@ -68,5 +71,38 @@ describe('J14 · üyelik başarı ekranı (membership/success)', () => {
     await waitFor(() =>
       expect(screen.getByText(/Premium üyeliğiniz başarıyla aktifleştirildi/)).toBeOnTheScreen(),
     );
+  });
+});
+
+describe('J14.V · üyelik başarı ekranı verify\'ı pacer\'dan gönderir (ortak bütçe)', () => {
+  const verify = paymentsApi.verify as jest.Mock;
+
+  beforeEach(() => {
+    resetRouterMocks();
+    mockRefreshUserData.mockClear();
+    __resetVerifyPacer();
+    verify.mockReset().mockResolvedValue({ data: { completed: true } });
+    mockParams = { tier: 'premium', paymentId: 'pay1' };
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('J14.V1 verify zaman aşımıyla (pacer) gider; tamamlandıysa döngü durur', async () => {
+    renderWithProviders(<MembershipSuccessScreen />);
+    await waitFor(() => expect(mockRefreshUserData).toHaveBeenCalled());
+    expect(verify).toHaveBeenCalledTimes(1);
+    expect(verify).toHaveBeenCalledWith('pay1', { timeout: VERIFY_TIMEOUT_MS });
+  });
+
+  it('J14.V2 bütçe doluysa (kart ödemesi harcadı) verify gönderilmez, ekran yine tazelenir', async () => {
+    jest.useFakeTimers();
+    for (let i = 0; i < VERIFY_BUDGET_PER_MIN; i++) void requestVerify(`card-${i}`);
+    verify.mockClear();
+    renderWithProviders(<MembershipSuccessScreen />);
+    await jest.advanceTimersByTimeAsync(6000); // 5 tur × 1,2 sn
+    expect(verify).not.toHaveBeenCalled();
+    expect(mockRefreshUserData).toHaveBeenCalled();
   });
 });

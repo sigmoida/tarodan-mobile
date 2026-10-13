@@ -108,6 +108,26 @@ describe('J74 · Ödeme başarısız navigasyon wiring', () => {
     expect(screen.queryByText('Sipariş Detayına Git')).toBeNull();
   });
 
+  it('J74.5 misafir: "Tekrar Dene" yok (retry JWT ister), web gibi "İlanlara Dön" → /listings', async () => {
+    mockParams = { paymentId: 'pay-1', guest: '1' };
+    (paymentsApi.getStatusLightGuest as jest.Mock).mockResolvedValue({
+      data: { data: infoFixture() },
+    });
+    renderWithProviders(<PaymentFailScreen />);
+    fireEvent.press(await screen.findByText('İlanlara Dön'));
+    expect(replaceMock).toHaveBeenCalledWith('/listings');
+    expect(screen.queryByText('Tekrar Dene')).toBeNull();
+    expect(screen.getByText('Ana Sayfaya Dön')).toBeOnTheScreen();
+    expect(retryMock).not.toHaveBeenCalled();
+  });
+
+  it('J74.6 üye: "İlanlara Dön" yok, "Tekrar Dene" var', async () => {
+    getStatusMock.mockResolvedValue({ data: { data: infoFixture() } });
+    renderWithProviders(<PaymentFailScreen />);
+    expect(await screen.findByText('Tekrar Dene')).toBeOnTheScreen();
+    expect(screen.queryByText('İlanlara Dön')).toBeNull();
+  });
+
   it('J74.4 misafir: confirm-failed guestApi yolundan (confirmFailedGuest), sonra status-guest', async () => {
     mockParams = { paymentId: 'pay-1', guest: '1' };
     (paymentsApi.getStatusLightGuest as jest.Mock).mockResolvedValue({

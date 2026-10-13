@@ -22,14 +22,19 @@
  * ya da hata verirse yalnız bellek kopyası kullanılır (akış aynı süreçte yine
  * tamamlanır).
  *
- * Temizlik: ödeme kesinleşince (başarılı, başarısız, iptal) kayıt silinir
- * (`forgetPaymentCapabilityIfFinal`, sonuç ekranları + iptal). Çıkışta tüm
- * `payment-capability.*` kayıtları silinir (`clearAllPaymentCapabilities`,
- * `resetUserStores`): ortak cihazda A'nın belirteci B'nin oturumunda kalmaz.
- * Açılışta süresi dolmuş kayıtlar süpürülür (`sweepExpiredPaymentCapabilities`).
+ * Temizlik: ödeme kesinleşince (ödendi, iade, iptal) kayıt silinir
+ * (`forgetPaymentCapabilityIfFinal`, sonuç ekranları + iptal). `failed` kesin
+ * değil: "Tekrar Dene" aynı ödemeyi aynı belirteçle yeniden açar. Kullanıcının
+ * KENDİ çıkışında tüm `payment-capability.*` kayıtları silinir
+ * (`clearAllPaymentCapabilities`, `resetUserStores('user')`): ortak cihazda A'nın
+ * belirteci B'nin oturumunda kalmaz. Zorunlu çıkışta (401) silinmez — süren
+ * ödeme (3DS) belirteciyle sonuçlanabilsin; başka bir hesapla girişte silinir
+ * (`bindPaymentCapabilitiesToAccount`). Açılışta süresi dolmuş kayıtlar
+ * süpürülür (`sweepExpiredPaymentCapabilities`).
  */
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
+import { isFinalPaymentStatus } from './status';
 
 /**
  * Yedek ömür: JWT `exp` okunamazsa. Sunucudaki ömürle aynı
@@ -54,6 +59,11 @@ export const CLOCK_ROLLBACK_TOLERANCE_MS = 60_000;
 /** AsyncStorage anahtarı — web `sessionStorage` anahtarıyla aynı. */
 const KEY_PREFIX = 'payment-capability.';
 const storageKey = (paymentId: string) => `${KEY_PREFIX}${paymentId}`;
+/**
+ * Saklı belirteçlerin ait olduğu hesap. Önek dışında (`-owner`): süpürme ve
+ * belirteç taraması bu anahtarı belirteç sanmaz.
+ */
+const OWNER_KEY = 'payment-capability-owner';
 
 /** `storedAt`: kayıt anı (cihaz saati); saat geri alınmasını yakalamak için. */
 type Entry = { token: string; expiresAt: number; storedAt?: number };
@@ -150,6 +160,8 @@ let clearing: Promise<void> | null = null;
  * yazılmış kayıt bu süreçte belleğe yüklenmez.
  */
 let clearedAt: number | null = null;
+/** Belirteçlerin hesabı (bellek kopyası). `undefined` = bu süreçte depodan okunmadı. */
+let owner: string | null | undefined;
 
 /**
  * AsyncStorage ilk kullanımda yüklenir. Native modül yoksa paket import anında
@@ -248,7 +260,7 @@ export async function rememberPaymentCapability(response: unknown): Promise<void
   }
 }
 
-/** Ödeme kesinleşti (başarılı, başarısız, iptal): bu ödemenin kaydını sil. Hiç fırlatmaz. */
+/** Ödeme kesinleşti (ödendi, iade, iptal): bu ödemenin kaydını sil. Hiç fırlatmaz. */
 export async function forgetPaymentCapability(paymentId: string | undefined | null): Promise<void> {
   if (!paymentId) return;
   memory.set(paymentId, null);
@@ -256,22 +268,16 @@ export async function forgetPaymentCapability(paymentId: string | undefined | nu
 }
 
 /**
- * Kesin sonuçlar: sunucu `PaymentStatus` (`completed`, `failed`, `refunded`; iptal
- * de `failed` yazar) + istemcinin bildiği eş adlar (`paid`, `success`,
- * `hold_payment`, `cancelled`). `pending`/`processing` kesin değil.
- */
-const FINAL_STATUSES = new Set(['completed', 'paid', 'success', 'hold_payment', 'failed', 'refunded', 'cancelled']);
-
-/**
- * Sonuç ekranları durumu okuduktan SONRA çağırır: durum kesinse kaydı siler,
- * değilse dokunmaz. Kart formu çağırmaz: belirteç başarı/başarısız ekranının
- * durum okuması ve confirm-failed için hâlâ gerekli. Hiç fırlatmaz.
+ * Sonuç ekranları durumu okuduktan SONRA çağırır: durum kesinse
+ * (`FINAL_PAYMENT_STATUSES`, `./status`) kaydı siler, değilse dokunmaz. Kart
+ * formu çağırmaz: belirteç başarı/başarısız ekranının durum okuması ve
+ * confirm-failed için hâlâ gerekli. Hiç fırlatmaz.
  */
 export async function forgetPaymentCapabilityIfFinal(
   paymentId: string | undefined | null,
   status: unknown,
 ): Promise<void> {
-  if (typeof status === 'string' && FINAL_STATUSES.has(status)) await forgetPaymentCapability(paymentId);
+  if (isFinalPaymentStatus(status)) await forgetPaymentCapability(paymentId);
 }
 
 async function storedCapabilityKeys(store: KeyValueStore): Promise<string[]> {
@@ -279,21 +285,23 @@ async function storedCapabilityKeys(store: KeyValueStore): Promise<string[]> {
 }
 
 /**
- * Çıkış: tüm `payment-capability.*` kayıtlarını sil. Ortak cihazda A'nın
- * belirteci B'nin oturumunda kalmasın. Bellek senkron temizlenir (çağıran
- * beklemese de sonraki istek başlıksız gider); depo silinene kadar depodan
- * okuma yapılmaz. Hiç fırlatmaz.
+ * Kullanıcının kendi çıkışı ya da hesap değişimi: tüm `payment-capability.*`
+ * kayıtlarını (ve hesap işaretini) sil. Ortak cihazda A'nın belirteci B'nin
+ * oturumunda kalmasın. Bellek senkron temizlenir (çağıran beklemese de sonraki
+ * istek başlıksız gider); depo silinene kadar depodan okuma yapılmaz. Hiç
+ * fırlatmaz.
  */
 export function clearAllPaymentCapabilities(): Promise<void> {
   generation += 1;
   clearedAt = Date.now();
   memory.clear();
+  owner = null;
   const store = persistentStorage();
   if (!store) return Promise.resolve();
   const run = (async () => {
     try {
       const keys = await storedCapabilityKeys(store);
-      if (keys.length > 0) await store.multiRemove(keys);
+      await store.multiRemove([...keys, OWNER_KEY]);
     } catch {
       /* silinemedi: okunduğunda süresi dolan yine yok sayılır; sonraki açılış süpürür */
     }
@@ -303,6 +311,37 @@ export function clearAllPaymentCapabilities(): Promise<void> {
   });
   clearing = done;
   return done;
+}
+
+/**
+ * Girişte (ve açılışta oturum yüklenince) çağrılır: saklı belirteçler başka bir
+ * hesaba aitse hepsini sil, sonra bu hesabı işaretle.
+ *
+ * Neden: zorunlu çıkış (401) belirteçleri silmez — 3DS sürerken başka bir
+ * isteğin 401'i süren ödemeyi düşürmesin; aynı kullanıcı yeniden girince
+ * ödeme belirteciyle sonuçlanır. Ama ortak cihazda başka biri girerse önceki
+ * hesabın belirteçleri onun oturumunda kalmamalı. İşaret yoksa (kullanıcı
+ * kendi çıkışını yaptı ya da hiç giriş olmadı) mevcut kayıtlar misafir
+ * akışındandır ve dokunulmaz. Hiç fırlatmaz.
+ */
+export async function bindPaymentCapabilitiesToAccount(accountId: string | null | undefined): Promise<void> {
+  if (!accountId) return;
+  const store = persistentStorage();
+  let previous = owner;
+  if (previous === undefined) {
+    try {
+      previous = (await store?.getItem(OWNER_KEY)) ?? null;
+    } catch {
+      previous = null;
+    }
+  }
+  if (previous && previous !== accountId) await clearAllPaymentCapabilities();
+  owner = accountId;
+  try {
+    await store?.setItem(OWNER_KEY, accountId);
+  } catch {
+    /* yazılamadı: bu süreçte bellek kopyası yeter */
+  }
 }
 
 /**
@@ -384,4 +423,5 @@ export function __resetPaymentCapabilities(): void {
   storage = undefined;
   clearing = null;
   clearedAt = null;
+  owner = undefined;
 }

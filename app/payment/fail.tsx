@@ -44,6 +44,7 @@ export default function PaymentFailScreen() {
   const [loading, setLoading] = useState(true);
   const [info, setInfo] = useState<PaymentInfo | null>(null);
   const [retrying, setRetrying] = useState(false);
+  const isGuest = guest === '1';
 
   useEffect(() => {
     const load = async () => {
@@ -70,8 +71,10 @@ export default function PaymentFailScreen() {
     load();
   }, [paymentId, guest]);
 
+  // Yalnız üye: `POST /payments/:id/retry` JwtAuthGuard'lı ve `api`'den gider.
+  // Misafir 401 → çıkış + login ekranına düşerdi; misafire düğme gösterilmez.
   const handleRetry = async () => {
-    if (!paymentId) return;
+    if (!paymentId || isGuest) return;
     try {
       setRetrying(true);
       await paymentsApi.retry(paymentId);
@@ -111,15 +114,26 @@ export default function PaymentFailScreen() {
         </View>
 
         <View style={styles.actions}>
-          <Button
-            variant="primary"
-            title={t('payment.retry')}
-            fullWidth
-            onPress={handleRetry}
-            isLoading={retrying}
-            disabled={retrying || !paymentId}
-            style={styles.btn}
-          />
+          {isGuest ? (
+            // Web misafir başarısız akışı (`PaymentFailClient`): yalnız "İlanlara Dön".
+            <Button
+              variant="primary"
+              title={t('seller.backToListings')}
+              fullWidth
+              onPress={() => router.replace('/listings')}
+              style={styles.btn}
+            />
+          ) : (
+            <Button
+              variant="primary"
+              title={t('payment.retry')}
+              fullWidth
+              onPress={handleRetry}
+              isLoading={retrying}
+              disabled={retrying || !paymentId}
+              style={styles.btn}
+            />
+          )}
           {tradeId ? (
             <Button
               variant="outline"
@@ -128,7 +142,7 @@ export default function PaymentFailScreen() {
               onPress={() => router.replace(`/trade/${tradeId}` as any)}
               style={styles.btn}
             />
-          ) : orderId && guest !== '1' ? (
+          ) : orderId && !isGuest ? (
             <Button
               variant="outline"
               title={t('payment.goToOrderDetail')}

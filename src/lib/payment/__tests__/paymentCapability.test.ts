@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AxiosInstance } from 'axios';
 import {
   __resetPaymentCapabilities,
+  bindPaymentCapabilitiesToAccount,
   capabilityLifetimeMs,
   clearAllPaymentCapabilities,
   CLOCK_ROLLBACK_TOLERANCE_MS,
@@ -319,7 +320,7 @@ describe('temizlik: kesin sonuç, çıkış, açılış süpürmesi', () => {
     expect(await paymentCapabilityHeaders(PAY)).toEqual({});
   });
 
-  it.each(['completed', 'paid', 'success', 'hold_payment', 'failed', 'refunded', 'cancelled'])(
+  it.each(['completed', 'paid', 'success', 'hold_payment', 'refunded', 'cancelled'])(
     'kesin durum (%s) → kayıt silinir',
     async (status) => {
       await remember(PAY);
@@ -329,7 +330,8 @@ describe('temizlik: kesin sonuç, çıkış, açılış süpürmesi', () => {
     },
   );
 
-  it.each([['pending'], ['processing'], [undefined], [null]])('kesin olmayan durum (%s) → kayıt kalır', async (status) => {
+  // failed kesin değil: retry aynı ödemeyi failed → pending yapar, yeni belirteç vermez.
+  it.each([['pending'], ['processing'], ['failed'], [undefined], [null]])('kesin olmayan durum (%s) → kayıt kalır', async (status) => {
     await remember(PAY);
     await forgetPaymentCapabilityIfFinal(PAY, status);
     expect(await paymentCapabilityHeaders(PAY)).toEqual(CAP);
@@ -417,5 +419,59 @@ describe('temizlik: kesin sonuç, çıkış, açılış süpürmesi', () => {
     await expect(clearAllPaymentCapabilities()).resolves.toBeUndefined();
     // Depodan silinemese de bu süreçte çıkıştan önceki kayıt geri yüklenmez.
     expect(await paymentCapabilityHeaders(PAY)).toEqual({});
+  });
+});
+
+describe('hesap değişimi (bindPaymentCapabilitiesToAccount)', () => {
+  const remember = (paymentId: string, token = 'cap-token') =>
+    rememberPaymentCapability({ data: { paymentId, paymentAccessToken: token } });
+  const OWNER = 'payment-capability-owner';
+
+  it('işaret yokken (misafir akışı / önceki sürüm): kayıtlara dokunmaz, hesabı işaretler', async () => {
+    await remember(PAY);
+    await bindPaymentCapabilitiesToAccount('user-a');
+    expect(await paymentCapabilityHeaders(PAY)).toEqual(CAP);
+    expect(await AsyncStorage.getItem(OWNER)).toBe('user-a');
+  });
+
+  it('aynı hesap yeniden girer (zorunlu çıkış sonrası): belirteç kalır', async () => {
+    await bindPaymentCapabilitiesToAccount('user-a');
+    await remember(PAY);
+    await bindPaymentCapabilitiesToAccount('user-a');
+    expect(await paymentCapabilityHeaders(PAY)).toEqual(CAP);
+  });
+
+  it('başka hesap girer: önceki hesabın belirteçleri (bellek + depo) silinir, yeni hesap işaretlenir', async () => {
+    await bindPaymentCapabilitiesToAccount('user-a');
+    await remember('pay-a');
+    await bindPaymentCapabilitiesToAccount('user-b');
+    expect(await paymentCapabilityHeaders('pay-a')).toEqual({});
+    expect(await AsyncStorage.getItem('payment-capability.pay-a')).toBeNull();
+    expect(await AsyncStorage.getItem(OWNER)).toBe('user-b');
+  });
+
+  it('işaret depodan okunur: yeniden başlatmadan sonra başka hesap girse de silinir', async () => {
+    await bindPaymentCapabilitiesToAccount('user-a');
+    await remember('pay-a');
+    restartApp();
+    await bindPaymentCapabilitiesToAccount('user-b');
+    expect(await paymentCapabilityHeaders('pay-a')).toEqual({});
+  });
+
+  it('kullanıcının kendi çıkışı (clearAll) işareti de siler: sonraki misafir belirteci girişte kalır', async () => {
+    await bindPaymentCapabilitiesToAccount('user-a');
+    await clearAllPaymentCapabilities();
+    expect(await AsyncStorage.getItem(OWNER)).toBeNull();
+    await remember('guest-pay'); // çıkıştan sonra misafir ödemesi
+    await bindPaymentCapabilitiesToAccount('user-b');
+    expect(await paymentCapabilityHeaders('guest-pay')).toEqual(CAP);
+  });
+
+  it('boş hesap id\'si yok sayılır; depo hataları fırlatmaz', async () => {
+    await expect(bindPaymentCapabilitiesToAccount(undefined)).resolves.toBeUndefined();
+    expect(await AsyncStorage.getItem(OWNER)).toBeNull();
+    (AsyncStorage.getItem as jest.Mock).mockRejectedValueOnce(new Error('io'));
+    (AsyncStorage.setItem as jest.Mock).mockRejectedValueOnce(new Error('io'));
+    await expect(bindPaymentCapabilitiesToAccount('user-a')).resolves.toBeUndefined();
   });
 });

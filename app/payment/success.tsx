@@ -8,8 +8,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { paymentsApi } from '@/lib/api';
-import { pendingVerify, requestVerify } from '@/lib/payment/verifyPacer';
+import { requestVerify } from '@/lib/payment/verifyPacer';
 import { forgetPaymentCapabilityIfFinal } from '@/lib/payment/paymentCapability';
+import { isFailedPaymentStatus, isPaidPaymentStatus } from '@/lib/payment/status';
 import { formatPrice } from '@/utils/format';
 import { styles } from './_success/_lib/styles';
 
@@ -24,10 +25,6 @@ const buildStatusLabels = (t: TFunction): Record<string, string> => ({
   pending: t('common.pending'),
   processing: t('payment.statusProcessing'),
 });
-
-/** Ödeme kesinleşti mi (gerçekten ödendi). Hem polling'de hem render'da kullanılır. */
-const isTerminal = (s?: string) =>
-  s === 'paid' || s === 'completed' || s === 'success' || s === 'hold_payment';
 
 interface PaymentInfo {
   id: string;
@@ -89,26 +86,41 @@ export default function PaymentSuccessScreen() {
       // verify arkada gider, durum okuması onu beklemez. Çağrılar kart formu
       // yoklamasıyla AYNI bütçeden düşer (sunucu dakikada 10 verify; `verifyPacer`):
       // bütçe doluysa verify atlanır, durum okuması sürer. Misafir `guestApi`'den.
+      // Her turda önce durum okunur: ödendi ya da başarısızsa verify GÖNDERİLMEZ
+      // (başarısız ödemede verify bir şey değiştirmez, bütçe boşa gitmesin).
       const verifyOptions = { guest: guest === '1' };
       let last: PaymentInfo | null = null;
+      // Döngünün gönderdiği son verify'ın sözü + herhangi biri ödemeyi tamamladı mı.
+      // Uçuş kaydına (`pendingVerify`) güvenilmez: verify son durum okuması sürerken
+      // biterse kayıt düşer ve "tamamlandı" sonucu kaybolurdu.
+      let lastVerify: Promise<boolean> | null = null;
+      let verifyCompleted = false;
       for (let attempt = 0; attempt < 5 && !cancelled; attempt++) {
-        // Idempotent & public: zaten completed ise no-op.
-        void requestVerify(paymentId, verifyOptions);
         try {
           const data = await fetchStatus();
           last = data;
           if (!cancelled) setInfo(data);
-          if (isTerminal(data?.status)) break;
+          if (isPaidPaymentStatus(data?.status) || isFailedPaymentStatus(data?.status)) break;
         } catch {
-          // Sessiz — success sayfasında hata kritik değil
+          // Sessiz — success sayfasında hata kritik değil (durum bilinmiyor: verify gider)
         }
-        if (attempt < 4 && !cancelled) {
+        if (cancelled) break;
+        // Idempotent & public: zaten completed ise no-op.
+        const verifying = requestVerify(paymentId, verifyOptions);
+        lastVerify = verifying;
+        void verifying.then((completed) => {
+          if (completed) verifyCompleted = true;
+        });
+        if (attempt < 4) {
           await new Promise(resolve => setTimeout(resolve, 1500));
         }
       }
-      // Yavaş verify: döngü kesinleşmeden bittiyse uçuştaki verify'ı (en fazla
-      // zaman aşımı kadar) bekle; ödemeyi tamamladıysa durumu bir kez daha oku.
-      if (!cancelled && !isTerminal(last?.status) && (await pendingVerify(paymentId)) && !cancelled) {
+      // Geç verify: döngü kesinleşmeden bittiyse son verify'ı (en fazla zaman aşımı
+      // kadar) bekle. Bir verify ödemeyi tamamladıysa, son durum okumasından SONRA
+      // bitmiş olsa bile durumu bir kez daha oku.
+      const open = !isPaidPaymentStatus(last?.status) && !isFailedPaymentStatus(last?.status);
+      const completedLate = !cancelled && open && lastVerify ? (await lastVerify) || verifyCompleted : false;
+      if (completedLate && !cancelled) {
         try {
           last = await fetchStatus();
           if (!cancelled) setInfo(last);
@@ -140,7 +152,7 @@ export default function PaymentSuccessScreen() {
   const checkoutGroupId = groupId || info?.checkoutGroupId;
   // Başarı UI'ı yalnız ödeme GERÇEKTEN tamamlandıysa (verify/durum-sorgu) gösterilir;
   // aksi halde "doğrulanıyor" — sahte başarı basmayız (PayTR henüz kesinleştirmemiş olabilir).
-  const isCompleted = isTerminal(info?.status);
+  const isCompleted = isPaidPaymentStatus(info?.status);
 
   return (
     <SafeAreaView style={styles.container}>

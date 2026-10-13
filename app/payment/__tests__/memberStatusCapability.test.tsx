@@ -15,7 +15,7 @@
  * Gerçek `paymentsApi` + mock'lu axios: belirtecin tel üzerinde gittiği doğrulanır.
  */
 import React from 'react';
-import { screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 
 jest.mock('expo-router', () => ({
@@ -31,6 +31,8 @@ jest.mock('@/lib/api', () => ({
 }));
 
 import { api } from '@/lib/api/client';
+import { paymentsApi } from '@/lib/api';
+import { router } from 'expo-router';
 import {
   __resetPaymentCapabilities,
   paymentCapabilityHeaders,
@@ -105,12 +107,37 @@ describe('kesin sonuçta yetki belirteci kaydı silinir', () => {
     expect(await paymentCapabilityHeaders('pay-1')).toEqual(CAP);
   });
 
-  it('başarısız ekranı: confirm-failed ve durum okunduktan SONRA kayıt silinir', async () => {
+  it('başarısız ekranı: failed kesin DEĞİL → confirm-failed ve durum okunduktan sonra kayıt KALIR', async () => {
     sessionDropped('failed');
     renderWithProviders(<PaymentFailScreen />);
-    await waitFor(async () => expect(await paymentCapabilityHeaders('pay-1')).toEqual({}));
-    // Silinmeden önce iki istek de belirteci taşıdı.
+    expect(await screen.findByText('Tekrar Dene')).toBeOnTheScreen();
+    await waitFor(() => expect(apiGet).toHaveBeenCalledWith('/payments/pay-1/status', { headers: CAP }));
     expect(apiPost).toHaveBeenCalledWith('/payments/pay-1/confirm-failed', {}, { headers: CAP });
+    expect(await paymentCapabilityHeaders('pay-1')).toEqual(CAP);
+  });
+
+  it('başarısız ekranı → Tekrar Dene → aynı paymentId ile ikinci deneme belirteci taşır', async () => {
+    // Sunucu `retryPayment` aynı satırı failed → pending yapar, yeni belirteç vermez.
+    sessionDropped('failed');
+    renderWithProviders(<PaymentFailScreen />);
+    fireEvent.press(await screen.findByText('Tekrar Dene'));
+    await waitFor(() =>
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({ pathname: '/payment/[id]', params: expect.objectContaining({ id: 'pay-1' }) }),
+      ),
+    );
+    expect(apiPost).toHaveBeenCalledWith('/payments/pay-1/retry');
+
+    // Kart formunun ikinci denemesi: direct-form ve durum okuması aynı belirteçle.
+    apiPost.mockClear();
+    apiGet.mockClear();
+    await paymentsApi.directForm({ orderId: 'order-1', paymentId: 'pay-1' });
+    await paymentsApi.getStatusLight('pay-1');
+    expect(apiPost).toHaveBeenCalledWith(
+      '/payments/direct-form',
+      { orderId: 'order-1', paymentId: 'pay-1' },
+      { headers: CAP },
+    );
     expect(apiGet).toHaveBeenCalledWith('/payments/pay-1/status', { headers: CAP });
   });
 });

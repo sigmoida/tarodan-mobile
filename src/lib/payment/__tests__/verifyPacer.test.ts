@@ -16,6 +16,7 @@ import {
   pendingVerify,
   requestVerify,
   VERIFY_BUDGET_PER_MIN,
+  VERIFY_DURING_3DS_INTERVAL_MS,
   VERIFY_SERVER_LIMIT_PER_MIN,
   VERIFY_TIMEOUT_MS,
   VERIFY_WINDOW_MS,
@@ -153,5 +154,61 @@ describe('createVerifyPacer (yoklama temposu)', () => {
     expect(pacer.tick()).toBeUndefined();
     expect(verifyGuest).toHaveBeenCalledWith('p-1', { timeout: VERIFY_TIMEOUT_MS });
     expect(verify).not.toHaveBeenCalled();
+  });
+});
+
+describe('createVerifyPacer: 3DS sürerken seyrek, erken faz dönüşte başlar', () => {
+  async function pollFor(seconds: number, pacer: ReturnType<typeof createVerifyPacer>) {
+    for (let t = 3; t <= seconds; t += 3) {
+      await jest.advanceTimersByTimeAsync(3000);
+      pacer.tick();
+    }
+  }
+  const secondsSince = (start: number) => sends.map((t) => (t - start) / 1000);
+
+  it('dönüş yokken verify yalnız 30 sn\'de bir (30, 60, 90, 120. sn)', async () => {
+    const start = Date.now();
+    await pollFor(120, createVerifyPacer('p-1', { awaitingReturn: true }));
+    expect(VERIFY_DURING_3DS_INTERVAL_MS).toBe(30_000);
+    expect(secondsSince(start)).toEqual([30, 60, 90, 120]);
+  });
+
+  it('erken faz 3DS sayfasının açılışından değil dönüşten sayılır', async () => {
+    const start = Date.now();
+    const pacer = createVerifyPacer('p-1', { awaitingReturn: true });
+    await pollFor(42, pacer); // 3DS 42 sn sürdü: yalnız 30. sn
+    pacer.markReturned();
+    await pollFor(36, pacer); // dönüşten sonra 36 sn daha (78. sn'ye kadar)
+    // Dönüş 42. sn: 45/48/51. sn her tur (ilk ~10 sn), sonra 15 sn'de bir (66).
+    expect(secondsSince(start)).toEqual([30, 45, 48, 51, 66]);
+  });
+
+  it('markReturned bir kez sayılır (tekrar çağrı erken fazı uzatmaz)', async () => {
+    const start = Date.now();
+    const pacer = createVerifyPacer('p-1', { awaitingReturn: true });
+    pacer.markReturned();
+    await pollFor(9, pacer);
+    pacer.markReturned();
+    await pollFor(15, pacer);
+    expect(secondsSince(start)).toEqual([3, 6, 9, 24]);
+  });
+
+  it('awaitingReturn yoksa (3DS\'siz yoklama) erken faz hemen başlar — eski tempo', async () => {
+    const start = Date.now();
+    await pollFor(30, createVerifyPacer('p-1'));
+    expect(secondsSince(start)).toEqual([3, 6, 9, 24]);
+  });
+
+  it('3DS 57 sn + dönüş + başarı ekranı (5 deneme): her 60 sn pencerede ≤ bütçe; başarı ekranı tam bütçe bulur', async () => {
+    const pacer = createVerifyPacer('p-1', { awaitingReturn: true });
+    await pollFor(57, pacer);
+    const formSends = sends.length;
+    expect(formSends).toBe(1);
+    for (let i = 0; i < 5; i++) {
+      void requestVerify('p-1');
+      await jest.advanceTimersByTimeAsync(1500);
+    }
+    expect(sends.length - formSends).toBe(5);
+    expect(maxPerWindow(sends)).toBeLessThanOrEqual(VERIFY_BUDGET_PER_MIN);
   });
 });

@@ -252,7 +252,9 @@ async function handleAuthFailure(error?: unknown): Promise<void> {
   // require ile lazy import → api.ts ↔ authStore döngüsü (cycle) önlenir.
   try {
     const { useAuthStore } = require("../../stores/authStore");
-    await useAuthStore.getState().logout();
+    // Zorunlu çıkış: ödeme yetki belirteçleri silinmez (3DS sürerken başka bir
+    // isteğin 401'i süren ödemeyi düşürmesin); başka hesapla girişte silinir.
+    await useAuthStore.getState().logout({ reason: "forced" });
   } catch {
     await SecureStore.deleteItemAsync("accessToken");
     await SecureStore.deleteItemAsync("refreshToken");
