@@ -3,10 +3,12 @@
  * liste; yükleniyor = Skeleton, boş/misafir = EmptyState.
  * Mantık `_hooks/useMessagesTab`'de; ekran yalnız kompozisyon.
  */
-import { FlatList, RefreshControl, View } from "react-native";
+import { RefreshControl, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { tabDiag } from "@/components/_tabDiag";
 import { AppShell } from "@/components/shell/AppShell";
 import { useTabBarInset } from "@/components/shell/tabBarLayout";
+import { useTabBarScrollHandler } from "@/components/shell/TabBarCollapse";
 import {
   Alert,
   EmptyState,
@@ -27,6 +29,7 @@ function MessagesTabScreen() {
   const { t } = useTranslation();
   const f = useMessagesTab();
   const tabInset = useTabBarInset();
+  const tabScroll = useTabBarScrollHandler();
 
   if (!f.isAuthenticated) {
     return (
@@ -58,7 +61,9 @@ function MessagesTabScreen() {
 
   return (
     <AppShell variant="title" title={t("mobile.messagesTitle")}>
-      <FlatList
+      <Animated.FlatList
+        {...tabScroll}
+        scrollEventThrottle={16}
         data={initialLoading ? [] : f.threads}
         keyExtractor={(thread) => thread.id}
         ListHeaderComponent={header}

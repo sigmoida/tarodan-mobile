@@ -1,8 +1,10 @@
-import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
+import { RefreshControl, StyleSheet } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { tabDiag } from '@/components/_tabDiag';
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
+import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { Card, theme } from '@/ui';
 
 import { useProfile } from './_hooks/useProfile';
@@ -27,12 +29,15 @@ function ProfileScreen() {
   // Hook sırası sabit kalsın diye erken return'den ÖNCE çağrılır (CLAUDE.md §12).
   const badges = useHomeBadges(f.isAuthenticated);
   const tabInset = useTabBarInset();
+  const tabScroll = useTabBarScrollHandler();
 
   if (!f.isAuthenticated) return <ProfileGuestView f={f} />;
 
   return (
     <AppShell variant="title" title={t('profile.profile')}>
-      <ScrollView
+      <Animated.ScrollView
+        {...tabScroll}
+        scrollEventThrottle={16}
         contentContainerStyle={[styles.content, { paddingBottom: tabInset }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -53,7 +58,7 @@ function ProfileScreen() {
           />
         </Card>
         <ProfileDeleteAccount f={f} />
-      </ScrollView>
+      </Animated.ScrollView>
     </AppShell>
   );
 }

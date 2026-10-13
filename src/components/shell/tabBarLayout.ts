@@ -13,6 +13,10 @@ export const APP_SHELL_BAR_HEIGHT = headerHeight;
 
 /** Yüzen alt menü (hap) yüksekliği. */
 export const TAB_PILL_HEIGHT = 64;
+/** Ayrı yuvarlak "+" (İlan Ver) düğmesi: hapla aynı yükseklikte (daire). */
+export const TAB_SELL_SIZE = TAB_PILL_HEIGHT;
+/** Hap ile "+" düğmesi arasındaki boşluk. */
+export const TAB_SELL_GAP = spacing[3];
 /** Hap ile ekranın yan kenarları arasındaki boşluk. */
 export const TAB_PILL_SIDE_GAP = spacing[4];
 /** İçeriğin hapın üstünde bırakacağı nefes payı. */
@@ -27,7 +31,8 @@ export function tabPillBottomOffset(insetBottom: number): number {
 }
 
 /**
- * Tab köklerindeki liste / ScrollView'ların ALT DOLGUSU — içerik yüzen hapın altında kalmasın.
+ * Tab köklerindeki liste / ScrollView'ların ALT DOLGUSU — içerik yüzen hapın / "+" düğmesinin altında kalmasın
+ * (ikisi aynı yükseklikte; daralmış halde de aynı dolgu korunur, böylece kaydırma sırasında içerik zıplamaz).
  * Tek kaynak: hap yüksekliği + alt boşluk + nefes payı. Her tab kökü bunu `paddingBottom`a ekler.
  */
 export function useTabBarInset(): number {

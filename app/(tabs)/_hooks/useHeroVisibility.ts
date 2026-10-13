@@ -14,12 +14,17 @@ export function useHeroVisibility() {
 
   const update = useCallback(() => setVisible(isHeroInView(metrics.current)), []);
 
-  const onScroll = useCallback(
-    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      metrics.current.scrollY = e.nativeEvent.contentOffset.y;
+  /** Ofset doğrudan (UI thread'i handler'ı `useTabBarScrollHandler(onOffset)` ile köprüler). */
+  const onScrollOffset = useCallback(
+    (y: number) => {
+      metrics.current.scrollY = y;
       update();
     },
     [update],
+  );
+  const onScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => onScrollOffset(e.nativeEvent.contentOffset.y),
+    [onScrollOffset],
   );
   const onViewportLayout = useCallback(
     (e: LayoutChangeEvent) => {
@@ -37,5 +42,5 @@ export function useHeroVisibility() {
     [update],
   );
 
-  return { visible, onScroll, onViewportLayout, onHeroLayout };
+  return { visible, onScroll, onScrollOffset, onViewportLayout, onHeroLayout };
 }

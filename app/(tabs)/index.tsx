@@ -1,5 +1,6 @@
 import { logger, safeError } from '@/services/logger';
-import { View, ScrollView, RefreshControl } from 'react-native';
+import { View, RefreshControl } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useState, useCallback, useEffect } from 'react';
 import { theme } from '@/ui';
 import { router } from 'expo-router';
@@ -9,6 +10,7 @@ import { useGuestStore } from '@/stores/guestStore';
 import { SignupPrompt } from '@/components/SignupPrompt';
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
+import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { homeStyles as styles } from './_lib/homeStyles';
 import { useHomeData } from './_hooks/useHomeData';
 import { useHomeGuestPrompt } from './_hooks/useHomeGuestPrompt';
@@ -38,12 +40,16 @@ export default function HomeScreen() {
   const data = useHomeData();
   const hero = useHomeHero();
   const heroView = useHeroVisibility();
+  // Tab bar daralma sinyali + hero görünürlüğü (ofset UI thread'inden seyrek köprülenir).
+  const tabScroll = useTabBarScrollHandler(heroView.onScrollOffset);
+  const { onLayout: onTabScrollLayout } = tabScroll;
   const guest = useHomeGuestPrompt(isAuthenticated);
   // Yuvalar (topbar/header/footer) aynı tohumu ve gösterim kümesini paylaşır.
   const adSession = useAdSession();
 
   const [refreshing, setRefreshing] = useState(false);
   const tabInset = useTabBarInset();
+
 
   // API bağlantı kontrolü (yalnız log — davranış korunur).
   useEffect(() => {
@@ -71,7 +77,7 @@ export default function HomeScreen() {
 
   return (
     <AppShell>
-      <ScrollView
+      <Animated.ScrollView
         style={styles.scroll}
         refreshControl={
           <RefreshControl
@@ -82,9 +88,13 @@ export default function HomeScreen() {
           />
         }
         showsVerticalScrollIndicator={false}
-        onScroll={heroView.onScroll}
-        onLayout={heroView.onViewportLayout}
-        scrollEventThrottle={64}
+        onScroll={tabScroll.onScroll}
+        onContentSizeChange={tabScroll.onContentSizeChange}
+        onLayout={(e) => {
+          onTabScrollLayout(e);
+          heroView.onViewportLayout(e);
+        }}
+        scrollEventThrottle={16}
       >
         <AdBanner position="topbar" session={adSession} />
         <AdBanner position="header" session={adSession} />
@@ -110,7 +120,7 @@ export default function HomeScreen() {
         <AdBanner position="footer" session={adSession} />
         <TrustBadges badges={hero.badges} />
         <View style={{ height: tabInset }} />
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Popup reklam: misafir kayıt istemi açıkken çıkmaz (iki Modal birden iOS'u dondurur). */}
       <PopupAd blocked={guest.showPrompt} />

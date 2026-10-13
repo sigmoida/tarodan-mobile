@@ -1,9 +1,11 @@
 import React from 'react';
-import { View, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Platform, KeyboardAvoidingView } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useHeaderTopInset } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { APP_SHELL_BAR_HEIGHT, useTabBarInset } from '@/components/shell/tabBarLayout';
+import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 
 import { styles } from './_lib/styles';
 import type { ListingFormProps } from './_lib/types';
@@ -35,6 +37,7 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
   const { t } = useTranslation();
   const f = useListingForm({ mode, productId });
   const tabInset = useTabBarInset();
+  const tabScroll = useTabBarScrollHandler();
   const topInset = useHeaderTopInset();
 
   const gate = ListingGates({ f });
@@ -42,8 +45,10 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
 
   // Oluşturma (sekme kökü): içerik yüzen alt menü hapının altında kalmasın -> alt dolgu tabInset.
   const form = (
-    <ScrollView
+    <Animated.ScrollView
       style={styles.scroll}
+      {...tabScroll}
+      scrollEventThrottle={16}
       contentContainerStyle={[styles.scrollContent, !f.isEdit && { paddingBottom: tabInset }]}
       keyboardShouldPersistTaps="handled"
     >
@@ -62,7 +67,7 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
           <ListingSubmitRow f={f} />
         </>
       )}
-    </ScrollView>
+    </Animated.ScrollView>
   );
 
   // Düzenleme: standart beyaz üst bar (PageShell; klavye kaçınma da onda). Oluşturma: `sell`

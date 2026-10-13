@@ -4,7 +4,7 @@
  * + yeniden dene, boş = EmptyState. Sepete ekleme geri bildirimi "Sepete git" eylemli olduğundan
  * Snackbar (toast eylem desteklemez). URL `/favorites` (sekme grubu URL'de görünmez).
  */
-import { FlatList } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Button, EmptyState, ErrorState, Snackbar, pageListContentStyle } from '@/ui';
@@ -12,6 +12,7 @@ import { tabDiag } from '@/components/_tabDiag';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
+import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { useFavoritesScreen } from './_hooks/useFavoritesScreen';
 import { styles } from './_lib/styles';
 import { FavoriteCard } from './_components/FavoriteCard';
@@ -20,6 +21,7 @@ function FavoritesTabScreen() {
   const { t } = useTranslation();
   const f = useFavoritesScreen();
   const tabInset = useTabBarInset();
+  const tabScroll = useTabBarScrollHandler();
 
   if (!f.isAuthenticated) {
     return (
@@ -43,7 +45,9 @@ function FavoritesTabScreen() {
 
   return (
     <AppShell variant="title" title={`${t('favorites.myFavorites')} (${f.getFavoriteCount()})`}>
-      <FlatList
+      <Animated.FlatList
+        {...tabScroll}
+        scrollEventThrottle={16}
         data={initialLoading || loadFailed ? [] : f.items}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[pageListContentStyle, { paddingBottom: tabInset }]}
