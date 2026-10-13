@@ -371,6 +371,12 @@ describe('docs/ANDROID_RELEASE.md', () => {
     expect(doc).toContain(needle);
   });
 
+  it('yeni paketin keystore\'u: EAS\'te bir kez etkileşimli oluşturulur, CI --non-interactive ile oluşturamaz', () => {
+    expect(doc).toMatch(/com\.tarodan\.app\.staging` için EAS'te bir kez ETKİLEŞİMLİ/);
+    expect(doc).toContain('--non-interactive');
+    expect(doc).toContain('eas credentials -p android');
+  });
+
   it('SECRETS_SETUP.md ve RELEASE.md kılavuza bağlanıyor', () => {
     expect(fs.readFileSync(path.join(root, 'SECRETS_SETUP.md'), 'utf8')).toContain('docs/ANDROID_RELEASE.md');
     expect(fs.readFileSync(path.join(root, 'docs/RELEASE.md'), 'utf8')).toContain('ANDROID_RELEASE.md');

@@ -93,6 +93,7 @@ başvurusu yapılır ve Google yanıt verir.
 | 1 | Play Console'da iki uygulama oluştur: "Tarodan" (`com.tarodan.app`) ve "Tarodan (Staging)" (`com.tarodan.app.staging`). Paket adı **sonradan değişmez**. | Kullanıcı |
 | 2 | Firebase'de staging projesi + Android uygulaması (Bölüm 7); `google-services.staging.json` repoda (yapıldı) | Kullanıcı |
 | 3 | Play service account + EAS'e yükleme (Bölüm 6) | Kullanıcı |
+| 3b | `com.tarodan.app.staging` için EAS Android keystore'unu **bir kez etkileşimli** oluştur (Bölüm 5, Adım 0) — CI bunu yapamaz | **Orkestratör / Kullanıcı** (CI değil) |
 | 4 | Her paket için ilk AAB'yi **elle** yükle (Bölüm 5) | Kullanıcı |
 | 5 | Play App Signing parmak izlerini al, `fingerprints.json`'ı doldur (Bölüm 10) | Kullanıcı |
 | 6 | Mağaza kayıt formları (Bölüm 11) | Kullanıcı |
@@ -110,6 +111,22 @@ Play Developer API bir uygulamanın **ilk sürümünü oluşturamaz**: uygulama
 Console'da ilk kez elle bir AAB alana kadar API/`eas submit` "Package not found"
 benzeri hatayla düşer. Bu iş her paket için bir kez yapılır.
 
+0. **Keystore — `com.tarodan.app.staging` için EAS'te bir kez ETKİLEŞİMLİ
+   oluşturulur** (**Orkestratör**; kodla çözülmez). EAS Android keystore'unu
+   **paket adı başına** tutar ve yeni pakette ilk build'in keystore'u üretmesi
+   gerekir; CI `--non-interactive` çalıştığı için yeni paket için keystore
+   **oluşturamaz** ve build "Generating a new Keystore is not supported in
+   --non-interactive mode" benzeri hatayla düşer. Bu yüzden CI'dan ÖNCE, yerel
+   terminalde etkileşimli bir kez:
+
+   ```bash
+   eas credentials -p android          # profil: staging → Keystore → "Set up a new keystore"
+   # ya da ilk staging AAB'sini etkileşimli üretmek (Adım 1) aynı işi görür
+   ```
+
+   Sonra upload keystore'unun SHA-256'sını `fingerprints.json` →
+   `staging_eas_upload_keystore`'a yaz (Bölüm 10). `com.tarodan.app` (production)
+   keystore'u zaten var; bu adım yalnız staging paketi içindir.
 1. AAB'yi üret (**Kullanıcı**, yerel terminalde; ilk çalıştırmada EAS Android
    keystore'unu soruyla oluşturur — etkileşimli olmalı):
 
