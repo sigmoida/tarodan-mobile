@@ -63,6 +63,9 @@ name: Mobile Staging (CI → fingerprint → OTA or build)
 #   "development feature/*"; varsayılan yalnız development). O dalların
 #   `staging` environment'ının deployment-branch kuralına da eklenmesi gerekir.
 #
+# Token: EXPO_TOKEN yalnız GitHub Environment `staging`'de (deployment branch:
+# development [+ vars.STAGING_APK_BRANCHES], onay yok). Token isteyen HER job bu
+# environment'a bağlı; başka daldan koşan bir workflow token'a ulaşamaz.
 # Guard: EXPO_TOKEN yoksa no-op.
 
 on:
@@ -103,6 +106,9 @@ jobs:
     name: Plan (fingerprint → OTA or build)
     needs: ci
     runs-on: ubuntu-latest
+    # EXPO_TOKEN yalnız `staging` environment'ında (dağıtım yalnız development,
+    # onay yok). Repo düzeyinde token YOK — bkz. docs/RELEASE.md "Environment'lar".
+    environment: staging
     timeout-minutes: 20
     concurrency:
       group: mobile-staging-plan-${{ github.event_name }}
@@ -181,6 +187,7 @@ jobs:
       matrix:
         include: ${{ fromJSON(needs.plan.outputs.ota_matrix) }}
     runs-on: ubuntu-latest
+    environment: staging
     timeout-minutes: 30
     # Kuyruk platform + runtime BAŞINA ve iptalsiz: başka runtime'ın (ör. native
     # değişiklik getiren) ya da diğer platformun push'u bu runtime'ın bekleyen
@@ -210,6 +217,7 @@ jobs:
     needs: plan
     if: ${{ !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.ios == 'build' }}
     runs-on: ubuntu-latest
+    environment: staging
     # Build ~7 dk ama submit App Store Connect'in işlemesini bekliyor (2026-08-04:
     # 53 dk). 60 dk'da kesilip yanıltıcı "cancelled" bırakıyordu.
     timeout-minutes: 120
@@ -245,6 +253,7 @@ jobs:
     # Play hesabı + service account + ilk elle yükleme bitene kadar KAPALI.
     if: ${{ vars.ANDROID_RELEASE_ENABLED == 'true' && !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.android == 'build' }}
     runs-on: ubuntu-latest
+    environment: staging
     timeout-minutes: 120
     concurrency:
       group: mobile-staging-build-android
@@ -289,6 +298,7 @@ jobs:
     # ANDROID_RELEASE_ENABLED'a bağlanmadı.
     if: ${{ github.event_name == 'workflow_dispatch' && !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.apk == 'true' }}
     runs-on: ubuntu-latest
+    environment: staging
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7

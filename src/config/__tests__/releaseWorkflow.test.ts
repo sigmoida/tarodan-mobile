@@ -204,8 +204,9 @@ describe('production', () => {
     expect(runs(production.jobs.ota)).toContain('publish-ota production "$OTA_PLATFORM" production');
   });
 
-  it('store build job\'ları onay environment\'ı istemez (onay yalnız OTA için)', () => {
-    expect(envName(production.jobs['build-ios'])).toBeUndefined();
+  it('store build job\'ları onaysız production-build environment\'ında (onay yalnız OTA için)', () => {
+    expect(envName(production.jobs['build-ios'])).toBe('production-build');
+    expect(envName(production.jobs['build-android'])).toBe('production-build');
   });
 
   it('iOS production build + submit production profiliyle', () => {
@@ -307,6 +308,51 @@ describe('concurrency', () => {
   it('EXPO_TOKEN guard korunur', () => {
     for (const w of [staging, production]) {
       expect(w.jobs.plan.steps!.some((s) => s.env?.HAS_TOKEN?.includes('secrets.EXPO_TOKEN'))).toBe(true);
+    }
+  });
+});
+
+describe('EXPO_TOKEN environment\'larda (repo düzeyinde değil)', () => {
+  const all = {
+    'mobile-staging.yml': staging,
+    'mobile-production.yml': production,
+    'mobile-build.yml': simulator,
+    'master-flow.yml': masterFlow,
+    'ci.yml': ci,
+  };
+
+  it('token isteyen HER job bir environment\'a bağlı', () => {
+    for (const [file, w] of Object.entries(all)) {
+      expect([file, JSON.stringify((w as { env?: unknown }).env ?? {})]).not.toEqual([file, expect.stringContaining('EXPO_TOKEN')]);
+      for (const [id, job] of Object.entries(w.jobs)) {
+        if (JSON.stringify(job).includes('secrets.EXPO_TOKEN')) {
+          expect([file, id, envName(job)]).toEqual([file, id, expect.any(String)]);
+        }
+      }
+    }
+  });
+
+  it.each([
+    ['staging', 'plan', 'staging'],
+    ['staging', 'ota', 'staging'],
+    ['staging', 'build-ios', 'staging'],
+    ['staging', 'build-android', 'staging'],
+    ['staging', 'apk', 'staging'],
+    ['production', 'plan', 'production-build'],
+    ['production', 'build-ios', 'production-build'],
+    ['production', 'build-android', 'production-build'],
+    ['production', 'ota', 'production'],
+    ['simulator', 'build', 'staging'],
+  ])('%s/%s → %s', (w, id, env) => {
+    const wf = { staging, production, simulator }[w]!;
+    expect(envName(wf.jobs[id])).toBe(env);
+  });
+
+  it('onaylı `production` environment\'ı yalnız OTA job\'unda', () => {
+    for (const w of [staging, production, simulator]) {
+      for (const [id, job] of Object.entries(w.jobs)) {
+        if (envName(job) === 'production') expect(id).toBe('ota');
+      }
     }
   });
 });

@@ -33,6 +33,10 @@ name: Mobile Production (CI → fingerprint → approved OTA or store build)
 #   mode=build → sürüm kapısı yalnız UYARI verir (bilinçli insan kararı: ör.
 #                aynı sürümün reddedilen build'ini yeniden almak).
 #
+# Token (her environment kendi EXPO_TOKEN secret'ını taşır; repo düzeyinde YOK):
+#   production-build  yalnız master, onaysız — plan + store build/submit
+#   production        yalnız master, ONAYLI   — yalnız OTA
+# Başka bir daldaki workflow (ya da environment'sız bir job) token'a ulaşamaz.
 # Guard: EXPO_TOKEN yoksa no-op.
 
 on:
@@ -70,6 +74,8 @@ jobs:
     name: Plan (fingerprint → OTA or store build)
     needs: ci
     runs-on: ubuntu-latest
+    # Token için `production-build` (yalnız master, ONAYSIZ): plan yalnız okur.
+    environment: production-build
     timeout-minutes: 20
     concurrency:
       group: mobile-production-plan-${{ github.event_name }}
@@ -142,8 +148,8 @@ jobs:
         include: ${{ fromJSON(needs.plan.outputs.ota_matrix) }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # Production OTA onaysız ÇIKMAZ: GitHub Environment "production" required
-    # reviewers ile korunur (Settings → Environments → production).
+    # Production OTA onaysız ÇIKMAZ: GitHub Environment `production` (required
+    # reviewers + dağıtım yalnız master). Onay YALNIZ burada istenir.
     environment: production
     # Kuyruk platform + runtime BAŞINA ve iptalsiz: başka runtime'ın (ör. native
     # değişiklik getiren) ya da diğer platformun push'u bu runtime'ın bekleyen
@@ -169,6 +175,9 @@ jobs:
     needs: plan
     if: ${{ !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.ios == 'build' }}
     runs-on: ubuntu-latest
+    # Store build + submit: `production-build` (yalnız master, onaysız). App
+    # Review'a gönderim zaten App Store Connect'te elle.
+    environment: production-build
     timeout-minutes: 120
     concurrency:
       group: mobile-production-build-ios
@@ -198,6 +207,7 @@ jobs:
     # Play Console hesabı + service account + ilk elle yükleme bitene kadar KAPALI.
     if: ${{ vars.ANDROID_RELEASE_ENABLED == 'true' && !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.android == 'build' }}
     runs-on: ubuntu-latest
+    environment: production-build
     timeout-minutes: 120
     concurrency:
       group: mobile-production-build-android
