@@ -1,5 +1,5 @@
 /**
- * Favoriler sekmesi — sekme kökü: AppShell (marka barı) + içerikte PageHeader + ürün satırları.
+ * Favoriler sekmesi — sekme kökü: AppShell (başlıklı beyaz bar) + ürün satırları.
  * Mesajlar sekmesi kalıbı: misafir = giriş EmptyState, ilk yükleme = Skeleton, hata = ErrorState
  * + yeniden dene, boş = EmptyState. Sepete ekleme geri bildirimi "Sepete git" eylemli olduğundan
  * Snackbar (toast eylem desteklemez). URL `/favorites` (sekme grubu URL'de görünmez).
@@ -7,7 +7,7 @@
 import { FlatList } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, ErrorState, PageHeader, Snackbar, pageListContentStyle } from '@/ui';
+import { Button, EmptyState, ErrorState, Snackbar, pageListContentStyle } from '@/ui';
 import { tabDiag } from '@/components/_tabDiag';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { AppShell } from '@/components/shell/AppShell';
@@ -23,7 +23,7 @@ function FavoritesTabScreen() {
 
   if (!f.isAuthenticated) {
     return (
-      <AppShell>
+      <AppShell variant="title" title={t('favorites.myFavorites')}>
         <EmptyState
           fullscreen
           icon="heart"
@@ -42,16 +42,13 @@ function FavoritesTabScreen() {
   const loadFailed = !!f.error && f.items.length === 0;
 
   return (
-    <AppShell>
+    <AppShell variant="title" title={`${t('favorites.myFavorites')} (${f.getFavoriteCount()})`}>
       <FlatList
         data={initialLoading || loadFailed ? [] : f.items}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[pageListContentStyle, { paddingBottom: tabInset }]}
         refreshing={f.refreshing}
         onRefresh={f.onRefresh}
-        ListHeaderComponent={
-          <PageHeader title={`${t('favorites.myFavorites')} (${f.getFavoriteCount()})`} />
-        }
         ListEmptyComponent={
           initialLoading ? (
             <RowListSkeleton rows={4} />

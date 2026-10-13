@@ -142,6 +142,16 @@ describe("J16 · mesaj konuşma listesi", () => {
     expect(mockPush).toHaveBeenCalledWith("/(auth)/login");
   });
 
+  it("J16.1b başlık üst barda tek kez; arama kutusu YOK, arama alanı yalnız Ana Sayfa'da", () => {
+    mockThreadsQuery = makeThreadsQuery([thread()]);
+    renderWithProviders(<MessagesTabScreen />);
+    expect(screen.getAllByText("mobile.messagesTitle")).toHaveLength(1);
+    expect(screen.getByTestId("app-shell-bar")).toBeOnTheScreen();
+    expect(screen.queryByPlaceholderText("mobile.searchInMessages")).toBeNull();
+    expect(screen.queryByTestId("home-search-input")).toBeNull();
+    expect(screen.queryByTestId("app-shell-cart")).toBeNull();
+  });
+
   it("J16.2 thread yoksa boş durum gösterir", () => {
     mockThreadsQuery = makeThreadsQuery([]);
     renderWithProviders(<MessagesTabScreen />);

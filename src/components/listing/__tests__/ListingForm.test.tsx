@@ -99,9 +99,10 @@ describe('J2 · İlan formu render + submit butonu', () => {
   });
   afterEach(() => alertSpy.mockRestore());
 
-  it('J2.1 form başlığı ve "İlan Oluştur" submit butonu görünür', async () => {
+  it('J2.1 açıklama satırı ve "İlan Oluştur" submit butonu görünür; başlık üst barda (ekran içinde tekrar yok)', async () => {
     renderWithProviders(<ListingForm mode="create" />);
-    expect(await screen.findByText('Yeni İlan Oluştur')).toBeOnTheScreen();
+    expect(await screen.findByText('Ürününüzü koleksiyoncularla buluşturun')).toBeOnTheScreen();
+    expect(screen.queryByText('Yeni İlan Oluştur')).toBeNull();
     expect(screen.getByText('İlan Oluştur')).toBeOnTheScreen();
   });
 });

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { tabDiag } from '@/components/_tabDiag';
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
-import { Card, PageHeader, theme } from '@/ui';
+import { Card, theme } from '@/ui';
 
 import { useProfile } from './_hooks/useProfile';
 import { useHomeBadges } from './_hooks/useHomeBadges';
@@ -17,7 +17,7 @@ import {
 const { colors, spacing } = theme;
 
 /**
- * Profil sekmesi — sekme kökü (AppShell). Web `ProfileSidebar`'ın gruplu, ikonsuz listesi:
+ * Profil sekmesi — sekme kökü (AppShell, başlıklı bar). Web `ProfileSidebar`'ın gruplu, ikonsuz listesi:
  * kimlik başlığı + Alışveriş / Finans / Koleksiyon / Analiz / İletişim / Hesap / Bilgi.
  * `useProfile` tüm sorgu ve eylemlerin sahibi; ekran yalnız misafir/üye dallanması ve kompozisyon.
  */
@@ -31,7 +31,7 @@ function ProfileScreen() {
   if (!f.isAuthenticated) return <ProfileGuestView f={f} />;
 
   return (
-    <AppShell>
+    <AppShell variant="title" title={t('profile.profile')}>
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: tabInset }]}
         showsVerticalScrollIndicator={false}
@@ -44,7 +44,6 @@ function ProfileScreen() {
           />
         }
       >
-        <PageHeader title={t('profile.profile')} />
         <Card variant="bordered" padding={0} style={styles.card}>
           <ProfileCard f={f} />
           <ProfileMenuSections

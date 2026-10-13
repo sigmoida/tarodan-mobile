@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { Button, Card, PageHeader, SectionCard, Text, theme } from '@/ui';
+import { Button, Card, SectionCard, Text, theme } from '@/ui';
 
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
@@ -33,13 +33,11 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
   ];
 
   return (
-    <AppShell>
+    <AppShell variant="title" title={t('profile.profile')}>
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: tabInset }]}
         showsVerticalScrollIndicator={false}
       >
-        <PageHeader title={t('profile.profile')} />
-
         <Card variant="bordered" style={styles.welcome}>
           <Text variant="h3">{t('profile.guestWelcomeTitle')}</Text>
           <Text variant="bodySm" tone="muted">
