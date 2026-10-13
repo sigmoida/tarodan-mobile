@@ -22,6 +22,7 @@ const validRest = {
   password: 'Demo1234',
   confirmPassword: 'Demo1234',
   acceptTerms: true as const,
+  acceptKvkk: true as const,
 };
 
 describe('registerSchema — username entegrasyonu', () => {
@@ -75,5 +76,13 @@ describe('registerSchema — doğum tarihi opsiyonel (App Review 5.1.1(v))', () 
       username: 'gorkem',
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe('registerSchema — KVKK ayrı onay (B-2.3, delta 22)', () => {
+  it('KVKK kutusu işaretlenmezse form reddedilir', () => {
+    const result = registerSchema.safeParse({ ...validRest, acceptKvkk: false, username: 'gorkem' });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.issues[0]?.path).toEqual(['acceptKvkk']);
   });
 });

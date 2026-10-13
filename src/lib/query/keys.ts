@@ -26,6 +26,16 @@ export const qk = {
     usernameAvailability: (username: string) => ['auth', 'username-availability', username] as const,
   },
 
+  consents: {
+    /** GET /consents/me/pending — yeniden-onay kapısı (zorunlu adımlar). */
+    pending: ['consents', 'me', 'pending'] as const,
+  },
+
+  legalIdentity: {
+    /** GET /legal-identity/me — ihtiyaç anında kimlik kapısı + profildeki salt-okunur bölüm. */
+    me: ['legal-identity', 'me'] as const,
+  },
+
   products: {
     all: ["products"] as const,
     list: (filters?: Filters) => ["products", "list", filters] as const,

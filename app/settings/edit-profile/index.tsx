@@ -9,6 +9,7 @@ import {
   PersonalInfoCard,
   BusinessInfoCard,
 } from "./_components/EditProfileSections";
+import { LegalIdentityCard } from "./_components/LegalIdentityCard";
 
 export default function EditProfileScreen() {
   const { t } = useTranslation();
@@ -45,6 +46,7 @@ export default function EditProfileScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <AvatarSection f={f} />
         <PersonalInfoCard f={f} />
+        <LegalIdentityCard />
         <BusinessInfoCard f={f} />
 
         <Button

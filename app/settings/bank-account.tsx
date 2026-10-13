@@ -1,141 +1,22 @@
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import {
-  Button,
-  Card,
-  Input,
-  Text,
-  Snackbar,
-  appAlert,
-  theme,
-} from '@/ui';
-import { useState, useEffect, useMemo } from 'react';
 import { router } from 'expo-router';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { bankAccountApi } from '@/lib/api';
-import { useAuthStore } from '@/stores/authStore';
-import { isValidTrIban, normalizeIban, formatIbanDisplay } from '@/utils/iban';
+import { Button, Card, Text, Snackbar } from '@/ui';
+import { Form, FormInput } from '@/ui/form';
 import { ScreenHeader } from '@/components/common';
-import type { TFunction } from 'i18next';
+import { formatIbanDisplay, normalizeIban } from '@/utils/iban';
+import { useBankAccount } from './_bank-account/_hooks/useBankAccount';
 import { styles } from './_bank-account/_lib/styles';
 
-const { colors } = theme;
-
 /**
- * Fabrika biçimi: zod mesajları şema kurulurken çözülüyor, modül seviyesinde
- * kurulsa metin ilk yüklenen dilde donardı (bkz. `@/utils/validation` başı).
- *
- * TCKN alanı YOK (delta 23 §3, B-1.8): TCKN'nin tek kaynağı üyenin yasal
- * kimliği. API `tcKimlikNo`'yu yalnız eski istemciler için kabul ediyor ve
- * gönderilmezse kayıtlı değere DOKUNMUYOR (user-bank.service `resolveBankTckn`)
- * — web formu da artık sormuyor.
+ * Banka hesabı (satıcı ödemeleri) — ince ekran. Sorgu, form, kaydet/sil ve
+ * kaydetmeden önceki yasal kimlik kapısı `useBankAccount`'ta.
  */
-const buildBankAccountSchema = (t: TFunction) =>
-  z.object({
-    accountHolder: z.string().min(2, t('bankAccount.holderMinLength')).max(150),
-    iban: z.string().refine((v) => isValidTrIban(v), t('bankAccount.ibanInvalid')),
-    taxId: z.string().max(20).optional().or(z.literal('')),
-  });
-
-type BankAccountForm = {
-  accountHolder: string;
-  iban: string;
-  taxId?: string;
-};
-
 export default function BankAccountScreen() {
   const { t } = useTranslation();
-  // Dil değişince şema yeniden kurulur — aksi halde hata metni ilk dilde donar.
-  const schema = useMemo(() => buildBankAccountSchema(t), [t]);
-  const { isAuthenticated } = useAuthStore();
-  const queryClient = useQueryClient();
-  const [snackbar, setSnackbar] = useState<{
-    visible: boolean;
-    message: string;
-    variant?: 'default' | 'success' | 'danger';
-  }>({ visible: false, message: '' });
+  const f = useBankAccount();
 
-  const accountQuery = useQuery({
-    queryKey: ['bank-account'],
-    queryFn: async () => {
-      const res = await bankAccountApi.get();
-      return res.data || null;
-    },
-    enabled: isAuthenticated,
-  });
-
-  const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<BankAccountForm>({
-    resolver: zodResolver(schema),
-    defaultValues: { accountHolder: '', iban: '', taxId: '' },
-  });
-
-  useEffect(() => {
-    const acc = accountQuery.data;
-    if (acc) {
-      reset({
-        accountHolder: acc.accountHolder || '',
-        iban: formatIbanDisplay(acc.iban || ''),
-        taxId: acc.taxId || '',
-      });
-    }
-  }, [accountQuery.data, reset]);
-
-  const upsertMutation = useMutation({
-    mutationFn: async (data: BankAccountForm) =>
-      bankAccountApi.upsert({
-        accountHolder: data.accountHolder.trim(),
-        iban: normalizeIban(data.iban),
-        ...(data.taxId ? { taxId: data.taxId } : {}),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bank-account'] });
-      setSnackbar({ visible: true, message: t('bankAccount.saved'), variant: 'success' });
-    },
-    onError: (error: any) => {
-      const msg = error.response?.data?.message || t('bankAccount.saveFailed');
-      setSnackbar({
-        visible: true,
-        message: Array.isArray(msg) ? msg[0] : msg,
-        variant: 'danger',
-      });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async () => bankAccountApi.remove(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bank-account'] });
-      reset({ accountHolder: '', iban: '', taxId: '' });
-      setSnackbar({ visible: true, message: t('bankAccount.deleted'), variant: 'success' });
-    },
-    onError: (error: any) => {
-      setSnackbar({
-        visible: true,
-        message: error.response?.data?.message || t('bankAccount.deleteFailed'),
-        variant: 'danger',
-      });
-    },
-  });
-
-  const onSubmit = (data: BankAccountForm) => upsertMutation.mutate(data);
-
-  const handleDelete = () =>
-    appAlert(t('bankAccount.deleteTitle'), t('bankAccount.deleteConfirm'), [
-      { text: t('discount.discard'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: () => deleteMutation.mutate() },
-    ]);
-
-  const existing = !!accountQuery.data;
-
-  if (!isAuthenticated) {
+  if (!f.isAuthenticated) {
     return (
       <View style={styles.centered}>
         <Text variant="h3">{t('auth.loginToContinue')}</Text>
@@ -150,7 +31,10 @@ export default function BankAccountScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title={t('mobile.settingsBankAccount')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+      <ScreenHeader
+        title={t('mobile.settingsBankAccount')}
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+      />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <Card style={styles.card}>
@@ -158,88 +42,65 @@ export default function BankAccountScreen() {
             {t('bankAccount.payoutHint')}
           </Text>
 
-          <Controller
-            control={control}
-            name="accountHolder"
-            render={({ field: { onChange, value } }) => (
-              <Input
-                testID="bank-account-holder-input"
-                label={t('bankAccount.holderLabel')}
-                value={value}
-                onChangeText={onChange}
-                error={errors.accountHolder?.message}
-                containerStyle={styles.input}
-              />
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="iban"
-            render={({ field: { onChange, value } }) => (
-              <Input
-                testID="bank-account-iban-input"
-                label="IBAN *"
-                value={value}
-                onChangeText={(t) => onChange(formatIbanDisplay(normalizeIban(t).slice(0, 26)))}
-                error={errors.iban?.message}
-                placeholder="TR.. .... .... ...."
-                autoCapitalize="characters"
-                maxLength={32}
-                containerStyle={styles.input}
-              />
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="taxId"
-            render={({ field: { onChange, value } }) => (
-              <Input
-                label={t('bankAccount.taxIdOptional')}
-                value={value ?? ''}
-                onChangeText={(t) => onChange(t.slice(0, 20))}
-                error={errors.taxId?.message}
-                containerStyle={styles.input}
-              />
-            )}
-          />
+          <Form form={f.form}>
+            <FormInput
+              name="accountHolder"
+              testID="bank-account-holder-input"
+              label={t('bankAccount.holderLabel')}
+              containerStyle={styles.input}
+            />
+            <FormInput
+              name="iban"
+              testID="bank-account-iban-input"
+              label="IBAN *"
+              transform={(text) => formatIbanDisplay(normalizeIban(text).slice(0, 26))}
+              placeholder="TR.. .... .... ...."
+              autoCapitalize="characters"
+              maxLength={32}
+              containerStyle={styles.input}
+            />
+            <FormInput
+              name="taxId"
+              label={t('bankAccount.taxIdOptional')}
+              transform={(text) => text.slice(0, 20)}
+              containerStyle={styles.input}
+            />
+          </Form>
 
           <Button
             testID="bank-account-submit-button"
             variant="primary"
             fullWidth
-            title={existing ? t('discount.update') : t('common.save')}
-            onPress={handleSubmit(onSubmit)}
-            isLoading={upsertMutation.isPending}
-            disabled={upsertMutation.isPending}
+            title={f.existing ? t('discount.update') : t('common.save')}
+            onPress={f.onSubmit}
+            isLoading={f.isSaving}
+            disabled={f.isSaving}
             style={styles.submitButton}
           />
 
-          {existing && (
+          {f.existing && (
             <Button
               testID="bank-account-delete-button"
               variant="ghost"
               fullWidth
               title={t('bankAccount.deleteTitle')}
-              onPress={handleDelete}
+              onPress={f.confirmDelete}
               style={styles.deleteButton}
             />
           )}
         </Card>
 
-        <View style={{ height: 50 }} />
+        <View style={styles.bottomSpacer} />
       </ScrollView>
 
       <Snackbar
-        visible={snackbar.visible}
-        onDismiss={() => setSnackbar((s) => ({ ...s, visible: false }))}
+        visible={f.snackbar.visible}
+        onDismiss={f.dismissSnackbar}
         duration={3000}
-        variant={snackbar.variant ?? 'default'}
+        variant={f.snackbar.variant ?? 'default'}
       >
-        {snackbar.message}
+        {f.snackbar.message}
       </Snackbar>
     </View>
   );
 }
-

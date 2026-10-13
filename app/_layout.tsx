@@ -25,6 +25,8 @@ import { initSentry } from "@/services/sentry";
 import AnimatedSplash from "@/components/AnimatedSplash";
 import BusinessMembershipGuard from "@/components/BusinessMembershipGuard";
 import ForceUpdateGate from "@/components/ForceUpdateGate";
+import RequiredStepsGate from "@/components/required-steps/RequiredStepsGate";
+import { useFullScreenGateShown } from "@/components/common/FullScreenGate";
 import { ErrorBoundary, RouteTracker } from "@/components/ErrorBoundary";
 
 const { colors } = theme;
@@ -83,6 +85,9 @@ export default function RootLayout() {
   // Native splash'i AnimatedSplash kapatır (onLayout) → beyaz parlama olmaz.
   const [appReady, setAppReady] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
+  // Tam ekran kapı (zorunlu güncelleme / zorunlu adım) açıkken temalı uyarı
+  // ertelenir: kapının üstüne binmesin, iOS'ta modal üstüne modal kilitlenmesin.
+  const gateShown = useFullScreenGateShown();
 
   useEffect(() => {
     async function prepare() {
@@ -155,10 +160,14 @@ export default function RootLayout() {
           <CartMergeBridge />
           {/* Kurumsal hesap business üyelik yoksa üyelik sayfasına yönlendirir (web ile aynı). */}
           <BusinessMembershipGuard />
-          {/* Native Alert.alert yerine temalı dialog — appAlert() bu host'u kullanır. */}
-          <AlertDialogHost />
+          {/* Native Alert.alert yerine temalı dialog — appAlert() bu host'u kullanır.
+              Kapı açıkken bağlı değil: appAlert kuyruğa düşer, kapı kapanınca çıkar. */}
+          {!gateShown && <AlertDialogHost />}
+          {/* Zorunlu adımlar (bekleyen sözleşme onayı): girişte + ön plana gelişte kapatılamaz ekran. */}
+          {/* Kapılar native Modal: soğuk açılışta splash bitmeden gösterilmez (ready). */}
+          <RequiredStepsGate ready={splashDone} />
           {/* Min desteklenen sürümün altındaki build'leri tam ekran bloklar (#233). */}
-          <ForceUpdateGate />
+          <ForceUpdateGate ready={splashDone} />
           {!splashDone && (
             <AnimatedSplash
               appReady={appReady}

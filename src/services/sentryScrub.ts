@@ -33,6 +33,14 @@ const REDACTED_KEYS = new Set([
   'authorizedfullname',
   'guestname',
   'taxid',
+  // Yasal kimlik (B-2.4): GET/POST /legal-identity/me yanıtı ve gövdesi,
+  // banka hesabının eski `tcKimlikNo` alanı. Maskeli numara da kimliği daraltır.
+  'nationalid',
+  'suggestednationalid',
+  'nationalidmasked',
+  'legalfirstname',
+  'legallastname',
+  'tckimlikno',
   'data', // axios `config.data` — serileştirilmiş istek gövdesi
   'body',
 ]);

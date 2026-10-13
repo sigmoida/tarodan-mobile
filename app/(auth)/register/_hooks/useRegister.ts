@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { authApi } from '@/lib/api';
+import { registrationConsentDocuments } from '@/lib/shared/legalConsent';
 import { buildRegisterSchema, type RegisterForm } from '../_lib/schema';
 import { useUsernameAvailability } from './useUsernameAvailability';
 import { IS_MAESTRO } from '@/config/maestro';
@@ -45,6 +46,7 @@ export function useRegister() {
       password: '',
       confirmPassword: '',
       acceptTerms: false,
+      acceptKvkk: false,
       // Maestro spinner DateField'ı süremez; test modunda geçerli (18+) bir
       // doğum tarihi öndoldurulur. Prod'da IS_MAESTRO false → '' .
       birthDate: IS_MAESTRO ? '1990-01-01' : '',
@@ -83,6 +85,9 @@ export function useRegister() {
         // Boş bırakıldıysa alan HİÇ gönderilmez ('' göndermek sunucu tarafında
         // "geçerli bir tarih giriniz" hatası verir); opsiyonelliğin karşılığı bu.
         ...(data.birthDate ? { birthDate: data.birthDate } : {}),
+        // Sürüm ve zaman sunucuda damgalanır; burada yalnız hangi belgelerin
+        // onaylandığı söylenir. Eksik kalırsa yeniden-onay kapısı ilk girişte ister.
+        acceptedConsents: registrationConsentDocuments(data),
       });
     },
     onSuccess: () => router.replace('/(auth)/login'),
