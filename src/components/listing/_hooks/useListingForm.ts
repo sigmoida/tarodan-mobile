@@ -791,7 +791,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
 
     // KAPALI BAŞARISIZ: hesap doğrulanamıyorsa (yükleniyor / hata) gönderim engellenir.
     // `hasBankAccount` yalnız veri GELMİŞSE true olur; form normalde bu durumda zaten
-    // gösterilmiyor (`BankAccountGate`), bu satır kapıyı aşan her yolu (hızlı çift dokunma,
+    // gösterilmiyor (`ListingRequirementGate`), bu satır kapıyı aşan her yolu (hızlı çift dokunma,
     // gecikmeli sorgu) sunucuya gitmeden keser.
     if (!isEdit && !hasBankAccount) {
       appAlert(
@@ -806,7 +806,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     }
 
     // Durum BİLİNMİYORSA (yükleniyor/hata) "adres ekle" denmez: form zaten
-    // bu durumda gösterilmiyor (`DispatchAddressGate`); buraya yalnız bilinen eksik düşer.
+    // bu durumda gösterilmiyor (`ListingRequirementGate`); buraya yalnız bilinen eksik düşer.
     if (!isEdit && !dispatchAddressLoading && !dispatchAddressError && !hasDispatchAddress) {
       appAlert(
         t(dispatchAddressNeedsFix ? 'listing.dispatchAddressFixTitle' : 'listing.dispatchAddressRequiredTitle'),

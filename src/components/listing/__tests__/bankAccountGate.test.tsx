@@ -1,10 +1,10 @@
 /**
  * IBAN kapısı (web `BankGate`): yeni ilan formu banka hesabı olana kadar GÖSTERİLMEZ.
  * Bilinmeyen durum (yükleniyor/hata) "IBAN ekle" demez: loader / ErrorState + yeniden dene.
- * Hook davranışı `renderHook` ile, görünüm `BankAccountGate` ile sürülür.
+ * Hook davranışı `renderHook` ile sürülür; görünüm: `listingRequirementGate.test.tsx`.
  */
 import React from 'react';
-import { act, render, renderHook, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
 import { router } from 'expo-router';
@@ -58,7 +58,6 @@ jest.mock('../_lib/validate', () => ({
 
 import { productsApi } from '@/lib/api';
 import { useListingForm } from '../_hooks/useListingForm';
-import { BankAccountGate, bankGateBlocks } from '../_components/BankAccountGate';
 
 const ACCOUNT = { id: 'x', accountHolder: 'T', iban: 'TR000000000000000000000001', isVerified: false };
 
@@ -70,17 +69,6 @@ function renderForm(mode: 'create' | 'edit' = 'create') {
   return renderHook(() => useListingForm({ mode, productId: mode === 'edit' ? 'p1' : undefined } as any), {
     wrapper: Wrapper,
   });
-}
-
-function ctrl(over: Record<string, unknown> = {}): any {
-  return {
-    isEdit: false,
-    hasBankAccount: false,
-    bankAccountLoading: false,
-    bankAccountError: false,
-    refetchBankAccount: jest.fn(),
-    ...over,
-  };
 }
 
 beforeEach(() => {
@@ -179,39 +167,5 @@ describe('useListingForm: gönderimde IBAN kapısı kapalı başarısız', () =>
     });
     const titles = (appAlert as jest.Mock).mock.calls.map((c) => c[0]);
     expect(titles).not.toContain('Banka Hesabı Gerekli');
-  });
-});
-
-describe('BankAccountGate', () => {
-  it('kapıyı yalnız yeni ilanda ve hesap yokken kapatır', () => {
-    expect(bankGateBlocks(ctrl())).toBe(true);
-    expect(bankGateBlocks(ctrl({ hasBankAccount: true }))).toBe(false);
-    expect(bankGateBlocks(ctrl({ isEdit: true }))).toBe(false);
-  });
-
-  it('hesap varsa hiçbir şey çizmez', () => {
-    render(<BankAccountGate f={ctrl({ hasBankAccount: true })} />);
-    expect(screen.toJSON()).toBeNull();
-  });
-
-  it('yüklenirken "IBAN ekle" istemi YOK', () => {
-    render(<BankAccountGate f={ctrl({ bankAccountLoading: true })} />);
-    expect(screen.queryByText('IBAN Ekle')).toBeNull();
-    expect(screen.queryByText('İlan vermeden önce banka hesabı ekleyin')).toBeNull();
-  });
-
-  it('hata varsa ErrorState + yeniden dene; "IBAN ekle" istemi YOK', () => {
-    const refetch = jest.fn();
-    render(<BankAccountGate f={ctrl({ bankAccountError: true, refetchBankAccount: refetch })} />);
-    expect(screen.queryByText('IBAN Ekle')).toBeNull();
-    fireEvent.press(screen.getByText('Tekrar Dene'));
-    expect(refetch).toHaveBeenCalledTimes(1);
-  });
-
-  it('hesap yoksa IBAN ekleme istemi, Banka Hesabım a götürür', () => {
-    render(<BankAccountGate f={ctrl()} />);
-    expect(screen.getByText('İlan vermeden önce banka hesabı ekleyin')).toBeTruthy();
-    fireEvent.press(screen.getByText('IBAN Ekle'));
-    expect(router.push).toHaveBeenCalledWith('/settings/bank-account');
   });
 });

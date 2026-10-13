@@ -18,6 +18,8 @@ jest.mock('expo-image-picker', () => ({
 }));
 
 const mockGetBank = jest.fn();
+const mockGetAddr = jest.fn();
+const ADDRESS = { id: 'a1', isDefault: true, phone: '+905321234567', city: 'İstanbul', district: 'Kadıköy', address: 'Moda Cd. 1' };
 jest.mock('@/lib/api', () => ({
   api: {
     get: jest.fn(async (url: string) =>
@@ -30,11 +32,7 @@ jest.mock('@/lib/api', () => ({
   },
   productsApi: { create: jest.fn(), update: jest.fn(), getMyListings: jest.fn(), getMyStats: jest.fn(), getMyById: jest.fn(), delete: jest.fn() },
   categoriesApi: { getAll: jest.fn(async () => ({ data: { data: [] } })) },
-  addressesApi: {
-    getAll: jest.fn(async () => ({
-      data: [{ id: 'a1', isDefault: true, phone: '+905321234567', city: 'İstanbul', district: 'Kadıköy', address: 'Moda Cd. 1' }],
-    })),
-  },
+  addressesApi: { getAll: () => mockGetAddr() },
   shippingApi: { getPackageTiers: jest.fn(async () => ({ data: { tariffVersion: 1, tiers: [] } })) },
   bankAccountApi: { get: () => mockGetBank() },
 }));
@@ -61,6 +59,7 @@ const ACCOUNT = { id: 'x', accountHolder: 'T', iban: 'TR000000000000000000000001
 
 beforeEach(() => {
   mockGetBank.mockReset();
+  mockGetAddr.mockReset().mockResolvedValue({ data: [ADDRESS] });
   (router.push as jest.Mock).mockClear();
 });
 
@@ -90,4 +89,28 @@ it('hesap var: kapı yok, form açık', async () => {
   renderWithProviders(<ListingForm mode="create" />);
   expect(await screen.findByText('İlan Oluştur')).toBeOnTheScreen();
   expect(screen.queryByText('IBAN Ekle')).toBeNull();
+});
+
+it('IBAN ve adres okuması birlikte hata verirse TEK Tekrar Dene; deneyince ikisi de çekilir ve form açılır', async () => {
+  mockGetBank.mockRejectedValue(new Error('network'));
+  mockGetAddr.mockRejectedValue(new Error('network'));
+  renderWithProviders(<ListingForm mode="create" />);
+  const retry = await screen.findByText('Tekrar Dene', undefined, { timeout: 5000 });
+  expect(screen.getAllByText('Tekrar Dene')).toHaveLength(1);
+  expect(screen.queryByText('IBAN Ekle')).toBeNull();
+  expect(screen.queryByText('Adres Ekle')).toBeNull();
+
+  mockGetBank.mockResolvedValue({ data: ACCOUNT });
+  mockGetAddr.mockResolvedValue({ data: [ADDRESS] });
+  fireEvent.press(retry);
+  await waitFor(() => expect(screen.getByText('İlan Oluştur')).toBeOnTheScreen());
+});
+
+it('IBAN ve adres yok: iki istem alt alta, form yok', async () => {
+  mockGetBank.mockResolvedValue({ data: null });
+  mockGetAddr.mockResolvedValue({ data: [] });
+  renderWithProviders(<ListingForm mode="create" />);
+  expect(await screen.findByText('İlan vermeden önce banka hesabı ekleyin')).toBeOnTheScreen();
+  expect(screen.getByText('İlan vermeden önce kargo çıkış adresi eklemelisiniz')).toBeOnTheScreen();
+  expect(screen.queryByText('İlan Oluştur')).toBeNull();
 });

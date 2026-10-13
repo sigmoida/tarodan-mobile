@@ -4,7 +4,7 @@ import { theme } from '@/ui';
 
 import { styles } from '../_lib/styles';
 
-/** Kapı (IBAN / kargo adresi) durumu okunurken gösterilen yükleniyor göstergesi. */
+/** Ön koşul kapısı (IBAN / kargo adresi) okunurken gösterilen TEK yükleniyor göstergesi. */
 export function GateLoading() {
   return (
     <View style={styles.limitsPlaceholder}>
