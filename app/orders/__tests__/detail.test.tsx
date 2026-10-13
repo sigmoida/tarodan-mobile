@@ -22,11 +22,12 @@ jest.mock('@/lib/api', () => ({
   refundsApi: { create: jest.fn(), cancel: jest.fn() },
   mediaApi: { uploadRefundEvidence: jest.fn() },
   paymentsApi: { initiate: jest.fn(), bypassComplete: jest.fn() },
-  elogoInvoicesApi: { byOrder: jest.fn(() => Promise.resolve({ data: null })), pdf: jest.fn() },
+  elogoInvoicesApi: { byOrderAll: jest.fn(() => Promise.resolve({ data: [] })), pdf: jest.fn() },
   sellerInvoiceApi: { status: jest.fn(() => Promise.resolve({ data: null })), download: jest.fn() },
 }));
-import { api, elogoInvoicesApi } from '@/lib/api';
+import { api, elogoInvoicesApi, refundsApi } from '@/lib/api';
 
+import { useAuthStore } from '@/stores/authStore';
 import OrderDetailScreen from '../[id]';
 
 const getMock = api.get as jest.Mock;
@@ -91,13 +92,15 @@ describe('J78 · Alıcı onay butonu KALDIRILDI + escrow bilgisi', () => {
     expect(screen.queryByTestId('order-confirm-delivery-button')).toBeNull();
   });
 
-  it('J78.2 escrow metni teslim+14 gün der; "onaylayınca para serbest" DEMEZ', async () => {
+  it('J78.2 escrow metni iade süresini (14 gün) ve ödemeyi ayrı anlatır; "onaylayınca para serbest" DEMEZ', async () => {
     getMock.mockResolvedValue({ data: { data: orderFixture({ status: 'delivered', isBuyer: true }) } });
     renderWithProviders(<OrderDetailScreen />);
     await waitFor(() =>
       expect(screen.getByTestId('order-escrow-info')).toBeOnTheScreen(),
     );
-    expect(screen.getByText(/14 gün sonra serbest bırakılır/)).toBeOnTheScreen();
+    expect(screen.getByText(/14 gün içinde iade talep edebilirsiniz/)).toBeOnTheScreen();
+    expect(screen.getByText(/1 gün sonra serbest bırakılır/)).toBeOnTheScreen();
+    expect(screen.queryByText(/onayla/i)).toBeNull();
   });
 
   it('J78.3 alıcı değilse escrow kartı görünmez', async () => {
@@ -108,6 +111,39 @@ describe('J78 · Alıcı onay butonu KALDIRILDI + escrow bilgisi', () => {
     );
     expect(screen.queryByTestId('order-escrow-info')).toBeNull();
     expect(screen.queryByTestId('order-confirm-delivery-button')).toBeNull();
+  });
+
+  // A-3 inceleme #6 · web `EscrowInfoCard` görünürlüğü: yalnız alıcı +
+  // delivered / awaiting_buyer_confirmation (UI `awaiting_confirmation`).
+  it.each([
+    ['delivered', true],
+    ['awaiting_buyer_confirmation', true],
+    ['shipped', false],
+    ['completed', false],
+    ['refunded', false],
+    ['cancelled', false],
+  ])('escrow kartı API statüsü %s → görünür: %s', async (status, visible) => {
+    getMock.mockResolvedValue({ data: { data: orderFixture({ status, isBuyer: true }) } });
+    renderWithProviders(<OrderDetailScreen />);
+    await waitFor(() => expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen());
+    if (visible) expect(screen.getByTestId('order-escrow-info')).toBeOnTheScreen();
+    else expect(screen.queryByTestId('order-escrow-info')).toBeNull();
+  });
+
+  it('isBuyer alanı yoksa (bilinmiyorsa) escrow kartı görünmez (web gibi)', async () => {
+    getMock.mockResolvedValue({ data: { data: orderFixture({ status: 'delivered', isBuyer: undefined }) } });
+    renderWithProviders(<OrderDetailScreen />);
+    await waitFor(() => expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen());
+    expect(screen.queryByTestId('order-escrow-info')).toBeNull();
+  });
+
+  it('üyelik siparişinde escrow kartı görünmez', async () => {
+    getMock.mockResolvedValue({
+      data: { data: orderFixture({ status: 'delivered', isBuyer: true, isMembership: true }) },
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    await waitFor(() => expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen());
+    expect(screen.queryByTestId('order-escrow-info')).toBeNull();
   });
 
   it('J78.4 kargo öncesi (processing) alıcıya "Siparişi İptal Et" gösterilir', async () => {
@@ -161,6 +197,89 @@ describe('J79 · İade talep butonu görünürlüğü', () => {
       expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen(),
     );
     expect(screen.queryByTestId('refund-request-button')).toBeNull();
+  });
+
+  it('J79.4 iade penceresi geçmiş teslimde modal açılamaz (bilgi kartı gösterilir)', async () => {
+    const old = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+    getMock.mockResolvedValue({
+      data: { data: orderFixture({ isBuyer: true, payment: { status: 'completed' }, deliveredAt: old }) },
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    expect(await screen.findByText('İade Süresi Doldu')).toBeOnTheScreen();
+    expect(screen.queryByTestId('refund-request-button')).toBeNull();
+  });
+});
+
+/**
+ * Parite A-1.4 · İade kanıtı. Sunucu `changed_mind` dışındaki her nedende kanıt
+ * fotoğrafı istiyor; mobil hepsini "isteğe bağlı" sunuyordu. Kural
+ * `_lib/schema.ts`'te; burada ekrandaki etkisi çiviliyor.
+ */
+describe('A-1.4 · İade talebinde kanıt kuralı', () => {
+  const createMock = refundsApi.create as jest.Mock;
+
+  beforeEach(() => {
+    getMock.mockReset();
+    createMock.mockReset();
+    createMock.mockResolvedValue({ data: {} });
+    mockParams = { id: 'order-1' };
+    getMock.mockResolvedValue({
+      data: { data: orderFixture({ isBuyer: true, payment: { status: 'completed' }, activeRefundRequest: null }) },
+    });
+  });
+
+  async function openRefundModal() {
+    renderWithProviders(<OrderDetailScreen />);
+    await waitFor(() => expect(screen.getByTestId('refund-request-button')).toBeOnTheScreen());
+    fireEvent.press(screen.getByTestId('refund-request-button'));
+    await waitFor(() => expect(screen.getByText('İade Talebi Oluştur')).toBeOnTheScreen());
+  }
+
+  it('vazgeçme (varsayılan): kanıt/açıklama isteğe bağlı, talep doğrudan gider', async () => {
+    await openRefundModal();
+    expect(screen.getByText('Kanıt Fotoğrafı (isteğe bağlı)')).toBeOnTheScreen();
+    expect(screen.getByText('Açıklama (isteğe bağlı)')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText('Talep Oluştur'));
+    await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1));
+    expect(createMock).toHaveBeenCalledWith('order-1', { reason: 'changed_mind' });
+  });
+
+  it('kusur nedeni: etiketler zorunlu olur, fotoğrafsız talep GÖNDERİLMEZ ve hata modalda görünür', async () => {
+    await openRefundModal();
+    fireEvent.press(screen.getByText('Hasarlı geldi'));
+
+    expect(screen.getByText('Kanıt fotoğrafları (maks 5) *')).toBeOnTheScreen();
+    expect(screen.getByText('Açıklama *')).toBeOnTheScreen();
+    expect(screen.queryByText('Kanıt Fotoğrafı (isteğe bağlı)')).toBeNull();
+
+    fireEvent.changeText(
+      screen.getByTestId('refund-description-input'),
+      'Kutunun bir köşesi ezik, aynası kırık geldi.',
+    );
+    fireEvent.press(screen.getByText('Talep Oluştur'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('refund-evidence-hint')).toHaveTextContent(
+        'Bu sebep için en az bir kanıt fotoğrafı gereklidir',
+      ),
+    );
+    expect(createMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('refund-evidence-hint')).toHaveTextContent(
+      'Bu sebep için en az bir kanıt fotoğrafı gereklidir',
+    );
+    // Açıklama yeterli → onun hatası yok.
+    expect(screen.queryByText('Açıklama en az 20 karakter olmalıdır')).toBeNull();
+  });
+
+  it('kusur nedeni: kısa açıklama satır içi hata verir', async () => {
+    await openRefundModal();
+    fireEvent.press(screen.getByText('Hasarlı geldi'));
+    fireEvent.changeText(screen.getByTestId('refund-description-input'), 'kırık');
+    fireEvent.press(screen.getByText('Talep Oluştur'));
+
+    expect(await screen.findByText('Açıklama en az 20 karakter olmalıdır')).toBeOnTheScreen();
+    expect(createMock).not.toHaveBeenCalled();
   });
 });
 
@@ -246,8 +365,8 @@ describe('B7 · Fatura kartları aksiyonların altında render edilir', () => {
     getMock.mockResolvedValue({
       data: { data: orderFixture({ isBuyer: true, payment: { status: 'completed' }, activeRefundRequest: null }) },
     });
-    (elogoInvoicesApi.byOrder as jest.Mock).mockResolvedValue({
-      data: { id: 'inv-1', invoiceNumber: 'ELG-1' },
+    (elogoInvoicesApi.byOrderAll as jest.Mock).mockResolvedValue({
+      data: [{ id: 'inv-1', invoiceNumber: 'ELG-1', label: 'Platform hizmet bedeli' }],
     });
     renderWithProviders(<OrderDetailScreen />);
     await waitFor(() => expect(screen.getByTestId('refund-request-button')).toBeOnTheScreen());
@@ -364,5 +483,108 @@ describe('B25 · Timeline iade/iptal yansıtması', () => {
     const step = await screen.findByTestId('order-refundcancel-timeline');
     expect(within(step).getByText('İptal Edildi')).toBeOnTheScreen();
     expect(within(step).queryByText('-')).toBeNull();
+  });
+});
+
+/**
+ * Parite A-1.10 · İptal nedeni. Sipariş detayı `cancelReason`/`cancelCategory`'yi
+ * hiç okumuyordu; kullanıcı yalnız "İptal edildi" görüyordu. Yönetici (platform)
+ * iptalinde sunucu metni ("Yönetici tarafından iptal edildi: <etiket>") aynen basılır.
+ */
+describe('A-1.10 · İptal kartı nedeni gösterir', () => {
+  beforeEach(() => {
+    getMock.mockReset();
+    mockParams = { id: 'order-1' };
+  });
+
+  it('platform iptali: sunucunun gerekçe metni kartta görünür', async () => {
+    getMock.mockResolvedValue({
+      data: {
+        data: orderFixture({
+          status: 'cancelled',
+          cancellationType: 'iptal',
+          cancelledAt: new Date('2026-02-05').toISOString(),
+          cancelReason: 'Yönetici tarafından iptal edildi: Satıcı stok doğrulayamadı',
+          cancelCategory: 'other',
+        }),
+      },
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    const message = await screen.findByTestId('order-cancel-message');
+    expect(message).toHaveTextContent('Yönetici tarafından iptal edildi: Satıcı stok doğrulayamadı');
+  });
+
+  it('kategori → kullanıcı dostu cümle (alıcı kendi iptali; yanıtta isBuyer YOK)', async () => {
+    getMock.mockResolvedValue({
+      data: {
+        data: orderFixture({
+          status: 'cancelled',
+          isBuyer: undefined,
+          cancelReason: null,
+          cancelCategory: 'buyer_cancelled',
+        }),
+      },
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    const message = await screen.findByTestId('order-cancel-message');
+    expect(message).toHaveTextContent('Bu siparişi iptal ettiniz.');
+  });
+
+  it('satıcı aynı ekrandan bakarsa (siparişte isSeller) satıcı cümlesi — user.id değil, sunucu bayrağı', async () => {
+    getMock.mockResolvedValue({
+      data: {
+        data: orderFixture({
+          status: 'cancelled',
+          isBuyer: false,
+          isSeller: true,
+          cancelReason: null,
+          cancelCategory: 'buyer_cancelled',
+        }),
+      },
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    const message = await screen.findByTestId('order-cancel-message');
+    expect(message).toHaveTextContent('Alıcı bu siparişi iptal etti.');
+  });
+
+  it('A-3 inceleme #4 · user.id = seller.id olsa da isSeller yoksa satıcı sayılmaz', async () => {
+    useAuthStore.setState({ user: { id: 'seller-1' } as never });
+    try {
+      getMock.mockResolvedValue({
+        data: {
+          data: orderFixture({ status: 'cancelled', isBuyer: true, cancelReason: null, cancelCategory: 'buyer_cancelled' }),
+        },
+      });
+      renderWithProviders(<OrderDetailScreen />);
+      const message = await screen.findByTestId('order-cancel-message');
+      expect(message).toHaveTextContent('Bu siparişi iptal ettiniz.');
+    } finally {
+      useAuthStore.setState({ user: null });
+    }
+  });
+
+  it('inceleme 5 · ödenmiş kargo öncesi iptalde (refunded + iptal) neden satırı yok (web ile aynı)', async () => {
+    getMock.mockResolvedValue({
+      data: {
+        data: orderFixture({
+          status: 'refunded',
+          cancellationType: 'iptal',
+          cancelReason: 'changed_mind',
+          cancelCategory: null,
+        }),
+      },
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    await screen.findByTestId('order-cancelled-info');
+    expect(screen.queryByTestId('order-cancel-message')).toBeNull();
+  });
+
+  it('gerekçe ve kategori yoksa satır hiç basılmaz', async () => {
+    getMock.mockResolvedValue({
+      data: { data: orderFixture({ status: 'cancelled', cancelReason: null, cancelCategory: null }) },
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    await screen.findByTestId('order-cancelled-info');
+    expect(screen.queryByTestId('order-cancel-message')).toBeNull();
   });
 });

@@ -1,4 +1,5 @@
 import { api, guestApi } from './client';
+import type { ConsentDocumentKey } from '@/lib/shared/legalConsent';
 
 // Auth API - Web ile aynı endpoint'ler
 export const authApi = {
@@ -17,8 +18,22 @@ export const authApi = {
     }),
   loginWithGoogle: (idToken: string) =>
     api.post('/auth/google', { idToken }),
-  loginWithApple: (identityToken: string, fullName?: string) =>
-    api.post('/auth/apple', { identityToken, fullName }),
+  /**
+   * Apple ile giriş. `authorizationCode` sunucunun Apple refresh token'ı alıp
+   * hesap silmede iptal edebilmesi içindir (Apple 5.1.1(v)). Sunucu alanı henüz
+   * tanımıyor olabilir: global ValidationPipe `whitelist:true,
+   * forbidNonWhitelisted:false` → bilinmeyen alan sessizce atılır, 400 dönmez.
+   */
+  loginWithApple: (credential: {
+    identityToken: string;
+    fullName?: string;
+    authorizationCode?: string;
+  }) =>
+    api.post('/auth/apple', {
+      identityToken: credential.identityToken,
+      fullName: credential.fullName,
+      ...(credential.authorizationCode ? { authorizationCode: credential.authorizationCode } : {}),
+    }),
   register: (data: {
     username: string;
     displayName: string;
@@ -27,6 +42,8 @@ export const authApi = {
     phone?: string;
     birthDate?: string;
     acceptsMarketingEmails?: boolean;
+    /** Kayıt formunda onaylanan zorunlu belgeler (terms, privacy, kvkk); sürüm sunucuda damgalanır. */
+    acceptedConsents?: ConsentDocumentKey[];
   }) => api.post('/auth/register', data),
   /**
    * Kullanıcı adı uygunluğu — public, throttle **30/dk**. Yalnız "bu isim alınmış

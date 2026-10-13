@@ -33,7 +33,15 @@ export type DeepLinkConfig = {
   defaultLocale: string;
   appIDs: string[];
   androidPackage: string;
+  /** Staging Android paketi (`androidPackage` + `.staging`); yalnız staging host'larını yetkilendirir. */
+  stagingAndroidPackage: string;
+  /** Tanınan TÜM alan adları (well-known yayını, gelen link ayrıştırma). */
   hosts: string[];
+  /**
+   * `hosts`'un staging alt kümesi. Production build'in `associatedDomains` /
+   * intent filter'ına GİRMEZ; yalnız staging profilinde `app.config.js` ekler.
+   */
+  stagingHosts: string[];
   paths: DeepLinkPath[];
 };
 
@@ -42,6 +50,10 @@ export type AndroidPathEntry = { path: string } | { pathPrefix: string };
 // resolveJsonModule JSON'u dar literal tiplerle cikarir; DeepLinkConfig'e
 // dogrudan cast TS'i rahatsiz ederse `raw as unknown as DeepLinkConfig` kullan.
 export const deepLinkConfig = raw as DeepLinkConfig;
+
+/** Production uygulamasının talep ettiği alan adları (`hosts` − `stagingHosts`). */
+export const productionHosts = (): string[] =>
+  deepLinkConfig.hosts.filter((h) => !deepLinkConfig.stagingHosts.includes(h));
 
 export const shippablePaths = (): DeepLinkPath[] =>
   deepLinkConfig.paths.filter((p) => p.confirmed);

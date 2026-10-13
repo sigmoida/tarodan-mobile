@@ -12,6 +12,8 @@ import {
 } from '@/utils/format';
 import { transformImageUrl } from '@/utils/imageUrl';
 import { shipmentStatusLabel } from '@/lib/shipping/shipmentStatus';
+import { PreparingDeadlineNotice } from '@/components/orders/PreparingDeadlineNotice';
+import { ElogoInvoiceList } from '@/components/orders/ElogoInvoiceList';
 import { styles } from '../_lib/styles';
 import type { SaleDetailController } from '../_hooks/useSaleDetail';
 
@@ -45,8 +47,15 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
           <Text style={[styles.statusSub, { color: f.sc.fg }]}>
             {formatRelativeDate(order.createdAt, i18n.language)}
           </Text>
+          {f.cancelMessage ? (
+            <Text testID="sales-cancel-message" style={[styles.statusSub, { color: f.sc.fg }]}>
+              {f.cancelMessage}
+            </Text>
+          ) : null}
         </View>
       </View>
+
+      <PreparingDeadlineNotice notice={f.preparingNotice} style={styles.flush} />
 
       {/* Items */}
       <View style={styles.card}>
@@ -216,6 +225,15 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
           </Text>
         </View>
       </View>
+
+      <ElogoInvoiceList
+        invoices={f.elogo.invoices}
+        onOpen={f.elogo.openInvoice}
+        openingId={f.elogo.openingId}
+        loadFailed={f.elogo.loadFailed}
+        onRetry={f.elogo.refresh}
+        style={[styles.card, styles.flush]}
+      />
     </>
   );
 }

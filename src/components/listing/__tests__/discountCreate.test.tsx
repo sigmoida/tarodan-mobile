@@ -17,6 +17,11 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
 import { makeTestQueryClient } from '../../../test-utils';
 
+// B4: kimlik kapısı bu testin konusu değil — geçti say (kapı testi ayrı dosyada).
+jest.mock('@/hooks/useLegalIdentity', () =>
+  require('@/test-utils/legalIdentity').legalIdentityGatePassMock,
+);
+
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
   useLocalSearchParams: () => ({}),
@@ -44,6 +49,11 @@ jest.mock('@/lib/api', () => ({
     delete: jest.fn(),
   },
   categoriesApi: { getAll: jest.fn(async () => ({ data: { data: [] } })) },
+  addressesApi: {
+    getAll: jest.fn(async () => ({
+      data: [{ id: 'a1', isDefault: true, phone: '+905321234567', city: 'İstanbul', district: 'Kadıköy', address: 'Moda Cd. 1' }],
+    })),
+  },
   shippingApi: { getPackageTiers: () => mockGet('/shipping/package-tiers') },
   bankAccountApi: {
     get: jest.fn(async () => ({

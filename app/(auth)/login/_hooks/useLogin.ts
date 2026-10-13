@@ -1,3 +1,4 @@
+import { logger } from '@/services/logger';
 import { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
@@ -11,6 +12,7 @@ import { signInWithGoogle } from '@/services/googleSignin';
 import { signInWithApple, isAppleAvailable } from '@/services/appleSignin';
 import { useAuthStore } from '@/stores/authStore';
 import { buildLoginSchema, TWO_FACTOR_CODE_PATTERN, type LoginForm } from '../_lib/schema';
+import { IS_MAESTRO } from '@/config/maestro';
 
 /**
  * Login controller — owns the RHF form (zod), the login + resend-verification
@@ -111,7 +113,7 @@ export function useLogin() {
     onError: (error: unknown) => {
       const e = error as { response?: { data?: { message?: string } }; message?: string };
       const msg = e?.response?.data?.message || e?.message || t('auth.loginFailed');
-      console.log('❌ Login hatası:', msg);
+      logger.debug('Login hatası', { msg });
       const lower = msg.toLowerCase();
       if (lower.includes('doğrula') || lower.includes('verify') || lower.includes('doğrulanmadı')) {
         setUnverifiedEmail(getValues('email'));
@@ -171,8 +173,7 @@ export function useLogin() {
     if (appleLoading) return;
     setAppleLoading(true);
     try {
-      const { identityToken, fullName } = await signInWithApple();
-      const response = await authApi.loginWithApple(identityToken, fullName);
+      const response = await authApi.loginWithApple(await signInWithApple());
       const data = response.data as any;
       const accessToken = data.tokens?.accessToken || data.accessToken;
       const refreshToken = data.tokens?.refreshToken || data.refreshToken;
@@ -216,10 +217,10 @@ export function useLogin() {
   /**
    * Maestro fallback: hook-form handleSubmit bazen Maestro tap akışında
    * silently fail oluyor. Test ortamında getValues() ile direkt mutate.
-   * Production'da EXPO_PUBLIC_MAESTRO unset → branch dead-code.
+   * Production'da IS_MAESTRO derlemede false → branch dead-code.
    */
   const handleLoginPress = () => {
-    if (process.env.EXPO_PUBLIC_MAESTRO === '1') {
+    if (IS_MAESTRO) {
       const v = getValues();
       // Maestro tap akışı RHF handleSubmit'i atlar; ama 2FA kodu yine de burada
       // doğrulanmalı — aksi halde geçersiz kod (örn. "12") sunucuya gider.

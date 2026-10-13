@@ -1,3 +1,4 @@
+import { logger, safeError } from '@/services/logger';
 import { useCallback, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { api } from '@/lib/api';
@@ -71,7 +72,7 @@ export function useOrderTrack() {
 
       setOrder(response.data);
     } catch (err: any) {
-      console.error('Track order error:', err);
+      logger.error('Track order error', { err: safeError(err) });
       if (err.response?.status === 404) {
         setError(i18n.t('order.notFoundCheckDetails'));
       } else {

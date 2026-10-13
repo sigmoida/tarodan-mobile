@@ -55,6 +55,8 @@ async function fillCardAndSubmit() {
   fireEvent.changeText(screen.getByTestId('card-exp-month'), '07');
   fireEvent.changeText(screen.getByTestId('card-exp-year'), '28');
   fireEvent.changeText(screen.getByTestId('card-cvc'), '123');
+  // Mesafeli satış onayı her ödemede zorunlu (web `PaymentReady`).
+  fireEvent.press(screen.getByTestId('payment-distance-sales-checkbox'));
   fireEvent.press(screen.getByTestId('card-submit'));
 }
 
@@ -76,7 +78,7 @@ it('directForm gövdesine kart verisi KOYMAZ', async () => {
   for (const forbidden of ['card_number', 'cc_owner', 'cvv', 'cvc', 'expiry_month', '4111']) {
     expect(serialized).not.toContain(forbidden);
   }
-  expect(body).toEqual({ orderId: 'order-1', saveCard: false });
+  expect(body).toEqual({ orderId: 'order-1', saveCard: false, distanceSalesAccepted: true });
 });
 
 it('imzalı alanları ve kart alanlarını içeren HTML ile WebView açar', async () => {

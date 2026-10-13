@@ -9,13 +9,13 @@ import { FILTERS } from './_lib/types';
 import { useDiscounts } from './_hooks/useDiscounts';
 import { DiscountsGate } from './_components/DiscountsGate';
 import { DiscountCard } from './_components/DiscountCard';
-import { DiscountFormModal } from './_components/DiscountFormModal';
-import { ProductPickerModal } from './_components/ProductPickerModal';
+import { DiscountFormModal } from './_modals/DiscountFormModal';
 
 /**
  * Seller discount management — THIN screen. The `useDiscounts` controller owns
- * the queries, filter, form/picker modal state, and save/delete/toggle
- * mutations; this file composes the gate, filter chips, list, FAB, and modals.
+ * the list query, filter, form modal open state, and delete/toggle mutations;
+ * the form modal owns its own form + save mutation. This file composes the
+ * gate, filter chips, list, FAB, and modal.
  */
 export default function DiscountsScreen() {
   const { t } = useTranslation();
@@ -75,8 +75,12 @@ export default function DiscountsScreen() {
         onPress={f.openCreate}
       />
 
-      <DiscountFormModal f={f} />
-      <ProductPickerModal f={f} />
+      <DiscountFormModal
+        visible={f.formOpen}
+        discount={f.editing}
+        onClose={f.closeForm}
+        onSaved={f.showSaved}
+      />
 
       <Snackbar
         visible={f.snackbar.visible}

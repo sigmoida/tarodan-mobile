@@ -39,16 +39,13 @@ jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (k: string) => k }),
 }));
 
-// messagesStore — client-only (canSendMessage); selector-aware mock (#77).
-const mockStore = { canSendMessage: () => true };
-jest.mock("@/stores/messagesStore", () => ({
-  useMessagesStore: (sel?: any) => (sel ? sel(mockStore) : mockStore),
-}));
-
 // createThread artık React Query mutation hook'u (#77) — mutateAsync izlenir.
 const mockCreateThread = jest.fn();
+let mockDailyLimit: any = { canSend: true, limit: 50, remaining: 50 };
 jest.mock("@/hooks/messaging", () => ({
   useCreateThread: () => ({ mutateAsync: mockCreateThread }),
+  // Günlük hak sunucudan (GET /messages/daily-limit).
+  useDailyMessageLimit: () => mockDailyLimit,
 }));
 
 // authStore — limits
@@ -69,6 +66,7 @@ describe("J103 · yeni mesaj (konuşma oluştur)", () => {
     mockCreateThread.mockReset();
     resetRouterMocks();
     mockParams = {};
+    mockDailyLimit = { canSend: true, limit: 50, remaining: 50 };
   });
 
   it("J103.1 alıcı yokken manuel arama desteklenmiyor bilgisi gösterilir", () => {
@@ -129,5 +127,13 @@ describe("J103 · yeni mesaj (konuşma oluştur)", () => {
     await waitFor(() =>
       expect(replaceMock).toHaveBeenCalledWith("/messages/thread-9"),
     );
+  });
+
+  it("J103.5 limit dolunca yalnız bilgi uyarısı (sunucunun limiti); Premium vaadi/yükseltme bağlantısı YOK", () => {
+    mockDailyLimit = { canSend: false, limit: 30, remaining: 0 };
+    renderWithProviders(<NewMessageScreen />);
+    expect(screen.getByText("message.dailyLimitReached")).toBeOnTheScreen();
+    expect(screen.queryByText("address.goPremium")).toBeNull();
+    expect(screen.queryByText("message.dailyLimitWarning")).toBeNull();
   });
 });

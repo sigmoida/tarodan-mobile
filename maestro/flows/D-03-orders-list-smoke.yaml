@@ -1,6 +1,6 @@
 # D-03: Sipariş listesi smoke — login → Profil → Siparişlerim → liste açılır.
 # Zeynep'in seed'de sipariş geçmişi var; ekran boş olmamalı.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - regression
 ---

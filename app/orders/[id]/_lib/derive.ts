@@ -1,10 +1,28 @@
 // order'dan türetilen tüm görünüm değerleri — tek saf fonksiyon.
-import { COOLING_OFF_DAYS, REFUND_STATUS_META } from './status';
+import { REFUND_STATUS_META } from './status';
 import i18n from '@/i18n/config';
+import type { PublicTimingPolicy } from '@/lib/api/timingRules';
+import { preparingDeadlineNoticeOf } from '@/lib/shared/preparingDeadline';
+import { isMembershipOrder as isMembership } from '@/lib/shared/membershipOrder';
+import { computePayoutDate, isPastRefundWindow, orderTimingValues, returnWindowEnd } from './timing';
 import type { OrderDetail } from './types';
 
-export function deriveOrderView(order: OrderDetail) {
-  const isMembershipOrder = !!(order.isMembership ?? order.orderNumber?.startsWith('MEM-') ?? false);
+/**
+ * `policy`: `GET /timing-rules` (yüklenene kadar varsayılanlar). İade penceresi
+ * ve satıcı ödeme tarihi önce sunucu damgasından okunur (bkz. `./timing`).
+ * Hazırlık notunun okuyucusu siparişin `isSeller`/`isBuyer` bayraklarından.
+ * `now`: ekranın `useDeadlineNow`'ı — son tarih geçince not kalkar.
+ *
+ * `timing`: kartların `t()` çağrılarına geçtiği ICU parametreleri — kartlar
+ * kendi `useTimingValues`'ını çağırmaz, değer tek yerden (buradan) gelir. Gün
+ * sayıları siparişin kendi damgalarından (bkz. `orderTimingValues`).
+ */
+export function deriveOrderView(
+  order: OrderDetail,
+  policy: PublicTimingPolicy,
+  now: Date = new Date(),
+) {
+  const isMembershipOrder = isMembership(order);
 
   const canRate = !isMembershipOrder && ['delivered', 'completed'].includes(order.status);
 
@@ -28,12 +46,10 @@ export function deriveOrderView(order: OrderDetail) {
     order.payment?.status === 'completed' ||
     ['processing', 'shipped', 'delivered', 'awaiting_confirmation', 'completed'].includes(order.status);
 
-  const payoutReleaseDate = (() => {
-    if (!order.deliveredAt) return null;
-    const d = new Date(order.deliveredAt);
-    d.setDate(d.getDate() + COOLING_OFF_DAYS);
-    return d;
-  })();
+  // İade penceresinin sonu ile satıcı ödeme tarihi AYRI tarihlerdir (arada
+  // payout grace var); escrow kartı ikisini ayrı gösterir.
+  const refundWindowEnd = returnWindowEnd(order, policy);
+  const payoutReleaseDate = computePayoutDate(order, policy);
   const hasActiveRefund = !!order.activeRefundRequest;
 
   const isRefundedOrder = order.status === 'refunded' || hasActiveRefund;
@@ -53,13 +69,9 @@ export function deriveOrderView(order: OrderDetail) {
       order.cancelledAt ??
       undefined;
 
-  const isPastRefundWindow = (() => {
-    if (!order.deliveredAt) return false;
-    const d = new Date(order.deliveredAt);
-    if (Number.isNaN(d.getTime())) return false;
-    const ageDays = (Date.now() - d.getTime()) / (1000 * 3600 * 24);
-    return ageDays > COOLING_OFF_DAYS;
-  })();
+  const pastRefundWindow = isPastRefundWindow(order, policy);
+  const preparingNotice = preparingDeadlineNoticeOf(order, now);
+  const timing = orderTimingValues(order, policy);
 
   return {
     isMembershipOrder,
@@ -70,13 +82,16 @@ export function deriveOrderView(order: OrderDetail) {
     isDelivered,
     showTrackingCard,
     isPaid,
+    refundWindowEnd,
     payoutReleaseDate,
     hasActiveRefund,
     isRefundedOrder,
     showRefundCancelStep,
     refundCancelLabel,
     refundCancelDate,
-    isPastRefundWindow,
+    isPastRefundWindow: pastRefundWindow,
+    preparingNotice,
+    timing,
   };
 }
 

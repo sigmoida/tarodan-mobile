@@ -11,6 +11,8 @@ import {
   MyListingsFilters,
   MyListingCard,
   MyListingsEmpty,
+  MyListingsExpiredBanner,
+  MyListingsExpiredBar,
 } from './_components/MyListingsSections';
 import { MyListingsModals } from './_components/MyListingsModals';
 
@@ -38,6 +40,8 @@ export default function MyListingsScreen() {
 
       <MyListingsLimitCard f={f} />
       <MyListingsFilters f={f} />
+      <MyListingsExpiredBanner f={f} />
+      <MyListingsExpiredBar f={f} />
 
       {/* Listings */}
       {f.isLoading ? (
@@ -64,6 +68,11 @@ export default function MyListingsScreen() {
               key={listing.id}
               listing={listing}
               onMenu={() => f.setActionMenuListing(listing)}
+              selection={
+                f.isExpiredTab
+                  ? { checked: f.selection.selected.has(listing.id), onToggle: () => f.selection.toggle(listing.id) }
+                  : undefined
+              }
             />
           ))}
 

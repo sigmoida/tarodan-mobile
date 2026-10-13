@@ -37,4 +37,34 @@ describe('mapServerLimits', () => {
     expect(mapped.isAdFree).toBe(false);
     expect(mapped.maxListings).toBe(0);
   });
+
+  it('isAdFree null/eksik ise false yazılır (reklam gösterilir; tabloya düşülmez)', () => {
+    expect(mapServerLimits({ isAdFree: null })!.isAdFree).toBe(false);
+    expect(mapServerLimits({ canTrade: true })!.isAdFree).toBe(false);
+    expect(mapServerLimits({ isAdFree: 'yes' as any })!.isAdFree).toBe(false);
+  });
+
+  it('boolean isAdFree sunucu kararıdır (true da false da)', () => {
+    expect(mapServerLimits({ isAdFree: true })!.isAdFree).toBe(true);
+    expect(mapServerLimits({ isAdFree: false })!.isAdFree).toBe(false);
+  });
+});
+
+describe('isAdFree — authStore bindirmesi', () => {
+  const { useAuthStore } = require('@/stores/authStore');
+
+  const setTier = (tier: string) =>
+    useAuthStore.setState({ user: { membershipTier: tier } as any, serverLimits: null });
+
+  it('premium üye + sunucu null → serverLimits.isAdFree false (sessizce reklamsız KALMAZ)', () => {
+    setTier('premium');
+    useAuthStore.getState().setServerLimits(mapServerLimits({ isAdFree: null })!);
+    expect(useAuthStore.getState().serverLimits?.isAdFree).toBe(false);
+  });
+
+  it('sunucu isAdFree:true derse ücretsiz üye de reklamsız olur', () => {
+    setTier('free');
+    useAuthStore.getState().setServerLimits(mapServerLimits({ isAdFree: true })!);
+    expect(useAuthStore.getState().serverLimits?.isAdFree).toBe(true);
+  });
 });

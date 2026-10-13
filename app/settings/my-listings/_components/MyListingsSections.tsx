@@ -4,7 +4,7 @@ import type { MessageKey } from '@/i18n/lib';
 import { View, ScrollView, Pressable, Image } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Card, Chip, IconButton, ProgressBar, Text, theme } from '@/ui';
+import { Alert, Button, Card, Checkbox, Chip, IconButton, ProgressBar, Text, theme } from '@/ui';
 
 import { resolveImageUrl } from '@/utils/imageUrl';
 import UpgradeCta from '@/components/UpgradeCta';
@@ -13,7 +13,8 @@ import {
   getStatusColor,
   statusTextKey,
   formatDate,
-  getDaysUntilExpiry,
+  effectiveStatus,
+  inactiveHintKey,
   type Listing,
 } from '../_lib/types';
 import type { MyListingsController } from '../_hooks/useMyListings';
@@ -74,6 +75,7 @@ const FILTER_CHIPS: Array<{
   { value: 'sold', labelKey: 'listing.filterSold', countKey: 'sold' },
   { value: 'reserved', labelKey: 'listing.filterReserved', countKey: 'reserved' },
   { value: 'inactive', labelKey: 'listing.filterInactive', countKey: 'inactive' },
+  { value: 'expired', labelKey: 'profile.expiredListings.tab', countKey: 'expired' },
   { value: 'rejected', labelKey: 'listing.filterRejected', countKey: 'rejected' },
   { value: 'deleted', labelKey: 'listing.filterDeleted', countKey: 'deleted' },
 ];
@@ -103,18 +105,32 @@ export function MyListingsFilters({ f }: { f: MyListingsController }) {
 export function MyListingCard({
   listing,
   onMenu,
+  selection,
 }: {
   listing: Listing;
   onMenu: () => void;
+  /** Yalnız "Süresi dolan" sekmesinde: toplu yenileme için işaret kutusu. */
+  selection?: { checked: boolean; onToggle: () => void };
 }) {
   const { t } = useTranslation();
-  const daysUntilExpiry = getDaysUntilExpiry(listing.expiresAt);
+  const status = effectiveStatus(listing);
+  const hintKey = inactiveHintKey(listing);
 
   return (
     <Pressable
       style={styles.listingCard}
       onPress={() => router.push(`/product/${listing.id}`)}
     >
+      {selection && (
+        <View style={styles.selectCheck} testID={`select-wrap-${listing.id}`}>
+          <Checkbox
+            size="sm"
+            checked={selection.checked}
+            onChange={selection.onToggle}
+            testID={`select-${listing.id}`}
+          />
+        </View>
+      )}
       <Image source={{ uri: resolveImageUrl(listing.images) }} style={styles.listingImage} />
       <View style={styles.listingInfo}>
         <View style={styles.listingHeader}>
@@ -139,9 +155,9 @@ export function MyListingCard({
             <Text style={styles.statText}>{listing.likeCount || 0}</Text>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: colors.surface.alt }]}>
-            <View style={[styles.statusDot, { backgroundColor: getStatusColor(listing.status) }]} />
-            <Text style={[styles.statusText, { color: getStatusColor(listing.status) }]}>
-              {statusTextKey(listing.status) ? t(statusTextKey(listing.status)!) : listing.status}
+            <View style={[styles.statusDot, { backgroundColor: getStatusColor(status) }]} />
+            <Text style={[styles.statusText, { color: getStatusColor(status) }]}>
+              {statusTextKey(status) ? t(statusTextKey(status)!) : status}
             </Text>
           </View>
         </View>
@@ -159,11 +175,11 @@ export function MyListingCard({
           </View>
         ) : null}
 
-        {/* Expiry Warning */}
-        {listing.status === 'active' && daysUntilExpiry !== null && daysUntilExpiry <= 7 && daysUntilExpiry > 0 && (
-          <View style={styles.expiryWarning}>
-            <Ionicons name="warning" size={14} color={colors.warning[600]!} />
-            <Text style={styles.expiryText}>{t('listing.expiresInDays', { days: daysUntilExpiry })}</Text>
+        {/* Pasif ilanın nedeni: süresi doldu (yenilenebilir) / iade kontrolü bekliyor */}
+        {hintKey && (
+          <View style={styles.hintRow}>
+            <Ionicons name="time-outline" size={14} color={colors.warning[600]!} />
+            <Text style={styles.hintText}>{t(hintKey)}</Text>
           </View>
         )}
 
@@ -179,6 +195,15 @@ export function MyListingCard({
 // ---------------------------------------------------------------------------
 export function MyListingsEmpty({ filter }: { filter: MyListingsController['filter'] }) {
   const { t } = useTranslation();
+  if (filter === 'expired') {
+    return (
+      <View style={styles.emptyState}>
+        <Ionicons name="time-outline" size={64} color={colors.text.subtle} />
+        <Text style={styles.emptyTitle}>{t('profile.expiredListings.empty')}</Text>
+        <Text style={styles.emptyDesc}>{t('profile.expiredListings.emptyDescription')}</Text>
+      </View>
+    );
+  }
   return (
     <View style={styles.emptyState}>
       <Ionicons name="pricetag-outline" size={64} color={colors.text.subtle} />
@@ -194,6 +219,64 @@ export function MyListingsEmpty({ filter }: { filter: MyListingsController['filt
           ? t('listing.createFirstHint')
           : t('listing.noneInCategory')}
       </Text>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Süresi dolan ilanlar: diğer sekmelerde banner, "Süresi dolan" sekmesinde seçim çubuğu
+// ---------------------------------------------------------------------------
+/** Diğer sekmelerde: "N ilanınızın süresi doldu" + süresi dolanlar sekmesine kısayol. */
+export function MyListingsExpiredBanner({ f }: { f: MyListingsController }) {
+  const { t } = useTranslation();
+  if (f.isExpiredTab || f.expiredCount === 0) return null;
+  return (
+    <Alert
+      variant="warning"
+      icon={<Ionicons name="time-outline" size={18} color={colors.warning[700]!} />}
+      title={t('profile.expiredListings.bannerTitle', { count: f.expiredCount })}
+      style={styles.expiredBanner}
+    >
+      <Text style={{ color: colors.warning[800]! }}>{t('profile.expiredListings.bannerDescription')}</Text>
+      <Button
+        variant="outline"
+        size="sm"
+        title={t('profile.expiredListings.tab')}
+        onPress={() => f.setFilter('expired')}
+        style={{ marginTop: theme.spacing[2], alignSelf: 'flex-start' }}
+      />
+    </Alert>
+  );
+}
+
+/** "Süresi dolan" sekmesi: tümünü seç / seçimi temizle / seçilenleri tek istekte yenile. */
+export function MyListingsExpiredBar({ f }: { f: MyListingsController }) {
+  const { t } = useTranslation();
+  if (!f.isExpiredTab || f.filteredListings.length === 0) return null;
+  const { selection } = f;
+  return (
+    <View style={styles.expiredBar}>
+      <Checkbox
+        checked={selection.allSelected}
+        onChange={selection.toggleAll}
+        label={t('profile.expiredListings.selectAll')}
+      />
+      <View style={styles.expiredBarActions}>
+        {selection.selectedCount > 0 && (
+          <Button variant="ghost" size="sm" title={t('profile.expiredListings.clearSelection')} onPress={selection.clear} />
+        )}
+        <Button
+          size="sm"
+          variant="primary"
+          title={
+            f.isRenewingMany
+              ? t('profile.expiredListings.renewing')
+              : t('profile.expiredListings.renewSelected', { count: selection.selectedCount })
+          }
+          disabled={selection.selectedCount === 0 || f.isRenewingMany}
+          onPress={f.renewSelected}
+        />
+      </View>
     </View>
   );
 }

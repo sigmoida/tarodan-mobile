@@ -1,9 +1,16 @@
 import { Linking } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { ordersApi } from '@/lib/api';
 import { useRefresh } from '@/hooks/useRefresh';
 import { deriveShipmentView } from '@/lib/shipping/tracking';
+import { orderCancelMessage } from '@/lib/shared/orderCancelMessage';
+import { preparingDeadlineNoticeOf } from '@/lib/shared/preparingDeadline';
+import { useTimingValues } from '@/hooks/useTimingPolicy';
+import { useDeadlineNow } from '@/hooks/useDeadlineNow';
+import { useOrderElogoInvoices } from '@/hooks/useOrderElogoInvoices';
+import { appAlert } from '@/ui';
 import type { Order } from '../_lib/types';
 import { statusColor } from '../_lib/status';
 
@@ -13,6 +20,7 @@ import { statusColor } from '../_lib/status';
  * call/track Linking handlers. Lifted verbatim from the monolithic screen (§12).
  */
 export function useSaleDetail() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const { data: order, isLoading, error, refetch } = useQuery<Order | null>({
@@ -25,11 +33,26 @@ export function useSaleDetail() {
     enabled: !!id,
   });
 
-  const { refreshing, onRefresh } = useRefresh(refetch);
+  const timingValues = useTimingValues();
+  const now = useDeadlineNow(order?.preparingDeadline);
+  // e-Arşiv belgeleri (satıcıya da taraf başına üç belge kesilir) — web kuralı:
+  // ödeme öncesi ve iptal edilmiş siparişte yok. Bu ekran API statüsünü okur.
+  const elogo = useOrderElogoInvoices(
+    String(id ?? ''),
+    !!order && order.status !== 'pending_payment' && order.status !== 'cancelled',
+    (message) => appAlert(message),
+  );
+  // Pull-to-refresh siparişle birlikte e-Arşiv listesini de yeniler.
+  const { refreshing, onRefresh } = useRefresh(refetch, elogo.refresh);
 
   // İptal'de status 'refunded' olsa bile "İptal Edildi" göster (alıcı ile tutarlı).
   const displayStatus = order?.cancellationType === 'iptal' ? 'cancelled' : order?.status ?? '';
   const sc = statusColor(displayStatus);
+  // Neden iptal edildi — alıcı ekranıyla aynı tek kaynak; bu ekranı yalnız satıcı görür.
+  const cancelMessage = order && displayStatus === 'cancelled' ? orderCancelMessage(order, 'seller', t, timingValues) : null;
+  // Kargoya verme son tarihi (uzatıldıysa "son süre") — okuyucu siparişin
+  // `isSeller`/`isBuyer` bayraklarından (web); ikisi de yoksa not yok.
+  const preparingNotice = order ? preparingDeadlineNoticeOf(order, now) : null;
   const shipmentSummary = order?.shipment;
   const shipmentProvider = shipmentSummary?.provider ?? shipmentSummary?.carrier;
   const isSurat = (shipmentProvider ?? '').toLowerCase() === 'surat';
@@ -63,6 +86,9 @@ export function useSaleDetail() {
     onRefresh,
     displayStatus,
     sc,
+    cancelMessage,
+    preparingNotice,
+    elogo,
     shipmentView,
     shipmentProvider,
     isSurat,

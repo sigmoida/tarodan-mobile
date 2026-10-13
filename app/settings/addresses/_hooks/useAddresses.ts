@@ -11,7 +11,9 @@ import {
   splitPhone,
 } from "@/utils/phone";
 import { useRefresh } from "@/hooks/useRefresh";
-import { api } from "@/lib/api";
+import { api, addressesApi } from "@/lib/api";
+// Doğrudan modül yolu: testler `@/lib/api` barrel'ını mock'luyor.
+import { errorText } from "@/lib/api/errorText";
 import { qk } from "@/lib/query";
 import { useAuthStore } from "@/stores/authStore";
 import { useTranslation } from "react-i18next";
@@ -43,14 +45,11 @@ export function useAddresses() {
     refetch,
   } = useQuery({
     queryKey: qk.user.addresses,
+    // Hata YUTULMAZ: anahtar `qk.user.addresses` ilan formunun kargo çıkış adresi
+    // kapısıyla ORTAK; `[]` önbelleğe yazılırsa satıcı "adres yok" diye engellenir.
     queryFn: async () => {
-      try {
-        const response = await api.get("/users/me/addresses");
-        return response.data?.data || response.data || [];
-      } catch (error) {
-        console.log("Failed to fetch addresses");
-        return [];
-      }
+      const response = await api.get("/users/me/addresses");
+      return response.data?.data || response.data || [];
     },
     enabled: isAuthenticated,
   });
@@ -116,8 +115,7 @@ export function useAddresses() {
         formMsg.error(err.message);
         return;
       }
-      const msg = err?.response?.data?.message;
-      formMsg.error(Array.isArray(msg) ? msg.join("\n") : msg || t("address.saveFailed"));
+      formMsg.error(errorText(err, t("address.saveFailed")));
     },
   });
 
@@ -131,21 +129,20 @@ export function useAddresses() {
       appAlert(t("common.success"), t("address.deleted"));
     },
     onError: (err: any) => {
-      const msg = err?.response?.data?.message;
-      appAlert(
-        t("common.error"),
-        Array.isArray(msg) ? msg.join("\n") : msg || t("address.deleteFailed"),
-      );
+      appAlert(t("common.error"), errorText(err, t("address.deleteFailed")));
     },
   });
 
-  // Set default mutation
+  // Set default mutation — API'de `PATCH /users/me/addresses/:id/default` YOK
+  // (404'tü ve yutuluyordu). Doğrusu web ile aynı: `PATCH /users/me/addresses/:id`
+  // gövdesi `{ isDefault: true }` (sunucu diğerlerinin bayrağını kendisi düşürür).
   const setDefaultMutation = useMutation({
-    mutationFn: async (addressId: string) => {
-      return api.patch(`/users/me/addresses/${addressId}/default`);
-    },
+    mutationFn: async (addressId: string) => addressesApi.setDefault(addressId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.user.addresses });
+    },
+    onError: (err: any) => {
+      appAlert(t("common.error"), errorText(err, t("address.defaultFailed")));
     },
   });
 

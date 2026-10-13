@@ -16,6 +16,14 @@ jest.mock('@/lib/api', () => ({
 }));
 import { offersApi } from '@/lib/api';
 
+// Maestro kapısı tek kaynaktan (`@/config/maestro`) okunur; testte değiştirilebilir.
+let mockIsMaestro = false;
+jest.mock('@/config/maestro', () => ({
+  get IS_MAESTRO() {
+    return mockIsMaestro;
+  },
+}));
+
 const createMock = offersApi.create as jest.Mock;
 
 function renderModal(props: Partial<React.ComponentProps<typeof MakeOfferModal>> = {}) {
@@ -39,6 +47,20 @@ describe('MakeOfferModal', () => {
   beforeEach(() => {
     createMock.mockClear();
     (appAlert as jest.Mock).mockImplementation(() => {});
+  });
+
+  it('tutar klavyesi: normalde numeric, IS_MAESTRO açıkken default (return tuşu için)', () => {
+    mockIsMaestro = false;
+    const first = renderWithProviders(
+      <MakeOfferModal visible onDismiss={jest.fn()} productId="p" productTitle="T" listPrice={390} />,
+    );
+    expect(screen.getByTestId('offer-amount-input').props.keyboardType).toBe('numeric');
+    first.unmount();
+
+    mockIsMaestro = true;
+    renderModal();
+    expect(screen.getByTestId('offer-amount-input').props.keyboardType).toBe('default');
+    mockIsMaestro = false;
   });
 
   it('boş tutarda Teklif Gönder devre dışı', () => {

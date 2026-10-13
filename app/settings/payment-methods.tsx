@@ -2,44 +2,31 @@ import React from "react";
 import {
   View,
   ScrollView,
-  StyleSheet,
   Pressable,
   RefreshControl,
 } from "react-native";
 import { Card, Spinner, Text, theme, appAlert } from "@/ui";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { ScreenHeader, EmptyState } from "@/components/common";
 import { useAuthStore } from "@/stores/authStore";
-import { membershipApi } from "@/lib/api";
+import { membershipApi, type SavedCard } from "@/lib/api";
+import { useSavedCards } from "@/lib/payment/useSavedCards";
 import { qk } from "@/lib/query";
 import { CAN_BUY_DIGITAL } from "@/lib/purchases";
 import { styles } from './_payment-methods/_lib/styles';
+import { SavedCardBadges } from './_payment-methods/_components/SavedCardBadges';
 
 const { colors } = theme;
 
 /**
  * Kayıtlı Kartlarım (mobil) — web profile/payment-methods paritesi.
  * Kart EKLEME ödeme sırasında ("kartımı kaydet") olur; burada listele + sil.
- * PAN/CVV asla gösterilmez/saklanmaz.
+ * PAN/CVV asla gösterilmez/saklanmaz. Liste amaçsız istenir (iki mağazanın
+ * kartları birlikte, web gibi); rozetler web `SavedCardCard` ile aynı.
  */
-
-interface SavedCard {
-  id: string;
-  last4: string;
-  brand: string | null;
-  bank: string | null;
-  cardType: string | null;
-  cardScheme: string | null;
-  businessCard: boolean | null;
-  expMonth: string | null;
-  expYear: string | null;
-  requireCvv: boolean;
-  isDefault: boolean;
-  autoRenewEligible: boolean;
-}
 
 const buildCardTypeLabels = (t: TFunction): Record<string, string> => ({
   credit: t("payment.cardTypeCredit"),
@@ -52,16 +39,8 @@ export default function PaymentMethodsScreen() {
   const queryClient = useQueryClient();
   const cardTypeLabels = buildCardTypeLabels(t);
 
-  const cardsQuery = useQuery({
-    queryKey: qk.payments.savedCards,
-    queryFn: async () => {
-      const res = await membershipApi.listCards();
-      const data: any = res.data;
-      const list: SavedCard[] = Array.isArray(data) ? data : (data?.data ?? []);
-      return list;
-    },
-    enabled: isAuthenticated,
-  });
+  // Amaçsız: iki mağazanın kartları birlikte (web gibi).
+  const cardsQuery = useSavedCards({ enabled: isAuthenticated });
 
   const handleDelete = (card: SavedCard) => {
     appAlert(
@@ -77,7 +56,8 @@ export default function PaymentMethodsScreen() {
               await membershipApi.deleteCard(card.id);
               // Sunucu 200 döndüğü an listeyi tazele — PayTR tarafındaki
               // temizliğin bitmesini BEKLEME (kart kaydı bizde zaten silindi).
-              queryClient.invalidateQueries({ queryKey: qk.payments.savedCards });
+              // Prefix: ödeme formunun amaçlı listeleri de tazelenir.
+              queryClient.invalidateQueries({ queryKey: qk.payments.savedCardsAll });
             } catch (e: any) {
               appAlert(
                 t("common.error"),
@@ -105,7 +85,7 @@ export default function PaymentMethodsScreen() {
         }
       >
         <Text variant="body" tone="muted" style={styles.intro}>
-          {/* iOS'ta abonelik satılmıyor (Apple 2.1(b)): oto-yenileme ifadesi yok. */}
+          {/* Dijital satış kapalıyken (iOS + Android) abonelik satılmıyor (Apple 2.1(b) / Play): oto-yenileme ifadesi yok. */}
           {t(CAN_BUY_DIGITAL ? "payment.savedCardsIntro" : "payment.savedCardsIntroNeutral")}
         </Text>
 
@@ -127,77 +107,7 @@ export default function PaymentMethodsScreen() {
                 <Text variant="body" style={styles.cardTitle}>
                   {(c.brand || t("payment.cardGenericBrand")) + " •••• " + c.last4}
                 </Text>
-                <View style={styles.badges}>
-                  {c.cardScheme && (
-                    <Text
-                      variant="caption"
-                      style={[
-                        styles.badge,
-                        {
-                          backgroundColor: colors.surface.alt,
-                          color: colors.text.muted,
-                        },
-                      ]}
-                    >
-                      {c.cardScheme.toUpperCase()}
-                    </Text>
-                  )}
-                  {c.isDefault && (
-                    <Text
-                      variant="caption"
-                      style={[
-                        styles.badge,
-                        {
-                          backgroundColor: colors.primary[50],
-                          color: colors.primary[700],
-                        },
-                      ]}
-                    >
-                      {t("payment.defaultCard")}
-                    </Text>
-                  )}
-                  {!CAN_BUY_DIGITAL ? null : c.autoRenewEligible ? (
-                    <Text
-                      variant="caption"
-                      style={[
-                        styles.badge,
-                        {
-                          backgroundColor: colors.success[50],
-                          color: colors.success[600],
-                        },
-                      ]}
-                    >
-                      {t("payment.autoRenewEligibleBadge")}
-                    </Text>
-                  ) : (
-                    <Text
-                      variant="caption"
-                      style={[
-                        styles.badge,
-                        {
-                          backgroundColor: colors.warning[50],
-                          color: colors.warning[600],
-                        },
-                      ]}
-                    >
-                      {t("payment.cvvRequiredBadge")}
-                    </Text>
-                  )}
-                  {c.businessCard && (
-                    <Text
-                      variant="caption"
-                      style={[
-                        styles.badge,
-                        {
-                          backgroundColor: colors.info[50],
-                          color: colors.info[600],
-                        },
-                      ]}
-                    >
-                      {t("footer.corporate")}
-                    </Text>
-                  )}
-                </View>
+                <SavedCardBadges card={c} />
                 {[
                   c.bank,
                   c.cardType ? cardTypeLabels[c.cardType] : null,
@@ -216,6 +126,7 @@ export default function PaymentMethodsScreen() {
                 ) : null}
               </View>
               <Pressable
+                testID={`card-delete-${c.id}`}
                 onPress={() => handleDelete(c)}
                 hitSlop={10}
                 style={styles.delete}

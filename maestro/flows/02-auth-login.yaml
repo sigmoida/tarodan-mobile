@@ -1,6 +1,6 @@
 # Auth-login smoke: login-as ile login yap, profil ekranında kullanıcı görünür.
 # Tek başına çalışırken de batch'te de PASS olur.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - regression
 env:

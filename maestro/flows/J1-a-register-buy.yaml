@@ -3,14 +3,14 @@
 # akışı zeynep ile ezilmesin. Kayıt sonrası orkestrator driver verify-email+seed-address
 # koşar, sonra J1-b-login-buy.yaml devam eder.
 # Gerekli env: REG_EMAIL (benzersiz), REG_USERNAME (benzersiz), REG_PASSWORD, REG_NAME.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - manual
 # REG_EMAIL / REG_USERNAME / REG_PASSWORD / REG_NAME orkestratörden --env ile gelir.
 # Inline env: defaultları Maestro'da --env'i EZDİĞİ için bilinçli olarak yok.
 ---
 - launchApp:
-    appId: com.tarodan.app
+    appId: ${APP_ID}
     # clearState: true — önceki koşumdan kalan SecureStore token'ı temizle ki
     # NO_AUTOLOGIN ile gerçekten misafir başlasın (zeynep oturumu sızmasın).
     clearState: true
@@ -147,6 +147,9 @@ tags:
     timeout: 2000
 - tapOn:
     id: "register-acceptTerms"
+# KVKK aydınlatma metni AYRI zorunlu kutu (B-2.3, delta 22).
+- tapOn:
+    id: "register-acceptKvkk"
 # birthDate MAESTRO modunda öndolu (1990-01-01); dokunma.
 - tapOn:
     id: "register-submit-button"

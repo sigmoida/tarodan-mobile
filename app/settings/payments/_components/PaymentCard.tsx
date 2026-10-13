@@ -1,5 +1,5 @@
 import { View, Pressable } from 'react-native';
-import { Card, Text, theme } from '@/ui';
+import { Card, Spinner, Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -59,8 +59,23 @@ export function PaymentCard({ p, f }: { p: Payment; f: PaymentsController }) {
           </Pressable>
         )}
         {p.status === 'failed' && (
-          <Pressable onPress={() => f.handleRetry(p.id)} style={[styles.actionButton, styles.retryButton]}>
-            <Ionicons name="refresh" size={16} color={colors.primary[600]!} />
+          <Pressable
+            onPress={() => f.handleRetry(p.id)}
+            disabled={f.retryBusy}
+            accessibilityState={{ disabled: f.retryBusy, busy: f.retryPendingId === p.id }}
+            style={[
+              styles.actionButton,
+              styles.retryButton,
+              // Başka kartın kontrolü sürerken bu düğme GÖRÜNÜR biçimde devre dışı.
+              f.retryBusy && f.retryPendingId !== p.id ? styles.actionDisabled : null,
+            ]}
+            testID={`payment-retry-${p.id}`}
+          >
+            {f.retryPendingId === p.id ? (
+              <Spinner size="sm" />
+            ) : (
+              <Ionicons name="refresh" size={16} color={colors.primary[600]!} />
+            )}
             <Text style={[styles.actionLabel, { color: colors.primary[600]! }]}>{t('payment.retry')}</Text>
           </Pressable>
         )}

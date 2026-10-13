@@ -163,7 +163,7 @@ export function BoostModal({
 
   const confirmDisabled = submitting || loadingPricing || !enabled || selected == null;
 
-  // Emniyet kilidi: iOS'ta uygulama içi dijital satış yok (Guideline 3.1.1).
+  // Emniyet kilidi: uygulama içi dijital satış yok (iOS Guideline 3.1.1, Play ödeme politikası).
   // Hook sırası bozulmasın diye erken çıkış tüm hook'lardan SONRA, JSX
   // döndürülmeden hemen önce yapılır.
   if (!CAN_BUY_DIGITAL) return null;

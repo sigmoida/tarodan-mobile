@@ -2,13 +2,13 @@
 # checkout (seed'li adres) → bypass ödeme → sipariş oluştu.
 # Ön koşul (orkestrator garanti eder): REG_EMAIL kayıtlı + email verified +
 # default adres seed'li + PAYMENT_BYPASS=true.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - manual
 # REG_EMAIL / REG_PASSWORD orkestratörden --env ile gelir (inline env --env'i ezer).
 ---
 - launchApp:
-    appId: com.tarodan.app
+    appId: ${APP_ID}
     clearState: false
 - waitForAnimationToEnd:
     timeout: 5000

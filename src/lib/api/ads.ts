@@ -22,10 +22,21 @@ export interface AdHotspot {
   sortOrder: number;
 }
 
+/** Reklama bağlı kampanya — sunucu yalnız yayındaki kampanyayı döndürür. */
+export interface AdCampaign {
+  id: string;
+  name: string;
+  code: string | null;
+  target: string;
+  isFlashSale?: boolean;
+  endsAt?: string;
+}
+
 export interface ActiveAd {
   id: string;
   title: string;
-  imageUrl: string;
+  /** Metin (görselsiz) reklamda `null`/boş. */
+  imageUrl: string | null;
   /**
    * Yalnız eski/metin reklamlarda dolu. Görselli reklamda sunucu bunu `null`
    * gönderir; tıklama `hotspots`tan gelir.
@@ -39,6 +50,11 @@ export interface ActiveAd {
   height: number | null;
   position: string;
   deviceType: string;
+  /**
+   * Duyurulan kampanya (kupon kodu, flaş geri sayım). Eski API yanıtlarında
+   * alan yok ya da `null` — ikisi de "kampanya yok".
+   */
+  campaign?: AdCampaign | null;
 }
 
 /**

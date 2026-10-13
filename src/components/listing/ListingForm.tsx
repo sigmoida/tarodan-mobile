@@ -21,6 +21,8 @@ import {
   ListingSubmitRow,
 } from './_components/ListingSections';
 import { ListingPickers } from './_components/ListingPickers';
+import { ListingRequirementGate } from './_components/ListingRequirementGate';
+import { listingGatesBlock } from './_lib/gates';
 
 const { colors } = theme;
 
@@ -59,13 +61,20 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
           keyboardShouldPersistTaps="handled"
         >
           <ListingHeaderBanners f={f} />
-          <ListingImagesSection f={f} />
-          <ListingBasicInfoSection f={f} />
-          <ListingDetailsSection f={f} />
-          <ListingOptionsSection f={f} />
-          <ListingPricingSection f={f} />
-          <ListingShippingSection f={f} />
-          <ListingSubmitRow f={f} />
+          {/* Web gibi: IBAN ve kargo adresi ön koşulları, form ancak ikisi de açıkken görünür. */}
+          {listingGatesBlock(f) ? (
+            <ListingRequirementGate f={f} />
+          ) : (
+            <>
+              <ListingImagesSection f={f} />
+              <ListingBasicInfoSection f={f} />
+              <ListingDetailsSection f={f} />
+              <ListingOptionsSection f={f} />
+              <ListingPricingSection f={f} />
+              <ListingShippingSection f={f} />
+              <ListingSubmitRow f={f} />
+            </>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
 

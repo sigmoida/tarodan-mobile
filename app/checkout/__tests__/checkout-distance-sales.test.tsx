@@ -14,6 +14,11 @@ import React from 'react';
 import { screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 
+// B4: kimlik kapısı bu testin konusu değil — geçti say (kapı testi ayrı dosyada).
+jest.mock('@/hooks/useLegalIdentity', () =>
+  require('@/test-utils/legalIdentity').legalIdentityGatePassMock,
+);
+
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );

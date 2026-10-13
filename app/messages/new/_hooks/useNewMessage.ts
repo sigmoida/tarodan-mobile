@@ -4,9 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api, errorText } from '@/lib/api';
 import { appAlert } from '@/ui';
-import { useMessagesStore } from '@/stores/messagesStore';
-import { useCreateThread } from '@/hooks/messaging';
-import { useAuthStore } from '@/stores/authStore';
+import { useCreateThread, useDailyMessageLimit } from '@/hooks/messaging';
 import type { User } from '../_lib/types';
 
 /**
@@ -23,9 +21,9 @@ export function useNewMessage() {
     productId?: string;
     productTitle?: string;
   }>();
-  const canSendMessage = useMessagesStore((s) => s.canSendMessage);
   const createThread = useCreateThread();
-  const { limits } = useAuthStore();
+  // Sunucu sayımı (GET /messages/daily-limit); bilinmiyorsa engellenmez.
+  const { limit: messageLimit, canSend } = useDailyMessageLimit();
 
   // Recipient can arrive as `sellerId` (seller/product context) or `receiverId` (trade context).
   const recipientId = sellerId || receiverId;
@@ -40,8 +38,6 @@ export function useNewMessage() {
       : '',
   );
   const [sending, setSending] = useState(false);
-
-  const canSend = canSendMessage();
 
   // NOT: Backend'de isimle kullanıcı arama ucu (GET /users/search) YOK; web'de de bu
   // özellik bulunmuyor. Bozuk uca 404 atmak yerine manuel aramayı devre dışı bırakıyoruz.
@@ -127,7 +123,7 @@ export function useNewMessage() {
   };
 
   return {
-    limits,
+    messageLimit,
     productId,
     product,
     decodedProductTitle,

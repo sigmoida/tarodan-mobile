@@ -6,7 +6,13 @@ import { useTranslation } from 'react-i18next';
 import { appAlert } from '@/ui';
 import { useMessagesStore } from '@/stores/messagesStore';
 import { useAuthStore } from '@/stores/authStore';
-import { useThreadQuery, useMessagesQuery, useSendMessage, useMarkAsRead } from '@/hooks/messaging';
+import {
+  useThreadQuery,
+  useMessagesQuery,
+  useSendMessage,
+  useMarkAsRead,
+  useDailyMessageLimit,
+} from '@/hooks/messaging';
 import { detectViolations, embedImageInMessage, getViolationMessage } from '@/utils/contentFilter';
 import { mediaApi, errorText } from '@/lib/api';
 import { getSocket } from '@/services/socket';
@@ -18,14 +24,13 @@ import { useAutoScroll } from './useAutoScroll';
 /**
  * Message-thread controller — thread/messages artık React Query (#77), send/markRead
  * mutation hook'ları. Aktif thread `setCurrentThreadId` ile store'a yazılır (socket
- * köprüsü açık/kapalı ayrımı için). getOtherParticipant + canSendMessage client store.
+ * köprüsü açık/kapalı ayrımı için). getOtherParticipant client store; günlük hak sunucudan (useDailyMessageLimit).
  */
 export function useMessageThread() {
   const { t } = useTranslation();
   const { threadId } = useLocalSearchParams<{ threadId: string }>();
-  const { user, limits } = useAuthStore();
+  const { user } = useAuthStore();
   const getOtherParticipant = useMessagesStore((s) => s.getOtherParticipant);
-  const canSendMessage = useMessagesStore((s) => s.canSendMessage);
   const setCurrentThreadId = useMessagesStore((s) => s.setCurrentThreadId);
   const { data: currentThread = null } = useThreadQuery(threadId);
   const { data: messages = [], isLoading: isLoadingMessages } = useMessagesQuery(threadId);
@@ -44,9 +49,8 @@ export function useMessageThread() {
   const [isPositioned, setIsPositioned] = useState(false);
   const scrollViewRef = useRef<FlatList>(null);
 
-  const messageLimit = limits?.maxMessagesPerDay || 50;
-  const isUnlimited = messageLimit === -1;
-  const canSend = canSendMessage();
+  // Sunucu sayımı (GET /messages/daily-limit); bilinmiyorsa engellenmez.
+  const { limit: messageLimit, canSend, refetch: refetchDailyLimit } = useDailyMessageLimit();
 
   // Thread/messages query'leri enabled:threadId ile kendiliğinden çeker. Focus'ta:
   // aktif thread'i işaretle (socket köprüsü için), okundu yap, socket odasına gir.
@@ -54,7 +58,7 @@ export function useMessageThread() {
     useCallback(() => {
       if (threadId) {
         setCurrentThreadId(threadId);
-        markAsRead.mutate(threadId);
+        markAsRead(threadId);
         getSocket()?.emit('join:thread', { threadId });
       }
       return () => {
@@ -65,6 +69,15 @@ export function useMessageThread() {
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [threadId])
+  );
+
+  // Ekrana her dönüşte hak tazelenir: gece yarısını (UTC) aşıp açık kalan ya da arka
+  // plandan dönen thread bayat "hak bitti" ile kilitli kalmasın. `cancelRefetch:false`:
+  // ilk açılıştaki sorgu zaten uçuştaysa ikinci istek atılmaz.
+  useFocusEffect(
+    useCallback(() => {
+      void refetchDailyLimit({ cancelRefetch: false });
+    }, [refetchDailyLimit]),
   );
 
   // Thread değişince ilk konumlama sıfırlanır
@@ -218,7 +231,6 @@ export function useMessageThread() {
     scrollViewRef,
     // limit
     messageLimit,
-    isUnlimited,
     canSend,
     // derived
     groupedMessages,

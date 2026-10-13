@@ -34,7 +34,8 @@ export type ServerLimitsDto = {
   maxImages?: number;
   canCreateCollection?: boolean;
   canTrade?: boolean;
-  isAdFree?: boolean;
+  /** Sunucu belirlerse (admin kutusu) bool; belirlemezse `null`/yok. */
+  isAdFree?: boolean | null;
 };
 
 export function mapServerLimits(dto: ServerLimitsDto | null): ServerLimitsOverride | null {
@@ -44,7 +45,11 @@ export function mapServerLimits(dto: ServerLimitsDto | null): ServerLimitsOverri
   if (dto.maxImages !== undefined) out.maxImagesPerListing = dto.maxImages;
   if (dto.canCreateCollection !== undefined) out.canCreateCollections = dto.canCreateCollection;
   if (dto.canTrade !== undefined) out.canTrade = dto.canTrade;
-  if (dto.isAdFree !== undefined) out.isAdFree = dto.isAdFree;
+  // Reklamsızlık YALNIZ sunucu kararıdır: boolean gelirse ona uyulur; `null`/eksik
+  // = "belirlenmedi" → `false` (reklam gösterilir; web ve üretimdeki davranışla
+  // aynı). authStore'daki sabit tier tablosuna DÜŞÜLMEZ — aksi halde ücretli
+  // üye sunucu hiçbir şey demediği halde sessizce reklamsız kalırdı.
+  out.isAdFree = dto.isAdFree === true;
   return out;
 }
 
@@ -81,5 +86,14 @@ export function useMembershipLimits() {
     if (query.data) setServerLimits(query.data);
   }, [query.data, setServerLimits]);
 
-  return { limits, isLoading: query.isLoading };
+  return {
+    limits,
+    isLoading: query.isLoading,
+    /**
+     * Uç yanıtlandı ama sunucu hakkı alınamadı (hata / boş gövde): `serverLimits`
+     * hiç yazılmayacak. "Henüz yüklenmedi"den ayırt etmek için — beklemeyi
+     * sonsuza uzatmasın (reklam kararı bu durumda varsayılana düşer).
+     */
+    settledWithoutLimits: query.isFetched && !query.data,
+  };
 }

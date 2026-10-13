@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
@@ -8,6 +8,8 @@ import { useRefresh } from '@/hooks/useRefresh';
 import { formatPrice } from '@/utils/format';
 import { useAuthStore } from '@/stores/authStore';
 import type { Offer } from '../_lib/types';
+import { useTimingValues } from '@/hooks/useTimingPolicy';
+import { useConfirmOffer } from '../../_hooks/useConfirmOffer';
 import { statusColor } from '../_lib/status';
 
 /**
@@ -23,6 +25,14 @@ export function useOfferDetail() {
 
   const [counterDialog, setCounterDialog] = useState(false);
   const [counterAmount, setCounterAmount] = useState('');
+  // Onaylandı ama mutasyon bitmedi (diyalog kapanışı bitene dek ertelenmiş başlangıç dahil).
+  // Onay basıldığı AN kurulur: butonlar devre dışı + spinner, ikinci basış ikinci işlem açmaz.
+  const [confirmedKind, setConfirmedKind] = useState<'accept' | 'reject' | 'cancel' | null>(null);
+  const confirmedRef = useRef<string | null>(null);
+  const settle = () => {
+    confirmedRef.current = null;
+    setConfirmedKind(null);
+  };
 
   const { data: offer, isLoading, error, refetch } = useQuery<Offer | null>({
     queryKey: ['offer', id],
@@ -35,6 +45,8 @@ export function useOfferDetail() {
   });
 
   const { refreshing, onRefresh } = useRefresh(refetch);
+  const confirm = useConfirmOffer();
+  const timing = useTimingValues();
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['offer', id] });
@@ -43,6 +55,7 @@ export function useOfferDetail() {
 
   const acceptMutation = useMutation({
     mutationFn: () => offersApi.accept(id!),
+    onSettled: settle,
     onSuccess: () => {
       invalidate();
       appAlert(i18n.t('common.success'), i18n.t('offer.acceptedOrderCreated'));
@@ -53,6 +66,7 @@ export function useOfferDetail() {
 
   const rejectMutation = useMutation({
     mutationFn: () => offersApi.reject(id!),
+    onSettled: settle,
     onSuccess: () => {
       invalidate();
       appAlert(i18n.t('common.info'), i18n.t('offer.offerRejected'));
@@ -63,6 +77,7 @@ export function useOfferDetail() {
 
   const cancelMutation = useMutation({
     mutationFn: () => offersApi.cancel(id!),
+    onSettled: settle,
     onSuccess: () => {
       invalidate();
       appAlert(i18n.t('common.info'), i18n.t('offer.offerCancelled'));
@@ -83,6 +98,26 @@ export function useOfferDetail() {
     onError: (e: any) =>
       appAlert(i18n.t('common.error'), e?.response?.data?.message || i18n.t('offer.counterFailed')),
   });
+
+  const request = (
+    confirmKind: Parameters<typeof confirm>[0],
+    kind: 'accept' | 'reject' | 'cancel',
+    run: () => void,
+  ) => {
+    if (confirmedRef.current) return; // onay bekleyen / süren işlem varken yenisi yok
+    confirm(confirmKind, run, () => {
+      confirmedRef.current = kind;
+      setConfirmedKind(kind);
+    });
+  };
+  /** Detaydan kabul yalnız satıcıdır (gelen teklif); web gibi önce onay. */
+  const requestAccept = () => request('acceptSeller', 'accept', () => acceptMutation.mutate());
+  /** Reddet / iptal: liste kartıyla aynı onay (`useConfirmOffer`). */
+  const requestReject = () => request('reject', 'reject', () => rejectMutation.mutate());
+  const requestCancel = () => request('cancel', 'cancel', () => cancelMutation.mutate());
+  const accepting = acceptMutation.isPending || confirmedKind === 'accept';
+  const rejecting = rejectMutation.isPending || confirmedKind === 'reject';
+  const cancelling = cancelMutation.isPending || confirmedKind === 'cancel';
 
   const firstImg =
     Array.isArray(offer?.product?.images) && offer!.product!.images.length > 0
@@ -140,9 +175,16 @@ export function useOfferDetail() {
     refreshing,
     onRefresh,
     acceptMutation,
+    requestAccept,
+    requestReject,
+    requestCancel,
+    timing,
     rejectMutation,
     cancelMutation,
     counterMutation,
+    accepting,
+    rejecting,
+    cancelling,
     counterDialog,
     setCounterDialog,
     counterAmount,

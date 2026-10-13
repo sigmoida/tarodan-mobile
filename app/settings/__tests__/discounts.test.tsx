@@ -74,6 +74,7 @@ describe('J114 · indirim yönetimi (settings/discounts)', () => {
     mockGetAll.mockResolvedValue({ data: { items: [discountFixture()] } });
     mockGetListings.mockResolvedValue({ data: { data: [] } });
     alertSpy = (appAlert as jest.Mock).mockImplementation(() => {});
+    (discountsApi.create as jest.Mock).mockClear();
   });
 
   afterEach(() => {
@@ -124,7 +125,9 @@ describe('J114 · indirim yönetimi (settings/discounts)', () => {
     await waitFor(() => expect(screen.getByText('İndirim Adı *')).toBeOnTheScreen());
 
     fireEvent.press(screen.getByText('Oluştur'));
-    expect(alertSpy).toHaveBeenCalledWith('Eksik', 'İndirim adı gerekli.');
+    // Alan bazlı hata: ad girdisinin altında (appAlert değil).
+    expect(await screen.findByText('İndirim adı gerekli.')).toBeOnTheScreen();
+    expect(alertSpy).not.toHaveBeenCalled();
     expect(discountsApi.create).not.toHaveBeenCalled();
   });
 
@@ -139,7 +142,7 @@ describe('J114 · indirim yönetimi (settings/discounts)', () => {
     fireEvent.changeText(inputs[0], 'Test');
     fireEvent.changeText(screen.getByDisplayValue('10'), '-5');
     fireEvent.press(screen.getByText('Oluştur'));
-    expect(alertSpy).toHaveBeenCalledWith('Eksik', 'Geçerli bir indirim değeri girin.');
+    expect(await screen.findByText('Geçerli bir indirim değeri girin.')).toBeOnTheScreen();
     expect(discountsApi.create).not.toHaveBeenCalled();
   });
 
@@ -153,7 +156,95 @@ describe('J114 · indirim yönetimi (settings/discounts)', () => {
     fireEvent.changeText(inputs[0], 'Test');
     fireEvent.changeText(screen.getByDisplayValue('10'), '150');
     fireEvent.press(screen.getByText('Oluştur'));
-    expect(alertSpy).toHaveBeenCalledWith('Hata', "Yüzde indirim 100'den büyük olamaz.");
+    expect(await screen.findByText("Yüzde indirim 100'den büyük olamaz.")).toBeOnTheScreen();
+    expect(discountsApi.create).not.toHaveBeenCalled();
+  });
+  it('J114.9 bogo kartı özet gösterir; bogo formu kodsuz create gövdesi yollar', async () => {
+    mockGetAll.mockResolvedValue({
+      data: { items: [discountFixture({ id: 'd2', name: '2 Al 1 Öde', code: null, type: 'bogo', value: 0, buyQuantity: 2, getQuantity: 1 })] },
+    });
+    (discountsApi.create as jest.Mock).mockResolvedValue({ data: {} });
+    renderWithProviders(<DiscountsScreen />);
+    await waitFor(() => expect(screen.getByText('2 Al 1 Öde')).toBeOnTheScreen());
+    expect(screen.getByText('2 al 1 bedava (otomatik)')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByLabelText('Yeni indirim oluştur'));
+    await waitFor(() => expect(screen.getByText('İndirim Adı *')).toBeOnTheScreen());
+    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], 'Bogo');
+    fireEvent.press(screen.getByText('Al X, Y Bedava (otomatik)'));
+    // Adet koşullu kampanya kod istemez
+    expect(screen.queryByText('Kupon Kodu (opsiyonel)')).toBeNull();
+    fireEvent.changeText(screen.getByPlaceholderText('Örn: 2 (3 al 2 öde için 2)'), '2');
+    fireEvent.changeText(screen.getByPlaceholderText('Örn: 1'), '1');
+    fireEvent.press(screen.getByText('Oluştur'));
+    await waitFor(() => expect(discountsApi.create).toHaveBeenCalledTimes(1));
+    expect(discountsApi.create).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'bogo', code: undefined, value: 0, buyQuantity: 2, getQuantity: 1 }),
+    );
+  });
+
+  it('J114.10 bulk_quantity: en az adet 2den küçükse reddedilir', async () => {
+    renderWithProviders(<DiscountsScreen />);
+    await waitFor(() => expect(screen.getByText('Yaz İndirimi')).toBeOnTheScreen());
+    fireEvent.press(screen.getByLabelText('Yeni indirim oluştur'));
+    await waitFor(() => expect(screen.getByText('İndirim Adı *')).toBeOnTheScreen());
+    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], 'Toplu');
+    fireEvent.press(screen.getByText('Çoklu Alım İndirimi (otomatik)'));
+    fireEvent.changeText(screen.getByPlaceholderText('Örn: 3 (aynı üründen 3 adet)'), '1');
+    fireEvent.press(screen.getByText('Oluştur'));
+    expect(await screen.findByText('En az adet 2 veya üzeri olmalı')).toBeOnTheScreen();
+    expect(discountsApi.create).not.toHaveBeenCalled();
+  });
+
+  it('J114.11 alan hatası ilgili girdinin altında; düzeltilince gönderim geçer (bogo)', async () => {
+    (discountsApi.create as jest.Mock).mockResolvedValue({ data: {} });
+    renderWithProviders(<DiscountsScreen />);
+    await waitFor(() => expect(screen.getByText('Yaz İndirimi')).toBeOnTheScreen());
+    fireEvent.press(screen.getByLabelText('Yeni indirim oluştur'));
+    await waitFor(() => expect(screen.getByText('İndirim Adı *')).toBeOnTheScreen());
+    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], 'Bogo');
+    fireEvent.press(screen.getByText('Al X, Y Bedava (otomatik)'));
+    fireEvent.changeText(screen.getByPlaceholderText('Örn: 2 (3 al 2 öde için 2)'), '2');
+    fireEvent.press(screen.getByText('Oluştur'));
+    // Yalnız "bedava" adedi eksik: yalnız o hata görünür.
+    expect(await screen.findByText("'Bedava' adedi en az 1 olmalı")).toBeOnTheScreen();
+    expect(screen.queryByText("'Al' adedi en az 1 olmalı")).toBeNull();
+    expect(discountsApi.create).not.toHaveBeenCalled();
+
+    fireEvent.changeText(screen.getByPlaceholderText('Örn: 1'), '1');
+    fireEvent.press(screen.getByText('Oluştur'));
+    await waitFor(() => expect(discountsApi.create).toHaveBeenCalledTimes(1));
+  });
+
+  it('J114.12 düzenleme: bogo -> yüzde; PATCH gövdesinde eski adet alanları null gider', async () => {
+    mockGetAll.mockResolvedValue({
+      data: {
+        items: [discountFixture({ id: 'd2', name: '2 Al 1 Öde', code: null, type: 'bogo', value: 0, buyQuantity: 2, getQuantity: 1 })],
+      },
+    });
+    (discountsApi.update as jest.Mock).mockResolvedValue({ data: {} });
+    renderWithProviders(<DiscountsScreen />);
+    await waitFor(() => expect(screen.getByText('2 Al 1 Öde')).toBeOnTheScreen());
+
+    fireEvent.press(screen.getByLabelText('İndirimi Düzenle'));
+    await waitFor(() => expect(screen.getByDisplayValue('2 Al 1 Öde')).toBeOnTheScreen());
+    // Kayıt geri yüklendi: bogo alanları dolu.
+    expect(screen.getByDisplayValue('2')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText('Yüzde (%)'));
+    fireEvent.changeText(screen.getByDisplayValue('0'), '15');
+    fireEvent.press(screen.getByText('Güncelle'));
+
+    await waitFor(() => expect(discountsApi.update).toHaveBeenCalledTimes(1));
+    const [id, payload] = (discountsApi.update as jest.Mock).mock.calls[0];
+    expect(id).toBe('d2');
+    expect(payload).toMatchObject({
+      type: 'percentage',
+      value: 15,
+      buyQuantity: null,
+      getQuantity: null,
+      minQuantity: null,
+    });
     expect(discountsApi.create).not.toHaveBeenCalled();
   });
 });

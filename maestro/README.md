@@ -2,8 +2,8 @@
 
 Bu klasör mobil uygulamanın e2e test akışlarını barındırır. [Maestro](https://maestro.mobile.dev) kullanılır — YAML tabanlı.
 
-> **Önemli:** Flow'lar **Expo Go değil, dev build**'i hedefler (`appId: com.tarodan.app`).
-> Test koşumu için Metro **`EXPO_PUBLIC_MAESTRO=1`** ile başlatılmalı; bu, [authStore.loadToken](../src/stores/authStore.ts) içindeki auto-login'i açar (login UI'sını atlar). En kolay yol: **`pnpm maestro:dev <flow>`** (bkz. [run.sh](run.sh)) — backend health + booted simülatör + Metro'yu garanti edip flow'u görünür simülatörde koşar.
+> **Önemli:** Flow'lar **Expo Go değil, dev build**'i hedefler (`appId: ${APP_ID}`, varsayılan `com.tarodan.app`; bkz. [Uygulama kimliği](#uygulama-kimliği-appid)).
+> Test koşumu için Metro (ya da release build) **`EXPO_PUBLIC_MAESTRO=1`** + **`EXPO_PUBLIC_MAESTRO_EMAIL`** + **`EXPO_PUBLIC_MAESTRO_PASSWORD`** ile derlenmeli; bu, [authStore.loadToken](../src/stores/authStore.ts) içindeki auto-login'i açar (login UI'sını atlar). Kapının tek kaynağı [src/config/maestro.ts](../src/config/maestro.ts). En kolay yol: **`pnpm maestro:dev <flow>`** (bkz. [run.sh](run.sh)) — backend health + booted simülatör + Metro'yu garanti edip flow'u görünür simülatörde koşar.
 
 ## Kurulum (tek seferlik)
 
@@ -43,11 +43,11 @@ MAESTRO_EMAIL=ahmet@demo.com pnpm maestro:dev flows/E-05-membership-manage.yaml
 ```bash
 cd apps/mobile/maestro
 
-# Tek flow
-maestro test flows/01-smoke.yaml
+# Tek flow  (APP_ID ZORUNLU: flow'lar `appId: ${APP_ID}` kullanır)
+maestro test --env APP_ID=com.tarodan.app flows/01-smoke.yaml
 
 # Tüm flow'lar (sıralı)
-maestro test flows/
+maestro test --env APP_ID=com.tarodan.app flows/
 
 # Farklı kullanıcıyla
 maestro test --env EMAIL=ahmet@demo.com flows/02-auth-login.yaml
@@ -55,6 +55,31 @@ maestro test --env EMAIL=ahmet@demo.com flows/02-auth-login.yaml
 # Studio (interactive recorder/debugger)
 maestro studio
 ```
+
+## Uygulama kimliği (`appId`)
+
+Flow ve subflow'ların hepsi `appId: ${APP_ID}` kullanır; paket/bundle id sabit yazılmaz.
+Aynı flow'lar farklı build'lere karşı koşabilsin diye: iOS'ta EAS `maestro` profili
+`.staging` ekli kimlik üretir (`com.tarodan.app.staging`, `app.config.js`; iOS ve Android
+aynı). Yerel dev-client ise her iki platformda `com.tarodan.app`dır.
+
+| Hedef | iOS | Android |
+|---|---|---|
+| `dev` (yerel dev-client, varsayılan) | `com.tarodan.app` | `com.tarodan.app` |
+| `staging` (EAS `maestro` profili build'i) | `com.tarodan.app.staging` | `com.tarodan.app.staging` |
+
+- `pnpm maestro:dev <flow>` değeri `app-id.sh`'tan alıp `--env APP_ID=...` ile geçirir.
+  Varsayılan `dev` → **eski davranış aynen korunur**. EAS `maestro` simülatör build'ine
+  karşı: `MAESTRO_TARGET=staging pnpm maestro:dev flows/01-smoke.yaml`.
+- Özel id: `APP_ID=com.ornek.app pnpm maestro:dev ...`.
+- Doğrudan `maestro test` / Maestro Cloud'da `APP_ID` **mutlaka** `--env` ile verilmeli
+  (Cloud action'ında `env:`). Değeri `bash maestro/app-id.sh <ios|android> <dev|staging>` yazar.
+  `.github/workflows/maestro-cloud.yml` bunu yapar: `app-id.sh ios staging` çıktısını action'a
+  `env: APP_ID=...` verir (özel build için repo değişkeni `MAESTRO_APP_ID`); `.app`/secret yoksa no-op.
+- Flow başlıklarına inline `env: APP_ID:` varsayılanı KOYMA: Maestro'da inline env `--env`'i ezer
+  (J1 flow'larındaki not).
+- `src/config/__tests__/maestroAppId.test.ts` hiçbir flow'un sabit id taşımadığını ve
+  `app-id.sh` tablosunun `app.json` / `app.config.js` ile aynı kaldığını doğrular.
 
 ## Tag stratejisi
 
@@ -172,6 +197,53 @@ Daha sağlam flow'lar için `testID` prop'larını kritik UI öğelerine eklemek
 - **PayTR iframe (sandbox kart)**: WebView içine Maestro tıklayamaz; PayTR yolu için ayrı strateji (manual veya MockServer) gerekecek.
 - **Java warning** (`restricted method in java.lang.System`): Maestro 2.5 + JDK 25 cosmetic uyarısı, görmezden gel.
 
+## EAS `maestro` profili (release build'e karşı koşum)
+
+Maestro staging **release** build'ine karşı koşacaksa (dev client / Metro yok)
+`EXPO_PUBLIC_MAESTRO=1` derleme anında bundle'a gömülmelidir. Bu bayrak maskesiz
+şifre alanı ve auto-login açar; bu yüzden **insan testçilere giden hiçbir build'de
+olmamalı**. Bu iş için `eas.json`'da `preview`'dan türeyen ayrı bir profil var:
+
+| Profil | `extends` | Kanal | `EXPO_PUBLIC_MAESTRO` | Kime |
+|---|---|---|---|---|
+| `preview` | - | `staging` | yok | iç testçiler (APK / ad-hoc IPA) |
+| `staging` | - | `staging` | yok | TestFlight "Tarodan Staging" |
+| `production` | - | `production` | yok | mağaza |
+| **`maestro`** | `preview` | **`maestro`** | **`1`** | yalnız Maestro koşumu |
+
+- `maestro` profili preview'ın staging API/Web adreslerini ve `EXPO_PUBLIC_ENVIRONMENT=preview`
+  değerini devralır (iOS ve Android paket adı `com.tarodan.app.staging`; Android build'i staging `google-services.json` ister, bkz. `docs/ANDROID_RELEASE.md`);
+  iOS için `ios.simulator: true` (Maestro gerçek iOS cihaza bağlanmaz, `.app` üretir).
+- Kendi `maestro` kanalı olduğundan staging OTA'ları (`eas update --branch staging`) bu
+  build'e ulaşmaz, tersi de geçerli.
+- Profilin kendi EAS ortamı var: `"environment": "maestro"` (preview'dan DEVRALINMAZ,
+  `preview` ortamını kullanmaz). **Maestro kimlik bilgileri (`EXPO_PUBLIC_MAESTRO_EMAIL` /
+  `EXPO_PUBLIC_MAESTRO_PASSWORD`) YALNIZ `maestro` EAS ortamına konur**; `eas.json`'a yazılmaz,
+  `preview`/`production`/`development` ortamlarına ASLA konmaz — `EXPO_PUBLIC_*` değerleri o
+  ortamdaki TÜM build'lere gömülür ve insan testçilerin kurduğu build'de açık kalır.
+
+  ```bash
+  eas env:create --environment maestro --name EXPO_PUBLIC_MAESTRO_EMAIL    --value "<e-posta>" --visibility plaintext
+  eas env:create --environment maestro --name EXPO_PUBLIC_MAESTRO_PASSWORD --value "<şifre>"   --visibility plaintext
+  ```
+
+  (`EXPO_PUBLIC_*` değerleri her halükarda bundle'a gömülür; bu yüzden test hesabı yalnız
+  staging'de geçerli, üretim verisi olmayan bir hesap olmalıdır. Production hesabı KULLANMA.)
+- Maestro build'leri sürüm numarası yakmaz: profilde `ios.autoIncrement` ve `android.autoIncrement`
+  `false`. (`preview`/`production` her build'de `buildNumber` / `versionCode` artırır; `extends`
+  bunu devralırdı, test koşumları mağaza sayaçlarını tüketmemeli.)
+- Bayrak ve profil koruması `src/config/__tests__/easProfiles.test.ts` ile çivilidir:
+  `development`/`preview`/`staging`/`production` profillerinde ve `.github/workflows/*`
+  içinde `EXPO_PUBLIC_MAESTRO*` bulunursa test kırılır; `maestro` profili `preview`'dan
+  türemeli ve ayrı kanal taşımalıdır.
+
+```bash
+eas build --profile maestro --platform ios      # simülatör .app
+eas build --profile maestro --platform android  # APK
+```
+
+Bu profilin çıktısı mağazaya/TestFlight'a **gönderilmez** (`eas submit` yok).
+
 ## CI entegrasyonu
 
 İki ayrı katmanda otomatik koruma vardır:
@@ -232,9 +304,26 @@ defaults write com.apple.iphonesimulator HardwareKeyboardEnabled -bool true
 Maestro flow'larında login UI üzerinden geçmek yerine `authStore.loadToken`
 boot sırasında otomatik login yapar:
 
-- **Etkinleştirme**: `EXPO_PUBLIC_MAESTRO=1` env var Metro start sırasında set edilmeli.
-- **Kullanıcı override**: `EXPO_PUBLIC_MAESTRO_EMAIL` / `EXPO_PUBLIC_MAESTRO_PASSWORD`
-  (default: `zeynep@demo.com` / `Demo123!`).
+- **Kapı (tek kaynak)**: [`src/config/maestro.ts`](../src/config/maestro.ts) →
+  `IS_MAESTRO = process.env.EXPO_PUBLIC_MAESTRO === '1'`. Auto-login,
+  `EXPO_PUBLIC_MAESTRO_NO_AUTOLOGIN`, maskesiz şifre alanları (login/kayıt),
+  login `getValues()` fallback'i ve kayıt doğum tarihi ön doldurması hep bu
+  kapıyı kullanır. **`__DEV__`'e bağlı değildir**: aynı env ile derlenmiş
+  staging/preview **release** build'inde de çalışır.
+- **Zorunlu env (derleme anı)**:
+  - `EXPO_PUBLIC_MAESTRO=1`
+  - `EXPO_PUBLIC_MAESTRO_EMAIL` ve `EXPO_PUBLIC_MAESTRO_PASSWORD` — **ikisi de
+    zorunlu, kodda varsayılan YOK**. Biri eksikse auto-login yapılmaz ve açılışta
+    `[maestro] … eksik — auto-login YAPILMAYACAK` `console.warn`'ı basılır.
+    `pnpm maestro:dev` ([run.sh](run.sh)) bunları kendisi set eder
+    (varsayılan `zeynep@demo.com` / `Demo123!` yalnız bu shell script'inde, dev seed'i).
+  - `EXPO_PUBLIC_MAESTRO_NO_AUTOLOGIN=1` (opsiyonel, kayıt/misafir yolculukları):
+    yalnız `EXPO_PUBLIC_MAESTRO=1` ile birlikte etkilidir.
+- **Release (staging) build'e karşı koşum**: env'ler `expo start` değil **build**
+  sırasında verilmelidir (EAS'ta ilgili profilin `env` bloğu ya da EAS
+  environment). Aynı kanala env'siz bir OTA (`eas update`) basılırsa bundle
+  kapıyı kapalı getirir ve auto-login durur — Maestro koşulacak build'e env'siz
+  OTA gitmemeli.
 - **Davranış**: SecureStore'da token yoksa app `POST /auth/login`'u credentials
   ile çağırır, başarılıysa standart `login()` flow'undan token + user state'i
   doldurur, doğrudan home ekranına düşer. Login fail olursa normal
@@ -252,19 +341,22 @@ EXPO_PUBLIC_MAESTRO=1 \
 
 ### Production safety
 
-Auto-login kod yolu **prod build'lere sızmaz** çünkü:
+Maestro kod yolları **production build'lere sızmaz** çünkü:
 
 1. `process.env.EXPO_PUBLIC_*` Expo'nun Metro/Babel transformer'ı tarafından
-   **compile-time'da** literal string'e replace edilir. Prod build sırasında
-   `EXPO_PUBLIC_MAESTRO` set edilmediği için `process.env.EXPO_PUBLIC_MAESTRO === '1'`
-   ifadesi `undefined === '1'` (yani `false`) olarak inline'lanır ve dead-code
-   elimination şubeyi tamamen drop eder.
-2. EAS build profili (`eas.json` production) MAESTRO env var taşımaz.
-3. Test credentials hardcoded değil — fallback default sadece dev seed user'ı,
-   prod DB'de mevcut değil. Yine de gate `false` olduğu için çalıştırılmaz.
+   **compile-time'da** literal string'e replace edilir. Production build sırasında
+   `EXPO_PUBLIC_MAESTRO` set edilmediği için `IS_MAESTRO` `undefined === '1'`, yani
+   sabit `false` olur; Maestro şubeleri hiçbir koşulda çalışmaz.
+2. EAS `production` profili hiçbir `EXPO_PUBLIC_MAESTRO*` değişkeni taşımaz — bu
+   [src/config/__tests__/maestro.test.ts](../src/config/__tests__/maestro.test.ts)
+   içinde `eas.json` okunarak birim testiyle çivilidir (CI'da kırılır).
+3. Test kimlik bilgileri kodda **yok** — yalnız env'den okunur; env yoksa
+   auto-login denenmez.
 
-Şüphe halinde bundle'da `EXPO_PUBLIC_MAESTRO` literal'i grep ile aranabilir;
-prod build'de bulunmamalı.
+`__DEV__` kapısı bilinçli olarak kaldırıldı (staging release build'inde Maestro
+koşabilmek için); koruma yukarıdaki derleme-anı env'idir. Şüphe halinde bundle'da
+`EXPO_PUBLIC_MAESTRO` / test e-postası literal'i grep ile aranabilir; production
+build'de bulunmamalı.
 
 ## PayTR bypass-kapalı coverage
 

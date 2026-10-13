@@ -1,6 +1,6 @@
 # 01-01: Login happy path — Zeynep (FREE seed user).
 # Önce logout dener (varsa), sonra login. Profil ekranında kullanıcı bilgisi görünür.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - smoke
 env:

@@ -17,6 +17,10 @@ export const styles = StyleSheet.create({
   screen: {
     backgroundColor: colors.primary[600]!,
   },
+  /** Auth görseli (`AuthHeroBanner`) — formdaki kartla uyumlu yuvarlak köşe. */
+  authHero: {
+    borderRadius: theme.radius['3xl'],
+  },
   brandHeader: {
     alignItems: 'center',
     gap: theme.spacing[2.5],

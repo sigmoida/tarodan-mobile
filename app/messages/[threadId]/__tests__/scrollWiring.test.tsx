@@ -47,9 +47,7 @@ jest.mock('@/stores/authStore', () => ({
 
 const mockStore = {
   getOtherParticipant: (t: any) => t.participant2,
-  canSendMessage: () => true,
   setCurrentThreadId: jest.fn(),
-  dailyMessageCount: 0,
 };
 const useMessagesStoreMock: any = (sel?: any) => (sel ? sel(mockStore) : mockStore);
 useMessagesStoreMock.getState = () => mockStore;
@@ -83,7 +81,8 @@ jest.mock('@/hooks/messaging', () => ({
   useThreadQuery: () => ({ data: mockCurrentThread }),
   useMessagesQuery: () => ({ data: [mockMessage], isLoading: false }),
   useSendMessage: () => ({ mutateAsync: mockSendMessage }),
-  useMarkAsRead: () => ({ mutate: mockMarkAsRead }),
+  useMarkAsRead: () => mockMarkAsRead,
+  useDailyMessageLimit: () => ({ canSend: true, limit: 50, remaining: 50 }),
 }));
 
 // useAutoScroll'un iç mantığı useAutoScroll.test.tsx'te zaten kilitli; burada

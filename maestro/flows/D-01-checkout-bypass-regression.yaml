@@ -6,7 +6,7 @@
 # Sepete Git → cart-checkout-button → checkout (Teslimat Bilgileri).
 # Tam bypass payment chain API-level test'te kapsanıyor
 # (apps/api/test/e2e/payment-bypass.e2e-spec.ts).
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - smoke
 env:

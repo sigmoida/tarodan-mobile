@@ -91,7 +91,8 @@ altındaki dosyalar **birebir** (byte-exact) kopyalanır.
 | Dosya | Konum | Kaynak |
 |---|---|---|
 | AASA | `https://<host>/.well-known/apple-app-site-association` | `docs/wellknown/apple-app-site-association` |
-| Android | `https://<host>/.well-known/assetlinks.json` | `docs/wellknown/assetlinks.json` (bkz. §4 — şu an bu dosya **yok**) |
+| Android (production host) | `https://tarodan.com.tr/.well-known/assetlinks.json` | `docs/wellknown/assetlinks.json` (`com.tarodan.app`; bkz. §4) |
+| Android (staging host) | `https://staging.tarodan.com.tr/.well-known/assetlinks.json` | `docs/wellknown/assetlinks.staging.json` (`com.tarodan.app.staging`; parmak izleri dolunca üretilir, bkz. [`ANDROID_RELEASE.md`](./ANDROID_RELEASE.md) §10) |
 
 **Her iki dosya için kurallar:**
 
@@ -235,11 +236,17 @@ ortadan kalktı. Uygulanan hâli:
   "supportsTablet": true,
   "bundleIdentifier": "com.tarodan.app",
   "associatedDomains": [
-    "applinks:tarodan.com.tr",
-    "applinks:staging.tarodan.com.tr"
+    "applinks:tarodan.com.tr"
   ]
 }
 ```
+
+> **Güncelleme (parite C-5.2):** production `app.json` yalnız prod alan adını
+> taşır — hem `associatedDomains` hem Android intent filter'ı. Staging host'u
+> `paths.json#stagingHosts` içinde tutulur; `app.config.js` yalnız staging
+> profilinde (`EXPO_PUBLIC_ENVIRONMENT=preview`) Android intent filter'ına ekler.
+> iOS staging'de `associatedDomains` hiç yok (bkz. `app.config.js`). Well-known
+> dosyaları yine **iki** alan adında yayınlanır (`hosts`).
 
 Ardından **yeni build** gerekir — `associatedDomains` bir entitlement, OTA
 güncellemesiyle geçmez.

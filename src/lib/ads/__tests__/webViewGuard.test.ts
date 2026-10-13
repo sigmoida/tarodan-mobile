@@ -1,0 +1,58 @@
+/**
+ * Uygulama içi web ekranı kapısı — satın alma sayfalarına HİÇBİR yoldan
+ * gezinilemez (Apple 3.1.1), locale önekli biçimler dahil.
+ */
+jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
+
+import { isPurchasePath } from '../purchasePath';
+import { resolveAdLink } from '../openAdLink';
+import { isAllowedOwnPage, decideWebRequest } from '../webViewGuard';
+
+const PURCHASE = [
+  '/membership',
+  '/membership/checkout',
+  '/en/membership',
+  '/en/membership/checkout?tier=premium',
+  '/tr/pricing',
+  '/pricing/',
+  '/boost',
+  '/Membership',
+  '/profile/membership',
+  '/en/profile/boost',
+  '/settings/subscription',
+  '/upgrade#x',
+];
+
+describe('isPurchasePath — tek kaynak', () => {
+  it.each(PURCHASE)('%s satın alma yolu', (p) => {
+    expect(isPurchasePath(p)).toBe(true);
+  });
+
+  it.each(['/', '/blog/x', '/listings/p-1', '/en/listings', '/membership-guide', '/profile/orders/3'])(
+    '%s değil',
+    (p) => {
+      expect(isPurchasePath(p)).toBe(false);
+    },
+  );
+});
+
+describe('webViewGuard — kendi sitemizde bile satın alma sayfaları açılmaz', () => {
+  it.each(PURCHASE)('https://tarodan.com.tr%s engellenir', (p) => {
+    const url = `https://tarodan.com.tr${p}`;
+    expect(isAllowedOwnPage(url)).toBe(false);
+    expect(decideWebRequest(url, true) === 'allow').toBe(false);
+  });
+
+  it('sıradan site sayfaları açılır', () => {
+    expect(decideWebRequest('https://tarodan.com.tr/blog/x', true) === 'allow').toBe(true);
+    expect(decideWebRequest('https://tarodan.com.tr/en/blog/x?utm=1', true) === 'allow').toBe(true);
+    expect(decideWebRequest('about:blank', true) === 'allow').toBe(true);
+  });
+
+  it('resolveAdLink ile aynı kapıyı paylaşır (tutarlılık)', () => {
+    for (const p of PURCHASE) {
+      expect(resolveAdLink(p)).toEqual({ kind: 'blocked', reason: 'purchase' });
+      expect(resolveAdLink(`https://tarodan.com.tr${p}`)).toEqual({ kind: 'blocked', reason: 'purchase' });
+    }
+  });
+});

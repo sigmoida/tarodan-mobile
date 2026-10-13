@@ -11,8 +11,23 @@ import type { AttrGroup } from './types';
  *    olanı sunucu oluşturmada şart koşar,
  *  - üreticiye bağlı gruplar: yalnız o üretici seçiliyken.
  */
-const DEDICATED_GROUP_SLUGS: readonly string[] = ['scale', 'material', 'color'];
-const HIDDEN_GROUP_SLUGS: readonly string[] = ['vehicle_type'];
+export const SCALE_GROUP_SLUG = 'scale';
+export const MATERIAL_GROUP_SLUG = 'material';
+export const COLOR_GROUP_SLUG = 'color';
+/** `@tarodan/types` `DEDICATED_ATTRIBUTE_GROUP_SLUGS` — formda/detayda kendi alanı olan gruplar. */
+export const DEDICATED_GROUP_SLUGS: readonly string[] = [
+  SCALE_GROUP_SLUG,
+  MATERIAL_GROUP_SLUG,
+  COLOR_GROUP_SLUG,
+];
+/**
+ * `@tarodan/types` `HIDDEN_ATTRIBUTE_GROUP_SLUGS` — veritabanında olan ama satıcıya/alıcıya
+ * sunulmayan gruplar (`vehicle_type`: yalnız arama indeksi okur). Form seçenek olarak
+ * göstermez; sunucu ise bu gruplardaki bağlantıları düzenlemede KORUR/siler (bkz. payload).
+ */
+export const HIDDEN_GROUP_SLUGS: readonly string[] = ['vehicle_type'];
+/** Çoklu rengin tek satırda birleştirilme ayracı (`COLOR_LABEL_SEPARATOR`, sunucuyla aynı). */
+export const COLOR_LABEL_SEPARATOR = ', ';
 
 export function isGlobalCustomAttributeGroup(group: Pick<AttrGroup, 'slug' | 'manufacturerSlug'>): boolean {
   return (

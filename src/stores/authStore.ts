@@ -1,8 +1,14 @@
 import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
 import { advanceSessionEpoch, authApi, userApi } from "@/lib/api";
-import { logger } from "../services/logger";
+import {
+  bindPaymentCapabilitiesToAccount,
+  sweepExpiredPaymentCapabilities,
+} from "@/lib/payment/paymentCapability";
+import type { LogoutReason } from "./resetUserStores";
+import { logger, safeError } from "../services/logger";
 import { withTimeout } from "../utils/withTimeout";
+import { IS_MAESTRO_NO_AUTOLOGIN, getMaestroAutoLoginCredentials } from "@/config/maestro";
 
 /** Çıkıştaki ağ çağrıları için üst sınır — kullanıcı bekletilmez. */
 const LOGOUT_NETWORK_TIMEOUT_MS = 5000;
@@ -126,10 +132,16 @@ interface AuthState {
 
   // Actions
   login: (token: string, user: User, refreshToken?: string) => Promise<void>;
-  logout: () => Promise<void>;
+  /** `reason: "forced"` yalnız 401 sonrası zorunlu çıkışta (`client.ts`); varsayılan kullanıcının kendi çıkışı. */
+  logout: (options?: { reason?: LogoutReason }) => Promise<void>;
   loadToken: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
-  refreshUserData: () => Promise<void>;
+  /**
+   * GET /users/me ile store'daki kullanıcıyı tazeler. Tazelenen kullanıcıyı
+   * döndürür; istek başarısızsa `null` (store dokunulmadan kalır) — çağıran,
+   * kaydın sonucunu bayat veriyle doğrulamasın diye bunu ayırt edebilir.
+   */
+  refreshUserData: () => Promise<User | null>;
 
   // Helpers
   canCreateListing: () => boolean;
@@ -369,8 +381,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
     const mappedUser = mapApiUserToUser(user);
     const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
-    console.log("🔐 Auth stored - Tier:", mappedUser.membershipTier);
+    logger.debug("Auth stored", { tier: mappedUser.membershipTier });
     set({ isAuthenticated: true, token, user: mappedUser, limits });
+    // Ödeme yetki belirteci kimliği bu hesap; başka hesabın belirteçleri (zorunlu
+    // çıkıştan kalmış) silinir.
+    void bindPaymentCapabilitiesToAccount(mappedUser.id);
     // Misafir/önceki oturumdan kalan listeler yeni token'la yeniden çekilsin.
     // Token set'ten SONRA — yeniden çekim yeni token'ı taşımalı. Beklenmez:
     // giriş ağ çağrısına takılmasın. Lazy require: döngüsel import (logout ile aynı).
@@ -385,7 +400,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   // Web ile aynı endpoint: POST /auth/logout
-  logout: async () => {
+  logout: async ({ reason = "user" }: { reason?: LogoutReason } = {}) => {
     // İLK İŞ: oturum kuşağını ilerlet. Bu noktadan sonra tamamlanan her
     // uçuştaki refresh kendini geçersiz sayar ve SecureStore'a yazmaz —
     // yoksa bu arada giriş yapan kullanıcının token'ını ezerdi.
@@ -418,17 +433,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isAuthenticated: false, token: null, user: null, limits: null, serverLimits: null });
     // Kullanıcıya özel yerel state (sepet/favori/mesaj rozetleri, query cache).
     // Lazy require: messagesStore → authStore import zinciriyle döngü oluşmasın.
+    // Zorunlu çıkışta ödeme yetki belirteçleri kalır (süren 3DS ödemesi için).
     const { resetUserStores } = require("./resetUserStores");
-    resetUserStores();
+    resetUserStores(reason);
     logger.setUser(null);
   },
 
   loadToken: async () => {
+    // Açılış: süresi dolmuş ödeme yetki belirteci kayıtlarını süpür (beklenmez, fırlatmaz).
+    void sweepExpiredPaymentCapabilities();
     try {
       // Maestro register/guest journey: keychain (SecureStore) clearState'i atlatıp
       // önceki oturumun token'ını taşıyabiliyor. NO_AUTOLOGIN modunda token'ı temizle
       // ki gerçekten çıkışlı (misafir) başlansın. Yalnız test gate'i — prod'da unset.
-      if (process.env.EXPO_PUBLIC_MAESTRO_NO_AUTOLOGIN === "1") {
+      if (IS_MAESTRO_NO_AUTOLOGIN) {
         await SecureStore.deleteItemAsync("accessToken");
         await SecureStore.deleteItemAsync("refreshToken");
         set({
@@ -442,6 +460,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return;
       }
       const token = await SecureStore.getItemAsync("accessToken");
+      // Token yoksa Maestro kimliğine bir kez bak (kapı kapalıysa null).
+      const maestroCredentials = token ? null : getMaestroAutoLoginCredentials();
       if (token) {
         // Web ile aynı endpoint: GET /users/me
         const response = await userApi.getProfile();
@@ -461,21 +481,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           limits,
           isLoading: false,
         });
-      } else if (
-        process.env.EXPO_PUBLIC_MAESTRO === "1" &&
-        process.env.EXPO_PUBLIC_MAESTRO_NO_AUTOLOGIN !== "1"
-      ) {
+        // Ödeme yetki belirteci kimliği bu hesap (açılışta yüklenen oturum).
+        void bindPaymentCapabilitiesToAccount(mappedUser.id);
+      } else if (maestroCredentials) {
         // Maestro test bypass: auto-login with seeded credentials so that
-        // e2e flows skip the login UI entirely. Code path is gated behind
-        // EXPO_PUBLIC_MAESTRO and excluded from prod bundles by Expo's
-        // compile-time env replacement (env var unset → branch dead-code
-        // eliminated).
+        // e2e flows skip the login UI entirely. Yalnız EXPO_PUBLIC_MAESTRO=1
+        // build'i + env'deki kimlik (bkz. src/config/maestro.ts).
         try {
-          const email =
-            process.env.EXPO_PUBLIC_MAESTRO_EMAIL || "zeynep@demo.com";
-          const password =
-            process.env.EXPO_PUBLIC_MAESTRO_PASSWORD || "Demo123!";
-          console.log("🤖 Maestro auto-login as", email);
+          const { email, password } = maestroCredentials;
+          logger.debug("Maestro auto-login", { email });
           const response = await authApi.login(email, password);
           const data: any = response.data;
           const accessToken = data.tokens?.accessToken || data.accessToken;
@@ -540,12 +554,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const mappedUser = mapApiUserToUser(response.data);
       const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
       set({ user: mappedUser, limits });
+      return mappedUser;
     } catch (error) {
-      console.error("Failed to refresh user data:", error);
+      logger.error("Failed to refresh user data", { err: safeError(error) });
       logger.captureException(error, {
         level: "warning",
         tags: { flow: "auth.refreshUserData" },
       });
+      return null;
     }
   },
 

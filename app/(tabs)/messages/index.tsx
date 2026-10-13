@@ -11,7 +11,6 @@ import {
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import UpgradeCta from "@/components/UpgradeCta";
 import { useMessagesTab } from "./_hooks/useMessagesTab";
 import { styles } from "./_lib/styles";
 import { ThreadRow } from "./_components/ThreadRow";
@@ -64,7 +63,7 @@ function MessagesTabScreen() {
       />
 
       {/* Message Limit Banner */}
-      {!f.isUnlimited && f.dailyMessageCount >= f.messageLimit - 10 && (
+      {f.dailyNearLimit && f.messageLimit != null && f.dailyMessageCount != null && (
         <View style={styles.limitBanner}>
           <Ionicons
             name="information-circle"
@@ -74,14 +73,6 @@ function MessagesTabScreen() {
           <Text style={styles.limitText}>
             {t("message.dailyMessageCount", { count: f.dailyMessageCount, limit: f.messageLimit })}
           </Text>
-          {f.dailyMessageCount >= f.messageLimit && (
-            // iOS'ta satın alma yok (Guideline 3.1.1); düğme yalnız Android/web'de render edilir.
-            <UpgradeCta>
-              <TouchableOpacity onPress={() => router.push("/upgrade")}>
-                <Text style={styles.upgradeLink}>{t("address.goPremium")}</Text>
-              </TouchableOpacity>
-            </UpgradeCta>
-          )}
         </View>
       )}
 

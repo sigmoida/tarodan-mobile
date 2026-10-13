@@ -4,6 +4,7 @@ import { enableScreens } from "react-native-screens";
 enableScreens(false);
 
 import { useEffect, useState } from "react";
+import { logger, safeError } from "@/services/logger";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -25,6 +26,8 @@ import { initSentry } from "@/services/sentry";
 import AnimatedSplash from "@/components/AnimatedSplash";
 import BusinessMembershipGuard from "@/components/BusinessMembershipGuard";
 import ForceUpdateGate from "@/components/ForceUpdateGate";
+import RequiredStepsGate from "@/components/required-steps/RequiredStepsGate";
+import { useFullScreenGateShown } from "@/components/common/FullScreenGate";
 import { ErrorBoundary, RouteTracker } from "@/components/ErrorBoundary";
 
 const { colors } = theme;
@@ -83,6 +86,9 @@ export default function RootLayout() {
   // Native splash'i AnimatedSplash kapatır (onLayout) → beyaz parlama olmaz.
   const [appReady, setAppReady] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
+  // Tam ekran kapı (zorunlu güncelleme / zorunlu adım) açıkken temalı uyarı
+  // ertelenir: kapının üstüne binmesin, iOS'ta modal üstüne modal kilitlenmesin.
+  const gateShown = useFullScreenGateShown();
 
   useEffect(() => {
     async function prepare() {
@@ -93,13 +99,13 @@ export default function RootLayout() {
           try {
             await registerForPushNotifications();
           } catch (e) {
-            console.log(
-              "⚠️ Push notification registration skipped (normal in Expo Go)",
+            logger.debug(
+              "Push notification registration skipped (normal in Expo Go)",
             );
           }
         }
       } catch (e) {
-        console.warn(e);
+        logger.warn('App bootstrap failed', { err: safeError(e) });
       } finally {
         setAppReady(true);
       }
@@ -155,10 +161,16 @@ export default function RootLayout() {
           <CartMergeBridge />
           {/* Kurumsal hesap business üyelik yoksa üyelik sayfasına yönlendirir (web ile aynı). */}
           <BusinessMembershipGuard />
-          {/* Native Alert.alert yerine temalı dialog — appAlert() bu host'u kullanır. */}
-          <AlertDialogHost />
+          {/* Native Alert.alert yerine temalı dialog — appAlert() bu host'u kullanır.
+              Host HEP bağlı: kapı açıkken yalnız askıya alınır (alert'ler kuyrukta bekler, kapı
+              kapanınca çıkar). Eskiden kapıya bağlı koşullu bağlanıyordu; söküm, kapanma
+              zamanlayıcısını temizleyip basılan düğmenin `onPress`'ini kaybettiriyordu. */}
+          <AlertDialogHost suspended={gateShown} />
+          {/* Zorunlu adımlar (bekleyen sözleşme onayı): girişte + ön plana gelişte kapatılamaz ekran. */}
+          {/* Kapılar native Modal: soğuk açılışta splash bitmeden gösterilmez (ready). */}
+          <RequiredStepsGate ready={splashDone} />
           {/* Min desteklenen sürümün altındaki build'leri tam ekran bloklar (#233). */}
-          <ForceUpdateGate />
+          <ForceUpdateGate ready={splashDone} />
           {!splashDone && (
             <AnimatedSplash
               appReady={appReady}

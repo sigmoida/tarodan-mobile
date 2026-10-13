@@ -7,10 +7,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
-import { paymentsApi } from '@/lib/api';
+import { requestVerify, verifyBudgetWaitMs } from '@/lib/payment/verifyPacer';
 import type { TFunction } from 'i18next';
 
 const { colors } = theme;
+
+/** Verify denemeleri: PayTR durum sorgusu ödemeden birkaç sn sonra "ödendi" dönebilir. */
+const VERIFY_ATTEMPTS = 5;
+const VERIFY_RETRY_MS = 1200;
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 type TierKey = 'basic' | 'premium' | 'business';
 
@@ -19,7 +24,7 @@ type TierFeature = { icon: keyof typeof Ionicons.glyphMap; label: string };
 /**
  * Kademeye özel başarı özellikleri — `checkout/_lib/tiers.ts`teki
  * `buildMembershipTiers` ile AYNI sayı/anahtar seti (15/50/200 ücretsiz ilan,
- * 2/10/50 öne çıkan ilan, "Takas özelliği"/"Koleksiyon oluşturma"/"API
+ * "Takas özelliği"/"Koleksiyon oluşturma"/"API
  * erişimi"), drift'i önlemek için oradaki `membership.tierFeature*`
  * anahtarları yeniden kullanılıyor. `t` çağrıldığı ANDA çözülür (bkz.
  * UpgradePrompt) — bileşen `useMemo(() => buildTierFeatures(t), [t])` ile
@@ -30,13 +35,11 @@ const buildTierFeatures = (t: TFunction): Record<TierKey, TierFeature[]> => ({
     { icon: 'list', label: t('membership.tierFeatureFreeListings', { count: 15 }) },
     { icon: 'swap-horizontal', label: t('membership.tierFeatureTrade') },
     { icon: 'albums', label: t('membership.tierFeatureCollectionCreate') },
-    { icon: 'star', label: t('membership.tierFeatureFeaturedListings', { count: 2 }) },
   ],
   premium: [
     { icon: 'list', label: t('membership.tierFeatureFreeListings', { count: 50 }) },
     { icon: 'swap-horizontal', label: t('membership.tierFeatureTrade') },
     { icon: 'albums', label: t('membership.tierFeatureCollectionCreate') },
-    { icon: 'star', label: t('membership.tierFeatureFeaturedListings', { count: 10 }) },
     // "Reklamsız deneyim" KALDIRILDI — banner'lar herkese gösteriliyor ve
     // sunucu her katman için `isAdFree: null` döndürüyor (staging, 2026-08-26).
     // Satın alma SONRASI ekranda duruyordu: kullanıcı parayı ödedikten sonra
@@ -45,7 +48,6 @@ const buildTierFeatures = (t: TFunction): Record<TierKey, TierFeature[]> => ({
   business: [
     { icon: 'list', label: t('membership.tierFeatureFreeListings', { count: 200 }) },
     { icon: 'swap-horizontal', label: t('membership.tierFeatureTrade') },
-    { icon: 'star', label: t('membership.tierFeatureFeaturedListings', { count: 50 }) },
     { icon: 'code-slash', label: t('membership.tierFeatureApiAccess') },
     { icon: 'ribbon', label: t('membership.tierFeatureSellerBadge') },
   ],
@@ -86,13 +88,19 @@ function MembershipSuccessBody() {
         // gerçekten aktive eden tek çağrı verify (getStatus sadece DB'yi OKUR, aktive
         // ETMEZ); bu yüzden completed olana kadar verify'i tekrar dene. Aksi halde
         // üyelik past_due kalır ve ilan hakkı 5 (ücretsiz) görünür.
-        for (let i = 0; i < 5 && !cancelled; i++) {
-          try {
-            const res = await paymentsApi.verify(paymentId);
-            const completed = (res.data?.data ?? res.data)?.completed;
-            if (completed) break;
-          } catch { /* best-effort */ }
-          if (i < 4 && !cancelled) await new Promise((r) => setTimeout(r, 1200));
+        //
+        // Verify `verifyPacer` üzerinden: kart ödemesiyle AYNI global bütçe (sunucu
+        // dakikada 10 verify) ve uçuş tekilleştirmesi. Kart formu bütçenin yalnız
+        // kendi payını kullanır, bu ekrana yer kalır; yine de dolduysa (başka bir
+        // ekran harcadı) yer açılana dek BEKLENİR — hiç verify göndermeden bitmez.
+        // Verify'ın sonucu beklenir (10 sn'de terk edilmez): üyeliği o aktive eder,
+        // kullanıcı verisi ondan SONRA tazelenir.
+        for (let i = 0; i < VERIFY_ATTEMPTS && !cancelled; i++) {
+          const wait = verifyBudgetWaitMs();
+          if (wait > 0) await sleep(wait);
+          if (cancelled) return;
+          if (await requestVerify(paymentId, { awaitResult: true })) break;
+          if (i < VERIFY_ATTEMPTS - 1 && !cancelled) await sleep(VERIFY_RETRY_MS);
         }
       }
       if (cancelled) return;

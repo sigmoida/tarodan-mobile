@@ -14,6 +14,11 @@ jest.mock('@/hooks/useAds', () => ({
   useAds: (position: string) => mockUseAds(position),
 }));
 
+jest.mock('expo-router', () => ({ router: { push: jest.fn() }, useFocusEffect: () => {} }));
+jest.mock('@/lib/api', () => ({
+  adsApi: { recordImpression: jest.fn(() => Promise.resolve()), recordClick: jest.fn(() => Promise.resolve()) },
+}));
+
 import { AdBanner } from '../AdBanner';
 
 describe('AdBanner — slot reservation', () => {

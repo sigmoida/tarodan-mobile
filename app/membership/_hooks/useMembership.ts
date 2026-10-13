@@ -1,3 +1,4 @@
+import { logger, safeError } from '@/services/logger';
 import React, { useMemo, useState, useEffect } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { appAlert } from "@/ui";
@@ -64,7 +65,7 @@ export function useMembership() {
       setSettings(mapTiersToSettings(list));
     }
     if (membershipRes.status === "rejected" && tiersRes.status === "rejected") {
-      console.error("Failed to load membership data:", membershipRes.reason);
+      logger.error("Failed to load membership data", { err: safeError(membershipRes.reason) });
       setError(t("membership.loadError"));
     }
     setLoading(false);

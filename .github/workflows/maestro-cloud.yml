@@ -43,6 +43,16 @@ jobs:
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
+      # Flow'lar `appId: ${APP_ID}` kullanır (sabit id yok); Cloud'da değer `env:` ile verilmeli.
+      # Yüklenen `.app` EAS `maestro` profilinin iOS simülatör build'idir -> `.staging` ekli id
+      # (com.tarodan.app.staging). Kaynak maestro/app-id.sh; özel build için repo değişkeni
+      # `MAESTRO_APP_ID` (boşsa script tablosu geçerli). Guard atlarsa bu adım da atlanır.
+      - name: Resolve app id (maestro/app-id.sh)
+        id: appid
+        if: steps.guard.outputs.skip == 'false'
+        env:
+          APP_ID: ${{ vars.MAESTRO_APP_ID }}
+        run: echo "value=$(bash maestro/app-id.sh ios staging)" >> "$GITHUB_OUTPUT"
       - name: Run flows on Maestro Cloud
         if: steps.guard.outputs.skip == 'false'
         uses: mobile-dev-inc/action-maestro-cloud@v3
@@ -52,3 +62,5 @@ jobs:
           app-file: build/Tarodan.app
           workspace: maestro
           include-tags: smoke
+          env: |
+            APP_ID=${{ steps.appid.outputs.value }}

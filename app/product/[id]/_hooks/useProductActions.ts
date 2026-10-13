@@ -1,3 +1,4 @@
+import { logger, safeError } from '@/services/logger';
 import i18n from '@/i18n/config';
 import type { MessageKey } from '@/i18n/lib';
 import { useTranslation } from 'react-i18next';
@@ -159,7 +160,7 @@ export function useProductActions({
       );
       await Share.share(content, options);
     } catch (error) {
-      console.error('Share error:', error);
+      logger.error('Share error', { err: safeError(error) });
     }
   };
 

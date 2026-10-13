@@ -8,8 +8,11 @@ import { ThemedRefreshControl } from '@/components/common';
 import { useRefresh } from '@/hooks/useRefresh';
 import RatingModal from '@/components/RatingModal';
 import { qk } from '@/lib/query';
-import { useAuthStore } from '@/stores/authStore';
 import { useOrderShipment } from '@/hooks/useOrderShipment';
+import { useTimingPolicy } from '@/hooks/useTimingPolicy';
+import { useDeadlineNow } from '@/hooks/useDeadlineNow';
+import { ElogoInvoiceList } from '@/components/orders/ElogoInvoiceList';
+import { PreparingDeadlineNotice } from '@/components/orders/PreparingDeadlineNotice';
 import { deriveOrderView } from './_lib/derive';
 import { useOrder } from './_hooks/useOrder';
 import { useOrderInvoices } from './_hooks/useOrderInvoices';
@@ -18,7 +21,7 @@ import { OrderStatusCard } from './_components/OrderStatusCard';
 import { OrderEscrowCard, OrderCancelledInfo, OrderPayPendingCard, OrderTrackingCard } from './_components/OrderInfoCards';
 import { OrderProductCard, OrderSellerCard } from './_components/OrderProductSeller';
 import { OrderAddressCard, OrderPriceSummary } from './_components/OrderAddressPrice';
-import { OrderElogoInvoiceCard, OrderSellerInvoiceCard } from './_components/OrderInvoiceCards';
+import { OrderSellerInvoiceCard } from './_components/OrderInvoiceCards';
 import {
   OrderCancelCard,
   OrderRatingButtons,
@@ -37,15 +40,17 @@ export default function OrderDetailScreen() {
   const queryClient = useQueryClient();
 
   const { data: order, isLoading, refetch } = useOrder(id);
-  const { refreshing, onRefresh } = useRefresh(refetch);
   const [ratingModal, setRatingModal] = useState<{ visible: boolean; type: 'product' | 'seller' }>({
     visible: false,
     type: 'product',
   });
   const actions = useOrderActions(String(id), order ?? undefined);
   const invoices = useOrderInvoices(String(id), order?.status, actions.notify);
+  // Pull-to-refresh siparişle birlikte e-Arşiv listesini de yeniler.
+  const { refreshing, onRefresh } = useRefresh(refetch, invoices.refreshElogoInvoices);
   const { shipment } = useOrderShipment(id);
-  const { user } = useAuthStore();
+  const policy = useTimingPolicy();
+  const now = useDeadlineNow(order?.preparingDeadline);
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
@@ -68,8 +73,11 @@ export default function OrderDetailScreen() {
     );
   }
 
-  const view = deriveOrderView(order);
-  const isSeller = !!user?.id && order?.seller?.id === user.id;
+  // Taraf siparişin kendi `isSeller` bayrağından (web; `user.id` karşılaştırması
+  // değil). Bayrak yoksa alıcı varsayılır: alıcıya satıcı cümlesi çıkmaz.
+  const isSeller = !!order.isSeller;
+  const audience = isSeller ? 'seller' : 'buyer';
+  const view = deriveOrderView(order, policy, now);
 
   return (
     <View style={styles.container}>
@@ -81,7 +89,8 @@ export default function OrderDetailScreen() {
       >
         <OrderEscrowCard order={order} view={view} />
         <OrderStatusCard order={order} view={view} />
-        <OrderCancelledInfo view={view} />
+        <OrderCancelledInfo order={order} view={view} audience={audience} />
+        <PreparingDeadlineNotice notice={view.preparingNotice} />
         <OrderPayPendingCard order={order} view={view} onPay={actions.initiatePayment} payPending={actions.payPending} />
         <OrderTrackingCard order={order} view={view} shipment={shipment} isSeller={isSeller} />
         <OrderProductCard order={order} />
@@ -96,11 +105,17 @@ export default function OrderDetailScreen() {
           onCancelRefund={actions.handleCancelRefund}
           cancelRefundPending={actions.cancelRefundPending}
         />
-        <OrderRefundActionCard order={order} view={view} onOpenRefund={actions.refund.open} />
+        <OrderRefundActionCard order={order} view={view} onOpenRefund={actions.refundModal.open} />
         {/* B7: fatura verileri ayrı query'lerle sonradan gelir (bkz. useOrderInvoices); dokunulan
             aksiyon kartlarının (iptal/değerlendirme/iade) ALTINDA render edilir ki geç gelen
             içerik hiçbir dokunma hedefini kaydırmasın. */}
-        <OrderElogoInvoiceCard elogoInvoice={invoices.elogoInvoice} onView={invoices.viewInvoice} downloading={invoices.downloadingInvoice} />
+        <ElogoInvoiceList
+          invoices={invoices.elogoInvoices}
+          onOpen={invoices.openElogoInvoice}
+          openingId={invoices.openingElogoInvoiceId}
+          loadFailed={invoices.elogoLoadFailed}
+          onRetry={invoices.refreshElogoInvoices}
+        />
         <OrderSellerInvoiceCard
           sellerInvoice={invoices.sellerInvoice}
           onView={invoices.viewSellerInvoice}
@@ -122,20 +137,12 @@ export default function OrderDetailScreen() {
       />
 
       <RefundRequestModal
-        visible={actions.refund.visible}
-        onClose={actions.refund.close}
+        visible={actions.refundModal.visible}
+        onClose={actions.refundModal.close}
+        orderId={String(id)}
         orderQuantity={order.quantity ?? 1}
-        reason={actions.refund.reason}
-        setReason={actions.refund.setReason}
-        description={actions.refund.description}
-        setDescription={actions.refund.setDescription}
-        quantity={actions.refund.quantity}
-        setQuantity={actions.refund.setQuantity}
-        evidence={actions.refund.evidence}
-        pickEvidence={actions.refund.pickEvidence}
-        removeEvidence={actions.refund.removeEvidence}
-        onSubmit={actions.refund.submit}
-        isPending={actions.refund.isPending}
+        notify={actions.notify}
+        timingValues={view.timing}
       />
 
       <Snackbar

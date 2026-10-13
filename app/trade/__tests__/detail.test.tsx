@@ -11,6 +11,11 @@ import { screen, fireEvent, waitFor } from "@testing-library/react-native";
 import { renderWithProviders } from "@/test-utils";
 
 // i18n: provider olmadan t() passthrough (son segmenti döndürür).
+// B4: kimlik kapısı bu testin konusu değil — geçti say (kapı testi ayrı dosyada).
+jest.mock('@/hooks/useLegalIdentity', () =>
+  require('@/test-utils/legalIdentity').legalIdentityGatePassMock,
+);
+
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,

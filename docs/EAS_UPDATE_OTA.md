@@ -78,3 +78,22 @@ OTA is guarded behind EAS credentials, so nothing runs until these are done
    [`RELEASE.md`](./RELEASE.md).
 3. First native build per profile establishes the runtime that later OTA updates
    attach to.
+
+## Fingerprint'e neler girer (ölçüldü)
+
+The runtime fingerprint does **not** change only when the resolved Expo config changes —
+it also covers native-affecting inputs measured on this repo:
+
+- `expo.version` (a version bump always means a new build),
+- `eas.json` — any edit to the whole file changes the fingerprint,
+- local config plugins (`plugins/*.js`), autolinked native modules, `.gitignore`, `package.json` scripts,
+- files `app.config.js` reads at evaluation time, e.g. `src/lib/deeplinks/paths.json` (staging hosts / staging Android package) and the staging Firebase file `google-services.staging.json` (hashed by content on Android).
+
+To compute the **staging** fingerprint locally you must evaluate the staging config:
+
+```bash
+EXPO_PUBLIC_ENVIRONMENT=preview npx expo-updates fingerprint:generate --platform ios
+EXPO_PUBLIC_ENVIRONMENT=preview npx expo-updates fingerprint:generate --platform android
+```
+
+A bare `npx expo-updates fingerprint:generate` evaluates the production config and will not match staging builds. In CI this is done by `scripts/ci/release.sh` (env loaded from the `eas.json` profile).

@@ -134,7 +134,8 @@ describe("silent token refresh — zustand store senkronu (C1)", () => {
     await onResponseError(error401()).catch(() => undefined);
 
     expect(mockPost).not.toHaveBeenCalled();
-    expect(logout).toHaveBeenCalled();
+    // Zorunlu çıkış: ödeme yetki belirteçleri korunur (resetUserStores('forced')).
+    expect(logout).toHaveBeenCalledWith({ reason: "forced" });
     expect(router.replace).toHaveBeenCalledWith("/(auth)/login");
     // store token'ını logout temizler — refresh yolu kendi başına yazmaz.
     expect(useAuthStore.getState().token).toBe("expired-token");

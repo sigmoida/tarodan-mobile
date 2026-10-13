@@ -3,7 +3,7 @@
 # Submit → "İade Sürüyor" banner. Sonra DB'de RefundRequest.status →
 # 'return_shipment_open' + returnTrackingNumber set. Pull-to-refresh →
 # RFD-tracking görünür.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - manual
 ---

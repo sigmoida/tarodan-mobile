@@ -12,8 +12,14 @@ export const messagesApi = {
     api.post('/messages/threads', data),
   sendMessage: (threadId: string, content: string) =>
     api.post(`/messages/threads/${threadId}/messages`, { content }),
-  markAsRead: (threadId: string) =>
-    api.post(`/messages/threads/${threadId}/read`),
+  // NOT: `POST /messages/threads/:id/read` API'de YOK — okundu bilgisi
+  // `getMessages` (GET .../messages) ile sunucuda işlenir. Çağrı eklemeyin.
+  /**
+   * Bugünkü (UTC) kalan mesaj hakkı. Limit tek platform ayarıdır
+   * (`daily_message_limit`, varsayılan 50) — üyelik katmanına göre değişmez.
+   */
+  getDailyLimit: () =>
+    api.get<{ remaining: number; limit: number }>('/messages/daily-limit'),
   /** Tüm thread'lerdeki toplam okunmamış mesaj sayısı (header rozeti, sayfalama bağımsız) */
   getUnreadCount: () =>
     api.get<{ count: number }>('/messages/unread-count'),

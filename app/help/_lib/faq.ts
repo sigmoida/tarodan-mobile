@@ -1,9 +1,7 @@
 import { Linking } from 'react-native';
 import type { TFunction } from 'i18next';
-import {
-  RETURN_REQUEST_DAYS,
-  SUPPORT_EMAIL,
-} from '@/constants/legalFacts';
+import { SUPPORT_EMAIL } from '@/constants/legalFacts';
+import type { TimingMessageValues } from '@/lib/shared/timingPolicy';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
 export type FaqCategory = {
@@ -21,8 +19,12 @@ export type FaqCategory = {
  * Birkaç soru/cevap burada ve `app/faq.tsx`de (SSS ekranı) neredeyse birebir
  * tekrar ediyordu; ortak olanlar tek kaynağa (`faqShared.*`) taşındı, yalnız
  * Yardım Merkezi'ne özgü olanlar `helpFaq.*`de.
+ *
+ * Süreler (iade penceresi, satıcı ödemesi) admin'in Süreler ve Kurallar
+ * ekranından gelir (`useTimingValues`) — SSS ekranıyla (`app/faq.tsx`) aynı
+ * kaynak, sabit 14 gün değil.
  */
-export const buildFaqCategories = (t: TFunction): FaqCategory[] => [
+export const buildFaqCategories = (t: TFunction, timing: TimingMessageValues): FaqCategory[] => [
   {
     id: 'general',
     title: t('helpFaq.categories.general'),
@@ -46,7 +48,7 @@ export const buildFaqCategories = (t: TFunction): FaqCategory[] => [
       { q: t('faqShared.orderTracking.q'), a: t('faqShared.orderTracking.a') },
       {
         q: t('helpFaq.buying.returnPolicy.q'),
-        a: t('helpFaq.buying.returnPolicy.a', { days: RETURN_REQUEST_DAYS }),
+        a: t('helpFaq.buying.returnPolicy.a', { days: timing.returnWindowDays }),
       },
     ],
   },
@@ -61,7 +63,8 @@ export const buildFaqCategories = (t: TFunction): FaqCategory[] => [
         ? [{ q: t('helpFaq.selling.listingFee.q'), a: t('helpFaq.selling.listingFee.a') }]
         : []),
       { q: t('faqShared.commissionRate.q'), a: t('faqShared.commissionRate.a') },
-      { q: t('faqShared.payoutTiming.q'), a: t('faqShared.payoutTiming.a') },
+      // Ödeme: teslim + iade penceresi + payout grace (alıcı onayı öne çekmez).
+      { q: t('faqShared.payoutTiming.q'), a: t('faqShared.payoutTiming.a', timing) },
     ],
   },
   {

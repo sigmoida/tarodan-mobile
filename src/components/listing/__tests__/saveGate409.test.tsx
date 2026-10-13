@@ -13,6 +13,13 @@ import React from 'react';
 import { appAlert } from '@/ui';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../test-utils';
+import { mockRequireLegalIdentity } from '@/test-utils/legalIdentity';
+
+// B4: kapı testi `listingLegalIdentity.test.tsx`'te; burada yalnız düzenlemede
+// sorulmadığı doğrulanır.
+jest.mock('@/hooks/useLegalIdentity', () =>
+  require('@/test-utils/legalIdentity').legalIdentityGatePassMock,
+);
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
@@ -42,6 +49,11 @@ jest.mock('@/lib/api', () => ({
   },
   categoriesApi: { getAll: jest.fn(async () => ({ data: { data: [] } })) },
   shippingApi: { getPackageTiers: () => mockGet('/shipping/package-tiers') },
+  addressesApi: {
+    getAll: jest.fn(async () => ({
+      data: [{ id: 'a1', isDefault: true, phone: '+905321234567', city: 'İstanbul', district: 'Kadıköy', address: 'Moda Cd. 1' }],
+    })),
+  },
   bankAccountApi: {
     get: jest.fn(async () => ({
       data: { id: 'x', accountHolder: 'T', iban: 'TR000000000000000000000001', isVerified: false },
@@ -222,6 +234,7 @@ describe('409 — düzenlemede yazım çakışması', () => {
     (productsApi.getMyById as jest.Mock).mockResolvedValue({ data: { data: EDIT_PROJECTION } });
     (productsApi.update as jest.Mock).mockReset();
     (productsApi.update as jest.Mock).mockRejectedValue({ response: { status: 409 } });
+    mockRequireLegalIdentity.mockClear();
   });
 
   it('başarı akışına düşmez, taze kaydı yeniden çeker ve çakışmayı bildirir', async () => {
@@ -243,5 +256,7 @@ describe('409 — düzenlemede yazım çakışması', () => {
     expect(alertSpy).not.toHaveBeenCalledWith('Başarılı', 'İlan güncellendi!', expect.anything());
     // (b) taze kayıt yeniden çekildi — prefill (1) + 409 sonrası (2).
     expect(productsApi.getMyById).toHaveBeenCalledTimes(2);
+    // (c) B4: düzenlemede yasal kimlik sorulmaz (ilan zaten verildi).
+    expect(mockRequireLegalIdentity).not.toHaveBeenCalled();
   });
 });

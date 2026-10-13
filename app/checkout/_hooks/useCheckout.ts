@@ -1,3 +1,4 @@
+import { logger, safeError } from '@/services/logger';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -8,18 +9,22 @@ import {
   paymentsApi,
   addressesApi,
   toExpectedPricing,
+  type ExpectedPricingSnapshot,
   type OrderAddressInput,
   type OrderQuoteResponse,
 } from '@/lib/api';
 import { qk, retryUnlessClientError } from '@/lib/query';
 import { useCartStore } from '@/stores/cartStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
+import { useLatestRef } from '@/hooks/useLatestRef';
 import { captureException } from '@/services/sentry';
 import { formatServerPrice, serverAmount } from '@/utils/format';
 import { indexQuoteLines } from '@/utils/quoteLines';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
 import { DEFAULT_COUNTRY_CODE, parsePhoneForPayload, getPhoneInvalidMessage } from '@/utils/phone';
 import { STOCKOUT_KEYWORDS, generateUuidV4, EMPTY_ADDRESS } from '../_lib/constants';
+import { toOrderLineItems } from '../_lib/lineItems';
 import {
   addressPhoneError,
   extractApiMessage,
@@ -35,6 +40,8 @@ import type { ShippingAddressInput, SavedAddress } from '../_lib/types';
  * yapılıyor, burada modal zaten kapatılmış oluyor.
  */
 const MODAL_CLOSE_ALERT_DELAY_MS = 400;
+
+type ServerPrice = number | string | null | undefined;
 
 /**
  * Payload'a girecek telefonların TAMAMI. Bir alan `null` ise o telefon bu
@@ -107,6 +114,7 @@ export function useCheckout() {
 
 
   const [step, setStep] = useState(1);
+  const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
 
   const idempotencyKeyRef = useRef(generateUuidV4());
   useEffect(() => {
@@ -274,7 +282,8 @@ export function useCheckout() {
   const quoteQuery = useQuery({
     queryKey: qk.checkout.quote(itemsSignature, coupon.couponCode),
     queryFn: async () => {
-      const baseItems = items.map((it) => ({ productId: it.productId, quantity: it.quantity }));
+      // Checkout gövdesi de AYNI üreticiden çıkar — adet imzaya dahil (A-1.1).
+      const baseItems = toOrderLineItems(items);
       const couponCode = coupon.couponCode;
       try {
         const res = await ordersApi.getQuote({
@@ -593,8 +602,14 @@ export function useCheckout() {
     };
   };
 
-  const proceedCheckout = async (emailVerificationCode?: string) => {
-    if (loading) return;
+  /**
+   * Gönderimden önceki UCUZ yerel kontroller (fiyat imzası hazır mı, telefonlar
+   * çözülüyor mu). `proceedCheckout`'un ilk iki adımı AYNEN buraya taşındı;
+   * üye dalında kimlik kapısından ÖNCE de çağrılır — fiyat hazır değilken ya da
+   * telefon hatalıyken üyeye önce kimlik sorulmasın. Sorun varsa uyarıyı
+   * kendisi basar ve `null` döner.
+   */
+  const checkoutReadiness = () => {
     // Dört alanın DÖRDÜ de API DTO'sunda zorunlu — yarım gövde göndermek yalnız
     // aynı 400'ü başka bir şekilde üretir. Türetici tek kaynak (`@/lib/api`).
     const expectedPricing = toExpectedPricing(quote);
@@ -609,7 +624,7 @@ export function useCheckout() {
           ? t('checkout.priceUnavailableBody')
           : t('checkout.priceNotReadyBody'),
       );
-      return;
+      return null;
     }
     // Telefon kapısı — `setLoading(true)`'dan ÖNCE. ENGELLEYİCİ ama SONLANDIRICI
     // değil: kullanıcı numarayı düzeltip aynı OTP oturumuyla devam edebilir, o
@@ -617,8 +632,31 @@ export function useCheckout() {
     const resolved = resolvePayloadPhones();
     if (!resolved.ok) {
       alertInlineWhileOtpOpen(t('checkout.phoneInvalidTitle'), resolved.message);
-      return;
+      return null;
     }
+    return { expectedPricing, resolved };
+  };
+
+  /**
+   * "Fiyat güncellendi, tekrar onaylayın" — 409 akışının uyarısı ile kapı
+   * sonrası fiyat güvencesinin TEK kaynağı. Sipariş GÖNDERİLMEZ; kullanıcı yeni
+   * toplamı görür ve düğmeye yeniden basarak onaylar.
+   */
+  const alertPricesChanged = (commission: boolean, oldTotal: ServerPrice, newTotal: ServerPrice) => {
+    const totals = { oldTotal: formatServerPrice(oldTotal), newTotal: formatServerPrice(newTotal) };
+    alertAfterOtpClose(
+      commission ? t('checkout.commissionChangedTitle') : t('checkout.pricesUpdatedTitle'),
+      commission
+        ? t('checkout.commissionChangedBody', totals)
+        : t('checkout.pricesUpdatedBody', totals),
+    );
+  };
+
+  const proceedCheckout = async (emailVerificationCode?: string) => {
+    if (loading) return;
+    const ready = checkoutReadiness();
+    if (!ready) return;
+    const { expectedPricing, resolved } = ready;
     setLoading(true);
     try {
       const shipping = buildShippingPayload(resolved.phones);
@@ -626,7 +664,8 @@ export function useCheckout() {
 
       const checkoutPayload = {
         distanceSalesAccepted,
-        items: items.map((item) => ({ productId: item.productId })),
+        // Quote ile AYNI satırlar (adet DAHİL) — farklı adet imzayı bozar → 409.
+        items: toOrderLineItems(items),
         idempotencyKey: idempotencyKeyRef.current,
         shippingAddressId: shipping.id,
         shippingAddress: shipping.inline,
@@ -744,7 +783,7 @@ export function useCheckout() {
         alertInlineWhileOtpOpen(t('checkout.phoneInvalidTitle'), error.message);
         return;
       }
-      console.error('Checkout error:', error);
+      logger.error('Checkout error', { err: safeError(error) });
       captureException(error, { level: 'error', tags: { flow: 'checkout' }, extra: { status: error?.response?.status } });
       const status = error?.response?.status;
       // İki ayrı çakışma, TEK dal: fiyat/kargo değişti (i18nKey ile gelir) veya
@@ -758,20 +797,7 @@ export function useCheckout() {
         const oldTotal = total;
         const refreshed = await quoteQuery.refetch();
         const newTotal = refreshed.data?.pricing?.summary?.total;
-        alertAfterOtpClose(
-          isCommissionConflict
-            ? t('checkout.commissionChangedTitle')
-            : t('checkout.pricesUpdatedTitle'),
-          isCommissionConflict
-            ? t('checkout.commissionChangedBody', {
-                oldTotal: formatServerPrice(oldTotal),
-                newTotal: formatServerPrice(newTotal),
-              })
-            : t('checkout.pricesUpdatedBody', {
-                oldTotal: formatServerPrice(oldTotal),
-                newTotal: formatServerPrice(newTotal),
-              }),
-        );
+        alertPricesChanged(isCommissionConflict, oldTotal, newTotal);
         return;
       }
       // 503: aktif komisyon kuralı yok. Yeniden quote'la ÇÖZÜLMEZ — kullanıcıyı
@@ -816,19 +842,75 @@ export function useCheckout() {
     }
   };
 
-  const handleCheckout = async () => {
+  /** Satır kontrolleri (boş sepet, geçersiz `productId`). Sorun varsa uyarır, `false` döner. */
+  const itemsReady = (): boolean => {
     if (items.length === 0) {
       showSnackbar(t('checkout.emptyCart'));
-      return;
+      return false;
     }
     for (const item of items) {
       if (!item.productId || typeof item.productId !== 'string' || item.productId.length < 10) {
         appAlert(t('common.error'), t('checkout.invalidProductId', { title: item.title }));
-        return;
+        return false;
       }
     }
+    return true;
+  };
+
+  /**
+   * Kullanıcının ONAYLADIĞI şey: fiyat imzası (dört alan) + satırlar (adet
+   * dahil) + kupon. Kapıdan önce ve sonra bu anahtar karşılaştırılır.
+   */
+  const confirmedKey = (expectedPricing: ExpectedPricingSnapshot) =>
+    JSON.stringify([expectedPricing, itemsSignature, coupon.couponCode ?? null]);
+  const commissionKey = (p: ExpectedPricingSnapshot) =>
+    `${p.expectedCommissionRuleSetId}:${p.expectedCommissionRuleSetVersion}`;
+
+  /**
+   * Kimlik kapısından SONRA, son commit'in değerleriyle çalışır (ref üzerinden).
+   * Kapı dakikalarca açık kalabilir: bu sırada sepet boşalmış, satırlar ya da
+   * quote değişmiş olabilir. Satır kontrolleri yeniden koşar; kullanıcının
+   * basarken gördüğü tutar/satırlar değiştiyse sipariş GÖNDERİLMEZ — 409'daki
+   * gibi yeni toplam gösterilir, yeniden onay (tekrar basış) beklenir. Hiçbir
+   * şey değişmediyse GÜNCEL değerlerle (adres/telefon/onay kutusu) devam edilir.
+   */
+  const resumeAfterIdentity = async (pressed: { key: string; total: number | null; commissionKey: string }) => {
+    if (!itemsReady()) return;
+    if (loading) return;
+    const ready = checkoutReadiness();
+    if (!ready) return;
+    if (confirmedKey(ready.expectedPricing) !== pressed.key) {
+      alertPricesChanged(
+        commissionKey(ready.expectedPricing) !== pressed.commissionKey,
+        pressed.total,
+        total,
+      );
+      return;
+    }
+    await proceedCheckout();
+  };
+  // Son commit'in fonksiyonu: `await` sonrası (kimlik kapısı) bayat closure
+  // yerine. Atama `useLayoutEffect`'te (useEvent kalıbı), render'da değil.
+  const resumeAfterIdentityRef = useLatestRef(resumeAfterIdentity);
+
+  const handleCheckout = async () => {
+    if (!itemsReady()) return;
     if (isAuthenticated && user) {
-      await proceedCheckout();
+      // B-2.4: yasal kimlik ihtiyaç anında. Vazgeçerse ödeme başlamaz. Misafir
+      // dalında yok (hesap yok); OTP yolu da `proceedCheckout`'u çağırdığı için
+      // kapı onun içinde değil, burada.
+      // Önce ucuz yerel kontroller; basış anındaki tutar/satırlar saklanır ve
+      // kapıdan sonra güncel değerlerle karşılaştırılır (`resumeAfterIdentity`).
+      if (loading) return;
+      const ready = checkoutReadiness();
+      if (!ready) return;
+      const pressed = {
+        key: confirmedKey(ready.expectedPricing),
+        total,
+        commissionKey: commissionKey(ready.expectedPricing),
+      };
+      if (!(await requireIdentity())) return;
+      await resumeAfterIdentityRef.current(pressed);
       return;
     }
 
@@ -927,8 +1009,8 @@ export function useCheckout() {
     coupon,
     /** Sunucunun uyguladığı indirim (quote kökü) — rozet bilgisi, özet satırı değil. */
     couponDiscount,
-    // ui
-    loading,
+    // ui — kimlik kontrolü sürerken de "işleniyor" (düğme devre dışı).
+    loading: loading || checkingIdentity,
     snackbar,
     dismissSnackbar: () => setSnackbar({ visible: false, message: '' }),
     handleNextStep,

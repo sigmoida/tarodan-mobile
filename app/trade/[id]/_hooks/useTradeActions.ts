@@ -6,9 +6,12 @@ import { tradesApi, paymentsApi } from "@/lib/api";
 import { qk } from "@/lib/query";
 import { useTranslation } from "react-i18next";
 import { captureException } from "@/services/sentry";
+import { useRequireLegalIdentityFor } from "@/hooks/useLegalIdentity";
 
-type DisputeReason =
-  "shipment_lost" | "shipment_damaged" | "wrong_item" | "other";
+import {
+  DEFAULT_DISPUTE_REASON,
+  type DisputeReason,
+} from "../_lib/disputeReasons";
 
 /**
  * Takas detay controller'ı: 6 mutation (kabul/reddet/onayla/nakit-öde/iptal/itiraz)
@@ -18,6 +21,10 @@ type DisputeReason =
 export function useTradeActions(id: string) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  // Aksiyon başına hedef: kabul kontrol edilirken nakit ödeme yükleniyor
+  // görünmesin (ve tersi).
+  const { requireIdentityFor, checkingTarget } =
+    useRequireLegalIdentityFor<"accept" | "cashPay">();
 
   const [snackbar, setSnackbar] = useState({ visible: false, message: "" });
   const notify = (message: string) => setSnackbar({ visible: true, message });
@@ -29,7 +36,7 @@ export function useTradeActions(id: string) {
   const [rejectReason, setRejectReason] = useState("");
   const [disputeVisible, setDisputeVisible] = useState(false);
   const [disputeReason, setDisputeReason] =
-    useState<DisputeReason>("shipment_lost");
+    useState<DisputeReason>(DEFAULT_DISPUTE_REASON);
   const [disputeDescription, setDisputeDescription] = useState("");
 
   const invalidate = () => {
@@ -127,6 +134,7 @@ export function useTradeActions(id: string) {
       invalidate();
       setDisputeVisible(false);
       setDisputeDescription("");
+      setDisputeReason(DEFAULT_DISPUTE_REASON);
       notify(t("trade.dispute.successMessage"));
     },
     onError: (error: any) =>
@@ -134,7 +142,7 @@ export function useTradeActions(id: string) {
   });
 
   // --- Handler'lar (aksiyon butonlarından) ---
-  const handleAccept = () => {
+  const handleAccept = async () => {
     if (!tradeAddressId) {
       appAlert(
         t("address.deliveryAddress"),
@@ -142,6 +150,10 @@ export function useTradeActions(id: string) {
       );
       return;
     }
+    // B4: kabul takası başlatır — önce yasal kimlik. Kapı onay penceresinden
+    // ÖNCE: `appAlert` kapanırken native kapı açılırsa iOS donar; kapı kendi
+    // kapanışını bekleyip çözüldüğü için onay güvenle açılır.
+    if (!(await requireIdentityFor("accept"))) return;
     appAlert(
       t("trade.accept.confirmTitle"),
       t("trade.accept.confirmMessage"),
@@ -194,7 +206,10 @@ export function useTradeActions(id: string) {
     // itiraz modal
     dispute: {
       visible: disputeVisible,
-      open: () => setDisputeVisible(true),
+      open: () => {
+        setDisputeReason(DEFAULT_DISPUTE_REASON);
+        setDisputeVisible(true);
+      },
       close: () => setDisputeVisible(false),
       reason: disputeReason,
       setReason: setDisputeReason,
@@ -206,12 +221,16 @@ export function useTradeActions(id: string) {
     // aksiyonlar
     handleAccept,
     handleCancel,
-    acceptPending: acceptMutation.isPending,
+    acceptPending: checkingTarget === "accept" || acceptMutation.isPending,
     cancelPending: cancelMutation.isPending,
     confirm: () => confirmMutation.mutate(),
     confirmPending: confirmMutation.isPending,
-    cashPay: () => cashPayMutation.mutate(),
-    cashPayPending: cashPayMutation.isPending,
+    // B-2.4: nakit ödeme başlamadan yasal kimlik; vazgeçerse ödeme başlamaz.
+    cashPay: async () => {
+      if (!(await requireIdentityFor("cashPay"))) return;
+      cashPayMutation.mutate();
+    },
+    cashPayPending: checkingTarget === "cashPay" || cashPayMutation.isPending,
     rejectPending: rejectMutation.isPending,
   };
 }

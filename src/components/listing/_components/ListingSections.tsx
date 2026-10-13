@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { theme, DateField } from '@/ui';
 import UpgradeCta from '@/components/UpgradeCta';
+import { ListingRemovalModal } from '../ListingRemovalModal';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
 import { styles } from '../_lib/styles';
@@ -26,7 +27,7 @@ const { colors } = theme;
 type SectionProps = { f: ListingFormController };
 
 // ---------------------------------------------------------------------------
-// Header + banners (page title, IBAN prompt, limits, reactivate/deleted panels)
+// Header + banners (page title, limits, reactivate/deleted panels)
 // ---------------------------------------------------------------------------
 export function ListingHeaderBanners({ f }: SectionProps) {
   const { t } = useTranslation();
@@ -37,20 +38,6 @@ export function ListingHeaderBanners({ f }: SectionProps) {
           <Text style={styles.pageTitle}>{t('collection.createNewListing')}</Text>
           <Text style={styles.pageSubtitle}>{t('listing.createSubtitle')}</Text>
         </>
-      )}
-
-      {/* Bank Account Banner (create only) */}
-      {!f.isEdit && !f.bankAccountQuery.isLoading && !f.hasBankAccount && (
-        <View style={styles.ibanBanner}>
-          <Text style={styles.ibanBannerTitle}>{t('listing.bankAccountBannerTitle')}</Text>
-          <Text style={styles.ibanBannerBody}>{t('listing.bankAccountBannerBody')}</Text>
-          <TouchableOpacity
-            style={styles.ibanBannerButton}
-            onPress={() => router.push('/settings/bank-account')}
-          >
-            <Text style={styles.ibanBannerButtonText}>{t('listing.addIban')}</Text>
-          </TouchableOpacity>
-        </View>
       )}
 
       {/* Listing Limits (create only) */}
@@ -820,6 +807,15 @@ export function ListingSubmitRow({ f }: SectionProps) {
           <Ionicons name="trash-outline" size={18} color={colors.danger[600]!} />
           <Text style={styles.deleteButtonText}>{t('product.deleteListing')}</Text>
         </TouchableOpacity>
+      )}
+      {f.isEdit && (
+        <ListingRemovalModal
+          action="delete"
+          visible={f.removalOpen}
+          listingTitle={f.title}
+          onClose={f.closeRemoval}
+          onSubmit={f.deleteWithReason}
+        />
       )}
     </>
   );

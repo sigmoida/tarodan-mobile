@@ -26,6 +26,16 @@ export const qk = {
     usernameAvailability: (username: string) => ['auth', 'username-availability', username] as const,
   },
 
+  consents: {
+    /** GET /consents/me/pending — yeniden-onay kapısı (zorunlu adımlar). */
+    pending: ['consents', 'me', 'pending'] as const,
+  },
+
+  legalIdentity: {
+    /** GET /legal-identity/me — ihtiyaç anında kimlik kapısı + profildeki salt-okunur bölüm. */
+    me: ['legal-identity', 'me'] as const,
+  },
+
   products: {
     all: ["products"] as const,
     list: (filters?: Filters) => ["products", "list", filters] as const,
@@ -49,6 +59,8 @@ export const qk = {
     myListings: (filters?: Filters | string) =>
       ["my-listings", filters] as const,
     myListingsStats: ["my-listings-stats"] as const,
+    /** İlanlarım "Süresi dolan" sayacı (`limit=1` + `meta.total`). `my-listings` kökünün altında → `myListingsAll` ile tazelenir. */
+    myListingsExpiredCount: ["my-listings", "expired-count"] as const,
     myFeatured: ["my-featured-listings"] as const,
     listings: (filters?: Filters) => ["listings", filters] as const,
     /** Prefix roots for invalidation (match every filtered variant). */
@@ -90,7 +102,8 @@ export const qk = {
     all: ["orders"] as const,
     list: (filters?: Filters) => ["orders", "list", filters] as const,
     detail: (id: string) => ["order", id] as const,
-    elogoInvoice: (id: string) => ["elogo-invoice", id] as const,
+    /** Siparişin TÜM e-Arşiv belgeleri (`/elogo/invoices/by-order/:id/all`). */
+    elogoInvoices: (id: string) => ["elogo-invoices", id] as const,
     sellerInvoice: (id: string) => ["seller-invoice", id] as const,
     sellerPending: ["seller-pending-orders"] as const,
   },
@@ -136,7 +149,13 @@ export const qk = {
 
   payments: {
     mine: ["my-payments"] as const,
-    savedCards: ["saved-cards"] as const,
+    /** Prefix kök — kart silinince her amacın listesi birlikte tazelenir. */
+    savedCardsAll: ["saved-cards"] as const,
+    /**
+     * Kayıtlı kartlar, PayTR mağazasına (amaç) göre: `checkout` / `membership`;
+     * amaçsız = iki mağaza birlikte (Kayıtlı Kartlarım).
+     */
+    savedCards: (purpose?: string) => ["saved-cards", purpose ?? "all"] as const,
   },
 
   user: {
@@ -185,6 +204,8 @@ export const qk = {
     messages: (threadId: string) =>
       ["messaging", "messages", threadId] as const,
     unreadCount: ["messaging", "unread-count"] as const,
+    /** GET /messages/daily-limit — `{ remaining, limit }` (tek platform ayarı). */
+    dailyLimit: ["messaging", "daily-limit"] as const,
   },
 
   notifications: {
@@ -241,6 +262,13 @@ export const qk = {
     active: ["ads", "active"] as const,
   },
 
+  hero: {
+    /** GET /hero-slides?placement= — admin'den yönetilen vitrin slaytları. */
+    slides: (placement: string) => ["hero", "slides", placement] as const,
+    /** GET /trust-badges — ana sayfa güven rozetleri. */
+    trustBadges: ["hero", "trust-badges"] as const,
+  },
+
   membershipLimits: {
     /** GET /membership/me/limits — reklamsız üyelik kontrolü için. */
     mine: ["membership", "limits"] as const,
@@ -255,5 +283,10 @@ export const qk = {
   sellerDocuments: {
     list: ["seller-documents"] as const,
     application: ["seller-documents", "application"] as const,
+  },
+
+  timingPolicy: {
+    /** GET /timing-rules — admin'den yönetilen herkese açık politika süreleri. */
+    all: ["timing-policy"] as const,
   },
 } as const;

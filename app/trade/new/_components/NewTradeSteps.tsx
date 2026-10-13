@@ -279,8 +279,8 @@ export function Step3Review({ f }: StepProps) {
           variant="primary"
           title={t('trade.sendTrade')}
           onPress={f.handleSubmit}
-          isLoading={f.createTradeMutation.isPending}
-          disabled={f.createTradeMutation.isPending}
+          isLoading={f.submitPending}
+          disabled={f.submitPending}
         />
       </View>
     </View>

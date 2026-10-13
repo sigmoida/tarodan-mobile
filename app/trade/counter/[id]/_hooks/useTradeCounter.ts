@@ -6,6 +6,7 @@ import { appAlert } from '@/ui';
 import { tradesApi, productsApi } from '@/lib/api';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useAuthStore } from '@/stores/authStore';
+import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 import { itemId, offerSignature, type Trade, type TradeItem } from '../_lib/types';
 
 /**
@@ -18,6 +19,7 @@ export function useTradeCounter() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
+  const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
   const [snack, setSnack] = useState<string | null>(null);
 
   const handleBack = () => {
@@ -153,7 +155,7 @@ export function useTradeCounter() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (selectedMine.length === 0 && selectedTheirs.length === 0) {
       appAlert(t('common.error'), t('trade.selectAtLeastOneOffer'));
       return;
@@ -166,6 +168,9 @@ export function useTradeCounter() {
       );
       return;
     }
+    // B4: karşı teklif (nakitli ya da değil) yeni bir takas teklifi — başlatmayla
+    // aynı kural, önce yasal kimlik. Vazgeçerse teklif gönderilmez.
+    if (!(await requireIdentity())) return;
     counterMutation.mutate();
   };
 
@@ -193,6 +198,8 @@ export function useTradeCounter() {
     toggleTheirs,
     handleSubmit,
     counterMutation,
+    /** Gönderim sürüyor: kimlik kontrolü ya da karşı teklif isteği. */
+    submitPending: checkingIdentity || counterMutation.isPending,
     refreshing,
     onRefresh,
     snack,

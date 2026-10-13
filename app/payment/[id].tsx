@@ -9,7 +9,13 @@ import { ScreenHeader, ErrorState } from '@/components/common';
 import { captureException } from '@/services/sentry';
 import CardPaymentForm from '@/components/CardPaymentForm';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
-import { isRecurringEnabledFor } from '@/lib/payment/recurring';
+import { paymentCapabilities, SAFE_PAYMENT_CONFIG, type PaymentConfig, type PaymentPurpose } from '@/lib/payment/capabilities';
+import {
+  paymentKindOf,
+  paymentTargetOf,
+  type PaymentStatusLight,
+} from './_lib/paymentKind';
+import type { DirectFormTarget } from '@/lib/payment/directFormBody';
 
 /**
  * ⚠️ BU EKRAN BİLEREK React Query'ye TAŞINMADI (CLAUDE.md §6'nın istisnası).
@@ -55,17 +61,33 @@ export default function PaymentScreen() {
   const paymentId = params.id!;
   const isGuest = params.guest === '1';
   const isMembership = params.type === 'membership';
-  // Boost da dijital (Guideline 3.1.3(g)) — BoostModal iOS'ta zaten `null`
-  // döner ve bu yola hiç girmez, ama emniyet kilidi simetrik olsun diye burada.
+  // Boost da dijital (Guideline 3.1.3(g) / Play ödeme politikası) — dijital satış
+  // kapalıyken BoostModal zaten `null` döner ve bu yola hiç girmez, ama emniyet
+  // kilidi simetrik olsun diye burada.
   const isBoost = params.type === 'boost';
 
   const [state, setState] = useState<{
     loading: boolean;
     error: string | null;
-    target: { orderId?: string; checkoutGroupId?: string; tradeId?: string } | null;
+    target: DirectFormTarget | null;
     amount?: number;
-    recurringEnabled: boolean;
-  }>({ loading: true, error: null, target: null, recurringEnabled: false });
+    /** Kayıtlı kartların aranacağı PayTR mağazası (API delta 20). */
+    purpose: PaymentPurpose;
+    /** Bu amaçta kart saklama açık + üye: kayıtlı kart listesi ve "kartımı sakla". */
+    cardStorageEnabled: boolean;
+    /** Durum yanıtı üyelik siparişi dedi (rota `type` taşımasa da) → başarı /membership/success. */
+    isMembership: boolean;
+    /** Durum yanıtı üyelik dedi ve dijital satış kapalı → ödeme formu yok. */
+    digitalBlocked: boolean;
+  }>({
+    loading: true,
+    error: null,
+    target: null,
+    purpose: 'checkout',
+    cardStorageEnabled: false,
+    isMembership,
+    digitalBlocked: false,
+  });
 
   const resolvedRef = useRef(false);
 
@@ -87,7 +109,8 @@ export default function PaymentScreen() {
   }, [paymentId]);
 
   const load = async () => {
-    // iOS'ta üyelik ödemesi kabul edilmez (Guideline 3.1.1). Yalnız JSX'i
+    // Dijital satış kapalıyken (iOS + Android: `CAN_BUY_DIGITAL`) üyelik ödemesi
+    // kabul edilmez (Apple 3.1.1 / Play ödeme politikası). Yalnız JSX'i
     // kilitlemek yetmez: render kilidi devredeyken bu effect zaten tetiklenmiş
     // olabiliyor, kilit olmasa `load()` durum sorgusunu ATAR, bypass açıksa
     // ödemeyi TAMAMLAR ve /membership/success'e yönlendirip <Redirect>'i
@@ -97,22 +120,30 @@ export default function PaymentScreen() {
     try {
       setState(s => ({ ...s, loading: true, error: null }));
 
-      // Public ödeme yapılandırması (bypass + kayıtlı kart/oto-yenileme).
-      let cfg = { bypassEnabled: false, recurringEnabled: false };
-      try {
-        cfg = ((await paymentsApi.getConfig()).data) as any;
-      } catch {
-        /* config alınamazsa güvenli varsayılan: yalnız yeni-kart, bypass kapalı */
+      // Public ödeme yapılandırması (bypass + amaç başına kart saklama) ve ödeme
+      // durumu (hedef + tutar + tamamlandı/başarısız) birbirinden bağımsız →
+      // aynı anda. Config hatası güvenli varsayılana düşer (yalnız yeni kart,
+      // bypass kapalı); durum hatası aşağıdaki catch'e gider.
+      const [cfg, res] = await Promise.all([
+        paymentsApi
+          .getConfig()
+          .then((r): PaymentConfig => r.data ?? SAFE_PAYMENT_CONFIG)
+          .catch((): PaymentConfig => SAFE_PAYMENT_CONFIG),
+        isGuest ? paymentsApi.getStatusLightGuest(paymentId) : paymentsApi.getStatusLight(paymentId),
+      ]);
+      const data: PaymentStatusLight = res?.data?.data ?? res?.data ?? {};
+      const kind = paymentKindOf(params.type, data);
+
+      // Rota `type` taşımadan gelen üyelik ödemesi (başarısız ödeme ekranından /
+      // Ödemelerim'den yeniden deneme): yukarıdaki kilit param'a bakıyor, burada
+      // durum yanıtıyla tekrarlanır — bypass/yönlendirme/kart formu YOK.
+      if (kind.isMembership && !CAN_BUY_DIGITAL) {
+        setState(s => ({ ...s, loading: false, digitalBlocked: true }));
+        return;
       }
 
-      // Ödeme durumunu yükle (hedef + tutar + tamamlandı/başarısız kontrolü).
-      const res: any = isGuest
-        ? await paymentsApi.getStatusLightGuest(paymentId)
-        : await paymentsApi.getStatusLight(paymentId);
-      const data = res?.data?.data ?? res?.data ?? {};
-
       if (data.status === 'completed') {
-        routeToSuccess();
+        routeToSuccess(paymentId, kind.isMembership);
         return;
       }
       if (data.status === 'failed') {
@@ -133,53 +164,48 @@ export default function PaymentScreen() {
             extra: { paymentId },
           });
         }
-        routeToSuccess();
+        routeToSuccess(paymentId, kind.isMembership);
         return;
       }
 
       // Hedef status'tan türetilir; tradeId status'ta yoksa param'dan tamamla (yedek).
-      const target = {
-        ...(data.orderId ? { orderId: String(data.orderId) } : {}),
-        ...(data.checkoutGroupId ? { checkoutGroupId: String(data.checkoutGroupId) } : {}),
-        ...(data.tradeId
-          ? { tradeId: String(data.tradeId) }
-          : params.tradeId
-            ? { tradeId: String(params.tradeId) }
-            : {}),
-      };
+      const target = paymentTargetOf(data, params.tradeId);
       const hasTarget = !!(target.orderId || target.checkoutGroupId || target.tradeId);
       if (!hasTarget) {
-        setState({
+        setState(s => ({
+          ...s,
           loading: false,
           error: t('payment.targetNotFound'),
           target: null,
-          recurringEnabled: false,
-        });
+          cardStorageEnabled: false,
+        }));
         return;
       }
 
-      setState({
+      setState(s => ({
+        ...s,
         loading: false,
         error: null,
         target,
         amount: data.amount != null ? Number(data.amount) : undefined,
+        purpose: kind.purpose,
+        isMembership: kind.isMembership,
         // Kayıtlı kart yalnız giriş yapmış kullanıcıya gösterilir.
-        recurringEnabled:
-          isRecurringEnabledFor(cfg, isMembership ? 'membership' : isBoost ? 'boost' : 'checkout') &&
-          !isGuest,
-      });
+        cardStorageEnabled: paymentCapabilities(cfg, kind.purpose).cardStorageEnabled && !isGuest,
+      }));
     } catch (e: any) {
       captureException(e, {
         level: 'error',
         tags: { flow: 'payment.load' },
         extra: { paymentId, status: e?.response?.status },
       });
-      setState({
+      setState(s => ({
+        ...s,
         loading: false,
         error: e?.response?.data?.message || t('payment.infoLoadFailed'),
         target: null,
-        recurringEnabled: false,
-      });
+        cardStorageEnabled: false,
+      }));
     }
   };
 
@@ -202,8 +228,8 @@ export default function PaymentScreen() {
     );
   };
 
-  const routeToSuccess = (pid: string = paymentId) => {
-    if (isMembership) {
+  const routeToSuccess = (pid: string = paymentId, membership: boolean = isMembership) => {
+    if (membership) {
       router.replace({
         pathname: '/membership/success',
         params: { paymentId: pid, ...(params.tier ? { tier: params.tier } : {}) },
@@ -225,12 +251,13 @@ export default function PaymentScreen() {
     router.replace({ pathname: '/payment/fail', params: { paymentId: pid, guest: params.guest } } as any);
   };
 
-  // iOS'ta üyelik ödemesi kabul edilmez (Guideline 3.1.1). Fiziksel sipariş,
+  // Dijital satış kapalıyken (iOS + Android) üyelik/öne çıkarma ödemesi kabul
+  // edilmez (Apple 3.1.1 / Play ödeme politikası). Fiziksel sipariş,
   // sepet ve takas ödemesi bu ekrandan geçmeye DEVAM eder — 3.1.3(e) gereği
   // onların IAP dışında kalması zorunlu. Tüm hook'lardan (ve yukarıdaki
   // `load` closure'ından, ki `useEffect` ona referans veriyor — daha erken
   // bir çıkış TDZ hatasına yol açardı) SONRA, JSX döndürülmeden hemen önce.
-  if ((isMembership || isBoost) && !CAN_BUY_DIGITAL) return <Redirect href="/membership" />;
+  if ((isMembership || isBoost || state.digitalBlocked) && !CAN_BUY_DIGITAL) return <Redirect href="/membership" />;
 
   return (
     <View style={styles.container}>
@@ -257,10 +284,11 @@ export default function PaymentScreen() {
           <CardPaymentForm
             target={state.target}
             amount={state.amount}
-            recurringEnabled={state.recurringEnabled}
+            purpose={state.purpose}
+            cardStorageEnabled={state.cardStorageEnabled}
             isGuest={isGuest}
             paymentId={paymentId}
-            onSuccess={(pid) => routeToSuccess(pid)}
+            onSuccess={(pid) => routeToSuccess(pid, state.isMembership)}
             onFail={() => routeToFail()}
           />
         </View>

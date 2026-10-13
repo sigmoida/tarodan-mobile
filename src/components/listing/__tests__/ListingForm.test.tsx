@@ -38,6 +38,11 @@ jest.mock('@/lib/api', () => ({
     delete: jest.fn(),
   },
   categoriesApi: { getAll: jest.fn(async () => ({ data: { data: [] } })) },
+  addressesApi: {
+    getAll: jest.fn(async () => ({
+      data: [{ id: 'a1', isDefault: true, phone: '+905321234567', city: 'İstanbul', district: 'Kadıköy', address: 'Moda Cd. 1' }],
+    })),
+  },
   bankAccountApi: {
     get: jest.fn(async () => ({
       data: { id: 'x', accountHolder: 'Test User', iban: 'TR000000000000000000000001', isVerified: false },

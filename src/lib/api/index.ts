@@ -22,6 +22,8 @@ export * from "./client";
 export * from "./app-config";
 export * from "./errorText";
 export * from "./auth";
+export * from "./consents";
+export * from "./legalIdentity";
 export * from "./products";
 export * from "./catalog";
 export * from "./listings";
@@ -33,7 +35,10 @@ export * from "./trades";
 export * from "./user";
 export * from "./media";
 export * from "./ads";
+export * from "./hero";
+export * from "./unwrap";
 export * from "./cart";
+export * from "./timingRules";
 
 // =============================================================================
 // ENDPOINTS OBJECT - Unified API access

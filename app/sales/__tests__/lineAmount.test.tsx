@@ -32,6 +32,9 @@ function renderBody(item: Record<string, unknown>) {
           displayStatus: 'paid',
           // Kargo kaydı yok — bu dosyanın konusu satır tutarı.
           shipmentView: { cargoCode: null, reference: null, isCodePending: false, trackingUrl: null },
+          // Hazırlık notu ve e-Arşiv listesi (A-3.1/A-3.4) — bu dosyanın konusu değil.
+          preparingNotice: null,
+          elogo: { invoices: [], openInvoice: jest.fn(), openingId: null },
         } as any
       }
     />,

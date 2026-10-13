@@ -5,17 +5,10 @@ import { theme } from '@/ui';
 const { colors } = theme;
 
 export const styles = StyleSheet.create({
+  // Satır düzeni `DistanceSalesConsent`'te; burada yalnız ekrana özgü kenar boşluğu.
   consentRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: theme.spacing[2],
     marginHorizontal: theme.spacing[4],
     marginTop: theme.spacing[3],
-  },
-  consentLink: {
-    color: colors.primary[600],
-    textDecorationLine: 'underline',
-    marginTop: theme.spacing[1],
   },
   container: {
     flex: 1,

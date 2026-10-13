@@ -37,17 +37,19 @@ describe('app.config — preview (staging) varyantı', () => {
     );
   });
 
-  it('Android paketini DEĞİŞTİRMEZ', () => {
+  it('Android paketine de .staging suffix\'i ekler (iki uygulamalı model, 2026-10-13 kararı)', () => {
     const result = evaluate('preview');
-    expect(result.android.package).toBe(baseConfig.android.package);
-    expect(result.android.package).not.toMatch(/\.staging$/);
+    expect(result.android.package).toBe(`${baseConfig.android.package}.staging`);
   });
 
-  it('Android bloğunun tamamını olduğu gibi geçirir', () => {
-    // googleServicesFile, permissions, intentFilters dahil hiçbir alan
-    // kaybolmamalı — spread sırasında düşen bir alan build'de fark edilmez.
+  it('Android bloğunda paket, google-services ve intent filter dışındaki alanları olduğu gibi geçirir', () => {
+    // permissions, adaptiveIcon vb. hiçbir alan spread sırasında düşmemeli. Staging'e
+    // özgü farklar (paket, staging google-services, staging host) ayrıca
+    // src/config/__tests__/androidRelease.test.ts'te sınanıyor.
     const result = evaluate('preview');
-    expect(result.android).toEqual(baseConfig.android);
+    const omit = ({ package: _p, googleServicesFile: _g, intentFilters: _i, ...rest }: any) => rest;
+    expect(omit(result.android)).toEqual(omit(baseConfig.android));
+    expect(result.android.googleServicesFile).toBe('./google-services.staging.json');
   });
 
   it('uygulama adına (Staging) etiketi ekler', () => {

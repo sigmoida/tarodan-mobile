@@ -228,6 +228,10 @@ Başka bir ref'ten tetiklenirse `plan` durur (`release.sh guard-ref`; ayrıca
 
 ## Android durumu
 
+> Android'in iki uygulamalı modeli (Tarodan `com.tarodan.app` / Tarodan (Staging)
+> `com.tarodan.app.staging`), Play kurulumu, Firebase/FCM, keystore, Google girişi ve
+> assetlinks adımları ile kimin yapacağı: [`docs/ANDROID_RELEASE.md`](./ANDROID_RELEASE.md).
+
 **Hazır ama kapalı.** Tüm Android build/submit job'ları (staging ve production)
 yalnız repo değişkeni `ANDROID_RELEASE_ENABLED` = `true` iken çalışır. Açmadan önce:
 

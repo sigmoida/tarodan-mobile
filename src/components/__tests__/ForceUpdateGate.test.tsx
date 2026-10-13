@@ -5,10 +5,11 @@
  * (Version comparison itself is server-side / #232 — mocked here via the hook.)
  */
 import React from "react";
-import { Linking } from "react-native";
+import { Linking, Text } from "react-native";
 import { screen, fireEvent } from "@testing-library/react-native";
 import ForceUpdateGate from "../ForceUpdateGate";
 import { renderWithProviders } from "../../test-utils";
+import { FullScreenGate } from "../common/FullScreenGate";
 
 let mockState: {
   updateRequired: boolean;
@@ -46,6 +47,29 @@ describe("ForceUpdateGate (#233)", () => {
     renderWithProviders(<ForceUpdateGate />);
     expect(screen.getByText("Güncelleme gerekli")).toBeTruthy();
     expect(screen.getByText("Şimdi güncelle")).toBeTruthy();
+  });
+
+  it("is presented above the required-steps gate (shared FullScreenGate order)", () => {
+    mockState.updateRequired = true;
+    renderWithProviders(
+      <>
+        <FullScreenGate layer="requiredSteps">
+          <Text>onay</Text>
+        </FullScreenGate>
+        <ForceUpdateGate />
+      </>,
+    );
+    expect(screen.getByTestId("force-update-gate")).toBeTruthy();
+    expect(screen.getByText("Güncelleme gerekli")).toBeTruthy();
+    expect(screen.queryByText("onay")).toBeNull();
+  });
+
+  it("waits for the splash to finish (ready=false) before covering the app", () => {
+    mockState.updateRequired = true;
+    const view = renderWithProviders(<ForceUpdateGate ready={false} />);
+    expect(screen.queryByText("Güncelleme gerekli")).toBeNull();
+    view.rerender(<ForceUpdateGate ready />);
+    expect(screen.getByText("Güncelleme gerekli")).toBeTruthy();
   });
 
   it("opens the store URL when the update button is pressed", () => {

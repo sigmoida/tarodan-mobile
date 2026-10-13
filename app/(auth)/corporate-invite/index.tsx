@@ -12,6 +12,7 @@ import {
 } from '@/ui';
 import { Form, FormInput } from '@/ui/form';
 import { toHandle } from '@/utils/validation';
+import { AuthHeroBanner } from '@/components/hero/AuthHeroBanner';
 import { useCorporateInvite } from './_hooks/useCorporateInvite';
 
 /**
@@ -46,6 +47,9 @@ export default function CorporateInviteScreen() {
         contentContainerStyle={{ padding: theme.spacing[4], gap: theme.spacing[4] }}
         keyboardShouldPersistTaps="handled"
       >
+        {/* Web `AuthHeroFrame` (kurumsal davet `auth_default`); yoksa hiçbir şey. */}
+        <AuthHeroBanner placement="auth_default" style={{ borderRadius: theme.radius.xl }} />
+
         <Card>
           <Text variant="h3">{f.invitation?.companyTitle}</Text>
           <Text variant="caption" style={{ color: theme.colors.text.muted }}>

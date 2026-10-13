@@ -1,7 +1,7 @@
 # E-07: Bildirimler tab smoke — login → Bildirimler tab → liste yüklenir.
 # Best-effort: stockout thumbnail spesifik testi fixture'a bağlı; bu yüzden
 # burada sadece tab'in açıldığı + en az bir bildirim kartı görünür olduğu doğrulanır.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - regression
 env:

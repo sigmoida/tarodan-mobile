@@ -1,6 +1,14 @@
 import { queryClient } from '../lib/queryClient';
+import { clearAllPaymentCapabilities, unbindPaymentCapabilityAccount } from '@/lib/payment/paymentCapability';
 import { useCartStore } from './cartStore';
 import { useMessagesStore } from './messagesStore';
+
+/**
+ * Çıkışın kaynağı: `user` = kullanıcının kendi çıkışı (profil, ban/onay
+ * ekranları, hesap silme); `forced` = oturum düştü (401 → refresh olmadı,
+ * `client.ts` → `handleAuthFailure`).
+ */
+export type LogoutReason = 'user' | 'forced';
 
 /**
  * Çıkışta kullanıcıya özel tüm yerel state'i sıfırlar; yoksa rozetler
@@ -11,20 +19,28 @@ import { useMessagesStore } from './messagesStore';
  * sunucudaki listeyi de siler. Favori listesi artık React Query cache'inde;
  * aşağıdaki queryClient.clear() onu da (yerel olarak) temizler.
  */
-export function resetUserStores(): void {
+export function resetUserStores(reason: LogoutReason = 'user'): void {
   // Sepet: persist'li store — clearCart AsyncStorage'a da boş yazar.
   useCartStore.getState().clearCart();
   useCartStore.getState().clearBuyNow();
 
   // #77: mesaj server-state'i artık React Query'de (qk.messaging.*) — queryClient.clear()
-  // aşağıda onu da temizler. Store yalnız client state tutar (aktif thread + günlük sayaç).
+  // aşağıda onu da temizler. Store yalnız client state tutar (aktif thread).
   useMessagesStore.setState({
     currentThreadId: null,
-    dailyMessageCount: 0,
   });
 
   // Bildirim + mesaj rozeti dahil tüm react-query önbelleği (örn. 'notifications-unread').
   queryClient.clear();
+
+  // Ödeme yetki belirteçleri (`payment-capability.*`) yalnız kullanıcının KENDİ
+  // çıkışında silinir: ortak cihazda çıkan kullanıcının belirteci sonraki
+  // oturumda kalmasın. Zorunlu çıkışta (401) silinmez — 3DS sürerken başka bir
+  // isteğin 401'i süren ödemeyi düşürmesin, A yeniden girince sürsün — ama kimlik
+  // misafire döner: her belirteç sahibini taşıdığı için A'nınki misafir oturumunda
+  // eklenmez. Başka bir hesapla girişte `bindPaymentCapabilitiesToAccount` siler.
+  if (reason === 'user') void clearAllPaymentCapabilities();
+  else unbindPaymentCapabilityAccount();
 }
 
 /**

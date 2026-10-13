@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  BackHandler,
   Modal as RNModal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -8,6 +10,12 @@ import {
 } from 'react-native';
 import i18n from 'i18next';
 import { theme } from '../lib/theme';
+import {
+  MODAL_CLOSE_DELAY_MS,
+  MODAL_DISMISS_TIMEOUT_MS,
+  MODAL_PRESENT_RETRY_MS,
+  MODAL_SHIELD_MAX_MS,
+} from '../lib/modal-timing';
 
 /**
  * Düğme verilmeyen uyarının varsayılan etiketi — arayüz dilinde. Eskiden sabit
@@ -21,7 +29,13 @@ function defaultOkLabel(): string {
 
 export interface AlertDialogButton {
   text?: string;
+  /**
+   * Diyalog kapanış animasyonu BİTTİKTEN sonra çalışır (ModalFreeze). Kullanıcıya dönük
+   * "işlem başladı" geri bildirimi için `onSelect`'i kullan.
+   */
   onPress?: () => void;
+  /** Düğmeye basıldığı AN (kapanışı beklemeden, senkron) çalışır: bekleme durumu / spinner için. */
+  onSelect?: () => void;
   style?: 'default' | 'cancel' | 'destructive';
 }
 
@@ -65,22 +79,65 @@ export function appAlert(
   }
 }
 
+/**
+ * YALNIZ TEST: modül kuyruğunu boşaltır. Sökülen host gösterdiği/bekleyen alert'leri bu kuyruğa
+ * geri verir (bkz. `AlertDialogHost` cleanup); testler arasında sızmasın diye `cleanup()`'tan
+ * sonra çağrılır. `@/ui`'dan export edilmez.
+ */
+export function resetAlertQueueForTests(): void {
+  queue.length = 0;
+}
+
 const { colors, radius, spacing, typography } = theme;
 
-export const AlertDialogHost: React.FC = () => {
+export interface AlertDialogHostProps {
+  /**
+   * Kapı (tam ekran zorunlu güncelleme / zorunlu adım) açıkken `true`: host BAĞLI kalır ama yeni
+   * alert sunmaz, kuyrukta bekletir; açık bir alert varsa kuyruğun başına geri koyup gizler.
+   * Kapı kapanınca (`false`) kuyruk sırayla akar. Eskiden kapı açıkken host sökülüyordu: kapanma
+   * zamanlayıcısı temizlenir, basılan düğmenin `onPress`'i hiç çalışmaz ve ona bağlı akış
+   * (ör. teklif ekranının "bekliyor" durumu) kalıcı takılırdı.
+   */
+  suspended?: boolean;
+}
+
+export const AlertDialogHost: React.FC<AlertDialogHostProps> = ({ suspended = false }) => {
   const [current, setCurrent] = useState<AlertDialogRequest | null>(null);
-  // Kuyruk sadece fonksiyonel updater'larla okunur/yazılır.
-  const [, setPending] = useState<AlertDialogRequest[]>([]);
+  // Diyalog kapanıyor (RNModal `visible=false`) ama henüz tamamen kalkmadı.
+  const [closing, setClosing] = useState(false);
+  // `onPress` çalıştı, sıradaki diyalog için oturma süresi dolmadı (bkz. `finishClose`).
+  const [settling, setSettling] = useState(false);
+  const [shieldTimedOut, setShieldTimedOut] = useState(false);
+  // iOS sunum watchdog'u: `onShow` geldi mi / kaçıncı yeniden bağlanma.
+  const [presented, setPresented] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  // Senkron okunması gereken durum ref'te: listener bir kez kurulur, state'i görmez.
+  const busyRef = useRef(false); // bir diyalog gösteriliyor, kapanıyor ya da arkasından oturuyor
+  const pendingRef = useRef<AlertDialogRequest[]>([]);
+  const afterCloseRef = useRef<(() => void) | null>(null);
+  const closingRef = useRef(false);
+  const currentRef = useRef<AlertDialogRequest | null>(null);
+  const suspendedRef = useRef(suspended);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const setCurrentRequest = (request: AlertDialogRequest | null) => {
+    currentRef.current = request;
+    setCurrent(request);
+  };
+
+  const showRequest = (request: AlertDialogRequest) => {
+    busyRef.current = true;
+    setCurrentRequest(request);
+  };
 
   useEffect(() => {
     listener = (request) => {
-      setCurrent((prev) => {
-        if (prev) {
-          setPending((q) => [...q, request]);
-          return prev;
-        }
-        return request;
-      });
+      if (busyRef.current || suspendedRef.current) {
+        pendingRef.current.push(request);
+        return;
+      }
+      showRequest(request);
     };
     // Flush alerts fired before the host mounted
     while (queue.length) {
@@ -88,36 +145,175 @@ export const AlertDialogHost: React.FC = () => {
     }
     return () => {
       listener = null;
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+      timerRef.current = null;
+      settleTimerRef.current = null;
+      // Sökülürken hiçbir alert kaybolmasın: gösterilen (kapanmıyorsa) ve bekleyenler modül
+      // kuyruğuna sırayla geri döner, bir sonraki host'ta akar.
+      const restore = [
+        ...(currentRef.current && !closingRef.current ? [currentRef.current] : []),
+        ...pendingRef.current,
+      ];
+      pendingRef.current = [];
+      queue.unshift(...restore);
+      currentRef.current = null;
+      busyRef.current = false;
+      // Düğmeye basılmış, kapanış bekliyordu: zamanlayıcı da gittiğine göre `onPress`'i
+      // kaybetmeyiz, hemen çalıştırırız (alert'leri kuyruğun sonuna girer: listener null).
+      if (closingRef.current) {
+        closingRef.current = false;
+        const afterClose = afterCloseRef.current;
+        afterCloseRef.current = null;
+        afterClose?.();
+      }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const close = (button?: AlertDialogButton) => {
-    setCurrent(null);
-    setPending((q) => {
-      if (q.length) {
-        const [next, ...rest] = q;
-        // Defer so the previous modal finishes dismissing first
-        setTimeout(() => setCurrent(next), 50);
-        return rest;
+  // Kapı açılırken/kapanırken: bkz. `AlertDialogHostProps.suspended`.
+  useEffect(() => {
+    suspendedRef.current = suspended;
+    if (suspended) {
+      // Açık (kapanmayan) alert'i kuyruğun BAŞINA geri koy ve gizle; kapı kapanınca yeniden çıkar.
+      if (currentRef.current && !closingRef.current) {
+        pendingRef.current.unshift(currentRef.current);
+        busyRef.current = false;
+        setCurrentRequest(null);
       }
-      return q;
-    });
-    if (button) {
-      button.onPress?.();
-    } else {
-      current?.options?.onDismiss?.();
+    } else if (!busyRef.current && pendingRef.current.length) {
+      showRequest(pendingRef.current.shift()!);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suspended]);
+
+  /** Oturma bitti (ya da hiç gerekmedi): sıradaki diyalog açılabilir. */
+  const releaseBusy = () => {
+    settleTimerRef.current = null;
+    setSettling(false);
+    const next = suspendedRef.current ? null : (pendingRef.current.shift() ?? null);
+    busyRef.current = !!next;
+    if (next) setCurrentRequest(next);
+  };
+
+  /**
+   * Kapanış BİTTİ: önce düğmenin `onPress`'i çalışır, sıradaki diyalog (varsa) ondan SONRA
+   * açılır. Birden çok kez çağrılabilir (iOS `onDismiss` + yedek zamanlayıcı) — yalnız ilki işler.
+   * ModalFreeze: `onPress` RNModal tamamen kalkmadan çalışırsa, açtığı yeni modal iOS'ta
+   * kapanmakta olanın üstüne biner ve ekran donar. Aynı şekilde sıradaki diyalog `onPress`'in
+   * açtığı modal (ör. seçici) ile aynı tick'te sunulursa iOS ikisinden birini reddeder ve host
+   * kilitlenir: `onPress` varsa sıradaki diyalog bir kapanma penceresi (`MODAL_CLOSE_DELAY_MS`)
+   * daha bekler. `onPress` içinden açılan `appAlert` busy olduğu için kuyruğun SONUNA girer.
+   */
+  const finishClose = () => {
+    if (!closingRef.current) return;
+    closingRef.current = false;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = null;
+    const afterClose = afterCloseRef.current;
+    afterCloseRef.current = null;
+    setClosing(false);
+    setCurrentRequest(null); // busyRef true kalır: oturma bitene dek yeni diyalog sunulmaz
+    try {
+      afterClose?.();
+    } finally {
+      if (afterClose) {
+        setSettling(true);
+        settleTimerRef.current = setTimeout(releaseBusy, MODAL_CLOSE_DELAY_MS);
+      } else {
+        releaseBusy();
+      }
     }
   };
 
-  if (!current) return null;
+  const close = (button?: AlertDialogButton) => {
+    if (!current || closingRef.current) return; // çift basış: ikinci kapanış yok
+    closingRef.current = true;
+    const request = current;
+    try {
+      button?.onSelect?.();
+    } finally {
+      // `onSelect` fırlatsa da kapanış ve zamanlayıcı kurulur: aksi halde `closingRef` true
+      // kalır, diyalog ekranda asılı durur ve host oturum boyunca kilitlenirdi. Hata yutulmaz
+      // (bu bloktan sonra çağırana yeniden fırlar); yalnız host durumu korunur.
+      const hasAfterClose = button ? !!button.onPress : !!request.options?.onDismiss;
+      afterCloseRef.current = hasAfterClose
+        ? () => {
+            if (button) button.onPress?.();
+            else request.options?.onDismiss?.();
+          }
+        : null;
+      setClosing(true);
+      // iOS: `onDismiss` gelince biter. Android'de olay yok -> sabit süre. iOS'ta da
+      // `onDismiss` gelmezse akış askıda kalmasın diye üst sınır.
+      timerRef.current = setTimeout(
+        finishClose,
+        Platform.OS === 'ios' ? MODAL_DISMISS_TIMEOUT_MS : MODAL_CLOSE_DELAY_MS,
+      );
+    }
+  };
+
+  // Yeni diyalog: sunum henüz doğrulanmadı.
+  useEffect(() => {
+    setPresented(false);
+  }, [current]);
+
+  /**
+   * iOS watchdog'u (`FullScreenGate` kalıbı): RN modalı kök view controller'dan sunar; o anda
+   * başka bir modal sunuluyor/kapanıyorsa UIKit sunumu sessizce reddeder ve RN bir daha denemez.
+   * Diyalog `current` iken `onShow` gelmezse host sonsuza dek "meşgul" kalır ve oturum boyunca
+   * hiçbir alert görünmezdi. `onShow` MODAL_PRESENT_RETRY_MS içinde gelmezse modal yeniden
+   * bağlanıp tekrar sunulur (engelleyen modal kapanınca diyalog görünür, kuyruk akmaya devam eder).
+   */
+  useEffect(() => {
+    if (Platform.OS !== 'ios' || !current || closing || presented) return undefined;
+    const id = setTimeout(() => setAttempt((a) => a + 1), MODAL_PRESENT_RETRY_MS);
+    return () => clearTimeout(id);
+  }, [current, closing, presented, attempt]);
+
+  /**
+   * Kapanma penceresi (düğmeye basıldı -> onPress çalıştı -> oturma bitti): RNModal görünmez
+   * ama alttaki ekran etkileşimli. Kullanıcı OK'a basıp hemen dokunur ya da Android geri
+   * tuşuna basarsa ekran, ertelenmiş `onPress` (ör. `router.back()`) ile BİRLİKTE ikinci kez
+   * pop edilirdi. Pencere boyunca dokunmaları görünmez bir katman, geri tuşunu `BackHandler`
+   * yutar. Süre `MODAL_SHIELD_MAX_MS` ile sınırlı: zamanlayıcılara bir şey olsa bile kalkan
+   * ekranı kalıcı kilitlemez.
+   */
+  const shieldWindow = closing || settling;
+  const shielded = shieldWindow && !shieldTimedOut;
+  useEffect(() => {
+    setShieldTimedOut(false);
+    if (!shieldWindow) return undefined;
+    const id = setTimeout(() => setShieldTimedOut(true), MODAL_SHIELD_MAX_MS);
+    return () => clearTimeout(id);
+  }, [shieldWindow]);
+  useEffect(() => {
+    if (!shielded) return undefined;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+    return () => sub.remove();
+  }, [shielded]);
+  const shield = shielded ? (
+    <View
+      testID="alert-dialog-shield"
+      style={styles.shield}
+      pointerEvents="auto"
+      accessible={false}
+    />
+  ) : null;
+
+  if (!current) return shield;
 
   const { title, message, buttons, options } = current;
   const cancelable = options?.cancelable ?? false;
   const vertical = buttons.length > 2;
 
   return (
+    <>
     <RNModal
-      visible
+      key={attempt}
+      visible={!closing}
+      onShow={() => setPresented(true)}
+      onDismiss={finishClose}
       transparent
       animationType="fade"
       statusBarTranslucent
@@ -170,10 +366,17 @@ export const AlertDialogHost: React.FC = () => {
         </Pressable>
       </Pressable>
     </RNModal>
+    {shield}
+    </>
   );
 };
 
 const styles = StyleSheet.create({
+  shield: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+    elevation: 9999,
+  },
   backdrop: {
     flex: 1,
     backgroundColor: colors.overlay.black50,

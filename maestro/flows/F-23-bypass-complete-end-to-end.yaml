@@ -5,7 +5,7 @@
 # yok. Doğru zincir: product-detail-add-to-cart-button → Sepete Git →
 # cart-checkout-button → checkout (Teslimat → Devam Et → Ödeme → Ödemeyi Tamamla).
 # Pre-req: PAYMENT_BYPASS=true + zeynep'te kayıtlı teslimat adresi.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - smoke
 env:
