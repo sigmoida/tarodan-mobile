@@ -1,6 +1,6 @@
 /**
  * Alt menü cam dalı: iOS 26'da hap + "+" GlassSurface (GlassView) ile çizilir; "+" primary tint,
- * aktif sekme yarı saydam gri; daralma davranışı (dokunma kapanır, "+" açık) fallback ile aynı.
+ * aktif sekme primary-50 vurgu; daralma davranışı (dokunma kapanır, "+" açık) fallback ile aynı.
  */
 import React from 'react';
 import { StyleSheet } from 'react-native';
@@ -49,12 +49,12 @@ describe('AppTabBar — Liquid Glass', () => {
     expect(glasses.filter((g) => g.props.tintColor === theme.colors.primary[600])).toHaveLength(1);
   });
 
-  it('aktif sekme vurgusu yarı saydam gri (opak gri değil); sekme düğmesinin kendisinde zemin yok', () => {
+  it('aktif sekme vurgusu çok hafif primary-50 (koyu overlay.black10 değil); sekme düğmesinin kendisinde zemin yok', () => {
     setup(2);
     ['tab-home', 'tab-messages'].forEach((id, i) =>
       fireEvent(screen.getByTestId(id), 'layout', { nativeEvent: { layout: { x: i * 80, y: 0, width: 80, height: 48 } } }),
     );
-    expect(flat('tab-highlight').backgroundColor).toBe(theme.colors.overlay.black10);
+    expect(flat('tab-highlight').backgroundColor).toBe(theme.colors.primary[50]);
     expect(flat('tab-messages').backgroundColor).toBeUndefined();
     expect(flat('tab-home').backgroundColor).toBeUndefined();
   });

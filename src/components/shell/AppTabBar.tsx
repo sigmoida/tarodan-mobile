@@ -120,11 +120,11 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
       >
         <GlassSurface shape="pill" size={TAB_PILL_HEIGHT} opaque style={styles.pill}>
           <Animated.View style={[styles.pillContent, pillContentStyle]}>
-            {/* Aktif sekme vurgusu: sekmeler arasında kayar (x / genişlik ölçümle). Camda hafif şeffaf. */}
+            {/* Aktif sekme vurgusu: sekmeler arasında kayar (x / genişlik ölçümle). */}
             <Animated.View
               pointerEvents="none"
               testID="tab-highlight"
-              style={[styles.highlight, glass ? styles.highlightGlass : null, highlight.style]}
+              style={[styles.highlight, highlight.style]}
             />
             {TABS.map((tab) => {
               const focused = activeName === tab.name;
@@ -147,7 +147,7 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
                     {tab.badge && (
                       <CountBadge
                         count={counts[tab.badge]}
-                        ringColor={focused && !glass ? colors.gray[100] : colors.surface.elevated}
+                        ringColor={focused ? colors.primary[50] : colors.surface.elevated}
                         style={styles.badge}
                       />
                     )}
@@ -261,19 +261,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: radius.full,
   },
-  // Aktif sekme vurgusu (sekmeler arasında kayar): yumuşak gri. Konum/genişlik animasyonlu
-  // stilden (`useTabHighlight`); burada yalnız sabit kısım.
+  // Aktif sekme vurgusu (sekmeler arasında kayar): çok hafif primary-50 (cam ve fallback'te aynı;
+  // etiket/ikon primary-600 kalır, kontrast korunur). Konum/genişlik animasyonlu stilden
+  // (`useTabHighlight`); burada yalnız sabit kısım.
   highlight: {
     position: "absolute",
     left: 0,
     top: spacing[2],
     height: TAB_PILL_HEIGHT - 2 * spacing[2],
     borderRadius: radius.full,
-    backgroundColor: colors.gray[100],
-  },
-  // Camda vurgu yarı saydam gri: arkadaki cam görünür kalır.
-  highlightGlass: {
-    backgroundColor: colors.overlay.black10,
+    backgroundColor: colors.primary[50],
   },
   itemContent: {
     alignItems: "center",
