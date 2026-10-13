@@ -40,4 +40,5 @@ export function ProductScrollView({
   );
 }
 
-const styles = StyleSheet.create({ fill: { flex: 1 } });
+/** Sayfa zemini beyaz (PageShell'in surface zemini yerine) — galeri altındaki içerik beyaz kağıt gibi. */
+const styles = StyleSheet.create({ fill: { flex: 1, backgroundColor: theme.colors.surface.elevated } });

@@ -7,7 +7,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-const { width, height } = Dimensions.get('window');
+const { width, height: windowHeight } = Dimensions.get('window');
 
 const MAX_SCALE = 3;
 const DOUBLE_TAP_SCALE = 2.5;
@@ -27,8 +27,11 @@ export default function ZoomableImage({
   uri,
   zoomed,
   onZoomChange,
+  areaHeight = windowHeight,
 }: {
   uri: string;
+  /** Sayfanın gerçek yüksekliği (görüntüleyicide küçük resim şeridi düşülmüş) — çift dokunma merkezi için. */
+  areaHeight?: number;
   zoomed: boolean;
   onZoomChange: (zoomed: boolean) => void;
 }) {
@@ -57,7 +60,7 @@ export default function ZoomableImage({
         const maxTx = (width * (s - 1)) / 2;
         const maxTy = (width * (s - 1)) / 2; // görsel width x width boyutunda
         const nextTx = clamp((width / 2 - e.x) * (s - 1), -maxTx, maxTx);
-        const nextTy = clamp((height / 2 - e.y) * (s - 1), -maxTy, maxTy);
+        const nextTy = clamp((areaHeight / 2 - e.y) * (s - 1), -maxTy, maxTy);
         scale.value = withTiming(s);
         tx.value = withTiming(nextTx);
         ty.value = withTiming(nextTy);

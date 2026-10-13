@@ -86,7 +86,7 @@ describe('Ürün detay ekranı', () => {
     expect(screen.getByTestId('product-detail-add-to-cart-button')).toBeOnTheScreen();
   });
 
-  it('yüzen adalar: geri, şikayet, paylaş, favori, sepet; üst bar başlığı yok', async () => {
+  it('yüzen adalar: geri, ⋮ menü, paylaş, favori; sepet adası yok; üst bar başlığı yok', async () => {
     getOneMock.mockResolvedValue({ data: { data: productFixture() } });
     renderWithProviders(<ProductDetailScreen />);
 
@@ -95,10 +95,10 @@ describe('Ürün detay ekranı', () => {
       'product-back-button',
       'product-report-button',
       'product-favorite-button',
-      'product-cart-button',
     ]) {
       expect(screen.getByTestId(id)).toBeOnTheScreen();
     }
+    expect(screen.queryByTestId('product-cart-button')).toBeNull();
     expect(screen.getByLabelText('Paylaş')).toBeOnTheScreen();
   });
 

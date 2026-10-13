@@ -2,7 +2,7 @@
 # mesafeli satış onayı → Ödeme Yap → bypass-complete → /payment/success.
 #
 # NOT (BUG-007 düzeltmesi): App sepet-tabanlı; eski "Hemen Al"/product-detail-buy-button
-# yok. Doğru zincir: product-detail-add-to-cart-button → sepet ikonu →
+# yok. Doğru zincir: product-detail-add-to-cart-button → sepet (tarodan://cart) →
 # cart-checkout-button → checkout (tek sayfa: onay kutusu → Ödeme Yap).
 # Pre-req: PAYMENT_BYPASS=true + zeynep'te kayıtlı teslimat adresi.
 appId: ${APP_ID}
@@ -27,7 +27,7 @@ env:
 - tapOn:
     text: ".*[0-9],[0-9][0-9] TL.*"
     index: 0
-# Ürün detay → Sepete Ekle → sepet ikonu
+# Ürün detay → Sepete Ekle → sepet (deep link; sepet adası yok)
 - extendedWaitUntil:
     visible:
       id: "product-price"
@@ -39,8 +39,7 @@ env:
     timeout: 30000
 - tapOn:
     id: "product-detail-add-to-cart-button"
-- tapOn:
-    id: "product-cart-button"
+- openLink: "tarodan://cart"
 # Cart → Satın Al → checkout
 - extendedWaitUntil:
     visible:

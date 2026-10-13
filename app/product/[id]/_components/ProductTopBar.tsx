@@ -12,7 +12,7 @@ const FADE_DISTANCE = spacing[6];
 
 /**
  * Ürün detayının üst katmanı: galerinin üstünde yüzen adalar — solda geri, sağda `children`
- * (şikayet, paylaş, favori, sepet). Adalar durum çubuğu / Dynamic Island'ın altından başlar
+ * (⋮ menü, paylaş, favori). Adalar durum çubuğu / Dynamic Island'ın altından başlar
  * (`useHeaderTopInset`). Galeri kaydırılıp bittiğinde adaların arkasında beyaz bir üst bar belirir ki
  * içerik saatle / adalarla çakışmasın. `solid`: galeri yokken (yükleniyor / bulunamadı) hep görünür.
  */
