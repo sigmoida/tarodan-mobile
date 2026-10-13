@@ -32,11 +32,6 @@ export const styles = StyleSheet.create({
     padding: theme.spacing[4],
     paddingBottom: theme.spacing[10],
   },
-  pageTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text.heading,
-  },
   pageSubtitle: {
     fontSize: 13,
     color: colors.text.muted,

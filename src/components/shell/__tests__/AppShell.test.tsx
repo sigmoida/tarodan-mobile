@@ -94,3 +94,40 @@ describe('AppShell — tek satır beyaz bar', () => {
     expect(field.backgroundColor).toBe(theme.colors.gray[100]);
   });
 });
+
+describe('AppShell variant="title" — Ana Sayfa dışındaki sekme kökleri', () => {
+  it('standart beyaz başlıklı bar: başlık var; arama alanı, bildirim ve sepet yok; geri oku yok', () => {
+    render(
+      <AppShell variant="title" title="Favoriler">
+        <Text>içerik</Text>
+      </AppShell>,
+    );
+    expect(screen.getByText('Favoriler')).toBeTruthy();
+    expect(screen.getByText('içerik')).toBeTruthy();
+    expect(screen.queryByTestId('home-search-input')).toBeNull();
+    expect(screen.queryByTestId('app-shell-notifications')).toBeNull();
+    expect(screen.queryByTestId('app-shell-cart')).toBeNull();
+    expect(screen.queryByLabelText('Geri')).toBeNull();
+  });
+
+  it('ScreenHeader ile aynı bar kuralı: zemin, alt çizgi, üst boşluk ve satır yüksekliği', () => {
+    mockTop = 47;
+    const { unmount } = render(<AppShell variant="title" title="Profil" />);
+    const bar = StyleSheet.flatten(screen.getByTestId('app-shell-bar').props.style);
+    const row = StyleSheet.flatten(screen.getByTestId('app-shell-bar-row').props.style);
+    unmount();
+    render(<ScreenHeader title="Sepet" />);
+    const stackBar = StyleSheet.flatten(screen.getByTestId('screen-header').props.style);
+    const stackRow = StyleSheet.flatten(screen.getByTestId('screen-header-row').props.style);
+    expect(bar.paddingTop).toBe(stackBar.paddingTop);
+    expect(bar.backgroundColor).toBe(stackBar.backgroundColor);
+    expect(bar.borderBottomColor).toBe(stackBar.borderBottomColor);
+    expect(row.height).toBe(stackRow.height);
+    expect(row.height).toBe(APP_SHELL_BAR_HEIGHT);
+  });
+
+  it('sağ aksiyon slotu çizilir', () => {
+    render(<AppShell variant="title" title="Profil" right={<Text>aksiyon</Text>} />);
+    expect(screen.getByText('aksiyon')).toBeTruthy();
+  });
+});

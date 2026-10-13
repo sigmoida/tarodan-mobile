@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import * as Router from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { HeaderIconButton, theme, useHeaderTopInset } from '@/ui';
+import { HeaderIconButton, ScreenHeader, theme, useHeaderTopInset } from '@/ui';
 import { SearchField } from './SearchField';
 import { useShellCounts } from './useShellCounts';
 import { APP_SHELL_BAR_HEIGHT } from './tabBarLayout';
@@ -10,6 +10,16 @@ import { APP_SHELL_BAR_HEIGHT } from './tabBarLayout';
 const { colors, spacing } = theme;
 
 export interface AppShellProps {
+  /**
+   * `search` (varsayılan): arama alanı + bildirim + sepet — YALNIZ Ana Sayfa.
+   * `title`: standart beyaz başlıklı üst bar (ScreenHeader ile aynı görünüm, geri oku yok) — diğer
+   * tüm sekme kökleri.
+   */
+  variant?: 'search' | 'title';
+  /** `variant="title"` için bar başlığı. */
+  title?: string;
+  /** `variant="title"` için sağ aksiyon(lar) (`TopBarAction`). */
+  right?: React.ReactNode;
   children?: React.ReactNode;
   /** İçerik kabına ek stil. */
   contentStyle?: StyleProp<ViewStyle>;
@@ -40,17 +50,40 @@ function useOpenSearch(): () => void {
 }
 
 /**
- * Sekme köklerinin kabuğu — TÜM tab köklerinde (Ana Sayfa, Favoriler, Mesajlar, Profil, İlan Ver)
- * aynı bar, aynı yükseklik: beyaz zemin (ScreenHeader ile aynı), tek satır
- * [arama alanı][bildirim][sepet]. Logo yok; ikonlar zeminsiz primary-600 (`HeaderIconButton`). Sayfa başlığı gerekiyorsa barın altında
- * `PageHeader` ile verilir. Bu bilinçli bir web sapmasıdır (web telefonda logo + ikincil arama satırı).
- * StatusBar koyu içerik (kök layout varsayılanı) — kabuk StatusBar'a dokunmaz.
+ * Sekme köklerinin kabuğu. Ana Sayfa (`variant="search"`): tek satır [arama alanı][bildirim][sepet],
+ * logo yok, ikonlar zeminsiz primary-600 (`HeaderIconButton`). Diğer sekme kökleri
+ * (`variant="title"`): `ScreenHeader` ile AYNI bar (geri oku yerine boş kutu: başlık yığın
+ * ekranlarıyla aynı x'te başlar), isteğe bağlı sağ aksiyon. İki varyantta da beyaz zemin + alt çizgi
+ * ve aynı yükseklik (`theme.headerHeight`). Bu bilinçli bir web sapmasıdır (web telefonda logo +
+ * ikincil arama satırı). StatusBar koyu içerik (kök layout varsayılanı) — kabuk StatusBar'a dokunmaz.
  */
-export const AppShell: React.FC<AppShellProps> = ({ children, contentStyle, testID }) => {
+export const AppShell: React.FC<AppShellProps> = ({
+  variant = 'search',
+  title,
+  right,
+  children,
+  contentStyle,
+  testID,
+}) => {
   const topInset = useHeaderTopInset();
   const { t } = useTranslation();
   const counts = useShellCounts();
   const openSearch = useOpenSearch();
+
+  if (variant === 'title') {
+    return (
+      <View style={styles.root} testID={testID}>
+        <ScreenHeader
+          title={title ?? ''}
+          showBack={false}
+          right={right}
+          testID="app-shell-bar"
+          style={styles.titleBar}
+        />
+        <View style={[styles.content, contentStyle]}>{children}</View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root} testID={testID}>
@@ -98,6 +131,9 @@ const styles = StyleSheet.create({
     // İkon kutusu 44pt, görsel 24: sağ kenarda ikonun görünür kenarı yine 16pt gutter'a oturur.
     paddingLeft: spacing[4],
     paddingRight: spacing[1.5],
+    zIndex: 1,
+  },
+  titleBar: {
     zIndex: 1,
   },
   row: {

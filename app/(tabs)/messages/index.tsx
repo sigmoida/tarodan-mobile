@@ -1,6 +1,6 @@
 /**
- * Mesajlar sekmesi — D1b REFERANS EKRANI (sekme kökü): AppShell (turuncu marka barı) +
- * içerikte PageHeader + arama + liste; yükleniyor = Skeleton, boş/misafir = EmptyState.
+ * Mesajlar sekmesi — D1b REFERANS EKRANI (sekme kökü): AppShell (başlıklı beyaz bar) +
+ * liste; yükleniyor = Skeleton, boş/misafir = EmptyState.
  * Mantık `_hooks/useMessagesTab`'de; ekran yalnız kompozisyon.
  */
 import { FlatList, RefreshControl, View } from "react-native";
@@ -9,10 +9,7 @@ import { AppShell } from "@/components/shell/AppShell";
 import { useTabBarInset } from "@/components/shell/tabBarLayout";
 import {
   Alert,
-  Badge,
   EmptyState,
-  Input,
-  PageHeader,
   SkeletonAvatar,
   SkeletonText,
   theme,
@@ -33,7 +30,7 @@ function MessagesTabScreen() {
 
   if (!f.isAuthenticated) {
     return (
-      <AppShell>
+      <AppShell variant="title" title={t("mobile.messagesTitle")}>
         <EmptyState
           fullscreen
           icon="chat-bubble-left-right"
@@ -49,31 +46,20 @@ function MessagesTabScreen() {
   // İlk yükleme bitene dek iskelet; boş ekran bir an çakmasın.
   const initialLoading = f.threads.length === 0 && (f.isLoading || !f.hasLoadedThreads);
 
-  const header = (
-    <View style={styles.listHeader}>
-      <PageHeader
-        title={t("mobile.messagesTitle")}
-        badge={f.unreadCount > 0 ? <Badge variant="danger" appearance="solid" size="sm">{f.unreadCount}</Badge> : null}
-      />
-      {f.dailyNearLimit && f.messageLimit != null && f.dailyMessageCount != null ? (
+  // Günlük mesaj hakkı uyarısı yalnız sınıra yaklaşınca çıkar; başlık üst barda.
+  const header =
+    f.dailyNearLimit && f.messageLimit != null && f.dailyMessageCount != null ? (
+      <View style={styles.listHeader}>
         <Alert variant="warning">
           {t("message.dailyMessageCount", { count: f.dailyMessageCount, limit: f.messageLimit })}
         </Alert>
-      ) : null}
-      <Input
-        placeholder={t("mobile.searchInMessages")}
-        value={f.searchQuery}
-        onChangeText={f.setSearchQuery}
-        leftIconName="magnifying-glass"
-        containerStyle={styles.search}
-      />
-    </View>
-  );
+      </View>
+    ) : null;
 
   return (
-    <AppShell>
+    <AppShell variant="title" title={t("mobile.messagesTitle")}>
       <FlatList
-        data={initialLoading ? [] : f.filteredThreads}
+        data={initialLoading ? [] : f.threads}
         keyExtractor={(thread) => thread.id}
         ListHeaderComponent={header}
         ListEmptyComponent={
@@ -91,10 +77,8 @@ function MessagesTabScreen() {
           ) : (
             <EmptyState
               icon="chat-bubble-left-ellipsis"
-              title={f.searchQuery ? t("common.noResults") : t("message.noMessagesYet")}
-              subtitle={
-                f.searchQuery ? t("message.tryDifferentSearch") : t("message.startConversationShort")
-              }
+              title={t("message.noMessagesYet")}
+              subtitle={t("message.startConversationShort")}
             />
           )
         }

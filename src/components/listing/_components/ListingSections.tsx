@@ -33,7 +33,6 @@ export function ListingHeaderBanners({ f }: SectionProps) {
     <>
       {!f.isEdit && (
         <>
-          <RawText style={styles.pageTitle}>{t('collection.createNewListing')}</RawText>
           <RawText style={styles.pageSubtitle}>{t('listing.createSubtitle')}</RawText>
         </>
       )}
