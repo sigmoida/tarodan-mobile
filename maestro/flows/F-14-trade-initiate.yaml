@@ -53,10 +53,10 @@ env:
 - inputText: ${SEARCH_TERM}
 - extendedWaitUntil:
     visible:
-      text: ".*₺.*"
+      text: ".*[0-9],[0-9][0-9] TL.*"
     timeout: 30000
 - tapOn:
-    text: ".*₺.*"
+    text: ".*[0-9],[0-9][0-9] TL.*"
     index: 0
 - extendedWaitUntil:
     visible:
@@ -66,6 +66,8 @@ env:
 - tapOn:
     text: "Takas"
     optional: true
+# Yasal kimlik eksikse kapı açılır (1.0.6) — çalıştırmada MAESTRO_TEST_TCKN verin.
+- runFlow: ../subflows/pass-identity-gate.yaml
 - extendedWaitUntil:
     visible:
       text: "Takas|Eşya|teklif"
