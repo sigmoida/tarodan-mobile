@@ -1,16 +1,14 @@
 import { useCallback, useRef, useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { appAlert, toast } from '@/ui';
 import i18n from '@/i18n/config';
 import { offersApi } from '@/lib/api';
-import { formatApiErrorMessage } from '@/utils/formatApiErrorMessage';
-import { useInvalidateOffers } from './useInvalidateOffers';
+import { useAppMutation } from '@/lib/query';
+import { OFFER_INVALIDATES } from '../_lib/invalidates';
 import { useConfirmOffer } from './useConfirmOffer';
 import { acceptKind, type AcceptAs, type OfferConfirmKind } from '../_lib/accept';
 
 /**
- * Kabul / reddet / iptal mutation'ları — snackbar (appAlert) + invalidateQueries
- * sahibi. Ekran manuel refetch etmez; liste otomatik tazelenir.
+ * Kabul / reddet / iptal mutation'ları — toast + invalidateQueries
+ * sahibi (`useAppMutation`). Ekran manuel refetch etmez; liste otomatik tazelenir.
  *
  * `accept`/`reject`/`cancel` ONAYSIZ mutasyonlardır; kullanıcıya dönük akış `request*`tir
  * (web gibi önce onay diyaloğu; kabulde ödeme süresi + "ilk ödeyen alır"). Onay sonrası
@@ -23,7 +21,6 @@ import { acceptKind, type AcceptAs, type OfferConfirmKind } from '../_lib/accept
  * başka teklifin bekleme durumu ne açılır ne temizlenir.
  */
 export function useOfferActions() {
-  const invalidate = useInvalidateOffers();
   const confirm = useConfirmOffer();
   // Onaylandı ama mutasyonu henüz bitmedi (ertelenmiş başlangıç dahil), teklif id'si başına.
   // Ref senkron guard (çift basış), state yeniden çizim için aynı kümenin kopyası.
@@ -39,41 +36,24 @@ export function useOfferActions() {
     setPendingOfferIds(new Set(pendingRef.current));
   }, []);
 
-  const accept = useMutation({
-    mutationFn: (id: string) => offersApi.accept(id),
-    onMutate: markPending, // doğrudan çağrı (onaysız) da bekliyor sayılır
-    onSettled: (_data, _err, id) => settle(id),
-    onSuccess: () => {
-      invalidate();
-      toast.success(i18n.t('offer.offerAccepted'));
-    },
-    onError: (err) =>
-      appAlert(i18n.t('common.error'), formatApiErrorMessage(err, i18n.t('offer.acceptFailed'))),
-  });
-
-  const reject = useMutation({
-    mutationFn: (id: string) => offersApi.reject(id),
-    onMutate: markPending, // doğrudan çağrı (onaysız) da bekliyor sayılır
-    onSettled: (_data, _err, id) => settle(id),
-    onSuccess: () => {
-      invalidate();
-      toast.success(i18n.t('offer.offerRejected'));
-    },
-    onError: (err) =>
-      appAlert(i18n.t('common.error'), formatApiErrorMessage(err, i18n.t('offer.rejectFailed'))),
-  });
-
-  const cancel = useMutation({
-    mutationFn: (id: string) => offersApi.cancel(id),
-    onMutate: markPending, // doğrudan çağrı (onaysız) da bekliyor sayılır
-    onSettled: (_data, _err, id) => settle(id),
-    onSuccess: () => {
-      invalidate();
-      toast.success(i18n.t('offer.offerCancelled'));
-    },
-    onError: (err) =>
-      appAlert(i18n.t('common.error'), formatApiErrorMessage(err, i18n.t('offer.cancelFailed'))),
-  });
+  // Üç mutation aynı iskelet: bekleyen-id işaretleme + OFFER_INVALIDATES + toast (sonuç/hata).
+  const useOfferMutation = (
+    fn: (id: string) => Promise<unknown>,
+    successKey: 'offer.offerAccepted' | 'offer.offerRejected' | 'offer.offerCancelled',
+    errorKey: 'offer.acceptFailed' | 'offer.rejectFailed' | 'offer.cancelFailed',
+  ) =>
+    useAppMutation(fn, {
+      invalidates: OFFER_INVALIDATES,
+      success: () => i18n.t(successKey),
+      error: () => i18n.t(errorKey),
+      mutation: {
+        onMutate: markPending, // doğrudan çağrı (onaysız) da bekliyor sayılır
+        onSettled: (_data, _err, id) => settle(id),
+      },
+    });
+  const accept = useOfferMutation((id) => offersApi.accept(id), 'offer.offerAccepted', 'offer.acceptFailed');
+  const reject = useOfferMutation((id) => offersApi.reject(id), 'offer.offerRejected', 'offer.rejectFailed');
+  const cancel = useOfferMutation((id) => offersApi.cancel(id), 'offer.offerCancelled', 'offer.cancelFailed');
 
   const acceptMutate = accept.mutate;
   const rejectMutate = reject.mutate;

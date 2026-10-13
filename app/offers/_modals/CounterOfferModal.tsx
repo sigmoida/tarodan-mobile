@@ -4,14 +4,20 @@ import { Modal, ModalFooter } from '@/ui';
 import { useZodForm, Form, FormInput } from '@/ui/form';
 import { sellerCounterSchema } from '../_lib/schema';
 import { useDoCounterOffer } from '../_hooks/useDoCounterOffer';
-import type { Offer } from '../_lib/types';
+
+/** Modalın okuduğu asgari alanlar — liste ve detay ekranlarının farklı `Offer` DTO'ları ikisi de uyar. */
+export interface CounterTarget {
+  id: string;
+  amount: number;
+  product?: { price: number } | null;
+}
 
 /** Satıcının karşı teklifi. Kendi form + mutation'ını taşır; ekran sadece açar/kapatır. */
 export function CounterOfferModal({
   offer,
   onClose,
 }: {
-  offer: Offer | null;
+  offer: CounterTarget | null;
   onClose: () => void;
 }) {
   const { t } = useTranslation();

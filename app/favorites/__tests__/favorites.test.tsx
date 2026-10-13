@@ -4,11 +4,17 @@
  * Sadece MOBİL-UI: render/durum gösterimi + navigasyon wiring.
  */
 import React from 'react';
-import { screen, fireEvent } from '@testing-library/react-native';
+import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { toast } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
 import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
 
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
+jest.mock('@/ui', () => ({
+  ...jest.requireActual('@/ui'),
+  appAlert: jest.fn(),
+  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn(), dismiss: jest.fn() }),
+}));
 
 
 const mockState = {
@@ -136,5 +142,36 @@ describe('J57 · favoriler ekranı — dolu liste', () => {
     renderWithProviders(<FavoritesScreen />);
     fireEvent.press(screen.getByText('Hot Wheels'));
     expect(pushMock).toHaveBeenCalledWith('/product/p1');
+  });
+});
+
+describe('geri bildirim — eylemsiz toast (eski Snackbar her mesajda sepet eylemi gösteriyordu)', () => {
+  beforeEach(() => {
+    (toast.success as jest.Mock).mockClear();
+    (toast.error as jest.Mock).mockClear();
+  });
+
+  it('kaldırma başarılı -> toast.success', async () => {
+    mockState.items = [makeItem('p1')];
+    renderWithProviders(<FavoritesScreen />);
+    fireEvent.press(screen.getByLabelText('Favorilerden Çıkar'));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Favorilerden çıkarıldı'));
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('kaldırma başarısız -> toast.error (başarı mesajı DEĞİL)', async () => {
+    mockState.removeFromFavorites.mockResolvedValueOnce(false);
+    mockState.items = [makeItem('p1')];
+    renderWithProviders(<FavoritesScreen />);
+    fireEvent.press(screen.getByLabelText('Favorilerden Çıkar'));
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it('sepete ekle -> toast.success', () => {
+    mockState.items = [makeItem('p1')];
+    renderWithProviders(<FavoritesScreen />);
+    fireEvent.press(screen.getByLabelText('Sepete Ekle'));
+    expect(toast.success).toHaveBeenCalledTimes(1);
   });
 });

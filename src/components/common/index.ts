@@ -14,7 +14,6 @@ export {
 // `onBack` geçmeyen ekranlarda ok aksi halde görünür ama ölü olurdu.
 export { ScreenHeader } from './ScreenHeader';
 
-export { default as AuthRequiredSheet } from './AuthRequiredSheet';
 export { default as CityDistrictSelector } from './CityDistrictSelector';
 export { default as PhoneInput } from './PhoneInput';
 export { TradeAddressPicker } from './TradeAddressPicker';

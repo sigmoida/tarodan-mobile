@@ -5,16 +5,12 @@
  * değişiminde yeniden render gerekmiyor.
  */
 import i18n from '@/i18n/config';
+import { apiErrorLines } from '@/lib/api/errorText';
 import { DEFAULT_COUNTRY_CODE, isValidPhoneInput, getPhoneInvalidMessage } from '@/utils/phone';
 import type { ShippingAddressInput } from './types';
 
-export const extractApiMessage = (e: any): string | null => {
-  const m = e?.response?.data?.message;
-  if (Array.isArray(m)) return m.join(', ');
-  if (typeof m === 'string') return m;
-  if (typeof e?.response?.data?.error === 'string') return e.response.data.error;
-  return null;
-};
+// Gövdeden mesaj (dizi → ', ' ile birleşik); yoksa null. Tek kaynak: `apiErrorLines`.
+export const extractApiMessage = (e: any): string | null => apiErrorLines(e).join(', ') || null;
 
 /**
  * Misafir iletişim bilgileri.

@@ -3,7 +3,7 @@ import { PageShell } from '@/components/common/PageShell';
 import { useOfferDetail } from './_hooks/useOfferDetail';
 import { OfferDetailCards } from './_components/OfferDetailCards';
 import { OfferDetailActions } from './_components/OfferDetailActions';
-import { CounterDialog } from './_modals/CounterDialog';
+import { CounterOfferModal } from '../_modals/CounterOfferModal';
 
 /** Teklif detayı — PageShell (yükleme/hata kabukta) + SectionCard gövdesi; karşı teklif diyaloğu overlay'de. */
 export default function OfferDetailScreen() {
@@ -18,7 +18,7 @@ export default function OfferDetailScreen() {
       onRetry={() => f.refetch()}
       refreshing={f.refreshing}
       onRefresh={f.onRefresh}
-      overlay={<CounterDialog f={f} />}
+      overlay={<CounterOfferModal offer={f.counterTarget} onClose={f.closeCounter} />}
     >
       <OfferDetailCards f={f} />
       <OfferDetailActions f={f} />
