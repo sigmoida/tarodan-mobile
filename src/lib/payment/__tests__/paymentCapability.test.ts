@@ -319,7 +319,7 @@ describe('temizlik: kesin sonuç, çıkış, açılış süpürmesi', () => {
     expect(await paymentCapabilityHeaders(PAY)).toEqual({});
   });
 
-  it.each(['completed', 'paid', 'success', 'hold_payment', 'failed', 'refunded', 'cancelled'])(
+  it.each(['completed', 'paid', 'success', 'hold_payment', 'refunded', 'cancelled'])(
     'kesin durum (%s) → kayıt silinir',
     async (status) => {
       await remember(PAY);
@@ -329,7 +329,8 @@ describe('temizlik: kesin sonuç, çıkış, açılış süpürmesi', () => {
     },
   );
 
-  it.each([['pending'], ['processing'], [undefined], [null]])('kesin olmayan durum (%s) → kayıt kalır', async (status) => {
+  // failed kesin değil: retry aynı ödemeyi failed → pending yapar, yeni belirteç vermez.
+  it.each([['pending'], ['processing'], ['failed'], [undefined], [null]])('kesin olmayan durum (%s) → kayıt kalır', async (status) => {
     await remember(PAY);
     await forgetPaymentCapabilityIfFinal(PAY, status);
     expect(await paymentCapabilityHeaders(PAY)).toEqual(CAP);

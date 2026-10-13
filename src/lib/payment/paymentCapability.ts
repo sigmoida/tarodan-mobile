@@ -22,8 +22,9 @@
  * ya da hata verirse yalnız bellek kopyası kullanılır (akış aynı süreçte yine
  * tamamlanır).
  *
- * Temizlik: ödeme kesinleşince (başarılı, başarısız, iptal) kayıt silinir
- * (`forgetPaymentCapabilityIfFinal`, sonuç ekranları + iptal). Çıkışta tüm
+ * Temizlik: ödeme kesinleşince (ödendi, iade, iptal) kayıt silinir
+ * (`forgetPaymentCapabilityIfFinal`, sonuç ekranları + iptal). `failed` kesin
+ * değil: "Tekrar Dene" aynı ödemeyi aynı belirteçle yeniden açar. Çıkışta tüm
  * `payment-capability.*` kayıtları silinir (`clearAllPaymentCapabilities`,
  * `resetUserStores`): ortak cihazda A'nın belirteci B'nin oturumunda kalmaz.
  * Açılışta süresi dolmuş kayıtlar süpürülür (`sweepExpiredPaymentCapabilities`).
@@ -249,7 +250,7 @@ export async function rememberPaymentCapability(response: unknown): Promise<void
   }
 }
 
-/** Ödeme kesinleşti (başarılı, başarısız, iptal): bu ödemenin kaydını sil. Hiç fırlatmaz. */
+/** Ödeme kesinleşti (ödendi, iade, iptal): bu ödemenin kaydını sil. Hiç fırlatmaz. */
 export async function forgetPaymentCapability(paymentId: string | undefined | null): Promise<void> {
   if (!paymentId) return;
   memory.set(paymentId, null);

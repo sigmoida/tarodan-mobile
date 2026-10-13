@@ -34,4 +34,8 @@ describe('kesin durumlar', () => {
   it.each(['pending', 'processing', undefined, null, {}])('%s → kesin değil', (status) => {
     expect(isFinalPaymentStatus(status)).toBe(false);
   });
+
+  it('failed kesin DEĞİL: retry aynı ödemeyi failed → pending yapar (aynı belirteçle ikinci deneme)', () => {
+    expect(isFinalPaymentStatus('failed')).toBe(false);
+  });
 });
