@@ -52,9 +52,10 @@ describe('order status labels', () => {
   it('reads every badge label from the catalogue', () => {
     const { result } = renderHook(() => useOrderStatusConfig());
 
-    expect(result.current.paid!.label).toBe('order.statusPaid');
-    expect(result.current.shipped!.label).toBe('order.statusShipped');
-    expect(result.current.cancelled!.label).toBe('order.statusCancelled');
+    // Etiket anahtarları web `orderStatusConfig` ile aynı (status.order.*).
+    expect(result.current.paid!.label).toBe('status.order.paid');
+    expect(result.current.shipped!.label).toBe('status.order.shipped');
+    expect(result.current.cancelled!.label).toBe('status.order.cancelled');
   });
 
   it('keeps the semantic variant alongside the translated label', () => {

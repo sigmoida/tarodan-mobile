@@ -11,6 +11,7 @@ import { styles } from '../_lib/styles';
 import type { TabType } from '../_lib/types';
 import { StatCard, ProductRow, CollectionRow } from './BusinessRows';
 import type { BusinessController } from '../_hooks/useBusinessStats';
+import { formatPrice } from '@/utils/format';
 
 const { colors } = theme;
 
@@ -104,7 +105,7 @@ export function BusinessTabContent({ f }: { f: BusinessController }) {
         <Card style={styles.revenueCard} padding={0}>
           <LinearGradient colors={[colors.success[100]!, colors.success[50]!]} style={styles.revenueGradient}>
             <RawText style={styles.revenueLabel}>{t('business.totalRevenue')}</RawText>
-            <RawText style={styles.revenueValue}>₺{stats.overview.totalRevenue.toLocaleString('tr-TR')}</RawText>
+            <RawText style={styles.revenueValue}>{formatPrice(stats.overview.totalRevenue)}</RawText>
           </LinearGradient>
         </Card>
 

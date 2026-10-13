@@ -81,7 +81,7 @@ it('gönderim: talep gider, modal kapanır, başarı snackbar ekranda', async ()
   await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1));
   expect(createMock).toHaveBeenCalledWith('order-1', { reason: 'changed_mind' });
   expect(screen.queryByText(TITLE)).toBeNull();
-  await waitFor(() => expect(notify).toHaveBeenCalledWith('İade talebiniz oluşturuldu.', 'success'));
+  await waitFor(() => expect(notify).toHaveBeenCalledWith('İade talebi oluşturuldu', 'success'));
 });
 
 it('onClose, mutate çağrısından ÖNCE çalışır', async () => {

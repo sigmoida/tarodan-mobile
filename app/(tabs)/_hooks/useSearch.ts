@@ -10,6 +10,7 @@ import {
 import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { formatPriceRange } from '@/utils/format';
 
 import { productsApi, searchApi } from '@/lib/api';
 import { useRecentSearchesStore } from '@/stores/recentSearchesStore';
@@ -252,7 +253,7 @@ export function useSearch() {
   if (filters.scale) activeChips.push({ key: 'scale', label: filters.scale, onRemove: () => setFilters({ ...filters, scale: '' }) });
   if (filters.material) activeChips.push({ key: 'mat', label: filters.material, onRemove: () => setFilters({ ...filters, material: '' }) });
   if (filters.condition) activeChips.push({ key: 'cond', label: conditionLabel(filters.condition, t), onRemove: () => setFilters({ ...filters, condition: '' }) });
-  if (filters.minPrice || filters.maxPrice) activeChips.push({ key: 'price', label: `₺${filters.minPrice || '0'} - ₺${filters.maxPrice || '∞'}`, onRemove: () => setFilters({ ...filters, minPrice: '', maxPrice: '' }) });
+  if (filters.minPrice || filters.maxPrice) activeChips.push({ key: 'price', label: formatPriceRange(filters.minPrice, filters.maxPrice), onRemove: () => setFilters({ ...filters, minPrice: '', maxPrice: '' }) });
   if (filters.tradeOnly) activeChips.push({ key: 'trade', label: t('filter.tradeOnlyChip'), onRemove: () => setFilters({ ...filters, tradeOnly: false }) });
   if (filters.discountOnly) activeChips.push({ key: 'disc', label: t('filter.discountOnlyLabel'), onRemove: () => setFilters({ ...filters, discountOnly: false }) });
   if (filters.preOrder) activeChips.push({ key: 'pre', label: t('product.preOrder'), onRemove: () => setFilters({ ...filters, preOrder: false }) });

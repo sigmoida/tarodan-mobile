@@ -47,7 +47,7 @@ describe('checkout screen i18n', () => {
   it('leaves no hardcoded Turkish in the empty-cart state', () => {
     renderWithProviders(<CheckoutScreen />);
 
-    expect(screen.queryByText(/Sepetiniz Boş/)).toBeNull();
+    expect(screen.queryByText(/Sepetiniz [Bb]oş/)).toBeNull();
     expect(screen.queryByText(/ürün ekleyin/)).toBeNull();
   });
 });

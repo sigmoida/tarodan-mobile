@@ -11,6 +11,7 @@ import { navToken, goScale, goBrand, goCategory } from '../_lib/nav';
 import { ProductCard } from './ProductCard';
 import { styles } from '../_lib/styles';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { formatPrice } from '@/utils/format';
 
 const { colors } = theme;
 
@@ -175,7 +176,7 @@ export function FeaturedCollectorSection({
               >
                 <Image source={{ uri: getImageUrlFromUtils(item.productImage) }} style={styles.featuredProductImage} />
                 <Text style={styles.featuredProductTitle} numberOfLines={2}>{item.productTitle}</Text>
-                <Text style={styles.featuredProductPrice}>₺{item.productPrice?.toLocaleString('tr-TR')}</Text>
+                <Text style={styles.featuredProductPrice}>{formatPrice(item.productPrice)}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>

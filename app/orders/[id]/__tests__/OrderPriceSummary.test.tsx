@@ -38,7 +38,7 @@ describe('OrderPriceSummary service VAT', () => {
 
     render(<OrderPriceSummary order={order} isMembershipOrder={false} />);
 
-    expect(screen.getByText('₺22,4')).toBeTruthy();
+    expect(screen.getByText('22,40 TL')).toBeTruthy();
   });
 
   it('does not print a service VAT line when the field is absent', () => {

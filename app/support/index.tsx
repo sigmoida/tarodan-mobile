@@ -8,7 +8,7 @@ import {
   theme,
   ScreenHeader,
 } from '@/ui';
-import type { BadgeVariant } from '@/ui';
+import { buildTicketStatusConfig } from './_lib/status';
 import { useState, useCallback } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -19,17 +19,6 @@ import { supportApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 
 const { colors } = theme;
-
-// Backend TicketStatus enum'unun TÜM değerleri (web /support ile parite).
-// Eksik durum = StatusBadge ham enum gösterir.
-// [id].tsx ile TEK kaynak (support.* anahtarları) — kopya harita çeviri sürüklenmesine yol açar.
-const buildTicketStatusConfig = (t: TFunction): Record<string, { label: string; variant: BadgeVariant }> => ({
-  open: { label: t('support.open'), variant: 'info' },
-  in_progress: { label: t('support.inProgress'), variant: 'warning' },
-  waiting_customer: { label: t('support.waitingCustomer'), variant: 'primary' },
-  resolved: { label: t('support.resolved'), variant: 'success' },
-  closed: { label: t('support.closed'), variant: 'default' },
-});
 
 // Backend TicketCategory enum'u ile birebir.
 const buildCategoryLabels = (t: TFunction): Record<string, string> => ({

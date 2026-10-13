@@ -11,7 +11,7 @@ describe('share urls', () => {
 
 describe('buildShareContent', () => {
   const url = 'https://tarodan.com.tr/listings/abc123';
-  const text = 'Tomica Toyota Hilux - ₺130,38\n\nTarodan\'da bu ürüne göz atın!';
+  const text = 'Tomica Toyota Hilux - 130,38 TL\n\nTarodan\'da bu ürüne göz atın!';
 
   afterEach(() => {
     Platform.OS = 'ios';

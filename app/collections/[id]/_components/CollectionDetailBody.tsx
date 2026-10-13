@@ -13,6 +13,7 @@ import ReportModal from '@/components/ReportModal';
 import UpgradeCta from '@/components/UpgradeCta';
 import { styles } from '../_lib/collectionStyles';
 import type { CollectionDetailController } from '../_hooks/useCollectionDetail';
+import { formatPrice } from '@/utils/format';
 
 const { colors } = theme;
 
@@ -143,7 +144,7 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
               <View style={styles.valueInfo}>
                 <Text style={styles.valueLabel}>{t('collection.estimatedValueLabel')}</Text>
                 <Text style={styles.valueAmount}>
-                  ₺{collection.estimatedValue.toLocaleString('tr-TR')}
+                  {formatPrice(collection.estimatedValue)}
                 </Text>
               </View>
             </View>
@@ -213,7 +214,7 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
                     </Text>
                     {(item.productPrice ?? item.price) != null && (
                       <Text style={styles.itemValue}>
-                        ₺{Number(item.productPrice ?? item.price).toLocaleString('tr-TR')}
+                        {formatPrice(item.productPrice ?? item.price)}
                       </Text>
                     )}
                   </View>

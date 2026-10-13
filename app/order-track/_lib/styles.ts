@@ -86,22 +86,6 @@ export const styles = StyleSheet.create({
     color: colors.text.muted,
     marginTop: theme.spacing[1],
   },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[1.5],
-    borderRadius: 20,
-    flexShrink: 0,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.white,
-    marginLeft: theme.spacing[1.5],
-    includeFontPadding: false,
-    textAlignVertical: 'center',
-  },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',

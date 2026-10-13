@@ -42,10 +42,10 @@ type Props = {
 };
 
 const PRICE_PRESETS: { label: string; min: string; max: string }[] = [
-  { label: '₺0-100', min: '0', max: '100' },
-  { label: '₺100-500', min: '100', max: '500' },
-  { label: '₺500-1K', min: '500', max: '1000' },
-  { label: '₺1K+', min: '1000', max: '' },
+  { label: '0 - 100 TL', min: '0', max: '100' },
+  { label: '100 - 500 TL', min: '100', max: '500' },
+  { label: '500 - 1.000 TL', min: '500', max: '1000' },
+  { label: '1.000+ TL', min: '1000', max: '' },
 ];
 
 /** Tek-seçim radyo satırı (web'deki radio list görünümü). */

@@ -10,7 +10,7 @@ import { userReportsApi } from '@/lib/api';
 import { useCartStore } from '@/stores/cartStore';
 import { useCartSync } from '@/hooks/useCartSync';
 import { getImageUrl as getImageUrlFromUtils } from '@/utils/imageUrl';
-import { asLabel } from '@/utils/format';
+import { asLabel, formatPrice } from '@/utils/format';
 import { buildShareContent, productShareUrl } from '@/utils/share';
 import type { Product } from '../_lib/types';
 
@@ -153,7 +153,7 @@ export function useProductActions({
       const { content, options } = buildShareContent(
         t('product.shareText', {
           title: product.title,
-          price: product.price?.toLocaleString('tr-TR'),
+          price: formatPrice(product.price),
         }),
         productShareUrl(product.id),
         product.title,

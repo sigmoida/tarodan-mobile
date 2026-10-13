@@ -1,15 +1,15 @@
-import { theme } from '@/ui';
+import { orderStatusConfig } from '@/lib/shared/status-configs';
+import { statusVariantColors } from '@/lib/shared/status-colors';
 
-const { colors } = theme;
+/** API'nin kargo alt durumları web'deki tek `shipped` rengine bağlanır. */
+const SHIPMENT_ALIASES = ['in_transit', 'out_for_delivery'];
 
-/** Sipariş statü banner renkleri (satıcı sipariş detayı). */
+/**
+ * Sipariş statü banner renkleri (satıcı sipariş detayı). Renk rolü web
+ * `orderStatusConfig` varyantından gelir (`paid` yeşil, `cancelled` kırmızı…),
+ * ayrı bir renk tablosu tutulmaz.
+ */
 export function statusColor(status: string): { bg: string; fg: string } {
-  if (['paid', 'preparing'].includes(status)) return { bg: colors.warning[50]!, fg: colors.warning[600]! };
-  if (['shipped', 'in_transit', 'out_for_delivery'].includes(status))
-    return { bg: colors.info[50]!, fg: colors.info[600]! };
-  if (['delivered', 'completed'].includes(status))
-    return { bg: colors.success[50]!, fg: colors.success[600]! };
-  if (['cancelled', 'refunded'].includes(status))
-    return { bg: colors.danger[50]!, fg: colors.danger[600]! };
-  return { bg: colors.surface.alt, fg: colors.text.muted };
+  const key = SHIPMENT_ALIASES.includes(status) ? 'shipped' : status;
+  return statusVariantColors(orderStatusConfig[key]?.variant ?? 'outline');
 }

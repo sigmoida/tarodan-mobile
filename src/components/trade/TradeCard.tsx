@@ -1,4 +1,4 @@
-import { useTradeStatusConfig } from '@/lib/shared/tradeStatus';
+import { useTradeStatusConfig, tradeViewerRole } from '@/lib/shared/tradeStatus';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, StyleSheet, Image, Pressable } from 'react-native';
@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { theme, Text, Chip, Avatar, type ChipVariant } from '@/ui';
+import { theme, Text, StatusBadge, Avatar } from '@/ui';
 import { formatPrice } from '../../utils/format';
 import { transformImageUrl, IMAGE_PLACEHOLDER } from '../../utils/imageUrl';
 
@@ -14,20 +14,6 @@ const { colors, spacing, radius } = theme;
 
 const FALLBACK_IMG = IMAGE_PLACEHOLDER;
 
-
-/**
- * Takas durumunun çip bilgisi. Sözlük TEK kaynakta
- * (`@/lib/shared/tradeStatus`); burada ikinci bir kopya tutmak kartla rozetin
- * aynı durumu farklı kelimeyle göstermesine yol açıyordu.
- */
-export function useTradeStatusInfo(): (status: string) => { label: string; variant: ChipVariant } {
-  const config = useTradeStatusConfig();
-  return (status) =>
-    (config[status] as { label: string; variant: ChipVariant } | undefined) ?? {
-      label: status,
-      variant: 'neutral',
-    };
-}
 
 export interface TradeCardItem {
   id?: string | number;
@@ -142,8 +128,8 @@ export interface TradeCardProps {
 
 function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
   const { t } = useTranslation();
-  const tradeStatusInfo = useTradeStatusInfo();
-  const statusInfo = tradeStatusInfo(trade.status);
+  // Durum rozeti: renk + etiket web `tradeStatusConfig` ile aynı tek kaynaktan.
+  const statusConfig = useTradeStatusConfig(tradeViewerRole(trade, currentUserId));
   const isSent = !!currentUserId && trade.initiatorId === currentUserId;
 
   const otherUserName = isSent
@@ -176,7 +162,7 @@ function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
             {otherUserName}
           </Text>
         </View>
-        <Chip label={statusInfo.label} variant={statusInfo.variant} size="sm" />
+        <StatusBadge status={trade.status} config={statusConfig} size="sm" />
       </View>
 
       {/* Trade panel */}

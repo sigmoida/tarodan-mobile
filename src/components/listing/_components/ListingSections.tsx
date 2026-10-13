@@ -16,6 +16,7 @@ import UpgradeCta from '@/components/UpgradeCta';
 import { ListingRemovalModal } from '../ListingRemovalModal';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
+import { formatPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
 import { buildConditions, getPackageTierLabel } from '../_lib/constants';
 import { TITLE_MAX, DESCRIPTION_MAX, MAX_COLORS } from '../_lib/schema';
@@ -643,7 +644,7 @@ export function ListingPricingSection({ f }: SectionProps) {
           da çağrılıyordu; yalnız bu kapı yüzünden satıcı ilanı önce açıp sonra
           düzenlemeden indirim eklemek zorunda kalıyordu. */}
       <View style={styles.discountBox}>
-          <RawText style={styles.label}>{t('product.discountedPrice')} (₺)</RawText>
+          <RawText style={styles.label}>{t('product.discountedPrice')} (TL)</RawText>
           <TextInput
             style={styles.input}
             value={f.salePrice}
@@ -684,18 +685,12 @@ export function ListingPricingSection({ f }: SectionProps) {
             <View style={styles.commissionRow}>
               <RawText style={styles.commissionFee}>
                 {t('listing.platformFeeLine', {
-                  amount: (f.commissionPreview.sellerFeeAmount ?? 0).toLocaleString('tr-TR', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  }),
+                  amount: formatPrice(f.commissionPreview.sellerFeeAmount),
                 })}
               </RawText>
               <RawText style={styles.commissionNet}>
                 {t('listing.netEarningLine', {
-                  amount: (f.commissionPreview.sellerNetAmount ?? 0).toLocaleString('tr-TR', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  }),
+                  amount: formatPrice(f.commissionPreview.sellerNetAmount),
                 })}
               </RawText>
             </View>

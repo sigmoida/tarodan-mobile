@@ -12,6 +12,7 @@ import { PREMIUM_MEMBER_LIMITS } from '@/utils/membershipLimits';
 import { formatBillingPeriod } from '../_lib/subscription';
 import { styles } from '../_lib/styles';
 import type { SubscriptionController } from '../_hooks/useSubscription';
+import { formatPrice } from '@/utils/format';
 
 const { colors } = theme;
 
@@ -139,7 +140,7 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
               </View>
               <View style={styles.billingAmount}>
                 <Text variant="body" style={styles.amount}>
-                  ₺{(payment.amount ?? 0).toLocaleString('tr-TR')}
+                  {formatPrice(payment.amount)}
                 </Text>
                 <Chip
                   variant={payment.status === 'paid' ? 'success' : 'danger'}

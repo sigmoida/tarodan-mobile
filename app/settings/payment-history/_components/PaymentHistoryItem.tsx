@@ -1,16 +1,17 @@
 import { View, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { StatusBadge, RawText } from '@/ui';
 import { styles } from '../_lib/styles';
 import { buildStatusConfig, formatDate, formatCurrency } from '../_lib/status';
 import type { Payment } from '../_lib/types';
-import { RawText } from '@/ui';
 
 /** Tek ödeme geçmişi satırı — foto/statü ikonu, açıklama/tarih/yöntem, tutar/rozet. */
 export function PaymentHistoryItem({ item, onPress }: { item: Payment; onPress: (p: Payment) => void }) {
   const { t } = useTranslation();
   const statusConfig = buildStatusConfig(t);
-  const statusCfg = statusConfig[item.status] || statusConfig.pending;
+  const statusKey = statusConfig[item.status] ? item.status : 'pending';
+  const statusCfg = statusConfig[statusKey]!;
 
   return (
     <TouchableOpacity style={styles.paymentItem} onPress={() => onPress(item)} activeOpacity={0.7}>
@@ -30,9 +31,7 @@ export function PaymentHistoryItem({ item, onPress }: { item: Payment; onPress: 
 
       <View style={styles.paymentRight}>
         <RawText style={styles.paymentAmount}>{formatCurrency(item.amount)}</RawText>
-        <View style={[styles.statusBadge, { backgroundColor: statusCfg.color + '15' }]}>
-          <RawText style={[styles.statusBadgeText, { color: statusCfg.color }]}>{statusCfg.label}</RawText>
-        </View>
+        <StatusBadge status={statusKey} config={statusConfig} size="sm" />
       </View>
     </TouchableOpacity>
   );

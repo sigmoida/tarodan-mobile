@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Card, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { AppImage } from '@/components/AppImage';
+import { ProductPrice } from '@/components/product/ProductPrice';
 import { isProductOutOfStock } from '@/utils/productPrice';
 import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
 import { OutOfStockOverlay } from '@/components/product';
@@ -78,9 +79,7 @@ function ProductCardBase({
           {metaLabel ? (
             <Text variant="caption" tone="muted" numberOfLines={1} style={{ marginTop: theme.spacing[0.5] }}>{metaLabel}</Text>
           ) : null}
-          <Text variant="h3" tone="primary" style={{ marginTop: theme.spacing[1] }}>
-            ₺{item.price?.toLocaleString('tr-TR') || 0}
-          </Text>
+          <ProductPrice product={item} variant="h3" tone="primary" style={{ marginTop: theme.spacing[1] }} />
         </View>
       </Card>
     </Pressable>

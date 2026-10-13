@@ -18,16 +18,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { refundsApi } from '@/lib/api';
+import { formatPrice } from '@/utils/format';
 import { useAuthStore } from '@/stores/authStore';
 import { captureException } from '@/services/sentry';
 import { refundHistoryActionLabel } from './_lib/history';
 
 const { colors } = theme;
-
-function formatPrice(value?: number): string {
-  const n = Number(value ?? 0);
-  return `₺${n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
 
 function formatDate(value?: string): string {
   if (!value) return '';

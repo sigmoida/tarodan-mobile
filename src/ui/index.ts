@@ -171,12 +171,6 @@ export {
 export { Avatar, type AvatarProps } from './components/Avatar';
 export { StatusBadge, type StatusBadgeProps } from './components/StatusBadge';
 
-// Re-export status configs from shared package for convenience
-export {
-	orderStatusConfig,
-	tradeStatusConfig,
-	offerStatusConfig,
-	paymentStatusConfig,
-	productStatusConfig,
-	type StatusConfig,
-} from './lib/status-configs';
+// Durum haritaları `@/lib/shared/status-configs`'ten (web status-configs'in tek kaynağı)
+// doğrudan alınır; `@/ui` artık çevrilmemiş `{labelKey, variant}` haritalarını yeniden ihraç
+// etmez (tüketicisi yoktu).

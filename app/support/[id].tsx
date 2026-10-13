@@ -11,7 +11,7 @@ import {
   ScreenHeader,
   appAlert,
 } from '@/ui';
-import type { BadgeVariant } from '@/ui';
+import { buildTicketStatusConfig } from './_lib/status';
 import { useState, useCallback } from 'react';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -23,14 +23,6 @@ import { useAuthStore } from '@/stores/authStore';
 import { captureException } from '@/services/sentry';
 
 const { colors } = theme;
-
-const buildTicketStatusConfig = (t: TFunction): Record<string, { label: string; variant: BadgeVariant }> => ({
-  open: { label: t('support.open'), variant: 'info' },
-  in_progress: { label: t('support.inProgress'), variant: 'warning' },
-  waiting_customer: { label: t('support.waitingCustomer'), variant: 'primary' },
-  resolved: { label: t('support.resolved'), variant: 'success' },
-  closed: { label: t('support.closed'), variant: 'default' },
-});
 
 const buildCategoryLabels = (t: TFunction): Record<string, string> => ({
   shipping: t('support.category.shipping'),

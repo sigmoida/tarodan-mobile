@@ -1,0 +1,50 @@
+# Yasal kimlik kapısı (1.0.6): ödeme / ilan / takas başlatılırken hesabın yasal kimliği
+# eksikse kapatılamaz bir ekran açılır. Ekran görünürse çalıştırma anında verilen test
+# kimliğiyle doldurur; görünmezse hiçbir şey yapmaz.
+#
+# TCKN repoda TUTULMAZ (herkese açık repo, gerçek kişiye ait olmadığı garanti edilemez):
+#   maestro test --env MAESTRO_TEST_TCKN=<11 hane> flows/F-23-...yaml
+# Ad/soyad isteğe bağlı (varsayılan "Maestro Test"). Değer verilmezse ve kapı açılırsa akış
+# açık bir mesajla durur.
+appId: ${APP_ID}
+---
+- runFlow:
+    when:
+      visible:
+        id: "identity-gate"
+    commands:
+      - assertTrue:
+          condition: ${MAESTRO_TEST_TCKN.length == 11}
+          label: "Kimlik kapısı açıldı: --env MAESTRO_TEST_TCKN=<11 haneli test TCKN> verin"
+      - runFlow:
+          when:
+            visible:
+              id: "identity-gate-legalFirstName"
+          commands:
+            - tapOn:
+                id: "identity-gate-legalFirstName"
+            - inputText: ${MAESTRO_TEST_FIRST_NAME}
+      - runFlow:
+          when:
+            visible:
+              id: "identity-gate-legalLastName"
+          commands:
+            - tapOn:
+                id: "identity-gate-legalLastName"
+            - inputText: ${MAESTRO_TEST_LAST_NAME}
+      - runFlow:
+          when:
+            visible:
+              id: "identity-gate-nationalId"
+          commands:
+            - tapOn:
+                id: "identity-gate-nationalId"
+            - eraseText: 11
+            - inputText: ${MAESTRO_TEST_TCKN}
+      - hideKeyboard
+      - tapOn:
+          id: "identity-gate-submit"
+      - extendedWaitUntil:
+          notVisible:
+            id: "identity-gate"
+          timeout: 20000

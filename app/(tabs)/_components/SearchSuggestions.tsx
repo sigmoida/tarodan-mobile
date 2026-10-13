@@ -7,6 +7,7 @@ import { Text, theme } from '@/ui';
 
 import { styles } from '../_lib/searchStyles';
 import type { SearchController } from '../_hooks/useSearch';
+import { formatPrice } from '@/utils/format';
 
 const { colors } = theme;
 
@@ -86,7 +87,7 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.acItemText} numberOfLines={1}>{p.title}</Text>
                       <Text style={styles.acItemMeta}>
-                        {p.brandName ? `${p.brandName} · ` : ''}₺{p.price?.toLocaleString('tr-TR')}
+                        {p.brandName ? `${p.brandName} · ` : ''}{formatPrice(p.price)}
                       </Text>
                     </View>
                   </TouchableOpacity>

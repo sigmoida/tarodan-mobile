@@ -1,4 +1,5 @@
 import type { TFunction } from 'i18next';
+import { formatPriceRange } from '@/utils/format';
 import {
   buildConditionOptions,
   keepGeneralAttributeSelections,
@@ -39,7 +40,7 @@ export function buildActiveChips(
   if (filters.scale) chips.push({ key: 'scale', label: filters.scale, onRemove: () => setFilters({ ...filters, scale: '' }) });
   if (filters.material) chips.push({ key: 'mat', label: filters.material, onRemove: () => setFilters({ ...filters, material: '' }) });
   if (filters.condition) chips.push({ key: 'cond', label: conditionLabel(filters.condition, t), onRemove: () => setFilters({ ...filters, condition: '' }) });
-  if (filters.minPrice || filters.maxPrice) chips.push({ key: 'price', label: `₺${filters.minPrice || '0'} - ₺${filters.maxPrice || '∞'}`, onRemove: () => setFilters({ ...filters, minPrice: '', maxPrice: '' }) });
+  if (filters.minPrice || filters.maxPrice) chips.push({ key: 'price', label: formatPriceRange(filters.minPrice, filters.maxPrice), onRemove: () => setFilters({ ...filters, minPrice: '', maxPrice: '' }) });
   if (filters.tradeOnly) chips.push({ key: 'trade', label: t('filter.tradeOnlyChip'), onRemove: () => setFilters({ ...filters, tradeOnly: false }) });
   if (filters.discountOnly) chips.push({ key: 'disc', label: t('filter.discountOnlyLabel'), onRemove: () => setFilters({ ...filters, discountOnly: false }) });
   if (filters.preOrder) chips.push({ key: 'pre', label: t('product.preOrder'), onRemove: () => setFilters({ ...filters, preOrder: false }) });

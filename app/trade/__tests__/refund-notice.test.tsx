@@ -58,7 +58,7 @@ function renderActions(trade: Record<string, unknown>, view: Record<string, unkn
 describe('TradeActions · kargo iadesi uyarısı', () => {
   it('kargoya verilmemişken kargo uyarısı gösterilmez', () => {
     renderActions({ status: 'awaiting_payment' }, { isV2: true, hasShippedLeg: false });
-    expect(screen.queryByText(/kargo bedeli iade edilmez/i)).toBeNull();
+    expect(screen.queryByText(/kargo bedeli de iade edilmez/i)).toBeNull();
   });
 
   it('kargoya verildikten sonra, takas hâlâ iptal edilebiliyorken uyarı gösterilir', () => {
@@ -66,7 +66,7 @@ describe('TradeActions · kargo iadesi uyarısı', () => {
       { status: 'shipping_to_warehouse', canCancel: true },
       { isV2: true, hasShippedLeg: true },
     );
-    expect(screen.getByText(/kargo bedeli iade edilmez/i)).toBeTruthy();
+    expect(screen.getByText(/kargo bedeli de iade edilmez/i)).toBeTruthy();
   });
 
   it('v1 takasta kargoya verilmiş olsa dahi uyarı gösterilmez', () => {
@@ -74,7 +74,7 @@ describe('TradeActions · kargo iadesi uyarısı', () => {
       { status: 'shipping_to_warehouse', canCancel: true },
       { isV2: false, hasShippedLeg: true },
     );
-    expect(screen.queryByText(/kargo bedeli iade edilmez/i)).toBeNull();
+    expect(screen.queryByText(/kargo bedeli de iade edilmez/i)).toBeNull();
   });
 
   // Uyarı "iptal edersen kargo geri gelmez" der; iptal edilemeyen bir takasta
@@ -84,7 +84,7 @@ describe('TradeActions · kargo iadesi uyarısı', () => {
       { status: 'completed', canCancel: false },
       { isV2: true, hasShippedLeg: true },
     );
-    expect(screen.queryByText(/kargo bedeli iade edilmez/i)).toBeNull();
+    expect(screen.queryByText(/kargo bedeli de iade edilmez/i)).toBeNull();
   });
 
   it('iptal kilidi devredeyken (canCancel false) uyarı gösterilmez', () => {
@@ -92,6 +92,6 @@ describe('TradeActions · kargo iadesi uyarısı', () => {
       { status: 'shipping_to_warehouse', canCancel: false },
       { isV2: true, hasShippedLeg: true },
     );
-    expect(screen.queryByText(/kargo bedeli iade edilmez/i)).toBeNull();
+    expect(screen.queryByText(/kargo bedeli de iade edilmez/i)).toBeNull();
   });
 });

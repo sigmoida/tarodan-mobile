@@ -37,13 +37,27 @@ describe('OrderSummary — kampanya kazanç satırları', () => {
   it('indirim 0 iken satır çizilmez (kampanyasız sepetlerin hepsi 0 döndürüyor)', () => {
     render(<OrderSummary {...BASE} quantityDiscount={0} feeDiscountTotal={0} />);
     expect(screen.queryByText('Adet kampanyası indirimi')).toBeNull();
-    expect(screen.queryByText('Kampanya kazancınız')).toBeNull();
+    expect(screen.queryByText('Toplam kazancınız')).toBeNull();
   });
 
   it('alanlar hiç gelmediğinde de satır çizilmez (eski gövde şekli)', () => {
     render(<OrderSummary {...BASE} />);
     expect(screen.queryByText('Adet kampanyası indirimi')).toBeNull();
-    expect(screen.queryByText('Kampanya kazancınız')).toBeNull();
+    expect(screen.queryByText('Toplam kazancınız')).toBeNull();
+  });
+
+  it('kazanç satırı web ile aynı: yalnız feeDiscountTotal, TOPLAMIN altında, biçimli tutar', () => {
+    // Web `OrderSummaryLines`: `checkout.campaignSavings` satırı yalnız
+    // `feeDiscountTotal` toplar; adet kampanyası ayrı "−75,00 TL" satırıdır.
+    render(<OrderSummary {...BASE} quantityDiscount={75} feeDiscountTotal={62.5} />);
+    expect(screen.getByText('Toplam kazancınız')).toBeTruthy();
+    expect(screen.getByText('62,50 TL')).toBeTruthy();
+    expect(screen.getByText('−75,00 TL')).toBeTruthy();
+  });
+
+  it('yalnız adet kampanyası varsa kazanç satırı çizilmez (web ile aynı)', () => {
+    render(<OrderSummary {...BASE} quantityDiscount={75} />);
+    expect(screen.queryByText('Toplam kazancınız')).toBeNull();
   });
 
   it('bedel kampanyalarını adıyla ve varsa koduyla listeler', () => {

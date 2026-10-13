@@ -1,3 +1,12 @@
+import type { TFunction } from 'i18next';
+import {
+  orderStatusConfig,
+  paymentStatusConfig,
+  resolveStatusConfig,
+  type StatusConfig,
+  type StatusConfigDefMap,
+} from '@/lib/shared/status-configs';
+
 /**
  * Ödeme durumları: tek kaynak (CLAUDE.md §5).
  *
@@ -42,3 +51,22 @@ export const isFinalPaymentStatus = (status: unknown): boolean =>
 
 /** Ödeme başarısız (henüz kesin değil: retry aynı ödemeyi yeniden açabilir). */
 export const isFailedPaymentStatus = (status: unknown): boolean => status === 'failed';
+
+/**
+ * Ödeme durumu → rozet varyantı + katalog anahtarı. Renk + etiket web
+ * `paymentStatusConfig` ile AYNI; mobilin tanıdığı eş adlar (`paid`/`success`/
+ * `hold_payment` = ödendi, `cancelled`) ve ödeme geçmişinde görünen sipariş
+ * iade durumu (`refund_requested`) ek satırdır.
+ */
+export const paymentStatusMeta: StatusConfigDefMap = {
+  ...paymentStatusConfig,
+  paid: paymentStatusConfig.completed!,
+  success: paymentStatusConfig.completed!,
+  hold_payment: paymentStatusConfig.completed!,
+  cancelled: orderStatusConfig.cancelled!,
+  refund_requested: orderStatusConfig.refund_requested!,
+};
+
+/** `StatusBadge` için çevrilmiş ödeme durumu config'i. */
+export const buildPaymentStatusConfig = (t: TFunction): Record<string, StatusConfig> =>
+  resolveStatusConfig(paymentStatusMeta, (key) => t(key));

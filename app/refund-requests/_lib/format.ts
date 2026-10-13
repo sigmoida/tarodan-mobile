@@ -1,6 +1,2 @@
-// Liste satırındaki tutar biçimi.
-
-export function formatPrice(value?: number): string {
-  const n = Number(value ?? 0);
-  return `₺${n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+// Liste satırındaki tutar biçimi — web ile aynı tek biçimleyici ("1.234,50 TL").
+export { formatPrice } from '@/utils/format';

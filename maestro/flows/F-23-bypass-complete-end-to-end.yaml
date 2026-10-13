@@ -26,7 +26,7 @@ env:
 - waitForAnimationToEnd:
     timeout: 5000
 - tapOn:
-    text: ".*₺.*"
+    text: ".*[0-9],[0-9][0-9] TL.*"
     index: 0
 # Ürün detay → Sepete Ekle → Sepete Git
 - extendedWaitUntil:
@@ -58,6 +58,8 @@ env:
     timeout: 20000
 - tapOn:
     text: ".*Ödeme.*Tamamla.*|.*Ödemeyi.*"
+# Yasal kimlik eksikse kapı açılır (1.0.6) — çalıştırmada MAESTRO_TEST_TCKN verin.
+- runFlow: ../subflows/pass-identity-gate.yaml
 - extendedWaitUntil:
     visible:
       text: ".*başarı.*|Sipariş.*tamamland.*|Tamamlandı"
