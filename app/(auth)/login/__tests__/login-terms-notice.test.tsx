@@ -1,7 +1,7 @@
 /**
  * Apple Guideline 1.2: kullanım koşulları kayıttan VEYA GİRİŞTEN önce
  * gösterilmeli. "Apple/Google ile devam et" ilk kullanımda hesap açıyor ve
- * kayıt ekranındaki onay kutusundan hiç geçmiyor — koşullar giriş kartında
+ * kayıt ekranındaki onay kutusundan hiç geçmiyor — koşullar giriş formunda
  * da görünür ve tıklanabilir olmalı.
  */
 import React from 'react';
@@ -17,7 +17,7 @@ jest.mock('react-i18next', () => ({
 }));
 jest.mock('@/services/googleSignin', () => ({ isGoogleConfigured: () => true }));
 
-import { LoginCard } from '../_components/LoginCard';
+import { LoginForm } from '../_components/LoginForm';
 
 function Harness() {
   const form = useForm({ defaultValues: { email: '', password: '', twoFactorCode: '' } });
@@ -38,10 +38,10 @@ function Harness() {
     appleAvailable: true,
     continueAsGuest: jest.fn(),
   } as any;
-  return <LoginCard f={f} />;
+  return <LoginForm f={f} />;
 }
 
-describe('LoginCard — koşullar girişten önce görünür', () => {
+describe('LoginForm — koşullar girişten önce görünür', () => {
   beforeEach(() => mockPush.mockClear());
 
   it('koşul bildirimi sosyal giriş düğmeleriyle birlikte görünür', () => {

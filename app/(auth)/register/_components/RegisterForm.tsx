@@ -51,7 +51,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         : null;
 
   return (
-    <View style={styles.card}>
+    <View style={styles.form}>
       <Controller
         control={control}
         name="username"
@@ -59,7 +59,6 @@ export function RegisterForm({ f }: { f: RegisterController }) {
           <Input
             testID="register-username-input"
             label={t('auth.usernameLabel')}
-            leftIconName="at-outline"
             rightIcon={usernameStatusIcon}
             placeholder="kaan.merakli"
             value={value}
@@ -77,7 +76,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         )}
       />
       <Text variant="bodySm" tone="muted" style={styles.fieldHint}>
-        Kullanıcı adı bir kez belirlenince değiştirilemez.
+        {t('settings.usernameClaimedHint')}
       </Text>
 
       <Controller
@@ -87,7 +86,6 @@ export function RegisterForm({ f }: { f: RegisterController }) {
           <Input
             testID="register-displayName-input"
             label={t('auth.fullNameLabel')}
-            leftIconName="person-outline"
             placeholder={t('auth.fullNamePlaceholder')}
             value={value}
             onChangeText={onChange}
@@ -103,7 +101,6 @@ export function RegisterForm({ f }: { f: RegisterController }) {
           <Input
             testID="register-email-input"
             label={t('auth.email')}
-            leftIconName="mail-outline"
             placeholder={t('auth.emailPlaceholder')}
             value={value}
             onChangeText={onChange}
@@ -137,7 +134,6 @@ export function RegisterForm({ f }: { f: RegisterController }) {
           <Input
             testID="register-password-input"
             label={t('auth.password')}
-            leftIconName="lock-closed-outline"
             placeholder="••••••••"
             value={value}
             onChangeText={onChange}
@@ -165,7 +161,6 @@ export function RegisterForm({ f }: { f: RegisterController }) {
           <Input
             testID="register-confirmPassword-input"
             label={t('auth.confirmPassword')}
-            leftIconName="lock-closed-outline"
             placeholder="••••••••"
             value={value}
             onChangeText={onChange}
@@ -214,7 +209,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         <Text variant="bodySm" tone="danger">{errors.acceptKvkk.message}</Text>
       ) : null}
 
-      <HStack justify="center" wrap gap={1} style={{ marginTop: 8 }}>
+      <HStack wrap gap={1} style={styles.legalLinks}>
         <Text variant="bodySm" tone="primary" weight="semibold" onPress={() => router.push('/terms')}>
           {t('footer.terms')}
         </Text>
@@ -223,7 +218,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
           {t('footer.privacy')}
         </Text>
       </HStack>
-      <HStack justify="center">
+      <HStack>
         <Text
           variant="bodySm"
           tone="primary"
@@ -237,7 +232,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
       </HStack>
 
       {registerMutation.isError ? (
-        <Text variant="bodySm" tone="danger" align="center" style={{ marginTop: 8 }}>
+        <Text variant="bodySm" tone="danger">
           {(() => {
             const err = registerMutation.error as any;
             const msg = err?.response?.data?.message;
@@ -256,7 +251,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         onPress={f.handleSubmit(f.onSubmit)}
         isLoading={registerMutation.isPending}
         disabled={registerMutation.isPending || usernameAvailability.available === false}
-        style={{ marginTop: 16 }}
+        style={styles.submit}
       />
     </View>
   );
