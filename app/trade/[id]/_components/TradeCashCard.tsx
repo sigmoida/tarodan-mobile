@@ -1,12 +1,11 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Card, Text, theme } from '@/ui';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Badge, SectionCard, Text, theme } from '@/ui';
 import { formatPrice } from '@/utils/format';
 import type { Trade } from '../_lib/types';
 
-const { colors } = theme;
+const { colors, spacing } = theme;
 
 export function TradeCashCard({
   trade,
@@ -31,49 +30,29 @@ export function TradeCashCard({
   if (!(trade.cashAmount != null && Number(trade.cashAmount) > 0)) return null;
 
   return (
-    <Card style={{ ...styles.card, ...styles.cashCard }}>
-      <View style={styles.cashHeaderRow}>
-        <View style={{ flex: 1 }}>
-          <Text variant="caption" tone="muted">{t('trade.cashDifferenceLine')}</Text>
-          <Text variant="h2" style={styles.cashBig}>{formatPrice(Math.abs(Number(trade.cashAmount ?? 0)))}</Text>
-          {cashCommission > 0 && cashTotal > 0 ? (
-            <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[0.5] }}>
-              {t('trade.commissionLine')}: {formatPrice(cashTotal)}
-            </Text>
-          ) : null}
-          <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[0.5] }}>
-            {trade.cashPayerId === userId
-              ? t('trade.iWillPay')
-              : t('trade.willPayBy', { name: otherPartyName })}
+    <SectionCard style={styles.card} bodyStyle={styles.body}>
+      <View style={{ flex: 1, gap: spacing[0.5] }}>
+        <Text variant="caption" tone="muted">{t('trade.cashDifferenceLine')}</Text>
+        <Text variant="h2" weight="bold" style={{ color: colors.success[700]! }}>
+          {formatPrice(Math.abs(Number(trade.cashAmount ?? 0)))}
+        </Text>
+        {cashCommission > 0 && cashTotal > 0 ? (
+          <Text variant="caption" tone="muted">
+            {t('trade.commissionLine')}: {formatPrice(cashTotal)}
           </Text>
-        </View>
-        <View style={{ alignItems: 'flex-end', gap: theme.spacing[1.5] }}>
-          <MaterialCommunityIcons name="cash-multiple" size={28} color={colors.success[600]!} />
-          {cashPaid ? (
-            <View style={styles.paidChip}>
-              <Ionicons name="checkmark-circle" size={14} color={colors.success[700]!} />
-              <Text style={styles.paidChipText}>{t('trade.paymentPaid')}</Text>
-            </View>
-          ) : null}
-        </View>
+        ) : null}
+        <Text variant="caption" tone="muted">
+          {trade.cashPayerId === userId
+            ? t('trade.iWillPay')
+            : t('trade.willPayBy', { name: otherPartyName })}
+        </Text>
       </View>
-    </Card>
+      {cashPaid ? <Badge variant="success" size="sm">{t('trade.paymentPaid')}</Badge> : null}
+    </SectionCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { margin: theme.spacing[4], marginTop: theme.spacing[0], backgroundColor: colors.surface.DEFAULT },
-  cashCard: { backgroundColor: colors.success[50]!, borderWidth: 1, borderColor: colors.success[200]! },
-  cashHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[3] },
-  cashBig: { color: colors.success[700]!, fontWeight: 'bold', marginTop: theme.spacing[0.5] },
-  paidChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[1],
-    backgroundColor: colors.success[100]!,
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: 3,
-    borderRadius: 999,
-  },
-  paidChipText: { fontSize: 12, fontWeight: '700', color: colors.success[700]! },
+  card: { backgroundColor: colors.success[50]!, borderColor: colors.success[200]! },
+  body: { flexDirection: 'row', alignItems: 'center', gap: spacing[3] },
 });

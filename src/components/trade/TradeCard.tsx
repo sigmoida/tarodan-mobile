@@ -183,7 +183,6 @@ function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
       {/* Cash difference */}
       {cash > 0 ? (
         <View style={styles.cashRow}>
-          <Ionicons name="cash-outline" size={16} color={colors.primary[700]!} />
           <Text variant="caption" tone="muted">
             {t('trade.cashDifferenceLine')}
           </Text>
@@ -212,8 +211,8 @@ function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.white,
-    borderRadius: radius.xl,
+    backgroundColor: colors.surface.elevated,
+    borderRadius: theme.radiusRole.card,
     borderWidth: 1,
     borderColor: colors.border.DEFAULT,
     padding: spacing[3.5],

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { router } from "expo-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { appAlert } from "@/ui";
+import { appAlert, toast } from "@/ui";
 import { tradesApi, paymentsApi } from "@/lib/api";
 import { qk } from "@/lib/query";
 import { useTranslation } from "react-i18next";
@@ -15,7 +15,7 @@ import {
 
 /**
  * Takas detay controller'ı: 6 mutation (kabul/reddet/onayla/nakit-öde/iptal/itiraz)
- * + snackbar + iki modalın (reddet/itiraz) UI durumu + teslimat adresi. Tüm iş
+ * + toast bildirimi + iki modalın (reddet/itiraz) UI durumu + teslimat adresi. Tüm iş
  * mantığı ekrandan buraya taşındı; index yalnız kompozisyon yapar.
  */
 export function useTradeActions(id: string) {
@@ -26,9 +26,8 @@ export function useTradeActions(id: string) {
   const { requireIdentityFor, checkingTarget } =
     useRequireLegalIdentityFor<"accept" | "cashPay">();
 
-  const [snackbar, setSnackbar] = useState({ visible: false, message: "" });
-  const notify = (message: string) => setSnackbar({ visible: true, message });
-  const dismissSnackbar = () => setSnackbar((s) => ({ ...s, visible: false }));
+  // Bilgi/başarı/doğrulama mesajları toast (web react-hot-toast); onay diyalogları appAlert.
+  const notify = (message: string) => toast(message);
 
   const [tradeAddressId, setTradeAddressId] = useState<string | null>(null);
 
@@ -188,9 +187,7 @@ export function useTradeActions(id: string) {
   };
 
   return {
-    snackbar,
     notify,
-    dismissSnackbar,
     // teslimat adresi
     setTradeAddressId,
     // reddet modal

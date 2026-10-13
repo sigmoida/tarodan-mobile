@@ -82,10 +82,15 @@ const styles = StyleSheet.create({
   stepCol: { flex: 1, alignItems: 'center' },
   stepLineRow: { flexDirection: 'row', alignItems: 'center', width: '100%' },
   stepLine: { flex: 1, height: 2 },
-  stepCircle: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  stepCircle: { width: 26, height: 26, borderRadius: theme.radius.full, alignItems: 'center', justifyContent: 'center' },
   stepDone: { backgroundColor: colors.primary[500]! },
   stepActive: { backgroundColor: colors.primary[600]!, borderWidth: 3, borderColor: colors.primary[100]! },
   stepFuture: { backgroundColor: colors.surface.alt, borderWidth: 1, borderColor: colors.border.DEFAULT },
-  stepNum: { fontSize: 12, fontWeight: '600' },
-  stepLabel: { fontSize: 10, textAlign: 'center', marginTop: theme.spacing[1.5], lineHeight: 13 },
+  stepNum: { fontSize: theme.typography.fontSize.xs, fontWeight: theme.typography.fontWeight.semibold },
+  stepLabel: {
+    fontSize: theme.typography.fontSize['2xs'],
+    textAlign: 'center',
+    marginTop: theme.spacing[1.5],
+    lineHeight: theme.typography.fontSize['2xs'] * theme.typography.lineHeight.snug,
+  },
 });

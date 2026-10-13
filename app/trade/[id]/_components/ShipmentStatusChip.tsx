@@ -38,8 +38,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: theme.spacing[2.5],
     paddingVertical: theme.spacing[1],
-    borderRadius: 999,
+    borderRadius: theme.radius.full,
     alignSelf: "flex-start",
   },
-  shipmentChipText: { fontSize: 12, fontWeight: "600" },
+  shipmentChipText: {
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: theme.typography.fontWeight.semibold,
+  },
 });

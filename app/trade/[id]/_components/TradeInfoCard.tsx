@@ -1,15 +1,13 @@
 import React from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Card, Text, theme } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
+import { Avatar, Badge, SectionCard, Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import type { Trade } from '../_lib/types';
 
-const { colors } = theme;
-
+/** Takas başlığı (numara, karşı teklif rozeti, tarih) + karşı taraf satırı. */
 export function TradeInfoCard({
   trade,
   isInitiator,
@@ -21,60 +19,43 @@ export function TradeInfoCard({
 }) {
   const { t } = useTranslation();
   return (
-    <Card style={styles.card}>
-      <View style={styles.tradeHeader}>
-        <View style={styles.tradeHeaderTop}>
-          <Text variant="h3">{t('trade.tradeNumberTitle', { number: trade.tradeNumber })}</Text>
-          {trade.version && trade.version > 1 ? (
-            <View style={styles.versionBadge}>
-              <Text style={styles.versionBadgeText}>{t('trade.counterOfferNumber', { number: trade.version - 1 })}</Text>
-            </View>
-          ) : null}
-        </View>
-        <Text variant="caption" style={styles.dateText}>
-          {format(new Date(trade.createdAt), 'dd MMMM yyyy HH:mm', { locale: tr })}
-        </Text>
+    <SectionCard bodyStyle={styles.body}>
+      <View style={styles.top}>
+        <Text variant="h3" tone="heading">{t('trade.tradeNumberTitle', { number: trade.tradeNumber })}</Text>
+        {trade.version && trade.version > 1 ? (
+          <Badge variant="default" size="sm">{t('trade.counterOfferNumber', { number: trade.version - 1 })}</Badge>
+        ) : null}
       </View>
+      <Text variant="caption" tone="muted">
+        {format(new Date(trade.createdAt), 'dd MMMM yyyy HH:mm', { locale: tr })}
+      </Text>
 
       <Pressable
-        style={({ pressed }) => [styles.otherParty, pressed && { opacity: 0.85 }]}
+        style={styles.otherParty}
         onPress={() => router.push(`/seller/${otherParty.id}`)}
+        accessibilityRole="link"
       >
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{otherParty.displayName.charAt(0).toUpperCase()}</Text>
-        </View>
+        <Avatar name={otherParty.displayName} size="md" />
         <View style={styles.otherPartyInfo}>
-          <Text variant="body">{isInitiator ? t('order.buyer') : t('trade.initiatorLabel')}</Text>
-          <Text variant="label">{otherParty.displayName}</Text>
+          <Text variant="bodySm" tone="muted">{isInitiator ? t('order.buyer') : t('trade.initiatorLabel')}</Text>
+          <Text variant="body" weight="medium" tone="heading">{otherParty.displayName}</Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
       </Pressable>
-    </Card>
+    </SectionCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { margin: theme.spacing[4], marginTop: theme.spacing[0], backgroundColor: colors.surface.DEFAULT },
-  tradeHeader: { marginBottom: theme.spacing[4] },
-  tradeHeaderTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: theme.spacing[2] },
-  versionBadge: { backgroundColor: colors.primary[100]!, paddingHorizontal: theme.spacing[2], paddingVertical: 3, borderRadius: theme.radius.lg },
-  versionBadgeText: { fontSize: 11, fontWeight: '700', color: colors.primary[700]! },
-  dateText: { color: colors.text.muted, marginTop: theme.spacing[1] },
+  body: { gap: theme.spacing[1] },
+  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: theme.spacing[2] },
   otherParty: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: theme.spacing[3],
+    marginTop: theme.spacing[3],
     paddingTop: theme.spacing[3],
     borderTopWidth: 1,
-    borderTopColor: colors.border.DEFAULT,
+    borderTopColor: theme.colors.border.DEFAULT,
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary[600]!,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: { color: colors.white, fontWeight: 'bold', fontSize: 16 },
-  otherPartyInfo: { flex: 1, marginLeft: theme.spacing[3] },
+  otherPartyInfo: { flex: 1 },
 });
