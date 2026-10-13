@@ -117,7 +117,7 @@ Her flow YAML başında `tags:` bloğu ile bir öncelik kategorisine atanır:
 | F-02 | Yanlış şifre → recover with right (form reload yok) | `regression` | zeynep |
 | F-03 | Forgot password → success notice | `regression` | zeynep |
 | F-04 | Logout superset (input cleared, no toast error) | `regression` | zeynep |
-| F-05 | Tab navigation (Ana Sayfa/Ara/Mesajlar/Profil) | `smoke` | zeynep |
+| F-05 | Tab navigation (Ana Sayfa/Favoriler/Mesajlar/Profil) + arama alanından arama | `smoke` | zeynep |
 | F-06 | Search → product detail → back nav | `smoke` | zeynep |
 | F-07 | Category drill-down (3-deep) | `regression` | zeynep |
 | F-08 | Favorite toggle (list + detail) | `manual` | zeynep — heart accessibility label kararsız |
@@ -161,7 +161,7 @@ maestro/
 ├── flows/               # numaralı, bağımsız e2e senaryolar
 │   ├── 01-smoke.yaml              # ✅ Tarodan açılır, home content
 │   ├── 02-auth-login.yaml         # ✅ Profil tab + login/logout idempotent
-│   ├── 03-search.yaml             # ✅ Ara tab listesi yüklenir
+│   ├── 03-search.yaml             # ✅ Arama ekranı (üst bar arama alanından) listesi yüklenir
 │   ├── 04-checkout-bypass.yaml    # 🔶 PLACEHOLDER — testID eklenince aktive
 │   └── 05-ilanlarim-diagnostic.yaml # ✅ İlanlarım ekranı açılır + boş hata yok
 └── subflows/            # paylaşılan parça akışlar
@@ -169,14 +169,15 @@ maestro/
     ├── login-as.yaml          # Profil → Giriş Yap formu (zeynep, hard-coded)
     ├── logout.yaml            # Profil → Çıkış Yap
     ├── open-first-order.yaml  # Profil → Siparişlerim → ilk kart
-    └── open-first-trade.yaml  # Profil → Takaslarım → liste
+    ├── open-first-trade.yaml  # Profil → Takaslarım → liste
+    └── open-search.yaml       # Üst bar arama alanına dokun → /search (Ara sekmesi yok)
 ```
 
 ## Selector stratejisi (önemli)
 
 Expo Router + React Native Paper UI'ı Maestro'nun text dump'ına `text` alanı olarak değil **`accessibilityText`** olarak çıkıyor. Maestro `tapOn: "..."` accessibility text'inde substring/regex araması yapar. Bu yüzden:
 
-- ✅ İyi: `tapOn: text: "Profil"` (tab bar her ekrana `tabBarAccessibilityLabel` ile temiz string'i alır — bkz. [(tabs)/_layout.tsx](../app/(tabs)/_layout.tsx))
+- ✅ İyi: `tapOn: id: "tab-profile"` — alt menü sekmeleri testID ile (`tab-home`, `tab-favorites`, `tab-sell`, `tab-messages`, `tab-profile`; bkz. [AppTabBar](../src/components/shell/AppTabBar.tsx)). Arama: `runFlow: ../subflows/open-search.yaml`
 - ✅ İyi: `assertVisible: text: ".*sonuç bulundu.*"`
 - ❌ Çalışmaz: `tapOn: "Profil"` (anchor'sız aramada multi-part label'a takılabilir)
 

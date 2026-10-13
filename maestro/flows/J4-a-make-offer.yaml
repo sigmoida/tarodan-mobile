@@ -23,7 +23,7 @@ tags:
 # Profil → girişliyse çıkış yap (stale token başka kullanıcı olabilir). Hem logout
 # hem unauthenticated yolu login ekranına (login-email-input) yakınsar.
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 # Girişliyse (go-login butonu YOKSA) çıkış yap — stale token ahmet olabilir.
 # logout.yaml scrollUntilVisible ile logout butonunu bulur ("Çıkış Yap" metni
 # scroll gerektirdiğinden metin-guard güvenilmezdi).
@@ -65,15 +65,14 @@ tags:
           optional: true
 # Ana sayfaya dön + ana sayfa arama kutusunu doğrula.
 - tapOn:
-    text: "Ana Sayfa"
+    id: "tab-home"
     optional: true
 - extendedWaitUntil:
     visible:
       id: "home-search-input"
     timeout: 30000
 # Arama → ürün detay (Journey 1 deseni: hideKeyboard + kart testID)
-- tapOn:
-    text: "Ara"
+- runFlow: ../subflows/open-search.yaml
 - extendedWaitUntil:
     visible:
       id: "search-input"
