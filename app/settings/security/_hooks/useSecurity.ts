@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { qk } from "@/lib/query";
 import { router, useLocalSearchParams } from "expo-router";
-import { appAlert, useModalMessage, alertAfterClose } from "@/ui";
+import { appAlert, useModalMessage, toast } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
 import { authApi } from "@/lib/api";
 import { useTranslation } from "react-i18next";
@@ -149,16 +149,13 @@ export function useSecurity() {
       await authApi.verifyPhone(phoneCode);
       setPhoneVerified(true);
       await refreshUserData();
-      // Önce modal'ı kapat, başarı alert'ini modal TAMAMEN kapandıktan sonra göster.
-      // Aynı anda kapatıp açmak iOS'ta modal sunum çakışması → donma yapıyordu.
+      // Önce modal'ı kapat; başarı bilgisi toast (diyalog değil — iOS modal sunum
+      // çakışması donma yapıyordu, toast modal sunumu açmaz).
       setShowPhoneDialog(false);
       setPhoneStep("enter");
       setPhoneCode("");
       setPhoneMsg(null);
-      setTimeout(
-        () => appAlert(t('common.success'), t('security.phoneVerified')),
-        400,
-      );
+      toast.success(t('security.phoneVerified'));
     } catch (e: any) {
       // Hata da modal açıkken: alert yerine modal-içi hata mesajı.
       setPhoneMsg({
@@ -206,11 +203,8 @@ export function useSecurity() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      alertAfterClose(
-        () => setShowPasswordDialog(false),
-        t('common.success'),
-        t('security.passwordChanged'),
-      );
+      setShowPasswordDialog(false);
+      toast.success(t('security.passwordChanged'));
     } catch (error: any) {
       pwMsg.error(error.response?.data?.message || t('security.passwordChangeFailed'));
     } finally {
@@ -250,11 +244,8 @@ export function useSecurity() {
       await authApi.verifyTwoFactor(verificationCode);
       setTwoFactorEnabled(true);
       setVerificationCode("");
-      alertAfterClose(
-        () => setShowTwoFactorSetup(false),
-        t('common.success'),
-        t('security.twoFactorEnabled'),
-      );
+      setShowTwoFactorSetup(false);
+      toast.success(t('security.twoFactorEnabled'));
     } catch (error: any) {
       twoFaMsg.error(error.response?.data?.message || t('security.verificationFailed'));
     } finally {
@@ -280,11 +271,8 @@ export function useSecurity() {
       await authApi.disableTwoFactor(disableCode);
       setTwoFactorEnabled(false);
       setDisableCode("");
-      alertAfterClose(
-        () => setShowDisableDialog(false),
-        t('common.success'),
-        t('security.twoFactorDisabled'),
-      );
+      setShowDisableDialog(false);
+      toast.success(t('security.twoFactorDisabled'));
     } catch (error: any) {
       disableMsg.error(error.response?.data?.message || t('common.operationFailed'));
     } finally {
