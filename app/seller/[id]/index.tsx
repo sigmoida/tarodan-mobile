@@ -40,7 +40,7 @@ export default function SellerProfileScreen() {
             testID="seller-actions-button"
             userId={f.sellerId}
             userName={f.seller.displayName || f.seller.companyName || ''}
-            color={theme.colors.text.heading}
+            glass
             onBlocked={goBack}
           />
         ) : undefined

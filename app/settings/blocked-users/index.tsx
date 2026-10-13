@@ -1,7 +1,7 @@
-import { FlatList } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { EmptyState, Text, pageListContentStyle } from '@/ui';
+import { EmptyState, TopBarLabel, pageListContentStyle, usePageScrollHandler } from '@/ui';
 
 import { AuthGatePage } from '@/components/common/AuthGatePage';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
@@ -9,7 +9,6 @@ import { PageShell } from '@/components/common/PageShell';
 import { useBlockUser } from '@/hooks/useBlockUser';
 import { useBlockedUsers } from './_hooks/useBlockedUsers';
 import { BlockedUserRow } from './_components/BlockedUserRow';
-import { styles } from './_lib/styles';
 
 /**
  * Profil → Engellenen Kullanıcılar (Apple App Review 1.2: engellenenler listesi
@@ -20,6 +19,7 @@ export default function BlockedUsersScreen() {
   const f = useBlockedUsers();
   const { requestUnblock, pending } = useBlockUser();
   const title = t('profile.blockedPage.title');
+  const page = usePageScrollHandler();
 
   if (!f.isAuthenticated) {
     return (
@@ -35,15 +35,17 @@ export default function BlockedUsersScreen() {
     <PageShell
       title={title}
       mode="list"
+      scroll={page}
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/profile'))}
-      right={<Text style={styles.headerCount}>{f.blocked.length}</Text>}
+      right={<TopBarLabel>{f.blocked.length}</TopBarLabel>}
       loading={f.isLoading}
       loadingFallback={<RowListSkeleton />}
     >
-      <FlatList
+      <Animated.FlatList
+        {...page.listProps}
         data={f.blocked}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={pageListContentStyle}
+        contentContainerStyle={page.contentStyle(pageListContentStyle)}
         ListEmptyComponent={
           <EmptyState
             icon="no-symbol"

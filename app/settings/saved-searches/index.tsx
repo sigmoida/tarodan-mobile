@@ -1,4 +1,4 @@
-import { Alert, Button, EmptyState, Text } from "@/ui";
+import { Alert, Button, EmptyState, Text, TopBarLabel } from "@/ui";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSavedSearches } from "./_hooks/useSavedSearches";
@@ -6,7 +6,6 @@ import UpgradeCta from "@/components/UpgradeCta";
 import { AuthGatePage } from "@/components/common/AuthGatePage";
 import { PageShell } from "@/components/common/PageShell";
 import { RowListSkeleton } from "@/components/common/RowListSkeleton";
-import { styles } from "./_lib/styles";
 import { SavedSearchCard } from "./_components/SavedSearchCard";
 
 /** Kayıtlı aramalar — PageShell (Skeleton) + web Card'ları; limit uyarısı Alert, boşken EmptyState. */
@@ -33,9 +32,9 @@ export default function SavedSearchesScreen() {
       title={t("mobile.settingsSavedSearches")}
       onBack={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)"))}
       right={
-        <Text style={styles.headerCount}>
+        <TopBarLabel>
           {f.searches.length}/{f.maxSavedSearches === -1 ? "∞" : f.maxSavedSearches}
-        </Text>
+        </TopBarLabel>
       }
       loading={f.isLoading}
       loadingFallback={<RowListSkeleton rows={4} />}

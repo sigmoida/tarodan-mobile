@@ -1,5 +1,6 @@
-import { View, FlatList, RefreshControl } from 'react-native';
-import { theme, Chip, EmptyState, Input, pageListContentStyle, SkeletonCard } from '@/ui';
+import { View, RefreshControl } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { theme, Chip, EmptyState, Input, pageListContentStyle, SkeletonCard, usePageScrollHandler } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PageShell } from '@/components/common/PageShell';
@@ -17,14 +18,17 @@ const { colors } = theme;
 export default function CollectionsScreen() {
   const { t } = useTranslation();
   const f = useCollectionsBrowse();
+  const page = usePageScrollHandler();
 
   return (
     <PageShell
       title={t('collection.collections')}
       mode="list"
+      scroll={page}
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
     >
-      <FlatList
+      <Animated.FlatList
+        {...page.listProps}
         data={f.isLoading ? [] : f.filteredCollections}
         renderItem={({ item }) => (
           <View style={styles.cell}>
@@ -34,13 +38,14 @@ export default function CollectionsScreen() {
         keyExtractor={(item) => item.id}
         numColumns={2}
         columnWrapperStyle={styles.row}
-        contentContainerStyle={[pageListContentStyle, styles.footer]}
+        contentContainerStyle={page.contentStyle([pageListContentStyle, styles.footer])}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={f.isRefetching}
             onRefresh={f.refetch}
+            progressViewOffset={page.topInset}
             colors={[colors.primary[600]!]}
             tintColor={colors.primary[600]!}
           />

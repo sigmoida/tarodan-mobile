@@ -1,8 +1,9 @@
 import React from 'react';
-import { FlatList, Image, RefreshControl, StyleSheet, View } from 'react-native';
+import { Image, RefreshControl, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { EmptyState, ErrorState, Input, RawText, SkeletonAvatar, SkeletonText, Text, pageListContentStyle, theme, ListRowCard } from '@/ui';
+import { EmptyState, ErrorState, Input, RawText, SkeletonAvatar, SkeletonText, Text, pageListContentStyle, theme, ListRowCard, usePageScrollHandler } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { useManufacturers, type Manufacturer } from './_hooks/useManufacturers';
@@ -43,19 +44,22 @@ function ManufacturerRow({ item }: { item: Manufacturer }) {
 export default function ManufacturersScreen() {
   const { t } = useTranslation();
   const f = useManufacturers();
+  const page = usePageScrollHandler();
 
   return (
-    <PageShell title={t('nav.manufacturers')} mode="list">
-      <FlatList
+    <PageShell title={t('nav.manufacturers')} mode="list" scroll={page}>
+      <Animated.FlatList
+        {...page.listProps}
         data={f.isLoading || f.error ? [] : f.items}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <ManufacturerRow item={item} />}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={page.contentStyle(styles.content)}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={f.isRefetching}
             onRefresh={f.refetch}
+            progressViewOffset={page.topInset}
             colors={[colors.primary[600]!]}
             tintColor={colors.primary[600]!}
           />

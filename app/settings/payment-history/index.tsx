@@ -1,7 +1,7 @@
-import { FlatList } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { EmptyState, pageListContentStyle } from '@/ui';
+import { EmptyState, pageListContentStyle, usePageScrollHandler } from '@/ui';
 import { AuthGatePage } from '@/components/common/AuthGatePage';
 import { PageShell } from '@/components/common/PageShell';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
@@ -12,6 +12,7 @@ import { PaymentHistoryItem } from './_components/PaymentHistoryItem';
 export default function PaymentHistoryScreen() {
   const { t } = useTranslation();
   const f = usePaymentHistory();
+  const page = usePageScrollHandler();
   const title = t('mobile.settingsPaymentHistory');
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
@@ -32,14 +33,16 @@ export default function PaymentHistoryScreen() {
       title={title}
       onBack={back}
       mode="list"
+      scroll={page}
       loading={f.isLoading}
       loadingFallback={<RowListSkeleton rows={5} />}
     >
-      <FlatList
+      <Animated.FlatList
+        {...page.listProps}
         data={f.payments}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <PaymentHistoryItem item={item} onPress={f.handlePaymentPress} />}
-        contentContainerStyle={pageListContentStyle}
+        contentContainerStyle={page.contentStyle(pageListContentStyle)}
         refreshing={f.isRefreshing}
         onRefresh={() => f.fetchPayments()}
         ListEmptyComponent={

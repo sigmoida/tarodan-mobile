@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
-import { View, FlatList, RefreshControl } from 'react-native';
+import { View, RefreshControl } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { PageShell } from '@/components/common/PageShell';
-import { pageListContentStyle, theme } from '@/ui';
+import { pageListContentStyle, theme, usePageScrollHandler } from '@/ui';
 import ProductFilterSheet from '@/components/ProductFilterSheet';
 import {
   ProductCard,
@@ -36,11 +37,13 @@ export default function ListingsScreen() {
   const isList = f.layout === 'list';
   const rows = useMemo(() => withInlineAds(f.listings, isList ? 1 : 2), [f.listings, isList]);
   const cellWidth = useProductCellWidth();
+  const page = usePageScrollHandler();
 
   return (
     <PageShell
       title={t('common.listings')}
       mode="list"
+      scroll={page}
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       overlay={
         <>
@@ -66,7 +69,8 @@ export default function ListingsScreen() {
         </>
       }
     >
-      <FlatList
+      <Animated.FlatList
+        {...page.listProps}
         data={f.isLoading ? [] : rows}
         keyExtractor={(row) => row.key}
         renderItem={({ item: row }: { item: GridRow<any> }) =>
@@ -82,13 +86,14 @@ export default function ListingsScreen() {
             </View>
           )
         }
-        contentContainerStyle={[pageListContentStyle, styles.content]}
+        contentContainerStyle={page.contentStyle([pageListContentStyle, styles.content])}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={f.isRefetching}
             onRefresh={f.refetch}
+            progressViewOffset={page.topInset}
             colors={[colors.primary[600]!]}
             tintColor={colors.primary[600]!}
           />

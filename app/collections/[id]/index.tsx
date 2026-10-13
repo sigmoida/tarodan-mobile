@@ -1,4 +1,3 @@
-import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { TopBarAction } from '@/ui';
@@ -35,7 +34,7 @@ export default function CollectionDetailScreen() {
       onRefresh={f.onRefresh}
       right={
         f.collection ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <>
             <TopBarAction icon="share" accessibilityLabel={t('collection.share')} onPress={f.handleShare} />
             {!f.isOwner ? (
               <>
@@ -52,7 +51,7 @@ export default function CollectionDetailScreen() {
                 />
               </>
             ) : null}
-          </View>
+          </>
         ) : undefined
       }
       overlay={

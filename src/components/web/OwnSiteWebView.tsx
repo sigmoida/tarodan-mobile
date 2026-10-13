@@ -61,7 +61,7 @@ export function OwnSiteWebView({
 
   return (
     <View style={styles.root} testID={testID}>
-      <ScreenHeader title={title} onBack={back} />
+      <ScreenHeader floating={false} title={title} onBack={back} />
       {blocked ? null : target ? (
         <WebView
           ref={webRef}

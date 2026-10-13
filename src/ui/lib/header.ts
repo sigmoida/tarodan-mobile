@@ -1,4 +1,5 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { theme } from './theme';
 
 /**
  * Üst barların (ScreenHeader, PageShell, AppShell, AuthShell, sohbet, tam ekran sheet, görsel
@@ -12,4 +13,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
  */
 export function useHeaderTopInset(): number {
   return useSafeAreaInsets().top;
+}
+
+/**
+ * Yüzen üst barın kapladığı toplam yükseklik: güvenli alan üstü + `theme.headerHeight`. İçerik bar
+ * ALTINDAN kaydığı için kaydırılabilir listeler bu kadar üst boşlukla başlar (`PageShell` kendi
+ * gövdesi için otomatik ekler; ekranın kendi listesi için `usePageScrollHandler().topInset`).
+ */
+export function useHeaderBarInset(): number {
+  return useHeaderTopInset() + theme.headerHeight;
 }

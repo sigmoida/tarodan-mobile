@@ -1,11 +1,11 @@
 import React from 'react';
 import { StyleSheet, Text } from 'react-native';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { GLASS_ICON_BUTTON_SIZE, ScreenHeader, theme } from '@/ui';
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react-native';
+import { GLASS_ICON_BUTTON_SIZE, ScreenHeader, theme, usePageScrollValue } from '@/ui';
 import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
 import { AppShell, APP_SHELL_BAR_HEIGHT } from '../AppShell';
 import { SideMenuProvider, useSideMenu } from '../SideMenuContext';
-import { TabBarCollapseProvider, useTabBarCollapsed } from '../TabBarCollapse';
+import { TabBarCollapseProvider, useTabBarCollapsed, useTabBarScrollHandler } from '../TabBarCollapse';
 
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 jest.mock('expo-status-bar', () => ({
@@ -98,9 +98,8 @@ describe('AppShell — tek satır beyaz bar', () => {
     const stackRow = StyleSheet.flatten(screen.getByTestId('screen-header-row').props.style);
     // Tab kökü <-> yığın ekranı: barın alt kenarı aynı y'de (inset + satır yüksekliği).
     expect(stackBar.paddingTop).toBe(shellBar.paddingTop);
-    // Aynı zemin + alt çizgi kuralı.
-    expect(stackBar.backgroundColor).toBe(shellBar.backgroundColor);
-    expect(stackBar.borderBottomColor).toBe(shellBar.borderBottomColor);
+    // Yığın barı yüzer ve zeminsizdir (kenar şeridi ayrı katman); ana sayfa barı kendi zemini.
+    expect(stackBar.backgroundColor).toBeUndefined();
     expect(stackRow.height).toBe(APP_SHELL_BAR_HEIGHT);
   });
 
@@ -225,5 +224,70 @@ describe('AppShell variant="title" — Ana Sayfa dışındaki sekme kökleri', (
   it('sağ aksiyon slotu çizilir', () => {
     render(<AppShell variant="title" title="Profil" right={<Text>aksiyon</Text>} />);
     expect(screen.getByText('aksiyon')).toBeTruthy();
+  });
+});
+
+describe('AppShell variant="title" — yüzen ortalı bar + kaydırma kenarı', () => {
+  function Bound() {
+    const page = usePageScrollValue();
+    return (
+      <AppShell variant="title" title="Mesajlar" scroll={page}>
+        <Text>liste</Text>
+      </AppShell>
+    );
+  }
+
+  it('bar yüzer (absolute), başlık ortalı; geri oku yok', () => {
+    render(<AppShell variant="title" title="Mesajlar" />);
+    expect(StyleSheet.flatten(screen.getByTestId('app-shell-bar').props.style).position).toBe('absolute');
+    expect(StyleSheet.flatten(screen.getByText('Mesajlar').props.style).textAlign).toBe('center');
+    expect(screen.queryByLabelText('Geri')).toBeNull();
+  });
+
+  it('kaydırma sinyali bağlı değilse gövde bar altında başlar (inset + headerHeight) ve şerit sabit', () => {
+    mockTop = 47;
+    render(<AppShell variant="title" title="Mesajlar" />);
+    expect(StyleSheet.flatten(screen.getByTestId('app-shell-content').props.style).paddingTop).toBe(
+      47 + theme.headerHeight,
+    );
+    expect(StyleSheet.flatten(screen.getByTestId('app-shell-bar-edge').props.style).backgroundColor).toBe(
+      theme.colors.overlay.white95,
+    );
+  });
+
+  it('`scroll` verilince gövde tepeden başlar (liste inset verir) ve şerit kaydırmaya bağlı', () => {
+    mockTop = 47;
+    render(<Bound />);
+    expect(StyleSheet.flatten(screen.getByTestId('app-shell-content').props.style).paddingTop).toBeUndefined();
+    expect(StyleSheet.flatten(screen.getByTestId('app-shell-bar-edge').props.style).backgroundColor).toBeUndefined();
+  });
+
+  it('topInset değişince gövde yeniden mount olmaz (girilen veri korunur)', () => {
+    const mounts = jest.fn();
+    function Child() {
+      React.useEffect(() => {
+        mounts();
+      }, []);
+      return <Text>form</Text>;
+    }
+    const ui = (
+      <AppShell variant="title" title="Profil">
+        <Child />
+      </AppShell>
+    );
+    mockTop = 0;
+    const { rerender } = render(ui);
+    mockTop = 47;
+    rerender(ui);
+    expect(mounts).toHaveBeenCalledTimes(1);
+  });
+
+  it('tek handler: useTabBarScrollHandler(…, scrollY) hem alt menü hem üst bar sinyali için tek onScroll döner', () => {
+    const { result } = renderHook(() => {
+      const page = usePageScrollValue();
+      return { page, tab: useTabBarScrollHandler(undefined, page.scrollY) };
+    });
+    expect(result.current.tab.onScroll).toBeDefined();
+    expect(result.current.page.scrollY.value).toBe(0);
   });
 });

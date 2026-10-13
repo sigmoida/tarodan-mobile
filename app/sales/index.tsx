@@ -1,5 +1,6 @@
-import { View, FlatList } from 'react-native';
-import { EmptyState, SkeletonCard, pageListContentStyle } from '@/ui';
+import { View } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { EmptyState, SkeletonCard, pageListContentStyle, usePageScrollHandler } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PageShell } from '@/components/common/PageShell';
@@ -19,6 +20,7 @@ export default function SalesScreen() {
   const { t } = useTranslation();
   const s = useSales();
   const actions = useSaleActions();
+  const page = usePageScrollHandler();
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
   if (!s.isAuthenticated) {
@@ -45,12 +47,14 @@ export default function SalesScreen() {
       title={t('sellerDashboard.mySales')}
       onBack={back}
       mode="list"
+      scroll={page}
       overlay={<ShipDialog actions={actions} />}
     >
-      <FlatList
+      <Animated.FlatList
+        {...page.listProps}
         data={loading ? [] : s.filteredSales}
         keyExtractor={(sale) => sale.id}
-        contentContainerStyle={[pageListContentStyle, styles.list]}
+        contentContainerStyle={page.contentStyle([pageListContentStyle, styles.list])}
         refreshing={s.refreshing}
         onRefresh={s.onRefresh}
         ListHeaderComponent={

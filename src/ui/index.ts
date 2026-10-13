@@ -1,7 +1,21 @@
 /** @format */
 
 export { theme, type Theme } from './lib/theme';
-export { useHeaderTopInset } from './lib/header';
+export { useHeaderTopInset, useHeaderBarInset } from './lib/header';
+export {
+	usePageScrollHandler,
+	usePageScrollValue,
+	useShellPageScroll,
+	useShellScrollState,
+	useResetScrollOnBind,
+	ShellScrollProvider,
+	scrollEdgeOpacity,
+	SCROLL_EDGE_FULL_AT,
+	withTopInset,
+	type PageScroll,
+	type PageScrollValue,
+} from './lib/pageScroll';
+export { ScrollEdge, type ScrollEdgeProps } from './components/ScrollEdge';
 
 export {
 	Button,
@@ -47,6 +61,7 @@ export {
 export {
 	ScreenHeader,
 	TopBarAction,
+	TopBarLabel,
 	TOP_BAR_HEIGHT,
 	type ScreenHeaderProps,
 	type ScreenHeaderVariant,

@@ -15,6 +15,7 @@ import {
   SkeletonAvatar,
   SkeletonText,
   theme,
+  usePageScrollValue,
 } from "@/ui";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -29,7 +30,9 @@ function MessagesTabScreen() {
   const { t } = useTranslation();
   const f = useMessagesTab();
   const tabInset = useTabBarInset();
-  const tabScroll = useTabBarScrollHandler();
+  const page = usePageScrollValue();
+  // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
+  const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
 
   if (!f.isAuthenticated) {
     return (
@@ -59,9 +62,10 @@ function MessagesTabScreen() {
     ) : null;
 
   return (
-    <AppShell variant="title" title={t("mobile.messagesTitle")}>
+    <AppShell variant="title" title={t("mobile.messagesTitle")} scroll={page}>
       <Animated.FlatList
         {...tabScroll}
+        {...page.scrollProps}
         scrollEventThrottle={16}
         data={initialLoading ? [] : f.threads}
         keyExtractor={(thread) => thread.id}
@@ -86,7 +90,7 @@ function MessagesTabScreen() {
             />
           )
         }
-        contentContainerStyle={[styles.listContent, { paddingBottom: tabInset }]}
+        contentContainerStyle={page.contentStyle([styles.listContent, { paddingBottom: tabInset }])}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
@@ -94,6 +98,7 @@ function MessagesTabScreen() {
             onRefresh={f.onRefresh}
             colors={[colors.primary[600]]}
             tintColor={colors.primary[600]}
+            progressViewOffset={page.topInset}
           />
         }
         renderItem={({ item }) => <ThreadRow thread={item} f={f} />}
