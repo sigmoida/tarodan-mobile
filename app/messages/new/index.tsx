@@ -1,25 +1,19 @@
-import { View, KeyboardAvoidingView, Platform } from "react-native";
-import { Button, ScreenHeader } from "@/ui";
+import { Button } from "@/ui";
+import { PageShell } from "@/components/common/PageShell";
 import { useTranslation } from "react-i18next";
 import { useNewMessage } from "./_hooks/useNewMessage";
-import { styles } from "./_lib/styles";
 import { NewMessageBody } from "./_components/NewMessageBody";
 
+/** Yeni mesaj — PageShell (klavye kaçınma, güvenli alan) + SectionCard bölümleri, sabit "Gönder". */
 export default function NewMessageScreen() {
   const { t } = useTranslation();
   const f = useNewMessage();
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <ScreenHeader title={t("mobile.messagesNew")} onBack={f.handleBack} />
-
-      <NewMessageBody f={f} />
-
-      {/* Send Button */}
-      <View style={styles.footer}>
+    <PageShell
+      title={t("mobile.messagesNew")}
+      onBack={f.handleBack}
+      footer={
         <Button
           variant="primary"
           fullWidth
@@ -30,9 +24,10 @@ export default function NewMessageScreen() {
             !f.selectedUser || !f.messageText.trim() || !f.canSend || f.sending
           }
           isLoading={f.sending}
-          style={styles.sendButton}
         />
-      </View>
-    </KeyboardAvoidingView>
+      }
+    >
+      <NewMessageBody f={f} />
+    </PageShell>
   );
 }
