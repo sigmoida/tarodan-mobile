@@ -94,8 +94,7 @@ tags:
     timeout: 30000
 - tapOn:
     id: "product-detail-add-to-cart-button"
-- tapOn:
-    id: "product-cart-button"
+- openLink: "tarodan://cart"
 # 4b. Sepet özeti: toplam görünür
 - extendedWaitUntil:
     visible:

@@ -41,13 +41,12 @@ env:
     timeout: 30000
 - tapOn:
     id: "product-detail-add-to-cart-button"
-# Toast: "Sepete eklendi" → üst bardaki sepet ikonuyla cart'a git
+# Toast: "Sepete eklendi" → deep link ile cart rotasına git (ürün detayında sepet adası yok)
 - extendedWaitUntil:
     visible:
       text: ".*sepet.*|.*Sepete eklendi.*"
     timeout: 15000
-- tapOn:
-    id: "product-cart-button"
+- openLink: "tarodan://cart"
 - extendedWaitUntil:
     visible: "Sepetim"
     timeout: 15000

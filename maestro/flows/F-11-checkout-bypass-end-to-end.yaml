@@ -42,8 +42,7 @@ env:
     timeout: 30000
 - tapOn:
     id: "product-detail-add-to-cart-button"
-- tapOn:
-    id: "product-cart-button"
+- openLink: "tarodan://cart"
 - extendedWaitUntil:
     visible:
       id: "cart-checkout-button"

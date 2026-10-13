@@ -136,7 +136,6 @@ export default function ProductDetailScreen() {
                 reportOnly={reportOnly}
                 onFavorite={favorite.toggle}
                 onShare={actions.handleShare}
-                onCart={() => router.push('/cart')}
                 onMenu={reportOnly ? actions.handleReport : sellerActions.open}
               />
             ) : null}
