@@ -81,7 +81,8 @@ export interface BrandFontStyle {
  * - `enabled` = marka fontu yüklendi mi (`@/ui` `useBrandFont()`; kök layout `useFonts`
  *   sonrası sağlar). Yüklenmediyse/yüklenemediyse `null` döner ve sistem fontu kalır — kayıtsız
  *   bir aile adı verip iOS'ta uyarı riskine girmeyiz. Testte sağlayıcı yok → `false` → stil aynı.
- * - Stil zaten bir `fontFamily` taşıyorsa (ör. 'Courier', 'monospace') ona dokunulmaz → `null`.
+ * - Stil zaten bir `fontFamily` taşıyorsa (ör. 'Courier', 'monospace') ya da `fontStyle: 'italic'`
+ *   ise dokunulmaz → `null` (italik sistem fontunda kalır; italik Noto Sans dosyası yok).
  * - Dönüşte `fontWeight: 'normal'`: ağırlık dosyanın kendisinde; Android'de sentetik kalını,
  *   iOS'ta aile içinde yanlış dosya seçimini önler.
  */
@@ -89,8 +90,11 @@ export function brandFontStyle(
   enabled: boolean,
   weight: WeightInput,
   explicitFamily?: string | null,
+  fontStyle?: string | null,
 ): BrandFontStyle | null {
-  if (!enabled || explicitFamily) return null;
+  // İtalik: Noto Sans italik dosyaları bundle'a eklenmedi (boyut) → italik stil sistem fontunda
+  // kalır (ağırlık da sistem fontunun kendisiyle); marka ailesi/`fontWeight: 'normal'` uygulanmaz.
+  if (!enabled || explicitFamily || fontStyle === "italic") return null;
   return {
     fontFamily: brandFontFiles[normalizeFontWeight(weight)],
     fontWeight: "normal",

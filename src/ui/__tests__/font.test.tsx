@@ -70,4 +70,24 @@ describe('Text / RawText marka fontu', () => {
     );
     expect(styleOf('iç').fontFamily).toBe('NotoSans_700Bold');
   });
+
+  it('italik stil marka ailesini almaz (sistem fontunda italik kalır), ağırlık da bozulmaz', () => {
+    expect(brandFontStyle(true, '400', undefined, 'italic')).toBeNull();
+    expect(brandFontStyle(true, '400', undefined, 'normal')).not.toBeNull();
+    render(
+      <BrandFontProvider ready>
+        <RawText style={{ fontStyle: 'italic', fontWeight: '700' }}>
+          Eğik <RawText style={{ color: 'red' }}>iç</RawText>
+        </RawText>
+        <Text style={{ fontStyle: 'italic' }}>Eğik2</Text>
+      </BrandFontProvider>,
+    );
+    const outer = StyleSheet.flatten(screen.getAllByText(/Eğik/)[0].props.style);
+    expect(outer.fontFamily).toBeUndefined();
+    expect(outer.fontStyle).toBe('italic');
+    expect(outer.fontWeight).toBe('700');
+    // iç içe metin ebeveynin italiğini miras alır → o da marka ailesine geçmez
+    expect(styleOf('iç').fontFamily).toBeUndefined();
+    expect(styleOf('Eğik2').fontFamily).toBeUndefined();
+  });
 });

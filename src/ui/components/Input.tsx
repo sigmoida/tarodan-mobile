@@ -122,7 +122,12 @@ export const Input: React.FC<InputProps> = ({
 
   const effectiveSecure = secureTextEntry ? passwordHidden : false;
   const flatInput = StyleSheet.flatten(inputStyle) ?? {};
-  const fontStyle = brandFontStyle(brandFont, flatInput.fontWeight, flatInput.fontFamily);
+  const fontStyle = brandFontStyle(
+    brandFont,
+    flatInput.fontWeight,
+    flatInput.fontFamily,
+    flatInput.fontStyle,
+  );
 
   return (
     <View style={[styles.container, containerStyle, style as StyleProp<ViewStyle>]}>

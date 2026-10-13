@@ -26,6 +26,7 @@ interface TextInherit {
   weight?: TextStyle['fontWeight'];
   fontSize?: number;
   family?: string;
+  fontStyle?: TextStyle['fontStyle'];
 }
 
 const TextInheritContext = createContext<TextInherit | null>(null);
@@ -47,10 +48,11 @@ export function useBrandTextStyle(flat: TextStyle): [TextStyle | null, TextInher
   const weight = flat.fontWeight ?? parent?.weight;
   const family = flat.fontFamily ?? parent?.family;
   const fontSize = flat.fontSize ?? parent?.fontSize;
-  const inherit: TextInherit = { weight, fontSize, family };
+  const fontStyle = flat.fontStyle ?? parent?.fontStyle;
+  const inherit: TextInherit = { weight, fontSize, family, fontStyle };
   if (!enabled) return [null, inherit];
 
-  const font = brandFontStyle(true, weight, family);
+  const font = brandFontStyle(true, weight, family, fontStyle);
   const needsSpacing = flat.letterSpacing == null && (flat.fontSize != null || !parent);
   const letterSpacing = needsSpacing
     ? bodyLetterSpacing(true, fontSize ?? RN_DEFAULT_FONT_SIZE)
