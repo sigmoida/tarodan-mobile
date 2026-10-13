@@ -5,7 +5,6 @@ import {
   Platform,
   Pressable,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import i18n from 'i18next';
@@ -16,6 +15,8 @@ import {
   MODAL_PRESENT_RETRY_MS,
   MODAL_SHIELD_MAX_MS,
 } from '../lib/modal-timing';
+import { RawText } from './Text';
+import { MODAL_MAX_WIDTH } from './Modal';
 
 /**
  * Düğme verilmeyen uyarının varsayılan etiketi — arayüz dilinde. Eskiden sabit
@@ -88,7 +89,7 @@ export function resetAlertQueueForTests(): void {
   queue.length = 0;
 }
 
-const { colors, radius, spacing, typography } = theme;
+const { colors, radiusRole, spacing, typography, controlHeight } = theme;
 
 export interface AlertDialogHostProps {
   /**
@@ -305,7 +306,14 @@ export const AlertDialogHost: React.FC<AlertDialogHostProps> = ({ suspended = fa
 
   const { title, message, buttons, options } = current;
   const cancelable = options?.cancelable ?? false;
-  const vertical = buttons.length > 2;
+  // Web ConfirmDialog'un telefon görünümü: düğmeler tam genişlik, alt alta; `cancel` stilli düğme
+  // HER ZAMAN en altta (onay üstte, iptal altta). Diğerlerinin sırası çağıranın verdiği gibi
+  // KORUNUR (ters çevirme yok) — [Profil, Şikayet, Engelle, İptal] menüsü aynı sırada kalır.
+  const indexed = buttons.map((button, index) => ({ button, index }));
+  const ordered = [
+    ...indexed.filter(({ button }) => button.style !== 'cancel'),
+    ...indexed.filter(({ button }) => button.style === 'cancel'),
+  ];
 
   return (
     <>
@@ -332,10 +340,18 @@ export const AlertDialogHost: React.FC<AlertDialogHostProps> = ({ suspended = fa
         onPress={cancelable ? () => close() : undefined}
       >
         <Pressable accessible={false} style={styles.card}>
-          <Text style={styles.title}>{title}</Text>
-          {!!message && <Text style={styles.message}>{message}</Text>}
-          <View style={[styles.buttonRow, vertical && styles.buttonColumn]}>
-            {buttons.map((button, index) => {
+          <View style={styles.header}>
+            <RawText style={styles.title} accessibilityRole="header">
+              {title}
+            </RawText>
+          </View>
+          {!!message && (
+            <View style={styles.body}>
+              <RawText style={styles.message}>{message}</RawText>
+            </View>
+          )}
+          <View style={styles.footer}>
+            {ordered.map(({ button, index }) => {
               const isCancel = button.style === 'cancel';
               const isDestructive = button.style === 'destructive';
               return (
@@ -344,21 +360,20 @@ export const AlertDialogHost: React.FC<AlertDialogHostProps> = ({ suspended = fa
                   onPress={() => close(button)}
                   style={({ pressed }) => [
                     styles.button,
-                    vertical && styles.buttonFull,
                     isCancel ? styles.buttonCancel : styles.buttonSolid,
                     isDestructive && styles.buttonDestructive,
-                    pressed && { opacity: 0.85 },
+                    pressed && styles.pressed,
                   ]}
                   accessibilityRole="button"
                 >
-                  <Text
+                  <RawText
                     style={[
                       styles.buttonText,
                       isCancel ? styles.buttonTextCancel : styles.buttonTextSolid,
                     ]}
                   >
                     {button.text ?? defaultOkLabel()}
-                  </Text>
+                  </RawText>
                 </Pressable>
               );
             })}
@@ -384,63 +399,74 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: spacing[6],
   },
+  // Web Dialog kartı: rounded-xl, surface-elevated; başlık / gövde / alt şerit çizgilerle ayrılır.
   card: {
     width: '100%',
-    maxWidth: 340,
-    backgroundColor: colors.white,
-    borderRadius: radius.xl,
-    padding: spacing[6],
+    maxWidth: MODAL_MAX_WIDTH.md,
+    backgroundColor: colors.surface.elevated,
+    borderRadius: radiusRole.modal,
+    overflow: 'hidden',
+  },
+  header: {
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[4],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.DEFAULT,
   },
   title: {
     fontSize: typography.fontSize.lg,
-    fontWeight: '700',
+    lineHeight: typography.fontSize.lg * 1.25,
+    fontWeight: typography.fontWeight.semibold,
     color: colors.text.heading,
-    textAlign: 'center',
+  },
+  body: {
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
   },
   message: {
     fontSize: typography.fontSize.sm,
     lineHeight: typography.fontSize.sm * 1.5,
     color: colors.text.body,
-    textAlign: 'center',
-    marginTop: spacing[2],
   },
-  buttonRow: {
-    flexDirection: 'row',
+  footer: {
     gap: spacing[2],
-    marginTop: spacing[5],
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[4],
+    borderTopWidth: 1,
+    borderTopColor: colors.border.DEFAULT,
   },
-  buttonColumn: {
-    flexDirection: 'column',
-  },
+  // Web Button md: h-10, rounded-lg, text-sm/500.
   button: {
-    flex: 1,
-    height: 44,
-    borderRadius: radius.lg,
+    alignSelf: 'stretch',
+    height: controlHeight.md,
+    borderRadius: radiusRole.button,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing[3],
-  },
-  buttonFull: {
-    flex: 0,
-    alignSelf: 'stretch',
+    paddingHorizontal: spacing[4],
   },
   buttonSolid: {
-    backgroundColor: colors.primary[600]!,
+    backgroundColor: colors.primary[600],
   },
   buttonDestructive: {
-    backgroundColor: colors.danger[600]!,
+    backgroundColor: colors.danger[600],
   },
+  // Web ModalFooter: İptal = outline.
   buttonCancel: {
-    backgroundColor: colors.gray[100],
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+  },
+  pressed: {
+    opacity: 0.85,
   },
   buttonText: {
-    fontSize: typography.fontSize.base,
-    fontWeight: '600',
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
   },
   buttonTextSolid: {
-    color: colors.white,
+    color: colors.text.inverted,
   },
   buttonTextCancel: {
-    color: colors.gray[900],
+    color: colors.text.body,
   },
 });

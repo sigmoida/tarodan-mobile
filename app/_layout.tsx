@@ -10,7 +10,15 @@ import { StatusBar } from "expo-status-bar";
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as SplashScreen from "expo-splash-screen";
 import Constants from "expo-constants";
-import { theme, AlertDialogHost } from "@/ui";
+import { useFonts } from "expo-font";
+import { useBrandFontSession } from "@/hooks/useBrandFontSession";
+// Noto Sans (web ile aynı aile ve ağırlıklar). Alt yoldan import: paket kökü 18 dosyanın
+// hepsini paketlerdi; yalnız kullanılan 4 ağırlık bundle'a girer.
+import { NotoSans_400Regular } from "@expo-google-fonts/noto-sans/400Regular";
+import { NotoSans_500Medium } from "@expo-google-fonts/noto-sans/500Medium";
+import { NotoSans_600SemiBold } from "@expo-google-fonts/noto-sans/600SemiBold";
+import { NotoSans_700Bold } from "@expo-google-fonts/noto-sans/700Bold";
+import { theme, AlertDialogHost, BrandFontProvider, ToastHost } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
 import { useCartMergeOnLogin } from '@/hooks/useServerCart';
 import { useMembershipLimits } from '@/hooks/useMembershipLimits';
@@ -89,6 +97,24 @@ export default function RootLayout() {
   // Tam ekran kapı (zorunlu güncelleme / zorunlu adım) açıkken temalı uyarı
   // ertelenir: kapının üstüne binmesin, iOS'ta modal üstüne modal kilitlenmesin.
   const gateShown = useFullScreenGateShown();
+  // Marka fontu. Yüklenene kadar splash kalır (appReady'ye katılır). Hata olursa sistem
+  // fontuyla devam edilir: BrandFontProvider `false` kalır, hiçbir metin kayıtsız aile adı
+  // almaz. Anahtar adları `brandFontFiles` (src/theme/typography.ts) ile aynı olmalı.
+  const [fontsLoaded, fontError] = useFonts({
+    NotoSans_400Regular,
+    NotoSans_500Medium,
+    NotoSans_600SemiBold,
+    NotoSans_700Bold,
+  });
+  // Emniyet: yükleme hiç sonuçlanmazsa splash sonsuza dek kalmasın — süre dolunca sistem
+  // fontuyla açılır ve bu OTURUM sistem fontunda kalır (sonradan geçiş tüm metni kaydırırdı).
+  const { settled: fontsSettled, enabled: brandFontEnabled } = useBrandFontSession(
+    fontsLoaded,
+    fontError,
+  );
+  useEffect(() => {
+    if (fontError) logger.warn("Brand font load failed", { err: safeError(fontError) });
+  }, [fontError]);
 
   useEffect(() => {
     async function prepare() {
@@ -143,7 +169,10 @@ export default function RootLayout() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <LocaleProvider>
-          <StatusBar style="auto" />
+        <BrandFontProvider ready={brandFontEnabled}>
+          {/* Yığın ekranları beyaz üst bar: koyu içerik. Turuncu marka barlı sekme kökleri (AppShell)
+              odaktayken açık içeriğe çevirir. */}
+          <StatusBar style="dark" />
           <RouteTracker />
           <Stack
             screenOptions={{
@@ -166,6 +195,8 @@ export default function RootLayout() {
               kapanınca çıkar). Eskiden kapıya bağlı koşullu bağlanıyordu; söküm, kapanma
               zamanlayıcısını temizleyip basılan düğmenin `onPress`'ini kaybettiriyordu. */}
           <AlertDialogHost suspended={gateShown} />
+          {/* Global toast (web react-hot-toast karşılığı): toast.success / toast.error / toast(). */}
+          <ToastHost />
           {/* Zorunlu adımlar (bekleyen sözleşme onayı): girişte + ön plana gelişte kapatılamaz ekran. */}
           {/* Kapılar native Modal: soğuk açılışta splash bitmeden gösterilmez (ready). */}
           <RequiredStepsGate ready={splashDone} />
@@ -173,10 +204,11 @@ export default function RootLayout() {
           <ForceUpdateGate ready={splashDone} />
           {!splashDone && (
             <AnimatedSplash
-              appReady={appReady}
+              appReady={appReady && fontsSettled}
               onFinish={() => setSplashDone(true)}
             />
           )}
+        </BrandFontProvider>
         </LocaleProvider>
       </QueryClientProvider>
     </ErrorBoundary>

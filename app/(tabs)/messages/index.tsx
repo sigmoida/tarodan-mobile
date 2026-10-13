@@ -1,21 +1,29 @@
-import { View, FlatList, TouchableOpacity, RefreshControl } from "react-native";
-import { tabDiag } from '@/components/_tabDiag';
+/**
+ * Mesajlar sekmesi — D1b REFERANS EKRANI (sekme kökü): AppShell (turuncu marka barı) +
+ * içerikte PageHeader + arama + liste; yükleniyor = Skeleton, boş/misafir = EmptyState.
+ * Mantık `_hooks/useMessagesTab`'de; ekran yalnız kompozisyon.
+ */
+import { FlatList, RefreshControl, View } from "react-native";
+import { tabDiag } from "@/components/_tabDiag";
+import { AppShell } from "@/components/shell/AppShell";
 import {
+  Alert,
   Badge,
+  EmptyState,
   Input,
-  Spinner,
-  Text,
+  PageHeader,
+  SkeletonAvatar,
+  SkeletonText,
   theme,
-  ScreenHeader,
 } from "@/ui";
 import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useMessagesTab } from "./_hooks/useMessagesTab";
 import { styles } from "./_lib/styles";
 import { ThreadRow } from "./_components/ThreadRow";
 
 const { colors } = theme;
+const SKELETON_ROWS = [0, 1, 2, 3, 4];
 
 function MessagesTabScreen() {
   const { t } = useTranslation();
@@ -23,108 +31,85 @@ function MessagesTabScreen() {
 
   if (!f.isAuthenticated) {
     return (
-      <View style={styles.container}>
-        <ScreenHeader title={t("mobile.messagesTitle")} showBack={false} />
-        <View style={styles.centeredContainer}>
-          <Ionicons
-            name="chatbubbles-outline"
-            size={64}
-            color={colors.primary[600]!}
-          />
-          <Text variant="h3" style={styles.title}>
-            {t("mobile.messagesTitle")}
-          </Text>
-          <Text variant="body" style={styles.subtitle}>
-            {t("message.loginToView")}
-          </Text>
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={() => router.push("/(auth)/login")}
-          >
-            <Text style={styles.loginButtonText}>{t("common.login")}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <AppShell>
+        <EmptyState
+          fullscreen
+          icon="chatbubbles-outline"
+          title={t("mobile.messagesTitle")}
+          subtitle={t("message.loginToView")}
+          actionLabel={t("common.login")}
+          onAction={() => router.push("/(auth)/login")}
+        />
+      </AppShell>
     );
   }
 
-  return (
-    <View style={styles.container}>
-      <ScreenHeader
+  // İlk yükleme bitene dek iskelet; boş ekran bir an çakmasın.
+  const initialLoading = f.threads.length === 0 && (f.isLoading || !f.hasLoadedThreads);
+
+  const header = (
+    <View style={styles.listHeader}>
+      <PageHeader
         title={t("mobile.messagesTitle")}
-        showBack={false}
-        right={
-          f.unreadCount > 0 ? (
-            <Badge variant="danger" style={styles.headerBadge}>
-              {f.unreadCount}
-            </Badge>
-          ) : undefined
-        }
+        badge={f.unreadCount > 0 ? <Badge variant="danger">{f.unreadCount}</Badge> : null}
       />
-
-      {/* Message Limit Banner */}
-      {f.dailyNearLimit && f.messageLimit != null && f.dailyMessageCount != null && (
-        <View style={styles.limitBanner}>
-          <Ionicons
-            name="information-circle"
-            size={20}
-            color={colors.warning[600]!}
-          />
-          <Text style={styles.limitText}>
-            {t("message.dailyMessageCount", { count: f.dailyMessageCount, limit: f.messageLimit })}
-          </Text>
-        </View>
-      )}
-
-      {/* Search */}
-      <View style={styles.searchContainer}>
-        <Input
-          placeholder={t("mobile.searchInMessages")}
-          value={f.searchQuery}
-          onChangeText={f.setSearchQuery}
-          leftIconName="search"
-        />
-      </View>
-
-      {/* Content — ilk yükleme bitene dek spinner; boş ekran bir an çakmasın. */}
-      {f.threads.length === 0 && (f.isLoading || !f.hasLoadedThreads) ? (
-        <View style={styles.loadingContainer}>
-          <Spinner size="lg" />
-        </View>
-      ) : f.filteredThreads.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons
-            name="chatbubble-ellipses-outline"
-            size={80}
-            color={colors.text.subtle}
-          />
-          <Text variant="h3" style={styles.emptyTitle}>
-            {f.searchQuery ? t("common.noResults") : t("message.noMessagesYet")}
-          </Text>
-          <Text variant="body" style={styles.emptySubtitle}>
-            {f.searchQuery
-              ? t("message.tryDifferentSearch")
-              : t("message.startConversationShort")}
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={f.filteredThreads}
-          keyExtractor={(thread) => thread.id}
-          style={styles.threadsList}
-          refreshControl={
-            <RefreshControl
-              refreshing={f.refreshing}
-              onRefresh={f.onRefresh}
-              colors={[colors.primary[600]!]}
-            />
-          }
-          ListFooterComponent={<View style={{ height: 100 }} />}
-          renderItem={({ item }) => <ThreadRow thread={item} f={f} />}
-        />
-      )}
+      {f.dailyNearLimit && f.messageLimit != null && f.dailyMessageCount != null ? (
+        <Alert variant="warning">
+          {t("message.dailyMessageCount", { count: f.dailyMessageCount, limit: f.messageLimit })}
+        </Alert>
+      ) : null}
+      <Input
+        placeholder={t("mobile.searchInMessages")}
+        value={f.searchQuery}
+        onChangeText={f.setSearchQuery}
+        leftIconName="search"
+        containerStyle={styles.search}
+      />
     </View>
+  );
+
+  return (
+    <AppShell>
+      <FlatList
+        data={initialLoading ? [] : f.filteredThreads}
+        keyExtractor={(thread) => thread.id}
+        ListHeaderComponent={header}
+        ListEmptyComponent={
+          initialLoading ? (
+            <View style={styles.skeletonList} testID="messages-skeleton">
+              {SKELETON_ROWS.map((i) => (
+                <View key={i} style={styles.skeletonRow}>
+                  <SkeletonAvatar />
+                  <View style={styles.skeletonText}>
+                    <SkeletonText lines={2} />
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <EmptyState
+              icon="chatbubble-ellipses-outline"
+              title={f.searchQuery ? t("common.noResults") : t("message.noMessagesYet")}
+              subtitle={
+                f.searchQuery ? t("message.tryDifferentSearch") : t("message.startConversationShort")
+              }
+            />
+          )
+        }
+        contentContainerStyle={styles.listContent}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={f.refreshing}
+            onRefresh={f.onRefresh}
+            colors={[colors.primary[600]]}
+            tintColor={colors.primary[600]}
+          />
+        }
+        renderItem={({ item }) => <ThreadRow thread={item} f={f} />}
+      />
+    </AppShell>
   );
 }
 
-export default tabDiag('messages', MessagesTabScreen);
+export default tabDiag("messages", MessagesTabScreen);

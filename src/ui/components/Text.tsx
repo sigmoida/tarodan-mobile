@@ -6,6 +6,7 @@ import {
   type TextStyle,
 } from 'react-native';
 import { theme } from '../lib/theme';
+import { useBrandTextStyle, withTextInherit } from '../lib/font';
 
 export type TextVariant =
   | 'displayLg'
@@ -154,18 +155,38 @@ export const Text: React.FC<TextProps> = ({
 }) => {
   const resolvedTone = tone ?? variantDefaultTone[variant];
   const resolvedColor = color ?? toneColor(resolvedTone);
+  const flat = StyleSheet.flatten([
+    variantStyle[variant],
+    { color: resolvedColor, textAlign: align },
+    weight ? { fontWeight: weightMap[weight] } : null,
+    style,
+  ]);
+  const [brand, inherit] = useBrandTextStyle(flat);
 
   return (
-    <RNText
-      style={StyleSheet.flatten([
-        variantStyle[variant],
-        { color: resolvedColor, textAlign: align },
-        weight ? { fontWeight: weightMap[weight] } : null,
-        style,
-      ])}
-      {...rest}
-    >
-      {children}
+    <RNText style={brand ? [flat, brand] : flat} {...rest}>
+      {withTextInherit(children, inherit)}
     </RNText>
   );
 };
+
+export type RawTextProps = RNTextProps;
+
+/**
+ * Ham RN `Text`'in yerine geçen, GÖRÜNÜŞÜ AYNI metin: varyant/ton varsayılanı YOK (RN
+ * varsayılanları: 14pt, siyah), yalnız marka fontu (ağırlık → Noto Sans dosyası) ve gövde
+ * harf aralığı eklenir. `react-native`'den `Text` import eden eski dosyaların geçiş noktası;
+ * yeni kodda `Text` (variant + tone) kullanın. Dalga 2 bunları `Text`'e taşıyacak.
+ */
+export const RawText = React.forwardRef<React.ComponentRef<typeof RNText>, RawTextProps>(
+  ({ style, children, ...rest }, ref) => {
+    const flat = StyleSheet.flatten(style) ?? {};
+    const [brand, inherit] = useBrandTextStyle(flat);
+    return (
+      <RNText ref={ref} style={brand ? [style, brand] : style} {...rest}>
+        {withTextInherit(children, inherit)}
+      </RNText>
+    );
+  },
+);
+RawText.displayName = 'RawText';

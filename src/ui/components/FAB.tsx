@@ -1,7 +1,8 @@
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, type PressableProps, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, type PressableProps, type ViewStyle } from 'react-native';
 import { theme } from '../lib/theme';
+import { RawText } from './Text';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -63,7 +64,7 @@ export const FAB: React.FC<FABProps> = ({
     >
       <Ionicons name={icon} size={ss.icon} color={vs.fg} />
       {extended && (
-        <Text
+        <RawText
           style={{
             color: vs.fg,
             fontWeight: '600',
@@ -71,7 +72,7 @@ export const FAB: React.FC<FABProps> = ({
           }}
         >
           {label}
-        </Text>
+        </RawText>
       )}
     </Pressable>
   );

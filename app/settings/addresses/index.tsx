@@ -1,85 +1,87 @@
-import { View, ScrollView } from 'react-native';
-import { Button, FAB, Spinner, Text, ScreenHeader, theme } from '@/ui';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-
-import { ThemedRefreshControl } from '@/components/common';
+import { Badge, Button, EmptyState, SectionCard } from '@/ui';
+import { PageShell } from '@/components/common/PageShell';
 import { styles } from './_lib/styles';
 import { useAddresses } from './_hooks/useAddresses';
 import { AddressCard } from './_components/AddressCard';
 import { AddressFormModal } from './_components/AddressFormModal';
 
-const { colors } = theme;
-
 /**
- * Saved addresses — THIN screen. The `useAddresses` controller owns the query,
- * save/delete/set-default mutations, and the form/validation state; this file
- * renders the auth gate, list, FAB, and the add/edit dialog.
+ * Kayıtlı adresler — D1b REFERANS EKRANI (liste): PageShell (beyaz üst bar, Skeleton,
+ * çekip yenileme) + web profilindeki gibi tek SectionCard (adet rozeti + "Yeni Adres"
+ * aksiyonu) içinde satırlar; boşken kart içi EmptyState. `useAddresses` sorgu, mutasyon ve
+ * form durumunun sahibi; ekran yalnız kompozisyon.
  */
 export default function AddressesScreen() {
   const f = useAddresses();
+  const title = f.t('mobile.settingsAddresses');
+  const onBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
   if (!f.isAuthenticated) {
     return (
-      <View style={styles.centeredContainer}>
-        <Ionicons name="location-outline" size={64} color={colors.primary[600]!} />
-        <Text variant="h3" style={styles.title}>{f.t('mobile.settingsAddresses')}</Text>
-        <Text variant="body" style={styles.subtitle}>{f.t('address.authGateSubtitle')}</Text>
-        <Button variant="primary" title={f.t('common.login')} onPress={() => router.push('/(auth)/login')} style={{ alignSelf: 'center' }} />
-      </View>
+      <PageShell
+        title={title}
+        onBack={onBack}
+        empty
+        emptyState={{
+          icon: 'location-outline',
+          title,
+          subtitle: f.t('address.authGateSubtitle'),
+          actionLabel: f.t('common.login'),
+          onAction: () => router.push('/(auth)/login'),
+        }}
+      />
     );
   }
 
-  return (
-    <View style={styles.container}>
-      <ScreenHeader
-        title={f.t('mobile.settingsAddresses')}
-        onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-        right={<Text style={styles.headerCount}>{f.addresses.length}/{f.maxAddresses}</Text>}
-      />
+  const canAdd = f.addresses.length < f.maxAddresses;
 
-      {f.isLoading ? (
-        <View style={styles.loadingContainer}>
-          <Spinner size="lg" />
-        </View>
-      ) : f.addresses.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="location-outline" size={80} color={colors.text.subtle} />
-          <Text variant="h3" style={styles.emptyTitle}>{f.t('mobile.noSavedAddress')}</Text>
-          <Text variant="body" style={styles.emptySubtitle}>{f.t('address.emptySubtitle')}</Text>
-          <Button variant="primary" title={f.t('address.addNewAddress')} onPress={f.openAddDialog} style={{ alignSelf: 'center' }} />
-        </View>
-      ) : (
-        <ScrollView
-          style={styles.content}
-          refreshControl={<ThemedRefreshControl refreshing={f.refreshing} onRefresh={f.onRefresh} />}
-        >
-          {f.addresses.map((address) => (
+  return (
+    <PageShell
+      title={title}
+      onBack={onBack}
+      loading={f.isLoading}
+      refreshing={f.refreshing}
+      onRefresh={f.onRefresh}
+      overlay={<AddressFormModal f={f} />}
+    >
+      <SectionCard
+        badge={
+          <Badge variant="outline" size="sm">
+            {f.addresses.length}/{f.maxAddresses}
+          </Badge>
+        }
+        action={
+          canAdd && f.addresses.length > 0 ? (
+            <Button size="sm" icon="add" title={f.t('address.newAddress')} onPress={f.openAddDialog} />
+          ) : undefined
+        }
+        bodyStyle={styles.list}
+      >
+        {f.addresses.length === 0 ? (
+          <EmptyState
+            size="compact"
+            icon="location-outline"
+            title={f.t('mobile.noSavedAddress')}
+            subtitle={f.t('address.emptySubtitle')}
+            actionLabel={f.t('address.addNewAddress')}
+            onAction={f.openAddDialog}
+          />
+        ) : (
+          f.addresses.map((address) => (
             <AddressCard
               key={address.id}
               address={address}
               onEdit={() => f.openEditDialog(address)}
               onDelete={() => f.handleDelete(address)}
               onSetDefault={() => f.setDefaultMutation.mutate(address.id)}
-              setDefaultPending={f.setDefaultMutation.isPending && f.setDefaultMutation.variables === address.id}
+              setDefaultPending={
+                f.setDefaultMutation.isPending && f.setDefaultMutation.variables === address.id
+              }
             />
-          ))}
-
-          <View style={{ height: 100 }} />
-        </ScrollView>
-      )}
-
-      {/* FAB */}
-      {f.addresses.length < f.maxAddresses && f.addresses.length > 0 && (
-        <FAB
-          icon="add"
-          accessibilityLabel={f.t('address.addNewAddress')}
-          style={styles.fab}
-          onPress={f.openAddDialog}
-        />
-      )}
-
-      <AddressFormModal f={f} />
-    </View>
+          ))
+        )}
+      </SectionCard>
+    </PageShell>
   );
 }

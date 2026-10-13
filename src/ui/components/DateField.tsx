@@ -4,7 +4,6 @@ import {
   Platform,
   Pressable,
   StyleSheet,
-  Text,
   View,
   type ViewStyle,
 } from 'react-native';
@@ -19,6 +18,9 @@ import { theme } from '../lib/theme';
 // global i18n örneğinden okuyoruz (bkz. `@/utils/format`), `t` yine
 // `useTranslation()`'dan (mock'lanabilir metin).
 import i18nInstance from '@/i18n/config';
+import { RawText } from './Text';
+import { FieldMessage, Label } from './Label';
+import { fieldBorderColor } from './Input';
 
 export interface DateFieldProps {
   label?: string;
@@ -123,7 +125,7 @@ export const DateField: React.FC<DateFieldProps> = ({
 
   return (
     <View style={[styles.container, containerStyle]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? <Label>{label}</Label> : null}
 
       <Pressable
         testID={testID}
@@ -132,25 +134,21 @@ export const DateField: React.FC<DateFieldProps> = ({
         accessibilityLabel={label}
         style={[
           styles.field,
-          { borderColor: error ? colors.danger[600]! : colors.border.DEFAULT },
+          { borderColor: fieldBorderColor(error, show) },
         ]}
       >
-        <Text
+        <RawText
           style={[
             styles.value,
-            { color: selectedDate ? colors.text.heading : colors.text.subtle },
+            { color: selectedDate ? colors.text.body : colors.text.subtle },
           ]}
         >
           {selectedDate ? formatHuman(selectedDate, dateLocale) : resolvedPlaceholder}
-        </Text>
-        <Ionicons name="calendar-outline" size={20} color={colors.text.muted} />
+        </RawText>
+        <Ionicons name="calendar-outline" size={theme.iconSize.md} color={colors.text.subtle} />
       </Pressable>
 
-      {error || helperText ? (
-        <Text style={[styles.helper, error ? styles.errorText : null]}>
-          {error || helperText}
-        </Text>
-      ) : null}
+      <FieldMessage error={error} helperText={helperText} />
 
       {Platform.OS === 'android' && show ? (
         <DateTimePicker
@@ -186,7 +184,7 @@ export const DateField: React.FC<DateFieldProps> = ({
               style={styles.iosBtn}
               accessibilityRole="button"
             >
-              <Text style={styles.iosBtnGhost}>{t('seller.cancel')}</Text>
+              <RawText style={styles.iosBtnGhost}>{t('seller.cancel')}</RawText>
             </Pressable>
             <Pressable
               onPress={() => {
@@ -196,7 +194,7 @@ export const DateField: React.FC<DateFieldProps> = ({
               style={[styles.iosBtn, styles.iosBtnPrimary]}
               accessibilityRole="button"
             >
-              <Text style={styles.iosBtnPrimaryText}>{t('common.ok')}</Text>
+              <RawText style={styles.iosBtnPrimaryText}>{t('common.ok')}</RawText>
             </Pressable>
           </View>
         </Modal>
@@ -210,33 +208,19 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: spacing[2],
   },
-  label: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-    color: colors.text.heading,
-    marginBottom: spacing[1.5],
-  },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    height: 44,
+    height: theme.controlHeight.md,
     borderRadius: radius.lg,
     borderWidth: 1,
     paddingHorizontal: spacing[3],
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface.elevated,
   },
   value: {
     flex: 1,
     fontSize: typography.fontSize.base,
-  },
-  helper: {
-    marginTop: spacing[1],
-    fontSize: typography.fontSize.xs,
-    color: colors.text.muted,
-  },
-  errorText: {
-    color: colors.danger[600]!,
   },
   iosPicker: {
     alignSelf: 'center',

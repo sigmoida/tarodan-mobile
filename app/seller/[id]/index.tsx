@@ -52,7 +52,7 @@ export default function SellerProfileScreen() {
               testID="seller-actions-button"
               userId={f.sellerId}
               userName={f.seller.displayName || f.seller.companyName || ''}
-              color={theme.colors.white}
+              color={theme.colors.text.heading}
               onBlocked={() =>
                 router.canGoBack() ? router.back() : router.replace('/(tabs)')
               }

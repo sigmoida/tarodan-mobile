@@ -55,6 +55,37 @@ const BAN_RAW_COLOR = {
   ],
 };
 
+/**
+ * Tasarım disiplini (web hizalaması, 2026-10) — ekran katmanında UYARI. Dalga 2 ekranları
+ * temizledikçe bunlar `error`'a çevrilecek. Yerel kurallar `eslint-plugin-tarodan/`
+ * klasöründe (çekirdek `no-restricted-syntax` renk yasağı için zaten `error`; aynı kural iki
+ * seviyede çalışamadığı için ayrı eklenti).
+ */
+const DESIGN_SCOPE = ['app/**/*.{ts,tsx}', 'src/components/**/*.{ts,tsx}'];
+const DESIGN_TEST_FILES = ['**/__tests__/**', '**/*.test.{ts,tsx}'];
+
+const DESIGN_WARNINGS = {
+  // StyleSheet'te sayısal fontSize/lineHeight/borderRadius, sabit fontWeight → token.
+  'tarodan/no-raw-style-values': 'warn',
+  // '₺' → formatPrice ("1.234,50 TL").
+  'tarodan/no-lira-symbol': 'warn',
+  // Ham RN Text/TouchableOpacity/Modal → @/ui (Text/RawText, Button/Pressable, Modal).
+  '@typescript-eslint/no-restricted-imports': [
+    'warn',
+    {
+      paths: [
+        {
+          name: 'react-native',
+          importNames: ['Text', 'TouchableOpacity', 'Modal'],
+          allowTypeImports: true,
+          message:
+            "'@/ui' kullan: Text (variant/tone) ya da RawText; TouchableOpacity yerine Button/IconButton/Pressable; Modal yerine @/ui Modal.",
+        },
+      ],
+    },
+  ],
+};
+
 module.exports = {
   root: true,
   parser: '@typescript-eslint/parser',
@@ -63,7 +94,7 @@ module.exports = {
     sourceType: 'module',
     ecmaFeatures: { jsx: true },
   },
-  plugins: ['@typescript-eslint'],
+  plugins: ['@typescript-eslint', 'tarodan'],
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
@@ -95,6 +126,11 @@ module.exports = {
     ...BAN_RAW_COLOR,
   },
   overrides: [
+    {
+      files: DESIGN_SCOPE,
+      excludedFiles: DESIGN_TEST_FILES,
+      rules: DESIGN_WARNINGS,
+    },
     {
       // Renk kaynağı dosyaları raw-color / paper kurallarından muaf.
       files: MIGRATION_OVERRIDES,

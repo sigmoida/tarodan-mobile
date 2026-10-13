@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Modal, Button, theme } from '@/ui';
+import { Modal, Button, theme, RawText } from '@/ui';
 import { useZodForm, Form, FormInput } from '@/ui/form';
 import { buyerCounterSchema } from '../_lib/schema';
 import { formatPrice } from '../_lib/status';
@@ -44,11 +44,11 @@ export function BuyerCounterModal({
   return (
     <Modal isOpen={!!offer} onClose={onClose} title={t('offer.lowerOffer')}>
       <Form form={form}>
-        <Text style={styles.subtitle}>
+        <RawText style={styles.subtitle}>
           {t('offer.sellerCounterSubtitle', {
             amount: offer ? formatPrice(refAmount) : '—',
           })}
-        </Text>
+        </RawText>
         <FormInput
           name="amount"
           placeholder={t('offer.newAmountPlaceholderTl')}

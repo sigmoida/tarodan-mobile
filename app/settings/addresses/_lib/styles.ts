@@ -1,108 +1,53 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '@/ui';
 
-const { colors, spacing, radius } = theme;
+const { colors, spacing, radiusRole } = theme;
 
-// Adresler ekranının route-local stylesheet'i (monolitten birebir taşındı).
+/** Form modalının kaydırma alanı üst sınırı (pt). */
+const DIALOG_SCROLL_MAX_HEIGHT = 420;
+
+// Adresler ekranının route-local stylesheet'i — D1b referans düzeni (token'lar).
 export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.alt,
+  // SectionCard gövdesi: satırlar arası web `space-y-3`.
+  list: {
+    gap: spacing[3],
   },
-  centeredContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.spacing[8],
-    backgroundColor: colors.surface.DEFAULT,
-  },
-  headerCount: {
-    color: colors.white,
-    opacity: 0.8,
-  },
-  title: {
-    marginTop: theme.spacing[4],
-    marginBottom: theme.spacing[2],
-  },
-  subtitle: {
-    textAlign: 'center',
-    marginBottom: theme.spacing[6],
-    color: colors.text.muted,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.spacing[8],
-  },
-  emptyTitle: {
-    marginTop: theme.spacing[4],
-    marginBottom: theme.spacing[2],
-    color: colors.text.heading,
-  },
-  emptySubtitle: {
-    textAlign: 'center',
-    marginBottom: theme.spacing[6],
-    color: colors.text.muted,
-  },
-  content: {
-    flex: 1,
-    padding: theme.spacing[4],
-  },
-  addressCard: {
-    marginBottom: theme.spacing[3],
-    backgroundColor: colors.surface.DEFAULT,
-  },
-  cardHeader: {
+  // Web satırı: `rounded-lg border border-border-subtle p-4`, sağda ikon aksiyonlar.
+  row: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: theme.spacing[2],
+    gap: spacing[4],
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+    borderRadius: radiusRole.card,
+    padding: spacing[4],
+  },
+  rowBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  rowActions: {
+    flexDirection: 'row',
+    gap: spacing[1],
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    gap: spacing[2],
+    marginBottom: spacing[1],
   },
   addressTitle: {
-    marginLeft: theme.spacing[2],
-    fontWeight: '600',
-  },
-  defaultBadge: {
-    backgroundColor: colors.success[50]!,
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: theme.spacing[0.5],
-    borderRadius: radius.sm,
-    marginLeft: theme.spacing[2],
-  },
-  defaultBadgeText: {
-    color: colors.success[700]!,
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  cardActions: {
-    flexDirection: 'row',
+    flexShrink: 1,
   },
   addressDetail: {
-    color: colors.text.muted,
-    marginTop: theme.spacing[0.5],
+    marginTop: spacing[1],
   },
   defaultButton: {
-    alignSelf: 'flex-start',
-    marginTop: theme.spacing[2],
+    marginTop: spacing[2],
   },
-  fab: {
-    position: 'absolute',
-    right: 16,
-    bottom: 24,
-  },
+  // --- Form modalı (AddressFormModal) ---
   dialogScroll: {
-    maxHeight: 420,
+    maxHeight: DIALOG_SCROLL_MAX_HEIGHT,
   },
   input: {
     marginBottom: spacing[3],
@@ -110,16 +55,16 @@ export const styles = StyleSheet.create({
   defaultCheckbox: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: theme.spacing[2],
+    marginTop: spacing[2],
   },
   checkboxLabel: {
-    marginLeft: theme.spacing[2],
+    marginLeft: spacing[2],
     color: colors.text.heading,
   },
   dialogActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: theme.spacing[2],
-    marginTop: theme.spacing[3],
+    gap: spacing[2],
+    marginTop: spacing[3],
   },
 });

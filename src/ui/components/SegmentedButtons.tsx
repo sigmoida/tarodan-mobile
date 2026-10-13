@@ -1,6 +1,7 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { theme } from '../lib/theme';
+import { RawText } from './Text';
 
 export interface SegmentedOption<V extends string = string> {
   value: V;
@@ -59,7 +60,7 @@ export function SegmentedButtons<V extends string = string>({
             accessibilityRole="button"
             accessibilityState={{ selected }}
           >
-            <Text
+            <RawText
               style={{
                 color: selected ? colors.white : colors.text.heading,
                 fontSize,
@@ -68,7 +69,7 @@ export function SegmentedButtons<V extends string = string>({
               numberOfLines={1}
             >
               {opt.label}
-            </Text>
+            </RawText>
           </Pressable>
         );
       })}

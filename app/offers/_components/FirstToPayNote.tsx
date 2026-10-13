@@ -1,8 +1,8 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { theme } from "@/ui";
+import { theme, RawText } from "@/ui";
 import type { TimingMessageValues } from "@/lib/shared/timingPolicy";
 import { showFirstToPayNote } from "../_lib/accept";
 
@@ -28,9 +28,9 @@ export function FirstToPayNote({
   return (
     <View style={styles.box} testID="first-to-pay-note">
       <Ionicons name="warning-outline" size={18} color={colors.warning[600]!} />
-      <Text style={styles.text}>
+      <RawText style={styles.text}>
         {isSeller ? t("offer.firstToPayWinsSeller", timing) : t("offer.firstToPayWinsBuyer")}
-      </Text>
+      </RawText>
     </View>
   );
 }

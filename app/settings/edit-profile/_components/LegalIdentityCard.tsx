@@ -1,12 +1,12 @@
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Card, Spinner, Text, theme } from '@/ui';
+import { SectionCard, SkeletonText, Text } from '@/ui';
 import { useLegalIdentityStatus } from '@/hooks/useLegalIdentity';
 import {
   LEGAL_IDENTITY_FIELD_I18N_KEYS,
   type LegalIdentityField,
 } from '@/lib/shared/legalIdentity';
-import { styles as screenStyles } from '../_lib/styles';
+import { styles } from '../_lib/styles';
 
 /**
  * Üyenin yasal kimliği — SALT OKUNUR (web `profile/_sections/LegalIdentitySection`).
@@ -26,19 +26,16 @@ export function LegalIdentityCard() {
   ];
 
   return (
-    <Card style={screenStyles.card} testID="legal-identity-card">
-      <Text variant="h3" style={screenStyles.sectionTitle}>
-        {t('identity.profile.title')}
-      </Text>
-      <Text variant="bodySm" tone="muted" style={styles.description}>
+    <SectionCard title={t('identity.profile.title')} testID="legal-identity-card">
+      <Text variant="bodySm" tone="muted" style={styles.legalDescription}>
         {t('identity.profile.description')}
       </Text>
       {isLoading ? (
-        <Spinner />
+        <SkeletonText lines={3} />
       ) : (
         <>
           {rows.map(({ key, value }) => (
-            <View key={key} style={styles.row} testID={`legal-identity-${key}`}>
+            <View key={key} style={styles.legalRow} testID={`legal-identity-${key}`}>
               <Text variant="bodySm" tone="muted">
                 {t(LEGAL_IDENTITY_FIELD_I18N_KEYS[key])}
               </Text>
@@ -56,11 +53,6 @@ export function LegalIdentityCard() {
           </Text>
         </>
       )}
-    </Card>
+    </SectionCard>
   );
 }
-
-const styles = StyleSheet.create({
-  description: { marginBottom: theme.spacing[3] },
-  row: { marginBottom: theme.spacing[3], gap: theme.spacing[1] },
-});

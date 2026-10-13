@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { theme } from '@/ui';
+import { theme, RawText } from '@/ui';
 
 const { colors } = theme;
 
@@ -14,13 +14,13 @@ export function OffersAuthGate() {
   return (
     <SafeAreaView style={styles.centered}>
       <Ionicons name="pricetag-outline" size={64} color={colors.primary[600]!} />
-      <Text style={styles.title}>{t('offer.myOffersTitle')}</Text>
-      <Text style={styles.subtitle}>{t('offer.authGateSubtitle')}</Text>
+      <RawText style={styles.title}>{t('offer.myOffersTitle')}</RawText>
+      <RawText style={styles.subtitle}>{t('offer.authGateSubtitle')}</RawText>
       <TouchableOpacity style={styles.loginBtn} onPress={() => router.push('/(auth)/login')}>
-        <Text style={styles.loginBtnText}>{t('common.login')}</Text>
+        <RawText style={styles.loginBtnText}>{t('common.login')}</RawText>
       </TouchableOpacity>
       <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-        <Text style={styles.registerLink}>{t('auth.createAccount')}</Text>
+        <RawText style={styles.registerLink}>{t('auth.createAccount')}</RawText>
       </TouchableOpacity>
     </SafeAreaView>
   );

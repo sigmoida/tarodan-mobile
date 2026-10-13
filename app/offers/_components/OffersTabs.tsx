@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { theme } from '@/ui';
+import { theme, RawText } from '@/ui';
 import type { TabType } from '../_lib/types';
 
 const { colors } = theme;
@@ -39,7 +39,7 @@ export function OffersTabs({
               size={18}
               color={active ? colors.primary[600]! : colors.text.subtle}
             />
-            <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
+            <RawText style={[styles.tabText, active && styles.tabTextActive]}>{label}</RawText>
           </TouchableOpacity>
         );
       })}

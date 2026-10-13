@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { theme } from '../lib/theme';
+import { RawText } from './Text';
 
 export type AlertVariant = 'default' | 'info' | 'success' | 'warning' | 'danger';
 
@@ -45,10 +46,10 @@ export const Alert: React.FC<AlertProps> = ({
         {icon && <View style={styles.icon}>{icon}</View>}
         <View style={styles.body}>
           {title && (
-            <Text style={[styles.title, { color: vs.text }]}>{title}</Text>
+            <RawText style={[styles.title, { color: vs.text }]}>{title}</RawText>
           )}
           {typeof children === 'string' ? (
-            <Text style={[styles.message, { color: vs.text }]}>{children}</Text>
+            <RawText style={[styles.message, { color: vs.text }]}>{children}</RawText>
           ) : (
             children
           )}

@@ -1,7 +1,6 @@
 import React from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   Image,
@@ -10,7 +9,7 @@ import {
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import type { TFunction } from "i18next";
-import { theme, StatusBadge } from "@/ui";
+import { theme, StatusBadge, RawText } from "@/ui";
 import { useOfferStatusConfig } from "@/lib/shared/offerStatus";
 import { transformImageUrl } from "@/utils/imageUrl";
 import type { Offer, TabType } from "../_lib/types";
@@ -78,17 +77,17 @@ function OfferCardBase({
           <TouchableOpacity
             onPress={() => router.push(`/product/${offer.product.id}` as any)}
           >
-            <Text style={styles.productTitle} numberOfLines={2}>
+            <RawText style={styles.productTitle} numberOfLines={2}>
               {offer.product.title}
-            </Text>
+            </RawText>
           </TouchableOpacity>
 
-          <Text style={styles.originalPrice}>
+          <RawText style={styles.originalPrice}>
             {t("offer.listingPrice")}:{" "}
-            <Text style={styles.strikethrough}>
+            <RawText style={styles.strikethrough}>
               {formatPrice(offer.product.price)}
-            </Text>
-          </Text>
+            </RawText>
+          </RawText>
 
           <View style={styles.statusBadge}>
             <StatusBadge status={offer.status} config={statusConfig} size="sm" />
@@ -99,9 +98,9 @@ function OfferCardBase({
           offer.buyerMustAccept ? (
             <View style={styles.counterAlertBadge}>
               <Ionicons name="swap-horizontal" size={14} color={colors.white} />
-              <Text style={styles.counterAlertText}>
+              <RawText style={styles.counterAlertText}>
                 {t("offer.counterFromSeller")}
-              </Text>
+              </RawText>
             </View>
           ) : null}
         </View>
@@ -110,14 +109,14 @@ function OfferCardBase({
       {/* Offer amount */}
       <View style={styles.amountRow}>
         <View style={styles.amountBox}>
-          <Text style={styles.amountLabel}>{t("offer.offerAmount")}</Text>
-          <Text style={styles.amountValue}>{formatPrice(offer.amount)}</Text>
+          <RawText style={styles.amountLabel}>{t("offer.offerAmount")}</RawText>
+          <RawText style={styles.amountValue}>{formatPrice(offer.amount)}</RawText>
         </View>
 
         {estimatedNet != null && (
           <View style={styles.netBox}>
-            <Text style={styles.netLabel}>{t("offer.estimatedNetSeller")}</Text>
-            <Text style={styles.netValue}>{formatPrice(estimatedNet)}</Text>
+            <RawText style={styles.netLabel}>{t("offer.estimatedNetSeller")}</RawText>
+            <RawText style={styles.netValue}>{formatPrice(estimatedNet)}</RawText>
           </View>
         )}
 
@@ -128,9 +127,9 @@ function OfferCardBase({
               size={14}
               color={colors.warning[600]!}
             />
-            <Text style={styles.timeText}>
+            <RawText style={styles.timeText}>
               {t("offer.timeRemaining", { time: timeRemaining })}
-            </Text>
+            </RawText>
           </View>
         )}
       </View>
@@ -149,10 +148,10 @@ function OfferCardBase({
             </View>
           )}
           <View>
-            <Text style={styles.userLabel}>
+            <RawText style={styles.userLabel}>
               {tab === "received" ? t("offer.offerer") : t("product.seller")}
-            </Text>
-            <Text style={styles.userName}>{otherUser.displayName}</Text>
+            </RawText>
+            <RawText style={styles.userName}>{otherUser.displayName}</RawText>
           </View>
         </View>
       )}
@@ -166,7 +165,7 @@ function OfferCardBase({
             color={colors.text.subtle}
             style={{ marginTop: theme.spacing[0.5] }}
           />
-          <Text style={styles.messageText}>"{offer.message}"</Text>
+          <RawText style={styles.messageText}>"{offer.message}"</RawText>
         </View>
       ) : null}
 
@@ -177,7 +176,7 @@ function OfferCardBase({
           size={14}
           color={colors.text.subtle}
         />
-        <Text style={styles.dateText}>{formatTimeAgo(offer.createdAt, t)}</Text>
+        <RawText style={styles.dateText}>{formatTimeAgo(offer.createdAt, t)}</RawText>
       </View>
 
       {/* Actions */}
@@ -190,9 +189,9 @@ function OfferCardBase({
                 size={18}
                 color={colors.warning[700]!}
               />
-              <Text style={styles.waitingBannerText}>
+              <RawText style={styles.waitingBannerText}>
                 {t("offer.waitingForBuyerResponse")}
-              </Text>
+              </RawText>
             </View>
           ) : tab === "received" ? (
             <>
@@ -206,7 +205,7 @@ function OfferCardBase({
                 ) : (
                   <>
                     <Ionicons name="checkmark" size={16} color={colors.white} />
-                    <Text style={styles.actionBtnText}>{t("offer.acceptOffer")}</Text>
+                    <RawText style={styles.actionBtnText}>{t("offer.acceptOffer")}</RawText>
                   </>
                 )}
               </TouchableOpacity>
@@ -216,7 +215,7 @@ function OfferCardBase({
                 disabled={isPending}
               >
                 <Ionicons name="close" size={16} color={colors.white} />
-                <Text style={styles.actionBtnText}>{t("offer.rejectOffer")}</Text>
+                <RawText style={styles.actionBtnText}>{t("offer.rejectOffer")}</RawText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionBtn, styles.counterBtn]}
@@ -228,7 +227,7 @@ function OfferCardBase({
                   size={16}
                   color={colors.white}
                 />
-                <Text style={styles.actionBtnText}>{t("offer.counterOffer")}</Text>
+                <RawText style={styles.actionBtnText}>{t("offer.counterOffer")}</RawText>
               </TouchableOpacity>
             </>
           ) : offer.buyerMustAccept ? (
@@ -243,9 +242,9 @@ function OfferCardBase({
                 ) : (
                   <>
                     <Ionicons name="checkmark" size={16} color={colors.white} />
-                    <Text style={styles.actionBtnText}>
+                    <RawText style={styles.actionBtnText}>
                       {t("offer.acceptCounterOffer")}
-                    </Text>
+                    </RawText>
                   </>
                 )}
               </TouchableOpacity>
@@ -255,7 +254,7 @@ function OfferCardBase({
                 disabled={isPending}
               >
                 <Ionicons name="close" size={16} color={colors.white} />
-                <Text style={styles.actionBtnText}>{t("offer.rejectOffer")}</Text>
+                <RawText style={styles.actionBtnText}>{t("offer.rejectOffer")}</RawText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionBtn, styles.counterBtn]}
@@ -263,7 +262,7 @@ function OfferCardBase({
                 disabled={isPending}
               >
                 <Ionicons name="trending-down" size={16} color={colors.white} />
-                <Text style={styles.actionBtnText}>{t("offer.lowerOffer")}</Text>
+                <RawText style={styles.actionBtnText}>{t("offer.lowerOffer")}</RawText>
               </TouchableOpacity>
             </>
           ) : (
@@ -277,7 +276,7 @@ function OfferCardBase({
               ) : (
                 <>
                   <Ionicons name="close" size={16} color={colors.white} />
-                  <Text style={styles.actionBtnText}>{t("offer.cancelOffer")}</Text>
+                  <RawText style={styles.actionBtnText}>{t("offer.cancelOffer")}</RawText>
                 </>
               )}
             </TouchableOpacity>
@@ -311,9 +310,9 @@ function OfferCardBase({
             }
           >
             <Ionicons name="card-outline" size={16} color={colors.white} />
-            <Text style={styles.actionBtnText}>
+            <RawText style={styles.actionBtnText}>
               {t("offer.payAmount", { amount: formatPrice(offer.amount) })}
-            </Text>
+            </RawText>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
@@ -330,7 +329,7 @@ function OfferCardBase({
             }
           >
             <Ionicons name="cube-outline" size={16} color={colors.white} />
-            <Text style={styles.actionBtnText}>{t("order.viewOrder")}</Text>
+            <RawText style={styles.actionBtnText}>{t("order.viewOrder")}</RawText>
           </TouchableOpacity>
         ))}
     </View>

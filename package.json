@@ -29,6 +29,7 @@
     "wellknown:check": "node scripts/check-deeplinks.mjs"
   },
   "dependencies": {
+    "@expo-google-fonts/noto-sans": "0.4.2",
     "@expo/vector-icons": "^15.1.1",
     "@hookform/resolvers": "^3.6.0",
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -90,6 +91,7 @@
     "eas-cli": "^18.13.1",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-tarodan": "link:eslint-plugin-tarodan",
     "jest": "^29.7.0",
     "jest-expo": "~54.0.17",
     "metro-react-native-babel-preset": "^0.77.0",

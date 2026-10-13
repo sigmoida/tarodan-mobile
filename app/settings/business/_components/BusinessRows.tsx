@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Image, Pressable, Text } from 'react-native';
+import { View, Image, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '@/ui';
+import { theme, RawText } from '@/ui';
 
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
@@ -16,8 +16,8 @@ export function StatCard({ icon, label, value, color }: { icon: string; label: s
   return (
     <View style={[styles.statCard, { borderLeftColor: color }]}>
       <Ionicons name={icon as any} size={24} color={color} />
-      <Text style={styles.statValue}>{value.toLocaleString()}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <RawText style={styles.statValue}>{value.toLocaleString()}</RawText>
+      <RawText style={styles.statLabel}>{label}</RawText>
     </View>
   );
 }
@@ -27,31 +27,31 @@ export function ProductRow({ product, index, metric }: { product: ProductStats; 
   return (
     <Pressable style={styles.productRow} onPress={() => router.push(`/product/${product.id}`)}>
       <View style={styles.productRank}>
-        <Text style={styles.productRankText}>{index + 1}</Text>
+        <RawText style={styles.productRankText}>{index + 1}</RawText>
       </View>
       {product.image ? (
         <Image source={{ uri: resolveImageUrl(product.image) }} style={styles.productImage} />
       ) : (
         <View style={[styles.productImage, styles.productImagePlaceholder]}>
-          <Text>📦</Text>
+          <RawText>📦</RawText>
         </View>
       )}
       <View style={styles.productInfo}>
-        <Text style={styles.productTitle} numberOfLines={1}>{product.title}</Text>
-        <Text style={styles.productPrice}>{formatPrice(product.price)}</Text>
+        <RawText style={styles.productTitle} numberOfLines={1}>{product.title}</RawText>
+        <RawText style={styles.productPrice}>{formatPrice(product.price)}</RawText>
       </View>
       <View style={styles.productStats}>
         <View style={styles.productStatItem}>
           <Ionicons name="eye" size={14} color={metric === 'views' ? colors.info[600]! : colors.text.muted} />
-          <Text style={[styles.productStatText, metric === 'views' && { color: colors.info[600]! }]}>
+          <RawText style={[styles.productStatText, metric === 'views' && { color: colors.info[600]! }]}>
             {(product.viewCount ?? 0).toLocaleString()}
-          </Text>
+          </RawText>
         </View>
         <View style={styles.productStatItem}>
           <Ionicons name="heart" size={14} color={metric === 'likes' ? colors.danger[600]! : colors.text.muted} />
-          <Text style={[styles.productStatText, metric === 'likes' && { color: colors.danger[600]! }]}>
+          <RawText style={[styles.productStatText, metric === 'likes' && { color: colors.danger[600]! }]}>
             {(product.likeCount ?? 0).toLocaleString()}
-          </Text>
+          </RawText>
         </View>
       </View>
     </Pressable>
@@ -63,31 +63,31 @@ export function CollectionRow({ collection, index }: { collection: CollectionSta
   return (
     <Pressable style={styles.productRow} onPress={() => router.push(`/collections/${collection.id}`)}>
       <View style={styles.productRank}>
-        <Text style={styles.productRankText}>{index + 1}</Text>
+        <RawText style={styles.productRankText}>{index + 1}</RawText>
       </View>
       {collection.coverImage ? (
         <Image source={{ uri: resolveImageUrl(collection.coverImage) }} style={styles.productImage} />
       ) : (
         <View style={[styles.productImage, styles.productImagePlaceholder]}>
-          <Text>📚</Text>
+          <RawText>📚</RawText>
         </View>
       )}
       <View style={styles.productInfo}>
-        <Text style={styles.productTitle} numberOfLines={1}>{collection.name}</Text>
-        <Text style={styles.productPrice}>{collection.itemCount} ürün</Text>
+        <RawText style={styles.productTitle} numberOfLines={1}>{collection.name}</RawText>
+        <RawText style={styles.productPrice}>{collection.itemCount} ürün</RawText>
       </View>
       <View style={styles.productStats}>
         <View style={styles.productStatItem}>
           <Ionicons name="eye" size={14} color={colors.info[600]!} />
-          <Text style={[styles.productStatText, { color: colors.info[600]! }]}>
+          <RawText style={[styles.productStatText, { color: colors.info[600]! }]}>
             {collection.viewCount.toLocaleString()}
-          </Text>
+          </RawText>
         </View>
         <View style={styles.productStatItem}>
           <Ionicons name="heart" size={14} color={colors.danger[600]!} />
-          <Text style={[styles.productStatText, { color: colors.danger[600]! }]}>
+          <RawText style={[styles.productStatText, { color: colors.danger[600]! }]}>
             {collection.likeCount.toLocaleString()}
-          </Text>
+          </RawText>
         </View>
       </View>
     </Pressable>

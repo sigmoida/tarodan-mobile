@@ -2,36 +2,55 @@ import React from 'react';
 import {
   Pressable,
   StyleSheet,
-  Text,
   type PressableProps,
   type ViewStyle,
 } from 'react-native';
 import { theme } from '../lib/theme';
+import { touchSlop } from './Button';
+import { RawText } from './Text';
 
 export type ChipVariant = 'neutral' | 'primary' | 'success' | 'danger' | 'warning' | 'info';
 export type ChipSize = 'sm' | 'md';
 
 export interface ChipProps extends Omit<PressableProps, 'style'> {
   label: string;
+  /**
+   * Yalnız ETİKET modunda (seçim durumu verilmeyen, salt gösterim çipi) renk tonu.
+   * Seçilebilir çipte (`selected`/`active` verildiğinde) yok sayılır: web Chip'i gibi.
+   */
   variant?: ChipVariant;
+  /** Web `sm` = `px-2 py-1 text-xs` (varsayılan); `md` biraz daha iri (eski mobil ölçü). */
   size?: ChipSize;
+  /** Seçili durum (web `active`). Verildiğinde çip, web'in açılır-kapanır filtre çipi olur. */
   selected?: boolean;
+  /** `selected` takma adı (web adı). */
+  active?: boolean;
   /** Custom background color (overrides variant). Use sparingly — prefer variant. */
   backgroundColor?: string;
   textColor?: string;
   style?: ViewStyle;
 }
 
-const { colors, radius, spacing, typography } = theme;
+const { colors, radiusRole, spacing, typography } = theme;
 
-const variantStyle: Record<ChipVariant, { bg: string; text: string }> = {
+/** Etiket modu tonları (salt gösterim). */
+const tagStyle: Record<ChipVariant, { bg: string; text: string }> = {
   neutral: { bg: colors.gray[100], text: colors.text.heading },
-  primary: { bg: colors.primary[50]!, text: colors.primary[700]! },
-  success: { bg: colors.success[50]!, text: colors.success[700]! },
-  danger: { bg: colors.danger[50]!, text: colors.danger[700]! },
-  warning: { bg: colors.warning[50]!, text: colors.warning[800]! },
-  info: { bg: colors.info[50]!, text: colors.info[700]! },
+  primary: { bg: colors.primary[50], text: colors.primary[700] },
+  success: { bg: colors.success[50], text: colors.success[700] },
+  danger: { bg: colors.danger[50], text: colors.danger[700] },
+  warning: { bg: colors.warning[50], text: colors.warning[800] },
+  info: { bg: colors.info[50], text: colors.info[700] },
 };
+
+/**
+ * Web `@tarodan/ui` Chip: `rounded-full border px-2 py-1 text-xs`. Seçili: `border-primary-200
+ * bg-primary-500/10 text-primary-600`; seçili değil: `border-border text-muted`.
+ */
+const toggleStyle = {
+  on: { bg: colors.primary[50], text: colors.primary[600], border: colors.primary[200] },
+  off: { bg: 'transparent', text: colors.text.muted, border: colors.border.DEFAULT },
+} as const;
 
 const sizeMap: Record<ChipSize, { height: number; px: number; font: number }> = {
   sm: { height: 24, px: spacing[2], font: typography.fontSize.xs },
@@ -41,55 +60,59 @@ const sizeMap: Record<ChipSize, { height: number; px: number; font: number }> = 
 export const Chip: React.FC<ChipProps> = ({
   label,
   variant = 'neutral',
-  size = 'md',
+  size = 'sm',
   selected,
+  active,
   backgroundColor,
   textColor,
   onPress,
   disabled,
   style,
+  hitSlop,
   ...rest
 }) => {
-  const vs = variantStyle[variant];
+  const isOn = selected ?? active;
   const ss = sizeMap[size];
-  const bg =
-    backgroundColor ?? (selected ? colors.primary[600]! : vs.bg);
-  const fg = textColor ?? (selected ? colors.white : vs.text);
+  const look =
+    isOn === undefined
+      ? { ...tagStyle[variant], border: 'transparent' }
+      : isOn
+        ? toggleStyle.on
+        : toggleStyle.off;
+  const bg = backgroundColor ?? look.bg;
+  const fg = textColor ?? look.text;
 
   return (
     <Pressable
       disabled={disabled || !onPress}
       onPress={onPress}
+      hitSlop={hitSlop ?? (onPress ? touchSlop(ss.height) : undefined)}
       style={({ pressed }) => [
         styles.base,
         {
           height: ss.height,
           paddingHorizontal: ss.px,
           backgroundColor: bg,
+          borderColor: look.border,
           opacity: disabled ? 0.5 : pressed && onPress ? 0.85 : 1,
         },
         style,
       ]}
       accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityState={isOn === undefined ? undefined : { selected: isOn }}
       {...rest}
     >
-      <Text
-        style={{
-          color: fg,
-          fontSize: ss.font,
-          fontWeight: '600',
-        }}
-        numberOfLines={1}
-      >
+      <RawText style={{ color: fg, fontSize: ss.font }} numberOfLines={1}>
         {label}
-      </Text>
+      </RawText>
     </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radius.full,
+    borderRadius: radiusRole.chip,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -8,76 +8,125 @@ import { theme } from '../lib/theme';
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 export interface EmptyStateProps {
-  icon?: IoniconName;
+  /** İkon adı; `false` ikonsuz çizer (web `icon={false}`). */
+  icon?: IoniconName | false;
   title: string;
   subtitle?: string;
+  /** `subtitle` için web adı. */
+  description?: string;
   actionLabel?: string;
   onAction?: () => void;
   secondaryLabel?: string;
   onSecondary?: () => void;
+  /** Hazır aksiyon düğümü (web `action`); `actionLabel`/`onAction` yerine. */
+  action?: React.ReactNode;
+  /** Web: `default` geniş boşluk, `compact` kart içi. */
+  size?: 'default' | 'compact';
   fullscreen?: boolean;
 }
 
-const { colors, spacing, radius } = theme;
+const { colors, spacing, radiusRole } = theme;
+
+/** Web `@tarodan/ui` EmptyState ölçüleri — ErrorState de aynı iskeleti kullanır. */
+export const emptyStateMetrics = {
+  default: { circle: 64, icon: 28, py: spacing[16] },
+  compact: { circle: 48, icon: 24, py: spacing[8] },
+} as const;
+
+interface StateLayoutProps {
+  icon: IoniconName | false;
+  title: string;
+  description?: string;
+  size: 'default' | 'compact';
+  fullscreen: boolean;
+  children?: React.ReactNode;
+}
+
+/** Ortak iskelet: gri daire + gri ikon, başlık lg/600, açıklama sm muted, aksiyon mt-4. */
+export const StateLayout: React.FC<StateLayoutProps> = ({
+  icon,
+  title,
+  description,
+  size,
+  fullscreen,
+  children,
+}) => {
+  const m = emptyStateMetrics[size];
+  return (
+    <View style={[styles.container, { paddingVertical: m.py }, fullscreen && styles.fullscreen]}>
+      {icon !== false ? (
+        <View style={[styles.iconCircle, { width: m.circle, height: m.circle }]}>
+          <Ionicons name={icon} size={m.icon} color={colors.text.subtle} />
+        </View>
+      ) : null}
+      <Text variant="h3" weight="semibold" align="center" style={styles.title}>
+        {title}
+      </Text>
+      {description ? (
+        <Text variant="bodySm" tone="muted" align="center" style={styles.description}>
+          {description}
+        </Text>
+      ) : null}
+      {children ? <View style={styles.actions}>{children}</View> : null}
+    </View>
+  );
+};
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
   icon = 'file-tray-outline',
   title,
   subtitle,
+  description,
   actionLabel,
   onAction,
   secondaryLabel,
   onSecondary,
+  action,
+  size = 'default',
   fullscreen = false,
-}) => (
-  <View style={[styles.container, fullscreen && styles.fullscreen]}>
-    <View style={styles.iconCircle}>
-      <Ionicons name={icon} size={44} color={colors.primary[600]!} />
-    </View>
-    <Text variant="h3" align="center">
-      {title}
-    </Text>
-    {subtitle ? (
-      <Text variant="bodySm" tone="muted" align="center" style={styles.subtitle}>
-        {subtitle}
-      </Text>
-    ) : null}
-    {actionLabel && onAction ? (
-      <Button
-        variant="primary"
-        title={actionLabel}
-        onPress={onAction}
-        style={styles.button}
-      />
-    ) : null}
-    {secondaryLabel && onSecondary ? (
-      <Button
-        variant="ghost"
-        title={secondaryLabel}
-        onPress={onSecondary}
-        style={styles.button}
-      />
-    ) : null}
-  </View>
-);
+}) => {
+  const hasActions = !!action || !!(actionLabel && onAction) || !!(secondaryLabel && onSecondary);
+  return (
+    <StateLayout
+      icon={icon}
+      title={title}
+      description={description ?? subtitle}
+      size={size}
+      fullscreen={fullscreen}
+    >
+      {hasActions ? (
+        <>
+          {action}
+          {actionLabel && onAction ? (
+            <Button variant="primary" title={actionLabel} onPress={onAction} style={styles.button} />
+          ) : null}
+          {secondaryLabel && onSecondary ? (
+            <Button variant="ghost" title={secondaryLabel} onPress={onSecondary} style={styles.button} />
+          ) : null}
+        </>
+      ) : null}
+    </StateLayout>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing[8],
+    paddingHorizontal: spacing[4],
   },
   fullscreen: { flex: 1 },
   iconCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: radius.full,
-    backgroundColor: colors.primary[50]!,
+    borderRadius: radiusRole.avatar,
+    backgroundColor: colors.surface.alt,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing[4],
   },
-  subtitle: { marginTop: spacing[2] },
+  title: { marginBottom: spacing[1] },
+  // Web `max-w-sm` (384).
+  description: { maxWidth: 384 },
+  actions: { marginTop: spacing[4], alignItems: 'center', gap: spacing[2] },
   // Button varsayılan alignSelf:'flex-start' kullanır; ortalı içeriğe hizala.
-  button: { marginTop: spacing[5], alignSelf: 'center' },
+  button: { alignSelf: 'center' },
 });

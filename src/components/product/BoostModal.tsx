@@ -12,7 +12,6 @@ import { qk } from '@/lib/query';
 import {
   Modal,
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -21,7 +20,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '@/ui';
+import { theme, RawText } from '@/ui';
 import { productsApi } from '@/lib/api';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
@@ -176,7 +175,7 @@ export function BoostModal({
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Ionicons name="rocket" size={20} color={colors.warning[500]!} />
-              <Text style={styles.headerTitle}>{t('boost.title')}</Text>
+              <RawText style={styles.headerTitle}>{t('boost.title')}</RawText>
             </View>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close" size={22} color={colors.gray[500]!} />
@@ -184,26 +183,26 @@ export function BoostModal({
           </View>
 
           <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: theme.spacing[2] }}>
-            <Text style={styles.subtitle} numberOfLines={3}>
-              <Text style={styles.subtitleStrong}>{listingTitle}</Text>
+            <RawText style={styles.subtitle} numberOfLines={3}>
+              <RawText style={styles.subtitleStrong}>{listingTitle}</RawText>
               {t('boost.subtitleSuffix')}
-            </Text>
+            </RawText>
 
             {hasActiveBoost && (
               <View style={styles.activeNotice}>
-                <Text style={styles.activeNoticeText}>
+                <RawText style={styles.activeNoticeText}>
                   {t('boost.activeNotice', { remainingDays })}
                   {selected != null ? t('boost.activeNoticeTotal', { totalDays: remainingDays + selected }) : ''}
-                </Text>
+                </RawText>
               </View>
             )}
 
             {loadingPricing ? (
               <ActivityIndicator color={colors.primary[600]!} style={{ paddingVertical: 28 }} />
             ) : !enabled ? (
-              <Text style={styles.emptyText}>{t('server.product.boostUnavailable')}</Text>
+              <RawText style={styles.emptyText}>{t('server.product.boostUnavailable')}</RawText>
             ) : options.length === 0 ? (
-              <Text style={styles.emptyText}>{t('boost.noPackages')}</Text>
+              <RawText style={styles.emptyText}>{t('boost.noPackages')}</RawText>
             ) : (
               <View style={styles.optionList}>
                 {options.map((opt) => {
@@ -221,9 +220,9 @@ export function BoostModal({
                           size={20}
                           color={active ? colors.warning[500]! : colors.gray[300]!}
                         />
-                        <Text style={styles.optionLabel}>{opt.label}</Text>
+                        <RawText style={styles.optionLabel}>{opt.label}</RawText>
                       </View>
-                      <Text style={styles.optionPrice}>{opt.price.toLocaleString('tr-TR')} ₺</Text>
+                      <RawText style={styles.optionPrice}>{opt.price.toLocaleString('tr-TR')} ₺</RawText>
                     </TouchableOpacity>
                   );
                 })}
@@ -232,9 +231,9 @@ export function BoostModal({
 
             {isPremium && enabled && options.length > 0 && (
               <View style={styles.autoRenewRow}>
-                <Text style={styles.autoRenewText}>
+                <RawText style={styles.autoRenewText}>
                   {t('boost.autoRenewLabel')}
-                </Text>
+                </RawText>
                 <Switch
                   value={autoRenew}
                   onValueChange={setAutoRenew}
@@ -251,7 +250,7 @@ export function BoostModal({
               onPress={onClose}
               disabled={submitting}
             >
-              <Text style={styles.btnSecondaryText}>{t('listing.dismiss')}</Text>
+              <RawText style={styles.btnSecondaryText}>{t('listing.dismiss')}</RawText>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.btn, styles.btnPrimary, confirmDisabled && styles.btnDisabled]}
@@ -261,9 +260,9 @@ export function BoostModal({
               {submitting ? (
                 <ActivityIndicator color={colors.white} size="small" />
               ) : (
-                <Text style={styles.btnPrimaryText}>
+                <RawText style={styles.btnPrimaryText}>
                   {hasActiveBoost ? t('boost.extendAndPay') : t('boost.boostAndPay')}
-                </Text>
+                </RawText>
               )}
             </TouchableOpacity>
           </View>

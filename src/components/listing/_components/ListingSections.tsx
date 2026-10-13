@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import {
   View,
-  Text,
   ScrollView,
   TextInput,
   TouchableOpacity,
@@ -12,7 +11,7 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { theme, DateField } from '@/ui';
+import { theme, DateField, RawText } from '@/ui';
 import UpgradeCta from '@/components/UpgradeCta';
 import { ListingRemovalModal } from '../ListingRemovalModal';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
@@ -36,8 +35,8 @@ export function ListingHeaderBanners({ f }: SectionProps) {
     <>
       {!f.isEdit && (
         <>
-          <Text style={styles.pageTitle}>{t('collection.createNewListing')}</Text>
-          <Text style={styles.pageSubtitle}>{t('listing.createSubtitle')}</Text>
+          <RawText style={styles.pageTitle}>{t('collection.createNewListing')}</RawText>
+          <RawText style={styles.pageSubtitle}>{t('listing.createSubtitle')}</RawText>
         </>
       )}
 
@@ -59,7 +58,7 @@ export function ListingHeaderBanners({ f }: SectionProps) {
         >
           <View style={styles.limitsRow}>
             <View style={{ flex: 1 }}>
-              <Text
+              <RawText
                 style={[
                   styles.limitsTitle,
                   f.listingLimits.isPremium
@@ -75,17 +74,17 @@ export function ListingHeaderBanners({ f }: SectionProps) {
                       count: f.listingLimits.currentCount,
                       max: f.listingLimits.maxListings,
                     })}
-              </Text>
+              </RawText>
               {f.listingLimits.remainingListings !== -1 && (
-                <Text style={styles.limitsRemaining}>
+                <RawText style={styles.limitsRemaining}>
                   {t('listing.remainingCount', { count: f.listingLimits.remainingListings })}
-                </Text>
+                </RawText>
               )}
             </View>
             {!f.listingLimits.canCreateListing && (
               <UpgradeCta>
                 <TouchableOpacity style={styles.upgradeButton} onPress={() => router.push('/(tabs)/profile')}>
-                  <Text style={styles.upgradeButtonText}>{t('address.goPremium')}</Text>
+                  <RawText style={styles.upgradeButtonText}>{t('address.goPremium')}</RawText>
                 </TouchableOpacity>
               </UpgradeCta>
             )}
@@ -113,8 +112,8 @@ export function ListingHeaderBanners({ f }: SectionProps) {
       {/* Reactivation panel (edit, sold) */}
       {f.isEdit && f.status === 'sold' && (
         <View style={[styles.card, styles.reactivateCard]}>
-          <Text style={styles.reactivateTitle}>{t('listing.soldTitle')}</Text>
-          <Text style={styles.hint}>{t('listing.reactivateHint')}</Text>
+          <RawText style={styles.reactivateTitle}>{t('listing.soldTitle')}</RawText>
+          <RawText style={styles.hint}>{t('listing.reactivateHint')}</RawText>
           <TextInput
             style={[styles.input, { marginTop: theme.spacing[2.5] }]}
             value={f.reactivateQuantity}
@@ -131,7 +130,7 @@ export function ListingHeaderBanners({ f }: SectionProps) {
             {f.reactivating ? (
               <ActivityIndicator size="small" color={colors.white} />
             ) : (
-              <Text style={styles.submitButtonText}>{t('listing.submitForReview')}</Text>
+              <RawText style={styles.submitButtonText}>{t('listing.submitForReview')}</RawText>
             )}
           </TouchableOpacity>
         </View>
@@ -140,8 +139,8 @@ export function ListingHeaderBanners({ f }: SectionProps) {
       {/* Kaldırılmış ürün: düzenlenemez/yeniden açılamaz (yönetici kaldırması) */}
       {f.isEdit && f.status === 'deleted' && (
         <View style={[styles.card, styles.reactivateCard]}>
-          <Text style={styles.reactivateTitle}>{t('listing.removedTitle')}</Text>
-          <Text style={styles.hint}>{t('listing.removedBody')}</Text>
+          <RawText style={styles.reactivateTitle}>{t('listing.removedTitle')}</RawText>
+          <RawText style={styles.hint}>{t('listing.removedBody')}</RawText>
         </View>
       )}
     </>
@@ -156,7 +155,7 @@ export function ListingImagesSection({ f }: SectionProps) {
   const maxImages = f.limits?.maxImagesPerListing || 5;
   return (
     <View style={styles.card}>
-      <Text style={styles.sectionHeader}>{t('listing.sectionImages')}</Text>
+      <RawText style={styles.sectionHeader}>{t('listing.sectionImages')}</RawText>
 
       {f.imageKeys.length < maxImages ? (
         <TouchableOpacity style={styles.imageUploadArea} onPress={f.pickImages} disabled={f.uploadingImages}>
@@ -164,17 +163,17 @@ export function ListingImagesSection({ f }: SectionProps) {
             <ActivityIndicator size="small" color={colors.primary[600]!} />
           ) : (
             <>
-              <Text style={styles.imageUploadIcon}>📷</Text>
-              <Text style={styles.imageUploadLabel}>{t('listing.tapToUpload')}</Text>
+              <RawText style={styles.imageUploadIcon}>📷</RawText>
+              <RawText style={styles.imageUploadLabel}>{t('listing.tapToUpload')}</RawText>
             </>
           )}
-          <Text style={styles.imageUploadCount}>
+          <RawText style={styles.imageUploadCount}>
             {t('listing.uploadedCount', { count: f.imageKeys.length, max: maxImages })}
-          </Text>
+          </RawText>
         </TouchableOpacity>
       ) : (
         <View style={styles.imageMaxReached}>
-          <Text style={styles.imageMaxReachedText}>{t('product.maxImagesReached')}</Text>
+          <RawText style={styles.imageMaxReachedText}>{t('product.maxImagesReached')}</RawText>
         </View>
       )}
 
@@ -185,11 +184,11 @@ export function ListingImagesSection({ f }: SectionProps) {
               <Image source={{ uri }} style={styles.imageThumb} />
               {index === 0 && (
                 <View style={styles.coverBadge}>
-                  <Text style={styles.coverBadgeText}>{t('listing.coverBadge')}</Text>
+                  <RawText style={styles.coverBadgeText}>{t('listing.coverBadge')}</RawText>
                 </View>
               )}
               <TouchableOpacity style={styles.imageRemoveBtn} onPress={() => f.removeImage(index)}>
-                <Text style={styles.imageRemoveText}>✕</Text>
+                <RawText style={styles.imageRemoveText}>✕</RawText>
               </TouchableOpacity>
             </View>
           ))}
@@ -206,11 +205,11 @@ export function ListingBasicInfoSection({ f }: SectionProps) {
   const { t } = useTranslation();
   return (
     <View style={styles.card}>
-      <Text style={styles.sectionHeader}>{t('listing.sectionBasicInfo')}</Text>
+      <RawText style={styles.sectionHeader}>{t('listing.sectionBasicInfo')}</RawText>
 
-      <Text style={styles.label}>
-        {t('common.title')} <Text style={styles.required}>*</Text>
-      </Text>
+      <RawText style={styles.label}>
+        {t('common.title')} <RawText style={styles.required}>*</RawText>
+      </RawText>
       <TextInput
         style={styles.input}
         value={f.title}
@@ -219,11 +218,11 @@ export function ListingBasicInfoSection({ f }: SectionProps) {
         placeholderTextColor={colors.text.subtle}
         maxLength={TITLE_MAX}
       />
-      <Text style={styles.charCount}>{f.title.length}/{TITLE_MAX}</Text>
+      <RawText style={styles.charCount}>{f.title.length}/{TITLE_MAX}</RawText>
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>
-        {t('common.description')} <Text style={styles.required}>*</Text>
-      </Text>
+      <RawText style={[styles.label, { marginTop: theme.spacing[4] }]}>
+        {t('common.description')} <RawText style={styles.required}>*</RawText>
+      </RawText>
       <TextInput
         style={[styles.input, styles.textArea]}
         value={f.description}
@@ -234,7 +233,7 @@ export function ListingBasicInfoSection({ f }: SectionProps) {
         maxLength={DESCRIPTION_MAX}
         textAlignVertical="top"
       />
-      <Text style={styles.charCount}>{f.description.length}/{DESCRIPTION_MAX}</Text>
+      <RawText style={styles.charCount}>{f.description.length}/{DESCRIPTION_MAX}</RawText>
     </View>
   );
 }
@@ -248,11 +247,11 @@ export function ListingDetailsSection({ f }: SectionProps) {
   const conditions = useMemo(() => buildConditions(t), [t]);
   return (
     <View style={styles.card}>
-      <Text style={styles.sectionHeader}>{t('listing.sectionProductDetails')}</Text>
+      <RawText style={styles.sectionHeader}>{t('listing.sectionProductDetails')}</RawText>
 
-      <Text style={styles.label}>
-        {t('product.category')} <Text style={styles.required}>*</Text>
-      </Text>
+      <RawText style={styles.label}>
+        {t('product.category')} <RawText style={styles.required}>*</RawText>
+      </RawText>
       <TouchableOpacity
         style={styles.pickerButton}
         onPress={() => {
@@ -260,15 +259,15 @@ export function ListingDetailsSection({ f }: SectionProps) {
           f.setShowCategoryPicker(true);
         }}
       >
-        <Text style={f.selectedCategory ? styles.pickerValue : styles.pickerPlaceholder}>
+        <RawText style={f.selectedCategory ? styles.pickerValue : styles.pickerPlaceholder}>
           {f.selectedCategory?.name || t('product.selectCategory')}
-        </Text>
-        <Text style={styles.pickerArrow}>›</Text>
+        </RawText>
+        <RawText style={styles.pickerArrow}>›</RawText>
       </TouchableOpacity>
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>
-        {t('product.condition')} <Text style={styles.required}>*</Text>
-      </Text>
+      <RawText style={[styles.label, { marginTop: theme.spacing[4] }]}>
+        {t('product.condition')} <RawText style={styles.required}>*</RawText>
+      </RawText>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
         {conditions.map((c) => (
           <TouchableOpacity
@@ -276,16 +275,16 @@ export function ListingDetailsSection({ f }: SectionProps) {
             style={[styles.chip, f.condition === c.value && styles.chipActive]}
             onPress={() => f.setCondition(c.value)}
           >
-            <Text style={[styles.chipText, f.condition === c.value && styles.chipTextActive]}>
+            <RawText style={[styles.chipText, f.condition === c.value && styles.chipTextActive]}>
               {c.label}
-            </Text>
+            </RawText>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>
-        {t('product.brand')} <Text style={styles.required}>*</Text>
-      </Text>
+      <RawText style={[styles.label, { marginTop: theme.spacing[4] }]}>
+        {t('product.brand')} <RawText style={styles.required}>*</RawText>
+      </RawText>
       <TouchableOpacity
         style={styles.pickerButton}
         onPress={() => {
@@ -294,19 +293,19 @@ export function ListingDetailsSection({ f }: SectionProps) {
         }}
         disabled={f.brandsLoading}
       >
-        <Text style={f.selectedBrand ? styles.pickerValue : styles.pickerPlaceholder}>
+        <RawText style={f.selectedBrand ? styles.pickerValue : styles.pickerPlaceholder}>
           {f.brandsLoading ? t('common.loading') : f.selectedBrand?.name || t('product.selectBrand')}
-        </Text>
-        <Text style={styles.pickerArrow}>›</Text>
+        </RawText>
+        <RawText style={styles.pickerArrow}>›</RawText>
       </TouchableOpacity>
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.model')}</Text>
+      <RawText style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.model')}</RawText>
       <TouchableOpacity
         style={[styles.pickerButton, !f.brandId && styles.pickerDisabled]}
         onPress={() => f.setShowModelPicker(true)}
         disabled={!f.brandId || f.modelsLoading}
       >
-        <Text style={f.selectedModel ? styles.pickerValue : styles.pickerPlaceholder}>
+        <RawText style={f.selectedModel ? styles.pickerValue : styles.pickerPlaceholder}>
           {!f.brandId
             ? t('product.selectBrandFirst')
             : f.modelsLoading
@@ -314,13 +313,13 @@ export function ListingDetailsSection({ f }: SectionProps) {
             : f.models.length === 0
             ? t('product.noModelsForBrand')
             : f.selectedModel?.name || t('product.selectModel')}
-        </Text>
-        <Text style={styles.pickerArrow}>›</Text>
+        </RawText>
+        <RawText style={styles.pickerArrow}>›</RawText>
       </TouchableOpacity>
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>
-        {t('product.scale')} <Text style={styles.required}>*</Text>
-      </Text>
+      <RawText style={[styles.label, { marginTop: theme.spacing[4] }]}>
+        {t('product.scale')} <RawText style={styles.required}>*</RawText>
+      </RawText>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
         {f.effectiveScales.map((s) => (
           <TouchableOpacity
@@ -328,24 +327,24 @@ export function ListingDetailsSection({ f }: SectionProps) {
             style={[styles.chip, f.scale === s && styles.chipActive]}
             onPress={() => f.setScale(s)}
           >
-            <Text style={[styles.chipText, f.scale === s && styles.chipTextActive]}>{s}</Text>
+            <RawText style={[styles.chipText, f.scale === s && styles.chipTextActive]}>{s}</RawText>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>
-        {t('product.material')} <Text style={styles.required}>*</Text>
-      </Text>
+      <RawText style={[styles.label, { marginTop: theme.spacing[4] }]}>
+        {t('product.material')} <RawText style={styles.required}>*</RawText>
+      </RawText>
       <TouchableOpacity style={styles.pickerButton} onPress={() => f.setShowMaterialPicker(true)}>
-        <Text style={f.selectedMaterial ? styles.pickerValue : styles.pickerPlaceholder}>
+        <RawText style={f.selectedMaterial ? styles.pickerValue : styles.pickerPlaceholder}>
           {f.selectedMaterial?.label || t('product.selectMaterial')}
-        </Text>
-        <Text style={styles.pickerArrow}>›</Text>
+        </RawText>
+        <RawText style={styles.pickerArrow}>›</RawText>
       </TouchableOpacity>
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>
-        {t('product.manufacturer')} <Text style={styles.required}>*</Text>
-      </Text>
+      <RawText style={[styles.label, { marginTop: theme.spacing[4] }]}>
+        {t('product.manufacturer')} <RawText style={styles.required}>*</RawText>
+      </RawText>
       <TouchableOpacity
         style={styles.pickerButton}
         onPress={() => {
@@ -353,18 +352,18 @@ export function ListingDetailsSection({ f }: SectionProps) {
           f.setShowManufacturerPicker(true);
         }}
       >
-        <Text style={f.selectedManufacturer ? styles.pickerValue : styles.pickerPlaceholder}>
+        <RawText style={f.selectedManufacturer ? styles.pickerValue : styles.pickerPlaceholder}>
           {f.selectedManufacturer?.name || t('product.selectManufacturer')}
-        </Text>
-        <Text style={styles.pickerArrow}>›</Text>
+        </RawText>
+        <RawText style={styles.pickerArrow}>›</RawText>
       </TouchableOpacity>
 
       {/* Renk ve kutu durumu sunucuda zorunlu (2026-07-29, `0096579da`) — web ile
           aynı: katalog renkleri çoklu seçim (`colors`), kutu durumu boolean. */}
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>
-        {t('product.color')} <Text style={styles.required}>*</Text>
-      </Text>
-      <Text style={styles.hint}>{t('listing.colorLimitHint', { max: MAX_COLORS })}</Text>
+      <RawText style={[styles.label, { marginTop: theme.spacing[4] }]}>
+        {t('product.color')} <RawText style={styles.required}>*</RawText>
+      </RawText>
+      <RawText style={styles.hint}>{t('listing.colorLimitHint', { max: MAX_COLORS })}</RawText>
       <View style={styles.chipWrap}>
         {f.colorList.map((c) => {
           const active = f.colors.includes(c.slug);
@@ -378,15 +377,15 @@ export function ListingDetailsSection({ f }: SectionProps) {
               onPress={() => f.toggleColor(c.slug)}
             >
               {c.color ? <View style={[styles.colorDot, { backgroundColor: c.color }]} /> : null}
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{c.label}</Text>
+              <RawText style={[styles.chipText, active && styles.chipTextActive]}>{c.label}</RawText>
             </TouchableOpacity>
           );
         })}
       </View>
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>
-        {t('product.boxedCondition')} <Text style={styles.required}>*</Text>
-      </Text>
+      <RawText style={[styles.label, { marginTop: theme.spacing[4] }]}>
+        {t('product.boxedCondition')} <RawText style={styles.required}>*</RawText>
+      </RawText>
       <View style={styles.chipRow}>
         {(['boxed', 'unboxed'] as const).map((value) => (
           <TouchableOpacity
@@ -397,9 +396,9 @@ export function ListingDetailsSection({ f }: SectionProps) {
             style={[styles.chip, f.isBoxed === value && styles.chipActive]}
             onPress={() => f.setIsBoxed(value)}
           >
-            <Text style={[styles.chipText, f.isBoxed === value && styles.chipTextActive]}>
+            <RawText style={[styles.chipText, f.isBoxed === value && styles.chipTextActive]}>
               {t(value === 'boxed' ? 'product.boxed' : 'product.unboxed')}
-            </Text>
+            </RawText>
           </TouchableOpacity>
         ))}
       </View>
@@ -410,13 +409,13 @@ export function ListingDetailsSection({ f }: SectionProps) {
           alanın neden yok olduğunu sunucu 400'ünden öğrenmemeli). */}
       {f.globalAttrGroups.length > 0 ? (
         <>
-          <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.additionalDetails')}</Text>
-          <Text style={styles.hint}>{t('product.globalAttrsHint')}</Text>
+          <RawText style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.additionalDetails')}</RawText>
+          <RawText style={styles.hint}>{t('product.globalAttrsHint')}</RawText>
           {f.globalAttrGroups.map((group) => (
             <View key={group.slug} style={{ marginTop: theme.spacing[2] }}>
-              <Text style={styles.label}>
-                {group.name} {group.isRequired ? <Text style={styles.required}>*</Text> : null}
-              </Text>
+              <RawText style={styles.label}>
+                {group.name} {group.isRequired ? <RawText style={styles.required}>*</RawText> : null}
+              </RawText>
               <View style={styles.chipWrap}>
                 {group.attributes.map((attr) => {
                   const active = f.globalAttributes[group.slug]?.[0] === attr.slug;
@@ -429,7 +428,7 @@ export function ListingDetailsSection({ f }: SectionProps) {
                       style={[styles.chip, active && styles.chipActive]}
                       onPress={() => f.setGlobalAttribute(group.slug, attr.slug)}
                     >
-                      <Text style={[styles.chipText, active && styles.chipTextActive]}>{attr.label}</Text>
+                      <RawText style={[styles.chipText, active && styles.chipTextActive]}>{attr.label}</RawText>
                     </TouchableOpacity>
                   );
                 })}
@@ -438,12 +437,12 @@ export function ListingDetailsSection({ f }: SectionProps) {
           ))}
         </>
       ) : f.globalAttrGroupsFailed ? (
-        <Text style={[styles.hint, { color: colors.danger[600]!, marginTop: theme.spacing[4] }]}>
+        <RawText style={[styles.hint, { color: colors.danger[600]!, marginTop: theme.spacing[4] }]}>
           {t('product.optionsLoadFailed')}
-        </Text>
+        </RawText>
       ) : null}
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.modelCodeLabel')}</Text>
+      <RawText style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.modelCodeLabel')}</RawText>
       <TextInput
         style={styles.input}
         value={f.modelCode}
@@ -453,12 +452,12 @@ export function ListingDetailsSection({ f }: SectionProps) {
         maxLength={100}
       />
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.releaseYear')}</Text>
+      <RawText style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.releaseYear')}</RawText>
       <TouchableOpacity style={styles.pickerButton} onPress={() => f.setShowYearPicker(true)}>
-        <Text style={f.year ? styles.pickerValue : styles.pickerPlaceholder}>
+        <RawText style={f.year ? styles.pickerValue : styles.pickerPlaceholder}>
           {f.year || t('product.selectYear')}
-        </Text>
-        <Text style={styles.pickerArrow}>›</Text>
+        </RawText>
+        <RawText style={styles.pickerArrow}>›</RawText>
       </TouchableOpacity>
 
       {/* Manufacturer-scoped extra attribute groups */}
@@ -473,10 +472,10 @@ export function ListingDetailsSection({ f }: SectionProps) {
             : t('listing.attrGroupSelectedCount', { count: selected.length });
         return (
           <View key={group.slug}>
-            <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{group.name}</Text>
+            <RawText style={[styles.label, { marginTop: theme.spacing[4] }]}>{group.name}</RawText>
             <TouchableOpacity style={styles.pickerButton} onPress={() => f.setShowAttrGroupPicker(group.slug)}>
-              <Text style={selected.length > 0 ? styles.pickerValue : styles.pickerPlaceholder}>{summary}</Text>
-              <Text style={styles.pickerArrow}>›</Text>
+              <RawText style={selected.length > 0 ? styles.pickerValue : styles.pickerPlaceholder}>{summary}</RawText>
+              <RawText style={styles.pickerArrow}>›</RawText>
             </TouchableOpacity>
           </View>
         );
@@ -492,7 +491,7 @@ export function ListingOptionsSection({ f }: SectionProps) {
   const { t } = useTranslation();
   return (
     <View style={styles.card}>
-      <Text style={styles.sectionHeader}>{t('listing.sectionOptions')}</Text>
+      <RawText style={styles.sectionHeader}>{t('listing.sectionOptions')}</RawText>
 
       <View
         style={[
@@ -501,14 +500,14 @@ export function ListingOptionsSection({ f }: SectionProps) {
         ]}
       >
         <View style={{ flex: 1 }}>
-          <Text style={styles.toggleLabel}>{t('product.tradeEnabled')}</Text>
-          <Text style={styles.toggleHint}>
+          <RawText style={styles.toggleLabel}>{t('product.tradeEnabled')}</RawText>
+          <RawText style={styles.toggleHint}>
             {f.limits?.canTrade
               ? t('product.tradeKeepsOpenForTrade')
               : CAN_BUY_DIGITAL
               ? t('product.tradeRequiresPremium')
               : t('membership.featureUnavailableOnAccount')}
-          </Text>
+          </RawText>
         </View>
         {f.limits?.canTrade ? (
           <Switch
@@ -520,7 +519,7 @@ export function ListingOptionsSection({ f }: SectionProps) {
         ) : (
           <UpgradeCta>
             <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
-              <Text style={styles.upgradeLinkText}>{t('product.upgradeArrow')}</Text>
+              <RawText style={styles.upgradeLinkText}>{t('product.upgradeArrow')}</RawText>
             </TouchableOpacity>
           </UpgradeCta>
         )}
@@ -528,8 +527,8 @@ export function ListingOptionsSection({ f }: SectionProps) {
 
       <View style={[styles.toggleRow, styles.toggleRowDisabled, { marginTop: theme.spacing[3] }]}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.toggleLabel}>{t('product.setBundle')}</Text>
-          <Text style={styles.toggleHint}>{t('product.setBundleHelper')}</Text>
+          <RawText style={styles.toggleLabel}>{t('product.setBundle')}</RawText>
+          <RawText style={styles.toggleHint}>{t('product.setBundleHelper')}</RawText>
         </View>
         <Switch
           value={f.isSet}
@@ -541,7 +540,7 @@ export function ListingOptionsSection({ f }: SectionProps) {
 
       {f.isSet && (
         <View style={{ marginTop: theme.spacing[3] }}>
-          <Text style={styles.label}>{t('product.setPieceCount')}</Text>
+          <RawText style={styles.label}>{t('product.setPieceCount')}</RawText>
           <TextInput
             style={styles.input}
             value={f.bundleSize}
@@ -550,7 +549,7 @@ export function ListingOptionsSection({ f }: SectionProps) {
             placeholder={t('product.setPiecePlaceholder')}
             placeholderTextColor={colors.gray[400]}
           />
-          <Text style={styles.toggleHint}>{t('product.setSizeHelper')}</Text>
+          <RawText style={styles.toggleHint}>{t('product.setSizeHelper')}</RawText>
         </View>
       )}
 
@@ -558,8 +557,8 @@ export function ListingOptionsSection({ f }: SectionProps) {
       {f.isEdit && (
         <View style={[styles.toggleRow, styles.toggleRowDisabled, { marginTop: theme.spacing[3] }]}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.toggleLabel}>{t('product.preOrder')}</Text>
-            <Text style={styles.toggleHint}>{t('listing.preorderNotInHandHint')}</Text>
+            <RawText style={styles.toggleLabel}>{t('product.preOrder')}</RawText>
+            <RawText style={styles.toggleHint}>{t('listing.preorderNotInHandHint')}</RawText>
           </View>
           <Switch
             value={f.isPreorder}
@@ -573,23 +572,23 @@ export function ListingOptionsSection({ f }: SectionProps) {
       {/* Status (edit only, active/inactive) */}
       {f.isEdit && (f.status === 'active' || f.status === 'inactive') && (
         <View style={{ marginTop: theme.spacing[4] }}>
-          <Text style={styles.label}>{t('listing.statusLabel')}</Text>
+          <RawText style={styles.label}>{t('listing.statusLabel')}</RawText>
           <View style={styles.chipRow}>
             <TouchableOpacity
               style={[styles.chip, f.status === 'active' && styles.chipActive]}
               onPress={() => f.setStatus('active')}
             >
-              <Text style={[styles.chipText, f.status === 'active' && styles.chipTextActive]}>
+              <RawText style={[styles.chipText, f.status === 'active' && styles.chipTextActive]}>
                 {t('common.active')}
-              </Text>
+              </RawText>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.chip, f.status === 'inactive' && styles.chipActive]}
               onPress={() => f.setStatus('inactive')}
             >
-              <Text style={[styles.chipText, f.status === 'inactive' && styles.chipTextActive]}>
+              <RawText style={[styles.chipText, f.status === 'inactive' && styles.chipTextActive]}>
                 {t('common.inactive')}
-              </Text>
+              </RawText>
             </TouchableOpacity>
           </View>
         </View>
@@ -605,11 +604,11 @@ export function ListingPricingSection({ f }: SectionProps) {
   const { t } = useTranslation();
   return (
     <View style={styles.card}>
-      <Text style={styles.sectionHeader}>{t('listing.sectionPricing')}</Text>
+      <RawText style={styles.sectionHeader}>{t('listing.sectionPricing')}</RawText>
 
-      <Text style={styles.label}>
-        {t('listing.priceFieldLabel')} <Text style={styles.required}>*</Text>
-      </Text>
+      <RawText style={styles.label}>
+        {t('listing.priceFieldLabel')} <RawText style={styles.required}>*</RawText>
+      </RawText>
       <TextInput
         style={styles.input}
         value={f.price}
@@ -619,7 +618,7 @@ export function ListingPricingSection({ f }: SectionProps) {
         keyboardType="decimal-pad"
       />
 
-      <Text style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.stockQuantity')}</Text>
+      <RawText style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.stockQuantity')}</RawText>
       <TextInput
         style={styles.input}
         value={f.quantity}
@@ -628,16 +627,16 @@ export function ListingPricingSection({ f }: SectionProps) {
         placeholderTextColor={colors.text.subtle}
         keyboardType="number-pad"
       />
-      <Text style={styles.hint}>
+      <RawText style={styles.hint}>
         {f.isEdit ? t('product.leaveEmptyUnlimitedStock') : t('product.quantityDefaultHint')}
-      </Text>
+      </RawText>
       {f.isEdit && f.reservedQty > 0 && (
-        <Text style={styles.reservedHint}>
+        <RawText style={styles.reservedHint}>
           {t('listing.reservedHint', {
             reserved: f.reservedQty,
             available: Math.max(0, (Number(f.quantity) || 0) - f.reservedQty),
           })}
-        </Text>
+        </RawText>
       )}
 
       {/* İndirim — create'te de gösterilir. `POST /products` indirim alanlarını
@@ -645,7 +644,7 @@ export function ListingPricingSection({ f }: SectionProps) {
           da çağrılıyordu; yalnız bu kapı yüzünden satıcı ilanı önce açıp sonra
           düzenlemeden indirim eklemek zorunda kalıyordu. */}
       <View style={styles.discountBox}>
-          <Text style={styles.label}>{t('product.discountedPrice')} (TL)</Text>
+          <RawText style={styles.label}>{t('product.discountedPrice')} (TL)</RawText>
           <TextInput
             style={styles.input}
             value={f.salePrice}
@@ -655,9 +654,9 @@ export function ListingPricingSection({ f }: SectionProps) {
             keyboardType="decimal-pad"
           />
           {f.discountPercent > 0 && (
-            <Text style={styles.discountPercent}>
+            <RawText style={styles.discountPercent}>
               {t('listing.discountPercentLabel', { percent: f.discountPercent })}
-            </Text>
+            </RawText>
           )}
           <View style={{ marginTop: theme.spacing[3] }}>
             <DateField
@@ -679,21 +678,21 @@ export function ListingPricingSection({ f }: SectionProps) {
       {/* Commission preview */}
       {(f.commissionLoading || f.commissionPreview) && (
         <View style={styles.commissionCard}>
-          <Text style={styles.commissionTitle}>{t('product.estimatedPerSale')}</Text>
+          <RawText style={styles.commissionTitle}>{t('product.estimatedPerSale')}</RawText>
           {f.commissionLoading ? (
             <ActivityIndicator size="small" color={colors.text.subtle} style={{ marginTop: theme.spacing[1] }} />
           ) : f.commissionPreview ? (
             <View style={styles.commissionRow}>
-              <Text style={styles.commissionFee}>
+              <RawText style={styles.commissionFee}>
                 {t('listing.platformFeeLine', {
                   amount: formatPrice(f.commissionPreview.sellerFeeAmount),
                 })}
-              </Text>
-              <Text style={styles.commissionNet}>
+              </RawText>
+              <RawText style={styles.commissionNet}>
                 {t('listing.netEarningLine', {
                   amount: formatPrice(f.commissionPreview.sellerNetAmount),
                 })}
-              </Text>
+              </RawText>
             </View>
           ) : null}
         </View>
@@ -719,16 +718,16 @@ export function ListingShippingSection({ f }: SectionProps) {
   const { t } = useTranslation();
   return (
     <View style={styles.card}>
-      <Text style={styles.sectionHeader}>{t('listing.sectionShipping')}</Text>
+      <RawText style={styles.sectionHeader}>{t('listing.sectionShipping')}</RawText>
 
-      <Text style={styles.label}>
-        {t('listing.packageSizeLabel')} <Text style={styles.required}>*</Text>
-      </Text>
+      <RawText style={styles.label}>
+        {t('listing.packageSizeLabel')} <RawText style={styles.required}>*</RawText>
+      </RawText>
 
       {f.packageTiersLoading ? (
         <ActivityIndicator size="small" color={colors.text.subtle} />
       ) : f.packageTiersError || f.packageTiers.length === 0 ? (
-        <Text style={styles.hint}>{t('listing.packageTiersError')}</Text>
+        <RawText style={styles.hint}>{t('listing.packageTiersError')}</RawText>
       ) : (
         <>
           <View style={styles.tierRow}>
@@ -745,20 +744,20 @@ export function ListingShippingSection({ f }: SectionProps) {
                   style={[styles.tierCard, selected && styles.tierCardActive]}
                   onPress={() => f.setShippingPackageTier(tier.code)}
                 >
-                  <Text style={[styles.tierLabel, selected && styles.tierLabelActive]}>
+                  <RawText style={[styles.tierLabel, selected && styles.tierLabelActive]}>
                     {getPackageTierLabel(tier.code, tier.label, t)}
-                  </Text>
+                  </RawText>
                   {/* Örnek ölçü sunucuda bugün boş — geldiği gün görünür. */}
                   {hasSample && (
-                    <Text style={[styles.tierSample, selected && styles.tierLabelActive]}>
+                    <RawText style={[styles.tierSample, selected && styles.tierLabelActive]}>
                       {sample.join(' × ')} cm
-                    </Text>
+                    </RawText>
                   )}
                 </TouchableOpacity>
               );
             })}
           </View>
-          <Text style={styles.hint}>{t('listing.packageTiersHint')}</Text>
+          <RawText style={styles.hint}>{t('listing.packageTiersHint')}</RawText>
         </>
       )}
     </View>
@@ -774,7 +773,7 @@ export function ListingSubmitRow({ f }: SectionProps) {
     <>
       <View style={styles.submitRow}>
         <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
-          <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
+          <RawText style={styles.cancelButtonText}>{t('common.cancel')}</RawText>
         </TouchableOpacity>
         <TouchableOpacity
           testID="listing-submit-button"
@@ -785,13 +784,13 @@ export function ListingSubmitRow({ f }: SectionProps) {
           {f.isSubmitting ? (
             <ActivityIndicator size="small" color={colors.white} />
           ) : (
-            <Text style={styles.submitButtonText}>
+            <RawText style={styles.submitButtonText}>
               {f.uploadingImages
                 ? t('product.saveWhileUploading')
                 : f.isEdit
                   ? t('product.saveChanges')
                   : t('product.createListing')}
-            </Text>
+            </RawText>
           )}
         </TouchableOpacity>
       </View>
@@ -800,7 +799,7 @@ export function ListingSubmitRow({ f }: SectionProps) {
       {f.isEdit && (
         <TouchableOpacity style={styles.deleteButton} onPress={f.handleDelete} disabled={f.isSubmitting}>
           <Ionicons name="trash-outline" size={18} color={colors.danger[600]!} />
-          <Text style={styles.deleteButtonText}>{t('product.deleteListing')}</Text>
+          <RawText style={styles.deleteButtonText}>{t('product.deleteListing')}</RawText>
         </TouchableOpacity>
       )}
       {f.isEdit && (

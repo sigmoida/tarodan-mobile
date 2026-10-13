@@ -1,6 +1,7 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { theme } from '../lib/theme';
+import { RawText } from './Text';
 
 export interface CheckboxProps {
   checked: boolean;
@@ -52,13 +53,13 @@ export const Checkbox: React.FC<CheckboxProps> = ({
         ]}
       >
         {checked && (
-          <Text style={[styles.check, { fontSize: s * 0.7 }]}>✓</Text>
+          <RawText style={[styles.check, { fontSize: s * 0.7 }]}>✓</RawText>
         )}
       </View>
       {label && (
-        <Text style={[styles.label, disabled ? styles.labelDisabled : null]}>
+        <RawText style={[styles.label, disabled ? styles.labelDisabled : null]}>
           {label}
-        </Text>
+        </RawText>
       )}
     </Pressable>
   );

@@ -15,7 +15,7 @@ export const styles = StyleSheet.create({
   },
   title: { marginTop: spacing[4], marginBottom: spacing[2] },
   subtitle: { textAlign: 'center', marginBottom: spacing[6], color: colors.text.muted },
-  headerCount: { color: colors.white, opacity: 0.8 },
+  headerCount: { color: colors.text.muted, paddingHorizontal: spacing[2] },
   listContent: { padding: spacing[4], gap: spacing[3] },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   row: {

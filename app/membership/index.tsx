@@ -1,5 +1,5 @@
-import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
-import { theme, ScreenHeader } from '@/ui';
+import { View, ScrollView, ActivityIndicator } from 'react-native';
+import { theme, ScreenHeader, RawText } from '@/ui';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
 import { styles } from './_lib/membershipStyles';
@@ -35,7 +35,7 @@ export default function MembershipScreen() {
         {header}
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary[600]!} />
-          <Text style={styles.loadingText}>{f.t('common.loading')}</Text>
+          <RawText style={styles.loadingText}>{f.t('common.loading')}</RawText>
         </View>
       </View>
     );

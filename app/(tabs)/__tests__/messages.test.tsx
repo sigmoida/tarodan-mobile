@@ -20,6 +20,12 @@ jest.mock("expo-router", () => ({
   useLocalSearchParams: () => ({}),
 }));
 
+// AppShell marka barı sayaçları (sepet deposu + bildirim sorgusu) bu süitin konusu değil.
+jest.mock("@/components/shell/useShellCounts", () => ({
+  useShellCounts: () => ({ cartCount: 0, notificationCount: 0 }),
+}));
+jest.mock("expo-status-bar", () => ({ setStatusBarStyle: jest.fn() }));
+
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (k: string) => k }),
 }));

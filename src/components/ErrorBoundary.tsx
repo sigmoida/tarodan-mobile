@@ -1,7 +1,6 @@
 import React, { Component, ReactNode } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
@@ -9,7 +8,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { usePathname } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { theme } from "@/ui";
+import { theme, RawText } from "@/ui";
 import { logger } from "../services/logger";
 import { SHOW_DIAGNOSTICS } from "@/config/diagnostics";
 
@@ -115,25 +114,25 @@ function FallbackScreen({
         size={64}
         color={theme.colors.danger[500]}
       />
-      <Text style={styles.title}>{t("mobile.errorSomethingWrong")}</Text>
-      <Text style={styles.subtitle}>
+      <RawText style={styles.title}>{t("mobile.errorSomethingWrong")}</RawText>
+      <RawText style={styles.subtitle}>
         {t("mobile.errorBoundaryDescription")}
-      </Text>
+      </RawText>
       {/* TANI: gerçek hatayı ekranda göster — YALNIZ geliştirme/staging
           (`SHOW_DIAGNOSTICS`). Production'da kullanıcı ve App Review ham
           console/route dökümü görmez; hata Sentry'ye gider. */}
       {showDiagnostics && error && (
         <ScrollView style={styles.errorBox}>
-          <Text style={styles.errorText}>
+          <RawText style={styles.errorText}>
             {"### CONSOLE (Check the render method of ...) ###\n"}
             {capturedLogs.filter((l) => /invalid|render method|got:|undefined/i.test(l)).join("\n---\n") || "(ilgili log yok)"}
             {"\n\n### ROUTE: " + lastRouteRef.current + "\n\n"}
             {error.message}
-          </Text>
+          </RawText>
         </ScrollView>
       )}
       <TouchableOpacity style={styles.button} onPress={onRetry}>
-        <Text style={styles.buttonText}>{t("mobile.errorRetry")}</Text>
+        <RawText style={styles.buttonText}>{t("mobile.errorRetry")}</RawText>
       </TouchableOpacity>
     </View>
   );

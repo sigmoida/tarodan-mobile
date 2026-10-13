@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { theme } from '@/ui';
+import { theme, RawText } from '@/ui';
 import type { TabType } from '../_lib/types';
 
 const { colors } = theme;
@@ -20,15 +20,15 @@ export function OffersEmpty({ tab }: { tab: TabType }) {
           color={colors.primary[600]!}
         />
       </View>
-      <Text style={styles.title}>
+      <RawText style={styles.title}>
         {received ? t('offer.emptyReceivedTitle') : t('offer.emptySentTitle')}
-      </Text>
-      <Text style={styles.subtitle}>
+      </RawText>
+      <RawText style={styles.subtitle}>
         {received ? t('offer.emptyReceivedSubtitle') : t('offer.emptySentSubtitle')}
-      </Text>
+      </RawText>
       <TouchableOpacity style={styles.browseBtn} onPress={() => router.push('/listings')}>
         <Ionicons name="search-outline" size={18} color={colors.white} />
-        <Text style={styles.browseBtnText}>{t('mobile.guestBrowseListings')}</Text>
+        <RawText style={styles.browseBtnText}>{t('mobile.guestBrowseListings')}</RawText>
       </TouchableOpacity>
     </View>
   );

@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Text, ScrollView, Platform, KeyboardAvoidingView, Pressable } from 'react-native';
+import { View, ScrollView, Platform, KeyboardAvoidingView, Pressable } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { theme } from '@/ui';
+import { theme, RawText } from '@/ui';
 
 import { styles } from './_lib/styles';
 import type { ListingFormProps } from './_lib/types';
@@ -49,7 +49,7 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
           <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('common.back')}>
             <Ionicons name="arrow-back" size={24} color={colors.white} />
           </Pressable>
-          <Text style={styles.headerTitle}>{t('product.editListing')}</Text>
+          <RawText style={styles.headerTitle}>{t('product.editListing')}</RawText>
           <View style={{ width: 24 }} />
         </View>
       )}
