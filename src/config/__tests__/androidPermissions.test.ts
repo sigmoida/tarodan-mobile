@@ -115,3 +115,42 @@ describe('withLegacyStoragePermissions — manifest dönüşümü', () => {
     expect(out.every((e) => e.$['android:maxSdkVersion'] === '32')).toBe(true);
   });
 });
+
+/**
+ * CAMERA / RECORD_AUDIO'nun tek kaynağı expo-image-picker plugin'i:
+ * `cameraPermission:false` + `microphonePermission:false` onları kendisi
+ * `tools:node="remove"` ile bloklar. `blockedPermissions`'a ikinci kez yazmak
+ * iki yerde bakım demekti. (Gerçek prebuild çıktısında ikisi de
+ * `tools:node="remove"` olarak doğrulandı.)
+ */
+describe('CAMERA / RECORD_AUDIO — tek kaynak image-picker plugin\'i', () => {
+  const pickerOptions = () => {
+    const entry = expo.plugins.find((p) => Array.isArray(p) && p[0] === 'expo-image-picker');
+    return (entry as [string, Record<string, unknown>]).at(1) as Record<string, unknown>;
+  };
+
+  it('plugin kamera ve mikrofonu kapatır', () => {
+    expect(pickerOptions().cameraPermission).toBe(false);
+    expect(pickerOptions().microphonePermission).toBe(false);
+  });
+
+  it('app.json\'da android.blockedPermissions yok (çift engelleme kalktı)', () => {
+    expect(expo.android.blockedPermissions).toBeUndefined();
+  });
+
+  it('plugin kaynağı bu iki izni false opsiyonunda bloklar', () => {
+    const src = fs.readFileSync(
+      path.join(ROOT, 'node_modules/expo-image-picker/plugin/build/withImagePicker.js'),
+      'utf8',
+    );
+    expect(src).toContain("microphonePermission === false && 'android.permission.RECORD_AUDIO'");
+    expect(src).toContain("cameraPermission === false && 'android.permission.CAMERA'");
+    expect(src).toContain('withBlockedPermissions');
+  });
+
+  it('CAMERA / RECORD_AUDIO düz permissions listesinde de yok', () => {
+    const perms = expo.android.permissions ?? [];
+    expect(perms).not.toContain('android.permission.CAMERA');
+    expect(perms).not.toContain('android.permission.RECORD_AUDIO');
+  });
+});
