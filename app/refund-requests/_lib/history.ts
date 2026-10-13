@@ -36,11 +36,15 @@ export const REFUND_HISTORY_ACTION_KEYS: Record<string, MessageKey> = {
   dispute_resolved_reject: 'refund.history.disputeRejected',
 };
 
+/** Aksiyon adı boşsa gösterilen yer tutucu (eski ekranla aynı — etiket uydurulmaz). */
+export const EMPTY_HISTORY_ACTION = '—';
+
 /**
  * Aksiyonun okunur etiketi. Bilinmeyen (sunucuya sonradan eklenen) bir aksiyon
- * ham adıyla DEĞİL genel "Talep güncellendi" ile basılır.
+ * ham adıyla DEĞİL genel "Talep güncellendi" ile basılır. Aksiyon BOŞSA
+ * (null/undefined/boş metin) bir şey olduğu iddia edilmez: '—'.
  */
 export function refundHistoryActionLabel(action: string | null | undefined, t: TFunction): string {
-  const key = action ? REFUND_HISTORY_ACTION_KEYS[action] : undefined;
-  return t(key ?? 'refund.history.unknown');
+  if (!action?.trim()) return EMPTY_HISTORY_ACTION;
+  return t(REFUND_HISTORY_ACTION_KEYS[action] ?? 'refund.history.unknown');
 }

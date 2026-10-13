@@ -45,8 +45,11 @@ describe('refundHistoryActionLabel', () => {
     }
   });
 
-  it('bilinmeyen / eksik aksiyon ham adla değil genel etiketle basılır', () => {
+  it('bilinmeyen aksiyon ham adla değil genel etiketle basılır', () => {
     expect(refundHistoryActionLabel('some_new_action', t)).toBe('Talep güncellendi');
-    expect(refundHistoryActionLabel(undefined, t)).toBe('Talep güncellendi');
+  });
+
+  it.each([undefined, null, '', '   '])('boş aksiyon (%p) eskisi gibi "—" — etiket uydurulmaz', (action) => {
+    expect(refundHistoryActionLabel(action, t)).toBe('—');
   });
 });
