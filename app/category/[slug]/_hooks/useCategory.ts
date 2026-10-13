@@ -1,3 +1,4 @@
+import { logger, safeError } from '@/services/logger';
 import { useState, useCallback } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -26,7 +27,7 @@ export function useCategory() {
         const response = await categoriesApi.getBySlug(slug);
         return response.data.category || response.data;
       } catch (error) {
-        if (__DEV__) console.log('Category fetch error:', error);
+        logger.debug('Category fetch error', { err: safeError(error) });
         return null;
       }
     },
@@ -44,7 +45,7 @@ export function useCategory() {
         const response = await productsApi.getAll(params);
         return response.data.data || response.data.products || [];
       } catch (error) {
-        if (__DEV__) console.log('Products fetch error:', error);
+        logger.debug('Products fetch error', { err: safeError(error) });
         return [];
       }
     },

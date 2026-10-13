@@ -1,51 +1,60 @@
 /**
- * Gizlilik: push token'ı release cihaz günlüğüne yazılmaz (`__DEV__` kapısı).
+ * Gizlilik: push token'ı release cihaz günlüğüne yazılmaz. Token `logger.debug` ile
+ * basılır; logger'ın minLevel'ı modül yüklenirken `__DEV__`'e göre seçilir (release'te
+ * `info`), bu yüzden her senaryo modülü yeniden yükler.
  */
 const TOKEN = 'ExponentPushToken[secret-abc]';
 
-jest.mock('expo-device', () => ({ isDevice: true, modelName: 'Pixel' }));
-jest.mock('expo-constants', () => ({
-  __esModule: true,
-  default: { executionEnvironment: 'standalone', expoConfig: { extra: { eas: { projectId: 'proj-1' } } } },
-}));
-jest.mock('expo-notifications', () => ({
-  setNotificationHandler: jest.fn(),
-  getPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
-  requestPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
-  getExpoPushTokenAsync: jest.fn(async () => ({ data: TOKEN })),
-  setNotificationChannelAsync: jest.fn(async () => undefined),
-}));
-jest.mock('@/lib/api', () => ({ api: { post: jest.fn(async () => ({})) } }));
-jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
-
-import { registerForPushNotifications } from '../push';
-
 const g = globalThis as unknown as { __DEV__: boolean };
 let savedDev: boolean;
-let logSpy: jest.SpyInstance;
+let spies: jest.SpyInstance[];
 
 beforeEach(() => {
   savedDev = g.__DEV__;
-  logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+  spies = (['log', 'info', 'warn', 'error'] as const).map((m) =>
+    jest.spyOn(console, m).mockImplementation(() => {}),
+  );
 });
 afterEach(() => {
   g.__DEV__ = savedDev;
-  logSpy.mockRestore();
+  spies.forEach((s) => s.mockRestore());
 });
 
-const logged = () => JSON.stringify(logSpy.mock.calls);
+const logged = () => JSON.stringify(spies.flatMap((s) => s.mock.calls));
+
+async function register(dev: boolean) {
+  g.__DEV__ = dev;
+  let result: string | null | undefined;
+  await jest.isolateModulesAsync(async () => {
+    jest.doMock('expo-device', () => ({ isDevice: true, modelName: 'Pixel' }));
+    jest.doMock('expo-constants', () => ({
+      __esModule: true,
+      default: { executionEnvironment: 'standalone', expoConfig: { extra: { eas: { projectId: 'proj-1' } } } },
+    }));
+    jest.doMock('expo-notifications', () => ({
+      setNotificationHandler: jest.fn(),
+      getPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
+      requestPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
+      getExpoPushTokenAsync: jest.fn(async () => ({ data: TOKEN })),
+      setNotificationChannelAsync: jest.fn(async () => undefined),
+    }));
+    jest.doMock('@/lib/api', () => ({ api: { post: jest.fn(async () => ({})) } }));
+    jest.doMock('expo-router', () => ({ router: { push: jest.fn() } }));
+    const { registerForPushNotifications } = require('../push');
+    result = await registerForPushNotifications();
+  });
+  return result;
+}
 
 describe('registerForPushNotifications günlüğü', () => {
-  it('release (__DEV__=false): token hiçbir console.log çağrısında geçmez', async () => {
-    g.__DEV__ = false;
-    await expect(registerForPushNotifications()).resolves.toBe(TOKEN);
+  it('release (__DEV__=false): token hiçbir konsol çağrısında geçmez', async () => {
+    await expect(register(false)).resolves.toBe(TOKEN);
     expect(logged()).not.toContain('secret-abc');
     expect(logged()).not.toContain('Push token registered');
   });
 
-  it('geliştirmede (__DEV__=true) token yine günlüğe yazılır', async () => {
-    g.__DEV__ = true;
-    await registerForPushNotifications();
+  it('geliştirmede (__DEV__=true) token logger.debug ile yazılır', async () => {
+    await register(true);
     expect(logged()).toContain('Push token registered');
   });
 });

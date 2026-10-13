@@ -12,6 +12,7 @@
  * `getImageUrl` ile aynı çözümleme. `resizeMode` → `contentFit` köprüsü var ki
  * mevcut çağrı yerleri tek satırda taşınabilsin.
  */
+import { logger } from '@/services/logger';
 import React from 'react';
 import { type StyleProp, type ImageStyle } from 'react-native';
 import { Image, type ImageContentFit } from 'expo-image';
@@ -83,8 +84,8 @@ export const AppImage = React.memo(function AppImage({
     // ⚠️ Token, URL, imza/query ve her tür PII log'lanmaz; yalnız DEV'de ve
     // yalnız "token var mıydı" boolean'ı — C1 (bayat token) ile C2 (token hiç
     // gelmemiş) ayrımını yapmaya bu yetiyor.
-    if (__DEV__ && authenticated) {
-      console.warn(`[AppImage] authenticated image failed to load (hasToken=${!!token})`);
+    if (authenticated) {
+      logger.debug("[AppImage] authenticated image failed to load", { hasToken: !!token });
     }
     onError?.();
   }, [authenticated, token, onError]);

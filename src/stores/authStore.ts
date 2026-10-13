@@ -375,7 +375,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
     const mappedUser = mapApiUserToUser(user);
     const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
-    if (__DEV__) console.log("🔐 Auth stored - Tier:", mappedUser.membershipTier);
+    logger.debug("Auth stored", { tier: mappedUser.membershipTier });
     set({ isAuthenticated: true, token, user: mappedUser, limits });
     // Misafir/önceki oturumdan kalan listeler yeni token'la yeniden çekilsin.
     // Token set'ten SONRA — yeniden çekim yeni token'ı taşımalı. Beklenmez:
@@ -475,7 +475,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // build'i + env'deki kimlik (bkz. src/config/maestro.ts).
         try {
           const { email, password } = maestroCredentials;
-          if (__DEV__) console.log("🤖 Maestro auto-login as", email);
+          logger.debug("Maestro auto-login", { email });
           const response = await authApi.login(email, password);
           const data: any = response.data;
           const accessToken = data.tokens?.accessToken || data.accessToken;

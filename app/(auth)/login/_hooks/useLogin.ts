@@ -1,3 +1,4 @@
+import { logger } from '@/services/logger';
 import { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
@@ -112,7 +113,7 @@ export function useLogin() {
     onError: (error: unknown) => {
       const e = error as { response?: { data?: { message?: string } }; message?: string };
       const msg = e?.response?.data?.message || e?.message || t('auth.loginFailed');
-      if (__DEV__) console.log('❌ Login hatası:', msg);
+      logger.debug('Login hatası', { msg });
       const lower = msg.toLowerCase();
       if (lower.includes('doğrula') || lower.includes('verify') || lower.includes('doğrulanmadı')) {
         setUnverifiedEmail(getValues('email'));

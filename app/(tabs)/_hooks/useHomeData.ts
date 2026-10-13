@@ -1,3 +1,4 @@
+import { logger, safeError } from '@/services/logger';
 import { useQuery } from '@tanstack/react-query';
 import { api, productsApi, categoriesApi, collectionsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
@@ -12,7 +13,7 @@ export function useHomeData() {
         const products = response.data.data || response.data.products || response.data || [];
         return Array.isArray(products) ? products : [];
       } catch (error) {
-        if (__DEV__) console.log('⚠️ Ürünler yüklenemedi:', error);
+        logger.debug('Ürünler yüklenemedi', { err: safeError(error) });
         return [];
       }
     },
@@ -55,7 +56,7 @@ export function useHomeData() {
         const cats = response.data.data || response.data || [];
         return Array.isArray(cats) ? cats : [];
       } catch (error) {
-        if (__DEV__) console.log('⚠️ Kategoriler yüklenemedi:', error);
+        logger.debug('Kategoriler yüklenemedi', { err: safeError(error) });
         return [];
       }
     },

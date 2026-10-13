@@ -99,11 +99,9 @@ export default function RootLayout() {
           try {
             await registerForPushNotifications();
           } catch (e) {
-            if (__DEV__) {
-              console.log(
-                "⚠️ Push notification registration skipped (normal in Expo Go)",
-              );
-            }
+            logger.debug(
+              "Push notification registration skipped (normal in Expo Go)",
+            );
           }
         }
       } catch (e) {

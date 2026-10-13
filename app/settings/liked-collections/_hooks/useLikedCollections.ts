@@ -24,9 +24,9 @@ export function useLikedCollections() {
     queryFn: async () => {
       try {
         const response = await collectionsApi.getLikedCollections();
-        if (__DEV__) {
-          console.log('Liked collections response:', JSON.stringify(response.data).substring(0, 500));
-        }
+        logger.debug('Liked collections response', {
+          body: JSON.stringify(response.data).substring(0, 500),
+        });
         return response.data?.collections || response.data?.data || response.data || [];
       } catch (err) {
         logger.error('Failed to fetch liked collections', { err: safeError(err) });

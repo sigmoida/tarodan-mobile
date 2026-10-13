@@ -1,3 +1,4 @@
+import { logger, safeError } from '@/services/logger';
 import { View, ScrollView, RefreshControl } from 'react-native';
 import { useState, useCallback, useEffect } from 'react';
 import { theme } from '@/ui';
@@ -69,10 +70,10 @@ export default function HomeScreen() {
     api
       .get('/health')
       .then(() => {
-        if (__DEV__) console.log('✅ API bağlantısı başarılı');
+        logger.debug('API bağlantısı başarılı');
       })
       .catch((err) => {
-        if (__DEV__) console.log('⚠️ API bağlantısı yok, mock data kullanılacak:', err.message);
+        logger.debug('API bağlantısı yok, mock data kullanılacak', { err: safeError(err) });
       });
   }, []);
 
