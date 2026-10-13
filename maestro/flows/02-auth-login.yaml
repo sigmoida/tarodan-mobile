@@ -13,7 +13,8 @@ env:
 # Eğer önceki flow'dan login kalmışsa logout yap.
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 # Şimdi login ekranındayız ya da profile'da go-login butonu var.
 - runFlow: ../subflows/login-as.yaml

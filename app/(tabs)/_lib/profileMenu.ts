@@ -76,7 +76,7 @@ const PROFILE_ICONS: Record<string, IconName> = {
   'account-newsletter': 'envelope',
   security: 'lock-closed',
   blocked: 'no-symbol',
-  language: 'flag',
+  language: 'language',
 };
 
 function withProfileIcons(items: ProfileMenuItem[]): ProfileMenuItem[] {

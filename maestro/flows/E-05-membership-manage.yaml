@@ -14,7 +14,8 @@ env:
     id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 # Login as Ahmet (premium) — login-as.yaml hard-coded zeynep, Ahmet için inline:
 - runFlow:
