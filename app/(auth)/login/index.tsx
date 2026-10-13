@@ -1,82 +1,46 @@
-import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { HStack, Screen, Text, VStack, theme } from '@/ui';
 
-import { BrandLogo } from '@/components/BrandLogo';
-import { AuthHeroBanner } from '@/components/hero/AuthHeroBanner';
-import { styles } from './_lib/styles';
+import { AuthShell } from '@/components/auth/AuthShell';
+import { AuthFooterLink } from '@/components/auth/AuthFooterLink';
 import { useLogin } from './_hooks/useLogin';
-import { LoginCard } from './_components/LoginCard';
-
-const { colors } = theme;
+import { LoginForm } from './_components/LoginForm';
 
 /**
- * Login — THIN screen. The `useLogin` controller owns the RHF form, login/resend
- * mutations, and social sign-in; this file composes the back button, brand
- * header, login card, and footer links.
+ * Giriş — İNCE ekran. `useLogin` kontrolcüsü RHF formunu, giriş/yeniden-gönder mutasyonlarını
+ * ve sosyal girişi yönetir; bu dosya yalnız ortak auth kabuğunu (web `(centered)` düzeni:
+ * logo, başlık, form, alt bağlantılar) kurar.
  */
 export default function LoginScreen() {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
   const f = useLogin();
 
   return (
-    <Screen center style={styles.screen}>
-      <Pressable
-        testID="login-back-button"
-        onPress={f.continueAsGuest}
-        accessibilityRole="button"
-        accessibilityLabel={t('auth.backToHome')}
-        hitSlop={12}
-        style={[styles.backButton, { top: insets.top + 8 }]}
-      >
-        <Ionicons name="arrow-back" size={26} color={colors.white} />
-      </Pressable>
-
-      <VStack gap={5}>
-        {/* Yönetimden gelen auth görseli (web `AuthHeroFrame`); yoksa hiçbir şey. */}
-        <AuthHeroBanner placement="auth_default" style={styles.authHero} />
-
-        {/* Markalı başlık — turuncu zemin üzerinde Tarodan logosu (logo şeffaf;
-            beyaz "TARO" ancak turuncu arka planda görünür) + slogan */}
-        <View style={styles.brandHeader}>
-          <BrandLogo />
-        </View>
-
-        <LoginCard f={f} />
-
-        <VStack gap={2} style={{ marginTop: theme.spacing[1] }}>
-          <HStack justify="center" wrap gap={2}>
-            <Text variant="body" style={styles.footerText}>{t('auth.noAccount')}</Text>
-            <Text
-              variant="body"
-              weight="bold"
-              style={styles.footerLink}
-              onPress={() => router.push('/(auth)/register' as never)}
-            >
-              {t('auth.signUp')}
-            </Text>
-          </HStack>
-
-          <HStack justify="center" wrap gap={2}>
-            <Text variant="bodySm" style={styles.footerText}>
-              {t('auth.isBusinessOwnerPrompt')}
-            </Text>
-            <Text
-              variant="bodySm"
-              weight="bold"
-              style={styles.footerLink}
-              onPress={() => router.push('/(auth)/register-business' as never)}
-            >
-              {t('auth.openBusinessAccountCta')}
-            </Text>
-          </HStack>
-        </VStack>
-      </VStack>
-    </Screen>
+    <AuthShell
+      title={t('auth.welcomeBack')}
+      description={t('auth.loginSubtitle')}
+      hero="auth_default"
+      back={{
+        label: t('auth.backToHome'),
+        onPress: f.continueAsGuest,
+        testID: 'login-back-button',
+      }}
+      footer={
+        <>
+          <AuthFooterLink
+            prompt={t('auth.noAccount')}
+            linkLabel={t('auth.signUp')}
+            onPress={() => router.push('/(auth)/register' as never)}
+          />
+          <AuthFooterLink
+            prompt={t('auth.isBusinessOwnerPrompt')}
+            linkLabel={t('auth.openBusinessAccountCta')}
+            onPress={() => router.push('/(auth)/register-business' as never)}
+          />
+        </>
+      }
+    >
+      <LoginForm f={f} />
+    </AuthShell>
   );
 }

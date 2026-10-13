@@ -1,16 +1,18 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { router } from 'expo-router';
+import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Card, ScreenHeader, Text, theme } from '@/ui';
+import { SectionCard, Text, theme } from '@/ui';
+import { ContentPage } from '@/components/content/ContentPage';
+import { DocNote } from '@/components/content/DocBlocks';
 import type { LegalBlock, LegalPart, LegalSection, Translate } from '@/lib/legal/types';
 
-const { colors, spacing, radius, typography } = theme;
+const { colors, spacing, typography } = theme;
 
 /**
  * Hukuki metinlerin ortak native iskeleti — web `components/legal/LegalDocument`
- * karşılığı: numaralı maddeler, madde içinde paragraf/liste/alan/not. Yapı tek
- * yerde, içerik `@/lib/legal/*` (web `_lib`'lerinin birebir kopyası). Metin web
- * ile aynı katalog anahtarlarından gelir; mobil kendi hukuki metnini yazmaz.
+ * karşılığı: `DocPage` (üst bar + başlık/açıklama bandı) + her bölüm için SectionCard,
+ * kartın içinde numaralı maddeler (paragraf/liste/alan/not). Yapı tek yerde, içerik
+ * `@/lib/legal/*` (web `_lib`'lerinin birebir kopyası). Metin web ile aynı katalog
+ * anahtarlarından gelir; mobil kendi hukuki metnini yazmaz — burada yalnız SUNUM var.
  */
 export function LegalDocument({
   title,
@@ -30,27 +32,15 @@ export function LegalDocument({
   testID?: string;
 }) {
   return (
-    <View style={styles.container} testID={testID}>
-      <ScreenHeader
-        title={title}
-        onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-      />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {description ? (
-          <Text variant="bodySm" tone="muted">
-            {description}
-          </Text>
-        ) : null}
-        {notice ? (
-          <View style={[styles.note, styles.notice]} testID={testID ? `${testID}-notice` : undefined}>
-            <Text style={styles.body}>{notice}</Text>
-          </View>
-        ) : null}
-        {parts.map((part) => (
-          <Card key={part.title} style={styles.part}>
-            <Text variant="h3" accessibilityRole="header">
-              {part.title}
-            </Text>
+    <ContentPage title={title} description={description} testID={testID}>
+      {notice ? (
+        <View testID={testID ? `${testID}-notice` : undefined}>
+          <DocNote>{notice}</DocNote>
+        </View>
+      ) : null}
+      {parts.map((part) => (
+        <SectionCard key={part.title} title={part.title}>
+          <View style={styles.part}>
             {part.intro ? <Text style={styles.body}>{part.intro}</Text> : null}
             {part.blocks?.map((block, index) => (
               <Block key={`${part.title}-${index}`} block={block} />
@@ -58,15 +48,15 @@ export function LegalDocument({
             {part.sections.map((section) => (
               <Section key={section.number} section={section} />
             ))}
-          </Card>
-        ))}
-        {footer ? (
-          <Text variant="caption" tone="subtle">
-            {footer}
-          </Text>
-        ) : null}
-      </ScrollView>
-    </View>
+          </View>
+        </SectionCard>
+      ))}
+      {footer ? (
+        <Text variant="caption" tone="subtle">
+          {footer}
+        </Text>
+      ) : null}
+    </ContentPage>
   );
 }
 
@@ -82,9 +72,11 @@ function Section({ section }: { section: LegalSection }) {
       <Text weight="semibold" tone="heading">
         {`${section.number}. ${section.heading}`}
       </Text>
-      {section.blocks.map((block, index) => (
-        <Block key={`${section.number}-${index}`} block={block} />
-      ))}
+      <View style={styles.sectionBody}>
+        {section.blocks.map((block, index) => (
+          <Block key={`${section.number}-${index}`} block={block} />
+        ))}
+      </View>
     </View>
   );
 }
@@ -95,11 +87,7 @@ function Block({ block }: { block: LegalBlock }) {
   if (block.type === 'p') return <Text style={styles.body}>{block.text}</Text>;
 
   if (block.type === 'note') {
-    return (
-      <View style={styles.note}>
-        <Text style={styles.body}>{block.text}</Text>
-      </View>
-    );
+    return <DocNote>{block.text}</DocNote>;
   }
 
   if (block.type === 'list') {
@@ -119,7 +107,7 @@ function Block({ block }: { block: LegalBlock }) {
 
   if (block.type === 'groups') {
     return (
-      <View style={styles.list}>
+      <View style={styles.groups}>
         {block.groups.map((group) => (
           <View key={group.title} style={styles.list}>
             <Text variant="bodySm" weight="semibold" tone="heading">
@@ -153,28 +141,21 @@ function Block({ block }: { block: LegalBlock }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface.alt },
-  content: { padding: spacing[4], gap: spacing[4], paddingBottom: spacing[10] },
-  part: { gap: spacing[5], backgroundColor: colors.surface.DEFAULT },
-  section: { gap: spacing[3] },
+  /** Web `space-y-7`. */
+  part: { gap: spacing[6] + spacing[1] },
+  section: { gap: spacing[2] },
+  /** Web `space-y-3`. */
+  sectionBody: { gap: spacing[3] },
   body: {
     fontSize: typography.fontSize.sm,
     lineHeight: typography.fontSize.sm * typography.lineHeight.normal,
     color: colors.text.body,
   },
   list: { gap: spacing[2] },
+  groups: { gap: spacing[4] },
   listItem: {
     borderLeftWidth: 2,
     borderLeftColor: colors.border.DEFAULT,
     paddingLeft: spacing[3],
   },
-  note: {
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    backgroundColor: colors.surface.alt,
-    borderRadius: radius.lg,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-  },
-  notice: { backgroundColor: colors.surface.DEFAULT },
 });

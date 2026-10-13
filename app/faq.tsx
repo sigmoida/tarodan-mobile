@@ -1,16 +1,14 @@
 import { useMemo, useState } from "react";
-import { View, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import type { TFunction } from "i18next";
-import { theme, Text, ScreenHeader } from "@/ui";
+import { Button, SectionCard, theme } from "@/ui";
 import { useTranslation } from "react-i18next";
+import { ContentPage } from "@/components/content/ContentPage";
+import { DocAccordionItem, DocText } from "@/components/content/DocBlocks";
 import { DAMAGE_REPORT_DAYS } from "@/constants/legalFacts";
 import { useTimingValues } from "@/hooks/useTimingPolicy";
 import type { TimingMessageValues } from "@/lib/shared/timingPolicy";
 import { CAN_BUY_DIGITAL } from "@/lib/purchases";
-
-const { colors } = theme;
 
 type FaqItem = { q: string; a: string };
 type FaqSection = { category: string; questions: FaqItem[] };
@@ -98,152 +96,46 @@ const buildFaqSections = (t: TFunction, timing: TimingMessageValues): FaqSection
   },
 ];
 
+/**
+ * SSS — web `(support)/faq` düzeni: her kategori bir SectionCard. Web cevapları açık gösterir;
+ * telefonda ~20 soruyu kısa tutmak için soru satırına dokununca açılır (tek açık soru).
+ * Soru satırlarındaki oku işlev taşır; destek bağlantısı düğmesindeki ikon kalktı.
+ */
 export default function FAQScreen() {
   const { t } = useTranslation();
   const timing = useTimingValues();
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const faqSections = useMemo(() => buildFaqSections(t, timing), [t, timing]);
 
-  let globalIndex = -1;
-
   return (
-    <View style={styles.container}>
-      <ScreenHeader
-        title={t("mobile.pageFaq")}
-        onBack={() =>
-          router.canGoBack() ? router.back() : router.replace("/(tabs)")
-        }
-      />
+    <ContentPage title={t("mobile.pageFaq")}>
+      {faqSections.map((section, sectionIndex) => (
+        <SectionCard key={section.category} title={section.category}>
+          {section.questions.map((item, index) => {
+            const key = `${sectionIndex}-${index}`;
+            return (
+              <DocAccordionItem
+                key={key}
+                question={item.q}
+                answer={item.a}
+                expanded={expandedKey === key}
+                onToggle={() => setExpandedKey(expandedKey === key ? null : key)}
+              />
+            );
+          })}
+        </SectionCard>
+      ))}
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {faqSections.map((section) => (
-          <View key={section.category} style={styles.section}>
-            <Text style={styles.sectionTitle}>{section.category}</Text>
-            {section.questions.map((item) => {
-              globalIndex++;
-              const idx = globalIndex;
-              const isExpanded = expandedIndex === idx;
-              return (
-                <View key={idx} style={styles.questionCard}>
-                  <TouchableOpacity
-                    style={styles.questionHeader}
-                    onPress={() => setExpandedIndex(isExpanded ? null : idx)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.questionText}>{item.q}</Text>
-                    <Ionicons
-                      name={isExpanded ? "chevron-up" : "chevron-down"}
-                      size={20}
-                      color={colors.primary[600]!}
-                    />
-                  </TouchableOpacity>
-                  {isExpanded && (
-                    <View style={styles.answerContainer}>
-                      <Text style={styles.answerText}>{item.a}</Text>
-                    </View>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        ))}
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>{t("faqPage.footer.noAnswer")}</Text>
-          <TouchableOpacity
-            style={styles.contactButton}
-            onPress={() => router.push("/support")}
-          >
-            <Ionicons
-              name="chatbubble-ellipses-outline"
-              size={18}
-              color={colors.white}
-            />
-            <Text style={styles.contactButtonText}>
-              {t("faqPage.footer.contactSupport")}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </View>
+      <SectionCard>
+        <DocText tone="muted">{t("faqPage.footer.noAnswer")}</DocText>
+        <Button
+          variant="primary"
+          fullWidth
+          title={t("faqPage.footer.contactSupport")}
+          onPress={() => router.push("/support")}
+          style={{ marginTop: theme.spacing[3] }}
+        />
+      </SectionCard>
+    </ContentPage>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.DEFAULT,
-  },
-  content: {
-    flex: 1,
-    padding: theme.spacing[5],
-  },
-  section: {
-    marginBottom: theme.spacing[6],
-  },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: "bold",
-    color: colors.text.heading,
-    marginBottom: theme.spacing[3],
-  },
-  questionCard: {
-    backgroundColor: colors.surface.alt,
-    borderRadius: theme.radius["2xl"],
-    marginBottom: theme.spacing[2],
-    overflow: "hidden",
-  },
-  questionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: theme.spacing[3.5],
-  },
-  questionText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "500",
-    color: colors.text.heading,
-    marginRight: theme.spacing[3],
-  },
-  answerContainer: {
-    paddingHorizontal: theme.spacing[3.5],
-    paddingBottom: theme.spacing[3.5],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.DEFAULT,
-  },
-  answerText: {
-    fontSize: 13,
-    color: colors.text.muted,
-    lineHeight: 20,
-    paddingTop: theme.spacing[3],
-  },
-  footer: {
-    alignItems: "center",
-    paddingVertical: theme.spacing[6],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.DEFAULT,
-    marginTop: theme.spacing[2],
-  },
-  footerText: {
-    fontSize: 14,
-    color: colors.text.muted,
-    marginBottom: theme.spacing[3],
-  },
-  contactButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.primary[600]!,
-    paddingHorizontal: theme.spacing[5],
-    paddingVertical: theme.spacing[3],
-    borderRadius: theme.radius["2xl"],
-    gap: theme.spacing[2],
-  },
-  contactButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.white,
-  },
-});

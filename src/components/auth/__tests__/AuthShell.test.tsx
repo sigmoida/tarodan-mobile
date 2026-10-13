@@ -1,0 +1,105 @@
+import React from 'react';
+import { StyleSheet } from 'react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
+import { RawText, theme } from '@/ui';
+import { AuthShell } from '../AuthShell';
+import { AuthFooterLink } from '../AuthFooterLink';
+import { RegisterAccountTabs } from '../RegisterAccountTabs';
+import { PasswordChecklist, passwordChecks } from '../PasswordChecklist';
+import { replaceMock, resetRouterMocks } from '@/test-utils/router-mock';
+
+jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
+
+jest.mock('@/components/hero/AuthHeroBanner', () => ({ AuthHeroBanner: () => null }));
+
+describe('AuthShell', () => {
+  it('beyaz zemin, sola dayalı başlık + açıklama, form ve alt bağlantılar', () => {
+    render(
+      <AuthShell
+        testID="auth"
+        title="Tekrar hoş geldiniz"
+        description="Hesabınıza giriş yapın"
+        footer={<RawText>alt bağlantı</RawText>}
+      >
+        <RawText>form</RawText>
+      </AuthShell>,
+    );
+    expect(screen.getByText('Tekrar hoş geldiniz')).toBeTruthy();
+    expect(screen.getByText('Hesabınıza giriş yapın')).toBeTruthy();
+    expect(screen.getByText('form')).toBeTruthy();
+    expect(screen.getByText('alt bağlantı')).toBeTruthy();
+    expect(StyleSheet.flatten(screen.getByTestId('auth').props.style).backgroundColor).toBe(
+      theme.colors.surface.elevated,
+    );
+  });
+
+  it('geri bağlantısı etiketiyle çizilir ve basılınca çağrılır', () => {
+    const onPress = jest.fn();
+    render(
+      <AuthShell title="X" back={{ label: 'Ana sayfaya dön', onPress, testID: 'geri' }}>
+        <RawText>form</RawText>
+      </AuthShell>,
+    );
+    fireEvent.press(screen.getByTestId('geri'));
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Ana sayfaya dön')).toBeTruthy();
+  });
+
+  it('geri bağlantısı verilmezse çizilmez', () => {
+    render(
+      <AuthShell title="X">
+        <RawText>form</RawText>
+      </AuthShell>,
+    );
+    expect(screen.queryByTestId('geri')).toBeNull();
+  });
+});
+
+describe('AuthFooterLink', () => {
+  it('bağlantı etiketine basınca çağrılır', () => {
+    const onPress = jest.fn();
+    render(<AuthFooterLink prompt="Hesabınız yok mu?" linkLabel="Kayıt ol" onPress={onPress} />);
+    fireEvent.press(screen.getByText('Kayıt ol'));
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('RegisterAccountTabs', () => {
+  beforeEach(() => resetRouterMocks());
+
+  it('seçili sekme seçili durumda; diğerine basınca rotayı değiştirir', () => {
+    render(<RegisterAccountTabs active="individual" />);
+    expect(screen.getByTestId('register-tab-individual').props.accessibilityState.selected).toBe(true);
+    fireEvent.press(screen.getByTestId('register-tab-corporate'));
+    expect(replaceMock).toHaveBeenCalledWith('/(auth)/register-business');
+  });
+
+  it('seçili sekmeye basmak yönlendirmez', () => {
+    render(<RegisterAccountTabs active="corporate" />);
+    fireEvent.press(screen.getByTestId('register-tab-corporate'));
+    expect(replaceMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('PasswordChecklist', () => {
+  it('kuralları web ile aynı hesaplar', () => {
+    expect(passwordChecks('Abcdef12')).toEqual({
+      hasMinLength: true,
+      hasUppercase: true,
+      hasLowercase: true,
+      hasNumber: true,
+    });
+    expect(passwordChecks('abc')).toEqual({
+      hasMinLength: false,
+      hasUppercase: false,
+      hasLowercase: true,
+      hasNumber: false,
+    });
+  });
+
+  it('dört gereksinim satırını çizer', () => {
+    render(<PasswordChecklist password="abc" />);
+    expect(screen.getByTestId('password-checklist')).toBeTruthy();
+    expect(screen.getByText('Büyük harf (A-Z)')).toBeTruthy();
+  });
+});

@@ -1,174 +1,59 @@
-import { View, ScrollView, StyleSheet } from "react-native";
 import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { TouchableOpacity } from "react-native";
-import { theme, Text, Card, ScreenHeader } from "@/ui";
+import { SectionCard } from "@/ui";
 import { useTranslation } from "react-i18next";
-import type { TFunction } from "i18next";
 import { SUPPORT_EMAIL } from "@/constants/legalFacts";
+import { ContentPage } from "@/components/content/ContentPage";
+import {
+  DocBody,
+  DocLink,
+  DocLinks,
+  DocSection,
+  DocText,
+} from "@/components/content/DocBlocks";
 
-const { colors } = theme;
+const SECTION_NUMBERS = [1, 2, 3, 4, 5, 6, 7] as const;
 
-function useSections(t: TFunction) {
-  return [
-    {
-      title: t("buyerProtectionPage.s1Title"),
-      icon: "shield-checkmark-outline" as const,
-      content: t("buyerProtectionPage.s1Content"),
-    },
-    {
-      title: t("buyerProtectionPage.s2Title"),
-      icon: "list-outline" as const,
-      content: t("buyerProtectionPage.s2Content"),
-    },
-    {
-      title: t("buyerProtectionPage.s3Title"),
-      icon: "cash-outline" as const,
-      content: t("buyerProtectionPage.s3Content"),
-    },
-    {
-      title: t("buyerProtectionPage.s4Title"),
-      icon: "chatbubbles-outline" as const,
-      content: t("buyerProtectionPage.s4Content"),
-    },
-    {
-      title: t("buyerProtectionPage.s5Title"),
-      icon: "checkbox-outline" as const,
-      content: t("buyerProtectionPage.s5Content"),
-    },
-    {
-      title: t("buyerProtectionPage.s6Title"),
-      icon: "warning-outline" as const,
-      content: t("buyerProtectionPage.s6Content"),
-    },
-    {
-      title: t("buyerProtectionPage.s7Title"),
-      icon: "mail-outline" as const,
-      content: t("buyerProtectionPage.s7Content", { email: SUPPORT_EMAIL }),
-    },
-  ];
-}
-
+/**
+ * Alıcı Koruma — web `(trust)/buyer-protection` düzeni: sayfa açıklaması (son güncelleme) +
+ * tek SectionCard içinde numaralı bölümler + altta ilgili sayfa bağlantıları. Koyu hero
+ * bandı ve bölüm ikonları kalktı.
+ */
 export default function BuyerProtectionScreen() {
   const { t } = useTranslation();
-  const sections = useSections(t);
+  const sections = SECTION_NUMBERS.map((n) => ({
+    title: t(`buyerProtectionPage.s${n}Title`),
+    content:
+      n === 7
+        ? t("buyerProtectionPage.s7Content", { email: SUPPORT_EMAIL })
+        : t(`buyerProtectionPage.s${n}Content`),
+  }));
+
   return (
-    <View style={styles.container}>
-      <ScreenHeader
-        title={t("mobile.pageBuyerProtection")}
-        onBack={() =>
-          router.canGoBack() ? router.back() : router.replace("/(tabs)")
-        }
-      />
+    <ContentPage
+      title={t("mobile.pageBuyerProtection")}
+      description={t("buyerProtectionPage.lastUpdated")}
+    >
+      <SectionCard title={t("buyerProtectionPage.heroTitle")}>
+        <DocBody>
+          {sections.map((section) => (
+            <DocSection key={section.title} title={section.title}>
+              <DocText>{section.content}</DocText>
+            </DocSection>
+          ))}
+        </DocBody>
 
-      <View style={styles.hero}>
-        <Ionicons name="shield-checkmark" size={40} color={colors.white} />
-        <Text style={styles.heroTitle}>{t("buyerProtectionPage.heroTitle")}</Text>
-        <Text style={styles.heroDate}>{t("buyerProtectionPage.lastUpdated")}</Text>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content}>
-        {sections.map((section, i) => (
-          <Card key={i} style={styles.card}>
-            <View style={styles.sectionHeader}>
-              <Ionicons
-                name={section.icon}
-                size={20}
-                color={colors.primary[600]!}
-              />
-              <Text variant="label" style={styles.sectionTitle}>
-                {section.title}
-              </Text>
-            </View>
-            <Text variant="body" style={styles.text}>
-              {section.content}
-            </Text>
-          </Card>
-        ))}
-
-        <View style={styles.links}>
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={() => router.push("/refund-policy" as any)}
-          >
-            <Text style={styles.linkText}>{t("mobile.pageRefundPolicy")}</Text>
-            <Ionicons
-              name="chevron-forward"
-              size={18}
-              color={colors.primary[600]!}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={() => router.push("/returns-exchanges" as any)}
-          >
-            <Text style={styles.linkText}>{t("mobile.pageReturns")}</Text>
-            <Ionicons
-              name="chevron-forward"
-              size={18}
-              color={colors.primary[600]!}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={() => router.push("/terms")}
-          >
-            <Text style={styles.linkText}>{t("legal.termsTitle")}</Text>
-            <Ionicons
-              name="chevron-forward"
-              size={18}
-              color={colors.primary[600]!}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </View>
+        <DocLinks>
+          <DocLink
+            label={t("mobile.pageRefundPolicy")}
+            onPress={() => router.push("/refund-policy" as never)}
+          />
+          <DocLink
+            label={t("mobile.pageReturns")}
+            onPress={() => router.push("/returns-exchanges" as never)}
+          />
+          <DocLink label={t("legal.termsTitle")} onPress={() => router.push("/terms")} />
+        </DocLinks>
+      </SectionCard>
+    </ContentPage>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface.alt },
-  hero: {
-    backgroundColor: colors.gray[800],
-    paddingVertical: theme.spacing[8],
-    paddingHorizontal: theme.spacing[5],
-    alignItems: "center",
-  },
-  heroTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: colors.white,
-    marginTop: theme.spacing[3],
-  },
-  heroDate: {
-    fontSize: 13,
-    color: colors.gray[400],
-    marginTop: theme.spacing[1.5],
-  },
-  content: { padding: theme.spacing[4] },
-  card: {
-    marginBottom: theme.spacing[3],
-    backgroundColor: colors.surface.DEFAULT,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: theme.spacing[2.5],
-    gap: theme.spacing[2],
-  },
-  sectionTitle: { fontWeight: "600", color: colors.text.heading, flex: 1 },
-  text: { color: colors.text.muted, lineHeight: 22 },
-  links: { marginTop: theme.spacing[2] },
-  linkButton: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: colors.surface.DEFAULT,
-    padding: theme.spacing[4],
-    borderRadius: 12,
-    marginBottom: theme.spacing[2],
-  },
-  linkText: { fontSize: 15, color: colors.primary[600]!, fontWeight: "500" },
-});

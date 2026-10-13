@@ -427,7 +427,9 @@
     "bizIntroBody": "Başvurunuz admin onayına gönderilir. Onaylandığında kullanıcı adınızı ve şifrenizi belirleyeceğiniz bir davet e-postası alırsınız.",
     "bizSectionAuthorized": "Yetkili Bilgileri",
     "kvkkCheckboxLabel": "KVKK Aydınlatma Metni'ni okudum ve kabul ediyorum.",
-    "mustAcceptKvkk": "KVKK Aydınlatma Metni'ni onaylamalısınız"
+    "mustAcceptKvkk": "KVKK Aydınlatma Metni'ni onaylamalısınız",
+    "individualApplication": "Bireysel Başvuru",
+    "corporateApplication": "Kurumsal Başvuru"
   },
   "brands": {
     "title": "Markalar",
