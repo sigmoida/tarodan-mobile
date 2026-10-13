@@ -26,8 +26,10 @@ jest.mock('@/lib/api', () => ({
 }));
 
 jest.mock('react-native-webview', () => {
+  /* eslint-disable @typescript-eslint/no-var-requires */
   const React = require('react');
   const { View } = require('react-native');
+  /* eslint-enable @typescript-eslint/no-var-requires */
   return {
     WebView: () => React.createElement(View, { testID: 'paytr-webview' }),
     WebViewNavigation: {},
