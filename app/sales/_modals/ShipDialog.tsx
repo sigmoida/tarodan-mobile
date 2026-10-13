@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button, Modal, Text, theme } from '@/ui';
+import { Button, Modal, Text, theme, ButtonRow } from '@/ui';
 import { useOrderShipment } from '@/hooks/useOrderShipment';
 import { deriveShipmentView } from '@/lib/shipping/tracking';
 import { styles } from '../_lib/styles';
@@ -42,7 +42,7 @@ export function ShipDialog({ actions }: { actions: SaleActionsController }) {
           <Text variant="body">{t('order.cargoRefInstructions')}</Text>
         </>
       ) : null}
-      <View style={styles.dialogActions}>
+      <ButtonRow style={{ marginTop: theme.spacing[4] }}>
         <Button
           variant="ghost"
           title={t('common.cancel')}
@@ -54,7 +54,7 @@ export function ShipDialog({ actions }: { actions: SaleActionsController }) {
           onPress={handleShip}
           isLoading={updateStatusMutation.isPending}
         />
-      </View>
+      </ButtonRow>
     </Modal>
   );
 }

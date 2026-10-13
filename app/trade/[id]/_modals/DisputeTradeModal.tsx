@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Modal, Button, Input, Text, theme } from '@/ui';
+import { Modal, Button, Input, Text, theme, ButtonRow } from '@/ui';
 import type { TFn } from '../_lib/types';
 
 import {
@@ -59,10 +59,10 @@ export function DisputeTradeModal({
         containerStyle={{ marginBottom: theme.spacing[3] }}
         inputStyle={{ minHeight: 100 }}
       />
-      <View style={styles.modalActions}>
+      <ButtonRow style={{ marginTop: theme.spacing[2] }}>
         <Button variant="outline" title={t('trade.dispute.cancelCta')} onPress={onClose} disabled={isPending} />
         <Button variant="primary" title={t('trade.dispute.submitCta')} onPress={onSubmit} isLoading={isPending} />
-      </View>
+      </ButtonRow>
     </Modal>
   );
 }

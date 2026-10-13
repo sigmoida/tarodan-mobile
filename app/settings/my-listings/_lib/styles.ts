@@ -86,11 +86,6 @@ export const styles = StyleSheet.create({
     borderRadius: radiusRole.card,
     backgroundColor: colors.surface.alt,
   },
-  expiredBarActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-  },
   bannerButton: {
     marginTop: spacing[2],
     alignSelf: 'flex-start',

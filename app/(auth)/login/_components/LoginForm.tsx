@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { Controller } from 'react-hook-form';
 import { router } from 'expo-router';
-import { Alert as UIAlert, Button, HStack, Input, Text, theme } from '@/ui';
+import { Alert as UIAlert, Button, HStack, Input, Text, theme, ButtonRow } from '@/ui';
 
 import { isGoogleConfigured } from '@/services/googleSignin';
 import { styles } from '../_lib/styles';
@@ -29,7 +29,7 @@ export function LoginForm({ f }: { f: LoginController }) {
           {/* Adres metnin İÇİNDE geçiyor; ICU argümanı olarak veriliyor ki
               cümle yapısı dile göre değişebilsin (İngilizce'de adres başta). */}
           <Text variant="bodySm">{t('auth.unverifiedBody', { email: f.unverifiedEmail })}</Text>
-          <HStack gap={2} style={{ marginTop: theme.spacing[2] }}>
+          <ButtonRow style={{ marginTop: theme.spacing[2] }}>
             <Button
               variant="outline"
               size="sm"
@@ -42,7 +42,7 @@ export function LoginForm({ f }: { f: LoginController }) {
               disabled={f.resendVerificationMutation.isPending}
             />
             <Button variant="ghost" size="sm" title={t('common.close')} onPress={() => f.setUnverifiedEmail(null)} />
-          </HStack>
+          </ButtonRow>
         </UIAlert>
       ) : null}
 

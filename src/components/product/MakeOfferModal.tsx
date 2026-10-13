@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
-import { theme, Text, Alert, Button, Modal, Input, Textarea, useModalMessage, ModalMessage } from '@/ui';
+import { theme, Text, Alert, Button, Modal, Input, Textarea, useModalMessage, ModalMessage, ButtonRow } from '@/ui';
 import { offersApi } from '@/lib/api';
 import { IS_MAESTRO } from '@/config/maestro';
 import { formatPrice } from '../../utils/format';
@@ -130,7 +130,7 @@ export default function MakeOfferModal({
         <Alert variant="info">{t('offer.offerDeliveryNotice')}</Alert>
       </View>
 
-      <View style={styles.actions}>
+      <ButtonRow style={{ marginTop: theme.spacing[3] }}>
         <Button
           variant="ghost"
           title={t('listing.dismiss')}
@@ -145,7 +145,7 @@ export default function MakeOfferModal({
           isLoading={createOfferMutation.isPending}
           disabled={!numeric || createOfferMutation.isPending}
         />
-      </View>
+      </ButtonRow>
       <ModalMessage state={msg.state} />
     </Modal>
   );
@@ -162,10 +162,4 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing[3],
   },
   input: { marginBottom: theme.spacing[2.5] },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: theme.spacing[2],
-    marginTop: theme.spacing[3],
-  },
 });

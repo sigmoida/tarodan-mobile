@@ -31,9 +31,4 @@ export const styles = StyleSheet.create({
     padding: spacing[2],
     borderRadius: radiusRole.card,
   },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    flexWrap: 'wrap',
-  },
 });

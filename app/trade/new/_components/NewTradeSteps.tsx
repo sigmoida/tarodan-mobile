@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Image } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Button, Card, Chip, Divider, Spinner, Text, Input, Textarea, theme, Icon } from '@/ui';
+import { Button, Card, Chip, Divider, Spinner, Text, Input, Textarea, theme, Icon, ButtonRow } from '@/ui';
 
 import { TradeAddressPicker } from '@/components/common';
 import { ProductCard } from '@/components/product';
@@ -98,9 +98,9 @@ export function Step1MyItems({ f }: StepProps) {
         ))
       )}
 
-      <View style={styles.stepActions}>
+      <ButtonRow style={{ marginTop: theme.spacing[6] }}>
         <Button variant="primary" title={t('trade.continueWithSelectedCount', { count: f.selectedMyItems.length })} onPress={() => f.setStep(2)} />
-      </View>
+      </ButtonRow>
     </View>
   );
 }
@@ -168,15 +168,15 @@ export function Step2TheirItems({ f }: StepProps) {
         />
       </Card>
 
-      <View style={styles.stepActions}>
-        <Button variant="outline" title={t('common.back')} onPress={() => f.setStep(1)} style={{ marginRight: theme.spacing[3] }} />
+      <ButtonRow style={{ marginTop: theme.spacing[6] }}>
+        <Button variant="outline" title={t('common.back')} onPress={() => f.setStep(1)} />
         <Button
           variant="primary"
           title={t('common.continueShort')}
           disabled={f.selectedTheirItems.length === 0}
           onPress={() => f.setStep(3)}
         />
-      </View>
+      </ButtonRow>
     </View>
   );
 }
@@ -295,7 +295,7 @@ export function Step3Review({ f }: StepProps) {
       </Card>
 
       <View style={styles.stepActions}>
-        <Button variant="outline" title={t('common.back')} onPress={() => f.setStep(2)} style={{ marginRight: theme.spacing[3] }} />
+        <Button variant="outline" title={t('common.back')} onPress={() => f.setStep(2)} />
         <Button
           variant="primary"
           title={t('trade.sendTrade')}

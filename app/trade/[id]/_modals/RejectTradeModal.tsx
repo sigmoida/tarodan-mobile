@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Modal, Button, Input, Text, theme } from '@/ui';
+import { Modal, Button, Input, Text, theme, ButtonRow } from '@/ui';
 
 export function RejectTradeModal({
   visible,
@@ -34,7 +34,7 @@ export function RejectTradeModal({
         containerStyle={{ marginBottom: theme.spacing[3] }}
         inputStyle={{ minHeight: 80 }}
       />
-      <View style={styles.modalActions}>
+      <ButtonRow style={{ marginTop: theme.spacing[2] }}>
         <Button variant="outline" title={t('trade.dispute.cancelCta')} onPress={onClose} disabled={isPending} />
         <Button
           variant="danger"
@@ -42,7 +42,7 @@ export function RejectTradeModal({
           onPress={onSubmit}
           isLoading={isPending}
         />
-      </View>
+      </ButtonRow>
     </Modal>
   );
 }

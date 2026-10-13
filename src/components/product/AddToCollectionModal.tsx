@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Pressable, Image } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { theme, Text, Button, Modal, Input, Textarea, Spinner, Switch, useModalMessage, ModalMessage } from '@/ui';
+import { theme, Text, Button, Modal, Input, Textarea, Spinner, Switch, useModalMessage, ModalMessage, ButtonRow } from '@/ui';
 import { collectionsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { transformImageUrl } from '../../utils/imageUrl';
@@ -215,7 +215,7 @@ export default function AddToCollectionModal({
         </View>
       )}
 
-      <View style={styles.actions}>
+      <ButtonRow style={{ marginTop: theme.spacing[3] }}>
         {creating ? (
           <>
             <Button
@@ -235,7 +235,7 @@ export default function AddToCollectionModal({
         ) : (
           <Button variant="ghost" title={t('common.close')} onPress={handleClose} />
         )}
-      </View>
+      </ButtonRow>
       <ModalMessage state={msg.state} />
     </Modal>
   );
@@ -281,10 +281,4 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing[2],
   },
   toggleText: { flex: 1 },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: theme.spacing[2],
-    marginTop: theme.spacing[3],
-  },
 });

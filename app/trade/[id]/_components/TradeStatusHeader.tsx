@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Alert, SectionCard, Text, Button, StatusBadge, theme, Icon } from '@/ui';
+import { Alert, SectionCard, Text, Button, StatusBadge, theme, Icon, ButtonRow } from '@/ui';
 import { useTradeStatusConfig, type TradeViewerRole } from '@/lib/shared/tradeStatus';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
@@ -112,10 +112,10 @@ export function TradeStatusHeader({
               <Text variant="bodySm">{format(new Date(trade.completedAt), 'd MMM yyyy', { locale: tr })}</Text>
             </View>
           ) : null}
-          <View style={styles.completedActions}>
+          <ButtonRow style={{ marginTop: theme.spacing[2] }}>
             <Button variant="outline" title={t('trade.myTrades')} onPress={() => router.replace('/trades' as any)} style={{ flex: 1 }} />
             <Button variant="primary" title={t('mobile.guestBrowseListings')} onPress={() => router.push('/search')} style={{ flex: 1 }} />
-          </View>
+          </ButtonRow>
         </SectionCard>
       )}
 
@@ -167,5 +167,4 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.success[200]!,
   },
-  completedActions: { flexDirection: 'row', gap: theme.spacing[3], marginTop: theme.spacing[2] },
 });

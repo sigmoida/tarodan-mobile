@@ -54,6 +54,14 @@ export const ButtonRow: React.FC<ButtonRowProps> = ({
   }, []);
 
   if (n === 0) return null;
+  // Tek düğme (koşullu gizlenen eşi): grup değil — kendi doğal genişliğinde kalır.
+  if (n === 1) {
+    return (
+      <View style={style} testID={testID}>
+        {items[0]}
+      </View>
+    );
+  }
 
   const measured = Object.keys(natural).length >= n;
   const widest = measured ? Math.max(...items.map((_, i) => natural[i] ?? 0)) : 0;

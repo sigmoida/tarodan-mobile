@@ -5,7 +5,7 @@ import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuthStore } from '../stores/authStore';
-import { theme, Text, Button, Modal, Input, Textarea, Icon } from '@/ui';
+import { theme, Text, Button, Modal, Input, Textarea, Icon, ButtonRow } from '@/ui';
 
 const { colors } = theme;
 
@@ -203,7 +203,7 @@ export default function RatingModal({
         )}
       </ScrollView>
 
-      <View style={styles.actions}>
+      <ButtonRow style={{ marginTop: theme.spacing[3] }}>
         <Button variant="ghost" title={t('common.cancel')} onPress={handleClose} disabled={isPending} />
         <Button
           variant="primary"
@@ -212,7 +212,7 @@ export default function RatingModal({
           isLoading={isPending}
           disabled={rating === 0 || isPending}
         />
-      </View>
+      </ButtonRow>
     </Modal>
   );
 }
@@ -287,11 +287,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: colors.danger[600]!,
     marginBottom: theme.spacing[2],
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: theme.spacing[2],
-    marginTop: theme.spacing[3],
   },
 });

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Modal, Button, Chip, Text, Textarea, theme } from '@/ui';
+import { Modal, Button, Chip, Text, Textarea, theme, ButtonRow } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import type { ListingRemovalPayload } from '@/lib/api';
 import {
@@ -138,14 +138,14 @@ export function ListingRemovalModal({
         <Text style={styles.privacy}>{t('product.removal.privacyNote')}</Text>
       </ScrollView>
 
-      <View style={styles.actions}>
+      <ButtonRow style={{ marginTop: theme.spacing[4] }}>
         <Button variant="ghost" title={t('common.cancel')} onPress={onClose} />
         <Button
           variant={isDelete ? 'danger' : 'primary'}
           title={isDelete ? t('collection.yesDelete') : t('product.deactivate')}
           onPress={submit}
         />
-      </View>
+      </ButtonRow>
     </Modal>
   );
 }
@@ -169,5 +169,4 @@ const styles = StyleSheet.create({
   error: { color: colors.danger[600]!, fontSize: typography.fontSize.sm, marginBottom: spacing[3] },
   detail: { marginTop: spacing[1] },
   privacy: { color: colors.text.muted, fontSize: typography.fontSize.xs, marginTop: spacing[2] },
-  actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing[3], marginTop: spacing[4] },
 });

@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { userReportsApi } from '@/lib/api';
-import { theme, Text, Button, Modal, Textarea, Icon } from '@/ui';
+import { theme, Text, Button, Modal, Textarea, Icon, ButtonRow } from '@/ui';
 
 const { colors } = theme;
 
@@ -207,7 +207,7 @@ export default function ReportModal({
         ) : null}
       </ScrollView>
 
-      <View style={styles.actions}>
+      <ButtonRow style={{ marginTop: theme.spacing[3] }}>
         <Button
           variant="ghost"
           title={t('common.cancel')}
@@ -221,7 +221,7 @@ export default function ReportModal({
           isLoading={reportMutation.isPending}
           disabled={!reason || reportMutation.isPending}
         />
-      </View>
+      </ButtonRow>
     </Modal>
   );
 }
@@ -299,11 +299,5 @@ const styles = StyleSheet.create({
     flex: 1,
     color: colors.success[600]!,
     fontSize: 12,
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: theme.spacing[2],
-    marginTop: theme.spacing[3],
   },
 });

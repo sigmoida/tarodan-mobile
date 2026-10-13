@@ -15,7 +15,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Modal, Select, Textarea, Button, Text, theme } from '@/ui';
+import { Modal, Select, Textarea, Button, Text, theme, ButtonRow } from '@/ui';
 import {
   BUYER_SELECTABLE_CANCELLATION_REASONS,
   DEFAULT_CANCELLATION_REASON,
@@ -83,13 +83,12 @@ export function CancelOrderModal({
         />
       </View>
 
-      <View style={styles.actions}>
+      <ButtonRow style={{ marginTop: theme.spacing[4] }}>
         <Button
           variant="outline"
           title={t('order.cancelConfirmNo')}
           onPress={onClose}
           disabled={pending}
-          style={styles.action}
         />
         <Button
           testID="cancel-order-confirm"
@@ -98,9 +97,8 @@ export function CancelOrderModal({
           onPress={submit}
           isLoading={pending}
           disabled={pending}
-          style={styles.action}
         />
-      </View>
+      </ButtonRow>
     </Modal>
   );
 }
@@ -108,6 +106,5 @@ export function CancelOrderModal({
 const styles = StyleSheet.create({
   intro: { marginBottom: theme.spacing[3] },
   noteWrap: { marginTop: theme.spacing[3] },
-  actions: { flexDirection: 'row', gap: theme.spacing[2], marginTop: theme.spacing[4] },
   action: { flex: 1 },
 });

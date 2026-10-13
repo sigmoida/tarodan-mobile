@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { Button, Card, StatusBadge, Text } from '@/ui';
+import { Button, Card, StatusBadge, Text, ButtonRow } from '@/ui';
 import { buildPaymentStatusConfig } from '@/lib/payment/status';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -52,7 +52,7 @@ export function PaymentCard({ p, f }: { p: Payment; f: PaymentsController }) {
         </View>
       ) : null}
 
-      <View style={styles.actions}>
+      <ButtonRow>
         {p.status === 'pending' && (
           <Button
             variant="danger"
@@ -78,7 +78,7 @@ export function PaymentCard({ p, f }: { p: Payment; f: PaymentsController }) {
           title={t('order.order')}
           onPress={() => router.push({ pathname: '/orders/[id]', params: { id: p.orderId } } as any)}
         />
-      </View>
+      </ButtonRow>
     </Card>
   );
 }

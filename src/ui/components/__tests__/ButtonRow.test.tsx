@@ -51,6 +51,17 @@ describe('ButtonRow', () => {
     expect(direction()).toBe('column');
   });
 
+  it('tek düğme doğal genişlikte kalır (gruba girmez)', () => {
+    render(
+      <ButtonRow testID="row">
+        {null}
+        <Button title="Sadece" />
+      </ButtonRow>,
+    );
+    expect(screen.queryByTestId('row-items')).toBeNull();
+    expect(screen.getByText('Sadece')).toBeTruthy();
+  });
+
   it('ölçüm kopyası erişilebilirlik ağacında/sorgularda yok: tek "Vazgeç"', () => {
     renderRow();
     expect(screen.getAllByText('Vazgeç')).toHaveLength(1);

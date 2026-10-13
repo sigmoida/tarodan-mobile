@@ -10,7 +10,6 @@ export const styles = StyleSheet.create({
   identityInfo: { flex: 1, minWidth: 0, gap: spacing[1] },
   nameRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing[2] },
   name: { flexShrink: 1 },
-  actions: { flexDirection: 'row', gap: spacing[2] },
   flex: { flex: 1 },
   metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[3] },
   metric: {

@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, Pressable, Image } from 'react-native';
 import { router } from 'expo-router';
-import { Button, SectionCard, StatusBadge, Text, theme } from '@/ui';
+import { Button, SectionCard, StatusBadge, Text, theme, ButtonRow } from '@/ui';
 
 import { getOrderProductImageUri } from '@/utils/orderProductImage';
 import { styles } from '../_lib/ordersStyles';
@@ -79,7 +79,7 @@ export function OrderCard({
       {/* Değerlendirme — teslim/tamamlanmış siparişte (yeni escrow: ayrı "Teslim Aldım"
           onay butonu yok; satıcıya ödeme teslim+14 gün sonra otomatik serbest kalır) */}
       {canRateOrder(order) ? (
-        <View style={styles.rating}>
+        <ButtonRow>
           {!order.hasProductRating && (
             <Button
               variant="outline"
@@ -96,7 +96,7 @@ export function OrderCard({
               onPress={() => onRate('seller', order)}
             />
           )}
-        </View>
+        </ButtonRow>
       ) : null}
     </SectionCard>
   );

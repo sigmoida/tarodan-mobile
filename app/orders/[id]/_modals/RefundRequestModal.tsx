@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import React, { useMemo } from 'react';
 import { View, ScrollView, Image, Pressable, StyleSheet } from 'react-native';
-import { Modal, Button, RadioGroup, Text, theme, Icon } from '@/ui';
+import { Modal, Button, RadioGroup, Text, theme, Icon, ButtonRow } from '@/ui';
 import { useZodForm, Form, FormInput } from '@/ui/form';
 import { useRefundReasons, MAX_EVIDENCE_PHOTOS } from '../_lib/status';
 import { refundFormDefaults, refundRequestSchema, refundRequirements } from '../_lib/schema';
@@ -229,7 +229,7 @@ export function RefundRequestModal({
             </View>
           </View>
 
-          <View style={styles.refundModalActions}>
+          <ButtonRow style={{ marginTop: theme.spacing[4] }}>
             <Button variant="ghost" title={t('trade.dispute.cancelCta')} onPress={close} disabled={upload.isPending} />
             <Button
               variant="primary"
@@ -238,7 +238,7 @@ export function RefundRequestModal({
               isLoading={busy}
               disabled={busy}
             />
-          </View>
+          </ButtonRow>
         </Form>
       </ScrollView>
     </Modal>
@@ -252,12 +252,6 @@ const styles = StyleSheet.create({
     fontWeight: theme.typography.fontWeight.semibold,
     marginTop: theme.spacing[2],
     marginBottom: theme.spacing[1],
-  },
-  refundModalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: theme.spacing[2],
-    marginTop: theme.spacing[4],
   },
   qtySection: { marginTop: theme.spacing[1], marginBottom: theme.spacing[1] },
   qtyRow: {

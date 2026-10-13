@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { MessageKey } from '@/i18n/lib';
 import { View, ScrollView, Pressable, Image } from 'react-native';
 import { router } from 'expo-router';
-import { Alert, Button, Checkbox, Chip, EmptyState, IconButton, ProgressBar, SectionCard, Text, theme, Icon, Pill } from '@/ui';
+import { Alert, Button, Checkbox, Chip, EmptyState, IconButton, ProgressBar, SectionCard, Text, theme, Icon, Pill, ButtonRow } from '@/ui';
 
 import { resolveImageUrl } from '@/utils/imageUrl';
 import UpgradeCta from '@/components/UpgradeCta';
@@ -260,7 +260,7 @@ export function MyListingsExpiredBar({ f }: { f: MyListingsController }) {
         onChange={selection.toggleAll}
         label={t('profile.expiredListings.selectAll')}
       />
-      <View style={styles.expiredBarActions}>
+      <ButtonRow>
         {selection.selectedCount > 0 && (
           <Button variant="ghost" size="sm" title={t('profile.expiredListings.clearSelection')} onPress={selection.clear} />
         )}
@@ -275,7 +275,7 @@ export function MyListingsExpiredBar({ f }: { f: MyListingsController }) {
           disabled={selection.selectedCount === 0 || f.isRenewingMany}
           onPress={f.renewSelected}
         />
-      </View>
+      </ButtonRow>
     </View>
   );
 }

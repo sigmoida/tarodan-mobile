@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Avatar, Badge, Button, SectionCard, Text } from '@/ui';
+import { Avatar, Badge, Button, SectionCard, Text, ButtonRow } from '@/ui';
 import { useTranslation } from 'react-i18next';
 
 import { styles } from '../_lib/styles';
@@ -102,16 +102,15 @@ export function SellerProfileCard({ f }: { f: SellerProfileController }) {
         ) : null}
 
         {!f.isOwnProfile ? (
-          <View style={styles.actions}>
-            <Button title={t('common.message')} onPress={f.handleMessage} style={styles.flex} />
+          <ButtonRow>
+            <Button title={t('common.message')} onPress={f.handleMessage} />
             <Button
               variant={f.isFollowingSeller ? 'secondary' : 'outline'}
               title={f.isFollowingSeller ? t('seller.following') : t('seller.follow')}
               onPress={f.handleToggleFollow}
               isLoading={f.followBusy}
-              style={styles.flex}
             />
-          </View>
+          </ButtonRow>
         ) : null}
         {!f.isAuthenticated && !f.isOwnProfile ? (
           <Text variant="caption" tone="muted">
