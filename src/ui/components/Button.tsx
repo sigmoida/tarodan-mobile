@@ -14,6 +14,7 @@ import { RawText } from './Text';
 import { Pill } from './Pill';
 import { RefIcon, type IconRef, type IconVariant } from '../icons';
 import { useButtonGroup } from '../lib/buttonGroup';
+import { androidRipple, rippleClip, showPressedStyle } from '../lib/pressableFeedback';
 
 /** Web `@tarodan/ui` Button varyantları (adlar aynı). */
 export type ButtonVariant =
@@ -70,13 +71,20 @@ const variantStyle: Record<ButtonVariant, { bg: string; text: string; border?: s
   link: { bg: 'transparent', text: colors.primary[600] },
 };
 
-/** Web: sm h-8 px-3 text-sm · md h-10 px-4 text-sm · lg h-12 px-6 text-base · xl h-14 px-8 text-lg. */
+/**
+ * Web: sm h-8 px-3 text-sm · md h-10 px-4 text-sm · lg h-12 px-6 text-base · xl h-14 px-8 text-lg.
+ * `height` = ASGARİ yükseklik (`minHeight`): normal yazı ölçeğinde düğme tam bu boydadır; büyük
+ * ölçekte (en çok `maxFontScale.control`) etiket kırpılmasın diye büyüyebilir.
+ */
 const sizeStyle: Record<ButtonSize, { height: number; px: number; font: number; icon: number }> = {
   sm: { height: controlHeight.sm, px: spacing[3], font: typography.fontSize.sm, icon: iconSize.sm },
   md: { height: controlHeight.md, px: spacing[4], font: typography.fontSize.sm, icon: iconSize.sm },
   lg: { height: controlHeight.lg, px: spacing[6], font: typography.fontSize.base, icon: iconSize.md },
   xl: { height: controlHeight.xl, px: spacing[8], font: typography.fontSize.lg, icon: iconSize.md },
 };
+
+/** Büyük yazı ölçeğinde etiketin kenarlara yapışmaması için dikey iç boşluk (normal ölçekte etkisiz). */
+const BUTTON_PAD_Y = spacing[1];
 
 /** Etiket sığmazsa en çok bu orana kadar küçülür (adjustsFontSizeToFit). */
 const BUTTON_MIN_FONT_SCALE = 0.85;
@@ -118,21 +126,33 @@ export const Button: React.FC<ButtonProps> = ({
   const resolvedLeftIcon = leftIcon ?? (iconPosition === 'left' ? ionIconNode : null);
   const resolvedRightIcon = rightIcon ?? (iconPosition === 'right' ? ionIconNode : null);
   const visualHeight = isLink ? ss.font * 1.5 : ss.height;
+  // Çağıran sabit `height` verdiyse asgari yükseklik onu ezmesin (eski davranış korunur).
+  const fixedHeight = StyleSheet.flatten(style)?.height != null;
+  // Dolu zemin (etiket ters renk) → açık dalga; şeffaf/açık zemin → koyu dalga.
+  const ripple = androidRipple({ tone: vs.text === colors.text.inverted ? 'onDark' : 'onLight' });
 
   return (
     <Pressable
       disabled={disabled || isLoading}
       hitSlop={hitSlop ?? touchSlop(visualHeight)}
+      android_ripple={ripple}
       style={({ pressed }) => [
         styles.base,
+        rippleClip(),
         {
           backgroundColor: vs.bg,
           borderColor: vs.border ?? 'transparent',
           borderWidth: vs.border ? 1 : 0,
-          opacity: disabled || isLoading ? 0.5 : pressed ? 0.85 : 1,
+          opacity: disabled || isLoading ? 0.5 : showPressedStyle(pressed) ? 0.85 : 1,
           alignSelf: fullWidth || grouped ? 'stretch' : 'flex-start',
         },
-        isLink ? styles.link : { height: ss.height, paddingHorizontal: ss.px },
+        isLink
+          ? styles.link
+          : {
+              minHeight: fixedHeight ? undefined : ss.height,
+              paddingVertical: BUTTON_PAD_Y,
+              paddingHorizontal: ss.px,
+            },
         style,
       ]}
       accessibilityRole="button"
@@ -151,6 +171,7 @@ export const Button: React.FC<ButtonProps> = ({
             // Metin sarmaz ve kısaltılmaz: sığmazsa 0.85'e kadar küçülür (iOS + Android, RN 0.81).
             adjustsFontSizeToFit
             minimumFontScale={BUTTON_MIN_FONT_SCALE}
+            maxFontSizeMultiplier={typography.maxFontScale.control}
             style={[
               styles.text,
               { color: vs.text, fontSize: ss.font, fontWeight: typography.fontWeight.medium },

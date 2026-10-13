@@ -10,10 +10,11 @@ const boxStyle = () => {
 };
 
 describe('Chip (web @tarodan/ui)', () => {
-  it('seçili: primary tonu çerçeve + metin; rounded-full, h24', () => {
+  it('seçili: primary tonu çerçeve + metin; rounded-full, asgari h24', () => {
     render(<Chip testID="chip" label="Tümü" selected onPress={jest.fn()} />);
     expect(boxStyle()).toMatchObject({
-      height: 24,
+      // Sabit yükseklik yerine asgari (büyük yazı ölçeğinde etiket kırpılmaz).
+      minHeight: 24,
       borderRadius: theme.radius.full,
       borderColor: colors.primary[200],
       backgroundColor: colors.primary[50],

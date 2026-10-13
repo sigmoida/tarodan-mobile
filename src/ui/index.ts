@@ -80,6 +80,14 @@ export {
 	type GlassIconTone,
 } from './components/GlassIconButton';
 export { usePressScale, PRESS_SCALE, PRESS_SPRING } from './lib/pressScale';
+export {
+	androidRipple,
+	rippleClip,
+	showPressedStyle,
+	type RippleOptions,
+	type RippleTone,
+} from './lib/pressableFeedback';
+export { useKeyboardAvoid, type KeyboardAvoid } from './lib/keyboard';
 export { getGlassView, resetGlassCache, type GlassViewComponent } from './lib/glass';
 export { BadgeAnchor, type BadgeAnchorProps } from './components/BadgeAnchor';
 export {

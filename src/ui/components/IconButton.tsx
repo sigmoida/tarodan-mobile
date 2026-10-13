@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { theme } from '../lib/theme';
 import { RefIcon, type IconRef, type IconVariant } from '../icons';
+import { androidRipple, rippleClip, showPressedStyle } from '../lib/pressableFeedback';
 
 /**
  * Web `@tarodan/ui` IconButton varyantları: primary, secondary, outline, ghost (varsayılan),
@@ -85,19 +86,27 @@ export const IconButton: React.FC<IconButtonProps> = ({
   const fg = color ?? vs.fg;
   // Görsel ölçü web gibi kalır; dokunma alanı en az 44pt (eski davranış: her yönde ≥ 8).
   const slop = Math.max(8, Math.ceil((minTouchTarget - ss.box) / 2));
+  // Android dalgası: zeminsiz + çerçevesiz (ghost/plain/danger/success) → sınırsız daire, dokunma
+  // alanı kadar (HeaderIconButton gibi); zeminli/çerçeveli → kutuya sınırlı, köşeye kırpılmış.
+  const bare = vs.bg === 'transparent' && !vs.border;
+  const ripple = bare
+    ? androidRipple({ borderless: true, radius: Math.max(ss.box, minTouchTarget) / 2 })
+    : androidRipple({ tone: vs.fg === colors.text.inverted ? 'onDark' : 'onLight' });
   return (
     <Pressable
       disabled={disabled || isLoading}
       hitSlop={hitSlop ?? slop}
+      android_ripple={ripple}
       style={({ pressed }) => [
         styles.base,
+        bare ? null : rippleClip(),
         {
           width: ss.box,
           height: ss.box,
           backgroundColor: vs.bg,
           borderColor: vs.border ?? 'transparent',
           borderWidth: vs.border ? 1 : 0,
-          opacity: disabled || isLoading ? 0.5 : pressed ? 0.7 : 1,
+          opacity: disabled || isLoading ? 0.5 : showPressedStyle(pressed) ? 0.7 : 1,
         },
         style,
       ]}

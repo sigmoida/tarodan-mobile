@@ -28,7 +28,13 @@ export const SearchField: React.FC<SearchFieldProps> = ({ onPress, placeholder, 
       style={styles.field}
     >
       <Icon name="magnifying-glass" size={iconSize.md} color={colors.text.muted} />
-      <Text variant="body" tone="muted" numberOfLines={1} style={styles.placeholder}>
+      <Text
+        variant="body"
+        tone="muted"
+        numberOfLines={1}
+        maxFontSizeMultiplier={theme.typography.maxFontScale.control}
+        style={styles.placeholder}
+      >
         {label}
       </Text>
     </Pressable>

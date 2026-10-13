@@ -6,7 +6,8 @@ import {
   type TextStyle,
 } from 'react-native';
 import { theme } from '../lib/theme';
-import { useBrandTextStyle, withTextInherit } from '../lib/font';
+import { useBrandTextStyle, useMaxFontSizeMultiplier, withTextInherit } from '../lib/font';
+import type { FontScaleRole } from '@/theme';
 
 export type TextVariant =
   | 'displayLg'
@@ -98,6 +99,20 @@ const variantStyle: Record<TextVariant, TextStyle> = {
   },
 };
 
+/** Dinamik yazı boyutu rolü (`theme.typography.maxFontScale`): başlıklar `heading`, kalanı `body`. */
+const variantFontScaleRole: Record<TextVariant, FontScaleRole> = {
+  displayLg: 'heading',
+  displaySm: 'heading',
+  h1: 'heading',
+  h2: 'heading',
+  h3: 'heading',
+  body: 'body',
+  bodySm: 'body',
+  caption: 'body',
+  label: 'body',
+  overline: 'body',
+};
+
 const variantDefaultTone: Record<TextVariant, TextTone> = {
   displayLg: 'heading',
   displaySm: 'heading',
@@ -151,8 +166,10 @@ export const Text: React.FC<TextProps> = ({
   color,
   style,
   children,
+  maxFontSizeMultiplier,
   ...rest
 }) => {
+  const maxScale = useMaxFontSizeMultiplier(maxFontSizeMultiplier, variantFontScaleRole[variant]);
   const resolvedTone = tone ?? variantDefaultTone[variant];
   const resolvedColor = color ?? toneColor(resolvedTone);
   // Kararlı `style` (StyleSheet) ile aynı girdilerde düzleştirme tekrarlanmaz.
@@ -169,7 +186,7 @@ export const Text: React.FC<TextProps> = ({
   const [brand, inherit] = useBrandTextStyle(flat);
 
   return (
-    <RNText style={brand ? [flat, brand] : flat} {...rest}>
+    <RNText style={brand ? [flat, brand] : flat} maxFontSizeMultiplier={maxScale} {...rest}>
       {withTextInherit(children, inherit)}
     </RNText>
   );
@@ -182,13 +199,17 @@ export type RawTextProps = RNTextProps;
  * varsayılanları: 14pt, siyah), yalnız marka fontu (ağırlık → Noto Sans dosyası) ve gövde
  * harf aralığı eklenir. `react-native`'den `Text` import eden eski dosyaların geçiş noktası;
  * yeni kodda `Text` (variant + tone) kullanın. Dalga 2 bunları `Text`'e taşıyacak.
+ *
+ * Dinamik yazı boyutu: varsayılan sınır gövde rolü (`maxFontScale.body`); kontrol etiketleri
+ * (Button/Chip/Pill…) `maxFontSizeMultiplier={theme.typography.maxFontScale.control}` verir.
  */
 export const RawText = React.forwardRef<React.ComponentRef<typeof RNText>, RawTextProps>(
-  ({ style, children, ...rest }, ref) => {
+  ({ style, children, maxFontSizeMultiplier, ...rest }, ref) => {
     const flat = StyleSheet.flatten(style) ?? {};
     const [brand, inherit] = useBrandTextStyle(flat);
+    const maxScale = useMaxFontSizeMultiplier(maxFontSizeMultiplier, 'body');
     return (
-      <RNText ref={ref} style={brand ? [style, brand] : style} {...rest}>
+      <RNText ref={ref} style={brand ? [style, brand] : style} maxFontSizeMultiplier={maxScale} {...rest}>
         {withTextInherit(children, inherit)}
       </RNText>
     );

@@ -395,6 +395,12 @@ and turns them into **errors**, so write new code warning-free.
   heart / "in cart" pill on cards (web has none).
 - **Tap targets ≥ 44pt** — visuals may stay at the web size, close the gap with
   `hitSlop` (Button/IconButton/Chip already do).
+- **Press feedback:** Android = `android_ripple`, iOS = the existing pressed opacity — both from
+  `@/ui` `androidRipple()` / `rippleClip()` / `showPressedStyle()` (`src/ui/lib/pressableFeedback.ts`);
+  core primitives already do it, a new custom `Pressable` uses the same helper (no local ripple config).
+- **Dynamic type:** `maxFontSizeMultiplier` comes from `theme.typography.maxFontScale` (body 1.35 /
+  heading 1.25 / control 1.2) — `Text`/`RawText`/`RawTextInput` default it per role (no global
+  `defaultProps`); fixed-height controls use `minHeight` + vertical padding, never a hard `height`.
 - **Empty states:** every empty screen/list/section uses `EmptyState` (`@/ui`) — `icon`, `title`
   and `subtitle` are **required**, the action is optional. Placement is one rule built into the
   component (`placement="screen"`, the default: fixed `EMPTY_STATE_TOP_OFFSET` from the top of the
