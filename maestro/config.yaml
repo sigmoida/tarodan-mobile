@@ -3,8 +3,8 @@
 #
 # Flow'larda `appId` sabit DEĞİL: `appId: ${APP_ID}` (flows/ ve subflows/). Değer:
 #   - `pnpm maestro:dev ...` (run.sh) otomatik verir: varsayılan com.tarodan.app,
-#     EAS `maestro` profili iOS build'i için MAESTRO_TARGET=staging → com.tarodan.app.staging
-#   - doğrudan `maestro test` için: --env APP_ID=$(bash app-id.sh ios staging)
+#     EAS `maestro` profili build'i için MAESTRO_TARGET=staging → com.tarodan.app.staging
+#   - doğrudan `maestro test` için: --env APP_ID=$(bash app-id.sh <ios|android> staging)
 # Seçim tablosu: app-id.sh.
 env:
   APP_ID: com.tarodan.app

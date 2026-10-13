@@ -1,8 +1,8 @@
 /**
  * Maestro uygulama kimliği sözleşmesi.
  *
- * EAS `maestro` profili preview'dan türer; iOS'ta `.staging` ekli bundle id
- * (`com.tarodan.app.staging`) üretir, Android paketi aynı kalır. Flow'lar sabit
+ * EAS `maestro` profili preview'dan türer; iOS bundle id'si ve Android paketi
+ * `.staging` ekli (`com.tarodan.app.staging`) olur. Flow'lar sabit
  * `com.tarodan.app` yazarsa o build'e hiç bağlanamaz. Bu yüzden tüm flow/subflow
  * `appId: ${APP_ID}` kullanır ve değeri `maestro/app-id.sh` sağlar.
  */
@@ -85,6 +85,7 @@ describe('maestro/app-id.sh', () => {
     expect(appId('ios', 'staging').out).toBe(preview.ios.bundleIdentifier);
     expect(appId('ios', 'staging').out).toBe('com.tarodan.app.staging');
     expect(appId('android', 'staging').out).toBe(preview.android.package);
+    expect(appId('android', 'staging').out).toBe('com.tarodan.app.staging');
   });
 
   it('APP_ID ortam değişkeni her şeyi ezer', () => {

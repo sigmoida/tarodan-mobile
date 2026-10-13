@@ -29,13 +29,14 @@ Every push to `main` runs `mobile-staging.yml`, which decides automatically:
 A build only ever happens through a deliberate `workflow_dispatch` — see
 "Sending a staging APK to a customer" below.
 
-Install: staging builds carry the name "Tarodan (Staging)". On **iOS** they also
-carry the `com.tarodan.app.staging` bundle id (#229), so a staging build sits next
-to production on one device. On **Android** the package stays `com.tarodan.app` —
-suffixing it would need a Firebase/FCM registration *and* a Google Cloud OAuth
-client (missing the latter breaks "Sign in with Google" silently), and the payoff
-is currently nil since Android production has never shipped. Rationale:
-[`specs/2026-08-05-staging-apk-dagitimi-design.md`](./superpowers/specs/2026-08-05-staging-apk-dagitimi-design.md) §2.
+Install: staging builds carry the name "Tarodan (Staging)" and the `.staging`
+application id on **both** platforms — `com.tarodan.app.staging` on iOS (#229) and
+on Android — so a staging build sits next to production on one device. Android is
+a two-app model like iOS (separate Play apps, separate Firebase projects); the
+full setup is in [`ANDROID_RELEASE.md`](./ANDROID_RELEASE.md). (The earlier
+decision to keep the Android package unsuffixed,
+[`specs/2026-08-05-staging-apk-dagitimi-design.md`](./superpowers/specs/2026-08-05-staging-apk-dagitimi-design.md) §2,
+is superseded by the Android release decision.)
 
 ## Sending a staging APK to a customer
 
@@ -146,9 +147,11 @@ Steps:
 4. Promote JS-only fixes for the shipped version with
    `eas update --branch production` — no store round-trip.
 
-**iOS only.** Android is deliberately deferred (spec 2026-07-31 §7): it needs a
-Play service account plus a dual-client `google-services.json`. `com.tarodan.app`
-has never shipped on Play.
+**iOS today; Android is configured but gated.** The Android release path
+(`com.tarodan.app` + `com.tarodan.app.staging` on Play, internal track submit) is set
+up in code and `eas.json`; it only starts once the manual Play/Firebase steps and
+the CI `ANDROID_RELEASE_ENABLED` variable are done. Step by step, with who does
+what: [`ANDROID_RELEASE.md`](./ANDROID_RELEASE.md).
 
 **Guard:** if `EXPO_TOKEN` is missing the workflow no-ops rather than failing.
 

@@ -14,13 +14,29 @@
  *
  * --strict, parmak izi girildikten sonraki surum kapisidir: assetlinks.json
  * uretilemiyorsa build ilerlemesin. Bkz. docs/deep-links.md §4/§6.
+ *
+ * Iki uygulamali Android modeli (docs/ANDROID_RELEASE.md): production
+ * (`androidPackage`) ve staging (`stagingAndroidPackage`) AYRI paketlerdir ve
+ * farkli alan adlarini dinler, bu yuzden iki ayri dosya uretilir:
+ *   assetlinks.json          → production host(lar)i, YALNIZ production paketi
+ *   assetlinks.staging.json  → staging host(lar)i, YALNIZ staging paketi
+ * fingerprints.json girdileri `package` alani ile paketine baglanir (alan yoksa
+ * production). --strict yalniz production dosyasini sart kosar: staging
+ * parmak izleri Play'e ilk staging yuklemesinden sonra bilinebilir.
+ *
+ * Test icin: --out-dir <dizin> (varsayilan docs/wellknown) ve
+ * --fingerprints <dosya> (varsayilan <out-dir>/fingerprints.json).
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const OUT_DIR = path.join(ROOT, 'docs/wellknown');
+const argValue = (flag) => {
+  const i = process.argv.indexOf(flag);
+  return i === -1 ? undefined : process.argv[i + 1];
+};
+const OUT_DIR = path.resolve(argValue('--out-dir') ?? path.join(ROOT, 'docs/wellknown'));
 const strict = process.argv.includes('--strict');
 
 const config = JSON.parse(
@@ -60,59 +76,77 @@ fs.writeFileSync(aasaPath, `${JSON.stringify(aasa, null, 2)}\n`);
 console.log(`yazildi: ${path.relative(ROOT, aasaPath)} (${components.length} component)`);
 
 const fingerprintsFile = JSON.parse(
-  fs.readFileSync(path.join(OUT_DIR, 'fingerprints.json'), 'utf8'),
+  fs.readFileSync(argValue('--fingerprints') ?? path.join(OUT_DIR, 'fingerprints.json'), 'utf8'),
 );
 // SHA-256 sertifika parmak izi: 32 bayt, iki hane BUYUK harf hex, ':' ile
 // ayrilmis. Sekli dogrulamak sart — "TODO" ya da kucuk harfli bir deger
 // yazilirsa dosya yine uretilir ve Android dogrulamayi KESIN olarak dusurur;
 // tam da bos-liste bekcisinin engellemek icin var oldugu sonuc.
 const SHA256_FINGERPRINT = /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/;
-const fingerprints = [];
+const knownPackages = [config.androidPackage, config.stagingAndroidPackage];
+// paket adi → parmak izleri
+const fingerprintsByPackage = new Map(knownPackages.map((p) => [p, []]));
 const badFingerprints = [];
 for (const [key, entry] of Object.entries(fingerprintsFile)) {
+  if (key.startsWith('_')) continue; // _format gibi aciklama alanlari
+  const pkg = entry?.package ?? config.androidPackage;
   const value = (entry?.sha256 ?? '').trim();
+  if (!fingerprintsByPackage.has(pkg)) {
+    badFingerprints.push(`${key}: bilinmeyen paket "${pkg}" (beklenen: ${knownPackages.join(' | ')})`);
+    continue;
+  }
   if (value.length === 0) continue;
-  if (SHA256_FINGERPRINT.test(value)) fingerprints.push(value);
+  if (SHA256_FINGERPRINT.test(value)) fingerprintsByPackage.get(pkg).push(value);
   else badFingerprints.push(`${key}: "${value}"`);
 }
 if (badFingerprints.length > 0) {
   console.error(
-    'HATA: parmak izi bicimi gecersiz (beklenen: 32 x BUYUK-harf hex, ":" ile ayrilmis, ' +
-      'or. AB:CD:...:EF):\n  ' +
+    'HATA: parmak izi girdisi gecersiz (beklenen: 32 x BUYUK-harf hex, ":" ile ayrilmis, ' +
+      'or. AB:CD:...:EF; `package` alani varsa bilinen bir paket olmali):\n  ' +
       badFingerprints.join('\n  '),
   );
   process.exit(1);
 }
 
-const assetLinksPath = path.join(OUT_DIR, 'assetlinks.json');
-if (fingerprints.length === 0) {
-  // Bos sha256_cert_fingerprints yayinlanirsa Android dogrulamasi "basarisiz"
-  // olarak KESINLESIR — hic dosya olmamasindan kotudur.
-  if (fs.existsSync(assetLinksPath)) fs.rmSync(assetLinksPath);
-  const message =
-    'assetlinks.json YAZILMADI — hic parmak izi yok. ' +
-    'docs/wellknown/fingerprints.json doldurulmali (eas credentials -p android).';
-  if (strict) {
-    console.error(`HATA: ${message}`);
-    process.exit(1);
-  }
-  console.warn(`UYARI: ${message}`);
-} else {
-  const statements = [
-    {
-      relation: ['delegate_permission/common.handle_all_urls'],
-      target: {
-        namespace: 'android_app',
-        package_name: config.androidPackage,
-        sha256_cert_fingerprints: fingerprints,
-      },
+/** Tek paket icin assetlinks icerigi; ayni parmak izi iki kez yazilmaz. */
+const buildAssetLinks = (packageName, fingerprints) => [
+  {
+    relation: ['delegate_permission/common.handle_all_urls'],
+    target: {
+      namespace: 'android_app',
+      package_name: packageName,
+      sha256_cert_fingerprints: [...new Set(fingerprints)],
     },
-  ];
-  fs.writeFileSync(assetLinksPath, `${JSON.stringify(statements, null, 2)}\n`);
-  console.log(
-    `yazildi: ${path.relative(ROOT, assetLinksPath)} (${fingerprints.length} parmak izi)`,
-  );
+  },
+];
+
+const targets = [
+  { file: 'assetlinks.json', packageName: config.androidPackage, gate: true },
+  { file: 'assetlinks.staging.json', packageName: config.stagingAndroidPackage, gate: false },
+];
+let gateFailed = false;
+for (const { file, packageName, gate } of targets) {
+  const out = path.join(OUT_DIR, file);
+  const fingerprints = fingerprintsByPackage.get(packageName);
+  if (fingerprints.length === 0) {
+    // Bos sha256_cert_fingerprints yayinlanirsa Android dogrulamasi "basarisiz"
+    // olarak KESINLESIR — hic dosya olmamasindan kotudur.
+    if (fs.existsSync(out)) fs.rmSync(out);
+    const message =
+      `${file} YAZILMADI — ${packageName} icin hic parmak izi yok. ` +
+      'docs/wellknown/fingerprints.json doldurulmali (eas credentials -p android / Play Console → App integrity).';
+    if (strict && gate) {
+      console.error(`HATA: ${message}`);
+      gateFailed = true;
+    } else {
+      console.warn(`UYARI: ${message}`);
+    }
+    continue;
+  }
+  fs.writeFileSync(out, `${JSON.stringify(buildAssetLinks(packageName, fingerprints), null, 2)}\n`);
+  console.log(`yazildi: ${path.relative(ROOT, out)} (${packageName}, ${fingerprints.length} parmak izi)`);
 }
+if (gateFailed) process.exit(1);
 
 const pending = config.paths.filter((p) => !p.confirmed);
 if (pending.length > 0) {

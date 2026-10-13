@@ -61,6 +61,7 @@
         "autoIncrement": "buildNumber"
       },
       "android": {
+        "buildType": "app-bundle",
         "autoIncrement": "versionCode"
       },
       "env": {
@@ -78,6 +79,10 @@
       "channel": "staging",
       "ios": {
         "autoIncrement": "buildNumber"
+      },
+      "android": {
+        "buildType": "app-bundle",
+        "autoIncrement": "versionCode"
       },
       "env": {
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
@@ -106,6 +111,10 @@
         "appleId": "mki19xci@gmail.com",
         "ascAppId": "6794634529",
         "appleTeamId": "P2628CQK26"
+      },
+      "android": {
+        "track": "internal",
+        "releaseStatus": "completed"
       }
     }
   }

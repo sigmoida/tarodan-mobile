@@ -115,18 +115,27 @@ describe('app.config.js — staging alan adi yalniz staging profilinde', () => {
     },
   );
 
-  it('preview: Android intent filter staging host\'unu da dinler, prod host korunur', () => {
+  it('preview: Android intent filter YALNIZ staging host\'unu dinler (production host yok)', () => {
     process.env.EXPO_PUBLIC_ENVIRONMENT = 'preview';
     const input = base();
     const cfg = makeConfig({ config: input });
-    expect(hostsOf(cfg)).toEqual(['tarodan.com.tr', ...deepLinkConfig.stagingHosts]);
-    // girdi degismez, yol girdileri ve sirasi korunur, paket adi ayni
+    // Staging ayri paket: production host'unu da dinlerse yan yana kurulumda
+    // her link "hangi uygulama?" secicisi cikarir.
+    expect(hostsOf(cfg)).toEqual(deepLinkConfig.stagingHosts);
+    expect(hostsOf(cfg)).not.toContain('tarodan.com.tr');
+    // girdi degismez, yol girdileri ve sirasi korunur
     expect(hostsOf(input)).toEqual(['tarodan.com.tr']);
-    expect(cfg.android.package).toBe(deepLinkConfig.androidPackage);
     const paths = (c: Record<string, any>) =>
       c.android.intentFilters[0].data.filter((d: Record<string, string>) => !d.host);
     expect(paths(cfg)).toEqual(paths(input));
     expect(cfg.android.intentFilters[0].autoVerify).toBe(true);
+  });
+
+  it('preview: Android paketi paths.json\'daki staging paketi (production degil)', () => {
+    process.env.EXPO_PUBLIC_ENVIRONMENT = 'preview';
+    const cfg = makeConfig({ config: base() });
+    expect(cfg.android.package).toBe(deepLinkConfig.stagingAndroidPackage);
+    expect(cfg.android.package).toBe(`${deepLinkConfig.androidPackage}.staging`);
   });
 
   it('preview: iOS associatedDomains hic yok (.staging bundle id, AASA talep etmiyor)', () => {
@@ -134,5 +143,92 @@ describe('app.config.js — staging alan adi yalniz staging profilinde', () => {
     const cfg = makeConfig({ config: base() });
     expect(cfg.ios.associatedDomains).toBeUndefined();
     expect(cfg.ios.bundleIdentifier).toBe('com.tarodan.app.staging');
+  });
+});
+
+/**
+ * withStagingHosts — yalnız `host` alanı değişir; scheme/path taşıyan data
+ * nesneleri silinmez; staging host'u yoksa host'suz autoVerify filtresi kalmaz.
+ */
+describe('app.config.js — withStagingHosts', () => {
+  const { withStagingHosts } = require('../../../../app.config.js') as {
+    withStagingHosts: (
+      filters?: Array<Record<string, any>>,
+      hosts?: string[],
+    ) => Array<Record<string, any>>;
+  };
+  const STG = ['staging.tarodan.com.tr'];
+  const filter = (data: Array<Record<string, string>>) => ({
+    action: 'VIEW',
+    autoVerify: true,
+    data,
+    category: ['BROWSABLE', 'DEFAULT'],
+  });
+
+  it('ayrı { host } nesnesi staging host(lar)ıyla değişir, scheme/path nesneleri aynen kalır', () => {
+    const [out] = withStagingHosts(
+      [filter([{ scheme: 'https' }, { host: 'tarodan.com.tr' }, { path: '/offers' }])],
+      STG,
+    );
+    expect(out.data).toEqual([{ scheme: 'https' }, { host: STG[0] }, { path: '/offers' }]);
+    expect(out.autoVerify).toBe(true);
+    expect(out.category).toEqual(['BROWSABLE', 'DEFAULT']);
+  });
+
+  it('{ scheme, host } tek nesnesinde scheme KORUNUR, yalnız host değişir', () => {
+    const [out] = withStagingHosts([filter([{ scheme: 'https', host: 'tarodan.com.tr' }, { path: '/offers' }])], STG);
+    expect(out.data).toEqual([{ scheme: 'https', host: STG[0] }, { path: '/offers' }]);
+  });
+
+  it('{ host, path } tek nesnesinde path KORUNUR', () => {
+    const [out] = withStagingHosts([filter([{ scheme: 'https' }, { host: 'tarodan.com.tr', pathPrefix: '/listings/' }])], STG);
+    expect(out.data).toEqual([{ scheme: 'https' }, { host: STG[0], pathPrefix: '/listings/' }]);
+  });
+
+  it('birden çok staging host: saf host nesneleri çoğalır, karma nesne her host için kopyalanır', () => {
+    const hosts = ['a.example.com', 'b.example.com'];
+    const [out] = withStagingHosts(
+      [filter([{ host: 'tarodan.com.tr' }, { scheme: 'https', host: 'tarodan.com.tr' }, { path: '/x' }])],
+      hosts,
+    );
+    expect(out.data).toEqual([
+      { host: 'a.example.com' },
+      { host: 'b.example.com' },
+      { scheme: 'https', host: 'a.example.com' },
+      { scheme: 'https', host: 'b.example.com' },
+      { path: '/x' },
+    ]);
+  });
+
+  it('birden çok production host nesnesi staging host\'unu TEKRARLAMAZ', () => {
+    const [out] = withStagingHosts([filter([{ host: 'a.com' }, { host: 'b.com' }, { path: '/x' }])], STG);
+    expect(out.data).toEqual([{ host: STG[0] }, { path: '/x' }]);
+  });
+
+  it('host içermeyen filtreye dokunmaz', () => {
+    const f = { action: 'VIEW', data: [{ scheme: 'tarodan' }] };
+    expect(withStagingHosts([f], STG)).toEqual([f]);
+  });
+
+  it('stagingHosts boşsa host taşıyan filtre düşer (host\'suz autoVerify filtresi kalmaz), host\'suz olan kalır', () => {
+    const noHost = { action: 'VIEW', data: [{ scheme: 'tarodan' }] };
+    const out = withStagingHosts(
+      [filter([{ scheme: 'https' }, { host: 'tarodan.com.tr' }, { path: '/offers' }]), noHost],
+      [],
+    );
+    expect(out).toEqual([noHost]);
+    expect(out.some((f) => f.autoVerify && !(f.data ?? []).some((d: any) => d.host))).toBe(false);
+  });
+
+  it('girdiyi DEĞİŞTİRMEZ', () => {
+    const input = [filter([{ scheme: 'https', host: 'tarodan.com.tr' }])];
+    const snapshot = JSON.parse(JSON.stringify(input));
+    withStagingHosts(input, STG);
+    expect(input).toEqual(snapshot);
+  });
+
+  it('varsayılan host\'lar paths.json stagingHosts', () => {
+    const [out] = withStagingHosts([filter([{ host: 'tarodan.com.tr' }])]);
+    expect(out.data).toEqual(deepLinkConfig.stagingHosts.map((host) => ({ host })));
   });
 });

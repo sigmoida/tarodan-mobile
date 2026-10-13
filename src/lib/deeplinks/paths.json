@@ -3,6 +3,7 @@
   "defaultLocale": "tr",
   "appIDs": ["P2628CQK26.com.tarodan.app"],
   "androidPackage": "com.tarodan.app",
+  "stagingAndroidPackage": "com.tarodan.app.staging",
   "hosts": ["tarodan.com.tr", "staging.tarodan.com.tr"],
   "stagingHosts": ["staging.tarodan.com.tr"],
   "paths": [

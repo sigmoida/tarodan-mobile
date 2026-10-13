@@ -7,11 +7,11 @@
 #   ./run.sh flows/01-smoke.yaml
 #   MAESTRO_EMAIL=ahmet@demo.com ./run.sh flows/E-05-membership-manage.yaml
 #   API_URL=http://127.0.0.1:3001/api ./run.sh flows/01-smoke.yaml   # yerel backend
-#   MAESTRO_TARGET=staging ./run.sh flows/01-smoke.yaml              # EAS `maestro` profili iOS build'i
+#   MAESTRO_TARGET=staging ./run.sh flows/01-smoke.yaml              # EAS `maestro` profili build'i
 #   APP_ID=com.ornek.app ./run.sh flows/01-smoke.yaml                # özel paket/bundle id
 #
 # Flow'lar `appId: ${APP_ID}` kullanır; değer app-id.sh'tan gelir (varsayılan
-# com.tarodan.app = yerel dev-client; MAESTRO_TARGET=staging → iOS'ta .staging eki).
+# com.tarodan.app = yerel dev-client; MAESTRO_TARGET=staging → .staging eki).
 set -euo pipefail
 
 # Backend adresi UYGULAMANIN OKUDUĞU yerden gelir (`.env` → EXPO_PUBLIC_API_URL).
