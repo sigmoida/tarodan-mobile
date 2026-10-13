@@ -3,8 +3,12 @@ import { theme } from '@/ui';
 
 const { colors, spacing } = theme;
 
-// Giriş formunun route-local stylesheet'i. Kabuk (logo, başlık, zemin) `AuthShell`'de.
+// Giriş formunun route-local stylesheet'i. Kabuk (üst bar, zemin) `AuthShell`'de.
 export const styles = StyleSheet.create({
+  root: {
+    width: '100%',
+    gap: spacing[4],
+  },
   form: {
     width: '100%',
     // Input kendi alt boşluğunu (8) taşır: 8 + 8 = web `space-y-4` (16).
@@ -24,20 +28,15 @@ export const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border.DEFAULT,
   },
-  appleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing[2],
-    height: theme.controlHeight.lg,
-    borderRadius: theme.radiusRole.button,
-    backgroundColor: colors.black,
+  /** Web `uppercase`: "veya" → "VEYA". */
+  upper: {
+    textTransform: 'uppercase',
   },
-  appleButtonText: {
-    color: colors.white,
+  notice: {
+    marginBottom: spacing[2],
   },
-  disabled: {
-    opacity: 0.5,
+  underline: {
+    textDecorationLine: 'underline',
   },
   terms: {
     gap: spacing[1],

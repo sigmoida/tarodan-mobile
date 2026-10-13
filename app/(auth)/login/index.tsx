@@ -7,9 +7,11 @@ import { useLogin } from './_hooks/useLogin';
 import { LoginForm } from './_components/LoginForm';
 
 /**
- * Giriş — İNCE ekran. `useLogin` kontrolcüsü RHF formunu, giriş/yeniden-gönder mutasyonlarını
- * ve sosyal girişi yönetir; bu dosya yalnız ortak auth kabuğunu (web `(centered)` düzeni:
- * logo, başlık, form, alt bağlantılar) kurar.
+ * Giriş — İNCE ekran. `useLogin` kontrolcüsü RHF formunu, iki aşamalı akışı (e-posta → şifre),
+ * giriş/yeniden-gönder mutasyonlarını ve sosyal girişi yönetir; bu dosya yalnız ortak auth
+ * kabuğunu (başlık üst barda, logo yok) kurar. Geri oku yalnız yığında geri gidilecek bir ekran
+ * varsa çizilir; giriş ana girişse (derin bağlantı / oturum sonu) yoktur — "Misafir olarak
+ * devam et" çıkış yolu olarak kalır.
  */
 export default function LoginScreen() {
   const { t } = useTranslation();
@@ -17,27 +19,17 @@ export default function LoginScreen() {
 
   return (
     <AuthShell
-      title={t('auth.welcomeBack')}
-      description={t('auth.loginSubtitle')}
+      title={t('auth.loginTitle')}
       hero="auth_default"
-      back={{
-        label: t('auth.backToHome'),
-        onPress: f.continueAsGuest,
-        testID: 'login-back-button',
-      }}
+      showBack={router.canGoBack()}
+      onBack={f.continueAsGuest}
       footer={
-        <>
-          <AuthFooterLink
-            prompt={t('auth.noAccount')}
-            linkLabel={t('auth.signUp')}
-            onPress={() => router.push('/(auth)/register' as never)}
-          />
-          <AuthFooterLink
-            prompt={t('auth.isBusinessOwnerPrompt')}
-            linkLabel={t('auth.openBusinessAccountCta')}
-            onPress={() => router.push('/(auth)/register-business' as never)}
-          />
-        </>
+        <AuthFooterLink
+          prompt={t('auth.noAccount')}
+          linkLabel={t('common.register')}
+          testID="login-register-link"
+          onPress={() => router.push('/(auth)/register' as never)}
+        />
       }
     >
       <LoginForm f={f} />

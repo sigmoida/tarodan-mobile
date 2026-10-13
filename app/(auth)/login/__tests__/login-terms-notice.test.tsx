@@ -23,6 +23,11 @@ function Harness() {
   const form = useForm({ defaultValues: { email: '', password: '', twoFactorCode: '' } });
   const f = {
     form,
+    step: 'email',
+    email: '',
+    notRegistered: false,
+    identify: jest.fn(),
+    identifying: false,
     unverifiedEmail: null,
     setUnverifiedEmail: jest.fn(),
     resendVerificationMutation: { isPending: false, mutate: jest.fn() },

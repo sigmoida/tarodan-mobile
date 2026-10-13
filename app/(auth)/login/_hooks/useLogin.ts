@@ -1,11 +1,10 @@
 import { logger } from '@/services/logger';
 import { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
+import { useZodForm } from '@/ui/form';
 import { CAN_BUY_DIGITAL, limitAlert } from '@/lib/purchases';
 import { authApi } from '@/lib/api';
 import { signInWithGoogle } from '@/services/googleSignin';
@@ -15,13 +14,23 @@ import { buildLoginSchema, TWO_FACTOR_CODE_PATTERN, type LoginForm } from '../_l
 import { IS_MAESTRO } from '@/config/maestro';
 
 /**
- * Login controller — owns the RHF form (zod), the login + resend-verification
- * mutations, Google/Apple social sign-in, guest-continue, and the Maestro
- * fallback submit. Lifted verbatim from the monolithic LoginScreen.
+ * Web `useLoginFlow` ile aynı adımlar: `email` (e-posta + sosyal giriş) → `password`
+ * (kayıtlı + şifreli hesap) ya da `googleOnly` (kayıtlı ama şifresiz, Google ile açılmış).
+ * Geçiş sunucudaki `POST /auth/check-email` yanıtına göre yapılır (istemci tarafı tahmin yok).
+ */
+export type LoginStep = 'email' | 'password' | 'googleOnly';
+
+/**
+ * Login controller — owns the RHF form (zod), the two-step identify flow, the login +
+ * resend-verification mutations, Google/Apple social sign-in, guest-continue, and the
+ * Maestro fallback submit. Parola girişinin kendisi (2FA, doğrulanmamış e-posta, kurumsal
+ * yükseltme) önceki sürümden değişmeden taşındı; yalnız adım durumu eklendi.
  */
 export function useLogin() {
   const { t } = useTranslation();
   const { login } = useAuthStore();
+  const [step, setStep] = useState<LoginStep>('email');
+  const [notRegistered, setNotRegistered] = useState(false);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [requires2FA, setRequires2FA] = useState(false);
@@ -31,10 +40,10 @@ export function useLogin() {
 
   // Dil değişince şema yeniden kurulur — aksi halde hata metni ilk dilde donar.
   const schema = useMemo(() => buildLoginSchema(t), [t]);
-  const form = useForm<LoginForm>({
-    resolver: zodResolver(schema),
+  const form = useZodForm(schema, {
+    defaultValues: { email: '', password: '', twoFactorCode: '' },
   });
-  const { handleSubmit, getValues, setError } = form;
+  const { handleSubmit, getValues, setError, setValue, trigger } = form;
 
   const loginMutation = useMutation({
     mutationFn: (data: LoginForm) =>
@@ -133,6 +142,50 @@ export function useLogin() {
       const err = e as { response?: { data?: { message?: string } } };
       appAlert(t('common.error'), err?.response?.data?.message || t('auth.verificationResendFailed'));
     },
+  });
+
+  // Adım 1 → 2: e-posta kayıtlı mı, şifresi var mı (web `identify`).
+  const checkEmailMutation = useMutation({
+    mutationFn: (email: string) => authApi.checkEmail(email),
+  });
+
+  const identify = async () => {
+    setNotRegistered(false);
+    // Maestro tap akışında RHF doğrulaması sessizce düşebiliyor (aşağıdaki fallback ile aynı
+    // gerekçe); test derlemesinde e-posta biçimi elle denetlenir. Production'da dead-code.
+    const valid = IS_MAESTRO
+      ? /\S+@\S+/.test(getValues('email') ?? '')
+      : await trigger('email');
+    if (!valid) return;
+    try {
+      const res = await checkEmailMutation.mutateAsync(getValues('email'));
+      if (!res.data?.exists) {
+        setNotRegistered(true);
+        return;
+      }
+      setStep(res.data.hasPassword ? 'password' : 'googleOnly');
+    } catch {
+      toast.error(t('error.somethingWrongDesc'));
+    }
+  };
+
+  /** "Farklı e-posta kullan": 1. adıma dön, şifre/2FA/hata durumunu sıfırla (e-posta kalır). */
+  const back = () => {
+    setStep('email');
+    setNotRegistered(false);
+    setRequires2FA(false);
+    setUnverifiedEmail(null);
+    setErrorMessage(null);
+    loginMutation.reset();
+    setValue('password', '');
+    setValue('twoFactorCode', '');
+  };
+
+  // Google ile açılmış (şifresiz) hesap için şifre belirleme bağlantısı (web `sendSetPassword`).
+  const setPasswordMutation = useMutation({
+    mutationFn: (email: string) => authApi.forgotPassword(email),
+    onSuccess: () => toast.success(t('auth.setPasswordEmailSent')),
+    onError: () => toast.error(t('auth.couldNotSendEmail')),
   });
 
   useEffect(() => {
@@ -244,6 +297,14 @@ export function useLogin() {
 
   return {
     form,
+    step,
+    email: form.watch('email'),
+    notRegistered,
+    identify,
+    identifying: checkEmailMutation.isPending,
+    back,
+    sendSetPassword: () => setPasswordMutation.mutate(getValues('email')),
+    settingPassword: setPasswordMutation.isPending,
     unverifiedEmail,
     setUnverifiedEmail,
     errorMessage,
