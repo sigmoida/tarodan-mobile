@@ -21,7 +21,7 @@ export function ProductReviewsPreview({
       ))}
 
       {list.length === 0 && (
-        <EmptyState icon="star" title={t('profile.noReviews')} subtitle={t('emptyState.reviewsHint')} />
+        <EmptyState placement="inline" icon="star" title={t('profile.noReviews')} subtitle={t('emptyState.reviewsHint')} />
       )}
     </SectionCard>
   );

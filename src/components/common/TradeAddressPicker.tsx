@@ -108,7 +108,7 @@ export function TradeAddressPicker({ onChange, label }: Props) {
           })}
 
           {addresses.length === 0 ? (
-            <EmptyState icon="map-pin" title={t('address.noAddressesPicker')} subtitle={t('address.emptySubtitle')} />
+            <EmptyState placement="inline" icon="map-pin" title={t('address.noAddressesPicker')} subtitle={t('address.emptySubtitle')} />
           ) : null}
 
           <TouchableOpacity

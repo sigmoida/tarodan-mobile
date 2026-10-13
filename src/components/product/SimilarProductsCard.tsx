@@ -27,7 +27,7 @@ export function SimilarProductsCard({
   return (
     <SectionCard title={title} testID={testID}>
       {list.length === 0 ? (
-        <EmptyState icon="cube" title={emptyText ?? ''} subtitle={t('home.noProductsYetHint')} />
+        <EmptyState placement="inline" icon="cube" title={emptyText ?? ''} subtitle={t('home.noProductsYetHint')} />
       ) : (
         <View style={styles.grid}>
           {list.map((product) => (

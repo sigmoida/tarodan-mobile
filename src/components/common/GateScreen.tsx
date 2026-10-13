@@ -31,7 +31,9 @@ export const GateScreen: React.FC<GateScreenProps> = ({
 }) => (
   <SafeAreaView style={styles.root} testID={testID}>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      {/* Dikey ortalı engelleyici ekran: kompakt (inline) yerleşim ki blok gerçekten ortalansın. */}
       <EmptyState
+        placement="inline"
         icon={icon}
         title={title}
         subtitle={description}

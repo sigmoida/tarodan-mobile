@@ -48,6 +48,26 @@ describe('EmptyState / ErrorState (web @tarodan/ui)', () => {
     expect(style.flex).toBeUndefined();
   });
 
+  it('placement="inline": kompakt ölçüler (24/8, 48pt daire); testID override; ErrorState aynı prop', () => {
+    render(
+      <>
+        <EmptyState placement="inline" testID="e1" icon="inbox" title="Boş" subtitle="Açıklama" />
+        <ErrorState placement="inline" />
+      </>,
+    );
+    expect(StyleSheet.flatten(screen.getByTestId('e1').props.style)).toMatchObject({
+      paddingTop: theme.spacing[6],
+      paddingBottom: theme.spacing[2],
+    });
+    expect(StyleSheet.flatten(screen.getByTestId('error-state').props.style)).toMatchObject({
+      paddingTop: theme.spacing[6],
+    });
+    const icon = screen.getByTestId('icon-inbox');
+    let circle: typeof icon | null = icon.parent;
+    while (circle && !isFilled(StyleSheet.flatten(circle.props.style)?.backgroundColor)) circle = circle.parent;
+    expect(StyleSheet.flatten(circle?.props.style)).toMatchObject({ width: 48, height: 48 });
+  });
+
   it('PageShell empty ve liste ListEmptyComponent AYNI yerleşimi kullanır', () => {
     const props = { icon: 'inbox' as const, title: 'Boş', subtitle: 'Açıklama' };
     const shell = render(<PageShell title="X" empty emptyState={props} />);

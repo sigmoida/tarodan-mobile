@@ -190,9 +190,9 @@ export function BoostModal({
             {loadingPricing ? (
               <ActivityIndicator color={colors.primary[600]!} style={{ paddingVertical: 28 }} />
             ) : !enabled ? (
-              <EmptyState icon="rocket-launch" title={t('server.product.boostUnavailable')} subtitle={t('emptyState.tryLaterHint')} />
+              <EmptyState placement="inline" icon="rocket-launch" title={t('server.product.boostUnavailable')} subtitle={t('emptyState.tryLaterHint')} />
             ) : options.length === 0 ? (
-              <EmptyState icon="rocket-launch" title={t('boost.noPackages')} subtitle={t('emptyState.tryLaterHint')} />
+              <EmptyState placement="inline" icon="rocket-launch" title={t('boost.noPackages')} subtitle={t('emptyState.tryLaterHint')} />
             ) : (
               <View style={styles.optionList}>
                 {options.map((opt) => {

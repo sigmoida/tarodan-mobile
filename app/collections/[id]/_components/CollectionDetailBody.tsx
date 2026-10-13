@@ -88,7 +88,7 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
 
       <SectionCard title={t('collection.contentsTitle')} testID="collection-items">
         {items.length === 0 ? (
-          <EmptyState
+          <EmptyState placement="inline"
             icon="cube"
             title={t('collection.noProductsYet')}
             subtitle={t('emptyState.collectionItemsHint')}

@@ -363,9 +363,12 @@ and turns them into **errors**, so write new code warning-free.
   `hitSlop` (Button/IconButton/Chip already do).
 - **Empty states:** every empty screen/list/section uses `EmptyState` (`@/ui`) — `icon`, `title`
   and `subtitle` are **required**, the action is optional. Placement is one rule built into the
-  component (fixed `EMPTY_STATE_TOP_OFFSET` from the top of the content area, centred horizontally,
-  no vertical centring), so `PageShell` `empty`, `ListEmptyComponent` and in-card empties all sit in
-  the same place; never wrap it in extra padding/margin or hand-draw View + icon + Text
+  component (`placement="screen"`, the default: fixed `EMPTY_STATE_TOP_OFFSET` from the top of the
+  content area, centred horizontally, no vertical centring), so `PageShell` `empty` and a screen's
+  main `ListEmptyComponent` sit in the same place. Empties **inside a card, modal or section**
+  (and the vertically-centred gate screens) pass `placement="inline"` (compact: 24pt top, 8pt
+  bottom, 48pt circle) — `ErrorState` takes the same prop. Give each `EmptyState` a unique
+  `testID` when several can render on one screen (default `empty-state` / `error-state`); never wrap it in extra padding/margin or hand-draw View + icon + Text
   (`tarodan/empty-state-standard` warns on hand-drawn `ListEmptyComponent`s).
 - **Loading:** list and card screens use `Skeleton*` (web-like); a full-screen
   spinner only for the very first load.

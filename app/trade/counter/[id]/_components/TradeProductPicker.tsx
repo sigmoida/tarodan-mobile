@@ -29,7 +29,7 @@ export function TradeProductPicker({
     <SectionCard title={title}>
       <Text variant="caption" tone="muted">{subtitle}</Text>
       {products.length === 0 ? (
-        <EmptyState icon="arrows-right-left" title={t('trade.noEligibleProducts')} subtitle={t('emptyState.tradeEligibleHint')} />
+        <EmptyState placement="inline" icon="arrows-right-left" title={t('trade.noEligibleProducts')} subtitle={t('emptyState.tradeEligibleHint')} />
       ) : (
         <View style={styles.grid}>
           {products.map(p => {

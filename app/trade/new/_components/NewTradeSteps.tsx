@@ -78,7 +78,7 @@ export function Step1MyItems({ f }: StepProps) {
           <Spinner size="md" />
         </View>
       ) : f.myProducts?.length === 0 ? (
-        <EmptyState
+        <EmptyState placement="inline"
           icon="tag"
           title={t('trade.noListingsForTrade')}
           subtitle={t('emptyState.tradeListingsHint')}
@@ -119,7 +119,7 @@ export function Step2TheirItems({ f }: StepProps) {
           <Spinner size="md" />
         </View>
       ) : f.theirProducts?.length === 0 ? (
-        <EmptyState
+        <EmptyState placement="inline"
           icon="arrows-right-left"
           title={t('trade.noProductsFromSeller')}
           subtitle={t('emptyState.tradeEligibleHint')}

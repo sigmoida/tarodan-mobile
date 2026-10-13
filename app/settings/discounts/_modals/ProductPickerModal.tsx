@@ -34,7 +34,7 @@ export function ProductPickerModal({
             <Spinner size="lg" />
           </View>
         ) : products.length === 0 ? (
-          <EmptyState icon="cube" title={t('discount.noActiveProducts')} subtitle={t('home.noProductsYetHint')} />
+          <EmptyState placement="inline" icon="cube" title={t('discount.noActiveProducts')} subtitle={t('home.noProductsYetHint')} />
         ) : (
           products.map((p) => {
             const checked = selectedIds.includes(p.id);

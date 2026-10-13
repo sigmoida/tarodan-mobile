@@ -144,7 +144,7 @@ export function BusinessTabContent({ f }: { f: BusinessController }) {
               <ProductRow key={product.id} product={product} index={index} metric="views" />
             ))
           ) : (
-            <EmptyState icon="chart-bar" title={t('business.noProductStats')} subtitle={t('emptyState.statsHint')} />
+            <EmptyState placement="inline" testID="business-empty-views" icon="chart-bar" title={t('business.noProductStats')} subtitle={t('emptyState.statsHint')} />
           )}
         </SectionCard>
 
@@ -154,7 +154,7 @@ export function BusinessTabContent({ f }: { f: BusinessController }) {
               <ProductRow key={product.id} product={product} index={index} metric="likes" />
             ))
           ) : (
-            <EmptyState icon="chart-bar" title={t('business.noProductStats')} subtitle={t('emptyState.statsHint')} />
+            <EmptyState placement="inline" testID="business-empty-likes" icon="chart-bar" title={t('business.noProductStats')} subtitle={t('emptyState.statsHint')} />
           )}
         </SectionCard>
       </>
@@ -169,7 +169,7 @@ export function BusinessTabContent({ f }: { f: BusinessController }) {
           <CollectionRow key={collection.id} collection={collection} index={index} />
         ))
       ) : (
-        <EmptyState icon="chart-bar" title={t('business.noCollectionStats')} subtitle={t('emptyState.statsHint')} />
+        <EmptyState placement="inline" testID="business-empty-collections" icon="chart-bar" title={t('business.noCollectionStats')} subtitle={t('emptyState.statsHint')} />
       )}
     </SectionCard>
   );

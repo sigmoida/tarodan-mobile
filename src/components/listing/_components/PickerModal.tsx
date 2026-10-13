@@ -87,7 +87,7 @@ export function PickerModal({
               keyExtractor={(item) => keyExtractor(item)}
               keyboardShouldPersistTaps="handled"
               ListEmptyComponent={
-                <EmptyState icon="magnifying-glass" title={emptyText || t('common.noResults')} subtitle={t('search.tryDifferent')} />
+                <EmptyState placement="inline" icon="magnifying-glass" title={emptyText || t('common.noResults')} subtitle={t('search.tryDifferent')} />
               }
               renderItem={({ item }) => {
                 const isSelected = keyExtractor(item) === selectedId;

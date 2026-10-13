@@ -18,7 +18,16 @@ export interface EmptyStateProps {
   onSecondary?: () => void;
   /** Hazır aksiyon düğümü (kapı ekranlarının özel gövdesi); `actionLabel`/`onAction` ile birlikte de çizilir. */
   action?: React.ReactNode;
+  /**
+   * Yerleşim (ölçüler bileşenin İÇİNDE, çağıran padding/margin vermez): `screen` (varsayılan) =
+   * ekran düzeyi — üstten 64pt ofset; `inline` = kart / modal / bölüm içi — kompakt (üst 24, alt 8,
+   * 48pt daire).
+   */
+  placement?: EmptyStatePlacement;
+  testID?: string;
 }
+
+export type EmptyStatePlacement = 'screen' | 'inline';
 
 const { colors, spacing, radiusRole } = theme;
 
@@ -34,24 +43,31 @@ const { colors, spacing, radiusRole } = theme;
  */
 export const EMPTY_STATE_TOP_OFFSET = spacing[16];
 export const emptyStateMetrics = {
-  circle: 64,
-  icon: 28,
-  paddingTop: EMPTY_STATE_TOP_OFFSET,
-  paddingBottom: spacing[8],
+  screen: { circle: 64, icon: 28, paddingTop: EMPTY_STATE_TOP_OFFSET, paddingBottom: spacing[8] },
+  inline: { circle: 48, icon: 24, paddingTop: spacing[6], paddingBottom: spacing[2] },
 } as const;
 
 interface StateLayoutProps {
   icon: IconRef;
   title: string;
   description?: string;
+  placement?: EmptyStatePlacement;
+  testID?: string;
   children?: React.ReactNode;
 }
 
 /** Ortak iskelet: gri daire + gri ikon, başlık lg/600, açıklama sm muted, aksiyon mt-4. */
-export const StateLayout: React.FC<StateLayoutProps> = ({ icon, title, description, children }) => {
-  const m = emptyStateMetrics;
+export const StateLayout: React.FC<StateLayoutProps> = ({
+  icon,
+  title,
+  description,
+  placement = 'screen',
+  testID = 'empty-state',
+  children,
+}) => {
+  const m = emptyStateMetrics[placement];
   return (
-    <View style={styles.container} testID="empty-state">
+    <View style={[styles.container, { paddingTop: m.paddingTop, paddingBottom: m.paddingBottom }]} testID={testID}>
       <View style={[styles.iconCircle, { width: m.circle, height: m.circle }]}>
         <RefIcon icon={icon} size={m.icon} color={colors.text.subtle} />
       </View>
@@ -77,10 +93,12 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   secondaryLabel,
   onSecondary,
   action,
+  placement,
+  testID,
 }) => {
   const hasActions = !!action || !!(actionLabel && onAction) || !!(secondaryLabel && onSecondary);
   return (
-    <StateLayout icon={icon} title={title} description={subtitle}>
+    <StateLayout icon={icon} title={title} description={subtitle} placement={placement} testID={testID}>
       {hasActions ? (
         <>
           {action}
@@ -100,8 +118,6 @@ const styles = StyleSheet.create({
   container: {
     alignSelf: 'stretch',
     alignItems: 'center',
-    paddingTop: emptyStateMetrics.paddingTop,
-    paddingBottom: emptyStateMetrics.paddingBottom,
     paddingHorizontal: spacing[4],
   },
   iconCircle: {

@@ -175,7 +175,7 @@ export default function AddToCollectionModal({
               </Pressable>
 
               {collections.length === 0 ? (
-                <EmptyState
+                <EmptyState placement="inline"
                   icon="rectangle-stack"
                   title={t('collection.noCollections')}
                   subtitle={t('emptyState.createCollectionHint')}
