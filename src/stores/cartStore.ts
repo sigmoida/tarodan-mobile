@@ -45,8 +45,9 @@ interface CartState {
   deselectedIds: string[];
 
   // Actions
-  addItem: (item: Omit<CartItem, 'id' | 'quantity' | 'addedAt'>) => void;
-  setBuyNow: (item: Omit<CartItem, 'id' | 'quantity' | 'addedAt'>) => void;
+  /** `quantity` (varsayılan 1): ürün detayındaki adet seçici; stok/sipariş sınırını aşamaz. */
+  addItem: (item: Omit<CartItem, 'id' | 'quantity' | 'addedAt'>, quantity?: number) => void;
+  setBuyNow: (item: Omit<CartItem, 'id' | 'quantity' | 'addedAt'>, quantity?: number) => void;
   clearBuyNow: () => void;
   addToCart: (productId: string) => Promise<void>;
   removeItem: (itemId: string) => void;
@@ -105,12 +106,12 @@ export const useCartStore = create<CartState>()(
       buyNowItem: null,
       deselectedIds: [],
 
-      setBuyNow: (item) => {
+      setBuyNow: (item, quantity = 1) => {
         set({
           buyNowItem: {
             ...item,
             id: `buynow-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            quantity: 1,
+            quantity: Math.max(1, Math.min(quantity, maxAllowedQty(item))),
             addedAt: Date.now(),
           },
         });
@@ -120,7 +121,7 @@ export const useCartStore = create<CartState>()(
         set({ buyNowItem: null });
       },
 
-      addItem: (item) => {
+      addItem: (item, quantity = 1) => {
         const items = get().items;
         const existingIndex = items.findIndex(i => i.productId === item.productId);
 
@@ -132,7 +133,7 @@ export const useCartStore = create<CartState>()(
             stock: item.stock,
             maxQuantityPerOrder: item.maxQuantityPerOrder,
           };
-          merged.quantity = Math.min(merged.quantity + 1, maxAllowedQty(merged));
+          merged.quantity = Math.min(merged.quantity + quantity, maxAllowedQty(merged));
           merged.addedAt = Date.now();
           newItems[existingIndex] = merged;
           set({ items: newItems, lastUpdated: Date.now() });
@@ -141,7 +142,7 @@ export const useCartStore = create<CartState>()(
           const newItem: CartItem = {
             ...item,
             id: `cart-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            quantity: 1,
+            quantity: Math.max(1, Math.min(quantity, maxAllowedQty(item))),
             addedAt: Date.now(),
           };
           set({ items: [...items, newItem], lastUpdated: Date.now() });
