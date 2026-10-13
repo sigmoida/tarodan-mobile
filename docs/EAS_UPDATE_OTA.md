@@ -73,7 +73,8 @@ OTA is guarded behind EAS credentials, so nothing runs until these are done
 1. `expo-updates` is already a dependency (`~29.0.19`, Expo SDK 54 pin). A fresh
    `pnpm install` materializes it; it is embedded by the next **native** EAS
    build (it cannot be delivered over OTA to a build that lacks it).
-2. Set the `EXPO_TOKEN` repo secret so CI (`mobile-staging.yml`, #231) can run
-   `eas update`.
+2. Set `EXPO_TOKEN` as an **environment** secret (`staging`, `production-build`,
+   `production` — not a repo secret) so CI can run `eas update`; see
+   [`RELEASE.md`](./RELEASE.md).
 3. First native build per profile establishes the runtime that later OTA updates
    attach to.

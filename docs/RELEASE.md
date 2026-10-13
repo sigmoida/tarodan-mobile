@@ -16,7 +16,10 @@ onaylar ve Android durumu. Workflow'lar: `mobile-staging.yml`,
 `master` koruması `master-flow.yml` içindeki **`Master source guard`** check'iyle
 sağlanır: kaynak dal `development` ya da `hotfix/*` değilse (ya da PR bir fork'tan
 geliyorsa) check kırmızı olur. Ruleset'te `master` için zorunlu check olarak
-tanımlı olmalı.
+tanımlı olmalı. Workflow `pull_request_target` ile tetiklenir: dosya PR'dan değil
+**master'dan** okunur, PR guard'ı değiştiremez (job PR kodunu checkout etmez,
+dal adını yalnız `env` ile okur). Bu yüzden guard, `master-flow.yml` master'a
+girdikten sonra devreye girer.
 
 ## Uygulamalar
 
@@ -42,10 +45,16 @@ Workflow her yayın öncesi, platform başına:
 1. `EXPO_PUBLIC_ENVIRONMENT=<preview|production> npx expo-updates fingerprint:generate --platform <ios|android>`
    ile commit'in fingerprint'ini hesaplar (`release.sh fingerprint`; env
    `eas.json`'daki profilden yüklenir).
-2. `eas build:list --platform … --build-profile … --runtime-version <fp> --json`
-   ile bu runtime için **hata/iptal olmamış** bir build arar (bitmiş ya da
-   derlenmekte olan).
-3. **Varsa → OTA** (`eas update`). **Yoksa → build** (yeni binary gerekiyor).
+2. `release.sh build-state`: `eas build:list --runtime-version <fp> --json` ve
+   gerekirse `eas submit:list --json` ile bu runtime'ın binary durumunu okur:
+   - **available** — bitmiş **ve** gönderimi başarılı (TestFlight / Play) build;
+     gönderim gerektirmeyen `preview` APK'sı için bitmiş olması yeter → **OTA**
+   - **pending** — kuyrukta / derleniyor / bitti ama gönderimi sürüyor →
+     **bekle**: OTA yok (binary henüz yok), ikinci build de yok; uyarı basar
+   - **none** — hata, iptal, gönderimi başarısız ya da hiç gönderilmemiş →
+     **build**
+   Belirsiz her şey (tanınmayan CLI JSON'u dahil) "binary var" sayılmaz.
+3. Build kararı otomatikse iki koruma uygulanır (aşağıda "Build korumaları").
 
 Fingerprint'e girenler (doğrulandı): `app.config.js`'in **çıktısı**
 (çözümlenmiş expo config — `.staging` kimliği dahil; app.config.js'te çıktıyı
@@ -77,15 +86,44 @@ ci (lint + tsc + test)
 
 - CI kırmızıysa hiçbir şey yayınlanmaz. `docs/**`, `*.md`, `maestro/**`,
   `.github/**` değişiklikleri yayın tetiklemez.
-- **Concurrency:** daha yeni bir push eskimiş plan/OTA'yı iptal eder; başlamış
-  bir **build/submit asla iptal edilmez**. Build job'ı kilidi aldıktan sonra
-  fingerprint'i yeniden sorgular; arada aynı runtime için başka bir koşu build
-  başlatmışsa ikinci build'i harcamaz, OTA yayınlar.
+- **Concurrency:** hiçbir yayın adımı yeni bir push'la iptal edilmez. OTA job'u
+  platform başına bir matrix job'udur; kuyruğu **platform + runtime** başınadır
+  (`mobile-staging-ota-<platform>-<fp>`): başka runtime'ın ya da diğer
+  platformun push'u bekleyen OTA'yı düşürmez, aynı runtime'ın OTA'ları sırayla
+  çıkar (GitHub, aynı kuyrukta bekleyen ikinci işi üçüncüsü gelince düşürür — o
+  da aynı runtime'ın daha yeni kodudur). Başlamış bir **build/submit asla iptal
+  edilmez**. Build job'ı kilidi
+  aldıktan sonra yeniden sorgular (`release.sh recheck`); arada aynı runtime
+  için gönderilmiş bir binary oluştuysa build yerine OTA yayınlar, build hâlâ
+  sürüyorsa hiçbir şey yapmaz.
+- **Ref koruması:** elle tetikleme yalnız `development`'ta; `mode=apk` ayrıca
+  `vars.STAGING_APK_BRANCHES`'teki dallardan (bkz. aşağı).
 - Submit `--latest` ile değil **build id** ile yapılır (paralel biten başka
   profilin build'i yanlış uygulamaya gönderilemez).
 - Android kapalıyken (`ANDROID_RELEASE_ENABLED` yok): Android native değişikliği
   build almaz (notice basar); mevcut ad-hoc APK'lar için JS değişikliği yine OTA
   olarak yayınlanır.
+
+### Build korumaları (otomatik build'den önce)
+
+- **Günlük kota (staging):** ücretsiz plan iOS'ta ayda 15 build veriyor. Bugün
+  (UTC) o profil için `vars.STAGING_MAX_BUILDS_PER_DAY` (varsayılan **2**)
+  build alınmışsa build alınmaz, uyarı yazılır (OTA da çıkmaz: binary yok).
+  Elle `mode=build` sınırı atlar.
+- **Fingerprint döngüsü (her ortam):** CI, build mesajına `ci-fp:<fingerprint>`
+  damgalar. EAS'in hesapladığı runtime farklıysa build job'u uyarır; son 2 CI
+  build'inde art arda farklıysa plan o platformu **blocked** yapar. Aksi halde
+  her push "bu runtime için binary yok" görüp sonsuz build döngüsüne girerdi.
+  Sebebi giderip `mode=build` ile elle alın.
+- **Paket doğrulaması (Android):** build'den önce profil env'iyle
+  `npx expo config` çözümlenir; staging `com.tarodan.app.staging`, production
+  `com.tarodan.app` değilse durur. Gönderimden önce bitmiş build'in
+  `appIdentifier`'ı da kontrol edilir (eas submit Play uygulamasını paket
+  adından seçer).
+- **OTA env doğrulaması:** `eas update` öncesi `EXPO_PUBLIC_ENVIRONMENT`,
+  `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_WEB_URL` dolu ve https olmalı; production
+  OTA'sı `production` env'i ister ve staging/yerel adrese bakamaz; profilin
+  kanalı OTA dalıyla aynı olmalı.
 
 ### Elle tetikleme
 
@@ -101,6 +139,9 @@ gh workflow run mobile-staging.yml --ref development -f mode=apk          # ad-h
 `mode=apk` yalnız elle çalışır, `preview` profiliyle EAS internal distribution
 APK'sı üretir ve job özetine **"Staging APK hazır"** bloğuyla kurulum sayfası
 linkini yazar. Play'e bağlı olmadığı için `ANDROID_RELEASE_ENABLED`'a bağlanmadı.
+`development` dışındaki bir daldan APK almak için dalı (glob olabilir)
+`vars.STAGING_APK_BRANCHES`'e (boşlukla ayrılmış, ör. `development feature/*`)
+**ve** `staging` environment'ının deployment-branch kuralına ekleyin.
 Testçi linki Android tarayıcısında açar, APK iner, "bilinmeyen kaynaktan yükleme"
 onayıyla kurulur. Sonraki JS değişiklikleri bu APK'ya da OTA ile iner (kanal
 `staging`, aynı runtime olduğu sürece).
@@ -112,8 +153,9 @@ onayıyla kurulur. Sonraki JS değişiklikleri bu APK'ya da OTA ile iner (kanal
 
 ```
 ci
-  └─ plan  (fingerprint vs production build'leri + VERSION-GATE)
+  └─ plan  (fingerprint vs production build'leri + VERSION-GATE)   ← environment: production-build
        ├─ ota            eas update --branch production      ← environment: production (ONAY)
+       │                 (platform başına matrix; kuyruk platform + runtime başına)
        ├─ build-ios      eas build --profile production -p ios → eas submit --profile production
        └─ build-android  eas build --profile production -p android (AAB)
                          → eas submit --profile production (track: internal)
@@ -123,8 +165,10 @@ ci
 ### Native değiştiyse: sürüm artmış olmalı (VERSION-GATE)
 
 Production build'i gerekiyorsa `app.json` → `expo.version`, **son bitmiş
-production build'inin `appVersion`'ından büyük** olmalı (`sort -V`). Değilse
-`plan` şu tür bir hatayla durur ve hiçbir şey yayınlanmaz:
+production build'inin `appVersion`'ından büyük** olmalı (`sort -V`). Değilse o
+platform **blocked** olur ve şu tür bir hata basılır. Kapı **platform başınadır**:
+iOS'un kapısı takılırsa Android'in OTA'sı yine çıkar (ve tersi); koşu sonda
+kırmızı olur:
 
 > `ios: native değişti (…) ama app.json expo.version (1.0.6) son production
 > build'inin sürümünden (1.0.6) büyük değil. Bu merge'de expo.version'ı artır …`
@@ -145,8 +189,10 @@ yapılır** — workflow bunu yapmaz.
 
 `ota` job'ı `environment: production` taşır. GitHub Environment `production`
 (Settings → Environments) required reviewer'larla korunur; onay verilmeden OTA
-çıkmaz. Daha yeni bir master push'u gelirse bekleyen eski onay iptal olur (yenisi
-her şeyi içerir).
+çıkmaz. Onay **yalnız** burada istenir (plan ve store build'leri onaysız
+`production-build` environment'ında). İki platform için iki job beklerse tek
+"Review deployments" onayı ikisini de açar. Daha yeni bir master push'u, başka
+bir runtime'ın ya da platformun onay bekleyen OTA'sını **iptal etmez**.
 
 ### Elle tetikleme
 
@@ -156,7 +202,8 @@ gh workflow run mobile-production.yml --ref master -f mode=ota          # onay i
 gh workflow run mobile-production.yml --ref master -f mode=build -f platform=ios
 ```
 
-Başka bir ref'ten tetiklenirse `plan` durur.
+Başka bir ref'ten tetiklenirse `plan` durur (`release.sh guard-ref`; ayrıca
+`production-build` / `production` environment'ları yalnız master'a açık).
 
 ### Sürüm akışı (özet)
 
@@ -201,14 +248,39 @@ dolmadan production track'e geçilemez.
 
 ## Gereken secret, değişken ve environment'lar
 
+`EXPO_TOKEN` **repo düzeyinde tutulmaz**; her GitHub Environment kendi
+`EXPO_TOKEN` secret'ını taşır ve token isteyen her job bir environment'a
+bağlıdır. Başka bir daldaki workflow ya da environment'sız bir job token'a
+ulaşamaz; production OTA onayı atlanamaz.
+
+| Environment        | Deployment branch                          | Onay        | Kullanan job'lar |
+| ------------------ | ------------------------------------------ | ----------- | ---------------- |
+| `staging`          | `development` (+ `vars.STAGING_APK_BRANCHES`) | yok      | staging plan / ota / build-ios / build-android / apk, `mobile-build.yml` |
+| `production-build` | yalnız `master`                            | yok         | production plan, build-ios, build-android (store build + submit) |
+| `production`       | yalnız `master`                            | **required reviewers** | yalnız production `ota` |
+
 | Ad                                 | Tür                         | Kullanan                                  |
 | ---------------------------------- | --------------------------- | ----------------------------------------- |
-| `EXPO_TOKEN`                       | Repo secret                 | Tüm EAS job'ları. Yoksa workflow'lar no-op |
-| `production`                       | GitHub Environment (required reviewers) | Production OTA onayı          |
+| `EXPO_TOKEN`                       | **Environment secret** (yukarıdaki üçünde de) | EAS job'ları. Yoksa o job no-op |
 | `ANDROID_RELEASE_ENABLED`          | Repo variable (`true` ile açılır) | Android build/submit job'ları        |
+| `STAGING_MAX_BUILDS_PER_DAY`       | Repo variable (isteğe bağlı, varsayılan 2) | Staging otomatik build kotası |
+| `STAGING_APK_BRANCHES`             | Repo variable (isteğe bağlı, varsayılan `development`) | Ad-hoc APK'nın izinli dalları |
 | App Store Connect API key          | EAS sunucusunda (`eas credentials`) | `eas submit` iOS                  |
 | Google Play service account JSON   | EAS sunucusunda (`eas credentials`) | `eas submit` Android              |
 | "Allow GitHub Actions to create and approve pull requests" | Repo ayarı (Settings → Actions → General) | Hotfix back-merge PR'ı |
+
+> ⚠️ Workflow'da adı geçen bir environment yoksa GitHub onu **korumasız**
+> oluşturur. Üç environment'ı (branch kuralı + `production` onayı) bu workflow'lar
+> `development`/`master`'a girmeden ÖNCE kurun. Repo düzeyinde `EXPO_TOKEN`
+> dururken environment secret'ı eksik olan job sessizce repo secret'ına düşer
+> (öncelik: environment > repo > organization) ve izolasyon olmaz — repo
+> secret'ını environment secret'ları kurulduktan hemen sonra silin.
+>
+> Expo token'ları kanal bazında yetki taşımaz: `staging` token'ı da EAS'te
+> production'a OTA yayınlayabilir. GitHub tarafı production token'larını master
+> dışındaki koda vermez; `staging` token'ına `development`'a push edebilen herkes
+> ulaşabilir. Her environment için ayrı bir Expo robot hesabı/token'ı kullanın
+> (iptal ve denetim ayrı olsun).
 
 Submit kimlik bilgileri EAS sunucularında durur, repoya girmez. Ayrıntı:
 [`SECRETS_SETUP.md`](../SECRETS_SETUP.md), OTA: [`EAS_UPDATE_OTA.md`](./EAS_UPDATE_OTA.md).
