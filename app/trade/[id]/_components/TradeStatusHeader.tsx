@@ -113,8 +113,8 @@ export function TradeStatusHeader({
             </View>
           ) : null}
           <ButtonRow style={{ marginTop: theme.spacing[2] }}>
-            <Button variant="outline" title={t('trade.myTrades')} onPress={() => router.replace('/trades' as any)} style={{ flex: 1 }} />
-            <Button variant="primary" title={t('mobile.guestBrowseListings')} onPress={() => router.push('/search')} style={{ flex: 1 }} />
+            <Button variant="outline" title={t('trade.myTrades')} onPress={() => router.replace('/trades' as any)} />
+            <Button variant="primary" title={t('mobile.guestBrowseListings')} onPress={() => router.push('/search')} />
           </ButtonRow>
         </SectionCard>
       )}

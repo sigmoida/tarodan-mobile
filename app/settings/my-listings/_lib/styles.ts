@@ -68,11 +68,8 @@ export const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.white,
   },
+  // Sütun: ButtonRow tam genişlik alır (içerik genişlikli satır çocuğu olursa ölçüm yanlış çıkar).
   expiredBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
     gap: spacing[2],
     paddingVertical: spacing[2],
     paddingHorizontal: spacing[3],
