@@ -21,7 +21,7 @@ jest.mock('@/lib/api', () => ({
   refundsApi: { create: jest.fn() },
   mediaApi: { uploadRefundEvidence: jest.fn() },
 }));
-jest.mock('@/services/sentry', () => ({ captureException: jest.fn() }));
+jest.mock('@/services/sentry', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn(), setUser: jest.fn() }));
 
 import * as ImagePicker from 'expo-image-picker';
 import { mediaApi, refundsApi } from '@/lib/api';
