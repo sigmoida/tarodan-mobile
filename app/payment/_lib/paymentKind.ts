@@ -1,7 +1,5 @@
 import type { PaymentPurpose } from '@/lib/payment/capabilities';
-
-/** direct-form hedefi — ödeme durumundan türetilir. */
-export type PaymentTarget = { orderId?: string; checkoutGroupId?: string; tradeId?: string };
+import type { DirectFormTarget } from '@/lib/payment/directFormBody';
 
 /** `GET /payments/:id/status[-guest]` yanıtının bu ekranın okuduğu alanları. */
 export type PaymentStatusLight = {
@@ -36,8 +34,11 @@ export function paymentKindOf(type: string | undefined, status?: PaymentStatusLi
   };
 }
 
-/** Hedef durum yanıtından; takas id'si yanıtta yoksa rota parametresinden (yedek). */
-export function paymentTargetOf(status: PaymentStatusLight, tradeIdParam?: string): PaymentTarget {
+/**
+ * direct-form hedefi durum yanıtından; takas id'si yanıtta yoksa rota
+ * parametresinden (yedek).
+ */
+export function paymentTargetOf(status: PaymentStatusLight, tradeIdParam?: string): DirectFormTarget {
   return {
     ...(status.orderId ? { orderId: String(status.orderId) } : {}),
     ...(status.checkoutGroupId ? { checkoutGroupId: String(status.checkoutGroupId) } : {}),

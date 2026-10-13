@@ -1,3 +1,4 @@
+import { buildDirectFormBody, type DirectFormTarget } from '@/lib/payment/directFormBody';
 import { paymentKindOf, paymentTargetOf } from '../_lib/paymentKind';
 
 describe('paymentKindOf', () => {
@@ -33,5 +34,16 @@ describe('paymentTargetOf', () => {
   it('takas id\'si durumda yoksa rota parametresinden', () => {
     expect(paymentTargetOf({}, 't1')).toEqual({ tradeId: 't1' });
     expect(paymentTargetOf({ tradeId: 't2' }, 't1')).toEqual({ tradeId: 't2' });
+  });
+});
+
+describe('tek hedef tipi (DirectFormTarget)', () => {
+  it('durumdan türetilen hedef olduğu gibi direct-form gövdesine girer', () => {
+    const target: DirectFormTarget = paymentTargetOf({ checkoutGroupId: 'g1', orderId: null }, undefined);
+    expect(buildDirectFormBody({ target, paymentId: 'p1', card: { kind: 'new', save: false } })).toEqual({
+      checkoutGroupId: 'g1',
+      paymentId: 'p1',
+      saveCard: false,
+    });
   });
 });

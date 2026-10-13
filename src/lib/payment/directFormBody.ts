@@ -4,6 +4,10 @@
  * Gövdeye kart verisi KOYULMAZ (sunucu `assertNoRawCardData` ile reddeder); kart
  * alanları yalnız WebView'in PayTR'ye POST ettiği HTML'e eklenir.
  */
+/**
+ * Ödeme hedefi — TEK tip: ödeme ekranı (`paymentTargetOf`), `CardPaymentForm`
+ * ve direct-form gövdesi bunu kullanır (web `PaymentTarget`).
+ */
 export type DirectFormTarget = { orderId?: string; checkoutGroupId?: string; tradeId?: string };
 
 export type DirectFormBody = DirectFormTarget & {

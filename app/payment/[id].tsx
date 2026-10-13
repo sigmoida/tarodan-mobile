@@ -14,8 +14,8 @@ import {
   paymentKindOf,
   paymentTargetOf,
   type PaymentStatusLight,
-  type PaymentTarget,
 } from './_lib/paymentKind';
+import type { DirectFormTarget } from '@/lib/payment/directFormBody';
 
 /**
  * ⚠️ BU EKRAN BİLEREK React Query'ye TAŞINMADI (CLAUDE.md §6'nın istisnası).
@@ -69,7 +69,7 @@ export default function PaymentScreen() {
   const [state, setState] = useState<{
     loading: boolean;
     error: string | null;
-    target: PaymentTarget | null;
+    target: DirectFormTarget | null;
     amount?: number;
     /** Kayıtlı kartların aranacağı PayTR mağazası (API delta 20). */
     purpose: PaymentPurpose;

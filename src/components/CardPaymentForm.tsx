@@ -7,7 +7,7 @@ import { Button, Input, Checkbox, Text, theme, appAlert } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { paymentsApi } from '@/lib/api';
 import type { PaymentPurpose } from '@/lib/payment/capabilities';
-import { buildDirectFormBody, type DirectFormBody } from '@/lib/payment/directFormBody';
+import { buildDirectFormBody, type DirectFormBody, type DirectFormTarget } from '@/lib/payment/directFormBody';
 import { useSavedCards } from '@/lib/payment/useSavedCards';
 import { DistanceSalesConsent } from '@/components/payment/DistanceSalesConsent';
 import {
@@ -38,7 +38,7 @@ const { colors } = theme;
  */
 
 interface Props {
-  target: { orderId?: string; checkoutGroupId?: string; tradeId?: string };
+  target: DirectFormTarget;
   amount?: number;
   onSuccess: (paymentId: string) => void;
   onFail?: () => void;
