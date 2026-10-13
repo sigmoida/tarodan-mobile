@@ -17,6 +17,8 @@ import {
   cardFieldsForSavedCard,
   PAYTR_ACTION,
 } from '@/lib/payment/paytrDirectForm';
+import { PAYMENT_POLL_DURATION_MS, PAYMENT_STATUS_POLL_MS, startVerifyLoop } from '@/lib/payment/verifyPacer';
+import { isPaidPaymentStatus } from '@/lib/payment/status';
 
 /**
  * ⚠️ 3DS SONRASI DURUM YOKLAMASI BİLEREK React Query'de DEĞİL (CLAUDE.md §6'nın
@@ -50,7 +52,7 @@ interface Props {
   purpose?: PaymentPurpose;
   /** Kayıtlı kart + "kartımı sakla" gösterilsin mi (`purposes[purpose].cardStorageEnabled` + üye). */
   cardStorageEnabled?: boolean;
-  /** Misafir ödemesi mi — durum yoklamasında public uç kullanılır (verify atlanır). */
+  /** Misafir ödemesi mi — durum yoklamasında `status-guest` ucu kullanılır (verify üyedeki gibi çağrılır). */
   isGuest?: boolean;
   /**
    * Çağıran ekranın (/payment/[id]) zaten bildiği ödeme referansı — form mount olmadan
@@ -63,10 +65,6 @@ interface Props {
 }
 
 const NEW_CARD = '__new__';
-
-/** Ödeme kesinleşti mi (light status uçları). load() ile aynı: completed/failed. */
-const isPaidStatus = (s?: string) =>
-  s === 'completed' || s === 'paid' || s === 'success' || s === 'hold_payment';
 
 export default function CardPaymentForm({
   target,
@@ -135,33 +133,46 @@ export default function CardPaymentForm({
     if (!paymentId || !(threeDSHtml || verifying)) return;
     let alive = true;
     let timer: ReturnType<typeof setTimeout>;
-    let tries = 0;
+    const deadline = Date.now() + PAYMENT_POLL_DURATION_MS;
+    // verify PayTR durumunu sunucuda sorgular ve ödemeyi aktive eder (idempotent):
+    // callback gecikse ya da hiç gelmese de ödeme tamamlanır. Misafir de çağırır
+    // (`X-Payment-Capability` ile, `guestApi`'den). Sabit tempo (`verifyPacer`):
+    // ilki ~3 sn'de, sonra 10 sn'de bir, arkada; durum okuması onu BEKLEMEZ. 3DS'in
+    // hangi aşamada olduğuna (banka sayfası, uygulama geçişi) bakılmaz.
+    const stopVerify = startVerifyLoop(paymentId, { guest: isGuest });
     const poll = async () => {
-      tries += 1;
       try {
-        // verify ödemeyi sunucuda aktive eder (idempotent); misafirde 401 verir → atla.
-        if (!isGuest) {
-          try { await paymentsApi.verify(paymentId); } catch { /* best-effort */ }
-        }
         const res: any = isGuest
           ? await paymentsApi.getStatusLightGuest(paymentId)
           : await paymentsApi.getStatusLight(paymentId);
         const data = res?.data?.data ?? res?.data ?? {};
         if (!alive) return;
-        if (isPaidStatus(data.status)) { resolveSuccess(paymentId); return; }
-        if (data.status === 'failed') { resolveFail(); return; }
+        if (isPaidPaymentStatus(data.status)) resolveSuccess(paymentId);
+        else if (data.status === 'failed') resolveFail();
       } catch { /* yoksay, tekrar dene */ }
-      if (alive && !resolvedRef.current && tries < 40) {
-        timer = setTimeout(poll, 3000);
-      } else if (alive && !resolvedRef.current && verifying && !threeDSHtml) {
-        // poll tükendi (terminal duruma ulaşılamadı)
+      if (!alive) return;
+      if (resolvedRef.current) {
+        stopVerify();
+        return;
+      }
+      if (Date.now() < deadline) {
+        timer = setTimeout(poll, PAYMENT_STATUS_POLL_MS);
+        return;
+      }
+      // Yoklama süresi doldu (terminal duruma ulaşılamadı).
+      stopVerify();
+      if (verifying && !threeDSHtml) {
         setVerifying(false);
         setProcessing(false);
         appAlert(t('payment.connectionIssueTitle'), t('payment.verifyTimeoutBody'));
       }
     };
-    timer = setTimeout(poll, 3000);
-    return () => { alive = false; clearTimeout(timer); };
+    timer = setTimeout(poll, PAYMENT_STATUS_POLL_MS);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+      stopVerify();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threeDSHtml, verifying, paymentId, isGuest]);
 
@@ -226,7 +237,8 @@ export default function CardPaymentForm({
 
     setProcessing(true);
     try {
-      const res = await paymentsApi.directForm(body);
+      // Misafir `guestApi`'den: cihazda kalmış token eklenmez, 401'de çıkış yapılmaz.
+      const res = await (isGuest ? paymentsApi.directFormGuest(body) : paymentsApi.directForm(body));
       const data = res.data;
       setPaymentId(data.paymentId);
 

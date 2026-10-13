@@ -7,6 +7,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { paymentsApi } from '@/lib/api';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
+import { forgetPaymentCapabilityIfFinal } from '@/lib/payment/paymentCapability';
 
 /**
  * ⚠️ BU EKRAN BİLEREK React Query'ye TAŞINMADI (CLAUDE.md §6'nın istisnası).
@@ -45,17 +46,24 @@ export default function PaymentFailScreen() {
   const [info, setInfo] = useState<PaymentInfo | null>(null);
   const [retrying, setRetrying] = useState(false);
   const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
+  const isGuest = guest === '1';
 
   useEffect(() => {
     const load = async () => {
       if (!paymentId) { setLoading(false); return; }
       try {
-        // Rezervasyonu serbest bırak
-        await paymentsApi.confirmFailed(paymentId).catch(() => null);
+        // Rezervasyonu serbest bırak. Misafir `guestApi`'den (Bearer yok, 401'de çıkış yok).
+        const release = guest === '1' ? paymentsApi.confirmFailedGuest : paymentsApi.confirmFailed;
+        await release(paymentId).catch(() => null);
+        // Üye de `/status` (public + yetki belirteci): oturum 3DS sırasında
+        // düştüyse JWT'li `GET /payments/:id` gibi 401 → çıkış → login yok.
         const response = guest === '1'
           ? await paymentsApi.getStatusLightGuest(paymentId)
-          : await paymentsApi.getStatus(paymentId);
-        setInfo(response.data?.data ?? response.data ?? null);
+          : await paymentsApi.getStatusLight(paymentId);
+        const data = response.data?.data ?? response.data ?? null;
+        setInfo(data);
+        // confirm-failed ve durum okuması bitti; ödeme kesinse belirteci sil.
+        void forgetPaymentCapabilityIfFinal(paymentId, data?.status);
       } catch {
         // Sessiz
       } finally {
@@ -65,10 +73,12 @@ export default function PaymentFailScreen() {
     load();
   }, [paymentId, guest]);
 
+  // Yalnız üye: `POST /payments/:id/retry` JwtAuthGuard'lı ve `api`'den gider.
+  // Misafir 401 → çıkış + login ekranına düşerdi; misafire düğme gösterilmez.
   const handleRetry = async () => {
-    if (!paymentId) return;
-    // B4: yeniden deneme yeni bir ödeme başlatır — önce yasal kimlik (misafirde
-    // kapı yok). Vazgeçerse istek gitmez.
+    if (!paymentId || isGuest) return;
+    // B4: yeniden deneme yeni bir ödeme başlatır — önce yasal kimlik.
+    // Vazgeçerse istek gitmez. Misafirde Tekrar Dene yok (web ile aynı).
     if (!(await requireIdentity())) return;
     try {
       setRetrying(true);
@@ -109,16 +119,27 @@ export default function PaymentFailScreen() {
         </View>
 
         <View style={styles.actions}>
-          <Button
-            variant="primary"
-            title={t('payment.retry')}
-            fullWidth
-            onPress={handleRetry}
-            isLoading={retrying || checkingIdentity}
-            disabled={retrying || checkingIdentity || !paymentId}
-            testID="payment-retry-button"
-            style={styles.btn}
-          />
+          {isGuest ? (
+            // Web misafir başarısız akışı (`PaymentFailClient`): yalnız "İlanlara Dön".
+            <Button
+              variant="primary"
+              title={t('seller.backToListings')}
+              fullWidth
+              onPress={() => router.replace('/listings')}
+              style={styles.btn}
+            />
+          ) : (
+            <Button
+              variant="primary"
+              title={t('payment.retry')}
+              fullWidth
+              onPress={handleRetry}
+              isLoading={retrying || checkingIdentity}
+              disabled={retrying || checkingIdentity || !paymentId}
+              testID="payment-retry-button"
+              style={styles.btn}
+            />
+          )}
           {tradeId ? (
             <Button
               variant="outline"
@@ -127,7 +148,7 @@ export default function PaymentFailScreen() {
               onPress={() => router.replace(`/trade/${tradeId}` as any)}
               style={styles.btn}
             />
-          ) : orderId && guest !== '1' ? (
+          ) : orderId && !isGuest ? (
             <Button
               variant="outline"
               title={t('payment.goToOrderDetail')}

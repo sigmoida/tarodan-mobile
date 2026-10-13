@@ -1,16 +1,30 @@
+import type { AxiosRequestConfig } from 'axios';
 import { api, guestApi } from './client';
 import type { DirectFormResponse } from '@/lib/payment/paytrDirectForm';
 import type { PaymentConfig } from '@/lib/payment/capabilities';
 import type { DirectFormBody } from '@/lib/payment/directFormBody';
-import { paymentCapabilityHeaders, rememberPaymentCapability } from '@/lib/payment/paymentCapability';
+import {
+  forgetPaymentCapability,
+  rememberPaymentCapability,
+  withPaymentCapability,
+} from '@/lib/payment/paymentCapability';
 
 /**
  * Ödeme başlat + yanıttaki `paymentAccessToken`'ı sakla (web `initiatePayment`).
- * Misafir sonraki public ödeme uçlarında (`X-Payment-Capability`) bununla yetkilenir.
+ * Misafir sonraki public ödeme uçlarında (`X-Payment-Capability`) bununla yetkilenir;
+ * üyede de saklanır (web gibi): oturum ödeme ortasında düşerse durum yoklaması,
+ * verify ve confirm-failed belirteçle çalışmaya devam eder. Kayıt kimin adına
+ * alındığını taşır (`guest` → sahipsiz, yoksa o anki hesap): misafir istekleri
+ * yalnız sahipsiz, üye istekleri yalnız aynı hesabın belirtecini ekler.
+ *
+ * Depo yazımı beklenmez: bellek kopyası senkron yazılır, sonraki istekler onu
+ * okur; AsyncStorage yazımı arkada biter (kullanıcı kart bilgisini girip banka
+ * uygulamasına geçmeden çok önce). Böylece ödeme başlatma depoya bağımlı olmaz.
+ * `rememberPaymentCapability` hiç fırlatmaz.
  */
-async function initiatePayment<T>(request: Promise<T>): Promise<T> {
+async function initiatePayment<T>(request: Promise<T>, scope: { guest?: boolean } = {}): Promise<T> {
   const response = await request;
-  rememberPaymentCapability(response);
+  void rememberPaymentCapability(response, scope);
   return response;
 }
 
@@ -43,6 +57,21 @@ export const addressesApi = {
   setDefault: (id: string) => api.patch(`/users/me/addresses/${id}`, { isDefault: true }),
 };
 
+/**
+ * Yetki belirteci taşıyan ödeme uçları (`/payments/:id/...`, direct-form) bu
+ * sarmalayıcılardan geçer: `paymentHttp(paymentId).post(...)`. Ödeme id'si
+ * açıkça verilir; `X-Payment-Capability` başlığı tek yerden eklenir.
+ *
+ * Misafir yolunun TAMAMI `guestPaymentHttp` (`guestApi`) üzerinden: o instance
+ * Bearer eklemez, 401'de refresh/çıkış yapmaz, `USER_BANNED`'da yönlendirmez.
+ * `api` ise cihazda kalmış bir token'ı ekler; misafir ödeme ortasında 401 alırsa
+ * interceptor çıkış yaptırıp login ekranına atardı. Üye yolu `api`'den gider.
+ * Misafir sarmalayıcı yalnız misafirken alınmış (sahipsiz) belirteci ekler:
+ * zorunlu çıkıştan kalan bir hesabın belirteci misafir oturumunda kullanılamaz.
+ */
+const paymentHttp = withPaymentCapability(api);
+const guestPaymentHttp = withPaymentCapability(guestApi, { guest: true });
+
 // Payments API - Web ile aynı endpoint'ler
 export const paymentsApi = {
   /**
@@ -56,22 +85,29 @@ export const paymentsApi = {
   initiateGroup: (checkoutGroupId: string, provider: 'paytr' = 'paytr') =>
     initiatePayment(api.post('/payments/initiate', { checkoutGroupId, provider })),
   initiateGuest: (orderId: string | number, provider: 'paytr' = 'paytr') =>
-    initiatePayment(guestApi.post('/payments/initiate-guest', { orderId, provider })),
+    initiatePayment(guestApi.post('/payments/initiate-guest', { orderId, provider }), { guest: true }),
   /** Grup ödemesi (misafir) */
   initiateGroupGuest: (checkoutGroupId: string, provider: 'paytr' = 'paytr') =>
-    initiatePayment(guestApi.post('/payments/initiate-guest', { checkoutGroupId, provider })),
+    initiatePayment(guestApi.post('/payments/initiate-guest', { checkoutGroupId, provider }), { guest: true }),
   /** Takas nakit fark ödemesi başlat */
   initiateTradeCash: (tradeId: string) =>
     api.post('/payments/initiate-trade-cash', { tradeId }),
   getStatus: (paymentId: string) =>
     api.get(`/payments/${paymentId}`),
-  /** POST /payments/:id/verify — PayTR ödemesini aktif doğrula (web ile parite) */
-  verify: (paymentId: string) =>
-    api.post(`/payments/${paymentId}/verify`, {}, { headers: paymentCapabilityHeaders(paymentId) }),
+  /**
+   * POST /payments/:id/verify — PayTR ödemesini aktif doğrula (web ile parite).
+   * Sunucu dakikada 10 istekle sınırlı: yoklamada doğrudan değil
+   * `@/lib/payment/verifyPacer` üzerinden çağırın (tempo + bütçe + zaman aşımı).
+   */
+  verify: (paymentId: string, config?: Pick<AxiosRequestConfig, 'timeout'>) =>
+    paymentHttp(paymentId).post(`/payments/${paymentId}/verify`, {}, config),
+  /** Misafir verify: `guestApi` + yetki belirteci. */
+  verifyGuest: (paymentId: string, config?: Pick<AxiosRequestConfig, 'timeout'>) =>
+    guestPaymentHttp(paymentId).post(`/payments/${paymentId}/verify`, {}, config),
   getStatusLight: (paymentId: string) =>
-    api.get(`/payments/${paymentId}/status`, { headers: paymentCapabilityHeaders(paymentId) }),
+    paymentHttp(paymentId).get(`/payments/${paymentId}/status`),
   getStatusLightGuest: (paymentId: string) =>
-    guestApi.get(`/payments/${paymentId}/status-guest`, { headers: paymentCapabilityHeaders(paymentId) }),
+    guestPaymentHttp(paymentId).get(`/payments/${paymentId}/status-guest`),
   getMyPayments: (params?: {
     status?: string;
     provider?: string;
@@ -80,11 +116,18 @@ export const paymentsApi = {
     page?: number;
     limit?: number;
   }) => api.get('/payments/me', { params }),
-  cancel: (paymentId: string) =>
-    api.post(`/payments/${paymentId}/cancel`),
+  /** İptal (sunucu ödemeyi `failed` yapar): başarılıysa yetki belirteci kaydı silinir. */
+  cancel: async (paymentId: string) => {
+    const response = await api.post(`/payments/${paymentId}/cancel`);
+    void forgetPaymentCapability(paymentId);
+    return response;
+  },
   /** Fail sayfasında; hâlâ pending ise rezervasyonu serbest bırakır */
   confirmFailed: (paymentId: string) =>
-    api.post(`/payments/${paymentId}/confirm-failed`, {}, { headers: paymentCapabilityHeaders(paymentId) }),
+    paymentHttp(paymentId).post(`/payments/${paymentId}/confirm-failed`, {}),
+  /** Misafir confirm-failed: `guestApi` + yetki belirteci. */
+  confirmFailedGuest: (paymentId: string) =>
+    guestPaymentHttp(paymentId).post(`/payments/${paymentId}/confirm-failed`, {}),
   /** Test bypass: PAYMENT_BYPASS=true iken tek kart başarılı */
   bypassComplete: (paymentId: string, cardNumber?: string) =>
     api.post(
@@ -103,10 +146,13 @@ export const paymentsApi = {
    *
    * Gövde `buildDirectFormBody` ile kurulur (`distanceSalesAccepted` dahil — teklif
    * siparişinde mesafeli satış onayı yalnız burada gider). Web gibi `paymentId`
-   * gövdede ve yetki belirteci başlıkta: misafir ikisi olmadan 403 alır.
+   * gövdede, yetki belirteci (varsa) başlıkta: misafir ikisi olmadan 403 alır. Üyede
+   * belirteç yoksa sunucu `paymentId`'yi yok sayar (oturumla yetkili); belirteç varsa
+   * hedefin bu ödemeye ait olduğunu doğrular.
    */
   directForm: (body: DirectFormBody) =>
-    api.post<DirectFormResponse>('/payments/direct-form', body, {
-      headers: paymentCapabilityHeaders(body.paymentId),
-    }),
+    paymentHttp(body.paymentId).post<DirectFormResponse>('/payments/direct-form', body),
+  /** Misafir direct-form: `guestApi` + yetki belirteci (gövdede `paymentId` zorunlu). */
+  directFormGuest: (body: DirectFormBody) =>
+    guestPaymentHttp(body.paymentId).post<DirectFormResponse>('/payments/direct-form', body),
 };

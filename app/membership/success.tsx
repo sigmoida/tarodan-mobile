@@ -7,10 +7,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
-import { paymentsApi } from '@/lib/api';
+import { requestVerify, verifyBudgetWaitMs } from '@/lib/payment/verifyPacer';
 import type { TFunction } from 'i18next';
 
 const { colors } = theme;
+
+/** Verify denemeleri: PayTR durum sorgusu ödemeden birkaç sn sonra "ödendi" dönebilir. */
+const VERIFY_ATTEMPTS = 5;
+const VERIFY_RETRY_MS = 1200;
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 type TierKey = 'basic' | 'premium' | 'business';
 
@@ -83,13 +88,19 @@ function MembershipSuccessBody() {
         // gerçekten aktive eden tek çağrı verify (getStatus sadece DB'yi OKUR, aktive
         // ETMEZ); bu yüzden completed olana kadar verify'i tekrar dene. Aksi halde
         // üyelik past_due kalır ve ilan hakkı 5 (ücretsiz) görünür.
-        for (let i = 0; i < 5 && !cancelled; i++) {
-          try {
-            const res = await paymentsApi.verify(paymentId);
-            const completed = (res.data?.data ?? res.data)?.completed;
-            if (completed) break;
-          } catch { /* best-effort */ }
-          if (i < 4 && !cancelled) await new Promise((r) => setTimeout(r, 1200));
+        //
+        // Verify `verifyPacer` üzerinden: kart ödemesiyle AYNI global bütçe (sunucu
+        // dakikada 10 verify) ve uçuş tekilleştirmesi. Kart formu bütçenin yalnız
+        // kendi payını kullanır, bu ekrana yer kalır; yine de dolduysa (başka bir
+        // ekran harcadı) yer açılana dek BEKLENİR — hiç verify göndermeden bitmez.
+        // Verify'ın sonucu beklenir (10 sn'de terk edilmez): üyeliği o aktive eder,
+        // kullanıcı verisi ondan SONRA tazelenir.
+        for (let i = 0; i < VERIFY_ATTEMPTS && !cancelled; i++) {
+          const wait = verifyBudgetWaitMs();
+          if (wait > 0) await sleep(wait);
+          if (cancelled) return;
+          if (await requestVerify(paymentId, { awaitResult: true })) break;
+          if (i < VERIFY_ATTEMPTS - 1 && !cancelled) await sleep(VERIFY_RETRY_MS);
         }
       }
       if (cancelled) return;

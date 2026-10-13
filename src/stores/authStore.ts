@@ -1,6 +1,11 @@
 import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
 import { advanceSessionEpoch, authApi, userApi } from "@/lib/api";
+import {
+  bindPaymentCapabilitiesToAccount,
+  sweepExpiredPaymentCapabilities,
+} from "@/lib/payment/paymentCapability";
+import type { LogoutReason } from "./resetUserStores";
 import { logger, safeError } from "../services/logger";
 import { withTimeout } from "../utils/withTimeout";
 import { IS_MAESTRO_NO_AUTOLOGIN, getMaestroAutoLoginCredentials } from "@/config/maestro";
@@ -127,7 +132,8 @@ interface AuthState {
 
   // Actions
   login: (token: string, user: User, refreshToken?: string) => Promise<void>;
-  logout: () => Promise<void>;
+  /** `reason: "forced"` yalnız 401 sonrası zorunlu çıkışta (`client.ts`); varsayılan kullanıcının kendi çıkışı. */
+  logout: (options?: { reason?: LogoutReason }) => Promise<void>;
   loadToken: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
   /**
@@ -377,6 +383,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
     logger.debug("Auth stored", { tier: mappedUser.membershipTier });
     set({ isAuthenticated: true, token, user: mappedUser, limits });
+    // Ödeme yetki belirteci kimliği bu hesap; başka hesabın belirteçleri (zorunlu
+    // çıkıştan kalmış) silinir.
+    void bindPaymentCapabilitiesToAccount(mappedUser.id);
     // Misafir/önceki oturumdan kalan listeler yeni token'la yeniden çekilsin.
     // Token set'ten SONRA — yeniden çekim yeni token'ı taşımalı. Beklenmez:
     // giriş ağ çağrısına takılmasın. Lazy require: döngüsel import (logout ile aynı).
@@ -391,7 +400,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   // Web ile aynı endpoint: POST /auth/logout
-  logout: async () => {
+  logout: async ({ reason = "user" }: { reason?: LogoutReason } = {}) => {
     // İLK İŞ: oturum kuşağını ilerlet. Bu noktadan sonra tamamlanan her
     // uçuştaki refresh kendini geçersiz sayar ve SecureStore'a yazmaz —
     // yoksa bu arada giriş yapan kullanıcının token'ını ezerdi.
@@ -424,12 +433,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isAuthenticated: false, token: null, user: null, limits: null, serverLimits: null });
     // Kullanıcıya özel yerel state (sepet/favori/mesaj rozetleri, query cache).
     // Lazy require: messagesStore → authStore import zinciriyle döngü oluşmasın.
+    // Zorunlu çıkışta ödeme yetki belirteçleri kalır (süren 3DS ödemesi için).
     const { resetUserStores } = require("./resetUserStores");
-    resetUserStores();
+    resetUserStores(reason);
     logger.setUser(null);
   },
 
   loadToken: async () => {
+    // Açılış: süresi dolmuş ödeme yetki belirteci kayıtlarını süpür (beklenmez, fırlatmaz).
+    void sweepExpiredPaymentCapabilities();
     try {
       // Maestro register/guest journey: keychain (SecureStore) clearState'i atlatıp
       // önceki oturumun token'ını taşıyabiliyor. NO_AUTOLOGIN modunda token'ı temizle
@@ -469,6 +481,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           limits,
           isLoading: false,
         });
+        // Ödeme yetki belirteci kimliği bu hesap (açılışta yüklenen oturum).
+        void bindPaymentCapabilitiesToAccount(mappedUser.id);
       } else if (maestroCredentials) {
         // Maestro test bypass: auto-login with seeded credentials so that
         // e2e flows skip the login UI entirely. Yalnız EXPO_PUBLIC_MAESTRO=1
