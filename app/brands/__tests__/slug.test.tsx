@@ -17,7 +17,7 @@ jest.mock('expo-router', () => ({
 
 jest.mock('@/lib/api', () => ({
   brandsApi: { findBySlug: jest.fn() },
-  productsApi: { getAll: jest.fn() },
+  productsApi: { getAll: jest.fn(), recordClick: jest.fn(() => Promise.resolve({ data: {} })) },
 }));
 import { brandsApi, productsApi } from '@/lib/api';
 
@@ -42,7 +42,7 @@ describe('J12 · Marka detay', () => {
     getAll.mockResolvedValue({ data: { data: [productFixture(), productFixture({ id: 'p2', title: 'Camaro SS' })] } });
     renderWithProviders(<BrandDetailScreen />);
 
-    await waitFor(() => expect(screen.getByText('2 ürün')).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText('2 Aktif ilanlar')).toBeOnTheScreen());
     expect(await screen.findByText('Mustang GT')).toBeOnTheScreen();
     expect(screen.getByText('Camaro SS')).toBeOnTheScreen();
   });

@@ -81,6 +81,11 @@ export const qk = {
     categories: ["categories"] as const,
     brands: ["brands"] as const,
     manufacturers: ["manufacturers"] as const,
+    /** Marka / üretici detayı (slug) ve ürünleri (varlık id'si). */
+    brand: (slug: string) => ["brand", slug] as const,
+    brandProducts: (id?: string) => ["brand-products", id] as const,
+    manufacturer: (slug: string) => ["manufacturer", slug] as const,
+    manufacturerProducts: (id?: string) => ["manufacturer-products", id] as const,
     carModels: (filters?: Filters) => ["car-models", filters] as const,
     pages: (slug?: string) => ["pages", slug] as const,
   },
