@@ -28,7 +28,9 @@ function ensureConfigured() {
 }
 
 /**
- * Android'de Google girişi AÇIK mı — build başına bayrak. Google Cloud'da
+ * Android'de Google girişi AÇIK mı — build başına bayrak. BİLİNÇLİ karar:
+ * Android henüz Play'de değil; bayrak `'true'` olana kadar buton Android'de
+ * gizli (belgesi `env.example.txt`, profiller `eas.json`'da `"false"`). Google Cloud'da
  * Android OAuth istemcisine imza SHA-1'i (Play App Signing + upload) kayıtlı
  * değilken giriş `DEVELOPER_ERROR` ile düşüyor (docs/RELEASE.md). Bayrak
  * yalnız SHA-1 kaydı doğrulanmış build profilinde `'true'` yapılır; yoksa
