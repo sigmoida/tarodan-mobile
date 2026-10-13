@@ -250,6 +250,21 @@ describe('production', () => {
   });
 });
 
+describe('Android paket doğrulaması', () => {
+  it.each([
+    ['staging', staging, 'com.tarodan.app.staging'],
+    ['production', production, 'com.tarodan.app'],
+  ])('%s build-android: paket build\'den önce ve gönderimden önce doğrulanır', (n, w, pkg) => {
+    const steps = w.jobs['build-android'].steps!;
+    const assert = steps.findIndex((s) => s.run === `scripts/ci/release.sh assert-app-id android ${n} ${pkg}`);
+    const buildIdx = steps.findIndex((s) => (s.run ?? '').includes('build-submit'));
+    expect(assert).toBeGreaterThan(-1);
+    expect(assert).toBeLessThan(buildIdx);
+    expect(steps[assert].if).toBe("steps.recheck.outputs.action == 'build'");
+    expect(steps[buildIdx].run).toBe(`scripts/ci/release.sh build-submit android ${n} ${n} ${pkg}`);
+  });
+});
+
 describe('Android hazır ama değişkenle kapalı', () => {
   it.each([
     ['staging', staging],

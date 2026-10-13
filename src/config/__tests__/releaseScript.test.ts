@@ -64,7 +64,7 @@ const submission = (buildId: string, status = 'FINISHED', platform: 'IOS' | 'AND
 
 type RunOpts = {
   env?: Record<string, string>;
-  /** eas.json'u değiştirerek koş (script geçici bir kök dizine kopyalanır). */
+  /** eas.json'u değiştirerek koş. */
   easJson?: (eas: EasJson) => EasJson | string;
   builds?: Build[];
   submissions?: Submission[];
@@ -88,16 +88,15 @@ function run(args: string[], opts: RunOpts = {}) {
   }
   for (const k of ['MODE', 'PLATFORM', 'ANDROID_ENABLED', 'COMMIT_MSG', 'SHA', 'FP']) delete base[k];
 
-  let script = SCRIPT;
-  if (opts.easJson) {
-    const root = path.join(dir, 'root');
-    fs.mkdirSync(path.join(root, 'scripts/ci'), { recursive: true });
-    script = path.join(root, 'scripts/ci/release.sh');
-    fs.copyFileSync(SCRIPT, script);
-    fs.copyFileSync(path.join(ROOT, 'app.json'), path.join(root, 'app.json'));
-    const eas = opts.easJson(realEasJson());
-    fs.writeFileSync(path.join(root, 'eas.json'), typeof eas === 'string' ? eas : JSON.stringify(eas));
-  }
+  // Script HER ZAMAN geçici bir kök dizinden koşar: build-submit eas-build.json'u
+  // kökte yazar; testler repoya asla dosya bırakmamalı.
+  const root = path.join(dir, 'root');
+  fs.mkdirSync(path.join(root, 'scripts/ci'), { recursive: true });
+  const script = path.join(root, 'scripts/ci/release.sh');
+  fs.copyFileSync(SCRIPT, script);
+  fs.copyFileSync(path.join(ROOT, 'app.json'), path.join(root, 'app.json'));
+  const eas = opts.easJson ? opts.easJson(realEasJson()) : realEasJson();
+  fs.writeFileSync(path.join(root, 'eas.json'), typeof eas === 'string' ? eas : JSON.stringify(eas));
 
   const res = spawnSync('bash', [script, ...args], {
     cwd: dir,
@@ -572,4 +571,44 @@ describe('release.sh guard-ref — elle tetiklemede ref koruması', () => {
     expect(r.status).not.toBe(0);
     expect(r.all).toContain('::error::');
   });
+});
+
+describe('release.sh — Android paket doğrulaması (yanlış Play uygulamasına asla)', () => {
+  it('staging profili com.tarodan.app.staging çözümlerse geçer (preview env\'iyle)', () => {
+    const r = run(['assert-app-id', 'android', 'staging', 'com.tarodan.app.staging']);
+    expect(r.status).toBe(0);
+    expect(r.log).toContainEqual(expect.stringContaining('npx expo config --type public --json | EXPO_PUBLIC_ENVIRONMENT=preview'));
+  });
+
+  it('staging profili production paketini çözümlerse DURUR', () => {
+    const r = run(['assert-app-id', 'android', 'staging', 'com.tarodan.app.staging'], {
+      env: { FAKE_ANDROID_PACKAGE: 'com.tarodan.app' },
+    });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain("'com.tarodan.app', beklenen 'com.tarodan.app.staging'");
+  });
+
+  it('production profili com.tarodan.app', () => {
+    expect(run(['assert-app-id', 'android', 'production', 'com.tarodan.app']).status).toBe(0);
+  });
+
+  const submitWith = (appIdentifier?: string) =>
+    run(['build-submit', 'android', 'staging', 'staging', 'com.tarodan.app.staging'], {
+      buildResult: [{ id: 'nb', status: 'FINISHED', ...(appIdentifier ? { appIdentifier } : {}) }],
+    });
+
+  it('bitmiş build\'in appIdentifier\'ı eşleşirse gönderilir', () => {
+    const r = submitWith('com.tarodan.app.staging');
+    expect(r.status).toBe(0);
+    expect(r.easCalls('submit')).toHaveLength(1);
+  });
+
+  it.each([['yanlış paket', 'com.tarodan.app'], ['okunamadı', undefined]])(
+    'appIdentifier %s → GÖNDERİLMEZ',
+    (_n, id) => {
+      const r = submitWith(id);
+      expect(r.status).not.toBe(0);
+      expect(r.easCalls('submit')).toHaveLength(0);
+    },
+  );
 });

@@ -213,10 +213,18 @@ jobs:
           FP: ${{ needs.plan.outputs.android_fp }}
           MODE: ${{ inputs.mode || 'auto' }}
         run: scripts/ci/release.sh recheck android production
+      - name: Verify Android package is com.tarodan.app
+        # production Android build'i ve gönderimi yalnız bu pakete gider. Değilse DUR:
+        # eas submit Play uygulamasını AAB'deki paket adından seçer; yanlış paket
+        # staging uygulamasına gider. Gönderimden önce build'in appIdentifier'ı
+        # ayrıca doğrulanır
+        # (build-submit'in son argümanı).
+        if: steps.recheck.outputs.action == 'build'
+        run: scripts/ci/release.sh assert-app-id android production com.tarodan.app
       - name: EAS build + submit (Android AAB, production → Play internal track)
         # eas.json submit.production.android.track = internal. Production track'e
         # yükseltme Play Console'da ELLE.
         if: steps.recheck.outputs.action == 'build'
         env:
           FP: ${{ needs.plan.outputs.android_fp }}  # build mesajına ci-fp damgası (döngü koruması)
-        run: scripts/ci/release.sh build-submit android production production
+        run: scripts/ci/release.sh build-submit android production production com.tarodan.app

@@ -266,12 +266,20 @@ jobs:
         env:
           MSG: ${{ needs.plan.outputs.message }}
         run: scripts/ci/release.sh publish-ota staging android preview "$MSG"
+      - name: Verify Android package is com.tarodan.app.staging
+        # staging Android build'i ve gönderimi yalnız bu pakete gider. Değilse DUR:
+        # eas submit Play uygulamasını AAB'deki paket adından seçer; yanlış paket
+        # production Play uygulamasına (com.tarodan.app) gider. Gönderimden önce
+        # build'in appIdentifier'ı ayrıca doğrulanır
+        # (build-submit'in son argümanı).
+        if: steps.recheck.outputs.action == 'build'
+        run: scripts/ci/release.sh assert-app-id android staging com.tarodan.app.staging
       - name: EAS build + submit (Android AAB, staging → Play internal testing)
         # submit.staging.android (track: internal) eas.json'da tanımlı olmalı.
         if: steps.recheck.outputs.action == 'build'
         env:
           FP: ${{ needs.plan.outputs.android_fp }}  # build mesajına ci-fp damgası (döngü koruması)
-        run: scripts/ci/release.sh build-submit android staging staging
+        run: scripts/ci/release.sh build-submit android staging staging com.tarodan.app.staging
 
   apk:
     name: Ad-hoc Android APK (preview, EAS internal)

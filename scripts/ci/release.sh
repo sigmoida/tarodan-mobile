@@ -40,12 +40,19 @@
 #       production: yalnız refs/heads/master. staging: refs/heads/development;
 #       YALNIZ mode=apk iken APK_BRANCHES (vars.STAGING_APK_BRANCHES, boşlukla
 #       ayrılmış glob'lar, varsayılan "development") dalları da. Değilse durur.
-#   release.sh build-submit <ios|android> <build-profile> <submit-profile|->
+#   release.sh assert-app-id <ios|android> <build-profile> <expected-id>
+#       Profil env'iyle çözümlenen config'te (npx expo config --type public)
+#       ios.bundleIdentifier / android.package beklenen değer değilse durur.
+#       Ör. staging Android'in production Play uygulamasına (com.tarodan.app)
+#       gitmesini build'den ÖNCE engeller.
+#   release.sh build-submit <ios|android> <build-profile> <submit-profile|-> [expected-id]
 #       `eas build --wait` alır, build id'sini çıkarır ve (submit profili `-`
 #       değilse) TAM O build'i `eas submit --id` ile gönderir. `--latest`
 #       kullanılmaz: paralel bitmiş başka profilin build'ini (ör. staging koşarken
 #       biten production build'i) yanlış mağaza kaydına gönderebilirdi.
 #       Build JSON'u ./eas-build.json'a yazılır; id GITHUB_OUTPUT'a `build_id`.
+#       expected-id verilirse, gönderimden ÖNCE bitmiş build'in appIdentifier'ı
+#       ona eşit olmalı (eşit değil ya da okunamıyorsa gönderilmez).
 #       FP env'i verilirse build mesajına `ci-fp:<FP>` damgalanır ve EAS'in
 #       runtime'ı tutmazsa uyarılır (plan'daki döngü koruması bunu okur).
 #
@@ -240,8 +247,30 @@ publish_ota() {
   )
 }
 
+app_id_key() {
+  case "$1" in
+    ios) echo bundleIdentifier ;;
+    android) echo package ;;
+    *) die "bilinmeyen platform: '$1'" ;;
+  esac
+}
+
+assert_app_id() {
+  local platform="$1" profile="$2" expected="$3" key actual
+  key="$(app_id_key "$platform")"
+  actual="$(
+    load_profile_env "$profile"
+    cd "$ROOT"
+    npx expo config --type public --json \
+      | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const c=JSON.parse(s)[process.argv[1]]||{};console.log(c[process.argv[2]]||"")})' "$platform" "$key"
+  )" || die "expo config çözümlenemedi ($platform/$profile)"
+  [ "$actual" = "$expected" ] \
+    || die "$profile profilinin $platform.$key değeri '$actual', beklenen '$expected' — yanlış uygulamaya build/gönderim yapılmaz. (app.config.js / EXPO_PUBLIC_ENVIRONMENT'ı kontrol et.)"
+  echo "OK: $profile $platform.$key = $actual"
+}
+
 build_submit() {
-  local platform="$1" profile="$2" submit_profile="$3" id runtime
+  local platform="$1" profile="$2" submit_profile="$3" expected="${4:-}" id runtime actual
   local -a extra=()
   cd "$ROOT"
   # CI'ın hesapladığı fingerprint build mesajına damgalanır (ci-fp:<fp>);
@@ -258,6 +287,11 @@ build_submit() {
   runtime="$(build_json_field runtime)"
   if [ -n "${FP:-}" ] && [ "$runtime" != "$FP" ]; then
     echo "::warning::EAS bu build'e runtime '${runtime:-?}' damgaladı, CI fingerprint'i '$FP' idi. Bu runtime'a CI'ın OTA'ları ULAŞMAZ; tekrarlarsa plan otomatik build'i durdurur. Yerelde: npx expo-updates fingerprint:generate ile eas build:view $id karşılaştır."
+  fi
+  if [ -n "$expected" ]; then
+    actual="$(build_json_field appIdentifier)"
+    [ "$actual" = "$expected" ] \
+      || die "build $id appIdentifier '${actual:-okunamadı}', beklenen '$expected' — GÖNDERİLMEDİ."
   fi
   if [ "$submit_profile" != "-" ]; then
     eas submit --platform "$platform" --profile "$submit_profile" --id "$id" \
@@ -500,6 +534,7 @@ case "$cmd" in
   fingerprint) fingerprint "$@" ;;
   build-state) build_state "$@" ;;
   guard-ref) guard_ref "$@" ;;
+  assert-app-id) assert_app_id "$@" ;;
   last-store-version) last_store_version "$@" ;;
   version-gt) version_gt "$@" ;;
   publish-ota) publish_ota "$@" ;;
