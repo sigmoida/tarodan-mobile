@@ -1,7 +1,8 @@
 /**
- * Regression testi — 2FA toggle gerçek durumu SUNUCUDAN okumalı.
+ * Regression testi — 2FA durumu SUNUCUDAN okunmalı.
  * Bug (düzeltildi): ekran var olmayan user.twoFactorEnabled alanına bakıyordu;
  * artık mockGetTwoFactorStatus() ile TwoFactorSecret.isEnabled'ı çekiyor.
+ * (Hub'da artık anahtar yok: durum metni + "Yönet"/"Ayarla" → 2FA ekranı.)
  * Strateji: docs/superpowers/specs/mobile-test-strategy.md
  */
 import React from "react";
@@ -46,18 +47,22 @@ const mockGetTwoFactorStatus = authApi.getTwoFactorStatus as jest.Mock;
 describe("SecuritySettingsScreen — 2FA durumu", () => {
   beforeEach(() => mockGetTwoFactorStatus.mockReset());
 
-  it('sunucu isEnabled:true dönerse toggle "security.enabled" gösterir', async () => {
+  it('sunucu isEnabled:true dönerse "açık" durumu ve "Yönet" gösterir', async () => {
     mockGetTwoFactorStatus.mockResolvedValue({ data: { isEnabled: true } });
     renderWithProviders(<SecuritySettingsScreen />);
-    await waitFor(() => expect(screen.getByText("security.enabled")).toBeOnTheScreen());
+    await waitFor(() =>
+      expect(screen.getByText("profile.security.twoFactorOn")).toBeOnTheScreen(),
+    );
+    expect(screen.getByText("profile.security.manage")).toBeOnTheScreen();
     expect(mockGetTwoFactorStatus).toHaveBeenCalledTimes(1);
   });
 
-  it('sunucu isEnabled:false dönerse toggle "security.disabled" gösterir', async () => {
+  it('sunucu isEnabled:false dönerse "kapalı" durumu ve "Ayarla" gösterir', async () => {
     mockGetTwoFactorStatus.mockResolvedValue({ data: { isEnabled: false } });
     renderWithProviders(<SecuritySettingsScreen />);
     await waitFor(() =>
-      expect(screen.getByText("security.disabled")).toBeOnTheScreen(),
+      expect(screen.getByText("profile.security.twoFactorOff")).toBeOnTheScreen(),
     );
+    expect(screen.getByText("profile.security.setUp")).toBeOnTheScreen();
   });
 });

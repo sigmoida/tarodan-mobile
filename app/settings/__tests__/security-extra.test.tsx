@@ -62,22 +62,22 @@ describe("J48 · Güvenlik — tüm cihazlardan çıkış", () => {
 
   it('J48.1 "Tüm Cihazlardan Çıkış" satırı render edilir', async () => {
     renderWithProviders(<SecuritySettingsScreen />);
-    expect(screen.getByText("Tüm Cihazlardan Çıkış")).toBeOnTheScreen();
-    expect(
-      screen.getByText("Diğer tüm cihazlarda oturumunuzu sonlandırın"),
-    ).toBeOnTheScreen();
+    // Metinler artık katalogdan (eskiden elle yazılmış Türkçe); `t` anahtarı döndürüyor.
+    expect(screen.getByText("security.logoutAllTitle")).toBeOnTheScreen();
+    expect(screen.getByText("security.logoutAllHint")).toBeOnTheScreen();
   });
 
   it("J48.2 satıra basınca onay Alert tetiklenir", () => {
     const alertSpy = (appAlert as jest.Mock).mockImplementation(() => {});
     renderWithProviders(<SecuritySettingsScreen />);
-    fireEvent.press(screen.getByText("Tüm Cihazlardan Çıkış"));
+    fireEvent.press(screen.getByText("security.logoutAllTitle"));
     // Bu dosya `t`'yi anahtarı döndürecek şekilde mock'luyor; başlık artık
     // katalogdan geliyor, o yüzden beklenen değer ANAHTAR.
     expect(alertSpy).toHaveBeenCalledWith(
       "security.logoutAllTitle",
       expect.any(String),
       expect.any(Array),
+      expect.anything(), // confirm(): iptal edilebilir + onDismiss seçenekleri
     );
     alertSpy.mockRestore();
   });
@@ -92,7 +92,7 @@ describe("J48 · Güvenlik — tüm cihazlardan çıkış", () => {
       },
     );
     renderWithProviders(<SecuritySettingsScreen />);
-    fireEvent.press(screen.getByText("Tüm Cihazlardan Çıkış"));
+    fireEvent.press(screen.getByText("security.logoutAllTitle"));
     expect(confirmOnPress).toBeDefined();
 
     confirmOnPress!();
