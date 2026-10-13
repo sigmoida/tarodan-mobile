@@ -22,7 +22,7 @@ export interface AuthShellProps {
   children: React.ReactNode;
 }
 
-const { colors, spacing } = theme;
+const { spacing } = theme;
 
 /** Web `AuthCard`: `max-w-md`. */
 const MAX_WIDTH = 448;
@@ -48,7 +48,7 @@ export const AuthShell: React.FC<AuthShellProps> = ({
     onBack={onBack}
     showBack={showBack}
     testID={testID}
-    contentStyle={styles.page}
+    surface="elevated"
   >
     <View style={styles.column}>
       {hero ? <AuthHeroBanner placement={hero} style={styles.hero} /> : null}
@@ -71,10 +71,6 @@ export const AuthShell: React.FC<AuthShellProps> = ({
 );
 
 const styles = StyleSheet.create({
-  /** Kartsız beyaz zemin — `PageShell` gövdesi varsayılan olarak surface rengindedir. */
-  page: {
-    backgroundColor: colors.surface.elevated,
-  },
   column: {
     width: '100%',
     maxWidth: MAX_WIDTH,

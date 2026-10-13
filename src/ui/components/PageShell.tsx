@@ -43,6 +43,8 @@ export interface PageShellProps
     > {
   /** Üst bar başlığı. `header` verilmezse beyaz üst bar bununla çizilir. */
   title?: string;
+  /** Sayfa zemini: `surface` (varsayılan, açık gri) ya da `elevated` (beyaz — kartsız form ekranları, auth). */
+  surface?: 'surface' | 'elevated';
   /** Üst barın yerine özel düğüm; `false` = üst bar yok (ör. tam ekran akış). */
   header?: React.ReactNode | false;
   /**
@@ -133,6 +135,7 @@ export const PageShell: React.FC<PageShellProps> = ({
   onRefresh,
   padding = 4,
   contentStyle,
+  surface = 'surface',
   testID,
 }) => {
   const insets = useSafeAreaInsets();
@@ -248,7 +251,7 @@ export const PageShell: React.FC<PageShellProps> = ({
   );
 
   return (
-    <View style={styles.root} testID={testID}>
+    <View style={[styles.root, surface === 'elevated' && styles.rootElevated]} testID={testID}>
       {customHeader ? topBar : null}
       <ShellScrollProvider value={shell.ctx}>
         {keyboardAware && keyboard.behavior ? (
@@ -277,6 +280,9 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.surface.DEFAULT,
+  },
+  rootElevated: {
+    backgroundColor: colors.surface.elevated,
   },
   fill: {
     flex: 1,

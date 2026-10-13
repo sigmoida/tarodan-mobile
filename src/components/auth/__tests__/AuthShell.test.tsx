@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { RawText, theme } from '@/ui';
 import { AuthShell } from '../AuthShell';
@@ -29,14 +29,13 @@ describe('AuthShell', () => {
     expect(screen.getByText('alt bağlantı')).toBeTruthy();
   });
 
-  it('içerik beyaz zeminde çizilir (kartsız)', () => {
+  it('sayfanın tamamı beyaz zeminde çizilir (kartsız; üst bar bölgesi dahil)', () => {
     render(
       <AuthShell title="X" testID="auth">
         <RawText>form</RawText>
       </AuthShell>,
     );
-    const scroll = screen.UNSAFE_getByType(ScrollView);
-    expect(StyleSheet.flatten(scroll.props.contentContainerStyle).backgroundColor).toBe(
+    expect(StyleSheet.flatten(screen.getByTestId('auth').props.style).backgroundColor).toBe(
       theme.colors.surface.elevated,
     );
   });
