@@ -9,7 +9,7 @@ import { formatPrice } from '@/utils/format';
 import { useAuthStore } from '@/stores/authStore';
 import type { Offer } from '../_lib/types';
 import { useTimingValues } from '@/hooks/useTimingPolicy';
-import { useConfirmAccept } from '../../_hooks/useConfirmAccept';
+import { useConfirmOffer } from '../../_hooks/useConfirmOffer';
 import { statusColor } from '../_lib/status';
 
 /**
@@ -37,7 +37,7 @@ export function useOfferDetail() {
   });
 
   const { refreshing, onRefresh } = useRefresh(refetch);
-  const confirmAccept = useConfirmAccept();
+  const confirm = useConfirmOffer();
   const timing = useTimingValues();
 
   const invalidate = () => {
@@ -89,7 +89,7 @@ export function useOfferDetail() {
   });
 
   /** Detaydan kabul yalnız satıcıdır (gelen teklif); web gibi önce onay. */
-  const requestAccept = () => confirmAccept('seller', () => acceptMutation.mutate());
+  const requestAccept = () => confirm('acceptSeller', () => acceptMutation.mutate());
 
   const firstImg =
     Array.isArray(offer?.product?.images) && offer!.product!.images.length > 0

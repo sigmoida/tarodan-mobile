@@ -7,7 +7,7 @@
  */
 import React from 'react';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { appAlert } from '@/ui';
+import { appAlert, MODAL_CLOSE_DELAY_MS } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
 
 jest.mock('@/lib/api', () => ({
@@ -111,6 +111,48 @@ describe('liste: satıcı gelen teklifi kabul eder', () => {
     lastConfirm().cancel.onPress?.();
     await act(async () => {});
     expect(accept).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * ModalFreeze: `AlertDialogHost.close()` `onPress`'i diyalog kapanırken aynı tick'te çağırır.
+ * Mutasyon hemen başlarsa hızlı bir hatanın `appAlert`'i kapanmakta olan diyaloğun üstüne
+ * yeni modal açıp iOS'u dondurur -> onaydan sonra mutasyon modal kapanma süresi kadar gecikir.
+ */
+describe('onay sonrası mutasyon gecikmeli başlar (ModalFreeze)', () => {
+  afterEach(() => jest.useRealTimers());
+
+  const confirmThen = async (press: () => void) => {
+    jest.useFakeTimers();
+    press();
+    act(() => lastConfirm().confirm.onPress());
+    // Aynı tick'te çalışmaz.
+    await act(async () => {});
+    expect(accept).not.toHaveBeenCalled();
+    await act(async () => {
+      jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS - 1);
+    });
+    expect(accept).not.toHaveBeenCalled();
+    await act(async () => {
+      jest.advanceTimersByTime(1);
+    });
+    expect(accept).toHaveBeenCalledWith('o1');
+  };
+
+  it('liste', async () => {
+    getAll.mockResolvedValue({ data: { data: [base()] } });
+    mount(<OffersScreen />);
+    await screen.findByText('Vintage Kamera');
+    await flushPolicy();
+    await confirmThen(() => fireEvent.press(screen.getByText('Kabul Et')));
+  });
+
+  it('detay', async () => {
+    getOne.mockResolvedValue({ data: { data: base() } });
+    mount(<OfferDetailScreen />);
+    await screen.findByText('Vintage Kamera');
+    await flushPolicy();
+    await confirmThen(() => fireEvent.press(screen.getByText('Kabul Et')));
   });
 });
 

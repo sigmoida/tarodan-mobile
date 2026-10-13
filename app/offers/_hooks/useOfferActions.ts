@@ -5,21 +5,22 @@ import i18n from '@/i18n/config';
 import { offersApi } from '@/lib/api';
 import { formatApiErrorMessage } from '@/utils/formatApiErrorMessage';
 import { useInvalidateOffers } from './useInvalidateOffers';
-import { useConfirmAccept } from './useConfirmAccept';
-import type { AcceptAs } from '../_lib/accept';
+import { useConfirmOffer } from './useConfirmOffer';
+import { acceptKind, type AcceptAs } from '../_lib/accept';
 
 /**
  * Kabul / reddet / iptal mutation'ları — snackbar (appAlert) + invalidateQueries
  * sahibi. Ekran manuel refetch etmez; liste otomatik tazelenir.
  *
  * `accept` ONAYSIZ kabuldür; kullanıcıya dönük akış `requestAccept`tir (web gibi önce
- * onay diyaloğu: ödeme süresi + "ilk ödeyen alır"). 
+ * onay diyaloğu: ödeme süresi + "ilk ödeyen alır"). Onay sonrası mutasyon modal kapanma
+ * süresi kadar gecikir (ModalFreeze, bkz. `useConfirmOffer`).
  *
  * `pendingOfferId`: o an işlemde olan teklifin id'si (kart üzerinde spinner için).
  */
 export function useOfferActions() {
   const invalidate = useInvalidateOffers();
-  const confirmAccept = useConfirmAccept();
+  const confirm = useConfirmOffer();
 
   const accept = useMutation({
     mutationFn: (id: string) => offersApi.accept(id),
@@ -53,8 +54,8 @@ export function useOfferActions() {
 
   const acceptMutate = accept.mutate;
   const requestAccept = useCallback(
-    (id: string, as: AcceptAs) => confirmAccept(as, () => acceptMutate(id)),
-    [confirmAccept, acceptMutate],
+    (id: string, as: AcceptAs) => confirm(acceptKind(as), () => acceptMutate(id)),
+    [confirm, acceptMutate],
   );
 
   const pendingOfferId =

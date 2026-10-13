@@ -5,10 +5,23 @@ import type { MessageKey } from "@/i18n/lib";
 /** Kabulü KİM yapıyor: satıcı gelen teklifi mi, alıcı karşı teklifi mi? */
 export type AcceptAs = "seller" | "buyer";
 
-/** Kabul onay diyaloğu metin anahtarları. Kabul ürünü kilitlemediği için iki taraf farklı uyarılır. */
-export const ACCEPT_CONFIRM_KEYS: Record<AcceptAs, { title: MessageKey; description: MessageKey }> = {
-  seller: { title: "offer.acceptConfirmTitle", description: "offer.acceptConfirmDescSeller" },
-  buyer: { title: "offer.acceptConfirmTitle", description: "offer.acceptConfirmDescBuyer" },
+/** Onay istenen geri alınamaz işlemler (şimdilik kabul: satıcı / alıcı). */
+export type OfferConfirmKind = "acceptSeller" | "acceptBuyer";
+
+/** Kabulün `AcceptAs` karşılığı. */
+export const acceptKind = (as: AcceptAs): OfferConfirmKind =>
+  as === "buyer" ? "acceptBuyer" : "acceptSeller";
+
+/**
+ * Onay diyaloğu metinleri (web `useOfferAction.run`). Kabul ürünü kilitlemediği için iki
+ * taraf farklı uyarılır.
+ */
+export const OFFER_CONFIRM: Record<
+  OfferConfirmKind,
+  { title: MessageKey; description: MessageKey; destructive: boolean }
+> = {
+  acceptSeller: { title: "offer.acceptConfirmTitle", description: "offer.acceptConfirmDescSeller", destructive: false },
+  acceptBuyer: { title: "offer.acceptConfirmTitle", description: "offer.acceptConfirmDescBuyer", destructive: false },
 };
 
 /** Ödemesi tamamlanmış sipariş durumları (web `PAID_ORDER_STATUSES`). */
