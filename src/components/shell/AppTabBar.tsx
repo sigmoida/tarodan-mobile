@@ -34,18 +34,19 @@ const TAB_BAR_EASING = Easing.bezier(0.4, 0, 0.2, 1);
 const PILL_HIDE_TRANSLATE_Y = spacing[4];
 const PILL_HIDE_SCALE = 0.9;
 
-// Hap içindeki sekmeler (sırasıyla). href:null olan (create, notifications/index) kasıtlı olarak dışarıda.
-// İkonlar web Heroicons adları; odaklı sekme `solid`, diğerleri `outline`.
+// Hap içindeki sekmeler (sırasıyla): Ana Sayfa, Mesajlar, Bildirimler, Profil. href:null olan (create)
+// kasıtlı olarak dışarıda; Favoriler artık yığın rotası (/favorites, yan menü). Rozet sayaçları
+// `useShellCounts`'tan (tek kaynak). İkonlar web Heroicons adları; odaklı sekme `solid`, diğerleri `outline`.
 const TABS = [
-  { name: "index", testID: "tab-home", labelKey: "nav.home", icon: "home" as IconName, badge: false },
-  { name: "favorites/index", testID: "tab-favorites", labelKey: "nav.favorites", icon: "heart" as IconName, badge: false },
-  { name: "messages/index", testID: "tab-messages", labelKey: "message.messages", icon: "chat-bubble-left-right" as IconName, badge: true },
-  { name: "profile", testID: "tab-profile", labelKey: "nav.profile", icon: "user" as IconName, badge: false },
+  { name: "index", testID: "tab-home", labelKey: "nav.home", icon: "home" as IconName, badge: null },
+  { name: "messages/index", testID: "tab-messages", labelKey: "message.messages", icon: "chat-bubble-left-right" as IconName, badge: "messageCount" },
+  { name: "notifications/index", testID: "tab-notifications", labelKey: "nav.notifications", icon: "bell" as IconName, badge: "notificationCount" },
+  { name: "profile", testID: "tab-profile", labelKey: "nav.profile", icon: "user" as IconName, badge: null },
 ] as const;
 const SELL_ROUTE = "sell";
 
 /**
- * Özel yüzen alt menü (düz RN View'lar): solda 4 sekmeli beyaz hap (ince border + gölge), sağında
+ * Özel yüzen alt menü (düz RN View'lar): solda 4 sekmeli beyaz hap [Ana Sayfa][Mesajlar][Bildirimler][Profil] (ince border + gölge), sağında
  * AYRI yuvarlak "+" (İlan Ver) düğmesi; ikisi aynı alt hizada/yükseklikte. İçerik aşağı kaydırılınca
  * (bkz. `useTabBarScrollHandler`) hap opacity + translateY + scale ile gizlenir, "+" sağdan sola
  * (alt sol köşe) kayar; yukarı kaydırınca geri gelir. Animasyon UI thread'inde (tek `progress`
@@ -59,7 +60,7 @@ const SELL_ROUTE = "sell";
 export function AppTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  const { messageCount } = useShellCounts();
+  const counts = useShellCounts();
   const keyboardHeight = useKeyboardHeight();
   const { width: windowWidth } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
@@ -145,7 +146,7 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
                 <Icon name={tab.icon} variant={focused ? "solid" : "outline"} size={iconSize.lg} color={color} />
                 {tab.badge && (
                   <CountBadge
-                    count={messageCount}
+                    count={counts[tab.badge]}
                     ringColor={focused ? colors.gray[100] : colors.surface.elevated}
                     style={styles.badge}
                   />

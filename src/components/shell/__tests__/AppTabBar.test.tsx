@@ -7,11 +7,13 @@ import { theme } from '@/ui';
 import { tabPillBottomOffset, TAB_PILL_HEIGHT } from '../tabBarLayout';
 
 jest.mock('../useShellCounts', () => ({
-  useShellCounts: () => ({ cartCount: 0, notificationCount: 0, messageCount: 3, favoriteCount: 0 }),
+  useShellCounts: () => ({ cartCount: 0, notificationCount: 5, messageCount: 3 }),
 }));
 jest.mock('@/hooks/useKeyboardHeight', () => ({ useKeyboardHeight: () => 0 }));
 
-const routes = ['index', 'favorites/index', 'sell', 'messages/index', 'profile', 'create', 'notifications/index'];
+// Gerçek `Tabs` sırası: index, sell, messages, notifications, profile, create (gizli).
+const routes = ['index', 'sell', 'messages/index', 'notifications/index', 'profile', 'create'];
+const PILL_ORDER = ['tab-home', 'tab-messages', 'tab-notifications', 'tab-profile'];
 
 let collapsedRef: { value: boolean } | null = null;
 function CaptureCollapsed() {
@@ -41,27 +43,37 @@ describe('AppTabBar — yüzen hap', () => {
 
   it('4 sekmeli hap + AYRI "+" düğmesi — "Ara" sekmesi yok', () => {
     setup();
-    const ids = ['tab-home', 'tab-favorites', 'tab-sell', 'tab-messages', 'tab-profile'];
-    ids.forEach((id) => expect(screen.getByTestId(id)).toBeTruthy());
+    [...PILL_ORDER, 'tab-sell'].forEach((id) => expect(screen.getByTestId(id)).toBeTruthy());
     expect(screen.queryByLabelText('Ara')).toBeNull();
-    expect(screen.getByLabelText('Favoriler')).toBeTruthy();
+    expect(screen.queryByTestId('tab-favorites')).toBeNull();
     // "+" hapın DIŞINDA (ayrı düğme).
     expect(within(screen.getByTestId('app-tab-pill')).queryByTestId('tab-sell')).toBeNull();
     expect(within(screen.getByTestId('app-tab-pill')).getByTestId('tab-home')).toBeTruthy();
   });
 
+  it('hap sırası: Ana Sayfa, Mesajlar, Bildirimler, Profil; etiketler katalogdan', () => {
+    setup();
+    const pill = screen.getByTestId('app-tab-pill');
+    const order = within(pill)
+      .getAllByRole('tab')
+      .map((el) => el.props.testID);
+    expect(order).toEqual(PILL_ORDER);
+    expect(screen.getByLabelText('Mesajlar')).toBeTruthy();
+    expect(screen.getByLabelText('Bildirimler')).toBeTruthy();
+  });
+
   it('a11y: sekmeler role=tab + selected; "+" erişilebilir düğme', () => {
-    setup(1);
-    expect(screen.getByTestId('tab-favorites').props.accessibilityRole).toBe('tab');
-    expect(screen.getByTestId('tab-favorites').props.accessibilityState).toEqual({ selected: true });
+    setup(2);
+    expect(screen.getByTestId('tab-messages').props.accessibilityRole).toBe('tab');
+    expect(screen.getByTestId('tab-messages').props.accessibilityState).toEqual({ selected: true });
     expect(screen.getByTestId('tab-home').props.accessibilityState).toEqual({ selected: false });
     expect(screen.getByTestId('tab-sell').props.accessibilityLabel).toBe('İlan ver');
   });
 
   it('aktif sekmenin arkasında gri vurgu var; pasifte yok', () => {
-    setup(1);
+    setup(2);
     const flat = (id: string) => StyleSheet.flatten(screen.getByTestId(id).props.style);
-    expect(flat('tab-favorites').backgroundColor).toBe(theme.colors.gray[100]);
+    expect(flat('tab-messages').backgroundColor).toBe(theme.colors.gray[100]);
     expect(flat('tab-home').backgroundColor).toBeUndefined();
   });
 
@@ -92,7 +104,7 @@ describe('AppTabBar — yüzen hap', () => {
       collapsedRef!.value = true;
     });
     expect(collapsedRef!.value).toBe(true);
-    rerender(tree(1, navigate));
+    rerender(tree(2, navigate));
     expect(collapsedRef!.value).toBe(false);
   });
 
@@ -104,16 +116,40 @@ describe('AppTabBar — yüzen hap', () => {
 
   it('sekmeye dokununca ilgili rotaya gider; aktif sekmeye dokunmak gezinmez', () => {
     const navigate = setup(0);
-    fireEvent.press(screen.getByTestId('tab-favorites'));
-    expect(navigate).toHaveBeenCalledWith('favorites/index');
+    fireEvent.press(screen.getByTestId('tab-messages'));
+    expect(navigate).toHaveBeenCalledWith('messages/index');
     navigate.mockClear();
     fireEvent.press(screen.getByTestId('tab-home'));
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it('mesaj sekmesi okunmamış sayısını rozetle gösterir', () => {
+  it('Bildirimler sekmesine dokununca notifications/index rotasına gider', () => {
+    const navigate = setup(0);
+    fireEvent.press(screen.getByTestId('tab-notifications'));
+    expect(navigate).toHaveBeenCalledWith('notifications/index');
+  });
+
+  it('Bildirimler sekmesi zaten aktifse gezinmez', () => {
+    const navigate = setup(3);
+    fireEvent.press(screen.getByTestId('tab-notifications'));
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('Bildirimler sekmesi aktifken seçili + gri vurgu', () => {
+    setup(3);
+    expect(screen.getByTestId('tab-notifications').props.accessibilityState).toEqual({ selected: true });
+    expect(StyleSheet.flatten(screen.getByTestId('tab-notifications').props.style).backgroundColor).toBe(
+      theme.colors.gray[100],
+    );
+    expect(screen.getByTestId('tab-messages').props.accessibilityState).toEqual({ selected: false });
+  });
+
+  it('mesaj sekmesi okunmamış mesaj, bildirim sekmesi okunmamış bildirim sayısını rozetle gösterir', () => {
     setup();
-    expect(screen.getByText('3')).toBeTruthy();
+    expect(within(screen.getByTestId('tab-messages')).getByText('3')).toBeTruthy();
+    expect(within(screen.getByTestId('tab-notifications')).getByText('5')).toBeTruthy();
+    expect(within(screen.getByTestId('tab-home')).queryByText(/\d/)).toBeNull();
+    expect(within(screen.getByTestId('tab-profile')).queryByText(/\d/)).toBeNull();
   });
 
   it('hap alt konumu en az 12pt; yükseklik sabiti', () => {

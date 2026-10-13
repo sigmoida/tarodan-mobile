@@ -1,6 +1,8 @@
-# F-05: Tab navigation comprehensive — login → her bottom tab (Ana Sayfa, Favoriler, Mesajlar, Profil;
-# + ortada İlan Ver). Arama tab değil; üst bar arama alanından açılır (subflows/open-search.yaml).
-# Sekmelere dokunma testID ile (tab-home, tab-favorites, tab-sell, tab-messages, tab-profile).
+# F-05: Tab navigation comprehensive — login → her bottom tab, alt menü sırasıyla (Ana Sayfa, Mesajlar,
+# Bildirimler, Profil; sağda ayrı "+" İlan Ver). Arama tab değil; üst bar arama alanından açılır
+# (subflows/open-search.yaml). Favoriler tab değil: yığın rotası, deep link ile açılır (yan menü
+# subflow'una bağımlı olmamak için openLink).
+# Sekmelere dokunma testID ile (tab-home, tab-messages, tab-notifications, tab-profile, tab-sell).
 appId: ${APP_ID}
 tags:
   - smoke
@@ -24,14 +26,15 @@ env:
       text: "Ana Sayfa"
     timeout: 15000
 - assertNotVisible: ".*Network Error.*"
-# 2. Favoriler
-- tapOn:
-    id: "tab-favorites"
+# 2. Favoriler (yığın ekranı, tab çubuğu yok): deep link ile aç, geri oku ile tab köküne dön
+- openLink: "tarodan://favorites"
 - extendedWaitUntil:
     visible:
       text: "Favorilerim.*"
     timeout: 20000
 - assertNotVisible: ".*Network Error.*"
+- tapOn:
+    text: "Geri"
 # 2b. Arama: tab değil, üst bardaki arama alanı (tab kökünden)
 - tapOn:
     id: "tab-home"
@@ -50,7 +53,15 @@ env:
       text: "Mesajlar"
     timeout: 15000
 - assertNotVisible: ".*Network Error.*"
-# 4. Profil
+# 4. Bildirimler
+- tapOn:
+    id: "tab-notifications"
+- extendedWaitUntil:
+    visible:
+      text: "Bildirimler"
+    timeout: 15000
+- assertNotVisible: ".*Network Error.*"
+# 5. Profil
 - tapOn:
     id: "tab-profile"
 - extendedWaitUntil:

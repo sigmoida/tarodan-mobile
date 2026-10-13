@@ -39,6 +39,11 @@ jest.mock('@/stores/authStore', () => ({
   },
 }));
 
+// AppShell sayaçları (sepet deposu vb.) bu süitin konusu değil.
+jest.mock('@/components/shell/useShellCounts', () => ({
+  useShellCounts: () => ({ cartCount: 0, notificationCount: 0, messageCount: 0 }),
+}));
+
 import NotificationsScreen from '../notifications';
 
 const getAll = notificationsApi.getAll as jest.Mock;
@@ -109,6 +114,35 @@ describe('J38 · bildirim listesi ve okunmamış sayaç', () => {
       await screen.findByText('Bildirimleri görmek için giriş yapın'),
     ).toBeOnTheScreen();
     expect(getAll).not.toHaveBeenCalled();
+  });
+});
+
+describe('Bildirimler · sekme kökü kabuğu', () => {
+  it('başlık "Bildirimler", geri oku yok (AppShell title varyantı)', async () => {
+    getAll.mockResolvedValue({ data: { notifications: sample } });
+    renderWithProviders(<NotificationsScreen />);
+
+    await screen.findByText('Yeni Sipariş');
+    expect(screen.getByText('Bildirimler')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Geri')).toBeNull();
+  });
+
+  it('liste alt menü kaydırma sinyalini taşır (onScroll + onContentSizeChange + onLayout)', async () => {
+    getAll.mockResolvedValue({ data: { notifications: sample } });
+    renderWithProviders(<NotificationsScreen />);
+
+    await screen.findByText('Yeni Sipariş');
+    const list = screen.getByTestId('notifications-list');
+    expect(list.props.onScroll).toBeDefined();
+    expect(list.props.onContentSizeChange).toBeDefined();
+    expect(list.props.onLayout).toBeDefined();
+  });
+
+  it('misafir: başlık + giriş boş durumu, geri oku yok', () => {
+    mockAuthed = false;
+    renderWithProviders(<NotificationsScreen />);
+    expect(screen.getByText('Bildirimler')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Geri')).toBeNull();
   });
 });
 

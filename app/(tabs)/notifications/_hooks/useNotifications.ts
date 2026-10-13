@@ -140,13 +140,6 @@ export function useNotifications() {
     }, [isAuthenticated, queryClient]),
   );
 
-  // Bildirimler gizli bir tab; home/profil'den push ile açılıyor. Header'da geri
-  // butonu olmayınca kullanıcı çıkamıyordu (trades ekranıyla aynı desen).
-  const handleBack = () => {
-    if (router.canGoBack()) router.back();
-    else router.replace('/(tabs)');
-  };
-
   const handlePress = useCallback(
     (notification: Notification) => {
       if (!(notification.read || notification.isRead)) markAsRead.mutate(notification.id);
@@ -167,7 +160,6 @@ export function useNotifications() {
     refreshing: query.isRefetching,
     unreadCount: data.unreadCount,
     handleRefresh: () => query.refetch(),
-    handleBack,
     handlePress,
     handleMarkAllAsRead: () => markAllAsRead.mutate(),
     /** Listenin sonuna gelindiğinde bir sonraki sayfayı ister. */
