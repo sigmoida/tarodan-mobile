@@ -10,6 +10,11 @@ const { colors, spacing, radiusRole, iconSize } = theme;
  * Süs ikonu yok; yalnız işlev taşıyan ok (bağlantı satırı) var.
  */
 
+/** SectionCard gövdesi: bölümler arası web `space-y-8`. */
+export const DocBody: React.FC<{ children?: React.ReactNode }> = ({ children }) => (
+  <View style={styles.body}>{children}</View>
+);
+
 /** Bölüm: web `h2 text-lg font-semibold text-heading` + gövde (`space-y`). */
 export const DocSection: React.FC<{ title?: string; children?: React.ReactNode }> = ({
   title,
@@ -89,6 +94,9 @@ export const DocLinks: React.FC<{ children?: React.ReactNode }> = ({ children })
 );
 
 const styles = StyleSheet.create({
+  body: {
+    gap: spacing[8],
+  },
   section: {
     gap: spacing[2],
   },

@@ -1,83 +1,32 @@
-import { View, ScrollView, StyleSheet } from "react-native";
-import { router } from "expo-router";
-import { theme, Text, ScreenHeader } from "@/ui";
+import { SectionCard } from "@/ui";
 import { useTranslation } from "react-i18next";
+import { ContentPage } from "@/components/content/ContentPage";
+import { DocBody, DocSection, DocText } from "@/components/content/DocBlocks";
 
-const { colors } = theme;
+/** Bölüm anahtarları (`information.authenticity.<key>` + `<key>Desc`) — web ile aynı sıra. */
+const SECTIONS = ["process", "protection", "badges"] as const;
 
 /**
- * Orijinallik Garantisi sayfası. Web karşılığı:
- * apps/web/src/app/authenticity/page.tsx. İçerik information.authenticity.*
- * i18n namespace'inden gelir (web ile aynı anahtarlar).
+ * Orijinallik Garantisi sayfası. Web karşılığı: `(trust)/authenticity` (DocPage + tek SectionCard).
+ * İçerik information.authenticity.* i18n namespace'inden gelir (web ile aynı anahtarlar).
  */
 export default function AuthenticityScreen() {
   const { t } = useTranslation();
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader
-        title={t("information.authenticity.title")}
-        onBack={() =>
-          router.canGoBack() ? router.back() : router.replace("/(tabs)")
-        }
-      />
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.subtitle}>
-          {t("information.authenticity.subtitle")}
-        </Text>
-
-        <Text style={styles.sectionTitle}>
-          {t("information.authenticity.process")}
-        </Text>
-        <Text style={styles.paragraph}>
-          {t("information.authenticity.processDesc")}
-        </Text>
-
-        <Text style={styles.sectionTitle}>
-          {t("information.authenticity.protection")}
-        </Text>
-        <Text style={styles.paragraph}>
-          {t("information.authenticity.protectionDesc")}
-        </Text>
-
-        <Text style={styles.sectionTitle}>
-          {t("information.authenticity.badges")}
-        </Text>
-        <Text style={styles.paragraph}>
-          {t("information.authenticity.badgesDesc")}
-        </Text>
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </View>
+    <ContentPage
+      title={t("information.authenticity.title")}
+      description={t("information.authenticity.subtitle")}
+    >
+      <SectionCard>
+        <DocBody>
+          {SECTIONS.map((key) => (
+            <DocSection key={key} title={t(`information.authenticity.${key}`)}>
+              <DocText>{t(`information.authenticity.${key}Desc`)}</DocText>
+            </DocSection>
+          ))}
+        </DocBody>
+      </SectionCard>
+    </ContentPage>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.DEFAULT,
-  },
-  content: {
-    flex: 1,
-    padding: theme.spacing[5],
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.text.muted,
-    marginBottom: theme.spacing[2],
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: colors.text.heading,
-    marginTop: theme.spacing[6],
-    marginBottom: theme.spacing[3],
-  },
-  paragraph: {
-    fontSize: 14,
-    color: colors.text.muted,
-    lineHeight: 22,
-  },
-});
