@@ -32,6 +32,9 @@ import {
 } from '@/utils/productFilters';
 import { PAGE_SIZE, conditionLabel } from '../_lib/searchConstants';
 
+// Kararlı boş dizi: `sellerAutoRes.data ?? []` her render'da yeni referans üretiyordu.
+const EMPTY_SELLERS: any[] = [];
+
 /**
  * Search screen controller — owns filter state, the debounced search box, the
  * nav-token param sync, autocomplete + seller-autocomplete queries, the infinite
@@ -55,8 +58,15 @@ export function useSearch() {
     manufacturerId: (params.manufacturerId as string) || '',
   }));
 
-  // Arama kutusu — yazarken debounce ile filters.search'e yansır
-  const [searchQuery, setSearchQuery] = useState(filters.search);
+  // Arama kutusunun metni artık BU hook'ta değil: `SearchInputBox` kendi state'ini tutar ve
+  // 400ms debounce sonrası `commitQuery` ile onaylanmış sorguyu yazar → her tuşta ekran render olmaz.
+  // Dışarıdan (öneri/son arama seçimi, temizle) kutuyu yazdırmak için `inputCommand` kullanılır.
+  const initialQuery = useRef(filters.search).current;
+  const [inputEmpty, setInputEmpty] = useState(!filters.search);
+  const [inputCommand, setInputCommand] = useState<{ text: string; nonce: number } | null>(null);
+  const setInputText = useCallback((text: string) => {
+    setInputCommand((c) => ({ text, nonce: (c?.nonce ?? 0) + 1 }));
+  }, []);
 
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [sortModalVisible, setSortModalVisible] = useState(false);
@@ -84,8 +94,11 @@ export function useSearch() {
   }, [filters.manufacturerId, filters.manufacturer, baseOptions.manufacturers]);
   const options = useProductFilterOptions(manufacturerSlug);
 
-  const { searches, addSearch, removeSearch, clearSearches } = useRecentSearchesStore();
-  const recentSearchQueries = searches.map((s) => s.query);
+  const searches = useRecentSearchesStore((st) => st.searches);
+  const addSearch = useRecentSearchesStore((st) => st.addSearch);
+  const removeSearch = useRecentSearchesStore((st) => st.removeSearch);
+  const clearSearches = useRecentSearchesStore((st) => st.clearSearches);
+  const recentSearchQueries = useMemo(() => searches.map((s) => s.query), [searches]);
 
   const [autocompleteOpen, setAutocompleteOpen] = useState(false);
   const [autocompleteQuery, setAutocompleteQuery] = useState('');
@@ -118,16 +131,16 @@ export function useSearch() {
     setHeaderHeight((prev) => (Math.abs(h - prev) > 0.5 ? h : prev));
   }, []);
 
-  // Arama kutusu → filters.search (debounce 400ms)
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setFilters((prev) => (prev.search === searchQuery ? prev : { ...prev, search: searchQuery.trim() }));
-      const q = searchQuery.trim();
+  // Arama kutusu (debounce sonrası) → filters.search + öneri sorgusu
+  const commitQuery = useCallback(
+    (text: string) => {
+      setFilters((prev) => (prev.search === text ? prev : { ...prev, search: text.trim() }));
+      const q = text.trim();
       setAutocompleteQuery(q.length >= 2 ? q : '');
       if (q.length >= 2) addSearch(q);
-    }, 400);
-    return () => clearTimeout(t);
-  }, [searchQuery]);
+    },
+    [addSearch],
+  );
 
   const autocompleteQueryRes = useQuery({
     queryKey: ['autocomplete-rich', autocompleteQuery],
@@ -158,7 +171,7 @@ export function useSearch() {
     },
     enabled: !!autocompleteQuery,
   });
-  const sellerResults = sellerAutoRes.data ?? [];
+  const sellerResults = sellerAutoRes.data ?? EMPTY_SELLERS;
 
   // --- Ürün listesi: web /products endpoint'i + sayfalama (sonsuz kaydırma) ---
   const queryClient = useQueryClient();
@@ -231,22 +244,43 @@ export function useSearch() {
 
   const activeFiltersCount = useMemo(() => countActiveFilters(filters), [filters]);
 
-  const handleSearchChange = useCallback((text: string) => {
-    setSearchQuery(text);
+  const handleRecentSearchSelect = useCallback(
+    (query: string) => {
+      setInputText(query);
+      setShowRecentSearches(false);
+      setAutocompleteOpen(false);
+    },
+    [setInputText],
+  );
+
+  const clearAllFilters = useCallback(() => {
+    setFilters({ ...EMPTY_FILTERS });
+    setInputText('');
+  }, [setInputText]);
+
+  // Öneriden metin seçilince: kutuyu doldur, öneri panelini kapat.
+  const pickSuggestion = useCallback(
+    (text: string) => {
+      setInputText(text);
+      setAutocompleteOpen(false);
+    },
+    [setInputText],
+  );
+  const closeAutocomplete = useCallback(() => setAutocompleteOpen(false), []);
+  // Kutu odağı: panelleri aç; odak kaybında tıklamaya yer bırakmak için 200ms gecikmeyle kapat.
+  const onInputFocus = useCallback(() => {
+    setShowRecentSearches(true);
+    setAutocompleteOpen(true);
+  }, []);
+  const onInputBlur = useCallback(() => {
+    setTimeout(() => {
+      setShowRecentSearches(false);
+      setAutocompleteOpen(false);
+    }, 200);
   }, []);
 
-  const handleRecentSearchSelect = (query: string) => {
-    setSearchQuery(query);
-    setShowRecentSearches(false);
-    setAutocompleteOpen(false);
-  };
-
-  const clearAllFilters = () => {
-    setFilters({ ...EMPTY_FILTERS });
-    setSearchQuery('');
-  };
-
   // Aktif filtre çipleri (web parity: kaldırılabilir)
+  const activeChips = useMemo(() => {
   const activeChips: { key: string; label: string; onRemove: () => void }[] = [];
   if (filters.category) activeChips.push({ key: 'cat', label: filters.category, onRemove: () => setFilters({ ...filters, category: '', categoryId: '' }) });
   if (filters.brand) activeChips.push({ key: 'brand', label: filters.brand, onRemove: () => setFilters({ ...filters, brand: '', brandId: '', carModel: '', carModelId: '' }) });
@@ -267,27 +301,32 @@ export function useSearch() {
   if (filters.preOrder) activeChips.push({ key: 'pre', label: t('product.preOrder'), onRemove: () => setFilters({ ...filters, preOrder: false }) });
   if (filters.limited) activeChips.push({ key: 'lim', label: t('product.limitedEdition'), onRemove: () => setFilters({ ...filters, limited: false }) });
   if (filters.set) activeChips.push({ key: 'set', label: t('product.setBundle'), onRemove: () => setFilters({ ...filters, set: false }) });
+  return activeChips;
+  }, [filters, options.customAttributes, t]);
 
   // Öneri/geçmiş paneli görünür mü? (X kapat tuşu ve input köşe stilinde kullanılır)
   const recentPanelOpen =
-    showRecentSearches && recentSearchQueries.length > 0 && !searchQuery;
+    showRecentSearches && recentSearchQueries.length > 0 && inputEmpty;
   const autocompletePanelOpen =
     autocompleteOpen && autocompleteQuery.length >= 2 && !!autocomplete;
   const suggestionsOpen = recentPanelOpen || autocompletePanelOpen;
 
-  const closeSuggestions = () => {
+  const closeSuggestions = useCallback(() => {
     Keyboard.dismiss();
     setShowRecentSearches(false);
     setAutocompleteOpen(false);
-  };
+  }, []);
 
   // Öneriden bir facet (marka/üretici/kategori) seçilince: paneli kapat ve arama metnini temizle
   // (yoksa arama + facet birlikte 2 filtre gibi sayılır).
-  const applyFacet = (partial: Partial<ProductFilters>) => {
-    setSearchQuery('');
-    closeSuggestions();
-    setFilters((prev) => ({ ...prev, search: '', ...partial }));
-  };
+  const applyFacet = useCallback(
+    (partial: Partial<ProductFilters>) => {
+      setInputText('');
+      closeSuggestions();
+      setFilters((prev) => ({ ...prev, search: '', ...partial }));
+    },
+    [setInputText, closeSuggestions],
+  );
 
   const handleResultsScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = e.nativeEvent.contentOffset.y;
@@ -314,10 +353,13 @@ export function useSearch() {
     // filters / search box
     filters,
     setFilters,
-    searchQuery,
-    setSearchQuery,
+    initialQuery,
+    inputEmpty,
+    setInputEmpty,
+    inputCommand,
+    setInputText,
+    commitQuery,
     autoFocusSearch,
-    handleSearchChange,
     clearAllFilters,
     activeChips,
     activeFiltersCount,
@@ -328,6 +370,10 @@ export function useSearch() {
     clearSearches,
     removeSearch,
     handleRecentSearchSelect,
+    pickSuggestion,
+    closeAutocomplete,
+    onInputFocus,
+    onInputBlur,
     // suggestions / autocomplete
     autocompleteOpen,
     setAutocompleteOpen,

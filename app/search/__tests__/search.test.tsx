@@ -4,7 +4,7 @@
  * Backend arama/sıralama mantığı backend-only.
  */
 import React from 'react';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 import { resetRouterMocks, pushMock, replaceMock } from '@/test-utils/router-mock';
 
@@ -117,5 +117,28 @@ describe('catalog-search · arama ekranı (J52/J53)', () => {
     );
     fireEvent.press(screen.getByTestId('search-result-card'));
     expect(pushMock).toHaveBeenCalledWith('/product/p1');
+  });
+
+  it('arama kutusu yerel state tutar: yazarken istek atılmaz, 400ms debounce sonrası aranır', async () => {
+    mockGetAll.mockResolvedValue(mockListResponse([]));
+    renderWithProviders(<SearchScreen />);
+    await waitFor(() => expect(mockGetAll).toHaveBeenCalled());
+    jest.useFakeTimers();
+    try {
+      mockGetAll.mockClear();
+      fireEvent.changeText(screen.getByTestId('search-input'), 'ferr');
+      fireEvent.changeText(screen.getByTestId('search-input'), 'ferrari');
+      act(() => {
+        jest.advanceTimersByTime(399);
+      });
+      expect(mockGetAll).not.toHaveBeenCalled();
+      await act(async () => {
+        jest.advanceTimersByTime(2);
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+    await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(1));
+    expect(mockGetAll.mock.calls[0]![0].search).toBe('ferrari');
   });
 });

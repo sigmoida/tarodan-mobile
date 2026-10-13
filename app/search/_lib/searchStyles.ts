@@ -118,5 +118,6 @@ export const styles = StyleSheet.create({
   // doğru üst boşlukla tek seferde konumlanır, kullanıcı ara kareyi görmez.
   listHidden: { opacity: 0 },
   listRow: { gap: spacing[3] },
+  listFooter: { paddingVertical: spacing[4] },
   scrollTopFab: { position: 'absolute', right: spacing[4], bottom: spacing[6], zIndex: 50 },
 });
