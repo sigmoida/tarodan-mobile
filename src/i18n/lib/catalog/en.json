@@ -1727,8 +1727,6 @@
     "detailTitle": "Offer Details",
     "createdAtLabel": "Created:",
     "counterOfferCta": "Make a Counter-Offer",
-    "rejectConfirmBody": "Are you sure you want to reject this offer?",
-    "cancelConfirmBody": "Are you sure you want to cancel your offer?",
     "enterCounterAmountBody": "Enter your counter-offer amount.",
     "amountPlaceholderTL": "Amount (TL)",
     "myOffersTitle": "My Offers",
