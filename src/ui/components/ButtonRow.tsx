@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
 import { theme } from '../lib/theme';
 import { ButtonGroupProvider } from '../lib/buttonGroup';
@@ -20,6 +20,8 @@ const { spacing } = theme;
 
 /** Ölçüm katmanının genişliği — içeriğin doğal genişliğini kısıtlamayacak kadar büyük. */
 const MEASURE_WIDTH = 4000;
+/** Ölçüm bu sürede gelmezse düğmeler yine de gösterilir (ms). */
+const MEASURE_TIMEOUT_MS = 400;
 /** Ölçüm yuvarlama toleransı (pt). */
 const EPS = 0.5;
 
@@ -29,7 +31,7 @@ const EPS = 0.5;
  * Kural (CLAUDE.md §14): düğme etiketi ASLA sarmaz ve kısaltılmaz. Düğmeler yan yana eşit
  * genişlikte durur; en geniş etiket eşit payına sığmazsa grup otomatik alt alta (tam genişlik)
  * dizilir. Doğal genişlikler, görünmez bir ölçüm katmanında (aynı çocukların kopyası; erişilebilirlik
- * ağacında ve testlerde gizli) ölçülür. Ölçüm gelene kadar yan yana çizilir.
+ * ağacında ve testlerde gizli) ölçülür. Ölçüm gelene kadar (en çok 400 ms) satır görünmez yer tutar; bir kez alt alta geçen grup aynı genişlikte yan yana dönmez.
  */
 export const ButtonRow: React.FC<ButtonRowProps> = ({
   children,
@@ -38,20 +40,44 @@ export const ButtonRow: React.FC<ButtonRowProps> = ({
   style,
   testID,
 }) => {
-  const items = React.Children.toArray(children).filter(React.isValidElement);
+  const items = React.Children.toArray(children).filter(React.isValidElement) as React.ReactElement[];
   const n = items.length;
+  const keys = items.map((c, i) => String(c.key ?? i));
   const [width, setWidth] = useState(0);
-  const [natural, setNatural] = useState<Record<number, number>>({});
+  // Doğal genişlikler çocuğun anahtarına göre (sayı/sıra değişince eski girdiler yok sayılır).
+  const [natural, setNatural] = useState<Record<string, number>>({});
+  // Histerezis: bir kez alt alta geçen grup, aynı kapsayıcı genişliğinde yan yana dönmez
+  // (yükleniyor/etiket değişimi zıplatmasın). Genişlik değişince yeniden hesaplanır.
+  const [stuckAt, setStuckAt] = useState<number | null>(null);
+  // Ölçüm hiç gelmezse (beklenmedik) düğmeler görünmez kalmasın.
+  const [gaveUp, setGaveUp] = useState(false);
+  const measuring = layout === 'auto' && n > 1;
+
+  useEffect(() => {
+    if (!measuring) return;
+    const id = setTimeout(() => setGaveUp(true), MEASURE_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [measuring]);
 
   const onContainerLayout = useCallback((e: LayoutChangeEvent) => {
     const w = e.nativeEvent.layout.width;
     setWidth((prev) => (Math.abs(prev - w) > EPS ? w : prev));
   }, []);
 
-  const onNaturalLayout = useCallback((index: number, e: LayoutChangeEvent) => {
+  const onNaturalLayout = useCallback((key: string, e: LayoutChangeEvent) => {
     const w = e.nativeEvent.layout.width;
-    setNatural((prev) => (prev[index] !== undefined && Math.abs(prev[index] - w) <= EPS ? prev : { ...prev, [index]: w }));
+    setNatural((prev) => (prev[key] !== undefined && Math.abs(prev[key] - w) <= EPS ? prev : { ...prev, [key]: w }));
   }, []);
+
+  const measured = measuring && keys.every((k) => natural[k] !== undefined);
+  const widest = measured ? Math.max(...keys.map((k) => natural[k] ?? 0)) : 0;
+  const slot = n > 0 ? (width - gap * (n - 1)) / n : 0;
+  const overflowNow = measured && width > 0 && widest > slot + EPS;
+  const stackedNow = layout === 'stack' || overflowNow || (stuckAt !== null && stuckAt === width && width > 0);
+
+  useEffect(() => {
+    if (overflowNow && stuckAt !== width) setStuckAt(width);
+  }, [overflowNow, stuckAt, width]);
 
   if (n === 0) return null;
   // Tek düğme (koşullu gizlenen eşi): grup değil — kendi doğal genişliğinde kalır.
@@ -63,23 +89,23 @@ export const ButtonRow: React.FC<ButtonRowProps> = ({
     );
   }
 
-  const measured = Object.keys(natural).length >= n;
-  const widest = measured ? Math.max(...items.map((_, i) => natural[i] ?? 0)) : 0;
-  const slot = n > 0 ? (width - gap * (n - 1)) / n : 0;
-  const stacked = layout === 'stack' || (n > 1 && measured && width > 0 && widest > slot + EPS);
+  const ready = !measuring || (measured && width > 0) || gaveUp;
 
   return (
     <View style={[styles.container, style]} onLayout={onContainerLayout} testID={testID}>
       <ButtonGroupProvider value>
-        <View testID={testID ? `${testID}-items` : undefined} style={[stacked ? styles.stack : styles.row, { gap }]}>
+        <View
+          testID={testID ? `${testID}-items` : undefined}
+          style={[stackedNow ? styles.stack : styles.row, { gap }, !ready && styles.pending]}
+        >
           {items.map((child, i) => (
-            <View key={(child as React.ReactElement).key ?? i} style={stacked ? styles.stackItem : styles.rowItem}>
+            <View key={keys[i]} style={stackedNow ? styles.stackItem : styles.rowItem}>
               {child}
             </View>
           ))}
         </View>
       </ButtonGroupProvider>
-      {layout === 'auto' && n > 1 ? (
+      {measuring ? (
         <ButtonGroupProvider value={false}>
           <View
             pointerEvents="none"
@@ -90,10 +116,10 @@ export const ButtonRow: React.FC<ButtonRowProps> = ({
           >
             {items.map((child, i) => (
               <View
-                key={(child as React.ReactElement).key ?? i}
+                key={keys[i]}
                 testID={testID ? `${testID}-measure-${i}` : undefined}
                 style={styles.measureItem}
-                onLayout={(e) => onNaturalLayout(i, e)}
+                onLayout={(e) => onNaturalLayout(keys[i]!, e)}
               >
                 {child}
               </View>
@@ -111,6 +137,8 @@ const styles = StyleSheet.create({
   stack: { flexDirection: 'column', alignItems: 'stretch' },
   rowItem: { flex: 1, minWidth: 0 },
   stackItem: { alignSelf: 'stretch' },
+  // Ölçüm gelene dek yerini tutar ama görünmez: ilk karede yan yana → alt alta titremesi olmaz.
+  pending: { opacity: 0 },
   measure: {
     position: 'absolute',
     top: 0,

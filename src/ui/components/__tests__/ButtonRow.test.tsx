@@ -41,6 +41,27 @@ describe('ButtonRow', () => {
     expect(direction()).toBe('column');
   });
 
+  it('ölçüm gelene kadar satır görünmez (opacity 0), gelince görünür', () => {
+    renderRow();
+    const opacity = () => StyleSheet.flatten(screen.getByTestId('row-items').props.style).opacity;
+    expect(opacity()).toBe(0);
+    fireEvent(screen.getByTestId('row'), 'layout', layout(320));
+    fireEvent(measure(0), 'layout', layout(90));
+    fireEvent(measure(1), 'layout', layout(140));
+    expect(opacity()).toBeUndefined();
+  });
+
+  it('bir kez alt alta geçen grup aynı genişlikte yan yana dönmez (histerezis)', () => {
+    renderRow();
+    fireEvent(screen.getByTestId('row'), 'layout', layout(240));
+    fireEvent(measure(0), 'layout', layout(90));
+    fireEvent(measure(1), 'layout', layout(160));
+    expect(direction()).toBe('column');
+    // etiket kısaldı (ör. yükleniyor bitti): sığıyor ama zıplamaz
+    fireEvent(measure(1), 'layout', layout(100));
+    expect(direction()).toBe('column');
+  });
+
   it('layout="stack" her zaman alt alta', () => {
     render(
       <ButtonRow testID="row" layout="stack">
