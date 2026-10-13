@@ -7,8 +7,6 @@ const { colors, radius, spacing } = theme;
 const AVATAR_SIZE = 80;
 /** Fotoğrafın sağ altındaki kamera rozeti. */
 const EDIT_BADGE_SIZE = 28;
-/** Sabit alt barın (lg düğme + iç boşluk) üstünde kalsın. */
-const SNACKBAR_BOTTOM = 96;
 
 // Route-local stylesheet (§12) — D1b referans düzeni: token'lar, bölümler SectionCard.
 export const styles = StyleSheet.create({
@@ -41,9 +39,6 @@ export const styles = StyleSheet.create({
   },
   links: {
     gap: spacing[2],
-  },
-  snackbar: {
-    bottom: SNACKBAR_BOTTOM,
   },
   // LegalIdentityCard
   legalDescription: {

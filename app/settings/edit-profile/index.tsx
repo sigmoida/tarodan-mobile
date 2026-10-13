@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Button, Snackbar } from "@/ui";
+import { Button } from "@/ui";
 import { PageShell } from "@/components/common/PageShell";
 import { useEditProfile } from "./_hooks/useEditProfile";
 import { styles } from "./_lib/styles";
@@ -52,17 +52,6 @@ export default function EditProfileScreen() {
           isLoading={f.updateMutation.isPending}
           disabled={f.updateMutation.isPending}
         />
-      }
-      overlay={
-        <Snackbar
-          visible={f.snackbar.visible}
-          onDismiss={() => f.setSnackbar({ ...f.snackbar, visible: false })}
-          duration={3000}
-          variant={f.snackbar.variant ?? "default"}
-          style={styles.snackbar}
-        >
-          {f.snackbar.message}
-        </Snackbar>
       }
     >
       <AvatarSection f={f} />

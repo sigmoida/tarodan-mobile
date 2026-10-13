@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { userApi, mediaApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { getPhoneInvalidMessage, splitPhone } from '@/utils/phone';
@@ -21,7 +21,7 @@ type UpdateVars = {
 /**
  * Edit-profile controller — owns the RHF+zod form, the avatar pick + upload,
  * the phone country-code, the update mutation (avatar upload → JSON PATCH) and
- * the snackbar. Lifted verbatim from the monolithic screen (§12).
+ * the toast bildirimleri. Lifted verbatim from the monolithic screen (§12).
  */
 export function useEditProfile() {
   const { t } = useTranslation();
@@ -29,11 +29,6 @@ export function useEditProfile() {
   const queryClient = useQueryClient();
 
   const [avatar, setAvatar] = useState<string | null>(null);
-  const [snackbar, setSnackbar] = useState<{
-    visible: boolean;
-    message: string;
-    variant?: 'default' | 'success' | 'danger';
-  }>({ visible: false, message: '' });
 
   const isBusinessTier = (user as any)?.membershipTier === 'business';
 
@@ -141,15 +136,15 @@ export function useEditProfile() {
         clearErrors('phone');
       }
       if (result.outcome === 'unchanged') {
-        setSnackbar({ visible: true, message: t('profile.profileUpdated'), variant: 'success' });
+        toast.success(t('profile.profileUpdated'));
         return;
       }
       if (result.outcome === 'removed') {
-        setSnackbar({ visible: true, message: t('security.phoneRemoved'), variant: 'success' });
+        toast.success(t('security.phoneRemoved'));
         return;
       }
       if (result.outcome === 'notRemoved') {
-        setSnackbar({ visible: true, message: t('security.phoneNotRemoved'), variant: 'danger' });
+        toast.error(t('security.phoneNotRemoved'));
         return;
       }
       // B-1.7 — yeni numara: web gibi kaydı doğrulamaya bağla. Kaydedilmediyse
@@ -169,11 +164,7 @@ export function useEditProfile() {
       );
     },
     onError: (error: any) => {
-      setSnackbar({
-        visible: true,
-        message: error.response?.data?.message || t('collection.updateFailed'),
-        variant: 'danger',
-      });
+      toast.error(error.response?.data?.message || t('collection.updateFailed'));
     },
   });
 
@@ -221,8 +212,6 @@ export function useEditProfile() {
     bioLength,
     companyNameValue,
     updateMutation,
-    snackbar,
-    setSnackbar,
   };
 }
 
