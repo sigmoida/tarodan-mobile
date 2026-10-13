@@ -10,6 +10,8 @@
  * seçersek kapı "tamam" derken taşıyıcıya başka bir adres gider.
  */
 
+import { parseE164TrPhone } from '@/utils/phone';
+
 /** Kapı için gereken alanlar — tam adres modeli değil. */
 export interface DispatchAddressCandidate {
   id?: string;
@@ -29,13 +31,14 @@ export interface DispatchAddressStatus {
 
 /**
  * Saklanan/iletilen biçim: `+90` + 5 ile başlayan 10 haneli cep numarası
- * (`@tarodan/types` `TR_PHONE_E164`). Genel `^\+90\d{10}$` regex'i sabit hatları
- * (`+9021…`) da geçirir; taşıyıcı bunları göndericide reddeder.
+ * (`@tarodan/types` `TR_PHONE_E164`). Kural TEK KAYNAKTAN (`@/utils/phone`
+ * `parseE164TrPhone`: sabit hat `+9021…` reddedilir; taşıyıcı bunları göndericide
+ * reddeder). Kayıt kanonik E.164 olmak zorunda: ayrıştırıcının yeniden yazdığı
+ * ("0532…" -> "+90532…") bir değer olduğu gibi saklı DEĞİLDİR, yani taşıyıcıya
+ * giden değer değildir ve geçerli sayılmaz.
  */
-const TR_MOBILE_E164 = /^\+905\d{9}$/;
-
 export function isValidDispatchPhone(value: string | null | undefined): boolean {
-  return typeof value === 'string' && TR_MOBILE_E164.test(value);
+  return typeof value === 'string' && parseE164TrPhone(value) === value;
 }
 
 export function pickDispatchAddress(

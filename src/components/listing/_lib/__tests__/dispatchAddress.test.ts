@@ -1,3 +1,4 @@
+import { parseE164TrPhone } from '@/utils/phone';
 import {
   dispatchAddressStatus,
   isValidDispatchPhone,
@@ -24,6 +25,23 @@ describe('isValidDispatchPhone', () => {
     [undefined, false],
   ])('%s -> %s', (v, ok) => {
     expect(isValidDispatchPhone(v as string | null | undefined)).toBe(ok);
+  });
+});
+
+describe('isValidDispatchPhone — telefon kuralı @/utils/phone tek kaynağından', () => {
+  it('kanonik E.164 cep numaraları için parseE164TrPhone ile aynı kararı verir', () => {
+    const samples = [
+      '+905321234567', '+905001234567', '+902121234567', '+904321234567', '+90532123456',
+      '+9053212345678', '+905321234567 ', '905321234567', '05321234567', '0090532123456', '+15321234567',
+    ];
+    for (const v of samples) {
+      const canonical = parseE164TrPhone(v) === v;
+      expect(isValidDispatchPhone(v)).toBe(canonical);
+    }
+  });
+  it('ayrıştırıcının yeniden yazdığı kanonik olmayan kayıt (05321234567) geçerli sayılmaz', () => {
+    expect(parseE164TrPhone('05321234567')).toBe('+905321234567');
+    expect(isValidDispatchPhone('05321234567')).toBe(false);
   });
 });
 
