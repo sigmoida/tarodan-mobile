@@ -8,7 +8,7 @@ import { paymentCapabilityHeaders, rememberPaymentCapability } from '@/lib/payme
  * Ödeme başlat + yanıttaki `paymentAccessToken`'ı sakla (web `initiatePayment`).
  * Misafir sonraki public ödeme uçlarında (`X-Payment-Capability`) bununla yetkilenir.
  */
-async function initiatePayment<T = any>(request: Promise<T>): Promise<T> {
+async function initiatePayment<T>(request: Promise<T>): Promise<T> {
   const response = await request;
   rememberPaymentCapability(response);
   return response;

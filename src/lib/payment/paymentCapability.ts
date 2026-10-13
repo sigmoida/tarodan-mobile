@@ -18,9 +18,11 @@
  */
 const tokens = new Map<string, string>();
 
+type InitiateBody = { paymentId?: unknown; paymentAccessToken?: unknown; data?: InitiateBody };
+
 /** Başlatma yanıtında belirteç varsa sakla (`{ data }` sarmalı da olur). */
 export function rememberPaymentCapability(response: unknown): void {
-  const body = (response as { data?: any } | null | undefined)?.data;
+  const body = (response as { data?: InitiateBody } | null | undefined)?.data;
   const data = body?.data ?? body;
   if (typeof data?.paymentId === 'string' && typeof data?.paymentAccessToken === 'string') {
     tokens.set(data.paymentId, data.paymentAccessToken);
