@@ -27,7 +27,7 @@ export function ProductPrice({ product, style, variant, tone, weight }: ProductP
   return (
     <View style={styles.wrap}>
       {onSale ? (
-        <Text variant="caption" tone="muted" style={styles.old} testID="product-price-old">
+        <Text variant="bodySm" tone="subtle" style={styles.old} testID="product-price-old">
           {formatPrice(original)}
         </Text>
       ) : null}

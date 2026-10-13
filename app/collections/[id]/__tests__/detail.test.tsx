@@ -70,18 +70,16 @@ describe('J30 · Koleksiyon detayı render + paylaş/beğeni', () => {
       expect(screen.getByText('Ferrari Koleksiyonum')).toBeOnTheScreen(),
     );
     expect(screen.getByText('En sevdiğim modeller')).toBeOnTheScreen();
-    expect(screen.getByText('Görüntülenme')).toBeOnTheScreen();
+    expect(screen.getByText('42 görüntüleme')).toBeOnTheScreen();
   });
 
-  it('J30.2 beğeni/paylaşım istatistik rozetleri gösterilir', async () => {
-    getMock.mockResolvedValue({ data: { data: collectionFixture({ likeCount: 5, shareCount: 2 }) } });
+  it('J30.2 başlık kartında görüntülenme ve beğeni sayacı (web gibi); üst barda paylaş + beğen', async () => {
+    mockAuth = { isAuthenticated: true, user: { id: 'viewer-9', membershipTier: 'free' } };
+    getMock.mockResolvedValue({ data: { data: collectionFixture({ likeCount: 5 }) } });
     renderWithProviders(<CollectionDetailScreen />);
-    await waitFor(() => expect(screen.getByText('Beğeni')).toBeOnTheScreen());
-    expect(screen.getByText('5')).toBeOnTheScreen();
-    expect(screen.getByText('Paylaşım')).toBeOnTheScreen();
-    // NOT: kalp (beğeni) ve paylaş ikon butonlarında testID/accessibilityLabel yok,
-    // bu yüzden basma davranışı (optimistic artış, login yönlendirme) güvenilir
-    // sorgulanamıyor → missingScreens'e missing-testID olarak raporlandı.
+    await waitFor(() => expect(screen.getByText('5 beğeni')).toBeOnTheScreen());
+    expect(screen.getByLabelText('Paylaş')).toBeOnTheScreen();
+    expect(screen.getByLabelText('beğeni')).toBeOnTheScreen();
   });
 
   it('J30.4 koleksiyon bulunamazsa boş durum gösterilir', async () => {
@@ -100,18 +98,20 @@ describe('J106 · Sahiplik kontrolü (düzenle butonu)', () => {
 
   it('J106.1 sahip ise "Ürün Ekle" kontrolü görünür', async () => {
     mockAuth = { isAuthenticated: true, user: { id: 'owner-1', membershipTier: 'free' } };
-    getMock.mockResolvedValue({ data: { data: collectionFixture({ userId: 'owner-1' }) } });
+    const items = [{ id: 'i1', productId: 'p1', productTitle: 'Ferrari F40', productPrice: 100 }];
+    getMock.mockResolvedValue({ data: { data: collectionFixture({ userId: 'owner-1', items }) } });
     renderWithProviders(<CollectionDetailScreen />);
     await waitFor(() => expect(screen.getByText('Ürün Ekle')).toBeOnTheScreen());
+    expect(screen.getByText('Düzenle')).toBeOnTheScreen();
   });
 
-  it('J106.2 yabancı kullanıcıda sahip kontrolleri gizli (model sayısı gösterilir)', async () => {
+  it('J106.2 yabancı kullanıcıda sahip kontrolleri gizli', async () => {
     mockAuth = { isAuthenticated: true, user: { id: 'stranger-9', membershipTier: 'free' } };
     getMock.mockResolvedValue({ data: { data: collectionFixture({ userId: 'owner-1' }) } });
     renderWithProviders(<CollectionDetailScreen />);
     await waitFor(() => expect(screen.getByText('Ferrari Koleksiyonum')).toBeOnTheScreen());
     expect(screen.queryByText('Ürün Ekle')).toBeNull();
-    expect(screen.getByText('0 model')).toBeOnTheScreen();
+    expect(screen.queryByText('Düzenle')).toBeNull();
   });
 });
 

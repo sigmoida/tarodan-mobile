@@ -1,41 +1,71 @@
 import { View } from 'react-native';
-import { Spinner, Text, EmptyState } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-
-import { styles } from './_lib/collectionStyles';
+import { TopBarAction } from '@/ui';
+import { PageShell } from '@/components/common/PageShell';
+import ReportModal from '@/components/ReportModal';
 import { useCollectionDetail } from './_hooks/useCollectionDetail';
+import { useCollectionReport } from './_hooks/useCollectionReport';
 import { CollectionDetailBody } from './_components/CollectionDetailBody';
 
 /**
- * Collection detail — THIN screen. The `useCollectionDetail` controller owns the
- * query, optimistic like, share, and owner/premium flags; this file renders the
- * loading/not-found gates and delegates the body.
+ * Koleksiyon detayı — PageShell (geri + paylaş/beğen/şikayet) içinde başlık kartı ve öğe ızgarası.
+ * `useCollectionDetail` sorgu, iyimser beğeni, paylaşım ve sahip/premium bayraklarının sahibi.
  */
 export default function CollectionDetailScreen() {
   const { t } = useTranslation();
   const f = useCollectionDetail();
+  const report = useCollectionReport();
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
-  if (f.isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Spinner size="lg" />
-        <Text style={styles.loadingText}>{t('common.loading')}</Text>
-      </View>
-    );
-  }
-
-  if (!f.collection) {
-    return (
-      <EmptyState
-        fullscreen
-        icon="albums-outline"
-        title={t('collection.collectionNotFound')}
-        actionLabel={t('common.goBack')}
-        onAction={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-      />
-    );
-  }
-
-  return <CollectionDetailBody f={f} />;
+  return (
+    <PageShell
+      title=""
+      onBack={goBack}
+      loading={f.isLoading}
+      empty={!f.isLoading && !f.collection}
+      emptyState={{
+        icon: 'albums-outline',
+        title: t('collection.collectionNotFound'),
+        actionLabel: t('common.goBack'),
+        onAction: goBack,
+      }}
+      refreshing={f.refreshing}
+      onRefresh={f.onRefresh}
+      right={
+        f.collection ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TopBarAction icon="share-outline" accessibilityLabel={t('collection.share')} onPress={f.handleShare} />
+            {!f.isOwner ? (
+              <>
+                <TopBarAction
+                  icon={f.isLiked ? 'heart' : 'heart-outline'}
+                  accessibilityLabel={t('collection.likes')}
+                  onPress={f.handleLike}
+                />
+                <TopBarAction
+                  icon="flag-outline"
+                  accessibilityLabel={t('collection.report')}
+                  onPress={report.open}
+                />
+              </>
+            ) : null}
+          </View>
+        ) : undefined
+      }
+      overlay={
+        f.collection ? (
+          <ReportModal
+            visible={report.visible}
+            onDismiss={report.close}
+            type="collection"
+            targetId={String(f.id)}
+            targetName={f.collection.name}
+          />
+        ) : undefined
+      }
+    >
+      {f.collection ? <CollectionDetailBody f={f} /> : null}
+    </PageShell>
+  );
 }

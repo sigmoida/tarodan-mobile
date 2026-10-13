@@ -4,13 +4,10 @@
  * Durum, Fiyat, Seçenekler (takas/indirim/ön sipariş/limited/set).
  */
 import { useMemo, useState } from 'react';
-import {
-  View,
-  ScrollView,
-  Modal,
-  StyleSheet,
-  Pressable,
-} from 'react-native';
+// Tam ekran `pageSheet` filtre paneli (web SidebarFilters mobil çekmecesi): `@/ui` Modal bir diyalog kartıdır,
+// buradaki native sayfa-sheet (iOS) gerekir — platform kalıbı.
+// eslint-disable-next-line @typescript-eslint/no-restricted-imports
+import { View, ScrollView, Modal, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import {
@@ -521,5 +518,5 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border.DEFAULT,
   },
-  footerBtn: { flex: 1, borderRadius: 12 },
+  footerBtn: { flex: 1, borderRadius: theme.radiusRole.button },
 });

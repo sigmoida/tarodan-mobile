@@ -35,11 +35,12 @@ env:
     text: ".*[0-9],[0-9][0-9] TL.*"
     index: 0
 - extendedWaitUntil:
-    visible: "Sepete Ekle"
+    visible:
+      id: "product-price"
     timeout: 30000
 # Heart ikonu — accessibility label'ı "Favoriye Ekle" veya "Beğen" olabilir.
 - tapOn:
-    text: "Favori|Beğen|favorite"
+    id: "product-favorite-button"
     optional: true
 # Profil → Favoriler
 - tapOn:

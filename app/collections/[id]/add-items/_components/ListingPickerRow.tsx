@@ -1,7 +1,6 @@
-import { View, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Text, theme } from '@/ui';
+import { View, Image, Pressable } from 'react-native';
+import { Button, Text } from '@/ui';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
@@ -9,9 +8,7 @@ import type { Listing } from '../_lib/types';
 import type { AddItemsController } from '../_hooks/useAddItems';
 import { formatPrice } from '@/utils/format';
 
-const { colors } = theme;
-
-/** Tek ilan satırı — foto/başlık/fiyat + ekle/çıkar toggle (optimistic). */
+/** Tek ilan satırı — foto/başlık/fiyat + Ekle / Çıkar düğmesi (optimistic). */
 export function ListingPickerRow({ listing, f }: { listing: Listing; f: AddItemsController }) {
   const { t } = useTranslation();
   const added = !!f.effectiveItemId(listing.id);
@@ -19,26 +16,31 @@ export function ListingPickerRow({ listing, f }: { listing: Listing; f: AddItems
 
   return (
     <View style={styles.row}>
-      <TouchableOpacity style={styles.rowContent} onPress={() => router.push(`/product/${listing.id}`)}>
+      <Pressable
+        style={styles.rowContent}
+        onPress={() => router.push(`/product/${listing.id}`)}
+        accessibilityRole="button"
+      >
         <Image source={{ uri: resolveImageUrl(listing.images) }} style={styles.thumb} />
         <View style={styles.rowInfo}>
-          <Text style={styles.rowTitle} numberOfLines={2}>{listing.title}</Text>
-          <Text style={styles.rowPrice}>{formatPrice(listing.price)}</Text>
+          <Text variant="bodySm" weight="semibold" numberOfLines={2}>
+            {listing.title}
+          </Text>
+          <Text variant="bodySm" weight="bold" tone="primary">
+            {formatPrice(listing.price)}
+          </Text>
         </View>
-      </TouchableOpacity>
+      </Pressable>
 
-      <TouchableOpacity
-        style={[styles.toggleBtn, added && styles.toggleBtnAdded]}
+      <Button
+        size="sm"
+        variant={added ? 'primary' : 'outline'}
+        icon={added ? 'checkmark' : 'add'}
         onPress={() => f.toggle(listing)}
+        isLoading={busy}
         disabled={busy}
         accessibilityLabel={added ? t('collection.removeFromCollection') : t('collection.addToCollection')}
-      >
-        {busy ? (
-          <ActivityIndicator size="small" color={added ? colors.white : colors.primary[600]!} />
-        ) : (
-          <Ionicons name={added ? 'checkmark' : 'add'} size={22} color={added ? colors.white : colors.primary[600]!} />
-        )}
-      </TouchableOpacity>
+      />
     </View>
   );
 }

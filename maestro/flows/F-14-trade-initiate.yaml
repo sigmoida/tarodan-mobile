@@ -60,11 +60,23 @@ env:
     index: 0
 - extendedWaitUntil:
     visible:
-      text: "Sepete Ekle"
+      id: "product-price"
     timeout: 30000
-# tradeAvailable ürünlerde "Takas" butonu var
+- scrollUntilVisible:
+    element:
+      id: "product-detail-add-to-cart-button"
+    direction: DOWN
+    timeout: 30000
+- assertVisible: "Sepete Ekle"
+# tradeAvailable ürünlerde "Takas Teklifi" butonu var
+- scrollUntilVisible:
+    element:
+      id: "product-detail-trade-button"
+    direction: DOWN
+    timeout: 15000
+    optional: true
 - tapOn:
-    text: "Takas"
+    id: "product-detail-trade-button"
     optional: true
 # Yasal kimlik eksikse kapı açılır (1.0.6) — çalıştırmada MAESTRO_TEST_TCKN verin.
 - runFlow: ../subflows/pass-identity-gate.yaml

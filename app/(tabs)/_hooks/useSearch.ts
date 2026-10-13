@@ -8,13 +8,12 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatPriceRange } from '@/utils/format';
 
 import { productsApi, searchApi } from '@/lib/api';
 import { useRecentSearchesStore } from '@/stores/recentSearchesStore';
-import { useCartStore } from '@/stores/cartStore';
 import { useProductFilterOptions } from '@/hooks/useProductFilterOptions';
 import {
   EMPTY_FILTERS,
@@ -101,10 +100,6 @@ export function useSearch() {
 
   const { searches, addSearch, removeSearch, clearSearches } = useRecentSearchesStore();
   const recentSearchQueries = searches.map((s) => s.query);
-
-  // Sepetteki ürünler — kart üstünde "Sepette" göstergesi için (sepet değişince güncellenir).
-  const cartItems = useCartStore((s) => s.items);
-  const cartProductIds = useMemo(() => new Set(cartItems.map((i) => i.productId)), [cartItems]);
 
   const [autocompleteOpen, setAutocompleteOpen] = useState(false);
   const [autocompleteQuery, setAutocompleteQuery] = useState('');
@@ -234,10 +229,6 @@ export function useSearch() {
     setSearchQuery('');
   };
 
-  const handleProductPress = (productId: string) => {
-    router.push(`/product/${productId}`);
-  };
-
   // Aktif filtre çipleri (web parity: kaldırılabilir)
   const activeChips: { key: string; label: string; onRemove: () => void }[] = [];
   if (filters.category) activeChips.push({ key: 'cat', label: filters.category, onRemove: () => setFilters({ ...filters, category: '', categoryId: '' }) });
@@ -330,8 +321,6 @@ export function useSearch() {
     suggestionsOpen,
     closeSuggestions,
     applyFacet,
-    // cart
-    cartProductIds,
     // list query
     products,
     total,
@@ -343,7 +332,6 @@ export function useSearch() {
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
-    handleProductPress,
     // collapsible bars + scroll
     listRef,
     headerHeight,

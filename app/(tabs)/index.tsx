@@ -7,23 +7,16 @@ import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useGuestStore } from '@/stores/guestStore';
 import { SignupPrompt } from '@/components/SignupPrompt';
+import { AppShell } from '@/components/shell/AppShell';
 import { goSearch } from './_lib/nav';
-import { styles } from './_lib/styles';
+import { homeStyles as styles } from './_lib/homeStyles';
 import { useHomeData } from './_hooks/useHomeData';
-import { useHomeBadges } from './_hooks/useHomeBadges';
 import { useHomeGuestPrompt } from './_hooks/useHomeGuestPrompt';
-import { HomeHeader } from './_components/HomeHeader';
-import {
-  CategoriesSection,
-  BrandsSection,
-  ScalesSection,
-  FeaturedCollectorSection,
-  BoostedRail,
-  PopularProducts,
-  ProductsGrid,
-  CollectionsSection,
-} from './_components/HomeSections';
-import { CompanyOfWeekSection } from './_components/CompanyOfWeekSection';
+import { HomeSearch } from './_components/HomeSearch';
+import { BrandsStrip } from './_components/HomeBrands';
+import { FeaturedRail, OnSaleRail, TradeRail, PopularRail } from './_components/HomeRails';
+import { TopCollections } from './_components/HomeCollections';
+import { Spotlights } from './_components/HomeSpotlights';
 import { HeroSection } from './_components/HeroSlider';
 import { TrustBadges } from './_components/TrustBadges';
 import { useHomeHero } from './_hooks/useHomeHero';
@@ -34,30 +27,18 @@ import { useAdSession } from '@/lib/ads/useAdSession';
 
 const { colors } = theme;
 
+/**
+ * Ana sayfa — web ana sayfasının bölüm kümesi ve sırası (hero, markalar, Öne Çıkan, İndirimdekiler,
+ * Takas Vitrini, Popüler, En İyi Koleksiyonlar, Haftanın Koleksiyoneri/Şirketi, güven rozetleri).
+ * AppShell (marka barı + arama) içinde; her bölüm SectionCard + "Tümünü gör ›". Veri `useHomeData`.
+ */
 export default function HomeScreen() {
   const { isAuthenticated } = useAuthStore();
   const incrementListingView = useGuestStore((s) => s.incrementListingView);
 
-  const {
-    products,
-    popularProducts,
-    loadingPopular,
-    boostedProducts,
-    loadingBoosted,
-    categories,
-    loadingCategories,
-    collections,
-    loadingCollections,
-    featuredCollector,
-    loadingFeaturedCollector,
-    companyOfWeek,
-    loadingCompanyOfWeek,
-    loadingProducts,
-    refetchProducts,
-  } = useHomeData();
+  const data = useHomeData();
   const hero = useHomeHero();
   const heroView = useHeroVisibility();
-  const counts = useHomeBadges(isAuthenticated);
   const guest = useHomeGuestPrompt(isAuthenticated);
   // Yuvalar (topbar/header/footer) aynı tohumu ve gösterim kümesini paylaşır.
   const adSession = useAdSession();
@@ -77,31 +58,34 @@ export default function HomeScreen() {
       });
   }, []);
 
+  const { refetchAll } = data;
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refetchProducts();
+    await refetchAll();
     setRefreshing(false);
-  }, [refetchProducts]);
+  }, [refetchAll]);
 
   const handleProductPress = (productId: string) => {
     if (!isAuthenticated) incrementListingView();
     router.push(`/product/${productId}`);
   };
 
-  const cardProps = { cartProductIds: counts.cartProductIds, onProductPress: handleProductPress };
-
   return (
-    <View style={[styles.container, { backgroundColor: colors.surface.DEFAULT }]}>
-      <HomeHeader
-        searchQuery={searchQuery}
-        onChangeSearch={setSearchQuery}
-        onSearch={() => goSearch(searchQuery)}
-        counts={counts}
-      />
-
+    <AppShell
+      search={
+        <HomeSearch value={searchQuery} onChange={setSearchQuery} onSearch={() => goSearch(searchQuery)} />
+      }
+    >
       <ScrollView
-        style={styles.scrollView}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary[600]!]} />}
+        style={styles.scroll}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary[600]!]}
+            tintColor={colors.primary[600]!}
+          />
+        }
         showsVerticalScrollIndicator={false}
         onScroll={heroView.onScroll}
         onLayout={heroView.onViewportLayout}
@@ -117,18 +101,20 @@ export default function HomeScreen() {
             visible={heroView.visible}
           />
         </View>
-        <CategoriesSection categories={categories} isLoading={loadingCategories} />
-        <BrandsSection />
-        <ScalesSection />
-        <FeaturedCollectorSection featuredCollector={featuredCollector} isLoading={loadingFeaturedCollector} />
-        <BoostedRail items={boostedProducts} isLoading={loadingBoosted} {...cardProps} />
-        <PopularProducts items={popularProducts} isLoading={loadingPopular} {...cardProps} />
-        <ProductsGrid items={products} isLoading={loadingProducts} {...cardProps} />
-        <CompanyOfWeekSection companyOfWeek={companyOfWeek} isLoading={loadingCompanyOfWeek} />
-        <CollectionsSection collections={collections} isLoading={loadingCollections} />
+
+        <View style={styles.sections}>
+          <BrandsStrip items={data.manufacturers} />
+          <FeaturedRail items={data.featured} isLoading={data.loadingFeatured} onProductPress={handleProductPress} />
+          <OnSaleRail items={data.onSale} isLoading={data.loadingOnSale} onProductPress={handleProductPress} />
+          <TradeRail items={data.trade} isLoading={data.loadingTrade} onProductPress={handleProductPress} />
+          <PopularRail items={data.popular} isLoading={data.loadingPopular} onProductPress={handleProductPress} />
+          <TopCollections items={data.topCollections} isLoading={data.loadingTopCollections} />
+          <Spotlights collector={data.featuredCollector} business={data.featuredBusiness} />
+        </View>
+
         <AdBanner position="footer" session={adSession} />
         <TrustBadges badges={hero.badges} />
-        <View style={{ height: 100 }} />
+        <View style={styles.bottomSpace} />
       </ScrollView>
 
       {/* Popup reklam: misafir kayıt istemi açıkken çıkmaz (iki Modal birden iOS'u dondurur). */}
@@ -137,6 +123,6 @@ export default function HomeScreen() {
       {guest.promptType && (
         <SignupPrompt visible={guest.showPrompt} onDismiss={guest.dismissPrompt} type={guest.promptType} />
       )}
-    </View>
+    </AppShell>
   );
 }

@@ -4,7 +4,7 @@
 #
 # Engel kalıcı ve simetrik olduğu için akış SONUNDA engeli kaldırır (staging
 # verisi kirlenmesin). Metin seçicileri regex: iOS hiyerarşisi etiketleri
-# ", Sepete Ekle" gibi baştaki virgülle veriyor, Maestro ise TAM eşliyor.
+# ", Teklif Ver" gibi baştaki virgülle veriyor, Maestro ise TAM eşliyor.
 appId: ${APP_ID}
 tags:
   - regression
@@ -33,7 +33,7 @@ env:
     index: 0
 - extendedWaitUntil:
     visible:
-      id: "product-detail-add-to-cart-button"
+      id: "product-report-button"
     timeout: 60000
 
 # 2) İlan detayındaki bayrak → şikayet/engelle sheet'i

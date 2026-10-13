@@ -774,7 +774,14 @@
       "detailPlaceholder": "Anything you would like to add",
       "otherPlatformPlaceholder": "Tell us where you sold the item",
       "privacyNote": "Only the Tarodan team sees this; it is never shown on the listing page."
-    }
+    },
+    "stockFinishedDesc": "This product is out of stock and can't be purchased right now.",
+    "statusPendingDesc": "This listing is awaiting admin approval and is not for sale yet.",
+    "statusInactiveDesc": "This listing is not currently published.",
+    "statusRejectedDesc": "This listing was rejected and is not published.",
+    "modelCode": "Model code",
+    "layoutGrid": "Grid",
+    "layoutList": "List"
   },
   "cart": {
     "addToCartFailed": "Could not add to cart",
@@ -2148,7 +2155,8 @@
     "templateF1": "Formula 1",
     "templateMuscle": "Muscle Cars",
     "templateCustom": "Custom Collection",
-    "report": "Report collection"
+    "report": "Report collection",
+    "addedToNamedCollection": "Added to \"{name}\""
   },
   "notification": {
     "notifications": "Notifications",
@@ -8784,6 +8792,12 @@
     }
   },
   "page": {
+    "listings": {
+      "listingstoolbar": {
+        "aZ": "A-Z",
+        "zA": "Z-A"
+      }
+    },
     "messages": {
       "messageticks": {
         "okundu": "Read",

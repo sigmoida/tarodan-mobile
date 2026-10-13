@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { carModelsApi } from '@/lib/api';
+import { qk } from '@/lib/query';
 import { useRefresh } from '@/hooks/useRefresh';
 import type { Brand, CarModel } from '../_lib/types';
 
@@ -14,7 +15,7 @@ export function useModels() {
   const [selectedBrand, setSelectedBrand] = useState<string>('all');
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['car-models'],
+    queryKey: qk.catalog.carModels(),
     queryFn: async () => {
       const response = await carModelsApi.findAll();
       const items: CarModel[] = (response.data as any) ?? [];

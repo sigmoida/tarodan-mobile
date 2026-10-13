@@ -45,8 +45,9 @@ interface CartState {
   deselectedIds: string[];
 
   // Actions
-  addItem: (item: Omit<CartItem, 'id' | 'quantity' | 'addedAt'>) => void;
-  setBuyNow: (item: Omit<CartItem, 'id' | 'quantity' | 'addedAt'>) => void;
+  /** `quantity` (varsayılan 1): ürün detayındaki adet seçici; stok/sipariş sınırını aşamaz. */
+  addItem: (item: Omit<CartItem, 'id' | 'quantity' | 'addedAt'>, quantity?: number) => void;
+  setBuyNow: (item: Omit<CartItem, 'id' | 'quantity' | 'addedAt'>, quantity?: number) => void;
   clearBuyNow: () => void;
   addToCart: (productId: string) => Promise<void>;
   removeItem: (itemId: string) => void;
@@ -73,23 +74,8 @@ interface CartState {
 
 const CART_EXPIRY_HOURS = 24;
 
-/** API tavanı: sunucu DTO'su sepet/sipariş adedini 99 ile sınırlar. */
-const CART_MAX_QTY = 99;
-
-/**
- * Bir sepet satırının çıkabileceği azami adet: yakalanan stok ile sipariş-başı
- * limitin küçüğü, API tavanı (99) ile sınırlı. Bilgi yoksa 99'a düşer
- * (eski davranış; gerçek doğrulama yine checkout'ta yapılır).
- */
-export function maxAllowedQty(item: {
-  stock?: number | null;
-  maxQuantityPerOrder?: number | null;
-}): number {
-  const caps = [item.stock, item.maxQuantityPerOrder].filter(
-    (n): n is number => typeof n === 'number' && n > 0,
-  );
-  return caps.length ? Math.min(CART_MAX_QTY, ...caps) : CART_MAX_QTY;
-}
+export { maxAllowedQty } from './cartLimits';
+import { maxAllowedQty } from './cartLimits';
 
 /** Sepetten düşen satırların seçim kaydını da düşürür (bayat id birikmesin). */
 function pruneDeselected(deselectedIds: string[], removedItemIds: string[]): string[] {
@@ -105,12 +91,12 @@ export const useCartStore = create<CartState>()(
       buyNowItem: null,
       deselectedIds: [],
 
-      setBuyNow: (item) => {
+      setBuyNow: (item, quantity = 1) => {
         set({
           buyNowItem: {
             ...item,
             id: `buynow-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            quantity: 1,
+            quantity: Math.max(1, Math.min(quantity, maxAllowedQty(item))),
             addedAt: Date.now(),
           },
         });
@@ -120,7 +106,7 @@ export const useCartStore = create<CartState>()(
         set({ buyNowItem: null });
       },
 
-      addItem: (item) => {
+      addItem: (item, quantity = 1) => {
         const items = get().items;
         const existingIndex = items.findIndex(i => i.productId === item.productId);
 
@@ -132,7 +118,7 @@ export const useCartStore = create<CartState>()(
             stock: item.stock,
             maxQuantityPerOrder: item.maxQuantityPerOrder,
           };
-          merged.quantity = Math.min(merged.quantity + 1, maxAllowedQty(merged));
+          merged.quantity = Math.min(merged.quantity + quantity, maxAllowedQty(merged));
           merged.addedAt = Date.now();
           newItems[existingIndex] = merged;
           set({ items: newItems, lastUpdated: Date.now() });
@@ -141,7 +127,7 @@ export const useCartStore = create<CartState>()(
           const newItem: CartItem = {
             ...item,
             id: `cart-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            quantity: 1,
+            quantity: Math.max(1, Math.min(quantity, maxAllowedQty(item))),
             addedAt: Date.now(),
           };
           set({ items: [...items, newItem], lastUpdated: Date.now() });

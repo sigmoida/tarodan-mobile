@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
 import { useMutation } from '@tanstack/react-query';
-import { theme, Text, Button, Modal, Input, Textarea, useModalMessage, ModalMessage } from '@/ui';
+import { theme, Text, Alert, Button, Modal, Input, Textarea, useModalMessage, ModalMessage } from '@/ui';
 import { offersApi } from '@/lib/api';
 import { IS_MAESTRO } from '@/config/maestro';
 import { formatPrice } from '../../utils/format';
@@ -88,12 +87,16 @@ export default function MakeOfferModal({
   return (
     <Modal isOpen={visible} onClose={handleClose} title={t('product.makeOffer')}>
       <View>
-        <Text style={styles.productTitle} numberOfLines={2}>
+        <Text variant="bodySm" weight="semibold" numberOfLines={2} style={styles.productTitle}>
           {productTitle}
         </Text>
         <View style={styles.priceRow}>
-          <Text style={styles.priceLabel}>{t('product.listPriceLine')}:</Text>
-          <Text style={styles.priceValue}>{formatPrice(listPrice)}</Text>
+          <Text variant="bodySm" tone="muted">
+            {t('product.listPriceLine')}:
+          </Text>
+          <Text variant="body" weight="bold">
+            {formatPrice(listPrice)}
+          </Text>
         </View>
 
         <Input
@@ -109,12 +112,9 @@ export default function MakeOfferModal({
         />
 
         {numeric > 0 && discount > 0 ? (
-          <View style={styles.discountInfo}>
-            <Ionicons name="trending-down" size={16} color={colors.success[600]!} />
-            <Text style={styles.discountText}>
-              {t('offer.discountBelowListText', { amount: formatPrice(discount), percent: discountPct })}
-            </Text>
-          </View>
+          <Alert variant="success" style={styles.input}>
+            {t('offer.discountBelowListText', { amount: formatPrice(discount), percent: discountPct })}
+          </Alert>
         ) : null}
 
         <Textarea
@@ -127,12 +127,7 @@ export default function MakeOfferModal({
           placeholder={t('product.offerMessagePlaceholder')}
         />
 
-        <View style={styles.warning}>
-          <Ionicons name="information-circle-outline" size={16} color={colors.info[600]!} />
-          <Text style={styles.warningText}>
-            {t('offer.offerDeliveryNotice')}
-          </Text>
-        </View>
+        <Alert variant="info">{t('offer.offerDeliveryNotice')}</Alert>
       </View>
 
       <View style={styles.actions}>
@@ -157,12 +152,7 @@ export default function MakeOfferModal({
 }
 
 const styles = StyleSheet.create({
-  productTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.heading,
-    marginBottom: theme.spacing[2],
-  },
+  productTitle: { marginBottom: theme.spacing[2] },
   priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -171,48 +161,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border.DEFAULT,
     marginBottom: theme.spacing[3],
   },
-  priceLabel: {
-    fontSize: 13,
-    color: colors.text.muted,
-  },
-  priceValue: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.text.heading,
-  },
-  input: {
-    marginBottom: theme.spacing[2.5],
-  },
-  discountInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[1.5],
-    backgroundColor: colors.success[50]!,
-    padding: theme.spacing[2],
-    borderRadius: theme.radius.xl,
-    marginBottom: theme.spacing[3],
-  },
-  discountText: {
-    flex: 1,
-    fontSize: 12,
-    color: colors.success[600]!,
-    fontWeight: '600',
-  },
-  warning: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: theme.spacing[1.5],
-    backgroundColor: colors.info[50]!,
-    padding: theme.spacing[2.5],
-    borderRadius: theme.radius.xl,
-    marginTop: theme.spacing[1],
-  },
-  warningText: {
-    flex: 1,
-    fontSize: 12,
-    color: colors.info[600]!,
-    lineHeight: 16,
-  },
+  input: { marginBottom: theme.spacing[2.5] },
   actions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',

@@ -5,14 +5,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { buildCollectionEditSchema, type CollectionForm, type Collection } from '../_lib/collectionEditSchema';
 
 /**
  * Collection edit controller — owns the collection query, RHF form (zod), the
- * update/delete/remove-item mutations, cover-image picker, and the snackbar.
+ * update/delete/remove-item mutations, cover-image picker; feedback is toast.
  * Lifted verbatim from the monolithic EditCollectionScreen.
  */
 export function useCollectionEdit() {
@@ -22,7 +22,6 @@ export function useCollectionEdit() {
   const queryClient = useQueryClient();
 
   const [coverImage, setCoverImage] = useState<string | null>(null);
-  const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
 
   // Fetch collection
   const { data: collection, isLoading } = useQuery<Collection>({
@@ -85,10 +84,10 @@ export function useCollectionEdit() {
       queryClient.invalidateQueries({ queryKey: ['collection', id] });
       queryClient.invalidateQueries({ queryKey: ['collections'] });
       queryClient.invalidateQueries({ queryKey: ['my-collections'] });
-      setSnackbar({ visible: true, message: t('collection.collectionUpdated') });
+      toast.success(t('collection.collectionUpdated'));
     },
     onError: (error: any) => {
-      setSnackbar({ visible: true, message: error.response?.data?.message || t('collection.updateFailed') });
+      toast.error(error.response?.data?.message || t('collection.updateFailed'));
     },
   });
 
@@ -98,11 +97,11 @@ export function useCollectionEdit() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collections'] });
       queryClient.invalidateQueries({ queryKey: ['my-collections'] });
-      setSnackbar({ visible: true, message: t('collection.collectionDeleted') });
+      toast.success(t('collection.collectionDeleted'));
       setTimeout(() => router.replace('/collections'), 1500);
     },
     onError: (error: any) => {
-      setSnackbar({ visible: true, message: error.response?.data?.message || t('collection.deleteFailed') });
+      toast.error(error.response?.data?.message || t('collection.deleteFailed'));
     },
   });
 
@@ -111,10 +110,10 @@ export function useCollectionEdit() {
     mutationFn: (itemId: string) => api.delete(`/collections/${id}/items/${itemId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collection', id] });
-      setSnackbar({ visible: true, message: t('collection.productRemoved') });
+      toast.success(t('collection.productRemoved'));
     },
     onError: (error: any) => {
-      setSnackbar({ visible: true, message: error.response?.data?.message || t('collection.removeFailed') });
+      toast.error(error.response?.data?.message || t('collection.removeFailed'));
     },
   });
 
@@ -169,8 +168,6 @@ export function useCollectionEdit() {
     handleDelete,
     handleRemoveItem,
     onSubmit,
-    snackbar,
-    setSnackbar,
   };
 }
 
