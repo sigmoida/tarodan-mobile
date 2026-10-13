@@ -5,18 +5,27 @@
  * Backend içerik filtresi uygulaması, escrow, onay akışı backend-only.
  */
 import React from 'react';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { Modal } from 'react-native';
+import { act, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { renderWithProviders } from '@/test-utils';
 
 import { useFocusEffect } from 'expo-router';
-import { resetRouterMocks } from '@/test-utils/router-mock';
+import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
 
 jest.mock('expo-router', () => ({
   ...require('@/test-utils/router-mock').routerMock,
   useFocusEffect: jest.fn(),
   useLocalSearchParams: () => ({ threadId: 't1' }),
+}));
+
+// Engelleme/şikayet paylaşılan hook (kendi süiti var): burada yalnız başlık menüsünün bağlantısı.
+const mockRequestBlock = jest.fn();
+let mockIsBlocked = false;
+jest.mock('@/hooks/useBlockUser', () => ({
+  useBlockStatus: () => ({ isBlocked: mockIsBlocked }),
+  useBlockUser: () => ({ requestBlock: mockRequestBlock, requestUnblock: jest.fn(), pending: false }),
 }));
 
 jest.mock('expo-image-picker', () => ({
@@ -299,5 +308,68 @@ describe('mesaj eki görselleri — bearer + şema beyaz listesi', () => {
         content: 'şuna bak [IMG:https://api.tarodan.com/api/media/message-attachment/new-1]',
       }),
     );
+  });
+});
+
+/**
+ * Başlık menüsü: `appAlert` düğmeleri değil `ActionSheet`. Eylemler sheet kapandıktan SONRA
+ * çalışır (şikayet penceresi / engel onayı için 300 ms zamanlayıcı hack'i kalktı, §12).
+ */
+describe('başlık menüsü (ActionSheet)', () => {
+  beforeEach(() => {
+    resetRouterMocks();
+    mockMarkAsRead.mockReset();
+    mockAuth = { user: { id: 'me' }, limits: { maxMessagesPerDay: 50 }, token: 'test-token' };
+    mockStore = makeStore();
+    mockDaily = { remaining: 50, limit: 50 };
+    mockThreadQuery = makeThreadQuery();
+    mockMessagesQuery = makeMessagesQuery([]);
+    mockRequestBlock.mockClear();
+    mockIsBlocked = false;
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+    jest.useRealTimers();
+  });
+
+  const openMenu = () => fireEvent.press(screen.getByLabelText('Daha Fazla'));
+  const nativeDismiss = () =>
+    act(() => {
+      // Sayfada ReportModal'ın da Modal'ı var: kapanış sinyali sheet'inkinde (onDismiss).
+      screen.UNSAFE_getAllByType(Modal).find((m) => m.props.onDismiss)?.props.onDismiss();
+    });
+
+  it('menü açılır: Profil, Şikayet, Engelle (yıkıcı) + Vazgeç; appAlert çağrılmaz', () => {
+    const { appAlert } = jest.requireMock('@/ui') as { appAlert: jest.Mock };
+    renderWithProviders(<MessageThreadScreen />);
+    expect(screen.queryByTestId('thread-menu-sheet')).toBeNull();
+    openMenu();
+    expect(screen.getByTestId('thread-menu-sheet')).toBeOnTheScreen();
+    expect(screen.getByTestId('thread-menu-sheet-action-0')).toBeOnTheScreen();
+    expect(screen.getByTestId('thread-menu-sheet-action-1')).toBeOnTheScreen();
+    expect(screen.getByTestId('thread-menu-sheet-action-2')).toBeOnTheScreen();
+    expect(screen.getByTestId('thread-menu-sheet-cancel')).toBeOnTheScreen();
+    expect(appAlert).not.toHaveBeenCalled();
+  });
+
+  it('Profil: kapanıştan sonra satıcı profiline gider', () => {
+    renderWithProviders(<MessageThreadScreen />);
+    openMenu();
+    fireEvent.press(screen.getByTestId('thread-menu-sheet-action-0'));
+    expect(pushMock).not.toHaveBeenCalled();
+    nativeDismiss();
+    expect(pushMock).toHaveBeenCalledWith('/seller/u2');
+  });
+
+  it('Engelle: onay kapanıştan sonra istenir', () => {
+    renderWithProviders(<MessageThreadScreen />);
+    openMenu();
+    fireEvent.press(screen.getByTestId('thread-menu-sheet-action-2'));
+    expect(mockRequestBlock).not.toHaveBeenCalled();
+    nativeDismiss();
+    expect(mockRequestBlock).toHaveBeenCalledWith('u2', 'Ayşe');
   });
 });

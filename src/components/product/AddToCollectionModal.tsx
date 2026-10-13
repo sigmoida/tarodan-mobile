@@ -1,13 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Pressable, Image } from 'react-native';
+import React, { useCallback } from 'react';
+import { FlatList, Image, Platform, Pressable, StyleSheet, View, type ListRenderItem } from 'react-native';
+import { router } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { theme, Text, Button, EmptyState, Modal, Input, Textarea, Spinner, Switch, useModalMessage, ModalMessage, ButtonRow } from '@/ui';
-import { collectionsApi } from '@/lib/api';
+import {
+  theme,
+  Text,
+  Button,
+  EmptyState,
+  ErrorState,
+  Spinner,
+  BottomSheet,
+  useBottomSheet,
+  toast,
+} from '@/ui';
+import { collectionsApi, errorText } from '@/lib/api';
 import { qk } from '@/lib/query';
+import { useAuthStore } from '@/stores/authStore';
 import { transformImageUrl } from '../../utils/imageUrl';
 
-const { colors } = theme;
+const { colors, spacing } = theme;
 
 interface AddToCollectionModalProps {
   visible: boolean;
@@ -25,11 +37,14 @@ interface CollectionItem {
   isPublic?: boolean;
 }
 
+/** Bu sayıdan çok koleksiyonda sheet "large" (uzun sanal liste); azında içerik kadar. */
+const LARGE_SHEET_MIN_ITEMS = 5;
+
 /**
- * "Koleksiyona Ekle" modal'ı.
- * - Kullanıcının koleksiyonlarını çeker (collectionsApi.getMyCollections).
- * - Birini seçince `collectionsApi.addItem(collectionId, { productId })`.
- * - "Yeni Koleksiyon Oluştur" seçeneği de var.
+ * "Koleksiyona Ekle" — `BottomSheet`: kullanıcının koleksiyonları sanal listede (FlatList),
+ * satıra basınca sheet kapanır ve ürün ekleme ARDINDAN çalışır (sonuç toast). "Yeni koleksiyon"
+ * ayrı ekrana gider (`/collections/new?addProductId=…`): oluşturulunca ürün oraya eklenip
+ * kullanıcı ürün sayfasına döner. Çok alanlı form sheet'te değil, kendi ekranında.
  *
  * Web `apps/web/src/app/listings/[id]/page.tsx:461-477` referans alındı.
  */
@@ -41,15 +56,8 @@ export default function AddToCollectionModal({
 }: AddToCollectionModalProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const msg = useModalMessage();
-
-  useEffect(() => {
-    msg.clear();
-  }, [visible]);
-  const [creating, setCreating] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newDescription, setNewDescription] = useState('');
-  const [newPublic, setNewPublic] = useState(true);
+  const canCreateCollections = useAuthStore((s) => Boolean(s.limits?.canCreateCollections));
+  const userId = useAuthStore((s) => s.user?.id);
 
   const myCollectionsQuery = useQuery({
     queryKey: qk.collections.mine,
@@ -66,208 +74,156 @@ export default function AddToCollectionModal({
   });
   const collections = myCollectionsQuery.data ?? [];
 
-  // Koleksiyon ekleme/oluşturma sonrası TÜM koleksiyon görünümlerini tazele:
-  // liste (qk.collections.mine — artık ayarlar listesi de bu anahtarı kullanıyor,
-  // eski ['myCollections'] adası #78'de birleştirildi), profil garajı + sayaç
-  // (profile-collections) ve koleksiyon detayı.
-  const invalidateCollectionQueries = (collectionId?: string) => {
+  // Ekleme sonrası TÜM koleksiyon görünümlerini tazele: liste (qk.collections.mine), profil
+  // garajı + sayaç (profile-collections) ve koleksiyon detayı.
+  const invalidateCollectionQueries = (collectionId: string) => {
     queryClient.invalidateQueries({ queryKey: qk.collections.mine });
-    queryClient.invalidateQueries({ queryKey: ['profile-collections'] });
-    if (collectionId) {
-      queryClient.invalidateQueries({ queryKey: qk.collections.detail(collectionId) });
-    }
+    if (userId) queryClient.invalidateQueries({ queryKey: qk.collections.profile(userId) });
+    queryClient.invalidateQueries({ queryKey: qk.collections.detail(collectionId) });
   };
 
   const addToCollectionMutation = useMutation({
-    mutationFn: ({ collectionId }: { collectionId: string }) =>
+    mutationFn: ({ collectionId }: { collectionId: string; name: string }) =>
       collectionsApi.addItem(collectionId, { productId }),
     onSuccess: (_data, variables) => {
       invalidateCollectionQueries(variables.collectionId);
-      const found = collections.find((c) => c.id === variables.collectionId);
-      onSuccess?.(found?.name ?? 'Koleksiyon');
-      onDismiss();
+      onSuccess?.(variables.name);
     },
-    onError: (e: any) => {
-      msg.error(e?.response?.data?.message || t('collection.addItemFailed'));
+    onError: (e) => {
+      toast.error(errorText(e, t('collection.addItemFailed')));
     },
   });
 
-  const createCollectionMutation = useMutation({
-    mutationFn: async () => {
-      const response: any = await collectionsApi.create({
-        name: newName.trim(),
-        description: newDescription.trim() || undefined,
-        isPublic: newPublic,
-      });
-      const created = response.data?.data ?? response.data;
-      const newId = created?.id;
-      if (!newId) throw new Error(t('collection.createNoIdError'));
-      // Koleksiyona ürünü ekle
-      await collectionsApi.addItem(newId, { productId });
-      return { id: newId, name: newName.trim() };
-    },
-    onSuccess: (result) => {
-      invalidateCollectionQueries(result.id);
-      onSuccess?.(result.name);
-      handleClose();
-    },
-    onError: (e: any) => {
-      msg.error(e?.response?.data?.message || t('collection.createCollectionFailed'));
-    },
-  });
+  // Satır eylemi sheet TAMAMEN kapandıktan sonra çalışır (`runAfterClose`): sonuç toast'ı
+  // açık native Modal'ın altında kalmaz.
+  const { mutate: addToCollection } = addToCollectionMutation;
+  const onSelect = useCallback(
+    (c: CollectionItem) => addToCollection({ collectionId: c.id, name: c.name }),
+    [addToCollection],
+  );
 
-  const handleClose = () => {
-    msg.clear();
-    setCreating(false);
-    setNewName('');
-    setNewDescription('');
-    setNewPublic(true);
-    onDismiss();
-  };
-
-  const handleCreateSubmit = () => {
-    msg.clear();
-    if (!newName.trim()) {
-      msg.error(t('collection.nameRequiredShort'));
-      return;
-    }
-    createCollectionMutation.mutate();
-  };
+  const renderItem = useCallback<ListRenderItem<CollectionItem>>(
+    ({ item }) => <CollectionRow collection={item} onSelect={onSelect} />,
+    [onSelect],
+  );
 
   return (
-    <Modal
+    <BottomSheet
       isOpen={visible}
-      onClose={handleClose}
-      title={creating ? t('collection.newCollectionTitle') : t('collection.addToCollection')}
-      // Liste modu kendi ScrollView'ını taşır (çift kaydırma olmasın); yeni koleksiyon formu modal gövdesinde kayar.
-      scrollable={creating}
+      onClose={onDismiss}
+      title={t('collection.addToCollection')}
+      size={collections.length >= LARGE_SHEET_MIN_ITEMS ? 'large' : 'fit'}
+      scrollable={false}
+      flushBody
+      footer={canCreateCollections ? <NewCollectionButton productId={productId} /> : undefined}
+      testID="add-to-collection-sheet"
     >
-      {creating ? (
-        <View>
-          <Input
-            label={t('collection.collectionNameLabel')}
-            value={newName}
-            onChangeText={setNewName}
-            maxLength={60}
-            containerStyle={styles.input}
-          />
-          <Textarea
-            label={t('collection.descriptionOptionalLabel')}
-            value={newDescription}
-            onChangeText={setNewDescription}
-            rows={3}
-            maxLength={300}
-            containerStyle={styles.input}
-          />
-          <View style={styles.toggleRow}>
-            <Text variant="bodySm" style={styles.toggleText}>
-              {newPublic ? t('collection.publicToggleLabel') : t('collection.privateToggleLabel')}
-            </Text>
-            <Switch value={newPublic} onValueChange={setNewPublic} />
-          </View>
+      {myCollectionsQuery.isLoading ? (
+        <View style={styles.loading}>
+          <Spinner size="lg" />
         </View>
+      ) : myCollectionsQuery.isError ? (
+        <ErrorState
+          placement="inline"
+          title={t('collection.loadFailed')}
+          onRetry={() => myCollectionsQuery.refetch()}
+          testID="add-to-collection-error"
+        />
       ) : (
-        <View style={styles.scrollArea}>
-          {myCollectionsQuery.isLoading ? (
-            <View style={styles.loading}>
-              <Spinner size="lg" />
-            </View>
-          ) : (
-            <ScrollView keyboardShouldPersistTaps="handled">
-              <Pressable style={styles.createNewRow} onPress={() => setCreating(true)} accessibilityRole="button">
-                <Text variant="bodySm" weight="bold" tone="primary">
-                  {t('collection.createNewCollection')}
-                </Text>
-              </Pressable>
-
-              {collections.length === 0 ? (
-                <EmptyState placement="inline"
-                  icon="rectangle-stack"
-                  title={t('collection.noCollections')}
-                  subtitle={t('emptyState.createCollectionHint')}
-                />
-              ) : (
-                collections.map((c) => (
-                  <Pressable
-                    key={c.id}
-                    style={styles.collectionRow}
-                    onPress={() => addToCollectionMutation.mutate({ collectionId: c.id })}
-                    disabled={addToCollectionMutation.isPending}
-                    accessibilityRole="button"
-                  >
-                    <View style={styles.cover}>
-                      {c.coverImageUrl ? (
-                        <Image source={{ uri: transformImageUrl(c.coverImageUrl) }} style={styles.coverImage} />
-                      ) : (
-                        <Text variant="body" weight="bold" tone="primary">
-                          {c.name.charAt(0).toUpperCase()}
-                        </Text>
-                      )}
-                    </View>
-                    <View style={styles.flex}>
-                      <Text variant="bodySm" weight="semibold" numberOfLines={1}>
-                        {c.name}
-                      </Text>
-                      <Text variant="caption" tone="muted">
-                        {t('collection.itemCountSuffix', { count: c.itemCount ?? 0 })} ·{' '}
-                        {c.isPublic ? t('collection.publicShort') : t('collection.privateShort')}
-                      </Text>
-                    </View>
-                  </Pressable>
-                ))
-              )}
-            </ScrollView>
-          )}
-        </View>
+        <FlatList
+          data={collections}
+          keyExtractor={(c) => c.id}
+          renderItem={renderItem}
+          keyboardShouldPersistTaps="handled"
+          initialNumToRender={12}
+          ListEmptyComponent={
+            <EmptyState
+              placement="inline"
+              icon="rectangle-stack"
+              title={t('collection.noCollections')}
+              subtitle={t('emptyState.createCollectionHint')}
+              testID="add-to-collection-empty"
+            />
+          }
+          testID="add-to-collection-list"
+        />
       )}
+    </BottomSheet>
+  );
+}
 
-      <ButtonRow style={{ marginTop: theme.spacing[3] }}>
-        {creating ? (
-          <>
-            <Button
-              variant="ghost"
-              title={t('common.back')}
-              onPress={() => setCreating(false)}
-              disabled={createCollectionMutation.isPending}
-            />
-            <Button
-              variant="primary"
-              title={t('collection.createAndAdd')}
-              onPress={handleCreateSubmit}
-              isLoading={createCollectionMutation.isPending}
-              disabled={!newName.trim() || createCollectionMutation.isPending}
-            />
-          </>
+function CollectionRowInner({
+  collection: c,
+  onSelect,
+}: {
+  collection: CollectionItem;
+  onSelect: (c: CollectionItem) => void;
+}) {
+  const { t } = useTranslation();
+  const { runAfterClose } = useBottomSheet();
+  return (
+    <Pressable
+      testID={`add-to-collection-row-${c.id}`}
+      style={({ pressed }) => [styles.collectionRow, pressed && Platform.OS === 'ios' && styles.rowPressed]}
+      android_ripple={Platform.OS === 'android' ? { color: colors.overlay.black10 } : undefined}
+      onPress={() => runAfterClose(() => onSelect(c))}
+      accessibilityRole="button"
+    >
+      <View style={styles.cover}>
+        {c.coverImageUrl ? (
+          <Image source={{ uri: transformImageUrl(c.coverImageUrl) }} style={styles.coverImage} />
         ) : (
-          <Button variant="ghost" title={t('common.close')} onPress={handleClose} />
+          <Text variant="body" weight="bold" tone="primary">
+            {c.name.charAt(0).toUpperCase()}
+          </Text>
         )}
-      </ButtonRow>
-      <ModalMessage state={msg.state} />
-    </Modal>
+      </View>
+      <View style={styles.flex}>
+        <Text variant="bodySm" weight="semibold" numberOfLines={1}>
+          {c.name}
+        </Text>
+        <Text variant="caption" tone="muted">
+          {t('collection.itemCountSuffix', { count: c.itemCount ?? 0 })} ·{' '}
+          {c.isPublic ? t('collection.publicShort') : t('collection.privateShort')}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
+const CollectionRow = React.memo(CollectionRowInner);
+
+/** "Yeni koleksiyon": sheet kapandıktan sonra mevcut oluşturma ekranına (ürün param ile taşınır). */
+function NewCollectionButton({ productId }: { productId: string }) {
+  const { t } = useTranslation();
+  const { runAfterClose } = useBottomSheet();
+  return (
+    <Button
+      variant="outline"
+      fullWidth
+      title={t('collection.createNewCollection')}
+      onPress={() =>
+        runAfterClose(() => router.push({ pathname: '/collections/new', params: { addProductId: productId } }))
+      }
+      testID="add-to-collection-new"
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  scrollArea: { maxHeight: 380 },
-  loading: { paddingVertical: theme.spacing[8], alignItems: 'center' },
+  loading: { paddingVertical: spacing[8], alignItems: 'center' },
   flex: { flex: 1 },
-  createNewRow: {
-    minHeight: theme.minTouchTarget,
-    justifyContent: 'center',
-    paddingHorizontal: theme.spacing[4],
-    paddingVertical: theme.spacing[3],
-    backgroundColor: colors.primary[50]!,
-  },
   collectionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing[3],
+    gap: spacing[3],
     minHeight: theme.minTouchTarget,
-    paddingHorizontal: theme.spacing[4],
-    paddingVertical: theme.spacing[3],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border.subtle,
   },
+  rowPressed: { backgroundColor: colors.surface.alt },
   cover: {
     width: theme.controlHeight.md,
     height: theme.controlHeight.md,
@@ -278,12 +234,4 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   coverImage: { width: '100%', height: '100%' },
-  input: { marginBottom: theme.spacing[3] },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[2],
-    paddingVertical: theme.spacing[2],
-  },
-  toggleText: { flex: 1 },
 });

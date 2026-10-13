@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/ui';
-import { api } from '@/lib/api';
+import { api, collectionsApi } from '@/lib/api';
+import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import { buildCollectionSchema, type CollectionForm } from '../_lib/schema';
 import { buildCollectionTemplates, type CollectionTemplate } from '../_lib/templates';
@@ -15,10 +16,14 @@ import { buildCollectionTemplates, type CollectionTemplate } from '../_lib/templ
  * New-collection controller — owns the RHF+zod form, cover-image pick, template
  * selection, and the create mutation (JSON create → optional multipart cover
  * upload). Lifted verbatim from the monolithic screen (§12).
+ *
+ * `addProductId` route param ("Koleksiyona ekle" sheet'inden "Yeni koleksiyon"): oluşturulan
+ * koleksiyona o ürün de eklenir ve kullanıcı ürün sayfasına döner (web'deki modal akışı gibi).
  */
 export function useNewCollection() {
   const { t } = useTranslation();
-  const { isAuthenticated, limits } = useAuthStore();
+  const { isAuthenticated, limits, user } = useAuthStore();
+  const { addProductId } = useLocalSearchParams<{ addProductId?: string }>();
   const queryClient = useQueryClient();
 
   const [coverImage, setCoverImage] = useState<string | null>(null);
@@ -66,13 +71,37 @@ export function useNewCollection() {
         });
       }
 
-      return res;
+      // "Koleksiyona ekle" akışı: ürün yeni koleksiyona eklenir. Başarısızlık koleksiyonu geri
+      // almaz (oluştu); kullanıcıya hata söylenir ve koleksiyon sayfasına gidilir.
+      let productAdded = true;
+      if (addProductId) {
+        try {
+          await collectionsApi.addItem(res.data.id, { productId: addProductId });
+        } catch {
+          productAdded = false;
+        }
+      }
+
+      return { res, productAdded };
     },
-    onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ['collections'] });
-      queryClient.invalidateQueries({ queryKey: ['my-collections'] });
+    onSuccess: ({ res, productAdded }, variables) => {
+      queryClient.invalidateQueries({ queryKey: qk.collections.all });
+      queryClient.invalidateQueries({ queryKey: qk.collections.mine });
+      queryClient.invalidateQueries({ queryKey: qk.collections.detail(res.data.id) });
+      if (user?.id) queryClient.invalidateQueries({ queryKey: qk.collections.profile(user.id) });
+      if (addProductId) {
+        if (productAdded) {
+          toast.success(t('collection.addedToNamedCollection', { name: variables.name }));
+          if (router.canGoBack()) router.back();
+          else router.replace(`/product/${addProductId}`);
+        } else {
+          toast.error(t('collection.addItemFailed'));
+          router.replace(`/collections/${res.data.id}`);
+        }
+        return;
+      }
       toast.success(t('collection.collectionCreated'));
-      setTimeout(() => router.replace(`/collections/${response.data.id}`), 1500);
+      setTimeout(() => router.replace(`/collections/${res.data.id}`), 1500);
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || t('collection.createCollectionFailed'));
