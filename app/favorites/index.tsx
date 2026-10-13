@@ -1,14 +1,13 @@
 /**
  * Favorilerim — yığın ekranı (yan menü / profil / reklam bağlantılarından açılır): PageShell (beyaz
  * üst bar + geri oku, başlıkta sayaç) + ürün satırları. Misafir = giriş EmptyState, ilk yükleme =
- * Skeleton, hata = ErrorState + yeniden dene, boş = EmptyState. Sepete ekleme geri bildirimi
- * "Sepete git" eylemli olduğundan Snackbar (toast eylem desteklemez); Snackbar `overlay`'de durur.
- * URL `/favorites`.
+ * Skeleton, hata = ErrorState + yeniden dene, boş = EmptyState. Kaldırma / sepet geri bildirimi
+ * eylemsiz `toast` (hook'ta; web ile aynı). URL `/favorites`.
  */
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, ErrorState, Snackbar, pageListContentStyle, usePageScrollHandler } from '@/ui';
+import { Button, EmptyState, ErrorState, pageListContentStyle, usePageScrollHandler } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { useFavoritesScreen } from './_hooks/useFavoritesScreen';
@@ -46,16 +45,6 @@ export default function FavoritesScreen() {
       title={`${t('favorites.myFavorites')} (${f.getFavoriteCount()})`}
       mode="list"
       scroll={page}
-      overlay={
-        <Snackbar
-          visible={f.snackbar.visible}
-          onDismiss={() => f.setSnackbar({ ...f.snackbar, visible: false })}
-          duration={2000}
-          action={{ label: t('product.goToCart'), onPress: () => router.push('/cart') }}
-        >
-          {f.snackbar.message}
-        </Snackbar>
-      }
     >
       <Animated.FlatList
         {...page.listProps}

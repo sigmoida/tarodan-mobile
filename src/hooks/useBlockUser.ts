@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { userApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/api/errorText';
 import { qk } from '@/lib/query';
 import { appAlert, toast } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
@@ -80,7 +81,7 @@ export function useBlockUser(options?: {
   /** Engel konduktan sonra (ör. DM ekranından çıkmak için). */
   onBlocked?: () => void;
   onUnblocked?: () => void;
-  /** Kendi bildirimini geçmeyen ekranda başarı toast, hata appAlert olur. */
+  /** Kendi bildirimini geçmeyen ekranda başarı `toast.success`, hata `toast.error` olur. */
   notify?: (message: string, type: 'success' | 'error') => void;
 }) {
   const { t } = useTranslation();
@@ -95,7 +96,7 @@ export function useBlockUser(options?: {
   const tell = (message: string, type: 'success' | 'error') => {
     if (options?.notify) options.notify(message, type);
     else if (type === 'success') toast.success(message);
-    else appAlert(t('common.error'), message);
+    else toast.error(message);
   };
 
   const blockMutation = useMutation({
@@ -106,7 +107,7 @@ export function useBlockUser(options?: {
       options?.onBlocked?.();
     },
     onError: (error: any) => {
-      tell(error?.response?.data?.message || t('profile.blockFailed'), 'error');
+      tell(apiErrorMessage(error, t('profile.blockFailed')), 'error');
     },
   });
 
@@ -118,7 +119,7 @@ export function useBlockUser(options?: {
       options?.onUnblocked?.();
     },
     onError: (error: any) => {
-      tell(error?.response?.data?.message || t('profile.unblockFailed'), 'error');
+      tell(apiErrorMessage(error, t('profile.unblockFailed')), 'error');
     },
   });
 

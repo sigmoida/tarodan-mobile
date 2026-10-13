@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { toast } from '@/ui';
 import { useFavorites, type WishlistItem } from '@/hooks/useFavorites';
 import { useAuthStore } from '@/stores/authStore';
 import { useCartStore } from '@/stores/cartStore';
@@ -10,8 +11,9 @@ import { formatPrice } from '@/utils/format';
 
 /**
  * Favorites-screen controller — wraps the useFavorites + cartStore hooks with
- * the screen's focus fetch, remove, cart-toggle and snackbar. Lifted verbatim
- * from the monolithic screen (§12).
+ * the screen's focus fetch, remove and cart-toggle. Feedback is an actionless
+ * `toast.success` / `toast.error` (web parity) — the old Snackbar offered the
+ * cart action on EVERY message, errors included.
  */
 export function useFavoritesScreen() {
   const { t } = useTranslation();
@@ -21,7 +23,6 @@ export function useFavoritesScreen() {
   // Sepet yazmaları üyede sunucuya da aynalanır.
   const cart = useCartSync();
   const [refreshing, setRefreshing] = useState(false);
-  const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
 
   useFocusEffect(
     useCallback(() => {
@@ -39,17 +40,15 @@ export function useFavoritesScreen() {
 
   const handleRemove = async (productId: string) => {
     const success = await removeFromFavorites(productId);
-    setSnackbar({
-      visible: true,
-      message: success ? t('product.removedFromFavorites') : t('utility.error500.title'),
-    });
+    if (success) toast.success(t('product.removedFromFavorites'));
+    else toast.error(t('utility.error500.title'));
   };
 
   // Toggle: sepetteyse çıkar, değilse ekle (tekrar basınca adet artırmasın).
   const handleToggleCart = (item: WishlistItem) => {
     if (isInCart(item.productId)) {
       cart.removeByProductId(item.productId);
-      setSnackbar({ visible: true, message: t('cart.removedFromCart') });
+      toast.success(t('cart.removedFromCart'));
       return;
     }
     const product = item.product;
@@ -60,7 +59,7 @@ export function useFavoritesScreen() {
       imageUrl: getImageUrlFromUtils(product.images),
       seller: product.seller,
     });
-    setSnackbar({ visible: true, message: t('cart.addedToCart') });
+    toast.success(t('cart.addedToCart'));
   };
 
   return {
@@ -76,8 +75,6 @@ export function useFavoritesScreen() {
     handleRemove,
     handleToggleCart,
     formatPrice,
-    snackbar,
-    setSnackbar,
   };
 }
 
