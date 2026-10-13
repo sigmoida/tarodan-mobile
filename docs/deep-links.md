@@ -235,11 +235,17 @@ ortadan kalktı. Uygulanan hâli:
   "supportsTablet": true,
   "bundleIdentifier": "com.tarodan.app",
   "associatedDomains": [
-    "applinks:tarodan.com.tr",
-    "applinks:staging.tarodan.com.tr"
+    "applinks:tarodan.com.tr"
   ]
 }
 ```
+
+> **Güncelleme (parite C-5.2):** production `app.json` yalnız prod alan adını
+> taşır — hem `associatedDomains` hem Android intent filter'ı. Staging host'u
+> `paths.json#stagingHosts` içinde tutulur; `app.config.js` yalnız staging
+> profilinde (`EXPO_PUBLIC_ENVIRONMENT=preview`) Android intent filter'ına ekler.
+> iOS staging'de `associatedDomains` hiç yok (bkz. `app.config.js`). Well-known
+> dosyaları yine **iki** alan adında yayınlanır (`hosts`).
 
 Ardından **yeni build** gerekir — `associatedDomains` bir entitlement, OTA
 güncellemesiyle geçmez.

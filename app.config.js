@@ -25,6 +25,30 @@
 
 const STAGING_SUFFIX = '.staging';
 
+// Staging alan adı(ları): src/lib/deeplinks/paths.json tek kaynak. app.json'daki
+// production config bunları İÇERMEZ (Play/App Store incelemesinde staging host'u
+// görünmesin, autoVerify yalnız prod alan adına baksın); yalnız staging
+// profilinde Android intent filter'ına eklenir.
+const { stagingHosts } = require('./src/lib/deeplinks/paths.json');
+
+/**
+ * Android intent filter'larının `data` listesinde, mevcut son `host`
+ * girdisinin hemen ardına staging host'larını ekler. Girdi değiştirilmez.
+ */
+function withStagingHosts(intentFilters = []) {
+  return intentFilters.map((filter) => {
+    const data = filter.data ?? [];
+    const lastHost = data.reduce((acc, d, i) => (d.host ? i : acc), -1);
+    if (lastHost === -1) return filter;
+    const present = new Set(data.map((d) => d.host).filter(Boolean));
+    const extra = stagingHosts.filter((h) => !present.has(h)).map((host) => ({ host }));
+    return {
+      ...filter,
+      data: [...data.slice(0, lastHost + 1), ...extra, ...data.slice(lastHost + 1)],
+    };
+  });
+}
+
 module.exports = ({ config }) => {
   const isStaging = process.env.EXPO_PUBLIC_ENVIRONMENT === 'preview';
   if (!isStaging) {
@@ -49,6 +73,12 @@ module.exports = ({ config }) => {
     ios: {
       ...stagingIos,
       bundleIdentifier: `${config.ios.bundleIdentifier}${STAGING_SUFFIX}`,
+    },
+    // Android paket adı production ile aynı kalır (yukarıdaki not); staging
+    // build'i staging alan adındaki App Links'i de yakalasın.
+    android: {
+      ...config.android,
+      intentFilters: withStagingHosts(config.android?.intentFilters),
     },
   };
 };

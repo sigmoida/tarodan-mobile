@@ -4,6 +4,7 @@
   "appIDs": ["P2628CQK26.com.tarodan.app"],
   "androidPackage": "com.tarodan.app",
   "hosts": ["tarodan.com.tr", "staging.tarodan.com.tr"],
+  "stagingHosts": ["staging.tarodan.com.tr"],
   "paths": [
     { "pattern": "/checkout*", "sample": "/checkout", "include": false, "confirmed": true,
       "comment": "odeme web'de kalsin" },

@@ -27,8 +27,7 @@
       "bundleIdentifier": "com.tarodan.app",
       "usesAppleSignIn": true,
       "associatedDomains": [
-        "applinks:tarodan.com.tr",
-        "applinks:staging.tarodan.com.tr"
+        "applinks:tarodan.com.tr"
       ],
       "buildNumber": "1",
       "infoPlist": {
@@ -89,9 +88,6 @@
             },
             {
               "host": "tarodan.com.tr"
-            },
-            {
-              "host": "staging.tarodan.com.tr"
             },
             {
               "path": "/verify-email"
