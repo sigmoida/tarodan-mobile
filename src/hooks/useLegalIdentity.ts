@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import {
   queryOptions,
   useMutation,
@@ -120,10 +120,10 @@ export type LegalIdentityStepController = ReturnType<typeof useLegalIdentityStep
 /**
  * İhtiyaç anında kimlik kapısı. Kimlik gerektiren bir işlemi başlatmadan
  * ÖNCE çağır (ekran metni `identity.gate.whenNeeded` bu listeyi anlatır):
- * sepet ödemesi, teklif siparişinin ödemesi, takas başlatma / nakit ödeme,
- * ilan verme ve banka hesabı ekleme. Bugün yalnız banka hesabı bağlı
- * (`useBankAccount`); diğerleri ödeme/ilan/takas akışlarına entegrasyonda
- * bağlanır.
+ * sepet ödemesi (`useCheckout`), teklif/bekleyen siparişin ödemesi
+ * (`useOrderActions`), takas başlatma (`useNewTrade`) / nakit ödeme
+ * (`useTradeActions`), ilan verme (`useListingForm`) ve banka hesabı ekleme
+ * (`useBankAccount`). Hepsi `useRequireLegalIdentity()` ile bağlı.
  *
  *   if (!(await ensureLegalIdentity())) return; // vazgeçti → işlem iptal
  *
@@ -161,8 +161,22 @@ export async function ensureLegalIdentity(client: QueryClient = appQueryClient):
  *
  *   const requireIdentity = useRequireLegalIdentity();
  *   const onPay = async () => { if (!(await requireIdentity())) return; pay(); };
+ *
+ * Aynı hook örneğinden bir kontrol sürerken (durum isteği ağda, kapı henüz
+ * açılmadı) gelen ikinci çağrı `false` döner: düğmenin "yükleniyor" hâli
+ * işlem başlayınca gelir, arada ikinci basış ikinci siparişi/ilanı/takası
+ * başlatmasın.
  */
 export function useRequireLegalIdentity(): () => Promise<boolean> {
   const client = useQueryClient();
-  return useCallback(() => ensureLegalIdentity(client), [client]);
+  const inFlight = useRef(false);
+  return useCallback(async () => {
+    if (inFlight.current) return false;
+    inFlight.current = true;
+    try {
+      return await ensureLegalIdentity(client);
+    } finally {
+      inFlight.current = false;
+    }
+  }, [client]);
 }
