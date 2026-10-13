@@ -1,3 +1,4 @@
+import { logger, safeError } from '@/services/logger';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -782,7 +783,7 @@ export function useCheckout() {
         alertInlineWhileOtpOpen(t('checkout.phoneInvalidTitle'), error.message);
         return;
       }
-      console.error('Checkout error:', error);
+      logger.error('Checkout error', { err: safeError(error) });
       captureException(error, { level: 'error', tags: { flow: 'checkout' }, extra: { status: error?.response?.status } });
       const status = error?.response?.status;
       // İki ayrı çakışma, TEK dal: fiyat/kargo değişti (i18nKey ile gelir) veya

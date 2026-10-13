@@ -1,3 +1,4 @@
+import { logger, safeError } from '@/services/logger';
 import { View, ScrollView, RefreshControl } from 'react-native';
 import { useState, useCallback, useEffect } from 'react';
 import { theme } from '@/ui';
@@ -68,8 +69,12 @@ export default function HomeScreen() {
   useEffect(() => {
     api
       .get('/health')
-      .then(() => console.log('✅ API bağlantısı başarılı'))
-      .catch((err) => console.log('⚠️ API bağlantısı yok, mock data kullanılacak:', err.message));
+      .then(() => {
+        logger.debug('API bağlantısı başarılı');
+      })
+      .catch((err) => {
+        logger.debug('API bağlantısı yok, mock data kullanılacak', { err: safeError(err) });
+      });
   }, []);
 
   const onRefresh = useCallback(async () => {

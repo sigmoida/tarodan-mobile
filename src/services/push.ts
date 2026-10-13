@@ -1,3 +1,4 @@
+import { logger, safeError } from '@/services/logger';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
@@ -106,13 +107,14 @@ export async function registerForPushNotifications(): Promise<string | null> {
       platform: Platform.OS,
       deviceId: Device.modelName ?? 'unknown',
     }).catch((err: any) => {
-      console.log('Failed to register push token with backend:', err.message);
+      logger.debug('Failed to register push token with backend', { err: safeError(err) });
     });
 
-    console.log('Push token registered:', token);
+    // Push token'ı kullanıcıya bağlı bir tanımlayıcıdır: release cihaz günlüğüne yazılmaz.
+    logger.debug('Push token registered', { token });
   } catch (error: any) {
     // Don't show error in development - this is expected in Expo Go
-    console.log('⚠️ Push notifications unavailable:', error.message);
+    logger.debug('Push notifications unavailable', { err: safeError(error) });
   }
 
   // Configure notification channel for Android
@@ -183,7 +185,7 @@ export async function unregisterPushNotifications(): Promise<void> {
       revoke: true,
     }).catch(() => null);
   } catch (error) {
-    console.error('Error unregistering push token:', error);
+    logger.error('Error unregistering push token', { err: safeError(error) });
   }
 }
 
@@ -228,7 +230,7 @@ export function routeFromNotification(data: any): void {
     // (Uygulama içi listede karşılığı "gezinme yok" — orada zaten listedesin.)
     router.push('/(tabs)/notifications' as any);
   } catch (err) {
-    console.log('routeFromNotification failed:', (err as any)?.message);
+    logger.debug('routeFromNotification failed', { err: safeError(err) });
   }
 }
 

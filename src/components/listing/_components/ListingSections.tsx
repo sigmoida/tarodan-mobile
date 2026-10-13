@@ -27,7 +27,7 @@ const { colors } = theme;
 type SectionProps = { f: ListingFormController };
 
 // ---------------------------------------------------------------------------
-// Header + banners (page title, IBAN prompt, limits, reactivate/deleted panels)
+// Header + banners (page title, limits, reactivate/deleted panels)
 // ---------------------------------------------------------------------------
 export function ListingHeaderBanners({ f }: SectionProps) {
   const { t } = useTranslation();
@@ -38,20 +38,6 @@ export function ListingHeaderBanners({ f }: SectionProps) {
           <Text style={styles.pageTitle}>{t('collection.createNewListing')}</Text>
           <Text style={styles.pageSubtitle}>{t('listing.createSubtitle')}</Text>
         </>
-      )}
-
-      {/* Bank Account Banner (create only) */}
-      {!f.isEdit && !f.bankAccountQuery.isLoading && !f.hasBankAccount && (
-        <View style={styles.ibanBanner}>
-          <Text style={styles.ibanBannerTitle}>{t('listing.bankAccountBannerTitle')}</Text>
-          <Text style={styles.ibanBannerBody}>{t('listing.bankAccountBannerBody')}</Text>
-          <TouchableOpacity
-            style={styles.ibanBannerButton}
-            onPress={() => router.push('/settings/bank-account')}
-          >
-            <Text style={styles.ibanBannerButtonText}>{t('listing.addIban')}</Text>
-          </TouchableOpacity>
-        </View>
       )}
 
       {/* Listing Limits (create only) */}

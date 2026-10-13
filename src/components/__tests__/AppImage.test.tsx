@@ -115,10 +115,10 @@ describe('AppImage — authenticated opt-in yükleme (task 4)', () => {
 
 /**
  * I2 — authenticated bir yükleme başarısız olduğunda sessizce gri kutuya
- * düşmesin. Log YALNIZ `__DEV__` altında ve token/URL/query İÇERMEZ.
+ * düşmesin. Log `logger.debug` ile yazılır (release'te düşer) ve token/URL/query İÇERMEZ.
  */
 describe('AppImage — başarısız bearer yüklemesi görünür olur (I2)', () => {
-  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  const warn = jest.spyOn(console, 'log').mockImplementation(() => {});
 
   beforeEach(() => {
     warn.mockClear();
@@ -127,7 +127,7 @@ describe('AppImage — başarısız bearer yüklemesi görünür olur (I2)', () 
 
   afterAll(() => warn.mockRestore());
 
-  it('authenticated yükleme hatası DEV altında uyarı basar (token/URL sızdırmadan)', () => {
+  it('authenticated yükleme hatası debug günlüğü basar (token/URL sızdırmadan)', () => {
     (useAuthStore as any).setState({ token: 'secret-token-value' });
     const { UNSAFE_getByType } = render(
       <AppImage source="https://api.tarodan.com/api/media/message-attachment/xyz?sig=SECRET" authenticated />
@@ -136,8 +136,8 @@ describe('AppImage — başarısız bearer yüklemesi görünür olur (I2)', () 
     act(() => UNSAFE_getByType(Image).props.onError());
 
     expect(warn).toHaveBeenCalledTimes(1);
-    const logged = String(warn.mock.calls[0][0]);
-    expect(logged).toContain('hasToken=true');
+    const logged = JSON.stringify(warn.mock.calls[0]);
+    expect(logged).toContain('"hasToken":true');
     expect(logged).not.toContain('secret-token-value');
     expect(logged).not.toContain('message-attachment');
     expect(logged).not.toContain('SECRET');
@@ -150,7 +150,7 @@ describe('AppImage — başarısız bearer yüklemesi görünür olur (I2)', () 
 
     act(() => UNSAFE_getByType(Image).props.onError());
 
-    expect(String(warn.mock.calls[0][0])).toContain('hasToken=false');
+    expect(JSON.stringify(warn.mock.calls[0])).toContain('"hasToken":false');
   });
 
   it('public görselin hatası log basmaz (gürültü yok) ama onError yine çağrılır', () => {

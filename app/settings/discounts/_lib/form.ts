@@ -1,3 +1,4 @@
+import type { CreateDiscountPayload, UpdateDiscountPayload } from '@/lib/api';
 import { isQuantityType } from './types';
 import type { DiscountFormValues } from './schema';
 
@@ -8,7 +9,12 @@ import type { DiscountFormValues } from './schema';
  * kabul eder ve `update` null'u sütuna yazar (`discount-crud.service`). Oluşturmada
  * alan hiç gönderilmez (`undefined`).
  */
-export function buildDiscountPayload(form: DiscountFormValues, isUpdate = false) {
+export function buildDiscountPayload(form: DiscountFormValues): CreateDiscountPayload;
+export function buildDiscountPayload(form: DiscountFormValues, isUpdate: true): UpdateDiscountPayload;
+export function buildDiscountPayload(
+  form: DiscountFormValues,
+  isUpdate = false,
+): CreateDiscountPayload | UpdateDiscountPayload {
   const quantityType = isQuantityType(form.type);
   // Temizlenen alan: güncellemede null (sunucuda silinir), oluşturmada atlanır.
   const cleared = isUpdate ? null : undefined;

@@ -1,3 +1,4 @@
+import { logger, safeError } from '@/services/logger';
 import { useState, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -9,6 +10,7 @@ import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { useZodForm } from '@/ui/form';
 import { buildListingFormSchema, emptyListingFormValues } from '../_lib/schema';
 import { firstListingValidationError } from '../_lib/validate';
+import { listingGateView } from '../_lib/gates';
 import { buildColorAndBoxPayload, serverErrorMessage } from '../_lib/payload';
 import { MAX_COLORS } from '../_lib/schema';
 import { globalCustomGroups, requiredGlobalGroups } from '../_lib/attributeGroups';
@@ -51,15 +53,32 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const { t } = useTranslation();
   const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
 
+  const {
+    isAuthenticated,
+    isLoading: authLoading,
+    user,
+    limits,
+    refreshUserData,
+  } = useAuthStore();
+
+  // IBAN kapısı (yalnız yeni ilan; web `BankGate`): hesap yoksa form GÖSTERİLMEZ.
+  // Anahtar Banka Hesabım ekranıyla ORTAK (`qk.user.bankAccount`): orada kaydedilince
+  // sorgu tazelenir ve kapı kendiliğinden açılır.
   const bankAccountQuery = useQuery({
-    queryKey: ['bank-account'],
+    queryKey: qk.user.bankAccount,
     queryFn: async () => {
       const res = await bankAccountApi.get();
       return res.data || null;
     },
-    enabled: !isEdit,
+    enabled: !isEdit && isAuthenticated,
   });
   const hasBankAccount = isEdit || !!bankAccountQuery.data;
+  const bankAccountLoading = bankAccountQuery.isLoading;
+  // Okunamadı (ve elde eski veri yok): durum BİLİNMİYOR, "hesap yok" değil.
+  const bankAccountError = bankAccountQuery.isError && bankAccountQuery.data === undefined;
+  const refetchBankAccount = () => {
+    void bankAccountQuery.refetch();
+  };
 
   /**
    * Kargo paket kademesi tarifesi. Kartların etiketi ve örnek ölçüsü buradan
@@ -80,14 +99,6 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const packageTiers = packageTiersQuery.data?.tiers ?? [];
   const packageTiersLoading = packageTiersQuery.isLoading;
   const packageTiersError = packageTiersQuery.isError;
-
-  const {
-    isAuthenticated,
-    isLoading: authLoading,
-    user,
-    limits,
-    refreshUserData,
-  } = useAuthStore();
 
   // Kargo çıkış adresi kapısı (yalnız yeni ilan): adresi/cep numarası geçersiz
   // satıcının siparişinde koli açılamaz. Kural `_lib/dispatchAddress.ts`'te.
@@ -394,7 +405,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
           setCustomAttributes({});
         }
       } catch (error) {
-        if (__DEV__) console.error('Failed to fetch manufacturer attribute groups:', error);
+        logger.error('Failed to fetch manufacturer attribute groups', { err: safeError(error) });
         if (!cancelled) {
           setManufacturerAttrGroups([]);
           if (!initialCustomAttrsRef.current) setCustomAttributes({});
@@ -779,10 +790,58 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     return true;
   };
 
+  /**
+   * Gönderim re-entry guard'ı. `isSubmitting` state'i bir sonraki render'a kadar güncellenmez:
+   * aynı karede gelen iki dokunuş ikisi de `false` görüp `productsApi.create`'i iki kez
+   * çağırır (çift ilan). Ref senkron okunur, ikinci çağrı daha girişte kesilir.
+   */
+  const submitInFlightRef = useRef(false);
   const handleSubmit = async () => {
+    if (submitInFlightRef.current) return;
+    submitInFlightRef.current = true;
+    try {
+      await submitListing();
+    } finally {
+      submitInFlightRef.current = false;
+    }
+  };
+
+  const submitListing = async () => {
     if (!validate()) return;
 
-    if (!isEdit && !hasBankAccount) {
+    // GÖNDERİM KAPISI — `ListingRequirementGate` ile AYNI kaynak (`listingGateView`), iki guard
+    // aynı semantiği izler. Form normalde bu durumda gizli; bu blok kapıyı aşan her yolu
+    // (hızlı çift dokunma, gecikmiş sorgu) sunucuya gitmeden keser:
+    //  - durum BİLİNMİYOR (yükleniyor / hata): gönderim engellenir ama "IBAN/adres ekle" DENMEZ;
+    //    "doğrulanıyor / tekrar dene" gösterilir (hata ise yeniden dene düğmesiyle).
+    //  - KESİN eksik: ekleme istemi (önce IBAN, sonra adres).
+    const gate = listingGateView({
+      isEdit,
+      hasBankAccount,
+      bankAccountLoading,
+      bankAccountError,
+      hasDispatchAddress,
+      dispatchAddressLoading,
+      dispatchAddressError,
+    });
+    if (gate.view === 'error') {
+      appAlert(t('listing.requirementsErrorTitle'), t('listing.requirementsErrorBody'), [
+        { text: t('listing.dismiss'), style: 'cancel' },
+        {
+          text: t('common.tryAgain'),
+          onPress: () => {
+            if (gate.bank === 'error') refetchBankAccount();
+            if (gate.address === 'error') refetchDispatchAddress();
+          },
+        },
+      ]);
+      return;
+    }
+    if (gate.view === 'loading') {
+      appAlert(t('listing.requirementsPendingTitle'), t('listing.requirementsPendingBody'));
+      return;
+    }
+    if (gate.bank === 'missing') {
       appAlert(
         t('listing.bankAccountRequiredTitle'),
         t('listing.bankAccountRequiredBody'),
@@ -793,10 +852,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       );
       return;
     }
-
-    // Durum BİLİNMİYORSA (yükleniyor/hata) "adres ekle" denmez: form zaten
-    // bu durumda gösterilmiyor (`DispatchAddressGate`); buraya yalnız bilinen eksik düşer.
-    if (!isEdit && !dispatchAddressLoading && !dispatchAddressError && !hasDispatchAddress) {
+    if (gate.address === 'missing') {
       appAlert(
         t(dispatchAddressNeedsFix ? 'listing.dispatchAddressFixTitle' : 'listing.dispatchAddressRequiredTitle'),
         t('address.dispatchPromptDesc'),
@@ -981,6 +1037,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     productNotFound,
     hasBankAccount,
     bankAccountQuery,
+    bankAccountLoading,
+    bankAccountError,
+    refetchBankAccount,
     hasDispatchAddress,
     dispatchAddressNeedsFix,
     dispatchAddressLoading,

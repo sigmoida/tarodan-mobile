@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
 import { advanceSessionEpoch, authApi, userApi } from "@/lib/api";
-import { logger } from "../services/logger";
+import { logger, safeError } from "../services/logger";
 import { withTimeout } from "../utils/withTimeout";
 import { IS_MAESTRO_NO_AUTOLOGIN, getMaestroAutoLoginCredentials } from "@/config/maestro";
 
@@ -375,7 +375,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
     const mappedUser = mapApiUserToUser(user);
     const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
-    console.log("🔐 Auth stored - Tier:", mappedUser.membershipTier);
+    logger.debug("Auth stored", { tier: mappedUser.membershipTier });
     set({ isAuthenticated: true, token, user: mappedUser, limits });
     // Misafir/önceki oturumdan kalan listeler yeni token'la yeniden çekilsin.
     // Token set'ten SONRA — yeniden çekim yeni token'ı taşımalı. Beklenmez:
@@ -475,7 +475,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // build'i + env'deki kimlik (bkz. src/config/maestro.ts).
         try {
           const { email, password } = maestroCredentials;
-          console.log("🤖 Maestro auto-login as", email);
+          logger.debug("Maestro auto-login", { email });
           const response = await authApi.login(email, password);
           const data: any = response.data;
           const accessToken = data.tokens?.accessToken || data.accessToken;
@@ -542,7 +542,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ user: mappedUser, limits });
       return mappedUser;
     } catch (error) {
-      console.error("Failed to refresh user data:", error);
+      logger.error("Failed to refresh user data", { err: safeError(error) });
       logger.captureException(error, {
         level: "warning",
         tags: { flow: "auth.refreshUserData" },

@@ -121,6 +121,9 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
   },
+  noteWrap: {
+    marginHorizontal: theme.spacing[4],
+  },
   actionsStack: {
     gap: theme.spacing[2.5],
     marginTop: theme.spacing[2],

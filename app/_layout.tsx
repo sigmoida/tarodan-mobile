@@ -4,6 +4,7 @@ import { enableScreens } from "react-native-screens";
 enableScreens(false);
 
 import { useEffect, useState } from "react";
+import { logger, safeError } from "@/services/logger";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -98,13 +99,13 @@ export default function RootLayout() {
           try {
             await registerForPushNotifications();
           } catch (e) {
-            console.log(
-              "⚠️ Push notification registration skipped (normal in Expo Go)",
+            logger.debug(
+              "Push notification registration skipped (normal in Expo Go)",
             );
           }
         }
       } catch (e) {
-        console.warn(e);
+        logger.warn('App bootstrap failed', { err: safeError(e) });
       } finally {
         setAppReady(true);
       }
@@ -161,8 +162,10 @@ export default function RootLayout() {
           {/* Kurumsal hesap business üyelik yoksa üyelik sayfasına yönlendirir (web ile aynı). */}
           <BusinessMembershipGuard />
           {/* Native Alert.alert yerine temalı dialog — appAlert() bu host'u kullanır.
-              Kapı açıkken bağlı değil: appAlert kuyruğa düşer, kapı kapanınca çıkar. */}
-          {!gateShown && <AlertDialogHost />}
+              Host HEP bağlı: kapı açıkken yalnız askıya alınır (alert'ler kuyrukta bekler, kapı
+              kapanınca çıkar). Eskiden kapıya bağlı koşullu bağlanıyordu; söküm, kapanma
+              zamanlayıcısını temizleyip basılan düğmenin `onPress`'ini kaybettiriyordu. */}
+          <AlertDialogHost suspended={gateShown} />
           {/* Zorunlu adımlar (bekleyen sözleşme onayı): girişte + ön plana gelişte kapatılamaz ekran. */}
           {/* Kapılar native Modal: soğuk açılışta splash bitmeden gösterilmez (ready). */}
           <RequiredStepsGate ready={splashDone} />

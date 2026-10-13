@@ -91,7 +91,8 @@ export function DiscountFormModal({
 
   const onSubmit = form.handleSubmit((values) => {
     formMsg.clear();
-    save.mutate({ id: discount?.id, payload: buildDiscountPayload(values, !!discount) });
+    if (discount) save.mutate({ id: discount.id, payload: buildDiscountPayload(values, true) });
+    else save.mutate({ payload: buildDiscountPayload(values) });
   });
 
   return (

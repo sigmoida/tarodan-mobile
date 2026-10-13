@@ -43,7 +43,7 @@ jest.mock('@/stores/authStore', () => {
   return { useAuthStore: create(() => ({ token: null, logout: jest.fn() })) };
 });
 
-jest.mock('@/services/sentry', () => ({ captureException: jest.fn() }));
+jest.mock('@/services/sentry', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn(), setUser: jest.fn() }));
 
 import * as SecureStore from 'expo-secure-store';
 import { axios } from '@/lib/api-client';

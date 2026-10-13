@@ -32,6 +32,9 @@ const sizeMap: Record<IconButtonSize, { box: number; icon: number }> = {
   lg: { box: 48, icon: 26 },
 };
 
+/** Düğmenin kenar uzunluğu (pt) — bunu kullanan yerleşim hesapları ölçüyü buradan türetir. */
+export const iconButtonBoxSize = (size: IconButtonSize): number => sizeMap[size].box;
+
 const variantStyle: Record<IconButtonVariant, { bg: string; fg: string }> = {
   plain: { bg: 'transparent', fg: colors.text.heading },
   soft: { bg: colors.primary[50]!, fg: colors.primary[700]! },

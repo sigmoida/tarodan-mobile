@@ -1,3 +1,4 @@
+import { logger, safeError } from '@/services/logger';
 import { axios, createApiClient, singleFlight } from "@/lib/api-client";
 import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
@@ -60,11 +61,11 @@ export const buildAvatarUrl = (
 
 // Yapılandırma ipuçları yalnız geliştirmede; release cihaz günlüğüne API adresi
 // ve geliştirme host'u yazılmaz.
-if (__DEV__) {
-  console.log("📡 API URL:", API_URL);
-  console.log("📱 Platform:", Platform.OS);
-  console.log("🌐 Expo Host:", Constants.expoConfig?.hostUri);
-}
+logger.debug("Yapılandırma", {
+  apiUrl: API_URL,
+  platform: Platform.OS,
+  expoHost: Constants.expoConfig?.hostUri,
+});
 
 /**
  * Mobil istemci ÇEREZ TAŞIMAZ. Sunucu `/auth/login` ve `/auth/refresh`
@@ -143,7 +144,7 @@ api.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {
-      console.error("Error getting token:", error);
+      logger.error("Error getting token", { err: safeError(error) });
     }
     return config;
   },
@@ -245,7 +246,7 @@ async function handleAuthFailure(error?: unknown): Promise<void> {
   // `x-request-id`'yi raporluyoruz: gerçek gövde bir kez görülünce ayrım tek
   // satırda takılacak. Rapor PII taşımaz (bkz. `./requestId`).
   const fingerprint = errorFingerprint(error);
-  if (__DEV__) console.warn("[auth] silent logout", fingerprint);
+  logger.debug("[auth] silent logout", { ...fingerprint });
   captureException(error ?? new Error("Auth failure without an error object"), {
     level: "warning",
     tags: { requestId: fingerprint.requestId ?? "none" },

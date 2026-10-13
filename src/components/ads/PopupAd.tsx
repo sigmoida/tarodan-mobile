@@ -1,24 +1,29 @@
 import React from 'react';
-import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
-import { Modal, theme } from '@/ui';
+import { Modal } from '@/ui';
 import { usePopupAd } from '@/lib/ads/usePopupAd';
-import { popupMediaLimits } from '@/lib/ads/popupLayout';
+import { POPUP_MODAL_SIZE, popupMediaLimits } from '@/lib/ads/popupLayout';
+import { hasAdImage } from '@/lib/ads/creative';
 import { AdCreative } from './AdCreative';
 
 /**
- * Popup reklamı (modal, `@/ui` Modal). Kapatma: X, arka plan, geri tuşu (Android).
- * Açılış kuralları (24 saat sınırı, gecikme, engeller) `usePopupAd`'de.
+ * Popup reklamı (modal), web `PopupAd` ile aynı Modal yüzeyi: `lg` boyut, beyaz kart,
+ * kapat (X) BAŞLIK satırında (görselin üstüne binmez); yalnız gövdenin iç boşluğu sıfır
+ * (`flushBody`, web `bodyClassName="p-0"`), reklam kartın içinde kenardan kenara.
+ * Kapatma: X, arka plan, geri tuşu (Android). Açılış kuralları (24 saat sınırı, gecikme,
+ * engeller) `usePopupAd`'de.
  *
  * iOS ModalFreeze: reklam bağlantısına dokunulunca modal ÖNCE kapanır, bağlantı
  * kısa bir gecikmeyle sonra açılır (`AdCreative.onNavigate`). Modal açıkken
  * gezinme/uyarı ekranı dondurabilir.
  *
- * Boyut: kart ekranın ~%80'ini ve güvenli alanı aşmaz (`popupMediaLimits`);
- * görsel oranı korunarak o kutuya sığar. Kapat (X) kartın köşesine mutlak
- * yerleşir, içerik ne kadar uzun olursa olsun görünür kalır.
+ * Görselli reklamda kart GÖRSELİN genişliğine oturur (`fitContent`): 1:2 dikey reklamda kart
+ * dar olur, iki yanda beyaz bant kalmaz; başlıktaki X satırı korunur.
+ *
+ * Boyut: kart ekranın ~%80'ini ve güvenli alanı aşmaz (`popupMediaLimits`; başlık
+ * satırı yüksekliği görsel kutusundan düşülür); görsel oranı korunarak o kutuya sığar.
  *
  * `blocked`: başka bir Modal/istem açıkken popup çıkmaz.
  */
@@ -30,36 +35,22 @@ export function PopupAd({ blocked = false }: { blocked?: boolean }) {
   const limits = popupMediaLimits(window, insets);
 
   return (
-    <Modal isOpen={!!ad} onClose={close}>
+    <Modal
+      isOpen={!!ad}
+      onClose={close}
+      size={POPUP_MODAL_SIZE}
+      showCloseButton
+      closeLabel={t('common.close')}
+      flushBody
+      // Görselli reklamda kart görselin genişliğine oturur (dikey/dar reklamda iki yanda beyaz
+      // bant kalmaz); metin reklam kartın tam genişliğini kullanır.
+      fitContent={!!ad && hasAdImage(ad)}
+    >
       {ad ? (
         <View testID="popup-ad" style={{ maxHeight: limits.height, overflow: 'hidden' }}>
           <AdCreative ad={ad} position="popup" onNavigate={close} maxSize={limits} />
-          <Pressable
-            onPress={close}
-            hitSlop={theme.spacing[2]}
-            accessibilityRole="button"
-            accessibilityLabel={t('common.close')}
-            style={styles.close}
-            testID="popup-ad-close"
-          >
-            <View style={styles.closeCircle}>
-              <Ionicons name="close" size={18} color={theme.colors.white} />
-            </View>
-          </Pressable>
         </View>
       ) : null}
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  close: { position: 'absolute', top: theme.spacing[2], right: theme.spacing[2] },
-  closeCircle: {
-    width: theme.spacing[8],
-    height: theme.spacing[8],
-    borderRadius: theme.radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.overlay.black50,
-  },
-});

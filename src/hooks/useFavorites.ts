@@ -1,3 +1,4 @@
+import { logger, safeError } from '@/services/logger';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -176,7 +177,7 @@ export function useFavorites() {
       await wishlistApi.clear();
       qc.setQueryData<WishlistItem[]>(qk.favorites.all, []);
     } catch (error) {
-      console.error('Failed to clear favorites:', error);
+      logger.error('Failed to clear favorites', { err: safeError(error) });
     }
   };
 

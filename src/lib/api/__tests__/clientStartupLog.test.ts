@@ -1,6 +1,7 @@
 /**
  * `client.ts` modül yüklenirken API adresi / platform / Expo host'u konsola
- * yazıyordu — release build'de de. Artık yalnız `__DEV__`'de yazılır.
+ * yazıyordu — release build'de de. Artık `logger.debug` ile yazılır: geliştirmede görünür,
+ * release'te logger'ın minLevel'ı (`info`) yüzünden hiç yazılmaz.
  */
 const g = globalThis as unknown as { __DEV__: boolean };
 
@@ -18,18 +19,21 @@ function loadClient(dev: boolean): jest.SpyInstance {
   return logSpy;
 }
 
+const dump = (spy: jest.SpyInstance) => JSON.stringify(spy.mock.calls);
+
 describe('api client — başlangıç günlüğü', () => {
   afterEach(() => jest.restoreAllMocks());
 
   it('release (__DEV__=false): API adresi ve host konsola yazılmaz', () => {
     const logSpy = loadClient(false);
-    const startup = logSpy.mock.calls.filter((c) => /API URL|Platform|Expo Host/.test(String(c[0])));
-    expect(startup).toEqual([]);
+    expect(dump(logSpy)).not.toMatch(/apiUrl|localhost|expoHost|Yapılandırma/);
   });
 
-  it('geliştirme (__DEV__=true): üç satır yazılır', () => {
+  it('geliştirme (__DEV__=true): API adresi, platform ve host yazılır', () => {
     const logSpy = loadClient(true);
-    const startup = logSpy.mock.calls.filter((c) => /API URL|Platform|Expo Host/.test(String(c[0])));
-    expect(startup).toHaveLength(3);
+    // ConsoleSink: console.log(önek, mesaj, bağlam)
+    const ctx = logSpy.mock.calls.map((c) => c[2]).find((c) => c && 'apiUrl' in c);
+    expect(ctx).toBeDefined();
+    expect(Object.keys(ctx)).toEqual(expect.arrayContaining(['apiUrl', 'platform', 'expoHost']));
   });
 });

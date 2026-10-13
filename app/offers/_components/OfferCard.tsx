@@ -13,6 +13,9 @@ import type { TFunction } from "i18next";
 import { theme } from "@/ui";
 import { transformImageUrl } from "@/utils/imageUrl";
 import type { Offer, TabType } from "../_lib/types";
+import type { TimingMessageValues } from "@/lib/shared/timingPolicy";
+import { isOfferAwaitingPayment, type AcceptAs } from "../_lib/accept";
+import { FirstToPayNote } from "./FirstToPayNote";
 import {
   translatedStatusConfig,
   getProductImage,
@@ -29,7 +32,11 @@ export interface OfferCardProps {
   estimatedNet?: number;
   isPending: boolean;
   t: TFunction;
-  onAccept: (id: string) => void;
+  /** Politika süreleri (`useTimingValues()`); "ilk ödeyen alır" notu için. */
+  timing: TimingMessageValues;
+  /** Kabul ONAY ister (`useOfferActions.requestAccept`): `as` = kabulü kimin yaptığı. */
+  onAccept: (id: string, as: AcceptAs) => void;
+  /** Reddet / iptal de ONAY ister (`requestReject` / `requestCancel`). */
   onReject: (id: string) => void;
   onCancel: (id: string) => void;
   onOpenCounter: (offer: Offer) => void;
@@ -42,6 +49,7 @@ function OfferCardBase({
   estimatedNet,
   isPending,
   t,
+  timing,
   onAccept,
   onReject,
   onCancel,
@@ -193,7 +201,7 @@ function OfferCardBase({
             <>
               <TouchableOpacity
                 style={[styles.actionBtn, styles.acceptBtn]}
-                onPress={() => onAccept(offer.id)}
+                onPress={() => onAccept(offer.id, "seller")}
                 disabled={isPending}
               >
                 {isPending ? (
@@ -230,7 +238,7 @@ function OfferCardBase({
             <>
               <TouchableOpacity
                 style={[styles.actionBtn, styles.acceptBtn]}
-                onPress={() => onAccept(offer.id)}
+                onPress={() => onAccept(offer.id, "buyer")}
                 disabled={isPending}
               >
                 {isPending ? (
@@ -280,10 +288,14 @@ function OfferCardBase({
         </View>
       )}
 
-      {/* Accepted → ödeme bekliyorsa "Ödeme Yap", aksi halde sipariş linki */}
+      {/* Kabul ürünü kilitlemez: ödenmemiş kabulde "ilk ödeyen alır" (web gibi). */}
+      <FirstToPayNote offer={offer} isSeller={tab === "received"} timing={timing} />
+
+      {/* Accepted → "Ödeme Yap" YALNIZ alıcıya (gönderilen sekmesi) ve ödeme bekliyorsa
+          (web: `activeTab === "sent" && !paid`); satıcıya her durumda sipariş linki. */}
       {offer.status === "accepted" &&
         offer.orderId &&
-        (offer.orderStatus === "pending_payment" ? (
+        (tab === "sent" && isOfferAwaitingPayment(offer) ? (
           <TouchableOpacity
             style={[
               styles.actionBtn,

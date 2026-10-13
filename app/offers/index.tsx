@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { theme, ScreenHeader, ErrorState } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
+import { useTimingValues } from "@/hooks/useTimingPolicy";
 import { useTranslation } from "react-i18next";
 import type { Offer, TabType } from "./_lib/types";
 import { useOffers } from "./_hooks/useOffers";
@@ -61,7 +62,8 @@ export default function OffersScreen() {
     refetch,
   } = useOffers(activeTab, isAuthenticated);
   const estimatedNetByOfferId = useCommissionPreview(offers, activeTab);
-  const { accept, reject, cancel, pendingOfferId } = useOfferActions();
+  const { requestAccept, requestReject, requestCancel, pendingOfferIds } = useOfferActions();
+  const timing = useTimingValues();
 
   // Stable renderItem (#75) — memoized OfferCard skips rows that didn't change.
   const renderOffer = useCallback(
@@ -76,11 +78,12 @@ export default function OffersScreen() {
             ? estimatedNetByOfferId[item.id]
             : undefined
         }
-        isPending={pendingOfferId === item.id}
+        isPending={pendingOfferIds.has(item.id)}
         t={t}
-        onAccept={accept}
-        onReject={reject}
-        onCancel={cancel}
+        timing={timing}
+        onAccept={requestAccept}
+        onReject={requestReject}
+        onCancel={requestCancel}
         onOpenCounter={setCounterOffer}
         onOpenBuyerCounter={setBuyerCounterOffer}
       />
@@ -88,11 +91,12 @@ export default function OffersScreen() {
     [
       activeTab,
       estimatedNetByOfferId,
-      pendingOfferId,
+      pendingOfferIds,
       t,
-      accept,
-      reject,
-      cancel,
+      timing,
+      requestAccept,
+      requestReject,
+      requestCancel,
     ],
   );
 

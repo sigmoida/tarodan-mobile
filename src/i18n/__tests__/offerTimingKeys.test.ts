@@ -2,7 +2,7 @@
  * A-3 ek iş · Teklif kabul metinleri web'deki (`packages/i18n`) ICU parametreli
  * sürümleriyle eklendi: ödeme süresi sabit "24 saat" değil, politikadan
  * (`t(key, useTimingValues())`). Çağrı yeri (kabul onay diyaloğu, "ilk ödeyen
- * alır" notu) teklif ekranlarının sahibinde (C) — bkz. handoff-A.
+ * alır" notu) `app/offers` (INT-4) — bkz. handoff-int.
  */
 import i18n from '@/i18n/config';
 import { FALLBACK_TIMING_POLICY, timingMessageValues } from '@/lib/shared/timingPolicy';
@@ -20,3 +20,14 @@ it.each(['offer.acceptConfirmDescSeller', 'offer.acceptConfirmDescBuyer', 'offer
     expect(i18n.t(key, values)).toMatch(/72[- ]hours?/);
   },
 );
+
+// Onay diyaloğu başlığı ve alıcı notu (web ile aynı metin): kabul akışı `app/offers/_lib/accept.ts`.
+it.each(['offer.acceptConfirmTitle', 'offer.firstToPayWinsBuyer'] as const)('%s tr + en tanımlı', async (key) => {
+  await i18n.changeLanguage('tr');
+  const tr = i18n.t(key);
+  await i18n.changeLanguage('en');
+  const en = i18n.t(key);
+  expect(tr).not.toBe(key);
+  expect(en).not.toBe(key);
+  expect(tr).not.toBe(en);
+});
