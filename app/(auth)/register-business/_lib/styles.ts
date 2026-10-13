@@ -1,20 +1,20 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '@/ui';
 
-const { colors, spacing, radiusRole } = theme;
+const { spacing } = theme;
 
-// Kurumsal başvuru formunun route-local stylesheet'i. Kabuk (logo, başlık, zemin) `AuthShell`'de.
+// Kurumsal başvuru formunun route-local stylesheet'i. Kabuk (üst bar, zemin) `AuthShell`'de.
 export const styles = StyleSheet.create({
+  /** Input kendi alt boşluğunu (8) taşır: 8 + 8 = web `space-y-4` (16). */
   form: {
     width: '100%',
+    gap: spacing[2],
   },
+  /** Sekmeler ile ilk alan arası: 8 (form gap) + 8 = 16. */
   tabs: {
-    marginBottom: spacing[5],
+    marginBottom: spacing[2],
   },
-  infoCard: {
-    backgroundColor: colors.primary[50],
-    padding: spacing[4],
-    borderRadius: radiusRole.card,
-    gap: spacing[1],
+  submit: {
+    marginTop: spacing[4],
   },
 });
