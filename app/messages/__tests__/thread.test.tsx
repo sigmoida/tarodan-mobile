@@ -181,6 +181,8 @@ describe('J104 · içerik filtresi & mesaj limiti (UI göstergesi)', () => {
     expect(screen.queryByPlaceholderText('Mesajınızı yazın...')).toBeNull();
     // Uyarıdaki sayı katman tablosundan DEĞİL sunucunun `limit` değerinden (30) gelir.
     expect(screen.getByText(/\(30 mesaj\)/)).toBeOnTheScreen();
+    // Limit platform genelinde tek değer: "Premium ile sınırsız mesaj" vaadi/yükseltme yok.
+    expect(screen.queryByText(/Premium|sınırsız/i)).toBeNull();
   });
 
   it('J104.4 hak kaldıysa (ya da limit henüz bilinmiyorsa) input aktif, uyarı yok', () => {

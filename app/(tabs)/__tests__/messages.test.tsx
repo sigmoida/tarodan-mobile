@@ -161,12 +161,12 @@ describe("J16 · mesaj konuşma listesi", () => {
     expect(screen.getByText("message.dailyMessageCount")).toBeOnTheScreen();
   });
 
-  it("J16.5 limit dolunca Premium yükseltme bağlantısı gösterir", () => {
+  it("J16.5 limit dolunca sayaç görünür ama Premium yükseltme bağlantısı YOK (limit katmana göre değişmez)", () => {
     mockDaily = { remaining: 0, limit: 50 };
     mockThreadsQuery = makeThreadsQuery([thread()]);
     renderWithProviders(<MessagesTabScreen />);
-    fireEvent.press(screen.getByText("address.goPremium"));
-    expect(mockPush).toHaveBeenCalledWith("/upgrade");
+    expect(screen.getByText("message.dailyMessageCount")).toBeOnTheScreen();
+    expect(screen.queryByText("address.goPremium")).toBeNull();
   });
 
   it("J16.6 limit uzaktayken banner gizli", () => {

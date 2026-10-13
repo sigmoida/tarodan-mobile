@@ -77,7 +77,6 @@ export function useMessagesTab() {
     unreadCount,
     messageLimit: daily.limit,
     dailyNearLimit: daily.nearLimit,
-    dailyLimitReached: !daily.canSend,
   };
 }
 
