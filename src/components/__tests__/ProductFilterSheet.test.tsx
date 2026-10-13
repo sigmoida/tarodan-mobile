@@ -5,8 +5,8 @@
  */
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react-native';
-import ProductFilterSheet, { keepGeneralAttributeSelections } from '../ProductFilterSheet';
-import { EMPTY_FILTERS } from '../../utils/productFilters';
+import ProductFilterSheet from '../ProductFilterSheet';
+import { EMPTY_FILTERS, keepGeneralAttributeSelections } from '../../utils/productFilters';
 import type { ProductFilterOptions } from '../../hooks/useProductFilterOptions';
 
 const GENERAL = {

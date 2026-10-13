@@ -25,24 +25,10 @@ import {
   theme,
 } from '@/ui';
 import type { ProductFilters } from '../utils/productFilters';
-import { buildConditionOptions } from '../utils/productFilters';
+import { buildConditionOptions, keepGeneralAttributeSelections } from '../utils/productFilters';
 import type { ProductFilterOptions } from '../hooks/useProductFilterOptions';
 
 const { colors, spacing } = theme;
-
-/**
- * Üretici değişince YALNIZ üreticiye bağlı grup seçimleri düşer. Genel özel
- * gruplar (`manufacturerSlug: null`, ör. Nadirlik) üreticiden bağımsızdır;
- * seçimleri kalır (delta 19). Genel olduğu `options`'tan doğrulanamayan slug
- * (bilinmeyen/yüklenmemiş) güvenli tarafta düşürülür.
- */
-export function keepGeneralAttributeSelections(
-  selections: Record<string, string[]> | undefined,
-  groups: ProductFilterOptions['customAttributes'],
-): Record<string, string[]> {
-  const general = new Set(groups.filter((g) => !g.manufacturerSlug).map((g) => g.slug));
-  return Object.fromEntries(Object.entries(selections ?? {}).filter(([slug]) => general.has(slug)));
-}
 
 type Props = {
   visible: boolean;

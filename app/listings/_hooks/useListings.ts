@@ -101,7 +101,7 @@ export function useListings() {
   const getSortLabel = () =>
     sortOptions.find((o) => o.value === filters.sortBy)?.label || t('product.sortBy');
 
-  const activeChips = buildActiveChips(filters, setFilters, t);
+  const activeChips = buildActiveChips(filters, setFilters, t, options.customAttributes);
 
   return {
     filters,

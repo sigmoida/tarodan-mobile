@@ -1,5 +1,10 @@
 import type { TFunction } from 'i18next';
-import { buildConditionOptions, type ProductFilters } from '@/utils/productFilters';
+import {
+  buildConditionOptions,
+  keepGeneralAttributeSelections,
+  type ProductFilters,
+} from '@/utils/productFilters';
+import type { ProductFilterOptions } from '@/hooks/useProductFilterOptions';
 
 export const conditionLabel = (v: string, t: TFunction) =>
   buildConditionOptions(t).find((c) => c.value === v)?.label || v;
@@ -18,12 +23,19 @@ export function buildActiveChips(
   filters: ProductFilters,
   setFilters: (f: ProductFilters) => void,
   t: TFunction,
+  attributeGroups: ProductFilterOptions['customAttributes'] = [],
 ): ActiveChip[] {
   const chips: ActiveChip[] = [];
   if (filters.category) chips.push({ key: 'cat', label: filters.category, onRemove: () => setFilters({ ...filters, category: '', categoryId: '' }) });
   if (filters.brand) chips.push({ key: 'brand', label: filters.brand, onRemove: () => setFilters({ ...filters, brand: '', brandId: '', carModel: '', carModelId: '' }) });
   if (filters.carModel) chips.push({ key: 'model', label: filters.carModel, onRemove: () => setFilters({ ...filters, carModel: '', carModelId: '' }) });
-  if (filters.manufacturer) chips.push({ key: 'manuf', label: filters.manufacturer, onRemove: () => setFilters({ ...filters, manufacturer: '', manufacturerId: '' }) });
+  if (filters.manufacturer) chips.push({ key: 'manuf', label: filters.manufacturer, onRemove: () => setFilters({
+    ...filters,
+    manufacturer: '',
+    manufacturerId: '',
+    // Üreticiye bağlı grup seçimleri düşer, genel gruplar kalır (filtre sayfasıyla aynı kural).
+    customAttributes: keepGeneralAttributeSelections(filters.customAttributes, attributeGroups),
+  }) });
   if (filters.scale) chips.push({ key: 'scale', label: filters.scale, onRemove: () => setFilters({ ...filters, scale: '' }) });
   if (filters.material) chips.push({ key: 'mat', label: filters.material, onRemove: () => setFilters({ ...filters, material: '' }) });
   if (filters.condition) chips.push({ key: 'cond', label: conditionLabel(filters.condition, t), onRemove: () => setFilters({ ...filters, condition: '' }) });
