@@ -50,13 +50,25 @@ describe('Modal: kart yüzeyi', () => {
     expect(sheetOf(getByText('içerik'))?.maxWidth).toBe(512);
   });
 
-  it('başlık ve gövde: başlık satırı üst boşluğu verir, gövde üstte boşluksuz (eski görünüm)', () => {
+  it('başlık ve gövde web Dialog gibi: başlık alt çizgili, gövde px-6 py-5, alt şerit üst çizgili', () => {
     const { getByText } = render(
-      <Modal isOpen onClose={jest.fn()} title="Başlık">
+      <Modal isOpen onClose={jest.fn()} title="Başlık" footer={<Text>alt</Text>}>
         <Text>içerik</Text>
       </Modal>,
     );
-    expect(getByText('Başlık')).toBeTruthy();
+    expect(up(getByText('Başlık'), (s) => 'borderBottomWidth' in s)?.borderBottomWidth).toBe(1);
+    const body = bodyOf(getByText('içerik'));
+    expect(body?.paddingVertical).toBe(20);
+    expect(body?.paddingTop).toBeUndefined();
+    expect(up(getByText('alt'), (s) => 'borderTopWidth' in s)?.borderTopWidth).toBe(1);
+  });
+
+  it('yalnız kapat düğmeli başlıkta gövde üstte boşluksuz (reklam görseli)', () => {
+    const { getByText } = render(
+      <Modal isOpen onClose={jest.fn()} showCloseButton>
+        <Text>içerik</Text>
+      </Modal>,
+    );
     expect(bodyOf(getByText('içerik'))?.paddingTop).toBe(0);
   });
 });

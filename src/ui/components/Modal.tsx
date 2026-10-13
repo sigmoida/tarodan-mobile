@@ -42,6 +42,11 @@ export interface ModalProps {
    * yüzdeyle genişleyen içerik karta sığmaz. Varsayılan kapalı: kart `size`'a kadar tam genişlik.
    */
   fitContent?: boolean;
+  /**
+   * Alt şerit (web Dialog `footer`): üst çizgili, `px-6 py-4`. Düğmeler için `ModalFooter`
+   * kullanın — web gibi mobilde tam genişlik, ana aksiyon üstte (ters sıra).
+   */
+  footer?: React.ReactNode;
 }
 
 const { colors, radius, spacing, typography } = theme;
@@ -63,6 +68,7 @@ export const Modal: React.FC<ModalProps> = ({
   closeLabel,
   flushBody = false,
   fitContent = false,
+  footer,
 }) => {
   const hasHeader = !!title || showCloseButton;
   return (
@@ -105,12 +111,13 @@ export const Modal: React.FC<ModalProps> = ({
             <View
               style={[
                 styles.body,
-                hasHeader && styles.bodyAfterHeader,
+                hasHeader && !title && styles.bodyAfterHeader,
                 flushBody && styles.bodyFlush,
               ]}
             >
               {children}
             </View>
+            {footer ? <View style={styles.footer}>{footer}</View> : null}
           </Pressable>
         </Pressable>
       </KeyboardAvoidingView>
@@ -131,7 +138,7 @@ const styles = StyleSheet.create({
   },
   sheet: {
     width: '100%',
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface.elevated,
     borderRadius: radius.xl,
   },
   // İçeriğe oturan kart (backdrop `alignItems: center` olduğu için ortalanır).
@@ -148,10 +155,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing[2],
   },
+  // Web Dialog başlığı: `border-b px-6 py-4`.
   headerTitled: {
     paddingHorizontal: spacing[6],
-    paddingTop: spacing[6],
-    paddingBottom: spacing[4],
+    paddingVertical: spacing[4],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.DEFAULT,
   },
   headerCloseOnly: {
     padding: spacing[2],
@@ -159,13 +168,23 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     fontSize: typography.fontSize.lg,
-    fontWeight: '600',
+    lineHeight: typography.fontSize.lg * 1.25,
+    fontWeight: typography.fontWeight.semibold,
     color: colors.text.heading,
   },
+  // Web Dialog gövdesi: `px-6 py-5`.
   body: {
     padding: spacing[6],
+    paddingVertical: spacing[5],
   },
-  // Başlık satırı üst boşluğu zaten veriyor.
+  // Web Dialog alt şeridi: `border-t px-6 py-4`.
+  footer: {
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[4],
+    borderTopWidth: 1,
+    borderTopColor: colors.border.DEFAULT,
+  },
+  // Yalnız kapat düğmeli başlık satırı üst boşluğu zaten veriyor.
   bodyAfterHeader: {
     paddingTop: 0,
   },

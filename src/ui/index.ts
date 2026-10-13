@@ -122,6 +122,7 @@ export {
 	type ModalProps,
 	type ModalSize,
 } from './components/Modal';
+export { ModalFooter, type ModalFooterProps } from './components/ModalFooter';
 export {
 	appAlert,
 	AlertDialogHost,
