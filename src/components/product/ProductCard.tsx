@@ -19,6 +19,12 @@ import { OutOfStockOverlay } from './OutOfStockOverlay';
 
 const { colors, spacing, typography, radiusRole, iconSize } = theme;
 
+/** Görsel sol üst köşesinde en çok bu kadar rozet (sponsorlu > takas > kampanya) — görseli örtmesin. */
+const MAX_START_BADGES = 2;
+
+/** Takas rozeti ikonu — sabit referans (kart yeniden render olunca yeni element üretilmez). */
+const TRADE_ICON = <Icon name="arrows-right-left" size={iconSize.sm} color={colors.text.inverted} />;
+
 export interface ProductCardProduct extends ProductPriceFields {
   id: string;
   title: string;
@@ -65,6 +71,19 @@ export interface ProductCardProps {
   footer?: React.ReactNode;
   style?: ViewStyle;
   testID?: string;
+}
+
+/** Sol üst rozetler: öncelik sponsorlu > takas > kampanya, en çok `MAX_START_BADGES` tanesi. */
+function pickStartBadges(product: ProductCardProduct) {
+  const campaign = (product.feeCampaigns ?? [])[0] ?? null;
+  const wanted = [
+    Boolean(product.isBoosted || product.boostedUntil),
+    isProductTradeOpen(product),
+    Boolean(campaign),
+  ];
+  let left = MAX_START_BADGES;
+  const [showSponsored, showTrade, showCampaign] = wanted.map((w) => (w && left > 0 ? (left--, true) : false));
+  return { showSponsored, showTrade, showCampaign, campaign };
 }
 
 /** Bir `Text` kısa yolu: web kartındaki "text-xs text-subtle" meta metni. */
@@ -148,7 +167,7 @@ function ProductCardBase({
 }: ProductCardProps) {
   const { t } = useTranslation();
 
-  const { effective, original, onSale, discount, outOfStock, isTrade, sponsored, campaign } = useMemo(
+  const { effective, original, onSale, discount, outOfStock, isTrade, showSponsored, showTrade, showCampaign, campaign } = useMemo(
     () => ({
       effective: getProductEffectivePrice(product),
       original: getProductOriginalPriceForDisplay(product),
@@ -156,8 +175,7 @@ function ProductCardBase({
       discount: product.discountPercent ?? getProductDiscountPercent(product),
       outOfStock: isProductOutOfStock(product),
       isTrade: isProductTradeOpen(product),
-      sponsored: Boolean(product.isBoosted || product.boostedUntil),
-      campaign: (product.feeCampaigns ?? [])[0] ?? null,
+      ...pickStartBadges(product),
     }),
     [product],
   );
@@ -170,7 +188,7 @@ function ProductCardBase({
   };
 
   const imageSource = product.imageUrl ?? product.images;
-  const tradeIcon = <Icon name="arrows-right-left" size={iconSize.sm} color={colors.text.inverted} />;
+  const tradeIcon = TRADE_ICON;
 
   if (layout === 'list') {
     return (
@@ -250,13 +268,13 @@ function ProductCardBase({
           />
           {outOfStock ? <OutOfStockOverlay label={t('product.soldOut').toUpperCase()} /> : null}
           <View style={styles.badgesStart} pointerEvents="none">
-            {sponsored ? <ProductBadge variant="sponsored">{t('product.sponsored')}</ProductBadge> : null}
-            {isTrade ? (
+            {showSponsored ? <ProductBadge variant="sponsored">{t('product.sponsored')}</ProductBadge> : null}
+            {showTrade ? (
               <ProductBadge variant="trade" icon={tradeIcon}>
                 {t('product.tradeShort')}
               </ProductBadge>
             ) : null}
-            {campaign ? <ProductBadge variant="rare">{campaign}</ProductBadge> : null}
+            {showCampaign ? <ProductBadge variant="rare">{campaign}</ProductBadge> : null}
           </View>
           {onSale ? (
             <View style={styles.badgeEnd} pointerEvents="none">
@@ -318,6 +336,8 @@ const styles = StyleSheet.create({
     left: spacing[1.5],
     alignItems: 'flex-start',
     gap: spacing[1],
+    // Taşan etiket ellipsis'e düşer; sağ üstteki indirim rozetine çarpmaz.
+    maxWidth: '70%',
   },
   badgeEnd: { position: 'absolute', top: spacing[1.5], right: spacing[1.5] },
   gridBody: { flex: 1, padding: spacing[2.5] },
