@@ -1,5 +1,11 @@
 import { useCallback, useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query';
 import { legalIdentityApi } from '@/lib/api';
 import { qk, queryClient as appQueryClient, retryUnlessClientError } from '@/lib/query';
 import { requiredStepState } from '@/lib/requiredSteps';
@@ -15,8 +21,16 @@ import {
 /** "Vazgeç": bekleyen işlem(ler) iptal. Modül seviyesinde → kimliği sabit. */
 const cancelRequest = () => settleLegalIdentityRequest(false);
 
-const fetchStatus = async (): Promise<LegalIdentityStatus> =>
-  (await legalIdentityApi.getStatus()).data;
+/**
+ * Kimlik durumunun TEK sorgu tanımı: profil kartı, kapı adımı ve
+ * `ensureLegalIdentity` aynı anahtarı, fetcher'ı ve yeniden deneme kuralını
+ * kullanır (4xx denenmez; 404 = uç yok → fail-open hemen döner).
+ */
+export const legalIdentityQueryOptions = queryOptions({
+  queryKey: qk.legalIdentity.me,
+  queryFn: async (): Promise<LegalIdentityStatus> => (await legalIdentityApi.getStatus()).data,
+  retry: retryUnlessClientError,
+});
 
 function useSignedIn() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -31,12 +45,7 @@ function useSignedIn() {
  */
 export function useLegalIdentityStatus() {
   const enabled = useSignedIn();
-  const query = useQuery({
-    queryKey: qk.legalIdentity.me,
-    queryFn: fetchStatus,
-    enabled,
-    retry: retryUnlessClientError,
-  });
+  const query = useQuery({ ...legalIdentityQueryOptions, enabled });
   return {
     status: enabled ? (query.data ?? null) : null,
     isLoading: enabled && query.isPending,
@@ -55,7 +64,7 @@ export function useSubmitLegalIdentity() {
     mutationFn: async (body: SubmitLegalIdentityRequest) =>
       (await legalIdentityApi.submit(body)).data,
     onSuccess: (status) => {
-      client.setQueryData(qk.legalIdentity.me, status);
+      client.setQueryData(legalIdentityQueryOptions.queryKey, status);
       if (!needsLegalIdentity(status)) settleLegalIdentityRequest(true);
     },
   });
@@ -73,12 +82,7 @@ export function useLegalIdentityStep() {
   const requested = useLegalIdentityRequestStore((s) => s.requested);
   const enabled = signedIn && requested;
 
-  const query = useQuery({
-    queryKey: qk.legalIdentity.me,
-    queryFn: fetchStatus,
-    enabled,
-    retry: retryUnlessClientError,
-  });
+  const query = useQuery({ ...legalIdentityQueryOptions, enabled });
 
   const status = enabled ? (query.data ?? null) : null;
   const state = requested
@@ -123,17 +127,12 @@ export async function ensureLegalIdentity(client: QueryClient = appQueryClient):
 
   // Tamamlanan kimlik geri açılmaz (düzeltme yalnız admin): önbellek "tamam"
   // diyorsa ağa çıkma. "Eksik" diyorsa taze sor — web'de tamamlanmış olabilir.
-  const cached = client.getQueryData<LegalIdentityStatus>(qk.legalIdentity.me);
+  const cached = client.getQueryData(legalIdentityQueryOptions.queryKey);
   if (cached && !needsLegalIdentity(cached)) return true;
 
   let status: LegalIdentityStatus;
   try {
-    status = await client.fetchQuery({
-      queryKey: qk.legalIdentity.me,
-      queryFn: fetchStatus,
-      staleTime: 0,
-      retry: false,
-    });
+    status = await client.fetchQuery({ ...legalIdentityQueryOptions, staleTime: 0 });
   } catch {
     return true;
   }
