@@ -16,7 +16,14 @@ jest.mock('react-i18next', () => ({
   useTranslation: () => ({ i18n: { language: mockLang }, t: (k: string) => k }),
 }));
 
-import { AuthHeroBanner } from '../AuthHeroBanner';
+/** Pencere genişliği: varsayılan iPad yatay (görsel yalnız ≥ 1024pt — web `lg`). */
+let mockWindowWidth = 1366;
+jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
+  __esModule: true,
+  default: () => ({ width: mockWindowWidth, height: 1024, scale: 2, fontScale: 1 }),
+}));
+
+import { AUTH_HERO_MIN_WIDTH, AuthHeroBanner } from '../AuthHeroBanner';
 import { authHeroFrom, useAuthHero } from '../useAuthHero';
 import { useHeroSlides } from '@/lib/hero/useHeroSlides';
 import { qk } from '@/lib/query';
@@ -48,6 +55,7 @@ const renderBanner = (placement: 'auth_default' | 'auth_register' = 'auth_defaul
 beforeEach(() => {
   mockGetSlides.mockReset();
   mockLang = 'tr';
+  mockWindowWidth = 1366;
 });
 
 describe('authHeroFrom', () => {
@@ -108,6 +116,26 @@ describe('ortak hero sorgusu (useHeroSlides)', () => {
 });
 
 describe('AuthHeroBanner', () => {
+  it('web lg ile aynı eşik: 1024pt', () => {
+    expect(AUTH_HERO_MIN_WIDTH).toBe(1024);
+  });
+
+  it.each([390, 834, AUTH_HERO_MIN_WIDTH - 1])('telefon/dar pencere (%ipt): hiçbir şey çizilmez, slayt sorgusu atılmaz', async (width) => {
+    mockWindowWidth = width;
+    mockGetSlides.mockResolvedValue({ data: [slide()] });
+    const { queryByTestId } = renderBanner();
+    await act(async () => {});
+    expect(queryByTestId('auth-hero')).toBeNull();
+    expect(mockGetSlides).not.toHaveBeenCalled();
+  });
+
+  it('tam eşikte (1024pt) çizilir', async () => {
+    mockWindowWidth = AUTH_HERO_MIN_WIDTH;
+    mockGetSlides.mockResolvedValue({ data: [slide()] });
+    const { findByTestId } = renderBanner();
+    await findByTestId('auth-hero');
+  });
+
   it('doğru yerleşimi ister ve başlık + alt başlığı çizer', async () => {
     mockGetSlides.mockResolvedValue({ data: [slide({ placement: 'auth_register' })] });
     const { findByTestId, getByText } = renderBanner('auth_register');

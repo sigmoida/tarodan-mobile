@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { theme, Text } from '@/ui';
 import { useAuthHero, type AuthHeroPlacement } from './useAuthHero';
@@ -8,19 +8,34 @@ import { useAuthHero, type AuthHeroPlacement } from './useAuthHero';
 const BANNER_HEIGHT = 180;
 
 /**
- * Giriş/kayıt ekranının üstündeki marka görseli + başlık/alt başlık (web
- * `AuthHeroFrame` paneli). Kayıt ekranı `placement="auth_register"`, diğer auth
- * ekranları `auth_default`. Görsel tanımlı değilse ya da yüklenemediyse HİÇBİR
- * ŞEY çizilmez (yer ayrılmaz). Beacon yok (web auth panelinde de sayılmıyor);
- * CTA yok.
+ * Görselin çizildiği en dar pencere (pt) — web tailwind `lg` (1024px;
+ * `@tarodan/design-tokens` preset `screens.lg`). Web `AuthHeroFrame` paneli
+ * `hidden lg:flex`: telefonda hiç görünmez, yalnız geniş ekranda formun yanında.
  */
-export function AuthHeroBanner({
-  placement,
-  style,
-}: {
+export const AUTH_HERO_MIN_WIDTH = 1024;
+
+interface AuthHeroBannerProps {
   placement: AuthHeroPlacement;
   style?: StyleProp<ViewStyle>;
-}) {
+}
+
+/**
+ * Giriş/kayıt ekranının üstündeki marka görseli + başlık/alt başlık (web
+ * `AuthHeroFrame` paneli). Kayıt ekranı `placement="auth_register"`, diğer auth
+ * ekranları `auth_default`. Web gibi YALNIZ geniş pencerede (≥ 1024pt: iPad
+ * yatay vb.); telefonda hiçbir şey çizilmez ve slayt sorgusu da atılmaz — form
+ * aşağı itilmez, geri okuyla çakışmaz. Görsel tanımlı değilse ya da
+ * yüklenemediyse de HİÇBİR ŞEY çizilmez (yer ayrılmaz). Beacon yok (web auth
+ * panelinde de sayılmıyor); CTA yok.
+ */
+export function AuthHeroBanner(props: AuthHeroBannerProps) {
+  const { width } = useWindowDimensions();
+  // Genişlik değişince (iPad döndürme, Split View) bileşen bağlanır/sökülür;
+  // sorgu yalnız içerik bağlıyken çalışır.
+  return width >= AUTH_HERO_MIN_WIDTH ? <AuthHeroBannerContent {...props} /> : null;
+}
+
+function AuthHeroBannerContent({ placement, style }: AuthHeroBannerProps) {
   const hero = useAuthHero(placement);
   // Görsel yüklenemezse (404, ağ) başlık/alt başlık tek başına çizilmez: yarı
   // saydam katman altında boş bir kutu kalırdı. Hata görsel başına tutulur —

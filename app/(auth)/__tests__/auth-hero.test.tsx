@@ -5,7 +5,8 @@
  *   - giriş ve kurumsal davet → `auth_default`
  *   - şifre unuttum / sıfırla / e-posta doğrula → görsel YOK (web `(minimal)`
  *     çerçevesi: "No two-panel hero").
- * Slayt yoksa hiçbir şey çizilmez.
+ * Slayt yoksa hiçbir şey çizilmez. Web paneli `hidden lg:flex`: telefonda
+ * (< 1024pt) görsel YOK, yalnız geniş pencerede (iPad yatay).
  */
 import React from 'react';
 import { act, screen, waitFor } from '@testing-library/react-native';
@@ -42,6 +43,13 @@ jest.mock('@/stores/authStore', () => ({
   },
 }));
 
+/** Pencere genişliği: varsayılan iPad yatay (görsel yalnız ≥ 1024pt — web `lg`). */
+let mockWindowWidth = 1366;
+jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
+  __esModule: true,
+  default: () => ({ width: mockWindowWidth, height: 1024, scale: 2, fontScale: 1 }),
+}));
+
 import LoginScreen from '../login';
 import RegisterScreen from '../register';
 import RegisterBusinessScreen from '../register-business';
@@ -67,6 +75,7 @@ function slideFor(placement: keyof typeof TITLES) {
 }
 
 beforeEach(() => {
+  mockWindowWidth = 1366;
   mockGetSlides.mockReset();
   mockGetSlides.mockImplementation((placement: keyof typeof TITLES) =>
     Promise.resolve({ data: [slideFor(placement)] }),
@@ -78,7 +87,7 @@ it.each([
   ['kurumsal davet', 'auth_default', CorporateInviteScreen],
   ['kayıt', 'auth_register', RegisterScreen],
   ['kurumsal kayıt', 'auth_register', RegisterBusinessScreen],
-] as const)('%s ekranı en üstte %s görselini gösterir', async (_name, placement, Screen) => {
+] as const)('geniş pencere: %s ekranı en üstte %s görselini gösterir', async (_name, placement, Screen) => {
   renderWithProviders(<Screen />);
   expect(await screen.findByText(TITLES[placement])).toBeOnTheScreen();
   expect(screen.getByTestId('auth-hero')).toBeOnTheScreen();
@@ -98,4 +107,17 @@ it('şifre unuttum ekranında görsel yok (web minimal çerçeve)', () => {
   renderWithProviders(<ForgotPasswordScreen />);
   expect(mockGetSlides).not.toHaveBeenCalled();
   expect(screen.queryByTestId('auth-hero')).toBeNull();
+});
+
+it.each([
+  ['giriş', LoginScreen],
+  ['kurumsal davet', CorporateInviteScreen],
+  ['kayıt', RegisterScreen],
+  ['kurumsal kayıt', RegisterBusinessScreen],
+] as const)('telefonda (390pt) %s ekranında görsel yok, slayt istenmez (web gibi)', async (_name, Screen) => {
+  mockWindowWidth = 390;
+  renderWithProviders(<Screen />);
+  await act(async () => {});
+  expect(screen.queryByTestId('auth-hero')).toBeNull();
+  expect(mockGetSlides).not.toHaveBeenCalled();
 });
