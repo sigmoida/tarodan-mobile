@@ -9,7 +9,6 @@ export default function ShippingDeliveryScreen() {
   return (
     <InfoPage
       title={t("mobile.pageShipping")}
-      pageTitle={t("shippingDeliveryPage.pageTitle")}
       description={t("shippingDeliveryPage.pageSubtitle")}
       sections={[
         {

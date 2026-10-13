@@ -20,7 +20,8 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border.subtle,
   },
-  searchSection: {
+  // Ortak araç çubuğu kabuğu (arama + denetimler + sayım + çipler); öneri paneli üstte kalsın.
+  toolbar: {
     paddingHorizontal: spacing[4],
     paddingTop: spacing[3],
     paddingBottom: spacing[2],
@@ -112,13 +113,6 @@ export const styles = StyleSheet.create({
     borderBottomColor: colors.border.subtle,
   },
   recentSearchText: { flex: 1, fontSize: typography.fontSize.sm, color: colors.text.heading },
-  controls: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing[4],
-    paddingBottom: spacing[2],
-  },
-  chips: { paddingHorizontal: spacing[4] },
-  resultsCount: { paddingHorizontal: spacing[4], paddingBottom: spacing[2] },
   listContent: { padding: spacing[4], paddingTop: spacing[2], gap: spacing[3] },
   // Üst çubuklar ölçülene kadar liste görünmez ama YERLEŞİR (opacity, display değil):
   // doğru üst boşlukla tek seferde konumlanır, kullanıcı ara kareyi görmez.

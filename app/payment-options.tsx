@@ -7,7 +7,6 @@ export default function PaymentOptionsScreen() {
   return (
     <InfoPage
       title={t("mobile.pagePaymentOptions")}
-      pageTitle={t("mobile.pagePaymentOptions")}
       description={t("paymentOptionsPage.pageSubtitle")}
       sections={[
         {

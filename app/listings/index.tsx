@@ -23,8 +23,8 @@ import { ListingsFooter } from './_components/ListingsFooter';
 const { colors } = theme;
 
 /**
- * Tüm ilanlar — web `/listings`: PageShell + başlık bandı (arama/marka/kategori başlığı, ürün
- * sayısı, filtre + sıralama), aktif filtre çipleri ve 2 sütun ürün ızgarası. Kontrolcü
+ * Tüm ilanlar — web `/listings`: PageShell (başlık üst barda) + ortak `ProductListToolbar` (arama,
+ * filtre + sıralama + ızgara/liste, ürün sayısı, aktif filtre çipleri) ve ürün ızgarası. Kontrolcü
  * `useListings`; ekran yalnız kompozisyon.
  */
 export default function ListingsScreen() {

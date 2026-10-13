@@ -84,7 +84,6 @@ export default function PlatformHizmetBedeliScreen() {
   return (
     <InfoPage
       title={t('mobile.pagePlatformFee')}
-      pageTitle={t('mobile.pagePlatformFee')}
       description={t('legalContact.lastUpdatedJun2026')}
       sections={sections}
       footer={

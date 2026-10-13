@@ -25,9 +25,6 @@ export function ModelHero({ model }: { model: CarModelDetail }) {
           {model.brand?.name}
         </Text>
       </View>
-      <Text variant="h1" accessibilityRole="header">
-        {model.name}
-      </Text>
       {model.yearStart || model.yearEnd ? (
         <Text variant="bodySm" tone="subtle">
           {model.yearStart ?? '?'}

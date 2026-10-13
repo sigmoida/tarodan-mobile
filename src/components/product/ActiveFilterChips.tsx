@@ -1,9 +1,9 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Chip, RawText, theme } from '@/ui';
+import { Chip, Text, theme } from '@/ui';
 
-const { colors, spacing, typography } = theme;
+const { spacing } = theme;
 
 export interface ActiveFilterChip {
   key: string;
@@ -12,8 +12,8 @@ export interface ActiveFilterChip {
 }
 
 /**
- * Aktif filtre çipleri (web `ActiveFilterChips`): "Filtreler:" etiketi, her filtre için kaldırılabilir
- * seçili çip (etiket + X) ve "Filtreleri Temizle". Listelenecek çip yoksa hiçbir şey çizilmez.
+ * Aktif filtre çipleri (web `ActiveFilterChips`): her filtre için kaldırılabilir seçili çip
+ * (etiket + X) ve sondaki "Temizle" metin düğmesi. Listelenecek çip yoksa hiçbir şey çizilmez.
  * Telefonda tek satırda yatay kayar (web'de sarar).
  */
 export function ActiveFilterChips({
@@ -33,7 +33,6 @@ export function ActiveFilterChips({
       keyboardShouldPersistTaps="handled"
       testID="active-filter-chips"
     >
-      <RawText style={styles.label}>{t('product.filters')}:</RawText>
       {chips.map((chip) => (
         <Chip
           key={chip.key}
@@ -44,31 +43,23 @@ export function ActiveFilterChips({
           accessibilityLabel={`${t('common.remove')}: ${chip.label}`}
         />
       ))}
-      <Pressable onPress={onClear} hitSlop={theme.spacing[2]} accessibilityRole="button" style={styles.clear}>
-        <RawText style={styles.clearText}>{t('product.clearFilters')}</RawText>
+      <Pressable
+        testID="clear-filters"
+        onPress={onClear}
+        hitSlop={spacing[2]}
+        accessibilityRole="button"
+        accessibilityLabel={t('product.clearFilters')}
+        style={styles.clear}
+      >
+        <Text variant="caption" weight="medium" tone="primary">
+          {t('common.clear')}
+        </Text>
       </Pressable>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    alignItems: 'center',
-    gap: spacing[2],
-    paddingVertical: spacing[1],
-  },
-  label: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.text.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginRight: spacing[1],
-  },
+  content: { alignItems: 'center', gap: spacing[2], paddingVertical: spacing[1] },
   clear: { paddingHorizontal: spacing[1] },
-  clearText: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.primary[600],
-  },
 });

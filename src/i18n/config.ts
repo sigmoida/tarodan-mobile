@@ -6,6 +6,10 @@
  *
  * Katalog {count} (tek süslü) interpolation kullanıyor — i18next-icu bunu ICU simple
  * argument olarak çözer, mevcut hand-rolled davranışa parite.
+ *
+ * Çoğul: sayıya bağlı metinler i18next kalıbıyla (`key_one` / `key_other` +
+ * `t(key, { count })`); adlı parametreli süre metinleri (returnWindowDays vb., web'le aynı
+ * ICU) için Hermes'te eksik Intl.PluralRules ./pluralRules ile tamamlanır.
  */
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
@@ -16,6 +20,10 @@ import {
   resolveLocale,
   type Locale,
 } from "@/i18n/lib";
+import { ensurePluralRules } from "./pluralRules";
+
+// Hermes'te Intl.PluralRules yok → ICU plural ham metin basardı; init'ten ÖNCE kur.
+ensurePluralRules();
 
 /** Cihaz dilini Hermes Intl'den çöz (tr-TR → 'tr'); bilinmeyen → defaultLocale. */
 export function getDeviceLocale(): Locale {
