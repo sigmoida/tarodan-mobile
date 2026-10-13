@@ -52,9 +52,9 @@ beforeEach(() => {
 
 describe('useOfferActions', () => {
   it.each([
-    ['accept', 'offer.offerAccepted', 'offer.acceptFailed'],
-    ['reject', 'offer.offerRejected', 'offer.rejectFailed'],
-    ['cancel', 'offer.offerCancelled', 'offer.cancelFailed'],
+    ['accept', 'offer.offerAccepted'],
+    ['reject', 'offer.offerRejected'],
+    ['cancel', 'offer.offerCancelled'],
   ] as const)('%s: başarıda invalidate + toast.success', async (name, okKey) => {
     api[name].mockResolvedValue({});
     const { result, invalidate } = mountHook(() => useOfferActions());

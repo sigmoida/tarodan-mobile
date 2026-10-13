@@ -9,18 +9,16 @@ export function RejectTradeModal({
   reason,
   setReason,
   onSubmit,
-  isPending,
 }: {
   visible: boolean;
   onClose: () => void;
   reason: string;
   setReason: (v: string) => void;
   onSubmit: () => void;
-  isPending: boolean;
 }) {
   const { t } = useTranslation();
   return (
-    <Modal isOpen={visible} onClose={() => !isPending && onClose()} title={t('trade.rejectTradeTitle')}>
+    <Modal isOpen={visible} onClose={onClose} title={t('trade.rejectTradeTitle')}>
       <Text variant="caption" tone="muted" style={{ marginBottom: theme.spacing[3] }}>
         {t('trade.rejectModalDesc')}
       </Text>
@@ -35,12 +33,11 @@ export function RejectTradeModal({
         inputStyle={{ minHeight: 80 }}
       />
       <ButtonRow style={{ marginTop: theme.spacing[2] }}>
-        <Button variant="outline" title={t('trade.dispute.cancelCta')} onPress={onClose} disabled={isPending} />
+        <Button variant="outline" title={t('trade.dispute.cancelCta')} onPress={onClose} />
         <Button
           variant="danger"
           title={t('trade.rejectTrade')}
           onPress={onSubmit}
-          isLoading={isPending}
         />
       </ButtonRow>
     </Modal>
