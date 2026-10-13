@@ -21,9 +21,9 @@ export function useConfirmOffer() {
 
   return useCallback(
     (kind: OfferConfirmKind, onConfirm: () => void, onSelect?: () => void) => {
-      const { title, description, destructive } = OFFER_CONFIRM[kind];
+      const { title, description, destructive, dismiss } = OFFER_CONFIRM[kind];
       appAlert(t(title), t(description, timing), [
-        { text: t('common.cancel'), style: 'cancel' },
+        { text: t(dismiss), style: 'cancel' },
         {
           text: t('common.confirm'),
           style: destructive ? 'destructive' : 'default',

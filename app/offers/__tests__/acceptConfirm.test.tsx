@@ -283,13 +283,12 @@ describe('detay: satıcı kabul eder', () => {
  * mutasyonu kullanır.
  */
 describe('reddet ve iptal onay ister (liste = detay = web)', () => {
-  afterEach(() => jest.useRealTimers());
-
   const expectConfirmedAfterDelay = async (
     press: () => void,
     api: jest.Mock,
     title: string,
     body: RegExp,
+    dismissLabel = 'İptal',
   ) => {
     press();
     const c = lastConfirm();
@@ -297,7 +296,7 @@ describe('reddet ve iptal onay ister (liste = detay = web)', () => {
     expect(c.message).toMatch(body);
     expect(c.message).toMatch(/geri alınamaz/);
     expect(c.confirm.text).toBe('Onayla');
-    expect(c.cancel.text).toBe('İptal');
+    expect(c.cancel.text).toBe(dismissLabel);
     expect((c.confirm as { style?: string }).style).toBe('destructive');
     expect(api).not.toHaveBeenCalled();
 
@@ -344,6 +343,7 @@ describe('reddet ve iptal onay ister (liste = detay = web)', () => {
       cancel,
       'Teklifi iptal et',
       /iptal etmek istediğinizden emin misiniz/,
+      'Vazgeç',
     );
   });
 
@@ -381,6 +381,7 @@ describe('reddet ve iptal onay ister (liste = detay = web)', () => {
       cancel,
       'Teklifi iptal et',
       /iptal etmek istediğinizden emin misiniz/,
+      'Vazgeç',
     );
   });
 });
