@@ -50,10 +50,13 @@ async function fetchNoRedirect(url) {
 }
 
 const expectedAasa = readLocal('apple-app-site-association');
-const expectedLinks = readLocal('assetlinks.json');
+// Iki uygulamali model: staging host'u kendi dosyasini (staging paketi) sunar.
+const expectedLinksProd = readLocal('assetlinks.json');
+const expectedLinksStaging = readLocal('assetlinks.staging.json');
 
 console.log('');
 for (const host of config.hosts) {
+  const expectedLinks = config.stagingHosts.includes(host) ? expectedLinksStaging : expectedLinksProd;
   const aasa = await fetchNoRedirect(`https://${host}/.well-known/apple-app-site-association`);
   record(host, 'AASA 200', aasa.status === 200, `HTTP ${aasa.status}${aasa.error ?? ''}`);
   record(host, 'AASA content-type json', aasa.type.includes('application/json'), aasa.type || '(yok)');
