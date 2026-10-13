@@ -1,13 +1,19 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { Keyboard, type LayoutChangeEvent } from 'react-native';
+import type { FlashListRef } from '@shopify/flash-list';
 import {
-  FlatList,
-  Keyboard,
-  Animated,
-  type LayoutChangeEvent,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-} from 'react-native';
-import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
+  useAnimatedScrollHandler,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+  type InfiniteData,
+} from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatPriceRange } from '@/utils/format';
@@ -25,6 +31,14 @@ import {
   type ProductFilters,
 } from '@/utils/productFilters';
 import { PAGE_SIZE, conditionLabel } from '../_lib/searchConstants';
+import {
+  BARS_ANIM_MS,
+  nextBarsHidden,
+  shouldShowScrollTop,
+} from '../_lib/barsCollapse';
+
+// Kararlı boş dizi: `sellerAutoRes.data ?? []` her render'da yeni referans üretiyordu.
+const EMPTY_SELLERS: any[] = [];
 
 /**
  * Search screen controller — owns filter state, the debounced search box, the
@@ -49,8 +63,15 @@ export function useSearch() {
     manufacturerId: (params.manufacturerId as string) || '',
   }));
 
-  // Arama kutusu — yazarken debounce ile filters.search'e yansır
-  const [searchQuery, setSearchQuery] = useState(filters.search);
+  // Arama kutusunun metni artık BU hook'ta değil: `SearchInputBox` kendi state'ini tutar ve
+  // 400ms debounce sonrası `commitQuery` ile onaylanmış sorguyu yazar → her tuşta ekran render olmaz.
+  // Dışarıdan (öneri/son arama seçimi, temizle) kutuyu yazdırmak için `inputCommand` kullanılır.
+  const initialQuery = useRef(filters.search).current;
+  const [inputEmpty, setInputEmpty] = useState(!filters.search);
+  const [inputCommand, setInputCommand] = useState<{ text: string; nonce: number } | null>(null);
+  const setInputText = useCallback((text: string) => {
+    setInputCommand((c) => ({ text, nonce: (c?.nonce ?? 0) + 1 }));
+  }, []);
 
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [sortModalVisible, setSortModalVisible] = useState(false);
@@ -78,19 +99,22 @@ export function useSearch() {
   }, [filters.manufacturerId, filters.manufacturer, baseOptions.manufacturers]);
   const options = useProductFilterOptions(manufacturerSlug);
 
-  const { searches, addSearch, removeSearch, clearSearches } = useRecentSearchesStore();
-  const recentSearchQueries = searches.map((s) => s.query);
+  const searches = useRecentSearchesStore((st) => st.searches);
+  const addSearch = useRecentSearchesStore((st) => st.addSearch);
+  const removeSearch = useRecentSearchesStore((st) => st.removeSearch);
+  const clearSearches = useRecentSearchesStore((st) => st.clearSearches);
+  const recentSearchQueries = useMemo(() => searches.map((s) => s.query), [searches]);
 
   const [autocompleteOpen, setAutocompleteOpen] = useState(false);
   const [autocompleteQuery, setAutocompleteQuery] = useState('');
   const [showRecentSearches, setShowRecentSearches] = useState(false);
 
   // Sonuç listesi aşağı kaydırılınca üst çubukları (arama + filtre) gizle, yukarı kaydırınca geri getir.
-  const [topBarsHidden, setTopBarsHidden] = useState(false);
+  // Karar ve animasyon UI thread'inde (Reanimated scroll handler + shared value); JS'e yalnız
+  // eşik geçişleri (en üste dön düğmesi, öneri panelini kapatma) döner.
   // Liste yeterince aşağı inince "en üste dön" butonunu göster.
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const lastScrollY = useRef(0);
-  const listRef = useRef<FlatList>(null);
+  const listRef = useRef<FlashListRef<any>>(null);
 
   // Üst çubukları absolute bir katmanda tutup translateY ile kaydırıyoruz (liste reflow olmaz → takılmaz).
   // Yükseklik TAHMİN EDİLMEZ: 0'dan başlar ve ilk `onLayout` ölçümüyle yazılır. Ölçüm
@@ -98,30 +122,50 @@ export function useSearch() {
   // yanlış bir üst boşlukla bir kare çizilip sonra yerine kaymaz.
   const [headerHeight, setHeaderHeight] = useState(0);
   const barsMeasured = headerHeight > 0;
-  const barsTranslateY = useRef(new Animated.Value(0)).current;
+  const barsTranslateY = useSharedValue(0);
+  const barsHidden = useSharedValue(false);
+  const headerHeightSV = useSharedValue(0);
+  const lastScrollY = useSharedValue(0);
+  const scrollTopVisible = useSharedValue(false);
+  const panelsOpenSV = useSharedValue(false);
   useEffect(() => {
-    Animated.timing(barsTranslateY, {
-      toValue: topBarsHidden ? -headerHeight : 0,
-      duration: 220,
-      useNativeDriver: true,
-    }).start();
-  }, [topBarsHidden, headerHeight, barsTranslateY]);
+    headerHeightSV.value = headerHeight;
+    // Çubuklar gizliyken yükseklik değişirse (çip eklendi/çıktı) yeni yüksekliğe göre hizala.
+    if (barsHidden.value) {
+      barsTranslateY.value = withTiming(-headerHeight, { duration: BARS_ANIM_MS });
+    }
+  }, [headerHeight, headerHeightSV, barsHidden, barsTranslateY]);
   const onBarsLayout = useCallback((e: LayoutChangeEvent) => {
     const h = e.nativeEvent.layout.height;
     if (h <= 0) return;
     setHeaderHeight((prev) => (Math.abs(h - prev) > 0.5 ? h : prev));
   }, []);
 
-  // Arama kutusu → filters.search (debounce 400ms)
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setFilters((prev) => (prev.search === searchQuery ? prev : { ...prev, search: searchQuery.trim() }));
-      const q = searchQuery.trim();
+  // Arama kutusu (debounce sonrası) → filters.search + öneri sorgusu
+  const commitQuery = useCallback(
+    (text: string) => {
+      setFilters((prev) => (prev.search === text ? prev : { ...prev, search: text.trim() }));
+      const q = text.trim();
       setAutocompleteQuery(q.length >= 2 ? q : '');
+    },
+    [],
+  );
+
+  // Son aramalara YALNIZ onaylanmış aramada yazılır (Enter / öneri seçimi / öneriden sonuca gitme /
+  // dışarıdan gelen `q` ile açılış). Eskiden her debounce'ta ("fer","ferr","ferra") kaydoluyor ve
+  // AsyncStorage'a persist yazıyordu.
+  const saveRecentSearch = useCallback(
+    (text: string) => {
+      const q = text.trim();
       if (q.length >= 2) addSearch(q);
-    }, 400);
-    return () => clearTimeout(t);
-  }, [searchQuery]);
+    },
+    [addSearch],
+  );
+  useEffect(() => {
+    saveRecentSearch(initialQuery);
+    // yalnız ilk açılışta
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const autocompleteQueryRes = useQuery({
     queryKey: ['autocomplete-rich', autocompleteQuery],
@@ -134,7 +178,8 @@ export function useSearch() {
         return null;
       }
     },
-    enabled: !!autocompleteQuery,
+    // Yalnız öneri paneli açıkken (kutu odakta) çalışır; kapalıyken sessiz kalır.
+    enabled: !!autocompleteQuery && autocompleteOpen,
   });
   const autocomplete = autocompleteQueryRes.data;
 
@@ -150,11 +195,13 @@ export function useSearch() {
         return [];
       }
     },
-    enabled: !!autocompleteQuery,
+    enabled: !!autocompleteQuery && autocompleteOpen,
   });
-  const sellerResults = sellerAutoRes.data ?? [];
+  const sellerResults = sellerAutoRes.data ?? EMPTY_SELLERS;
 
   // --- Ürün listesi: web /products endpoint'i + sayfalama (sonsuz kaydırma) ---
+  const queryClient = useQueryClient();
+  const searchKey = ['products-search', filters] as const;
   const {
     data,
     isLoading,
@@ -164,9 +211,8 @@ export function useSearch() {
     hasNextPage,
     isFetchingNextPage,
     refetch,
-    isRefetching,
   } = useInfiniteQuery({
-    queryKey: ['products-search', filters],
+    queryKey: searchKey,
     placeholderData: keepPreviousData,
     initialPageParam: 1,
     queryFn: async ({ pageParam }) => {
@@ -179,37 +225,91 @@ export function useSearch() {
     },
     getNextPageParam: (last) =>
       last.meta.page < last.meta.totalPages ? last.meta.page + 1 : undefined,
-    // Bound resident pages (#76): image-heavy feed — react-query trims trailing
-    // pages past this window instead of holding every scrolled page for gcTime.
-    maxPages: 5,
+    // NOT: `maxPages` bilerek YOK. 6. sayfada react-query ilk sayfayı atınca dizi 24 öğe kayıyor,
+    // liste sıçrıyordu; kart başına yük hafif olduğundan tüm sayfaları tutmak bellek sorunu değil.
     getPreviousPageParam: (first) =>
       first.meta.page > 1 ? first.meta.page - 1 : undefined,
   });
 
-  const products: any[] = useMemo(
-    () => data?.pages.flatMap((p) => p.items) ?? [],
-    [data],
-  );
+  // Sayfalar arası tekilleştirme: sayfalama sırasında bir ilan iki sayfada da dönebilir
+  // (araya yeni ilan girerse kayma olur); `keyExtractor` yalnız `item.id` kullandığı için
+  // yinelenen id'ler listeden elenir.
+  // Pull-to-refresh: spinner YALNIZ kullanıcı çekip bıraktığında döner (`isRefetching` sonraki sayfa
+  // yüklemesinde / filtre değişiminde de true olur → RefreshControl yanlışlıkla tetiklenirdi).
+  const [pullRefreshing, setPullRefreshing] = useState(false);
+  const refreshFirstPage = useCallback(async () => {
+    setPullRefreshing(true);
+    try {
+      // `refetch()` yüklü TÜM sayfaları sırayla çeker; önce önbelleği ilk sayfaya kırp, sonra
+      // yenile → tek istek (TanStack v5 önerisi). Liste en üstte olduğundan görsel kayıp yok.
+      queryClient.setQueryData<InfiniteData<unknown>>(searchKey, (old) =>
+        old && old.pages.length > 1
+          ? { pages: old.pages.slice(0, 1), pageParams: old.pageParams.slice(0, 1) }
+          : old,
+      );
+      await refetch();
+    } finally {
+      setPullRefreshing(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryClient, refetch, filters]);
+
+  const products: any[] = useMemo(() => {
+    const seen = new Set<string>();
+    const out: any[] = [];
+    for (const page of data?.pages ?? []) {
+      for (const item of page.items) {
+        if (seen.has(item.id)) continue;
+        seen.add(item.id);
+        out.push(item);
+      }
+    }
+    return out;
+  }, [data]);
   const total = data?.pages[0]?.meta.total ?? 0;
 
   const activeFiltersCount = useMemo(() => countActiveFilters(filters), [filters]);
 
-  const handleSearchChange = useCallback((text: string) => {
-    setSearchQuery(text);
+  const handleRecentSearchSelect = useCallback(
+    (query: string) => {
+      setInputText(query);
+      setShowRecentSearches(false);
+      setAutocompleteOpen(false);
+    },
+    [setInputText],
+  );
+
+  const clearAllFilters = useCallback(() => {
+    setFilters({ ...EMPTY_FILTERS });
+    setInputText('');
+  }, [setInputText]);
+
+  // Öneriden metin seçilince: kutuyu doldur, öneri panelini kapat.
+  const pickSuggestion = useCallback(
+    (text: string) => {
+      setInputText(text);
+      setAutocompleteOpen(false);
+      saveRecentSearch(text);
+    },
+    [setInputText, saveRecentSearch],
+  );
+  // Öneriden ürün/satıcı sayfasına gidilince, o an yazılan sorgu onaylanmış sayılır.
+  const confirmQuery = useCallback(() => saveRecentSearch(autocompleteQuery), [saveRecentSearch, autocompleteQuery]);
+  const closeAutocomplete = useCallback(() => setAutocompleteOpen(false), []);
+  // Kutu odağı: panelleri aç; odak kaybında tıklamaya yer bırakmak için 200ms gecikmeyle kapat.
+  const onInputFocus = useCallback(() => {
+    setShowRecentSearches(true);
+    setAutocompleteOpen(true);
+  }, []);
+  const onInputBlur = useCallback(() => {
+    setTimeout(() => {
+      setShowRecentSearches(false);
+      setAutocompleteOpen(false);
+    }, 200);
   }, []);
 
-  const handleRecentSearchSelect = (query: string) => {
-    setSearchQuery(query);
-    setShowRecentSearches(false);
-    setAutocompleteOpen(false);
-  };
-
-  const clearAllFilters = () => {
-    setFilters({ ...EMPTY_FILTERS });
-    setSearchQuery('');
-  };
-
   // Aktif filtre çipleri (web parity: kaldırılabilir)
+  const activeChips = useMemo(() => {
   const activeChips: { key: string; label: string; onRemove: () => void }[] = [];
   if (filters.category) activeChips.push({ key: 'cat', label: filters.category, onRemove: () => setFilters({ ...filters, category: '', categoryId: '' }) });
   if (filters.brand) activeChips.push({ key: 'brand', label: filters.brand, onRemove: () => setFilters({ ...filters, brand: '', brandId: '', carModel: '', carModelId: '' }) });
@@ -230,44 +330,69 @@ export function useSearch() {
   if (filters.preOrder) activeChips.push({ key: 'pre', label: t('product.preOrder'), onRemove: () => setFilters({ ...filters, preOrder: false }) });
   if (filters.limited) activeChips.push({ key: 'lim', label: t('product.limitedEdition'), onRemove: () => setFilters({ ...filters, limited: false }) });
   if (filters.set) activeChips.push({ key: 'set', label: t('product.setBundle'), onRemove: () => setFilters({ ...filters, set: false }) });
+  return activeChips;
+  }, [filters, options.customAttributes, t]);
 
   // Öneri/geçmiş paneli görünür mü? (X kapat tuşu ve input köşe stilinde kullanılır)
   const recentPanelOpen =
-    showRecentSearches && recentSearchQueries.length > 0 && !searchQuery;
+    showRecentSearches && recentSearchQueries.length > 0 && inputEmpty;
   const autocompletePanelOpen =
     autocompleteOpen && autocompleteQuery.length >= 2 && !!autocomplete;
   const suggestionsOpen = recentPanelOpen || autocompletePanelOpen;
 
-  const closeSuggestions = () => {
+  const closeSuggestions = useCallback(() => {
     Keyboard.dismiss();
     setShowRecentSearches(false);
     setAutocompleteOpen(false);
-  };
+  }, []);
 
   // Öneriden bir facet (marka/üretici/kategori) seçilince: paneli kapat ve arama metnini temizle
   // (yoksa arama + facet birlikte 2 filtre gibi sayılır).
-  const applyFacet = (partial: Partial<ProductFilters>) => {
-    setSearchQuery('');
-    closeSuggestions();
-    setFilters((prev) => ({ ...prev, search: '', ...partial }));
-  };
+  const applyFacet = useCallback(
+    (partial: Partial<ProductFilters>) => {
+      setInputText('');
+      closeSuggestions();
+      setFilters((prev) => ({ ...prev, search: '', ...partial }));
+    },
+    [setInputText, closeSuggestions],
+  );
 
-  const handleResultsScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const y = e.nativeEvent.contentOffset.y;
-    const prev = lastScrollY.current;
-    // Sonuçları kaydırınca öneri/geçmiş panelini ve klavyeyi tamamen kapat.
-    if (showRecentSearches || autocompleteOpen) closeSuggestions();
-    if (y <= 4) {
-      if (topBarsHidden) setTopBarsHidden(false);
-    } else if (y - prev > 6 && !topBarsHidden && barsMeasured && y > headerHeight) {
-      setTopBarsHidden(true);
-    } else if (prev - y > 6 && topBarsHidden) {
-      setTopBarsHidden(false);
-    }
-    if (y > 600 && !showScrollTop) setShowScrollTop(true);
-    else if (y <= 600 && showScrollTop) setShowScrollTop(false);
-    lastScrollY.current = y;
-  };
+  // Paneller açık mı? UI thread'indeki scroll handler JS state'ini okuyamaz → shared value'ya yansıt.
+  const panelsOpen = showRecentSearches || autocompleteOpen;
+  useEffect(() => {
+    panelsOpenSV.value = panelsOpen;
+  }, [panelsOpen, panelsOpenSV]);
+
+  // UI thread'inde çalışır (worklet): her karede JS'e düşmez.
+  const handleResultsScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      const y = e.contentOffset.y;
+      // Sonuçları kaydırınca öneri/geçmiş panelini ve klavyeyi tamamen kapat (JS'e tek sefer).
+      if (panelsOpenSV.value) {
+        panelsOpenSV.value = false;
+        scheduleOnRN(closeSuggestions);
+      }
+      const hidden = nextBarsHidden(
+        y,
+        lastScrollY.value,
+        barsHidden.value,
+        headerHeightSV.value > 0,
+        headerHeightSV.value,
+      );
+      if (hidden !== barsHidden.value) {
+        barsHidden.value = hidden;
+        barsTranslateY.value = withTiming(hidden ? -headerHeightSV.value : 0, {
+          duration: BARS_ANIM_MS,
+        });
+      }
+      const showTop = shouldShowScrollTop(y);
+      if (showTop !== scrollTopVisible.value) {
+        scrollTopVisible.value = showTop;
+        scheduleOnRN(setShowScrollTop, showTop);
+      }
+      lastScrollY.value = y;
+    },
+  });
 
   const scrollToTop = () => {
     listRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -277,10 +402,13 @@ export function useSearch() {
     // filters / search box
     filters,
     setFilters,
-    searchQuery,
-    setSearchQuery,
+    initialQuery,
+    inputEmpty,
+    setInputEmpty,
+    inputCommand,
+    setInputText,
+    commitQuery,
     autoFocusSearch,
-    handleSearchChange,
     clearAllFilters,
     activeChips,
     activeFiltersCount,
@@ -291,6 +419,12 @@ export function useSearch() {
     clearSearches,
     removeSearch,
     handleRecentSearchSelect,
+    pickSuggestion,
+    confirmQuery,
+    saveRecentSearch,
+    closeAutocomplete,
+    onInputFocus,
+    onInputBlur,
     // suggestions / autocomplete
     autocompleteOpen,
     setAutocompleteOpen,
@@ -308,8 +442,9 @@ export function useSearch() {
     isLoading,
     isError,
     isFetching,
-    isRefetching,
     refetch,
+    refreshing: pullRefreshing,
+    refreshFirstPage,
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
@@ -317,7 +452,7 @@ export function useSearch() {
     listRef,
     headerHeight,
     barsMeasured,
-    topBarsHidden,
+    barsHidden,
     barsTranslateY,
     onBarsLayout,
     handleResultsScroll,

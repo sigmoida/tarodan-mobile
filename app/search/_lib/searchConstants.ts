@@ -13,7 +13,7 @@ export const PAGE_SIZE = 24;
 // gizli tutulur (bkz. useSearch → barsMeasured). Tahmin + düzeltme turu listeyi
 // ilk boyamada yeniden yerleştiriyordu.
 
-// Sonuç ızgarasının FlatList'i `numColumns` kullanıyor — tek kaynaktan gitsin
+// Sonuç ızgarasının listesi `numColumns` kullanıyor — tek kaynaktan gitsin
 // diye burada sabitliyoruz (search.tsx içindeki FlatList prop'u bunu import
 // ediyor). NOT: `getItemLayout` buradan kaldırıldı (bkz. task-3-report.md
 // düzeltme notu) — kart yüksekliği koşullu puan satırı + tek/iki satırlık
@@ -22,3 +22,11 @@ export const SEARCH_NUM_COLUMNS = 2;
 
 export const conditionLabel = (v: string, t: TFunction) =>
   buildConditionOptions(t).find((c) => c.value === v)?.label || v;
+
+/**
+ * FlashList v2 geri dönüşüm penceresi (px): görünür alanın alt/üstünde bu kadar içerik önceden çizilir.
+ * FlatList'in `windowSize` / `initialNumToRender` / `maxToRenderPerBatch` ayarlarının karşılığıdır;
+ * hücreler geri dönüştürüldüğü için batch/pencere sayısı yerine tek ayar yeter. ~2 kart satırı
+ * (ızgarada ≈ 290pt/satır) hızlı kaydırmada boşluk göstermez, JS turunu da şişirmez.
+ */
+export const SEARCH_DRAW_DISTANCE = 600;

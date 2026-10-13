@@ -91,7 +91,7 @@ function RatingMeta({ rating }: { rating?: ProductCardProduct['rating'] }) {
   );
 }
 
-function MetaRow({ product, listOrder }: { product: ProductCardProduct; listOrder: boolean }) {
+const MetaRow = React.memo(function MetaRow({ product, listOrder }: { product: ProductCardProduct; listOrder: boolean }) {
   const likes = (
     <MetaItem key="likes" icon="heart" color={colors.danger[500]!}>
       <Text variant="caption" tone="subtle">
@@ -123,7 +123,7 @@ function MetaRow({ product, listOrder }: { product: ProductCardProduct; listOrde
       )}
     </View>
   );
-}
+});
 
 /**
  * Pazaryerinin TEK ürün kartı (web `ProductCard`'ın telefon görünümü): grid ve liste. Ham ürünü
@@ -186,6 +186,7 @@ function ProductCardBase({
           <View style={styles.listImage}>
             <AppImage
               source={imageSource}
+              recyclingKey={product.id}
               variant="card"
               style={[styles.fill, outOfStock && styles.dimmed]}
               resizeMode="cover"
@@ -242,6 +243,7 @@ function ProductCardBase({
         <View style={styles.gridImage}>
           <AppImage
             source={imageSource}
+            recyclingKey={product.id}
             variant="card"
             style={[styles.fill, outOfStock && styles.dimmed]}
             resizeMode="cover"

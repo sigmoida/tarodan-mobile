@@ -113,10 +113,21 @@ export const styles = StyleSheet.create({
     borderBottomColor: colors.border.subtle,
   },
   recentSearchText: { flex: 1, fontSize: typography.fontSize.sm, color: colors.text.heading },
-  listContent: { padding: spacing[4], paddingTop: spacing[2], gap: spacing[3] },
+  // FlashList `gap`/`columnWrapperStyle` desteklemez: boşluk hücre dolgusuyla verilir (web `gap-3`).
+  // İçerik dolgusu: yalnız padding* geçerli; paddingTop ekranda ölçülen çubuk yüksekliğiyle ezilir.
+  // Yatay: içerik 16 - 6 = 10 + hücre 6 → kenar boşluğu 16, kartlar arası 6 + 6 = 12; ızgarada kart
+  // genişliği (W - 20) / 2 - 12 = (W - 32 - 12) / 2 (eskisiyle aynı), tek sütunda W - 20 - 12 = W - 32.
+  listContent: {
+    paddingHorizontal: spacing[4] - spacing[1.5],
+    paddingBottom: spacing[4],
+    paddingTop: spacing[2],
+  },
+  // Hücre: satırlar arası boşluk altta, yatayda simetrik. `flex: 1` → kart satırın en uzun hücresine yayılır.
+  cell: { flex: 1, paddingBottom: spacing[3], paddingHorizontal: spacing[1.5] },
   // Üst çubuklar ölçülene kadar liste görünmez ama YERLEŞİR (opacity, display değil):
   // doğru üst boşlukla tek seferde konumlanır, kullanıcı ara kareyi görmez.
-  listHidden: { opacity: 0 },
-  listRow: { gap: spacing[3] },
+  listWrap: { flex: 1 },
+  listWrapHidden: { flex: 1, opacity: 0 },
+  listFooter: { paddingVertical: spacing[4] },
   scrollTopFab: { position: 'absolute', right: spacing[4], bottom: spacing[6], zIndex: 50 },
 });

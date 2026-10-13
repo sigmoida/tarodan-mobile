@@ -74,6 +74,16 @@ jest.mock('@/ui', () => ({
   appAlert: jest.fn(),
 }));
 
+// FlashList v2: jest'te yerel ölçüm yok → ebeveyn/hücre ölçümlerini sabitle (liste hücreleri render olsun).
+// NOT: paketin kendi `jestSetup.js`'i 2.0.2'de çalışmıyor (var olmayan `RecyclerView` export'unu
+// FlashList yerine koyuyor) — yalnız ölçüm modülünü mock'luyoruz, gerçek FlashList kullanılır.
+jest.mock('@shopify/flash-list/dist/recyclerview/utils/measureLayout', () => ({
+  ...jest.requireActual('@shopify/flash-list/dist/recyclerview/utils/measureLayout'),
+  measureParentSize: jest.fn(() => ({ x: 0, y: 0, width: 400, height: 900 })),
+  measureFirstChildLayout: jest.fn(() => ({ x: 0, y: 0, width: 400, height: 900 })),
+  measureItemLayout: jest.fn(() => ({ x: 0, y: 0, width: 100, height: 100 })),
+}));
+
 // Her testte appAlert çağrı geçmişini sıfırla (testler arası sızıntı olmasın).
 beforeEach(() => {
   const { appAlert } = jest.requireMock('@/ui');

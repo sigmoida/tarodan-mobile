@@ -6,6 +6,7 @@ import { Text, theme, Icon } from '@/ui';
 
 import { styles } from '../_lib/searchStyles';
 import type { SearchController } from '../_hooks/useSearch';
+import type { ProductFilters } from '@/utils/productFilters';
 import { formatPrice } from '@/utils/format';
 
 const { colors } = theme;
@@ -15,28 +16,63 @@ const { colors } = theme;
  * or the rich autocomplete (suggestions/products/sellers/brands/manufacturers/
  * categories) once ≥2 chars are typed.
  */
-export function SearchSuggestions({ f }: { f: SearchController }) {
+export interface SearchSuggestionsProps {
+  showRecentSearches: boolean;
+  recentSearchQueries: string[];
+  /** Kutu boşken son aramalar görünür. */
+  inputEmpty: boolean;
+  onClearRecent: () => void;
+  onSelectRecent: (query: string) => void;
+  onRemoveRecent: (query: string) => void;
+  autocompleteOpen: boolean;
+  autocompleteQuery: string;
+  autocomplete: SearchController['autocomplete'];
+  sellerResults: SearchController['sellerResults'];
+  /** Öneri metni seçilince: kutuyu doldur + paneli kapat. */
+  onPickSuggestion: (text: string) => void;
+  onCloseAutocomplete: () => void;
+  /** Öneriden ürün/satıcıya gidilince (yazılan sorgu onaylanmış sayılır). */
+  onNavigateSuggestion: () => void;
+  onApplyFacet: (partial: Partial<ProductFilters>) => void;
+}
+
+function SearchSuggestionsBase({
+  showRecentSearches,
+  recentSearchQueries,
+  inputEmpty,
+  onClearRecent,
+  onSelectRecent,
+  onRemoveRecent,
+  autocompleteOpen,
+  autocompleteQuery,
+  autocomplete,
+  sellerResults,
+  onPickSuggestion,
+  onCloseAutocomplete,
+  onNavigateSuggestion,
+  onApplyFacet,
+}: SearchSuggestionsProps) {
   const { t } = useTranslation();
   return (
     <>
       {/* Recent Searches */}
-      {f.showRecentSearches && f.recentSearchQueries.length > 0 && !f.searchQuery && (
+      {showRecentSearches && recentSearchQueries.length > 0 && inputEmpty && (
         <View style={styles.recentSearchesDropdown}>
           <View style={styles.recentSearchesHeader}>
             <Text style={styles.recentSearchesTitle}>{t('search.recentSearches')}</Text>
-            <Pressable onPress={f.clearSearches}>
+            <Pressable onPress={onClearRecent}>
               <Text style={styles.clearRecentText}>{t('common.clear')}</Text>
             </Pressable>
           </View>
-          {f.recentSearchQueries.map((query, index) => (
+          {recentSearchQueries.map((query, index) => (
             <Pressable
               key={index}
               style={styles.recentSearchItem}
-              onPress={() => f.handleRecentSearchSelect(query)}
+              onPress={() => onSelectRecent(query)}
             >
               <Text style={styles.recentSearchText}>{query}</Text>
               <Pressable
-                onPress={() => f.removeSearch(query)}
+                onPress={() => onRemoveRecent(query)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Icon name="x-mark" size={18} color={colors.text.subtle} />
@@ -47,20 +83,17 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
       )}
 
       {/* Autocomplete Rich */}
-      {f.autocompleteOpen && f.autocompleteQuery.length >= 2 && f.autocomplete && (
+      {autocompleteOpen && autocompleteQuery.length >= 2 && autocomplete && (
         <View style={styles.recentSearchesDropdown}>
           <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 360 }}>
-            {f.autocomplete.suggestions && f.autocomplete.suggestions.length > 0 ? (
+            {autocomplete.suggestions && autocomplete.suggestions.length > 0 ? (
               <View style={styles.acSection}>
                 <Text style={styles.acSectionTitle}>{t('search.suggestions')}</Text>
-                {f.autocomplete.suggestions.slice(0, 5).map((s, i) => (
+                {autocomplete.suggestions.slice(0, 5).map((s, i) => (
                   <Pressable
                     key={`s-${i}`}
                     style={styles.acItem}
-                    onPress={() => {
-                      f.setSearchQuery(s);
-                      f.setAutocompleteOpen(false);
-                    }}
+                    onPress={() => onPickSuggestion(s)}
                   >
                     <Text style={styles.acItemText}>{s}</Text>
                   </Pressable>
@@ -68,15 +101,16 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
               </View>
             ) : null}
 
-            {f.autocomplete.products && f.autocomplete.products.length > 0 ? (
+            {autocomplete.products && autocomplete.products.length > 0 ? (
               <View style={styles.acSection}>
                 <Text style={styles.acSectionTitle}>{t('product.title')}</Text>
-                {f.autocomplete.products.slice(0, 5).map((p) => (
+                {autocomplete.products.slice(0, 5).map((p) => (
                   <Pressable
                     key={`p-${p.id}`}
                     style={styles.acItem}
                     onPress={() => {
-                      f.setAutocompleteOpen(false);
+                      onCloseAutocomplete();
+                      onNavigateSuggestion();
                       router.push({ pathname: '/product/[id]', params: { id: p.id } } as any);
                     }}
                   >
@@ -91,15 +125,16 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
               </View>
             ) : null}
 
-            {f.sellerResults.length > 0 ? (
+            {sellerResults.length > 0 ? (
               <View style={styles.acSection}>
                 <Text style={styles.acSectionTitle}>{t('search.sellers')}</Text>
-                {f.sellerResults.slice(0, 6).map((s) => (
+                {sellerResults.slice(0, 6).map((s) => (
                   <Pressable
                     key={`s-${s.id}`}
                     style={styles.acItem}
                     onPress={() => {
-                      f.setAutocompleteOpen(false);
+                      onCloseAutocomplete();
+                      onNavigateSuggestion();
                       router.push(`/seller/${s.id}` as any);
                     }}
                   >
@@ -114,15 +149,15 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
               </View>
             ) : null}
 
-            {f.autocomplete.brands && f.autocomplete.brands.length > 0 ? (
+            {autocomplete.brands && autocomplete.brands.length > 0 ? (
               <View style={styles.acSection}>
                 <Text style={styles.acSectionTitle}>{t('brands.title')}</Text>
-                {f.autocomplete.brands.slice(0, 5).map((b) => (
+                {autocomplete.brands.slice(0, 5).map((b) => (
                   <Pressable
                     key={`b-${b.id}`}
                     style={styles.acItem}
                     onPress={() =>
-                      f.applyFacet({ brandId: b.id, brand: b.name, carModel: '', carModelId: '' })
+                      onApplyFacet({ brandId: b.id, brand: b.name, carModel: '', carModelId: '' })
                     }
                   >
                     <Text style={styles.acItemText}>{b.name}</Text>
@@ -131,15 +166,15 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
               </View>
             ) : null}
 
-            {f.autocomplete.manufacturers && f.autocomplete.manufacturers.length > 0 ? (
+            {autocomplete.manufacturers && autocomplete.manufacturers.length > 0 ? (
               <View style={styles.acSection}>
                 <Text style={styles.acSectionTitle}>{t('nav.manufacturers')}</Text>
-                {f.autocomplete.manufacturers.slice(0, 5).map((m) => (
+                {autocomplete.manufacturers.slice(0, 5).map((m) => (
                   <Pressable
                     key={`mf-${m.id}`}
                     style={styles.acItem}
                     onPress={() =>
-                      f.applyFacet({ manufacturerId: m.id, manufacturer: m.name })
+                      onApplyFacet({ manufacturerId: m.id, manufacturer: m.name })
                     }
                   >
                     <Text style={styles.acItemText}>{m.name}</Text>
@@ -148,16 +183,16 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
               </View>
             ) : null}
 
-            {f.autocomplete.categories && f.autocomplete.categories.length > 0 ? (
+            {autocomplete.categories && autocomplete.categories.length > 0 ? (
               <View style={styles.acSection}>
                 <Text style={styles.acSectionTitle}>{t('footer.categories')}</Text>
-                {f.autocomplete.categories.slice(0, 5).map((c) => (
+                {autocomplete.categories.slice(0, 5).map((c) => (
                   <Pressable
                     key={`c-${c.id}`}
                     testID="search-category-suggestion"
                     style={styles.acItem}
                     onPress={() =>
-                      f.applyFacet({ categoryId: c.id, category: c.name })
+                      onApplyFacet({ categoryId: c.id, category: c.name })
                     }
                   >
                     <Text style={styles.acItemText}>{c.name}</Text>
@@ -171,3 +206,5 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
     </>
   );
 }
+
+export const SearchSuggestions = React.memo(SearchSuggestionsBase);

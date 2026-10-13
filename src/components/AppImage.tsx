@@ -50,6 +50,11 @@ export interface AppImageProps {
    * bozma riski taşır.
    */
   authenticated?: boolean;
+  /**
+   * Geri dönüşümlü hücrelerde (FlashList) hücre başka öğeye geçince `expo-image` eski görseli
+   * gösterip çapraz geçiş yapmasın diye: öğenin kararlı kimliği (ör. ürün id).
+   */
+  recyclingKey?: string;
 }
 
 const RESIZE_TO_FIT: Record<NonNullable<AppImageProps['resizeMode']>, ImageContentFit> = {
@@ -68,6 +73,7 @@ export const AppImage = React.memo(function AppImage({
   accessibilityLabel,
   onError,
   authenticated = false,
+  recyclingKey,
 }: AppImageProps) {
   const uri = resolveImageUrl(source, variant);
   const fit = contentFit ?? (resizeMode ? RESIZE_TO_FIT[resizeMode] : 'cover');
@@ -93,6 +99,7 @@ export const AppImage = React.memo(function AppImage({
   return (
     <Image
       source={imageSource}
+      recyclingKey={recyclingKey}
       style={style}
       contentFit={fit}
       cachePolicy="memory-disk"

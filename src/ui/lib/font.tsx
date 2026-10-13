@@ -63,6 +63,8 @@ export function useBrandTextStyle(flat: TextStyle): [TextStyle | null, TextInher
 
 /** Çocuklarda element varsa miras context'i ile sarar (salt metinde ek düğüm yok). */
 export function withTextInherit(children: React.ReactNode, inherit: TextInherit): React.ReactNode {
+  // Hızlı yol: salt metin/sayı (kart başına ~8 Text) için Children.toArray tahsisi yok.
+  if (typeof children === 'string' || typeof children === 'number') return children;
   const onlyPrimitive = React.Children.toArray(children).every(
     (c) => typeof c === 'string' || typeof c === 'number',
   );
