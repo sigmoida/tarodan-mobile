@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button, RawText, theme } from '@/ui';
+import { Button, IconButton, RawText, theme } from '@/ui';
 
 const { colors, spacing, typography, radius } = theme;
 
@@ -15,11 +15,16 @@ export function ProductListControls({
   onSort,
   onFilter,
   filterCount = 0,
+  layout,
+  onLayoutChange,
 }: {
   sortLabel: string;
   onSort: () => void;
   onFilter?: () => void;
   filterCount?: number;
+  /** Verilirse ızgara/liste anahtarı çizilir (web `ProductLayoutSelector`). */
+  layout?: 'grid' | 'list';
+  onLayoutChange?: (layout: 'grid' | 'list') => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -41,6 +46,16 @@ export function ProductListControls({
           }
         />
       ) : null}
+      {layout && onLayoutChange ? (
+        <IconButton
+          testID="layout-toggle"
+          icon={layout === 'grid' ? 'list-outline' : 'grid-outline'}
+          size="sm"
+          variant="ghost"
+          accessibilityLabel={layout === 'grid' ? t('product.layoutList') : t('product.layoutGrid')}
+          onPress={() => onLayoutChange(layout === 'grid' ? 'list' : 'grid')}
+        />
+      ) : null}
       <Button
         variant="outline"
         size="sm"
@@ -54,7 +69,7 @@ export function ProductListControls({
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
+  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing[2] },
   // Web: px-1.5 py-0.5 bg-primary-500 text-2xs font-bold rounded-sm.
   count: {
     paddingHorizontal: spacing[1.5],

@@ -53,6 +53,8 @@ export function useListings() {
   const [searchQuery, setSearchQuery] = useState(filters.search);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [sortMenuVisible, setSortMenuVisible] = useState(false);
+  // Izgara / liste görünümü (web ProductLayoutSelector).
+  const [layout, setLayout] = useState<'grid' | 'list'>('grid');
 
   // Seçili üreticinin slug'ını çöz ki üreticiye-özel filtreler (HW vb.) yüklensin.
   const baseOptions = useProductFilterOptions();
@@ -120,6 +122,8 @@ export function useListings() {
     setFilterModalVisible,
     sortMenuVisible,
     setSortMenuVisible,
+    layout,
+    setLayout,
     options,
     listings,
     total,

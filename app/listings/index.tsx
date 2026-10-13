@@ -33,7 +33,8 @@ export default function ListingsScreen() {
   // Izgara içi (inline) reklam: 8. karttan sonra, sonra 16'da bir, en çok 2 (web ile aynı).
   // 2 sütunlu ızgara satırlara bölünür; afiş tam genişlikte kendi satırında durur.
   const adSession = useAdSession();
-  const rows = useMemo(() => withInlineAds(f.listings, 2), [f.listings]);
+  const isList = f.layout === 'list';
+  const rows = useMemo(() => withInlineAds(f.listings, isList ? 1 : 2), [f.listings, isList]);
   const cellWidth = useProductCellWidth();
 
   return (
@@ -74,8 +75,8 @@ export default function ListingsScreen() {
           ) : (
             <View style={styles.row}>
               {row.items.map((item, i) => (
-                <View key={`${item.id}-${i}`} style={{ width: cellWidth }}>
-                  <ProductCard product={item} />
+                <View key={`${item.id}-${i}`} style={{ width: isList ? '100%' : cellWidth }}>
+                  <ProductCard product={item} layout={isList ? 'list' : 'grid'} />
                 </View>
               ))}
             </View>

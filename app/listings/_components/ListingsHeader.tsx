@@ -33,6 +33,8 @@ export function ListingsHeader({ f, session }: { f: ListingsController; session:
             onSort={() => f.setSortMenuVisible(true)}
             onFilter={() => f.setFilterModalVisible(true)}
             filterCount={f.activeFilterCount}
+            layout={f.layout}
+            onLayoutChange={f.setLayout}
           />
         }
       />

@@ -777,7 +777,9 @@
     "statusPendingDesc": "İlan admin onayı bekliyor, henüz satışta değil.",
     "statusInactiveDesc": "Bu ilan şu anda yayında değil.",
     "statusRejectedDesc": "Bu ilan reddedildi ve yayında değil.",
-    "modelCode": "Model kodu"
+    "modelCode": "Model kodu",
+    "layoutGrid": "Izgara",
+    "layoutList": "Liste"
   },
   "cart": {
     "addToCartFailed": "Sepete eklenemedi",

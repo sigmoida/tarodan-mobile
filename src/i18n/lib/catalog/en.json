@@ -777,7 +777,9 @@
     "statusPendingDesc": "This listing is awaiting admin approval and is not for sale yet.",
     "statusInactiveDesc": "This listing is not currently published.",
     "statusRejectedDesc": "This listing was rejected and is not published.",
-    "modelCode": "Model code"
+    "modelCode": "Model code",
+    "layoutGrid": "Grid",
+    "layoutList": "List"
   },
   "cart": {
     "addToCartFailed": "Could not add to cart",
