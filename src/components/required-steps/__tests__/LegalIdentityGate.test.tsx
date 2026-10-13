@@ -6,7 +6,7 @@
  * `suggestedNationalId` TCKN'yi ön doldurur, gövde yalnız eksikleri taşır.
  */
 import React from 'react';
-import { Modal } from 'react-native';
+import { AppState, Modal } from 'react-native';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { makeTestQueryClient, renderWithProviders } from '@/test-utils';
 import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
@@ -229,6 +229,29 @@ describe('B-2.4 · ensureLegalIdentity (ihtiyaç anında kimlik)', () => {
     act(() => screen.UNSAFE_getByType(Modal).props.onRequestClose());
     await waitFor(() => expect(result.value).toBe(false));
     expect(screen.queryByTestId('identity-gate')).toBeNull();
+  });
+
+  it('ön plana dönüşte durum yenilenir; kimlik web\'de tamamlandıysa adım kapanır, işlem devam eder', async () => {
+    const listeners: ((s: string) => void)[] = [];
+    const spy = jest.spyOn(AppState, 'addEventListener').mockImplementation((type, fn) => {
+      if (type === 'change') listeners.push(fn as (s: string) => void);
+      return { remove: jest.fn() } as unknown as ReturnType<typeof AppState.addEventListener>;
+    });
+    mockGetStatus.mockResolvedValue({ data: status() });
+    const { queryClient, view } = setup();
+    const result = await request(queryClient);
+    await screen.findByTestId('identity-gate');
+
+    mockGetStatus.mockResolvedValue({ data: COMPLETE });
+    act(() => ['background', 'active'].forEach((st) => listeners.forEach((l) => l(st))));
+    await waitFor(() => expect(result.value).toBe(true));
+    expect(screen.queryByTestId('identity-gate')).toBeNull();
+    // RN jest kurulumunda AppState.addEventListener zaten bir mock: mockRestore
+    // onun uygulamasını da siler ve sonraki testlerde `sub.remove` patlar.
+    view.unmount();
+    spy.mockImplementation(
+      () => ({ remove: jest.fn() }) as unknown as ReturnType<typeof AppState.addEventListener>,
+    );
   });
 
   it('oturum kapanırsa bekleyen işlem iptal olur', async () => {

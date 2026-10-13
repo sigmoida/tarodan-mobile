@@ -17,6 +17,7 @@ import {
   settleLegalIdentityRequest,
   useLegalIdentityRequestStore,
 } from '@/stores/legalIdentityRequestStore';
+import { useRefetchOnForeground } from './useRefetchOnForeground';
 
 /** "Vazgeç": bekleyen işlem(ler) iptal. Modül seviyesinde → kimliği sabit. */
 const cancelRequest = () => settleLegalIdentityRequest(false);
@@ -83,6 +84,9 @@ export function useLegalIdentityStep() {
   const enabled = signedIn && requested;
 
   const query = useQuery({ ...legalIdentityQueryOptions, enabled });
+  // Adım açıkken üye kimliğini web'de tamamlayıp dönebilir: ön plana dönüşte
+  // durum yenilenir, artık eksik yoksa adım kendiliğinden kapanır (işlem devam).
+  useRefetchOnForeground(legalIdentityQueryOptions.queryKey, { enabled });
 
   const status = enabled ? (query.data ?? null) : null;
   const state = requested
