@@ -27,6 +27,7 @@ jest.mock('@/lib/api', () => ({
 }));
 import { api, elogoInvoicesApi, refundsApi } from '@/lib/api';
 
+import { useAuthStore } from '@/stores/authStore';
 import OrderDetailScreen from '../[id]';
 
 const getMock = api.get as jest.Mock;
@@ -478,12 +479,12 @@ describe('A-1.10 · İptal kartı nedeni gösterir', () => {
     expect(message).toHaveTextContent('Yönetici tarafından iptal edildi: Satıcı stok doğrulayamadı');
   });
 
-  it('kategori → kullanıcı dostu cümle (alıcı kendi iptali)', async () => {
+  it('kategori → kullanıcı dostu cümle (alıcı kendi iptali; yanıtta isBuyer YOK)', async () => {
     getMock.mockResolvedValue({
       data: {
         data: orderFixture({
           status: 'cancelled',
-          isBuyer: true,
+          isBuyer: undefined,
           cancelReason: null,
           cancelCategory: 'buyer_cancelled',
         }),
@@ -492,6 +493,22 @@ describe('A-1.10 · İptal kartı nedeni gösterir', () => {
     renderWithProviders(<OrderDetailScreen />);
     const message = await screen.findByTestId('order-cancel-message');
     expect(message).toHaveTextContent('Bu siparişi iptal ettiniz.');
+  });
+
+  it('satıcı aynı ekrandan bakarsa (user.id = seller.id) satıcı cümlesi', async () => {
+    useAuthStore.setState({ user: { id: 'seller-1' } as never });
+    try {
+      getMock.mockResolvedValue({
+        data: {
+          data: orderFixture({ status: 'cancelled', isBuyer: undefined, cancelReason: null, cancelCategory: 'buyer_cancelled' }),
+        },
+      });
+      renderWithProviders(<OrderDetailScreen />);
+      const message = await screen.findByTestId('order-cancel-message');
+      expect(message).toHaveTextContent('Alıcı bu siparişi iptal etti.');
+    } finally {
+      useAuthStore.setState({ user: null });
+    }
   });
 
   it('gerekçe ve kategori yoksa satır hiç basılmaz', async () => {

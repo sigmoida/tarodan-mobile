@@ -7,7 +7,7 @@ import type { Shipment } from '@/lib/api';
 import { formatDate, formatPrice } from '../_lib/format';
 import { deriveShipmentView } from '@/lib/shipping/tracking';
 import { isAwaitingDropoff, shipmentStatusLabel } from '@/lib/shipping/shipmentStatus';
-import { orderCancelMessage } from '@/lib/shared/orderCancelMessage';
+import { orderCancelMessage, type OrderCancelAudience } from '@/lib/shared/orderCancelMessage';
 import type { OrderDetail } from '../_lib/types';
 import type { OrderView } from '../_lib/derive';
 
@@ -51,10 +51,19 @@ export function OrderEscrowCard({ order, view }: { order: OrderDetail; view: Ord
 }
 
 /** İptal bilgi kartı — neden iptal edildiği (kategori/gerekçe) + iade notu. */
-export function OrderCancelledInfo({ order, view }: { order: OrderDetail; view: OrderView }) {
+export function OrderCancelledInfo({
+  order,
+  view,
+  audience,
+}: {
+  order: OrderDetail;
+  view: OrderView;
+  /** Görüntüleyen — ekran `user.id`'den hesaplar (bkz. `orderCancelMessage`). */
+  audience: OrderCancelAudience;
+}) {
   const { t } = useTranslation();
   if (!view.isCancelled) return null;
-  const cancelMessage = orderCancelMessage(order, t);
+  const cancelMessage = orderCancelMessage(order, audience, t);
   return (
     <Card variant="elevated" style={styles.card} testID="order-cancelled-info">
       <View style={styles.cancelledHeaderRow}>

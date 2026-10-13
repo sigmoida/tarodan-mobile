@@ -10,13 +10,16 @@ import { orderCancelMessage } from '../orderCancelMessage';
 const t = i18n.getFixedT('tr');
 
 describe('orderCancelMessage', () => {
-  it('buyer_cancelled: görüntüleyene göre cümle değişir', () => {
-    expect(orderCancelMessage({ cancelCategory: 'buyer_cancelled', isBuyer: true }, t)).toBe(
-      'Bu siparişi iptal ettiniz.',
-    );
-    expect(orderCancelMessage({ cancelCategory: 'buyer_cancelled', isBuyer: false }, t)).toBe(
+  it('buyer_cancelled: cümle ekranın AÇIKÇA geçtiği okuyucuya göre değişir', () => {
+    expect(orderCancelMessage({ cancelCategory: 'buyer_cancelled' }, 'buyer', t)).toBe('Bu siparişi iptal ettiniz.');
+    expect(orderCancelMessage({ cancelCategory: 'buyer_cancelled' }, 'seller', t)).toBe(
       'Alıcı bu siparişi iptal etti.',
     );
+  });
+
+  it('yanıttaki isBuyer okunmaz (alan gelmese de alıcıya alıcı cümlesi)', () => {
+    const order = { cancelCategory: 'buyer_cancelled', isBuyer: undefined };
+    expect(orderCancelMessage(order, 'buyer', t)).toBe('Bu siparişi iptal ettiniz.');
   });
 
   it.each<[string, MessageKey]>([
@@ -29,7 +32,8 @@ describe('orderCancelMessage', () => {
     ['admin', 'order.cancelMsgAdmin'],
   ])('%s → katalog cümlesi (ham gerekçe değil)', (category, key) => {
     const message = orderCancelMessage(
-      { cancelCategory: category, cancelReason: 'ham sunucu metni', isBuyer: true },
+      { cancelCategory: category, cancelReason: 'ham sunucu metni' },
+      'buyer',
       t,
     );
     expect(message).toBe(t(key));
@@ -41,19 +45,20 @@ describe('orderCancelMessage', () => {
     expect(
       orderCancelMessage(
         { cancelCategory: 'other', cancelReason: '  Yönetici tarafından iptal edildi: Sahte ilan  ' },
+        'buyer',
         t,
       ),
     ).toBe('Yönetici tarafından iptal edildi: Sahte ilan');
   });
 
   it('other: gerekçe bir iptal KODUYSA ham değil etiketiyle basılır', () => {
-    const message = orderCancelMessage({ cancelCategory: 'other', cancelReason: 'changed_mind' }, t);
+    const message = orderCancelMessage({ cancelCategory: 'other', cancelReason: 'changed_mind' }, 'seller', t);
     expect(message).toBe(t('status.orderCancellationReason.changed_mind'));
     expect(message).not.toBe('changed_mind');
   });
 
   it('kategori yok (iptal edilmemiş / eski yanıt) ve gerekçe boş → null', () => {
-    expect(orderCancelMessage({ cancelCategory: null, cancelReason: null }, t)).toBeNull();
-    expect(orderCancelMessage({ cancelCategory: 'other', cancelReason: '   ' }, t)).toBeNull();
+    expect(orderCancelMessage({ cancelCategory: null, cancelReason: null }, 'buyer', t)).toBeNull();
+    expect(orderCancelMessage({ cancelCategory: 'other', cancelReason: '   ' }, 'buyer', t)).toBeNull();
   });
 });
