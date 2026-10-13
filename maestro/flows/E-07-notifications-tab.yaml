@@ -17,7 +17,7 @@ env:
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
 - tapOn:
-    text: "Bildirimler"
+    id: "tab-notifications"
 - waitForAnimationToEnd
 - extendedWaitUntil:
     visible: "Bildirimler"
