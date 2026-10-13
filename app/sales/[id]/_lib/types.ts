@@ -10,6 +10,9 @@ export interface Order {
   cancelCategory?: string | null;
   /** Üyelik/dijital sipariş (hazırlık notu gösterilmez). */
   isMembership?: boolean;
+  /** Sunucunun görüntüleyene göre yazdığı taraf bayrakları. */
+  isBuyer?: boolean;
+  isSeller?: boolean;
   /** Satıcının kargoya verme son tarihi (tek seferlik uzatmada YENİ tarih). */
   preparingDeadline?: string | null;
   /** Doluysa hazırlık süresi bir kez uzatıldı — bu son süredir. */

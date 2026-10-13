@@ -29,8 +29,8 @@ describe('isMembershipOrder', () => {
       isBuyer: true,
       preparingDeadline: '2026-10-10T09:00:00.000Z',
     } as unknown as OrderDetail;
-    const view = deriveOrderView(order, FALLBACK_TIMING_POLICY, 'buyer');
+    const view = deriveOrderView(order, FALLBACK_TIMING_POLICY);
     expect(view.isMembershipOrder).toBe(true);
-    expect(preparingDeadlineNoticeOf(order, 'buyer', NOW)).toBeNull();
+    expect(preparingDeadlineNoticeOf(order, NOW)).toBeNull();
   });
 });

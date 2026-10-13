@@ -47,8 +47,9 @@ export function useSaleDetail() {
   const sc = statusColor(displayStatus);
   // Neden iptal edildi — alıcı ekranıyla aynı tek kaynak; bu ekranı yalnız satıcı görür.
   const cancelMessage = order && displayStatus === 'cancelled' ? orderCancelMessage(order, 'seller', t, timingValues) : null;
-  // Kargoya verme son tarihi (uzatıldıysa "son süre") — satıcı metni.
-  const preparingNotice = order ? preparingDeadlineNoticeOf(order, 'seller') : null;
+  // Kargoya verme son tarihi (uzatıldıysa "son süre") — okuyucu siparişin
+  // `isSeller`/`isBuyer` bayraklarından (web); ikisi de yoksa not yok.
+  const preparingNotice = order ? preparingDeadlineNoticeOf(order) : null;
   const shipmentSummary = order?.shipment;
   const shipmentProvider = shipmentSummary?.provider ?? shipmentSummary?.carrier;
   const isSurat = (shipmentProvider ?? '').toLowerCase() === 'surat';

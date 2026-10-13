@@ -17,6 +17,8 @@ const DEADLINE = '2026-10-10T09:00:00.000Z';
 const order = (overrides: Partial<PreparingDeadlineOrder> = {}): PreparingDeadlineOrder => ({
   status: 'preparing',
   orderNumber: 'ORD-1',
+  isBuyer: true,
+  isSeller: false,
   preparingDeadline: DEADLINE,
   preparingExtendedAt: null,
   ...overrides,
@@ -24,7 +26,7 @@ const order = (overrides: Partial<PreparingDeadlineOrder> = {}): PreparingDeadli
 
 describe('preparingDeadlineNoticeOf', () => {
   it('sunucunun son tarihini alıcıya gösterir', () => {
-    expect(preparingDeadlineNoticeOf(order(), 'buyer', NOW)).toEqual({
+    expect(preparingDeadlineNoticeOf(order(), NOW)).toEqual({
       deadline: DEADLINE,
       extended: false,
       audience: 'buyer',
@@ -33,49 +35,58 @@ describe('preparingDeadlineNoticeOf', () => {
 
   it('tek seferlik uzatmayı işaretler, satıcıya satıcı metni', () => {
     expect(
-      preparingDeadlineNoticeOf(order({ preparingExtendedAt: '2026-10-07T09:00:00.000Z' }), 'seller', NOW),
+      preparingDeadlineNoticeOf(
+        order({ preparingExtendedAt: '2026-10-07T09:00:00.000Z', isBuyer: false, isSeller: true }),
+        NOW,
+      ),
     ).toEqual({ deadline: DEADLINE, extended: true, audience: 'seller' });
   });
 
   it("API statüleri (paid/preparing) ve sipariş detayının UI adı 'processing' kabul edilir", () => {
-    expect(preparingDeadlineNoticeOf(order({ status: 'paid' }), 'buyer', NOW)).not.toBeNull();
-    expect(preparingDeadlineNoticeOf(order({ status: 'processing' }), 'buyer', NOW)).not.toBeNull();
+    expect(preparingDeadlineNoticeOf(order({ status: 'paid' }), NOW)).not.toBeNull();
+    expect(preparingDeadlineNoticeOf(order({ status: 'processing' }), NOW)).not.toBeNull();
   });
 
   it('kargo öncesi olmayan statülerde yok', () => {
     for (const status of ['pending_payment', 'pending', 'shipped', 'delivered', 'cancelled', 'refunded']) {
-      expect(preparingDeadlineNoticeOf(order({ status }), 'buyer', NOW)).toBeNull();
+      expect(preparingDeadlineNoticeOf(order({ status }), NOW)).toBeNull();
     }
   });
 
   it('etiket var ama koli devredilmemişken görünür', () => {
     expect(
-      preparingDeadlineNoticeOf(order({ shipment: { status: 'label_created', shippedAt: null } }), 'buyer', NOW),
+      preparingDeadlineNoticeOf(order({ shipment: { status: 'label_created', shippedAt: null } }), NOW),
     ).not.toBeNull();
+  });
+
+  it('okuyucu siparişin isSeller/isBuyer bayraklarından; ikisi de false ise not yok (web guard)', () => {
+    expect(preparingDeadlineNoticeOf(order({ isBuyer: false, isSeller: true }), NOW)?.audience).toBe('seller');
+    expect(preparingDeadlineNoticeOf(order({ isBuyer: true, isSeller: false }), NOW)?.audience).toBe('buyer');
+    expect(preparingDeadlineNoticeOf(order({ isBuyer: false, isSeller: false }), NOW)).toBeNull();
+    expect(preparingDeadlineNoticeOf(order({ isBuyer: undefined, isSeller: undefined }), NOW)).toBeNull();
   });
 
   it('koli taşıyıcıdaysa yok — hareket eden durum ya da shippedAt mührü', () => {
     expect(
-      preparingDeadlineNoticeOf(order({ shipment: { status: 'in_transit' } }), 'buyer', NOW),
+      preparingDeadlineNoticeOf(order({ shipment: { status: 'in_transit' } }), NOW),
     ).toBeNull();
     expect(
       preparingDeadlineNoticeOf(
         order({ shipment: { status: 'pending', shippedAt: '2026-10-08T08:00:00.000Z' } }),
-        'buyer',
         NOW,
       ),
     ).toBeNull();
   });
 
   it('son tarih geçmişse ya da yoksa/bozuksa yok', () => {
-    expect(preparingDeadlineNoticeOf(order({ preparingDeadline: '2026-10-08T08:59:00.000Z' }), 'buyer', NOW)).toBeNull();
-    expect(preparingDeadlineNoticeOf(order({ preparingDeadline: null }), 'buyer', NOW)).toBeNull();
-    expect(preparingDeadlineNoticeOf(order({ preparingDeadline: 'garbage' }), 'buyer', NOW)).toBeNull();
+    expect(preparingDeadlineNoticeOf(order({ preparingDeadline: '2026-10-08T08:59:00.000Z' }), NOW)).toBeNull();
+    expect(preparingDeadlineNoticeOf(order({ preparingDeadline: null }), NOW)).toBeNull();
+    expect(preparingDeadlineNoticeOf(order({ preparingDeadline: 'garbage' }), NOW)).toBeNull();
   });
 
   it('üyelik siparişinde yok (alan ya da MEM- öneki)', () => {
-    expect(preparingDeadlineNoticeOf(order({ isMembership: true }), 'buyer', NOW)).toBeNull();
-    expect(preparingDeadlineNoticeOf(order({ orderNumber: 'MEM-1' }), 'buyer', NOW)).toBeNull();
+    expect(preparingDeadlineNoticeOf(order({ isMembership: true }), NOW)).toBeNull();
+    expect(preparingDeadlineNoticeOf(order({ orderNumber: 'MEM-1' }), NOW)).toBeNull();
   });
 });
 

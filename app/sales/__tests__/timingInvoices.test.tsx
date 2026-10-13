@@ -38,6 +38,8 @@ function saleFixture(overrides: Record<string, unknown> = {}) {
     totalAmount: 350,
     createdAt: new Date('2026-01-01').toISOString(),
     buyer: { id: 'buyer-1', displayName: 'Ayşe' },
+    isBuyer: false,
+    isSeller: true,
     items: [{ id: 'i1', price: 320, quantity: 1, product: { id: 'p1', title: 'Deri Ceket' } }],
     ...overrides,
   };
@@ -56,6 +58,17 @@ beforeEach(() => {
 });
 
 describe('A-3.1 · satıcıya kargoya verme son tarihi', () => {
+  it('A-3 inceleme #4 · sunucu taraf bayrağı vermezse (isSeller/isBuyer false) not yok', async () => {
+    serve({
+      isSeller: false,
+      isBuyer: false,
+      preparingDeadline: new Date(Date.now() + 2 * DAY_MS).toISOString(),
+    });
+    renderWithProviders(<SaleDetailScreen />);
+    await screen.findByText('Deri Ceket');
+    expect(screen.queryByTestId('preparing-deadline-notice')).toBeNull();
+  });
+
   it('normal süre: satıcı metni', async () => {
     serve({ preparingDeadline: new Date(Date.now() + 2 * DAY_MS).toISOString() });
     renderWithProviders(<SaleDetailScreen />);

@@ -29,6 +29,9 @@ export interface PreparingDeadlineNotice {
 /** Notun okuduğu asgari sipariş şekli (sipariş + satış detay tipleri karşılar). */
 export interface PreparingDeadlineOrder {
   status: string;
+  /** Sunucunun görüntüleyene göre yazdığı taraf bayrakları (`order-common.service`). */
+  isBuyer?: boolean | null;
+  isSeller?: boolean | null;
   orderNumber?: string | null;
   isMembership?: boolean | null;
   preparingDeadline?: string | null;
@@ -62,12 +65,17 @@ function isHandedToCarrier(shipment: PreparingDeadlineOrder['shipment']): boolea
   );
 }
 
+/**
+ * Okuyucu siparişin kendi `isSeller`/`isBuyer` bayraklarından gelir (web
+ * aynası): satıcıya satıcı metni, alıcıya alıcı metni. İkisi de false ise
+ * (taraf bilinmiyor) not gösterilmez — yanlış tarafa yanlış vaat verilmez.
+ */
 export function preparingDeadlineNoticeOf(
   order: PreparingDeadlineOrder,
-  audience: PreparingDeadlineAudience,
   now: Date = new Date(),
 ): PreparingDeadlineNotice | null {
   if (!order.preparingDeadline) return null;
+  if (!order.isBuyer && !order.isSeller) return null;
   if (isMembershipOrder(order)) return null;
   if (!PRE_SHIPMENT_STATUSES.includes(order.status)) return null;
   if (isHandedToCarrier(order.shipment)) return null;
@@ -76,7 +84,7 @@ export function preparingDeadlineNoticeOf(
   return {
     deadline: order.preparingDeadline,
     extended: Boolean(order.preparingExtendedAt),
-    audience,
+    audience: order.isSeller ? 'seller' : 'buyer',
   };
 }
 

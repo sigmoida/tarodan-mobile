@@ -8,7 +8,6 @@ import { ThemedRefreshControl } from '@/components/common';
 import { useRefresh } from '@/hooks/useRefresh';
 import RatingModal from '@/components/RatingModal';
 import { qk } from '@/lib/query';
-import { useAuthStore } from '@/stores/authStore';
 import { useOrderShipment } from '@/hooks/useOrderShipment';
 import { useTimingPolicy } from '@/hooks/useTimingPolicy';
 import { ElogoInvoiceList } from '@/components/orders/ElogoInvoiceList';
@@ -48,7 +47,6 @@ export default function OrderDetailScreen() {
   const actions = useOrderActions(String(id), order ?? undefined);
   const invoices = useOrderInvoices(String(id), order?.status, actions.notify);
   const { shipment } = useOrderShipment(id);
-  const { user } = useAuthStore();
   const policy = useTimingPolicy();
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
@@ -72,9 +70,11 @@ export default function OrderDetailScreen() {
     );
   }
 
-  const isSeller = !!user?.id && order?.seller?.id === user.id;
+  // Taraf siparişin kendi `isSeller` bayrağından (web; `user.id` karşılaştırması
+  // değil). Bayrak yoksa alıcı varsayılır: alıcıya satıcı cümlesi çıkmaz.
+  const isSeller = !!order.isSeller;
   const audience = isSeller ? 'seller' : 'buyer';
-  const view = deriveOrderView(order, policy, audience);
+  const view = deriveOrderView(order, policy);
 
   return (
     <View style={styles.container}>

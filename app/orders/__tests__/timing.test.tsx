@@ -193,6 +193,32 @@ describe('A-3.1 · hazırlık son tarihi notu', () => {
     expect(screen.getByText(/Kargoya verilene kadar siparişi iptal edebilirsiniz\.$/)).toBeOnTheScreen();
   });
 
+  it('A-3 inceleme #4 · okuyucu siparişin isSeller bayrağından: satıcıya satıcı metni', async () => {
+    serveOrder({
+      status: 'preparing',
+      deliveredAt: null,
+      preparingDeadline: future(),
+      isBuyer: false,
+      isSeller: true,
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    expect(await screen.findByTestId('preparing-deadline-notice')).toBeOnTheScreen();
+    expect(screen.queryByText('Satıcının siparişi en geç bu tarihe kadar kargoya vermesi gerekiyor.')).toBeNull();
+  });
+
+  it('A-3 inceleme #4 · isBuyer ve isSeller ikisi de false ise not yok (web guard)', async () => {
+    serveOrder({
+      status: 'preparing',
+      deliveredAt: null,
+      preparingDeadline: future(),
+      isBuyer: false,
+      isSeller: false,
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    await screen.findByText('Sipariş #ORD-1001000000');
+    expect(screen.queryByTestId('preparing-deadline-notice')).toBeNull();
+  });
+
   it('kargoya verilmiş siparişte not yok', async () => {
     serveOrder({ status: 'shipped', preparingDeadline: future(), shippedAt: new Date().toISOString() });
     renderWithProviders(<OrderDetailScreen />);

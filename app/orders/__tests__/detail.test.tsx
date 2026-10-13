@@ -530,17 +530,34 @@ describe('A-1.10 · İptal kartı nedeni gösterir', () => {
     expect(message).toHaveTextContent('Bu siparişi iptal ettiniz.');
   });
 
-  it('satıcı aynı ekrandan bakarsa (user.id = seller.id) satıcı cümlesi', async () => {
+  it('satıcı aynı ekrandan bakarsa (siparişte isSeller) satıcı cümlesi — user.id değil, sunucu bayrağı', async () => {
+    getMock.mockResolvedValue({
+      data: {
+        data: orderFixture({
+          status: 'cancelled',
+          isBuyer: false,
+          isSeller: true,
+          cancelReason: null,
+          cancelCategory: 'buyer_cancelled',
+        }),
+      },
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    const message = await screen.findByTestId('order-cancel-message');
+    expect(message).toHaveTextContent('Alıcı bu siparişi iptal etti.');
+  });
+
+  it('A-3 inceleme #4 · user.id = seller.id olsa da isSeller yoksa satıcı sayılmaz', async () => {
     useAuthStore.setState({ user: { id: 'seller-1' } as never });
     try {
       getMock.mockResolvedValue({
         data: {
-          data: orderFixture({ status: 'cancelled', isBuyer: undefined, cancelReason: null, cancelCategory: 'buyer_cancelled' }),
+          data: orderFixture({ status: 'cancelled', isBuyer: true, cancelReason: null, cancelCategory: 'buyer_cancelled' }),
         },
       });
       renderWithProviders(<OrderDetailScreen />);
       const message = await screen.findByTestId('order-cancel-message');
-      expect(message).toHaveTextContent('Alıcı bu siparişi iptal etti.');
+      expect(message).toHaveTextContent('Bu siparişi iptal ettiniz.');
     } finally {
       useAuthStore.setState({ user: null });
     }
