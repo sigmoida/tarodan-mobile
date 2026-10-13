@@ -86,6 +86,12 @@ export {
 } from './components/Radio';
 export { Card, type CardProps } from './components/Card';
 export {
+	SectionCard,
+	SectionCardAction,
+	type SectionCardProps,
+	type SectionCardActionProps,
+} from './components/SectionCard';
+export {
 	Badge,
 	type BadgeProps,
 	type BadgeVariant,

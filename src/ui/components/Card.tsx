@@ -3,12 +3,14 @@ import { StyleSheet, View, type ViewProps } from 'react-native';
 import { theme } from '../lib/theme';
 
 export interface CardProps extends ViewProps {
+  /** Web: default = hafif gölge, bordered = çerçeve, elevated = belirgin gölge. */
   variant?: 'default' | 'bordered' | 'elevated';
   padding?: keyof typeof theme.spacing;
 }
 
-const { colors, radius, spacing } = theme;
+const { colors, radiusRole, spacing, shadow } = theme;
 
+/** Web `@tarodan/ui` Card: `rounded-lg bg-surface-elevated` + varyanta göre gölge/çerçeve. */
 export const Card: React.FC<CardProps> = ({
   variant = 'default',
   padding = 4,
@@ -20,6 +22,7 @@ export const Card: React.FC<CardProps> = ({
     <View
       style={[
         styles.base,
+        variant === 'default' && styles.soft,
         variant === 'bordered' && styles.bordered,
         variant === 'elevated' && styles.elevated,
         { padding: spacing[padding] },
@@ -34,18 +37,17 @@ export const Card: React.FC<CardProps> = ({
 
 const styles = StyleSheet.create({
   base: {
-    backgroundColor: colors.white,
-    borderRadius: radius.xl,
+    backgroundColor: colors.surface.elevated,
+    borderRadius: radiusRole.card,
+  },
+  soft: {
+    ...shadow.soft,
   },
   bordered: {
     borderWidth: 1,
-    borderColor: colors.gray[200],
+    borderColor: colors.border.DEFAULT,
   },
   elevated: {
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    ...shadow.elevated,
   },
 });
