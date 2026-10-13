@@ -590,3 +590,48 @@ describe('giriş temizliği yarışı: depo okuması beklenirken oturum değişi
     expect(await paymentCapabilityHeaders('guest-pay', { guest: true })).toEqual(cap('guest-pay'));
   });
 });
+
+describe('girişte sahipler okunamazsa güvenli taraf', () => {
+  const remember = (paymentId: string, scope?: { guest?: boolean }) =>
+    rememberPaymentCapability({ data: { paymentId, paymentAccessToken: `cap-${paymentId}` } }, scope);
+  const cap = (paymentId: string) => ({ 'X-Payment-Capability': `cap-${paymentId}` });
+  const capabilityKeys = async () =>
+    (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith('payment-capability.')).sort();
+  const multiGetFailsOnce = () =>
+    (AsyncStorage.multiGet as jest.Mock).mockRejectedValueOnce(new Error('io'));
+
+  it('eski hesabın belirteci silinir, bu süreçte bilinen misafir belirteci kalır; yeni hesap eskisini kullanamaz', async () => {
+    await bindPaymentCapabilitiesToAccount('user-a');
+    await remember('pay-a');
+    unbindPaymentCapabilityAccount(); // A zorunlu çıkış
+    await remember('guest-pay', { guest: true });
+
+    multiGetFailsOnce();
+    await bindPaymentCapabilitiesToAccount('user-b');
+    expect(await capabilityKeys()).toEqual(['payment-capability.guest-pay']);
+    expect(await paymentCapabilityHeaders('pay-a')).toEqual({});
+    expect(await paymentCapabilityHeaders('guest-pay', { guest: true })).toEqual(cap('guest-pay'));
+  });
+
+  it('yeniden başlatmadan sonra (sahipler bellekte de yok): sahibi bilinmeyen tüm kayıtlar silinir', async () => {
+    await bindPaymentCapabilitiesToAccount('user-a');
+    await remember('pay-a');
+    unbindPaymentCapabilityAccount();
+    await remember('guest-pay', { guest: true });
+    restartApp();
+
+    multiGetFailsOnce();
+    await bindPaymentCapabilitiesToAccount('user-b');
+    expect(await capabilityKeys()).toEqual([]);
+    expect(await paymentCapabilityHeaders('pay-a')).toEqual({});
+  });
+
+  it('bu hesabın kendi belirteci (bu süreçte bilinen) kalır', async () => {
+    await bindPaymentCapabilitiesToAccount('user-b');
+    await remember('pay-b');
+    multiGetFailsOnce();
+    await bindPaymentCapabilitiesToAccount('user-b');
+    expect(await capabilityKeys()).toEqual(['payment-capability.pay-b']);
+    expect(await paymentCapabilityHeaders('pay-b')).toEqual(cap('pay-b'));
+  });
+});

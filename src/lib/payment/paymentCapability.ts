@@ -367,7 +367,8 @@ export function unbindPaymentCapabilityAccount(): void {
 /**
  * Girişte (ve açılışta oturum yüklenince) çağrılır: kimliği bu hesap yapar ve
  * başka hesapların (ya da sahibi bilinmeyen) belirteçlerini bellek + depodan
- * siler. Misafir (sahipsiz) ve bu hesabın belirteçleri kalır. Kimlik hemen
+ * siler. Misafir (sahipsiz) ve bu hesabın belirteçleri kalır; sahipler depodan
+ * okunamazsa sahibi bilinmeyen her kayıt silinir (güvenli taraf). Kimlik hemen
  * değişir: başlık kuralı (`usableBy`) silme bitmeden de başka hesabın
  * belirtecini eklemez. Depo okuması beklenirken oturum değişirse (çıkış, başka
  * hesapla giriş) okuma dönünce hiçbir şey yapılmaz (`sessionEpoch`). Hiç
@@ -384,15 +385,22 @@ export async function bindPaymentCapabilitiesToAccount(accountId: string | null 
   }
   const store = persistentStorage();
   if (!store) return;
+  let keys: string[];
+  try {
+    keys = await storedCapabilityKeys(store);
+  } catch {
+    return; // anahtarlar okunamadı: silinecek kayıt bilinmiyor; başlık kuralı yine eklemez
+  }
+  if (keys.length === 0) return;
   let stale: string[];
   try {
-    const keys = await storedCapabilityKeys(store);
-    if (keys.length === 0) return;
     stale = (await store.multiGet(keys))
       .filter(([, raw]) => !keptForAccount(parseEntry(raw), accountId))
       .map(([key]) => key);
   } catch {
-    return; // okunamadı: başlık kuralı yine başka hesabın belirtecini eklemez
+    // Sahipler okunamadı: güvenli taraf. Sahibi bilinmeyen her kaydı sil; yalnız bu
+    // süreçte sahibi bilinen misafir (sahipsiz) ve bu hesabın kayıtları kalır.
+    stale = keys.filter((key) => !keptForAccount(memory.get(key.slice(KEY_PREFIX.length)), accountId));
   }
   // Okuma beklenirken oturum değişti: sonuç eski oturuma ait, dokunma.
   if (epoch !== sessionEpoch) return;
