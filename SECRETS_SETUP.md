@@ -53,40 +53,63 @@ zaten setli; üstüne yazmıyoruz.
 
 ## 3b) Staging variant — prod ile yan yana kurulum (#229)
 
-`preview` profili artık ayrı bir **staging varyantı** üretir: `app.config.js`,
-`EXPO_PUBLIC_ENVIRONMENT=preview` olduğunda uygulama kimliğini `.staging` ekiyle
-türetir ve ismi "Tarodan (Staging)" yapar. Böylece tester aynı cihazda prod +
-staging'i yan yana tutabilir.
+`preview` profili ayrı bir **staging varyantı** üretir: `app.config.js`,
+`EXPO_PUBLIC_ENVIRONMENT=preview` olduğunda **iOS** uygulama kimliğini `.staging`
+ekiyle türetir ve ismi "Tarodan (Staging)" yapar. Böylece tester aynı cihazda
+iOS prod + staging'i yan yana tutabilir.
 
 | Alan                   | Production                 | Preview / Staging                     |
 | ---------------------- | -------------------------- | ------------------------------------- |
 | iOS `bundleIdentifier` | `com.tarodan.app`          | `com.tarodan.app.staging`             |
-| Android `package`      | `com.tarodan.app`          | `com.tarodan.app.staging`             |
+| Android `package`      | `com.tarodan.app`          | `com.tarodan.app` (**değişmez**)      |
 | Uygulama adı           | Tarodan                    | Tarodan (Staging)                     |
+| iOS `associatedDomains`| `applinks:tarodan.com.tr`  | yok (AASA `.staging` appID'sini talep etmiyor) |
+| Android App Links      | `tarodan.com.tr`           | `tarodan.com.tr` + `staging.tarodan.com.tr` |
 | `EXPO_PUBLIC_API_URL`  | `https://tarodan.com.tr/api` | `https://staging.tarodan.com.tr/api` |
 
+> **Android paket adına `.staging` eki EKLENMEZ.** Ek, Firebase (FCM) ve Google
+> OAuth'ta ayrı bir kayıt gerektirirdi ve Android henüz yayında değil (bkz.
+> `app.config.js` başındaki gerekçe). Android staging build'i prod ile aynı
+> `com.tarodan.app` paketini kullanır; aynı cihazda yan yana kurulmaz.
+>
 > Doğrula: `EXPO_PUBLIC_ENVIRONMENT=preview npx expo config --type public --json`
-> → `ios.bundleIdentifier` / `android.package` `.staging` ile bitmeli.
+> → `ios.bundleIdentifier` `.staging` ile bitmeli, `android.package`
+> `com.tarodan.app` kalmalı; `android.intentFilters[0].data` staging host'unu
+> içermeli. `production` ile aynı komutta staging host'u görünmemeli.
 
-**⚠️ Önkoşullar (ilk staging build'den ÖNCE tamamlanmalı — yoksa build kırılır):**
+**Önkoşullar:**
 
-- **Android / Firebase:** `com.tarodan.app.staging` paketi Firebase projesine
-  **yeni Android app** olarak eklenmeli (Firebase Console → Project settings →
-  Add app → Android). Sonra güncel `google-services.json` indirilip
-  `apps/mobile/google-services.json` ile değiştirilir — bu dosya artık iki paketi
-  de (`com.tarodan.app` + `com.tarodan.app.staging`) içerir, tek dosya her iki
-  profili de karşılar. Aksi halde Gradle `google-services` plugin'i "No matching
-  client found for package name 'com.tarodan.app.staging'" ile build'i düşürür.
-- **Android / Google Sign-In:** staging keystore'un SHA-1'i (`eas credentials`
-  → preview profili) GCP → Credentials → Android OAuth client'a eklenmeli
-  (aksi halde staging'de Google ile giriş `DEVELOPER_ERROR` verir).
-- **iOS / Google Sign-In (opsiyonel, iOS Google girişi açılınca):**
-  `com.tarodan.app.staging` bundle id'si için ayrı iOS OAuth client
-  oluşturulmalı; şu an iOS Google girişi açık iş, staging için de birlikte
+- **Android / Firebase:** `google-services.json` yalnız `com.tarodan.app`
+  istemcisini içermesi yeterli (staging aynı paketi kullanır). Android paketine
+  `.staging` eki eklenirse (ileride) o gün Firebase'e yeni Android app eklenip
+  `google-services.json` yenilenmeli, yoksa Gradle "No matching client found"
+  ile düşer.
+- **Android / Google Sign-In:** Android OAuth istemcisine `com.tarodan.app` için
+  upload ve (Play App Signing varsa) Play imza SHA-1'leri eklenir. Bayrak
+  `EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` bu iş bitene kadar `"false"` kalır.
+- **iOS / Google Sign-In (opsiyonel):** `com.tarodan.app.staging` bundle id'si
+  için ayrı iOS OAuth client gerekir; iOS Google girişi staging için de birlikte
   ele alınır.
 
 `EXPO_PUBLIC_API_URL` staging değeri hem `eas.json` `preview.env` bloğunda hem de
 (EAS env kullanıyorsanız) yukarıdaki §3 komutuyla set edilir.
+
+## 3c) Sentry (hata izleme + kaynak haritası)
+
+`src/services/sentry.ts` DSN'i **yalnız** `EXPO_PUBLIC_SENTRY_DSN`'den okur; değişken
+yoksa Sentry sessizce kapalıdır. `eas.json` profilleri DSN taşımaz (secret/ortam
+değeri); EAS ortamında tanımlanır:
+
+```bash
+eas env:create --environment production --name EXPO_PUBLIC_SENTRY_DSN --value "<dsn>" --visibility plaintext
+eas env:create --environment preview    --name EXPO_PUBLIC_SENTRY_DSN --value "<dsn>" --visibility plaintext
+```
+
+`eas.json` profillerinde `SENTRY_DISABLE_AUTO_UPLOAD=true` var: kaynak haritası
+yüklenmez, yani crash'ler **okunamayan stack** ile gelir. Yüklemeyi açmak için
+(sırayla): `SENTRY_AUTH_TOKEN` (secret), `SENTRY_ORG`, `SENTRY_PROJECT` EAS
+ortamına eklenir, **sonra** `eas.json`'dan `SENTRY_DISABLE_AUTO_UPLOAD` kaldırılır.
+Token olmadan kaldırmak build'i kırar — bu yüzden ikisi birlikte yapılır.
 
 ## 4) GitHub Actions secret'ları
 
@@ -161,7 +184,7 @@ mobile workflow'ları sessiz no-op olur (guard).
 | `MAESTRO_CLOUD_API_KEY` + `MAESTRO_CLOUD_PROJECT_ID` | Maestro Cloud | e2e (`maestro-cloud.yml`) |
 | GitHub `production` Environment | repo ayarı | TestFlight onay kapısı (`mobile-testflight.yml`) |
 | Apple ASC API key / Google Play service account | Apple + Google (imza Murat) | `eas submit` (`eas credentials`) |
-| Firebase `com.tarodan.app.staging` kaydı | Firebase konsolu | Yoksa staging Android Gradle build "No matching client found" ile kesilir. **DİKKAT:** paketi kaydettikten sonra `google-services.json`'u YENİDEN indir — hem `com.tarodan.app` hem `com.tarodan.app.staging` client'larını içermeli; tek-client dosya ile staging build yine kesilir. |
+| Firebase `google-services.json` (`com.tarodan.app`) | Firebase konsolu | Android paketi staging'de de `com.tarodan.app` (`.staging` eki YALNIZ iOS'ta) — ayrı staging Android kaydı gerekmez. Android'e `.staging` eki eklenirse o gün `com.tarodan.app.staging` client'ı da kaydedilip dosya yenilenmeli. |
 | App Store Connect "Tarodan (Staging)" app | Apple (imza Murat) | Anında açılır, beta review YOK (internal TestFlight) |
 | `api.staging.tarodan.shop` teyidi | Coolify | `eas.json` preview env'deki adres gerçek staging domain mi? (teyit edilmedi) |
 
