@@ -166,9 +166,18 @@ function resolveStagingGoogleServicesFile(opts = {}) {
 const { stagingHosts } = require('./src/lib/deeplinks/paths.json');
 
 /**
- * Android intent filter'larında `host` girdilerini staging host'larıyla DEĞİŞTİRİR
- * (ilk `host` girdisinin yerine; yol girdileri ve sırası aynen korunur). Girdi
- * değiştirilmez.
+ * Android intent filter'larında `host` değerlerini staging host'larıyla DEĞİŞTİRİR.
+ * Yalnız `host` alanına dokunulur: `scheme`, `path*` vb. taşıyan `data` nesneleri
+ * silinmez ve sırası korunur. Girdi değiştirilmez.
+ *
+ *  - Yalnız `{ host }` taşıyan nesne: ilk görülen yerde staging host'larının
+ *    hepsiyle (`{ host: h }` × N) değişir; sonraki saf host nesneleri (ör. ikinci
+ *    production host'u) düşer, yoksa staging host'u tekrar eder.
+ *  - `host` ile birlikte başka alan taşıyan nesne (`{ scheme, host }`,
+ *    `{ host, path }`): her staging host'u için bir kopya üretilir, diğer alanlar aynen kalır.
+ *  - `stagingHosts` boşsa host taşıyan filtre TAMAMEN düşer: host'suz bir
+ *    `autoVerify` filtresi bırakmak her https linkini talep eden/doğrulaması
+ *    düşen bir filtredir.
  *
  * Neden eklemek değil değiştirmek: staging artık AYRI bir pakettir ve
  * production yanında kurulabilir. Production alan adını (`tarodan.com.tr`)
@@ -177,19 +186,23 @@ const { stagingHosts } = require('./src/lib/deeplinks/paths.json');
  * production paketini yetkilendirir, staging paketinin o host'taki doğrulaması
  * zaten düşerdi.
  */
-function withStagingHosts(intentFilters = []) {
-  return intentFilters.map((filter) => {
+function withStagingHosts(intentFilters = [], hosts = stagingHosts) {
+  const isHostOnly = (d) => Object.keys(d).length === 1 && d.host;
+  return intentFilters.flatMap((filter) => {
     const data = filter.data ?? [];
-    const firstHost = data.findIndex((d) => d.host);
-    if (firstHost === -1) return filter;
-    return {
-      ...filter,
-      data: [
-        ...data.slice(0, firstHost),
-        ...stagingHosts.map((host) => ({ host })),
-        ...data.slice(firstHost).filter((d) => !d.host),
-      ],
-    };
+    if (!data.some((d) => d.host)) return [filter];
+    if (hosts.length === 0) return [];
+    let hostOnlyDone = false;
+    const nextData = data.flatMap((d) => {
+      if (!d.host) return [d];
+      if (isHostOnly(d)) {
+        if (hostOnlyDone) return [];
+        hostOnlyDone = true;
+        return hosts.map((host) => ({ host }));
+      }
+      return hosts.map((host) => ({ ...d, host }));
+    });
+    return [{ ...filter, data: nextData }];
   });
 }
 
@@ -234,3 +247,4 @@ module.exports = ({ config }) => {
 
 module.exports.resolveStagingGoogleServicesFile = resolveStagingGoogleServicesFile;
 module.exports.isAndroidNativeContext = isAndroidNativeContext;
+module.exports.withStagingHosts = withStagingHosts;
