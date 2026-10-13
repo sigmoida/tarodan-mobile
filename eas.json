@@ -77,7 +77,6 @@
     "staging": {
       "distribution": "store",
       "channel": "staging",
-      "environment": "preview",
       "ios": {
         "autoIncrement": "buildNumber"
       },

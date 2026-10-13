@@ -223,6 +223,11 @@ okunmaz. Dosyayı değiştirirseniz değişkeni de aynı içerikle güncelleyin,
 dosya bir gün silinirse build farklı içerikle sessizce devam eder (güncelleme:
 `eas env:update`, tip `file`, değer `./google-services.staging.json`).
 
+**`eas.json` `environment` anahtarı yok:** `staging` profiline `"environment": "preview"`
+**eklenmez**. Eklenirse iOS staging build'lerinin aldığı EAS değişkenleri (Sentry DSN
+vb.) production ortamından preview ortamına döner. Staging dosyası repoda olduğu için
+Android build'i EAS ortamına bağımlı değil.
+
 **`.gitignore` kararı:** `google-services.staging.json` **ignore edilmez**.
 Gerekçe: (a) `google-services.json` zaten repoda (Firebase Android yapılandırması
 düşük hassasiyetlidir); (b) EAS build'leri `.gitignore`'u dikkate alarak arşiv

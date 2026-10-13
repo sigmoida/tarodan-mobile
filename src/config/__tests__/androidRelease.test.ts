@@ -230,10 +230,12 @@ describe('eas.json — Android build ve submit profilleri', () => {
     expect(eas.build.staging!.channel).toBe('staging');
   });
 
-  it('staging EAS ortamı preview: GOOGLE_SERVICES_JSON_STAGING (preview ortamına yüklü file değişkeni) build\'de görünür', () => {
-    expect(eas.build.staging!.environment).toBe('preview');
-    // preview profili ortam adı belirtmez; EAS profil adından "preview" ortamını seçer
-    expect(eas.build.preview!.environment).toBeUndefined();
+  it('staging profili EAS `environment` anahtarı TAŞIMAZ (iOS staging\'in EAS değişkenleri değişmesin)', () => {
+    // `environment: preview` eklemek iOS staging build'lerinin aldığı EAS
+    // değişkenlerini (Sentry DSN vb.) production'dan preview'a çevirirdi.
+    // Android dosyası artık repoda (google-services.staging.json) olduğundan gerekmiyor.
+    expect(eas.build.staging).not.toHaveProperty('environment');
+    expect(eas.build.preview).not.toHaveProperty('environment');
   });
 
   it('production: AAB, store dağıtımı, versionCode otomatik artar', () => {
