@@ -19,8 +19,10 @@ jest.mock('react-native-reanimated', () => {
     __esModule: true,
     default: {
       View: ({ style, ...rest }: { style?: unknown }) => React.createElement(View, { style, ...rest }),
+      // `@/ui` (BottomSheet → gesture-handler) modül yüklenirken çağırır.
+      createAnimatedComponent: <T,>(c: T) => c,
     },
-    Easing: { out: () => () => 0, quad: () => 0 },
+    Easing: { out: () => () => 0, quad: () => 0, bezier: () => () => 0 },
     useReducedMotion: () => mockReduceMotion.value,
     useSharedValue: (v: number) => React.useRef({ value: v }).current,
     useAnimatedStyle: () => ({}),

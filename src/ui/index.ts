@@ -167,7 +167,12 @@ export {
 	type SelectProps,
 	type SelectOption,
 } from './components/Select';
-export { Checkbox, type CheckboxProps } from './components/Checkbox';
+export {
+  Checkbox,
+  CheckboxIndicator,
+  type CheckboxProps,
+  type CheckboxIndicatorProps,
+} from './components/Checkbox';
 export {
 	Radio,
 	RadioIndicator,
@@ -205,6 +210,22 @@ export {
 	type ModalSize,
 } from './components/Modal';
 export { ModalFooter, type ModalFooterProps } from './components/ModalFooter';
+// Alttan açılan her şey bu üç primitive'den (ham RN Modal ile sheet yazılmaz).
+export {
+  BottomSheet,
+  useBottomSheet,
+  type BottomSheetProps,
+  type BottomSheetController,
+  type BottomSheetSize,
+} from './components/BottomSheet';
+export {
+  SelectSheet,
+  type SelectSheetProps,
+  type SelectSheetSingleProps,
+  type SelectSheetMultiProps,
+  type SelectSheetOption,
+} from './components/SelectSheet';
+export { ActionSheet, type ActionSheetProps, type ActionSheetAction } from './components/ActionSheet';
 export {
 	appAlert,
 	AlertDialogHost,
