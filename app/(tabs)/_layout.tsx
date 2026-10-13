@@ -2,7 +2,7 @@ import { Tabs } from "expo-router";
 import { theme } from "@/ui";
 import { useTranslation } from "react-i18next";
 import { AppTabBar } from "@/components/shell/AppTabBar";
-import { TabBarCollapseProvider } from "@/components/shell/TabBarCollapse";
+import { TabBarCollapseProvider, TabBarFocusReset } from "@/components/shell/TabBarCollapse";
 
 const { colors } = theme;
 
@@ -18,6 +18,7 @@ export default function TabLayout() {
 
   return (
     <TabBarCollapseProvider>
+      <TabBarFocusReset />
       <Tabs
         tabBar={(props) => <AppTabBar {...props} />}
         screenOptions={{

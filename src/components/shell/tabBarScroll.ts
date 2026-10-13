@@ -50,3 +50,14 @@ export function reduceTabBarScroll(
   else if (dist <= -TAB_BAR_SCROLL_THRESHOLD) collapsed = false;
   return { collapsed, anchor, lastY: cy };
 }
+
+/**
+ * Ölçüm değişince (içerik boyu / görünür yükseklik) menü açılmalı mı? Kaydırma olayı gelmeyen
+ * içerik değişimlerinde (öğe silinip liste ekrana sığınca, yeni ScrollView 0'dan başlayınca,
+ * Android'de eksik olay) daraltılmış menünün kalıcı gizli kalmasını önler.
+ * `offsetY`: son bilinen (kıstırılmış) kaydırma ofseti.
+ */
+export function shouldExpandOnMeasure(contentH: number, layoutH: number, offsetY: number): boolean {
+  'worklet';
+  return contentH - layoutH < TAB_BAR_MIN_SCROLL_RANGE || offsetY <= TAB_BAR_TOP_ZONE;
+}

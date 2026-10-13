@@ -2,7 +2,9 @@ import {
   TAB_BAR_INITIAL_STATE,
   TAB_BAR_SCROLL_THRESHOLD,
   TAB_BAR_TOP_ZONE,
+  TAB_BAR_MIN_SCROLL_RANGE,
   reduceTabBarScroll,
+  shouldExpandOnMeasure,
   type TabBarScrollState,
 } from '../tabBarScroll';
 
@@ -86,5 +88,28 @@ describe('reduceTabBarScroll — daralma durum makinesi', () => {
     expect(down[2]).toBe(true);
     const s = reduceTabBarScroll({ collapsed: true, anchor: 900, lastY: 900 }, 0, MAX);
     expect(s.collapsed).toBe(false);
+  });
+});
+
+describe('shouldExpandOnMeasure — kaydırma olayı gelmeyen içerik değişimleri', () => {
+  it('kısa içerik (kaydırma payı < MIN) => açılır', () => {
+    expect(shouldExpandOnMeasure(700, 800, 300)).toBe(true);
+    expect(shouldExpandOnMeasure(800 + TAB_BAR_MIN_SCROLL_RANGE - 1, 800, 300)).toBe(true);
+  });
+
+  it('içerik küçülüp ekrana sığınca (öğe silme) açılır', () => {
+    // Önce uzun liste, aşağıda daraltılmış...
+    expect(shouldExpandOnMeasure(3000, 800, 900)).toBe(false);
+    // ...sonra silinince içerik 760'a düştü.
+    expect(shouldExpandOnMeasure(760, 800, 900)).toBe(true);
+  });
+
+  it('liste başındaysa (yeni ScrollView 0\'dan başlar) uzun içerikte de açılır', () => {
+    expect(shouldExpandOnMeasure(3000, 800, 0)).toBe(true);
+    expect(shouldExpandOnMeasure(3000, 800, TAB_BAR_TOP_ZONE)).toBe(true);
+  });
+
+  it('uzun içerik + aşağıda => açılmaz (daralma korunur)', () => {
+    expect(shouldExpandOnMeasure(3000, 800, TAB_BAR_TOP_ZONE + 1)).toBe(false);
   });
 });

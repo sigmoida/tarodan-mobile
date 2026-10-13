@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useTranslation } from "react-i18next";
 import { theme, Text, CountBadge, Icon, type IconName } from "@/ui";
+import { useAuthStore } from "@/stores/authStore";
 import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 import { useShellCounts } from "./useShellCounts";
 import { useTabBarCollapsed } from "./TabBarCollapse";
@@ -69,10 +70,11 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
   // state.routes içindeki aktif route adını çöz (görünür sırayla eşleştir).
   const activeName = state.routes[state.index]?.name;
 
-  // Sekme değişince menü açık hale döner.
+  // Sekme değişince ve oturum durumu değişince (ör. Profil üye <-> misafir görünümü) menü açık hale döner.
+  const isAuthenticated = useAuthStore((st) => st.isAuthenticated);
   useEffect(() => {
     collapsed.value = false;
-  }, [activeName, collapsed]);
+  }, [activeName, isAuthenticated, collapsed]);
 
   useAnimatedReaction(
     () => collapsed.value,

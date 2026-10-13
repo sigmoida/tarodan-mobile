@@ -29,14 +29,14 @@ function ProfileScreen() {
   // Hook sırası sabit kalsın diye erken return'den ÖNCE çağrılır (CLAUDE.md §12).
   const badges = useHomeBadges(f.isAuthenticated);
   const tabInset = useTabBarInset();
-  const onScroll = useTabBarScrollHandler();
+  const tabScroll = useTabBarScrollHandler();
 
   if (!f.isAuthenticated) return <ProfileGuestView f={f} />;
 
   return (
     <AppShell variant="title" title={t('profile.profile')}>
       <Animated.ScrollView
-        onScroll={onScroll}
+        {...tabScroll}
         scrollEventThrottle={16}
         contentContainerStyle={[styles.content, { paddingBottom: tabInset }]}
         showsVerticalScrollIndicator={false}

@@ -19,7 +19,7 @@ const { colors, spacing, minTouchTarget } = theme;
 export function ProfileGuestView({ f }: { f: ProfileController }) {
   const { t } = useTranslation();
   const tabInset = useTabBarInset();
-  const onScroll = useTabBarScrollHandler();
+  const tabScroll = useTabBarScrollHandler();
 
   const benefits = [
     { title: t('mobile.guestListTitle'), desc: t('mobile.guestListDesc') },
@@ -38,7 +38,7 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
   return (
     <AppShell variant="title" title={t('profile.profile')}>
       <Animated.ScrollView
-        onScroll={onScroll}
+        {...tabScroll}
         scrollEventThrottle={16}
         contentContainerStyle={[styles.content, { paddingBottom: tabInset }]}
         showsVerticalScrollIndicator={false}

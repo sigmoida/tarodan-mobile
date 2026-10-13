@@ -21,7 +21,7 @@ function FavoritesTabScreen() {
   const { t } = useTranslation();
   const f = useFavoritesScreen();
   const tabInset = useTabBarInset();
-  const onScroll = useTabBarScrollHandler();
+  const tabScroll = useTabBarScrollHandler();
 
   if (!f.isAuthenticated) {
     return (
@@ -46,7 +46,7 @@ function FavoritesTabScreen() {
   return (
     <AppShell variant="title" title={`${t('favorites.myFavorites')} (${f.getFavoriteCount()})`}>
       <Animated.FlatList
-        onScroll={onScroll}
+        {...tabScroll}
         scrollEventThrottle={16}
         data={initialLoading || loadFailed ? [] : f.items}
         keyExtractor={(item) => item.id}

@@ -41,7 +41,8 @@ export default function HomeScreen() {
   const hero = useHomeHero();
   const heroView = useHeroVisibility();
   // Tab bar daralma sinyali + hero görünürlüğü (ofset UI thread'inden seyrek köprülenir).
-  const onScroll = useTabBarScrollHandler(heroView.onScrollOffset);
+  const tabScroll = useTabBarScrollHandler(heroView.onScrollOffset);
+  const { onLayout: onTabScrollLayout } = tabScroll;
   const guest = useHomeGuestPrompt(isAuthenticated);
   // Yuvalar (topbar/header/footer) aynı tohumu ve gösterim kümesini paylaşır.
   const adSession = useAdSession();
@@ -87,8 +88,12 @@ export default function HomeScreen() {
           />
         }
         showsVerticalScrollIndicator={false}
-        onScroll={onScroll}
-        onLayout={heroView.onViewportLayout}
+        onScroll={tabScroll.onScroll}
+        onContentSizeChange={tabScroll.onContentSizeChange}
+        onLayout={(e) => {
+          onTabScrollLayout(e);
+          heroView.onViewportLayout(e);
+        }}
         scrollEventThrottle={16}
       >
         <AdBanner position="topbar" session={adSession} />

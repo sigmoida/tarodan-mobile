@@ -37,7 +37,7 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
   const { t } = useTranslation();
   const f = useListingForm({ mode, productId });
   const tabInset = useTabBarInset();
-  const onScroll = useTabBarScrollHandler();
+  const tabScroll = useTabBarScrollHandler();
   const topInset = useHeaderTopInset();
 
   const gate = ListingGates({ f });
@@ -47,7 +47,7 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
   const form = (
     <Animated.ScrollView
       style={styles.scroll}
-      onScroll={onScroll}
+      {...tabScroll}
       scrollEventThrottle={16}
       contentContainerStyle={[styles.scrollContent, !f.isEdit && { paddingBottom: tabInset }]}
       keyboardShouldPersistTaps="handled"

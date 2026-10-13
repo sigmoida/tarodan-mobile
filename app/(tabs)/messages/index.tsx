@@ -29,7 +29,7 @@ function MessagesTabScreen() {
   const { t } = useTranslation();
   const f = useMessagesTab();
   const tabInset = useTabBarInset();
-  const onScroll = useTabBarScrollHandler();
+  const tabScroll = useTabBarScrollHandler();
 
   if (!f.isAuthenticated) {
     return (
@@ -62,7 +62,7 @@ function MessagesTabScreen() {
   return (
     <AppShell variant="title" title={t("mobile.messagesTitle")}>
       <Animated.FlatList
-        onScroll={onScroll}
+        {...tabScroll}
         scrollEventThrottle={16}
         data={initialLoading ? [] : f.threads}
         keyExtractor={(thread) => thread.id}
