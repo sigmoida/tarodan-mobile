@@ -129,7 +129,10 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
         // callback gecikse ya da hiç gelmese de ödeme burada tamamlanır. Misafir de
         // çağırır — `X-Payment-Capability` başlığıyla sunucu misafiri geçirir
         // (`payment-lifecycle.service.ts` → `assertPaymentAccess`, capabilityAuthorized).
-        try { await paymentsApi.verify(paymentId); } catch { /* best-effort */ }
+        // Misafir isteği `guestApi`'den gider (Bearer yok, 401'de çıkış yok).
+        try {
+          await (isGuest ? paymentsApi.verifyGuest(paymentId) : paymentsApi.verify(paymentId));
+        } catch { /* best-effort */ }
         const res: any = isGuest
           ? await paymentsApi.getStatusLightGuest(paymentId)
           : await paymentsApi.getStatusLight(paymentId);
@@ -238,7 +241,8 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
 
     setProcessing(true);
     try {
-      const res = await paymentsApi.directForm(body);
+      // Misafir `guestApi`'den: cihazda kalmış token eklenmez, 401'de çıkış yapılmaz.
+      const res = await (isGuest ? paymentsApi.directFormGuest(body) : paymentsApi.directForm(body));
       const data = res.data;
       setPaymentId(data.paymentId);
 

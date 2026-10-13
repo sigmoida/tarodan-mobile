@@ -81,7 +81,10 @@ export default function PaymentSuccessScreen() {
       let last: PaymentInfo | null = null;
       for (let attempt = 0; attempt < 5 && !cancelled; attempt++) {
         // Idempotent & public: zaten completed ise no-op.
-        try { await paymentsApi.verify(paymentId); } catch { /* best-effort */ }
+        // Misafir `guestApi`'den (Bearer yok, 401'de çıkış/yönlendirme yok).
+        try {
+          await (guest === '1' ? paymentsApi.verifyGuest(paymentId) : paymentsApi.verify(paymentId));
+        } catch { /* best-effort */ }
         try {
           const data = await fetchStatus();
           last = data;

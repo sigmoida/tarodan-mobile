@@ -16,6 +16,7 @@ jest.mock('expo-router', () => ({
 jest.mock('@/lib/api', () => ({
   paymentsApi: {
     verify: jest.fn(() => Promise.resolve({})),
+    verifyGuest: jest.fn(() => Promise.resolve({})),
     getStatus: jest.fn(),
     getStatusLightGuest: jest.fn(),
   },
@@ -68,6 +69,7 @@ describe('J71 · Ödeme başarılı render', () => {
 
 describe('J72 · Ödeme başarılı navigasyon wiring', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     getStatusMock.mockReset();
     replaceMock.mockReset();
     (paymentsApi.verify as jest.Mock).mockResolvedValue({});
@@ -117,5 +119,15 @@ describe('J72 · Ödeme başarılı navigasyon wiring', () => {
     renderWithProviders(<PaymentSuccessScreen />);
     expect(await screen.findByText('Ana Sayfaya Dön')).toBeOnTheScreen();
     expect(screen.queryByText('Siparişimi Görüntüle')).toBeNull();
+  });
+
+  it('J72.6 misafir: verify guestApi yolundan (verifyGuest), üye verify çağrılmaz', async () => {
+    mockParams = { paymentId: 'pay-1', guest: '1' };
+    (paymentsApi.getStatusLightGuest as jest.Mock).mockResolvedValue({
+      data: { data: infoFixture() },
+    });
+    renderWithProviders(<PaymentSuccessScreen />);
+    await waitFor(() => expect(paymentsApi.verifyGuest).toHaveBeenCalledWith('pay-1'));
+    expect(paymentsApi.verify).not.toHaveBeenCalled();
   });
 });

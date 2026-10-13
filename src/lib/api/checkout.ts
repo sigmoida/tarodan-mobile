@@ -52,9 +52,24 @@ export const addressesApi = {
  * Yetki belirteci taşıyan ödeme uçları (`/payments/:id/...`, direct-form) bu
  * sarmalayıcılardan geçer: `paymentHttp(paymentId).post(...)`. Ödeme id'si
  * açıkça verilir; `X-Payment-Capability` başlığı tek yerden eklenir.
+ *
+ * Misafir yolunun TAMAMI `guestPaymentHttp` (`guestApi`) üzerinden: o instance
+ * Bearer eklemez, 401'de refresh/çıkış yapmaz, `USER_BANNED`'da yönlendirmez.
+ * `api` ise cihazda kalmış bir token'ı ekler; misafir ödeme ortasında 401 alırsa
+ * interceptor çıkış yaptırıp login ekranına atardı. Üye yolu `api`'den gider.
  */
 const paymentHttp = withPaymentCapability(api);
 const guestPaymentHttp = withPaymentCapability(guestApi);
+
+/** direct-form gövdesi. Kart verisi YOK (bkz. `directForm`). */
+type DirectFormRequest = {
+  paymentId?: string;
+  orderId?: string;
+  checkoutGroupId?: string;
+  tradeId?: string;
+  savedCardId?: string;
+  saveCard?: boolean;
+};
 
 // Payments API - Web ile aynı endpoint'ler
 export const paymentsApi = {
@@ -79,6 +94,9 @@ export const paymentsApi = {
   /** POST /payments/:id/verify — PayTR ödemesini aktif doğrula (web ile parite) */
   verify: (paymentId: string) =>
     paymentHttp(paymentId).post(`/payments/${paymentId}/verify`, {}),
+  /** Misafir verify: `guestApi` + yetki belirteci. */
+  verifyGuest: (paymentId: string) =>
+    guestPaymentHttp(paymentId).post(`/payments/${paymentId}/verify`, {}),
   getStatusLight: (paymentId: string) =>
     paymentHttp(paymentId).get(`/payments/${paymentId}/status`),
   getStatusLightGuest: (paymentId: string) =>
@@ -96,6 +114,9 @@ export const paymentsApi = {
   /** Fail sayfasında; hâlâ pending ise rezervasyonu serbest bırakır */
   confirmFailed: (paymentId: string) =>
     paymentHttp(paymentId).post(`/payments/${paymentId}/confirm-failed`, {}),
+  /** Misafir confirm-failed: `guestApi` + yetki belirteci. */
+  confirmFailedGuest: (paymentId: string) =>
+    guestPaymentHttp(paymentId).post(`/payments/${paymentId}/confirm-failed`, {}),
   /** Test bypass: PAYMENT_BYPASS=true iken tek kart başarılı */
   bypassComplete: (paymentId: string, cardNumber?: string) =>
     api.post(
@@ -116,13 +137,9 @@ export const paymentsApi = {
    * olmadan 403 alır. Üyede belirteç yoksa sunucu `paymentId`'yi yok sayar (oturumla
    * yetkili); belirteç varsa hedefin bu ödemeye ait olduğunu doğrular.
    */
-  directForm: (body: {
-    paymentId?: string;
-    orderId?: string;
-    checkoutGroupId?: string;
-    tradeId?: string;
-    savedCardId?: string;
-    saveCard?: boolean;
-  }) =>
+  directForm: (body: DirectFormRequest) =>
     paymentHttp(body.paymentId).post<DirectFormResponse>('/payments/direct-form', body),
+  /** Misafir direct-form: `guestApi` + yetki belirteci (gövdede `paymentId` zorunlu). */
+  directFormGuest: (body: DirectFormRequest) =>
+    guestPaymentHttp(body.paymentId).post<DirectFormResponse>('/payments/direct-form', body),
 };

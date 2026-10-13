@@ -48,8 +48,9 @@ export default function PaymentFailScreen() {
     const load = async () => {
       if (!paymentId) { setLoading(false); return; }
       try {
-        // Rezervasyonu serbest bırak
-        await paymentsApi.confirmFailed(paymentId).catch(() => null);
+        // Rezervasyonu serbest bırak. Misafir `guestApi`'den (Bearer yok, 401'de çıkış yok).
+        const release = guest === '1' ? paymentsApi.confirmFailedGuest : paymentsApi.confirmFailed;
+        await release(paymentId).catch(() => null);
         const response = guest === '1'
           ? await paymentsApi.getStatusLightGuest(paymentId)
           : await paymentsApi.getStatus(paymentId);
