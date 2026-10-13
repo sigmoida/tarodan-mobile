@@ -319,6 +319,11 @@ and turns them into **errors**, so write new code warning-free.
 - **Feedback:** info/success → `toast` / `toast.success` (`@/ui`, web react-hot-toast
   equivalent). Anything that needs confirmation, or an error the user must act on →
   `appAlert` dialog. (A toast sits under an open native Modal — close the modal first.)
+  `appAlert` button order: the `cancel`-styled button is always last; the others keep the
+  order the caller gave (never reversed).
+- **Modals never wait for a mutation.** `ModalFooter` has no `isLoading` on purpose (§12
+  iOS freeze): validate, `onClose()` first, then fire the mutation; progress/result goes to
+  a toast or the list state. Don't hold a modal open on `isPending`.
 - **Typography:** Noto Sans 400/500/600/700, same as web. The weight→font-file
   mapping and the -0.01em body letter-spacing live in **one place**,
   `src/theme/typography.ts` (`brandFontStyle`); loading is `useFonts` in

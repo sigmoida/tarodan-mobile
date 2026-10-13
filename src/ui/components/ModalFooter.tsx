@@ -11,7 +11,6 @@ export interface ModalFooterProps {
   confirmLabel?: string;
   /** Yıkıcı onay (sil, vazgeç…) → danger. */
   destructive?: boolean;
-  isLoading?: boolean;
   disabled?: boolean;
 }
 
@@ -19,6 +18,12 @@ export interface ModalFooterProps {
  * Web `@tarodan/ui` ModalFooter'ın telefon görünümü: İptal (outline) + ana aksiyon
  * (primary / danger), `flex-col-reverse` → tam genişlik, ana aksiyon ÜSTTE. Bütün diyalog
  * düğmeleri aynı dizilimi kullansın diye tek kaynak.
+ *
+ * **`isLoading` bilerek YOK (iOS ModalFreeze, CLAUDE.md §12):** web'deki "mutasyon bitene kadar
+ * diyaloğu açık tut" kalıbı native'de yapılmaz — bir mutasyonun `appAlert`'i açık bir ui-native
+ * Modal'ın üstünde iOS'u dondurur. Kalıp: `onConfirm` içinde doğrulama geçince ÖNCE modalı kapat
+ * (`onClose()`), SONRA mutasyonu tetikle; ilerleme/sonuç toast ya da liste durumuyla gösterilir
+ * (bkz. `app/offers/_modals/CounterOfferModal.tsx`). `disabled` yalnız form geçersizken içindir.
  */
 export const ModalFooter: React.FC<ModalFooterProps> = ({
   onCancel,
@@ -26,7 +31,6 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({
   cancelLabel,
   confirmLabel,
   destructive = false,
-  isLoading = false,
   disabled = false,
 }) => {
   const { t } = useTranslation();
@@ -36,7 +40,6 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({
         variant={destructive ? 'danger' : 'primary'}
         title={confirmLabel ?? t('common.save')}
         onPress={onConfirm}
-        isLoading={isLoading}
         disabled={disabled}
         fullWidth
       />
@@ -44,7 +47,6 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({
         variant="outline"
         title={cancelLabel ?? t('common.cancel')}
         onPress={onCancel}
-        disabled={isLoading}
         fullWidth
       />
     </View>
