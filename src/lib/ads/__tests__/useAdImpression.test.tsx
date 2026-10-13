@@ -22,7 +22,7 @@ jest.mock('@/lib/api', () => ({
   adsApi: { recordImpression: (...a: unknown[]) => mockRecordImpression(...(a as [])) },
 }));
 
-import { useAdImpression, IMPRESSION_DWELL_MS } from '../useAdImpression';
+import { useAdImpression, IMPRESSION_DWELL_MS, impressionKey } from '../useAdImpression';
 
 describe('useAdImpression', () => {
   beforeEach(() => {
@@ -86,6 +86,31 @@ describe('useAdImpression', () => {
     });
     act(() => {
       jest.advanceTimersByTime(IMPRESSION_DWELL_MS);
+    });
+    expect(mockRecordImpression).toHaveBeenCalledTimes(1);
+  });
+
+  it('oturum kümesi yuva+reklam anahtarlı: aynı reklamı gösteren İKİ yuva ayrı sayılır', () => {
+    const sent = new Set<string>();
+    renderHook(() => useAdImpression('ad-1', true, undefined, sent, 'footer'));
+    renderHook(() => useAdImpression('ad-1', true, undefined, sent, 'inline-0'));
+    act(() => {
+      jest.advanceTimersByTime(IMPRESSION_DWELL_MS);
+    });
+    expect(mockRecordImpression).toHaveBeenCalledTimes(2);
+    expect([...sent].sort()).toEqual([impressionKey('footer', 'ad-1'), impressionKey('inline-0', 'ad-1')].sort());
+  });
+
+  it('aynı yuva yeniden bağlanınca (aynı anahtar) ikinci kez sayılmaz', () => {
+    const sent = new Set<string>();
+    const a = renderHook(() => useAdImpression('ad-1', true, undefined, sent, 'footer'));
+    act(() => {
+      jest.advanceTimersByTime(IMPRESSION_DWELL_MS);
+    });
+    a.unmount();
+    renderHook(() => useAdImpression('ad-1', true, undefined, sent, 'footer'));
+    act(() => {
+      jest.advanceTimersByTime(IMPRESSION_DWELL_MS * 2);
     });
     expect(mockRecordImpression).toHaveBeenCalledTimes(1);
   });

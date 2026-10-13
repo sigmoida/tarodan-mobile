@@ -9,7 +9,10 @@ import { render } from '@testing-library/react-native';
 const mockListings = jest.fn();
 jest.mock('../_hooks/useListings', () => ({ useListings: () => mockListings() }));
 
-jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn(), canGoBack: () => true, replace: jest.fn() } }));
+jest.mock('expo-router', () => ({
+  router: { push: jest.fn(), back: jest.fn(), canGoBack: () => true, replace: jest.fn() },
+  useFocusEffect: jest.fn(),
+}));
 jest.mock('@/components/ProductFilterSheet', () => () => null);
 jest.mock('../_components/ListingsSearchBar', () => ({ ListingsSearchBar: () => null }));
 jest.mock('../_components/ListingsSortModal', () => ({ ListingsSortModal: () => null }));

@@ -36,16 +36,21 @@ export function AdBanner({ position = 'header', slotKey, session, style }: AdBan
   // kaldığı sürece SABİT kalır (aksi halde reklam değişir ve yeni gösterim
   // sayılırdı); yalnız listeden düşerse yeniden seçilir. Rotasyon web'deki
   // "sayfa yüklemesi başına" mantığına denk olarak yuva yeniden bağlanınca
-  // (ekran açılışı) olur — sekme odağı değişince DEĞİL: odak başına döndürmek
-  // her sekme geçişinde reklamı değiştirir ve yeni gösterim sayardı.
+  // (ekran açılışı) VE ortak oturum yenilenince (`useAdSession`: ekran yeniden
+  // odaklandı — unmount olmayan sekme ekranlarında "sayfa yüklemesi" budur) olur.
+  // Oturumsuz yuvada yalnız yeniden bağlanma döndürür.
   const [ownSeed] = useState(newRotationSeed);
   const seed = session?.seed ?? ownSeed;
-  const [pickedId, setPickedId] = useState<string | null>(null);
-  const ad = ads.find((a) => a.id === pickedId) ?? pickAd(ads, slotKey ?? position, seed);
+  const slotId = slotKey ?? position;
+  // Seçim tohuma bağlı: oturum yenilenince (ekran yeniden odaklandı) tohum
+  // değişir ve yuva yeniden seçer; aynı tohumda seçim sabit kalır.
+  const [picked, setPicked] = useState<{ seed: number; id: string | null }>({ seed, id: null });
+  const stickyId = picked.seed === seed ? picked.id : null;
+  const ad = ads.find((a) => a.id === stickyId) ?? pickAd(ads, slotId, seed);
   const adId = ad?.id ?? null;
   useEffect(() => {
-    if (adId !== pickedId) setPickedId(adId);
-  }, [adId, pickedId]);
+    if (adId !== stickyId || picked.seed !== seed) setPicked({ seed, id: adId });
+  }, [adId, stickyId, picked.seed, seed]);
 
   // Reklamsız üyede yer ayırma — kalıcı boş kutu göstermiş oluruz.
   if (isAdFree) return null;
@@ -77,11 +82,12 @@ export function AdBanner({ position = 'header', slotKey, session, style }: AdBan
         </Text>
         <View style={styles.topbarItem}>
           <AdCreative
-            key={ad.id}
+            key={`${ad.id}:${seed}`}
             ad={ad}
             position={position}
             variant="topbar"
             sentImpressions={session?.sentImpressions}
+            slotId={slotId}
           />
         </View>
       </View>
@@ -90,7 +96,13 @@ export function AdBanner({ position = 'header', slotKey, session, style }: AdBan
 
   return (
     <View style={[styles.container, POSITION_STYLE[position], style]} testID="ad-banner">
-      <AdCreative key={ad.id} ad={ad} position={position} sentImpressions={session?.sentImpressions} />
+      <AdCreative
+        key={`${ad.id}:${seed}`}
+        ad={ad}
+        position={position}
+        sentImpressions={session?.sentImpressions}
+        slotId={slotId}
+      />
     </View>
   );
 }

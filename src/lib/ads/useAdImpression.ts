@@ -6,6 +6,12 @@ import { useScreenActive } from './useScreenActive';
 export const IMPRESSION_DWELL_MS = 1000;
 
 /**
+ * Oturum kümesindeki anahtar: yuva + reklam. Aynı reklamı gösteren iki yuva
+ * AYRI sayılır (web'de her `BannerSlot` kendi gösterimini sayar).
+ */
+export const impressionKey = (slotId: string, adId: string) => `${slotId}\u0000${adId}`;
+
+/**
  * Gösterim sayacı — mount'ta değil, reklam GERÇEKTEN görünürken.
  *
  * `ready`: reklam çizildi (görselli reklamda görsel yüklendi). Ayrıca ekran
@@ -24,17 +30,20 @@ export function useAdImpression(
   record: (id: string) => Promise<unknown> = adsApi.recordImpression,
   /** Oturum kümesi: gösterimi zaten gönderilmiş reklam yeniden bağlansa da sayılmaz. */
   sent?: Set<string>,
+  /** Yuva kimliği (`sent` anahtarı = yuva + reklam); verilmezse yalnız reklam kimliği. */
+  slotId?: string,
 ): void {
   const screenActive = useScreenActive();
   const sentFor = useRef<string | null>(null);
+  const key = slotId === undefined ? adId : impressionKey(slotId, adId);
 
   useEffect(() => {
-    if (!ready || !screenActive || sentFor.current === adId || sent?.has(adId)) return;
+    if (!ready || !screenActive || sentFor.current === adId || sent?.has(key)) return;
     const timer = setTimeout(() => {
       sentFor.current = adId;
-      sent?.add(adId);
+      sent?.add(key);
       record(adId).catch(() => {});
     }, IMPRESSION_DWELL_MS);
     return () => clearTimeout(timer);
-  }, [adId, ready, screenActive, record, sent]);
+  }, [adId, key, ready, screenActive, record, sent]);
 }

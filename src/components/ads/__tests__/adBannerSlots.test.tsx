@@ -212,4 +212,56 @@ describe('AdBanner — inline yuva anahtarı ve oturum', () => {
       jest.useRealTimers();
     }
   });
+
+  it('aynı reklamı gösteren İKİ yuva (footer + inline) ayrı gösterim sayar', () => {
+    jest.useFakeTimers();
+    try {
+      const shared: AdSession = { seed: 2, sentImpressions: new Set() };
+      setAds([{ id: 'only' }]);
+      render(
+        <>
+          <AdBanner position="footer" session={shared} />
+          <AdBanner position="inline" slotKey="inline-0" session={shared} />
+        </>,
+      );
+      act(() => {
+        jest.advanceTimersByTime(IMPRESSION_DWELL_MS);
+      });
+      expect(mockRecordImpression).toHaveBeenCalledTimes(2);
+      expect(shared.sentImpressions.size).toBe(2);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('oturum yenilenince (yeni tohum + boş küme) yuva yeniden seçer ve aynı reklam yeniden sayılır', () => {
+    jest.useFakeTimers();
+    try {
+      setAds([{ id: 'only' }]);
+      const s1: AdSession = { seed: 10, sentImpressions: new Set() };
+      const { rerender } = render(<AdBanner position="footer" session={s1} />);
+      act(() => {
+        jest.advanceTimersByTime(IMPRESSION_DWELL_MS);
+      });
+      expect(mockRecordImpression).toHaveBeenCalledTimes(1);
+
+      // Aynı oturum: yeniden çizim sayımı artırmaz.
+      rerender(<AdBanner position="footer" session={s1} />);
+      act(() => {
+        jest.advanceTimersByTime(IMPRESSION_DWELL_MS * 2);
+      });
+      expect(mockRecordImpression).toHaveBeenCalledTimes(1);
+
+      // Ekran yeniden odaklandı → yeni oturum: yuva yeniden seçilir, gösterim yeniden sayılır.
+      const s2: AdSession = { seed: 11, sentImpressions: new Set() };
+      rerender(<AdBanner position="footer" session={s2} />);
+      act(() => {
+        jest.advanceTimersByTime(IMPRESSION_DWELL_MS);
+      });
+      expect(mockRecordImpression).toHaveBeenCalledTimes(2);
+      expect(s2.sentImpressions.size).toBe(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });

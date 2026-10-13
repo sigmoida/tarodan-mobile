@@ -37,8 +37,10 @@ export interface AdCreativeProps {
    * yüksekliği sınırlı kapsayıcılar için; verilmezse görsel tam genişlikte olur.
    */
   maxSize?: { width: number; height: number };
-  /** Oturumda gösterimi gönderilmiş reklamlar (bkz. `useAdSession`). */
+  /** Oturumda gösterimi gönderilmiş yuva+reklam çiftleri (bkz. `useAdSession`). */
   sentImpressions?: Set<string>;
+  /** Yuva kimliği: gösterim tekilleştirmesi yuva+reklam başınadır. */
+  slotId?: string;
 }
 
 /**
@@ -54,6 +56,7 @@ export function AdCreative({
   onNavigate,
   maxSize,
   sentImpressions,
+  slotId,
 }: AdCreativeProps) {
   const hasImage = hasAdImage(ad);
   // Görsel yüklenince kutu onun GERÇEK oranını alır (kayıtlı ölçü görselden
@@ -62,7 +65,7 @@ export function AdCreative({
   const [naturalRatio, setNaturalRatio] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(!hasImage);
   // Gösterim ilan başına bir kez, reklam görünürken (mount'ta değil) sayılır.
-  useAdImpression(ad.id, loaded, undefined, sentImpressions);
+  useAdImpression(ad.id, loaded, undefined, sentImpressions, slotId);
 
   const open = (url: string | null) => {
     if (!onNavigate) {
