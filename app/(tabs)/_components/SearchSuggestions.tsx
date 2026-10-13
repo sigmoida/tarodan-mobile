@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, ScrollView, TouchableOpacity } from 'react-native';
+import { View, ScrollView, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, theme } from '@/ui';
@@ -25,25 +25,24 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
         <View style={styles.recentSearchesDropdown}>
           <View style={styles.recentSearchesHeader}>
             <Text style={styles.recentSearchesTitle}>{t('search.recentSearches')}</Text>
-            <TouchableOpacity onPress={f.clearSearches}>
+            <Pressable onPress={f.clearSearches}>
               <Text style={styles.clearRecentText}>{t('common.clear')}</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
           {f.recentSearchQueries.map((query, index) => (
-            <TouchableOpacity
+            <Pressable
               key={index}
               style={styles.recentSearchItem}
               onPress={() => f.handleRecentSearchSelect(query)}
             >
-              <Ionicons name="time-outline" size={18} color={colors.text.muted} />
               <Text style={styles.recentSearchText}>{query}</Text>
-              <TouchableOpacity
+              <Pressable
                 onPress={() => f.removeSearch(query)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Ionicons name="close" size={18} color={colors.text.subtle} />
-              </TouchableOpacity>
-            </TouchableOpacity>
+              </Pressable>
+            </Pressable>
           ))}
         </View>
       )}
@@ -56,7 +55,7 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
               <View style={styles.acSection}>
                 <Text style={styles.acSectionTitle}>{t('search.suggestions')}</Text>
                 {f.autocomplete.suggestions.slice(0, 5).map((s, i) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={`s-${i}`}
                     style={styles.acItem}
                     onPress={() => {
@@ -64,9 +63,8 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
                       f.setAutocompleteOpen(false);
                     }}
                   >
-                    <Ionicons name="search" size={16} color={colors.text.subtle} />
                     <Text style={styles.acItemText}>{s}</Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 ))}
               </View>
             ) : null}
@@ -75,7 +73,7 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
               <View style={styles.acSection}>
                 <Text style={styles.acSectionTitle}>{t('product.title')}</Text>
                 {f.autocomplete.products.slice(0, 5).map((p) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={`p-${p.id}`}
                     style={styles.acItem}
                     onPress={() => {
@@ -83,14 +81,13 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
                       router.push({ pathname: '/product/[id]', params: { id: p.id } } as any);
                     }}
                   >
-                    <Ionicons name="cube-outline" size={16} color={colors.primary[600]!} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.acItemText} numberOfLines={1}>{p.title}</Text>
                       <Text style={styles.acItemMeta}>
                         {p.brandName ? `${p.brandName} · ` : ''}{formatPrice(p.price)}
                       </Text>
                     </View>
-                  </TouchableOpacity>
+                  </Pressable>
                 ))}
               </View>
             ) : null}
@@ -99,7 +96,7 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
               <View style={styles.acSection}>
                 <Text style={styles.acSectionTitle}>{t('search.sellers')}</Text>
                 {f.sellerResults.slice(0, 6).map((s) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={`s-${s.id}`}
                     style={styles.acItem}
                     onPress={() => {
@@ -107,14 +104,13 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
                       router.push(`/seller/${s.id}` as any);
                     }}
                   >
-                    <Ionicons name="storefront-outline" size={16} color={colors.primary[600]!} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.acItemText} numberOfLines={1}>{s.displayName}</Text>
                       {typeof s.totalListings === 'number' ? (
                         <Text style={styles.acItemMeta}>{s.totalListings} ilan</Text>
                       ) : null}
                     </View>
-                  </TouchableOpacity>
+                  </Pressable>
                 ))}
               </View>
             ) : null}
@@ -123,16 +119,15 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
               <View style={styles.acSection}>
                 <Text style={styles.acSectionTitle}>{t('brands.title')}</Text>
                 {f.autocomplete.brands.slice(0, 5).map((b) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={`b-${b.id}`}
                     style={styles.acItem}
                     onPress={() =>
                       f.applyFacet({ brandId: b.id, brand: b.name, carModel: '', carModelId: '' })
                     }
                   >
-                    <Ionicons name="bookmark-outline" size={16} color={colors.text.muted} />
                     <Text style={styles.acItemText}>{b.name}</Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 ))}
               </View>
             ) : null}
@@ -141,16 +136,15 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
               <View style={styles.acSection}>
                 <Text style={styles.acSectionTitle}>{t('nav.manufacturers')}</Text>
                 {f.autocomplete.manufacturers.slice(0, 5).map((m) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={`mf-${m.id}`}
                     style={styles.acItem}
                     onPress={() =>
                       f.applyFacet({ manufacturerId: m.id, manufacturer: m.name })
                     }
                   >
-                    <Ionicons name="construct-outline" size={16} color={colors.text.muted} />
                     <Text style={styles.acItemText}>{m.name}</Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 ))}
               </View>
             ) : null}
@@ -159,16 +153,15 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
               <View style={styles.acSection}>
                 <Text style={styles.acSectionTitle}>{t('footer.categories')}</Text>
                 {f.autocomplete.categories.slice(0, 5).map((c) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={`c-${c.id}`}
                     style={styles.acItem}
                     onPress={() =>
                       f.applyFacet({ categoryId: c.id, category: c.name })
                     }
                   >
-                    <Ionicons name="grid-outline" size={16} color={colors.text.muted} />
                     <Text style={styles.acItemText}>{c.name}</Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 ))}
               </View>
             ) : null}
