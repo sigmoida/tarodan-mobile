@@ -91,6 +91,7 @@
     "eas-cli": "^18.13.1",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-tarodan": "link:eslint-plugin-tarodan",
     "jest": "^29.7.0",
     "jest-expo": "~54.0.17",
     "metro-react-native-babel-preset": "^0.77.0",

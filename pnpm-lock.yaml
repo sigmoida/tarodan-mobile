@@ -199,6 +199,9 @@ importers:
       eslint-plugin-react-hooks:
         specifier: ^4.6.2
         version: 4.6.2(eslint@8.57.1)
+      eslint-plugin-tarodan:
+        specifier: link:eslint-plugin-tarodan
+        version: link:eslint-plugin-tarodan
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@20.19.43)(ts-node@10.9.2(@types/node@20.19.43)(typescript@5.9.3))
