@@ -6,7 +6,7 @@ import React from 'react';
 import { Linking } from 'react-native';
 import { screen } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
-import { backMock, resetRouterMocks } from '@/test-utils/router-mock';
+import { backMock, canGoBackMock, replaceMock, resetRouterMocks } from '@/test-utils/router-mock';
 
 let mockParams: Record<string, string> = {};
 jest.mock('expo-router', () => ({
@@ -64,10 +64,21 @@ describe('Uygulama içi web ekranı', () => {
     openURL.mockRestore();
   });
 
-  it('satın alma sayfasına site içi geçişte router.back', () => {
+  it('satın alma sayfasına site içi geçişte router.back (geçmiş varsa)', () => {
+    canGoBackMock.mockReturnValue(true);
     mockParams = { url: ownWebPageUrl('/about') };
     renderWithProviders(<InAppWebScreen />);
     lastWebView().onNavigationStateChange({ url: ownWebPageUrl('/membership') });
     expect(backMock).toHaveBeenCalledTimes(1);
+    expect(replaceMock).not.toHaveBeenCalled();
+  });
+
+  it('derin bağlantıyla soğuk açılış (geçmiş yok): satın alma sayfasında ana sekmelere replace', () => {
+    canGoBackMock.mockReturnValue(false);
+    mockParams = { url: ownWebPageUrl('/about') };
+    renderWithProviders(<InAppWebScreen />);
+    lastWebView().onNavigationStateChange({ url: ownWebPageUrl('/membership') });
+    expect(replaceMock).toHaveBeenCalledWith('/(tabs)');
+    expect(backMock).not.toHaveBeenCalled();
   });
 });

@@ -1,9 +1,25 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Linking } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { theme, ErrorState, ScreenHeader, Spinner } from '@/ui';
 import { decideWebRequest, isAllowedOwnPage } from '@/lib/ads/webViewGuard';
+
+/**
+ * Ekrandan çık: geçmiş varsa geri, YOKSA (soğuk açılış / derin bağlantıyla
+ * doğrudan açılan ekran) ana sekmelere. `router.back()` geçmiş yokken hiçbir
+ * şey yapmaz — engelli sayfa ekranda kalırdı. Çıkış gerçekten yapıldıysa `true`.
+ */
+export function leaveOwnSiteScreen(): boolean {
+  try {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)');
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Kendi sitemizin bir sayfasını uygulama içinde gösteren tam ekran: başlık +
@@ -22,24 +38,31 @@ export function OwnSiteWebView({
 }: {
   url: string | null | undefined;
   title: string;
-  onBack: () => void;
+  /** Başlıktaki geri / hata durumundaki düğme. Varsayılan `leaveOwnSiteScreen`. */
+  onBack?: () => void;
   testID?: string;
 }) {
   const { t } = useTranslation();
   const target = typeof url === 'string' && isAllowedOwnPage(url) ? url : null;
   const webRef = useRef<WebView>(null);
+  const back = onBack ?? leaveOwnSiteScreen;
   // `onNavigationStateChange` aynı engelli adres için birden çok kez gelir
   // (yükleme başladı / bitti / başlık değişti). Ekrandan çıkış TEK sefer:
-  // aksi halde `router.back()` iki ekran geri giderdi.
+  // aksi halde `router.back()` iki ekran geri giderdi. Bayrak yalnız çıkış
+  // GERÇEKTEN yapıldıysa (geri ya da ana sekmelere replace) kalkar.
   const left = useRef(false);
+  // Engelli sayfaya geçildi: çıkış ne olursa olsun WebView sökülür, satın alma
+  // sayfası hiçbir durumda ekranda kalmaz (Apple 3.1.1).
+  const [blocked, setBlocked] = useState(false);
   useEffect(() => {
     left.current = false;
+    setBlocked(false);
   }, [target]);
 
   return (
     <View style={styles.root} testID={testID}>
-      <ScreenHeader title={title} onBack={onBack} />
-      {target ? (
+      <ScreenHeader title={title} onBack={back} />
+      {blocked ? null : target ? (
         <WebView
           ref={webRef}
           source={{ uri: target }}
@@ -55,15 +78,17 @@ export function OwnSiteWebView({
           }}
           // Site içi (SPA/pushState) gezinmeler yukarıdaki kancadan GEÇMEZ: menüden
           // /membership'e geçilirse ekrandan çık.
+          // Çıkış her zaman router üzerinden (`onBack` değil): geçmiş yoksa
+          // ana sekmelere düşülür.
           onNavigationStateChange={(nav) => {
             if (left.current || !nav.url || decideWebRequest(nav.url, true) !== 'block') return;
-            left.current = true;
             webRef.current?.stopLoading();
-            onBack();
+            setBlocked(true);
+            left.current = leaveOwnSiteScreen();
           }}
         />
       ) : (
-        <ErrorState onRetry={onBack} retryLabel={t('common.back')} />
+        <ErrorState onRetry={back} retryLabel={t('common.back')} />
       )}
     </View>
   );

@@ -1,5 +1,5 @@
 import React from 'react';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { OwnSiteWebView } from '@/components/web/OwnSiteWebView';
 
 /**
@@ -8,9 +8,10 @@ import { OwnSiteWebView } from '@/components/web/OwnSiteWebView';
  * (derin bağlantı) da çağrılabildiği için host `OwnSiteWebView`'da yeniden
  * doğrulanır. Satın alma sayfaları (üyelik/boost) HİÇBİR yoldan açılmaz — bkz.
  * `webViewGuard` (Apple 3.1.1: site menüsünden /membership'e geçip uygulama
- * içinde satın alma).
+ * içinde satın alma). Geri: geçmiş yoksa (derin bağlantı / soğuk açılış) ana
+ * sekmelere — `OwnSiteWebView` varsayılanı.
  */
 export default function InAppWebScreen() {
   const { url } = useLocalSearchParams<{ url?: string }>();
-  return <OwnSiteWebView url={url} title="Tarodan" onBack={() => router.back()} />;
+  return <OwnSiteWebView url={url} title="Tarodan" />;
 }
