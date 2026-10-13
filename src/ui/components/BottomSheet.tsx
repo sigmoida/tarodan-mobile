@@ -14,9 +14,12 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  TextInput,
   useWindowDimensions,
   View,
   type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -34,10 +37,12 @@ import { useTranslation } from 'react-i18next';
 import { keyboardBottomInset, useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import { theme } from '../lib/theme';
 import { useHeaderTopInset } from '../lib/header';
-import { MODAL_DISMISS_TIMEOUT_MS } from '../lib/modal-timing';
+import { logger, safeError } from '@/services/logger';
+import { MODAL_CLOSE_DELAY_MS, MODAL_DISMISS_TIMEOUT_MS } from '../lib/modal-timing';
 import {
   keyboardResizedWindow,
   progressAfterDrag,
+  revealScrollOffset,
   sheetBottomPadding,
   sheetDragOffset,
   sheetLayout,
@@ -94,6 +99,8 @@ export interface BottomSheetController {
   /**
    * `fn`'i kuyruğa koyar ve kapatma ister; `fn` sheet TAMAMEN kapandıktan sonra çalışır
    * (iOS: native Modal `onDismiss`). Eylem appAlert / başka Modal / yönlendirme açabilir.
+   * Aynı açılışta yalnız İLK çağrı geçerlidir (çift dokunuş eylemi iki kez çalıştırmaz); sheet
+   * `isOpen` çevrilmeden sökülürse iş yine çalışır.
    */
   runAfterClose: (fn: () => void) => void;
 }
@@ -113,11 +120,26 @@ const FALLBACK_CONTROLLER: BottomSheetController = {
 const { colors, spacing, duration, radiusRole } = theme;
 
 const EASING = Easing.bezier(0.4, 0, 0.2, 1);
+
+/** Kapanış-sonrası işleri sırayla çalıştırır; biri hata atarsa diğerleri yine çalışır. */
+function runQueued(queue: ReadonlyArray<() => void>): void {
+  for (const fn of queue) {
+    try {
+      fn();
+    } catch (err) {
+      logger.error('[BottomSheet] runAfterClose işi hata verdi', { err: safeError(err) });
+    }
+  }
+}
 /** Kapanış animasyonu bitiş geri çağrısına güvenmeden, süre dolunca zorla sökmek için pay (ms). */
 const FORCE_UNMOUNT_SLACK_MS = 100;
 /** Sürükleme, dikeyde bu kadar hareketten sonra başlar (dokunuşlar/X bozulmasın). */
 const PAN_ACTIVE_OFFSET_Y = 8;
 const PAN_FAIL_OFFSET_X = 24;
+/** Sürükleyerek kapatma istendikten sonra sheet hâlâ açıksa (çağıran kapatmadı) geri yaylanır (ms). */
+const DRAG_CLOSE_CONFIRM_MS = 150;
+/** Odaklanan alanın görünür alanın kenarından en az bu kadar içeride durması (pt). */
+const REVEAL_MARGIN = spacing[4];
 const GRABBER_WIDTH = 36;
 const GRABBER_HEIGHT = 4;
 
@@ -152,6 +174,9 @@ export function BottomSheet(props: BottomSheetProps) {
   // Bu açılışın kapanış bildirimi henüz verilmedi mi + kapanış sonrası kuyruğu.
   const closedPendingRef = useRef(false);
   const queueRef = useRef<Array<() => void>>([]);
+  // Bu açılışta bir kapanış-sonrası iş seçildi: sonraki seçimler yok sayılır (çift dokunuş
+  // yıkıcı eylemi iki kez çalıştırmasın). Yeniden açılınca sıfırlanır.
+  const choiceMadeRef = useRef(false);
 
   useEffect(() => {
     if (mounted) closedPendingRef.current = true;
@@ -159,7 +184,9 @@ export function BottomSheet(props: BottomSheetProps) {
 
   // Yeniden açıldıysa önceki kapanışa bağlı eylemler artık geçersiz.
   useEffect(() => {
-    if (isOpen) queueRef.current = [];
+    if (!isOpen) return;
+    queueRef.current = [];
+    choiceMadeRef.current = false;
   }, [isOpen]);
 
   const fireClosed = useCallback(() => {
@@ -167,9 +194,20 @@ export function BottomSheet(props: BottomSheetProps) {
     closedPendingRef.current = false;
     const queue = queueRef.current;
     queueRef.current = [];
-    onClosedRef.current?.();
-    queue.forEach((fn) => fn());
+    runQueued([...(onClosedRef.current ? [onClosedRef.current] : []), ...queue]);
   }, []);
+
+  // `isOpen` çevrilmeden doğrudan sökülürse (koşullu render, PageShell loading/error) kuyruktaki
+  // işler kaybolmasın: native Modal'ın kapanmasına pay bırakıp çalıştır (iOS donma kuralı).
+  useEffect(
+    () => () => {
+      const queue = queueRef.current;
+      queueRef.current = [];
+      if (queue.length === 0) return;
+      setTimeout(() => runQueued(queue), Platform.OS === 'ios' ? MODAL_CLOSE_DELAY_MS : 0);
+    },
+    [],
+  );
 
   // Native Modal kapandı: iOS'ta asıl sinyal `onDismiss` (üst sınır yedekli); Android'de
   // `onDismiss` yok — söküm işlendikten sonraki ilk tick.
@@ -187,9 +225,12 @@ export function BottomSheet(props: BottomSheetProps) {
       close: () => onCloseRef.current(),
       runAfterClose: (fn) => {
         if (!mountedRef.current) {
-          fn();
+          runQueued([fn]);
           return;
         }
+        // Aynı açılışta ilk seçim kazanır (yeniden giriş koruması).
+        if (choiceMadeRef.current) return;
+        choiceMadeRef.current = true;
         queueRef.current.push(fn);
         onCloseRef.current();
       },
@@ -258,6 +299,10 @@ function SheetSurface({
 
   const isOpenRef = useRef(isOpen);
   isOpenRef.current = isOpen;
+  // Jest ve satır içi `onClose` (her renderda yeni fonksiyon) jesti yeniden kurmasın.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const requestClose = useCallback(() => onCloseRef.current(), []);
 
   useLayoutEffect(() => {
     isOpenSV.value = isOpen;
@@ -307,6 +352,20 @@ function SheetSurface({
     [sheetHeight],
   );
 
+  // Sürükleyerek kapatma: çağıran kapatmazsa (koruma / no-op) sheet yarıda takılı kalmasın.
+  const animMsRef = useRef(animMs);
+  animMsRef.current = animMs;
+  const dragCloseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(dragCloseTimer.current), []);
+  const requestDragClose = useCallback(() => {
+    onCloseRef.current();
+    clearTimeout(dragCloseTimer.current);
+    dragCloseTimer.current = setTimeout(() => {
+      if (!isOpenRef.current) return;
+      progress.value = withTiming(1, { duration: animMsRef.current, easing: EASING });
+    }, DRAG_CLOSE_CONFIRM_MS);
+  }, [progress]);
+
   const pan = useMemo(
     () =>
       Gesture.Pan()
@@ -326,13 +385,48 @@ function SheetSurface({
             // Kapanış kaldığı yerden devam etsin (zıplama olmasın).
             progress.value = progressAfterDrag(drag.value, sheetHeight.value);
             drag.value = 0;
-            scheduleOnRN(onClose);
+            scheduleOnRN(requestDragClose);
           } else {
             drag.value = withTiming(0, { duration: animMs, easing: EASING });
           }
         }),
-    [testID, dragToClose, isOpen, isOpenSV, drag, sheetHeight, progress, onClose, animMs],
+    [testID, dragToClose, isOpen, isOpenSV, drag, sheetHeight, progress, requestDragClose, animMs],
   );
+
+  // Klavye açılınca gövde küçülür: odaklı alan (ör. filtre fiyat alanı) footer/klavye arkasında
+  // kalmasın — görünür alana kaydırılır. Platformdan bağımsız (iOS + Android).
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollYRef = useRef(0);
+  const viewportRef = useRef(0);
+  const revealFocusedInput = useCallback(() => {
+    const scroll = scrollRef.current;
+    const input = TextInput.State.currentlyFocusedInput?.();
+    // Fabric'te `measureLayout` host örneğine göre ölçer (tipte yok ama RN ScrollView'de var).
+    const inner = (scroll as unknown as { getInnerViewRef?: () => unknown } | null)?.getInnerViewRef?.();
+    if (!scroll || !input || !inner || viewportRef.current <= 0) return;
+    try {
+      input.measureLayout(
+        inner as unknown as number,
+        (_x: number, y: number, _w: number, h: number) => {
+          const target = revealScrollOffset(y, h, scrollYRef.current, viewportRef.current, REVEAL_MARGIN);
+          if (target !== null) scroll.scrollTo({ y: target, animated: true });
+        },
+        () => undefined,
+      );
+    } catch {
+      // odak alanı sheet gövdesinde değil
+    }
+  }, []);
+  const onBodyLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      viewportRef.current = e.nativeEvent.layout.height;
+      if (keyboardOpen) revealFocusedInput();
+    },
+    [keyboardOpen, revealFocusedInput],
+  );
+  const onBodyScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrollYRef.current = e.nativeEvent.contentOffset.y;
+  }, []);
 
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: sheetTranslateY(progress.value, sheetHeight.value, drag.value) }],
@@ -358,19 +452,20 @@ function SheetSurface({
         <Pressable
           testID={`${testID}-backdrop`}
           style={StyleSheet.absoluteFill}
-          onPress={closeOnBackdrop ? onClose : undefined}
+          onPress={closeOnBackdrop ? requestClose : undefined}
           accessible={false}
           importantForAccessibility="no"
         />
         <Animated.View
           testID={testID}
           accessibilityViewIsModal
-          onAccessibilityEscape={onClose}
+          onAccessibilityEscape={requestClose}
           onLayout={onSheetLayout}
           style={[
             styles.sheet,
-            { maxHeight: layout.maxHeight, marginBottom: keyboardLift },
-            layout.height !== undefined && { height: layout.height },
+            layout.height !== undefined
+              ? { maxHeight: layout.maxHeight, marginBottom: keyboardLift, height: layout.height }
+              : { maxHeight: layout.maxHeight, marginBottom: keyboardLift },
             sheetStyle,
           ]}
         >
@@ -382,7 +477,7 @@ function SheetSurface({
               {title ? (
                 <SheetHeader
                   title={title}
-                  onClose={onClose}
+                  onClose={requestClose}
                   closeLabel={resolvedCloseLabel}
                   closeTestID={`${testID}-close`}
                 />
@@ -391,6 +486,10 @@ function SheetSurface({
           </GestureDetector>
           {scrollable ? (
             <ScrollView
+              ref={scrollRef}
+              onLayout={onBodyLayout}
+              onScroll={onBodyScroll}
+              scrollEventThrottle={32}
               style={bodyFrame}
               contentContainerStyle={bodyContentStyle}
               keyboardShouldPersistTaps="handled"

@@ -162,6 +162,23 @@ describe('ActionSheet', () => {
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
 
+  it('iki hızlı dokunuş yıkıcı eylemi bir kez çalıştırır; sheet doğrudan sökülse de eylem kaybolmaz', () => {
+    const onDelete = jest.fn();
+    // Çağıran kapatmayı geciktiriyor (isOpen hâlâ true): satırlar ikinci dokunuşa açık kalır.
+    const { unmount } = render(
+      <ActionSheet
+        isOpen
+        onClose={() => undefined}
+        actions={[{ label: 'Sil', onPress: onDelete, destructive: true, testID: 'act-delete' }]}
+      />,
+    );
+    fireEvent.press(screen.getByTestId('act-delete'));
+    fireEvent.press(screen.getByTestId('act-delete'));
+    unmount();
+    flush();
+    expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+
   it('yıkıcı satır kırmızı, pasif satır basılamaz, Vazgeç yalnız kapatır', () => {
     const onEdit = jest.fn();
     render(<Harness onDelete={jest.fn()} onEdit={onEdit} />);

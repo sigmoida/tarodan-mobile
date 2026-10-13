@@ -88,3 +88,23 @@ export function progressAfterDrag(drag: number, height: number): number {
   if (height <= 0) return 0;
   return Math.min(1, Math.max(0, 1 - drag / height));
 }
+
+/**
+ * Odaklı alanı (gövde içeriğinde `top`..`top+height`) görünür alana getirmek için yeni kaydırma
+ * konumu; zaten görünürse `null`. Alt kenar `margin` kadar içeride kalır; alan görünür alandan
+ * yüksekse üst kenarı hizalanır.
+ */
+export function revealScrollOffset(
+  top: number,
+  height: number,
+  scrollY: number,
+  viewportHeight: number,
+  margin: number,
+): number | null {
+  const bottom = top + height;
+  if (top - margin < scrollY) return Math.max(0, top - margin);
+  if (bottom + margin > scrollY + viewportHeight) {
+    return Math.max(0, Math.min(top - margin, bottom + margin - viewportHeight));
+  }
+  return null;
+}

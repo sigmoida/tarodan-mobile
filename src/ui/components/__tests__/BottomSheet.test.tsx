@@ -4,20 +4,22 @@
  * güvenli alanlı sabit footer ve klavye kaldırması.
  */
 import React, { useState } from 'react';
-import { Modal, Text as RNText, StyleSheet } from 'react-native';
+import { Modal, ScrollView, Text as RNText, TextInput, StyleSheet } from 'react-native';
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { fireGestureHandler, getByGestureTestId } from 'react-native-gesture-handler/jest-utils';
 import { State } from 'react-native-gesture-handler';
 import { BottomSheet, useBottomSheet, theme } from '@/ui';
 import {
   keyboardResizedWindow,
+  revealScrollOffset,
   sheetBottomPadding,
   sheetLayout,
   sheetMaxHeight,
   shouldCloseSheetOnRelease,
   SHEET_TOP_GAP,
 } from '../../lib/sheetMotion';
-import { MODAL_DISMISS_TIMEOUT_MS } from '../../lib/modal-timing';
+import { getAnimatedStyle, setUpTests } from 'react-native-reanimated';
+import { MODAL_CLOSE_DELAY_MS, MODAL_DISMISS_TIMEOUT_MS } from '../../lib/modal-timing';
 
 const mockInsets = { top: 47, right: 0, bottom: 34, left: 0 };
 jest.mock('react-native-safe-area-context', () => ({
@@ -27,11 +29,19 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaFrame: () => ({ x: 0, y: 0, width: 390, height: 844 }),
 }));
 
+jest.mock('@/services/logger', () => ({
+  logger: { error: jest.fn() },
+  safeError: (e: unknown) => e,
+}));
+
 let mockKeyboardHeight = 0;
 jest.mock('@/hooks/useKeyboardHeight', () => ({
   ...jest.requireActual('@/hooks/useKeyboardHeight'),
   useKeyboardHeight: () => mockKeyboardHeight,
 }));
+
+// Animasyonlu stilin güncel değeri (getAnimatedStyle) için.
+setUpTests();
 
 const { spacing } = theme;
 
@@ -54,24 +64,32 @@ function Harness({
   footer,
   initialOpen = true,
   closeOnBackdrop,
+  guardClose = false,
   children,
 }: {
   onClosed?: () => void;
   footer?: React.ReactNode;
   initialOpen?: boolean;
   closeOnBackdrop?: boolean;
+  /** Çağıran kapatmayı reddeder (koruma / no-op onClose). */
+  guardClose?: boolean;
   children?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(initialOpen);
+  const [, setBump] = useState(0);
   return (
     <>
       <RNText testID="open" onPress={() => setOpen(true)}>
         aç
       </RNText>
       <RNText testID="state">{open ? 'open' : 'closed'}</RNText>
+      <RNText testID="bump" onPress={() => setBump((n) => n + 1)}>
+        yeniden çiz
+      </RNText>
       <BottomSheet
         isOpen={open}
-        onClose={() => setOpen(false)}
+        // Satır içi onClose: her renderda yeni fonksiyon (DateField gibi).
+        onClose={() => (guardClose ? undefined : setOpen(false))}
         onClosed={onClosed}
         title="Başlık"
         footer={footer}
@@ -313,5 +331,135 @@ describe('sheetMotion (saf kurallar)', () => {
     expect(shouldCloseSheetOnRelease(101, 0, 400)).toBe(true);
     expect(shouldCloseSheetOnRelease(99, 0, 400)).toBe(false);
     expect(shouldCloseSheetOnRelease(10, 1200, 400)).toBe(true);
+  });
+});
+
+describe('BottomSheet · inceleme düzeltmeleri', () => {
+  function Queue({ fns }: { fns: Array<() => void> }) {
+    const { runAfterClose } = useBottomSheet();
+    return (
+      <RNText testID="queue" onPress={() => fns.forEach((fn) => runAfterClose(fn))}>
+        sıraya al
+      </RNText>
+    );
+  }
+
+  it('aynı açılışta ikinci runAfterClose yok sayılır (çift dokunuş eylemi iki kez çalıştırmaz)', () => {
+    const first = jest.fn();
+    const second = jest.fn();
+    render(
+      <Harness>
+        <Queue fns={[first, second, first]} />
+      </Harness>,
+    );
+    fireEvent.press(screen.getByTestId('queue'));
+    flush();
+    dismissNative();
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).not.toHaveBeenCalled();
+  });
+
+  it('sheet isOpen çevrilmeden sökülürse kuyruktaki iş yine (Modal kapanma payından sonra) çalışır', () => {
+    const action = jest.fn();
+    function Parent() {
+      const [show, setShow] = useState(true);
+      return (
+        <>
+          <RNText testID="drop" onPress={() => setShow(false)} />
+          {show ? (
+            <BottomSheet isOpen onClose={() => undefined} title="Başlık" testID="sheet">
+              <Queue fns={[action]} />
+            </BottomSheet>
+          ) : null}
+        </>
+      );
+    }
+    render(<Parent />);
+    fireEvent.press(screen.getByTestId('queue'));
+    fireEvent.press(screen.getByTestId('drop'));
+    expect(action).not.toHaveBeenCalled();
+    flush(MODAL_CLOSE_DELAY_MS);
+    expect(action).toHaveBeenCalledTimes(1);
+  });
+
+  it("bir iş hata atarsa diğerleri yine çalışır, hata logger'a gider", () => {
+    const { logger } = jest.requireMock('@/services/logger');
+    const action = jest.fn();
+    render(
+      <Harness
+        onClosed={() => {
+          throw new Error('patladı');
+        }}
+      >
+        <Queue fns={[action]} />
+      </Harness>,
+    );
+    fireEvent.press(screen.getByTestId('queue'));
+    flush();
+    dismissNative();
+    expect(action).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalled();
+  });
+
+  const sheetY = () =>
+    (getAnimatedStyle(screen.getByTestId('sheet')) as { transform: Array<{ translateY: number }> }).transform[0]!
+      .translateY;
+
+  it('sürükleyerek kapatmayı çağıran reddederse sheet açık konuma geri yaylanır', () => {
+    render(<Harness guardClose />);
+    flush();
+    act(() => {
+      fireGestureHandler(getByGestureTestId('sheet-pan'), [
+        { state: State.BEGAN, translationY: 0, velocityY: 0 },
+        { state: State.ACTIVE, translationY: 0, velocityY: 0 },
+        { translationY: 2000, velocityY: 0 },
+        { state: State.END, translationY: 2000, velocityY: 0 },
+      ]);
+      jest.advanceTimersByTime(50);
+    });
+    expect(screen.getByTestId('state').children.join('')).toBe('open');
+    // Kapanış kaldığı yerden başladı: sheet aşağıda.
+    expect(sheetY()).toBeGreaterThan(0);
+    flush(1000);
+    // Geri yaylanmasaydı sheet yarıda (ekranın altında) takılı kalırdı.
+    expect(sheetY()).toBe(0);
+  });
+
+  it('satır içi onClose ile yeniden çizim jesti yeniden kurmaz', () => {
+    render(<Harness />);
+    const before = getByGestureTestId('sheet-pan');
+    fireEvent.press(screen.getByTestId('bump'));
+    expect(getByGestureTestId('sheet-pan')).toBe(before);
+  });
+
+  it('klavye açılıp gövde küçülünce odaklı alan görünür alana kaydırılır', () => {
+    mockKeyboardHeight = 300;
+    const focused = {
+      measureLayout: (_rel: unknown, ok: (x: number, y: number, w: number, h: number) => void) => ok(0, 600, 300, 40),
+    };
+    const spy = jest.spyOn(TextInput.State, 'currentlyFocusedInput').mockReturnValue(focused as never);
+    render(<Harness />);
+    const scroll = screen.UNSAFE_getByType(ScrollView).instance as unknown as {
+      getInnerViewRef: () => unknown;
+      scrollTo: jest.Mock;
+    };
+    scroll.getInnerViewRef = () => ({});
+    scroll.scrollTo = jest.fn();
+    fireEvent(screen.getByTestId('sheet-body'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 390, height: 200 } },
+    });
+    // 600..640 alanı, 200pt görünür alanda alt kenardan 16pt içeride: 640 + 16 - 200.
+    expect(scroll.scrollTo).toHaveBeenCalledWith({ y: 456, animated: true });
+    spy.mockRestore();
+  });
+});
+
+describe('revealScrollOffset', () => {
+  it('görünürse null; altta kalırsa alt kenar, üstte kalırsa üst kenar hizalanır', () => {
+    expect(revealScrollOffset(100, 40, 0, 300, 16)).toBeNull();
+    expect(revealScrollOffset(600, 40, 0, 200, 16)).toBe(456);
+    expect(revealScrollOffset(50, 40, 200, 300, 16)).toBe(34);
+    // Görünür alandan yüksek alan: üst kenarı hizalanır.
+    expect(revealScrollOffset(600, 400, 0, 200, 16)).toBe(584);
   });
 });
