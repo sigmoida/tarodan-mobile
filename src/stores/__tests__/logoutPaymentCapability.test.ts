@@ -2,9 +2,14 @@
  * Ortak cihaz: A çıkış yapınca A'nın ödeme yetki belirteci B'nin oturumunda kalmamalı.
  *
  * Belirteç (`payment-capability.<paymentId>`) AsyncStorage'da kalıcı (banka
- * uygulamasına geçişte süreç ölürse ödemeye dönülebilsin diye). Çıkış
- * (`authStore.logout` → `resetUserStores`) tüm bu kayıtları siler. Açılışta
- * (`loadToken`) süresi dolmuş kayıtlar süpürülür.
+ * uygulamasına geçişte süreç ölürse ödemeye dönülebilsin diye). Çıkışın iki yolu:
+ *  - Kullanıcının kendi çıkışı (`logout()` → `resetUserStores('user')`): tüm
+ *    kayıtlar silinir.
+ *  - Zorunlu çıkış (401 → `client.ts` `handleAuthFailure` →
+ *    `logout({ reason: 'forced' })`): kayıtlar KALIR (3DS sürerken başka bir
+ *    isteğin 401'i süren ödemeyi düşürmesin). Başka bir hesapla girişte
+ *    (`login` → `bindPaymentCapabilitiesToAccount`) silinir.
+ * Açılışta (`loadToken`) süresi dolmuş kayıtlar süpürülür.
  *
  * Gerçek `authStore` + gerçek `resetUserStores`; ağ ve push mock'lu.
  */
@@ -21,6 +26,8 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 );
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import { userApi } from '@/lib/api';
 import { useAuthStore, type User } from '../authStore';
 import {
   __resetPaymentCapabilities,
@@ -76,6 +83,64 @@ it('A çıkış yapınca A\'nın belirteci B\'nin oturumunda (ve yeniden başlat
 
   __resetPaymentCapabilities(); // B uygulamayı kapatıp açtı
   expect(await paymentCapabilityHeaders('pay-a')).toEqual({});
+});
+
+describe('zorunlu çıkış (401): süren ödemenin belirteci kalır', () => {
+  async function aStartsPaymentThenSessionDrops() {
+    await useAuthStore.getState().login('token-a', user('a'));
+    await rememberPaymentCapability({ data: { paymentId: 'pay-a', paymentAccessToken: 'cap-a' } });
+    await useAuthStore.getState().logout({ reason: 'forced' });
+    await flush();
+  }
+
+  it('belirteç bellekte ve depoda kalır (başarı ekranı durumu onunla okur)', async () => {
+    await aStartsPaymentThenSessionDrops();
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    expect(await paymentCapabilityHeaders('pay-a')).toEqual({ 'X-Payment-Capability': 'cap-a' });
+    expect(await capabilityKeys()).toEqual(['payment-capability.pay-a']);
+  });
+
+  it('aynı hesap yeniden girer (yeniden başlatma dahil): belirteç kalır', async () => {
+    await aStartsPaymentThenSessionDrops();
+    __resetPaymentCapabilities(); // uygulama kapanıp açıldı
+    await useAuthStore.getState().login('token-a2', user('a'));
+    await flush();
+    expect(await paymentCapabilityHeaders('pay-a')).toEqual({ 'X-Payment-Capability': 'cap-a' });
+  });
+
+  it('başka hesap girer: A\'nın belirteci B\'nin oturumunda yok (bellek + depo)', async () => {
+    await aStartsPaymentThenSessionDrops();
+    await useAuthStore.getState().login('token-b', user('b'));
+    await flush();
+    expect(await paymentCapabilityHeaders('pay-a')).toEqual({});
+    expect(await capabilityKeys()).toEqual([]);
+  });
+
+  it('oturum açılışta yüklendiyse (login çağrılmadan, önceki sürümden): hesap yine işaretlenir', async () => {
+    (SecureStore.getItemAsync as jest.Mock).mockImplementation((key: string) =>
+      Promise.resolve(key === 'accessToken' ? 'token-a' : null),
+    );
+    (userApi.getProfile as jest.Mock).mockResolvedValue({ data: user('a') });
+    try {
+      await useAuthStore.getState().loadToken();
+    } finally {
+      (SecureStore.getItemAsync as jest.Mock).mockImplementation(() => Promise.resolve(null));
+    }
+    await rememberPaymentCapability({ data: { paymentId: 'pay-a', paymentAccessToken: 'cap-a' } });
+    await useAuthStore.getState().logout({ reason: 'forced' });
+    await useAuthStore.getState().login('token-b', user('b'));
+    await flush();
+    expect(await paymentCapabilityHeaders('pay-a')).toEqual({});
+  });
+
+  it('başka hesap yeniden başlatmadan sonra girer: yine silinir (hesap işareti depoda)', async () => {
+    await aStartsPaymentThenSessionDrops();
+    __resetPaymentCapabilities();
+    await useAuthStore.getState().login('token-b', user('b'));
+    await flush();
+    expect(await paymentCapabilityHeaders('pay-a')).toEqual({});
+    expect(await capabilityKeys()).toEqual([]);
+  });
 });
 
 it('açılışta (loadToken) süresi dolmuş kayıtlar süpürülür, geçerli olan kalır', async () => {

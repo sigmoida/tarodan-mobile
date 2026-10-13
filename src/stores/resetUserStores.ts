@@ -4,6 +4,13 @@ import { useCartStore } from './cartStore';
 import { useMessagesStore } from './messagesStore';
 
 /**
+ * Çıkışın kaynağı: `user` = kullanıcının kendi çıkışı (profil, ban/onay
+ * ekranları, hesap silme); `forced` = oturum düştü (401 → refresh olmadı,
+ * `client.ts` → `handleAuthFailure`).
+ */
+export type LogoutReason = 'user' | 'forced';
+
+/**
  * Çıkışta kullanıcıya özel tüm yerel state'i sıfırlar; yoksa rozetler
  * (favori/sepet/mesaj/bildirim sayıları) ve sepet içeriği önceki oturumdan
  * kalmış gibi görünmeye devam eder.
@@ -12,7 +19,7 @@ import { useMessagesStore } from './messagesStore';
  * sunucudaki listeyi de siler. Favori listesi artık React Query cache'inde;
  * aşağıdaki queryClient.clear() onu da (yerel olarak) temizler.
  */
-export function resetUserStores(): void {
+export function resetUserStores(reason: LogoutReason = 'user'): void {
   // Sepet: persist'li store — clearCart AsyncStorage'a da boş yazar.
   useCartStore.getState().clearCart();
   useCartStore.getState().clearBuyNow();
@@ -27,9 +34,12 @@ export function resetUserStores(): void {
   // Bildirim + mesaj rozeti dahil tüm react-query önbelleği (örn. 'notifications-unread').
   queryClient.clear();
 
-  // Ödeme yetki belirteçleri (`payment-capability.*`): ortak cihazda çıkan
-  // kullanıcının belirteci sonraki oturumda kalmasın. Bellek anında, depo arkada.
-  void clearAllPaymentCapabilities();
+  // Ödeme yetki belirteçleri (`payment-capability.*`) yalnız kullanıcının KENDİ
+  // çıkışında silinir: ortak cihazda çıkan kullanıcının belirteci sonraki
+  // oturumda kalmasın. Zorunlu çıkışta (401) silinmez: 3DS sürerken başka bir
+  // isteğin 401'i süren ödemenin belirtecini düşürmesin. Başka bir hesapla
+  // girişte `bindPaymentCapabilitiesToAccount` (authStore.login) siler.
+  if (reason === 'user') void clearAllPaymentCapabilities();
 }
 
 /**
