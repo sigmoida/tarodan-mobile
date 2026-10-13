@@ -157,9 +157,17 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
    * `admin.*` ve saf-interpolasyonlu `server.notification.*` mesajları toplu
    * muaf: birincisi mobil arayüzde hiç render edilmiyor (katalog ana repoyla
    * paylaşıldığı için burada duruyor), ikincisi yalnız `{argüman}` taşıyor.
+   *
+   * `legal.{privacy,terms,distanceSales}.*`: hukuki belgelerin BAĞLAYICI metni
+   * Türkçedir; web kataloğu bu anahtarların İngilizcesinde de aynı Türkçe
+   * metni taşıyor (web EN dilinde de Türkçe gösteriyor). Mobil web metnini
+   * birebir taşır (B3); belgeyi çevirmek hukuki bir karardır, burada yapılmaz.
    */
+  const LEGAL_DOCUMENT_TEXT = /^legal\.(privacy|terms|distanceSales)\./;
   const isBulkExempt = (key: string) =>
-    key.startsWith('admin.') || /^server\.notification\..*\.message$/.test(key);
+    key.startsWith('admin.') ||
+    /^server\.notification\..*\.message$/.test(key) ||
+    LEGAL_DOCUMENT_TEXT.test(key);
 
   it('çevrilmemiş kalan anahtar yok', () => {
     const pick = (catalog: any, key: string) =>
