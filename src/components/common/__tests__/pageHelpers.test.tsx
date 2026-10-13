@@ -6,13 +6,14 @@ import React from 'react';
 import { Text as RNText } from 'react-native';
 import { fireEvent, screen } from '@testing-library/react-native';
 import { router } from 'expo-router';
-import { renderWithProviders } from '@/test-utils';
+import { renderWithProviders, captureHardwareBack } from '@/test-utils';
 import { AuthGatePage } from '../AuthGatePage';
 import { RowListSkeleton } from '../RowListSkeleton';
 import { GateScreen } from '../GateScreen';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) },
+  useFocusEffect: (cb: () => void | (() => void)) => require('@/test-utils/router-mock').routerMock.useFocusEffect(cb),
 }));
 
 beforeEach(() => jest.clearAllMocks());
@@ -58,5 +59,31 @@ describe('GateScreen', () => {
     expect(screen.getByText('Açıklama metni')).toBeTruthy();
     expect(screen.getByText('Ek not')).toBeTruthy();
     expect(screen.getByText('Çıkış Yap')).toBeTruthy();
+  });
+
+  it('Android geri tuşu varsayılan olarak YUTULUR (kapı ekranından geri = çıkış/yığında geri değil)', () => {
+    const back = captureHardwareBack();
+    try {
+      renderWithProviders(<GateScreen icon="ban-outline" title="Askıda" description="Açıklama" />);
+      expect(back.press()).toBe(true);
+      expect(router.back).not.toHaveBeenCalled();
+      expect(router.replace).not.toHaveBeenCalled();
+    } finally {
+      back.restore();
+    }
+  });
+
+  it('onHardwareBack verilirse geri tuşunda o çalışır (bilgi ekranları için çıkış yolu)', () => {
+    const onHardwareBack = jest.fn();
+    const back = captureHardwareBack();
+    try {
+      renderWithProviders(
+        <GateScreen icon="ban-outline" title="Bakım" description="Açıklama" onHardwareBack={onHardwareBack} />,
+      );
+      expect(back.press()).toBe(true);
+      expect(onHardwareBack).toHaveBeenCalledTimes(1);
+    } finally {
+      back.restore();
+    }
   });
 });

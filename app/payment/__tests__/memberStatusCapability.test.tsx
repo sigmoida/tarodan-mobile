@@ -21,6 +21,7 @@ import { renderWithProviders } from '@/test-utils';
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
   useLocalSearchParams: () => ({ paymentId: 'pay-1' }),
+  useFocusEffect: () => {},
 }));
 jest.mock('@/lib/api/client', () => ({
   api: { get: jest.fn(), post: jest.fn() },

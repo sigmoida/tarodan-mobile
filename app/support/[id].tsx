@@ -37,7 +37,8 @@ function MessageBubble({ message, mine, name }: { message: TicketMessage; mine: 
 
 /**
  * Destek talebi detayı — web `support/[id]` düzeni: PageHeader (konu + #numara/kategori/tarih +
- * durum rozeti) + mesajlar SectionCard'ı. Yanıt alanı telefonda sabit alt bar (sohbet kalıbı);
+ * durum rozeti) + mesajlar SectionCard'ı. Yanıt alanı telefonda sabit alt bar (sohbet kalıbı: etiketsiz kompakt girdi + Gönder, klavye açıkken
+ * görünür alan korunur);
  * kapalı talepte bilgi notu. Sorgu/mutasyon `useSupportTicket`'ta.
  */
 export default function SupportTicketDetailScreen() {
@@ -77,10 +78,10 @@ export default function SupportTicketDetailScreen() {
         ) : (
           <>
             <Textarea
-              label={t('support.replyLabel')}
+              accessibilityLabel={t('support.replyLabel')}
               value={f.reply}
               onChangeText={f.setReply}
-              rows={3}
+              rows={2}
               placeholder={t('message.typeMessage')}
             />
             <Button

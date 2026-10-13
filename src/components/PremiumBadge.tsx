@@ -1,163 +1,23 @@
-import React, { useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import React from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import type { TFunction } from 'i18next';
 import { theme, Text, Icon, type IconName } from '@/ui';
 
-const { colors } = theme;
+const { colors, spacing, iconSize, radiusRole } = theme;
 
-export type BadgeType = 'premium' | 'verified' | 'premium_verified';
-export type BadgeSize = 'small' | 'medium' | 'large';
+type MembershipTier = 'free' | 'basic' | 'premium' | 'business';
 
-interface PremiumBadgeProps {
-  type: BadgeType;
-  size?: BadgeSize;
-  showLabel?: boolean;
-  onPress?: () => void;
-}
-
-// Modül düzeyinde sabitlenirse i18next hazır olmadan çözülür ve donar —
-// bileşen `useMemo(() => buildBadgeConfig(t), [t])` ile çağırır (bkz. UpgradePrompt).
-const buildBadgeConfig = (t: TFunction) => ({
-  premium: {
-    icon: 'sparkles' as IconName,
-    label: t('membership.premium'),
-    color: colors.primary[600]!,
-    backgroundColor: colors.primary[50]!,
-  },
-  verified: {
-    icon: 'check-badge' as IconName,
-    label: t('membership.badgeVerified'),
-    color: colors.info[600]!,
-    backgroundColor: colors.info[50]!,
-  },
-  premium_verified: {
-    icon: 'check-badge' as IconName,
-    label: t('membership.badgePremiumVerified'),
-    color: colors.primary[700]!,
-    backgroundColor: colors.primary[50]!,
-  },
-});
-
-const SIZE_CONFIG = {
-  small: {
-    iconSize: 14,
-    fontSize: 10,
-    padding: theme.spacing[1],
-    borderRadius: theme.radius.xl,
-    gap: theme.spacing[0.5],
-  },
-  medium: {
-    iconSize: 18,
-    fontSize: 11,
-    padding: theme.spacing[1.5],
-    borderRadius: theme.radius['2xl'],
-    gap: theme.spacing[1],
-  },
-  large: {
-    iconSize: 24,
-    fontSize: 13,
-    padding: theme.spacing[2],
-    borderRadius: 12,
-    gap: theme.spacing[1.5],
-  },
-};
-
-export const PremiumBadge: React.FC<PremiumBadgeProps> = ({
-  type,
-  size = 'medium',
-  showLabel = true,
-  onPress,
-}) => {
-  const { t } = useTranslation();
-  const badgeConfig = useMemo(() => buildBadgeConfig(t), [t]);
-  const config = badgeConfig[type];
-  const sizeConfig = SIZE_CONFIG[size];
-
-  const containerStyle = [
-    styles.container,
-    {
-      backgroundColor: config.backgroundColor,
-      paddingHorizontal: sizeConfig.padding * 1.5,
-      paddingVertical: sizeConfig.padding,
-      borderRadius: sizeConfig.borderRadius,
-      gap: sizeConfig.gap,
-    },
-  ];
-
-  const content = (
-    <>
-      <Icon name={config.icon} variant="solid" size={sizeConfig.iconSize} color={config.color} />
-      {showLabel && (
-        <Text
-          style={[
-            styles.label,
-            { color: config.color, fontSize: sizeConfig.fontSize },
-          ]}
-        >
-          {config.label}
-        </Text>
-      )}
-    </>
-  );
-
-  if (onPress) {
-    return (
-      <TouchableOpacity style={containerStyle} onPress={onPress}>
-        {content}
-      </TouchableOpacity>
-    );
-  }
-
-  return <View style={containerStyle}>{content}</View>;
-};
-
-// Inline badge for text (like next to username)
-interface InlinePremiumBadgeProps {
-  isPremium?: boolean;
-  isVerified?: boolean;
-  size?: 'small' | 'medium';
-}
-
-export const InlinePremiumBadge: React.FC<InlinePremiumBadgeProps> = ({
-  isPremium = false,
-  isVerified = false,
-  size = 'small',
-}) => {
-  const iconSize = size === 'small' ? 14 : 18;
-
-  if (!isPremium && !isVerified) return null;
-
-  return (
-    <View style={styles.inlineContainer}>
-      {isPremium && (
-        <Icon
-          name="sparkles"
-          variant="solid"
-          size={iconSize}
-          color={colors.primary[600]!}
-          style={styles.inlineIcon}
-        />
-      )}
-      {isVerified && (
-        <Icon
-          name="check-circle" variant="solid"
-          size={iconSize}
-          color={colors.info[600]!}
-          style={styles.inlineIcon}
-        />
-      )}
-    </View>
-  );
-};
-
-// Premium member card badge (for profile headers)
 interface MembershipBadgeCardProps {
-  membershipTier: 'free' | 'basic' | 'premium' | 'business';
+  membershipTier: MembershipTier;
   isVerified?: boolean;
+  /** Verilirse (ücretsiz/temel kademede) "Yükselt" bağlantısı çizilir; verilmezse çizilmez. */
   onUpgrade?: () => void;
 }
 
+/**
+ * Profil düzenleme üstündeki üyelik kartı: kademe adı + doğrulanmış işareti, ücretsiz/temel kademede
+ * "Yükselt" bağlantısı. (Eski `PremiumBadge` / `InlinePremiumBadge` çağıranı olmadığı için kaldırıldı.)
+ */
 export const MembershipBadgeCard: React.FC<MembershipBadgeCardProps> = ({
   membershipTier,
   isVerified = false,
@@ -166,98 +26,59 @@ export const MembershipBadgeCard: React.FC<MembershipBadgeCardProps> = ({
   const { t } = useTranslation();
   const isPremium = membershipTier === 'premium' || membershipTier === 'business';
 
-  const tierInfo = {
-    free: {
-      name: t('membership.memberLabelFree'),
-      color: colors.text.muted,
-      icon: 'user' as IconName,
-    },
-    basic: {
-      name: t('membership.memberLabelBasic'),
-      color: colors.info[600]!,
-      icon: 'user-circle' as IconName,
-    },
-    premium: {
-      name: t('membership.memberLabelPremium'),
-      color: colors.primary[600]!,
-      icon: 'sparkles' as IconName,
-    },
-    business: {
-      name: t('footer.corporate'),
-      color: colors.primary[700]!,
-      icon: 'building-office-2' as IconName,
-    },
-  }[membershipTier];
+  const tierInfo: Record<MembershipTier, { name: string; color: string; icon: IconName }> = {
+    free: { name: t('membership.memberLabelFree'), color: colors.text.muted, icon: 'user' },
+    basic: { name: t('membership.memberLabelBasic'), color: colors.info[600]!, icon: 'user-circle' },
+    premium: { name: t('membership.memberLabelPremium'), color: colors.primary[600]!, icon: 'sparkles' },
+    business: { name: t('footer.corporate'), color: colors.primary[700]!, icon: 'building-office-2' },
+  };
+  const info = tierInfo[membershipTier];
 
   return (
-    <View style={[styles.cardContainer, { borderColor: colors.border.DEFAULT }]}>
-      <View style={styles.cardHeader}>
-        <Icon name={tierInfo.icon} variant="solid" size={24} color={tierInfo.color} />
-        <Text style={[styles.cardTitle, { color: tierInfo.color }]}>
-          {tierInfo.name}
+    <View style={styles.card}>
+      <View style={styles.header}>
+        <Icon name={info.icon} variant="solid" size={iconSize.lg} color={info.color} />
+        <Text variant="label" weight="semibold" color={info.color} style={styles.title}>
+          {info.name}
         </Text>
-        {isVerified && (
-          <Icon
-            name="check-circle" variant="solid"
-            size={18}
-            color={colors.success[600]!}
-            style={{ marginLeft: theme.spacing[1] }}
-          />
-        )}
+        {isVerified ? (
+          <Icon name="check-circle" variant="solid" size={iconSize.md} color={colors.success[600]!} />
+        ) : null}
       </View>
 
-      {!isPremium && onUpgrade && (
-        <TouchableOpacity style={styles.upgradeLink} onPress={onUpgrade}>
-          <Text style={styles.upgradeLinkText}>{t('membership.upgrade')}</Text>
-          <Icon name="chevron-right" size={16} color={colors.primary[600]!} />
-        </TouchableOpacity>
-      )}
+      {!isPremium && onUpgrade ? (
+        <Pressable
+          style={styles.upgradeLink}
+          onPress={onUpgrade}
+          accessibilityRole="button"
+          hitSlop={{ top: spacing[3], bottom: spacing[3], left: spacing[3], right: spacing[3] }}
+        >
+          <Text variant="caption" weight="medium" tone="primary">
+            {t('membership.upgrade')}
+          </Text>
+          <Icon name="chevron-right" size={iconSize.sm} color={colors.primary[600]!} />
+        </Pressable>
+      ) : null}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  label: {
-    fontWeight: '600',
-  },
-  inlineContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: theme.spacing[1],
-  },
-  inlineIcon: {
-    marginHorizontal: 1,
-  },
-  cardContainer: {
+  card: {
     backgroundColor: colors.surface.DEFAULT,
-    borderRadius: 12,
-    padding: theme.spacing[3],
+    borderRadius: radiusRole.card,
+    padding: spacing[3],
     borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  cardTitle: {
-    marginLeft: theme.spacing[2],
-    fontWeight: '600',
-    fontSize: 13,
-  },
+  header: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
+  title: { flexShrink: 1 },
   upgradeLink: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    marginTop: theme.spacing[2],
-  },
-  upgradeLinkText: {
-    color: colors.primary[600]!,
-    fontWeight: '500',
-    fontSize: 11,
+    marginTop: spacing[2],
   },
 });
 
-export default PremiumBadge;
+export default MembershipBadgeCard;

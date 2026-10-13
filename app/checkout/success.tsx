@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button, SectionCard, Text } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
+import { useHardwareBackToHome } from '@/hooks/useBlockHardwareBack';
 import { PaymentResultCard, PaymentResultRow } from '@/components/payment/PaymentResultCard';
 
 /**
@@ -11,6 +12,8 @@ import { PaymentResultCard, PaymentResultRow } from '@/components/payment/Paymen
 export default function CheckoutSuccessScreen() {
   const { t } = useTranslation();
   const { orderId } = useLocalSearchParams<{ orderId?: string }>();
+  // Sipariş verildi: geri tuşu ödeme adımlarına DÖNMEZ — ana sayfaya.
+  useHardwareBackToHome();
 
   return (
     <PageShell title={t('checkout.title')} showBack={false}>

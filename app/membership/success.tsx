@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { View } from 'react-native';
 import { Button, SectionCard, Text, theme } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
+import { useHardwareBackToHome } from '@/hooks/useBlockHardwareBack';
 import { PaymentResultCard } from '@/components/payment/PaymentResultCard';
 import { router, useLocalSearchParams, Redirect } from 'expo-router';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
@@ -68,6 +69,8 @@ function MembershipSuccessBody() {
   const { refreshUserData } = useAuthStore();
   const queryClient = useQueryClient();
   const tierFeatures = useMemo(() => buildTierFeatures(t), [t]);
+  // Üyelik alındı: geri tuşu ödeme ekranına DÖNMEZ — ana sayfaya (iOS'ta geri oku/kaydırma kapalı).
+  useHardwareBackToHome();
 
   // `?tier=` paramına göre içeriği kademeye uyarla; bilinmeyen/eksikse premium'a düş.
   const tierKey: TierKey = tier === 'basic' || tier === 'business' ? tier : 'premium';

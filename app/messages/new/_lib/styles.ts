@@ -29,9 +29,6 @@ export const styles = StyleSheet.create({
   userInfo: {
     marginLeft: spacing[3],
   },
-  noResults: {
-    marginTop: spacing[2],
-  },
   recipientCard: {
     flexDirection: 'row',
     alignItems: 'center',
