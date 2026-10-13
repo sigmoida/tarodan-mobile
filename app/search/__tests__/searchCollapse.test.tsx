@@ -32,7 +32,7 @@ jest.mock('@/hooks/useProductFilterOptions', () => ({
 jest.mock('@/components/ProductFilterSheet', () => () => null);
 
 import { useSearch } from '../_hooks/useSearch';
-import SearchScreen from '../search';
+import SearchScreen from '..';
 
 const mockGetAll = productsApi.getAll as jest.Mock;
 
