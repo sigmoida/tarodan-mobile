@@ -214,10 +214,19 @@ olmamalı**. Bu iş için `eas.json`'da `preview`'dan türeyen ayrı bir profil 
   iOS için `ios.simulator: true` (Maestro gerçek iOS cihaza bağlanmaz, `.app` üretir).
 - Kendi `maestro` kanalı olduğundan staging OTA'ları (`eas update --branch staging`) bu
   build'e ulaşmaz, tersi de geçerli.
-- Kimlik bilgileri (`EXPO_PUBLIC_MAESTRO_EMAIL` / `EXPO_PUBLIC_MAESTRO_PASSWORD`) `eas.json`'a
-  YAZILMAZ; yalnız bu profile özel bir EAS ortamından verilir. Aynı değişkenleri
-  `preview`/`production` EAS ortamına koyma: `EXPO_PUBLIC_*` değerleri o ortamdaki TÜM
-  build'lere gömülür.
+- Profilin kendi EAS ortamı var: `"environment": "maestro"` (preview'dan DEVRALINMAZ,
+  `preview` ortamını kullanmaz). **Maestro kimlik bilgileri (`EXPO_PUBLIC_MAESTRO_EMAIL` /
+  `EXPO_PUBLIC_MAESTRO_PASSWORD`) YALNIZ `maestro` EAS ortamına konur**; `eas.json`'a yazılmaz,
+  `preview`/`production`/`development` ortamlarına ASLA konmaz — `EXPO_PUBLIC_*` değerleri o
+  ortamdaki TÜM build'lere gömülür ve insan testçilerin kurduğu build'de açık kalır.
+
+  ```bash
+  eas env:create --environment maestro --name EXPO_PUBLIC_MAESTRO_EMAIL    --value "<e-posta>" --visibility plaintext
+  eas env:create --environment maestro --name EXPO_PUBLIC_MAESTRO_PASSWORD --value "<şifre>"   --visibility plaintext
+  ```
+
+  (`EXPO_PUBLIC_*` değerleri her halükarda bundle'a gömülür; bu yüzden test hesabı yalnız
+  staging'de geçerli, üretim verisi olmayan bir hesap olmalıdır. Production hesabı KULLANMA.)
 - Bayrak ve profil koruması `src/config/__tests__/easProfiles.test.ts` ile çivilidir:
   `development`/`preview`/`staging`/`production` profillerinde ve `.github/workflows/*`
   içinde `EXPO_PUBLIC_MAESTRO*` bulunursa test kırılır; `maestro` profili `preview`'dan

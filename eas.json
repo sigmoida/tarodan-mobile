@@ -42,6 +42,7 @@
     "maestro": {
       "extends": "preview",
       "channel": "maestro",
+      "environment": "maestro",
       "ios": {
         "simulator": true
       },

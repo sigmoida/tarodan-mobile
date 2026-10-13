@@ -16,7 +16,9 @@ import * as path from 'path';
 type Profile = {
   extends?: string;
   channel?: string;
+  environment?: string;
   ios?: Record<string, unknown>;
+  android?: Record<string, unknown>;
   env?: Record<string, string>;
 };
 const eas = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../../eas.json'), 'utf8')) as {
@@ -89,6 +91,35 @@ describe('eas.json — maestro profili preview\'dan türer, ayrı kanalı vardı
 
   it('iOS Maestro build\'i simülatör (Maestro gerçek iOS cihaza bağlanmaz)', () => {
     expect(eas.build.maestro!.ios).toEqual({ simulator: true });
+  });
+});
+
+describe('eas.json — maestro profilinin kendi EAS ortamı var', () => {
+  // Maestro kimlik bilgileri (EXPO_PUBLIC_MAESTRO_EMAIL/PASSWORD) EAS ortamından
+  // gelir. Profil preview ortamını kullanırsa kimlik bilgileri preview'a konmak
+  // zorunda kalır ve insan testçilerin build'ine de gömülür.
+  it('environment: "maestro"', () => {
+    expect(eas.build.maestro!.environment).toBe('maestro');
+  });
+
+  it('başka hiçbir profil maestro ortamını kullanmaz', () => {
+    for (const [name, profile] of Object.entries(eas.build)) {
+      if (name === 'maestro') continue;
+      expect({ name, env: profile.environment }).not.toEqual({ name, env: 'maestro' });
+    }
+  });
+
+  it('maestro ortamı preview ile aynı olamaz (kimlik bilgisi sızar)', () => {
+    expect(eas.build.maestro!.environment).not.toBe(eas.build.preview!.environment);
+    expect(eas.build.maestro!.environment).not.toBe('preview');
+    expect(eas.build.maestro!.environment).not.toBe('production');
+  });
+
+  it('README kimlik bilgilerinin yalnız bu ortama konacağını yazar', () => {
+    const readme = fs.readFileSync(path.resolve(__dirname, '../../../maestro/README.md'), 'utf8');
+    expect(readme).toContain('"environment": "maestro"');
+    expect(readme).toMatch(/YALNIZ `maestro` EAS ortamına konur/);
+    expect(readme).toContain('eas env:create --environment maestro');
   });
 });
 
