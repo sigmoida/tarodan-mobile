@@ -113,6 +113,39 @@ describe('J78 · Alıcı onay butonu KALDIRILDI + escrow bilgisi', () => {
     expect(screen.queryByTestId('order-confirm-delivery-button')).toBeNull();
   });
 
+  // A-3 inceleme #6 · web `EscrowInfoCard` görünürlüğü: yalnız alıcı +
+  // delivered / awaiting_buyer_confirmation (UI `awaiting_confirmation`).
+  it.each([
+    ['delivered', true],
+    ['awaiting_buyer_confirmation', true],
+    ['shipped', false],
+    ['completed', false],
+    ['refunded', false],
+    ['cancelled', false],
+  ])('escrow kartı API statüsü %s → görünür: %s', async (status, visible) => {
+    getMock.mockResolvedValue({ data: { data: orderFixture({ status, isBuyer: true }) } });
+    renderWithProviders(<OrderDetailScreen />);
+    await waitFor(() => expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen());
+    if (visible) expect(screen.getByTestId('order-escrow-info')).toBeOnTheScreen();
+    else expect(screen.queryByTestId('order-escrow-info')).toBeNull();
+  });
+
+  it('isBuyer alanı yoksa (bilinmiyorsa) escrow kartı görünmez (web gibi)', async () => {
+    getMock.mockResolvedValue({ data: { data: orderFixture({ status: 'delivered', isBuyer: undefined }) } });
+    renderWithProviders(<OrderDetailScreen />);
+    await waitFor(() => expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen());
+    expect(screen.queryByTestId('order-escrow-info')).toBeNull();
+  });
+
+  it('üyelik siparişinde escrow kartı görünmez', async () => {
+    getMock.mockResolvedValue({
+      data: { data: orderFixture({ status: 'delivered', isBuyer: true, isMembership: true }) },
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    await waitFor(() => expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen());
+    expect(screen.queryByTestId('order-escrow-info')).toBeNull();
+  });
+
   it('J78.4 kargo öncesi (processing) alıcıya "Siparişi İptal Et" gösterilir', async () => {
     getMock.mockResolvedValue({ data: { data: orderFixture({ status: 'processing', isBuyer: true }) } });
     renderWithProviders(<OrderDetailScreen />);

@@ -13,6 +13,9 @@ import type { OrderView } from '../_lib/derive';
 
 const { colors } = theme;
 
+/** Escrow kartının göründüğü (UI) statüler — web `["delivered", "awaiting_buyer_confirmation"]`. */
+const ESCROW_STATUSES: readonly string[] = ['delivered', 'awaiting_confirmation'];
+
 /**
  * Ödeme güvencesi (escrow) kartı. İKİ AYRI TARİH: iade penceresinin sonu
  * (`returnWindowEndsAt`) ve satıcı ödeme tarihi (sunucunun hold'a yazdığı
@@ -24,10 +27,10 @@ const { colors } = theme;
 export function OrderEscrowCard({ order, view }: { order: OrderDetail; view: OrderView }) {
   const { t } = useTranslation();
   const timingValues = view.timing;
-  if (
-    !(order.isBuyer !== false && !view.isMembershipOrder && view.isPostShipment && !view.isCancelled && order.status !== 'refunded')
-  )
-    return null;
+  // Web `EscrowInfoCard` ile birebir: yalnız alıcıya, yalnız teslim edilmiş
+  // (`delivered` / `awaiting_buyer_confirmation` → UI `awaiting_confirmation`)
+  // ve üyelik olmayan siparişte. Kargodaki ya da tamamlanmış siparişte yok.
+  if (!order.isBuyer || !ESCROW_STATUSES.includes(order.status) || view.isMembershipOrder) return null;
   return (
     <Card variant="elevated" style={styles.card} testID="order-escrow-info">
       <View style={styles.escrowHeaderRow}>
