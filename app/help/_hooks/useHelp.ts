@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { supportApi } from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { useTranslation } from "react-i18next";
+import { useTimingValues } from "@/hooks/useTimingPolicy";
 import { buildFaqCategories } from "../_lib/faq";
 
 /**
@@ -40,7 +41,8 @@ export function useHelp() {
     }
   };
 
-  const FAQ_CATEGORIES = useMemo(() => buildFaqCategories(t), [t]);
+  const timing = useTimingValues();
+  const FAQ_CATEGORIES = useMemo(() => buildFaqCategories(t, timing), [t, timing]);
 
   const filteredFAQs =
     searchQuery.length > 2

@@ -9,7 +9,10 @@
  * tekrar birbirinden ayrışamaz.
  *
  * Doğrulanmış kaynaklar:
- * - İade talep penceresi 14 gün → backend COOLING_OFF_DAYS (apps/api refund.service.ts).
+ * - Hukuki metinlerdeki iade süresi 14 gün (Mesafeli Sözleşmeler Yönetmeliği asgarisi;
+ *   web'in hukuki metinleri de sabit). Uygulamanın GERÇEK iade penceresi admin'den
+ *   yönetilir (`GET /timing-rules` → `returnWindowDays`, teslimde siparişe
+ *   `returnWindowEndsAt` olarak damgalanır); ekranlar `useTimingValues` kullanır.
  * - Komisyon DB-driven (CommissionRule), %5'ten başlar; sabit %3/%2 tier yoktur.
  * - Genel destek e-postası web ile birebir aynı: destek@tarodan.com.tr.
  * - Gerçek bir destek telefonu henüz tanımlı değildir; tüm sayfalarda tutarlı
@@ -39,7 +42,12 @@ export const LEGAL_ENTITY = {
 
 // — İade süreleri (gün) —
 
-/** Teslimden itibaren cayma / iade talebi süresi. Backend COOLING_OFF_DAYS = 14 ile eşleşir. */
+/**
+ * Hukuki metinlerdeki (mesafeli satış, iade politikası, iade/değişim) cayma süresi.
+ * Backend'de artık sabit `COOLING_OFF_DAYS` yok: pencere admin'den yönetilen
+ * `returnWindowDays` (asgari 14). Hukuki olmayan ekranlar (SSS, Yardım, sipariş
+ * detayı) bu sabiti DEĞİL `useTimingValues().returnWindowDays`'i kullanır.
+ */
 export const RETURN_REQUEST_DAYS = 14;
 
 /** İade ürünü satıcıya ulaştıktan sonra iade tutarının ödenme süresi. */
