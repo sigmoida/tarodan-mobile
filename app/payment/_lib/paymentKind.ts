@@ -17,11 +17,6 @@ export type PaymentStatusLight = {
 export type PaymentKind = {
   isMembership: boolean;
   isBoost: boolean;
-  /**
-   * Sanal "platform hizmeti" siparişi mi (`origin = platform_service`: üyelik,
-   * öne çıkarma). Satın alma değildir; mesafeli satış kapısına girmez.
-   */
-  isPlatformService: boolean;
   /** Kayıtlı kartın aranacağı PayTR mağazası. Öne çıkarma pazaryerindedir. */
   purpose: PaymentPurpose;
 };
@@ -37,7 +32,6 @@ export function paymentKindOf(type: string | undefined, status?: PaymentStatusLi
   return {
     isMembership,
     isBoost,
-    isPlatformService: isMembership || isBoost,
     purpose: isMembership ? 'membership' : 'checkout',
   };
 }
@@ -53,34 +47,4 @@ export function paymentTargetOf(status: PaymentStatusLight, tradeIdParam?: strin
         ? { tradeId: String(tradeIdParam) }
         : {}),
   };
-}
-
-/**
- * Bu ödeme ekranında mesafeli satış onay kutusu zorunlu mu?
- *
- * API kapısıyla aynı kapsam (`DistanceSalesConsentService.ensureForPayment`,
- * `payment-initiation.service.ts`): yalnız SATIN ALMA —
- *   - tekil sipariş, `origin ≠ platform_service` (teklif siparişi vb.),
- *   - sepet grubu.
- * Takas ücreti, üyelik ve öne çıkarma kapıya girmez → kutu yok.
- *
- * Sepet grubu checkout'tan YENİ geldiyse onay checkout'un 3. adımında verildi ve
- * sipariş gövdesiyle kaydedildi (`useCheckout`: buton onaysız kapalı) — ikinci
- * kez sorulmaz. Grup ödemesine sonradan dönülürse (başarısız ödeme / Ödemelerim)
- * kutu web ödeme sayfasındaki gibi yeniden istenir.
- *
- * Bilinen fazla gösterim: öne çıkarma ödemesine rota `type` olmadan dönülürse
- * (durum yanıtı öne çıkarmayı işaretlemiyor) kutu görünür — sunucu platform
- * hizmetinde onayı yok sayar, zararsız.
- */
-export function needsDistanceSalesConsent(input: {
-  target: PaymentTarget;
-  kind: PaymentKind;
-  /** Checkout ekranı bu ödemeye yeni yönlendirdi (onay orada alındı). */
-  acceptedAtCheckout: boolean;
-}): boolean {
-  const { target, kind, acceptedAtCheckout } = input;
-  if (target.checkoutGroupId) return !acceptedAtCheckout;
-  if (target.orderId) return !kind.isPlatformService;
-  return false;
 }

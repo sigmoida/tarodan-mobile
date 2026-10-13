@@ -70,6 +70,12 @@ function fillNewCard() {
   fireEvent.changeText(screen.getByTestId('card-cvc'), '123');
 }
 
+/** Mesafeli satış onayı her ödemede zorunlu (web `PaymentReady`). */
+function acceptAndPay() {
+  fireEvent.press(screen.getByTestId('payment-distance-sales-checkbox'));
+  fireEvent.press(screen.getByTestId('card-submit'));
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
   mockCanBuyDigital = true;
@@ -85,9 +91,9 @@ it('sepet ödemesi: kartlar `checkout` amacıyla istenir, ilk kart seçilir ve g
   await waitFor(() => expect(screen.getByText(/1111/)).toBeOnTheScreen());
   expect(listCardsMock).toHaveBeenCalledWith('checkout');
 
-  fireEvent.press(screen.getByTestId('card-submit'));
+  acceptAndPay();
   await waitFor(() => expect(directFormMock).toHaveBeenCalled());
-  expect(directFormMock.mock.calls[0][0]).toEqual({ checkoutGroupId: 'g-1', savedCardId: 'c-shop' });
+  expect(directFormMock.mock.calls[0][0]).toEqual({ checkoutGroupId: 'g-1', savedCardId: 'c-shop', distanceSalesAccepted: true });
 });
 
 it('üyelik ödemesi: kartlar `membership` amacıyla istenir', async () => {
@@ -108,11 +114,11 @@ it('başka mağazanın kartı gelse bile listelenmez/seçilmez → yeni kart (40
   expect(screen.queryByText(/9999/)).toBeNull();
 
   fillNewCard();
-  fireEvent.press(screen.getByTestId('card-submit'));
+  acceptAndPay();
   await waitFor(() => expect(directFormMock).toHaveBeenCalled());
   const body = directFormMock.mock.calls[0][0];
   expect(body).not.toHaveProperty('savedCardId');
-  expect(body).toEqual({ orderId: 'o-1', saveCard: true });
+  expect(body).toEqual({ orderId: 'o-1', saveCard: true, distanceSalesAccepted: true });
 });
 
 it('eski API (kartta `purpose` yok): kart olduğu gibi kullanılır', async () => {
@@ -135,9 +141,9 @@ it('yeni kart: "kartımı sakla" varsayılan işaretli, `saveCard` her zaman aç
 
   fireEvent.press(screen.getByTestId('card-save'));
   fillNewCard();
-  fireEvent.press(screen.getByTestId('card-submit'));
+  acceptAndPay();
   await waitFor(() => expect(directFormMock).toHaveBeenCalled());
-  expect(directFormMock.mock.calls[0][0]).toEqual({ orderId: 'o-1', saveCard: false });
+  expect(directFormMock.mock.calls[0][0]).toEqual({ orderId: 'o-1', saveCard: false, distanceSalesAccepted: true });
 });
 
 it('üyelik + dijital satış açık: "otomatik yenileme için sakla" ve açıklaması', async () => {
@@ -168,7 +174,7 @@ it('kart saklama kapalı: kart listesi istenmez, kutu yok, `saveCard: false`', a
   expect(listCardsMock).not.toHaveBeenCalled();
   expect(screen.queryByTestId('card-save')).toBeNull();
   fillNewCard();
-  fireEvent.press(screen.getByTestId('card-submit'));
+  acceptAndPay();
   await waitFor(() => expect(directFormMock).toHaveBeenCalled());
-  expect(directFormMock.mock.calls[0][0]).toEqual({ tradeId: 't-1', saveCard: false });
+  expect(directFormMock.mock.calls[0][0]).toEqual({ tradeId: 't-1', saveCard: false, distanceSalesAccepted: true });
 });

@@ -52,12 +52,6 @@ interface Props {
   purpose?: PaymentPurpose;
   /** Kayıtlı kart + "kartımı sakla" gösterilsin mi (`purposes[purpose].cardStorageEnabled` + üye). */
   cardStorageEnabled?: boolean;
-  /**
-   * Mesafeli satış onay kutusu zorunlu mu (ödeme ekranı karar verir — API kapısıyla
-   * aynı kapsam). Açıksa kutu işaretlenmeden ödeme başlamaz ve onay direct-form
-   * gövdesinde (`distanceSalesAccepted`) gider.
-   */
-  requireDistanceSalesConsent?: boolean;
   /** Misafir ödemesi mi — durum yoklamasında public uç kullanılır (verify atlanır). */
   isGuest?: boolean;
   /**
@@ -82,7 +76,6 @@ export default function CardPaymentForm({
   onFail,
   purpose = 'checkout',
   cardStorageEnabled = false,
-  requireDistanceSalesConsent = false,
   isGuest = false,
   paymentId: initialPaymentId,
 }: Props) {
@@ -218,9 +211,8 @@ export default function CardPaymentForm({
 
   async function submit() {
     if (processing) return;
-    // Düğme zaten kapalı; yine de onaysız satın alma isteği hiç gitmesin.
-    if (requireDistanceSalesConsent && !distanceSalesAccepted) return;
-    const consent = requireDistanceSalesConsent ? distanceSalesAccepted : undefined;
+    // Düğme zaten kapalı; yine de onaysız ödeme isteği hiç gitmesin.
+    if (!distanceSalesAccepted) return;
 
     let body: DirectFormBody;
     let cardFields: { name: string; value: string }[];
@@ -234,7 +226,7 @@ export default function CardPaymentForm({
       body = buildDirectFormBody({
         target,
         card: { kind: 'new', save: cardStorageEnabled && saveCard },
-        distanceSalesAccepted: consent,
+        distanceSalesAccepted,
       });
       cardFields = cardFieldsForNewCard({
         holder,
@@ -251,7 +243,7 @@ export default function CardPaymentForm({
       body = buildDirectFormBody({
         target,
         card: { kind: 'saved', id: selected },
-        distanceSalesAccepted: consent,
+        distanceSalesAccepted,
       });
       cardFields = cardFieldsForSavedCard(selectedCard?.requireCvv ? savedCvv : undefined);
     }
@@ -466,20 +458,20 @@ export default function CardPaymentForm({
         </View>
       )}
 
-      {requireDistanceSalesConsent ? (
-        <DistanceSalesConsent
-          testID="payment-distance-sales-checkbox"
-          checked={distanceSalesAccepted}
-          onToggle={() => setDistanceSalesAccepted((v) => !v)}
-          style={styles.consent}
-        />
-      ) : null}
+      {/* Web `PaymentReady` ile aynı: hedefi olan HER ödemede (sipariş, sepet
+          grubu, takas nakit farkı) kutu var; işaretlenmeden ödeme yok. */}
+      <DistanceSalesConsent
+        testID="payment-distance-sales-checkbox"
+        checked={distanceSalesAccepted}
+        onToggle={() => setDistanceSalesAccepted((v) => !v)}
+        style={styles.consent}
+      />
 
       <Button
         testID="card-submit"
         onPress={submit}
         isLoading={processing}
-        disabled={loadingCards || (requireDistanceSalesConsent && !distanceSalesAccepted)}
+        disabled={loadingCards || !distanceSalesAccepted}
         fullWidth
         title={
           amount != null

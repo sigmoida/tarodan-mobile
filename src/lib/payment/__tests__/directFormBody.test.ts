@@ -26,7 +26,7 @@ describe('buildDirectFormBody', () => {
     ).toEqual({ orderId: 'order-1', savedCardId: 'card-9', distanceSalesAccepted: true });
   });
 
-  it('onay kutusu gösterilmediyse (takas / üyelik / checkout\'tan gelen grup) alan HİÇ gönderilmez', () => {
+  it('onay verilmezse (undefined) alan HİÇ gönderilmez — saf üretici', () => {
     const body = buildDirectFormBody({ target: { tradeId: 't-1' }, card: { kind: 'new', save: false } });
     expect(body).toEqual({ tradeId: 't-1', saveCard: false });
     expect(body).not.toHaveProperty('distanceSalesAccepted');
