@@ -34,7 +34,7 @@ describe('web ile eşitlenen ortak metinler', () => {
   });
 
   it('fiyat parametreli metinlerde ₺ yok (tutar formatPrice ile gelir)', () => {
-    for (const key of ['product.shareText', 'offer.minimumOfferErrorTl', 'listing.platformFeeLine', 'listing.netEarningLine']) {
+    for (const key of ['product.shareText', 'offer.minimumOfferErrorTl', 'listing.platformFeeLine', 'listing.netEarningLine', 'listing.priceFieldLabel', 'offer.amountPlaceholderTl', 'offer.newAmountPlaceholderTl', 'trade.amountLabelSymbol']) {
       expect(String(get(tr, key))).not.toContain('₺');
       expect(String(get(en, key))).not.toContain('₺');
     }
