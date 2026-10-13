@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { HStack, Screen, Text, VStack, theme } from '@/ui';
 import { BrandLogo } from '@/components/BrandLogo';
+import { AuthHeroBanner } from '@/components/hero/AuthHeroBanner';
 import { useRegister } from './_hooks/useRegister';
 import { styles } from './_lib/styles';
 import { RegisterForm } from './_components/RegisterForm';
@@ -29,6 +30,9 @@ export default function RegisterScreen() {
       </Pressable>
 
       <VStack gap={5}>
+        {/* Web gibi kayıt yolları `auth_register` görselini kullanır; yoksa hiçbir şey. */}
+        <AuthHeroBanner placement="auth_register" style={styles.authHero} />
+
         <View style={styles.brandHeader}>
           <BrandLogo />
           <Text variant="displaySm" align="center" style={styles.headerTitle}>{t('auth.registerSubmit')}</Text>

@@ -3,7 +3,7 @@
  * (`useLegalIdentityStatus`), kapı adımı ve `ensureLegalIdentity` aynı
  * anahtarı, fetcher'ı ve yeniden deneme kuralını kullanır.
  */
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { makeTestQueryClient } from '@/test-utils';
@@ -19,7 +19,12 @@ import {
   ensureLegalIdentity,
   legalIdentityQueryOptions,
   useLegalIdentityStatus,
+  useRequireLegalIdentity,
 } from '@/hooks/useLegalIdentity';
+import {
+  settleLegalIdentityRequest,
+  useLegalIdentityRequestStore,
+} from '@/stores/legalIdentityRequestStore';
 import { useAuthStore } from '@/stores/authStore';
 
 const mockGetStatus = legalIdentityApi.getStatus as jest.Mock;
@@ -72,5 +77,121 @@ describe('legalIdentityQueryOptions', () => {
     mockGetStatus.mockRejectedValue({ response: { status: 404 } });
     await expect(ensureLegalIdentity(makeTestQueryClient())).resolves.toBe(true);
     expect(mockGetStatus).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('useRequireLegalIdentity (B4)', () => {
+  const MISSING: LegalIdentityStatus = {
+    ...COMPLETE,
+    missing: ['legalFirstName', 'legalLastName', 'nationalId'],
+    legalFirstName: null,
+    legalLastName: null,
+    nationalIdMasked: null,
+  };
+
+  function setup() {
+    const client = makeTestQueryClient();
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    return renderHook(() => useRequireLegalIdentity(), { wrapper });
+  }
+
+  afterEach(() => act(() => settleLegalIdentityRequest(false)));
+
+  it('kontrol sürerken ikinci çağrı false döner (çift basış ikinci işlemi başlatmaz)', async () => {
+    let resolveStatus: (v: unknown) => void = () => {};
+    mockGetStatus
+      .mockImplementationOnce(() => new Promise((r) => (resolveStatus = r)))
+      // Test istemcisi gcTime 0: önbellek düşmüş olabilir, sonraki kontrol yeniden sorar.
+      .mockResolvedValue({ data: COMPLETE });
+    const { result } = setup();
+
+    let first!: Promise<boolean>;
+    act(() => {
+      first = result.current.requireIdentity();
+    });
+    await expect(result.current.requireIdentity()).resolves.toBe(false);
+    await act(async () => resolveStatus({ data: COMPLETE }));
+    await expect(first).resolves.toBe(true);
+    // Kilit çözüldü: sonraki basış yeniden kontrol eder.
+    await act(async () => {
+      await expect(result.current.requireIdentity()).resolves.toBe(true);
+    });
+  });
+
+  it('kimlik eksik → kapı açılır; kaydedilince true, Vazgeç\'te false', async () => {
+    mockGetStatus.mockResolvedValue({ data: MISSING });
+    const { result } = setup();
+
+    let saved!: Promise<boolean>;
+    act(() => {
+      saved = result.current.requireIdentity();
+    });
+    await waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true));
+    act(() => settleLegalIdentityRequest(true));
+    await expect(saved).resolves.toBe(true);
+
+    let cancelled!: Promise<boolean>;
+    act(() => {
+      cancelled = result.current.requireIdentity();
+    });
+    await waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true));
+    act(() => settleLegalIdentityRequest(false));
+    await expect(cancelled).resolves.toBe(false);
+  });
+
+  it('isChecking: durum ağdayken ve kapı açıkken true, bitince false (B4 inceleme 6)', async () => {
+    let resolveStatus: (v: unknown) => void = () => {};
+    mockGetStatus.mockImplementation(() => new Promise((r) => (resolveStatus = r)));
+    const { result } = setup();
+    expect(result.current.isChecking).toBe(false);
+
+    let pending!: Promise<boolean>;
+    act(() => {
+      pending = result.current.requireIdentity();
+    });
+    expect(result.current.isChecking).toBe(true);
+
+    await act(async () => resolveStatus({ data: MISSING }));
+    await waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true));
+    // Kapı açık: düğme hâlâ devre dışı.
+    expect(result.current.isChecking).toBe(true);
+
+    act(() => settleLegalIdentityRequest(false));
+    await act(async () => {
+      await expect(pending).resolves.toBe(false);
+    });
+    expect(result.current.isChecking).toBe(false);
+  });
+
+  it('isChecking: önbellek "tamam" iken hiç true olmaz (titreme yok)', async () => {
+    mockGetStatus.mockResolvedValue({ data: COMPLETE });
+    const client = makeTestQueryClient();
+    client.setQueryData(qk.legalIdentity.me, COMPLETE);
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const seen: boolean[] = [];
+    const { result } = renderHook(
+      () => {
+        const r = useRequireLegalIdentity();
+        seen.push(r.isChecking);
+        return r;
+      },
+      { wrapper },
+    );
+    await act(async () => {
+      await expect(result.current.requireIdentity()).resolves.toBe(true);
+    });
+    expect(seen.every((v) => v === false)).toBe(true);
+    expect(mockGetStatus).not.toHaveBeenCalled();
+  });
+
+  it('misafirde kapı hiç açılmaz, durum sorulmaz', async () => {
+    useAuthStore.setState({ isAuthenticated: false, isLoading: false });
+    const { result } = setup();
+    await expect(result.current.requireIdentity()).resolves.toBe(true);
+    expect(mockGetStatus).not.toHaveBeenCalled();
   });
 });

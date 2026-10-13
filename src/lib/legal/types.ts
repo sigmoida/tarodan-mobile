@@ -30,6 +30,12 @@ export interface LegalSection {
 export interface LegalPart {
   title: string;
   intro?: string;
+  /**
+   * Numaralı madde olmadan doğrudan kartın gövdesi. MOBİL EKİ: web'in çerez
+   * sayfası `LegalDocument` değil, başlığı numaralı kartlar (`SectionCard`)
+   * kullanıyor; native kopyası her kartı bir bölüm + bloklar olarak çizer.
+   */
+  blocks?: LegalBlock[];
   sections: LegalSection[];
 }
 

@@ -14,6 +14,7 @@
  */
 import { deepLinkConfig, isNeverNavigatePath, pathFromUrl, stripLocalePrefix } from '@/lib/deeplinks';
 import { toMobileRoute } from '@/utils/notificationRoute';
+import { webBaseUrl as webBase } from '@/lib/web';
 
 export type CmsDecision =
   | { action: 'allow' }
@@ -37,10 +38,6 @@ const isOwnDocument = (url: string) =>
 
 const hostOf = (url?: string): string | null =>
   url?.match(/^https?:\/\/([^/?#:@\\]+)(?::\d+)?(?=[/?#]|$)/i)?.[1]?.toLowerCase() ?? null;
-
-/** Web taban adresi: env (staging/prod) > tanınan ilk alan adı. Sondaki `/` yok. */
-const webBase = (): string =>
-  (process.env.EXPO_PUBLIC_WEB_URL || `https://${deepLinkConfig.hosts[0]}`).replace(/\/+$/, '');
 
 /** Kendi alan adlarımız (`paths.json#hosts`, `www.` önekli hâlleri, env'deki web adresi). */
 const isOwnHost = (host: string): boolean => {

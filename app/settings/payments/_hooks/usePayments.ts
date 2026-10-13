@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { router } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { paymentsApi } from '@/lib/api';
+import { qk } from '@/lib/query';
 import type { Payment } from '../_lib/types';
+import { useDoRetryPayment } from './useDoRetryPayment';
 
 /**
  * Payments-history controller — owns the GET /payments/me query + status filter,
- * the cancel (pending) and retry (failed → paymentUrl webview) handlers, and the
- * snackbar. Lifted verbatim from the monolithic screen (§12).
+ * the cancel (pending) handler and the snackbar; retry (failed → kimlik → onay →
+ * paymentUrl webview) lives in `useDoRetryPayment`. Lifted from the monolithic
+ * screen (§12).
  */
 export function usePayments() {
   const { t } = useTranslation();
@@ -21,9 +23,10 @@ export function usePayments() {
     visible: false,
     message: '',
   });
+  const retry = useDoRetryPayment((message) => setSnackbar({ visible: true, message }));
 
   const paymentsQuery = useQuery({
-    queryKey: ['my-payments', statusFilter],
+    queryKey: [...qk.payments.mine, statusFilter],
     queryFn: async () => {
       const params: any = { page: 1, limit: 50 };
       if (statusFilter) params.status = statusFilter;
@@ -45,32 +48,9 @@ export function usePayments() {
           try {
             await paymentsApi.cancel(id);
             setSnackbar({ visible: true, message: t('payment.cancelled') });
-            queryClient.invalidateQueries({ queryKey: ['my-payments'] });
+            queryClient.invalidateQueries({ queryKey: qk.payments.mine });
           } catch (e: any) {
             appAlert(t('common.error'), e?.response?.data?.message || t('payment.cancelFailed'));
-          }
-        },
-      },
-    ]);
-  };
-
-  const handleRetry = (id: string) => {
-    appAlert(t('payment.retryTitle'), t('payment.retryConfirm'), [
-      { text: t('discount.discard'), style: 'cancel' },
-      {
-        text: t('common.continueShort'),
-        onPress: async () => {
-          try {
-            const response: any = await paymentsApi.retry(id);
-            const url = response?.data?.paymentUrl ?? response?.data?.data?.paymentUrl;
-            if (url) {
-              router.push({ pathname: '/payment/[id]', params: { id, paymentUrl: url } } as any);
-            } else {
-              setSnackbar({ visible: true, message: t('payment.retryStarted') });
-              queryClient.invalidateQueries({ queryKey: ['my-payments'] });
-            }
-          } catch (e: any) {
-            appAlert(t('common.error'), e?.response?.data?.message || t('payment.retryFailed'));
           }
         },
       },
@@ -86,7 +66,11 @@ export function usePayments() {
     snackbar,
     setSnackbar,
     handleCancel,
-    handleRetry,
+    handleRetry: retry.start,
+    /** Kimlik kontrolü ya da retry sürüyor → TÜM "Tekrar Dene" düğmeleri devre dışı. */
+    retryBusy: retry.busy,
+    /** Spinner'ın gösterileceği kart (`mutation.variables`'tan). */
+    retryPendingId: retry.pendingId,
   };
 }
 

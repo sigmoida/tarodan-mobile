@@ -34,7 +34,7 @@ jest.mock('@/lib/api', () => ({
 }));
 const mockRequireIdentity = jest.fn(() => Promise.resolve(true));
 jest.mock('@/hooks/useLegalIdentity', () => ({
-  useRequireLegalIdentity: () => mockRequireIdentity,
+  useRequireLegalIdentity: () => ({ requireIdentity: mockRequireIdentity, isChecking: false }),
 }));
 
 import { bankAccountApi } from '@/lib/api';

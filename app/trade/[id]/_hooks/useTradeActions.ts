@@ -6,6 +6,7 @@ import { tradesApi, paymentsApi } from "@/lib/api";
 import { qk } from "@/lib/query";
 import { useTranslation } from "react-i18next";
 import { captureException } from "@/services/sentry";
+import { useRequireLegalIdentityFor } from "@/hooks/useLegalIdentity";
 
 import {
   DEFAULT_DISPUTE_REASON,
@@ -20,6 +21,10 @@ import {
 export function useTradeActions(id: string) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  // Aksiyon başına hedef: kabul kontrol edilirken nakit ödeme yükleniyor
+  // görünmesin (ve tersi).
+  const { requireIdentityFor, checkingTarget } =
+    useRequireLegalIdentityFor<"accept" | "cashPay">();
 
   const [snackbar, setSnackbar] = useState({ visible: false, message: "" });
   const notify = (message: string) => setSnackbar({ visible: true, message });
@@ -137,7 +142,7 @@ export function useTradeActions(id: string) {
   });
 
   // --- Handler'lar (aksiyon butonlarından) ---
-  const handleAccept = () => {
+  const handleAccept = async () => {
     if (!tradeAddressId) {
       appAlert(
         t("address.deliveryAddress"),
@@ -145,6 +150,10 @@ export function useTradeActions(id: string) {
       );
       return;
     }
+    // B4: kabul takası başlatır — önce yasal kimlik. Kapı onay penceresinden
+    // ÖNCE: `appAlert` kapanırken native kapı açılırsa iOS donar; kapı kendi
+    // kapanışını bekleyip çözüldüğü için onay güvenle açılır.
+    if (!(await requireIdentityFor("accept"))) return;
     appAlert(
       t("trade.accept.confirmTitle"),
       t("trade.accept.confirmMessage"),
@@ -212,12 +221,16 @@ export function useTradeActions(id: string) {
     // aksiyonlar
     handleAccept,
     handleCancel,
-    acceptPending: acceptMutation.isPending,
+    acceptPending: checkingTarget === "accept" || acceptMutation.isPending,
     cancelPending: cancelMutation.isPending,
     confirm: () => confirmMutation.mutate(),
     confirmPending: confirmMutation.isPending,
-    cashPay: () => cashPayMutation.mutate(),
-    cashPayPending: cashPayMutation.isPending,
+    // B-2.4: nakit ödeme başlamadan yasal kimlik; vazgeçerse ödeme başlamaz.
+    cashPay: async () => {
+      if (!(await requireIdentityFor("cashPay"))) return;
+      cashPayMutation.mutate();
+    },
+    cashPayPending: checkingTarget === "cashPay" || cashPayMutation.isPending,
     rejectPending: rejectMutation.isPending,
   };
 }
