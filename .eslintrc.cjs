@@ -34,6 +34,13 @@ const BAN_PAPER = {
           message:
             "react-native-paper kaldırıldı. Bunun yerine '@/ui'den component import et. Geçişte sorun olursa .eslintrc.cjs MIGRATION_OVERRIDES'a dosyayı ekle.",
         },
+        {
+          // Sistem alert'i temasız ve iOS'ta açık bir RN Modal üstünde donma riski taşır (CLAUDE.md §12).
+          name: 'react-native',
+          importNames: ['Alert'],
+          message:
+            "RN Alert yasak: onay için '@/ui' confirm() / appAlert, bilgi/başarı/hata sonucu için toast (CLAUDE.md §14).",
+        },
       ],
     },
   ],
