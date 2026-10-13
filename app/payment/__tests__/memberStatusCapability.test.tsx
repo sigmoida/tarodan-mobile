@@ -31,7 +31,12 @@ jest.mock('@/lib/api', () => ({
 }));
 
 import { api } from '@/lib/api/client';
-import { __resetPaymentCapabilities, rememberPaymentCapability } from '@/lib/payment/paymentCapability';
+import {
+  __resetPaymentCapabilities,
+  paymentCapabilityHeaders,
+  rememberPaymentCapability,
+} from '@/lib/payment/paymentCapability';
+import { __resetVerifyPacer } from '@/lib/payment/verifyPacer';
 import PaymentSuccessScreen from '../success';
 import PaymentFailScreen from '../fail';
 
@@ -55,6 +60,7 @@ function sessionDropped(status: string) {
 beforeEach(async () => {
   jest.clearAllMocks();
   __resetPaymentCapabilities();
+  __resetVerifyPacer();
   // Üye initiate yanıtındaki belirteç (checkout'ta saklanır).
   await rememberPaymentCapability({ data: { paymentId: 'pay-1', paymentAccessToken: 'cap-token' } });
   apiPost.mockResolvedValue({ data: { completed: true, status: 'already_completed' } });
@@ -75,4 +81,36 @@ it('başarısız ekranı (üye): confirm-failed ve durum belirteçle; JWT\'li u�
   await waitFor(() => expect(apiGet).toHaveBeenCalledWith('/payments/pay-1/status', { headers: CAP }));
   expect(apiPost).toHaveBeenCalledWith('/payments/pay-1/confirm-failed', {}, { headers: CAP });
   expect(apiGet).not.toHaveBeenCalledWith('/payments/pay-1');
+});
+
+describe('kesin sonuçta yetki belirteci kaydı silinir', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('başarı ekranı: ödeme tamamlandı → durum okunduktan sonra kayıt silinir', async () => {
+    sessionDropped('completed');
+    renderWithProviders(<PaymentSuccessScreen />);
+    expect(await screen.findByText('Ödemeniz Başarılı!')).toBeOnTheScreen();
+    await waitFor(async () => expect(await paymentCapabilityHeaders('pay-1')).toEqual({}));
+  });
+
+  it('başarı ekranı: hâlâ pending → kayıt kalır (ödemeye dönüş için)', async () => {
+    jest.useFakeTimers();
+    sessionDropped('pending');
+    apiPost.mockResolvedValue({ data: { completed: false, status: 'process_skipped' } });
+    renderWithProviders(<PaymentSuccessScreen />);
+    await jest.advanceTimersByTimeAsync(20_000); // 5 deneme + uçuştaki verify
+    expect(apiGet).toHaveBeenCalledTimes(5);
+    expect(await paymentCapabilityHeaders('pay-1')).toEqual(CAP);
+  });
+
+  it('başarısız ekranı: confirm-failed ve durum okunduktan SONRA kayıt silinir', async () => {
+    sessionDropped('failed');
+    renderWithProviders(<PaymentFailScreen />);
+    await waitFor(async () => expect(await paymentCapabilityHeaders('pay-1')).toEqual({}));
+    // Silinmeden önce iki istek de belirteci taşıdı.
+    expect(apiPost).toHaveBeenCalledWith('/payments/pay-1/confirm-failed', {}, { headers: CAP });
+    expect(apiGet).toHaveBeenCalledWith('/payments/pay-1/status', { headers: CAP });
+  });
 });

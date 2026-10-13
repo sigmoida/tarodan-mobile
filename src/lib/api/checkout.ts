@@ -1,7 +1,11 @@
 import type { AxiosRequestConfig } from 'axios';
 import { api, guestApi } from './client';
 import type { DirectFormResponse } from '@/lib/payment/paytrDirectForm';
-import { rememberPaymentCapability, withPaymentCapability } from '@/lib/payment/paymentCapability';
+import {
+  forgetPaymentCapability,
+  rememberPaymentCapability,
+  withPaymentCapability,
+} from '@/lib/payment/paymentCapability';
 
 /**
  * Ödeme başlat + yanıttaki `paymentAccessToken`'ı sakla (web `initiatePayment`).
@@ -114,8 +118,12 @@ export const paymentsApi = {
     page?: number;
     limit?: number;
   }) => api.get('/payments/me', { params }),
-  cancel: (paymentId: string) =>
-    api.post(`/payments/${paymentId}/cancel`),
+  /** İptal (sunucu ödemeyi `failed` yapar): başarılıysa yetki belirteci kaydı silinir. */
+  cancel: async (paymentId: string) => {
+    const response = await api.post(`/payments/${paymentId}/cancel`);
+    void forgetPaymentCapability(paymentId);
+    return response;
+  },
   /** Fail sayfasında; hâlâ pending ise rezervasyonu serbest bırakır */
   confirmFailed: (paymentId: string) =>
     paymentHttp(paymentId).post(`/payments/${paymentId}/confirm-failed`, {}),

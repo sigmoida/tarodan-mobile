@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { paymentsApi } from '@/lib/api';
+import { forgetPaymentCapabilityIfFinal } from '@/lib/payment/paymentCapability';
 
 /**
  * ⚠️ BU EKRAN BİLEREK React Query'ye TAŞINMADI (CLAUDE.md §6'nın istisnası).
@@ -56,7 +57,10 @@ export default function PaymentFailScreen() {
         const response = guest === '1'
           ? await paymentsApi.getStatusLightGuest(paymentId)
           : await paymentsApi.getStatusLight(paymentId);
-        setInfo(response.data?.data ?? response.data ?? null);
+        const data = response.data?.data ?? response.data ?? null;
+        setInfo(data);
+        // confirm-failed ve durum okuması bitti; ödeme kesinse belirteci sil.
+        void forgetPaymentCapabilityIfFinal(paymentId, data?.status);
       } catch {
         // Sessiz
       } finally {

@@ -1,4 +1,5 @@
 import { queryClient } from '../lib/queryClient';
+import { clearAllPaymentCapabilities } from '@/lib/payment/paymentCapability';
 import { useCartStore } from './cartStore';
 import { useMessagesStore } from './messagesStore';
 
@@ -25,6 +26,10 @@ export function resetUserStores(): void {
 
   // Bildirim + mesaj rozeti dahil tüm react-query önbelleği (örn. 'notifications-unread').
   queryClient.clear();
+
+  // Ödeme yetki belirteçleri (`payment-capability.*`): ortak cihazda çıkan
+  // kullanıcının belirteci sonraki oturumda kalmasın. Bellek anında, depo arkada.
+  void clearAllPaymentCapabilities();
 }
 
 /**

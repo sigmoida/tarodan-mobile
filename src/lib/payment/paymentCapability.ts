@@ -21,6 +21,12 @@
  * silinir ve yok sayılır. Her AsyncStorage erişimi try/catch içinde: depo yoksa
  * ya da hata verirse yalnız bellek kopyası kullanılır (akış aynı süreçte yine
  * tamamlanır).
+ *
+ * Temizlik: ödeme kesinleşince (başarılı, başarısız, iptal) kayıt silinir
+ * (`forgetPaymentCapabilityIfFinal`, sonuç ekranları + iptal). Çıkışta tüm
+ * `payment-capability.*` kayıtları silinir (`clearAllPaymentCapabilities`,
+ * `resetUserStores`): ortak cihazda A'nın belirteci B'nin oturumunda kalmaz.
+ * Açılışta süresi dolmuş kayıtlar süpürülür (`sweepExpiredPaymentCapabilities`).
  */
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
@@ -46,7 +52,8 @@ export const ISSUE_LATENCY_MARGIN_MS = 30_000;
 export const CLOCK_ROLLBACK_TOLERANCE_MS = 60_000;
 
 /** AsyncStorage anahtarı — web `sessionStorage` anahtarıyla aynı. */
-const storageKey = (paymentId: string) => `payment-capability.${paymentId}`;
+const KEY_PREFIX = 'payment-capability.';
+const storageKey = (paymentId: string) => `${KEY_PREFIX}${paymentId}`;
 
 /** `storedAt`: kayıt anı (cihaz saati); saat geri alınmasını yakalamak için. */
 type Entry = { token: string; expiresAt: number; storedAt?: number };
@@ -117,6 +124,9 @@ type KeyValueStore = {
   getItem(key: string): Promise<string | null>;
   setItem(key: string, value: string): Promise<unknown>;
   removeItem(key: string): Promise<unknown>;
+  getAllKeys(): Promise<readonly string[]>;
+  multiGet(keys: readonly string[]): Promise<readonly (readonly [string, string | null])[]>;
+  multiRemove(keys: readonly string[]): Promise<unknown>;
 };
 
 /**
@@ -127,6 +137,19 @@ type KeyValueStore = {
 const memory = new Map<string, Entry | null>();
 
 let storage: KeyValueStore | null | undefined;
+
+/**
+ * Çıkışta artar: o ana kadar uçuşta olan depo okuması belleğe, depo yazımı
+ * depoya kapanan oturumun belirtecini geri getirmesin.
+ */
+let generation = 0;
+/** Süren toplu silme: bu sırada depodan okuma yapılmaz (silinmekte olanı geri yükler). */
+let clearing: Promise<void> | null = null;
+/**
+ * Son çıkış anı (bu süreçte). Depodan silme başarısız olsa bile bu andan önce
+ * yazılmış kayıt bu süreçte belleğe yüklenmez.
+ */
+let clearedAt: number | null = null;
 
 /**
  * AsyncStorage ilk kullanımda yüklenir. Native modül yoksa paket import anında
@@ -171,15 +194,20 @@ async function removeStored(paymentId: string): Promise<void> {
 async function hydrate(paymentId: string): Promise<void> {
   const store = persistentStorage();
   if (!store) return;
+  if (clearing) await clearing;
+  const startedIn = generation;
   let raw: string | null;
   try {
     raw = await store.getItem(storageKey(paymentId));
   } catch {
     return; // okunamadı: yalnız bellek, sonraki istek yeniden dener
   }
-  // Beklerken aynı ödeme için yeni belirteç geldiyse onu ezme.
-  if (memory.has(paymentId)) return;
-  const entry = parseEntry(raw);
+  // Beklerken çıkış yapıldıysa okunan kayıt kapanan oturuma ait; ya da aynı
+  // ödeme için yeni belirteç geldiyse onu ezme.
+  if (startedIn !== generation || memory.has(paymentId)) return;
+  const parsed = parseEntry(raw);
+  const writtenBeforeLogout = clearedAt !== null && (parsed?.storedAt ?? -Infinity) <= clearedAt;
+  const entry = writtenBeforeLogout ? null : parsed;
   memory.set(paymentId, entry);
   if (raw && !entry) await removeStored(paymentId); // bozuk kayıt
 }
@@ -210,10 +238,94 @@ export async function rememberPaymentCapability(response: unknown): Promise<void
   if (lifetime <= 0) return; // zaten dolmuş: sunucu reddeder, saklama
   const entry: Entry = { token: data.paymentAccessToken, expiresAt: now + lifetime, storedAt: now };
   memory.set(data.paymentId, entry);
+  const startedIn = generation;
   try {
     await persistentStorage()?.setItem(storageKey(data.paymentId), JSON.stringify(entry));
+    // Yazım sürerken çıkış yapıldı: belirteç kapanan oturuma ait, depoda bırakma.
+    if (startedIn !== generation) await removeStored(data.paymentId);
   } catch {
     /* depo yazılamadı: yalnız bellek (web'de sessionStorage hatasında olduğu gibi) */
+  }
+}
+
+/** Ödeme kesinleşti (başarılı, başarısız, iptal): bu ödemenin kaydını sil. Hiç fırlatmaz. */
+export async function forgetPaymentCapability(paymentId: string | undefined | null): Promise<void> {
+  if (!paymentId) return;
+  memory.set(paymentId, null);
+  await removeStored(paymentId);
+}
+
+/**
+ * Kesin sonuçlar: sunucu `PaymentStatus` (`completed`, `failed`, `refunded`; iptal
+ * de `failed` yazar) + istemcinin bildiği eş adlar (`paid`, `success`,
+ * `hold_payment`, `cancelled`). `pending`/`processing` kesin değil.
+ */
+const FINAL_STATUSES = new Set(['completed', 'paid', 'success', 'hold_payment', 'failed', 'refunded', 'cancelled']);
+
+/**
+ * Sonuç ekranları durumu okuduktan SONRA çağırır: durum kesinse kaydı siler,
+ * değilse dokunmaz. Kart formu çağırmaz: belirteç başarı/başarısız ekranının
+ * durum okuması ve confirm-failed için hâlâ gerekli. Hiç fırlatmaz.
+ */
+export async function forgetPaymentCapabilityIfFinal(
+  paymentId: string | undefined | null,
+  status: unknown,
+): Promise<void> {
+  if (typeof status === 'string' && FINAL_STATUSES.has(status)) await forgetPaymentCapability(paymentId);
+}
+
+async function storedCapabilityKeys(store: KeyValueStore): Promise<string[]> {
+  return (await store.getAllKeys()).filter((key) => key.startsWith(KEY_PREFIX));
+}
+
+/**
+ * Çıkış: tüm `payment-capability.*` kayıtlarını sil. Ortak cihazda A'nın
+ * belirteci B'nin oturumunda kalmasın. Bellek senkron temizlenir (çağıran
+ * beklemese de sonraki istek başlıksız gider); depo silinene kadar depodan
+ * okuma yapılmaz. Hiç fırlatmaz.
+ */
+export function clearAllPaymentCapabilities(): Promise<void> {
+  generation += 1;
+  clearedAt = Date.now();
+  memory.clear();
+  const store = persistentStorage();
+  if (!store) return Promise.resolve();
+  const run = (async () => {
+    try {
+      const keys = await storedCapabilityKeys(store);
+      if (keys.length > 0) await store.multiRemove(keys);
+    } catch {
+      /* silinemedi: okunduğunda süresi dolan yine yok sayılır; sonraki açılış süpürür */
+    }
+  })();
+  const done = run.then(() => {
+    if (clearing === done) clearing = null;
+  });
+  clearing = done;
+  return done;
+}
+
+/**
+ * Açılış: süresi dolmuş, bozuk ya da saati geri alınmış kayıtları sil
+ * (okunmayan eski ödemelerin kayıtları birikmesin). Geçerli kayda dokunmaz:
+ * banka uygulamasından dönüşte süren ödeme belirtecini kullanmaya devam eder.
+ * Hiç fırlatmaz.
+ */
+export async function sweepExpiredPaymentCapabilities(now: number = Date.now()): Promise<void> {
+  const store = persistentStorage();
+  if (!store) return;
+  try {
+    const keys = await storedCapabilityKeys(store);
+    if (keys.length === 0) return;
+    const stale = (await store.multiGet(keys))
+      .filter(([, raw]) => {
+        const entry = parseEntry(raw);
+        return !entry || !isLive(entry, now);
+      })
+      .map(([key]) => key);
+    if (stale.length > 0) await store.multiRemove(stale);
+  } catch {
+    /* süpürülemedi: okunduğunda yine yok sayılır */
   }
 }
 
@@ -270,4 +382,6 @@ export function withPaymentCapability(
 export function __resetPaymentCapabilities(): void {
   memory.clear();
   storage = undefined;
+  clearing = null;
+  clearedAt = null;
 }

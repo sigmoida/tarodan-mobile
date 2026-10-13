@@ -10,11 +10,15 @@ import type { AxiosInstance } from 'axios';
 import {
   __resetPaymentCapabilities,
   capabilityLifetimeMs,
+  clearAllPaymentCapabilities,
   CLOCK_ROLLBACK_TOLERANCE_MS,
+  forgetPaymentCapability,
+  forgetPaymentCapabilityIfFinal,
   ISSUE_LATENCY_MARGIN_MS,
   PAYMENT_CAPABILITY_TTL_MS,
   paymentCapabilityHeaders,
   rememberPaymentCapability,
+  sweepExpiredPaymentCapabilities,
   withPaymentCapability,
 } from '../paymentCapability';
 
@@ -159,6 +163,12 @@ describe('kalıcılık (AsyncStorage)', () => {
     expect(await AsyncStorage.getItem(KEY)).toBeNull();
   });
 
+  it('storedAt\'sız eski kayıt (önceki sürüm) okunmaya devam eder', async () => {
+    nowAt(T0);
+    await AsyncStorage.setItem(KEY, JSON.stringify({ token: 'cap-token', expiresAt: T0 + 60_000 }));
+    expect(await paymentCapabilityHeaders(PAY)).toEqual(CAP);
+  });
+
   it('bozuk kayıt yok sayılır ve silinir', async () => {
     await AsyncStorage.setItem(KEY, 'not-json');
     expect(await paymentCapabilityHeaders(PAY)).toEqual({});
@@ -290,5 +300,122 @@ describe('TTL belirtecin kendi JWT exp alanından', () => {
     const token = `h.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.s`;
     expect(token).toMatch(/[-_]/);
     expect(capabilityLifetimeMs(token, T0)).toBe(7200 * 1000 - ISSUE_LATENCY_MARGIN_MS);
+  });
+});
+
+describe('temizlik: kesin sonuç, çıkış, açılış süpürmesi', () => {
+  const nowAt = (t: number) => jest.spyOn(Date, 'now').mockReturnValue(t);
+  const remember = (paymentId: string, token = 'cap-token') =>
+    rememberPaymentCapability({ data: { paymentId, paymentAccessToken: token } });
+  const capabilityKeys = async () =>
+    (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith('payment-capability.')).sort();
+
+  it('forgetPaymentCapability: bellek ve depodan siler; yeniden başlatınca da yok', async () => {
+    await remember(PAY);
+    await forgetPaymentCapability(PAY);
+    expect(await paymentCapabilityHeaders(PAY)).toEqual({});
+    expect(await AsyncStorage.getItem(KEY)).toBeNull();
+    restartApp();
+    expect(await paymentCapabilityHeaders(PAY)).toEqual({});
+  });
+
+  it.each(['completed', 'paid', 'success', 'hold_payment', 'failed', 'refunded', 'cancelled'])(
+    'kesin durum (%s) → kayıt silinir',
+    async (status) => {
+      await remember(PAY);
+      await forgetPaymentCapabilityIfFinal(PAY, status);
+      expect(await paymentCapabilityHeaders(PAY)).toEqual({});
+      expect(await AsyncStorage.getItem(KEY)).toBeNull();
+    },
+  );
+
+  it.each([['pending'], ['processing'], [undefined], [null]])('kesin olmayan durum (%s) → kayıt kalır', async (status) => {
+    await remember(PAY);
+    await forgetPaymentCapabilityIfFinal(PAY, status);
+    expect(await paymentCapabilityHeaders(PAY)).toEqual(CAP);
+  });
+
+  it('çıkış: tüm payment-capability.* kayıtları (bellek + depo) silinir, diğer anahtarlar kalır', async () => {
+    await remember('pay-a');
+    await remember('pay-b');
+    await AsyncStorage.setItem('tarodan-cart', '{"items":[]}');
+    expect(await capabilityKeys()).toEqual(['payment-capability.pay-a', 'payment-capability.pay-b']);
+
+    const pending = clearAllPaymentCapabilities();
+    // Bellek senkron temizlenir: çağıran beklemese de sonraki istek başlıksız.
+    expect(await paymentCapabilityHeaders('pay-a')).toEqual({});
+    await pending;
+    expect(await capabilityKeys()).toEqual([]);
+    expect(await AsyncStorage.getItem('tarodan-cart')).toBe('{"items":[]}');
+    restartApp();
+    expect(await paymentCapabilityHeaders('pay-b')).toEqual({});
+  });
+
+  it('çıkış sürerken depodan okuma silinmekte olan belirteci geri getirmez', async () => {
+    await remember(PAY);
+    restartApp(); // bellek boş, kayıt yalnız depoda
+    const clearing = clearAllPaymentCapabilities();
+    const read = paymentCapabilityHeaders(PAY); // silme bitmeden okuma
+    await clearing;
+    expect(await read).toEqual({});
+    expect(await paymentCapabilityHeaders(PAY)).toEqual({});
+  });
+
+  it('çıkıştan önce başlayan depo okuması sonradan belleğe yazamaz', async () => {
+    await remember(PAY);
+    restartApp();
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const realGet = (AsyncStorage.getItem as jest.Mock).getMockImplementation()!;
+    (AsyncStorage.getItem as jest.Mock).mockImplementationOnce(async (key: string) => {
+      const value = await realGet(key);
+      await gate; // okuma, çıkış bitene kadar asılı
+      return value;
+    });
+    const read = paymentCapabilityHeaders(PAY);
+    await clearAllPaymentCapabilities();
+    release();
+    expect(await read).toEqual({});
+    expect(await paymentCapabilityHeaders(PAY)).toEqual({});
+  });
+
+  it('depo yazımı sürerken çıkış yapılırsa belirteç depoda kalmaz', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const realSet = (AsyncStorage.setItem as jest.Mock).getMockImplementation()!;
+    (AsyncStorage.setItem as jest.Mock).mockImplementationOnce(async (key: string, value: string) => {
+      await gate;
+      return realSet(key, value);
+    });
+    const writing = remember(PAY);
+    await clearAllPaymentCapabilities();
+    release();
+    await writing;
+    expect(await AsyncStorage.getItem(KEY)).toBeNull();
+  });
+
+  it('açılış süpürmesi: süresi dolan, bozuk ve saati geri alınmış kayıtlar silinir; geçerli olan ve diğer anahtarlar kalır', async () => {
+    nowAt(T0 - 3 * 60 * 60 * 1000);
+    await remember('expired'); // 3 saat önce: dolmuş
+    nowAt(T0 + 10 * 60 * 1000);
+    await remember('future'); // kayıt anı şimdiden 10 dk ileride: saat geri alınmış
+    nowAt(T0 - 30 * 60 * 1000);
+    await remember('live'); // 30 dk önce: geçerli
+    await AsyncStorage.setItem('payment-capability.corrupt', 'not-json');
+    await AsyncStorage.setItem('other-key', 'keep');
+
+    await sweepExpiredPaymentCapabilities(T0);
+    expect(await capabilityKeys()).toEqual(['payment-capability.live']);
+    expect(await AsyncStorage.getItem('other-key')).toBe('keep');
+  });
+
+  it('depo hataları fırlatmaz (getAllKeys / multiRemove)', async () => {
+    (AsyncStorage.getAllKeys as jest.Mock).mockRejectedValueOnce(new Error('io'));
+    await expect(sweepExpiredPaymentCapabilities()).resolves.toBeUndefined();
+    await remember(PAY);
+    (AsyncStorage.multiRemove as jest.Mock).mockRejectedValueOnce(new Error('io'));
+    await expect(clearAllPaymentCapabilities()).resolves.toBeUndefined();
+    // Depodan silinemese de bu süreçte çıkıştan önceki kayıt geri yüklenmez.
+    expect(await paymentCapabilityHeaders(PAY)).toEqual({});
   });
 });

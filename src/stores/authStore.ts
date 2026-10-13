@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
 import { advanceSessionEpoch, authApi, userApi } from "@/lib/api";
+import { sweepExpiredPaymentCapabilities } from "@/lib/payment/paymentCapability";
 import { logger } from "../services/logger";
 import { withTimeout } from "../utils/withTimeout";
 
@@ -424,6 +425,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   loadToken: async () => {
+    // Açılış: süresi dolmuş ödeme yetki belirteci kayıtlarını süpür (beklenmez, fırlatmaz).
+    void sweepExpiredPaymentCapabilities();
     try {
       // Maestro register/guest journey: keychain (SecureStore) clearState'i atlatıp
       // önceki oturumun token'ını taşıyabiliyor. NO_AUTOLOGIN modunda token'ı temizle

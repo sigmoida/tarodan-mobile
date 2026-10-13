@@ -144,3 +144,25 @@ it('depo yazımı başarısız olsa da initiate bozulmaz, aynı süreçte başl�
   await paymentsApi.getStatusLightGuest(PAY);
   expect(guestGet).toHaveBeenCalledWith(`/payments/${PAY}/status-guest`, { headers: CAP });
 });
+
+it('iptal başarılıysa (sunucu ödemeyi failed yapar) yetki belirteci kaydı silinir', async () => {
+  apiPost.mockResolvedValueOnce({ data: { paymentId: PAY, paymentAccessToken: 'cap-token' } });
+  await paymentsApi.initiateGroup(GROUP);
+  await flush();
+
+  apiPost.mockResolvedValueOnce({ data: { success: true } });
+  await paymentsApi.cancel(PAY);
+  await flush();
+  expect(apiPost).toHaveBeenLastCalledWith(`/payments/${PAY}/cancel`);
+  expect(await AsyncStorage.getItem(`payment-capability.${PAY}`)).toBeNull();
+  await paymentsApi.getStatusLight(PAY);
+  expect(apiGet).toHaveBeenLastCalledWith(`/payments/${PAY}/status`, { headers: {} });
+});
+
+it('iptal başarısızsa kayıt kalır', async () => {
+  await guestInitiate();
+  apiPost.mockRejectedValueOnce(Object.assign(new Error('403'), { response: { status: 403 } }));
+  await expect(paymentsApi.cancel(PAY)).rejects.toThrow('403');
+  await paymentsApi.getStatusLightGuest(PAY);
+  expect(guestGet).toHaveBeenLastCalledWith(`/payments/${PAY}/status-guest`, { headers: CAP });
+});

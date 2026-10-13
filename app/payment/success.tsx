@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { paymentsApi } from '@/lib/api';
 import { pendingVerify, requestVerify } from '@/lib/payment/verifyPacer';
+import { forgetPaymentCapabilityIfFinal } from '@/lib/payment/paymentCapability';
 import { formatPrice } from '@/utils/format';
 import { styles } from './_success/_lib/styles';
 
@@ -116,6 +117,8 @@ export default function PaymentSuccessScreen() {
         }
       }
       if (cancelled) return;
+      // Ödeme kesinleştiyse yetki belirteci artık gereksiz: kaydı sil.
+      void forgetPaymentCapabilityIfFinal(paymentId, last?.status);
 
       // Takas nakit farkı ödemesi: takasa dön + ilgili query'leri tazele (web ile parite).
       const paidTradeId = tradeId || last?.tradeId;
