@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Badge, EmptyState, Spinner, TopBarAction, pageListContentStyle } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { useNotifications } from './_hooks/useNotifications';
 import { styles } from './_lib/styles';
 import { NotificationRow } from './_components/NotificationRow';
@@ -17,6 +18,7 @@ import type { Notification } from './_lib/types';
 export default function NotificationsScreen() {
   const { t } = useTranslation();
   const f = useNotifications();
+  const tabInset = useTabBarInset();
   const title = t('notification.notifications');
 
   const renderItem = useCallback(
@@ -71,7 +73,10 @@ export default function NotificationsScreen() {
         initialNumToRender={8}
         maxToRenderPerBatch={10}
         removeClippedSubviews
-        contentContainerStyle={f.notifications.length === 0 ? styles.emptyList : pageListContentStyle}
+        contentContainerStyle={[
+          f.notifications.length === 0 ? styles.emptyList : pageListContentStyle,
+          { paddingBottom: tabInset },
+        ]}
         refreshing={f.refreshing}
         onRefresh={f.handleRefresh}
         ListEmptyComponent={

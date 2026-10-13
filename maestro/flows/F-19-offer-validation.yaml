@@ -14,7 +14,7 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
       visible: "Çıkış Yap"
@@ -46,8 +46,7 @@ env:
       visible: "Şimdi Değil"
     commands:
       - tapOn: "Şimdi Değil"
-- tapOn:
-    text: "Ara"
+- runFlow: ../subflows/open-search.yaml
 - extendedWaitUntil:
     visible:
       id: "search-input"

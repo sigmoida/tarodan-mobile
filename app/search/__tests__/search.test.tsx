@@ -28,7 +28,7 @@ jest.mock('@/hooks/useProductFilterOptions', () => ({
 // Ağır filtre sheet'i render dışı bırak (kendi testi var).
 jest.mock('@/components/ProductFilterSheet', () => () => null);
 
-import SearchScreen from '../search';
+import SearchScreen from '..';
 
 const mockGetAll = productsApi.getAll as jest.Mock;
 

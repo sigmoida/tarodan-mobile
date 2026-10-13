@@ -9,7 +9,7 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 # Eğer önceki flow'dan login kalmışsa logout yap.
 - runFlow:
     when:
@@ -18,5 +18,5 @@ env:
 # Şimdi login ekranındayız ya da profile'da go-login butonu var.
 - runFlow: ../subflows/login-as.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - assertVisible: "zeynep@demo.com"

@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Button, theme, RawText } from '@/ui';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { PageShell } from '@/components/common/PageShell';
 import { goBackOrHome } from '@/components/common/goBackOrHome';
 
@@ -19,8 +20,12 @@ const { colors } = theme;
  */
 export function ListingGateFrame({ isEdit, children }: { isEdit: boolean; children: React.ReactNode }) {
   const { t } = useTranslation();
+  const tabInset = useTabBarInset();
+  if (!isEdit) {
+    // Sekme kökünde yüzen hap var: ortalanan içerik hapın altına girmesin.
+    return <View style={[styles.centered, { paddingBottom: tabInset }]}>{children}</View>;
+  }
   const body = <View style={styles.centered}>{children}</View>;
-  if (!isEdit) return body;
   return (
     <PageShell title={t('product.editListing')} mode="static" padding={false}>
       {body}

@@ -1,7 +1,10 @@
 import React from 'react';
 import { View, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useHeaderTopInset } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
+import { APP_SHELL_BAR_HEIGHT } from '@/components/shell/AppShell';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
 
 import { styles } from './_lib/styles';
 import type { ListingFormProps } from './_lib/types';
@@ -32,14 +35,17 @@ export type { ListingFormProps };
 export default function ListingForm({ mode, productId }: ListingFormProps) {
   const { t } = useTranslation();
   const f = useListingForm({ mode, productId });
+  const tabInset = useTabBarInset();
+  const topInset = useHeaderTopInset();
 
   const gate = ListingGates({ f });
   if (gate) return gate;
 
+  // Oluşturma (sekme kökü): içerik yüzen alt menü hapının altında kalmasın -> alt dolgu tabInset.
   const form = (
     <ScrollView
       style={styles.scroll}
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[styles.scrollContent, !f.isEdit && { paddingBottom: tabInset }]}
       keyboardShouldPersistTaps="handled"
     >
       <ListingHeaderBanners f={f} />
@@ -78,7 +84,12 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
 
   return (
     <View style={styles.container}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      {/* Form AppShell barının ALTINDA: iOS padding kaçınması ekran üstünden ölçer -> bar kadar ofset. */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={topInset + APP_SHELL_BAR_HEIGHT}
+      >
         {form}
       </KeyboardAvoidingView>
 

@@ -1,28 +1,12 @@
-import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { offersApi, tradesApi } from '@/lib/api';
 import { qk } from '@/lib/query';
-import { useCartStore } from '@/stores/cartStore';
-import { useFavorites } from '@/hooks/useFavorites';
-import { useUnreadCountQuery } from '@/hooks/messaging';
-import { useNotificationUnreadCount } from '@/hooks/useNotificationUnreadCount';
 
 /**
- * Header rozet sayaçları: sepet / favori / mesaj / bildirim. Favoriler `useFavorites`,
- * mesaj okunmamış sayısı `useUnreadCountQuery` (#77) — ikisi de React Query,
- * enabled:isAuthenticated ile kendi kendine çeker (ayrı fetch effect'i gerekmez).
+ * Profil menüsü rozetleri (yanıt bekleyen teklif / takas). Sepet, bildirim, mesaj ve favori
+ * sayaçları kabuğun tek kaynağında: `useShellCounts` (`@/components/shell/useShellCounts`).
  */
 export function useHomeBadges(isAuthenticated: boolean) {
-  const cartItems = useCartStore((s) => s.items);
-  const cartCount = cartItems.reduce((n, i) => n + i.quantity, 0);
-  const cartProductIds = useMemo(() => new Set(cartItems.map((i) => i.productId)), [cartItems]);
-
-  const { items: favItems } = useFavorites();
-  const favCount = favItems.length;
-  const { data: messageUnreadCount = 0 } = useUnreadCountQuery();
-
-  const unreadCount = useNotificationUnreadCount(isAuthenticated);
-
   /** Profil menüsü rozetleri: yanıt bekleyen teklif / takas. Bildirim sayacıyla
    *  aynı desen — hata durumunda 0, rozet gizlenir. */
   const { data: pendingOffers = 0 } = useQuery({
@@ -55,13 +39,5 @@ export function useHomeBadges(isAuthenticated: boolean) {
     },
   });
 
-  return {
-    cartCount,
-    cartProductIds,
-    favCount,
-    messageUnreadCount,
-    unreadCount,
-    pendingOffers,
-    pendingTrades,
-  };
+  return { pendingOffers, pendingTrades };
 }

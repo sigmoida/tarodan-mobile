@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { RawText, Text } from './Text';
-import { CountBadge } from './CountBadge';
+import { HeaderIconButton } from './HeaderIconButton';
 import { theme } from '../lib/theme';
 import { useHeaderTopInset } from '../lib/header';
 
@@ -145,31 +145,31 @@ export const TopBarAction: React.FC<TopBarActionProps> = ({
   disabled,
   count,
   testID,
-}) => (
-  <Pressable
-    onPress={onPress}
-    disabled={disabled}
-    testID={testID}
-    hitSlop={8}
-    accessibilityRole="button"
-    accessibilityLabel={accessibilityLabel ?? label}
-    accessibilityState={{ disabled: !!disabled }}
-    style={({ pressed }) => [
-      icon ? styles.iconBtn : styles.textBtn,
-      pressed && styles.pressed,
-      disabled && styles.disabled,
-    ]}
-  >
-    {icon ? (
-      <View>
-        <Ionicons name={icon} size={iconSize.lg} color={colors.text.heading} />
-        <CountBadge count={count ?? 0} ringColor={colors.surface.elevated} />
-      </View>
-    ) : (
+}) =>
+  icon ? (
+    <HeaderIconButton
+      icon={icon}
+      label={accessibilityLabel ?? label ?? icon}
+      onPress={onPress}
+      count={count}
+      disabled={disabled}
+      testID={testID}
+      tone="onSurface"
+    />
+  ) : (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      testID={testID}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ disabled: !!disabled }}
+      style={({ pressed }) => [styles.textBtn, pressed && styles.pressed, disabled && styles.disabled]}
+    >
       <RawText style={styles.textAction}>{label}</RawText>
-    )}
-  </Pressable>
-);
+    </Pressable>
+  );
 
 const styles = StyleSheet.create({
   container: {

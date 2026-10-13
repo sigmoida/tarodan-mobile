@@ -8,11 +8,10 @@ import { useAuthStore } from '@/stores/authStore';
 import { useGuestStore } from '@/stores/guestStore';
 import { SignupPrompt } from '@/components/SignupPrompt';
 import { AppShell } from '@/components/shell/AppShell';
-import { goSearch } from './_lib/nav';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { homeStyles as styles } from './_lib/homeStyles';
 import { useHomeData } from './_hooks/useHomeData';
 import { useHomeGuestPrompt } from './_hooks/useHomeGuestPrompt';
-import { HomeSearch } from './_components/HomeSearch';
 import { BrandsStrip } from './_components/HomeBrands';
 import { FeaturedRail, OnSaleRail, TradeRail, PopularRail } from './_components/HomeRails';
 import { TopCollections } from './_components/HomeCollections';
@@ -30,7 +29,7 @@ const { colors } = theme;
 /**
  * Ana sayfa — web ana sayfasının bölüm kümesi ve sırası (hero, markalar, Öne Çıkan, İndirimdekiler,
  * Takas Vitrini, Popüler, En İyi Koleksiyonlar, Haftanın Koleksiyoneri/Şirketi, güven rozetleri).
- * AppShell (marka barı + arama) içinde; her bölüm SectionCard + "Tümünü gör ›". Veri `useHomeData`.
+ * AppShell (marka barı: arama alanı + bildirim + sepet) içinde; her bölüm SectionCard + "Tümünü gör ›". Veri `useHomeData`.
  */
 export default function HomeScreen() {
   const { isAuthenticated } = useAuthStore();
@@ -43,8 +42,8 @@ export default function HomeScreen() {
   // Yuvalar (topbar/header/footer) aynı tohumu ve gösterim kümesini paylaşır.
   const adSession = useAdSession();
 
-  const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const tabInset = useTabBarInset();
 
   // API bağlantı kontrolü (yalnız log — davranış korunur).
   useEffect(() => {
@@ -71,11 +70,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <AppShell
-      search={
-        <HomeSearch value={searchQuery} onChange={setSearchQuery} onSearch={() => goSearch(searchQuery)} />
-      }
-    >
+    <AppShell>
       <ScrollView
         style={styles.scroll}
         refreshControl={
@@ -114,7 +109,7 @@ export default function HomeScreen() {
 
         <AdBanner position="footer" session={adSession} />
         <TrustBadges badges={hero.badges} />
-        <View style={styles.bottomSpace} />
+        <View style={{ height: tabInset }} />
       </ScrollView>
 
       {/* Popup reklam: misafir kayıt istemi açıkken çıkmaz (iki Modal birden iOS'u dondurur). */}

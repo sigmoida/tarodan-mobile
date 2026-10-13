@@ -15,7 +15,6 @@ export const homeStyles = StyleSheet.create({
   scroll: { flex: 1 },
   // Bölümler: web PageShell `space-y-4` + `px-4`.
   sections: { padding: spacing[4], gap: spacing[4] },
-  bottomSpace: { height: spacing[24] },
 
   // Ürün rayı (web: flex gap-3 overflow-x-auto, kart w-40)
   rail: { gap: spacing[3] },

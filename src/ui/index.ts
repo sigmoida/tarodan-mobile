@@ -45,6 +45,11 @@ export {
 } from './components/SheetHeader';
 export { CountBadge, type CountBadgeProps } from './components/CountBadge';
 export {
+	HeaderIconButton,
+	type HeaderIconButtonProps,
+	type HeaderIconTone,
+} from './components/HeaderIconButton';
+export {
 	PageShell,
 	PAGE_GUTTER,
 	PAGE_SECTION_GAP,

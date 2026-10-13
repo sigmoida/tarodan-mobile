@@ -34,7 +34,7 @@ tags:
           timeout: 2000
 # Giriş: Profil → Giriş Yap → REG_EMAIL
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
       visible:
@@ -62,8 +62,7 @@ tags:
           text: "Şimdi Değil"
           optional: true
 # 4. Sepete ekle
-- tapOn:
-    text: "Ara"
+- runFlow: ../subflows/open-search.yaml
 - extendedWaitUntil:
     visible:
       id: "search-input"

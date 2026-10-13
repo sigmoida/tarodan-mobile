@@ -298,8 +298,11 @@ Binding for every screen and component. Mostly enforced by lint (`.eslintrc.cjs`
 local rules in `eslint-plugin-tarodan/`) — today as **warnings**; wave 2 clears them
 and turns them into **errors**, so write new code warning-free.
 
-- **Shells are mandatory.** Tab roots use `AppShell` (`@/components/shell/AppShell` — orange
-  primary-500 brand bar, StatusBar goes light while focused). Stack screens use
+- **Shells are mandatory.** Tab roots use `AppShell` (`@/components/shell/AppShell` — one
+  identical primary-600 bar on EVERY tab root: [search field][notifications][cart], no logo;
+  StatusBar goes light while focused). The bottom menu is a floating pill (`AppTabBar`;
+  Home, Favorites, +, Messages, Profile); tab-root lists/ScrollViews add `useTabBarInset()`
+  as bottom padding so content never hides under it. Search is a stack route (`/search`). Stack screens use
   `PageShell` (`@/components/common/PageShell` — white top bar with back arrow,
   title, optional right action, optional fixed bottom bar, keyboard + safe area, and
   `loading` / `empty` / `error` + `onRetry` states; `loading`/`error` **unmount `children`**,

@@ -15,9 +15,12 @@ import { useProductReviews } from './_hooks/useProductReviews';
 import { useProductFavorite } from './_hooks/useProductFavorite';
 import { useGuestPrompt } from './_hooks/useGuestPrompt';
 import { useProductActions } from './_hooks/useProductActions';
+import { useProductScroll } from './_hooks/useProductScroll';
 import { useSimilarProducts } from '@/hooks/useSimilarProducts';
 import { SimilarProductsCard } from '@/components/product';
 import { ProductTopActions } from './_components/ProductTopActions';
+import { ProductTopBar } from './_components/ProductTopBar';
+import { ProductScrollView } from './_components/ProductScrollView';
 import { ProductGallery } from './_components/ProductGallery';
 import { ProductTitleBlock } from './_components/ProductTitleBlock';
 import { ProductDescription } from './_components/ProductDescription';
@@ -61,6 +64,7 @@ export default function ProductDetailScreen() {
   const { data: similar } = useSimilarProducts(productId, !!product);
   const { refreshing, onRefresh } = useRefresh(refetchProduct, refetchReviews);
   const guest = useGuestPrompt(productId, isAuthenticated);
+  const scroll = useProductScroll();
 
   const [currentImage, setCurrentImage] = useState(0);
   const [viewer, setViewer] = useState({ open: false, index: 0 });
@@ -88,6 +92,7 @@ export default function ProductDetailScreen() {
   const isOwner = Boolean(
     product && isAuthenticated && user?.id && product.seller?.id && user.id === product.seller.id,
   );
+  const reportOnly = !sellerId || isOwner;
   const price = product ? getProductPriceInfo(product) : null;
   const openReviews = () => router.push(`/product/${productId}/reviews`);
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
@@ -95,8 +100,8 @@ export default function ProductDetailScreen() {
   const ready = !!product && !!price;
   return (
     <PageShell
-      title=""
-      onBack={goBack}
+      header={false}
+      mode="list"
       padding={false}
       loading={isLoading}
       loadingFallback={<ProductSkeleton />}
@@ -107,20 +112,6 @@ export default function ProductDetailScreen() {
         actionLabel: t('common.goBack'),
         onAction: goBack,
       }}
-      refreshing={refreshing}
-      onRefresh={onRefresh}
-      right={
-        ready ? (
-          <ProductTopActions
-            isFavorite={favorite.isFavorite}
-            favoriteLoading={favorite.favoriteLoading}
-            onFavorite={favorite.toggle}
-            onShare={actions.handleShare}
-            onCart={() => router.push('/cart')}
-            onMenu={!sellerId || isOwner ? actions.handleReport : sellerActions.open}
-          />
-        ) : undefined
-      }
       footer={
         ready ? (
           <ProductBuyBar
@@ -137,6 +128,19 @@ export default function ProductDetailScreen() {
       }
       overlay={
         <>
+          <ProductTopBar scrollY={scroll.scrollY} solid={!ready} onBack={goBack}>
+            {ready ? (
+              <ProductTopActions
+                isFavorite={favorite.isFavorite}
+                favoriteLoading={favorite.favoriteLoading}
+                reportOnly={reportOnly}
+                onFavorite={favorite.toggle}
+                onShare={actions.handleShare}
+                onCart={() => router.push('/cart')}
+                onMenu={reportOnly ? actions.handleReport : sellerActions.open}
+              />
+            ) : null}
+          </ProductTopBar>
           {sellerActions.reportModal}
           {ready ? (
             <>
@@ -175,7 +179,7 @@ export default function ProductDetailScreen() {
       }
     >
       {ready ? (
-        <View>
+        <ProductScrollView onScroll={scroll.onScroll} refreshing={refreshing} onRefresh={onRefresh}>
           <ProductGallery
             images={images}
             currentImage={currentImage}
@@ -204,7 +208,7 @@ export default function ProductDetailScreen() {
             <ProductReviewsPreview reviews={reviews} onSeeAll={openReviews} />
             <SimilarProductsCard title={t('product.similarProducts')} items={similar} />
           </View>
-        </View>
+        </ProductScrollView>
       ) : null}
     </PageShell>
   );

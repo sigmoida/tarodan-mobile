@@ -1,5 +1,6 @@
-# F-05: Tab navigation comprehensive — login → her bottom tab.
-# Sell/Ekle tab i18n key fallback nedeniyle özel: tab order ile gez.
+# F-05: Tab navigation comprehensive — login → her bottom tab (Ana Sayfa, Favoriler, Mesajlar, Profil;
+# + ortada İlan Ver). Arama tab değil; üst bar arama alanından açılır (subflows/open-search.yaml).
+# Sekmelere dokunma testID ile (tab-home, tab-favorites, tab-sell, tab-messages, tab-profile).
 appId: ${APP_ID}
 tags:
   - smoke
@@ -9,7 +10,7 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
       visible: "Çıkış Yap"
@@ -17,25 +18,33 @@ env:
 - runFlow: ../subflows/login-as.yaml
 # 1. Ana Sayfa
 - tapOn:
-    text: "Ana Sayfa"
+    id: "tab-home"
 - extendedWaitUntil:
     visible:
       text: "Ana Sayfa"
     timeout: 15000
 - assertNotVisible: ".*Network Error.*"
-# 2. Ara
+# 2. Favoriler
 - tapOn:
-    text: "Ara"
+    id: "tab-favorites"
 - extendedWaitUntil:
     visible:
-      id: "search-input"
+      text: "Favorilerim.*"
     timeout: 20000
+- assertNotVisible: ".*Network Error.*"
+# 2b. Arama: tab değil, üst bardaki arama alanı (tab kökünden)
+- tapOn:
+    id: "tab-home"
+- runFlow: ../subflows/open-search.yaml
 - assertVisible:
     id: "search-input"
 - assertNotVisible: ".*Network Error.*"
+# Arama yığın ekranı: tab çubuğu yok, geri oku ile tab köküne dön
+- tapOn:
+    text: "Geri"
 # 3. Mesajlar
 - tapOn:
-    text: "Mesajlar"
+    id: "tab-messages"
 - extendedWaitUntil:
     visible:
       text: "Mesajlar"
@@ -43,7 +52,7 @@ env:
 - assertNotVisible: ".*Network Error.*"
 # 4. Profil
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - extendedWaitUntil:
     visible: "zeynep@demo.com"
     timeout: 15000
@@ -51,5 +60,5 @@ env:
 - assertNotVisible: ".*Bir hata oluştu.*"
 # Geri Ana Sayfa'ya dön (clean state)
 - tapOn:
-    text: "Ana Sayfa"
+    id: "tab-home"
 - assertVisible: "Ana Sayfa"

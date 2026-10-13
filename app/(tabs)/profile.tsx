@@ -2,6 +2,7 @@ import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { tabDiag } from '@/components/_tabDiag';
 import { AppShell } from '@/components/shell/AppShell';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { Card, PageHeader, theme } from '@/ui';
 
 import { useProfile } from './_hooks/useProfile';
@@ -25,13 +26,14 @@ function ProfileScreen() {
   const { t } = useTranslation();
   // Hook sırası sabit kalsın diye erken return'den ÖNCE çağrılır (CLAUDE.md §12).
   const badges = useHomeBadges(f.isAuthenticated);
+  const tabInset = useTabBarInset();
 
   if (!f.isAuthenticated) return <ProfileGuestView f={f} />;
 
   return (
     <AppShell>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: tabInset }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -58,7 +60,7 @@ function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing[4], gap: spacing[2], paddingBottom: spacing[8] },
+  content: { padding: spacing[4], gap: spacing[2] },
   card: { overflow: 'hidden' },
 });
 
