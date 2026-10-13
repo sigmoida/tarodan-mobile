@@ -30,6 +30,7 @@
  */
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
+import { isFinalPaymentStatus } from './status';
 
 /**
  * Yedek ömür: JWT `exp` okunamazsa. Sunucudaki ömürle aynı
@@ -256,22 +257,16 @@ export async function forgetPaymentCapability(paymentId: string | undefined | nu
 }
 
 /**
- * Kesin sonuçlar: sunucu `PaymentStatus` (`completed`, `failed`, `refunded`; iptal
- * de `failed` yazar) + istemcinin bildiği eş adlar (`paid`, `success`,
- * `hold_payment`, `cancelled`). `pending`/`processing` kesin değil.
- */
-const FINAL_STATUSES = new Set(['completed', 'paid', 'success', 'hold_payment', 'failed', 'refunded', 'cancelled']);
-
-/**
- * Sonuç ekranları durumu okuduktan SONRA çağırır: durum kesinse kaydı siler,
- * değilse dokunmaz. Kart formu çağırmaz: belirteç başarı/başarısız ekranının
- * durum okuması ve confirm-failed için hâlâ gerekli. Hiç fırlatmaz.
+ * Sonuç ekranları durumu okuduktan SONRA çağırır: durum kesinse
+ * (`FINAL_PAYMENT_STATUSES`, `./status`) kaydı siler, değilse dokunmaz. Kart
+ * formu çağırmaz: belirteç başarı/başarısız ekranının durum okuması ve
+ * confirm-failed için hâlâ gerekli. Hiç fırlatmaz.
  */
 export async function forgetPaymentCapabilityIfFinal(
   paymentId: string | undefined | null,
   status: unknown,
 ): Promise<void> {
-  if (typeof status === 'string' && FINAL_STATUSES.has(status)) await forgetPaymentCapability(paymentId);
+  if (isFinalPaymentStatus(status)) await forgetPaymentCapability(paymentId);
 }
 
 async function storedCapabilityKeys(store: KeyValueStore): Promise<string[]> {

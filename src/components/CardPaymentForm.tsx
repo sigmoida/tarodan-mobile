@@ -25,6 +25,7 @@ import {
   PAYTR_ACTION,
 } from '@/lib/payment/paytrDirectForm';
 import { createVerifyPacer } from '@/lib/payment/verifyPacer';
+import { isPaidPaymentStatus } from '@/lib/payment/status';
 
 const { colors } = theme;
 
@@ -67,10 +68,6 @@ interface Props {
 }
 
 const NEW_CARD = '__new__';
-
-/** Ödeme kesinleşti mi (light status uçları). load() ile aynı: completed/failed. */
-const isPaidStatus = (s?: string) =>
-  s === 'completed' || s === 'paid' || s === 'success' || s === 'hold_payment';
 
 export default function CardPaymentForm({ target, amount, onSuccess, onFail, recurringEnabled = false, isGuest = false, paymentId: initialPaymentId }: Props) {
   const { t } = useTranslation();
@@ -139,7 +136,7 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
           : await paymentsApi.getStatusLight(paymentId);
         const data = res?.data?.data ?? res?.data ?? {};
         if (!alive) return;
-        if (isPaidStatus(data.status)) { resolveSuccess(paymentId); return; }
+        if (isPaidPaymentStatus(data.status)) { resolveSuccess(paymentId); return; }
         if (data.status === 'failed') { resolveFail(); return; }
       } catch { /* yoksay, tekrar dene */ }
       if (alive && !resolvedRef.current && tries < 40) {

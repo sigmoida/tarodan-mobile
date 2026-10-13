@@ -10,6 +10,7 @@ import type { TFunction } from 'i18next';
 import { paymentsApi } from '@/lib/api';
 import { pendingVerify, requestVerify } from '@/lib/payment/verifyPacer';
 import { forgetPaymentCapabilityIfFinal } from '@/lib/payment/paymentCapability';
+import { isPaidPaymentStatus } from '@/lib/payment/status';
 import { formatPrice } from '@/utils/format';
 import { styles } from './_success/_lib/styles';
 
@@ -24,10 +25,6 @@ const buildStatusLabels = (t: TFunction): Record<string, string> => ({
   pending: t('common.pending'),
   processing: t('payment.statusProcessing'),
 });
-
-/** Ödeme kesinleşti mi (gerçekten ödendi). Hem polling'de hem render'da kullanılır. */
-const isTerminal = (s?: string) =>
-  s === 'paid' || s === 'completed' || s === 'success' || s === 'hold_payment';
 
 interface PaymentInfo {
   id: string;
@@ -98,7 +95,7 @@ export default function PaymentSuccessScreen() {
           const data = await fetchStatus();
           last = data;
           if (!cancelled) setInfo(data);
-          if (isTerminal(data?.status)) break;
+          if (isPaidPaymentStatus(data?.status)) break;
         } catch {
           // Sessiz — success sayfasında hata kritik değil
         }
@@ -108,7 +105,7 @@ export default function PaymentSuccessScreen() {
       }
       // Yavaş verify: döngü kesinleşmeden bittiyse uçuştaki verify'ı (en fazla
       // zaman aşımı kadar) bekle; ödemeyi tamamladıysa durumu bir kez daha oku.
-      if (!cancelled && !isTerminal(last?.status) && (await pendingVerify(paymentId)) && !cancelled) {
+      if (!cancelled && !isPaidPaymentStatus(last?.status) && (await pendingVerify(paymentId)) && !cancelled) {
         try {
           last = await fetchStatus();
           if (!cancelled) setInfo(last);
@@ -140,7 +137,7 @@ export default function PaymentSuccessScreen() {
   const checkoutGroupId = groupId || info?.checkoutGroupId;
   // Başarı UI'ı yalnız ödeme GERÇEKTEN tamamlandıysa (verify/durum-sorgu) gösterilir;
   // aksi halde "doğrulanıyor" — sahte başarı basmayız (PayTR henüz kesinleştirmemiş olabilir).
-  const isCompleted = isTerminal(info?.status);
+  const isCompleted = isPaidPaymentStatus(info?.status);
 
   return (
     <SafeAreaView style={styles.container}>
