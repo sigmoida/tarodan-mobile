@@ -142,7 +142,7 @@ export function useDiscounts() {
       appAlert(isRangeError(errorKey) ? t('common.error') : t('common.missing'), t(errorKey));
       return;
     }
-    saveMutation.mutate(buildDiscountPayload(form));
+    saveMutation.mutate(buildDiscountPayload(form, !!form.id));
   };
 
   const handleDelete = (d: Discount) => {

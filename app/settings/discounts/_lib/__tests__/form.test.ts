@@ -43,6 +43,38 @@ describe('buildDiscountPayload', () => {
   });
 });
 
+describe('buildDiscountPayload — güncelleme (PATCH): temizlenen alanlar null', () => {
+  it('bogo -> yüzde: buyQuantity/getQuantity null gider (sunucuda eski değer kalmaz)', () => {
+    const p = buildDiscountPayload({ ...base(), type: 'percentage', buyQuantity: '2', getQuantity: '1' }, true);
+    expect(p.buyQuantity).toBeNull();
+    expect(p.getQuantity).toBeNull();
+    expect(p.minQuantity).toBeNull();
+  });
+  it('yüzde -> bulk: kod null (kodsuz-otomatik), minQuantity sayı; bogo alanları null', () => {
+    const p = buildDiscountPayload({ ...base(), type: 'bulk_quantity', code: 'ESKI', minQuantity: '3', value: '15' }, true);
+    expect(p.code).toBeNull();
+    expect(p.minQuantity).toBe(3);
+    expect(p.buyQuantity).toBeNull();
+    expect(p.getQuantity).toBeNull();
+  });
+  it('boşaltılan isteğe bağlı alanlar null gider; dolu olanlar sayı', () => {
+    const p = buildDiscountPayload({ ...base(), description: ' ', minCartValue: '', maxDiscountAmount: '50', usageLimitTotal: '' }, true);
+    expect(p.description).toBeNull();
+    expect(p.minCartValue).toBeNull();
+    expect(p.usageLimitTotal).toBeNull();
+    expect(p.maxDiscountAmount).toBe(50);
+  });
+  it('oluşturmada aynı alanlar null DEĞİL undefined (alan hiç gönderilmez)', () => {
+    const p = buildDiscountPayload({ ...base(), type: 'percentage', buyQuantity: '2' });
+    expect(p.buyQuantity).toBeUndefined();
+    expect(p.minCartValue).toBeUndefined();
+    expect(JSON.stringify(p)).not.toContain('null');
+  });
+  it('kod gerektiren türde dolu kod PATCH te de gider', () => {
+    expect(buildDiscountPayload({ ...base(), code: ' yaz10 ' }, true).code).toBe('yaz10');
+  });
+});
+
 describe('gösterim', () => {
   const t = (k: string, p?: Record<string, unknown>) => `${k}:${JSON.stringify(p)}`;
   const d = (o: Partial<Discount>) => ({ value: 0, type: 'percentage', ...o }) as Discount;
