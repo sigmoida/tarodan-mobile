@@ -74,6 +74,8 @@ paketi ise her yerde `com.tarodan.app`dır.
 - Özel id: `APP_ID=com.ornek.app pnpm maestro:dev ...`.
 - Doğrudan `maestro test` / Maestro Cloud'da `APP_ID` **mutlaka** `--env` ile verilmeli
   (Cloud action'ında `env:`). Değeri `bash maestro/app-id.sh <ios|android> <dev|staging>` yazar.
+  `.github/workflows/maestro-cloud.yml` bunu yapar: `app-id.sh ios staging` çıktısını action'a
+  `env: APP_ID=...` verir (özel build için repo değişkeni `MAESTRO_APP_ID`); `.app`/secret yoksa no-op.
 - Flow başlıklarına inline `env: APP_ID:` varsayılanı KOYMA: Maestro'da inline env `--env`'i ezer
   (J1 flow'larındaki not).
 - `src/config/__tests__/maestroAppId.test.ts` hiçbir flow'un sabit id taşımadığını ve
