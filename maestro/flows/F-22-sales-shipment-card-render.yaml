@@ -1,6 +1,6 @@
 # F-22: Satıcı sipariş detayında auto-Sürat tracking kartının render
 # olduğunu doğrular. Pre-req: zeynep'in en az bir sales (satılan) order'ı.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - regression
 ---

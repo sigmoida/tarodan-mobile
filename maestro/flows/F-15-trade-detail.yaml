@@ -1,6 +1,6 @@
 # F-15: Trade detail status display — ilk takasa tap → status chip + counterparty.
 # Mevcut takas fixture'ına bağımlı.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - manual
 env:

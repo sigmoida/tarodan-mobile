@@ -2,7 +2,7 @@
 
 Bu klasör mobil uygulamanın e2e test akışlarını barındırır. [Maestro](https://maestro.mobile.dev) kullanılır — YAML tabanlı.
 
-> **Önemli:** Flow'lar **Expo Go değil, dev build**'i hedefler (`appId: com.tarodan.app`).
+> **Önemli:** Flow'lar **Expo Go değil, dev build**'i hedefler (`appId: ${APP_ID}`, varsayılan `com.tarodan.app`; bkz. [Uygulama kimliği](#uygulama-kimliği-appid)).
 > Test koşumu için Metro **`EXPO_PUBLIC_MAESTRO=1`** ile başlatılmalı; bu, [authStore.loadToken](../src/stores/authStore.ts) içindeki auto-login'i açar (login UI'sını atlar). En kolay yol: **`pnpm maestro:dev <flow>`** (bkz. [run.sh](run.sh)) — backend health + booted simülatör + Metro'yu garanti edip flow'u görünür simülatörde koşar.
 
 ## Kurulum (tek seferlik)
@@ -43,11 +43,11 @@ MAESTRO_EMAIL=ahmet@demo.com pnpm maestro:dev flows/E-05-membership-manage.yaml
 ```bash
 cd apps/mobile/maestro
 
-# Tek flow
-maestro test flows/01-smoke.yaml
+# Tek flow  (APP_ID ZORUNLU: flow'lar `appId: ${APP_ID}` kullanır)
+maestro test --env APP_ID=com.tarodan.app flows/01-smoke.yaml
 
 # Tüm flow'lar (sıralı)
-maestro test flows/
+maestro test --env APP_ID=com.tarodan.app flows/
 
 # Farklı kullanıcıyla
 maestro test --env EMAIL=ahmet@demo.com flows/02-auth-login.yaml
@@ -55,6 +55,29 @@ maestro test --env EMAIL=ahmet@demo.com flows/02-auth-login.yaml
 # Studio (interactive recorder/debugger)
 maestro studio
 ```
+
+## Uygulama kimliği (`appId`)
+
+Flow ve subflow'ların hepsi `appId: ${APP_ID}` kullanır; paket/bundle id sabit yazılmaz.
+Aynı flow'lar farklı build'lere karşı koşabilsin diye: iOS'ta EAS `maestro` profili
+`.staging` ekli bundle id üretir (`com.tarodan.app.staging`, `app.config.js`), Android
+paketi ise her yerde `com.tarodan.app`dır.
+
+| Hedef | iOS | Android |
+|---|---|---|
+| `dev` (yerel dev-client, varsayılan) | `com.tarodan.app` | `com.tarodan.app` |
+| `staging` (EAS `maestro` profili build'i) | `com.tarodan.app.staging` | `com.tarodan.app` |
+
+- `pnpm maestro:dev <flow>` değeri `app-id.sh`'tan alıp `--env APP_ID=...` ile geçirir.
+  Varsayılan `dev` → **eski davranış aynen korunur**. EAS `maestro` simülatör build'ine
+  karşı: `MAESTRO_TARGET=staging pnpm maestro:dev flows/01-smoke.yaml`.
+- Özel id: `APP_ID=com.ornek.app pnpm maestro:dev ...`.
+- Doğrudan `maestro test` / Maestro Cloud'da `APP_ID` **mutlaka** `--env` ile verilmeli
+  (Cloud action'ında `env:`). Değeri `bash maestro/app-id.sh <ios|android> <dev|staging>` yazar.
+- Flow başlıklarına inline `env: APP_ID:` varsayılanı KOYMA: Maestro'da inline env `--env`'i ezer
+  (J1 flow'larındaki not).
+- `src/config/__tests__/maestroAppId.test.ts` hiçbir flow'un sabit id taşımadığını ve
+  `app-id.sh` tablosunun `app.json` / `app.config.js` ile aynı kaldığını doğrular.
 
 ## Tag stratejisi
 

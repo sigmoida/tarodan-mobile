@@ -5,7 +5,7 @@
 # Engel kalıcı ve simetrik olduğu için akış SONUNDA engeli kaldırır (staging
 # verisi kirlenmesin). Metin seçicileri regex: iOS hiyerarşisi etiketleri
 # ", Sepete Ekle" gibi baştaki virgülle veriyor, Maestro ise TAM eşliyor.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - regression
 env:

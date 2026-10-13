@@ -1,7 +1,7 @@
-appId: com.tarodan.app
+appId: ${APP_ID}
 ---
 - launchApp:
-    appId: com.tarodan.app
+    appId: ${APP_ID}
     clearState: false
 - waitForAnimationToEnd:
     timeout: 5000

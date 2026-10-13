@@ -3,13 +3,13 @@
 # durumu UI'da doğrulanır.
 # Ön koşul (orkestrator): REG_EMAIL ile giriş yapılmış olabilir; değilse login.
 # Sipariş driver tarafından 'delivered' duruma getirilmiş olmalı.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - manual
 # REG_EMAIL / REG_PASSWORD orkestratörden --env ile gelir (inline env --env'i ezer).
 ---
 - launchApp:
-    appId: com.tarodan.app
+    appId: ${APP_ID}
     clearState: false
 - waitForAnimationToEnd:
     timeout: 5000

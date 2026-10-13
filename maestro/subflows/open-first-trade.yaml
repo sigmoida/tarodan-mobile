@@ -1,6 +1,6 @@
 # Profil → Takaslarım → ilk takas kartını aç.
 # Pre-req: kullanıcı login + en az bir takas seed'li.
-appId: com.tarodan.app
+appId: ${APP_ID}
 ---
 - tapOn:
     text: "Profil"
