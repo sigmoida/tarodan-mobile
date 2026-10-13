@@ -13,6 +13,7 @@ export {
 	type IconButtonProps,
 	type IconButtonVariant,
 	type IconButtonSize,
+	iconButtonBoxSize,
 } from './components/IconButton';
 export {
 	Text,

@@ -155,3 +155,26 @@ describe('Modal: kapatma yolları seçeneklerden bağımsız', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('MODAL_CLOSE_HEADER_HEIGHT: IconButton ölçüsünden türer', () => {
+  it('düğme kutusu (sm) + dikey iç boşluk; düğme boyutu değişirse birlikte değişir', () => {
+    const { MODAL_CLOSE_HEADER_HEIGHT } = jest.requireActual('../Modal');
+    const { iconButtonBoxSize } = jest.requireActual('../IconButton');
+    const { theme } = jest.requireActual('../../lib/theme');
+    expect(MODAL_CLOSE_HEADER_HEIGHT).toBe(iconButtonBoxSize('sm') + 2 * theme.spacing[2]);
+  });
+
+  it('gerçek düğme kutusu, yükseklik hesabındaki ölçüyle aynı', () => {
+    const { MODAL_CLOSE_HEADER_HEIGHT } = jest.requireActual('../Modal');
+    const { iconButtonBoxSize } = jest.requireActual('../IconButton');
+    const { getByTestId } = render(
+      <Modal isOpen onClose={jest.fn()} showCloseButton>
+        <Text>içerik</Text>
+      </Modal>,
+    );
+    const st = StyleSheet.flatten(getByTestId('modal-close').props.style as never) as { width: number; height: number };
+    expect(st.width).toBe(iconButtonBoxSize('sm'));
+    expect(st.height).toBe(iconButtonBoxSize('sm'));
+    expect(MODAL_CLOSE_HEADER_HEIGHT).toBeGreaterThan(st.height);
+  });
+});

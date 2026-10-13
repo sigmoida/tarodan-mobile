@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { theme } from '../lib/theme';
-import { IconButton } from './IconButton';
+import { IconButton, iconButtonBoxSize, type IconButtonSize } from './IconButton';
 
 /** Kart genişliği: `md` (varsayılan) 480pt, `lg` 512pt (web `max-w-lg`). */
 export type ModalSize = 'md' | 'lg';
@@ -40,8 +40,11 @@ export interface ModalProps {
 
 const { colors, radius, spacing, typography } = theme;
 
-/** Yalnız kapat düğmesi olan başlık satırının yüksekliği (düğme 32 + dikey iç boşluk). */
-export const MODAL_CLOSE_HEADER_HEIGHT = 32 + 2 * spacing[2];
+/** Kapat düğmesinin boyutu — başlık satırı yüksekliği de bundan türer. */
+const CLOSE_BUTTON_SIZE: IconButtonSize = 'sm';
+
+/** Yalnız kapat düğmesi olan başlık satırının yüksekliği (düğme + dikey iç boşluk). */
+export const MODAL_CLOSE_HEADER_HEIGHT = iconButtonBoxSize(CLOSE_BUTTON_SIZE) + 2 * spacing[2];
 
 export const Modal: React.FC<ModalProps> = ({
   isOpen,
@@ -79,7 +82,7 @@ export const Modal: React.FC<ModalProps> = ({
                 {showCloseButton && (
                   <IconButton
                     icon="close"
-                    size="sm"
+                    size={CLOSE_BUTTON_SIZE}
                     accessibilityLabel={closeLabel ?? 'Close'}
                     onPress={onClose}
                     testID="modal-close"
