@@ -1,5 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
-import { BackHandler } from 'react-native';
+import type { ReactNode } from 'react';
 import { router, usePathname } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useRequiredSteps } from '@/hooks/useRequiredSteps';
@@ -14,8 +13,9 @@ import { RequiredStepVisibleProvider } from './RequiredStepShell';
  * tamamlanması gereken adımlar `REQUIRED_STEPS` sırasıyla, HER SEFERİNDE
  * YALNIZ BİRİ tam ekran gösterilir.
  *
- * Kapatılamaz: Android geri tuşu kapı açıkken yutulur; tek çıkış adımı
- * tamamlamak ya da oturumu kapatmaktır. Yasal metin sayfaları muaftır ki üye
+ * Kapatılamaz: kabuk native tam ekran bir Modal'dır (`FullScreenGate`), açık
+ * ekran modallarının ve uyarıların üstünde kalır; Android geri tuşu yutulur.
+ * Tek çıkış adımı tamamlamak ya da oturumu kapatmaktır. Yasal metin sayfaları muaftır ki üye
  * onaylayacağı metni okuyabilsin (geri dönünce kapı yeniden görünür).
  */
 export default function RequiredStepsGate() {
@@ -24,12 +24,6 @@ export default function RequiredStepsGate() {
   const logout = useAuthStore((s) => s.logout);
 
   const visible = active !== null && !isLegalTextPath(pathname);
-
-  useEffect(() => {
-    if (!visible) return undefined;
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
-    return () => sub.remove();
-  }, [visible]);
 
   if (active === null) return null;
 

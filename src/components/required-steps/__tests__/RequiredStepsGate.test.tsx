@@ -4,7 +4,7 @@
  * ya da oturumu kapatmak. Web `RequiredStepsGate` + `ConsentGate` ile aynı kurallar.
  */
 import React from 'react';
-import { AppState, BackHandler } from 'react-native';
+import { AppState, Modal } from 'react-native';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 import { pushMock, replaceMock, resetRouterMocks } from '@/test-utils/router-mock';
@@ -245,14 +245,17 @@ describe('B-2.3 · RequiredStepsGate (onay kapısı)', () => {
     expect(screen.getByTestId('consent-gate')).toBeOnTheScreen();
   });
 
-  it('Android geri tuşu kapı açıkken yutulur', async () => {
-    const spy = jest.spyOn(BackHandler, 'addEventListener');
+  it('native tam ekran Modal olarak sunulur; Android geri tuşu yutulur', async () => {
     mockGetPending.mockResolvedValue({ data: { pending: ALL } });
     renderWithProviders(<RequiredStepsGate />);
     await screen.findByTestId('consent-gate');
-    const handler = spy.mock.calls.find((c) => c[0] === 'hardwareBackPress')?.[1];
-    expect(handler?.()).toBe(true);
-    spy.mockRestore();
+    // Kök düzendeki düz bir View açık ekran modallarının altında kalıyordu;
+    // kapı artık kendisi bir native Modal.
+    const modal = screen.UNSAFE_getByType(Modal);
+    expect(modal.props.visible).toBe(true);
+    expect(modal.props.statusBarTranslucent).toBe(true);
+    act(() => modal.props.onRequestClose());
+    expect(screen.getByTestId('consent-gate')).toBeOnTheScreen();
   });
 
   it('girişte GET /consents/me/pending yalnız bir kez gider (giriş penceresi / parola sorusu sıçramaları)', async () => {

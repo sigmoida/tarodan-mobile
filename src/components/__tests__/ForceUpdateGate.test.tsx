@@ -5,11 +5,11 @@
  * (Version comparison itself is server-side / #232 — mocked here via the hook.)
  */
 import React from "react";
-import { Linking, StyleSheet } from "react-native";
+import { Linking, Text } from "react-native";
 import { screen, fireEvent } from "@testing-library/react-native";
 import ForceUpdateGate from "../ForceUpdateGate";
 import { renderWithProviders } from "../../test-utils";
-import { fullScreenGateZIndex } from "../common/FullScreenGate";
+import { FullScreenGate } from "../common/FullScreenGate";
 
 let mockState: {
   updateRequired: boolean;
@@ -49,16 +49,19 @@ describe("ForceUpdateGate (#233)", () => {
     expect(screen.getByText("Şimdi güncelle")).toBeTruthy();
   });
 
-  it("uses the shared FullScreenGate on the top layer (above required steps)", () => {
+  it("is presented above the required-steps gate (shared FullScreenGate order)", () => {
     mockState.updateRequired = true;
-    renderWithProviders(<ForceUpdateGate />);
-    const gate = screen.getByTestId("force-update-gate");
-    expect(StyleSheet.flatten(gate.props.style).zIndex).toBe(
-      fullScreenGateZIndex("forceUpdate"),
+    renderWithProviders(
+      <>
+        <FullScreenGate layer="requiredSteps">
+          <Text>onay</Text>
+        </FullScreenGate>
+        <ForceUpdateGate />
+      </>,
     );
-    expect(fullScreenGateZIndex("forceUpdate")).toBeGreaterThan(
-      fullScreenGateZIndex("requiredSteps"),
-    );
+    expect(screen.getByTestId("force-update-gate")).toBeTruthy();
+    expect(screen.getByText("Güncelleme gerekli")).toBeTruthy();
+    expect(screen.queryByText("onay")).toBeNull();
   });
 
   it("opens the store URL when the update button is pressed", () => {
