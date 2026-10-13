@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { toast } from "@/ui";
 import { supportApi } from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { useTranslation } from "react-i18next";
@@ -7,8 +8,8 @@ import { buildFaqCategories } from "../_lib/faq";
 
 /**
  * Help center controller — owns the FAQ search/accordion state, the contact
- * form state + validation + submit (guest vs. authenticated ticket), and the
- * snackbar. Lifted verbatim from the monolithic HelpScreen.
+ * form state + validation + submit (guest vs. authenticated ticket). Lifted verbatim from
+ * the monolithic HelpScreen; feedback moved from the Snackbar to `toast` (web react-hot-toast).
  */
 export function useHelp() {
   const { t } = useTranslation();
@@ -22,16 +23,10 @@ export function useHelp() {
   const [contactEmail, setContactEmail] = useState("");
   const [contactMessage, setContactMessage] = useState("");
   const [contactSubmitting, setContactSubmitting] = useState(false);
-  const [snackbarVisible, setSnackbarVisible] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarVariant, setSnackbarVariant] = useState<"success" | "danger">(
-    "danger",
-  );
 
   const showSnack = (message: string, variant: "success" | "danger") => {
-    setSnackbarMessage(message);
-    setSnackbarVariant(variant);
-    setSnackbarVisible(true);
+    if (variant === "success") toast.success(message);
+    else toast.error(message);
   };
 
   const handleSearch = (query: string) => {
@@ -128,11 +123,6 @@ export function useHelp() {
     setContactMessage,
     contactSubmitting,
     handleSubmitContact,
-    // snackbar
-    snackbarVisible,
-    setSnackbarVisible,
-    snackbarMessage,
-    snackbarVariant,
   };
 }
 
