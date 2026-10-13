@@ -72,8 +72,8 @@ describe('Android paket adı — staging .staging alır, production almaz', () =
     expect((appJson as any).expo.android.googleServicesFile).toBe('./google-services.json');
   });
 
-  it('staging uygulama adı "(Staging)" taşır, production taşımaz', () => {
-    expect(withEnv('preview').name).toMatch(/\(Staging\)$/);
+  it('staging ana ekran adı kısa "Staging", production "Tarodan"', () => {
+    expect(withEnv('preview').name).toBe('Staging');
     expect(withEnv('production').name).toBe('Tarodan');
   });
 
