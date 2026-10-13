@@ -90,7 +90,15 @@ describe('eas.json — maestro profili preview\'dan türer, ayrı kanalı vardı
   });
 
   it('iOS Maestro build\'i simülatör (Maestro gerçek iOS cihaza bağlanmaz)', () => {
-    expect(eas.build.maestro!.ios).toEqual({ simulator: true });
+    expect(eas.build.maestro!.ios?.simulator).toBe(true);
+  });
+
+  it('sürüm numarası yakmaz: iOS buildNumber ve Android versionCode artmaz', () => {
+    // preview autoIncrement açık; extends bunu devralırdı.
+    expect(eas.build.preview!.ios?.autoIncrement).toBeTruthy();
+    expect(eas.build.preview!.android?.autoIncrement).toBeTruthy();
+    expect(eas.build.maestro!.ios?.autoIncrement).toBe(false);
+    expect(eas.build.maestro!.android?.autoIncrement).toBe(false);
   });
 });
 

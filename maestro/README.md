@@ -227,6 +227,9 @@ olmamalı**. Bu iş için `eas.json`'da `preview`'dan türeyen ayrı bir profil 
 
   (`EXPO_PUBLIC_*` değerleri her halükarda bundle'a gömülür; bu yüzden test hesabı yalnız
   staging'de geçerli, üretim verisi olmayan bir hesap olmalıdır. Production hesabı KULLANMA.)
+- Maestro build'leri sürüm numarası yakmaz: profilde `ios.autoIncrement` ve `android.autoIncrement`
+  `false`. (`preview`/`production` her build'de `buildNumber` / `versionCode` artırır; `extends`
+  bunu devralırdı, test koşumları mağaza sayaçlarını tüketmemeli.)
 - Bayrak ve profil koruması `src/config/__tests__/easProfiles.test.ts` ile çivilidir:
   `development`/`preview`/`staging`/`production` profillerinde ve `.github/workflows/*`
   içinde `EXPO_PUBLIC_MAESTRO*` bulunursa test kırılır; `maestro` profili `preview`'dan

@@ -44,7 +44,11 @@
       "channel": "maestro",
       "environment": "maestro",
       "ios": {
-        "simulator": true
+        "simulator": true,
+        "autoIncrement": false
+      },
+      "android": {
+        "autoIncrement": false
       },
       "env": {
         "EXPO_PUBLIC_MAESTRO": "1"
