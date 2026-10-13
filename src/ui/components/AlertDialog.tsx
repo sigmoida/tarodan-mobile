@@ -306,9 +306,14 @@ export const AlertDialogHost: React.FC<AlertDialogHostProps> = ({ suspended = fa
 
   const { title, message, buttons, options } = current;
   const cancelable = options?.cancelable ?? false;
-  // Web ConfirmDialog'un telefon görünümü (`flex-col-reverse`): düğmeler tam genişlik, alt
-  // alta ve TERS sırada — RN sırası [İptal, Onayla] ise ana aksiyon üstte, İptal altta.
-  const ordered = buttons.map((button, index) => ({ button, index })).reverse();
+  // Web ConfirmDialog'un telefon görünümü: düğmeler tam genişlik, alt alta; `cancel` stilli düğme
+  // HER ZAMAN en altta (onay üstte, iptal altta). Diğerlerinin sırası çağıranın verdiği gibi
+  // KORUNUR (ters çevirme yok) — [Profil, Şikayet, Engelle, İptal] menüsü aynı sırada kalır.
+  const indexed = buttons.map((button, index) => ({ button, index }));
+  const ordered = [
+    ...indexed.filter(({ button }) => button.style !== 'cancel'),
+    ...indexed.filter(({ button }) => button.style === 'cancel'),
+  ];
 
   return (
     <>

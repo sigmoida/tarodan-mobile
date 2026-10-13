@@ -1,6 +1,7 @@
 /**
  * appAlert düğme dizilimi web ConfirmDialog'un telefon görünümü gibi: tam genişlik, alt alta,
- * TERS sıra (ana aksiyon üstte, İptal altta). İptal = outline, yıkıcı = danger-600.
+ * ana aksiyon üstte, `cancel` stilli düğme HER ZAMAN altta; diğerlerinin sırası çağıranınki gibi
+ * korunur (ters çevirme yok). İptal = outline, yıkıcı = danger-600.
  */
 import React from 'react';
 import { StyleSheet } from 'react-native';
@@ -35,5 +36,53 @@ describe('appAlert düğme dizilimi', () => {
     expect(second).toHaveTextContent('İptal');
     expect(pressableStyle('Sil').backgroundColor).toBe(theme.colors.danger[600]);
     expect(pressableStyle('İptal')).toMatchObject({ borderWidth: 1, backgroundColor: 'transparent' });
+  });
+
+  const order = () =>
+    screen
+      .getAllByRole('button')
+      .map((el) => el.findAll((n) => typeof n.props.children === 'string')[0]?.props.children as string);
+
+  it('menü [Profil, Şikayet, Engelle(destructive), İptal] → aynı sıra, İptal en altta', () => {
+    render(<AlertDialogHost />);
+    act(() => {
+      appAlert('Kullanıcı', undefined, [
+        { text: 'Profil' },
+        { text: 'Şikayet' },
+        { text: 'Engelle', style: 'destructive' },
+        { text: 'İptal', style: 'cancel' },
+      ]);
+    });
+    expect(order()).toEqual(['Profil', 'Şikayet', 'Engelle', 'İptal']);
+  });
+
+  it('[Giriş, İptal] → Giriş üstte, İptal altta (ters çevrilmez)', () => {
+    render(<AlertDialogHost />);
+    act(() => {
+      appAlert('Giriş gerekli', 'Devam için giriş yapın', [
+        { text: 'Giriş' },
+        { text: 'İptal', style: 'cancel' },
+      ]);
+    });
+    expect(order()).toEqual(['Giriş', 'İptal']);
+  });
+
+  it('[İptal, Onay] 2\'li onay → Onay üstte, İptal altta', () => {
+    render(<AlertDialogHost />);
+    act(() => {
+      appAlert('Emin misiniz?', undefined, [
+        { text: 'İptal', style: 'cancel' },
+        { text: 'Onay' },
+      ]);
+    });
+    expect(order()).toEqual(['Onay', 'İptal']);
+  });
+
+  it('iptal düğmesi yoksa çağıran sırası aynen korunur', () => {
+    render(<AlertDialogHost />);
+    act(() => {
+      appAlert('Bilgi', undefined, [{ text: 'A' }, { text: 'B' }, { text: 'C' }]);
+    });
+    expect(order()).toEqual(['A', 'B', 'C']);
   });
 });
