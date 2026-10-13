@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Modal as RNModal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -8,6 +9,7 @@ import {
 } from 'react-native';
 import i18n from 'i18next';
 import { theme } from '../lib/theme';
+import { MODAL_CLOSE_DELAY_MS, MODAL_DISMISS_TIMEOUT_MS } from '../lib/modal-timing';
 
 /**
  * Düğme verilmeyen uyarının varsayılan etiketi — arayüz dilinde. Eskiden sabit
@@ -69,18 +71,23 @@ const { colors, radius, spacing, typography } = theme;
 
 export const AlertDialogHost: React.FC = () => {
   const [current, setCurrent] = useState<AlertDialogRequest | null>(null);
-  // Kuyruk sadece fonksiyonel updater'larla okunur/yazılır.
-  const [, setPending] = useState<AlertDialogRequest[]>([]);
+  // Diyalog kapanıyor (RNModal `visible=false`) ama henüz tamamen kalkmadı.
+  const [closing, setClosing] = useState(false);
+  // Senkron okunması gereken durum ref'te: listener bir kez kurulur, state'i görmez.
+  const busyRef = useRef(false); // bir diyalog gösteriliyor ya da kapanıyor
+  const pendingRef = useRef<AlertDialogRequest[]>([]);
+  const afterCloseRef = useRef<(() => void) | null>(null);
+  const closingRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     listener = (request) => {
-      setCurrent((prev) => {
-        if (prev) {
-          setPending((q) => [...q, request]);
-          return prev;
-        }
-        return request;
-      });
+      if (busyRef.current) {
+        pendingRef.current.push(request);
+        return;
+      }
+      busyRef.current = true;
+      setCurrent(request);
     };
     // Flush alerts fired before the host mounted
     while (queue.length) {
@@ -88,25 +95,45 @@ export const AlertDialogHost: React.FC = () => {
     }
     return () => {
       listener = null;
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
 
+  /**
+   * Kapanış BİTTİ: sıradaki diyalog (varsa) açılır, sonra düğmenin `onPress`'i çalışır.
+   * Birden çok kez çağrılabilir (iOS `onDismiss` + yedek zamanlayıcı) — yalnız ilki işler.
+   * ModalFreeze: `onPress` ve sıradaki diyalog RNModal tamamen kalkmadan çalışırsa, bunların
+   * açtığı yeni modal iOS'ta kapanmakta olan modalın üstüne biner ve ekran donar.
+   */
+  const finishClose = () => {
+    if (!closingRef.current) return;
+    closingRef.current = false;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = null;
+    const afterClose = afterCloseRef.current;
+    afterCloseRef.current = null;
+    const next = pendingRef.current.shift() ?? null;
+    busyRef.current = !!next;
+    setClosing(false);
+    setCurrent(next);
+    afterClose?.();
+  };
+
   const close = (button?: AlertDialogButton) => {
-    setCurrent(null);
-    setPending((q) => {
-      if (q.length) {
-        const [next, ...rest] = q;
-        // Defer so the previous modal finishes dismissing first
-        setTimeout(() => setCurrent(next), 50);
-        return rest;
-      }
-      return q;
-    });
-    if (button) {
-      button.onPress?.();
-    } else {
-      current?.options?.onDismiss?.();
-    }
+    if (!current || closingRef.current) return; // çift basış: ikinci kapanış yok
+    closingRef.current = true;
+    const request = current;
+    afterCloseRef.current = () => {
+      if (button) button.onPress?.();
+      else request.options?.onDismiss?.();
+    };
+    setClosing(true);
+    // iOS: `onDismiss` gelince biter. Android'de olay yok -> sabit süre. iOS'ta da
+    // `onDismiss` gelmezse akış askıda kalmasın diye üst sınır.
+    timerRef.current = setTimeout(
+      finishClose,
+      Platform.OS === 'ios' ? MODAL_DISMISS_TIMEOUT_MS : MODAL_CLOSE_DELAY_MS,
+    );
   };
 
   if (!current) return null;
@@ -117,7 +144,8 @@ export const AlertDialogHost: React.FC = () => {
 
   return (
     <RNModal
-      visible
+      visible={!closing}
+      onDismiss={finishClose}
       transparent
       animationType="fade"
       statusBarTranslucent

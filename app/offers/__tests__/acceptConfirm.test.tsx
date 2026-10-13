@@ -3,11 +3,12 @@
  * gösterir (satıcı / alıcı metni, ödeme süresi politikadan), onaylanınca API'ye gider;
  * vazgeçilirse gitmez. Kabul edilmiş ödenmemiş teklifte "ilk ödeyen alır" notu.
  * Diyalog `appAlert`'tir (jest.setup'ta global mock): önce kapanır, mutasyon yalnız onay
- * düğmesinin `onPress`'inden sonra çalışır (ModalFreeze: açık diyalogla çakışmaz).
+ * düğmesinin `onPress`'inden sonra çalışır. ModalFreeze gecikmesi `AlertDialogHost`'tadır
+ * (`src/ui/components/__tests__/alertDialogModalFreeze.test.tsx`); çağrı yeri ayrıca beklemez.
  */
 import React from 'react';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { appAlert, MODAL_CLOSE_DELAY_MS } from '@/ui';
+import { appAlert } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
 
 jest.mock('@/lib/api', () => ({
@@ -118,48 +119,6 @@ describe('liste: satıcı gelen teklifi kabul eder', () => {
   });
 });
 
-/**
- * ModalFreeze: `AlertDialogHost.close()` `onPress`'i diyalog kapanırken aynı tick'te çağırır.
- * Mutasyon hemen başlarsa hızlı bir hatanın `appAlert`'i kapanmakta olan diyaloğun üstüne
- * yeni modal açıp iOS'u dondurur -> onaydan sonra mutasyon modal kapanma süresi kadar gecikir.
- */
-describe('onay sonrası mutasyon gecikmeli başlar (ModalFreeze)', () => {
-  afterEach(() => jest.useRealTimers());
-
-  const confirmThen = async (press: () => void) => {
-    jest.useFakeTimers();
-    press();
-    act(() => lastConfirm().confirm.onPress());
-    // Aynı tick'te çalışmaz.
-    await act(async () => {});
-    expect(accept).not.toHaveBeenCalled();
-    await act(async () => {
-      jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS - 1);
-    });
-    expect(accept).not.toHaveBeenCalled();
-    await act(async () => {
-      jest.advanceTimersByTime(1);
-    });
-    expect(accept).toHaveBeenCalledWith('o1');
-  };
-
-  it('liste', async () => {
-    getAll.mockResolvedValue({ data: { data: [base()] } });
-    mount(<OffersScreen />);
-    await screen.findByText('Vintage Kamera');
-    await flushPolicy();
-    await confirmThen(() => fireEvent.press(screen.getByText('Kabul Et')));
-  });
-
-  it('detay', async () => {
-    getOne.mockResolvedValue({ data: { data: base() } });
-    mount(<OfferDetailScreen />);
-    await screen.findByText('Vintage Kamera');
-    await flushPolicy();
-    await confirmThen(() => fireEvent.press(screen.getByText('Kabul Et')));
-  });
-});
-
 describe('liste: alıcı karşı teklifi kabul eder', () => {
   it('alıcı sürümü metni gösterilir', async () => {
     mockTab = 'sent';
@@ -265,7 +224,6 @@ describe('reddet ve iptal onay ister (liste = detay = web)', () => {
     title: string,
     body: RegExp,
   ) => {
-    jest.useFakeTimers();
     press();
     const c = lastConfirm();
     expect(c.title).toBe(title);
@@ -276,13 +234,9 @@ describe('reddet ve iptal onay ister (liste = detay = web)', () => {
     expect((c.confirm as { style?: string }).style).toBe('destructive');
     expect(api).not.toHaveBeenCalled();
 
+    // Gecikme `AlertDialogHost`'ta: onPress çağrıldığında diyalog zaten kapanmıştır.
     act(() => c.confirm.onPress());
-    await act(async () => {});
-    expect(api).not.toHaveBeenCalled(); // aynı tick'te değil (ModalFreeze)
-    await act(async () => {
-      jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS);
-    });
-    expect(api).toHaveBeenCalledWith('o1');
+    await waitFor(() => expect(api).toHaveBeenCalledWith('o1'));
   };
 
   it('liste (gelen): Reddet', async () => {

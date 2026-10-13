@@ -2,6 +2,9 @@ import { useCallback, useState } from 'react';
 import { Text, StyleSheet } from 'react-native';
 import { theme } from './lib/theme';
 import { appAlert, type AlertDialogButton } from './components/AlertDialog';
+import { MODAL_CLOSE_DELAY_MS } from './lib/modal-timing';
+
+export { MODAL_CLOSE_DELAY_MS };
 
 const { colors, spacing, typography } = theme;
 
@@ -47,9 +50,6 @@ export function alertAfterClose(
   close();
   runAfterModalClose(() => appAlert(title, message, buttons), delayMs);
 }
-
-/** Modal'ın kapanma animasyonunun bitmesi için beklenen süre. */
-export const MODAL_CLOSE_DELAY_MS = 400;
 
 /** Modal kapatıldıktan SONRA bir sonraki adımı (appAlert, başka bir Modal)
  *  çalıştırır — aynı tick'te açmak iOS'ta donmaya yol açıyor (CLAUDE.md §12).
