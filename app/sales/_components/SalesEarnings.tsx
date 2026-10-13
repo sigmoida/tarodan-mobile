@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Card, Text } from '@/ui';
+import { SectionCard, Text, theme } from '@/ui';
 import { styles } from '../_lib/styles';
 import { formatPrice } from '@/utils/format';
 
@@ -14,18 +14,18 @@ export function SalesEarnings({
 }) {
   const { t } = useTranslation();
   return (
-    <Card variant="elevated" style={styles.earningsCard}>
-      <View style={styles.earningsContent}>
-        <View style={styles.earningItem}>
-          <Text variant="caption" style={styles.earningLabel}>{t('sale.earningsCompleted')}</Text>
-          <Text variant="h3" style={styles.earningValue}>{formatPrice(totalEarnings)}</Text>
-        </View>
-        <View style={styles.earningDivider} />
-        <View style={styles.earningItem}>
-          <Text variant="caption" style={styles.earningLabel}>{t('sale.earningsPending')}</Text>
-          <Text variant="h3" style={styles.earningValuePending}>{formatPrice(pendingEarnings)}</Text>
-        </View>
+    <SectionCard bodyStyle={styles.earnings}>
+      <View style={styles.earningItem}>
+        <Text variant="bodySm" tone="muted">{t('sale.earningsCompleted')}</Text>
+        <Text variant="h3" weight="bold" tone="success">{formatPrice(totalEarnings)}</Text>
       </View>
-    </Card>
+      <View style={styles.earningDivider} />
+      <View style={styles.earningItem}>
+        <Text variant="bodySm" tone="muted">{t('sale.earningsPending')}</Text>
+        <Text variant="h3" weight="bold" style={{ color: theme.colors.warning[600]! }}>
+          {formatPrice(pendingEarnings)}
+        </Text>
+      </View>
+    </SectionCard>
   );
 }

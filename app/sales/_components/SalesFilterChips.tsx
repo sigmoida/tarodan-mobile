@@ -1,4 +1,4 @@
-import { View, ScrollView } from 'react-native';
+import { ScrollView } from 'react-native';
 import { Chip } from '@/ui';
 import { styles } from '../_lib/styles';
 import { SALE_FILTERS, useStatusLabel } from '../_lib/status';
@@ -14,19 +14,16 @@ export function SalesFilterChips({
 }) {
   const getStatusLabel = useStatusLabel();
   return (
-    <View style={styles.filterContainer}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {SALE_FILTERS.map((f) => (
-          <Chip
-            key={f}
-            label={getStatusLabel(f)}
-            selected={filter === f}
-            variant="primary"
-            onPress={() => onSelect(f)}
-            style={styles.filterChip}
-          />
-        ))}
-      </ScrollView>
-    </View>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
+      {SALE_FILTERS.map((f) => (
+        <Chip
+          key={f}
+          label={getStatusLabel(f)}
+          selected={filter === f}
+          variant="primary"
+          onPress={() => onSelect(f)}
+        />
+      ))}
+    </ScrollView>
   );
 }
