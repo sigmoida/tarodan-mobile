@@ -1,10 +1,10 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { Ionicons } from '@expo/vector-icons';
 import { Alert, Button, Text, theme } from '@/ui';
+import { FullScreenGate, FullScreenGateIcon } from '@/components/common/FullScreenGate';
 
-const { colors, spacing, radius } = theme;
+const { colors, spacing } = theme;
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -45,8 +45,9 @@ export interface RequiredStepShellProps {
 }
 
 /**
- * Zorunlu adımların ortak tam ekran kabuğu. ui `Modal` DEĞİL, kök düzende
- * mutlak konumlu bir katman (ForceUpdateGate gibi): iOS ModalFreeze riski yok
+ * Zorunlu adımların ortak tam ekran kabuğu. Yüzey ve z-sırası ortak
+ * `FullScreenGate`ten (katman `requiredSteps`, `ForceUpdateGate`in altında).
+ * ui `Modal` DEĞİL: iOS ModalFreeze riski yok
  * (gönderim hatası `appAlert` yerine kabuğun içinde `error` olarak gösterilir)
  * ve yasal metin sayfasına geçildiğinde katman yalnızca gizlenir. Kapatılamaz: arka
  * plana dokunmak ya da kaydırmak hiçbir şeyi kapatmaz, Android geri tuşunu
@@ -62,19 +63,12 @@ export function RequiredStepShell({
   secondary,
   testID,
 }: RequiredStepShellProps) {
-  const insets = useSafeAreaInsets();
   const visible = useRequiredStepVisible();
   if (!visible) return null;
   return (
-    <View
-      style={[styles.overlay, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
-      accessibilityViewIsModal
-      testID={testID}
-    >
+    <FullScreenGate layer="requiredSteps" testID={testID}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.iconCircle}>
-          <Ionicons name={icon} size={40} color={colors.primary[600]!} />
-        </View>
+        <FullScreenGateIcon name={icon} />
         <Text variant="h2" align="center" style={styles.title} accessibilityRole="header">
           {title}
         </Text>
@@ -109,33 +103,16 @@ export function RequiredStepShell({
           testID={secondary.testID}
         />
       </View>
-    </View>
+    </FullScreenGate>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    // ForceUpdateGate (9999) bunun üstünde kalmalı: güncelleme zorunluysa önce o.
-    zIndex: 9000,
-    elevation: 9000,
-    backgroundColor: colors.surface.DEFAULT,
-  },
   content: {
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: spacing[6],
     paddingVertical: spacing[6],
-  },
-  iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: radius.full,
-    backgroundColor: colors.primary[50]!,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    marginBottom: spacing[4],
   },
   title: { marginBottom: spacing[2] },
   intro: { marginBottom: spacing[6] },
