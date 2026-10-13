@@ -19,6 +19,12 @@ jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
 }));
 
+// AppShell marka barı sayaçları (sepet deposu + bildirim sorgusu) bu süitin konusu değil.
+jest.mock('@/components/shell/useShellCounts', () => ({
+  useShellCounts: () => ({ cartCount: 0, notificationCount: 0 }),
+}));
+jest.mock('expo-status-bar', () => ({ setStatusBarStyle: jest.fn() }));
+
 import { ProfileGuestView } from '../_components/ProfileGuestView';
 
 const f: any = {
@@ -34,7 +40,7 @@ describe('Android: misafir Profil sekmesi — Premium kartı yerinde', () => {
   it('fiyat ve düğme görünür', () => {
     render(<ProfileGuestView f={f} />);
     expect(screen.getByText('Premium Üyelik')).toBeTruthy();
-    expect(screen.getByText('₺99')).toBeTruthy();
+    expect(screen.getByText('99,00 TL')).toBeTruthy();
     expect(screen.getByText('Premium Ol')).toBeTruthy();
   });
 });

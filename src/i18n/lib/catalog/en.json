@@ -2289,7 +2289,26 @@
       "emptyDescription": "Your expired listings are listed here."
     },
     "deleteBlockedManageListings": "Manage my listings",
-    "deleteBlockedReservedNote": "{count} of your listings are reserved for a sale, so they cannot be closed or deleted right now. This block clears once the sale is completed or cancelled; you can follow it under My Sales."
+    "deleteBlockedReservedNote": "{count} of your listings are reserved for a sale, so they cannot be closed or deleted right now. This block clears once the sale is completed or cancelled; you can follow it under My Sales.",
+    "sidebar": {
+      "alisveris": "Alışveriş",
+      "indirimlerim": "İndirimlerim",
+      "finans": "Finans",
+      "odemelerim": "Ödemelerim",
+      "odemeYontemleri": "Ödeme Yöntemleri",
+      "iadeTalepleri": "İade Talepleri",
+      "koleksiyon": "Koleksiyon",
+      "takipEttiklerim": "Takip Ettiklerim",
+      "kayitliAramalar": "Kayıtlı Aramalar",
+      "analiz": "Analiz",
+      "istatistikler": "İstatistikler",
+      "analitik": "Analitik",
+      "iletisim": "İletişim",
+      "hesap": "Hesap",
+      "isletme": "İşletme",
+      "guvenlik": "Güvenlik",
+      "engellenenler": "Blocked Users"
+    }
   },
   "review": {
     "reviews": "Reviews",
