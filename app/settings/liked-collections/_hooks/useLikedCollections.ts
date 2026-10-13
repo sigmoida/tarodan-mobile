@@ -24,10 +24,13 @@ export function useLikedCollections() {
     queryFn: async () => {
       try {
         const response = await collectionsApi.getLikedCollections();
+        const result = response.data?.collections || response.data?.data || response.data || [];
+        // Yalnız sayı: yanıt gövdesi (başlık, kullanıcı alanları) ne basılır ne de
+        // release'te boşuna stringify edilir (`logger.debug` argümanı her zaman hesaplanır).
         logger.debug('Liked collections response', {
-          body: JSON.stringify(response.data).substring(0, 500),
+          count: Array.isArray(result) ? result.length : 0,
         });
-        return response.data?.collections || response.data?.data || response.data || [];
+        return result;
       } catch (err) {
         logger.error('Failed to fetch liked collections', { err: safeError(err) });
         return [];
