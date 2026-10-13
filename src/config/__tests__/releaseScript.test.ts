@@ -460,3 +460,83 @@ describe('release.sh plan — VERSION-GATE platform başına', () => {
     expect(broken.outputs.decided).toBeUndefined();
   });
 });
+
+describe('release.sh — build kotası ve fingerprint döngüsü koruması', () => {
+  const YESTERDAY = `${new Date(Date.now() - 86400000).toISOString().slice(0, 10)}T12:00:00.000Z`;
+  // Bugün alınmış, başka runtime'lı (yani bu push'un binary'si olmayan) build'ler.
+  const todays = (n: number, o: Partial<Parameters<typeof build>[0]> = {}) =>
+    Array.from({ length: n }, (_, i) => build({ id: `t${i}`, runtime: `old-${i}`, ...o }));
+  const iosOnly = { PLATFORM: 'ios' };
+
+  it('staging: bugün 2 build alınmışsa (varsayılan sınır) build ALINMAZ, uyarı', () => {
+    const r = plan('staging', { env: iosOnly, builds: todays(2) });
+    expect(r.status).toBe(0);
+    expect(r.outputs.ios).toBe('skip');
+    expect(r.all).toContain('Kota koruması');
+  });
+
+  it('sınır vars.STAGING_MAX_BUILDS_PER_DAY ile değişir', () => {
+    expect(plan('staging', { env: { ...iosOnly, MAX_BUILDS_PER_DAY: '3' }, builds: todays(2) }).outputs.ios).toBe('build');
+    expect(plan('staging', { env: { ...iosOnly, MAX_BUILDS_PER_DAY: '0' } }).outputs.ios).toBe('skip');
+  });
+
+  it('dünkü build\'ler sayılmaz', () => {
+    expect(plan('staging', { env: iosOnly, builds: todays(5, { createdAt: YESTERDAY }) }).outputs.ios).toBe('build');
+  });
+
+  it('elle mode=build kotayı atlar', () => {
+    expect(plan('staging', { env: { ...iosOnly, MODE: 'build' }, builds: todays(9) }).outputs.ios).toBe('build');
+  });
+
+  it('production\'da günlük kota yok (sürüm kapısı zaten var)', () => {
+    const r = plan('production', { env: iosOnly, builds: todays(5, { profile: 'production', appVersion: '1.0.0' }) });
+    expect(r.outputs.ios).toBe('build');
+  });
+
+  // CI build'i: mesajında ci-fp damgası, EAS başka bir runtime damgalamış.
+  const mismatched = (id: string, profile = 'staging', createdAt = YESTERDAY) =>
+    build({ id, profile, runtime: `eas-${id}`, message: `ci-fp:ci-${id}`, createdAt, appVersion: '1.0.0' });
+
+  it.each(['staging', 'production'] as const)('%s: son 2 CI build\'inde art arda tutmazlık → blocked', (env) => {
+    const r = plan(env, { env: iosOnly, builds: [mismatched('a', env), mismatched('b', env)] });
+    expect(r.outputs.ios).toBe('blocked');
+    expect(r.outputs.blocked).toBe('ios');
+    expect(r.all).toContain('Sonsuz build döngüsünü önlemek');
+  });
+
+  it('tek tutmazlık ya da araya giren eşleşme döngü sayılmaz', () => {
+    expect(plan('staging', { env: iosOnly, builds: [mismatched('a')] }).outputs.ios).toBe('build');
+    const ok = build({ id: 'ok', runtime: 'same', message: 'ci-fp:same', createdAt: YESTERDAY });
+    expect(plan('staging', { env: iosOnly, builds: [mismatched('a'), ok, mismatched('b')] }).outputs.ios).toBe('build');
+  });
+
+  it('CI damgası olmayan (elle alınmış) build\'ler döngü sayımına girmez', () => {
+    const manual = build({ id: 'm', runtime: 'x', createdAt: YESTERDAY });
+    expect(plan('staging', { env: iosOnly, builds: [mismatched('a'), manual] }).outputs.ios).toBe('build');
+  });
+
+  it('build-submit fingerprint\'i build mesajına damgalar, tutmazsa uyarır', () => {
+    const r = run(['build-submit', 'ios', 'staging', 'staging'], {
+      env: { FP: 'fp-ci' },
+      buildResult: [{ id: 'nb', status: 'FINISHED', runtime: { version: 'fp-eas' } }],
+    });
+    expect(r.status).toBe(0);
+    expect(r.easCalls('build')[0]).toContain('--message ci-fp:fp-ci');
+    expect(r.all).toContain("runtime 'fp-eas' damgaladı");
+    expect(r.easCalls('submit')[0]).toContain('--id nb');
+  });
+
+  it('recheck staging: kilit beklerken kota dolduysa skip', () => {
+    const r = run(['recheck', 'ios', 'staging'], { env: { FP: 'fp-ios-preview' }, builds: todays(2) });
+    expect(r.outputs.action).toBe('skip');
+  });
+
+  it('recheck: döngü tespitinde job kırmızı, build yok', () => {
+    const r = run(['recheck', 'ios', 'staging'], {
+      env: { FP: 'fp-ios-preview' },
+      builds: [mismatched('a'), mismatched('b')],
+    });
+    expect(r.status).not.toBe(0);
+    expect(r.outputs.action).toBe('skip');
+  });
+});

@@ -40,6 +40,8 @@
 #       kullanılmaz: paralel bitmiş başka profilin build'ini (ör. staging koşarken
 #       biten production build'i) yanlış mağaza kaydına gönderebilirdi.
 #       Build JSON'u ./eas-build.json'a yazılır; id GITHUB_OUTPUT'a `build_id`.
+#       FP env'i verilirse build mesajına `ci-fp:<FP>` damgalanır ve EAS'in
+#       runtime'ı tutmazsa uyarılır (plan'daki döngü koruması bunu okur).
 #
 # Neden profil env'i burada yükleniyor: `eas update` eas.json'daki build
 # profilinin `env` bloğunu OKUMAZ; EXPO_PUBLIC_* değerlerini runner ortamından
@@ -233,19 +235,95 @@ publish_ota() {
 }
 
 build_submit() {
-  local platform="$1" profile="$2" submit_profile="$3" id
+  local platform="$1" profile="$2" submit_profile="$3" id runtime
+  local -a extra=()
   cd "$ROOT"
-  eas build --platform "$platform" --profile "$profile" \
+  # CI'ın hesapladığı fingerprint build mesajına damgalanır (ci-fp:<fp>);
+  # plan, EAS'in sonradan hesapladığı runtime ile art arda tutmazlığı buradan
+  # yakalar (bkz. build_history — sonsuz build döngüsü koruması).
+  if [ -n "${FP:-}" ]; then extra=(--message "ci-fp:$FP"); fi
+  eas build --platform "$platform" --profile "$profile" "${extra[@]+"${extra[@]}"}" \
     --non-interactive --wait --json > eas-build.json \
     || die "eas build başarısız ($platform/$profile)"
-  id="$(node -e 'const b=require(process.argv[1]);const x=Array.isArray(b)?b[0]:b;if(x&&x.id)console.log(x.id)' "$ROOT/eas-build.json")"
+  id="$(build_json_field id)"
   [ -n "$id" ] || die "eas build --json build id döndürmedi ($platform/$profile)"
   echo "build id: $id"
-  [ -n "${GITHUB_OUTPUT:-}" ] && echo "build_id=$id" >> "$GITHUB_OUTPUT"
+  if [ -n "${GITHUB_OUTPUT:-}" ]; then echo "build_id=$id" >> "$GITHUB_OUTPUT"; fi
+  runtime="$(build_json_field runtime)"
+  if [ -n "${FP:-}" ] && [ "$runtime" != "$FP" ]; then
+    echo "::warning::EAS bu build'e runtime '${runtime:-?}' damgaladı, CI fingerprint'i '$FP' idi. Bu runtime'a CI'ın OTA'ları ULAŞMAZ; tekrarlarsa plan otomatik build'i durdurur. Yerelde: npx expo-updates fingerprint:generate ile eas build:view $id karşılaştır."
+  fi
   if [ "$submit_profile" != "-" ]; then
     eas submit --platform "$platform" --profile "$submit_profile" --id "$id" \
       --non-interactive || die "eas submit başarısız ($platform/$submit_profile, build $id)"
   fi
+}
+
+build_json_field() {
+  node -e '
+    const b = require(process.argv[1]); const x = Array.isArray(b) ? b[0] : b;
+    const v = { id: x && x.id, runtime: x && ((x.runtime && x.runtime.version) || x.runtimeVersion),
+      appIdentifier: x && x.appIdentifier }[process.argv[2]];
+    if (v) console.log(v);
+  ' "$ROOT/eas-build.json" "$1"
+}
+
+# Bir profilin son build'lerinden iki sinyal, tek eas çağrısıyla:
+#   today=<n>   bugün (UTC) başlatılmış build sayısı — durumdan bağımsız
+#               (hata/iptal de kotadan yemiş olabilir; güvenli taraf)
+#   streak=<n>  CI'ın damgaladığı fingerprint (message "ci-fp:<fp>") ile EAS'in
+#               runtime'ı, en yeni bitmiş CI build'lerinden geriye ART ARDA kaç
+#               kez tutmadı
+#   last=<ci-fp>→<eas-runtime>  en son tutmazlık (mesaj için)
+build_history() {
+  local platform="$1" profile="$2" out
+  out="$(eas build:list --platform "$platform" --build-profile "$profile" \
+    --limit 50 --json --non-interactive)" || die "eas build:list başarısız ($platform/$profile)"
+  printf '%s' "$out" | node -e '
+    let s=""; process.stdin.on("data",d=>s+=d).on("end",()=>{
+      const builds = JSON.parse(s || "[]");
+      const today = new Date().toISOString().slice(0, 10);
+      const rt = (b) => (b.runtime && b.runtime.version) || b.runtimeVersion;
+      const n = builds.filter((b) => String(b.createdAt || "").slice(0, 10) === today).length;
+      let streak = 0, last = "";
+      for (const b of builds) {
+        const m = /^ci-fp:(\S+)/.exec(b.message || "");
+        if (!m || String(b.status).toUpperCase() !== "FINISHED") continue;
+        if (rt(b) === m[1]) break;
+        streak++; if (!last) last = m[1] + "→" + (rt(b) || "?");
+      }
+      console.log("today=" + n + " streak=" + streak + " last=" + last);
+    });'
+}
+
+# Otomatik build'den önce iki koruma (yalnız mode=auto; elle mode=build atlar):
+#   1. Fingerprint tutmazlığı döngüsü (her ortam): son FP_MISMATCH_LIMIT (2) CI
+#      build'inde art arda tutmazlık → blocked. Aksi halde her push "bu runtime
+#      için build yok" görüp yeni build alır ve kotayı bitirir.
+#   2. Günlük kota (staging): bugün MAX_BUILDS_PER_DAY (vars.STAGING_MAX_BUILDS_PER_DAY,
+#      varsayılan 2) build alınmışsa skip + uyarı. Ücretsiz plan iOS'ta ayda 15
+#      build veriyor.
+# Sonucu stdout'a yazar: build | skip | blocked.
+build_guard() {
+  local env="$1" platform="$2" hist today streak last max limit
+  hist="$(build_history "$platform" "$BUILD_PROFILE")"
+  today="$(printf '%s' "$hist" | sed -E 's/.*today=([0-9]+).*/\1/')"
+  streak="$(printf '%s' "$hist" | sed -E 's/.*streak=([0-9]+).*/\1/')"
+  last="${hist##*last=}"
+  limit="${FP_MISMATCH_LIMIT:-2}"
+  if [ "$streak" -ge "$limit" ]; then
+    echo "::error::$platform: son $streak CI build'inde CI fingerprint'i ile EAS runtime'ı tutmadı (son: $last). Sonsuz build döngüsünü önlemek için otomatik build DURDURULDU. Sebebi giderip (ör. runner ile EAS arasında farklı node_modules/env) gh workflow run mobile-$env.yml --ref $BRANCH -f mode=build -f platform=$platform ile elle alın." >&2
+    echo blocked; return 0
+  fi
+  if [ "$env" = staging ]; then
+    max="${MAX_BUILDS_PER_DAY:-2}"
+    case "$max" in ''|*[!0-9]*) echo "::warning::STAGING_MAX_BUILDS_PER_DAY='$max' sayı değil — 2 kullanılıyor." >&2; max=2 ;; esac
+    if [ "$today" -ge "$max" ]; then
+      echo "::warning::$platform: bugün (UTC) zaten $today staging build'i alındı (sınır $max, vars.STAGING_MAX_BUILDS_PER_DAY). Kota koruması: build ALINMADI, OTA da yok (bu runtime'ın binary'si yok). Yarın ilk push'ta ya da gh workflow run mobile-staging.yml --ref development -f mode=build -f platform=$platform ile." >&2
+      echo skip; return 0
+    fi
+  fi
+  echo build
 }
 
 output() { printf '%s\n' "$@" >> "${GITHUB_OUTPUT:-/dev/stdout}"; }
@@ -347,6 +425,10 @@ plan() {
       [ "$decision" = blocked ] || echo "$p: sürüm ${last:-<ilk build>} → $version"
     fi
 
+    if [ "$decision" = build ] && [ "$mode" = auto ]; then
+      decision="$(build_guard "$env" "$p")"
+    fi
+
     output "$p=$decision"
     case "$decision" in
       ota) ota="$ota $p" ;;
@@ -384,6 +466,13 @@ recheck() {
       action=skip
       echo "::warning::Bu runtime için arada bir production build'i oluştu ($state) — ikinci build alınmadı. JS farkı varsa: gh workflow run mobile-production.yml --ref master -f mode=ota -f platform=$platform" ;;
   esac
+  # Kilit beklenirken başka build'ler alınmış olabilir: korumaları yeniden uygula.
+  if [ "$action" = build ] && [ "${MODE:-auto}" = auto ]; then
+    case "$(build_guard "$env" "$platform")" in
+      skip) action=skip ;;
+      blocked) output "action=skip"; return 1 ;;
+    esac
+  fi
   output "action=$action"
 }
 

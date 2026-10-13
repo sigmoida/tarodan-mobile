@@ -17,7 +17,7 @@ import { parse } from 'yaml';
 const ROOT = path.resolve(__dirname, '../../..');
 const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
-type Step = { name?: string; uses?: string; run?: string; if?: string; env?: Record<string, string> };
+type Step = { id?: string; name?: string; uses?: string; run?: string; if?: string; env?: Record<string, string> };
 type Job = {
   name?: string;
   needs?: string | string[];
@@ -153,6 +153,28 @@ describe('DRY: karar ve yeniden kontrol tek kopya', () => {
     expect(runs(job)).toContain(`scripts/ci/release.sh recheck ${p} ${n}`);
     const buildStep = job.steps!.find((s) => (s.run ?? '').includes('build-submit'));
     expect(buildStep?.if).toBe("steps.recheck.outputs.action == 'build'");
+  });
+});
+
+describe('kota koruması', () => {
+  it('staging plan ve recheck günlük sınırı vars.STAGING_MAX_BUILDS_PER_DAY\'den alır (varsayılan 2)', () => {
+    const expr = "${{ vars.STAGING_MAX_BUILDS_PER_DAY || '2' }}";
+    const plan = staging.jobs.plan.steps!.find((s) => s.id === 'decide' || (s.run ?? '').includes('release.sh plan'));
+    expect(plan?.env?.MAX_BUILDS_PER_DAY).toBe(expr);
+    for (const id of ['build-ios', 'build-android']) {
+      const recheck = staging.jobs[id].steps!.find((s) => (s.run ?? '').includes('recheck'));
+      expect([id, recheck?.env?.MAX_BUILDS_PER_DAY]).toEqual([id, expr]);
+    }
+  });
+
+  it.each([
+    ['staging', staging],
+    ['production', production],
+  ])('%s: store build\'leri CI fingerprint\'ini FP ile build-submit\'e verir', (_n, w) => {
+    for (const p of ['ios', 'android']) {
+      const step = w.jobs[`build-${p}`].steps!.find((s) => (s.run ?? '').includes('build-submit'));
+      expect([p, step?.env?.FP]).toEqual([p, `\${{ needs.plan.outputs.${p}_fp }}`]);
+    }
   });
 });
 

@@ -174,6 +174,8 @@ jobs:
         # Submit build'i App Store Connect'e (TestFlight) yükler. İncelemeye
         # gönderim (Submit for Review) App Store Connect'te ELLE yapılır.
         if: steps.recheck.outputs.action == 'build'
+        env:
+          FP: ${{ needs.plan.outputs.ios_fp }}  # build mesajına ci-fp damgası (döngü koruması)
         run: scripts/ci/release.sh build-submit ios production production
 
   build-android:
@@ -201,4 +203,6 @@ jobs:
         # eas.json submit.production.android.track = internal. Production track'e
         # yükseltme Play Console'da ELLE.
         if: steps.recheck.outputs.action == 'build'
+        env:
+          FP: ${{ needs.plan.outputs.android_fp }}  # build mesajına ci-fp damgası (döngü koruması)
         run: scripts/ci/release.sh build-submit android production production
