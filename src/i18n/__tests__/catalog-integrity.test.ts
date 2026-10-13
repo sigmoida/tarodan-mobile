@@ -110,6 +110,9 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     'language.turkish',
     'language.english',
     // Özel adlar, marka ve teknik kısaltmalar.
+    // Sıralama etiketleri A-Z / Z-A (harf aralığı, iki dilde aynı).
+    'page.listings.listingstoolbar.aZ',
+    'page.listings.listingstoolbar.zA',
     'product.limitedEdition',
     'product.limitedBadge',
     'product.model',

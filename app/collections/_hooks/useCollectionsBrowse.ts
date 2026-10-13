@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 
 /**
@@ -16,7 +17,7 @@ export function useCollectionsBrowse() {
   const isPremiumMember = user?.membershipTier === 'premium' || user?.membershipTier === 'business';
 
   const { data: apiCollections, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['collections', searchQuery, activeFilter],
+    queryKey: qk.collections.list({ q: searchQuery, filter: activeFilter }),
     queryFn: async () => {
       try {
         const response = await api.get('/collections/browse', {

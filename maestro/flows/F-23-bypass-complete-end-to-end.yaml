@@ -2,7 +2,7 @@
 # Devam Et → Ödemeyi Tamamla → bypass-complete → /payment/success.
 #
 # NOT (BUG-007 düzeltmesi): App sepet-tabanlı; eski "Hemen Al"/product-detail-buy-button
-# yok. Doğru zincir: product-detail-add-to-cart-button → Sepete Git →
+# yok. Doğru zincir: product-detail-add-to-cart-button → sepet ikonu →
 # cart-checkout-button → checkout (Teslimat → Devam Et → Ödeme → Ödemeyi Tamamla).
 # Pre-req: PAYMENT_BYPASS=true + zeynep'te kayıtlı teslimat adresi.
 appId: ${APP_ID}
@@ -28,16 +28,20 @@ env:
 - tapOn:
     text: ".*[0-9],[0-9][0-9] TL.*"
     index: 0
-# Ürün detay → Sepete Ekle → Sepete Git
+# Ürün detay → Sepete Ekle → sepet ikonu
 - extendedWaitUntil:
     visible:
-      id: "product-detail-add-to-cart-button"
+      id: "product-price"
     timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "product-detail-add-to-cart-button"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
     id: "product-detail-add-to-cart-button"
 - tapOn:
-    text: "Sepete Git"
-    optional: true
+    id: "product-cart-button"
 # Cart → Satın Al → checkout
 - extendedWaitUntil:
     visible:

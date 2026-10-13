@@ -6,11 +6,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Chip, Divider, Spinner, Text, Input, Textarea, theme } from '@/ui';
 
 import { TradeAddressPicker } from '@/components/common';
+import { ProductCard } from '@/components/product';
 import { getImageUrl } from '@/utils/imageUrl';
 import { getProductEffectivePrice } from '@/utils/productPrice';
 import { formatPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
-import { TradeProductCard } from './TradeProductCard';
 import { TradeCostPreviewCard } from '../../[id]/_components/TradeCostPreviewCard';
 import type { Product } from '../_lib/types';
 import type { NewTradeController } from '../_hooks/useNewTrade';
@@ -18,6 +18,28 @@ import type { NewTradeController } from '../_hooks/useNewTrade';
 const { colors } = theme;
 
 type StepProps = { f: NewTradeController };
+
+/** Takas için ürün seçimi: tek ProductCard (liste), seçim durumu çerçeve + işaretle; tıklama kaydı yok. */
+function TradePick({ product, isSelected, onToggle }: { product: Product; isSelected: boolean; onToggle: () => void }) {
+  return (
+    <ProductCard
+      product={product}
+      layout="list"
+      showMeta={false}
+      selected={isSelected}
+      trackClick={false}
+      onPress={onToggle}
+      style={{ marginBottom: theme.spacing[3] }}
+      overlay={
+        <Ionicons
+          name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
+          size={theme.iconSize.lg}
+          color={isSelected ? colors.primary[600]! : colors.text.subtle}
+        />
+      }
+    />
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Steps indicator (1 · 2 · 3)
@@ -68,7 +90,7 @@ export function Step1MyItems({ f }: StepProps) {
         </Card>
       ) : (
         f.myProducts?.map((product: Product) => (
-          <TradeProductCard
+          <TradePick
             key={product.id}
             product={product}
             isSelected={!!f.selectedMyItems.find((p) => p.id === product.id)}
@@ -110,7 +132,7 @@ export function Step2TheirItems({ f }: StepProps) {
         </Card>
       ) : (
         f.theirProducts?.map((product: Product) => (
-          <TradeProductCard
+          <TradePick
             key={product.id}
             product={product}
             isSelected={!!f.selectedTheirItems.find((p) => p.id === product.id)}

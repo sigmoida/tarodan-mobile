@@ -20,7 +20,7 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
 jest.mock('@/lib/api', () => ({
-  productsApi: { getAll: jest.fn() },
+  productsApi: { getAll: jest.fn(), recordClick: jest.fn(() => Promise.resolve({ data: {} })) },
   searchApi: { autocompleteRich: jest.fn(), users: jest.fn() },
 }));
 import { productsApi } from '@/lib/api';
@@ -122,7 +122,7 @@ describe('B6 · arama üst çubukları — ölçüm ve collapse', () => {
     expect(result.current.topBarsHidden).toBe(false);
   });
 
-  it('liste yükleme sırasında sökülmez; spinner boş-durum yuvasında gösterilir', async () => {
+  it('liste yükleme sırasında sökülmez; iskelet boş-durum yuvasında gösterilir', async () => {
     let resolve!: (v: any) => void;
     mockGetAll.mockReturnValue(new Promise((r) => { resolve = r; }));
 
@@ -130,7 +130,7 @@ describe('B6 · arama üst çubukları — ölçüm ve collapse', () => {
 
     // Yükleme sırasında bile FlatList monte.
     expect(screen.getByTestId('search-results-list')).toBeOnTheScreen();
-    expect(screen.getByText('Sonuçlar yükleniyor…')).toBeOnTheScreen();
+    expect(screen.getByTestId('product-grid-skeleton')).toBeOnTheScreen();
 
     await act(async () => {
       resolve(mockListResponse([makeProduct('p1', 'Ferrari F40')]));

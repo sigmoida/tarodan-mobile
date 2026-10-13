@@ -63,12 +63,13 @@ tags:
       - tapOn:
           text: "Şimdi Değil"
           optional: true
-# Ana sayfaya dön + Kategoriler doğrula.
+# Ana sayfaya dön + ana sayfa arama kutusunu doğrula.
 - tapOn:
     text: "Ana Sayfa"
     optional: true
 - extendedWaitUntil:
-    visible: "Kategoriler"
+    visible:
+      id: "home-search-input"
     timeout: 30000
 # Arama → ürün detay (Journey 1 deseni: hideKeyboard + kart testID)
 - tapOn:
@@ -92,13 +93,18 @@ tags:
 - tapOn:
     id: "search-result-card"
     index: 0
-# Ürün detayı açıldı → "Teklif Ver" (ikon+label, accessibility tam-eşleşmez → regex)
+# Ürün detayı açıldı → içerikte kaydırıp "Teklif Ver"
 - extendedWaitUntil:
     visible:
-      text: ".*Teklif Ver.*"
+      id: "product-price"
     timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "product-detail-offer-button"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
-    text: ".*Teklif Ver.*"
+    id: "product-detail-offer-button"
 # Teklif modalı. RNModal içeriği selektörle zor; gerçek metinle doğrula + input'a
 # koordinatla dokun (tutar alanı modalın üst-ortası), submit'i metinle.
 - extendedWaitUntil:

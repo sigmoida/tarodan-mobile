@@ -1,67 +1,58 @@
-import { View, TouchableOpacity, Image } from 'react-native';
-import { Button, Switch, IconButton, Text, Input, Textarea, theme } from '@/ui';
+import { View, Pressable, Image } from 'react-native';
+import { Alert, Chip, IconButton, SectionCard, Switch, Text, Input, Textarea } from '@/ui';
 import { Controller } from 'react-hook-form';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { styles } from '../_lib/styles';
 import type { NewCollectionController } from '../_hooks/useNewCollection';
 
-const { colors } = theme;
-
-/** Ana form içeriği — kapak, şablon, bilgiler, gizlilik, ipucu, gönder. */
+/** Form bölümleri — kapak, şablon, bilgiler, gizlilik, ipucu. Gönder düğmesi ekranın sabit alt barında. */
 export function NewCollectionForm({ f }: { f: NewCollectionController }) {
   const { t } = useTranslation();
   const { control, errors } = f;
 
   return (
     <>
-      {/* Cover Image */}
-      <TouchableOpacity style={styles.coverImageContainer} onPress={f.pickCoverImage}>
+      <Pressable
+        style={styles.cover}
+        onPress={f.pickCoverImage}
+        accessibilityRole="button"
+        accessibilityLabel={t('collection.addCoverPhoto')}
+      >
         {f.coverImage ? (
           <Image source={{ uri: f.coverImage }} style={styles.coverImage} />
         ) : (
-          <View style={styles.coverImagePlaceholder}>
-            <Ionicons name="image-outline" size={48} color={colors.text.muted} />
-            <Text variant="body" style={styles.coverImageText}>{t('collection.addCoverPhoto')}</Text>
+          <View style={styles.coverPlaceholder}>
+            <Text variant="bodySm" tone="muted">
+              {t('collection.addCoverPhoto')}
+            </Text>
           </View>
         )}
-        {f.coverImage && (
+        {f.coverImage ? (
           <IconButton
-            icon="close-circle"
+            icon="close"
             accessibilityLabel={t('collection.removeCoverPhoto')}
-            size="md"
-            style={styles.removeCoverButton}
+            size="sm"
+            variant="solid"
+            style={styles.coverRemove}
             onPress={() => f.setCoverImage(null)}
           />
-        )}
-      </TouchableOpacity>
+        ) : null}
+      </Pressable>
 
-      {/* Templates */}
-      <View style={styles.card}>
-        <Text variant="h3" style={styles.sectionTitle}>{t('collection.selectTemplate')}</Text>
-        <View style={styles.templatesGrid}>
+      <SectionCard title={t('collection.selectTemplate')}>
+        <View style={styles.chips}>
           {f.templates.map((template) => (
-            <TouchableOpacity
+            <Chip
               key={template.id}
-              style={[
-                styles.templateItem,
-                f.selectedTemplate === template.id && styles.templateItemSelected,
-              ]}
+              label={template.name}
+              selected={f.selectedTemplate === template.id}
               onPress={() => f.selectTemplate(template)}
-            >
-              <Text style={styles.templateIcon}>{template.icon}</Text>
-              <Text variant="bodySm" style={styles.templateName} numberOfLines={1}>
-                {template.name}
-              </Text>
-            </TouchableOpacity>
+            />
           ))}
         </View>
-      </View>
+      </SectionCard>
 
-      {/* Collection Details */}
-      <View style={styles.card}>
-        <Text variant="h3" style={styles.sectionTitle}>{t('collection.infoSectionTitle')}</Text>
-
+      <SectionCard title={t('collection.infoSectionTitle')} bodyStyle={styles.fields}>
         <Controller
           control={control}
           name="name"
@@ -72,7 +63,6 @@ export function NewCollectionForm({ f }: { f: NewCollectionController }) {
               onChangeText={onChange}
               error={errors.name?.message}
               placeholder={t('collection.namePlaceholderExample')}
-              containerStyle={styles.input}
             />
           )}
         />
@@ -88,70 +78,32 @@ export function NewCollectionForm({ f }: { f: NewCollectionController }) {
               rows={3}
               error={errors.description?.message}
               placeholder={t('collection.descriptionPlaceholder')}
-              containerStyle={styles.input}
             />
           )}
         />
-      </View>
+      </SectionCard>
 
-      {/* Privacy Settings */}
-      <View style={styles.card}>
-        <Text variant="h3" style={styles.sectionTitle}>{t('collection.privacyTitle')}</Text>
-
-        <View style={styles.privacyOption}>
-          <View style={styles.privacyInfo}>
-            <Ionicons name="globe-outline" size={24} color={colors.primary[600]!} />
-            <View style={styles.privacyText}>
-              <Text variant="body">{t('collection.isPublic')}</Text>
-              <Text variant="bodySm" style={styles.privacyDesc}>
-                {t('collection.publicVisibleToAll')}
-              </Text>
-            </View>
+      <SectionCard title={t('collection.privacyTitle')} bodyStyle={styles.fields}>
+        <View style={styles.switchRow}>
+          <View style={styles.switchText}>
+            <Text variant="body">{t('collection.isPublic')}</Text>
+            <Text variant="bodySm" tone="muted">
+              {t('collection.publicVisibleToAll')}
+            </Text>
           </View>
           <Controller
             control={control}
             name="isPublic"
-            render={({ field: { onChange, value } }) => (
-              <Switch value={value} onValueChange={onChange} />
-            )}
+            render={({ field: { onChange, value } }) => <Switch value={value} onValueChange={onChange} />}
           />
         </View>
 
-        {!f.watch('isPublic') && (
-          <View style={styles.privateNote}>
-            <Ionicons name="lock-closed" size={16} color={colors.text.muted} />
-            <Text variant="bodySm" style={styles.privateNoteText}>
-              {t('collection.privateNote')}
-            </Text>
-          </View>
-        )}
-      </View>
+        {!f.watch('isPublic') && <Alert variant="default">{t('collection.privateNote')}</Alert>}
+      </SectionCard>
 
-      {/* Tips */}
-      <View style={styles.tipCard}>
-        <View style={styles.tipContent}>
-          <Ionicons name="bulb" size={24} color={colors.warning[600]!} />
-          <View style={styles.tipText}>
-            <Text variant="label">{t('collection.tipLabel')}</Text>
-            <Text variant="bodySm" style={styles.tipDesc}>
-              {t('collection.tipText')}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Submit Button */}
-      <Button
-        variant="primary"
-        title={t('collection.createCollection')}
-        onPress={f.handleSubmit(f.onSubmit)}
-        isLoading={f.createMutation.isPending}
-        disabled={f.createMutation.isPending}
-        icon="checkmark"
-        style={styles.submitButton}
-      />
-
-      <View style={{ height: 50 }} />
+      <Alert variant="info" title={t('collection.tipLabel')}>
+        {t('collection.tipText')}
+      </Alert>
     </>
   );
 }

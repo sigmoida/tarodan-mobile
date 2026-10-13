@@ -1,152 +1,123 @@
 import React, { useCallback } from 'react';
-import { FlatList, StyleSheet, View, RefreshControl, Dimensions, ListRenderItemInfo } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { ProductCard, ProductCardProduct, ProductCardLayout } from './ProductCard';
-import { EmptyState, ScreenLoader, ErrorState, theme } from '@/ui';
+import { FlatList, RefreshControl, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
+import { EmptyState, ErrorState, Spinner, pageListContentStyle, theme } from '@/ui';
+import { ProductCard, type ProductCardLayout, type ProductCardProduct } from './ProductCard';
+import { PRODUCT_GRID_GAP, ProductGridSkeleton, ProductListEmpty, useProductCellWidth } from './ProductListStates';
+
+const { colors } = theme;
 
 interface ProductGridProps {
   items: ProductCardProduct[];
   layout?: ProductCardLayout;
-  /** Grid modunda kullanılacak sütun sayısı (layout='grid' iken). 2 = standart. */
-  numColumns?: number;
-  /** Veri yükleniyor mu? */
+  /** İlk yükleme: iskelet çizer (tam ekran spinner değil). */
   loading?: boolean;
-  /** Refreshing state */
   refreshing?: boolean;
   onRefresh?: () => void;
-  /** Son sayfaya yaklaştığında tetiklenir */
+  /** Son sayfaya yaklaşınca tetiklenir. */
   onEndReached?: () => void;
-  endReachedThreshold?: number;
-  /** Sonraki sayfa yükleniyor (liste sonunda mini indicator). */
+  /** Sonraki sayfa yükleniyor (liste altında küçük gösterge). */
   loadingMore?: boolean;
-  /** Hata durumu */
   errorMessage?: string | null;
   onRetry?: () => void;
-  /** Liste başlığı / üst içerik */
-  ListHeaderComponent?: React.ComponentType<any> | React.ReactElement | null;
-  /** Empty durum özelleştirmesi */
+  ListHeaderComponent?: React.ComponentType<unknown> | React.ReactElement | null;
+  ListFooterComponent?: React.ComponentType<unknown> | React.ReactElement | null;
+  /** Boş durum: filtre uygulanmışsa "filtrelerinizi değiştirin" + temizle. */
+  filtered?: boolean;
+  onClearFilters?: () => void;
+  /** Boş durumu özelleştirir (ör. üreticinin ürünü yok). */
   emptyTitle?: string;
   emptySubtitle?: string;
-  emptyIcon?: React.ComponentProps<typeof EmptyState>['icon'];
-  emptyActionLabel?: string;
-  onEmptyAction?: () => void;
-  /** Kart tıklama özelleştirmesi (id döndürülür) */
   onItemPress?: (product: ProductCardProduct) => void;
-  /** Favori toggle */
-  favoriteIds?: Set<string>;
-  onToggleFavorite?: (product: ProductCardProduct) => void;
-  /** Tam ekran kapsama (flex 1) */
-  fullscreen?: boolean;
-  /** Content padding (liste kenar boşluğu) */
-  contentPadding?: number;
+  showMeta?: boolean;
+  testID?: string;
 }
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
-const GUTTER = 12;
-
+/**
+ * Ürün listelerinin TEK ızgara/listesi: 2 sütun (web `grid-cols-2 gap-3`) ya da tek sütun liste, sonsuz
+ * kaydırma, çekip yenileme; yükleniyor = iskelet, boş = tek boş durum, hata = ErrorState.
+ * Kartlar memo'lu `ProductCard`; `renderItem` kararlı (kaydırmada satırlar yeniden çizilmez).
+ */
 export function ProductGrid({
   items,
   layout = 'grid',
-  numColumns = 2,
   loading = false,
   refreshing = false,
   onRefresh,
   onEndReached,
-  endReachedThreshold = 0.4,
   loadingMore = false,
   errorMessage,
   onRetry,
   ListHeaderComponent,
+  ListFooterComponent,
+  filtered = false,
+  onClearFilters,
   emptyTitle,
   emptySubtitle,
-  emptyIcon = 'cube-outline',
-  emptyActionLabel,
-  onEmptyAction,
   onItemPress,
-  favoriteIds,
-  onToggleFavorite,
-  fullscreen = true,
-  contentPadding = 16,
+  showMeta = true,
+  testID,
 }: ProductGridProps) {
-  const { t } = useTranslation();
-  const columns = layout === 'list' ? 1 : numColumns;
+  const columns = layout === 'list' ? 1 : 2;
+  // Tek tük kalan son kart komşusundan geniş olmasın: hücre genişliği açık verilir.
+  const cellWidth = useProductCellWidth();
 
-  // Stable renderItem (#75) so FlatList can bail out rows when data is unchanged;
-  // combined with a React.memo'd ProductCard this stops every row re-rendering on
-  // parent re-renders (pull-to-refresh, favorite toggle, tab switch).
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<ProductCardProduct>) => (
-      <View
-        style={[
-          layout === 'list' ? styles.listItemWrap : styles.gridItemWrap,
-          layout === 'grid' && { width: `${100 / columns}%` },
-        ]}
-      >
+      <View style={layout === 'list' ? styles.listCell : { width: cellWidth }}>
         <ProductCard
           product={item}
           layout={layout}
+          showMeta={showMeta}
           onPress={onItemPress ? () => onItemPress(item) : undefined}
-          onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(item) : undefined}
-          isFavorite={favoriteIds?.has(item.id) ?? false}
-          compact={columns >= 3}
         />
       </View>
     ),
-    [layout, columns, onItemPress, onToggleFavorite, favoriteIds],
+    [layout, showMeta, onItemPress, cellWidth],
   );
 
-  if (errorMessage) {
-    return <ErrorState fullscreen={fullscreen} message={errorMessage} onRetry={onRetry} />;
-  }
-
-  if (loading && items.length === 0) {
-    return <ScreenLoader fullscreen={fullscreen} />;
-  }
-
-  if (!loading && items.length === 0) {
-    return (
-      <View style={[fullscreen && { flex: 1 }]}>
-        {ListHeaderComponent
-          ? React.isValidElement(ListHeaderComponent)
-            ? ListHeaderComponent
-            : React.createElement(ListHeaderComponent as any)
-          : null}
-        <EmptyState
-          icon={emptyIcon}
-          title={emptyTitle ?? t('home.noProductsYet')}
-          subtitle={emptySubtitle}
-          actionLabel={emptyActionLabel}
-          onAction={onEmptyAction}
-          fullscreen={fullscreen}
-        />
-      </View>
-    );
-  }
+  const empty = errorMessage ? (
+    <ErrorState message={errorMessage} onRetry={onRetry} />
+  ) : loading ? (
+    <ProductGridSkeleton layout={layout} />
+  ) : emptyTitle ? (
+    <EmptyState icon="search-outline" title={emptyTitle} subtitle={emptySubtitle} />
+  ) : (
+    <ProductListEmpty filtered={filtered} onClearFilters={onClearFilters} />
+  );
 
   return (
     <FlatList
+      testID={testID}
       key={`${layout}-${columns}`}
-      data={items}
-      keyExtractor={(item) => item.id}
+      data={loading || errorMessage ? [] : items}
+      keyExtractor={(item, index) => `${item.id}-${index}`}
       renderItem={renderItem}
       numColumns={columns}
-      contentContainerStyle={{ padding: contentPadding, paddingBottom: contentPadding * 4 }}
-      columnWrapperStyle={columns > 1 ? { gap: GUTTER, marginBottom: GUTTER } : undefined}
-      ItemSeparatorComponent={columns === 1 ? () => <View style={{ height: GUTTER }} /> : undefined}
+      contentContainerStyle={styles.content}
+      columnWrapperStyle={columns > 1 ? styles.row : undefined}
       ListHeaderComponent={ListHeaderComponent}
+      ListEmptyComponent={empty}
+      ListFooterComponent={
+        loadingMore ? (
+          <View style={styles.more}>
+            <Spinner size="md" color={colors.primary[600]!} />
+          </View>
+        ) : (
+          ListFooterComponent ?? null
+        )
+      }
       refreshControl={
         onRefresh ? (
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={[theme.colors.primary[500]]}
-            tintColor={theme.colors.primary[500]}
+            colors={[colors.primary[600]!]}
+            tintColor={colors.primary[600]!}
           />
         ) : undefined
       }
       onEndReached={onEndReached}
-      onEndReachedThreshold={endReachedThreshold}
-      ListFooterComponent={loadingMore ? <ScreenLoader fullscreen={false} size="small" /> : null}
+      onEndReachedThreshold={0.5}
       removeClippedSubviews
       maxToRenderPerBatch={10}
       windowSize={7}
@@ -156,12 +127,10 @@ export function ProductGrid({
 }
 
 const styles = StyleSheet.create({
-  gridItemWrap: {
-    paddingHorizontal: theme.spacing[0],
-  },
-  listItemWrap: {
-    width: '100%',
-  },
+  content: { ...pageListContentStyle, gap: PRODUCT_GRID_GAP, flexGrow: 1 },
+  row: { gap: PRODUCT_GRID_GAP },
+  listCell: { width: '100%' },
+  more: { paddingVertical: theme.spacing[4] },
 });
 
 export default ProductGrid;

@@ -1,161 +1,131 @@
-import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
-
-import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { FlatList, Image, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { manufacturersApi } from '@/lib/api';
-import { theme, Text, Input } from '@/ui';
-import { ScreenHeader, ScreenLoader, ErrorState, EmptyState } from '@/components/common';
+import { EmptyState, ErrorState, Input, RawText, SkeletonAvatar, SkeletonText, Text, pageListContentStyle, theme } from '@/ui';
+import { PageShell } from '@/components/common/PageShell';
 import { resolveImageUrl } from '@/utils/imageUrl';
-const { colors } = theme;
+import { useManufacturers, type Manufacturer } from './_hooks/useManufacturers';
 
-interface Manufacturer {
-  id: string;
-  name: string;
-  slug: string;
-  logo?: string | null;
-  productCount?: number;
-  _count?: { products: number };
-}
+const { colors, spacing, typography, radiusRole } = theme;
+const SKELETON_ROWS = [0, 1, 2, 3, 4, 5];
 
-export default function ManufacturersScreen() {
+function ManufacturerRow({ item }: { item: Manufacturer }) {
   const { t } = useTranslation();
-  const [search, setSearch] = useState('');
-
-  const { data, isLoading, error, refetch, isRefetching } = useQuery<Manufacturer[]>({
-    queryKey: ['manufacturers'],
-    queryFn: async () => {
-      const response = await manufacturersApi.findAll();
-      const payload = response.data?.data ?? response.data ?? [];
-      return Array.isArray(payload) ? payload : [];
-    },
-  });
-
-  const items = useMemo(() => {
-    const all = data ?? [];
-    if (!search.trim()) return all;
-    const q = search.trim().toLowerCase();
-    return all.filter(m => m.name.toLowerCase().includes(q));
-  }, [data, search]);
-
-  const renderItem = ({ item }: { item: Manufacturer }) => {
-    const count = item.productCount ?? item._count?.products;
-    return (
-    <TouchableOpacity
-      style={styles.card}
+  const count = item.productCount ?? item._count?.products;
+  return (
+    <Pressable
       onPress={() => router.push(`/ureticiler/${item.slug}` as any)}
-      activeOpacity={0.8}
+      accessibilityRole="button"
+      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
       <View style={styles.logoWrap}>
         {item.logo ? (
           <Image source={{ uri: resolveImageUrl(item.logo) }} style={styles.logo} resizeMode="contain" />
         ) : (
-          <Text style={styles.logoFallback}>{item.name.charAt(0).toUpperCase()}</Text>
+          <RawText style={styles.logoFallback}>{item.name.charAt(0).toUpperCase()}</RawText>
         )}
       </View>
       <View style={styles.body}>
-        <Text style={styles.name}>{item.name}</Text>
+        <Text variant="body" weight="semibold" numberOfLines={1}>
+          {item.name}
+        </Text>
         {typeof count === 'number' ? (
-          <Text style={styles.count}>{t('payment.itemsCount', { count })}</Text>
+          <Text variant="caption" tone="muted">
+            {t('payment.itemsCount', { count })}
+          </Text>
         ) : null}
       </View>
-      <Ionicons name="chevron-forward" size={18} color={colors.text.subtle} />
-    </TouchableOpacity>
-    );
-  };
+    </Pressable>
+  );
+}
+
+/**
+ * Üreticiler (web `/manufacturers`): arama + üretici satırları. Eski "Markalar" listesi
+ * (`/brands`) buraya yönlenir. Kontrolcü `useManufacturers`.
+ */
+export default function ManufacturersScreen() {
+  const { t } = useTranslation();
+  const f = useManufacturers();
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={t('nav.manufacturers')} />
-
-      <View style={styles.searchBar}>
-        <Input
-          value={search}
-          onChangeText={setSearch}
-          placeholder={t('product.searchManufacturers')}
-          leftIconName="search"
-        />
-      </View>
-
-      {isLoading ? (
-        <ScreenLoader />
-      ) : error ? (
-        <ErrorState fullscreen onRetry={() => refetch()} />
-      ) : items.length === 0 ? (
-        <EmptyState
-          fullscreen
-          icon="business-outline"
-          title={search ? t('common.noResults') : t('product.noManufacturersYet')}
-          subtitle={search ? t('search.tryDifferent') : undefined}
-        />
-      ) : (
-        <FlatList
-          data={items}
-          renderItem={renderItem}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.list}
-          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-          refreshing={isRefetching}
-          onRefresh={refetch}
-        />
-      )}
-    </View>
+    <PageShell title={t('nav.manufacturers')} mode="list">
+      <FlatList
+        data={f.isLoading || f.error ? [] : f.items}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <ManufacturerRow item={item} />}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={f.isRefetching}
+            onRefresh={f.refetch}
+            colors={[colors.primary[600]!]}
+            tintColor={colors.primary[600]!}
+          />
+        }
+        ListHeaderComponent={
+          <Input
+            value={f.search}
+            onChangeText={f.setSearch}
+            placeholder={t('product.searchManufacturers')}
+            leftIconName="search"
+          />
+        }
+        ListEmptyComponent={
+          f.isLoading ? (
+            <View style={styles.skeleton} testID="manufacturers-skeleton">
+              {SKELETON_ROWS.map((i) => (
+                <View key={i} style={styles.row}>
+                  <SkeletonAvatar />
+                  <View style={styles.body}>
+                    <SkeletonText lines={2} />
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : f.error ? (
+            <ErrorState onRetry={() => f.refetch()} />
+          ) : (
+            <EmptyState
+              icon="search-outline"
+              title={f.hasAny ? t('common.noResults') : t('product.noManufacturersYet')}
+              subtitle={f.hasAny ? t('search.tryDifferent') : undefined}
+            />
+          )
+        }
+      />
+    </PageShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.alt,
-  },
-  searchBar: {
-    marginHorizontal: theme.spacing[4],
-    marginTop: theme.spacing[3],
-    marginBottom: theme.spacing[1],
-  },
-  list: {
-    padding: theme.spacing[4],
-  },
-  card: {
+  content: { ...pageListContentStyle, gap: spacing[2], flexGrow: 1 },
+  skeleton: { gap: spacing[2] },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface.DEFAULT,
-    borderRadius: 12,
-    padding: theme.spacing[3],
-    gap: theme.spacing[3],
-    borderWidth: StyleSheet.hairlineWidth,
+    gap: spacing[3],
+    padding: spacing[3],
+    borderRadius: radiusRole.card,
+    borderWidth: 1,
     borderColor: colors.border.DEFAULT,
+    backgroundColor: colors.surface.elevated,
   },
+  pressed: { opacity: 0.85 },
   logoWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: theme.radius['2xl'],
+    width: spacing[12],
+    height: spacing[12],
+    borderRadius: radiusRole.card,
     backgroundColor: colors.surface.alt,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logo: {
-    width: 40,
-    height: 40,
-  },
+  logo: { width: spacing[10], height: spacing[10] },
   logoFallback: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.primary[600]!,
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.primary[600],
   },
-  body: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text.heading,
-  },
-  count: {
-    fontSize: 12,
-    color: colors.text.muted,
-    marginTop: theme.spacing[0.5],
-  },
+  body: { flex: 1, minWidth: 0 },
 });

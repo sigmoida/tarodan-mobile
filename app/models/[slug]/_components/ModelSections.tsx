@@ -1,106 +1,82 @@
-import { View, Image, TouchableOpacity } from 'react-native';
+import { View, Image } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Spinner, Text, EmptyState, theme } from '@/ui';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { EmptyState, SectionCard, SkeletonCard, Text } from '@/ui';
+import { ProductCard } from '@/components/product';
 import { transformImageUrl } from '@/utils/imageUrl';
-import { formatPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
 import type { CarModelDetail } from '../_lib/types';
 import type { ModelDetailController } from '../_hooks/useModelDetail';
 
-const { colors } = theme;
-
-/** Model hero (kapak görseli + marka/model/yıl) + açıklama. */
+/** Model başlığı: kapak görseli, marka, model adı, yıllar ve açıklama. */
 export function ModelHero({ model }: { model: CarModelDetail }) {
   const { t } = useTranslation();
   return (
-    <>
-      <View style={styles.hero}>
+    <View style={styles.hero}>
+      <View style={styles.heroImage}>
         {model.image ? (
-          <Image source={{ uri: transformImageUrl(model.image) }} style={styles.heroImage} resizeMode="cover" />
-        ) : (
-          <View style={[styles.heroImage, styles.heroFallback]}>
-            <Ionicons name="car-sport" size={64} color={colors.text.subtle} />
-          </View>
-        )}
-        <View style={styles.heroOverlay}>
-          <View style={styles.brandRow}>
-            {model.brand?.logo ? (
-              <Image source={{ uri: transformImageUrl(model.brand.logo) }} style={styles.brandLogo} />
-            ) : null}
-            <Text style={styles.brandName}>{model.brand?.name}</Text>
-          </View>
-          <Text style={styles.modelName}>{model.name}</Text>
-          {model.yearStart || model.yearEnd ? (
-            <Text style={styles.yearLabel}>
-              {model.yearStart ?? '?'}{model.yearEnd ? ` - ${model.yearEnd}` : ` - ${t('models.present')}`}
-            </Text>
-          ) : null}
-        </View>
+          <Image source={{ uri: transformImageUrl(model.image) }} style={styles.heroImageFill} resizeMode="cover" />
+        ) : null}
       </View>
-
-      {model.description ? (
-        <View style={styles.descriptionWrap}>
-          <Text style={styles.description}>{model.description}</Text>
-        </View>
+      <View style={styles.brandRow}>
+        {model.brand?.logo ? (
+          <Image source={{ uri: transformImageUrl(model.brand.logo) }} style={styles.brandLogo} />
+        ) : null}
+        <Text variant="bodySm" tone="muted" weight="medium">
+          {model.brand?.name}
+        </Text>
+      </View>
+      <Text variant="h1" accessibilityRole="header">
+        {model.name}
+      </Text>
+      {model.yearStart || model.yearEnd ? (
+        <Text variant="bodySm" tone="subtle">
+          {model.yearStart ?? '?'}
+          {model.yearEnd ? ` - ${model.yearEnd}` : ` - ${t('models.present')}`}
+        </Text>
       ) : null}
-    </>
+      {model.description ? (
+        <Text variant="bodySm" tone="muted">
+          {model.description}
+        </Text>
+      ) : null}
+    </View>
   );
 }
 
-/** Bu modele ait diecast ürünler grid'i. */
+/** Bu modele ait diecast ürünler (tek ProductCard, 2 sütun). */
 export function ModelProductsGrid({ f }: { f: ModelDetailController }) {
   const { t } = useTranslation();
-  const { model, products, productsQuery, getImageUri, conditionLabel } = f;
+  const { model, products, productsQuery } = f;
 
   return (
-    <View style={styles.productsSection}>
-      <View style={styles.productsHeader}>
-        <Text style={styles.sectionTitle}>
-          {t('models.diecastModelsFor', { name: model?.name ?? '' })}
+    <SectionCard
+      title={t('models.diecastModelsFor', { name: model?.name ?? '' })}
+      action={
+        <Text variant="caption" tone="muted">
+          {productsQuery.isLoading ? '...' : t('collection.itemCountSuffix', { count: products.length })}
         </Text>
-        <Text style={styles.productCount}>
-          {productsQuery.isLoading
-            ? '...'
-            : t('collection.itemCountSuffix', { count: products.length })}
-        </Text>
-      </View>
-
+      }
+    >
       {productsQuery.isLoading ? (
-        <Spinner size="lg" />
+        <View style={styles.grid}>
+          <View style={styles.cell}>
+            <SkeletonCard />
+          </View>
+          <View style={styles.cell}>
+            <SkeletonCard />
+          </View>
+        </View>
       ) : products.length === 0 ? (
-        <EmptyState
-          icon="cube-outline"
-          title={t('home.noProductsYet')}
-          subtitle={t('models.noProductsForModel')}
-        />
+        <EmptyState size="compact" icon="cube-outline" title={t('home.noProductsYet')} subtitle={t('models.noProductsForModel')} />
       ) : (
-        <View style={styles.productsGrid}>
+        <View style={styles.grid}>
           {products.map((p) => (
-            <TouchableOpacity
-              key={p.id}
-              style={styles.productCard}
-              onPress={() => router.push({ pathname: '/product/[id]', params: { id: p.id } } as any)}
-            >
-              {getImageUri(p) ? (
-                <Image source={{ uri: getImageUri(p) }} style={styles.productImage} />
-              ) : (
-                <View style={[styles.productImage, styles.productImageFallback]}>
-                  <Ionicons name="cube-outline" size={32} color={colors.text.subtle} />
-                </View>
-              )}
-              <View style={styles.productBody}>
-                <Text style={styles.productTitle} numberOfLines={2}>{p.title}</Text>
-                <Text style={styles.productPrice}>{formatPrice(p.salePrice ?? p.price)}</Text>
-                {p.condition ? (
-                  <Text style={styles.productCondition}>{conditionLabel(p.condition)}</Text>
-                ) : null}
-              </View>
-            </TouchableOpacity>
+            <View key={p.id} style={styles.cell}>
+              <ProductCard product={p} />
+            </View>
           ))}
         </View>
       )}
-    </View>
+    </SectionCard>
   );
 }

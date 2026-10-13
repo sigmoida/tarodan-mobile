@@ -17,7 +17,7 @@ import { router } from 'expo-router';
 
 jest.mock('@/lib/api', () => ({
   categoriesApi: { getBySlug: jest.fn() },
-  productsApi: { getAll: jest.fn() },
+  productsApi: { getAll: jest.fn(), recordClick: jest.fn(() => Promise.resolve({ data: {} })) },
 }));
 import { categoriesApi, productsApi } from '@/lib/api';
 
@@ -55,13 +55,12 @@ describe('J12 · Kategori liste', () => {
     expect(screen.getByText('2 ürün bulundu')).toBeOnTheScreen();
   });
 
-  it('J12.2 kategoride ürün yoksa bulunamadı durumu gösterilir', async () => {
+  it('J12.2 kategoride ürün yoksa tek boş durum metni gösterilir', async () => {
     getBySlug.mockResolvedValue({ data: { category: { id: 'c1', name: 'Arabalar' } } });
     getAll.mockResolvedValue({ data: { data: [] } });
     renderWithProviders(<CategoryScreen />);
 
-    expect(await screen.findByText('Ürün bulunamadı')).toBeOnTheScreen();
-    expect(screen.getByText('Bu kategoride henüz ürün yok')).toBeOnTheScreen();
+    expect(await screen.findByText('Henüz ilan yok')).toBeOnTheScreen();
   });
 
   it('J12.3 ürün kartına basınca ürün detayına yönlendirir', async () => {

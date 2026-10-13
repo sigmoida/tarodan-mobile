@@ -83,13 +83,16 @@ export function keepGeneralAttributeSelections(
  * ("Fiyat (Düşük)"/"Fiyat (Yüksek)") daha AÇIK ("Fiyat (Düşükten Yükseğe)"/
  * "Fiyat (Yüksekten Düşüğe)") — reuse, ayrı bir kısa kopya açmak yerine.
  */
-export const buildSortOptions = (t: TFunction): { value: string; label: string; icon: string }[] => [
-  { value: 'created_desc', label: t('product.sortNewest'), icon: 'time-outline' },
-  { value: 'created_asc', label: t('product.sortOldest'), icon: 'time-outline' },
-  { value: 'view_count_desc', label: t('product.sortPopular'), icon: 'star-outline' },
-  { value: 'price_asc', label: t('product.sortPriceLow'), icon: 'arrow-up' },
-  { value: 'price_desc', label: t('product.sortPriceHigh'), icon: 'arrow-down' },
-  { value: 'rating_desc', label: t('product.sortHighestRating'), icon: 'ribbon-outline' },
+export const buildSortOptions = (t: TFunction): { value: string; label: string }[] => [
+  { value: 'relevance', label: t('common.recommended') },
+  { value: 'created_desc', label: t('product.sortNewest') },
+  { value: 'created_asc', label: t('product.sortOldest') },
+  { value: 'view_count_desc', label: t('product.sortPopular') },
+  { value: 'price_asc', label: t('product.sortPriceLow') },
+  { value: 'price_desc', label: t('product.sortPriceHigh') },
+  { value: 'rating_desc', label: t('product.sortHighestRating') },
+  { value: 'title_asc', label: t('page.listings.listingstoolbar.aZ') },
+  { value: 'title_desc', label: t('page.listings.listingstoolbar.zA') },
 ];
 
 /**
@@ -151,7 +154,8 @@ export function buildListParams(
   if (f.preOrder) p.preOrder = true;
   if (f.limited) p.limited = true;
   if (f.set) p.set = true;
-  if (f.sortBy) p.sortBy = f.sortBy;
+  // Web gibi: 'relevance' (Önerilen) sunucunun varsayılanı — parametre gönderilmez.
+  if (f.sortBy && f.sortBy !== 'relevance') p.sortBy = f.sortBy;
   return p;
 }
 

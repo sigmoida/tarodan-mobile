@@ -1,151 +1,138 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { tabDiag } from '@/components/_tabDiag';
-import { View, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Button, Spinner, Text, theme } from '@/ui';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
+import { View, FlatList, RefreshControl } from 'react-native';
+import { ErrorState, FAB, Spinner, theme } from '@/ui';
+import { AppShell } from '@/components/shell/AppShell';
+import {
+  ProductCard,
+  ProductGridSkeleton,
+  ProductListEmpty,
+  ProductSortModal,
+  useProductCellWidth,
+} from '@/components/product';
 import ProductFilterSheet from '@/components/ProductFilterSheet';
 import { styles } from './_lib/searchStyles';
 import { SEARCH_NUM_COLUMNS } from './_lib/searchConstants';
 import { useSearch } from './_hooks/useSearch';
 import { SearchBars } from './_components/SearchBars';
-import { SearchResultCard } from './_components/SearchResultCard';
-import { SearchSortModal } from './_components/SearchSortModal';
 
 const { colors, spacing } = theme;
 
 /**
  * Search tab — THIN screen. The `useSearch` controller owns filters, debounced
  * search, autocomplete, the infinite product query, and scroll/collapse state;
- * this file composes the header, collapsible bars, results list, and modals.
+ * this file composes the shell, collapsible bars, results list, and modals.
  */
 function SearchScreen() {
   const { t } = useTranslation();
   const f = useSearch();
-  const insets = useSafeAreaInsets();
+  const cellWidth = useProductCellWidth();
 
-  // Stable renderItem (#75) — memoized SearchResultCard bails out on unchanged rows.
+  // Stable renderItem (#75) — memoized ProductCard bails out on unchanged rows.
   const renderResult = useCallback(
     ({ item }: { item: any }) => (
-      <SearchResultCard
-        item={item}
-        cartProductIds={f.cartProductIds}
-        onPress={f.handleProductPress}
-      />
+      <View style={{ width: cellWidth }}>
+        <ProductCard testID="search-result-card" product={item} />
+      </View>
     ),
-    [f.cartProductIds, f.handleProductPress],
+    [cellWidth],
   );
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
-        <Text style={styles.headerTitle}>{t('search.search')}</Text>
-      </View>
+    <AppShell>
+      <View style={styles.container}>
+        {/* Üst çubuklar absolute katmanda; kaydırınca translateY ile yukarı kayar (liste reflow olmaz) */}
+        <View style={styles.resultsArea}>
+          <SearchBars f={f} />
 
-      {/* Üst çubuklar absolute katmanda; kaydırınca translateY ile yukarı kayar (liste reflow olmaz) */}
-      <View style={styles.resultsArea}>
-        <SearchBars f={f} />
+          {/* Results — liste yükleme/boş durumda da MONTE kalır (sökülüp yeniden
+              yerleşmesin diye); üst çubuklar ölçülene kadar yalnızca görünmez. */}
+          <FlatList
+            testID="search-results-list"
+            ref={f.listRef}
+            data={f.products}
+            numColumns={SEARCH_NUM_COLUMNS}
+            style={f.barsMeasured ? undefined : styles.listHidden}
+            contentContainerStyle={[styles.listContent, { paddingTop: f.headerHeight }]}
+            columnWrapperStyle={styles.listRow}
+            keyExtractor={(item, index) => `${item.id}-${index}`}
+            renderItem={renderResult}
+            // #82: virtualizasyon ayarı — sonsuz arama sonuçlarında bellek/kaydırma.
+            windowSize={7}
+            initialNumToRender={8}
+            maxToRenderPerBatch={10}
+            removeClippedSubviews
+            showsVerticalScrollIndicator={false}
+            onScroll={f.handleResultsScroll}
+            scrollEventThrottle={16}
+            keyboardDismissMode="on-drag"
+            refreshControl={
+              <RefreshControl
+                refreshing={f.isRefetching}
+                onRefresh={f.refetch}
+                colors={[colors.primary[600]!]}
+                tintColor={colors.primary[600]!}
+              />
+            }
+            onEndReached={() => {
+              if (f.hasNextPage && !f.isFetchingNextPage) f.fetchNextPage();
+            }}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              f.isFetchingNextPage ? (
+                <View style={{ paddingVertical: spacing[4] }}>
+                  <Spinner size="md" color={colors.primary[600]!} />
+                </View>
+              ) : null
+            }
+            ListEmptyComponent={
+              f.isLoading ? (
+                <ProductGridSkeleton />
+              ) : f.isError ? (
+                <ErrorState title={t('utility.error500.title')} onRetry={f.refetch} />
+              ) : (
+                <ProductListEmpty filtered={f.activeFiltersCount > 0 || !!f.filters.search} onClearFilters={f.clearAllFilters} />
+              )
+            }
+          />
+        </View>
 
-        {/* Results — liste yükleme/boş durumda da MONTE kalır (sökülüp yeniden
-            yerleşmesin diye); üst çubuklar ölçülene kadar yalnızca görünmez. */}
-        <FlatList
-          testID="search-results-list"
-          ref={f.listRef}
-          data={f.products}
-          numColumns={SEARCH_NUM_COLUMNS}
-          style={f.barsMeasured ? undefined : styles.listHidden}
-          contentContainerStyle={[styles.listContent, { paddingTop: f.headerHeight }]}
-          columnWrapperStyle={styles.listRow}
-          keyExtractor={(item, index) => `${item.id}-${index}`}
-          renderItem={renderResult}
-          // #82: virtualizasyon ayarı — sonsuz arama sonuçlarında bellek/kaydırma.
-          windowSize={7}
-          initialNumToRender={8}
-          maxToRenderPerBatch={10}
-          removeClippedSubviews
-          showsVerticalScrollIndicator={false}
-          onScroll={f.handleResultsScroll}
-          scrollEventThrottle={16}
-          keyboardDismissMode="on-drag"
-          refreshControl={
-            <RefreshControl
-              refreshing={f.isRefetching}
-              onRefresh={f.refetch}
-              colors={[colors.primary[600]!]}
-              tintColor={colors.primary[600]!}
-            />
-          }
-          onEndReached={() => {
-            if (f.hasNextPage && !f.isFetchingNextPage) f.fetchNextPage();
+        {/* En üste dön butonu — liste yeterince aşağı inince görünür */}
+        {f.showScrollTop && (
+          <FAB
+            icon="chevron-up"
+            size="sm"
+            style={styles.scrollTopFab}
+            onPress={f.scrollToTop}
+            accessibilityLabel={t('search.scrollToTop')}
+          />
+        )}
+
+        {/* Filter Modal (web SidebarFilters paritesi) */}
+        <ProductFilterSheet
+          visible={f.filterModalVisible}
+          onClose={() => f.setFilterModalVisible(false)}
+          filters={f.filters}
+          onChange={f.setFilters}
+          onClear={f.clearAllFilters}
+          options={f.options}
+          resultCount={f.total}
+          countLoading={f.isFetching && !f.isFetchingNextPage}
+        />
+
+        {/* Sort Modal */}
+        <ProductSortModal
+          visible={f.sortModalVisible}
+          value={f.filters.sortBy}
+          onSelect={(sortBy) => {
+            f.setFilters({ ...f.filters, sortBy });
+            f.setSortModalVisible(false);
           }}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={
-            f.isFetchingNextPage ? (
-              <View style={{ paddingVertical: spacing[4] }}>
-                <Spinner size="md" color={colors.primary[600]!} />
-              </View>
-            ) : null
-          }
-          ListEmptyComponent={
-            f.isLoading ? (
-              <View style={styles.loadingContainer}>
-                <Spinner size="lg" color={colors.primary[600]!} />
-                <Text variant="body" tone="muted" style={styles.loadingText}>
-                  {t('filter.resultsLoading')}
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.emptyContainer}>
-                <Ionicons name="search-outline" size={64} color={colors.text.subtle} />
-                <Text variant="h3" align="center" style={styles.emptyTitle}>
-                  {f.isError ? t('utility.error500.title') : t('search.noResults')}
-                </Text>
-                <Text variant="body" tone="muted" align="center" style={styles.emptySubtitle}>
-                  {t('search.tryDifferent')}
-                </Text>
-                <Button
-                  variant="outline"
-                  title={t('product.clearFilters')}
-                  onPress={f.clearAllFilters}
-                  style={{ marginTop: spacing[4], alignSelf: 'center' }}
-                />
-              </View>
-            )
-          }
+          onClose={() => f.setSortModalVisible(false)}
         />
       </View>
-
-      {/* En üste dön butonu — liste yeterince aşağı inince görünür */}
-      {f.showScrollTop && (
-        <TouchableOpacity
-          style={styles.scrollTopFab}
-          onPress={f.scrollToTop}
-          activeOpacity={0.85}
-          accessibilityRole="button"
-          accessibilityLabel={t('search.scrollToTop')}
-        >
-          <Ionicons name="chevron-up" size={26} color={colors.white} />
-        </TouchableOpacity>
-      )}
-
-      {/* Filter Modal (web SidebarFilters paritesi) */}
-      <ProductFilterSheet
-        visible={f.filterModalVisible}
-        onClose={() => f.setFilterModalVisible(false)}
-        filters={f.filters}
-        onChange={f.setFilters}
-        onClear={f.clearAllFilters}
-        options={f.options}
-        resultCount={f.total}
-        countLoading={f.isFetching && !f.isFetchingNextPage}
-      />
-
-      {/* Sort Modal */}
-      <SearchSortModal f={f} />
-    </View>
+    </AppShell>
   );
 }
 

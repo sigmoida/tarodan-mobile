@@ -9,7 +9,7 @@ import { useScreenActive } from '@/lib/ads/useScreenActive';
 import { heroImageUrl, pickLocalized, resolveHeroCta } from '@/lib/hero/heroView';
 import { heroReservedHeight } from '../_lib/heroLayout';
 import { heroStyles as s } from '../_lib/heroStyles';
-import { HeroBanner } from './HomeSections';
+import { HeroBanner } from './HeroBanner';
 
 const AUTOPLAY_MS = 10_000;
 

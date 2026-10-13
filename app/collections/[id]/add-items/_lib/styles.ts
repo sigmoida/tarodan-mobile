@@ -1,78 +1,26 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '@/ui';
 
-const { colors } = theme;
+const { colors, spacing, radiusRole } = theme;
 
-// Route-local stylesheet (§12). Monolitten BİREBİR taşındı.
 export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.DEFAULT,
-  },
-  searchBar: {
-    padding: theme.spacing[4],
-    paddingBottom: theme.spacing[2],
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.spacing[8],
-  },
-  emptyText: {
-    marginTop: theme.spacing[3],
-    color: colors.text.muted,
-    textAlign: 'center',
-  },
-  list: {
-    paddingHorizontal: theme.spacing[4],
-  },
+  list: { gap: spacing[2] },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.gray[50],
-    borderRadius: 12,
-    padding: theme.spacing[2.5],
-    marginBottom: theme.spacing[2.5],
+    gap: spacing[3],
+    padding: spacing[3],
+    borderRadius: radiusRole.card,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    backgroundColor: colors.surface.elevated,
   },
-  rowContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
+  rowContent: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing[3] },
   thumb: {
-    width: 56,
-    height: 56,
-    borderRadius: theme.radius.xl,
-    backgroundColor: colors.border.DEFAULT,
+    width: spacing[16],
+    height: spacing[16],
+    borderRadius: radiusRole.productCard,
+    backgroundColor: colors.surface.alt,
   },
-  rowInfo: {
-    flex: 1,
-    marginLeft: theme.spacing[3],
-    marginRight: theme.spacing[2],
-  },
-  rowTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.heading,
-  },
-  rowPrice: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.primary[600]!,
-    marginTop: theme.spacing[1],
-  },
-  toggleBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: colors.primary[600]!,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  toggleBtnAdded: {
-    backgroundColor: colors.primary[600]!,
-    borderColor: colors.primary[600]!,
-  },
+  rowInfo: { flex: 1, gap: spacing[0.5] },
 });

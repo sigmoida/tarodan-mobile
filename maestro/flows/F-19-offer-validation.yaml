@@ -63,10 +63,16 @@ env:
     text: ".*[0-9],[0-9][0-9] TL.*"
     index: 0
 - extendedWaitUntil:
-    visible: "Teklif Ver"
+    visible:
+      id: "product-price"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "product-detail-offer-button"
+    direction: DOWN
     timeout: 30000
 - tapOn:
-    text: "Teklif Ver"
+    id: "product-detail-offer-button"
 - extendedWaitUntil:
     visible:
       id: "offer-amount-input"

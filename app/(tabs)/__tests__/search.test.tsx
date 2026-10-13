@@ -15,7 +15,7 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
 jest.mock('@/lib/api', () => ({
-  productsApi: { getAll: jest.fn() },
+  productsApi: { getAll: jest.fn(), recordClick: jest.fn(() => Promise.resolve({ data: {} })) },
   searchApi: { autocompleteRich: jest.fn() },
 }));
 import { productsApi } from '@/lib/api';
@@ -73,12 +73,12 @@ describe('catalog-search · arama ekranı (J52/J53)', () => {
     expect(screen.getByText('2 sonuç bulundu')).toBeOnTheScreen();
   });
 
-  it('J52 · boş sonuç → "Sonuç bulunamadı" boş durumu görünür', async () => {
+  it('J52 · boş sonuç → tek boş durum metni "Henüz ilan yok" görünür', async () => {
     mockGetAll.mockResolvedValue(mockListResponse([]));
     renderWithProviders(<SearchScreen />);
 
     await waitFor(() =>
-      expect(screen.getByText('Sonuç bulunamadı')).toBeOnTheScreen(),
+      expect(screen.getByText('Henüz ilan yok')).toBeOnTheScreen(),
     );
     expect(screen.getByText('0 sonuç bulundu')).toBeOnTheScreen();
   });

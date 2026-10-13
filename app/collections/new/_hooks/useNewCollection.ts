@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
+import { toast } from '@/ui';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { buildCollectionSchema, type CollectionForm } from '../_lib/schema';
@@ -22,7 +23,6 @@ export function useNewCollection() {
 
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
 
   const canCreateCollections = limits?.canCreateCollections || false;
 
@@ -71,11 +71,11 @@ export function useNewCollection() {
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['collections'] });
       queryClient.invalidateQueries({ queryKey: ['my-collections'] });
-      setSnackbar({ visible: true, message: t('collection.collectionCreated') });
+      toast.success(t('collection.collectionCreated'));
       setTimeout(() => router.replace(`/collections/${response.data.id}`), 1500);
     },
     onError: (error: any) => {
-      setSnackbar({ visible: true, message: error.response?.data?.message || t('collection.createCollectionFailed') });
+      toast.error(error.response?.data?.message || t('collection.createCollectionFailed'));
     },
   });
 
@@ -118,8 +118,6 @@ export function useNewCollection() {
     pickCoverImage,
     selectedTemplate,
     selectTemplate,
-    snackbar,
-    setSnackbar,
   };
 }
 

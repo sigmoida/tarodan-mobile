@@ -46,10 +46,21 @@ export const qk = {
      *  YAKALAMAZ; çapraz invalidasyonlarda ikisi birden verilmeli. */
     detailAll: ["product"] as const,
     reviews: (id: string) => ["product-reviews", id] as const,
+    /** Ürün değerlendirmeleri ekranı: sayfalı liste + puan özeti. */
+    reviewsAll: (id: string) => ["product-reviews-all", id] as const,
+    ratingStats: (id: string) => ["product-rating-stats", id] as const,
+    /** Ürün detayı "Benzer Ürünler". */
+    similar: (id: string, limit?: number) => ["product", id, "similar", limit] as const,
+    /** "Ürün artık satışta değil" ekranının ürünü (404/pasif ilan da dönebilir). */
+    unavailable: (id: string) => ["product-unavailable", id] as const,
     /** Liste ekranlarının (home/arama/öne-çıkanlar) prefix root'ları — beğeni/
      * görüntülenme değişince hepsi tazelensin diye tek yerde. */
     searchAll: ["products-search"] as const,
     boosted: ["products", "boosted"] as const,
+    /** Anasayfa rayları (web ile aynı üç uç): Öne Çıkan (homeShowcase), İndirimdekiler, Takas Vitrini. */
+    homeFeatured: ["products", "home", "featured"] as const,
+    homeOnSale: ["products", "home", "on-sale"] as const,
+    homeTrade: ["products", "home", "trade"] as const,
     /** Anasayfa "Popüler İlanlar" — backend görüntülenmeye göre sıralar. */
     popular: ["products", "popular"] as const,
     /** İlana özel boost paket seçenekleri (paket + süre + fiyat). */
@@ -81,6 +92,14 @@ export const qk = {
     categories: ["categories"] as const,
     brands: ["brands"] as const,
     manufacturers: ["manufacturers"] as const,
+    /** Marka / üretici detayı (slug) ve ürünleri (varlık id'si). */
+    brand: (slug: string) => ["brand", slug] as const,
+    brandProducts: (id?: string) => ["brand-products", id] as const,
+    manufacturer: (slug: string) => ["manufacturer", slug] as const,
+    manufacturerProducts: (id?: string) => ["manufacturer-products", id] as const,
+    /** Model detayı (slug) ve o modele ait ürünler. */
+    carModel: (slug: string) => ["car-model", slug] as const,
+    modelProducts: (slug: string) => ["model-products", slug] as const,
     carModels: (filters?: Filters) => ["car-models", filters] as const,
     pages: (slug?: string) => ["pages", slug] as const,
   },
@@ -92,6 +111,8 @@ export const qk = {
     /** Prefix root — her `collection` detayını yakalar. */
     detailAll: ["collection"] as const,
     browse: ["collections", "browse"] as const,
+    /** Anasayfa "En İyi Koleksiyonlar" — `/users/top-collections`. */
+    top: ["collections", "top"] as const,
     mine: ["my-collections"] as const,
     liked: ["liked-collections"] as const,
     picker: ["collection-picker"] as const,

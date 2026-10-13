@@ -1,66 +1,58 @@
-import { View, Image, TouchableOpacity } from 'react-native';
+import { View, Image, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Text, theme } from '@/ui';
+import { SectionCard, Text } from '@/ui';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { transformImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
 import type { Brand, CarModel } from '../_lib/types';
 
-const { colors } = theme;
-
-/** Bir markanın başlığı + o markaya ait model kartları grid'i. */
+/** Bir markanın başlığı (SectionCard) + o markaya ait model kartları (2 sütun). */
 export function ModelsBrandSection({ brand, models }: { brand: Brand; models: CarModel[] }) {
   const { t } = useTranslation();
   return (
-    <View style={styles.brandSection}>
-      <View style={styles.brandHeader}>
-        {brand.logo ? (
-          <Image source={{ uri: transformImageUrl(brand.logo) }} style={styles.brandLogo} />
-        ) : (
-          <View style={[styles.brandLogo, styles.brandLogoFallback]}>
-            <Ionicons name="car-sport-outline" size={18} color={colors.primary[600]!} />
-          </View>
-        )}
-        <View style={{ flex: 1 }}>
-          <Text style={styles.brandName}>{brand.name}</Text>
-          <Text style={styles.brandMeta}>
-            {t('collection.modelCount', { count: models.length })}
-            {brand.country ? ` · ${brand.country}` : ''}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.modelsGrid}>
+    <SectionCard
+      title={brand.name}
+      testID={`models-brand-${brand.slug}`}
+      action={
+        <Text variant="caption" tone="muted">
+          {t('collection.modelCount', { count: models.length })}
+          {brand.country ? ` · ${brand.country}` : ''}
+        </Text>
+      }
+    >
+      <View style={styles.grid}>
         {models.map((m) => (
-          <TouchableOpacity
+          <Pressable
             key={m.id}
-            style={styles.modelCard}
+            style={({ pressed }) => [styles.modelCard, pressed && styles.pressed]}
             onPress={() => router.push({ pathname: '/models/[slug]', params: { slug: m.slug } } as any)}
+            accessibilityRole="button"
+            accessibilityLabel={m.name}
           >
-            {m.image ? (
-              <Image source={{ uri: transformImageUrl(m.image) }} style={styles.modelImage} />
-            ) : (
-              <View style={[styles.modelImage, styles.modelImageFallback]}>
-                <Ionicons name="car-outline" size={36} color={colors.text.subtle} />
-              </View>
-            )}
+            <View style={styles.modelImage}>
+              {m.image ? (
+                <Image source={{ uri: transformImageUrl(m.image) }} style={styles.modelImageFill} />
+              ) : null}
+            </View>
             <View style={styles.modelBody}>
-              <Text style={styles.modelName} numberOfLines={1}>{m.name}</Text>
+              <Text variant="bodySm" weight="medium" numberOfLines={1}>
+                {m.name}
+              </Text>
               {m.yearStart || m.yearEnd ? (
-                <Text style={styles.modelYears}>
-                  {m.yearStart ?? '?'}{m.yearEnd ? ` - ${m.yearEnd}` : ` - ${t('models.present')}`}
+                <Text variant="caption" tone="subtle">
+                  {m.yearStart ?? '?'}
+                  {m.yearEnd ? ` - ${m.yearEnd}` : ` - ${t('models.present')}`}
                 </Text>
               ) : null}
               {typeof m.productCount === 'number' ? (
-                <Text style={styles.modelCount}>
+                <Text variant="caption" tone="subtle">
                   {t('collection.itemCountSuffix', { count: m.productCount })}
                 </Text>
               ) : null}
             </View>
-          </TouchableOpacity>
+          </Pressable>
         ))}
       </View>
-    </View>
+    </SectionCard>
   );
 }

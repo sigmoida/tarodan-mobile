@@ -86,13 +86,17 @@ tags:
     index: 0
 - extendedWaitUntil:
     visible:
-      id: "product-detail-add-to-cart-button"
+      id: "product-price"
     timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "product-detail-add-to-cart-button"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
     id: "product-detail-add-to-cart-button"
 - tapOn:
-    text: "Sepete Git"
-    optional: true
+    id: "product-cart-button"
 # 4b. Sepet özeti: toplam görünür
 - extendedWaitUntil:
     visible:
@@ -135,5 +139,6 @@ tags:
 - tapOn:
     text: "Ana Sayfaya Dön"
 - extendedWaitUntil:
-    visible: "Kategoriler"
+    visible:
+      id: "home-search-input"
     timeout: 20000

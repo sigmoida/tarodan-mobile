@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, ScrollView, TouchableOpacity, Pressable, Animated } from 'react-native';
+import { View, Pressable, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Chip, Input, Text, theme } from '@/ui';
-
+import { Input, Text, theme } from '@/ui';
+import { ActiveFilterChips, ProductListControls } from '@/components/product';
 import { buildSortOptions } from '@/utils/productFilters';
 import { styles } from '../_lib/searchStyles';
 import { SearchSuggestions } from './SearchSuggestions';
@@ -12,9 +12,9 @@ import type { SearchController } from '../_hooks/useSearch';
 const { colors } = theme;
 
 /**
- * Collapsible top bars (absolute layer): search input + suggestions dropdown,
- * filter/sort buttons, active filter chips, and the results count. Slides up via
- * translateY when the results list scrolls down.
+ * Collapsible top bars (absolute layer): search input + suggestions dropdown, filter/sort controls,
+ * active filter chips and the results count. Slides up via translateY when the results list scrolls
+ * down.
  */
 export function SearchBars({ f }: { f: SearchController }) {
   const { t } = useTranslation();
@@ -35,14 +35,16 @@ export function SearchBars({ f }: { f: SearchController }) {
             onChangeText={f.handleSearchChange}
             leftIconName="search"
             containerStyle={styles.searchInputContainer}
-            fieldStyle={[
-              styles.searchInputField,
-              f.suggestionsOpen && styles.searchInputFieldOpen,
-            ]}
+            fieldStyle={[styles.searchInputField, f.suggestionsOpen && styles.searchInputFieldOpen]}
             rightIcon={
               f.suggestionsOpen ? (
-                <Pressable onPress={f.closeSuggestions} hitSlop={8}>
-                  <Ionicons name="close-circle" size={20} color={colors.text.muted} />
+                <Pressable
+                  onPress={f.closeSuggestions}
+                  hitSlop={theme.spacing[3]}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('common.close')}
+                >
+                  <Ionicons name="close-circle" size={theme.iconSize.md} color={colors.text.muted} />
                 </Pressable>
               ) : undefined
             }
@@ -62,64 +64,26 @@ export function SearchBars({ f }: { f: SearchController }) {
         </View>
       </View>
 
-      {/* Filter & Sort Row */}
-      <View style={styles.filterRow}>
-        <TouchableOpacity
-          style={styles.filterButton}
-          onPress={() => f.setFilterModalVisible(true)}
-          accessibilityRole="button"
-          accessibilityLabel={t('common.filter')}
-          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-        >
-          <Ionicons name="filter-outline" size={20} color={colors.text.heading} />
-          <Text style={styles.filterButtonText}>{t('common.filter')}</Text>
-          {f.activeFiltersCount > 0 && (
-            <View style={styles.filterBadge}>
-              <Text style={styles.filterBadgeText}>{f.activeFiltersCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.filterButton}
-          onPress={() => f.setSortModalVisible(true)}
-          accessibilityRole="button"
-          accessibilityLabel={t('common.sort')}
-          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-        >
-          <Ionicons name="swap-vertical-outline" size={20} color={colors.text.heading} />
-          <Text style={styles.filterButtonText}>
-            {sortOptions.find((s) => s.value === f.filters.sortBy)?.label || t('common.sort')}
-          </Text>
-        </TouchableOpacity>
+      {/* Filter & Sort */}
+      <View style={styles.controls}>
+        <ProductListControls
+          sortLabel={sortOptions.find((s) => s.value === f.filters.sortBy)?.label || t('common.sort')}
+          onSort={() => f.setSortModalVisible(true)}
+          onFilter={() => f.setFilterModalVisible(true)}
+          filterCount={f.activeFiltersCount}
+        />
       </View>
 
       {/* Active Filter Chips */}
       {f.activeChips.length > 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.quickFilters}
-          contentContainerStyle={styles.quickFiltersContent}
-        >
-          {f.activeChips.map((c) => (
-            <Chip
-              key={c.key}
-              label={`${c.label} ✕`}
-              variant="primary"
-              onPress={c.onRemove}
-              style={styles.activeChip}
-            />
-          ))}
-          {f.activeChips.length > 1 && (
-            <Chip label={t('search.clearFilters')} variant="neutral" onPress={f.clearAllFilters} />
-          )}
-        </ScrollView>
+        <View style={styles.chips}>
+          <ActiveFilterChips chips={f.activeChips} onClear={f.clearAllFilters} />
+        </View>
       )}
 
       {/* Results Count */}
       <View style={styles.resultsCount}>
-        <Text style={styles.resultsCountText}>
+        <Text variant="bodySm" tone="muted">
           {f.isLoading ? t('search.searching') : t('search.resultsFound', { count: f.total })}
         </Text>
       </View>
