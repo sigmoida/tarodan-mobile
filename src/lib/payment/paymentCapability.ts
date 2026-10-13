@@ -10,32 +10,189 @@
  *
  * Akış: checkout `initiateGroupGuest` → belirteç burada saklanır →
  * `/payment/[id]?guest=1` → durum sorgusu, direct-form, verify ve
- * confirm-failed başlığı buradan okur.
+ * confirm-failed istekleri `withPaymentCapability` sarmalayıcısından geçer ve
+ * başlığı TEK yerden alır.
  *
- * Web belirteci sekme ömürlü `sessionStorage`'da tutar; mobilde karşılığı süreç
- * ömrü (bellek). Uygulama kapanırsa misafir ödemeye dönemez — web'de sekme
- * kapanınca olduğu gibi. Belirteç kalıcı depoya yazılmaz.
+ * Saklama: web belirteci `sessionStorage` + bellek kopyasında tutar. Mobilde
+ * banka uygulamasına (3DS) geçişte OS uygulamanın JS sürecini öldürebiliyor;
+ * yalnız bellek yetmez. Belirteç `payment-capability.<paymentId>` anahtarıyla
+ * (web anahtarıyla aynı) AsyncStorage'a da yazılır, sunucudaki ömrüyle aynı
+ * 2 saat TTL ile. Okurken süresi dolan silinir ve yok sayılır. Her AsyncStorage
+ * erişimi try/catch içinde: depo yoksa ya da hata verirse yalnız bellek kopyası
+ * kullanılır (akış aynı süreçte yine tamamlanır).
  */
-const tokens = new Map<string, string>();
+import type { AxiosInstance, AxiosRequestConfig } from 'axios';
+import { unwrapEnvelope } from '@/utils/apiEnvelope';
 
-type InitiateBody = { paymentId?: unknown; paymentAccessToken?: unknown; data?: InitiateBody };
+/** Sunucudaki belirteç ömrü: `payment.controller.ts` → `issuePaymentCapability` (`expiresIn: "2h"`). */
+export const PAYMENT_CAPABILITY_TTL_MS = 2 * 60 * 60 * 1000;
 
-/** Başlatma yanıtında belirteç varsa sakla (`{ data }` sarmalı da olur). */
-export function rememberPaymentCapability(response: unknown): void {
-  const body = (response as { data?: InitiateBody } | null | undefined)?.data;
-  const data = body?.data ?? body;
-  if (typeof data?.paymentId === 'string' && typeof data?.paymentAccessToken === 'string') {
-    tokens.set(data.paymentId, data.paymentAccessToken);
+/** AsyncStorage anahtarı — web `sessionStorage` anahtarıyla aynı. */
+const storageKey = (paymentId: string) => `payment-capability.${paymentId}`;
+
+type Entry = { token: string; expiresAt: number };
+
+type KeyValueStore = {
+  getItem(key: string): Promise<string | null>;
+  setItem(key: string, value: string): Promise<unknown>;
+  removeItem(key: string): Promise<unknown>;
+};
+
+/**
+ * Bellek önbelleği. `null` = bu süreçte depoya bakıldı, kayıt yok: durum
+ * yoklaması her turda depoya gitmesin. Depoya yalnız bu modül yazar ve her
+ * yazımda belleği de günceller; bu yüzden önbellek bayatlamaz.
+ */
+const memory = new Map<string, Entry | null>();
+
+let storage: KeyValueStore | null | undefined;
+
+/**
+ * AsyncStorage ilk kullanımda yüklenir. Native modül yoksa paket import anında
+ * fırlatır (mock'suz Jest, bozuk kurulum); statik import bu hatayı bütün
+ * `@/lib/api` barrel'ına taşırdı. Yüklenemezse yalnız bellek kullanılır.
+ */
+function persistentStorage(): KeyValueStore | null {
+  if (storage === undefined) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const mod = require('@react-native-async-storage/async-storage');
+      storage = (mod?.default ?? mod ?? null) as KeyValueStore | null;
+    } catch {
+      storage = null;
+    }
+  }
+  return storage;
+}
+
+function parseEntry(raw: string | null): Entry | null {
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw) as Partial<Entry> | null;
+    return typeof value?.token === 'string' && typeof value.expiresAt === 'number'
+      ? { token: value.token, expiresAt: value.expiresAt }
+      : null;
+  } catch {
+    return null;
   }
 }
 
-/** Bu ödemenin yetki başlığı; belirteç yoksa boş (üye, kendi oturumuyla yetkili). */
-export function paymentCapabilityHeaders(paymentId: string | undefined | null): Record<string, string> {
-  const token = paymentId ? tokens.get(paymentId) : undefined;
-  return token ? { 'X-Payment-Capability': token } : {};
+async function removeStored(paymentId: string): Promise<void> {
+  try {
+    await persistentStorage()?.removeItem(storageKey(paymentId));
+  } catch {
+    /* silinemedi: sonraki okumada süresi dolduğu için yine yok sayılır */
+  }
 }
 
-/** Yalnız testler için. */
+/** Bellekte yoksa depodan yükle (uygulama yeniden başlamış olabilir). */
+async function hydrate(paymentId: string): Promise<void> {
+  const store = persistentStorage();
+  if (!store) return;
+  let raw: string | null;
+  try {
+    raw = await store.getItem(storageKey(paymentId));
+  } catch {
+    return; // okunamadı: yalnız bellek, sonraki istek yeniden dener
+  }
+  // Beklerken aynı ödeme için yeni belirteç geldiyse onu ezme.
+  if (memory.has(paymentId)) return;
+  const entry = parseEntry(raw);
+  memory.set(paymentId, entry);
+  if (raw && !entry) await removeStored(paymentId); // bozuk kayıt
+}
+
+async function readCapability(paymentId: string): Promise<string | null> {
+  if (!memory.has(paymentId)) await hydrate(paymentId);
+  const entry = memory.get(paymentId);
+  if (!entry) return null;
+  if (entry.expiresAt > Date.now()) return entry.token;
+  // Süresi doldu: sunucu da reddeder. Sil ve yok say.
+  memory.set(paymentId, null);
+  await removeStored(paymentId);
+  return null;
+}
+
+type InitiateBody = { paymentId?: unknown; paymentAccessToken?: unknown };
+
+/**
+ * Başlatma yanıtında belirteç varsa sakla (`{ data }` zarfı da olur). Bellek
+ * kopyası senkron yazılır (aynı süreçteki sonraki istekler depoyu beklemez);
+ * dönen söz yalnız depo yazımını bekler. Hiç fırlatmaz.
+ */
+export async function rememberPaymentCapability(response: unknown): Promise<void> {
+  const data = unwrapEnvelope<InitiateBody>(response as { data?: unknown } | null | undefined);
+  if (typeof data.paymentId !== 'string' || typeof data.paymentAccessToken !== 'string') return;
+  const entry: Entry = { token: data.paymentAccessToken, expiresAt: Date.now() + PAYMENT_CAPABILITY_TTL_MS };
+  memory.set(data.paymentId, entry);
+  try {
+    await persistentStorage()?.setItem(storageKey(data.paymentId), JSON.stringify(entry));
+  } catch {
+    /* depo yazılamadı: yalnız bellek (web'de sessionStorage hatasında olduğu gibi) */
+  }
+}
+
+/** Bu ödemenin yetki başlığı; belirteç yoksa boş (üye, kendi oturumuyla yetkili). Hiç fırlatmaz. */
+export async function paymentCapabilityHeaders(
+  paymentId: string | undefined | null,
+): Promise<Record<string, string>> {
+  if (!paymentId) return {};
+  try {
+    const token = await readCapability(paymentId);
+    return token ? { 'X-Payment-Capability': token } : {};
+  } catch {
+    return {};
+  }
+}
+
+/** `/payments/:id/<uç>` yolundaki ödeme id'si. */
+const PAYMENT_ID_IN_PATH = /^\/payments\/([^/?#]+)\/[^/?#]+/;
+
+/**
+ * İsteğin yetkilendirdiği ödeme: yoldaki `:id` (`/payments/:id/status`, `verify`,
+ * `confirm-failed`…), yoksa gövdedeki `paymentId` (`/payments/direct-form`).
+ */
+export function capabilityPaymentId(url: string, body?: unknown): string | undefined {
+  const fromPath = PAYMENT_ID_IN_PATH.exec(url)?.[1];
+  if (fromPath) return fromPath;
+  const fromBody = (body as { paymentId?: unknown } | null | undefined)?.paymentId;
+  return typeof fromBody === 'string' && fromBody ? fromBody : undefined;
+}
+
+type HttpClient = Pick<AxiosInstance, 'get' | 'post'>;
+
+/**
+ * Ödeme API'sine özel istek sarmalayıcısı: axios `get`/`post` imzasıyla aynı,
+ * ama isteğin ödemesi için saklı belirteç varsa `X-Payment-Capability`
+ * başlığını kendisi ekler (yoksa başlık eklenmez — üye kendi oturumuyla
+ * yetkili). Belirteç başka ödemeye sızmaz: başlık yalnız id'si eşleşen ödemeye.
+ *
+ * Genel axios interceptor'ı yerine bilerek ayrı sarmalayıcı: yalnız buradan
+ * geçen ödeme uçları etkilenir, diğer isteklerin yolu değişmez.
+ */
+export function withPaymentCapability(client: HttpClient): HttpClient {
+  const configFor = async (
+    url: string,
+    body: unknown,
+    config?: AxiosRequestConfig,
+  ): Promise<AxiosRequestConfig> => ({
+    ...config,
+    headers: {
+      ...(config?.headers as Record<string, string> | undefined),
+      ...(await paymentCapabilityHeaders(capabilityPaymentId(url, body))),
+    },
+  });
+  return {
+    get: async (url, config) => client.get(url, await configFor(url, undefined, config)),
+    post: async (url, data, config) => client.post(url, data, await configFor(url, data, config)),
+  };
+}
+
+/**
+ * Yalnız testler için: bellek kopyasını ve depo bağlantısını sıfırlar
+ * (AsyncStorage içeriğine dokunmaz — "uygulama yeniden başladı" benzetimi).
+ */
 export function __resetPaymentCapabilities(): void {
-  tokens.clear();
+  memory.clear();
+  storage = undefined;
 }
