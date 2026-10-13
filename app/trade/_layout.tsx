@@ -14,6 +14,9 @@ export default function TradeLayout() {
         ...stackScreenOptions,
         contentStyle: { backgroundColor: colors.surface.DEFAULT },
       }}
-    />
+    >
+      {/* İtiraz formu (eskiden modal) — taslak `disputeDraftStore`'da korunur, çıkış serbest. */}
+      <Stack.Screen name="[id]/dispute" />
+    </Stack>
   );
 }

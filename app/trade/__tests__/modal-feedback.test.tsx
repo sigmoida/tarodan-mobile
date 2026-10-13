@@ -1,16 +1,15 @@
 /**
- * Takas itiraz / reddet modalları — geri bildirim sözleşmesi (CLAUDE.md §12):
- *  - doğrulama hatası modal İÇİNDE satır içi (toast açık native Modal'ın altında kalırdı);
- *  - geçerliyse modal ÖNCE kapanır, mutation SONRA başlar (isPending beklenmez);
+ * Takas reddet modalı + diğer aksiyonlar — geri bildirim sözleşmesi (CLAUDE.md §12):
+ *  - modal ÖNCE kapanır, mutation SONRA başlar (isPending beklenmez);
  *  - sonuç `toast.success`, hata `toast.error` (nötr `toast()` değil).
+ * İtiraz ayrı form ekranı: `dispute-screen.test.tsx`.
  */
 import React from 'react';
-import { act, render, renderHook, screen, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { toast } from '@/ui';
 import { tradesApi } from '@/lib/api';
-import { DEFAULT_DISPUTE_REASON } from '../[id]/_lib/disputeReasons';
-import { DisputeTradeModal } from '../[id]/_modals/DisputeTradeModal';
+import { router } from 'expo-router';
 import { useTradeActions } from '../[id]/_hooks/useTradeActions';
 
 jest.mock('react-i18next', () => ({
@@ -54,88 +53,12 @@ beforeEach(() => {
   Object.values(api).forEach((m) => m.mockReset());
 });
 
-describe('itiraz modalı', () => {
-  it('kısa açıklama: modal AÇIK kalır, hata satır içi, istek ve toast YOK', () => {
+describe('itiraz', () => {
+  it('artık modal değil: itiraz form ekranına geçer (sözleşme: dispute-screen.test.tsx)', () => {
     const { result } = setupHook();
-    act(() => result.current.dispute.open());
-    act(() => result.current.dispute.setDescription('kısa'));
-    act(() => result.current.dispute.submit());
-
-    expect(result.current.dispute.visible).toBe(true);
-    expect(result.current.dispute.error).toBe('trade.dispute.minLengthError');
+    act(() => result.current.openDispute());
+    expect(router.push).toHaveBeenCalledWith({ pathname: '/trade/[id]/dispute', params: { id: 't1' } });
     expect(api.raiseDispute).not.toHaveBeenCalled();
-    expect(toastMock).not.toHaveBeenCalled();
-    expect(errorMock).not.toHaveBeenCalled();
-  });
-
-  it('hata yazmaya başlayınca / yeniden açılınca temizlenir', () => {
-    const { result } = setupHook();
-    act(() => result.current.dispute.open());
-    act(() => result.current.dispute.submit());
-    expect(result.current.dispute.error).toBeTruthy();
-    act(() => result.current.dispute.setDescription('d'));
-    expect(result.current.dispute.error).toBeNull();
-
-    act(() => result.current.dispute.submit());
-    expect(result.current.dispute.error).toBeTruthy();
-    act(() => result.current.dispute.close());
-    act(() => result.current.dispute.open());
-    expect(result.current.dispute.error).toBeNull();
-  });
-
-  it('modal satır içi hatayı alan altında gösterir', () => {
-    render(
-      <DisputeTradeModal
-        visible
-        onClose={() => {}}
-        reason={DEFAULT_DISPUTE_REASON}
-        setReason={() => {}}
-        description="kısa"
-        setDescription={() => {}}
-        onSubmit={() => {}}
-        error="trade.dispute.minLengthError"
-        t={((k: string) => k) as any}
-      />,
-    );
-    expect(screen.getByText('trade.dispute.minLengthError')).toBeTruthy();
-  });
-
-  it('geçerli: modal İSTEK BİTMEDEN kapanır (önce kapat, sonra gönder)', async () => {
-    let resolve!: (v: unknown) => void;
-    api.raiseDispute.mockReturnValue(new Promise((r) => (resolve = r)));
-    const { result } = setupHook();
-    act(() => result.current.dispute.open());
-    act(() => result.current.dispute.setDescription('Kargo kutusu ezik geldi, ürün çalışmıyor.'));
-    act(() => result.current.dispute.submit());
-
-    expect(result.current.dispute.visible).toBe(false); // istek hâlâ beklemede
-    await waitFor(() => expect(api.raiseDispute).toHaveBeenCalledTimes(1));
-    expect(successMock).not.toHaveBeenCalled();
-
-    await act(async () => resolve({ data: {} }));
-    await waitFor(() => expect(successMock).toHaveBeenCalledWith('trade.dispute.successMessage'));
-    expect(toastMock).not.toHaveBeenCalled();
-  });
-
-  it('sunucu hatası: toast.error(sunucu mesajı), açıklama korunur', async () => {
-    api.raiseDispute.mockRejectedValue({ response: { data: { message: ['Süre dolmuş'] } } });
-    const { result } = setupHook();
-    act(() => result.current.dispute.open());
-    act(() => result.current.dispute.setDescription('Kargo kutusu ezik geldi, ürün çalışmıyor.'));
-    act(() => result.current.dispute.submit());
-
-    await waitFor(() => expect(errorMock).toHaveBeenCalledWith('Süre dolmuş'));
-    expect(successMock).not.toHaveBeenCalled();
-    expect(toastMock).not.toHaveBeenCalled();
-    expect(result.current.dispute.description).toBe('Kargo kutusu ezik geldi, ürün çalışmıyor.');
-  });
-
-  it('sunucu mesajı yoksa dispute yedek metni', async () => {
-    api.raiseDispute.mockRejectedValue({ response: { data: {} } });
-    const { result } = setupHook();
-    act(() => result.current.dispute.setDescription('Kargo kutusu ezik geldi, ürün çalışmıyor.'));
-    act(() => result.current.dispute.submit());
-    await waitFor(() => expect(errorMock).toHaveBeenCalledWith('trade.dispute.errorMessage'));
   });
 });
 

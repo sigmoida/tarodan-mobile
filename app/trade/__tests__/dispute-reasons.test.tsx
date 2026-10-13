@@ -3,44 +3,52 @@
  *
  * API `RaiseTradeDisputeDto` yalnız not_as_described | damaged | wrong_item |
  * not_received kabul eder; mobil eskiden shipment_lost (varsayılan) /
- * shipment_damaged / other gönderip 400 alıyordu.
+ * shipment_damaged / other gönderip 400 alıyordu. Form artık ayrı ekran
+ * (`trade/[id]/dispute`).
  */
 import React from 'react';
-import { act, render, renderHook, screen, waitFor } from '@testing-library/react-native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { renderWithProviders } from '@/test-utils';
+import { resetRouterMocks } from '@/test-utils/router-mock';
 import {
   DEFAULT_DISPUTE_REASON,
   DISPUTE_REASONS,
   DISPUTE_REASON_LABEL_KEY,
 } from '../[id]/_lib/disputeReasons';
-import { DisputeTradeModal } from '../[id]/_modals/DisputeTradeModal';
-import { useTradeActions } from '../[id]/_hooks/useTradeActions';
 import { tradesApi } from '@/lib/api';
+import { useDisputeDraftStore } from '@/stores/disputeDraftStore';
+import TradeDisputeScreen from '../[id]/dispute';
 import tr from '@/i18n/lib/catalog/tr.json';
 import en from '@/i18n/lib/catalog/en.json';
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key, language: 'tr' }),
 }));
-
+jest.mock('expo-router', () => ({
+  ...require('@/test-utils/router-mock').routerMock,
+  useLocalSearchParams: () => ({ id: 't1' }),
+}));
 jest.mock('@/lib/api', () => ({
-  tradesApi: {
-    raiseDispute: jest.fn().mockResolvedValue({ data: {} }),
-    accept: jest.fn(),
-    reject: jest.fn(),
-    cancel: jest.fn(),
-    confirmReceipt: jest.fn(),
-  },
-  paymentsApi: {},
+  tradesApi: { raiseDispute: jest.fn().mockResolvedValue({ data: {} }) },
 }));
 
-jest.mock('@/services/sentry', () => ({ captureException: jest.fn() }));
-jest.mock('expo-router', () => ({ router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() } }));
-
 const API_ENUM = ['not_as_described', 'damaged', 'wrong_item', 'not_received'];
+const raiseMock = tradesApi.raiseDispute as jest.Mock;
+const VALID = 'Kargo takipte hareket yok, ürün gelmedi.';
+
+beforeEach(() => {
+  raiseMock.mockClear();
+  resetRouterMocks();
+  useDisputeDraftStore.getState().clearAll();
+});
+
+const submit = () =>
+  act(async () => {
+    fireEvent.press(screen.getByTestId('trade-dispute-submit-button'));
+  });
 
 describe('takas itirazı nedenleri', () => {
-  it('değerler API enum\'uyla birebir aynı ve varsayılan geçerli', () => {
+  it("değerler API enum'uyla birebir aynı ve varsayılan geçerli", () => {
     expect([...DISPUTE_REASONS]).toEqual(API_ENUM);
     expect(API_ENUM).toContain(DEFAULT_DISPUTE_REASON);
   });
@@ -54,19 +62,8 @@ describe('takas itirazı nedenleri', () => {
     }
   });
 
-  it('modal yalnız geçerli nedenleri listeler', () => {
-    render(
-      <DisputeTradeModal
-        visible
-        onClose={() => {}}
-        reason={DEFAULT_DISPUTE_REASON}
-        setReason={() => {}}
-        description=""
-        setDescription={() => {}}
-        onSubmit={() => {}}
-        t={((k: string) => k) as any}
-      />,
-    );
+  it('ekran yalnız geçerli nedenleri listeler', () => {
+    renderWithProviders(<TradeDisputeScreen />);
     for (const reason of DISPUTE_REASONS) {
       expect(screen.getByText(DISPUTE_REASON_LABEL_KEY[reason])).toBeTruthy();
     }
@@ -74,61 +71,34 @@ describe('takas itirazı nedenleri', () => {
   });
 
   it('itiraz isteği varsayılan olarak geçerli bir neden gönderir', async () => {
-    const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
-    const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={qc}>{children}</QueryClientProvider>
-    );
-    const { result } = renderHook(() => useTradeActions('t1'), { wrapper });
+    renderWithProviders(<TradeDisputeScreen />);
+    fireEvent.changeText(screen.getByTestId('trade-dispute-description-input'), VALID);
+    await submit();
 
-    act(() => {
-      result.current.dispute.setDescription('Kargo kutusu ezik geldi, ürün çalışmıyor.');
-    });
-    act(() => {
-      result.current.dispute.submit();
-    });
-
-    await waitFor(() => expect(tradesApi.raiseDispute).toHaveBeenCalled());
-    const [, body] = (tradesApi.raiseDispute as jest.Mock).mock.calls[0];
+    await waitFor(() => expect(raiseMock).toHaveBeenCalled());
+    const [, body] = raiseMock.mock.calls[0];
     expect(API_ENUM).toContain(body.reason);
     expect(body.reason).toBe('not_as_described');
   });
 
-  function setupHook() {
-    const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
-    const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={qc}>{children}</QueryClientProvider>
-    );
-    return renderHook(() => useTradeActions('t1'), { wrapper });
-  }
-
-  it('seçilen neden modal yeniden açılınca varsayılana döner', () => {
-    const { result } = setupHook();
-
-    act(() => result.current.dispute.open());
-    act(() => result.current.dispute.setReason('damaged'));
-    expect(result.current.dispute.reason).toBe('damaged');
-
-    act(() => result.current.dispute.close());
-    act(() => result.current.dispute.open());
-    expect(result.current.dispute.reason).toBe(DEFAULT_DISPUTE_REASON);
-    expect(result.current.dispute.visible).toBe(true);
+  it('seçilen neden gönderilir', async () => {
+    renderWithProviders(<TradeDisputeScreen />);
+    fireEvent.press(screen.getByText(DISPUTE_REASON_LABEL_KEY.not_received));
+    fireEvent.changeText(screen.getByTestId('trade-dispute-description-input'), VALID);
+    await submit();
+    await waitFor(() => expect(raiseMock).toHaveBeenCalledWith('t1', { reason: 'not_received', description: VALID }));
   });
 
-  it('başarılı gönderimden sonra neden varsayılana döner', async () => {
-    const { result } = setupHook();
-    (tradesApi.raiseDispute as jest.Mock).mockClear();
+  it('ekran yeniden açılınca neden varsayılana döner (açıklama taslaktan gelir)', async () => {
+    const first = renderWithProviders(<TradeDisputeScreen />);
+    fireEvent.press(screen.getByText(DISPUTE_REASON_LABEL_KEY.damaged));
+    fireEvent.changeText(screen.getByTestId('trade-dispute-description-input'), 'taslak');
+    first.unmount();
 
-    act(() => result.current.dispute.open());
-    act(() => {
-      result.current.dispute.setReason('not_received');
-      result.current.dispute.setDescription('Kargo takipte hareket yok, ürün gelmedi.');
-    });
-    act(() => result.current.dispute.submit());
-
-    await waitFor(() => expect(tradesApi.raiseDispute).toHaveBeenCalled());
-    expect((tradesApi.raiseDispute as jest.Mock).mock.calls[0][1].reason).toBe('not_received');
-    await waitFor(() => expect(result.current.dispute.visible).toBe(false));
-    expect(result.current.dispute.reason).toBe(DEFAULT_DISPUTE_REASON);
-    expect(result.current.dispute.description).toBe('');
+    renderWithProviders(<TradeDisputeScreen />);
+    expect(screen.getByRole('radio', { checked: true })).toHaveTextContent(
+      DISPUTE_REASON_LABEL_KEY[DEFAULT_DISPUTE_REASON],
+    );
+    expect(screen.getByTestId('trade-dispute-description-input').props.value).toBe('taslak');
   });
 });
