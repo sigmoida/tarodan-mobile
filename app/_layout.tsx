@@ -18,7 +18,7 @@ import { NotoSans_400Regular } from "@expo-google-fonts/noto-sans/400Regular";
 import { NotoSans_500Medium } from "@expo-google-fonts/noto-sans/500Medium";
 import { NotoSans_600SemiBold } from "@expo-google-fonts/noto-sans/600SemiBold";
 import { NotoSans_700Bold } from "@expo-google-fonts/noto-sans/700Bold";
-import { theme, AlertDialogHost, BrandFontProvider, ToastHost } from "@/ui";
+import { AlertDialogHost, BrandFontProvider, ToastHost } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
 import { useCartMergeOnLogin } from '@/hooks/useServerCart';
 import { useMembershipLimits } from '@/hooks/useMembershipLimits';
@@ -37,8 +37,8 @@ import ForceUpdateGate from "@/components/ForceUpdateGate";
 import RequiredStepsGate from "@/components/required-steps/RequiredStepsGate";
 import { useFullScreenGateShown } from "@/components/common/FullScreenGate";
 import { ErrorBoundary, RouteTracker } from "@/components/ErrorBoundary";
+import { stackScreenOptions } from "@/lib/navigation/screenOptions";
 
-const { colors } = theme;
 
 // Initialize Sentry as early as possible. No-ops in Expo Go or when
 // EXPO_PUBLIC_SENTRY_DSN is unset (see services/sentry.ts guard); real
@@ -174,16 +174,12 @@ export default function RootLayout() {
               odaktayken açık içeriğe çevirir. */}
           <StatusBar style="dark" />
           <RouteTracker />
-          <Stack
-            screenOptions={{
-              headerStyle: { backgroundColor: colors.primary[600]! },
-              headerTintColor: colors.white,
-              headerTitleStyle: { fontWeight: "bold" },
-              headerShown: false,
-            }}
-          >
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          {/* Native header HİÇ açılmaz (üst bar JS'te, tek bileşen); geçiş animasyonu tüm Stack'lerde
+              aynı (`stackScreenOptions`). Ölü headerStyle/headerTintColor seçenekleri kaldırıldı:
+              biri native header'ı açarsa sessizce turuncu/beyaz native başlık çıkarıyordu. */}
+          <Stack screenOptions={stackScreenOptions}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="(auth)" />
           </Stack>
           {/* Global mesaj socket köprüsü (#77) — provider altında setQueryData için. */}
           <MessagingSocketBridge />
