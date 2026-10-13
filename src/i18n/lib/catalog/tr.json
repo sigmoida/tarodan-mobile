@@ -8772,5 +8772,13 @@
       "lockedNote": "Bu bilgiler kaydedildikten sonra değiştirilemez. Hatalıysa destek ekibimizle iletişime geçin.",
       "notProvided": "Henüz girilmedi"
     }
+  },
+  "page": {
+    "messages": {
+      "messageticks": {
+        "okundu": "Okundu",
+        "iletildi": "İletildi"
+      }
+    }
   }
 }

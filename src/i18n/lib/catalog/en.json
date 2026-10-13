@@ -8772,5 +8772,13 @@
       "lockedNote": "These details cannot be changed once saved. If something is wrong, contact our support team.",
       "notProvided": "Not provided yet"
     }
+  },
+  "page": {
+    "messages": {
+      "messageticks": {
+        "okundu": "Read",
+        "iletildi": "Delivered"
+      }
+    }
   }
 }
