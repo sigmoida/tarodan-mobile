@@ -13,7 +13,7 @@
  * `getQuote`/`total`/`buyerFee` kelimelerinin hiçbirini içermiyordu).
  */
 import React from 'react';
-import { screen, waitFor, fireEvent, act } from '@testing-library/react-native';
+import { screen, waitFor, fireEvent, act, within } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -87,13 +87,19 @@ describe('Sepet özeti — fiyat yalnızca pricing.summary den gelir', () => {
     renderWithProviders(<CartScreen />);
 
     // Ara Toplam = summary.productAmount (190) — yerel 2×100 = 200 DEĞİL.
-    await waitFor(() => expect(screen.getByText('190,00 TL')).toBeOnTheScreen());
+    // (Tek satırlı sepette satır toplamı da 190 — bu yüzden özet kartının İÇİNDE aranır.)
+    await waitFor(() => expect(screen.getByTestId('cart-summary-total')).toHaveTextContent('264,40 TL'));
+    const summary = within(screen.getByTestId('cart-summary'));
+    expect(summary.getByText('Ürün ücreti')).toBeOnTheScreen();
+    expect(summary.getByText('190,00 TL')).toBeOnTheScreen();
     expect(screen.queryByText('₺200')).toBeNull();
 
     // Kargo satırı da quote'tan gelir ("Ödeme adımında hesaplanır" yer tutucusu
     // yerine gerçek sunucu değeri) — böylece üç satır toplama eşit.
-    expect(screen.getByText('50,00 TL')).toBeOnTheScreen();
-    expect(screen.getByText('24,40 TL')).toBeOnTheScreen();
+    expect(summary.getByText('Kargo ücreti')).toBeOnTheScreen();
+    expect(summary.getByText('50,00 TL')).toBeOnTheScreen();
+    expect(summary.getByText('Hizmet Bedeli')).toBeOnTheScreen();
+    expect(summary.getByText('24,40 TL')).toBeOnTheScreen();
 
     // 190 + 50 + 24,40 = 264,40 → Toplam (özet kartı + alt bar, iki yerde).
     await waitFor(() => expect(screen.getByTestId('cart-summary-total')).toHaveTextContent('264,40 TL'));

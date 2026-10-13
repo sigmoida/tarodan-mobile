@@ -26,7 +26,7 @@ export function CheckoutSummarySection({ c }: { c: Ctrl }) {
 
       <OrderSummary
         productAmount={c.productAmount}
-        shippingCost={c.shippingCost}
+        shippingAmount={c.shippingCost}
         serviceFeeAmount={c.serviceFeeAmount}
         total={c.total}
         quantityDiscount={c.quantityDiscount}

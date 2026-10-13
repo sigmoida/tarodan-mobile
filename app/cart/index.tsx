@@ -1,16 +1,19 @@
-import { View, ScrollView, TouchableOpacity } from 'react-native';
+import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button, Text, theme, ScreenHeader } from '@/ui';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Alert, Button, Checkbox, Text } from '@/ui';
+import { PageShell } from '@/components/common/PageShell';
 import { formatServerPrice } from '@/utils/format';
 import { useCart } from './_hooks/useCart';
 import { styles } from './_lib/styles';
 import { CartItemRow } from './_components/CartItemRow';
 import { CartSummary } from './_components/CartSummary';
 
-const { colors } = theme;
-
+/**
+ * Sepet — web CartClient'ın telefon görünümü: "Sepetim" başlığı (alt başlıkta ürün sayısı), toplu
+ * seçim, satır kartları, sipariş özeti kartı; "Ödemeye Geç" sabit alt barda (toplamla birlikte).
+ * Mantık `useCart`'ta.
+ */
 export default function CartScreen() {
   const { t } = useTranslation();
   const f = useCart();
@@ -18,90 +21,74 @@ export default function CartScreen() {
 
   if (f.items.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
-        <ScreenHeader title={t('cart.myCart')} onBack={back} />
-        <View style={styles.emptyContent}>
-          <Ionicons name="cart-outline" size={80} color={colors.text.muted} />
-          <Text style={styles.emptyTitle}>{t('cart.empty')}</Text>
-          <Text style={styles.emptySubtitle}>{t('cart.emptyDesc')}</Text>
-          <Button
-            variant="primary"
-            title={t('cart.browseListings')}
-            onPress={() => router.replace('/')}
-            style={{ marginTop: theme.spacing[6], alignSelf: 'center' }}
-          />
-        </View>
-      </View>
+      <PageShell
+        title={t('cart.myCart')}
+        onBack={back}
+        empty
+        emptyState={{
+          icon: 'cart-outline',
+          title: t('cart.empty'),
+          description: t('cart.emptyDesc'),
+          actionLabel: t('cart.browseListings'),
+          onAction: () => router.replace('/'),
+        }}
+      />
     );
   }
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={t('cart.myCartWithCount', { count: f.itemCount })} onBack={back} />
-
-      {/* Expiry Notice */}
-      <View style={styles.expiryNotice}>
-        <Ionicons name="time-outline" size={16} color={colors.warning[600]!} />
-        <Text style={styles.expiryText}>{t('cart.expiryNotice')}</Text>
-      </View>
+    <PageShell
+      title={t('cart.myCart')}
+      subtitle={`${f.itemCount} ${t('collection.items')}`}
+      onBack={back}
+      footer={
+        <View style={styles.checkoutBar}>
+          <View style={styles.checkoutTotal}>
+            <Text variant="caption" tone="muted">{t('common.total')}</Text>
+            {/* Sunucu toplamı gelmeden tutar basılmaz — yerel sayı uydurmak yerine yer tutucu
+                (ödeme adımında tutar zaten yeniden doğrulanır). */}
+            <Text variant="h3" weight="bold" tone="primary" testID="cart-checkout-total">
+              {formatServerPrice(f.total)}
+            </Text>
+          </View>
+          {/* Fiyat alınamadıysa ilerletme: checkout aynı queryKey'i paylaştığı için kullanıcı orada
+              da ErrorState'e düşer — burada durdurup özet kartında "Tekrar Dene"ye yönlendir.
+              `total == null` de kapıya dahil (checkout'un kapısıyla simetrik): quote 200 dönüp
+              `total` boş gelirse hata yok ama tutar da yok. */}
+          <Button
+            testID="cart-checkout-button"
+            variant="primary"
+            size="lg"
+            title={t('cart.proceedToCheckout')}
+            style={styles.checkoutButton}
+            disabled={f.quoteError || f.total == null || f.selectedCount === 0}
+            onPress={() => router.push('/checkout')}
+          />
+        </View>
+      }
+    >
+      <Alert variant="warning">{t('cart.expiryNotice')}</Alert>
 
       {/* Toplu seçim — sepette birden fazla satır varken anlamlı. */}
       {f.items.length > 1 ? (
-        <TouchableOpacity
-          testID="cart-select-all"
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: f.allSelected }}
-          onPress={f.toggleSelectAll}
-          style={styles.selectAllRow}
-        >
-          <Ionicons
-            name={f.allSelected ? 'checkbox' : 'square-outline'}
-            size={22}
-            color={f.allSelected ? colors.primary[600]! : colors.text.muted}
+        <View style={styles.selectAllRow}>
+          <Checkbox
+            testID="cart-select-all"
+            checked={f.allSelected}
+            onChange={f.toggleSelectAll}
+            label={t('cart.selectAllItems')}
           />
-          <Text style={styles.selectAllLabel}>{t('cart.selectAllItems')}</Text>
-          <Text style={styles.selectAllCount}>
+          <Text variant="bodySm" tone="muted" style={styles.selectAllCount}>
             {t('cart.selectedCount', { count: f.selectedCount })}
           </Text>
-        </TouchableOpacity>
+        </View>
       ) : null}
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {f.items.map((item) => (
-          <CartItemRow key={item.id} item={item} f={f} />
-        ))}
+      {f.items.map((item) => (
+        <CartItemRow key={item.id} item={item} f={f} />
+      ))}
 
-        <CartSummary f={f} />
-
-        <View style={{ height: 120 }} />
-      </ScrollView>
-
-      {/* Checkout Button */}
-      <View style={styles.checkoutBar}>
-        <View style={styles.checkoutTotal}>
-          <Text style={styles.checkoutLabel}>{t('common.total')}</Text>
-          {/* Sunucu toplamı gelmeden tutar basılmaz — yerel bir sayı uydurmak
-              yerine yer tutucu (ödeme adımında tutar zaten yeniden doğrulanır). */}
-          <Text style={styles.checkoutPrice} testID="cart-checkout-total">
-            {formatServerPrice(f.total)}
-          </Text>
-        </View>
-        {/* Fiyat alınamadıysa ilerletme: checkout aynı queryKey'i paylaştığı için
-            kullanıcı orada da ErrorState'e düşer — bir adım öteye taşımak yerine
-            burada durdurup "Tekrar Dene"ye yönlendir (özet kartında).
-            `total == null` de kapıya dahil: quote 200 dönüp `total` alanı boş
-            gelirse hata yok ama tutar da yok — checkout'un kapısıyla simetrik
-            (`app/checkout/index.tsx`), yoksa kullanıcı orada hata kartı
-            olmadan devre dışı bir butonla kalırdı. */}
-        <Button
-          testID="cart-checkout-button"
-          variant="primary"
-          title={t('cart.proceedToCheckout')}
-          style={styles.checkoutButton}
-          disabled={f.quoteError || f.total == null || f.selectedCount === 0}
-          onPress={() => router.push('/checkout')}
-        />
-      </View>
-    </View>
+      <CartSummary f={f} />
+    </PageShell>
   );
 }

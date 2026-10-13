@@ -74,9 +74,6 @@ export const styles = StyleSheet.create({
   link: { alignSelf: 'flex-start', marginTop: spacing[1] },
 
   // --- Özet (web OrderSummarySidebar + OrderSummaryLines) ---
-  lines: { gap: spacing[3] },
-  line: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing[3] },
-  rule: { height: 1, backgroundColor: colors.border.DEFAULT },
   consent: {
     marginTop: spacing[5],
     paddingTop: spacing[5],
