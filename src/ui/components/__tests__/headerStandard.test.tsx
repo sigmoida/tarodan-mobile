@@ -2,7 +2,7 @@
  * Üst bar standardı: her yığın ekranında bar yüksekliği, başlık konumu ve geri oku AYNI.
  * - Güvenli alan üst boşluğu tek formül (`useHeaderTopInset` = insets.top; 44pt minimum yok).
  * - İçerik yüksekliği tek sabit (`theme.headerHeight`), alt başlık olsa bile.
- * - Başlık sola, tek satır; geri oku chevron-back 24 başlık rengi.
+ * - Başlık ORTALI, tek satır; geri oku cam daire, chevron-left 24 başlık rengi.
  * - SheetHeader aynı yükseklik; Android tam ekran sheet'te üst inset.
  */
 import React from 'react';
@@ -40,14 +40,15 @@ describe('ScreenHeader — tek standart', () => {
     expect(flat('screen-header-row').height).toBe(theme.headerHeight);
   });
 
-  it('başlık sola hizalı (centerTitle yok sayılır), tek satır', () => {
-    render(<ScreenHeader title="Adreslerim" centerTitle />);
+  it('başlık ORTALI (tek satır, ellipsis); yan slotlar eşit genişlik', () => {
+    render(<ScreenHeader title="Adreslerim" />);
     const title = screen.getByText('Adreslerim');
-    expect(StyleSheet.flatten(title.props.style).textAlign).not.toBe('center');
+    expect(StyleSheet.flatten(title.props.style).textAlign).toBe('center');
     expect(title.props.numberOfLines).toBe(1);
+    expect(flat('screen-header-left').width).toBe(flat('screen-header-right').width);
   });
 
-  it('geri oku: chevron-left, 24, başlık rengi, 44pt dokunma alanı', () => {
+  it('geri oku: cam daire, chevron-left, 24, başlık rengi, 44pt dokunma alanı', () => {
     const onBack = jest.fn();
     render(<ScreenHeader title="X" onBack={onBack} />);
     const icon = screen.getByTestId('icon-chevron-left');
@@ -55,9 +56,8 @@ describe('ScreenHeader — tek standart', () => {
     expect(icon.props.stroke).toBe(theme.colors.text.heading);
     const btn = screen.getByLabelText('Geri');
     const box = StyleSheet.flatten(btn.props.style);
-    const hit = btn.props.hitSlop as number | { left: number };
-    const slop = typeof hit === 'number' ? hit : hit.left;
-    expect(box.width + 2 * slop).toBeGreaterThanOrEqual(theme.minTouchTarget);
+    expect(box.width).toBeGreaterThanOrEqual(theme.minTouchTarget);
+    expect(box.height).toBeGreaterThanOrEqual(theme.minTouchTarget);
     fireEvent.press(btn);
     expect(onBack).toHaveBeenCalled();
   });
@@ -78,10 +78,8 @@ describe('ScreenHeader — tek standart', () => {
 
   it('transparent: zemin ve alt çizgi yok, yükseklik aynı', () => {
     render(<ScreenHeader title="Galeri" transparent />);
-    expect(flat('screen-header')).toMatchObject({
-      backgroundColor: theme.colors.transparent,
-      borderBottomWidth: 0,
-    });
+    expect(flat('screen-header').backgroundColor).toBeUndefined();
+    expect(screen.queryByTestId('screen-header-edge')).toBeNull();
     expect(flat('screen-header-row').height).toBe(theme.headerHeight);
   });
 

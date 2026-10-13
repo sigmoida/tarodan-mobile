@@ -303,8 +303,8 @@ and turns them into **errors**, so write new code warning-free.
   StatusBar goes light while focused). The bottom menu is a floating pill (`AppTabBar`;
   Home, Favorites, +, Messages, Profile); tab-root lists/ScrollViews add `useTabBarInset()`
   as bottom padding so content never hides under it. Search is a stack route (`/search`). Stack screens use
-  `PageShell` (`@/components/common/PageShell` — white top bar with back arrow,
-  title, optional right action, optional fixed bottom bar, keyboard + safe area, and
+  `PageShell` (`@/components/common/PageShell` — floating glass top bar with back arrow,
+  centred title, optional right action, optional fixed bottom bar, keyboard + safe area, and
   `loading` / `empty` / `error` + `onRetry` states; `loading`/`error` **unmount `children`**,
   so modals, sheets and Snackbars go in the always-rendered `overlay` prop — an open form
   modal inside `children` would lose its input). Inside content use `PageHeader`
@@ -312,16 +312,35 @@ and turns them into **errors**, so write new code warning-free.
   sections. Don't hand-roll a header or a bordered section. Reference screens to copy:
   `app/(tabs)/messages` (tab root), `app/settings/addresses` (list),
   `app/settings/edit-profile` (form). `/tasarim` is the dev/staging component showcase.
-- **Top bar is white.** `ScreenHeader` is a white bar; right-side icons/text must be
-  heading colour — use `TopBarAction` (never `colors.white` / `variant="primary"`).
-  Screens that still draw their own orange header (home, search, profile, message
-  thread, product top bar, listing form, …) are being moved onto the shells; don't
-  add new ones.
+- **Top bar floats and has no background.** `ScreenHeader` is `position: absolute` over the
+  content (content slides under it): back arrow = `GlassIconButton` (glass circle), right-side
+  actions = `TopBarAction` (icon → `GlassIconButton`; text → `GlassSurface` pill; display-only
+  values → `TopBarLabel`). iOS 26 real Liquid Glass, iOS < 26 translucent white + hairline +
+  shadow, Android translucent/opaque white + elevation (no blur). The **title is CENTRED**
+  (h3 bold, one line, ellipsis); the two side slots are reserved at equal width so it stays truly
+  centred (no back arrow → left slot stays empty). Never put `colors.white` / `variant="primary"`
+  content in it. Screens that still draw their own orange header (search, …) are being moved onto
+  the shells; don't add new ones. Home (`AppShell variant="search"`) has its own floating bar.
+- **Scroll edge.** Under the bar a `ScrollEdge` (top-to-bottom fading translucent white
+  gradient, covers the status-bar region) fades in with scroll offset (0 → none, 24pt → full).
+  `PageShell` binds its OWN ScrollView automatically (`mode="scroll"`, nothing to do). A screen that
+  draws its own list (`mode="list"|"static"`, `AppShell variant="title"`) opts in:
+  `const page = usePageScrollHandler()` → `<PageShell scroll={page}>` +
+  `<Animated.FlatList {...page.listProps} contentContainerStyle={page.contentStyle(base)} />`
+  (iOS gets `contentInset`, Android `paddingTop`; `page.topInset` for `RefreshControl`
+  `progressViewOffset`). Tab roots feed the same signal from the tab-bar handler — ONE handler,
+  never two `onScroll`s: `const page = usePageScrollValue(); const tabScroll =
+  useTabBarScrollHandler(undefined, page.scrollY);` → `<AppShell variant="title" scroll={page}>`.
+  An unbound screen is still readable: the body simply starts below the bar and the edge is a fixed
+  light white strip. Don't add manual top padding for the bar — the shell/`contentStyle` already
+  adds `inset + headerHeight` (no double gap). `floating={false}` (opaque, in-flow) exists only for
+  custom shells (chat header with banner, payment, WebView, gates).
 - **One top bar, one inset formula.** Bar height, title position and back arrow are identical on
   every screen: `ScreenHeader`/`PageShell` = safe-area top (`useHeaderTopInset()` from `@/ui`, the
   only source — never read `insets.top`, never `SafeAreaView edges` with `'top'`) + fixed
-  `theme.headerHeight` (52) content, left-aligned single-line title (`Text` h3), `chevron-back`
-  24 heading-colour arrow (44pt hit area). Need a custom title (chat avatar+name)? use the
+  `theme.headerHeight` (52) content (`useHeaderBarInset()` = both), centred single-line title
+  (`Text` h3 bold), `chevron-left` 24 heading-colour arrow on a 44pt glass circle. Need a custom
+  title (chat avatar+name)? use the
   `titleSlot`/`leading`/`right` slots, not a hand-drawn bar. Back with no history →
   `goBackOrHome()` (`router.replace('/(tabs)')`), the arrow is never dead. Modal/sheet titles are
   `SheetHeader` (title left, close right, same height; `fullScreen` adds the Android top inset —

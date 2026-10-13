@@ -3,13 +3,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   View,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useShellScrollState, type PageScrollValue } from '../lib/pageScroll';
 import { theme } from '../lib/theme';
 import { ScreenHeader, type ScreenHeaderProps } from './ScreenHeader';
 import { EmptyState, type EmptyStateProps } from './EmptyState';
@@ -52,6 +53,14 @@ export interface PageShellProps
    * kapanır ve girilen veri kaybolur. Ekran modallarını `children` DEĞİL buraya koyar.
    */
   overlay?: React.ReactNode;
+  /**
+   * `list` / `static` modunda ekranın kendi kaydırılabilir listesinin sinyali (`usePageScrollHandler()`):
+   * verilirse gövde bar ALTINDAN değil ekran tepesinden başlar (içerik yüzen barın altından kayar),
+   * liste `scroll.scrollProps` + `contentStyle` ile üst boşluğu kendisi açar ve kenar efekti
+   * kaydırmaya bağlanır. Verilmezse gövde bar altında başlar ve kenar efekti SABİT şerittir.
+   * `scroll` modunda yok sayılır (PageShell kendi ScrollView'ını bağlar).
+   */
+  scroll?: PageScrollValue;
   /** Klavye açılınca gövde ve alt bar yukarı kaçar (varsayılan açık). */
   keyboardAware?: boolean;
   /** Yükleniyor: varsayılan Skeleton (liste/kart), `spinner` yalnız ilk açılışta. */
@@ -99,6 +108,7 @@ export const PageShell: React.FC<PageShellProps> = ({
   children,
   footer,
   overlay,
+  scroll,
   keyboardAware = true,
   loading = false,
   loadingVariant = 'skeleton',
@@ -118,21 +128,32 @@ export const PageShell: React.FC<PageShellProps> = ({
   const insets = useSafeAreaInsets();
   const pad = padding === false ? 0 : spacing[padding];
 
-  const topBar =
-    header === false ? null : header !== undefined ? (
-      header
-    ) : (
-      <ScreenHeader
-        title={title ?? ''}
-        subtitle={subtitle}
-        onBack={onBack}
-        showBack={showBack}
-        right={right}
-        centerTitle={centerTitle}
-        leading={leading}
-        titleSlot={titleSlot}
-      />
-    );
+  // Özel `header` akışta çizilir (ör. sohbet: opak, floating={false}); `false` = bar yok; aksi halde YÜZEN bar.
+  const customHeader = header !== undefined && header !== false;
+  const hasBar = header === undefined;
+  const contentVisible = !error && !loading && !(empty && emptyState);
+  const shell = useShellScrollState(scroll, mode === 'scroll');
+  const { own } = shell;
+  // İçerik bar altından kayıyor mu? (scroll modu kendi ScrollView'ını bağlar; list/static: ekran/çocuk bağladıysa)
+  const underBar = hasBar && contentVisible && shell.bound;
+  const barInset = hasBar ? own.topInset : 0;
+  const edgeY = mode === 'scroll' ? own.scrollY : shell.page.scrollY;
+
+  const topBar = customHeader ? (
+    header
+  ) : hasBar ? (
+    <ScreenHeader
+      title={title ?? ''}
+      subtitle={subtitle}
+      onBack={onBack}
+      showBack={showBack}
+      right={right}
+      centerTitle={centerTitle}
+      leading={leading}
+      titleSlot={titleSlot}
+      scrollY={underBar ? edgeY : undefined}
+    />
+  ) : null;
 
   let body: React.ReactNode;
   let showFooter = !!footer;
@@ -158,10 +179,17 @@ export const PageShell: React.FC<PageShellProps> = ({
     body = <EmptyState {...emptyState} />;
   } else if (mode === 'scroll') {
     body = (
-      <ScrollView
+      <Animated.ScrollView
         style={styles.fill}
-        contentContainerStyle={[styles.scrollContent, { padding: pad }, contentStyle]}
+        contentContainerStyle={
+          hasBar
+            ? own.contentStyle([styles.scrollContent, { padding: pad }, contentStyle])
+            : [styles.scrollContent, { padding: pad }, contentStyle]
+        }
         keyboardShouldPersistTaps="handled"
+        onScroll={own.onScroll}
+        scrollEventThrottle={own.scrollEventThrottle}
+        {...(hasBar ? own.scrollProps : null)}
         refreshControl={
           onRefresh ? (
             <RefreshControl
@@ -169,12 +197,13 @@ export const PageShell: React.FC<PageShellProps> = ({
               onRefresh={onRefresh}
               colors={[colors.primary[600]]}
               tintColor={colors.primary[600]}
+              progressViewOffset={barInset}
             />
           ) : undefined
         }
       >
         {children}
-      </ScrollView>
+      </Animated.ScrollView>
     );
   } else if (mode === 'static') {
     body = <View style={[styles.fill, { padding: pad }, contentStyle]}>{children}</View>;
@@ -182,9 +211,10 @@ export const PageShell: React.FC<PageShellProps> = ({
     body = <View style={[styles.fill, contentStyle]}>{children}</View>;
   }
 
+  // Bar altından kaymayan gövde (yükleniyor / boş / hata / bağlanmamış liste) bar kadar aşağıdan başlar.
   const content = (
     <>
-      <View style={styles.fill}>{body}</View>
+      <View style={[styles.fill, hasBar && !underBar && { paddingTop: barInset }]}>{body}</View>
       {showFooter ? (
         <View
           style={[styles.footer, { paddingBottom: spacing[3] + insets.bottom }]}
@@ -198,17 +228,20 @@ export const PageShell: React.FC<PageShellProps> = ({
 
   return (
     <View style={styles.root} testID={testID}>
-      {topBar}
-      {keyboardAware ? (
-        <KeyboardAvoidingView
-          style={styles.fill}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          {content}
-        </KeyboardAvoidingView>
-      ) : (
-        content
-      )}
+      {customHeader ? topBar : null}
+      <shell.Provider>
+        {keyboardAware ? (
+          <KeyboardAvoidingView
+            style={styles.fill}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            {content}
+          </KeyboardAvoidingView>
+        ) : (
+          content
+        )}
+      </shell.Provider>
+      {customHeader ? null : topBar}
       {overlay}
     </View>
   );
