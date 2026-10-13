@@ -31,6 +31,7 @@ export default function SellerRegisterScreen() {
         emptyState={{
           icon: 'briefcase',
           title: t('seller.useBusinessRegisterForm'),
+          subtitle: t('emptyState.businessRegisterHint'),
           actionLabel: t('seller.openBusinessAccount'),
           onAction: () => router.push('/(auth)/register-business'),
         }}

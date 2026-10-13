@@ -21,6 +21,7 @@ export function StakeholdersTab({ f, upload }: Props) {
     <>
       {f.stakeholders.length === 0 ? (
         <EmptyState
+          icon="user-group"
           title={t('businessApplication.noStakeholdersTitle')}
           subtitle={t('businessApplication.noStakeholdersSubtitle')}
         />

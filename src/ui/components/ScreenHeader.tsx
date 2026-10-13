@@ -52,8 +52,8 @@ const ICON_BOX = 40;
 /**
  * Yığın ekranlarının üst barı (PageShell'in barı da bu) — uygulamadaki TEK standart: güvenli
  * alan (`useHeaderTopInset`) + SABİT `headerHeight` içerik; surface-elevated zemin, 1px alt
- * çizgi (gölge yok); solda geri oku (chevron-back, 24, başlık rengi, 44pt dokunma alanı), SOLA
- * hizalı tek satır başlık (h3: lg/600, ellipsis), sağda aksiyon slotu. StatusBar koyu içerik
+ * çizgi (gölge yok); solda geri oku (chevron-back, 24, başlık rengi, 44pt dokunma alanı; geri oku
+ * yoksa kutu çizilmez), SOLA hizalı tek satır başlık (h3: lg/600, ellipsis), sağda aksiyon slotu. StatusBar koyu içerik
  * ister (kök layout varsayılanı).
  */
 export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
@@ -70,6 +70,8 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
 }) => {
   const topPad = useHeaderTopInset();
   const { t } = useTranslation();
+  // Geri oku / öncül yoksa boş kutu ÇİZİLMEZ: başlık sayfa kenar boşluğundan (spacing[4]) başlar.
+  const hasLeading = !!leading || showBack;
 
   return (
     <View
@@ -95,12 +97,9 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
           >
             <Icon name="chevron-left" size={iconSize.lg} color={colors.text.heading} />
           </Pressable>
-        ) : (
-          // Geri oku olmasa da aynı boş kutu: başlık her ekranda AYNI x konumunda başlar.
-          <View style={styles.iconBtn} />
-        )}
+        ) : null}
 
-        <View style={styles.titleWrap}>
+        <View style={[styles.titleWrap, !hasLeading && styles.titleWrapNoLeading]}>
           {titleSlot ?? (
             <>
               <Text variant="h3" numberOfLines={1} accessibilityRole="header">
@@ -214,6 +213,10 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     justifyContent: 'center',
+  },
+  // Container yatay dolgusu spacing[2]; geri okusuz başlık sayfa kenar boşluğuna (spacing[4]) oturur.
+  titleWrapNoLeading: {
+    paddingLeft: spacing[2],
   },
   subtitle: {
     marginTop: spacing[0.5],

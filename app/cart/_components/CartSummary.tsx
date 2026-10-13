@@ -31,7 +31,7 @@ export function CartSummary({ f }: { f: CartController }) {
            ⚠️ `quoteLoading` şart: ilk yüklemede `total` zaten null, o kapı olmadan her sepet
            açılışında hata kartı yanıp sönerdi. */
         <View testID="cart-summary-error">
-          <ErrorState
+          <ErrorState placement="inline"
             title={t('cart.priceUnavailableTitle')}
             message={t('cart.priceUnavailableMessage')}
             onRetry={f.retryQuote}

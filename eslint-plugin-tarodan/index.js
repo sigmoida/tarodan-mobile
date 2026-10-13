@@ -328,8 +328,70 @@ const restrictButtonIcon = {
   },
 };
 
+/**
+ * Boş durum TEK bileşenden gelir (`EmptyState`, `@/ui`): ikon + başlık + alt başlık, aynı
+ * yerleşim. `ListEmptyComponent` içinde elle çizilmiş boş görünüm (View/Text/RawText/Pressable)
+ * yasak (metin içeren View/Text) — EmptyState (ya da onu saran ortak bileşen: ProductListEmpty,
+ * OffersEmpty…), Skeleton ve ErrorState kullanılır. Koşullu / mantıksal dallar içindeki kök öğeler de taranır.
+ */
+const RAW_EMPTY_ROOTS = new Set(['View', 'Text', 'RawText', 'Pressable', 'Image']);
+const TEXT_TAGS = new Set(['Text', 'RawText']);
+
+const tagName = (el) => {
+  const n = el && el.openingElement && el.openingElement.name;
+  return n && n.type === 'JSXIdentifier' ? n.name : null;
+};
+
+/** Öğe (kendisi ya da torunları) metin içeriyor mu? İskelet (Skeleton*) View'ları metin taşımaz. */
+function containsText(el) {
+  if (TEXT_TAGS.has(tagName(el))) return true;
+  return (el.children || []).some((c) => c.type === 'JSXElement' && containsText(c));
+}
+
+/** İfade ağacındaki (koşul / && / ||) JSX kök öğelerini toplar. */
+function jsxRootsOf(expr, out = []) {
+  if (!expr) return out;
+  if (expr.type === 'JSXElement') out.push(expr);
+  else if (expr.type === 'ConditionalExpression') {
+    jsxRootsOf(expr.consequent, out);
+    jsxRootsOf(expr.alternate, out);
+  } else if (expr.type === 'LogicalExpression') {
+    jsxRootsOf(expr.right, out);
+  }
+  return out;
+}
+
+/** @type {import('eslint').Rule.RuleModule} */
+const emptyStateStandard = {
+  meta: {
+    type: 'suggestion',
+    docs: { description: 'ListEmptyComponent içinde elle çizilmiş boş durum yerine EmptyState kullan' },
+    schema: [],
+    messages: {
+      raw: "ListEmptyComponent içinde elle çizilmiş <{{name}}> — boş durum için EmptyState (@/ui: ikon + başlık + alt başlık) kullan. Bkz. CLAUDE.md §14.",
+    },
+  },
+  create(context) {
+    return {
+      JSXAttribute(node) {
+        if (node.name.type !== 'JSXIdentifier' || node.name.name !== 'ListEmptyComponent') return;
+        const v = node.value;
+        if (!v || v.type !== 'JSXExpressionContainer') return;
+        for (const el of jsxRootsOf(v.expression)) {
+          const name = tagName(el);
+          // Metin içermeyen View (iskelet, yükleniyor) boş durum değildir.
+          if (name && RAW_EMPTY_ROOTS.has(name) && containsText(el)) {
+            context.report({ node: el, messageId: 'raw', data: { name } });
+          }
+        }
+      },
+    };
+  },
+};
+
 module.exports = {
   rules: {
+    'empty-state-standard': emptyStateStandard,
     'restrict-button-icon': restrictButtonIcon,
     'no-raw-style-values': noRawStyleValues,
     'no-lira-symbol': noLiraSymbol,

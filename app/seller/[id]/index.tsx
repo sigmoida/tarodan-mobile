@@ -27,6 +27,7 @@ export default function SellerProfileScreen() {
       emptyState={{
         icon: 'user',
         title: t('seller.notFound'),
+        subtitle: t('seller.notFoundDesc'),
         actionLabel: t('common.goBack'),
         onAction: goBack,
       }}

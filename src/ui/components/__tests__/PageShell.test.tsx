@@ -39,7 +39,7 @@ describe('PageShell', () => {
     fireEvent.press(screen.getByText('Tekrar Dene'));
     expect(onRetry).toHaveBeenCalled();
     rerender(
-      <PageShell title="X" empty emptyState={{ title: 'Henüz adres yok' }}>
+      <PageShell title="X" empty emptyState={{ icon: 'map-pin', title: 'Henüz adres yok', subtitle: 'Adres ekleyin' }}>
         <RawText>içerik</RawText>
       </PageShell>,
     );

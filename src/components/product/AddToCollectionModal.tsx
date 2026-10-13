@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Pressable, Image } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { theme, Text, Button, Modal, Input, Textarea, Spinner, Switch, useModalMessage, ModalMessage, ButtonRow } from '@/ui';
+import { theme, Text, Button, EmptyState, Modal, Input, Textarea, Spinner, Switch, useModalMessage, ModalMessage, ButtonRow } from '@/ui';
 import { collectionsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { transformImageUrl } from '../../utils/imageUrl';
@@ -175,11 +175,11 @@ export default function AddToCollectionModal({
               </Pressable>
 
               {collections.length === 0 ? (
-                <View style={styles.empty}>
-                  <Text variant="bodySm" tone="muted" align="center">
-                    {t('collection.noCollectionsCreateFirst')}
-                  </Text>
-                </View>
+                <EmptyState placement="inline"
+                  icon="rectangle-stack"
+                  title={t('collection.noCollections')}
+                  subtitle={t('emptyState.createCollectionHint')}
+                />
               ) : (
                 collections.map((c) => (
                   <Pressable
@@ -244,7 +244,6 @@ export default function AddToCollectionModal({
 const styles = StyleSheet.create({
   scrollArea: { maxHeight: 380 },
   loading: { paddingVertical: theme.spacing[8], alignItems: 'center' },
-  empty: { alignItems: 'center', padding: theme.spacing[6] },
   flex: { flex: 1 },
   createNewRow: {
     minHeight: theme.minTouchTarget,

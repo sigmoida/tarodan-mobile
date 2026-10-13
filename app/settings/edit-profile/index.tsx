@@ -33,6 +33,7 @@ export default function EditProfileScreen() {
         emptyState={{
           icon: "user",
           title: t("membership.loginRequiredTitle"),
+          subtitle: t('emptyState.loginRequiredHint'),
           actionLabel: t("common.login"),
           onAction: () => router.push("/(auth)/login"),
         }}

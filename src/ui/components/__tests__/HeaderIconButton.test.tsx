@@ -18,6 +18,13 @@ describe('HeaderIconButton — ortak üst bar ikon düğmesi', () => {
     expect(onPress).toHaveBeenCalled();
   });
 
+  it('tone=muted: ikon theme.inactiveIconColor (alt menü pasif grisi); rozet danger kalır', () => {
+    render(<HeaderIconButton icon="bell" label="Bildirim" tone="muted" count={2} onPress={jest.fn()} />);
+    expect(screen.getByTestId('icon-bell').props.stroke).toBe(theme.inactiveIconColor);
+    expect(theme.inactiveIconColor).toBe(theme.colors.text.subtle);
+    expect(screen.getByText('2')).toBeTruthy();
+  });
+
   it('sayaç rozeti: 0 çizilmez, 99 üstü "99+"', () => {
     const { rerender } = render(<HeaderIconButton icon="cart-outline" label="Sepet" onPress={jest.fn()} count={0} />);
     expect(screen.queryByText('0')).toBeNull();

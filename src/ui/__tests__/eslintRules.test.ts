@@ -168,6 +168,36 @@ describe('tarodan/no-native-header', () => {
   });
 });
 
+describe('tarodan/empty-state-standard', () => {
+  const el = (name: string, children: any[] = []) => ({
+    type: 'JSXElement',
+    openingElement: { name: { type: 'JSXIdentifier', name } },
+    children,
+  });
+  const visit = (expression: any) => {
+    const { reports, context } = makeContext();
+    plugin.rules['empty-state-standard'].create(context).JSXAttribute({
+      type: 'JSXAttribute',
+      name: { type: 'JSXIdentifier', name: 'ListEmptyComponent' },
+      value: { type: 'JSXExpressionContainer', expression },
+    });
+    return reports.length;
+  };
+  it('ListEmptyComponent içinde View/Text yasak; EmptyState ve sarmalayıcılar serbest', () => {
+    expect(visit(el('View', [el('Text')]))).toBe(1);
+    expect(visit(el('RawText'))).toBe(1);
+    // Metinsiz View (iskelet) boş durum sayılmaz.
+    expect(visit(el('View', [el('SkeletonText')]))).toBe(0);
+    expect(visit(el('EmptyState'))).toBe(0);
+    expect(visit(el('ProductListEmpty'))).toBe(0);
+  });
+  it('koşullu dallar taranır', () => {
+    const cond = { type: 'ConditionalExpression', consequent: el('EmptyState'), alternate: el('Text') };
+    expect(visit(cond)).toBe(1);
+    expect(visit({ type: 'LogicalExpression', right: el('View', [el('Text')]) })).toBe(1);
+  });
+});
+
 describe('tarodan/restrict-button-icon', () => {
   const attr = (name: string, value: any) => ({
     type: 'JSXAttribute',

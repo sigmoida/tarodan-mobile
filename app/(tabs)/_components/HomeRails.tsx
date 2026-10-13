@@ -112,9 +112,8 @@ export function PopularRail(props: RailProps) {
       title={t('home.popularListings')}
       onSeeAll={() => router.push('/listings?sortBy=view_count_desc')}
       emptyState={
-        <EmptyState
-          size="compact"
-          icon={false}
+        <EmptyState placement="inline"
+          icon="tag"
           title={t('product.noListings')}
           subtitle={t('home.beTheFirst')}
           actionLabel={t('product.createListing')}

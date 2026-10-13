@@ -29,7 +29,7 @@ export default function CheckoutScreen() {
         emptyState={{
           icon: 'shopping-cart',
           title: t('checkout.emptyCart'),
-          description: t('checkout.emptyCartDesc'),
+          subtitle: t('checkout.emptyCartDesc'),
           actionLabel: t('checkout.startShopping'),
           onAction: () => router.replace('/' as any),
         }}

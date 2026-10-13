@@ -23,7 +23,7 @@ export function OrderSummary({
   if (isError) {
     return (
       <View testID="order-summary-error">
-        <ErrorState
+        <ErrorState placement="inline"
           title={t('cart.priceUnavailableTitle')}
           message={t('checkout.priceUnavailableRetryBody')}
           onRetry={onRetry}

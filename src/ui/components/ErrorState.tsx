@@ -2,16 +2,16 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
-import { StateLayout } from './EmptyState';
+import { StateLayout, type EmptyStatePlacement } from './EmptyState';
 
 export interface ErrorStateProps {
   title?: string;
   message?: string;
   onRetry?: () => void;
   retryLabel?: string;
-  /** Web: `default` geniş boşluk, `compact` kart içi. */
-  size?: 'default' | 'compact';
-  fullscreen?: boolean;
+  /** Bkz. `EmptyStateProps.placement`. */
+  placement?: EmptyStatePlacement;
+  testID?: string;
 }
 
 /**
@@ -27,8 +27,8 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
   message,
   onRetry,
   retryLabel,
-  size = 'default',
-  fullscreen = false,
+  placement,
+  testID = 'error-state',
 }) => {
   const { t } = useTranslation();
   return (
@@ -36,8 +36,8 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
       icon="exclamation-circle"
       title={title ?? t('mobile.errorSomethingWrong')}
       description={message ?? t('mobile.errorBoundaryDescription')}
-      size={size}
-      fullscreen={fullscreen}
+      placement={placement}
+      testID={testID}
     >
       {onRetry ? (
         <Button

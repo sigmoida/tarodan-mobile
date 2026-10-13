@@ -12,7 +12,7 @@ export function OffersEmpty({ tab }: { tab: TabType }) {
     <EmptyState
       icon={received ? 'envelope-open' : 'paper-airplane'}
       title={received ? t('offer.emptyReceivedTitle') : t('offer.emptySentTitle')}
-      description={received ? t('offer.emptyReceivedSubtitle') : t('offer.emptySentSubtitle')}
+      subtitle={received ? t('offer.emptyReceivedSubtitle') : t('offer.emptySentSubtitle')}
       actionLabel={t('mobile.guestBrowseListings')}
       onAction={() => router.push('/listings')}
     />

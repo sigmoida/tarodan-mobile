@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { SectionCard, Text, theme } from '@/ui';
+import { useTranslation } from 'react-i18next';
+import { EmptyState, SectionCard, theme } from '@/ui';
 import { ProductCard, type ProductCardProduct } from './ProductCard';
 
 const { spacing } = theme;
@@ -20,14 +21,13 @@ export function SimilarProductsCard({
   emptyText?: string;
   testID?: string;
 }) {
+  const { t } = useTranslation();
   const list = items ?? [];
   if (list.length === 0 && !emptyText) return null;
   return (
     <SectionCard title={title} testID={testID}>
       {list.length === 0 ? (
-        <Text variant="bodySm" tone="muted">
-          {emptyText}
-        </Text>
+        <EmptyState placement="inline" icon="cube" title={emptyText ?? ''} subtitle={t('home.noProductsYetHint')} />
       ) : (
         <View style={styles.grid}>
           {list.map((product) => (

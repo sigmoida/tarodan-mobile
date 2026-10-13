@@ -5,11 +5,6 @@ const { colors } = theme;
 
 // Karşı teklif ekranının route-local stylesheet'i (monolitten birebir taşındı).
 export const styles = StyleSheet.create({
-  emptyText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: colors.text.subtle,
-    marginTop: theme.spacing[2],
-  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

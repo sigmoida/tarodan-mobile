@@ -139,7 +139,7 @@ export const PageShell: React.FC<PageShellProps> = ({
   if (error) {
     showFooter = false;
     body = (
-      <ErrorState fullscreen title={errorTitle} message={errorMessage} onRetry={onRetry} />
+      <ErrorState title={errorTitle} message={errorMessage} onRetry={onRetry} />
     );
   } else if (loading) {
     showFooter = false;
@@ -155,7 +155,7 @@ export const PageShell: React.FC<PageShellProps> = ({
         </View>
       ));
   } else if (empty && emptyState) {
-    body = <EmptyState fullscreen {...emptyState} />;
+    body = <EmptyState {...emptyState} />;
   } else if (mode === 'scroll') {
     body = (
       <ScrollView

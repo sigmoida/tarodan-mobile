@@ -8,7 +8,7 @@ const { colors, spacing } = theme;
 export interface GateScreenProps {
   icon: EmptyStateProps['icon'];
   title: string;
-  description?: string;
+  description: string;
   /** Başlık altı ek içerik (ek açıklama, uyarı kutusu…). */
   children?: React.ReactNode;
   /** Düğmeler — tam genişlikte alt alta dizilir. */
@@ -31,10 +31,12 @@ export const GateScreen: React.FC<GateScreenProps> = ({
 }) => (
   <SafeAreaView style={styles.root} testID={testID}>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      {/* Dikey ortalı engelleyici ekran: kompakt (inline) yerleşim ki blok gerçekten ortalansın. */}
       <EmptyState
+        placement="inline"
         icon={icon}
         title={title}
-        description={description}
+        subtitle={description}
         action={
           <View style={styles.body}>
             {children}

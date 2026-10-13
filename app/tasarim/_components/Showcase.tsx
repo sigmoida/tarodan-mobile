@@ -131,7 +131,7 @@ export function Showcase() {
         <View style={styles.half}>
           <SkeletonCard />
         </View>
-        <EmptyState size="compact" title="Boş durum" subtitle="Açıklama metni" />
+        <EmptyState icon="inbox" title="Boş durum" subtitle="Açıklama metni" />
       </SectionCard>
 
       <SectionCard title="Geri bildirim">

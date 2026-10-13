@@ -5,9 +5,10 @@
  * (Eski `settings/email-change` ekran testlerinin senaryoları buraya taşındı.)
  */
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils/render';
-import { appAlert, ToastHost } from '@/ui';
+import { appAlert, ToastHost, theme } from '@/ui';
 
 const mockUpdateUser = jest.fn();
 const mockRefreshUserData = jest.fn(() => Promise.resolve(null));
@@ -41,6 +42,12 @@ const advance = (ms: number) =>
   act(async () => {
     await jest.advanceTimersByTimeAsync(ms);
   });
+
+/** Düğmenin (Pressable) düzleştirilmiş stili. */
+const btnStyle = (testID: string) => {
+  const style = screen.getByTestId(testID).props.style;
+  return StyleSheet.flatten(typeof style === 'function' ? style({ pressed: false }) : style);
+};
 
 const renderSection = () =>
   renderWithProviders(
@@ -90,6 +97,27 @@ describe('Profili düzenle · e-posta bölümü', () => {
     fireEvent.press(screen.getByTestId('email-change-cancel'));
     expect(screen.queryByTestId('email-change-input')).toBeNull();
     expect(screen.getByTestId('edit-profile-email-change-toggle')).toBeTruthy();
+  });
+
+  it('e-posta adımı: "Kod gönder" birincil (dolu), "Vazgeç" outline (ButtonRow)', () => {
+    renderSection();
+    fireEvent.press(screen.getByTestId('edit-profile-email-change-toggle'));
+    expect(btnStyle('email-change-request')).toMatchObject({ backgroundColor: theme.colors.primary[600] });
+    expect(btnStyle('email-change-cancel')).toMatchObject({
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: theme.colors.border.DEFAULT,
+    });
+  });
+
+  it('kod adımı: "Doğrula" birincil, "Vazgeç" outline; "Tekrar gönder"/"E-postayı düzelt" metin düğmesi', async () => {
+    renderSection();
+    await goToCodeStep();
+    expect(btnStyle('email-change-verify')).toMatchObject({ backgroundColor: theme.colors.primary[600] });
+    expect(btnStyle('email-change-cancel')).toMatchObject({ backgroundColor: 'transparent', borderWidth: 1 });
+    expect(btnStyle('email-change-resend').borderWidth).toBe(0);
+    expect(btnStyle('email-change-fix').borderWidth).toBe(0);
+    expect(screen.getAllByTestId('email-change-cancel')).toHaveLength(1);
   });
 
   it('geçersiz e-posta gönderilmez, hata alanın altında', async () => {

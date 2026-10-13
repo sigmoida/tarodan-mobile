@@ -110,7 +110,7 @@ export default function OffersScreen() {
         emptyState={{
           icon: "tag",
           title: t("offer.myOffersTitle"),
-          description: t("offer.authGateSubtitle"),
+          subtitle: t("offer.authGateSubtitle"),
           actionLabel: t("common.login"),
           onAction: () => router.push("/(auth)/login"),
           secondaryLabel: t("auth.createAccount"),

@@ -86,7 +86,7 @@ export default function ManufacturersScreen() {
             <EmptyState
               icon="magnifying-glass"
               title={f.hasAny ? t('common.noResults') : t('product.noManufacturersYet')}
-              subtitle={f.hasAny ? t('search.tryDifferent') : undefined}
+              subtitle={f.hasAny ? t('search.tryDifferent') : t('emptyState.manufacturersHint')}
             />
           )
         }

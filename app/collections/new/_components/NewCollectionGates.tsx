@@ -17,7 +17,7 @@ export function PremiumGate() {
       onBack={goBack}
       empty
       emptyState={{
-        icon: false,
+        icon: 'rectangle-stack',
         title: upgradeInfo.title,
         subtitle: upgradeInfo.message,
         action: (
@@ -45,7 +45,7 @@ export function AuthGate() {
       onBack={goBack}
       empty
       emptyState={{
-        icon: false,
+        icon: 'rectangle-stack',
         title: t('collection.authGateTitle'),
         subtitle: t('collection.authGateSubtitle'),
         actionLabel: t('common.login'),

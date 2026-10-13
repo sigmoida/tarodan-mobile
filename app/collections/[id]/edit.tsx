@@ -25,6 +25,7 @@ export default function EditCollectionScreen() {
       emptyState={{
         icon: notOwner ? 'lock-closed' : 'rectangle-stack',
         title: notOwner ? t('collection.noEditPermission') : t('collection.collectionNotFound'),
+        subtitle: notOwner ? t('emptyState.collectionNoPermissionHint') : t('emptyState.notFoundHint'),
         actionLabel: t('common.goBack'),
         onAction: goBack,
       }}

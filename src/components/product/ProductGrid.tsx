@@ -6,7 +6,11 @@ import { PRODUCT_GRID_GAP, ProductGridSkeleton, ProductListEmpty, useProductCell
 
 const { colors } = theme;
 
-interface ProductGridProps {
+type ProductGridProps = ProductGridBaseProps &
+  // Özel boş durum: başlık verilirse alt başlık da ZORUNLU (EmptyState kuralı), bağlama uygun metinle.
+  ({ emptyTitle?: undefined; emptySubtitle?: undefined } | { emptyTitle: string; emptySubtitle: string });
+
+interface ProductGridBaseProps {
   items: ProductCardProduct[];
   layout?: ProductCardLayout;
   /** İlk yükleme: iskelet çizer (tam ekran spinner değil). */
@@ -24,9 +28,6 @@ interface ProductGridProps {
   /** Boş durum: filtre uygulanmışsa "filtrelerinizi değiştirin" + temizle. */
   filtered?: boolean;
   onClearFilters?: () => void;
-  /** Boş durumu özelleştirir (ör. üreticinin ürünü yok). */
-  emptyTitle?: string;
-  emptySubtitle?: string;
   onItemPress?: (product: ProductCardProduct) => void;
   showMeta?: boolean;
   testID?: string;

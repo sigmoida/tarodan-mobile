@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { ScrollView, View, Image } from 'react-native';
-import { Avatar, Chip, SectionCard, Text, theme, Icon } from '@/ui';
+import { Avatar, Chip, EmptyState, SectionCard, Text, theme, Icon } from '@/ui';
 
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
@@ -144,9 +144,7 @@ export function BusinessTabContent({ f }: { f: BusinessController }) {
               <ProductRow key={product.id} product={product} index={index} metric="views" />
             ))
           ) : (
-            <Text variant="bodySm" tone="muted" align="center">
-              {t('business.noProductStats')}
-            </Text>
+            <EmptyState placement="inline" testID="business-empty-views" icon="chart-bar" title={t('business.noProductStats')} subtitle={t('emptyState.statsHint')} />
           )}
         </SectionCard>
 
@@ -156,9 +154,7 @@ export function BusinessTabContent({ f }: { f: BusinessController }) {
               <ProductRow key={product.id} product={product} index={index} metric="likes" />
             ))
           ) : (
-            <Text variant="bodySm" tone="muted" align="center">
-              {t('business.noProductStats')}
-            </Text>
+            <EmptyState placement="inline" testID="business-empty-likes" icon="chart-bar" title={t('business.noProductStats')} subtitle={t('emptyState.statsHint')} />
           )}
         </SectionCard>
       </>
@@ -173,9 +169,7 @@ export function BusinessTabContent({ f }: { f: BusinessController }) {
           <CollectionRow key={collection.id} collection={collection} index={index} />
         ))
       ) : (
-        <Text variant="bodySm" tone="muted" align="center">
-          {t('business.noCollectionStats')}
-        </Text>
+        <EmptyState placement="inline" testID="business-empty-collections" icon="chart-bar" title={t('business.noCollectionStats')} subtitle={t('emptyState.statsHint')} />
       )}
     </SectionCard>
   );

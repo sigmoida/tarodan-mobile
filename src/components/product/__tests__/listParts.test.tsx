@@ -58,7 +58,7 @@ describe('ProductGrid', () => {
   });
 
   it('özel boş başlık (üreticinin ürünü yok)', () => {
-    render(<ProductGrid items={[]} emptyTitle="Bu üreticiye ait ürün yok" />);
+    render(<ProductGrid items={[]} emptyTitle="Bu üreticiye ait ürün yok" emptySubtitle="Yakında yeni ürünler" />);
     expect(screen.getByText('Bu üreticiye ait ürün yok')).toBeTruthy();
   });
 });

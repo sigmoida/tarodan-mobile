@@ -7,7 +7,7 @@ import {
   FlatList,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { theme, RawText, RawTextInput } from '@/ui';
+import { theme, RawText, RawTextInput, EmptyState } from '@/ui';
 
 import { styles } from '../_lib/styles';
 
@@ -87,7 +87,7 @@ export function PickerModal({
               keyExtractor={(item) => keyExtractor(item)}
               keyboardShouldPersistTaps="handled"
               ListEmptyComponent={
-                <RawText style={styles.emptyText}>{emptyText || t('common.noResults')}</RawText>
+                <EmptyState placement="inline" icon="magnifying-glass" title={emptyText || t('common.noResults')} subtitle={searchValue ? t('search.tryDifferent') : t('emptyState.optionsHint')} />
               }
               renderItem={({ item }) => {
                 const isSelected = keyExtractor(item) === selectedId;

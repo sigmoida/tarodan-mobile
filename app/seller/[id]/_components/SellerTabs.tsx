@@ -33,7 +33,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
 
       {activeTab === 'listings' &&
         (products.length === 0 ? (
-          <EmptyState size="compact" icon="magnifying-glass" title={t('seller.noActiveListings')} />
+          <EmptyState placement="inline" testID="seller-empty-listings" icon="magnifying-glass" title={t('seller.noActiveListings')} subtitle={t('home.noProductsYetHint')} />
         ) : (
           <View style={styles.grid}>
             {products.map((product: any) => (
@@ -46,7 +46,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
 
       {activeTab === 'reviews' &&
         (reviews.length === 0 ? (
-          <EmptyState size="compact" icon="star" title={t('review.noReviews')} />
+          <EmptyState placement="inline" testID="seller-empty-reviews" icon="star" title={t('review.noReviews')} subtitle={t('seller.noReviewsDesc')} />
         ) : (
           <SectionCard title={t('review.reviews')}>
             {reviews.map((review: any, i: number) => {
@@ -89,7 +89,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
 
       {activeTab === 'collections' &&
         (collections.length === 0 ? (
-          <EmptyState size="compact" icon="rectangle-stack" title={t('seller.noCollections')} />
+          <EmptyState placement="inline" testID="seller-empty-collections" icon="rectangle-stack" title={t('seller.noCollections')} subtitle={t('emptyState.collectionsHint')} />
         ) : (
           <View style={styles.grid}>
             {collections.map((collection: any) => (

@@ -30,7 +30,7 @@ export const AuthGatePage: React.FC<AuthGatePageProps> = ({ title, emptyTitle, s
       emptyState={{
         icon: icon ?? 'user',
         title: emptyTitle ?? title,
-        subtitle,
+        subtitle: subtitle ?? t('emptyState.loginRequiredHint'),
         actionLabel: t('common.login'),
         onAction: () => router.push('/(auth)/login'),
       }}

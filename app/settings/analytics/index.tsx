@@ -30,7 +30,7 @@ export default function AnalyticsScreen() {
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       loading={f.isLoading}
       empty={!f.isLoading && !f.analytics}
-      emptyState={{ icon: 'chart-bar', title: f.t('analytics.dataLoadFailed') }}
+      emptyState={{ icon: 'chart-bar', title: f.t('analytics.dataLoadFailed'), subtitle: f.t('emptyState.loadFailedHint') }}
       refreshing={f.refreshing}
       onRefresh={f.onRefresh}
     >

@@ -4,7 +4,7 @@ import { theme } from '../lib/theme';
 import { CountBadge } from './CountBadge';
 import { RefIcon, type IconRef, type IconVariant } from '../icons';
 
-export type HeaderIconTone = 'primary' | 'onSurface';
+export type HeaderIconTone = 'muted' | 'onSurface';
 
 export interface HeaderIconButtonProps {
   /** Heroicons adı (geçiş: eski Ionicons adları da çözülür). */
@@ -15,13 +15,13 @@ export interface HeaderIconButtonProps {
   onPress: () => void;
   /** İkonun sağ üstünde sayaç rozeti (danger-500, 99+). 0 çizilmez. */
   count?: number;
-  /** `primary`: beyaz bar üstünde primary-600 ikon (tab kökü AppShell); `onSurface`: beyaz bar üstünde başlık renginde. */
+  /** `muted`: beyaz bar üstünde `theme.inactiveIconColor` (alt menü pasif ikonuyla aynı gri; tab kökü AppShell); `onSurface`: beyaz bar üstünde başlık renginde. */
   tone?: HeaderIconTone;
   disabled?: boolean;
   testID?: string;
 }
 
-const { colors, iconSize, minTouchTarget, spacing } = theme;
+const { colors, iconSize, minTouchTarget, spacing, inactiveIconColor } = theme;
 
 /** Basılı geri bildirim: iOS'ta soluklaşma (zemin yok), Android'de borderless ripple. */
 const PRESSED_OPACITY = 0.6;
@@ -40,7 +40,7 @@ export const HeaderIconButton: React.FC<HeaderIconButtonProps> = ({
   disabled,
   testID,
 }) => {
-  const iconColor = tone === 'primary' ? colors.primary[600] : colors.text.heading;
+  const iconColor = tone === 'muted' ? inactiveIconColor : colors.text.heading;
   // Her iki ton da beyaz barda: rozet halkası bar zemini (beyaz) → rozet net ayrışır.
   const ringColor = colors.surface.elevated;
   return (

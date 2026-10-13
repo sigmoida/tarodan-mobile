@@ -28,6 +28,7 @@ export default function BusinessDashboardScreen() {
       emptyState={{
         icon: 'exclamation-circle',
         title: f.error ?? '',
+        subtitle: f.t('emptyState.businessErrorHint'),
         actionLabel: needsCompanyName ? f.t('business.addCompanyName') : f.t('seller.openBusinessAccount'),
         onAction: () =>
           needsCompanyName ? router.push('/settings/edit-profile') : router.push('/seller/register'),
