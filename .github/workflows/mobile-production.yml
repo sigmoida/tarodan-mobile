@@ -1,88 +1,240 @@
-name: Mobile Production Release (EAS Build + Submit)
+name: Mobile Production (CI → fingerprint → approved OTA or store build)
 
-# master push -> prod iOS build + submit (mevcut Tarodan app: TestFlight).
-# Android ERTELENDİ (spec 2026-07-31 §7): Play service account + Firebase
-# çift-client google-services.json hazır olunca Android platformu geri eklenir.
-# VERSION-GATE: submit yalnızca app.json expo.version bu push'ta DEĞİŞTİYSE çalışır
-# (her master merge'i build tetiklemez — deliberate release). workflow_dispatch ile
-# elle de tetiklenebilir. Guard: EXPO_TOKEN yoksa no-op.
+# master'a merge (push) → staging ile AYNI mantık, production kimliğiyle:
+#
+#   1. ci        CI (ci.yml `workflow_call`).
+#   2. plan      Fingerprint `production` profilinin env'iyle
+#                (EXPO_PUBLIC_ENVIRONMENT=production → com.tarodan.app) hesaplanır,
+#                EAS'teki production build'leriyle karşılaştırılır.
+#                  binary var (bitmiş + gönderilmiş) → OTA
+#                  build/gönderim sürüyor → bekle (uyarı; OTA da build de yok)
+#                  binary yok → native değişti → STORE BUILD. Bu durumda app.json
+#                    `expo.version` son production build'inin sürümünden BÜYÜK
+#                    olmalı; değilse plan anlaşılır bir hatayla DURUR (bkz.
+#                    "VERSION-GATE" adımı). Not: expo.version fingerprint'e girer,
+#                    yani sürüm artışı kendi başına da yeni build demektir.
+#   3. ota       eas update --branch production — `environment: production`
+#                onayına bağlı (GitHub Environment; onaylayan kişi Settings →
+#                Environments'ta tanımlı).
+#   4. build-ios eas build --profile production → eas submit --profile production
+#                → App Store Connect / TestFlight. **App Store incelemesine gönderim
+#                (Submit for Review) App Store Connect'te ELLE kalır.**
+#      build-android  vars.ANDROID_RELEASE_ENABLED == 'true' iken: production AAB
+#                → eas submit --profile production (track: internal). Production
+#                track'e yükseltme Play Console'da ELLE (kişisel hesap: önce 12
+#                testçi / 14 gün kapalı test şartı).
+#
+# Concurrency: plan iptalsiz; ota matrix'i platform + runtime başına iptalsiz
+# (onay bekleyen bir OTA'yı başka runtime'ın push'u düşürmez); build-* asla
+# iptal edilmez.
+#
+# Elle tetikleme yalnız master ref'inde anlamlıdır (plan başka ref'te durur):
+#   gh workflow run mobile-production.yml --ref master -f mode=auto
+#   mode=build → sürüm kapısı yalnız UYARI verir (bilinçli insan kararı: ör.
+#                aynı sürümün reddedilen build'ini yeniden almak).
+#
+# Token (her environment kendi EXPO_TOKEN secret'ını taşır; repo düzeyinde YOK):
+#   production-build  yalnız master, onaysız — plan + store build/submit
+#   production        yalnız master, ONAYLI   — yalnız OTA
+# Başka bir daldaki workflow (ya da environment'sız bir job) token'a ulaşamaz.
+# Guard: EXPO_TOKEN yoksa no-op.
 
 on:
   push:
     branches: [master]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'maestro/**'
+      - '.github/**'
   workflow_dispatch:
     inputs:
-      submit:
-        description: 'Submit to stores after build?'
+      mode:
+        description: 'auto = fingerprint decides · ota (approval) · build'
         required: true
-        default: true
-        type: boolean
+        default: 'auto'
+        type: choice
+        options: [auto, ota, build]
+      platform:
+        description: 'Platform(s); Android also needs vars.ANDROID_RELEASE_ENABLED'
+        required: true
+        default: 'all'
+        type: choice
+        options: [all, ios, android]
 
-concurrency:
-  group: mobile-release-${{ github.ref }}
-  cancel-in-progress: false
+permissions:
+  contents: read
 
 jobs:
-  build-and-submit:
-    name: EAS Build + Submit (iOS)
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
+  plan:
+    name: Plan (fingerprint → OTA or store build)
+    needs: ci
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # Token için `production-build` (yalnız master, ONAYSIZ): plan yalnız okur.
+    environment: production-build
+    timeout-minutes: 20
+    concurrency:
+      group: mobile-production-plan-${{ github.event_name }}
+      # İptalsiz: yeni bir push eski koşunun kararını (ve onun runtime'ına ait
+      # OTA'yı) düşürmesin; plan'lar sırayla koşar.
+      cancel-in-progress: false
+    outputs:
+      skip: ${{ steps.guard.outputs.skip }}
+      ios: ${{ steps.decide.outputs.ios }}
+      android: ${{ steps.decide.outputs.android }}
+      ios_fp: ${{ steps.decide.outputs.ios_fp }}
+      android_fp: ${{ steps.decide.outputs.android_fp }}
+      ota_matrix: ${{ steps.decide.outputs.ota_matrix }}
+      message: ${{ steps.decide.outputs.message }}
+      blocked: ${{ steps.decide.outputs.blocked }}
+      decided: ${{ steps.decide.outputs.decided }}
     steps:
-      - uses: actions/checkout@v7
-        with:
-          # Version-gate github.event.before..HEAD taban commit'ini karşılaştırır;
-          # push N commit taşıyabildiği için tam geçmiş gerekir (bkz. BASE fallback).
-          fetch-depth: 0
       - name: Guard — skip if EXPO_TOKEN missing
         id: guard
+        env:
+          HAS_TOKEN: ${{ secrets.EXPO_TOKEN != '' }}
         run: |
-          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+          if [ "$HAS_TOKEN" != "true" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::EXPO_TOKEN missing — no-op."
+            echo "::notice::EXPO_TOKEN missing — mobile-production no-op."
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
-      - name: Version-gate — app.json version değişti mi?
-        id: vergate
-        if: steps.guard.outputs.skip != 'true' && github.event_name == 'push'
+      - uses: actions/checkout@v7
+        if: steps.guard.outputs.skip != 'true'
+      - name: Only master ships to production
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          REF: ${{ github.ref }}
+          MODE: ${{ inputs.mode || 'auto' }}
+        run: scripts/ci/release.sh guard-ref production
+      - uses: ./.github/actions/setup-eas
+        if: steps.guard.outputs.skip != 'true'
+        with:
+          expo-token: ${{ secrets.EXPO_TOKEN }}
+      - name: Decide per platform + VERSION-GATE
+        id: decide
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          MODE: ${{ inputs.mode || 'auto' }}
+          PLATFORM: ${{ inputs.platform || 'all' }}
+          ANDROID_ENABLED: ${{ vars.ANDROID_RELEASE_ENABLED == 'true' }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          SHA: ${{ github.sha }}
+        # Karar döngüsünün TEK kopyası: scripts/ci/release.sh plan (staging ile ortak).
+        run: scripts/ci/release.sh plan production
+      - name: Fail if a platform is blocked (other platforms still ship)
+        # Plan job'u kırmızı olur ama downstream job'lar `!cancelled()` +
+        # `decided == 'true'` ile koştuğu için engellenmeyen platform yayınlanır.
+        if: steps.decide.outputs.blocked != ''
+        env:
+          BLOCKED: ${{ steps.decide.outputs.blocked }}
         run: |
-          set -euo pipefail
-          # Sadece top-level expo.version'ı karşılaştır (nested "version" alanları
-          # false-trigger etmesin). Taban commit push'un event.before'udur — HEAD~1
-          # yalnızca push tek commit taşıyorsa doğrudur; N-commit'lik push'larda
-          # HEAD~1 yanlış taban olur ve gate sessizce atlanır (bkz. github issue).
-          BASE="${{ github.event.before }}"
-          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
-            BASE="HEAD~1"
-          fi
-          CUR=$(node -p "require('./app.json').expo.version")
-          PREV=$(git show "$BASE:app.json" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).expo.version))")
-          echo "base=$BASE prev=$PREV cur=$CUR"
-          if [ "$CUR" != "$PREV" ]; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::expo.version $PREV -> $CUR — prod release devam."
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::expo.version değişmedi ($CUR) — prod release skip."
-          fi
-      - uses: pnpm/action-setup@v6
-        if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || github.event_name == 'workflow_dispatch')
-      - uses: actions/setup-node@v6
-        if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || github.event_name == 'workflow_dispatch')
+          echo "::error::Engellenen platform(lar): $BLOCKED — ayrıntı yukarıdaki ::error:: satırlarında."
+          exit 1
+
+  ota:
+    name: OTA → production ${{ matrix.platform }} (requires approval)
+    needs: plan
+    if: ${{ !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.ota_matrix != '[]' && needs.plan.outputs.ota_matrix != '' }}
+    strategy:
+      fail-fast: false
+      # Platform başına bir job: [{platform, fp}] (release.sh plan).
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.ota_matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Production OTA onaysız ÇIKMAZ: GitHub Environment `production` (required
+    # reviewers + dağıtım yalnız master). Onay YALNIZ burada istenir.
+    environment: production
+    # Kuyruk platform + runtime BAŞINA ve iptalsiz: başka runtime'ın (ör. native
+    # değişiklik getiren) ya da diğer platformun push'u bu runtime'ın bekleyen
+    # (production'da onay bekleyen) OTA'sını İPTAL ETMEZ. Aynı runtime'ın OTA'ları
+    # sırayla çıkar (eski yeniyi asla ezmez); GitHub, aynı grupta bekleyen
+    # İKİNCİ job'ı üçüncüsü gelince düşürür — o da aynı runtime'ın daha yeni kodu.
+    concurrency:
+      group: mobile-production-ota-${{ matrix.platform }}-${{ matrix.fp }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-eas
         with:
-          node-version: 22
-          cache: 'pnpm'
-      - uses: expo/expo-github-action@v9
-        if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || github.event_name == 'workflow_dispatch')
+          expo-token: ${{ secrets.EXPO_TOKEN }}
+      - name: Publish OTA to production
+        env:
+          OTA_PLATFORM: ${{ matrix.platform }}
+          MSG: ${{ needs.plan.outputs.message }}
+        run: scripts/ci/release.sh publish-ota production "$OTA_PLATFORM" production "$MSG"
+
+  build-ios:
+    name: iOS build + submit (production → App Store Connect)
+    needs: plan
+    if: ${{ !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.ios == 'build' }}
+    runs-on: ubuntu-latest
+    # Store build + submit: `production-build` (yalnız master, onaysız). App
+    # Review'a gönderim zaten App Store Connect'te elle.
+    environment: production-build
+    timeout-minutes: 120
+    concurrency:
+      group: mobile-production-build-ios
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-eas
         with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-      - name: Install
-        if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || github.event_name == 'workflow_dispatch')
-        run: pnpm install --frozen-lockfile
-      - name: EAS build (iOS, production)
-        if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || github.event_name == 'workflow_dispatch')
-        run: eas build --platform ios --profile production --non-interactive --wait
-      - name: EAS submit — iOS (TestFlight, mevcut app)
-        if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || (github.event_name == 'workflow_dispatch' && inputs.submit))
-        run: eas submit --platform ios --profile production --latest --non-interactive
+          expo-token: ${{ secrets.EXPO_TOKEN }}
+      - name: Re-check after acquiring the build lock
+        id: recheck
+        env:
+          FP: ${{ needs.plan.outputs.ios_fp }}
+          MODE: ${{ inputs.mode || 'auto' }}
+        run: scripts/ci/release.sh recheck ios production
+      - name: EAS build + submit (iOS, production)
+        # Submit build'i App Store Connect'e (TestFlight) yükler. İncelemeye
+        # gönderim (Submit for Review) App Store Connect'te ELLE yapılır.
+        if: steps.recheck.outputs.action == 'build'
+        env:
+          FP: ${{ needs.plan.outputs.ios_fp }}  # build mesajına ci-fp damgası (döngü koruması)
+        run: scripts/ci/release.sh build-submit ios production production
+
+  build-android:
+    name: Android build + submit (production → Play internal)
+    needs: plan
+    # Play Console hesabı + service account + ilk elle yükleme bitene kadar KAPALI.
+    if: ${{ vars.ANDROID_RELEASE_ENABLED == 'true' && !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.android == 'build' }}
+    runs-on: ubuntu-latest
+    environment: production-build
+    timeout-minutes: 120
+    concurrency:
+      group: mobile-production-build-android
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-eas
+        with:
+          expo-token: ${{ secrets.EXPO_TOKEN }}
+      - name: Re-check after acquiring the build lock
+        id: recheck
+        env:
+          FP: ${{ needs.plan.outputs.android_fp }}
+          MODE: ${{ inputs.mode || 'auto' }}
+        run: scripts/ci/release.sh recheck android production
+      - name: Verify Android package is com.tarodan.app
+        # production Android build'i ve gönderimi yalnız bu pakete gider. Değilse DUR:
+        # eas submit Play uygulamasını AAB'deki paket adından seçer; yanlış paket
+        # staging uygulamasına gider. Gönderimden önce build'in appIdentifier'ı
+        # ayrıca doğrulanır
+        # (build-submit'in son argümanı).
+        if: steps.recheck.outputs.action == 'build'
+        run: scripts/ci/release.sh assert-app-id android production com.tarodan.app
+      - name: EAS build + submit (Android AAB, production → Play internal track)
+        # eas.json submit.production.android.track = internal. Production track'e
+        # yükseltme Play Console'da ELLE.
+        if: steps.recheck.outputs.action == 'build'
+        env:
+          FP: ${{ needs.plan.outputs.android_fp }}  # build mesajına ci-fp damgası (döngü koruması)
+        run: scripts/ci/release.sh build-submit android production production com.tarodan.app

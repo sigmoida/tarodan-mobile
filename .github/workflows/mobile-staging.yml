@@ -1,67 +1,138 @@
-name: Mobile Staging (OTA + Preview Build)
+name: Mobile Staging (CI → fingerprint → OTA or build)
 
-# development'a push -> staging kanalına YALNIZ OTA. Build ASLA otomatik alınmaz.
+# development'a push → staging TAM OTOMATİK:
 #
-# iOS build kotası aylık 15. Otomatik build'ler bunu birkaç günde bitiriyordu,
-# bu yüzden push yolundan build tamamen kaldırıldı (cron da öyle). OTA ücretsiz
-# ve kotadan düşmez, o yüzden otomatik kaldı.
+#   1. ci        CI (lint + tsc + test) — ci.yml `workflow_call` ile. Kırmızıysa
+#                hiçbir şey yayınlanmaz.
+#   2. plan      Her platform için runtime fingerprint'i hesaplanır
+#                (`expo-updates fingerprint:generate`, staging profilinin env'iyle →
+#                EXPO_PUBLIC_ENVIRONMENT=preview, yani `.staging` kimlikli config)
+#                ve EAS'te bu runtimeVersion için binary durumu okunur
+#                (release.sh build-state):
+#                  available → OTA   (bitmiş VE TestFlight/Play'e gönderilmiş build)
+#                  pending   → bekle (derleniyor / gönderiliyor: OTA da ikinci
+#                              build de yok, uyarı)
+#                  none      → build (yeni native binary gerekiyor)
+#                Platformlar AYRI değerlendirilir: iOS OTA alırken Android build
+#                alabilir (fingerprint platform başına farklıdır).
+#   3. ota       eas update --branch staging --platform <yalnız OTA'lık platformlar>
+#   4. build-*   iOS:     eas build --profile staging → eas submit --profile staging
+#                         (Tarodan (Staging), com.tarodan.app.staging → TestFlight)
+#                Android: eas build --profile staging (AAB) → eas submit --profile
+#                         staging (ayrı Play uygulaması com.tarodan.app.staging,
+#                         internal testing track). vars.ANDROID_RELEASE_ENABLED
+#                         == 'true' değilse KAPALI.
 #
-#   JS/asset-only -> eas update --branch staging (OTA, otomatik, bedava)
-#   native değişti -> hiçbir şey yayınlanmaz + uyarı basılır; build ELLE alınır:
-#       gh workflow run mobile-staging.yml --ref development -f mode=build
-#         (varsayılan platform=android — müşteriye APK. iOS TestFlight için
-#          -f platform=ios, ikisi birden için -f platform=all. Kotalar platform
-#          başına ayrı: 15 Android + 15 iOS.)
+# Neden regex değil fingerprint: native/JS ayrımının tek doğru cevabı, binary'nin
+# runtimeVersion'ıdır (app.json `runtimeVersion.policy: fingerprint`). Eski
+# `native_re` dosya listesi hem fazla (eas.json'daki bir submit düzeltmesi) hem
+# eksik (yeni bir config plugin dosyası) yakalıyordu. Fingerprint, app.config.js'in
+# ÇIKTISINI (çözümlenmiş expoConfig), eas.json'u, config plugin'lerini, native
+# autolinking'i ve package.json script'lerini kapsar; app.config.js'te çıktıyı
+# değiştirmeyen bir düzenleme (yorum) build tetiklemez. app.json `expo.version`
+# da fingerprint'e girer — sürüm artışı her zaman yeni build demektir.
 #
-# Native değiştiğinde OTA da yayınlanmaz: runtimeVersion politikası `fingerprint`,
-# yani native bağımlılık değişince fingerprint de değişir ve o OTA mevcut hiçbir
-# binary'ye ulaşamaz. Yayınlamak yanıltıcı olurdu ("staging güncellendi" görünür,
-# aslında kimseye inmez).
+# CI bağlantısı neden `needs` (+ reusable ci.yml) ve `workflow_run` değil:
+#   - workflow_run her zaman VARSAYILAN dalın workflow dosyasını koşar; aynı
+#     model master'da production için kullanılınca production mantığı
+#     development'tan gelirdi. needs, commit'in kendi workflow'unu koşar.
+#   - Tek koşu grafiği: CI → plan → OTA/build aynı sayfada; github.event (commit
+#     mesajı, sha) bozulmadan taşınır; workflow_dispatch da aynı kapıdan geçer.
+#   - ci.yml artık push'ta ayrıca tetiklenmez → CI push başına bir kez koşar.
 #
+# Concurrency (job düzeyinde):
+#   - plan: iptalsiz kuyruk (yeni push eski koşunun kararını düşürmez).
+#   - ota: matrix, platform + runtime başına iptalsiz kuyruk → daha yeni bir
+#     push (başka runtime ya da platform) bekleyen OTA'yı iptal etmez; aynı
+#     runtime'ın OTA'ları sırayla çıkar.
+#   - build-*: cancel-in-progress YOK → başlamış bir build/submit asla kesilmez.
+#     (GitHub semantiği: aynı grupta bekleyen İKİNCİ bir build job'ı, üçüncüsü
+#     gelince düşer — yenisi zaten daha yeni kodu taşır.) Build job'ı kilidi
+#     aldıktan sonra fingerprint'i yeniden sorgular; arada aynı runtime için bir
+#     build başlamışsa build harcamaz, OTA yayınlar.
+#
+# Elle tetikleme (workflow_dispatch):
+#   mode=auto   push ile aynı karar (varsayılan)
+#   mode=ota    seçili platform(lar)a OTA zorla
+#   mode=build  seçili platform(lar) için build zorla (Android yine değişkene bağlı)
+#   mode=apk    YALNIZ ad-hoc Android APK (preview profili, EAS internal
+#               distribution) — Play'siz bir müşteriye/testçiye link göndermek için.
+#   gh workflow run mobile-staging.yml --ref development -f mode=apk
+#   Ref koruması: yalnız refs/heads/development; mode=apk ayrıca
+#   vars.STAGING_APK_BRANCHES'teki dallardan (boşlukla ayrılmış glob, ör.
+#   "development feature/*"; varsayılan yalnız development). O dalların
+#   `staging` environment'ının deployment-branch kuralına da eklenmesi gerekir.
+#
+# Token: EXPO_TOKEN yalnız GitHub Environment `staging`'de (deployment branch:
+# development [+ vars.STAGING_APK_BRANCHES], onay yok). Token isteyen HER job bu
+# environment'a bağlı; başka daldan koşan bir workflow token'a ulaşamaz.
 # Guard: EXPO_TOKEN yoksa no-op.
 
 on:
   push:
     branches: [development]
-    paths:
-      - '**'
-      - '!docs/**'
-      - '!**/*.md'
-      - '!maestro/**'
-      # Workflow'un kendisi değiştiğinde OTA yayınlamak anlamsız: kullanıcıya
-      # inen JS aynı. Yalnız gürültü üretir ve boş bir update grubu bırakır.
-      - '!.github/**'
+    paths-ignore:
+      # Kullanıcıya inen JS'i değiştirmeyen yollar: yayın da CI da gereksiz.
+      # .github: workflow değişikliği için OTA yayınlamak boş bir update grubu
+      # bırakır; workflow testleri PR CI'ında koşar.
+      - 'docs/**'
+      - '**/*.md'
+      - 'maestro/**'
+      - '.github/**'
   workflow_dispatch:
     inputs:
       mode:
-        description: 'What to ship to staging'
+        description: 'auto = fingerprint decides · ota · build · apk (ad-hoc Android APK)'
         required: true
-        default: 'build'
+        default: 'auto'
         type: choice
-        options: [build, ota]
+        options: [auto, ota, build, apk]
       platform:
-        description: 'Which platform to build (mode=build only)'
+        description: 'Platform(s) for auto/ota/build (apk is always Android)'
         required: true
-        default: 'android'
+        default: 'all'
         type: choice
-        options: [android, ios, all]
+        options: [all, ios, android]
 
-concurrency:
-  group: mobile-staging-${{ github.ref }}
-  cancel-in-progress: false
+permissions:
+  contents: read
 
 jobs:
-  classify:
-    name: Classify change (native -> build, JS -> OTA)
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
+  plan:
+    name: Plan (fingerprint → OTA or build)
+    needs: ci
     runs-on: ubuntu-latest
+    # EXPO_TOKEN yalnız `staging` environment'ında (dağıtım yalnız development,
+    # onay yok). Repo düzeyinde token YOK — bkz. docs/RELEASE.md "Environment'lar".
+    environment: staging
+    timeout-minutes: 20
+    concurrency:
+      group: mobile-staging-plan-${{ github.event_name }}
+      # İptalsiz: yeni bir push eski koşunun kararını (ve onun runtime'ına ait
+      # OTA'yı) düşürmesin; plan'lar sırayla koşar.
+      cancel-in-progress: false
     outputs:
-      mode: ${{ steps.decide.outputs.mode }}
       skip: ${{ steps.guard.outputs.skip }}
+      ios: ${{ steps.decide.outputs.ios }}
+      android: ${{ steps.decide.outputs.android }}
+      ios_fp: ${{ steps.decide.outputs.ios_fp }}
+      android_fp: ${{ steps.decide.outputs.android_fp }}
+      ota_matrix: ${{ steps.decide.outputs.ota_matrix }}
+      apk: ${{ steps.decide.outputs.apk }}
+      message: ${{ steps.decide.outputs.message }}
+      blocked: ${{ steps.decide.outputs.blocked }}
+      decided: ${{ steps.decide.outputs.decided }}
     steps:
       - name: Guard — skip if EXPO_TOKEN missing
         id: guard
+        env:
+          HAS_TOKEN: ${{ secrets.EXPO_TOKEN != '' }}
         run: |
-          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+          if [ "$HAS_TOKEN" != "true" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "::notice::EXPO_TOKEN missing — mobile-staging no-op."
           else
@@ -69,135 +140,180 @@ jobs:
           fi
       - uses: actions/checkout@v7
         if: steps.guard.outputs.skip != 'true'
-        with:
-          fetch-depth: 0
-      - id: decide
-        name: Decide OTA vs full build
+      - name: Only development ships to staging (ad-hoc APK — allowed branches)
+        # workflow_dispatch herhangi bir daldan tetiklenebilir; production'daki
+        # korumanın aynısı (release.sh guard-ref). APK modu Play'e/OTA'ya
+        # dokunmadığı için vars.STAGING_APK_BRANCHES'teki dallardan da çalışır.
         if: steps.guard.outputs.skip != 'true'
         env:
-          EVENT_NAME: ${{ github.event_name }}
-          DISPATCH_MODE: ${{ inputs.mode }}
+          REF: ${{ github.ref }}
+          MODE: ${{ inputs.mode || 'auto' }}
+          APK_BRANCHES: ${{ vars.STAGING_APK_BRANCHES || 'development' }}
+        run: scripts/ci/release.sh guard-ref staging
+      - uses: ./.github/actions/setup-eas
+        if: steps.guard.outputs.skip != 'true'
+        with:
+          expo-token: ${{ secrets.EXPO_TOKEN }}
+      - name: Decide per platform (fingerprint vs EAS builds)
+        id: decide
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          MODE: ${{ inputs.mode || 'auto' }}
+          PLATFORM: ${{ inputs.platform || 'all' }}
+          ANDROID_ENABLED: ${{ vars.ANDROID_RELEASE_ENABLED == 'true' }}
+          # Kota koruması (ücretsiz plan: iOS ayda 15 build). Elle mode=build atlar.
+          MAX_BUILDS_PER_DAY: ${{ vars.STAGING_MAX_BUILDS_PER_DAY || '2' }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          SHA: ${{ github.sha }}
+        # Karar döngüsünün TEK kopyası: scripts/ci/release.sh plan (production ile ortak).
+        run: scripts/ci/release.sh plan staging
+      - name: Fail if a platform is blocked (other platforms still ship)
+        # Plan job'u kırmızı olur ama downstream job'lar `!cancelled()` +
+        # `decided == 'true'` ile koştuğu için engellenmeyen platform yayınlanır.
+        if: steps.decide.outputs.blocked != ''
+        env:
+          BLOCKED: ${{ steps.decide.outputs.blocked }}
         run: |
-          set -euo pipefail
-          native_re='^(package\.json|pnpm-lock\.yaml|app\.json|app\.config\.js|eas\.json|google-services\.json)$|^(ios|android|plugins|patches|credentials)/'
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            # Elle tetikleme: build de OTA da serbest — kotayı harcama kararı insanın.
-            echo "mode=${DISPATCH_MODE}" >> "$GITHUB_OUTPUT"
-          else
-            # push: build ASLA otomatik alınmaz (aylık 15 iOS build kotası).
-            # Merge commit için ayrı bir dal yok: BASE artık push'un tam tabanı
-            # (github.event.before), yani merge'in getirdiği tüm commit'ler zaten
-            # diff'e dahil.
-            BASE="${{ github.event.before }}"
-            if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
-              BASE="HEAD~1"
-            fi
-            changed="$(git diff --name-only "$BASE" HEAD)"
-            echo "base=$BASE"
-            echo "Changed:"; echo "$changed" | sed 's/^/  /'
-            if echo "$changed" | grep -qE "$native_re"; then
-              echo "mode=none" >> "$GITHUB_OUTPUT"
-              echo "::warning::Native dosya değişti — OTA bu binary'lere ULAŞAMAZ (fingerprint değişti). Staging'i güncellemek için build hakkı harcaman gerekiyor: gh workflow run mobile-staging.yml --ref development -f mode=build"
-            else
-              echo "mode=ota" >> "$GITHUB_OUTPUT"
-            fi
-          fi
+          echo "::error::Engellenen platform(lar): $BLOCKED — ayrıntı yukarıdaki ::error:: satırlarında."
+          exit 1
 
   ota:
-    name: OTA update -> staging channel
-    needs: classify
-    if: needs.classify.outputs.skip != 'true' && needs.classify.outputs.mode == 'ota'
+    name: OTA → staging (${{ matrix.platform }})
+    needs: plan
+    if: ${{ !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.ota_matrix != '[]' && needs.plan.outputs.ota_matrix != '' }}
+    strategy:
+      fail-fast: false
+      # Platform başına bir job: [{platform, fp}] (release.sh plan).
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.ota_matrix) }}
     runs-on: ubuntu-latest
+    environment: staging
     timeout-minutes: 30
+    # Kuyruk platform + runtime BAŞINA ve iptalsiz: başka runtime'ın (ör. native
+    # değişiklik getiren) ya da diğer platformun push'u bu runtime'ın bekleyen
+    # (production'da onay bekleyen) OTA'sını İPTAL ETMEZ. Aynı runtime'ın OTA'ları
+    # sırayla çıkar (eski yeniyi asla ezmez); GitHub, aynı grupta bekleyen
+    # İKİNCİ job'ı üçüncüsü gelince düşürür — o da aynı runtime'ın daha yeni kodu.
+    concurrency:
+      group: mobile-staging-ota-${{ matrix.platform }}-${{ matrix.fp }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
+      - uses: ./.github/actions/setup-eas
         with:
-          node-version: 22
-          cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
-      - uses: expo/expo-github-action@v9
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+          expo-token: ${{ secrets.EXPO_TOKEN }}
       - name: Publish OTA to staging
-        # ÖNEMLİ: eas update, eas.json'daki `preview` profilinin `env` bloğunu
-        # OKUMAZ — EXPO_PUBLIC_* değerlerini runner ortamından inline eder. Bu
-        # değerler burada set edilmezse (a) app.config.js base (prod-id) config
-        # üretir → fingerprint preview build'den FARKLI olur → OTA hiçbir staging
-        # build'e ULAŞMAZ; (b) EXPO_PUBLIC_API_URL boş kalır → bundle localhost'a
-        # bakar. Bu yüzden eas.json `preview` env'i ile birebir aynı set edilir.
+        # Env eas.json `preview` profilinden yüklenir (release.sh publish-ota) —
+        # `eas update` profil env'ini kendisi okumaz. preview ve staging profillerinin
+        # EXPO_PUBLIC_* değerleri birebir aynı olmak ZORUNDA (tek OTA dalı ikisini de
+        # besliyor; bkz. src/config/__tests__/apiUrl.test.ts).
         env:
-          MSG: ${{ github.event.head_commit.message || 'manual staging OTA' }}
-          EXPO_PUBLIC_ENVIRONMENT: preview
-          EXPO_PUBLIC_API_URL: https://staging.tarodan.com.tr/api
-          EXPO_PUBLIC_WEB_URL: https://staging.tarodan.com.tr
-          EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: 243308404313-kdc77bd36flfhv6ujlb5tfd4qjteh94c.apps.googleusercontent.com
-          EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: 243308404313-92c5475nff3874maoqes02ajakn81hvh.apps.googleusercontent.com
-        run: eas update --branch staging --message "$MSG" --non-interactive
+          OTA_PLATFORM: ${{ matrix.platform }}
+          MSG: ${{ needs.plan.outputs.message }}
+        run: scripts/ci/release.sh publish-ota staging "$OTA_PLATFORM" preview "$MSG"
 
-  build:
-    name: Staging build -> TestFlight (iOS) / internal APK (Android)
-    needs: classify
-    if: needs.classify.outputs.skip != 'true' && needs.classify.outputs.mode == 'build'
+  build-ios:
+    name: iOS build → TestFlight (Tarodan Staging)
+    needs: plan
+    if: ${{ !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.ios == 'build' }}
     runs-on: ubuntu-latest
-    # 120, production ile aynı. 60 yetmiyor: build ~7 dk sürüyor ama `eas submit`
-    # App Store Connect'in işlemesini bekliyor ve o süre Apple'da, öngörülemiyor.
-    # 2026-08-04'te build 14:13'te bitti, submit 53 dk sürdü ve iş 60. dakikada
-    # KESİLDİ — sonuç "cancelled" göründü, oysa hiçbir şey başarısız olmamıştı.
-    # Yükleme EAS sunucusunda koşuyor; CLI yalnız bekliyor, o yüzden kesilmesi
-    # teslimi durdurmuyor ama geriye yanıltıcı bir kırmızı bırakıyor.
+    environment: staging
+    # Build ~7 dk ama submit App Store Connect'in işlemesini bekliyor (2026-08-04:
+    # 53 dk). 60 dk'da kesilip yanıltıcı "cancelled" bırakıyordu.
     timeout-minutes: 120
+    concurrency:
+      group: mobile-staging-build-ios
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
+      - uses: ./.github/actions/setup-eas
         with:
-          node-version: 22
-          cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
-      - uses: expo/expo-github-action@v9
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-      - name: EAS staging build (iOS, store dist -> TestFlight)
-        if: inputs.platform == 'ios' || inputs.platform == 'all'
-        run: eas build --platform ios --profile staging --non-interactive --wait
-      - name: Submit to Tarodan Staging (TestFlight)
-        if: inputs.platform == 'ios' || inputs.platform == 'all'
-        run: eas submit --platform ios --profile staging --latest --non-interactive
+          expo-token: ${{ secrets.EXPO_TOKEN }}
+      - name: Re-check after acquiring the build lock
+        id: recheck
+        env:
+          FP: ${{ needs.plan.outputs.ios_fp }}
+          MODE: ${{ inputs.mode || 'auto' }}
+          MAX_BUILDS_PER_DAY: ${{ vars.STAGING_MAX_BUILDS_PER_DAY || '2' }}
+        run: scripts/ci/release.sh recheck ios staging
+      - name: Publish OTA instead (build already exists for this runtime)
+        if: steps.recheck.outputs.action == 'ota'
+        env:
+          MSG: ${{ needs.plan.outputs.message }}
+        run: scripts/ci/release.sh publish-ota staging ios preview "$MSG"
+      - name: EAS build + submit (iOS, staging → TestFlight)
+        if: steps.recheck.outputs.action == 'build'
+        env:
+          FP: ${{ needs.plan.outputs.ios_fp }}  # build mesajına ci-fp damgası (döngü koruması)
+        run: scripts/ci/release.sh build-submit ios staging staging
 
-      # Android, iOS'tan SONRA ama onun sonucundan BAĞIMSIZ koşar. Gerekçe kayıtlı
-      # bir vaka: 2026-08-04'te `eas submit` App Store Connect'i 53 dk bekledi ve
-      # job kesildi, oysa build başarılıydı. Aynı kesinti APK'yı da götürmemeli.
-      #
-      # `-p all` kullanılamaz: iOS `staging` profilinde (store dist -> TestFlight),
-      # Android `preview` profilinde (apk -> internal). `staging` profilinde android
-      # bloğu yok; oradan alınsa dağıtamayacağımız bir AAB çıkardı.
-      - name: EAS staging build (Android, APK -> internal distribution)
+  build-android:
+    name: Android build → Play internal (Tarodan Staging)
+    needs: plan
+    # Play hesabı + service account + ilk elle yükleme bitene kadar KAPALI.
+    if: ${{ vars.ANDROID_RELEASE_ENABLED == 'true' && !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.android == 'build' }}
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 120
+    concurrency:
+      group: mobile-staging-build-android
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-eas
+        with:
+          expo-token: ${{ secrets.EXPO_TOKEN }}
+      - name: Re-check after acquiring the build lock
+        id: recheck
+        env:
+          FP: ${{ needs.plan.outputs.android_fp }}
+          MODE: ${{ inputs.mode || 'auto' }}
+          MAX_BUILDS_PER_DAY: ${{ vars.STAGING_MAX_BUILDS_PER_DAY || '2' }}
+        run: scripts/ci/release.sh recheck android staging
+      - name: Publish OTA instead (build already exists for this runtime)
+        if: steps.recheck.outputs.action == 'ota'
+        env:
+          MSG: ${{ needs.plan.outputs.message }}
+        run: scripts/ci/release.sh publish-ota staging android preview "$MSG"
+      - name: Verify Android package is com.tarodan.app.staging
+        # staging Android build'i ve gönderimi yalnız bu pakete gider. Değilse DUR:
+        # eas submit Play uygulamasını AAB'deki paket adından seçer; yanlış paket
+        # production Play uygulamasına (com.tarodan.app) gider. Gönderimden önce
+        # build'in appIdentifier'ı ayrıca doğrulanır
+        # (build-submit'in son argümanı).
+        if: steps.recheck.outputs.action == 'build'
+        run: scripts/ci/release.sh assert-app-id android staging com.tarodan.app.staging
+      - name: EAS build + submit (Android AAB, staging → Play internal testing)
+        # submit.staging.android (track: internal) eas.json'da tanımlı olmalı.
+        if: steps.recheck.outputs.action == 'build'
+        env:
+          FP: ${{ needs.plan.outputs.android_fp }}  # build mesajına ci-fp damgası (döngü koruması)
+        run: scripts/ci/release.sh build-submit android staging staging com.tarodan.app.staging
+
+  apk:
+    name: Ad-hoc Android APK (preview, EAS internal)
+    needs: plan
+    # Yalnız elle: gh workflow run mobile-staging.yml --ref development -f mode=apk
+    # Play'e bağlı değil (EAS internal distribution), bu yüzden
+    # ANDROID_RELEASE_ENABLED'a bağlanmadı.
+    if: ${{ github.event_name == 'workflow_dispatch' && !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.apk == 'true' }}
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-eas
+        with:
+          expo-token: ${{ secrets.EXPO_TOKEN }}
+      - name: EAS build (Android APK, preview → internal distribution)
         id: android_build
-        if: ${{ !cancelled() && (inputs.platform == 'android' || inputs.platform == 'all') }}
-        run: |
-          set -euo pipefail
-          eas build --platform android --profile preview \
-            --non-interactive --wait --json > android-build.json
+        run: scripts/ci/release.sh build-submit android preview -
       - name: Publish the APK install link to the job summary
-        # steps.android_build.outcome == 'success' zaten platform koşulunu
-        # kapsar (adım atlandıysa outcome boş kalır) — burada inputs.platform'u
-        # tekrar etmiyoruz. Amaç: build başarısız olduğunda ya da hiç
-        # koşmadığında (ör. artifacts:null'lı hatalı JSON, ya da dosya hiç
-        # yazılmadan eas build ölmüşse) "hazır" özeti basmamak.
-        if: ${{ !cancelled() && steps.android_build.outcome == 'success' }}
+        env:
+          BUILD_ID: ${{ steps.android_build.outputs.build_id }}
         run: |
           set -euo pipefail
-          BUILD_ID="$(jq -r '.[0].id // empty' android-build.json)"
-          if [ -z "$BUILD_ID" ]; then
-            echo "::error::eas build --json did not return a build id; see the raw output below"
-            jq . android-build.json || cat android-build.json
-            exit 1
-          fi
-          APK_URL="$(jq -r '.[0].artifacts.buildUrl // .[0].artifacts.applicationArchiveUrl // empty' android-build.json)"
+          APK_URL="$(jq -r '.[0].artifacts.buildUrl // .[0].artifacts.applicationArchiveUrl // empty' eas-build.json)"
           OWNER="$(jq -r '.expo.owner' app.json)"
           SLUG="$(jq -r '.expo.slug' app.json)"
           INSTALL_PAGE="https://expo.dev/accounts/${OWNER}/projects/${SLUG}/builds/${BUILD_ID}"

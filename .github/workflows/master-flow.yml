@@ -1,0 +1,116 @@
+name: Master Flow (source guard + hotfix back-merge)
+
+# master = production. master'a yalnız PR ile ve yalnız iki kaynaktan girilir:
+#   - development  (normal sürüm)
+#   - hotfix/*     (acil düzeltme; merge sonrası development'a geri birleştirilir)
+#
+# "Master source guard" job'ı ruleset'te master için ZORUNLU check olmalı. Bu
+# workflow'a path filtresi KONMAZ: zorunlu bir check atlanırsa PR sonsuza dek
+# "Expected — waiting" kalır.
+#
+# Neden `pull_request_target` (pull_request değil): pull_request, workflow
+# dosyasını PR'ın HEAD'inden okur — PR bu dosyayı değiştirip guard'ı her zaman
+# yeşil yapabilirdi. pull_request_target dosyayı HEDEF daldan (master) okur, PR
+# değiştiremez. Bu tetikleyici tehlikeli olabilir (yazma yetkili token + gizli
+# değerler) ama YALNIZ PR kodu çalıştırılırsa; burada:
+#   - source-guard hiçbir şeyi checkout ETMEZ, yalnız olay meta verisini okur;
+#   - PR'dan gelen her değer (dal adı, repo adı) yalnız `env:` üzerinden okunur,
+#     `run:` içine `${{ }}` ile enjekte edilmez (script injection yok);
+#   - hotfix-backmerge yalnız merge edilmiş, aynı depodaki hotfix/* PR'ında
+#     koşar ve PR'ın kodunu değil master'ı checkout eder.
+# Not: dosya master'dan okunduğu için guard, bu dosya master'a girdikten SONRA
+# devreye girer (ruleset'e zorunlu check'i o zaman ekle).
+
+on:
+  pull_request_target:
+    branches: [master]
+    # edited: PR'ın hedef dalı sonradan master'a çevrilirse de guard koşsun.
+    types: [opened, reopened, synchronize, edited, closed]
+
+permissions:
+  contents: read
+
+jobs:
+  source-guard:
+    name: Master source guard
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # PR kodu checkout EDİLMEZ (pull_request_target güvenliği; bkz. dosya başı).
+    steps:
+      - name: Source branch must be development or hotfix/*
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [ "$HEAD_REPO" != "$REPO" ]; then
+            echo "::error::master'a yalnız bu depodaki dallardan PR açılabilir (kaynak: $HEAD_REPO:$HEAD_REF)."
+            exit 1
+          fi
+          case "$HEAD_REF" in
+            development|hotfix/*)
+              echo "OK: $HEAD_REF → master" ;;
+            *)
+              echo "::error::master'a yalnız 'development' ya da 'hotfix/*' dalından PR açılabilir (kaynak: '$HEAD_REF'). Değişikliği development'a birleştir, ya da acil düzeltme için dalı hotfix/<ad> olarak aç."
+              exit 1 ;;
+          esac
+
+  hotfix-backmerge:
+    name: Hotfix back-merge PR (master → development)
+    # hotfix/* PR'ı master'a merge edildiğinde: master'daki düzeltme development'a
+    # geri taşınmazsa bir sonraki development → master sürümü onu geri alır.
+    if: >-
+      github.event.action == 'closed' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'hotfix/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write       # backmerge/* dalını master'dan oluşturup push etmek için
+      pull-requests: write  # gh pr create
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: master
+          fetch-depth: 0
+      - name: Open back-merge PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HOTFIX_REF: ${{ github.event.pull_request.head.ref }}
+          HOTFIX_PR: ${{ github.event.pull_request.number }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          set -euo pipefail
+          # PR'ın head'i doğrudan master OLMAZ: GitHub'ın çakışma editörü çözümü
+          # head dalına commit'ler — bu master'a yazmak demek olurdu (ruleset
+          # reddeder). Bu yüzden master'ın merge anındaki halinden ayrı bir dal açılır;
+          # çakışma o dalda çözülür.
+          branch="backmerge/${HOTFIX_REF#hotfix/}-${HOTFIX_PR}"
+
+          if git merge-base --is-ancestor "$MERGE_SHA" origin/development; then
+            echo "::notice::development zaten bu düzeltmeyi içeriyor — PR gerekmiyor."
+            exit 0
+          fi
+          git push origin "${MERGE_SHA}:refs/heads/${branch}"
+
+          conflict_note="Otomatik birleştirme denemesi temiz."
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch --detach origin/development
+          if ! git merge --no-commit --no-ff "$MERGE_SHA" >/dev/null 2>&1; then
+            conflict_note="⚠️ **Çakışma var.** \`${branch}\` dalında çöz (git merge origin/development), sonra merge et."
+          fi
+          git merge --abort 2>/dev/null || true
+
+          # Çakışma olsa da PR açılır; insan çözer.
+          gh pr create \
+            --base development \
+            --head "$branch" \
+            --title "chore: back-merge ${HOTFIX_REF} (#${HOTFIX_PR}) master → development" \
+            --body "$(printf '%s\n\n%s\n\n%s\n' \
+              "Hotfix #${HOTFIX_PR} (\`${HOTFIX_REF}\`) master'a merge edildi; bu PR düzeltmeyi development'a geri taşır." \
+              "${conflict_note}" \
+              "Not: GITHUB_TOKEN ile açılan PR'lar workflow tetiklemez — CI için PR'ı kapatıp yeniden aç ya da dala bir commit at.")"

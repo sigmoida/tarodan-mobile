@@ -1,0 +1,25 @@
+name: Setup EAS
+description: >-
+  pnpm + Node 22 + bağımlılıklar + eas-cli (EXPO_TOKEN ile). Fingerprint hesabı
+  node_modules ister (autolinking ve config plugin'leri fingerprint'e girer), o
+  yüzden plan job'ı da bunu kullanır. Checkout'tan SONRA çağrılmalı.
+inputs:
+  expo-token:
+    description: EXPO_TOKEN secret'ı
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v6
+    - uses: actions/setup-node@v6
+      with:
+        # eas-cli Node 22 istiyor (bkz. 0a07681).
+        node-version: 22
+        cache: 'pnpm'
+    - name: Install
+      shell: bash
+      run: pnpm install --frozen-lockfile
+    - uses: expo/expo-github-action@v9
+      with:
+        eas-version: latest
+        token: ${{ inputs.expo-token }}
