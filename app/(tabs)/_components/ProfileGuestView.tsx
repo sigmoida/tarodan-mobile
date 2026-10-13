@@ -1,11 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { Button, Card, SectionCard, Text, theme } from '@/ui';
 
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
+import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { SignupPrompt } from '@/components/SignupPrompt';
 import UpgradeCta from '@/components/UpgradeCta';
 import { formatPrice } from '@/utils/format';
@@ -17,6 +19,7 @@ const { colors, spacing, minTouchTarget } = theme;
 export function ProfileGuestView({ f }: { f: ProfileController }) {
   const { t } = useTranslation();
   const tabInset = useTabBarInset();
+  const onScroll = useTabBarScrollHandler();
 
   const benefits = [
     { title: t('mobile.guestListTitle'), desc: t('mobile.guestListDesc') },
@@ -34,7 +37,9 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
 
   return (
     <AppShell variant="title" title={t('profile.profile')}>
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         contentContainerStyle={[styles.content, { paddingBottom: tabInset }]}
         showsVerticalScrollIndicator={false}
       >
@@ -108,7 +113,7 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
             />
           </Card>
         </UpgradeCta>
-      </ScrollView>
+      </Animated.ScrollView>
 
       <SignupPrompt
         visible={f.showPrompt}
