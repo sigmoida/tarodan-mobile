@@ -6,6 +6,8 @@ import { ordersApi } from '@/lib/api';
 import { useRefresh } from '@/hooks/useRefresh';
 import { deriveShipmentView } from '@/lib/shipping/tracking';
 import { orderCancelMessage } from '@/lib/shared/orderCancelMessage';
+import { preparingDeadlineNoticeOf } from '@/lib/shared/preparingDeadline';
+import { useTimingValues } from '@/hooks/useTimingPolicy';
 import type { Order } from '../_lib/types';
 import { statusColor } from '../_lib/status';
 
@@ -29,12 +31,15 @@ export function useSaleDetail() {
   });
 
   const { refreshing, onRefresh } = useRefresh(refetch);
+  const timingValues = useTimingValues();
 
   // İptal'de status 'refunded' olsa bile "İptal Edildi" göster (alıcı ile tutarlı).
   const displayStatus = order?.cancellationType === 'iptal' ? 'cancelled' : order?.status ?? '';
   const sc = statusColor(displayStatus);
   // Neden iptal edildi — alıcı ekranıyla aynı tek kaynak; bu ekranı yalnız satıcı görür.
-  const cancelMessage = order && displayStatus === 'cancelled' ? orderCancelMessage(order, 'seller', t) : null;
+  const cancelMessage = order && displayStatus === 'cancelled' ? orderCancelMessage(order, 'seller', t, timingValues) : null;
+  // Kargoya verme son tarihi (uzatıldıysa "son süre") — satıcı metni.
+  const preparingNotice = order ? preparingDeadlineNoticeOf(order, 'seller') : null;
   const shipmentSummary = order?.shipment;
   const shipmentProvider = shipmentSummary?.provider ?? shipmentSummary?.carrier;
   const isSurat = (shipmentProvider ?? '').toLowerCase() === 'surat';
@@ -69,6 +74,7 @@ export function useSaleDetail() {
     displayStatus,
     sc,
     cancelMessage,
+    preparingNotice,
     shipmentView,
     shipmentProvider,
     isSurat,

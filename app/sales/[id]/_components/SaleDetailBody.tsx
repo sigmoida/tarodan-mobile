@@ -12,6 +12,7 @@ import {
 } from '@/utils/format';
 import { transformImageUrl } from '@/utils/imageUrl';
 import { shipmentStatusLabel } from '@/lib/shipping/shipmentStatus';
+import { PreparingDeadlineNotice } from '@/components/orders/PreparingDeadlineNotice';
 import { styles } from '../_lib/styles';
 import type { SaleDetailController } from '../_hooks/useSaleDetail';
 
@@ -52,6 +53,8 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
           ) : null}
         </View>
       </View>
+
+      <PreparingDeadlineNotice notice={f.preparingNotice} style={styles.flush} />
 
       {/* Items */}
       <View style={styles.card}>

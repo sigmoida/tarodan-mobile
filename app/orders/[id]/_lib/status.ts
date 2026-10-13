@@ -6,10 +6,10 @@ import type { MessageKey } from '@/i18n/lib';
 import { buildRefundReasonOptions } from '@/lib/shared/status-configs';
 
 export const MAX_EVIDENCE_PHOTOS = 5;
-// Saticiya ödeme = teslim + 14 gün cayma penceresi.
-export const COOLING_OFF_DAYS = 14;
+// İade penceresi / satıcı ödeme tarihi sabit DEĞİL: sunucu damgası +
+// `GET /timing-rules` (bkz. `./timing`).
 
-// 14 gün koşulsuz iade (Mesafeli Satış cayma hakkı): sebep/foto opsiyonel.
+// Koşulsuz iade (Mesafeli Satış cayma hakkı): sebep/foto opsiyonel.
 // Liste TEK kaynaktan (`@/lib/shared/status-configs`) gelir — etiketleri burada
 // tekrar yazmak, sözlüğün dört dosyada üç sürüme ayrılmasının sebebiydi.
 // Etiketler AKTİF dile göre çağrı anında kurulur (§ i18n-kuyruk) — modül

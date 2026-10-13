@@ -29,6 +29,8 @@ export const styles = StyleSheet.create({
     opacity: 0.8,
     marginTop: theme.spacing[0.5],
   },
+  /** Ortak kart bileşenlerinin kendi alt boşluğu — burada `gap` var. */
+  flush: { marginBottom: 0 },
   card: {
     backgroundColor: colors.surface.DEFAULT,
     borderRadius: 12,

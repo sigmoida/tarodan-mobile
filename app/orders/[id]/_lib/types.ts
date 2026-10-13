@@ -57,12 +57,25 @@ export interface OrderDetail {
     cargoCode?: string | null;
     trackingNumber?: string | null;
     status?: string | null;
+    /** İlk fiziksel devir mührü — doluysa koli taşıyıcıda (hazırlık notu kapısı). */
+    shippedAt?: string | null;
   } | null;
   createdAt: string;
   paidAt?: string;
   shippedAt?: string;
   deliveredAt?: string;
   completedAt?: string;
+  /**
+   * Cayma penceresinin teslimde damgalanan sonu — iade hakkı bunu okur.
+   * null = damgadan önce teslim edilmiş ya da henüz teslim edilmemiş.
+   */
+  returnWindowEndsAt?: string | null;
+  /** Satıcı ödemesinin (escrow hold) planlanan tarihi; null = hold yok. */
+  escrowReleaseAt?: string | null;
+  /** Satıcının kargoya verme son tarihi (tek seferlik uzatmada YENİ tarih). */
+  preparingDeadline?: string | null;
+  /** Doluysa hazırlık süresi bir kez uzatıldı (bir daha uzatılmaz). */
+  preparingExtendedAt?: string | null;
   cancelledAt?: string | null;
   /** Sunucunun yazdığı iptal gerekçesi (yönetici iptalinde "Yönetici tarafından iptal edildi: …"). */
   cancelReason?: string | null;

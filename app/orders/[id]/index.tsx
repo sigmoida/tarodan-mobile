@@ -10,6 +10,8 @@ import RatingModal from '@/components/RatingModal';
 import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import { useOrderShipment } from '@/hooks/useOrderShipment';
+import { useTimingPolicy } from '@/hooks/useTimingPolicy';
+import { PreparingDeadlineNotice } from '@/components/orders/PreparingDeadlineNotice';
 import { deriveOrderView } from './_lib/derive';
 import { useOrder } from './_hooks/useOrder';
 import { useOrderInvoices } from './_hooks/useOrderInvoices';
@@ -46,6 +48,7 @@ export default function OrderDetailScreen() {
   const invoices = useOrderInvoices(String(id), order?.status, actions.notify);
   const { shipment } = useOrderShipment(id);
   const { user } = useAuthStore();
+  const policy = useTimingPolicy();
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
@@ -68,8 +71,9 @@ export default function OrderDetailScreen() {
     );
   }
 
-  const view = deriveOrderView(order);
   const isSeller = !!user?.id && order?.seller?.id === user.id;
+  const audience = isSeller ? 'seller' : 'buyer';
+  const view = deriveOrderView(order, policy, audience);
 
   return (
     <View style={styles.container}>
@@ -81,7 +85,8 @@ export default function OrderDetailScreen() {
       >
         <OrderEscrowCard order={order} view={view} />
         <OrderStatusCard order={order} view={view} />
-        <OrderCancelledInfo order={order} view={view} audience={isSeller ? 'seller' : 'buyer'} />
+        <OrderCancelledInfo order={order} view={view} audience={audience} />
+        <PreparingDeadlineNotice notice={view.preparingNotice} />
         <OrderPayPendingCard order={order} view={view} onPay={actions.initiatePayment} payPending={actions.payPending} />
         <OrderTrackingCard order={order} view={view} shipment={shipment} isSeller={isSeller} />
         <OrderProductCard order={order} />

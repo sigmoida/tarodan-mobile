@@ -10,6 +10,7 @@ import { pickEvidencePhotos } from '../_lib/pickEvidence';
 import { useDoRefundRequest } from '../_hooks/useDoRefundRequest';
 import { useUploadRefundEvidence } from '../_hooks/useUploadRefundEvidence';
 import type { Notify } from '../_lib/types';
+import { useTimingValues } from '@/hooks/useTimingPolicy';
 
 const { colors, radius } = theme;
 
@@ -33,6 +34,7 @@ export function RefundRequestModal({
   notify: Notify;
 }) {
   const { t } = useTranslation();
+  const timingValues = useTimingValues();
   const refundReasons = useRefundReasons();
   const schema = useMemo(() => refundRequestSchema(t), [t]);
   const form = useZodForm(schema, { defaultValues: refundFormDefaults() });
@@ -109,7 +111,7 @@ export function RefundRequestModal({
       <ScrollView>
         <Form form={form}>
           <Text variant="caption" style={styles.refundModalHint}>
-            {requirements.evidenceRequired ? t('order.refundHintFaultClaim') : t('order.refundHintTop')}
+            {requirements.evidenceRequired ? t('order.refundHintFaultClaim') : t('order.refundHintTop', timingValues)}
           </Text>
 
           {orderQuantity > 1 && (

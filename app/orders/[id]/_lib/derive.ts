@@ -1,18 +1,21 @@
 // order'dan türetilen tüm görünüm değerleri — tek saf fonksiyon.
-import { COOLING_OFF_DAYS, REFUND_STATUS_META } from './status';
+import { REFUND_STATUS_META } from './status';
 import i18n from '@/i18n/config';
+import type { PublicTimingPolicy } from '@/lib/api/timingRules';
+import { preparingDeadlineNoticeOf, type PreparingDeadlineAudience } from '@/lib/shared/preparingDeadline';
+import { computePayoutDate, isPastRefundWindow } from './timing';
 import type { OrderDetail } from './types';
 
-/** Teslimden bu yana cayma süresi geçti mi (teslim tarihi yoksa hayır). */
-function isPastRefundWindowOf(order: OrderDetail): boolean {
-  if (!order.deliveredAt) return false;
-  const d = new Date(order.deliveredAt);
-  if (Number.isNaN(d.getTime())) return false;
-  const ageDays = (Date.now() - d.getTime()) / (1000 * 3600 * 24);
-  return ageDays > COOLING_OFF_DAYS;
-}
-
-export function deriveOrderView(order: OrderDetail) {
+/**
+ * `policy`: `GET /timing-rules` (yüklenene kadar varsayılanlar). İade penceresi
+ * ve satıcı ödeme tarihi önce sunucu damgasından okunur (bkz. `./timing`).
+ * `audience`: görüntüleyen (ekran `user.id`'den hesaplar) — hazırlık notu metni.
+ */
+export function deriveOrderView(
+  order: OrderDetail,
+  policy: PublicTimingPolicy,
+  audience: PreparingDeadlineAudience = 'buyer',
+) {
   const isMembershipOrder = !!(order.isMembership ?? order.orderNumber?.startsWith('MEM-') ?? false);
 
   const canRate = !isMembershipOrder && ['delivered', 'completed'].includes(order.status);
@@ -37,12 +40,7 @@ export function deriveOrderView(order: OrderDetail) {
     order.payment?.status === 'completed' ||
     ['processing', 'shipped', 'delivered', 'awaiting_confirmation', 'completed'].includes(order.status);
 
-  const payoutReleaseDate = (() => {
-    if (!order.deliveredAt) return null;
-    const d = new Date(order.deliveredAt);
-    d.setDate(d.getDate() + COOLING_OFF_DAYS);
-    return d;
-  })();
+  const payoutReleaseDate = computePayoutDate(order, policy);
   const hasActiveRefund = !!order.activeRefundRequest;
 
   const isRefundedOrder = order.status === 'refunded' || hasActiveRefund;
@@ -62,7 +60,8 @@ export function deriveOrderView(order: OrderDetail) {
       order.cancelledAt ??
       undefined;
 
-  const isPastRefundWindow = isPastRefundWindowOf(order);
+  const pastRefundWindow = isPastRefundWindow(order, policy);
+  const preparingNotice = preparingDeadlineNoticeOf(order, audience);
 
   return {
     isMembershipOrder,
@@ -79,7 +78,8 @@ export function deriveOrderView(order: OrderDetail) {
     showRefundCancelStep,
     refundCancelLabel,
     refundCancelDate,
-    isPastRefundWindow,
+    isPastRefundWindow: pastRefundWindow,
+    preparingNotice,
   };
 }
 

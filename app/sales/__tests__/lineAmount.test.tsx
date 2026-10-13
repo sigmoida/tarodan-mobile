@@ -32,6 +32,8 @@ function renderBody(item: Record<string, unknown>) {
           displayStatus: 'paid',
           // Kargo kaydı yok — bu dosyanın konusu satır tutarı.
           shipmentView: { cargoCode: null, reference: null, isCodePending: false, trackingUrl: null },
+          // Hazırlık notu (A-3.1) — bu dosyanın konusu değil.
+          preparingNotice: null,
         } as any
       }
     />,

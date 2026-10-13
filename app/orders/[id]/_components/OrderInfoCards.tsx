@@ -8,14 +8,19 @@ import { formatDate, formatPrice } from '../_lib/format';
 import { deriveShipmentView } from '@/lib/shipping/tracking';
 import { isAwaitingDropoff, shipmentStatusLabel } from '@/lib/shipping/shipmentStatus';
 import { orderCancelMessage, type OrderCancelAudience } from '@/lib/shared/orderCancelMessage';
+import { useTimingValues } from '@/hooks/useTimingPolicy';
 import type { OrderDetail } from '../_lib/types';
 import type { OrderView } from '../_lib/derive';
 
 const { colors } = theme;
 
-/** Ödeme güvencesi (escrow) kartı. */
+/**
+ * Ödeme güvencesi (escrow) kartı. Tarih sunucunun hold'a yazdığı
+ * `escrowReleaseAt` (yoksa pencere sonu + payout grace); gün sayısı politikadan.
+ */
 export function OrderEscrowCard({ order, view }: { order: OrderDetail; view: OrderView }) {
   const { t } = useTranslation();
+  const timingValues = useTimingValues();
   if (
     !(order.isBuyer !== false && !view.isMembershipOrder && view.isPostShipment && !view.isCancelled && order.status !== 'refunded')
   )
@@ -39,11 +44,14 @@ export function OrderEscrowCard({ order, view }: { order: OrderDetail; view: Ord
         </Text>
       ) : view.payoutReleaseDate ? (
         <Text variant="caption" style={styles.escrowText}>
-          {t('order.payoutReleaseWithDate', { date: formatDate(view.payoutReleaseDate.toISOString()) })}
+          {t('order.payoutReleaseWithDate', {
+            ...timingValues,
+            date: formatDate(view.payoutReleaseDate.toISOString()),
+          })}
         </Text>
       ) : (
         <Text variant="caption" style={styles.escrowText}>
-          {t('order.payoutRelease')}
+          {t('order.payoutRelease', timingValues)}
         </Text>
       )}
     </Card>
@@ -62,8 +70,9 @@ export function OrderCancelledInfo({
   audience: OrderCancelAudience;
 }) {
   const { t } = useTranslation();
+  const timingValues = useTimingValues();
   if (!view.isCancelled) return null;
-  const cancelMessage = orderCancelMessage(order, audience, t);
+  const cancelMessage = orderCancelMessage(order, audience, t, timingValues);
   return (
     <Card variant="elevated" style={styles.card} testID="order-cancelled-info">
       <View style={styles.cancelledHeaderRow}>
