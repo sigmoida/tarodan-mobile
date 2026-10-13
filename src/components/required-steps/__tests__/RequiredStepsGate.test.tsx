@@ -194,6 +194,34 @@ describe('B-2.3 · RequiredStepsGate (onay kapısı)', () => {
     spy.mockRestore();
   });
 
+  it('girişte GET /consents/me/pending yalnız bir kez gider (giriş penceresi / parola sorusu sıçramaları)', async () => {
+    const listeners: ((s: string) => void)[] = [];
+    const spy = jest.spyOn(AppState, 'addEventListener').mockImplementation((type, fn) => {
+      if (type === 'change') listeners.push(fn as (s: string) => void);
+      return { remove: jest.fn() } as unknown as ReturnType<typeof AppState.addEventListener>;
+    });
+    const emit = (...states: string[]) =>
+      act(() => states.forEach((st) => listeners.forEach((l) => l(st))));
+    signIn(false);
+    let resolveFirst!: (v: unknown) => void;
+    mockGetPending.mockImplementationOnce(() => new Promise((r) => (resolveFirst = r)));
+    renderWithProviders(<RequiredStepsGate />);
+
+    // Android: Google giriş ekranı uygulamayı arka plana atar, dönüş girişten önce.
+    emit('background', 'active');
+    act(() => signIn(true));
+    await waitFor(() => expect(mockGetPending).toHaveBeenCalledTimes(1));
+    // iOS: Face ID / "Parolayı kaydet" sorusu kısa bir inactive sıçraması yapar.
+    emit('inactive', 'active');
+    // İstek hâlâ uçuştayken gerçek bir ön plana dönüş: ikinci istek gitmez.
+    emit('background', 'active');
+    await act(async () => {
+      resolveFirst({ data: { pending: [] } });
+    });
+    expect(mockGetPending).toHaveBeenCalledTimes(1);
+    spy.mockRestore();
+  });
+
   it('uygulama ön plana gelince bekleyenler yeniden sorulur ve kapı açılır', async () => {
     const listeners: ((s: string) => void)[] = [];
     const spy = jest.spyOn(AppState, 'addEventListener').mockImplementation((type, fn) => {
