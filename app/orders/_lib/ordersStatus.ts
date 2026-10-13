@@ -1,4 +1,5 @@
 import { apiStatusToUi, type UiOrderStatus } from '@/utils/orderStatus';
+import { formatPrice } from '@/utils/format';
 
 export interface Order {
   id: string;
@@ -90,7 +91,7 @@ export const formatOrderDate = (dateString: string) =>
     year: 'numeric',
   });
 
-export const formatOrderPrice = (price: number) => `₺${price.toLocaleString('tr-TR')}`;
+export const formatOrderPrice = (price: number) => formatPrice(price);
 
 // Yalnızca alıcı, teslim alınmış/tamamlanmış siparişi değerlendirebilir.
 export const canRateOrder = (order: Order) =>

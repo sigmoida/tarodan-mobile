@@ -19,6 +19,7 @@ import {
 } from '@/lib/payment/paytrDirectForm';
 import { PAYMENT_POLL_DURATION_MS, PAYMENT_STATUS_POLL_MS, startVerifyLoop } from '@/lib/payment/verifyPacer';
 import { isPaidPaymentStatus } from '@/lib/payment/status';
+import { formatPriceNumber } from '@/utils/format';
 
 /**
  * ⚠️ 3DS SONRASI DURUM YOKLAMASI BİLEREK React Query'de DEĞİL (CLAUDE.md §6'nın
@@ -463,7 +464,7 @@ export default function CardPaymentForm({
         fullWidth
         title={
           amount != null
-            ? t('payment.payAmount', { amount: amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) })
+            ? t('payment.payAmount', { amount: formatPriceNumber(amount) })
             : t('payment.payShort')
         }
         style={styles.payBtn}

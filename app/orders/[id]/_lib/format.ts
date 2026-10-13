@@ -9,7 +9,5 @@ export function formatDate(dateString?: string): string {
   });
 }
 
-export function formatPrice(price: number | null | undefined): string {
-  if (price == null || isNaN(price)) return '₺0';
-  return `₺${price.toLocaleString('tr-TR')}`;
-}
+// Fiyat biçimi web ile aynı tek biçimleyici ("1.234,50 TL").
+export { formatPrice } from '@/utils/format';

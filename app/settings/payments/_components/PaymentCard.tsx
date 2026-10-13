@@ -1,11 +1,12 @@
 import { View, Pressable } from 'react-native';
-import { Card, Spinner, Text, theme } from '@/ui';
+import { Card, Spinner, StatusBadge, Text, theme } from '@/ui';
+import { buildPaymentStatusConfig } from '@/lib/payment/status';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { formatPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
-import { buildStatusColors, formatDate } from '../_lib/status';
+import { formatDate } from '../_lib/status';
 import type { Payment } from '../_lib/types';
 import type { PaymentsController } from '../_hooks/usePayments';
 
@@ -14,8 +15,8 @@ const { colors } = theme;
 /** Tek ödeme kartı — durum/sağlayıcı, tutar, hata, aksiyonlar (iptal/tekrar/sipariş). */
 export function PaymentCard({ p, f }: { p: Payment; f: PaymentsController }) {
   const { t } = useTranslation();
-  const statusColors = buildStatusColors(t);
-  const status = statusColors[p.status] ?? statusColors.pending;
+  const statusConfig = buildPaymentStatusConfig(t);
+  const statusKey = statusConfig[p.status] ? p.status : 'pending';
 
   return (
     <Card style={styles.paymentCard}>
@@ -32,10 +33,7 @@ export function PaymentCard({ p, f }: { p: Payment; f: PaymentsController }) {
       </View>
 
       <View style={styles.metaRow}>
-        <View style={[styles.statusChip, { backgroundColor: status.bg }]}>
-          <Ionicons name={status.icon} size={13} color={status.fg} />
-          <Text style={[styles.statusText, { color: status.fg }]}>{status.label}</Text>
-        </View>
+        <StatusBadge status={statusKey} config={statusConfig} size="sm" />
         <View style={styles.providerWrap}>
           <Ionicons name="card-outline" size={13} color={colors.text.muted} />
           <Text style={styles.providerText}>{p.provider?.toUpperCase()}</Text>

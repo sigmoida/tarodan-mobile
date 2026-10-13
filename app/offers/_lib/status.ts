@@ -1,77 +1,8 @@
-// Teklif durum haritası + formatlama yardımcıları — TEK kaynak.
-// (Ekran/kart/modaller buradan okur; drift riskini önler.)
+// Teklif formatlama yardımcıları. Durum haritası TEK kaynakta: web
+// `offerStatusConfig` (`@/lib/shared/status-configs`).
 import type { TFunction } from "i18next";
-import { theme } from "@/ui";
-import { Ionicons } from "@expo/vector-icons";
 import { transformImageUrl } from "@/utils/imageUrl";
-import type { MessageKey } from "@/i18n/lib";
-import type { Offer, OfferStatus } from "./types";
-
-const { colors } = theme;
-
-export const STATUS_CONFIG: Record<
-  OfferStatus,
-  {
-    labelKey: MessageKey;
-    color: string;
-    bg: string;
-    icon: keyof typeof Ionicons.glyphMap;
-  }
-> = {
-  pending: {
-    labelKey: "payment.statusPending",
-    color: colors.warning[600]!,
-    bg: colors.warning[100]!,
-    icon: "time-outline",
-  },
-  accepted: {
-    labelKey: "trade.statusAccepted",
-    color: colors.success[600]!,
-    bg: colors.success[100]!,
-    icon: "checkmark-circle-outline",
-  },
-  rejected: {
-    labelKey: "trade.statusRejected",
-    color: colors.danger[600]!,
-    bg: colors.danger[100]!,
-    icon: "close-circle-outline",
-  },
-  countered: {
-    labelKey: "offer.counterOffer",
-    color: colors.info[600]!,
-    bg: colors.info[100]!,
-    icon: "swap-horizontal-outline",
-  },
-  cancelled: {
-    labelKey: "trade.statusCancelled",
-    color: colors.gray[500]!,
-    bg: colors.gray[100]!,
-    icon: "close-circle-outline",
-  },
-  expired: {
-    labelKey: "offer.statusExpired",
-    color: colors.gray[500]!,
-    bg: colors.gray[100]!,
-    icon: "alert-circle-outline",
-  },
-  payment_expired: {
-    labelKey: "offer.statusPaymentExpired",
-    color: colors.danger[600]!,
-    bg: colors.danger[100]!,
-    icon: "alert-circle-outline",
-  },
-};
-
-/** Bilinmeyen/yeni bir backend durumu için güvenli fallback. */
-export function statusConfig(status: OfferStatus) {
-  return STATUS_CONFIG[status] ?? STATUS_CONFIG.expired;
-}
-
-/** `statusConfig`'in çevrilmiş etiketle döndüğü hâli — kartlar bunu kullanır. */
-export function translatedStatusConfig(status: OfferStatus, t: TFunction) {
-  const config = statusConfig(status);
-  return { ...config, label: t(config.labelKey) };
-}
+import type { Offer } from "./types";
 
 export function getProductImage(product: Offer["product"]): string {
   const img = product.images?.[0];
@@ -102,6 +33,5 @@ export function formatTimeAgo(iso: string, t: TFunction): string {
   return t("time.ago.months", { count: mo });
 }
 
-export function formatPrice(n: number): string {
-  return `₺${n.toLocaleString("tr-TR")}`;
-}
+// Fiyat biçimi web ile aynı tek biçimleyici ("1.234,50 TL").
+export { formatPrice } from '@/utils/format';

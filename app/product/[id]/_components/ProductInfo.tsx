@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { Divider, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
-import { asLabel } from '@/utils/format';
+import { asLabel, formatPrice } from '@/utils/format';
 import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
 import { getConditionInfo, type PriceInfo } from '../_lib/display';
 import { colorValue, materialValue, scaleValue, technicalAttributeRows } from '../_lib/attributes';
@@ -68,10 +68,10 @@ export function ProductInfo({
       {/* Title & Price */}
       <Text style={styles.title}>{product.title}</Text>
       <View style={styles.priceRow}>
-        <Text style={styles.price}>₺{price.effectivePrice.toLocaleString('tr-TR')}</Text>
+        <Text style={styles.price}>{formatPrice(price.effectivePrice)}</Text>
         {price.onSale ? (
           <>
-            <Text style={styles.priceOld}>₺{price.originalPrice.toLocaleString('tr-TR')}</Text>
+            <Text style={styles.priceOld}>{formatPrice(price.originalPrice)}</Text>
             {price.discountPct > 0 ? (
               <View style={styles.discountBadge}>
                 <Text style={styles.discountBadgeText}>%{price.discountPct}</Text>

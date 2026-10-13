@@ -7,6 +7,7 @@ import { theme } from '@/ui';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
 import type { ProductStats, CollectionStats } from '../_lib/types';
+import { formatPrice } from '@/utils/format';
 
 const { colors } = theme;
 
@@ -37,7 +38,7 @@ export function ProductRow({ product, index, metric }: { product: ProductStats; 
       )}
       <View style={styles.productInfo}>
         <Text style={styles.productTitle} numberOfLines={1}>{product.title}</Text>
-        <Text style={styles.productPrice}>₺{(product.price ?? 0).toLocaleString('tr-TR')}</Text>
+        <Text style={styles.productPrice}>{formatPrice(product.price)}</Text>
       </View>
       <View style={styles.productStats}>
         <View style={styles.productStatItem}>

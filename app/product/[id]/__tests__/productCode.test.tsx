@@ -48,13 +48,13 @@ describe('ProductInfo product code', () => {
   it('shows the product code the server sends', () => {
     renderInfo({ productCode: 'U010000' });
 
-    expect(screen.getByText('Ürün Kodu')).toBeTruthy();
+    expect(screen.getByText('İlan No')).toBeTruthy();
     expect(screen.getByText('U010000')).toBeTruthy();
   });
 
   it('omits the row when the product has no code', () => {
     renderInfo();
 
-    expect(screen.queryByText('Ürün Kodu')).toBeNull();
+    expect(screen.queryByText('İlan No')).toBeNull();
   });
 });

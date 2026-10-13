@@ -10,6 +10,7 @@ import UpgradeCta from '@/components/UpgradeCta';
 import { styles } from '../_lib/styles';
 import { getDayLabels, getMaxValue } from '../_lib/types';
 import type { AnalyticsController } from '../_hooks/useAnalytics';
+import { formatPrice } from '@/utils/format';
 
 const { colors } = theme;
 
@@ -147,7 +148,7 @@ export function AnalyticsContent({ f }: { f: AnalyticsController }) {
               <View>
                 <Text variant="bodySm" style={styles.revenueLabel}>{t('business.totalRevenue')}</Text>
                 <Text variant="h1" style={styles.revenueTotal}>
-                  ₺{analytics.totalRevenue.toLocaleString('tr-TR')}
+                  {formatPrice(analytics.totalRevenue)}
                 </Text>
               </View>
             </View>

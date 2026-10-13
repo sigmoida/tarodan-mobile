@@ -363,3 +363,19 @@ build'de bulunmamalı.
 Mobile UI tarafında WebView içi PayTR iframe'i Maestro accessibility tree'sinden
 okunamıyor. Bu yüzden gerçek-PayTR uçtan uca testi `apps/api/test/e2e/purchase.e2e-spec.ts`
 `signCallback` ile API E2E'de karşılanıyor.
+
+## Yasal kimlik kapısı (1.0.6)
+
+Ödeme, takas ve ilan akışlarında hesabın yasal kimliği eksikse kapatılamayan bir kimlik ekranı
+açılır. `subflows/pass-identity-gate.yaml` ekran görünürse onu doldurur; görünmezse hiçbir şey
+yapmaz. Demo hesaplara (`zeynep@demo.com` vb.) sunucu kimlik yazmaz. Bu yüzden bu akışları
+çalıştırırken bir test TCKN'si verin:
+
+```bash
+maestro test --env MAESTRO_TEST_TCKN=<11 haneli test TCKN> flows/F-23-bypass-complete-end-to-end.yaml
+```
+
+TCKN repoya yazılmaz: repo herkese açık ve algoritmayı geçen bir numaranın gerçek bir kişiye ait
+olmadığı garanti edilemez. Kimlik bir kez kaydedildikten sonra aynı hesapta kapı tekrar açılmaz.
+
+Fiyat seçicileri artık `₺` değil, fiyat biçimini (`1.234,50 TL`) arar: `.*[0-9],[0-9][0-9] TL.*`.

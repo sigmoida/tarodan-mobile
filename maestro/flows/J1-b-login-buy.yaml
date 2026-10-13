@@ -115,13 +115,15 @@ tags:
     timeout: 20000
 - tapOn:
     text: "Devam Et.*"
-# Adım 3 (Onay): "Onayla ve Öde (₺X)" → bypass ödeme → başarı
+# Adım 3 (Onay): "Onayla ve Öde (X TL)" → bypass ödeme → başarı
 - extendedWaitUntil:
     visible:
       text: ".*Onayla ve Öde.*"
     timeout: 20000
 - tapOn:
     text: ".*Onayla ve Öde.*"
+# Yasal kimlik eksikse kapı açılır (1.0.6) — çalıştırmada MAESTRO_TEST_TCKN verin.
+- runFlow: ../subflows/pass-identity-gate.yaml
 # Başarı ekranı: "Ödemeniz Başarılı!" → sipariş oluştu (driver assert-invoice doğrular).
 - extendedWaitUntil:
     visible:

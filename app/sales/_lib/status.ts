@@ -1,38 +1,23 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import type { BadgeVariant } from '@/ui';
-import type { MessageKey } from '@/i18n/lib';
+import { orderStatusConfig, type StatusConfig, type StatusConfigDef } from '@/lib/shared/status-configs';
 import type { Sale, FilterType } from './types';
 
-// TÜM OrderStatus enum değerlerini kapsar (eksik durum = StatusBadge ham enum
-// gösterir, örn. "refunded"). Etiketler alıcı orders/[id] uiOrderStatusMeta
-// (`@/lib/shared/orderStatus`) ile TUTARLI OLMAYABİLİR: satıcı ekranı
-// aksiyon-odaklı ("Ödendi - Hazırla", "Kargoda") — bu satıcı-tarafı kelime
-// seçimleri BİLEREK alıcı etiketlerinden farklı; sözlük burada TEK kaynak,
-// alıcı tarafıyla birleştirilmedi. Etiketler sabit metin DEĞİL, katalog
-// anahtarıdır — modül saf olduğu için `useTranslation` çağıramaz; çeviri
-// `useSalesStatusConfig` ile render anında yapılır. preparing→processing
-// normalize edildiğinden ikisi de var.
-export const salesStatusMeta: Record<
-  string,
-  { labelKey: MessageKey; variant: BadgeVariant }
-> = {
-  pending_payment: { labelKey: 'sale.statusPendingPayment', variant: 'warning' },
-  paid: { labelKey: 'sale.statusPaidPrepare', variant: 'success' },
-  preparing: { labelKey: 'order.statusProcessing', variant: 'info' },
-  processing: { labelKey: 'order.statusProcessing', variant: 'info' },
-  shipped: { labelKey: 'sale.statusShipped', variant: 'primary' },
-  delivered: { labelKey: 'order.statusDelivered', variant: 'success' },
-  awaiting_buyer_confirmation: { labelKey: 'sale.statusAwaitingConfirmation', variant: 'info' },
-  completed: { labelKey: 'order.statusCompleted', variant: 'success' },
-  cancelled: { labelKey: 'order.statusCancelled', variant: 'danger' },
-  refund_requested: { labelKey: 'order.statusRefundInProgress', variant: 'danger' },
-  refunded: { labelKey: 'order.statusRefunded', variant: 'secondary' },
+// Satıcı sipariş durumları: renk + etiket web `orderStatusConfig` ile AYNI
+// (`@/lib/shared/status-configs`). Web'de satıcıya özel sipariş etiketi yok;
+// mobilde tek bilinçli sapma `paid`: satıcı ekranı aksiyon-odaklı
+// ("Ödendi - Hazırla"), varyantı web'inkiyle aynı. preparing→processing
+// normalize edildiğinden ikisi de var. Etiketler katalog anahtarıdır — modül
+// saf olduğu için çeviri `useSalesStatusConfig` ile render anında yapılır.
+export const salesStatusMeta: Record<string, StatusConfigDef> = {
+  ...orderStatusConfig,
+  paid: { labelKey: 'sale.statusPaidPrepare', variant: orderStatusConfig.paid!.variant },
+  processing: orderStatusConfig.preparing!,
 };
 
 /** `StatusBadge`'in beklediği, çevrilmiş config. */
-export function useSalesStatusConfig(): Record<string, { label: string; variant: BadgeVariant }> {
+export function useSalesStatusConfig(): Record<string, StatusConfig> {
   const { t } = useTranslation();
   return useMemo(
     () =>

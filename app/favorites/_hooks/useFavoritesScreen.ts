@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useCartStore } from '@/stores/cartStore';
 import { useCartSync } from '@/hooks/useCartSync';
 import { getImageUrl as getImageUrlFromUtils } from '@/utils/imageUrl';
+import { formatPrice } from '@/utils/format';
 
 /**
  * Favorites-screen controller — wraps the useFavorites + cartStore hooks with
@@ -61,8 +62,6 @@ export function useFavoritesScreen() {
     });
     setSnackbar({ visible: true, message: t('cart.addedToCart') });
   };
-
-  const formatPrice = (price: number) => `₺${(price ?? 0).toLocaleString('tr-TR')}`;
 
   return {
     isAuthenticated,

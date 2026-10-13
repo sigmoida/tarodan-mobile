@@ -1,5 +1,6 @@
 import { View, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { ProductPrice } from '@/components/product/ProductPrice';
 import { Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -40,7 +41,7 @@ export function CategoryProductCard({ item }: { item: any }) {
       <View style={styles.productContent}>
         <Text style={styles.productTitle} numberOfLines={2}>{item.title}</Text>
         <Text style={styles.productMeta}>{safeString(item.brand, t('product.brand'))} • {safeString(item.scale, '1:64')}</Text>
-        <Text style={styles.productPrice}>₺{item.price?.toLocaleString('tr-TR')}</Text>
+        <ProductPrice product={item} style={styles.productPrice} />
       </View>
     </TouchableOpacity>
   );

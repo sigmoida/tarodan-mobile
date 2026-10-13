@@ -10,14 +10,14 @@ import {
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import type { TFunction } from "i18next";
-import { theme } from "@/ui";
+import { theme, StatusBadge } from "@/ui";
+import { useOfferStatusConfig } from "@/lib/shared/offerStatus";
 import { transformImageUrl } from "@/utils/imageUrl";
 import type { Offer, TabType } from "../_lib/types";
 import type { TimingMessageValues } from "@/lib/shared/timingPolicy";
 import { isOfferAwaitingPayment, type AcceptAs } from "../_lib/accept";
 import { FirstToPayNote } from "./FirstToPayNote";
 import {
-  translatedStatusConfig,
   getProductImage,
   getTimeRemaining,
   formatTimeAgo,
@@ -56,7 +56,7 @@ function OfferCardBase({
   onOpenCounter,
   onOpenBuyerCounter,
 }: OfferCardProps) {
-  const status = translatedStatusConfig(offer.status, t);
+  const statusConfig = useOfferStatusConfig();
   const otherUser = tab === "received" ? offer.buyer : offer.seller;
   const timeRemaining =
     offer.status === "pending" ? getTimeRemaining(offer.expiresAt, t) : null;
@@ -90,11 +90,8 @@ function OfferCardBase({
             </Text>
           </Text>
 
-          <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
-            <Ionicons name={status.icon} size={14} color={status.color} />
-            <Text style={[styles.statusText, { color: status.color }]}>
-              {status.label}
-            </Text>
+          <View style={styles.statusBadge}>
+            <StatusBadge status={offer.status} config={statusConfig} size="sm" />
           </View>
 
           {tab === "sent" &&
@@ -371,16 +368,9 @@ const styles = StyleSheet.create({
   strikethrough: { textDecorationLine: "line-through" },
 
   statusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
     alignSelf: "flex-start",
-    gap: theme.spacing[1],
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: 3,
-    borderRadius: theme.radius.lg,
     marginTop: theme.spacing[1],
   },
-  statusText: { fontSize: 11, fontWeight: "600" },
   counterAlertBadge: {
     flexDirection: "row",
     alignItems: "center",
