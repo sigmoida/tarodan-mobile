@@ -6,7 +6,6 @@ import { PUBLIC_TIMING_RULE_IDS } from '@/lib/api/timingRules';
 import {
   FALLBACK_TIMING_POLICY,
   addCalendarDays,
-  loadTimingPolicy,
   parseTimingPolicy,
   timingMessageValues,
 } from '../timingPolicy';
@@ -47,19 +46,6 @@ describe('parseTimingPolicy', () => {
   it('nesne olmayan gövde tamamen geri düşüş', () => {
     expect(parseTimingPolicy(null)).toEqual(FALLBACK_TIMING_POLICY);
     expect(parseTimingPolicy('oops')).toEqual(FALLBACK_TIMING_POLICY);
-  });
-});
-
-describe('loadTimingPolicy', () => {
-  it('yükleyici hata verirse geri düşüş döner (ekran kırılmaz)', async () => {
-    await expect(loadTimingPolicy(() => Promise.reject(new Error('network')))).resolves.toEqual(
-      FALLBACK_TIMING_POLICY,
-    );
-  });
-
-  it('başarılı yanıtı ayrıştırır', async () => {
-    const policy = await loadTimingPolicy(async () => ({ returnWindowDays: { value: 21, unit: 'days' } }));
-    expect(policy.returnWindowDays.value).toBe(21);
   });
 });
 

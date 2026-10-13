@@ -1,6 +1,7 @@
 /**
  * Parite A-3.1 · `useTimingPolicy` — `GET /timing-rules`'ın tek istemci okuması.
- * Merkezi anahtar (`qk.timingPolicy.all`), ayrıştırma, hata → geri düşüş.
+ * Merkezi anahtar (`qk.timingPolicy.all`), ayrıştırma; hata önbelleğe yazılmaz,
+ * yalnız gösterim geri düşer (web `retry: 1`).
  */
 import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react-native';
@@ -38,11 +39,30 @@ it('sunucu değerlerini merkezi anahtarla önbelleğe alır', async () => {
   expect(policyMock).toHaveBeenCalledTimes(1);
 });
 
-it('istek düşerse geri düşüş politikası döner', async () => {
+it('istek düşerse: bir kez yeniden dener, önbelleğe YAZMAZ, gösterim geri düşüşte kalır', async () => {
   policyMock.mockRejectedValue(new Error('500'));
   const { client, wrapper } = setup();
   const { result } = renderHook(() => useTimingPolicy(), { wrapper });
-  await waitFor(() => expect(client.getQueryState(qk.timingPolicy.all)?.status).toBe('success'));
+  await waitFor(() => expect(client.getQueryState(qk.timingPolicy.all)?.status).toBe('error'), {
+    timeout: 4000,
+  });
+  // web gibi `retry: 1` → toplam iki istek
+  expect(policyMock).toHaveBeenCalledTimes(2);
+  // Başarısız sonuç önbelleğe "veri" olarak yazılmadı
+  expect(client.getQueryData(qk.timingPolicy.all)).toBeUndefined();
+  // Ekran yine varsayılanlarla çizilir (yalnız gösterim)
   expect(result.current.returnWindowDays.value).toBe(14);
   expect(result.current.orderPaymentWindowHours.value).toBe(24);
+});
+
+it('hatadan sonra yeniden çekimde sunucu değeri gelir (geri düşüş önbellekte takılı kalmaz)', async () => {
+  policyMock.mockRejectedValue(new Error('500'));
+  const { client, wrapper } = setup();
+  const { result } = renderHook(() => useTimingValues(), { wrapper });
+  await waitFor(() => expect(client.getQueryState(qk.timingPolicy.all)?.status).toBe('error'), {
+    timeout: 4000,
+  });
+  policyMock.mockResolvedValue({ data: { returnWindowDays: { value: 21, unit: 'days' } } });
+  await client.refetchQueries({ queryKey: qk.timingPolicy.all });
+  await waitFor(() => expect(result.current.returnWindowDays).toBe(21));
 });

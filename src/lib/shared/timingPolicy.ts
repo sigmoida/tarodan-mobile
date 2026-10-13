@@ -54,6 +54,9 @@ function readValue(entry: unknown): number | null {
 /**
  * Uç yanıtını politikaya çevirir; geçersiz/eksik her kimlik `fallback`'ten gelir.
  * Birim her zaman kayıttan okunur (yanıtın birimine güvenilmez).
+ *
+ * İstek HATASI burada yutulmaz: sorgu hata durumunda kalır ve önbelleğe geri
+ * düşüş yazılmaz (bkz. `useTimingPolicy`); geri düşüş yalnız gösterimde kullanılır.
  */
 export function parseTimingPolicy(
   payload: unknown,
@@ -67,21 +70,6 @@ export function parseTimingPolicy(
       { value: readValue(source[id]) ?? fallback[id].value, unit: TIMING_DEFAULTS[id].unit },
     ]),
   ) as PublicTimingPolicy;
-}
-
-/**
- * Yükleyiciyi çalıştırır; hata (ağ, 5xx, bozuk gövde) politikayı geri düşüşe
- * çevirir — ekran süre yüzünden kırılmaz.
- */
-export async function loadTimingPolicy(
-  load: () => Promise<unknown>,
-  fallback: PublicTimingPolicy = FALLBACK_TIMING_POLICY,
-): Promise<PublicTimingPolicy> {
-  try {
-    return parseTimingPolicy(await load(), fallback);
-  } catch {
-    return fallback;
-  }
 }
 
 /** Politikadan ICU parametreleri: `t(key, timingMessageValues(policy))`. */
