@@ -1,6 +1,7 @@
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import {
+  ActivityIndicator,
   Pressable,
   StyleSheet,
   type PressableProps,
@@ -10,8 +11,22 @@ import { theme } from '../lib/theme';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
-export type IconButtonVariant = 'plain' | 'soft' | 'solid' | 'danger';
-export type IconButtonSize = 'sm' | 'md' | 'lg';
+/**
+ * Web `@tarodan/ui` IconButton varyantları: primary, secondary, outline, ghost (varsayılan),
+ * danger, success. Eski mobil adlar takma ad olarak çalışmaya devam eder:
+ * `plain` → ghost, `solid` → primary, `soft` → marka tonu (primary-50/700; web'de karşılığı yok).
+ */
+export type IconButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'outline'
+  | 'ghost'
+  | 'danger'
+  | 'success'
+  | 'plain'
+  | 'soft'
+  | 'solid';
+export type IconButtonSize = 'xs' | 'sm' | 'md' | 'lg';
 
 export interface IconButtonProps extends Omit<PressableProps, 'style'> {
   icon: IoniconName;
@@ -19,60 +34,81 @@ export interface IconButtonProps extends Omit<PressableProps, 'style'> {
   size?: IconButtonSize;
   /** Override icon color (otherwise derived from variant). */
   color?: string;
+  isLoading?: boolean;
   style?: ViewStyle;
   /** Required for screen reader. */
   accessibilityLabel: string;
 }
 
-const { colors, radius } = theme;
+const { colors, radiusRole, iconSize, minTouchTarget } = theme;
 
+/** Web: xs h-6 · sm h-8 · md h-10 · lg h-12. İkon 16/20/20/24 (heroicons h-4/h-5/h-6). */
 const sizeMap: Record<IconButtonSize, { box: number; icon: number }> = {
-  sm: { box: 32, icon: 18 },
-  md: { box: 40, icon: 22 },
-  lg: { box: 48, icon: 26 },
+  xs: { box: 24, icon: iconSize.sm },
+  sm: { box: 32, icon: iconSize.md },
+  md: { box: 40, icon: iconSize.md },
+  lg: { box: 48, icon: iconSize.lg },
 };
 
 /** Düğmenin kenar uzunluğu (pt) — bunu kullanan yerleşim hesapları ölçüyü buradan türetir. */
 export const iconButtonBoxSize = (size: IconButtonSize): number => sizeMap[size].box;
 
-const variantStyle: Record<IconButtonVariant, { bg: string; fg: string }> = {
-  plain: { bg: 'transparent', fg: colors.text.heading },
-  soft: { bg: colors.primary[50]!, fg: colors.primary[700]! },
-  solid: { bg: colors.primary[600]!, fg: colors.white },
-  danger: { bg: colors.danger[50]!, fg: colors.danger[700]! },
+const variantStyle: Record<IconButtonVariant, { bg: string; fg: string; border?: string }> = {
+  primary: { bg: colors.primary[600], fg: colors.text.inverted },
+  secondary: { bg: colors.surface.alt, fg: colors.text.heading },
+  outline: { bg: 'transparent', fg: colors.text.body, border: colors.border.DEFAULT },
+  ghost: { bg: 'transparent', fg: colors.text.muted },
+  danger: { bg: 'transparent', fg: colors.danger[600] },
+  success: { bg: 'transparent', fg: colors.success[600] },
+  // Takma adlar (eski mobil API).
+  plain: { bg: 'transparent', fg: colors.text.muted },
+  solid: { bg: colors.primary[600], fg: colors.text.inverted },
+  soft: { bg: colors.primary[50], fg: colors.primary[700] },
 };
 
 export const IconButton: React.FC<IconButtonProps> = ({
   icon,
-  variant = 'plain',
+  variant = 'ghost',
   size = 'md',
   color,
+  isLoading,
   disabled,
   style,
   accessibilityLabel,
+  hitSlop,
   ...rest
 }) => {
   const ss = sizeMap[size];
   const vs = variantStyle[variant];
+  const fg = color ?? vs.fg;
+  // Görsel ölçü web gibi kalır; dokunma alanı en az 44pt (eski davranış: her yönde ≥ 8).
+  const slop = Math.max(8, Math.ceil((minTouchTarget - ss.box) / 2));
   return (
     <Pressable
-      disabled={disabled}
-      hitSlop={8}
+      disabled={disabled || isLoading}
+      hitSlop={hitSlop ?? slop}
       style={({ pressed }) => [
         styles.base,
         {
           width: ss.box,
           height: ss.box,
           backgroundColor: vs.bg,
-          opacity: disabled ? 0.5 : pressed ? 0.7 : 1,
+          borderColor: vs.border ?? 'transparent',
+          borderWidth: vs.border ? 1 : 0,
+          opacity: disabled || isLoading ? 0.5 : pressed ? 0.7 : 1,
         },
         style,
       ]}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled: !!(disabled || isLoading), busy: !!isLoading }}
       {...rest}
     >
-      <Ionicons name={icon} size={ss.icon} color={color ?? vs.fg} />
+      {isLoading ? (
+        <ActivityIndicator size="small" color={fg} />
+      ) : (
+        <Ionicons name={icon} size={ss.icon} color={fg} />
+      )}
     </Pressable>
   );
 };
@@ -81,6 +117,6 @@ const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radius['2xl'],
+    borderRadius: radiusRole.button,
   },
 });
