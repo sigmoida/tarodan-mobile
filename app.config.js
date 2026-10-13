@@ -10,41 +10,50 @@
 // (= our internal staging distribution) gets the `.staging` id + "(Staging)"
 // label; `production` and `development` are returned untouched.
 //
-// ⚠️  iOS ONLY — Android deliberately keeps `com.tarodan.app`.
-// Suffixing the Android package would need TWO registrations, not one:
-//   1. Firebase / FCM — expo-notifications' Android push needs google-services.json
-//      to list the package, or Gradle fails with "No matching client found".
-//   2. Google Cloud OAuth client — @react-native-google-signin needs an Android
-//      client registered with the package name + keystore SHA-1. Missing this does
-//      NOT fail the build; the APK installs and "Sign in with Google" dies silently.
-// The payoff (staging next to production on one device) is currently worthless on
-// Android: com.tarodan.app has never been published — no Play release, no installs,
-// nothing to sit next to. Revisit when Android production actually ships; both
-// registrations must be done that day.
-// Rationale in full: docs/superpowers/specs/2026-08-05-staging-apk-dagitimi-design.md §2
+// Android da iOS ile AYNI iki-uygulama modelini izler: staging paketi
+// `com.tarodan.app.staging`, production `com.tarodan.app` (Play'de iki ayrı
+// uygulama). Eskiden Android'e ek konmuyordu (Android hiç yayınlanmamıştı);
+// yayın kararıyla artık konuyor. Bunun bedeli iki ayrı kayıt, ikisi de
+// build'in dışında yapılır:
+//   1. Firebase / FCM — staging paketi için ayrı Android uygulaması ve ayrı
+//      google-services.json (aşağıda `resolveStagingGoogleServicesFile`).
+//      Paket adı dosyada yoksa Gradle "No matching client found" ile düşer.
+//   2. Google Cloud OAuth — her paket için ayrı Android istemcisi (paket +
+//      SHA-1). Eksikse build düşmez, "Google ile giriş" sessizce çalışmaz;
+//      bu yüzden EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED bayrağı o işe kadar "false".
+// Adım adım: docs/ANDROID_RELEASE.md
 
 const STAGING_SUFFIX = '.staging';
 
-// Staging alan adı(ları): src/lib/deeplinks/paths.json tek kaynak. app.json'daki
-// production config bunları İÇERMEZ (Play/App Store incelemesinde staging host'u
-// görünmesin, autoVerify yalnız prod alan adına baksın); yalnız staging
-// profilinde Android intent filter'ına eklenir.
+// Staging alan adı(ları): src/lib/deeplinks/paths.json tek
+// kaynak. app.json'daki production config staging host'unu İÇERMEZ (Play/App
+// Store incelemesinde görünmesin); yalnız staging profilinde devreye girer.
 const { stagingHosts } = require('./src/lib/deeplinks/paths.json');
 
 /**
- * Android intent filter'larının `data` listesinde, mevcut son `host`
- * girdisinin hemen ardına staging host'larını ekler. Girdi değiştirilmez.
+ * Android intent filter'larında `host` girdilerini staging host'larıyla DEĞİŞTİRİR
+ * (ilk `host` girdisinin yerine; yol girdileri ve sırası aynen korunur). Girdi
+ * değiştirilmez.
+ *
+ * Neden eklemek değil değiştirmek: staging artık AYRI bir pakettir ve
+ * production yanında kurulabilir. Production alan adını (`tarodan.com.tr`)
+ * ikisi de dinlerse, o alan adına gelen her link cihazda "hangi uygulama?"
+ * seçicisi çıkarır; ayrıca assetlinks.json'da production host'u yalnız
+ * production paketini yetkilendirir, staging paketinin o host'taki doğrulaması
+ * zaten düşerdi.
  */
 function withStagingHosts(intentFilters = []) {
   return intentFilters.map((filter) => {
     const data = filter.data ?? [];
-    const lastHost = data.reduce((acc, d, i) => (d.host ? i : acc), -1);
-    if (lastHost === -1) return filter;
-    const present = new Set(data.map((d) => d.host).filter(Boolean));
-    const extra = stagingHosts.filter((h) => !present.has(h)).map((host) => ({ host }));
+    const firstHost = data.findIndex((d) => d.host);
+    if (firstHost === -1) return filter;
     return {
       ...filter,
-      data: [...data.slice(0, lastHost + 1), ...extra, ...data.slice(lastHost + 1)],
+      data: [
+        ...data.slice(0, firstHost),
+        ...stagingHosts.map((host) => ({ host })),
+        ...data.slice(firstHost).filter((d) => !d.host),
+      ],
     };
   });
 }
@@ -74,10 +83,13 @@ module.exports = ({ config }) => {
       ...stagingIos,
       bundleIdentifier: `${config.ios.bundleIdentifier}${STAGING_SUFFIX}`,
     },
-    // Android paket adı production ile aynı kalır (yukarıdaki not); staging
-    // build'i staging alan adındaki App Links'i de yakalasın.
+    // Android: iOS ile aynı model — staging paketi ayrı bir uygulama
+    // (`com.tarodan.app.staging`) ve yalnız staging alan adındaki App Links'i
+    // yakalar. Paket adı `<prod>.staging`; paths.json'daki `stagingAndroidPackage`
+    // ile aynı olmak ZORUNDA (appConfig.test.ts kilitler).
     android: {
       ...config.android,
+      package: `${config.android.package}${STAGING_SUFFIX}`,
       intentFilters: withStagingHosts(config.android?.intentFilters),
     },
   };

@@ -33,6 +33,8 @@ export type DeepLinkConfig = {
   defaultLocale: string;
   appIDs: string[];
   androidPackage: string;
+  /** Staging Android paketi (`androidPackage` + `.staging`); yalnız staging host'larını yetkilendirir. */
+  stagingAndroidPackage: string;
   /** Tanınan TÜM alan adları (well-known yayını, gelen link ayrıştırma). */
   hosts: string[];
   /**

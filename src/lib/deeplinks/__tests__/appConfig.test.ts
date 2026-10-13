@@ -115,18 +115,27 @@ describe('app.config.js — staging alan adi yalniz staging profilinde', () => {
     },
   );
 
-  it('preview: Android intent filter staging host\'unu da dinler, prod host korunur', () => {
+  it('preview: Android intent filter YALNIZ staging host\'unu dinler (production host yok)', () => {
     process.env.EXPO_PUBLIC_ENVIRONMENT = 'preview';
     const input = base();
     const cfg = makeConfig({ config: input });
-    expect(hostsOf(cfg)).toEqual(['tarodan.com.tr', ...deepLinkConfig.stagingHosts]);
-    // girdi degismez, yol girdileri ve sirasi korunur, paket adi ayni
+    // Staging ayri paket: production host'unu da dinlerse yan yana kurulumda
+    // her link "hangi uygulama?" secicisi cikarir.
+    expect(hostsOf(cfg)).toEqual(deepLinkConfig.stagingHosts);
+    expect(hostsOf(cfg)).not.toContain('tarodan.com.tr');
+    // girdi degismez, yol girdileri ve sirasi korunur
     expect(hostsOf(input)).toEqual(['tarodan.com.tr']);
-    expect(cfg.android.package).toBe(deepLinkConfig.androidPackage);
     const paths = (c: Record<string, any>) =>
       c.android.intentFilters[0].data.filter((d: Record<string, string>) => !d.host);
     expect(paths(cfg)).toEqual(paths(input));
     expect(cfg.android.intentFilters[0].autoVerify).toBe(true);
+  });
+
+  it('preview: Android paketi paths.json\'daki staging paketi (production degil)', () => {
+    process.env.EXPO_PUBLIC_ENVIRONMENT = 'preview';
+    const cfg = makeConfig({ config: base() });
+    expect(cfg.android.package).toBe(deepLinkConfig.stagingAndroidPackage);
+    expect(cfg.android.package).toBe(`${deepLinkConfig.androidPackage}.staging`);
   });
 
   it('preview: iOS associatedDomains hic yok (.staging bundle id, AASA talep etmiyor)', () => {

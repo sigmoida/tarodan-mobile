@@ -6,8 +6,8 @@
 #   hedef:    dev | staging            (varsayılan: dev)
 #     dev      Yerel dev-client / `pnpm ios` build'i                   → com.tarodan.app
 #     staging  EAS `maestro` profili build'i (preview'dan türer)
-#                ios     → com.tarodan.app.staging   (app.config.js yalnız iOS'a `.staging` ekler)
-#                android → com.tarodan.app           (Android paketi staging'de de aynıdır)
+#                ios     → com.tarodan.app.staging   (app.config.js `.staging` ekler)
+#                android → com.tarodan.app.staging   (app.config.js iki platforma da `.staging` ekler)
 # `APP_ID` ortam değişkeni verilmişse HER ŞEYİ ezer (özel build'ler için).
 #
 # Kaynak: app.json `ios.bundleIdentifier` / `android.package` ve app.config.js
@@ -24,8 +24,8 @@ if [ -n "${APP_ID:-}" ]; then
 fi
 
 case "$PLATFORM:$TARGET" in
-  ios:dev|android:dev|android:staging) printf '%s\n' "$PROD_ID" ;;
-  ios:staging) printf '%s\n' "$PROD_ID.staging" ;;
+  ios:dev|android:dev) printf '%s\n' "$PROD_ID" ;;
+  ios:staging|android:staging) printf '%s\n' "$PROD_ID.staging" ;;
   *)
     echo "app-id.sh: bilinmeyen platform/hedef: $PLATFORM/$TARGET (ios|android, dev|staging)" >&2
     exit 2

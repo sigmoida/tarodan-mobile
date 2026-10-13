@@ -60,13 +60,13 @@ maestro studio
 
 Flow ve subflow'ların hepsi `appId: ${APP_ID}` kullanır; paket/bundle id sabit yazılmaz.
 Aynı flow'lar farklı build'lere karşı koşabilsin diye: iOS'ta EAS `maestro` profili
-`.staging` ekli bundle id üretir (`com.tarodan.app.staging`, `app.config.js`), Android
-paketi ise her yerde `com.tarodan.app`dır.
+`.staging` ekli kimlik üretir (`com.tarodan.app.staging`, `app.config.js`; iOS ve Android
+aynı). Yerel dev-client ise her iki platformda `com.tarodan.app`dır.
 
 | Hedef | iOS | Android |
 |---|---|---|
 | `dev` (yerel dev-client, varsayılan) | `com.tarodan.app` | `com.tarodan.app` |
-| `staging` (EAS `maestro` profili build'i) | `com.tarodan.app.staging` | `com.tarodan.app` |
+| `staging` (EAS `maestro` profili build'i) | `com.tarodan.app.staging` | `com.tarodan.app.staging` |
 
 - `pnpm maestro:dev <flow>` değeri `app-id.sh`'tan alıp `--env APP_ID=...` ile geçirir.
   Varsayılan `dev` → **eski davranış aynen korunur**. EAS `maestro` simülatör build'ine
@@ -210,7 +210,7 @@ olmamalı**. Bu iş için `eas.json`'da `preview`'dan türeyen ayrı bir profil 
 | **`maestro`** | `preview` | **`maestro`** | **`1`** | yalnız Maestro koşumu |
 
 - `maestro` profili preview'ın staging API/Web adreslerini ve `EXPO_PUBLIC_ENVIRONMENT=preview`
-  değerini devralır (iOS paket adı `com.tarodan.app.staging`, Android `com.tarodan.app`);
+  değerini devralır (iOS ve Android paket adı `com.tarodan.app.staging`; Android build'i staging `google-services.json` ister, bkz. `docs/ANDROID_RELEASE.md`);
   iOS için `ios.simulator: true` (Maestro gerçek iOS cihaza bağlanmaz, `.app` üretir).
 - Kendi `maestro` kanalı olduğundan staging OTA'ları (`eas update --branch staging`) bu
   build'e ulaşmaz, tersi de geçerli.
