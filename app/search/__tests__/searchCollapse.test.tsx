@@ -201,21 +201,22 @@ describe('B6 · arama üst çubukları — ölçüm ve collapse', () => {
     mockGetAll.mockResolvedValue(mockListResponse([makeProduct('p1', 'Ferrari F40')]));
     renderWithProviders(<SearchScreen />);
 
-    const list = screen.getByTestId('search-results-list');
+    // FlashList v2: `style` kapsayıcı View'a, `contentContainerStyle` kaydırma bileşenine gider; ikisini de
+    // ana bileşenin prop'larından okuruz (en dıştaki testID eşleşmesi = AnimatedFlashList elemanı).
+    const listProps = () => screen.UNSAFE_getAllByProps({ testID: 'search-results-list' })[0]!.props;
     const flatten = (s: any): any => (StyleSheet.flatten(s) ?? {}) as any;
 
     // Ölçüm gelmeden liste görünmez (opacity 0) ve üst boşluk 0.
-    expect(flatten(list.props.style).opacity).toBe(0);
-    expect(flatten(list.props.contentContainerStyle).paddingTop).toBe(0);
+    expect(flatten(listProps().style).opacity).toBe(0);
+    expect(flatten(listProps().contentContainerStyle).paddingTop).toBe(0);
 
     const bars = screen.getByTestId('search-collapsible-bars');
     await act(async () => {
       bars.props.onLayout(layoutEvent(212));
     });
 
-    const measured = screen.getByTestId('search-results-list');
-    expect(flatten(measured.props.style).opacity).toBeUndefined();
-    expect(flatten(measured.props.contentContainerStyle).paddingTop).toBe(212);
+    expect(flatten(listProps().style).opacity).toBeUndefined();
+    expect(flatten(listProps().contentContainerStyle).paddingTop).toBe(212);
   });
 
   it('pull-to-refresh yalnız ilk sayfayı yeniler; sonraki sayfa yüklemesi refreshing yapmaz', async () => {

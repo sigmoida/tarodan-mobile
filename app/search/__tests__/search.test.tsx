@@ -89,6 +89,18 @@ describe('catalog-search · arama ekranı (J52/J53)', () => {
     await waitFor(() => expect(screen.getAllByTestId('search-result-card').length).toBe(1));
   });
 
+  it('liste FlashList: 2 sütun, id anahtarı, geri dönüşüm penceresi', async () => {
+    mockGetAll.mockResolvedValue(mockListResponse([makeProduct('p1', 'Ferrari F40')]));
+    renderWithProviders(<SearchScreen />);
+    await waitFor(() => expect(screen.getByTestId('search-result-card')).toBeOnTheScreen());
+
+    const props = screen.UNSAFE_getAllByProps({ testID: 'search-results-list' })[0]!.props;
+    expect(props.numColumns).toBe(2);
+    expect(props.drawDistance).toBeGreaterThan(0);
+    expect(props.keyExtractor({ id: 'p1' }, 0)).toBe('p1');
+    expect(props.keyExtractor({ id: 'p1' }, 7)).toBe('p1');
+  });
+
   it('J52 · boş sonuç → tek boş durum metni "Henüz ilan yok" görünür', async () => {
     mockGetAll.mockResolvedValue(mockListResponse([]));
     renderWithProviders(<SearchScreen />);

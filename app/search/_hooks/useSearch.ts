@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { FlatList, Keyboard, type LayoutChangeEvent } from 'react-native';
+import { Keyboard, type LayoutChangeEvent } from 'react-native';
+import type { FlashListRef } from '@shopify/flash-list';
 import {
   useAnimatedScrollHandler,
   useSharedValue,
@@ -113,7 +114,7 @@ export function useSearch() {
   // eşik geçişleri (en üste dön düğmesi, öneri panelini kapatma) döner.
   // Liste yeterince aşağı inince "en üste dön" butonunu göster.
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const listRef = useRef<FlatList>(null);
+  const listRef = useRef<FlashListRef<any>>(null);
 
   // Üst çubukları absolute bir katmanda tutup translateY ile kaydırıyoruz (liste reflow olmaz → takılmaz).
   // Yükseklik TAHMİN EDİLMEZ: 0'dan başlar ve ilk `onLayout` ölçümüyle yazılır. Ölçüm

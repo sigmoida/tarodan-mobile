@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, RefreshControl } from 'react-native';
 import Animated from 'react-native-reanimated';
+import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { ErrorState, FAB, Spinner, theme } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import {
@@ -9,15 +10,23 @@ import {
   ProductGridSkeleton,
   ProductListEmpty,
   ProductSortModal,
-  useProductCellWidth,
 } from '@/components/product';
 import ProductFilterSheet from '@/components/ProductFilterSheet';
 import { styles } from './_lib/searchStyles';
-import { SEARCH_NUM_COLUMNS, getSearchListTuning } from './_lib/searchConstants';
+import { SEARCH_DRAW_DISTANCE, SEARCH_NUM_COLUMNS } from './_lib/searchConstants';
 import { useSearch } from './_hooks/useSearch';
 import { SearchBars } from './_components/SearchBars';
 
 const { colors } = theme;
+
+// Reanimated scroll handler'ı FlashList'te çalışsın diye animated sarmal (olay UI thread'ine bağlanır;
+// FlashList'in kendi geri dönüşüm takibi etkilenmez).
+const AnimatedFlashList = Animated.createAnimatedComponent(FlashList<any>);
+
+// Hücre stilleri modül düzeyinde sabit (renderItem'da yeni dizi/nesne üretilmesin).
+const CELL_SINGLE = styles.cell;
+const CELL_LEFT = [styles.cell, styles.cellLeft];
+const CELL_RIGHT = [styles.cell, styles.cellRight];
 
 // Kararlı anahtar: yalnız `id` (index YOK) — sayfa kayması/yeniden sıralamada hücreler sökülmesin.
 const keyExtractor = (item: any) => String(item.id);
@@ -30,22 +39,21 @@ const keyExtractor = (item: any) => String(item.id);
 export default function SearchScreen() {
   const { t } = useTranslation();
   const f = useSearch();
-  const cellWidth = useProductCellWidth();
 
   // Stable renderItem (#75) — memoized ProductCard bails out on unchanged rows.
   const isList = f.layout === 'list';
   const columns = isList ? 1 : SEARCH_NUM_COLUMNS;
-  const tuning = getSearchListTuning(columns);
   const renderResult = useCallback(
-    ({ item }: { item: any }) => (
-      <View style={{ width: isList ? '100%' : cellWidth }}>
+    ({ item, index }: ListRenderItemInfo<any>) => (
+      // Hücre genişliğini FlashList verir; sütun boşluğu hücre dolgusuyla (iç kenarlar yarım yarım).
+      <View style={columns === 1 ? CELL_SINGLE : index % columns === 0 ? CELL_LEFT : CELL_RIGHT}>
         <ProductCard testID="search-result-card" product={item} layout={isList ? 'list' : 'grid'} />
       </View>
     ),
-    [cellWidth, isList],
+    [columns, isList],
   );
 
-  // FlatList prop'ları kararlı kalsın: ekran render olsa da VirtualizedList boş yere uzlaştırılmasın.
+  // Liste prop'ları kararlı kalsın: ekran render olsa da liste boş yere uzlaştırılmasın.
   const contentContainerStyle = useMemo(
     () => [styles.listContent, { paddingTop: f.headerHeight }],
     [f.headerHeight],
@@ -148,7 +156,7 @@ export default function SearchScreen() {
 
           {/* Results — liste yükleme/boş durumda da MONTE kalır (sökülüp yeniden
               yerleşmesin diye); üst çubuklar ölçülene kadar yalnızca görünmez. */}
-          <Animated.FlatList
+          <AnimatedFlashList
             testID="search-results-list"
             ref={f.listRef}
             data={f.products}
@@ -156,11 +164,10 @@ export default function SearchScreen() {
             numColumns={columns}
             style={f.barsMeasured ? undefined : styles.listHidden}
             contentContainerStyle={contentContainerStyle}
-            columnWrapperStyle={columns > 1 ? styles.listRow : undefined}
             keyExtractor={keyExtractor}
             renderItem={renderResult}
-            // Virtualizasyon: numColumns'a göre kart sayısı hedefli (bkz. getSearchListTuning).
-            {...tuning}
+            // Hücre geri dönüşümü (FlashList v2): pencere = drawDistance; getItemLayout/estimatedItemSize gerekmez.
+            drawDistance={SEARCH_DRAW_DISTANCE}
             showsVerticalScrollIndicator={false}
             onScroll={f.handleResultsScroll}
             scrollEventThrottle={16}
