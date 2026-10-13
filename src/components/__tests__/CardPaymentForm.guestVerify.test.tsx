@@ -9,7 +9,8 @@
  * pending kalır.
  *
  * Gerçek `paymentsApi` + mock'lu axios istemcisi: başlığın tel üzerinde gittiği
- * de doğrulanır.
+ * de doğrulanır. Misafirin verify ve direct-form istekleri `guestApi`'den gider
+ * (Bearer yok, 401'de çıkış yok); `api` misafirde hiç kullanılmaz.
  */
 import React from 'react';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
@@ -38,9 +39,12 @@ jest.mock('react-native-webview', () => {
 
 import { api, guestApi } from '@/lib/api/client';
 import { __resetPaymentCapabilities, rememberPaymentCapability } from '@/lib/payment/paymentCapability';
+import { __resetVerifyPacer, VERIFY_TIMEOUT_MS } from '@/lib/payment/verifyPacer';
 import CardPaymentForm from '../CardPaymentForm';
 
 const apiPost = api.post as jest.Mock;
+const apiGet = api.get as jest.Mock;
+const guestPost = guestApi.post as jest.Mock;
 const guestGet = guestApi.get as jest.Mock;
 
 const PAY = 'pay-1';
@@ -63,14 +67,21 @@ function fillCardAndSubmit() {
   fireEvent.press(screen.getByTestId('card-submit'));
 }
 
-const verifyCalls = () => apiPost.mock.calls.filter(([url]) => url === `/payments/${PAY}/verify`);
+const verifyCalls = () => guestPost.mock.calls.filter(([url]) => url === `/payments/${PAY}/verify`);
+
+/** Misafir akışında `api` (Bearer ekleyen, 401'de çıkış yaptıran) hiç kullanılmadı. */
+const expectNoAuthenticatedClient = () => {
+  expect(apiPost).not.toHaveBeenCalled();
+  expect(apiGet).not.toHaveBeenCalled();
+};
 
 beforeEach(async () => {
   jest.clearAllMocks();
   __resetPaymentCapabilities();
+  __resetVerifyPacer();
   // initiate-guest yanıtındaki belirteç (checkout'ta saklanır).
   await rememberPaymentCapability({ data: { paymentId: PAY, paymentAccessToken: 'cap-token' } });
-  apiPost.mockImplementation((url: string) =>
+  guestPost.mockImplementation((url: string) =>
     url === '/payments/direct-form'
       ? Promise.resolve({ data: signed })
       : Promise.resolve({ data: { completed: true, status: 'completed' } }),
@@ -82,7 +93,7 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-it('misafir 3DS yoklaması: verify başlıkla çağrılır (status-guest\'ten önce), ödendiyse başarı', async () => {
+it('misafir 3DS yoklaması: verify başlıkla turun başında arkada başlar (beklenmez), ödendiyse başarı', async () => {
   jest.useFakeTimers();
   const onSuccess = jest.fn();
   renderWithProviders(
@@ -95,14 +106,16 @@ it('misafir 3DS yoklaması: verify başlıkla çağrılır (status-guest\'ten ö
   await jest.advanceTimersByTimeAsync(3000);
   await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(PAY));
 
-  expect(apiPost).toHaveBeenCalledWith(`/payments/${PAY}/verify`, {}, { headers: CAP });
+  expect(guestPost).toHaveBeenCalledWith('/payments/direct-form', expect.objectContaining({ paymentId: PAY }), { headers: CAP });
+  expect(guestPost).toHaveBeenCalledWith(`/payments/${PAY}/verify`, {}, { timeout: VERIFY_TIMEOUT_MS, headers: CAP });
   expect(guestGet).toHaveBeenCalledWith(`/payments/${PAY}/status-guest`, { headers: CAP });
-  const verifyOrder = apiPost.mock.invocationCallOrder[apiPost.mock.calls.findIndex(([u]) => u === `/payments/${PAY}/verify`)];
+  const verifyOrder = guestPost.mock.invocationCallOrder[guestPost.mock.calls.findIndex(([u]) => u === `/payments/${PAY}/verify`)];
   expect(verifyOrder).toBeLessThan(guestGet.mock.invocationCallOrder[0]);
+  expectNoAuthenticatedClient();
 });
 
 it('misafir direct-form zaman aşımı: bilinen paymentId ile verify (başlıklı) + status-guest', async () => {
-  apiPost.mockImplementation((url: string) =>
+  guestPost.mockImplementation((url: string) =>
     url === '/payments/direct-form'
       ? Promise.reject(Object.assign(new Error('timeout'), { code: 'ECONNABORTED' }))
       : Promise.resolve({ data: { completed: true, status: 'completed' } }),
@@ -113,16 +126,17 @@ it('misafir direct-form zaman aşımı: bilinen paymentId ile verify (başlıkl�
     <CardPaymentForm target={{ checkoutGroupId: 'g-1' }} isGuest paymentId={PAY} onSuccess={onSuccess} />,
   );
   fillCardAndSubmit();
-  await waitFor(() => expect(apiPost).toHaveBeenCalledWith('/payments/direct-form', expect.anything(), expect.anything()));
+  await waitFor(() => expect(guestPost).toHaveBeenCalledWith('/payments/direct-form', expect.anything(), expect.anything()));
 
   await jest.advanceTimersByTimeAsync(3000);
   await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(PAY));
-  expect(apiPost).toHaveBeenCalledWith(`/payments/${PAY}/verify`, {}, { headers: CAP });
+  expect(guestPost).toHaveBeenCalledWith(`/payments/${PAY}/verify`, {}, { timeout: VERIFY_TIMEOUT_MS, headers: CAP });
   expect(guestGet).toHaveBeenCalledWith(`/payments/${PAY}/status-guest`, { headers: CAP });
+  expectNoAuthenticatedClient();
 });
 
 it('verify hata verse de (ör. 429) yoklama status-guest ile sürer', async () => {
-  apiPost.mockImplementation((url: string) =>
+  guestPost.mockImplementation((url: string) =>
     url === '/payments/direct-form'
       ? Promise.resolve({ data: signed })
       : Promise.reject(Object.assign(new Error('throttled'), { response: { status: 429 } })),

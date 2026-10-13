@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { paymentsApi } from '@/lib/api';
+import { forgetPaymentCapabilityIfFinal } from '@/lib/payment/paymentCapability';
 
 /**
  * ⚠️ BU EKRAN BİLEREK React Query'ye TAŞINMADI (CLAUDE.md §6'nın istisnası).
@@ -48,12 +49,18 @@ export default function PaymentFailScreen() {
     const load = async () => {
       if (!paymentId) { setLoading(false); return; }
       try {
-        // Rezervasyonu serbest bırak
-        await paymentsApi.confirmFailed(paymentId).catch(() => null);
+        // Rezervasyonu serbest bırak. Misafir `guestApi`'den (Bearer yok, 401'de çıkış yok).
+        const release = guest === '1' ? paymentsApi.confirmFailedGuest : paymentsApi.confirmFailed;
+        await release(paymentId).catch(() => null);
+        // Üye de `/status` (public + yetki belirteci): oturum 3DS sırasında
+        // düştüyse JWT'li `GET /payments/:id` gibi 401 → çıkış → login yok.
         const response = guest === '1'
           ? await paymentsApi.getStatusLightGuest(paymentId)
-          : await paymentsApi.getStatus(paymentId);
-        setInfo(response.data?.data ?? response.data ?? null);
+          : await paymentsApi.getStatusLight(paymentId);
+        const data = response.data?.data ?? response.data ?? null;
+        setInfo(data);
+        // confirm-failed ve durum okuması bitti; ödeme kesinse belirteci sil.
+        void forgetPaymentCapabilityIfFinal(paymentId, data?.status);
       } catch {
         // Sessiz
       } finally {

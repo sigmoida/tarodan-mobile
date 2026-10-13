@@ -58,26 +58,27 @@ it('misafir: initiate-guest belirtecini saklar; direct-form gövdede paymentId +
     card: { kind: 'new', save: false },
     distanceSalesAccepted: true,
   });
-  await paymentsApi.directForm(body);
+  await paymentsApi.directFormGuest(body);
 
-  expect(apiPost).toHaveBeenCalledWith(
+  expect(guestPost).toHaveBeenCalledWith(
     '/payments/direct-form',
     { checkoutGroupId: GROUP, paymentId: PAY, saveCard: false, distanceSalesAccepted: true },
     { headers: CAP },
   );
+  expect(apiPost).not.toHaveBeenCalled(); // misafir yolu api'ye (Bearer) hiç uğramaz
 });
 
-it('misafir: durum, verify ve confirm-failed da belirteci taşır', async () => {
+it('misafir: status-guest, verify ve confirm-failed guestApi\'den, belirteçle', async () => {
   await guestInitiate();
   await paymentsApi.getStatusLightGuest(PAY);
-  await paymentsApi.getStatusLight(PAY);
-  await paymentsApi.verify(PAY);
-  await paymentsApi.confirmFailed(PAY);
+  await paymentsApi.verifyGuest(PAY);
+  await paymentsApi.confirmFailedGuest(PAY);
 
   expect(guestGet).toHaveBeenCalledWith(`/payments/${PAY}/status-guest`, { headers: CAP });
-  expect(apiGet).toHaveBeenCalledWith(`/payments/${PAY}/status`, { headers: CAP });
-  expect(apiPost).toHaveBeenCalledWith(`/payments/${PAY}/verify`, {}, { headers: CAP });
-  expect(apiPost).toHaveBeenCalledWith(`/payments/${PAY}/confirm-failed`, {}, { headers: CAP });
+  expect(guestPost).toHaveBeenCalledWith(`/payments/${PAY}/verify`, {}, { headers: CAP });
+  expect(guestPost).toHaveBeenCalledWith(`/payments/${PAY}/confirm-failed`, {}, { headers: CAP });
+  expect(apiPost).not.toHaveBeenCalled();
+  expect(apiGet).not.toHaveBeenCalled();
 });
 
 it('`{ data: { ... } }` sarmalı yanıtta da belirteç okunur; üye initiate de saklar (web gibi)', async () => {
@@ -132,7 +133,9 @@ it('üye: belirteç dönmezse (eski API) istekler eskisi gibi başlıksız', asy
 it('belirteç başka ödemeye sızmaz', async () => {
   await guestInitiate();
   await paymentsApi.getStatusLightGuest('another-payment');
+  await paymentsApi.directFormGuest({ checkoutGroupId: GROUP, paymentId: 'another-payment', saveCard: false });
   expect(guestGet).toHaveBeenCalledWith('/payments/another-payment/status-guest', { headers: {} });
+  expect(guestPost).toHaveBeenLastCalledWith('/payments/direct-form', expect.anything(), { headers: {} });
 });
 
 it('banka uygulamasında süreç ölse de: belirteç depoda, dönüşte durum/verify/confirm-failed başlıklı', async () => {
@@ -142,11 +145,11 @@ it('banka uygulamasında süreç ölse de: belirteç depoda, dönüşte durum/ve
 
   __resetPaymentCapabilities(); // uygulama yeniden başladı: bellek boş
   await paymentsApi.getStatusLightGuest(PAY);
-  await paymentsApi.verify(PAY);
-  await paymentsApi.confirmFailed(PAY);
+  await paymentsApi.verifyGuest(PAY);
+  await paymentsApi.confirmFailedGuest(PAY);
   expect(guestGet).toHaveBeenCalledWith(`/payments/${PAY}/status-guest`, { headers: CAP });
-  expect(apiPost).toHaveBeenCalledWith(`/payments/${PAY}/verify`, {}, { headers: CAP });
-  expect(apiPost).toHaveBeenCalledWith(`/payments/${PAY}/confirm-failed`, {}, { headers: CAP });
+  expect(guestPost).toHaveBeenCalledWith(`/payments/${PAY}/verify`, {}, { headers: CAP });
+  expect(guestPost).toHaveBeenCalledWith(`/payments/${PAY}/confirm-failed`, {}, { headers: CAP });
 });
 
 it('depo yazımı başarısız olsa da initiate bozulmaz, aynı süreçte başlık gider', async () => {
@@ -155,4 +158,26 @@ it('depo yazımı başarısız olsa da initiate bozulmaz, aynı süreçte başl�
   await flush();
   await paymentsApi.getStatusLightGuest(PAY);
   expect(guestGet).toHaveBeenCalledWith(`/payments/${PAY}/status-guest`, { headers: CAP });
+});
+
+it('iptal başarılıysa (sunucu ödemeyi failed yapar) yetki belirteci kaydı silinir', async () => {
+  apiPost.mockResolvedValueOnce({ data: { paymentId: PAY, paymentAccessToken: 'cap-token' } });
+  await paymentsApi.initiateGroup(GROUP);
+  await flush();
+
+  apiPost.mockResolvedValueOnce({ data: { success: true } });
+  await paymentsApi.cancel(PAY);
+  await flush();
+  expect(apiPost).toHaveBeenLastCalledWith(`/payments/${PAY}/cancel`);
+  expect(await AsyncStorage.getItem(`payment-capability.${PAY}`)).toBeNull();
+  await paymentsApi.getStatusLight(PAY);
+  expect(apiGet).toHaveBeenLastCalledWith(`/payments/${PAY}/status`, { headers: {} });
+});
+
+it('iptal başarısızsa kayıt kalır', async () => {
+  await guestInitiate();
+  apiPost.mockRejectedValueOnce(Object.assign(new Error('403'), { response: { status: 403 } }));
+  await expect(paymentsApi.cancel(PAY)).rejects.toThrow('403');
+  await paymentsApi.getStatusLightGuest(PAY);
+  expect(guestGet).toHaveBeenLastCalledWith(`/payments/${PAY}/status-guest`, { headers: CAP });
 });

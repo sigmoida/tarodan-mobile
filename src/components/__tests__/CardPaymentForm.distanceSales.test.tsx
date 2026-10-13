@@ -15,7 +15,9 @@ jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 jest.mock('@/lib/api', () => ({
   paymentsApi: {
     directForm: jest.fn(),
+    directFormGuest: jest.fn(),
     verify: jest.fn(() => Promise.resolve({})),
+    verifyGuest: jest.fn(() => Promise.resolve({})),
     getStatusLight: jest.fn(() => Promise.resolve({ data: { status: 'pending' } })),
     getStatusLightGuest: jest.fn(() => Promise.resolve({ data: { status: 'pending' } })),
   },
@@ -35,6 +37,7 @@ jest.mock('react-native-webview', () => {
 import CardPaymentForm from '../CardPaymentForm';
 
 const directFormMock = paymentsApi.directForm as jest.Mock;
+const directFormGuestMock = paymentsApi.directFormGuest as jest.Mock;
 const listCardsMock = membershipApi.listCards as jest.Mock;
 
 const signed = {
@@ -55,6 +58,7 @@ function fillNewCard() {
 beforeEach(() => {
   jest.clearAllMocks();
   directFormMock.mockResolvedValue({ data: signed });
+  directFormGuestMock.mockResolvedValue({ data: signed });
 });
 
 it('onay zorunlu: kutu işaretlenmeden ödeme düğmesi kapalı, istek GİTMEZ', async () => {
@@ -136,15 +140,16 @@ it('takas nakit farkında da kutu var ve onay gövdede (web gibi)', async () => 
   expect(directFormMock.mock.calls[0][0]).toEqual({ tradeId: 't-1', saveCard: false, distanceSalesAccepted: true });
 });
 
-it('misafir: gövdede paymentId (sunucu capability ile birlikte ister; yoksa 403)', async () => {
+it('misafir: gövdede paymentId (sunucu capability ile birlikte ister; yoksa 403); istek guestApi yolundan', async () => {
   renderWithProviders(
     <CardPaymentForm target={{ checkoutGroupId: 'g-1' }} isGuest paymentId="pay-1" onSuccess={jest.fn()} />,
   );
   fillNewCard();
   fireEvent.press(screen.getByTestId('payment-distance-sales-checkbox'));
   fireEvent.press(screen.getByTestId('card-submit'));
-  await waitFor(() => expect(directFormMock).toHaveBeenCalledTimes(1));
-  expect(directFormMock.mock.calls[0][0]).toEqual({
+  await waitFor(() => expect(directFormGuestMock).toHaveBeenCalledTimes(1));
+  expect(directFormMock).not.toHaveBeenCalled();
+  expect(directFormGuestMock.mock.calls[0][0]).toEqual({
     checkoutGroupId: 'g-1',
     paymentId: 'pay-1',
     saveCard: false,

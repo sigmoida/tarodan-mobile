@@ -39,10 +39,12 @@ jest.mock('react-native-webview', () => {
 import { api, guestApi } from '@/lib/api/client';
 import { membershipApi } from '@/lib/api';
 import { __resetPaymentCapabilities, rememberPaymentCapability } from '@/lib/payment/paymentCapability';
+import { __resetVerifyPacer, VERIFY_TIMEOUT_MS } from '@/lib/payment/verifyPacer';
 import CardPaymentForm from '../CardPaymentForm';
 
 const apiPost = api.post as jest.Mock;
 const apiGet = api.get as jest.Mock;
+const guestPost = guestApi.post as jest.Mock;
 const guestGet = guestApi.get as jest.Mock;
 const listCards = membershipApi.listCards as jest.Mock;
 
@@ -71,12 +73,18 @@ const directFormCall = () => apiPost.mock.calls.find(([url]) => url === '/paymen
 beforeEach(() => {
   jest.clearAllMocks();
   __resetPaymentCapabilities();
+  __resetVerifyPacer();
   apiPost.mockImplementation((url: string) =>
     url === '/payments/direct-form'
       ? Promise.resolve({ data: signed })
       : Promise.resolve({ data: { completed: true, status: 'completed' } }),
   );
   apiGet.mockResolvedValue({ data: { status: 'completed' } });
+  guestPost.mockImplementation((url: string) =>
+    url === '/payments/direct-form'
+      ? Promise.resolve({ data: signed })
+      : Promise.resolve({ data: { completed: true, status: 'completed' } }),
+  );
   guestGet.mockResolvedValue({ data: { status: 'completed' } });
 });
 
@@ -84,18 +92,20 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-it('misafir: gövdede paymentId, başlıkta belirteç', async () => {
+it('misafir: gövdede paymentId, başlıkta belirteç; istek guestApi\'den', async () => {
   await rememberPaymentCapability({ data: { paymentId: PAY, paymentAccessToken: 'cap-token' } });
   renderWithProviders(
     <CardPaymentForm target={{ checkoutGroupId: 'g-1' }} isGuest paymentId={PAY} onSuccess={jest.fn()} />,
   );
   fillCardAndSubmit();
-  await waitFor(() => expect(directFormCall()).toBeTruthy());
-  expect(directFormCall()).toEqual([
+  const guestDirectFormCall = () => guestPost.mock.calls.find(([url]) => url === '/payments/direct-form');
+  await waitFor(() => expect(guestDirectFormCall()).toBeTruthy());
+  expect(guestDirectFormCall()).toEqual([
     '/payments/direct-form',
     { checkoutGroupId: 'g-1', paymentId: PAY, saveCard: false, distanceSalesAccepted: true },
     { headers: CAP },
   ]);
+  expect(directFormCall()).toBeUndefined(); // api (Bearer'lı) kullanılmadı
 });
 
 describe.each([
@@ -121,9 +131,10 @@ describe.each([
     await jest.advanceTimersByTimeAsync(3000);
     await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(PAY));
     expect(onFail).not.toHaveBeenCalled();
-    expect(apiPost).toHaveBeenCalledWith(`/payments/${PAY}/verify`, {}, { headers });
+    expect(apiPost).toHaveBeenCalledWith(`/payments/${PAY}/verify`, {}, { timeout: VERIFY_TIMEOUT_MS, headers });
     expect(apiGet).toHaveBeenCalledWith(`/payments/${PAY}/status`, { headers });
     expect(guestGet).not.toHaveBeenCalled();
+    expect(guestPost).not.toHaveBeenCalled(); // üye yolu api'den
   });
 });
 

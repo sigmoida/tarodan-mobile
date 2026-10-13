@@ -8,6 +8,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { paymentsApi } from '@/lib/api';
+import { pendingVerify, requestVerify } from '@/lib/payment/verifyPacer';
+import { forgetPaymentCapabilityIfFinal } from '@/lib/payment/paymentCapability';
 import { formatPrice } from '@/utils/format';
 import { styles } from './_success/_lib/styles';
 
@@ -63,10 +65,15 @@ export default function PaymentSuccessScreen() {
   useEffect(() => {
     let cancelled = false;
 
+    // Üye de JWT'ye bağlı `GET /payments/:id` yerine `/status`'u okur (web
+    // `usePaymentSuccess` gibi): uç public, oturum 3DS sırasında düştüyse 401
+    // dönmez (sunucu kullanıcıyı yok sayar) ve yetki belirteciyle yetkilendirir.
+    // `GET /payments/:id` oturum düşünce 401 → çıkış → login'e atıyordu; grup ve
+    // takas ödemesinde de 400 dönüyordu (tekil sipariş yok).
     const fetchStatus = async (): Promise<PaymentInfo | null> => {
       const response = guest === '1'
         ? await paymentsApi.getStatusLightGuest(paymentId)
-        : await paymentsApi.getStatus(paymentId);
+        : await paymentsApi.getStatusLight(paymentId);
       return response.data?.data ?? response.data ?? null;
     };
 
@@ -78,10 +85,15 @@ export default function PaymentSuccessScreen() {
       // çalışıp başarısız olabilir; ödemeyi/siparişi sunucu tarafında AKTİVE eden tek
       // çağrı verify (getStatus yalnız DB OKUR). Bu yüzden her turda verify'i tekrar
       // dene — aksi halde localhost'ta callback ulaşmadığında ödeme pending takılır.
+      //
+      // verify arkada gider, durum okuması onu beklemez. Çağrılar kart formu
+      // yoklamasıyla AYNI bütçeden düşer (sunucu dakikada 10 verify; `verifyPacer`):
+      // bütçe doluysa verify atlanır, durum okuması sürer. Misafir `guestApi`'den.
+      const verifyOptions = { guest: guest === '1' };
       let last: PaymentInfo | null = null;
       for (let attempt = 0; attempt < 5 && !cancelled; attempt++) {
         // Idempotent & public: zaten completed ise no-op.
-        try { await paymentsApi.verify(paymentId); } catch { /* best-effort */ }
+        void requestVerify(paymentId, verifyOptions);
         try {
           const data = await fetchStatus();
           last = data;
@@ -94,7 +106,19 @@ export default function PaymentSuccessScreen() {
           await new Promise(resolve => setTimeout(resolve, 1500));
         }
       }
+      // Yavaş verify: döngü kesinleşmeden bittiyse uçuştaki verify'ı (en fazla
+      // zaman aşımı kadar) bekle; ödemeyi tamamladıysa durumu bir kez daha oku.
+      if (!cancelled && !isTerminal(last?.status) && (await pendingVerify(paymentId)) && !cancelled) {
+        try {
+          last = await fetchStatus();
+          if (!cancelled) setInfo(last);
+        } catch {
+          // Sessiz
+        }
+      }
       if (cancelled) return;
+      // Ödeme kesinleştiyse yetki belirteci artık gereksiz: kaydı sil.
+      void forgetPaymentCapabilityIfFinal(paymentId, last?.status);
 
       // Takas nakit farkı ödemesi: takasa dön + ilgili query'leri tazele (web ile parite).
       const paidTradeId = tradeId || last?.tradeId;

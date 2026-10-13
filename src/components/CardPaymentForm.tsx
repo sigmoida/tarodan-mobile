@@ -17,6 +17,7 @@ import {
   cardFieldsForSavedCard,
   PAYTR_ACTION,
 } from '@/lib/payment/paytrDirectForm';
+import { createVerifyPacer } from '@/lib/payment/verifyPacer';
 
 /**
  * ⚠️ 3DS SONRASI DURUM YOKLAMASI BİLEREK React Query'de DEĞİL (CLAUDE.md §6'nın
@@ -136,14 +137,17 @@ export default function CardPaymentForm({
     let alive = true;
     let timer: ReturnType<typeof setTimeout>;
     let tries = 0;
+    // verify PayTR durumunu sunucuda sorgular ve ödemeyi aktive eder (idempotent):
+    // callback gecikse ya da hiç gelmese de ödeme tamamlanır. Misafir de çağırır
+    // (`X-Payment-Capability` ile, `guestApi`'den). Sunucu dakikada 10 verify'a izin
+    // veriyor ve her çağrıda PayTR'yi sorguluyor: verify ARKADA, zaman aşımlı ve
+    // seyrek gider (ilk ~10 sn her tur, sonra ~15 sn'de bir; global bütçe). Durum
+    // okuması onu BEKLEMEZ.
+    const verifyPacer = createVerifyPacer(paymentId, { guest: isGuest });
     const poll = async () => {
       tries += 1;
+      verifyPacer.tick();
       try {
-        // verify PayTR durumunu sunucuda sorgular ve ödemeyi aktive eder (idempotent):
-        // callback gecikse ya da hiç gelmese de ödeme burada tamamlanır. Misafir de
-        // çağırır — `X-Payment-Capability` başlığıyla sunucu misafiri geçirir
-        // (`payment-lifecycle.service.ts` → `assertPaymentAccess`, capabilityAuthorized).
-        try { await paymentsApi.verify(paymentId); } catch { /* best-effort */ }
         const res: any = isGuest
           ? await paymentsApi.getStatusLightGuest(paymentId)
           : await paymentsApi.getStatusLight(paymentId);
@@ -227,7 +231,8 @@ export default function CardPaymentForm({
 
     setProcessing(true);
     try {
-      const res = await paymentsApi.directForm(body);
+      // Misafir `guestApi`'den: cihazda kalmış token eklenmez, 401'de çıkış yapılmaz.
+      const res = await (isGuest ? paymentsApi.directFormGuest(body) : paymentsApi.directForm(body));
       const data = res.data;
       setPaymentId(data.paymentId);
 

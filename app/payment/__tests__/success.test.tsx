@@ -16,16 +16,20 @@ jest.mock('expo-router', () => ({
 jest.mock('@/lib/api', () => ({
   paymentsApi: {
     verify: jest.fn(() => Promise.resolve({})),
+    verifyGuest: jest.fn(() => Promise.resolve({})),
     getStatus: jest.fn(),
+    getStatusLight: jest.fn(),
     getStatusLightGuest: jest.fn(),
   },
 }));
 import { paymentsApi } from '@/lib/api';
 import { router } from 'expo-router';
+import { __resetVerifyPacer } from '@/lib/payment/verifyPacer';
 
 import PaymentSuccessScreen from '../success';
 
-const getStatusMock = paymentsApi.getStatus as jest.Mock;
+// Üye durumu `/status`'tan (public + yetki belirteci); JWT'li getStatus kullanılmaz.
+const getStatusMock = paymentsApi.getStatusLight as jest.Mock;
 const replaceMock = router.replace as jest.Mock;
 
 function infoFixture(overrides: Record<string, unknown> = {}) {
@@ -40,6 +44,7 @@ function infoFixture(overrides: Record<string, unknown> = {}) {
 
 describe('J71 · Ödeme başarılı render', () => {
   beforeEach(() => {
+    __resetVerifyPacer(); // verify bütçesi modül düzeyinde: testler arasında taşınmasın
     getStatusMock.mockReset();
     replaceMock.mockReset();
     (paymentsApi.verify as jest.Mock).mockResolvedValue({});
@@ -68,6 +73,8 @@ describe('J71 · Ödeme başarılı render', () => {
 
 describe('J72 · Ödeme başarılı navigasyon wiring', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
+    __resetVerifyPacer();
     getStatusMock.mockReset();
     replaceMock.mockReset();
     (paymentsApi.verify as jest.Mock).mockResolvedValue({});
@@ -117,5 +124,55 @@ describe('J72 · Ödeme başarılı navigasyon wiring', () => {
     renderWithProviders(<PaymentSuccessScreen />);
     expect(await screen.findByText('Ana Sayfaya Dön')).toBeOnTheScreen();
     expect(screen.queryByText('Siparişimi Görüntüle')).toBeNull();
+  });
+
+  it('J72.6 misafir: verify guestApi yolundan (verifyGuest), üye verify çağrılmaz', async () => {
+    mockParams = { paymentId: 'pay-1', guest: '1' };
+    (paymentsApi.getStatusLightGuest as jest.Mock).mockResolvedValue({
+      data: { data: infoFixture() },
+    });
+    renderWithProviders(<PaymentSuccessScreen />);
+    await waitFor(() => expect(paymentsApi.verifyGuest).toHaveBeenCalledWith('pay-1', expect.anything()));
+    expect(paymentsApi.verify).not.toHaveBeenCalled();
+  });
+});
+
+describe('J90 · Yavaş verify (durum okuması beklemez, sonuç kaybolmaz)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    __resetVerifyPacer();
+    replaceMock.mockReset();
+    mockParams = { paymentId: 'pay-1' };
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('J90.1 verify 8 sn sürer: döngü onu beklemeden okur, bitince uçuştaki verify beklenip durum yeniden okunur', async () => {
+    jest.useFakeTimers();
+    let verified = false;
+    (paymentsApi.verify as jest.Mock).mockImplementation(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => {
+            verified = true;
+            resolve({ data: { completed: true, status: 'completed_now' } });
+          }, 8000),
+        ),
+    );
+    getStatusMock.mockImplementation(() =>
+      Promise.resolve({ data: { data: infoFixture({ status: verified ? 'completed' : 'pending' }) } }),
+    );
+    renderWithProviders(<PaymentSuccessScreen />);
+
+    await jest.advanceTimersByTimeAsync(6100);
+    // 5 deneme (0 / 1,5 / 3 / 4,5 / 6. sn) verify'ı beklemeden durum okudu.
+    expect(getStatusMock).toHaveBeenCalledTimes(5);
+    expect(paymentsApi.verify).toHaveBeenCalledTimes(1); // uçuştayken yenisi gönderilmez
+
+    await jest.advanceTimersByTimeAsync(2000);
+    expect(await screen.findByText('Ödemeniz Başarılı!')).toBeOnTheScreen();
+    expect(getStatusMock).toHaveBeenCalledTimes(6);
   });
 });
