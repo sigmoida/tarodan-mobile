@@ -1,11 +1,22 @@
 import React, { memo } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Alert, IconButton, Pill, SectionCard, Spinner, Text, iconButtonBoxSize, theme } from '@/ui';
+import {
+  Alert,
+  IconButton,
+  Pill,
+  SectionCard,
+  Spinner,
+  Text,
+  androidRipple,
+  iconButtonBoxSize,
+  rippleClip,
+  showPressedStyle,
+  theme,
+} from '@/ui';
 import { useStableCallback } from '@/hooks/useStableCallback';
 
 import type { ListingFormController } from '../_hooks/useListingForm';
-import { listingRipple } from './fields';
 
 const { colors, spacing, radiusRole, typography } = theme;
 
@@ -87,9 +98,9 @@ export function ListingImagesSection({ f }: SectionProps) {
           accessibilityRole="button"
           accessibilityState={{ disabled: f.uploadingImages, busy: f.uploadingImages }}
           onPress={onPick}
-          android_ripple={listingRipple}
+          android_ripple={androidRipple()}
           disabled={f.uploadingImages}
-          style={({ pressed }) => [styles.addBox, pressed && styles.addBoxPressed]}
+          style={({ pressed }) => [styles.addBox, rippleClip(), showPressedStyle(pressed) && styles.addBoxPressed]}
         >
           {f.uploadingImages ? (
             <Spinner />

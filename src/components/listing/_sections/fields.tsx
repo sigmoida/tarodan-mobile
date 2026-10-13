@@ -1,6 +1,17 @@
 import React, { memo } from 'react';
-import { Platform, Pressable, StyleSheet, View, type PressableAndroidRippleConfig } from 'react-native';
-import { Chip, Icon, Label, ListRowCard, Text, pillBoxStyle, theme } from '@/ui';
+import { Pressable, StyleSheet, View } from 'react-native';
+import {
+  Chip,
+  Icon,
+  Label,
+  ListRowCard,
+  Text,
+  androidRipple,
+  pillBoxStyle,
+  rippleClip,
+  showPressedStyle,
+  theme,
+} from '@/ui';
 
 const { colors, spacing, controlHeight, radiusRole, iconSize, radius, minTouchTarget } = theme;
 
@@ -9,13 +20,6 @@ const { colors, spacing, controlHeight, radiusRole, iconSize, radius, minTouchTa
  * etiket / çip çizmez. Liste çizen parçalar `memo`: form her tuş vuruşunda yeniden çizilir,
  * seçenek listeleri ise yalnız kendi verisi değişince.
  */
-
-/**
- * Android basılı geri bildirimi (dalga: ortak `pressableFeedback` gelene kadar yerel; `GlassIconButton`
- * ile aynı renk). iOS'ta basılı stil (opaklık/çerçeve) yeterli.
- */
-export const listingRipple: PressableAndroidRippleConfig | undefined =
-  Platform.OS === 'android' ? { color: colors.overlay.black10, foreground: true } : undefined;
 
 // ---------------------------------------------------------------------------
 // Seçici tetikleyici (kategori / marka / model / malzeme / üretici / yıl / nitelik grubu)
@@ -52,11 +56,12 @@ export const PickerField = memo(function PickerField({
         accessibilityLabel={label}
         accessibilityValue={{ text: value || placeholder }}
         accessibilityState={{ disabled: !!disabled }}
-        android_ripple={listingRipple}
+        android_ripple={androidRipple()}
         style={({ pressed }) => [
           styles.trigger,
+          rippleClip(),
           disabled && styles.triggerDisabled,
-          pressed && styles.triggerPressed,
+          showPressedStyle(pressed) && styles.triggerPressed,
         ]}
       >
         <Text
