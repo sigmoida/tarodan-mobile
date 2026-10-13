@@ -127,6 +127,22 @@ describe('J62 · Siparişlerim listesi', () => {
     expect(screen.queryByText('Teslim Aldım')).toBeNull();
   });
 
+  it('"Değerlendir" düğmeleri değerlendirme ekranını iter (eskiden modal)', async () => {
+    getGroupsMock.mockResolvedValue({ data: { data: [orderGroupFixture({ status: 'delivered', isBuyer: true })] } });
+    renderWithProviders(<OrdersScreen />);
+    await waitFor(() => expect(screen.getByText('Ürünü Değerlendir')).toBeOnTheScreen());
+    fireEvent.press(screen.getByText('Ürünü Değerlendir'));
+    expect(pushMock).toHaveBeenCalledWith({
+      pathname: '/orders/[id]/review',
+      params: { id: 'order-1', type: 'product' },
+    });
+    fireEvent.press(screen.getByText('Satıcıyı Değerlendir'));
+    expect(pushMock).toHaveBeenCalledWith({
+      pathname: '/orders/[id]/review',
+      params: { id: 'order-1', type: 'seller' },
+    });
+  });
+
   it('J62.3 sipariş kartına dokununca detay sayfasına gider', async () => {
     getGroupsMock.mockResolvedValue({ data: { data: [orderGroupFixture()] } });
     renderWithProviders(<OrdersScreen />);

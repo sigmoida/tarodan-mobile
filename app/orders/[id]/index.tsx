@@ -1,17 +1,14 @@
 import { useTranslation } from 'react-i18next';
-import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useQueryClient } from '@tanstack/react-query';
 import { useRefresh } from '@/hooks/useRefresh';
-import RatingModal from '@/components/RatingModal';
 import { PageShell } from '@/components/common/PageShell';
-import { qk } from '@/lib/query';
 import { useOrderShipment } from '@/hooks/useOrderShipment';
 import { useTimingPolicy } from '@/hooks/useTimingPolicy';
 import { useDeadlineNow } from '@/hooks/useDeadlineNow';
 import { ElogoInvoiceList } from '@/components/orders/ElogoInvoiceList';
 import { PreparingDeadlineNotice } from '@/components/orders/PreparingDeadlineNotice';
 import { deriveOrderView } from './_lib/derive';
+import { openOrderReview, openRefundRequest } from './_lib/routes';
 import { useOrder } from './_hooks/useOrder';
 import { useOrderInvoices } from './_hooks/useOrderInvoices';
 import { useOrderActions } from './_hooks/useOrderActions';
@@ -27,24 +24,19 @@ import {
   OrderRefundActionCard,
   OrderHelpCard,
 } from './_components/OrderActionCards';
-import { RefundRequestModal } from './_modals/RefundRequestModal';
 import { CancelOrderModal } from '@/components/orders/CancelOrderModal';
 
 /**
  * Sipariş detayı — İNCE ekran: PageShell + SectionCard dizisi. Durum kapılı kartlar kendini gizler
  * (`null`); türetilmiş değerler `deriveOrderView`'da, mutasyonlar `useOrderActions`'ta. Bildirimler
- * toast; modallar `overlay` slotunda (yükleme/hata durumunda unmount olmaz).
+ * toast; modallar `overlay` slotunda (yükleme/hata durumunda unmount olmaz). İade talebi ve
+ * değerlendirme ayrı form ekranlarıdır (`./refund`, `./review`).
  */
 export default function OrderDetailScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const queryClient = useQueryClient();
 
   const { data: order, isLoading, refetch } = useOrder(id);
-  const [ratingModal, setRatingModal] = useState<{ visible: boolean; type: 'product' | 'seller' }>({
-    visible: false,
-    type: 'product',
-  });
   const actions = useOrderActions(String(id), order ?? undefined);
   const invoices = useOrderInvoices(String(id), order?.status, actions.notify);
   // Pull-to-refresh siparişle birlikte e-Arşiv listesini de yeniler.
@@ -86,37 +78,13 @@ export default function OrderDetailScreen() {
       refreshing={refreshing}
       onRefresh={onRefresh}
       overlay={
-        <>
-          <CancelOrderModal
-            isOpen={actions.cancelModal.visible}
-            onClose={actions.cancelModal.close}
-            onConfirm={actions.cancelModal.confirm}
-            willRefund={actions.cancelModal.willRefund}
-            pending={actions.cancelOrderPending}
-          />
-          <RefundRequestModal
-            visible={actions.refundModal.visible}
-            onClose={actions.refundModal.close}
-            orderId={String(id)}
-            orderQuantity={order.quantity ?? 1}
-            notify={actions.notify}
-            timingValues={view.timing}
-          />
-          <RatingModal
-            visible={ratingModal.visible}
-            onDismiss={() => setRatingModal((r) => ({ ...r, visible: false }))}
-            type={ratingModal.type}
-            orderId={order.id}
-            productId={order.product.id}
-            sellerId={order.seller.id}
-            productTitle={order.product.title}
-            sellerName={order.seller.displayName}
-            onSuccess={() => {
-              queryClient.invalidateQueries({ queryKey: qk.orders.detail(String(id)) });
-              actions.notify(t('order.reviewReceived'), 'success');
-            }}
-          />
-        </>
+        <CancelOrderModal
+          isOpen={actions.cancelModal.visible}
+          onClose={actions.cancelModal.close}
+          onConfirm={actions.cancelModal.confirm}
+          willRefund={actions.cancelModal.willRefund}
+          pending={actions.cancelOrderPending}
+        />
       }
     >
       <OrderEscrowCard order={order} view={view} />
@@ -130,14 +98,14 @@ export default function OrderDetailScreen() {
       <OrderAddressCard order={order} isMembershipOrder={view.isMembershipOrder} />
       <OrderPriceSummary order={order} isMembershipOrder={view.isMembershipOrder} />
       <OrderCancelCard order={order} view={view} onCancel={actions.handleCancelOrder} cancelPending={actions.cancelOrderPending} />
-      <OrderRatingButtons order={order} view={view} onRate={(type) => setRatingModal({ visible: true, type })} />
+      <OrderRatingButtons order={order} view={view} onRate={(type) => openOrderReview(order.id, type)} />
       <OrderRefundBanner
         order={order}
         view={view}
         onCancelRefund={actions.handleCancelRefund}
         cancelRefundPending={actions.cancelRefundPending}
       />
-      <OrderRefundActionCard order={order} view={view} onOpenRefund={actions.refundModal.open} />
+      <OrderRefundActionCard order={order} view={view} onOpenRefund={() => openRefundRequest(order.id)} />
       {/* B7: fatura verileri ayrı query'lerle sonradan gelir (bkz. useOrderInvoices); dokunulan
           aksiyon kartlarının (iptal/değerlendirme/iade) ALTINDA render edilir ki geç gelen
           içerik hiçbir dokunma hedefini kaydırmasın. */}

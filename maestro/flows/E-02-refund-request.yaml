@@ -1,5 +1,8 @@
 # E-02: Refund request flow — login → Profil → Siparişlerim → ilk paid order →
-# "İade Talep Et" → modal → "Hasarlı geldi" → submit → Snackbar success.
+# "İade Talep Et" → iade talebi EKRANI (eskiden modal) → varsayılan neden (Vazgeçtim) →
+# alt çubuktaki "Talep Oluştur" → detaya geri dönülür, aktif iade banner'ı + başarı toast'ı.
+# Not: "Hasarlı geldi" gibi kusur nedenleri kanıt fotoğrafı + 20+ karakter açıklama ister;
+# galeri seçimi Maestro'da otomatik değil, bu yüzden akış kanıt istemeyen varsayılan nedenle gider.
 #
 # Pre-req: Zeynep'in seed'inde en az bir `payment.status = completed`, status != cancelled/refunded
 # sipariş bulunmalı. Aksi halde "İade Talep Et" butonu render edilmez ve flow fail eder.
@@ -31,12 +34,17 @@ env:
 - tapOn:
     id: "refund-request-button"
 - extendedWaitUntil:
-    visible: "İade Talebi Oluştur"
+    visible:
+      id: "refund-request-screen"
     timeout: 10000
-- tapOn: "Hasarlı geldi"
-- tapOn: "Talebi Gönder"
+- assertVisible: "İade Talebi Oluştur"
+- tapOn:
+    id: "refund-submit-button"
+# Başarıda ekran kapanır, sipariş detayı tazelenir.
 - extendedWaitUntil:
     visible:
-      text: ".*İade.*olu.*|.*talebi.*"
+      id: "refund-active-banner"
     timeout: 15000
+- assertNotVisible:
+    id: "refund-request-screen"
 - assertNotVisible: ".*Network Error.*"

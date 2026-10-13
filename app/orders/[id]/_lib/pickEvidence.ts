@@ -4,8 +4,7 @@ import type { RNFile } from '@/lib/api';
 
 /**
  * Galeriden en fazla `remaining` kanıt fotoğrafı seçer. İzin yoksa `'denied'`
- * döner — çağıran (modal) mesajı satır içi gösterir; açık bir ui-native
- * Modal'ın üstüne `appAlert` çıkmaz (iOS donması).
+ * döner — çağıran (iade ekranı) mesajı satır içi gösterir.
  */
 export async function pickEvidencePhotos(remaining: number): Promise<RNFile[] | 'denied'> {
   if (remaining <= 0) return [];
