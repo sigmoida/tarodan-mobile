@@ -102,6 +102,9 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
             <Pressable
               key={payment.id}
               style={styles.billingItem}
+              disabled={!payment.invoiceUrl}
+              accessibilityRole="link"
+              android_ripple={{ color: theme.colors.overlay.black10 }}
               onPress={() => payment.invoiceUrl && Linking.openURL(payment.invoiceUrl)}
             >
               <View style={styles.billingInfo}>
@@ -131,41 +134,52 @@ export function SubscriptionBody({ f }: { f: SubscriptionController }) {
 
       {/* Subscription Actions */}
       {isPremium && subscription && (
-        <SectionCard title={t('membership.subscriptionActions')}>
+        <SectionCard title={t('membership.subscriptionActions')} bodyStyle={styles.actions}>
           {/* Plan/dönem değişikliği yeni bir satın alma sayılır — iOS'ta gizli. */}
           <UpgradeCta>
-            <Pressable style={styles.actionRow} onPress={() => router.push('/upgrade')}>
-              <Text variant="body">{t('membership.changePlan')}</Text>
+            <View style={styles.actionBlock}>
               <Text variant="bodySm" tone="muted">
                 {subscription.billingPeriod === 'monthly' ? t('membership.switchToYearly') : t('membership.switchToMonthly')}
               </Text>
-            </Pressable>
+              <Button
+                variant="outline"
+                fullWidth
+                title={t('membership.changePlan')}
+                onPress={() => router.push('/upgrade')}
+              />
+            </View>
 
             <Divider />
           </UpgradeCta>
 
           {!isCancelled ? (
-            <Pressable style={styles.actionRow} onPress={f.handleCancel}>
-              <Text variant="body" tone="danger">
-                {t('membership.cancelTitle')}
-              </Text>
+            <View style={styles.actionBlock}>
               <Text variant="bodySm" tone="muted">
                 {t('membership.cancelSubscriptionDesc')}
               </Text>
-            </Pressable>
+              <Button
+                variant="danger"
+                fullWidth
+                title={t('membership.cancelTitle')}
+                onPress={f.handleCancel}
+              />
+            </View>
           ) : (
             // Otomatik yenilemeyi yeniden AÇMAK, PayTR'de yinelenen tahsilatı
             // yeniden başlatmak demek — yani uygulama içi satın alma. iOS'ta
             // gizli; İPTAL satırı (yukarıda) satın alma olmadığı için kalır.
             <UpgradeCta>
-              <Pressable style={styles.actionRow} onPress={f.handleReactivate}>
-                <Text variant="body" tone="success">
-                  {t('membership.reactivateSubscriptionTitle')}
-                </Text>
+              <View style={styles.actionBlock}>
                 <Text variant="bodySm" tone="muted">
                   {t('membership.reactivateSubscriptionDesc')}
                 </Text>
-              </Pressable>
+                <Button
+                  variant="success"
+                  fullWidth
+                  title={t('membership.reactivateSubscriptionTitle')}
+                  onPress={f.handleReactivate}
+                />
+              </View>
             </UpgradeCta>
           )}
         </SectionCard>
