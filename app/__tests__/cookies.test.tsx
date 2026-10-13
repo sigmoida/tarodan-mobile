@@ -1,128 +1,81 @@
 /**
- * B4 · Çerez politikası tek kaynaktan: web sayfası uygulama içi web ekranında
- * (`OwnSiteWebView`). Eski "Ocak 2026" tarihli yerel kopya gösterilmez; rota
- * `/cookies` olarak kalır (menü + onay kapısı bağlantısı + `isLegalTextPath`).
- * `app/in-app-web.tsx` aynı bileşene taşındı — davranışı burada da sabitlenir.
+ * B4 inceleme 4 · Çerez politikası native: web'deki metin aynı katalog
+ * anahtarlarıyla (`@/lib/legal/cookies`) `LegalDocument` içinde çizilir.
+ * WebView yok (site menüsü/altbilgisi, tarayıcı tercih paneli, siteyi gezme
+ * yok), çevrimdışı açılır, dil uygulama dilini izler. İletişimde web'deki
+ * yer tutucu telefon değil künyedeki gerçek telefon.
  */
 import React from 'react';
-import { Linking } from 'react-native';
-import { screen } from '@testing-library/react-native';
-import { renderWithProviders } from '@/test-utils';
-import { replaceMock, backMock, canGoBackMock, resetRouterMocks } from '@/test-utils/router-mock';
-
-let mockParams: Record<string, string> = {};
-jest.mock('expo-router', () => ({
-  ...require('@/test-utils/router-mock').routerMock,
-  useLocalSearchParams: () => mockParams,
-}));
-
-const mockWebViewProps: Array<Record<string, any>> = [];
-jest.mock('react-native-webview', () => ({
-  WebView: (props: Record<string, any>) => {
-    mockWebViewProps.push(props);
-    return null;
-  },
-}));
-
-let mockLanguage = 'tr';
-jest.mock('react-i18next', () => {
-  const actual = jest.requireActual('react-i18next');
-  return {
-    ...actual,
-    useTranslation: () => {
-      const r = actual.useTranslation();
-      return { ...r, i18n: { ...r.i18n, language: mockLanguage } };
-    },
-  };
-});
-
-import { ownWebPageUrl } from '@/lib/ads/openAdLink';
-import { cookiePolicyUrl } from '@/lib/legal/cookiePolicy';
+import { render } from '@testing-library/react-native';
+import i18n from '@/i18n/config';
+import { LEGAL_ENTITY } from '@/constants/legalFacts';
 import { isLegalTextPath } from '@/lib/shared/legalConsent';
+
+jest.mock('expo-router', () => ({ router: { back: jest.fn(), replace: jest.fn(), canGoBack: () => false } }));
+
+const mockWebView = jest.fn((_props: unknown) => null);
+jest.mock('react-native-webview', () => ({ WebView: (props: unknown) => mockWebView(props) }));
+
 import CookiePolicyScreen from '../cookies';
-import InAppWebScreen from '../in-app-web';
 
-const lastWebView = () => mockWebViewProps[mockWebViewProps.length - 1]!;
+afterAll(() => i18n.changeLanguage('tr'));
 
-beforeEach(() => {
-  mockWebViewProps.length = 0;
-  mockLanguage = 'tr';
-  mockParams = {};
-  resetRouterMocks();
-});
+/** Liste maddesi "Etiket: metin" tek Text olarak çizilir; metni içerdiği yerden ara. */
+const containing = (text: string) => new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
 
-describe('cookiePolicyUrl', () => {
-  it('Türkçe öneksiz, İngilizce /en (web localePrefix: as-needed)', () => {
-    expect(cookiePolicyUrl('tr')).toBe(ownWebPageUrl('/cookies'));
-    expect(cookiePolicyUrl('en')).toBe(ownWebPageUrl('/en/cookies'));
-    expect(cookiePolicyUrl(undefined)).toBe(ownWebPageUrl('/cookies'));
-  });
-});
+const SECTION_TITLES = [
+  'legal.cookies.page.s1Title',
+  'legal.cookies.page.s2Title',
+  'legal.cookies.page.s3Title',
+  'legal.cookies.page.s4Title',
+  'legal.cookies.page.s5Title',
+  'legal.cookies.page.s6Title',
+  'legal.cookies.page.s7Title',
+] as const;
 
-describe('Çerez politikası ekranı', () => {
-  it('web sayfasını uygulama içinde açar; eski yerel metin yok', () => {
-    renderWithProviders(<CookiePolicyScreen />);
-    expect(screen.getByText('Çerez Politikası')).toBeOnTheScreen();
-    expect(lastWebView().source).toEqual({ uri: ownWebPageUrl('/cookies') });
-    expect(screen.queryByText(/Ocak 2026/)).toBeNull();
-  });
+describe('Çerez politikası (native)', () => {
+  it.each(['tr', 'en'])('%s: web metninin yedi bölümü uygulama dilinde, WebView yok', async (lang) => {
+    await i18n.changeLanguage(lang);
+    const { getByText, getByTestId } = render(<CookiePolicyScreen />);
 
-  it('İngilizcede web sayfasının /en sürümü', () => {
-    mockLanguage = 'en';
-    renderWithProviders(<CookiePolicyScreen />);
-    expect(lastWebView().source).toEqual({ uri: ownWebPageUrl('/en/cookies') });
+    expect(getByText(i18n.t('legal.cookiesTitle'))).toBeTruthy();
+    expect(
+      getByText(`${i18n.t('legal.lastUpdated')}: ${i18n.t('legal.cookies.page.lastUpdatedValue')}`),
+    ).toBeTruthy();
+    SECTION_TITLES.forEach((key) => expect(getByText(i18n.t(key))).toBeTruthy());
+    expect(getByTestId('legal-cookies-notice')).toHaveTextContent(i18n.t('legal.cookiesAppNote'));
+    expect(mockWebView).not.toHaveBeenCalled();
   });
 
-  it('satın alma sayfasına geçişte ekrandan çıkar: yığın yoksa ana sayfaya, varsa bir geri', () => {
-    renderWithProviders(<CookiePolicyScreen />);
-    lastWebView().onNavigationStateChange({ url: ownWebPageUrl('/membership') });
-    expect(replaceMock).toHaveBeenCalledWith('/(tabs)');
-
-    canGoBackMock.mockReturnValue(true);
-    renderWithProviders(<CookiePolicyScreen />);
-    lastWebView().onNavigationStateChange({ url: ownWebPageUrl('/pricing') });
-    expect(backMock).toHaveBeenCalledTimes(1);
+  it('web metni birebir: vurgu etiketleri düşer, tablolar ve notlar korunur', async () => {
+    await i18n.changeLanguage('tr');
+    const { getByText, queryByText } = render(<CookiePolicyScreen />);
+    expect(getByText(i18n.t('legal.cookies.page.s1p2').replace(/<\/?b>/g, ''))).toBeTruthy();
+    expect(queryByText(/<b>/)).toBeNull();
+    expect(getByText(i18n.t('legal.cookies.page.s5Note'))).toBeTruthy();
+    expect(getByText(i18n.t('legal.cookies.page.retentionTrafficType'))).toBeTruthy();
+    expect(getByText(i18n.t('legal.cookies.page.scopeKvkkCriterion'))).toBeTruthy();
+    expect(getByText(/policies\.google\.com\/privacy/)).toBeTruthy();
   });
 
-  it('site içi gezinmede satın alma sayfası engellenir, dış link sistem tarayıcısında açılır', () => {
-    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
-    renderWithProviders(<CookiePolicyScreen />);
-    const { onShouldStartLoadWithRequest } = lastWebView();
-    expect(onShouldStartLoadWithRequest({ url: ownWebPageUrl('/privacy'), isTopFrame: true })).toBe(true);
-    expect(onShouldStartLoadWithRequest({ url: ownWebPageUrl('/membership'), isTopFrame: true })).toBe(false);
-    expect(openURL).not.toHaveBeenCalled();
-    expect(onShouldStartLoadWithRequest({ url: 'https://example.com/', isTopFrame: true })).toBe(false);
-    expect(openURL).toHaveBeenCalledWith('https://example.com/');
-    openURL.mockRestore();
+  it('iletişim künyeden: gerçek telefon ve e-posta, yer tutucu telefon yok', async () => {
+    await i18n.changeLanguage('tr');
+    const { getByText, queryByText } = render(<CookiePolicyScreen />);
+    expect(getByText(containing(LEGAL_ENTITY.phone))).toBeTruthy();
+    expect(getByText(containing(LEGAL_ENTITY.email))).toBeTruthy();
+    expect(queryByText(/XXX/)).toBeNull();
+  });
+
+  it('tarayıcı tercih paneli yok (kaydet / tümünü kabul et düğmeleri çizilmez)', async () => {
+    await i18n.changeLanguage('tr');
+    const { queryByText, getByText } = render(<CookiePolicyScreen />);
+    expect(queryByText(i18n.t('legal.savePreferences'))).toBeNull();
+    expect(queryByText(i18n.t('legal.acceptAll'))).toBeNull();
+    // Kategoriler bilgi olarak listelenir.
+    expect(getByText(containing(i18n.t('legal.cookies.necessaryDesc')))).toBeTruthy();
   });
 
   it('rota yasal metin yolu olarak kalır (onay kapısı bu sayfada gizlenir)', () => {
     expect(isLegalTextPath('/cookies')).toBe(true);
-  });
-});
-
-describe('Uygulama içi web ekranı (aynı bileşen)', () => {
-  it('kendi sitemizin adresini açar, başlık "Tarodan"', () => {
-    mockParams = { url: ownWebPageUrl('/about') };
-    renderWithProviders(<InAppWebScreen />);
-    expect(screen.getByText('Tarodan')).toBeOnTheScreen();
-    expect(lastWebView().source).toEqual({ uri: ownWebPageUrl('/about') });
-  });
-
-  it('yabancı host ya da satın alma adresi yüklenmez', () => {
-    mockParams = { url: 'https://evil.example/cookies' };
-    renderWithProviders(<InAppWebScreen />);
-    expect(mockWebViewProps).toHaveLength(0);
-
-    mockParams = { url: ownWebPageUrl('/membership') };
-    renderWithProviders(<InAppWebScreen />);
-    expect(mockWebViewProps).toHaveLength(0);
-  });
-
-  it('satın alma sayfasına site içi geçişte router.back', () => {
-    mockParams = { url: ownWebPageUrl('/about') };
-    renderWithProviders(<InAppWebScreen />);
-    lastWebView().onNavigationStateChange({ url: ownWebPageUrl('/membership') });
-    expect(backMock).toHaveBeenCalledTimes(1);
   });
 });

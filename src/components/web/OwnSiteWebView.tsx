@@ -11,8 +11,8 @@ import { decideWebRequest, isAllowedOwnPage } from '@/lib/ads/webViewGuard';
  * yeniden doğrulanır); satın alma sayfaları (üyelik/boost) HİÇBİR yoldan
  * açılmaz — bkz. `webViewGuard` (Apple 3.1.1). Adres geçersizse hata durumu.
  *
- * Kullananlar: `app/in-app-web.tsx` (reklam linkleri), `app/cookies.tsx`
- * (çerez politikası — tek kaynak web sayfası).
+ * Kullanan: `app/in-app-web.tsx` (reklam linkleri ve mobil karşılığı olmayan
+ * site sayfaları).
  */
 export function OwnSiteWebView({
   url,

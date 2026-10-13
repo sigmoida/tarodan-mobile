@@ -16,11 +16,14 @@ export function LegalDocument({
   title,
   description,
   parts,
+  notice,
   footer,
   testID,
 }: {
   title: string;
   description?: string;
+  /** Açıklamanın altında vurgulu kutu (ör. metnin uygulamaya nasıl uygulandığı). */
+  notice?: string;
   parts: LegalPart[];
   /** Metnin sonundaki yürürlük/erişim notu. */
   footer?: string;
@@ -38,12 +41,20 @@ export function LegalDocument({
             {description}
           </Text>
         ) : null}
+        {notice ? (
+          <View style={[styles.note, styles.notice]} testID={testID ? `${testID}-notice` : undefined}>
+            <Text style={styles.body}>{notice}</Text>
+          </View>
+        ) : null}
         {parts.map((part) => (
           <Card key={part.title} style={styles.part}>
             <Text variant="h3" accessibilityRole="header">
               {part.title}
             </Text>
             {part.intro ? <Text style={styles.body}>{part.intro}</Text> : null}
+            {part.blocks?.map((block, index) => (
+              <Block key={`${part.title}-${index}`} block={block} />
+            ))}
             {part.sections.map((section) => (
               <Section key={section.number} section={section} />
             ))}
@@ -165,4 +176,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[3],
   },
+  notice: { backgroundColor: colors.surface.DEFAULT },
 });

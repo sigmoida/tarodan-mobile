@@ -165,12 +165,13 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
    * muaf: birincisi mobil arayüzde hiç render edilmiyor (katalog ana repoyla
    * paylaşıldığı için burada duruyor), ikincisi yalnız `{argüman}` taşıyor.
    *
-   * `legal.{privacy,terms,distanceSales}.*`: hukuki belgelerin BAĞLAYICI metni
+   * `legal.{privacy,terms,distanceSales,cookies}.*`: hukuki belgelerin BAĞLAYICI metni
    * Türkçedir; web kataloğu bu anahtarların İngilizcesinde de aynı Türkçe
    * metni taşıyor (web EN dilinde de Türkçe gösteriyor). Mobil web metnini
    * birebir taşır (B3); belgeyi çevirmek hukuki bir karardır, burada yapılmaz.
+   * `legal.cookies.*` (B4 inceleme): çerez politikası aynı kuralla.
    */
-  const LEGAL_DOCUMENT_TEXT = /^legal\.(privacy|terms|distanceSales)\./;
+  const LEGAL_DOCUMENT_TEXT = /^legal\.(privacy|terms|distanceSales|cookies)\./;
   const isBulkExempt = (key: string) =>
     key.startsWith('admin.') ||
     /^server\.notification\..*\.message$/.test(key) ||

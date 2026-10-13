@@ -1,23 +1,25 @@
-import React from 'react';
-import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { OwnSiteWebView } from '@/components/web/OwnSiteWebView';
-import { cookiePolicyUrl } from '@/lib/legal/cookiePolicy';
+import { LegalDocument, useLegalTranslate } from '@/components/legal/LegalDocument';
+import { cookiesDescription, cookiesParts } from '@/lib/legal/cookies';
 
 /**
- * Çerez politikası — web sayfası uygulama içinde (tek kaynak web; eskiden
- * burada "Ocak 2026" tarihli eski bir kopya vardı). Rota `/cookies` olarak
- * kalır: profil menüsü, onay kapısındaki belge bağlantısı ve "yasal metin
- * yolunda kapı gizlenir" kuralı (`isLegalTextPath`) bu yolu kullanıyor.
+ * Çerez Politikası — web'deki metnin native kopyası (aynı katalog anahtarları,
+ * aynı sıra: `@/lib/legal/cookies`); çevrimdışı açılır, dil uygulama dilini
+ * izler. Web sayfasını WebView'de açmak yanıltıcıydı: site menüsü/altbilgisi
+ * ve uygulamayı etkilemeyen tarayıcı tercih paneli görünüyor, onay kapısı bu
+ * yolda gizlendiği için üye oradan bütün siteyi gezebiliyordu. Rota `/cookies`
+ * olarak kalır (menü, onay kapısı bağlantısı, `isLegalTextPath`).
  */
 export default function CookiePolicyScreen() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  const lt = useLegalTranslate();
   return (
-    <OwnSiteWebView
-      testID="cookie-policy-web"
-      url={cookiePolicyUrl(i18n.language)}
-      title={t('mobile.pageCookies')}
-      onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+    <LegalDocument
+      testID="legal-cookies"
+      title={t('legal.cookiesTitle')}
+      description={cookiesDescription(lt)}
+      notice={t('legal.cookiesAppNote')}
+      parts={cookiesParts(lt)}
     />
   );
 }
