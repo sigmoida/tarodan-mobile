@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import i18n from '@/i18n/config';
 import { refundsApi } from '@/lib/api';
 import { captureException } from '@/services/sentry';
@@ -38,7 +38,7 @@ export function useRefundRequests() {
   const cancelMutation = useMutation({
     mutationFn: (id: string) => refundsApi.cancel(id),
     onSuccess: () => {
-      appAlert(i18n.t('refund.cancelSuccessTitle'), i18n.t('refund.cancelSuccessBody'));
+      toast.success(i18n.t('refund.cancelSuccessBody'));
       queryClient.invalidateQueries({ queryKey: ['refund-requests'] });
     },
     onError: (e: any) => {
