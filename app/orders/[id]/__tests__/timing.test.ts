@@ -8,7 +8,7 @@
  */
 import type { PublicTimingPolicy } from '@/lib/api/timingRules';
 import { FALLBACK_TIMING_POLICY } from '@/lib/shared/timingPolicy';
-import { computePayoutDate, isPastRefundWindow, returnWindowEnd } from '../_lib/timing';
+import { computePayoutDate, isPastRefundWindow, orderTimingValues, returnWindowEnd } from '../_lib/timing';
 import { deriveOrderView } from '../_lib/derive';
 import type { OrderDetail } from '../_lib/types';
 
@@ -127,5 +127,31 @@ describe('deriveOrderView süre parametrelerini kartlara tek yerden verir', () =
     });
     expect(view.timing.orderPaymentWindowHours).toBe(48);
     expect(view.timing.payoutGraceDays).toBe(1);
+  });
+});
+
+describe('gün sayısı siparişin kendi damgasından gelir (orderTimingValues)', () => {
+  it('admin pencereyi 30 güne çıkarsa da 14 günle damgalanan sipariş 14 der', () => {
+    const o = order({
+      returnWindowEndsAt: '2026-01-15T10:00:00.000Z', // teslim + 14
+      escrowReleaseAt: '2026-01-16T10:00:00.000Z', // + 1 grace
+    });
+    const values = orderTimingValues(o, policy(30, 3));
+    expect(values.returnWindowDays).toBe(14);
+    expect(values.payoutGraceDays).toBe(1);
+    expect(deriveOrderView(o, policy(30, 3)).timing.returnWindowDays).toBe(14);
+  });
+
+  it('damga yoksa bugünkü politika kullanılır', () => {
+    const values = orderTimingValues(order(), policy(30, 3));
+    expect(values.returnWindowDays).toBe(30);
+    expect(values.payoutGraceDays).toBe(3);
+  });
+
+  it('teslim edilmemiş siparişte politika; bozuk damga politikaya düşer', () => {
+    expect(orderTimingValues(order({ deliveredAt: undefined }), policy(21)).returnWindowDays).toBe(21);
+    expect(
+      orderTimingValues(order({ returnWindowEndsAt: 'bozuk' }), policy(21)).returnWindowDays,
+    ).toBe(21);
   });
 });

@@ -79,17 +79,28 @@ describe('A-3.1 · iade butonu sunucu damgasına bağlı', () => {
     expect(screen.queryByText('İade Süresi Doldu')).toBeNull();
   });
 
-  it('damga geçmişse buton yok; metin gün sayısını POLİTİKADAN alır', async () => {
+  it('damga geçmişse buton yok; gün sayısı SİPARİŞİN damgasından (admin sonradan 30 yapsa da 14)', async () => {
     policyMock.mockResolvedValue({ data: { returnWindowDays: { value: 30, unit: 'days' } } });
     serveOrder({
-      deliveredAt: new Date(Date.now() - 40 * DAY_MS).toISOString(),
-      returnWindowEndsAt: new Date(Date.now() - DAY_MS).toISOString(),
+      deliveredAt: new Date(Date.now() - 15 * DAY_MS).toISOString(),
+      returnWindowEndsAt: new Date(Date.now() - DAY_MS).toISOString(), // teslim + 14
     });
     renderWithProviders(<OrderDetailScreen />);
     expect(
-      await screen.findByText('30 günlük iade süresi doldu; bu sipariş için artık iade talebi oluşturulamaz.'),
+      await screen.findByText('14 günlük iade süresi doldu; bu sipariş için artık iade talebi oluşturulamaz.'),
     ).toBeOnTheScreen();
     expect(screen.queryByTestId('refund-request-button')).toBeNull();
+  });
+
+  it('30 günle damgalanmış siparişte açık pencere metni 30 der (politika 14 olsa da)', async () => {
+    serveOrder({
+      deliveredAt: new Date(Date.now() - 20 * DAY_MS).toISOString(),
+      returnWindowEndsAt: new Date(Date.now() + 10 * DAY_MS).toISOString(), // teslim + 30
+    });
+    renderWithProviders(<OrderDetailScreen />);
+    expect(
+      await screen.findByText('Teslimattan sonra 30 gün içinde sebep belirtmeden iade talep edebilirsiniz.'),
+    ).toBeOnTheScreen();
   });
 
   it('damgasız eski siparişte pencere politikayla hesaplanır (30 gün → 20. gün açık)', async () => {

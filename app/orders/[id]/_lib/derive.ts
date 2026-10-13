@@ -4,8 +4,7 @@ import i18n from '@/i18n/config';
 import type { PublicTimingPolicy } from '@/lib/api/timingRules';
 import { preparingDeadlineNoticeOf, type PreparingDeadlineAudience } from '@/lib/shared/preparingDeadline';
 import { isMembershipOrder as isMembership } from '@/lib/shared/membershipOrder';
-import { timingMessageValues } from '@/lib/shared/timingPolicy';
-import { computePayoutDate, isPastRefundWindow } from './timing';
+import { computePayoutDate, isPastRefundWindow, orderTimingValues } from './timing';
 import type { OrderDetail } from './types';
 
 /**
@@ -14,7 +13,8 @@ import type { OrderDetail } from './types';
  * `audience`: görüntüleyen (ekran `user.id`'den hesaplar) — hazırlık notu metni.
  *
  * `timing`: kartların `t()` çağrılarına geçtiği ICU parametreleri — kartlar
- * kendi `useTimingValues`'ını çağırmaz, değer tek yerden (buradan) gelir.
+ * kendi `useTimingValues`'ını çağırmaz, değer tek yerden (buradan) gelir. Gün
+ * sayıları siparişin kendi damgalarından (bkz. `orderTimingValues`).
  */
 export function deriveOrderView(
   order: OrderDetail,
@@ -67,7 +67,7 @@ export function deriveOrderView(
 
   const pastRefundWindow = isPastRefundWindow(order, policy);
   const preparingNotice = preparingDeadlineNoticeOf(order, audience);
-  const timing = timingMessageValues(policy);
+  const timing = orderTimingValues(order, policy);
 
   return {
     isMembershipOrder,
