@@ -47,12 +47,12 @@ describe('ScreenHeader — tek standart', () => {
     expect(title.props.numberOfLines).toBe(1);
   });
 
-  it('geri oku: chevron-back, 24, başlık rengi, 44pt dokunma alanı', () => {
+  it('geri oku: chevron-left, 24, başlık rengi, 44pt dokunma alanı', () => {
     const onBack = jest.fn();
     render(<ScreenHeader title="X" onBack={onBack} />);
-    const icon = screen.getByText('Ionicons:chevron-back');
-    expect(icon.props.size).toBe(theme.iconSize.lg);
-    expect(icon.props.color).toBe(theme.colors.text.heading);
+    const icon = screen.getByTestId('icon-chevron-left');
+    expect(icon.props.width).toBe(theme.iconSize.lg);
+    expect(icon.props.stroke).toBe(theme.colors.text.heading);
     const btn = screen.getByLabelText('Geri');
     const box = StyleSheet.flatten(btn.props.style);
     const hit = btn.props.hitSlop as number | { left: number };
@@ -100,7 +100,7 @@ describe('SheetHeader', () => {
     expect(screen.getByText('Filtreler')).toBeTruthy();
     expect(StyleSheet.flatten(screen.getByText('Filtreler').props.style).textAlign).not.toBe('center');
     expect(flat('sh-row').height).toBe(theme.headerHeight);
-    expect(screen.getAllByText(/^Ionicons:/)).toHaveLength(1);
+    expect(screen.getAllByTestId(/^icon-/)).toHaveLength(1);
     fireEvent.press(screen.getByLabelText('Kapat'));
     expect(onClose).toHaveBeenCalled();
   });

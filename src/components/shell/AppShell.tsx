@@ -80,7 +80,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, contentStyle, test
           />
           <HeaderIconButton
             tone="onBrand"
-            icon="notifications-outline"
+            icon="bell"
             label={t('nav.notifications')}
             count={counts.notificationCount}
             testID="app-shell-notifications"
@@ -88,7 +88,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, contentStyle, test
           />
           <HeaderIconButton
             tone="onBrand"
-            icon="cart-outline"
+            icon="shopping-cart"
             label={t('nav.cart')}
             count={counts.cartCount}
             testID="app-shell-cart"

@@ -1,13 +1,15 @@
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { theme } from '../lib/theme';
 import { CountBadge } from './CountBadge';
+import { RefIcon, type IconRef, type IconVariant } from '../icons';
 
 export type HeaderIconTone = 'onBrand' | 'onSurface';
 
 export interface HeaderIconButtonProps {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
+  /** Heroicons adı (geçiş: eski Ionicons adları da çözülür). */
+  icon: IconRef;
+  iconVariant?: IconVariant;
   /** Ekran okuyucu etiketi — zorunlu (ikon tek başına anlam taşımaz). */
   label: string;
   onPress: () => void;
@@ -30,6 +32,7 @@ const PRESSED_OPACITY = 0.6;
  */
 export const HeaderIconButton: React.FC<HeaderIconButtonProps> = ({
   icon,
+  iconVariant,
   label,
   onPress,
   count,
@@ -60,7 +63,7 @@ export const HeaderIconButton: React.FC<HeaderIconButtonProps> = ({
       ]}
     >
       <View style={styles.iconWrap}>
-        <Ionicons name={icon} size={iconSize.lg} color={iconColor} />
+        <RefIcon icon={icon} variant={iconVariant} size={iconSize.lg} color={iconColor} />
         <CountBadge count={count ?? 0} ringColor={ringColor} style={styles.badge} />
       </View>
     </Pressable>

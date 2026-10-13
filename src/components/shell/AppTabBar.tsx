@@ -1,9 +1,8 @@
 import { View, Pressable, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useTranslation } from "react-i18next";
-import { theme, Text, CountBadge } from "@/ui";
+import { theme, Text, CountBadge, Icon, type IconName } from "@/ui";
 import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 import { useShellCounts } from "./useShellCounts";
 import { TAB_PILL_HEIGHT, TAB_PILL_SIDE_GAP, tabPillBottomOffset } from "./tabBarLayout";
@@ -13,17 +12,15 @@ const { colors, spacing, iconSize, radius, shadow } = theme;
 /** Orta "+" düğmesi (hapın içinde). */
 const SELL_SIZE = 48;
 
-type TabIconName = keyof typeof Ionicons.glyphMap;
-
 // Sadece görünür sekmeler — sırasıyla. href:null olan (create, notifications/index)
-// kasıtlı olarak dışarıda bırakılır. İkonlar Heroicons karşılığına en yakın Ionicons.
+// kasıtlı olarak dışarıda bırakılır. İkonlar web Heroicons adları; odaklı sekme `solid`, diğerleri `outline`.
 // NOT: `sell` ve `badge` her girdide açıkça yazılır (`as const` literal tip erişimi için).
 const VISIBLE = [
-  { name: "index", testID: "tab-home", labelKey: "nav.home", icon: "home", iconOutline: "home-outline", sell: false, badge: false },
-  { name: "favorites/index", testID: "tab-favorites", labelKey: "nav.favorites", icon: "heart", iconOutline: "heart-outline", sell: false, badge: false },
-  { name: "sell", testID: "tab-sell", labelKey: "", icon: "add", iconOutline: "add", sell: true, badge: false },
-  { name: "messages/index", testID: "tab-messages", labelKey: "message.messages", icon: "chatbubbles", iconOutline: "chatbubbles-outline", sell: false, badge: true },
-  { name: "profile", testID: "tab-profile", labelKey: "nav.profile", icon: "person", iconOutline: "person-outline", sell: false, badge: false },
+  { name: "index", testID: "tab-home", labelKey: "nav.home", icon: "home" as IconName, sell: false, badge: false },
+  { name: "favorites/index", testID: "tab-favorites", labelKey: "nav.favorites", icon: "heart" as IconName, sell: false, badge: false },
+  { name: "sell", testID: "tab-sell", labelKey: "", icon: "plus" as IconName, sell: true, badge: false },
+  { name: "messages/index", testID: "tab-messages", labelKey: "message.messages", icon: "chat-bubble-left-right" as IconName, sell: false, badge: true },
+  { name: "profile", testID: "tab-profile", labelKey: "nav.profile", icon: "user" as IconName, sell: false, badge: false },
 ] as const;
 
 /**
@@ -56,7 +53,6 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
         {VISIBLE.map((tab) => {
           const focused = activeName === tab.name;
           const color = focused ? colors.primary[600]! : colors.text.subtle;
-          const iconName = (focused ? tab.icon : tab.iconOutline) as TabIconName;
           const label = tab.labelKey ? t(tab.labelKey) : t("mobile.tabBarSell");
 
           return (
@@ -73,11 +69,11 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
             >
               {tab.sell ? (
                 <View style={styles.sellButton}>
-                  <Ionicons name="add" size={iconSize.lg + 4} color={colors.text.inverted} />
+                  <Icon name="plus" size={iconSize.lg + 4} color={colors.text.inverted} />
                 </View>
               ) : (
                 <View>
-                  <Ionicons name={iconName} size={iconSize.lg} color={color} />
+                  <Icon name={tab.icon} variant={focused ? "solid" : "outline"} size={iconSize.lg} color={color} />
                   {tab.badge && (
                     <CountBadge
                       count={messageCount}

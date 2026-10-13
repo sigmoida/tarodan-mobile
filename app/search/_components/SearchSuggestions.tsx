@@ -2,8 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, ScrollView, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Text, theme } from '@/ui';
+import { Text, theme, Icon } from '@/ui';
 
 import { styles } from '../_lib/searchStyles';
 import type { SearchController } from '../_hooks/useSearch';
@@ -40,7 +39,7 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
                 onPress={() => f.removeSearch(query)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="close" size={18} color={colors.text.subtle} />
+                <Icon name="x-mark" size={18} color={colors.text.subtle} />
               </Pressable>
             </Pressable>
           ))}

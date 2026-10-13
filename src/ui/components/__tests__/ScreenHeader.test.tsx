@@ -15,7 +15,7 @@ describe('ScreenHeader — sade beyaz üst bar (web)', () => {
       backgroundColor: colors.surface.elevated,
       borderBottomColor: colors.border.DEFAULT,
     });
-    expect(screen.getByText('Ionicons:chevron-back').props.color).toBe(colors.text.heading);
+    expect(screen.getByTestId('icon-chevron-left').props.stroke).toBe(colors.text.heading);
     expect(StyleSheet.flatten(screen.getByText('Adreslerim').props.style)).toMatchObject({
       fontSize: 18,
       fontWeight: '600',
@@ -37,7 +37,7 @@ describe('ScreenHeader — sade beyaz üst bar (web)', () => {
         }
       />,
     );
-    expect(screen.getByText('Ionicons:cart-outline').props.color).toBe(colors.text.heading);
+    expect(screen.getByTestId('icon-shopping-cart').props.stroke).toBe(colors.text.heading);
     expect(screen.getByText('3')).toBeTruthy();
     expect(StyleSheet.flatten(screen.getByText('Kaydet').props.style).color).toBe(colors.primary[600]);
     fireEvent.press(screen.getByText('Kaydet'));

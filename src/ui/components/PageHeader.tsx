@@ -1,10 +1,10 @@
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { theme } from '../lib/theme';
 import { RawText } from './Text';
 
+import { Icon } from '../icons';
 export interface PageHeaderProps {
   title?: React.ReactNode;
   /** Başlığın yanında (ör. okunmamış adet rozeti) — SectionCard `badge` ile aynı. */
@@ -58,7 +58,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                     accessibilityLabel={backLabel ?? t('common.back')}
                     style={styles.back}
                   >
-                    <Ionicons name="chevron-back" size={iconSize.lg} color={colors.text.heading} />
+                    <Icon name="chevron-left" size={iconSize.lg} color={colors.text.heading} />
                   </Pressable>
                 ) : (
                   <View style={styles.accent} testID="page-header-accent" />

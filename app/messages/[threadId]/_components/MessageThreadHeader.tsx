@@ -1,9 +1,8 @@
 import React from 'react';
 import { View, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Avatar, IconButton, Alert as UIAlert, Text, theme } from '@/ui';
+import { Avatar, IconButton, Alert as UIAlert, Text, theme, Icon } from '@/ui';
 import { ScreenHeader } from '@/components/common/ScreenHeader';
 
 import ReportModal from '@/components/ReportModal';
@@ -74,7 +73,7 @@ export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
           <Text variant="bodySm" tone="primary" style={styles.productBannerText} numberOfLines={1}>
             {currentThread.product.title}
           </Text>
-          <Ionicons name="chevron-forward" size={iconSize.sm} color={colors.text.muted} />
+          <Icon name="chevron-right" size={iconSize.sm} color={colors.text.muted} />
         </Pressable>
       )}
 

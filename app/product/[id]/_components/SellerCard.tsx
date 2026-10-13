@@ -1,8 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
-import { Avatar, Button, SectionCard, Text, theme } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
+import { Avatar, Button, SectionCard, Text, theme, Icon, ButtonRow } from '@/ui';
 import { resolveAvatarSource } from '@/utils/imageUrl';
 import type { ProductSeller } from '../_lib/types';
 
@@ -41,7 +40,7 @@ export function SellerCard({
           <View style={styles.statsRow}>
             {rating > 0 ? (
               <View style={styles.stat}>
-                <Ionicons name="star" size={iconSize.sm} color={colors.warning[400]!} />
+                <Icon name="star" variant="solid" size={iconSize.sm} color={colors.warning[400]!} />
                 <Text variant="bodySm" weight="medium">
                   {rating.toFixed(1)}
                 </Text>
@@ -67,10 +66,10 @@ export function SellerCard({
       </Pressable>
 
       {!isOwner ? (
-        <View style={styles.actions}>
-          <Button variant="secondary" title={t('product.sendMessage')} onPress={onMessage} style={styles.flex} />
-          <Button variant="outline" title={t('seller.viewProfile')} onPress={onPressSeller} style={styles.flex} />
-        </View>
+        <ButtonRow style={{ marginTop: theme.spacing[4] }}>
+          <Button variant="secondary" title={t('product.sendMessage')} onPress={onMessage} />
+          <Button variant="outline" title={t('seller.viewProfile')} onPress={onPressSeller} />
+        </ButtonRow>
       ) : null}
     </SectionCard>
   );
@@ -83,6 +82,4 @@ const styles = StyleSheet.create({
   name: { flexShrink: 1 },
   statsRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: spacing[2], marginTop: spacing[1] },
   stat: { flexDirection: 'row', alignItems: 'center', gap: spacing[1] },
-  actions: { flexDirection: 'row', gap: spacing[2], marginTop: spacing[4] },
-  flex: { flex: 1 },
 });

@@ -107,7 +107,7 @@ export default function ProductDetailScreen() {
       loadingFallback={<ProductSkeleton />}
       empty={!isLoading && !product}
       emptyState={{
-        icon: 'cube-outline',
+        icon: 'cube',
         title: t('product.productNotFoundTitle'),
         actionLabel: t('common.goBack'),
         onAction: goBack,

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { CountBadge, theme } from '@/ui';
+import { CountBadge, RefIcon, theme, type IconRef, type IconVariant } from '@/ui';
 import { getGlassView } from '../_lib/glass';
 
 const { colors, radius, shadow, iconSize, minTouchTarget } = theme;
@@ -9,10 +8,10 @@ const { colors, radius, shadow, iconSize, minTouchTarget } = theme;
 /** Ada çapı: dokunma alanı (44pt) görsel ölçüyle aynı — ek hitSlop gerekmez. */
 export const FLOATING_BUTTON_SIZE = minTouchTarget;
 
-type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
-
 export interface FloatingIconButtonProps {
-  icon: IoniconName;
+  /** Heroicons adı (geçiş: eski Ionicons adları da çözülür). */
+  icon: IconRef;
+  iconVariant?: IconVariant;
   onPress: () => void;
   accessibilityLabel: string;
   testID?: string;
@@ -30,6 +29,7 @@ export interface FloatingIconButtonProps {
  */
 export function FloatingIconButton({
   icon,
+  iconVariant,
   onPress,
   accessibilityLabel,
   testID,
@@ -38,7 +38,7 @@ export function FloatingIconButton({
   iconColor = colors.text.heading,
 }: FloatingIconButtonProps) {
   const Glass = getGlassView();
-  const glyph = <Ionicons name={icon} size={iconSize.lg} color={iconColor} />;
+  const glyph = <RefIcon icon={icon} variant={iconVariant} size={iconSize.lg} color={iconColor} />;
 
   return (
     <Pressable

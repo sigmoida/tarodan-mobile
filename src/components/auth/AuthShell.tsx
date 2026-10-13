@@ -7,9 +7,8 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text, theme, useHeaderTopInset } from '@/ui';
+import { Text, theme, useHeaderTopInset, Icon } from '@/ui';
 import { BrandLogo } from '@/components/BrandLogo';
 import { AuthHeroBanner } from '@/components/hero/AuthHeroBanner';
 import type { AuthHeroPlacement } from '@/components/hero/useAuthHero';
@@ -85,7 +84,7 @@ export const AuthShell: React.FC<AuthShellProps> = ({
                 hitSlop={spacing[3]}
                 style={styles.back}
               >
-                <Ionicons name="arrow-back" size={theme.iconSize.sm} color={colors.text.muted} />
+                <Icon name="arrow-left" size={theme.iconSize.sm} color={colors.text.muted} />
                 <Text variant="bodySm" tone="muted">
                   {back.label}
                 </Text>

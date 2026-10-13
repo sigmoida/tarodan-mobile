@@ -1,5 +1,4 @@
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { RawText, Text } from './Text';
@@ -7,6 +6,7 @@ import { HeaderIconButton } from './HeaderIconButton';
 import { theme } from '../lib/theme';
 import { useHeaderTopInset } from '../lib/header';
 
+import { Icon, type IconRef, type IconVariant } from '../icons';
 /**
  * @deprecated Eski turuncu/açık ayrımı. Yığın ekranlarının üst barı artık TEK görünüm: web'in
  * sade beyaz barı. Prop geriye uyum için kabul edilir, görünümü değiştirmez.
@@ -93,7 +93,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
             accessibilityRole="button"
             accessibilityLabel={t('common.back')}
           >
-            <Ionicons name="chevron-back" size={iconSize.lg} color={colors.text.heading} />
+            <Icon name="chevron-left" size={iconSize.lg} color={colors.text.heading} />
           </Pressable>
         ) : (
           // Geri oku olmasa da aynı boş kutu: başlık her ekranda AYNI x konumunda başlar.
@@ -123,7 +123,8 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
 
 export interface TopBarActionProps {
   /** İkon (başlık renginde, 24) ya da kısa metin aksiyonu ("Kaydet"). */
-  icon?: React.ComponentProps<typeof Ionicons>['name'];
+  icon?: IconRef;
+  iconVariant?: IconVariant;
   label?: string;
   onPress: () => void;
   accessibilityLabel?: string;
@@ -139,6 +140,7 @@ export interface TopBarActionProps {
  */
 export const TopBarAction: React.FC<TopBarActionProps> = ({
   icon,
+  iconVariant,
   label,
   onPress,
   accessibilityLabel,
@@ -149,6 +151,7 @@ export const TopBarAction: React.FC<TopBarActionProps> = ({
   icon ? (
     <HeaderIconButton
       icon={icon}
+      iconVariant={iconVariant}
       label={accessibilityLabel ?? label ?? icon}
       onPress={onPress}
       count={count}

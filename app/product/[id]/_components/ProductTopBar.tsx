@@ -52,7 +52,7 @@ export function ProductTopBar({
       <View style={[styles.row, { paddingTop: rowTop }]} pointerEvents="box-none">
         <FloatingIconButton
           testID="product-back-button"
-          icon="chevron-back"
+          icon="chevron-left"
           accessibilityLabel={t('common.back')}
           onPress={onBack}
         />

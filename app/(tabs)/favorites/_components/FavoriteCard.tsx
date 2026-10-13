@@ -47,7 +47,8 @@ export function FavoriteCard({ item, f }: { item: WishlistItem; f: FavoritesScre
           />
           {item.product.status === 'active' && (
             <IconButton
-              icon={f.isInCart(item.productId) ? 'cart' : 'cart-outline'}
+              icon="shopping-cart"
+              iconVariant={f.isInCart(item.productId) ? 'solid' : 'outline'}
               accessibilityLabel={f.isInCart(item.productId) ? t('product.removeFromCart') : t('product.addToCart')}
               size="md"
               color={colors.primary[600]!}

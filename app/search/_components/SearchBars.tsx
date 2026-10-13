@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Pressable, Animated } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Input, Text, theme } from '@/ui';
+import { Input, Text, theme, Icon } from '@/ui';
 import { ActiveFilterChips, ProductListControls } from '@/components/product';
 import { buildSortOptions } from '@/utils/productFilters';
 import { styles } from '../_lib/searchStyles';
@@ -34,7 +33,7 @@ export function SearchBars({ f }: { f: SearchController }) {
             placeholder={t('search.placeholderLong')}
             value={f.searchQuery}
             onChangeText={f.handleSearchChange}
-            leftIconName="search"
+            leftIconName="magnifying-glass"
             containerStyle={styles.searchInputContainer}
             fieldStyle={[styles.searchInputField, f.suggestionsOpen && styles.searchInputFieldOpen]}
             rightIcon={
@@ -45,7 +44,7 @@ export function SearchBars({ f }: { f: SearchController }) {
                   accessibilityRole="button"
                   accessibilityLabel={t('common.close')}
                 >
-                  <Ionicons name="close-circle" size={theme.iconSize.md} color={colors.text.muted} />
+                  <Icon name="x-circle" variant="solid" size={theme.iconSize.md} color={colors.text.muted} />
                 </Pressable>
               ) : undefined
             }

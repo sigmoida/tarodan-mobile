@@ -64,7 +64,7 @@ export const SheetHeader: React.FC<SheetHeaderProps> = ({
         </View>
         {onClose ? (
           <IconButton
-            icon="close"
+            icon="x-mark"
             size="md"
             accessibilityLabel={closeLabel ?? 'Close'}
             onPress={onClose}

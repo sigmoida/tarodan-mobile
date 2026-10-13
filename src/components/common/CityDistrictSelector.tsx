@@ -1,8 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Modal, Keyboard } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { theme, Input, SheetHeader, Text } from '@/ui';
+import { theme, Input, SheetHeader, Text, Icon } from '@/ui';
 import { turkeyLocations, getDistrictsForCity } from '../../utils/turkeyLocations';
 
 const { colors } = theme;
@@ -106,7 +105,7 @@ export function CityDistrictSelector({
             {city || t('common.selectCityPlaceholder')}
           </Text>
         </View>
-        <Ionicons name="chevron-down" size={18} color={colors.text.muted} />
+        <Icon name="chevron-down" size={18} color={colors.text.muted} />
       </TouchableOpacity>
 
       {!hideDistrict ? (
@@ -132,7 +131,7 @@ export function CityDistrictSelector({
               {district || (city ? t('common.selectDistrictPlaceholder') : t('common.selectCityFirst'))}
             </Text>
           </View>
-          <Ionicons name="chevron-down" size={18} color={colors.text.muted} />
+          <Icon name="chevron-down" size={18} color={colors.text.muted} />
         </TouchableOpacity>
       ) : null}
 
@@ -158,7 +157,7 @@ export function CityDistrictSelector({
               placeholder={t('common.searchCity')}
               value={citySearch}
               onChangeText={setCitySearch}
-              leftIconName="search"
+              leftIconName="magnifying-glass"
             />
           </View>
           <FlatList
@@ -172,7 +171,7 @@ export function CityDistrictSelector({
               >
                 <Text style={styles.rowText}>{item.name}</Text>
                 {city === item.name ? (
-                  <Ionicons name="checkmark" size={18} color={colors.primary[600]!} />
+                  <Icon name="check" size={18} color={colors.primary[600]!} />
                 ) : null}
               </TouchableOpacity>
             )}
@@ -200,7 +199,7 @@ export function CityDistrictSelector({
               placeholder={t('common.searchDistrict')}
               value={districtSearch}
               onChangeText={setDistrictSearch}
-              leftIconName="search"
+              leftIconName="magnifying-glass"
             />
           </View>
           <FlatList
@@ -214,7 +213,7 @@ export function CityDistrictSelector({
               >
                 <Text style={styles.rowText}>{item}</Text>
                 {district === item ? (
-                  <Ionicons name="checkmark" size={18} color={colors.primary[600]!} />
+                  <Icon name="check" size={18} color={colors.primary[600]!} />
                 ) : null}
               </TouchableOpacity>
             )}

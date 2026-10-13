@@ -1,8 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Badge, Text, theme } from '@/ui';
+import { Badge, Text, theme, Icon } from '@/ui';
 import { formatPrice } from '@/utils/format';
 import type { PriceInfo } from '../_lib/display';
 import type { Product } from '../_lib/types';
@@ -57,13 +56,13 @@ export function ProductTitleBlock({
 
       <View style={styles.counters}>
         <View style={styles.counter}>
-          <Ionicons name="eye-outline" size={iconSize.sm} color={colors.primary[500]} />
+          <Icon name="eye" size={iconSize.sm} color={colors.primary[500]} />
           <Text variant="bodySm">
             {product.viewCount || 0} {t('product.views')}
           </Text>
         </View>
         <View style={styles.counter}>
-          <Ionicons name="heart" size={iconSize.sm} color={colors.danger[500]} />
+          <Icon name="heart" variant="solid" size={iconSize.sm} color={colors.danger[500]} />
           <Text variant="bodySm">
             {favoriteCount} {t('product.likes')}
           </Text>

@@ -30,7 +30,7 @@ export default function MyListingsScreen() {
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       right={
         <TopBarAction
-          icon="stats-chart"
+          icon="chart-bar"
           accessibilityLabel={f.t('mobile.settingsStatistics')}
           onPress={() => router.push('/settings/analytics')}
         />

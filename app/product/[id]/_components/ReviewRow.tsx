@@ -1,8 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Text, theme } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
+import { Text, theme, Icon } from '@/ui';
 import { ReviewAuthorName } from '@/components/reviews/ReviewAuthorName';
 import type { ProductReview } from '../_lib/types';
 
@@ -22,9 +21,9 @@ export function ReviewRow({ review, divided }: { review: ProductReview; divided?
         <ReviewAuthorName review={review as any} name={reviewerName} style={styles.reviewer} />
         <View style={styles.stars}>
           {[1, 2, 3, 4, 5].map((star) => (
-            <Ionicons
+            <Icon
               key={star}
-              name={star <= score ? 'star' : 'star-outline'}
+              name={star <= score ? 'star' : 'star'} variant={star <= score ? 'solid' : 'outline'}
               size={iconSize.sm}
               color={colors.warning[400]!}
             />

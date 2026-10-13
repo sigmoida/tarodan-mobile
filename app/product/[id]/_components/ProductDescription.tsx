@@ -1,7 +1,6 @@
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Alert, SectionCard, Text, theme } from '@/ui';
+import { Alert, SectionCard, Text, theme, Icon } from '@/ui';
 import { getProductNotice } from '../_lib/notice';
 import type { Product } from '../_lib/types';
 
@@ -25,8 +24,8 @@ export function ProductDescription({ product }: { product: Product }) {
           variant={notice.variant}
           title={notice.title}
           icon={
-            <Ionicons
-              name={notice.variant === 'default' ? 'information-circle-outline' : 'warning-outline'}
+            <Icon
+              name={notice.variant === 'default' ? 'information-circle' : 'exclamation-triangle'}
               size={iconSize.md}
               color={
                 notice.variant === 'danger'

@@ -26,7 +26,7 @@ function FavoritesTabScreen() {
       <AppShell>
         <EmptyState
           fullscreen
-          icon="heart-outline"
+          icon="heart"
           title={t('favorites.myFavorites')}
           subtitle={t('favorites.loginRequired')}
           actionLabel={t('common.login')}
@@ -63,7 +63,7 @@ function FavoritesTabScreen() {
             />
           ) : (
             <EmptyState
-              icon="heart-outline"
+              icon="heart"
               title={t('favorites.empty')}
               subtitle={t('favorites.emptyStateDesc')}
               actionLabel={t('order.exploreProducts')}

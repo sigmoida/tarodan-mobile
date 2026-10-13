@@ -8,7 +8,6 @@ import { useMemo, useState } from 'react';
 // buradaki native sayfa-sheet (iOS) gerekir — platform kalıbı.
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import { View, ScrollView, Modal, StyleSheet, Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
@@ -20,6 +19,7 @@ import {
   SheetHeader,
   Text,
   theme,
+  Icon,
 } from '@/ui';
 import type { ProductFilters } from '../utils/productFilters';
 import { buildConditionOptions, keepGeneralAttributeSelections } from '../utils/productFilters';
@@ -194,7 +194,7 @@ export default function ProductFilterSheet({
               placeholder={t('search.placeholderLong')}
               value={filters.search}
               onChangeText={(v) => onChange({ ...filters, search: v })}
-              leftIconName="search"
+              leftIconName="magnifying-glass"
               rightIcon={
                 filters.search ? (
                   <Pressable
@@ -203,7 +203,7 @@ export default function ProductFilterSheet({
                     accessibilityRole="button"
                     accessibilityLabel={t('filter.clearSearchLabel')}
                   >
-                    <Ionicons name="close-circle" size={20} color={colors.text.muted} />
+                    <Icon name="x-circle" variant="solid" size={20} color={colors.text.muted} />
                   </Pressable>
                 ) : undefined
               }
@@ -236,7 +236,7 @@ export default function ProductFilterSheet({
               placeholder={t('brands.searchPlaceholder')}
               value={brandSearch}
               onChangeText={setBrandSearch}
-              leftIconName="search"
+              leftIconName="magnifying-glass"
             />
             <View style={styles.scrollList}>
               {filteredBrands.slice(0, 40).map((b) => (
@@ -264,7 +264,7 @@ export default function ProductFilterSheet({
               placeholder={t('product.searchModels')}
               value={modelSearch}
               onChangeText={setModelSearch}
-              leftIconName="search"
+              leftIconName="magnifying-glass"
             />
             <View style={styles.scrollList}>
               {modelsForBrand.slice(0, 40).map((m) => (
@@ -321,7 +321,7 @@ export default function ProductFilterSheet({
               placeholder={t('product.searchManufacturers')}
               value={manufacturerSearch}
               onChangeText={setManufacturerSearch}
-              leftIconName="search"
+              leftIconName="magnifying-glass"
             />
             <View style={styles.scrollList}>
               {filteredManufacturers.slice(0, 40).map((m) => (

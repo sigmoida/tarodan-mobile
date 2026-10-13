@@ -2,8 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { View, FlatList, StyleSheet, RefreshControl } from 'react-native';
 import { useState, useCallback } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { EmptyState, SectionCard, SkeletonText, Spinner, Text, pageListContentStyle, theme } from '@/ui';
+import { EmptyState, SectionCard, SkeletonText, Spinner, Text, pageListContentStyle, theme, Icon } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { useAllProductReviews } from './_hooks/useAllProductReviews';
 import { ReviewRow } from './_components/ReviewRow';
@@ -42,7 +41,7 @@ export default function ProductReviewsScreen() {
           f.average != null || f.total > 0 ? (
             <SectionCard style={styles.summary}>
               <View style={styles.summaryRow}>
-                <Ionicons name="star" size={iconSize.md} color={colors.warning[400]!} />
+                <Icon name="star" variant="solid" size={iconSize.md} color={colors.warning[400]!} />
                 <Text variant="h2">{Number(f.average ?? 0).toFixed(1)}</Text>
                 <Text variant="bodySm" tone="muted">
                   {t('review.countLabel', { count: f.total })}
@@ -57,7 +56,7 @@ export default function ProductReviewsScreen() {
               <SkeletonText lines={5} />
             </View>
           ) : (
-            <EmptyState icon="star-outline" title={t('review.noReviews')} />
+            <EmptyState icon="star" title={t('review.noReviews')} />
           )
         }
         onEndReached={() => {

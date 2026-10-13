@@ -28,7 +28,7 @@ export const AuthGatePage: React.FC<AuthGatePageProps> = ({ title, emptyTitle, s
       onBack={onBack}
       empty
       emptyState={{
-        icon: icon ?? 'person-outline',
+        icon: icon ?? 'user',
         title: emptyTitle ?? title,
         subtitle,
         actionLabel: t('common.login'),

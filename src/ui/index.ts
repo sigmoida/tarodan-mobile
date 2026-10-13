@@ -29,6 +29,7 @@ export {
 	Icon,
 	isIconName,
 	resolveIcon,
+	RefIcon,
 	type IconProps,
 	type IconName,
 	type IconVariant,

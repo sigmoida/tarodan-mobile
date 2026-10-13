@@ -33,14 +33,15 @@ export function ProductTopActions({
     <>
       <FloatingIconButton
         testID="product-report-button"
-        icon={reportOnly ? 'flag-outline' : 'ellipsis-vertical'}
+        icon={reportOnly ? 'flag' : 'ellipsis-vertical'}
         accessibilityLabel={t('report.report')}
         onPress={onMenu}
       />
-      <FloatingIconButton icon="share-outline" accessibilityLabel={t('product.share')} onPress={onShare} />
+      <FloatingIconButton icon="share" accessibilityLabel={t('product.share')} onPress={onShare} />
       <FloatingIconButton
         testID="product-favorite-button"
-        icon={isFavorite ? 'heart' : 'heart-outline'}
+        icon="heart"
+        iconVariant={isFavorite ? 'solid' : 'outline'}
         iconColor={isFavorite ? theme.colors.danger[500] : undefined}
         accessibilityLabel={t('product.addToFavorites')}
         onPress={onFavorite}
@@ -48,7 +49,7 @@ export function ProductTopActions({
       />
       <FloatingIconButton
         testID="product-cart-button"
-        icon="cart-outline"
+        icon="shopping-cart"
         accessibilityLabel={t('nav.cart')}
         count={cartCount}
         onPress={onCart}

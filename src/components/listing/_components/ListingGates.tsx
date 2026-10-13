@@ -1,9 +1,8 @@
 import React from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Button, theme, RawText } from '@/ui';
+import { Button, theme, RawText, Icon } from '@/ui';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { PageShell } from '@/components/common/PageShell';
 import { goBackOrHome } from '@/components/common/goBackOrHome';
@@ -62,7 +61,7 @@ export function ListingGates({ f }: { f: ListingFormController }) {
   if (isEdit && productNotFound) {
     return (
       <ListingGateFrame isEdit>
-        <Ionicons name="alert-circle-outline" size={64} color={colors.danger[600]!} />
+        <Icon name="exclamation-circle" size={64} color={colors.danger[600]!} />
         <RawText style={[styles.authText, { marginTop: theme.spacing[4] }]}>{t('product.listingNotFound')}</RawText>
         <Button title={t('common.goBack')} onPress={goBackOrHome} />
       </ListingGateFrame>
@@ -72,7 +71,7 @@ export function ListingGates({ f }: { f: ListingFormController }) {
   if (isEdit && status === 'reserved') {
     return (
       <ListingGateFrame isEdit>
-        <Ionicons name="lock-closed-outline" size={56} color={colors.warning[600]!} />
+        <Icon name="lock-closed" size={56} color={colors.warning[600]!} />
         <RawText style={[styles.authText, { marginTop: theme.spacing[4] }]}>
           {t('listing.reservedCannotEdit')}
         </RawText>

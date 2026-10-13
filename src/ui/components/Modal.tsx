@@ -106,7 +106,7 @@ export const Modal: React.FC<ModalProps> = ({
               <View style={[styles.header, styles.headerCloseOnly]}>
                 <View style={styles.fill} />
                 <IconButton
-                  icon="close"
+                  icon="x-mark"
                   size={CLOSE_BUTTON_SIZE}
                   accessibilityLabel={closeLabel ?? 'Close'}
                   onPress={onClose}

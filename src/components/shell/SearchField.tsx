@@ -1,8 +1,7 @@
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Text, theme } from '@/ui';
+import { Text, theme, Icon } from '@/ui';
 
 const { colors, spacing, iconSize, controlHeight, radiusRole } = theme;
 
@@ -28,7 +27,7 @@ export const SearchField: React.FC<SearchFieldProps> = ({ onPress, placeholder, 
       accessibilityLabel={label}
       style={styles.field}
     >
-      <Ionicons name="search-outline" size={iconSize.md} color={colors.text.subtle} />
+      <Icon name="magnifying-glass" size={iconSize.md} color={colors.text.subtle} />
       <Text variant="body" tone="subtle" numberOfLines={1} style={styles.placeholder}>
         {label}
       </Text>

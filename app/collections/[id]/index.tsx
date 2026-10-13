@@ -35,16 +35,17 @@ export default function CollectionDetailScreen() {
       right={
         f.collection ? (
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <TopBarAction icon="share-outline" accessibilityLabel={t('collection.share')} onPress={f.handleShare} />
+            <TopBarAction icon="share" accessibilityLabel={t('collection.share')} onPress={f.handleShare} />
             {!f.isOwner ? (
               <>
                 <TopBarAction
-                  icon={f.isLiked ? 'heart' : 'heart-outline'}
+                  icon="heart"
+                  iconVariant={f.isLiked ? 'solid' : 'outline'}
                   accessibilityLabel={t('collection.likes')}
                   onPress={f.handleLike}
                 />
                 <TopBarAction
-                  icon="flag-outline"
+                  icon="flag"
                   accessibilityLabel={t('collection.report')}
                   onPress={report.open}
                 />

@@ -3,8 +3,7 @@ import React, { useState } from 'react';
 // tam ekran, şeffaf native Modal gerekir (jest + zoom jesti için GestureHandlerRootView modalın İÇİNDE).
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import { Modal, ScrollView, Pressable, Dimensions, StyleSheet } from 'react-native';
-import { theme, useHeaderTopInset } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
+import { theme, useHeaderTopInset, Icon } from '@/ui';
 import { useTranslation } from 'react-i18next';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import ZoomableImage from '@/components/product/ZoomableImage';
@@ -45,7 +44,7 @@ export function ImageViewerModal({
           accessibilityRole="button"
           accessibilityLabel={t('common.close')}
         >
-          <Ionicons name="close" size={theme.iconSize.lg} color={colors.white} />
+          <Icon name="x-mark" size={theme.iconSize.lg} color={colors.white} />
         </Pressable>
         <ScrollView
           horizontal

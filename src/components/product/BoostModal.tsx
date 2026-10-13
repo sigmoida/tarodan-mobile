@@ -19,8 +19,7 @@ import {
   Switch,
 } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { theme, RawText, SheetHeader } from '@/ui';
+import { theme, RawText, SheetHeader, Icon } from '@/ui';
 import { productsApi } from '@/lib/api';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
@@ -206,10 +205,10 @@ export function BoostModal({
                       activeOpacity={0.8}
                     >
                       <View style={styles.optionLeft}>
-                        <Ionicons
-                          name={active ? 'radio-button-on' : 'radio-button-off'}
+                        <Icon
+                          name={active ? 'check-circle' : 'minus-circle'}
                           size={20}
-                          color={active ? colors.warning[500]! : colors.gray[300]!}
+                          color={active ? colors.warning[500]! : colors.gray[300]!} variant="solid"
                         />
                         <RawText style={styles.optionLabel}>{opt.label}</RawText>
                       </View>
