@@ -58,9 +58,13 @@ export const buildAvatarUrl = (
   return filename ? `${base}?v=${encodeURIComponent(filename)}` : base;
 };
 
-console.log("📡 API URL:", API_URL);
-console.log("📱 Platform:", Platform.OS);
-console.log("🌐 Expo Host:", Constants.expoConfig?.hostUri);
+// Yapılandırma ipuçları yalnız geliştirmede; release cihaz günlüğüne API adresi
+// ve geliştirme host'u yazılmaz.
+if (__DEV__) {
+  console.log("📡 API URL:", API_URL);
+  console.log("📱 Platform:", Platform.OS);
+  console.log("🌐 Expo Host:", Constants.expoConfig?.hostUri);
+}
 
 /**
  * Mobil istemci ÇEREZ TAŞIMAZ. Sunucu `/auth/login` ve `/auth/refresh`
