@@ -7,7 +7,8 @@ const { colors, spacing } = theme;
 export const styles = StyleSheet.create({
   form: {
     width: '100%',
-    gap: spacing[4],
+    // Input kendi alt boşluğunu (8) taşır: 8 + 8 = web `space-y-4` (16).
+    gap: spacing[2],
   },
   forgotLink: {
     alignSelf: 'flex-end',
@@ -16,6 +17,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[3],
+    marginVertical: spacing[2],
   },
   dividerLine: {
     flex: 1,
@@ -39,5 +41,6 @@ export const styles = StyleSheet.create({
   },
   terms: {
     gap: spacing[1],
+    marginVertical: spacing[1],
   },
 });
