@@ -8,6 +8,9 @@ const AVATAR_SIZE = 80;
 /** Fotoğrafın sağ altındaki kamera rozeti. */
 const EDIT_BADGE_SIZE = 28;
 
+/** Bölüm içi eylem düğmeleri arası boşluk (yatay). */
+export const ACTION_GAP = spacing[4];
+
 // Route-local stylesheet (§12) — D1b referans düzeni: token'lar, bölümler SectionCard.
 export const styles = StyleSheet.create({
   avatarSection: {
@@ -37,8 +40,9 @@ export const styles = StyleSheet.create({
   lastInput: {
     marginBottom: 0,
   },
-  links: {
-    gap: spacing[2],
+  // Hesap bölümleri (kullanıcı adı / e-posta): alanlar ve eylem satırları arası boşluk.
+  sectionBody: {
+    gap: spacing[3],
   },
   // LegalIdentityCard
   legalDescription: {
