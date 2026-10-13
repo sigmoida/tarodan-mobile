@@ -1,19 +1,21 @@
 import React from 'react';
-import { Text } from '@/ui';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text, theme } from '@/ui';
 
 export interface AuthFooterLinkProps {
   /** Düz metin ("Hesabınız yok mu?"). */
   prompt: string;
-  /** Bağlantı etiketi ("Kayıt Ol"). */
+  /** Bağlantı etiketi ("Üye Ol"). */
   linkLabel: string;
   onPress: () => void;
   testID?: string;
 }
 
 /**
- * Auth ekranı alt satırı — web `AuthCard` `footer`: `text-sm text-muted` cümle + satır içinde
- * `font-semibold text-primary-600` bağlantı. Cümle ve bağlantı tek `Text` içinde akar (dar
- * ekranda doğal sarar).
+ * Auth ekranı alt satırı — web `AuthCard` `footer`: `text-sm text-muted` cümle + yanında
+ * `font-semibold text-primary-600` bağlantı. Cümle ve bağlantı AYRI öğelerdir (iç içe `Text`
+ * değil): bağlantı kendi dokunma alanına, `testID`'sine ve erişilebilirlik rolüne sahip olur,
+ * dar ekranda satır sarar.
  */
 export const AuthFooterLink: React.FC<AuthFooterLinkProps> = ({
   prompt,
@@ -21,19 +23,31 @@ export const AuthFooterLink: React.FC<AuthFooterLinkProps> = ({
   onPress,
   testID,
 }) => (
-  <Text variant="bodySm" tone="muted">
-    {`${prompt} `}
-    <Text
-      variant="bodySm"
-      tone="primary"
-      weight="semibold"
+  <View style={styles.row}>
+    <Text variant="bodySm" tone="muted">
+      {prompt}
+    </Text>
+    <Pressable
+      testID={testID}
       onPress={onPress}
       accessibilityRole="link"
-      testID={testID}
+      accessibilityLabel={linkLabel}
+      hitSlop={theme.spacing[3]}
     >
-      {linkLabel}
-    </Text>
-  </Text>
+      <Text variant="bodySm" tone="primary" weight="semibold">
+        {linkLabel}
+      </Text>
+    </Pressable>
+  </View>
 );
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    columnGap: theme.spacing[1],
+  },
+});
 
 export default AuthFooterLink;
