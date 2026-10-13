@@ -5,11 +5,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
 import { elogoInvoicesApi, sellerInvoiceApi } from '@/lib/api';
 import { qk } from '@/lib/query';
+import type { Notify } from '../_lib/types';
 
 /** Yüklenebilecek fatura PDF'i için üst sınır (backend de sınırlıyor). */
 const MAX_INVOICE_BYTES = 10 * 1024 * 1024;
-
-type Notify = (message: string, variant: 'success' | 'danger' | 'default') => void;
 
 /** eLogo e-Arşiv + kurumsal satıcı faturası query'leri + görüntüleme handler'ları. */
 export function useOrderInvoices(id: string, orderStatus: string | undefined, notify: Notify) {

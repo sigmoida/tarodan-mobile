@@ -81,7 +81,7 @@ export default function OrderDetailScreen() {
       >
         <OrderEscrowCard order={order} view={view} />
         <OrderStatusCard order={order} view={view} />
-        <OrderCancelledInfo view={view} />
+        <OrderCancelledInfo order={order} view={view} audience={isSeller ? 'seller' : 'buyer'} />
         <OrderPayPendingCard order={order} view={view} onPay={actions.initiatePayment} payPending={actions.payPending} />
         <OrderTrackingCard order={order} view={view} shipment={shipment} isSeller={isSeller} />
         <OrderProductCard order={order} />
@@ -96,7 +96,7 @@ export default function OrderDetailScreen() {
           onCancelRefund={actions.handleCancelRefund}
           cancelRefundPending={actions.cancelRefundPending}
         />
-        <OrderRefundActionCard order={order} view={view} onOpenRefund={actions.refund.open} />
+        <OrderRefundActionCard order={order} view={view} onOpenRefund={actions.refundModal.open} />
         {/* B7: fatura verileri ayrı query'lerle sonradan gelir (bkz. useOrderInvoices); dokunulan
             aksiyon kartlarının (iptal/değerlendirme/iade) ALTINDA render edilir ki geç gelen
             içerik hiçbir dokunma hedefini kaydırmasın. */}
@@ -122,20 +122,11 @@ export default function OrderDetailScreen() {
       />
 
       <RefundRequestModal
-        visible={actions.refund.visible}
-        onClose={actions.refund.close}
+        visible={actions.refundModal.visible}
+        onClose={actions.refundModal.close}
+        orderId={String(id)}
         orderQuantity={order.quantity ?? 1}
-        reason={actions.refund.reason}
-        setReason={actions.refund.setReason}
-        description={actions.refund.description}
-        setDescription={actions.refund.setDescription}
-        quantity={actions.refund.quantity}
-        setQuantity={actions.refund.setQuantity}
-        evidence={actions.refund.evidence}
-        pickEvidence={actions.refund.pickEvidence}
-        removeEvidence={actions.refund.removeEvidence}
-        onSubmit={actions.refund.submit}
-        isPending={actions.refund.isPending}
+        notify={actions.notify}
       />
 
       <Snackbar

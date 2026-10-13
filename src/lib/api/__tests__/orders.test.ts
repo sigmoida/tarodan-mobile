@@ -2,10 +2,11 @@
  * `POST /orders/quote` yanıtının kökünde `pricingHash` + `shippingTariffVersion`
  * + `commissionRuleSetId` + `commissionRuleSetVersion` bulunur (2026-08-08 canlı
  * ölçüm — delta 18). API DTO'su bu dördünü order-create uçlarının (`checkout`,
- * `checkoutGuest`, `directBuy`, `createGuest`) hepsinde ZORUNLU bekliyor —
- * komisyon seti quote'tan aynen geri gönderilmezse DTO doğrulaması reddediyor.
+ * `checkoutGuest`) ikisinde de ZORUNLU bekliyor — komisyon seti quote'tan
+ * aynen geri gönderilmezse DTO doğrulaması reddediyor. (`directBuy` /
+ * `createGuest` hiç çağrılmadıkları için kaldırıldı — Parite A-1.11a.)
  *
- * Bu test dört payload üreticisinin de `toExpectedPricing`'in ürettiği
+ * Bu test iki payload üreticisinin de `toExpectedPricing`'in ürettiği
  * `ExpectedPricingSnapshot`'ı (dört `expected*` alanı) AYNEN koşulsuz alt
  * katmana geçirdiğini doğrular.
  *
@@ -46,7 +47,7 @@ const EXPECTED_PRICING = {
 describe('ordersApi — expectedPricingHash / expectedShippingTariffVersion', () => {
   it('checkout (üye): dört alanı da koşulsuz gönderir', async () => {
     await ordersApi.checkout({
-      items: [{ productId: 'p1' }],
+      items: [{ productId: 'p1', quantity: 1 }],
       idempotencyKey: 'idem-1',
       distanceSalesAccepted: true,
       expectedPricing: EXPECTED_PRICING,
@@ -59,7 +60,7 @@ describe('ordersApi — expectedPricingHash / expectedShippingTariffVersion', ()
 
   it('checkoutGuest (misafir): dört alanı da koşulsuz gönderir', async () => {
     await ordersApi.checkoutGuest({
-      items: [{ productId: 'p1' }],
+      items: [{ productId: 'p1', quantity: 1 }],
       idempotencyKey: 'idem-2',
       distanceSalesAccepted: true,
       email: 'a@b.com',
@@ -81,22 +82,57 @@ describe('ordersApi — expectedPricingHash / expectedShippingTariffVersion', ()
     );
   });
 
-  it('directBuy (üye, Buy Now): dört alanı da koşulsuz gönderir', async () => {
-    await ordersApi.directBuy({
-      productId: 'p1',
-      shippingAddressId: 'addr-1',
+  it('getQuote: /orders/quote çağırır (yanıt kökünde pricingHash/shippingTariffVersion beklenir)', async () => {
+    await ordersApi.getQuote({ items: [{ productId: 'p1', quantity: 1 }] });
+    expect(mockApiPost).toHaveBeenCalledWith('/orders/quote', {
+      items: [{ productId: 'p1', quantity: 1 }],
+    });
+  });
+});
+
+/**
+ * Parite A-1.1: sunucu fiyat imzasına adedi katıyor; quote'a giden adet sipariş
+ * gövdesinde düşerse (`quantity ?? 1`) imza tutmaz → 409 `pricingChanged`.
+ * Payload üreticisi satırları adet dahil AYNEN geçirmeli.
+ */
+/**
+ * Parite A-1.11a: hiç çağrılmayan sipariş oluşturma sarmalayıcıları kaldırıldı
+ * (`POST /orders` API'de yok; `/orders/buy` ve `/orders/guest` mobilde
+ * kullanılmıyor — "Hızlı Al" da `checkout` üzerinden gider). Yüzey geri gelirse
+ * adet/fiyat imzası ikinci bir yoldan geçebilir.
+ */
+describe('ordersApi — ölü sipariş oluşturma sarmalayıcıları yüzeyde YOK', () => {
+  it.each(['create', 'directBuy', 'createGuest'])('%s tanımlı değil', (name) => {
+    expect((ordersApi as Record<string, unknown>)[name]).toBeUndefined();
+  });
+});
+
+describe('ordersApi — sipariş gövdesi satır adedini taşır', () => {
+  const ITEMS = [
+    { productId: 'p1', quantity: 3 },
+    { productId: 'p2', quantity: 1 },
+  ];
+
+  it('checkout (üye): items adetleriyle gövdeye gider', async () => {
+    await ordersApi.checkout({
+      items: ITEMS,
+      idempotencyKey: 'idem-q1',
+      distanceSalesAccepted: true,
       expectedPricing: EXPECTED_PRICING,
     });
     expect(mockApiPost).toHaveBeenCalledWith(
-      '/orders/buy',
-      expect.objectContaining(EXPECTED_PRICING),
+      '/orders/checkout',
+      expect.objectContaining({ items: ITEMS }),
     );
   });
 
-  it('createGuest (misafir tekil satın alma): dört alanı da koşulsuz gönderir', async () => {
-    await ordersApi.createGuest({
-      productId: 'p1',
+  it('checkoutGuest (misafir): items adetleriyle gövdeye gider', async () => {
+    await ordersApi.checkoutGuest({
+      items: ITEMS,
+      idempotencyKey: 'idem-q2',
+      distanceSalesAccepted: true,
       email: 'a@b.com',
+      emailVerificationCode: '123456',
       phone: '+905321234567',
       guestName: 'Ali Veli',
       shippingAddress: {
@@ -109,16 +145,9 @@ describe('ordersApi — expectedPricingHash / expectedShippingTariffVersion', ()
       expectedPricing: EXPECTED_PRICING,
     });
     expect(mockGuestPost).toHaveBeenCalledWith(
-      '/orders/guest',
-      expect.objectContaining(EXPECTED_PRICING),
+      '/orders/checkout/guest',
+      expect.objectContaining({ items: ITEMS }),
     );
-  });
-
-  it('getQuote: /orders/quote çağırır (yanıt kökünde pricingHash/shippingTariffVersion beklenir)', async () => {
-    await ordersApi.getQuote({ items: [{ productId: 'p1', quantity: 1 }] });
-    expect(mockApiPost).toHaveBeenCalledWith('/orders/quote', {
-      items: [{ productId: 'p1', quantity: 1 }],
-    });
   });
 });
 

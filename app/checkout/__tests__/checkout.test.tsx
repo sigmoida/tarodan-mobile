@@ -21,8 +21,6 @@ jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 jest.mock('@/lib/api', () => ({
   toExpectedPricing: jest.requireActual('@/lib/api').toExpectedPricing,
   ordersApi: {
-    directBuy: jest.fn(),
-    createGuest: jest.fn(),
     getQuote: jest.fn(() =>
       Promise.resolve({
         data: {
