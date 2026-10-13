@@ -128,9 +128,10 @@ describe('J72 · Ödeme başarılı navigasyon wiring', () => {
 
   it('J72.6 misafir: verify guestApi yolundan (verifyGuest), üye verify çağrılmaz', async () => {
     mockParams = { paymentId: 'pay-1', guest: '1' };
-    (paymentsApi.getStatusLightGuest as jest.Mock).mockResolvedValue({
-      data: { data: infoFixture() },
-    });
+    // İlk okuma pending (verify gider), sonra ödendi.
+    (paymentsApi.getStatusLightGuest as jest.Mock)
+      .mockResolvedValueOnce({ data: { data: infoFixture({ status: 'pending' }) } })
+      .mockResolvedValue({ data: { data: infoFixture() } });
     renderWithProviders(<PaymentSuccessScreen />);
     await waitFor(() => expect(paymentsApi.verifyGuest).toHaveBeenCalledWith('pay-1', expect.anything()));
     expect(paymentsApi.verify).not.toHaveBeenCalled();
@@ -174,5 +175,48 @@ describe('J90 · Yavaş verify (durum okuması beklemez, sonuç kaybolmaz)', () 
     await jest.advanceTimersByTimeAsync(2000);
     expect(await screen.findByText('Ödemeniz Başarılı!')).toBeOnTheScreen();
     expect(getStatusMock).toHaveBeenCalledTimes(6);
+  });
+});
+
+describe('J91 · Başarısız ödemede verify gönderilmez', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    __resetVerifyPacer();
+    replaceMock.mockReset();
+    mockParams = { paymentId: 'pay-1' };
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('J91.1 durum failed → döngü verify göndermeden çıkar (tek okuma)', async () => {
+    jest.useFakeTimers();
+    getStatusMock.mockResolvedValue({ data: { data: infoFixture({ status: 'failed' }) } });
+    renderWithProviders(<PaymentSuccessScreen />);
+    await jest.advanceTimersByTimeAsync(20_000);
+    expect(getStatusMock).toHaveBeenCalledTimes(1);
+    expect(paymentsApi.verify).not.toHaveBeenCalled();
+    expect(screen.queryByText('Ödemeniz Başarılı!')).toBeNull();
+  });
+
+  it('J91.2 misafir, durum failed → verifyGuest de gönderilmez', async () => {
+    jest.useFakeTimers();
+    mockParams = { paymentId: 'pay-1', guest: '1' };
+    (paymentsApi.getStatusLightGuest as jest.Mock).mockResolvedValue({
+      data: { data: infoFixture({ status: 'failed' }) },
+    });
+    renderWithProviders(<PaymentSuccessScreen />);
+    await jest.advanceTimersByTimeAsync(20_000);
+    expect(paymentsApi.getStatusLightGuest).toHaveBeenCalledTimes(1);
+    expect(paymentsApi.verifyGuest).not.toHaveBeenCalled();
+  });
+
+  it('J91.3 durum okunamazsa (hata) verify yine gider', async () => {
+    jest.useFakeTimers();
+    getStatusMock.mockRejectedValue(new Error('network'));
+    renderWithProviders(<PaymentSuccessScreen />);
+    await jest.advanceTimersByTimeAsync(100);
+    expect(paymentsApi.verify).toHaveBeenCalledWith('pay-1', expect.anything());
   });
 });

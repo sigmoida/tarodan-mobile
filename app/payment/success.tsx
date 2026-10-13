@@ -10,7 +10,7 @@ import type { TFunction } from 'i18next';
 import { paymentsApi } from '@/lib/api';
 import { pendingVerify, requestVerify } from '@/lib/payment/verifyPacer';
 import { forgetPaymentCapabilityIfFinal } from '@/lib/payment/paymentCapability';
-import { isPaidPaymentStatus } from '@/lib/payment/status';
+import { isFailedPaymentStatus, isPaidPaymentStatus } from '@/lib/payment/status';
 import { formatPrice } from '@/utils/format';
 import { styles } from './_success/_lib/styles';
 
@@ -86,26 +86,30 @@ export default function PaymentSuccessScreen() {
       // verify arkada gider, durum okuması onu beklemez. Çağrılar kart formu
       // yoklamasıyla AYNI bütçeden düşer (sunucu dakikada 10 verify; `verifyPacer`):
       // bütçe doluysa verify atlanır, durum okuması sürer. Misafir `guestApi`'den.
+      // Her turda önce durum okunur: ödendi ya da başarısızsa verify GÖNDERİLMEZ
+      // (başarısız ödemede verify bir şey değiştirmez, bütçe boşa gitmesin).
       const verifyOptions = { guest: guest === '1' };
       let last: PaymentInfo | null = null;
       for (let attempt = 0; attempt < 5 && !cancelled; attempt++) {
-        // Idempotent & public: zaten completed ise no-op.
-        void requestVerify(paymentId, verifyOptions);
         try {
           const data = await fetchStatus();
           last = data;
           if (!cancelled) setInfo(data);
-          if (isPaidPaymentStatus(data?.status)) break;
+          if (isPaidPaymentStatus(data?.status) || isFailedPaymentStatus(data?.status)) break;
         } catch {
-          // Sessiz — success sayfasında hata kritik değil
+          // Sessiz — success sayfasında hata kritik değil (durum bilinmiyor: verify gider)
         }
-        if (attempt < 4 && !cancelled) {
+        if (cancelled) break;
+        // Idempotent & public: zaten completed ise no-op.
+        void requestVerify(paymentId, verifyOptions);
+        if (attempt < 4) {
           await new Promise(resolve => setTimeout(resolve, 1500));
         }
       }
       // Yavaş verify: döngü kesinleşmeden bittiyse uçuştaki verify'ı (en fazla
       // zaman aşımı kadar) bekle; ödemeyi tamamladıysa durumu bir kez daha oku.
-      if (!cancelled && !isPaidPaymentStatus(last?.status) && (await pendingVerify(paymentId)) && !cancelled) {
+      const open = !isPaidPaymentStatus(last?.status) && !isFailedPaymentStatus(last?.status);
+      if (!cancelled && open && (await pendingVerify(paymentId)) && !cancelled) {
         try {
           last = await fetchStatus();
           if (!cancelled) setInfo(last);

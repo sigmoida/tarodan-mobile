@@ -4,6 +4,7 @@
  */
 import {
   FINAL_PAYMENT_STATUSES,
+  isFailedPaymentStatus,
   isFinalPaymentStatus,
   isPaidPaymentStatus,
   PAID_PAYMENT_STATUSES,
@@ -38,4 +39,9 @@ describe('kesin durumlar', () => {
   it('failed kesin DEĞİL: retry aynı ödemeyi failed → pending yapar (aynı belirteçle ikinci deneme)', () => {
     expect(isFinalPaymentStatus('failed')).toBe(false);
   });
+});
+
+it('başarısız durumu yalnız failed', () => {
+  expect(isFailedPaymentStatus('failed')).toBe(true);
+  for (const status of ['pending', 'completed', 'cancelled', undefined]) expect(isFailedPaymentStatus(status)).toBe(false);
 });

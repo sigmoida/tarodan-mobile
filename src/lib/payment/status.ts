@@ -39,3 +39,6 @@ export const isPaidPaymentStatus = (status: unknown): boolean =>
 
 export const isFinalPaymentStatus = (status: unknown): boolean =>
   typeof status === 'string' && FINAL_PAYMENT_STATUSES.has(status);
+
+/** Ödeme başarısız (henüz kesin değil: retry aynı ödemeyi yeniden açabilir). */
+export const isFailedPaymentStatus = (status: unknown): boolean => status === 'failed';
