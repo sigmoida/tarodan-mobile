@@ -14,8 +14,9 @@
   },
   "staging_eas_upload_keystore": {
     "package": "com.tarodan.app.staging",
-    "sha256": "",
-    "source": "İlk staging build'inden sonra: eas credentials -p android → build profili staging → Keystore → SHA256 Fingerprint. EAS keystore'u paket adı başına üretir; production'ınki (eas_upload_keystore) buraya GEÇMEZ."
+    "sha256": "82:0F:83:4A:64:EA:39:3B:E3:D2:D3:20:23:68:A1:A7:57:6F:A1:6D:26:40:98:B8:FF:28:9B:07:33:48:C2:81",
+    "source": "İlk staging build'inden sonra: eas credentials -p android → build profili staging → Keystore → SHA256 Fingerprint. EAS keystore'u paket adı başına üretir; production'ınki (eas_upload_keystore) buraya GEÇMEZ.",
+    "note": "2026-10-13'te eas credentials -p android (profil staging) ile oluşturulan EAS keystore'u (Build Credentials FGxkn4tRQr, JKS). SHA-1: 71:B1:99:93:66:76:BE:22:0B:B1:02:6A:5D:91:0A:3F:35:FD:91:FF (Google girişi Android OAuth client'ı için)."
   },
   "staging_play_app_signing": {
     "package": "com.tarodan.app.staging",
