@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Image } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Button, Card, Chip, Divider, Spinner, Text, Input, Textarea, theme, Icon, ButtonRow } from '@/ui';
+import { Button, Card, Chip, Divider, Spinner, Text, Input, Textarea, theme, Icon, ButtonRow, RadioIndicator } from '@/ui';
 
 import { TradeAddressPicker } from '@/components/common';
 import { ProductCard } from '@/components/product';
@@ -30,11 +30,11 @@ function TradePick({ product, isSelected, onToggle }: { product: Product; isSele
       onPress={onToggle}
       style={{ marginBottom: theme.spacing[3] }}
       overlay={
-        <Icon
-          name={isSelected ? 'check-circle' : 'minus-circle'} variant={isSelected ? 'solid' : 'outline'}
-          size={theme.iconSize.lg}
-          color={isSelected ? colors.primary[600]! : colors.text.subtle}
-        />
+        isSelected ? (
+          <Icon name="check-circle" variant="solid" size={theme.iconSize.lg} color={colors.primary[600]!} />
+        ) : (
+          <RadioIndicator checked={false} size={theme.iconSize.lg} />
+        )
       }
     />
   );

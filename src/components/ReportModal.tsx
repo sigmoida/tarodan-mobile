@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { userReportsApi } from '@/lib/api';
-import { theme, Text, Button, Modal, Textarea, Icon, ButtonRow } from '@/ui';
+import { theme, Text, Button, Modal, Textarea, Icon, ButtonRow, RadioIndicator } from '@/ui';
 
 const { colors } = theme;
 
@@ -164,11 +164,7 @@ export default function ReportModal({
             ]}
             onPress={() => setReason(r.value)}
           >
-            <Icon
-              name={reason === r.value ? 'check-circle' : 'minus-circle'}
-              size={20}
-              color={reason === r.value ? colors.primary[600]! : colors.text.muted} variant="solid"
-            />
+            <RadioIndicator checked={reason === r.value} />
             <Text style={styles.reasonText}>{r.label}</Text>
           </TouchableOpacity>
         ))}

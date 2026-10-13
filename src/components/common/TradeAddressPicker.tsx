@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { theme, Text, Icon, ListRowCard } from '@/ui';
+import { theme, Text, Icon, ListRowCard, RadioIndicator } from '@/ui';
 import { router, useFocusEffect } from 'expo-router';
 import { addressesApi } from '@/lib/api';
 
@@ -90,12 +90,7 @@ export function TradeAddressPicker({ onChange, label }: Props) {
             const active = selectedId === a.id;
             return (
               <ListRowCard key={a.id} gap={2.5} style={[styles.card, active && styles.cardActive]} onPress={() => select(a.id)}>
-                <Icon
-                  name={active ? 'check-circle' : 'minus-circle'}
-                  size={20}
-                  color={active ? colors.primary[600]! : colors.text.muted}
-                  style={{ marginTop: theme.spacing[0.5] }} variant="solid"
-                />
+                <RadioIndicator checked={active} style={{ marginTop: theme.spacing[0.5] }} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.name}>
                     {a.fullName}

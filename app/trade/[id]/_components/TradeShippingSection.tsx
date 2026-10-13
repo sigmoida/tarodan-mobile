@@ -86,7 +86,7 @@ export function TradeShippingSection({
         <SectionCard title={t('trade.shippingStatus.title')} bodyStyle={styles.stack}>
           <View style={styles.shippingRow}>
             <Icon
-              name={myTrackingNumber ? 'check-circle' : 'minus-circle'} variant={myTrackingNumber ? 'solid' : 'outline'}
+              name={myTrackingNumber ? 'check-circle' : 'clock'} variant={myTrackingNumber ? 'solid' : 'outline'}
               size={20}
               color={myTrackingNumber ? colors.success[600]! : colors.text.muted}
             />
@@ -96,7 +96,7 @@ export function TradeShippingSection({
           </View>
           <View style={styles.shippingRow}>
             <Icon
-              name={theirTrackingNumber ? 'check-circle' : 'minus-circle'} variant={theirTrackingNumber ? 'solid' : 'outline'}
+              name={theirTrackingNumber ? 'check-circle' : 'clock'} variant={theirTrackingNumber ? 'solid' : 'outline'}
               size={20}
               color={theirTrackingNumber ? colors.success[600]! : colors.text.muted}
             />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { theme } from '../lib/theme';
 import { RawText } from './Text';
 
@@ -14,6 +14,47 @@ export interface RadioProps {
 const { colors, spacing, typography } = theme;
 
 const sizeMap = { sm: 16, md: 20, lg: 24 } as const;
+
+export interface RadioIndicatorProps {
+  checked: boolean;
+  /** pt (varsayılan 20 = `md`) ya da boyut adı. */
+  size?: number | keyof typeof sizeMap;
+  /** Seçili halka + nokta rengi (varsayılan primary-600). */
+  color?: string;
+  style?: StyleProp<ViewStyle>;
+}
+
+/**
+ * Web radio görünümü — TEK yer: seçili = tint halka + dolu nokta, seçili değil = boş border'lı
+ * halka (gray-300), tam yuvarlak. `Radio` ve radyo gibi davranan satırlar (kart/adres/neden seçimi)
+ * bunu kullanır; seçili-değil için "eksi" ikonu kullanılmaz.
+ */
+export const RadioIndicator: React.FC<RadioIndicatorProps> = ({
+  checked,
+  size = 'md',
+  color = colors.primary[600]!,
+  style,
+}) => {
+  const s = typeof size === 'number' ? size : sizeMap[size];
+  return (
+    <View
+      style={[
+        styles.outer,
+        { width: s, height: s, borderRadius: s / 2, borderColor: checked ? color : colors.gray[300] },
+        style,
+      ]}
+    >
+      {checked && (
+        <View
+          style={[
+            styles.inner,
+            { width: s * 0.55, height: s * 0.55, borderRadius: (s * 0.55) / 2, backgroundColor: color },
+          ]}
+        />
+      )}
+    </View>
+  );
+};
 
 export const Radio: React.FC<RadioProps> = ({
   checked,
@@ -31,31 +72,7 @@ export const Radio: React.FC<RadioProps> = ({
       accessibilityRole="radio"
       accessibilityState={{ checked, disabled }}
     >
-      <View
-        style={[
-          styles.outer,
-          {
-            width: s,
-            height: s,
-            borderRadius: s / 2,
-            borderColor: checked ? colors.primary[600]! : colors.gray[300],
-          },
-        ]}
-      >
-        {checked && (
-          <View
-            style={[
-              styles.inner,
-              {
-                width: s * 0.55,
-                height: s * 0.55,
-                borderRadius: (s * 0.55) / 2,
-                backgroundColor: colors.primary[600]!,
-              },
-            ]}
-          />
-        )}
-      </View>
+      <RadioIndicator checked={checked} size={s} />
       {label && <RawText style={styles.label}>{label}</RawText>}
     </Pressable>
   );

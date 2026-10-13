@@ -3,7 +3,7 @@ import { View, ScrollView, Pressable, StyleSheet, ActivityIndicator } from 'reac
 import { WebView, WebViewNavigation } from 'react-native-webview';
 import { useTranslation } from 'react-i18next';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
-import { Button, Input, Checkbox, Text, theme, appAlert, Icon } from '@/ui';
+import { Button, Input, Checkbox, Text, theme, appAlert, Icon, RadioIndicator } from '@/ui';
 import { paymentsApi } from '@/lib/api';
 import type { PaymentPurpose } from '@/lib/payment/capabilities';
 import { buildDirectFormBody, type DirectFormBody, type DirectFormTarget } from '@/lib/payment/directFormBody';
@@ -341,11 +341,7 @@ export default function CardPaymentForm({
               onPress={() => setPicked(c.id)}
               style={[styles.row, selected === c.id && styles.rowActive]}
             >
-              <Icon
-                name={selected === c.id ? 'check-circle' : 'minus-circle'}
-                size={20}
-                color={selected === c.id ? colors.primary[500] : colors.text.muted} variant="solid"
-              />
+              <RadioIndicator checked={selected === c.id} color={colors.primary[500]} />
               <Icon name="credit-card" variant="solid" size={18} color={colors.text.muted} />
               <Text variant="body" style={styles.cardLabel}>
                 {(c.brand || t('payment.cardGenericBrand')) + ' •••• ' + c.last4}
@@ -368,11 +364,7 @@ export default function CardPaymentForm({
             onPress={() => setPicked(NEW_CARD)}
             style={[styles.row, selected === NEW_CARD && styles.rowActive]}
           >
-            <Icon
-              name={selected === NEW_CARD ? 'check-circle' : 'minus-circle'}
-              size={20}
-              color={selected === NEW_CARD ? colors.primary[500] : colors.text.muted} variant="solid"
-            />
+            <RadioIndicator checked={selected === NEW_CARD} color={colors.primary[500]} />
             <Icon name="plus" size={18} color={colors.text.muted} />
             <Text variant="body" style={styles.cardLabel}>
               {t('payment.payWithNewCard')}

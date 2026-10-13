@@ -141,6 +141,8 @@ export {
 export { Checkbox, type CheckboxProps } from './components/Checkbox';
 export {
 	Radio,
+	RadioIndicator,
+	type RadioIndicatorProps,
 	RadioGroup,
 	type RadioProps,
 	type RadioGroupProps,
