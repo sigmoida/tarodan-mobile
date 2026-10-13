@@ -341,6 +341,10 @@ Kurallar:
 - Doldurduktan sonra `pnpm wellknown:gen` (sürüm kapısı: `pnpm wellknown:gen:strict`
   yalnız production dosyasını zorunlu tutar) ve çıktıyı web/infra'ya ilet;
   yayında `pnpm wellknown:check` ile doğrula.
+- `pnpm wellknown:check`, staging parmak izleri girilip `assetlinks.staging.json`
+  üretilene kadar staging'in assetlinks / Google doğrulayıcı kontrollerini
+  **"atlandı (parmak izi bekleniyor)"** uyarısıyla atlar (başarısız saymaz);
+  production kontrolleri aynen raporlanır ve production eksikse yine FAIL verir.
 
 ---
 

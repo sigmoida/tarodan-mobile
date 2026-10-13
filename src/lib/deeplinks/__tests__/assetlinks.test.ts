@@ -178,3 +178,93 @@ describe('repodaki üretilmiş assetlinks.json', () => {
     expect(links[0].target.sha256_cert_fingerprints.length).toBeGreaterThan(0);
   });
 });
+
+/**
+ * scripts/check-deeplinks.mjs — staging parmak izleri dolmadan staging
+ * assetlinks kontrolleri ATLANIR (uyarı), production raporlanmaya devam eder.
+ * Ağ, fixtures/fakeFetch.cjs ile taklit edilir.
+ */
+describe('check-deeplinks — staging parmak izi bekleniyorken', () => {
+  const CHECK = path.join(ROOT, 'scripts/check-deeplinks.mjs');
+  const STUB = path.join(__dirname, 'fixtures/fakeFetch.cjs');
+  const PROD_HOST = 'tarodan.com.tr';
+  const STG_HOST = 'staging.tarodan.com.tr';
+  const SKIP_MSG = 'atlandı (parmak izi bekleniyor)';
+
+  const prodOnly = {
+    eas_upload_keystore: { package: 'com.tarodan.app', sha256: PROD_UPLOAD },
+    play_app_signing: { package: 'com.tarodan.app', sha256: PROD_PLAY },
+    staging_eas_upload_keystore: { package: 'com.tarodan.app.staging', sha256: '' },
+  };
+
+  function check(fingerprints: Record<string, Entry>, env: Record<string, string> = {}) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wellknown-check-'));
+    tmpDirs.push(dir);
+    const fpFile = path.join(dir, 'fingerprints.json');
+    fs.writeFileSync(fpFile, JSON.stringify(fingerprints));
+    const gen = spawnSync('node', [SCRIPT, '--out-dir', dir, '--fingerprints', fpFile], { encoding: 'utf8' });
+    expect(gen.status).toBe(0);
+    const res = spawnSync('node', ['-r', STUB, CHECK, '--out-dir', dir], {
+      encoding: 'utf8',
+      env: { ...process.env, STUB_DIR: dir, ...env },
+    });
+    const lines = res.stdout.split('\n');
+    return {
+      code: res.status,
+      out: res.stdout,
+      fetched: res.stderr.split('\n').filter((l) => l.startsWith('FETCH ')).map((l) => l.slice(6)),
+      lineFor: (host: string, check: string) => lines.find((l) => l.includes(host) && l.includes(check)),
+      fails: lines.filter((l) => l.startsWith('FAIL')),
+    };
+  }
+
+  it('staging assetlinks/Google kontrolleri ATLANIR (uyarı), komut BAŞARISIZ OLMAZ', () => {
+    const r = check(prodOnly);
+    expect(r.code).toBe(0);
+    expect(r.fails).toEqual([]);
+    for (const c of ['assetlinks 200', 'assetlinks parmak izleri tam', 'Google dogrulayici']) {
+      expect(r.lineFor(STG_HOST, c)).toContain(SKIP_MSG);
+    }
+    expect(r.out).toMatch(/UYARI: 3 kontrol ATLANDI/);
+    expect(r.out).toMatch(/\d+\/\d+ kontrol gecti, 3 atlandı\./);
+  });
+
+  it('atlanan kontroller için staging\'e hiç istek atılmaz', () => {
+    const r = check(prodOnly);
+    expect(r.fetched).not.toContain(`https://${STG_HOST}/.well-known/assetlinks.json`);
+    expect(r.fetched.some((u) => u.includes(`source.web.site=https://${STG_HOST}`))).toBe(false);
+    // staging AASA yine sorulur
+    expect(r.fetched).toContain(`https://${STG_HOST}/.well-known/apple-app-site-association`);
+  });
+
+  it('production kontrolleri raporlanmaya devam eder', () => {
+    const r = check(prodOnly);
+    for (const c of ['AASA 200', 'assetlinks 200', 'assetlinks parmak izleri tam', 'Apple CDN gordu', 'Google dogrulayici']) {
+      expect(r.lineFor(PROD_HOST, c)).toMatch(/^OK /);
+    }
+  });
+
+  it('production bozukken staging atlanmış olsa da FAIL + çıkış 1', () => {
+    const r = check(prodOnly, { STUB_BREAK_PROD: '1' });
+    expect(r.code).toBe(1);
+    expect(r.lineFor(PROD_HOST, 'assetlinks 200')).toMatch(/^FAIL/);
+    expect(r.lineFor(STG_HOST, 'assetlinks 200')).toContain(SKIP_MSG);
+  });
+
+  it('production için yerel assetlinks yoksa atlanmaz: FAIL (mazeret yalnız staging için)', () => {
+    const r = check({ eas_upload_keystore: { package: 'com.tarodan.app', sha256: '' } });
+    expect(r.code).toBe(1);
+    expect(r.lineFor(PROD_HOST, 'assetlinks parmak izleri tam')).toMatch(/^FAIL.*yerel dosya yok/);
+  });
+
+  it('staging parmak izleri dolunca staging gerçekten karşılaştırılır (atlama yok)', () => {
+    const r = check({
+      ...prodOnly,
+      staging_eas_upload_keystore: { package: 'com.tarodan.app.staging', sha256: STG_UPLOAD },
+    });
+    expect(r.code).toBe(0);
+    expect(r.out).not.toContain('atlandı');
+    expect(r.lineFor(STG_HOST, 'assetlinks parmak izleri tam')).toMatch(/^OK /);
+    expect(r.fetched).toContain(`https://${STG_HOST}/.well-known/assetlinks.json`);
+  });
+});
