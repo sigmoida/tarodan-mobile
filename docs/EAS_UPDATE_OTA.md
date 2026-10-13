@@ -25,43 +25,45 @@ JS — ships as an OTA update.
 `app.json`:
 
 ```jsonc
-"runtimeVersion": { "policy": "appVersion" },   // OTA only reaches builds with the same expo.version
+"runtimeVersion": { "policy": "fingerprint" },   // OTA only reaches builds with the same native fingerprint
 "updates": { "url": "https://u.expo.dev/a1d4149d-bbbc-49a8-9a26-d2b81cd842d3" }
 ```
 
 `eas.json` build profiles → update channels:
 
-| Build profile | `channel`    | Feeds                                  |
-| ------------- | ------------ | -------------------------------------- |
-| `preview`     | `staging`    | internal staging testers (staging-api) |
-| `production`  | `production` | TestFlight / Play production           |
-| `development` | (none)       | dev-client loads from local Metro      |
+| Build profile | `channel`    | Feeds                                                   |
+| ------------- | ------------ | ------------------------------------------------------- |
+| `staging`     | `staging`    | Tarodan (Staging): TestFlight + Play internal testing   |
+| `preview`     | `staging`    | ad-hoc Android APK (EAS internal distribution)          |
+| `production`  | `production` | App Store / Play (internal track)                       |
+| `development` | (none)       | dev-client loads from local Metro                       |
 
-**`runtimeVersion: appVersion`** ties every OTA to the build's `expo.version`.
-An update published for `1.2.0` is delivered _only_ to binaries built as `1.2.0`
-— it can never land on an incompatible native build. When a native change ships,
-bump `expo.version` (that's also the release tag for `mobile-testflight.yml`,
-#228); old binaries stop receiving new JS and, if they fall below the API's
-`minSupportedAppVersion`, the force-update gate (#232 / #233) blocks them.
+**`runtimeVersion: fingerprint`** ties every OTA to a hash of the build's native
+inputs (resolved app config incl. `expo.version`, `eas.json`, config plugins,
+autolinked native modules). An update is delivered _only_ to binaries with the
+same fingerprint — it can never land on an incompatible native build. CI uses
+the same hash to decide OTA vs. build: see [`RELEASE.md`](./RELEASE.md).
 
 ## Publishing an update
 
 ```bash
-cd apps/mobile
-
-# JS-only change already merged to development → push it to the staging channel:
-eas update --branch staging --message "fix: cart total rounding"
-
-# Promote to production (after verifying on staging builds):
-eas update --branch production --message "fix: cart total rounding"
+# Prefer CI. By hand, release.sh loads the profile env from eas.json for you:
+scripts/ci/release.sh publish-ota staging all preview "fix: cart total rounding"
+scripts/ci/release.sh publish-ota production ios production "fix: cart total rounding"
 ```
 
 The `staging` / `production` channels point at the same-named branches (set once
 with `eas channel:edit staging --branch staging` if not auto-linked). Testers
 pull the update on the next app launch.
 
-CI automates the staging publish on every JS-only merge to `development` — see
-`mobile-staging.yml` (#231).
+CI automates both: `mobile-staging.yml` publishes to `staging` on every
+`development` push whose fingerprint matches an existing staging build, and
+`mobile-production.yml` publishes to `production` (behind the `production`
+environment approval) on `master` merges. The workflows load the profile's
+`EXPO_PUBLIC_*` env from `eas.json` (`scripts/ci/release.sh`), because
+`eas update` does not read build-profile env on its own — do the same when
+publishing by hand (e.g. `EXPO_PUBLIC_ENVIRONMENT=preview` plus the rest of the
+`preview` env for staging), otherwise the fingerprint won't match any build.
 
 ## Activation (one-time, operator)
 
