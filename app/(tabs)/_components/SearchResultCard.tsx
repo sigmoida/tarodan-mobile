@@ -5,7 +5,13 @@ import { AppImage } from '@/components/AppImage';
 import { Ionicons } from '@expo/vector-icons';
 import { Card, Text, theme } from '@/ui';
 
-import { isProductOutOfStock } from '@/utils/productPrice';
+import {
+  getProductDiscountPercent,
+  getProductEffectivePrice,
+  getProductOriginalPriceForDisplay,
+  isProductOnSaleDisplay,
+  isProductOutOfStock,
+} from '@/utils/productPrice';
 import { formatPrice } from '@/utils/format';
 import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
 import { OutOfStockOverlay } from '@/components/product';
@@ -27,12 +33,12 @@ function SearchResultCardBase({
   const { t } = useTranslation();
   const ratingAvg = item.rating?.average ? Number(item.rating.average) : 0;
   const ratingCount = item.rating?.count ?? item.reviewCount ?? 0;
-  const price = item.price ?? item.salePrice ?? null;
-  const oldPrice = item.originalPrice ?? item.oldPrice ?? null;
-  const hasDiscount = oldPrice != null && price != null && Number(oldPrice) > Number(price);
-  const discountPercent =
-    item.discountPercent ??
-    (hasDiscount ? Math.round((1 - Number(price) / Number(oldPrice)) * 100) : 0);
+  // Fiyat türetmesi TEK kaynak: `@/utils/productPrice` (web `productPrice.ts` paritesi).
+  const priceFields = { ...item, price: item.price ?? item.salePrice ?? 0 };
+  const price = getProductEffectivePrice(priceFields);
+  const oldPrice = getProductOriginalPriceForDisplay(priceFields);
+  const hasDiscount = isProductOnSaleDisplay(priceFields) && oldPrice > price;
+  const discountPercent = item.discountPercent ?? getProductDiscountPercent(priceFields);
   return (
     <Pressable
       testID="search-result-card"
