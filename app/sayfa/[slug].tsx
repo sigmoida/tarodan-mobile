@@ -1,24 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { qk } from '@/lib/query';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
-import { View, StyleSheet, TouchableOpacity, Linking } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { theme, Spinner, Text, ScreenHeader } from '@/ui';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import { useTranslation } from 'react-i18next';
 import { pagesApi } from '@/lib/api';
-import { decideCmsNavigation } from './_lib/navigation';
+import { useCmsWebViewNavigation } from './_hooks/useCmsWebViewNavigation';
 
 const { colors } = theme;
-
-// CMS içeriği WebView içinde gezinmesin: dış bağlantılar sistemde açılır,
-// bilinmeyen şemalar (javascript:, özel şemalar) engellenir. Bkz. _lib/navigation.
-const handleShouldStartLoad = (request: { url: string; isTopFrame?: boolean }) => {
-  const decision = decideCmsNavigation(request.url, request.isTopFrame);
-  if (decision === 'external') void Linking.openURL(request.url).catch(() => {});
-  return decision === 'allow';
-};
 
 // API page.content bir HTML string'idir; düz <Text> ile basıldığında etiketler ham
 // görünür. Bu yüzden WebView + htmlWrapper ile tasarım token'larına uygun render edilir.
@@ -79,6 +71,9 @@ interface PageData {
 export default function DynamicCMSPage() {
   const { t } = useTranslation();
   const { slug } = useLocalSearchParams<{ slug: string }>();
+  // CMS içeriği WebView içinde gezinmesin (bkz. _lib/navigation). Hook, yükleme/hata
+  // dallarından ÖNCE çağrılır (hook sırası sabit kalsın).
+  const { onShouldStartLoadWithRequest } = useCmsWebViewNavigation();
 
   // CMS sayfası React Query ile (CLAUDE.md §6). Aynı slug ikinci kez açıldığında
   // önbellekten gelir; 404 ile diğer hatalar ayrı mesaj alır (mevcut davranış).
@@ -165,7 +160,7 @@ export default function DynamicCMSPage() {
         startInLoadingState
         javaScriptEnabled
         scalesPageToFit={false}
-        onShouldStartLoadWithRequest={handleShouldStartLoad}
+        onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
         setSupportMultipleWindows={false}
       />
     </View>
