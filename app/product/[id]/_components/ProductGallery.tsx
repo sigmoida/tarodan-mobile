@@ -42,7 +42,10 @@ export function ProductGallery({
         <AppImage
           source={item}
           variant="detail"
-          recyclingKey={String(index)}
+          // Aynı ekran başka ürünle yeniden kullanılırsa eski görsel kısa süre kalmasın: anahtar görselin kendisi.
+          recyclingKey={
+            typeof item === 'string' ? item : (item?.detailUrl ?? item?.url ?? String(index))
+          }
           style={{ width, aspectRatio: 1 }}
           contentFit="cover"
         />

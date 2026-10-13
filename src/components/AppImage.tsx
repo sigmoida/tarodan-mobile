@@ -125,7 +125,8 @@ export const AppImage = React.memo(function AppImage({
     <Image
       source={imageSource}
       recyclingKey={recyclingKey}
-      style={[baseStyle, style]}
+      // `contain` (logo, görüntüleyici) şeffaf kalır: gri yer tutucu zemin yalnız dolduran görsellerde.
+      style={[fit === 'contain' ? null : baseStyle, style]}
       contentFit={fit}
       cachePolicy="memory-disk"
       transition={reduceMotion ? 0 : FADE_MS}
