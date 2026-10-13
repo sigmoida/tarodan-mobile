@@ -91,14 +91,24 @@ describe('tetikleyiciler', () => {
   });
 });
 
+// Yorum satırları hariç: açıklamalar yasaklı kalıpları anabilir.
+const shCode = () =>
+  read('scripts/ci/release.sh')
+    .split('\n')
+    .filter((l) => !l.trim().startsWith('#'))
+    .join('\n');
+
 describe('native/JS kararı fingerprint ile', () => {
   it.each([
-    ['staging', staging, 'staging'],
-    ['production', production, 'production'],
-  ])('%s: plan fingerprint hesaplar ve EAS build\'lerini sorgular', (_n, w, profile) => {
-    const plan = runs(w.jobs.plan);
-    expect(plan).toContain(`fingerprint ${profile} "$p"`);
-    expect(plan).toContain('find-build "$p"');
+    ['staging', staging],
+    ['production', production],
+  ])('%s: plan kararı release.sh plan\'a devreder', (n, w) => {
+    expect(runs(w.jobs.plan)).toContain(`scripts/ci/release.sh plan ${n}`);
+  });
+
+  it('release.sh plan fingerprint hesaplar ve EAS build\'lerini sorgular', () => {
+    const sh = shCode();
+    expect(sh).toContain('fingerprint "$BUILD_PROFILE" "$p"');
   });
 
   it('eski native_re dosya-listesi sınıflandırması kalmadı', () => {
@@ -108,13 +118,6 @@ describe('native/JS kararı fingerprint ile', () => {
       expect(all).not.toContain('git diff --name-only');
     }
   });
-
-  // Yorum satırları hariç: açıklamalar yasaklı kalıpları anabilir.
-  const shCode = () =>
-    read('scripts/ci/release.sh')
-      .split('\n')
-      .filter((l) => !l.trim().startsWith('#'))
-      .join('\n');
 
   it('release.sh expo-updates fingerprint:generate\'i --platform ile çağırır', () => {
     const sh = shCode();
@@ -126,6 +129,30 @@ describe('native/JS kararı fingerprint ile', () => {
     const sh = shCode();
     expect(sh).toContain('--id "$id"');
     expect(sh).not.toMatch(/eas submit[^\n]*--latest/);
+  });
+});
+
+describe('DRY: karar ve yeniden kontrol tek kopya', () => {
+  it.each([
+    ['staging', staging],
+    ['production', production],
+  ])('%s: workflow\'da karar döngüsü ya da find-build kopyası yok', (_n, w) => {
+    const all = Object.values(w.jobs).map(runs).join('\n');
+    expect(all).not.toMatch(/for p in ios android/);
+    expect(all).not.toContain('find-build');
+    expect(all).not.toContain('last-store-version');
+  });
+
+  it.each([
+    ['staging', 'ios', staging],
+    ['staging', 'android', staging],
+    ['production', 'ios', production],
+    ['production', 'android', production],
+  ])('%s build-%s: kilit sonrası kontrol release.sh recheck ile', (n, p, w) => {
+    const job = w.jobs[`build-${p}`];
+    expect(runs(job)).toContain(`scripts/ci/release.sh recheck ${p} ${n}`);
+    const buildStep = job.steps!.find((s) => (s.run ?? '').includes('build-submit'));
+    expect(buildStep?.if).toBe("steps.recheck.outputs.action == 'build'");
   });
 });
 
@@ -164,11 +191,10 @@ describe('production', () => {
   });
 
   it('VERSION-GATE: native değişikliğinde expo.version son production build\'inden büyük olmalı', () => {
-    const plan = runs(production.jobs.plan);
-    expect(plan).toContain("require('./app.json').expo.version");
-    expect(plan).toContain('last-store-version "$p" production');
-    expect(plan).toContain('version-gt "$version" "$last"');
-    expect(plan).toMatch(/::error::\$text[\s\S]*exit 1/);
+    const sh = shCode();
+    expect(sh).toContain('expo.version');
+    expect(sh).toContain('last_store_version "$p" "$BUILD_PROFILE"');
+    expect(sh).toContain('version_gt "$version" "$last"');
   });
 
   it('yalnız master ref\'inden yayınlanır', () => {

@@ -112,70 +112,8 @@ jobs:
           ANDROID_ENABLED: ${{ vars.ANDROID_RELEASE_ENABLED == 'true' }}
           COMMIT_MSG: ${{ github.event.head_commit.message }}
           SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          R=scripts/ci/release.sh
-          msg="$(printf '%s' "${COMMIT_MSG:-manual production ($MODE) ${SHA:0:7}}" | head -n1)"
-          echo "message=$msg" >> "$GITHUB_OUTPUT"
-          version="$(node -p "require('./app.json').expo.version")"
-
-          ota=()
-          for p in ios android; do
-            if [ "$PLATFORM" != "all" ] && [ "$PLATFORM" != "$p" ]; then
-              echo "$p=skip" >> "$GITHUB_OUTPUT"; continue
-            fi
-            if [ "$p" = "android" ] && [ "$ANDROID_ENABLED" != "true" ]; then
-              # Production'da hiç Android binary'si yok; OTA da build de anlamsız.
-              echo "::notice::android: vars.ANDROID_RELEASE_ENABLED != 'true' — atlandı."
-              echo "android=skip" >> "$GITHUB_OUTPUT"; continue
-            fi
-            fp="$($R fingerprint production "$p")"
-            echo "${p}_fp=$fp" >> "$GITHUB_OUTPUT"
-            build_id="$($R find-build "$p" production "$fp" production)"
-            echo "$p: fingerprint=$fp existing-build=${build_id:-none}"
-
-            case "$MODE" in
-              ota)   decision=ota ;;
-              build) decision=build ;;
-              *)     if [ -n "$build_id" ]; then decision=ota; else decision=build; fi ;;
-            esac
-            if [ "$decision" = "ota" ] && [ -z "$build_id" ]; then
-              echo "::warning::$p: bu runtime ($fp) için production build'i yok — OTA hiçbir binary'ye ULAŞMAYACAK."
-            fi
-
-            # VERSION-GATE: yeni bir store binary'si yeni bir sürüm ister. Karşılaştırma
-            # son BİTMİŞ production build'inin appVersion'ıyla yapılır (push tabanıyla
-            # değil): iptal edilmiş bir önceki koşu ya da çok commit'li bir merge
-            # kapıyı yanıltamaz.
-            if [ "$decision" = "build" ]; then
-              last="$($R last-store-version "$p" production)"
-              if [ -n "$last" ] && ! $R version-gt "$version" "$last"; then
-                text="$p: native değişti (fingerprint $fp için production build'i yok) ama app.json expo.version ($version) son production build'inin sürümünden ($last) büyük değil. Bu merge'de expo.version'ı artır (ör. development'ta app.json'u güncelleyip yeni bir PR aç)."
-                if [ "$MODE" = "build" ]; then
-                  echo "::warning::$text — mode=build ile elle istendi, devam ediliyor."
-                else
-                  echo "::error::$text"
-                  exit 1
-                fi
-              fi
-              echo "$p: sürüm ${last:-<ilk build>} → $version"
-            fi
-
-            echo "$p=$decision" >> "$GITHUB_OUTPUT"
-            [ "$decision" = "ota" ] && ota+=("$p")
-            {
-              echo "### $p → \`$decision\`"
-              echo "- fingerprint: \`$fp\`"
-              echo "- mevcut build: ${build_id:-yok}"
-              echo "- app.json expo.version: \`$version\`"
-            } >> "$GITHUB_STEP_SUMMARY"
-          done
-
-          case "${#ota[@]}" in
-            0) echo "ota_platform=none" >> "$GITHUB_OUTPUT" ;;
-            1) echo "ota_platform=${ota[0]}" >> "$GITHUB_OUTPUT" ;;
-            *) echo "ota_platform=all" >> "$GITHUB_OUTPUT" ;;
-          esac
+        # Karar döngüsünün TEK kopyası: scripts/ci/release.sh plan (staging ile ortak).
+        run: scripts/ci/release.sh plan production
 
   ota:
     name: OTA → production (requires approval)
@@ -219,20 +157,11 @@ jobs:
         env:
           FP: ${{ needs.plan.outputs.ios_fp }}
           MODE: ${{ inputs.mode || 'auto' }}
-        run: |
-          set -euo pipefail
-          existing=""
-          if [ "$MODE" != "build" ]; then
-            existing="$(scripts/ci/release.sh find-build ios production "$FP" production)"
-          fi
-          echo "existing=$existing" >> "$GITHUB_OUTPUT"
-          # Production OTA onay ister; burada sessizce OTA'ya dönülmez.
-          [ -n "$existing" ] && echo "::warning::Bu runtime için arada bir production build'i başlamış ($existing) — ikinci build alınmadı. JS farkı varsa: gh workflow run mobile-production.yml --ref master -f mode=ota"
-          true
+        run: scripts/ci/release.sh recheck ios production
       - name: EAS build + submit (iOS, production)
         # Submit build'i App Store Connect'e (TestFlight) yükler. İncelemeye
         # gönderim (Submit for Review) App Store Connect'te ELLE yapılır.
-        if: steps.recheck.outputs.existing == ''
+        if: steps.recheck.outputs.action == 'build'
         run: scripts/ci/release.sh build-submit ios production production
 
   build-android:
@@ -255,17 +184,9 @@ jobs:
         env:
           FP: ${{ needs.plan.outputs.android_fp }}
           MODE: ${{ inputs.mode || 'auto' }}
-        run: |
-          set -euo pipefail
-          existing=""
-          if [ "$MODE" != "build" ]; then
-            existing="$(scripts/ci/release.sh find-build android production "$FP" production)"
-          fi
-          echo "existing=$existing" >> "$GITHUB_OUTPUT"
-          [ -n "$existing" ] && echo "::warning::Bu runtime için arada bir production build'i başlamış ($existing) — ikinci build alınmadı."
-          true
+        run: scripts/ci/release.sh recheck android production
       - name: EAS build + submit (Android AAB, production → Play internal track)
         # eas.json submit.production.android.track = internal. Production track'e
         # yükseltme Play Console'da ELLE.
-        if: steps.recheck.outputs.existing == ''
+        if: steps.recheck.outputs.action == 'build'
         run: scripts/ci/release.sh build-submit android production production

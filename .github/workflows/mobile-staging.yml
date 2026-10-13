@@ -128,69 +128,13 @@ jobs:
         id: decide
         if: steps.guard.outputs.skip != 'true'
         env:
-          EVENT_NAME: ${{ github.event_name }}
           MODE: ${{ inputs.mode || 'auto' }}
           PLATFORM: ${{ inputs.platform || 'all' }}
           ANDROID_ENABLED: ${{ vars.ANDROID_RELEASE_ENABLED == 'true' }}
           COMMIT_MSG: ${{ github.event.head_commit.message }}
           SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          R=scripts/ci/release.sh
-          msg="$(printf '%s' "${COMMIT_MSG:-manual staging ($MODE) ${SHA:0:7}}" | head -n1)"
-          echo "message=$msg" >> "$GITHUB_OUTPUT"
-
-          if [ "$MODE" = "apk" ]; then
-            printf '%s\n' apk=true ios=skip android=skip ota_platform=none >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          echo "apk=false" >> "$GITHUB_OUTPUT"
-
-          ota=()
-          for p in ios android; do
-            if [ "$PLATFORM" != "all" ] && [ "$PLATFORM" != "$p" ]; then
-              echo "$p=skip" >> "$GITHUB_OUTPUT"; continue
-            fi
-            # Hangi build profil(ler)i "bu runtime için binary var" sayılır:
-            #   iOS: yalnız `staging` (TestFlight). `preview` iOS ad-hoc build'leri
-            #        de staging kanalında ama testçiler onları kullanmıyor.
-            #   Android açıkken: yalnız `staging` (Play internal). Kapalıyken
-            #        mevcut ad-hoc APK'lar (`preview`) da OTA alabilsin.
-            profiles=staging
-            if [ "$p" = "android" ] && [ "$ANDROID_ENABLED" != "true" ]; then
-              profiles=staging,preview
-            fi
-            fp="$($R fingerprint staging "$p")"
-            echo "${p}_fp=$fp" >> "$GITHUB_OUTPUT"
-            build_id="$($R find-build "$p" "$profiles" "$fp" staging)"
-            echo "$p: fingerprint=$fp existing-build=${build_id:-none}"
-
-            case "$MODE" in
-              ota)   decision=ota ;;
-              build) decision=build ;;
-              *)     if [ -n "$build_id" ]; then decision=ota; else decision=build; fi ;;
-            esac
-            if [ "$decision" = "ota" ] && [ -z "$build_id" ]; then
-              echo "::warning::$p: bu runtime ($fp) için staging build'i yok — OTA yayınlanacak ama hiçbir binary'ye ULAŞMAYACAK."
-            fi
-            if [ "$decision" = "build" ] && [ "$p" = "android" ] && [ "$ANDROID_ENABLED" != "true" ]; then
-              echo "::notice::android: native değişti ama vars.ANDROID_RELEASE_ENABLED != 'true' — Android build atlandı. Ad-hoc APK için: gh workflow run mobile-staging.yml --ref development -f mode=apk"
-              decision=skip
-            fi
-            echo "$p=$decision" >> "$GITHUB_OUTPUT"
-            [ "$decision" = "ota" ] && ota+=("$p")
-            {
-              echo "### $p → \`$decision\`"
-              echo "- fingerprint: \`$fp\`"
-              echo "- mevcut build: ${build_id:-yok}"
-            } >> "$GITHUB_STEP_SUMMARY"
-          done
-
-          case "${#ota[@]}" in
-            0) echo "ota_platform=none" >> "$GITHUB_OUTPUT" ;;
-            1) echo "ota_platform=${ota[0]}" >> "$GITHUB_OUTPUT" ;;
-            *) echo "ota_platform=all" >> "$GITHUB_OUTPUT" ;;
-          esac
+        # Karar döngüsünün TEK kopyası: scripts/ci/release.sh plan (production ile ortak).
+        run: scripts/ci/release.sh plan staging
 
   ota:
     name: OTA → staging
@@ -238,22 +182,14 @@ jobs:
         env:
           FP: ${{ needs.plan.outputs.ios_fp }}
           MODE: ${{ inputs.mode || 'auto' }}
-        run: |
-          set -euo pipefail
-          existing=""
-          if [ "$MODE" != "build" ]; then
-            existing="$(scripts/ci/release.sh find-build ios staging "$FP" staging)"
-          fi
-          echo "existing=$existing" >> "$GITHUB_OUTPUT"
-          [ -n "$existing" ] && echo "::notice::Bu runtime için arada bir build başlamış ($existing) — build yerine OTA."
-          true
+        run: scripts/ci/release.sh recheck ios staging
       - name: Publish OTA instead (build already exists for this runtime)
-        if: steps.recheck.outputs.existing != ''
+        if: steps.recheck.outputs.action == 'ota'
         env:
           MSG: ${{ needs.plan.outputs.message }}
         run: scripts/ci/release.sh publish-ota staging ios preview "$MSG"
       - name: EAS build + submit (iOS, staging → TestFlight)
-        if: steps.recheck.outputs.existing == ''
+        if: steps.recheck.outputs.action == 'build'
         run: scripts/ci/release.sh build-submit ios staging staging
 
   build-android:
@@ -276,23 +212,15 @@ jobs:
         env:
           FP: ${{ needs.plan.outputs.android_fp }}
           MODE: ${{ inputs.mode || 'auto' }}
-        run: |
-          set -euo pipefail
-          existing=""
-          if [ "$MODE" != "build" ]; then
-            existing="$(scripts/ci/release.sh find-build android staging "$FP" staging)"
-          fi
-          echo "existing=$existing" >> "$GITHUB_OUTPUT"
-          [ -n "$existing" ] && echo "::notice::Bu runtime için arada bir build başlamış ($existing) — build yerine OTA."
-          true
+        run: scripts/ci/release.sh recheck android staging
       - name: Publish OTA instead (build already exists for this runtime)
-        if: steps.recheck.outputs.existing != ''
+        if: steps.recheck.outputs.action == 'ota'
         env:
           MSG: ${{ needs.plan.outputs.message }}
         run: scripts/ci/release.sh publish-ota staging android preview "$MSG"
       - name: EAS build + submit (Android AAB, staging → Play internal testing)
         # submit.staging.android (track: internal) eas.json'da tanımlı olmalı.
-        if: steps.recheck.outputs.existing == ''
+        if: steps.recheck.outputs.action == 'build'
         run: scripts/ci/release.sh build-submit android staging staging
 
   apk:

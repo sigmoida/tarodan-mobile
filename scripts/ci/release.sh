@@ -18,6 +18,15 @@
 #       a > b (semver, sort -V) ise 0, değilse 1 ile çıkar.
 #   release.sh publish-ota  <eas-branch> <ios|android|all> <build-profile> <message>
 #       Profil env'ini yükleyip `eas update` yayınlar.
+#   release.sh plan         <staging|production>
+#       Platform başına karar (fingerprint → OTA / build / skip). Girdiler env'den:
+#       MODE (auto|ota|build|apk), PLATFORM (all|ios|android), ANDROID_ENABLED,
+#       COMMIT_MSG, SHA. Çıktılar GITHUB_OUTPUT'a: message, <p>, <p>_fp,
+#       ota_platform (+ staging'de apk). Workflow'lardaki tek karar döngüsü budur.
+#   release.sh recheck      <ios|android> <staging|production>
+#       Build job'ı kilidi aldıktan sonra (FP, MODE env'den) yeniden sorgular;
+#       GITHUB_OUTPUT'a action=build|ota|skip yazar. staging: arada build
+#       başladıysa ota; production: onaysız OTA'ya düşmez, skip + uyarı.
 #   release.sh build-submit <ios|android> <build-profile> <submit-profile|->
 #       `eas build --wait` alır, build id'sini çıkarır ve (submit profili `-`
 #       değilse) TAM O build'i `eas submit --id` ile gönderir. `--latest`
@@ -138,6 +147,129 @@ build_submit() {
   fi
 }
 
+output() { printf '%s\n' "$@" >> "${GITHUB_OUTPUT:-/dev/stdout}"; }
+summary() { printf '%s\n' "$@" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"; }
+
+# Ortam → EAS build profili / kanalı.
+env_config() {
+  case "$1" in
+    staging) BUILD_PROFILE=staging CHANNEL=staging ;;
+    production) BUILD_PROFILE=production CHANNEL=production ;;
+    *) die "bilinmeyen ortam: '$1' (staging|production)" ;;
+  esac
+}
+
+# "Bu runtime için binary var" sayılan build profilleri:
+#   iOS: yalnız ortamın profili. `preview` iOS ad-hoc build'leri de staging
+#        kanalında ama testçiler onları kullanmıyor; sayılsaydı TestFlight
+#        testçileri yeni binary alamazdı.
+#   staging Android, ANDROID_ENABLED kapalıyken: mevcut ad-hoc APK'lar (`preview`)
+#        da OTA alabilsin. Açıkken yalnız `staging` (Play internal).
+binary_profiles() {
+  local env="$1" platform="$2"
+  if [ "$env" = staging ] && [ "$platform" = android ] && [ "${ANDROID_ENABLED:-false}" != true ]; then
+    echo "$BUILD_PROFILE,preview"
+  else
+    echo "$BUILD_PROFILE"
+  fi
+}
+
+plan() {
+  local env="$1"
+  env_config "$env"
+  local mode="${MODE:-auto}" want="${PLATFORM:-all}" android_enabled="${ANDROID_ENABLED:-false}"
+  local sha="${SHA:-0000000}" msg version="" p fp build_id decision last text
+  local ota=""
+  msg="$(printf '%s' "${COMMIT_MSG:-manual $env ($mode) ${sha:0:7}}" | head -n1)"
+  output "message=$msg"
+
+  if [ "$env" = staging ]; then
+    if [ "$mode" = apk ]; then
+      output apk=true ios=skip android=skip ota_platform=none
+      return 0
+    fi
+    output apk=false
+  fi
+  [ "$env" = production ] && version="$(node -p "require(process.argv[1]).expo.version" "$ROOT/app.json")"
+
+  for p in ios android; do
+    if [ "$want" != all ] && [ "$want" != "$p" ]; then
+      output "$p=skip"; continue
+    fi
+    if [ "$env" = production ] && [ "$p" = android ] && [ "$android_enabled" != true ]; then
+      # Production'da hiç Android binary'si yok; OTA da build de anlamsız.
+      echo "::notice::android: vars.ANDROID_RELEASE_ENABLED != 'true' — atlandı."
+      output "android=skip"; continue
+    fi
+    fp="$(fingerprint "$BUILD_PROFILE" "$p")"
+    output "${p}_fp=$fp"
+    build_id="$(find_build "$p" "$(binary_profiles "$env" "$p")" "$fp" "$CHANNEL")"
+    echo "$p: fingerprint=$fp existing-build=${build_id:-none}"
+
+    case "$mode" in
+      ota) decision=ota ;;
+      build) decision=build ;;
+      *) if [ -n "$build_id" ]; then decision=ota; else decision=build; fi ;;
+    esac
+    if [ "$decision" = ota ] && [ -z "$build_id" ]; then
+      echo "::warning::$p: bu runtime ($fp) için $env build'i yok — OTA yayınlanacak ama hiçbir binary'ye ULAŞMAYACAK."
+    fi
+    if [ "$decision" = build ] && [ "$env" = staging ] && [ "$p" = android ] && [ "$android_enabled" != true ]; then
+      echo "::notice::android: native değişti ama vars.ANDROID_RELEASE_ENABLED != 'true' — Android build atlandı. Ad-hoc APK için: gh workflow run mobile-staging.yml --ref development -f mode=apk"
+      decision=skip
+    fi
+
+    # VERSION-GATE (production): yeni bir store binary'si yeni bir sürüm ister.
+    # Karşılaştırma son BİTMİŞ production build'inin appVersion'ıyla yapılır
+    # (push tabanıyla değil): iptal edilmiş bir önceki koşu ya da çok commit'li
+    # bir merge kapıyı yanıltamaz.
+    if [ "$decision" = build ] && [ "$env" = production ]; then
+      last="$(last_store_version "$p" "$BUILD_PROFILE")"
+      if [ -n "$last" ] && ! version_gt "$version" "$last"; then
+        text="$p: native değişti (fingerprint $fp için production build'i yok) ama app.json expo.version ($version) son production build'inin sürümünden ($last) büyük değil. Bu merge'de expo.version'ı artır (ör. development'ta app.json'u güncelleyip yeni bir PR aç)."
+        if [ "$mode" = build ]; then
+          echo "::warning::$text — mode=build ile elle istendi, devam ediliyor."
+        else
+          echo "::error::$text"
+          exit 1
+        fi
+      fi
+      echo "$p: sürüm ${last:-<ilk build>} → $version"
+    fi
+
+    output "$p=$decision"
+    [ "$decision" = ota ] && ota="$ota $p"
+    summary "### $p → \`$decision\`" "- fingerprint: \`$fp\`" "- mevcut build: ${build_id:-yok}"
+    [ -n "$version" ] && summary "- app.json expo.version: \`$version\`"
+  done
+
+  case "$ota" in
+    "") output ota_platform=none ;;
+    " ios android") output ota_platform=all ;;
+    *) output "ota_platform=${ota# }" ;;
+  esac
+}
+
+recheck() {
+  local platform="$1" env="$2" existing="" action=build
+  env_config "$env"
+  [ -n "${FP:-}" ] || die "recheck: FP (plan'ın fingerprint'i) boş"
+  if [ "${MODE:-auto}" != build ]; then
+    existing="$(find_build "$platform" "$BUILD_PROFILE" "$FP" "$CHANNEL")"
+  fi
+  if [ -n "$existing" ]; then
+    if [ "$env" = staging ]; then
+      action=ota
+      echo "::notice::Bu runtime için arada bir build başlamış ($existing) — build yerine OTA."
+    else
+      # Production OTA onay ister; burada sessizce OTA'ya dönülmez.
+      action=skip
+      echo "::warning::Bu runtime için arada bir production build'i başlamış ($existing) — ikinci build alınmadı. JS farkı varsa: gh workflow run mobile-production.yml --ref master -f mode=ota -f platform=$platform"
+    fi
+  fi
+  output "action=$action"
+}
+
 cmd="${1:-}"
 shift || true
 case "$cmd" in
@@ -147,6 +279,8 @@ case "$cmd" in
   last-store-version) last_store_version "$@" ;;
   version-gt) version_gt "$@" ;;
   publish-ota) publish_ota "$@" ;;
+  plan) plan "$@" ;;
+  recheck) recheck "$@" ;;
   build-submit) build_submit "$@" ;;
   *) die "bilinmeyen komut: '$cmd' (bkz. dosya başı)" ;;
 esac
