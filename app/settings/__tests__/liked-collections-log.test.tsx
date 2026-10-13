@@ -9,7 +9,10 @@ import { makeTestQueryClient } from '@/test-utils';
 
 jest.mock('expo-router', () => ({ ...require('@/test-utils/router-mock').routerMock, useFocusEffect: jest.fn() }));
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ isAuthenticated: true }),
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = { isAuthenticated: true };
+    return sel ? sel(state) : state;
+  },
 }));
 jest.mock('@/lib/api', () => ({
   collectionsApi: { getLikedCollections: jest.fn(), unlike: jest.fn() },
