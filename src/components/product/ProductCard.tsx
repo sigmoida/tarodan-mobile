@@ -1,24 +1,24 @@
-import React, { useState, useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { AppImage } from '@/components/AppImage';
+import React, { useMemo } from 'react';
+import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { theme, Text } from '@/ui';
+import { useTranslation } from 'react-i18next';
+import { AppImage } from '@/components/AppImage';
+import { ProductBadge, Text, theme } from '@/ui';
 import { productsApi } from '@/lib/api';
-import { formatPrice } from '../../utils/format';
-import { transformImageUrl, IMAGE_PLACEHOLDER } from '../../utils/imageUrl';
 import {
   ProductPriceFields,
+  getProductDiscountPercent,
   getProductEffectivePrice,
   getProductOriginalPriceForDisplay,
   isProductOnSaleDisplay,
-  getProductDiscountPercent,
   isProductOutOfStock,
-} from '../../utils/productPrice';
-import { isProductTradeOpen } from '../../utils/isProductTradeOpen';
+} from '@/utils/productPrice';
+import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
+import { formatPrice } from '@/utils/format';
+import { OutOfStockOverlay } from './OutOfStockOverlay';
 
-const { colors } = theme;
+const { colors, spacing, typography, radiusRole, iconSize } = theme;
 
 export interface ProductCardProduct extends ProductPriceFields {
   id: string;
@@ -27,444 +27,352 @@ export interface ProductCardProduct extends ProductPriceFields {
   imageUrl?: string | null;
   viewCount?: number;
   likeCount?: number;
-  isPreorder?: boolean;
-  isLimited?: boolean;
   isTradeEnabled?: boolean;
   isBoosted?: boolean;
   boostedUntil?: string | null;
-  condition?: string;
+  discountPercent?: number | null;
+  /** Bedel kampanyası etiketleri (web `feeCampaigns`) — ilki "nadir" rozetiyle gösterilir. */
+  feeCampaigns?: string[] | null;
   /** Ürün statüsü (active = stokta). active dışındaki her statü "stokta yok" sayılır. */
   status?: string | null;
   /** Müsait adet (quantity - reserved). null = sınırsız stok. <= 0 ise stokta yok. */
   availableQuantity?: number | null;
   rating?: { average: number | null; count: number } | null;
-  seller?: { id?: string; displayName?: string; isVerified?: boolean } | null;
-  brand?: string | null;
-  scale?: string | null;
+  /** Liste görünümünde iki satıra kadar gösterilir. */
+  description?: string | null;
 }
 
 export type ProductCardLayout = 'grid' | 'list';
 
-interface ProductCardProps {
+export interface ProductCardProps {
   product: ProductCardProduct;
   layout?: ProductCardLayout;
-  tag?: string | null;
+  /**
+   * İkincil bilgi: puan, beğeni ve görüntülenme (liste görünümünde açıklama da). Varsayılan açık;
+   * dar raylarda `false` (başlık, fiyat ve görsel her zaman kalır).
+   */
+  showMeta?: boolean;
+  /** Varsayılan: `/product/:id` açılır. */
   onPress?: () => void;
-  /** Favori butonu göster (kart üstünde kalp ikonu). */
-  onToggleFavorite?: () => void;
-  isFavorite?: boolean;
-  /** Ürün sepetteyse görsel üstünde "Sepette" göstergesi çıkar. */
-  inCart?: boolean;
-  /** Grid modu için sütun sayısı bilgisi (aspectRatio ayarı için gerekmez, sadece bilgi). */
-  compact?: boolean;
+  /** Sıralama sinyali (tıklama kaydı). Ürün açmayan kullanımlarda (seçim listesi) `false`. */
+  trackClick?: boolean;
+  /** Seçili durum (web seçim kartı: 2px primary çerçeve + primary-50 zemin). */
+  selected?: boolean;
+  /** Görselin sağ üstünde (rozet/kaldır düğmesi). */
+  overlay?: React.ReactNode;
+  /** Görselin sol üstünde. */
+  overlayStart?: React.ReactNode;
+  /** Kartın altında, kart dokunuşunun dışında (ör. sepete ekle düğmesi). */
+  footer?: React.ReactNode;
+  style?: ViewStyle;
+  testID?: string;
 }
 
-const FALLBACK_IMG = IMAGE_PLACEHOLDER;
-
-function resolveImageSrc(product: ProductCardProduct): string {
-  // Liste hücresi → 'card' varyantı (thumbnail), tam-res değil (#73).
-  if (product.imageUrl) return transformImageUrl(product.imageUrl, 'card');
-  if (Array.isArray(product.images) && product.images.length > 0) {
-    const first = product.images[0] as any;
-    if (typeof first === 'string') return transformImageUrl(first, 'card');
-    return transformImageUrl(first?.cardUrl || first?.url || null, 'card');
-  }
-  return FALLBACK_IMG;
+/** Bir `Text` kısa yolu: web kartındaki "text-xs text-subtle" meta metni. */
+function MetaItem({ icon, color, children }: { icon: 'star' | 'heart' | 'eye'; color: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.metaItem}>
+      <Ionicons name={icon} size={iconSize.sm} color={color} />
+      {children}
+    </View>
+  );
 }
 
+function RatingMeta({ rating }: { rating?: ProductCardProduct['rating'] }) {
+  if (!rating || rating.average === null || !(rating.count > 0)) return null;
+  return (
+    <MetaItem icon="star" color={colors.warning[400]!}>
+      <Text variant="caption" weight="semibold" tone="heading">
+        {rating.average.toFixed(1)}
+      </Text>
+      <Text variant="caption" tone="subtle">
+        ({rating.count})
+      </Text>
+    </MetaItem>
+  );
+}
+
+function MetaRow({ product, listOrder }: { product: ProductCardProduct; listOrder: boolean }) {
+  const likes = (
+    <MetaItem key="likes" icon="heart" color={colors.danger[500]!}>
+      <Text variant="caption" tone="subtle">
+        {product.likeCount ?? 0}
+      </Text>
+    </MetaItem>
+  );
+  const views = (
+    <MetaItem key="views" icon="eye" color={colors.primary[500]!}>
+      <Text variant="caption" tone="subtle">
+        {product.viewCount ?? 0}
+      </Text>
+    </MetaItem>
+  );
+  return (
+    <View style={styles.metaRow}>
+      {listOrder ? (
+        <>
+          {views}
+          {likes}
+          <RatingMeta rating={product.rating} />
+        </>
+      ) : (
+        <>
+          <RatingMeta rating={product.rating} />
+          {likes}
+          {views}
+        </>
+      )}
+    </View>
+  );
+}
+
+/**
+ * Pazaryerinin TEK ürün kartı (web `ProductCard`'ın telefon görünümü): grid ve liste. Ham ürünü
+ * alır; fiyat, indirim, stok ve görseli kendisi türetir — çağıran hiçbirini önceden hesaplamaz.
+ * Başlık, fiyat ve görsel her zaman çizilir; `showMeta` ikincil bilgiyi açar/kapatır.
+ *
+ * Web'de olmayan şeyler (favori kalbi, "Sepette" rozeti, ön sipariş/sınırlı rozeti) kartta yok:
+ * favori ürün detayında, diğerleri ürün detayında/filtrelerde.
+ */
 function ProductCardBase({
   product,
   layout = 'grid',
-  tag,
+  showMeta = true,
   onPress,
-  onToggleFavorite,
-  isFavorite = false,
-  inCart = false,
-  compact = false,
+  trackClick = true,
+  selected = false,
+  overlay,
+  overlayStart,
+  footer,
+  style,
+  testID,
 }: ProductCardProps) {
   const { t } = useTranslation();
-  const [imgSrc, setImgSrc] = useState<string>(() => resolveImageSrc(product));
 
-  const effectivePrice = useMemo(() => getProductEffectivePrice(product), [product]);
-  const onSale = useMemo(() => isProductOnSaleDisplay(product), [product]);
-  const originalPrice = useMemo(() => getProductOriginalPriceForDisplay(product), [product]);
-  const discountPct = useMemo(() => getProductDiscountPercent(product), [product]);
+  const { effective, original, onSale, discount, outOfStock, isTrade, sponsored, campaign } = useMemo(
+    () => ({
+      effective: getProductEffectivePrice(product),
+      original: getProductOriginalPriceForDisplay(product),
+      onSale: isProductOnSaleDisplay(product) && getProductOriginalPriceForDisplay(product) > getProductEffectivePrice(product),
+      discount: product.discountPercent ?? getProductDiscountPercent(product),
+      outOfStock: isProductOutOfStock(product),
+      isTrade: isProductTradeOpen(product),
+      sponsored: Boolean(product.isBoosted || product.boostedUntil),
+      campaign: (product.feeCampaigns ?? [])[0] ?? null,
+    }),
+    [product],
+  );
 
   const handlePress = () => {
-    // Fire-and-forget sıralama sinyali; hata navigasyonu engellemez.
-    void productsApi.recordClick(product.id).catch(() => {});
+    // Sıralama sinyali: hata gezinmeyi engellemez (web `click` ping'i).
+    if (trackClick) void productsApi.recordClick(product.id).catch(() => {});
     if (onPress) return onPress();
     router.push(`/product/${product.id}`);
   };
 
-  const ratingAvg = product.rating?.average ?? null;
-  const ratingCount = product.rating?.count ?? 0;
-
-  // Stokta yok: active dışı statü veya müsait adet 0 (null = sınırsız stok → stokta).
-  const isOutOfStock = isProductOutOfStock(product);
+  const imageSource = product.imageUrl ?? product.images;
+  const tradeIcon = <Ionicons name="swap-horizontal" size={iconSize.sm} color={colors.text.inverted} />;
 
   if (layout === 'list') {
     return (
-      <TouchableOpacity style={styles.listCard} onPress={handlePress} activeOpacity={0.85}>
-        <View style={styles.listImageWrap}>
-          <AppImage
-            source={imgSrc}
-            style={[styles.listImage, isOutOfStock && styles.imageDimmed]}
-            onError={() => setImgSrc(FALLBACK_IMG)}
-          />
-          {isOutOfStock ? (
-            <View style={styles.outOfStockOverlay}>
-              <Text style={styles.outOfStockText}>{t('product.soldOut').toUpperCase()}</Text>
-            </View>
-          ) : null}
-          {onSale && discountPct > 0 ? (
-            <View style={[styles.badge, styles.saleBadge]}>
-              <Text style={styles.badgeText}>%{discountPct}</Text>
-            </View>
-          ) : null}
-          {inCart ? (
-            <View style={styles.inCartPill}>
-              <Ionicons name="checkmark-circle" size={12} color={colors.white} />
-              <Text style={styles.inCartPillText}>{t('product.inCartShort')}</Text>
-            </View>
-          ) : null}
-        </View>
-        <View style={styles.listBody}>
-          <Text style={styles.title} numberOfLines={2}>{product.title}</Text>
-          {product.brand || product.scale ? (
-            <Text style={styles.meta} numberOfLines={1}>
-              {[product.brand, product.scale].filter(Boolean).join(' • ')}
-            </Text>
-          ) : null}
-          {product.seller?.displayName ? (
-            <Text style={styles.meta} numberOfLines={1}>
-              {t('refund.sellerLabel', { name: product.seller.displayName })}
-            </Text>
-          ) : null}
-          <View style={styles.listFooter}>
-            <View>
-              {onSale && originalPrice > effectivePrice ? (
-                <Text style={styles.priceOld}>{formatPrice(originalPrice)}</Text>
-              ) : null}
-              <Text style={styles.price}>{formatPrice(effectivePrice)}</Text>
-            </View>
-            {ratingAvg !== null && ratingCount > 0 ? (
-              <View style={styles.ratingRow}>
-                <Ionicons name="star" size={14} color={colors.warning[500]!} />
-                <Text style={styles.ratingText}>{ratingAvg.toFixed(1)}</Text>
-                <Text style={styles.ratingCount}>({ratingCount})</Text>
-              </View>
+      <View style={style}>
+        <Pressable
+          onPress={handlePress}
+          testID={testID}
+          accessibilityRole="button"
+          accessibilityLabel={product.title}
+          accessibilityState={{ selected }}
+          style={({ pressed }) => [styles.listCard, selected && styles.selected, pressed && styles.pressed]}
+        >
+          <View style={styles.listImage}>
+            <AppImage
+              source={imageSource}
+              variant="card"
+              style={[styles.fill, outOfStock && styles.dimmed]}
+              resizeMode="cover"
+            />
+            {outOfStock ? <OutOfStockOverlay label={t('product.soldOut').toUpperCase()} /> : null}
+            {isTrade ? (
+              <ProductBadge
+                variant="trade"
+                icon={tradeIcon}
+                accessibilityLabel={t('product.tradeShort')}
+                style={styles.listTradeBadge}
+              />
             ) : null}
           </View>
-        </View>
-      </TouchableOpacity>
+          <View style={styles.listBody}>
+            <Text variant="body" weight="semibold" numberOfLines={2} style={styles.listTitle}>
+              {product.title}
+            </Text>
+            {showMeta ? <MetaRow product={product} listOrder /> : null}
+            {showMeta && product.description ? (
+              <Text variant="bodySm" tone="muted" numberOfLines={2} style={styles.listDescription}>
+                {product.description}
+              </Text>
+            ) : null}
+          </View>
+          <View style={styles.listPrice}>
+            {onSale ? (
+              <Text variant="bodySm" tone="subtle" style={styles.struck} testID="product-card-old-price">
+                {formatPrice(original)}
+              </Text>
+            ) : null}
+            <Text variant="h3" weight="bold" tone="primary" testID="product-card-price">
+              {formatPrice(effective)}
+            </Text>
+            {onSale ? <ProductBadge variant="sale">%{discount}</ProductBadge> : null}
+          </View>
+        </Pressable>
+        {overlay ? <View style={styles.overlayEnd}>{overlay}</View> : null}
+        {footer ? <View style={styles.listFooter}>{footer}</View> : null}
+      </View>
     );
   }
 
   return (
-    <Pressable style={({ pressed }) => [styles.gridCard, pressed && { opacity: 0.85 }]} onPress={handlePress}>
-      <View style={styles.gridImageWrap}>
-        <AppImage
-          source={imgSrc}
-          style={[styles.gridImage, isOutOfStock && styles.imageDimmed]}
-          onError={() => setImgSrc(FALLBACK_IMG)}
-        />
-
-        {isOutOfStock ? (
-          <View style={styles.outOfStockOverlay}>
-            <Text style={styles.outOfStockText}>{t('product.soldOut').toUpperCase()}</Text>
+    <View style={[styles.gridWrap, style]}>
+      <Pressable
+        onPress={handlePress}
+        testID={testID}
+        accessibilityRole="button"
+        accessibilityLabel={product.title}
+        accessibilityState={{ selected }}
+        style={({ pressed }) => [styles.gridCard, selected && styles.selected, pressed && styles.pressed]}
+      >
+        <View style={styles.gridImage}>
+          <AppImage
+            source={imageSource}
+            variant="card"
+            style={[styles.fill, outOfStock && styles.dimmed]}
+            resizeMode="cover"
+          />
+          {outOfStock ? <OutOfStockOverlay label={t('product.soldOut').toUpperCase()} /> : null}
+          <View style={styles.badgesStart} pointerEvents="none">
+            {sponsored ? <ProductBadge variant="sponsored">{t('product.sponsored')}</ProductBadge> : null}
+            {isTrade ? (
+              <ProductBadge variant="trade" icon={tradeIcon}>
+                {t('product.tradeShort')}
+              </ProductBadge>
+            ) : null}
+            {campaign ? <ProductBadge variant="rare">{campaign}</ProductBadge> : null}
           </View>
-        ) : null}
-
-        {/* Sol üst: sponsorlu / indirim / ön sipariş / limited */}
-        <View style={styles.topLeftStack}>
-          {product.isBoosted || product.boostedUntil ? (
-            <View style={[styles.badge, styles.boostBadge]}>
-              <Ionicons name="rocket" size={10} color={colors.white} />
-              <Text style={[styles.badgeText, { marginLeft: theme.spacing[1] }]}>{t('product.sponsored').toUpperCase()}</Text>
-            </View>
-          ) : null}
-          {onSale && discountPct > 0 ? (
-            <View style={[styles.badge, styles.saleBadge]}>
-              <Text style={styles.badgeText}>%{discountPct} {t('product.discount')}</Text>
-            </View>
-          ) : null}
-          {product.isPreorder ? (
-            <View style={[styles.badge, styles.preorderBadge]}>
-              <Text style={styles.badgeText}>{t('product.preOrder').toUpperCase()}</Text>
-            </View>
-          ) : null}
-          {product.isLimited ? (
-            <View style={[styles.badge, styles.limitedBadge]}>
-              <Ionicons name="star" size={10} color={colors.white} />
-              <Text style={[styles.badgeText, { marginLeft: theme.spacing[1] }]}>{t('product.limitedBadge').toUpperCase()}</Text>
-            </View>
-          ) : null}
-          {isProductTradeOpen(product) ? (
-            <View style={[styles.badge, styles.tradeBadge]}>
-              <Ionicons name="swap-horizontal" size={10} color={colors.white} />
-              <Text style={[styles.badgeText, { marginLeft: theme.spacing[1] }]}>{t('product.tradeShort').toUpperCase()}</Text>
+          {onSale ? (
+            <View style={styles.badgeEnd} pointerEvents="none">
+              <ProductBadge variant="sale">%{discount}</ProductBadge>
             </View>
           ) : null}
         </View>
-
-        {/* Sağ üst: tag veya favori */}
-        <View style={styles.topRightStack}>
-          {tag ? (
-            <View style={[styles.badge, styles.neutralBadge]}>
-              <Text style={styles.badgeText}>{tag}</Text>
+        <View style={styles.gridBody}>
+          <Text variant="bodySm" weight="medium" numberOfLines={2} style={styles.gridTitle}>
+            {product.title}
+          </Text>
+          <View style={styles.gridBottom}>
+            {showMeta ? <MetaRow product={product} listOrder={false} /> : null}
+            <View style={styles.priceBlock}>
+              {onSale ? (
+                <Text variant="bodySm" tone="subtle" style={styles.struck} testID="product-card-old-price">
+                  {formatPrice(original)}
+                </Text>
+              ) : null}
+              <Text variant="body" weight="bold" tone="primary" testID="product-card-price">
+                {formatPrice(effective)}
+              </Text>
             </View>
-          ) : null}
-          {onToggleFavorite ? (
-            <TouchableOpacity
-              style={styles.favBtn}
-              onPress={onToggleFavorite}
-              accessibilityRole="button"
-              accessibilityLabel={isFavorite ? t('product.removeFromFavorites') : t('product.addToFavorites')}
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            >
-              <Ionicons
-                name={isFavorite ? 'heart' : 'heart-outline'}
-                size={18}
-                color={isFavorite ? colors.danger[600]! : colors.text.heading}
-              />
-            </TouchableOpacity>
-          ) : null}
+          </View>
         </View>
-
-        {inCart ? (
-          <View style={styles.inCartPill}>
-            <Ionicons name="checkmark-circle" size={12} color={colors.white} />
-            <Text style={styles.inCartPillText}>{t('product.inCartShort')}</Text>
-          </View>
-        ) : null}
-      </View>
-
-      <View style={[styles.gridBody, compact && { padding: theme.spacing[2] }]}>
-        <Text style={[styles.title, compact && { fontSize: 13 }]} numberOfLines={2}>
-          {product.title}
-        </Text>
-        {onSale && originalPrice > effectivePrice ? (
-          <Text style={styles.priceOld}>{formatPrice(originalPrice)}</Text>
-        ) : null}
-        <Text style={styles.price}>{formatPrice(effectivePrice)}</Text>
-        {ratingAvg !== null && ratingCount > 0 ? (
-          <View style={styles.ratingRow}>
-            <Ionicons name="star" size={12} color={colors.warning[500]!} />
-            <Text style={styles.ratingText}>{ratingAvg.toFixed(1)}</Text>
-            <Text style={styles.ratingCount}>({ratingCount})</Text>
-          </View>
-        ) : null}
-      </View>
-    </Pressable>
+      </Pressable>
+      {footer ? <View style={styles.gridFooter}>{footer}</View> : null}
+      {overlay ? <View style={styles.overlayEnd}>{overlay}</View> : null}
+      {overlayStart ? <View style={styles.overlayStart}>{overlayStart}</View> : null}
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  // ========== GRID ==========
-  gridCard: {
-    flex: 1,
-    backgroundColor: colors.surface.DEFAULT,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border.DEFAULT,
-  },
-  gridImageWrap: {
-    aspectRatio: 1,
-    backgroundColor: colors.surface.alt,
-    position: 'relative',
-  },
-  gridImage: {
-    width: '100%',
-    height: '100%',
-  },
-  gridBody: {
-    padding: theme.spacing[2.5],
-  },
-
-  // ========== LIST ==========
-  listCard: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface.DEFAULT,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border.DEFAULT,
-    padding: theme.spacing[2.5],
-    gap: theme.spacing[3],
-  },
-  listImageWrap: {
-    width: 110,
-    height: 110,
-    borderRadius: theme.radius.xl,
-    overflow: 'hidden',
-    backgroundColor: colors.surface.alt,
-  },
-  listImage: {
-    width: '100%',
-    height: '100%',
-  },
-  listBody: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  listFooter: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    marginTop: theme.spacing[2],
-  },
-
-  // ========== TEXT ==========
-  title: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.heading,
-    lineHeight: 18,
-  },
-  meta: {
-    fontSize: 12,
-    color: colors.text.muted,
-    marginTop: theme.spacing[0.5],
-  },
-  price: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.primary[700]!,
-    marginTop: theme.spacing[1],
-  },
-  priceOld: {
-    fontSize: 12,
-    color: colors.gray[400],
-    textDecorationLine: 'line-through',
-    marginTop: theme.spacing[1],
-  },
-
-  // ========== OUT OF STOCK ==========
-  imageDimmed: {
-    opacity: 0.45,
-  },
-  outOfStockOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  outOfStockText: {
-    backgroundColor: colors.overlay.black70,
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[1.5],
-    borderRadius: theme.radius.lg,
-    overflow: 'hidden',
-  },
-
-  // ========== BADGES ==========
-  topLeftStack: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    flexDirection: 'column',
-    gap: theme.spacing[1],
-    alignItems: 'flex-start',
-  },
-  topRightStack: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    flexDirection: 'column',
-    gap: theme.spacing[1],
-    alignItems: 'flex-end',
-  },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: 3,
-    borderRadius: theme.radius.md,
-  },
-  badgeText: {
-    color: colors.white,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  saleBadge: {
-    backgroundColor: colors.danger[500]!,
-  },
-  preorderBadge: {
-    backgroundColor: colors.warning[500]!,
-  },
-  limitedBadge: {
-    backgroundColor: colors.warning[500]!,
-  },
-  tradeBadge: {
-    backgroundColor: colors.success[500]!,
-  },
-  boostBadge: {
-    backgroundColor: colors.warning[500]!,
-  },
-  neutralBadge: {
-    backgroundColor: colors.overlay.black70,
-  },
-  favBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.overlay.white90,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  inCartPill: {
-    position: 'absolute',
-    bottom: 8,
-    left: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[1],
-    backgroundColor: colors.primary[600]!,
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: theme.spacing[1],
-    borderRadius: theme.radius.xl,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  inCartPillText: {
-    color: colors.white,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-
-  // ========== RATING ==========
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[0.5],
-    marginTop: theme.spacing[1],
-  },
-  ratingText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text.heading,
-    marginLeft: theme.spacing[0.5],
-  },
-  ratingCount: {
-    fontSize: 11,
-    color: colors.text.muted,
-    marginLeft: theme.spacing[0.5],
-  },
-});
 
 export const ProductCard = React.memo(ProductCardBase);
 
 export default ProductCard;
+
+const styles = StyleSheet.create({
+  fill: { width: '100%', height: '100%' },
+  dimmed: { opacity: 0.5 },
+  pressed: { opacity: 0.85 },
+  selected: { borderWidth: 2, borderColor: colors.primary[500], backgroundColor: colors.primary[50] },
+  struck: { textDecorationLine: 'line-through' },
+
+  // ===== GRID (web: rounded border bg-surface-elevated, aspect-square görsel, p-2.5 gövde) =====
+  gridWrap: { flex: 1 },
+  gridCard: {
+    flex: 1,
+    overflow: 'hidden',
+    borderRadius: radiusRole.productCard,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    backgroundColor: colors.surface.elevated,
+  },
+  gridImage: { aspectRatio: 1, backgroundColor: colors.surface.alt },
+  badgesStart: {
+    position: 'absolute',
+    top: spacing[1.5],
+    left: spacing[1.5],
+    alignItems: 'flex-start',
+    gap: spacing[1],
+  },
+  badgeEnd: { position: 'absolute', top: spacing[1.5], right: spacing[1.5] },
+  gridBody: { flex: 1, padding: spacing[2.5] },
+  gridTitle: {
+    marginBottom: spacing[1],
+    lineHeight: typography.fontSize.sm * typography.lineHeight.tight,
+  },
+  // Meta + fiyat altta sabit: 1 ya da 2 satırlık başlıkta kartlar hizalı kalır.
+  gridBottom: { marginTop: 'auto' },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    columnGap: spacing[3],
+    rowGap: spacing[0.5],
+    marginBottom: spacing[1.5],
+  },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: spacing[0.5] },
+  priceBlock: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border.subtle,
+    paddingTop: spacing[1.5],
+  },
+  gridFooter: { paddingHorizontal: spacing[2.5], paddingBottom: spacing[2.5] },
+  overlayEnd: { position: 'absolute', top: spacing[1.5], right: spacing[1.5], zIndex: 1 },
+  overlayStart: { position: 'absolute', top: spacing[1.5], left: spacing[1.5], zIndex: 1 },
+
+  // ===== LİSTE (web: rounded-lg border p-3 gap-3, 80pt görsel, fiyat tam genişlikte sağa yaslı) =====
+  listCard: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing[3],
+    padding: spacing[3],
+    borderRadius: radiusRole.card,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    backgroundColor: colors.surface.elevated,
+  },
+  listImage: {
+    width: spacing[20],
+    height: spacing[20],
+    overflow: 'hidden',
+    borderRadius: radiusRole.card,
+    backgroundColor: colors.surface.alt,
+  },
+  listTradeBadge: { position: 'absolute', top: spacing[1], right: spacing[1], padding: spacing[1], gap: 0 },
+  listBody: { flex: 1, minWidth: 0 },
+  listTitle: { lineHeight: typography.fontSize.base * typography.lineHeight.tight },
+  listDescription: { marginTop: spacing[2] },
+  listPrice: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'flex-end',
+    gap: spacing[2],
+  },
+  listFooter: { marginTop: spacing[2] },
+});
