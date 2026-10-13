@@ -1,5 +1,6 @@
 import React from 'react';
 import { BackHandler, Text, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { fireGestureHandler, getByGestureTestId } from 'react-native-gesture-handler/jest-utils';
 import { State } from 'react-native-gesture-handler';
@@ -174,6 +175,38 @@ describe('SideMenuHost', () => {
     flush();
     expect(screen.getByTestId('state').children.join('')).toBe('open');
     expect(screen.getByTestId('side-menu')).toBeTruthy();
+  });
+
+  it('yarış: sürükleme sürerken menü dışarıdan kapanırsa jest kapanışı ezmez; panel sökülür, progress 0', () => {
+    setup();
+    fireEvent.press(screen.getByTestId('open'));
+    flush();
+    const panGesture = getByGestureTestId('side-menu-pan');
+    panGesture.config.enabled = true;
+    act(() => {
+      fireGestureHandler(panGesture, [
+        { state: State.BEGAN, translationX: 0, velocityX: 0 },
+        { state: State.ACTIVE, translationX: -20, velocityX: -50 },
+      ]);
+    });
+    // Parmak hâlâ ekrandayken dışarıdan kapanış (Android geri tuşu / rota değişimi).
+    act(() => {
+      backHandlers[0]!();
+    });
+    // Eşiğin altında bir bırakma: eski kodda progress=1'e geri yazıp kapanışı keserdi.
+    act(() => {
+      fireGestureHandler(panGesture, [
+        { state: State.ACTIVE, translationX: -40, velocityX: -50 },
+        { state: State.END, translationX: -40, velocityX: -50 },
+      ]);
+    });
+    flush();
+    flush();
+    expect(screen.getByTestId('state').children.join('')).toBe('closed');
+    expect(screen.queryByTestId('side-menu')).toBeNull();
+    expect(screen.queryByTestId('side-menu-overlay')).toBeNull();
+    const style = StyleSheet.flatten(screen.getByTestId('side-menu-track').props.style);
+    expect(style.transform).toEqual([{ translateX: 0 }]);
   });
 
   it('genişlik: ekranın %80i, en fazla 340pt', () => {

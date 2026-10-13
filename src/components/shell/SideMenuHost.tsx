@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
   BackHandler,
@@ -41,6 +41,8 @@ const PAN_FAIL_OFFSET_Y = 16;
 const A11Y_FOCUS_DELAY_MS = 350;
 
 const EASING = Easing.bezier(0.4, 0, 0.2, 1);
+/** Kapanış animasyonu bitiş geri çağrısına güvenmeden, süre dolunca zorla sökmek için pay (ms). */
+const FORCE_UNMOUNT_SLACK_MS = 100;
 
 interface SideMenuHostProps {
   /** Menü paneli içeriği (DrawerMenu) — yalnız menü açıkken bağlanır. */
@@ -72,6 +74,8 @@ export function SideMenuHost({ menu, children }: SideMenuHostProps) {
 
   // 0 = kapalı, 1 = açık. İçerik/panel konumu ve soluklaştırma bundan türer.
   const progress = useSharedValue(0);
+  // `isOpen`ın worklet tarafındaki aynası: jest geri çağrıları kapanıştan SONRA gelirse progress'i ezmesin.
+  const isOpenSV = useSharedValue(isOpen);
   // Kapanış animasyonu bitene dek bağlı kalır.
   const [mounted, setMounted] = useState(false);
   const closeRef = useRef<View>(null);
@@ -82,6 +86,11 @@ export function SideMenuHost({ menu, children }: SideMenuHostProps) {
   const unmount = useCallback(() => {
     if (!isOpenRef.current) setMounted(false);
   }, []);
+
+  // Efektlerden (ve jest iptalinden) ÖNCE güncel olsun diye layout efekti.
+  useLayoutEffect(() => {
+    isOpenSV.value = isOpen;
+  }, [isOpen, isOpenSV]);
 
   useEffect(() => {
     if (isOpen) {
@@ -94,6 +103,18 @@ export function SideMenuHost({ menu, children }: SideMenuHostProps) {
       });
     }
   }, [isOpen, animMs, progress, unmount]);
+
+  // Emniyet: kapanış animasyonu kesilirse (`finished=false`) bile menü takılı kalmasın —
+  // süre + pay sonra progress'i 0'a çekip paneli söker.
+  useEffect(() => {
+    if (isOpen || !mounted) return undefined;
+    const id = setTimeout(() => {
+      if (isOpenRef.current) return;
+      progress.value = 0;
+      setMounted(false);
+    }, animMs + FORCE_UNMOUNT_SLACK_MS);
+    return () => clearTimeout(id);
+  }, [isOpen, mounted, animMs, progress]);
 
   // Android geri tuşu: açıkken menüyü kapatır (ekranı geri götürmez).
   useEffect(() => {
@@ -129,17 +150,20 @@ export function SideMenuHost({ menu, children }: SideMenuHostProps) {
         .failOffsetY([-PAN_FAIL_OFFSET_Y, PAN_FAIL_OFFSET_Y])
         .onUpdate((e) => {
           'worklet';
+          if (!isOpenSV.value) return;
           progress.value = dragProgress(e.translationX, width);
         })
         .onEnd((e) => {
           'worklet';
+          // Dışarıdan kapanış başladıysa (rota/geri tuşu) jest kapanışı ezmesin.
+          if (!isOpenSV.value) return;
           if (shouldCloseOnRelease(e.translationX, e.velocityX, width)) {
             scheduleOnRN(close);
           } else {
             progress.value = withTiming(1, { duration: animMs, easing: EASING });
           }
         }),
-    [isOpen, width, animMs, close, progress],
+    [isOpen, width, animMs, close, progress, isOpenSV],
   );
 
   // Panel + içerik tek taşıyıcıda: aynı translateX.
