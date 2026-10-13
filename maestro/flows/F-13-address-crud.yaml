@@ -31,9 +31,9 @@ env:
     visible:
       text: "Adres Ekle|Yeni Adres"
     timeout: 20000
-# Yeni adres formu
+# Yeni adres — ayrı EKRAN (settings/addresses/new; eskiden modal)
 - tapOn:
-    text: "Adres Ekle|Yeni Adres"
+    text: "Yeni Adres Ekle|Yeni Adres"
 - extendedWaitUntil:
     visible:
       id: "address-title-input"
@@ -50,17 +50,38 @@ env:
 - tapOn:
     text: "Adres *"
 - inputText: "Test mahallesi test sokak no:1"
-# CityDistrictSelector — şehir + ilçe seçimi atla, mevcut default'la geç
+# İl + ilçe ZORUNLU (varsayılan yok) — seçici listesinden ilk il / ilk ilçe.
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      text: "Bir il seçin"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    text: "Bir il seçin"
+- tapOn:
+    text: "Adana"
+- tapOn:
+    text: "Bir ilçe seçin"
+- tapOn:
+    text: "Aladağ"
+# Kaydet alt çubukta (klavyenin üstünde, her zaman görünür)
 - tapOn:
     id: "address-save-button"
+# Başarı = form ekranı kapanır, listeye dönülür (başlık girdisi de aynı metni
+# taşıdığı için önce ekranın gittiğini bekle, sonra listede ara).
+- extendedWaitUntil:
+    notVisible:
+      id: "address-save-button"
+    timeout: 20000
 - extendedWaitUntil:
     visible: ${ADDRESS_TITLE}
     timeout: 20000
 - assertVisible: ${ADDRESS_TITLE}
 - assertNotVisible: ".*Network Error.*"
-# Edit
+# Edit — satırdaki kalem ("Adresi Düzenle") ayrı ekranı açar (settings/addresses/[id]/edit)
 - tapOn:
-    text: "pencil|Düzenle"
+    text: "Adresi Düzenle|pencil|Düzenle"
     optional: true
 - runFlow:
     when:
@@ -73,6 +94,10 @@ env:
       - inputText: ${ADDRESS_TITLE_EDITED}
       - tapOn:
           id: "address-save-button"
+      - extendedWaitUntil:
+          notVisible:
+            id: "address-save-button"
+          timeout: 20000
       - extendedWaitUntil:
           visible: ${ADDRESS_TITLE_EDITED}
           timeout: 20000
