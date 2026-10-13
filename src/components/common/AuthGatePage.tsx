@@ -7,6 +7,8 @@ import { PageShell } from '@/components/common/PageShell';
 export interface AuthGatePageProps {
   /** Üst bar başlığı (ve boş durum başlığı). */
   title: string;
+  /** Boş durum başlığı; verilmezse üst bar başlığı. */
+  emptyTitle?: string;
   /** Boş durum açıklaması (ekrana özel "giriş yap" gerekçesi). */
   subtitle?: string;
   icon?: EmptyStateProps['icon'];
@@ -18,7 +20,7 @@ export interface AuthGatePageProps {
  * Oturum gerektiren yığın ekranlarının misafir hali — PageShell + EmptyState + "Giriş Yap".
  * Her ekran kendi gate'ini elle çizmesin diye tek kaynak.
  */
-export const AuthGatePage: React.FC<AuthGatePageProps> = ({ title, subtitle, icon, onBack }) => {
+export const AuthGatePage: React.FC<AuthGatePageProps> = ({ title, emptyTitle, subtitle, icon, onBack }) => {
   const { t } = useTranslation();
   return (
     <PageShell
@@ -27,7 +29,7 @@ export const AuthGatePage: React.FC<AuthGatePageProps> = ({ title, subtitle, ico
       empty
       emptyState={{
         icon: icon ?? 'person-outline',
-        title,
+        title: emptyTitle ?? title,
         subtitle,
         actionLabel: t('common.login'),
         onAction: () => router.push('/(auth)/login'),
