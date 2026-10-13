@@ -70,11 +70,26 @@ describe('AppTabBar — yüzen hap', () => {
     expect(screen.getByTestId('tab-sell').props.accessibilityLabel).toBe('İlan ver');
   });
 
-  it('aktif sekmenin arkasında gri vurgu var; pasifte yok', () => {
-    setup(2);
-    const flat = (id: string) => StyleSheet.flatten(screen.getByTestId(id).props.style);
-    expect(flat('tab-messages').backgroundColor).toBe(theme.colors.gray[100]);
-    expect(flat('tab-home').backgroundColor).toBeUndefined();
+  it('aktif sekme vurgusu: hapın İÇİNDE tek kayan öğe (dokunma almaz); sekme düğmelerinde zemin yok', () => {
+    const navigate = jest.fn();
+    const view = render(tree(2, navigate));
+    PILL_ORDER.forEach((id, i) =>
+      fireEvent(screen.getByTestId(id), 'layout', { nativeEvent: { layout: { x: i * 80, y: 0, width: 80, height: 48 } } }),
+    );
+    const hl = screen.getByTestId('tab-highlight');
+    expect(within(screen.getByTestId('app-tab-pill')).getByTestId('tab-highlight')).toBeTruthy();
+    expect(hl.props.pointerEvents).toBe('none');
+    expect(StyleSheet.flatten(hl.props.style)).toMatchObject({
+      position: 'absolute',
+      backgroundColor: theme.colors.gray[100],
+    });
+    PILL_ORDER.forEach((id) =>
+      expect(StyleSheet.flatten(screen.getByTestId(id).props.style).backgroundColor).toBeUndefined(),
+    );
+    // Sekme değişimi (Profil) ve "+" sayfası: ölçümlü vurgu sorunsuz yeniden hedeflenir, tek öğe kalır.
+    view.rerender(tree(4, navigate));
+    view.rerender(tree(1, navigate));
+    expect(screen.getAllByTestId('tab-highlight')).toHaveLength(1);
   });
 
   it('daralınca hap dokunmaya + ekran okuyucuya kapanır, "+" açık kalır; geri açılınca döner', async () => {
@@ -135,12 +150,9 @@ describe('AppTabBar — yüzen hap', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it('Bildirimler sekmesi aktifken seçili + gri vurgu', () => {
+  it('Bildirimler sekmesi aktifken seçili', () => {
     setup(3);
     expect(screen.getByTestId('tab-notifications').props.accessibilityState).toEqual({ selected: true });
-    expect(StyleSheet.flatten(screen.getByTestId('tab-notifications').props.style).backgroundColor).toBe(
-      theme.colors.gray[100],
-    );
     expect(screen.getByTestId('tab-messages').props.accessibilityState).toEqual({ selected: false });
   });
 

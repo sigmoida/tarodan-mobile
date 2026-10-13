@@ -27,6 +27,12 @@ export interface GlassSurfaceProps extends Omit<ViewProps, 'style'> {
    * iOS < 26'da yarı saydam beyaz + ince kenarlık + `shadow.soft`; Android'de beyaz + `shadow.medium`.
    */
   opaque?: boolean;
+  /**
+   * iOS 26 "interaktif cam" (expo-glass-effect `isInteractive`): basınca native cam efekti (ölçek +
+   * parıltı). Yalnız dokunulabilir yüzeylerde aç; fallback'te etkisiz. Aktifken `pointerEvents="none"`
+   * VERME (native efekt dokunuşu cam görünümün almasını ister; Pressable atası yine yanıt verir).
+   */
+  interactive?: boolean;
   style?: StyleProp<ViewStyle>;
   children?: React.ReactNode;
 }
@@ -49,6 +55,7 @@ export function GlassSurface({
   radius,
   tint,
   opaque,
+  interactive,
   style,
   children,
   ...rest
@@ -63,6 +70,7 @@ export function GlassSurface({
         glassEffectStyle="regular"
         colorScheme="light"
         tintColor={tint}
+        isInteractive={interactive}
         style={[box, styles.glass, style]}
         {...rest}
       >

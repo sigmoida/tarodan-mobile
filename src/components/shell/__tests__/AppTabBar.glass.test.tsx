@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { act, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { theme } from '@/ui';
 import { AppTabBar } from '../AppTabBar';
 import { TabBarCollapseProvider, useTabBarCollapsed } from '../TabBarCollapse';
@@ -49,10 +49,22 @@ describe('AppTabBar — Liquid Glass', () => {
     expect(glasses.filter((g) => g.props.tintColor === theme.colors.primary[600])).toHaveLength(1);
   });
 
-  it('aktif sekme yarı saydam gri vurguyla işaretlenir (opak gri değil)', () => {
+  it('aktif sekme vurgusu yarı saydam gri (opak gri değil); sekme düğmesinin kendisinde zemin yok', () => {
     setup(2);
-    expect(flat('tab-messages').backgroundColor).toBe(theme.colors.overlay.black10);
+    ['tab-home', 'tab-messages'].forEach((id, i) =>
+      fireEvent(screen.getByTestId(id), 'layout', { nativeEvent: { layout: { x: i * 80, y: 0, width: 80, height: 48 } } }),
+    );
+    expect(flat('tab-highlight').backgroundColor).toBe(theme.colors.overlay.black10);
+    expect(flat('tab-messages').backgroundColor).toBeUndefined();
     expect(flat('tab-home').backgroundColor).toBeUndefined();
+  });
+
+  it('interaktif cam: yalnız "+" isInteractive; hap yüzeyi değil (içindeki sekme dokunuşları çakışmasın)', () => {
+    setup();
+    const glasses = screen.getAllByTestId('glass-view');
+    const interactive = glasses.filter((g) => g.props.isInteractive === true);
+    expect(interactive).toHaveLength(1);
+    expect(interactive[0]!.props.tintColor).toBe(theme.colors.primary[600]);
   });
 
   it('daralınca hap dokunmaya kapanır, "+" açık kalır; geri açılınca döner', async () => {

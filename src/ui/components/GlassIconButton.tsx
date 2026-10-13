@@ -1,8 +1,10 @@
 import React from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { theme } from '../lib/theme';
 import { RefIcon, type IconRef, type IconVariant } from '../icons';
 import { getGlassView } from '../lib/glass';
+import { usePressScale } from '../lib/pressScale';
 import { CountBadge } from './CountBadge';
 import { GlassSurface } from './GlassSurface';
 
@@ -48,29 +50,41 @@ export function GlassIconButton({
   // Native cam, ata opacity < 1 iken efektini kaybeder: camda soluklaştırma ve basılı geri bildirimi
   // (disabled opacity / pressed opacity) yüzeye değil içeriğe / ölçeğe uygulanır.
   const glass = getGlassView() !== null;
+  const press = usePressScale(disabled);
   const color = iconColor ?? (tone === 'muted' ? theme.inactiveIconColor : colors.text.heading);
   return (
-    <Pressable
-      testID={testID}
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ disabled: !!disabled }}
-      android_ripple={Platform.OS === 'android' ? { color: colors.overlay.black10, radius: GLASS_ICON_BUTTON_SIZE / 2, foreground: true } : undefined}
-      style={({ pressed }) => [
-        styles.box,
-        disabled && !glass && styles.disabled,
-        pressed && Platform.OS === 'ios' && (glass ? styles.pressedGlass : styles.pressed),
-      ]}
-    >
-      <GlassSurface shape="circle" size={GLASS_ICON_BUTTON_SIZE} pointerEvents="none">
-        <View style={disabled && glass ? styles.disabled : undefined}>
-          <RefIcon icon={icon} variant={iconVariant} size={iconSize.lg} color={color} />
-        </View>
-      </GlassSurface>
-      {count ? <CountBadge count={count} /> : null}
-    </Pressable>
+    <Animated.View style={[styles.box, press.style]}>
+      <Pressable
+        testID={testID}
+        onPress={onPress}
+        onPressIn={press.onPressIn}
+        onPressOut={press.onPressOut}
+        disabled={disabled}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityState={{ disabled: !!disabled }}
+        android_ripple={Platform.OS === 'android' ? { color: colors.overlay.black10, radius: GLASS_ICON_BUTTON_SIZE / 2, foreground: true } : undefined}
+        style={({ pressed }) => [
+          styles.box,
+          disabled && !glass && styles.disabled,
+          // Camda opacity YOK (efekti bozar): geri bildirim native interaktif cam + ölçek. Fallback: opacity.
+          pressed && Platform.OS === 'ios' && !glass && styles.pressed,
+        ]}
+      >
+        {/* Camda native interaktif efekt dokunuşu cam görünümden ister: pointerEvents none yalnız fallback'te. */}
+        <GlassSurface
+          shape="circle"
+          size={GLASS_ICON_BUTTON_SIZE}
+          interactive={!disabled}
+          pointerEvents={glass ? undefined : 'none'}
+        >
+          <View style={disabled && glass ? styles.disabled : undefined}>
+            <RefIcon icon={icon} variant={iconVariant} size={iconSize.lg} color={color} />
+          </View>
+        </GlassSurface>
+        {count ? <CountBadge count={count} /> : null}
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -82,5 +96,4 @@ const styles = StyleSheet.create({
   },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.7 },
-  pressedGlass: { transform: [{ scale: 0.94 }] },
 });
