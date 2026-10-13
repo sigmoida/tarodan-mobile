@@ -64,7 +64,7 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
               key={tab.name}
               testID={tab.testID}
               style={styles.item}
-              accessibilityRole="button"
+              accessibilityRole="tab"
               accessibilityLabel={label}
               accessibilityState={{ selected: focused }}
               onPress={() => {
