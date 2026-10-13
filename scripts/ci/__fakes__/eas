@@ -1,0 +1,77 @@
+#!/usr/bin/env node
+// Sahte eas-cli — yalnız src/config/__tests__/releaseScript.test.ts için.
+// Veriyi $FAKE_DIR'den okur (builds.json, submissions.json, build-result.json),
+// her çağrıyı $FAKE_DIR/log'a yazar. JSON şekli eas-cli 24.x'in `--json`
+// çıktısıyla aynıdır (GraphQL BuildFragment / SubmissionWithSubmittedBuildFragment:
+// runtime.version, fingerprint.hash, updateChannel.name, appIdentifier, status
+// büyük harf enum).
+const fs = require('fs');
+const path = require('path');
+const dir = process.env.FAKE_DIR;
+const args = process.argv.slice(2);
+const flag = (f) => {
+  const i = args.indexOf(f);
+  return i < 0 ? undefined : args[i + 1];
+};
+const readJson = (name, dflt) => {
+  const p = path.join(dir, name);
+  return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : dflt;
+};
+const envSeen = ['EXPO_PUBLIC_ENVIRONMENT', 'EXPO_PUBLIC_API_URL']
+  .map((k) => `${k}=${process.env[k] ?? ''}`)
+  .join(' ');
+fs.appendFileSync(path.join(dir, 'log'), `eas ${args.join(' ')} | ${envSeen}\n`);
+const enumOf = (s) => s && s.toUpperCase().replace(/-/g, '_');
+const fail = Number(process.env[`FAKE_EAS_FAIL_${(args[0] || '').replace(/[^a-z]/gi, '_').toUpperCase()}`] || 0);
+if (fail) {
+  console.error(`fake eas: ${args[0]} başarısız (FAKE)`);
+  process.exit(fail);
+}
+
+switch (args[0]) {
+  case 'build:list': {
+    // Yalnız geçmiş sorgusunu (runtime filtresiz: kota/döngü koruması) düşür.
+    if (process.env.FAKE_EAS_FAIL_HISTORY && !args.includes('--runtime-version')) {
+      console.error('fake eas: build:list (geçmiş) başarısız (FAKE)');
+      process.exit(1);
+    }
+    let b = readJson('builds.json', []);
+    const platform = flag('--platform');
+    if (platform && platform !== 'all') b = b.filter((x) => x.platform === platform.toUpperCase());
+    const profile = flag('--build-profile') ?? flag('-e');
+    if (profile) b = b.filter((x) => x.buildProfile === profile);
+    const rv = flag('--runtime-version');
+    // Sunucu filtresi. JSON'da runtime alanı hiç olmayan build, "sunucu eşledi ama
+    // CLI'nin JSON şekli değişti" durumunu taklit eder ve filtreden geçer.
+    const rtOf = (x) => (x.runtime && x.runtime.version) || x.runtimeVersion;
+    if (rv) b = b.filter((x) => rtOf(x) === undefined || rtOf(x) === rv);
+    const st = flag('--status');
+    if (st) b = b.filter((x) => x.status === enumOf(st));
+    const ch = flag('--channel');
+    if (ch) b = b.filter((x) => (x.updateChannel && x.updateChannel.name) === ch);
+    console.log(JSON.stringify(b.slice(0, Number(flag('--limit') || 10)), null, 2));
+    break;
+  }
+  case 'submit:list': {
+    let s = readJson('submissions.json', []);
+    const platform = flag('--platform');
+    if (platform && platform !== 'all') s = s.filter((x) => x.platform === platform.toUpperCase());
+    const st = flag('--status');
+    if (st) s = s.filter((x) => x.status === enumOf(st));
+    console.log(JSON.stringify(s.slice(0, Number(flag('--limit') || 10)), null, 2));
+    break;
+  }
+  case 'build': {
+    const result = readJson('build-result.json', null) ?? [
+      { id: 'new-build', status: 'FINISHED', platform: (flag('--platform') || '').toUpperCase() },
+    ];
+    console.log(JSON.stringify(result, null, 2));
+    process.exit(Number(process.env.FAKE_BUILD_EXIT || 0));
+  }
+  case 'submit':
+  case 'update':
+    break;
+  default:
+    console.error(`fake eas: beklenmeyen komut ${args.join(' ')}`);
+    process.exit(2);
+}

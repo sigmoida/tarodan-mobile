@@ -1,14 +1,23 @@
 name: CI (Mobile)
 
+# PR'larda doğrudan koşar. development/master push'larında AYRI tetiklenmez:
+# mobile-staging.yml ve mobile-production.yml bu dosyayı `workflow_call` ile
+# çağırıp yayın job'larını `needs: ci` ile ona bağlar. Böylece CI push başına
+# bir kez koşar ve hiçbir OTA/build kırmızı bir commit'ten çıkmaz.
 on:
-  push:
-    branches: [main]
   pull_request:
-    branches: [main, master]
+    branches: [development, master]
+  workflow_call:
 
+# Çağrıldığında github.* çağıranın bağlamıdır. event_name gruba girer ki elle
+# tetiklenen bir staging koşusunun CI'ı, aynı daldaki bir push'unkini (ya da
+# tersini) iptal etmesin. Yalnız PR'larda yeni koşu eskisini iptal eder.
+# Yayın koşularında (push/dispatch → workflow_call) İPTAL YOK: iptal edilen CI,
+# o koşunun yayın job'larını da düşürür; yeni push başka bir runtime'a aitse eski
+# runtime'ın OTA'sı hiç çıkmazdı.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check:

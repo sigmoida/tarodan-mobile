@@ -117,8 +117,12 @@ Token olmadan kaldırmak build'i kırar — bu yüzden ikisi birlikte yapılır.
 `gh secret set` ya da Settings → Secrets and variables → Actions:
 
 - `EXPO_TOKEN` — `https://expo.dev/accounts/<org>/settings/access-tokens` üzerinden
-  oluşturulan access token. **Tüm** EAS workflow'ları (build/submit/update) buna
-  bağlı — set edilene kadar hepsi guard'lı no-op.
+  oluşturulan access token. **Repo secret'ı DEĞİL, environment secret'ı**: üç
+  GitHub Environment'ın (`staging`, `production-build`, `production`) her birine
+  ayrı ayrı (tercihen environment başına ayrı Expo robot token'ı) eklenir.
+  Token isteyen her job bir environment'a bağlı; secret'ı olmayan environment'ın
+  job'ları guard'lı no-op. Kurulum ve geçiş: [`docs/RELEASE.md`](./docs/RELEASE.md)
+  → "Gereken secret, değişken ve environment'lar".
 - (opsiyonel) `EAS_BUILD_PROFILE_OVERRIDE` — manuel workflow_dispatch için.
 
 Hem **Apple** (App Store Connect API key) hem **Google Play** (service account
@@ -165,7 +169,7 @@ ASC → TestFlight → External Testing → "Add Group" → "Enable Public Link"
 - [ ] `app.json` `ITSAppUsesNonExemptEncryption: false` set
 - [ ] `app.json` `extra.eas.projectId` gerçek UUID
 - [ ] `eas.json` `submit.production.ios` placeholder'ları gerçek
-- [ ] `EXPO_TOKEN` GitHub repo secret'ı set (workflow'ları aktive eder)
+- [ ] `EXPO_TOKEN` üç environment'ta (`staging`, `production-build`, `production`) set; repo düzeyinde YOK
 - [ ] App Store Connect API key EAS'e yüklü (`eas credentials`, iOS submit)
 - [ ] Google Play service account JSON EAS'e yüklü (`eas credentials`, Android submit)
 - [ ] `EXPO_PUBLIC_API_URL` EAS secret'ı set (preview→staging, production→prod)

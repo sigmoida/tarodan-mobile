@@ -1,0 +1,31 @@
+#!/usr/bin/env node
+// Sahte npx — yalnız src/config/__tests__/releaseScript.test.ts için.
+//   npx expo-updates fingerprint:generate --platform P
+//       → {"hash": $FAKE_FP_<P> ya da "fp-<P>-<EXPO_PUBLIC_ENVIRONMENT>"}
+//       (varsayılan değer, profil env'inin gerçekten yüklendiğini test edilebilir kılar)
+//   npx expo config --type public --json
+//       → android.package / ios.bundleIdentifier ($FAKE_ANDROID_PACKAGE ile ezilebilir)
+const fs = require('fs');
+const path = require('path');
+const args = process.argv.slice(2);
+const env = process.env.EXPO_PUBLIC_ENVIRONMENT || '';
+fs.appendFileSync(
+  path.join(process.env.FAKE_DIR, 'log'),
+  `npx ${args.join(' ')} | EXPO_PUBLIC_ENVIRONMENT=${env}\n`,
+);
+if (args[0] === 'expo-updates' && args[1] === 'fingerprint:generate') {
+  const p = args[args.indexOf('--platform') + 1];
+  console.log(JSON.stringify({ hash: process.env[`FAKE_FP_${p.toUpperCase()}`] || `fp-${p}-${env}` }));
+} else if (args[0] === 'expo' && args[1] === 'config') {
+  const id = env === 'preview' ? 'com.tarodan.app.staging' : 'com.tarodan.app';
+  console.log(
+    JSON.stringify({
+      name: env === 'preview' ? 'Tarodan (Staging)' : 'Tarodan',
+      ios: { bundleIdentifier: id },
+      android: { package: process.env.FAKE_ANDROID_PACKAGE || id },
+    }),
+  );
+} else {
+  console.error(`fake npx: beklenmeyen komut ${args.join(' ')}`);
+  process.exit(2);
+}

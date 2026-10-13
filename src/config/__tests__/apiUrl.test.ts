@@ -5,6 +5,7 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
+import { execFileSync } from 'child_process';
 
 const ROOT = path.resolve(__dirname, '../../..');
 const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -68,28 +69,38 @@ describe('ortam API adresleri', () => {
     }
   });
 
-  it('OTA workflow env bloğu eas.json preview env anahtarlarının hepsini içerir', () => {
-    // Regresyon: OTA job'ı eas.json preview profilinin env'ini OKUMAZ (workflow
-    // içi yorum), inline kopyalar. Bir EXPO_PUBLIC_* anahtarı preview'e eklenip
-    // buraya kopyalanmazsa OTA build'lerinde o değişken boş kalır (bkz. I1:
-    // EXPO_PUBLIC_WEB_URL eksikliği -> paylaşım linkleri production'a gitti).
+  it('OTA env\'i eas.json profilinden okunur (kopya env bloğu yok)', () => {
+    // Regresyon: `eas update` eas.json build profilinin env'ini OKUMAZ. Eskiden
+    // workflow'a elle kopyalanan env bloğu preview ile kayınca (I1:
+    // EXPO_PUBLIC_WEB_URL eksikliği) paylaşım linkleri production'a gitti. Artık
+    // scripts/ci/release.sh env'i doğrudan eas.json'dan yükler; burada o çıktının
+    // eas.json ile birebir aynı olduğu doğrulanır.
     const eas = JSON.parse(read('eas.json'));
-    const previewKeys = Object.keys(eas.build.preview.env).filter((k) =>
-      k.startsWith('EXPO_PUBLIC_'),
-    );
-
-    const workflow = read('.github/workflows/mobile-staging.yml');
-    const otaJobMatch = workflow.match(
-      /ota:\n[\s\S]*?Publish OTA to staging[\s\S]*?env:\n([\s\S]*?)\n\s*run:/,
-    );
-    expect(otaJobMatch).not.toBeNull();
-    const otaEnvBlock = otaJobMatch![1];
-    const otaKeys = Array.from(
-      otaEnvBlock.matchAll(/^\s*(EXPO_PUBLIC_[A-Z0-9_]+):/gm),
-    ).map((m) => m[1]);
-
-    for (const key of previewKeys) {
-      expect(otaKeys).toContain(key);
+    for (const profile of ['preview', 'production']) {
+      const out = execFileSync('bash', [path.join(ROOT, 'scripts/ci/release.sh'), 'profile-env', profile], {
+        encoding: 'utf8',
+      });
+      const parsed = Object.fromEntries(
+        out
+          .trim()
+          .split('\n')
+          .map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]),
+      );
+      expect([profile, parsed]).toEqual([profile, eas.build[profile].env]);
     }
+
+    const staging = read('.github/workflows/mobile-staging.yml');
+    expect(staging).toContain('publish-ota staging "$OTA_PLATFORM" preview');
+    expect(staging).not.toMatch(/^\s*EXPO_PUBLIC_API_URL:/m);
+  });
+
+  it('preview ve staging profilleri aynı EXPO_PUBLIC_* değerlerini taşır', () => {
+    // Tek bir `staging` OTA dalı hem staging (store) hem preview (ad-hoc) build'lerini
+    // besliyor ve OTA env'i preview'den yükleniyor. Değerler ayrışırsa staging
+    // binary'lerine yanlış env'li JS iner (ya da fingerprint tutmaz).
+    const eas = JSON.parse(read('eas.json'));
+    const pub = (env: Record<string, string>) =>
+      Object.fromEntries(Object.entries(env).filter(([k]) => k.startsWith('EXPO_PUBLIC_')));
+    expect(pub(eas.build.staging.env)).toEqual(pub(eas.build.preview.env));
   });
 });

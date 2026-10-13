@@ -13,13 +13,13 @@ name: Maestro Cloud (Mobile e2e)
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [development]
     paths:
       - '**'
       - '!docs/**'
       - '!**/*.md'
   pull_request:
-    branches: [main, master]
+    branches: [development, master]
     paths:
       - '**'
       - '!docs/**'
