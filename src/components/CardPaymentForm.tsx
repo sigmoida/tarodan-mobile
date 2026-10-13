@@ -57,7 +57,8 @@ interface Props {
   isGuest?: boolean;
   /**
    * Çağıran ekranın (/payment/[id]) zaten bildiği ödeme referansı — form mount olmadan
-   * ÖNCE sipariş/grup/takas için oluşturulmuş paymentId. directForm ağ/timeout hatası
+   * ÖNCE sipariş/grup/takas için oluşturulmuş paymentId. Web gibi direct-form gövdesine
+   * girer (misafirde `X-Payment-Capability` ile birlikte zorunlu). directForm ağ/timeout hatası
    * verirse (sunucu charge'ı işlemiş olabilir) bu referansla mevcut poll/verify güvenlik
    * ağı devreye alınır; sert "başarısız" gösterilmez.
    */
@@ -197,9 +198,11 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
   async function submit() {
     if (processing) return;
 
-    // Misafir: sunucu gövdede `paymentId` ister (başlıktaki yetki belirteci bu id'ye
-    // bağlı; yoksa 403). Üye gövdesi değişmez.
-    const guestRef = isGuest && initialPaymentId ? { paymentId: initialPaymentId } : {};
+    // Web gibi `paymentId` her zaman gövdede (`useCardPayment`: `paymentId: resolved.paymentId`).
+    // Misafirde zorunlu: başlıktaki yetki belirteci bu id'ye bağlı, yoksa 403. Üyede
+    // belirteç yoksa sunucu bunu yok sayar (`resolveDirectPaymentContext`: `!userId`
+    // kapısı); belirteç varsa hedefin bu ödemeye ait olduğunu doğrular.
+    const paymentRef = initialPaymentId ? { paymentId: initialPaymentId } : {};
     let body: {
       paymentId?: string;
       orderId?: string;
@@ -216,7 +219,7 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
         appAlert(t('payment.missingInfoTitle'), err);
         return;
       }
-      body = { ...target, ...guestRef, saveCard: recurringEnabled && saveCard };
+      body = { ...target, ...paymentRef, saveCard: recurringEnabled && saveCard };
       cardFields = cardFieldsForNewCard({
         holder,
         number,
@@ -229,7 +232,7 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
         appAlert(t('payment.cvvRequiredTitle'), t('payment.cvvRequiredBody'));
         return;
       }
-      body = { ...target, ...guestRef, savedCardId: selected };
+      body = { ...target, ...paymentRef, savedCardId: selected };
       cardFields = cardFieldsForSavedCard(selectedCard?.requireCvv ? savedCvv : undefined);
     }
 

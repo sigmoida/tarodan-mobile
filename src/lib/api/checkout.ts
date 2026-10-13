@@ -111,8 +111,9 @@ export const paymentsApi = {
    * seviyesinde kart alan adlarını arar ve 400 döner. (Eski `POST /payments/process-direct`
    * API'den kaldırıldı; kart-verisi sınırı testi varlığını yasaklıyor.)
    *
-   * Misafir: gövdede `paymentId` + başlıkta yetki belirteci (initiate-guest'ten);
-   * ikisi olmadan sunucu 403 döner. Üye gövdesi/başlığı değişmedi (oturumla yetkili).
+   * Web gibi `paymentId` gövdede, yetki belirteci (varsa) başlıkta: misafir ikisi
+   * olmadan 403 alır. Üyede belirteç yoksa sunucu `paymentId`'yi yok sayar (oturumla
+   * yetkili); belirteç varsa hedefin bu ödemeye ait olduğunu doğrular.
    */
   directForm: (body: {
     paymentId?: string;
