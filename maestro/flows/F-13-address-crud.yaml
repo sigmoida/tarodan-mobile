@@ -54,15 +54,15 @@ env:
 - hideKeyboard
 - scrollUntilVisible:
     element:
-      text: "Bir il seçin"
+      id: "city-select-trigger"
     direction: DOWN
     timeout: 10000
 - tapOn:
-    text: "Bir il seçin"
+    id: "city-select-trigger"
 - tapOn:
     text: "Adana"
 - tapOn:
-    text: "Bir ilçe seçin"
+    id: "district-select-trigger"
 - tapOn:
     text: "Aladağ"
 # Kaydet alt çubukta (klavyenin üstünde, her zaman görünür)
