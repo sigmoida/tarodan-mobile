@@ -33,8 +33,22 @@ export interface DailyLimitView {
   nearLimit: boolean;
 }
 
-export function viewDailyLimit(data: DailyLimit | null | undefined): DailyLimitView {
-  if (!data) {
+const sameUtcDay = (a: number, b: number) =>
+  new Date(a).toISOString().slice(0, 10) === new Date(b).toISOString().slice(0, 10);
+
+/**
+ * `dataUpdatedAt` verilirse DÜNDEN (önceki UTC günü) kalan kayıt "bilinmiyor" sayılır:
+ * sunucu 00:00 UTC'de sayacı sıfırlar; ekran gece yarısını aşıp açık kalırsa bayat
+ * "hak bitti" kaydı (`remaining: 0`) kullanıcıyı kilitli tutmasın. `canSend` böylece
+ * `isCachedLimitExhausted` ile AYNI kurala uyar (gönderimden önceki önbellek denetimi).
+ */
+export function viewDailyLimit(
+  data: DailyLimit | null | undefined,
+  dataUpdatedAt?: number,
+  now: number = Date.now(),
+): DailyLimitView {
+  const staleDay = !!data && !!dataUpdatedAt && !sameUtcDay(dataUpdatedAt, now);
+  if (!data || staleDay) {
     return { limit: undefined, remaining: undefined, used: undefined, canSend: true, nearLimit: false };
   }
   return {
@@ -45,9 +59,6 @@ export function viewDailyLimit(data: DailyLimit | null | undefined): DailyLimitV
     nearLimit: data.remaining <= DAILY_LIMIT_WARN_THRESHOLD,
   };
 }
-
-const sameUtcDay = (a: number, b: number) =>
-  new Date(a).toISOString().slice(0, 10) === new Date(b).toISOString().slice(0, 10);
 
 /**
  * Gönderimden ÖNCE önbelleğe bakıp isteği boşa atmamak için: yalnız BUGÜN

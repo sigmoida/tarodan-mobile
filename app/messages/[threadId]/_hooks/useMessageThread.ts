@@ -50,7 +50,7 @@ export function useMessageThread() {
   const scrollViewRef = useRef<FlatList>(null);
 
   // Sunucu sayımı (GET /messages/daily-limit); bilinmiyorsa engellenmez.
-  const { limit: messageLimit, canSend } = useDailyMessageLimit();
+  const { limit: messageLimit, canSend, refetch: refetchDailyLimit } = useDailyMessageLimit();
 
   // Thread/messages query'leri enabled:threadId ile kendiliğinden çeker. Focus'ta:
   // aktif thread'i işaretle (socket köprüsü için), okundu yap, socket odasına gir.
@@ -69,6 +69,15 @@ export function useMessageThread() {
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [threadId])
+  );
+
+  // Ekrana her dönüşte hak tazelenir: gece yarısını (UTC) aşıp açık kalan ya da arka
+  // plandan dönen thread bayat "hak bitti" ile kilitli kalmasın. `cancelRefetch:false`:
+  // ilk açılıştaki sorgu zaten uçuştaysa ikinci istek atılmaz.
+  useFocusEffect(
+    useCallback(() => {
+      void refetchDailyLimit({ cancelRefetch: false });
+    }, [refetchDailyLimit]),
   );
 
   // Thread değişince ilk konumlama sıfırlanır

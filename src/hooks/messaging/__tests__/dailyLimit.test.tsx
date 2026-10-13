@@ -79,6 +79,29 @@ describe('useDailyMessageLimit', () => {
   });
 });
 
+describe('useDailyMessageLimit — UTC gün dönümü', () => {
+  it('dünden kalan "hak bitti" önbelleği ekranı kilitli tutmaz', async () => {
+    mockGet.mockReturnValue(new Promise(() => {})); // tazeleme sürerken bile
+    const { qc, wrapper } = setup();
+    const yesterday = Date.now() - 36 * 60 * 60 * 1000;
+    qc.setQueryData(qk.messaging.dailyLimit, { remaining: 0, limit: 50 }, { updatedAt: yesterday });
+    const { result } = renderHook(() => useDailyMessageLimit(), { wrapper });
+
+    expect(result.current.canSend).toBe(true);
+    expect(result.current.nearLimit).toBe(false);
+    expect(result.current.limit).toBeUndefined();
+  });
+
+  it('bugün alınmış "hak bitti" kaydı kilitli kalır', async () => {
+    mockGet.mockReturnValue(new Promise(() => {}));
+    const { qc, wrapper } = setup();
+    qc.setQueryData(qk.messaging.dailyLimit, { remaining: 0, limit: 50 });
+    const { result } = renderHook(() => useDailyMessageLimit(), { wrapper });
+
+    expect(result.current.canSend).toBe(false);
+  });
+});
+
 describe('gönderim ve günlük hak', () => {
   it('bugün alınmış "hak bitti" kaydı varken istek atılmaz', async () => {
     const { qc, wrapper } = setup();

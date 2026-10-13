@@ -38,6 +38,33 @@ describe('viewDailyLimit', () => {
   });
 });
 
+describe('viewDailyLimit — UTC gün bayatlığı', () => {
+  const NOON = Date.UTC(2026, 9, 13, 12, 0, 0);
+  const NEXT_DAY = Date.UTC(2026, 9, 14, 0, 5, 0);
+  const exhausted = { remaining: 0, limit: 50 };
+
+  it('bugün alınmış "hak bitti" kaydı kilitler', () => {
+    expect(viewDailyLimit(exhausted, NOON, NOON + 60_000)).toMatchObject({ canSend: false, remaining: 0 });
+  });
+  it('dünden kalan "hak bitti" kaydı kilitlemez ve bilinmiyor sayılır (gece yarısı sıfırlanır)', () => {
+    expect(viewDailyLimit(exhausted, NOON, NEXT_DAY)).toEqual({
+      limit: undefined,
+      remaining: undefined,
+      used: undefined,
+      canSend: true,
+      nearLimit: false,
+    });
+  });
+  it('canSend, gönderim öncesi denetimle (isCachedLimitExhausted) aynı kararı verir', () => {
+    for (const now of [NOON + 1000, NEXT_DAY]) {
+      expect(viewDailyLimit(exhausted, NOON, now).canSend).toBe(!isCachedLimitExhausted(exhausted, NOON, now));
+    }
+  });
+  it('dataUpdatedAt verilmezse bayatlık uygulanmaz', () => {
+    expect(viewDailyLimit(exhausted).canSend).toBe(false);
+  });
+});
+
 describe('isCachedLimitExhausted', () => {
   const noon = Date.UTC(2026, 9, 13, 12, 0, 0);
   it('bugün alınmış "hak bitti" kaydı engeller', () => {

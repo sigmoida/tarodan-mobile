@@ -10,6 +10,7 @@ import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { renderWithProviders } from '@/test-utils';
 
+import { useFocusEffect } from 'expo-router';
 import { resetRouterMocks } from '@/test-utils/router-mock';
 
 jest.mock('expo-router', () => ({
@@ -49,6 +50,7 @@ let mockMessagesQuery: any;
 // GET /messages/daily-limit yanıtı (sunucu sayımı); null = henüz bilinmiyor.
 let mockDaily: any = { remaining: 50, limit: 50 };
 const mockSendMessage = jest.fn();
+const mockRefetchDaily = jest.fn();
 const mockMarkAsRead = jest.fn();
 jest.mock('@/hooks/messaging', () => ({
   useThreadQuery: () => mockThreadQuery,
@@ -58,7 +60,7 @@ jest.mock('@/hooks/messaging', () => ({
   useDailyMessageLimit: () => ({
     ...jest.requireActual('@/lib/messaging/dailyLimit').viewDailyLimit(mockDaily),
     isLoading: false,
-    refetch: jest.fn(),
+    refetch: (...a: unknown[]) => mockRefetchDaily(...a),
   }),
 }));
 
@@ -183,6 +185,20 @@ describe('J104 · içerik filtresi & mesaj limiti (UI göstergesi)', () => {
     expect(screen.getByText(/\(30 mesaj\)/)).toBeOnTheScreen();
     // Limit platform genelinde tek değer: "Premium ile sınırsız mesaj" vaadi/yükseltme yok.
     expect(screen.queryByText(/Premium|sınırsız/i)).toBeNull();
+  });
+
+  it('J104.5 ekrana odaklanınca günlük hak tazelenir (gece yarısı sonrası bayat kilit kalmasın)', () => {
+    mockRefetchDaily.mockClear();
+    // Odak geri çağrısını bağlanma anında çalıştır (gerçek useFocusEffect gibi).
+    (useFocusEffect as jest.Mock).mockImplementation((cb: () => void) => {
+      React.useEffect(() => cb(), [cb]);
+    });
+    try {
+      renderWithProviders(<MessageThreadScreen />);
+      expect(mockRefetchDaily).toHaveBeenCalledWith({ cancelRefetch: false });
+    } finally {
+      (useFocusEffect as jest.Mock).mockReset();
+    }
   });
 
   it('J104.4 hak kaldıysa (ya da limit henüz bilinmiyorsa) input aktif, uyarı yok', () => {

@@ -24,5 +24,5 @@ export function useDailyMessageLimit() {
       return parseDailyLimit(res.data);
     },
   });
-  return { ...viewDailyLimit(query.data), isLoading: query.isLoading, refetch: query.refetch };
+  return { ...viewDailyLimit(query.data, query.dataUpdatedAt), isLoading: query.isLoading, refetch: query.refetch };
 }
