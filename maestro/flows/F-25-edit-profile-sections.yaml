@@ -1,0 +1,55 @@
+# F-25: Profili düzenle — tek ekran, üç bölüm (kişisel bilgiler / kullanıcı adı / e-posta).
+# Duman akışı: bölümler görünür, "Değiştir" aynı kartta yeni e-posta alanını açar, "Vazgeç"
+# kapatır. Kod doğrulaması gerçek posta kutusu gerektirdiği için UÇTAN UCA OTOMASYONA
+# alınmaz (kod adımı jest testlerinde kapsanır). Gizli değer akışta yok: giriş subflow'u.
+appId: ${APP_ID}
+tags:
+  - regression
+---
+- runFlow: ../subflows/open-tarodan.yaml
+- tapOn:
+    id: "tab-profile"
+- runFlow:
+    when:
+      visible: "Çıkış Yap"
+    file: ../subflows/logout.yaml
+- runFlow: ../subflows/login-as.yaml
+- tapOn:
+    id: "tab-profile"
+- tapOn:
+    text: "Düzenle"
+- extendedWaitUntil:
+    visible:
+      id: "edit-profile-save"
+    timeout: 20000
+# Kullanıcı adı bölümü (belirlenmişse salt okunur satır; belirlenebilirse form) + e-posta bölümü.
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-username-section"
+    direction: DOWN
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-email-section"
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: "edit-profile-email-change-toggle"
+- assertNotVisible: "destek ile iletişime geçin"
+# "Değiştir" → aynı kartta yeni e-posta alanı (modal yok).
+- tapOn:
+    id: "edit-profile-email-change-toggle"
+- extendedWaitUntil:
+    visible:
+      id: "email-change-input"
+    timeout: 10000
+- assertVisible:
+    id: "email-change-request"
+# "Vazgeç" → alan kapanır, "Değiştir" geri gelir.
+- tapOn:
+    id: "email-change-cancel"
+- assertNotVisible:
+    id: "email-change-input"
+- assertVisible:
+    id: "edit-profile-email-change-toggle"
+- assertNotVisible: ".*Network Error.*"
