@@ -36,6 +36,7 @@ export function ProductTopActions({
       />
       <TopBarAction icon="share-outline" accessibilityLabel={t('product.share')} onPress={onShare} />
       <TopBarAction
+        testID="product-cart-button"
         icon="cart-outline"
         accessibilityLabel={t('nav.cart')}
         count={cartCount}

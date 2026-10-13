@@ -38,11 +38,8 @@ env:
     timeout: 30000
 - tapOn:
     id: "product-detail-add-to-cart-button"
-- runFlow:
-    when:
-      visible: "Sepete Git"
-    commands:
-      - tapOn: "Sepete Git"
+- tapOn:
+    id: "product-cart-button"
 - extendedWaitUntil:
     visible:
       id: "cart-checkout-button"

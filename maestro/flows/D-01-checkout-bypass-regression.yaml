@@ -1,9 +1,9 @@
 # D-01: Checkout girişi smoke.
-# Login → Ara → ilk ürün → Sepete Ekle → Sepete Git → Satın Al → Teslimat Bilgileri.
+# Login → Ara → ilk ürün → Sepete Ekle → sepet ikonu → Satın Al → Teslimat Bilgileri.
 #
 # NOT (BUG-007 düzeltmesi): App sepet-tabanlı bir akış kullanıyor; eski "Hemen Al"
 # direkt-al butonu yok. Doğru zincir: product-detail-add-to-cart-button →
-# Sepete Git → cart-checkout-button → checkout (Teslimat Bilgileri).
+# sepet ikonu (product-cart-button) → cart-checkout-button → checkout (Teslimat Bilgileri).
 # Tam bypass payment chain API-level test'te kapsanıyor
 # (apps/api/test/e2e/payment-bypass.e2e-spec.ts).
 appId: ${APP_ID}
@@ -30,10 +30,9 @@ env:
     timeout: 20000
 - tapOn:
     id: "product-detail-add-to-cart-button"
-# Sepete Git (snackbar aksiyonu) → cart
+# Üst bardaki sepet ikonu → cart
 - tapOn:
-    text: "Sepete Git"
-    optional: true
+    id: "product-cart-button"
 # Cart → Satın Al → checkout
 - extendedWaitUntil:
     visible:

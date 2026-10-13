@@ -91,8 +91,7 @@ tags:
 - tapOn:
     id: "product-detail-add-to-cart-button"
 - tapOn:
-    text: "Sepete Git"
-    optional: true
+    id: "product-cart-button"
 # 4b. Sepet özeti: toplam görünür
 - extendedWaitUntil:
     visible:

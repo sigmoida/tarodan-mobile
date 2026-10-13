@@ -37,16 +37,13 @@ env:
     timeout: 30000
 - tapOn:
     id: "product-detail-add-to-cart-button"
-# Snackbar: "Sepete eklendi" → "Sepete Git" action veya manuel cart'a git
+# Toast: "Sepete eklendi" → üst bardaki sepet ikonuyla cart'a git
 - extendedWaitUntil:
     visible:
       text: ".*sepet.*|.*Sepete eklendi.*"
     timeout: 15000
-- runFlow:
-    when:
-      visible: "Sepete Git"
-    commands:
-      - tapOn: "Sepete Git"
+- tapOn:
+    id: "product-cart-button"
 - extendedWaitUntil:
     visible: "Sepetim"
     timeout: 15000
