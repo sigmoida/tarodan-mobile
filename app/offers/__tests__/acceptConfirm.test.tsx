@@ -177,7 +177,8 @@ describe('onay basıldığı an bekliyor durumu (çift basış yok)', () => {
     act(() => (c.confirm as { onSelect?: () => void }).onSelect?.());
 
     expect(accept).not.toHaveBeenCalled();
-    expect(screen.queryByText('Kabul Et')).toBeNull(); // spinner
+    // Web Button gibi: yüklenirken etiket kalır, düğme kilitli + meşgul (spinner etiketin önünde).
+    expect(screen.getByText('Kabul Et')).toBeDisabled();
     fireEvent.press(screen.getByText('Reddet'));
     expect(alertMock.mock.calls.length).toBe(callsAfterFirst);
 
