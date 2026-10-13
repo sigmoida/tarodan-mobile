@@ -4,6 +4,10 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { RawText, theme } from '@/ui';
 import { AuthShell } from '../AuthShell';
 import { AuthFooterLink } from '../AuthFooterLink';
+import { RegisterAccountTabs } from '../RegisterAccountTabs';
+import { replaceMock, resetRouterMocks } from '@/test-utils/router-mock';
+
+jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
 jest.mock('@/components/hero/AuthHeroBanner', () => ({ AuthHeroBanner: () => null }));
 
@@ -56,5 +60,22 @@ describe('AuthFooterLink', () => {
     render(<AuthFooterLink prompt="Hesabınız yok mu?" linkLabel="Kayıt ol" onPress={onPress} />);
     fireEvent.press(screen.getByText('Kayıt ol'));
     expect(onPress).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('RegisterAccountTabs', () => {
+  beforeEach(() => resetRouterMocks());
+
+  it('seçili sekme seçili durumda; diğerine basınca rotayı değiştirir', () => {
+    render(<RegisterAccountTabs active="individual" />);
+    expect(screen.getByTestId('register-tab-individual').props.accessibilityState.selected).toBe(true);
+    fireEvent.press(screen.getByTestId('register-tab-corporate'));
+    expect(replaceMock).toHaveBeenCalledWith('/(auth)/register-business');
+  });
+
+  it('seçili sekmeye basmak yönlendirmez', () => {
+    render(<RegisterAccountTabs active="corporate" />);
+    fireEvent.press(screen.getByTestId('register-tab-corporate'));
+    expect(replaceMock).not.toHaveBeenCalled();
   });
 });

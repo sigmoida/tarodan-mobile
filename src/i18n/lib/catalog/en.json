@@ -427,7 +427,9 @@
     "bizIntroBody": "Your application will be sent for admin approval. Once approved, you'll receive an invitation email where you can set your username and password.",
     "bizSectionAuthorized": "Authorized Person Details",
     "kvkkCheckboxLabel": "I have read and accept the KVKK Privacy Notice.",
-    "mustAcceptKvkk": "You must accept the KVKK privacy notice"
+    "mustAcceptKvkk": "You must accept the KVKK privacy notice",
+    "individualApplication": "Individual Application",
+    "corporateApplication": "Corporate Application"
   },
   "brands": {
     "title": "Brands",
