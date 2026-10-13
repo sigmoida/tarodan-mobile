@@ -1,16 +1,18 @@
 import React from 'react';
 import { StyleSheet, View, type ViewProps } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import type { StatusConfig, StatusVariant } from '@/lib/shared';
+import type { StatusConfig, WebStatusVariant } from '@/lib/shared';
 import { theme } from '../lib/theme';
 import { RawText } from './Text';
 
 /**
  * Badge varyantları. Web `@tarodan/ui` Badge'in 5 durum varyantı — `default` (marka tonu),
- * `success`, `warning`, `danger`, `outline` — garanti; paylaşılan sözlüğün fazla adları
- * (`primary`, `secondary`, `info`, `destructive`) çalışmaya devam eder.
+ * `success`, `warning`, `danger`, `outline` (`WebStatusVariant`, durum haritalarının tek
+ * sözlüğü) — garanti. Mobilin eski fazla adları (`primary`, `secondary`, `info`,
+ * `destructive`) yalnız rozet görünümü olarak burada yaşar ve çalışmaya devam eder; durum
+ * haritalarında kullanılmaz. (`@/lib/shared` `StatusVariant` artık gerekmez.)
  */
-export type BadgeVariant = StatusVariant;
+export type BadgeVariant = WebStatusVariant | 'primary' | 'secondary' | 'info' | 'destructive';
 
 /** `soft` (varsayılan) X-100/X-800; `solid` görsel üstü güçlü dolgu (ProductBadge). */
 export type BadgeAppearance = 'soft' | 'solid';
