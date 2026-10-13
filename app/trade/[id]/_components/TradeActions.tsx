@@ -74,9 +74,8 @@ export function TradeActions({
   // yeniden düzenlemede düşmüştü, tutar doğru olduğu için de fark edilmemişti.
   // v2'de komisyon yok (`commission` her zaman 0), ibare oraya konmaz.
   const showsCommission = !isV2 && cashCommission > 0;
-  const payTitle = showsCommission
-    ? `${t('payment.pay')} — ${formatPrice(payAmount)} (${t('payment.commissionIncluded')})`
-    : `${t('payment.pay')} — ${formatPrice(payAmount)}`;
+  // Buton etiketi kısa kalır (tek satır, kısaltılmaz); "komisyon dahil" ibaresi butonun altında caption.
+  const payTitle = `${t('payment.pay')} — ${formatPrice(payAmount)}`;
   // İptal butonunun görünürlüğü TEK yerde: iade uyarısı da aynı sinyali kullanır
   // (uyarı "iptal edersen kargo geri gelmez" der — iptal edilemeyen, terminal bir
   // takasta anlamsızdır).
@@ -166,6 +165,11 @@ export function TradeActions({
               disabled={actions.cashPayPending}
               style={styles.actionButton}
             />
+            {showsCommission ? (
+              <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[1.5] }}>
+                {t('payment.commissionIncluded')}
+              </Text>
+            ) : null}
           </View>
         )}
 

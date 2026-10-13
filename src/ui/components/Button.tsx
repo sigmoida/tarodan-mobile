@@ -78,6 +78,9 @@ const sizeStyle: Record<ButtonSize, { height: number; px: number; font: number; 
   xl: { height: controlHeight.xl, px: spacing[8], font: typography.fontSize.lg, icon: iconSize.md },
 };
 
+/** Etiket sığmazsa en çok bu orana kadar küçülür (adjustsFontSizeToFit). */
+const BUTTON_MIN_FONT_SCALE = 0.85;
+
 /** Görsel yükseklik 44'ün altındaysa dokunma alanını dikeyde `hitSlop` ile 44'e tamamlar. */
 export function touchSlop(visualHeight: number): Insets | undefined {
   const pad = Math.ceil((minTouchTarget - visualHeight) / 2);
@@ -145,6 +148,9 @@ export const Button: React.FC<ButtonProps> = ({
         {typeof label === 'string' ? (
           <RawText
             numberOfLines={1}
+            // Metin sarmaz ve kısaltılmaz: sığmazsa 0.85'e kadar küçülür (iOS + Android, RN 0.81).
+            adjustsFontSizeToFit
+            minimumFontScale={BUTTON_MIN_FONT_SCALE}
             style={[
               styles.text,
               { color: vs.text, fontSize: ss.font, fontWeight: typography.fontWeight.medium },
