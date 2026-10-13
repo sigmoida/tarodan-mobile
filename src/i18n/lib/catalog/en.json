@@ -2230,7 +2230,8 @@
     "guestWelcomeSubtitle": "Sign in to Tarodan to use every feature",
     "guestBenefitsTitle": "What Can You Do as a Member?",
     "guestQuickLinksTitle": "What You Can Do for Now",
-    "deleteBlockedManageListings": "Manage my listings"
+    "deleteBlockedManageListings": "Manage my listings",
+    "deleteBlockedReservedNote": "{count} of your listings are reserved for a sale, so they cannot be closed or deleted right now. This block clears once the sale is completed or cancelled; you can follow it under My Sales."
   },
   "review": {
     "reviews": "Reviews",

@@ -2230,7 +2230,8 @@
     "guestWelcomeSubtitle": "Tarodan'a giriş yaparak tüm özelliklerden yararlanın",
     "guestBenefitsTitle": "Üye Olarak Neler Yapabilirsiniz?",
     "guestQuickLinksTitle": "Şimdilik Şunları Yapabilirsiniz",
-    "deleteBlockedManageListings": "İlanlarımı yönet"
+    "deleteBlockedManageListings": "İlanlarımı yönet",
+    "deleteBlockedReservedNote": "{count} ilanınız bir satışa ayrıldığı (rezerve) için şu an kapatılamaz ve silinemez. Satış tamamlanınca ya da iptal edilince bu engel kalkar; durumunu Satışlarım'dan izleyebilirsiniz."
   },
   "review": {
     "reviews": "Değerlendirmeler",
