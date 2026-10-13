@@ -18,7 +18,7 @@ Genel yayın akışı: [`RELEASE.md`](./RELEASE.md) · EAS hesap/secret kurulumu
 | | Production | Staging |
 | --- | --- | --- |
 | Paket adı | `com.tarodan.app` | `com.tarodan.app.staging` |
-| Uygulama adı | Tarodan | Tarodan (Staging) |
+| Uygulama adı (ana ekran) | Tarodan | Staging |
 | Play'de | Ayrı uygulama | Ayrı uygulama |
 | EAS build profili | `production` (AAB) | `staging` (AAB) · `preview` (ad-hoc APK) |
 | Play kanalı | internal → closed → open → production | **yalnız internal** |

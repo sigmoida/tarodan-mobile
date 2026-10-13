@@ -55,14 +55,14 @@ zaten setli; üstüne yazmıyoruz.
 
 `preview` profili ayrı bir **staging varyantı** üretir: `app.config.js`,
 `EXPO_PUBLIC_ENVIRONMENT=preview` olduğunda **iOS** uygulama kimliğini `.staging`
-ekiyle türetir ve ismi "Tarodan (Staging)" yapar. Böylece tester aynı cihazda
+ekiyle türetir ve ana ekran adını "Staging" yapar. Böylece tester aynı cihazda
 iOS prod + staging'i yan yana tutabilir.
 
 | Alan                   | Production                 | Preview / Staging                     |
 | ---------------------- | -------------------------- | ------------------------------------- |
 | iOS `bundleIdentifier` | `com.tarodan.app`          | `com.tarodan.app.staging`             |
 | Android `package`      | `com.tarodan.app`          | `com.tarodan.app.staging`             |
-| Uygulama adı           | Tarodan                    | Tarodan (Staging)                     |
+| Uygulama adı (ana ekran) | Tarodan                  | Staging                               |
 | iOS `associatedDomains`| `applinks:tarodan.com.tr`  | yok (AASA `.staging` appID'sini talep etmiyor) |
 | Android App Links      | `tarodan.com.tr`           | yalnız `staging.tarodan.com.tr`       |
 | `EXPO_PUBLIC_API_URL`  | `https://tarodan.com.tr/api` | `https://staging.tarodan.com.tr/api` |

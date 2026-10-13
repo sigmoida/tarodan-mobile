@@ -7,7 +7,7 @@
 //
 // The variant is derived from EXPO_PUBLIC_ENVIRONMENT, which every eas.json build
 // profile already sets (development | preview | production). Only `preview`
-// (= our internal staging distribution) gets the `.staging` id + "(Staging)"
+// (= our internal staging distribution) gets the `.staging` id + the short home-screen name "Staging"
 // label; `production` and `development` are returned untouched.
 //
 // Android da iOS ile AYNI iki-uygulama modelini izler: staging paketi
@@ -228,7 +228,8 @@ module.exports = ({ config }) => {
 
   return {
     ...config,
-    name: `${config.name} (Staging)`,
+    // Ana ekranda kısa ad ("Tarodan (Staging)" iPhone'da "Tarodan(St…" diye kesiliyordu).
+    name: 'Staging',
     ios: {
       ...stagingIos,
       bundleIdentifier: `${config.ios.bundleIdentifier}${STAGING_SUFFIX}`,

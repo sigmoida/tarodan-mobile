@@ -52,9 +52,9 @@ describe('app.config — preview (staging) varyantı', () => {
     expect(result.android.googleServicesFile).toBe('./google-services.staging.json');
   });
 
-  it('uygulama adına (Staging) etiketi ekler', () => {
+  it('ana ekran adı kısa "Staging"', () => {
     const result = evaluate('preview');
-    expect(result.name).toBe(`${baseConfig.name} (Staging)`);
+    expect(result.name).toBe('Staging');
   });
 });
 
