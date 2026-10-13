@@ -6,3 +6,4 @@ export { createSentrySink } from "./sentry-sink";
 export type { SentryLike } from "./sentry-sink";
 export { safeError, safeUrlPath } from "./safe-error";
 export type { SafeError } from "./safe-error";
+export { scrubEvent, scrubForConsole, scrubString } from "./scrub";

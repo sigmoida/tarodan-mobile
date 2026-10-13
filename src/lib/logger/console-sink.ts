@@ -1,4 +1,4 @@
-import { safeError } from "./safe-error";
+import { scrubForConsole, scrubString } from "./scrub";
 import type { LogEntry, Sink } from "./types";
 
 const LABEL: Record<string, string> = {
@@ -14,24 +14,18 @@ export interface ConsoleSinkOptions {
 
 const isDev = (): boolean => typeof __DEV__ !== "undefined" && __DEV__;
 
-const looksLikeError = (v: unknown): boolean =>
-  v instanceof Error ||
-  (v !== null &&
-    typeof v === "object" &&
-    ("isAxiosError" in v || ("config" in v && "response" in v)));
-
 /**
- * Release'te bağlamdaki hata nesneleri (özellikle AxiosError: Authorization başlığı,
- * istek/yanıt gövdesi taşır) ham basılmaz; `safeError` özetiyle değiştirilir.
- * Geliştirmede ham nesne kalır (yığın izi gerekir).
+ * Release'te bağlam ve hata DERİNLEMESİNE temizlenir (`scrubForConsole`): hata benzeri
+ * nesneler (özellikle AxiosError: Authorization, istek/yanıt gövdesi) `safeError` özetine
+ * döner; `response/data/headers/config/request` ve token/e-posta benzeri anahtar/değerler
+ * maskelenir (Sentry ile ortak kurallar, bkz. `scrub.ts`). Geliştirmede ham kalır
+ * (yığın izi gerekir).
  */
 function printable(
   context: Record<string, unknown> | undefined,
 ): Record<string, unknown> | undefined {
   if (!context || isDev()) return context;
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(context)) out[k] = looksLikeError(v) ? safeError(v) : v;
-  return out;
+  return scrubForConsole(context);
 }
 
 export class ConsoleSink implements Sink {
@@ -41,7 +35,8 @@ export class ConsoleSink implements Sink {
     const entry: LogEntry = {
       ...rawEntry,
       context: printable(rawEntry.context),
-      error: !isDev() && looksLikeError(rawEntry.error) ? safeError(rawEntry.error) : rawEntry.error,
+      message: isDev() ? rawEntry.message : scrubString(rawEntry.message),
+      error: isDev() ? rawEntry.error : scrubForConsole(rawEntry.error),
     };
     if (this.options.json) {
       console.log(JSON.stringify(entry));
