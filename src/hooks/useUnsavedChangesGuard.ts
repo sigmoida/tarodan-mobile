@@ -1,52 +1,56 @@
-import { useCallback, useRef } from 'react';
-import { useFocusEffect, useNavigation } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigation } from 'expo-router';
+// expo-router `usePreventRemove`'u yeniden dışa vermiyor; aynı (tekil) react-navigation
+// kopyasından alınır — bkz. `src/ui/lib/screenFocus.ts`. expo-router `useNavigation()`
+// (parent'sız) doğrudan react-navigation'ınkini döndürür: bu ekranın navigator'ı,
+// `usePreventRemove`'un içeride kullandığıyla AYNI nesne.
+import { usePreventRemove } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { confirm } from '@/ui';
 
 /**
  * Çok alanlı form EKRANLARI için taslak kaybı koruması (web `useFormModalLabels`
  * ile aynı metinler: `common.unsavedChanges` …). Form kirliyken ekrandan her
- * çıkış — üst bardaki geri oku, iOS kaydırma, Android donanım geri tuşu — önce
- * onay ister. Tek kanca `beforeRemove`: hepsi aynı navigasyon olayından geçer.
+ * çıkış — üst bardaki geri oku, iOS kaydırarak geri, Android donanım geri tuşu —
+ * önce onay ister.
  *
- * Dinleyici yalnız ekran ODAKTAYKEN bağlı (`useFocusEffect`): üstüne başka
- * ekran (ör. ürün seçici) itilince çözülür, geri dönünce yeniden bağlanır.
+ * `usePreventRemove` ŞART (ham `beforeRemove` dinleyicisi değil): native-stack
+ * iOS kaydırma hareketini yalnız bu kancanın `preventedRoutes` kaydıyla
+ * (`preventNativeDismiss`) engelliyor. Ham dinleyicide native ekran önce çıkar,
+ * sonra JS pop'u engellenir → JS/native yığın ayrışır (boş/takılı ekran).
  *
- * Başarılı kayıttan sonra form hâlâ "kirli" görünür; `allowLeave()` korumayı
- * kapatır, ardından `router.back()` onaysız çalışır.
+ * Çıkış izni (kayıt başarılı / "Değişiklikleri Sil"): `leave(go)` korumayı TEK
+ * render için kapatır, `go()` (router.back / bekleyen eylem) koruma kalktıktan
+ * SONRA çalışır, ardından koruma yeniden kurulur — ekran bir nedenle kalırsa
+ * sonraki düzenlemeler korumasız kalmaz.
  */
 export function useUnsavedChangesGuard(dirty: boolean) {
   const { t } = useTranslation();
   const navigation = useNavigation();
-  const dirtyRef = useRef(dirty);
-  dirtyRef.current = dirty;
-  const bypassRef = useRef(false);
+  const [pendingLeave, setPendingLeave] = useState<(() => void) | null>(null);
 
-  useFocusEffect(
-    useCallback(() => {
-      const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-        if (!dirtyRef.current || bypassRef.current) return;
-        e.preventDefault();
-        // `confirm()` kapanış SONRASI çözülür (AlertDialog sözleşmesi) → dispatch iOS-güvenli.
-        void confirm({
-          title: t('common.unsavedChanges'),
-          message: t('common.unsavedChangesDescription'),
-          confirmLabel: t('common.discardChanges'),
-          cancelLabel: t('common.continueEditing'),
-          destructive: true,
-        }).then((discard) => {
-          if (!discard) return;
-          bypassRef.current = true;
-          navigation.dispatch(e.data.action);
-        });
-      });
-      return unsubscribe;
-    }, [navigation, t]),
-  );
+  const leave = useCallback((go: () => void) => setPendingLeave(() => go), []);
 
-  const allowLeave = useCallback(() => {
-    bypassRef.current = true;
-  }, []);
+  // Koruma kalktığı render'dan sonra: kancanın kaydı (insertion effect) ve
+  // dinleyicisi güncellenmiş olur; çıkış engellenmeden geçer, sonra koruma geri gelir.
+  useEffect(() => {
+    if (!pendingLeave) return;
+    pendingLeave();
+    setPendingLeave(null);
+  }, [pendingLeave]);
 
-  return { allowLeave };
+  usePreventRemove(dirty && !pendingLeave, ({ data }) => {
+    // `confirm()` kapanış SONRASI çözülür (AlertDialog sözleşmesi) → dispatch iOS-güvenli.
+    void confirm({
+      title: t('common.unsavedChanges'),
+      message: t('common.unsavedChangesDescription'),
+      confirmLabel: t('common.discardChanges'),
+      cancelLabel: t('common.continueEditing'),
+      destructive: true,
+    }).then((discard) => {
+      if (discard) leave(() => navigation.dispatch(data.action));
+    });
+  });
+
+  return { leave };
 }

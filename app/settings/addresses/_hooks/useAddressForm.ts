@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { goBackOrHome } from '@/components/common/goBackOrHome';
 import { useZodForm } from '@/ui/form';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import {
@@ -15,7 +15,7 @@ import { useSaveAddress } from './useSaveAddress';
 
 /**
  * Yeni / düzenle adres ekranının denetleyicisi: `useZodForm` + şema, kaydetme
- * mutasyonu, taslak koruması. Başarı: korumayı kapat → `router.back()` (toast
+ * mutasyonu, taslak koruması. Başarı: korumayı tek seferlik kaldır → geri dön (toast
  * mutasyonda). Doğrulama hatası alanların altında + alt çubukta tek satır özet.
  */
 export function useAddressForm(address: Address | null) {
@@ -28,10 +28,8 @@ export function useAddressForm(address: Address | null) {
 
   const save = useSaveAddress({
     addressId: address?.id,
-    onSaved: () => {
-      guard.allowLeave();
-      router.back();
-    },
+    // Koruma tek seferlik kalkar, sonra geri dönülür (geçmiş yoksa ana sekme).
+    onSaved: () => guard.leave(goBackOrHome),
     onPhoneRejected: (message) => {
       form.setError('phone', { message });
       form.setError('root', { message });

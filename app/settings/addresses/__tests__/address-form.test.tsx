@@ -13,6 +13,7 @@ import { appAlert, toast } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
 import {
   backMock,
+  canGoBackMock,
   emitBeforeRemove,
   navigationDispatchMock,
   resetRouterMocks,
@@ -78,8 +79,18 @@ const save = () => fireEvent.press(screen.getByTestId('address-save-button'));
 
 let success: jest.SpyInstance;
 let errorToast: jest.SpyInstance;
+/** Geri dönüş ANINDA koruma durumu (koruma çıkıştan önce kalkmış olmalı). */
+let exitAtBack: { prevented: boolean } | null;
 beforeEach(() => {
   resetRouterMocks();
+  canGoBackMock.mockReturnValue(true);
+  exitAtBack = null;
+  backMock.mockImplementation(() => {
+    exitAtBack = emitBeforeRemove();
+  });
+  navigationDispatchMock.mockImplementation(() => {
+    exitAtBack = emitBeforeRemove();
+  });
   mockParams = {};
   post.mockReset();
   patch.mockReset();
@@ -90,6 +101,8 @@ beforeEach(() => {
   errorToast = jest.spyOn(toast, 'error').mockImplementation(() => 1);
 });
 afterEach(() => {
+  backMock.mockReset();
+  navigationDispatchMock.mockReset();
   success.mockRestore();
   errorToast.mockRestore();
 });
@@ -160,8 +173,10 @@ describe('Yeni adres — kayıt sonucu', () => {
     await waitFor(() => expect(backMock).toHaveBeenCalledTimes(1));
     expect(success).toHaveBeenCalledWith('address.added');
     expect(appAlert).not.toHaveBeenCalled();
-    // Kayıttan sonra çıkış onay İSTEMEZ (form hâlâ "kirli" olsa da).
-    expect(emitBeforeRemove().prevented).toBe(false);
+    // Kayıttan sonra çıkış onay İSTEMEZ (form hâlâ "kirli" olsa da): geri dönüş anında
+    // koruma kalkmıştı. Koruma TEK seferlik — ekran kalırsa yeniden devrede.
+    expect(exitAtBack).toEqual(expect.objectContaining({ prevented: false }));
+    await waitFor(() => expect(emitBeforeRemove().prevented).toBe(true));
   });
 
   it('sunucu hatası → toast.error (sunucu mesajı), ekran açık kalır', async () => {
@@ -199,8 +214,10 @@ describe('Taslak koruması (geri oku / Android geri tuşu)', () => {
     ]);
     buttons.find((b: { style?: string }) => b.style === 'destructive').onPress();
     await waitFor(() => expect(navigationDispatchMock).toHaveBeenCalledWith(action));
-    // Onaydan sonra ikinci çıkış denemesi tekrar sormaz.
-    expect(emitBeforeRemove().prevented).toBe(false);
+    // Bekleyen eylem koruma kalktıktan SONRA yeniden gönderilir → bu kez engellenmez
+    // (aksi halde onay döngüsü / iOS'ta yığın ayrışması).
+    expect(exitAtBack).toEqual(expect.objectContaining({ prevented: false }));
+    expect(appAlert).toHaveBeenCalledTimes(1);
   });
 
   it('"Düzenlemeye Devam Et" → ekranda kalınır (dispatch yok)', async () => {

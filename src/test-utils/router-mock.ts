@@ -4,7 +4,7 @@
  * sonra: import { pushMock } from '...'; expect(pushMock).toHaveBeenCalledWith('/checkout');
  * beforeEach içinde resetRouterMocks() çağır.
  */
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 
 export const pushMock = jest.fn();
 export const replaceMock = jest.fn();
@@ -12,32 +12,46 @@ export const backMock = jest.fn();
 export const canGoBackMock = jest.fn(() => false);
 
 /**
- * `useNavigation()` eşi — `beforeRemove` gibi olay dinleyicilerini kaydeder.
- * Test: `emitBeforeRemove()` ekrandan çıkışı (geri oku / Android geri tuşu)
- * taklit eder; dönen `{ prevented, action }` ile korumanın davrandığı doğrulanır.
+ * `useNavigation()` + `usePreventRemove` eşleri (react-navigation 7). Gerçek
+ * `usePreventRemove` navigator dışında atar; `jest.setup.ts` onu `usePreventRemoveMock`
+ * ile değiştirir. Test: `emitBeforeRemove()` ekrandan çıkışı (geri oku / iOS kaydırma /
+ * Android geri tuşu) taklit eder; dönen `{ prevented, action }` korumanın davranışını verir,
+ * engellendiyse kancanın geri çağrısı `{ data: { action } }` ile çalışır.
  */
-type NavEvent = { data: { action: unknown }; preventDefault: () => void };
-type NavListener = (e: NavEvent) => void;
-const navListeners: Record<string, Set<NavListener>> = {};
+type PreventEntry = {
+  prevent: boolean;
+  callback: (options: { data: { action: unknown } }) => void;
+};
+const preventEntries = new Set<{ current: PreventEntry }>();
 export const navigationDispatchMock = jest.fn();
 export const navigationMock = {
-  addListener: jest.fn((event: string, cb: NavListener) => {
-    (navListeners[event] ??= new Set()).add(cb);
-    return () => navListeners[event]?.delete(cb);
-  }),
+  addListener: jest.fn(() => () => undefined),
   dispatch: navigationDispatchMock,
   goBack: backMock,
   canGoBack: canGoBackMock,
 };
+
+/** `usePreventRemove` eşi: son render'ın değerleri (gerçekte insertion effect) kayıtlı. */
+export function usePreventRemoveMock(prevent: boolean, callback: PreventEntry['callback']) {
+  const entry = useRef<PreventEntry>({ prevent, callback });
+  useLayoutEffect(() => {
+    entry.current = { prevent, callback };
+  });
+  useEffect(() => {
+    preventEntries.add(entry);
+    return () => {
+      preventEntries.delete(entry);
+    };
+  }, []);
+}
+
 export function emitBeforeRemove(action: unknown = { type: 'GO_BACK' }) {
   let prevented = false;
-  const e: NavEvent = {
-    data: { action },
-    preventDefault: () => {
-      prevented = true;
-    },
-  };
-  navListeners.beforeRemove?.forEach((cb) => cb(e));
+  preventEntries.forEach(({ current }) => {
+    if (!current.prevent) return;
+    prevented = true;
+    current.callback({ data: { action } });
+  });
   return { prevented, action };
 }
 

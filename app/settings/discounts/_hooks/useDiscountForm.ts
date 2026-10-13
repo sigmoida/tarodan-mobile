@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { goBackOrHome } from '@/components/common/goBackOrHome';
 import { useZodForm } from '@/ui/form';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { buildDiscountPayload } from '../_lib/form';
@@ -31,10 +32,8 @@ export function useDiscountForm(discount: Discount | null) {
   const guard = useUnsavedChangesGuard(form.formState.isDirty);
 
   const save = useSaveDiscount({
-    onSaved: () => {
-      guard.allowLeave();
-      router.back();
-    },
+    // Koruma tek seferlik kalkar, sonra geri dönülür (geçmiş yoksa ana sekme).
+    onSaved: () => guard.leave(goBackOrHome),
   });
 
   const set = useCallback(

@@ -98,8 +98,15 @@ const nameInput = () => screen.UNSAFE_getAllByType(TextInput)[0]!;
 
 let success: jest.SpyInstance;
 let errorToast: jest.SpyInstance;
+/** Geri dönüş ANINDA koruma durumu. */
+let exitAtBack: { prevented: boolean } | null;
 beforeEach(() => {
   resetRouterMocks();
+  canGoBackMock.mockReturnValue(true);
+  exitAtBack = null;
+  backMock.mockImplementation(() => {
+    exitAtBack = emitBeforeRemove();
+  });
   mockParams = {};
   mockAuthState = { isAuthenticated: true, user: { id: 'u1', isSeller: true } };
   (discountsApi.getAll as jest.Mock).mockResolvedValue({ data: { items: [discountFixture()] } });
@@ -112,6 +119,7 @@ beforeEach(() => {
   useProductPickerDraft.setState({ active: false, selectedIds: [] });
 });
 afterEach(() => {
+  backMock.mockReset();
   success.mockRestore();
   errorToast.mockRestore();
 });
@@ -167,8 +175,8 @@ describe('J114 · yeni indirim ekranı — validasyon', () => {
     );
     await waitFor(() => expect(backMock).toHaveBeenCalledTimes(1));
     expect(success).toHaveBeenCalledWith('İndirim oluşturuldu');
-    // Kayıttan sonra çıkış onay istemez.
-    expect(emitBeforeRemove().prevented).toBe(false);
+    // Kayıttan sonra çıkış onay istemez: geri dönüş anında koruma kalkmıştı.
+    expect(exitAtBack).toEqual(expect.objectContaining({ prevented: false }));
   });
 
   it('J114.10 bulk_quantity: en az adet 2den küçükse reddedilir', async () => {

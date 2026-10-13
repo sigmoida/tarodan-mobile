@@ -12,7 +12,7 @@ import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 import { appAlert, toast } from '@/ui';
 import { getPhoneInvalidMessage } from '@/utils/phone';
-import { backMock, resetRouterMocks } from '@/test-utils/router-mock';
+import { backMock, canGoBackMock, resetRouterMocks } from '@/test-utils/router-mock';
 
 jest.mock('expo-router', () => ({
   ...require('@/test-utils/router-mock').routerMock,
@@ -72,6 +72,7 @@ const updateProfile = userApi.updateProfile as jest.Mock;
 describe('Adres formu — alana yazılan telefon payload\'a ne olarak gidiyor', () => {
   beforeEach(() => {
     resetRouterMocks();
+    canGoBackMock.mockReturnValue(true);
     post.mockClear();
     (appAlert as jest.Mock).mockImplementation(() => {});
   });
