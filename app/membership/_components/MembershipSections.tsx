@@ -1,9 +1,8 @@
 import React from 'react';
-import { View, ScrollView, Pressable, useWindowDimensions } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import {
   theme,
-  PAGE_GUTTER,
   Alert,
   Badge,
   Button,
@@ -19,13 +18,8 @@ import {
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { formatPrice } from '@/utils/format';
 
-import {
-  styles,
-  TIER_CARD_GAP,
-  TIER_CARD_MAX_WIDTH,
-  TIER_CARD_WIDTH_RATIO,
-} from '../_lib/membershipStyles';
-import { TIER_COLORS, buildTierNames, type TierType } from '../_lib/membershipTiers';
+import { styles } from '../_lib/membershipStyles';
+import { buildTierNames, type TierType } from '../_lib/membershipTiers';
 import type { MembershipController } from '../_hooks/useMembership';
 
 type SectionProps = { f: MembershipController };
@@ -55,6 +49,7 @@ export function MembershipBanners({ f }: SectionProps) {
         <Pressable
           style={styles.pendingPressable}
           accessibilityRole="button"
+          accessibilityHint={t('order.completePayment')}
           android_ripple={{ color: theme.colors.overlay.black10, foreground: true }}
           onPress={() =>
             router.push(
@@ -84,9 +79,7 @@ export function MembershipCurrentPlan({ f }: SectionProps) {
   const tierNames = buildTierNames(t);
   return (
     <SectionCard title={t('membership.currentPlan')} bodyStyle={styles.planBody}>
-      <Text variant="h2" color={TIER_COLORS[currentTier]}>
-        {tierNames[currentTier]}
-      </Text>
+      <Text variant="h2">{tierNames[currentTier]}</Text>
       {membership?.currentPeriodEnd && currentTier !== 'free' && (
         <Text variant="caption" tone="subtle">
           {t('membership.renewalLabel', {
@@ -141,50 +134,42 @@ export function MembershipBillingToggle({ f }: SectionProps) {
 }
 
 // ---------------------------------------------------------------------------
-// Horizontal tier cards
+// Tier cards — web telefon düzeni: dikey, tam genişlik, nötr (tek vurgu: mevcut plan kenarlığı)
 // ---------------------------------------------------------------------------
-function TierCard({ f, tier, width }: { f: MembershipController; tier: TierType; width: number }) {
+function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
   const { t } = f;
   const tierNames = buildTierNames(t);
   const price = f.getPrice(tier);
   const isCurrent = tier === f.currentTier;
-  const isUpgrade = f.tierIndex(tier) > f.tierIndex(f.currentTier);
-  const color = TIER_COLORS[tier];
   const features = f.getFeatures(tier);
-  const isPopular = tier === 'premium';
+  // Web tek rozet yuvası: mevcut > popüler. Mevcut kartta durum zaten düğme etiketinde
+  // ("Mevcut Planınız") olduğu için rozet çizilmez (aynı metin iki kez yazılmaz).
+  const badge = isCurrent ? null : tier === 'premium' ? t('membership.mostPopular') : null;
 
   return (
     <Card
       variant="bordered"
       padding={5}
-      style={[{ width }, isCurrent && { borderColor: color, borderWidth: 2 }]}
+      style={isCurrent ? { borderColor: theme.colors.primary[500], borderWidth: 2 } : undefined}
     >
       <View style={styles.tierBody}>
-        {(isPopular || isCurrent) && (
-          <View style={styles.badgeRow}>
-            {isPopular && (
-              <Badge variant="default" size="sm">
-                {t('membership.mostPopular')}
-              </Badge>
-            )}
-            {isCurrent && (
-              <Badge variant="outline" size="sm">
-                {t('membership.currentPlanBadge')}
-              </Badge>
-            )}
-          </View>
-        )}
-
-        <Text variant="h3" color={color} numberOfLines={1}>
-          {tierNames[tier]}
-        </Text>
+        <View style={styles.tierHeader}>
+          <Text variant="h3" style={styles.tierName}>
+            {tierNames[tier]}
+          </Text>
+          {badge && (
+            <Badge variant="outline" size="sm" style={styles.tierBadge}>
+              {badge}
+            </Badge>
+          )}
+        </View>
 
         <View style={styles.tierPriceRow}>
           {price === 0 ? (
-            <Text variant="h1">{t('membership.free')}</Text>
+            <Text variant="displaySm">{t('membership.free')}</Text>
           ) : (
             <>
-              <Text variant="h1">{formatPrice(price)}</Text>
+              <Text variant="displaySm">{formatPrice(price)}</Text>
               <Text variant="bodySm" tone="muted">
                 {f.billingPeriod === 'monthly' ? t('membership.perMonth') : t('membership.perYear')}
               </Text>
@@ -206,7 +191,7 @@ function TierCard({ f, tier, width }: { f: MembershipController; tier: TierType;
               <Icon
                 name="check"
                 size={theme.iconSize.sm}
-                color={color}
+                color={theme.colors.text.heading}
                 style={styles.tierFeatureIcon}
               />
               <Text variant="bodySm" style={styles.tierFeatureText}>
@@ -216,21 +201,19 @@ function TierCard({ f, tier, width }: { f: MembershipController; tier: TierType;
           ))}
         </View>
 
-        <View style={styles.tierSpacer} />
-
+        {/* Düğme etiketleri web ile aynı: mevcut -> "Mevcut Planınız", ücretsiz -> "Ücretsiz",
+            diğerleri "Devam Et". Alt plana geçiş uyarısı (handleTierAction) aynen. */}
         <Button
           fullWidth
-          variant={isCurrent || tier === 'free' ? 'outline' : isUpgrade ? 'primary' : 'secondary'}
+          variant={isCurrent || tier === 'free' ? 'outline' : 'primary'}
           onPress={() => f.handleTierAction(tier)}
           disabled={isCurrent || tier === 'free'}
           title={
             isCurrent
-              ? t('membership.currentPlanBadge')
+              ? t('membership.currentPlan')
               : tier === 'free'
                 ? t('membership.free')
-                : isUpgrade
-                  ? t('membership.upgrade')
-                  : t('membership.lowerPlanButton')
+                : t('common.continue')
           }
         />
       </View>
@@ -239,27 +222,11 @@ function TierCard({ f, tier, width }: { f: MembershipController; tier: TierType;
 }
 
 export function MembershipTierList({ f }: SectionProps) {
-  const { width: windowWidth } = useWindowDimensions();
-  const single = f.visibleTiers.length === 1;
-  // Tek kart (kurumsal hesap) tam genişlik; birden çoksa komşu kartın kenarı görünecek oranda.
-  const cardWidth = single
-    ? windowWidth - PAGE_GUTTER * 2
-    : Math.min(Math.round(windowWidth * TIER_CARD_WIDTH_RATIO), TIER_CARD_MAX_WIDTH);
-
   return (
-    <ScrollView
-      horizontal
-      nestedScrollEnabled
-      showsHorizontalScrollIndicator={false}
-      style={styles.strip}
-      contentContainerStyle={styles.stripContent}
-      decelerationRate="fast"
-      snapToInterval={cardWidth + TIER_CARD_GAP}
-      snapToAlignment="start"
-    >
+    <View style={styles.tierList}>
       {f.visibleTiers.map((tier) => (
-        <TierCard key={tier} f={f} tier={tier} width={cardWidth} />
+        <TierCard key={tier} f={f} tier={tier} />
       ))}
-    </ScrollView>
+    </View>
   );
 }

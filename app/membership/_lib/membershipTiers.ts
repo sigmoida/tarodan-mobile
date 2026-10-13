@@ -1,23 +1,8 @@
 import type { TFunction } from 'i18next';
-import { theme } from '@/ui';
 import { FREE_MEMBER_LIMITS, PREMIUM_MEMBER_LIMITS } from '@/utils/membershipLimits';
-
-const { colors } = theme;
 
 export const TIER_ORDER = ['free', 'basic', 'premium', 'business'] as const;
 export type TierType = (typeof TIER_ORDER)[number];
-
-/**
- * Kademe vurgu renkleri — yalnız tema token'ları (kart adı, "mevcut plan" kenarlığı, madde
- * işareti). Metin olarak da okunduğu için 600+ tonlar: business `warning[500]` beyaz zeminde
- * ~2:1 kontrast veriyordu → `warning[700]`; free `gray[500]` → `gray[600]`.
- */
-export const TIER_COLORS: Record<TierType, string> = {
-  free: colors.gray[600]!,
-  basic: colors.info[600]!,
-  premium: colors.primary[600]!,
-  business: colors.warning[700]!,
-};
 
 /**
  * Katman özellik listesi — `t` çağrıldığı ANDA çözülür (bileşen

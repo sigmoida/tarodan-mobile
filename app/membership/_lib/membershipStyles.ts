@@ -1,17 +1,12 @@
 import { StyleSheet } from 'react-native';
-import { theme, PAGE_GUTTER } from '@/ui';
+import { theme } from '@/ui';
 
 const { spacing, radiusRole } = theme;
-
-/** Plan kartı genişliği: ekran genişliğinin oranı (yanındaki kartın kenarı görünsün) + üst sınır. */
-export const TIER_CARD_WIDTH_RATIO = 0.78;
-export const TIER_CARD_MAX_WIDTH = 340;
-/** Plan kartları arası boşluk — `snapToInterval` ile aynı sabitten. */
-export const TIER_CARD_GAP = spacing[3];
 
 /**
  * Üyelik ekranının route-local stylesheet'i. Renk/yazı tipi/gölge burada yok: yüzeyler `Card` /
  * `SectionCard` / `Alert`, metinler `Text` varyantları, düğmeler `Button` / `SegmentedButtons`.
+ * Plan kartları web'in telefon düzeni gibi dikey, tam genişlik, `gap-4`.
  */
 export const styles = StyleSheet.create({
   // Hata bandı
@@ -45,25 +40,26 @@ export const styles = StyleSheet.create({
     alignSelf: 'center',
   },
 
-  // Plan şeridi: sayfa kenar boşluğuna taşar (kenardan kenara), içerik aynı boşlukla başlar.
-  strip: {
-    marginHorizontal: -PAGE_GUTTER,
-  },
-  stripContent: {
-    paddingHorizontal: PAGE_GUTTER,
-    paddingBottom: spacing[1],
-    gap: TIER_CARD_GAP,
+  // Plan kartları: dikey liste (web `grid-cols-1 gap-4`)
+  tierList: {
+    gap: spacing[4],
   },
 
   // Plan kartı
   tierBody: {
-    flex: 1,
     gap: spacing[3],
   },
-  badgeRow: {
+  tierHeader: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing[3],
+  },
+  tierName: {
+    flexShrink: 1,
+  },
+  tierBadge: {
+    flexShrink: 0,
   },
   tierPriceRow: {
     flexDirection: 'row',
@@ -83,9 +79,6 @@ export const styles = StyleSheet.create({
     marginTop: spacing[0.5],
   },
   tierFeatureText: {
-    flex: 1,
-  },
-  tierSpacer: {
     flex: 1,
   },
 });
