@@ -1,8 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect } from 'react';
 import {
-  AccessibilityInfo,
   Animated,
-  Easing,
   StyleSheet,
   View,
   type DimensionValue,
@@ -10,28 +8,9 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { theme } from '../lib/theme';
+import { acquireSkeletonMotion, skeletonOpacity } from '../lib/skeletonMotion';
 
 const { colors, radius, spacing } = theme;
-
-/** Web `animate-pulse`: 2 sn'lik döngüde opaklık 1 → 0.5 → 1. */
-const PULSE_HALF_MS = 1000;
-
-/** Sistemde "Hareketi azalt" açık mı? Açıksa iskeletler sabit durur. */
-function useReduceMotion(): boolean {
-  const [reduce, setReduce] = useState(false);
-  useEffect(() => {
-    let alive = true;
-    AccessibilityInfo.isReduceMotionEnabled?.()
-      .then((v) => alive && setReduce(!!v))
-      .catch(() => undefined);
-    const sub = AccessibilityInfo.addEventListener?.('reduceMotionChanged', (v) => setReduce(!!v));
-    return () => {
-      alive = false;
-      sub?.remove?.();
-    };
-  }, []);
-  return reduce;
-}
 
 export interface SkeletonProps {
   width?: DimensionValue;
@@ -54,40 +33,15 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   style,
   testID,
 }) => {
-  const reduceMotion = useReduceMotion();
-  const opacity = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (reduceMotion) {
-      opacity.setValue(1);
-      return undefined;
-    }
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 0.5,
-          duration: PULSE_HALF_MS,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: PULSE_HALF_MS,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [reduceMotion, opacity]);
+  // Tek paylaşılan nabız (src/ui/lib/skeletonMotion): ilk örnek başlatır, son örnek durdurur.
+  useEffect(() => acquireSkeletonMotion(), []);
 
   return (
     <Animated.View
       testID={testID}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={[styles.base, { width, height, borderRadius, opacity }, style]}
+      style={[styles.base, { width, height, borderRadius, opacity: skeletonOpacity }, style]}
     />
   );
 };
