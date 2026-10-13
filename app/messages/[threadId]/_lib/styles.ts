@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
 import { theme } from "@/ui";
 
-const { colors, spacing, radius, radiusRole, typography, minTouchTarget } = theme;
+const { colors, spacing, radius, radiusRole, typography } = theme;
 
 /** Sohbet görsel ölçüleri (pt). */
 const MESSAGE_IMAGE = 160;
@@ -10,22 +10,7 @@ const AVATAR_COLUMN = 36;
 
 // Mesaj sohbeti ekranının route-local stylesheet'i — web MessageBubble/ChatHeader dili, token'lı.
 export const styles = StyleSheet.create({
-  // --- Üst bar (web ChatHeader: beyaz, alt kenarlık, geri + avatar + ad/ürün + menü) ---
-  header: {
-    backgroundColor: colors.surface.elevated,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.DEFAULT,
-    paddingBottom: spacing[2],
-    paddingHorizontal: spacing[2],
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  backButton: {
-    minWidth: minTouchTarget,
-    minHeight: minTouchTarget,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  // --- Üst bar: standart ScreenHeader; yalnız `titleSlot` (avatar + ad/ürün) içeriği burada ---
   headerContent: {
     flex: 1,
     flexDirection: "row",

@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Avatar, IconButton, Alert as UIAlert, Text, theme } from '@/ui';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ScreenHeader } from '@/components/common/ScreenHeader';
 
 import ReportModal from '@/components/ReportModal';
 import { styles } from '../_lib/styles';
@@ -19,46 +19,41 @@ const { colors, iconSize } = theme;
 export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
   const { t } = useTranslation();
   const { other, currentThread } = f;
-  const insets = useSafeAreaInsets();
   return (
     <>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
-        <Pressable
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-          style={styles.backButton}
-          accessibilityRole="button"
-          accessibilityLabel={t('common.back')}
-        >
-          <Ionicons name="chevron-back" size={iconSize.lg} color={colors.text.heading} />
-        </Pressable>
-
-        <Pressable
-          style={styles.headerContent}
-          onPress={() => other && router.push(`/seller/${other.id}`)}
-        >
-          <Avatar
+      {/* Üst bar: standart ScreenHeader (geri, yükseklik, güvenli alan ortak); başlık yerine
+          avatar + ad + ürün. Geri oku varsayılanı: geçmiş yoksa ana sekme. */}
+      <ScreenHeader
+        title={other?.displayName || t('common.loading')}
+        titleSlot={
+          <Pressable
+            style={styles.headerContent}
+            onPress={() => other && router.push(`/seller/${other.id}`)}
+          >
+            <Avatar
+              size="md"
+              source={other?.avatarUrl || undefined}
+              name={other?.displayName?.charAt(0) || '?'}
+            />
+            <View style={styles.headerInfo}>
+              <Text variant="label" numberOfLines={1}>{other?.displayName || t('common.loading')}</Text>
+              {currentThread?.product && (
+                <Text variant="caption" tone="primary" numberOfLines={1}>
+                  {currentThread.product.title}
+                </Text>
+              )}
+            </View>
+          </Pressable>
+        }
+        right={
+          <IconButton
+            icon="ellipsis-vertical"
+            accessibilityLabel={t('common.more')}
             size="md"
-            source={other?.avatarUrl || undefined}
-            name={other?.displayName?.charAt(0) || '?'}
+            onPress={f.handleHeaderMenu}
           />
-          <View style={styles.headerInfo}>
-            <Text variant="label" numberOfLines={1}>{other?.displayName || t('common.loading')}</Text>
-            {currentThread?.product && (
-              <Text variant="caption" tone="primary" numberOfLines={1}>
-                {currentThread.product.title}
-              </Text>
-            )}
-          </View>
-        </Pressable>
-
-        <IconButton
-          icon="ellipsis-vertical"
-          accessibilityLabel={t('common.more')}
-          size="md"
-          onPress={f.handleHeaderMenu}
-        />
-      </View>
+        }
+      />
 
       {other && (
         <ReportModal
