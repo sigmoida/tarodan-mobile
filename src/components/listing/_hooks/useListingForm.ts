@@ -48,7 +48,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const isEdit = mode === 'edit';
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  const requireIdentity = useRequireLegalIdentity();
+  const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
 
   const bankAccountQuery = useQuery({
     queryKey: ['bank-account'],
@@ -1016,7 +1016,8 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     // loading flags
     brandsLoading,
     modelsLoading,
-    isSubmitting: isSubmitting || deleteListing.isPending,
+    // Kimlik kontrolü/kapısı süresince de devre dışı (ikinci basış yok).
+    isSubmitting: isSubmitting || checkingIdentity || deleteListing.isPending,
     // commission
     commissionPreview,
     commissionLoading,

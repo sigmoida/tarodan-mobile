@@ -9,7 +9,7 @@
 import React from 'react';
 import { screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
-import { MISSING_LEGAL_IDENTITY } from '@/test-utils/legalIdentity';
+import { MISSING_LEGAL_IDENTITY, settleGateAndWait } from '@/test-utils/legalIdentity';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
@@ -79,6 +79,8 @@ describe('Sipariş ödemesi · yasal kimlik kapısı', () => {
 
     await waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true));
     expect(paymentsApi.initiate).not.toHaveBeenCalled();
+    // B4 inceleme 6: kontrol/kapı süresince "Ödeme Yap" devre dışı.
+    expect(screen.getByTestId('order-pay-button')).toBeDisabled();
 
     act(() => settleLegalIdentityRequest(true));
     await waitFor(() => expect(paymentsApi.initiate).toHaveBeenCalledWith('order-1'));
@@ -88,7 +90,7 @@ describe('Sipariş ödemesi · yasal kimlik kapısı', () => {
     await pressPay();
 
     await waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true));
-    await act(async () => settleLegalIdentityRequest(false));
+    await settleGateAndWait(false);
     expect(paymentsApi.initiate).not.toHaveBeenCalled();
   });
 

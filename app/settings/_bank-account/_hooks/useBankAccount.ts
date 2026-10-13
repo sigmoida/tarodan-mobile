@@ -33,14 +33,12 @@ export function useBankAccount() {
   const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const queryClient = useQueryClient();
-  const requireIdentity = useRequireLegalIdentity();
+  const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
   // Dil değişince şema yeniden kurulur — aksi halde hata metni ilk dilde donar.
   const schema = useMemo(() => buildBankAccountSchema(t), [t]);
   const form = useZodForm(schema, { defaultValues: EMPTY_BANK_ACCOUNT });
   const { reset, getValues } = form;
   const [snackbar, setSnackbar] = useState<SnackbarState>({ visible: false, message: '' });
-  // Kimlik kontrolü sürerken (ağ isteği) buton ikinci kez basılmasın.
-  const [checkingIdentity, setCheckingIdentity] = useState(false);
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
@@ -96,13 +94,8 @@ export function useBankAccount() {
   });
 
   const save = async (data: BankAccountForm) => {
-    setCheckingIdentity(true);
-    let proceed: boolean;
-    try {
-      proceed = await requireIdentity();
-    } finally {
-      if (mounted.current) setCheckingIdentity(false);
-    }
+    // Kimlik kontrolü sürerken buton "kaydediliyor" (`checkingIdentity`).
+    const proceed = await requireIdentity();
     if (!proceed || !mounted.current) return;
     if (!sameBankAccountPayload(data, getValues())) {
       setSnackbar({ visible: true, message: t('bankAccount.resubmitAfterIdentity') });

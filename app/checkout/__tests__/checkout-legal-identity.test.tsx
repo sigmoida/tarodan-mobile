@@ -8,7 +8,7 @@
 import React from 'react';
 import { screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
-import { MISSING_LEGAL_IDENTITY } from '@/test-utils/legalIdentity';
+import { MISSING_LEGAL_IDENTITY, settleGateAndWait } from '@/test-utils/legalIdentity';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -140,6 +140,8 @@ describe('Sepet ödemesi · yasal kimlik kapısı', () => {
 
     await waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true));
     expect(ordersApi.checkout).not.toHaveBeenCalled();
+    // B4 inceleme 6: kontrol/kapı süresince ödeme düğmesi devre dışı.
+    expect(screen.getByTestId('checkout-pay-button')).toBeDisabled();
 
     act(() => settleLegalIdentityRequest(true));
     await waitFor(() => expect(ordersApi.checkout).toHaveBeenCalledTimes(1));
@@ -149,7 +151,7 @@ describe('Sepet ödemesi · yasal kimlik kapısı', () => {
     await pressPay();
 
     await waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true));
-    await act(async () => settleLegalIdentityRequest(false));
+    await settleGateAndWait(false);
     expect(ordersApi.checkout).not.toHaveBeenCalled();
   });
 

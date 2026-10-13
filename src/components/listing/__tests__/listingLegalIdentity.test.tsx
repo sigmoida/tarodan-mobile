@@ -13,7 +13,7 @@ import { renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
 import { makeTestQueryClient } from '../../../test-utils';
-import { MISSING_LEGAL_IDENTITY } from '@/test-utils/legalIdentity';
+import { MISSING_LEGAL_IDENTITY, settleGateAndWait } from '@/test-utils/legalIdentity';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
@@ -162,6 +162,8 @@ describe('İlan verme · yasal kimlik kapısı', () => {
 
     await gateOpened();
     expect(productsApi.create).not.toHaveBeenCalled();
+    // B4 inceleme 6: kapı süresince Yayınla düğmesi devre dışı.
+    expect(result.current.isSubmitting).toBe(true);
 
     act(() => settleLegalIdentityRequest(true));
     await waitFor(() =>
@@ -176,7 +178,7 @@ describe('İlan verme · yasal kimlik kapısı', () => {
     });
 
     await gateOpened();
-    await act(async () => settleLegalIdentityRequest(false));
+    await settleGateAndWait(false);
     expect(productsApi.create).not.toHaveBeenCalled();
     expect(result.current.isSubmitting).toBe(false);
   });

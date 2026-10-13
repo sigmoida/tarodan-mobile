@@ -109,7 +109,7 @@ export function useCheckout() {
 
 
   const [step, setStep] = useState(1);
-  const requireIdentity = useRequireLegalIdentity();
+  const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
 
   const idempotencyKeyRef = useRef(generateUuidV4());
   useEffect(() => {
@@ -958,8 +958,8 @@ export function useCheckout() {
     coupon,
     /** Sunucunun uyguladığı indirim (quote kökü) — rozet bilgisi, özet satırı değil. */
     couponDiscount,
-    // ui
-    loading,
+    // ui — kimlik kontrolü sürerken de "işleniyor" (düğme devre dışı).
+    loading: loading || checkingIdentity,
     snackbar,
     dismissSnackbar: () => setSnackbar({ visible: false, message: '' }),
     handleNextStep,

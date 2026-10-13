@@ -10,7 +10,7 @@ import React from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { makeTestQueryClient } from '@/test-utils';
-import { MISSING_LEGAL_IDENTITY } from '@/test-utils/legalIdentity';
+import { MISSING_LEGAL_IDENTITY, settleGateAndWait } from '@/test-utils/legalIdentity';
 
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
@@ -80,6 +80,8 @@ describe('Takas başlatma · yasal kimlik kapısı', () => {
 
     await gateOpened();
     expect(tradesApi.create).not.toHaveBeenCalled();
+    // Kapı süresince gönder düğmesi yükleniyor/devre dışı.
+    expect(result.current.submitPending).toBe(true);
 
     act(() => settleLegalIdentityRequest(true));
     await waitFor(() =>
@@ -100,8 +102,9 @@ describe('Takas başlatma · yasal kimlik kapısı', () => {
     });
 
     await gateOpened();
-    await act(async () => settleLegalIdentityRequest(false));
+    await settleGateAndWait(false);
     expect(tradesApi.create).not.toHaveBeenCalled();
+    expect(result.current.submitPending).toBe(false);
   });
 
   it('form eksikse (adres yok) kimlik sorulmaz', async () => {
@@ -127,6 +130,7 @@ describe('Takas nakit ödemesi · yasal kimlik kapısı', () => {
 
     await gateOpened();
     expect(paymentsApi.initiateTradeCash).not.toHaveBeenCalled();
+    expect(result.current.cashPayPending).toBe(true);
 
     act(() => settleLegalIdentityRequest(true));
     await waitFor(() => expect(paymentsApi.initiateTradeCash).toHaveBeenCalledWith('trade-1'));
@@ -139,8 +143,9 @@ describe('Takas nakit ödemesi · yasal kimlik kapısı', () => {
     });
 
     await gateOpened();
-    await act(async () => settleLegalIdentityRequest(false));
+    await settleGateAndWait(false);
     expect(paymentsApi.initiateTradeCash).not.toHaveBeenCalled();
+    expect(result.current.cashPayPending).toBe(false);
   });
 
   it('muaf hesapta kapı açılmadan ödeme başlar', async () => {

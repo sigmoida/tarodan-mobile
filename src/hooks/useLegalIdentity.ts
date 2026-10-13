@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   queryOptions,
   useMutation,
@@ -121,29 +121,26 @@ export type LegalIdentityStepController = ReturnType<typeof useLegalIdentityStep
  * İhtiyaç anında kimlik kapısı. Kimlik gerektiren bir işlemi başlatmadan
  * ÖNCE çağır (ekran metni `identity.gate.whenNeeded` bu listeyi anlatır):
  * sepet ödemesi (`useCheckout`), teklif/bekleyen siparişin ödemesi
- * (`useOrderActions`), takas başlatma (`useNewTrade`) / nakit ödeme
- * (`useTradeActions`), ilan verme (`useListingForm`) ve banka hesabı ekleme
- * (`useBankAccount`). Hepsi `useRequireLegalIdentity()` ile bağlı.
+ * (`useOrderActions`), ödeme yeniden denemesi (`app/payment/fail`,
+ * `usePayments`), takas başlatma (`useNewTrade`) / karşı teklif
+ * (`useTradeCounter`) / kabul ve nakit ödeme (`useTradeActions`), ilan verme
+ * (`useListingForm`) ve banka hesabı ekleme (`useBankAccount`). Hepsi
+ * `useRequireLegalIdentity()` ile bağlı.
  *
  *   if (!(await ensureLegalIdentity())) return; // vazgeçti → işlem iptal
  *
  * - kimlik tamamsa, hesap muafsa ya da misafirse hemen `true`;
- * - eksikse kimlik adımını açar; kaydedilince `true`, "Vazgeç"te `false`;
+ * - eksikse kimlik adımını açar; kaydedilince `true`, "Vazgeç"te `false`
+ *   (ikisi de kapı modalı kapandıktan SONRA — `settleLegalIdentityRequest`);
  * - durum alınamazsa `true` (fail-open — sunucu zorlamıyor, işlemi kilitleme).
  *
  * Kimlik adımı native tam ekran bir Modal'dır (`FullScreenGate`), açık ekran
- * modallarının üstünde kalır. Yine de açık bir ui `Modal`'ın içinden çağırma:
- * iOS iki modalı aynı anda sunamaz, kapı o modal kapanana kadar bekler. Önce
- * modalı kapat ya da modalı açmadan önce çağır.
+ * modallarının üstünde kalır. Yine de açık bir ui `Modal`'ın ya da `appAlert`
+ * onay penceresinin içinden çağırma: iOS iki modalı aynı anda sunamaz. Önce
+ * kapıyı geç, sonra onayı/modalı aç.
  */
 export async function ensureLegalIdentity(client: QueryClient = appQueryClient): Promise<boolean> {
-  const { isAuthenticated, isLoading } = useAuthStore.getState();
-  if (!isAuthenticated || isLoading) return true;
-
-  // Tamamlanan kimlik geri açılmaz (düzeltme yalnız admin): önbellek "tamam"
-  // diyorsa ağa çıkma. "Eksik" diyorsa taze sor — web'de tamamlanmış olabilir.
-  const cached = client.getQueryData(legalIdentityQueryOptions.queryKey);
-  if (cached && !needsLegalIdentity(cached)) return true;
+  if (!legalIdentityCheckNeeded(client)) return true;
 
   let status: LegalIdentityStatus;
   try {
@@ -156,27 +153,64 @@ export async function ensureLegalIdentity(client: QueryClient = appQueryClient):
 }
 
 /**
+ * Ağa çıkmadan karar verilemiyor mu? Misafirde ve önbellek "tamam" diyorken
+ * `false` (tamamlanan kimlik geri açılmaz — düzeltme yalnız admin). "Eksik"
+ * diyorsa taze sorulur: web'de tamamlanmış olabilir.
+ */
+function legalIdentityCheckNeeded(client: QueryClient): boolean {
+  const { isAuthenticated, isLoading } = useAuthStore.getState();
+  if (!isAuthenticated || isLoading) return false;
+  const cached = client.getQueryData(legalIdentityQueryOptions.queryKey);
+  return !(cached && !needsLegalIdentity(cached));
+}
+
+export interface RequireLegalIdentity {
+  /** `ensureLegalIdentity` — vazgeçilirse (ya da kontrol zaten sürüyorsa) `false`. */
+  requireIdentity: () => Promise<boolean>;
+  /**
+   * Kontrol sürüyor (durum isteği ağda ya da kapı açık). Düğme bu sürede
+   * "yükleniyor" ve devre dışı görünmeli. Önbellek "tamam" ise hiç `true`
+   * olmaz (titreme yok).
+   */
+  isChecking: boolean;
+}
+
+/**
  * `ensureLegalIdentity`in ekran/hook içi hâli: sağlayıcıdaki QueryClient'ı
  * kullanır (testlerde ve önbellek paylaşımında doğru örnek).
  *
- *   const requireIdentity = useRequireLegalIdentity();
+ *   const { requireIdentity, isChecking } = useRequireLegalIdentity();
  *   const onPay = async () => { if (!(await requireIdentity())) return; pay(); };
+ *   <Button isLoading={isChecking || pay.isPending} disabled={isChecking || …} />
  *
- * Aynı hook örneğinden bir kontrol sürerken (durum isteği ağda, kapı henüz
- * açılmadı) gelen ikinci çağrı `false` döner: düğmenin "yükleniyor" hâli
- * işlem başlayınca gelir, arada ikinci basış ikinci siparişi/ilanı/takası
- * başlatmasın.
+ * Aynı hook örneğinden bir kontrol sürerken gelen ikinci çağrı `false` döner:
+ * `isChecking` render'a yansıyana kadar geçen kısa arada ikinci basış ikinci
+ * siparişi/ilanı/takası başlatmasın.
  */
-export function useRequireLegalIdentity(): () => Promise<boolean> {
+export function useRequireLegalIdentity(): RequireLegalIdentity {
   const client = useQueryClient();
   const inFlight = useRef(false);
-  return useCallback(async () => {
+  const [isChecking, setIsChecking] = useState(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  const requireIdentity = useCallback(async () => {
     if (inFlight.current) return false;
     inFlight.current = true;
+    const slow = legalIdentityCheckNeeded(client);
+    if (slow) setIsChecking(true);
     try {
       return await ensureLegalIdentity(client);
     } finally {
       inFlight.current = false;
+      if (slow && mounted.current) setIsChecking(false);
     }
   }, [client]);
+
+  return { requireIdentity, isChecking };
 }

@@ -21,7 +21,7 @@ import {
 export function useTradeActions(id: string) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const requireIdentity = useRequireLegalIdentity();
+  const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
 
   const [snackbar, setSnackbar] = useState({ visible: false, message: "" });
   const notify = (message: string) => setSnackbar({ visible: true, message });
@@ -223,7 +223,7 @@ export function useTradeActions(id: string) {
       if (!(await requireIdentity())) return;
       cashPayMutation.mutate();
     },
-    cashPayPending: cashPayMutation.isPending,
+    cashPayPending: checkingIdentity || cashPayMutation.isPending,
     rejectPending: rejectMutation.isPending,
   };
 }

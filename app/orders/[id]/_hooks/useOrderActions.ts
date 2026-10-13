@@ -33,7 +33,7 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
   const [refundModalVisible, setRefundModalVisible] = useState(false);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const invalidateOrder = useInvalidateOrder(id);
-  const requireIdentity = useRequireLegalIdentity();
+  const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
 
   const cancelRefundMutation = useMutation({
     mutationFn: (refundId: string) => refundsApi.cancel(refundId),
@@ -136,6 +136,6 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
       if (!(await requireIdentity())) return;
       initiatePaymentMutation.mutate();
     },
-    payPending: initiatePaymentMutation.isPending,
+    payPending: checkingIdentity || initiatePaymentMutation.isPending,
   };
 }

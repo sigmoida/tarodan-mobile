@@ -21,7 +21,7 @@ import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
  */
 export function useNewTrade() {
   const { t } = useTranslation();
-  const requireIdentity = useRequireLegalIdentity();
+  const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
   const params = useLocalSearchParams<{
     listing?: string | string[];
     productId?: string | string[];
@@ -238,6 +238,8 @@ export function useNewTrade() {
     theirProducts,
     loadingTheirProducts,
     createTradeMutation,
+    /** Gönderim sürüyor: kimlik kontrolü ya da takas isteği. */
+    submitPending: checkingIdentity || createTradeMutation.isPending,
     myTotal,
     theirTotal,
     cashValue,
