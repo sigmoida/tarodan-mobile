@@ -1,4 +1,4 @@
-# D-03: Sipariş listesi smoke — login → Profil → Siparişlerim → liste açılır.
+# D-03: Sipariş listesi smoke — login → Yan menü → Siparişlerim → liste açılır.
 # Zeynep'in seed'de sipariş geçmişi var; ekran boş olmamalı.
 appId: ${APP_ID}
 tags:
@@ -12,8 +12,7 @@ tags:
       visible: "Çıkış Yap"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
-- tapOn:
-    id: "tab-profile"
+- runFlow: ../subflows/open-side-menu.yaml
 - extendedWaitUntil:
     visible:
       id: "profile-orders-link"

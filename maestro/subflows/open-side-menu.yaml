@@ -1,0 +1,20 @@
+# Ana Sayfa yan menüsünü (hamburger) aç: alt menüden Ana Sayfa -> üst bardaki hamburger.
+# Alışveriş / Finans / Koleksiyon / Analiz / Destek / Bilgi satırları ARTIK Profil ekranında değil,
+# yan menüde (satır testID'leri değişmedi: profile-orders-link, profile-trades-link, ...).
+# Kullanım: runFlow bu dosya -> tapOn id: "profile-orders-link" (alt satırlar için önce
+# scrollUntilVisible). Ön koşul: kullanıcı login (misafirde yalnız Yardım + Bilgi satırları var).
+appId: ${APP_ID}
+---
+- tapOn:
+    id: "tab-home"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "home-menu-button"
+    timeout: 30000
+- tapOn:
+    id: "home-menu-button"
+- extendedWaitUntil:
+    visible:
+      id: "side-menu"
+    timeout: 10000

@@ -71,9 +71,8 @@ env:
     timeout: 60000
 - assertNotVisible: ".*Network Error.*"
 - assertNotVisible: ".*hata oluştu.*"
-# Profil → Siparişlerim — yeni sipariş listede
-- tapOn:
-    id: "tab-profile"
+# Yan menü → Siparişlerim — yeni sipariş listede
+- runFlow: ../subflows/open-side-menu.yaml
 - scrollUntilVisible:
     element:
       id: "profile-orders-link"
