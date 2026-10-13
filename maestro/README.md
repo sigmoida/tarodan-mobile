@@ -293,6 +293,7 @@ açılması yeterli.
 | F-22 | regression | zeynep'in en az bir sales order'ı (seed.ts default'lar yeterli) |
 | F-23 | smoke | `EXPO_PUBLIC_MAESTRO=1` + dev client + saved address |
 | F-24 | manual | zeynep'in delivered order'ı (14 gün içinde) + manual RefundRequest.status update |
+| F-25 | regression | zeynep girişli; profili düzenle bölümleri (kullanıcı adı / e-posta "Değiştir" → alan açılır → "Vazgeç"); kod doğrulaması otomasyonda YOK |
 
 ## CI keyboard requirement
 

@@ -429,7 +429,8 @@
     "kvkkCheckboxLabel": "I have read and accept the KVKK Privacy Notice.",
     "mustAcceptKvkk": "You must accept the KVKK privacy notice",
     "individualApplication": "Individual Application",
-    "corporateApplication": "Corporate Application"
+    "corporateApplication": "Corporate Application",
+    "usernamePlaceholder": "example.user"
   },
   "brands": {
     "title": "Brands",
@@ -2326,7 +2327,23 @@
       "isletme": "Business",
       "guvenlik": "Security",
       "engellenenler": "Blocked Users"
-    }
+    },
+    "change": "Change",
+    "sendCode": "Send Code",
+    "verify": "Verify",
+    "newEmail": "New email",
+    "newEmailPlaceholder": "new@example.com",
+    "emailChangeIntro": "We'll send a 6-digit verification code to your new email address. Your current email stays valid until the code is confirmed.",
+    "verificationCode": "Verification code",
+    "emailChangeCodeSent": "A verification code was sent to your new email",
+    "emailChanged": "Your email address has been updated",
+    "usernameSaved": "Your username has been saved.",
+    "giveUp": "Cancel",
+    "fixEmail": "Edit email",
+    "usernameImmutable": "Username cannot be changed",
+    "usernameAutoAssigned": "Current: @{username} (assigned automatically)",
+    "usernameConfirmTitle": "Username will be permanent",
+    "usernameConfirmBody": "It will be set as @{username} and cannot be changed later. Continue?"
   },
   "review": {
     "reviews": "Reviews",

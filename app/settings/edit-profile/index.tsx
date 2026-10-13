@@ -3,18 +3,20 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/ui";
 import { PageShell } from "@/components/common/PageShell";
 import { useEditProfile } from "./_hooks/useEditProfile";
-import { styles } from "./_lib/styles";
 import {
-  AccountLinks,
   AvatarSection,
   PersonalInfoCard,
   BusinessInfoCard,
 } from "./_components/EditProfileSections";
 import { LegalIdentityCard } from "./_components/LegalIdentityCard";
+import { UsernameSection } from "./_sections/UsernameSection";
+import { EmailSection } from "./_sections/EmailSection";
 
 /**
  * Profili düzenle — D1b REFERANS EKRANI (form): PageShell (beyaz üst bar, klavye kaçınma,
- * sabit alt bar = tek ana aksiyon) + bölümler web'deki gibi SectionCard. Form/mutasyon
+ * sabit alt bar) + bölümler web'deki gibi SectionCard. Alt çubuk "Kaydet" YALNIZ kişisel
+ * (ve işletme) bilgileri kaydeder; kullanıcı adı ve e-posta ayrı uçlarda yaşadığı için
+ * kendi bölümlerinde kendi eylemleriyle yönetilir (`_sections/`). Form/mutasyon
  * `useEditProfile`'da; ekran yalnız kompozisyon.
  */
 export default function EditProfileScreen() {
@@ -51,14 +53,16 @@ export default function EditProfileScreen() {
           onPress={f.handleSubmit(f.onSubmit)}
           isLoading={f.updateMutation.isPending}
           disabled={f.updateMutation.isPending}
+          testID="edit-profile-save"
         />
       }
     >
       <AvatarSection f={f} />
       <PersonalInfoCard f={f} />
+      <UsernameSection />
+      <EmailSection />
       <LegalIdentityCard />
       <BusinessInfoCard f={f} />
-      <AccountLinks />
     </PageShell>
   );
 }

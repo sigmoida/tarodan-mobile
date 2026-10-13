@@ -429,7 +429,8 @@
     "kvkkCheckboxLabel": "KVKK Aydınlatma Metni'ni okudum ve kabul ediyorum.",
     "mustAcceptKvkk": "KVKK Aydınlatma Metni'ni onaylamalısınız",
     "individualApplication": "Bireysel Başvuru",
-    "corporateApplication": "Kurumsal Başvuru"
+    "corporateApplication": "Kurumsal Başvuru",
+    "usernamePlaceholder": "ornek.kullanici"
   },
   "brands": {
     "title": "Markalar",
@@ -2326,7 +2327,23 @@
       "isletme": "İşletme",
       "guvenlik": "Güvenlik",
       "engellenenler": "Engellenen Kullanıcılar"
-    }
+    },
+    "change": "Değiştir",
+    "sendCode": "Kod Gönder",
+    "verify": "Doğrula",
+    "newEmail": "Yeni e-posta",
+    "newEmailPlaceholder": "yeni@ornek.com",
+    "emailChangeIntro": "Yeni e-posta adresinize 6 haneli bir doğrulama kodu göndereceğiz. Mevcut e-postanız kod doğrulanana kadar geçerli kalır.",
+    "verificationCode": "Doğrulama kodu",
+    "emailChangeCodeSent": "Doğrulama kodu yeni e-postanıza gönderildi",
+    "emailChanged": "E-posta adresiniz güncellendi",
+    "usernameSaved": "Kullanıcı adınız kaydedildi.",
+    "giveUp": "Vazgeç",
+    "fixEmail": "E-postayı düzelt",
+    "usernameImmutable": "Kullanıcı adı değiştirilemez",
+    "usernameAutoAssigned": "Şu an: @{username} (otomatik atandı)",
+    "usernameConfirmTitle": "Kullanıcı adı kalıcı olacak",
+    "usernameConfirmBody": "@{username} olarak belirlenecek ve sonra değiştirilemez. Devam edilsin mi?"
   },
   "review": {
     "reviews": "Değerlendirmeler",

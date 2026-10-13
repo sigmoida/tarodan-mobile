@@ -35,7 +35,13 @@ export interface UsernameAvailability {
  * girdi hiçbir zaman ağa gitmeden reddedilmiş olur. (RegisterForm alanı zaten
  * girişte küçük harfe çeviriyor — buradaki kapı ikinci bariyer.)
  */
-export function useUsernameAvailability(rawUsername: string): UsernameAvailability {
+export function useUsernameAvailability(
+  rawUsername: string,
+  /** Hesaptaki (otomatik atanmış) mevcut ad. Uç bu adı "dolu" döndürür ama aynı
+   *  adı belirlemek sunucuda başarılıdır — yazılan değer buna eşitse sorgu
+   *  atılmaz ve uygun sayılır. */
+  ownUsername?: string,
+): UsernameAvailability {
   const [debounced, setDebounced] = useState(rawUsername);
 
   useEffect(() => {
@@ -56,10 +62,12 @@ export function useUsernameAvailability(rawUsername: string): UsernameAvailabili
    *  değildir — o aralıkta `available` bir ÖNCEKİ adın sonucudur (bayat). */
   const isFresh = candidate === rawUsername.trim();
 
+  const isOwn = !!ownUsername && rawUsername.trim() === ownUsername;
+
   const query = useQuery({
     queryKey: qk.auth.usernameAvailability(candidate),
     queryFn: async () => (await authApi.checkUsernameAvailability(candidate)).data,
-    enabled: isValidFormat,
+    enabled: isValidFormat && !isOwn,
     staleTime: 30_000,
     retry: false,
   });
@@ -70,12 +78,16 @@ export function useUsernameAvailability(rawUsername: string): UsernameAvailabili
   return {
     // Debounce beklerken de "kontrol ediliyor" göster (format zaten geçerliyse);
     // format geçersizse (kısa/karakter dışı/büyük harf) hiçbir zaman true olmaz.
-    checking: isRawValidFormat && (debounced !== rawUsername || query.isFetching),
+    checking: !isOwn && isRawValidFormat && (debounced !== rawUsername || query.isFetching),
     // TAZELİK KAPISI: yalnız yazılan değerin kendi sonucu döner. Aksi halde
     // kullanıcı "alınmış" bir addan yeni bir ada geçtiğinde 400ms boyunca eski
     // `false` yeni ada yapışıyor, ekran kırmızı "alınmış" gösteriyor ve buton
     // kilitli kalıyordu (fail-open korunur: bilinmiyorsa `undefined`).
-    available: isValidFormat && isFresh ? query.data?.available : undefined,
+    available: isOwn
+      ? isRawValidFormat
+      : isValidFormat && isFresh
+        ? query.data?.available
+        : undefined,
     // 429 uç geneli bir sinyal (ada özel değil) — tazelikle kapılanmaz.
     isThrottled,
     isFormatInvalid: !isRawEmpty && !isRawValidFormat,

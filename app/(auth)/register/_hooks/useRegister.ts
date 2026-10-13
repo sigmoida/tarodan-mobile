@@ -7,7 +7,7 @@ import { router } from 'expo-router';
 import { authApi } from '@/lib/api';
 import { registrationConsentDocuments } from '@/lib/shared/legalConsent';
 import { buildRegisterSchema, type RegisterForm } from '../_lib/schema';
-import { useUsernameAvailability } from './useUsernameAvailability';
+import { useUsernameAvailability } from '@/hooks/useUsernameAvailability';
 import { IS_MAESTRO } from '@/config/maestro';
 
 /**

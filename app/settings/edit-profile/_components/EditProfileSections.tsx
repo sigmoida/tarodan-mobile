@@ -1,5 +1,5 @@
 import { View, Pressable, Image } from "react-native";
-import { Alert, Avatar, Badge, Button, DateField, Input, SectionCard, theme, Icon } from "@/ui";
+import { Alert, Avatar, Badge, DateField, Input, SectionCard, theme, Icon } from "@/ui";
 import { router } from "expo-router";
 import { Controller } from "react-hook-form";
 import { MembershipBadgeCard } from "@/components/PremiumBadge";
@@ -46,7 +46,7 @@ export function AvatarSection({ f }: { f: EditProfileController }) {
   );
 }
 
-/** Kişisel bilgiler — isim / e-posta (salt okunur) / telefon / doğum / bio. */
+/** Kişisel bilgiler — isim / telefon / doğum / bio. (Kullanıcı adı ve e-posta ayrı bölümlerde.) */
 export function PersonalInfoCard({ f }: { f: EditProfileController }) {
   const { t } = useTranslation();
   const { control, errors } = f;
@@ -66,15 +66,6 @@ export function PersonalInfoCard({ f }: { f: EditProfileController }) {
             containerStyle={styles.input}
           />
         )}
-      />
-
-      {/* E-posta — salt okunur (web ile parite) */}
-      <Input
-        label={t("auth.emailAddress")}
-        value={f.user?.email || ""}
-        editable={false}
-        helperText={t("profile.emailChangeNote")}
-        containerStyle={styles.input}
       />
 
       <Controller
@@ -194,28 +185,5 @@ export function BusinessInfoCard({ f }: { f: EditProfileController }) {
 
       <Alert variant="info">{t("profile.corporateInfoNotice")}</Alert>
     </SectionCard>
-  );
-}
-
-/** Hesap bağlantıları — e-posta ve kullanıcı adı değişikliği ayrı ekranlarda. */
-export function AccountLinks() {
-  const { t } = useTranslation();
-  return (
-    <View style={styles.links}>
-      <Button
-        variant="outline"
-        fullWidth
-        title={t("settings.emailChangeLink")}
-        onPress={() => router.push("/settings/email-change" as never)}
-        testID="edit-profile-email-change"
-      />
-      <Button
-        variant="outline"
-        fullWidth
-        title={t("settings.usernameLink")}
-        onPress={() => router.push("/settings/username" as never)}
-        testID="edit-profile-username"
-      />
-    </View>
   );
 }
