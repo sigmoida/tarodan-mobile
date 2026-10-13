@@ -10,7 +10,7 @@
 #   1. Login başarılı + "doğrulayın" banner'ı (verify-email yönlendirmesi)
 #   2. Login başarısız + error mesajı (kullanıcı seed edilmemiş veya creds yanlış)
 # Asıl regression iddiası: Network Error olmasın → backend ulaşılabilir.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - regression
 ---

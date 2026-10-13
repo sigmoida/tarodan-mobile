@@ -2,7 +2,7 @@
 # Buyer auto-login (EXPO_PUBLIC_MAESTRO=1, NO_AUTOLOGIN YOK). Ürün: ilk "diecast"
 # sonucu (zeynep'in olmayan, Mehmet'in F-14'ü ~349₺). Teklif 200₺ (>%50, <fiyat).
 # Önce orkestratör driver reset-offers ile zeynep'in açık tekliflerini temizler.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - manual
 ---
@@ -10,7 +10,7 @@ tags:
 # geliyor. clearState'siz boot → auto-login (token yoksa zeynep). Garantili zeynep
 # için: girişliyse çıkış yap, sonra UI'dan zeynep login.
 - launchApp:
-    appId: com.tarodan.app
+    appId: ${APP_ID}
     clearState: false
 - waitForAnimationToEnd:
     timeout: 5000

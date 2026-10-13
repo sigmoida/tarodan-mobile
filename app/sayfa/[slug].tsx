@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import { useTranslation } from 'react-i18next';
 import { pagesApi } from '@/lib/api';
+import { useCmsWebViewNavigation } from './_hooks/useCmsWebViewNavigation';
 
 const { colors } = theme;
 
@@ -70,6 +71,9 @@ interface PageData {
 export default function DynamicCMSPage() {
   const { t } = useTranslation();
   const { slug } = useLocalSearchParams<{ slug: string }>();
+  // CMS içeriği WebView içinde gezinmesin (bkz. _lib/navigation); dış/uygulama açılışı
+  // yalnız kullanıcı dokunuşuyla. Hook, yükleme/hata dallarından ÖNCE çağrılır.
+  const { onShouldStartLoadWithRequest, onLoadEnd } = useCmsWebViewNavigation();
 
   // CMS sayfası React Query ile (CLAUDE.md §6). Aynı slug ikinci kez açıldığında
   // önbellekten gelir; 404 ile diğer hatalar ayrı mesaj alır (mevcut davranış).
@@ -156,6 +160,9 @@ export default function DynamicCMSPage() {
         startInLoadingState
         javaScriptEnabled
         scalesPageToFit={false}
+        onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
+        onLoadEnd={onLoadEnd}
+        setSupportMultipleWindows={false}
       />
     </View>
   );

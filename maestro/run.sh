@@ -7,6 +7,11 @@
 #   ./run.sh flows/01-smoke.yaml
 #   MAESTRO_EMAIL=ahmet@demo.com ./run.sh flows/E-05-membership-manage.yaml
 #   API_URL=http://127.0.0.1:3001/api ./run.sh flows/01-smoke.yaml   # yerel backend
+#   MAESTRO_TARGET=staging ./run.sh flows/01-smoke.yaml              # EAS `maestro` profili iOS build'i
+#   APP_ID=com.ornek.app ./run.sh flows/01-smoke.yaml                # özel paket/bundle id
+#
+# Flow'lar `appId: ${APP_ID}` kullanır; değer app-id.sh'tan gelir (varsayılan
+# com.tarodan.app = yerel dev-client; MAESTRO_TARGET=staging → iOS'ta .staging eki).
 set -euo pipefail
 
 # Backend adresi UYGULAMANIN OKUDUĞU yerden gelir (`.env` → EXPO_PUBLIC_API_URL).
@@ -24,7 +29,11 @@ API_URL="${API_URL:-http://127.0.0.1:3001/api}"
 METRO_PORT="${METRO_PORT:-8081}"
 MAESTRO_EMAIL="${MAESTRO_EMAIL:-zeynep@demo.com}"
 MAESTRO_PASSWORD="${MAESTRO_PASSWORD:-Demo123!}"
+MAESTRO_TARGET="${MAESTRO_TARGET:-dev}"
 MOBILE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Flow'ların hedef uygulama kimliği (flow header'ı `appId: ${APP_ID}`).
+APP_ID="$(bash "$MOBILE_DIR_EARLY/maestro/app-id.sh" ios "$MAESTRO_TARGET")"
 
 log() { printf '\033[1;36m[harness]\033[0m %s\n' "$1"; }
 err() { printf '\033[1;31m[harness]\033[0m %s\n' "$1" >&2; }
@@ -67,6 +76,7 @@ fi
 # Flow yolu İLK arg; Maestro --env'i flow'dan ÖNCE ister, bu yüzden flow'u sona al:
 #   maestro test --env K=V flow.yaml
 FLOW="$1"; shift || true
-log "maestro test $* $FLOW — simülatörü izle"
+log "maestro test (APP_ID=$APP_ID) $* $FLOW — simülatörü izle"
 cd "$MOBILE_DIR/maestro"
-exec maestro test "$@" "$FLOW"
+# Özel id gerekirse APP_ID ortam değişkenini ver (app-id.sh onu önceler).
+exec maestro test --env APP_ID="$APP_ID" "$@" "$FLOW"

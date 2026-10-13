@@ -1,7 +1,13 @@
 # Maestro project config - shared env across all flows.
 # Override per run: maestro test --env EMAIL=foo@bar.com flows/auth-login.yaml
-appId: com.tarodan.app
+#
+# Flow'larda `appId` sabit DEĞİL: `appId: ${APP_ID}` (flows/ ve subflows/). Değer:
+#   - `pnpm maestro:dev ...` (run.sh) otomatik verir: varsayılan com.tarodan.app,
+#     EAS `maestro` profili iOS build'i için MAESTRO_TARGET=staging → com.tarodan.app.staging
+#   - doğrudan `maestro test` için: --env APP_ID=$(bash app-id.sh ios staging)
+# Seçim tablosu: app-id.sh.
 env:
+  APP_ID: com.tarodan.app
   EMAIL: zeynep@demo.com
   PASSWORD: Demo123!
   PREMIUM_EMAIL: ahmet@demo.com

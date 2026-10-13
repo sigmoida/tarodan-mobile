@@ -1,7 +1,7 @@
 # F-21: Manual. Pre-condition: zeynep'in shipping_to_recipients takası,
 # kendi from_warehouse shipment.status='delivered'.
 # Doğrular: "Teslim Aldım" butonu ENABLED.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - manual
 ---

@@ -3,7 +3,7 @@
 # Akış: takas detay → inbound card görünür → status chip "Etiket Hazır"
 # → (kullanıcı manuel olarak `psql -c "UPDATE trade_shipments SET status='in_transit' WHERE ..."`)
 # → pull-to-refresh → chip "Yolda"
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - manual
 ---

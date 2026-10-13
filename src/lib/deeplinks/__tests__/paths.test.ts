@@ -5,6 +5,7 @@
 import { toMobileRoute } from '@/utils/notificationRoute';
 import {
   deepLinkConfig,
+  productionHosts,
   shippablePaths,
   pendingConfirmation,
   withLocaleVariants,
@@ -189,6 +190,12 @@ describe('tablo sabitleri', () => {
 
   it('her iki alan adi da sayilir', () => {
     expect(deepLinkConfig.hosts).toEqual(['tarodan.com.tr', 'staging.tarodan.com.tr']);
+  });
+
+  it('staging host\'lari hosts\'un alt kumesi; production yalniz kalani talep eder', () => {
+    expect(deepLinkConfig.stagingHosts).toEqual(['staging.tarodan.com.tr']);
+    deepLinkConfig.stagingHosts.forEach((h) => expect(deepLinkConfig.hosts).toContain(h));
+    expect(productionHosts()).toEqual(['tarodan.com.tr']);
   });
 });
 

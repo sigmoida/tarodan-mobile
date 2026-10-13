@@ -1,6 +1,6 @@
 # Search smoke: Ara tab → arama listesi yüklenir, sonuç sayısı görünür.
 # Detaylı filter testleri için ayrı flow'lar (testID gerektirir).
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - smoke
 ---
