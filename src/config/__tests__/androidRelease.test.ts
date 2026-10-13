@@ -87,10 +87,21 @@ describe('staging android.googleServicesFile seçimi', () => {
     expect(withEnv('development').android.googleServicesFile).toBe('./google-services.json');
   });
 
-  it('EAS file env değişkeni varsa onu kullanır (yerel dosyadan önce)', () => {
+  it('repo dosyası VARSAYILAN: env değişkeni de varken repo dosyası kazanır (fingerprint tutarlılığı)', () => {
+    // OTA job'unda env yok, EAS build'inde var: ikisi de aynı dosyayı görmeli.
     const file = resolve({
       env: { [ENV_VAR]: '/eas/tmp/gs.json' },
       exists: () => true,
+      read: () => fileFor(STAGING),
+      packageName: STAGING,
+    });
+    expect(file).toBe('./google-services.staging.json');
+  });
+
+  it('repo dosyası yoksa EAS file env değişkeni yedek olarak kullanılır', () => {
+    const file = resolve({
+      env: { [ENV_VAR]: '/eas/tmp/gs.json' },
+      exists: (p: string) => p === '/eas/tmp/gs.json',
       read: () => fileFor(STAGING),
       packageName: STAGING,
     });
@@ -147,7 +158,7 @@ describe('staging android.googleServicesFile seçimi', () => {
   it('dosya staging paketini içermiyorsa (ör. production dosyası) hata verir', () => {
     expect(() =>
       resolve({
-        env: { [ENV_VAR]: '/eas/tmp/gs.json' },
+        env: {},
         exists: () => true,
         read: () => fileFor('com.tarodan.app'),
         packageName: STAGING,
@@ -157,19 +168,38 @@ describe('staging android.googleServicesFile seçimi', () => {
 
   it('bozuk JSON Gradle\'a bırakılır (burada çökmez)', () => {
     expect(
-      resolve({ env: { [ENV_VAR]: '/x.json' }, exists: () => true, read: () => '{', packageName: STAGING }),
-    ).toBe('/x.json');
+      resolve({ env: {}, exists: () => true, read: () => '{', packageName: STAGING }),
+    ).toBe('./google-services.staging.json');
   });
 
-  it('preview config\'inde seçilen dosya android.googleServicesFile\'a yazılır', () => {
+  it('preview config\'inde android.googleServicesFile repo dosyasıdır; env değişkeni (varsa) onu değiştirmez', () => {
     const prev = process.env[ENV_VAR];
-    process.env[ENV_VAR] = '/eas/tmp/does-not-exist.json'; // dosya yok → doğrulama atlanır
     try {
-      expect(withEnv('preview').android.googleServicesFile).toBe('/eas/tmp/does-not-exist.json');
+      delete process.env[ENV_VAR];
+      expect(withEnv('preview').android.googleServicesFile).toBe('./google-services.staging.json');
+      process.env[ENV_VAR] = '/eas/tmp/farkli-yol.json';
+      expect(withEnv('preview').android.googleServicesFile).toBe('./google-services.staging.json');
     } finally {
       if (prev === undefined) delete process.env[ENV_VAR];
       else process.env[ENV_VAR] = prev;
     }
+  });
+
+  it('repodaki google-services.staging.json staging projesi + staging paketi (production değil)', () => {
+    const json = JSON.parse(
+      fs.readFileSync(path.resolve(__dirname, '../../../google-services.staging.json'), 'utf8'),
+    );
+    expect(json.project_info.project_id).toBe('tarodan-staging');
+    const pkgs = json.client.map((c: any) => c.client_info.android_client_info.package_name);
+    expect(pkgs).toEqual([deepLinkConfig.stagingAndroidPackage]);
+    expect(pkgs).not.toContain(deepLinkConfig.androidPackage);
+  });
+
+  it('production dosyası staging projesine ait değil (iki dosya karışmadı)', () => {
+    const json = JSON.parse(
+      fs.readFileSync(path.resolve(__dirname, '../../../google-services.json'), 'utf8'),
+    );
+    expect(json.project_info.project_id).toBe('tarodan-c1290');
   });
 
   it('repoda google-services.json hâlâ yalnız production paketini içerir', () => {

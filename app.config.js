@@ -32,10 +32,19 @@ const STAGING_SUFFIX = '.staging';
 // dosyada derlenen paketin istemcisi yoksa build'i durdurur; production dosyası
 // (`./google-services.json`, yalnız com.tarodan.app) staging paketine UYMAZ, bu
 // yüzden staging ASLA ona sessizce düşmez. Öncelik sırası:
-//   1. GOOGLE_SERVICES_JSON_STAGING — EAS "file" tipi ortam değişkeni (önerilen:
-//      dosya repoya girmez; `eas env:create --type file`, bkz. docs/ANDROID_RELEASE.md)
-//   2. repo kökünde ./google-services.staging.json
+//   1. repo kökünde ./google-services.staging.json (VARSAYILAN, repoda duruyor)
+//   2. GOOGLE_SERVICES_JSON_STAGING — EAS "file" tipi ortam değişkeni; YALNIZ
+//      repo dosyası yoksa devreye giren yedek (bkz. aşağıdaki fingerprint notu)
 //   3. ikisi de yoksa: Android build bağlamında AÇIK HATA (aşağıya bak).
+//
+// Neden repo dosyası önde: expo-updates fingerprint'i Android'de dosyanın
+// İÇERİĞİNİ hash'ler (yolu değil). EAS build'i ile `eas update` (OTA) job'u
+// AYNI içeriği görmezse runtime fingerprint'i eşleşmez ve staging OTA'ları
+// Android staging cihazlarına hiç ulaşmaz. OTA job'unda EAS file değişkeni
+// yoktur, repo dosyası her zaman vardır; env değişkeni önce gelseydi bayat bir
+// değişken build'in hash'ini sessizce ayırırdı. Repo dosyası önde olunca iki
+// yol da aynı dosyayı okur. Dosyayı değiştirirsen EAS'teki değişkeni de aynı
+// içerikle güncelle (yedek olarak kalıyor).
 const STAGING_GOOGLE_SERVICES_ENV = 'GOOGLE_SERVICES_JSON_STAGING';
 const STAGING_GOOGLE_SERVICES_LOCAL = './google-services.staging.json';
 
@@ -73,15 +82,15 @@ function resolveStagingGoogleServicesFile(opts = {}) {
 
   const fromEnv = (env[STAGING_GOOGLE_SERVICES_ENV] ?? '').trim();
   let file = null;
-  if (fromEnv) file = fromEnv;
-  else if (exists(path.join(root, STAGING_GOOGLE_SERVICES_LOCAL))) file = STAGING_GOOGLE_SERVICES_LOCAL;
+  if (exists(path.join(root, STAGING_GOOGLE_SERVICES_LOCAL))) file = STAGING_GOOGLE_SERVICES_LOCAL;
+  else if (fromEnv) file = fromEnv;
 
   if (!file) {
     if (isAndroidNativeContext(env, argv)) {
       throw new Error(
         `[app.config] Staging Android build'i için google-services.json bulunamadı. ` +
-          `${STAGING_GOOGLE_SERVICES_ENV} (EAS "file" tipi ortam değişkeni) ya da repo kökünde ` +
-          `${STAGING_GOOGLE_SERVICES_LOCAL} gerekli; ikisi de yok. Production dosyası ` +
+          `repo kökünde ${STAGING_GOOGLE_SERVICES_LOCAL} (ya da yedek olarak ` +
+          `${STAGING_GOOGLE_SERVICES_ENV} EAS "file" tipi ortam değişkeni) gerekli; ikisi de yok. Production dosyası ` +
           `(./google-services.json) "${packageName}" paketini içermez, bu yüzden ona düşülmez. ` +
           `Firebase'e "${packageName}" Android uygulamasını ekleyip dosyayı indirin: docs/ANDROID_RELEASE.md`,
       );

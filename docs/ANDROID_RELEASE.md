@@ -23,7 +23,7 @@ Genel yayın akışı: [`RELEASE.md`](./RELEASE.md) · EAS hesap/secret kurulumu
 | EAS build profili | `production` (AAB) | `staging` (AAB) · `preview` (ad-hoc APK) |
 | Play kanalı | internal → closed → open → production | **yalnız internal** |
 | Firebase projesi | `tarodan-c1290` | `tarodan-staging` |
-| `google-services.json` | repoda `./google-services.json` | repoda **yok**; EAS file değişkeni |
+| `google-services.json` | repoda `./google-services.json` | repoda `./google-services.staging.json` |
 | API | `https://tarodan.com.tr/api` | `https://staging.tarodan.com.tr/api` |
 | App Links host'u | `tarodan.com.tr` | `staging.tarodan.com.tr` |
 | `assetlinks` dosyası | `assetlinks.json` | `assetlinks.staging.json` |
@@ -38,13 +38,12 @@ Production host'unu da dinleseydi iki uygulama yan yana kurulu cihazda her
 (`com.tarodan.app.staging`) üretir. Sebep: paket adı profile değil
 `EXPO_PUBLIC_ENVIRONMENT`'a bağlı, `preview` zaten staging API'sine bakıyor ve
 APK production'ın yanında kurulabilmeli. Sonucu: `preview` APK'sı da staging
-`google-services.json`'ına ihtiyaç duyar (aynı değişken, aynı ortam).
+`google-services.json`'ını kullanır (aynı repo dosyası).
 
 **`maestro` profili** `preview`'dan türer, yani Android'de o da
 `com.tarodan.app.staging` olur (`maestro/app-id.sh android staging` bunu döner).
-`maestro` kendi EAS ortamını kullandığı için `GOOGLE_SERVICES_JSON_STAGING`
-oraya da ayrıca yüklenmeli (Adım 8'deki ikinci komut) — yalnız Android Maestro
-build'i alacaksanız gerekli.
+Staging dosyası repoda durduğu için `maestro` EAS ortamına ayrıca bir şey
+yüklemek gerekmez.
 
 ---
 
@@ -92,7 +91,7 @@ başvurusu yapılır ve Google yanıt verir.
 | # | İş | Kim |
 | --- | --- | --- |
 | 1 | Play Console'da iki uygulama oluştur: "Tarodan" (`com.tarodan.app`) ve "Tarodan (Staging)" (`com.tarodan.app.staging`). Paket adı **sonradan değişmez**. | Kullanıcı |
-| 2 | Firebase'de staging projesi + Android uygulaması (Bölüm 7) ve `google-services.json` → EAS | Kullanıcı |
+| 2 | Firebase'de staging projesi + Android uygulaması (Bölüm 7); `google-services.staging.json` repoda (yapıldı) | Kullanıcı |
 | 3 | Play service account + EAS'e yükleme (Bölüm 6) | Kullanıcı |
 | 4 | Her paket için ilk AAB'yi **elle** yükle (Bölüm 5) | Kullanıcı |
 | 5 | Play App Signing parmak izlerini al, `fingerprints.json`'ı doldur (Bölüm 10) | Kullanıcı |
@@ -119,9 +118,9 @@ benzeri hatayla düşer. Bu iş her paket için bir kez yapılır.
    eas build --platform android --profile production   # com.tarodan.app
    ```
 
-   Staging için `GOOGLE_SERVICES_JSON_STAGING` önceden yüklü olmalı (Bölüm 7);
-   yoksa `app.config.js` build'i **açık bir hatayla** durdurur, production
-   dosyasına sessizce düşmez.
+   Staging için repo kökündeki `google-services.staging.json` kullanılır (Bölüm 7);
+   dosya (ve yedek EAS değişkeni) yoksa `app.config.js` build'i **açık bir hatayla**
+   durdurur, production dosyasına sessizce düşmez.
 2. EAS build sayfasından `.aab` dosyasını indir.
 3. Play Console → ilgili uygulama → **Test and release → Testing → Internal
    testing → Create new release** → AAB'yi yükle. Karşılaşılan ilk istekte
@@ -195,41 +194,44 @@ dosyasını** kullanır.
 
 1. **Kullanıcı** — Firebase Console → `tarodan-staging` → **Project settings →
    Add app → Android** → paket adı `com.tarodan.app.staging` → `google-services.json`'ı indir.
-2. **Kullanıcı** — dosyayı **file tipi** EAS değişkeni olarak yükle (önerilen;
-   dosya repoya girmez):
-
-   ```bash
-   eas env:create --environment preview --name GOOGLE_SERVICES_JSON_STAGING \
-     --type file --value ./google-services.staging.json --visibility sensitive
-   # Yalnız Android Maestro build'i alınacaksa (maestro profili ayrı ortam):
-   eas env:create --environment maestro --name GOOGLE_SERVICES_JSON_STAGING \
-     --type file --value ./google-services.staging.json --visibility sensitive
-   ```
-
-   `staging` ve `preview` build profilleri EAS ortamı olarak **`preview`**'ı kullanır
-   (`eas.json` → `staging.environment`), bu yüzden tek yükleme ikisine de yeter.
+2. **Dosya repoda** — indirilen dosya repo köküne `google-services.staging.json`
+   adıyla konur (yapıldı; proje `tarodan-staging`, paket `com.tarodan.app.staging`).
+   Firebase istemci yapılandırması gizli bilgi sayılmaz; production dosyası da
+   zaten repoda.
 3. **Kod** — `app.config.js` staging'de sırayla şunu seçer:
-   1. `GOOGLE_SERVICES_JSON_STAGING` (EAS file değişkeni)
-   2. repo kökünde `./google-services.staging.json`
+   1. repo kökünde `./google-services.staging.json` (**varsayılan**)
+   2. `GOOGLE_SERVICES_JSON_STAGING` (EAS file değişkeni) — **yalnız repo dosyası
+      yoksa** yedek
    3. ikisi de yoksa: Android build bağlamında (EAS Android build, `expo run:android`,
-      `expo prebuild --platform android`) **açık hata**. iOS build'i ve `eas update`
-      (OTA) Android dosyasına dokunmadığı için etkilenmez.
+      `expo prebuild` Android'i kapsıyorsa) **açık hata**. iOS build'i, `eas update`
+      (OTA) ve `expo start` Android dosyasına dokunmadığı için etkilenmez.
 
-   Dosya okunabiliyorsa içinde `com.tarodan.app.staging` istemcisi olduğu da
-   doğrulanır; yanlış dosya (örn. production'ınki) Gradle'dan önce yakalanır.
+   Dosya Android native bağlamında okunabiliyorsa içinde `com.tarodan.app.staging`
+   istemcisi olduğu da doğrulanır; yanlış dosya (örn. production'ınki) Gradle'dan
+   önce yakalanır.
 
-**`.gitignore` kararı:** `google-services.staging.json` **eklenmedi**. Gerekçe:
-(a) `google-services.json` zaten repoda (Firebase Android yapılandırması düşük
-hassasiyetlidir); (b) EAS build'leri `.gitignore`'u dikkate alarak arşiv çıkarır,
-ignore edilen bir yerel yedek bulutta hiç görünmez ve fallback sessizce işe
-yaramaz; (c) `.gitignore` değişikliği runtime fingerprint'ine girer. Önerilen yol
-zaten EAS file değişkeni olduğundan dosyayı repoya koymayın; koyarsanız bilinçli
-commit edin.
+**Neden repo dosyası önde (OTA fingerprint):** `expo-updates` fingerprint'i
+Android'de bu dosyanın **içeriğini** hash'ler (yolunu değil; ölçüldü). EAS build'i
+ile `eas update` job'u aynı içeriği görmezse runtime fingerprint'i eşleşmez ve
+staging OTA'ları Android staging cihazlarına hiç ulaşmaz. OTA job'unda EAS file
+değişkeni yoktur, repo dosyası her zaman vardır. Dosya yoksa hash da değişir
+(`e49478f…` ↔ `9ee3e91…`). Bu yüzden repo dosyası her yerde aynı kaynaktır.
 
-**Not (OTA):** `.github/workflows/mobile-staging.yml` içindeki `native_re` listesi
-bugün yalnız `google-services.json` içeriyor. Repoya `google-services.staging.json`
-eklenecekse oraya da eklenmeli (CI sahibine iletildi); EAS file değişkeni yolunda
-gerekmez.
+**EAS değişkeni (isteğe bağlı yedek):** `GOOGLE_SERVICES_JSON_STAGING` `preview`
+ortamında zaten yüklü ve repo dosyasıyla **aynı içerikte**. Repo dosyası yerindeyken
+okunmaz. Dosyayı değiştirirseniz değişkeni de aynı içerikle güncelleyin, yoksa
+dosya bir gün silinirse build farklı içerikle sessizce devam eder (güncelleme:
+`eas env:update`, tip `file`, değer `./google-services.staging.json`).
+
+**`.gitignore` kararı:** `google-services.staging.json` **ignore edilmez**.
+Gerekçe: (a) `google-services.json` zaten repoda (Firebase Android yapılandırması
+düşük hassasiyetlidir); (b) EAS build'leri `.gitignore`'u dikkate alarak arşiv
+çıkarır, ignore edilen dosya bulutta görünmez; (c) `.gitignore` değişikliği runtime
+fingerprint'ine girer.
+
+**Not (OTA / CI):** `.github/workflows/mobile-staging.yml` içindeki `native_re` listesi
+bugün yalnız `google-services.json` içeriyor; `google-services.staging.json` de
+eklenmeli ki dosya değişince OTA "native değişti" uyarısı versin (CI sahibine iletildi).
 
 ---
 
@@ -379,8 +381,8 @@ Android build/submit adımları `ANDROID_RELEASE_ENABLED` değişkeni açılana 
 çalışmaz (güvenli no-op).
 
 1. **Kullanıcı**, şu öncesi tamamlanmadan değişkeni **açmaz**: ilk AAB'ler elle
-   yüklendi (Bölüm 5), service account EAS'te (Bölüm 6), `GOOGLE_SERVICES_JSON_STAGING`
-   EAS `preview` ortamında (Bölüm 7), FCM anahtarları (Bölüm 8).
+   yüklendi (Bölüm 5), service account EAS'te (Bölüm 6), `google-services.staging.json`
+   repoda (Bölüm 7), FCM anahtarları (Bölüm 8).
 2. **Kullanıcı** — GitHub → repo → *Settings → Secrets and variables → Actions →
    **Variables*** → `ANDROID_RELEASE_ENABLED` = `true`
    (`gh variable set ANDROID_RELEASE_ENABLED --body true`). `EXPO_TOKEN` zaten secret olarak gerekli.

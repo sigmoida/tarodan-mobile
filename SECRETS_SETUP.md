@@ -79,10 +79,11 @@ iOS prod + staging'i yan yana tutabilir.
 **Önkoşullar:**
 
 - **Android / Firebase:** staging paketi ayrı Firebase projesinde (`tarodan-staging`)
-  ve kendi `google-services.json`'ı var; EAS `preview` ortamına
-  `GOOGLE_SERVICES_JSON_STAGING` (file tipi) olarak yüklenir. Eksikse Android
-  build'i açık hatayla durur (production dosyasına düşmez). Repodaki
-  `google-services.json` yalnız `com.tarodan.app` içindir.
+  ve kendi `google-services.json`'ı var: repoda `google-services.staging.json`
+  (varsayılan kaynak). EAS `preview` ortamındaki `GOOGLE_SERVICES_JSON_STAGING`
+  (file tipi) aynı içerikte isteğe bağlı yedek. İkisi de yoksa Android build'i açık
+  hatayla durur (production dosyasına düşmez). Repodaki `google-services.json`
+  yalnız `com.tarodan.app` içindir.
 - **Android / Google Sign-In:** iki paket için ayrı Android OAuth istemcileri
   (upload + Play App Signing SHA-1) web client ID'nin GCP projesinde (`243308404313`)
   oluşturulur. Bayrak `EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` bu iş bitene kadar
@@ -185,7 +186,7 @@ mobile workflow'ları sessiz no-op olur (guard).
 | `MAESTRO_CLOUD_API_KEY` + `MAESTRO_CLOUD_PROJECT_ID` | Maestro Cloud | e2e (`maestro-cloud.yml`) |
 | GitHub `production` Environment | repo ayarı | TestFlight onay kapısı (`mobile-testflight.yml`) |
 | Apple ASC API key / Google Play service account | Apple + Google (imza Murat) | `eas submit` (`eas credentials`) |
-| Firebase `google-services.json` (`com.tarodan.app`) | Firebase konsolu | Production: repoda, proje `tarodan-c1290`. Staging Android (`com.tarodan.app.staging`) ayrı projede (`tarodan-staging`); dosyası EAS `preview` ortamında `GOOGLE_SERVICES_JSON_STAGING` (file). Bkz. [`docs/ANDROID_RELEASE.md`](./docs/ANDROID_RELEASE.md). |
+| Firebase `google-services.json` (`com.tarodan.app`) | Firebase konsolu | Production: repoda, proje `tarodan-c1290`. Staging Android (`com.tarodan.app.staging`) ayrı projede (`tarodan-staging`); dosyası repoda `google-services.staging.json` (EAS `preview` ortamında aynı içerikli `GOOGLE_SERVICES_JSON_STAGING` yedeği). Bkz. [`docs/ANDROID_RELEASE.md`](./docs/ANDROID_RELEASE.md). |
 | App Store Connect "Tarodan (Staging)" app | Apple (imza Murat) | Anında açılır, beta review YOK (internal TestFlight) |
 | `api.staging.tarodan.shop` teyidi | Coolify | `eas.json` preview env'deki adres gerçek staging domain mi? (teyit edilmedi) |
 
