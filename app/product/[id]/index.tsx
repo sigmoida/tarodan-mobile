@@ -1,10 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
-import { Spinner, Divider, Snackbar, Text, theme, EmptyState } from '@/ui';
+import { StyleSheet, View } from 'react-native';
+import { Skeleton, SkeletonText, theme } from '@/ui';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { ThemedRefreshControl } from '@/components/common';
+import { PageShell } from '@/components/common/PageShell';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useAuthStore } from '@/stores/authStore';
 import { SignupPrompt } from '@/components/SignupPrompt';
@@ -16,17 +15,41 @@ import { useProductReviews } from './_hooks/useProductReviews';
 import { useProductFavorite } from './_hooks/useProductFavorite';
 import { useGuestPrompt } from './_hooks/useGuestPrompt';
 import { useProductActions } from './_hooks/useProductActions';
-import { ProductTopBar } from './_components/ProductTopBar';
+import { useSimilarProducts } from '@/hooks/useSimilarProducts';
+import { SimilarProductsCard } from '@/components/product';
+import { ProductTopActions } from './_components/ProductTopActions';
 import { ProductGallery } from './_components/ProductGallery';
-import { ProductInfo } from './_components/ProductInfo';
+import { ProductTitleBlock } from './_components/ProductTitleBlock';
+import { ProductDescription } from './_components/ProductDescription';
+import { ProductBuyBar, ProductSecondaryActions } from './_components/ProductActions';
 import { SellerCard } from './_components/SellerCard';
+import { ProductSpecs } from './_components/ProductSpecs';
 import { ProductReviewsPreview } from './_components/ProductReviewsPreview';
-import { ProductBottomBar } from './_components/ProductBottomBar';
 import { ImageViewerModal } from './_modals/ImageViewerModal';
 import { useUserActionsSheet } from '@/components/UserActionsSheet';
 
-const { colors } = theme;
+const { spacing } = theme;
 
+/** Web ürün detayının yüklenirken iskeleti: kare görsel + başlık/fiyat/açıklama satırları. */
+function ProductSkeleton() {
+  return (
+    <View testID="product-skeleton">
+      <Skeleton width="100%" style={styles.square} borderRadius={0} />
+      <View style={styles.body}>
+        <Skeleton height={spacing[8]} width="75%" />
+        <Skeleton height={spacing[6]} width="50%" />
+        <SkeletonText lines={4} />
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Ürün detayı — web `ListingDetailClient` blokları ve sırası: galeri, başlık, fiyat bloğu, açıklama,
+ * durum uyarısı, CTA'lar (Takas Teklifi / Teklif Ver / Sepete Ekle; birincil "Hemen Al" + adet seçici
+ * sabit alt barda — platform kalıbı), satıcı kartı, özellik tabloları, değerlendirmeler, benzer ürünler.
+ * Mantık `_hooks/`'ta; hook'lar PageShell'in yükleniyor/boş dallarından ÖNCE koşulsuz çağrılır.
+ */
 export default function ProductDetailScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams();
@@ -35,6 +58,7 @@ export default function ProductDetailScreen() {
 
   const { data: product, isLoading, refetch: refetchProduct } = useProduct(productId, isAuthenticated);
   const { data: reviews, refetch: refetchReviews } = useProductReviews(productId, !!id);
+  const { data: similar } = useSimilarProducts(productId, !!product);
   const { refreshing, onRefresh } = useRefresh(refetchProduct, refetchReviews);
   const guest = useGuestPrompt(productId, isAuthenticated);
 
@@ -48,191 +72,145 @@ export default function ProductDetailScreen() {
   const favorite = useProductFavorite({ product, productId, isAuthenticated, notify: actions.notify });
 
   // Apple App Review 1.2: ilan detayından ilanı şikayet + satıcıyı engelle.
-  // Hook'lar erken çıkışlardan ÖNCE, koşulsuz çağrılır (CLAUDE.md §12).
   const sellerId = product?.seller?.id ? String(product.seller.id) : '';
-  const sellerName =
-    product?.seller?.displayName || product?.seller?.companyName || t('product.seller');
+  const sellerName = product?.seller?.displayName || product?.seller?.companyName || t('product.seller');
   const sellerActions = useUserActionsSheet({
     userId: sellerId,
     userName: sellerName,
     showReportUser: false,
     blockLabel: t('profile.blockSeller'),
-    // Bilerek `notify` GEÇİLMİYOR: engelden sonra ekran kapanıyor, snackbar'ı
-    // taşıyan ekranla birlikte mesaj da yok oluyordu. appAlert kök seviyede
-    // duruyor ve gezinmeden sağ çıkıyor.
+    // Bilerek `notify` GEÇİLMİYOR: engelden sonra ekran kapanıyor, mesajı taşıyan ekranla birlikte
+    // yok oluyordu. appAlert kök seviyede duruyor ve gezinmeden sağ çıkıyor.
     onBlocked: () => (router.canGoBack() ? router.back() : router.replace('/(tabs)')),
     extraActions: [{ label: t('product.reportListing'), onPress: actions.handleReport }],
   });
 
-  // Tüm hook'lar tamamlandı — buradan sonra erken çıkış güvenli.
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Spinner size="lg" />
-        <Text style={styles.loadingText}>{t('common.loading')}</Text>
-      </View>
-    );
-  }
-  if (!product) {
-    return (
-      <EmptyState
-        fullscreen
-        icon="cube-outline"
-        title={t('product.productNotFoundTitle')}
-        actionLabel={t('common.goBack')}
-        onAction={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-      />
-    );
-  }
-
   const isOwner = Boolean(
-    isAuthenticated && user?.id && product.seller?.id && user.id === product.seller.id,
+    product && isAuthenticated && user?.id && product.seller?.id && user.id === product.seller.id,
   );
-  const price = getProductPriceInfo(product);
+  const price = product ? getProductPriceInfo(product) : null;
   const openReviews = () => router.push(`/product/${productId}/reviews`);
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
+  const ready = !!product && !!price;
   return (
-    <View style={styles.container}>
-      <ProductTopBar
-        isFavorite={favorite.isFavorite}
-        favoriteLoading={favorite.favoriteLoading}
-        onBack={() => router.back()}
-        onReport={!sellerId || isOwner ? actions.handleReport : sellerActions.open}
-        onShare={actions.handleShare}
-        onFavorite={favorite.toggle}
-      />
-
-      <ScrollView
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<ThemedRefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        <ProductGallery
-          images={images}
-          currentImage={currentImage}
-          onPageChange={setCurrentImage}
-          onOpenViewer={(index) => setViewer({ open: true, index })}
-        />
-
-        <View style={styles.mainContent}>
-          <ProductInfo
+    <PageShell
+      title=""
+      onBack={goBack}
+      padding={false}
+      loading={isLoading}
+      loadingFallback={<ProductSkeleton />}
+      empty={!isLoading && !product}
+      emptyState={{
+        icon: 'cube-outline',
+        title: t('product.productNotFoundTitle'),
+        actionLabel: t('common.goBack'),
+        onAction: goBack,
+      }}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      right={
+        ready ? (
+          <ProductTopActions
+            isFavorite={favorite.isFavorite}
+            favoriteLoading={favorite.favoriteLoading}
+            onFavorite={favorite.toggle}
+            onShare={actions.handleShare}
+            onCart={() => router.push('/cart')}
+            onMenu={!sellerId || isOwner ? actions.handleReport : sellerActions.open}
+          />
+        ) : undefined
+      }
+      footer={
+        ready ? (
+          <ProductBuyBar
             product={product}
             isOwner={isOwner}
-            favoriteCount={favorite.favoriteCount}
-            price={price}
-            onOpenReviews={openReviews}
-            actions={{
-              onTrade: actions.handleTrade,
-              onMakeOffer: actions.handleMakeOffer,
-              onAddToCollection: actions.handleAddToCollection,
-              onMessage: actions.handleMessage,
-              onShare: actions.handleShare,
-            }}
+            isOutOfStock={isOutOfStock}
+            quantity={actions.quantity}
+            onQuantity={actions.setQuantity}
+            onBuyNow={actions.handleBuyNow}
+            onEdit={() => router.push(`/listing/${product.id}/edit` as any)}
+            onAddToCollection={actions.handleAddToCollection}
+          />
+        ) : undefined
+      }
+      overlay={
+        <>
+          {sellerActions.reportModal}
+          {ready ? (
+            <>
+              <ImageViewerModal
+                visible={viewer.open}
+                images={images}
+                initialIndex={viewer.index}
+                onClose={() => setViewer((v) => ({ ...v, open: false }))}
+              />
+              <MakeOfferModal
+                visible={actions.offerModalOpen}
+                onDismiss={() => actions.setOfferModalOpen(false)}
+                productId={productId}
+                productTitle={product.title}
+                listPrice={product.price ?? 0}
+                onSuccess={() => {
+                  actions.setOfferModalOpen(false);
+                  actions.notify(t('product.offerSent'), 'success');
+                }}
+              />
+              <AddToCollectionModal
+                visible={actions.collectionModalOpen}
+                onDismiss={() => actions.setCollectionModalOpen(false)}
+                productId={productId}
+                onSuccess={(collectionName: string) => {
+                  actions.setCollectionModalOpen(false);
+                  actions.notify(t('collection.addedToNamedCollection', { name: collectionName }), 'success');
+                }}
+              />
+            </>
+          ) : null}
+          {guest.promptType && (
+            <SignupPrompt visible={guest.showPrompt} onDismiss={guest.dismissPrompt} type={guest.promptType} />
+          )}
+        </>
+      }
+    >
+      {ready ? (
+        <View>
+          <ProductGallery
+            images={images}
+            currentImage={currentImage}
+            onPageChange={setCurrentImage}
+            onOpenViewer={(index) => setViewer({ open: true, index })}
           />
 
-          <SellerCard
-            seller={product.seller}
-            onPressSeller={() => router.push(`/seller/${product.seller?.id}`)}
-            onMessage={actions.handleMessage}
-          />
-
-          <Divider style={styles.divider} />
-
-          <ProductReviewsPreview reviews={reviews} onSeeAll={openReviews} />
-
-          {/* Security Notice */}
-          <View style={styles.securityNotice}>
-            <Ionicons name="shield-checkmark" size={24} color={colors.success[500]!} />
-            <View style={styles.securityContent}>
-              <Text style={styles.securityTitle}>{t('product.secureShoppingTitle')}</Text>
-              <Text style={styles.securityText}>{t('product.secureShoppingBody')}</Text>
-            </View>
+          <View style={styles.body}>
+            <ProductTitleBlock product={product} price={price} favoriteCount={favorite.favoriteCount} />
+            <ProductDescription product={product} />
+            <ProductSecondaryActions
+              product={product}
+              isOwner={isOwner}
+              inCart={actions.inCart}
+              onTrade={actions.handleTrade}
+              onMakeOffer={actions.handleMakeOffer}
+              onCartToggle={actions.handleCartToggle}
+            />
+            <SellerCard
+              seller={product.seller}
+              isOwner={isOwner}
+              onPressSeller={() => router.push(`/seller/${product.seller?.id}`)}
+              onMessage={actions.handleMessage}
+            />
+            <ProductSpecs product={product} />
+            <ProductReviewsPreview reviews={reviews} onSeeAll={openReviews} />
+            <SimilarProductsCard title={t('product.similarProducts')} items={similar} />
           </View>
-
-          <View style={{ height: 120 }} />
         </View>
-      </ScrollView>
-
-      <ProductBottomBar
-        product={product}
-        isOwner={isOwner}
-        isOutOfStock={isOutOfStock}
-        price={price}
-        inCart={actions.inCart}
-        onEdit={() => router.push(`/listing/${product.id}/edit` as any)}
-        onTrade={actions.handleTrade}
-        onBuyNow={actions.handleBuyNow}
-        onAddToCart={actions.handleAddToCart}
-        onGoToCart={() => router.push('/cart')}
-      />
-
-      {sellerActions.reportModal}
-
-      <ImageViewerModal
-        visible={viewer.open}
-        images={images}
-        initialIndex={viewer.index}
-        onClose={() => setViewer((v) => ({ ...v, open: false }))}
-      />
-
-      <Snackbar
-        visible={actions.snackbar.visible}
-        onDismiss={actions.dismissSnackbar}
-        duration={2000}
-        variant={actions.snackbar.type === 'success' ? 'success' : 'danger'}
-        action={
-          actions.snackbar.action === 'goToCart'
-            ? { label: t('product.goToCart'), onPress: () => router.push('/cart') }
-            : undefined
-        }
-      >
-        {actions.snackbar.message}
-      </Snackbar>
-
-      {guest.promptType && (
-        <SignupPrompt visible={guest.showPrompt} onDismiss={guest.dismissPrompt} type={guest.promptType} />
-      )}
-
-      <MakeOfferModal
-        visible={actions.offerModalOpen}
-        onDismiss={() => actions.setOfferModalOpen(false)}
-        productId={productId}
-        productTitle={product.title}
-        listPrice={product.price ?? 0}
-        onSuccess={() => {
-          actions.setOfferModalOpen(false);
-          actions.notify(t('product.offerSent'), 'success');
-        }}
-      />
-
-      <AddToCollectionModal
-        visible={actions.collectionModalOpen}
-        onDismiss={() => actions.setCollectionModalOpen(false)}
-        productId={productId}
-        onSuccess={(collectionName: string) => {
-          actions.setCollectionModalOpen(false);
-          actions.notify(`"${collectionName}" koleksiyonuna eklendi`, 'success');
-        }}
-      />
-    </View>
+      ) : null}
+    </PageShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.white },
-  loadingText: { marginTop: theme.spacing[4], color: colors.text.muted },
-  content: { flex: 1 },
-  mainContent: { padding: theme.spacing[4] },
-  divider: { marginVertical: theme.spacing[4] },
-  securityNotice: {
-    flexDirection: 'row',
-    backgroundColor: colors.success[50]!,
-    borderRadius: 12,
-    padding: theme.spacing[4],
-    marginTop: theme.spacing[4],
-  },
-  securityContent: { flex: 1, marginLeft: theme.spacing[3] },
-  securityTitle: { fontSize: 14, fontWeight: '600', color: colors.success[600]! },
-  securityText: { fontSize: 13, color: colors.success[700]!, marginTop: theme.spacing[0.5] },
+  body: { padding: spacing[4], gap: spacing[4] },
+  square: { aspectRatio: 1, height: undefined },
 });

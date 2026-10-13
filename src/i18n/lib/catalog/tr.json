@@ -772,7 +772,12 @@
       "detailPlaceholder": "Eklemek istediğiniz bir not varsa yazın",
       "otherPlatformPlaceholder": "Ürünü hangi platformda sattığınızı yazın",
       "privacyNote": "Bu bilgi yalnız Tarodan ekibi tarafından görülür, ilan sayfasında gösterilmez."
-    }
+    },
+    "stockFinishedDesc": "Bu ürünün stoğu tükendi, şu anda satın alınamaz.",
+    "statusPendingDesc": "İlan admin onayı bekliyor, henüz satışta değil.",
+    "statusInactiveDesc": "Bu ilan şu anda yayında değil.",
+    "statusRejectedDesc": "Bu ilan reddedildi ve yayında değil.",
+    "modelCode": "Model kodu"
   },
   "cart": {
     "addToCartFailed": "Sepete eklenemedi",
@@ -2138,7 +2143,8 @@
     "templateF1": "Formula 1",
     "templateMuscle": "Muscle Cars",
     "templateCustom": "Özel Koleksiyon",
-    "report": "Koleksiyonu Şikayet Et"
+    "report": "Koleksiyonu Şikayet Et",
+    "addedToNamedCollection": "\"{name}\" koleksiyonuna eklendi"
   },
   "notification": {
     "notifications": "Bildirimler",

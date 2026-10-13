@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Share } from 'react-native';
 import { router } from 'expo-router';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { userReportsApi } from '@/lib/api';
 import { useCartStore } from '@/stores/cartStore';
 import { useCartSync } from '@/hooks/useCartSync';
@@ -14,7 +14,7 @@ import { asLabel, formatPrice } from '@/utils/format';
 import { buildShareContent, productShareUrl } from '@/utils/share';
 import type { Product } from '../_lib/types';
 
-type SnackType = 'success' | 'error';
+type NotifyType = 'success' | 'error';
 
 /**
  * Rapor nedenleri — modül seviyesinde olduğu için `t` çağıramaz; katalog
@@ -52,7 +52,7 @@ function buildCartItem(product: Product, images: any[]) {
 }
 
 /** Ürün detay aksiyonları: sepet/hızlı-al/mesaj/takas/teklif/koleksiyon/paylaş/raporla
- * + snackbar + modal aç/kapa. Handler'lar ekrandan buraya taşındı.
+ * + toast + modal aç/kapa. Handler'lar ekrandan buraya taşındı.
  *
  * `product` null olabilir (ekran yüklenirken) — hook gövdesi onu deref etmez;
  * handler'lar yalnız ürün render edildikten sonra (non-null) tetiklenir, yine de
@@ -77,25 +77,14 @@ export function useProductActions({
   // Sepet yazmaları üyede sunucuya da aynalanır.
   const cart = useCartSync();
 
-  /**
-   * `action`: snackbar'ın yanında gösterilecek kısayol.
-   *
-   * Ekran bunu eskiden mesajın İÇİNDEN çıkarıyordu (`message.includes('sepet')`)
-   * — metin çevrildiği anda o kontrol tutmaz ve "Sepete git" butonu sessizce
-   * kaybolurdu. Kısayol artık mesajın yanında AYRI bir alan; dilden bağımsız.
-   */
-  const [snackbar, setSnackbar] = useState({
-    visible: false,
-    message: '',
-    type: 'success' as SnackType,
-    action: undefined as 'goToCart' | undefined,
-  });
+  // Adet seçici (web QuantityStepper): yalnız stoğu 1'den fazla ilanlarda gösterilir.
+  const [quantity, setQuantity] = useState(1);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
 
-  const notify = (message: string, type: SnackType, action?: 'goToCart') =>
-    setSnackbar({ visible: true, message, type, action });
-  const dismissSnackbar = () => setSnackbar((s) => ({ ...s, visible: false }));
+  /** Bilgi ve başarı mesajları toast (web react-hot-toast); hata da toast, onay isteyenler appAlert. */
+  const notify = (message: string, type: NotifyType) =>
+    type === 'success' ? toast.success(message) : toast.error(message);
 
   const requireAuth = (message: string) => {
     if (isAuthenticated) return true;
@@ -107,14 +96,25 @@ export function useProductActions({
   const handleAddToCart = () => {
     if (!product) return;
     if (isOutOfStock) return notify(t('cart.outOfStock'), 'error');
-    cart.add(buildCartItem(product, images) as any);
-    notify(t('product.addedToCartExclaim'), 'success', 'goToCart');
+    cart.add(buildCartItem(product, images) as any, quantity);
+    notify(t('product.addedToCartExclaim'), 'success');
+  };
+
+  /** Web gibi: sepetteyse çıkarır, değilse ekler. */
+  const handleCartToggle = () => {
+    if (!product) return;
+    if (isInCart(productId)) {
+      cart.removeByProductId(productId);
+      notify(t('product.removedFromCart'), 'success');
+      return;
+    }
+    handleAddToCart();
   };
 
   const handleBuyNow = () => {
     if (!product) return;
     if (isOutOfStock) return notify(t('cart.outOfStock'), 'error');
-    setBuyNow(buildCartItem(product, images) as any);
+    setBuyNow(buildCartItem(product, images) as any, quantity);
     router.push('/checkout?buyNow=1' as any);
   };
 
@@ -188,15 +188,16 @@ export function useProductActions({
   };
 
   return {
-    snackbar,
     notify,
-    dismissSnackbar,
+    quantity,
+    setQuantity,
     inCart: isInCart(productId),
     offerModalOpen,
     setOfferModalOpen,
     collectionModalOpen,
     setCollectionModalOpen,
     handleAddToCart,
+    handleCartToggle,
     handleBuyNow,
     handleMessage,
     handleTrade,

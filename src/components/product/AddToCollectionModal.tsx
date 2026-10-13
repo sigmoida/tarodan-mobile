@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, StyleSheet, ScrollView, Pressable, Image } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { theme, Text, Button, Modal, Input, Textarea, Spinner, useModalMessage, ModalMessage } from '@/ui';
+import { theme, Text, Button, Modal, Input, Textarea, Spinner, Switch, useModalMessage, ModalMessage } from '@/ui';
 import { collectionsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { transformImageUrl } from '../../utils/imageUrl';
@@ -154,26 +153,12 @@ export default function AddToCollectionModal({
             maxLength={300}
             containerStyle={styles.input}
           />
-          <TouchableOpacity
-            style={styles.toggleRow}
-            onPress={() => setNewPublic((v) => !v)}
-          >
-            <Ionicons
-              name={newPublic ? 'eye-outline' : 'lock-closed-outline'}
-              size={18}
-              color={colors.text.muted}
-            />
-            <Text style={styles.toggleText}>
-              {newPublic
-                ? t('collection.publicToggleLabel')
-                : t('collection.privateToggleLabel')}
+          <View style={styles.toggleRow}>
+            <Text variant="bodySm" style={styles.toggleText}>
+              {newPublic ? t('collection.publicToggleLabel') : t('collection.privateToggleLabel')}
             </Text>
-            <Ionicons
-              name={newPublic ? 'toggle' : 'toggle-outline'}
-              size={26}
-              color={newPublic ? colors.primary[600]! : colors.text.subtle}
-            />
-          </TouchableOpacity>
+            <Switch value={newPublic} onValueChange={setNewPublic} />
+          </View>
         </View>
       ) : (
         <View style={styles.scrollArea}>
@@ -183,66 +168,46 @@ export default function AddToCollectionModal({
             </View>
           ) : (
             <ScrollView keyboardShouldPersistTaps="handled">
-              <TouchableOpacity
-                style={styles.createNewRow}
-                onPress={() => setCreating(true)}
-              >
-                <View style={styles.createIcon}>
-                  <Ionicons name="add" size={22} color={colors.primary[600]!} />
-                </View>
-                <Text style={styles.createText}>{t('collection.createNewCollection')}</Text>
-              </TouchableOpacity>
+              <Pressable style={styles.createNewRow} onPress={() => setCreating(true)} accessibilityRole="button">
+                <Text variant="bodySm" weight="bold" tone="primary">
+                  {t('collection.createNewCollection')}
+                </Text>
+              </Pressable>
 
               {collections.length === 0 ? (
                 <View style={styles.empty}>
-                  <Ionicons
-                    name="albums-outline"
-                    size={48}
-                    color={colors.text.subtle}
-                  />
-                  <Text style={styles.emptyText}>
+                  <Text variant="bodySm" tone="muted" align="center">
                     {t('collection.noCollectionsCreateFirst')}
                   </Text>
                 </View>
               ) : (
                 collections.map((c) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={c.id}
                     style={styles.collectionRow}
-                    onPress={() =>
-                      addToCollectionMutation.mutate({ collectionId: c.id })
-                    }
+                    onPress={() => addToCollectionMutation.mutate({ collectionId: c.id })}
                     disabled={addToCollectionMutation.isPending}
+                    accessibilityRole="button"
                   >
                     <View style={styles.cover}>
                       {c.coverImageUrl ? (
-                        <Image
-                          source={{ uri: transformImageUrl(c.coverImageUrl) }}
-                          style={styles.coverImage}
-                        />
+                        <Image source={{ uri: transformImageUrl(c.coverImageUrl) }} style={styles.coverImage} />
                       ) : (
-                        <Ionicons
-                          name="albums"
-                          size={22}
-                          color={colors.primary[600]!}
-                        />
+                        <Text variant="body" weight="bold" tone="primary">
+                          {c.name.charAt(0).toUpperCase()}
+                        </Text>
                       )}
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.collectionName} numberOfLines={1}>
+                    <View style={styles.flex}>
+                      <Text variant="bodySm" weight="semibold" numberOfLines={1}>
                         {c.name}
                       </Text>
-                      <Text style={styles.collectionMeta}>
+                      <Text variant="caption" tone="muted">
                         {t('collection.itemCountSuffix', { count: c.itemCount ?? 0 })} ·{' '}
                         {c.isPublic ? t('collection.publicShort') : t('collection.privateShort')}
                       </Text>
                     </View>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={18}
-                      color={colors.text.subtle}
-                    />
-                  </TouchableOpacity>
+                  </Pressable>
                 ))
               )}
             </ScrollView>
@@ -277,90 +242,45 @@ export default function AddToCollectionModal({
 }
 
 const styles = StyleSheet.create({
-  scrollArea: {
-    maxHeight: 380,
-  },
-  loading: {
-    paddingVertical: theme.spacing[8],
-    alignItems: 'center',
-  },
-  empty: {
-    alignItems: 'center',
-    padding: theme.spacing[6],
-  },
-  emptyText: {
-    fontSize: 13,
-    color: colors.text.muted,
-    textAlign: 'center',
-    marginTop: theme.spacing[2],
-  },
+  scrollArea: { maxHeight: 380 },
+  loading: { paddingVertical: theme.spacing[8], alignItems: 'center' },
+  empty: { alignItems: 'center', padding: theme.spacing[6] },
+  flex: { flex: 1 },
   createNewRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing[4],
-    paddingVertical: theme.spacing[3.5],
-    backgroundColor: colors.primary[50]!,
-  },
-  createIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
+    minHeight: theme.minTouchTarget,
     justifyContent: 'center',
-    backgroundColor: colors.surface.DEFAULT,
-    marginRight: theme.spacing[3],
-  },
-  createText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.primary[600]!,
+    paddingHorizontal: theme.spacing[4],
+    paddingVertical: theme.spacing[3],
+    backgroundColor: colors.primary[50]!,
   },
   collectionRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: theme.spacing[3],
+    minHeight: theme.minTouchTarget,
     paddingHorizontal: theme.spacing[4],
-    paddingVertical: theme.spacing[3.5],
+    paddingVertical: theme.spacing[3],
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border.subtle,
   },
   cover: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.radius.xl,
+    width: theme.controlHeight.md,
+    height: theme.controlHeight.md,
+    borderRadius: theme.radiusRole.card,
     backgroundColor: colors.surface.alt,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: theme.spacing[3],
     overflow: 'hidden',
   },
-  coverImage: {
-    width: '100%',
-    height: '100%',
-  },
-  collectionName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.heading,
-  },
-  collectionMeta: {
-    fontSize: 12,
-    color: colors.text.muted,
-    marginTop: theme.spacing[0.5],
-  },
-  input: {
-    marginBottom: theme.spacing[3],
-  },
+  coverImage: { width: '100%', height: '100%' },
+  input: { marginBottom: theme.spacing[3] },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing[2],
     paddingVertical: theme.spacing[2],
   },
-  toggleText: {
-    flex: 1,
-    fontSize: 13,
-    color: colors.text.heading,
-  },
+  toggleText: { flex: 1 },
   actions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',

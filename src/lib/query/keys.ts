@@ -46,6 +46,13 @@ export const qk = {
      *  YAKALAMAZ; çapraz invalidasyonlarda ikisi birden verilmeli. */
     detailAll: ["product"] as const,
     reviews: (id: string) => ["product-reviews", id] as const,
+    /** Ürün değerlendirmeleri ekranı: sayfalı liste + puan özeti. */
+    reviewsAll: (id: string) => ["product-reviews-all", id] as const,
+    ratingStats: (id: string) => ["product-rating-stats", id] as const,
+    /** Ürün detayı "Benzer Ürünler". */
+    similar: (id: string, limit?: number) => ["product", id, "similar", limit] as const,
+    /** "Ürün artık satışta değil" ekranının ürünü (404/pasif ilan da dönebilir). */
+    unavailable: (id: string) => ["product-unavailable", id] as const,
     /** Liste ekranlarının (home/arama/öne-çıkanlar) prefix root'ları — beğeni/
      * görüntülenme değişince hepsi tazelensin diye tek yerde. */
     searchAll: ["products-search"] as const,

@@ -3,10 +3,10 @@ import { View, ScrollView, Image, Pressable, Dimensions, StyleSheet } from 'reac
 import { useTranslation } from 'react-i18next';
 import { theme } from '@/ui';
 
-const { colors } = theme;
+const { colors, spacing, radius } = theme;
 const { width } = Dimensions.get('window');
 
-/** Yatay sayfalı görsel galerisi + sayfa göstergeleri. Görsele dokununca viewer açılır. */
+/** Yatay sayfalı görsel galerisi + sayfa göstergeleri (kaydırma: platform kalıbı). Dokununca görüntüleyici açılır. */
 export function ProductGallery({
   images,
   currentImage,
@@ -55,19 +55,19 @@ export function ProductGallery({
 }
 
 const styles = StyleSheet.create({
-  productImage: { width, height: width, backgroundColor: colors.gray[50] },
+  productImage: { width, height: width, backgroundColor: colors.surface.alt },
   imageIndicators: {
     flexDirection: 'row',
     justifyContent: 'center',
-    paddingVertical: theme.spacing[3],
-    backgroundColor: colors.white,
+    gap: spacing[2],
+    paddingVertical: spacing[3],
+    backgroundColor: colors.surface.DEFAULT,
   },
   indicator: {
-    width: 8,
-    height: 8,
-    borderRadius: theme.radius.md,
-    backgroundColor: colors.border.DEFAULT,
-    marginHorizontal: theme.spacing[1],
+    width: spacing[2],
+    height: spacing[2],
+    borderRadius: radius.full,
+    backgroundColor: colors.border.strong,
   },
-  indicatorActive: { backgroundColor: colors.primary[600]!, width: 24 },
+  indicatorActive: { backgroundColor: colors.primary[500], width: spacing[6] },
 });
