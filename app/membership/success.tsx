@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
-import { paymentsApi } from '@/lib/api';
+import { requestVerify } from '@/lib/payment/verifyPacer';
 import type { TFunction } from 'i18next';
 
 const { colors } = theme;
@@ -86,12 +86,12 @@ function MembershipSuccessBody() {
         // gerçekten aktive eden tek çağrı verify (getStatus sadece DB'yi OKUR, aktive
         // ETMEZ); bu yüzden completed olana kadar verify'i tekrar dene. Aksi halde
         // üyelik past_due kalır ve ilan hakkı 5 (ücretsiz) görünür.
+        //
+        // Verify `verifyPacer` üzerinden: kart ödemesiyle AYNI global bütçe (sunucu
+        // dakikada 10 verify), zaman aşımı ve uçuş tekilleştirmesi. Hiç reddetmez;
+        // bütçe doluysa `false` döner ve sonraki tur yeniden dener.
         for (let i = 0; i < 5 && !cancelled; i++) {
-          try {
-            const res = await paymentsApi.verify(paymentId);
-            const completed = (res.data?.data ?? res.data)?.completed;
-            if (completed) break;
-          } catch { /* best-effort */ }
+          if (await requestVerify(paymentId)) break;
           if (i < 4 && !cancelled) await new Promise((r) => setTimeout(r, 1200));
         }
       }
