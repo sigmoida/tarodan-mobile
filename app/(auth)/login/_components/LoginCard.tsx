@@ -9,6 +9,7 @@ import { Alert as UIAlert, Button, HStack, Input, Text, theme } from '@/ui';
 import { isGoogleConfigured } from '@/services/googleSignin';
 import { styles } from '../_lib/styles';
 import type { LoginController } from '../_hooks/useLogin';
+import { IS_MAESTRO } from '@/config/maestro';
 
 const { colors } = theme;
 
@@ -79,8 +80,8 @@ export function LoginCard({ f }: { f: LoginController }) {
             value={value}
             onChangeText={onChange}
             // Maestro iOS secureTextEntry'ye inputText gönderemiyor;
-            // EXPO_PUBLIC_MAESTRO=1 ile maskeyi kapat. Production: daima maskeli.
-            secureTextEntry={process.env.EXPO_PUBLIC_MAESTRO !== '1'}
+            // Maestro build'inde (IS_MAESTRO) maskeyi kapat. Production: daima maskeli.
+            secureTextEntry={!IS_MAESTRO}
             togglePasswordVisibility
             autoComplete="password"
             error={errors.password?.message}
@@ -130,7 +131,7 @@ export function LoginCard({ f }: { f: LoginController }) {
           {f.errorMessage || t('auth.loginFailed')}
         </Text>
       ) : null}
-      {process.env.EXPO_PUBLIC_MAESTRO === '1' && f.loginMutation.isError && !f.errorMessage ? (
+      {IS_MAESTRO && f.loginMutation.isError && !f.errorMessage ? (
         <Text testID="login-error-banner-fallback" style={{ height: 0, opacity: 0 }}>
           login-error
         </Text>

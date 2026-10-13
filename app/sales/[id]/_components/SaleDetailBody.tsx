@@ -45,6 +45,11 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
           <Text style={[styles.statusSub, { color: f.sc.fg }]}>
             {formatRelativeDate(order.createdAt, i18n.language)}
           </Text>
+          {f.cancelMessage ? (
+            <Text testID="sales-cancel-message" style={[styles.statusSub, { color: f.sc.fg }]}>
+              {f.cancelMessage}
+            </Text>
+          ) : null}
         </View>
       </View>
 

@@ -8,6 +8,7 @@ import { qk } from "@/lib/query";
 import { useAuthStore } from "@/stores/authStore";
 import { useTranslation } from "react-i18next";
 import type { Listing, FilterType } from "../_lib/types";
+import { activationMessageKey } from "@/components/listing/_lib/activation";
 
 const { colors } = theme;
 
@@ -99,15 +100,12 @@ export function useMyListings() {
     mutationFn: async (listingId: string) => {
       return productsApi.update(listingId, { status: "active" });
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: qk.products.myListingsAll });
       queryClient.invalidateQueries({ queryKey: qk.products.myListingsStats });
       queryClient.invalidateQueries({ queryKey: qk.user.statsAll });
       refreshUserData();
-      appAlert(
-        t("common.success"),
-        t("listing.sentForReview"),
-      );
+      appAlert(t("common.success"), t(activationMessageKey(response)));
     },
     onError: () => {
       appAlert(t("common.error"), t("listing.activateFailed"));
@@ -144,15 +142,12 @@ export function useMyListings() {
     mutationFn: async (listingId: string) => {
       return productsApi.update(listingId, { status: "active", relist: true });
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: qk.products.myListingsAll });
       queryClient.invalidateQueries({ queryKey: qk.products.myListingsStats });
       queryClient.invalidateQueries({ queryKey: qk.user.statsAll });
       refreshUserData();
-      appAlert(
-        t("common.success"),
-        t("listing.sentForReview"),
-      );
+      appAlert(t("common.success"), t(activationMessageKey(response)));
     },
     onError: () => {
       appAlert(t("common.error"), t("listing.republishFailed"));

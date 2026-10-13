@@ -4,6 +4,7 @@ import { theme, Text, Spinner, ScreenHeader } from '@/ui';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import ProductFilterSheet from '@/components/ProductFilterSheet';
+import { AdBanner } from '@/components/ads/AdBanner';
 import { useListings } from './_hooks/useListings';
 import { styles } from './_lib/styles';
 import { ListingsSearchBar } from './_components/ListingsSearchBar';
@@ -58,7 +59,14 @@ export default function ListingsScreen() {
           }}
           onEndReachedThreshold={0.5}
           ListHeaderComponent={
-            <Text style={styles.resultsCount}>{t('listing.resultsCount', { count: f.total })}</Text>
+            <>
+              {/* Web ile aynı: /listings tepesinde header reklam yuvası. Liste içeriği
+                  zaten yatay boşluk veriyor; yuvanın kendi boşluğunu geri al. */}
+              <View style={{ marginHorizontal: -spacing[4] }}>
+                <AdBanner position="header" />
+              </View>
+              <Text style={styles.resultsCount}>{t('listing.resultsCount', { count: f.total })}</Text>
+            </>
           }
           ListFooterComponent={
             f.isFetchingNextPage ? (

@@ -17,23 +17,12 @@ import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import type { TFunction } from 'i18next';
 import { refundsApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { captureException } from '@/services/sentry';
+import { refundHistoryActionLabel } from './_lib/history';
 
 const { colors } = theme;
-
-// Süreç (metadata.history) aksiyon adlarının katalog karşılığı (refund.service appendHistory).
-const buildActionLabels = (t: TFunction): Record<string, string> => ({
-  return_opened: t('refund.history.returnOpened'),
-  accepted_by_seller: t('refund.history.acceptedBySeller'),
-  rejected_by_seller: t('refund.history.rejectedBySeller'),
-  cancelled_by_buyer: t('refund.history.cancelledByBuyer'),
-  refund_completed: t('refund.history.refundCompleted'),
-  policy_overridden: t('refund.history.policyOverridden'),
-  return_shipping_payer_changed: t('refund.history.payerChanged'),
-});
 
 function formatPrice(value?: number): string {
   const n = Number(value ?? 0);
@@ -56,7 +45,6 @@ export default function RefundDetailScreen() {
   const { isAuthenticated, user } = useAuthStore();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
-  const actionLabels = buildActionLabels(t);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['refund-requests', 'detail', id],
@@ -174,7 +162,7 @@ export default function RefundDetailScreen() {
               <View key={i} style={styles.timelineRow}>
                 <View style={styles.timelineDot} />
                 <View style={{ flex: 1 }}>
-                  <Text variant="caption">{actionLabels[h.action ?? ''] ?? h.action ?? '—'}</Text>
+                  <Text variant="caption">{refundHistoryActionLabel(h.action, t)}</Text>
                   <Text variant="caption" style={styles.muted}>{formatDate(h.at)}</Text>
                 </View>
               </View>

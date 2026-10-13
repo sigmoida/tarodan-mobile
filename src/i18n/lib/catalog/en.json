@@ -1270,6 +1270,10 @@
     "uploadInvoicePdfNotice": "Upload the invoice PDF to send to the buyer (10 MB max).",
     "noInvoiceUploadedYet": "No invoice has been uploaded for this order yet.",
     "refundHintTop": "You have the right to a refund within 14 days of delivery, without giving a reason. Reason, description, and photos are optional.",
+    "refundHintFaultClaim": "This reason is a fault claim: at least one photo and a description are required, and your request will be reviewed.",
+    "evidenceUploadFailed": "Evidence photos could not be uploaded. Please try again.",
+    "descriptionRequiredLabel": "Description *",
+    "evidencePhotosRequiredLabel": "Evidence photos (max {max}) *",
     "descriptionOptionalLabel": "Description (optional)",
     "describeIssueOptionalPlaceholder": "Briefly describe the issue...",
     "evidenceOptionalHint": "You may add photos (up to {max}).",
@@ -1391,10 +1395,10 @@
       "hint": "Open a dispute if a shipment is lost or the item is faulty.",
       "modalTitle": "Open a Dispute",
       "modalIntro": "Pick the issue and describe it briefly. The Tarodan team will review it shortly.",
-      "reasonShipmentLost": "Shipment lost / undelivered",
-      "reasonShipmentDamaged": "Item arrived damaged",
+      "reasonNotReceived": "Shipment lost / undelivered",
+      "reasonDamaged": "Item arrived damaged",
       "reasonWrongItem": "Wrong item received",
-      "reasonOther": "Other",
+      "reasonNotAsDescribed": "Item not as described",
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Add details (shipping dates, photos available, etc.)",
       "minLengthError": "Description must be at least 10 characters",
@@ -2624,7 +2628,8 @@
     "usernameSetFailedTitle": "Could not be set",
     "usernameSetFailedBody": "Username could not be saved.",
     "notificationsAuthGateSubtitle": "Sign in to edit your settings",
-    "notificationSettingsSaved": "Notification settings saved"
+    "notificationSettingsSaved": "Notification settings saved",
+    "notificationSettingsLoadFailed": "Your notification preferences could not be loaded. Saving is disabled until they load so your saved preferences are not overwritten."
   },
   "analytics": {
     "analytics": "Analytics",
@@ -3136,7 +3141,7 @@
     },
     "premiumBenefits": {
       "q": "What are the benefits of Premium membership?",
-      "a": "Premium members can publish unlimited listings, enjoy lower commission rates, trade, create a Digital Garage, use featured listings, and get priority support."
+      "a": "Premium members can publish unlimited listings, enjoy lower commission rates, trade, create a Digital Garage, and get priority support."
     },
     "forgotPassword": {
       "q": "I forgot my password — what do I do?",
@@ -3670,7 +3675,21 @@
       "cancelledByBuyer": "Buyer cancelled",
       "refundCompleted": "Refund completed",
       "policyOverridden": "Policy updated",
-      "payerChanged": "Return shipping fee payer updated"
+      "payerChanged": "Return shipping fee payer updated",
+      "cancellationRefunded": "Order cancelled and payment refunded",
+      "cancellationPendingReview": "Cancellation sent for review",
+      "pendingAdminReview": "Request sent for review",
+      "approvedByAdmin": "Request approved",
+      "approvedAndRefundedByAdmin": "Request approved and payment refunded",
+      "rejectedByAdmin": "Request rejected",
+      "closedByAdmin": "Request closed",
+      "markedDisputed": "Moved to dispute review",
+      "financialReviewFinalized": "Financial review completed",
+      "returnDropoffExpired": "Return parcel not dropped off in time, request closed",
+      "waitForDeliveryExpired": "Request closed because the order was not delivered",
+      "disputeApproved": "Dispute approved",
+      "disputeRejected": "Dispute rejected",
+      "unknown": "Request updated"
     },
     "authGateSubtitle": "Sign in to view your refund requests",
     "tabMine": "My Requests",
@@ -7284,7 +7303,15 @@
     "tipsSection": "Security Tips",
     "twoFactorSetupFailed": "2FA setup failed",
     "twoFactorSetupModalTitle": "2FA Setup",
-    "twoFactorDisableModalTitle": "Turn Off 2FA"
+    "twoFactorDisableModalTitle": "Turn Off 2FA",
+    "phoneSavedVerifyTitle": "Verify your number",
+    "phoneSavedVerifyBody": "Your profile was updated. Your new number shows as \"Not verified\" until you confirm it by SMS.",
+    "phoneNotSavedTitle": "Number not saved yet",
+    "phoneNotSavedBody": "Your other profile details were saved, but this number is held unverified on another account; the phone field was reset to the number saved on your account. Complete SMS verification to move the number to your account; it is transferred once verification succeeds.",
+    "verifyNow": "Verify now",
+    "verifyLater": "Later",
+    "phoneRemoved": "Your profile was updated and your phone number was removed.",
+    "phoneNotRemoved": "Your phone number could not be removed; the field was reset to your saved number. Please try again."
   },
   "discount": {
     "editTitle": "Edit Discount",
@@ -7341,6 +7368,7 @@
     "deactivated": "The listing has been deactivated",
     "deactivateFailed": "The listing could not be deactivated",
     "sentForReview": "The listing has been sent for review. It goes live again once approved.",
+    "reactivatedImmediately": "Your listing is live again! It was reopened for sale without waiting for approval.",
     "activateFailed": "The listing could not be activated",
     "deleted": "The listing has been deleted",
     "deleteFailed": "The listing could not be deleted",

@@ -33,8 +33,9 @@ jest.mock("@/lib/api", () => ({
     patch: jest.fn(),
     delete: jest.fn(),
   },
+  addressesApi: { setDefault: jest.fn() },
 }));
-import { api } from "@/lib/api";
+import { api, addressesApi } from "@/lib/api";
 const post = api.post as jest.Mock;
 
 import AddressesScreen from "../addresses";
@@ -102,11 +103,13 @@ describe("J32 · adres ekleme form validasyonu", () => {
 describe('J32.b · "Varsayılan Yap" satır-bazlı yükleme (bulgu #23)', () => {
   const get = api.get as jest.Mock;
   const patch = api.patch as jest.Mock;
+  const setDefault = addressesApi.setDefault as jest.Mock;
   let resolvePatch: (value: unknown) => void;
 
   beforeEach(() => {
     get.mockReset();
     patch.mockReset();
+    setDefault.mockReset();
     (appAlert as jest.Mock).mockImplementation(() => {});
     get.mockResolvedValue({
       data: [
@@ -134,7 +137,7 @@ describe('J32.b · "Varsayılan Yap" satır-bazlı yükleme (bulgu #23)', () => 
     });
     // Kontrollü deferred → mutation'ı pending tutar; test sonunda çözüp temizleriz
     // (çözülmeyen promise bırakmak tüm suite'i kapanışta asılı bırakırdı).
-    patch.mockReturnValue(
+    setDefault.mockReturnValue(
       new Promise((resolve) => {
         resolvePatch = resolve;
       }),
@@ -153,8 +156,11 @@ describe('J32.b · "Varsayılan Yap" satır-bazlı yükleme (bulgu #23)', () => 
     await waitFor(() => {
       expect(screen.getAllByText("address.makeDefault")).toHaveLength(1);
     });
-    expect(patch).toHaveBeenCalledTimes(1);
-    expect(patch).toHaveBeenCalledWith("/users/me/addresses/a1/default");
+    // B-1.3: var olmayan `/default` ucu değil, web ile aynı `addressesApi.setDefault`
+    // (PATCH /users/me/addresses/:id { isDefault: true }) — payload'ı api testi doğrular.
+    expect(setDefault).toHaveBeenCalledTimes(1);
+    expect(setDefault).toHaveBeenCalledWith("a1");
+    expect(patch).not.toHaveBeenCalled();
 
     // Mutation'ı çöz → onSuccess invalidate eder, a1 satırı yükleme durumundan çıkar,
     // dangling handle kalmaz. Her iki buton tekrar görünür.
@@ -170,5 +176,58 @@ describe('J32.b · "Varsayılan Yap" satır-bazlı yükleme (bulgu #23)', () => 
       },
       { timeout: 5000 },
     );
+    // Test süresi iç `waitFor`'un 5 sn'sinden UZUN olmalı: jest'in varsayılan
+    // 5 sn'lik test sınırı, yüklü makinede iç bekleyiş bitmeden testi düşürüyordu
+    // (tam suite'te görüldü; tek başına koşumda geçiyor).
+  }, 15000);
+});
+
+/**
+ * B-1.3 · "Varsayılan Yap" hatası artık yutulmuyor — sunucu mesajı (yoksa
+ * `address.defaultFailed`) kullanıcıya gösterilir.
+ */
+describe('B-1.3 · "Varsayılan Yap" hatası görünür', () => {
+  const get = api.get as jest.Mock;
+  const setDefault = addressesApi.setDefault as jest.Mock;
+
+  beforeEach(() => {
+    get.mockReset();
+    setDefault.mockReset();
+    (appAlert as jest.Mock).mockReset();
+    (appAlert as jest.Mock).mockImplementation(() => {});
+    get.mockResolvedValue({
+      data: [
+        {
+          id: "a1",
+          title: "Ev",
+          fullName: "Ayşe",
+          address: "Sokak 1",
+          city: "İstanbul",
+          district: "Kadıköy",
+          phone: "5551112233",
+          isDefault: false,
+        },
+      ],
+    });
+  });
+
+  it("sunucu mesajsız hata → address.defaultFailed uyarısı", async () => {
+    setDefault.mockRejectedValue({ response: { status: 500, data: {} } });
+    renderWithProviders(<AddressesScreen />);
+    fireEvent.press(await screen.findByText("address.makeDefault"));
+    await waitFor(() => {
+      expect(appAlert).toHaveBeenCalledWith("common.error", "address.defaultFailed");
+    });
+  });
+
+  it("sunucu mesajı varsa o gösterilir", async () => {
+    setDefault.mockRejectedValue({
+      response: { status: 404, data: { message: "Adres bulunamadı" } },
+    });
+    renderWithProviders(<AddressesScreen />);
+    fireEvent.press(await screen.findByText("address.makeDefault"));
+    await waitFor(() => {
+      expect(appAlert).toHaveBeenCalledWith("common.error", "Adres bulunamadı");
+    });
   });
 });

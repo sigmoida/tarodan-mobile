@@ -1270,6 +1270,10 @@
     "uploadInvoicePdfNotice": "Alıcıya iletilmek üzere fatura PDF''i yükleyin (en fazla 10 MB).",
     "noInvoiceUploadedYet": "Bu sipariş için henüz fatura yüklenmedi.",
     "refundHintTop": "Teslimattan sonra 14 gün içinde sebep belirtmeden iade hakkınız vardır. Sebep, açıklama ve fotoğraf isteğe bağlıdır.",
+    "refundHintFaultClaim": "Bu neden bir kusur iddiasıdır: en az bir kanıt fotoğrafı ve açıklama gerekir; talebiniz incelemeye alınır.",
+    "evidenceUploadFailed": "Kanıt fotoğrafları yüklenemedi. Lütfen tekrar deneyin.",
+    "descriptionRequiredLabel": "Açıklama *",
+    "evidencePhotosRequiredLabel": "Kanıt fotoğrafları (maks {max}) *",
     "descriptionOptionalLabel": "Açıklama (isteğe bağlı)",
     "describeIssueOptionalPlaceholder": "Sorunu kısaca anlatın...",
     "evidenceOptionalHint": "Dilerseniz fotoğraf ekleyin (en fazla {max}).",
@@ -1391,10 +1395,10 @@
       "hint": "Kargo kaybolduysa veya ürün sorunluysa itiraz açabilirsiniz.",
       "modalTitle": "İtiraz Aç",
       "modalIntro": "Yaşadığınız sorunu seçin ve kısaca açıklayın. Tarodan ekibi en kısa sürede inceleyecek.",
-      "reasonShipmentLost": "Kargo kayboldu / ulaşmadı",
-      "reasonShipmentDamaged": "Ürün hasarlı geldi",
+      "reasonNotReceived": "Kargo kayboldu / ulaşmadı",
+      "reasonDamaged": "Ürün hasarlı geldi",
       "reasonWrongItem": "Beklediğim ürün gelmedi",
-      "reasonOther": "Diğer",
+      "reasonNotAsDescribed": "Ürün açıklamayla uyuşmuyor",
       "descriptionLabel": "Açıklama",
       "descriptionPlaceholder": "Sorunu detaylandırın (kargo tarihi, fotoğraf gönderebilirim, vb.)",
       "minLengthError": "Açıklama en az 10 karakter olmalı",
@@ -2624,7 +2628,8 @@
     "usernameSetFailedTitle": "Belirlenemedi",
     "usernameSetFailedBody": "Kullanıcı adı kaydedilemedi.",
     "notificationsAuthGateSubtitle": "Ayarlarınızı düzenlemek için giriş yapın",
-    "notificationSettingsSaved": "Bildirim ayarları kaydedildi"
+    "notificationSettingsSaved": "Bildirim ayarları kaydedildi",
+    "notificationSettingsLoadFailed": "Bildirim tercihleriniz yüklenemedi. Kayıtlı tercihlerinizin üzerine yazılmaması için yüklenene kadar kaydetme kapalı."
   },
   "analytics": {
     "analytics": "Analitikler",
@@ -3136,7 +3141,7 @@
     },
     "premiumBenefits": {
       "q": "Premium üyelik avantajları nedir?",
-      "a": "Premium üyeler sınırsız ilan yayınlayabilir, düşük komisyon oranlarından yararlanır, takas yapabilir, Digital Garage oluşturabilir, öne çıkan ilanlar kullanabilir ve öncelikli destek alabilir."
+      "a": "Premium üyeler sınırsız ilan yayınlayabilir, düşük komisyon oranlarından yararlanır, takas yapabilir, Digital Garage oluşturabilir ve öncelikli destek alabilir."
     },
     "forgotPassword": {
       "q": "Şifremi unuttum, ne yapmalıyım?",
@@ -3670,7 +3675,21 @@
       "cancelledByBuyer": "Alıcı iptal etti",
       "refundCompleted": "Para iadesi tamamlandı",
       "policyOverridden": "Politika güncellendi",
-      "payerChanged": "İade kargo ücreti güncellendi"
+      "payerChanged": "İade kargo ücreti güncellendi",
+      "cancellationRefunded": "Sipariş iptal edildi, ödeme iade edildi",
+      "cancellationPendingReview": "İptal incelemeye alındı",
+      "pendingAdminReview": "Talep incelemeye alındı",
+      "approvedByAdmin": "Talep onaylandı",
+      "approvedAndRefundedByAdmin": "Talep onaylandı, ödeme iade edildi",
+      "rejectedByAdmin": "Talep reddedildi",
+      "closedByAdmin": "Talep kapatıldı",
+      "markedDisputed": "Anlaşmazlık incelemesine alındı",
+      "financialReviewFinalized": "Finansal inceleme tamamlandı",
+      "returnDropoffExpired": "İade kargosu süresinde teslim edilmedi, talep kapandı",
+      "waitForDeliveryExpired": "Sipariş teslim edilmediği için talep kapandı",
+      "disputeApproved": "İtiraz onaylandı",
+      "disputeRejected": "İtiraz reddedildi",
+      "unknown": "Talep güncellendi"
     },
     "authGateSubtitle": "İade taleplerinizi görmek için giriş yapın",
     "tabMine": "Taleplerim",
@@ -7284,7 +7303,15 @@
     "tipsSection": "Güvenlik İpuçları",
     "twoFactorSetupFailed": "2FA kurulumu başarısız",
     "twoFactorSetupModalTitle": "2FA Kurulumu",
-    "twoFactorDisableModalTitle": "2FA'yı Kapat"
+    "twoFactorDisableModalTitle": "2FA'yı Kapat",
+    "phoneSavedVerifyTitle": "Numaranızı doğrulayın",
+    "phoneSavedVerifyBody": "Profiliniz güncellendi. Yeni numaranız SMS ile doğrulanana kadar \"Doğrulanmadı\" olarak görünür.",
+    "phoneNotSavedTitle": "Numara henüz kaydedilmedi",
+    "phoneNotSavedBody": "Diğer profil bilgileriniz kaydedildi, ancak bu numara başka bir hesapta doğrulanmamış olarak duruyor; formdaki telefon alanı hesabınızda kayıtlı değere geri alındı. Numarayı hesabınıza almak için SMS doğrulamasını tamamlayın; doğrulama başarılı olunca numara hesabınıza geçer.",
+    "verifyNow": "Şimdi doğrula",
+    "verifyLater": "Daha sonra",
+    "phoneRemoved": "Profiliniz güncellendi, telefon numaranız kaldırıldı.",
+    "phoneNotRemoved": "Telefon numaranız kaldırılamadı; alan kayıtlı numaranıza geri alındı. Lütfen tekrar deneyin."
   },
   "discount": {
     "editTitle": "İndirimi Düzenle",
@@ -7341,6 +7368,7 @@
     "deactivated": "İlan deaktif edildi",
     "deactivateFailed": "İlan deaktif edilemedi",
     "sentForReview": "İlan incelemeye gönderildi. Onaylandığında yeniden yayına girer.",
+    "reactivatedImmediately": "İlanınız tekrar yayında! Onay beklemeden satışa açıldı.",
     "activateFailed": "İlan aktif edilemedi",
     "deleted": "İlan silindi",
     "deleteFailed": "İlan silinemedi",

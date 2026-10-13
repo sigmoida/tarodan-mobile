@@ -12,8 +12,8 @@ export const messagesApi = {
     api.post('/messages/threads', data),
   sendMessage: (threadId: string, content: string) =>
     api.post(`/messages/threads/${threadId}/messages`, { content }),
-  markAsRead: (threadId: string) =>
-    api.post(`/messages/threads/${threadId}/read`),
+  // NOT: `POST /messages/threads/:id/read` API'de YOK — okundu bilgisi
+  // `getMessages` (GET .../messages) ile sunucuda işlenir. Çağrı eklemeyin.
   /** Tüm thread'lerdeki toplam okunmamış mesaj sayısı (header rozeti, sayfalama bağımsız) */
   getUnreadCount: () =>
     api.get<{ count: number }>('/messages/unread-count'),

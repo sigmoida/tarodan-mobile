@@ -20,6 +20,7 @@ import { indexQuoteLines } from '@/utils/quoteLines';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
 import { DEFAULT_COUNTRY_CODE, parsePhoneForPayload, getPhoneInvalidMessage } from '@/utils/phone';
 import { STOCKOUT_KEYWORDS, generateUuidV4, EMPTY_ADDRESS } from '../_lib/constants';
+import { toOrderLineItems } from '../_lib/lineItems';
 import {
   addressPhoneError,
   extractApiMessage,
@@ -274,7 +275,8 @@ export function useCheckout() {
   const quoteQuery = useQuery({
     queryKey: qk.checkout.quote(itemsSignature, coupon.couponCode),
     queryFn: async () => {
-      const baseItems = items.map((it) => ({ productId: it.productId, quantity: it.quantity }));
+      // Checkout gövdesi de AYNI üreticiden çıkar — adet imzaya dahil (A-1.1).
+      const baseItems = toOrderLineItems(items);
       const couponCode = coupon.couponCode;
       try {
         const res = await ordersApi.getQuote({
@@ -626,7 +628,8 @@ export function useCheckout() {
 
       const checkoutPayload = {
         distanceSalesAccepted,
-        items: items.map((item) => ({ productId: item.productId })),
+        // Quote ile AYNI satırlar (adet DAHİL) — farklı adet imzayı bozar → 409.
+        items: toOrderLineItems(items),
         idempotencyKey: idempotencyKeyRef.current,
         shippingAddressId: shipping.id,
         shippingAddress: shipping.inline,

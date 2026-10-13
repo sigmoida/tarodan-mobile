@@ -20,6 +20,9 @@ export const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: '600',
   },
+  saveButtonDisabled: {
+    opacity: 0.5,
+  },
   title: {
     marginTop: theme.spacing[4],
     marginBottom: theme.spacing[2],

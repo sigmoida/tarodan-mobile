@@ -3,6 +3,15 @@ import { COOLING_OFF_DAYS, REFUND_STATUS_META } from './status';
 import i18n from '@/i18n/config';
 import type { OrderDetail } from './types';
 
+/** Teslimden bu yana cayma süresi geçti mi (teslim tarihi yoksa hayır). */
+function isPastRefundWindowOf(order: OrderDetail): boolean {
+  if (!order.deliveredAt) return false;
+  const d = new Date(order.deliveredAt);
+  if (Number.isNaN(d.getTime())) return false;
+  const ageDays = (Date.now() - d.getTime()) / (1000 * 3600 * 24);
+  return ageDays > COOLING_OFF_DAYS;
+}
+
 export function deriveOrderView(order: OrderDetail) {
   const isMembershipOrder = !!(order.isMembership ?? order.orderNumber?.startsWith('MEM-') ?? false);
 
@@ -53,13 +62,7 @@ export function deriveOrderView(order: OrderDetail) {
       order.cancelledAt ??
       undefined;
 
-  const isPastRefundWindow = (() => {
-    if (!order.deliveredAt) return false;
-    const d = new Date(order.deliveredAt);
-    if (Number.isNaN(d.getTime())) return false;
-    const ageDays = (Date.now() - d.getTime()) / (1000 * 3600 * 24);
-    return ageDays > COOLING_OFF_DAYS;
-  })();
+  const isPastRefundWindow = isPastRefundWindowOf(order);
 
   return {
     isMembershipOrder,
