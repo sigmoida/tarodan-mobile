@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { appAlert, toast } from '@/ui';
+import { confirm, toast } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { bankAccountApi, errorText } from '@/lib/api';
 import { qk } from '@/lib/query';
@@ -88,11 +88,16 @@ export function useBankAccount() {
     upsertMutation.mutate(data);
   };
 
-  const confirmDelete = () =>
-    appAlert(t('bankAccount.deleteTitle'), t('bankAccount.deleteConfirm'), [
-      { text: t('discount.discard'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: () => deleteMutation.mutate() },
-    ]);
+  const confirmDelete = async () => {
+    const ok = await confirm({
+      title: t('bankAccount.deleteTitle'),
+      message: t('bankAccount.deleteConfirm'),
+      confirmLabel: t('common.delete'),
+      cancelLabel: t('discount.discard'),
+      destructive: true,
+    });
+    if (ok) deleteMutation.mutate();
+  };
 
   return {
     isAuthenticated,

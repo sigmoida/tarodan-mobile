@@ -14,6 +14,7 @@ export function AddressFormModal({ f }: { f: AddressesController }) {
       isOpen={f.dialogVisible}
       onClose={() => f.setDialogVisible(false)}
       title={f.editingAddress ? t('address.editAddress') : t('address.newAddress')}
+      scrollable={false}
       footer={
         <ModalFooter
           onCancel={() => f.setDialogVisible(false)}

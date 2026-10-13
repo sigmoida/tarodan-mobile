@@ -98,6 +98,7 @@ export function DiscountFormModal({
       isOpen={visible}
       onClose={onClose}
       title={discount ? t('discount.editTitle') : t('discount.newTitle')}
+      scrollable={false}
       footer={
         <ModalFooter
           onCancel={onClose}

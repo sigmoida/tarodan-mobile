@@ -135,7 +135,13 @@ export default function AddToCollectionModal({
   };
 
   return (
-    <Modal isOpen={visible} onClose={handleClose} title={creating ? t('collection.newCollectionTitle') : t('collection.addToCollection')}>
+    <Modal
+      isOpen={visible}
+      onClose={handleClose}
+      title={creating ? t('collection.newCollectionTitle') : t('collection.addToCollection')}
+      // Liste modu kendi ScrollView'ını taşır (çift kaydırma olmasın); yeni koleksiyon formu modal gövdesinde kayar.
+      scrollable={creating}
+    >
       {creating ? (
         <View>
           <Input

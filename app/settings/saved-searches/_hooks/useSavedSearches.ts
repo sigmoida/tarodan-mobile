@@ -3,7 +3,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import { appAlert, toast } from '@/ui';
+import { appAlert, confirm, toast } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { STORAGE_KEY, type SavedSearch } from '../_lib/types';
 import { buildSearchParams } from '../_lib/helpers';
@@ -77,11 +77,15 @@ export function useSavedSearches() {
     router.push(`/search?${buildSearchParams(search)}`);
   };
 
-  const handleDelete = (search: SavedSearch) => {
-    appAlert(t('savedSearch.deleteTitle'), t('savedSearch.deleteConfirm', { name: search.name }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: () => deleteMutation.mutate(search.id) },
-    ]);
+  const handleDelete = async (search: SavedSearch) => {
+    const ok = await confirm({
+      title: t('savedSearch.deleteTitle'),
+      message: t('savedSearch.deleteConfirm', { name: search.name }),
+      confirmLabel: t('common.delete'),
+      cancelLabel: t('common.cancel'),
+      destructive: true,
+    });
+    if (ok) deleteMutation.mutate(search.id);
   };
 
   return {

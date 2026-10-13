@@ -104,6 +104,7 @@ export default function RatingModal({
       isOpen={visible}
       onClose={handleClose}
       title={type === 'product' ? t('ratingModal.titleProduct') : t('ratingModal.titleSeller')}
+      scrollable={false}
     >
       <ScrollView style={styles.scrollArea} keyboardShouldPersistTaps="handled">
         {/* Target info */}

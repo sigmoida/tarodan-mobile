@@ -108,7 +108,7 @@ export function RefundRequestModal({
   });
 
   return (
-    <Modal isOpen={visible} onClose={close} title={t('order.requestRefundTitle')}>
+    <Modal isOpen={visible} onClose={close} title={t('order.requestRefundTitle')} scrollable={false}>
       <ScrollView>
         <Form form={form}>
           <Text variant="caption" style={styles.refundModalHint}>

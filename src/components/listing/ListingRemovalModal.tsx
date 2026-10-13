@@ -75,6 +75,7 @@ export function ListingRemovalModal({
       isOpen={visible}
       onClose={onClose}
       title={isDelete ? t('product.deleteListing') : t('product.deactivateListingFull')}
+      scrollable={false}
     >
       <ScrollView
         style={styles.body}

@@ -26,6 +26,7 @@ export function ProductPickerModal({
       isOpen={visible}
       onClose={onClose}
       title={t('discount.pickProducts')}
+      scrollable={false}
       footer={<Button variant="primary" fullWidth title={t('common.ok')} onPress={onClose} />}
     >
       <ScrollView style={styles.dialogScroll}>

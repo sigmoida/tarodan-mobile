@@ -5,7 +5,7 @@ import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useTranslation } from "react-i18next";
-import { theme, Text, CountBadge, Icon, GlassSurface, getGlassView, usePressScale, type IconName } from "@/ui";
+import { theme, Text, CountBadge, Icon, GlassSurface, getGlassView, usePressScale, useToastBottomInset, type IconName } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
 import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 import { useShellCounts } from "./useShellCounts";
@@ -98,6 +98,10 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
   const sellStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: -progress.value * sellTravel }],
   }));
+
+  // Toast yüzen hapın üstünde dursun (kök toast katmanına engel olarak bildirilir). Klavye açıkken
+  // hap gizli: toast klavyenin üstüne iner.
+  useToastBottomInset(keyboardHeight > 0 ? null : TAB_PILL_HEIGHT + tabPillBottomOffset(insets.bottom));
 
   // Klavye açıkken menü formun üstüne binmesin (hook'lar yukarıda, sıra sabit).
   if (keyboardHeight > 0) return null;

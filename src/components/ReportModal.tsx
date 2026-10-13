@@ -149,7 +149,7 @@ export default function ReportModal({
   };
 
   return (
-    <Modal isOpen={visible} onClose={handleClose} title={title}>
+    <Modal isOpen={visible} onClose={handleClose} title={title} scrollable={false}>
       <ScrollView style={styles.scrollArea} keyboardShouldPersistTaps="handled">
         <Text style={styles.targetInfo} numberOfLines={2}>{targetName}</Text>
 

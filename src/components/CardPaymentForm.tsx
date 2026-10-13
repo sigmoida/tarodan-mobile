@@ -65,6 +65,11 @@ interface Props {
 }
 
 const NEW_CARD = '__new__';
+/**
+ * Ödeme belirsizliği / durdurma uyarıları kullanıcı okumadan kapanmasın: geri tuşu ve arka plan
+ * kapatmaz (tek düğmeli alert varsayılanı `cancelable: true`).
+ */
+const PAYMENT_ALERT = { cancelable: false } as const;
 
 export default function CardPaymentForm({
   target,
@@ -164,7 +169,7 @@ export default function CardPaymentForm({
       if (verifying && !threeDSHtml) {
         setVerifying(false);
         setProcessing(false);
-        appAlert(t('payment.connectionIssueTitle'), t('payment.verifyTimeoutBody'));
+        appAlert(t('payment.connectionIssueTitle'), t('payment.verifyTimeoutBody'), undefined, PAYMENT_ALERT);
       }
     };
     timer = setTimeout(poll, PAYMENT_STATUS_POLL_MS);
@@ -254,7 +259,7 @@ export default function CardPaymentForm({
     } catch (e: any) {
       // Güvenlik doğrulaması reddi — tekrar denemek çözmez, kullanıcıya net söyle.
       if (e?.code === 'PAYTR_BAD_ACTION' || e?.code === 'PAYTR_RAW_CARD_FIELD' || e?.code === 'PAYTR_NO_FIELDS') {
-        appAlert(t('payment.stoppedTitle'), e.message);
+        appAlert(t('payment.stoppedTitle'), e.message, undefined, PAYMENT_ALERT);
         setProcessing(false);
         return;
       }
@@ -270,7 +275,7 @@ export default function CardPaymentForm({
       }
       if (isNetworkOrTimeout) {
         // Elde ödeme referansı yok (beklenmeyen durum) — sert hata yerine bilgilendirme.
-        appAlert(t('payment.connectionIssueTitle'), t('payment.processingMaybeBody'));
+        appAlert(t('payment.connectionIssueTitle'), t('payment.processingMaybeBody'), undefined, PAYMENT_ALERT);
         setProcessing(false);
         return;
       }
