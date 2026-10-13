@@ -10,6 +10,41 @@
 import { scrubEvent } from '../sentryScrub';
 
 describe('scrubEvent', () => {
+  it('yasal kimlik alanlarını (B-2.4) her derinlikte temizler, teşhis alanlarını bırakır', () => {
+    const event = {
+      extra: {
+        response: {
+          status: 409,
+          url: '/legal-identity/me',
+          data: undefined,
+          identity: {
+            nationalId: '10000000146',
+            suggestedNationalId: '10000000146',
+            nationalIdMasked: '•••••••••46',
+            legalFirstName: 'Ayşe Nur',
+            legalLastName: 'Yılmaz',
+            missing: ['nationalId'],
+          },
+        },
+        bank: { tcKimlikNo: '10000000146', TCKimlikNo: '10000000146' },
+        i18nKey: 'server.identity.locked',
+      },
+    };
+
+    const cleaned = scrubEvent(event as any) as any;
+    const text = JSON.stringify(cleaned);
+
+    for (const secret of ['10000000146', '•••••••••46', 'Ayşe Nur', 'Yılmaz']) {
+      expect(text).not.toContain(secret);
+    }
+    expect(cleaned.extra.response.identity.nationalId).toBe('[scrubbed]');
+    expect(cleaned.extra.bank.TCKimlikNo).toBe('[scrubbed]');
+    // Teşhis için gerekenler kalır (alan ADI listede değer değil).
+    expect(cleaned.extra.response.identity.missing).toEqual(['nationalId']);
+    expect(cleaned.extra.response.url).toBe('/legal-identity/me');
+    expect(cleaned.extra.i18nKey).toBe('server.identity.locked');
+  });
+
   it('removes a serialized request body from the event', () => {
     const event = {
       extra: {
