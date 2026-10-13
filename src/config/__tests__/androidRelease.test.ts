@@ -185,7 +185,7 @@ describe('staging android.googleServicesFile seçimi', () => {
 describe('eas.json — Android build ve submit profilleri', () => {
   type AndroidBuild = { buildType?: string; autoIncrement?: string | boolean };
   type Eas = {
-    build: Record<string, { distribution?: string; channel?: string; android?: AndroidBuild; env?: Record<string, string> }>;
+    build: Record<string, { distribution?: string; channel?: string; environment?: string; android?: AndroidBuild; env?: Record<string, string> }>;
     submit: Record<string, { android?: Record<string, unknown>; ios?: Record<string, unknown> }>;
   };
   const eas = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../../eas.json'), 'utf8')) as Eas;
@@ -198,6 +198,12 @@ describe('eas.json — Android build ve submit profilleri', () => {
   it('staging, preview ortamını kullanır (app.config.js .staging paketini seçsin)', () => {
     expect(eas.build.staging!.env!.EXPO_PUBLIC_ENVIRONMENT).toBe('preview');
     expect(eas.build.staging!.channel).toBe('staging');
+  });
+
+  it('staging EAS ortamı preview: GOOGLE_SERVICES_JSON_STAGING (preview ortamına yüklü file değişkeni) build\'de görünür', () => {
+    expect(eas.build.staging!.environment).toBe('preview');
+    // preview profili ortam adı belirtmez; EAS profil adından "preview" ortamını seçer
+    expect(eas.build.preview!.environment).toBeUndefined();
   });
 
   it('production: AAB, store dağıtımı, versionCode otomatik artar', () => {
