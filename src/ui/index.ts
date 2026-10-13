@@ -67,6 +67,12 @@ export {
 	type SnackbarVariant,
 } from './components/Snackbar';
 export { Input, type InputProps } from './components/Input';
+export {
+	Label,
+	FieldMessage,
+	type LabelProps,
+	type FieldMessageProps,
+} from './components/Label';
 // The RHF + zod form layer is exposed via the `@/ui/form` subpath
 // so it only pulls zod/react-hook-form into bundles that actually build forms.
 export { DateField, type DateFieldProps } from './components/DateField';

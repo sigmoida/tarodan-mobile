@@ -11,8 +11,10 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { brandFontStyle } from '@/theme';
 import { theme } from '../lib/theme';
-import { RawText } from './Text';
+import { useBrandFont } from '../lib/font';
+import { FieldMessage, Label } from './Label';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -22,6 +24,8 @@ type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
  */
 export interface InputProps extends TextInputProps {
   label?: string;
+  /** Etiketin sonuna kırmızı `*` (web `Label required`). */
+  required?: boolean;
   error?: string;
   helperText?: string;
   /** Pass a custom node. Takes precedence over `leftIconName`. */
@@ -40,18 +44,28 @@ export interface InputProps extends TextInputProps {
   inputStyle?: TextStyle;
 }
 
-const { colors, radius, spacing, typography } = theme;
+const { colors, radiusRole, spacing, typography, controlHeight, iconSize } = theme;
 
-const sizeStyle = {
-  sm: { height: 36, font: typography.fontSize.sm },
-  md: { height: 44, font: typography.fontSize.base },
-  lg: { height: 52, font: typography.fontSize.lg },
+/**
+ * Web `@tarodan/ui` Input: sm h-8 px-2.5 · md h-10 px-3 · lg h-12 px-4. Metin her boyutta 16:
+ * web telefon genişliğinde `CONTROL_TEXT` = `text-base` (16px altı iOS'ta odakta yakınlaştırır).
+ */
+export const inputSizeStyle = {
+  sm: { height: controlHeight.sm, px: spacing[2.5], font: typography.fontSize.base },
+  md: { height: controlHeight.md, px: spacing[3], font: typography.fontSize.base },
+  lg: { height: controlHeight.lg, px: spacing[4], font: typography.fontSize.base },
 } as const;
 
-const iconSizePx = 20;
+/** Çerçeve rengi — web: hata danger-500, odak primary-500, normal border. */
+export function fieldBorderColor(error: unknown, focused: boolean): string {
+  if (error) return colors.danger[500];
+  if (focused) return colors.primary[500];
+  return colors.border.DEFAULT;
+}
 
 export const Input: React.FC<InputProps> = ({
   label,
+  required,
   error,
   helperText,
   leftIcon,
@@ -68,23 +82,22 @@ export const Input: React.FC<InputProps> = ({
   multiline,
   onFocus,
   onBlur,
+  editable,
   ...rest
 }) => {
   const { t } = useTranslation();
+  const brandFont = useBrandFont();
   const [focused, setFocused] = useState(false);
   const [passwordHidden, setPasswordHidden] = useState(true);
-  const ss = sizeStyle[inputSize];
+  const ss = inputSizeStyle[inputSize];
+  const disabled = editable === false;
 
-  const borderColor = error
-    ? colors.danger[600]!
-    : focused
-      ? colors.primary[600]!
-      : colors.border.DEFAULT;
+  const borderColor = fieldBorderColor(error, focused);
 
   const resolvedLeftIcon =
     leftIcon ??
     (leftIconName ? (
-      <Ionicons name={leftIconName} size={iconSizePx} color={colors.text.muted} />
+      <Ionicons name={leftIconName} size={iconSize.md} color={colors.text.subtle} />
     ) : null);
 
   const showEye = togglePasswordVisibility && secureTextEntry;
@@ -93,32 +106,35 @@ export const Input: React.FC<InputProps> = ({
     (showEye ? (
       <Pressable
         onPress={() => setPasswordHidden((v) => !v)}
-        hitSlop={8}
+        hitSlop={12}
         accessibilityRole="button"
         accessibilityLabel={passwordHidden ? t('common.showPassword') : t('common.hidePassword')}
       >
         <Ionicons
           name={passwordHidden ? 'eye-outline' : 'eye-off-outline'}
-          size={iconSizePx}
-          color={colors.text.muted}
+          size={iconSize.md}
+          color={colors.text.subtle}
         />
       </Pressable>
     ) : rightIconName ? (
-      <Ionicons name={rightIconName} size={iconSizePx} color={colors.text.muted} />
+      <Ionicons name={rightIconName} size={iconSize.md} color={colors.text.subtle} />
     ) : null);
 
   const effectiveSecure = secureTextEntry ? passwordHidden : false;
+  const flatInput = StyleSheet.flatten(inputStyle) ?? {};
+  const fontStyle = brandFontStyle(brandFont, flatInput.fontWeight, flatInput.fontFamily);
 
   return (
     <View style={[styles.container, containerStyle, style as StyleProp<ViewStyle>]}>
-      {label && <RawText style={styles.label}>{label}</RawText>}
+      {label ? <Label required={required}>{label}</Label> : null}
       <View
         style={[
           styles.field,
+          { paddingHorizontal: ss.px },
           multiline
-            ? { minHeight: ss.height, paddingVertical: spacing[2], alignItems: 'flex-start' }
+            ? { minHeight: MULTILINE_MIN_HEIGHT, paddingVertical: spacing[2], alignItems: 'flex-start' }
             : { height: ss.height },
-          { borderColor, backgroundColor: colors.white },
+          { borderColor, backgroundColor: disabled ? colors.surface.DEFAULT : colors.surface.elevated },
           fieldStyle,
         ]}
       >
@@ -126,11 +142,13 @@ export const Input: React.FC<InputProps> = ({
         <TextInput
           style={[
             styles.input,
-            { fontSize: ss.font, color: colors.text.heading },
+            { fontSize: ss.font, color: colors.text.body },
             multiline ? styles.inputMultiline : null,
             inputStyle,
+            fontStyle,
           ]}
           multiline={multiline}
+          editable={editable}
           placeholderTextColor={colors.text.subtle}
           secureTextEntry={effectiveSecure}
           onFocus={(e) => {
@@ -145,32 +163,24 @@ export const Input: React.FC<InputProps> = ({
         />
         {resolvedRightIcon && <View style={styles.iconRight}>{resolvedRightIcon}</View>}
       </View>
-      {(error || helperText) && (
-        <RawText style={[styles.helper, error ? styles.errorText : null]}>
-          {error || helperText}
-        </RawText>
-      )}
+      <FieldMessage error={error} helperText={helperText} />
     </View>
   );
 };
+
+/** Web Textarea `min-h-[80px]`. */
+const MULTILINE_MIN_HEIGHT = 80;
 
 const styles = StyleSheet.create({
   container: {
     width: '100%',
     marginBottom: spacing[2],
   },
-  label: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-    color: colors.text.heading,
-    marginBottom: spacing[1.5],
-  },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: radius.lg,
+    borderRadius: radiusRole.input,
     borderWidth: 1,
-    paddingHorizontal: spacing[3],
   },
   input: {
     flex: 1,
@@ -184,12 +194,4 @@ const styles = StyleSheet.create({
   },
   iconLeft: { marginRight: spacing[2] },
   iconRight: { marginLeft: spacing[2] },
-  helper: {
-    marginTop: spacing[1],
-    fontSize: typography.fontSize.xs,
-    color: colors.text.muted,
-  },
-  errorText: {
-    color: colors.danger[600]!,
-  },
 });

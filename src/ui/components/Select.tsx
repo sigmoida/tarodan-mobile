@@ -6,9 +6,12 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { theme } from '../lib/theme';
 import { RawText } from './Text';
+import { FieldMessage, Label } from './Label';
+import { fieldBorderColor, inputSizeStyle } from './Input';
 
 export interface SelectOption {
   value: string;
@@ -26,11 +29,13 @@ export interface SelectProps {
   helperText?: string;
   disabled?: boolean;
   selectSize?: 'sm' | 'md' | 'lg';
+  /** Etiketin sonuna kırmızı `*`. */
+  required?: boolean;
 }
 
-const { colors, radius, spacing, typography } = theme;
-const sizeMap = { sm: 36, md: 44, lg: 52 } as const;
+const { colors, radius, spacing, typography, iconSize } = theme;
 
+/** Web Select tetikleyicisi = Input ile aynı ölçü/çerçeve (`selectTriggerClasses`). */
 export const Select: React.FC<SelectProps> = ({
   value,
   onChange,
@@ -41,43 +46,44 @@ export const Select: React.FC<SelectProps> = ({
   helperText,
   disabled,
   selectSize = 'md',
+  required,
 }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
   const resolvedPlaceholder = placeholder ?? t('common.selectPlaceholder');
+  const ss = inputSizeStyle[selectSize];
 
   return (
     <View style={styles.container}>
-      {label && <RawText style={styles.label}>{label}</RawText>}
+      {label ? <Label required={required}>{label}</Label> : null}
       <Pressable
         disabled={disabled}
         onPress={() => setOpen(true)}
         style={[
           styles.field,
           {
-            height: sizeMap[selectSize],
-            borderColor: error ? colors.danger[600]! : colors.gray[300],
+            height: ss.height,
+            paddingHorizontal: ss.px,
+            borderColor: fieldBorderColor(error, open),
+            backgroundColor: disabled ? colors.surface.DEFAULT : colors.surface.elevated,
             opacity: disabled ? 0.5 : 1,
           },
         ]}
         accessibilityRole="combobox"
       >
         <RawText
+          numberOfLines={1}
           style={[
             styles.value,
-            { color: selected ? colors.text.heading : colors.text.subtle },
+            { fontSize: ss.font, color: selected ? colors.text.body : colors.text.subtle },
           ]}
         >
           {selected ? selected.label : resolvedPlaceholder}
         </RawText>
-        <RawText style={styles.caret}>▾</RawText>
+        <Ionicons name="chevron-down" size={iconSize.sm} color={colors.text.subtle} />
       </Pressable>
-      {(error || helperText) && (
-        <RawText style={[styles.helper, error ? styles.errorText : null]}>
-          {error || helperText}
-        </RawText>
-      )}
+      <FieldMessage error={error} helperText={helperText} />
 
       <RNModal
         visible={open}
@@ -97,10 +103,12 @@ export const Select: React.FC<SelectProps> = ({
                     onChange(item.value);
                     setOpen(false);
                   }}
-                  style={[
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: item.value === value, disabled: !!item.disabled }}
+                  style={({ pressed }) => [
                     styles.option,
-                    item.value === value && styles.optionSelected,
-                    item.disabled ? { opacity: 0.5 } : null,
+                    pressed && styles.optionPressed,
+                    item.disabled ? styles.optionDisabled : null,
                   ]}
                 >
                   <RawText
@@ -111,6 +119,9 @@ export const Select: React.FC<SelectProps> = ({
                   >
                     {item.label}
                   </RawText>
+                  {item.value === value ? (
+                    <Ionicons name="checkmark" size={iconSize.sm} color={colors.primary[600]} />
+                  ) : null}
                 </Pressable>
               )}
             />
@@ -123,54 +134,49 @@ export const Select: React.FC<SelectProps> = ({
 
 const styles = StyleSheet.create({
   container: { width: '100%', marginBottom: spacing[2] },
-  label: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-    color: colors.text.heading,
-    marginBottom: spacing[1.5],
-  },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: spacing[2],
     borderWidth: 1,
     borderRadius: radius.lg,
-    paddingHorizontal: spacing[3],
-    backgroundColor: colors.white,
   },
-  value: { fontSize: typography.fontSize.base, flex: 1 },
-  caret: { color: colors.text.muted, fontSize: typography.fontSize.base },
-  helper: {
-    marginTop: spacing[1],
-    fontSize: typography.fontSize.xs,
-    color: colors.text.muted,
-  },
-  errorText: { color: colors.danger[600]! },
+  value: { flex: 1 },
   backdrop: {
     flex: 1,
     backgroundColor: colors.overlay.black50,
     justifyContent: 'flex-end',
   },
+  // Platform kalıbı: web'in açılır menüsü yerine alttan panel (modal radius'u).
   sheet: {
-    backgroundColor: colors.white,
-    borderTopLeftRadius: radius['2xl'],
-    borderTopRightRadius: radius['2xl'],
+    backgroundColor: colors.surface.elevated,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
     maxHeight: '60%',
     paddingVertical: spacing[2],
   },
   option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing[2],
+    minHeight: theme.minTouchTarget,
     paddingVertical: spacing[3],
     paddingHorizontal: spacing[4],
   },
-  optionSelected: {
-    backgroundColor: colors.primary[50],
+  optionPressed: {
+    backgroundColor: colors.surface.alt,
+  },
+  optionDisabled: {
+    opacity: 0.5,
   },
   optionText: {
+    flex: 1,
     fontSize: typography.fontSize.base,
     color: colors.text.body,
   },
   optionTextSelected: {
-    color: colors.primary[700]!,
-    fontWeight: '600',
+    fontWeight: typography.fontWeight.medium,
   },
 });

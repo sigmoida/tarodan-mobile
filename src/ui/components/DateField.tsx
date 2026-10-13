@@ -19,6 +19,8 @@ import { theme } from '../lib/theme';
 // `useTranslation()`'dan (mock'lanabilir metin).
 import i18nInstance from '@/i18n/config';
 import { RawText } from './Text';
+import { FieldMessage, Label } from './Label';
+import { fieldBorderColor } from './Input';
 
 export interface DateFieldProps {
   label?: string;
@@ -123,7 +125,7 @@ export const DateField: React.FC<DateFieldProps> = ({
 
   return (
     <View style={[styles.container, containerStyle]}>
-      {label ? <RawText style={styles.label}>{label}</RawText> : null}
+      {label ? <Label>{label}</Label> : null}
 
       <Pressable
         testID={testID}
@@ -132,25 +134,21 @@ export const DateField: React.FC<DateFieldProps> = ({
         accessibilityLabel={label}
         style={[
           styles.field,
-          { borderColor: error ? colors.danger[600]! : colors.border.DEFAULT },
+          { borderColor: fieldBorderColor(error, show) },
         ]}
       >
         <RawText
           style={[
             styles.value,
-            { color: selectedDate ? colors.text.heading : colors.text.subtle },
+            { color: selectedDate ? colors.text.body : colors.text.subtle },
           ]}
         >
           {selectedDate ? formatHuman(selectedDate, dateLocale) : resolvedPlaceholder}
         </RawText>
-        <Ionicons name="calendar-outline" size={20} color={colors.text.muted} />
+        <Ionicons name="calendar-outline" size={theme.iconSize.md} color={colors.text.subtle} />
       </Pressable>
 
-      {error || helperText ? (
-        <RawText style={[styles.helper, error ? styles.errorText : null]}>
-          {error || helperText}
-        </RawText>
-      ) : null}
+      <FieldMessage error={error} helperText={helperText} />
 
       {Platform.OS === 'android' && show ? (
         <DateTimePicker
@@ -210,33 +208,19 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: spacing[2],
   },
-  label: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-    color: colors.text.heading,
-    marginBottom: spacing[1.5],
-  },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    height: 44,
+    height: theme.controlHeight.md,
     borderRadius: radius.lg,
     borderWidth: 1,
     paddingHorizontal: spacing[3],
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface.elevated,
   },
   value: {
     flex: 1,
     fontSize: typography.fontSize.base,
-  },
-  helper: {
-    marginTop: spacing[1],
-    fontSize: typography.fontSize.xs,
-    color: colors.text.muted,
-  },
-  errorText: {
-    color: colors.danger[600]!,
   },
   iosPicker: {
     alignSelf: 'center',
