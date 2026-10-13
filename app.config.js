@@ -57,10 +57,45 @@ const STAGING_GOOGLE_SERVICES_LOCAL = './google-services.staging.json';
 function isAndroidNativeContext(env, argv) {
   if (env.EAS_BUILD_PLATFORM === 'android') return true;
   const args = argv.slice(2);
-  return (
-    args.includes('run:android') ||
-    (args.includes('prebuild') && /android|all/.test(args.join(' ')))
-  );
+  if (args.includes('run:android')) return true;
+  if (args.includes('prebuild')) {
+    // `expo prebuild` platform verilmezse "all" (= Android dahil) çalışır.
+    const platforms = parsePlatformArg(args);
+    return platforms === null || platforms.includes('android') || platforms.includes('all');
+  }
+  return false;
+}
+
+/**
+ * `--platform <v>`, `--platform=<v>`, `-p <v>`, `-p=<v>`, `-p<v>` değerlerini
+ * ayrıştırır; virgüllü liste desteklenir. Bayrak yoksa ya da değeri yoksa
+ * (`--platform` sonda ya da yanında başka bir bayrak var) `null` döner, yani
+ * "belirtilmedi". Bütün argüman satırına regex atmak yanlış: `--no-install`
+ * içindeki "all" harfleri Android sanılırdı.
+ */
+function parsePlatformArg(args) {
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    let value;
+    if (arg === '--platform' || arg === '-p') {
+      const next = args[i + 1];
+      value = next !== undefined && !next.startsWith('-') ? next : undefined;
+    } else if (arg.startsWith('--platform=')) {
+      value = arg.slice('--platform='.length);
+    } else if (arg.startsWith('-p=')) {
+      value = arg.slice('-p='.length);
+    } else if (/^-p[^-=]/.test(arg)) {
+      value = arg.slice(2);
+    } else {
+      continue;
+    }
+    const platforms = (value ?? '')
+      .split(',')
+      .map((v) => v.trim().toLowerCase())
+      .filter(Boolean);
+    return platforms.length > 0 ? platforms : null;
+  }
+  return null;
 }
 
 /**
@@ -198,3 +233,4 @@ module.exports = ({ config }) => {
 };
 
 module.exports.resolveStagingGoogleServicesFile = resolveStagingGoogleServicesFile;
+module.exports.isAndroidNativeContext = isAndroidNativeContext;

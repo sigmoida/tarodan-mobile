@@ -223,6 +223,53 @@ describe('staging android.googleServicesFile seçimi', () => {
   });
 });
 
+describe('isAndroidNativeContext — argüman ayrıştırma', () => {
+  const { isAndroidNativeContext: ctx } = makeConfig as unknown as {
+    isAndroidNativeContext: (env: Record<string, string>, argv: string[]) => boolean;
+  };
+  const run = (...args: string[]) => ctx({}, ['node', 'expo', ...args]);
+
+  it.each([
+    ['EAS_BUILD_PLATFORM=android', () => ctx({ EAS_BUILD_PLATFORM: 'android' }, ['node', 'eas'])],
+    ['run:android', () => run('run:android')],
+    ['prebuild (platform yok → all)', () => run('prebuild')],
+    ['prebuild --no-install (platform yok; "all" harfleri yanıltmaz)', () => run('prebuild', '--no-install')],
+    ['prebuild --clean --no-install', () => run('prebuild', '--clean', '--no-install')],
+    ['prebuild --platform android', () => run('prebuild', '--platform', 'android')],
+    ['prebuild --platform=android', () => run('prebuild', '--platform=android')],
+    ['prebuild -p android', () => run('prebuild', '-p', 'android')],
+    ['prebuild -p=android', () => run('prebuild', '-p=android')],
+    ['prebuild -pandroid', () => run('prebuild', '-pandroid')],
+    ['prebuild --platform all', () => run('prebuild', '--platform', 'all')],
+    ['prebuild -p all --no-install', () => run('prebuild', '-p', 'all', '--no-install')],
+    ['prebuild --platform ios,android', () => run('prebuild', '--platform', 'ios,android')],
+    ['prebuild --platform (değer yok → all)', () => run('prebuild', '--platform')],
+    ['prebuild --platform --no-install (değer yok → all)', () => run('prebuild', '--platform', '--no-install')],
+    ['prebuild --platform= (boş değer → all)', () => run('prebuild', '--platform=')],
+    ['--no-install önce, sonra platform android', () => run('prebuild', '--no-install', '--platform', 'android')],
+  ])('Android bağlamı: %s', (_n, fn) => {
+    expect(fn()).toBe(true);
+  });
+
+  it.each([
+    ['env/argv boş', () => ctx({}, ['node', 'expo'])],
+    ['EAS_BUILD_PLATFORM=ios', () => ctx({ EAS_BUILD_PLATFORM: 'ios' }, ['node', 'eas'])],
+    ['run:ios', () => run('run:ios')],
+    ['start', () => run('start')],
+    ['eas update (OTA)', () => ctx({}, ['node', 'eas', 'update'])],
+    ['prebuild --platform ios', () => run('prebuild', '--platform', 'ios')],
+    ['prebuild --platform=ios', () => run('prebuild', '--platform=ios')],
+    ['prebuild -p ios', () => run('prebuild', '-p', 'ios')],
+    ['prebuild -pios --no-install', () => run('prebuild', '-pios', '--no-install')],
+    ['prebuild --no-install --platform ios', () => run('prebuild', '--no-install', '--platform', 'ios')],
+    ['prebuild --template android-all-template.tgz --platform ios (değerde "android")', () =>
+      run('prebuild', '--template', 'android-all-template.tgz', '--platform', 'ios')],
+    ['export --platform android (native değil)', () => run('export', '--platform', 'android')],
+  ])('Android bağlamı DEĞİL: %s', (_n, fn) => {
+    expect(fn()).toBe(false);
+  });
+});
+
 describe('eas.json — Android build ve submit profilleri', () => {
   type AndroidBuild = { buildType?: string; autoIncrement?: string | boolean };
   type Eas = {
