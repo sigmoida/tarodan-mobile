@@ -1,3 +1,4 @@
+import type { AxiosRequestConfig } from 'axios';
 import { api, guestApi } from './client';
 import type { DirectFormResponse } from '@/lib/payment/paytrDirectForm';
 import { rememberPaymentCapability, withPaymentCapability } from '@/lib/payment/paymentCapability';
@@ -91,12 +92,16 @@ export const paymentsApi = {
     api.post('/payments/initiate-trade-cash', { tradeId }),
   getStatus: (paymentId: string) =>
     api.get(`/payments/${paymentId}`),
-  /** POST /payments/:id/verify — PayTR ödemesini aktif doğrula (web ile parite) */
-  verify: (paymentId: string) =>
-    paymentHttp(paymentId).post(`/payments/${paymentId}/verify`, {}),
+  /**
+   * POST /payments/:id/verify — PayTR ödemesini aktif doğrula (web ile parite).
+   * Sunucu dakikada 10 istekle sınırlı: yoklamada doğrudan değil
+   * `@/lib/payment/verifyPacer` üzerinden çağırın (tempo + bütçe + zaman aşımı).
+   */
+  verify: (paymentId: string, config?: Pick<AxiosRequestConfig, 'timeout'>) =>
+    paymentHttp(paymentId).post(`/payments/${paymentId}/verify`, {}, config),
   /** Misafir verify: `guestApi` + yetki belirteci. */
-  verifyGuest: (paymentId: string) =>
-    guestPaymentHttp(paymentId).post(`/payments/${paymentId}/verify`, {}),
+  verifyGuest: (paymentId: string, config?: Pick<AxiosRequestConfig, 'timeout'>) =>
+    guestPaymentHttp(paymentId).post(`/payments/${paymentId}/verify`, {}, config),
   getStatusLight: (paymentId: string) =>
     paymentHttp(paymentId).get(`/payments/${paymentId}/status`),
   getStatusLightGuest: (paymentId: string) =>

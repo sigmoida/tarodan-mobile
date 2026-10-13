@@ -39,6 +39,7 @@ jest.mock('react-native-webview', () => {
 
 import { api, guestApi } from '@/lib/api/client';
 import { __resetPaymentCapabilities, rememberPaymentCapability } from '@/lib/payment/paymentCapability';
+import { __resetVerifyPacer, VERIFY_TIMEOUT_MS } from '@/lib/payment/verifyPacer';
 import CardPaymentForm from '../CardPaymentForm';
 
 const apiPost = api.post as jest.Mock;
@@ -75,6 +76,7 @@ const expectNoAuthenticatedClient = () => {
 beforeEach(async () => {
   jest.clearAllMocks();
   __resetPaymentCapabilities();
+  __resetVerifyPacer();
   // initiate-guest yanıtındaki belirteç (checkout'ta saklanır).
   await rememberPaymentCapability({ data: { paymentId: PAY, paymentAccessToken: 'cap-token' } });
   guestPost.mockImplementation((url: string) =>
@@ -89,7 +91,7 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-it('misafir 3DS yoklaması: verify başlıkla çağrılır (status-guest\'ten önce), ödendiyse başarı', async () => {
+it('misafir 3DS yoklaması: verify başlıkla turun başında arkada başlar (beklenmez), ödendiyse başarı', async () => {
   jest.useFakeTimers();
   const onSuccess = jest.fn();
   renderWithProviders(
@@ -103,7 +105,7 @@ it('misafir 3DS yoklaması: verify başlıkla çağrılır (status-guest\'ten ö
   await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(PAY));
 
   expect(guestPost).toHaveBeenCalledWith('/payments/direct-form', expect.objectContaining({ paymentId: PAY }), { headers: CAP });
-  expect(guestPost).toHaveBeenCalledWith(`/payments/${PAY}/verify`, {}, { headers: CAP });
+  expect(guestPost).toHaveBeenCalledWith(`/payments/${PAY}/verify`, {}, { timeout: VERIFY_TIMEOUT_MS, headers: CAP });
   expect(guestGet).toHaveBeenCalledWith(`/payments/${PAY}/status-guest`, { headers: CAP });
   const verifyOrder = guestPost.mock.invocationCallOrder[guestPost.mock.calls.findIndex(([u]) => u === `/payments/${PAY}/verify`)];
   expect(verifyOrder).toBeLessThan(guestGet.mock.invocationCallOrder[0]);
@@ -126,7 +128,7 @@ it('misafir direct-form zaman aşımı: bilinen paymentId ile verify (başlıkl�
 
   await jest.advanceTimersByTimeAsync(3000);
   await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(PAY));
-  expect(guestPost).toHaveBeenCalledWith(`/payments/${PAY}/verify`, {}, { headers: CAP });
+  expect(guestPost).toHaveBeenCalledWith(`/payments/${PAY}/verify`, {}, { timeout: VERIFY_TIMEOUT_MS, headers: CAP });
   expect(guestGet).toHaveBeenCalledWith(`/payments/${PAY}/status-guest`, { headers: CAP });
   expectNoAuthenticatedClient();
 });

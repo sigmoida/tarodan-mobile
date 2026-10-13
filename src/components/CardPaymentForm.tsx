@@ -24,6 +24,7 @@ import {
   cardFieldsForSavedCard,
   PAYTR_ACTION,
 } from '@/lib/payment/paytrDirectForm';
+import { createVerifyPacer } from '@/lib/payment/verifyPacer';
 
 const { colors } = theme;
 
@@ -122,17 +123,17 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
     let alive = true;
     let timer: ReturnType<typeof setTimeout>;
     let tries = 0;
+    // verify PayTR durumunu sunucuda sorgular ve ödemeyi aktive eder (idempotent):
+    // callback gecikse ya da hiç gelmese de ödeme tamamlanır. Misafir de çağırır
+    // (`X-Payment-Capability` ile, `guestApi`'den). Sunucu dakikada 10 verify'a izin
+    // veriyor ve her çağrıda PayTR'yi sorguluyor: verify ARKADA, zaman aşımlı ve
+    // seyrek gider (ilk ~10 sn her tur, sonra ~15 sn'de bir; global bütçe). Durum
+    // okuması onu BEKLEMEZ.
+    const verifyPacer = createVerifyPacer(paymentId, { guest: isGuest });
     const poll = async () => {
       tries += 1;
+      verifyPacer.tick();
       try {
-        // verify PayTR durumunu sunucuda sorgular ve ödemeyi aktive eder (idempotent):
-        // callback gecikse ya da hiç gelmese de ödeme burada tamamlanır. Misafir de
-        // çağırır — `X-Payment-Capability` başlığıyla sunucu misafiri geçirir
-        // (`payment-lifecycle.service.ts` → `assertPaymentAccess`, capabilityAuthorized).
-        // Misafir isteği `guestApi`'den gider (Bearer yok, 401'de çıkış yok).
-        try {
-          await (isGuest ? paymentsApi.verifyGuest(paymentId) : paymentsApi.verify(paymentId));
-        } catch { /* best-effort */ }
         const res: any = isGuest
           ? await paymentsApi.getStatusLightGuest(paymentId)
           : await paymentsApi.getStatusLight(paymentId);

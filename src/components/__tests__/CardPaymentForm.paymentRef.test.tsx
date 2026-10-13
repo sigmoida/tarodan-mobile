@@ -39,6 +39,7 @@ jest.mock('react-native-webview', () => {
 import { api, guestApi } from '@/lib/api/client';
 import { membershipApi } from '@/lib/api';
 import { __resetPaymentCapabilities, rememberPaymentCapability } from '@/lib/payment/paymentCapability';
+import { __resetVerifyPacer, VERIFY_TIMEOUT_MS } from '@/lib/payment/verifyPacer';
 import CardPaymentForm from '../CardPaymentForm';
 
 const apiPost = api.post as jest.Mock;
@@ -70,6 +71,7 @@ const directFormCall = () => apiPost.mock.calls.find(([url]) => url === '/paymen
 beforeEach(() => {
   jest.clearAllMocks();
   __resetPaymentCapabilities();
+  __resetVerifyPacer();
   apiPost.mockImplementation((url: string) =>
     url === '/payments/direct-form'
       ? Promise.resolve({ data: signed })
@@ -127,7 +129,7 @@ describe.each([
     await jest.advanceTimersByTimeAsync(3000);
     await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(PAY));
     expect(onFail).not.toHaveBeenCalled();
-    expect(apiPost).toHaveBeenCalledWith(`/payments/${PAY}/verify`, {}, { headers });
+    expect(apiPost).toHaveBeenCalledWith(`/payments/${PAY}/verify`, {}, { timeout: VERIFY_TIMEOUT_MS, headers });
     expect(apiGet).toHaveBeenCalledWith(`/payments/${PAY}/status`, { headers });
     expect(guestGet).not.toHaveBeenCalled();
     expect(guestPost).not.toHaveBeenCalled(); // üye yolu api'den
