@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
   refundModalHint: { color: colors.text.muted, marginBottom: theme.spacing[3] },
   refundModalLabel: {
     color: colors.text.heading,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     marginTop: theme.spacing[2],
     marginBottom: theme.spacing[1],
   },
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     right: -6,
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: theme.radius.full,
     backgroundColor: colors.danger[600]!,
     alignItems: 'center',
     justifyContent: 'center',
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.alt,
   },
   evidenceAddText: {
-    fontSize: 11,
+    fontSize: theme.typography.fontSize.xs,
     color: colors.text.muted,
     marginTop: theme.spacing[0.5],
   },

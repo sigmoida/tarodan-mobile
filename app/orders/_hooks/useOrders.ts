@@ -13,7 +13,7 @@ import {
 
 /**
  * Orders (buyer) controller — owns the grouped/flat orders query, focus
- * refresh, filter + accordion + rating-modal + snackbar state. Lifted verbatim
+ * refresh, filter + accordion + rating-modal state. Lifted verbatim
  * from the monolithic OrdersScreen.
  */
 export function useOrders() {
@@ -38,11 +38,6 @@ export function useOrders() {
     type: 'product' | 'seller';
     order: Order | null;
   }>({ visible: false, type: 'product', order: null });
-  const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string; variant: 'success' | 'danger' | 'default' }>({
-    visible: false,
-    message: '',
-    variant: 'default',
-  });
 
   // Fetch orders.
   // Alıcı + "Tümü": gruplu liste (tek checkout = tek kart, çok ürün destekli).
@@ -126,8 +121,6 @@ export function useOrders() {
     toggleGroup,
     ratingModal,
     setRatingModal,
-    snackbar,
-    setSnackbar,
     entries,
     isLoading,
     ordersError,

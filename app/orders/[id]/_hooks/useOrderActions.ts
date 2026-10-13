@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { ordersApi, refundsApi, paymentsApi } from '@/lib/api';
 import { captureException } from '@/services/sentry';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
@@ -15,20 +15,19 @@ type SnackVariant = 'success' | 'danger' | 'default';
 
 /**
  * Sipariş detay controller'ı: iade-iptal/sipariş-iptal/ödeme-başlat mutation'ları
- * + modalların aç/kapa durumu + snackbar. İade talebinin formu ve mutasyonu
+ * + modalların aç/kapa durumu + toast bildirimi. İade talebinin formu ve mutasyonu
  * `RefundRequestModal`'da (CLAUDE.md §6).
  */
 export function useOrderActions(id: string, order: OrderDetail | undefined) {
   const { t } = useTranslation();
 
-  const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string; variant: SnackVariant }>({
-    visible: false,
-    message: '',
-    variant: 'default',
-  });
-  const notify = (message: string, variant: SnackVariant = 'default') =>
-    setSnackbar({ visible: true, message, variant });
-  const dismissSnackbar = () => setSnackbar({ visible: false, message: '', variant: 'default' });
+  // Bilgi ve başarı mesajı toast (web react-hot-toast), hata da toast.error. Açık bir native Modal
+  // varken çağrılmamalı: toast Modal'ın altında kalır (çağıranlar önce modalı kapatır).
+  const notify = (message: string, variant: SnackVariant = 'default') => {
+    if (variant === 'danger') toast.error(message);
+    else if (variant === 'success') toast.success(message);
+    else toast(message);
+  };
 
   const [refundModalVisible, setRefundModalVisible] = useState(false);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
@@ -106,9 +105,7 @@ export function useOrderActions(id: string, order: OrderDetail | undefined) {
   const handleCancelOrder = () => setCancelModalVisible(true);
 
   return {
-    snackbar,
     notify,
-    dismissSnackbar,
     invalidateOrder,
     // iade modalı
     // iade modalı — form + mutasyon `RefundRequestModal`'da, burada yalnız aç/kapa durumu.

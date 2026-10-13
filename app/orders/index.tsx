@@ -1,59 +1,89 @@
 import { useTranslation } from 'react-i18next';
-import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
-import { Button, Spinner, Snackbar, Text, ScreenHeader, theme } from '@/ui';
+import { View } from 'react-native';
+import { EmptyState, ErrorState, SkeletonCard, toast } from '@/ui';
 import { router } from 'expo-router';
 
 import RatingModal from '@/components/RatingModal';
+import { PageShell } from '@/components/common/PageShell';
 import { styles } from './_lib/ordersStyles';
 import type { Order } from './_lib/ordersStatus';
 import { useOrders } from './_hooks/useOrders';
 import { OrderCard } from './_components/OrderCard';
-import { OrdersGate, OrdersFilters, OrdersEmpty, OrderGroupCard } from './_components/OrdersSections';
-
-const { colors } = theme;
+import { OrdersFilters, OrderGroupCard, useOrdersEmptyTitle } from './_components/OrdersSections';
 
 /**
- * Orders (buyer) — THIN screen. The `useOrders` controller owns the grouped/
- * flat query, filter, accordion, rating-modal and snackbar state; this file
- * composes the gate, filters, list (order + group cards), and rating modal.
+ * Siparişlerim (alıcı) — İNCE ekran. `useOrders` kontrolcüsü gruplu/düz sorguyu, filtreyi, accordion
+ * ve değerlendirme modalı durumunu taşır; burası PageShell + filtre chip'leri + liste + modalı
+ * kompoze eder. Yükleme Skeleton, boş/hata durumu filtre chip'lerini gizlemez.
  */
 export default function OrdersScreen() {
   const { t } = useTranslation();
   const f = useOrders();
+  const emptyTitle = useOrdersEmptyTitle(f.filter);
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
-  const gate = OrdersGate({ f });
-  if (gate) return gate;
+  if (!f.isAuthenticated) {
+    return (
+      <PageShell
+        title={t('order.myOrders')}
+        onBack={back}
+        empty
+        emptyState={{
+          icon: 'receipt-outline',
+          title: t('order.signInToView'),
+          actionLabel: t('common.login'),
+          onAction: () => router.push('/(auth)/login'),
+        }}
+      />
+    );
+  }
 
   const onRate = (type: 'product' | 'seller', order: Order) =>
     f.setRatingModal({ visible: true, type, order });
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={t('order.myOrders')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
-
+    <PageShell
+      title={t('order.myOrders')}
+      onBack={back}
+      refreshing={f.refreshing}
+      onRefresh={f.onRefresh}
+      overlay={
+        <RatingModal
+          visible={f.ratingModal.visible}
+          onDismiss={() => f.setRatingModal({ ...f.ratingModal, visible: false })}
+          type={f.ratingModal.type}
+          orderId={f.ratingModal.order?.id || ''}
+          productId={f.ratingModal.order?.product.id}
+          sellerId={f.ratingModal.order?.seller.id}
+          productTitle={f.ratingModal.order?.product.title}
+          sellerName={f.ratingModal.order?.seller.displayName}
+          onSuccess={() => {
+            f.refetch();
+            toast.success(t('order.reviewReceived'));
+          }}
+        />
+      }
+    >
       <OrdersFilters f={f} />
 
-      {/* Orders */}
       {f.ordersError ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptySubtitle}>
-            {t('order.loadFailedRetry')}
-          </Text>
-          <Button variant="primary" title={t('order.refresh')} onPress={() => f.refetch()} style={StyleSheet.flatten([styles.emptyButton, { marginTop: theme.spacing[3] }])} />
-        </View>
+        <ErrorState message={t('order.loadFailedRetry')} onRetry={() => f.refetch()} />
       ) : f.isLoading && f.entries.length === 0 ? (
-        <View style={styles.loadingContainer}>
-          <Spinner size="lg" />
+        <View style={styles.list}>
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
         </View>
       ) : f.entries.length === 0 ? (
-        <OrdersEmpty filter={f.filter} />
+        <EmptyState
+          icon="receipt-outline"
+          title={emptyTitle}
+          description={t('order.startShopping')}
+          actionLabel={t('order.exploreProducts')}
+          onAction={() => router.push('/(tabs)/search')}
+        />
       ) : (
-        <ScrollView
-          style={styles.ordersList}
-          refreshControl={
-            <RefreshControl refreshing={f.refreshing} onRefresh={f.onRefresh} colors={[colors.primary[600]!]} />
-          }
-        >
+        <View style={styles.list}>
           {f.entries.map((entry) =>
             entry.kind === 'order' ? (
               <OrderCard key={entry.order.id} order={entry.order} onRate={onRate} />
@@ -67,39 +97,8 @@ export default function OrdersScreen() {
               />
             )
           )}
-
-          <View style={{ height: 100 }} />
-        </ScrollView>
+        </View>
       )}
-
-      {/* Rating Modal */}
-      <RatingModal
-        visible={f.ratingModal.visible}
-        onDismiss={() => f.setRatingModal({ ...f.ratingModal, visible: false })}
-        type={f.ratingModal.type}
-        orderId={f.ratingModal.order?.id || ''}
-        productId={f.ratingModal.order?.product.id}
-        sellerId={f.ratingModal.order?.seller.id}
-        productTitle={f.ratingModal.order?.product.title}
-        sellerName={f.ratingModal.order?.seller.displayName}
-        onSuccess={() => {
-          f.refetch();
-          f.setSnackbar({
-            visible: true,
-            variant: 'success',
-            message: t('order.reviewReceived'),
-          });
-        }}
-      />
-
-      <Snackbar
-        visible={f.snackbar.visible}
-        onDismiss={() => f.setSnackbar({ visible: false, message: '', variant: 'default' })}
-        duration={3500}
-        variant={f.snackbar.variant}
-      >
-        {f.snackbar.message}
-      </Snackbar>
-    </View>
+    </PageShell>
   );
 }

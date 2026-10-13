@@ -1324,7 +1324,8 @@
     "preparingDeadlineBuyer": "The seller has to ship this order by this date at the latest.",
     "preparingExtendedTitle": "Shipping deadline extended once — new deadline: {date}",
     "preparingExtendedSeller": "Your shipping deadline passed and was extended once. This is the final deadline; if the order is not shipped by then, it is cancelled automatically and the buyer refunded in full.",
-    "preparingExtendedBuyer": "The seller could not ship on time and was given one extension. If the order is not shipped by this date, it is cancelled automatically and your payment refunded in full. You can cancel the order any time before it ships."
+    "preparingExtendedBuyer": "The seller could not ship on time and was given one extension. If the order is not shipped by this date, it is cancelled automatically and your payment refunded in full. You can cancel the order any time before it ships.",
+    "groupItemActionsNote": "Returns and cancellations are handled per item. Tap an item to request a cancellation (before shipping) or a return (after shipping)."
   },
   "trade": {
     "featureTitle": "Trading",

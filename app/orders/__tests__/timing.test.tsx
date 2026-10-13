@@ -12,6 +12,7 @@ import React from 'react';
 import { Linking, RefreshControl } from 'react-native';
 import { act, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
+import { ToastHost } from '@/ui';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
@@ -260,11 +261,16 @@ describe('A-3.4 · e-Arşiv belgeleri listelenir', () => {
     openURL.mockRestore();
   });
 
-  it('PDF hazır değilse snackbar "Fatura henüz hazır değil"', async () => {
+  it('PDF hazır değilse toast "Fatura henüz hazır değil"', async () => {
     invoicesMock.mockResolvedValue({ data: INVOICES });
     pdfMock.mockResolvedValue({ data: {} });
     serveOrder();
-    renderWithProviders(<OrderDetailScreen />);
+    renderWithProviders(
+      <>
+        <OrderDetailScreen />
+        <ToastHost />
+      </>,
+    );
     fireEvent.press(await screen.findByTestId('order-invoice-open-inv-1'));
     expect(await screen.findByText('Fatura henüz hazır değil')).toBeOnTheScreen();
   });
