@@ -7793,6 +7793,7 @@
     "versionSuffix": " · v{version}"
   },
   "bankAccount": {
+    "resubmitAfterIdentity": "Kimlik bilgilerinizi girerken banka bilgileri değişti. Gördüğünüz bilgileri kaydetmek için Kaydet'e yeniden basın.",
     "holderMinLength": "Hesap sahibi adı en az 2 karakter olmalı",
     "ibanInvalid": "Geçerli bir TR IBAN giriniz (TR + 24 rakam)",
     "saved": "Banka hesabı kaydedildi",

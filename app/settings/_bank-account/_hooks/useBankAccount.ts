@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
@@ -7,8 +7,9 @@ import { bankAccountApi, errorText } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
-import { formatIbanDisplay, normalizeIban } from '@/utils/iban';
+import { formatIbanDisplay } from '@/utils/iban';
 import { buildBankAccountSchema, EMPTY_BANK_ACCOUNT, type BankAccountForm } from '../_lib/schema';
+import { sameBankAccountPayload, toBankAccountPayload } from '../_lib/payload';
 
 type SnackbarState = {
   visible: boolean;
@@ -22,6 +23,11 @@ type SnackbarState = {
  * ihtiyaç anında): hesap satıcı ödemesi içindir ve devlet bildirimi için
  * üyenin kimliği kayıtlı olmalıdır. Üye kimlik adımında vazgeçerse kayıt
  * yapılmaz.
+ *
+ * Kimlik adımı uzun süre açık kalabilir: kapandığında ekran artık bağlı
+ * değilse kayıt gitmez; form bu arada değiştiyse (ör. hesap sorgusu yenilenip
+ * formu sıfırladı) eski değerler GÖNDERİLMEZ, üyeden Kaydet'e yeniden basması
+ * istenir — IBAN paranın gideceği yer, gördüğü değerden başkası kaydedilmemeli.
  */
 export function useBankAccount() {
   const { t } = useTranslation();
@@ -31,10 +37,17 @@ export function useBankAccount() {
   // Dil değişince şema yeniden kurulur — aksi halde hata metni ilk dilde donar.
   const schema = useMemo(() => buildBankAccountSchema(t), [t]);
   const form = useZodForm(schema, { defaultValues: EMPTY_BANK_ACCOUNT });
-  const { reset } = form;
+  const { reset, getValues } = form;
   const [snackbar, setSnackbar] = useState<SnackbarState>({ visible: false, message: '' });
   // Kimlik kontrolü sürerken (ağ isteği) buton ikinci kez basılmasın.
   const [checkingIdentity, setCheckingIdentity] = useState(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const accountQuery = useQuery({
     queryKey: qk.user.bankAccount,
@@ -54,12 +67,7 @@ export function useBankAccount() {
   }, [accountQuery.data, reset]);
 
   const upsertMutation = useMutation({
-    mutationFn: async (data: BankAccountForm) =>
-      bankAccountApi.upsert({
-        accountHolder: data.accountHolder.trim(),
-        iban: normalizeIban(data.iban),
-        ...(data.taxId ? { taxId: data.taxId } : {}),
-      }),
+    mutationFn: async (data: BankAccountForm) => bankAccountApi.upsert(toBankAccountPayload(data)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.user.bankAccount });
       setSnackbar({ visible: true, message: t('bankAccount.saved'), variant: 'success' });
@@ -93,9 +101,14 @@ export function useBankAccount() {
     try {
       proceed = await requireIdentity();
     } finally {
-      setCheckingIdentity(false);
+      if (mounted.current) setCheckingIdentity(false);
     }
-    if (proceed) upsertMutation.mutate(data);
+    if (!proceed || !mounted.current) return;
+    if (!sameBankAccountPayload(data, getValues())) {
+      setSnackbar({ visible: true, message: t('bankAccount.resubmitAfterIdentity') });
+      return;
+    }
+    upsertMutation.mutate(data);
   };
 
   const confirmDelete = () =>
