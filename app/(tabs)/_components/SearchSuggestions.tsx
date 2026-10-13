@@ -155,6 +155,7 @@ export function SearchSuggestions({ f }: { f: SearchController }) {
                 {f.autocomplete.categories.slice(0, 5).map((c) => (
                   <Pressable
                     key={`c-${c.id}`}
+                    testID="search-category-suggestion"
                     style={styles.acItem}
                     onPress={() =>
                       f.applyFacet({ categoryId: c.id, category: c.name })

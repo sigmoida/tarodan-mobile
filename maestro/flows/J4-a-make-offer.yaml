@@ -63,12 +63,13 @@ tags:
       - tapOn:
           text: "Şimdi Değil"
           optional: true
-# Ana sayfaya dön + Kategoriler doğrula.
+# Ana sayfaya dön + ana sayfa arama kutusunu doğrula.
 - tapOn:
     text: "Ana Sayfa"
     optional: true
 - extendedWaitUntil:
-    visible: "Kategoriler"
+    visible:
+      id: "home-search-input"
     timeout: 30000
 # Arama → ürün detay (Journey 1 deseni: hideKeyboard + kart testID)
 - tapOn:

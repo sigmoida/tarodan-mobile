@@ -134,5 +134,6 @@ tags:
 - tapOn:
     text: "Ana Sayfaya Dön"
 - extendedWaitUntil:
-    visible: "Kategoriler"
+    visible:
+      id: "home-search-input"
     timeout: 20000

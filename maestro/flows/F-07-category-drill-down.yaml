@@ -1,5 +1,5 @@
-# F-07: Category drill-down — Home → Kategoriler → category → product.
-# Ana sayfada Kategoriler bölümü ya da kategori chip'i bekleniyor.
+# F-07: Kategori drill-down — Ana sayfada kategori bölümü kalktı (web'de yok); kategoriye
+# Ara sekmesindeki öneri panelinden (Kategoriler bölümü) gidilir → filtreli sonuçlar → ürün.
 appId: ${APP_ID}
 tags:
   - regression
@@ -16,31 +16,35 @@ env:
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
 - tapOn:
-    text: "Ana Sayfa"
+    text: "Ara"
+- tapOn:
+    id: "search-input"
+- inputText: "ar"
+# Öneri panelinde Kategoriler bölümünün ilk öğesi.
 - extendedWaitUntil:
     visible:
-      text: "Kategoriler|Tüm Kategoriler"
+      id: "search-category-suggestion"
     timeout: 30000
 - tapOn:
-    text: "Kategoriler|Tüm Kategoriler"
-# Kategori listesi/grid render edilir; ilk kategori kartına tıkla.
+    id: "search-category-suggestion"
+    index: 0
+# Kategori filtresi uygulandı: sonuçlar (ya da tek boş durum) yüklenir; hata yok.
 - extendedWaitUntil:
     visible:
-      text: ".*"
-    timeout: 15000
+      text: ".*[0-9],[0-9][0-9] TL.*|Henüz ilan yok"
+    timeout: 30000
 - assertNotVisible: ".*Network Error.*"
-# Kategori sayfası açıldı; ilk fiyatlı ürüne tıkla.
+# İlk fiyatlı ürüne tıkla.
 - tapOn:
     text: ".*[0-9],[0-9][0-9] TL.*"
     index: 0
     optional: true
 - extendedWaitUntil:
     visible:
-      text: "Sepete Ekle|Teklif Ver|Açıklama"
+      text: "Hemen Al|Teklif Ver|Açıklama|Henüz ilan yok"
     timeout: 30000
 - assertNotVisible: ".*Bir hata oluştu.*"
-# Geri nav: kategoriden ana sayfaya dön
-- back
+# Geri nav: ürün → arama
 - back
 - extendedWaitUntil:
     visible: "Ana Sayfa"
