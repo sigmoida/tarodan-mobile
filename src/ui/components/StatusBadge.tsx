@@ -4,6 +4,7 @@ import { Badge, type BadgeVariant } from './Badge';
 export interface StatusBadgeProps {
   status: string;
   config: Record<string, { label: string; variant: BadgeVariant }>;
+  /** Haritada olmayan (bilinmeyen) durum için varyant — nötr `outline` (Badge status modu ile aynı). */
   fallbackVariant?: BadgeVariant;
   size?: 'sm' | 'md' | 'lg';
 }
@@ -11,7 +12,7 @@ export interface StatusBadgeProps {
 export const StatusBadge: React.FC<StatusBadgeProps> = ({
   status,
   config,
-  fallbackVariant = 'default',
+  fallbackVariant = 'outline',
   size = 'md',
 }) => {
   const cfg = config[status];

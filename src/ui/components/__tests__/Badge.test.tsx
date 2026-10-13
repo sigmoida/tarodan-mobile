@@ -60,3 +60,34 @@ describe('ProductBadge', () => {
     expect(textOf('%20').fontWeight).toBe('700');
   });
 });
+
+describe('bilinmeyen durum → nötr outline', () => {
+  const config = { paid: { label: 'Ödendi', variant: 'success' as const } };
+  const boxOfText = (text: string) => {
+    let node = screen.getByText(text).parent;
+    while (node && StyleSheet.flatten(node.props.style)?.borderRadius === undefined) node = node.parent;
+    return StyleSheet.flatten(node?.props.style);
+  };
+
+  it('StatusBadge: bilinen durum haritanın rengi, bilinmeyen outline (marka tonu DEĞİL)', () => {
+    render(
+      <>
+        <StatusBadge status="paid" config={config} />
+        <StatusBadge status="mystery" config={config} />
+      </>,
+    );
+    expect(boxOfText('Ödendi').backgroundColor).toBe(colors.success[100]);
+    expect(boxOfText('mystery')).toMatchObject({ backgroundColor: 'transparent', borderWidth: 1 });
+  });
+
+  it('Badge status modu: bilinmeyen durum outline, bilinen haritanın rengi', () => {
+    render(
+      <>
+        <Badge status="paid" config={config} />
+        <Badge status="mystery" config={config} />
+      </>,
+    );
+    expect(boxOfText('Ödendi').backgroundColor).toBe(colors.success[100]);
+    expect(boxOfText('mystery')).toMatchObject({ backgroundColor: 'transparent', borderWidth: 1 });
+  });
+});
