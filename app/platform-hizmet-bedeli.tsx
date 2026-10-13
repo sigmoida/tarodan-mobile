@@ -1,10 +1,10 @@
-import { View, ScrollView, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import React from 'react';
+import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { theme, Text, ScreenHeader } from '@/ui';
+import { Text, theme } from '@/ui';
+import { InfoPage, type InfoSection } from '@/components/common/InfoPage';
 import { SUPPORT_EMAIL } from '@/constants/legalFacts';
-
-const { colors } = theme;
+import type { MessageKey } from '@/i18n/lib/generated/keys';
 
 /**
  * Platform Hizmet Bedeli şeffaflık sayfası. Web karşılığı:
@@ -19,92 +19,79 @@ const { colors } = theme;
  */
 export default function PlatformHizmetBedeliScreen() {
   const { t } = useTranslation();
-  return (
-    <View style={styles.container}>
-      <ScreenHeader
-        title={t('mobile.pagePlatformFee')}
-        onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-      />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.lastUpdated}>{t('legalContact.lastUpdatedJun2026')}</Text>
-
-        <Text style={styles.sectionTitle}>{t('platformFeePage.s1Title')}</Text>
-        <Text style={styles.paragraph}>{t('platformFeePage.s1Content')}</Text>
-
-        <Text style={styles.sectionTitle}>{t('platformFeePage.s2Title')}</Text>
-        <Text style={styles.listItem}>{t('platformFeePage.s2Item1')}</Text>
-        <Text style={styles.listItem}>{t('platformFeePage.s2Item2')}</Text>
-        <Text style={styles.listItem}>{t('platformFeePage.s2Item3')}</Text>
-        <Text style={styles.paragraph}>{t('platformFeePage.s2Outro')}</Text>
-
-        <Text style={styles.sectionTitle}>{t('platformFeePage.s3Title')}</Text>
-        <Text style={styles.paragraph}>{t('platformFeePage.s3Intro')}</Text>
-        <Text style={styles.listItem}>{t('platformFeePage.s3Item1')}</Text>
-        <Text style={styles.listItem}>{t('platformFeePage.s3Item2')}</Text>
-        <Text style={styles.listItem}>{t('platformFeePage.s3Item3')}</Text>
-        <Text style={styles.listItem}>{t('platformFeePage.s3Item4')}</Text>
-
-        <Text style={styles.sectionTitle}>{t('platformFeePage.s4Title')}</Text>
-        <Text style={styles.paragraph}>{t('platformFeePage.s4Intro')}</Text>
-        <Text style={styles.listItem}>{t('platformFeePage.s4Item1')}</Text>
-        <Text style={styles.listItem}>{t('platformFeePage.s4Item2')}</Text>
-        <Text style={styles.listItem}>{t('platformFeePage.s4Item3')}</Text>
-        <Text style={styles.listItem}>{t('platformFeePage.s4Item4')}</Text>
-
-        <Text style={styles.sectionTitle}>{t('platformFeePage.s5Title')}</Text>
-        <Text style={styles.paragraph}>{t('platformFeePage.s5Content')}</Text>
-
-        <Text style={styles.sectionTitle}>{t('platformFeePage.s6Title')}</Text>
-        <Text style={styles.paragraph}>
-          {t('platformFeePage.s6Content', { email: SUPPORT_EMAIL })}
+  const bullets = (keys: MessageKey[]) => (
+    <View style={{ gap: theme.spacing[1] }}>
+      {keys.map((k) => (
+        <Text key={k} variant="body" tone="body">
+          {`• ${t(k)}`}
         </Text>
-
-        <Text style={styles.disclaimer}>{t('platformFeePage.disclaimer')}</Text>
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
+      ))}
     </View>
   );
-}
+  const para = (key: MessageKey) => (
+    <Text variant="body" tone="body">
+      {t(key)}
+    </Text>
+  );
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.DEFAULT,
-  },
-  content: {
-    flex: 1,
-    padding: theme.spacing[5],
-  },
-  lastUpdated: {
-    fontSize: 13,
-    color: colors.text.muted,
-    marginBottom: theme.spacing[6],
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text.heading,
-    marginTop: theme.spacing[6],
-    marginBottom: theme.spacing[3],
-  },
-  paragraph: {
-    fontSize: 14,
-    color: colors.text.muted,
-    lineHeight: 22,
-    marginBottom: theme.spacing[3],
-  },
-  listItem: {
-    fontSize: 14,
-    color: colors.text.muted,
-    lineHeight: 24,
-    marginLeft: theme.spacing[2],
-  },
-  disclaimer: {
-    fontSize: 13,
-    color: colors.text.subtle,
-    lineHeight: 20,
-    marginTop: theme.spacing[6],
-  },
-});
+  const sections: InfoSection[] = [
+    { title: t('platformFeePage.s1Title'), content: t('platformFeePage.s1Content') },
+    {
+      title: t('platformFeePage.s2Title'),
+      children: (
+        <>
+          {bullets(['platformFeePage.s2Item1', 'platformFeePage.s2Item2', 'platformFeePage.s2Item3'])}
+          {para('platformFeePage.s2Outro')}
+        </>
+      ),
+    },
+    {
+      title: t('platformFeePage.s3Title'),
+      children: (
+        <>
+          {para('platformFeePage.s3Intro')}
+          {bullets([
+            'platformFeePage.s3Item1',
+            'platformFeePage.s3Item2',
+            'platformFeePage.s3Item3',
+            'platformFeePage.s3Item4',
+          ])}
+        </>
+      ),
+    },
+    {
+      title: t('platformFeePage.s4Title'),
+      children: (
+        <>
+          {para('platformFeePage.s4Intro')}
+          {bullets([
+            'platformFeePage.s4Item1',
+            'platformFeePage.s4Item2',
+            'platformFeePage.s4Item3',
+            'platformFeePage.s4Item4',
+          ])}
+        </>
+      ),
+    },
+    { title: t('platformFeePage.s5Title'), content: t('platformFeePage.s5Content') },
+    {
+      title: t('platformFeePage.s6Title'),
+      content: t('platformFeePage.s6Content', { email: SUPPORT_EMAIL }),
+    },
+  ];
+
+  return (
+    <InfoPage
+      title={t('mobile.pagePlatformFee')}
+      pageTitle={t('mobile.pagePlatformFee')}
+      description={t('legalContact.lastUpdatedJun2026')}
+      sections={sections}
+      footer={
+        <Text variant="caption" tone="subtle">
+          {t('platformFeePage.disclaimer')}
+        </Text>
+      }
+    />
+  );
+}
