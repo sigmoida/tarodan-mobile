@@ -4,7 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { productsApi, categoriesApi } from '@/lib/api';
-import { buildSortOptions } from '../_lib/constants';
+import { buildSortOptions } from '@/utils/productFilters';
 
 /**
  * Category controller — owns the category-detail query, the filtered products
@@ -38,7 +38,9 @@ export function useCategory() {
     queryKey: ['category-products', category?.id, searchQuery, sortBy, selectedScale],
     queryFn: async () => {
       try {
-        const params: any = { categoryId: category?.id, limit: 50, sortBy };
+        const params: any = { categoryId: category?.id, limit: 50 };
+        // Web gibi: 'Önerilen' sunucunun varsayılanı — sortBy gönderilmez.
+        if (sortBy !== 'relevance') params.sortBy = sortBy;
         if (searchQuery) params.search = searchQuery;
         if (selectedScale) params.scale = selectedScale;
 
@@ -59,7 +61,7 @@ export function useCategory() {
   }, [refetch]);
 
   const getSortLabel = () =>
-    buildSortOptions(t).find((o) => o.id === sortBy)?.name || t('common.sort');
+    buildSortOptions(t).find((o) => o.value === sortBy)?.label || t('common.sort');
 
   return {
     category,
