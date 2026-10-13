@@ -35,6 +35,13 @@ const BAN_PAPER = {
             "react-native-paper kaldırıldı. Bunun yerine '@/ui'den component import et. Geçişte sorun olursa .eslintrc.cjs MIGRATION_OVERRIDES'a dosyayı ekle.",
         },
         {
+          // Snackbar emekli (CLAUDE.md §14): tüm geri bildirim `toast` ile.
+          name: '@/ui',
+          importNames: ['Snackbar'],
+          message:
+            "Snackbar kaldırıldı: bilgi/başarı/hata sonucu için toast (toast.success / toast.error), onay için confirm() / appAlert (CLAUDE.md §14).",
+        },
+        {
           // Sistem alert'i temasız ve iOS'ta açık bir RN Modal üstünde donma riski taşır (CLAUDE.md §12).
           name: 'react-native',
           importNames: ['Alert'],

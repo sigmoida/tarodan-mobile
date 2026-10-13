@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { appAlert } from '@/ui';
+import { toast } from '@/ui';
 // listingsApi → productsApi (parite migrasyonu); userApi.getMyProducts → productsApi.getMyListings
 import { productsApi as listingsApi, tradesApi, productsApi, type TradePaymentQuoteSide } from '@/lib/api';
-import { qk, retryUnlessClientError } from '@/lib/query';
+import { apiErrorMessage } from '@/lib/api/errorText';
+import { qk, retryUnlessClientError, useAppMutation } from '@/lib/query';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
 import { useAuthStore } from '@/stores/authStore';
 import { getProductEffectivePrice } from '@/utils/productPrice';
-import { formatApiErrorMessage } from '@/utils/formatApiErrorMessage';
 import { firstQueryParam, type Product } from '../_lib/types';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
@@ -45,7 +45,6 @@ export function useNewTrade() {
   const [cashDirection, setCashDirection] = useState<'offer' | 'request'>('offer'); // offer = I pay, request = they pay
   const [message, setMessage] = useState('');
   const [tradeAddressId, setTradeAddressId] = useState<string | null>(null);
-  const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
 
   /** Web trades/new ile aynı kural — tek kaynak `useFeatureAccess`. */
   const { canTrade } = useFeatureAccess();
@@ -117,8 +116,8 @@ export function useNewTrade() {
     queryClient.invalidateQueries({ queryKey: ['my-listings'] });
   };
 
-  const createTradeMutation = useMutation({
-    mutationFn: async () => {
+  const createTradeMutation = useAppMutation(
+    async () => {
       const cashVal = parseFloat(cashAmount.replace(',', '.')) || 0;
       let finalCash: number | undefined;
       if (cashVal > 0) {
@@ -133,23 +132,27 @@ export function useNewTrade() {
         shippingAddressId: tradeAddressId || undefined,
       });
     },
-    onSuccess: () => {
-      invalidateTradeRelatedQueries();
-      setSnackbar({ visible: true, message: t('trade.tradeSent') });
-      setTimeout(() => router.replace('/trades'), 1200);
+    {
+      error: t('trade.sendFailed'),
+      onSuccess: () => {
+        invalidateTradeRelatedQueries();
+        // Önce ekran değişir, sonra toast — bekleme yok.
+        router.replace('/trades');
+        toast.success(t('trade.tradeSent'));
+      },
+      // Toast `useAppMutation`dan; burada yalnız "üyelikte takas yok" ise yetkileri tazele.
+      onError: async (error) => {
+        const msg = apiErrorMessage(error, t('trade.sendFailed'));
+        if (
+          msg.includes('Takas özelliği') ||
+          msg.includes('üyeliğinizde mevcut değil') ||
+          msg.includes('takas özelliğine sahip değil')
+        ) {
+          await refreshUserData();
+        }
+      },
     },
-    onError: async (error: unknown) => {
-      const msg = formatApiErrorMessage(error, t('trade.sendFailed'));
-      if (
-        msg.includes('Takas özelliği') ||
-        msg.includes('üyeliğinizde mevcut değil') ||
-        msg.includes('takas özelliğine sahip değil')
-      ) {
-        await refreshUserData();
-      }
-      setSnackbar({ visible: true, message: msg });
-    },
-  });
+  );
 
   const myTotal = selectedMyItems.reduce((sum, p) => sum + getProductEffectivePrice(p), 0);
   const theirTotal = selectedTheirItems.reduce((sum, p) => sum + getProductEffectivePrice(p), 0);
@@ -201,15 +204,15 @@ export function useNewTrade() {
   const handleSubmit = async () => {
     const cashVal = parseFloat(cashAmount.replace(',', '.')) || 0;
     if (selectedMyItems.length === 0 && cashVal <= 0) {
-      appAlert(t('common.error'), t('trade.selectAtLeastOne'));
+      toast.error(t('trade.selectAtLeastOne'));
       return;
     }
     if (selectedTheirItems.length === 0) {
-      appAlert(t('common.error'), t('trade.selectAtLeastOneWant'));
+      toast.error(t('trade.selectAtLeastOneWant'));
       return;
     }
     if (!tradeAddressId) {
-      appAlert(t('address.deliveryAddress'), t('trade.selectDeliveryAddress'));
+      toast.error(t('trade.selectDeliveryAddress'));
       return;
     }
     // B-2.4: takas başlamadan yasal kimlik; vazgeçerse teklif gönderilmez.
@@ -231,8 +234,6 @@ export function useNewTrade() {
     message,
     setMessage,
     setTradeAddressId,
-    snackbar,
-    setSnackbar,
     myProducts,
     loadingMyProducts,
     theirProducts,

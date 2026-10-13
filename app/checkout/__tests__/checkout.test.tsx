@@ -2,12 +2,14 @@
  * checkout · web gibi TEK sayfa ödeme akışının MOBİL-UI dilimleri.
  * J1 (üye satın alma akışı UI), J25, J54.
  * Test edilen: bölüm düzeni, ödeme butonu metni/durumu, fiyat özeti render,
- * boş sepet durumu, form validasyonu (snackbar) → ödeme engeli.
+ * boş sepet durumu, form validasyonu (toast) → ödeme engeli.
  * Backend sipariş/ödeme oluşturma backend-only (handleCheckout) — test edilmez.
  */
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
+import { ToastHost } from '@/ui';
+import { resetToastForTests } from '@/ui/components/Toast';
 
 // AsyncStorage native modülü test ortamında null; resmi jest mock'u kullan.
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -87,6 +89,7 @@ function acceptDistanceSales() {
 describe('checkout-tek-sayfa', () => {
   afterEach(() => {
     useCartStore.setState({ items: [] });
+    resetToastForTests();
   });
 
   describe('J1 · boş sepet durumu', () => {
@@ -158,7 +161,7 @@ describe('checkout-tek-sayfa', () => {
   describe('J54 · form doğrulaması ödeme düğmesinde (eski adım-1 kapısı)', () => {
     it('konuk bilgileri boşken "Ödeme Yap" hata gösterir, sipariş/OTP başlamaz', async () => {
       seedCart([SAMPLE_ITEM]);
-      renderWithProviders(<CheckoutScreen />);
+      renderWithProviders(<><CheckoutScreen /><ToastHost /></>);
       acceptDistanceSales();
       await waitFor(() => expect(screen.getByTestId('checkout-pay-button')).not.toBeDisabled());
       fireEvent.press(screen.getByText('Ödeme Yap'));

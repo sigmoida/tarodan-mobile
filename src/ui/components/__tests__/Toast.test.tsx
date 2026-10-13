@@ -2,7 +2,7 @@ import React from 'react';
 import { AccessibilityInfo, StyleSheet, View } from 'react-native';
 import { act, render, screen, within } from '@testing-library/react-native';
 import { NavigationContext } from '@react-navigation/native';
-import { Snackbar, toast, ToastHost, ToastLayer, useToastBottomInset } from '@/ui';
+import { toast, ToastHost, ToastLayer, useToastBottomInset } from '@/ui';
 import { isSwipeDismiss, resetToastForTests, TOAST_GAP, toastBottom } from '../Toast';
 
 let mockKeyboardHeight = 0;
@@ -431,16 +431,5 @@ describe('kaydırarak kapatma eşiği', () => {
     expect(isSwipeDismiss(-40, 0)).toBe(true);
     expect(isSwipeDismiss(40, 0)).toBe(true);
     expect(isSwipeDismiss(5, 900)).toBe(true);
-  });
-});
-
-describe('Snackbar (eski kullanım)', () => {
-  it('mevcut Snackbar kullanımı (koyu şerit) aynen çalışır', () => {
-    render(
-      <Snackbar visible onDismiss={jest.fn()} variant="success">
-        Tamam
-      </Snackbar>,
-    );
-    expect(screen.getByText('Tamam')).toBeTruthy();
   });
 });

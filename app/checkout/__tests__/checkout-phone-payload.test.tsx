@@ -23,7 +23,8 @@ import React from 'react';
 import { screen, fireEvent, waitFor, act, renderHook } from '@testing-library/react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { renderWithProviders, makeTestQueryClient } from '@/test-utils';
-import { appAlert } from '@/ui';
+import { appAlert, toast, ToastHost } from '@/ui';
+import { resetToastForTests } from '@/ui/components/Toast';
 import { getPhoneInvalidMessage } from '@/utils/phone';
 
 // B4: kimlik kapısı bu testin konusu değil — geçti say (kapı testi ayrı dosyada).
@@ -141,6 +142,7 @@ const advanceToConfirm = async () => {
 };
 
 beforeEach(() => {
+  resetToastForTests(); // önceki testin toast'ı sızmasın
   jest.mocked(ordersApi.checkout).mockClear();
   jest.mocked(ordersApi.checkoutGuest).mockClear();
   jest.mocked(ordersApi.sendGuestVerificationCode).mockClear();
@@ -185,7 +187,7 @@ describe('Misafir yolu — alana yazılan telefon payloada ne olarak gidiyor', (
   };
 
   it('geçerli "0532 123 45 67" → checkoutGuest payloadı "+905321234567" taşır', async () => {
-    renderWithProviders(<CheckoutScreen />);
+    renderWithProviders(<><CheckoutScreen /><ToastHost /></>);
     fillGuestStep1('0532 123 45 67');
     await advanceToConfirm();
 
@@ -212,7 +214,7 @@ describe('Misafir yolu — alana yazılan telefon payloada ne olarak gidiyor', (
     ['05321234567890'],
     ['0432 123 45 67'],
   ])('geçersiz "%s" → checkoutGuest HİÇ çağrılmaz, Türkçe hata görünür', async (input) => {
-    renderWithProviders(<CheckoutScreen />);
+    renderWithProviders(<><CheckoutScreen /><ToastHost /></>);
     fillGuestStep1(input);
     await pressPay();
 
@@ -224,7 +226,7 @@ describe('Misafir yolu — alana yazılan telefon payloada ne olarak gidiyor', (
   });
 
   it('misafir telefonu geçerli ama TESLİMAT adresi telefonu geçersiz → gönderim durur', async () => {
-    renderWithProviders(<CheckoutScreen />);
+    renderWithProviders(<><CheckoutScreen /><ToastHost /></>);
     fillGuestStep1('0532 123 45 67', '05321234567890');
 
     await pressPay();
@@ -236,7 +238,7 @@ describe('Misafir yolu — alana yazılan telefon payloada ne olarak gidiyor', (
   });
 
   it('alan KIRPMAZ + blurda hata görünür, düzeltilince kalkar', async () => {
-    renderWithProviders(<CheckoutScreen />);
+    renderWithProviders(<><CheckoutScreen /><ToastHost /></>);
     const input = screen.getByTestId('guest-phone-input');
 
     fireEvent.changeText(input, '05321234567890');
@@ -252,7 +254,7 @@ describe('Misafir yolu — alana yazılan telefon payloada ne olarak gidiyor', (
   });
 
   it('telefon BOŞ ise "geçersiz" değil "gerekli" denir', async () => {
-    renderWithProviders(<CheckoutScreen />);
+    renderWithProviders(<><CheckoutScreen /><ToastHost /></>);
     fireEvent.changeText(screen.getByTestId('guest-name-input'), 'Ali Veli');
     fireEvent.changeText(screen.getByTestId('guest-email-input'), 'ali@example.com');
     fillAddressExceptPhone();
@@ -272,7 +274,7 @@ describe('Üye yolu — telefon payloada ne olarak gidiyor', () => {
 
   it('KAYITLI adres seçili → payload adres ID gönderir, telefon uydurulmaz', async () => {
     jest.mocked(addressesApi.getAll).mockResolvedValue({ data: [SAVED_ADDRESS] } as any);
-    renderWithProviders(<CheckoutScreen />);
+    renderWithProviders(<><CheckoutScreen /><ToastHost /></>);
 
     await waitFor(() => expect(screen.getByText('Ali Veli · +905321234567')).toBeOnTheScreen());
     await advanceToConfirm();
@@ -290,7 +292,7 @@ describe('Üye yolu — telefon payloada ne olarak gidiyor', () => {
   });
 
   it('YENİ (inline) adres + geçerli telefon → payload "+905321234567" taşır', async () => {
-    renderWithProviders(<CheckoutScreen />);
+    renderWithProviders(<><CheckoutScreen /><ToastHost /></>);
 
     fillAddressExceptPhone();
     fireEvent.changeText(screen.getByTestId('shipping-phone-input'), '0532 123 45 67');
@@ -310,7 +312,7 @@ describe('Üye yolu — telefon payloada ne olarak gidiyor', () => {
   it.each([['00905321234567'], ['+1 415 555 0100'], ['05321234567890'], ['0432 123 45 67']])(
     'YENİ (inline) adres + geçersiz "%s" → ordersApi.checkout HİÇ çağrılmaz',
     async (input) => {
-      renderWithProviders(<CheckoutScreen />);
+      renderWithProviders(<><CheckoutScreen /><ToastHost /></>);
 
       fillAddressExceptPhone();
       fireEvent.changeText(screen.getByTestId('shipping-phone-input'), input);
@@ -371,6 +373,7 @@ describe('proceedCheckout telefon kapısı — gönderim setLoading ÖNCESİ dur
   });
 
   it('çözülemeyen inline TESLİMAT telefonu (üye) → ordersApi.checkout çağrılmaz', async () => {
+    const toastError = jest.spyOn(toast, 'error').mockImplementation(() => 1);
     mockAuthState.isAuthenticated = true;
     mockAuthState.user = { id: 'u1', email: 'member@example.com' };
 
@@ -393,11 +396,9 @@ describe('proceedCheckout telefon kapısı — gönderim setLoading ÖNCESİ dur
 
     expect(ordersApi.checkout).not.toHaveBeenCalled();
     // Tek sayfada adres kapısı (eski adım-1 "Devam Et") `handleCheckout`'un İLK kapısı: hata
-    // snackbar'a düşer, kimlik kapısı/`proceedCheckout` hiç koşmaz.
-    expect(result.current.snackbar).toEqual({
-      visible: true,
-      message: `Teslimat adresi — ${getPhoneInvalidMessage()}`,
-    });
+    // toast.error'a düşer, kimlik kapısı/`proceedCheckout` hiç koşmaz.
+    expect(toastError).toHaveBeenCalledWith(`Teslimat adresi — ${getPhoneInvalidMessage()}`);
+    toastError.mockRestore();
     expect(appAlert).not.toHaveBeenCalled();
     expect(result.current.loading).toBe(false);
   });

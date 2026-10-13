@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
-import { Snackbar } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { useCheckout } from './_hooks/useCheckout';
 import { CheckoutItemsSection } from './_components/CheckoutItemsSection';
@@ -43,9 +42,6 @@ export default function CheckoutScreen() {
       footer={<CheckoutPayBar c={c} />}
       overlay={
         <>
-          <Snackbar visible={c.snackbar.visible} onDismiss={c.dismissSnackbar} duration={3000} variant="danger">
-            {c.snackbar.message}
-          </Snackbar>
           <OtpModal
             visible={c.otpModalOpen}
             onClose={c.closeOtpModal}
