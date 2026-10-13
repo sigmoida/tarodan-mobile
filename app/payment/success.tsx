@@ -129,6 +129,14 @@ export default function PaymentSuccessScreen() {
         }
       }
       if (cancelled) return;
+      // Başarısız ödeme bu ekrana düştüyse (merchant ok URL'i, derin bağlantı)
+      // sonsuz "doğrulanıyor" yerine başarısız ekranına git (web
+      // `usePaymentSuccess` gibi, takas yönlendirmesinden önce): üye orada
+      // "Tekrar Dene"yi, misafir "İlanlara / Ana Sayfaya Dön"ü bulur.
+      if (isFailedPaymentStatus(last?.status)) {
+        router.replace({ pathname: '/payment/fail', params: { paymentId, ...(guest ? { guest } : {}) } });
+        return;
+      }
       // Ödeme kesinleştiyse yetki belirteci artık gereksiz: kaydı sil.
       void forgetPaymentCapabilityIfFinal(paymentId, last?.status);
 

@@ -20,6 +20,9 @@ jest.mock('@/lib/api', () => ({
     getStatus: jest.fn(),
     getStatusLight: jest.fn(),
     getStatusLightGuest: jest.fn(),
+    confirmFailed: jest.fn(() => Promise.resolve({})),
+    confirmFailedGuest: jest.fn(() => Promise.resolve({})),
+    retry: jest.fn(() => Promise.resolve({})),
   },
 }));
 import { paymentsApi } from '@/lib/api';
@@ -27,6 +30,7 @@ import { router } from 'expo-router';
 import { __resetVerifyPacer } from '@/lib/payment/verifyPacer';
 
 import PaymentSuccessScreen from '../success';
+import PaymentFailScreen from '../fail';
 
 // Üye durumu `/status`'tan (public + yetki belirteci); JWT'li getStatus kullanılmaz.
 const getStatusMock = paymentsApi.getStatusLight as jest.Mock;
@@ -257,6 +261,7 @@ describe('J91 · Başarısız ödemede verify gönderilmez', () => {
     expect(getStatusMock).toHaveBeenCalledTimes(1);
     expect(paymentsApi.verify).not.toHaveBeenCalled();
     expect(screen.queryByText('Ödemeniz Başarılı!')).toBeNull();
+    expect(replaceMock).toHaveBeenCalledWith({ pathname: '/payment/fail', params: { paymentId: 'pay-1' } });
   });
 
   it('J91.2 misafir, durum failed → verifyGuest de gönderilmez', async () => {
@@ -269,6 +274,7 @@ describe('J91 · Başarısız ödemede verify gönderilmez', () => {
     await jest.advanceTimersByTimeAsync(20_000);
     expect(paymentsApi.getStatusLightGuest).toHaveBeenCalledTimes(1);
     expect(paymentsApi.verifyGuest).not.toHaveBeenCalled();
+    expect(replaceMock).toHaveBeenCalledWith({ pathname: '/payment/fail', params: { paymentId: 'pay-1', guest: '1' } });
   });
 
   it('J91.3 durum okunamazsa (hata) verify yine gider', async () => {
@@ -277,5 +283,69 @@ describe('J91 · Başarısız ödemede verify gönderilmez', () => {
     renderWithProviders(<PaymentSuccessScreen />);
     await jest.advanceTimersByTimeAsync(100);
     expect(paymentsApi.verify).toHaveBeenCalledWith('pay-1', expect.anything());
+  });
+});
+
+describe('J93 · Başarısız ödeme başarı ekranına düşerse başarısız ekranına gider', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    __resetVerifyPacer();
+    replaceMock.mockReset();
+  });
+
+  /** Başarı ekranının yönlendirdiği rotayı açar (expo-router taklidi). */
+  async function followRedirectToFail() {
+    await waitFor(() =>
+      expect(replaceMock).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/payment/fail' })),
+    );
+    const { params } = replaceMock.mock.calls.find(([arg]) => arg?.pathname === '/payment/fail')![0];
+    screen.unmount();
+    mockParams = params;
+    renderWithProviders(<PaymentFailScreen />);
+  }
+
+  it('J93.1 üye: "doğrulanıyor"da kalmaz; başarısız ekranında Tekrar Dene → aynı ödeme yeniden açılır', async () => {
+    mockParams = { paymentId: 'pay-1' };
+    getStatusMock.mockResolvedValue({ data: { data: infoFixture({ status: 'failed' }) } });
+    renderWithProviders(<PaymentSuccessScreen />);
+    await followRedirectToFail();
+
+    expect(await screen.findByText('Ödeme Başarısız')).toBeOnTheScreen();
+    fireEvent.press(screen.getByText('Tekrar Dene'));
+    await waitFor(() => expect(paymentsApi.retry).toHaveBeenCalledWith('pay-1'));
+    await waitFor(() =>
+      expect(replaceMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({ pathname: '/payment/[id]', params: expect.objectContaining({ id: 'pay-1' }) }),
+      ),
+    );
+  });
+
+  it('J93.2 misafir: Tekrar Dene yok; web gibi "İlanlara Dön" ve "Ana Sayfaya Dön"', async () => {
+    mockParams = { paymentId: 'pay-1', guest: '1' };
+    (paymentsApi.getStatusLightGuest as jest.Mock).mockResolvedValue({
+      data: { data: infoFixture({ status: 'failed' }) },
+    });
+    renderWithProviders(<PaymentSuccessScreen />);
+    await followRedirectToFail();
+
+    expect(await screen.findByText('Ödeme Başarısız')).toBeOnTheScreen();
+    expect(paymentsApi.confirmFailedGuest).toHaveBeenCalledWith('pay-1'); // misafir yolu korunur
+    expect(screen.queryByText('Tekrar Dene')).toBeNull();
+    fireEvent.press(screen.getByText('İlanlara Dön'));
+    expect(replaceMock).toHaveBeenLastCalledWith('/listings');
+    fireEvent.press(screen.getByText('Ana Sayfaya Dön'));
+    expect(replaceMock).toHaveBeenLastCalledWith('/');
+  });
+
+  it('J93.3 takas nakit farkı başarısızsa takasa sessizce dönmez, başarısız ekranına gider', async () => {
+    mockParams = { paymentId: 'pay-1', tradeCash: '1', tradeId: 'trade-9' };
+    getStatusMock.mockResolvedValue({
+      data: { data: infoFixture({ order: undefined, tradeId: 'trade-9', status: 'failed' }) },
+    });
+    renderWithProviders(<PaymentSuccessScreen />);
+    await waitFor(() =>
+      expect(replaceMock).toHaveBeenCalledWith({ pathname: '/payment/fail', params: { paymentId: 'pay-1' } }),
+    );
+    expect(replaceMock).not.toHaveBeenCalledWith('/trade/trade-9');
   });
 });
