@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { runAfterModalClose } from '@/ui/ModalMessage';
 
 /**
  * İhtiyaç anında kimlik isteği — YALNIZ istemci/UI durumu (sunucu verisi
@@ -48,10 +49,22 @@ export function openLegalIdentityRequest(): Promise<boolean> {
   });
 }
 
-/** Açık isteği kapat ve bekleyen her işlemi sonuçla çöz. */
+/**
+ * Açık isteği kapat; bekleyen her işlemi, kapı modalı TAMAMEN kapandıktan
+ * SONRA sonuçla çöz.
+ *
+ * Kapı native tam ekran bir Modal (`FullScreenGate`) ve istek kapanınca
+ * ağaçtan sökülür — sökülen Modal'ın `onDismiss`'i gelmez. Bekleyenler aynı
+ * tick'te çözülseydi çağıran (ödeme, ilan…) kapı daha kaybolurken devam edip
+ * `appAlert` açabilirdi; iOS iki modalı aynı anda sunamaz ve donar
+ * (ModalFreeze, CLAUDE.md §12). Bu yüzden ortak `runAfterModalClose`
+ * süresi kadar beklenir. Bu arada açılan yeni bir istek kendi listesine
+ * yazılır, bu sonuca karışmaz.
+ */
 export function settleLegalIdentityRequest(completed: boolean): void {
   const pending = waiters;
   waiters = [];
   useLegalIdentityRequestStore.setState({ requested: false });
-  pending.forEach((resolve) => resolve(completed));
+  if (pending.length === 0) return;
+  runAfterModalClose(() => pending.forEach((resolve) => resolve(completed)));
 }
