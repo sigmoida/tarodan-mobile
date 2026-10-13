@@ -23,7 +23,8 @@ jest.mock('@/lib/api', () => ({
   productsApi: { getAll: jest.fn(), recordClick: jest.fn(() => Promise.resolve({ data: {} })) },
   searchApi: { autocompleteRich: jest.fn(), users: jest.fn() },
 }));
-import { productsApi } from '@/lib/api';
+import { productsApi, searchApi } from '@/lib/api';
+import { useRecentSearchesStore } from '@/stores/recentSearchesStore';
 
 jest.mock('@/hooks/useProductFilterOptions', () => ({
   useProductFilterOptions: () => ({ manufacturers: [], brands: [], categories: [] }),
@@ -244,5 +245,60 @@ describe('B6 · arama üst çubukları — ölçüm ve collapse', () => {
     expect(mockGetAll).toHaveBeenCalledTimes(1);
     expect(mockGetAll.mock.calls[0]![0].page).toBe(1);
     expect(result.current.refreshing).toBe(false);
+  });
+
+  describe('öneri sorguları ve son aramalar', () => {
+    beforeEach(() => {
+      (searchApi.autocompleteRich as jest.Mock).mockReset().mockResolvedValue({ data: { suggestions: [] } });
+      (searchApi.users as jest.Mock).mockReset().mockResolvedValue({ data: [] });
+      useRecentSearchesStore.setState({ searches: [] });
+    });
+
+    it('öneri sorguları yalnız panel açıkken (kutu odakta) atılır', async () => {
+      const { result } = renderHook(() => useSearch(), {
+        wrapper: hookWrapper(makeTestQueryClient()),
+      });
+
+      act(() => result.current.commitQuery('ferrari'));
+      await waitFor(() => expect(result.current.autocompleteQuery).toBe('ferrari'));
+      expect(searchApi.autocompleteRich).not.toHaveBeenCalled();
+      expect(searchApi.users).not.toHaveBeenCalled();
+
+      act(() => result.current.onInputFocus());
+      await waitFor(() => expect(searchApi.autocompleteRich).toHaveBeenCalledWith('ferrari'));
+      expect(searchApi.users).toHaveBeenCalledWith('ferrari', 6);
+    });
+
+    it('debounce ile her ara değer son aramaya yazılmaz; yalnız onaylanınca yazılır', async () => {
+      const { result } = renderHook(() => useSearch(), {
+        wrapper: hookWrapper(makeTestQueryClient()),
+      });
+
+      act(() => result.current.commitQuery('fer'));
+      act(() => result.current.commitQuery('ferra'));
+      expect(useRecentSearchesStore.getState().searches).toHaveLength(0);
+
+      // Enter
+      act(() => result.current.saveRecentSearch('ferrari'));
+      expect(useRecentSearchesStore.getState().searches.map((s) => s.query)).toEqual(['ferrari']);
+
+      // Öneriden seçim
+      act(() => result.current.pickSuggestion('porsche 911'));
+      expect(useRecentSearchesStore.getState().searches.map((s) => s.query)).toEqual([
+        'porsche 911',
+        'ferrari',
+      ]);
+    });
+
+    it('öneriden ürün/satıcıya gidilince yazılan sorgu kaydedilir', async () => {
+      const { result } = renderHook(() => useSearch(), {
+        wrapper: hookWrapper(makeTestQueryClient()),
+      });
+      act(() => result.current.commitQuery('lamborghini'));
+      await waitFor(() => expect(result.current.autocompleteQuery).toBe('lamborghini'));
+
+      act(() => result.current.confirmQuery());
+      expect(useRecentSearchesStore.getState().searches.map((s) => s.query)).toEqual(['lamborghini']);
+    });
   });
 });

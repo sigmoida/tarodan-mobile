@@ -116,6 +116,7 @@ export default function SearchScreen() {
             autoFocus={f.autoFocusSearch}
             suggestionsOpen={f.suggestionsOpen}
             onCommit={f.commitQuery}
+            onSubmit={f.saveRecentSearch}
             onClose={f.closeSuggestions}
             onFocus={f.onInputFocus}
             onBlur={f.onInputBlur}
@@ -141,6 +142,7 @@ export default function SearchScreen() {
             sellerResults={f.sellerResults}
             onPickSuggestion={f.pickSuggestion}
             onCloseAutocomplete={f.closeAutocomplete}
+            onNavigateSuggestion={f.confirmQuery}
             onApplyFacet={f.applyFacet}
           />
 

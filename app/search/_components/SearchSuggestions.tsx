@@ -31,6 +31,8 @@ export interface SearchSuggestionsProps {
   /** Öneri metni seçilince: kutuyu doldur + paneli kapat. */
   onPickSuggestion: (text: string) => void;
   onCloseAutocomplete: () => void;
+  /** Öneriden ürün/satıcıya gidilince (yazılan sorgu onaylanmış sayılır). */
+  onNavigateSuggestion: () => void;
   onApplyFacet: (partial: Partial<ProductFilters>) => void;
 }
 
@@ -47,6 +49,7 @@ function SearchSuggestionsBase({
   sellerResults,
   onPickSuggestion,
   onCloseAutocomplete,
+  onNavigateSuggestion,
   onApplyFacet,
 }: SearchSuggestionsProps) {
   const { t } = useTranslation();
@@ -107,6 +110,7 @@ function SearchSuggestionsBase({
                     style={styles.acItem}
                     onPress={() => {
                       onCloseAutocomplete();
+                      onNavigateSuggestion();
                       router.push({ pathname: '/product/[id]', params: { id: p.id } } as any);
                     }}
                   >
@@ -130,6 +134,7 @@ function SearchSuggestionsBase({
                     style={styles.acItem}
                     onPress={() => {
                       onCloseAutocomplete();
+                      onNavigateSuggestion();
                       router.push(`/seller/${s.id}` as any);
                     }}
                   >

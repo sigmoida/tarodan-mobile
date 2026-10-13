@@ -10,6 +10,7 @@ const baseProps = () => ({
   suggestionsOpen: false,
   onCommit: jest.fn(),
   onEmptyChange: jest.fn(),
+  onSubmit: jest.fn(),
   onClose: jest.fn(),
   onFocus: jest.fn(),
   onBlur: jest.fn(),
@@ -52,5 +53,14 @@ describe('SearchInputBox', () => {
     rerender(<SearchInputBox {...props} command={{ text: '', nonce: 2 }} />);
     expect(screen.getByTestId('search-input').props.value).toBe('');
     expect(props.onEmptyChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it('klavyede arama (Enter) onSubmit ile güncel metni bildirir', () => {
+    const props = baseProps();
+    renderWithProviders(<SearchInputBox {...props} />);
+    const input = screen.getByTestId('search-input');
+    fireEvent.changeText(input, 'ferrari');
+    fireEvent(input, 'submitEditing');
+    expect(props.onSubmit).toHaveBeenCalledWith('ferrari');
   });
 });

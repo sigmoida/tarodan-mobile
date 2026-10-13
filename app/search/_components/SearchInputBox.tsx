@@ -21,6 +21,8 @@ export interface SearchInputBoxProps {
   onCommit: (text: string) => void;
   /** Kutu boş/dolu durumu değiştiğinde (son aramalar paneli yalnız boşken görünür). */
   onEmptyChange: (empty: boolean) => void;
+  /** Klavyede arama/Enter: kullanıcı aramayı onayladı. */
+  onSubmit: (text: string) => void;
   onClose: () => void;
   onFocus: () => void;
   onBlur: () => void;
@@ -37,6 +39,7 @@ function SearchInputBoxBase({
   suggestionsOpen,
   onCommit,
   onEmptyChange,
+  onSubmit,
   onClose,
   onFocus,
   onBlur,
@@ -64,6 +67,7 @@ function SearchInputBoxBase({
       placeholder={t('search.placeholderLong')}
       value={text}
       onChangeText={setText}
+      onSubmitEditing={() => onSubmit(text)}
       leftIconName="magnifying-glass"
       containerStyle={styles.searchInputContainer}
       fieldStyle={suggestionsOpen ? [styles.searchInputField, styles.searchInputFieldOpen] : styles.searchInputField}

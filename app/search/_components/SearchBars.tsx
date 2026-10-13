@@ -43,6 +43,7 @@ function SearchBarsBase({
   autoFocus,
   suggestionsOpen,
   onCommit,
+  onSubmit,
   onClose,
   onFocus,
   onBlur,
@@ -75,6 +76,7 @@ function SearchBarsBase({
               suggestionsOpen={suggestionsOpen}
               onCommit={onCommit}
               onEmptyChange={onInputEmptyChange}
+              onSubmit={onSubmit}
               onClose={onClose}
               onFocus={onFocus}
               onBlur={onBlur}

@@ -146,10 +146,25 @@ export function useSearch() {
       setFilters((prev) => (prev.search === text ? prev : { ...prev, search: text.trim() }));
       const q = text.trim();
       setAutocompleteQuery(q.length >= 2 ? q : '');
+    },
+    [],
+  );
+
+  // Son aramalara YALNIZ onaylanmış aramada yazılır (Enter / öneri seçimi / öneriden sonuca gitme /
+  // dışarıdan gelen `q` ile açılış). Eskiden her debounce'ta ("fer","ferr","ferra") kaydoluyor ve
+  // AsyncStorage'a persist yazıyordu.
+  const saveRecentSearch = useCallback(
+    (text: string) => {
+      const q = text.trim();
       if (q.length >= 2) addSearch(q);
     },
     [addSearch],
   );
+  useEffect(() => {
+    saveRecentSearch(initialQuery);
+    // yalnız ilk açılışta
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const autocompleteQueryRes = useQuery({
     queryKey: ['autocomplete-rich', autocompleteQuery],
@@ -162,7 +177,8 @@ export function useSearch() {
         return null;
       }
     },
-    enabled: !!autocompleteQuery,
+    // Yalnız öneri paneli açıkken (kutu odakta) çalışır; kapalıyken sessiz kalır.
+    enabled: !!autocompleteQuery && autocompleteOpen,
   });
   const autocomplete = autocompleteQueryRes.data;
 
@@ -178,7 +194,7 @@ export function useSearch() {
         return [];
       }
     },
-    enabled: !!autocompleteQuery,
+    enabled: !!autocompleteQuery && autocompleteOpen,
   });
   const sellerResults = sellerAutoRes.data ?? EMPTY_SELLERS;
 
@@ -272,9 +288,12 @@ export function useSearch() {
     (text: string) => {
       setInputText(text);
       setAutocompleteOpen(false);
+      saveRecentSearch(text);
     },
-    [setInputText],
+    [setInputText, saveRecentSearch],
   );
+  // Öneriden ürün/satıcı sayfasına gidilince, o an yazılan sorgu onaylanmış sayılır.
+  const confirmQuery = useCallback(() => saveRecentSearch(autocompleteQuery), [saveRecentSearch, autocompleteQuery]);
   const closeAutocomplete = useCallback(() => setAutocompleteOpen(false), []);
   // Kutu odağı: panelleri aç; odak kaybında tıklamaya yer bırakmak için 200ms gecikmeyle kapat.
   const onInputFocus = useCallback(() => {
@@ -400,6 +419,8 @@ export function useSearch() {
     removeSearch,
     handleRecentSearchSelect,
     pickSuggestion,
+    confirmQuery,
+    saveRecentSearch,
     closeAutocomplete,
     onInputFocus,
     onInputBlur,
