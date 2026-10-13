@@ -1653,7 +1653,9 @@
     "trackShipmentLegacy": "Kargoyu Takip Et",
     "noEligibleProducts": "Takasa uygun ürün bulunamadı.",
     "protectionProgramTitle": "Takas Koruma Programı",
-    "protectionProgramDesc": "Her iki taraf da ürünü teslim alana kadar işlem güvence altındadır."
+    "protectionProgramDesc": "Her iki taraf da ürünü teslim alana kadar işlem güvence altındadır.",
+    "statusYouShipped": "Siz Gönderdiniz",
+    "statusYouReceived": "Teslim Aldınız"
   },
   "offer": {
     "makeOffer": "Teklif Ver",

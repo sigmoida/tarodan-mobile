@@ -1,4 +1,4 @@
-import { useTradeStatusConfig } from '@/lib/shared/tradeStatus';
+import { useTradeStatusConfig, tradeViewerRole } from '@/lib/shared/tradeStatus';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, StyleSheet, Image, Pressable } from 'react-native';
@@ -129,7 +129,7 @@ export interface TradeCardProps {
 function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
   const { t } = useTranslation();
   // Durum rozeti: renk + etiket web `tradeStatusConfig` ile aynı tek kaynaktan.
-  const statusConfig = useTradeStatusConfig();
+  const statusConfig = useTradeStatusConfig(tradeViewerRole(trade, currentUserId));
   const isSent = !!currentUserId && trade.initiatorId === currentUserId;
 
   const otherUserName = isSent

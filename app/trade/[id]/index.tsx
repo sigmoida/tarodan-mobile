@@ -10,6 +10,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { ThemedRefreshControl } from "@/components/common";
 import { useRefresh } from "@/hooks/useRefresh";
 import { useAuthStore } from "@/stores/authStore";
+import { tradeViewerRole } from "@/lib/shared/tradeStatus";
 import { useTranslation } from "react-i18next";
 import { deriveTradeView } from "./_lib/derive";
 import { useTrade } from "./_hooks/useTrade";
@@ -95,7 +96,13 @@ export default function TradeDetailScreen() {
           <ThemedRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <TradeStatusHeader trade={trade} t={t} now={now} hasPaymentStep={view.hasPaymentStep} />
+        <TradeStatusHeader
+          trade={trade}
+          t={t}
+          now={now}
+          hasPaymentStep={view.hasPaymentStep}
+          viewerRole={tradeViewerRole(trade, user?.id)}
+        />
         <TradeInfoCard
           trade={trade}
           isInitiator={view.isInitiator}
