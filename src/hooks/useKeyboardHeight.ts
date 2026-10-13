@@ -10,9 +10,12 @@ import { Keyboard, Platform, type KeyboardEvent } from 'react-native';
  * - Android: gezinti çubuğu HARİÇ (`ime.bottom - systemBars.bottom`,
  *   `ReactRootView.checkForKeyboardEvents`).
  * Alt boşluğu hesaplamak için `keyboardBottomInset` kullan.
+ *
+ * Başlangıç değeri o anki klavyeden tohumlanır: yüzey (ör. BottomSheet) klavye ZATEN açıkken
+ * bağlanırsa "show" olayı bir daha gelmez; 0'dan başlasaydı alt düğmeler klavyenin altında kalırdı.
  */
 export function useKeyboardHeight(): number {
-  const [height, setHeight] = useState(0);
+  const [height, setHeight] = useState(currentKeyboardHeight);
   useEffect(() => {
     const ios = Platform.OS === 'ios';
     const onShow = (e: KeyboardEvent) => setHeight(e.endCoordinates?.height ?? 0);
@@ -24,6 +27,15 @@ export function useKeyboardHeight(): number {
     return () => subs.forEach((s) => s.remove());
   }, []);
   return height;
+}
+
+/** O an açık klavyenin yüksekliği (RN'in son show olayından; kapalıysa 0). */
+export function currentKeyboardHeight(): number {
+  try {
+    return Keyboard.isVisible() ? (Keyboard.metrics()?.height ?? 0) : 0;
+  } catch {
+    return 0;
+  }
 }
 
 /**

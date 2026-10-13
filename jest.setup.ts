@@ -84,6 +84,13 @@ jest.mock('@shopify/flash-list/dist/recyclerview/utils/measureLayout', () => ({
   measureItemLayout: jest.fn(() => ({ x: 0, y: 0, width: 100, height: 100 })),
 }));
 
+// react-native-gesture-handler: `GestureHandlerRootView` (BottomSheet'in Modal içi kökü) bağlanırken
+// native modülün `install`ünü çağırıyor; jest'te TurboModule yok → paketin kendi jest mock'u
+// (yalnız native modül; GestureDetector/jest-utils davranışı aynı kalır).
+jest.mock('react-native-gesture-handler/lib/commonjs/RNGestureHandlerModule', () =>
+  jest.requireActual('react-native-gesture-handler/lib/commonjs/mocks/mocks'),
+);
+
 // Her testte appAlert çağrı geçmişini sıfırla (testler arası sızıntı olmasın).
 beforeEach(() => {
   const { appAlert } = jest.requireMock('@/ui');

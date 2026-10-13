@@ -5,6 +5,7 @@
     "logout": "Logout",
     "save": "Save",
     "cancel": "Cancel",
+    "giveUp": "Cancel",
     "delete": "Delete",
     "edit": "Edit",
     "search": "Search",
@@ -8189,7 +8190,9 @@
     "discountOnlyLabel": "Discounted Only",
     "tradeOnlyChip": "Tradeable",
     "resultsLoading": "Loading results…",
-    "showResultsCount": "Show {count} Results"
+    "showResultsCount": "Show {count} Results",
+    "showAllOptions": "Show all ({count})",
+    "refineSearchHint": "Use search to see more"
   },
   "signupPrompt": {
     "favoritesDescription": "Add items you like to your favorites so you can find them again easily. Sign up for free!",

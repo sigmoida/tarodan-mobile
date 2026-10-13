@@ -1,16 +1,11 @@
-import React, { useState } from 'react';
-import {
-  FlatList,
-  Modal as RNModal,
-  Pressable,
-  StyleSheet,
-  View,
-} from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { theme } from '../lib/theme';
 import { RawText } from './Text';
 import { FieldMessage, Label } from './Label';
 import { fieldBorderColor, inputSizeStyle } from './Input';
+import { SelectSheet } from './SelectSheet';
 
 import { Icon } from '../icons';
 export interface SelectOption {
@@ -31,11 +26,21 @@ export interface SelectProps {
   selectSize?: 'sm' | 'md' | 'lg';
   /** Etiketin sonuna kırmızı `*`. */
   required?: boolean;
+  /** Seçenek sheet'inde arama kutusu (uzun listeler). */
+  searchable?: boolean;
+  /** Tetikleyiciye; sheet `${testID}-sheet`. */
+  testID?: string;
 }
 
-const { colors, radius, spacing, typography, iconSize } = theme;
+const { colors, radius, spacing, iconSize } = theme;
 
-/** Web Select tetikleyicisi = Input ile aynı ölçü/çerçeve (`selectTriggerClasses`). */
+/**
+ * Web Select tetikleyicisi = Input ile aynı ölçü/çerçeve (`selectTriggerClasses`). Seçenekler
+ * platform kalıbıyla alttan açılan `SelectSheet`'te (tek seçim; seçince kapanır).
+ *
+ * Not: bir `Modal` İÇİNDE kullanılırsa sheet ikinci bir native Modal olarak üstte açılır
+ * (iç içe sunum) — yeni kullanımda Modal içinde Select yerine satır içi RadioGroup tercih edin.
+ */
 export const Select: React.FC<SelectProps> = ({
   value,
   onChange,
@@ -47,9 +52,12 @@ export const Select: React.FC<SelectProps> = ({
   disabled,
   selectSize = 'md',
   required,
+  searchable,
+  testID,
 }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
   const selected = options.find((o) => o.value === value);
   const resolvedPlaceholder = placeholder ?? t('common.selectPlaceholder');
   const ss = inputSizeStyle[selectSize];
@@ -71,6 +79,8 @@ export const Select: React.FC<SelectProps> = ({
           },
         ]}
         accessibilityRole="combobox"
+        accessibilityState={{ expanded: open, disabled: !!disabled }}
+        testID={testID}
       >
         <RawText
           numberOfLines={1}
@@ -85,49 +95,16 @@ export const Select: React.FC<SelectProps> = ({
       </Pressable>
       <FieldMessage error={error} helperText={helperText} />
 
-      <RNModal
-        visible={open}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setOpen(false)}
-      >
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-          <Pressable style={styles.sheet}>
-            <FlatList
-              data={options}
-              keyExtractor={(o) => o.value}
-              renderItem={({ item }) => (
-                <Pressable
-                  disabled={item.disabled}
-                  onPress={() => {
-                    onChange(item.value);
-                    setOpen(false);
-                  }}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: item.value === value, disabled: !!item.disabled }}
-                  style={({ pressed }) => [
-                    styles.option,
-                    pressed && styles.optionPressed,
-                    item.disabled ? styles.optionDisabled : null,
-                  ]}
-                >
-                  <RawText
-                    style={[
-                      styles.optionText,
-                      item.value === value && styles.optionTextSelected,
-                    ]}
-                  >
-                    {item.label}
-                  </RawText>
-                  {item.value === value ? (
-                    <Icon name="check" size={iconSize.sm} color={colors.primary[600]} />
-                  ) : null}
-                </Pressable>
-              )}
-            />
-          </Pressable>
-        </Pressable>
-      </RNModal>
+      <SelectSheet
+        isOpen={open}
+        onClose={close}
+        title={label ?? resolvedPlaceholder}
+        options={options}
+        value={value}
+        onSelect={onChange}
+        searchable={searchable}
+        testID={testID ? `${testID}-sheet` : 'select-sheet'}
+      />
     </View>
   );
 };
@@ -143,40 +120,4 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
   },
   value: { flex: 1 },
-  backdrop: {
-    flex: 1,
-    backgroundColor: colors.overlay.black50,
-    justifyContent: 'flex-end',
-  },
-  // Platform kalıbı: web'in açılır menüsü yerine alttan panel (modal radius'u).
-  sheet: {
-    backgroundColor: colors.surface.elevated,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    maxHeight: '60%',
-    paddingVertical: spacing[2],
-  },
-  option: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing[2],
-    minHeight: theme.minTouchTarget,
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-  },
-  optionPressed: {
-    backgroundColor: colors.surface.alt,
-  },
-  optionDisabled: {
-    opacity: 0.5,
-  },
-  optionText: {
-    flex: 1,
-    fontSize: typography.fontSize.base,
-    color: colors.text.body,
-  },
-  optionTextSelected: {
-    fontWeight: typography.fontWeight.medium,
-  },
 });

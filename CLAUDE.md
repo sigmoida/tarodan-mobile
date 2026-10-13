@@ -357,6 +357,14 @@ and turns them into **errors**, so write new code warning-free.
   `appAlert` dialog. (A toast sits under an open native Modal — close the modal first.)
   `appAlert` button order: the `cancel`-styled button is always last; the others keep the
   order the caller gave (never reversed).
+- **Bottom sheets: one primitive family.** Everything that slides up from the bottom is
+  `BottomSheet` / `SelectSheet` / `ActionSheet` (`@/ui`) — never a sheet hand-built on a raw RN
+  `Modal`. `BottomSheet` owns grabber + `SheetHeader`, drag-to-close, Android back, the fixed
+  safe-area/keyboard-aware `footer` (buttons via `ButtonRow`) and `size="fit" | "large"`; pick
+  lists = `SelectSheet` (search, single/multi), menus = `ActionSheet` (never `appAlert` buttons).
+  A follow-up native presentation (appAlert, another modal, picker) runs **after** the sheet has
+  closed: `onClosed` / `useBottomSheet().runAfterClose(fn)` (ActionSheet rows do this). A
+  multi-field form is a separate screen (`PageShell`), not a sheet.
 - **Modals never wait for a mutation.** `ModalFooter` has no `isLoading` on purpose (§12
   iOS freeze): validate, `onClose()` first, then fire the mutation; progress/result goes to
   a toast or the list state. Don't hold a modal open on `isPending`.

@@ -5,6 +5,7 @@
     "logout": "Çıkış Yap",
     "save": "Kaydet",
     "cancel": "İptal",
+    "giveUp": "Vazgeç",
     "delete": "Sil",
     "edit": "Düzenle",
     "search": "Ara",
@@ -8189,7 +8190,9 @@
     "discountOnlyLabel": "Sadece İndirimli",
     "tradeOnlyChip": "Takaslı",
     "resultsLoading": "Sonuçlar yükleniyor…",
-    "showResultsCount": "{count} Sonuç Göster"
+    "showResultsCount": "{count} Sonuç Göster",
+    "showAllOptions": "Tümünü göster ({count})",
+    "refineSearchHint": "Daha fazlası için aramayı kullanın"
   },
   "signupPrompt": {
     "favoritesDescription": "Beğendiğiniz ürünleri favorilere ekleyerek daha sonra kolayca bulabilirsiniz. Ücretsiz üye olun!",
