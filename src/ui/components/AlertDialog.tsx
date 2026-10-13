@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  BackHandler,
   Modal as RNModal,
   Platform,
   Pressable,
@@ -13,6 +14,7 @@ import {
   MODAL_CLOSE_DELAY_MS,
   MODAL_DISMISS_TIMEOUT_MS,
   MODAL_PRESENT_RETRY_MS,
+  MODAL_SHIELD_MAX_MS,
 } from '../lib/modal-timing';
 
 /**
@@ -83,6 +85,9 @@ export const AlertDialogHost: React.FC = () => {
   const [current, setCurrent] = useState<AlertDialogRequest | null>(null);
   // Diyalog kapanıyor (RNModal `visible=false`) ama henüz tamamen kalkmadı.
   const [closing, setClosing] = useState(false);
+  // `onPress` çalıştı, sıradaki diyalog için oturma süresi dolmadı (bkz. `finishClose`).
+  const [settling, setSettling] = useState(false);
+  const [shieldTimedOut, setShieldTimedOut] = useState(false);
   // iOS sunum watchdog'u: `onShow` geldi mi / kaçıncı yeniden bağlanma.
   const [presented, setPresented] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -122,6 +127,7 @@ export const AlertDialogHost: React.FC = () => {
   /** Oturma bitti (ya da hiç gerekmedi): sıradaki diyalog açılabilir. */
   const releaseBusy = () => {
     settleTimerRef.current = null;
+    setSettling(false);
     const next = pendingRef.current.shift() ?? null;
     busyRef.current = !!next;
     if (next) setCurrent(next);
@@ -149,6 +155,7 @@ export const AlertDialogHost: React.FC = () => {
       afterClose?.();
     } finally {
       if (afterClose) {
+        setSettling(true);
         settleTimerRef.current = setTimeout(releaseBusy, MODAL_CLOSE_DELAY_MS);
       } else {
         releaseBusy();
@@ -201,13 +208,44 @@ export const AlertDialogHost: React.FC = () => {
     return () => clearTimeout(id);
   }, [current, closing, presented, attempt]);
 
-  if (!current) return null;
+  /**
+   * Kapanma penceresi (düğmeye basıldı -> onPress çalıştı -> oturma bitti): RNModal görünmez
+   * ama alttaki ekran etkileşimli. Kullanıcı OK'a basıp hemen dokunur ya da Android geri
+   * tuşuna basarsa ekran, ertelenmiş `onPress` (ör. `router.back()`) ile BİRLİKTE ikinci kez
+   * pop edilirdi. Pencere boyunca dokunmaları görünmez bir katman, geri tuşunu `BackHandler`
+   * yutar. Süre `MODAL_SHIELD_MAX_MS` ile sınırlı: zamanlayıcılara bir şey olsa bile kalkan
+   * ekranı kalıcı kilitlemez.
+   */
+  const shieldWindow = closing || settling;
+  const shielded = shieldWindow && !shieldTimedOut;
+  useEffect(() => {
+    setShieldTimedOut(false);
+    if (!shieldWindow) return undefined;
+    const id = setTimeout(() => setShieldTimedOut(true), MODAL_SHIELD_MAX_MS);
+    return () => clearTimeout(id);
+  }, [shieldWindow]);
+  useEffect(() => {
+    if (!shielded) return undefined;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+    return () => sub.remove();
+  }, [shielded]);
+  const shield = shielded ? (
+    <View
+      testID="alert-dialog-shield"
+      style={styles.shield}
+      pointerEvents="auto"
+      accessible={false}
+    />
+  ) : null;
+
+  if (!current) return shield;
 
   const { title, message, buttons, options } = current;
   const cancelable = options?.cancelable ?? false;
   const vertical = buttons.length > 2;
 
   return (
+    <>
     <RNModal
       key={attempt}
       visible={!closing}
@@ -265,10 +303,17 @@ export const AlertDialogHost: React.FC = () => {
         </Pressable>
       </Pressable>
     </RNModal>
+    {shield}
+    </>
   );
 };
 
 const styles = StyleSheet.create({
+  shield: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+    elevation: 9999,
+  },
   backdrop: {
     flex: 1,
     backgroundColor: colors.overlay.black50,

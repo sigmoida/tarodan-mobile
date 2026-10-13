@@ -19,3 +19,10 @@ export const MODAL_DISMISS_TIMEOUT_MS = 1500;
  * tekrar sunulur (`FullScreenGate`'in `GATE_PRESENT_RETRY_MS`'i ile aynı değer).
  */
 export const MODAL_PRESENT_RETRY_MS = 1500;
+
+/**
+ * `AlertDialogHost` kapanma penceresi: kapanış (iOS üst sınırı) + onPress sonrası oturma
+ * süresi. Pencere boyunca alttaki ekran dokunmaya ve Android geri tuşuna kapalıdır; kalkan
+ * hiçbir koşulda bundan uzun kalmaz.
+ */
+export const MODAL_SHIELD_MAX_MS = MODAL_DISMISS_TIMEOUT_MS + MODAL_CLOSE_DELAY_MS;

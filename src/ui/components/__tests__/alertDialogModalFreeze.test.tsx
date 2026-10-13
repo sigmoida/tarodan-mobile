@@ -5,13 +5,14 @@
  * Aksi halde `onPress`'in açtığı yeni modal kapanmakta olanın üstüne biner ve ekran donar.
  */
 import React from 'react';
-import { Modal as RNModal, Platform } from 'react-native';
+import { BackHandler, Modal as RNModal, Platform } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { AlertDialogHost, appAlert } from '../AlertDialog';
 import {
   MODAL_CLOSE_DELAY_MS,
   MODAL_DISMISS_TIMEOUT_MS,
   MODAL_PRESENT_RETRY_MS,
+  MODAL_SHIELD_MAX_MS,
 } from '../../lib/modal-timing';
 
 const realAlert = appAlert;
@@ -279,5 +280,76 @@ describe('onSelect hata fırlatırsa host kilitlenmez', () => {
     act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS));
     act(() => realAlert('Yeni', undefined, [{ text: 'y' }]));
     expect(screen.getByText('Yeni')).toBeTruthy();
+  });
+});
+
+describe('kapanma penceresi: dokunma + geri tuşu yutulur (çift geri engeli)', () => {
+  let backHandlers: (() => boolean)[];
+  let removed: number;
+  beforeEach(() => {
+    setPlatform('android');
+    backHandlers = [];
+    removed = 0;
+    jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_type, fn) => {
+      backHandlers.push(fn as () => boolean);
+      return { remove: () => { removed += 1; } };
+    });
+  });
+  afterEach(() => jest.restoreAllMocks());
+
+  const pressBack = () => backHandlers.slice(-1).some((h) => h());
+
+  it('pencere boyunca kalkan var ve geri tuşu yutulur; onPress bitince ve oturunca kalkar', () => {
+    const back = jest.fn();
+    render(<AlertDialogHost />);
+    act(() => realAlert('Başlık', undefined, [{ text: 'Tamam', onPress: back }]));
+    expect(screen.queryByTestId('alert-dialog-shield')).toBeNull();
+    expect(backHandlers).toHaveLength(0); // açıkken geri tuşuna karışmaz (Modal onRequestClose)
+
+    fireEvent.press(screen.getByText('Tamam'));
+    expect(screen.getByTestId('alert-dialog-shield')).toBeTruthy();
+    expect(pressBack()).toBe(true); // OK'tan hemen sonra geri tuşu yutuldu
+
+    act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS)); // onPress çalıştı, oturma sürüyor
+    expect(back).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('alert-dialog-shield')).toBeTruthy();
+    expect(pressBack()).toBe(true);
+
+    act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS));
+    expect(screen.queryByTestId('alert-dialog-shield')).toBeNull();
+    expect(removed).toBe(backHandlers.length); // dinleyici sökülür, geri tuşu serbest
+  });
+
+  it('onPress\'siz düğmede kalkan yalnız kapanış süresince durur', () => {
+    render(<AlertDialogHost />);
+    act(() => realAlert('Başlık', undefined, [{ text: 'Tamam' }]));
+    fireEvent.press(screen.getByText('Tamam'));
+    expect(screen.getByTestId('alert-dialog-shield')).toBeTruthy();
+    act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS));
+    expect(screen.queryByTestId('alert-dialog-shield')).toBeNull();
+  });
+
+  it('iOS\'ta onDismiss hiç gelmese de kalkan modal-timing üst sınırını aşmaz', () => {
+    setPlatform('ios');
+    render(<AlertDialogHost />);
+    act(() => realAlert('Başlık', undefined, [{ text: 'Tamam', onPress: jest.fn() }]));
+    act(() => modal().props.onShow());
+    fireEvent.press(screen.getByText('Tamam'));
+    act(() => jest.advanceTimersByTime(MODAL_SHIELD_MAX_MS - 1));
+    expect(screen.getByTestId('alert-dialog-shield')).toBeTruthy();
+    act(() => jest.advanceTimersByTime(1));
+    expect(screen.queryByTestId('alert-dialog-shield')).toBeNull();
+  });
+
+  it('sıradaki alert varken kalkan alert\'ler arasında da kesintisiz durur, sonra serbest kalır', () => {
+    render(<AlertDialogHost />);
+    act(() => {
+      realAlert('A', undefined, [{ text: 'a', onPress: jest.fn() }]);
+      realAlert('B', undefined, [{ text: 'b' }]);
+    });
+    fireEvent.press(screen.getByText('a'));
+    act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS * 2));
+    expect(screen.getByText('B')).toBeTruthy();
+    expect(screen.queryByTestId('alert-dialog-shield')).toBeNull(); // B açıkken kalkan yok
   });
 });
