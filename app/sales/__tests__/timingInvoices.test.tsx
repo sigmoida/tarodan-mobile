@@ -9,7 +9,13 @@ import React from 'react';
 import { Linking, RefreshControl } from 'react-native';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
+
+jest.mock('@/ui', () => ({
+  ...jest.requireActual('@/ui'),
+  appAlert: jest.fn(),
+  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn(), dismiss: jest.fn() }),
+}));
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
@@ -113,7 +119,7 @@ describe('A-3.1 · ödeme zaman aşımı cümlesi politikadan', () => {
 });
 
 describe('A-3.4 · satıcıya e-Arşiv belgeleri', () => {
-  it('belgeler listelenir ve dokunulan açılır; hata appAlert ile', async () => {
+  it('belgeler listelenir ve dokunulan açılır; hata toast.error ile (mesaj BAŞLIK değil)', async () => {
     const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
     invoicesMock.mockResolvedValue({
       data: [
@@ -133,7 +139,8 @@ describe('A-3.4 · satıcıya e-Arşiv belgeleri', () => {
     await waitFor(() => expect(openURL).toHaveBeenCalledWith('https://s3/inv-1.pdf'));
 
     fireEvent.press(screen.getByTestId('order-invoice-open-inv-2'));
-    await waitFor(() => expect(appAlert).toHaveBeenCalledWith('Fatura açılamadı'));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Fatura açılamadı'));
+    expect(appAlert).not.toHaveBeenCalled();
     openURL.mockRestore();
   });
 

@@ -8,6 +8,8 @@ import type { SaleActionsController } from '../_hooks/useSaleActions';
 
 /**
  * Kargoya verme onay diyaloğu — numara artık sunucu üretiyor, elle giriş yok.
+ * Onaylayınca ÖNCE kapanır, istek SONRA gider (`handleShip`, §12) — düğme yükleniyor beklemez;
+ * ilerleme satış kartındaki spinner'da, sonuç toast/diyalogla gelir.
  *
  * Şubede verilecek numara İÇ REFERANSTIR (`trackingNumber`, `PKG-…`), gerçek
  * Sürat kodu değil — Sürat kodu şube kabulünden SONRA doluyor. Yönerge metni
@@ -15,7 +17,7 @@ import type { SaleActionsController } from '../_hooks/useSaleActions';
  */
 export function ShipDialog({ actions }: { actions: SaleActionsController }) {
   const { t } = useTranslation();
-  const { shipDialog, setShipDialog, handleShip, updateStatusMutation } = actions;
+  const { shipDialog, setShipDialog, handleShip } = actions;
   const { shipment } = useOrderShipment(shipDialog.order?.id);
   const { reference } = deriveShipmentView(shipment);
 
@@ -52,7 +54,6 @@ export function ShipDialog({ actions }: { actions: SaleActionsController }) {
           variant="primary"
           title={t('order.statusShipped')}
           onPress={handleShip}
-          isLoading={updateStatusMutation.isPending}
         />
       </ButtonRow>
     </Modal>

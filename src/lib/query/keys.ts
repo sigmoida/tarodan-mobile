@@ -82,6 +82,8 @@ export const qk = {
   },
 
   shipping: {
+    /** Prefix root — tüm kargo sorguları. */
+    all: ["shipping"] as const,
     /** Kargo paket kademesi tarifesi (public) — ilan formundaki üç kart. */
     packageTiers: ["shipping", "package-tiers"] as const,
     /** Siparişin kargo kaydı. 404 = kargo yok (hata değil). */
