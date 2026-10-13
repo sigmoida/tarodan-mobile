@@ -123,6 +123,9 @@ const QUOTE = (pricingHash?: string, total = 165, commissionRuleSetVersion = 1) 
   },
 });
 
+// Tam checkout ağacı + kapı + yeniden quote: yüklü CI koşucusunda 5 sn'yi aşabiliyor.
+jest.setTimeout(20000);
+
 describe('Sepet ödemesi · yasal kimlik kapısı', () => {
   beforeEach(() => {
     jest.mocked(ordersApi.checkout).mockClear();
