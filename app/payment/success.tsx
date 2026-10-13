@@ -8,7 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { paymentsApi } from '@/lib/api';
-import { pendingVerify, requestVerify } from '@/lib/payment/verifyPacer';
+import { requestVerify } from '@/lib/payment/verifyPacer';
 import { forgetPaymentCapabilityIfFinal } from '@/lib/payment/paymentCapability';
 import { isFailedPaymentStatus, isPaidPaymentStatus } from '@/lib/payment/status';
 import { formatPrice } from '@/utils/format';
@@ -90,6 +90,11 @@ export default function PaymentSuccessScreen() {
       // (başarısız ödemede verify bir şey değiştirmez, bütçe boşa gitmesin).
       const verifyOptions = { guest: guest === '1' };
       let last: PaymentInfo | null = null;
+      // Döngünün gönderdiği son verify'ın sözü + herhangi biri ödemeyi tamamladı mı.
+      // Uçuş kaydına (`pendingVerify`) güvenilmez: verify son durum okuması sürerken
+      // biterse kayıt düşer ve "tamamlandı" sonucu kaybolurdu.
+      let lastVerify: Promise<boolean> | null = null;
+      let verifyCompleted = false;
       for (let attempt = 0; attempt < 5 && !cancelled; attempt++) {
         try {
           const data = await fetchStatus();
@@ -101,15 +106,21 @@ export default function PaymentSuccessScreen() {
         }
         if (cancelled) break;
         // Idempotent & public: zaten completed ise no-op.
-        void requestVerify(paymentId, verifyOptions);
+        const verifying = requestVerify(paymentId, verifyOptions);
+        lastVerify = verifying;
+        void verifying.then((completed) => {
+          if (completed) verifyCompleted = true;
+        });
         if (attempt < 4) {
           await new Promise(resolve => setTimeout(resolve, 1500));
         }
       }
-      // Yavaş verify: döngü kesinleşmeden bittiyse uçuştaki verify'ı (en fazla
-      // zaman aşımı kadar) bekle; ödemeyi tamamladıysa durumu bir kez daha oku.
+      // Geç verify: döngü kesinleşmeden bittiyse son verify'ı (en fazla zaman aşımı
+      // kadar) bekle. Bir verify ödemeyi tamamladıysa, son durum okumasından SONRA
+      // bitmiş olsa bile durumu bir kez daha oku.
       const open = !isPaidPaymentStatus(last?.status) && !isFailedPaymentStatus(last?.status);
-      if (!cancelled && open && (await pendingVerify(paymentId)) && !cancelled) {
+      const completedLate = !cancelled && open && lastVerify ? (await lastVerify) || verifyCompleted : false;
+      if (completedLate && !cancelled) {
         try {
           last = await fetchStatus();
           if (!cancelled) setInfo(last);

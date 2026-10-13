@@ -178,6 +178,65 @@ describe('J90 · Yavaş verify (durum okuması beklemez, sonuç kaybolmaz)', () 
   });
 });
 
+describe('J92 · Geç verify: son durum okumasından sonra biten verify kaybolmaz', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    __resetVerifyPacer();
+    replaceMock.mockReset();
+    mockParams = { paymentId: 'pay-1' };
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('J92.1 verify son okuma sürerken completed:true döner → durum bir kez daha okunur, ekran başarıya geçer', async () => {
+    jest.useFakeTimers();
+    let verified = false;
+    // Durum okuması 1 sn sürer ve sunucu DB'yi istek anında okur.
+    getStatusMock.mockImplementation(() => {
+      const status = verified ? 'completed' : 'pending';
+      return new Promise((resolve) =>
+        setTimeout(() => resolve({ data: { data: infoFixture({ status }) } }), 1000),
+      );
+    });
+    // Okumalar 0 / 2,5 / 5 / 7,5 / 10. sn'de başlar. İlk verify 1. sn'de gider ve
+    // 10,5. sn'de (son okuma sürerken) ödemeyi tamamlar; sonraki verify 429 alır.
+    (paymentsApi.verify as jest.Mock)
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) =>
+            setTimeout(() => {
+              verified = true;
+              resolve({ data: { completed: true, status: 'completed_now' } });
+            }, 9500),
+          ),
+      )
+      .mockImplementation(() => Promise.reject(Object.assign(new Error('429'), { response: { status: 429 } })));
+
+    renderWithProviders(<PaymentSuccessScreen />);
+    await jest.advanceTimersByTimeAsync(10_600);
+    // Verify bitti (10,5. sn) ama 5. okuma 10. sn'de başladı: pending dönecek.
+    expect(verified).toBe(true);
+    expect(getStatusMock).toHaveBeenCalledTimes(5);
+    expect(screen.queryByText('Ödemeniz Başarılı!')).toBeNull();
+
+    await jest.advanceTimersByTimeAsync(2000);
+    expect(await screen.findByText('Ödemeniz Başarılı!')).toBeOnTheScreen();
+    expect(getStatusMock).toHaveBeenCalledTimes(6);
+  });
+
+  it('J92.2 verify ödemeyi tamamlamadıysa ek okuma yapılmaz', async () => {
+    jest.useFakeTimers();
+    getStatusMock.mockResolvedValue({ data: { data: infoFixture({ status: 'pending' }) } });
+    (paymentsApi.verify as jest.Mock).mockResolvedValue({ data: { completed: false, status: 'process_skipped' } });
+    renderWithProviders(<PaymentSuccessScreen />);
+    await jest.advanceTimersByTimeAsync(20_000);
+    expect(getStatusMock).toHaveBeenCalledTimes(5);
+    expect(screen.queryByText('Ödemeniz Başarılı!')).toBeNull();
+  });
+});
+
 describe('J91 · Başarısız ödemede verify gönderilmez', () => {
   beforeEach(() => {
     jest.clearAllMocks();
