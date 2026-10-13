@@ -38,7 +38,6 @@ const PILL_HIDE_SCALE = 0.9;
 // İkonlar web Heroicons adları; odaklı sekme `solid`, diğerleri `outline`.
 const TABS = [
   { name: "index", testID: "tab-home", labelKey: "nav.home", icon: "home" as IconName, badge: false },
-  { name: "favorites/index", testID: "tab-favorites", labelKey: "nav.favorites", icon: "heart" as IconName, badge: false },
   { name: "messages/index", testID: "tab-messages", labelKey: "message.messages", icon: "chat-bubble-left-right" as IconName, badge: true },
   { name: "profile", testID: "tab-profile", labelKey: "nav.profile", icon: "user" as IconName, badge: false },
 ] as const;

@@ -28,7 +28,6 @@ export default function TabLayout() {
         }}
       >
         <Tabs.Screen name="index" options={{ title: t("nav.home") }} />
-        <Tabs.Screen name="favorites/index" options={{ title: t("nav.favorites") }} />
         <Tabs.Screen name="sell" options={{ title: "" }} />
         <Tabs.Screen name="messages/index" options={{ title: t("message.messages") }} />
         <Tabs.Screen name="profile" options={{ title: t("nav.profile") }} />

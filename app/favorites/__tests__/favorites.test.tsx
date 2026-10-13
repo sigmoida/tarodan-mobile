@@ -1,5 +1,5 @@
 /**
- * J57 · favori listesi ekranı (sekme kökü): misafir CTA, boş durum, dolu liste render.
+ * J57 · favori listesi ekranı (yığın ekranı, PageShell): misafir CTA, boş durum, dolu liste render.
  * J21 · favoriden çıkar butonu (handleRemove → removeFromFavorites çağrısı).
  * Sadece MOBİL-UI: render/durum gösterimi + navigasyon wiring.
  */
@@ -10,11 +10,6 @@ import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
 
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
-// AppShell marka barı sayaçları bu süitin konusu değil.
-jest.mock('@/components/shell/useShellCounts', () => ({
-  useShellCounts: () => ({ cartCount: 0, notificationCount: 0, messageCount: 0, favoriteCount: 0 }),
-}));
-jest.mock('expo-status-bar', () => ({ StatusBar: () => null, setStatusBarStyle: jest.fn() }));
 
 const mockState = {
   isAuthenticated: true,
@@ -60,7 +55,7 @@ jest.mock('@/stores/cartStore', () => {
   return { useCartStore };
 });
 
-import FavoritesScreen from '../favorites';
+import FavoritesScreen from '../index';
 
 const makeItem = (productId: string, title = 'Hot Wheels') => ({
   id: `id-${productId}`,
