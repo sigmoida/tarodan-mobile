@@ -84,10 +84,10 @@ tags:
     id: "search-result-card"
     index: 0
 # Ürün detayı açıldı doğrulaması — stoktan/oturumdan bağımsız "Fiyat" etiketi
-# (add-to-cart butonu stokta-yok ürünlerde gizlenir, misafir sıralaması farklı).
+# (add-to-cart butonu kaydırılan içerikte; stokta-yok ürünlerde gizlenir, misafir sıralaması farklı).
 - extendedWaitUntil:
     visible:
-      text: "Fiyat"
+      id: "product-price"
     timeout: 15000
 # Detay tabs dışı stacked ekran (tab bar gizli) — sol-üst geri (←) okuna dokunup dön.
 # iOS'ta Maestro `back` (kenar swipe) güvenilmez; header geri butonuna koordinatla dokun.

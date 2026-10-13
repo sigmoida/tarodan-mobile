@@ -33,7 +33,12 @@ env:
     index: 0
 - extendedWaitUntil:
     visible:
+      id: "product-price"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
       id: "product-detail-add-to-cart-button"
+    direction: DOWN
     timeout: 30000
 - tapOn:
     id: "product-detail-add-to-cart-button"

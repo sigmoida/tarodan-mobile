@@ -26,8 +26,13 @@ env:
 # Ürün detay → Sepete Ekle
 - extendedWaitUntil:
     visible:
-      id: "product-detail-add-to-cart-button"
+      id: "product-price"
     timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "product-detail-add-to-cart-button"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
     id: "product-detail-add-to-cart-button"
 # Üst bardaki sepet ikonu → cart
