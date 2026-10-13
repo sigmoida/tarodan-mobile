@@ -29,6 +29,7 @@ import { ensureLegalIdentity } from '@/hooks/useLegalIdentity';
 import { useAuthStore } from '@/stores/authStore';
 import { useLegalIdentityRequestStore } from '@/stores/legalIdentityRequestStore';
 import RequiredStepsGate from '../RequiredStepsGate';
+import { NATIONAL_ID_INPUT_MAX_LENGTH } from '../LegalIdentityGate';
 
 const mockGetPending = consentsApi.getPending as jest.Mock;
 const mockGetStatus = legalIdentityApi.getStatus as jest.Mock;
@@ -145,6 +146,25 @@ describe('B-2.4 · ensureLegalIdentity (ihtiyaç anında kimlik)', () => {
     expect(
       screen.getByText('Banka hesabınıza girdiğiniz numarayla dolduruldu; lütfen kontrol edin.'),
     ).toBeOnTheScreen();
+  });
+
+  it('biçimli TCKN yapıştırma kesilmez: ham sınır geniş, normalizasyonu transform yapar', async () => {
+    mockGetStatus.mockResolvedValue({ data: status({ missing: ['nationalId'] }) });
+    const { queryClient } = setup();
+    await request(queryClient);
+    const input = await screen.findByTestId('identity-gate-nationalId');
+
+    // Native maxLength transform'dan önce keser; 11 olsaydı yapıştırma 9 haneye inerdi.
+    const pasted = '100 000 001 46';
+    expect(input.props.maxLength).toBe(NATIONAL_ID_INPUT_MAX_LENGTH);
+    expect(input.props.maxLength).toBeGreaterThanOrEqual(pasted.length);
+    expect(input.props.maxLength).toBeGreaterThanOrEqual(' 100-000-001-46 '.length);
+
+    fireEvent.changeText(input, pasted);
+    expect(screen.getByTestId('identity-gate-nationalId').props.value).toBe(VALID_TCKN);
+    // 11 haneden fazlası yine kırpılır.
+    fireEvent.changeText(screen.getByTestId('identity-gate-nationalId'), `${VALID_TCKN}999`);
+    expect(screen.getByTestId('identity-gate-nationalId').props.value).toBe(VALID_TCKN);
   });
 
   it('geçersiz TCKN gönderilmez (vendored algoritma)', async () => {

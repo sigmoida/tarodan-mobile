@@ -20,6 +20,14 @@ import { useSubmitLegalIdentity } from '@/hooks/useLegalIdentity';
 import { RequiredStepShell } from './RequiredStepShell';
 
 /**
+ * TCKN alanının HAM sınırı. Native `maxLength`, `transform`dan ÖNCE keser:
+ * 11 olsaydı biçimli yapıştırma ("100 000 001 46", 14 karakter) 9 haneye
+ * inerdi. Ham değere boşluk/tire payı bırakılır; 11 haneye normalizasyonu
+ * `transform` yapar (IBAN alanındaki 32 ile aynı kalıp).
+ */
+export const NATIONAL_ID_INPUT_MAX_LENGTH = 24;
+
+/**
  * Kimlik adımı (web `LegalIdentityGate`) — İHTİYAÇ ANINDA açılır: üye kimlik
  * gerektiren bir işleme (ödeme, ilan verme, takas, banka hesabı) başladığında
  * yasal adı, soyadı ya da TCKN'si eksikse (Apple 5.1.1: kayıtta istenmez).
@@ -128,7 +136,7 @@ export function LegalIdentityGate({
             helperText={status.suggestedNationalId ? t('identity.gate.prefilledHint') : undefined}
             keyboardType="number-pad"
             autoComplete="off"
-            maxLength={TCKN_LENGTH}
+            maxLength={NATIONAL_ID_INPUT_MAX_LENGTH}
             transform={(text) => normalizeTckn(text).slice(0, TCKN_LENGTH)}
           />
         ) : (
