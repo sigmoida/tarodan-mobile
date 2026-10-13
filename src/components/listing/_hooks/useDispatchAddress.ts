@@ -12,9 +12,12 @@ import {
  * `useDispatchAddress`). `qk.user.addresses` Adreslerim ekranıyla ORTAK: orada
  * adres eklenince/düzeltilince sorgu tazelenir ve kapı kendiliğinden açılır.
  */
-export function useDispatchAddress(
-  enabled: boolean,
-): DispatchAddressStatus & { isLoading: boolean } {
+export function useDispatchAddress(enabled: boolean): DispatchAddressStatus & {
+  isLoading: boolean;
+  /** Adresler okunamadı (ve elde eski veri yok) — durum BİLİNMİYOR, "eksik" değil. */
+  isError: boolean;
+  refetch: () => void;
+} {
   const query = useQuery({
     queryKey: qk.user.addresses,
     queryFn: async () => {
@@ -26,5 +29,9 @@ export function useDispatchAddress(
   return {
     ...dispatchAddressStatus(Array.isArray(query.data) ? query.data : []),
     isLoading: query.isLoading,
+    isError: query.isError && query.data === undefined,
+    refetch: () => {
+      void query.refetch();
+    },
   };
 }

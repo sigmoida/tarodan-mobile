@@ -21,6 +21,7 @@ import {
   ListingSubmitRow,
 } from './_components/ListingSections';
 import { ListingPickers } from './_components/ListingPickers';
+import { DispatchAddressGate, dispatchGateBlocks } from './_components/DispatchAddressGate';
 
 const { colors } = theme;
 
@@ -59,13 +60,19 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
           keyboardShouldPersistTaps="handled"
         >
           <ListingHeaderBanners f={f} />
-          <ListingImagesSection f={f} />
-          <ListingBasicInfoSection f={f} />
-          <ListingDetailsSection f={f} />
-          <ListingOptionsSection f={f} />
-          <ListingPricingSection f={f} />
-          <ListingShippingSection f={f} />
-          <ListingSubmitRow f={f} />
+          {dispatchGateBlocks(f) ? (
+            <DispatchAddressGate f={f} />
+          ) : (
+            <>
+              <ListingImagesSection f={f} />
+              <ListingBasicInfoSection f={f} />
+              <ListingDetailsSection f={f} />
+              <ListingOptionsSection f={f} />
+              <ListingPricingSection f={f} />
+              <ListingShippingSection f={f} />
+              <ListingSubmitRow f={f} />
+            </>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
 

@@ -54,24 +54,6 @@ export function ListingHeaderBanners({ f }: SectionProps) {
         </View>
       )}
 
-      {/* Kargo çıkış adresi kapısı (create only) — IBAN bandıyla aynı görünüm */}
-      {!f.isEdit && !f.dispatchAddressLoading && !f.hasDispatchAddress && (
-        <View style={styles.ibanBanner}>
-          <Text style={styles.ibanBannerTitle}>
-            {t(f.dispatchAddressNeedsFix ? 'listing.dispatchAddressFixTitle' : 'listing.dispatchAddressRequiredTitle')}
-          </Text>
-          <Text style={styles.ibanBannerBody}>{t('address.dispatchPromptDesc')}</Text>
-          <TouchableOpacity
-            style={styles.ibanBannerButton}
-            onPress={() => router.push('/settings/addresses')}
-          >
-            <Text style={styles.ibanBannerButtonText}>
-              {t(f.dispatchAddressNeedsFix ? 'address.dispatchFixButton' : 'address.dispatchAddButton')}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
       {/* Listing Limits (create only) */}
       {!f.isEdit && f.limitsLoading ? (
         <View style={styles.limitsPlaceholder}>

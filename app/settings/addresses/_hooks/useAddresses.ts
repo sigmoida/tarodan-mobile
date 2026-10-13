@@ -43,14 +43,11 @@ export function useAddresses() {
     refetch,
   } = useQuery({
     queryKey: qk.user.addresses,
+    // Hata YUTULMAZ: anahtar `qk.user.addresses` ilan formunun kargo çıkış adresi
+    // kapısıyla ORTAK; `[]` önbelleğe yazılırsa satıcı "adres yok" diye engellenir.
     queryFn: async () => {
-      try {
-        const response = await api.get("/users/me/addresses");
-        return response.data?.data || response.data || [];
-      } catch (error) {
-        console.log("Failed to fetch addresses");
-        return [];
-      }
+      const response = await api.get("/users/me/addresses");
+      return response.data?.data || response.data || [];
     },
     enabled: isAuthenticated,
   });

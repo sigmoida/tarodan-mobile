@@ -92,6 +92,8 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     hasDispatchAddress,
     needsFix: dispatchAddressNeedsFix,
     isLoading: dispatchAddressLoading,
+    isError: dispatchAddressError,
+    refetch: refetchDispatchAddress,
   } = useDispatchAddress(!isEdit && isAuthenticated);
 
   // İlan listesi/detay/ana sayfa ekranlarının bayat kalmaması için ilgili cache'leri
@@ -789,7 +791,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       return;
     }
 
-    if (!isEdit && !hasDispatchAddress) {
+    // Durum BİLİNMİYORSA (yükleniyor/hata) "adres ekle" denmez: form zaten
+    // bu durumda gösterilmiyor (`DispatchAddressGate`); buraya yalnız bilinen eksik düşer.
+    if (!isEdit && !dispatchAddressLoading && !dispatchAddressError && !hasDispatchAddress) {
       appAlert(
         t(dispatchAddressNeedsFix ? 'listing.dispatchAddressFixTitle' : 'listing.dispatchAddressRequiredTitle'),
         t('address.dispatchPromptDesc'),
@@ -952,6 +956,8 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     hasDispatchAddress,
     dispatchAddressNeedsFix,
     dispatchAddressLoading,
+    dispatchAddressError,
+    refetchDispatchAddress,
     // limits
     limitsLoading,
     listingLimits,

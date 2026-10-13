@@ -215,3 +215,51 @@ describe('satıcı kargo çıkış adresi kapısı', () => {
     expect(result.current.dispatchAddressNeedsFix).toBe(true);
   });
 });
+
+describe('adres bilinmiyorken kapı (yükleniyor / hata)', () => {
+  beforeEach(() => {
+    mockGet.mockReset();
+    mockPost.mockReset();
+    mockGetAddresses.mockReset();
+    wireApi();
+    (productsApi.create as jest.Mock).mockClear();
+    (appAlert as jest.Mock).mockReset();
+    (appAlert as jest.Mock).mockImplementation(() => {});
+  });
+
+  it('yüklenirken eksik sayılmaz: yükleniyor bayrağı açık, "adres ekle" uyarısı yok', async () => {
+    mockGetAddresses.mockReturnValue(new Promise(() => {}));
+    const { result } = renderForm();
+    await waitFor(() => expect(result.current.dispatchAddressLoading).toBe(true));
+    expect(result.current.dispatchAddressError).toBe(false);
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+    const asked = (appAlert as jest.Mock).mock.calls.some(
+      (c) => c[0] === 'İlan vermeden önce kargo çıkış adresi eklemelisiniz',
+    );
+    expect(asked).toBe(false);
+  });
+
+  it('okuma hatasında eksik sayılmaz: hata bayrağı açık, uyarı yok, yeniden denenebilir', async () => {
+    mockGetAddresses.mockRejectedValue(new Error('network'));
+    const { result } = renderForm();
+    await waitFor(() => expect(result.current.dispatchAddressError).toBe(true), { timeout: 5000 });
+    expect(result.current.dispatchAddressLoading).toBe(false);
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+    const asked = (appAlert as jest.Mock).mock.calls.some(
+      (c) => c[0] === 'İlan vermeden önce kargo çıkış adresi eklemelisiniz',
+    );
+    expect(asked).toBe(false);
+
+    // Yeniden dene -> adres geldi -> hata kalkar, kapı açılır.
+    mockGetAddresses.mockResolvedValue({ data: [GOOD] });
+    act(() => result.current.refetchDispatchAddress());
+    await waitFor(() => expect(result.current.hasDispatchAddress).toBe(true));
+    expect(result.current.dispatchAddressError).toBe(false);
+  });
+});

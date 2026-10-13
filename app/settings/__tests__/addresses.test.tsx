@@ -172,3 +172,15 @@ describe('J32.b · "Varsayılan Yap" satır-bazlı yükleme (bulgu #23)', () => 
     );
   });
 });
+
+describe("C3 inceleme · adres sorgusu hatayı yutmaz", () => {
+  it("API hata verince önbelleğe [] yazılmaz (ilan formu kapısıyla ortak anahtar)", async () => {
+    const { QueryClient } = require("@tanstack/react-query");
+    const { qk } = require("@/lib/query");
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    (api.get as jest.Mock).mockRejectedValueOnce(new Error("network"));
+    renderWithProviders(<AddressesScreen />, { queryClient: qc });
+    await waitFor(() => expect(qc.getQueryState(qk.user.addresses)?.status).toBe("error"));
+    expect(qc.getQueryData(qk.user.addresses)).toBeUndefined();
+  });
+});
