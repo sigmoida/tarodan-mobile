@@ -15,9 +15,8 @@ import { render, screen } from '@testing-library/react-native';
 import { OrderSummary } from '../_components/OrderSummary';
 
 const BASE = {
-  itemCount: 2,
   productAmount: 400,
-  shippingCost: 50,
+  shippingAmount: 50,
   serviceFeeAmount: 80,
   total: 530,
 };

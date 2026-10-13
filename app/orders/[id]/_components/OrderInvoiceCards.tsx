@@ -1,9 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { Card, Text, Button, theme } from '@/ui';
-
-const { colors } = theme;
+import { SectionCard, Text, Button, theme } from '@/ui';
 
 /** Kurumsal satıcı faturası (elle yüklenen PDF). */
 export function OrderSellerInvoiceCard({
@@ -22,11 +20,10 @@ export function OrderSellerInvoiceCard({
   const { t } = useTranslation();
   if (!(sellerInvoice && (sellerInvoice.invoice || (sellerInvoice.canUpload && sellerInvoice.isSeller)))) return null;
   return (
-    <Card variant="elevated" style={styles.card} testID="seller-invoice-card">
-      <Text variant="label" style={styles.sectionTitle}>{t('order.sellerInvoice')}</Text>
+    <SectionCard title={t('order.sellerInvoice')} testID="seller-invoice-card" bodyStyle={styles.stack}>
       {sellerInvoice.invoice ? (
         <>
-          <Text variant="caption" style={styles.hint}>{sellerInvoice.invoice.fileName}</Text>
+          <Text variant="bodySm" tone="muted">{sellerInvoice.invoice.fileName}</Text>
           <Button
             variant="outline"
             fullWidth
@@ -39,25 +36,20 @@ export function OrderSellerInvoiceCard({
             <Button
               variant="outline"
               fullWidth
-              icon="document-attach-outline"
               onPress={onUpload}
               isLoading={uploading}
               disabled={uploading}
               title={t('order.replaceInvoice')}
               testID="seller-invoice-replace-button"
-              style={{ marginTop: theme.spacing[2] }}
             />
           )}
         </>
       ) : sellerInvoice.canUpload ? (
         <>
-          <Text variant="caption" style={styles.hint}>
-            {t('order.uploadInvoicePdfNotice')}
-          </Text>
+          <Text variant="bodySm" tone="muted">{t('order.uploadInvoicePdfNotice')}</Text>
           <Button
             variant="primary"
             fullWidth
-            icon="document-attach-outline"
             onPress={onUpload}
             isLoading={uploading}
             disabled={uploading}
@@ -66,16 +58,12 @@ export function OrderSellerInvoiceCard({
           />
         </>
       ) : (
-        <Text variant="caption" style={{ color: colors.text.muted }}>
-          {t('order.noInvoiceUploadedYet')}
-        </Text>
+        <Text variant="bodySm" tone="muted">{t('order.noInvoiceUploadedYet')}</Text>
       )}
-    </Card>
+    </SectionCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { marginBottom: theme.spacing[3] },
-  sectionTitle: { marginBottom: theme.spacing[3], color: colors.text.heading },
-  hint: { color: colors.text.muted, marginBottom: theme.spacing[2] },
+  stack: { gap: theme.spacing[2] },
 });

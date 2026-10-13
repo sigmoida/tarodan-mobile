@@ -81,7 +81,7 @@ describe('Android: dijital satış çağrıları yerinde — üyelik ekranı', (
     // useMembership.ts isBusinessAccount) — bireysel hesap mock'unda o kart
     // hiç render edilmez; 'basic' katmanla aynı garanti sağlanır.
     expect(await screen.findByText('membership.basic')).toBeTruthy();
-    expect(screen.getAllByText(/₺/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/ TL$/).length).toBeGreaterThan(0);
     expect(screen.getByText('membership.monthly')).toBeTruthy();
     expect(screen.getByText('membership.mostPopular')).toBeTruthy();
   });

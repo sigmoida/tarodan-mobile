@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import i18n from '@/i18n/config';
 import { offersApi } from '@/lib/api';
 import { formatApiErrorMessage } from '@/utils/formatApiErrorMessage';
@@ -45,7 +45,7 @@ export function useOfferActions() {
     onSettled: (_data, _err, id) => settle(id),
     onSuccess: () => {
       invalidate();
-      appAlert(i18n.t('common.success'), i18n.t('offer.offerAccepted'));
+      toast.success(i18n.t('offer.offerAccepted'));
     },
     onError: (err) =>
       appAlert(i18n.t('common.error'), formatApiErrorMessage(err, i18n.t('offer.acceptFailed'))),
@@ -57,7 +57,7 @@ export function useOfferActions() {
     onSettled: (_data, _err, id) => settle(id),
     onSuccess: () => {
       invalidate();
-      appAlert(i18n.t('common.success'), i18n.t('offer.offerRejected'));
+      toast.success(i18n.t('offer.offerRejected'));
     },
     onError: (err) =>
       appAlert(i18n.t('common.error'), formatApiErrorMessage(err, i18n.t('offer.rejectFailed'))),
@@ -69,7 +69,7 @@ export function useOfferActions() {
     onSettled: (_data, _err, id) => settle(id),
     onSuccess: () => {
       invalidate();
-      appAlert(i18n.t('common.success'), i18n.t('offer.offerCancelled'));
+      toast.success(i18n.t('offer.offerCancelled'));
     },
     onError: (err) =>
       appAlert(i18n.t('common.error'), formatApiErrorMessage(err, i18n.t('offer.cancelFailed'))),

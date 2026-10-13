@@ -51,19 +51,20 @@ env:
     timeout: 15000
 - tapOn:
     id: "cart-checkout-button"
-- extendedWaitUntil:
-    visible: "Teslimat Bilgileri"
-    timeout: 30000
-- tapOn:
-    text: "Devam Et.*"
+# Checkout tek sayfa (web gibi): adres → ödeme yöntemi → özet + mesafeli satış onayı → Ödeme Yap
 - extendedWaitUntil:
     visible:
-      text: ".*Geliştirici modu.*"
+      id: "checkout-address"
     timeout: 30000
-- assertVisible:
-    text: ".*Geliştirici modu.*"
+- scrollUntilVisible:
+    element:
+      id: "checkout-distance-sales-checkbox"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
-    text: ".*Ödeme.*Tamamla.*|.*Ödemeyi.*"
+    id: "checkout-distance-sales-checkbox"
+- tapOn:
+    id: "checkout-pay-button"
 # Yasal kimlik eksikse kapı açılır (1.0.6) — çalıştırmada MAESTRO_TEST_TCKN verin.
 - runFlow: ../subflows/pass-identity-gate.yaml
 - extendedWaitUntil:

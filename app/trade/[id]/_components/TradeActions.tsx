@@ -220,8 +220,8 @@ export function TradeActions({
 }
 
 const styles = StyleSheet.create({
-  actions: { padding: theme.spacing[4], gap: theme.spacing[3] },
-  actionButton: { borderRadius: theme.radius.xl, alignSelf: 'stretch' },
+  actions: { gap: theme.spacing[3] },
+  actionButton: { alignSelf: 'stretch' },
   actionRow: { flexDirection: 'row', gap: theme.spacing[3] },
   actionItem: { flex: 1 },
   confirmReceiptHint: { color: colors.text.muted, textAlign: 'center', marginTop: theme.spacing[1] },
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary[50]!,
     borderWidth: 1,
     borderColor: colors.primary[100]!,
-    borderRadius: 12,
+    borderRadius: theme.radiusRole.card,
     padding: theme.spacing[3.5],
   },
 });

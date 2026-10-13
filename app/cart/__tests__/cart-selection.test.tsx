@@ -162,14 +162,14 @@ describe('P2 #10 · seçim dışı satırın sunumu', () => {
     );
   });
 
-  /** Ara toplam satırındaki adet, fiyatlanan satır sayısını göstermeli. */
-  it('ara toplam adedi seçili satırları sayar', async () => {
+  /** Seçili satır sayısı "n ürün seçili" olarak görünür (web özetinde ürün sayacı yok). */
+  it('seçili satır sayısı toplu seçim satırında gösterilir', async () => {
     renderWithProviders(<CartScreen />);
-    await waitFor(() => expect(screen.getByText('Ara Toplam (2 ürün)')).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText('2 ürün seçili')).toBeOnTheScreen());
 
     fireEvent.press(screen.getByTestId('cart-item-select-p1'));
 
-    await waitFor(() => expect(screen.getByText('Ara Toplam (1 ürün)')).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText('1 ürün seçili')).toBeOnTheScreen());
   });
 });
 

@@ -1,44 +1,36 @@
 import { View } from 'react-native';
-import { Divider, ErrorState, Text, theme } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
-import { formatServerPrice } from '@/utils/format';
 import { useTranslation } from 'react-i18next';
-
+import { router } from 'expo-router';
+import { Button, ErrorState, SectionCard, Text } from '@/ui';
+import { OrderSummaryLines } from '@/components/orders/OrderSummaryLines';
 import { styles } from '../_lib/styles';
 import type { CartController } from '../_hooks/useCart';
 
-const { colors } = theme;
-
 /**
- * Sipariş özeti kartı + (misafir ise) misafir-checkout bilgisi.
+ * Sipariş özeti kartı (web `CartSummary`): tutar satırları + (misafirse) giriş çağrısı +
+ * "Alışverişe Devam Et". Ödemeye Geç düğmesi sabit alt barda (`index.tsx`).
  *
- * Checkout'un `OrderSummary`'siyle AYNI disiplin: dört satır da
- * `pricing.summary`'den aynen basılır, istemcide hiçbir toplama/çıkarma yapılmaz.
- * Sunucu değeri yoksa tutar yerine yer tutucu — yerel `getSubtotal()` sonucunu
- * "Toplam" diye basmak, hiçbir sunucu alanına karşılık gelmeyen bir para değeri
- * göstermek demekti.
+ * Checkout'un özetiyle AYNI satırlar (`OrderSummaryLines`): dört satır da `pricing.summary`'den
+ * aynen basılır, istemcide hiçbir toplama/çıkarma yapılmaz; sunucu değeri yoksa yer tutucu.
  */
 export function CartSummary({ f }: { f: CartController }) {
   const { t } = useTranslation();
   return (
-    <>
-      {/* Quote hata verdiyse dört satırı da "—" basıp kullanıcıyı sebepsiz
-          bırakma — checkout'un `OrderSummary`'siyle AYNI çıkış yolu (§11).
-          `total == null` de bu kapıya dahil: sorgu 200 dönüp `total` alanı boş
-          gelirse `quoteError` false olur, buton yine kapalıdır (bkz. index.tsx)
-          ama kullanıcı yalnız dört "—" görür ve elinde retry KALMAZ.
-          ⚠️ `quoteLoading` şart: ilk yüklemede `total` zaten null, o kapı olmadan
-          her sepet açılışında hata kartı yanıp sönerdi. */}
-      {/* Hiçbir satır seçili değil: quote hiç çalışmıyor, `total` null kalıyor
-          ve aşağıdaki hata kapısına düşerdi — oysa hata YOK, kullanıcı seçimi
-          kaldırdı. Yanlış teşhis üstüne bir de işlevsiz "Tekrar Dene" düğmesi
-          çıkıyordu. Bu kapı hata kapısından ÖNCE gelmeli. */}
+    <SectionCard title={t('checkout.orderSummary')} testID="cart-summary">
+      {/* Hiçbir satır seçili değil: quote hiç çalışmıyor, `total` null kalıyor ve aşağıdaki hata
+          kapısına düşerdi — oysa hata YOK, kullanıcı seçimi kaldırdı. Bu kapı hata kapısından
+          ÖNCE gelmeli. */}
       {f.selectedCount === 0 ? (
-        <View style={styles.summary} testID="cart-summary-none-selected">
-          <Text style={styles.summaryLabel}>{t('cart.noneSelected')}</Text>
+        <View style={styles.summaryNote} testID="cart-summary-none-selected">
+          <Text variant="bodySm" tone="muted">{t('cart.noneSelected')}</Text>
         </View>
       ) : f.quoteError || (!f.quoteLoading && f.total == null) ? (
-        <View style={styles.summary} testID="cart-summary-error">
+        /* Quote hata verdiyse dört satırı da "—" basıp kullanıcıyı sebepsiz bırakma — checkout
+           ile AYNI çıkış yolu (§11). `total == null` de bu kapıya dahil: sorgu 200 dönüp `total`
+           boş gelirse `quoteError` false olur ama kullanıcı yalnız "—" görür ve retry kalmazdı.
+           ⚠️ `quoteLoading` şart: ilk yüklemede `total` zaten null, o kapı olmadan her sepet
+           açılışında hata kartı yanıp sönerdi. */
+        <View testID="cart-summary-error">
           <ErrorState
             title={t('cart.priceUnavailableTitle')}
             message={t('cart.priceUnavailableMessage')}
@@ -46,39 +38,34 @@ export function CartSummary({ f }: { f: CartController }) {
           />
         </View>
       ) : (
-        <View style={styles.summary}>
-          <Text style={styles.summaryTitle}>{t('checkout.orderSummary')}</Text>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>{t('cart.subtotalWithCount', { count: f.selectedCount })}</Text>
-            <Text style={styles.summaryValue}>{formatServerPrice(f.productAmount)}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>{t('checkout.shipping')}</Text>
-            <Text style={styles.summaryValue}>{formatServerPrice(f.shippingAmount)}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>{t('footer.platformServiceFee')}</Text>
-            <Text style={styles.summaryValue}>{formatServerPrice(f.serviceFeeAmount)}</Text>
-          </View>
-          <Divider style={{ marginVertical: theme.spacing[3] }} />
-          <View style={styles.summaryRow}>
-            <Text style={styles.totalLabel}>{t('common.total')}</Text>
-            <Text style={styles.totalValue} testID="cart-summary-total">
-              {formatServerPrice(f.total)}
-            </Text>
-          </View>
-        </View>
+        <OrderSummaryLines
+          productAmount={f.productAmount}
+          shippingAmount={f.shippingAmount}
+          serviceFeeAmount={f.serviceFeeAmount}
+          total={f.total}
+          totalTestID="cart-summary-total"
+        />
       )}
 
-      {/* Guest Checkout Info — yalnızca giriş yapmamış kullanıcılara göster */}
-      {!f.isAuthenticated && (
-        <View style={styles.guestInfo}>
-          <Ionicons name="information-circle-outline" size={20} color={colors.info[600]!} />
-          <Text style={styles.guestInfoText}>
-            {t('cart.guestNotice')}
-          </Text>
-        </View>
-      )}
-    </>
+      <View style={styles.actions}>
+        {!f.isAuthenticated ? (
+          <>
+            <Button
+              variant="secondary"
+              title={t('checkout.loginFasterCheckout')}
+              fullWidth
+              onPress={() => router.push('/(auth)/login' as any)}
+            />
+            <Text variant="caption" tone="muted" align="center">{t('checkout.cartSavedAfterLogin')}</Text>
+          </>
+        ) : null}
+        <Button
+          variant="ghost"
+          title={t('cart.continueShopping')}
+          fullWidth
+          onPress={() => router.push('/listings' as any)}
+        />
+      </View>
+    </SectionCard>
   );
 }

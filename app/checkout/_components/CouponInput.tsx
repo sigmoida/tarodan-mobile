@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Button, Input, Text, theme } from '@/ui';
 import { formatPrice } from '@/utils/format';
@@ -31,7 +30,6 @@ export function CouponInput({
     const showDiscount = couponDiscount != null && couponDiscount > 0;
     return (
       <View style={[styles.box, styles.appliedBox]} testID="coupon-applied">
-        <Ionicons name="pricetag" size={18} color={colors.success[600]!} />
         <View style={styles.appliedText}>
           <Text variant="bodySm" weight="bold" style={{ color: colors.success[600]! }}>
             {showDiscount
@@ -82,7 +80,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: theme.spacing[2],
-    marginBottom: theme.spacing[3],
   },
   field: { flex: 1 },
   applyButton: { marginTop: theme.spacing[1] },
@@ -90,7 +87,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: theme.spacing[3],
     backgroundColor: colors.success[50]!,
-    borderRadius: theme.radius.lg,
+    borderRadius: theme.radiusRole.card,
   },
   appliedText: { flex: 1 },
 });

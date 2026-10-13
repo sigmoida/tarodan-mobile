@@ -88,6 +88,10 @@ export function useCart() {
   const unitPriceFor = (productId: string): number | null =>
     quoteLines.get(productId)?.unitPrice ?? null;
 
+  /** Satır toplamı (adet dahil) — sunucunun `items[].subtotal`'ı; yoksa `null` (yer tutucu). */
+  const lineSubtotalFor = (productId: string): number | null =>
+    quoteLines.get(productId)?.subtotal ?? null;
+
   const handleRemove = (itemId: string) => {
     sync.removeItem(itemId);
   };
@@ -125,6 +129,7 @@ export function useCart() {
     total,
     /** Satır birim fiyatı — sunucunun `items[].unitPrice`'ı; yoksa `null`. */
     unitPriceFor,
+    lineSubtotalFor,
     quoteLoading: quoteQuery.isLoading,
     /**
      * Quote hatası — sepet de checkout ile AYNI çıkış yolunu gösterir

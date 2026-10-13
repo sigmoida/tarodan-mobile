@@ -1,12 +1,10 @@
 import { useTranslation } from 'react-i18next';
-import { View, ScrollView, StyleSheet } from 'react-native';
-import { Spinner, Snackbar, ScreenHeader, EmptyState, theme } from '@/ui';
 import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { ThemedRefreshControl } from '@/components/common';
 import { useRefresh } from '@/hooks/useRefresh';
 import RatingModal from '@/components/RatingModal';
+import { PageShell } from '@/components/common/PageShell';
 import { qk } from '@/lib/query';
 import { useOrderShipment } from '@/hooks/useOrderShipment';
 import { useTimingPolicy } from '@/hooks/useTimingPolicy';
@@ -32,8 +30,11 @@ import {
 import { RefundRequestModal } from './_modals/RefundRequestModal';
 import { CancelOrderModal } from '@/components/orders/CancelOrderModal';
 
-const { colors } = theme;
-
+/**
+ * Sipariş detayı — İNCE ekran: PageShell + SectionCard dizisi. Durum kapılı kartlar kendini gizler
+ * (`null`); türetilmiş değerler `deriveOrderView`'da, mutasyonlar `useOrderActions`'ta. Bildirimler
+ * toast; modallar `overlay` slotunda (yükleme/hata durumunda unmount olmaz).
+ */
 export default function OrderDetailScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -54,24 +55,22 @@ export default function OrderDetailScreen() {
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
-  if (isLoading) {
+  if (!isLoading && !order) {
     return (
-      <View style={styles.loadingContainer}>
-        <Spinner size="lg" />
-      </View>
-    );
-  }
-  if (!order) {
-    return (
-      <EmptyState
-        fullscreen
-        icon="receipt-outline"
-        title={t('order.orderNotFound')}
-        actionLabel={t('common.goBack')}
-        onAction={back}
+      <PageShell
+        title={t('order.orderDetails')}
+        onBack={back}
+        empty
+        emptyState={{
+          icon: 'receipt-outline',
+          title: t('order.orderNotFound'),
+          actionLabel: t('common.goBack'),
+          onAction: back,
+        }}
       />
     );
   }
+  if (!order) return <PageShell title={t('order.orderDetails')} onBack={back} loading />;
 
   // Taraf siparişin kendi `isSeller` bayrağından (web; `user.id` karşılaştırması
   // değil). Bayrak yoksa alıcı varsayılır: alıcıya satıcı cümlesi çıkmaz.
@@ -80,100 +79,82 @@ export default function OrderDetailScreen() {
   const view = deriveOrderView(order, policy, now);
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={t('order.orderDetails')} onBack={back} />
-
-      <ScrollView
-        style={styles.content}
-        refreshControl={<ThemedRefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        <OrderEscrowCard order={order} view={view} />
-        <OrderStatusCard order={order} view={view} />
-        <OrderCancelledInfo order={order} view={view} audience={audience} />
-        <PreparingDeadlineNotice notice={view.preparingNotice} />
-        <OrderPayPendingCard order={order} view={view} onPay={actions.initiatePayment} payPending={actions.payPending} />
-        <OrderTrackingCard order={order} view={view} shipment={shipment} isSeller={isSeller} />
-        <OrderProductCard order={order} />
-        <OrderSellerCard order={order} />
-        <OrderAddressCard order={order} isMembershipOrder={view.isMembershipOrder} />
-        <OrderPriceSummary order={order} isMembershipOrder={view.isMembershipOrder} />
-        <OrderCancelCard order={order} view={view} onCancel={actions.handleCancelOrder} cancelPending={actions.cancelOrderPending} />
-        <OrderRatingButtons order={order} view={view} onRate={(type) => setRatingModal({ visible: true, type })} />
-        <OrderRefundBanner
-          order={order}
-          view={view}
-          onCancelRefund={actions.handleCancelRefund}
-          cancelRefundPending={actions.cancelRefundPending}
-        />
-        <OrderRefundActionCard order={order} view={view} onOpenRefund={actions.refundModal.open} />
-        {/* B7: fatura verileri ayrı query'lerle sonradan gelir (bkz. useOrderInvoices); dokunulan
-            aksiyon kartlarının (iptal/değerlendirme/iade) ALTINDA render edilir ki geç gelen
-            içerik hiçbir dokunma hedefini kaydırmasın. */}
-        <ElogoInvoiceList
-          invoices={invoices.elogoInvoices}
-          onOpen={invoices.openElogoInvoice}
-          openingId={invoices.openingElogoInvoiceId}
-          loadFailed={invoices.elogoLoadFailed}
-          onRetry={invoices.refreshElogoInvoices}
-        />
-        <OrderSellerInvoiceCard
-          sellerInvoice={invoices.sellerInvoice}
-          onView={invoices.viewSellerInvoice}
-          downloading={invoices.downloadingSellerInvoice}
-          onUpload={invoices.pickAndUploadSellerInvoice}
-          uploading={invoices.uploadingSellerInvoice}
-        />
-        <OrderHelpCard />
-
-        <View style={{ height: 50 }} />
-      </ScrollView>
-
-      <CancelOrderModal
-        isOpen={actions.cancelModal.visible}
-        onClose={actions.cancelModal.close}
-        onConfirm={actions.cancelModal.confirm}
-        willRefund={actions.cancelModal.willRefund}
-        pending={actions.cancelOrderPending}
+    <PageShell
+      title={t('order.orderDetails')}
+      onBack={back}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      overlay={
+        <>
+          <CancelOrderModal
+            isOpen={actions.cancelModal.visible}
+            onClose={actions.cancelModal.close}
+            onConfirm={actions.cancelModal.confirm}
+            willRefund={actions.cancelModal.willRefund}
+            pending={actions.cancelOrderPending}
+          />
+          <RefundRequestModal
+            visible={actions.refundModal.visible}
+            onClose={actions.refundModal.close}
+            orderId={String(id)}
+            orderQuantity={order.quantity ?? 1}
+            notify={actions.notify}
+            timingValues={view.timing}
+          />
+          <RatingModal
+            visible={ratingModal.visible}
+            onDismiss={() => setRatingModal((r) => ({ ...r, visible: false }))}
+            type={ratingModal.type}
+            orderId={order.id}
+            productId={order.product.id}
+            sellerId={order.seller.id}
+            productTitle={order.product.title}
+            sellerName={order.seller.displayName}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: qk.orders.detail(String(id)) });
+              actions.notify(t('order.reviewReceived'), 'success');
+            }}
+          />
+        </>
+      }
+    >
+      <OrderEscrowCard order={order} view={view} />
+      <OrderStatusCard order={order} view={view} />
+      <OrderCancelledInfo order={order} view={view} audience={audience} />
+      <PreparingDeadlineNotice notice={view.preparingNotice} />
+      <OrderPayPendingCard order={order} view={view} onPay={actions.initiatePayment} payPending={actions.payPending} />
+      <OrderTrackingCard order={order} view={view} shipment={shipment} isSeller={isSeller} />
+      <OrderProductCard order={order} />
+      <OrderSellerCard order={order} />
+      <OrderAddressCard order={order} isMembershipOrder={view.isMembershipOrder} />
+      <OrderPriceSummary order={order} isMembershipOrder={view.isMembershipOrder} />
+      <OrderCancelCard order={order} view={view} onCancel={actions.handleCancelOrder} cancelPending={actions.cancelOrderPending} />
+      <OrderRatingButtons order={order} view={view} onRate={(type) => setRatingModal({ visible: true, type })} />
+      <OrderRefundBanner
+        order={order}
+        view={view}
+        onCancelRefund={actions.handleCancelRefund}
+        cancelRefundPending={actions.cancelRefundPending}
       />
-
-      <RefundRequestModal
-        visible={actions.refundModal.visible}
-        onClose={actions.refundModal.close}
-        orderId={String(id)}
-        orderQuantity={order.quantity ?? 1}
-        notify={actions.notify}
-        timingValues={view.timing}
+      <OrderRefundActionCard order={order} view={view} onOpenRefund={actions.refundModal.open} />
+      {/* B7: fatura verileri ayrı query'lerle sonradan gelir (bkz. useOrderInvoices); dokunulan
+          aksiyon kartlarının (iptal/değerlendirme/iade) ALTINDA render edilir ki geç gelen
+          içerik hiçbir dokunma hedefini kaydırmasın. */}
+      <ElogoInvoiceList
+        invoices={invoices.elogoInvoices}
+        onOpen={invoices.openElogoInvoice}
+        openingId={invoices.openingElogoInvoiceId}
+        loadFailed={invoices.elogoLoadFailed}
+        onRetry={invoices.refreshElogoInvoices}
       />
-
-      <Snackbar
-        visible={actions.snackbar.visible}
-        onDismiss={actions.dismissSnackbar}
-        duration={3500}
-        variant={actions.snackbar.variant}
-      >
-        {actions.snackbar.message}
-      </Snackbar>
-
-      <RatingModal
-        visible={ratingModal.visible}
-        onDismiss={() => setRatingModal((r) => ({ ...r, visible: false }))}
-        type={ratingModal.type}
-        orderId={order.id}
-        productId={order.product.id}
-        sellerId={order.seller.id}
-        productTitle={order.product.title}
-        sellerName={order.seller.displayName}
-        onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: qk.orders.detail(String(id)) });
-          actions.notify(t('order.reviewReceived'), 'success');
-        }}
+      <OrderSellerInvoiceCard
+        sellerInvoice={invoices.sellerInvoice}
+        onView={invoices.viewSellerInvoice}
+        downloading={invoices.downloadingSellerInvoice}
+        onUpload={invoices.pickAndUploadSellerInvoice}
+        uploading={invoices.uploadingSellerInvoice}
       />
-    </View>
+      <OrderHelpCard />
+    </PageShell>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface.alt },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  content: { flex: 1, padding: theme.spacing[4] },
-});

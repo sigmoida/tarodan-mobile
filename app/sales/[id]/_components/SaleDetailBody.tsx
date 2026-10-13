@@ -1,8 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { View, Image, Pressable } from 'react-native';
-import { Button, Divider, Text, theme } from '@/ui';
+import { Button, SectionCard, Text, theme } from '@/ui';
 import { router } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   formatPrice,
   formatServerPrice,
@@ -18,6 +17,43 @@ import { styles } from '../_lib/styles';
 import type { SaleDetailController } from '../_hooks/useSaleDetail';
 
 const { colors } = theme;
+
+/** Etiket solda (muted), değer sağda — özet/alıcı/kargo satırı. */
+function KV({
+  label,
+  value,
+  valueColor,
+  bold,
+  testID,
+  onPress,
+  selectable,
+}: {
+  label?: string;
+  value: string;
+  valueColor?: string;
+  bold?: boolean;
+  testID?: string;
+  onPress?: () => void;
+  selectable?: boolean;
+}) {
+  const content = (
+    <Text
+      testID={testID}
+      selectable={selectable}
+      variant="bodySm"
+      weight={bold ? 'bold' : 'medium'}
+      style={[styles.kvValue, valueColor ? { color: valueColor } : null]}
+    >
+      {value}
+    </Text>
+  );
+  return (
+    <View style={styles.kvRow}>
+      {label ? <Text variant="bodySm" tone="muted">{label}</Text> : null}
+      {onPress ? <Pressable onPress={onPress} accessibilityRole="link" hitSlop={8}>{content}</Pressable> : content}
+    </View>
+  );
+}
 
 /** Sipariş detay gövdesi — durum, ürünler, alıcı, adres, kargo, tutar kartları. */
 export function SaleDetailBody({ f }: { f: SaleDetailController }) {
@@ -39,192 +75,138 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
     <>
       {/* Status */}
       <View style={[styles.statusBanner, { backgroundColor: f.sc.bg }]}>
-        <Ionicons name="information-circle" size={20} color={f.sc.fg} />
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.statusText, { color: f.sc.fg }]}>
-            {formatOrderStatus(f.displayStatus, i18n.language)}
+        <Text variant="body" weight="bold" style={{ color: f.sc.fg }}>
+          {formatOrderStatus(f.displayStatus, i18n.language)}
+        </Text>
+        <Text variant="caption" style={{ color: f.sc.fg }}>
+          {formatRelativeDate(order.createdAt, i18n.language)}
+        </Text>
+        {f.cancelMessage ? (
+          <Text testID="sales-cancel-message" variant="caption" style={{ color: f.sc.fg }}>
+            {f.cancelMessage}
           </Text>
-          <Text style={[styles.statusSub, { color: f.sc.fg }]}>
-            {formatRelativeDate(order.createdAt, i18n.language)}
-          </Text>
-          {f.cancelMessage ? (
-            <Text testID="sales-cancel-message" style={[styles.statusSub, { color: f.sc.fg }]}>
-              {f.cancelMessage}
-            </Text>
-          ) : null}
-        </View>
+        ) : null}
       </View>
 
       <PreparingDeadlineNotice notice={f.preparingNotice} style={styles.flush} />
 
       {/* Items */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>{t('product.title')}</Text>
+      <SectionCard title={t('product.title')} bodyStyle={styles.stack}>
         {(order.items || []).map((item) => (
           <Pressable
             key={item.id}
-            style={({ pressed }) => [styles.itemRow, { opacity: pressed ? 0.85 : 1 }]}
+            style={styles.itemRow}
             onPress={() => router.push(`/product/${item.product?.id}`)}
+            accessibilityRole="button"
           >
             <Image source={{ uri: transformImageUrl(item.product?.imageUrl) }} style={styles.itemImg} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.itemTitle} numberOfLines={2}>{item.product?.title}</Text>
-              <Text style={styles.itemMeta}>{t('sale.quantityLabel', { count: item.quantity })}</Text>
+            <View style={styles.itemInfo}>
+              <Text variant="body" weight="medium" tone="heading" numberOfLines={2}>{item.product?.title}</Text>
+              <Text variant="bodySm" tone="muted">{t('sale.quantityLabel', { count: item.quantity })}</Text>
               {/* Satır tutarı SUNUCUDAN. `price` siparişe girildiği andaki donmuş
                   kopya; adetle çarpınca tahsil edilenden sapabiliyor. Sunucu satır
                   tutarı göndermediyse çarpım uydurulmaz — birim fiyat basılır. */}
               {serverAmount(item.subtotal) != null ? (
-                <Text style={styles.itemPrice}>{formatServerPrice(item.subtotal)}</Text>
+                <Text variant="bodySm" weight="semibold" style={{ color: theme.priceColor.detail }}>
+                  {formatServerPrice(item.subtotal)}
+                </Text>
               ) : (
-                <Text style={styles.itemPrice}>
+                <Text variant="bodySm" weight="semibold" style={{ color: theme.priceColor.detail }}>
                   {t('sale.unitPriceLabel', { price: formatServerPrice(item.price) })}
                 </Text>
               )}
             </View>
           </Pressable>
         ))}
-      </View>
+      </SectionCard>
 
       {/* Buyer */}
       {order.buyer ? (
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>{t('order.buyer')}</Text>
-          <View style={styles.kvRow}>
-            <Ionicons name="person-outline" size={16} color={colors.text.muted} />
-            <Text style={styles.kvValue}>{order.buyer.displayName}</Text>
-          </View>
+        <SectionCard title={t('order.buyer')} bodyStyle={styles.stack}>
+          <KV value={order.buyer.displayName} bold />
           {order.buyer.phone ? (
-            <Pressable style={styles.kvRow} onPress={f.handleCall}>
-              <Ionicons name="call-outline" size={16} color={colors.text.muted} />
-              <Text style={[styles.kvValue, { color: colors.primary[600]! }]}>{order.buyer.phone}</Text>
-            </Pressable>
+            <KV value={order.buyer.phone} valueColor={colors.primary[600]!} onPress={f.handleCall} />
           ) : null}
-          {order.buyer.email ? (
-            <View style={styles.kvRow}>
-              <Ionicons name="mail-outline" size={16} color={colors.text.muted} />
-              <Text style={styles.kvValue}>{order.buyer.email}</Text>
-            </View>
-          ) : null}
-        </View>
+          {order.buyer.email ? <KV value={order.buyer.email} /> : null}
+        </SectionCard>
       ) : null}
 
       {/* Shipping Address */}
       {order.shippingAddress ? (
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>{t('checkout.shippingAddress')}</Text>
-          <Text style={styles.addressName}>{order.shippingAddress.fullName}</Text>
-          <Text style={styles.addressLine}>{order.shippingAddress.address}</Text>
-          <Text style={styles.addressLine}>
+        <SectionCard title={t('checkout.shippingAddress')} bodyStyle={styles.stack}>
+          <Text variant="body" weight="medium">{order.shippingAddress.fullName}</Text>
+          <Text variant="bodySm" tone="muted">{order.shippingAddress.address}</Text>
+          <Text variant="bodySm" tone="muted">
             {order.shippingAddress.district}, {order.shippingAddress.city}
             {order.shippingAddress.zipCode ? ` ${order.shippingAddress.zipCode}` : ''}
           </Text>
-          <Text style={styles.addressLine}>
+          <Text variant="bodySm" tone="muted">
             {t('sale.phoneLabel', { phone: order.shippingAddress.phone })}
           </Text>
-        </View>
+        </SectionCard>
       ) : null}
 
       {/* Shipment — İKİ NUMARA, İKİ İŞ. Kod gelmeden satıcı ŞUBE REFERANSINI
           görür (Sürat onu tanımaz, link verilmez); kod gelince gerçek Sürat
           takip numarası + koddan KURULMUŞ link. Kalıp: `OrderTrackingCard`. */}
-      <View style={styles.card} testID="sales-shipment-card">
-        <Text style={styles.sectionTitle}>
-          {t('sale.shipmentSectionTitle', { carrier: 'Sürat Kargo' })}
-        </Text>
+      <SectionCard
+        testID="sales-shipment-card"
+        title={t('sale.shipmentSectionTitle', { carrier: 'Sürat Kargo' })}
+        bodyStyle={styles.stack}
+      >
         {hasShipment ? (
           <>
-            <View style={styles.kvRow}>
-              <MaterialCommunityIcons name="truck-fast-outline" size={18} color={colors.primary[600]!} />
-              <Text style={styles.kvValue}>
-                {f.isSurat ? 'Sürat Kargo' : f.shipmentProvider || 'Sürat Kargo'}
-              </Text>
-            </View>
+            <KV value={f.isSurat ? 'Sürat Kargo' : f.shipmentProvider || 'Sürat Kargo'} bold />
 
             {order.shipment?.status ? (
-              <View style={styles.kvRow}>
-                <Ionicons name="pulse-outline" size={18} color={colors.text.muted} />
-                <Text testID="sales-shipment-status" style={styles.kvValue}>
-                  {shipmentStatusLabel(order.shipment.status, t)}
-                </Text>
-              </View>
+              <KV testID="sales-shipment-status" value={shipmentStatusLabel(order.shipment.status, t)} />
             ) : null}
 
             {s.cargoCode ? (
               <>
-                <Text style={styles.kvLabel}>{t('order.trackingNumber')}</Text>
-                <View style={styles.kvRow}>
-                  <Ionicons name="barcode-outline" size={18} color={colors.text.muted} />
-                  <Text testID="sales-tracking-number" selectable style={[styles.kvValue, { fontWeight: '700' }]}>
-                    {s.cargoCode}
-                  </Text>
-                </View>
+                <Text variant="bodySm" tone="muted">{t('order.trackingNumber')}</Text>
+                <KV testID="sales-tracking-number" selectable bold value={s.cargoCode} />
                 {s.trackingUrl ? (
                   <Button
                     testID="sales-track-link"
                     variant="outline"
-                    icon="cube"
                     title={t('order.trackOnSurat')}
                     onPress={f.handleTrack}
-                    style={{ marginTop: theme.spacing[2] }}
                   />
                 ) : null}
               </>
             ) : (
               <>
-                <Text style={styles.kvLabel}>{t('order.cargoReference')}</Text>
-                <View style={styles.kvRow}>
-                  <Ionicons name="barcode-outline" size={18} color={colors.text.muted} />
-                  <Text testID="sales-cargo-reference" selectable style={[styles.kvValue, { fontWeight: '700' }]}>
-                    {s.reference}
-                  </Text>
-                </View>
-                <Text style={styles.helperText}>{t('order.cargoRefInstructions')}</Text>
-                <Text style={styles.helperText}>{t('order.trackingAppearsAfterDropoff')}</Text>
+                <Text variant="bodySm" tone="muted">{t('order.cargoReference')}</Text>
+                <KV testID="sales-cargo-reference" selectable bold value={s.reference ?? ''} />
+                <Text variant="caption" tone="muted">{t('order.cargoRefInstructions')}</Text>
+                <Text variant="caption" tone="muted">{t('order.trackingAppearsAfterDropoff')}</Text>
               </>
             )}
           </>
         ) : (
-          <Text style={styles.helperText}>{t('sale.shipmentPendingNotice')}</Text>
+          <Text variant="caption" tone="muted">{t('sale.shipmentPendingNotice')}</Text>
         )}
-      </View>
+      </SectionCard>
 
       {/* Totals */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>{t('sale.amountSummaryTitle')}</Text>
-        {subtotal != null ? (
-          <View style={styles.kvRow}>
-            <Text style={styles.kvLabel}>{t('checkout.subtotal')}</Text>
-            <Text style={styles.kvValue}>{formatPrice(subtotal)}</Text>
-          </View>
-        ) : null}
-        {shipping != null ? (
-          <View style={styles.kvRow}>
-            <Text style={styles.kvLabel}>{t('product.shipping')}</Text>
-            <Text style={styles.kvValue}>{formatPrice(shipping)}</Text>
-          </View>
-        ) : null}
+      <SectionCard title={t('sale.amountSummaryTitle')} bodyStyle={styles.stack}>
+        {subtotal != null ? <KV label={t('checkout.subtotal')} value={formatPrice(subtotal)} /> : null}
+        {shipping != null ? <KV label={t('product.shipping')} value={formatPrice(shipping)} /> : null}
         {commission != null ? (
-          <View style={styles.kvRow}>
-            <Text style={styles.kvLabel}>{t('product.commissionLine')}</Text>
-            <Text style={[styles.kvValue, { color: colors.danger[600]! }]}>- {formatPrice(commission)}</Text>
-          </View>
+          <KV label={t('product.commissionLine')} value={`- ${formatPrice(commission)}`} valueColor={colors.danger[600]!} />
         ) : null}
         {withholding > 0 ? (
-          <View style={styles.kvRow}>
-            <Text style={styles.kvLabel}>{t('order.withholdingTax')}</Text>
-            <Text style={[styles.kvValue, { color: colors.danger[600]! }]}>- {formatPrice(withholding)}</Text>
-          </View>
+          <KV label={t('order.withholdingTax')} value={`- ${formatPrice(withholding)}`} valueColor={colors.danger[600]!} />
         ) : null}
-        <Divider style={{ marginVertical: theme.spacing[2] }} />
+        <View style={styles.rule} />
         <View style={styles.kvRow}>
-          <Text style={[styles.kvLabel, { fontWeight: '700' }]}>
-            {net != null ? t('sale.netEarnings') : t('common.total')}
-          </Text>
-          <Text style={[styles.kvValue, { fontSize: 18, fontWeight: '800', color: colors.primary[600]! }]}>
+          <Text variant="h3" tone="heading">{net != null ? t('sale.netEarnings') : t('common.total')}</Text>
+          <Text variant="h3" weight="bold" style={{ color: theme.priceColor.detail }}>
             {formatPrice(net ?? order.totalAmount ?? 0)}
           </Text>
         </View>
-      </View>
+      </SectionCard>
 
       <ElogoInvoiceList
         invoices={f.elogo.invoices}
@@ -232,7 +214,7 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
         openingId={f.elogo.openingId}
         loadFailed={f.elogo.loadFailed}
         onRetry={f.elogo.refresh}
-        style={[styles.card, styles.flush]}
+        style={styles.flush}
       />
     </>
   );

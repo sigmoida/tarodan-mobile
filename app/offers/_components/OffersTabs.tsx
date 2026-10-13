@@ -1,20 +1,10 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import type { TFunction } from 'i18next';
-import { theme, RawText } from '@/ui';
+import { Chip, theme } from '@/ui';
 import type { TabType } from '../_lib/types';
 
-const { colors } = theme;
-
-const buildTabs = (
-  t: TFunction,
-): { key: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] => [
-  { key: 'received', label: t('offer.tabReceived'), icon: 'mail-open-outline' },
-  { key: 'sent', label: t('offer.tabSent'), icon: 'paper-plane-outline' },
-];
-
+/** Gelen / giden teklif sekmeleri (web Tabs karşılığı: iki eşit chip). */
 export function OffersTabs({
   activeTab,
   onChange,
@@ -23,53 +13,26 @@ export function OffersTabs({
   onChange: (tab: TabType) => void;
 }) {
   const { t } = useTranslation();
-  const TABS = buildTabs(t);
+  const tabs: { key: TabType; label: string }[] = [
+    { key: 'received', label: t('offer.tabReceived') },
+    { key: 'sent', label: t('offer.tabSent') },
+  ];
   return (
     <View style={styles.container}>
-      {TABS.map(({ key, label, icon }) => {
-        const active = activeTab === key;
-        return (
-          <TouchableOpacity
-            key={key}
-            style={[styles.tab, active && styles.tabActive]}
-            onPress={() => onChange(key)}
-          >
-            <Ionicons
-              name={icon}
-              size={18}
-              color={active ? colors.primary[600]! : colors.text.subtle}
-            />
-            <RawText style={[styles.tabText, active && styles.tabTextActive]}>{label}</RawText>
-          </TouchableOpacity>
-        );
-      })}
+      {tabs.map(({ key, label }) => (
+        <Chip
+          key={key}
+          label={label}
+          selected={activeTab === key}
+          onPress={() => onChange(key)}
+          style={styles.tab}
+        />
+      ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface.elevated,
-    paddingHorizontal: theme.spacing[4],
-    paddingBottom: theme.spacing[3],
-    gap: theme.spacing[2],
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: theme.spacing[1.5],
-    paddingVertical: theme.spacing[2.5],
-    borderRadius: theme.radius['2xl'],
-    backgroundColor: colors.gray[100]!,
-  },
-  tabActive: {
-    backgroundColor: colors.primary[50]!,
-    borderWidth: 1,
-    borderColor: colors.primary[600]!,
-  },
-  tabText: { fontSize: 14, fontWeight: '600', color: colors.text.subtle },
-  tabTextActive: { color: colors.primary[600]! },
+  container: { flexDirection: 'row', gap: theme.spacing[2] },
+  tab: { flex: 1 },
 });

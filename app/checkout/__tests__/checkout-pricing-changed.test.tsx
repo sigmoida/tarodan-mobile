@@ -140,14 +140,11 @@ describe('409 PRICING_CHANGED', () => {
     await waitFor(() => expect(screen.getByText('Ali Veli')).toBeOnTheScreen());
     fireEvent.press(screen.getByText('Ali Veli'));
 
-    fireEvent.press(screen.getByText('Devam Et')); // step1 → step2
-    await waitFor(() => expect(screen.getByText('Kargo Seçimi')).toBeOnTheScreen());
-    fireEvent.press(screen.getByText('Devam Et')); // step2 → step3
-    await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen());
 
     acceptDistanceSales();
     await act(async () => {
-      fireEvent.press(screen.getByText(/Onayla ve Öde/));
+      fireEvent.press(screen.getByText('Ödeme Yap'));
     });
 
     // checkout 409 döndü → quote yenilendi (2. getQuote çağrısı) ve appAlert

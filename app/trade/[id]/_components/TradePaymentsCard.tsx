@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Card, Text, theme } from '@/ui';
+import { SectionCard, Text, theme } from '@/ui';
 import { formatPrice } from '@/utils/format';
 import type { TradeCashPayment, TFn } from '../_lib/types';
 import type { TradeView } from '../_lib/derive';
@@ -33,18 +33,20 @@ export function TradePaymentsCard({
   if (!view.isV2 || view.totalCount === 0) return null;
 
   return (
-    <Card style={styles.card}>
-      <View style={styles.header}>
-        <Text variant="body" style={styles.title}>{t('trade.paymentsTitle')}</Text>
+    <SectionCard
+      title={t('trade.paymentsTitle')}
+      action={
         <Text variant="caption" tone="muted">
           {t('trade.paymentsProgress', { paid: view.paidCount, total: view.totalCount })}
         </Text>
-      </View>
-      <Text variant="caption" tone="muted" style={styles.desc}>{t('trade.bothMustPay')}</Text>
+      }
+      bodyStyle={styles.body}
+    >
+      <Text variant="caption" tone="muted">{t('trade.bothMustPay')}</Text>
 
       <PaymentRow label={t('trade.yourPayment')} row={view.myPaymentRow} t={t} />
       <PaymentRow label={t('trade.theirPayment', { name: otherPartyName })} row={view.theirPaymentRow} t={t} />
-    </Card>
+    </SectionCard>
   );
 }
 
@@ -120,13 +122,10 @@ function Line({
 }
 
 const styles = StyleSheet.create({
-  card: { margin: theme.spacing[4], marginTop: theme.spacing[0], backgroundColor: theme.colors.surface.DEFAULT },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontWeight: '600' },
-  desc: { marginTop: theme.spacing[1] },
-  row: { marginTop: theme.spacing[3], gap: theme.spacing[1] },
+  body: { gap: theme.spacing[3] },
+  row: { gap: theme.spacing[1] },
   rowHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: theme.spacing[1] },
-  rowLabel: { fontWeight: '600' },
+  rowLabel: { fontWeight: theme.typography.fontWeight.semibold },
   line: { flexDirection: 'row', justifyContent: 'space-between' },
   discountValue: { color: theme.colors.success[700]! },
   totalLine: {
@@ -137,5 +136,5 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: theme.colors.border.DEFAULT,
   },
-  totalValue: { fontWeight: 'bold' },
+  totalValue: { fontWeight: theme.typography.fontWeight.bold },
 });

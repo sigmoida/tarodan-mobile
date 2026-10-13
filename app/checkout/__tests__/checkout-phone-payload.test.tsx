@@ -135,12 +135,9 @@ const fillAddressExceptPhone = () => {
   fireEvent.changeText(screen.getByTestId('district-input'), 'Kadıköy');
 };
 
-/** Adım 1 → 2 → 3; son adımda "Onayla ve Öde" görünür olana kadar bekler. */
+/** Tek sayfa: "Ödeme Yap" görünür olana kadar bekler (eski 3 adımlı gezinti yok). */
 const advanceToConfirm = async () => {
-  fireEvent.press(screen.getByText('Devam Et'));
-  await waitFor(() => expect(screen.getByText('Kargo Seçimi')).toBeOnTheScreen());
-  fireEvent.press(screen.getByText('Devam Et'));
-  await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
+  await waitFor(() => expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen());
 };
 
 beforeEach(() => {
@@ -162,6 +159,14 @@ afterEach(() => {
 function acceptDistanceSales() {
   const box = screen.queryByTestId('checkout-distance-sales-checkbox');
   if (box) fireEvent.press(box);
+}
+
+/** Eski "Devam Et" adres kapısı artık ödeme düğmesinde: sözleşmeyi onayla, "Ödeme Yap"a bas. */
+async function pressPay() {
+  acceptDistanceSales();
+  // Quote yüklenene kadar düğme kapalı (tutar yok) — etkinleşmesini bekle.
+  await waitFor(() => expect(screen.getByTestId('checkout-pay-button')).not.toBeDisabled());
+  fireEvent.press(screen.getByText('Ödeme Yap'));
 }
 
 describe('Misafir yolu — alana yazılan telefon payloada ne olarak gidiyor', () => {
@@ -186,7 +191,7 @@ describe('Misafir yolu — alana yazılan telefon payloada ne olarak gidiyor', (
 
     acceptDistanceSales();
     await act(async () => {
-      fireEvent.press(screen.getByText(/Onayla ve Öde/));
+      fireEvent.press(screen.getByText('Ödeme Yap'));
     });
     await waitFor(() => expect(screen.getByTestId('guest-otp-input')).toBeOnTheScreen());
     fireEvent.changeText(screen.getByTestId('guest-otp-input'), '123456');
@@ -209,12 +214,11 @@ describe('Misafir yolu — alana yazılan telefon payloada ne olarak gidiyor', (
   ])('geçersiz "%s" → checkoutGuest HİÇ çağrılmaz, Türkçe hata görünür', async (input) => {
     renderWithProviders(<CheckoutScreen />);
     fillGuestStep1(input);
+    await pressPay();
 
-    fireEvent.press(screen.getByText('Devam Et'));
-
-    // Adım 1'de kalınır: kargo adımı hiç açılmaz.
+    // Gönderim hiç başlamaz: OTP modalı açılmaz.
     expect(await screen.findByText(getPhoneInvalidMessage())).toBeOnTheScreen();
-    expect(screen.queryByText('Kargo Seçimi')).toBeNull();
+    expect(screen.queryByTestId('guest-otp-input')).toBeNull();
     expect(ordersApi.sendGuestVerificationCode).not.toHaveBeenCalled();
     expect(ordersApi.checkoutGuest).not.toHaveBeenCalled();
   });
@@ -223,11 +227,11 @@ describe('Misafir yolu — alana yazılan telefon payloada ne olarak gidiyor', (
     renderWithProviders(<CheckoutScreen />);
     fillGuestStep1('0532 123 45 67', '05321234567890');
 
-    fireEvent.press(screen.getByText('Devam Et'));
+    await pressPay();
 
     // Ayrı mesaj: hangi adresin telefonu reddedildi, kullanıcı görsün.
     expect(await screen.findByText(`Teslimat adresi — ${getPhoneInvalidMessage()}`)).toBeOnTheScreen();
-    expect(screen.queryByText('Kargo Seçimi')).toBeNull();
+    expect(screen.queryByTestId('guest-otp-input')).toBeNull();
     expect(ordersApi.sendGuestVerificationCode).not.toHaveBeenCalled();
   });
 
@@ -253,7 +257,7 @@ describe('Misafir yolu — alana yazılan telefon payloada ne olarak gidiyor', (
     fireEvent.changeText(screen.getByTestId('guest-email-input'), 'ali@example.com');
     fillAddressExceptPhone();
 
-    fireEvent.press(screen.getByText('Devam Et'));
+    await pressPay();
 
     expect(await screen.findByText('Lütfen telefon numaranızı girin')).toBeOnTheScreen();
     expect(ordersApi.sendGuestVerificationCode).not.toHaveBeenCalled();
@@ -275,7 +279,7 @@ describe('Üye yolu — telefon payloada ne olarak gidiyor', () => {
 
     acceptDistanceSales();
     await act(async () => {
-      fireEvent.press(screen.getByText(/Onayla ve Öde/));
+      fireEvent.press(screen.getByText('Ödeme Yap'));
     });
 
     await waitFor(() => expect(ordersApi.checkout).toHaveBeenCalledTimes(1));
@@ -294,7 +298,7 @@ describe('Üye yolu — telefon payloada ne olarak gidiyor', () => {
 
     acceptDistanceSales();
     await act(async () => {
-      fireEvent.press(screen.getByText(/Onayla ve Öde/));
+      fireEvent.press(screen.getByText('Ödeme Yap'));
     });
 
     await waitFor(() => expect(ordersApi.checkout).toHaveBeenCalledTimes(1));
@@ -310,17 +314,17 @@ describe('Üye yolu — telefon payloada ne olarak gidiyor', () => {
 
       fillAddressExceptPhone();
       fireEvent.changeText(screen.getByTestId('shipping-phone-input'), input);
-      fireEvent.press(screen.getByText('Devam Et'));
+      await pressPay();
 
       expect(await screen.findByText(`Teslimat adresi — ${getPhoneInvalidMessage()}`)).toBeOnTheScreen();
-      expect(screen.queryByText('Kargo Seçimi')).toBeNull();
+      expect(screen.queryByTestId('guest-otp-input')).toBeNull();
       expect(ordersApi.checkout).not.toHaveBeenCalled();
     },
   );
 });
 
 /**
- * İKİNCİ katman: adım 1 doğrulaması atlansa bile `proceedCheckout` telefonu
+ * İKİNCİ katman: form doğrulaması atlansa bile `proceedCheckout` telefonu
  * `setLoading(true)`'dan ÖNCE çözer. Ekranı sürerek buraya ulaşılamıyor (her
  * ileri geçiş yeniden doğruluyor) — bu yüzden controller doğrudan sürülüyor.
  */
@@ -388,10 +392,13 @@ describe('proceedCheckout telefon kapısı — gönderim setLoading ÖNCESİ dur
     });
 
     expect(ordersApi.checkout).not.toHaveBeenCalled();
-    expect(appAlert).toHaveBeenCalledWith(
-      'Telefon Numarası Geçersiz',
-      `Teslimat adresi — ${getPhoneInvalidMessage()}`,
-    );
+    // Tek sayfada adres kapısı (eski adım-1 "Devam Et") `handleCheckout`'un İLK kapısı: hata
+    // snackbar'a düşer, kimlik kapısı/`proceedCheckout` hiç koşmaz.
+    expect(result.current.snackbar).toEqual({
+      visible: true,
+      message: `Teslimat adresi — ${getPhoneInvalidMessage()}`,
+    });
+    expect(appAlert).not.toHaveBeenCalled();
     expect(result.current.loading).toBe(false);
   });
 });

@@ -104,28 +104,23 @@ tags:
     timeout: 15000
 - assertVisible:
     text: ".*Toplam.*"
-# 5. Checkout 3 adım: Adres → Ödeme → Onay.
+# 5. Checkout tek sayfa: seed'li default adres seçili → onay → Ödeme Yap (bypass → başarı)
 - tapOn:
     id: "cart-checkout-button"
-# Adım 1 (Teslimat/Adres): seed'li default adres seçili → Devam Et
-- extendedWaitUntil:
-    visible: "Teslimat Bilgileri"
-    timeout: 20000
-- tapOn:
-    text: "Devam Et.*"
-# Adım 2 (Ödeme: kargo + ödeme yöntemi) → Devam Et
-- extendedWaitUntil:
-    visible: "Ödeme Yöntemi"
-    timeout: 20000
-- tapOn:
-    text: "Devam Et.*"
-# Adım 3 (Onay): "Onayla ve Öde (X TL)" → bypass ödeme → başarı
+# Checkout tek sayfa (web gibi): adres → ödeme yöntemi → özet + mesafeli satış onayı → Ödeme Yap
 - extendedWaitUntil:
     visible:
-      text: ".*Onayla ve Öde.*"
+      id: "checkout-address"
     timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "checkout-distance-sales-checkbox"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
-    text: ".*Onayla ve Öde.*"
+    id: "checkout-distance-sales-checkbox"
+- tapOn:
+    id: "checkout-pay-button"
 # Yasal kimlik eksikse kapı açılır (1.0.6) — çalıştırmada MAESTRO_TEST_TCKN verin.
 - runFlow: ../subflows/pass-identity-gate.yaml
 # Başarı ekranı: "Ödemeniz Başarılı!" → sipariş oluştu (driver assert-invoice doğrular).

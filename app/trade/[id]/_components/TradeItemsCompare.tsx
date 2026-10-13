@@ -1,36 +1,41 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Card, Text, theme } from '@/ui';
+import { SectionCard, Text, theme } from '@/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { formatPrice } from '@/utils/format';
 import { CompareItemRow } from './CompareItemRow';
 import type { TradeItem } from '../_lib/types';
 
-const { colors } = theme;
+const { colors, spacing } = theme;
 
 const openProduct = (item: TradeItem) => {
   const pid = item.productId ?? item.product?.id;
   if (pid) router.push(`/product/${pid}`);
 };
 
-function ItemSide({ label, items }: { label: string; items: TradeItem[] }) {
+function ItemSide({ label, items, total }: { label: string; items: TradeItem[]; total: number }) {
   const { t } = useTranslation();
   return (
-    <>
-      <Text variant="overline" tone="muted" style={styles.sideLabel}>{label}</Text>
-      <View style={{ gap: theme.spacing[2] }}>
+    <View style={styles.side}>
+      <Text variant="overline" tone="muted">{label}</Text>
+      <View style={styles.items}>
         {items.length > 0 ? (
           items.map((item) => <CompareItemRow key={item.id} item={item} onPress={() => openProduct(item)} />)
         ) : (
           <Text variant="caption" tone="subtle">{t('trade.noItemsShort')}</Text>
         )}
       </View>
-    </>
+      <View style={styles.totalRow}>
+        <Text variant="bodySm" tone="muted">{t('trade.totalValueLabel')}</Text>
+        <Text variant="h3" weight="bold" style={{ color: theme.priceColor.detail }}>{formatPrice(total)}</Text>
+      </View>
+    </View>
   );
 }
 
+/** İki tarafın ürünleri + toplam değerleri; aralarındaki takas oku işlevsel ayraçtır. */
 export function TradeItemsCompare({
   myItems,
   theirItems,
@@ -46,51 +51,29 @@ export function TradeItemsCompare({
 }) {
   const { t } = useTranslation();
   return (
-    <Card style={styles.card}>
-      <ItemSide label={t('trade.yourItems')} items={myItems} />
-      <View style={styles.cmpTotalRow}>
-        <Text variant="caption" tone="muted">{t('trade.totalValueLabel')}</Text>
-        <Text variant="h3" style={styles.cmpTotalValue}>{formatPrice(myTotal)}</Text>
-      </View>
-
+    <SectionCard>
+      <ItemSide label={t('trade.yourItems')} items={myItems} total={myTotal} />
       <View style={styles.arrowRow}>
         <View style={styles.arrowLine} />
-        <View style={styles.arrowCircle}>
-          <Ionicons name="swap-vertical" size={18} color={colors.primary[600]!} />
-        </View>
+        <Ionicons name="swap-vertical" size={theme.iconSize.lg} color={colors.primary[600]!} />
         <View style={styles.arrowLine} />
       </View>
-
-      <ItemSide label={t('trade.otherPartyItemsLabel', { name: otherPartyName })} items={theirItems} />
-      <View style={styles.cmpTotalRow}>
-        <Text variant="caption" tone="muted">{t('trade.totalValueLabel')}</Text>
-        <Text variant="h3" style={styles.cmpTotalValue}>{formatPrice(theirTotal)}</Text>
-      </View>
-    </Card>
+      <ItemSide label={t('trade.otherPartyItemsLabel', { name: otherPartyName })} items={theirItems} total={theirTotal} />
+    </SectionCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { margin: theme.spacing[4], marginTop: theme.spacing[0], backgroundColor: colors.surface.DEFAULT },
-  sideLabel: { marginBottom: theme.spacing[2.5] },
-  cmpTotalRow: {
+  side: { gap: spacing[2.5] },
+  items: { gap: spacing[2] },
+  totalRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: theme.spacing[3],
-    paddingTop: theme.spacing[3],
+    paddingTop: spacing[3],
     borderTopWidth: 1,
     borderTopColor: colors.border.DEFAULT,
   },
-  cmpTotalValue: { color: colors.primary[700]!, fontWeight: 'bold' },
-  arrowRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2], marginVertical: theme.spacing[4] },
-  arrowLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.border.DEFAULT },
-  arrowCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.primary[50]!,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  arrowRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[2], marginVertical: spacing[4] },
+  arrowLine: { flex: 1, height: 1, backgroundColor: colors.border.DEFAULT },
 });

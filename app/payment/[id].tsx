@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, BackHandler } from 'react-native';
 import { Button, Spinner, Text, theme, appAlert } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams, Redirect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { paymentsApi } from '@/lib/api';
@@ -276,7 +275,6 @@ export default function PaymentScreen() {
       ) : state.target ? (
         <View style={{ flex: 1 }}>
           <View style={styles.safeNotice}>
-            <Ionicons name="lock-closed" size={14} color={colors.success[600]!} />
             <Text style={styles.safeNoticeText}>
               {t('payment.sslNotice')}
             </Text>
@@ -312,7 +310,7 @@ const styles = StyleSheet.create({
   },
   safeNoticeText: {
     flex: 1,
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.xs,
     color: colors.success[600]!,
   },
   center: {

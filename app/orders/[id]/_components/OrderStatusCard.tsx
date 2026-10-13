@@ -1,29 +1,30 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Card, Text, StatusBadge, theme } from '@/ui';
+import { SectionCard, Text, StatusBadge, theme } from '@/ui';
 import { TimelineItem } from './TimelineItem';
 import { badgeStatusOf, useOrderStatusConfig } from '../_lib/status';
 import { formatDate } from '../_lib/format';
 import type { OrderDetail } from '../_lib/types';
 import type { OrderView } from '../_lib/derive';
 
-const { colors } = theme;
-
-/** Sipariş numarası + rozet + durum timeline'ı. */
+/**
+ * Sipariş numarası + durum rozeti + zaman çizelgesi. Zaman çizelgesi web'de yok; sade hâliyle
+ * kalır (nokta + çizgi, süs ikonu yok).
+ */
 export function OrderStatusCard({ order, view }: { order: OrderDetail; view: OrderView }) {
   const { t } = useTranslation();
   const statusConfig = useOrderStatusConfig();
   return (
-    <Card variant="elevated" style={styles.card}>
+    <SectionCard bodyStyle={styles.body}>
       <View style={styles.statusHeader}>
         <View>
-          <Text variant="caption" style={styles.orderNumber}>
+          <Text variant="bodySm" tone="muted">
             {t('sale.orderNumberTitle', { number: order.orderNumber })}
           </Text>
           {/* Kargo oluşmadan sunucu bu numarayı üretmiyor — satır kendini kapılıyor. */}
           {order.packageNumber ? (
-            <Text variant="caption" style={styles.orderNumber}>
+            <Text variant="bodySm" tone="muted">
               {t('order.packageNumber')} {order.packageNumber}
             </Text>
           ) : null}
@@ -31,28 +32,16 @@ export function OrderStatusCard({ order, view }: { order: OrderDetail; view: Ord
         <StatusBadge status={badgeStatusOf(order)} config={statusConfig} size="sm" />
       </View>
 
-      <View style={styles.timeline}>
-        <TimelineItem
-          icon="cart"
-          label={t('order.timelineCreated')}
-          date={formatDate(order.createdAt)}
-          isActive
-        />
-        <TimelineItem
-          icon="card"
-          label={t('order.timelinePaymentMade')}
-          date={formatDate(order.paidAt)}
-          isActive={view.isPaid}
-        />
+      <View>
+        <TimelineItem label={t('order.timelineCreated')} date={formatDate(order.createdAt)} isActive />
+        <TimelineItem label={t('order.timelinePaymentMade')} date={formatDate(order.paidAt)} isActive={view.isPaid} />
         <TimelineItem
           testID="order-shipped-timeline"
-          icon="cube"
           label={t('order.statusShipped')}
           date={formatDate(order.shippedAt)}
           isActive={!!order.shippedAt}
         />
         <TimelineItem
-          icon="checkmark-circle"
           label={t('order.statusDelivered')}
           date={formatDate(order.deliveredAt)}
           isActive={!!order.deliveredAt}
@@ -61,7 +50,6 @@ export function OrderStatusCard({ order, view }: { order: OrderDetail; view: Ord
         {view.showRefundCancelStep && (
           <TimelineItem
             testID="order-refundcancel-timeline"
-            icon={view.isCancelled ? 'close-circle' : 'arrow-undo'}
             label={view.refundCancelLabel}
             date={formatDate(view.refundCancelDate)}
             isActive
@@ -69,13 +57,11 @@ export function OrderStatusCard({ order, view }: { order: OrderDetail; view: Ord
           />
         )}
       </View>
-    </Card>
+    </SectionCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { marginBottom: theme.spacing[3] },
-  statusHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing[4] },
-  orderNumber: { color: colors.text.muted },
-  timeline: { marginTop: theme.spacing[2] },
+  body: { gap: theme.spacing[4] },
+  statusHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 });

@@ -1026,7 +1026,14 @@
     "yourAddresses": "Your Saved Addresses",
     "zipCode": "Zip Code",
     "quantityCampaignDiscount": "Quantity campaign discount",
-    "campaignSavings": "Your total savings"
+    "campaignSavings": "Your total savings",
+    "productFee": "Product price",
+    "shippingFee": "Shipping fee",
+    "serviceFee": "Service fee",
+    "payNow": "Pay now",
+    "buyNowNotice": "Only the item you selected will be paid for; the rest of your cart stays put.",
+    "paytrNotice": "Your payment is processed on PayTR's secure infrastructure. Your card details are not stored by Tarodan; tapping \"Pay now\" opens the secure payment screen where you enter your card details.",
+    "distanceSalesRequired": "Accept the distance sales agreement to continue"
   },
   "order": {
     "myOrders": "My Orders",
@@ -1326,7 +1333,8 @@
     "preparingDeadlineBuyer": "The seller has to ship this order by this date at the latest.",
     "preparingExtendedTitle": "Shipping deadline extended once — new deadline: {date}",
     "preparingExtendedSeller": "Your shipping deadline passed and was extended once. This is the final deadline; if the order is not shipped by then, it is cancelled automatically and the buyer refunded in full.",
-    "preparingExtendedBuyer": "The seller could not ship on time and was given one extension. If the order is not shipped by this date, it is cancelled automatically and your payment refunded in full. You can cancel the order any time before it ships."
+    "preparingExtendedBuyer": "The seller could not ship on time and was given one extension. If the order is not shipped by this date, it is cancelled automatically and your payment refunded in full. You can cancel the order any time before it ships.",
+    "groupItemActionsNote": "Returns and cancellations are handled per item. Tap an item to request a cancellation (before shipping) or a return (after shipping)."
   },
   "trade": {
     "featureTitle": "Trading",

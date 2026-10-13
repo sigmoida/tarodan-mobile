@@ -1,15 +1,18 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
-import { View, TouchableOpacity } from 'react-native';
-import { Input, Radio, Text, theme } from '@/ui';
+import { View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Input, Radio, Text, theme } from '@/ui';
 import { CityDistrictSelector, PhoneInput } from '@/components/common';
 import { DEFAULT_COUNTRY_CODE } from '@/utils/phone';
 import { styles } from '../_lib/styles';
 import type { ShippingAddressInput, SavedAddress } from '../_lib/types';
 
-const { colors } = theme;
-
+/**
+ * Teslimat / fatura adresi seçici — web `AddressStep`: kayıtlı adresler 2px kenarlıklı kartlar
+ * (seçili: primary-500 kenarlık + primary-50 zemin), "Yeni Adres Ekle" ayrı kart, altında satır
+ * içi form. Seçim/state mantığı değişmedi (`selectedId === 'new'` = satır içi form).
+ */
 export function AddressSelector({
   isBilling = false,
   isAuthenticated,
@@ -31,44 +34,48 @@ export function AddressSelector({
   return (
     <View>
       {isAuthenticated && addresses.length > 0 ? (
-        <View style={{ marginBottom: theme.spacing[3] }}>
+        <View style={[styles.stack, styles.field]}>
           {addresses.map((a) => (
-            <TouchableOpacity
+            <Pressable
               key={a.id}
-              style={[styles.savedAddressRow, selectedId === a.id && styles.savedAddressRowActive]}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: selectedId === a.id }}
+              style={[styles.addressCard, selectedId === a.id && styles.addressCardActive]}
               onPress={() => setSelectedId(a.id)}
             >
               <Radio checked={selectedId === a.id} onChange={() => setSelectedId(a.id)} />
-              <View style={{ flex: 1 }}>
+              <View style={styles.addressCardBody}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={styles.addressTitle}>{a.title || a.fullName}</Text>
-                  {a.isDefault ? <Text style={styles.defaultBadge}> · {t('common.default')}</Text> : null}
+                  <Text variant="body" weight="semibold" tone="heading">{a.title || a.fullName}</Text>
+                  {a.isDefault ? <Text variant="bodySm" tone="muted"> · {t('common.default')}</Text> : null}
                 </View>
-                <Text style={styles.addressLine} numberOfLines={2}>{a.fullName} · {a.phone}</Text>
-                <Text style={styles.addressLine} numberOfLines={2}>{a.address}, {a.district}/{a.city}</Text>
+                <Text variant="bodySm" tone="muted" numberOfLines={2}>{a.fullName} · {a.phone}</Text>
+                <Text variant="bodySm" tone="muted" numberOfLines={2}>{a.address}, {a.district}/{a.city}</Text>
               </View>
-            </TouchableOpacity>
+            </Pressable>
           ))}
-          <TouchableOpacity
-            style={[styles.savedAddressRow, selectedId === 'new' && styles.savedAddressRowActive]}
+          <Pressable
+            accessibilityRole="radio"
+            accessibilityState={{ checked: selectedId === 'new' }}
+            style={[styles.addressCard, selectedId === 'new' && styles.addressCardActive]}
             onPress={() => setSelectedId('new')}
           >
             <Radio checked={selectedId === 'new'} onChange={() => setSelectedId('new')} />
-            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="add-circle-outline" size={18} color={colors.primary[600]!} />
-              <Text style={[styles.addressTitle, { marginLeft: theme.spacing[2] }]}>{t('checkout.addNewAddress')}</Text>
+            <View style={[styles.addressCardBody, { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2] }]}>
+              <Ionicons name="add" size={theme.iconSize.lg} color={theme.colors.text.muted} />
+              <Text variant="body" weight="semibold" tone="heading">{t('checkout.addNewAddress')}</Text>
             </View>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       ) : null}
 
       {selectedId === 'new' ? (
-        <View>
+        <View style={styles.addressForm}>
           <Input
             label={t('checkout.fullNameRequired')}
             value={inline.fullName}
             onChangeText={(text: string) => setInline({ ...inline, fullName: text })}
-            containerStyle={styles.input}
+            containerStyle={styles.field}
             testID={isBilling ? undefined : 'shipping-fullname-input'}
           />
           <PhoneInput
@@ -81,7 +88,7 @@ export function AddressSelector({
             onCountryCodeChange={(code) => setInline((prev) => ({ ...prev, phoneCountryCode: code }))}
             phone={inline.phone}
             onPhoneChange={(phone) => setInline((prev) => ({ ...prev, phone }))}
-            containerStyle={styles.input}
+            containerStyle={styles.field}
           />
           <CityDistrictSelector
             city={inline.city}
@@ -95,7 +102,7 @@ export function AddressSelector({
             onChangeText={(text: string) => setInline({ ...inline, address: text })}
             multiline
             numberOfLines={3}
-            containerStyle={styles.input}
+            containerStyle={styles.field}
             testID={isBilling ? undefined : 'shipping-address-input'}
           />
           <Input
@@ -104,7 +111,7 @@ export function AddressSelector({
             onChangeText={(text: string) => setInline({ ...inline, zipCode: text })}
             keyboardType="number-pad"
             maxLength={5}
-            containerStyle={styles.input}
+            containerStyle={styles.field}
           />
         </View>
       ) : null}

@@ -1,9 +1,9 @@
 # F-23: Bypass mode'da uçtan uca: ürün → Sepete Ekle → cart → checkout →
-# Devam Et → Ödemeyi Tamamla → bypass-complete → /payment/success.
+# mesafeli satış onayı → Ödeme Yap → bypass-complete → /payment/success.
 #
 # NOT (BUG-007 düzeltmesi): App sepet-tabanlı; eski "Hemen Al"/product-detail-buy-button
 # yok. Doğru zincir: product-detail-add-to-cart-button → sepet ikonu →
-# cart-checkout-button → checkout (Teslimat → Devam Et → Ödeme → Ödemeyi Tamamla).
+# cart-checkout-button → checkout (tek sayfa: onay kutusu → Ödeme Yap).
 # Pre-req: PAYMENT_BYPASS=true + zeynep'te kayıtlı teslimat adresi.
 appId: ${APP_ID}
 tags:
@@ -49,19 +49,20 @@ env:
     timeout: 15000
 - tapOn:
     id: "cart-checkout-button"
-# Checkout Step 1 (Teslimat) → Devam Et
-- extendedWaitUntil:
-    visible: "Teslimat Bilgileri"
-    timeout: 20000
-- tapOn:
-    text: "Devam Et.*"
-# Checkout Step 2 (Ödeme) → Ödemeyi Tamamla (bypass → success)
+# Checkout tek sayfa (web gibi): adres → ödeme yöntemi → özet + mesafeli satış onayı → Ödeme Yap
 - extendedWaitUntil:
     visible:
-      text: ".*Ödeme.*Tamamla.*|.*Ödemeyi.*"
+      id: "checkout-address"
     timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "checkout-distance-sales-checkbox"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
-    text: ".*Ödeme.*Tamamla.*|.*Ödemeyi.*"
+    id: "checkout-distance-sales-checkbox"
+- tapOn:
+    id: "checkout-pay-button"
 # Yasal kimlik eksikse kapı açılır (1.0.6) — çalıştırmada MAESTRO_TEST_TCKN verin.
 - runFlow: ../subflows/pass-identity-gate.yaml
 - extendedWaitUntil:

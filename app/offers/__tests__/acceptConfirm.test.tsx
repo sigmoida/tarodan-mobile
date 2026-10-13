@@ -138,18 +138,18 @@ describe('onay basıldığı an bekliyor durumu (çift basış yok)', () => {
     const callsAfterFirst = alertMock.mock.calls.length;
     act(() => (c.confirm as { onSelect?: () => void }).onSelect?.());
 
-    // mutasyon henüz başlamadı ama kart bekliyor
+    // mutasyon henüz başlamadı ama kart bekliyor (web Button gibi: etiket kalır, düğme kilitli)
     expect(accept).not.toHaveBeenCalled();
-    expect(screen.queryByText('Kabul Et')).toBeNull();
+    expect(screen.getByText('Kabul Et')).toBeDisabled();
     fireEvent.press(screen.getByText('Reddet')); // devre dışı düğme
     expect(alertMock.mock.calls.length).toBe(callsAfterFirst);
 
     act(() => c.confirm.onPress());
     await waitFor(() => expect(accept).toHaveBeenCalledTimes(1));
-    expect(screen.queryByText('Kabul Et')).toBeNull(); // mutasyon sürerken de bekliyor
+    expect(screen.getByText('Kabul Et')).toBeDisabled(); // mutasyon sürerken de bekliyor
 
     await act(async () => resolveAccept());
-    await waitFor(() => expect(screen.getByText('Kabul Et')).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText('Kabul Et')).not.toBeDisabled());
   });
 
   it('liste: mutasyon hata verince bekliyor kalkar', async () => {
@@ -162,7 +162,7 @@ describe('onay basıldığı an bekliyor durumu (çift basış yok)', () => {
     const c = lastConfirm();
     act(() => (c.confirm as { onSelect?: () => void }).onSelect?.());
     act(() => c.confirm.onPress());
-    await waitFor(() => expect(screen.getByText('Kabul Et')).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText('Kabul Et')).not.toBeDisabled());
   });
 
   it('detay: onSelect -> düğmeler devre dışı/spinner, ikinci basış yeni diyalog açmaz', async () => {

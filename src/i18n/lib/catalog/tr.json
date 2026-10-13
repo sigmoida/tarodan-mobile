@@ -1026,7 +1026,14 @@
     "yourAddresses": "Kayıtlı Adresleriniz",
     "zipCode": "Posta Kodu",
     "quantityCampaignDiscount": "Adet kampanyası indirimi",
-    "campaignSavings": "Toplam kazancınız"
+    "campaignSavings": "Toplam kazancınız",
+    "productFee": "Ürün ücreti",
+    "shippingFee": "Kargo ücreti",
+    "serviceFee": "Hizmet Bedeli",
+    "payNow": "Ödeme Yap",
+    "buyNowNotice": "Yalnız seçtiğiniz ürün ödenecek; sepetinizdeki diğer ürünler yerinde kalır.",
+    "paytrNotice": "Ödemeniz PayTR güvenli altyapısı üzerinden alınır. Kart bilgileriniz Tarodan'a kaydedilmez; \"Ödeme Yap\"a bastığınızda kart bilgilerinizi gireceğiniz güvenli ödeme ekranı açılır.",
+    "distanceSalesRequired": "Devam etmek için mesafeli satış sözleşmesini onaylayın"
   },
   "order": {
     "myOrders": "Siparişlerim",
@@ -1326,7 +1333,8 @@
     "preparingDeadlineBuyer": "Satıcının siparişi en geç bu tarihe kadar kargoya vermesi gerekiyor.",
     "preparingExtendedTitle": "Kargo süresi bir kez uzatıldı — yeni son tarih: {date}",
     "preparingExtendedSeller": "Kargo süreniz doldu ve bir kez uzatıldı. Bu son süredir; sipariş bu tarihe kadar kargoya verilmezse otomatik iptal edilir ve alıcıya tam iade yapılır.",
-    "preparingExtendedBuyer": "Satıcı siparişi süresinde kargoya veremedi ve satıcıya bir kez ek süre tanındı. Bu tarihe kadar kargoya verilmezse sipariş otomatik iptal edilir ve ödemenizin tamamı iade edilir. Kargoya verilene kadar siparişi iptal edebilirsiniz."
+    "preparingExtendedBuyer": "Satıcı siparişi süresinde kargoya veremedi ve satıcıya bir kez ek süre tanındı. Bu tarihe kadar kargoya verilmezse sipariş otomatik iptal edilir ve ödemenizin tamamı iade edilir. Kargoya verilene kadar siparişi iptal edebilirsiniz.",
+    "groupItemActionsNote": "İade veya iptal işlemleri ürün bazında yapılır. İlgili ürüne dokunarak iptal (kargo öncesi) ya da iade (kargo sonrası) talebi açabilirsiniz."
   },
   "trade": {
     "featureTitle": "Takas Özelliği",

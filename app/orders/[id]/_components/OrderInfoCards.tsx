@@ -1,8 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, Pressable, Linking, StyleSheet } from 'react-native';
-import { Card, Text, Button, StatusBadge, theme } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
+import { SectionCard, Text, Button, StatusBadge, theme } from '@/ui';
 import type { Shipment } from '@/lib/api';
 import { formatPrice } from '../_lib/format';
 import { formatPolicyDate } from '@/lib/shared/timingPolicy';
@@ -12,7 +11,7 @@ import { orderCancelMessage, type OrderCancelAudience } from '@/lib/shared/order
 import type { OrderDetail } from '../_lib/types';
 import type { OrderView } from '../_lib/derive';
 
-const { colors } = theme;
+const { spacing } = theme;
 
 /** Escrow kartının göründüğü (UI) statüler — web `["delivered", "awaiting_buyer_confirmation"]`. */
 const ESCROW_STATUSES: readonly string[] = ['delivered', 'awaiting_confirmation'];
@@ -33,24 +32,25 @@ export function OrderEscrowCard({ order, view }: { order: OrderDetail; view: Ord
   // ve üyelik olmayan siparişte. Kargodaki ya da tamamlanmış siparişte yok.
   if (!order.isBuyer || !ESCROW_STATUSES.includes(order.status) || view.isMembershipOrder) return null;
   return (
-    <Card variant="elevated" style={styles.card} testID="order-escrow-info">
-      <View style={styles.escrowHeaderRow}>
-        <Ionicons name="shield-checkmark-outline" size={20} color={colors.info[600]!} />
-        <Text variant="label" style={styles.escrowHeaderText}>{t('order.paymentProtection')}</Text>
-        {view.hasActiveRefund && (
+    <SectionCard
+      title={t('order.paymentProtection')}
+      testID="order-escrow-info"
+      badge={
+        view.hasActiveRefund ? (
           <StatusBadge
             status="frozen"
             config={{ frozen: { label: t('order.heldForRefund'), variant: 'warning' } }}
             size="sm"
           />
-        )}
-      </View>
+        ) : undefined
+      }
+    >
       {view.hasActiveRefund ? (
-        <Text variant="caption" style={styles.escrowText}>
+        <Text variant="bodySm" tone="muted">
           {t('order.paymentOnHoldRefund')}
         </Text>
       ) : view.payoutReleaseDate && view.refundWindowEnd ? (
-        <Text variant="caption" style={styles.escrowText} testID="order-escrow-dates">
+        <Text variant="bodySm" tone="muted" testID="order-escrow-dates">
           {t('order.payoutReleaseWithDate', {
             ...timingValues,
             refundDeadline: formatPolicyDate(view.refundWindowEnd),
@@ -58,11 +58,11 @@ export function OrderEscrowCard({ order, view }: { order: OrderDetail; view: Ord
           })}
         </Text>
       ) : (
-        <Text variant="caption" style={styles.escrowText}>
+        <Text variant="bodySm" tone="muted">
           {t('order.payoutRelease', timingValues)}
         </Text>
       )}
-    </Card>
+    </SectionCard>
   );
 }
 
@@ -81,20 +81,16 @@ export function OrderCancelledInfo({
   if (!view.isCancelled) return null;
   const cancelMessage = orderCancelMessage(order, audience, t, view.timing);
   return (
-    <Card variant="elevated" style={styles.card} testID="order-cancelled-info">
-      <View style={styles.cancelledHeaderRow}>
-        <Ionicons name="close-circle-outline" size={20} color={colors.danger[600]!} />
-        <Text variant="label" style={styles.cancelledHeaderText}>{t('order.orderCancelled')}</Text>
-      </View>
+    <SectionCard title={t('order.orderCancelled')} testID="order-cancelled-info" bodyStyle={styles.stack}>
       {cancelMessage ? (
-        <Text testID="order-cancel-message" variant="caption" style={styles.cancelMessage}>
+        <Text testID="order-cancel-message" variant="bodySm" tone="heading">
           {cancelMessage}
         </Text>
       ) : null}
-      <Text variant="caption" style={styles.escrowText}>
+      <Text variant="bodySm" tone="muted">
         {t('order.cancelledRefundNotice')}
       </Text>
-    </Card>
+    </SectionCard>
   );
 }
 
@@ -113,9 +109,8 @@ export function OrderPayPendingCard({
   const { t } = useTranslation();
   if (!(order.status === 'pending' && !view.isPaid && order.isBuyer !== false)) return null;
   return (
-    <Card variant="elevated" style={styles.card}>
-      <Text variant="label" style={styles.sectionTitle}>{t('order.statusPendingPayment')}</Text>
-      <Text variant="caption" style={styles.confirmNote}>{t('order.completePaymentPrompt')}</Text>
+    <SectionCard title={t('order.statusPendingPayment')} bodyStyle={styles.stack}>
+      <Text variant="bodySm" tone="muted">{t('order.completePaymentPrompt')}</Text>
       <Button
         testID="order-pay-button"
         variant="primary"
@@ -123,9 +118,8 @@ export function OrderPayPendingCard({
         isLoading={payPending}
         title={t('offer.payAmount', { amount: formatPrice(order.totalAmount) })}
         onPress={onPay}
-        style={{ marginTop: theme.spacing[3] }}
       />
-    </Card>
+    </SectionCard>
   );
 }
 
@@ -155,52 +149,43 @@ export function OrderTrackingCard({
   const status = shipment?.status ?? order.shipment?.status;
 
   return (
-    <Card variant="elevated" style={styles.card} testID="order-tracking-card">
-      <View style={styles.trackingHeaderRow}>
-        <Text variant="label" style={styles.sectionTitle}>{t('order.trackOrder')}</Text>
-        <Text variant="caption" tone="muted">
+    <SectionCard
+      title={t('order.trackOrder')}
+      testID="order-tracking-card"
+      bodyStyle={styles.stack}
+      action={
+        <Text variant="bodySm" tone="muted">
           {shipmentStatusLabel(status, t)}
         </Text>
-      </View>
-
+      }
+    >
       {s.cargoCode ? (
-        <View style={styles.trackingInfo}>
-          <Text variant="caption" tone="muted">{t('order.trackingNumber')}</Text>
-          <Text testID="order-tracking-number">{s.cargoCode}</Text>
+        <View style={styles.stack}>
+          <Text variant="bodySm" tone="muted">{t('order.trackingNumber')}</Text>
+          <Text variant="body" weight="medium" testID="order-tracking-number">{s.cargoCode}</Text>
           {s.trackingUrl ? (
-            <Pressable onPress={() => Linking.openURL(s.trackingUrl!)}>
-              <Text style={styles.trackLink}>{t('order.trackShipment')}</Text>
+            <Pressable onPress={() => Linking.openURL(s.trackingUrl!)} accessibilityRole="link" hitSlop={8}>
+              <Text variant="bodySm" tone="primary">{t('order.trackShipment')}</Text>
             </Pressable>
           ) : null}
         </View>
       ) : isSeller ? (
         // SATICI: şubede vereceği referans + kodun ne zaman geleceği.
-        <View style={styles.trackingInfo}>
-          <Text variant="caption" tone="muted">{t('order.cargoReference')}</Text>
-          <Text testID="order-cargo-reference">{s.reference}</Text>
-          <Text variant="caption" tone="muted">{t('order.cargoRefInstructions')}</Text>
-          <Text variant="caption" tone="muted">{t('order.trackingAppearsAfterDropoff')}</Text>
+        <View style={styles.stack}>
+          <Text variant="bodySm" tone="muted">{t('order.cargoReference')}</Text>
+          <Text variant="body" weight="medium" testID="order-cargo-reference">{s.reference}</Text>
+          <Text variant="bodySm" tone="muted">{t('order.cargoRefInstructions')}</Text>
+          <Text variant="bodySm" tone="muted">{t('order.trackingAppearsAfterDropoff')}</Text>
         </View>
       ) : isAwaitingDropoff(status) ? (
         // ALICI: iç referans işine yaramaz, gösterme. Paket hâlâ satıcıdayken
         // "takip bilgileri şubeye teslimden sonra" notu doğru bilgidir.
-        <Text variant="caption" tone="muted">{t('order.shipmentPreparingBuyer')}</Text>
+        <Text variant="bodySm" tone="muted">{t('order.shipmentPreparingBuyer')}</Text>
       ) : null}
-    </Card>
+    </SectionCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { marginBottom: theme.spacing[3] },
-  sectionTitle: { marginBottom: theme.spacing[3], color: colors.text.heading },
-  confirmNote: { textAlign: 'center', color: colors.text.muted },
-  escrowHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2], marginBottom: theme.spacing[1.5] },
-  escrowHeaderText: { flex: 1, color: colors.text.heading },
-  escrowText: { color: colors.text.muted, lineHeight: 18 },
-  cancelledHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2], marginBottom: theme.spacing[1.5] },
-  cancelledHeaderText: { flex: 1, color: colors.text.heading },
-  cancelMessage: { color: colors.text.heading, lineHeight: 18, marginBottom: theme.spacing[1] },
-  trackingHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing[2] },
-  trackingInfo: { marginTop: theme.spacing[1] },
-  trackLink: { color: colors.primary[600]!, marginTop: theme.spacing[1] },
+  stack: { gap: spacing[2] },
 });

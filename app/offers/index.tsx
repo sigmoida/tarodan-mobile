@@ -1,14 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
-import {
-  View,
-  StyleSheet,
-  ActivityIndicator,
-  RefreshControl,
-  FlatList,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View, FlatList, StyleSheet } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { theme, ScreenHeader, ErrorState, RawText } from "@/ui";
+import { ErrorState, SkeletonCard, pageListContentStyle, theme } from "@/ui";
+import { PageShell } from "@/components/common/PageShell";
 import { useAuthStore } from "@/stores/authStore";
 import { useTimingValues } from "@/hooks/useTimingPolicy";
 import { useTranslation } from "react-i18next";
@@ -16,15 +10,16 @@ import type { Offer, TabType } from "./_lib/types";
 import { useOffers } from "./_hooks/useOffers";
 import { useCommissionPreview } from "./_hooks/useCommissionPreview";
 import { useOfferActions } from "./_hooks/useOfferActions";
-import { OffersAuthGate } from "./_components/OffersAuthGate";
 import { OffersTabs } from "./_components/OffersTabs";
 import { OffersEmpty } from "./_components/OffersEmpty";
 import { OfferCard } from "./_components/OfferCard";
 import { CounterOfferModal } from "./_modals/CounterOfferModal";
 import { BuyerCounterModal } from "./_modals/BuyerCounterModal";
 
-const { colors } = theme;
-
+/**
+ * Tekliflerim — İNCE ekran: PageShell (list modu) + sekmeler + OfferCard listesi. Sorgu
+ * `useOffers`'ta, onaylı aksiyonlar `useOfferActions`'ta; karşı teklif modalları `overlay`'de.
+ */
 export default function OffersScreen() {
   const { t } = useTranslation();
   const params = useLocalSearchParams<{ tab?: string | string[] }>();
@@ -99,89 +94,76 @@ export default function OffersScreen() {
     ],
   );
 
+  const back = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)"));
+
+  // İlk açılış: oturum çözülene dek tam ekran yükleniyor (yalnız burada spinner).
   if (authLoading) {
+    return <PageShell title={t("offer.myOffersTitle")} onBack={back} loading loadingVariant="spinner" />;
+  }
+
+  if (!isAuthenticated) {
     return (
-      <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.primary[600]!} />
-      </SafeAreaView>
+      <PageShell
+        title={t("offer.myOffersTitle")}
+        onBack={back}
+        empty
+        emptyState={{
+          icon: "pricetag-outline",
+          title: t("offer.myOffersTitle"),
+          description: t("offer.authGateSubtitle"),
+          actionLabel: t("common.login"),
+          onAction: () => router.push("/(auth)/login"),
+          secondaryLabel: t("auth.createAccount"),
+          onSecondary: () => router.push("/(auth)/register"),
+        }}
+      />
     );
   }
 
-  if (!isAuthenticated) return <OffersAuthGate />;
-
   return (
-    <View style={styles.safeArea}>
-      <ScreenHeader
-        title={t("offer.myOffersTitle")}
-        onBack={() =>
-          router.canGoBack() ? router.back() : router.replace("/(tabs)")
+    <PageShell
+      title={t("offer.myOffersTitle")}
+      onBack={back}
+      mode="list"
+      overlay={
+        <>
+          <CounterOfferModal offer={counterOffer} onClose={() => setCounterOffer(null)} />
+          <BuyerCounterModal offer={buyerCounterOffer} onClose={() => setBuyerCounterOffer(null)} />
+        </>
+      }
+    >
+      <FlatList
+        data={isLoading || isError ? [] : offers}
+        keyExtractor={(item) => item.id}
+        renderItem={renderOffer}
+        // #82: virtualizasyon ayarı — uzun teklif listelerinde bellek/kaydırma.
+        windowSize={7}
+        initialNumToRender={8}
+        maxToRenderPerBatch={10}
+        removeClippedSubviews
+        ListHeaderComponent={<OffersTabs activeTab={activeTab} onChange={setTab} />}
+        ListEmptyComponent={
+          isLoading ? (
+            <View style={styles.skeletons}>
+              <SkeletonCard />
+              <SkeletonCard />
+            </View>
+          ) : isError ? (
+            // Hatayı boş durumdan ayır: "Henüz teklif yok" bir yükleme hatasını maskelememeli.
+            <ErrorState message={t("offer.loadOffersFailed")} onRetry={() => refetch()} />
+          ) : (
+            <OffersEmpty tab={activeTab} />
+          )
         }
+        contentContainerStyle={[pageListContentStyle, styles.list]}
+        refreshing={isRefetching}
+        onRefresh={refetch}
       />
-
-      <OffersTabs activeTab={activeTab} onChange={setTab} />
-
-      {isLoading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.primary[600]!} />
-          <RawText style={styles.loadingText}>{t("offer.loadingOffers")}</RawText>
-        </View>
-      ) : isError ? (
-        // Hatayı boş durumdan ayır (eskiden appAlert; artık kalıcı ErrorState +
-        // tekrar-dene). "Henüz teklif yok" bir yükleme hatasını maskelememeli.
-        <ErrorState
-          fullscreen
-          message={t("offer.loadOffersFailed")}
-          onRetry={() => refetch()}
-        />
-      ) : (
-        <FlatList
-          data={offers}
-          keyExtractor={(item) => item.id}
-          renderItem={renderOffer}
-          // #82: virtualizasyon ayarı — uzun teklif listelerinde bellek/kaydırma.
-          windowSize={7}
-          initialNumToRender={8}
-          maxToRenderPerBatch={10}
-          removeClippedSubviews
-          ListEmptyComponent={<OffersEmpty tab={activeTab} />}
-          contentContainerStyle={
-            offers.length === 0 ? { flex: 1 } : styles.listContent
-          }
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={refetch}
-              colors={[colors.primary[600]!]}
-            />
-          }
-        />
-      )}
-
-      <CounterOfferModal
-        offer={counterOffer}
-        onClose={() => setCounterOffer(null)}
-      />
-      <BuyerCounterModal
-        offer={buyerCounterOffer}
-        onClose={() => setBuyerCounterOffer(null)}
-      />
-    </View>
+    </PageShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.surface.alt },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: theme.spacing[6],
-    backgroundColor: colors.surface.alt,
-  },
-  listContent: { padding: theme.spacing[4], paddingBottom: theme.spacing[8] },
-  loadingText: {
-    marginTop: theme.spacing[3],
-    fontSize: 14,
-    color: colors.text.muted,
-  },
+  list: { gap: theme.spacing[3] },
+  skeletons: { gap: theme.spacing[3] },
 });

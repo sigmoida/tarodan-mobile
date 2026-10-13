@@ -5,42 +5,8 @@ const { colors } = theme;
 
 // Karşı teklif ekranının route-local stylesheet'i (monolitten birebir taşındı).
 export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.alt,
-  },
-  scrollBody: {
-    padding: theme.spacing[4],
-    gap: theme.spacing[3],
-  },
-  noticeCard: {
-    flexDirection: 'row',
-    gap: theme.spacing[2],
-    padding: theme.spacing[3],
-    backgroundColor: colors.info[50]!,
-    borderRadius: theme.radius['2xl'],
-  },
-  noticeText: {
-    flex: 1,
-    fontSize: 13,
-    color: colors.info[600]!,
-    lineHeight: 18,
-  },
-  card: {
-    backgroundColor: colors.surface.DEFAULT,
-  },
-  section: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text.heading,
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-    color: colors.text.muted,
-    marginTop: theme.spacing[0.5],
-  },
   emptyText: {
-    fontSize: 13,
+    fontSize: theme.typography.fontSize.sm,
     color: colors.text.subtle,
     marginTop: theme.spacing[2],
   },
@@ -84,41 +50,13 @@ export const styles = StyleSheet.create({
     margin: theme.spacing[1.5],
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: theme.radius.full,
     backgroundColor: colors.primary[600]!,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  productTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.text.heading,
-    marginTop: theme.spacing[1.5],
-  },
-  productPrice: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.primary[600]!,
-    marginTop: theme.spacing[0.5],
-  },
-  swapWrap: {
-    alignItems: 'center',
-    marginVertical: theme.spacing[1],
-  },
-  swapCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary[50]!,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  charCount: {
-    fontSize: 11,
-    color: colors.text.subtle,
-    textAlign: 'right',
-    marginTop: theme.spacing[1],
-  },
+  swapWrap: { alignItems: 'center' },
+  summary: { gap: theme.spacing[1] },
   chipsRow: {
     flexDirection: 'row',
     gap: theme.spacing[2],
@@ -140,23 +78,5 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: theme.spacing[1],
-  },
-  summaryLabel: {
-    fontSize: 13,
-    color: colors.text.muted,
-  },
-  summaryValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text.heading,
-  },
-  summaryHint: {
-    fontSize: 12,
-    color: colors.text.muted,
-    textAlign: 'center',
-  },
-  submitBtn: {
-    borderRadius: theme.radius['2xl'],
-    marginTop: theme.spacing[2],
   },
 });

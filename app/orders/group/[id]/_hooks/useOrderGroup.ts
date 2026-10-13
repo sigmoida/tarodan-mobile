@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from '@/ui';
 import { ordersApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { captureException } from '@/services/sentry';
@@ -19,11 +20,6 @@ export function useOrderGroup() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [refreshing, setRefreshing] = useState(false);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
-  const [snackbar, setSnackbar] = useState<{
-    visible: boolean;
-    message: string;
-    variant: 'success' | 'danger';
-  }>({ visible: false, message: '', variant: 'success' });
 
   const { data: group, isLoading, refetch, error } = useQuery({
     queryKey: ['order-group', id],
@@ -90,7 +86,7 @@ export function useOrderGroup() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['order-group', id] });
       queryClient.invalidateQueries({ queryKey: qk.orders.all });
-      setSnackbar({ visible: true, message: t('order.orderCancelled'), variant: 'success' });
+      toast.success(t('order.orderCancelled'));
     },
     onError: (err: any) => {
       captureException(err, {
@@ -99,11 +95,7 @@ export function useOrderGroup() {
         extra: { status: err?.response?.status },
       });
       const raw = err?.response?.data?.message;
-      setSnackbar({
-        visible: true,
-        message: typeof raw === 'string' ? raw : t('order.orderCancelFailed'),
-        variant: 'danger',
-      });
+      toast.error(typeof raw === 'string' ? raw : t('order.orderCancelFailed'));
     },
   });
 
@@ -135,8 +127,6 @@ export function useOrderGroup() {
     refetch,
     refreshing,
     onRefresh,
-    snackbar,
-    dismissSnackbar: () => setSnackbar((s) => ({ ...s, visible: false })),
     cancel: {
       available: cancellable,
       visible: cancelModalVisible,

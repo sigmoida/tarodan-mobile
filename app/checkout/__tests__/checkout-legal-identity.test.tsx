@@ -89,7 +89,7 @@ const SAMPLE_ITEM = {
 
 async function pressPayButton() {
   await act(async () => {
-    fireEvent.press(screen.getByText(/Onayla ve Öde/));
+    fireEvent.press(screen.getByText('Ödeme Yap'));
   });
 }
 
@@ -103,10 +103,7 @@ async function pressPay() {
   const { queryClient } = renderWithProviders(<CheckoutScreen />);
   await waitFor(() => expect(screen.getByText('Ali Veli')).toBeOnTheScreen());
   fireEvent.press(screen.getByText('Ali Veli'));
-  fireEvent.press(screen.getByText('Devam Et'));
-  await waitFor(() => expect(screen.getByText('Kargo Seçimi')).toBeOnTheScreen());
-  fireEvent.press(screen.getByText('Devam Et'));
-  await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
+  await waitFor(() => expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen());
   const box = screen.queryByTestId('checkout-distance-sales-checkbox');
   if (box) fireEvent.press(box);
   await pressPayButton();
@@ -198,8 +195,14 @@ describe('Sepet ödemesi · yasal kimlik kapısı', () => {
       expect(ordersApi.checkout).not.toHaveBeenCalled();
 
       // Yeniden onay: kullanıcı yeni tutarı görüp tekrar basar → YENİ imzayla gider.
+      // İlk deneme (loading/checkingIdentity) bitmeden düğme kapalı; yavaş CI'da basış yutulmasın.
+      await waitFor(() => expect(screen.getByTestId('checkout-pay-button')).toBeEnabled(), {
+        timeout: 5000,
+      });
       await pressPayButton();
-      await waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true));
+      await waitFor(() => expect(useLegalIdentityRequestStore.getState().requested).toBe(true), {
+        timeout: 5000,
+      });
       act(() => settleLegalIdentityRequest(true));
       await waitFor(() => expect(ordersApi.checkout).toHaveBeenCalledTimes(1));
       expect(jest.mocked(ordersApi.checkout).mock.calls[0]![0]).toEqual(

@@ -1,15 +1,8 @@
 import React from "react";
-import {
-  View,
-  TouchableOpacity,
-  StyleSheet,
-  Image,
-  ActivityIndicator,
-} from "react-native";
+import { View, Pressable, Image, StyleSheet } from "react-native";
 import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import type { TFunction } from "i18next";
-import { theme, StatusBadge, RawText } from "@/ui";
+import { theme, Avatar, Badge, Button, SectionCard, StatusBadge, Text } from "@/ui";
 import { useOfferStatusConfig } from "@/lib/shared/offerStatus";
 import { transformImageUrl } from "@/utils/imageUrl";
 import type { Offer, TabType } from "../_lib/types";
@@ -23,7 +16,7 @@ import {
   formatPrice,
 } from "../_lib/status";
 
-const { colors } = theme;
+const { colors, radius, spacing } = theme;
 
 export interface OfferCardProps {
   offer: Offer;
@@ -42,6 +35,11 @@ export interface OfferCardProps {
   onOpenBuyerCounter: (offer: Offer) => void;
 }
 
+/**
+ * Teklif kartı (web `OfferCard`): ürün · durum · tutar · karşı taraf · mesaj · tarih · durum-bazlı
+ * aksiyonlar. SectionCard + Button; yükleniyorken düğme web gibi etiketini korur (spinner + kilit),
+ * bekleme `isPending` ile gelir (teklif başına).
+ */
 function OfferCardBase({
   offer,
   tab,
@@ -59,227 +57,156 @@ function OfferCardBase({
   const otherUser = tab === "received" ? offer.buyer : offer.seller;
   const timeRemaining =
     offer.status === "pending" ? getTimeRemaining(offer.expiresAt, t) : null;
+  const openProduct = () => router.push(`/product/${offer.product.id}` as any);
+  const openOrder = () =>
+    router.push({ pathname: "/orders/[id]", params: { id: offer.orderId! } } as any);
 
   return (
-    <View style={styles.card}>
-      {/* Top row: image + info */}
-      <View style={styles.cardRow}>
-        <TouchableOpacity
-          onPress={() => router.push(`/product/${offer.product.id}` as any)}
-        >
-          <Image
-            source={{ uri: getProductImage(offer.product) }}
-            style={styles.productImage}
-          />
-        </TouchableOpacity>
-
-        <View style={styles.cardContent}>
-          <TouchableOpacity
-            onPress={() => router.push(`/product/${offer.product.id}` as any)}
-          >
-            <RawText style={styles.productTitle} numberOfLines={2}>
+    <SectionCard bodyStyle={styles.body}>
+      {/* Ürün + durum */}
+      <View style={styles.row}>
+        <Pressable onPress={openProduct} accessibilityRole="link">
+          <Image source={{ uri: getProductImage(offer.product) }} style={styles.productImage} />
+        </Pressable>
+        <View style={styles.content}>
+          <Pressable onPress={openProduct} accessibilityRole="link">
+            <Text variant="body" weight="semibold" tone="heading" numberOfLines={2}>
               {offer.product.title}
-            </RawText>
-          </TouchableOpacity>
-
-          <RawText style={styles.originalPrice}>
+            </Text>
+          </Pressable>
+          <Text variant="caption" tone="subtle">
             {t("offer.listingPrice")}:{" "}
-            <RawText style={styles.strikethrough}>
+            <Text variant="caption" tone="subtle" style={styles.strikethrough}>
               {formatPrice(offer.product.price)}
-            </RawText>
-          </RawText>
-
-          <View style={styles.statusBadge}>
+            </Text>
+          </Text>
+          <View style={styles.badges}>
             <StatusBadge status={offer.status} config={statusConfig} size="sm" />
-          </View>
-
-          {tab === "sent" &&
-          offer.status === "pending" &&
-          offer.buyerMustAccept ? (
-            <View style={styles.counterAlertBadge}>
-              <Ionicons name="swap-horizontal" size={14} color={colors.white} />
-              <RawText style={styles.counterAlertText}>
+            {tab === "sent" && offer.status === "pending" && offer.buyerMustAccept ? (
+              <Badge variant="default" size="sm">
                 {t("offer.counterFromSeller")}
-              </RawText>
-            </View>
-          ) : null}
+              </Badge>
+            ) : null}
+          </View>
         </View>
       </View>
 
-      {/* Offer amount */}
+      {/* Tutar */}
       <View style={styles.amountRow}>
         <View style={styles.amountBox}>
-          <RawText style={styles.amountLabel}>{t("offer.offerAmount")}</RawText>
-          <RawText style={styles.amountValue}>{formatPrice(offer.amount)}</RawText>
+          <Text variant="caption" tone="subtle">{t("offer.offerAmount")}</Text>
+          <Text variant="h2" weight="bold" style={{ color: theme.priceColor.card }}>
+            {formatPrice(offer.amount)}
+          </Text>
         </View>
 
         {estimatedNet != null && (
           <View style={styles.netBox}>
-            <RawText style={styles.netLabel}>{t("offer.estimatedNetSeller")}</RawText>
-            <RawText style={styles.netValue}>{formatPrice(estimatedNet)}</RawText>
+            <Text variant="caption" tone="subtle">{t("offer.estimatedNetSeller")}</Text>
+            <Text variant="body" weight="bold" tone="success">{formatPrice(estimatedNet)}</Text>
           </View>
         )}
 
         {timeRemaining && (
-          <View style={styles.timeBox}>
-            <Ionicons
-              name="time-outline"
-              size={14}
-              color={colors.warning[600]!}
-            />
-            <RawText style={styles.timeText}>
-              {t("offer.timeRemaining", { time: timeRemaining })}
-            </RawText>
-          </View>
+          <Text variant="bodySm" weight="medium" style={{ color: colors.warning[700]! }}>
+            {t("offer.timeRemaining", { time: timeRemaining })}
+          </Text>
         )}
       </View>
 
-      {/* Other user */}
+      {/* Karşı taraf */}
       {otherUser && (
         <View style={styles.userRow}>
-          {otherUser.avatarUrl ? (
-            <Image
-              source={{ uri: transformImageUrl(otherUser.avatarUrl) }}
-              style={styles.avatar}
-            />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <Ionicons name="person" size={16} color={colors.text.subtle} />
-            </View>
-          )}
+          <Avatar
+            source={otherUser.avatarUrl ? transformImageUrl(otherUser.avatarUrl) : undefined}
+            name={otherUser.displayName}
+            size="sm"
+          />
           <View>
-            <RawText style={styles.userLabel}>
+            <Text variant="caption" tone="subtle">
               {tab === "received" ? t("offer.offerer") : t("product.seller")}
-            </RawText>
-            <RawText style={styles.userName}>{otherUser.displayName}</RawText>
+            </Text>
+            <Text variant="bodySm" weight="medium" tone="heading">{otherUser.displayName}</Text>
           </View>
         </View>
       )}
 
-      {/* Message */}
+      {/* Mesaj */}
       {offer.message ? (
-        <View style={styles.messageBox}>
-          <Ionicons
-            name="chatbubble-outline"
-            size={14}
-            color={colors.text.subtle}
-            style={{ marginTop: theme.spacing[0.5] }}
-          />
-          <RawText style={styles.messageText}>"{offer.message}"</RawText>
-        </View>
+        <Text variant="bodySm" tone="muted" style={styles.message}>
+          "{offer.message}"
+        </Text>
       ) : null}
 
-      {/* Date */}
-      <View style={styles.dateRow}>
-        <Ionicons
-          name="calendar-outline"
-          size={14}
-          color={colors.text.subtle}
-        />
-        <RawText style={styles.dateText}>{formatTimeAgo(offer.createdAt, t)}</RawText>
-      </View>
+      {/* Tarih */}
+      <Text variant="caption" tone="subtle">{formatTimeAgo(offer.createdAt, t)}</Text>
 
-      {/* Actions */}
+      {/* Aksiyonlar */}
       {offer.status === "pending" && (
-        <View style={styles.actionsRow}>
+        <View style={styles.actions}>
           {tab === "received" && offer.buyerMustAccept ? (
-            <View style={styles.waitingBanner}>
-              <Ionicons
-                name="time-outline"
-                size={18}
-                color={colors.warning[700]!}
-              />
-              <RawText style={styles.waitingBannerText}>
-                {t("offer.waitingForBuyerResponse")}
-              </RawText>
-            </View>
+            <Text variant="bodySm" weight="medium" style={{ color: colors.warning[700]! }}>
+              {t("offer.waitingForBuyerResponse")}
+            </Text>
           ) : tab === "received" ? (
             <>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.acceptBtn]}
+              <Button
+                size="sm"
+                variant="success"
+                title={t("offer.acceptOffer")}
                 onPress={() => onAccept(offer.id, "seller")}
+                isLoading={isPending}
                 disabled={isPending}
-              >
-                {isPending ? (
-                  <ActivityIndicator size="small" color={colors.white} />
-                ) : (
-                  <>
-                    <Ionicons name="checkmark" size={16} color={colors.white} />
-                    <RawText style={styles.actionBtnText}>{t("offer.acceptOffer")}</RawText>
-                  </>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.rejectBtn]}
+              />
+              <Button
+                size="sm"
+                variant="danger"
+                title={t("offer.rejectOffer")}
                 onPress={() => onReject(offer.id)}
                 disabled={isPending}
-              >
-                <Ionicons name="close" size={16} color={colors.white} />
-                <RawText style={styles.actionBtnText}>{t("offer.rejectOffer")}</RawText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.counterBtn]}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                title={t("offer.counterOffer")}
                 onPress={() => onOpenCounter(offer)}
                 disabled={isPending}
-              >
-                <Ionicons
-                  name="swap-horizontal"
-                  size={16}
-                  color={colors.white}
-                />
-                <RawText style={styles.actionBtnText}>{t("offer.counterOffer")}</RawText>
-              </TouchableOpacity>
+              />
             </>
           ) : offer.buyerMustAccept ? (
             <>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.acceptBtn]}
+              <Button
+                size="sm"
+                variant="success"
+                title={t("offer.acceptCounterOffer")}
                 onPress={() => onAccept(offer.id, "buyer")}
+                isLoading={isPending}
                 disabled={isPending}
-              >
-                {isPending ? (
-                  <ActivityIndicator size="small" color={colors.white} />
-                ) : (
-                  <>
-                    <Ionicons name="checkmark" size={16} color={colors.white} />
-                    <RawText style={styles.actionBtnText}>
-                      {t("offer.acceptCounterOffer")}
-                    </RawText>
-                  </>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.rejectBtn]}
+              />
+              <Button
+                size="sm"
+                variant="danger"
+                title={t("offer.rejectOffer")}
                 onPress={() => onReject(offer.id)}
                 disabled={isPending}
-              >
-                <Ionicons name="close" size={16} color={colors.white} />
-                <RawText style={styles.actionBtnText}>{t("offer.rejectOffer")}</RawText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.counterBtn]}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                title={t("offer.lowerOffer")}
                 onPress={() => onOpenBuyerCounter(offer)}
                 disabled={isPending}
-              >
-                <Ionicons name="trending-down" size={16} color={colors.white} />
-                <RawText style={styles.actionBtnText}>{t("offer.lowerOffer")}</RawText>
-              </TouchableOpacity>
+              />
             </>
           ) : (
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.cancelBtn]}
+            <Button
+              size="sm"
+              variant="outline"
+              title={t("offer.cancelOffer")}
               onPress={() => onCancel(offer.id)}
+              isLoading={isPending}
               disabled={isPending}
-            >
-              {isPending ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <>
-                  <Ionicons name="close" size={16} color={colors.white} />
-                  <RawText style={styles.actionBtnText}>{t("offer.cancelOffer")}</RawText>
-                </>
-              )}
-            </TouchableOpacity>
+            />
           )}
         </View>
       )}
@@ -288,230 +215,62 @@ function OfferCardBase({
       <FirstToPayNote offer={offer} isSeller={tab === "received"} timing={timing} />
 
       {/* Accepted → "Ödeme Yap" YALNIZ alıcıya (gönderilen sekmesi) ve ödeme bekliyorsa
-          (web: `activeTab === "sent" && !paid`); satıcıya her durumda sipariş linki. */}
+          (web: `activeTab === "sent" && !paid`); satıcıya her durumda sipariş linki.
+          Sipariş detayına git: /payment/[id] ÖDEME id'si ister (sunucu `payment.findUnique({ id })`);
+          sipariş id'siyle "Ödeme bulunamadı" veriyordu. Detaydaki "Ödeme Yap" ödemeyi başlatıp
+          (initiate) doğru ödeme id'siyle devam eder. */}
       {offer.status === "accepted" &&
         offer.orderId &&
         (tab === "sent" && isOfferAwaitingPayment(offer) ? (
-          <TouchableOpacity
-            style={[
-              styles.actionBtn,
-              styles.payBtn,
-              { alignSelf: "flex-start", marginTop: theme.spacing[3] },
-            ]}
-            // Sipariş detayına git: /payment/[id] ÖDEME id'si ister (sunucu
-            // `payment.findUnique({ id })`); sipariş id'siyle "Ödeme bulunamadı"
-            // veriyordu. Detaydaki "Ödeme Yap" ödemeyi başlatıp (initiate)
-            // doğru ödeme id'siyle devam eder.
-            onPress={() =>
-              router.push({
-                pathname: "/orders/[id]",
-                params: { id: offer.orderId! },
-              } as any)
-            }
-          >
-            <Ionicons name="card-outline" size={16} color={colors.white} />
-            <RawText style={styles.actionBtnText}>
-              {t("offer.payAmount", { amount: formatPrice(offer.amount) })}
-            </RawText>
-          </TouchableOpacity>
+          <Button
+            size="sm"
+            variant="primary"
+            title={t("offer.payAmount", { amount: formatPrice(offer.amount) })}
+            onPress={openOrder}
+          />
         ) : (
-          <TouchableOpacity
-            style={[
-              styles.actionBtn,
-              styles.orderBtn,
-              { alignSelf: "flex-start", marginTop: theme.spacing[3] },
-            ]}
-            onPress={() =>
-              router.push({
-                pathname: "/orders/[id]",
-                params: { id: offer.orderId! },
-              } as any)
-            }
-          >
-            <Ionicons name="cube-outline" size={16} color={colors.white} />
-            <RawText style={styles.actionBtnText}>{t("order.viewOrder")}</RawText>
-          </TouchableOpacity>
+          <Button size="sm" variant="outline" title={t("order.viewOrder")} onPress={openOrder} />
         ))}
-    </View>
+    </SectionCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface.elevated,
-    borderRadius: 12,
-    padding: theme.spacing[3.5],
-    marginBottom: theme.spacing[3],
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-  },
-  cardRow: { flexDirection: "row", gap: theme.spacing[3] },
+  body: { gap: spacing[3] },
+  row: { flexDirection: "row", gap: spacing[3] },
   productImage: {
-    width: 80,
-    height: 80,
-    borderRadius: theme.radius.xl,
+    width: spacing[20],
+    height: spacing[20],
+    borderRadius: radius.lg,
     backgroundColor: colors.gray[100]!,
   },
-  cardContent: { flex: 1, gap: theme.spacing[1] },
-  productTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.text.heading,
-    lineHeight: 20,
-  },
-  originalPrice: {
-    fontSize: 12,
-    color: colors.text.subtle,
-    marginTop: theme.spacing[0.5],
-  },
+  content: { flex: 1, minWidth: 0, gap: spacing[1] },
   strikethrough: { textDecorationLine: "line-through" },
-
-  statusBadge: {
-    alignSelf: "flex-start",
-    marginTop: theme.spacing[1],
-  },
-  counterAlertBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    gap: theme.spacing[1],
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: theme.spacing[1],
-    borderRadius: theme.radius.lg,
-    marginTop: theme.spacing[1.5],
-    backgroundColor: colors.info[600]!,
-  },
-  counterAlertText: { fontSize: 11, fontWeight: "700", color: colors.white },
-
-  amountRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: theme.spacing[2.5],
-    marginTop: theme.spacing[3],
-  },
+  badges: { flexDirection: "row", flexWrap: "wrap", gap: spacing[2], alignItems: "center" },
+  amountRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: spacing[3] },
   amountBox: {
     backgroundColor: colors.primary[50]!,
     borderWidth: 1,
     borderColor: colors.primary[100]!,
-    borderRadius: theme.radius.xl,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[2],
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
   },
-  amountLabel: {
-    fontSize: 10,
-    color: colors.text.subtle,
-    marginBottom: theme.spacing[0.5],
-  },
-  amountValue: { fontSize: 20, fontWeight: "700", color: colors.primary[600]! },
   netBox: {
-    backgroundColor: colors.success[100]!,
+    backgroundColor: colors.success[50]!,
     borderWidth: 1,
-    borderColor: colors.success[300]!,
-    borderRadius: theme.radius.xl,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[2],
-    flex: 1,
-    minWidth: 0,
+    borderColor: colors.success[200]!,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
   },
-  netLabel: {
-    fontSize: 10,
-    color: colors.text.subtle,
-    marginBottom: theme.spacing[0.5],
-  },
-  netValue: { fontSize: 16, fontWeight: "700", color: colors.success[600]! },
-  timeBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing[1],
-    backgroundColor: colors.warning[100]!,
-    paddingHorizontal: theme.spacing[2.5],
-    paddingVertical: theme.spacing[1.5],
-    borderRadius: theme.radius.xl,
-  },
-  timeText: { fontSize: 12, fontWeight: "600", color: colors.warning[600]! },
-
-  userRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing[2],
-    marginTop: theme.spacing[3],
-  },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: theme.radius["3xl"],
-    backgroundColor: colors.gray[100]!,
-  },
-  avatarPlaceholder: { justifyContent: "center", alignItems: "center" },
-  userLabel: { fontSize: 10, color: colors.text.subtle },
-  userName: { fontSize: 13, fontWeight: "600", color: colors.text.heading },
-
-  messageBox: {
-    flexDirection: "row",
-    gap: theme.spacing[1.5],
+  userRow: { flexDirection: "row", alignItems: "center", gap: spacing[2] },
+  message: {
     backgroundColor: colors.surface.alt,
-    borderRadius: theme.radius.xl,
-    padding: theme.spacing[2.5],
-    marginTop: theme.spacing[2.5],
+    borderRadius: radius.lg,
+    padding: spacing[3],
   },
-  messageText: {
-    flex: 1,
-    fontSize: 13,
-    color: colors.text.muted,
-    fontStyle: "italic",
-    lineHeight: 18,
-  },
-
-  dateRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing[1.5],
-    marginTop: theme.spacing[2.5],
-    paddingTop: theme.spacing[2.5],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.subtle,
-  },
-  dateText: { fontSize: 12, color: colors.text.subtle },
-
-  actionsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: theme.spacing[2],
-    marginTop: theme.spacing[3],
-  },
-  waitingBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing[2],
-    flex: 1,
-    minWidth: "100%",
-    backgroundColor: colors.warning[100]!,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[2.5],
-    borderRadius: theme.radius.xl,
-  },
-  waitingBannerText: {
-    flex: 1,
-    fontSize: 13,
-    color: colors.warning[800]!,
-    lineHeight: 18,
-  },
-  actionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: theme.spacing[3.5],
-    paddingVertical: 9,
-    borderRadius: theme.radius.xl,
-  },
-  actionBtnText: { color: colors.white, fontSize: 13, fontWeight: "600" },
-  acceptBtn: { backgroundColor: colors.success[600]! },
-  rejectBtn: { backgroundColor: colors.danger[600]! },
-  counterBtn: { backgroundColor: colors.info[600]! },
-  cancelBtn: { backgroundColor: colors.gray[500]! },
-  orderBtn: { backgroundColor: colors.primary[600]! },
-  payBtn: { backgroundColor: colors.success[600]! },
+  actions: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: spacing[2] },
 });
 
 export const OfferCard = React.memo(OfferCardBase);

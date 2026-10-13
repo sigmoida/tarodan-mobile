@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import i18n from '@/i18n/config';
 import { offersApi } from '@/lib/api';
 import { useRefresh } from '@/hooks/useRefresh';
@@ -58,7 +58,7 @@ export function useOfferDetail() {
     onSettled: settle,
     onSuccess: () => {
       invalidate();
-      appAlert(i18n.t('common.success'), i18n.t('offer.acceptedOrderCreated'));
+      toast.success(i18n.t('offer.acceptedOrderCreated'));
     },
     onError: (e: any) =>
       appAlert(i18n.t('common.error'), e?.response?.data?.message || i18n.t('offer.acceptFailed')),
@@ -93,7 +93,7 @@ export function useOfferDetail() {
       invalidate();
       setCounterDialog(false);
       setCounterAmount('');
-      appAlert(i18n.t('common.success'), i18n.t('offer.counterSent'));
+      toast.success(i18n.t('offer.counterSent'));
     },
     onError: (e: any) =>
       appAlert(i18n.t('common.error'), e?.response?.data?.message || i18n.t('offer.counterFailed')),
