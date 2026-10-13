@@ -3,11 +3,11 @@ import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useMessagesStore, type MessageThread } from '@/stores/messagesStore';
 import { useAuthStore } from '@/stores/authStore';
-import { useThreadsQuery, useUnreadCountQuery, useDailyMessageLimit } from '@/hooks/messaging';
+import { useThreadsQuery, useDailyMessageLimit } from '@/hooks/messaging';
 
 /**
- * Messages-tab controller — threads/unread artık React Query (#77); focus'ta
- * refetch, search filter, güvenli participant resolver ve limit türevleri burada.
+ * Messages-tab controller — threads artık React Query (#77); focus'ta
+ * refetch, güvenli participant resolver ve limit türevleri burada.
  * getOtherParticipant client store'dan; günlük hak sunucudan (useDailyMessageLimit).
  */
 export function useMessagesTab() {
@@ -15,10 +15,8 @@ export function useMessagesTab() {
   const { isAuthenticated, user } = useAuthStore();
   const getOtherParticipant = useMessagesStore((s) => s.getOtherParticipant);
   const { data: threads = [], isLoading, isFetched: hasLoadedThreads, refetch } = useThreadsQuery();
-  const { data: unreadCount = 0 } = useUnreadCountQuery();
   const daily = useDailyMessageLimit();
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -52,15 +50,6 @@ export function useMessagesTab() {
     }
   };
 
-  const filteredThreads = threads.filter((thread) => {
-    if (!searchQuery) return true;
-    const other = safeGetOther(thread);
-    return (
-      other.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (thread.product?.title || '').toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  });
-
   return {
     isAuthenticated,
     user,
@@ -70,11 +59,7 @@ export function useMessagesTab() {
     dailyMessageCount: daily.used,
     refreshing,
     onRefresh,
-    searchQuery,
-    setSearchQuery,
     safeGetOther,
-    filteredThreads,
-    unreadCount,
     messageLimit: daily.limit,
     dailyNearLimit: daily.nearLimit,
   };

@@ -9,15 +9,12 @@ export const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: spacing[24],
   },
-  // Liste başlığı (PageHeader + uyarı + arama) sayfa kenar boşluğunda; satırlar tam genişlik.
+  // Liste başlığı (günlük hak uyarısı) sayfa kenar boşluğunda; satırlar tam genişlik.
   listHeader: {
     paddingHorizontal: PAGE_GUTTER,
     paddingTop: spacing[2],
     paddingBottom: spacing[3],
     gap: spacing[3],
-  },
-  search: {
-    marginBottom: spacing[0],
   },
   skeletonList: {
     paddingHorizontal: PAGE_GUTTER,
