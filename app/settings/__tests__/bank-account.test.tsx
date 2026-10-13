@@ -42,6 +42,8 @@ const get = bankAccountApi.get as jest.Mock;
 const upsert = bankAccountApi.upsert as jest.Mock;
 
 import BankAccountScreen from '../bank-account';
+import { styles as bankStyles } from '../_bank-account/_lib/styles';
+import { theme } from '@/ui';
 
 // Geçerli (mod-97) bir TR IBAN.
 const IBAN = 'TR330006100519786457841326';
@@ -166,5 +168,9 @@ describe('B-1.8 · banka hesabı formu', () => {
     fireEvent.press(await screen.findByTestId('bank-account-submit-button'));
     expect(await screen.findByText('bankAccount.ibanInvalid')).toBeTruthy();
     expect(mockRequireIdentity).not.toHaveBeenCalled();
+  });
+
+  it('alt boşluk tasarım token\'ından (CLAUDE.md §2)', () => {
+    expect(bankStyles.bottomSpacer.height).toBe(theme.spacing[12]);
   });
 });

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Card, ScreenHeader, Text, theme } from '@/ui';
 import type { LegalBlock, LegalPart, LegalSection, Translate } from '@/lib/legal/types';
 
-const { colors, spacing, radius } = theme;
+const { colors, spacing, radius, typography } = theme;
 
 /**
  * Hukuki metinlerin ortak native iskeleti — web `components/legal/LegalDocument`
@@ -146,7 +146,11 @@ const styles = StyleSheet.create({
   content: { padding: spacing[4], gap: spacing[4], paddingBottom: spacing[10] },
   part: { gap: spacing[5], backgroundColor: colors.surface.DEFAULT },
   section: { gap: spacing[3] },
-  body: { fontSize: 14, lineHeight: 22, color: colors.text.body },
+  body: {
+    fontSize: typography.fontSize.sm,
+    lineHeight: typography.fontSize.sm * typography.lineHeight.normal,
+    color: colors.text.body,
+  },
   list: { gap: spacing[2] },
   listItem: {
     borderLeftWidth: 2,
