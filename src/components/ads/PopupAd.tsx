@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Modal } from '@/ui';
 import { usePopupAd } from '@/lib/ads/usePopupAd';
 import { POPUP_MODAL_SIZE, popupMediaLimits } from '@/lib/ads/popupLayout';
+import { hasAdImage } from '@/lib/ads/creative';
 import { AdCreative } from './AdCreative';
 
 /**
@@ -17,6 +18,9 @@ import { AdCreative } from './AdCreative';
  * iOS ModalFreeze: reklam bağlantısına dokunulunca modal ÖNCE kapanır, bağlantı
  * kısa bir gecikmeyle sonra açılır (`AdCreative.onNavigate`). Modal açıkken
  * gezinme/uyarı ekranı dondurabilir.
+ *
+ * Görselli reklamda kart GÖRSELİN genişliğine oturur (`fitContent`): 1:2 dikey reklamda kart
+ * dar olur, iki yanda beyaz bant kalmaz; başlıktaki X satırı korunur.
  *
  * Boyut: kart ekranın ~%80'ini ve güvenli alanı aşmaz (`popupMediaLimits`; başlık
  * satırı yüksekliği görsel kutusundan düşülür); görsel oranı korunarak o kutuya sığar.
@@ -38,6 +42,9 @@ export function PopupAd({ blocked = false }: { blocked?: boolean }) {
       showCloseButton
       closeLabel={t('common.close')}
       flushBody
+      // Görselli reklamda kart görselin genişliğine oturur (dikey/dar reklamda iki yanda beyaz
+      // bant kalmaz); metin reklam kartın tam genişliğini kullanır.
+      fitContent={!!ad && hasAdImage(ad)}
     >
       {ad ? (
         <View testID="popup-ad" style={{ maxHeight: limits.height, overflow: 'hidden' }}>

@@ -178,3 +178,25 @@ describe('MODAL_CLOSE_HEADER_HEIGHT: IconButton ölçüsünden türer', () => {
     expect(MODAL_CLOSE_HEADER_HEIGHT).toBeGreaterThan(st.height);
   });
 });
+
+describe('Modal: fitContent', () => {
+  it('varsayılan kart size\'a kadar tam genişlik (100%); fitContent içeriğe oturur (auto), üst sınır korunur', () => {
+    const full = render(
+      <Modal isOpen onClose={jest.fn()}>
+        <Text>içerik</Text>
+      </Modal>,
+    );
+    expect(sheetOf(full.getByText('içerik'))?.width).toBe('100%');
+    full.unmount();
+
+    const fit = render(
+      <Modal isOpen onClose={jest.fn()} fitContent size="lg">
+        <Text>içerik</Text>
+      </Modal>,
+    );
+    const sheet = sheetOf(fit.getByText('içerik'));
+    expect(sheet?.width).toBe('auto');
+    expect(sheet?.maxWidth).toBe(512);
+    expect(sheet?.backgroundColor).not.toBe('transparent');
+  });
+});

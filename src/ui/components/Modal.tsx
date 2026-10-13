@@ -36,6 +36,12 @@ export interface ModalProps {
    * karttan kenara taşar. Kart zemini, köşe yuvarlaklığı ve başlık satırı aynı kalır.
    */
   flushBody?: boolean;
+  /**
+   * Kart genişliği içeriğine oturur (üst sınır `size`): içerik karttan dar kalırsa iki yanda
+   * boş bant bırakmaz (ör. dikey reklam görseli). İçeriğin genişliği AÇIK olmalı (sabit pt);
+   * yüzdeyle genişleyen içerik karta sığmaz. Varsayılan kapalı: kart `size`'a kadar tam genişlik.
+   */
+  fitContent?: boolean;
 }
 
 const { colors, radius, spacing, typography } = theme;
@@ -56,6 +62,7 @@ export const Modal: React.FC<ModalProps> = ({
   showCloseButton = false,
   closeLabel,
   flushBody = false,
+  fitContent = false,
 }) => {
   const hasHeader = !!title || showCloseButton;
   return (
@@ -74,7 +81,12 @@ export const Modal: React.FC<ModalProps> = ({
           onPress={closeOnBackdrop ? onClose : undefined}
         >
           <Pressable
-            style={[styles.sheet, { maxWidth: MODAL_MAX_WIDTH[size] }, flushBody && styles.sheetFlush]}
+            style={[
+              styles.sheet,
+              { maxWidth: MODAL_MAX_WIDTH[size] },
+              fitContent && styles.sheetFit,
+              flushBody && styles.sheetFlush,
+            ]}
           >
             {hasHeader && (
               <View style={[styles.header, title ? styles.headerTitled : styles.headerCloseOnly]}>
@@ -121,6 +133,10 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: colors.white,
     borderRadius: radius.xl,
+  },
+  // İçeriğe oturan kart (backdrop `alignItems: center` olduğu için ortalanır).
+  sheetFit: {
+    width: 'auto',
   },
   // Kenardan kenara içerik kartın yuvarlak köşelerine taşmasın.
   sheetFlush: {

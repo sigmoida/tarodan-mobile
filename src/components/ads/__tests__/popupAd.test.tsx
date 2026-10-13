@@ -65,6 +65,9 @@ const popupAd = {
 const setAds = (ads: unknown[], isAdFree = false, limitsReady = true) =>
   mockUseAds.mockReturnValue({ ads, isAdFree, limitsReady, isLoading: false });
 
+const setWindow = (width: number, height: number) =>
+  Dimensions.set({ window: { width, height, scale: 2, fontScale: 1 }, screen: { width, height, scale: 2, fontScale: 1 } });
+
 /** Gecikmeyi ve asenkron depo okumalarını işle. */
 const flush = async (ms: number) => {
   await act(async () => {}); // depo okuması (cap) çözülsün, sayaç kurulsun
@@ -257,9 +260,59 @@ describe('PopupAd', () => {
     expect(inside).toBe(false);
   });
 
+  describe('kart görsele oturur (iki yanda beyaz bant yok)', () => {
+    const styleOf = (n: { props: { style?: unknown } }) =>
+      StyleSheet.flatten(n.props.style as never) as Record<string, unknown> | undefined;
+    /** Görsel kutusundan karta (sheet) kadar zincir: [kutu, ..., kart] stilleri. */
+    const chainToSheet = (box: unknown) => {
+      const chain: Record<string, unknown>[] = [];
+      for (let n: any = box; n; n = n.parent) {
+        const st = styleOf(n);
+        if (st) chain.push(st);
+        if (st && st.maxWidth === 512) break;
+      }
+      return chain;
+    };
+    afterEach(() => act(() => setWindow(750, 1334)));
+
+    it('1:2 dikey reklam: kart içeriğe oturur (width auto), arada yatay boşluk/sabit genişlik yok', async () => {
+      setWindow(390, 844);
+      setAds([{ ...popupAd, imageUrl: 'https://example.com/tall.png', content: null, linkUrl: null, width: 400, height: 800 }]);
+      const { getByTestId } = render(<PopupAd />);
+      await flush(POPUP_AD_DELAY_MS + 100);
+
+      const box = getByTestId('ad-image-box-p1');
+      const boxStyle = styleOf(box)!;
+      expect(boxStyle.width as number).toBeLessThan(358); // dar: kartın tam genişliğinden küçük
+      expect((boxStyle.width as number) / (boxStyle.height as number)).toBeCloseTo(0.5, 5);
+
+      const chain = chainToSheet(box);
+      const sheet = chain[chain.length - 1]!;
+      expect(sheet.maxWidth).toBe(512);
+      expect(sheet.width).toBe('auto'); // içeriğe oturur: tam genişlik ('100%') DEĞİL
+      expect(sheet.backgroundColor).not.toBe('transparent'); // kart hâlâ beyaz
+      // Kutu ile kart arasında yatay iç boşluk ya da sabit genişlik yok: bant oluşamaz.
+      for (const st of chain.slice(1, -1)) {
+        expect(st.padding ?? 0).toBe(0);
+        expect(st.paddingHorizontal ?? 0).toBe(0);
+        // (RN'de composite + host düğümü aynı stili taşır: kutunun kendi genişliği tekrar görünebilir.)
+        expect([undefined, 'auto', boxStyle.width]).toContain(st.width);
+      }
+      // Başlıktaki kapat satırı korunur.
+      expect(getByTestId('modal-close')).toBeTruthy();
+    });
+
+    it('metin reklam: kart tam genişlik kalır (içeriğe oturmaz)', async () => {
+      setWindow(390, 844);
+      setAds([popupAd]);
+      const { getByTestId } = render(<PopupAd />);
+      await flush(POPUP_AD_DELAY_MS + 100);
+      const chain = chainToSheet(getByTestId('popup-ad'));
+      expect(chain[chain.length - 1]!.width).toBe('100%');
+    });
+  });
+
   describe('boyut: ekranı taşırmaz, X her zaman görünür', () => {
-    const setWindow = (width: number, height: number) =>
-      Dimensions.set({ window: { width, height, scale: 2, fontScale: 1 }, screen: { width, height, scale: 2, fontScale: 1 } });
     afterEach(() => {
       // Bileşen hâlâ bağlıyken pencere değişimi state güncellemesi sayılır.
       act(() => setWindow(750, 1334));
