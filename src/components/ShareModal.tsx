@@ -1,3 +1,4 @@
+import { logger, safeError } from '@/services/logger';
 import React, { useState } from 'react';
 import { View, StyleSheet, Share, Linking, TouchableOpacity, Clipboard } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -61,7 +62,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
         url: shareUrl,
       });
     } catch (error) {
-      console.error('Share error:', error);
+      logger.error('Share error', { err: safeError(error) });
     }
   };
 

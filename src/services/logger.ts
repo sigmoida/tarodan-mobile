@@ -14,6 +14,8 @@ import {
   type SeverityLevel,
 } from "./sentry";
 
+export { safeError, safeUrlPath, type SafeError } from "@/lib/logger";
+
 const LEVEL_MAP = {
   debug: "debug",
   info: "info",

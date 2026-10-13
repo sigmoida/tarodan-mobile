@@ -1,3 +1,4 @@
+import { logger, safeError } from '@/services/logger';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -28,7 +29,7 @@ export function useLikedCollections() {
         }
         return response.data?.collections || response.data?.data || response.data || [];
       } catch (err) {
-        console.error('Failed to fetch liked collections:', err);
+        logger.error('Failed to fetch liked collections', { err: safeError(err) });
         return [];
       }
     },
@@ -57,7 +58,7 @@ export function useLikedCollections() {
       queryClient.invalidateQueries({ queryKey: ['liked-collections'] });
       setSnackbar({ visible: true, message: t('collection.removedFromLikes') });
     } catch (err) {
-      console.error('Failed to unlike collection:', err);
+      logger.error('Failed to unlike collection', { err: safeError(err) });
       setSnackbar({ visible: true, message: t('utility.error500.title') });
     }
   };

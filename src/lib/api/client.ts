@@ -1,3 +1,4 @@
+import { logger, safeError } from '@/services/logger';
 import { axios, createApiClient, singleFlight } from "@/lib/api-client";
 import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
@@ -143,7 +144,7 @@ api.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {
-      console.error("Error getting token:", error);
+      logger.error("Error getting token", { err: safeError(error) });
     }
     return config;
   },

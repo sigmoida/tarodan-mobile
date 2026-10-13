@@ -1,3 +1,4 @@
+import { logger, safeError } from '@/services/logger';
 import { useState, useEffect } from 'react';
 import { Share } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -63,7 +64,7 @@ export function useCollectionDetail() {
       );
       await Share.share(content, options);
     } catch (error) {
-      console.error('Share error:', error);
+      logger.error('Share error', { err: safeError(error) });
     }
   };
 

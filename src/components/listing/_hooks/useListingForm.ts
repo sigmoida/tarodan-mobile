@@ -1,3 +1,4 @@
+import { logger, safeError } from '@/services/logger';
 import { useState, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -400,7 +401,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
           setCustomAttributes({});
         }
       } catch (error) {
-        if (__DEV__) console.error('Failed to fetch manufacturer attribute groups:', error);
+        logger.error('Failed to fetch manufacturer attribute groups', { err: safeError(error) });
         if (!cancelled) {
           setManufacturerAttrGroups([]);
           if (!initialCustomAttrsRef.current) setCustomAttributes({});

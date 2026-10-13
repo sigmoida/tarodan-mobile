@@ -1,3 +1,4 @@
+import { logger, safeError } from '@/services/logger';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
@@ -59,7 +60,7 @@ export function useFollowing() {
       qc.setQueryData<FollowedSeller[]>(qk.follow.following, (cur) => [...(cur ?? []), newFollowing]);
       return true;
     } catch (error: any) {
-      console.error('Failed to follow:', error);
+      logger.error('Failed to follow', { err: safeError(error) });
       // Zaten takip ediliyorsa başarı (idempotent).
       if (error?.response?.status === 409) {
         return true;
@@ -76,7 +77,7 @@ export function useFollowing() {
       );
       return true;
     } catch (error: any) {
-      console.error('Failed to unfollow:', error);
+      logger.error('Failed to unfollow', { err: safeError(error) });
       // Takip edilmiyorsa yine başarı + yerel listeden düş.
       if (error?.response?.status === 404) {
         qc.setQueryData<FollowedSeller[]>(qk.follow.following, (cur) =>

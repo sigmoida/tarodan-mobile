@@ -1,3 +1,4 @@
+import { logger, safeError } from '@/services/logger';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
@@ -184,7 +185,7 @@ export async function unregisterPushNotifications(): Promise<void> {
       revoke: true,
     }).catch(() => null);
   } catch (error) {
-    console.error('Error unregistering push token:', error);
+    logger.error('Error unregistering push token', { err: safeError(error) });
   }
 }
 

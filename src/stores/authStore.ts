@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
 import { advanceSessionEpoch, authApi, userApi } from "@/lib/api";
-import { logger } from "../services/logger";
+import { logger, safeError } from "../services/logger";
 import { withTimeout } from "../utils/withTimeout";
 import { IS_MAESTRO_NO_AUTOLOGIN, getMaestroAutoLoginCredentials } from "@/config/maestro";
 
@@ -542,7 +542,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ user: mappedUser, limits });
       return mappedUser;
     } catch (error) {
-      console.error("Failed to refresh user data:", error);
+      logger.error("Failed to refresh user data", { err: safeError(error) });
       logger.captureException(error, {
         level: "warning",
         tags: { flow: "auth.refreshUserData" },
