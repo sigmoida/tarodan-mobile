@@ -48,15 +48,32 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
+  const {
+    isAuthenticated,
+    isLoading: authLoading,
+    user,
+    limits,
+    refreshUserData,
+  } = useAuthStore();
+
+  // IBAN kapısı (yalnız yeni ilan; web `BankGate`): hesap yoksa form GÖSTERİLMEZ.
+  // Anahtar Banka Hesabım ekranıyla ORTAK (`qk.user.bankAccount`): orada kaydedilince
+  // sorgu tazelenir ve kapı kendiliğinden açılır.
   const bankAccountQuery = useQuery({
-    queryKey: ['bank-account'],
+    queryKey: qk.user.bankAccount,
     queryFn: async () => {
       const res = await bankAccountApi.get();
       return res.data || null;
     },
-    enabled: !isEdit,
+    enabled: !isEdit && isAuthenticated,
   });
   const hasBankAccount = isEdit || !!bankAccountQuery.data;
+  const bankAccountLoading = bankAccountQuery.isLoading;
+  // Okunamadı (ve elde eski veri yok): durum BİLİNMİYOR, "hesap yok" değil.
+  const bankAccountError = bankAccountQuery.isError && bankAccountQuery.data === undefined;
+  const refetchBankAccount = () => {
+    void bankAccountQuery.refetch();
+  };
 
   /**
    * Kargo paket kademesi tarifesi. Kartların etiketi ve örnek ölçüsü buradan
@@ -77,14 +94,6 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const packageTiers = packageTiersQuery.data?.tiers ?? [];
   const packageTiersLoading = packageTiersQuery.isLoading;
   const packageTiersError = packageTiersQuery.isError;
-
-  const {
-    isAuthenticated,
-    isLoading: authLoading,
-    user,
-    limits,
-    refreshUserData,
-  } = useAuthStore();
 
   // Kargo çıkış adresi kapısı (yalnız yeni ilan): adresi/cep numarası geçersiz
   // satıcının siparişinde koli açılamaz. Kural `_lib/dispatchAddress.ts`'te.
@@ -779,7 +788,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const handleSubmit = async () => {
     if (!validate()) return;
 
-    if (!isEdit && !hasBankAccount) {
+    // Durum BİLİNMİYORSA (yükleniyor/hata) "IBAN ekle" denmez: form zaten bu
+    // durumda gösterilmiyor (`BankAccountGate`); buraya yalnız bilinen eksik düşer.
+    if (!isEdit && !bankAccountLoading && !bankAccountError && !hasBankAccount) {
       appAlert(
         t('listing.bankAccountRequiredTitle'),
         t('listing.bankAccountRequiredBody'),
@@ -953,6 +964,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     productNotFound,
     hasBankAccount,
     bankAccountQuery,
+    bankAccountLoading,
+    bankAccountError,
+    refetchBankAccount,
     hasDispatchAddress,
     dispatchAddressNeedsFix,
     dispatchAddressLoading,

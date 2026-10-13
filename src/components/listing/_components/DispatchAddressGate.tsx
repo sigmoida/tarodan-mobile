@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { ErrorState, theme } from '@/ui';
+import { ErrorState } from '@/ui';
 
 import { styles } from '../_lib/styles';
 import type { ListingFormController } from '../_hooks/useListingForm';
+import { GateLoading } from './GateLoading';
 
 /**
  * Kargo çıkış adresi kapısı (web `AddressGate` + `canCreateListing`): yeni ilan
@@ -25,13 +26,7 @@ export function DispatchAddressGate({ f }: { f: ListingFormController }) {
   const { t } = useTranslation();
   if (!dispatchGateBlocks(f)) return null;
 
-  if (f.dispatchAddressLoading) {
-    return (
-      <View style={styles.limitsPlaceholder}>
-        <ActivityIndicator size="small" color={theme.colors.primary[600]!} />
-      </View>
-    );
-  }
+  if (f.dispatchAddressLoading) return <GateLoading />;
 
   if (f.dispatchAddressError) {
     return <ErrorState onRetry={f.refetchDispatchAddress} />;

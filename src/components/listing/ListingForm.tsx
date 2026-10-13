@@ -21,6 +21,7 @@ import {
   ListingSubmitRow,
 } from './_components/ListingSections';
 import { ListingPickers } from './_components/ListingPickers';
+import { BankAccountGate, bankGateBlocks } from './_components/BankAccountGate';
 import { DispatchAddressGate, dispatchGateBlocks } from './_components/DispatchAddressGate';
 
 const { colors } = theme;
@@ -60,8 +61,12 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
           keyboardShouldPersistTaps="handled"
         >
           <ListingHeaderBanners f={f} />
-          {dispatchGateBlocks(f) ? (
-            <DispatchAddressGate f={f} />
+          {/* Web gibi: IBAN ve kargo adresi kapıları, form ancak ikisi de açıkken görünür. */}
+          {bankGateBlocks(f) || dispatchGateBlocks(f) ? (
+            <>
+              <BankAccountGate f={f} />
+              <DispatchAddressGate f={f} />
+            </>
           ) : (
             <>
               <ListingImagesSection f={f} />
