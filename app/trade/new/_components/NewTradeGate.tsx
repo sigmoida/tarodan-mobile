@@ -21,7 +21,7 @@ export function NewTradeGate({ f }: { f: NewTradeController }) {
     const upgradeInfo = getUpgradeMessage(t, 'tradeFeature');
     return (
       <View style={styles.container}>
-        <ScreenHeader title={t('product.trade')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+        <ScreenHeader floating={false} title={t('product.trade')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
 
         <View style={styles.premiumRequired}>
           <Icon name="arrows-right-left" size={80} color={colors.primary[600]!} />

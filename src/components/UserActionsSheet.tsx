@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { appAlert, IconButton, type IconButtonProps } from '@/ui';
+import { appAlert, IconButton, TopBarAction, type IconButtonProps } from '@/ui';
 
 import ReportModal, { type ReportTargetType } from './ReportModal';
 import { useBlockStatus, useBlockUser } from '@/hooks/useBlockUser';
@@ -115,6 +115,8 @@ export interface UserActionsButtonProps extends UserActionsProps {
   color?: string;
   variant?: IconButtonProps['variant'];
   testID?: string;
+  /** Üst bar sağ aksiyonu olarak cam daire (`TopBarAction`) çiz; `size`/`color`/`variant` yok sayılır. */
+  glass?: boolean;
 }
 
 /**
@@ -127,10 +129,25 @@ export default function UserActionsButton({
   color,
   variant,
   testID,
+  glass,
   ...props
 }: UserActionsButtonProps) {
   const { t } = useTranslation();
   const sheet = useUserActionsSheet(props);
+  if (glass) {
+    return (
+      <>
+        <TopBarAction
+          testID={testID}
+          icon="ellipsis-vertical"
+          accessibilityLabel={t('common.more')}
+          disabled={sheet.pending}
+          onPress={sheet.open}
+        />
+        {sheet.reportModal}
+      </>
+    );
+  }
   return (
     <>
       <IconButton

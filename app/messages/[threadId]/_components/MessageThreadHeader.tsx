@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Avatar, IconButton, Alert as UIAlert, Text, theme, Icon } from '@/ui';
+import { Avatar, TopBarAction, Alert as UIAlert, Text, theme, Icon } from '@/ui';
 import { ScreenHeader } from '@/components/common/ScreenHeader';
 
 import ReportModal from '@/components/ReportModal';
@@ -23,6 +23,8 @@ export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
       {/* Üst bar: standart ScreenHeader (geri, yükseklik, güvenli alan ortak); başlık yerine
           avatar + ad + ürün. Geri oku varsayılanı: geçmiş yoksa ana sekme. */}
       <ScreenHeader
+        // Akışta (opak beyaz): bu `header` slotu bar + ürün bandı + uyarıları birlikte taşır.
+        floating={false}
         title={other?.displayName || t('common.loading')}
         titleSlot={
           <Pressable
@@ -45,10 +47,9 @@ export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
           </Pressable>
         }
         right={
-          <IconButton
+          <TopBarAction
             icon="ellipsis-vertical"
             accessibilityLabel={t('common.more')}
-            size="md"
             onPress={f.handleHeaderMenu}
           />
         }
