@@ -20,7 +20,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { theme, RawText } from '@/ui';
+import { theme, RawText, SheetHeader } from '@/ui';
 import { productsApi } from '@/lib/api';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
@@ -171,16 +171,7 @@ export function BoostModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.card}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Ionicons name="rocket" size={20} color={colors.warning[500]!} />
-              <RawText style={styles.headerTitle}>{t('boost.title')}</RawText>
-            </View>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="close" size={22} color={colors.gray[500]!} />
-            </TouchableOpacity>
-          </View>
+          <SheetHeader title={t('boost.title')} onClose={onClose} closeLabel={t('common.close')} paddingX={5} />
 
           <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: theme.spacing[2] }}>
             <RawText style={styles.subtitle} numberOfLines={3}>
@@ -288,17 +279,6 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius['3xl'],
     overflow: 'hidden',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingVertical: theme.spacing[3.5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.gray[200]!,
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2] },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: colors.gray[900]! },
   body: { paddingHorizontal: 18, paddingTop: theme.spacing[3.5] },
   subtitle: { fontSize: 13, color: colors.gray[500]!, marginBottom: theme.spacing[3.5], lineHeight: 19 },
   subtitleStrong: { fontWeight: '700', color: colors.gray[900]! },

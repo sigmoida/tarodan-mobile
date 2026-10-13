@@ -15,9 +15,9 @@ import {
   Checkbox,
   Chip,
   Divider,
-  IconButton,
   Input,
   Radio,
+  SheetHeader,
   Text,
   theme,
 } from '@/ui';
@@ -175,13 +175,16 @@ export default function ProductFilterSheet({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
+      statusBarTranslucent
       onRequestClose={onClose}
     >
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text variant="h2">{t('product.filters')}</Text>
-          <IconButton icon="close" accessibilityLabel={t('common.close')} size="md" onPress={onClose} />
-        </View>
+        <SheetHeader
+          title={t('product.filters')}
+          onClose={onClose}
+          closeLabel={t('common.close')}
+          fullScreen
+        />
 
         <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
           {/* Arama */}
@@ -483,16 +486,6 @@ export default function ProductFilterSheet({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface.DEFAULT },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.DEFAULT,
-  },
   content: { flex: 1, paddingHorizontal: spacing[4] },
   section: { marginTop: spacing[4] },
   sectionTitle: { marginBottom: spacing[3] },
