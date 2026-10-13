@@ -6,7 +6,7 @@
  * `suggestedNationalId` TCKN'yi ön doldurur, gövde yalnız eksikleri taşır.
  */
 import React from 'react';
-import { BackHandler } from 'react-native';
+import { Modal } from 'react-native';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { makeTestQueryClient, renderWithProviders } from '@/test-utils';
 import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
@@ -200,18 +200,15 @@ describe('B-2.4 · ensureLegalIdentity (ihtiyaç anında kimlik)', () => {
   });
 
   it('Android geri tuşu kimlik adımında "Vazgeç" gibi davranır', async () => {
-    const spy = jest.spyOn(BackHandler, 'addEventListener');
     mockGetStatus.mockResolvedValue({ data: status() });
     const { queryClient } = setup();
     const result = await request(queryClient);
     await screen.findByTestId('identity-gate');
 
-    const handler = spy.mock.calls.filter((c) => c[0] === 'hardwareBackPress').pop()?.[1];
-    act(() => {
-      expect(handler?.()).toBe(true);
-    });
+    // Kapı native Modal: geri tuşu BackHandler'a değil `onRequestClose`'a düşer.
+    act(() => screen.UNSAFE_getByType(Modal).props.onRequestClose());
     await waitFor(() => expect(result.value).toBe(false));
-    spy.mockRestore();
+    expect(screen.queryByTestId('identity-gate')).toBeNull();
   });
 
   it('oturum kapanırsa bekleyen işlem iptal olur', async () => {

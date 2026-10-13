@@ -49,4 +49,17 @@ describe('B-2.7b · Google butonu görünürlüğü', () => {
       load({ EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: undefined, EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED: 'true' }, 'ios'),
     ).toBe(false);
   });
+
+  it('bayrak env.example.txt içinde gerekçesiyle belgeli, varsayılanı kapalı', () => {
+    /* eslint-disable @typescript-eslint/no-var-requires */
+    const fs = require('fs');
+    const path = require('path');
+    /* eslint-enable @typescript-eslint/no-var-requires */
+    const example: string = fs.readFileSync(
+      path.join(__dirname, '../../../env.example.txt'),
+      'utf8',
+    );
+    expect(example).toMatch(/^EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED=false$/m);
+    expect(example).toContain('DEVELOPER_ERROR');
+  });
 });

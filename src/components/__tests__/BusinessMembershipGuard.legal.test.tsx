@@ -17,10 +17,11 @@ jest.mock('expo-router', () => ({
   usePathname: () => mockPath,
 }));
 
-let mockUser: any;
+type GuardState = { isAuthenticated: boolean; user: Record<string, unknown> };
+let mockUser: Record<string, unknown>;
 jest.mock('../../stores/authStore', () => ({
-  useAuthStore: (sel?: (s: any) => unknown) => {
-    const state: any = { isAuthenticated: true, user: mockUser };
+  useAuthStore: (sel?: (s: GuardState) => unknown) => {
+    const state: GuardState = { isAuthenticated: true, user: mockUser };
     return sel ? sel(state) : state;
   },
 }));

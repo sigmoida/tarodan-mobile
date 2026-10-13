@@ -3,8 +3,8 @@
  * `(auth)/_lib/auth.ts registrationConsentDocuments` ile aynı).
  */
 import {
-  ACCOUNT_REQUIRED_CONSENTS,
   canSubmitConsents,
+  consentCheckKey,
   isLegalTextPath,
   legalRouteFor,
   registrationConsentDocuments,
@@ -19,10 +19,6 @@ const p = (document: PendingConsent['document']): PendingConsent => ({
 });
 
 describe('legalConsent', () => {
-  it('hesap için zorunlu belgeler terms + privacy + kvkk', () => {
-    expect(ACCOUNT_REQUIRED_CONSENTS).toEqual(['terms', 'privacy', 'kvkk']);
-  });
-
   it('kayıt kutuları → acceptedConsents', () => {
     expect(registrationConsentDocuments({ acceptTerms: true, acceptKvkk: true })).toEqual([
       'terms',
@@ -36,12 +32,20 @@ describe('legalConsent', () => {
     expect(registrationConsentDocuments({ acceptTerms: false, acceptKvkk: true })).toEqual(['kvkk']);
   });
 
-  it('kapı ancak bekleyenlerin hepsi işaretliyken gönderilebilir', () => {
+  it('kapı ancak bekleyenlerin hepsi (sürümüyle) işaretliyken gönderilebilir', () => {
     const pending = [p('terms'), p('kvkk')];
     expect(canSubmitConsents(pending, new Set())).toBe(false);
-    expect(canSubmitConsents(pending, new Set(['terms']))).toBe(false);
-    expect(canSubmitConsents(pending, new Set(['terms', 'kvkk']))).toBe(true);
-    expect(canSubmitConsents([], new Set(['terms']))).toBe(false);
+    expect(canSubmitConsents(pending, new Set(['terms@v']))).toBe(false);
+    expect(canSubmitConsents(pending, new Set(['terms@v', 'kvkk@v']))).toBe(true);
+    expect(canSubmitConsents([], new Set(['terms@v']))).toBe(false);
+  });
+
+  it('işaret sürüme bağlı: eski sürümün işareti yeni sürümü karşılamaz', () => {
+    const v2: PendingConsent = { ...p('terms'), version: 'v2' };
+    expect(consentCheckKey(v2)).toBe('terms@v2');
+    expect(canSubmitConsents([v2], new Set(['terms@v']))).toBe(false);
+    expect(canSubmitConsents([v2], new Set(['terms']))).toBe(false);
+    expect(canSubmitConsents([v2], new Set(['terms@v2']))).toBe(true);
   });
 
   it('web yolu → uygulama içi rota; bilinmeyen yol bağlantısız', () => {

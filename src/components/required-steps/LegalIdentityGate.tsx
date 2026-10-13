@@ -80,6 +80,7 @@ export function LegalIdentityGate({
         disabled: submit.isPending,
         testID: 'identity-gate-cancel',
       }}
+      onBackPress={onCancel}
     >
       <Text variant="bodySm" tone="muted">
         {t('identity.gate.whenNeeded')}

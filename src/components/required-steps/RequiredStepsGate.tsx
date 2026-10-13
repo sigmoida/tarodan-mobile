@@ -1,5 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
-import { BackHandler } from 'react-native';
+import type { ReactNode } from 'react';
 import { router, usePathname } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useRequiredSteps } from '@/hooks/useRequiredSteps';
@@ -7,6 +6,7 @@ import type { RequiredStep } from '@/lib/requiredSteps';
 import { isLegalTextPath } from '@/lib/shared/legalConsent';
 import { ConsentGate } from './ConsentGate';
 import { LegalIdentityGate } from './LegalIdentityGate';
+import { RequiredStepVisibleProvider } from './RequiredStepShell';
 
 /**
  * Zorunlu adımların TEK montaj noktası (web `RequiredStepsGate`), kök düzende
@@ -14,30 +14,30 @@ import { LegalIdentityGate } from './LegalIdentityGate';
  * tamamlanması gereken adımlar `REQUIRED_STEPS` sırasıyla, HER SEFERİNDE
  * YALNIZ BİRİ tam ekran gösterilir.
  *
- * Kapatılamaz: onay adımında Android geri tuşu yutulur, tek çıkış onaylamak
- * ya da oturumu kapatmaktır. İhtiyaç anında açılan kimlik adımının alternatif
- * çıkışı "Vazgeç"tir (işlem iptal); geri tuşu da onu yapar. Yasal metin
- * sayfaları muaftır ki üye okuyacağı metne ulaşabilsin (geri dönünce kapı
- * yeniden görünür).
+ * Kapatılamaz: kabuk native tam ekran bir Modal'dır (`FullScreenGate`), açık
+ * ekran modallarının ve uyarıların üstünde kalır; Android geri tuşu yutulur.
+ * Onay adımında tek çıkış onaylamak ya da oturumu kapatmaktır. İhtiyaç anında
+ * açılan kimlik adımının alternatif çıkışı "Vazgeç"tir (işlem iptal); Android
+ * geri tuşu da onu yapar. Yasal metin sayfaları muaftır ki üye okuyacağı metne
+ * ulaşabilsin (geri dönünce kapı yeniden görünür).
  */
-export default function RequiredStepsGate() {
+export default function RequiredStepsGate({
+  ready = true,
+}: {
+  /**
+   * Kapı gösterilebilir mi? Kök düzen soğuk açılışta AnimatedSplash bitene
+   * kadar `false` verir: kapı native Modal olduğundan splash'ın üstüne binerdi.
+   * Sorgu bu sırada çalışmaya devam eder, splash bitince kapı beklemeden açılır.
+   */
+  ready?: boolean;
+}) {
   const pathname = usePathname();
   const { active, consents, legalIdentity } = useRequiredSteps();
   const logout = useAuthStore((s) => s.logout);
 
-  const visible = active !== null && !isLegalTextPath(pathname);
+  const visible = ready && active !== null && !isLegalTextPath(pathname);
 
-  const cancelIdentity = legalIdentity.cancel;
-  useEffect(() => {
-    if (!visible) return undefined;
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (active === 'legalIdentity') cancelIdentity();
-      return true;
-    });
-    return () => sub.remove();
-  }, [visible, active, cancelIdentity]);
-
-  if (!visible || active === null) return null;
+  if (active === null) return null;
 
   const onLogout = async () => {
     await logout();
@@ -47,9 +47,7 @@ export default function RequiredStepsGate() {
   // Record: yeni bir adım `REQUIRED_STEPS`e eklenince görünümü yazılmadan
   // derleme geçmez.
   const views: Record<RequiredStep, () => ReactNode> = {
-    consents: () => (
-      <ConsentGate pending={consents.pending} accept={consents.accept} onLogout={onLogout} />
-    ),
+    consents: () => <ConsentGate pending={consents.pending} onLogout={onLogout} />,
     // `missing` değişirse (ör. sunucu yeni bir eksik bildirdi) form yeni
     // şemayla baştan kurulur.
     legalIdentity: () =>
@@ -62,5 +60,9 @@ export default function RequiredStepsGate() {
       ) : null,
   };
 
-  return <>{views[active]()}</>;
+  // Adım görünümü adım aktif olduğu sürece bağlı kalır; yasal metin
+  // sayfasında yalnız kabuk gizlenir (işaretler korunur).
+  return (
+    <RequiredStepVisibleProvider value={visible}>{views[active]()}</RequiredStepVisibleProvider>
+  );
 }

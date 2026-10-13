@@ -11,6 +11,7 @@ import { makeTestQueryClient } from '@/test-utils';
 import { useRefetchOnForeground } from '../useRefetchOnForeground';
 
 let listeners: ((s: string) => void)[] = [];
+const flush = () => act(() => Promise.resolve());
 const emit = (...states: string[]) =>
   act(() => states.forEach((s) => listeners.forEach((l) => l(s))));
 
@@ -44,37 +45,37 @@ function setup(opts: { enabled?: boolean; withFn?: jest.Mock } = {}) {
 describe('useRefetchOnForeground', () => {
   it('arka plandan dönüşte yalnız hedef sorguyu yeniler', async () => {
     const { target, other } = setup();
-    await act(async () => {});
+    await flush();
     expect(target).toHaveBeenCalledTimes(1);
     emit('background', 'active');
-    await act(async () => {});
+    await flush();
     expect(target).toHaveBeenCalledTimes(2);
     expect(other).toHaveBeenCalledTimes(1);
   });
 
   it('iOS inactive → active sıçraması yenileme sayılmaz', async () => {
     const { target } = setup();
-    await act(async () => {});
+    await flush();
     emit('inactive', 'active');
-    await act(async () => {});
+    await flush();
     expect(target).toHaveBeenCalledTimes(1);
   });
 
   it('background → inactive → active de dönüş sayılır (iOS geçişi)', async () => {
     const { target } = setup();
-    await act(async () => {});
+    await flush();
     emit('inactive', 'background', 'inactive', 'active');
-    await act(async () => {});
+    await flush();
     expect(target).toHaveBeenCalledTimes(2);
   });
 
   it('devre dışıyken görülen arka plan geçişi sonradan yenileme doğurmaz', async () => {
     const { view, target } = setup({ enabled: false });
-    await act(async () => {});
+    await flush();
     emit('background', 'active');
     view.rerender({ enabled: true });
     emit('inactive', 'active');
-    await act(async () => {});
+    await flush();
     expect(target).toHaveBeenCalledTimes(1);
   });
 
