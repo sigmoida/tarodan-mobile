@@ -14,6 +14,7 @@ import {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { theme } from '@/ui';
+import { pageScrollOffset } from '@/ui/lib/pageScroll';
 import { normalizeScrollMetrics, reduceTabBarScroll, shouldExpandOnMeasure } from './tabBarScroll';
 
 /**
@@ -91,7 +92,7 @@ export function useTabBarCollapsedFlag(): boolean {
  * Dönen `{ onScroll, onContentSizeChange, onLayout }` listeye yayılır:
  * `<Animated.ScrollView {...tabScroll} scrollEventThrottle={16} />` (kendi onLayout'u olan ekran ikisini çağırır).
  */
-export function useTabBarScrollHandler(onOffset?: (y: number) => void) {
+export function useTabBarScrollHandler(onOffset?: (y: number) => void, pageScrollY?: SharedValue<number>) {
   const collapsed = useTabBarCollapsed();
   const contentH = useSharedValue(0);
   const layoutH = useSharedValue(0);
@@ -136,6 +137,9 @@ export function useTabBarScrollHandler(onOffset?: (y: number) => void) {
         m.y,
         m.maxY,
       );
+      // Üst barın kaydırma kenarı (`pageScrollY`) AYNI handler'dan beslenir: ekran iki ayrı `onScroll`
+      // vermez. Ofset inset'ten bağımsız (0 = içerik başı).
+      if (pageScrollY) pageScrollY.value = pageScrollOffset(e.contentOffset.y, e.contentInset?.top ?? 0);
       anchor.value = next.anchor;
       lastY.value = next.lastY;
       if (next.collapsed !== collapsed.value) collapsed.value = next.collapsed;

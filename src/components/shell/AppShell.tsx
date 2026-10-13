@@ -1,7 +1,8 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { ScreenHeader, theme } from '@/ui';
+import { theme, type PageScrollValue } from '@/ui';
 import { FloatingSearchBar } from './FloatingSearchBar';
+import { TitleShell } from './TitleShell';
 import { APP_SHELL_BAR_HEIGHT } from './tabBarLayout';
 
 const { colors } = theme;
@@ -9,14 +10,16 @@ const { colors } = theme;
 export interface AppShellProps {
   /**
    * `search` (varsayılan): hamburger (yan menü) + arama alanı + sepet — YALNIZ Ana Sayfa.
-   * `title`: standart beyaz başlıklı üst bar (ScreenHeader ile aynı görünüm, geri oku yok) — diğer
-   * tüm sekme kökleri.
+   * `title`: yüzen ortalı başlıklı üst bar (ScreenHeader ile aynı görünüm, geri oku yok) — diğer
+   * tüm sekme kökleri (bkz. `TitleShell`).
    */
   variant?: 'search' | 'title';
   /** `variant="title"` için bar başlığı. */
   title?: string;
   /** `variant="title"` için sağ aksiyon(lar) (`TopBarAction`). */
   right?: React.ReactNode;
+  /** `variant="title"`: listenin kaydırma sinyali (bkz. `TitleShell`); verilmezse sabit şerit. */
+  scroll?: PageScrollValue;
   children?: React.ReactNode;
   /** İçerik kabına ek stil. */
   contentStyle?: StyleProp<ViewStyle>;
@@ -37,22 +40,16 @@ export const AppShell: React.FC<AppShellProps> = ({
   variant = 'search',
   title,
   right,
+  scroll,
   children,
   contentStyle,
   testID,
 }) => {
   if (variant === 'title') {
     return (
-      <View style={styles.root} testID={testID}>
-        <ScreenHeader
-          title={title ?? ''}
-          showBack={false}
-          right={right}
-          testID="app-shell-bar"
-          style={styles.titleBar}
-        />
-        <View style={[styles.content, contentStyle]}>{children}</View>
-      </View>
+      <TitleShell title={title} right={right} scroll={scroll} contentStyle={contentStyle} testID={testID}>
+        {children}
+      </TitleShell>
     );
   }
 
@@ -72,9 +69,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.surface.DEFAULT,
-  },
-  titleBar: {
-    zIndex: 1,
   },
   content: {
     flex: 1,

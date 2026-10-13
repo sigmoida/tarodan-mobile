@@ -2,9 +2,9 @@ import React from 'react';
 import { View, Platform, KeyboardAvoidingView } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
-import { useHeaderTopInset } from '@/ui';
+import { usePageScrollValue, useShellPageScroll } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
-import { APP_SHELL_BAR_HEIGHT, useTabBarInset } from '@/components/shell/tabBarLayout';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 
 import { styles } from './_lib/styles';
@@ -37,10 +37,15 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
   const { t } = useTranslation();
   const f = useListingForm({ mode, productId });
   const tabInset = useTabBarInset();
-  const tabScroll = useTabBarScrollHandler();
-  const topInset = useHeaderTopInset();
-
   const gate = ListingGates({ f });
+  // Üst bar kaydırma sinyali: oluşturmada sekme kökünün (AppShell title) bağlamından, düzenlemede
+  // kendi PageShell'ine verilen değerden. Kapı ekranında bağlanmaz (gövde bar altında kalır).
+  const ownScroll = usePageScrollValue();
+  const shellScroll = useShellPageScroll(!gate && !f.isEdit);
+  const page = f.isEdit ? ownScroll : (shellScroll ?? ownScroll);
+  // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
+  const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
+
   if (gate) return gate;
 
   // Oluşturma (sekme kökü): içerik yüzen alt menü hapının altında kalmasın -> alt dolgu tabInset.
@@ -48,8 +53,9 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
     <Animated.ScrollView
       style={styles.scroll}
       {...tabScroll}
+      {...page.scrollProps}
       scrollEventThrottle={16}
-      contentContainerStyle={[styles.scrollContent, !f.isEdit && { paddingBottom: tabInset }]}
+      contentContainerStyle={page.contentStyle([styles.scrollContent, !f.isEdit && { paddingBottom: tabInset }])}
       keyboardShouldPersistTaps="handled"
     >
       <ListingHeaderBanners f={f} />
@@ -77,6 +83,7 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
       <PageShell
         title={t('product.editListing')}
         mode="static"
+        scroll={ownScroll}
         padding={false}
         contentStyle={styles.container}
         overlay={<ListingPickers f={f} />}
@@ -88,11 +95,10 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
 
   return (
     <View style={styles.container}>
-      {/* Form AppShell barının ALTINDA: iOS padding kaçınması ekran üstünden ölçer -> bar kadar ofset. */}
+      {/* Form ekran tepesinden başlar (yüzen bar üstünde): klavye kaçınması için ofset gerekmez. */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={topInset + APP_SHELL_BAR_HEIGHT}
       >
         {form}
       </KeyboardAvoidingView>

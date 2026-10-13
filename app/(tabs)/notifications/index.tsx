@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Badge, EmptyState, Spinner, TopBarAction, pageListContentStyle } from '@/ui';
+import { Badge, EmptyState, Spinner, TopBarAction, pageListContentStyle, usePageScrollValue } from '@/ui';
 import { tabDiag } from '@/components/_tabDiag';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { AppShell } from '@/components/shell/AppShell';
@@ -23,7 +23,9 @@ function NotificationsTabScreen() {
   const { t } = useTranslation();
   const f = useNotifications();
   const tabInset = useTabBarInset();
-  const tabScroll = useTabBarScrollHandler();
+  const page = usePageScrollValue();
+  // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
+  const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
   const title = t('notification.notifications');
 
   const renderItem = useCallback(
@@ -49,6 +51,8 @@ function NotificationsTabScreen() {
     <AppShell
       variant="title"
       title={title}
+      // Yükleniyor iskeleti listeyi taşımaz: bar altından başlasın (sabit şerit).
+      scroll={f.loading ? undefined : page}
       right={
         f.unreadCount > 0 ? (
           <View style={styles.headerRight}>
@@ -67,6 +71,7 @@ function NotificationsTabScreen() {
       ) : (
         <Animated.FlatList
           {...tabScroll}
+          {...page.scrollProps}
           scrollEventThrottle={16}
           testID="notifications-list"
           data={f.notifications}
@@ -77,10 +82,11 @@ function NotificationsTabScreen() {
           initialNumToRender={8}
           maxToRenderPerBatch={10}
           removeClippedSubviews
-          contentContainerStyle={[
+          contentContainerStyle={page.contentStyle([
             f.notifications.length === 0 ? styles.emptyList : pageListContentStyle,
             { paddingBottom: tabInset },
-          ]}
+          ])}
+          progressViewOffset={page.topInset}
           refreshing={f.refreshing}
           onRefresh={f.handleRefresh}
           ListEmptyComponent={
