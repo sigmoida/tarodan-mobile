@@ -96,6 +96,20 @@ it('sepet ödemesi: kartlar `checkout` amacıyla istenir, ilk kart seçilir ve g
   expect(directFormMock.mock.calls[0][0]).toEqual({ checkoutGroupId: 'g-1', savedCardId: 'c-shop', distanceSalesAccepted: true });
 });
 
+it('kullanıcının seçtiği kart korunur; yeni karta geçince gövdede savedCardId yok', async () => {
+  listCardsMock.mockResolvedValue({
+    data: [card({ id: 'c-1', last4: '1111', purpose: 'checkout' }), card({ id: 'c-2', last4: '2222', purpose: 'checkout' })],
+  });
+  renderWithProviders(
+    <CardPaymentForm target={{ checkoutGroupId: 'g-1' }} purpose="checkout" cardStorageEnabled onSuccess={jest.fn()} />,
+  );
+  await waitFor(() => expect(screen.getByText(/2222/)).toBeOnTheScreen());
+  fireEvent.press(screen.getByText(/2222/));
+  acceptAndPay();
+  await waitFor(() => expect(directFormMock).toHaveBeenCalledTimes(1));
+  expect(directFormMock.mock.calls[0][0]).toMatchObject({ savedCardId: 'c-2' });
+});
+
 it('üyelik ödemesi: kartlar `membership` amacıyla istenir', async () => {
   listCardsMock.mockResolvedValue({ data: [card({ id: 'c-mem', purpose: 'membership', autoRenewEligible: true })] });
   renderWithProviders(

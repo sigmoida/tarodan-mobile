@@ -136,7 +136,13 @@ export const qk = {
 
   payments: {
     mine: ["my-payments"] as const,
-    savedCards: ["saved-cards"] as const,
+    /** Prefix kök — kart silinince her amacın listesi birlikte tazelenir. */
+    savedCardsAll: ["saved-cards"] as const,
+    /**
+     * Kayıtlı kartlar, PayTR mağazasına (amaç) göre: `checkout` / `membership`;
+     * amaçsız = iki mağaza birlikte (Kayıtlı Kartlarım).
+     */
+    savedCards: (purpose?: string) => ["saved-cards", purpose ?? "all"] as const,
   },
 
   user: {

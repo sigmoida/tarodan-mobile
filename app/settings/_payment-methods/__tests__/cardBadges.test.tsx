@@ -4,8 +4,11 @@
  * "Oto-yenilemeye uygun", değilse "CVV gerektirir".
  */
 import React from 'react';
-import { screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { QueryClient } from '@tanstack/react-query';
 import { renderWithProviders } from '@/test-utils';
+import { qk } from '@/lib/query';
+import { appAlert } from '@/ui';
 
 jest.mock('@/lib/purchases', () => ({ CAN_BUY_DIGITAL: true }));
 jest.mock('expo-router', () => ({
@@ -27,7 +30,7 @@ jest.mock('@/lib/api', () => ({
         },
       ],
     })),
-    deleteCard: jest.fn(),
+    deleteCard: jest.fn(async () => ({ data: {} })),
   },
 }));
 jest.mock('@/stores/authStore', () => ({
@@ -53,4 +56,18 @@ it('kartlar amaçsız istenir; rozetler web ile aynı (amaç rozeti yok)', async
   expect(screen.getByTestId('card-badge-cvv').props.children).toBe('CVV gerektirir');
   expect(screen.getAllByTestId('card-badge-autoRenew')).toHaveLength(1);
   expect(screen.getByTestId('card-badge-autoRenew').props.children).toBe('Oto-yenilemeye uygun');
+});
+
+it('kart silinince ödeme formunun amaçlı listesi de (`qk.payments.savedCards(amaç)`) tazelenir', async () => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  queryClient.setQueryData(qk.payments.savedCards('checkout'), [{ id: 'c-shop' }]);
+  renderWithProviders(<PaymentMethodsScreen />, { queryClient });
+  await waitFor(() => expect(screen.getByText(/1111/)).toBeOnTheScreen());
+
+  fireEvent.press(screen.getByTestId('card-delete-c-shop'));
+  const buttons = (appAlert as jest.Mock).mock.calls[0][2] as { style?: string; onPress?: () => Promise<void> }[];
+  await buttons.find((b) => b.style === 'destructive')!.onPress!();
+
+  expect(membershipApi.deleteCard).toHaveBeenCalledWith('c-shop');
+  expect(queryClient.getQueryState(qk.payments.savedCards('checkout'))?.isInvalidated).toBe(true);
 });
