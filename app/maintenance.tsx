@@ -1,8 +1,14 @@
-import { Stack } from 'expo-router';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/ui';
 import { GateScreen } from '@/components/common/GateScreen';
 
-/** Bakım ekranı — yalnız bilgi; kullanıcının yapacağı bir şey yok. */
+const retry = () => router.replace('/(tabs)');
+
+/**
+ * Bakım ekranı — kapı değil, bilgi ekranı: kullanıcı burada kilitli kalmaz. "Tekrar dene" ve Android geri
+ * tuşu ana sayfaya döner (bakım sürüyorsa istekler yine buraya yönlendirir); yığında geri gidilmez.
+ */
 export default function MaintenanceScreen() {
   const { t } = useTranslation();
   return (
@@ -10,8 +16,8 @@ export default function MaintenanceScreen() {
       icon="wrench-screwdriver"
       title={t('mobile.maintenanceTitle')}
       description={t('mobile.maintenanceDescription')}
-    >
-      <Stack.Screen options={{ title: t('mobile.maintenanceHeaderTitle') }} />
-    </GateScreen>
+      onHardwareBack={retry}
+      actions={<Button variant="primary" fullWidth title={t('common.tryAgain')} onPress={retry} />}
+    />
   );
 }

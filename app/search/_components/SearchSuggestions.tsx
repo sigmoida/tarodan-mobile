@@ -1,15 +1,31 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, ScrollView, Pressable } from 'react-native';
+import { View, ScrollView, Pressable, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
-import { Text, theme, Icon } from '@/ui';
+import { Text, theme, Icon, useHeaderBarInset } from '@/ui';
+import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 
 import { styles } from '../_lib/searchStyles';
 import type { SearchController } from '../_hooks/useSearch';
 import type { ProductFilters } from '@/utils/productFilters';
 import { formatPrice } from '@/utils/format';
 
-const { colors } = theme;
+const { colors, spacing, controlHeight } = theme;
+
+/** Öneri panelinin üst sınırı (pt) — büyük ekranda bile bu kadarı geçmez. */
+export const SUGGESTIONS_MAX_HEIGHT = 360;
+/** Çok küçük alanda bile en az bu kadar görünür (≈ 2-3 satır). */
+const SUGGESTIONS_MIN_HEIGHT = spacing[24] + spacing[8];
+
+/**
+ * Klavye açıkken panel klavyenin ÜSTÜNDE kalsın: pencere yüksekliği - klavye - (üst bar + arama kutusu +
+ * kenar boşlukları). SAF; ekran ve klavye yüksekliği dışarıdan gelir.
+ */
+export function suggestionsMaxHeight(windowHeight: number, keyboardHeight: number, barInset: number): number {
+  const above = barInset + controlHeight.lg + spacing[4] * 2;
+  const available = windowHeight - keyboardHeight - above;
+  return Math.round(Math.min(SUGGESTIONS_MAX_HEIGHT, Math.max(SUGGESTIONS_MIN_HEIGHT, available)));
+}
 
 /**
  * Dropdown shown under the search input: recent searches when the box is empty,
@@ -53,6 +69,10 @@ function SearchSuggestionsBase({
   onApplyFacet,
 }: SearchSuggestionsProps) {
   const { t } = useTranslation();
+  const { height: windowHeight } = useWindowDimensions();
+  const keyboardHeight = useKeyboardHeight();
+  const barInset = useHeaderBarInset();
+  const maxHeight = suggestionsMaxHeight(windowHeight, keyboardHeight, barInset);
   return (
     <>
       {/* Recent Searches */}
@@ -85,7 +105,7 @@ function SearchSuggestionsBase({
       {/* Autocomplete Rich */}
       {autocompleteOpen && autocompleteQuery.length >= 2 && autocomplete && (
         <View style={styles.recentSearchesDropdown}>
-          <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 360 }}>
+          <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight }}>
             {autocomplete.suggestions && autocomplete.suggestions.length > 0 ? (
               <View style={styles.acSection}>
                 <Text style={styles.acSectionTitle}>{t('search.suggestions')}</Text>

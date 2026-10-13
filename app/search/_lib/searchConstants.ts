@@ -1,10 +1,6 @@
-import { Dimensions } from 'react-native';
 import type { TFunction } from 'i18next';
 import { buildConditionOptions } from '@/utils/productFilters';
 
-const { width } = Dimensions.get('window');
-
-export const CARD_WIDTH = (width - 48) / 2;
 export const PAGE_SIZE = 24;
 
 // NOT: Üst çubukların yüksekliği için tahmini bir sabit (eski COLLAPSIBLE_ESTIMATE)

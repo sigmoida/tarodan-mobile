@@ -26,7 +26,12 @@ export default function ModelsScreen() {
           onChangeText={f.setSearch}
           leftIconName="magnifying-glass"
         />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+        <ScrollView
+          horizontal
+          keyboardShouldPersistTaps="handled"
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chips}
+        >
           <Chip label={t('models.allBrands')} selected={f.selectedBrand === 'all'} onPress={() => f.setSelectedBrand('all')} />
           {f.brands.map((b) => (
             <Chip key={b.slug} label={b.name} selected={f.selectedBrand === b.slug} onPress={() => f.setSelectedBrand(b.slug)} />

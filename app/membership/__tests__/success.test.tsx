@@ -5,8 +5,8 @@
  */
 import React from 'react';
 import { screen, waitFor } from '@testing-library/react-native';
-import { renderWithProviders } from '@/test-utils';
-import { resetRouterMocks } from '@/test-utils/router-mock';
+import { renderWithProviders, captureHardwareBack } from '@/test-utils';
+import { replaceMock, resetRouterMocks } from '@/test-utils/router-mock';
 
 let mockParams: Record<string, string | undefined> = {};
 jest.mock('expo-router', () => ({
@@ -95,6 +95,19 @@ describe('J14.V · üyelik başarı ekranı verify\'ı pacer\'dan gönderir (ort
 
   afterEach(() => {
     jest.useRealTimers();
+  });
+
+  it('J14.B1 Android geri tuşu ödeme ekranına dönmez: ana sayfaya replace eder', async () => {
+    mockParams = { tier: 'premium', paymentId: 'pay1' };
+    const back = captureHardwareBack();
+    try {
+      renderWithProviders(<MembershipSuccessScreen />);
+      await waitFor(() => expect(mockRefreshUserData).toHaveBeenCalled());
+      expect(back.press()).toBe(true);
+      expect(replaceMock).toHaveBeenCalledWith('/(tabs)');
+    } finally {
+      back.restore();
+    }
   });
 
   it('J14.V1 verify kısa zaman aşımı olmadan gider; tamamlandıysa döngü durur', async () => {

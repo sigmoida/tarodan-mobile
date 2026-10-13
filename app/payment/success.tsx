@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { View } from 'react-native';
 import { Badge, Button, SectionCard, Spinner, theme } from '@/ui';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
@@ -11,6 +10,7 @@ import { forgetPaymentCapabilityIfFinal } from '@/lib/payment/paymentCapability'
 import { isFailedPaymentStatus, isPaidPaymentStatus } from '@/lib/payment/status';
 import { formatPrice } from '@/utils/format';
 import { PageShell } from '@/components/common/PageShell';
+import { useHardwareBackToHome } from '@/hooks/useBlockHardwareBack';
 import { PaymentResultCard, PaymentResultRow } from '@/components/payment/PaymentResultCard';
 
 // Web'deki OrderStatusLabels ile uyumlu durum etiketleri
@@ -50,6 +50,8 @@ export default function PaymentSuccessScreen() {
   const [loading, setLoading] = useState(true);
   const [info, setInfo] = useState<PaymentInfo | null>(null);
   const statusLabels = buildStatusLabels(t);
+  // Sonuç ekranı: donanım geri tuşu ödeme akışına DÖNMEZ — ana sayfaya (iOS'ta geri oku/kaydırma kapalı).
+  useHardwareBackToHome();
 
   // Takas nakit farkı ödemesi mi? URL paramları 3DS dönüşü/deep link'te
   // kaybolabilir; web ile parite için API yanıtındaki tradeId de sinyal sayılır.

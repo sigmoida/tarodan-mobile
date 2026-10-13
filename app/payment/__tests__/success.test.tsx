@@ -5,12 +5,13 @@
  */
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
-import { renderWithProviders } from '@/test-utils';
+import { renderWithProviders, captureHardwareBack } from '@/test-utils';
 
 let mockParams: Record<string, string> = { paymentId: 'pay-1' };
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
   useLocalSearchParams: () => mockParams,
+  useFocusEffect: (cb: () => void | (() => void)) => require('@/test-utils/router-mock').routerMock.useFocusEffect(cb),
 }));
 
 jest.mock('@/lib/api', () => ({
@@ -91,6 +92,19 @@ describe('J72 · Ödeme başarılı navigasyon wiring', () => {
     const btn = await screen.findByText('Siparişimi Görüntüle');
     fireEvent.press(btn);
     expect(replaceMock).toHaveBeenCalledWith('/orders/order-1');
+  });
+
+  it('Android geri tuşu ödeme akışına dönmez: ana sayfaya replace eder', async () => {
+    getStatusMock.mockResolvedValue({ data: { data: infoFixture() } });
+    const back = captureHardwareBack();
+    try {
+      renderWithProviders(<PaymentSuccessScreen />);
+      await screen.findByText('Ana Sayfaya Dön');
+      expect(back.press()).toBe(true);
+      expect(replaceMock).toHaveBeenCalledWith('/(tabs)');
+    } finally {
+      back.restore();
+    }
   });
 
   it('J72.2 "Ana Sayfaya Dön" → köke replace eder', async () => {

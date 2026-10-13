@@ -17,7 +17,14 @@ export default function CorporateInviteScreen() {
   const f = useCorporateInvite();
   const toLogin = () => router.replace('/(auth)/login' as never);
 
-  if (f.isLoading) return <ScreenLoader />;
+  // Yüklenirken de standart kabuk: üst bar + geri oku görünür, kullanıcı sıkışmaz.
+  if (f.isLoading) {
+    return (
+      <AuthShell title={t('auth.corporateInviteTitle')} onBack={toLogin}>
+        <ScreenLoader fullscreen={false} />
+      </AuthShell>
+    );
+  }
 
   if (f.isInvalid) {
     return (
