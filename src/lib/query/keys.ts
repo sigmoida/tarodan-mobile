@@ -256,4 +256,9 @@ export const qk = {
     list: ["seller-documents"] as const,
     application: ["seller-documents", "application"] as const,
   },
+
+  timingPolicy: {
+    /** GET /timing-rules — admin'den yönetilen herkese açık politika süreleri. */
+    all: ["timing-policy"] as const,
+  },
 } as const;
