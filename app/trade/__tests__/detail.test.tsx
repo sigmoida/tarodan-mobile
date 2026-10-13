@@ -114,7 +114,7 @@ describe("J5 · Takas detayı durum rozetleri", () => {
     });
     renderWithProviders(<TradeDetailScreen />);
     await waitFor(() =>
-      expect(screen.getAllByText("trade.statusPending").length).toBeGreaterThan(0),
+      expect(screen.getAllByText("status.trade.pending").length).toBeGreaterThan(0),
     );
     expect(screen.getAllByText("trade.tradeNumberTitle").length).toBeGreaterThan(0);
   });
@@ -125,7 +125,7 @@ describe("J5 · Takas detayı durum rozetleri", () => {
     });
     renderWithProviders(<TradeDetailScreen />);
     await waitFor(() =>
-      expect(screen.getAllByText("trade.statusAccepted").length).toBeGreaterThan(0),
+      expect(screen.getAllByText("status.trade.accepted").length).toBeGreaterThan(0),
     );
   });
 
@@ -135,7 +135,7 @@ describe("J5 · Takas detayı durum rozetleri", () => {
     });
     renderWithProviders(<TradeDetailScreen />);
     await waitFor(() =>
-      expect(screen.getAllByText("trade.statusShippingToWarehouse").length).toBeGreaterThan(0),
+      expect(screen.getAllByText("status.trade.shipping_to_warehouse").length).toBeGreaterThan(0),
     );
   });
 
@@ -148,7 +148,7 @@ describe("J5 · Takas detayı durum rozetleri", () => {
     });
     renderWithProviders(<TradeDetailScreen />);
     await waitFor(() =>
-      expect(screen.getAllByText("trade.statusReturning").length).toBeGreaterThan(0),
+      expect(screen.getAllByText("status.trade.returning").length).toBeGreaterThan(0),
     );
     expect(screen.getByText("trade.returningBannerTitle")).toBeOnTheScreen();
   });

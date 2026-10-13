@@ -113,8 +113,8 @@ describe("J63 · Satışlarım listesi", () => {
       expect(screen.getByText("#ORD-3001000000")).toBeOnTheScreen(),
     );
     expect(screen.queryByText("Hazırlanıyor Olarak İşaretle")).toBeNull();
-    // pending_payment → 'Ödeme Bekliyor' rozeti
-    expect(screen.getByText("Ödeme Bekliyor")).toBeOnTheScreen();
+    // pending_payment → web `orderStatusConfig` etiketi 'Ödeme Bekleniyor'
+    expect(screen.getByText("Ödeme Bekleniyor")).toBeOnTheScreen();
   });
 
   it('J63.13 processing durumda "Kargoya Ver" butonu görünür (hazırlanıyor butonu yok)', async () => {

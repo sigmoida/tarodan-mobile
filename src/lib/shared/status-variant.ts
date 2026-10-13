@@ -1,21 +1,22 @@
 /**
- * Canonical, platform-agnostic semantic variant vocabulary.
+ * Durum varyantı sözlüğü — web `packages/shared/src/status-variant.ts` ile aynı:
+ * beş değer, bilerek. `default` marka (primary) tonudur, üçü anlam taşır
+ * (success / warning / danger), `outline` nötr olandır (etiket, pasif durum,
+ * kategori). Durum haritaları YALNIZ bu beşini kullanır.
+ */
+export type WebStatusVariant = 'default' | 'success' | 'warning' | 'danger' | 'outline';
+
+/**
+ * Rozet bileşeninin kabul ettiği geniş (eski) sözlük. `primary | secondary |
+ * info | destructive` web'de yok; yalnız `Badge`'in tip uyumu için duruyor ve
+ * `src/ui` bu beşliye indirildiğinde buradan da silinir. Yeni kod
+ * `WebStatusVariant` kullanır.
  *
- * Both the web ui package (web `Badge`) and @/ui (mobile `Badge`)
- * accept these values, so a single `StatusConfig` map can drive badges on
- * every surface.
- *
- * NOTE: `destructive` is a legacy alias of `danger` (identical styling on
- * both platforms). It is kept for backward-compat with existing web usage
- * and should be codemodded to `danger` in a later pass, then removed here.
+ * @deprecated `WebStatusVariant` kullanın.
  */
 export type StatusVariant =
-  | 'default'
+  | WebStatusVariant
   | 'primary'
   | 'secondary'
-  | 'success'
-  | 'warning'
-  | 'danger'
   | 'info'
-  | 'outline'
   | 'destructive';

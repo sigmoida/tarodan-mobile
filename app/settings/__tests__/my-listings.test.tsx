@@ -111,12 +111,12 @@ describe("J68 · İlanlarım filtre chip + durum rozeti", () => {
     });
     renderWithProviders(<MyListingsScreen />);
     expect(await screen.findByText("Reddedilen İlan")).toBeOnTheScreen();
-    // "Reddedildi" hem chip etiketinde hem ilan rozetinde geçer → en az 2
+    // Filtre chip'i `listing.filterRejected`, ilan durumu web `productStatusConfig`
+    // etiketi (`status.product.rejected`).
     await waitFor(() =>
-      expect(screen.getAllByText(/listing.filterRejected/).length).toBeGreaterThanOrEqual(
-        2,
-      ),
+      expect(screen.getAllByText(/listing.filterRejected/).length).toBeGreaterThanOrEqual(1),
     );
+    expect(screen.getAllByText('status.product.rejected').length).toBeGreaterThanOrEqual(1);
   });
 
   it("J68.3 boş liste → boş durum mesajı", async () => {

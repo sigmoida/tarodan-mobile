@@ -7697,6 +7697,95 @@
         "in_person": "Sold in person",
         "other": "Other"
       }
+    },
+    "order": {
+      "pending_payment": "Awaiting Payment",
+      "paid": "Paid",
+      "preparing": "Preparing",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "awaiting_buyer_confirmation": "Awaiting Buyer Confirmation",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "refund_requested": "Refund Requested",
+      "refunded": "Refunded"
+    },
+    "trade": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "awaiting_payment": "Awaiting Payment",
+      "shipping_to_warehouse": "Shipping to Warehouse",
+      "at_warehouse": "At Tarodan Warehouse",
+      "admin_reviewing": "Under Review",
+      "shipping_to_recipients": "Shipping to Recipients",
+      "returning": "Being Returned",
+      "initiator_shipped": "Shipped",
+      "receiver_shipped": "Counterparty Shipped",
+      "both_shipped": "Both Parties Shipped",
+      "initiator_received": "Received",
+      "receiver_received": "Counterparty Received",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "disputed": "Disputed"
+    },
+    "refundRequest": {
+      "pending_review": "Under Review",
+      "approved": "Approved",
+      "wait_for_delivery": "Awaiting Item Delivery",
+      "return_shipment_open": "Return Shipment Ready",
+      "return_in_transit": "Return In Transit",
+      "return_delivered": "Return Delivered",
+      "refunded": "Refunded",
+      "rejected": "Rejected",
+      "disputed": "Disputed",
+      "cancelled": "Cancelled"
+    },
+    "offer": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "countered": "Countered",
+      "expired": "Expired",
+      "cancelled": "Cancelled",
+      "payment_expired": "Payment Window Expired"
+    },
+    "payment": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "completed": "Completed",
+      "failed": "Failed",
+      "refunded": "Refunded"
+    },
+    "product": {
+      "pending": "Awaiting Approval",
+      "active": "Active",
+      "inactive": "Inactive",
+      "sold": "Sold",
+      "reserved": "Reserved",
+      "rejected": "Rejected",
+      "deleted": "Removed",
+      "suspended": "Suspended"
+    },
+    "shipment": {
+      "pending": "Pending",
+      "label_created": "Label Created",
+      "picked_up": "Picked Up",
+      "in_transit": "In Transit",
+      "at_delivery_branch": "At Delivery Branch",
+      "out_for_delivery": "Out for Delivery",
+      "delivered": "Delivered",
+      "failed": "Failed",
+      "return_in_progress": "Return In Progress",
+      "returned": "Returned",
+      "cancelled": "Cancelled"
+    },
+    "ticket": {
+      "open": "Open",
+      "in_progress": "In Progress",
+      "waiting_customer": "Awaiting Customer",
+      "resolved": "Resolved",
+      "closed": "Closed"
     }
   },
   "security": {

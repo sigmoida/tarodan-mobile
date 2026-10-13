@@ -7697,6 +7697,95 @@
         "in_person": "Elden satış",
         "other": "Diğer"
       }
+    },
+    "order": {
+      "pending_payment": "Ödeme Bekleniyor",
+      "paid": "Ödendi",
+      "preparing": "Hazırlanıyor",
+      "shipped": "Kargoda",
+      "delivered": "Teslim Edildi",
+      "awaiting_buyer_confirmation": "Alıcı Onayı Bekleniyor",
+      "completed": "Tamamlandı",
+      "cancelled": "İptal Edildi",
+      "refund_requested": "İade Talep Edildi",
+      "refunded": "İade Edildi"
+    },
+    "trade": {
+      "pending": "Bekliyor",
+      "accepted": "Kabul Edildi",
+      "rejected": "Reddedildi",
+      "awaiting_payment": "Ödeme Bekleniyor",
+      "shipping_to_warehouse": "Depoya Gönderim",
+      "at_warehouse": "Tarodan Deposunda",
+      "admin_reviewing": "İnceleniyor",
+      "shipping_to_recipients": "Alıcılara Gönderim",
+      "returning": "İade Yolda",
+      "initiator_shipped": "Gönderildi",
+      "receiver_shipped": "Karşı Taraf Gönderdi",
+      "both_shipped": "İki Taraf Gönderdi",
+      "initiator_received": "Teslim Alındı",
+      "receiver_received": "Karşı Taraf Teslim Aldı",
+      "completed": "Tamamlandı",
+      "cancelled": "İptal Edildi",
+      "disputed": "İtiraz Açıldı"
+    },
+    "refundRequest": {
+      "pending_review": "İnceleniyor",
+      "approved": "Onaylandı",
+      "wait_for_delivery": "Ürün Teslimi Bekleniyor",
+      "return_shipment_open": "İade Kargosu Hazır",
+      "return_in_transit": "İade Yolda",
+      "return_delivered": "İade Ulaştı",
+      "refunded": "Para İade Edildi",
+      "rejected": "Reddedildi",
+      "disputed": "İtirazlı",
+      "cancelled": "İptal Edildi"
+    },
+    "offer": {
+      "pending": "Bekliyor",
+      "accepted": "Kabul Edildi",
+      "rejected": "Reddedildi",
+      "countered": "Karşı Teklif",
+      "expired": "Süresi Doldu",
+      "cancelled": "İptal Edildi",
+      "payment_expired": "Ödeme Süresi Doldu"
+    },
+    "payment": {
+      "pending": "Bekliyor",
+      "processing": "İşleniyor",
+      "completed": "Tamamlandı",
+      "failed": "Başarısız",
+      "refunded": "İade Edildi"
+    },
+    "product": {
+      "pending": "Onay Bekliyor",
+      "active": "Aktif",
+      "inactive": "Pasif",
+      "sold": "Satıldı",
+      "reserved": "Rezerve",
+      "rejected": "Reddedildi",
+      "deleted": "Kaldırıldı",
+      "suspended": "Askıya Alındı"
+    },
+    "shipment": {
+      "pending": "Beklemede",
+      "label_created": "Etiket Oluşturuldu",
+      "picked_up": "Teslim Alındı",
+      "in_transit": "Yolda",
+      "at_delivery_branch": "Teslimat Şubesinde",
+      "out_for_delivery": "Dağıtımda",
+      "delivered": "Teslim Edildi",
+      "failed": "Başarısız",
+      "return_in_progress": "İade İşlemde",
+      "returned": "İade Edildi",
+      "cancelled": "İptal Edildi"
+    },
+    "ticket": {
+      "open": "Açık",
+      "in_progress": "İşlemde",
+      "waiting_customer": "Müşteri Bekleniyor",
+      "resolved": "Çözüldü",
+      "closed": "Kapalı"
     }
   },
   "security": {

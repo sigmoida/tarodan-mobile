@@ -72,15 +72,6 @@ export const styles = StyleSheet.create({
     color: theme.colors.gray[900],
     marginBottom: theme.spacing[1],
   },
-  statusBadge: {
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: 3,
-    borderRadius: theme.radius['2xl'],
-  },
-  statusBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
   separator: {
     height: 8,
   },
