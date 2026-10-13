@@ -14,8 +14,12 @@ A "native change" is anything that alters the compiled binary:
 - adding/removing a native module (a new `expo-*` package, any RN native lib),
 - an Expo SDK bump,
 - a `config plugin` change or anything under `ios/` · `android/`,
-- editing `app.json` fields baked into the binary (permissions, `plugins`,
-  `bundleIdentifier`/`package`, icons/splash).
+- editing `app.json` / `app.config.js` fields baked into the binary
+  (permissions / `blockedPermissions`, `plugins`, `associatedDomains`,
+  `intentFilters`, `privacyManifests`, `bundleIdentifier`/`package`,
+  icons/splash). `eas.json` build `env` changes too when they feed a native
+  step; all of these change the **fingerprint** (see below), so an OTA built
+  from such a tree is never delivered to the old binary.
 
 Everything else — React components, hooks, TS logic, images/fonts bundled with
 JS — ships as an OTA update.
@@ -25,7 +29,7 @@ JS — ships as an OTA update.
 `app.json`:
 
 ```jsonc
-"runtimeVersion": { "policy": "appVersion" },   // OTA only reaches builds with the same expo.version
+"runtimeVersion": { "policy": "fingerprint" },  // OTA only reaches builds with the same native fingerprint
 "updates": { "url": "https://u.expo.dev/a1d4149d-bbbc-49a8-9a26-d2b81cd842d3" }
 ```
 
@@ -37,12 +41,21 @@ JS — ships as an OTA update.
 | `production`  | `production` | TestFlight / Play production           |
 | `development` | (none)       | dev-client loads from local Metro      |
 
-**`runtimeVersion: appVersion`** ties every OTA to the build's `expo.version`.
-An update published for `1.2.0` is delivered _only_ to binaries built as `1.2.0`
-— it can never land on an incompatible native build. When a native change ships,
-bump `expo.version` (that's also the release tag for `mobile-testflight.yml`,
-#228); old binaries stop receiving new JS and, if they fall below the API's
+**`runtimeVersion: fingerprint`** hashes everything that shapes the native
+binary (native dependencies, config plugins, native-relevant `app.json` /
+`app.config.js` fields, `ios/` · `android/`). An update is delivered _only_ to
+binaries whose fingerprint equals the update's — it can never land on an
+incompatible native build, and **bumping `expo.version` alone does not change
+the runtime** (a JS-only change keeps the same fingerprint across versions).
+When a native change ships, the fingerprint changes automatically: cut a new
+store build (the version bump is still the release tag for
+`mobile-testflight.yml`, #228). Old binaries keep receiving OTAs built against
+_their_ fingerprint only and, if they fall below the API's
 `minSupportedAppVersion`, the force-update gate (#232 / #233) blocks them.
+
+Check before publishing: `npx expo-updates fingerprint:generate` (or
+`npx @expo/fingerprint .`) prints the current hash; compare with the build you
+target. A mismatch means the change is native and needs a build, not an update.
 
 ## Publishing an update
 
