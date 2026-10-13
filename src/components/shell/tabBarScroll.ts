@@ -61,3 +61,28 @@ export function shouldExpandOnMeasure(contentH: number, layoutH: number, offsetY
   'worklet';
   return contentH - layoutH < TAB_BAR_MIN_SCROLL_RANGE || offsetY <= TAB_BAR_TOP_ZONE;
 }
+
+/**
+ * Alt menü hapının gizlenme stili (`progress`: 0 açık, 1 daralmış) — SAF worklet.
+ * - Fallback: opacity + küçük aşağı kayma + hafif küçülme.
+ * - Cam (iOS 26 Liquid Glass): native cam, ata `opacity < 1` iken efektini kaybeder → opacity YOK;
+ *   hap alt kenarın ötesine (`glassHideY`) kayar + küçülür. İçerik soluklaşması ayrı (`pillContentOpacity`).
+ */
+export function pillHideStyle(
+  glass: boolean,
+  progress: number,
+  fallbackTranslateY: number,
+  glassHideY: number,
+  hideScale: number,
+) {
+  'worklet';
+  const scale = 1 - progress * (1 - hideScale);
+  if (glass) return { transform: [{ translateY: progress * glassHideY }, { scale }] };
+  return { opacity: 1 - progress, transform: [{ translateY: progress * fallbackTranslateY }, { scale }] };
+}
+
+/** Cam hapın İÇERİĞİNİN opaklığı (cam yüzeyin kendisine opacity verilmez); fallback'te tam görünür. */
+export function pillContentOpacity(glass: boolean, progress: number): number {
+  'worklet';
+  return glass ? 1 - progress : 1;
+}

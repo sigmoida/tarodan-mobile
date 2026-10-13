@@ -1,8 +1,19 @@
-import { createContext, useCallback, useContext, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { useAnimatedScrollHandler, useSharedValue, type SharedValue } from 'react-native-reanimated';
+import {
+  Easing,
+  useAnimatedReaction,
+  useAnimatedScrollHandler,
+  useDerivedValue,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+  type DerivedValue,
+  type SharedValue,
+} from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
+import { theme } from '@/ui';
 import { reduceTabBarScroll, shouldExpandOnMeasure } from './tabBarScroll';
 
 /**
@@ -11,6 +22,10 @@ import { reduceTabBarScroll, shouldExpandOnMeasure } from './tabBarScroll';
  */
 /** `onOffset` köprüsünün en küçük ofset adımı (pt). */
 const OFFSET_BRIDGE_STEP = 16;
+
+/** Daralma animasyonu: süre = theme.duration.normal (250ms), web `premium` eğrisi cubic-bezier(.4,0,.2,1). */
+export const TAB_BAR_ANIM_MS = theme.duration.normal;
+const TAB_BAR_EASING = Easing.bezier(0.4, 0, 0.2, 1);
 
 const TabBarCollapseContext = createContext<SharedValue<boolean> | null>(null);
 
@@ -39,6 +54,36 @@ export function useTabBarCollapsed(): SharedValue<boolean> {
   const ctx = useContext(TabBarCollapseContext);
   const fallback = useSharedValue(false);
   return ctx ?? fallback;
+}
+
+/**
+ * Daralma animasyonunun ilerlemesi: 0 = açık, 1 = daralmış (UI thread'inde `withTiming`, 250ms,
+ * "reduce motion" açıkken anında). Alt menü VE ana sayfa üst barı AYNI `collapsed` sinyalinden aynı
+ * süre/eğriyle türetir; ikisi birlikte daralır/açılır.
+ */
+export function useTabBarProgress(): DerivedValue<number> {
+  const collapsed = useTabBarCollapsed();
+  const reduceMotion = useReducedMotion();
+  return useDerivedValue<number>(() => {
+    const target = collapsed.value ? 1 : 0;
+    return reduceMotion ? target : withTiming(target, { duration: TAB_BAR_ANIM_MS, easing: TAB_BAR_EASING });
+  });
+}
+
+/**
+ * `collapsed`'ın JS tarafı aynası: daralınca `true`. Daralan öğenin dokunmaya (`pointerEvents`) ve
+ * ekran okuyucuya kapatılması için (animasyon değeri UI thread'inde kalır, bu yalnız değişimde render eder).
+ */
+export function useTabBarCollapsedFlag(): boolean {
+  const collapsed = useTabBarCollapsed();
+  const [flag, setFlag] = useState(false);
+  useAnimatedReaction(
+    () => collapsed.value,
+    (isCollapsed, previous) => {
+      if (isCollapsed !== previous) scheduleOnRN(setFlag, isCollapsed);
+    },
+  );
+  return flag;
 }
 
 /**

@@ -1,22 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { View, Pressable, StyleSheet, useWindowDimensions } from "react-native";
-import Animated, {
-  Easing,
-  useAnimatedReaction,
-  useAnimatedStyle,
-  useDerivedValue,
-  useReducedMotion,
-  withTiming,
-} from "react-native-reanimated";
-import { scheduleOnRN } from "react-native-worklets";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useTranslation } from "react-i18next";
-import { theme, Text, CountBadge, Icon, type IconName } from "@/ui";
+import { theme, Text, CountBadge, Icon, GlassSurface, getGlassView, type IconName } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
 import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 import { useShellCounts } from "./useShellCounts";
-import { useTabBarCollapsed } from "./TabBarCollapse";
+import {
+  TAB_BAR_ANIM_MS,
+  useTabBarCollapsed,
+  useTabBarCollapsedFlag,
+  useTabBarProgress,
+} from "./TabBarCollapse";
 import {
   TAB_PILL_HEIGHT,
   TAB_PILL_SIDE_GAP,
@@ -24,12 +21,12 @@ import {
   TAB_SELL_SIZE,
   tabPillBottomOffset,
 } from "./tabBarLayout";
+import { pillContentOpacity, pillHideStyle } from "./tabBarScroll";
 
-const { colors, spacing, iconSize, radius, shadow, duration } = theme;
+const { colors, spacing, iconSize, radius } = theme;
 
-/** Daralma animasyonu: süre = theme.duration.normal (250ms), web `premium` eğrisi cubic-bezier(.4,0,.2,1). */
-export const TAB_BAR_ANIM_MS = duration.normal;
-const TAB_BAR_EASING = Easing.bezier(0.4, 0, 0.2, 1);
+export { TAB_BAR_ANIM_MS };
+
 /** Gizlenirken hapın aşağı kayma payı ve küçülme oranı. */
 const PILL_HIDE_TRANSLATE_Y = spacing[4];
 const PILL_HIDE_SCALE = 0.9;
@@ -46,12 +43,16 @@ const TABS = [
 const SELL_ROUTE = "sell";
 
 /**
- * Özel yüzen alt menü (düz RN View'lar): solda 4 sekmeli beyaz hap [Ana Sayfa][Mesajlar][Bildirimler][Profil] (ince border + gölge), sağında
- * AYRI yuvarlak "+" (İlan Ver) düğmesi; ikisi aynı alt hizada/yükseklikte. İçerik aşağı kaydırılınca
- * (bkz. `useTabBarScrollHandler`) hap opacity + translateY + scale ile gizlenir, "+" sağdan sola
- * (alt sol köşe) kayar; yukarı kaydırınca geri gelir. Animasyon UI thread'inde (tek `progress`
- * türetilmiş değeri); "reduce motion" açıkken anında geçer. Ekranların üstüne biner
- * (`position:absolute`); içerik alt dolgusunu `useTabBarInset` verir.
+ * Özel yüzen alt menü (düz RN View'lar): solda 4 sekmeli hap [Ana Sayfa][Mesajlar][Bildirimler][Profil], sağında
+ * AYRI yuvarlak "+" (İlan Ver) düğmesi; ikisi aynı alt hizada/yükseklikte. Yüzeyler `GlassSurface`:
+ * iOS 26'da gerçek Liquid Glass (arkadaki içerik görünür; "+" primary tint), iOS < 26 / Android'de
+ * opak beyaz hap (ince border + gölge) ve düz turuncu daire. İçerik aşağı kaydırılınca
+ * (bkz. `useTabBarScrollHandler`) hap gizlenir, "+" sağdan sola (alt sol köşe) kayar; yukarı
+ * kaydırınca geri gelir. Hap fallback'te opacity + translateY + scale ile; CAMDA opacity ile DEĞİL
+ * (native cam ata opacity < 1 iken efektini kaybeder) aşağı kayıp ekran dışına çıkarak, içeriği
+ * yüzeyin içinde soluklaşarak gizlenir. Animasyon UI thread'inde (tek `progress` türetilmiş değeri);
+ * "reduce motion" açıkken anında geçer. Ekranların üstüne biner (`position:absolute`); içerik alt
+ * dolgusunu `useTabBarInset` verir.
  *
  * SDK 54 / RN 0.81 + New Architecture'da @react-navigation/bottom-tabs default `BottomTabBar`'ı
  * RELEASE (Fabric) render'da bozuk çiziyordu (ikonlar sola yığılıyor + sağda testere deseni;
@@ -63,10 +64,10 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
   const counts = useShellCounts();
   const keyboardHeight = useKeyboardHeight();
   const { width: windowWidth } = useWindowDimensions();
-  const reduceMotion = useReducedMotion();
   const collapsed = useTabBarCollapsed();
   // Gizli hap: dokunma + ekran okuyucu dışı (JS state; UI thread'inden scheduleOnRN ile).
-  const [pillHidden, setPillHidden] = useState(false);
+  const pillHidden = useTabBarCollapsedFlag();
+  const glass = getGlassView() !== null;
 
   // state.routes içindeki aktif route adını çöz (görünür sırayla eşleştir).
   const activeName = state.routes[state.index]?.name;
@@ -77,31 +78,19 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
     collapsed.value = false;
   }, [activeName, isAuthenticated, collapsed]);
 
-  useAnimatedReaction(
-    () => collapsed.value,
-    (isCollapsed, previous) => {
-      if (isCollapsed !== previous) scheduleOnRN(setPillHidden, isCollapsed);
-    },
-  );
-
-  // 0 = açık, 1 = daralmış. Tek kaynak; iki animasyonlu stil de bundan türer (eşzamanlı).
-  const progress = useDerivedValue(() => {
-    const target = collapsed.value ? 1 : 0;
-    return reduceMotion
-      ? target
-      : withTiming(target, { duration: TAB_BAR_ANIM_MS, easing: TAB_BAR_EASING });
-  });
+  // 0 = açık, 1 = daralmış. Tek kaynak; animasyonlu stillerin hepsi bundan türer (eşzamanlı).
+  const progress = useTabBarProgress();
 
   // "+" sağdaki yerinden sol kenara: satır genişliği - kendi genişliği.
   const sellTravel = Math.max(windowWidth - 2 * TAB_PILL_SIDE_GAP - TAB_SELL_SIZE, 0);
+  // Cam hap: alt kenarın ötesine tam kayar (yükseklik + alt boşluk + gölge payı).
+  const glassHideY = TAB_PILL_HEIGHT + tabPillBottomOffset(insets.bottom) + spacing[4];
 
-  const pillStyle = useAnimatedStyle(() => ({
-    opacity: 1 - progress.value,
-    transform: [
-      { translateY: progress.value * PILL_HIDE_TRANSLATE_Y },
-      { scale: 1 - progress.value * (1 - PILL_HIDE_SCALE) },
-    ],
-  }));
+  const pillStyle = useAnimatedStyle(() =>
+    pillHideStyle(glass, progress.value, PILL_HIDE_TRANSLATE_Y, glassHideY, PILL_HIDE_SCALE),
+  );
+  // Yalnız camda: içerik (ikon + etiket) cam yüzeyin İÇİNDE soluklaşır.
+  const pillContentStyle = useAnimatedStyle(() => ({ opacity: pillContentOpacity(glass, progress.value) }));
   const sellStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: -progress.value * sellTravel }],
   }));
@@ -119,53 +108,57 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
       testID="app-tab-bar"
     >
       <Animated.View
-        style={[styles.pill, pillStyle]}
+        style={[styles.pillWrap, pillStyle]}
         pointerEvents={pillHidden ? "none" : "auto"}
         accessibilityElementsHidden={pillHidden}
         importantForAccessibility={pillHidden ? "no-hide-descendants" : "auto"}
         testID="app-tab-pill"
       >
-        {TABS.map((tab) => {
-          const focused = activeName === tab.name;
-          const color = focused ? colors.primary[600]! : theme.inactiveIconColor;
-          const label = t(tab.labelKey);
+        <GlassSurface shape="pill" size={TAB_PILL_HEIGHT} opaque style={styles.pill}>
+          <Animated.View style={[styles.pillContent, pillContentStyle]}>
+            {TABS.map((tab) => {
+              const focused = activeName === tab.name;
+              const color = focused ? colors.primary[600]! : theme.inactiveIconColor;
+              const label = t(tab.labelKey);
 
-          return (
-            <Pressable
-              key={tab.name}
-              testID={tab.testID}
-              style={[styles.item, focused && styles.itemActive]}
-              accessibilityRole="tab"
-              accessibilityLabel={label}
-              accessibilityState={{ selected: focused }}
-              onPress={() => {
-                if (!focused) navigation.navigate(tab.name);
-              }}
-            >
-              <View>
-                <Icon name={tab.icon} variant={focused ? "solid" : "outline"} size={iconSize.lg} color={color} />
-                {tab.badge && (
-                  <CountBadge
-                    count={counts[tab.badge]}
-                    ringColor={focused ? colors.gray[100] : colors.surface.elevated}
-                    style={styles.badge}
-                  />
-                )}
-              </View>
-              <Text
-                variant="caption"
-                weight="medium"
-                color={color}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.85}
-                style={styles.label}
-              >
-                {label}
-              </Text>
-            </Pressable>
-          );
-        })}
+              return (
+                <Pressable
+                  key={tab.name}
+                  testID={tab.testID}
+                  style={[styles.item, focused && (glass ? styles.itemActiveGlass : styles.itemActive)]}
+                  accessibilityRole="tab"
+                  accessibilityLabel={label}
+                  accessibilityState={{ selected: focused }}
+                  onPress={() => {
+                    if (!focused) navigation.navigate(tab.name);
+                  }}
+                >
+                  <View>
+                    <Icon name={tab.icon} variant={focused ? "solid" : "outline"} size={iconSize.lg} color={color} />
+                    {tab.badge && (
+                      <CountBadge
+                        count={counts[tab.badge]}
+                        ringColor={focused && !glass ? colors.gray[100] : colors.surface.elevated}
+                        style={styles.badge}
+                      />
+                    )}
+                  </View>
+                  <Text
+                    variant="caption"
+                    weight="medium"
+                    color={color}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.85}
+                    style={styles.label}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </Animated.View>
+        </GlassSurface>
       </Animated.View>
 
       <Animated.View style={[styles.sellWrap, sellStyle]}>
@@ -179,7 +172,9 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
             if (!sellFocused) navigation.navigate(SELL_ROUTE);
           }}
         >
-          <Icon name="plus" size={iconSize.lg + 4} color={colors.text.inverted} />
+          <GlassSurface shape="circle" size={TAB_SELL_SIZE} tint={colors.primary[600]} pointerEvents="none">
+            <Icon name="plus" size={iconSize.lg + 4} color={colors.text.inverted} />
+          </GlassSurface>
         </Pressable>
       </Animated.View>
     </View>
@@ -195,17 +190,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  pill: {
+  pillWrap: {
     flex: 1,
     height: TAB_PILL_HEIGHT,
+  },
+  // Yüzey (cam / opak beyaz + kenarlık + gölge) `GlassSurface`'ten; burada yalnız yerleşim.
+  pill: {
+    alignSelf: "stretch",
+    paddingHorizontal: spacing[1],
+  },
+  pillContent: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: spacing[1],
-    backgroundColor: colors.surface.elevated,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    ...shadow.medium,
+    alignSelf: "stretch",
   },
   item: {
     flex: 1,
@@ -218,17 +216,18 @@ const styles = StyleSheet.create({
   itemActive: {
     backgroundColor: colors.gray[100],
   },
+  // Camda vurgu yarı saydam gri: arkadaki cam görünür kalır.
+  itemActiveGlass: {
+    backgroundColor: colors.overlay.black10,
+  },
   sellWrap: {
     marginLeft: TAB_SELL_GAP,
   },
+  // Turuncu "+" (cam üstünde primary tint, fallback düz primary): yüzeyi GlassSurface çizer.
   sellButton: {
     width: TAB_SELL_SIZE,
     height: TAB_SELL_SIZE,
     borderRadius: radius.full,
-    backgroundColor: colors.primary[600],
-    justifyContent: "center",
-    alignItems: "center",
-    ...shadow.medium,
   },
   label: {
     marginTop: spacing[0.5],
