@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { appAlert, toast } from '@/ui';
 import { tradesApi, productsApi } from '@/lib/api';
+import { qk, useAppMutation } from '@/lib/query';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useAuthStore } from '@/stores/authStore';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
@@ -18,7 +19,6 @@ export function useTradeCounter() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuthStore();
-  const queryClient = useQueryClient();
   const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
 
   const handleBack = () => {
@@ -106,8 +106,8 @@ export function useTradeCounter() {
     theirProductsQuery.refetch,
   );
 
-  const counterMutation = useMutation({
-    mutationFn: async () => {
+  const counterMutation = useAppMutation(
+    async () => {
       const cashValue = parseFloat(cashAmount) || 0;
       const finalCash = cashDirection === 'offer' ? cashValue : -cashValue;
       return tradesApi.counter(id!, {
@@ -119,15 +119,16 @@ export function useTradeCounter() {
         message: message || undefined,
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['trade', id] });
-      queryClient.invalidateQueries({ queryKey: ['trades'] });
-      toast.success(t('trade.counterOfferSent'));
-      setTimeout(() => router.replace(`/trade/${id}` as any), 1200);
+    {
+      invalidates: [qk.trades.detail(id!), qk.trades.all],
+      error: t('trade.counterOfferFailed'),
+      onSuccess: () => {
+        // Önce ekran değişir, sonra toast — bekleme yok.
+        router.replace(`/trade/${id}` as any);
+        toast.success(t('trade.counterOfferSent'));
+      },
     },
-    onError: (e: any) =>
-      appAlert(t('common.error'), e?.response?.data?.message || t('trade.counterOfferFailed')),
-  });
+  );
 
   const myProducts = myProductsQuery.data ?? [];
   const theirProducts = theirProductsQuery.data ?? [];
@@ -156,7 +157,7 @@ export function useTradeCounter() {
 
   const handleSubmit = async () => {
     if (selectedMine.length === 0 && selectedTheirs.length === 0) {
-      appAlert(t('common.error'), t('trade.selectAtLeastOneOffer'));
+      toast.error(t('trade.selectAtLeastOneOffer'));
       return;
     }
     const currentSig = offerSignature(selectedMine, selectedTheirs, cashDirection, cashAmount);

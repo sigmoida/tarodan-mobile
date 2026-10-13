@@ -1,5 +1,4 @@
 import { router } from 'expo-router';
-import { Snackbar } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 
 import { useNewTrade } from './_hooks/useNewTrade';
@@ -24,15 +23,6 @@ export default function NewTradeScreen() {
     <PageShell
       title="Takas Teklifi"
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-      overlay={
-        <Snackbar
-          visible={f.snackbar.visible}
-          onDismiss={() => f.setSnackbar({ ...f.snackbar, visible: false })}
-          duration={3000}
-        >
-          {f.snackbar.message}
-        </Snackbar>
-      }
     >
       <StepIndicator step={f.step} />
 

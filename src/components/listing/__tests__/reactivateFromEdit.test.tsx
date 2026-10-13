@@ -4,7 +4,7 @@
  * karantinasındaki ilan doğrudan `active`, diğerleri `pending` (inceleme).
  */
 import React from 'react';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { screen, fireEvent, waitFor, within } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../test-utils';
 
@@ -90,8 +90,12 @@ jest.setTimeout(20000);
 
 describe('düzenleme formu · yeniden aktivasyon mesajı yanıt statüsüne göre', () => {
   let alertSpy: jest.Mock;
+  let toastSuccess: jest.SpyInstance;
+
+  afterEach(() => toastSuccess.mockRestore());
 
   beforeEach(() => {
+    toastSuccess = jest.spyOn(toast, 'success').mockImplementation(() => 1);
     mockGet.mockReset();
     mockGet.mockResolvedValue({ data: {} });
     alertSpy = (appAlert as jest.Mock).mockImplementation(() => {});
@@ -111,11 +115,9 @@ describe('düzenleme formu · yeniden aktivasyon mesajı yanıt statüsüne gör
     (productsApi.update as jest.Mock).mockResolvedValue({ data: { id: 'p1', status: 'active' } });
     await reactivate();
     await waitFor(() =>
-      expect(alertSpy).toHaveBeenCalledWith(
-        'Başarılı',
-        'İlanınız tekrar yayında! Onay beklemeden satışa açıldı.',
-      ),
+      expect(toastSuccess).toHaveBeenCalledWith('İlanınız tekrar yayında! Onay beklemeden satışa açıldı.'),
     );
+    expect(alertSpy).not.toHaveBeenCalled();
     expect(productsApi.update).toHaveBeenCalledWith('p1', { status: 'active', quantity: 3 });
   });
 
@@ -132,10 +134,7 @@ describe('düzenleme formu · yeniden aktivasyon mesajı yanıt statüsüne gör
     (productsApi.update as jest.Mock).mockResolvedValue({ data: { id: 'p1', status: 'pending' } });
     await reactivate();
     await waitFor(() =>
-      expect(alertSpy).toHaveBeenCalledWith(
-        'Başarılı',
-        'İlan incelemeye gönderildi. Onaylandığında yeniden yayına girer.',
-      ),
+      expect(toastSuccess).toHaveBeenCalledWith('İlan incelemeye gönderildi. Onaylandığında yeniden yayına girer.'),
     );
   });
 });

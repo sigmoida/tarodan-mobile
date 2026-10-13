@@ -341,7 +341,10 @@ describe("C2 inceleme · 8 tanınmayan toplu yenileme yanıtı hata sayılır", 
   it.each([
     ["gövdesiz", {}],
     ["sayaçlı ama results yok", { renewed: 2, submitted: 0, failed: 0 }],
-  ])("%s yanıt: 'Başarılı' DEĞİL, hata uyarısı; liste tazelenir", async (_n, body) => {
+  ])("%s yanıt: 'Başarılı' DEĞİL, hata toast'ı; liste tazelenir", async (_n, body) => {
+    const toastError = jest
+      .spyOn((jest.requireMock("@/ui") as { toast: { error: () => number } }).toast, "error")
+      .mockImplementation(() => 1);
     serve([expired({ id: "E1", title: "Bir" })]);
     api().renewMany.mockResolvedValue({ data: body });
     const { queryClient } = renderWithProviders(<MyListingsScreen />);
@@ -350,9 +353,11 @@ describe("C2 inceleme · 8 tanınmayan toplu yenileme yanıtı hata sayılır", 
     fireEvent.press(await screen.findByText("profile.expiredListings.selectAll"));
     fireEvent.press(await screen.findByText("profile.expiredListings.renewSelected"));
 
-    await waitFor(() => expect(alertMock()).toHaveBeenCalled());
-    expect(alertMock()).toHaveBeenCalledTimes(1);
-    expect(alertMock()).toHaveBeenCalledWith("common.error", "profile.expiredListings.renewFailed");
+    await waitFor(() => expect(toastError).toHaveBeenCalledTimes(1));
+    // Ham İngilizce `Error.message` sızmaz: yedek (yerelleştirilmiş) metin gösterilir.
+    expect(toastError).toHaveBeenCalledWith("profile.expiredListings.renewFailed");
+    expect(alertMock()).not.toHaveBeenCalled();
+    toastError.mockRestore();
     expect(spy.mock.calls.map(([f]) => (f as { queryKey: unknown }).queryKey)).toContainEqual(
       qk.products.myListingsAll,
     );

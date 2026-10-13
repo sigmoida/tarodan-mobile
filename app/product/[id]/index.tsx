@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Skeleton, SkeletonText, theme } from '@/ui';
+import { Skeleton, SkeletonText, theme, toast } from '@/ui';
 import { useLocalSearchParams, router } from 'expo-router';
 import { PageShell } from '@/components/common/PageShell';
 import { useRefresh } from '@/hooks/useRefresh';
@@ -74,7 +74,7 @@ export default function ProductDetailScreen() {
   const isOutOfStock = product ? isProductOutOfStock(product) : false;
 
   const actions = useProductActions({ product, productId, images, isOutOfStock, isAuthenticated, user });
-  const favorite = useProductFavorite({ product, productId, isAuthenticated, notify: actions.notify });
+  const favorite = useProductFavorite({ product, productId, isAuthenticated });
 
   // Apple App Review 1.2: ilan detayından ilanı şikayet + satıcıyı engelle.
   const sellerId = product?.seller?.id ? String(product.seller.id) : '';
@@ -159,7 +159,7 @@ export default function ProductDetailScreen() {
                 listPrice={product.price ?? 0}
                 onSuccess={() => {
                   actions.setOfferModalOpen(false);
-                  actions.notify(t('product.offerSent'), 'success');
+                  toast.success(t('product.offerSent'));
                 }}
               />
               <ReportModal
@@ -175,7 +175,7 @@ export default function ProductDetailScreen() {
                 productId={productId}
                 onSuccess={(collectionName: string) => {
                   actions.setCollectionModalOpen(false);
-                  actions.notify(t('collection.addedToNamedCollection', { name: collectionName }), 'success');
+                  toast.success(t('collection.addedToNamedCollection', { name: collectionName }));
                 }}
               />
             </>

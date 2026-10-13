@@ -64,32 +64,34 @@ describe('B-1.11 · bildirim ayarları kaydı', () => {
     expect(patch).toHaveBeenCalledWith('/users/me/settings', expect.any(Object));
   });
 
-  it('sunucu hatası → hata gösterilir, "kaydedildi" DENMEZ', async () => {
+  it('sunucu hatası → hata toast olur, "kaydedildi" DENMEZ', async () => {
+    const error = jest.spyOn(toast, 'error').mockImplementation(() => 1);
+    const success = jest.spyOn(toast, 'success').mockImplementation(() => 1);
     patch.mockRejectedValue({ response: { status: 500, data: {} } });
     await save();
-    await waitFor(() =>
-      expect(appAlert).toHaveBeenCalledWith('common.error', 'settings.settingUpdateFailed'),
-    );
-    expect(appAlert).not.toHaveBeenCalledWith(
-      'common.success',
-      'settings.notificationSettingsSaved',
-    );
+    await waitFor(() => expect(error).toHaveBeenCalledWith('settings.settingUpdateFailed'));
+    expect(success).not.toHaveBeenCalled();
+    expect(appAlert).not.toHaveBeenCalled();
+    error.mockRestore();
+    success.mockRestore();
   });
 
   it('sunucu mesajı varsa o gösterilir', async () => {
+    const error = jest.spyOn(toast, 'error').mockImplementation(() => 1);
     patch.mockRejectedValue({ response: { status: 400, data: { message: ['geçersiz alan'] } } });
     await save();
-    await waitFor(() => expect(appAlert).toHaveBeenCalledWith('common.error', 'geçersiz alan'));
+    await waitFor(() => expect(error).toHaveBeenCalledWith('geçersiz alan'));
+    error.mockRestore();
   });
 });
 
-describe('hata metni · errorText', () => {
+describe('hata metni · apiErrorMessage', () => {
   it('boş mesaj dizisi → yedek metin (boş uyarı gösterilmez)', async () => {
+    const error = jest.spyOn(toast, 'error').mockImplementation(() => 1);
     patch.mockRejectedValue({ response: { status: 400, data: { message: [] } } });
     await save();
-    await waitFor(() =>
-      expect(appAlert).toHaveBeenCalledWith('common.error', 'settings.settingUpdateFailed'),
-    );
+    await waitFor(() => expect(error).toHaveBeenCalledWith('settings.settingUpdateFailed'));
+    error.mockRestore();
   });
 });
 

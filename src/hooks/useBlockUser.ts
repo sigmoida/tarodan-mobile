@@ -1,9 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { userApi } from '@/lib/api';
-import { apiErrorMessage } from '@/lib/api/errorText';
-import { qk } from '@/lib/query';
-import { appAlert, toast } from '@/ui';
+import { qk, useAppMutation } from '@/lib/query';
+import { appAlert } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 
 /**
@@ -81,47 +80,30 @@ export function useBlockUser(options?: {
   /** Engel konduktan sonra (ör. DM ekranından çıkmak için). */
   onBlocked?: () => void;
   onUnblocked?: () => void;
-  /** Kendi bildirimini geçmeyen ekranda başarı `toast.success`, hata `toast.error` olur. */
-  notify?: (message: string, type: 'success' | 'error') => void;
 }) {
   const { t } = useTranslation();
-  const qc = useQueryClient();
 
-  const invalidate = () => {
-    for (const key of BLOCK_INVALIDATES) {
-      qc.invalidateQueries({ queryKey: key as unknown as readonly unknown[] });
-    }
-  };
+  const invalidates = BLOCK_INVALIDATES as unknown as readonly (readonly unknown[])[];
 
-  const tell = (message: string, type: 'success' | 'error') => {
-    if (options?.notify) options.notify(message, type);
-    else if (type === 'success') toast.success(message);
-    else toast.error(message);
-  };
+  const blockMutation = useAppMutation(
+    ({ userId }: { userId: string; name: string }) => userApi.block(userId),
+    {
+      invalidates,
+      success: (_data, vars) => t('profile.blockedToast', { name: vars.name }),
+      error: t('profile.blockFailed'),
+      onSuccess: () => options?.onBlocked?.(),
+    },
+  );
 
-  const blockMutation = useMutation({
-    mutationFn: ({ userId }: { userId: string; name: string }) => userApi.block(userId),
-    onSuccess: (_data, vars) => {
-      invalidate();
-      tell(t('profile.blockedToast', { name: vars.name }), 'success');
-      options?.onBlocked?.();
+  const unblockMutation = useAppMutation(
+    ({ userId }: { userId: string; name?: string }) => userApi.unblock(userId),
+    {
+      invalidates,
+      success: t('profile.unblockedToast'),
+      error: t('profile.unblockFailed'),
+      onSuccess: () => options?.onUnblocked?.(),
     },
-    onError: (error: any) => {
-      tell(apiErrorMessage(error, t('profile.blockFailed')), 'error');
-    },
-  });
-
-  const unblockMutation = useMutation({
-    mutationFn: ({ userId }: { userId: string; name?: string }) => userApi.unblock(userId),
-    onSuccess: () => {
-      invalidate();
-      tell(t('profile.unblockedToast'), 'success');
-      options?.onUnblocked?.();
-    },
-    onError: (error: any) => {
-      tell(apiErrorMessage(error, t('profile.unblockFailed')), 'error');
-    },
-  });
+  );
 
   /** Onay diyaloğu + engelleme. Diyalog kapanmadan mutation tetiklenmez. */
   const requestBlock = (userId: string, name: string) => {

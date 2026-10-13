@@ -306,7 +306,7 @@ and turns them into **errors**, so write new code warning-free.
   `PageShell` (`@/components/common/PageShell` — floating glass top bar with back arrow,
   centred title, optional right action, optional fixed bottom bar, keyboard + safe area, and
   `loading` / `empty` / `error` + `onRetry` states; `loading`/`error` **unmount `children`**,
-  so modals, sheets and Snackbars go in the always-rendered `overlay` prop — an open form
+  so modals and sheets go in the always-rendered `overlay` prop — an open form
   modal inside `children` would lose its input). Inside content use `PageHeader`
   for the page title band and `SectionCard` (+ `SectionCardAction` "Tümünü gör ›") for
   sections. Don't hand-roll a header or a bordered section. Reference screens to copy:
@@ -353,7 +353,7 @@ and turns them into **errors**, so write new code warning-free.
   (in titles, list-row leading, inside buttons, section heads) are removed; an icon
   the web doesn't have is removed by default.
 - **Feedback:** info/success → `toast` / `toast.success` (`@/ui`, web react-hot-toast
-  equivalent). Anything that needs confirmation, or an error the user must act on →
+  equivalent; `Snackbar` was removed and its `@/ui` import is lint-banned). Anything that needs confirmation, or an error the user must act on →
   `appAlert` dialog. Yes/no confirmation → `if (!(await confirm({ title, message, destructive })))
   return;` (`@/ui`, web ConfirmProvider signature; resolves after the dialog has closed, so a
   following toast/navigation/modal is iOS-safe). Toasts draw in the topmost layer (`ToastLayer`

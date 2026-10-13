@@ -2,12 +2,11 @@ import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from '@/ui';
 import { qk } from '@/lib/query';
 import { useFavorites } from '@/hooks/useFavorites';
 import { invalidateProductLists } from '../_lib/invalidate';
 import type { Product } from '../_lib/types';
-
-type Notify = (message: string, type: 'success' | 'error') => void;
 
 /**
  * Favori (beğeni) durumu + toggle. Beğeni sayısı server likeCount'undan
@@ -20,12 +19,10 @@ export function useProductFavorite({
   product,
   productId,
   isAuthenticated,
-  notify,
 }: {
   product: Product | null | undefined;
   productId: string;
   isAuthenticated: boolean;
-  notify: Notify;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -50,7 +47,7 @@ export function useProductFavorite({
 
   const toggle = async () => {
     if (!isAuthenticated) {
-      notify(t('product.signInToFavorite'), 'error');
+      toast.error(t('product.signInToFavorite'));
       setTimeout(() => router.push('/(auth)/login'), 1500);
       return;
     }
@@ -63,9 +60,9 @@ export function useProductFavorite({
           setFavoriteCount((c) => Math.max(0, c - 1));
           invalidateProductLists(queryClient);
           queryClient.invalidateQueries({ queryKey: qk.products.detail(productId) });
-          notify(t('product.favoriteRemoved'), 'success');
+          toast.success(t('product.favoriteRemoved'));
         } else {
-          notify(t('product.favoriteRemoveFailed'), 'error');
+          toast.error(t('product.favoriteRemoveFailed'));
         }
       } else {
         const success = await addToFavorites(productId);
@@ -74,13 +71,13 @@ export function useProductFavorite({
           setFavoriteCount((c) => c + 1);
           invalidateProductLists(queryClient);
           queryClient.invalidateQueries({ queryKey: qk.products.detail(productId) });
-          notify(t('product.favoriteAdded'), 'success');
+          toast.success(t('product.favoriteAdded'));
         } else {
-          notify(t('product.favoriteAddFailed'), 'error');
+          toast.error(t('product.favoriteAddFailed'));
         }
       }
     } catch {
-      notify(t('utility.error500.title'), 'error');
+      toast.error(t('utility.error500.title'));
     } finally {
       setFavoriteLoading(false);
     }

@@ -26,8 +26,6 @@ export interface UserActionsProps {
   blockLabel?: string;
   /** Engel konduktan sonra (ör. DM ekranından çıkmak). */
   onBlocked?: () => void;
-  /** Snackbar'ı olan ekranlar kendi bildirimini geçer. */
-  notify?: (message: string, type: 'success' | 'error') => void;
   extraActions?: UserActionsExtraAction[];
 }
 
@@ -48,7 +46,6 @@ export function useUserActionsSheet({
   reportUserLabel,
   blockLabel,
   onBlocked,
-  notify,
   extraActions,
 }: UserActionsProps) {
   const { t } = useTranslation();
@@ -65,7 +62,6 @@ export function useUserActionsSheet({
   const { requestBlock, requestUnblock, pending } = useBlockUser({
     requireAuth,
     onBlocked,
-    notify,
   });
 
   const [menuOpen, setMenuOpen] = useState(false);

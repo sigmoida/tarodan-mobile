@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/ui';
 import { productsApi, collectionsApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/api/errorText';
 import { qk } from '@/lib/query';
 import { OPTIMISTIC, type Listing } from '../_lib/types';
 
@@ -109,7 +110,7 @@ export function useAddItems() {
         delete next[listing.id];
         return next;
       });
-      toast.error(e?.response?.data?.message || t('common.operationFailed'));
+      toast.error(apiErrorMessage(e, t('common.operationFailed')));
     } finally {
       inFlight.current -= 1;
       setPending((p) => ({ ...p, [listing.id]: false }));

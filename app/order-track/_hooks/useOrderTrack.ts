@@ -2,8 +2,8 @@ import { logger, safeError } from '@/services/logger';
 import { useCallback, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { api } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/api/errorText';
 import i18n from '@/i18n/config';
-import { toast } from '@/ui';
 import { canGuestCancel, type OrderStatus } from '../_lib/status';
 import { useGuestOrderCancel } from './useGuestOrderCancel';
 
@@ -29,12 +29,6 @@ export function useOrderTrack() {
   const [error, setError] = useState('');
   const [order, setOrder] = useState<OrderStatus | null>(null);
 
-  // Bilgi/başarı = toast, hata = toast.error (web react-hot-toast). Açık Modal'ın altında kalır:
-  // iptal modalı onay anında kapanır (CancelOrderModal), mutasyon sonucu sonra bildirilir.
-  const notify = useCallback((message: string, variant: 'success' | 'danger') => {
-    if (variant === 'danger') toast.error(message);
-    else toast.success(message);
-  }, []);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
 
   /**
@@ -69,7 +63,7 @@ export function useOrderTrack() {
       if (err.response?.status === 404) {
         setError(i18n.t('order.notFoundCheckDetails'));
       } else {
-        setError(err.response?.data?.message || i18n.t('order.trackQueryFailed'));
+        setError(apiErrorMessage(err, i18n.t('order.trackQueryFailed')));
       }
     } finally {
       setLoading(false);
@@ -80,7 +74,6 @@ export function useOrderTrack() {
     orderNumber,
     email,
     onDone: handleTrack,
-    notify,
   });
 
   const onChangeOrderNumber = (text: string) => {

@@ -1,13 +1,13 @@
 import React, { memo } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Label, SectionCard, Spinner, Text, theme } from '@/ui';
+import { Label, SectionCard, Spinner, Text, androidRipple, rippleClip, showPressedStyle, theme } from '@/ui';
 import type { ShippingPackageTier } from '@/lib/api/orders';
 import { useStableCallback } from '@/hooks/useStableCallback';
 
 import { getPackageTierLabel } from '../_lib/constants';
 import type { ListingFormController } from '../_hooks/useListingForm';
-import { fieldStyles, listingRipple } from './fields';
+import { fieldStyles } from './fields';
 
 const { colors, spacing, radiusRole } = theme;
 
@@ -48,12 +48,13 @@ const TierCard = memo(function TierCard({ tier, label, selected, stacked, onSele
       accessibilityRole="radio"
       accessibilityState={{ selected }}
       onPress={() => onSelect(tier.code)}
-      android_ripple={listingRipple}
+      android_ripple={androidRipple()}
       style={({ pressed }) => [
         styles.tier,
+        rippleClip(),
         stacked ? styles.tierStacked : styles.tierColumn,
         selected && styles.tierActive,
-        pressed && styles.pressed,
+        showPressedStyle(pressed) && styles.pressed,
       ]}
     >
       <Text variant="label" numberOfLines={stacked ? 1 : 2} align="center" color={selected ? colors.primary[700] : undefined}>

@@ -202,7 +202,7 @@ describe("İlanlarım · C-3.2 ilan yaşam döngüsü", () => {
     await waitFor(() => expect(api().renewMany).toHaveBeenCalledWith(["E1", "E2"]));
     await waitFor(() => expect(alertMock()).toHaveBeenCalled());
     const [title, message] = alertMock().mock.calls[0];
-    expect(title).toBe("common.success");
+    expect(title).toBe("profile.expiredListings.bulkFailed");
     expect(message).toContain("profile.expiredListings.bulkRenewed");
     expect(message).toContain("profile.expiredListings.bulkFailed");
     expect(message).toContain("profile.expiredListings.failedItem");

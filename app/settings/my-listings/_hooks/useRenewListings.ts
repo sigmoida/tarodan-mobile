@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type { MessageKey } from "@/i18n/lib";
 import { appAlert, toast } from "@/ui";
-import { productsApi, errorText } from "@/lib/api";
+import { productsApi } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/api/errorText";
+import { useAppMutation } from "@/lib/query";
 import {
   readRenewBatch,
   renewMessageKey,
@@ -34,40 +35,48 @@ export function useRenewListings() {
   const texts = useRenewTexts();
   const invalidate = useInvalidateMyListings();
 
-  const renewOne = useMutation({
-    mutationFn: (listingId: string) => productsApi.renew(listingId),
-    onSuccess: (response, listingId) => {
-      invalidate(listingId);
-      toast.success(t(renewMessageKey(response)));
-    },
-    onError: (err) => {
-      appAlert(t("common.error"), errorText(err, t("profile.expiredListings.renewFailed")));
-    },
+  const renewOne = useAppMutation((listingId: string) => productsApi.renew(listingId), {
+    success: (response) => t(renewMessageKey(response)),
+    error: t("profile.expiredListings.renewFailed"),
+    onSuccess: (_response, listingId) => invalidate(listingId),
   });
 
-  const renewMany = useMutation({
-    mutationFn: async (listings: Array<{ id: string; title: string }>) => {
+  const renewMany = useAppMutation(
+    async (listings: Array<{ id: string; title: string }>) => {
       const response = await productsApi.renewMany(listings.map((l) => l.id));
       return {
         batch: readRenewBatch(response.data),
         titles: Object.fromEntries(listings.map((l) => [l.id, l.title])),
       };
     },
-    onSuccess: ({ batch, titles }) => {
-      invalidate();
-      const { isError, message } = renewSummary(batch, (id) => titles[id] ?? id, texts);
-      // Başarısız ilan varsa mesaj okunması gereken detay (başlıklar) taşır → diyalog;
-      // tam başarı yalnız bilgi → toast.
-      if (batch.failed > 0) appAlert(t(isError ? "common.error" : "common.success"), message);
-      else toast.success(message);
+    {
+      // Hata metni aşağıda: tanınmayan yanıt şekli (kodun kendi `Error`ı, İngilizce teknik metin)
+      // kullanıcıya sızmasın diye yedek metin gösterilir.
+      silentError: true,
+      onSuccess: ({ batch, titles }) => {
+        invalidate();
+        const { message } = renewSummary(batch, (id) => titles[id] ?? id, texts);
+        // Başarısız ilan varsa mesaj okunması gereken detay (başlıklar) taşır → diyalog
+        // (başlık sonucu özetler); tam başarı yalnız bilgi → toast.
+        if (batch.failed > 0) {
+          appAlert(t("profile.expiredListings.bulkFailed", { count: batch.failed }), message);
+        } else {
+          toast.success(message);
+        }
+      },
+      onError: (err) => {
+        // Tanınmayan yanıt şeklinde (UnexpectedRenewResponseError) sunucu yenilemeyi
+        // yapmış olabilir: sonucu bilmediğimiz için liste yine tazelenir.
+        const fallback = t("profile.expiredListings.renewFailed");
+        if (err instanceof UnexpectedRenewResponseError) {
+          invalidate();
+          toast.error(fallback);
+        } else {
+          toast.error(apiErrorMessage(err, fallback));
+        }
+      },
     },
-    onError: (err) => {
-      // Tanınmayan yanıt şeklinde (UnexpectedRenewResponseError) sunucu yenilemeyi
-      // yapmış olabilir: sonucu bilmediğimiz için liste yine tazelenir.
-      if (err instanceof UnexpectedRenewResponseError) invalidate();
-      appAlert(t("common.error"), errorText(err, t("profile.expiredListings.renewFailed")));
-    },
-  });
+  );
 
   return { renewOne, renewMany };
 }

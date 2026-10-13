@@ -185,15 +185,14 @@ describe('invalidasyon — engellenen anında akıştan düşer', () => {
 
   it('hata bildirilir, invalidasyon yapılmaz', async () => {
     api.block.mockRejectedValue({ response: { data: { message: 'Engelleme sınırı' } } });
-    const notify = jest.fn();
-    const { result } = renderHook(() => useBlockUser({ notify }), { wrapper });
+    const { result } = renderHook(() => useBlockUser(), { wrapper });
     act(() => result.current.requestBlock('u2', 'Ayşe'));
     await confirmBlock();
-    await waitFor(() => expect(notify).toHaveBeenCalledWith('Engelleme sınırı', 'error'));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Engelleme sınırı'));
   });
 });
 
-describe('bildirim — notify verilmeyen ekran', () => {
+describe('bildirim', () => {
   it('hata: toast.error(sunucu mesajı); onay diyaloğundan başka appAlert açılmaz', async () => {
     api.block.mockRejectedValue({ response: { data: { message: ['Engelleme sınırı'] } } });
     const { result } = renderHook(() => useBlockUser(), { wrapper });

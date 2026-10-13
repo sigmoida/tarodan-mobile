@@ -7,6 +7,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { appAlert } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { membershipApi, paymentsApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/api/errorText';
 import { captureException } from '@/services/sentry';
 import { buildMembershipTiers, DEFAULT_MONTHLY, type MembershipTierKey } from '../_lib/tiers';
 
@@ -128,7 +129,7 @@ export function useMembershipCheckout() {
       });
       appAlert(
         t('membership.paymentErrorTitle'),
-        e?.response?.data?.message || t('membership.paymentErrorGeneric'),
+        apiErrorMessage(e, t('membership.paymentErrorGeneric')),
       );
     }
   };

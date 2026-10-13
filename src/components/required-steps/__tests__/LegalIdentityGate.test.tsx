@@ -25,6 +25,7 @@ jest.mock('@/lib/api', () => ({
 }));
 
 import { consentsApi, legalIdentityApi } from '@/lib/api';
+import { toast } from '@/ui';
 import { ensureLegalIdentity } from '@/hooks/useLegalIdentity';
 import { useAuthStore } from '@/stores/authStore';
 import { useLegalIdentityRequestStore } from '@/stores/legalIdentityRequestStore';
@@ -74,7 +75,11 @@ async function request(queryClient: ReturnType<typeof makeTestQueryClient>) {
   return result;
 }
 
+let toastSuccess: jest.SpyInstance;
+afterEach(() => toastSuccess.mockRestore());
+
 beforeEach(() => {
+  toastSuccess = jest.spyOn(toast, 'success').mockImplementation(() => 1);
   mockPathname = '/';
   resetRouterMocks();
   mockGetPending.mockReset().mockResolvedValue({ data: { pending: [] } });
@@ -209,12 +214,13 @@ describe('B-2.4 · ensureLegalIdentity (ihtiyaç anında kimlik)', () => {
     mockSubmit.mockResolvedValue({ data: COMPLETE });
     const { queryClient } = setup();
     await request(queryClient);
-    expect(screen.queryByTestId('identity-saved-notice')).toBeNull();
+    expect(toastSuccess).not.toHaveBeenCalled();
 
     fireEvent.changeText(await screen.findByTestId('identity-gate-nationalId'), VALID_TCKN);
     fireEvent.press(screen.getByTestId('identity-gate-submit'));
 
-    expect(await screen.findByText('Kimlik bilgileriniz kaydedildi.')).toBeOnTheScreen();
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Kimlik bilgileriniz kaydedildi.'));
+    expect(toastSuccess).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('identity-gate')).toBeNull();
     expect(screen.UNSAFE_queryAllByType(Modal)).toHaveLength(0);
   });
@@ -230,7 +236,7 @@ describe('B-2.4 · ensureLegalIdentity (ihtiyaç anında kimlik)', () => {
     await waitFor(() => expect(useLegalIdentityRequestStore.getState().savedNotice).toBe(true));
 
     expect(screen.getByTestId('identity-gate')).toBeOnTheScreen();
-    expect(screen.queryByTestId('identity-saved-notice')).toBeNull();
+    expect(toastSuccess).not.toHaveBeenCalled();
   });
 
   it('sunucu hatası kapının içinde gösterilir, kapı açık kalır', async () => {

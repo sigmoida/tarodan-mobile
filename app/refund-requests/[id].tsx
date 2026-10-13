@@ -1,13 +1,14 @@
 import { useRefundStatusConfig } from '@/lib/shared/refundStatus';
 import { View } from 'react-native';
 import { AppImage } from '@/components/AppImage';
-import { Button, SectionCard, Text, StatusBadge, appAlert, toast, theme } from '@/ui';
+import { Button, SectionCard, Text, StatusBadge, appAlert, theme } from '@/ui';
 import { refundReasonLabel } from '@/lib/shared/status-configs';
 import { useState, useCallback } from 'react';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { refundsApi } from '@/lib/api';
+import { useAppMutation } from '@/lib/query';
 import { formatPrice } from '@/utils/format';
 import { useAuthStore } from '@/stores/authStore';
 import { captureException } from '@/services/sentry';
@@ -30,7 +31,6 @@ export default function RefundDetailScreen() {
   const refundStatusConfig = useRefundStatusConfig();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { isAuthenticated, user } = useAuthStore();
-  const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
@@ -42,21 +42,14 @@ export default function RefundDetailScreen() {
     enabled: isAuthenticated && !!id,
   });
 
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ['refund-requests'] });
-  };
-
-  const cancelMutation = useMutation({
-    mutationFn: () => refundsApi.cancel(id as string),
+  const cancelMutation = useAppMutation(() => refundsApi.cancel(id as string), {
+    invalidates: [['refund-requests']],
+    success: t('refund.cancel.successMessage'),
+    error: t('common.genericError'),
     onSuccess: () => {
-      toast.success(t('refund.cancel.successMessage'));
-      invalidate();
       refetch();
     },
-    onError: (e: any) => {
-      captureException(e, { level: 'error', tags: { flow: 'refund.detail.cancel' } });
-      appAlert(t('common.error'), e?.response?.data?.message || t('common.genericError'));
-    },
+    onError: (e) => captureException(e, { level: 'error', tags: { flow: 'refund.detail.cancel' } }),
   });
 
   const onRefresh = useCallback(async () => {

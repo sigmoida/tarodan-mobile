@@ -1,7 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { appAlert, alertAfterClose, toast } from "@/ui";
+import { alertAfterClose, toast } from "@/ui";
 import { productsApi, errorText, type ListingRemovalPayload } from "@/lib/api";
+import { useAppMutation } from "@/lib/query";
 import { activationMessageKey } from "@/components/listing/_lib/activation";
 import { useInvalidateMyListings } from "./useInvalidateMyListings";
 
@@ -54,16 +55,14 @@ export function useListingMutations() {
 
   // Süresi dolmamış pasif ilanı (karantina dahil) yeniden aç: PATCH status=active.
   // Mesaj yanıttaki GERÇEK statüden gelir (karantinadaki ilan doğrudan active olur).
-  const reactivate = useMutation({
-    mutationFn: (listingId: string) => productsApi.update(listingId, { status: "active" }),
-    onSuccess: (response, listingId) => {
-      invalidate(listingId);
-      toast.success(t(activationMessageKey(response)));
+  const reactivate = useAppMutation(
+    (listingId: string) => productsApi.update(listingId, { status: "active" }),
+    {
+      success: (response) => t(activationMessageKey(response)),
+      error: t("listing.activateFailed"),
+      onSuccess: (_response, listingId) => invalidate(listingId),
     },
-    onError: (err) => {
-      appAlert(t("common.error"), errorText(err, t("listing.activateFailed")));
-    },
-  });
+  );
 
   return { deactivate, remove, reactivate };
 }

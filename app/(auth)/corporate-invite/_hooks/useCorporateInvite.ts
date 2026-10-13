@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { appAlert } from '@/ui';
+import { useQuery } from '@tanstack/react-query';
+import { toast } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { authApi } from '@/lib/api';
-import { qk } from '@/lib/query';
+import { qk, useAppMutation } from '@/lib/query';
 import { buildCorporateInviteSchema, type CorporateInviteForm } from '../_lib/schema';
 
 /**
@@ -28,23 +28,22 @@ export function useCorporateInvite() {
   const schema = useMemo(() => buildCorporateInviteSchema(t), [t]);
   const form = useZodForm(schema);
 
-  const activateMutation = useMutation({
-    mutationFn: (values: CorporateInviteForm) =>
+  const activateMutation = useAppMutation(
+    (values: CorporateInviteForm) =>
       authApi.activateCorporateInvitation({
         token: token!,
         username: values.username.trim(),
         password: values.password,
       }),
-    onSuccess: () => {
-      appAlert(t('auth.corporateActivatedTitle'), t('auth.corporateActivatedBody'));
-      router.replace('/(auth)/login' as never);
+    {
+      error: t('auth.corporateActivationFailed'),
+      onSuccess: () => {
+        // Önce ekran değişir, sonra toast (kök katmanda, navigasyonu aşar) — "Tamam" bekletme yok.
+        router.replace('/(auth)/login' as never);
+        toast.success(t('auth.corporateActivatedBody'));
+      },
     },
-    onError: (e: unknown) => {
-      const err = e as { response?: { data?: { message?: string | string[] } } };
-      const raw = err?.response?.data?.message;
-      appAlert(t('common.error'), Array.isArray(raw) ? raw.join('\n') : raw || t('auth.corporateActivationFailed'));
-    },
-  });
+  );
 
   return {
     token,

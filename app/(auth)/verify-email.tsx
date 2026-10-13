@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
-import { Button, Input, Spinner, appAlert, theme, toast } from '@/ui';
+import { Button, Input, Spinner, appAlert, theme } from '@/ui';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { authApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/api/errorText';
+import { useAppMutation } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 
 const { colors } = theme;
@@ -26,22 +28,14 @@ export default function VerifyEmailScreen() {
       setErrorMsg(null);
     },
     onError: (e: unknown) => {
-      const err = e as { response?: { data?: { message?: string } } };
       setStatus('error');
-      setErrorMsg(err?.response?.data?.message || t('auth.verifyLinkInvalid'));
+      setErrorMsg(apiErrorMessage(e, t('auth.verifyLinkInvalid')));
     },
   });
 
-  const resendMutation = useMutation({
-    mutationFn: () => authApi.resendVerification(user?.email ?? ''),
-    onSuccess: () => {
-      // Bilgi mesajı → toast (web react-hot-toast); hata yolu diyalogda kalır.
-      toast.success(t('auth.verifyResentBody'));
-    },
-    onError: (e: unknown) => {
-      const err = e as { response?: { data?: { message?: string } } };
-      appAlert(t('common.error'), err?.response?.data?.message || t('auth.verificationResendFailed'));
-    },
+  const resendMutation = useAppMutation(() => authApi.resendVerification(user?.email ?? ''), {
+    success: t('auth.verifyResentBody'),
+    error: t('auth.verificationResendFailed'),
   });
 
   useEffect(() => {

@@ -1,12 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { appAlert, toast } from '@/ui';
 import { api } from '@/lib/api';
-// Doğrudan modül yolu: testler `@/lib/api` barrel'ını mock'luyor.
-import { errorText } from '@/lib/api/errorText';
-import { qk } from '@/lib/query';
+import { qk, useAppMutation } from '@/lib/query';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useAuthStore } from '@/stores/authStore';
 import { DEFAULT_SETTINGS, type NotificationSettings } from '../_lib/types';
@@ -19,7 +16,6 @@ import { DEFAULT_SETTINGS, type NotificationSettings } from '../_lib/types';
 export function useNotificationSettings() {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
-  const queryClient = useQueryClient();
   const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_SETTINGS);
 
   // Yükleme hatası YUTULMAZ: eskiden `.catch(() => null)` ile ekran
@@ -64,17 +60,14 @@ export function useNotificationSettings() {
   // B-1.11: hata artık yutulmuyor — eskiden `.catch(() => null)` başarısız
   // kaydı başarı sayıp "kaydedildi" diyordu. Yerel seçimler korunur, kullanıcı
   // yeniden deneyebilir.
-  const saveMutation = useMutation({
-    mutationFn: async (newSettings: NotificationSettings) =>
-      api.patch('/users/me/settings', newSettings),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: qk.user.notificationSettings });
-      toast.success(t('settings.notificationSettingsSaved'));
+  const saveMutation = useAppMutation(
+    async (newSettings: NotificationSettings) => api.patch('/users/me/settings', newSettings),
+    {
+      invalidates: [qk.user.notificationSettings],
+      success: t('settings.notificationSettingsSaved'),
+      error: t('settings.settingUpdateFailed'),
     },
-    onError: (error: unknown) => {
-      appAlert(t('common.error'), errorText(error, t('settings.settingUpdateFailed')));
-    },
-  });
+  );
 
   const handleToggle = (key: keyof NotificationSettings) => {
     setSettings((prev) => ({ ...prev, [key]: !prev[key] }));

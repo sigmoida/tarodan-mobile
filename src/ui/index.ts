@@ -144,11 +144,6 @@ export {
 	type FABSize,
 } from './components/FAB';
 export {
-	Snackbar,
-	type SnackbarProps,
-	type SnackbarVariant,
-} from './components/Snackbar';
-export {
 	toast,
 	ToastHost,
 	ToastLayer,

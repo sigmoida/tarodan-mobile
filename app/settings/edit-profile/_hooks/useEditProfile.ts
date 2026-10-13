@@ -7,6 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { appAlert, toast } from '@/ui';
 import { userApi, mediaApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/api/errorText';
 import { useAuthStore } from '@/stores/authStore';
 import { getPhoneInvalidMessage, splitPhone } from '@/utils/phone';
 import { buildProfileSchema, type ProfileForm } from '../_lib/schema';
@@ -172,7 +173,7 @@ export function useEditProfile() {
       );
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || t('collection.updateFailed'));
+      toast.error(apiErrorMessage(error, t('collection.updateFailed')));
     },
   });
 

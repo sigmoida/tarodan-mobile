@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
-import { View, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, KeyboardAvoidingView } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
-import { usePageScrollValue, useShellPageScroll } from '@/ui';
+import { useKeyboardAvoid, usePageScrollValue, useShellPageScroll } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
@@ -31,9 +31,6 @@ import { listingGatesBlock } from './_lib/gates';
 
 export type { ListingFormProps };
 
-/** iOS: klavye kadar alt dolgu. Android: pencere `adjustResize` ile küçülür — ikinci kaçış yok. */
-const KEYBOARD_BEHAVIOR = Platform.OS === 'ios' ? 'padding' : undefined;
-
 /**
  * Shared create/edit listing form. THIN screen: the `useListingForm` controller
  * owns all state/effects/mutations; this component only composes the gate,
@@ -47,6 +44,9 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
   const { t } = useTranslation();
   const f = useListingForm({ mode, productId });
   const tabInset = useTabBarInset();
+  // Oluşturma (sekme kökü): iOS `KeyboardAvoidingView padding`, Android ölçülen klavye örtüşmesi kadar
+  // alt dolgu (`PageShell` ile aynı kanca; düzenlemede klavyeyi PageShell kendisi karşılar).
+  const keyboard = useKeyboardAvoid(!f.isEdit);
   const gate = ListingGates({ f });
   // Üst bar kaydırma sinyali: oluşturmada sekme kökünün (AppShell title) bağlamından, düzenlemede
   // kendi PageShell'ine verilen değerden. Kapı ekranında bağlanmaz (gövde bar altında kalır).
@@ -115,9 +115,15 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
   return (
     <View style={styles.container}>
       {/* Form ekran tepesinden başlar (yüzen bar üstünde): klavye kaçınması için ofset gerekmez. */}
-      <KeyboardAvoidingView style={styles.fill} behavior={KEYBOARD_BEHAVIOR}>
-        {form}
-      </KeyboardAvoidingView>
+      {keyboard.behavior ? (
+        <KeyboardAvoidingView style={styles.fill} behavior={keyboard.behavior}>
+          {form}
+        </KeyboardAvoidingView>
+      ) : (
+        <View style={[styles.fill, { paddingBottom: keyboard.bottomInset }]} onLayout={keyboard.onLayout}>
+          {form}
+        </View>
+      )}
 
       <ListingPickers f={f} />
     </View>

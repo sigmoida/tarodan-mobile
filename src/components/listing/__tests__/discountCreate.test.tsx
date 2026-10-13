@@ -14,7 +14,7 @@ import React from 'react';
 import { act } from 'react';
 import { renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { makeTestQueryClient } from '../../../test-utils';
 
 // B4: kimlik kapısı bu testin konusu değil — geçti say (kapı testi ayrı dosyada).
@@ -262,6 +262,7 @@ describe('oluşturmada renk ve kutu durumu', () => {
  * seçilmeden gönderilmez; seçim `attributes[]` içinde gider.
  */
 describe('oluşturmada nadirlik (genel özel grup)', () => {
+  let toastError: jest.SpyInstance;
   const RARITY = {
     slug: 'nadirlik-bulunabilirlik', name: 'Nadirlik/Bulunabilirlik', manufacturerSlug: null, isRequired: true,
     attributes: [{ slug: 'chase', label: 'Chase' }, { slug: 'bulunabilir', label: 'Bulunabilir' }],
@@ -285,7 +286,9 @@ describe('oluşturmada nadirlik (genel özel grup)', () => {
     (productsApi.create as jest.Mock).mockResolvedValue({ data: {} });
     (appAlert as jest.Mock).mockClear();
     (appAlert as jest.Mock).mockImplementation(() => {});
+    toastError = jest.spyOn(toast, 'error').mockImplementation(() => 1);
   });
+  afterEach(() => toastError.mockRestore());
 
   it('nadirlik seçilmeden gönderilmez', async () => {
     const { result } = renderForm();
@@ -295,7 +298,7 @@ describe('oluşturmada nadirlik (genel özel grup)', () => {
       await result.current.handleSubmit();
     });
     expect(productsApi.create).not.toHaveBeenCalled();
-    expect(appAlert).toHaveBeenCalledWith('Hata', 'Lütfen Nadirlik/Bulunabilirlik seçin.');
+    expect(toastError).toHaveBeenCalledWith('Lütfen Nadirlik/Bulunabilirlik seçin.');
   });
 
   it('seçilen nadirlik attributes içinde gider', async () => {

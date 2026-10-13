@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { appAlert, toast } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
 import { membershipApi, paymentsApi } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/api/errorText";
 import { qk } from "@/lib/query";
 import { useTranslation } from "react-i18next";
 import {
@@ -79,7 +80,7 @@ export function useSubscription() {
       toast.success(t('membership.cancelled'));
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message || t('membership.cancelFailed'));
+      toast.error(apiErrorMessage(error, t('membership.cancelFailed')));
     },
   });
 
@@ -93,7 +94,7 @@ export function useSubscription() {
       toast.success(t('membership.reactivated'));
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message || t('membership.reactivateFailed'));
+      toast.error(apiErrorMessage(error, t('membership.reactivateFailed')));
     },
   });
 

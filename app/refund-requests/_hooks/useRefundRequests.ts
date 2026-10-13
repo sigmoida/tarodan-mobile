@@ -1,9 +1,9 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { appAlert, toast } from '@/ui';
+import { useQuery } from '@tanstack/react-query';
 import i18n from '@/i18n/config';
 import { refundsApi } from '@/lib/api';
+import { useAppMutation } from '@/lib/query';
 import { captureException } from '@/services/sentry';
 import { useAuthStore } from '@/stores/authStore';
 import { readList } from '@/utils/apiEnvelope';
@@ -22,7 +22,6 @@ import type { RefundRequestRow, RefundTab } from '../_lib/types';
  */
 export function useRefundRequests() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<RefundTab>('buyer');
 
@@ -35,16 +34,11 @@ export function useRefundRequests() {
     enabled: isAuthenticated,
   });
 
-  const cancelMutation = useMutation({
-    mutationFn: (id: string) => refundsApi.cancel(id),
-    onSuccess: () => {
-      toast.success(i18n.t('refund.cancelSuccessBody'));
-      queryClient.invalidateQueries({ queryKey: ['refund-requests'] });
-    },
-    onError: (e: any) => {
-      captureException(e, { level: 'error', tags: { flow: 'refund.buyer.cancel' } });
-      appAlert(i18n.t('common.error'), e?.response?.data?.message || i18n.t('refund.cancelFailed'));
-    },
+  const cancelMutation = useAppMutation((id: string) => refundsApi.cancel(id), {
+    invalidates: [['refund-requests']],
+    success: i18n.t('refund.cancelSuccessBody'),
+    error: i18n.t('refund.cancelFailed'),
+    onError: (e) => captureException(e, { level: 'error', tags: { flow: 'refund.buyer.cancel' } }),
   });
 
   const onRefresh = useCallback(async () => {

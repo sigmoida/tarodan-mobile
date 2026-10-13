@@ -3,10 +3,11 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { appAlert, toast } from '@/ui';
+import { toast } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { CAN_BUY_DIGITAL, limitAlert } from '@/lib/purchases';
 import { authApi } from '@/lib/api';
+import { useAppMutation } from '@/lib/query';
 import { useSocialSignIn } from '@/hooks/useSocialSignIn';
 import { useAuthStore } from '@/stores/authStore';
 import { buildLoginSchema, TWO_FACTOR_CODE_PATTERN, type LoginForm } from '../_lib/schema';
@@ -131,16 +132,13 @@ export function useLogin() {
     },
   });
 
-  const resendVerificationMutation = useMutation({
-    mutationFn: () => authApi.resendVerification(unverifiedEmail ?? getValues('email')),
-    onSuccess: () => {
-      appAlert(t('auth.verificationResentTitle'), t('auth.verificationResentBody'));
+  const resendVerificationMutation = useAppMutation(
+    () => authApi.resendVerification(unverifiedEmail ?? getValues('email')),
+    {
+      success: t('auth.verificationResentBody'),
+      error: t('auth.verificationResendFailed'),
     },
-    onError: (e: unknown) => {
-      const err = e as { response?: { data?: { message?: string } } };
-      appAlert(t('common.error'), err?.response?.data?.message || t('auth.verificationResendFailed'));
-    },
-  });
+  );
 
   // Adım 1 → 2: e-posta kayıtlı mı, şifresi var mı (web `identify`).
   const checkEmailMutation = useMutation({

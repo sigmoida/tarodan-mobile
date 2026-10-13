@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { appAlert, alertAfterClose, type AlertDialogButton } from '@/ui';
+import { appAlert, alertAfterClose, toast, type AlertDialogButton } from '@/ui';
 import {
   ordersApi,
   paymentsApi,
@@ -175,7 +175,6 @@ export function useCheckout() {
   const [distanceSalesAccepted, setDistanceSalesAccepted] = useState(false);
 
   const [loading, setLoading] = useState(false);
-  const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' });
 
   const closeOtpModal = () => {
     setOtpModalOpen(false);
@@ -443,7 +442,6 @@ export function useCheckout() {
   // gövdesi) ve `summary.total` kargoyu zaten içeriyor. Şehre bakan
   // `effectiveShippingCity` kapısı kaldırıldı (satırlar her zaman toplama eşit).
 
-  const showSnackbar = (message: string) => setSnackbar({ visible: true, message });
 
   /**
    * "Bu e-posta zaten kayıtlı" → misafir akışı BURADA BİTER (kullanıcı login'e
@@ -837,7 +835,7 @@ export function useCheckout() {
   /** Satır kontrolleri (boş sepet, geçersiz `productId`). Sorun varsa uyarır, `false` döner. */
   const itemsReady = (): boolean => {
     if (items.length === 0) {
-      showSnackbar(t('checkout.emptyCart'));
+      toast.error(t('checkout.emptyCart'));
       return false;
     }
     for (const item of items) {
@@ -892,7 +890,7 @@ export function useCheckout() {
     // ne kimlik ne e-posta kodu sorulur.
     const formErr = validateAddressForm();
     if (formErr) {
-      showSnackbar(formErr);
+      toast.error(formErr);
       return;
     }
     if (isAuthenticated && user) {
@@ -916,7 +914,7 @@ export function useCheckout() {
 
     const guestErr = validateGuest(guestName, guestEmail, guestPhone, guestPhoneCountryCode);
     if (guestErr) {
-      showSnackbar(guestErr);
+      toast.error(guestErr);
       return;
     }
     const email = guestEmail.trim().toLowerCase();
@@ -933,7 +931,7 @@ export function useCheckout() {
       setOtpModalOpen(true);
     } catch (e: any) {
       if (handleEmailAlreadyRegistered(e)) return;
-      appAlert(t('common.error'), extractApiMessage(e) ?? t('checkout.verificationCodeSendFailed'));
+      toast.error(extractApiMessage(e) ?? t('checkout.verificationCodeSendFailed'));
     } finally {
       setOtpSending(false);
     }
@@ -1011,8 +1009,6 @@ export function useCheckout() {
     couponDiscount,
     // ui — kimlik kontrolü sürerken de "işleniyor" (düğme devre dışı).
     loading: loading || checkingIdentity,
-    snackbar,
-    dismissSnackbar: () => setSnackbar({ visible: false, message: '' }),
     handleCheckout,
     distanceSalesAccepted,
     toggleDistanceSales: () => setDistanceSalesAccepted((v) => !v),
