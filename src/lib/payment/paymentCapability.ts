@@ -2,7 +2,7 @@
  * Ödeme yetki belirteci (payment capability) — web `lib/api/payments.ts` aynası.
  *
  * `POST /payments/initiate[-guest]` yanıtı `paymentAccessToken` döner: yalnız o
- * ödemeye bağlı, 2 saat geçerli bir JWT. Oturumu olmayan (misafir) istemci
+ * ödemeye bağlı, kısa ömürlü (bugün 2 saat) bir JWT. Oturumu olmayan (misafir) istemci
  * public ödeme uçlarında kendini bununla yetkilendirir: `X-Payment-Capability`
  * başlığı + gövdede `paymentId`. Sunucu misafirde ikisini de ister
  * (`payment-initiation.service.ts` → `resolveDirectPaymentContext`); biri
@@ -16,21 +16,102 @@
  * Saklama: web belirteci `sessionStorage` + bellek kopyasında tutar. Mobilde
  * banka uygulamasına (3DS) geçişte OS uygulamanın JS sürecini öldürebiliyor;
  * yalnız bellek yetmez. Belirteç `payment-capability.<paymentId>` anahtarıyla
- * (web anahtarıyla aynı) AsyncStorage'a da yazılır, sunucudaki ömrüyle aynı
- * 2 saat TTL ile. Okurken süresi dolan silinir ve yok sayılır. Her AsyncStorage
- * erişimi try/catch içinde: depo yoksa ya da hata verirse yalnız bellek kopyası
- * kullanılır (akış aynı süreçte yine tamamlanır).
+ * (web anahtarıyla aynı) AsyncStorage'a da yazılır. Kayıt ömrü belirtecin
+ * kendi JWT `exp`'inden gelir (`capabilityLifetimeMs`). Okurken süresi dolan
+ * silinir ve yok sayılır. Her AsyncStorage erişimi try/catch içinde: depo yoksa
+ * ya da hata verirse yalnız bellek kopyası kullanılır (akış aynı süreçte yine
+ * tamamlanır).
  */
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
 
-/** Sunucudaki belirteç ömrü: `payment.controller.ts` → `issuePaymentCapability` (`expiresIn: "2h"`). */
+/**
+ * Yedek ömür: JWT `exp` okunamazsa. Sunucudaki ömürle aynı
+ * (`payment.controller.ts` → `issuePaymentCapability`, `expiresIn: "2h"`).
+ */
 export const PAYMENT_CAPABILITY_TTL_MS = 2 * 60 * 60 * 1000;
+
+/**
+ * Belirteç, yanıt bize ulaşmadan en fazla bu kadar önce imzalanmış olabilir
+ * (`client.ts` istek zaman aşımı 30 sn). Ömürden düşülür: kayıt `exp`'ten uzun
+ * yaşamaz.
+ */
+export const ISSUE_LATENCY_MARGIN_MS = 30_000;
+
+/**
+ * Cihaz saati kayıt anından bu kadardan fazla GERİ alındıysa geçen süre
+ * bilinemez; kayıt `exp`'ten uzun yaşamasın diye düşürülür. Küçük NTP
+ * düzeltmeleri bu payın içinde kalır.
+ */
+export const CLOCK_ROLLBACK_TOLERANCE_MS = 60_000;
 
 /** AsyncStorage anahtarı — web `sessionStorage` anahtarıyla aynı. */
 const storageKey = (paymentId: string) => `payment-capability.${paymentId}`;
 
-type Entry = { token: string; expiresAt: number };
+/** `storedAt`: kayıt anı (cihaz saati); saat geri alınmasını yakalamak için. */
+type Entry = { token: string; expiresAt: number; storedAt?: number };
+
+const BASE64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+/** base64url → bayt dizisi (Latin-1 string). Kütüphanesiz; geçersizse `null`. */
+function decodeBase64Url(input: string): string | null {
+  let out = '';
+  let buffer = 0;
+  let bits = 0;
+  for (const ch of input.replace(/-/g, '+').replace(/_/g, '/')) {
+    if (ch === '=') break;
+    const value = BASE64.indexOf(ch);
+    if (value < 0) return null;
+    buffer = ((buffer << 6) | value) & 0xffffff;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      out += String.fromCharCode((buffer >> bits) & 0xff);
+    }
+  }
+  return out;
+}
+
+/** JWT gövdesindeki `exp`/`iat` (saniye). İmza DOĞRULANMAZ: yalnız ömrü okumak için. */
+function readJwtTimes(token: string): { exp?: unknown; iat?: unknown } | null {
+  const payload = token.split('.')[1];
+  if (!payload) return null;
+  const json = decodeBase64Url(payload);
+  if (!json) return null;
+  try {
+    const claims = JSON.parse(json) as unknown;
+    return claims && typeof claims === 'object' ? (claims as { exp?: unknown; iat?: unknown }) : null;
+  } catch {
+    return null;
+  }
+}
+
+const isEpochSeconds = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0;
+
+/**
+ * Belirtecin bu cihazda saklanacağı süre (ms), kendi JWT `exp`'inden:
+ *  - `exp` ve `iat` varsa `exp − iat`. İkisi de sunucu saatinde olduğu için cihaz
+ *    saati ileri/geri olsa da ömür doğru kalır (mutlak `exp`'i cihaz saatiyle
+ *    kıyaslamak, saati ileri cihazda taze belirteci "dolmuş" sayardı).
+ *  - Yalnız `exp` varsa `exp − şimdi`, en fazla 2 saat.
+ *  - `exp` okunamazsa 2 saat.
+ * İmzadan yanıta geçen süre için `ISSUE_LATENCY_MARGIN_MS` düşülür. Sonuç ≤ 0 ise
+ * belirteç zaten dolmuştur.
+ */
+export function capabilityLifetimeMs(token: string, now: number = Date.now()): number {
+  const times = readJwtTimes(token);
+  if (times && isEpochSeconds(times.exp)) {
+    if (isEpochSeconds(times.iat)) return (times.exp - times.iat) * 1000 - ISSUE_LATENCY_MARGIN_MS;
+    return Math.min(times.exp * 1000 - now, PAYMENT_CAPABILITY_TTL_MS);
+  }
+  return PAYMENT_CAPABILITY_TTL_MS - ISSUE_LATENCY_MARGIN_MS;
+}
+
+/** Kayıt hâlâ geçerli mi: süresi dolmadı ve saat kayıt anından öteye geri alınmadı. */
+function isLive(entry: Entry, now: number): boolean {
+  if (now >= entry.expiresAt) return false;
+  return entry.storedAt === undefined || now >= entry.storedAt - CLOCK_ROLLBACK_TOLERANCE_MS;
+}
 
 type KeyValueStore = {
   getItem(key: string): Promise<string | null>;
@@ -69,9 +150,10 @@ function parseEntry(raw: string | null): Entry | null {
   if (!raw) return null;
   try {
     const value = JSON.parse(raw) as Partial<Entry> | null;
-    return typeof value?.token === 'string' && typeof value.expiresAt === 'number'
-      ? { token: value.token, expiresAt: value.expiresAt }
-      : null;
+    if (typeof value?.token !== 'string' || typeof value.expiresAt !== 'number') return null;
+    return typeof value.storedAt === 'number'
+      ? { token: value.token, expiresAt: value.expiresAt, storedAt: value.storedAt }
+      : { token: value.token, expiresAt: value.expiresAt };
   } catch {
     return null;
   }
@@ -106,8 +188,8 @@ async function readCapability(paymentId: string): Promise<string | null> {
   if (!memory.has(paymentId)) await hydrate(paymentId);
   const entry = memory.get(paymentId);
   if (!entry) return null;
-  if (entry.expiresAt > Date.now()) return entry.token;
-  // Süresi doldu: sunucu da reddeder. Sil ve yok say.
+  if (isLive(entry, Date.now())) return entry.token;
+  // Süresi doldu (ya da saat geri alındı): sunucu da reddeder. Sil ve yok say.
   memory.set(paymentId, null);
   await removeStored(paymentId);
   return null;
@@ -123,7 +205,10 @@ type InitiateBody = { paymentId?: unknown; paymentAccessToken?: unknown };
 export async function rememberPaymentCapability(response: unknown): Promise<void> {
   const data = unwrapEnvelope<InitiateBody>(response as { data?: unknown } | null | undefined);
   if (typeof data.paymentId !== 'string' || typeof data.paymentAccessToken !== 'string') return;
-  const entry: Entry = { token: data.paymentAccessToken, expiresAt: Date.now() + PAYMENT_CAPABILITY_TTL_MS };
+  const now = Date.now();
+  const lifetime = capabilityLifetimeMs(data.paymentAccessToken, now);
+  if (lifetime <= 0) return; // zaten dolmuş: sunucu reddeder, saklama
+  const entry: Entry = { token: data.paymentAccessToken, expiresAt: now + lifetime, storedAt: now };
   memory.set(data.paymentId, entry);
   try {
     await persistentStorage()?.setItem(storageKey(data.paymentId), JSON.stringify(entry));
