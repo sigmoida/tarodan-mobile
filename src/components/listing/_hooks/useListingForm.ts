@@ -17,6 +17,7 @@ import { activatedStatus, activationMessageKey } from '../_lib/activation';
 import { useDispatchAddress } from './useDispatchAddress';
 import { invalidateListingCaches as invalidateListingCachesShared } from '../_lib/invalidate';
 import { useDeleteListing } from './useDeleteListing';
+import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 
 import { useAuthStore } from '../../../stores/authStore';
 import { api, productsApi, categoriesApi, bankAccountApi, shippingApi, type ListingRemovalPayload } from '@/lib/api';
@@ -47,6 +48,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const isEdit = mode === 'edit';
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const requireIdentity = useRequireLegalIdentity();
 
   const bankAccountQuery = useQuery({
     queryKey: ['bank-account'],
@@ -820,6 +822,10 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       );
       return;
     }
+
+    // B-2.4: yeni ilan yayımlanmadan yasal kimlik; vazgeçerse ilan gönderilmez.
+    // Düzenlemede sorulmaz (ilan zaten verildi).
+    if (!isEdit && !(await requireIdentity())) return;
 
     setIsSubmitting(true);
     try {
