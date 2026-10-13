@@ -215,3 +215,43 @@ describe('Takas kabulü · yasal kimlik kapısı (B4 inceleme 5)', () => {
     expect(useLegalIdentityRequestStore.getState().requested).toBe(false);
   });
 });
+
+describe('Takas aksiyonları · aksiyon başına kimlik hedefi (B4 inceleme tur 2 · 5)', () => {
+  it('nakit ödeme kontrol edilirken kabul yükleniyor görünmez; kabul basışı yok sayılır', async () => {
+    const { result } = renderHook(() => useTradeActions('trade-1'), { wrapper });
+    act(() => result.current.setTradeAddressId('addr-1'));
+    act(() => {
+      void result.current.cashPay();
+    });
+    await gateOpened();
+    expect(result.current.cashPayPending).toBe(true);
+    expect(result.current.acceptPending).toBe(false);
+
+    // Kontrol sürerken kabule basış: hedef değişmez, onay penceresi açılmaz.
+    await act(async () => {
+      await result.current.handleAccept();
+    });
+    expect(result.current.cashPayPending).toBe(true);
+    expect(result.current.acceptPending).toBe(false);
+
+    act(() => settleLegalIdentityRequest(true));
+    await waitFor(() => expect(paymentsApi.initiateTradeCash).toHaveBeenCalledWith('trade-1'));
+    expect(appAlert).not.toHaveBeenCalled();
+    expect(tradesApi.accept).not.toHaveBeenCalled();
+  });
+
+  it('kabul kontrol edilirken nakit ödeme yükleniyor görünmez', async () => {
+    const { result } = renderHook(() => useTradeActions('trade-1'), { wrapper });
+    act(() => result.current.setTradeAddressId('addr-1'));
+    act(() => {
+      void result.current.handleAccept();
+    });
+    await gateOpened();
+    expect(result.current.acceptPending).toBe(true);
+    expect(result.current.cashPayPending).toBe(false);
+
+    await settleGateAndWait(false);
+    expect(result.current.acceptPending).toBe(false);
+    expect(result.current.cashPayPending).toBe(false);
+  });
+});

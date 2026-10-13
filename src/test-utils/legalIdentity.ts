@@ -24,6 +24,11 @@ export const legalIdentityGatePassMock = {
   ...jest.requireActual('@/hooks/useLegalIdentity'),
   ensureLegalIdentity: mockRequireLegalIdentity,
   useRequireLegalIdentity: () => ({ requireIdentity: mockRequireLegalIdentity, isChecking: false }),
+  useRequireLegalIdentityFor: () => ({
+    requireIdentityFor: mockRequireLegalIdentity,
+    checkingTarget: null,
+    isPending: false,
+  }),
 };
 
 /** Yeni hesabın durumu: üç alan da eksik, kapı açılmalı. */

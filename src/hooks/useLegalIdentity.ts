@@ -215,3 +215,39 @@ export function useRequireLegalIdentity(): RequireLegalIdentity {
 
   return { requireIdentity, isChecking };
 }
+
+/**
+ * Hedefli kimlik kapısı: aynı ekranda birden çok aksiyonun (ör. takas kabulü
+ * ve nakit ödeme) kapıyı paylaştığı durumlar. Kontrol edilen HEDEF
+ * `mutation.variables`'tan gelir (useState değil); böylece biri kontrol
+ * edilirken öteki "yükleniyor" görünmez.
+ *
+ * Kontrol sürerken gelen ikinci çağrı (başka hedef de olsa) `false` döner ve
+ * hedefi DEĞİŞTİRMEZ — senkron ref koruması, aynı render içindeki çift basışı
+ * da kapsar (yoksa `variables` üzerine yazılır, spinner yanlış düğmeye kayardı).
+ */
+export function useRequireLegalIdentityFor<T>() {
+  const { requireIdentity, isChecking } = useRequireLegalIdentity();
+  const starting = useRef(false);
+  const check = useMutation({ mutationFn: (_target: T) => requireIdentity() });
+
+  const requireIdentityFor = async (target: T): Promise<boolean> => {
+    if (starting.current) return false;
+    starting.current = true;
+    try {
+      return await check.mutateAsync(target);
+    } catch {
+      return false;
+    } finally {
+      starting.current = false;
+    }
+  };
+
+  return {
+    requireIdentityFor,
+    /** Kimliği kontrol edilen hedef — yalnız kontrol gerçekten ağda/kapıdaysa (titreme yok). */
+    checkingTarget: check.isPending && isChecking ? (check.variables as T) : null,
+    /** Herhangi bir hedef için kontrol sürüyor. */
+    isPending: check.isPending,
+  };
+}
