@@ -6,7 +6,7 @@
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
-import { resetRouterMocks, pushMock } from '@/test-utils/router-mock';
+import { resetRouterMocks, pushMock, replaceMock } from '@/test-utils/router-mock';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -52,6 +52,13 @@ describe('catalog-search · arama ekranı (J52/J53)', () => {
   beforeEach(() => {
     mockGetAll.mockReset();
     resetRouterMocks();
+  });
+
+  it('soğuk açılış (deep link /search, geçmiş yok): geri oku ana sekmeye replace eder', async () => {
+    mockGetAll.mockResolvedValue(mockListResponse([]));
+    renderWithProviders(<SearchScreen />);
+    fireEvent.press(screen.getByLabelText('Geri'));
+    expect(replaceMock).toHaveBeenCalledWith('/(tabs)');
   });
 
   it('J52 · arama kutusu render olur', async () => {
