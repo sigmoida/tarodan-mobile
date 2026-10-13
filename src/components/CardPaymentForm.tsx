@@ -196,7 +196,11 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
   async function submit() {
     if (processing) return;
 
+    // Misafir: sunucu gövdede `paymentId` ister (başlıktaki yetki belirteci bu id'ye
+    // bağlı; yoksa 403). Üye gövdesi değişmez.
+    const guestRef = isGuest && initialPaymentId ? { paymentId: initialPaymentId } : {};
     let body: {
+      paymentId?: string;
       orderId?: string;
       checkoutGroupId?: string;
       tradeId?: string;
@@ -211,7 +215,7 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
         appAlert(t('payment.missingInfoTitle'), err);
         return;
       }
-      body = { ...target, saveCard: recurringEnabled && saveCard };
+      body = { ...target, ...guestRef, saveCard: recurringEnabled && saveCard };
       cardFields = cardFieldsForNewCard({
         holder,
         number,
@@ -224,7 +228,7 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
         appAlert(t('payment.cvvRequiredTitle'), t('payment.cvvRequiredBody'));
         return;
       }
-      body = { ...target, savedCardId: selected };
+      body = { ...target, ...guestRef, savedCardId: selected };
       cardFields = cardFieldsForSavedCard(selectedCard?.requireCvv ? savedCvv : undefined);
     }
 
