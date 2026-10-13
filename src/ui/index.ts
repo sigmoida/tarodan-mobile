@@ -83,7 +83,13 @@ export {
 export { Card, type CardProps } from './components/Card';
 export { Badge, type BadgeProps, type BadgeVariant } from './components/Badge';
 export { Alert, type AlertProps, type AlertVariant } from './components/Alert';
-export { Modal, type ModalProps } from './components/Modal';
+export {
+	Modal,
+	MODAL_MAX_WIDTH,
+	MODAL_CLOSE_HEADER_HEIGHT,
+	type ModalProps,
+	type ModalSize,
+} from './components/Modal';
 export {
 	appAlert,
 	AlertDialogHost,

@@ -1,11 +1,12 @@
+import { MODAL_CLOSE_HEADER_HEIGHT, MODAL_MAX_WIDTH } from '@/ui';
 import { popupMediaLimits, POPUP_MAX_HEIGHT_RATIO } from '../popupLayout';
 import { fitBox } from '../adAspect';
 
 describe('popupMediaLimits', () => {
-  it('kart ekranın %80\'ini aşmaz; bare kartta iç boşluk yok: görsel kutusu kartın tamamıdır', () => {
+  it('kart ekranın %80\'ini aşmaz; gövde iç boşluksuz: görsel kutusu = kart - başlık satırı', () => {
     const l = popupMediaLimits({ width: 390, height: 844 }, { top: 0, bottom: 0 });
     expect(l.cardMaxHeight).toBeCloseTo(844 * POPUP_MAX_HEIGHT_RATIO, 6);
-    expect(l.height).toBeCloseTo(844 * 0.8, 6);
+    expect(l.height).toBeCloseTo(844 * 0.8 - MODAL_CLOSE_HEADER_HEIGHT, 6);
     expect(l.width).toBe(390 - 32);
   });
 
@@ -14,8 +15,9 @@ describe('popupMediaLimits', () => {
     expect(l.cardMaxHeight).toBe(300 - 200 - 32);
   });
 
-  it('tablet: kart genişliği 480\'de kalır', () => {
-    expect(popupMediaLimits({ width: 1024, height: 1366 }, { top: 0, bottom: 0 }).width).toBe(480);
+  it('tablet: kart genişliği lg Modal sınırında (512, web max-w-lg) kalır', () => {
+    expect(popupMediaLimits({ width: 1024, height: 1366 }, { top: 0, bottom: 0 }).width).toBe(MODAL_MAX_WIDTH.lg);
+    expect(MODAL_MAX_WIDTH.lg).toBe(512);
   });
 
   it('çok küçük pencerede negatif boyut üretmez', () => {

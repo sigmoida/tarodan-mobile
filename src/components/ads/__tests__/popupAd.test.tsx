@@ -44,6 +44,7 @@ jest.mock('expo-router', () => {
   };
 });
 
+import { MODAL_CLOSE_HEADER_HEIGHT } from '@/ui';
 import { PopupAd } from '../PopupAd';
 import { POPUP_AD_DELAY_MS } from '@/lib/ads/usePopupAd';
 import { NAVIGATE_AFTER_CLOSE_MS } from '../AdCreative';
@@ -143,7 +144,7 @@ describe('PopupAd', () => {
     setAds([popupAd]);
     const { queryByTestId, getByTestId } = render(<PopupAd />);
     await flush(POPUP_AD_DELAY_MS + 100);
-    fireEvent.press(getByTestId('popup-ad-close'));
+    fireEvent.press(getByTestId('modal-close'));
     expect(queryByTestId('popup-ad')).toBeNull();
     await flush(POPUP_AD_DELAY_MS * 2);
     expect(queryByTestId('popup-ad')).toBeNull();
@@ -229,21 +230,31 @@ describe('PopupAd', () => {
     expect(queryByTestId('popup-ad')).toBeNull();
   });
 
-  it('bare Modal: beyaz kart zemini ve iç boşluk yok, kenardan kenara', async () => {
+  it('web gibi Modal yüzeyi: lg boyut, beyaz kart, gövde iç boşluksuz, X başlık satırında', async () => {
     setAds([popupAd]);
-    const { getByTestId } = render(<PopupAd />);
+    const { getByTestId, getByLabelText } = render(<PopupAd />);
     await flush(POPUP_AD_DELAY_MS + 100);
-    // popup-ad -> sheet (Pressable) -> backdrop
+    // popup-ad -> gövde -> kart (sheet)
     let node = getByTestId('popup-ad').parent;
+    let body: Record<string, unknown> | undefined;
     let sheet: Record<string, unknown> | undefined;
     while (node && !sheet) {
       const st = StyleSheet.flatten(node.props.style);
-      if (st && st.maxWidth === 480) sheet = st;
+      if (st && st.maxWidth) sheet = st;
+      else if (st && 'padding' in st && !body) body = st;
       node = node.parent;
     }
-    expect(sheet).toBeDefined();
-    expect(sheet?.padding).toBe(0);
-    expect(sheet?.backgroundColor).toBe('transparent');
+    expect(sheet?.maxWidth).toBe(512); // lg
+    expect(sheet?.backgroundColor).not.toBe('transparent'); // beyaz kart
+    expect(sheet?.borderRadius).toBeGreaterThan(0);
+    expect(body?.padding).toBe(0); // yalnız gövde iç boşluğu sıfır
+    // Kapat düğmesi başlık satırında: reklam kutusunun (popup-ad) içinde DEĞİL.
+    expect(getByLabelText('Kapat')).toBe(getByTestId('modal-close'));
+    let inside = false;
+    for (let n = getByTestId('modal-close').parent; n; n = n.parent) {
+      if (n === getByTestId('popup-ad')) inside = true;
+    }
+    expect(inside).toBe(false);
   });
 
   describe('boyut: ekranı taşırmaz, X her zaman görünür', () => {
@@ -263,15 +274,14 @@ describe('PopupAd', () => {
       await flush(POPUP_AD_DELAY_MS + 100);
 
       const box = StyleSheet.flatten(getByTestId('ad-image-box-p1').props.style);
-      // kart = min(%80 * 600, 600 - 47 - 34 - 32) = 480; bare kartta iç boşluk yok, kutu = 480.
-      expect(box.height).toBe(480);
-      expect(box.width).toBe(240);
+      // kart = min(%80 * 600, 600 - 47 - 34 - 32) = 480; gövde iç boşluksuz: kutu = kart - başlık satırı (48) = 432.
+      expect(box.height).toBe(432);
+      expect(box.width).toBe(216);
       expect(box.width / box.height).toBe(0.5);
-      expect(box.height).toBeLessThanOrEqual(600 * 0.8);
-      // Kapat düğmesi çizili ve kartın kendi köşesine mutlak yerleşik (akışın dışında).
-      const close = getByTestId('popup-ad-close');
-      expect(StyleSheet.flatten(close.props.style)).toMatchObject({ position: 'absolute' });
-      expect(getByTestId('popup-ad').props.style).toMatchObject({ maxHeight: 480, alignSelf: 'center' });
+      expect(box.height + MODAL_CLOSE_HEADER_HEIGHT).toBeLessThanOrEqual(600 * 0.8);
+      // Kapat düğmesi başlık satırında (akışta, görselin üstüne binmez); kutu 432'yi aşmaz.
+      expect(getByTestId('modal-close')).toBeTruthy();
+      expect(getByTestId('popup-ad').props.style).toMatchObject({ maxHeight: 432 });
     });
 
     it('geniş reklam: genişlik kartın tamamına (390-32=358) sığar, oran korunur', async () => {
