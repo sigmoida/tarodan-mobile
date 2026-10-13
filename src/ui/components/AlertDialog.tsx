@@ -159,22 +159,28 @@ export const AlertDialogHost: React.FC = () => {
   const close = (button?: AlertDialogButton) => {
     if (!current || closingRef.current) return; // çift basış: ikinci kapanış yok
     closingRef.current = true;
-    button?.onSelect?.();
     const request = current;
-    const hasAfterClose = button ? !!button.onPress : !!request.options?.onDismiss;
-    afterCloseRef.current = hasAfterClose
-      ? () => {
-          if (button) button.onPress?.();
-          else request.options?.onDismiss?.();
-        }
-      : null;
-    setClosing(true);
-    // iOS: `onDismiss` gelince biter. Android'de olay yok -> sabit süre. iOS'ta da
-    // `onDismiss` gelmezse akış askıda kalmasın diye üst sınır.
-    timerRef.current = setTimeout(
-      finishClose,
-      Platform.OS === 'ios' ? MODAL_DISMISS_TIMEOUT_MS : MODAL_CLOSE_DELAY_MS,
-    );
+    try {
+      button?.onSelect?.();
+    } finally {
+      // `onSelect` fırlatsa da kapanış ve zamanlayıcı kurulur: aksi halde `closingRef` true
+      // kalır, diyalog ekranda asılı durur ve host oturum boyunca kilitlenirdi. Hata yutulmaz
+      // (bu bloktan sonra çağırana yeniden fırlar); yalnız host durumu korunur.
+      const hasAfterClose = button ? !!button.onPress : !!request.options?.onDismiss;
+      afterCloseRef.current = hasAfterClose
+        ? () => {
+            if (button) button.onPress?.();
+            else request.options?.onDismiss?.();
+          }
+        : null;
+      setClosing(true);
+      // iOS: `onDismiss` gelince biter. Android'de olay yok -> sabit süre. iOS'ta da
+      // `onDismiss` gelmezse akış askıda kalmasın diye üst sınır.
+      timerRef.current = setTimeout(
+        finishClose,
+        Platform.OS === 'ios' ? MODAL_DISMISS_TIMEOUT_MS : MODAL_CLOSE_DELAY_MS,
+      );
+    }
   };
 
   // Yeni diyalog: sunum henüz doğrulanmadı.

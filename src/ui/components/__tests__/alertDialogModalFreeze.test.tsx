@@ -238,3 +238,46 @@ describe('iOS sunum watchdog\'u (onShow gelmezse yeniden dener)', () => {
     expect(screen.getByText('Son')).toBeTruthy();
   });
 });
+
+describe('onSelect hata fırlatırsa host kilitlenmez', () => {
+  beforeEach(() => setPlatform('android'));
+
+  it('diyalog yine kapanır, onPress çalışır, sıradaki alert açılır', () => {
+    const onPress = jest.fn();
+    render(<AlertDialogHost />);
+    act(() => {
+      realAlert('A', undefined, [
+        {
+          text: 'a',
+          onSelect: () => {
+            throw new Error('boom');
+          },
+          onPress,
+        },
+      ]);
+      realAlert('B', undefined, [{ text: 'b' }]);
+    });
+    expect(() => act(() => fireEvent.press(screen.getByText('a')))).toThrow('boom'); // hata yutulmaz
+    act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS * 2)); // kapanış zamanlayıcısı yine kuruldu
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('B')).toBeTruthy();
+  });
+
+  it('sonraki alert\'ler normal çalışmaya devam eder', () => {
+    render(<AlertDialogHost />);
+    act(() =>
+      realAlert('A', undefined, [
+        {
+          text: 'a',
+          onSelect: () => {
+            throw new Error('boom');
+          },
+        },
+      ]),
+    );
+    expect(() => act(() => fireEvent.press(screen.getByText('a')))).toThrow('boom');
+    act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS));
+    act(() => realAlert('Yeni', undefined, [{ text: 'y' }]));
+    expect(screen.getByText('Yeni')).toBeTruthy();
+  });
+});
