@@ -106,13 +106,14 @@ export async function registerForPushNotifications(): Promise<string | null> {
       platform: Platform.OS,
       deviceId: Device.modelName ?? 'unknown',
     }).catch((err: any) => {
-      console.log('Failed to register push token with backend:', err.message);
+      if (__DEV__) console.log('Failed to register push token with backend:', err.message);
     });
 
-    console.log('Push token registered:', token);
+    // Push token'ı kullanıcıya bağlı bir tanımlayıcıdır: release cihaz günlüğüne yazılmaz.
+    if (__DEV__) console.log('Push token registered:', token);
   } catch (error: any) {
     // Don't show error in development - this is expected in Expo Go
-    console.log('⚠️ Push notifications unavailable:', error.message);
+    if (__DEV__) console.log('⚠️ Push notifications unavailable:', error.message);
   }
 
   // Configure notification channel for Android
@@ -228,7 +229,7 @@ export function routeFromNotification(data: any): void {
     // (Uygulama içi listede karşılığı "gezinme yok" — orada zaten listedesin.)
     router.push('/(tabs)/notifications' as any);
   } catch (err) {
-    console.log('routeFromNotification failed:', (err as any)?.message);
+    if (__DEV__) console.log('routeFromNotification failed:', (err as any)?.message);
   }
 }
 

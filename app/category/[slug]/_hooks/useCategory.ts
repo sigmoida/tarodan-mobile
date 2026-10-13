@@ -26,7 +26,7 @@ export function useCategory() {
         const response = await categoriesApi.getBySlug(slug);
         return response.data.category || response.data;
       } catch (error) {
-        console.log('Category fetch error:', error);
+        if (__DEV__) console.log('Category fetch error:', error);
         return null;
       }
     },
@@ -44,7 +44,7 @@ export function useCategory() {
         const response = await productsApi.getAll(params);
         return response.data.data || response.data.products || [];
       } catch (error) {
-        console.log('Products fetch error:', error);
+        if (__DEV__) console.log('Products fetch error:', error);
         return [];
       }
     },

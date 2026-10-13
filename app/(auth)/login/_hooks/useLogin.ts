@@ -112,7 +112,7 @@ export function useLogin() {
     onError: (error: unknown) => {
       const e = error as { response?: { data?: { message?: string } }; message?: string };
       const msg = e?.response?.data?.message || e?.message || t('auth.loginFailed');
-      console.log('❌ Login hatası:', msg);
+      if (__DEV__) console.log('❌ Login hatası:', msg);
       const lower = msg.toLowerCase();
       if (lower.includes('doğrula') || lower.includes('verify') || lower.includes('doğrulanmadı')) {
         setUnverifiedEmail(getValues('email'));

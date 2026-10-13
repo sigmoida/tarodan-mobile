@@ -12,7 +12,7 @@ export function useHomeData() {
         const products = response.data.data || response.data.products || response.data || [];
         return Array.isArray(products) ? products : [];
       } catch (error) {
-        console.log('⚠️ Ürünler yüklenemedi:', error);
+        if (__DEV__) console.log('⚠️ Ürünler yüklenemedi:', error);
         return [];
       }
     },
@@ -55,7 +55,7 @@ export function useHomeData() {
         const cats = response.data.data || response.data || [];
         return Array.isArray(cats) ? cats : [];
       } catch (error) {
-        console.log('⚠️ Kategoriler yüklenemedi:', error);
+        if (__DEV__) console.log('⚠️ Kategoriler yüklenemedi:', error);
         return [];
       }
     },

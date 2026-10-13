@@ -68,8 +68,12 @@ export default function HomeScreen() {
   useEffect(() => {
     api
       .get('/health')
-      .then(() => console.log('✅ API bağlantısı başarılı'))
-      .catch((err) => console.log('⚠️ API bağlantısı yok, mock data kullanılacak:', err.message));
+      .then(() => {
+        if (__DEV__) console.log('✅ API bağlantısı başarılı');
+      })
+      .catch((err) => {
+        if (__DEV__) console.log('⚠️ API bağlantısı yok, mock data kullanılacak:', err.message);
+      });
   }, []);
 
   const onRefresh = useCallback(async () => {
