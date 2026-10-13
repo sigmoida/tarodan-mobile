@@ -4,7 +4,7 @@ import type { MessageKey } from '@/i18n/lib';
 import { View, ScrollView, Pressable, Image } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Alert, Button, Card, Checkbox, Chip, IconButton, ProgressBar, Text, theme } from '@/ui';
+import { Alert, Button, Checkbox, Chip, EmptyState, IconButton, ProgressBar, SectionCard, Text, theme } from '@/ui';
 
 import { resolveImageUrl } from '@/utils/imageUrl';
 import UpgradeCta from '@/components/UpgradeCta';
@@ -21,6 +21,7 @@ import type { MyListingsController } from '../_hooks/useMyListings';
 import { formatPrice } from '@/utils/format';
 
 const { colors } = theme;
+const STAT_ICON = theme.iconSize.sm;
 
 // ---------------------------------------------------------------------------
 // Listing-quota card with progress bar
@@ -29,23 +30,25 @@ export function MyListingsLimitCard({ f }: { f: MyListingsController }) {
   const { t } = useTranslation();
   const { listingLimit, currentCount } = f;
   return (
-    <Card style={styles.limitCard}>
-      <View style={styles.limitHeader}>
-        <View>
-          <Text variant="h3">{t('listing.usageTitle')}</Text>
-          <Text variant="bodySm" style={{ color: colors.text.muted }}>
-            {listingLimit === -1 ? t('listing.usageUnlimited') : t('listing.usageCount', { used: currentCount, limit: listingLimit })}
-          </Text>
-        </View>
-        {listingLimit !== -1 && currentCount >= listingLimit - 2 && (
+    <SectionCard
+      title={t('listing.usageTitle')}
+      action={
+        listingLimit !== -1 && currentCount >= listingLimit - 2 ? (
           // iOS'ta satın alma yok (Guideline 3.1.1); düğme yalnız Android/web'de render edilir.
           <UpgradeCta>
-            <Pressable onPress={() => router.push('/upgrade')}>
-              <Text style={styles.upgradeLink}>{t('address.goPremium')}</Text>
-            </Pressable>
+            <Button
+              variant="link"
+              size="sm"
+              title={t('address.goPremium')}
+              onPress={() => router.push('/upgrade')}
+            />
           </UpgradeCta>
-        )}
-      </View>
+        ) : undefined
+      }
+    >
+      <Text variant="bodySm" tone="muted">
+        {listingLimit === -1 ? t('listing.usageUnlimited') : t('listing.usageCount', { used: currentCount, limit: listingLimit })}
+      </Text>
       {listingLimit !== -1 && (
         <ProgressBar
           progress={Math.min(currentCount / listingLimit, 1)}
@@ -53,7 +56,7 @@ export function MyListingsLimitCard({ f }: { f: MyListingsController }) {
           style={styles.progressBar}
         />
       )}
-    </Card>
+    </SectionCard>
   );
 }
 
@@ -84,7 +87,7 @@ const FILTER_CHIPS: Array<{
 export function MyListingsFilters({ f }: { f: MyListingsController }) {
   const { t } = useTranslation();
   return (
-    <View style={styles.filterContainer}>
+    <View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
         {FILTER_CHIPS.map((c) => (
           <Chip
@@ -135,7 +138,7 @@ export function MyListingCard({
       <Image source={{ uri: resolveImageUrl(listing.images) }} style={styles.listingImage} />
       <View style={styles.listingInfo}>
         <View style={styles.listingHeader}>
-          <Text style={styles.listingTitle} numberOfLines={2}>{listing.title}</Text>
+          <Text variant="label" style={styles.listingTitle} numberOfLines={2}>{listing.title}</Text>
           <IconButton
             icon="ellipsis-vertical"
             size="sm"
@@ -143,21 +146,21 @@ export function MyListingCard({
             onPress={onMenu}
           />
         </View>
-        <Text style={styles.listingPrice}>{formatPrice(listing.price)}</Text>
+        <Text variant="body" weight="bold" tone="primary">{formatPrice(listing.price)}</Text>
 
         {/* Stats */}
         <View style={styles.listingStats}>
           <View style={styles.stat}>
-            <Ionicons name="eye-outline" size={14} color={colors.text.muted} />
-            <Text style={styles.statText}>{listing.viewCount}</Text>
+            <Ionicons name="eye-outline" size={STAT_ICON} color={colors.text.muted} />
+            <Text variant="caption">{listing.viewCount}</Text>
           </View>
           <View style={styles.stat}>
-            <Ionicons name="heart-outline" size={14} color={colors.text.muted} />
-            <Text style={styles.statText}>{listing.likeCount || 0}</Text>
+            <Ionicons name="heart-outline" size={STAT_ICON} color={colors.text.muted} />
+            <Text variant="caption">{listing.likeCount || 0}</Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: colors.surface.alt }]}>
+          <View style={styles.statusBadge}>
             <View style={[styles.statusDot, { backgroundColor: getStatusColor(status) }]} />
-            <Text style={[styles.statusText, { color: getStatusColor(status) }]}>
+            <Text variant="caption" weight="medium" color={getStatusColor(status)}>
               {statusTextKey(status) ? t(statusTextKey(status)!) : status}
             </Text>
           </View>
@@ -170,7 +173,7 @@ export function MyListingCard({
         */}
         {listing.status === 'rejected' && listing.rejectionReason ? (
           <View style={styles.rejectionBox}>
-            <Text style={styles.rejectionText}>
+            <Text variant="caption" tone="danger">
               {t('product.rejectionReason')}: {listing.rejectionReason}
             </Text>
           </View>
@@ -178,14 +181,13 @@ export function MyListingCard({
 
         {/* Pasif ilanın nedeni: süresi doldu (yenilenebilir) / iade kontrolü bekliyor */}
         {hintKey && (
-          <View style={styles.hintRow}>
-            <Ionicons name="time-outline" size={14} color={colors.warning[600]!} />
-            <Text style={styles.hintText}>{t(hintKey)}</Text>
-          </View>
+          <Text variant="caption" tone="warning">
+            {t(hintKey)}
+          </Text>
         )}
 
         {/* Created Date */}
-        <Text style={styles.dateText}>{t('listing.createdAt', { date: formatDate(listing.createdAt) })}</Text>
+        <Text variant="caption" tone="subtle">{t('listing.createdAt', { date: formatDate(listing.createdAt) })}</Text>
       </View>
     </Pressable>
   );
@@ -198,29 +200,25 @@ export function MyListingsEmpty({ filter }: { filter: MyListingsController['filt
   const { t } = useTranslation();
   if (filter === 'expired') {
     return (
-      <View style={styles.emptyState}>
-        <Ionicons name="time-outline" size={64} color={colors.text.subtle} />
-        <Text style={styles.emptyTitle}>{t('profile.expiredListings.empty')}</Text>
-        <Text style={styles.emptyDesc}>{t('profile.expiredListings.emptyDescription')}</Text>
-      </View>
+      <EmptyState
+        icon="time-outline"
+        title={t('profile.expiredListings.empty')}
+        subtitle={t('profile.expiredListings.emptyDescription')}
+      />
     );
   }
   return (
-    <View style={styles.emptyState}>
-      <Ionicons name="pricetag-outline" size={64} color={colors.text.subtle} />
-      <Text style={styles.emptyTitle}>
-        {filter === 'all'
+    <EmptyState
+      icon="pricetag-outline"
+      title={
+        filter === 'all'
           ? t('listing.noListingsYet')
           : t('listing.noListingsInStatus', {
               status: statusTextKey(filter) ? t(statusTextKey(filter)!) : filter,
-            })}
-      </Text>
-      <Text style={styles.emptyDesc}>
-        {filter === 'all'
-          ? t('listing.createFirstHint')
-          : t('listing.noneInCategory')}
-      </Text>
-    </View>
+            })
+      }
+      subtitle={filter === 'all' ? t('listing.createFirstHint') : t('listing.noneInCategory')}
+    />
   );
 }
 
@@ -234,17 +232,15 @@ export function MyListingsExpiredBanner({ f }: { f: MyListingsController }) {
   return (
     <Alert
       variant="warning"
-      icon={<Ionicons name="time-outline" size={18} color={colors.warning[700]!} />}
       title={t('profile.expiredListings.bannerTitle', { count: f.expiredCount })}
-      style={styles.expiredBanner}
     >
-      <Text style={{ color: colors.warning[800]! }}>{t('profile.expiredListings.bannerDescription')}</Text>
+      <Text variant="bodySm" tone="warning">{t('profile.expiredListings.bannerDescription')}</Text>
       <Button
         variant="outline"
         size="sm"
         title={t('profile.expiredListings.tab')}
         onPress={() => f.setFilter('expired')}
-        style={{ marginTop: theme.spacing[2], alignSelf: 'flex-start' }}
+        style={styles.bannerButton}
       />
     </Alert>
   );

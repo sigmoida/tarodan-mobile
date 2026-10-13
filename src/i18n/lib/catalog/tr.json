@@ -427,7 +427,9 @@
     "bizIntroBody": "Başvurunuz admin onayına gönderilir. Onaylandığında kullanıcı adınızı ve şifrenizi belirleyeceğiniz bir davet e-postası alırsınız.",
     "bizSectionAuthorized": "Yetkili Bilgileri",
     "kvkkCheckboxLabel": "KVKK Aydınlatma Metni'ni okudum ve kabul ediyorum.",
-    "mustAcceptKvkk": "KVKK Aydınlatma Metni'ni onaylamalısınız"
+    "mustAcceptKvkk": "KVKK Aydınlatma Metni'ni onaylamalısınız",
+    "individualApplication": "Bireysel Başvuru",
+    "corporateApplication": "Kurumsal Başvuru"
   },
   "brands": {
     "title": "Markalar",
@@ -2297,7 +2299,26 @@
       "emptyDescription": "Süresi dolan ilanlarınız burada listelenir."
     },
     "deleteBlockedManageListings": "İlanlarımı yönet",
-    "deleteBlockedReservedNote": "{count} ilanınız bir satışa ayrıldığı (rezerve) için şu an kapatılamaz ve silinemez. Satış tamamlanınca ya da iptal edilince bu engel kalkar; durumunu Satışlarım'dan izleyebilirsiniz."
+    "deleteBlockedReservedNote": "{count} ilanınız bir satışa ayrıldığı (rezerve) için şu an kapatılamaz ve silinemez. Satış tamamlanınca ya da iptal edilince bu engel kalkar; durumunu Satışlarım'dan izleyebilirsiniz.",
+    "sidebar": {
+      "alisveris": "Alışveriş",
+      "indirimlerim": "İndirimlerim",
+      "finans": "Finans",
+      "odemelerim": "Ödemelerim",
+      "odemeYontemleri": "Ödeme Yöntemleri",
+      "iadeTalepleri": "İade Talepleri",
+      "koleksiyon": "Koleksiyon",
+      "takipEttiklerim": "Takip Ettiklerim",
+      "kayitliAramalar": "Kayıtlı Aramalar",
+      "analiz": "Analiz",
+      "istatistikler": "İstatistikler",
+      "analitik": "Analitik",
+      "iletisim": "İletişim",
+      "hesap": "Hesap",
+      "isletme": "İşletme",
+      "guvenlik": "Güvenlik",
+      "engellenenler": "Engellenen Kullanıcılar"
+    }
   },
   "review": {
     "reviews": "Değerlendirmeler",
@@ -8767,6 +8788,12 @@
       "listingstoolbar": {
         "aZ": "A-Z",
         "zA": "Z-A"
+      }
+    },
+    "messages": {
+      "messageticks": {
+        "okundu": "Okundu",
+        "iletildi": "İletildi"
       }
     }
   }

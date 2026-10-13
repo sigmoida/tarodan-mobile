@@ -52,19 +52,4 @@ export const styles = StyleSheet.create({
   input: {
     marginBottom: spacing[3],
   },
-  defaultCheckbox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing[2],
-  },
-  checkboxLabel: {
-    marginLeft: spacing[2],
-    color: colors.text.heading,
-  },
-  dialogActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: spacing[2],
-    marginTop: spacing[3],
-  },
 });

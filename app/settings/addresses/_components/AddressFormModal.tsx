@@ -1,13 +1,10 @@
 import React from 'react';
-import { View, ScrollView, Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Modal, Button, Input, Text, ModalMessage, theme } from '@/ui';
+import { ScrollView } from 'react-native';
+import { Checkbox, Modal, ModalFooter, Input, ModalMessage } from '@/ui';
 
 import { CityDistrictSelector, PhoneInput } from '@/components/common';
 import { styles } from '../_lib/styles';
 import type { AddressesController } from '../_hooks/useAddresses';
-
-const { colors } = theme;
 
 /** Add/edit address dialog with per-field validation. */
 export function AddressFormModal({ f }: { f: AddressesController }) {
@@ -17,6 +14,16 @@ export function AddressFormModal({ f }: { f: AddressesController }) {
       isOpen={f.dialogVisible}
       onClose={() => f.setDialogVisible(false)}
       title={f.editingAddress ? t('address.editAddress') : t('address.newAddress')}
+      footer={
+        <ModalFooter
+          onCancel={() => f.setDialogVisible(false)}
+          onConfirm={f.handleSubmit}
+          cancelLabel={t('mobile.cancel')}
+          confirmLabel={t('mobile.save')}
+          disabled={f.saveMutation.isPending}
+          confirmTestID="address-save-button"
+        />
+      }
     >
       <ScrollView style={styles.dialogScroll}>
         <Input
@@ -94,29 +101,13 @@ export function AddressFormModal({ f }: { f: AddressesController }) {
           keyboardType="numeric"
           containerStyle={styles.input}
         />
-        <Pressable
-          style={styles.defaultCheckbox}
-          onPress={() => setFormData({ ...formData, isDefault: !formData.isDefault })}
-        >
-          <Ionicons
-            name={formData.isDefault ? 'checkbox' : 'square-outline'}
-            size={24}
-            color={colors.primary[600]!}
-          />
-          <Text style={styles.checkboxLabel}>{t('mobile.setAsDefault')}</Text>
-        </Pressable>
+        <Checkbox
+          checked={formData.isDefault}
+          onChange={(isDefault) => setFormData({ ...formData, isDefault })}
+          label={t('mobile.setAsDefault')}
+        />
       </ScrollView>
       <ModalMessage state={f.formMsg.state} />
-      <View style={styles.dialogActions}>
-        <Button variant="ghost" title={t('mobile.cancel')} onPress={() => f.setDialogVisible(false)} />
-        <Button
-          testID="address-save-button"
-          variant="primary"
-          title={t('mobile.save')}
-          onPress={f.handleSubmit}
-          isLoading={f.saveMutation.isPending}
-        />
-      </View>
     </Modal>
   );
 }

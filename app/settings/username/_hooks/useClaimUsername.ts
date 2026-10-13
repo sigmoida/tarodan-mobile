@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { userApi, errorText } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
@@ -22,7 +22,7 @@ export function useClaimUsername() {
     onSuccess: (res) => {
       const username = (res.data as { username?: string })?.username;
       if (username) updateUser({ username, usernameClaimed: true });
-      appAlert(t('settings.usernameSetTitle'), t('settings.usernameSetBody'));
+      toast.success(t('settings.usernameSetBody'));
       router.back();
     },
     onError: (e) =>

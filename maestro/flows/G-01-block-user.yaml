@@ -78,13 +78,14 @@ env:
 # 5) Engeli kaldır → liste boşalır (temizlik de bu adım)
 - tapOn:
     text: ".*Engeli Kaldır.*"
-# Başarı diyaloğunu kapat — üstünde dururken boş durum "görünür" sayılmıyor.
+# Başarı artık toast (diyalog yok); "Tamam" yalnız eski sürümde vardı.
 - extendedWaitUntil:
     visible:
       text: ".*Engel kaldırıldı.*"
     timeout: 30000
 - tapOn:
     text: "Tamam"
+    optional: true
 - extendedWaitUntil:
     visible:
       text: ".*Engellediğiniz kullanıcı yok.*"

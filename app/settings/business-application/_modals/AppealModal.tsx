@@ -1,6 +1,7 @@
+import { StyleSheet } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Modal, Button, Text, appAlert, theme } from '@/ui';
+import { Modal, ModalFooter, Text, appAlert, toast, theme } from '@/ui';
 import { Form, FormInput, useZodForm } from '@/ui/form';
 import { sellerDocumentsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
@@ -22,7 +23,7 @@ export function AppealModal({ documentId, onClose }: Props) {
       sellerDocumentsApi.appeal(id, note),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.sellerDocuments.list });
-      appAlert(t('businessApplication.appealSentTitle'), t('businessApplication.appealSentBody'));
+      toast.success(t('businessApplication.appealSentBody'));
     },
     onError: (e: unknown) => {
       const raw = (e as { response?: { data?: { message?: string | string[] } } })?.response
@@ -41,8 +42,20 @@ export function AppealModal({ documentId, onClose }: Props) {
   });
 
   return (
-    <Modal isOpen={!!documentId} onClose={onClose} title={t('businessApplication.appealCta')}>
-      <Text variant="caption" tone="muted" style={{ marginBottom: theme.spacing[3] }}>
+    <Modal
+      isOpen={!!documentId}
+      onClose={onClose}
+      title={t('businessApplication.appealCta')}
+      footer={
+        <ModalFooter
+          onCancel={onClose}
+          onConfirm={onSubmit}
+          confirmLabel={t('common.send')}
+          confirmTestID="appeal-submit"
+        />
+      }
+    >
+      <Text variant="caption" tone="muted" style={styles.hint}>
         {t('businessApplication.appealModalHint')}
       </Text>
       <Form form={form}>
@@ -54,7 +67,10 @@ export function AppealModal({ documentId, onClose }: Props) {
           numberOfLines={4}
         />
       </Form>
-      <Button testID="appeal-submit" onPress={onSubmit}>{t('common.send')}</Button>
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  hint: { marginBottom: theme.spacing[3] },
+});

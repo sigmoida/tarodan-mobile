@@ -70,6 +70,14 @@ const api = () =>
     productsApi: Record<"update" | "delete" | "deactivate" | "renew" | "renewMany", jest.Mock>;
   }).productsApi;
 const alertMock = () => (jest.requireMock("@/ui") as { appAlert: jest.Mock }).appAlert;
+// Başarı bilgisi toast (diyalog değil): `toast.success` izlenir.
+let toastSuccess: jest.SpyInstance;
+beforeEach(() => {
+  toastSuccess = jest
+    .spyOn((jest.requireMock("@/ui") as { toast: { success: () => number } }).toast, "success")
+    .mockImplementation(() => 1);
+});
+afterEach(() => toastSuccess.mockRestore());
 
 /** Sunucu gibi: `status` / `inactiveReason` parametreleri listeyi süzer. */
 function serve(all: Array<Record<string, unknown>>) {
@@ -109,7 +117,7 @@ describe("İlanlarım · C-3.2 ilan yaşam döngüsü", () => {
     await waitFor(() => expect(api().renew).toHaveBeenCalledWith("E1"));
     expect(api().update).not.toHaveBeenCalled();
     await waitFor(() =>
-      expect(alertMock()).toHaveBeenCalledWith("common.success", "profile.expiredListings.renewed"),
+      expect(toastSuccess).toHaveBeenCalledWith("profile.expiredListings.renewed"),
     );
   });
 
@@ -120,7 +128,7 @@ describe("İlanlarım · C-3.2 ilan yaşam döngüsü", () => {
     await openMenu("Süresi Dolan");
     fireEvent.press(await screen.findByText("profile.expiredListings.renew"));
     await waitFor(() =>
-      expect(alertMock()).toHaveBeenCalledWith("common.success", "profile.expiredListings.submitted"),
+      expect(toastSuccess).toHaveBeenCalledWith("profile.expiredListings.submitted"),
     );
   });
 
@@ -133,7 +141,7 @@ describe("İlanlarım · C-3.2 ilan yaşam döngüsü", () => {
     await waitFor(() => expect(api().update).toHaveBeenCalledWith("I1", { status: "active" }));
     expect(api().renew).not.toHaveBeenCalled();
     await waitFor(() =>
-      expect(alertMock()).toHaveBeenCalledWith("common.success", "listing.reactivatedImmediately"),
+      expect(toastSuccess).toHaveBeenCalledWith("listing.reactivatedImmediately"),
     );
   });
 

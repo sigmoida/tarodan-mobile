@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { appAlert, type AlertDialogButton } from '@/ui';
+import { appAlert, toast, type AlertDialogButton } from '@/ui';
 import { productsApi, userApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
@@ -15,14 +15,12 @@ import {
 
 /**
  * Profile actions controller — logout, account deletion, and the guest
- * restriction snackbar/prompt state. Lifted verbatim from ProfileScreen.
+ * restriction toast/prompt state. Lifted verbatim from ProfileScreen.
  */
 export function useProfileActions() {
   const { t } = useTranslation();
   const { logout } = useAuthStore();
   const queryClient = useQueryClient();
-  const [snackbarVisible, setSnackbarVisible] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
   const [showPrompt, setShowPrompt] = useState(false);
   const [promptType, setPromptType] = useState<
     'favorites' | 'message' | 'purchase' | 'trade' | 'collections'
@@ -109,8 +107,7 @@ export function useProfileActions() {
 
   const handleGuestAction = (action: GuestAction) => {
     const config = getRestrictionMessage(action);
-    setSnackbarMessage(config.message);
-    setSnackbarVisible(true);
+    toast(config.message);
 
     if (action === 'favorites' || action === 'wishlist') setPromptType('favorites');
     else if (action === 'message') setPromptType('message');
@@ -121,9 +118,6 @@ export function useProfileActions() {
   };
 
   return {
-    snackbarVisible,
-    setSnackbarVisible,
-    snackbarMessage,
     showPrompt,
     setShowPrompt,
     promptType,

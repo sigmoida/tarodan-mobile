@@ -3,7 +3,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { STORAGE_KEY, type SavedSearch } from '../_lib/types';
 import { buildSearchParams } from '../_lib/helpers';
@@ -54,7 +54,7 @@ export function useSavedSearches() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['saved-searches'] });
-      appAlert(t('common.success'), t('savedSearch.deletedMsg'));
+      toast.success(t('savedSearch.deletedMsg'));
     },
     onError: () => {
       appAlert(t('common.error'), t('savedSearch.deleteFailedMsg'));

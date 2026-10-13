@@ -10,7 +10,7 @@
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { getPhoneInvalidMessage } from '@/utils/phone';
 
 jest.mock('expo-router', () => ({
@@ -100,6 +100,15 @@ describe('Adres formu — alana yazılan telefon payload\'a ne olarak gidiyor', 
     await fillAndSave(input);
     await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
     expect(post.mock.calls[0]![1]).toMatchObject({ phone: '+905321234567' });
+  });
+
+  it('başarılı kayıt: modal kapanır, bilgi toast olur (appAlert değil)', async () => {
+    const success = jest.spyOn(toast, 'success').mockImplementation(() => 1);
+    await fillAndSave('0532 123 45 67');
+    await waitFor(() => expect(success).toHaveBeenCalledWith('address.added'));
+    expect(appAlert).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('address-save-button')).toBeNull();
+    success.mockRestore();
   });
 
   it.each([['00905321234567'], ['+1 415 555 0100'], ['05321234567890'], ['0432 123 45 67']])(

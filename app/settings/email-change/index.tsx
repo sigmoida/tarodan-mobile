@@ -1,8 +1,8 @@
-import { View, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import { StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, ScreenHeader, Text, theme } from '@/ui';
+import { Alert, Button, SectionCard, Text, theme } from '@/ui';
 import { Form, FormInput } from '@/ui/form';
+import { PageShell } from '@/components/common/PageShell';
 import { useEmailChange } from './_hooks/useEmailChange';
 
 export default function EmailChangeScreen() {
@@ -10,13 +10,12 @@ export default function EmailChangeScreen() {
   const f = useEmailChange();
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={t('settings.emailChangeLink')} onBack={() => router.back()} />
-      <View style={styles.body}>
-        <Alert variant="info" title={t('settings.emailChangeActiveTitle')}>
-          {t('settings.emailChangeActiveBody')}
-        </Alert>
+    <PageShell title={t('settings.emailChangeLink')}>
+      <Alert variant="info" title={t('settings.emailChangeActiveTitle')}>
+        {t('settings.emailChangeActiveBody')}
+      </Alert>
 
+      <SectionCard bodyStyle={styles.form}>
         {f.step === 'email' ? (
           <Form form={f.emailForm}>
             <FormInput
@@ -56,13 +55,12 @@ export default function EmailChangeScreen() {
             />
           </Form>
         )}
-      </View>
-    </View>
+      </SectionCard>
+    </PageShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.surface.DEFAULT },
-  body: { padding: theme.spacing[4], gap: theme.spacing[4] },
+  form: { gap: theme.spacing[3] },
   hint: { color: theme.colors.text.muted },
 });

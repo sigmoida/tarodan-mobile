@@ -262,6 +262,9 @@ export const qk = {
 
   support: {
     tickets: ["support-tickets"] as const,
+    /** Kullanıcının talep listesi (`tickets` önekinin altında — `tickets` invalidate'i bunu da yeniler). */
+    mine: ["support-tickets", "me"] as const,
+    detail: (id?: string) => ["support-tickets", "detail", id] as const,
   },
 
   refunds: {

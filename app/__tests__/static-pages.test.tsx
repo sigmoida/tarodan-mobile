@@ -23,7 +23,7 @@ import GuidesScreen from "../guides";
 describe("J126 · Hakkımızda (about) render", () => {
   it("J126.4 başlık ve içerik bölümleri görünür", () => {
     renderWithProviders(<AboutScreen />);
-    expect(screen.getByText("Tarodan")).toBeOnTheScreen();
+    expect(screen.getByText("mobile.pageAbout")).toBeOnTheScreen();
     expect(screen.getByText("aboutPage.storyTitle")).toBeOnTheScreen();
     expect(screen.getByText("aboutPage.missionTitle")).toBeOnTheScreen();
     expect(screen.getByText("aboutPage.valuesTitle")).toBeOnTheScreen();
