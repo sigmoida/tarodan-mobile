@@ -57,7 +57,7 @@ export function GlassIconButton({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled: !!disabled }}
-      android_ripple={Platform.OS === 'android' ? { color: colors.overlay.black10, radius: GLASS_ICON_BUTTON_SIZE / 2 } : undefined}
+      android_ripple={Platform.OS === 'android' ? { color: colors.overlay.black10, radius: GLASS_ICON_BUTTON_SIZE / 2, foreground: true } : undefined}
       style={({ pressed }) => [
         styles.box,
         disabled && !glass && styles.disabled,
