@@ -91,7 +91,8 @@ altındaki dosyalar **birebir** (byte-exact) kopyalanır.
 | Dosya | Konum | Kaynak |
 |---|---|---|
 | AASA | `https://<host>/.well-known/apple-app-site-association` | `docs/wellknown/apple-app-site-association` |
-| Android | `https://<host>/.well-known/assetlinks.json` | `docs/wellknown/assetlinks.json` (bkz. §4 — şu an bu dosya **yok**) |
+| Android (production host) | `https://tarodan.com.tr/.well-known/assetlinks.json` | `docs/wellknown/assetlinks.json` (`com.tarodan.app`; bkz. §4) |
+| Android (staging host) | `https://staging.tarodan.com.tr/.well-known/assetlinks.json` | `docs/wellknown/assetlinks.staging.json` (`com.tarodan.app.staging`; parmak izleri dolunca üretilir, bkz. [`ANDROID_RELEASE.md`](./ANDROID_RELEASE.md) §10) |
 
 **Her iki dosya için kurallar:**
 

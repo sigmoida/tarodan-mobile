@@ -243,3 +243,39 @@ describe('eas.json — Android build ve submit profilleri', () => {
     expect(eas.submit.production!.ios!.ascAppId).toBe('6786614139');
   });
 });
+
+describe('docs/ANDROID_RELEASE.md', () => {
+  const root = path.resolve(__dirname, '../../..');
+  const doc = fs.readFileSync(path.join(root, 'docs/ANDROID_RELEASE.md'), 'utf8');
+
+  it.each([
+    'com.tarodan.app.staging',
+    'tarodan-staging',
+    'tarodan-c1290',
+    '243308404313',
+    'GOOGLE_SERVICES_JSON_STAGING',
+    'ANDROID_RELEASE_ENABLED',
+    'EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED',
+    'FCM V1',
+    '12 testçi',
+    'Play App Signing',
+    'assetlinks.staging.json',
+    'Data Safety',
+    'hesap silme',
+  ])('"%s" anlatılıyor', (needle) => {
+    expect(doc).toContain(needle);
+  });
+
+  it('SECRETS_SETUP.md ve RELEASE.md kılavuza bağlanıyor', () => {
+    expect(fs.readFileSync(path.join(root, 'SECRETS_SETUP.md'), 'utf8')).toContain('docs/ANDROID_RELEASE.md');
+    expect(fs.readFileSync(path.join(root, 'docs/RELEASE.md'), 'utf8')).toContain('ANDROID_RELEASE.md');
+  });
+
+  it('eski "Android paketi değişmez" iddiası kalmadı', () => {
+    for (const f of ['SECRETS_SETUP.md', 'docs/RELEASE.md']) {
+      const text = fs.readFileSync(path.join(root, f), 'utf8');
+      expect(text).not.toMatch(/Android paket adına `\.staging` eki EKLENMEZ/);
+      expect(text).not.toMatch(/On \*\*Android\*\* the package stays/);
+    }
+  });
+});

@@ -15,8 +15,8 @@
 // uygulama). Eskiden Android'e ek konmuyordu (Android hiç yayınlanmamıştı);
 // yayın kararıyla artık konuyor. Bunun bedeli iki ayrı kayıt, ikisi de
 // build'in dışında yapılır:
-//   1. Firebase / FCM — staging paketi için ayrı Android uygulaması ve ayrı
-//      google-services.json (aşağıda `resolveStagingGoogleServicesFile`).
+//   1. Firebase / FCM — staging paketi AYRI Firebase projesinde (tarodan-staging;
+//      production tarodan-c1290) ve ayrı google-services.json (aşağıda `resolveStagingGoogleServicesFile`).
 //      Paket adı dosyada yoksa Gradle "No matching client found" ile düşer.
 //   2. Google Cloud OAuth — her paket için ayrı Android istemcisi (paket +
 //      SHA-1). Eksikse build düşmez, "Google ile giriş" sessizce çalışmaz;
