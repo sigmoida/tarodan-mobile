@@ -135,6 +135,16 @@ describe('B-2.4 · ensureLegalIdentity (ihtiyaç anında kimlik)', () => {
     expect(screen.getByDisplayValue('Yılmaz')).toBeOnTheScreen();
   });
 
+  it('"ne zaman istenir" metni bağlanacak bütün noktaları anlatır (ödeme, ilan, takas, banka)', async () => {
+    mockGetStatus.mockResolvedValue({ data: status() });
+    const { queryClient } = setup();
+    await request(queryClient);
+    const text = screen.getByText(/yalnızca bir kez/).props.children as string;
+    for (const point of ['ödeme', 'ilan verme', 'takas', 'banka hesabı']) {
+      expect(text).toContain(point);
+    }
+  });
+
   it('suggestedNationalId TCKN alanını ön doldurur; ad ön doldurulmaz', async () => {
     mockGetStatus.mockResolvedValue({ data: status({ suggestedNationalId: VALID_TCKN }) });
     const { queryClient } = setup();

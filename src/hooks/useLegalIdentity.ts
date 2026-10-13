@@ -118,8 +118,12 @@ export function useLegalIdentityStep() {
 export type LegalIdentityStepController = ReturnType<typeof useLegalIdentityStep>;
 
 /**
- * İhtiyaç anında kimlik kapısı. Kimlik gerektiren bir işlemi (ödeme, ilan
- * verme, takas, banka hesabı) başlatmadan ÖNCE çağır:
+ * İhtiyaç anında kimlik kapısı. Kimlik gerektiren bir işlemi başlatmadan
+ * ÖNCE çağır (ekran metni `identity.gate.whenNeeded` bu listeyi anlatır):
+ * sepet ödemesi, teklif siparişinin ödemesi, takas başlatma / nakit ödeme,
+ * ilan verme ve banka hesabı ekleme. Bugün yalnız banka hesabı bağlı
+ * (`useBankAccount`); diğerleri ödeme/ilan/takas akışlarına entegrasyonda
+ * bağlanır.
  *
  *   if (!(await ensureLegalIdentity())) return; // vazgeçti → işlem iptal
  *
@@ -127,8 +131,10 @@ export type LegalIdentityStepController = ReturnType<typeof useLegalIdentityStep
  * - eksikse kimlik adımını açar; kaydedilince `true`, "Vazgeç"te `false`;
  * - durum alınamazsa `true` (fail-open — sunucu zorlamıyor, işlemi kilitleme).
  *
- * Kimlik adımı kök düzende bir katmandır: açık bir ui `Modal`'ın ALTINDA
- * kalır. Modal içinden çağırma; önce modalı kapat ya da modalı açmadan önce çağır.
+ * Kimlik adımı native tam ekran bir Modal'dır (`FullScreenGate`), açık ekran
+ * modallarının üstünde kalır. Yine de açık bir ui `Modal`'ın içinden çağırma:
+ * iOS iki modalı aynı anda sunamaz, kapı o modal kapanana kadar bekler. Önce
+ * modalı kapat ya da modalı açmadan önce çağır.
  */
 export async function ensureLegalIdentity(client: QueryClient = appQueryClient): Promise<boolean> {
   const { isAuthenticated, isLoading } = useAuthStore.getState();

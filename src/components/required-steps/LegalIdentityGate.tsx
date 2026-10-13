@@ -35,8 +35,8 @@ export const NATIONAL_ID_INPUT_MAX_LENGTH = 24;
  * Yalnız EKSİK alanlar sorulur; dolu olanlar salt-okunur durur ve gönderilmez
  * (dolu alanı göndermek 409). TCKN, üyenin kendi banka hesabında geçerli bir
  * numara varsa onunla ön doldurulur; ad hiçbir kaynaktan tahmin edilmez.
- * Kapatma düğmesi yok; tek alternatif "Vazgeç" (işlem iptal). Neden
- * istendiği ve KVKK metninin bağlantısı ekranda.
+ * Kapatma düğmesi yok; tek alternatif "Vazgeç" (işlem iptal), Android geri
+ * tuşu da onu yapar. Neden istendiği ve KVKK metninin bağlantısı ekranda.
  */
 export function LegalIdentityGate({
   status,
