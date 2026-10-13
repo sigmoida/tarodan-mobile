@@ -161,4 +161,33 @@ describe('B6 · arama üst çubukları — ölçüm ve collapse', () => {
     expect(flatten(measured.props.style).opacity).toBeUndefined();
     expect(flatten(measured.props.contentContainerStyle).paddingTop).toBe(212);
   });
+
+  it('pull-to-refresh yalnız ilk sayfayı yeniler; sonraki sayfa yüklemesi refreshing yapmaz', async () => {
+    mockGetAll.mockImplementation(async (p: any) => ({
+      data: {
+        items: [makeProduct(`p${p.page}`, `Ürün ${p.page}`)],
+        meta: { page: p.page, totalPages: 3, total: 3 },
+      },
+    }));
+    const { result } = renderHook(() => useSearch(), {
+      wrapper: hookWrapper(makeTestQueryClient()),
+    });
+    await waitFor(() => expect(result.current.products.length).toBe(1));
+
+    await act(async () => {
+      await result.current.fetchNextPage();
+    });
+    await waitFor(() => expect(result.current.products.length).toBe(2));
+    expect(result.current.refreshing).toBe(false);
+
+    mockGetAll.mockClear();
+    await act(async () => {
+      await result.current.refreshFirstPage();
+    });
+
+    // Yalnız sayfa 1 yeniden istendi (2. sayfa tekrar çekilmedi).
+    expect(mockGetAll).toHaveBeenCalledTimes(1);
+    expect(mockGetAll.mock.calls[0]![0].page).toBe(1);
+    expect(result.current.refreshing).toBe(false);
+  });
 });

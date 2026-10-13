@@ -72,8 +72,8 @@ export default function SearchScreen() {
             keyboardDismissMode="on-drag"
             refreshControl={
               <RefreshControl
-                refreshing={f.isRefetching}
-                onRefresh={f.refetch}
+                refreshing={f.refreshing}
+                onRefresh={f.refreshFirstPage}
                 colors={[colors.primary[600]!]}
                 tintColor={colors.primary[600]!}
               />

@@ -7,7 +7,13 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
-import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+  type InfiniteData,
+} from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatPriceRange } from '@/utils/format';
@@ -155,6 +161,8 @@ export function useSearch() {
   const sellerResults = sellerAutoRes.data ?? [];
 
   // --- Ürün listesi: web /products endpoint'i + sayfalama (sonsuz kaydırma) ---
+  const queryClient = useQueryClient();
+  const searchKey = ['products-search', filters] as const;
   const {
     data,
     isLoading,
@@ -164,9 +172,8 @@ export function useSearch() {
     hasNextPage,
     isFetchingNextPage,
     refetch,
-    isRefetching,
   } = useInfiniteQuery({
-    queryKey: ['products-search', filters],
+    queryKey: searchKey,
     placeholderData: keepPreviousData,
     initialPageParam: 1,
     queryFn: async ({ pageParam }) => {
@@ -188,6 +195,26 @@ export function useSearch() {
   // Sayfalar arası tekilleştirme: sayfalama sırasında bir ilan iki sayfada da dönebilir
   // (araya yeni ilan girerse kayma olur); `keyExtractor` yalnız `item.id` kullandığı için
   // yinelenen id'ler listeden elenir.
+  // Pull-to-refresh: spinner YALNIZ kullanıcı çekip bıraktığında döner (`isRefetching` sonraki sayfa
+  // yüklemesinde / filtre değişiminde de true olur → RefreshControl yanlışlıkla tetiklenirdi).
+  const [pullRefreshing, setPullRefreshing] = useState(false);
+  const refreshFirstPage = useCallback(async () => {
+    setPullRefreshing(true);
+    try {
+      // `refetch()` yüklü TÜM sayfaları sırayla çeker; önce önbelleği ilk sayfaya kırp, sonra
+      // yenile → tek istek (TanStack v5 önerisi). Liste en üstte olduğundan görsel kayıp yok.
+      queryClient.setQueryData<InfiniteData<unknown>>(searchKey, (old) =>
+        old && old.pages.length > 1
+          ? { pages: old.pages.slice(0, 1), pageParams: old.pageParams.slice(0, 1) }
+          : old,
+      );
+      await refetch();
+    } finally {
+      setPullRefreshing(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryClient, refetch, filters]);
+
   const products: any[] = useMemo(() => {
     const seen = new Set<string>();
     const out: any[] = [];
@@ -318,8 +345,9 @@ export function useSearch() {
     isLoading,
     isError,
     isFetching,
-    isRefetching,
     refetch,
+    refreshing: pullRefreshing,
+    refreshFirstPage,
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
