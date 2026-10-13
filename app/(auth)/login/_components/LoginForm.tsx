@@ -13,20 +13,17 @@ import { IS_MAESTRO } from '@/config/maestro';
 
 const { colors } = theme;
 
-/** The login form card: unverified banner, email/password, social buttons, guest. */
-export function LoginCard({ f }: { f: LoginController }) {
+/**
+ * Giriş formu (web `LoginForm`): uyarı bandı, e-posta/parola, sosyal girişler, misafir.
+ * Çerçeve/kart yok — başlık ve kabuk `AuthShell`'de.
+ */
+export function LoginForm({ f }: { f: LoginController }) {
   const { t } = useTranslation();
   const { control, formState: { errors } } = f.form;
+  const socialBusy = f.loginMutation.isPending;
 
   return (
-    <View style={styles.card}>
-      <Text variant="h3" align="center">
-        {t('auth.welcomeBack')}
-      </Text>
-      <Text variant="bodySm" tone="muted" align="center" style={{ marginBottom: theme.spacing[4] }}>
-        {t('auth.loginSubtitle')}
-      </Text>
-
+    <View style={styles.form}>
       {f.unverifiedEmail ? (
         <UIAlert variant="warning" title={t('auth.unverifiedTitle')} testID="unverified-email-banner">
           {/* Adres metnin İÇİNDE geçiyor; ICU argümanı olarak veriliyor ki
@@ -56,7 +53,6 @@ export function LoginCard({ f }: { f: LoginController }) {
           <Input
             testID="login-email-input"
             label={t('auth.email')}
-            leftIconName="mail-outline"
             placeholder={t('auth.emailPlaceholder')}
             value={value}
             onChangeText={onChange}
@@ -75,7 +71,6 @@ export function LoginCard({ f }: { f: LoginController }) {
           <Input
             testID="login-password-input"
             label={t('auth.password')}
-            leftIconName="lock-closed-outline"
             placeholder="••••••••"
             value={value}
             onChangeText={onChange}
@@ -97,7 +92,6 @@ export function LoginCard({ f }: { f: LoginController }) {
             <Input
               testID="login-2fa-code-input"
               label={t('auth.twoFactorCodeLabel')}
-              leftIconName="shield-checkmark-outline"
               placeholder={t('auth.twoFactorCodePlaceholder')}
               value={value}
               onChangeText={onChange}
@@ -112,22 +106,16 @@ export function LoginCard({ f }: { f: LoginController }) {
 
       <Pressable
         onPress={() => router.push('/(auth)/forgot-password' as never)}
-        hitSlop={8}
+        hitSlop={theme.spacing[3]}
         style={styles.forgotLink}
       >
-        <Text variant="bodySm" tone="primary" weight="semibold">
+        <Text variant="bodySm" tone="primary" weight="medium">
           {t('auth.forgotPassword')}
         </Text>
       </Pressable>
 
       {f.errorBannerVisible ? (
-        <Text
-          testID="login-error-banner"
-          variant="bodySm"
-          tone="danger"
-          align="center"
-          style={{ marginBottom: theme.spacing[2] }}
-        >
+        <Text testID="login-error-banner" variant="bodySm" tone="danger">
           {f.errorMessage || t('auth.loginFailed')}
         </Text>
       ) : null}
@@ -156,40 +144,37 @@ export function LoginCard({ f }: { f: LoginController }) {
       </View>
 
       {isGoogleConfigured() && (
-        <Pressable
+        <Button
           testID="login-google-button"
-          onPress={f.handleGoogle}
-          accessibilityRole="button"
+          variant="outline"
+          size="lg"
+          fullWidth
+          icon="logo-google"
+          title={f.googleLoading ? t('auth.signingIn') : t('auth.continueWithGoogle')}
           accessibilityLabel={t('auth.continueWithGoogle')}
-          disabled={f.loginMutation.isPending || f.googleLoading}
-          style={[styles.googleButton, (f.loginMutation.isPending || f.googleLoading) && { opacity: 0.6 }]}
-        >
-          {f.googleLoading ? (
-            <ActivityIndicator size="small" color={colors.text.heading} />
-          ) : (
-            <Ionicons name="logo-google" size={18} color={colors.text.heading} />
-          )}
-          <Text variant="body" weight="semibold">
-            {f.googleLoading ? t('auth.signingIn') : t('auth.continueWithGoogle')}
-          </Text>
-        </Pressable>
+          onPress={f.handleGoogle}
+          isLoading={f.googleLoading}
+          disabled={socialBusy || f.googleLoading}
+        />
       )}
 
       {f.appleAvailable && (
+        // Apple HIG: siyah "Apple ile devam et" düğmesi (web'de outline; mağaza yönergesi için
+        // yerel görünüm korunur). Ölçü ve köşe diğer düğmelerle aynı rol token'ları.
         <Pressable
           testID="login-apple-button"
           onPress={f.handleApple}
           accessibilityRole="button"
           accessibilityLabel={t('auth.continueWithApple')}
-          disabled={f.loginMutation.isPending || f.appleLoading}
-          style={[styles.appleButton, (f.loginMutation.isPending || f.appleLoading) && { opacity: 0.6 }]}
+          disabled={socialBusy || f.appleLoading}
+          style={[styles.appleButton, (socialBusy || f.appleLoading) && styles.disabled]}
         >
           {f.appleLoading ? (
             <ActivityIndicator size="small" color={colors.white} />
           ) : (
-            <Ionicons name="logo-apple" size={18} color={colors.white} />
+            <Ionicons name="logo-apple" size={theme.iconSize.md} color={colors.white} />
           )}
-          <Text variant="body" weight="semibold" style={styles.appleButtonText}>
+          <Text variant="body" weight="medium" style={styles.appleButtonText}>
             {f.appleLoading ? t('auth.signingIn') : t('auth.continueWithApple')}
           </Text>
         </Pressable>
@@ -197,12 +182,12 @@ export function LoginCard({ f }: { f: LoginController }) {
 
       {/* Apple 1.2: koşullar kayıttan VEYA girişten önce gösterilmeli. Apple/Google
           ile devam et ilk kullanımda hesap açar ve kayıt ekranındaki onay
-          kutusundan geçmez — bildirim bu yüzden giriş kartında da duruyor. */}
-      <View style={{ marginTop: theme.spacing[3] }}>
-        <Text variant="caption" tone="muted" align="center">
+          kutusundan geçmez — bildirim bu yüzden giriş formunda da duruyor. */}
+      <View style={styles.terms}>
+        <Text variant="caption" tone="muted">
           {t('auth.loginTermsNotice')}
         </Text>
-        <HStack justify="center" wrap gap={1} style={{ marginTop: theme.spacing[1] }}>
+        <HStack wrap gap={1}>
           <Text testID="login-terms-link" variant="caption" tone="primary" weight="semibold" onPress={() => router.push('/terms')}>
             {t('footer.terms')}
           </Text>
@@ -221,7 +206,6 @@ export function LoginCard({ f }: { f: LoginController }) {
         title={t('auth.continueAsGuest')}
         onPress={f.continueAsGuest}
         disabled={f.loginMutation.isPending}
-        style={{ marginTop: theme.spacing[3] }}
       />
     </View>
   );

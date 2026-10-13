@@ -1,88 +1,43 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '@/ui';
 
-const { colors } = theme;
+const { colors, spacing } = theme;
 
-// Giriş ekranının route-local stylesheet'i (monolitten birebir taşındı).
+// Giriş formunun route-local stylesheet'i. Kabuk (logo, başlık, zemin) `AuthShell`'de.
 export const styles = StyleSheet.create({
-  backButton: {
-    position: 'absolute',
-    left: 16,
-    zIndex: 10,
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  screen: {
-    backgroundColor: colors.primary[600]!,
-  },
-  /** Auth görseli (`AuthHeroBanner`) — formdaki kartla uyumlu yuvarlak köşe. */
-  authHero: {
-    borderRadius: theme.radius['3xl'],
-  },
-  brandHeader: {
-    alignItems: 'center',
-    gap: theme.spacing[2.5],
-  },
-  footerText: {
-    color: colors.primary[50]!,
-  },
-  footerLink: {
-    color: colors.white,
-    textDecorationLine: 'underline',
-  },
-  card: {
+  form: {
     width: '100%',
-    backgroundColor: colors.surface.elevated,
-    borderRadius: 20,
-    padding: theme.spacing[5],
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
+    gap: spacing[4],
   },
   forgotLink: {
     alignSelf: 'flex-end',
-    paddingVertical: theme.spacing[1],
-    marginBottom: theme.spacing[3],
   },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing[3],
-    marginVertical: theme.spacing[4],
+    gap: spacing[3],
   },
   dividerLine: {
     flex: 1,
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border.DEFAULT,
   },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: theme.spacing[2],
-    height: 52,
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    borderRadius: 12,
-    backgroundColor: colors.white,
-  },
   appleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: theme.spacing[2],
-    height: 52,
-    borderRadius: 12,
+    gap: spacing[2],
+    height: theme.controlHeight.lg,
+    borderRadius: theme.radiusRole.button,
     backgroundColor: colors.black,
-    marginTop: theme.spacing[3],
   },
   appleButtonText: {
     color: colors.white,
+  },
+  disabled: {
+    opacity: 0.5,
+  },
+  terms: {
+    gap: spacing[1],
   },
 });
