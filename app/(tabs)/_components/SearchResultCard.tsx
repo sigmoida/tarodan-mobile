@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Card, Text, theme } from '@/ui';
 
 import { isProductOutOfStock } from '@/utils/productPrice';
+import { formatPrice } from '@/utils/format';
 import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
 import { OutOfStockOverlay } from '@/components/product';
 import { asLabel } from '@/utils/format';
@@ -102,7 +103,7 @@ function SearchResultCardBase({
             }}
           >
             <Text variant="h3" tone="primary">
-              ₺{Number(price ?? 0).toLocaleString('tr-TR')}
+              {formatPrice(price)}
             </Text>
             {hasDiscount ? (
               <Text
@@ -110,7 +111,7 @@ function SearchResultCardBase({
                 tone="muted"
                 style={{ textDecorationLine: 'line-through' }}
               >
-                ₺{Number(oldPrice).toLocaleString('tr-TR')}
+                {formatPrice(oldPrice)}
               </Text>
             ) : null}
             {discountPercent > 0 ? (

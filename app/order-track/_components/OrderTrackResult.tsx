@@ -14,6 +14,7 @@ import {
   CLOSED_TRACK_HINT_KEYS,
   type OrderStatus,
 } from '../_lib/status';
+import { formatPrice } from '@/utils/format';
 
 const { colors } = theme;
 
@@ -69,7 +70,7 @@ export function OrderTrackResult({ order }: { order: OrderStatus }) {
       <View style={styles.priceSection}>
         <View style={styles.priceRow}>
           <Text style={styles.totalLabel}>{t('common.total')}</Text>
-          <Text style={styles.totalValue}>₺{(order.totalAmount ?? 0).toLocaleString('tr-TR')}</Text>
+          <Text style={styles.totalValue}>{formatPrice(order.totalAmount)}</Text>
         </View>
       </View>
 

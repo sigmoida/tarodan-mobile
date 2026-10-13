@@ -15,7 +15,7 @@ function useScales(t: TFunction) {
       weight: "~3-5 kg",
       description: t("sizeGuidePage.desc8"),
       brands: "Pocher, DeAgostini, GT Spirit",
-      priceRange: "₺5.000 - ₺50.000+",
+      priceRange: "5.000 - 50.000+ TL",
       highlight: true,
     },
     {
@@ -24,7 +24,7 @@ function useScales(t: TFunction) {
       weight: "~1.5-3 kg",
       description: t("sizeGuidePage.desc12"),
       brands: "Kyosho, AUTOart, TSM",
-      priceRange: "₺2.000 - ₺20.000",
+      priceRange: "2.000 - 20.000 TL",
       highlight: false,
     },
     {
@@ -33,7 +33,7 @@ function useScales(t: TFunction) {
       weight: "~800g - 1.5 kg",
       description: t("sizeGuidePage.desc18"),
       brands: "AUTOart, CMC, BBR, Maisto, Bburago",
-      priceRange: "₺300 - ₺15.000",
+      priceRange: "300 - 15.000 TL",
       highlight: true,
     },
     {
@@ -42,7 +42,7 @@ function useScales(t: TFunction) {
       weight: "~300-500g",
       description: t("sizeGuidePage.desc24"),
       brands: "Maisto, Welly, Jada Toys, Motormax",
-      priceRange: "₺100 - ₺2.000",
+      priceRange: "100 - 2.000 TL",
       highlight: false,
     },
     {
@@ -51,7 +51,7 @@ function useScales(t: TFunction) {
       weight: "~100-200g",
       description: t("sizeGuidePage.desc32"),
       brands: "Bburago, Siku, Kinsmart",
-      priceRange: "₺50 - ₺500",
+      priceRange: "50 - 500 TL",
       highlight: false,
     },
     {
@@ -60,7 +60,7 @@ function useScales(t: TFunction) {
       weight: "~80-150g",
       description: t("sizeGuidePage.desc36"),
       brands: "Kinsmart, Welly, RMZ City",
-      priceRange: "₺30 - ₺200",
+      priceRange: "30 - 200 TL",
       highlight: false,
     },
     {
@@ -69,7 +69,7 @@ function useScales(t: TFunction) {
       weight: "~50-120g",
       description: t("sizeGuidePage.desc43"),
       brands: "Spark, IXO, Minichamps, Schuco",
-      priceRange: "₺80 - ₺3.000",
+      priceRange: "80 - 3.000 TL",
       highlight: true,
     },
     {
@@ -78,7 +78,7 @@ function useScales(t: TFunction) {
       weight: "~30-50g",
       description: t("sizeGuidePage.desc64"),
       brands: "Hot Wheels, Matchbox, Greenlight, Tomica",
-      priceRange: "₺10 - ₺1.000+",
+      priceRange: "10 - 1.000+ TL",
       highlight: true,
     },
   ];

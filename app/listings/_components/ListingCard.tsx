@@ -9,6 +9,7 @@ import { isProductOutOfStock } from '@/utils/productPrice';
 import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
 import { OutOfStockOverlay } from '@/components/product';
 import { asLabel } from '@/utils/format';
+import { ProductPrice } from '@/components/product/ProductPrice';
 import { styles } from '../_lib/styles';
 import { conditionLabel } from '../_lib/chips';
 
@@ -40,7 +41,7 @@ function ListingCardBase({ item }: { item: any }) {
           {asLabel(item.brand, t('product.brand'))} • {asLabel(item.scale, '1:64')}
         </Text>
         <View style={styles.priceRow}>
-          <Text style={styles.productPrice}>₺{item.price?.toLocaleString('tr-TR')}</Text>
+          <ProductPrice product={item} style={styles.productPrice} />
           {item.condition && <Text style={styles.conditionBadge}>{conditionLabel(item.condition, t)}</Text>}
         </View>
       </View>

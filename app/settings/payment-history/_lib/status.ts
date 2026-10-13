@@ -1,5 +1,6 @@
 import { theme } from '@/ui';
 import type { TFunction } from 'i18next';
+import { formatPrice } from '@/utils/format';
 
 export const buildStatusConfig = (t: TFunction): Record<string, { label: string; color: string; icon: string }> => ({
   completed: { label: t('common.completed'), color: theme.colors.success[500], icon: 'checkmark-circle' },
@@ -23,5 +24,5 @@ export function formatDate(dateStr: string): string {
 }
 
 export function formatCurrency(amount: number): string {
-  return `₺${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return formatPrice(amount);
 }

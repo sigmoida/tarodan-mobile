@@ -9,6 +9,7 @@ import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
 import type { SellerProfileController } from '../_hooks/useSellerProfile';
 import { ReviewAuthorName } from '@/components/reviews/ReviewAuthorName';
+import { ProductPrice } from '@/components/product/ProductPrice';
 
 const { colors } = theme;
 
@@ -84,7 +85,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
                   )}
                   <View style={styles.productContent}>
                     <Text style={styles.productTitle} numberOfLines={2}>{product.title}</Text>
-                    <Text style={styles.productPrice}>₺{product.price?.toLocaleString('tr-TR')}</Text>
+                    <ProductPrice product={product} style={styles.productPrice} />
                   </View>
                 </Card>
               </Pressable>

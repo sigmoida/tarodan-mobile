@@ -102,6 +102,5 @@ export function formatTimeAgo(iso: string, t: TFunction): string {
   return t("time.ago.months", { count: mo });
 }
 
-export function formatPrice(n: number): string {
-  return `₺${n.toLocaleString("tr-TR")}`;
-}
+// Fiyat biçimi web ile aynı tek biçimleyici ("1.234,50 TL").
+export { formatPrice } from '@/utils/format';

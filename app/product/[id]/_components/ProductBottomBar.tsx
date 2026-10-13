@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { formatPrice } from '@/utils/format';
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Button, Text, theme } from '@/ui';
@@ -36,8 +37,8 @@ export function ProductBottomBar({
 }) {
   const { t } = useTranslation();
   const { showTradeEntry } = useFeatureAccess();
-  const effective = `₺${price.effectivePrice.toLocaleString('tr-TR')}`;
-  const original = `₺${price.originalPrice.toLocaleString('tr-TR')}`;
+  const effective = formatPrice(price.effectivePrice);
+  const original = formatPrice(price.originalPrice);
 
   return (
     <View style={styles.bottomBar}>

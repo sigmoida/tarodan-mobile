@@ -7,6 +7,7 @@ import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
 import type { Listing } from '../_lib/types';
 import type { AddItemsController } from '../_hooks/useAddItems';
+import { formatPrice } from '@/utils/format';
 
 const { colors } = theme;
 
@@ -22,7 +23,7 @@ export function ListingPickerRow({ listing, f }: { listing: Listing; f: AddItems
         <Image source={{ uri: resolveImageUrl(listing.images) }} style={styles.thumb} />
         <View style={styles.rowInfo}>
           <Text style={styles.rowTitle} numberOfLines={2}>{listing.title}</Text>
-          <Text style={styles.rowPrice}>₺{(listing.price ?? 0).toLocaleString('tr-TR')}</Text>
+          <Text style={styles.rowPrice}>{formatPrice(listing.price)}</Text>
         </View>
       </TouchableOpacity>
 

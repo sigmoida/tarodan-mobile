@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { styles } from '../_lib/styles';
 import type { User } from '../_lib/types';
 import type { NewMessageController } from '../_hooks/useNewMessage';
+import { formatPrice } from '@/utils/format';
 
 const { colors } = theme;
 
@@ -74,7 +75,7 @@ export function NewMessageBody({ f }: { f: NewMessageController }) {
               {f.product?.title || f.decodedProductTitle}
             </Text>
             {f.product?.price && (
-              <Text style={styles.productPrice}>₺{f.product.price.toLocaleString('tr-TR')}</Text>
+              <Text style={styles.productPrice}>{formatPrice(f.product.price)}</Text>
             )}
           </TouchableOpacity>
         </View>
