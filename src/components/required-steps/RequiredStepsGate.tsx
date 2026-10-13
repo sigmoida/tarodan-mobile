@@ -18,12 +18,21 @@ import { RequiredStepVisibleProvider } from './RequiredStepShell';
  * Tek çıkış adımı tamamlamak ya da oturumu kapatmaktır. Yasal metin sayfaları muaftır ki üye
  * onaylayacağı metni okuyabilsin (geri dönünce kapı yeniden görünür).
  */
-export default function RequiredStepsGate() {
+export default function RequiredStepsGate({
+  ready = true,
+}: {
+  /**
+   * Kapı gösterilebilir mi? Kök düzen soğuk açılışta AnimatedSplash bitene
+   * kadar `false` verir: kapı native Modal olduğundan splash'ın üstüne binerdi.
+   * Sorgu bu sırada çalışmaya devam eder, splash bitince kapı beklemeden açılır.
+   */
+  ready?: boolean;
+}) {
   const pathname = usePathname();
   const { active, consents } = useRequiredSteps();
   const logout = useAuthStore((s) => s.logout);
 
-  const visible = active !== null && !isLegalTextPath(pathname);
+  const visible = ready && active !== null && !isLegalTextPath(pathname);
 
   if (active === null) return null;
 

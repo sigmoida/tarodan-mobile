@@ -164,9 +164,10 @@ export default function RootLayout() {
               Kapı açıkken bağlı değil: appAlert kuyruğa düşer, kapı kapanınca çıkar. */}
           {!gateShown && <AlertDialogHost />}
           {/* Zorunlu adımlar (bekleyen sözleşme onayı): girişte + ön plana gelişte kapatılamaz ekran. */}
-          <RequiredStepsGate />
+          {/* Kapılar native Modal: soğuk açılışta splash bitmeden gösterilmez (ready). */}
+          <RequiredStepsGate ready={splashDone} />
           {/* Min desteklenen sürümün altındaki build'leri tam ekran bloklar (#233). */}
-          <ForceUpdateGate />
+          <ForceUpdateGate ready={splashDone} />
           {!splashDone && (
             <AnimatedSplash
               appReady={appReady}

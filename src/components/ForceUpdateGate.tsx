@@ -21,10 +21,18 @@ const { spacing } = theme;
  * the providers (needs QueryClient). Fail-open: renders null while loading,
  * on any error, or on web/unknown platform.
  */
-export default function ForceUpdateGate() {
+export default function ForceUpdateGate({
+  ready = true,
+}: {
+  /**
+   * False while the animated splash is still up: the gate is a native Modal
+   * and would cover it. The version check keeps running meanwhile.
+   */
+  ready?: boolean;
+}) {
   const { t } = useTranslation();
   const { updateRequired, storeUrl } = useForceUpdate();
-  if (!updateRequired) return null;
+  if (!updateRequired || !ready) return null;
 
   return (
     <FullScreenGate layer="forceUpdate" testID="force-update-gate">

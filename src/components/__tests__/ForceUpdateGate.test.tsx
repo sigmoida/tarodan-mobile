@@ -64,6 +64,14 @@ describe("ForceUpdateGate (#233)", () => {
     expect(screen.queryByText("onay")).toBeNull();
   });
 
+  it("waits for the splash to finish (ready=false) before covering the app", () => {
+    mockState.updateRequired = true;
+    const view = renderWithProviders(<ForceUpdateGate ready={false} />);
+    expect(screen.queryByText("Güncelleme gerekli")).toBeNull();
+    view.rerender(<ForceUpdateGate ready />);
+    expect(screen.getByText("Güncelleme gerekli")).toBeTruthy();
+  });
+
   it("opens the store URL when the update button is pressed", () => {
     mockState.updateRequired = true;
     renderWithProviders(<ForceUpdateGate />);

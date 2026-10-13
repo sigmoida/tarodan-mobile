@@ -245,6 +245,21 @@ describe('B-2.3 · RequiredStepsGate (onay kapısı)', () => {
     expect(screen.getByTestId('consent-gate')).toBeOnTheScreen();
   });
 
+  it('soğuk açılışta splash bitene kadar (ready=false) gösterilmez; sorgu yine de çalışır', async () => {
+    mockGetPending.mockResolvedValue({ data: { pending: ALL } });
+    const view = renderWithProviders(<RequiredStepsGate ready={false} />);
+    await waitFor(() =>
+      expect(view.queryClient.getQueryState(qk.consents.pending)?.status).toBe('success'),
+    );
+    expect(screen.queryByTestId('consent-gate')).toBeNull();
+    expect(screen.UNSAFE_queryAllByType(Modal)).toHaveLength(0);
+
+    // Splash bitti: kapı ek istek beklemeden açılır.
+    view.rerender(<RequiredStepsGate ready />);
+    expect(await screen.findByTestId('consent-gate')).toBeOnTheScreen();
+    expect(mockGetPending).toHaveBeenCalledTimes(1);
+  });
+
   it('native tam ekran Modal olarak sunulur; Android geri tuşu yutulur', async () => {
     mockGetPending.mockResolvedValue({ data: { pending: ALL } });
     renderWithProviders(<RequiredStepsGate />);
