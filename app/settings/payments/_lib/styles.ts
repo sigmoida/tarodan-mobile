@@ -128,6 +128,9 @@ export const styles = StyleSheet.create({
     borderColor: colors.primary[600]!,
     backgroundColor: colors.primary[50]!,
   },
+  actionDisabled: {
+    opacity: 0.5,
+  },
   viewButton: {
     borderColor: colors.border.DEFAULT,
     backgroundColor: colors.surface.DEFAULT,

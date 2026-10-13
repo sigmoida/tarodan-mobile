@@ -61,12 +61,17 @@ export function PaymentCard({ p, f }: { p: Payment; f: PaymentsController }) {
         {p.status === 'failed' && (
           <Pressable
             onPress={() => f.handleRetry(p.id)}
-            disabled={f.retryCheckingId !== null}
-            accessibilityState={{ disabled: f.retryCheckingId !== null, busy: f.retryCheckingId === p.id }}
-            style={[styles.actionButton, styles.retryButton]}
+            disabled={f.retryBusy}
+            accessibilityState={{ disabled: f.retryBusy, busy: f.retryPendingId === p.id }}
+            style={[
+              styles.actionButton,
+              styles.retryButton,
+              // Başka kartın kontrolü sürerken bu düğme GÖRÜNÜR biçimde devre dışı.
+              f.retryBusy && f.retryPendingId !== p.id ? styles.actionDisabled : null,
+            ]}
             testID={`payment-retry-${p.id}`}
           >
-            {f.retryCheckingId === p.id ? (
+            {f.retryPendingId === p.id ? (
               <Spinner size="sm" />
             ) : (
               <Ionicons name="refresh" size={16} color={colors.primary[600]!} />
