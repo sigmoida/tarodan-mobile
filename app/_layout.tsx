@@ -11,6 +11,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import * as SplashScreen from "expo-splash-screen";
 import Constants from "expo-constants";
 import { useFonts } from "expo-font";
+import { useBrandFontSession } from "@/hooks/useBrandFontSession";
 // Noto Sans (web ile aynı aile ve ağırlıklar). Alt yoldan import: paket kökü 18 dosyanın
 // hepsini paketlerdi; yalnız kullanılan 4 ağırlık bundle'a girer.
 import { NotoSans_400Regular } from "@expo-google-fonts/noto-sans/400Regular";
@@ -38,9 +39,6 @@ import { useFullScreenGateShown } from "@/components/common/FullScreenGate";
 import { ErrorBoundary, RouteTracker } from "@/components/ErrorBoundary";
 
 const { colors } = theme;
-
-/** Marka fontu için splash'in en fazla bekleyeceği süre (ms). */
-const FONT_WAIT_MAX_MS = 4000;
 
 // Initialize Sentry as early as possible. No-ops in Expo Go or when
 // EXPO_PUBLIC_SENTRY_DSN is unset (see services/sentry.ts guard); real
@@ -109,13 +107,11 @@ export default function RootLayout() {
     NotoSans_700Bold,
   });
   // Emniyet: yükleme hiç sonuçlanmazsa splash sonsuza dek kalmasın — süre dolunca sistem
-  // fontuyla açılır; font sonradan yüklenirse metinler o an marka fontuna geçer.
-  const [fontWaitExpired, setFontWaitExpired] = useState(false);
-  useEffect(() => {
-    const id = setTimeout(() => setFontWaitExpired(true), FONT_WAIT_MAX_MS);
-    return () => clearTimeout(id);
-  }, []);
-  const fontsSettled = fontsLoaded || !!fontError || fontWaitExpired;
+  // fontuyla açılır ve bu OTURUM sistem fontunda kalır (sonradan geçiş tüm metni kaydırırdı).
+  const { settled: fontsSettled, enabled: brandFontEnabled } = useBrandFontSession(
+    fontsLoaded,
+    fontError,
+  );
   useEffect(() => {
     if (fontError) logger.warn("Brand font load failed", { err: safeError(fontError) });
   }, [fontError]);
@@ -173,7 +169,7 @@ export default function RootLayout() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <LocaleProvider>
-        <BrandFontProvider ready={fontsLoaded && !fontError}>
+        <BrandFontProvider ready={brandFontEnabled}>
           {/* Yığın ekranları beyaz üst bar: koyu içerik. Turuncu marka barlı sekme kökleri (AppShell)
               odaktayken açık içeriğe çevirir. */}
           <StatusBar style="dark" />
