@@ -41,6 +41,9 @@
 # bundle localhost'a bakar. Değerleri doğrudan eas.json'dan okumak eski "workflow
 # env bloğunu eas.json ile elle senkron tut" kuralını kopyasız hale getirir.
 set -euo pipefail
+# Bash < 4.4'te `x="$(...)"` içindeki alt kabuk set -e'yi DÜŞÜRÜR; hata ortada
+# kalır. CI (ubuntu, bash 5) bunu açar; macOS'un bash 3.2'sinde yok (yerel test).
+shopt -s inherit_errexit 2>/dev/null || true
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
@@ -59,17 +62,57 @@ profile_env() {
   ' "$ROOT/eas.json" "$profile"
 }
 
+# OTA'nın bundle'a gömdüğü ve yayın öncesi BOŞ OLAMAYACAK değişkenler.
+REQUIRED_PUBLIC_ENV="EXPO_PUBLIC_ENVIRONMENT EXPO_PUBLIC_API_URL EXPO_PUBLIC_WEB_URL"
+
+# Profil env'ini bu kabuğa export eder. Process substitution (`< <(...)`)
+# KULLANILMAZ: içindeki hata set -e'ye ulaşmaz ve döngü boş env ile sessizce
+# devam ederdi (→ API adresi boş bir OTA). Önce çıktı alınır, hata varsa durulur.
+# Runner'dan sızmış eski değerler önce temizlenir: doğrulama yalnız eas.json'dan
+# gelen değerleri görsün.
 load_profile_env() {
-  local line
+  local profile="$1" lines line key
+  lines="$(profile_env "$profile")" || die "eas.json build.$profile env'i okunamadı"
+  for key in $REQUIRED_PUBLIC_ENV; do unset "$key"; done
   while IFS= read -r line; do
-    [ -n "$line" ] && export "${line?}"
-  done < <(profile_env "$1")
+    if [ -n "$line" ]; then export "${line?}"; fi
+  done <<< "$lines"
+}
+
+# Yüklenen env'i doğrular. <branch> verilirse (OTA) ortama özgü kurallar da
+# uygulanır; production OTA'sı ASLA staging/yerel bir API'ye bakmaz.
+require_public_env() {
+  local profile="$1" branch="${2:-}" key channel
+  for key in $REQUIRED_PUBLIC_ENV; do
+    [ -n "${!key:-}" ] || die "eas.json build.$profile.env.$key boş/eksik — yayın durduruldu."
+  done
+  case "$EXPO_PUBLIC_API_URL" in
+    https://*) ;;
+    *) die "EXPO_PUBLIC_API_URL https:// ile başlamalı ($profile: '$EXPO_PUBLIC_API_URL')." ;;
+  esac
+  [ -n "$branch" ] || return 0
+  channel="$(node -e 'const p=require(process.argv[1]).build[process.argv[2]];console.log((p&&p.channel)||"")' "$ROOT/eas.json" "$profile")"
+  [ "$channel" = "$branch" ] \
+    || die "OTA dalı '$branch' ama build.$profile.channel '$channel' — yanlış profil env'iyle yayın yapılmaz."
+  case "$branch" in
+    production)
+      [ "$EXPO_PUBLIC_ENVIRONMENT" = production ] \
+        || die "production OTA'sı EXPO_PUBLIC_ENVIRONMENT=production ister ('$EXPO_PUBLIC_ENVIRONMENT')."
+      case "$EXPO_PUBLIC_API_URL $EXPO_PUBLIC_WEB_URL" in
+        *staging*|*localhost*|*127.0.0.1*)
+          die "production OTA'sı staging/yerel adrese bakıyor ($EXPO_PUBLIC_API_URL) — durduruldu." ;;
+      esac ;;
+    staging)
+      [ "$EXPO_PUBLIC_ENVIRONMENT" = preview ] \
+        || die "staging OTA'sı EXPO_PUBLIC_ENVIRONMENT=preview ister ('$EXPO_PUBLIC_ENVIRONMENT')." ;;
+  esac
 }
 
 fingerprint() {
   local profile="$1" platform="$2"
   (
     load_profile_env "$profile"
+    require_public_env "$profile"
     cd "$ROOT"
     npx expo-updates fingerprint:generate --platform "$platform" \
       | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const h=JSON.parse(s).hash;if(!h)process.exit(1);console.log(h)})'
@@ -125,6 +168,7 @@ publish_ota() {
   local branch="$1" platform="$2" profile="$3" message="$4"
   (
     load_profile_env "$profile"
+    require_public_env "$profile" "$branch"
     cd "$ROOT"
     eas update --branch "$branch" --platform "$platform" \
       --message "$message" --non-interactive

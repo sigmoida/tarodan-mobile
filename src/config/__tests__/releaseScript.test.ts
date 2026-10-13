@@ -17,6 +17,9 @@ const FAKES = path.join(ROOT, 'scripts/ci/__fakes__');
 type Build = Record<string, unknown>;
 type Submission = Record<string, unknown>;
 
+type EasJson = { build: Record<string, { channel?: string; env?: Record<string, string> }> } & Record<string, unknown>;
+const realEasJson = (): EasJson => JSON.parse(fs.readFileSync(path.join(ROOT, 'eas.json'), 'utf8'));
+
 const TODAY = new Date().toISOString().slice(0, 10);
 
 /** eas-cli 24.x BuildFragment şeklinde bir build. */
@@ -62,6 +65,8 @@ const submission = (buildId: string, status = 'FINISHED', platform: 'IOS' | 'AND
 
 type RunOpts = {
   env?: Record<string, string>;
+  /** eas.json'u değiştirerek koş (script geçici bir kök dizine kopyalanır). */
+  easJson?: (eas: EasJson) => EasJson | string;
   builds?: Build[];
   submissions?: Submission[];
   buildResult?: unknown;
@@ -84,7 +89,18 @@ function run(args: string[], opts: RunOpts = {}) {
   }
   for (const k of ['MODE', 'PLATFORM', 'ANDROID_ENABLED', 'COMMIT_MSG', 'SHA', 'FP']) delete base[k];
 
-  const res = spawnSync('bash', [SCRIPT, ...args], {
+  let script = SCRIPT;
+  if (opts.easJson) {
+    const root = path.join(dir, 'root');
+    fs.mkdirSync(path.join(root, 'scripts/ci'), { recursive: true });
+    script = path.join(root, 'scripts/ci/release.sh');
+    fs.copyFileSync(SCRIPT, script);
+    fs.copyFileSync(path.join(ROOT, 'app.json'), path.join(root, 'app.json'));
+    const eas = opts.easJson(realEasJson());
+    fs.writeFileSync(path.join(root, 'eas.json'), typeof eas === 'string' ? eas : JSON.stringify(eas));
+  }
+
+  const res = spawnSync('bash', [script, ...args], {
     cwd: dir,
     encoding: 'utf8',
     env: {
@@ -221,5 +237,78 @@ describe('release.sh recheck — build kilidi sonrası tek yerde', () => {
 
   it('FP boşsa durur', () => {
     expect(run(['recheck', 'ios', 'staging']).status).not.toBe(0);
+  });
+});
+
+describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır', () => {
+  const withEnv = (profile: string, patch: Record<string, string | undefined>) => (eas: EasJson) => {
+    const env = { ...eas.build[profile].env };
+    for (const [k, v] of Object.entries(patch)) {
+      if (v === undefined) delete env[k];
+      else env[k] = v;
+    }
+    eas.build[profile] = { ...eas.build[profile], env };
+    return eas;
+  };
+  const ota = (branch: string, profile: string, opts: RunOpts = {}) =>
+    run(['publish-ota', branch, 'all', profile, 'msg'], opts);
+
+  it('production OTA eas.json\'daki production env\'iyle yayınlanır', () => {
+    const r = ota('production', 'production');
+    expect(r.status).toBe(0);
+    expect(r.easCalls('update')).toEqual([
+      expect.stringContaining(
+        '--branch production --platform all --message msg --non-interactive | EXPO_PUBLIC_ENVIRONMENT=production EXPO_PUBLIC_API_URL=https://tarodan.com.tr/api',
+      ),
+    ]);
+  });
+
+  it('profil yoksa durur (process substitution hatası artık yutulmuyor)', () => {
+    const r = ota('production', 'nope');
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('build.nope');
+    expect(r.easCalls('update')).toHaveLength(0);
+  });
+
+  it('eas.json bozuksa plan durur, karar yazılmaz', () => {
+    const r = plan('production', { easJson: () => '{ bozuk' });
+    expect(r.status).not.toBe(0);
+    expect(r.outputs.ios).toBeUndefined();
+  });
+
+  it.each([
+    ['EXPO_PUBLIC_API_URL boş', { EXPO_PUBLIC_API_URL: '' }],
+    ['EXPO_PUBLIC_API_URL eksik', { EXPO_PUBLIC_API_URL: undefined }],
+    ['EXPO_PUBLIC_WEB_URL eksik', { EXPO_PUBLIC_WEB_URL: undefined }],
+    ['EXPO_PUBLIC_ENVIRONMENT yanlış', { EXPO_PUBLIC_ENVIRONMENT: 'preview' }],
+    ['API staging\'e bakıyor', { EXPO_PUBLIC_API_URL: 'https://staging.tarodan.com.tr/api' }],
+    ['API http', { EXPO_PUBLIC_API_URL: 'http://tarodan.com.tr/api' }],
+  ])('production OTA asla yayınlanmaz: %s', (_n, patch) => {
+    const r = ota('production', 'production', {
+      easJson: withEnv('production', patch),
+      // Runner'dan sızan bir değer doğrulamayı geçirmemeli.
+      env: { EXPO_PUBLIC_API_URL: 'https://tarodan.com.tr/api', EXPO_PUBLIC_WEB_URL: 'https://tarodan.com.tr' },
+    });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('::error::');
+    expect(r.easCalls('update')).toHaveLength(0);
+  });
+
+  it('production dalına başka kanalın profiliyle yayın yapılmaz', () => {
+    const r = ota('production', 'preview');
+    expect(r.status).not.toBe(0);
+    expect(r.easCalls('update')).toHaveLength(0);
+  });
+
+  it('staging OTA preview env\'iyle geçer', () => {
+    const r = ota('staging', 'preview');
+    expect(r.status).toBe(0);
+    expect(r.easCalls('update')[0]).toContain('EXPO_PUBLIC_API_URL=https://staging.tarodan.com.tr/api');
+  });
+
+  it('fingerprint de boş env ile hesaplanmaz (yanlış runtime → gereksiz build)', () => {
+    const r = plan('staging', { easJson: withEnv('staging', { EXPO_PUBLIC_ENVIRONMENT: undefined }) });
+    expect(r.status).not.toBe(0);
+    expect(r.log.some((l) => l.includes('fingerprint:generate'))).toBe(false);
   });
 });
