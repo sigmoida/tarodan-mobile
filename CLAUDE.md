@@ -1,15 +1,21 @@
 # Mobile — UI & Architecture Principles
 
-Guidance for building the `apps/mobile` app (Expo + expo-router) — the native
+Guidance for building this app (Expo + expo-router, repo root) — the native
 marketplace client. Read this before adding routes, screens, components, or
-hooks. It is the **native mirror** of `apps/web/CLAUDE.md`: same "thin screens,
-logic in hooks", same single server-state, same design-token and DRY discipline —
-adapted from Next.js App Router to expo-router and from `@tarodan/ui` to
-`@tarodan/ui-native`. When a rule isn't native-specific, it means "same as web".
+hooks. It is the **native mirror** of the web app's `apps/web/CLAUDE.md` (in the
+separate `tarodan-app` repo): same "thin screens, logic in hooks", same single
+server-state, same design-token and DRY discipline — adapted from Next.js App
+Router to expo-router and from `@tarodan/ui` to `@tarodan/ui-native`. When a rule
+isn't native-specific, it means "same as web".
+
+**Visual reference = the web app at phone width (< 640px).** Sizes, colour roles,
+copy, ordering and states come from there (§14). Native-only deviations are
+limited to platform idioms: bottom tab bar, native stack + back arrow, bottom
+sheets, infinite scroll, pull-to-refresh, safe areas.
 
 Web → mobile mapping:
 
-| Web (`apps/web`)                     | Mobile (`apps/mobile`)                       |
+| Web (`tarodan-app/apps/web`)         | Mobile (this repo)                           |
 | ------------------------------------ | -------------------------------------------- |
 | `@tarodan/ui`                        | `@/ui` (vendored `@tarodan/ui-native`)       |
 | `@tarodan/ui/form` (RHF+zod)         | `@/ui/form` (vendored; `useZodForm`)         |
@@ -54,9 +60,16 @@ const s = StyleSheet.create({
   exact names in `src/theme/` before using one you haven't seen in surrounding code.
 - **No hardcoded hex / rgba** in screens or components. Need a translucent
   overlay? Use `theme.colors.overlay.*`, not a raw `rgba(...)`.
-- **`src/theme/colors.ts` (`TarodanColors`) is legacy and banned** — it is a
-  hardcoded hex palette that predates design tokens. Do not import it. Migrate any
-  remaining importer to `theme.colors.*`.
+- The old hardcoded `TarodanColors` palette is **gone** (`src/theme/catalog.ts`
+  now only holds data constants). `src/theme/colors.ts` is the raw token source —
+  screens read it through `theme.colors.*` from `@/ui`, never by importing the
+  file or re-declaring a hex.
+- **Role tokens live in `src/theme/roles.ts`** (re-exported as `theme.*`): `iconSize`
+  (16/20/24), `controlHeight` (32/40/48/56), `minTouchTarget` (44), `radiusRole`
+  (product card 4; card/section/button/input/badge 6; modal 8; chip/avatar full),
+  `priceColor`, `counterBadgeColor` (danger-500), `theme.shadow`, `theme.duration`
+  (150/250/400). Use a role, not a raw number (`fontSize: 13`, `borderRadius: 12`
+  are off-scale and lint-warned).
 
 ## 3. One screen = one concern (route groups)
 
@@ -270,8 +283,59 @@ clever re-decomposition of the logic itself.
 
 ## 13. Verification
 
-- `npx tsc --noEmit` introduces **no new errors** beyond the tracked baseline.
-- `pnpm --filter @tarodan/mobile lint` clean — no hardcoded hex/rgba, no
-  `src/theme/colors` import, no raw manual forms where `useZodForm` fits.
-- `pnpm --filter @tarodan/mobile test` green for touched routes.
+Run from the repo root (this is a standalone repo — no `pnpm --filter`):
+
+- `npx tsc --noEmit` — 0 errors.
+- `pnpm lint` — 0 errors (hex/rgba, raw manual forms where `useZodForm` fits, …).
+  Design-discipline rules (§14) are currently **warnings**; do not add new ones.
+- `pnpm test --maxWorkers=2 <paths>` green for touched routes/modules. Run only the
+  relevant tests (16 GB machines, parallel agents); the full suite runs at the end/CI.
 - Exercise the changed flow in the app (Metro) — behavior unchanged.
+
+## 14. Design discipline (web at phone width is the reference)
+
+Binding for every screen and component. Mostly enforced by lint (`.eslintrc.cjs`,
+local rules in `eslint-plugin-tarodan/`) — today as **warnings**; wave 2 clears them
+and turns them into **errors**, so write new code warning-free.
+
+- **Shells are mandatory.** Tab roots use `AppShell` (`@/components/shell/AppShell` — orange
+  primary-500 brand bar, StatusBar goes light while focused). Stack screens use
+  `PageShell` (`@/components/common/PageShell` — white top bar with back arrow,
+  title, optional right action, optional fixed bottom bar, keyboard + safe area, and
+  `loading` / `empty` / `error` + `onRetry` states). Inside content use `PageHeader`
+  for the page title band and `SectionCard` (+ `SectionCardAction` "Tümünü gör ›") for
+  sections. Don't hand-roll a header or a bordered section. Reference screens to copy:
+  `app/(tabs)/messages` (tab root), `app/settings/addresses` (list),
+  `app/settings/edit-profile` (form). `/tasarim` is the dev/staging component showcase.
+- **Top bar is white.** `ScreenHeader` is a white bar; right-side icons/text must be
+  heading colour — use `TopBarAction` (never `colors.white` / `variant="primary"`).
+  Screens that still draw their own orange header (home, search, profile, message
+  thread, product top bar, listing form, …) are being moved onto the shells; don't
+  add new ones.
+- **Icons carry function only:** back, close, search, cart, favourite, share, menu,
+  filter, status icons, and icons the web shows in the same place. Decorative icons
+  (in titles, list-row leading, inside buttons, section heads) are removed; an icon
+  the web doesn't have is removed by default.
+- **Feedback:** info/success → `toast` / `toast.success` (`@/ui`, web react-hot-toast
+  equivalent). Anything that needs confirmation, or an error the user must act on →
+  `appAlert` dialog. (A toast sits under an open native Modal — close the modal first.)
+- **Typography:** Noto Sans 400/500/600/700, same as web. The weight→font-file
+  mapping and the -0.01em body letter-spacing live in **one place**,
+  `src/theme/typography.ts` (`brandFontStyle`); loading is `useFonts` in
+  `app/_layout.tsx`. Never set `fontFamily` per screen. Use `Text` variants; `RawText`
+  is a **temporary** drop-in for legacy raw RN `Text` — don't use it in new code.
+- **No raw RN `Text` / `TouchableOpacity` / `Modal`** (import from `@/ui`), no raw
+  `TextInput` (use `Input`), no off-scale numeric `fontSize` / `fontWeight` /
+  `borderRadius` / `lineHeight` in `StyleSheet` (use `theme.typography` / `radiusRole`).
+- **Price:** only `formatPrice` (`src/utils/format.ts`) or the `ProductPrice` component
+  (`@/components/product`) → "1.234,50 TL". Never a `₺` literal; a discounted price
+  shows the old one struck through.
+- **Status:** colour + label only from the web-identical maps in `src/lib/shared`
+  (`status-configs.ts`, `useStatusConfig`). Never a local status map in a screen.
+- **Tap targets ≥ 44pt** — visuals may stay at the web size, close the gap with
+  `hitSlop` (Button/IconButton/Chip already do).
+- **Loading:** list and card screens use `Skeleton*` (web-like); a full-screen
+  spinner only for the very first load.
+- **Copy:** same i18n key, same value as web. New keys go into both `tr` and `en`
+  (prefer the web's key name and text), then `node scripts/gen-keys.mjs`; don't
+  rewrite existing catalog values as a side effect of a UI change.
