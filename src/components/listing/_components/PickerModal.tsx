@@ -1,14 +1,13 @@
 import React from 'react';
 import {
   View,
-  TextInput,
   TouchableOpacity,
   ActivityIndicator,
   Modal,
   FlatList,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { theme, RawText } from '@/ui';
+import { theme, RawText, RawTextInput } from '@/ui';
 
 import { styles } from '../_lib/styles';
 
@@ -70,7 +69,7 @@ export function PickerModal({
           </View>
 
           {onSearchChange !== undefined && (
-            <TextInput
+            <RawTextInput
               style={styles.modalSearch}
               placeholder={t('common.searchPlaceholder')}
               placeholderTextColor={colors.text.subtle}

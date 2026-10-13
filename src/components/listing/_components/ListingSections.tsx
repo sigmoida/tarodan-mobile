@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import {
   View,
   ScrollView,
-  TextInput,
   TouchableOpacity,
   Image,
   ActivityIndicator,
@@ -11,7 +10,7 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { theme, DateField, RawText } from '@/ui';
+import { theme, DateField, RawText, RawTextInput } from '@/ui';
 import UpgradeCta from '@/components/UpgradeCta';
 import { ListingRemovalModal } from '../ListingRemovalModal';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
@@ -114,7 +113,7 @@ export function ListingHeaderBanners({ f }: SectionProps) {
         <View style={[styles.card, styles.reactivateCard]}>
           <RawText style={styles.reactivateTitle}>{t('listing.soldTitle')}</RawText>
           <RawText style={styles.hint}>{t('listing.reactivateHint')}</RawText>
-          <TextInput
+          <RawTextInput
             style={[styles.input, { marginTop: theme.spacing[2.5] }]}
             value={f.reactivateQuantity}
             onChangeText={f.setReactivateQuantity}
@@ -210,7 +209,7 @@ export function ListingBasicInfoSection({ f }: SectionProps) {
       <RawText style={styles.label}>
         {t('common.title')} <RawText style={styles.required}>*</RawText>
       </RawText>
-      <TextInput
+      <RawTextInput
         style={styles.input}
         value={f.title}
         onChangeText={f.setTitle}
@@ -223,7 +222,7 @@ export function ListingBasicInfoSection({ f }: SectionProps) {
       <RawText style={[styles.label, { marginTop: theme.spacing[4] }]}>
         {t('common.description')} <RawText style={styles.required}>*</RawText>
       </RawText>
-      <TextInput
+      <RawTextInput
         style={[styles.input, styles.textArea]}
         value={f.description}
         onChangeText={f.setDescription}
@@ -443,7 +442,7 @@ export function ListingDetailsSection({ f }: SectionProps) {
       ) : null}
 
       <RawText style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.modelCodeLabel')}</RawText>
-      <TextInput
+      <RawTextInput
         style={styles.input}
         value={f.modelCode}
         onChangeText={f.setModelCode}
@@ -541,7 +540,7 @@ export function ListingOptionsSection({ f }: SectionProps) {
       {f.isSet && (
         <View style={{ marginTop: theme.spacing[3] }}>
           <RawText style={styles.label}>{t('product.setPieceCount')}</RawText>
-          <TextInput
+          <RawTextInput
             style={styles.input}
             value={f.bundleSize}
             onChangeText={(v) => f.setBundleSize(v.replace(/[^0-9]/g, ''))}
@@ -609,7 +608,7 @@ export function ListingPricingSection({ f }: SectionProps) {
       <RawText style={styles.label}>
         {t('listing.priceFieldLabel')} <RawText style={styles.required}>*</RawText>
       </RawText>
-      <TextInput
+      <RawTextInput
         style={styles.input}
         value={f.price}
         onChangeText={f.setPrice}
@@ -619,7 +618,7 @@ export function ListingPricingSection({ f }: SectionProps) {
       />
 
       <RawText style={[styles.label, { marginTop: theme.spacing[4] }]}>{t('product.stockQuantity')}</RawText>
-      <TextInput
+      <RawTextInput
         style={styles.input}
         value={f.quantity}
         onChangeText={f.setQuantity}
@@ -645,7 +644,7 @@ export function ListingPricingSection({ f }: SectionProps) {
           düzenlemeden indirim eklemek zorunda kalıyordu. */}
       <View style={styles.discountBox}>
           <RawText style={styles.label}>{t('product.discountedPrice')} (TL)</RawText>
-          <TextInput
+          <RawTextInput
             style={styles.input}
             value={f.salePrice}
             onChangeText={f.setSalePrice}

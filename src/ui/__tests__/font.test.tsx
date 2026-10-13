@@ -2,7 +2,8 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import { render, screen } from '@testing-library/react-native';
 import { brandFontStyle, bodyLetterSpacing, normalizeFontWeight } from '@/theme';
-import { BrandFontProvider, RawText, Text } from '@/ui';
+import { TextInput } from 'react-native';
+import { BrandFontProvider, RawText, RawTextInput, Text } from '@/ui';
 
 const styleOf = (text: string) => StyleSheet.flatten(screen.getByText(text).props.style);
 
@@ -89,5 +90,34 @@ describe('Text / RawText marka fontu', () => {
     // iç içe metin ebeveynin italiğini miras alır → o da marka ailesine geçmez
     expect(styleOf('iç').fontFamily).toBeUndefined();
     expect(styleOf('Eğik2').fontFamily).toBeUndefined();
+  });
+});
+
+describe('RawTextInput marka fontu', () => {
+  const inputStyle = () => StyleSheet.flatten(screen.UNSAFE_getByType(TextInput).props.style);
+
+  it('font hazırken ağırlık dosyası + harf aralığı uygulanır', () => {
+    render(
+      <BrandFontProvider ready>
+        <RawTextInput style={{ fontSize: 16, fontWeight: '600' }} />
+      </BrandFontProvider>,
+    );
+    expect(inputStyle()).toMatchObject({
+      fontFamily: 'NotoSans_600SemiBold',
+      fontWeight: 'normal',
+      letterSpacing: -0.16,
+    });
+  });
+
+  it('sağlayıcı yokken ve kendi ailesi varken stil değişmez', () => {
+    const { unmount } = render(<RawTextInput style={{ fontSize: 16 }} />);
+    expect(inputStyle().fontFamily).toBeUndefined();
+    unmount();
+    render(
+      <BrandFontProvider ready>
+        <RawTextInput style={{ fontFamily: 'Courier' }} />
+      </BrandFontProvider>,
+    );
+    expect(inputStyle().fontFamily).toBe('Courier');
   });
 });

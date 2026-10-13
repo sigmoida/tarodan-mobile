@@ -23,6 +23,7 @@ export {
 	type TextVariant,
 	type TextTone,
 } from './components/Text';
+export { RawTextInput } from './components/RawTextInput';
 export { BrandFontProvider, useBrandFont } from './lib/font';
 export { Stack, VStack, HStack, type StackProps } from './components/Stack';
 export {

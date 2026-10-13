@@ -76,10 +76,10 @@ const DESIGN_WARNINGS = {
       paths: [
         {
           name: 'react-native',
-          importNames: ['Text', 'TouchableOpacity', 'Modal'],
+          importNames: ['Text', 'TextInput', 'TouchableOpacity', 'Modal'],
           allowTypeImports: true,
           message:
-            "'@/ui' kullan: Text (variant/tone) ya da RawText; TouchableOpacity yerine Button/IconButton/Pressable; Modal yerine @/ui Modal.",
+            "'@/ui' kullan: Text (variant/tone) ya da RawText; TextInput yerine Input / RawTextInput (marka fontu); TouchableOpacity yerine Button/IconButton/Pressable; Modal yerine @/ui Modal.",
         },
       ],
     },

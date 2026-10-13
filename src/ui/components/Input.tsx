@@ -3,7 +3,6 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   Pressable,
   StyleSheet,
-  TextInput,
   View,
   type StyleProp,
   type TextInputProps,
@@ -11,9 +10,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { brandFontStyle } from '@/theme';
 import { theme } from '../lib/theme';
-import { useBrandFont } from '../lib/font';
+import { RawTextInput } from './RawTextInput';
 import { FieldMessage, Label } from './Label';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -86,7 +84,6 @@ export const Input: React.FC<InputProps> = ({
   ...rest
 }) => {
   const { t } = useTranslation();
-  const brandFont = useBrandFont();
   const [focused, setFocused] = useState(false);
   const [passwordHidden, setPasswordHidden] = useState(true);
   const ss = inputSizeStyle[inputSize];
@@ -121,13 +118,6 @@ export const Input: React.FC<InputProps> = ({
     ) : null);
 
   const effectiveSecure = secureTextEntry ? passwordHidden : false;
-  const flatInput = StyleSheet.flatten(inputStyle) ?? {};
-  const fontStyle = brandFontStyle(
-    brandFont,
-    flatInput.fontWeight,
-    flatInput.fontFamily,
-    flatInput.fontStyle,
-  );
 
   return (
     <View style={[styles.container, containerStyle, style as StyleProp<ViewStyle>]}>
@@ -144,13 +134,12 @@ export const Input: React.FC<InputProps> = ({
         ]}
       >
         {resolvedLeftIcon && <View style={styles.iconLeft}>{resolvedLeftIcon}</View>}
-        <TextInput
+        <RawTextInput
           style={[
             styles.input,
             { fontSize: ss.font, color: colors.text.body },
             multiline ? styles.inputMultiline : null,
             inputStyle,
-            fontStyle,
           ]}
           multiline={multiline}
           editable={editable}
