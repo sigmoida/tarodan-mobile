@@ -110,7 +110,11 @@ export const Badge: React.FC<BadgeProps> = ({
       style={[styles.base, style]}
       {...rest}
     >
-      <RawText numberOfLines={1} style={[pillTextStyle(size, vs.text), styles.label, textStyle]}>
+      <RawText
+        numberOfLines={1}
+        maxFontSizeMultiplier={theme.typography.maxFontScale.control}
+        style={[pillTextStyle(size, vs.text), styles.label, textStyle]}
+      >
         {content}
       </RawText>
     </Pill>

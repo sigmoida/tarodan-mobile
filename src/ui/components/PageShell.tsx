@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   KeyboardAvoidingView,
-  Platform,
   RefreshControl,
   StyleSheet,
   View,
@@ -17,6 +16,7 @@ import {
   type PageScrollValue,
 } from '../lib/pageScroll';
 import { theme } from '../lib/theme';
+import { useKeyboardAvoid } from '../lib/keyboard';
 import { ScreenHeader, type ScreenHeaderProps } from './ScreenHeader';
 import { EmptyState, type EmptyStateProps } from './EmptyState';
 import { ErrorState } from './ErrorState';
@@ -67,7 +67,11 @@ export interface PageShellProps
    * `scroll` modunda yok sayılır (PageShell kendi ScrollView'ını bağlar).
    */
   scroll?: PageScrollValue;
-  /** Klavye açılınca gövde ve alt bar yukarı kaçar (varsayılan açık). */
+  /**
+   * Klavye açılınca gövde ve alt bar yukarı kaçar (varsayılan açık). iOS `KeyboardAvoidingView`
+   * (`padding`), Android ölçülen klavye örtüşmesi kadar alt dolgu (`useKeyboardAvoid`). Klavye
+   * açıkken alt çubuk güvenli alan boşluğunu eklemez (klavyenin hemen üstünde durur).
+   */
   keyboardAware?: boolean;
   /** Yükleniyor: varsayılan Skeleton (liste/kart), `spinner` yalnız ilk açılışta. */
   loading?: boolean;
@@ -133,6 +137,7 @@ export const PageShell: React.FC<PageShellProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const pad = padding === false ? 0 : spacing[padding];
+  const keyboard = useKeyboardAvoid(keyboardAware);
 
   // Özel `header` akışta çizilir (ör. sohbet: opak, floating={false}); `false` = bar yok; aksi halde YÜZEN bar.
   const customHeader = header !== undefined && header !== false;
@@ -219,13 +224,10 @@ export const PageShell: React.FC<PageShellProps> = ({
     body = <View style={[styles.fill, contentStyle]}>{children}</View>;
   }
 
-  // Alt çubuk varken toast onun üstünde dursun (kök toast katmanına bildirilir; iOS'ta çubuk
-  // KeyboardAvoidingView ile klavyenin üstüne çıkar, toast da onunla).
+  // Alt çubuk varken toast onun üstünde dursun (kök toast katmanına bildirilir; klavye kaçışı açıkken
+  // çubuk iki platformda da klavyenin üstüne çıkar, toast da onunla).
   const [footerHeight, setFooterHeight] = React.useState(0);
-  useToastBottomInset(
-    showFooter && footerHeight > 0 ? footerHeight : null,
-    keyboardAware && Platform.OS === 'ios',
-  );
+  useToastBottomInset(showFooter && footerHeight > 0 ? footerHeight : null, keyboardAware);
 
   // Bar altından kaymayan gövde (yükleniyor / boş / hata / bağlanmamış liste) bar kadar aşağıdan başlar.
   const content = (
@@ -233,7 +235,9 @@ export const PageShell: React.FC<PageShellProps> = ({
       <View style={[styles.fill, hasBar && !underBar && { paddingTop: barInset }]}>{body}</View>
       {showFooter ? (
         <View
-          style={[styles.footer, { paddingBottom: spacing[3] + insets.bottom }]}
+          // Klavye açıkken çubuk klavyenin üstünde: güvenli alan (home indicator / gezinti çubuğu)
+          // klavyenin altında kalır, eklenirse klavye üstünde boş şerit olur.
+          style={[styles.footer, { paddingBottom: spacing[3] + (keyboard.keyboardOpen ? 0 : insets.bottom) }]}
           onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
           testID="page-shell-footer"
         >
@@ -247,13 +251,18 @@ export const PageShell: React.FC<PageShellProps> = ({
     <View style={styles.root} testID={testID}>
       {customHeader ? topBar : null}
       <ShellScrollProvider value={shell.ctx}>
-        {keyboardAware ? (
-          <KeyboardAvoidingView
-            style={styles.fill}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          >
+        {keyboardAware && keyboard.behavior ? (
+          <KeyboardAvoidingView style={styles.fill} behavior={keyboard.behavior}>
             {content}
           </KeyboardAvoidingView>
+        ) : keyboardAware ? (
+          <View
+            style={[styles.fill, { paddingBottom: keyboard.bottomInset }]}
+            onLayout={keyboard.onLayout}
+            testID="page-shell-keyboard"
+          >
+            {content}
+          </View>
         ) : (
           content
         )}

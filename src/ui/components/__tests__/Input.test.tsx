@@ -13,12 +13,13 @@ const fieldOf = () => {
 };
 
 describe('Input (web @tarodan/ui)', () => {
-  it('md: h40, metin base, rounded-lg, border-border', () => {
+  it('md: asgari h40, metin base, rounded-lg, border-border', () => {
     render(<Input placeholder="Ad" testID="in" />);
     const field = { props: { style: fieldOf() } };
     expect(StyleSheet.flatten(screen.getByTestId('in').props.style).fontSize).toBe(theme.typography.fontSize.base);
     expect(StyleSheet.flatten(field?.props.style)).toMatchObject({
-      height: 40,
+      // Sabit yükseklik yerine asgari (büyük yazı ölçeğinde metin kırpılmaz).
+      minHeight: 40,
       borderRadius: theme.radius.lg,
       borderColor: colors.border.DEFAULT,
     });

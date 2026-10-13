@@ -163,6 +163,7 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
                     numberOfLines={1}
                     adjustsFontSizeToFit
                     minimumFontScale={0.85}
+                    maxFontSizeMultiplier={theme.typography.maxFontScale.control}
                     style={styles.label}
                   >
                     {label}
