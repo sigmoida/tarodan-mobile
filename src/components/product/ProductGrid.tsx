@@ -1,5 +1,4 @@
 import React, { useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
 import { FlatList, RefreshControl, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import { EmptyState, ErrorState, Spinner, pageListContentStyle, theme } from '@/ui';
 import { ProductCard, type ProductCardLayout, type ProductCardProduct } from './ProductCard';
@@ -7,7 +6,11 @@ import { PRODUCT_GRID_GAP, ProductGridSkeleton, ProductListEmpty, useProductCell
 
 const { colors } = theme;
 
-interface ProductGridProps {
+type ProductGridProps = ProductGridBaseProps &
+  // Özel boş durum: başlık verilirse alt başlık da ZORUNLU (EmptyState kuralı), bağlama uygun metinle.
+  ({ emptyTitle?: undefined; emptySubtitle?: undefined } | { emptyTitle: string; emptySubtitle: string });
+
+interface ProductGridBaseProps {
   items: ProductCardProduct[];
   layout?: ProductCardLayout;
   /** İlk yükleme: iskelet çizer (tam ekran spinner değil). */
@@ -25,9 +28,6 @@ interface ProductGridProps {
   /** Boş durum: filtre uygulanmışsa "filtrelerinizi değiştirin" + temizle. */
   filtered?: boolean;
   onClearFilters?: () => void;
-  /** Boş durumu özelleştirir (ör. üreticinin ürünü yok). */
-  emptyTitle?: string;
-  emptySubtitle?: string;
   onItemPress?: (product: ProductCardProduct) => void;
   showMeta?: boolean;
   testID?: string;
@@ -58,7 +58,6 @@ export function ProductGrid({
   showMeta = true,
   testID,
 }: ProductGridProps) {
-  const { t } = useTranslation();
   const columns = layout === 'list' ? 1 : 2;
   // Tek tük kalan son kart komşusundan geniş olmasın: hücre genişliği açık verilir.
   const cellWidth = useProductCellWidth();
@@ -82,7 +81,7 @@ export function ProductGrid({
   ) : loading ? (
     <ProductGridSkeleton layout={layout} />
   ) : emptyTitle ? (
-    <EmptyState icon="magnifying-glass" title={emptyTitle} subtitle={emptySubtitle ?? t('search.tryDifferent')} />
+    <EmptyState icon="magnifying-glass" title={emptyTitle} subtitle={emptySubtitle} />
   ) : (
     <ProductListEmpty filtered={filtered} onClearFilters={onClearFilters} />
   );

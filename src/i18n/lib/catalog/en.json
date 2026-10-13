@@ -8823,6 +8823,7 @@
     }
   },
   "emptyState": {
+    "optionsHint": "New options will appear here once they are added to the list.",
     "statsHint": "Statistics will appear here as data accumulates.",
     "tradeEligibleHint": "Products eligible for trade will appear here.",
     "tryLaterHint": "Please try again later.",

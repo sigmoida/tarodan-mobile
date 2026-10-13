@@ -8823,6 +8823,7 @@
     }
   },
   "emptyState": {
+    "optionsHint": "Listeye yeni seçenekler eklendiğinde burada görünecek.",
     "statsHint": "İstatistikler veri oluştukça burada görünecek.",
     "tradeEligibleHint": "Takasa uygun ürünler eklendiğinde burada görünecek.",
     "tryLaterHint": "Lütfen daha sonra tekrar deneyin.",
