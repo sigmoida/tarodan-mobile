@@ -14,7 +14,7 @@ import {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { theme } from '@/ui';
-import { reduceTabBarScroll, shouldExpandOnMeasure } from './tabBarScroll';
+import { normalizeScrollMetrics, reduceTabBarScroll, shouldExpandOnMeasure } from './tabBarScroll';
 
 /**
  * Alt menü daralma sinyalinin TEK kaynağı: tab layout'ta bir paylaşılan değer (`collapsed`);
@@ -122,11 +122,19 @@ export function useTabBarScrollHandler(onOffset?: (y: number) => void) {
 
   const onScroll = useAnimatedScrollHandler({
     onScroll: (e) => {
-      const maxY = e.contentSize.height - e.layoutMeasurement.height;
+      // iOS `contentInset` (ör. ana sayfanın yüzen üst barı) varken dinlenme ofseti -inset'tir:
+      // eşik mantığı inset'ten bağımsız olsun diye ofset/aralık inset'le normalize edilir.
+      const m = normalizeScrollMetrics(
+        e.contentOffset.y,
+        e.contentSize.height,
+        e.layoutMeasurement.height,
+        e.contentInset?.top ?? 0,
+        e.contentInset?.bottom ?? 0,
+      );
       const next = reduceTabBarScroll(
         { collapsed: collapsed.value, anchor: anchor.value, lastY: lastY.value },
-        e.contentOffset.y,
-        maxY,
+        m.y,
+        m.maxY,
       );
       anchor.value = next.anchor;
       lastY.value = next.lastY;

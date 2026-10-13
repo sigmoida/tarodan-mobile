@@ -86,3 +86,20 @@ export function pillContentOpacity(glass: boolean, progress: number): number {
   'worklet';
   return glass ? 1 - progress : 1;
 }
+
+/**
+ * Ham kaydırma ölçülerini `contentInset`'ten bağımsız (0 = içerik başı) ofset + aralığa çevirir.
+ * iOS'ta `contentInset.top` (ana sayfanın yüzen üst barı) varken dinlenme ofseti `-inset`tir ve
+ * `contentSize` inset'i içermez; Android'de aynı boşluk içerik `paddingTop`udur (zaten ofset 0'dan
+ * başlar, contentSize'a dahil). Normalizasyonla iki platform da aynı eşiklere uyar.
+ */
+export function normalizeScrollMetrics(
+  offsetY: number,
+  contentH: number,
+  layoutH: number,
+  insetTop = 0,
+  insetBottom = 0,
+): { y: number; maxY: number } {
+  'worklet';
+  return { y: offsetY + insetTop, maxY: contentH + insetTop + insetBottom - layoutH };
+}

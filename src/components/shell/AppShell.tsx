@@ -1,14 +1,10 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import * as Router from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { HeaderIconButton, ScreenHeader, theme, useHeaderTopInset } from '@/ui';
-import { SearchField } from './SearchField';
-import { useSideMenu } from './SideMenuContext';
-import { useShellCounts } from './useShellCounts';
+import { ScreenHeader, theme } from '@/ui';
+import { FloatingSearchBar } from './FloatingSearchBar';
 import { APP_SHELL_BAR_HEIGHT } from './tabBarLayout';
 
-const { colors, spacing } = theme;
+const { colors } = theme;
 
 export interface AppShellProps {
   /**
@@ -27,36 +23,15 @@ export interface AppShellProps {
   testID?: string;
 }
 
-/** Arama alanına çift dokunuşta iki /search açılmasın: bu süre içinde ikinci dokunuş yok sayılır. */
-const SEARCH_TAP_LOCK_MS = 800;
-
-/** Arama ekranını açar; kısa kilit çift dokunuşu tek açılışa indirir. */
-function useOpenSearch(): () => void {
-  const locked = useRef(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(
-    () => () => {
-      if (timer.current) clearTimeout(timer.current);
-    },
-    [],
-  );
-  return useCallback(() => {
-    if (locked.current) return;
-    locked.current = true;
-    timer.current = setTimeout(() => {
-      locked.current = false;
-    }, SEARCH_TAP_LOCK_MS);
-    Router.router.push('/search?focus=1');
-  }, []);
-}
-
 /**
- * Sekme köklerinin kabuğu. Ana Sayfa (`variant="search"`): tek satır [hamburger][arama alanı][sepet]
- * (bildirim alt menüde; hamburger yan menüyü açar), logo yok, ikonlar zeminsiz, alt menü pasif ikonuyla aynı gri (`theme.inactiveIconColor`, `HeaderIconButton`). Diğer sekme kökleri
- * (`variant="title"`): `ScreenHeader` ile AYNI bar (geri oku yok → boş kutu çizilmez, başlık
- * sayfa kenar boşluğundan başlar), isteğe bağlı sağ aksiyon. İki varyantta da beyaz zemin + alt çizgi
- * ve aynı yükseklik (`theme.headerHeight`). Bu bilinçli bir web sapmasıdır (web telefonda logo +
- * ikincil arama satırı). StatusBar koyu içerik (kök layout varsayılanı) — kabuk StatusBar'a dokunmaz.
+ * Sekme köklerinin kabuğu. Ana Sayfa (`variant="search"`): içeriğin ÜSTÜNDE yüzen bar
+ * (`FloatingSearchBar`): [☰ cam daire][arama alanı][sepet cam daire]; kaydırınca arama alanı yukarı +
+ * sola kayıp kaybolur, bar zemini solar, yalnız iki cam buton kalır (alt menüyle aynı daralma sinyali).
+ * Liste, `useFloatingBarInset` + `floatingBarScrollProps` ile üst boşluk bırakmalıdır. Diğer sekme
+ * kökleri (`variant="title"`): `ScreenHeader` ile AYNI bar (geri oku yok → boş kutu çizilmez,
+ * başlık sayfa kenar boşluğundan başlar), isteğe bağlı sağ aksiyon; beyaz zemin + alt çizgi, aynı
+ * yükseklik (`theme.headerHeight`). StatusBar koyu içerik (kök layout varsayılanı) — kabuk
+ * StatusBar'a dokunmaz.
  */
 export const AppShell: React.FC<AppShellProps> = ({
   variant = 'search',
@@ -66,12 +41,6 @@ export const AppShell: React.FC<AppShellProps> = ({
   contentStyle,
   testID,
 }) => {
-  const topInset = useHeaderTopInset();
-  const { t } = useTranslation();
-  const counts = useShellCounts();
-  const openSearch = useOpenSearch();
-  const { open: openMenu } = useSideMenu();
-
   if (variant === 'title') {
     return (
       <View style={styles.root} testID={testID}>
@@ -87,32 +56,12 @@ export const AppShell: React.FC<AppShellProps> = ({
     );
   }
 
+  // Ana Sayfa: içerik tam yükseklikte, bar ÜSTÜNDE yüzer (içerik altından kayar). Liste üst boşluğunu
+  // `useFloatingBarInset` + `floatingBarScrollProps` ile kendisi verir.
   return (
     <View style={styles.root} testID={testID}>
-      <View style={[styles.bar, { paddingTop: topInset }]} testID="app-shell-bar">
-        <View style={styles.row}>
-          <HeaderIconButton
-            tone="muted"
-            icon="bars-3"
-            label={t('nav.menu')}
-            testID="home-menu-button"
-            onPress={openMenu}
-          />
-          <SearchField
-            testID="home-search-input"
-            onPress={openSearch}
-          />
-          <HeaderIconButton
-            tone="muted"
-            icon="shopping-cart"
-            label={t('nav.cart')}
-            count={counts.cartCount}
-            testID="app-shell-cart"
-            onPress={() => Router.router.push('/cart')}
-          />
-        </View>
-      </View>
       <View style={[styles.content, contentStyle]}>{children}</View>
+      <FloatingSearchBar />
     </View>
   );
 };
@@ -124,24 +73,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.surface.DEFAULT,
   },
-  bar: {
-    // ScreenHeader ile aynı kural: beyaz (surface.elevated) zemin + 1px alt çizgi, gölge yok.
-    backgroundColor: colors.surface.elevated,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.DEFAULT,
-    // İkon kutusu 44pt, görsel 24: iki kenarda da ikonun görünür kenarı 16pt gutter'a oturur.
-    paddingLeft: spacing[1.5],
-    paddingRight: spacing[1.5],
-    zIndex: 1,
-  },
   titleBar: {
     zIndex: 1,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: APP_SHELL_BAR_HEIGHT,
-    gap: spacing[1],
   },
   content: {
     flex: 1,
