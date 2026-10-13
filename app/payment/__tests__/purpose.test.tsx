@@ -129,6 +129,24 @@ it('config alınamazsa güvenli varsayılan: kart saklama kapalı', async () => 
   expect(await formText()).toBe('purpose:checkout storage:false');
 });
 
+it('config ve durum AYNI ANDA istenir (config beklenmez)', async () => {
+  let releaseConfig: (v: unknown) => void = () => {};
+  getConfigMock.mockReturnValue(new Promise((r) => (releaseConfig = r)));
+  renderWithProviders(<PaymentScreen />);
+  // Config henüz dönmedi ama durum isteği çoktan gitti.
+  await waitFor(() => expect(getStatusLightMock).toHaveBeenCalledWith('pay-1'));
+  expect(screen.queryByTestId('card-payment-form')).toBeNull();
+  releaseConfig({ data: LIVE });
+  expect(await formText()).toBe('purpose:checkout storage:true');
+});
+
+it('durum hatası config başarılı olsa da hata ekranına düşer', async () => {
+  getStatusLightMock.mockRejectedValue({ response: { status: 500, data: { message: 'boom' } } });
+  renderWithProviders(<PaymentScreen />);
+  expect(await screen.findByText('boom')).toBeOnTheScreen();
+  expect(screen.queryByTestId('card-payment-form')).toBeNull();
+});
+
 it('tamamlanmış üyelik ödemesi (type yok, durum üyelik dedi) → üyelik başarı ekranı', async () => {
   getStatusLightMock.mockResolvedValue({ data: { status: 'completed', orderId: 'order-m', isMembershipOrder: true } });
   renderWithProviders(<PaymentScreen />);

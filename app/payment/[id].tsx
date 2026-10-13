@@ -120,18 +120,17 @@ export default function PaymentScreen() {
     try {
       setState(s => ({ ...s, loading: true, error: null }));
 
-      // Public ödeme yapılandırması (bypass + amaç başına kart saklama).
-      let cfg: PaymentConfig = SAFE_PAYMENT_CONFIG;
-      try {
-        cfg = (await paymentsApi.getConfig()).data ?? SAFE_PAYMENT_CONFIG;
-      } catch {
-        /* config alınamazsa güvenli varsayılan: yalnız yeni-kart, bypass kapalı */
-      }
-
-      // Ödeme durumunu yükle (hedef + tutar + tamamlandı/başarısız kontrolü).
-      const res: any = isGuest
-        ? await paymentsApi.getStatusLightGuest(paymentId)
-        : await paymentsApi.getStatusLight(paymentId);
+      // Public ödeme yapılandırması (bypass + amaç başına kart saklama) ve ödeme
+      // durumu (hedef + tutar + tamamlandı/başarısız) birbirinden bağımsız →
+      // aynı anda. Config hatası güvenli varsayılana düşer (yalnız yeni kart,
+      // bypass kapalı); durum hatası aşağıdaki catch'e gider.
+      const [cfg, res] = await Promise.all([
+        paymentsApi
+          .getConfig()
+          .then((r): PaymentConfig => r.data ?? SAFE_PAYMENT_CONFIG)
+          .catch((): PaymentConfig => SAFE_PAYMENT_CONFIG),
+        isGuest ? paymentsApi.getStatusLightGuest(paymentId) : paymentsApi.getStatusLight(paymentId),
+      ]);
       const data: PaymentStatusLight = res?.data?.data ?? res?.data ?? {};
       const kind = paymentKindOf(params.type, data);
 
