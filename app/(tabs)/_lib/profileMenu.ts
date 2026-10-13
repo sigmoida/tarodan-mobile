@@ -9,6 +9,8 @@ export interface ProfileMenuItem {
   /** Kararlı anahtar (liste key'i). */
   key: string;
   label: string;
+  /** Yan menüde etiketin altında küçük açıklama satırı (opsiyonel; veri yoksa çizilmez). */
+  description?: string;
   to: string;
   testID?: string;
   badgeKey?: ProfileBadgeKey;

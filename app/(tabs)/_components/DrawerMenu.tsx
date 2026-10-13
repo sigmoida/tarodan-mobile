@@ -13,9 +13,9 @@ import {
   type ProfileBadgeKey,
   type ProfileMenuGroup,
 } from '../_lib/profileMenu';
-import { DrawerMenuRow } from './DrawerMenuRow';
+import { DRAWER_ROW_HEIGHT, DrawerMenuRow } from './DrawerMenuRow';
 
-const { spacing, iconSize, minTouchTarget, inactiveIconColor } = theme;
+const { colors, spacing, iconSize } = theme;
 
 /** Bir grubun açılır-kapanır başlığı + (açıksa) satırları. */
 function DrawerSection({
@@ -39,13 +39,14 @@ function DrawerSection({
         onPress={() => toggle(group.key)}
         style={styles.sectionHeader}
       >
-        <Text variant="label" weight="bold" style={styles.sectionTitle} numberOfLines={1}>
+        <Text variant="h3" weight="bold" style={styles.sectionTitle} numberOfLines={1}>
           {group.title}
         </Text>
+        {/* Reddit: açıkken aşağı, kapalıyken sağ ok. */}
         <Icon
-          name={expanded ? 'chevron-up' : 'chevron-down'}
+          name={expanded ? 'chevron-down' : 'chevron-right'}
           size={iconSize.md}
-          color={inactiveIconColor}
+          color={colors.text.heading}
         />
       </Pressable>
       {expanded
@@ -63,7 +64,7 @@ function DrawerSection({
 }
 
 /**
- * Ana Sayfa yan menüsünün içeriği (`SideMenuHost` içinde). Gruplar `profileMenu.ts`'ten
+ * Ana Sayfa yan menüsünün içeriği (`SideMenuHost` panelinde; başlık/X yok, güvenli alanın hemen altından başlar). Gruplar `profileMenu.ts`'ten
  * (`selectDrawerSections`): üstte sabit Favoriler, altında açılır-kapanır başlıklar. Misafirde
  * üstte Giriş Yap / Kayıt Ol, altında yalnız misafire açık gruplar. Satıra basınca ÖNCE menü
  * kapanır, sonra yönlendirilir.
@@ -116,7 +117,11 @@ export function DrawerMenu() {
       ) : null}
       {sections.map((group, index) => (
         <View key={group.key}>
-          {index > 0 || !isAuthenticated ? <Divider style={styles.divider} /> : null}
+          {index > 0 || !isAuthenticated ? (
+            <View testID="side-menu-divider">
+              <Divider color={colors.border.DEFAULT} />
+            </View>
+          ) : null}
           {group.pinned ? (
             group.items.map((item) => <DrawerMenuRow key={item.key} item={item} onPress={go} />)
           ) : (
@@ -131,9 +136,8 @@ export function DrawerMenu() {
 const styles = StyleSheet.create({
   content: { paddingBottom: spacing[4] },
   guest: { padding: spacing[4], gap: spacing[2] },
-  divider: { marginVertical: spacing[1] },
   sectionHeader: {
-    minHeight: minTouchTarget,
+    minHeight: DRAWER_ROW_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[3],
