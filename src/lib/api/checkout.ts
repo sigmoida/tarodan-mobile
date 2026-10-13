@@ -4,7 +4,9 @@ import { rememberPaymentCapability, withPaymentCapability } from '@/lib/payment/
 
 /**
  * Ödeme başlat + yanıttaki `paymentAccessToken`'ı sakla (web `initiatePayment`).
- * Misafir sonraki public ödeme uçlarında (`X-Payment-Capability`) bununla yetkilenir.
+ * Misafir sonraki public ödeme uçlarında (`X-Payment-Capability`) bununla yetkilenir;
+ * üyede de saklanır (web gibi): oturum ödeme ortasında düşerse durum yoklaması,
+ * verify ve confirm-failed belirteçle çalışmaya devam eder.
  *
  * Depo yazımı beklenmez: bellek kopyası senkron yazılır, sonraki istekler onu
  * okur; AsyncStorage yazımı arkada biter (kullanıcı kart bilgisini girip banka
@@ -59,10 +61,10 @@ export const paymentsApi = {
   getConfig: () =>
     api.get<{ bypassEnabled: boolean; recurringEnabled: boolean }>('/payments/config'),
   initiate: (orderId: string | number, provider: 'paytr' = 'paytr') =>
-    api.post('/payments/initiate', { orderId, provider }),
+    initiatePayment(api.post('/payments/initiate', { orderId, provider })),
   /** Grup ödemesi: tek ödeme checkout grubundaki tüm siparişleri kapsar */
   initiateGroup: (checkoutGroupId: string, provider: 'paytr' = 'paytr') =>
-    api.post('/payments/initiate', { checkoutGroupId, provider }),
+    initiatePayment(api.post('/payments/initiate', { checkoutGroupId, provider })),
   initiateGuest: (orderId: string | number, provider: 'paytr' = 'paytr') =>
     initiatePayment(guestApi.post('/payments/initiate-guest', { orderId, provider })),
   /** Grup ödemesi (misafir) */

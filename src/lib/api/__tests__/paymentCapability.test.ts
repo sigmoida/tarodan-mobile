@@ -83,17 +83,31 @@ it('`{ data: { ... } }` sarmalı yanıtta da belirteç okunur (initiate-guest, t
   expect(guestGet).toHaveBeenCalledWith(`/payments/${PAY}/status-guest`, { headers: CAP });
 });
 
-it('üye yolu etkilenmez: initiate belirteç saklamaz, gövde ve başlıklar boş kalır', async () => {
-  apiPost.mockResolvedValueOnce({ data: { paymentId: PAY, paymentAccessToken: 'member-token' } });
-  await paymentsApi.initiateGroup(GROUP);
+it('üye initiate de belirteci saklar (web gibi): durum, verify ve confirm-failed başlıklı', async () => {
+  apiPost.mockResolvedValueOnce({ data: { paymentId: PAY, paymentAccessToken: 'cap-token' } });
+  const res = await paymentsApi.initiateGroup(GROUP);
   expect(apiPost).toHaveBeenLastCalledWith('/payments/initiate', { checkoutGroupId: GROUP, provider: 'paytr' });
+  expect(res).toEqual({ data: { paymentId: PAY, paymentAccessToken: 'cap-token' } }); // yanıt aynen döner
 
-  await paymentsApi.directForm({ checkoutGroupId: GROUP, saveCard: false });
-  expect(apiPost).toHaveBeenLastCalledWith(
-    '/payments/direct-form',
-    { checkoutGroupId: GROUP, saveCard: false },
-    { headers: {} },
-  );
+  await paymentsApi.getStatusLight(PAY);
+  await paymentsApi.verify(PAY);
+  await paymentsApi.confirmFailed(PAY);
+  expect(apiGet).toHaveBeenLastCalledWith(`/payments/${PAY}/status`, { headers: CAP });
+  expect(apiPost).toHaveBeenCalledWith(`/payments/${PAY}/verify`, {}, { headers: CAP });
+  expect(apiPost).toHaveBeenLastCalledWith(`/payments/${PAY}/confirm-failed`, {}, { headers: CAP });
+});
+
+it('üye initiate (tek sipariş, `{ data }` zarfı) da saklar', async () => {
+  apiPost.mockResolvedValueOnce({ data: { data: { paymentId: PAY, paymentAccessToken: 'cap-token' } } });
+  await paymentsApi.initiate('order-1');
+  expect(apiPost).toHaveBeenLastCalledWith('/payments/initiate', { orderId: 'order-1', provider: 'paytr' });
+  await paymentsApi.getStatusLight(PAY);
+  expect(apiGet).toHaveBeenLastCalledWith(`/payments/${PAY}/status`, { headers: CAP });
+});
+
+it('üye: belirteç dönmezse (eski API) istekler eskisi gibi başlıksız', async () => {
+  apiPost.mockResolvedValueOnce({ data: { paymentId: PAY } });
+  await paymentsApi.initiateGroup(GROUP);
   await paymentsApi.getStatusLight(PAY);
   await paymentsApi.verify(PAY);
   expect(apiGet).toHaveBeenLastCalledWith(`/payments/${PAY}/status`, { headers: {} });
