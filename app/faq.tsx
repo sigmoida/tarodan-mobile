@@ -39,7 +39,8 @@ const buildFaqSections = (t: TFunction, timing: TimingMessageValues): FaqSection
     questions: [
       { q: t("faqShared.howToList.q"), a: t("faqShared.howToList.a") },
       { q: t("faqShared.commissionRate.q"), a: t("faqShared.commissionRate.a") },
-      { q: t("faqShared.payoutTiming.q"), a: t("faqShared.payoutTiming.a") },
+      // Ödeme: teslim + iade penceresi + payout grace (alıcı onayı öne çekmez).
+      { q: t("faqShared.payoutTiming.q"), a: t("faqShared.payoutTiming.a", timing) },
       // iOS: mentions Premium/Pro tiers by name (Apple 3.1.1/3.1.3) — hidden.
       ...(CAN_BUY_DIGITAL
         ? [{ q: t("faqPage.selling.listingLimit.q"), a: t("faqPage.selling.listingLimit.a") }]

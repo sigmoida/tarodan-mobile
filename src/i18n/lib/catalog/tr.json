@@ -3135,7 +3135,7 @@
     },
     "payoutTiming": {
       "q": "Ödememi ne zaman alırım?",
-      "a": "Alıcı ürünü teslim alıp onayladıktan sonra 3 iş günü içinde tanımlı IBAN hesabınıza transfer edilir."
+      "a": "Teslimden sonra alıcının {returnWindowDays} günlük iade süresi başlar. Süre dolduğunda açık bir iade talebi yoksa ödemeniz {payoutGraceDays} gün sonra tanımlı IBAN hesabınıza aktarılır. Alıcının onayı ödemeyi öne çekmez."
     },
     "howTradeWorks": {
       "q": "Takas nasıl çalışır?",

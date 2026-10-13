@@ -46,3 +46,20 @@ it('politika yüklenemezse geri düşüş (14 gün)', async () => {
     await screen.findByText('Ürün teslim tarihinden itibaren 14 gün içinde iade talebi oluşturabilirsiniz.'),
   ).toBeOnTheScreen();
 });
+
+it('satıcı ödeme zamanı: iade penceresi + payout grace (eski "onaydan sonra 3 iş günü" değil)', async () => {
+  policyMock.mockResolvedValue({
+    data: {
+      returnWindowDays: { value: 30, unit: 'days' },
+      payoutGraceDays: { value: 2, unit: 'days' },
+    },
+  });
+  renderWithProviders(<FAQScreen />);
+  fireEvent.press(await screen.findByText('Ödememi ne zaman alırım?'));
+  expect(
+    await screen.findByText(
+      'Teslimden sonra alıcının 30 günlük iade süresi başlar. Süre dolduğunda açık bir iade talebi yoksa ödemeniz 2 gün sonra tanımlı IBAN hesabınıza aktarılır. Alıcının onayı ödemeyi öne çekmez.',
+    ),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText(/3 iş günü/)).toBeNull();
+});

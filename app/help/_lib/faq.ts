@@ -63,7 +63,8 @@ export const buildFaqCategories = (t: TFunction, timing: TimingMessageValues): F
         ? [{ q: t('helpFaq.selling.listingFee.q'), a: t('helpFaq.selling.listingFee.a') }]
         : []),
       { q: t('faqShared.commissionRate.q'), a: t('faqShared.commissionRate.a') },
-      { q: t('faqShared.payoutTiming.q'), a: t('faqShared.payoutTiming.a') },
+      // Ödeme: teslim + iade penceresi + payout grace (alıcı onayı öne çekmez).
+      { q: t('faqShared.payoutTiming.q'), a: t('faqShared.payoutTiming.a', timing) },
     ],
   },
   {

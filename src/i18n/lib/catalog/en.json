@@ -3135,7 +3135,7 @@
     },
     "payoutTiming": {
       "q": "When do I get paid?",
-      "a": "Once the buyer receives and confirms the item, the payment is transferred to your registered IBAN account within 3 business days."
+      "a": "After delivery the buyer has {returnWindowDays, plural, one {# day} other {# days}} to request a refund. Once that window closes with no open refund request, your payment is transferred to your registered IBAN {payoutGraceDays, plural, one {# day} other {# days}} later. Buyer confirmation does not bring the payout forward."
     },
     "howTradeWorks": {
       "q": "How does trading work?",

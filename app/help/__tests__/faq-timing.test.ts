@@ -40,3 +40,18 @@ it('useHelp politikayı GET /timing-rules sorgusundan okur', async () => {
     expect(buying.questions.some((q) => q.a.includes('21 gün içinde'))).toBe(true);
   });
 });
+
+it('satıcı ödeme zamanı politikadan (tr + en çoğul)', async () => {
+  const timing = { ...timingMessageValues(FALLBACK_TIMING_POLICY), returnWindowDays: 21, payoutGraceDays: 1 };
+  const payout = (cats: ReturnType<typeof buildFaqCategories>) =>
+    cats.find((c) => c.id === 'selling')!.questions.find((q) => q.q === i18n.t('faqShared.payoutTiming.q'))!.a;
+  expect(payout(buildFaqCategories(i18n.t, timing))).toContain('21 günlük iade süresi');
+  await i18n.changeLanguage('en');
+  try {
+    const en = payout(buildFaqCategories(i18n.t, timing));
+    expect(en).toContain('the buyer has 21 days to request a refund');
+    expect(en).toContain('IBAN 1 day later');
+  } finally {
+    await i18n.changeLanguage('tr');
+  }
+});
