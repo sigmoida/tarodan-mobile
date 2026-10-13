@@ -93,7 +93,7 @@ describe('checkout-3step', () => {
     it('sepet boşsa boş ekran + Alışverişe Başla butonu', () => {
       seedCart([]);
       renderWithProviders(<CheckoutScreen />);
-      expect(screen.getByText('Sepetiniz Boş')).toBeOnTheScreen();
+      expect(screen.getByText('Sepetiniz boş')).toBeOnTheScreen();
       expect(screen.getByText('Alışverişe Başla')).toBeOnTheScreen();
     });
   });

@@ -120,7 +120,7 @@ export function SearchBars({ f }: { f: SearchController }) {
       {/* Results Count */}
       <View style={styles.resultsCount}>
         <Text style={styles.resultsCountText}>
-          {f.isLoading ? t('search.searching') : t('search.resultsFound', { count: f.total })}
+          {f.isLoading ? t('search.searching') : `${f.total} ${t('search.resultsFound')}`}
         </Text>
       </View>
     </Animated.View>
