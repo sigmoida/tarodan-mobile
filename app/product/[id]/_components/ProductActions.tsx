@@ -144,7 +144,8 @@ export function ProductSecondaryActions({
       />
       <Button
         testID={inCart ? 'product-detail-remove-from-cart-button' : 'product-detail-add-to-cart-button'}
-        variant="outline"
+        // Sepete Ekle varsayılan (primary) düğme; sepetteyse "Sepetten Çıkar" ikincil (outline).
+        variant={inCart ? 'outline' : 'primary'}
         title={inCart ? t('product.removeFromCart') : t('product.addToCart')}
         onPress={onCartToggle}
         disabled={!active}

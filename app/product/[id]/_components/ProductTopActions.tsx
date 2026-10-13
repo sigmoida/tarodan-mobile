@@ -5,7 +5,7 @@ import { FloatingIconButton } from './FloatingIconButton';
 
 /**
  * Yüzen adaların sağ grubu (web `ProductActionIcons`: favori / paylaş / şikayet). Soldan sağa:
- * ⋮ menü (satıcı varsa şikayet + engelle; yoksa yalnız şikayet bayrağı), paylaş, favori (dolu = danger).
+ * paylaş, favori (dolu = danger), ⋮ menü en sağda (satıcı varsa şikayet + engelle; yoksa yalnız şikayet bayrağı).
  * Sepet adası YOK (sepete sekmeden / "Sepete Ekle" akışından gidilir). İkonlar başlık renginde; 44pt.
  */
 export function ProductTopActions({
@@ -27,12 +27,6 @@ export function ProductTopActions({
   const { t } = useTranslation();
   return (
     <>
-      <FloatingIconButton
-        testID="product-report-button"
-        icon={reportOnly ? 'flag' : 'ellipsis-vertical'}
-        accessibilityLabel={t('report.report')}
-        onPress={onMenu}
-      />
       <FloatingIconButton icon="share" accessibilityLabel={t('product.share')} onPress={onShare} />
       <FloatingIconButton
         testID="product-favorite-button"
@@ -42,6 +36,12 @@ export function ProductTopActions({
         accessibilityLabel={t('product.addToFavorites')}
         onPress={onFavorite}
         disabled={favoriteLoading}
+      />
+      <FloatingIconButton
+        testID="product-report-button"
+        icon={reportOnly ? 'flag' : 'ellipsis-vertical'}
+        accessibilityLabel={t('report.report')}
+        onPress={onMenu}
       />
     </>
   );
