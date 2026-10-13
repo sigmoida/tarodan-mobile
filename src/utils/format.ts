@@ -108,6 +108,11 @@ export function formatPriceNumber(price: number | string | null | undefined): st
   return tlNumberFmt.format(numPrice);
 }
 
+/** Sayaç biçimi (görüntülenme/beğeni) — web `formatCount`: "1.590"; dil sabit tr-TR. */
+export function formatCount(value: number | null | undefined): string {
+  return (value ?? 0).toLocaleString('tr-TR');
+}
+
 // Varsayılan dil ARAYÜZ dili: eskiden sabit 'tr' idi ve ürün detayındaki durum
 // rozeti İngilizce cihazda "Yeni Gibi" gösteriyordu.
 export function formatCondition(

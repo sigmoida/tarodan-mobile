@@ -34,7 +34,7 @@ jest.mock('expo-router', () => {
   };
 });
 
-jest.mock('../HomeSections', () => {
+jest.mock('../HeroBanner', () => {
   const { Text } = require('react-native');
   return { HeroBanner: () => <Text>STATIC_HERO</Text> };
 });

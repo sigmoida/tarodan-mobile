@@ -31,6 +31,9 @@ export function useListings() {
     category?: string;
     manufacturer?: string;
     search?: string;
+    discountOnly?: string;
+    tradeOnly?: string;
+    sortBy?: string;
   }>();
 
   const [filters, setFilters] = useState<ProductFilters>(() => ({
@@ -41,6 +44,10 @@ export function useListings() {
     categoryId: params.categoryId || '',
     category: params.category || '',
     manufacturer: params.manufacturer || '',
+    // Ana sayfa "Tümünü gör" bağlantıları (web: /listings?discountOnly=true, ?sortBy=view_count_desc).
+    discountOnly: params.discountOnly === 'true',
+    tradeOnly: params.tradeOnly === 'true',
+    sortBy: params.sortBy || EMPTY_FILTERS.sortBy,
   }));
 
   const [searchQuery, setSearchQuery] = useState(filters.search);

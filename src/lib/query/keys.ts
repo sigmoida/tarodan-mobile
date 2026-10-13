@@ -50,6 +50,10 @@ export const qk = {
      * görüntülenme değişince hepsi tazelensin diye tek yerde. */
     searchAll: ["products-search"] as const,
     boosted: ["products", "boosted"] as const,
+    /** Anasayfa rayları (web ile aynı üç uç): Öne Çıkan (homeShowcase), İndirimdekiler, Takas Vitrini. */
+    homeFeatured: ["products", "home", "featured"] as const,
+    homeOnSale: ["products", "home", "on-sale"] as const,
+    homeTrade: ["products", "home", "trade"] as const,
     /** Anasayfa "Popüler İlanlar" — backend görüntülenmeye göre sıralar. */
     popular: ["products", "popular"] as const,
     /** İlana özel boost paket seçenekleri (paket + süre + fiyat). */
@@ -97,6 +101,8 @@ export const qk = {
     /** Prefix root — her `collection` detayını yakalar. */
     detailAll: ["collection"] as const,
     browse: ["collections", "browse"] as const,
+    /** Anasayfa "En İyi Koleksiyonlar" — `/users/top-collections`. */
+    top: ["collections", "top"] as const,
     mine: ["my-collections"] as const,
     liked: ["liked-collections"] as const,
     picker: ["collection-picker"] as const,

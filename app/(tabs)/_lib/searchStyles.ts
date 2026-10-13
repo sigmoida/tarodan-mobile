@@ -39,8 +39,8 @@ export const styles = StyleSheet.create({
     borderColor: colors.primary[500],
   },
   searchInputFieldOpen: {
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
+    borderBottomLeftRadius: theme.radius.none,
+    borderBottomRightRadius: theme.radius.none,
   },
   recentSearchesDropdown: {
     position: 'absolute',
