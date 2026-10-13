@@ -51,9 +51,11 @@ export default function PaymentFailScreen() {
         // Rezervasyonu serbest bırak. Misafir `guestApi`'den (Bearer yok, 401'de çıkış yok).
         const release = guest === '1' ? paymentsApi.confirmFailedGuest : paymentsApi.confirmFailed;
         await release(paymentId).catch(() => null);
+        // Üye de `/status` (public + yetki belirteci): oturum 3DS sırasında
+        // düştüyse JWT'li `GET /payments/:id` gibi 401 → çıkış → login yok.
         const response = guest === '1'
           ? await paymentsApi.getStatusLightGuest(paymentId)
-          : await paymentsApi.getStatus(paymentId);
+          : await paymentsApi.getStatusLight(paymentId);
         setInfo(response.data?.data ?? response.data ?? null);
       } catch {
         // Sessiz

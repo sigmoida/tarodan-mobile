@@ -63,10 +63,15 @@ export default function PaymentSuccessScreen() {
   useEffect(() => {
     let cancelled = false;
 
+    // Üye de JWT'ye bağlı `GET /payments/:id` yerine `/status`'u okur (web
+    // `usePaymentSuccess` gibi): uç public, oturum 3DS sırasında düştüyse 401
+    // dönmez (sunucu kullanıcıyı yok sayar) ve yetki belirteciyle yetkilendirir.
+    // `GET /payments/:id` oturum düşünce 401 → çıkış → login'e atıyordu; grup ve
+    // takas ödemesinde de 400 dönüyordu (tekil sipariş yok).
     const fetchStatus = async (): Promise<PaymentInfo | null> => {
       const response = guest === '1'
         ? await paymentsApi.getStatusLightGuest(paymentId)
-        : await paymentsApi.getStatus(paymentId);
+        : await paymentsApi.getStatusLight(paymentId);
       return response.data?.data ?? response.data ?? null;
     };
 

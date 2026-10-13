@@ -18,6 +18,7 @@ jest.mock('@/lib/api', () => ({
     confirmFailed: jest.fn(() => Promise.resolve(null)),
     confirmFailedGuest: jest.fn(() => Promise.resolve(null)),
     getStatus: jest.fn(),
+    getStatusLight: jest.fn(),
     getStatusLightGuest: jest.fn(),
     retry: jest.fn(),
   },
@@ -27,7 +28,8 @@ import { router } from 'expo-router';
 
 import PaymentFailScreen from '../fail';
 
-const getStatusMock = paymentsApi.getStatus as jest.Mock;
+// Üye durumu `/status`'tan (public + yetki belirteci); JWT'li getStatus kullanılmaz.
+const getStatusMock = paymentsApi.getStatusLight as jest.Mock;
 const retryMock = paymentsApi.retry as jest.Mock;
 const replaceMock = router.replace as jest.Mock;
 
