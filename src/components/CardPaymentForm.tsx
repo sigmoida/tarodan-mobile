@@ -53,7 +53,7 @@ interface Props {
   onFail?: () => void;
   /** Kayıtlı kart + "kartımı kaydet" gösterilsin mi (PayTR Non3D yetkisi açık + üye). */
   recurringEnabled?: boolean;
-  /** Misafir ödemesi mi — durum yoklamasında public uç kullanılır (verify atlanır). */
+  /** Misafir ödemesi mi — durum yoklamasında `status-guest` ucu kullanılır (verify üyedeki gibi çağrılır). */
   isGuest?: boolean;
   /**
    * Çağıran ekranın (/payment/[id]) zaten bildiği ödeme referansı — form mount olmadan
@@ -124,10 +124,11 @@ export default function CardPaymentForm({ target, amount, onSuccess, onFail, rec
     const poll = async () => {
       tries += 1;
       try {
-        // verify ödemeyi sunucuda aktive eder (idempotent); misafirde 401 verir → atla.
-        if (!isGuest) {
-          try { await paymentsApi.verify(paymentId); } catch { /* best-effort */ }
-        }
+        // verify PayTR durumunu sunucuda sorgular ve ödemeyi aktive eder (idempotent):
+        // callback gecikse ya da hiç gelmese de ödeme burada tamamlanır. Misafir de
+        // çağırır — `X-Payment-Capability` başlığıyla sunucu misafiri geçirir
+        // (`payment-lifecycle.service.ts` → `assertPaymentAccess`, capabilityAuthorized).
+        try { await paymentsApi.verify(paymentId); } catch { /* best-effort */ }
         const res: any = isGuest
           ? await paymentsApi.getStatusLightGuest(paymentId)
           : await paymentsApi.getStatusLight(paymentId);
