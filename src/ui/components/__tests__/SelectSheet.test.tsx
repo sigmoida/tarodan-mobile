@@ -125,6 +125,43 @@ describe('Select (tetikleyici + SelectSheet)', () => {
   });
 });
 
+describe('SelectSheet · loading + rowHeight', () => {
+  it('loading iken liste yerine spinner çizilir; arama kutusu kalır', () => {
+    render(
+      <SelectSheet
+        isOpen
+        onClose={jest.fn()}
+        title="Marka"
+        options={OPTIONS}
+        onSelect={jest.fn()}
+        searchable
+        loading
+        testID="brand"
+      />,
+    );
+    expect(screen.getByTestId('brand-loading')).toBeTruthy();
+    expect(screen.queryByTestId('brand-list')).toBeNull();
+    expect(screen.getByTestId('brand-search')).toBeTruthy();
+  });
+
+  it('rowHeight verilince getItemLayout sabit yükseklik + üst boşluk ofseti döndürür', () => {
+    render(
+      <SelectSheet isOpen onClose={jest.fn()} title="İl" options={OPTIONS} onSelect={jest.fn()} rowHeight={48} testID="city" />,
+    );
+    const getItemLayout = screen.getByTestId('city-list').props.getItemLayout as (
+      d: unknown,
+      i: number,
+    ) => { length: number; offset: number; index: number };
+    expect(getItemLayout(null, 0)).toEqual({ length: 48, offset: theme.spacing[2], index: 0 });
+    expect(getItemLayout(null, 3)).toEqual({ length: 48, offset: theme.spacing[2] + 144, index: 3 });
+  });
+
+  it('rowHeight yokken getItemLayout verilmez', () => {
+    render(<SelectSheet isOpen onClose={jest.fn()} title="İl" options={OPTIONS} onSelect={jest.fn()} testID="city" />);
+    expect(screen.getByTestId('city-list').props.getItemLayout).toBeUndefined();
+  });
+});
+
 describe('ActionSheet', () => {
   function Harness({ onDelete, onEdit }: { onDelete: () => void; onEdit: () => void }) {
     const [open, setOpen] = useState(true);

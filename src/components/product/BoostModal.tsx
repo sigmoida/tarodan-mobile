@@ -3,27 +3,36 @@
  * Web BoostModal ile birebir akış. Backend: GET /products/:id/boost/options
  * (paket modeli; web ile aynı kaynak), eski kurulumlarda GET /products/boost/pricing'e
  * düşer. POST /products/:id/boost/initiate.
+ *
+ * Alttan açılan `BottomSheet`: gövdede paket/süre radyoları, sabit footer'da toplam fiyat +
+ * [Öne Çıkar ve Öde]. Ödeme ekranına yönlendirme sheet TAMAMEN kapandıktan sonra çalışır
+ * (`runAfterClose`, CLAUDE.md §12 iOS donma kuralı).
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import { qk } from '@/lib/query';
 import {
-  Modal,
-  View,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
+  Alert,
+  BottomSheet,
+  Button,
+  EmptyState,
+  ListRowCard,
+  RadioIndicator,
+  Spinner,
   Switch,
-} from 'react-native';
-import { router } from 'expo-router';
-import { theme, RawText, SheetHeader, Icon, RadioIndicator, EmptyState } from '@/ui';
+  Text,
+  theme,
+  useBottomSheet,
+} from '@/ui';
 import { productsApi } from '@/lib/api';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
+import { formatPrice } from '@/utils/format';
 
-const { colors } = theme;
+const { colors, spacing } = theme;
 
 interface BoostOption {
   durationDays: number;
@@ -63,6 +72,8 @@ interface BoostModalProps {
   isPremium?: boolean;
 }
 
+type RunAfterClose = (fn: () => void) => void;
+
 export function BoostModal({
   visible,
   onClose,
@@ -101,7 +112,7 @@ export function BoostModal({
     },
   });
 
-  const options = data?.options ?? [];
+  const options = useMemo(() => data?.options ?? [], [data]);
   const enabled = data?.enabled ?? true;
 
   // Seçenekler gelince varsayılanı seç (7 gün varsa o, yoksa ilki).
@@ -118,12 +129,12 @@ export function BoostModal({
     ? Math.max(0, Math.ceil((new Date(boostedUntil).getTime() - Date.now()) / 86400000))
     : 0;
   const hasActiveBoost = remainingDays > 0;
+  const chosen = options.find((o) => o.durationDays === selected);
 
-  const handleConfirm = async () => {
+  const handleConfirm = async (runAfterClose: RunAfterClose) => {
     if (selected == null || submitting) return;
     setSubmitting(true);
     try {
-      const chosen = options.find((o) => o.durationDays === selected);
       const res = await productsApi.initiateBoost(listingId, {
         durationDays: selected,
         // Paket modelinden seçildiyse packageId gönderilir; yoksa eski düz-fiyat akışı.
@@ -140,17 +151,19 @@ export function BoostModal({
       const paymentUrl: string | undefined = data.paymentUrl;
       if (paymentId) {
         setSubmitting(false);
-        onClose();
-        router.push({
-          pathname: '/payment/[id]',
-          params: {
-            id: String(paymentId),
-            provider: 'paytr',
-            guest: '0',
-            type: 'boost',
-            ...(paymentUrl ? { paymentUrl } : {}),
-          },
-        } as any);
+        // Önce sheet kapanır, yönlendirme kapanış bittikten sonra (iOS donma kuralı §12).
+        runAfterClose(() =>
+          router.push({
+            pathname: '/payment/[id]',
+            params: {
+              id: String(paymentId),
+              provider: 'paytr',
+              guest: '0',
+              type: 'boost',
+              ...(paymentUrl ? { paymentUrl } : {}),
+            },
+          } as any),
+        );
         return;
       }
       throw new Error('payment-id-missing');
@@ -167,165 +180,142 @@ export function BoostModal({
   if (!CAN_BUY_DIGITAL) return null;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.card}>
-          <SheetHeader title={t('boost.title')} onClose={onClose} closeLabel={t('common.close')} paddingX={5} />
+    <BottomSheet
+      isOpen={visible}
+      onClose={onClose}
+      title={t('boost.title')}
+      testID="boost-sheet"
+      footer={
+        <BoostFooter
+          price={chosen?.price}
+          disabled={confirmDisabled}
+          submitting={submitting}
+          label={hasActiveBoost ? t('boost.extendAndPay') : t('boost.boostAndPay')}
+          onConfirm={handleConfirm}
+        />
+      }
+    >
+      <Text variant="bodySm" tone="muted" numberOfLines={3} style={styles.subtitle}>
+        <Text variant="bodySm" weight="bold" tone="heading">
+          {listingTitle}
+        </Text>
+        {t('boost.subtitleSuffix')}
+      </Text>
 
-          <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: theme.spacing[2] }}>
-            <RawText style={styles.subtitle} numberOfLines={3}>
-              <RawText style={styles.subtitleStrong}>{listingTitle}</RawText>
-              {t('boost.subtitleSuffix')}
-            </RawText>
+      {hasActiveBoost && (
+        <Alert variant="warning" style={styles.activeNotice} testID="boost-active-notice">
+          {t('boost.activeNotice', { remainingDays })}
+          {selected != null ? t('boost.activeNoticeTotal', { totalDays: remainingDays + selected }) : ''}
+        </Alert>
+      )}
 
-            {hasActiveBoost && (
-              <View style={styles.activeNotice}>
-                <RawText style={styles.activeNoticeText}>
-                  {t('boost.activeNotice', { remainingDays })}
-                  {selected != null ? t('boost.activeNoticeTotal', { totalDays: remainingDays + selected }) : ''}
-                </RawText>
-              </View>
-            )}
-
-            {loadingPricing ? (
-              <ActivityIndicator color={colors.primary[600]!} style={{ paddingVertical: 28 }} />
-            ) : !enabled ? (
-              <EmptyState placement="inline" icon="rocket-launch" title={t('server.product.boostUnavailable')} subtitle={t('emptyState.tryLaterHint')} />
-            ) : options.length === 0 ? (
-              <EmptyState placement="inline" icon="rocket-launch" title={t('boost.noPackages')} subtitle={t('emptyState.tryLaterHint')} />
-            ) : (
-              <View style={styles.optionList}>
-                {options.map((opt) => {
-                  const active = selected === opt.durationDays;
-                  return (
-                    <TouchableOpacity
-                      key={opt.durationDays}
-                      style={[styles.option, active && styles.optionActive]}
-                      onPress={() => setSelected(opt.durationDays)}
-                      activeOpacity={0.8}
-                    >
-                      <View style={styles.optionLeft}>
-                        <RadioIndicator checked={active} color={colors.warning[500]!} />
-                        <RawText style={styles.optionLabel}>{opt.label}</RawText>
-                      </View>
-                      <RawText style={styles.optionPrice}>{opt.price.toLocaleString('tr-TR')} ₺</RawText>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
-
-            {isPremium && enabled && options.length > 0 && (
-              <View style={styles.autoRenewRow}>
-                <RawText style={styles.autoRenewText}>
-                  {t('boost.autoRenewLabel')}
-                </RawText>
-                <Switch
-                  value={autoRenew}
-                  onValueChange={setAutoRenew}
-                  trackColor={{ true: colors.warning[500]!, false: colors.gray[300]! }}
-                />
-              </View>
-            )}
-          </ScrollView>
-
-          {/* Footer */}
-          <View style={styles.footer}>
-            <TouchableOpacity
-              style={[styles.btn, styles.btnSecondary]}
-              onPress={onClose}
-              disabled={submitting}
-            >
-              <RawText style={styles.btnSecondaryText}>{t('listing.dismiss')}</RawText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.btn, styles.btnPrimary, confirmDisabled && styles.btnDisabled]}
-              onPress={handleConfirm}
-              disabled={confirmDisabled}
-            >
-              {submitting ? (
-                <ActivityIndicator color={colors.white} size="small" />
-              ) : (
-                <RawText style={styles.btnPrimaryText}>
-                  {hasActiveBoost ? t('boost.extendAndPay') : t('boost.boostAndPay')}
-                </RawText>
-              )}
-            </TouchableOpacity>
-          </View>
+      {loadingPricing ? (
+        <View style={styles.loading} testID="boost-loading">
+          <Spinner size="lg" />
         </View>
-      </View>
-    </Modal>
+      ) : !enabled ? (
+        <EmptyState
+          placement="inline"
+          icon="rocket-launch"
+          title={t('server.product.boostUnavailable')}
+          subtitle={t('emptyState.tryLaterHint')}
+        />
+      ) : options.length === 0 ? (
+        <EmptyState
+          placement="inline"
+          icon="rocket-launch"
+          title={t('boost.noPackages')}
+          subtitle={t('emptyState.tryLaterHint')}
+        />
+      ) : (
+        <View style={styles.optionList}>
+          {options.map((opt) => {
+            const active = selected === opt.durationDays;
+            return (
+              <ListRowCard
+                key={opt.durationDays}
+                onPress={() => setSelected(opt.durationDays)}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: active }}
+                style={active ? styles.optionActive : undefined}
+                testID={`boost-option-${opt.durationDays}`}
+              >
+                <RadioIndicator checked={active} color={colors.warning[500]!} />
+                <Text variant="bodySm" weight="semibold" tone="heading" numberOfLines={2} style={styles.optionLabel}>
+                  {opt.label}
+                </Text>
+                <Text variant="body" weight="bold" tone="primary">
+                  {formatPrice(opt.price)}
+                </Text>
+              </ListRowCard>
+            );
+          })}
+        </View>
+      )}
+
+      {isPremium && enabled && options.length > 0 && (
+        <View style={styles.autoRenewRow}>
+          <Text variant="bodySm" tone="body" style={styles.optionLabel}>
+            {t('boost.autoRenewLabel')}
+          </Text>
+          <Switch value={autoRenew} onValueChange={setAutoRenew} testID="boost-auto-renew" />
+        </View>
+      )}
+    </BottomSheet>
+  );
+}
+
+interface BoostFooterProps {
+  price: number | undefined;
+  label: string;
+  disabled: boolean;
+  submitting: boolean;
+  onConfirm: (runAfterClose: RunAfterClose) => void;
+}
+
+/** Sheet'in sabit alt çubuğu: seçili paketin toplam fiyatı + onay düğmesi (güvenli alan BottomSheet'te). */
+function BoostFooter({ price, label, disabled, submitting, onConfirm }: BoostFooterProps) {
+  const { t } = useTranslation();
+  const { runAfterClose } = useBottomSheet();
+  return (
+    <View style={styles.footer}>
+      {price != null ? (
+        <View style={styles.totalRow}>
+          <Text variant="body" tone="muted">
+            {t('common.total')}
+          </Text>
+          <Text variant="h3" weight="bold" tone="heading" testID="boost-total">
+            {formatPrice(price)}
+          </Text>
+        </View>
+      ) : null}
+      <Button
+        variant="warning"
+        fullWidth
+        title={label}
+        isLoading={submitting}
+        disabled={disabled}
+        onPress={() => onConfirm(runAfterClose)}
+        testID="boost-confirm-button"
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.black50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.spacing[4],
-  },
-  card: {
-    width: '100%',
-    maxWidth: 440,
-    maxHeight: '85%',
-    backgroundColor: colors.white,
-    borderRadius: theme.radius['3xl'],
-    overflow: 'hidden',
-  },
-  body: { paddingHorizontal: 18, paddingTop: theme.spacing[3.5] },
-  subtitle: { fontSize: 13, color: colors.gray[500]!, marginBottom: theme.spacing[3.5], lineHeight: 19 },
-  subtitleStrong: { fontWeight: '700', color: colors.gray[900]! },
-  activeNotice: {
-    backgroundColor: colors.warning[50]!,
-    borderWidth: 1,
-    borderColor: colors.warning[200]!,
-    borderRadius: theme.radius['2xl'],
-    padding: theme.spacing[3],
-    marginBottom: theme.spacing[3.5],
-  },
-  activeNoticeText: { fontSize: 12.5, color: colors.warning[700]!, lineHeight: 18 },
-  optionList: { gap: theme.spacing[2] },
-  option: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: theme.spacing[3],
-    borderRadius: theme.radius['2xl'],
-    borderWidth: 1,
-    borderColor: colors.gray[200]!,
-  },
+  subtitle: { marginBottom: spacing[3.5] },
+  activeNotice: { marginBottom: spacing[3.5] },
+  loading: { paddingVertical: spacing[8], alignItems: 'center' },
+  optionList: { gap: spacing[2] },
   optionActive: { borderColor: colors.warning[500]!, backgroundColor: colors.warning[50]! },
-  optionLeft: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2.5] },
-  optionLabel: { fontSize: 13, fontWeight: '600', color: colors.gray[900]! },
-  optionPrice: { fontSize: 15, fontWeight: '700', color: colors.primary[600]! },
+  optionLabel: { flex: 1, minWidth: 0 },
   autoRenewRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: theme.spacing[3],
-    marginTop: theme.spacing[4],
+    gap: spacing[3],
+    marginTop: spacing[4],
   },
-  autoRenewText: { flex: 1, fontSize: 13, color: colors.gray[700]! },
-  footer: {
-    flexDirection: 'row',
-    gap: theme.spacing[2.5],
-    paddingHorizontal: 18,
-    paddingVertical: theme.spacing[3.5],
-    borderTopWidth: 1,
-    borderTopColor: colors.gray[200]!,
-  },
-  btn: {
-    flex: 1,
-    height: 46,
-    borderRadius: theme.radius['2xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnSecondary: { backgroundColor: colors.gray[100]! },
-  btnSecondaryText: { fontSize: 15, fontWeight: '600', color: colors.gray[700]! },
-  btnPrimary: { backgroundColor: colors.warning[500]! },
-  btnPrimaryText: { fontSize: 15, fontWeight: '700', color: colors.white },
-  btnDisabled: { opacity: 0.5 },
+  footer: { gap: spacing[3] },
+  totalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing[3] },
 });
