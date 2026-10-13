@@ -50,7 +50,8 @@ export const addressesApi = {
 
 /**
  * Yetki belirteci taşıyan ödeme uçları (`/payments/:id/...`, direct-form) bu
- * sarmalayıcılardan geçer: `X-Payment-Capability` başlığı tek yerden eklenir.
+ * sarmalayıcılardan geçer: `paymentHttp(paymentId).post(...)`. Ödeme id'si
+ * açıkça verilir; `X-Payment-Capability` başlığı tek yerden eklenir.
  */
 const paymentHttp = withPaymentCapability(api);
 const guestPaymentHttp = withPaymentCapability(guestApi);
@@ -77,11 +78,11 @@ export const paymentsApi = {
     api.get(`/payments/${paymentId}`),
   /** POST /payments/:id/verify — PayTR ödemesini aktif doğrula (web ile parite) */
   verify: (paymentId: string) =>
-    paymentHttp.post(`/payments/${paymentId}/verify`, {}),
+    paymentHttp(paymentId).post(`/payments/${paymentId}/verify`, {}),
   getStatusLight: (paymentId: string) =>
-    paymentHttp.get(`/payments/${paymentId}/status`),
+    paymentHttp(paymentId).get(`/payments/${paymentId}/status`),
   getStatusLightGuest: (paymentId: string) =>
-    guestPaymentHttp.get(`/payments/${paymentId}/status-guest`),
+    guestPaymentHttp(paymentId).get(`/payments/${paymentId}/status-guest`),
   getMyPayments: (params?: {
     status?: string;
     provider?: string;
@@ -94,7 +95,7 @@ export const paymentsApi = {
     api.post(`/payments/${paymentId}/cancel`),
   /** Fail sayfasında; hâlâ pending ise rezervasyonu serbest bırakır */
   confirmFailed: (paymentId: string) =>
-    paymentHttp.post(`/payments/${paymentId}/confirm-failed`, {}),
+    paymentHttp(paymentId).post(`/payments/${paymentId}/confirm-failed`, {}),
   /** Test bypass: PAYMENT_BYPASS=true iken tek kart başarılı */
   bypassComplete: (paymentId: string, cardNumber?: string) =>
     api.post(
@@ -123,5 +124,5 @@ export const paymentsApi = {
     savedCardId?: string;
     saveCard?: boolean;
   }) =>
-    paymentHttp.post<DirectFormResponse>('/payments/direct-form', body),
+    paymentHttp(body.paymentId).post<DirectFormResponse>('/payments/direct-form', body),
 };

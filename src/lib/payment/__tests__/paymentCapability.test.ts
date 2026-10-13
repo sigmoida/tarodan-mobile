@@ -9,7 +9,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AxiosInstance } from 'axios';
 import {
   __resetPaymentCapabilities,
-  capabilityPaymentId,
   PAYMENT_CAPABILITY_TTL_MS,
   paymentCapabilityHeaders,
   rememberPaymentCapability,
@@ -57,25 +56,9 @@ describe('zarf açma (unwrapEnvelope)', () => {
   });
 });
 
-describe('capabilityPaymentId', () => {
-  it.each([
-    ['/payments/pay-1/status', undefined, 'pay-1'],
-    ['/payments/pay-1/status-guest', undefined, 'pay-1'],
-    ['/payments/pay-1/verify', {}, 'pay-1'],
-    ['/payments/pay-1/confirm-failed?x=1', {}, 'pay-1'],
-    ['/payments/direct-form', { paymentId: 'pay-2', checkoutGroupId: 'g-1' }, 'pay-2'],
-    ['/payments/direct-form', { checkoutGroupId: 'g-1' }, undefined],
-    ['/payments/direct-form', { paymentId: '' }, undefined],
-    ['/payments/direct-form', undefined, undefined],
-    ['/payments/pay-1/verify', { paymentId: 'pay-2' }, 'pay-1'], // yol önce gelir
-  ])('%s (%j) → %s', (url, body, expected) => {
-    expect(capabilityPaymentId(url, body)).toBe(expected);
-  });
-});
-
-describe('withPaymentCapability (ödeme API sarmalayıcısı)', () => {
+describe('withPaymentCapability (ödeme API sarmalayıcısı, paymentId açıkça verilir)', () => {
   const client = { get: jest.fn(), post: jest.fn() };
-  const http = withPaymentCapability(client as unknown as Pick<AxiosInstance, 'get' | 'post'>);
+  const paymentHttp = withPaymentCapability(client as unknown as Pick<AxiosInstance, 'get' | 'post'>);
 
   beforeEach(async () => {
     client.get.mockReset().mockResolvedValue({ data: { status: 'pending' } });
@@ -83,32 +66,38 @@ describe('withPaymentCapability (ödeme API sarmalayıcısı)', () => {
     await rememberPaymentCapability({ data: { paymentId: PAY, paymentAccessToken: 'cap-token' } });
   });
 
-  it('GET /payments/:id/...: başlığı ekler, yanıtı aynen döner', async () => {
-    const res = await http.get(`/payments/${PAY}/status`);
+  it('GET: verilen ödemenin başlığını ekler, yanıtı aynen döner', async () => {
+    const res = await paymentHttp(PAY).get(`/payments/${PAY}/status`);
     expect(client.get).toHaveBeenCalledWith(`/payments/${PAY}/status`, { headers: CAP });
     expect(res).toEqual({ data: { status: 'pending' } });
   });
 
-  it('POST /payments/:id/...: gövde aynen gider, başlık eklenir', async () => {
-    await http.post(`/payments/${PAY}/verify`, {});
+  it('POST: gövde aynen gider, başlık eklenir', async () => {
+    await paymentHttp(PAY).post(`/payments/${PAY}/verify`, {});
     expect(client.post).toHaveBeenCalledWith(`/payments/${PAY}/verify`, {}, { headers: CAP });
   });
 
-  it('direct-form: id gövdedeki paymentId\'den okunur', async () => {
-    const body = { checkoutGroupId: 'g-1', paymentId: PAY, saveCard: false };
-    await http.post('/payments/direct-form', body);
-    expect(client.post).toHaveBeenCalledWith('/payments/direct-form', body, { headers: CAP });
+  it('id URL\'den ya da gövdeden ÇIKARILMAZ: yalnız çağıranın verdiği id sayılır', async () => {
+    // Yol ve gövde PAY'i gösterse de çağıran başka ödeme verdiyse başlık yok.
+    await paymentHttp('other').post(`/payments/${PAY}/verify`, { paymentId: PAY });
+    expect(client.post).toHaveBeenLastCalledWith(`/payments/${PAY}/verify`, { paymentId: PAY }, { headers: {} });
+    // Yol biçimi farklı (direct-form, ileride başka uç) olsa da verilen id'nin başlığı gider.
+    await paymentHttp(PAY).post('/payments/direct-form', { checkoutGroupId: 'g-1' });
+    expect(client.post).toHaveBeenLastCalledWith('/payments/direct-form', { checkoutGroupId: 'g-1' }, { headers: CAP });
   });
 
-  it('belirteç yoksa ya da başka ödemeyse başlık eklenmez', async () => {
-    await http.get('/payments/other/status');
-    await http.post('/payments/direct-form', { checkoutGroupId: 'g-1' });
-    expect(client.get).toHaveBeenLastCalledWith('/payments/other/status', { headers: {} });
-    expect(client.post).toHaveBeenLastCalledWith('/payments/direct-form', { checkoutGroupId: 'g-1' }, { headers: {} });
+  it.each([
+    ['id yok (undefined)', undefined],
+    ['id null', null],
+    ['boş id', ''],
+    ['belirteci olmayan ödeme', 'other'],
+  ])('%s → başlık eklenmez', async (_label, id) => {
+    await paymentHttp(id).get('/payments/x/status');
+    expect(client.get).toHaveBeenLastCalledWith('/payments/x/status', { headers: {} });
   });
 
   it('çağıranın config\'i ve başlıkları korunur', async () => {
-    await http.get(`/payments/${PAY}/status`, { timeout: 5000, headers: { 'X-Trace': '1' } });
+    await paymentHttp(PAY).get(`/payments/${PAY}/status`, { timeout: 5000, headers: { 'X-Trace': '1' } });
     expect(client.get).toHaveBeenCalledWith(`/payments/${PAY}/status`, {
       timeout: 5000,
       headers: { 'X-Trace': '1', ...CAP },
@@ -118,7 +107,7 @@ describe('withPaymentCapability (ödeme API sarmalayıcısı)', () => {
   it('istek hatası çağırana aynen iletilir', async () => {
     const err = Object.assign(new Error('403'), { response: { status: 403 } });
     client.post.mockRejectedValueOnce(err);
-    await expect(http.post(`/payments/${PAY}/confirm-failed`, {})).rejects.toBe(err);
+    await expect(paymentHttp(PAY).post(`/payments/${PAY}/confirm-failed`, {})).rejects.toBe(err);
   });
 });
 

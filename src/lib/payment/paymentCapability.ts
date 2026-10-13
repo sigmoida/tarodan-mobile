@@ -11,7 +11,7 @@
  * Akış: checkout `initiateGroupGuest` → belirteç burada saklanır →
  * `/payment/[id]?guest=1` → durum sorgusu, direct-form, verify ve
  * confirm-failed istekleri `withPaymentCapability` sarmalayıcısından geçer ve
- * başlığı TEK yerden alır.
+ * başlığı TEK yerden alır (ödeme id'si çağırandan açıkça gelir).
  *
  * Saklama: web belirteci `sessionStorage` + bellek kopyasında tutar. Mobilde
  * banka uygulamasına (3DS) geçişte OS uygulamanın JS sürecini öldürebiliyor;
@@ -145,46 +145,36 @@ export async function paymentCapabilityHeaders(
   }
 }
 
-/** `/payments/:id/<uç>` yolundaki ödeme id'si. */
-const PAYMENT_ID_IN_PATH = /^\/payments\/([^/?#]+)\/[^/?#]+/;
-
-/**
- * İsteğin yetkilendirdiği ödeme: yoldaki `:id` (`/payments/:id/status`, `verify`,
- * `confirm-failed`…), yoksa gövdedeki `paymentId` (`/payments/direct-form`).
- */
-export function capabilityPaymentId(url: string, body?: unknown): string | undefined {
-  const fromPath = PAYMENT_ID_IN_PATH.exec(url)?.[1];
-  if (fromPath) return fromPath;
-  const fromBody = (body as { paymentId?: unknown } | null | undefined)?.paymentId;
-  return typeof fromBody === 'string' && fromBody ? fromBody : undefined;
-}
-
 type HttpClient = Pick<AxiosInstance, 'get' | 'post'>;
 
 /**
- * Ödeme API'sine özel istek sarmalayıcısı: axios `get`/`post` imzasıyla aynı,
- * ama isteğin ödemesi için saklı belirteç varsa `X-Payment-Capability`
- * başlığını kendisi ekler (yoksa başlık eklenmez — üye kendi oturumuyla
- * yetkili). Belirteç başka ödemeye sızmaz: başlık yalnız id'si eşleşen ödemeye.
+ * Ödeme API'sine özel istek sarmalayıcısı: `paymentHttp(paymentId).get/post(...)`.
+ * Dönen istemci axios `get`/`post` imzasıyla aynı, ama verilen ödeme için saklı
+ * belirteç varsa `X-Payment-Capability` başlığını kendisi ekler (yoksa başlık
+ * eklenmez — üye kendi oturumuyla yetkili).
+ *
+ * Ödeme id'sini çağıran AÇIKÇA verir; URL'den ya da gövdeden çıkarılmaz. Böylece
+ * yeni bir uç yolu farklı biçimde olsa da belirteç yanlış ödemeye gitmez ya da
+ * sessizce düşmez. Belirteç başka ödemeye sızmaz: başlık yalnız verilen ödemenin.
  *
  * Genel axios interceptor'ı yerine bilerek ayrı sarmalayıcı: yalnız buradan
  * geçen ödeme uçları etkilenir, diğer isteklerin yolu değişmez.
  */
-export function withPaymentCapability(client: HttpClient): HttpClient {
-  const configFor = async (
-    url: string,
-    body: unknown,
-    config?: AxiosRequestConfig,
-  ): Promise<AxiosRequestConfig> => ({
-    ...config,
-    headers: {
-      ...(config?.headers as Record<string, string> | undefined),
-      ...(await paymentCapabilityHeaders(capabilityPaymentId(url, body))),
-    },
-  });
-  return {
-    get: async (url, config) => client.get(url, await configFor(url, undefined, config)),
-    post: async (url, data, config) => client.post(url, data, await configFor(url, data, config)),
+export function withPaymentCapability(
+  client: HttpClient,
+): (paymentId: string | undefined | null) => HttpClient {
+  return (paymentId) => {
+    const withHeader = async (config?: AxiosRequestConfig): Promise<AxiosRequestConfig> => ({
+      ...config,
+      headers: {
+        ...(config?.headers as Record<string, string> | undefined),
+        ...(await paymentCapabilityHeaders(paymentId)),
+      },
+    });
+    return {
+      get: async (url, config) => client.get(url, await withHeader(config)),
+      post: async (url, data, config) => client.post(url, data, await withHeader(config)),
+    };
   };
 }
 
