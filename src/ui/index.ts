@@ -131,6 +131,13 @@ export {
 	type ModalMessageState,
 } from './ModalMessage';
 export { Spinner, type SpinnerProps } from './components/Spinner';
+export {
+	Skeleton,
+	SkeletonText,
+	SkeletonCard,
+	SkeletonAvatar,
+	type SkeletonProps,
+} from './components/Skeleton';
 export { Avatar, type AvatarProps } from './components/Avatar';
 export { StatusBadge, type StatusBadgeProps } from './components/StatusBadge';
 
