@@ -1,8 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Image, View } from 'react-native';
+import { View } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { SectionCard, Text, theme, Icon, Alert } from '@/ui';
-import { transformImageUrl } from '@/utils/imageUrl';
 import { formatServerPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
 import type { useCheckout } from '../_hooks/useCheckout';
@@ -32,7 +32,7 @@ export function CheckoutItemsSection({ c }: { c: Ctrl }) {
       <View style={styles.itemList}>
         {c.payableItems.map((item) => (
           <View key={item.id} style={styles.item}>
-            <Image source={{ uri: transformImageUrl(item.imageUrl) }} style={styles.itemImage} />
+            <AppImage source={item.imageUrl} style={styles.itemImage} />
             <View style={styles.itemInfo}>
               <Text variant="body" weight="medium" tone="heading" numberOfLines={2}>
                 {item.title}

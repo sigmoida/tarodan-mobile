@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { View, Image, Pressable, Linking } from 'react-native';
+import { View, Pressable, Linking } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { SectionCard, StatusBadge, Text, Button, Alert, theme } from '@/ui';
 import { router } from 'expo-router';
 import { getOrderProductImageUri } from '@/utils/orderProductImage';
@@ -55,7 +56,7 @@ export function GroupOrderRow({ order, multi }: { order: GroupOrder; multi: bool
         {multi && <StatusBadge status={badgeStatusOf(order)} config={statusConfig} size="sm" />}
       </View>
       <Pressable onPress={open} style={styles.itemContent} accessibilityRole="button">
-        <Image source={{ uri: getOrderProductImageUri(order.product) }} style={styles.productImage} />
+        <AppImage source={getOrderProductImageUri(order.product, 'card')} style={styles.productImage} />
         <View style={styles.itemInfo}>
           <Text variant="body" weight="medium" tone="heading" numberOfLines={2}>{order.product.title}</Text>
           <Text variant="bodySm" tone="muted">

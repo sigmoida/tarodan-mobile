@@ -1,11 +1,11 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MessageKey } from '@/i18n/lib';
-import { View, ScrollView, Image } from 'react-native';
+import { View, ScrollView } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
 import { Alert, Button, Checkbox, Chip, EmptyState, IconButton, ProgressBar, SectionCard, Text, theme, Icon, Pill, ButtonRow, ListRowCard } from '@/ui';
 
-import { resolveImageUrl } from '@/utils/imageUrl';
 import UpgradeCta from '@/components/UpgradeCta';
 import { styles } from '../_lib/styles';
 import {
@@ -131,7 +131,7 @@ export function MyListingCard({
           />
         </View>
       )}
-      <Image source={{ uri: resolveImageUrl(listing.images) }} style={styles.listingImage} />
+      <AppImage source={listing.images} recyclingKey={String(listing.id)} style={styles.listingImage} />
       <View style={styles.listingInfo}>
         <View style={styles.listingHeader}>
           <Text variant="label" style={styles.listingTitle} numberOfLines={2}>{listing.title}</Text>

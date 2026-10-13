@@ -1,9 +1,9 @@
-import { Image, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { Badge, Checkbox, IconButton, QuantityStepper, SectionCard, Text, theme } from '@/ui';
 import { maxAllowedQty } from '@/stores/cartStore';
-import { transformImageUrl, IMAGE_PLACEHOLDER } from '@/utils/imageUrl';
 import { formatServerPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
 import type { CartController } from '../_hooks/useCart';
@@ -35,8 +35,9 @@ export function CartItemRow({ item, f }: { item: any; f: CartController }) {
           />
         </View>
         <Pressable onPress={open} accessibilityRole="link">
-          <Image
-            source={{ uri: transformImageUrl(item.imageUrl) || IMAGE_PLACEHOLDER }}
+          <AppImage
+            source={item.imageUrl}
+            recyclingKey={String(item.id)}
             style={styles.itemImage}
           />
         </Pressable>

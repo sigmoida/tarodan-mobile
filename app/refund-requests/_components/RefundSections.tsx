@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Image, Pressable } from 'react-native';
+import { View, Pressable } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Chip, EmptyState, SectionCard, SkeletonCard, StatusBadge, Text, theme, appAlert } from '@/ui';
@@ -71,7 +72,7 @@ function RefundCard({ f, rr }: Props & { rr: RefundRequestRow }) {
 
       <Pressable onPress={open} style={styles.productRow} accessibilityRole="button">
         {rr.order?.product?.images?.[0] ? (
-          <Image source={{ uri: rr.order.product.images[0] }} style={styles.productImage} />
+          <AppImage source={rr.order.product.images[0]} style={styles.productImage} />
         ) : (
           <View style={styles.productImage} />
         )}

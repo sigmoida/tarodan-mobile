@@ -1,8 +1,8 @@
-import { View, Image } from 'react-native';
+import { View } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { useTranslation } from 'react-i18next';
 import { EmptyState, SectionCard, SkeletonCard, Text } from '@/ui';
 import { ProductCard } from '@/components/product';
-import { transformImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
 import type { CarModelDetail } from '../_lib/types';
 import type { ModelDetailController } from '../_hooks/useModelDetail';
@@ -14,12 +14,12 @@ export function ModelHero({ model }: { model: CarModelDetail }) {
     <View style={styles.hero}>
       <View style={styles.heroImage}>
         {model.image ? (
-          <Image source={{ uri: transformImageUrl(model.image) }} style={styles.heroImageFill} resizeMode="cover" />
+          <AppImage source={model.image} variant="detail" style={styles.heroImageFill} resizeMode="cover" />
         ) : null}
       </View>
       <View style={styles.brandRow}>
         {model.brand?.logo ? (
-          <Image source={{ uri: transformImageUrl(model.brand.logo) }} style={styles.brandLogo} />
+          <AppImage source={model.brand.logo} style={styles.brandLogo} />
         ) : null}
         <Text variant="bodySm" tone="muted" weight="medium">
           {model.brand?.name}

@@ -1,9 +1,9 @@
 import React from 'react';
-import { Image, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar, SectionCard, SectionCardAction, Skeleton, Text } from '@/ui';
-import { getImageUrl } from '@/utils/imageUrl';
 import { formatCount } from '@/utils/format';
 import { homeStyles as styles } from '../_lib/homeStyles';
 
@@ -29,8 +29,8 @@ function CollectionCard({ collection }: { collection: any }) {
         {PREVIEW_SLOTS.map((i) => (
           <View key={items[i]?.id ?? `empty-${i}`} style={styles.collectionThumb}>
             {items[i] ? (
-              <Image
-                source={{ uri: getImageUrl(items[i].productImage) }}
+              <AppImage
+                source={items[i].productImage}
                 style={styles.fill}
                 resizeMode="cover"
               />

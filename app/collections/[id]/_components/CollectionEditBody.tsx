@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, Pressable, Image } from 'react-native';
+import { View, Pressable } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
 import { Controller } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Button, EmptyState, IconButton, SectionCard, Switch, Text, Input, Textarea } from '@/ui';
 
-import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/collectionEditStyles';
 import type { CollectionEditController } from '../_hooks/useCollectionEdit';
 
@@ -29,7 +29,7 @@ export function CollectionEditBody({ f }: { f: CollectionEditController }) {
       >
         {coverImage ? (
           <>
-            <Image source={{ uri: coverImage }} style={styles.coverImage} />
+            <AppImage source={coverImage} variant="detail" allowDeviceUris style={styles.coverImage} />
             <View style={styles.coverOverlay}>
               <Text variant="bodySm" tone="inverted" weight="medium">
                 {t('common.replace')}
@@ -104,7 +104,7 @@ export function CollectionEditBody({ f }: { f: CollectionEditController }) {
                 onPress={() => router.push(`/product/${item.productId}`)}
                 accessibilityRole="button"
               >
-                <Image source={{ uri: resolveImageUrl(item.productImage) }} style={styles.itemImage} />
+                <AppImage source={item.productImage} recyclingKey={String(item.id)} style={styles.itemImage} />
                 <Text variant="bodySm" style={styles.itemTitle} numberOfLines={1}>
                   {item.productTitle}
                 </Text>

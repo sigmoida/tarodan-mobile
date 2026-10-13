@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Image } from 'react-native';
+import { View } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { Icon, Text, ListRowCard } from '@/ui';
 import { useTranslation } from 'react-i18next';
 import { formatRelativeDate } from '@/utils/format';
-import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
 import { getIconForType } from '../_lib/icons';
 import { STOCKOUT_TYPES, type Notification } from '../_lib/types';
@@ -23,7 +23,7 @@ function NotificationRowBase({
   return (
     <ListRowCard gap={0} style={[styles.item, isUnread && styles.itemUnread]} onPress={() => onPress(item)}>
       {STOCKOUT_TYPES.has(item.type) && item.data?.productImage ? (
-        <Image source={{ uri: resolveImageUrl(item.data.productImage) }} style={styles.thumb} />
+        <AppImage source={item.data.productImage} recyclingKey={String(item.id)} style={styles.thumb} />
       ) : (
         <View style={[styles.iconContainer, { backgroundColor: bg }]}>
           <Icon name={icon} variant="solid" size={20} color={color} />

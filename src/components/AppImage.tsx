@@ -15,7 +15,9 @@
 import { logger } from '@/services/logger';
 import React from 'react';
 import { type StyleProp, type ImageStyle } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 import { Image, type ImageContentFit } from 'expo-image';
+import { theme } from '@/ui';
 import { resolveImageUrl, IMAGE_PLACEHOLDER, type ImageVariant } from '@/utils/imageUrl';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -55,7 +57,18 @@ export interface AppImageProps {
    * gösterip çapraz geçiş yapmasın diye: öğenin kararlı kimliği (ör. ürün id).
    */
   recyclingKey?: string;
+  /**
+   * Cihaz-yerel URI'lere (`file:`, `content:`, `ph:`) izin ver — yalnız kaynağın CİHAZDAN
+   * seçildiği (galeri/kamera önizlemesi) çağıranlar açar; sunucu verisinde ASLA.
+   */
+  allowDeviceUris?: boolean;
 }
+
+/** Yükleme geçişi (ms) — kısa; reduce-motion açıkken 0. */
+const FADE_MS = 150;
+
+/** Zemin: görsel gelene / hata verene kadar gri ton (layout zıplamaz, boşluk beyaz kalmaz). */
+const baseStyle: ImageStyle = { backgroundColor: theme.colors.gray[100] };
 
 const RESIZE_TO_FIT: Record<NonNullable<AppImageProps['resizeMode']>, ImageContentFit> = {
   cover: 'cover',
@@ -74,15 +87,26 @@ export const AppImage = React.memo(function AppImage({
   onError,
   authenticated = false,
   recyclingKey,
+  allowDeviceUris = false,
 }: AppImageProps) {
-  const uri = resolveImageUrl(source, variant);
+  const uri = resolveImageUrl(source, variant, { allowDeviceUris });
+  const reduceMotion = useReducedMotion();
   const fit = contentFit ?? (resizeMode ? RESIZE_TO_FIT[resizeMode] : 'cover');
   // Hook KOŞULSUZ çağrılır (rules-of-hooks), ama seçici `authenticated`
   // değilken sabit `null` döndürür: public görseller token değişimine ABONE
   // OLMAZ, yoksa her sessiz refresh uygulamadaki BÜTÜN görselleri yeniden
   // render ederdi. Token sızıntısı sözleşmesi de aynı seçicide korunuyor.
   const token = useAuthStore((s) => (authenticated ? s.token : null));
-  const imageSource = token ? { uri, headers: { Authorization: `Bearer ${token}` } } : { uri };
+  // Hata durumu (uri + token çiftine bağlı): kaynak/token değişince yeniden denenir. Hatalıyken
+  // sade gri yer tutucu gösterilir (kırık/boş kutu yerine).
+  const attemptKey = `${uri}|${token ?? ''}`;
+  const [failedKey, setFailedKey] = React.useState<string | null>(null);
+  const failed = failedKey === attemptKey;
+  const imageSource = failed
+    ? { uri: IMAGE_PLACEHOLDER }
+    : token
+      ? { uri, headers: { Authorization: `Bearer ${token}` } }
+      : { uri };
 
   const handleError = React.useCallback(() => {
     // Bearer'lı yükleme sessizce placeholder'a düşmesin — bu hatanın bunca
@@ -93,19 +117,21 @@ export const AppImage = React.memo(function AppImage({
     if (authenticated) {
       logger.debug("[AppImage] authenticated image failed to load", { hasToken: !!token });
     }
+    setFailedKey(attemptKey);
     onError?.();
-  }, [authenticated, token, onError]);
+  }, [authenticated, token, onError, attemptKey]);
 
   return (
     <Image
       source={imageSource}
       recyclingKey={recyclingKey}
-      style={style}
+      style={[baseStyle, style]}
       contentFit={fit}
       cachePolicy="memory-disk"
-      transition={150}
+      transition={reduceMotion ? 0 : FADE_MS}
       placeholder={IMAGE_PLACEHOLDER}
       placeholderContentFit={fit}
+      accessible={accessibilityLabel ? true : undefined}
       accessibilityLabel={accessibilityLabel}
       onError={handleError}
     />

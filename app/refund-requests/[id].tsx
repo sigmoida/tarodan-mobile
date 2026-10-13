@@ -1,5 +1,6 @@
 import { useRefundStatusConfig } from '@/lib/shared/refundStatus';
-import { View, Image } from 'react-native';
+import { View } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { Button, SectionCard, Text, StatusBadge, appAlert, toast, theme } from '@/ui';
 import { refundReasonLabel } from '@/lib/shared/status-configs';
 import { useState, useCallback } from 'react';
@@ -104,7 +105,7 @@ export default function RefundDetailScreen() {
         </View>
         <View style={styles.productRow}>
           {productImage ? (
-            <Image source={{ uri: productImage }} style={styles.productImage} />
+            <AppImage source={productImage} style={styles.productImage} />
           ) : (
             <View style={styles.productImage} />
           )}

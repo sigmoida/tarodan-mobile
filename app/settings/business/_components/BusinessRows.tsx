@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Image, Pressable } from 'react-native';
+import { View, Pressable } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
 import { Text, theme, Icon, Card } from '@/ui';
 
-import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
 import type { ProductStats, CollectionStats } from '../_lib/types';
 import { formatPrice } from '@/utils/format';
@@ -54,7 +54,7 @@ export function ProductRow({ product, index, metric }: { product: ProductStats; 
     <Pressable style={styles.productRow} onPress={() => router.push(`/product/${product.id}`)}>
       <RankBadge index={index} />
       {product.image ? (
-        <Image source={{ uri: resolveImageUrl(product.image) }} style={styles.productImage} />
+        <AppImage source={product.image} recyclingKey={String(product.id)} style={styles.productImage} />
       ) : (
         <View style={styles.productImage} />
       )}
@@ -77,7 +77,7 @@ export function CollectionRow({ collection, index }: { collection: CollectionSta
     <Pressable style={styles.productRow} onPress={() => router.push(`/collections/${collection.id}`)}>
       <RankBadge index={index} />
       {collection.coverImage ? (
-        <Image source={{ uri: resolveImageUrl(collection.coverImage) }} style={styles.productImage} />
+        <AppImage source={collection.coverImage} recyclingKey={String(collection.id)} style={styles.productImage} />
       ) : (
         <View style={styles.productImage} />
       )}

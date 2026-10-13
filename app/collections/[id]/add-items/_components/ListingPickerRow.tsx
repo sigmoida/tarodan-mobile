@@ -1,8 +1,8 @@
-import { View, Image, Pressable } from 'react-native';
+import { View, Pressable } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { Button, Text, ListRowCard } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
 import type { Listing } from '../_lib/types';
 import type { AddItemsController } from '../_hooks/useAddItems';
@@ -21,7 +21,7 @@ export function ListingPickerRow({ listing, f }: { listing: Listing; f: AddItems
         onPress={() => router.push(`/product/${listing.id}`)}
         accessibilityRole="button"
       >
-        <Image source={{ uri: resolveImageUrl(listing.images) }} style={styles.thumb} />
+        <AppImage source={listing.images} recyclingKey={String(listing.id)} style={styles.thumb} />
         <View style={styles.rowInfo}>
           <Text variant="bodySm" weight="semibold" numberOfLines={2}>
             {listing.title}
