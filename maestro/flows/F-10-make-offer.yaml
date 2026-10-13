@@ -56,10 +56,10 @@ env:
 - inputText: ${SEARCH_TERM}
 - extendedWaitUntil:
     visible:
-      text: ".*₺.*"
+      text: ".*[0-9],[0-9][0-9] TL.*"
     timeout: 30000
 - tapOn:
-    text: ".*₺.*"
+    text: ".*[0-9],[0-9][0-9] TL.*"
     index: 0
 - extendedWaitUntil:
     visible: "Teklif Ver"

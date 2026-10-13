@@ -2,7 +2,8 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Text, Divider, theme } from '@/ui';
+import { Text, Divider, StatusBadge, theme } from '@/ui';
+import { useOrderStatusConfig } from '@/lib/shared/orderStatus';
 import { isAwaitingDropoff, shipmentStatusLabel } from '@/lib/shipping/shipmentStatus';
 
 import { styles } from '../_lib/styles';
@@ -14,12 +15,14 @@ import {
   CLOSED_TRACK_HINT_KEYS,
   type OrderStatus,
 } from '../_lib/status';
+import { formatPrice } from '@/utils/format';
 
 const { colors } = theme;
 
 /** Result card: header status, product, price, shipping, and timeline. */
 export function OrderTrackResult({ order }: { order: OrderStatus }) {
   const { t } = useTranslation();
+  const statusConfig = useOrderStatusConfig();
   // Liste `@/lib/shipping/shipmentStatus`'te tek yerde; alıcı sipariş detayı da
   // aynı kapıyı kullanıyor (iki kopya sessizce ayrılırdı).
   const awaitingDropoff = isAwaitingDropoff(order.shipment?.status);
@@ -31,10 +34,7 @@ export function OrderTrackResult({ order }: { order: OrderStatus }) {
           <Text style={styles.orderNumber}>{order.orderNumber}</Text>
           <Text style={styles.orderDate}>{formatTrackDate(order.createdAt)}</Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusInfo(order.status, t).color }]}>
-          <Ionicons name={getStatusInfo(order.status, t).icon as any} size={16} color={colors.white} />
-          <Text style={styles.statusText}>{getStatusInfo(order.status, t).label}</Text>
-        </View>
+        <StatusBadge status={order.status} config={statusConfig} />
       </View>
 
       <Divider style={{ marginVertical: theme.spacing[4] }} />
@@ -69,7 +69,7 @@ export function OrderTrackResult({ order }: { order: OrderStatus }) {
       <View style={styles.priceSection}>
         <View style={styles.priceRow}>
           <Text style={styles.totalLabel}>{t('common.total')}</Text>
-          <Text style={styles.totalValue}>₺{(order.totalAmount ?? 0).toLocaleString('tr-TR')}</Text>
+          <Text style={styles.totalValue}>{formatPrice(order.totalAmount)}</Text>
         </View>
       </View>
 

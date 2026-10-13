@@ -142,7 +142,7 @@ describe('J18/J55 · ilan formu input validasyonu', () => {
     renderWithProviders(<ListingForm mode="create" />);
     await screen.findByText('İlan Oluştur');
     fireEvent.changeText(screen.getByPlaceholderText("Örn: Hot Wheels '69 Camaro Z28"), 'Geçerli Başlık');
-    fireEvent.changeText(screen.getByPlaceholderText('Ürün hakkında detaylı bilgi...'), GECERLI_ACIKLAMA);
+    fireEvent.changeText(screen.getByPlaceholderText('Ürün hakkında detaylı bilgi'), GECERLI_ACIKLAMA);
     fireEvent.changeText(screen.getByPlaceholderText('0.00'), '0');
     fireEvent.press(screen.getByText('İlan Oluştur'));
     // `common.invalidPrice` reuse (rule #1).
@@ -154,7 +154,7 @@ describe('J18/J55 · ilan formu input validasyonu', () => {
     renderWithProviders(<ListingForm mode="create" />);
     await screen.findByText('İlan Oluştur');
     fireEvent.changeText(screen.getByPlaceholderText("Örn: Hot Wheels '69 Camaro Z28"), 'Geçerli Başlık');
-    fireEvent.changeText(screen.getByPlaceholderText('Ürün hakkında detaylı bilgi...'), 'kısa');
+    fireEvent.changeText(screen.getByPlaceholderText('Ürün hakkında detaylı bilgi'), 'kısa');
     fireEvent.press(screen.getByText('İlan Oluştur'));
     expect(alertSpy).toHaveBeenCalledWith('Hata', 'Açıklama 30 ile 330 karakter arasında olmalıdır.');
     expect(mockCreate).not.toHaveBeenCalled();
@@ -164,7 +164,7 @@ describe('J18/J55 · ilan formu input validasyonu', () => {
     renderWithProviders(<ListingForm mode="create" />);
     await screen.findByText('İlan Oluştur');
     fireEvent.changeText(screen.getByPlaceholderText("Örn: Hot Wheels '69 Camaro Z28"), 'Geçerli Başlık');
-    fireEvent.changeText(screen.getByPlaceholderText('Ürün hakkında detaylı bilgi...'), GECERLI_ACIKLAMA);
+    fireEvent.changeText(screen.getByPlaceholderText('Ürün hakkında detaylı bilgi'), GECERLI_ACIKLAMA);
     fireEvent.changeText(screen.getByPlaceholderText('0.00'), '150');
     fireEvent.press(screen.getByText('İlan Oluştur'));
     expect(alertSpy).toHaveBeenCalledWith('Hata', 'Lütfen bir kategori seçin.');

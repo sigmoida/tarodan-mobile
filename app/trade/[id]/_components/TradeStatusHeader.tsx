@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Card, Text, Button, StatusBadge, theme } from '@/ui';
-import { useTradeStatusConfig } from '@/lib/shared/tradeStatus';
+import { useTradeStatusConfig, type TradeViewerRole } from '@/lib/shared/tradeStatus';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
@@ -24,6 +24,7 @@ export function TradeStatusHeader({
   t,
   now,
   hasPaymentStep,
+  viewerRole,
 }: {
   trade: Trade;
   t: TFn;
@@ -35,9 +36,11 @@ export function TradeStatusHeader({
    * gösteriyordu.
    */
   hasPaymentStep: boolean;
+  /** Bakan tarafın rolü — gönderi/teslim etiketleri "siz / karşı taraf" diye seçilir. */
+  viewerRole?: TradeViewerRole;
 }) {
   // Etiket/renk/ikon TEK kaynaktan, çevrilmiş hâlde.
-  const statusDetail = useTradeStatusDetail();
+  const statusDetail = useTradeStatusDetail(viewerRole);
   const statusInfoBase = statusDetail[trade.status] ?? statusDetail.pending!;
   // `NEW_STATUS_KEYS` override'ı KALDIRILDI: paylaşılan harita zaten her durum
   // için katalog anahtarı taşıyor, override ikinci bir anahtar seti
@@ -45,7 +48,7 @@ export function TradeStatusHeader({
   // seti yaratıyordu ("Depoya Gönderim" / "Depoya Gönderiliyor").
   const statusInfo = statusInfoBase;
   // Rozet de aynı tek kaynaktan — banner ile rozet farklı kelime göstermesin.
-  const badgeConfig = useTradeStatusConfig();
+  const badgeConfig = useTradeStatusConfig(viewerRole);
   const hasBadge = !!badgeConfig[trade.status];
   const countdown = formatCountdown(deadlineForStatus(trade), now);
   const statusDescriptions = buildStatusDescriptions(t);

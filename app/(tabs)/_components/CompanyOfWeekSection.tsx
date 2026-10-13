@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getImageUrl as getImageUrlFromUtils } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
+import { formatPrice } from '@/utils/format';
 
 const { colors } = theme;
 
@@ -111,7 +112,7 @@ export function CompanyOfWeekSection({
                 </View>
                 <View style={styles.companyProductInfo}>
                   <Text style={styles.companyProductTitle} numberOfLines={2}>{product.title}</Text>
-                  <Text style={styles.companyProductPrice}>₺{product.price?.toLocaleString('tr-TR')}</Text>
+                  <Text style={styles.companyProductPrice}>{formatPrice(product.price)}</Text>
                 </View>
               </TouchableOpacity>
             ))}

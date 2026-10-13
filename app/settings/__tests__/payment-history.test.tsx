@@ -57,7 +57,7 @@ describe('J78 · Ödeme geçmişi liste render', () => {
     await waitFor(() =>
       expect(screen.getByText('Premium Üyelik')).toBeOnTheScreen(),
     );
-    expect(screen.getByText('₺199,90')).toBeOnTheScreen();
+    expect(screen.getByText('199,90 TL')).toBeOnTheScreen();
     expect(screen.getByText('Kredi Kartı')).toBeOnTheScreen();
   });
 

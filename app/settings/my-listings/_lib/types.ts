@@ -1,7 +1,6 @@
 import type { MessageKey } from '@/i18n/lib';
-import { theme } from '@/ui';
-
-const { colors } = theme;
+import { productStatusConfig, type StatusConfigDefMap } from '@/lib/shared/status-configs';
+import { statusVariantSolid } from '@/lib/shared/status-colors';
 
 export interface Listing {
   id: string;
@@ -74,20 +73,18 @@ export const inactiveHintKey = (
   return null;
 };
 
-export const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'active': return colors.success[600]!;
-    case 'sold': return colors.info[600]!;
-    case 'pending': return colors.warning[600]!;
-    case 'rejected': return colors.danger[600]!;
-    case 'reserved': return colors.primary[600]!;
-    case 'inactive': return colors.text.subtle;
-    case 'expired': return colors.warning[600]!;
-    case 'deleted': return colors.danger[600]!;
-    case 'suspended': return colors.warning[700]!;
-    default: return colors.text.muted;
-  }
+/**
+ * İlan durumu: renk + etiket web `productStatusConfig` ile AYNI
+ * (`@/lib/shared/status-configs`). Mobilin eklediği tek durum `expired`
+ * (pasif + süresi dolmuş; web'de ayrı durum değil).
+ */
+const LISTING_STATUS_META: StatusConfigDefMap = {
+  ...productStatusConfig,
+  expired: { labelKey: 'profile.listingStatus.expired', variant: 'warning' },
 };
+
+export const getStatusColor = (status: string) =>
+  statusVariantSolid(LISTING_STATUS_META[status]?.variant ?? 'outline');
 
 /**
  * Durumun katalog ANAHTARI — çözülmüş metin değil.
@@ -96,20 +93,8 @@ export const getStatusColor = (status: string) => {
  * dondururdu. Tanınmayan bir durum `null` döner, çağıran ham kodu basar (ekranda
  * boş bir satır kalmasın).
  */
-export const statusTextKey = (status: string): MessageKey | null => {
-  switch (status) {
-    case 'active': return 'listing.filterActive';
-    case 'sold': return 'listing.filterSold';
-    case 'pending': return 'listing.statusPendingApproval';
-    case 'rejected': return 'listing.filterRejected';
-    case 'reserved': return 'listing.filterReserved';
-    case 'inactive': return 'listing.filterInactive';
-    case 'expired': return 'profile.listingStatus.expired';
-    case 'deleted': return 'listing.statusDeleted';
-    case 'suspended': return 'listing.statusSuspended';
-    default: return null;
-  }
-};
+export const statusTextKey = (status: string): MessageKey | null =>
+  LISTING_STATUS_META[status]?.labelKey ?? null;
 
 export const formatDate = (dateString: string) => {
   const date = new Date(dateString);

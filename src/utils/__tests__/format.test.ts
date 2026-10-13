@@ -170,26 +170,38 @@ describe('formatOrderStatus', () => {
 });
 
 /**
- * Bilinen kusur (2026-08-29 tespit): formatPrice/formatPriceNumber `'tr-TR'`i
- * SABİT kullanıyordu — İngilizce kullanıcı bile binlik/ondalık ayracı Türkçe
- * görüyordu. PARA BİRİMİ hep TL kalır (bu bir TL pazaryeri); yalnız SAYI
- * biçimi aktif dile göre değişir. `formatRelativeDate`'in `locale` varsayılanı
- * da aynı sınıf kusur taşıyordu (sabit `'tr'`) — artık aktif dile düşer.
+ * Para biçimi web (`packages/shared/src/money.ts`) ile birebir: aktif dilden
+ * BAĞIMSIZ, her zaman tr-TR ayraçları + 2 ondalık + " TL" (₺ yok). Eski
+ * (2026-08-29) davranış İngilizce arayüzde en-US ayracı basıyordu; web'de
+ * böyle bir ayrım yok, iki istemci aynı tutarı aynı yazmalı.
+ * `formatRelativeDate` ise hâlâ aktif dile düşer.
  */
-describe('locale-duyarlı biçimlendirme (aktif dile göre, TL sabit kalır)', () => {
+describe('formatPrice: web ile aynı, dilden bağımsız', () => {
   afterEach(async () => {
     await i18n.changeLanguage('tr');
   });
 
-  it('formatPrice: en aktifken en-US binlik/ondalık ayracı kullanır, TL eki değişmez', async () => {
-    expect(formatPrice(1234.5)).toBe('1.234,50 TL');
-    await i18n.changeLanguage('en');
-    expect(formatPrice(1234.5)).toBe('1,234.50 TL');
+  it.each([
+    [1234.5, '1.234,50 TL'],
+    [0, '0,00 TL'],
+    [12.3, '12,30 TL'],
+    [1234567.891, '1.234.567,89 TL'],
+    ['99.9', '99,90 TL'],
+    [null, '0,00 TL'],
+    [undefined, '0,00 TL'],
+    ['abc', '0,00 TL'],
+  ])('formatPrice(%p) = %s', (input, out) => {
+    expect(formatPrice(input as never)).toBe(out);
   });
 
-  it('formatPriceNumber aynı locale kuralını TL eki olmadan izler', async () => {
+  it('en aktifken de tr-TR ayraçları ve TL eki değişmez', async () => {
     await i18n.changeLanguage('en');
-    expect(formatPriceNumber(1234.5)).toBe('1,234.50');
+    expect(formatPrice(1234.5)).toBe('1.234,50 TL');
+    expect(formatPriceNumber(1234.5)).toBe('1.234,50');
+  });
+
+  it('₺ simgesi basılmaz', () => {
+    expect(formatPrice(100)).not.toContain('₺');
   });
 
   it('formatRelativeDate: locale verilmezse aktif dile düşer (7+ gün önce → tam tarih)', async () => {

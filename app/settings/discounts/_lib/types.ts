@@ -1,6 +1,7 @@
 import type { MessageKey } from '@/i18n/lib';
 
 import type { DiscountType } from '@/lib/api';
+import { formatPrice } from '@/utils/format';
 
 export type { DiscountType };
 export type DiscountScope = 'seller' | 'product';
@@ -55,7 +56,7 @@ export const isQuantityType = (type: DiscountType) => type === 'bogo' || type ==
 
 export const valueLabel = (d: Discount) => {
   if (d.type === 'bogo') return `${d.buyQuantity ?? '?'}+${d.getQuantity ?? '?'}`;
-  return d.type === 'fixed_amount' ? `₺${d.value.toLocaleString('tr-TR')}` : `%${d.value}`;
+  return d.type === 'fixed_amount' ? formatPrice(d.value) : `%${d.value}`;
 };
 
 /** Adet koşullu kampanyanın kart özeti; diğer türlerde `null`. */

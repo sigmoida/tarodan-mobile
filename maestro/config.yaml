@@ -15,3 +15,8 @@ env:
   # E-01 / E-08 deep-link hedefi. Gerçek bir stockout product UUID'si ile override edin:
   # maestro test --env STOCKOUT_PRODUCT_ID=<uuid> flows/E-01-stockout-page.yaml
   STOCKOUT_PRODUCT_ID: "00000000-0000-0000-0000-000000000000"
+  # Yasal kimlik kapısı (subflows/pass-identity-gate.yaml). TCKN repoda tutulmaz; kapı açılan
+  # akışlarda çalıştırmada verin: maestro test --env MAESTRO_TEST_TCKN=<11 hane> ...
+  MAESTRO_TEST_TCKN: ""
+  MAESTRO_TEST_FIRST_NAME: "Maestro"
+  MAESTRO_TEST_LAST_NAME: "Test"

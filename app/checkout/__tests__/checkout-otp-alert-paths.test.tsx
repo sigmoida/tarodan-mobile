@@ -228,7 +228,7 @@ describe('OTP modalı açıkken ham appAlert kalmadı', () => {
       () =>
         expect(appAlert).toHaveBeenCalledWith(
           'Hata',
-          'Sipariş oluşturuldu fakat ödeme başlatılamadı. Siparişlerim sayfasından devam edebilirsiniz.',
+          'Sipariş oluşturuldu ancak ödeme başlatılamadı. Lütfen Siparişlerim sayfasından ödemeyi tamamlayın.',
           undefined,
         ),
       { timeout: 2000 },

@@ -18,6 +18,7 @@ import {
   type Listing,
 } from '../_lib/types';
 import type { MyListingsController } from '../_hooks/useMyListings';
+import { formatPrice } from '@/utils/format';
 
 const { colors } = theme;
 
@@ -142,7 +143,7 @@ export function MyListingCard({
             onPress={onMenu}
           />
         </View>
-        <Text style={styles.listingPrice}>₺{(listing.price ?? 0).toLocaleString('tr-TR')}</Text>
+        <Text style={styles.listingPrice}>{formatPrice(listing.price)}</Text>
 
         {/* Stats */}
         <View style={styles.listingStats}>

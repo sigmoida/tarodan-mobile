@@ -400,7 +400,7 @@ describe('B25 · Timeline iade/iptal yansıtması', () => {
     mockParams = { id: 'order-1' };
   });
 
-  it('B25.1 tamamlanmış iade → timeline "İade Tamamlandı" adımı + gerçek tarih (— değil)', async () => {
+  it('B25.1 tamamlanmış iade → timeline "Para İade Edildi" adımı + gerçek tarih (— değil)', async () => {
     getMock.mockResolvedValue({
       data: {
         data: orderFixture({
@@ -418,7 +418,7 @@ describe('B25 · Timeline iade/iptal yansıtması', () => {
     });
     renderWithProviders(<OrderDetailScreen />);
     const step = await screen.findByTestId('order-refundcancel-timeline');
-    expect(within(step).getByText('İade Tamamlandı')).toBeOnTheScreen();
+    expect(within(step).getByText('Para İade Edildi')).toBeOnTheScreen();
     // Tarih bug'ı: refundedAt yanlış alandan okununca '-' görünüyordu.
     expect(within(step).queryByText('-')).toBeNull();
   });
@@ -446,7 +446,7 @@ describe('B25 · Timeline iade/iptal yansıtması', () => {
     expect(screen.queryByText('İade Sürecinde')).toBeNull();
   });
 
-  it('B25.3 süren iade → rozet "İade Sürecinde" + timeline adımı görünür', async () => {
+  it('B25.3 süren iade → rozet "İade Talep Edildi" (web durum etiketi) + timeline adımı görünür', async () => {
     getMock.mockResolvedValue({
       data: {
         data: orderFixture({
@@ -463,8 +463,8 @@ describe('B25 · Timeline iade/iptal yansıtması', () => {
     await waitFor(() =>
       expect(screen.getByTestId('order-refundcancel-timeline')).toBeOnTheScreen(),
     );
-    // Rozet "İade Sürecinde"; timeline adımı talep durumunu yansıtır (— değil).
-    expect(screen.getByText('İade Sürecinde')).toBeOnTheScreen();
+    // Rozet web `orderStatusConfig.refund_requested` etiketi; timeline adımı talep durumunu yansıtır (— değil).
+    expect(screen.getByText('İade Talep Edildi')).toBeOnTheScreen();
     const step = screen.getByTestId('order-refundcancel-timeline');
     expect(within(step).queryByText('-')).toBeNull();
   });

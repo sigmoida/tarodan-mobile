@@ -122,14 +122,14 @@ describe('J103 · mesaj thread render & gönderim', () => {
 
   it('J103.2 sadece boşluk içeren input ile gönder çağrılmaz', () => {
     renderWithProviders(<MessageThreadScreen />);
-    fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın...'), '   ');
+    fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın'), '   ');
     fireEvent.press(screen.UNSAFE_getByProps({ name: 'send' }).parent);
     expect(mockSendMessage).not.toHaveBeenCalled();
   });
 
   it('J103.3 geçerli mesaj gönderilir', async () => {
     renderWithProviders(<MessageThreadScreen />);
-    fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın...'), 'Merhaba');
+    fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın'), 'Merhaba');
     const sendBtn = screen.UNSAFE_getByProps({ name: 'send' }).parent;
     fireEvent.press(sendBtn);
     await waitFor(() =>
@@ -152,7 +152,7 @@ describe('J104 · içerik filtresi & mesaj limiti (UI göstergesi)', () => {
 
   it('J104.1 telefon numarası içeren mesaj engellenir + uyarı gösterilir', async () => {
     renderWithProviders(<MessageThreadScreen />);
-    fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın...'), 'ara beni 0532 123 45 67');
+    fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın'), 'ara beni 0532 123 45 67');
     fireEvent.press(screen.UNSAFE_getByProps({ name: 'send' }).parent);
     await waitFor(() =>
       expect(screen.getByText(/Güvenliğiniz için bu mesaj gönderilemiyor/)).toBeOnTheScreen(),
@@ -163,7 +163,7 @@ describe('J104 · içerik filtresi & mesaj limiti (UI göstergesi)', () => {
   it('J104.2 IBAN içeren mesaj engellenir', async () => {
     renderWithProviders(<MessageThreadScreen />);
     fireEvent.changeText(
-      screen.getByPlaceholderText('Mesajınızı yazın...'),
+      screen.getByPlaceholderText('Mesajınızı yazın'),
       'TR12 3456 7890 1234 5678 9012 34',
     );
     fireEvent.press(screen.UNSAFE_getByProps({ name: 'send' }).parent);
@@ -179,8 +179,8 @@ describe('J104 · içerik filtresi & mesaj limiti (UI göstergesi)', () => {
     // canSend=false → input placeholder "Mesaj limiti doldu" + editable=false
     const input = screen.getByPlaceholderText('Mesaj limiti doldu');
     expect(input.props.editable).toBe(false);
-    // "Mesajınızı yazın..." placeholder limit dolunca render edilmez
-    expect(screen.queryByPlaceholderText('Mesajınızı yazın...')).toBeNull();
+    // "Mesajınızı yazın" placeholder limit dolunca render edilmez
+    expect(screen.queryByPlaceholderText('Mesajınızı yazın')).toBeNull();
     // Uyarıdaki sayı katman tablosundan DEĞİL sunucunun `limit` değerinden (30) gelir.
     expect(screen.getByText(/\(30 mesaj\)/)).toBeOnTheScreen();
     // Limit platform genelinde tek değer: "Premium ile sınırsız mesaj" vaadi/yükseltme yok.
@@ -205,7 +205,7 @@ describe('J104 · içerik filtresi & mesaj limiti (UI göstergesi)', () => {
     for (const daily of [{ remaining: 3, limit: 50 }, null]) {
       mockDaily = daily;
       const { unmount } = renderWithProviders(<MessageThreadScreen />);
-      expect(screen.getByPlaceholderText('Mesajınızı yazın...').props.editable).toBe(true);
+      expect(screen.getByPlaceholderText('Mesajınızı yazın').props.editable).toBe(true);
       expect(screen.queryByPlaceholderText('Mesaj limiti doldu')).toBeNull();
       expect(screen.queryByText(/Günlük mesaj limitinize ulaştınız/)).toBeNull();
       unmount();
@@ -286,7 +286,7 @@ describe('mesaj eki görselleri — bearer + şema beyaz listesi', () => {
     });
 
     renderWithProviders(<MessageThreadScreen />);
-    fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın...'), 'şuna bak');
+    fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın'), 'şuna bak');
     await waitFor(() =>
       fireEvent.press(screen.UNSAFE_getByProps({ name: 'image-outline' }).parent),
     );

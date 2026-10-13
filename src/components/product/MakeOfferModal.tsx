@@ -65,7 +65,7 @@ export default function MakeOfferModal({
     // API kuralı: minimum teklif fiyatın %50'si (web paritesi) — yoksa ham 400 dönüyordu.
     const minOffer = listPrice * 0.5;
     if (numeric < minOffer) {
-      msg.error(t('offer.minimumOfferErrorTl', { amount: minOffer.toLocaleString('tr-TR') }));
+      msg.error(t('offer.minimumOfferErrorTl', { amount: formatPrice(minOffer) }));
       return;
     }
     if (numeric >= listPrice) {

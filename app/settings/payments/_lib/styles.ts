@@ -64,18 +64,6 @@ export const styles = StyleSheet.create({
     gap: theme.spacing[2.5],
     marginBottom: theme.spacing[1.5],
   },
-  statusChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: theme.spacing[1],
-    borderRadius: 12,
-    gap: theme.spacing[1],
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
   providerWrap: {
     flexDirection: 'row',
     alignItems: 'center',
