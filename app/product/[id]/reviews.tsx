@@ -56,7 +56,7 @@ export default function ProductReviewsScreen() {
               <SkeletonText lines={5} />
             </View>
           ) : (
-            <EmptyState icon="star" title={t('review.noReviews')} />
+            <EmptyState icon="star" title={t('review.noReviews')} subtitle={t('emptyState.reviewsHint')} />
           )
         }
         onEndReached={() => {

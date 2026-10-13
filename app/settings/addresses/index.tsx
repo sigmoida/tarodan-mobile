@@ -60,7 +60,6 @@ export default function AddressesScreen() {
       >
         {f.addresses.length === 0 ? (
           <EmptyState
-            size="compact"
             icon="map-pin"
             title={f.t('mobile.noSavedAddress')}
             subtitle={f.t('address.emptySubtitle')}

@@ -75,6 +75,8 @@ const DESIGN_WARNINGS = {
   // AppShell, useHeaderTopInset. headerShown: true (native header) yasak.
   'tarodan/no-custom-screen-header': 'warn',
   'tarodan/no-native-header': 'warn',
+  // Boş durum: ListEmptyComponent içinde elle View/Text yerine EmptyState.
+  'tarodan/empty-state-standard': 'warn',
   // Ham RN Text/TouchableOpacity/Modal → @/ui (Text/RawText, Button/Pressable, Modal).
   '@typescript-eslint/no-restricted-imports': [
     'warn',

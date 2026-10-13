@@ -9,9 +9,6 @@ export interface ErrorStateProps {
   message?: string;
   onRetry?: () => void;
   retryLabel?: string;
-  /** Web: `default` geniş boşluk, `compact` kart içi. */
-  size?: 'default' | 'compact';
-  fullscreen?: boolean;
 }
 
 /**
@@ -27,8 +24,6 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
   message,
   onRetry,
   retryLabel,
-  size = 'default',
-  fullscreen = false,
 }) => {
   const { t } = useTranslation();
   return (
@@ -36,8 +31,6 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
       icon="exclamation-circle"
       title={title ?? t('mobile.errorSomethingWrong')}
       description={message ?? t('mobile.errorBoundaryDescription')}
-      size={size}
-      fullscreen={fullscreen}
     >
       {onRetry ? (
         <Button

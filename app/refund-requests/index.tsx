@@ -26,7 +26,7 @@ export default function RefundRequestsScreen() {
         emptyState={{
           icon: 'receipt-percent',
           title: t('order.myRefundRequests'),
-          description: t('refund.authGateSubtitle'),
+          subtitle: t('refund.authGateSubtitle'),
           actionLabel: t('common.login'),
           onAction: () => router.push('/(auth)/login'),
         }}

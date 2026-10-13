@@ -8821,5 +8821,23 @@
         "iletildi": "İletildi"
       }
     }
+  },
+  "emptyState": {
+    "statsHint": "İstatistikler veri oluştukça burada görünecek.",
+    "tradeEligibleHint": "Takasa uygun ürünler eklendiğinde burada görünecek.",
+    "tryLaterHint": "Lütfen daha sonra tekrar deneyin.",
+    "createCollectionHint": "Yukarıdaki düğmeyle ilk koleksiyonunuzu oluşturun.",
+    "tradeListingsHint": "Takas teklifi verebilmek için önce bir ilan oluşturun.",
+    "notFoundHint": "Aradığınız içerik silinmiş ya da taşınmış olabilir.",
+    "loadFailedHint": "Çekerek yenileyin veya daha sonra tekrar deneyin.",
+    "loginRequiredHint": "Devam etmek için hesabınıza giriş yapın.",
+    "reviewsHint": "Değerlendirmeler yapıldıkça burada görünecek.",
+    "collectionsHint": "Koleksiyonlar oluşturuldukça burada görünecek.",
+    "collectionItemsHint": "Eklenen ürünler burada görünecek.",
+    "collectionAddListingHint": "Önce bir ilan oluşturun, ardından koleksiyonunuza ekleyin.",
+    "collectionNoPermissionHint": "Bu koleksiyonu yalnızca sahibi düzenleyebilir.",
+    "manufacturersHint": "Üreticiler eklendikçe burada listelenecek.",
+    "businessRegisterHint": "Bilgilerinizi doldurup başvurunuzu gönderin.",
+    "businessErrorHint": "Kurumsal panelin açılması için hesabınızı tamamlayın."
   }
 }

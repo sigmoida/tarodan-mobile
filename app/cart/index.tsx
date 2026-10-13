@@ -28,7 +28,7 @@ export default function CartScreen() {
         emptyState={{
           icon: 'shopping-cart',
           title: t('cart.empty'),
-          description: t('cart.emptyDesc'),
+          subtitle: t('cart.emptyDesc'),
           actionLabel: t('cart.browseListings'),
           onAction: () => router.replace('/'),
         }}

@@ -99,8 +99,9 @@ export default function TradesScreen() {
         onBack={handleBack}
         empty
         emptyState={{
+          icon: 'arrows-right-left',
           title: t('membership.loginRequiredTitle'),
-          description: t('trade.tradeRequiresLogin'),
+          subtitle: t('trade.tradeRequiresLogin'),
           actionLabel: t('common.login'),
           onAction: () => router.push('/(auth)/login'),
         }}
@@ -145,7 +146,7 @@ export default function TradesScreen() {
             <EmptyState
               icon="arrows-right-left"
               title={t('trade.noTrades')}
-              description={filter === 'all' ? t('trade.noTradesHint') : t('trade.noTradesFilteredHint')}
+              subtitle={filter === 'all' ? t('trade.noTradesHint') : t('trade.noTradesFilteredHint')}
               actionLabel={t('trade.searchListingsCta')}
               onAction={() => router.push('/search')}
             />

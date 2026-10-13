@@ -30,7 +30,7 @@ export default function SalesScreen() {
         emptyState={{
           icon: 'building-storefront',
           title: t('sellerDashboard.mySales'),
-          description: t('sale.authGateSubtitle'),
+          subtitle: t('sale.authGateSubtitle'),
           actionLabel: t('common.login'),
           onAction: () => router.push('/(auth)/login'),
         }}
@@ -69,7 +69,7 @@ export default function SalesScreen() {
             <EmptyState
               icon="shopping-cart"
               title={t('sale.emptyTitle')}
-              description={t('sale.emptySubtitle')}
+              subtitle={t('sale.emptySubtitle')}
               actionLabel={t('product.createListing')}
               onAction={() => router.push('/(tabs)/sell')}
             />

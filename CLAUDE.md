@@ -361,6 +361,12 @@ and turns them into **errors**, so write new code warning-free.
   heart / "in cart" pill on cards (web has none).
 - **Tap targets ≥ 44pt** — visuals may stay at the web size, close the gap with
   `hitSlop` (Button/IconButton/Chip already do).
+- **Empty states:** every empty screen/list/section uses `EmptyState` (`@/ui`) — `icon`, `title`
+  and `subtitle` are **required**, the action is optional. Placement is one rule built into the
+  component (fixed `EMPTY_STATE_TOP_OFFSET` from the top of the content area, centred horizontally,
+  no vertical centring), so `PageShell` `empty`, `ListEmptyComponent` and in-card empties all sit in
+  the same place; never wrap it in extra padding/margin or hand-draw View + icon + Text
+  (`tarodan/empty-state-standard` warns on hand-drawn `ListEmptyComponent`s).
 - **Loading:** list and card screens use `Skeleton*` (web-like); a full-screen
   spinner only for the very first load.
 - **Copy:** same i18n key, same value as web. New keys go into both `tr` and `en`

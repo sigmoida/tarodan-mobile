@@ -6,57 +6,55 @@ import { theme } from '../lib/theme';
 import { RefIcon, type IconRef } from '../icons';
 
 export interface EmptyStateProps {
-  /** İkon adı; `false` ikonsuz çizer (web `icon={false}`). */
-  icon?: IconRef | false;
+  /** Ikon adı — ZORUNLU (her boş durum aynı iskeleti: gri daire + ikon). */
+  icon: IconRef;
   title: string;
-  subtitle?: string;
-  /** `subtitle` için web adı. */
-  description?: string;
+  /** Alt başlık — ZORUNLU (boş durum "ne oldu + ne yapabilirim" der). */
+  subtitle: string;
+  /** Birincil eylem (opsiyonel). */
   actionLabel?: string;
   onAction?: () => void;
   secondaryLabel?: string;
   onSecondary?: () => void;
-  /** Hazır aksiyon düğümü (web `action`); `actionLabel`/`onAction` yerine. */
+  /** Hazır aksiyon düğümü (kapı ekranlarının özel gövdesi); `actionLabel`/`onAction` ile birlikte de çizilir. */
   action?: React.ReactNode;
-  /** Web: `default` geniş boşluk, `compact` kart içi. */
-  size?: 'default' | 'compact';
-  fullscreen?: boolean;
 }
 
 const { colors, spacing, radiusRole } = theme;
 
-/** Web `@tarodan/ui` EmptyState ölçüleri — ErrorState de aynı iskeleti kullanır. */
+/**
+ * Boş durum ölçüleri — TEK tip (ErrorState de aynı iskeleti kullanır).
+ *
+ * YERLEŞİM KURALI (hepsinde aynı): içerik alanının ÜSTÜNDEN sabit `paddingTop` ofseti
+ * (`EMPTY_STATE_TOP_OFFSET`, 64pt) ile, yatayda ortalı. Dikey ortalama YOK: ortalama kapsayıcı
+ * yüksekliğine (sekme çubuğu, klavye, başlık bandı, liste başlığı) bağlı olduğundan ekrandan
+ * ekrana kayardı; sabit ofset her yerde — PageShell `empty`, liste `ListEmptyComponent`, kart
+ * içi — aynı yerde durur. Yerleşim bileşenin KENDİSİNDE olduğu için çağıran ek
+ * padding/margin/flex vermez (lint: `tarodan/empty-state-standard`).
+ */
+export const EMPTY_STATE_TOP_OFFSET = spacing[16];
 export const emptyStateMetrics = {
-  default: { circle: 64, icon: 28, py: spacing[16] },
-  compact: { circle: 48, icon: 24, py: spacing[8] },
+  circle: 64,
+  icon: 28,
+  paddingTop: EMPTY_STATE_TOP_OFFSET,
+  paddingBottom: spacing[8],
 } as const;
 
 interface StateLayoutProps {
-  icon: IconRef | false;
+  icon: IconRef;
   title: string;
   description?: string;
-  size: 'default' | 'compact';
-  fullscreen: boolean;
   children?: React.ReactNode;
 }
 
 /** Ortak iskelet: gri daire + gri ikon, başlık lg/600, açıklama sm muted, aksiyon mt-4. */
-export const StateLayout: React.FC<StateLayoutProps> = ({
-  icon,
-  title,
-  description,
-  size,
-  fullscreen,
-  children,
-}) => {
-  const m = emptyStateMetrics[size];
+export const StateLayout: React.FC<StateLayoutProps> = ({ icon, title, description, children }) => {
+  const m = emptyStateMetrics;
   return (
-    <View style={[styles.container, { paddingVertical: m.py }, fullscreen && styles.fullscreen]}>
-      {icon !== false ? (
-        <View style={[styles.iconCircle, { width: m.circle, height: m.circle }]}>
-          <RefIcon icon={icon} size={m.icon} color={colors.text.subtle} />
-        </View>
-      ) : null}
+    <View style={styles.container} testID="empty-state">
+      <View style={[styles.iconCircle, { width: m.circle, height: m.circle }]}>
+        <RefIcon icon={icon} size={m.icon} color={colors.text.subtle} />
+      </View>
       <Text variant="h3" weight="semibold" align="center" style={styles.title}>
         {title}
       </Text>
@@ -71,35 +69,26 @@ export const StateLayout: React.FC<StateLayoutProps> = ({
 };
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
-  icon = 'inbox',
+  icon,
   title,
   subtitle,
-  description,
   actionLabel,
   onAction,
   secondaryLabel,
   onSecondary,
   action,
-  size = 'default',
-  fullscreen = false,
 }) => {
   const hasActions = !!action || !!(actionLabel && onAction) || !!(secondaryLabel && onSecondary);
   return (
-    <StateLayout
-      icon={icon}
-      title={title}
-      description={description ?? subtitle}
-      size={size}
-      fullscreen={fullscreen}
-    >
+    <StateLayout icon={icon} title={title} description={subtitle}>
       {hasActions ? (
         <>
           {action}
           {actionLabel && onAction ? (
-            <Button variant="primary" title={actionLabel} onPress={onAction} style={styles.button} />
+            <Button variant="primary" size="md" title={actionLabel} onPress={onAction} style={styles.button} />
           ) : null}
           {secondaryLabel && onSecondary ? (
-            <Button variant="ghost" title={secondaryLabel} onPress={onSecondary} style={styles.button} />
+            <Button variant="ghost" size="md" title={secondaryLabel} onPress={onSecondary} style={styles.button} />
           ) : null}
         </>
       ) : null}
@@ -109,11 +98,12 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 
 const styles = StyleSheet.create({
   container: {
+    alignSelf: 'stretch',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingTop: emptyStateMetrics.paddingTop,
+    paddingBottom: emptyStateMetrics.paddingBottom,
     paddingHorizontal: spacing[4],
   },
-  fullscreen: { flex: 1 },
   iconCircle: {
     borderRadius: radiusRole.avatar,
     backgroundColor: colors.surface.alt,

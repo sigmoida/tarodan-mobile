@@ -42,10 +42,11 @@ export default function AddCollectionItemsScreen() {
             <EmptyState
               icon="cube"
               title={t('collection.noActiveListings')}
+              subtitle={t('emptyState.collectionAddListingHint')}
               action={<Button title={t('product.createListing')} onPress={() => router.push('/(tabs)/sell')} />}
             />
           ) : (
-            <EmptyState icon="magnifying-glass" title={t('collection.noSearchMatch')} />
+            <EmptyState icon="magnifying-glass" title={t('collection.noSearchMatch')} subtitle={t('search.tryDifferent')} />
           )
         }
       />

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button, Checkbox, Modal, Spinner, Text } from '@/ui';
+import { Button, Checkbox, EmptyState, Modal, Spinner, Text } from '@/ui';
 
 import { formatPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
@@ -34,7 +34,7 @@ export function ProductPickerModal({
             <Spinner size="lg" />
           </View>
         ) : products.length === 0 ? (
-          <Text variant="bodySm" tone="muted" style={styles.emptyProducts}>{t('discount.noActiveProducts')}</Text>
+          <EmptyState icon="cube" title={t('discount.noActiveProducts')} subtitle={t('home.noProductsYetHint')} />
         ) : (
           products.map((p) => {
             const checked = selectedIds.includes(p.id);

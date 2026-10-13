@@ -135,8 +135,9 @@ export function RefundList({ f }: Props) {
   if (f.refunds.length === 0) {
     return (
       <EmptyState
+        icon="receipt-percent"
         title={f.tab === 'seller' ? t('refund.emptySellerTitle') : t('refund.emptyBuyerTitle')}
-        description={f.tab === 'seller' ? t('refund.emptySellerSubtitle') : t('refund.emptyBuyerSubtitle')}
+        subtitle={f.tab === 'seller' ? t('refund.emptySellerSubtitle') : t('refund.emptyBuyerSubtitle')}
       />
     );
   }

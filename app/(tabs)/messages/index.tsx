@@ -32,7 +32,6 @@ function MessagesTabScreen() {
     return (
       <AppShell variant="title" title={t("mobile.messagesTitle")}>
         <EmptyState
-          fullscreen
           icon="chat-bubble-left-right"
           title={t("mobile.messagesTitle")}
           subtitle={t("message.loginToView")}

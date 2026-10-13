@@ -64,7 +64,7 @@ export function ModelProductsGrid({ f }: { f: ModelDetailController }) {
           </View>
         </View>
       ) : products.length === 0 ? (
-        <EmptyState size="compact" icon="cube" title={t('home.noProductsYet')} subtitle={t('models.noProductsForModel')} />
+        <EmptyState icon="cube" title={t('home.noProductsYet')} subtitle={t('models.noProductsForModel')} />
       ) : (
         <View style={styles.grid}>
           {products.map((p) => (

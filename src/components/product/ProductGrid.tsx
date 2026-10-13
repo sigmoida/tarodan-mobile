@@ -1,4 +1,5 @@
 import React, { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FlatList, RefreshControl, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import { EmptyState, ErrorState, Spinner, pageListContentStyle, theme } from '@/ui';
 import { ProductCard, type ProductCardLayout, type ProductCardProduct } from './ProductCard';
@@ -57,6 +58,7 @@ export function ProductGrid({
   showMeta = true,
   testID,
 }: ProductGridProps) {
+  const { t } = useTranslation();
   const columns = layout === 'list' ? 1 : 2;
   // Tek tük kalan son kart komşusundan geniş olmasın: hücre genişliği açık verilir.
   const cellWidth = useProductCellWidth();
@@ -80,7 +82,7 @@ export function ProductGrid({
   ) : loading ? (
     <ProductGridSkeleton layout={layout} />
   ) : emptyTitle ? (
-    <EmptyState icon="magnifying-glass" title={emptyTitle} subtitle={emptySubtitle} />
+    <EmptyState icon="magnifying-glass" title={emptyTitle} subtitle={emptySubtitle ?? t('search.tryDifferent')} />
   ) : (
     <ProductListEmpty filtered={filtered} onClearFilters={onClearFilters} />
   );

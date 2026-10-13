@@ -31,6 +31,7 @@ export default function OrdersScreen() {
         emptyState={{
           icon: 'receipt-percent',
           title: t('order.signInToView'),
+          subtitle: t('emptyState.loginRequiredHint'),
           actionLabel: t('common.login'),
           onAction: () => router.push('/(auth)/login'),
         }}
@@ -78,7 +79,7 @@ export default function OrdersScreen() {
         <EmptyState
           icon="receipt-percent"
           title={emptyTitle}
-          description={t('order.startShopping')}
+          subtitle={t('order.startShopping')}
           actionLabel={t('order.exploreProducts')}
           onAction={() => router.push('/search')}
         />

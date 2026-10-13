@@ -79,7 +79,7 @@ export default function RefundDetailScreen() {
         onBack={back}
         loading={isLoading && !data}
         empty={!isLoading && !data}
-        emptyState={{ title: t('refund.detail.notFound') }}
+        emptyState={{ icon: 'receipt-percent', title: t('refund.detail.notFound'), subtitle: t('emptyState.notFoundHint') }}
       />
     );
   }

@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
-import { SectionCard, SectionCardAction, Text } from '@/ui';
+import { EmptyState, SectionCard, SectionCardAction } from '@/ui';
 import type { ProductReview } from '../_lib/types';
 import { ReviewRow } from './ReviewRow';
 
@@ -21,9 +21,7 @@ export function ProductReviewsPreview({
       ))}
 
       {list.length === 0 && (
-        <Text variant="bodySm" tone="muted">
-          {t('profile.noReviews')}
-        </Text>
+        <EmptyState icon="star" title={t('profile.noReviews')} subtitle={t('emptyState.reviewsHint')} />
       )}
     </SectionCard>
   );

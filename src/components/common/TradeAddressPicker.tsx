@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { theme, Text, Icon, ListRowCard, RadioIndicator } from '@/ui';
+import { theme, Text, Icon, ListRowCard, RadioIndicator, EmptyState } from '@/ui';
 import { router, useFocusEffect } from 'expo-router';
 import { addressesApi } from '@/lib/api';
 
@@ -108,7 +108,7 @@ export function TradeAddressPicker({ onChange, label }: Props) {
           })}
 
           {addresses.length === 0 ? (
-            <Text style={styles.empty}>{t('address.noAddressesPicker')}</Text>
+            <EmptyState icon="map-pin" title={t('address.noAddressesPicker')} subtitle={t('address.emptySubtitle')} />
           ) : null}
 
           <TouchableOpacity
@@ -135,7 +135,6 @@ const styles = StyleSheet.create({
   default: { fontSize: 11, color: colors.primary[600]!, fontWeight: '500' },
   sub: { fontSize: 13, color: colors.text.muted, marginTop: theme.spacing[0.5] },
   addr: { fontSize: 11, color: colors.text.subtle, marginTop: 1 },
-  empty: { fontSize: 13, color: colors.text.muted, paddingVertical: theme.spacing[2] },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',

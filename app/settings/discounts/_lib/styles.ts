@@ -91,10 +91,6 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing[2],
   },
-  emptyProducts: {
-    textAlign: 'center',
-    paddingVertical: spacing[6],
-  },
   pickerLoading: {
     paddingVertical: spacing[6],
     alignItems: 'center',

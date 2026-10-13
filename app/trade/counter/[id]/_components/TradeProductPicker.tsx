@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Pressable, Image } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { SectionCard, Text, theme, Icon } from '@/ui';
+import { EmptyState, SectionCard, Text, theme, Icon } from '@/ui';
 
 import { formatPrice } from '@/utils/format';
 import { transformImageUrl } from '@/utils/imageUrl';
@@ -29,7 +29,7 @@ export function TradeProductPicker({
     <SectionCard title={title}>
       <Text variant="caption" tone="muted">{subtitle}</Text>
       {products.length === 0 ? (
-        <Text variant="bodySm" tone="subtle" style={styles.emptyText}>{t('trade.noEligibleProducts')}</Text>
+        <EmptyState icon="arrows-right-left" title={t('trade.noEligibleProducts')} subtitle={t('emptyState.tradeEligibleHint')} />
       ) : (
         <View style={styles.grid}>
           {products.map(p => {

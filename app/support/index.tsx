@@ -100,7 +100,6 @@ export default function SupportTicketsScreen() {
           </View>
         ) : f.tickets.length === 0 ? (
           <EmptyState
-            size="compact"
             icon="chat-bubble-left-right"
             title={t('support.emptyTitle')}
             subtitle={t('support.emptySubtitle')}

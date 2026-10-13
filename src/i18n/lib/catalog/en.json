@@ -8821,5 +8821,23 @@
         "iletildi": "Delivered"
       }
     }
+  },
+  "emptyState": {
+    "statsHint": "Statistics will appear here as data accumulates.",
+    "tradeEligibleHint": "Products eligible for trade will appear here.",
+    "tryLaterHint": "Please try again later.",
+    "createCollectionHint": "Use the button above to create your first collection.",
+    "tradeListingsHint": "Create a listing first to make a trade offer.",
+    "notFoundHint": "The content you are looking for may have been removed or moved.",
+    "loadFailedHint": "Pull to refresh or try again later.",
+    "loginRequiredHint": "Log in to your account to continue.",
+    "reviewsHint": "Reviews will appear here once they are left.",
+    "collectionsHint": "Collections will appear here once they are created.",
+    "collectionItemsHint": "Added products will appear here.",
+    "collectionAddListingHint": "Create a listing first, then add it to your collection.",
+    "collectionNoPermissionHint": "Only the owner can edit this collection.",
+    "manufacturersHint": "Manufacturers will be listed here once they are added.",
+    "businessRegisterHint": "Fill in your details and submit your application.",
+    "businessErrorHint": "Complete your account to open the business dashboard."
   }
 }

@@ -609,11 +609,4 @@ export const styles = StyleSheet.create({
     color: colors.primary[600]!,
     fontWeight: '700',
   },
-  emptyText: {
-    textAlign: 'center',
-    color: colors.text.subtle,
-    fontSize: 13,
-    marginTop: theme.spacing[8],
-    marginBottom: theme.spacing[8],
-  },
 });

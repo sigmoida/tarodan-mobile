@@ -32,7 +32,6 @@ export default function BusinessApplicationScreen() {
       <PageShell title={title} onBack={goBack} mode="static" padding={false}>
         <View testID="application-error" style={styles.fill}>
           <ErrorState
-            fullscreen
             title={t('businessApplication.loadErrorTitle')}
             message={t('common.genericError')}
           />

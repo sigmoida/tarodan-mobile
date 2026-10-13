@@ -62,6 +62,7 @@ export default function TradeDetailScreen() {
         emptyState={{
           icon: "arrows-right-left",
           title: t('trade.notFoundTitle'),
+          subtitle: t('emptyState.notFoundHint'),
           actionLabel: t('common.goBack'),
           onAction: handleBack,
         }}

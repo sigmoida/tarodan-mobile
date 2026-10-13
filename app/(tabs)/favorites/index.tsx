@@ -25,7 +25,6 @@ function FavoritesTabScreen() {
     return (
       <AppShell variant="title" title={t('favorites.myFavorites')}>
         <EmptyState
-          fullscreen
           icon="heart"
           title={t('favorites.myFavorites')}
           subtitle={t('favorites.loginRequired')}

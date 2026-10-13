@@ -95,7 +95,7 @@ export function CollectionEditBody({ f }: { f: CollectionEditController }) {
         }
       >
         {items.length === 0 ? (
-          <EmptyState size="compact" icon={false} title={t('collection.noItemsAdded')} />
+          <EmptyState icon="cube" title={t('collection.noItemsAdded')} subtitle={t('emptyState.collectionItemsHint')} />
         ) : (
           items.map((item, i) => (
             <View key={item.id} style={[styles.item, i > 0 && styles.divided]}>

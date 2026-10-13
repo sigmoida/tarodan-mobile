@@ -19,7 +19,7 @@ import {
   Switch,
 } from 'react-native';
 import { router } from 'expo-router';
-import { theme, RawText, SheetHeader, Icon, RadioIndicator } from '@/ui';
+import { theme, RawText, SheetHeader, Icon, RadioIndicator, EmptyState } from '@/ui';
 import { productsApi } from '@/lib/api';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
@@ -190,9 +190,9 @@ export function BoostModal({
             {loadingPricing ? (
               <ActivityIndicator color={colors.primary[600]!} style={{ paddingVertical: 28 }} />
             ) : !enabled ? (
-              <RawText style={styles.emptyText}>{t('server.product.boostUnavailable')}</RawText>
+              <EmptyState icon="rocket-launch" title={t('server.product.boostUnavailable')} subtitle={t('emptyState.tryLaterHint')} />
             ) : options.length === 0 ? (
-              <RawText style={styles.emptyText}>{t('boost.noPackages')}</RawText>
+              <EmptyState icon="rocket-launch" title={t('boost.noPackages')} subtitle={t('emptyState.tryLaterHint')} />
             ) : (
               <View style={styles.optionList}>
                 {options.map((opt) => {
@@ -286,7 +286,6 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing[3.5],
   },
   activeNoticeText: { fontSize: 12.5, color: colors.warning[700]!, lineHeight: 18 },
-  emptyText: { textAlign: 'center', color: colors.gray[500]!, paddingVertical: 22 },
   optionList: { gap: theme.spacing[2] },
   option: {
     flexDirection: 'row',

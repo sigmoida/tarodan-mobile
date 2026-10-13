@@ -27,6 +27,7 @@ export default function CollectionDetailScreen() {
       emptyState={{
         icon: 'rectangle-stack',
         title: t('collection.collectionNotFound'),
+        subtitle: t('emptyState.notFoundHint'),
         actionLabel: t('common.goBack'),
         onAction: goBack,
       }}

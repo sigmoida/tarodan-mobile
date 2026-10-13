@@ -109,6 +109,7 @@ export default function ProductDetailScreen() {
       emptyState={{
         icon: 'cube',
         title: t('product.productNotFoundTitle'),
+        subtitle: t('emptyState.notFoundHint'),
         actionLabel: t('common.goBack'),
         onAction: goBack,
       }}

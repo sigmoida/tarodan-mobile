@@ -112,19 +112,6 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.primary[600]!,
     borderColor: colors.primary[600]!,
   },
-  emptyCard: {
-    marginTop: theme.spacing[8],
-    backgroundColor: colors.surface.DEFAULT,
-  },
-  emptyContent: {
-    alignItems: 'center',
-    padding: theme.spacing[6],
-  },
-  emptyText: {
-    color: colors.text.muted,
-    marginVertical: theme.spacing[4],
-    textAlign: 'center',
-  },
   cashCard: {
     marginTop: theme.spacing[4],
     backgroundColor: colors.surface.DEFAULT,

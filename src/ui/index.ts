@@ -85,7 +85,7 @@ export {
 	type PageShellMode,
 } from './components/PageShell';
 export { PageHeader, type PageHeaderProps } from './components/PageHeader';
-export { EmptyState, type EmptyStateProps } from './components/EmptyState';
+export { EmptyState, EMPTY_STATE_TOP_OFFSET, type EmptyStateProps } from './components/EmptyState';
 export { ErrorState, type ErrorStateProps } from './components/ErrorState';
 export {
 	ScreenLoader,

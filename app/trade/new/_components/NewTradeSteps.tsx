@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Image } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Button, Card, Chip, Divider, Spinner, Text, Input, Textarea, theme, Icon, ButtonRow, RadioIndicator } from '@/ui';
+import { Button, Card, Chip, EmptyState, Divider, Spinner, Text, Input, Textarea, theme, Icon, ButtonRow, RadioIndicator } from '@/ui';
 
 import { TradeAddressPicker } from '@/components/common';
 import { ProductCard } from '@/components/product';
@@ -78,15 +78,13 @@ export function Step1MyItems({ f }: StepProps) {
           <Spinner size="md" />
         </View>
       ) : f.myProducts?.length === 0 ? (
-        <Card style={styles.emptyCard}>
-          <View style={styles.emptyContent}>
-            <Icon name="tag" size={48} color={colors.text.subtle} />
-            <Text variant="body" style={styles.emptyText}>
-              {t('trade.noListingsForTrade')}
-            </Text>
-            <Button variant="outline" title={t('product.createListing')} onPress={() => router.push('/(tabs)/sell')} style={{ alignSelf: 'center' }} />
-          </View>
-        </Card>
+        <EmptyState
+          icon="tag"
+          title={t('trade.noListingsForTrade')}
+          subtitle={t('emptyState.tradeListingsHint')}
+          actionLabel={t('product.createListing')}
+          onAction={() => router.push('/(tabs)/sell')}
+        />
       ) : (
         f.myProducts?.map((product: Product) => (
           <TradePick
@@ -121,14 +119,11 @@ export function Step2TheirItems({ f }: StepProps) {
           <Spinner size="md" />
         </View>
       ) : f.theirProducts?.length === 0 ? (
-        <Card style={styles.emptyCard}>
-          <View style={styles.emptyContent}>
-            <Icon name="arrows-right-left" size={48} color={colors.text.subtle} />
-            <Text variant="body" style={styles.emptyText}>
-              {t('trade.noProductsFromSeller')}
-            </Text>
-          </View>
-        </Card>
+        <EmptyState
+          icon="arrows-right-left"
+          title={t('trade.noProductsFromSeller')}
+          subtitle={t('emptyState.tradeEligibleHint')}
+        />
       ) : (
         f.theirProducts?.map((product: Product) => (
           <TradePick
