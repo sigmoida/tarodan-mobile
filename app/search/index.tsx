@@ -12,7 +12,7 @@ import {
 } from '@/components/product';
 import ProductFilterSheet from '@/components/ProductFilterSheet';
 import { styles } from './_lib/searchStyles';
-import { SEARCH_NUM_COLUMNS } from './_lib/searchConstants';
+import { SEARCH_NUM_COLUMNS, getSearchListTuning } from './_lib/searchConstants';
 import { useSearch } from './_hooks/useSearch';
 import { SearchBars } from './_components/SearchBars';
 
@@ -34,6 +34,7 @@ export default function SearchScreen() {
   // Stable renderItem (#75) — memoized ProductCard bails out on unchanged rows.
   const isList = f.layout === 'list';
   const columns = isList ? 1 : SEARCH_NUM_COLUMNS;
+  const tuning = getSearchListTuning(columns);
   const renderResult = useCallback(
     ({ item }: { item: any }) => (
       <View style={{ width: isList ? '100%' : cellWidth }}>
@@ -63,11 +64,8 @@ export default function SearchScreen() {
             columnWrapperStyle={columns > 1 ? styles.listRow : undefined}
             keyExtractor={keyExtractor}
             renderItem={renderResult}
-            // #82: virtualizasyon ayarı — sonsuz arama sonuçlarında bellek/kaydırma.
-            windowSize={7}
-            initialNumToRender={8}
-            maxToRenderPerBatch={10}
-            removeClippedSubviews
+            // Virtualizasyon: numColumns'a göre kart sayısı hedefli (bkz. getSearchListTuning).
+            {...tuning}
             showsVerticalScrollIndicator={false}
             onScroll={f.handleResultsScroll}
             scrollEventThrottle={16}

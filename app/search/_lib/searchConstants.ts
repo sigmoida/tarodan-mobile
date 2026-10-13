@@ -1,4 +1,4 @@
-import { Dimensions } from 'react-native';
+import { Dimensions, Platform } from 'react-native';
 import type { TFunction } from 'i18next';
 import { buildConditionOptions } from '@/utils/productFilters';
 
@@ -22,3 +22,21 @@ export const SEARCH_NUM_COLUMNS = 2;
 
 export const conditionLabel = (v: string, t: TFunction) =>
   buildConditionOptions(t).find((c) => c.value === v)?.label || v;
+
+/**
+ * Liste sanallaştırma ayarları. `numColumns > 1` iken VirtualizedList'in "öğe"si SATIRDIR:
+ * ızgarada 4 satır = 8 kart, 3 satırlık batch = 6 kart. Tek sütunda (liste görünümü) öğe = kart
+ * ve kart daha alçak, bu yüzden sayılar kart sayısı hedeflenerek ayrı hesaplanır.
+ * Hedef: ilk boyama ≈ ekranı dolduran kart sayısı, her batch ≈ 6 kart (JS turu kısa kalsın).
+ */
+export function getSearchListTuning(columns: number) {
+  const grid = columns > 1;
+  return {
+    initialNumToRender: grid ? 4 : 7,
+    maxToRenderPerBatch: grid ? 3 : 4,
+    updateCellsBatchingPeriod: 50,
+    windowSize: 7,
+    // iOS'ta kazanç az, bazı durumlarda boş/yanıp sönen görsel riski var → yalnız Android.
+    removeClippedSubviews: Platform.OS === 'android',
+  } as const;
+}
