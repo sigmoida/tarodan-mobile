@@ -3,6 +3,8 @@ import { REFUND_STATUS_META } from './status';
 import i18n from '@/i18n/config';
 import type { PublicTimingPolicy } from '@/lib/api/timingRules';
 import { preparingDeadlineNoticeOf, type PreparingDeadlineAudience } from '@/lib/shared/preparingDeadline';
+import { isMembershipOrder as isMembership } from '@/lib/shared/membershipOrder';
+import { timingMessageValues } from '@/lib/shared/timingPolicy';
 import { computePayoutDate, isPastRefundWindow } from './timing';
 import type { OrderDetail } from './types';
 
@@ -10,13 +12,16 @@ import type { OrderDetail } from './types';
  * `policy`: `GET /timing-rules` (yüklenene kadar varsayılanlar). İade penceresi
  * ve satıcı ödeme tarihi önce sunucu damgasından okunur (bkz. `./timing`).
  * `audience`: görüntüleyen (ekran `user.id`'den hesaplar) — hazırlık notu metni.
+ *
+ * `timing`: kartların `t()` çağrılarına geçtiği ICU parametreleri — kartlar
+ * kendi `useTimingValues`'ını çağırmaz, değer tek yerden (buradan) gelir.
  */
 export function deriveOrderView(
   order: OrderDetail,
   policy: PublicTimingPolicy,
   audience: PreparingDeadlineAudience = 'buyer',
 ) {
-  const isMembershipOrder = !!(order.isMembership ?? order.orderNumber?.startsWith('MEM-') ?? false);
+  const isMembershipOrder = isMembership(order);
 
   const canRate = !isMembershipOrder && ['delivered', 'completed'].includes(order.status);
 
@@ -62,6 +67,7 @@ export function deriveOrderView(
 
   const pastRefundWindow = isPastRefundWindow(order, policy);
   const preparingNotice = preparingDeadlineNoticeOf(order, audience);
+  const timing = timingMessageValues(policy);
 
   return {
     isMembershipOrder,
@@ -80,6 +86,7 @@ export function deriveOrderView(
     refundCancelDate,
     isPastRefundWindow: pastRefundWindow,
     preparingNotice,
+    timing,
   };
 }
 

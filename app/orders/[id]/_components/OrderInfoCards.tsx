@@ -8,7 +8,6 @@ import { formatDate, formatPrice } from '../_lib/format';
 import { deriveShipmentView } from '@/lib/shipping/tracking';
 import { isAwaitingDropoff, shipmentStatusLabel } from '@/lib/shipping/shipmentStatus';
 import { orderCancelMessage, type OrderCancelAudience } from '@/lib/shared/orderCancelMessage';
-import { useTimingValues } from '@/hooks/useTimingPolicy';
 import type { OrderDetail } from '../_lib/types';
 import type { OrderView } from '../_lib/derive';
 
@@ -16,11 +15,11 @@ const { colors } = theme;
 
 /**
  * Ödeme güvencesi (escrow) kartı. Tarih sunucunun hold'a yazdığı
- * `escrowReleaseAt` (yoksa pencere sonu + payout grace); gün sayısı politikadan.
+ * `escrowReleaseAt` (yoksa pencere sonu + payout grace); gün sayısı `view.timing`.
  */
 export function OrderEscrowCard({ order, view }: { order: OrderDetail; view: OrderView }) {
   const { t } = useTranslation();
-  const timingValues = useTimingValues();
+  const timingValues = view.timing;
   if (
     !(order.isBuyer !== false && !view.isMembershipOrder && view.isPostShipment && !view.isCancelled && order.status !== 'refunded')
   )
@@ -70,9 +69,8 @@ export function OrderCancelledInfo({
   audience: OrderCancelAudience;
 }) {
   const { t } = useTranslation();
-  const timingValues = useTimingValues();
   if (!view.isCancelled) return null;
-  const cancelMessage = orderCancelMessage(order, audience, t, timingValues);
+  const cancelMessage = orderCancelMessage(order, audience, t, view.timing);
   return (
     <Card variant="elevated" style={styles.card} testID="order-cancelled-info">
       <View style={styles.cancelledHeaderRow}>

@@ -137,6 +137,7 @@ export default function OrderDetailScreen() {
         orderId={String(id)}
         orderQuantity={order.quantity ?? 1}
         notify={actions.notify}
+        timingValues={view.timing}
       />
 
       <Snackbar

@@ -16,6 +16,7 @@
  *  - son tarih henüz geçmemiş (geçmişse karar bir sonraki tarama turunda).
  */
 import type { TFunction } from 'i18next';
+import { isMembershipOrder } from './membershipOrder';
 
 export type PreparingDeadlineAudience = 'buyer' | 'seller';
 
@@ -67,7 +68,7 @@ export function preparingDeadlineNoticeOf(
   now: Date = new Date(),
 ): PreparingDeadlineNotice | null {
   if (!order.preparingDeadline) return null;
-  if (order.isMembership ?? order.orderNumber?.startsWith('MEM-') ?? false) return null;
+  if (isMembershipOrder(order)) return null;
   if (!PRE_SHIPMENT_STATUSES.includes(order.status)) return null;
   if (isHandedToCarrier(order.shipment)) return null;
   const deadlineMs = new Date(order.preparingDeadline).getTime();

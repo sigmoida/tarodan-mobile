@@ -118,3 +118,14 @@ describe('deriveOrderView sunucu damgasını kullanır', () => {
     expect(view.payoutReleaseDate?.toISOString()).toBe('2026-02-05T00:00:00.000Z');
   });
 });
+
+describe('deriveOrderView süre parametrelerini kartlara tek yerden verir', () => {
+  it('view.timing politika değerlerini taşır (kartlar kendi useTimingValues çağrısını yapmaz)', () => {
+    const view = deriveOrderView(order(), {
+      ...policy(14),
+      orderPaymentWindowHours: { value: 48, unit: 'hours' },
+    });
+    expect(view.timing.orderPaymentWindowHours).toBe(48);
+    expect(view.timing.payoutGraceDays).toBe(1);
+  });
+});

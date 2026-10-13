@@ -10,7 +10,7 @@ import { pickEvidencePhotos } from '../_lib/pickEvidence';
 import { useDoRefundRequest } from '../_hooks/useDoRefundRequest';
 import { useUploadRefundEvidence } from '../_hooks/useUploadRefundEvidence';
 import type { Notify } from '../_lib/types';
-import { useTimingValues } from '@/hooks/useTimingPolicy';
+import type { TimingMessageValues } from '@/lib/shared/timingPolicy';
 
 const { colors, radius } = theme;
 
@@ -26,15 +26,17 @@ export function RefundRequestModal({
   orderId,
   orderQuantity,
   notify,
+  timingValues,
 }: {
   visible: boolean;
   onClose: () => void;
   orderId: string;
   orderQuantity: number;
   notify: Notify;
+  /** Süre metinlerinin ICU parametreleri — ekranın `deriveOrderView(...).timing`'i. */
+  timingValues: TimingMessageValues;
 }) {
   const { t } = useTranslation();
-  const timingValues = useTimingValues();
   const refundReasons = useRefundReasons();
   const schema = useMemo(() => refundRequestSchema(t), [t]);
   const form = useZodForm(schema, { defaultValues: refundFormDefaults() });

@@ -6,7 +6,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { buildTrackingUrl } from '@/lib/shipping/tracking';
 import { useRefundStatusConfig } from '../_lib/status';
-import { useTimingValues } from '@/hooks/useTimingPolicy';
 import { formatDate } from '../_lib/format';
 import type { OrderDetail } from '../_lib/types';
 import type { OrderView } from '../_lib/derive';
@@ -153,7 +152,7 @@ export function OrderRefundActionCard({
   onOpenRefund: () => void;
 }) {
   const { t } = useTranslation();
-  const timingValues = useTimingValues();
+  const timingValues = view.timing;
   // Pencere kapısı sunucu damgasından (`returnWindowEndsAt`) — bkz. `_lib/timing`.
   const eligible =
     order.isBuyer &&
