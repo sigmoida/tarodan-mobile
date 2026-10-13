@@ -25,12 +25,18 @@ jest.mock('@/stores/authStore', () => ({
 }));
 
 jest.mock('@/lib/api', () => ({
+  errorText: jest.requireActual('@/lib/api/errorText').errorText,
   bankAccountApi: {
     get: jest.fn(),
     upsert: jest.fn(() => Promise.resolve({ data: {} })),
     remove: jest.fn(),
   },
 }));
+const mockRequireIdentity = jest.fn(() => Promise.resolve(true));
+jest.mock('@/hooks/useLegalIdentity', () => ({
+  useRequireLegalIdentity: () => mockRequireIdentity,
+}));
+
 import { bankAccountApi } from '@/lib/api';
 const get = bankAccountApi.get as jest.Mock;
 const upsert = bankAccountApi.upsert as jest.Mock;
@@ -43,6 +49,7 @@ const IBAN = 'TR330006100519786457841326';
 beforeEach(() => {
   get.mockReset();
   upsert.mockClear();
+  mockRequireIdentity.mockReset().mockResolvedValue(true);
 });
 
 describe('B-1.8 · banka hesabı formu', () => {
@@ -83,5 +90,26 @@ describe('B-1.8 · banka hesabı formu', () => {
 
     await waitFor(() => expect(upsert).toHaveBeenCalledTimes(1));
     expect(upsert.mock.calls[0]![0]).toEqual({ accountHolder: 'Mehmet Kaya', iban: IBAN });
+  });
+
+  it('B-2.4 · kaydetmeden önce yasal kimlik istenir; vazgeçilirse kayıt yapılmaz', async () => {
+    get.mockResolvedValue({ data: null });
+    mockRequireIdentity.mockResolvedValue(false);
+    renderWithProviders(<BankAccountScreen />);
+
+    fireEvent.changeText(await screen.findByTestId('bank-account-holder-input'), 'Mehmet Kaya');
+    fireEvent.changeText(screen.getByTestId('bank-account-iban-input'), IBAN);
+    fireEvent.press(screen.getByTestId('bank-account-submit-button'));
+
+    await waitFor(() => expect(mockRequireIdentity).toHaveBeenCalledTimes(1));
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it('B-2.4 · form geçersizse kimlik bile sorulmaz', async () => {
+    get.mockResolvedValue({ data: null });
+    renderWithProviders(<BankAccountScreen />);
+    fireEvent.press(await screen.findByTestId('bank-account-submit-button'));
+    expect(await screen.findByText('bankAccount.ibanInvalid')).toBeTruthy();
+    expect(mockRequireIdentity).not.toHaveBeenCalled();
   });
 });

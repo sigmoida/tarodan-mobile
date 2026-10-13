@@ -30,6 +30,9 @@ export const styles = StyleSheet.create({
   deleteButton: {
     marginTop: theme.spacing[2],
   },
+  bottomSpacer: {
+    height: 50,
+  },
   centered: {
     flex: 1,
     alignItems: 'center',
