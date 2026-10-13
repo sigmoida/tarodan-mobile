@@ -89,3 +89,49 @@ describe('build kotası koruması', () => {
     );
   });
 });
+
+/**
+ * OTA/build sınıflandırıcı (`native_re`): native config'i değiştiren her dosya
+ * regex'te olmalı, yoksa fingerprint değişir ama workflow "OTA" der ve güncelleme
+ * binary'ye ulaşmaz. `app.config.js` `src/lib/deeplinks/paths.json`'dan staging
+ * host'larını okuduğu için bu dosya da native sayılır.
+ */
+describe('staging OTA sınıflandırıcısı (native_re)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { spawnSync } = require('child_process') as typeof import('child_process');
+  const nativeRe = staging.match(/native_re='([^']+)'/)?.[1] ?? '';
+  const isNative = (file: string) =>
+    spawnSync('grep', ['-qE', nativeRe], { input: `${file}\n` }).status === 0;
+
+  it('regex workflow\'dan okunabildi', () => {
+    expect(nativeRe).not.toBe('');
+  });
+
+  it.each([
+    'package.json',
+    'app.json',
+    'app.config.js',
+    'eas.json',
+    'plugins/withLegacyStoragePermissions.js',
+    'src/lib/deeplinks/paths.json',
+  ])('%s native sayılır (OTA gitmez)', (file) => {
+    expect(isNative(file)).toBe(true);
+  });
+
+  it.each([
+    'src/lib/deeplinks/index.ts',
+    'src/lib/deeplinks/paths.json.bak',
+    'src/lib/deeplinks/other/paths.json',
+    'app/sayfa/[slug].tsx',
+    'docs/EAS_UPDATE_OTA.md',
+  ])('%s JS/OTA\'lık', (file) => {
+    expect(isNative(file)).toBe(false);
+  });
+
+  it('app.config.js\'in okuduğu her yerel dosya regex\'te', () => {
+    const cfg = fs.readFileSync(path.join(ROOT, 'app.config.js'), 'utf8');
+    const required = [...cfg.matchAll(/require\('\.\/([^']+)'\)/g)].map((m) => m[1]!);
+    expect(required).toContain('src/lib/deeplinks/paths.json');
+    for (const rel of required) expect({ rel, native: isNative(rel) }).toEqual({ rel, native: true });
+  });
+});

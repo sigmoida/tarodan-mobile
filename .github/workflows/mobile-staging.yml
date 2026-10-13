@@ -79,7 +79,7 @@ jobs:
           DISPATCH_MODE: ${{ inputs.mode }}
         run: |
           set -euo pipefail
-          native_re='^(package\.json|pnpm-lock\.yaml|app\.json|app\.config\.js|eas\.json|google-services\.json)$|^(ios|android|plugins|patches|credentials)/'
+          native_re='^(package\.json|pnpm-lock\.yaml|app\.json|app\.config\.js|eas\.json|google-services\.json|src/lib/deeplinks/paths\.json)$|^(ios|android|plugins|patches|credentials)/'
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             # Elle tetikleme: build de OTA da serbest — kotayı harcama kararı insanın.
             echo "mode=${DISPATCH_MODE}" >> "$GITHUB_OUTPUT"
