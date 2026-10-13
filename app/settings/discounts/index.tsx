@@ -9,19 +9,18 @@ import { FILTERS } from './_lib/types';
 import { useDiscounts } from './_hooks/useDiscounts';
 import { DiscountsGate } from './_components/DiscountsGate';
 import { DiscountCard } from './_components/DiscountCard';
-import { DiscountFormModal } from './_modals/DiscountFormModal';
 
 /**
  * Seller discount management — THIN screen. The `useDiscounts` controller owns
- * the list query, filter, form modal open state, and delete/toggle mutations;
- * the form modal owns its own form + save mutation. This file composes the
- * gate, filter chips, list, FAB, and modal (PageShell `overlay` slot).
+ * the list query, filter, navigation to the form screens (`new`, `[id]/edit`)
+ * and delete/toggle mutations. This file composes the gate, filter chips,
+ * list and FAB.
  */
 export default function DiscountsScreen() {
   const { t } = useTranslation();
   const f = useDiscounts();
 
-  const gate = DiscountsGate({ f });
+  const gate = DiscountsGate();
   if (gate) return gate;
 
   return (
@@ -32,21 +31,12 @@ export default function DiscountsScreen() {
       refreshing={f.refreshing}
       onRefresh={f.onRefresh}
       overlay={
-        <>
-          <FAB
-            icon="plus"
-            accessibilityLabel={t('discount.createNewA11y')}
-            style={styles.fab}
-            onPress={f.openCreate}
-          />
-
-          <DiscountFormModal
-            visible={f.formOpen}
-            discount={f.editing}
-            onClose={f.closeForm}
-            onSaved={f.showSaved}
-          />
-        </>
+        <FAB
+          icon="plus"
+          accessibilityLabel={t('discount.createNewA11y')}
+          style={styles.fab}
+          onPress={f.openCreate}
+        />
       }
     >
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>

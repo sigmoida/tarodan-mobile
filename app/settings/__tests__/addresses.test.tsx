@@ -50,6 +50,9 @@ const ADDRESS = {
   isDefault: false,
 };
 
+// Yüklü makinede (paralel ajanlar) ilk render + sorgu 1 sn'yi aşabiliyor.
+const SLOW = { timeout: 5000 };
+
 describe("Adres listesi → form EKRANLARINA yönlendirme (modal yok)", () => {
   beforeEach(() => {
     resetRouterMocks();
@@ -59,7 +62,7 @@ describe("Adres listesi → form EKRANLARINA yönlendirme (modal yok)", () => {
   it("boş listede \"Yeni Adres Ekle\" → /settings/addresses/new ekranı itilir", async () => {
     (api.get as jest.Mock).mockResolvedValue({ data: [] });
     renderWithProviders(<AddressesScreen />);
-    fireEvent.press(await screen.findByText("address.addNewAddress"));
+    fireEvent.press(await screen.findByText("address.addNewAddress", {}, SLOW));
     expect(pushMock).toHaveBeenCalledWith("/settings/addresses/new");
     // Form artık bu ekranda çizilmez.
     expect(screen.queryByTestId("address-save-button")).toBeNull();
@@ -68,14 +71,14 @@ describe("Adres listesi → form EKRANLARINA yönlendirme (modal yok)", () => {
   it("dolu listede başlık aksiyonu \"Yeni Adres\" de aynı ekranı iter", async () => {
     (api.get as jest.Mock).mockResolvedValue({ data: [ADDRESS] });
     renderWithProviders(<AddressesScreen />);
-    fireEvent.press(await screen.findByText("address.newAddress"));
+    fireEvent.press(await screen.findByText("address.newAddress", {}, SLOW));
     expect(pushMock).toHaveBeenCalledWith("/settings/addresses/new");
   });
 
   it("satırdaki düzenle → /settings/addresses/<id>/edit", async () => {
     (api.get as jest.Mock).mockResolvedValue({ data: [ADDRESS] });
     renderWithProviders(<AddressesScreen />);
-    await screen.findByText("Ev");
+    await screen.findByText("Ev", {}, SLOW);
     fireEvent.press(screen.getByLabelText("address.editAddress"));
     expect(pushMock).toHaveBeenCalledWith("/settings/addresses/a1/edit");
   });
@@ -85,7 +88,7 @@ describe("Adres listesi → form EKRANLARINA yönlendirme (modal yok)", () => {
     (api.delete as jest.Mock).mockResolvedValue({});
     const success = jest.spyOn(toast, "success").mockImplementation(() => 1);
     renderWithProviders(<AddressesScreen />);
-    await screen.findByText("Ev");
+    await screen.findByText("Ev", {}, SLOW);
     fireEvent.press(screen.getByLabelText("address.deleteAddress"));
     expect(appAlert).toHaveBeenCalledTimes(1);
     const [, , buttons] = (appAlert as jest.Mock).mock.calls[0];

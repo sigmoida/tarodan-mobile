@@ -49,12 +49,6 @@ export const styles = StyleSheet.create({
     right: spacing[4],
     bottom: spacing[4],
   },
-  dialogScroll: {
-    maxHeight: 460,
-  },
-  formBody: {
-    paddingVertical: spacing[2],
-  },
   input: {
     marginBottom: spacing[3],
   },
@@ -90,10 +84,6 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: spacing[2],
-  },
-  pickerLoading: {
-    paddingVertical: spacing[6],
-    alignItems: 'center',
   },
   productRow: {
     flexDirection: 'row',
