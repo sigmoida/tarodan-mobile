@@ -14,6 +14,7 @@ import {
 import { qk, retryUnlessClientError } from '@/lib/query';
 import { useCartStore } from '@/stores/cartStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 import { captureException } from '@/services/sentry';
 import { formatServerPrice, serverAmount } from '@/utils/format';
 import { indexQuoteLines } from '@/utils/quoteLines';
@@ -108,6 +109,7 @@ export function useCheckout() {
 
 
   const [step, setStep] = useState(1);
+  const requireIdentity = useRequireLegalIdentity();
 
   const idempotencyKeyRef = useRef(generateUuidV4());
   useEffect(() => {
@@ -831,6 +833,10 @@ export function useCheckout() {
       }
     }
     if (isAuthenticated && user) {
+      // B-2.4: yasal kimlik ihtiyaç anında. Vazgeçerse ödeme başlamaz. Misafir
+      // dalında yok (hesap yok); OTP yolu da `proceedCheckout`'u çağırdığı için
+      // kapı onun içinde değil, burada.
+      if (!(await requireIdentity())) return;
       await proceedCheckout();
       return;
     }

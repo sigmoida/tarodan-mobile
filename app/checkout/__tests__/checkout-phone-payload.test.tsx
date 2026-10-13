@@ -26,6 +26,11 @@ import { renderWithProviders, makeTestQueryClient } from '@/test-utils';
 import { appAlert } from '@/ui';
 import { getPhoneInvalidMessage } from '@/utils/phone';
 
+// B4: kimlik kapısı bu testin konusu değil — geçti say (kapı testi ayrı dosyada).
+jest.mock('@/hooks/useLegalIdentity', () =>
+  require('@/test-utils/legalIdentity').legalIdentityGatePassMock,
+);
+
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
