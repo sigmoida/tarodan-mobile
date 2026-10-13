@@ -42,7 +42,7 @@ env:
 - tapOn:
     id: "product-favorite-button"
     optional: true
-# Yan menü → Favoriler (menünün en üstünde sabit satır)
+# Yan menü → Favoriler (Alışveriş grubunun ilk satırı; grup varsayılan açık)
 - runFlow: ../subflows/open-side-menu.yaml
 - tapOn:
     id: "profile-favorites-link"

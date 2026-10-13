@@ -120,3 +120,20 @@ describe.each([
     expect(!!screen.queryByTestId('glass-view')).toBe(glass !== null);
   });
 });
+
+describe('GlassIconButton — basma geri bildirimi', () => {
+  const originalOS = Platform.OS;
+  afterEach(() => {
+    Platform.OS = originalOS;
+  });
+
+  it('camda: isInteractive açık, pointerEvents none YOK; devre dışıyken interaktif kapalı', () => {
+    getGlassViewMock.mockReturnValue(Glass);
+    const { rerender } = render(<GlassIconButton icon="share" accessibilityLabel="Paylaş" onPress={jest.fn()} />);
+    const glassView = () => screen.getByTestId('glass-view');
+    expect(glassView().props.isInteractive).toBe(true);
+    expect(glassView().props.pointerEvents).toBeUndefined();
+    rerender(<GlassIconButton icon="share" accessibilityLabel="Paylaş" onPress={jest.fn()} disabled />);
+    expect(glassView().props.isInteractive).toBe(false);
+  });
+});

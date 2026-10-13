@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import * as Router from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { GlassIconButton, theme, useHeaderTopInset } from '@/ui';
+import { GLASS_ICON_BUTTON_SIZE, GlassIconButton, theme, useHeaderTopInset } from '@/ui';
 import { SearchField } from './SearchField';
 import { useSideMenu } from './SideMenuContext';
 import { useShellCounts } from './useShellCounts';
@@ -111,8 +111,10 @@ const styles = StyleSheet.create({
     height: APP_SHELL_BAR_HEIGHT,
     gap: spacing[2],
   },
+  // Yükseklik cam düğmelerle aynı (44); satırda (52) dikey ortalı => eşit üst/alt boşluk (4pt).
   search: {
     flex: 1,
     minWidth: 0,
+    height: GLASS_ICON_BUTTON_SIZE,
   },
 });

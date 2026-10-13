@@ -1,10 +1,11 @@
 import { useEffect } from "react";
-import { View, Pressable, StyleSheet, useWindowDimensions } from "react-native";
+import React from "react";
+import { View, Pressable, StyleSheet, useWindowDimensions, type LayoutChangeEvent } from "react-native";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useTranslation } from "react-i18next";
-import { theme, Text, CountBadge, Icon, GlassSurface, getGlassView, type IconName } from "@/ui";
+import { theme, Text, CountBadge, Icon, GlassSurface, getGlassView, usePressScale, type IconName } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
 import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 import { useShellCounts } from "./useShellCounts";
@@ -22,6 +23,7 @@ import {
   tabPillBottomOffset,
 } from "./tabBarLayout";
 import { pillContentOpacity, pillHideStyle } from "./tabBarScroll";
+import { useTabHighlight } from "./useTabHighlight";
 
 const { colors, spacing, iconSize, radius } = theme;
 
@@ -91,6 +93,8 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
   );
   // Yalnız camda: içerik (ikon + etiket) cam yüzeyin İÇİNDE soluklaşır.
   const pillContentStyle = useAnimatedStyle(() => ({ opacity: pillContentOpacity(glass, progress.value) }));
+  const highlight = useTabHighlight(TABS.some((tb) => tb.name === activeName) ? activeName : undefined);
+  const sellPress = usePressScale();
   const sellStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: -progress.value * sellTravel }],
   }));
@@ -116,19 +120,24 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
       >
         <GlassSurface shape="pill" size={TAB_PILL_HEIGHT} opaque style={styles.pill}>
           <Animated.View style={[styles.pillContent, pillContentStyle]}>
+            {/* Aktif sekme vurgusu: sekmeler arasında kayar (x / genişlik ölçümle). */}
+            <Animated.View
+              pointerEvents="none"
+              testID="tab-highlight"
+              style={[styles.highlight, highlight.style]}
+            />
             {TABS.map((tab) => {
               const focused = activeName === tab.name;
               const color = focused ? colors.primary[600]! : theme.inactiveIconColor;
               const label = t(tab.labelKey);
 
               return (
-                <Pressable
+                <TabItem
                   key={tab.name}
                   testID={tab.testID}
-                  style={[styles.item, focused && (glass ? styles.itemActiveGlass : styles.itemActive)]}
-                  accessibilityRole="tab"
                   accessibilityLabel={label}
-                  accessibilityState={{ selected: focused }}
+                  focused={focused}
+                  onLayout={highlight.onItemLayout(tab.name)}
                   onPress={() => {
                     if (!focused) navigation.navigate(tab.name);
                   }}
@@ -138,7 +147,7 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
                     {tab.badge && (
                       <CountBadge
                         count={counts[tab.badge]}
-                        ringColor={focused && !glass ? colors.gray[100] : colors.surface.elevated}
+                        ringColor={focused ? colors.primary[50] : colors.surface.elevated}
                         style={styles.badge}
                       />
                     )}
@@ -154,7 +163,7 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
                   >
                     {label}
                   </Text>
-                </Pressable>
+                </TabItem>
               );
             })}
           </Animated.View>
@@ -168,16 +177,56 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
           accessibilityRole="button"
           accessibilityLabel={sellLabel}
           accessibilityState={{ selected: sellFocused }}
+          onPressIn={sellPress.onPressIn}
+          onPressOut={sellPress.onPressOut}
           onPress={() => {
             if (!sellFocused) navigation.navigate(SELL_ROUTE);
           }}
         >
-          <GlassSurface shape="circle" size={TAB_SELL_SIZE} tint={colors.primary[600]} pointerEvents="none">
-            <Icon name="plus" size={iconSize.lg + 4} color={colors.text.inverted} />
-          </GlassSurface>
+          <Animated.View style={sellPress.style}>
+            {/* Camda interaktif cam: pointerEvents none yalnız fallback'te (native efekt dokunuşu ister). */}
+            <GlassSurface
+              shape="circle"
+              size={TAB_SELL_SIZE}
+              tint={colors.primary[600]}
+              interactive
+              pointerEvents={glass ? undefined : "none"}
+            >
+              <Icon name="plus" size={iconSize.lg + 4} color={colors.text.inverted} />
+            </GlassSurface>
+          </Animated.View>
         </Pressable>
       </Animated.View>
     </View>
+  );
+}
+
+interface TabItemProps {
+  testID: string;
+  accessibilityLabel: string;
+  focused: boolean;
+  onLayout: (e: LayoutChangeEvent) => void;
+  onPress: () => void;
+  children: React.ReactNode;
+}
+
+/** Hap sekmesi: dokunma alanı sabit; basınca yalnız içerik (ikon + etiket) hafifçe küçülür. */
+function TabItem({ testID, accessibilityLabel, focused, onLayout, onPress, children }: TabItemProps) {
+  const press = usePressScale();
+  return (
+    <Pressable
+      testID={testID}
+      style={styles.item}
+      accessibilityRole="tab"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ selected: focused }}
+      onLayout={onLayout}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      onPress={onPress}
+    >
+      <Animated.View style={[styles.itemContent, press.style]}>{children}</Animated.View>
+    </Pressable>
   );
 }
 
@@ -212,13 +261,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: radius.full,
   },
-  // Aktif sekme: arkasında yumuşak gri yuvarlatılmış vurgu.
-  itemActive: {
-    backgroundColor: colors.gray[100],
+  // Aktif sekme vurgusu (sekmeler arasında kayar): çok hafif primary-50 (cam ve fallback'te aynı;
+  // etiket/ikon primary-600 kalır, kontrast korunur). Konum/genişlik animasyonlu stilden
+  // (`useTabHighlight`); burada yalnız sabit kısım.
+  highlight: {
+    position: "absolute",
+    left: 0,
+    top: spacing[2],
+    height: TAB_PILL_HEIGHT - 2 * spacing[2],
+    borderRadius: radius.full,
+    backgroundColor: colors.primary[50],
   },
-  // Camda vurgu yarı saydam gri: arkadaki cam görünür kalır.
-  itemActiveGlass: {
-    backgroundColor: colors.overlay.black10,
+  itemContent: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   sellWrap: {
     marginLeft: TAB_SELL_GAP,
