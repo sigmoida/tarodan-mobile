@@ -183,7 +183,7 @@ describe('Taslak koruması (geri oku / Android geri tuşu)', () => {
     expect(appAlert).not.toHaveBeenCalled();
   });
 
-  it('kirli form → çıkış durur, onay sorulur; "Değişiklikleri Sil" çıkışı sürdürür', () => {
+  it('kirli form → çıkış durur, onay sorulur; "Değişiklikleri Sil" çıkışı sürdürür', async () => {
     renderWithProviders(<NewAddressScreen />);
     fireEvent.changeText(screen.getByTestId('address-title-input'), 'Ev');
     const { prevented, action } = emitBeforeRemove();
@@ -192,10 +192,26 @@ describe('Taslak koruması (geri oku / Android geri tuşu)', () => {
     const [title, message, buttons] = (appAlert as jest.Mock).mock.calls[0];
     expect(title).toBe('common.unsavedChanges');
     expect(message).toBe('common.unsavedChangesDescription');
-    // Vazgeç (cancel) her zaman son düğme.
-    expect(buttons[buttons.length - 1]).toMatchObject({ text: 'common.continueEditing', style: 'cancel' });
-    buttons.find((b: any) => b.style === 'destructive').onPress();
-    expect(navigationDispatchMock).toHaveBeenCalledWith(action);
+    // `confirm()` düğmeleri: devam (cancel) + değişiklikleri sil (yıkıcı). Sırayı AlertDialog dizer.
+    expect(buttons).toEqual([
+      expect.objectContaining({ text: 'common.continueEditing', style: 'cancel' }),
+      expect.objectContaining({ text: 'common.discardChanges', style: 'destructive' }),
+    ]);
+    buttons.find((b: { style?: string }) => b.style === 'destructive').onPress();
+    await waitFor(() => expect(navigationDispatchMock).toHaveBeenCalledWith(action));
+    // Onaydan sonra ikinci çıkış denemesi tekrar sormaz.
+    expect(emitBeforeRemove().prevented).toBe(false);
+  });
+
+  it('"Düzenlemeye Devam Et" → ekranda kalınır (dispatch yok)', async () => {
+    renderWithProviders(<NewAddressScreen />);
+    fireEvent.changeText(screen.getByTestId('address-title-input'), 'Ev');
+    emitBeforeRemove();
+    const [, , buttons] = (appAlert as jest.Mock).mock.calls[0];
+    buttons.find((b: { style?: string }) => b.style === 'cancel').onPress();
+    await Promise.resolve();
+    expect(navigationDispatchMock).not.toHaveBeenCalled();
+    expect(emitBeforeRemove().prevented).toBe(true);
   });
 });
 

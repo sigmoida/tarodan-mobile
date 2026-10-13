@@ -11,9 +11,10 @@ export function useDiscountsQuery() {
     queryKey: qk.membership.discounts,
     queryFn: async () => {
       const response = await discountsApi.getAll({ limit: 100 });
-      const data: any = response.data;
-      const items: Discount[] = data?.items ?? data?.data ?? data ?? [];
-      return Array.isArray(items) ? items : [];
+      // Yanıt `{ items }`, `{ data }` ya da çıplak dizi olabilir.
+      const data = response.data as { items?: unknown; data?: unknown } | undefined;
+      const items = data?.items ?? data?.data ?? data ?? [];
+      return Array.isArray(items) ? (items as Discount[]) : [];
     },
     enabled: isAuthenticated,
   });

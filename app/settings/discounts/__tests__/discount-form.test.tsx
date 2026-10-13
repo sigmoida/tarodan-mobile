@@ -327,6 +327,7 @@ describe('Taslak koruması (geri oku / Android geri tuşu)', () => {
       'Kaydedilmemiş değişiklikler',
       'Yaptığınız değişiklikler kaybolacak. Formu kapatmak istiyor musunuz?',
       expect.any(Array),
+      expect.anything(),
     );
   });
 });

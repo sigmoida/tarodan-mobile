@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { useFocusEffect, useNavigation } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { appAlert } from '@/ui';
+import { confirm } from '@/ui';
 
 /**
  * Çok alanlı form EKRANLARI için taslak kaybı koruması (web `useFormModalLabels`
@@ -27,17 +27,18 @@ export function useUnsavedChangesGuard(dirty: boolean) {
       const unsubscribe = navigation.addListener('beforeRemove', (e) => {
         if (!dirtyRef.current || bypassRef.current) return;
         e.preventDefault();
-        appAlert(t('common.unsavedChanges'), t('common.unsavedChangesDescription'), [
-          {
-            text: t('common.discardChanges'),
-            style: 'destructive',
-            onPress: () => {
-              bypassRef.current = true;
-              navigation.dispatch(e.data.action);
-            },
-          },
-          { text: t('common.continueEditing'), style: 'cancel' },
-        ]);
+        // `confirm()` kapanış SONRASI çözülür (AlertDialog sözleşmesi) → dispatch iOS-güvenli.
+        void confirm({
+          title: t('common.unsavedChanges'),
+          message: t('common.unsavedChangesDescription'),
+          confirmLabel: t('common.discardChanges'),
+          cancelLabel: t('common.continueEditing'),
+          destructive: true,
+        }).then((discard) => {
+          if (!discard) return;
+          bypassRef.current = true;
+          navigation.dispatch(e.data.action);
+        });
       });
       return unsubscribe;
     }, [navigation, t]),
