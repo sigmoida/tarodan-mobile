@@ -1,15 +1,19 @@
-import React from 'react';
-import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import React, { useState } from 'react';
+import { Pressable, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent, type ViewStyle } from 'react-native';
+import type { SharedValue } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { RawText, Text } from './Text';
-import { HeaderIconButton } from './HeaderIconButton';
+import { GlassIconButton, GLASS_ICON_BUTTON_SIZE } from './GlassIconButton';
+import { GlassSurface } from './GlassSurface';
+import { ScrollEdge } from './ScrollEdge';
+import { getGlassView } from '../lib/glass';
 import { theme } from '../lib/theme';
 import { useHeaderTopInset } from '../lib/header';
 
-import { Icon, type IconRef, type IconVariant } from '../icons';
+import type { IconRef, IconVariant } from '../icons';
 /**
- * @deprecated Eski turuncu/açık ayrımı. Yığın ekranlarının üst barı artık TEK görünüm: web'in
- * sade beyaz barı. Prop geriye uyum için kabul edilir, görünümü değiştirmez.
+ * @deprecated Eski turuncu/açık ayrımı. Yığın ekranlarının üst barı artık TEK görünüm: yüzen cam
+ * butonlu, ortalı başlıklı bar. Prop geriye uyum için kabul edilir, görünümü değiştirmez.
  */
 export type ScreenHeaderVariant = 'primary' | 'light';
 
@@ -21,40 +25,57 @@ export interface ScreenHeaderProps {
   onBack?: () => void;
   showBack?: boolean;
   /**
-   * Geri okunun yerine özel öncül düğüm (ör. kapat X). Aynı kutu ölçüsünde çizilir; verilirse
+   * Geri okunun yerine özel öncül düğüm (ör. kapat X). Sol slotta (44pt kutu) çizilir; verilirse
    * `showBack`/`onBack` yok sayılır.
    */
   leading?: React.ReactNode;
-  /** Başlık + alt başlık yerine özel içerik (ör. sohbet: avatar + ad + ürün). Tek satır sığmalı. */
+  /** Başlık + alt başlık yerine özel içerik (ör. sohbet: avatar + ad + ürün). Ortada, tek satır sığmalı. */
   titleSlot?: React.ReactNode;
-  /** Sağ aksiyon(lar). Beyaz zemin: ikonlar başlık rengi olmalı — `TopBarAction` kullanın. */
-  right?: React.ReactNode;
   /**
-   * @deprecated Başlık HER ZAMAN sola hizalı (iki platformda aynı). Prop geriye uyum için
-   * kabul edilir, görünümü değiştirmez.
+   * Sağ aksiyon(lar): `TopBarAction` (ikon = cam daire, metin = cam hap). Birden çok aksiyon
+   * fragment olarak verilir; aralarındaki boşluğu bar koyar.
    */
+  right?: React.ReactNode;
+  /** @deprecated Başlık HER ZAMAN ortalı. Prop geriye uyum için kabul edilir, görünümü değiştirmez. */
   centerTitle?: boolean;
   /**
-   * Şeffaf varyant (galeri / görsel üstüne bindirme): zemin ve alt çizgi yok. Konumlandırma
-   * çağıranın işi (`style` ile `position: 'absolute'`). Yükseklik ve geri oku aynı kalır.
+   * Şeffaf varyant (galeri / görsel üstüne bindirme): kenar şeridi ve zemin yok. Konumlandırma
+   * çağıranın işi (`style` ile `position: 'absolute'`); bu kipte bar yüzen DEĞİLDİR.
    */
   transparent?: boolean;
+  /**
+   * `true` (varsayılan): bar içeriğin ÜSTÜNDE yüzer (absolute, zeminsiz; altında kaydırma kenarı
+   * şeridi). İçerik bar altından başlar — `PageShell`/`AppShell` üst boşluğu kendisi verir.
+   * `false`: bar akışta, opak beyaz zeminli (özel kabuklar: sohbet başlığı, ödeme, WebView, kapılar).
+   */
+  floating?: boolean;
+  /**
+   * Kaydırma kenarı sinyali (bkz. `usePageScrollHandler`). Yoksa şerit SABİT hafif beyazdır.
+   * Yalnız `floating` iken anlamlı.
+   */
+  scrollY?: SharedValue<number>;
   style?: ViewStyle;
   testID?: string;
 }
 
-const { colors, spacing, typography, iconSize, minTouchTarget, headerHeight } = theme;
+const { colors, spacing, headerHeight } = theme;
 
 /** Üst bar satır yüksekliği (güvenli alan hariç) — rol token'ı `theme.headerHeight`. */
 export const TOP_BAR_HEIGHT = headerHeight;
-const ICON_BOX = 40;
+const SIDE_MIN = GLASS_ICON_BUTTON_SIZE;
+/** Bir yan slotun azami genişliği (pencere genişliğinin oranı): uzun metin aksiyonu başlığı ezmesin. */
+const SIDE_MAX_RATIO = 0.36;
+/** Metin aksiyonu hapının yüksekliği; 44pt dokunma alanı `hitSlop` ile tamamlanır. */
+const PILL_HEIGHT = theme.controlHeight.md;
+const PILL_HIT_SLOP = (theme.minTouchTarget - PILL_HEIGHT) / 2;
 
 /**
- * Yığın ekranlarının üst barı (PageShell'in barı da bu) — uygulamadaki TEK standart: güvenli
- * alan (`useHeaderTopInset`) + SABİT `headerHeight` içerik; surface-elevated zemin, 1px alt
- * çizgi (gölge yok); solda geri oku (chevron-back, 24, başlık rengi, 44pt dokunma alanı; geri oku
- * yoksa kutu çizilmez), SOLA hizalı tek satır başlık (h3: lg/600, ellipsis), sağda aksiyon slotu. StatusBar koyu içerik
- * ister (kök layout varsayılanı).
+ * Yığın ekranlarının üst barı (PageShell'in barı da bu) — uygulamadaki TEK standart (Storytel
+ * düzeni): içeriğin ÜSTÜNDE yüzen, zeminsiz bar. Solda geri oku `GlassIconButton` (cam daire,
+ * chevron-left; geri oku yoksa sol boş), ortada ORTALI tek satır başlık (h3 bold, ellipsis), sağda
+ * aksiyonlar (`TopBarAction`: ikon = cam daire, metin = cam hap). Yan slotlar EŞİT genişlikte
+ * ayrılır (ikisinin geniş olanı) ki başlık gerçekten ortada kalsın. Altında kaydırma kenarı
+ * (`ScrollEdge`) durum çubuğu bölgesini de kapsar. StatusBar koyu içerik (kök layout varsayılanı).
  */
 export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   title,
@@ -65,44 +86,58 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   titleSlot,
   right,
   transparent = false,
+  floating = true,
+  scrollY,
   style,
   testID = 'screen-header',
 }) => {
   const topPad = useHeaderTopInset();
   const { t } = useTranslation();
-  // Geri oku / öncül yoksa boş kutu ÇİZİLMEZ: başlık sayfa kenar boşluğundan (spacing[4]) başlar.
-  const hasLeading = !!leading || showBack;
+  const { width: windowWidth } = useWindowDimensions();
+  const [leftW, setLeftW] = useState(0);
+  const [rightW, setRightW] = useState(0);
+  const isFloating = floating && !transparent;
+  const sideW = Math.min(Math.max(leftW, rightW, SIDE_MIN), Math.max(SIDE_MIN, windowWidth * SIDE_MAX_RATIO));
+  const onLeftLayout = (e: LayoutChangeEvent) => setLeftW(Math.ceil(e.nativeEvent.layout.width));
+  const onRightLayout = (e: LayoutChangeEvent) => setRightW(Math.ceil(e.nativeEvent.layout.width));
 
   return (
     <View
       testID={testID}
+      pointerEvents={isFloating ? 'box-none' : 'auto'}
       style={[
         styles.container,
-        transparent && styles.containerTransparent,
+        isFloating && styles.floating,
+        !isFloating && !transparent && styles.solid,
         { paddingTop: topPad },
         style,
       ]}
     >
-      <View style={styles.row} testID={`${testID}-row`}>
-        {leading ? (
-          <View style={styles.iconBtn}>{leading}</View>
-        ) : showBack ? (
-          <Pressable
-            onPress={onBack}
-            disabled={!onBack}
-            style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
-            hitSlop={(minTouchTarget - ICON_BOX) / 2 + 4}
-            accessibilityRole="button"
-            accessibilityLabel={t('common.back')}
-          >
-            <Icon name="chevron-left" size={iconSize.lg} color={colors.text.heading} />
-          </Pressable>
-        ) : null}
+      {isFloating ? (
+        <ScrollEdge barHeight={topPad + TOP_BAR_HEIGHT} scrollY={scrollY} testID={`${testID}-edge`} />
+      ) : null}
+      <View style={styles.row} testID={`${testID}-row`} pointerEvents="box-none">
+        {/* Boş yan slotlar dokunuşu yutmasın (alttaki listenin sürüklenmesi): box-none. */}
+        <View style={[styles.side, { width: sideW }]} testID={`${testID}-left`} pointerEvents="box-none">
+          <View style={styles.sideInner} onLayout={onLeftLayout} pointerEvents="box-none">
+            {leading ? (
+              <View style={styles.leadingBox} pointerEvents="box-none">{leading}</View>
+            ) : showBack ? (
+              <GlassIconButton
+                icon="chevron-left"
+                onPress={onBack ?? NOOP_PRESS}
+                disabled={!onBack}
+                accessibilityLabel={t('common.back')}
+                testID={`${testID}-back`}
+              />
+            ) : null}
+          </View>
+        </View>
 
-        <View style={[styles.titleWrap, !hasLeading && styles.titleWrapNoLeading]}>
+        <View style={styles.titleWrap} pointerEvents="box-none">
           {titleSlot ?? (
             <>
-              <Text variant="h3" numberOfLines={1} accessibilityRole="header">
+              <Text variant="h3" weight="bold" align="center" numberOfLines={1} accessibilityRole="header">
                 {title}
               </Text>
               {subtitle ? (
@@ -114,14 +149,21 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
           )}
         </View>
 
-        <View style={styles.rightSlot}>{right}</View>
+        <View style={[styles.side, styles.sideRight, { width: sideW }]} testID={`${testID}-right`} pointerEvents="box-none">
+          <View style={[styles.sideInner, styles.rightInner]} onLayout={onRightLayout} pointerEvents="box-none">
+            {right}
+          </View>
+        </View>
       </View>
     </View>
   );
 };
 
+// Geri işleyicisi yokken düğme devre dışı; GlassIconButton `onPress` ister.
+const NOOP_PRESS = () => undefined;
+
 export interface TopBarActionProps {
-  /** İkon (başlık renginde, 24) ya da kısa metin aksiyonu ("Kaydet"). */
+  /** İkon (cam daire, başlık renginde, 24) ya da kısa metin aksiyonu ("Kaydet": cam hap). */
   icon?: IconRef;
   iconVariant?: IconVariant;
   label?: string;
@@ -134,8 +176,9 @@ export interface TopBarActionProps {
 }
 
 /**
- * Beyaz üst barın sağ aksiyonu. İkon başlık renginde (turuncu bardan kalma beyaz ikonlar beyaz
- * zeminde görünmez olurdu); metin aksiyonu primary-600 / 600 ağırlık.
+ * Üst barın sağ aksiyonu. İkonlu: `GlassIconButton` (cam daire, 44pt). Metinli: `GlassSurface`
+ * hap içinde primary-600 / 600 ağırlık metin; hap yüksekliği 40, dokunma alanı 44'e `hitSlop` ile
+ * tamamlanır. Native cam ata `opacity < 1` iken efektini kaybeder: pasif görünüm yalnız metne.
  */
 export const TopBarAction: React.FC<TopBarActionProps> = ({
   icon,
@@ -148,41 +191,59 @@ export const TopBarAction: React.FC<TopBarActionProps> = ({
   testID,
 }) =>
   icon ? (
-    <HeaderIconButton
+    <GlassIconButton
       icon={icon}
       iconVariant={iconVariant}
-      label={accessibilityLabel ?? label ?? icon}
+      accessibilityLabel={accessibilityLabel ?? label ?? icon}
       onPress={onPress}
       count={count}
       disabled={disabled}
       testID={testID}
-      tone="onSurface"
     />
   ) : (
     <Pressable
       onPress={onPress}
       disabled={disabled}
       testID={testID}
-      hitSlop={8}
+      hitSlop={PILL_HIT_SLOP}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: !!disabled }}
-      style={({ pressed }) => [styles.textBtn, pressed && styles.pressed, disabled && styles.disabled]}
+      style={({ pressed }) => [styles.pillBox, pressed && !getGlassView() && styles.pressed]}
     >
-      <RawText style={styles.textAction}>{label}</RawText>
+      <TopBarPill disabled={disabled}>{label}</TopBarPill>
     </Pressable>
   );
 
+/** Salt gösterim cam hap (sayaç gibi dokunulmayan değerler): `blocked-users` sayısı vb. */
+export const TopBarLabel: React.FC<{ children: React.ReactNode; testID?: string }> = ({ children, testID }) => (
+  <View testID={testID} style={styles.pillBox}>
+    <TopBarPill>{children}</TopBarPill>
+  </View>
+);
+
+const TopBarPill: React.FC<{ children: React.ReactNode; disabled?: boolean }> = ({ children, disabled }) => (
+  <GlassSurface shape="pill" size={PILL_HEIGHT} pointerEvents="none" style={styles.pill}>
+    <RawText numberOfLines={1} style={[styles.textAction, disabled && styles.disabled]}>
+      {children}
+    </RawText>
+  </GlassSurface>
+);
+
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.surface.elevated,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.DEFAULT,
-    paddingHorizontal: spacing[2],
+    paddingHorizontal: spacing[3],
   },
-  containerTransparent: {
-    backgroundColor: colors.transparent,
-    borderBottomWidth: 0,
+  // İçeriğin ÜSTÜNDE yüzer; boş alanlardan dokunuşlar içeriğe geçer (box-none).
+  floating: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  solid: {
+    backgroundColor: colors.surface.elevated,
   },
   row: {
     flexDirection: 'row',
@@ -190,48 +251,57 @@ const styles = StyleSheet.create({
     height: TOP_BAR_HEIGHT,
     gap: spacing[1],
   },
-  iconBtn: {
-    width: ICON_BOX,
-    height: ICON_BOX,
+  // Yan slotlar satır yönünde: içerik doğal genişliğinde (flexShrink 0) ölçülür, taşma görünür.
+  side: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  sideRight: {
+    justifyContent: 'flex-end',
+  },
+  sideInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  rightInner: {
+    gap: spacing[2],
+  },
+  leadingBox: {
+    width: SIDE_MIN,
+    height: SIDE_MIN,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: theme.radiusRole.button,
-  },
-  textBtn: {
-    minHeight: ICON_BOX,
-    paddingHorizontal: spacing[2],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pressed: {
-    backgroundColor: colors.surface.alt,
-  },
-  disabled: {
-    opacity: 0.5,
   },
   titleWrap: {
     flex: 1,
     minWidth: 0,
+    alignItems: 'center',
     justifyContent: 'center',
-  },
-  // Container yatay dolgusu spacing[2]; geri okusuz başlık sayfa kenar boşluğuna (spacing[4]) oturur.
-  titleWrapNoLeading: {
-    paddingLeft: spacing[2],
   },
   subtitle: {
     marginTop: spacing[0.5],
-    fontSize: typography.fontSize.xs,
+    fontSize: theme.typography.fontSize.xs,
     color: colors.text.muted,
+    textAlign: 'center',
   },
-  rightSlot: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: spacing[1],
+  pillBox: {
+    height: PILL_HEIGHT,
+    justifyContent: 'center',
+  },
+  pill: {
+    paddingHorizontal: spacing[4],
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+  disabled: {
+    opacity: 0.5,
   },
   textAction: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.semibold,
     color: colors.primary[600],
   },
 });

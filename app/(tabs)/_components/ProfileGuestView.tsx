@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
-import { Button, Card, Text, theme, type IconName } from '@/ui';
+import { Button, Card, Text, theme, usePageScrollValue, type IconName } from '@/ui';
 
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
@@ -21,7 +21,8 @@ const { colors, spacing, radius } = theme;
 export function ProfileGuestView({ f }: { f: ProfileController }) {
   const { t } = useTranslation();
   const tabInset = useTabBarInset();
-  const tabScroll = useTabBarScrollHandler();
+  const page = usePageScrollValue();
+  const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
 
   const benefits = [
     { title: t('mobile.guestListTitle'), desc: t('mobile.guestListDesc') },
@@ -39,11 +40,12 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
   ];
 
   return (
-    <AppShell variant="title" title={t('profile.profile')}>
+    <AppShell variant="title" title={t('profile.profile')} scroll={page}>
       <Animated.ScrollView
         {...tabScroll}
+        {...page.scrollProps}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: tabInset }}
+        contentContainerStyle={page.contentStyle({ paddingBottom: tabInset })}
         showsVerticalScrollIndicator={false}
       >
         <ProfileHeader>

@@ -21,6 +21,7 @@ import {
  * Lint hex/rgba yasağı bu wrap'lı sabitlerle aşılır.
  */
 const overlay = {
+  white0: 'rgba(255,255,255,0)',
   white05: 'rgba(255,255,255,0.05)',
   white10: 'rgba(255,255,255,0.10)',
   white20: 'rgba(255,255,255,0.20)',

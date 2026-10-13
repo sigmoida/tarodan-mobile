@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, FlatList, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
+import Animated from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
-import { ErrorState, SkeletonCard, pageListContentStyle, theme } from "@/ui";
+import { ErrorState, SkeletonCard, pageListContentStyle, theme, usePageScrollHandler } from "@/ui";
 import { PageShell } from "@/components/common/PageShell";
 import { useAuthStore } from "@/stores/authStore";
 import { useTimingValues } from "@/hooks/useTimingPolicy";
@@ -28,6 +29,7 @@ export default function OffersScreen() {
   )?.toLowerCase();
 
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
+  const page = usePageScrollHandler();
   const [activeTab, setActiveTab] = useState<TabType>(
     tabFromUrl === "sent" ? "sent" : "received",
   );
@@ -125,6 +127,7 @@ export default function OffersScreen() {
       title={t("offer.myOffersTitle")}
       onBack={back}
       mode="list"
+      scroll={page}
       overlay={
         <>
           <CounterOfferModal offer={counterOffer} onClose={() => setCounterOffer(null)} />
@@ -132,7 +135,8 @@ export default function OffersScreen() {
         </>
       }
     >
-      <FlatList
+      <Animated.FlatList
+        {...page.listProps}
         data={isLoading || isError ? [] : offers}
         keyExtractor={(item) => item.id}
         renderItem={renderOffer}
@@ -155,7 +159,7 @@ export default function OffersScreen() {
             <OffersEmpty tab={activeTab} />
           )
         }
-        contentContainerStyle={[pageListContentStyle, styles.list]}
+        contentContainerStyle={page.contentStyle([pageListContentStyle, styles.list])}
         refreshing={isRefetching}
         onRefresh={refetch}
       />

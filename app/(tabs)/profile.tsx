@@ -5,7 +5,7 @@ import { tabDiag } from '@/components/_tabDiag';
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
-import { theme } from '@/ui';
+import { theme, usePageScrollValue } from '@/ui';
 
 import { useProfile } from './_hooks/useProfile';
 import { ProfileGuestView } from './_components/ProfileGuestView';
@@ -28,21 +28,25 @@ function ProfileScreen() {
   const { t } = useTranslation();
   // Hook sırası sabit kalsın diye erken return'den ÖNCE çağrılır (CLAUDE.md §12).
   const tabInset = useTabBarInset();
-  const tabScroll = useTabBarScrollHandler();
+  const page = usePageScrollValue();
+  // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
+  const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
 
   if (!f.isAuthenticated) return <ProfileGuestView f={f} />;
 
   return (
-    <AppShell variant="title" title={t('profile.profile')}>
+    <AppShell variant="title" title={t('profile.profile')} scroll={page}>
       <Animated.ScrollView
         {...tabScroll}
+        {...page.scrollProps}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: tabInset }}
+        contentContainerStyle={page.contentStyle({ paddingBottom: tabInset })}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={f.refreshing}
             onRefresh={f.onRefresh}
+            progressViewOffset={page.topInset}
             tintColor={colors.primary[600]}
             colors={[colors.primary[600]!]}
           />
