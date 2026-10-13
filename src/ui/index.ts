@@ -39,6 +39,15 @@ export {
 	type TopBarActionProps,
 } from './components/ScreenHeader';
 export { CountBadge, type CountBadgeProps } from './components/CountBadge';
+export {
+	PageShell,
+	PAGE_GUTTER,
+	PAGE_SECTION_GAP,
+	pageListContentStyle,
+	type PageShellProps,
+	type PageShellMode,
+} from './components/PageShell';
+export { PageHeader, type PageHeaderProps } from './components/PageHeader';
 export { EmptyState, type EmptyStateProps } from './components/EmptyState';
 export { ErrorState, type ErrorStateProps } from './components/ErrorState';
 export {
