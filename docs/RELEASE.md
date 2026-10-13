@@ -10,8 +10,8 @@ onaylar ve Android durumu. Workflow'lar: `mobile-staging.yml`,
 | Dal           | Rol                                              | Nasıl girilir                                       |
 | ------------- | ------------------------------------------------ | --------------------------------------------------- |
 | `development` | Varsayılan dal; **staging**                      | Doğrudan push serbest (PR de olur)                  |
-| `master`      | **Production**                                   | Yalnız PR ile, yalnız `development` ya da `hotfix/*` dalından |
-| `hotfix/*`    | Production'a acil düzeltme                       | `master`'dan açılır, PR ile `master`'a girer        |
+| `master`      | **Production** — `development`'tan merge = yeni sürüm (store build) | Yalnız PR ile, yalnız `development` ya da `hotfix/*` dalından |
+| `hotfix/*`    | Production'a acil düzeltme (JS ise onaylı OTA)   | `master`'dan açılır, PR ile `master`'a girer        |
 
 `master` koruması `master-flow.yml` içindeki **`Master source guard`** check'iyle
 sağlanır: kaynak dal `development` ya da `hotfix/*` değilse (ya da PR bir fork'tan
@@ -50,7 +50,10 @@ Workflow her yayın öncesi, platform başına:
    - **available** — bitmiş **ve** gönderimi başarılı (TestFlight / Play) build;
      gönderim gerektirmeyen `preview` APK'sı için bitmiş olması yeter → **OTA**
    - **pending** — kuyrukta / derleniyor / bitti ama gönderimi sürüyor →
-     **bekle**: OTA yok (binary henüz yok), ikinci build de yok; uyarı basar
+     ikinci build **yok**. Staging'de **OTA yine çıkar**: gelen binary aynı
+     runtime'ı taşır ve bitince bu güncellemeyi alır (expo-updates kendi gömülü
+     JS'inden eski bir güncellemeyi uygulamaz). Production'da **bekle**: OTA
+     onaylıdır, binary'si henüz olmayan runtime'a onay istenmez; uyarı basar.
    - **none** — hata, iptal, gönderimi başarısız ya da hiç gönderilmemiş →
      **build**
    Belirsiz her şey (tanınmayan CLI JSON'u dahil) "binary var" sayılmaz.
@@ -94,8 +97,8 @@ ci (lint + tsc + test)
   da aynı runtime'ın daha yeni kodudur). Başlamış bir **build/submit asla iptal
   edilmez**. Build job'ı kilidi
   aldıktan sonra yeniden sorgular (`release.sh recheck`); arada aynı runtime
-  için gönderilmiş bir binary oluştuysa build yerine OTA yayınlar, build hâlâ
-  sürüyorsa hiçbir şey yapmaz.
+  için bir build başladıysa ya da gönderildiyse ikinci build almaz, OTA yayınlar.
+  Böylece build sürerken gelen bir push'un JS'i de testçilere ulaşır.
 - **Ref koruması:** elle tetikleme yalnız `development`'ta; `mode=apk` ayrıca
   `vars.STAGING_APK_BRANCHES`'teki dallardan (bkz. aşağı).
 - Submit `--latest` ile değil **build id** ile yapılır (paralel biten başka
@@ -148,36 +151,53 @@ onayıyla kurulur. Sonraki JS değişiklikleri bu APK'ya da OTA ile iner (kanal
 
 ## Production — `master`'a merge
 
-`mobile-production.yml`, staging ile aynı mantık, `production` profiliyle
-(`EXPO_PUBLIC_ENVIRONMENT=production`, `com.tarodan.app`):
+`mobile-production.yml`, `production` profiliyle (`EXPO_PUBLIC_ENVIRONMENT=production`,
+`com.tarodan.app`). master'a yalnız PR ile ve yalnız iki daldan girilir; **hangi
+daldan geldiği ne olacağını belirler**:
+
+| Merge | Ne olur |
+| --- | --- |
+| **`development` → `master` (sürüm)** | **Her zaman store build'i** (iOS → App Store Connect, Android → Play internal). `expo.version` artırılmamışsa build alınmaz, koşu kırmızı olur. Yalnız JS değişmiş olsa da production OTA'sı **çıkmaz**. |
+| **`hotfix/*` → `master` (acil düzeltme)** | Yalnız JS değiştiyse **onaylı OTA** hazırlanır (senin onayın olmadan çıkmaz). Native değiştiyse store build'i (sürüm artmış olmalı). |
 
 ```
 ci
-  └─ plan  (fingerprint vs production build'leri + VERSION-GATE)   ← environment: production-build
+  └─ plan  (kaynak dal → sürüm mü hotfix mi; fingerprint + VERSION-GATE)   ← environment: production-build
        ├─ ota            eas update --branch production      ← environment: production (ONAY)
-       │                 (platform başına matrix; kuyruk platform + runtime başına)
+       │                 (yalnız hotfix ya da elle mode=ota; platform başına matrix)
        ├─ build-ios      eas build --profile production -p ios → eas submit --profile production
        └─ build-android  eas build --profile production -p android (AAB)
                          → eas submit --profile production (track: internal)
                          (yalnız vars.ANDROID_RELEASE_ENABLED == 'true')
 ```
 
-### Native değiştiyse: sürüm artmış olmalı (VERSION-GATE)
+Kaynak dal, merge commit'inin PR'ından okunur (`gh api repos/…/commits/<sha>/pulls`).
+Okunamazsa merge **sürüm** sayılır: güvenli taraf, OTA hazırlanmaz; bir hotfix en
+kötü ihtimalle "sürümü artır" hatasıyla durur ve elle `mode=ota` ister.
 
-Production build'i gerekiyorsa `app.json` → `expo.version`, **son bitmiş
-production build'inin `appVersion`'ından büyük** olmalı (`sort -V`). Değilse o
-platform **blocked** olur ve şu tür bir hata basılır. Kapı **platform başınadır**:
-iOS'un kapısı takılırsa Android'in OTA'sı yine çıkar (ve tersi); koşu sonda
-kırmızı olur:
+### Sürüm artmış olmalı (VERSION-GATE)
 
-> `ios: native değişti (…) ama app.json expo.version (1.0.6) son production
-> build'inin sürümünden (1.0.6) büyük değil. Bu merge'de expo.version'ı artır …`
+Store build'i alınacaksa `app.json` → `expo.version`, **son bitmiş production
+build'inin `appVersion`'ından büyük** olmalı (`sort -V`). Değilse o platform
+**blocked** olur, ne build ne OTA çıkar ve hata ne yapılacağını söyler. Kapı
+**platform başınadır** (hotfix'te iOS'un kapısı takılırsa Android'in OTA'sı yine
+çıkar, ve tersi); koşu sonda kırmızı olur:
+
+> `ios: sürüm merge'ü (kaynak: development) ama app.json expo.version (1.0.6) son
+> production build'inin sürümünden (1.0.6) büyük değil — store build ALINMADI …`
+
+Çıkış yolları (hata mesajında da yazar):
+
+- **Yeni sürüm:** `development`'ta `expo.version`'ı artır, yeni PR aç.
+- **Aynı sürümün yeni build'i** (ör. App Review reddetti, sürüm henüz yayınlanmadı):
+  `gh workflow run mobile-production.yml --ref master -f mode=build -f platform=ios`
+  (`mode=build` kapıyı yalnız uyarıya çevirir).
+- **Acil JS düzeltmesi:** `hotfix/<ad>` dalından PR (onaylı OTA) ya da `mode=ota`.
 
 Kıyas push tabanıyla değil son production build'iyle yapılır; böylece iptal
-edilmiş bir önceki koşu ya da çok commit'li bir merge kapıyı yanıltamaz.
-`workflow_dispatch -f mode=build` kapıyı yalnız uyarıya çevirir (bilinçli insan
-kararı: ör. aynı sürümün build'ini yeniden almak). Build numarası EAS'te otomatik
-artar (`appVersionSource: remote`); `ios.buildNumber`'a dokunma.
+edilmiş bir önceki koşu ya da çok commit'li bir merge kapıyı yanıltamaz. Build
+numarası EAS'te otomatik artar (`appVersionSource: remote`), sürüm değişse de
+sıfırlanmaz; `ios.buildNumber`'a dokunma.
 
 ### iOS: inceleme elle
 
@@ -185,20 +205,22 @@ artar (`appVersionSource: remote`); `ios.buildNumber`'a dokunma.
 **App Store incelemesine gönderim (Submit for Review) App Store Connect'te ELLE
 yapılır** — workflow bunu yapmaz.
 
-### JS değiştiyse: onaylı OTA
+### Production OTA: yalnız hotfix, yalnız onayla
 
 `ota` job'ı `environment: production` taşır. GitHub Environment `production`
 (Settings → Environments) required reviewer'larla korunur; onay verilmeden OTA
 çıkmaz. Onay **yalnız** burada istenir (plan ve store build'leri onaysız
-`production-build` environment'ında). İki platform için iki job beklerse tek
-"Review deployments" onayı ikisini de açar. Daha yeni bir master push'u, başka
-bir runtime'ın ya da platformun onay bekleyen OTA'sını **iptal etmez**.
+`production-build` environment'ında). OTA job'u yalnız `hotfix/*` merge'ünde ya
+da elle `mode=ota` ile oluşur; sürüm merge'ü onu hiç oluşturmaz. İki platform
+için iki job beklerse tek "Review deployments" onayı ikisini de açar. Daha yeni
+bir master push'u, başka bir runtime'ın ya da platformun onay bekleyen OTA'sını
+**iptal etmez**. OTA yalnız aynı runtime'lı (canlıdaki) binary'lere iner.
 
 ### Elle tetikleme
 
 ```bash
-gh workflow run mobile-production.yml --ref master                     # mode=auto
-gh workflow run mobile-production.yml --ref master -f mode=ota          # onay ister
+gh workflow run mobile-production.yml --ref master                     # mode=auto: SÜRÜM kuralı
+gh workflow run mobile-production.yml --ref master -f mode=ota          # acil JS düzeltmesi, onay ister
 gh workflow run mobile-production.yml --ref master -f mode=build -f platform=ios
 ```
 
@@ -210,14 +232,16 @@ Başka bir ref'ten tetiklenirse `plan` durur (`release.sh guard-ref`; ayrıca
 1. `development`'ta `app.json` `expo.version`'ı artır (ör. `1.0.6` → `1.0.7`).
    Bu staging'de de yeni bir build demektir (sürüm fingerprint'e girer).
 2. `development` → `master` PR'ı aç; CI + `Master source guard` yeşil olunca merge et.
-3. `mobile-production.yml` build + submit'i yapar.
-4. App Store Connect'te build'i test et, **incelemeye elle gönder**.
+3. `mobile-production.yml` iOS ve (açıksa) Android store build'ini alıp gönderir.
+4. App Store Connect'te build'i test et, **incelemeye elle gönder**; Play'de
+   internal'dan ileri kanallara **elle** terfi et.
 
 ## Hotfix
 
 1. `master`'dan `hotfix/<ad>` dalı aç, düzeltmeyi yap.
-2. `hotfix/<ad>` → `master` PR'ı aç (guard izin verir), merge et. Production
-   yukarıdaki gibi davranır (native ise sürümü artırmayı unutma).
+2. `hotfix/<ad>` → `master` PR'ı aç (guard izin verir), merge et. Yalnız JS
+   değiştiyse production OTA'sı hazırlanır ve **onayını bekler** (Actions →
+   koşu → "Review deployments"). Native değiştiyse sürümü artır; store build'i alınır.
 3. Merge sonrası `master-flow.yml` → **`Hotfix back-merge PR (master → development)`**
    job'ı master'ın merge commit'inden `backmerge/<ad>-<PR no>` dalını açar ve
    `development`'a PR açar. **Çakışma olsa da PR açılır**; çakışmayı o dalda
@@ -232,18 +256,29 @@ Başka bir ref'ten tetiklenirse `plan` durur (`release.sh guard-ref`; ayrıca
 > `com.tarodan.app.staging`), Play kurulumu, Firebase/FCM, keystore, Google girişi ve
 > assetlinks adımları ile kimin yapacağı: [`docs/ANDROID_RELEASE.md`](./ANDROID_RELEASE.md).
 
-**Hazır ama kapalı.** Tüm Android build/submit job'ları (staging ve production)
-yalnız repo değişkeni `ANDROID_RELEASE_ENABLED` = `true` iken çalışır. Açmadan önce:
+**Kod hazır, değişkenle kapalı.** Tüm Android build/submit job'ları (staging ve
+production) yalnız repo değişkeni `ANDROID_RELEASE_ENABLED` = `true` iken çalışır;
+açıldığında Android, iOS ile **aynı kuralları** izler (staging: her development
+push'u OTA ya da build; production: sürüm merge'ü store build'i, hotfix onaylı OTA).
+Kodda yapılmış olanlar: `staging`/`production` AAB profilleri,
+`submit.{staging,production}.android` (`track: internal`), paket doğrulaması
+(staging Play uygulamasına production paketi gidemez, tersi de), staging
+`google-services.staging.json`, staging keystore. Açmadan önce (ayrıntı
+[`ANDROID_RELEASE.md`](./ANDROID_RELEASE.md) Bölüm 4 ve 12):
 
-1. Play Console hesabı; iki uygulama: `com.tarodan.app` ve `com.tarodan.app.staging`.
-2. Google Play service account JSON'u EAS'e yüklenmiş olmalı (`eas credentials -p android`).
-3. Her iki uygulama için **ilk AAB elle yüklenmeli** (Play API ilk yüklemeyi kabul etmez).
-4. `eas.json`: `staging` profiline Android bloğu ve `submit.staging.android`
-   (`track: internal`) — `parity/android-release` işi.
-5. `.staging` paketi için Firebase (FCM, `google-services.json`) ve Google Cloud
-   OAuth Android client kaydı (aşağıdaki Google sign-in notu).
+1. Play Console'da iki uygulama: `com.tarodan.app` ve `com.tarodan.app.staging`.
+2. Google Play service account JSON'u EAS'e, **iki paket için de** (`eas credentials -p android`).
+3. Her iki uygulama için **ilk AAB elle yüklenip internal testing'de yayınlanmalı**
+   (Play API ilk sürümü oluşturamaz; taslak uygulamaya `completed` sürüm gönderilemez).
+4. FCM V1 anahtarları (production paketi için de).
 
 Sonra: `gh variable set ANDROID_RELEASE_ENABLED --body true`.
+
+Açıldıktan sonraki ilk development push'u (native değişiklik olmasa da) bir
+staging AAB'si alıp Play internal'a gönderir: elle yüklenen ilk AAB EAS üzerinden
+gönderilmediği için "binary var" sayılmaz. Ad-hoc APK kullanan testçiler APK'yı
+**kaldırıp** Play'den kurmalı: Play'in imzası (Play App Signing) APK'nınkinden
+farklı olduğu için üstüne güncellenemez.
 
 **Production'a yükseltme Play Console'da ELLE.** Workflow yalnız `internal`
 track'e gönderir. Hesap **kişisel** olduğu için Google, production erişiminden
@@ -296,9 +331,11 @@ JS düzeltmesi → staging          development'a push (otomatik OTA)
 Native değişiklik → staging      development'a push (otomatik build + TestFlight/Play internal)
 Ad-hoc APK                       gh workflow run mobile-staging.yml --ref development -f mode=apk
 Production sürümü                expo.version artır → development → master PR → merge
+                                 → otomatik store build (iOS + açıksa Android)
                                  → App Store Connect'te incelemeye ELLE gönder
-JS düzeltmesi → production       development → master PR → merge → production environment onayı
-Acil düzeltme                    hotfix/<ad> → master PR → merge → otomatik back-merge PR'ını merge et
+Acil JS düzeltmesi → production  hotfix/<ad> → master PR → merge → OTA'yı onayla (Review deployments)
+                                 → otomatik back-merge PR'ını merge et
+Aynı sürümün yeni build'i        gh workflow run mobile-production.yml --ref master -f mode=build -f platform=ios
 ```
 
 ---

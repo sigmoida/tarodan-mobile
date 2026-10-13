@@ -1,7 +1,8 @@
 /**
  * Yayın hattı sözleşmesi (docs/RELEASE.md):
  *   development push → CI → fingerprint → staging OTA ya da build (otomatik)
- *   master merge     → CI → fingerprint → onaylı production OTA ya da store build
+ *   master merge     → CI → development'tan: store build (sürüm artmalı) ·
+ *                      hotfix/*'tan: fingerprint → onaylı production OTA ya da store build
  *   master PR'ı      → "Master source guard" (yalnız development / hotfix/*)
  *   hotfix merge     → master → development geri birleştirme PR'ı
  *   Android          → tüm build/submit job'ları vars.ANDROID_RELEASE_ENABLED'a bağlı
@@ -211,6 +212,25 @@ describe('production', () => {
 
   it('iOS production build + submit production profiliyle', () => {
     expect(runs(production.jobs['build-ios'])).toContain('build-submit ios production production');
+  });
+
+  it('sürüm/hotfix ayrımı: merge edilen PR\'ın dalı plan\'a SOURCE_REF olarak gider', () => {
+    const steps = production.jobs.plan.steps!;
+    const source = steps.find((s) => s.id === 'source');
+    expect(source?.if).toContain("github.event_name == 'push'");
+    expect(source?.run).toContain('repos/$REPO/commits/$SHA/pulls');
+    // PR'dan gelen hiçbir değer run'a ${{ }} ile enjekte edilmez.
+    expect(source?.run).not.toContain('${{');
+    expect(source?.env?.GH_TOKEN).toBe('${{ github.token }}');
+    const decide = steps.find((s) => s.id === 'decide');
+    expect(decide?.env?.SOURCE_REF).toBe('${{ steps.source.outputs.ref }}');
+    expect(steps.indexOf(source!)).toBeLessThan(steps.indexOf(decide!));
+    expect(production.jobs.plan.permissions).toEqual({ contents: 'read', 'pull-requests': 'read' });
+  });
+
+  it('staging plan\'ı SOURCE_REF almaz (kural yalnız production\'da)', () => {
+    const decide = staging.jobs.plan.steps!.find((s) => s.id === 'decide');
+    expect(decide?.env?.SOURCE_REF).toBeUndefined();
   });
 
   it('VERSION-GATE: native değişikliğinde expo.version son production build\'inden büyük olmalı', () => {

@@ -10,8 +10,9 @@ name: Mobile Staging (CI → fingerprint → OTA or build)
 #                ve EAS'te bu runtimeVersion için binary durumu okunur
 #                (release.sh build-state):
 #                  available → OTA   (bitmiş VE TestFlight/Play'e gönderilmiş build)
-#                  pending   → bekle (derleniyor / gönderiliyor: OTA da ikinci
-#                              build de yok, uyarı)
+#                  pending   → OTA   (aynı runtime'ın build'i derleniyor /
+#                              gönderiliyor: ikinci build alınmaz; build bitince
+#                              bu push'un güncellemesini alır)
 #                  none      → build (yeni native binary gerekiyor)
 #                Platformlar AYRI değerlendirilir: iOS OTA alırken Android build
 #                alabilir (fingerprint platform başına farklıdır).
@@ -49,7 +50,7 @@ name: Mobile Staging (CI → fingerprint → OTA or build)
 #     (GitHub semantiği: aynı grupta bekleyen İKİNCİ bir build job'ı, üçüncüsü
 #     gelince düşer — yenisi zaten daha yeni kodu taşır.) Build job'ı kilidi
 #     aldıktan sonra fingerprint'i yeniden sorgular; arada aynı runtime için bir
-#     build başlamışsa build harcamaz, OTA yayınlar.
+#     build başlamış ya da bitmişse build harcamaz, OTA yayınlar.
 #
 # Elle tetikleme (workflow_dispatch):
 #   mode=auto   push ile aynı karar (varsayılan)

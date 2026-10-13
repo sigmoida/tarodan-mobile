@@ -1,21 +1,26 @@
-name: Mobile Production (CI → fingerprint → approved OTA or store build)
+name: Mobile Production (CI → release = store build · hotfix = approved OTA)
 
-# master'a merge (push) → staging ile AYNI mantık, production kimliğiyle:
+# master'a merge (push), production kimliğiyle (EXPO_PUBLIC_ENVIRONMENT=production
+# → com.tarodan.app). Merge'ün türünü PR'ın kaynak dalı belirler (master'a yalnız
+# PR ile ve yalnız development / hotfix/* dalından girilir — master-flow.yml):
 #
 #   1. ci        CI (ci.yml `workflow_call`).
-#   2. plan      Fingerprint `production` profilinin env'iyle
-#                (EXPO_PUBLIC_ENVIRONMENT=production → com.tarodan.app) hesaplanır,
-#                EAS'teki production build'leriyle karşılaştırılır.
-#                  binary var (bitmiş + gönderilmiş) → OTA
+#   2. plan      Kaynak dal merge commit'inin PR'ından okunur (okunamazsa SÜRÜM).
+#                SÜRÜM (development → master): HER ZAMAN store build'i.
+#                  app.json `expo.version` son bitmiş production build'inin
+#                  sürümünden BÜYÜK olmalı; değilse plan anlaşılır bir hatayla DURUR
+#                  (build de OTA da yok). Yalnız JS değişmiş olsa da production
+#                  OTA'sı bu yoldan ÇIKMAZ.
+#                HOTFIX (hotfix/* → master): fingerprint kararı.
+#                  binary var (bitmiş + gönderilmiş) → OTA (onaylı, aşağıda)
 #                  build/gönderim sürüyor → bekle (uyarı; OTA da build de yok)
-#                  binary yok → native değişti → STORE BUILD. Bu durumda app.json
-#                    `expo.version` son production build'inin sürümünden BÜYÜK
-#                    olmalı; değilse plan anlaşılır bir hatayla DURUR (bkz.
-#                    "VERSION-GATE" adımı). Not: expo.version fingerprint'e girer,
-#                    yani sürüm artışı kendi başına da yeni build demektir.
+#                  binary yok → native değişti → STORE BUILD (VERSION-GATE'e tabi)
+#                Not: expo.version fingerprint'e girer; sürüm artışı her zaman
+#                yeni build'dir.
 #   3. ota       eas update --branch production — `environment: production`
 #                onayına bağlı (GitHub Environment; onaylayan kişi Settings →
-#                Environments'ta tanımlı).
+#                Environments'ta tanımlı). Yalnız hotfix merge'ünde ya da elle
+#                mode=ota ile hazırlanır; onaysız asla çıkmaz.
 #   4. build-ios eas build --profile production → eas submit --profile production
 #                → App Store Connect / TestFlight. **App Store incelemesine gönderim
 #                (Submit for Review) App Store Connect'te ELLE kalır.**
@@ -29,7 +34,8 @@ name: Mobile Production (CI → fingerprint → approved OTA or store build)
 # iptal edilmez.
 #
 # Elle tetikleme yalnız master ref'inde anlamlıdır (plan başka ref'te durur):
-#   gh workflow run mobile-production.yml --ref master -f mode=auto
+#   gh workflow run mobile-production.yml --ref master -f mode=auto   # SÜRÜM kuralı
+#   mode=ota   → acil JS düzeltmesi; onaylı OTA (binary'si olan runtime'a).
 #   mode=build → sürüm kapısı yalnız UYARI verir (bilinçli insan kararı: ör.
 #                aynı sürümün reddedilen build'ini yeniden almak).
 #
@@ -71,12 +77,15 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   plan:
-    name: Plan (fingerprint → OTA or store build)
+    name: Plan (release → store build · hotfix → OTA)
     needs: ci
     runs-on: ubuntu-latest
     # Token için `production-build` (yalnız master, ONAYSIZ): plan yalnız okur.
     environment: production-build
     timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: read  # merge commit'inin PR'ı (kaynak dal: development / hotfix/*)
     concurrency:
       group: mobile-production-plan-${{ github.event_name }}
       # İptalsiz: yeni bir push eski koşunun kararını (ve onun runtime'ına ait
@@ -116,6 +125,22 @@ jobs:
         if: steps.guard.outputs.skip != 'true'
         with:
           expo-token: ${{ secrets.EXPO_TOKEN }}
+      - name: Which branch was merged? (development = release, hotfix/* = hotfix)
+        # master'a yalnız PR ile girilir (ruleset + Master source guard), yani push
+        # bir PR merge'üdür. Okunamazsa boş kalır → release.sh SÜRÜM sayar (güvenli
+        # taraf: OTA hazırlanmaz; hotfix en kötü "sürümü artır" hatasıyla durur ve
+        # elle mode=ota ister). Dal adı yalnız env'den okunur (enjeksiyon yok).
+        id: source
+        if: steps.guard.outputs.skip != 'true' && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          ref="$(gh api "repos/$REPO/commits/$SHA/pulls" \
+            --jq '[.[] | select(.base.ref == "master" and .merged_at != null)][0].head.ref // ""' 2>/dev/null)" || ref=""
+          echo "Merge edilen PR'ın dalı: '${ref:-okunamadı}'"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
       - name: Decide per platform + VERSION-GATE
         id: decide
         if: steps.guard.outputs.skip != 'true'
@@ -125,6 +150,7 @@ jobs:
           ANDROID_ENABLED: ${{ vars.ANDROID_RELEASE_ENABLED == 'true' }}
           COMMIT_MSG: ${{ github.event.head_commit.message }}
           SHA: ${{ github.sha }}
+          SOURCE_REF: ${{ steps.source.outputs.ref }}
         # Karar döngüsünün TEK kopyası: scripts/ci/release.sh plan (staging ile ortak).
         run: scripts/ci/release.sh plan production
       - name: Fail if a platform is blocked (other platforms still ship)

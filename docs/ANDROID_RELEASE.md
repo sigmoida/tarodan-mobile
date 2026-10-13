@@ -403,24 +403,33 @@ internal) için ilk yayına kadar gerekenler yeter.
 
 ## 12. CI: `ANDROID_RELEASE_ENABLED`
 
-Workflow'lar `.github/` altında ayrıca yazılır (bu dosyanın kapsamı dışında).
-Android build/submit adımları `ANDROID_RELEASE_ENABLED` değişkeni açılana kadar
-çalışmaz (güvenli no-op).
+Akışın tamamı [`RELEASE.md`](./RELEASE.md)'de; Android, iOS ile aynı kuralları
+izler. Android build/submit adımları `ANDROID_RELEASE_ENABLED` değişkeni açılana
+kadar çalışmaz (güvenli no-op); kapalıyken staging'de JS değişiklikleri ad-hoc
+APK'lara (`preview`) OTA olarak iner.
 
 1. **Kullanıcı**, şu öncesi tamamlanmadan değişkeni **açmaz**: ilk AAB'ler elle
-   yüklendi (Bölüm 5), service account EAS'te (Bölüm 6), `google-services.staging.json`
-   repoda (Bölüm 7), FCM anahtarları (Bölüm 8).
+   yüklendi **ve internal testing'de yayınlandı** (Bölüm 5), service account EAS'te
+   iki paket için de (Bölüm 6), `google-services.staging.json` repoda (Bölüm 7),
+   FCM anahtarları (Bölüm 8).
 2. **Kullanıcı** — GitHub → repo → *Settings → Secrets and variables → Actions →
    **Variables*** → `ANDROID_RELEASE_ENABLED` = `true`
    (`gh variable set ANDROID_RELEASE_ENABLED --body true`). `EXPO_TOKEN` zaten secret olarak gerekli.
-3. **CI** — staging: `main`'e gelen native değişiklik/`workflow_dispatch` →
+3. **CI** — staging: `development`'a her push → yalnız JS ise OTA, native ise
    `eas build --profile staging --platform android` → `eas submit --profile staging`
-   (Play internal, `com.tarodan.app.staging`).
-   production: `master`'da `expo.version` değişince → `eas build --profile production
-   --platform android` → `eas submit --profile production` (Play internal,
-   `com.tarodan.app`). Closed/open/production terfisi yine Console'dan **Kullanıcı**.
+   (Play internal, `com.tarodan.app.staging`). Açıldıktan sonraki ilk push bir
+   AAB alır (elle yüklenen ilk AAB EAS'ten gönderilmediği için "binary var"
+   sayılmaz).
+   production: `development` → `master` merge'ü (sürüm) → `expo.version` artmışsa
+   `eas build --profile production --platform android` → `eas submit --profile
+   production` (Play internal, `com.tarodan.app`); artmamışsa build yok, koşu
+   kırmızı. `hotfix/*` merge'ü yalnız JS ise onaylı OTA. Closed/open/production
+   terfisi yine Console'dan **Kullanıcı**.
 4. `versionCode` EAS'te uzaktan, paket başına artar (`appVersionSource: remote`).
-   İki uygulamanın sayaçları bağımsızdır.
+   İki uygulamanın sayaçları bağımsızdır ve sürüm değişince sıfırlanmaz.
+5. **Testçi geçişi** — ad-hoc APK kullananlar APK'yı **kaldırıp** Play'den
+   (internal testing bağlantısı) kurar: Play App Signing imzası APK'nın EAS
+   yükleme anahtarından farklıdır, üstüne güncelleme kurulmaz.
 
 ---
 
@@ -430,5 +439,11 @@ Android build/submit adımları `ANDROID_RELEASE_ENABLED` değişkeni açılana 
   Play sayfasına gider; internal track'te anlamlı bir mağaza bağlantısı yoktur.
   Staging API'de minimum sürüm yükseltilmedikçe tetiklenmez.
 - `releaseStatus: completed` taslak uygulamada reddedilir (Bölüm 2).
+- Manifestte kütüphanelerden gelen `READ_EXTERNAL_STORAGE` / `WRITE_EXTERNAL_STORAGE`
+  var (staging APK'sında doğrulandı, 2026-10-13); Android 13+ hedefinde etkisizler
+  ve Play'in fotoğraf/video izin politikası kapsamında değiller. Yine de
+  `app.json` → `android.blockedPermissions` ile engellenmeleri önerilir. Bu bir
+  native değişikliktir: Android açıkken yapılırsa yeni AAB'yle gider; kapalıyken
+  yapılırsa mevcut APK'lar OTA almayı bırakır, yeni APK gerekir.
 - `EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` kapalıyken Android'de Google giriş seçeneği
   hiç sunulmaz (`src/services/googleSignin.ts`); bayrak Bölüm 9'daki koşullarla açılır.
