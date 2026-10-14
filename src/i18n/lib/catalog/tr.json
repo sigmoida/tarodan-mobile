@@ -2430,7 +2430,10 @@
       "twoFactorOff": "Uygulama tabanlı ek güvenlik katmanı ekleyin",
       "manage": "Yönet",
       "setUp": "Ayarla"
-    }
+    },
+    "emailChangeLeaveTitle": "E-posta doğrulanmadı",
+    "emailChangeLeaveBody": "Kodu girmeden çıkarsanız e-posta adresiniz değişmez ve yeniden kod istemeniz gerekir.",
+    "emailChangeLeaveConfirm": "Yine de Çık"
   },
   "review": {
     "reviews": "Değerlendirmeler",

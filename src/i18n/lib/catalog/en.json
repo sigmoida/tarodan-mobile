@@ -2430,7 +2430,10 @@
       "twoFactorOff": "Add an app-based extra layer of security",
       "manage": "Manage",
       "setUp": "Set up"
-    }
+    },
+    "emailChangeLeaveTitle": "Email not verified",
+    "emailChangeLeaveBody": "If you leave without entering the code, your email won't change and you'll need to request a new code.",
+    "emailChangeLeaveConfirm": "Leave Anyway"
   },
   "review": {
     "reviews": "Reviews",

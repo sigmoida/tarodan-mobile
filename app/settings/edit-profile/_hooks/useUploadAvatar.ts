@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
@@ -19,6 +19,8 @@ export function useUploadAvatar() {
   const { user } = useAuthStore();
   const refreshAccount = useRefreshAccount();
   const [preview, setPreview] = useState<string | null>(null);
+  // Seçici açılmadan gelen ikinci dokunuş "picker already presented" ile reddedilir → tek giriş.
+  const picking = useRef(false);
 
   const upload = useMutation({
     mutationFn: async (uri: string) => {
@@ -42,22 +44,31 @@ export function useUploadAvatar() {
   });
 
   const pick = async () => {
-    if (upload.isPending) return;
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (result.canceled || !result.assets?.[0]) return;
-    const uri = result.assets[0].uri;
-    setPreview(uri);
-    upload.mutate(uri);
+    if (upload.isPending || picking.current) return;
+    picking.current = true;
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+      const uri = result.assets[0].uri;
+      setPreview(uri);
+      upload.mutate(uri);
+    } catch {
+      toast.error(t('profile.photoUploadFailed'));
+    } finally {
+      picking.current = false;
+    }
   };
 
   return {
     /** Gösterilecek fotoğraf: yükleme sürerken yerel seçim, sonra sunucudaki. */
     avatar: preview ?? user?.avatar ?? null,
+    /** `avatar` cihazdaki yerel seçim mi (resolveImageUrl cihaz URI'sini ancak izinle geçirir). */
+    isLocalPreview: preview != null,
     pick,
     isUploading: upload.isPending,
   };

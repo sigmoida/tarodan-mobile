@@ -67,10 +67,10 @@ describe("J48 · Güvenlik — tüm cihazlardan çıkış", () => {
     expect(screen.getByText("security.logoutAllHint")).toBeOnTheScreen();
   });
 
-  it("J48.2 satıra basınca onay Alert tetiklenir", () => {
+  it("J48.2 düğmeye basınca onay Alert tetiklenir", () => {
     const alertSpy = (appAlert as jest.Mock).mockImplementation(() => {});
     renderWithProviders(<SecuritySettingsScreen />);
-    fireEvent.press(screen.getByText("security.logoutAllTitle"));
+    fireEvent.press(screen.getByTestId("security-logout-all"));
     // Bu dosya `t`'yi anahtarı döndürecek şekilde mock'luyor; başlık artık
     // katalogdan geliyor, o yüzden beklenen değer ANAHTAR.
     expect(alertSpy).toHaveBeenCalledWith(
@@ -92,7 +92,7 @@ describe("J48 · Güvenlik — tüm cihazlardan çıkış", () => {
       },
     );
     renderWithProviders(<SecuritySettingsScreen />);
-    fireEvent.press(screen.getByText("security.logoutAllTitle"));
+    fireEvent.press(screen.getByTestId("security-logout-all"));
     expect(confirmOnPress).toBeDefined();
 
     confirmOnPress!();

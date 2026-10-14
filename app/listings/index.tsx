@@ -114,7 +114,11 @@ function ListingsScreen() {
           f.isLoading ? (
             <ProductGridSkeleton />
           ) : (
-            <ProductListEmpty filtered={f.activeFilterCount > 0 || !!f.filters.search} onClearFilters={f.clearFilters} />
+            <ProductListEmpty
+              filtered={f.activeFilterCount > 0 || !!f.filters.search}
+              // Temizle arama/sıralamayı korur; yalnız aramada düğme işe yaramaz → gösterme.
+              onClearFilters={f.activeFilterCount > 0 ? f.clearFilters : undefined}
+            />
           )
         }
       />

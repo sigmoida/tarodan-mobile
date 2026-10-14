@@ -89,7 +89,11 @@ export default function SearchScreen() {
       ) : isError ? (
         <ErrorState title={t('utility.error500.title')} onRetry={refetch} />
       ) : (
-        <ProductListEmpty filtered={activeFiltersCount > 0 || hasSearch} onClearFilters={clearAllFilters} />
+        <ProductListEmpty
+          filtered={activeFiltersCount > 0 || hasSearch}
+          // Temizle aramayı korur; yalnız aramada düğme işe yaramaz → gösterme.
+          onClearFilters={activeFiltersCount > 0 ? clearAllFilters : undefined}
+        />
       ),
     [isLoading, isError, refetch, activeFiltersCount, hasSearch, clearAllFilters, t],
   );

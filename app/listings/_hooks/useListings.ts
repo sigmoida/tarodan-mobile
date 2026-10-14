@@ -60,7 +60,9 @@ export function useListings() {
   // değiştirirse taslak ona eşitlenir.
   const [searchQuery, setSearchQuery] = useState(filters.search);
   useEffect(() => {
-    setSearchQuery(filters.search);
+    // Debounce kırpılmış metni işler; kutudaki sondaki boşluğu silmemek için yalnız
+    // içerik gerçekten farklıysa (filtre sayfası/çip) eşitle.
+    setSearchQuery((prev) => (prev.trim() === filters.search ? prev : filters.search));
   }, [filters.search]);
   useEffect(() => {
     const q = searchQuery.trim();

@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { goBackOrHome } from '@/components/common/goBackOrHome';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { useEmailChangeFlow } from './_hooks/useEmailChangeFlow';
 import { EmailChangeForm } from './_sections/EmailChangeForm';
 
@@ -12,8 +13,17 @@ import { EmailChangeForm } from './_sections/EmailChangeForm';
  */
 export default function EmailChangeScreen() {
   const { t } = useTranslation();
-  const f = useEmailChangeFlow({ onVerified: goBackOrHome });
+  // Doğrulanınca koruma kaldırılıp geri dönülür (`guard` çağrı anında tanımlı).
+  const f = useEmailChangeFlow({ onVerified: () => guard.leave(goBackOrHome) });
   const isCodeStep = f.phase === 'codeSent';
+  // Kod yalnız bu ekranın belleğinde; kod adımından çıkış onaya bağlı (yeniden istemek 60 sn bekletir).
+  const guard = useUnsavedChangesGuard(isCodeStep, {
+    title: t('profile.emailChangeLeaveTitle'),
+    message: t('profile.emailChangeLeaveBody'),
+    confirmLabel: t('profile.emailChangeLeaveConfirm'),
+    cancelLabel: t('common.continueEditing'),
+    destructive: true,
+  });
 
   return (
     <PageShell

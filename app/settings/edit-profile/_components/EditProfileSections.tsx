@@ -30,7 +30,7 @@ export function AvatarSection({ avatar }: { avatar: AvatarUploadController }) {
         testID="edit-profile-avatar"
       >
         {avatar.avatar ? (
-          <Image source={{ uri: resolveImageUrl(avatar.avatar) }} style={styles.avatar} />
+          <Image source={{ uri: resolveImageUrl(avatar.avatar, 'detail', { allowDeviceUris: avatar.isLocalPreview }) }} style={styles.avatar} />
         ) : (
           <Avatar size="xl" name={user?.displayName || "U"} />
         )}
