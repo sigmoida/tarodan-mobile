@@ -3,6 +3,7 @@ import * as SecureStore from "expo-secure-store";
 import { advanceSessionEpoch, authApi, userApi } from "@/lib/api";
 import {
   bindPaymentCapabilitiesToAccount,
+  clearAllPaymentCapabilities,
   sweepExpiredPaymentCapabilities,
 } from "@/lib/payment/paymentCapability";
 import type { LogoutReason } from "./resetUserStores";
@@ -33,6 +34,13 @@ export interface LogoutOptions {
  * `handleAuthFailure`) yeni bir çıkış başlatmaz, bu sözü paylaşır.
  */
 let inFlightLogout: Promise<void> | null = null;
+/**
+ * Uçuştaki çıkışın nedeni. Zorunlu (`forced`) çıkış sürerken kullanıcı çıkışı ya da hesap
+ * silme katılırsa güçlü nedene yükseltilir (temizlik henüz yapılmadıysa onunla yapılır).
+ */
+let inFlightReason: LogoutReason = "user";
+/** Son çıkışta `resetUserStores`'a gerçekten verilen neden (katılan çağrının ek temizliği için). */
+let appliedReason: LogoutReason | null = null;
 
 /** Bir çıkış sürüyor mu? `client.ts` `handleAuthFailure` bu sırada hiçbir şey yapmaz. */
 export function isLogoutInProgress(): boolean {
@@ -451,10 +459,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: (options: LogoutOptions = {}) => {
     // Yeniden giriş koruması: süren çıkış varsa aynı sözü döndür — ikinci bir
     // push iptali / POST /auth/logout / store sıfırlaması başlamaz.
-    if (inFlightLogout) return inFlightLogout;
+    const wanted: LogoutReason = options.reason ?? "user";
+    if (inFlightLogout) {
+      // Zorunlu çıkış sürerken kullanıcı çıkışı / hesap silme katıldı: nedeni yükselt.
+      // Temizlik zaten `forced` ile yapıldıysa (yarış), kendi çıkışın ek temizliği —
+      // ödeme yetki belirteçleri — katılan çağrıda yapılır.
+      if (wanted === "forced" || inFlightReason !== "forced") return inFlightLogout;
+      inFlightReason = wanted;
+      return inFlightLogout.then(async () => {
+        if (appliedReason === "forced") await clearAllPaymentCapabilities();
+      });
+    }
+    inFlightReason = wanted;
+    appliedReason = null;
     inFlightLogout = (async () => {
-      const reason: LogoutReason = options.reason ?? "user";
-      const skipServer = options.skipServer ?? reason === "accountDeleted";
+      const skipServer = options.skipServer ?? wanted === "accountDeleted";
 
       // İLK İŞ: oturum kuşağını ilerlet. Bu noktadan sonra tamamlanan her
       // uçuştaki refresh kendini geçersiz sayar ve SecureStore'a yazmaz —
@@ -492,7 +511,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Lazy require: messagesStore → authStore import zinciriyle döngü oluşmasın.
       // Zorunlu çıkışta ödeme yetki belirteçleri kalır (süren 3DS ödemesi için).
       const { resetUserStores } = require("./resetUserStores");
-      resetUserStores(reason);
+      // Uçuş sırasında katılan çağrı nedeni yükseltmiş olabilir (`inFlightReason`).
+      appliedReason = inFlightReason;
+      resetUserStores(appliedReason);
       logger.setUser(null);
     })().finally(() => {
       inFlightLogout = null;

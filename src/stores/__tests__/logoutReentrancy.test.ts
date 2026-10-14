@@ -24,6 +24,7 @@ import * as SecureStore from 'expo-secure-store';
 import { advanceSessionEpoch, authApi } from '@/lib/api';
 import { unregisterPushNotifications } from '../../services/push';
 import { resetUserStores } from '../resetUserStores';
+import * as paymentCapability from '@/lib/payment/paymentCapability';
 import { isLogoutInProgress, useAuthStore, type User } from '../authStore';
 
 const mockAuthLogout = authApi.logout as jest.Mock;
@@ -130,6 +131,55 @@ describe('logout — yeniden giriş koruması', () => {
     expect(mockReset).toHaveBeenCalledTimes(1);
     expect(mockReset).toHaveBeenCalledWith('user');
     expect(isLogoutInProgress()).toBe(false);
+  });
+
+  it('zorunlu çıkış sürerken hesap silme katılırsa temizlik "accountDeleted" ile yapılır', async () => {
+    const clearSpy = jest.spyOn(paymentCapability, 'clearAllPaymentCapabilities');
+    let releasePush: () => void = () => {};
+    mockUnregister.mockImplementation(() => new Promise<void>((r) => (releasePush = r)));
+
+    const forced = useAuthStore.getState().logout({ reason: 'forced' });
+    const deleted = useAuthStore.getState().logout({ reason: 'accountDeleted' });
+    expect(deleted).not.toBe(forced);
+
+    releasePush();
+    await Promise.all([forced, deleted]);
+
+    expect(mockReset).toHaveBeenCalledTimes(1);
+    expect(mockReset).toHaveBeenCalledWith('accountDeleted');
+    // Temizlik zaten güçlü nedenle yapıldı: ek temizlik gerekmez.
+    expect(clearSpy).not.toHaveBeenCalled();
+    clearSpy.mockRestore();
+  });
+
+  it('katılım temizlikten sonra olursa ödeme yetki belirteçleri yine silinir', async () => {
+    const clearSpy = jest
+      .spyOn(paymentCapability, 'clearAllPaymentCapabilities')
+      .mockResolvedValue(undefined);
+    let joined: Promise<void> | undefined;
+    // Zorunlu çıkışın temizliği SIRASINDA hesap silme katıldı (neden artık yükseltilemez).
+    mockReset.mockImplementationOnce(() => {
+      joined = useAuthStore.getState().logout({ reason: 'accountDeleted' });
+    });
+
+    await useAuthStore.getState().logout({ reason: 'forced' });
+    await joined;
+
+    expect(mockReset).toHaveBeenCalledTimes(1);
+    expect(mockReset).toHaveBeenCalledWith('forced');
+    expect(clearSpy).toHaveBeenCalledTimes(1);
+    clearSpy.mockRestore();
+  });
+
+  it('kullanıcı çıkışı sürerken zorunlu çıkış katılırsa neden düşürülmez', async () => {
+    let releasePush: () => void = () => {};
+    mockUnregister.mockImplementation(() => new Promise<void>((r) => (releasePush = r)));
+    const user1 = useAuthStore.getState().logout();
+    const forced = useAuthStore.getState().logout({ reason: 'forced' });
+    expect(forced).toBe(user1);
+    releasePush();
+    await user1;
+    expect(mockReset).toHaveBeenCalledWith('user');
   });
 
   it('çıkış bittikten sonra yeni çıkış yeniden çalışır', async () => {

@@ -214,6 +214,10 @@ function syncStoreAccessToken(newAccess: string): void {
 async function performTokenRefresh(): Promise<string | null> {
   // İsteği başlatan oturum. Yanıt döndüğünde hâlâ aynı kuşaktaysak yazarız.
   const epochAtStart = sessionEpoch;
+  // Çıkış sürerken yenileme YOK: çıkışın kendi isteği (push iptali) 401 alırsa yenilenen
+  // token'lar SecureStore'a yazılır, çıkış temizliğiyle yarışır ve kalırsa sonraki açılışta
+  // `loadToken` kapanmış oturumu diriltirdi.
+  if (isLogoutInProgress()) return null;
   const refreshToken = await SecureStore.getItemAsync("refreshToken");
   if (!refreshToken) return null;
   // Çıplak `axios` — instance'ların ayarını miras ALMAZ, o yüzden çerez kapısı
@@ -231,7 +235,8 @@ async function performTokenRefresh(): Promise<string | null> {
   if (!newAccess) return null;
   // Uçuştayken çıkış yapıldı: bu token artık kapanmış bir oturuma ait. Yazarsak
   // bu arada giriş yapmış olan kullanıcının token'ını ezeriz.
-  if (epochAtStart !== sessionEpoch) return null;
+  // Yanıt beklenirken çıkış başladıysa da (kuşak aynı kalsa bile) yazma/uygulama yok.
+  if (epochAtStart !== sessionEpoch || isLogoutInProgress()) return null;
   await SecureStore.setItemAsync("accessToken", newAccess);
   // ROTATED refresh token'ı da kaydet (asıl bug buydu).
   if (newRefresh) await SecureStore.setItemAsync("refreshToken", newRefresh);

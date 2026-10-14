@@ -108,6 +108,35 @@ it('kapanmış oturumda başlamış isteğin 401\'i: refresh, çıkış, yönlen
   expect(router.replace).not.toHaveBeenCalled();
 });
 
+describe('çıkış sürerken token yenileme yazılmaz (kapanan oturum dirilmez)', () => {
+  const mockSetItem = SecureStore.setItemAsync as unknown as jest.Mock;
+
+  it('çıkışın kendi isteği 401 alırsa refresh hiç atılmaz, SecureStore\'a yazılmaz', async () => {
+    mockLogoutInProgress = true;
+    mockPost.mockResolvedValue({ data: { accessToken: 'revived', refreshToken: 'revived-r' } });
+    await expect(onResponseError(error401())).rejects.toBeDefined();
+    expect(mockPost).not.toHaveBeenCalled();
+    expect(mockSetItem).not.toHaveBeenCalled();
+    expect(useAuthStore.getState().token).toBe('a-token');
+  });
+
+  it('yanıt beklenirken çıkış başladı (kuşak aynı): token yazılmaz/uygulanmaz', async () => {
+    let resolveRefresh: (v: unknown) => void = () => undefined;
+    mockPost.mockReturnValueOnce(new Promise((r) => (resolveRefresh = r)));
+    const pending = onResponseError(error401()).catch(() => undefined);
+    for (let i = 0; i < 50 && mockPost.mock.calls.length === 0; i++) await Promise.resolve();
+    expect(mockPost).toHaveBeenCalledTimes(1);
+
+    mockLogoutInProgress = true; // çıkış başladı (kuşak henüz ilerlemedi)
+    resolveRefresh({ data: { accessToken: 'revived', refreshToken: 'revived-r' } });
+    await pending;
+
+    expect(mockSetItem).not.toHaveBeenCalled();
+    expect(useAuthStore.getState().token).toBe('a-token');
+    expect(mockLogout).not.toHaveBeenCalled();
+  });
+});
+
 it('aynı oturumdaki isteğin 401\'i normal yoldan (refresh denenir)', async () => {
   const config = await tokenRequestHandler({ headers: {} });
   await expect(onResponseError(error401(config))).rejects.toBeDefined();
