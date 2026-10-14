@@ -248,7 +248,7 @@ describe('AppShell variant="title" — yüzen ortalı bar + kaydırma kenarı', 
     mockTop = 47;
     render(<AppShell variant="title" title="Mesajlar" />);
     expect(StyleSheet.flatten(screen.getByTestId('app-shell-content').props.style).paddingTop).toBe(
-      47 + theme.headerHeight,
+      47 + theme.headerHeight + theme.headerBottomPad,
     );
     expect(StyleSheet.flatten(screen.getByTestId('app-shell-bar-edge').props.style).backgroundColor).toBe(
       theme.colors.overlay.white95,

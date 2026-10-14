@@ -14,7 +14,7 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 
 const flat = (id: string) => StyleSheet.flatten(screen.getByTestId(id).props.style);
-const BAR = (top: number) => top + theme.headerHeight;
+const BAR = (top: number) => top + theme.headerHeight + theme.headerBottomPad;
 
 beforeEach(() => {
   mockTop = 47;

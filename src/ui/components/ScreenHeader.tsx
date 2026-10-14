@@ -58,7 +58,7 @@ export interface ScreenHeaderProps {
   testID?: string;
 }
 
-const { colors, spacing, headerHeight } = theme;
+const { colors, spacing, headerHeight, headerBottomPad } = theme;
 
 /** Üst bar satır yüksekliği (güvenli alan hariç) — rol token'ı `theme.headerHeight`. */
 export const TOP_BAR_HEIGHT = headerHeight;
@@ -114,7 +114,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
       ]}
     >
       {isFloating ? (
-        <ScrollEdge barHeight={topPad + TOP_BAR_HEIGHT} scrollY={scrollY} testID={`${testID}-edge`} />
+        <ScrollEdge barHeight={topPad + TOP_BAR_HEIGHT + headerBottomPad} scrollY={scrollY} testID={`${testID}-edge`} />
       ) : null}
       <View style={styles.row} testID={`${testID}-row`} pointerEvents="box-none">
         {/* Boş yan slotlar dokunuşu yutmasın (alttaki listenin sürüklenmesi): box-none. */}
@@ -241,6 +241,8 @@ const TopBarPill: React.FC<{ children: React.ReactNode; disabled?: boolean }> = 
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: spacing[3],
+    // Satırın altında `headerBottomPad`: durum çubuğu ↔ düğme boşluğuyla dengeli alt boşluk.
+    paddingBottom: headerBottomPad,
   },
   // İçeriğin ÜSTÜNDE yüzer; boş alanlardan dokunuşlar içeriğe geçer (box-none).
   floating: {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { render, renderHook, screen } from '@testing-library/react-native';
+import { theme } from '../theme';
 import {
   SCROLL_EDGE_FULL_AT,
   ShellScrollProvider,
@@ -56,10 +57,10 @@ describe('withTopInset / pageScrollProps (saf)', () => {
 });
 
 describe('hook’lar', () => {
-  it('usePageScrollValue: scrollY 0, topInset = inset + headerHeight (jest inset 0 -> 52)', () => {
+  it('usePageScrollValue: scrollY 0, topInset = inset + headerHeight + headerBottomPad (jest inset 0 -> 64)', () => {
     const { result } = renderHook(() => usePageScrollValue());
     expect(result.current.scrollY.value).toBe(0);
-    expect(result.current.topInset).toBe(52);
+    expect(result.current.topInset).toBe(theme.headerHeight + theme.headerBottomPad);
   });
 
   it('usePageScrollHandler: onScroll + scrollEventThrottle 16', () => {

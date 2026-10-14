@@ -1,5 +1,5 @@
 import { Platform, type ScrollViewProps } from 'react-native';
-import { useHeaderTopInset } from '@/ui';
+import { useHeaderBarInset } from '@/ui';
 import { APP_SHELL_BAR_HEIGHT } from './tabBarLayout';
 
 /**
@@ -12,9 +12,9 @@ import { APP_SHELL_BAR_HEIGHT } from './tabBarLayout';
 export const SEARCH_HIDE_TRANSLATE_Y = -APP_SHELL_BAR_HEIGHT / 2;
 export const SEARCH_HIDE_TRANSLATE_X = -24;
 
-/** Yüzen barın kapladığı yükseklik: güvenli alan üstü + bar satırı. */
+/** Yüzen barın kapladığı yükseklik: diğer üst barlarla TEK formül (güvenli alan + satır + alt pay). */
 export function useFloatingBarInset(): number {
-  return useHeaderTopInset() + APP_SHELL_BAR_HEIGHT;
+  return useHeaderBarInset();
 }
 
 /**

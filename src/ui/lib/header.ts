@@ -16,10 +16,10 @@ export function useHeaderTopInset(): number {
 }
 
 /**
- * Yüzen üst barın kapladığı toplam yükseklik: güvenli alan üstü + `theme.headerHeight`. İçerik bar
+ * Yüzen üst barın kapladığı toplam yükseklik: güvenli alan üstü + `theme.headerHeight` + `theme.headerBottomPad`. İçerik bar
  * ALTINDAN kaydığı için kaydırılabilir listeler bu kadar üst boşlukla başlar (`PageShell` kendi
  * gövdesi için otomatik ekler; ekranın kendi listesi için `usePageScrollHandler().topInset`).
  */
 export function useHeaderBarInset(): number {
-  return useHeaderTopInset() + theme.headerHeight;
+  return useHeaderTopInset() + theme.headerHeight + theme.headerBottomPad;
 }

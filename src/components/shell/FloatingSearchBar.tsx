@@ -96,6 +96,8 @@ const styles = StyleSheet.create({
     right: 0,
     // Cam daire (44pt) kenarı 12pt gutter'a oturur.
     paddingHorizontal: spacing[3],
+    // Diğer üst barlarla aynı alt pay (`theme.headerBottomPad`).
+    paddingBottom: theme.headerBottomPad,
     zIndex: 1,
   },
   // Beyaz bar zemini + alt çizgi (ScreenHeader ile aynı kural); durum çubuğu bölgesini de kaplar.

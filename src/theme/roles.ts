@@ -30,6 +30,15 @@ export const controlHeight = {
  */
 export const headerHeight = 52;
 
+/**
+ * Üst barın içerik satırının ALTINA eklenen boşluk (pt). Satır 52, düğmeler 44 → üst/alt 4pt; durum
+ * çubuğu ile düğmeler arasında güvenli alandan gelen doğal bir boşluk varken altta yalnız 4pt kalıyor,
+ * bar alttan sıkışık görünüyordu. Bu pay tüm üst barlara (ScreenHeader, TitleShell, ana sayfa yüzen
+ * barı) ve TEK inset formülüne (`useHeaderBarInset`) eklenir — barlar arası yükseklik aynı kalır.
+ * Sheet başlıkları (SheetHeader) kullanmaz.
+ */
+export const headerBottomPad = 12;
+
 /** Asgari dokunma alanı (Apple HIG / WCAG). Görsel ölçü küçükse fark `hitSlop` ile kapatılır. */
 export const minTouchTarget = 44;
 
@@ -85,6 +94,7 @@ export const roles = {
   controlHeight,
   minTouchTarget,
   headerHeight,
+  headerBottomPad,
   radiusRole,
   priceColor,
   counterBadgeColor,
