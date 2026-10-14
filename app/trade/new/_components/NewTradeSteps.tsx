@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Image } from 'react-native';
-import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Chip, EmptyState, Divider, Spinner, Text, Input, Textarea, theme, Icon, ButtonRow, RadioIndicator } from '@/ui';
 
@@ -13,6 +12,7 @@ import { styles } from '../_lib/styles';
 import { TradeCostPreviewCard } from '../../[id]/_components/TradeCostPreviewCard';
 import type { Product } from '../_lib/types';
 import type { NewTradeController } from '../_hooks/useNewTrade';
+import { navigateTo } from '@/lib/navigation/goTo';
 
 const { colors } = theme;
 
@@ -83,7 +83,7 @@ export function Step1MyItems({ f }: StepProps) {
           title={t('trade.noListingsForTrade')}
           subtitle={t('emptyState.tradeListingsHint')}
           actionLabel={t('product.createListing')}
-          onAction={() => router.push('/(tabs)/sell')}
+          onAction={() => navigateTo('/(tabs)/sell')}
         />
       ) : (
         f.myProducts?.map((product: Product) => (

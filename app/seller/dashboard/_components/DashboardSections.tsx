@@ -8,6 +8,7 @@ import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { styles } from '../_lib/styles';
 import { StatCard, QuickAction } from './DashboardPrimitives';
 import type { SellerDashboardController } from '../_hooks/useSellerDashboard';
+import { navigateTo } from '@/lib/navigation/goTo';
 
 /** Karşılama bölümü — kurumsal/bireysel mesaj + yükselt butonu. */
 export function WelcomeCard({ f }: { f: SellerDashboardController }) {
@@ -65,7 +66,7 @@ export function QuickActions() {
   const { t } = useTranslation();
   return (
     <SectionCard title={t('sellerDashboard.quickActions')}>
-      <QuickAction label={t('sellerDashboard.newListing')} onPress={() => router.push('/(tabs)/sell')} />
+      <QuickAction label={t('sellerDashboard.newListing')} onPress={() => navigateTo('/(tabs)/sell')} />
       <QuickAction label={t('sellerDashboard.myListings')} onPress={() => router.push('/settings/my-listings')} />
       <QuickAction label={t('sellerDashboard.mySales')} onPress={() => router.push('/sales')} />
       <QuickAction label={t('sellerDashboard.analytics')} onPress={() => router.push('/settings/analytics')} />

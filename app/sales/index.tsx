@@ -11,6 +11,7 @@ import { SalesEarnings } from './_components/SalesEarnings';
 import { SalesFilterChips } from './_components/SalesFilterChips';
 import { SaleCard } from './_components/SaleCard';
 import { ShipDialog } from './_modals/ShipDialog';
+import { navigateTo } from '@/lib/navigation/goTo';
 
 /**
  * Satışlarım — PageShell (`list` modu) + kazanç kartı + filtre chip'leri + SaleCard listesi.
@@ -75,7 +76,7 @@ export default function SalesScreen() {
               title={t('sale.emptyTitle')}
               subtitle={t('sale.emptySubtitle')}
               actionLabel={t('product.createListing')}
-              onAction={() => router.push('/(tabs)/sell')}
+              onAction={() => navigateTo('/(tabs)/sell')}
             />
           )
         }

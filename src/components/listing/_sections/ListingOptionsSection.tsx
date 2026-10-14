@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Button, Input, SectionCard, Switch } from '@/ui';
 import UpgradeCta from '@/components/UpgradeCta';
@@ -8,10 +7,11 @@ import { useStableCallback } from '@/hooks/useStableCallback';
 
 import type { ListingFormController } from '../_hooks/useListingForm';
 import { ChoiceChips, FieldGroup, ToggleRow, fieldStyles, type ChoiceOption } from './fields';
+import { navigateTo } from '@/lib/navigation/goTo';
 
 type SectionProps = { f: ListingFormController };
 
-const goUpgrade = () => router.push('/(tabs)/profile');
+const goUpgrade = () => navigateTo('/(tabs)/profile');
 
 /**
  * Set / Paket geçici olarak kapalı ve formdan gizli — web `OptionsCard`

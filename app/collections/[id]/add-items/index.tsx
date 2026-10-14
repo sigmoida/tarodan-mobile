@@ -7,6 +7,7 @@ import { PageShell } from '@/components/common/PageShell';
 import { useAddItems } from './_hooks/useAddItems';
 import { styles } from './_lib/styles';
 import { ListingPickerRow } from './_components/ListingPickerRow';
+import { navigateTo } from '@/lib/navigation/goTo';
 
 /** Koleksiyona ürün ekle — PageShell + arama ve ilan satırları (Ekle/Çıkar). `useAddItems` optimistic mantığın sahibi. */
 export default function AddCollectionItemsScreen() {
@@ -47,7 +48,7 @@ export default function AddCollectionItemsScreen() {
               icon="cube"
               title={t('collection.noActiveListings')}
               subtitle={t('emptyState.collectionAddListingHint')}
-              action={<Button title={t('product.createListing')} onPress={() => router.push('/(tabs)/sell')} />}
+              action={<Button title={t('product.createListing')} onPress={() => navigateTo('/(tabs)/sell')} />}
             />
           ) : (
             <EmptyState icon="magnifying-glass" title={t('collection.noSearchMatch')} subtitle={t('search.tryDifferent')} />

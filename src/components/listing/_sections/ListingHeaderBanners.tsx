@@ -1,19 +1,19 @@
 import React, { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Input, Skeleton, Text, theme } from '@/ui';
 import UpgradeCta from '@/components/UpgradeCta';
 
 import { ListingQuotaCard, quotaProgressColor } from '../ListingQuotaCard';
 import type { ListingFormController } from '../_hooks/useListingForm';
+import { navigateTo } from '@/lib/navigation/goTo';
 
 const { colors, spacing, controlHeight, radiusRole } = theme;
 
 type SectionProps = { f: ListingFormController };
 type ListingLimits = NonNullable<ListingFormController['listingLimits']>;
 
-const goPremium = () => router.push('/(tabs)/profile');
+const goPremium = () => navigateTo('/(tabs)/profile');
 
 /** Kota kartı (yalnız yeni ilan). Yüklenirken web gibi iskelet. */
 const ListingLimitCard = memo(function ListingLimitCard({ limits }: { limits: ListingLimits }) {

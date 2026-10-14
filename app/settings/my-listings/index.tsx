@@ -14,6 +14,7 @@ import {
   MyListingsExpiredBar,
 } from './_components/MyListingsSections';
 import { MyListingsModals } from './_components/MyListingsModals';
+import { navigateTo } from '@/lib/navigation/goTo';
 
 /**
  * My listings management — THIN screen. The `useMyListings` controller owns the
@@ -65,7 +66,7 @@ export default function MyListingsScreen() {
               icon="plus"
               accessibilityLabel={f.t('listing.createNewA11y')}
               placement="bottomRight"
-              onPress={() => router.push('/(tabs)/sell')}
+              onPress={() => navigateTo('/(tabs)/sell')}
             />
           )}
         </>
