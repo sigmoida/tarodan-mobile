@@ -15,7 +15,7 @@ const { colors, spacing, iconSize } = theme;
 export default function FollowingScreen() {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
-  const { following, isLoading, fetchFollowing, unfollowSeller, getFollowingCount } = useFollowing();
+  const { following, isLoading, isError, fetchFollowing, unfollowSeller, getFollowingCount } = useFollowing();
   const [refreshing, setRefreshing] = useState(false);
 
   // Fetch following on focus
@@ -62,7 +62,11 @@ export default function FollowingScreen() {
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       loading={isLoading && following.length === 0}
       loadingFallback={<RowListSkeleton rows={4} />}
-      empty={!isLoading && following.length === 0}
+      error={isError && following.length === 0 ? true : undefined}
+      errorTitle={t('common.error')}
+      errorMessage={t('following.loadFailed')}
+      onRetry={() => fetchFollowing()}
+      empty={!isLoading && !isError && following.length === 0}
       emptyState={{
         icon: 'user-group',
         title: t('following.emptyTitle'),
@@ -75,23 +79,28 @@ export default function FollowingScreen() {
     >
       {following.map((seller) => (
         <Card key={seller.id} variant="bordered" padding={0}>
-          <Pressable onPress={() => router.push(`/seller/${seller.id}`)}>
+          <Pressable testID={`following-seller-${seller.id}`} onPress={() => router.push(`/seller/${seller.id}`)}>
             <View style={styles.sellerContent}>
               <Avatar size="lg" source={seller.avatarUrl} name={seller.displayName} />
               <View style={styles.sellerInfo}>
-                <Text variant="label">{seller.displayName}</Text>
+                <Text variant="label" numberOfLines={1}>{seller.displayName}</Text>
+                {seller.bio ? (
+                  <Text variant="caption" tone="muted" numberOfLines={1}>{seller.bio}</Text>
+                ) : null}
                 <View style={styles.sellerStats}>
                   <Text variant="caption">{t('following.listingCountSuffix', { count: seller.listingCount })}</Text>
-                  {seller.rating && (
+                  {seller.rating ? (
                     <>
                       <Icon name="star" variant="solid" size={iconSize.sm} color={colors.warning[500]!} style={styles.ratingIcon} />
                       <Text variant="caption">{seller.rating.toFixed(1)}</Text>
                     </>
-                  )}
+                  ) : null}
                 </View>
-                <Text variant="caption" tone="subtle">
-                  {t('following.followedSince', { date: formatDate(seller.followedAt) })}
-                </Text>
+                {seller.followedAt ? (
+                  <Text variant="caption" tone="subtle">
+                    {t('following.followedSince', { date: formatDate(seller.followedAt) })}
+                  </Text>
+                ) : null}
               </View>
               <Button
                 variant="outline"

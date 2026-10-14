@@ -124,6 +124,13 @@ describe('DrawerMenu — üye', () => {
     expect(screen.queryByTestId('side-menu')).toBeNull();
   });
 
+  it('"Takip Ettiklerim" satırı /following ekranını açar', () => {
+    setup();
+    fireEvent.press(screen.getByTestId('profile-account-following-link'));
+    expect(state()).toBe('closed');
+    expect(pushMock).toHaveBeenCalledWith('/following');
+  });
+
   it('satıra dokunma rotayı açar ve menüyü kapatır', () => {
     setup();
     fireEvent.press(screen.getByTestId('profile-orders-link'));

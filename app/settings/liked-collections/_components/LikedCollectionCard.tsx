@@ -1,13 +1,18 @@
 import { View, Pressable } from 'react-native';
 import { AppImage } from '@/components/AppImage';
-import { Button, Text } from '@/ui';
+import { GlassIconButton, Icon, Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { styles } from '../_lib/styles';
 import type { LikedCollection } from '../_lib/types';
 import type { LikedCollectionsController } from '../_hooks/useLikedCollections';
 
-/** Tek beğenilen koleksiyon kartı — web kart dili: kapak, ad, sahibi, sayılar, beğeniyi kaldır. */
+const { colors, iconSize } = theme;
+
+/**
+ * Tek beğenilen koleksiyon kartı — kapak (sağ üstte cam daire içinde dolu kırmızı kalp =
+ * beğenildi; basınca beğeni kalkar), ad, sahibi, "12 araç · ♥ 9".
+ */
 export function LikedCollectionCard({
   collection,
   f,
@@ -16,27 +21,55 @@ export function LikedCollectionCard({
   f: LikedCollectionsController;
 }) {
   const { t } = useTranslation();
+  const likeCount = collection.likeCount || 0;
   return (
     <Pressable
+      testID={`liked-collection-${collection.id}`}
       style={styles.collectionCard}
       onPress={() => router.push(`/collections/${collection.id}`)}
     >
-      <AppImage source={f.getImageUrl(collection)} recyclingKey={String(collection.id)} style={styles.collectionImage} resizeMode="cover" />
+      <View>
+        <AppImage
+          source={f.getImageUrl(collection)}
+          recyclingKey={String(collection.id)}
+          style={styles.collectionImage}
+          resizeMode="cover"
+        />
+        <View style={styles.unlikeButton}>
+          <GlassIconButton
+            testID={`liked-collection-unlike-${collection.id}`}
+            icon="heart"
+            iconVariant="solid"
+            iconColor={colors.danger[500]}
+            accessibilityLabel={t('collection.unlike')}
+            onPress={() => f.handleUnlike(collection.id)}
+          />
+        </View>
+      </View>
       <View style={styles.collectionInfo}>
-        <Text variant="label" numberOfLines={1}>{collection.name}</Text>
+        <Text variant="body" weight="semibold" tone="heading" numberOfLines={1}>
+          {collection.name}
+        </Text>
         {collection.userName ? (
-          <Text variant="caption" numberOfLines={1}>{collection.userName}</Text>
+          <Text variant="bodySm" tone="muted" numberOfLines={1}>
+            {collection.userName}
+          </Text>
         ) : null}
         <View style={styles.collectionMetaRow}>
-          <Text variant="caption">{t('collection.vehicleCountSuffix', { count: collection.itemCount || 0 })}</Text>
-          <Text variant="caption">{collection.likeCount || 0} {t('collection.likes')}</Text>
+          <Text variant="bodySm" tone="muted" numberOfLines={1}>
+            {t('collection.vehicleCountSuffix', { count: collection.itemCount || 0 })}
+          </Text>
+          <View
+            style={styles.likeMeta}
+            accessible
+            accessibilityLabel={t('collection.likeCountSuffix', { count: likeCount })}
+          >
+            <Icon name="heart" variant="solid" size={iconSize.sm} color={colors.text.muted} />
+            <Text variant="bodySm" tone="muted">
+              {likeCount}
+            </Text>
+          </View>
         </View>
-        <Button
-          variant="outline"
-          size="sm"
-          title={t('common.remove')}
-          onPress={() => f.handleUnlike(collection.id)}
-        />
       </View>
     </Pressable>
   );
