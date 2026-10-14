@@ -99,7 +99,7 @@ export function NewCollectionForm({ f }: { f: NewCollectionController }) {
           />
         </View>
 
-        {!f.watch('isPublic') && <Alert variant="default">{t('collection.privateNote')}</Alert>}
+        {!f.watch('isPublic') && <Alert variant="info">{t('collection.privateNote')}</Alert>}
       </SectionCard>
 
       <Alert variant="info" title={t('collection.tipLabel')}>

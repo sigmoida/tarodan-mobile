@@ -49,12 +49,6 @@ export const styles = StyleSheet.create({
     height: DOT,
     borderRadius: radius.full,
   },
-  rejectionBox: {
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
-    borderRadius: radiusRole.card,
-    backgroundColor: colors.danger[50]!,
-  },
   // Sol üst (görselin köşesi): sağ üstte ⋮ menü düğmesi var, kutu onu örtmemeli.
   selectCheck: {
     position: 'absolute',
@@ -72,10 +66,6 @@ export const styles = StyleSheet.create({
     paddingHorizontal: spacing[3],
     borderRadius: radiusRole.card,
     backgroundColor: colors.surface.alt,
-  },
-  bannerButton: {
-    marginTop: spacing[2],
-    alignSelf: 'flex-start',
   },
   // Web `ListingCard`: güncel fiyat solda, indirimdeyse eski fiyat (üstü çizili) + rozet sağda.
   priceRow: {

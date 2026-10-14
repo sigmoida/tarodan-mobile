@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { Button, Card, StatusBadge, Text, ButtonRow } from '@/ui';
+import { Alert, Button, Card, StatusBadge, Text, ButtonRow } from '@/ui';
 import { buildPaymentStatusConfig } from '@/lib/payment/status';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -45,11 +45,7 @@ export function PaymentCard({ p, f }: { p: Payment; f: PaymentsController }) {
       </Text>
 
       {p.failureReason ? (
-        <View style={styles.failureBox}>
-          <Text variant="caption" tone="danger">
-            {p.failureReason}
-          </Text>
-        </View>
+        <Alert variant="danger">{p.failureReason}</Alert>
       ) : null}
 
       <ButtonRow>

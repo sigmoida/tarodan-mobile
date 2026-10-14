@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { userReportsApi, errorText } from '@/lib/api';
-import { theme, Text, Button, Modal, Textarea, Icon, ButtonRow, RadioIndicator, toast } from '@/ui';
+import { theme, Text, Button, Modal, Textarea, Alert, ButtonRow, RadioIndicator, toast } from '@/ui';
 
 const { colors } = theme;
 
@@ -145,12 +145,9 @@ export default function ReportModal({
           {description.length}/500
         </Text>
 
-        <View style={styles.warningBox}>
-          <Icon name="exclamation-triangle" variant="solid" size={theme.iconSize.md} color={colors.warning[600]!} />
-          <Text variant="caption" tone="warning" style={styles.warningText}>
-            {t('report.falseReportWarning')}
-          </Text>
-        </View>
+        <Alert variant="warning" style={styles.warningBox}>
+          {t('report.falseReportWarning')}
+        </Alert>
       </ScrollView>
 
       <ButtonRow style={styles.buttons}>
@@ -198,16 +195,7 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing[1],
   },
   warningBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.warning[50]!,
-    padding: theme.spacing[3],
     marginTop: theme.spacing[4],
-    borderRadius: theme.radius.xl,
-    gap: theme.spacing[2],
-  },
-  warningText: {
-    flex: 1,
   },
   buttons: {
     marginTop: theme.spacing[3],

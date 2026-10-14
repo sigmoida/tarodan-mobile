@@ -4,20 +4,6 @@ import { theme } from '@/ui';
 const { colors, spacing, radiusRole } = theme;
 
 export const styles = StyleSheet.create({
-  premiumNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-    backgroundColor: colors.warning[50]!,
-    borderRadius: radiusRole.card,
-    borderWidth: 1,
-    borderColor: colors.warning[200]!,
-    padding: spacing[4],
-  },
-  premiumNoticeText: {
-    flex: 1,
-    gap: spacing[0.5],
-  },
   collectionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

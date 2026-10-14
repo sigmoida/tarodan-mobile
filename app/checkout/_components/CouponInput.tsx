@@ -1,14 +1,12 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button, Input, Text, theme } from '@/ui';
+import { Alert, Button, Input, theme } from '@/ui';
 import { formatPrice } from '@/utils/format';
 import type { CouponController } from '../_hooks/useCoupon';
 
-const { colors } = theme;
-
 /**
- * Kupon kodu kutusu — uygulanınca rozete dönüşür.
+ * Kupon kodu kutusu — uygulanınca başarı kutusuna (`Alert` success) dönüşür.
  *
  * İndirim tutarı BURADA gösterilir, ödeme özetinde DEĞİL: `OrderSummary`'nin üç
  * satırının toplamı sunucu garantisiyle `total`a eşit, araya bir "İndirim" satırı
@@ -29,21 +27,20 @@ export function CouponInput({
   if (coupon.applied) {
     const showDiscount = couponDiscount != null && couponDiscount > 0;
     return (
-      <View style={[styles.box, styles.appliedBox]} testID="coupon-applied">
-        <View style={styles.appliedText}>
-          <Text variant="bodySm" weight="bold" style={{ color: colors.success[600]! }}>
-            {showDiscount
-              ? t('checkout.couponAppliedWithDiscount', { code: coupon.applied.code, amount: formatPrice(couponDiscount) })
-              : t('checkout.couponAppliedLabel', { code: coupon.applied.code })}
-          </Text>
-          {coupon.applied.name ? (
-            <Text variant="caption" style={{ color: colors.text.muted }}>
-              {coupon.applied.name}
-            </Text>
-          ) : null}
-        </View>
-        <Button variant="ghost" size="sm" title={t('common.remove')} onPress={coupon.remove} testID="coupon-remove-button" />
-      </View>
+      <Alert
+        variant="success"
+        testID="coupon-applied"
+        title={
+          showDiscount
+            ? t('checkout.couponAppliedWithDiscount', { code: coupon.applied.code, amount: formatPrice(couponDiscount) })
+            : t('checkout.couponAppliedLabel', { code: coupon.applied.code })
+        }
+        action={
+          <Button variant="outline" size="sm" title={t('common.remove')} onPress={coupon.remove} testID="coupon-remove-button" />
+        }
+      >
+        {coupon.applied.name || undefined}
+      </Alert>
     );
   }
 
@@ -83,11 +80,4 @@ const styles = StyleSheet.create({
   },
   field: { flex: 1 },
   applyButton: { marginTop: theme.spacing[1] },
-  appliedBox: {
-    alignItems: 'center',
-    padding: theme.spacing[3],
-    backgroundColor: colors.success[50]!,
-    borderRadius: theme.radiusRole.card,
-  },
-  appliedText: { flex: 1 },
 });

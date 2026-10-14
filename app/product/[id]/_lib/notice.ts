@@ -1,9 +1,10 @@
 // Ürün durum/stok uyarısı (web `ProductStaticInfoView` NOTICES) — tek kaynak.
 import type { TFunction } from 'i18next';
+import type { AlertVariant } from '@/ui';
 import type { Product } from './types';
 
 export interface ProductNotice {
-  variant: 'warning' | 'danger' | 'default';
+  variant: AlertVariant;
   title: string;
   subtitle: string | null;
 }
@@ -29,12 +30,12 @@ export function getProductNotice(product: Product, t: TFunction): ProductNotice 
     },
     sold: { variant: 'danger', title: t('product.statusSold'), subtitle: t('product.statusSoldDesc') },
     pending: {
-      variant: 'default',
+      variant: 'info',
       title: t('product.statusPending'),
       subtitle: t('product.statusPendingDesc'),
     },
     inactive: {
-      variant: 'default',
+      variant: 'info',
       title: t('product.statusInactive'),
       subtitle: t('product.statusInactiveDesc'),
     },
@@ -49,5 +50,5 @@ export function getProductNotice(product: Product, t: TFunction): ProductNotice 
       subtitle: t('product.stockFinishedDesc'),
     },
   };
-  return notices[key] ?? { variant: 'default', title: t('common.removed'), subtitle: null };
+  return notices[key] ?? { variant: 'info', title: t('common.removed'), subtitle: null };
 }

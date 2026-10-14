@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 import { AppImage } from '@/components/AppImage';
-import { SectionCard, Text, theme, Icon, Alert } from '@/ui';
+import { SectionCard, Text, theme, Alert } from '@/ui';
 import { formatServerPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
 import type { useCheckout } from '../_hooks/useCheckout';
@@ -23,7 +23,6 @@ export function CheckoutItemsSection({ c }: { c: Ctrl }) {
         <Alert
           variant="warning"
           style={{ marginBottom: theme.spacing[4] }}
-          icon={<Icon name="information-circle" size={theme.iconSize.lg} color={theme.colors.warning[800]!} />}
         >
           {t('checkout.buyNowNotice')}
         </Alert>

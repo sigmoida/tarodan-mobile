@@ -1,5 +1,5 @@
 import { View, Pressable, Image } from "react-native";
-import { Badge, EmptyState, FAB, SectionCard, Text, useFabContentInset } from "@/ui";
+import { Alert, Badge, EmptyState, FAB, SectionCard, Text, useFabContentInset } from "@/ui";
 import { router } from "expo-router";
 import { resolveImageUrl } from "@/utils/imageUrl";
 import { AuthGatePage } from "@/components/common/AuthGatePage";
@@ -54,11 +54,10 @@ export default function CollectionsScreen() {
           iOS'ta kapanır (Guideline 3.1.1/3.1.3). */}
       {!f.canCreateCollections && (
         <UpgradeCta>
-          <Pressable style={styles.premiumNotice} onPress={() => router.push("/upgrade")}>
-            <View style={styles.premiumNoticeText}>
-              <Text variant="label">{t("membership.premiumFeatureTitle")}</Text>
-              <Text variant="caption">{t("collection.premiumFeatureDesc")}</Text>
-            </View>
+          <Pressable accessibilityRole="button" onPress={() => router.push("/upgrade")}>
+            <Alert variant="warning" icon="star" title={t("membership.premiumFeatureTitle")}>
+              {t("collection.premiumFeatureDesc")}
+            </Alert>
           </Pressable>
         </UpgradeCta>
       )}

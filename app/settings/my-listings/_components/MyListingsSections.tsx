@@ -201,11 +201,9 @@ export function MyListingCard({
           kutu, gerekçe yokmuş gibi değil "bir şey bozuk" gibi görünür.
         */}
         {listing.status === 'rejected' && listing.rejectionReason ? (
-          <View style={styles.rejectionBox}>
-            <Text variant="caption" tone="danger">
-              {t('product.rejectionReason')}: {listing.rejectionReason}
-            </Text>
-          </View>
+          <Alert variant="danger" title={t('product.rejectionReason')}>
+            {listing.rejectionReason}
+          </Alert>
         ) : null}
 
         {/* Pasif ilanın nedeni: süresi doldu (yenilenebilir) / iade kontrolü bekliyor */}
@@ -262,15 +260,17 @@ export function MyListingsExpiredBanner({ f }: { f: MyListingsController }) {
     <Alert
       variant="warning"
       title={t('profile.expiredListings.bannerTitle', { count: f.expiredCount })}
+      action={
+        <Button
+          testID="expired-banner-cta"
+          variant="outline"
+          size="sm"
+          title={t('profile.expiredListings.tab')}
+          onPress={() => f.setFilter('expired')}
+        />
+      }
     >
-      <Text variant="bodySm" tone="warning">{t('profile.expiredListings.bannerDescription')}</Text>
-      <Button
-        variant="outline"
-        size="sm"
-        title={t('profile.expiredListings.tab')}
-        onPress={() => f.setFilter('expired')}
-        style={styles.bannerButton}
-      />
+      {t('profile.expiredListings.bannerDescription')}
     </Alert>
   );
 }

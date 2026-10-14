@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, BackHandler } from 'react-native';
-import { Button, Spinner, Text, theme, appAlert } from '@/ui';
+import { Alert, Button, Spinner, Text, theme, appAlert } from '@/ui';
 import { router, useFocusEffect, useLocalSearchParams, Redirect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { paymentsApi } from '@/lib/api';
@@ -274,11 +274,9 @@ export default function PaymentScreen() {
         </View>
       ) : state.target ? (
         <View style={{ flex: 1 }}>
-          <View style={styles.safeNotice}>
-            <Text style={styles.safeNoticeText}>
-              {t('payment.sslNotice')}
-            </Text>
-          </View>
+          <Alert variant="success" icon="lock-closed" style={styles.safeNotice}>
+            {t('payment.sslNotice')}
+          </Alert>
           <CardPaymentForm
             target={state.target}
             amount={state.amount}
@@ -300,19 +298,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.surface.DEFAULT,
   },
-  safeNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[1.5],
-    paddingHorizontal: theme.spacing[4],
-    paddingVertical: theme.spacing[2],
-    backgroundColor: colors.success[50]!,
-  },
-  safeNoticeText: {
-    flex: 1,
-    fontSize: theme.typography.fontSize.xs,
-    color: colors.success[600]!,
-  },
+  safeNotice: { marginHorizontal: theme.spacing[4], marginTop: theme.spacing[2] },
   center: {
     flex: 1,
     alignItems: 'center',

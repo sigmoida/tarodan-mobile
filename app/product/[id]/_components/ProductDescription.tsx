@@ -1,10 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, SectionCard, Text, theme, Icon } from '@/ui';
+import { Alert, SectionCard, Text, theme } from '@/ui';
 import { getProductNotice } from '../_lib/notice';
 import type { Product } from '../_lib/types';
-
-const { colors, iconSize } = theme;
 
 /** "Açıklama" kartı + durum/stok uyarısı (web: açıklama SectionCard'ı, altında Alert). */
 export function ProductDescription({ product }: { product: Product }) {
@@ -23,19 +21,6 @@ export function ProductDescription({ product }: { product: Product }) {
           testID="product-notice"
           variant={notice.variant}
           title={notice.title}
-          icon={
-            <Icon
-              name={notice.variant === 'default' ? 'information-circle' : 'exclamation-triangle'}
-              size={iconSize.md}
-              color={
-                notice.variant === 'danger'
-                  ? colors.danger[600]
-                  : notice.variant === 'warning'
-                    ? colors.warning[600]
-                    : colors.text.muted
-              }
-            />
-          }
         >
           {notice.subtitle ?? undefined}
         </Alert>

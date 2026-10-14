@@ -175,8 +175,8 @@ describe("İlanlarım · C-3.2 ilan yaşam döngüsü", () => {
     serve([expired(), listing({ id: "A1", title: "Aktif", status: "active" })]);
     renderWithProviders(<MyListingsScreen />);
     expect(await screen.findByText("profile.expiredListings.bannerTitle")).toBeOnTheScreen();
-    expect(screen.getByText("profile.expiredListings.tab (1)")).toBeOnTheScreen();
-    fireEvent.press(screen.getByText("profile.expiredListings.tab"));
+    expect(screen.getByLabelText("profile.expiredListings.tab (1)")).toBeOnTheScreen();
+    fireEvent.press(screen.getByTestId("expired-banner-cta"));
     expect(await screen.findByText("profile.expiredListings.selectAll")).toBeOnTheScreen();
     expect(screen.queryByText("profile.expiredListings.bannerTitle")).toBeNull();
   });
@@ -195,7 +195,7 @@ describe("İlanlarım · C-3.2 ilan yaşam döngüsü", () => {
       },
     });
     renderWithProviders(<MyListingsScreen />);
-    fireEvent.press(await screen.findByText("profile.expiredListings.tab (2)"));
+    fireEvent.press(await screen.findByLabelText("profile.expiredListings.tab (2)"));
     fireEvent.press(await screen.findByText("profile.expiredListings.selectAll"));
     fireEvent.press(await screen.findByText("profile.expiredListings.renewSelected"));
 
