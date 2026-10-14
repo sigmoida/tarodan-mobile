@@ -32,8 +32,6 @@ const menuItems = (isBusiness: boolean) =>
   buildProfileMenuGroups(schemaT, {
     isBusiness,
     showMembership: false,
-    isPaidTier: false,
-    tierLabel: '',
     isBusinessTier: false,
   }).flatMap((g) => g.items);
 

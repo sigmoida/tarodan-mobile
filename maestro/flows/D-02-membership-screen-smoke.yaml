@@ -34,3 +34,21 @@ env:
     timeout: 30000
 - assertNotVisible: ".*Network Error.*"
 - assertNotVisible: ".*Bir hata oluştu.*"
+# "Planları Keşfet" → salt görüntüleme plan listesi (mevcut plan rozetli, alt not).
+- scrollUntilVisible:
+    element:
+      id: "membership-explore-plans"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "membership-explore-plans"
+- extendedWaitUntil:
+    visible: "Üyelik Planları"
+    timeout: 15000
+- assertVisible:
+    id: "membership-plan-current-badge"
+- scrollUntilVisible:
+    element:
+      id: "membership-plans-note"
+    direction: DOWN
+    timeout: 15000

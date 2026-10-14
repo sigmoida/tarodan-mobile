@@ -193,6 +193,55 @@ export function MembershipBillingToggle({ f }: SectionProps) {
 }
 
 // ---------------------------------------------------------------------------
+// "Planları Keşfet" — tüm kart dokunulur, /membership/plans (salt görüntüleme plan listesi).
+// Fiyat / satın alma yok; mağaza kapısı (CAN_BUY_DIGITAL) plan ekranında uygulanır.
+// ---------------------------------------------------------------------------
+export function MembershipExplorePlansCard({ f }: SectionProps) {
+  const { t } = f;
+  const title = t('membership.explorePlansTitle');
+  return (
+    <ListRowCard
+      testID="membership-explore-plans"
+      accessibilityLabel={title}
+      onPress={() => router.push('/membership/plans')}
+    >
+      <View style={styles.exploreText}>
+        <Text variant="body" weight="semibold" tone="heading" numberOfLines={1}>
+          {title}
+        </Text>
+        <Text variant="bodySm" tone="muted">
+          {t('membership.explorePlansDesc')}
+        </Text>
+      </View>
+      <Icon name="chevron-right" size={theme.iconSize.md} color={theme.colors.text.subtle} />
+    </ListRowCard>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Plan özellik listesi (onay işaretli satırlar) — ödeme kartı ve "Üyelik Planları" ekranı ortak.
+// ---------------------------------------------------------------------------
+export function TierFeatureList({ features }: { features: string[] }) {
+  return (
+    <View style={styles.tierFeatures}>
+      {features.map((feat, idx) => (
+        <View key={idx} style={styles.tierFeatureRow}>
+          <Icon
+            name="check"
+            size={theme.iconSize.sm}
+            color={theme.colors.text.heading}
+            style={styles.tierFeatureIcon}
+          />
+          <Text variant="bodySm" style={styles.tierFeatureText}>
+            {feat}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Tier cards — web telefon düzeni: dikey, tam genişlik, nötr (tek vurgu: mevcut plan kenarlığı)
 // ---------------------------------------------------------------------------
 function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
@@ -244,21 +293,7 @@ function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
 
         <Divider />
 
-        <View style={styles.tierFeatures}>
-          {features.map((feat, idx) => (
-            <View key={idx} style={styles.tierFeatureRow}>
-              <Icon
-                name="check"
-                size={theme.iconSize.sm}
-                color={theme.colors.text.heading}
-                style={styles.tierFeatureIcon}
-              />
-              <Text variant="bodySm" style={styles.tierFeatureText}>
-                {feat}
-              </Text>
-            </View>
-          ))}
-        </View>
+        <TierFeatureList features={features} />
 
         {/* Düğme etiketleri web ile aynı: mevcut -> "Mevcut Planınız", ücretsiz -> "Ücretsiz",
             diğerleri "Devam Et". Alt plana geçiş uyarısı (handleTierAction) aynen. */}

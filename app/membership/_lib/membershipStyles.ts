@@ -43,6 +43,13 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
 
+  // "Planları Keşfet" kartı
+  exploreText: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing[0.5],
+  },
+
   // Aylık / yıllık seçici
   toggle: {
     gap: spacing[2],

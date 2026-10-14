@@ -12,7 +12,6 @@ jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 import { ProfileMenuSections } from '../_components/ProfileSections';
 
 const base: any = {
-  tierLabel: 'Free',
   effectiveTier: 'free',
   handleLogout: jest.fn(),
 };
@@ -20,7 +19,7 @@ const base: any = {
 describe('iOS profil menüsü — ayrı "Aboneliğim" satırı yok', () => {
   it('ücretli üyede de yalnız tek üyelik satırı var', () => {
     const { queryByTestId, getByTestId } = render(
-      <ProfileMenuSections f={{ ...base, isPaidTier: true, tierLabel: 'Premium', effectiveTier: 'premium' }} />,
+      <ProfileMenuSections f={{ ...base, isPaidTier: true, effectiveTier: 'premium' }} />,
     );
     expect(queryByTestId('profile-subscription-link')).toBeNull();
     expect(getByTestId('profile-membership-link')).toBeTruthy();
@@ -36,7 +35,7 @@ describe('iOS profil menüsü — Üyelik Planı', () => {
 
   it('ücretli üye görür', () => {
     const { getByTestId } = render(
-      <ProfileMenuSections f={{ ...base, isPaidTier: true, tierLabel: 'Premium', effectiveTier: 'premium' }} />,
+      <ProfileMenuSections f={{ ...base, isPaidTier: true, effectiveTier: 'premium' }} />,
     );
     expect(getByTestId('profile-membership-link')).toBeTruthy();
   });

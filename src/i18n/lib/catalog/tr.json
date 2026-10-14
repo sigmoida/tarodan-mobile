@@ -2026,7 +2026,10 @@
     "badgeVerified": "Onaylı",
     "badgePremiumVerified": "Premium Onaylı",
     "paymentOverdue": "Ödeme Gecikmiş",
-    "renewalDateLabel": "Yenilenme Tarihi:"
+    "renewalDateLabel": "Yenilenme Tarihi:",
+    "explorePlansTitle": "Planları Keşfet",
+    "explorePlansDesc": "Tüm planları ve sundukları özellikleri görün.",
+    "plansInAppNote": "Plan değişikliği şu anda uygulama üzerinden yapılamıyor. Bunun ideal bir deneyim olmadığının farkındayız."
   },
   "collection": {
     "share": "Paylaş",
@@ -4188,7 +4191,10 @@
     "maintenanceDescription": "Şu an bakım çalışması yapılıyor. Kısa süre sonra tekrar hizmetinizdeyiz.",
     "pagePlatformFee": "Platform Hizmet Bedeli",
     "splashTagline": "İkinci elin güvenli adresi",
-    "menuInfoLegal": "Bilgi ve Yasal"
+    "menuInfoLegal": "Bilgi ve Yasal",
+    "trustScoreVisibilityTitle": "Güven Skoru",
+    "trustScoreVisibilityLabel": "Güven skorumu herkese göster",
+    "trustScoreVisibilityHint": "Kapalıyken skorunuz profilinizde başkalarına görünmez."
   },
   "refund": {
     "cancel": {

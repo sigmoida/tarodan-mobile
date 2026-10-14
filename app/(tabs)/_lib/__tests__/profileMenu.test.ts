@@ -14,8 +14,6 @@ import {
 const base: ProfileMenuContext = {
   isBusiness: false,
   showMembership: false,
-  isPaidTier: false,
-  tierLabel: 'Premium',
   isBusinessTier: false,
 };
 const items = (ctx: Partial<ProfileMenuContext> = {}) =>
@@ -70,8 +68,9 @@ describe('buildProfileMenuGroups', () => {
 
   it('tek üyelik satırı yalnız satın alma açıkken ya da ücretli üyede gelir (Apple 2.1(b))', () => {
     expect(items().some((i) => i.key === 'membership')).toBe(false);
-    const paid = items({ showMembership: true, isPaidTier: true });
-    expect(paid.find((i) => i.key === 'membership')?.rightBadge).toBe('Premium');
+    const paid = items({ showMembership: true });
+    // Satırda katman rozeti yok (profil rozetleri kaldırıldı).
+    expect(paid.find((i) => i.key === 'membership')?.rightBadge).toBeUndefined();
     expect(paid.find((i) => i.key === 'membership')?.to).toBe('/membership');
     // "Aboneliğim" Üyelik Planı ile birleşti — ayrı satır/rota yok.
     expect(paid.some((i) => i.key === 'subscription' || i.to === '/settings/subscription')).toBe(false);
@@ -105,8 +104,6 @@ describe('buildProfileMenuGroups', () => {
       showMembership: true,
       isBusiness: true,
       isBusinessTier: true,
-      isPaidTier: true,
-      tierLabel: 'Pro',
     });
     for (const g of groups) {
       for (const i of g.items) {
