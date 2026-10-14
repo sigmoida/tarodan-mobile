@@ -21,10 +21,11 @@ const TIER_GAP = spacing[2];
  */
 const TIER_ROW_CHROME = spacing[4] * 2 + spacing[3] * 2 + 2;
 /** Kart içi sabit pay: çerçeve + kart yatay dolgusu + ücret şeridinin yatay dolgusu. */
-const TIER_CARD_CHROME = 2 + spacing[2] * 2 + spacing[1] * 2;
+const TIER_CARD_CHROME = 2 + spacing[1.5] * 2 + spacing[1] * 2;
 /**
  * Bir kartın içeriği ("Küçük Paket" etiketi, "160,00 TL" ücreti) tek satıra sığsın diye
- * gereken asgari genişlik (font ölçeği 1'de). Ücret ASLA bölünmez.
+ * gereken asgari genişlik (font ölçeği 1'de). Ücret ASLA bölünmez. Sonuç: font ölçeği 1'de
+ * ~380pt ve üstü (390/393/430) üç sütun; 375/360 ve büyük yazı satır kart.
  */
 const TIER_MIN_CONTENT = 80;
 
@@ -222,7 +223,7 @@ const styles = StyleSheet.create({
     borderRadius: radiusRole.card,
     backgroundColor: colors.surface.elevated,
     paddingVertical: spacing[3],
-    paddingHorizontal: spacing[2],
+    paddingHorizontal: spacing[1.5],
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing[1],

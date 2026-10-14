@@ -54,10 +54,19 @@ describe('ilan indirimi — komisyon önizlemesi tutarı (web saleIsActive parit
     });
   });
 
-  it('varsayılan tarihler: bugün → +7 gün (web createEmptySaleData)', () => {
-    expect(defaultSaleDates(new Date(2026, 9, 14, 23, 30))).toEqual({
+  it('varsayılan tarihler: bugün → +7 gün, gün UTC takviminden (web createEmptySaleData)', () => {
+    expect(defaultSaleDates(new Date('2026-10-14T23:30:00Z'))).toEqual({
       saleStartDate: '2026-10-14',
       saleEndDate: '2026-10-21',
     });
+    // TR 01:30 (UTC önceki gün 22:30): web gibi UTC günü.
+    expect(defaultSaleDates(new Date('2026-10-15T01:30:00+03:00')).saleStartDate).toBe('2026-10-14');
+  });
+
+  it('TR 00:00–03:00 arasında varsayılan başlangıç "ileri tarihli" sayılmaz (ipucu yok)', () => {
+    const now = new Date('2026-10-15T01:30:00+03:00');
+    const fields = { price: '500', salePrice: '400', ...defaultSaleDates(now) };
+    expect(saleStartsLater(fields, now.getTime())).toBeNull();
+    expect(isSaleActive(fields, now.getTime())).toBe(true);
   });
 });

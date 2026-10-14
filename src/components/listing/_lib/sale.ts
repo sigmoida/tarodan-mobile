@@ -26,18 +26,17 @@ export interface SalePayload {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const pad = (n: number) => String(n).padStart(2, '0');
-
-/** Yerel takvim günü → `YYYY-MM-DD` (DateField biçimi). */
-export function toLocalDay(date: Date): string {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
-/** Web `createEmptySaleData` varsayılanı: bugün başlar, 7 gün sürer. */
+/**
+ * Web `createEmptySaleData` varsayılanı: bugün başlar, 7 gün sürer. Gün web gibi UTC
+ * takviminden (`toISOString().slice(0, 10)`): `isSaleActive` / payload da günü UTC gece
+ * yarısı olarak okuduğu için TR 00:00–03:00 arasında "bugün" yerel güne göre ileri
+ * tarihli sayılıp yanıltıcı "… tarihinde başlar" ipucu çıkmaz.
+ */
 export function defaultSaleDates(now: Date = new Date()): { saleStartDate: string; saleEndDate: string } {
+  const utcDay = (d: Date) => d.toISOString().slice(0, 10);
   return {
-    saleStartDate: toLocalDay(now),
-    saleEndDate: toLocalDay(new Date(now.getTime() + 7 * DAY_MS)),
+    saleStartDate: utcDay(now),
+    saleEndDate: utcDay(new Date(now.getTime() + 7 * DAY_MS)),
   };
 }
 
