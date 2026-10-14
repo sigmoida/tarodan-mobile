@@ -9,6 +9,7 @@ import { errorFingerprint } from "./requestId";
 import { authFailureKind } from "./authFailureKind";
 import { acceptLanguageHeader } from "./acceptLanguage";
 import { neutralizeUpsellError } from "./iosNeutralErrors";
+import { isInvalidTwoFactorCode, isTwoFactorCodeRequest } from "./twoFactorCodeError";
 
 // API URL çözümleme sırası:
 // 1) EXPO_PUBLIC_API_URL (production / preview / staging build'leri için zorunlu)
@@ -326,6 +327,31 @@ api.interceptors.response.use(
             ? { reason: errData.bannedReason }
             : undefined,
         });
+      }
+      return Promise.reject(error);
+    }
+
+    // 2FA kod uçları: 401 "yanlış kod" olabilir (eski sunucu) — oturum hatası DEĞİL.
+    // Yanlış kod doğrudan çağırana; bayat access token ise bir kez yenilenip
+    // yeniden denenir, ama bu uçlar hiçbir koşulda sessiz çıkış yaptırmaz
+    // (gerekçe ve ölçüm `./twoFactorCodeError`).
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      isTwoFactorCodeRequest(originalRequest)
+    ) {
+      if (originalRequest._retry || isInvalidTwoFactorCode(error)) {
+        return Promise.reject(error);
+      }
+      originalRequest._retry = true;
+      try {
+        const newAccess = await refreshAccessToken();
+        if (newAccess) {
+          originalRequest.headers.Authorization = `Bearer ${newAccess}`;
+          return api(originalRequest);
+        }
+      } catch {
+        /* refresh düştü — hata alanın altında gösterilir, çıkış yok */
       }
       return Promise.reject(error);
     }

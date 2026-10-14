@@ -14,18 +14,6 @@ export interface ShownBackupCodes {
   source: 'setup' | 'regenerate';
 }
 
-/** 2FA'dan önce gerekenler / neden önemli — metin değil katalog ANAHTARLARI (web `_lib/types.ts`). */
-export const REQUIREMENT_KEYS = [
-  'profile.twoFactor.requirementApp',
-  'profile.twoFactor.requirementPhone',
-] as const;
-
-export const WHY_2FA_MATTERS_KEYS = [
-  'profile.twoFactor.whyStolenPassword',
-  'profile.twoFactor.whyPhishing',
-  'profile.twoFactor.whyExtraLayer',
-] as const;
-
 /** Bazı uçlar gövdeyi `{ data: … }` zarfında döndürüyor; ikisini de kabul et. */
 export function unwrap(body: unknown): Record<string, unknown> {
   const b = body as { data?: unknown } | null | undefined;

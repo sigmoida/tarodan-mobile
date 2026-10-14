@@ -30,9 +30,6 @@ export const styles = StyleSheet.create({
   stack: {
     gap: spacing[3],
   },
-  list: {
-    gap: spacing[1],
-  },
   stepHead: {
     flexDirection: 'row',
     alignItems: 'center',

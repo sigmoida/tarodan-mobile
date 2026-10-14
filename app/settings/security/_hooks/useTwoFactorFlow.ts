@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Clipboard } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { goBackOrHome } from '@/components/common/goBackOrHome';
+import { apiErrorMessage } from '@/lib/api/errorText';
 import { sixDigitCodeSchema } from '../_lib/schema';
 import type { ShownBackupCodes, TwoFactorSetup } from '../_lib/types';
 import { useTwoFactorStatus } from './useTwoFactorStatus';
@@ -12,15 +13,21 @@ import { useDoVerifyTwoFactor } from './useDoVerifyTwoFactor';
 import { useBackupCodesLeaveGuard } from './useBackupCodesLeaveGuard';
 
 /** Ekranın o anki görünümü — gövde ve alt çubuk buna göre seçilir. */
-export type TwoFactorView = 'intro' | 'setup' | 'codes' | 'enabled';
+export type TwoFactorView = 'setup' | 'codes' | 'enabled';
 
 export type TwoFactorDialog = 'disable' | 'regenerate' | null;
 
 /**
- * 2FA ekranının controller'ı (web `use2FA` + sayfa durumu): kurulum verisi (QR + gizli anahtar,
- * kullanıcı Authenticator'a geçip döndüğünde de ekranda kalır), doğrulama kodu formu, gösterilen
- * yedek kodlar ve iki diyalog (kapat / yedek kod yenile) için yalnız aç-kapa durumu — diyaloglar
- * kendi form + mutation'larını taşır.
+ * 2FA ekranının controller'ı (web `use2FA` + sayfa durumu).
+ *
+ * 2FA kapalıyken ara "Kurulumu başlat" adımı YOK: durum ilk kez "kapalı" geldiğinde `enable`
+ * ekran başına BİR kez kendiliğinden çağrılır, QR + gizli anahtar + kod alanı doğrudan çıkar.
+ * `enable` her çağrıda sunucudaki gizli anahtarı/yedek kodları yeniden üretebildiği için çift
+ * çağrı (çift dokunma, StrictMode efekti, durum yeniden çekimi) kullanıcının Authenticator'a
+ * eklediği anahtarı geçersiz kılar — `startLock` ref'i aynı anda tek istek, `autoStarted` ref'i
+ * ekran başına tek otomatik başlatma garanti eder. Hata → `ErrorState` + yeniden dene.
+ *
+ * Doğrulama hatası (yanlış kod) toast değil, kod alanının altında (`setError`) gösterilir.
  */
 export function useTwoFactorFlow() {
   const { t } = useTranslation();
@@ -34,18 +41,45 @@ export function useTwoFactorFlow() {
     useMemo(() => sixDigitCodeSchema(t), [t]),
     { defaultValues: { code: '' } },
   );
-  const code = codeForm.watch('code') ?? '';
 
   const view: TwoFactorView = shownCodes
     ? 'codes'
-    : setup
+    : setup || !status.isEnabled
       ? 'setup'
-      : status.isEnabled
-        ? 'enabled'
-        : 'intro';
+      : 'enabled';
 
   // Tek seferlik kodlar ekrandayken geri/kaydırma çıkışı onaya bağlı.
   const leaveGuard = useBackupCodesLeaveGuard(view === 'codes');
+
+  // Aynı anda tek `enable` (ref: state güncellemesi gelmeden ikinci dokunuş da engellenir).
+  const startLock = useRef(false);
+  const startMutate = start.mutate;
+  const resetForm = codeForm.reset;
+  const startSetup = useCallback(() => {
+    if (startLock.current) return;
+    startLock.current = true;
+    startMutate(undefined, {
+      onSuccess: (data) => {
+        resetForm({ code: '' });
+        setSetup(data);
+      },
+      onSettled: () => {
+        startLock.current = false;
+      },
+    });
+  }, [startMutate, resetForm]);
+
+  // İlk çözülen durum "kapalı" ise kurulum kendiliğinden başlar — ekran başına bir kez. 2FA
+  // ekranda kapatılırsa (durum sonradan "kapalı" olur) yeniden başlatılmaz; ekran zaten kapanır.
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (autoStarted.current || status.isLoading) return;
+    autoStarted.current = true;
+    if (!status.isEnabled) startSetup();
+  }, [status.isLoading, status.isEnabled, startSetup]);
+
+  const waitingForSetup = view === 'setup' && !setup;
+  const startFailed = waitingForSetup && start.isError;
 
   const copy = (text: string) => {
     Clipboard.setString(text);
@@ -55,31 +89,33 @@ export function useTwoFactorFlow() {
   return {
     view,
     isEnabled: status.isEnabled,
-    isLoading: status.isLoading && !setup && !shownCodes,
+    isLoading: (status.isLoading && !setup && !shownCodes) || (waitingForSetup && !startFailed),
     setup,
     shownCodes,
     codeForm,
     // Kurulum
-    isStarting: start.isPending,
-    startSetup: () =>
-      start.mutate(undefined, {
-        onSuccess: (data) => {
-          codeForm.reset({ code: '' });
-          setSetup(data);
-        },
-      }),
-    cancelSetup: () => setSetup(null),
+    /** `enable` başarısız: ekran ErrorState gösterir (mesaj sunucudan, yoksa katalog). */
+    startError: startFailed ? apiErrorMessage(start.error, t('profile.twoFactor.setupFailed')) : null,
+    retrySetup: startSetup,
     isVerifying: verify.isPending,
-    canVerify: code.length === 6 && !verify.isPending,
     submitVerify: codeForm.handleSubmit(({ code: value }) => {
+      if (verify.isPending) return;
       const fallback = setup?.backupCodes ?? [];
       verify.mutate(value, {
         onSuccess: (codes) => {
           setSetup(null);
+          // Doğrulama yanıtı yedek kod taşımaz → SON `enable` yanıtındakiler (sunucu her enable'da
+          // yeniden üretir; ekranda tutulan kurulum her zaman son yanıttır).
           const list = codes.length ? codes : fallback;
           // Gösterilecek kod yoksa (sunucu döndürmedi) bekletecek bir şey yok: geri dön.
           if (list.length) setShownCodes({ codes: list, source: 'setup' });
           else goBackOrHome();
+        },
+        onError: (e) => {
+          codeForm.setError('code', {
+            type: 'server',
+            message: apiErrorMessage(e, t('profile.twoFactor.verifyFailed')),
+          });
         },
       });
     }),
@@ -97,6 +133,8 @@ export function useTwoFactorFlow() {
         leaveGuard.leave(goBackOrHome);
       }
     },
+    /** 2FA kapatıldı: ekranda gösterilecek bir şey kalmadı → güvenlik ekranına dön. */
+    onDisabled: () => goBackOrHome(),
     // Diyaloglar (yalnız aç/kapa)
     dialog,
     openDialog: (d: Exclude<TwoFactorDialog, null>) => setDialog(d),

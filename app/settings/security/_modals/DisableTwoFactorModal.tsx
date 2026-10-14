@@ -3,8 +3,19 @@ import { useTranslation } from 'react-i18next';
 import { useDoDisableTwoFactor } from '../_hooks/useDoDisableTwoFactor';
 import { TwoFactorCodeModal } from './TwoFactorCodeModal';
 
-/** 2FA'yı kapat — yıkıcı, tek alan (TOTP). Mutation burada; başarı/hata toast'ı hook'ta. */
-export function DisableTwoFactorModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+/**
+ * 2FA'yı kapat — yıkıcı, tek alan (TOTP). Mutation burada; başarı/hata toast'ı hook'ta.
+ * `onDisabled`: başarıdan sonra (modal zaten kapalı) — ekran güvenlik ana ekranına döner.
+ */
+export function DisableTwoFactorModal({
+  isOpen,
+  onClose,
+  onDisabled,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onDisabled?: () => void;
+}) {
   const { t } = useTranslation();
   const disable = useDoDisableTwoFactor();
   return (
@@ -19,7 +30,7 @@ export function DisableTwoFactorModal({ isOpen, onClose }: { isOpen: boolean; on
       }}
       confirmLabel={t('profile.twoFactor.disableAction')}
       destructive
-      onSubmit={(code) => disable.mutate(code)}
+      onSubmit={(code) => disable.mutate(code, { onSuccess: () => onDisabled?.() })}
       testID="two-factor-disable-modal"
     />
   );

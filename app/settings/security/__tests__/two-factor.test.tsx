@@ -1,5 +1,6 @@
 /**
- * İki adımlı doğrulama EKRANI: kurulum (QR + anahtar + kod) → yedek kodlar aynı ekranda; açıkken
+ * İki adımlı doğrulama EKRANI: 2FA kapalıyken açılışta doğrudan kurulum (enable bir kez; QR + anahtar
+ * + kod; yanlış kod alanın altında) → yedek kodlar aynı ekranda; açıkken
  * kapat / yedek kod yenile DİYALOGLARI kendi formunu taşır, geçerli kodda ÖNCE kapanır SONRA
  * mutation (§12); yenilenen kodlar diyalogda değil ekranın kartında gösterilir.
  */
@@ -78,20 +79,31 @@ beforeEach(() => {
   canGoBackMock.mockReturnValue(true);
 });
 
-describe('kurulum', () => {
-  it('başlat → QR + gizli anahtar; kod → 2FA açılır, yedek kodlar ekranda; "kaydettim" → geri', async () => {
+describe('kurulum (2FA kapalı → doğrudan QR ekranı)', () => {
+  it('açılışta enable BİR kez; QR + anahtar + kod; tanıtım/gereksinim/neden kartları ve durum kartı yok', async () => {
     renderWithProviders(<TwoFactorScreen />);
-    fireEvent.press(await screen.findByTestId('two-factor-start'));
 
     expect(await screen.findByTestId('two-factor-secret')).toBeTruthy();
     expect(screen.getByText('JBSWY3DPEHPK3PXP')).toBeTruthy();
     expect(screen.getByTestId('two-factor-qr')).toBeTruthy();
+    expect(screen.getByTestId('two-factor-code-input')).toBeTruthy();
+    expect(screen.queryByTestId('two-factor-start')).toBeNull();
+    expect(screen.queryByTestId('two-factor-status-badge')).toBeNull();
+    expect(screen.queryByText(i18n.t('profile.twoFactor.requirementsTitle'))).toBeNull();
+    expect(screen.queryByText(i18n.t('profile.twoFactor.whyTitle'))).toBeNull();
+    expect(screen.queryByText(i18n.t('profile.twoFactor.intro'))).toBeNull();
+    expect(mockApi.setupTwoFactor).toHaveBeenCalledTimes(1);
+  });
+
+  it('kod → 2FA açılır, SON enable yanıtının yedek kodları ekranda; "kaydettim" → geri; enable tekrar çağrılmaz', async () => {
+    renderWithProviders(<TwoFactorScreen />);
+    await screen.findByTestId('two-factor-secret');
 
     fireEvent.changeText(screen.getByTestId('two-factor-code-input'), '12-34 56');
     expect(screen.getByTestId('two-factor-code-input').props.value).toBe('123456');
     fireEvent.press(screen.getByTestId('two-factor-verify'));
 
-    // Doğrulama yanıtında kod yok → kurulum yanıtındakiler gösterilir (web ile aynı).
+    // Doğrulama yanıtı ({ success: true }) yedek kod taşımaz → kurulum yanıtındakiler.
     expect(await screen.findByTestId('backup-codes-card')).toBeTruthy();
     expect(mockApi.verifyTwoFactor).toHaveBeenCalledWith('123456');
     expect(screen.getByText('A1')).toBeTruthy();
@@ -100,31 +112,86 @@ describe('kurulum', () => {
 
     fireEvent.press(screen.getByTestId('backup-codes-ack'));
     expect(backMock).toHaveBeenCalled();
+    // Durum yeniden çekildi ama kurulum kendiliğinden yeniden BAŞLAMADI (anahtar yeniden üretilmez).
+    await waitFor(() => expect(mockApi.getTwoFactorStatus.mock.calls.length).toBeGreaterThanOrEqual(2));
+    expect(mockApi.setupTwoFactor).toHaveBeenCalledTimes(1);
   });
 
-  it('kurulum başlatılamazsa toast.error, tanıtımda kalınır', async () => {
-    mockApi.setupTwoFactor.mockRejectedValueOnce({ response: { data: { message: 'Zaten açık' } } });
+  it('kod alanı TOTP içindir: SMS/oneTimeCode önerisi yok, rakam klavyesi, 6 hane', async () => {
     renderWithProviders(<TwoFactorScreen />);
-    fireEvent.press(await screen.findByTestId('two-factor-start'));
-    await waitFor(() => expect(errorMock).toHaveBeenCalledWith('Zaten açık'));
-    expect(screen.getByTestId('two-factor-start')).toBeTruthy();
+    const input = await screen.findByTestId('two-factor-code-input');
+    expect(input.props.textContentType).not.toBe('oneTimeCode');
+    expect(input.props.autoComplete).not.toBe('one-time-code');
+    expect(input.props.keyboardType).toBe('number-pad');
+    expect(input.props.maxLength).toBe(6);
   });
 
-  it('yanlış kod: toast.error, kurulum ekranda kalır', async () => {
-    mockApi.verifyTwoFactor.mockRejectedValueOnce({ response: { data: { message: 'Geçersiz kod' } } });
+  it('eksik kod: düğme ölü değil — basınca alanın altında uyarı, istek yok', async () => {
     renderWithProviders(<TwoFactorScreen />);
-    fireEvent.press(await screen.findByTestId('two-factor-start'));
+    fireEvent.changeText(await screen.findByTestId('two-factor-code-input'), '123');
+    fireEvent.press(screen.getByTestId('two-factor-verify'));
+    expect(await screen.findByText(i18n.t('profile.twoFactor.enterSixDigits'))).toBeTruthy();
+    expect(mockApi.verifyTwoFactor).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['eski 401', { response: { status: 401, data: { message: 'Geçersiz doğrulama kodu', i18nKey: 'server.security.invalidCode' } } }],
+    ['yeni 400', { response: { status: 400, data: { message: 'Geçersiz doğrulama kodu', errorCode: 'INVALID_2FA_CODE' } } }],
+  ])('yanlış kod (%s): hata kod alanının altında, toast yok, kurulum ekranda kalır', async (_label, err) => {
+    mockApi.verifyTwoFactor.mockRejectedValueOnce(err);
+    renderWithProviders(<TwoFactorScreen />);
     fireEvent.changeText(await screen.findByTestId('two-factor-code-input'), '000000');
     fireEvent.press(screen.getByTestId('two-factor-verify'));
-    await waitFor(() => expect(errorMock).toHaveBeenCalledWith('Geçersiz kod'));
+
+    expect(await screen.findByText('Geçersiz doğrulama kodu')).toBeTruthy();
+    expect(errorMock).not.toHaveBeenCalled();
     expect(screen.getByTestId('two-factor-secret')).toBeTruthy();
+    expect(mockApi.setupTwoFactor).toHaveBeenCalledTimes(1);
+
+    // Yeni kodla tekrar: hata kalkar, doğrulama geçer.
+    fireEvent.changeText(screen.getByTestId('two-factor-code-input'), '123456');
+    fireEvent.press(screen.getByTestId('two-factor-verify'));
+    expect(await screen.findByTestId('backup-codes-card')).toBeTruthy();
+  });
+
+  it('kurulum başlatılamazsa ErrorState (sunucu mesajı); tekrar dene → QR; toast yok', async () => {
+    mockApi.setupTwoFactor.mockRejectedValueOnce({ response: { data: { message: 'Şifre gerekli' } } });
+    renderWithProviders(<TwoFactorScreen />);
+
+    expect(await screen.findByTestId('error-state')).toBeTruthy();
+    expect(screen.getByText('Şifre gerekli')).toBeTruthy();
+    expect(errorMock).not.toHaveBeenCalled();
+
+    fireEvent.press(screen.getByText(i18n.t('mobile.errorRetry')));
+    expect(await screen.findByTestId('two-factor-secret')).toBeTruthy();
+    expect(mockApi.setupTwoFactor).toHaveBeenCalledTimes(2);
+  });
+
+  it('çift dokunma kilidi: istek uçuştayken ikinci "tekrar dene" yeni enable başlatmaz', async () => {
+    mockApi.setupTwoFactor.mockRejectedValueOnce({ response: { data: { message: 'Geçici hata' } } });
+    renderWithProviders(<TwoFactorScreen />);
+    const retry = await screen.findByText(i18n.t('mobile.errorRetry'));
+
+    type SetupReply = Awaited<ReturnType<typeof mockApi.setupTwoFactor>>;
+    let resolveSetup: (v: SetupReply) => void = () => undefined;
+    mockApi.setupTwoFactor.mockImplementationOnce(
+      () => new Promise((resolve) => (resolveSetup = resolve)),
+    );
+    fireEvent.press(retry);
+    fireEvent.press(retry);
+    await waitFor(() => expect(mockApi.setupTwoFactor).toHaveBeenCalledTimes(2));
+
+    await act(async () => {
+      resolveSetup({ data: { secret: 'SECOND', qrCodeImage: 'data:image/png;base64,BBB', backupCodes: ['Z9'] } });
+    });
+    expect(await screen.findByText('SECOND')).toBeTruthy();
+    expect(mockApi.setupTwoFactor).toHaveBeenCalledTimes(2);
   });
 });
 
 describe('yedek kodlar görünümünden çıkış', () => {
   async function reachCodes() {
     renderWithProviders(<TwoFactorScreen />);
-    fireEvent.press(await screen.findByTestId('two-factor-start'));
     fireEvent.changeText(await screen.findByTestId('two-factor-code-input'), '123456');
     fireEvent.press(screen.getByTestId('two-factor-verify'));
     await screen.findByTestId('backup-codes-card');
@@ -163,9 +230,9 @@ describe('yedek kodlar görünümünden çıkış', () => {
     expect(appAlert).not.toHaveBeenCalled();
   });
 
-  it('kurulum/tanıtım görünümünde koruma kapalı', async () => {
+  it('kurulum görünümünde koruma kapalı', async () => {
     renderWithProviders(<TwoFactorScreen />);
-    await screen.findByTestId('two-factor-start');
+    await screen.findByTestId('two-factor-secret');
     expect(mockPrevent.active).toBe(false);
   });
 });
@@ -190,6 +257,18 @@ describe('2FA açıkken', () => {
     await waitFor(() => expect(mockApi.disableTwoFactor).toHaveBeenCalledWith('654321'));
     expect(screen.queryByTestId('two-factor-disable-modal-input')).toBeNull();
     await waitFor(() => expect(successMock).toHaveBeenCalledWith(i18n.t('security.twoFactorDisabled')));
+    // Kapatıldı → güvenlik ekranına dönülür; kurulum kendiliğinden BAŞLAMAZ.
+    await waitFor(() => expect(backMock).toHaveBeenCalled());
+    expect(mockApi.setupTwoFactor).not.toHaveBeenCalled();
+  });
+
+  it('açıkken kurulum kendiliğinden başlamaz; kod diyaloğunda SMS önerisi yok', async () => {
+    renderWithProviders(<TwoFactorScreen />);
+    fireEvent.press(await screen.findByTestId('two-factor-disable'));
+    const input = await screen.findByTestId('two-factor-disable-modal-input');
+    expect(input.props.textContentType).not.toBe('oneTimeCode');
+    expect(input.props.autoComplete).not.toBe('one-time-code');
+    expect(mockApi.setupTwoFactor).not.toHaveBeenCalled();
   });
 
   it('yedek kod yenile: diyalog kapanır, yeni kodlar ekran kartında; "kaydettim" ekranda bırakır', async () => {
