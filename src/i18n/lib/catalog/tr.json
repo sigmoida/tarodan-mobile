@@ -4040,6 +4040,7 @@
   },
   "mobile": {
     "tabBarSell": "İlan ver",
+    "tabBarExpandHint": "Alt menüyü gösterir",
     "addressTitlePlaceholder": "Örn. Ev, İş",
     "bioPlaceholder": "Kendinizden bahsedin",
     "cancel": "İptal",

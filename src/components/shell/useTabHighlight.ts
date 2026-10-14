@@ -66,5 +66,6 @@ export function useTabHighlight(activeKey: string | undefined) {
     transform: [{ translateX: x.value }],
   }));
 
-  return { style, onItemLayout };
+  // `layouts`: ölçülen sekme konumları (daralmış sekme öğesi açılırken bu konumdan kayar).
+  return { style, onItemLayout, layouts };
 }

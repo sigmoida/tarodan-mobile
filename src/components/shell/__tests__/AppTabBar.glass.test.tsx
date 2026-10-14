@@ -67,6 +67,16 @@ describe('AppTabBar — Liquid Glass', () => {
     expect(interactive[0]!.props.tintColor).toBe(theme.colors.primary[600]);
   });
 
+  it('Mesajlar: daralmış sekme dairesi de cam (tint yok, interaktif); hap yüzeyi interaktif değil', () => {
+    setup(2);
+    const glasses = screen.getAllByTestId('glass-view', { includeHiddenElements: true });
+    expect(glasses).toHaveLength(3);
+    const circle = glasses.find((g) => g.props.isInteractive === true && g.props.tintColor === undefined);
+    expect(circle).toBeTruthy();
+    // Cam atasına opacity verilmez (native cam efekti kaybolur): daire kapsayıcısında opacity anahtarı yok.
+    expect(flat('tab-collapsed-wrap')).not.toHaveProperty('opacity');
+  });
+
   it('daralınca hap dokunmaya kapanır, "+" açık kalır; geri açılınca döner', async () => {
     setup();
     const pill = () => screen.getByTestId('app-tab-pill', { includeHiddenElements: true });

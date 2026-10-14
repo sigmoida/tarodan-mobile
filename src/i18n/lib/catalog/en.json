@@ -4040,6 +4040,7 @@
   },
   "mobile": {
     "tabBarSell": "Create Listing",
+    "tabBarExpandHint": "Shows the tab bar",
     "addressTitlePlaceholder": "e.g. Home, Work",
     "bioPlaceholder": "Tell us about yourself",
     "cancel": "Cancel",

@@ -11,7 +11,7 @@ export const TAB_BAR_TOP_ZONE = 16;
 export const TAB_BAR_MIN_SCROLL_RANGE = TAB_BAR_SCROLL_THRESHOLD * 2;
 
 export interface TabBarScrollState {
-  /** Menü daraltılmış mı (hap gizli, "+" solda)? */
+  /** Menü daraltılmış mı (hap gizli; geride "+" ya da aktif sekmenin dairesi)? */
   collapsed: boolean;
   /** Mevcut yöndeki kaydırmanın başladığı ofset (son yön değişiminin ekstremumu). */
   anchor: number;
@@ -52,6 +52,18 @@ export function reduceTabBarScroll(
 }
 
 /**
+ * Menü bu listenin dışından değiştirildiyse (daralmış sekme dairesine dokunup açma, sekme değişimi,
+ * ölçümle açılma) seriyi o anki konumdan yeniden başlatır: aksi halde `anchor` eski aşağı serinin
+ * başında kalır ve açılan menü ilk 1pt'lik harekette yeniden daralır.
+ * `lastSeen`: bu listenin son gördüğü/yazdığı `collapsed` değeri. SAF worklet.
+ */
+export function rebaseOnExternalChange(prev: TabBarScrollState, lastSeen: boolean): TabBarScrollState {
+  'worklet';
+  if (prev.collapsed === lastSeen) return prev;
+  return { collapsed: prev.collapsed, anchor: prev.lastY, lastY: prev.lastY };
+}
+
+/**
  * Ölçüm değişince (içerik boyu / görünür yükseklik) menü açılmalı mı? Kaydırma olayı gelmeyen
  * içerik değişimlerinde (öğe silinip liste ekrana sığınca, yeni ScrollView 0'dan başlayınca,
  * Android'de eksik olay) daraltılmış menünün kalıcı gizli kalmasını önler.
@@ -79,6 +91,62 @@ export function pillHideStyle(
   const scale = 1 - progress * (1 - hideScale);
   if (glass) return { transform: [{ translateY: progress * glassHideY }, { scale }] };
   return { opacity: 1 - progress, transform: [{ translateY: progress * fallbackTranslateY }, { scale }] };
+}
+
+/**
+ * "+" (İlan Ver) düğmesinin stili. `keepSell` (Ana Sayfa ve hap dışı rotalar): daralınca sağdaki
+ * yerinden sol kenara kayar (`sellTravel`), görünür kalır. Aksi halde (Mesajlar / Bildirimler / Profil)
+ * hapla birlikte gizlenir (`pillHideStyle`; camda opacity yok, aşağı kayar) — yerine o sekmenin dairesi
+ * kalır. Mod değişince eski anahtar native görünümde asılı kalmasın diye anahtar kümesi hep aynı. SAF worklet.
+ */
+export function sellButtonStyle(
+  keepSell: boolean,
+  glass: boolean,
+  progress: number,
+  sellTravel: number,
+  fallbackTranslateY: number,
+  glassHideY: number,
+  hideScale: number,
+) {
+  'worklet';
+  if (keepSell) {
+    return { opacity: 1, transform: [{ translateX: -progress * sellTravel }, { translateY: 0 }, { scale: 1 }] };
+  }
+  const hide = pillHideStyle(glass, progress, fallbackTranslateY, glassHideY, hideScale);
+  return { opacity: 'opacity' in hide ? hide.opacity : 1, transform: [{ translateX: 0 }, ...hide.transform] };
+}
+
+/**
+ * Daralmış SEKME öğesinin (Mesajlar / Bildirimler / Profil'de hapın yerine kalan tek daire) stili —
+ * hapın tersi: `progress` 1'de görünür, 0'da gizli (aynı opacity / cam kayma kuralı, `pillHideStyle`).
+ * Ayrıca açıkken hap içindeki kendi sekme konumunda (`startX`) durur, daralırken sol kenara (0) kayar:
+ * hap o sekmenin ikonuna "küçülür". SAF worklet.
+ */
+export function collapsedTabStyle(
+  glass: boolean,
+  progress: number,
+  startX: number,
+  fallbackTranslateY: number,
+  glassHideY: number,
+  hideScale: number,
+) {
+  'worklet';
+  const hide = pillHideStyle(glass, 1 - progress, fallbackTranslateY, glassHideY, hideScale);
+  return { ...hide, transform: [{ translateX: (1 - progress) * startX }, ...hide.transform] };
+}
+
+/**
+ * Daralmış sekme dairesinin başlangıç x'i (satırın sol kenarına göre): hap içindeki sekmenin
+ * merkezine ortalanır (`itemX` sekme içeriği kapsayıcısına göre, `pillPadding` hapın iç dolgusu).
+ * Ölçüm yoksa 0 (doğrudan sol kenarda belirir).
+ */
+export function collapsedTabStartX(
+  item: { x: number; width: number } | undefined,
+  pillPadding: number,
+  size: number,
+): number {
+  if (!item) return 0;
+  return Math.max(pillPadding + item.x + item.width / 2 - size / 2, 0);
 }
 
 /** Cam hapın İÇERİĞİNİN opaklığı (cam yüzeyin kendisine opacity verilmez); fallback'te tam görünür. */

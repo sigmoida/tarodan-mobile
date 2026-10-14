@@ -15,7 +15,12 @@ import {
 import { scheduleOnRN } from 'react-native-worklets';
 import { theme } from '@/ui';
 import { pageScrollOffset } from '@/ui/lib/pageScroll';
-import { normalizeScrollMetrics, reduceTabBarScroll, shouldExpandOnMeasure } from './tabBarScroll';
+import {
+  normalizeScrollMetrics,
+  rebaseOnExternalChange,
+  reduceTabBarScroll,
+  shouldExpandOnMeasure,
+} from './tabBarScroll';
 
 /**
  * Alt menü daralma sinyalinin TEK kaynağı: tab layout'ta bir paylaşılan değer (`collapsed`);
@@ -99,6 +104,8 @@ export function useTabBarScrollHandler(onOffset?: (y: number) => void, pageScrol
   const anchor = useSharedValue(0);
   const lastY = useSharedValue(0);
   const lastSent = useSharedValue(0);
+  // Bu listenin son gördüğü menü durumu (dışarıdan değişimi algılamak için; bkz. `rebaseOnExternalChange`).
+  const lastSeen = useSharedValue(false);
 
   // Kaydırma olayı üretmeyen ölçüm değişiklikleri: kısa/başa dönmüş içerikte menüyü aç.
   const expandIfFits = useCallback(() => {
@@ -132,11 +139,13 @@ export function useTabBarScrollHandler(onOffset?: (y: number) => void, pageScrol
         e.contentInset?.top ?? 0,
         e.contentInset?.bottom ?? 0,
       );
-      const next = reduceTabBarScroll(
+      // Menü dışarıdan değiştiyse (daralmış daireye dokunma / sekme değişimi) seri o anki konumdan başlar.
+      const prev = rebaseOnExternalChange(
         { collapsed: collapsed.value, anchor: anchor.value, lastY: lastY.value },
-        m.y,
-        m.maxY,
+        lastSeen.value,
       );
+      const next = reduceTabBarScroll(prev, m.y, m.maxY);
+      lastSeen.value = next.collapsed;
       // Üst barın kaydırma kenarı (`pageScrollY`) AYNI handler'dan beslenir: ekran iki ayrı `onScroll`
       // vermez. Ofset inset'ten bağımsız (0 = içerik başı).
       if (pageScrollY) pageScrollY.value = pageScrollOffset(e.contentOffset.y, e.contentInset?.top ?? 0);
