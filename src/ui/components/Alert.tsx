@@ -90,7 +90,8 @@ export const Alert: React.FC<AlertProps> = ({
   style,
 }) => {
   const look = alertLook[variant];
-  const plain = typeof children === 'string' || typeof children === 'number';
+  // Birden çok metin parçası (`{a}{b}`) dizi gelir — hepsi metinse yine <Text> içine sar (RN çıplak metin çöker).
+  const plain = React.Children.toArray(children).every((c) => typeof c === 'string' || typeof c === 'number');
   return (
     <View
       testID={testID}

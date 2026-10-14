@@ -50,4 +50,16 @@ describe('Alert — tek mesaj kutusu', () => {
     );
     expect(screen.getByText('Kaldır')).toBeTruthy();
   });
+
+  it('birden çok metin parçasını tek <Text> içinde çizer (çıplak metin yok)', () => {
+    const a = 'Aktif öne çıkarma var.';
+    const b = ' Süre uzatılır.';
+    render(
+      <Alert variant="info">
+        {a}
+        {b}
+      </Alert>,
+    );
+    expect(screen.getByText('Aktif öne çıkarma var. Süre uzatılır.')).toBeTruthy();
+  });
 });
