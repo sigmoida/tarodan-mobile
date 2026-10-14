@@ -264,8 +264,11 @@ describe('AppTabBar — yüzen hap', () => {
   });
 
   it('hap alt konumu en az 12pt; yükseklik sabiti', () => {
-    expect(tabPillBottomOffset(0)).toBe(12);
-    expect(tabPillBottomOffset(34)).toBe(26);
+    expect(tabPillBottomOffset(0, 'ios')).toBe(12);
+    expect(tabPillBottomOffset(34, 'ios')).toBe(26);
+    // Android: 3 düğmeli / hareket çubuğunun ÜSTÜNDE (üstüne binmez).
+    expect(tabPillBottomOffset(48, 'android')).toBe(56);
+    expect(tabPillBottomOffset(0, 'android')).toBe(8);
     expect(TAB_PILL_HEIGHT).toBe(64);
   });
 });

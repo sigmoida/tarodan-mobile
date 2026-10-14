@@ -77,9 +77,4 @@ export const styles = StyleSheet.create({
     marginTop: spacing[2],
     alignSelf: 'flex-start',
   },
-  fab: {
-    position: 'absolute',
-    right: spacing[4],
-    bottom: spacing[6],
-  },
 });

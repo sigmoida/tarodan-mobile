@@ -129,5 +129,5 @@ export const styles = StyleSheet.create({
   listWrap: { flex: 1 },
   listWrapHidden: { flex: 1, opacity: 0 },
   listFooter: { paddingVertical: spacing[4] },
-  scrollTopFab: { position: 'absolute', right: spacing[4], bottom: spacing[6], zIndex: 50 },
+  scrollTopFab: { zIndex: 50 },
 });

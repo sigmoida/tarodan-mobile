@@ -35,7 +35,7 @@ export default function CollectionsScreen() {
           <FAB
             icon="plus"
             accessibilityLabel={t("collection.createNewCollection")}
-            style={styles.fab}
+            placement="bottomRight"
             onPress={f.handleCreateCollection}
           />
         ) : null

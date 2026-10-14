@@ -184,6 +184,7 @@ export default function SearchScreen() {
           <FAB
             icon="chevron-up"
             size="sm"
+            placement="bottomRight"
             style={styles.scrollTopFab}
             onPress={f.scrollToTop}
             accessibilityLabel={t('search.scrollToTop')}

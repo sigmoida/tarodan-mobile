@@ -47,9 +47,4 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing[1],
   },
-  fab: {
-    position: 'absolute',
-    right: spacing[4],
-    bottom: spacing[6],
-  },
 });

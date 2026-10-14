@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '@/ui';
 
@@ -23,10 +24,14 @@ export const TAB_PILL_SIDE_GAP = spacing[4];
 const CONTENT_GAP = spacing[4];
 
 /**
- * Hapın ekran altından uzaklığı: ana ekran çubuğu (güvenli alan altı) bölgesine hafifçe biner;
- * gesture/3-düğme navigasyonu olmayan cihazlarda da asgari boşluk kalır.
+ * Hapın ekran altından uzaklığı.
+ * - iOS: ana ekran çubuğu (home indicator) bölgesine hafifçe biner — o bölge boş bir şerit.
+ * - Android: gezinme çubuğunun (3 düğme ya da hareket çubuğu) ÜSTÜNDE durur; kenardan kenara
+ *   pencerede 3 düğmeli çubuk dokunulabilir ve opaktır, üstüne binilirse hap/“+” kesilir.
+ * Güvenli alanı olmayan cihazlarda da asgari boşluk kalır.
  */
-export function tabPillBottomOffset(insetBottom: number): number {
+export function tabPillBottomOffset(insetBottom: number, os: string = Platform.OS): number {
+  if (os === 'android') return insetBottom + spacing[2];
   return Math.max(insetBottom - spacing[2], spacing[3]);
 }
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, type PressableProps, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../lib/theme';
 import { RawText } from './Text';
 import { RefIcon, type IconRef, type IconVariant } from '../icons';
@@ -15,6 +16,11 @@ export interface FABProps extends Omit<PressableProps, 'style'> {
   size?: FABSize;
   style?: ViewStyle;
   accessibilityLabel: string;
+  /**
+   * `bottomRight`: ekranın sağ altında yüzer — alt güvenli alanın (iOS ana ekran çubuğu, Android
+   * 3 düğmeli / hareket gezinme çubuğu) ÜSTÜNDE. Ekranlar kendi `bottom` değerini yazmaz.
+   */
+  placement?: 'bottomRight';
 }
 
 const { colors, radius, spacing } = theme;
@@ -39,8 +45,10 @@ export const FAB: React.FC<FABProps> = ({
   disabled,
   style,
   accessibilityLabel,
+  placement,
   ...rest
 }) => {
+  const insets = useSafeAreaInsets();
   const ss = sizeMap[size];
   const vs = variantStyle[variant];
   const extended = !!label;
@@ -49,6 +57,11 @@ export const FAB: React.FC<FABProps> = ({
       disabled={disabled}
       style={({ pressed }) => [
         styles.base,
+        placement === 'bottomRight' && {
+          position: 'absolute',
+          right: spacing[4],
+          bottom: insets.bottom + spacing[4],
+        },
         {
           height: ss.box,
           minWidth: ss.box,

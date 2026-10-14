@@ -62,7 +62,7 @@ export default function MyListingsScreen() {
             <FAB
               icon="plus"
               accessibilityLabel={f.t('listing.createNewA11y')}
-              style={styles.fab}
+              placement="bottomRight"
               onPress={() => router.push('/(tabs)/sell')}
             />
           )}
