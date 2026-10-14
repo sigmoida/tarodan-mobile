@@ -1,14 +1,17 @@
 /**
- * Switch boyu: varsayılan `sm` web Switch'ine (≈44×24) yakın — iOS yerel 51×31 anahtar 0.8 ölçekle
- * küçülür, yerleşim kutusu negatif kenar boşluğuyla görsele çekilir, dokunma hedefi hitSlop ile
- * ≥44pt kalır. `md` yerel boy. Android'de ölçek yok (Material anahtar zaten kompakt).
+ * Switch: dokunma ≥44pt'lik dış Pressable'da (Fabric'te UISwitch hitSlop'u yok sayar); iç RN Switch
+ * dokunmaya ve erişilebilirliğe kapalı. iOS `sm` (varsayılan) ölçülen yerel genişliği 44pt'ye
+ * ölçekler (iOS < 26 ≈ 51, iOS 26 ≈ 64). `md` yerel boy; Android ölçeklenmez.
  */
 import React from 'react';
 import { Platform, StyleSheet } from 'react-native';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { theme } from '../../lib/theme';
 import { Switch } from '../Switch';
 
-const flat = (id: string) => StyleSheet.flatten(screen.getByTestId(id).props.style);
+// İç anahtar erişilebilirlikten gizli → varsayılan sorgular onu görmez.
+const native = () => screen.getByTestId('sw-native', { includeHiddenElements: true });
+const nativeStyle = () => StyleSheet.flatten(native().props.style);
 
 describe('Switch', () => {
   const originalOS = Platform.OS;
@@ -16,34 +19,63 @@ describe('Switch', () => {
     Platform.OS = originalOS;
   });
 
-  it('iOS varsayılan (sm): 0.8 ölçek + negatif kenar boşluğu + 44pt dokunma hedefi', () => {
+  it('dış kutu ≥44pt, rol switch + checked durumu; iç anahtar dokunmaya/erişilebilirliğe kapalı', () => {
+    render(<Switch testID="sw" value accessibilityLabel="Bildirim" onValueChange={jest.fn()} />);
+    const hit = screen.getByTestId('sw');
+    expect(StyleSheet.flatten(hit.props.style)).toMatchObject({
+      minWidth: theme.minTouchTarget,
+      minHeight: theme.minTouchTarget,
+    });
+    expect(hit.props.accessibilityRole).toBe('switch');
+    expect(hit.props.accessibilityState).toMatchObject({ checked: true, disabled: false });
+    expect(screen.getByRole('switch', { name: 'Bildirim' })).toBeTruthy();
+    const inner = native().parent!;
+    let wrapper: ReturnType<typeof native> | null = inner;
+    while (wrapper && wrapper.props.pointerEvents !== 'none') wrapper = wrapper.parent;
+    expect(wrapper!.props.importantForAccessibility).toBe('no-hide-descendants');
+    expect(wrapper!.props.accessibilityElementsHidden).toBe(true);
+  });
+
+  it('dış kutuya basınca değeri tersine çevirir; devre dışıyken çağırmaz', () => {
+    const onChange = jest.fn();
+    const { rerender } = render(<Switch testID="sw" value={false} onValueChange={onChange} />);
+    fireEvent.press(screen.getByTestId('sw'));
+    expect(onChange).toHaveBeenCalledWith(true);
+    onChange.mockClear();
+    rerender(<Switch testID="sw" value onValueChange={onChange} />);
+    fireEvent.press(screen.getByTestId('sw'));
+    expect(onChange).toHaveBeenCalledWith(false);
+    onChange.mockClear();
+    rerender(<Switch testID="sw" value onValueChange={onChange} disabled />);
+    fireEvent.press(screen.getByTestId('sw'));
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('iOS sm: ölçülen yerel genişliği 44pt\'ye ölçekler (iOS 26 ≈ 64×28 dahil)', () => {
     Platform.OS = 'ios';
     render(<Switch testID="sw" value={false} onValueChange={jest.fn()} />);
-    const style = flat('sw');
-    expect(style.transform).toEqual([{ scale: 0.8 }]);
-    expect(style.marginHorizontal).toBeCloseTo(-5.1);
-    expect(style.marginVertical).toBeCloseTo(-3.1);
-    const slop = screen.getByTestId('sw').props.hitSlop;
-    // hitSlop yerel koordinatta: (top+bottom)·0.8 + görsel yükseklik (31·0.8) ≥ 44
-    expect((slop.top + slop.bottom) * 0.8 + 31 * 0.8).toBeGreaterThanOrEqual(44);
+    for (const [w, h] of [
+      [51, 31],
+      [64, 28],
+    ] as const) {
+      act(() => native().props.onLayout({ nativeEvent: { layout: { width: w, height: h } } }));
+      const s = nativeStyle();
+      const scale = (s.transform as { scale: number }[])[0]!.scale;
+      expect(w * scale).toBeCloseTo(44);
+      expect(s.marginHorizontal).toBeCloseTo(-(w - 44) / 2);
+      expect(s.marginVertical).toBeCloseTo(-(h * (1 - scale)) / 2);
+    }
   });
 
   it('md: yerel boy, ölçek yok', () => {
     Platform.OS = 'ios';
     render(<Switch testID="sw" size="md" value={false} onValueChange={jest.fn()} />);
-    expect(flat('sw')?.transform).toBeUndefined();
+    expect(nativeStyle()?.transform).toBeUndefined();
   });
 
   it('Android: ölçeklenmez', () => {
     Platform.OS = 'android';
     render(<Switch testID="sw" value={false} onValueChange={jest.fn()} />);
-    expect(flat('sw')?.transform).toBeUndefined();
-  });
-
-  it('değer değişimini iletir', () => {
-    const onChange = jest.fn();
-    render(<Switch testID="sw" value={false} onValueChange={onChange} />);
-    fireEvent(screen.getByTestId('sw'), 'valueChange', true);
-    expect(onChange).toHaveBeenCalledWith(true);
+    expect(nativeStyle()?.transform).toBeUndefined();
   });
 });
