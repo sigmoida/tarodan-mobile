@@ -17,19 +17,13 @@ import { ProfileRow } from './ProfileRow';
 
 const { colors, spacing } = theme;
 
-/** Misafir profil: ortalı boş avatar, giriş/kayıt düğmeleri, düz bağlantı satırları (ikon + chevron), üyelik faydaları. */
+/** Misafir profil: ortalı boş avatar, giriş/kayıt düğmeleri, düz bağlantı satırları (ikon + chevron). */
 export function ProfileGuestView({ f }: { f: ProfileController }) {
   const { t } = useTranslation();
   const tabInset = useTabBarInset();
   const page = usePageScrollValue();
   const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
 
-  const benefits = [
-    { title: t('mobile.guestListTitle'), desc: t('mobile.guestListDesc') },
-    { title: t('mobile.guestTradeTitle'), desc: t('mobile.guestTradeDesc') },
-    { title: t('mobile.guestFavTitle'), desc: t('mobile.guestFavDesc') },
-    { title: t('mobile.guestGarageTitle'), desc: t('mobile.guestGarageDesc') },
-  ];
   const quickLinks: { label: string; to: string; icon: IconName; testID?: string }[] = [
     { label: t('mobile.guestBrowseListings'), to: '/search', icon: 'magnifying-glass' },
     { label: t('collection.exploreCollections'), to: '/collections', icon: 'rectangle-stack' },
@@ -89,20 +83,6 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
           ))}
         </View>
 
-        <View style={styles.benefits}>
-          <Text variant="overline" tone="subtle">
-            {t('profile.guestBenefitsTitle')}
-          </Text>
-          {benefits.map((b) => (
-            <View key={b.title} style={styles.benefit}>
-              <Text variant="label">{b.title}</Text>
-              <Text variant="bodySm" tone="muted">
-                {b.desc}
-              </Text>
-            </View>
-          ))}
-        </View>
-
         <UpgradeCta>
           <Card variant="bordered" style={styles.promo}>
             <Text variant="h3">Premium Üyelik</Text>
@@ -139,7 +119,5 @@ const styles = StyleSheet.create({
   welcome: { alignItems: 'center', gap: spacing[1] },
   actions: { alignSelf: 'stretch', gap: spacing[3] },
   list: { paddingBottom: spacing[2] },
-  benefits: { padding: spacing[4], gap: spacing[3] },
-  benefit: { gap: spacing[0.5] },
   promo: { gap: spacing[2], marginHorizontal: spacing[4], marginBottom: spacing[4] },
 });

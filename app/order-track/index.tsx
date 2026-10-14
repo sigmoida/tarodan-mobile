@@ -85,7 +85,7 @@ export default function OrderTrackScreen() {
       {/* Help Section */}
       <SectionCard title={t('order.trackHelpTitle')} bodyStyle={styles.stack}>
         <Text variant="bodySm" tone="muted">{t('order.trackHelpText')}</Text>
-        <Button variant="outline" title={t('order.trackHelpCta')} onPress={() => router.push('/help')} />
+        <Button variant="outline" fullWidth title={t('order.trackHelpCta')} onPress={() => router.push('/help')} />
       </SectionCard>
     </PageShell>
   );

@@ -158,7 +158,7 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
                   </View>
                   <Text
                     variant="caption"
-                    weight="medium"
+                    weight="semibold"
                     color={color}
                     numberOfLines={1}
                     adjustsFontSizeToFit
