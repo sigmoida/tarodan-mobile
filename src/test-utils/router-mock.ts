@@ -55,6 +55,24 @@ export function emitBeforeRemove(action: unknown = { type: 'GO_BACK' }) {
   return { prevented, action };
 }
 
+/**
+ * Gerçekçi çıkış zamanlaması: expo-router 6 `router.back()` GO_BACK'i KUYRUĞA alır ve
+ * sonraki tick'te gönderir — `beforeRemove` (dolayısıyla koruma kontrolü) `back()` çağrısından
+ * SONRA çalışır. `navigation.dispatch(action)` ise eşzamanlıdır. Dönen dizi her çıkış
+ * denemesinin `{ prevented, action }` sonucunu biriktirir (`await waitFor(() => exits.length)`).
+ * `resetRouterMocks()` / `mockReset()` uygulamaları siler; her testte (beforeEach) yeniden kur.
+ */
+export function mockRealisticExit() {
+  const exits: { prevented: boolean; action: unknown }[] = [];
+  backMock.mockImplementation(() => {
+    setTimeout(() => exits.push(emitBeforeRemove({ type: 'GO_BACK' })), 0);
+  });
+  navigationDispatchMock.mockImplementation((action: unknown) => {
+    exits.push(emitBeforeRemove(action));
+  });
+  return exits;
+}
+
 export const routerMock = {
   router: {
     push: pushMock,

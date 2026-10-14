@@ -7,9 +7,15 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { act, screen, fireEvent, waitFor } from '@testing-library/react-native';
-import { toast } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
-import { backMock, canGoBackMock, emitBeforeRemove, resetRouterMocks } from '@/test-utils/router-mock';
+import {
+  backMock,
+  canGoBackMock,
+  emitBeforeRemove,
+  mockRealisticExit,
+  resetRouterMocks,
+} from '@/test-utils/router-mock';
 
 let mockParams: Record<string, string> = { id: 'order-1', type: 'product' };
 jest.mock('expo-router', () => ({
@@ -186,6 +192,17 @@ describe('J110 · Satıcıyı puanla + karakter limiti', () => {
     expect(screen.getByText('0/2000')).toBeOnTheScreen();
     expect(screen.queryByText('Premium üyeler 2000 karakter yazabilir')).toBeNull();
   });
+});
+
+it('başarılı puanlamadan sonra ertelenmiş GO_BACK onaysız geçer ("Kaydedilmemiş" diyaloğu yok)', async () => {
+  const exits = mockRealisticExit();
+  await renderScreen();
+  fireEvent.press(star(4));
+  await submit();
+  await waitFor(() => expect(backMock).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(exits).toHaveLength(1));
+  expect(exits[0]).toEqual(expect.objectContaining({ prevented: false }));
+  expect(appAlert).not.toHaveBeenCalled();
 });
 
 it('kirli form: geri çıkış onay ister; temiz form serbest', async () => {
