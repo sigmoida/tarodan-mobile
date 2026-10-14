@@ -21,7 +21,7 @@ import { formatPrice } from '@/utils/format';
 
 import { styles } from '../_lib/membershipStyles';
 import { buildTierNames, type TierType } from '../_lib/membershipTiers';
-import { deriveSubscriptionSummary } from '../_lib/subscription';
+import { deriveSubscriptionSummary, periodEndLabelKey } from '../_lib/subscription';
 import type { MembershipController } from '../_hooks/useMembership';
 
 type SectionProps = { f: MembershipController };
@@ -105,7 +105,7 @@ export function MembershipCurrentPlan({ f }: SectionProps) {
               <DetailRow label={t('membership.planLabel')} value={sub.billingPeriodLabel} />
             ) : null}
             <DetailRow
-              label={sub.isCancelled ? t('membership.endDateLabel') : t('membership.nextPaymentLabel')}
+              label={t(periodEndLabelKey(sub, CAN_BUY_DIGITAL))}
               value={formatPlanDate(sub.periodEnd)}
             />
             {sub.daysLeft > 0 ? (

@@ -107,8 +107,28 @@ const STATUS_CHIP: Record<Subscription['status'], SubscriptionChipVariant> = {
 export interface SubscriptionFields {
   tier?: { type?: string } | null;
   status?: Subscription['status'];
+  /** API şu an döndürmüyor; gelirse "Plan" satırı çizilir. */
   billingPeriod?: Subscription['billingPeriod'];
+  autoRenew?: boolean;
   currentPeriodEnd?: string;
+}
+
+/**
+ * Dönem sonu tarihinin etiketi: iptal edilmiş ya da otomatik yenilemesi kapalı abonelikte
+ * "Bitiş Tarihi"; yenilenecekse satın alma açık platformda "Sonraki Ödeme", kapalı platformda
+ * (iOS/Android — ödeme/satın alma referansı yok) "Yenilenme Tarihi".
+ */
+export type PeriodEndLabelKey =
+  | 'membership.endDateLabel'
+  | 'membership.nextPaymentLabel'
+  | 'membership.renewalDateLabel';
+
+export function periodEndLabelKey(
+  opts: { isCancelled: boolean; autoRenew?: boolean },
+  canBuyDigital: boolean,
+): PeriodEndLabelKey {
+  if (opts.isCancelled || opts.autoRenew === false) return 'membership.endDateLabel';
+  return canBuyDigital ? 'membership.nextPaymentLabel' : 'membership.renewalDateLabel';
 }
 
 /**
@@ -129,6 +149,7 @@ export function deriveSubscriptionSummary(t: TFunction, m: SubscriptionFields | 
   return {
     hasDetails: true as const,
     isCancelled: status === 'cancelled',
+    autoRenew: m.autoRenew,
     daysLeft,
     periodEnd: end,
     billingPeriodLabel: m.billingPeriod ? formatBillingPeriod(t, m.billingPeriod) : null,

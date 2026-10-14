@@ -49,7 +49,7 @@ const DAY = 86400000;
 const premium = (over: Record<string, unknown> = {}) => ({
   tier: { type: 'premium', name: 'Premium' },
   status: 'active',
-  billingPeriod: 'monthly',
+  // API `billingPeriod` döndürmüyor — mock da döndürmez.
   currentPeriodEnd: new Date(Date.now() + 10 * DAY).toISOString(),
   pendingPayment: null,
   ...over,
@@ -75,8 +75,10 @@ describe('Üyelik Planı — abonelik özeti (salt görüntüleme)', () => {
     renderWithProviders(<MembershipScreen />);
     expect(await screen.findByTestId('membership-subscription-details')).toBeTruthy();
     expect(screen.getByText('common.active')).toBeTruthy();
-    expect(screen.getByText('membership.monthly')).toBeTruthy();
-    expect(screen.getByText('membership.nextPaymentLabel')).toBeTruthy();
+    // Dönem bilgisi yok → "Plan" satırı çizilmez; satın alma kapalı → "ödeme" yerine yenilenme tarihi.
+    expect(screen.queryByText('membership.planLabel')).toBeNull();
+    expect(screen.getByText('membership.renewalDateLabel')).toBeTruthy();
+    expect(screen.queryByText('membership.nextPaymentLabel')).toBeNull();
     expect(screen.getByText('membership.daysCount:10')).toBeTruthy();
     for (const key of ACTION_KEYS) expect(screen.queryByText(key)).toBeNull();
     expect(membershipApi.cancel).not.toHaveBeenCalled();
@@ -89,6 +91,21 @@ describe('Üyelik Planı — abonelik özeti (salt görüntüleme)', () => {
     expect(screen.getByText('membership.endDateLabel')).toBeTruthy();
     expect(screen.getByText('common.cancelled')).toBeTruthy();
     for (const key of ACTION_KEYS) expect(screen.queryByText(key)).toBeNull();
+  });
+
+  it('otomatik yenileme kapalı (aktif): tarih "bitiş" olarak gösterilir', async () => {
+    mockGetMembership.mockResolvedValue({ data: premium({ autoRenew: false }) });
+    renderWithProviders(<MembershipScreen />);
+    expect(await screen.findByText('membership.endDateLabel')).toBeTruthy();
+    expect(screen.queryByText('membership.renewalDateLabel')).toBeNull();
+    expect(screen.queryByText('membership.nextPaymentLabel')).toBeNull();
+  });
+
+  it('dönem bilgisi gelirse "Plan" satırı görünür', async () => {
+    mockGetMembership.mockResolvedValue({ data: premium({ billingPeriod: 'yearly' }) });
+    renderWithProviders(<MembershipScreen />);
+    expect(await screen.findByText('membership.yearly')).toBeTruthy();
+    expect(screen.getByText('membership.planLabel')).toBeTruthy();
   });
 
   it('ücretsiz (aktif ~100 yıllık kayıt) premium gibi gösterilmez: özet ve uyarı yok', async () => {

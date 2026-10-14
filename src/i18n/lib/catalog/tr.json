@@ -2025,7 +2025,8 @@
     "planFallback": "Paket",
     "badgeVerified": "Onaylı",
     "badgePremiumVerified": "Premium Onaylı",
-    "paymentOverdue": "Ödeme Gecikmiş"
+    "paymentOverdue": "Ödeme Gecikmiş",
+    "renewalDateLabel": "Yenilenme Tarihi:"
   },
   "collection": {
     "share": "Paylaş",

@@ -2025,7 +2025,8 @@
     "planFallback": "Plan",
     "badgeVerified": "Verified",
     "badgePremiumVerified": "Premium Verified",
-    "paymentOverdue": "Payment Overdue"
+    "paymentOverdue": "Payment Overdue",
+    "renewalDateLabel": "Renewal Date:"
   },
   "collection": {
     "share": "Share",

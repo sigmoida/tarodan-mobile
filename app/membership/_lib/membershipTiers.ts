@@ -63,6 +63,8 @@ export interface MembershipDetails {
   /** Abonelik durumu / dönemi — Üyelik Planı kartında salt görüntülenir (`deriveSubscriptionSummary`). */
   status?: 'active' | 'cancelled' | 'past_due' | 'expired';
   billingPeriod?: 'monthly' | 'yearly';
+  /** `false` → dönem sonunda yenilenmez (tarih "bitiş" olarak gösterilir). */
+  autoRenew?: boolean;
   currentPeriodStart?: string;
   currentPeriodEnd?: string;
   pendingPayment?: {
