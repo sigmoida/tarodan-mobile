@@ -13,6 +13,7 @@ import { transformImageUrl } from '@/utils/imageUrl';
 import { shipmentStatusLabel } from '@/lib/shipping/shipmentStatus';
 import { PreparingDeadlineNotice } from '@/components/orders/PreparingDeadlineNotice';
 import { ElogoInvoiceList } from '@/components/orders/ElogoInvoiceList';
+import { CopyButton } from '@/components/common/CopyButton';
 import { styles } from '../_lib/styles';
 import type { SaleDetailController } from '../_hooks/useSaleDetail';
 
@@ -27,6 +28,7 @@ function KV({
   testID,
   onPress,
   selectable,
+  copyMessage,
 }: {
   label?: string;
   value: string;
@@ -35,6 +37,8 @@ function KV({
   testID?: string;
   onPress?: () => void;
   selectable?: boolean;
+  /** Verilirse değerin yanında kopyala düğmesi; panoya yazınca bu toast gösterilir. */
+  copyMessage?: string;
 }) {
   const content = (
     <Text
@@ -51,6 +55,9 @@ function KV({
     <View style={styles.kvRow}>
       {label ? <Text variant="bodySm" tone="muted">{label}</Text> : null}
       {onPress ? <Pressable onPress={onPress} accessibilityRole="link" hitSlop={8}>{content}</Pressable> : content}
+      {copyMessage && value ? (
+        <CopyButton testID={testID ? `${testID}-copy` : undefined} value={value} successMessage={copyMessage} />
+      ) : null}
     </View>
   );
 }
@@ -165,7 +172,13 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
             {s.cargoCode ? (
               <>
                 <Text variant="bodySm" tone="muted">{t('order.trackingNumber')}</Text>
-                <KV testID="sales-tracking-number" selectable bold value={s.cargoCode} />
+                <KV
+                  testID="sales-tracking-number"
+                  selectable
+                  bold
+                  value={s.cargoCode}
+                  copyMessage={t('order.cargoCodeCopied')}
+                />
                 {s.trackingUrl ? (
                   <Button
                     testID="sales-track-link"
@@ -178,7 +191,13 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
             ) : (
               <>
                 <Text variant="bodySm" tone="muted">{t('order.cargoReference')}</Text>
-                <KV testID="sales-cargo-reference" selectable bold value={s.reference ?? ''} />
+                <KV
+                  testID="sales-cargo-reference"
+                  selectable
+                  bold
+                  value={s.reference ?? ''}
+                  copyMessage={t('order.cargoCodeCopied')}
+                />
                 <Text variant="caption" tone="muted">{t('order.cargoRefInstructions')}</Text>
                 <Text variant="caption" tone="muted">{t('order.trackingAppearsAfterDropoff')}</Text>
               </>

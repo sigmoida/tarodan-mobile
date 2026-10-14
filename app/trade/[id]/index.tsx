@@ -1,4 +1,3 @@
-import { Clipboard } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { PageShell } from "@/components/common/PageShell";
 import { useRefresh } from "@/hooks/useRefresh";
@@ -6,6 +5,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { tradeViewerRole } from "@/lib/shared/tradeStatus";
 import { useTranslation } from "react-i18next";
 import { toast } from "@/ui";
+import { copyToClipboard } from "@/lib/clipboard";
 import { deriveTradeView } from "./_lib/derive";
 import { useTrade } from "./_hooks/useTrade";
 import { useCountdown } from "./_hooks/useCountdown";
@@ -72,8 +72,7 @@ export default function TradeDetailScreen() {
 
   const view = deriveTradeView(trade, user, paymentQuote);
   const copyCode = (code?: string | null) => {
-    if (!code) return;
-    Clipboard.setString(code);
+    if (!copyToClipboard(code)) return;
     toast.success(t('trade.trackingCopied'));
   };
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Clipboard } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/ui';
+import { copyToClipboard } from '@/lib/clipboard';
 import { useZodForm } from '@/ui/form';
 import { goBackOrHome } from '@/components/common/goBackOrHome';
 import { apiErrorMessage } from '@/lib/api/errorText';
@@ -82,7 +82,7 @@ export function useTwoFactorFlow() {
   const startFailed = waitingForSetup && start.isError;
 
   const copy = (text: string) => {
-    Clipboard.setString(text);
+    if (!copyToClipboard(text)) return;
     toast.success(t('common.copiedShort'));
   };
 
