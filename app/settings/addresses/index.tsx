@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Badge, Button, EmptyState, SectionCard } from '@/ui';
+import { EmptyState, SectionCard, Text, TopBarAction } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { styles } from './_lib/styles';
 import { useAddresses } from './_hooks/useAddresses';
@@ -9,9 +9,10 @@ import { AddressCard } from './_components/AddressCard';
 
 /**
  * Kayıtlı adresler — D1b REFERANS EKRANI (liste): PageShell (beyaz üst bar, Skeleton,
- * çekip yenileme) + web profilindeki gibi tek SectionCard (adet rozeti + "Yeni Adres"
- * aksiyonu) içinde satırlar; boşken kart içi EmptyState. Ekle/düzenle ayrı EKRANLAR
- * (`new`, `[id]/edit`); `useAddresses` sorgu, `useAddressActions` yönlendirme + mutasyonlar.
+ * çekip yenileme) + üst barın sağında "+" (yeni adres; limit dolunca / liste boşken gizli) +
+ * kartın üstünde soluk "1/3 adres kayıtlı" satırı (limit bilinmiyorsa yok) + tek SectionCard içinde satırlar; boşken kart
+ * içi EmptyState (kendi "Yeni Adres Ekle" eylemiyle). Ekle/düzenle ayrı EKRANLAR (`new`,
+ * `[id]/edit`); `useAddresses` sorgu, `useAddressActions` yönlendirme + mutasyonlar.
  */
 export default function AddressesScreen() {
   const { t } = useTranslation();
@@ -46,20 +47,24 @@ export default function AddressesScreen() {
       loading={f.isLoading}
       refreshing={f.refreshing}
       onRefresh={f.onRefresh}
+      right={
+        // Önceki kuralla aynı: limit dolunca ve liste boşken (EmptyState'in kendi eylemi var) yok.
+        canAdd && f.addresses.length > 0 ? (
+          <TopBarAction
+            icon="plus"
+            accessibilityLabel={t('address.newAddress')}
+            onPress={a.openAdd}
+            testID="address-add-button"
+          />
+        ) : undefined
+      }
     >
-      <SectionCard
-        badge={
-          <Badge variant="outline" size="sm">
-            {f.addresses.length}/{f.maxAddresses}
-          </Badge>
-        }
-        action={
-          canAdd && f.addresses.length > 0 ? (
-            <Button size="sm" icon="plus" title={t('address.newAddress')} onPress={a.openAdd} />
-          ) : undefined
-        }
-        bodyStyle={styles.list}
-      >
+      {Number.isFinite(f.maxAddresses) ? (
+        <Text variant="bodySm" tone="muted" testID="address-limit-usage">
+          {t('address.limitUsage', { count: f.addresses.length, max: f.maxAddresses })}
+        </Text>
+      ) : null}
+      <SectionCard bodyStyle={styles.list}>
         {f.addresses.length === 0 ? (
           <EmptyState
             icon="map-pin"

@@ -12,6 +12,7 @@ import {
   isPremiumTier,
   type Subscription,
   type MembershipTier,
+  periodEndLabelKey,
 } from '../subscription';
 import { schemaT } from '@/test-utils/schema';
 
@@ -85,5 +86,16 @@ describe('J108 · subscriptionStore saf yardımcılar', () => {
     expect(isPremiumTier({ type: 'business' } as MembershipTier)).toBe(true);
     expect(isPremiumTier({ type: 'free' } as MembershipTier)).toBe(false);
     expect(isPremiumTier(null)).toBe(false);
+  });
+});
+
+describe('periodEndLabelKey — dönem sonu etiketi', () => {
+  it('iptal ya da otomatik yenileme kapalı → bitiş', () => {
+    expect(periodEndLabelKey({ isCancelled: true }, true)).toBe('membership.endDateLabel');
+    expect(periodEndLabelKey({ isCancelled: false, autoRenew: false }, false)).toBe('membership.endDateLabel');
+  });
+  it('yenilenecek: satın alma açıkken "Sonraki Ödeme", kapalıyken "Yenilenme Tarihi"', () => {
+    expect(periodEndLabelKey({ isCancelled: false, autoRenew: true }, true)).toBe('membership.nextPaymentLabel');
+    expect(periodEndLabelKey({ isCancelled: false }, false)).toBe('membership.renewalDateLabel');
   });
 });

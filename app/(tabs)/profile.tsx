@@ -9,17 +9,13 @@ import { theme, usePageScrollValue } from '@/ui';
 
 import { useProfile } from './_hooks/useProfile';
 import { ProfileGuestView } from './_components/ProfileGuestView';
-import {
-  ProfileCard,
-  ProfileDeleteAccount,
-  ProfileMenuSections,
-} from './_components/ProfileSections';
+import { ProfileCard, ProfileMenuSections } from './_components/ProfileSections';
 
 const { colors } = theme;
 
 /**
  * Profil sekmesi — sekme kökü (AppShell, başlıklı bar; "Profili düzenle" kalemi kimlik satırında). Düz
- * (kartsız) düzen: yatay kompakt kimlik başlığı + Hesap satırları (ikon + chevron) + çıkış + hesabı sil. Alışveriş / Finans / Koleksiyon / Analiz /
+ * (kartsız) düzen: yatay kompakt kimlik başlığı + Hesap satırları (ikon + chevron) + çıkış (hesabı sil Güvenlik ekranında). Alışveriş / Finans / Koleksiyon / Analiz /
  * Destek / Bilgi Ana Sayfa yan menüsündedir (`DrawerMenu`).
  * `useProfile` tüm sorgu ve eylemlerin sahibi; ekran yalnız misafir/üye dallanması ve kompozisyon.
  */
@@ -54,7 +50,6 @@ function ProfileScreen() {
       >
         <ProfileCard f={f} />
         <ProfileMenuSections f={f} isBusiness={!!(f.user?.companyName && f.user?.taxId)} />
-        <ProfileDeleteAccount f={f} />
       </Animated.ScrollView>
     </AppShell>
   );

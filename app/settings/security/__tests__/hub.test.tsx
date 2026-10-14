@@ -109,6 +109,25 @@ describe('settings/security hub', () => {
     expect(screen.queryByText(new RegExp(i18n.t('mobile.tipStrongPassword')))).toBeNull();
   });
 
+  it('şifre kartında da açıklama satırı var', async () => {
+    renderWithProviders(<SecuritySettingsScreen />);
+    expect(await screen.findByText(i18n.t('profile.security.passwordDesc'))).toBeTruthy();
+  });
+
+  it('hesabı sil son kart: danger düğme, yazarak onay ekranına gider (silme burada çağrılmaz)', async () => {
+    renderWithProviders(<SecuritySettingsScreen />);
+    const button = await screen.findByTestId('security-delete-account');
+    expect(screen.getByText(i18n.t('settings.dangerZone'))).toBeTruthy();
+    expect(screen.getByText(i18n.t('settings.deleteAccountDetails'))).toBeTruthy();
+    const s = button.props.style;
+    expect(StyleSheet.flatten(typeof s === 'function' ? s({ pressed: false }) : s)).toMatchObject({
+      backgroundColor: theme.colors.danger[600],
+    });
+    fireEvent.press(button);
+    expect(pushMock).toHaveBeenLastCalledWith('/settings/delete-account');
+    expect(alertMock).not.toHaveBeenCalled();
+  });
+
   it('2FA açıkken "Yönet" + Aktif rozeti; kapalıyken "Ayarla"', async () => {
     mockEnabled = true;
     renderWithProviders(<SecuritySettingsScreen />);

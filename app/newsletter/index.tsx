@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Checkbox, Input, SectionCard, theme } from '@/ui';
+import { StyleSheet, View } from 'react-native';
+import { Button, Checkbox, Input, theme } from '@/ui';
 import { router } from 'expo-router';
 import { guestApi } from '@/lib/api';
 import { useAppMutation } from '@/lib/query';
@@ -8,9 +9,9 @@ import { ContentPage } from '@/components/content/ContentPage';
 import { DocLink } from '@/components/content/DocBlocks';
 
 /**
- * Bülten aboneliği — web `(corporate)/newsletter` düzeni: sayfa açıklaması + tek SectionCard
- * (e-posta, açık rıza, abone ol) + abonelik iptali bağlantısı. Büyük zarf ikonu kalktı; başarı
- * mesajı toast. Rıza kapısı ve istek gövdesi değişmedi.
+ * Bülten aboneliği — form ekranı kalıbı (edit-profile gibi): sayfa açıklaması + kartsız düz form
+ * (e-posta, açık rıza, gizlilik bağlantısı), "Abone Ol" sabit alt çubukta, abonelik iptali ikincil
+ * (ghost) bağlantı. Başarı mesajı toast. Rıza kapısı ve istek gövdesi değişmedi.
  */
 export default function NewsletterScreen() {
   const { t } = useTranslation();
@@ -54,8 +55,25 @@ export default function NewsletterScreen() {
   };
 
   return (
-    <ContentPage title={t('mobile.settingsNewsletter')} description={t('marketing.newsletter.subtitle')}>
-      <SectionCard title={t('marketing.newsletter.title')} bodyStyle={{ gap: theme.spacing[2] }}>
+    <ContentPage
+      title={t('mobile.settingsNewsletter')}
+      description={t('marketing.newsletter.subtitle')}
+      // Birincil eylem sabit alt çubukta (edit-profile ile aynı form kalıbı; klavye üstünde kalır).
+      footer={
+        <Button
+          testID="newsletter-submit"
+          variant="primary"
+          size="lg"
+          fullWidth
+          title={t('marketing.newsletter.subscribeButton')}
+          onPress={handleSubmit}
+          isLoading={subscribeMutation.isPending}
+          disabled={subscribeMutation.isPending || !email || !consent}
+        />
+      }
+    >
+      {/* Kartsız düz form: e-posta → açık rıza → gizlilik bağlantısı; altında ikincil iptal bağlantısı. */}
+      <View style={styles.form}>
         <Input
           testID="newsletter-email"
           label={`${t('marketing.newsletter.emailLabel')} *`}
@@ -77,25 +95,20 @@ export default function NewsletterScreen() {
           label={t('marketing.newsletter.consentText')}
         />
         <DocLink label={t('mobile.pagePrivacy')} onPress={() => router.push('/privacy' as never)} />
-
-        <Button
-          testID="newsletter-submit"
-          variant="primary"
-          size="lg"
-          fullWidth
-          title={t('marketing.newsletter.subscribeButton')}
-          onPress={handleSubmit}
-          isLoading={subscribeMutation.isPending}
-          disabled={subscribeMutation.isPending || !email || !consent}
-          style={{ marginTop: theme.spacing[4] }}
-        />
-      </SectionCard>
+      </View>
 
       <Button
+        testID="newsletter-unsubscribe-link"
         variant="ghost"
         title={t('marketing.newsletter.cancelLinkText')}
         onPress={() => router.push('/newsletter/unsubscribe' as never)}
+        style={styles.unsubscribe}
       />
     </ContentPage>
   );
 }
+
+const styles = StyleSheet.create({
+  form: { gap: theme.spacing[3] },
+  unsubscribe: { alignSelf: 'center' },
+});

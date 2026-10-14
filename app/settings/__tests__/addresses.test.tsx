@@ -15,9 +15,10 @@ jest.mock("expo-router", () => ({
   useFocusEffect: jest.fn(),
 }));
 
+let mockLimits: { maxAddresses?: number } = { maxAddresses: 10 };
 jest.mock("@/stores/authStore", () => ({
   useAuthStore: (sel?: (state: any) => unknown) => {
-    const state: any = ({ isAuthenticated: true, limits: { maxAddresses: 10 } });
+    const state: any = ({ isAuthenticated: true, limits: mockLimits });
     return sel ? sel(state) : state;
   },
 }));
@@ -56,6 +57,7 @@ const SLOW = { timeout: 5000 };
 describe("Adres listesi → form EKRANLARINA yönlendirme (modal yok)", () => {
   beforeEach(() => {
     resetRouterMocks();
+    mockLimits = { maxAddresses: 10 };
     (api.get as jest.Mock).mockReset();
   });
 
@@ -68,11 +70,53 @@ describe("Adres listesi → form EKRANLARINA yönlendirme (modal yok)", () => {
     expect(screen.queryByTestId("address-save-button")).toBeNull();
   });
 
-  it("dolu listede başlık aksiyonu \"Yeni Adres\" de aynı ekranı iter", async () => {
+  it("dolu listede üst bardaki \"+\" aynı ekranı iter; içerikte \"Yeni Adres\" düğmesi yok", async () => {
     (api.get as jest.Mock).mockResolvedValue({ data: [ADDRESS] });
     renderWithProviders(<AddressesScreen />);
-    fireEvent.press(await screen.findByText("address.newAddress", {}, SLOW));
+    fireEvent.press(await screen.findByTestId("address-add-button", {}, SLOW));
     expect(pushMock).toHaveBeenCalledWith("/settings/addresses/new");
+    expect(screen.queryByText("address.newAddress")).toBeNull();
+    expect(screen.getByTestId("address-add-button").props.accessibilityLabel).toBe("address.newAddress");
+  });
+
+  it("limit göstergesi soluk metin olarak listenin üstünde", async () => {
+    (api.get as jest.Mock).mockResolvedValue({ data: [ADDRESS] });
+    renderWithProviders(<AddressesScreen />);
+    expect(await screen.findByTestId("address-limit-usage", {}, SLOW)).toHaveTextContent("address.limitUsage");
+  });
+
+  it("boş listede üst bar \"+\" yok (EmptyState eylemi yeterli)", async () => {
+    (api.get as jest.Mock).mockResolvedValue({ data: [] });
+    renderWithProviders(<AddressesScreen />);
+    await screen.findByText("address.addNewAddress", {}, SLOW);
+    expect(screen.queryByTestId("address-add-button")).toBeNull();
+  });
+
+  it("limit bilinmiyor/sınırsız (-1) → sayaç gizli, \"+\" açık", async () => {
+    mockLimits = { maxAddresses: -1 };
+    (api.get as jest.Mock).mockResolvedValue({ data: [ADDRESS] });
+    renderWithProviders(<AddressesScreen />);
+    expect(await screen.findByTestId("address-add-button", {}, SLOW)).toBeTruthy();
+    expect(screen.queryByTestId("address-limit-usage")).toBeNull();
+  });
+
+  it("limit verilmezse sunucu limiti (3) geçerli: 3 adreste \"+\" gizli", async () => {
+    mockLimits = {};
+    (api.get as jest.Mock).mockResolvedValue({
+      data: Array.from({ length: 3 }, (_, i) => ({ ...ADDRESS, id: `b${i}`, title: `Ev ${i}` })),
+    });
+    renderWithProviders(<AddressesScreen />);
+    await screen.findByText("Ev 0", {}, SLOW);
+    expect(screen.queryByTestId("address-add-button")).toBeNull();
+  });
+
+  it("limit dolunca üst bar \"+\" gizlenir", async () => {
+    (api.get as jest.Mock).mockResolvedValue({
+      data: Array.from({ length: 10 }, (_, i) => ({ ...ADDRESS, id: `a${i}`, title: `Adres ${i}` })),
+    });
+    renderWithProviders(<AddressesScreen />);
+    await screen.findByText("Adres 0", {}, SLOW);
+    expect(screen.queryByTestId("address-add-button")).toBeNull();
   });
 
   it("satırdaki düzenle → /settings/addresses/<id>/edit", async () => {

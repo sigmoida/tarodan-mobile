@@ -2025,7 +2025,8 @@
     "planFallback": "Plan",
     "badgeVerified": "Verified",
     "badgePremiumVerified": "Premium Verified",
-    "paymentOverdue": "Payment Overdue"
+    "paymentOverdue": "Payment Overdue",
+    "renewalDateLabel": "Renewal Date:"
   },
   "collection": {
     "share": "Share",
@@ -2448,7 +2449,8 @@
       "twoFactorOn": "Your account is protected with TOTP",
       "twoFactorOff": "Add an app-based extra layer of security",
       "manage": "Manage",
-      "setUp": "Set up"
+      "setUp": "Set up",
+      "passwordDesc": "Change your account password regularly"
     },
     "emailChangeLeaveTitle": "Email not verified",
     "emailChangeLeaveBody": "If you leave without entering the code, your email won't change and you'll need to request a new code.",
@@ -2797,7 +2799,8 @@
     "authGateSubtitle": "Sign in to view your addresses",
     "emptySubtitle": "Add your delivery address",
     "addressTitleLabel": "Address Title",
-    "checkFields": "Please check these fields: {fields}"
+    "checkFields": "Please check these fields: {fields}",
+    "limitUsage": "{count}/{max} addresses saved"
   },
   "contact": {
     "title": "Contact Us",
@@ -2875,7 +2878,9 @@
     "notificationSettingsLoadFailed": "Your notification preferences could not be loaded. Saving is disabled until they load so your saved preferences are not overwritten.",
     "twoFactorTitle": "Two-Factor Authentication",
     "twoFactorEnabledDesc": "Your account is protected with 2FA",
-    "twoFactorDisabledDesc": "Make your account more secure"
+    "twoFactorDisabledDesc": "Make your account more secure",
+    "dangerZone": "Danger Zone",
+    "deleteAccountDetails": "Permanently delete your account and all of its data. This action cannot be undone."
   },
   "analytics": {
     "analytics": "Analytics",

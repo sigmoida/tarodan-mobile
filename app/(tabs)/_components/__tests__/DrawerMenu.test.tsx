@@ -103,7 +103,6 @@ describe('DrawerMenu — üye', () => {
     setup();
     for (const id of [
       'profile-membership-link',
-      'profile-subscription-link',
       'profile-language-link',
       'profile-blocked-users-link',
       'profile-account-newsletter-link',

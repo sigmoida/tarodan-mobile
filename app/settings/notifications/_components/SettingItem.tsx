@@ -22,7 +22,7 @@ export function SettingItem({
           {description}
         </Text>
       </View>
-      <Switch value={value} onValueChange={onToggle} />
+      <Switch value={value} onValueChange={onToggle} accessibilityLabel={label} />
     </View>
   );
 }

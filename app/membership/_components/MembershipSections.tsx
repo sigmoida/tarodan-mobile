@@ -7,6 +7,7 @@ import {
   Badge,
   Button,
   Card,
+  Chip,
   Divider,
   Icon,
   ListRowCard,
@@ -20,6 +21,7 @@ import { formatPrice } from '@/utils/format';
 
 import { styles } from '../_lib/membershipStyles';
 import { buildTierNames, type TierType } from '../_lib/membershipTiers';
+import { deriveSubscriptionSummary, periodEndLabelKey } from '../_lib/subscription';
 import type { MembershipController } from '../_hooks/useMembership';
 
 type SectionProps = { f: MembershipController };
@@ -72,45 +74,102 @@ export function MembershipBanners({ f }: SectionProps) {
 }
 
 // ---------------------------------------------------------------------------
-// Current plan summary card
+// Current plan summary card — eski "Aboneliğim" ekranının durum/yenileme/bitiş bilgisi de burada
+// (tek giriş). Mobilde SALT GÖRÜNTÜLEME: iptal / yeniden etkinleştir / plan değiştir düğmesi yok
+// (App Store / Play dijital satış kuralları). Satın alma kapıları (CAN_BUY_DIGITAL) değişmedi.
 // ---------------------------------------------------------------------------
 export function MembershipCurrentPlan({ f }: SectionProps) {
   const { currentTier, membership, t } = f;
   const tierNames = buildTierNames(t);
+  const sub = deriveSubscriptionSummary(t, membership);
   return (
-    <SectionCard title={t('membership.currentPlan')} bodyStyle={styles.planBody}>
-      <Text variant="h2">{tierNames[currentTier]}</Text>
-      {membership?.currentPeriodEnd && currentTier !== 'free' && (
-        <Text variant="caption" tone="subtle">
-          {t('membership.renewalLabel', {
-            date: new Date(membership.currentPeriodEnd).toLocaleDateString('tr-TR', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            }),
-          })}
-        </Text>
-      )}
-      {/* Üyelik yönetimi: otomatik yenileme + kayıtlı kartlar (tüm kademeler).
-          Bu satırın kendisi tam olarak PayTR'nin yinelenen tahsilat
-          yönetimini tanıtıyor — iOS'ta hem FREE hem PAID kullanıcıdan
-          gizlenir. İPTAL akışı buradan değil Profil → Abonelik
-          (SubscriptionBody) üzerinden gelir ve orada iOS'ta da açıktır.
-          Etiket uzun (iki bölümlü) olduğu için düğme değil, sarabilen satır kartı. */}
-      {CAN_BUY_DIGITAL && (
-        <ListRowCard
-          padding={3}
-          style={styles.manageRow}
-          onPress={() => router.push('/membership/manage' as any)}
+    <>
+      <SectionCard
+        title={t('membership.currentPlan')}
+        badge={
+          sub.hasDetails ? (
+            <Chip
+              testID="membership-status"
+              variant={sub.statusChipVariant}
+              size="sm"
+              label={sub.statusLabel}
+            />
+          ) : undefined
+        }
+        bodyStyle={styles.planBody}
+      >
+        <Text variant="h2">{tierNames[currentTier]}</Text>
+        {sub.hasDetails ? (
+          <View style={styles.detailList} testID="membership-subscription-details">
+            {sub.billingPeriodLabel ? (
+              <DetailRow label={t('membership.planLabel')} value={sub.billingPeriodLabel} />
+            ) : null}
+            <DetailRow
+              label={t(periodEndLabelKey(sub, CAN_BUY_DIGITAL))}
+              value={formatPlanDate(sub.periodEnd)}
+            />
+            {sub.daysLeft > 0 ? (
+              <DetailRow
+                label={t('membership.remainingLabel')}
+                value={t('membership.daysCount', { count: sub.daysLeft })}
+              />
+            ) : null}
+          </View>
+        ) : (
+          membership?.currentPeriodEnd &&
+          currentTier !== 'free' && (
+            <Text variant="caption" tone="subtle">
+              {t('membership.renewalLabel', { date: formatPlanDate(membership.currentPeriodEnd) })}
+            </Text>
+          )
+        )}
+        {/* Üyelik yönetimi: otomatik yenileme + kayıtlı kartlar (tüm kademeler).
+            Bu satırın kendisi tam olarak PayTR'nin yinelenen tahsilat
+            yönetimini tanıtıyor — satın alma kapalı platformda (iOS/Android)
+            hem FREE hem PAID kullanıcıdan gizlenir. Etiket uzun (iki bölümlü)
+            olduğu için düğme değil, sarabilen satır kartı. */}
+        {CAN_BUY_DIGITAL && (
+          <ListRowCard
+            padding={3}
+            style={styles.manageRow}
+            onPress={() => router.push('/membership/manage' as any)}
+          >
+            <Text variant="bodySm" weight="semibold" tone="primary" style={styles.manageRowText}>
+              {t('membership.manageMembershipHint')}
+            </Text>
+          </ListRowCard>
+        )}
+      </SectionCard>
+
+      {/* İptal edilmiş abonelik dönem sonuna kadar sürer — bitişe kalan gün uyarısı. */}
+      {sub.hasDetails && sub.isCancelled && sub.daysLeft > 0 ? (
+        <Alert
+          variant="warning"
+          testID="membership-expiring-warning"
+          title={t('membership.expiringWarningTitle', { count: sub.daysLeft })}
         >
-          <Text variant="bodySm" weight="semibold" tone="primary" style={styles.manageRowText}>
-            {t('membership.manageMembershipHint')}
-          </Text>
-        </ListRowCard>
-      )}
-    </SectionCard>
+          {t('membership.expiringWarningDesc')}
+        </Alert>
+      ) : null}
+    </>
   );
 }
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.detailRow}>
+      <Text variant="bodySm" tone="muted">
+        {label}
+      </Text>
+      <Text variant="bodySm" weight="semibold">
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+const formatPlanDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' });
 
 // ---------------------------------------------------------------------------
 // Billing period toggle (monthly / yearly)

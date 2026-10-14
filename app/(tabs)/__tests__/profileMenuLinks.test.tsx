@@ -18,7 +18,7 @@ jest.mock('@/stores/authStore', () => ({
   },
 }));
 // Satın almanın açık olduğu platform (Android). iOS'ta ücretsiz kullanıcı
-// "Aboneliğim"i görmez — ios-subscription-menu.test.tsx.
+// "Üyelik Planı"nı görmez — ios-subscription-menu.test.tsx.
 jest.mock('@/lib/purchases', () => ({ CAN_BUY_DIGITAL: true }));
 
 const f: any = {
@@ -26,7 +26,6 @@ const f: any = {
   tierLabel: 'Free',
   effectiveTier: 'free',
   handleLogout: jest.fn(),
-  handleDeleteAccount: jest.fn(),
 };
 
 /** Yan menüde (DrawerMenu) duran satırlar. */
@@ -38,7 +37,7 @@ const DRAWER_CASES: [string, string][] = [
   ['profile-discounts-link', '/settings/discounts'],
 ];
 /** Profilde (ProfileMenuSections, Hesap grubu) duran satırlar. */
-const PROFILE_CASES: [string, string][] = [['profile-subscription-link', '/settings/subscription']];
+const PROFILE_CASES: [string, string][] = [['profile-membership-link', '/membership']];
 
 /** Hesap sayfalarından yalnız `following` yan menüde (Koleksiyon); gerisi profilde. */
 const DRAWER_ACCOUNT_ROUTES = ['following'];

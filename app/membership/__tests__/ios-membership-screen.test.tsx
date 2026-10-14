@@ -7,7 +7,7 @@
  * dosyanın en üstünde statik import edildiği için `Platform.OS` gövde
  * içinde atansa da geç kalır. `@/lib/purchases`ı modül seviyesinde
  * mock'luyoruz — babel-plugin-jest-hoist bunu import'ların üstüne taşır.
- * (bkz. app/(tabs)/__tests__/messages.test.tsx, app/settings/__tests__/subscription.test.tsx)
+ * (bkz. app/(tabs)/__tests__/messages.test.tsx, app/membership/__tests__/current-plan-subscription.test.tsx)
  */
 import React from 'react';
 import { screen, waitFor } from '@testing-library/react-native';

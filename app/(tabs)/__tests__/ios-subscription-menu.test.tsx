@@ -1,8 +1,8 @@
 /**
  * Apple 2.1(b) "references to subscriptions": iOS'ta abonelik satılmıyor, bu
- * yüzden ücretsiz kullanıcı (App Review hesabı dahil) profilde "Aboneliğim"
- * girişini görmez. Ücretli üye görür — iOS'ta aboneliğini iptal edebileceği
- * tek yer orası (üyelik ekranındaki "Yönet" linki iOS'ta kapalı).
+ * yüzden ücretsiz kullanıcı (App Review hesabı dahil) profilde "Üyelik Planı"
+ * girişini görmez. Ücretli üye görür — planını ve abonelik durumunu salt
+ * görüntüler. "Aboneliğim" ayrı satırı kalktı (Üyelik Planı ile birleşti).
  */
 import { render } from '@testing-library/react-native';
 
@@ -15,20 +15,15 @@ const base: any = {
   tierLabel: 'Free',
   effectiveTier: 'free',
   handleLogout: jest.fn(),
-  handleDeleteAccount: jest.fn(),
 };
 
-describe('iOS profil menüsü — Aboneliğim', () => {
-  it('ücretsiz kullanıcı görmez', () => {
-    const { queryByTestId } = render(<ProfileMenuSections f={{ ...base, isPaidTier: false }} />);
-    expect(queryByTestId('profile-subscription-link')).toBeNull();
-  });
-
-  it('ücretli üye görür (iptal yolu açık kalır)', () => {
-    const { getByTestId } = render(
+describe('iOS profil menüsü — ayrı "Aboneliğim" satırı yok', () => {
+  it('ücretli üyede de yalnız tek üyelik satırı var', () => {
+    const { queryByTestId, getByTestId } = render(
       <ProfileMenuSections f={{ ...base, isPaidTier: true, tierLabel: 'Premium', effectiveTier: 'premium' }} />,
     );
-    expect(getByTestId('profile-subscription-link')).toBeTruthy();
+    expect(queryByTestId('profile-subscription-link')).toBeNull();
+    expect(getByTestId('profile-membership-link')).toBeTruthy();
   });
 });
 

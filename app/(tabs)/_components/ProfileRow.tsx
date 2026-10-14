@@ -10,14 +10,14 @@ const ROW_HEIGHT = spacing[12] + spacing[2];
 interface ProfileRowProps {
   label: string;
   onPress: () => void;
-  /** Soldaki outline ikon (24pt, başlık rengi). */
+  /** Soldaki outline ikon (24pt, başlık rengi; `danger` tonda etiketle aynı danger-700). */
   icon?: IconName;
   testID?: string;
-  /** `primary` = marka tonlu etiket · `danger` = tehlike tonlu etiket (hesabı sil). */
+  /** `primary` = marka tonlu etiket · `danger` = tehlike tonlu etiket (çıkış). */
   tone?: 'default' | 'primary' | 'danger';
   /** Etiketin sağında metin rozeti (ör. üyelik katmanı). */
   rightBadge?: string;
-  /** Sağdaki chevron (varsayılan açık); eylem satırlarında (çıkış, hesabı sil) kapalı. */
+  /** Sağdaki chevron (varsayılan açık); gerekirse kapatılabilir. */
   chevron?: boolean;
   role?: 'link' | 'button';
 }
@@ -48,7 +48,7 @@ export function ProfileRow({
         <Icon
           name={icon}
           size={iconSize.lg}
-          color={tone === 'danger' ? colors.danger[600]! : colors.text.heading}
+          color={tone === 'danger' ? colors.danger[700]! : colors.text.heading}
         />
       ) : null}
       <Text

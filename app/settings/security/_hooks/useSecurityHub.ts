@@ -34,6 +34,7 @@ export function useSecurityHub() {
     openPassword: () => router.push('/settings/security/password'),
     openTwoFactor: () => router.push('/settings/security/two-factor'),
     openPhone: () => router.push('/settings/security/phone'),
+    openDeleteAccount: () => router.push('/settings/delete-account'),
     logoutAllPending: logoutAll.isPending,
     logoutAllDevices: async () => {
       const ok = await confirm({
