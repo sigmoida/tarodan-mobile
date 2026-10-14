@@ -77,4 +77,20 @@ export const styles = StyleSheet.create({
     marginTop: spacing[2],
     alignSelf: 'flex-start',
   },
+  // Web `ListingCard`: güncel fiyat solda, indirimdeyse eski fiyat (üstü çizili) + rozet sağda.
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: spacing[2],
+  },
+  priceSale: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  priceOld: {
+    textDecorationLine: 'line-through',
+  },
 });

@@ -4,7 +4,7 @@ import type { MessageKey } from '@/i18n/lib';
 import { View } from 'react-native';
 import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
-import { Alert, Button, Checkbox, ChipTabs, EmptyState, IconButton, ProgressBar, SectionCard, Text, theme, Icon, Pill, ButtonRow, ListRowCard } from '@/ui';
+import { Alert, Badge, Button, Checkbox, ChipTabs, EmptyState, IconButton, ProgressBar, SectionCard, Text, theme, Icon, Pill, ButtonRow, ListRowCard } from '@/ui';
 
 import UpgradeCta from '@/components/UpgradeCta';
 import { styles } from '../_lib/styles';
@@ -18,9 +18,42 @@ import {
 } from '../_lib/types';
 import type { MyListingsController } from '../_hooks/useMyListings';
 import { formatPrice } from '@/utils/format';
+import {
+  getProductEffectivePrice,
+  getProductOriginalPriceForDisplay,
+  isProductOnSaleDisplay,
+} from '@/utils/productPrice';
 
 const { colors } = theme;
 const STAT_ICON = theme.iconSize.sm;
+
+/**
+ * İlan fiyatı (web `ListingCard`): güncel satış fiyatı; indirimdeyse eski fiyat üstü
+ * çizili + "İndirim" rozeti. Kural `@/utils/productPrice`, biçim `formatPrice`.
+ */
+function ListingPrice({ listing }: { listing: Listing }) {
+  const { t } = useTranslation();
+  const effective = getProductEffectivePrice(listing);
+  const original = getProductOriginalPriceForDisplay(listing);
+  const onSale = isProductOnSaleDisplay(listing) && original > effective;
+  return (
+    <View style={styles.priceRow}>
+      <Text variant="body" weight="bold" tone="primary" testID={`listing-price-${listing.id}`}>
+        {formatPrice(effective)}
+      </Text>
+      {onSale ? (
+        <View style={styles.priceSale}>
+          <Text variant="bodySm" tone="subtle" style={styles.priceOld} testID={`listing-old-price-${listing.id}`}>
+            {formatPrice(original)}
+          </Text>
+          <Badge variant="danger" size="sm">
+            {t('product.discount')}
+          </Badge>
+        </View>
+      ) : null}
+    </View>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Listing-quota card with progress bar
@@ -139,7 +172,7 @@ export function MyListingCard({
             onPress={onMenu}
           />
         </View>
-        <Text variant="body" weight="bold" tone="primary">{formatPrice(listing.price)}</Text>
+        <ListingPrice listing={listing} />
 
         {/* Stats */}
         <View style={styles.listingStats}>
