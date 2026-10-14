@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { membershipApi } from '@/lib/api';
+import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 
 /**
@@ -17,7 +18,7 @@ export function useProfileData() {
   // indirir (web ile parite). user.membershipTier bayat kalabilir; rozet/ikon
   // bunun yerine API'nin döndürdüğü efektif tier'ı kullanmalı.
   const { data: membershipData } = useQuery({
-    queryKey: ['membership-me'],
+    queryKey: qk.membership.me,
     queryFn: async () => {
       try {
         const response = await membershipApi.getCurrentMembership();
@@ -37,7 +38,7 @@ export function useProfileData() {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await queryClient.refetchQueries({ queryKey: ['membership-me'] });
+      await queryClient.refetchQueries({ queryKey: qk.membership.me });
     } finally {
       setRefreshing(false);
     }

@@ -14,5 +14,11 @@ export function useTwoFactorStatus() {
     retry: false,
     queryFn: async () => !!unwrap((await authApi.getTwoFactorStatus()).data).isEnabled,
   });
-  return { isEnabled: query.data ?? false, isLoading: query.isLoading };
+  return {
+    isEnabled: query.data ?? false,
+    isLoading: query.isLoading,
+    /** Durum alınamadı: "kapalı" varsayımı GÖSTERİM içindir; kurulumu kendiliğinden başlatmaz. */
+    isError: query.isError,
+    refetch: query.refetch,
+  };
 }

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { Share } from 'react-native';
 import { router } from 'expo-router';
+import { navigateTo } from '@/lib/navigation/goTo';
 import { toast } from '@/ui';
 import { useCartStore } from '@/stores/cartStore';
 import { useCartSync } from '@/hooks/useCartSync';
@@ -111,7 +112,8 @@ export function useProductActions({
     router.push('/checkout?buyNow=1' as any);
   };
 
-  const handleGoToCart = () => router.push('/cart' as any);
+  // Sepet bir SEKME: yığın ekranından `push` ikinci bir `(tabs)` iterdi (`navigateTo` → dismissTo).
+  const handleGoToCart = () => navigateTo('/cart');
 
   const handleMessage = () => {
     if (!product) return;

@@ -71,15 +71,24 @@ export function useTwoFactorFlow() {
 
   // İlk çözülen durum "kapalı" ise kurulum kendiliğinden başlar — ekran başına bir kez. 2FA
   // ekranda kapatılırsa (durum sonradan "kapalı" olur) yeniden başlatılmaz; ekran zaten kapanır.
+  // Durum ALINAMADIYSA (`isError`, "kapalı" yalnız varsayım) otomatik `enable` yok: 2FA aslında
+  // açıksa kurulum çağrısı gizli anahtarı yeniden üretebilirdi. Hata ekranı + yeniden dene durumu
+  // tekrar sorar; durum gelince bu effect kurulumu (gerekirse) başlatır.
   const autoStarted = useRef(false);
   useEffect(() => {
-    if (autoStarted.current || status.isLoading) return;
+    if (autoStarted.current || status.isLoading || status.isError) return;
     autoStarted.current = true;
     if (!status.isEnabled) startSetup();
-  }, [status.isLoading, status.isEnabled, startSetup]);
+  }, [status.isLoading, status.isError, status.isEnabled, startSetup]);
 
   const waitingForSetup = view === 'setup' && !setup;
-  const startFailed = waitingForSetup && start.isError;
+  const statusFailed = waitingForSetup && status.isError;
+  const startFailed = waitingForSetup && (start.isError || statusFailed);
+  const refetchStatus = status.refetch;
+  const retrySetup = useCallback(() => {
+    if (statusFailed) void refetchStatus();
+    else startSetup();
+  }, [statusFailed, refetchStatus, startSetup]);
 
   const copy = (text: string) => {
     if (!copyToClipboard(text)) return;
@@ -95,8 +104,12 @@ export function useTwoFactorFlow() {
     codeForm,
     // Kurulum
     /** `enable` başarısız: ekran ErrorState gösterir (mesaj sunucudan, yoksa katalog). */
-    startError: startFailed ? apiErrorMessage(start.error, t('profile.twoFactor.setupFailed')) : null,
-    retrySetup: startSetup,
+    startError: startFailed
+      ? statusFailed
+        ? t('profile.twoFactor.setupFailed')
+        : apiErrorMessage(start.error, t('profile.twoFactor.setupFailed'))
+      : null,
+    retrySetup,
     isVerifying: verify.isPending,
     submitVerify: codeForm.handleSubmit(({ code: value }) => {
       if (verify.isPending) return;

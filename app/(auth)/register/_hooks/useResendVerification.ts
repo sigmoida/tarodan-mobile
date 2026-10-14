@@ -18,8 +18,9 @@ export function useResendVerification(email: string | null) {
 
   useEffect(() => {
     if (cooldown <= 0) return;
-    const id = setInterval(() => setCooldown((s) => Math.max(0, s - 1)), 1000);
-    return () => clearInterval(id);
+    // Her saniye bir tik: effect `cooldown` değişince yeniden kurulur (interval gerekmez).
+    const id = setTimeout(() => setCooldown((s) => Math.max(0, s - 1)), 1000);
+    return () => clearTimeout(id);
   }, [cooldown]);
 
   const startCooldown = useCallback(() => setCooldown(RESEND_COOLDOWN_SECONDS), []);

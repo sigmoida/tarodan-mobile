@@ -13,7 +13,7 @@ import { toast } from '@/ui';
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
-jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
+jest.mock('expo-router', () => ({ router: { push: jest.fn(), dismissTo: jest.fn() } }));
 jest.mock('@/lib/api', () => ({
   cartApi: { addItem: jest.fn(() => Promise.resolve()), removeItem: jest.fn(() => Promise.resolve()) },
 }));
@@ -141,6 +141,8 @@ describe('Hemen Al', () => {
   it('"Sepete Git" sepet ekranını açar', () => {
     const { result } = setup();
     act(() => result.current.handleGoToCart());
-    expect(router.push).toHaveBeenCalledWith('/cart');
+    // Sekme hedefi: ikinci bir `(tabs)` itilmez, alttaki sekmeye dönülür.
+    expect(router.dismissTo).toHaveBeenCalledWith('/(tabs)/cart');
+    expect(router.push).not.toHaveBeenCalled();
   });
 });
