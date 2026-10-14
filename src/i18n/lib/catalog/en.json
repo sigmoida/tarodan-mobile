@@ -1124,6 +1124,7 @@
     "carrier": "Carrier",
     "filterCancelled": "Cancelled",
     "filterRefunds": "Refunds",
+    "emptyCancelled": "You have no cancelled orders.",
     "unitTimes": "x",
     "productInfoUnavailable": "Product info could not be loaded",
     "buyer": "Buyer",

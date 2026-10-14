@@ -40,7 +40,14 @@ export type OrderListEntry =
   | { kind: 'group'; group: OrderGroup };
 
 export type FilterType =
-  | 'all' | 'pending' | 'processing' | 'shipped' | 'delivered' | 'completed' | 'refunds';
+  | 'all'
+  | 'pending'
+  | 'processing'
+  | 'shipped'
+  | 'delivered'
+  | 'completed'
+  | 'cancelled'
+  | 'refunds';
 
 // Durum haritası ve çeviri hook'ları TEK kaynakta (`@/lib/shared/orderStatus`) —
 // bu dosya yalnız yeniden dışa aktarır ki üç rota da aynı sözlüğü görsün.

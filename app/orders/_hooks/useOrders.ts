@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { ordersApi } from '@/lib/api';
+import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import { apiStatusToUi, uiFilterToApiStatusParam } from '@/utils/orderStatus';
 import {
@@ -35,14 +36,16 @@ export function useOrders() {
   };
 
   // Fetch orders.
-  // Alıcı + "Tümü": gruplu liste (tek checkout = tek kart, çok ürün destekli).
-  // Diğer filtreler ve satıcı sekmesi: düz sipariş listesi (durum filtreli).
-  const useGroupedList = role === 'buyer' && filter === 'all';
+  // Alıcı + "Tümü" / "İptal edilenler": gruplu liste (tek checkout = tek kart, çok
+  // ürün destekli) — web gibi `GET /orders/groups?tab=active|cancelled`. Sunucu
+  // `active` sekmesinde iptalleri DIŞLAR; iptaller yalnız `cancelled` sekmesinde gelir.
+  // Diğer filtreler: düz sipariş listesi (durum filtreli).
+  const groupTab = filter === 'all' ? 'active' : filter === 'cancelled' ? 'cancelled' : null;
   const { data: ordersData, isLoading, refetch, error: ordersError } = useQuery({
-    queryKey: ['orders', role, filter],
+    queryKey: qk.orders.list({ role, filter }),
     queryFn: async (): Promise<OrderListEntry[]> => {
-      if (useGroupedList) {
-        const response = await ordersApi.getGroups({ limit: 50, page: 1 });
+      if (groupTab) {
+        const response = await ordersApi.getGroups({ role, tab: groupTab, limit: 50, page: 1 });
         const raw = response.data?.data ?? response.data;
         const list = Array.isArray(raw) ? raw : [];
         return list.map((rawGroup: any): OrderListEntry => {

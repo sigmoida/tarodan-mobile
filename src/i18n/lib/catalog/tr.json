@@ -1124,6 +1124,7 @@
     "carrier": "Firma",
     "filterCancelled": "İptal edilenler",
     "filterRefunds": "İadeler",
+    "emptyCancelled": "İptal edilmiş siparişiniz yok.",
     "unitTimes": "adet ×",
     "productInfoUnavailable": "Ürün bilgisi yüklenemedi",
     "buyer": "Alıcı",

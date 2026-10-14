@@ -19,7 +19,16 @@ import {
 import { OrderCard } from './OrderCard';
 import type { OrdersController } from '../_hooks/useOrders';
 
-const FILTER_ORDER: FilterType[] = ['all', 'pending', 'processing', 'shipped', 'delivered', 'completed', 'refunds'];
+const FILTER_ORDER: FilterType[] = [
+  'all',
+  'pending',
+  'processing',
+  'shipped',
+  'delivered',
+  'completed',
+  'cancelled',
+  'refunds',
+];
 
 // ---------------------------------------------------------------------------
 // Filter chips (web Tabs karşılığı — yatay kaydırılan chip'ler)
@@ -37,9 +46,11 @@ export function OrdersFilters({ f }: { f: OrdersController }) {
         label:
           key === 'all'
             ? t('order.tabAll')
-            : key === 'refunds'
-              ? t('order.tabRefunds')
-              : statusText(key as UiOrderStatus),
+            : key === 'cancelled'
+              ? t('order.filterCancelled')
+              : key === 'refunds'
+                ? t('order.tabRefunds')
+                : statusText(key as UiOrderStatus),
       }))}
     />
   );
@@ -53,9 +64,11 @@ export function useOrdersEmptyTitle(filter: FilterType): string {
   const statusText = useStatusText();
   return filter === 'all'
     ? t('order.noOrders')
-    : filter === 'refunds'
-      ? t('order.noRefunds')
-      : t('order.noOrdersForStatus', { status: statusText(filter as UiOrderStatus) });
+    : filter === 'cancelled'
+      ? t('order.emptyCancelled')
+      : filter === 'refunds'
+        ? t('order.noRefunds')
+        : t('order.noOrdersForStatus', { status: statusText(filter as UiOrderStatus) });
 }
 
 // ---------------------------------------------------------------------------
