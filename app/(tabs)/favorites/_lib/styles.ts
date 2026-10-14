@@ -3,8 +3,8 @@ import { theme } from '@/ui';
 
 const { colors, spacing } = theme;
 
-/** Satırdaki ürün görseli (pt). */
-const THUMB = spacing[24];
+/** Sabit kart yüksekliği = kare görsel kenarı (pt): 96 + 16 = 112. */
+const THUMB = spacing[24] + spacing[4];
 
 // Route-local stylesheet (§12) — satır kartı web Card (bordered), token'lı.
 export const styles = StyleSheet.create({
@@ -16,20 +16,20 @@ export const styles = StyleSheet.create({
     marginBottom: spacing[3],
     overflow: 'hidden',
   },
+  // Sabit boy: her kart aynı yükseklikte, görsel sabit kare.
   // [görsel — kartın sol tarafını boydan boya kaplar] [bilgi sütunu]
   cardContent: {
     flexDirection: 'row',
-    alignItems: 'stretch',
+    height: THUMB,
   },
   // Görsel sarmalayıcısı satır yüksekliğine uzar → görsel kartın solunu boydan boya doldurur.
   imageWrap: {
     width: THUMB,
-    alignSelf: 'stretch',
+    height: THUMB,
   },
   productImage: {
-    width: '100%',
-    height: '100%',
-    minHeight: THUMB,
+    width: THUMB,
+    height: THUMB,
     backgroundColor: colors.surface.alt,
   },
   productInfo: {
@@ -51,9 +51,13 @@ export const styles = StyleSheet.create({
     gap: spacing[1],
   },
   price: {
-    flex: 1,
+    flexShrink: 1,
     minWidth: 0,
     color: theme.priceColor.card,
+  },
+  // Fiyat ile ikonlar arasındaki esnek boşluk → ikonlar sağa dayalı.
+  spacer: {
+    flex: 1,
   },
   statusBadge: {
     alignSelf: 'center',

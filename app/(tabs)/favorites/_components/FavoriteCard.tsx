@@ -54,6 +54,7 @@ export function FavoriteCard({ item, f }: { item: WishlistItem; f: FavoritesScre
               style={styles.price}
               testID={`favorite-price-${item.productId}`}
             />
+            <View style={styles.spacer} />
             <IconButton
               icon="heart"
               iconVariant="solid"
