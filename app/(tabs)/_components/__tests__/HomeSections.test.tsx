@@ -90,7 +90,10 @@ describe('üretici şeridi', () => {
     rerender(<BrandsStrip items={[{ id: 'm1', name: 'Hot Wheels' }]} />);
     fireEvent.press(screen.getByText('Hot Wheels'));
     // Web menüsüyle aynı: ad (çip etiketi) + id (API süzgeci) birlikte.
-    expect(router.push).toHaveBeenCalledWith('/search?manufacturer=Hot%20Wheels&manufacturerId=m1');
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/search',
+      params: { manufacturer: 'Hot Wheels', manufacturerId: 'm1' },
+    });
   });
 });
 

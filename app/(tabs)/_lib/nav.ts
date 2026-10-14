@@ -11,10 +11,10 @@ export const goScale = (scale: string) => router.push(`/search?scale=${encodeURI
 // Anasayfa "Markalar" şeridi aslında üreticiler — web menüsüyle aynı: id (API süzgeci, ad
 // eşleşmesinden bağımsız) + ad (aktif filtre çipi etiketi) birlikte.
 export const goBrand = (brand: { id: string; name: string }) =>
-  router.push(
-    `/search?manufacturer=${encodeURIComponent(brand.name)}` +
-      (brand.id ? `&manufacturerId=${encodeURIComponent(brand.id)}` : ''),
-  );
+  router.push({
+    pathname: '/search',
+    params: brand.id ? { manufacturer: brand.name, manufacturerId: brand.id } : { manufacturer: brand.name },
+  });
 
 export const goCategory = (cat: { id: string; name: string }) =>
   router.push(`/search?categoryId=${encodeURIComponent(cat.id)}&category=${encodeURIComponent(cat.name)}`);
