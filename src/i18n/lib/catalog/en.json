@@ -2338,8 +2338,6 @@
       "empty": "You have no expired listings.",
       "emptyDescription": "Your expired listings are listed here."
     },
-    "deleteBlockedManageListings": "Manage my listings",
-    "deleteBlockedReservedNote": "{count} of your listings are reserved for a sale, so they cannot be closed or deleted right now. This block clears once the sale is completed or cancelled; you can follow it under My Sales.",
     "sidebar": {
       "alisveris": "Shopping",
       "indirimlerim": "My Discounts",
@@ -2814,6 +2812,9 @@
     "showEmail": "Show Email",
     "showPhone": "Show Phone",
     "deleteAccount": "Delete Account",
+    "deleteAccountWarning": "All your data, listings, and order history will be permanently deleted.",
+    "deleteAccountKeyword": "DELETE",
+    "deleteAccountTypePrompt": "Type {keyword} to confirm:",
     "deleteAccountConfirm": "Are you sure you want to delete your account? This action cannot be undone.",
     "accountDeleted": "Your account has been deleted",
     "settingUpdated": "Setting updated",
@@ -3374,7 +3375,7 @@
     },
     "deleteAccount": {
       "q": "How do I delete my account?",
-      "a": "You can permanently delete your account from Profile > Settings > Account > ''Delete Account''. This action is permanent and cannot be undone."
+      "a": "You can permanently delete your account from Profile > ''Delete Account''. This action is permanent and cannot be undone."
     },
     "orderTracking": {
       "q": "How do I track my order?",
