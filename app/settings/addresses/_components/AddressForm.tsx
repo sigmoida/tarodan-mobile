@@ -4,6 +4,7 @@ import { Button, Checkbox, SectionCard } from '@/ui';
 import { Form, FormError, FormInput } from '@/ui/form';
 import { PageShell } from '@/components/common/PageShell';
 import { CityDistrictSelector, PhoneInput } from '@/components/common';
+import { ADDRESS_LIMITS } from '../_lib/schema';
 import { styles } from '../_lib/styles';
 import type { Address } from '../_lib/types';
 import { useAddressForm } from '../_hooks/useAddressForm';
@@ -11,7 +12,8 @@ import { useAddressForm } from '../_hooks/useAddressForm';
 /**
  * Yeni / düzenle adres EKRANI gövdesi (iki rota da bunu kompoze eder): PageShell
  * (klavye kaçınma + sabit alt çubuk) + tek SectionCard içinde alanlar. Kaydet alt
- * çubukta, klavyenin üstünde; doğrulama özeti (`FormError`) hemen üstünde.
+ * çubukta, klavyenin üstünde; hatalı alanların ADLARI + sunucu hatası (`FormError`) hemen
+ * üstünde, ayrıntı her alanın (il/ilçe dahil) altında.
  * Form/mutasyon `useAddressForm`'da.
  */
 export function AddressForm({ address }: { address: Address | null }) {
@@ -45,12 +47,14 @@ export function AddressForm({ address }: { address: Address | null }) {
             testID="address-title-input"
             label={`${t('address.addressTitleLabel')} *`}
             placeholder={t('mobile.addressTitlePlaceholder')}
+            maxLength={ADDRESS_LIMITS.titleMax}
             containerStyle={styles.input}
           />
           <FormInput
             name="fullName"
             testID="address-fullname-input"
             label={`${t('address.fullName')} *`}
+            maxLength={ADDRESS_LIMITS.fullNameMax}
             containerStyle={styles.input}
           />
           <Controller
@@ -76,13 +80,14 @@ export function AddressForm({ address }: { address: Address | null }) {
             label={`${t('address.address')} *`}
             multiline
             numberOfLines={2}
+            maxLength={ADDRESS_LIMITS.addressMax}
             containerStyle={styles.input}
           />
           <CityDistrictSelector
             city={city}
             district={district}
-            cityError={!!errors.city}
-            districtError={!!errors.district}
+            cityError={errors.city?.message}
+            districtError={errors.district?.message}
             onChangeCity={(next) => setField('city', next)}
             onChangeDistrict={(next) => setField('district', next)}
           />
@@ -91,6 +96,7 @@ export function AddressForm({ address }: { address: Address | null }) {
             testID="address-zip-input"
             label={t('address.zipCode')}
             keyboardType="numeric"
+            maxLength={ADDRESS_LIMITS.zipCodeMax}
             containerStyle={styles.input}
           />
           <Checkbox

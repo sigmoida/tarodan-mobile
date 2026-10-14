@@ -91,4 +91,15 @@ describe('CityDistrictSelector (SelectSheet)', () => {
     expect(screen.getByText('Önce il seçin')).toBeTruthy();
     expect(screen.getByTestId('district-select-trigger').props.accessibilityState).toMatchObject({ disabled: true });
   });
+
+  it('hata metni alanın ALTINDA görünür (adres formu: "Şehir seçiniz" / "İlçe seçiniz")', () => {
+    setup({ cityError: 'Şehir seçiniz', districtError: 'İlçe seçiniz' });
+    expect(screen.getByText('Şehir seçiniz')).toBeTruthy();
+    expect(screen.getByText('İlçe seçiniz')).toBeTruthy();
+  });
+
+  it('hata yalnız `true` ise metin yok (yalnız çerçeve)', () => {
+    setup({ cityError: true });
+    expect(screen.queryByText('Şehir seçiniz')).toBeNull();
+  });
 });

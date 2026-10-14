@@ -452,7 +452,12 @@
     "kepAddress": "Şirket KEP Adresi",
     "kepAddressPlaceholder": "sirket@hs01.kep.tr",
     "companyPhone": "Telefon Numarası",
-    "submitCorporateApplication": "Kurumsal Başvuruyu Gönder"
+    "submitCorporateApplication": "Kurumsal Başvuruyu Gönder",
+    "fullName": "Ad Soyad",
+    "pwHintMinLength": "En az {min} karakter olmalı",
+    "pwHintUppercase": "En az 1 büyük harf ekleyin",
+    "pwHintLowercase": "En az 1 küçük harf ekleyin",
+    "pwHintNumber": "En az 1 rakam ekleyin"
   },
   "brands": {
     "title": "Markalar",
@@ -2673,7 +2678,9 @@
       "detail_too_long": "Açıklama en fazla {max} karakter olabilir"
     },
     "currentPasswordRequired": "Mevcut şifrenizi girin",
-    "repeatNewPassword": "Yeni şifreyi tekrar girin"
+    "repeatNewPassword": "Yeni şifreyi tekrar girin",
+    "selectCity": "Şehir seçiniz",
+    "selectDistrict": "İlçe seçiniz"
   },
   "time": {
     "justNow": "Az önce",
@@ -2768,7 +2775,8 @@
     "addressMinLength": "Adres en az 10 karakter olmalıdır",
     "authGateSubtitle": "Adreslerinizi görmek için giriş yapın",
     "emptySubtitle": "Teslimat adresinizi ekleyin",
-    "addressTitleLabel": "Adres Başlığı"
+    "addressTitleLabel": "Adres Başlığı",
+    "checkFields": "Şu alanları kontrol edin: {fields}"
   },
   "contact": {
     "title": "İletişim",
@@ -7934,7 +7942,6 @@
     }
   },
   "security": {
-    "passwordRules": "Şifre en az 8 karakter, bir büyük harf, bir küçük harf, bir rakam ve bir özel karakter (@$!%*?&) içermelidir",
     "passwordChangeFailed": "Şifre değiştirilemedi",
     "twoFactorQrAlt": "İki adımlı doğrulama QR kodu",
     "twoFactorEnabled": "İki faktörlü doğrulama aktifleştirildi",

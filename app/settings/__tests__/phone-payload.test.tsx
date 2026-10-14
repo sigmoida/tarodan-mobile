@@ -117,11 +117,10 @@ describe('Adres formu — alana yazılan telefon payload\'a ne olarak gidiyor', 
     '%s → gönderim DURUR, kırpılmış numara API\'ye SIZMAZ',
     async (input) => {
       await fillAndSave(input);
-      // Uyarı satır içi: alanın altında VE alt çubuktaki özet satırında AYNI metin
-      // (iki yerde iki kural anlatılmaz); appAlert yok.
-      await waitFor(() =>
-        expect(screen.getAllByText(getPhoneInvalidMessage()).length).toBeGreaterThanOrEqual(2),
-      );
+      // Uyarı satır içi: kural metni alanın altında; alt çubuktaki özet yalnız hatalı
+      // alanın ADINI söyler (iki yerde iki kural anlatılmaz); appAlert yok.
+      await waitFor(() => expect(screen.getByText(getPhoneInvalidMessage())).toBeTruthy());
+      expect(screen.getByText('address.checkFields')).toBeTruthy();
       expect(appAlert).not.toHaveBeenCalled();
       expect(post).not.toHaveBeenCalled();
     },

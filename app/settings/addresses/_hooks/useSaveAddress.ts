@@ -14,18 +14,21 @@ const isClientPhoneError = (e: unknown): e is ClientPhoneError =>
 
 /**
  * Oluştur (`addressId` yok → POST) / güncelle (PATCH) mutasyonu. Liste sorgusunu
- * geçersiz kılar ve başarı toast'ını atar; sunucu hatası `toast.error` (form
- * ekranı açık kalır, kullanıcı yeniden dener). İstemci telefon reddi toast
+ * geçersiz kılar ve başarı toast'ını atar; sunucu hatası `toast.error` + formda kalıcı
+ * (`onServerError` → `FormError`; ekran açık kalır, kullanıcı düzeltip yeniden dener). İstemci telefon reddi toast
  * DEĞİL, `onPhoneRejected` ile alanın altına gider.
  */
 export function useSaveAddress({
   addressId,
   onSaved,
   onPhoneRejected,
+  onServerError,
 }: {
   addressId?: string;
   onSaved: () => void;
   onPhoneRejected: (message: string) => void;
+  /** Sunucu reddi (400 vb.): tüm satırlar formda kalıcı gösterilir (toast kaybolur). */
+  onServerError: (message: string) => void;
 }) {
   const { t } = useTranslation();
   return useAppMutation(
@@ -39,7 +42,15 @@ export function useSaveAddress({
       if (!phone) {
         throw Object.assign(new Error(getPhoneInvalidMessage()), { isClientValidation: true as const });
       }
-      const payload = { ...rest, phone, zipCode: postalCode };
+      // Şema kırpılmış uzunluğu denetliyor; sunucu ham uzunluğu — kenar boşlukları gitmesin.
+      const payload = {
+        ...rest,
+        title: rest.title.trim(),
+        fullName: rest.fullName.trim(),
+        address: rest.address.trim(),
+        phone,
+        zipCode: postalCode.trim(),
+      };
       return addressId
         ? api.patch(`/users/me/addresses/${addressId}`, payload)
         : api.post('/users/me/addresses', payload);
@@ -52,7 +63,10 @@ export function useSaveAddress({
       onSuccess: onSaved,
       onError: (e) => {
         if (isClientPhoneError(e)) onPhoneRejected(e.message);
-        else toast.error(apiErrorMessage(e, t('address.saveFailed')));
+        else {
+          toast.error(apiErrorMessage(e, t('address.saveFailed')));
+          onServerError(apiErrorMessage(e, t('address.saveFailed'), 'all'));
+        }
       },
     },
   );

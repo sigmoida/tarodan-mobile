@@ -15,8 +15,9 @@ import { useSaveAddress } from './useSaveAddress';
 
 /**
  * Yeni / düzenle adres ekranının denetleyicisi: `useZodForm` + şema, kaydetme
- * mutasyonu, taslak koruması. Başarı: korumayı tek seferlik kaldır → geri dön (toast
- * mutasyonda). Doğrulama hatası alanların altında + alt çubukta tek satır özet.
+ * mutasyonu, taslak koruması. Başarı: korumayı kaldır → geri dön (toast mutasyonda).
+ * Doğrulama hatası alanların altında + alt çubukta hatalı alan adları; sunucu hatası
+ * alt çubukta kalıcı (toast yanında).
  */
 export function useAddressForm(address: Address | null) {
   const { t } = useTranslation();
@@ -28,12 +29,13 @@ export function useAddressForm(address: Address | null) {
 
   const save = useSaveAddress({
     addressId: address?.id,
-    // Koruma tek seferlik kalkar, sonra geri dönülür (geçmiş yoksa ana sekme).
+    // Koruma kalkar (ekran kapanana dek), sonra geri dönülür (geçmiş yoksa ana sekme).
     onSaved: () => guard.leave(goBackOrHome),
     onPhoneRejected: (message) => {
       form.setError('phone', { message });
       form.setError('root', { message });
     },
+    onServerError: (message) => form.setError('root', { message }),
   });
 
   /** İl/ilçe/varsayılan gibi metin dışı alanlar: kirli işaretle, gönderimden sonra canlı doğrula. */

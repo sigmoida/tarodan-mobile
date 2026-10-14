@@ -25,9 +25,9 @@ interface Props {
   onChangeDistrict: (district: string) => void;
   /** İlçeyi gizle (örn. checkout'ta tek satır il gösterimi) */
   hideDistrict?: boolean;
-  /** Form hata stili göster */
-  cityError?: boolean;
-  districtError?: boolean;
+  /** Form hatası: metin → alanın altında mesaj + kırmızı çerçeve; `true` → yalnız çerçeve. */
+  cityError?: string | boolean;
+  districtError?: string | boolean;
 }
 
 export function CityDistrictSelector({
