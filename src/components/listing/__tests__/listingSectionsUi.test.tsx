@@ -100,9 +100,12 @@ describe('Kota kartı', () => {
 });
 
 describe('Kargo paket kartları — ekran genişliği', () => {
-  it('geniş ekranda üç sütun, 360pt + font 1.3 ve 375pt + font 1.3 tek sütun', () => {
+  // Kartta "Paket ücreti" tutarı da var (tek satır, bölünmez): 375pt'de üç sütun sığmaz.
+  it('geniş ekranda üç sütun; 375pt ve 360pt + font 1.3 tek sütun (satır kart)', () => {
     expect(tierColumns(430, 1)).toBe(3);
-    expect(tierColumns(375, 1)).toBe(3);
+    expect(tierColumns(393, 1)).toBe(3);
+    expect(tierColumns(430, 1.3)).toBe(1);
+    expect(tierColumns(375, 1)).toBe(1);
     expect(tierColumns(360, 1.3)).toBe(1);
     expect(tierColumns(375, 1.3)).toBe(1);
   });

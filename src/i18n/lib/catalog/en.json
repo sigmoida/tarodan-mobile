@@ -813,7 +813,13 @@
     "statusRejectedDesc": "This listing was rejected and is not published.",
     "modelCode": "Model code",
     "layoutGrid": "Grid",
-    "layoutList": "List"
+    "layoutList": "List",
+    "shippingFee": "Shipping fee",
+    "sellerEarning": "Your earnings",
+    "commissionRuleUnavailable": "This listing cannot be created because no active commission rule matches your category, price, and membership type.",
+    "packageFeeLabel": "Package fee",
+    "sampleDimensionsLabel": "Sample size (W × L × H)",
+    "packageFeeNeedsPriceAndCategory": "Enter a price and a category to see your package fee."
   },
   "cart": {
     "addToCartFailed": "Could not add to cart",
@@ -8169,7 +8175,8 @@
     "colorLimitMsg": "You can select up to {max} colors.",
     "colorLimitHint": "Select up to {max} colors",
     "boxedRequiredMsg": "Please choose whether the item is boxed.",
-    "attributeRequiredMsg": "Please select {name}."
+    "attributeRequiredMsg": "Please select {name}.",
+    "saleStartsOn": "The discount starts on {date}."
   },
   "boost": {
     "title": "Boost Listing",

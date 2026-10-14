@@ -813,7 +813,13 @@
     "statusRejectedDesc": "Bu ilan reddedildi ve yayında değil.",
     "modelCode": "Model kodu",
     "layoutGrid": "Izgara",
-    "layoutList": "Liste"
+    "layoutList": "Liste",
+    "shippingFee": "Kargo ücreti",
+    "sellerEarning": "Hak edişiniz",
+    "commissionRuleUnavailable": "Kategori, fiyat ve üyelik tipinize uygun aktif komisyon kuralı bulunamadığı için bu ilan oluşturulamaz.",
+    "packageFeeLabel": "Paket ücreti",
+    "sampleDimensionsLabel": "Örnek ölçü (en × boy × yükseklik)",
+    "packageFeeNeedsPriceAndCategory": "Paket ücretinizi görmek için fiyat ve kategori girin."
   },
   "cart": {
     "addToCartFailed": "Sepete eklenemedi",
@@ -8169,7 +8175,8 @@
     "colorLimitMsg": "En fazla {max} renk seçebilirsiniz.",
     "colorLimitHint": "En fazla {max} renk seçebilirsiniz",
     "boxedRequiredMsg": "Lütfen ürünün kutulu olup olmadığını seçin.",
-    "attributeRequiredMsg": "Lütfen {name} seçin."
+    "attributeRequiredMsg": "Lütfen {name} seçin.",
+    "saleStartsOn": "İndirim {date} tarihinde başlar."
   },
   "boost": {
     "title": "İlanı Öne Çıkar",

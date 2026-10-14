@@ -6,30 +6,61 @@ import { formatPrice } from '@/utils/format';
 
 import type { ListingFormController } from '../_hooks/useListingForm';
 import { fieldStyles } from './fields';
+import { formatSaleDay } from '../_lib/sale';
 
 const { colors, spacing } = theme;
 
 type SectionProps = { f: ListingFormController };
 
-/** Satış başına tahmini kesinti / net kazanç kutusu (web `PricingCard` alt kutusu). */
+function BreakdownRow({ label, value, tone }: { label: string; value: string; tone: 'default' | 'deduction' | 'net' }) {
+  const net = tone === 'net';
+  return (
+    <View style={styles.row}>
+      <Text variant="bodySm" tone={net ? 'heading' : 'muted'} weight={net ? 'semibold' : undefined} style={styles.rowLabel}>
+        {label}
+      </Text>
+      <Text
+        variant="bodySm"
+        numberOfLines={1}
+        tone={net ? 'success' : tone === 'deduction' ? 'danger' : 'heading'}
+        weight={net ? 'semibold' : 'medium'}
+        style={styles.rowValue}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * Satış başına özet (web `PricingCard` → `PricingBreakdown`): TAM İKİ SATIR —
+ * satıcının üstlendiği kargo ücreti ve hak ediş. Komisyon/KDV/stopaj hak edişin
+ * içinde. Kargo payı 0 ise satır gizlenmez (sıfır mı, hesaba katılmadı mı belli olsun).
+ * Önizleme alınamazsa (ör. eşleşen komisyon kuralı yok) web'in hata metni.
+ */
 function CommissionPreview({ f }: SectionProps) {
   const { t } = useTranslation();
-  if (!f.commissionLoading && !f.commissionPreview) return null;
+  const p = f.commissionPreview;
+  if (!f.commissionLoading && !p && !f.commissionError) return null;
   return (
-    <ListRowCard direction="column" padding={3} gap={1.5} style={styles.commission}>
+    <ListRowCard direction="column" padding={3} gap={1.5} style={styles.commission} testID="commission-preview">
       <Text variant="label" tone="muted">
         {t('product.estimatedPerSale')}
       </Text>
       {f.commissionLoading ? (
         <Spinner size="sm" color={colors.text.subtle} style={styles.commissionSpinner} />
-      ) : f.commissionPreview ? (
-        <View>
-          <Text variant="bodySm" tone="muted">
-            {t('listing.platformFeeLine', { amount: formatPrice(f.commissionPreview.sellerFeeAmount) })}
-          </Text>
-          <Text variant="bodySm" weight="semibold" color={colors.success[800]}>
-            {t('listing.netEarningLine', { amount: formatPrice(f.commissionPreview.sellerNetAmount) })}
-          </Text>
+      ) : f.commissionError ? (
+        <Text variant="bodySm" tone="danger">
+          {t('product.commissionRuleUnavailable')}
+        </Text>
+      ) : p ? (
+        <View style={styles.rows}>
+          <BreakdownRow
+            label={t('product.shippingFee')}
+            value={formatPrice(p.shippingAmount)}
+            tone={p.shippingAmount > 0 ? 'deduction' : 'default'}
+          />
+          <BreakdownRow label={t('product.sellerEarning')} value={formatPrice(p.sellerNetAmount)} tone="net" />
         </View>
       ) : null}
     </ListRowCard>
@@ -109,6 +140,11 @@ export function ListingPricingSection({ f }: SectionProps) {
           minimumDate={f.saleStartDate ? new Date(f.saleStartDate) : undefined}
           containerStyle={fieldStyles.flush}
         />
+        {f.saleStartsOn ? (
+          <Text variant="caption" tone="info" style={styles.saleHint} testID="sale-starts-later">
+            {t('listing.saleStartsOn', { date: formatSaleDay(f.saleStartsOn, t('common.dateLocale')) })}
+          </Text>
+        ) : null}
       </View>
 
       <CommissionPreview f={f} />
@@ -129,5 +165,23 @@ const styles = StyleSheet.create({
   },
   commissionSpinner: {
     alignSelf: 'flex-start',
+  },
+  rows: {
+    gap: spacing[2],
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing[4],
+  },
+  rowLabel: {
+    flexShrink: 1,
+  },
+  rowValue: {
+    fontVariant: ['tabular-nums'],
+  },
+  saleHint: {
+    marginTop: spacing[1.5],
   },
 });
