@@ -6,10 +6,11 @@ import { useDisputeDraftStore } from './disputeDraftStore';
 
 /**
  * Çıkışın kaynağı: `user` = kullanıcının kendi çıkışı (profil, ban/onay
- * ekranları, hesap silme); `forced` = oturum düştü (401 → refresh olmadı,
+ * ekranları); `accountDeleted` = hesap silindi (kendi çıkışı gibi temizlenir,
+ * sunucuya istek atılmaz); `forced` = oturum düştü (401 → refresh olmadı,
  * `client.ts` → `handleAuthFailure`).
  */
-export type LogoutReason = 'user' | 'forced';
+export type LogoutReason = 'user' | 'accountDeleted' | 'forced';
 
 /**
  * Çıkışta kullanıcıya özel tüm yerel state'i sıfırlar; yoksa rozetler
@@ -43,8 +44,9 @@ export function resetUserStores(reason: LogoutReason = 'user'): void {
   // isteğin 401'i süren ödemeyi düşürmesin, A yeniden girince sürsün — ama kimlik
   // misafire döner: her belirteç sahibini taşıdığı için A'nınki misafir oturumunda
   // eklenmez. Başka bir hesapla girişte `bindPaymentCapabilitiesToAccount` siler.
-  if (reason === 'user') void clearAllPaymentCapabilities();
-  else unbindPaymentCapabilityAccount();
+  // Hesap silme de kullanıcının kendi çıkışıdır: belirteçler silinir.
+  if (reason === 'forced') unbindPaymentCapabilityAccount();
+  else void clearAllPaymentCapabilities();
 }
 
 /**

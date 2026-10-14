@@ -13,6 +13,41 @@ import { IS_MAESTRO_NO_AUTOLOGIN, getMaestroAutoLoginCredentials } from "@/confi
 /** Çıkıştaki ağ çağrıları için üst sınır — kullanıcı bekletilmez. */
 const LOGOUT_NETWORK_TIMEOUT_MS = 5000;
 
+export interface LogoutOptions {
+  /**
+   * `user` (varsayılan) kullanıcının kendi çıkışı; `forced` 401 sonrası zorunlu çıkış
+   * (`client.ts`); `accountDeleted` hesap silme başarılı olduktan sonra.
+   */
+  reason?: LogoutReason;
+  /**
+   * Sunucuya HİÇ istek atma (push token iptali, `POST /auth/logout`); yalnız yerel temizlik.
+   * `accountDeleted`'da varsayılan `true`: sunucu silmede refresh/push token'larını zaten
+   * sildi; silinmiş hesabın token'ıyla atılan istek 401 → refresh 401 → `handleAuthFailure`
+   * → yeniden `logout` döngüsüne girerdi.
+   */
+  skipServer?: boolean;
+}
+
+/**
+ * Uçuştaki çıkış. Eşzamanlı `logout()` çağrıları (ör. çıkışın kendi ağ isteğinin 401'i →
+ * `handleAuthFailure`) yeni bir çıkış başlatmaz, bu sözü paylaşır.
+ */
+let inFlightLogout: Promise<void> | null = null;
+
+/** Bir çıkış sürüyor mu? `client.ts` `handleAuthFailure` bu sırada hiçbir şey yapmaz. */
+export function isLogoutInProgress(): boolean {
+  return inFlightLogout !== null;
+}
+
+/** Yerel temizlik adımı çıkışı yarıda bırakmasın (SecureStore hatası vb.). */
+async function bestEffort(step: string, fn: () => Promise<unknown>): Promise<void> {
+  try {
+    await fn();
+  } catch (error) {
+    logger.error("Logout local cleanup failed", { step, err: safeError(error) });
+  }
+}
+
 // Membership tier types
 export type MembershipTier = "free" | "basic" | "premium" | "business";
 export type VerificationStatus = "unverified" | "verified";
@@ -132,8 +167,12 @@ interface AuthState {
 
   // Actions
   login: (token: string, user: User, refreshToken?: string) => Promise<void>;
-  /** `reason: "forced"` yalnız 401 sonrası zorunlu çıkışta (`client.ts`); varsayılan kullanıcının kendi çıkışı. */
-  logout: (options?: { reason?: LogoutReason }) => Promise<void>;
+  /**
+   * `reason: "forced"` yalnız 401 sonrası zorunlu çıkışta (`client.ts`); `accountDeleted` hesap
+   * silindikten sonra (sunucu çağrısız, yalnız yerel); varsayılan kullanıcının kendi çıkışı.
+   * Eşzamanlı çağrılar tek çıkışı paylaşır (ilk çağrının seçenekleri geçerli).
+   */
+  logout: (options?: LogoutOptions) => Promise<void>;
   loadToken: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
   /**
@@ -409,43 +448,56 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   // Web ile aynı endpoint: POST /auth/logout
-  logout: async ({ reason = "user" }: { reason?: LogoutReason } = {}) => {
-    // İLK İŞ: oturum kuşağını ilerlet. Bu noktadan sonra tamamlanan her
-    // uçuştaki refresh kendini geçersiz sayar ve SecureStore'a yazmaz —
-    // yoksa bu arada giriş yapan kullanıcının token'ını ezerdi.
-    advanceSessionEpoch();
+  logout: (options: LogoutOptions = {}) => {
+    // Yeniden giriş koruması: süren çıkış varsa aynı sözü döndür — ikinci bir
+    // push iptali / POST /auth/logout / store sıfırlaması başlamaz.
+    if (inFlightLogout) return inFlightLogout;
+    inFlightLogout = (async () => {
+      const reason: LogoutReason = options.reason ?? "user";
+      const skipServer = options.skipServer ?? reason === "accountDeleted";
 
-    // Bu cihazın push token'ını sunucuda deaktive et (çıkış sonrası bu cihaza
-    // bildirim gitmesin). Token hâlâ geçerliyken, logout çağrısından önce yap.
-    // Lazy require: push → api → authStore import zinciriyle döngü oluşmasın.
-    try {
-      const { unregisterPushNotifications } = require("../services/push");
-      // Süre sınırlı: çıkış hiçbir ağ çağrısına takılıp kalmamalı. Bu await
-      // response interceptor'ın içinden de çalışıyor; asılırsa axios'un
-      // reject'ini bloklar ve arayüz sonsuz "yükleniyor"da kalır.
-      await withTimeout(unregisterPushNotifications(), LOGOUT_NETWORK_TIMEOUT_MS);
-    } catch {
-      /* best-effort — Expo Go'da no-op, hata oturumu engellemesin */
-    }
-    try {
-      await withTimeout(authApi.logout(), LOGOUT_NETWORK_TIMEOUT_MS);
-    } catch (error) {
-      // Best-effort: report logout failures so we don't lose them silently
-      // (no-op in dev/Expo Go).
-      logger.captureException(error, {
-        level: "warning",
-        tags: { flow: "logout" },
-      });
-    }
-    await SecureStore.deleteItemAsync("accessToken");
-    await SecureStore.deleteItemAsync("refreshToken");
-    set({ isAuthenticated: false, token: null, user: null, limits: null, serverLimits: null });
-    // Kullanıcıya özel yerel state (sepet/favori/mesaj rozetleri, query cache).
-    // Lazy require: messagesStore → authStore import zinciriyle döngü oluşmasın.
-    // Zorunlu çıkışta ödeme yetki belirteçleri kalır (süren 3DS ödemesi için).
-    const { resetUserStores } = require("./resetUserStores");
-    resetUserStores(reason);
-    logger.setUser(null);
+      // İLK İŞ: oturum kuşağını ilerlet. Bu noktadan sonra tamamlanan her
+      // uçuştaki refresh kendini geçersiz sayar ve SecureStore'a yazmaz —
+      // yoksa bu arada giriş yapan kullanıcının token'ını ezerdi.
+      advanceSessionEpoch();
+
+      if (!skipServer) {
+        // Bu cihazın push token'ını sunucuda deaktive et (çıkış sonrası bu cihaza
+        // bildirim gitmesin). Token hâlâ geçerliyken, logout çağrısından önce yap.
+        // Lazy require: push → api → authStore import zinciriyle döngü oluşmasın.
+        try {
+          const { unregisterPushNotifications } = require("../services/push");
+          // Süre sınırlı: çıkış hiçbir ağ çağrısına takılıp kalmamalı. Bu await
+          // response interceptor'ın içinden de çalışıyor; asılırsa axios'un
+          // reject'ini bloklar ve arayüz sonsuz "yükleniyor"da kalır.
+          await withTimeout(unregisterPushNotifications(), LOGOUT_NETWORK_TIMEOUT_MS);
+        } catch {
+          /* best-effort — Expo Go'da no-op, hata oturumu engellemesin */
+        }
+        try {
+          await withTimeout(authApi.logout(), LOGOUT_NETWORK_TIMEOUT_MS);
+        } catch (error) {
+          // Best-effort: report logout failures so we don't lose them silently
+          // (no-op in dev/Expo Go).
+          logger.captureException(error, {
+            level: "warning",
+            tags: { flow: "logout" },
+          });
+        }
+      }
+      await bestEffort("accessToken", () => SecureStore.deleteItemAsync("accessToken"));
+      await bestEffort("refreshToken", () => SecureStore.deleteItemAsync("refreshToken"));
+      set({ isAuthenticated: false, token: null, user: null, limits: null, serverLimits: null });
+      // Kullanıcıya özel yerel state (sepet/favori/mesaj rozetleri, query cache).
+      // Lazy require: messagesStore → authStore import zinciriyle döngü oluşmasın.
+      // Zorunlu çıkışta ödeme yetki belirteçleri kalır (süren 3DS ödemesi için).
+      const { resetUserStores } = require("./resetUserStores");
+      resetUserStores(reason);
+      logger.setUser(null);
+    })().finally(() => {
+      inFlightLogout = null;
+    });
+    return inFlightLogout;
   },
 
   loadToken: async () => {

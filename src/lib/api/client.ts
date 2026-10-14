@@ -140,6 +140,8 @@ const attachUpsellNeutralizer = (instance: typeof api) => {
 api.interceptors.request.use(
   async (config) => {
     try {
+      // İsteği başlatan oturum kuşağı (`startedInClosedSession`).
+      (config as { _sessionEpoch?: number })._sessionEpoch = sessionEpoch;
       const token = await SecureStore.getItemAsync("accessToken");
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -240,7 +242,30 @@ async function performTokenRefresh(): Promise<string | null> {
 // Tek-uçuş refresh: eşzamanlı 401'ler tek refresh paylaşır (rotated token + storm önlenir).
 const refreshAccessToken = singleFlight(performTokenRefresh);
 
+/** Süren bir çıkış var mı? (lazy require — api ↔ authStore döngüsü) */
+function isLogoutInProgress(): boolean {
+  try {
+    const store = require("../../stores/authStore");
+    return typeof store.isLogoutInProgress === "function" && store.isLogoutInProgress();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * İstek, şu an kapanmış bir oturumda mı başladı? (çıkış kuşağı ilerledi.) Böyle bir 401
+ * yeni oturumu ilgilendirmez: refresh/yeniden deneme/zorunlu çıkış yapılmaz — yoksa hesap
+ * silme ya da çıkış sonrası geç dönen bir 401 kullanıcıyı login'e atar (ya da B'nin
+ * token'ıyla A'nın isteğini yeniden dener).
+ */
+function startedInClosedSession(config?: { _sessionEpoch?: number }): boolean {
+  return typeof config?._sessionEpoch === "number" && config._sessionEpoch !== sessionEpoch;
+}
+
 async function handleAuthFailure(error?: unknown): Promise<void> {
+  // Çıkış zaten sürüyor (ör. çıkışın kendi push iptali 401 aldı): ikinci çıkış ve
+  // yönlendirme YOK. Beklemek de yok — o çıkış bu isteğin bitmesini bekliyor olabilir.
+  if (isLogoutInProgress()) return;
   // Bu dal kullanıcıyı AÇIKLAMASIZ login'e atıyor ve bugün hiçbir iz bırakmıyor.
   // Ayrımı (EMAIL_NOT_VERIFIED / IP-blok 403) kör yazmıyoruz — gövdeleri canlı
   // üretilemedi (denetim 2026-08-03 §5.3). Onun yerine ayırt edici alanları +
@@ -359,7 +384,8 @@ api.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      !isPublicAuthRequest(originalRequest)
+      !isPublicAuthRequest(originalRequest) &&
+      !startedInClosedSession(originalRequest)
     ) {
       originalRequest._retry = true;
       try {
