@@ -2448,7 +2448,8 @@
       "twoFactorOn": "Hesabınız TOTP ile korunuyor",
       "twoFactorOff": "Uygulama tabanlı ek güvenlik katmanı ekleyin",
       "manage": "Yönet",
-      "setUp": "Ayarla"
+      "setUp": "Ayarla",
+      "passwordDesc": "Hesabınızın şifresini düzenli olarak değiştirin"
     },
     "emailChangeLeaveTitle": "E-posta doğrulanmadı",
     "emailChangeLeaveBody": "Kodu girmeden çıkarsanız e-posta adresiniz değişmez ve yeniden kod istemeniz gerekir.",
@@ -2797,7 +2798,8 @@
     "authGateSubtitle": "Adreslerinizi görmek için giriş yapın",
     "emptySubtitle": "Teslimat adresinizi ekleyin",
     "addressTitleLabel": "Adres Başlığı",
-    "checkFields": "Şu alanları kontrol edin: {fields}"
+    "checkFields": "Şu alanları kontrol edin: {fields}",
+    "limitUsage": "{count}/{max} adres kayıtlı"
   },
   "contact": {
     "title": "İletişim",
@@ -2875,7 +2877,9 @@
     "notificationSettingsLoadFailed": "Bildirim tercihleriniz yüklenemedi. Kayıtlı tercihlerinizin üzerine yazılmaması için yüklenene kadar kaydetme kapalı.",
     "twoFactorTitle": "İki Faktörlü Kimlik Doğrulama",
     "twoFactorEnabledDesc": "Hesabınız 2FA ile korunuyor",
-    "twoFactorDisabledDesc": "Hesabınızı daha güvenli hale getirin"
+    "twoFactorDisabledDesc": "Hesabınızı daha güvenli hale getirin",
+    "dangerZone": "Tehlikeli Bölge",
+    "deleteAccountDetails": "Hesabınızı ve tüm verilerinizi kalıcı olarak silin. Bu işlem geri alınamaz."
   },
   "analytics": {
     "analytics": "Analitikler",

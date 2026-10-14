@@ -68,11 +68,35 @@ describe("Adres listesi → form EKRANLARINA yönlendirme (modal yok)", () => {
     expect(screen.queryByTestId("address-save-button")).toBeNull();
   });
 
-  it("dolu listede başlık aksiyonu \"Yeni Adres\" de aynı ekranı iter", async () => {
+  it("dolu listede üst bardaki \"+\" aynı ekranı iter; içerikte \"Yeni Adres\" düğmesi yok", async () => {
     (api.get as jest.Mock).mockResolvedValue({ data: [ADDRESS] });
     renderWithProviders(<AddressesScreen />);
-    fireEvent.press(await screen.findByText("address.newAddress", {}, SLOW));
+    fireEvent.press(await screen.findByTestId("address-add-button", {}, SLOW));
     expect(pushMock).toHaveBeenCalledWith("/settings/addresses/new");
+    expect(screen.queryByText("address.newAddress")).toBeNull();
+    expect(screen.getByTestId("address-add-button").props.accessibilityLabel).toBe("address.newAddress");
+  });
+
+  it("limit göstergesi soluk metin olarak listenin üstünde", async () => {
+    (api.get as jest.Mock).mockResolvedValue({ data: [ADDRESS] });
+    renderWithProviders(<AddressesScreen />);
+    expect(await screen.findByTestId("address-limit-usage", {}, SLOW)).toHaveTextContent("address.limitUsage");
+  });
+
+  it("boş listede üst bar \"+\" yok (EmptyState eylemi yeterli)", async () => {
+    (api.get as jest.Mock).mockResolvedValue({ data: [] });
+    renderWithProviders(<AddressesScreen />);
+    await screen.findByText("address.addNewAddress", {}, SLOW);
+    expect(screen.queryByTestId("address-add-button")).toBeNull();
+  });
+
+  it("limit dolunca üst bar \"+\" gizlenir", async () => {
+    (api.get as jest.Mock).mockResolvedValue({
+      data: Array.from({ length: 10 }, (_, i) => ({ ...ADDRESS, id: `a${i}`, title: `Adres ${i}` })),
+    });
+    renderWithProviders(<AddressesScreen />);
+    await screen.findByText("Adres 0", {}, SLOW);
+    expect(screen.queryByTestId("address-add-button")).toBeNull();
   });
 
   it("satırdaki düzenle → /settings/addresses/<id>/edit", async () => {

@@ -27,13 +27,27 @@ env:
     timeout: 10000
 - tapOn:
     text: "Adreslerim|Adresler"
+# Liste yüklendi: kartın üstündeki "n/10 adres kayıtlı" satırı.
 - extendedWaitUntil:
     visible:
-      text: "Adres Ekle|Yeni Adres"
+      id: "address-limit-usage"
     timeout: 20000
-# Yeni adres — ayrı EKRAN (settings/addresses/new; eskiden modal)
-- tapOn:
-    text: "Yeni Adres Ekle|Yeni Adres"
+# Yeni adres — ayrı EKRAN (settings/addresses/new; eskiden modal). Liste boşken EmptyState
+# "Yeni Adres Ekle"; doluyken üst bardaki "+" (address-add-button; içerikteki düğme kalktı).
+- runFlow:
+    when:
+      visible:
+        text: "Yeni Adres Ekle"
+    commands:
+      - tapOn:
+          text: "Yeni Adres Ekle"
+- runFlow:
+    when:
+      visible:
+        id: "address-add-button"
+    commands:
+      - tapOn:
+          id: "address-add-button"
 - extendedWaitUntil:
     visible:
       id: "address-title-input"
