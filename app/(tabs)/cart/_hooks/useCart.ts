@@ -131,6 +131,21 @@ export function useCart() {
     }
   };
 
+  /**
+   * İndirim öncesi birim fiyat (üstü çizili gösterim) — sunucu sepet satırının
+   * `originalPrice`'ı, YALNIZ sunucu satırı indirim bildiriyorsa (`effectivePrice < originalPrice`)
+   * ve güncel birim fiyat (quote) bundan düşükse. İstemci fiyat türetmez; misafirde / sunucu satırı
+   * yokken `null` (eski fiyat çizilmez).
+   */
+  const originalPriceFor = (productId: string): number | null => {
+    const line = byProductId.get(productId);
+    const original = serverAmount(line?.originalPrice);
+    const effective = serverAmount(line?.effectivePrice);
+    const unit = unitPriceFor(productId);
+    if (original == null || effective == null || unit == null) return null;
+    return effective < original && unit < original ? original : null;
+  };
+
   /** Satır bazlı sunucu stok uyarısı — yalnız üyede dolu gelir. */
   const stockWarningFor = (productId: string) => {
     const line = byProductId.get(productId);
@@ -158,6 +173,8 @@ export function useCart() {
     /** Satır birim fiyatı — sunucunun `items[].unitPrice`'ı; yoksa `null`. */
     unitPriceFor,
     lineSubtotalFor,
+    /** İndirim öncesi birim fiyat (sunucu sepet satırı); indirim yoksa `null`. */
+    originalPriceFor,
     quoteLoading: quoteQuery.isLoading,
     /**
      * Quote hatası — sepet de checkout ile AYNI çıkış yolunu gösterir
