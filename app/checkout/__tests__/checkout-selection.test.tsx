@@ -159,4 +159,26 @@ describe('Checkout · seçili satırlar ve ödeme sonrası sepet', () => {
 
     await waitFor(() => expect(useCartStore.getState().items.map((i) => i.productId)).toEqual([P2]));
   });
+
+  it('"Hemen Al": yalnız o ürün ödenir; ödendiğinde sepetteki satırı da düşer, kalanlar durur', async () => {
+    const er = require('expo-router');
+    const original = er.useLocalSearchParams;
+    er.useLocalSearchParams = () => ({ buyNow: '1' });
+    try {
+      // Ürün detayı "Hemen Al" ürünü sepete de ekler (web paritesi) ve buyNowItem'ı kurar.
+      useCartStore.setState({ buyNowItem: { ...line(P3, 'Üçüncü'), id: 'buynow-1' } } as any);
+      renderWithProviders(<CheckoutScreen />);
+      await payThrough();
+
+      await waitFor(() => expect(ordersApi.checkout).toHaveBeenCalled());
+      const payload = jest.mocked(ordersApi.checkout).mock.calls[0]![0] as any;
+      expect(payload.items.map((i: any) => i.productId)).toEqual([P3]);
+      await waitFor(() =>
+        expect(useCartStore.getState().items.map((i) => i.productId)).toEqual([P1, P2]),
+      );
+      expect(useCartStore.getState().buyNowItem).toBeNull();
+    } finally {
+      er.useLocalSearchParams = original;
+    }
+  });
 });

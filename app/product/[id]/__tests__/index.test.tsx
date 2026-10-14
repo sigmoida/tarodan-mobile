@@ -102,17 +102,27 @@ describe('Ürün detay ekranı', () => {
     expect(screen.getByLabelText('Paylaş')).toBeOnTheScreen();
   });
 
-  it('alt sabit bar sade: fiyat yok, yalnız adet seçici + Hemen Al', async () => {
+  it('alt sabit bar: fiyat · Hemen Al · Sepete Ekle (misafirde de)', async () => {
     getOneMock.mockResolvedValue({ data: { data: productFixture() } });
     renderWithProviders(<ProductDetailScreen />);
 
     await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
     const footer = within(screen.getByTestId('page-shell-footer'));
+    expect(footer.getByTestId('product-bar-price')).toBeOnTheScreen();
     expect(footer.getByText('Hemen Al')).toBeOnTheScreen();
-    expect(footer.queryByText(/TL/)).toBeNull();
-    expect(footer.queryByText('Sepete Ekle')).toBeNull();
-    // Fiyat başlığın altında, sayfa içeriğinde.
+    expect(footer.getByTestId('product-detail-add-to-cart-button')).toBeOnTheScreen();
+    // Başlığın altındaki fiyat ayrı testID ile durur.
     expect(screen.getByTestId('product-price')).toBeOnTheScreen();
+  });
+
+  it('sahip: altta fiyat + Düzenle, satın alma yok', async () => {
+    mockAuth = { isAuthenticated: true, user: { id: 's1' } };
+    getOneMock.mockResolvedValue({ data: { data: productFixture() } });
+    renderWithProviders(<ProductDetailScreen />);
+
+    await waitFor(() => expect(screen.getByTestId('product-detail-edit-button')).toBeOnTheScreen());
+    expect(screen.queryByTestId('product-detail-add-to-cart-button')).toBeNull();
+    expect(screen.queryByTestId('product-detail-buy-now-button')).toBeNull();
   });
 
   it('stokta yok üründe pasif buton gösterir', async () => {

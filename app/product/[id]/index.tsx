@@ -50,8 +50,9 @@ function ProductSkeleton() {
 
 /**
  * Ürün detayı — web `ListingDetailClient` blokları ve sırası: galeri, başlık, fiyat bloğu, açıklama,
- * durum uyarısı, CTA'lar (Takas Teklifi / Teklif Ver / Sepete Ekle; birincil "Hemen Al" + adet seçici
- * sabit alt barda — platform kalıbı), satıcı kartı, özellik tabloları, değerlendirmeler, benzer ürünler.
+ * durum uyarısı, eylem satırı (adet seçici + Takas Teklifi / Teklif Ver), satıcı kartı, özellik
+ * tabloları, değerlendirmeler, benzer ürünler. Sabit alt bar (platform kalıbı): fiyat · "Hemen Al" ·
+ * "Sepete Ekle" (misafir de ekler; sahipte fiyat · "Düzenle").
  * Mantık `_hooks/`'ta; hook'lar PageShell'in yükleniyor/boş dallarından ÖNCE koşulsuz çağrılır.
  */
 export default function ProductDetailScreen() {
@@ -120,11 +121,11 @@ export default function ProductDetailScreen() {
             product={product}
             isOwner={isOwner}
             isOutOfStock={isOutOfStock}
-            quantity={actions.quantity}
-            onQuantity={actions.setQuantity}
+            inCart={actions.inCart}
+            onAddToCart={actions.handleAddToCart}
             onBuyNow={actions.handleBuyNow}
+            onGoToCart={actions.handleGoToCart}
             onEdit={() => router.push(`/listing/${product.id}/edit` as any)}
-            onAddToCollection={actions.handleAddToCollection}
           />
         ) : undefined
       }
@@ -201,10 +202,11 @@ export default function ProductDetailScreen() {
             <ProductSecondaryActions
               product={product}
               isOwner={isOwner}
-              inCart={actions.inCart}
+              quantity={actions.quantity}
+              onQuantity={actions.setQuantity}
               onTrade={actions.handleTrade}
               onMakeOffer={actions.handleMakeOffer}
-              onCartToggle={actions.handleCartToggle}
+              onAddToCollection={actions.handleAddToCollection}
             />
             <SellerCard
               seller={product.seller}

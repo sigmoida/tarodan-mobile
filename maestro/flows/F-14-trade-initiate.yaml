@@ -69,12 +69,12 @@ env:
     visible:
       id: "product-price"
     timeout: 30000
-- scrollUntilVisible:
-    element:
-      id: "product-detail-add-to-cart-button"
-    direction: DOWN
+# Sepet düğmesi sabit alt barda (kaydırma gerekmez); ürün zaten sepetteyse "Sepete Git".
+- extendedWaitUntil:
+    visible:
+      id: "product-detail-(add-to-cart|go-to-cart)-button"
     timeout: 30000
-- assertVisible: "Sepete Ekle"
+- assertVisible: "Sepete Ekle|Sepete Git"
 # tradeAvailable ürünlerde "Takas Teklifi" butonu var
 - scrollUntilVisible:
     element:

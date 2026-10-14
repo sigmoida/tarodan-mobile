@@ -1,6 +1,7 @@
 /**
- * Ürün detayı CTA'ları (web `ProductInfo`): etiketler web ile aynı, adet seçici yalnız stoğu 1'den
- * fazla ilanda, sepet düğmesi sepete ekle/çıkar arasında geçer, sahibe düzenle.
+ * Ürün detayı CTA'ları. Sabit alt bar: fiyat · kare "Hemen Al" · geniş "Sepete Ekle" (sepetteyse
+ * "Sepete Git"); satılamayan ilanda web durum etiketi + pasif; sahipte fiyat + "Düzenle".
+ * İçerik eylem satırı: adet seçici (stok>1) + Takas Teklifi / Teklif Ver; sahipte Koleksiyona Ekle.
  */
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
@@ -22,115 +23,159 @@ function bar(over: Record<string, unknown> = {}, props: Record<string, unknown> 
       product={{ ...base, ...over } as any}
       isOwner={false}
       isOutOfStock={false}
-      quantity={1}
-      onQuantity={noop}
+      inCart={false}
+      onAddToCart={noop}
       onBuyNow={noop}
+      onGoToCart={noop}
       onEdit={noop}
-      onAddToCollection={noop}
       {...props}
     />,
   );
 }
 
-describe('alt bar (Hemen Al)', () => {
-  it('stokta: "Hemen Al" + adet seçici (stok>1)', () => {
+describe('alt bar: fiyat · Hemen Al · Sepete Ekle', () => {
+  it('stokta: fiyat + "Hemen Al" + "Sepete Ekle"; adet seçici barda değil', () => {
     bar();
+    expect(screen.getByTestId('product-bar-price').props.children).toBe('100,00 TL');
+    expect(screen.getByTestId('product-detail-buy-now-button')).toBeTruthy();
     expect(screen.getByText('Hemen Al')).toBeTruthy();
-    expect(screen.getByLabelText('Adedi arttır')).toBeTruthy();
-  });
-
-  it('tek stokta adet seçici yok', () => {
-    bar({ availableQuantity: 1 });
+    expect(screen.getByText('Sepete Ekle')).toBeTruthy();
     expect(screen.queryByLabelText('Adedi arttır')).toBeNull();
   });
 
-  it('adet seçici tavanı: müsait stok ve 20 sınırı', () => {
+  it('indirimde eski fiyat üstü çizili, güncel fiyat tek satır', () => {
+    bar({ price: 80, originalPrice: 100, discountPercent: 20 });
+    expect(screen.getByTestId('product-bar-price').props.children).toBe('80,00 TL');
+    expect(screen.getByTestId('product-bar-price').props.numberOfLines).toBe(1);
+    const old = screen.getByTestId('product-bar-price-old');
+    expect(old.props.children).toBe('100,00 TL');
+    const style = Object.assign({}, ...[old.props.style].flat(Infinity).filter(Boolean));
+    expect(style.textDecorationLine).toBe('line-through');
+  });
+
+  it('indirim yoksa eski fiyat yok', () => {
+    bar();
+    expect(screen.queryByTestId('product-bar-price-old')).toBeNull();
+  });
+
+  it('"Sepete Ekle" → onAddToCart, "Hemen Al" → onBuyNow', () => {
+    const onAddToCart = jest.fn();
+    const onBuyNow = jest.fn();
+    bar({}, { onAddToCart, onBuyNow });
+    fireEvent.press(screen.getByTestId('product-detail-add-to-cart-button'));
+    expect(onAddToCart).toHaveBeenCalledTimes(1);
+    fireEvent.press(screen.getByTestId('product-detail-buy-now-button'));
+    expect(onBuyNow).toHaveBeenCalledTimes(1);
+  });
+
+  it('sepetteyse birincil düğme "Sepete Git"', () => {
+    const onGoToCart = jest.fn();
+    bar({}, { inCart: true, onGoToCart });
+    expect(screen.queryByTestId('product-detail-add-to-cart-button')).toBeNull();
+    fireEvent.press(screen.getByText('Sepete Git'));
+    expect(onGoToCart).toHaveBeenCalled();
+    // Hemen Al sepetteyken de durur (yalnız bu ürünle ödeme).
+    expect(screen.getByTestId('product-detail-buy-now-button')).toBeTruthy();
+  });
+
+  it('stok bitti / satıldı / rezerve: Hemen Al yok, birincil pasif + web etiketi', () => {
+    const disabled = () =>
+      screen.getByTestId('product-detail-out-of-stock-button').props.accessibilityState?.disabled;
+    const { rerender } = bar({ availableQuantity: 0 }, { isOutOfStock: true });
+    expect(screen.getByText('Stok bitti')).toBeTruthy();
+    expect(disabled()).toBe(true);
+    expect(screen.queryByTestId('product-detail-buy-now-button')).toBeNull();
+    for (const [status, label] of [
+      ['sold', 'Satıldı'],
+      ['reserved', 'Rezerve Edildi'],
+    ]) {
+      rerender(
+        <ProductBuyBar
+          product={{ ...base, status } as any}
+          isOwner={false}
+          isOutOfStock
+          inCart={false}
+          onAddToCart={noop}
+          onBuyNow={noop}
+          onGoToCart={noop}
+          onEdit={noop}
+        />,
+      );
+      expect(screen.getByText(label)).toBeTruthy();
+      expect(disabled()).toBe(true);
+    }
+  });
+
+  it('stok bitti ama sepette: "Sepete Git" değil pasif durum düğmesi', () => {
+    bar({ availableQuantity: 0 }, { isOutOfStock: true, inCart: true });
+    expect(screen.queryByText('Sepete Git')).toBeNull();
+    expect(screen.getByTestId('product-detail-out-of-stock-button')).toBeTruthy();
+  });
+
+  it('sahip: fiyat + Düzenle; satın alma düğmesi yok', () => {
+    const onEdit = jest.fn();
+    bar({}, { isOwner: true, onEdit });
+    expect(screen.getByTestId('product-bar-price')).toBeTruthy();
+    expect(screen.queryByText('Hemen Al')).toBeNull();
+    expect(screen.queryByText('Sepete Ekle')).toBeNull();
+    fireEvent.press(screen.getByTestId('product-detail-edit-button'));
+    expect(onEdit).toHaveBeenCalled();
+  });
+
+  it('etiketler tek satır (sarma yok) — 360pt + 1.3 ölçek için Button küçültür', () => {
+    bar();
+    expect(screen.getByText('Sepete Ekle').props.numberOfLines).toBe(1);
+    expect(screen.getByText('Hemen Al').props.numberOfLines).toBe(1);
+    expect(screen.getByText('Hemen Al').props.adjustsFontSizeToFit).toBe(true);
+  });
+});
+
+describe('adet tavanı', () => {
+  it('müsait stok ve 20 sınırı; sahip/satılmış → yok', () => {
     expect(quantityLimit(base as any, false)).toBe(5);
     expect(quantityLimit({ ...base, availableQuantity: 50 } as any, false)).toBe(20);
     expect(quantityLimit({ ...base, availableQuantity: 5 } as any, true)).toBeNull();
     expect(quantityLimit({ ...base, status: 'sold' } as any, false)).toBeNull();
   });
-
-  it('web etiketleri: Satıldı / Rezerve Edildi / Stok bitti, düğme pasif', () => {
-    const { rerender } = bar({ status: 'sold' }, { isOutOfStock: true });
-    expect(screen.getByText('Satıldı')).toBeTruthy();
-    expect(screen.getByTestId('product-detail-out-of-stock-button').props.accessibilityState?.disabled).toBe(true);
-    rerender(
-      <ProductBuyBar
-        product={{ ...base, status: 'reserved' } as any}
-        isOwner={false}
-        isOutOfStock
-        quantity={1}
-        onQuantity={noop}
-        onBuyNow={noop}
-        onEdit={noop}
-        onAddToCollection={noop}
-      />,
-    );
-    expect(screen.getByText('Rezerve Edildi')).toBeTruthy();
-    rerender(
-      <ProductBuyBar
-        product={{ ...base, availableQuantity: 0 } as any}
-        isOwner={false}
-        isOutOfStock
-        quantity={1}
-        onQuantity={noop}
-        onBuyNow={noop}
-        onEdit={noop}
-        onAddToCollection={noop}
-      />,
-    );
-    expect(screen.getByText('Stok bitti')).toBeTruthy();
-  });
-
-  it('basınca onBuyNow çalışır', () => {
-    const onBuyNow = jest.fn();
-    bar({}, { onBuyNow });
-    fireEvent.press(screen.getByText('Hemen Al'));
-    expect(onBuyNow).toHaveBeenCalled();
-  });
-
-  it('sahip: Düzenle + Koleksiyona Ekle, satın alma yok', () => {
-    const onEdit = jest.fn();
-    bar({}, { isOwner: true, onEdit });
-    expect(screen.queryByText('Hemen Al')).toBeNull();
-    expect(screen.getByText('Koleksiyona Ekle')).toBeTruthy();
-    fireEvent.press(screen.getByText('Düzenle'));
-    expect(onEdit).toHaveBeenCalled();
-  });
 });
 
-describe('ikincil CTA satırı', () => {
+describe('içerik eylem satırı', () => {
   const secondary = (over: Record<string, unknown> = {}, props: Record<string, unknown> = {}) =>
     render(
       <ProductSecondaryActions
         product={{ ...base, ...over } as any}
         isOwner={false}
-        inCart={false}
+        quantity={1}
+        onQuantity={noop}
         onTrade={noop}
         onMakeOffer={noop}
-        onCartToggle={noop}
+        onAddToCollection={noop}
         {...props}
       />,
     );
 
-  it('takasa açıksa Takas Teklifi · Teklif Ver · Sepete Ekle', () => {
+  it('takasa açıksa Takas Teklifi · Teklif Ver yan yana; sepet düğmesi yok (alt barda)', () => {
+    const flat = (id: string) => Object.assign({}, ...[screen.getByTestId(id).props.style].flat());
     secondary({ tradeAvailable: true });
     expect(screen.getByText('Takas Teklifi')).toBeTruthy();
     expect(screen.getByText('Teklif Ver')).toBeTruthy();
-    expect(screen.getByText('Sepete Ekle')).toBeTruthy();
+    expect(screen.queryByText('Sepete Ekle')).toBeNull();
+    expect(flat('product-detail-trade-button').flex).toBe(1);
+    expect(flat('product-detail-offer-button').flex).toBe(1);
   });
 
-  it('takasa kapalıysa Takas Teklifi yok', () => {
+  it('takasa kapalıysa yalnız Teklif Ver (tam genişlik)', () => {
     secondary();
     expect(screen.queryByText('Takas Teklifi')).toBeNull();
+    expect(screen.getByText('Teklif Ver')).toBeTruthy();
   });
 
-  it('sepetteyse "Sepetten Çıkar"; basınca onCartToggle', () => {
-    const onCartToggle = jest.fn();
-    secondary({}, { inCart: true, onCartToggle });
-    fireEvent.press(screen.getByText('Sepetten Çıkar'));
-    expect(onCartToggle).toHaveBeenCalled();
+  it('adet seçici yalnız stok>1 ilanda', () => {
+    const { unmount } = secondary();
+    expect(screen.getByLabelText('Adedi arttır')).toBeTruthy();
+    unmount();
+    secondary({ availableQuantity: 1 });
+    expect(screen.queryByLabelText('Adedi arttır')).toBeNull();
   });
 
   it('ilan aktif değilse düğmeler pasif', () => {
@@ -138,21 +183,19 @@ describe('ikincil CTA satırı', () => {
     expect(screen.getByTestId('product-detail-offer-button').props.accessibilityState?.disabled).toBe(true);
   });
 
-  it('iki eylem yan yana eşit genişlikte; takas açıkken üçü alt alta (etiket sarmaz)', () => {
-    const flat = (id: string) => Object.assign({}, ...[screen.getByTestId(id).props.style].flat());
-    const { unmount } = secondary();
-    expect(flat('product-detail-offer-button').flex).toBe(1);
-    expect(flat('product-detail-add-to-cart-button').flex).toBe(1);
-    unmount();
-    secondary({ tradeAvailable: true });
-    expect(flat('product-detail-trade-button').flex).toBeUndefined();
-    expect(flat('product-detail-offer-button').alignSelf).toBe('stretch');
-    expect(flat('product-detail-add-to-cart-button').alignSelf).toBe('stretch');
+  it('teklif düğmesi onMakeOffer çağırır', () => {
+    const onMakeOffer = jest.fn();
+    secondary({}, { onMakeOffer });
+    fireEvent.press(screen.getByTestId('product-detail-offer-button'));
+    expect(onMakeOffer).toHaveBeenCalled();
   });
 
-  it('sahipte hiç çizilmez', () => {
-    secondary({}, { isOwner: true });
+  it('sahipte yalnız Koleksiyona Ekle', () => {
+    const onAddToCollection = jest.fn();
+    secondary({}, { isOwner: true, onAddToCollection });
     expect(screen.queryByText('Teklif Ver')).toBeNull();
+    fireEvent.press(screen.getByText('Koleksiyona Ekle'));
+    expect(onAddToCollection).toHaveBeenCalled();
   });
 });
 

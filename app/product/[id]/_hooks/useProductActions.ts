@@ -80,6 +80,11 @@ export function useProductActions({
     return false;
   };
 
+  /**
+   * Sepete ekle — misafirde de çalışır (web paritesi): yerel sepet store'una yazılır, üyede sunucuya
+   * da aynalanır; misafir satırları girişte `useCartMergeOnLogin` ile sunucu sepetine bir kez taşınır.
+   * Bilerek `requireAuth` YOK (teklif/takas/mesaj/koleksiyon/şikayet üye ister, sepet istemez).
+   */
   const handleAddToCart = () => {
     if (!product) return;
     if (isOutOfStock) return toast.error(t('cart.outOfStock'));
@@ -87,23 +92,22 @@ export function useProductActions({
     toast.success(t('product.addedToCartExclaim'));
   };
 
-  /** Web gibi: sepetteyse çıkarır, değilse ekler. */
-  const handleCartToggle = () => {
-    if (!product) return;
-    if (isInCart(productId)) {
-      cart.removeByProductId(productId);
-      toast.success(t('product.removedFromCart'));
-      return;
-    }
-    handleAddToCart();
-  };
-
+  /**
+   * "Hemen Al" (web `handleBuyNow`): ürün sepette değilse önce sepete eklenir (vazgeçilirse
+   * kaybolmasın), sonra ödeme YALNIZ bu ürünle açılır (`?buyNow=1`); sepetin kalanı ödemeye girmez.
+   * Misafir de gelir — checkout'un misafir + e-posta doğrulama akışı aynen geçerli.
+   */
   const handleBuyNow = () => {
     if (!product) return;
     if (isOutOfStock) return toast.error(t('cart.outOfStock'));
-    setBuyNow(buildCartItem(product, images) as any, clampCartQuantity(quantity, product, isOwnerProduct));
+    const item = buildCartItem(product, images) as any;
+    const qty = clampCartQuantity(quantity, product, isOwnerProduct);
+    if (!isInCart(productId)) cart.add(item, qty);
+    setBuyNow(item, qty);
     router.push('/checkout?buyNow=1' as any);
   };
+
+  const handleGoToCart = () => router.push('/cart' as any);
 
   const handleMessage = () => {
     if (!product) return;
@@ -168,7 +172,7 @@ export function useProductActions({
     reportOpen,
     setReportOpen,
     handleAddToCart,
-    handleCartToggle,
+    handleGoToCart,
     handleBuyNow,
     handleMessage,
     handleTrade,

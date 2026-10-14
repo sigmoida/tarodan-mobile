@@ -35,13 +35,13 @@ env:
     visible:
       id: "product-price"
     timeout: 30000
-- scrollUntilVisible:
-    element:
-      id: "product-detail-add-to-cart-button"
-    direction: DOWN
+# Sepet düğmesi sabit alt barda (kaydırma gerekmez); ürün zaten sepetteyse "Sepete Git".
+- extendedWaitUntil:
+    visible:
+      id: "product-detail-(add-to-cart|go-to-cart)-button"
     timeout: 30000
 - tapOn:
-    id: "product-detail-add-to-cart-button"
+    id: "product-detail-(add-to-cart|go-to-cart)-button"
 # Toast: "Sepete eklendi" → deep link ile cart rotasına git (ürün detayında sepet adası yok)
 - extendedWaitUntil:
     visible:
