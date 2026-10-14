@@ -22,7 +22,7 @@ export default function LoginScreen() {
       title={t('auth.loginTitle')}
       hero="auth_default"
       // Şifre / Google-only adımında geri oku 1. adıma (e-posta) döner; 1. adımda ekrandan çıkar.
-      showBack={f.step !== 'email' || router.canGoBack()}
+      showBack
       onBack={f.step !== 'email' ? f.back : f.continueAsGuest}
       footer={
         <AuthFooterLink

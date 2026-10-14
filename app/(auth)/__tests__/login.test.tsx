@@ -120,24 +120,17 @@ describe('giriş — adım 1 (e-posta)', () => {
     expect(screen.getByTestId('login-continue-button')).toBeOnTheScreen();
   });
 
-  it('misafir butonu: geçmiş varsa geri gider', () => {
-    canGoBackMock.mockReturnValue(true);
+  it('ayrı misafir düğmesi yok; çıkış yolu üst bardaki geri oku', () => {
     renderWithProviders(<LoginScreen />);
-    fireEvent.press(screen.getByTestId('continue-as-guest-button'));
-    expect(backMock).toHaveBeenCalled();
+    expect(screen.queryByTestId('continue-as-guest-button')).toBeNull();
+    expect(screen.queryByText('Misafir Olarak Devam Et')).toBeNull();
   });
 
-  it('misafir butonu: geçmiş yoksa ana sayfaya replace eder', () => {
+  it('geri oku: giriş ana girişse (geçmiş yok) de görünür ve ana sayfaya replace eder', () => {
     canGoBackMock.mockReturnValue(false);
     renderWithProviders(<LoginScreen />);
-    fireEvent.press(screen.getByTestId('continue-as-guest-button'));
+    fireEvent.press(screen.getByLabelText('Geri'));
     expect(replaceMock).toHaveBeenCalledWith('/');
-  });
-
-  it('geri oku: giriş ana girişse (geçmiş yok) gösterilmez', () => {
-    canGoBackMock.mockReturnValue(false);
-    renderWithProviders(<LoginScreen />);
-    expect(screen.queryByLabelText('Geri')).toBeNull();
   });
 
   it('geri oku: yığında geri gidilecek ekran varsa gösterilir ve geri gider', () => {
@@ -166,8 +159,6 @@ describe('giriş — adım 2 (şifre)', () => {
     // 1. adıma özgü öğeler gitti.
     expect(screen.queryByTestId('login-email-input')).toBeNull();
     expect(screen.queryByTestId('login-google-button')).toBeNull();
-    // Misafir devam yolu 2. adımda da duruyor.
-    expect(screen.getByTestId('continue-as-guest-button')).toBeOnTheScreen();
     // Şifre göster/gizle göz düğmesi.
     expect(screen.getByLabelText('Şifreyi göster')).toBeOnTheScreen();
   });

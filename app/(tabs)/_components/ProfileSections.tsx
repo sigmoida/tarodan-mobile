@@ -11,7 +11,7 @@ import type { ProfileController } from '../_hooks/useProfile';
 import { ProfileHeader } from './ProfileHeader';
 import { ProfileRow } from './ProfileRow';
 
-const { spacing, radius } = theme;
+const { spacing } = theme;
 
 type SectionProps = { f: ProfileController };
 
@@ -150,7 +150,7 @@ export function ProfileDeleteAccount({ f }: SectionProps) {
 const styles = StyleSheet.create({
   identityText: { alignItems: 'center', gap: spacing[0.5], maxWidth: '100%' },
   tierBadge: { flexDirection: 'row', marginTop: spacing[1] },
-  editButton: { alignSelf: 'center', borderRadius: radius.full, paddingHorizontal: spacing[6] },
+  editButton: { alignSelf: 'center', paddingHorizontal: spacing[6] },
   trustRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing[3] },
   group: { paddingTop: spacing[2], paddingBottom: spacing[1] },
   divider: { marginVertical: spacing[1] },

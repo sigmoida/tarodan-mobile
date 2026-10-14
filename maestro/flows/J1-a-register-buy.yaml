@@ -47,14 +47,13 @@ tags:
           point: "91%,47%"
       - waitForAnimationToEnd:
           timeout: 2000
-# 1. Misafir ana sayfa: login ekranı gelirse "Misafir Olarak Devam Et"
+# 1. Misafir ana sayfa: login ekranı gelirse üst bardaki geri oku (ayrı misafir düğmesi yok)
 - runFlow:
     when:
       visible:
-        id: "continue-as-guest-button"
+        id: "login-email-input"
     commands:
-      - tapOn:
-          id: "continue-as-guest-button"
+      - tapOn: "Geri"
 - extendedWaitUntil:
     visible:
       id: "home-search-input"

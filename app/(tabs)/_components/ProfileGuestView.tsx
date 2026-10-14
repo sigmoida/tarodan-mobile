@@ -15,7 +15,7 @@ import type { ProfileController } from '../_hooks/useProfile';
 import { ProfileHeader } from './ProfileHeader';
 import { ProfileRow } from './ProfileRow';
 
-const { colors, spacing, radius } = theme;
+const { colors, spacing } = theme;
 
 /** Misafir profil: ortalı boş avatar, giriş/kayıt düğmeleri, düz bağlantı satırları (ikon + chevron), üyelik faydaları. */
 export function ProfileGuestView({ f }: { f: ProfileController }) {
@@ -63,7 +63,6 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
               variant="primary"
               size="lg"
               fullWidth
-              style={styles.pill}
               title={t('auth.loginTitle')}
               onPress={() => router.push('/(auth)/login')}
             />
@@ -72,7 +71,6 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
               variant="outline"
               size="lg"
               fullWidth
-              style={styles.pill}
               title={t('auth.freeSignUp')}
               onPress={() => router.push('/(auth)/register')}
             />
@@ -140,7 +138,6 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
 const styles = StyleSheet.create({
   welcome: { alignItems: 'center', gap: spacing[1] },
   actions: { alignSelf: 'stretch', gap: spacing[3] },
-  pill: { borderRadius: radius.full },
   list: { paddingBottom: spacing[2] },
   benefits: { padding: spacing[4], gap: spacing[3] },
   benefit: { gap: spacing[0.5] },

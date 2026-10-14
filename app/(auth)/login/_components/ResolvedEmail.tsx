@@ -1,7 +1,7 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button, Text, theme } from '@/ui';
+import { Text, theme } from '@/ui';
 
 const { colors, spacing, radiusRole } = theme;
 
@@ -13,13 +13,19 @@ export function ResolvedEmail({ email, onChange }: { email: string; onChange: ()
       <Text variant="bodySm" tone="body" numberOfLines={1} style={styles.email}>
         {email}
       </Text>
-      <Button
+      {/* Aynı Text varyantı → e-postayla aynı satır yüksekliği ve taban çizgisi (Button link'in
+          kendi min yüksekliği/dolgusu hizayı kaydırıyordu). */}
+      <Pressable
         testID="login-change-email-button"
-        variant="link"
-        size="sm"
-        title={t('auth.useDifferentEmail')}
+        accessibilityRole="button"
         onPress={onChange}
-      />
+        hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+        style={({ pressed }) => pressed && styles.pressed}
+      >
+        <Text variant="bodySm" weight="medium" tone="primary" numberOfLines={1}>
+          {t('auth.useDifferentEmail')}
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -31,7 +37,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing[2],
     paddingLeft: spacing[3],
-    paddingRight: spacing[1],
+    paddingRight: spacing[3],
     minHeight: theme.controlHeight.md,
     marginBottom: spacing[2],
     borderRadius: radiusRole.input,
@@ -42,4 +48,5 @@ const styles = StyleSheet.create({
   email: {
     flex: 1,
   },
+  pressed: { opacity: 0.6 },
 });
