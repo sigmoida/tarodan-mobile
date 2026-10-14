@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
-import { Alert, Button, Checkbox, Text } from '@/ui';
+import { Button, Checkbox, Text } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { formatServerPrice } from '@/utils/format';
 import { useCart } from './_hooks/useCart';
@@ -67,8 +67,6 @@ export default function CartScreen() {
         </View>
       }
     >
-      <Alert variant="warning">{t('cart.expiryNotice')}</Alert>
-
       {/* Toplu seçim — sepette birden fazla satır varken anlamlı. */}
       {f.items.length > 1 ? (
         <View style={styles.selectAllRow}>

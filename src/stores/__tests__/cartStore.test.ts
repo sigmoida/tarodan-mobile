@@ -58,7 +58,7 @@ describe('J1 · sepet adedi (getItemCount)', () => {
 
   /**
    * Store para HESAPLAMAZ. `getSubtotal()` yerel `price × quantity` toplamı
-   * döndürüyordu; sepetteki fiyat ekleme anında donduğu (24 saat) ve kampanya
+   * döndürüyordu; sepetteki fiyat ekleme anında donduğu (sepette süresiz bekleyebilir) ve kampanya
    * penceresi kapanabildiği için bu tutar hiçbir sunucu alanına karşılık
    * gelmiyor, bir zamanlar da "Toplam" diye basılıyordu. Yüzeyden kaldırıldı —
    * geri gelirse bu test kırılır.
@@ -158,10 +158,10 @@ describe('J60 · sepet temizleme (clearCart / onPurchaseComplete)', () => {
   });
 });
 
-describe('J61 · süresi dolan ürünler (cleanExpiredItems)', () => {
+describe('J61 · sepet süre dolunca silinmez', () => {
   beforeEach(reset);
 
-  it('24 saatten eski ürün temizlenir, yeni ürün kalır', () => {
+  it('cleanExpiredItems yok; eski tarihli satır store da kalır', () => {
     const old = 25 * 60 * 60 * 1000;
     useCartStore.setState({
       items: [
@@ -169,9 +169,27 @@ describe('J61 · süresi dolan ürünler (cleanExpiredItems)', () => {
         { ...baseItem, productId: 'p2', id: 'b', quantity: 1, addedAt: Date.now() },
       ],
     });
-    useCartStore.getState().cleanExpiredItems();
-    const s = useCartStore.getState();
-    expect(s.items.map(i => i.id)).toEqual(['b']);
+    expect((useCartStore.getState() as unknown as Record<string, unknown>).cleanExpiredItems).toBeUndefined();
+    expect(useCartStore.getState().items.map(i => i.id)).toEqual(['a', 'b']);
+  });
+});
+
+describe('syncStock · sunucunun taze stoğu', () => {
+  beforeEach(reset);
+
+  it('satırın stoğunu günceller; tavan yeni değerle hesaplanır', () => {
+    useCartStore.getState().addItem({ ...baseItem, stock: 1 });
+    useCartStore.getState().syncStock('p1', 4);
+    const id = useCartStore.getState().items[0]!.id;
+    useCartStore.getState().updateQuantity(id, 3);
+    expect(useCartStore.getState().items[0]!.quantity).toBe(3);
+    expect(useCartStore.getState().items[0]!.stock).toBe(4);
+  });
+
+  it('0 yazılmaz (0 tavanı 99 a gevşetirdi)', () => {
+    useCartStore.getState().addItem({ ...baseItem, stock: 2 });
+    useCartStore.getState().syncStock('p1', 0);
+    expect(useCartStore.getState().items[0]!.stock).toBe(2);
   });
 });
 

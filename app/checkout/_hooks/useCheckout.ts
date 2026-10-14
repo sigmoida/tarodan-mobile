@@ -401,7 +401,7 @@ export function useCheckout() {
 
   /**
    * Satır tutarları — sunucunun `items[]` kırılımından, `productId` ile eşlenir.
-   * Sepet satırındaki `price` sepete EKLEME anında donuyor (24 saat) ve ürünlerde
+   * Sepet satırındaki `price` sepete EKLEME anında donuyor (sepette süresiz bekleyebilir) ve ürünlerde
    * kampanya penceresi var; `price × quantity` çarpımı kampanya sepette
    * beklerken biterse özet satırlarıyla ayrışıyordu. Eşleşme yoksa `null` →
    * ekran yer tutucu basar, yerel çarpıma DÜŞMEZ.

@@ -3,7 +3,6 @@ import { AppImage } from '@/components/AppImage';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { Badge, Checkbox, IconButton, QuantityStepper, SectionCard, Text, theme } from '@/ui';
-import { maxAllowedQty } from '@/stores/cartStore';
 import { formatServerPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
 import type { CartController } from '../_hooks/useCart';
@@ -14,9 +13,8 @@ import type { CartController } from '../_hooks/useCart';
  */
 export function CartItemRow({ item, f }: { item: any; f: CartController }) {
   const { t } = useTranslation();
-  const itemMax = maxAllowedQty(item);
-  const atMax = item.quantity >= itemMax;
-  const stockKnown = item.stock != null;
+  // Tavan: sunucunun taze adedi (varsa), yoksa sepete eklerken yakalanan stok.
+  const itemMax = f.maxQuantityFor(item);
   const stockWarning = f.stockWarningFor?.(item.productId) ?? null;
   const selected = f.isSelected(item.id);
   const open = () => router.push(`/product/${item.productId}`);
@@ -47,7 +45,7 @@ export function CartItemRow({ item, f }: { item: any; f: CartController }) {
           </Pressable>
           <Text variant="bodySm" tone="muted">{t('product.seller')}: {item.seller.displayName}</Text>
           {/* Birim fiyat SUNUCUDAN (`quote.items[].unitPrice`). Sepetteki `item.price` ekleme
-              anında donuyor ve 24 saat saklanıyor; kampanya penceresi sepette beklerken kapanırsa
+              anında donuyor ve sepette süresiz bekleyebiliyor; kampanya penceresi sepette beklerken kapanırsa
               satırda eski fiyat, özette yeni ara toplam görünürdü. Seçim dışı satırın quote
               karşılığı YOK; çıplak "—" "fiyat alınamadı" gibi okunuyordu, sebebi söylenir. */}
           {selected ? (
@@ -59,8 +57,8 @@ export function CartItemRow({ item, f }: { item: any; f: CartController }) {
               {t('cart.excludedFromTotal')}
             </Text>
           )}
-          {/* Sunucudan gelen taze stok uyarısı — yerel sepetteki stok bilgisi ekleme anında
-              donduğu için tükenen ürün ancak burada görünür. */}
+          {/* Sunucudan gelen taze stok uyarısı (web parite: yerelleştirilmiş "Son N ürün" /
+              "Stokta yok" aynen). Yerel donmuş stoktan türetilen ayrı bir satır YOK — bayat kalıyordu. */}
           {stockWarning ? (
             <Badge variant="warning" size="sm" style={styles.stockWarning} testID="cart-item-stock-warning">
               {stockWarning}
@@ -93,11 +91,6 @@ export function CartItemRow({ item, f }: { item: any; f: CartController }) {
           onPress={() => f.handleRemove(item.id)}
         />
       </View>
-      {stockKnown && atMax ? (
-        <Text variant="caption" tone="muted" align="right">
-          {t('cart.lastStockCount', { count: itemMax })}
-        </Text>
-      ) : null}
     </SectionCard>
   );
 }

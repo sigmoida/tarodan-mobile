@@ -33,6 +33,7 @@ const mockCart = {
   retryQuote: jest.fn(),
   unitPriceFor: () => 10,
   stockWarningFor: () => null,
+  maxQuantityFor: () => 99,
   isAuthenticated: true,
   updateQuantity: jest.fn(),
   removeItem: jest.fn(),
@@ -79,7 +80,8 @@ describe('cart screen i18n', () => {
 
     renderWithProviders(<CartScreen />);
 
-    expect(screen.getByText('cart.expiryNotice')).toBeTruthy();
+    // Sepet artık süre dolunca silinmiyor — "24 saat" uyarısı kalktı.
+    expect(screen.queryByText('cart.expiryNotice')).toBeNull();
     expect(screen.getByText('common.total')).toBeTruthy();
     expect(screen.getByText('cart.proceedToCheckout')).toBeTruthy();
 

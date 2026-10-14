@@ -8,7 +8,7 @@
  * "Ödeme Yap" etiketli ETKİN bir buton + "0,00 TL" toplam. Kapı artık alan seviyesinde.
  *
  * N1 — satır tutarı `item.price * item.quantity` ile İSTEMCİDE çarpılıyordu.
- * Sepetteki `price` ekleme anında donuyor (24 saat) ve ürünlerde kampanya
+ * Sepetteki `price` ekleme anında donuyor (sepette süresiz bekleyebilir) ve ürünlerde kampanya
  * penceresi var (`isOnSale`/`saleEndDate`); pencere sepette beklerken kapanınca
  * satır eski indirimli fiyatı, özet yeni ara toplamı gösteriyordu — C1'in yok
  * ettiği "satırlar toplamı tutmuyor" sınıfının bir kat aşağısı. Artık sunucunun

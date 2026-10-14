@@ -19,7 +19,8 @@ export interface CartItem {
     id: string;
     displayName: string;
   };
-  addedAt: number; // timestamp for 24-hour expiry
+  /** Son ekleme/adet değişikliği zamanı (bilgi amaçlı; sepet süre dolunca SİLİNMEZ). */
+  addedAt: number;
 }
 
 interface CartState {
@@ -54,7 +55,11 @@ interface CartState {
   removeByProductId: (productId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
-  cleanExpiredItems: () => void;
+  /**
+   * Sunucunun bildirdiği taze satın alınabilir adedi satıra yazar (sepete eklerken donan
+   * `stock` yerine). Adet seçici ve `updateQuantity` tavanı bu değerle hesaplanır.
+   */
+  syncStock: (productId: string, stock: number) => void;
   onPurchaseComplete: (productIds: string[]) => void;
   toggleSelected: (itemId: string) => void;
   setAllSelected: (selected: boolean) => void;
@@ -71,8 +76,6 @@ interface CartState {
   getItemCount: () => number;
   isInCart: (productId: string) => boolean;
 }
-
-const CART_EXPIRY_HOURS = 24;
 
 export { maxAllowedQty } from './cartLimits';
 import { maxAllowedQty } from './cartLimits';
@@ -194,21 +197,15 @@ export const useCartStore = create<CartState>()(
         set({ items: [], deselectedIds: [], lastUpdated: Date.now() });
       },
 
-      cleanExpiredItems: () => {
-        const now = Date.now();
-        const expiryMs = CART_EXPIRY_HOURS * 60 * 60 * 1000;
-        const items = get().items.filter(item => {
-          return (now - item.addedAt) < expiryMs;
+      syncStock: (productId: string, stock: number) => {
+        // 0/negatif yazılmaz: `maxAllowedQty` 0'ı "bilinmiyor" sayar ve tavanı 99'a gevşetirdi.
+        if (!Number.isFinite(stock) || stock < 1) return;
+        const items = get().items;
+        if (!items.some((i) => i.productId === productId && i.stock !== stock)) return;
+        set({
+          items: items.map((i) => (i.productId === productId ? { ...i, stock } : i)),
+          lastUpdated: Date.now(),
         });
-        
-        if (items.length !== get().items.length) {
-          const keptIds = items.map((i) => i.id);
-          set({
-            items,
-            deselectedIds: get().deselectedIds.filter((id) => keptIds.includes(id)),
-            lastUpdated: Date.now(),
-          });
-        }
       },
 
       // Remove purchased items from cart
