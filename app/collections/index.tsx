@@ -1,6 +1,6 @@
 import { View, RefreshControl } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { theme, Chip, EmptyState, Input, pageListContentStyle, SkeletonCard, usePageScrollHandler } from '@/ui';
+import { theme, ChipTabs, EmptyState, Input, pageListContentStyle, SkeletonCard, usePageScrollHandler } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PageShell } from '@/components/common/PageShell';
@@ -58,15 +58,16 @@ export default function CollectionsScreen() {
               onChangeText={f.setSearchQuery}
               leftIconName="magnifying-glass"
             />
-            <View style={styles.chips}>
-              <Chip label={t('common.all')} selected={f.activeFilter === 'all'} onPress={() => f.setActiveFilter('all')} />
-              <Chip
-                label={t('common.popular')}
-                selected={f.activeFilter === 'popular'}
-                onPress={() => f.setActiveFilter('popular')}
-              />
-              <Chip label={t('common.new')} selected={f.activeFilter === 'recent'} onPress={() => f.setActiveFilter('recent')} />
-            </View>
+            <ChipTabs
+              testID="collections-filters"
+              value={f.activeFilter}
+              onChange={f.setActiveFilter}
+              items={[
+                { key: 'all', label: t('common.all') },
+                { key: 'popular', label: t('common.popular') },
+                { key: 'recent', label: t('common.new') },
+              ]}
+            />
           </View>
         }
         ListEmptyComponent={

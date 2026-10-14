@@ -34,6 +34,17 @@ describe('Chip (web @tarodan/ui)', () => {
     expect(boxStyle().backgroundColor).toBe(colors.success[50]);
   });
 
+  it('dikeyde gerilmez: boy tavanlı (maxHeight) ve ebeveyn hizası (alignSelf) ezilmez', () => {
+    render(<Chip testID="chip" label="Tümü" selected onPress={jest.fn()} />);
+    const box = boxStyle();
+    // stretch edilen bir satırda bile çip tavanı aşmaz; tavan asgari boydan küçük olamaz.
+    expect(box.maxHeight).toBeGreaterThanOrEqual(box.minHeight as number);
+    // Tavan sınırlı: büyük yazıda en fazla control tavanı (1.2x) + küçük pay.
+    expect(box.maxHeight).toBeLessThanOrEqual(Math.ceil(24 * 1.2) + theme.spacing[1]);
+    // Ebeveynin alignItems (center / flex-start) hizasını bozmamak için alignSelf verilmez.
+    expect(box.alignSelf).toBeUndefined();
+  });
+
   it('basılır', () => {
     const onPress = jest.fn();
     render(<Chip label="1:18" selected={false} onPress={onPress} />);

@@ -37,6 +37,7 @@ export function BrandsStrip({ items }: { items: Manufacturer[] }) {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={styles.brandsScroll}
       contentContainerStyle={styles.brandsRow}
       testID="home-brands"
     >

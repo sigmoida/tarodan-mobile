@@ -30,6 +30,7 @@ export function CategoryFilters({ f, count }: { f: CategoryController; count?: n
       extra={
         <ScrollView
           horizontal
+          style={styles.scaleScroll}
           keyboardShouldPersistTaps="handled"
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.scaleChips}

@@ -1,11 +1,9 @@
-import { ScrollView } from 'react-native';
-import { Chip, EmptyState } from '@/ui';
+import { ChipTabs, EmptyState } from '@/ui';
 import { useTranslation } from 'react-i18next';
 import { AuthGatePage } from '@/components/common/AuthGatePage';
 import { PageShell } from '@/components/common/PageShell';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { usePayments } from './_hooks/usePayments';
-import { styles } from './_lib/styles';
 import { buildStatusOptions } from './_lib/status';
 import { PaymentCard } from './_components/PaymentCard';
 
@@ -38,21 +36,12 @@ export default function PaymentsScreen() {
       onRefresh={() => f.paymentsQuery.refetch()}
     >
       {/* Status filtresi */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
-      >
-        {statusOptions.map((opt) => (
-          <Chip
-            key={opt.value || 'all'}
-            label={opt.label}
-            variant="primary"
-            selected={f.statusFilter === opt.value}
-            onPress={() => f.setStatusFilter(opt.value)}
-          />
-        ))}
-      </ScrollView>
+      <ChipTabs
+        testID="payment-filters"
+        value={f.statusFilter}
+        onChange={f.setStatusFilter}
+        items={statusOptions.map((opt) => ({ key: opt.value, label: opt.label }))}
+      />
 
       {f.payments.length === 0 ? (
         <EmptyState

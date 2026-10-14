@@ -17,11 +17,14 @@ export const homeStyles = StyleSheet.create({
   sections: { padding: spacing[4], gap: spacing[4] },
 
   // Ürün rayı (web: flex gap-3 overflow-x-auto, kart w-40)
-  rail: { gap: spacing[3] },
+  // Yatay şeritler: flexGrow:0 (dikeyde içerik kadar) + hizalama (kartlar germesin).
+  railScroll: { flexGrow: 0 },
+  rail: { gap: spacing[3], alignItems: 'flex-start' },
   railCell: { width: RAIL_CARD_WIDTH },
 
   // Üreticiler şeridi (web: w-24 h-14 kutular, border, rounded, p-2.5)
-  brandsRow: { gap: spacing[3], paddingVertical: spacing[1] },
+  brandsScroll: { flexGrow: 0 },
+  brandsRow: { gap: spacing[3], paddingVertical: spacing[1], alignItems: 'center' },
   brandTile: {
     width: spacing[24],
     height: spacing[16] - spacing[2],

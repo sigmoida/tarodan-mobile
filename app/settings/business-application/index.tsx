@@ -1,7 +1,7 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Chip, ErrorState, theme } from '@/ui';
+import { Alert, Button, ChipTabs, ErrorState } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { useBusinessApplication, type BusinessApplicationTab } from './_hooks/useBusinessApplication';
 import { useDocumentUpload } from './_hooks/useDocumentUpload';
@@ -10,7 +10,7 @@ import { StakeholdersTab } from './_sections/StakeholdersTab';
 import { DocumentsTab } from './_sections/DocumentsTab';
 
 /**
- * Kurumsal başvuru tamamlama — THIN ekran. Üç sekme (Chip); her sekme kendi
+ * Kurumsal başvuru tamamlama — THIN ekran. Üç sekme (ChipTabs); her sekme kendi
  * bölümünde (SectionCard) self-gate eder. Veri/mutation `_hooks/useBusinessApplication`'da.
  */
 export default function BusinessApplicationScreen() {
@@ -56,18 +56,16 @@ export default function BusinessApplicationScreen() {
         </>
       ) : (
         <>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
-            {TABS.map((tabItem) => (
-              <Chip
-                key={tabItem.key}
-                testID={`tab-${tabItem.key}`}
-                label={tabItem.label}
-                selected={f.tab === tabItem.key}
-                variant={f.tab === tabItem.key ? 'primary' : 'neutral'}
-                onPress={() => f.setTab(tabItem.key)}
-              />
-            ))}
-          </ScrollView>
+          <ChipTabs
+            testID="business-application-tabs"
+            value={f.tab}
+            onChange={f.setTab}
+            items={TABS.map((tabItem) => ({
+              key: tabItem.key,
+              label: tabItem.label,
+              testID: `tab-${tabItem.key}`,
+            }))}
+          />
           <DetailsTab f={f} />
           <StakeholdersTab f={f} upload={upload} />
           <DocumentsTab f={f} upload={upload} />
@@ -79,5 +77,4 @@ export default function BusinessApplicationScreen() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  tabs: { gap: theme.spacing[2] },
 });

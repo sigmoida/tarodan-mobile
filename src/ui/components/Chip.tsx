@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Pressable,
+  useWindowDimensions,
   type PressableProps,
   type ViewStyle,
 } from 'react-native';
@@ -60,6 +61,12 @@ const toggleStyle = {
  * Çip = tam yuvarlak hap (Pill tabanı): sm → Pill sm (px-2 text-xs) h24; md → Pill lg (px-3 text-sm) h32.
  * `height` ASGARİ yüksekliktir (`minHeight` + küçük dikey dolgu): normal yazı ölçeğinde çip tam bu
  * boydadır, büyük ölçekte etiket kırpılmadan büyür.
+ *
+ * Dikey gerilme: çip yanlış bir ebeveynde (ör. `alignItems: 'stretch'` satır, `flexGrow:1` yatay
+ * ScrollView içeriği) `minHeight` yüzünden sınırsız uzayabilirdi. Bu yüzden `maxHeight` =
+ * asgari boy × (yazı ölçeği, etiketin `maxFontSizeMultiplier` tavanıyla kırpılmış) + küçük pay:
+ * büyük yazıda çip yine etiketine göre büyür ama ebeveyn gerdirse de bu tavanı aşmaz.
+ * (`alignSelf` kullanılmadı: ebeveynin `alignItems` hizasını — center/flex-start — bozardı.)
  */
 const sizeMap: Record<ChipSize, { height: number; pill: PillSize }> = {
   sm: { height: 24, pill: 'sm' },
@@ -83,6 +90,9 @@ export const Chip: React.FC<ChipProps> = ({
 }) => {
   const isOn = selected ?? active;
   const ss = sizeMap[size];
+  const { fontScale } = useWindowDimensions();
+  const maxHeight =
+    Math.ceil(ss.height * Math.min(Math.max(fontScale, 1), typography.maxFontScale.control)) + spacing[1];
   const look =
     isOn === undefined
       ? { ...tagStyle[variant], border: 'transparent' }
@@ -104,6 +114,7 @@ export const Chip: React.FC<ChipProps> = ({
         trailingIcon ? { gap: spacing[1] } : null,
         {
           minHeight: ss.height,
+          maxHeight,
           paddingVertical: spacing[0.5],
           borderWidth: 1,
           backgroundColor: bg,

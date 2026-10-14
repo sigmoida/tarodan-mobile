@@ -5,9 +5,6 @@ const { colors, spacing, radiusRole } = theme;
 
 // İndirim yönetimi ekranının route-local stylesheet'i — web Card dili, token'lı.
 export const styles = StyleSheet.create({
-  filterRow: {
-    gap: spacing[2],
-  },
   discountCard: {
     gap: spacing[2],
   },

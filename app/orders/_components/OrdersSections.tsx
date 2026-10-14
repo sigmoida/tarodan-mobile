@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
-import { View, ScrollView, Pressable } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { AppImage } from '@/components/AppImage';
-import { Chip, SectionCard, StatusBadge, Text, theme, Icon } from '@/ui';
+import { ChipTabs, SectionCard, StatusBadge, Text, theme, Icon } from '@/ui';
 
 import { getOrderProductImageUri } from '@/utils/orderProductImage';
 import type { UiOrderStatus } from '@/utils/orderStatus';
@@ -28,22 +28,20 @@ export function OrdersFilters({ f }: { f: OrdersController }) {
   const { t } = useTranslation();
   const statusText = useStatusText();
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
-      {FILTER_ORDER.map((key) => (
-        <Chip
-          key={key}
-          label={
-            key === 'all'
-              ? t('order.tabAll')
-              : key === 'refunds'
-                ? t('order.tabRefunds')
-                : statusText(key as UiOrderStatus)
-          }
-          selected={f.filter === key}
-          onPress={() => f.setFilter(key)}
-        />
-      ))}
-    </ScrollView>
+    <ChipTabs
+      testID="orders-filters"
+      value={f.filter}
+      onChange={f.setFilter}
+      items={FILTER_ORDER.map((key) => ({
+        key,
+        label:
+          key === 'all'
+            ? t('order.tabAll')
+            : key === 'refunds'
+              ? t('order.tabRefunds')
+              : statusText(key as UiOrderStatus),
+      }))}
+    />
   );
 }
 

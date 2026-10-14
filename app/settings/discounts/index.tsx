@@ -1,6 +1,5 @@
-import { ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Chip, FAB, EmptyState } from '@/ui';
+import { ChipTabs, FAB, EmptyState } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 
@@ -39,17 +38,12 @@ export default function DiscountsScreen() {
         />
       }
     >
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-        {FILTERS.map((opt) => (
-          <Chip
-            key={opt.value}
-            label={t(opt.labelKey)}
-            selected={f.filter === opt.value}
-            variant={f.filter === opt.value ? 'primary' : 'neutral'}
-            onPress={() => f.setFilter(opt.value)}
-          />
-        ))}
-      </ScrollView>
+      <ChipTabs
+        testID="discount-filters"
+        value={f.filter}
+        onChange={f.setFilter}
+        items={FILTERS.map((opt) => ({ key: opt.value, label: t(opt.labelKey) }))}
+      />
 
       {f.filteredDiscounts.length === 0 ? (
         <EmptyState

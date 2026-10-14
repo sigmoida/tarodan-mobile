@@ -1,9 +1,9 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 import { AppImage } from '@/components/AppImage';
-import { Avatar, Chip, EmptyState, SectionCard, Text, theme, Icon } from '@/ui';
+import { Avatar, ChipTabs, EmptyState, SectionCard, Text, theme, Icon } from '@/ui';
 
 import { styles } from '../_lib/styles';
 import type { TabType } from '../_lib/types';
@@ -63,17 +63,12 @@ export function BusinessCompanyHeader({ f }: { f: BusinessController }) {
 export function BusinessTabs({ f }: { f: BusinessController }) {
   const { t } = useTranslation();
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsRow}>
-      {buildTabs(t).map((tab) => (
-        <Chip
-          key={tab.id}
-          label={tab.label}
-          selected={f.activeTab === tab.id}
-          variant={f.activeTab === tab.id ? 'primary' : 'neutral'}
-          onPress={() => f.setActiveTab(tab.id)}
-        />
-      ))}
-    </ScrollView>
+    <ChipTabs
+      testID="business-tabs"
+      value={f.activeTab}
+      onChange={f.setActiveTab}
+      items={buildTabs(t).map((tab) => ({ key: tab.id, label: tab.label }))}
+    />
   );
 }
 

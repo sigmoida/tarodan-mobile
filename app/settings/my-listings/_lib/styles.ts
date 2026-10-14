@@ -13,9 +13,6 @@ export const styles = StyleSheet.create({
   progressBar: {
     marginTop: spacing[2],
   },
-  chipRow: {
-    gap: spacing[2],
-  },
   listingCard: { alignItems: 'stretch' },
   listingImage: {
     width: THUMB,

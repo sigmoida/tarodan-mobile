@@ -41,9 +41,6 @@ export const styles = StyleSheet.create({
   companyName: {
     flexShrink: 1,
   },
-  tabsRow: {
-    gap: spacing[2],
-  },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

@@ -6,7 +6,9 @@ const { colors, spacing, radiusRole } = theme;
 // Model tarama listesi: marka başına SectionCard + 2 sütun model kartı (ürün kartıyla aynı dil).
 export const styles = StyleSheet.create({
   filters: { gap: spacing[3] },
-  chips: { flexDirection: 'row', gap: spacing[2] },
+  // flexGrow:0 + alignItems:center → yatay ScrollView çipleri dikeyde germesin.
+  chipsScroll: { flexGrow: 0 },
+  chips: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing[3] },
   modelCard: {
     width: '48%',

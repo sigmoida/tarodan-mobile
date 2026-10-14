@@ -129,6 +129,12 @@ export {
 	type ChipVariant,
 	type ChipSize,
 } from './components/Chip';
+export {
+	ChipTabs,
+	chipTabLabel,
+	type ChipTabsProps,
+	type ChipTabItem,
+} from './components/ChipTabs';
 export { Divider, type DividerProps } from './components/Divider';
 export { Switch, type SwitchProps } from './components/Switch';
 export {

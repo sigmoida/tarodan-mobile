@@ -28,6 +28,7 @@ export default function ModelsScreen() {
         />
         <ScrollView
           horizontal
+          style={styles.chipsScroll}
           keyboardShouldPersistTaps="handled"
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chips}

@@ -3,12 +3,8 @@ import { theme } from '@/ui';
 
 const { colors, spacing, radiusRole } = theme;
 
-// Route-local stylesheet (§12) — kartlar web Card, filtre çipleri yatay kaydırma.
+// Route-local stylesheet (§12) — kartlar web Card.
 export const styles = StyleSheet.create({
-  filterRow: {
-    gap: spacing[2],
-    paddingBottom: spacing[1],
-  },
   paymentCard: {
     gap: spacing[2],
   },

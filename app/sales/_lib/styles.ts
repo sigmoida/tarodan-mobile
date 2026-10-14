@@ -9,7 +9,6 @@ export const styles = StyleSheet.create({
   earnings: { flexDirection: 'row', alignItems: 'center' },
   earningItem: { flex: 1, alignItems: 'center', gap: spacing[1] },
   earningDivider: { width: 1, height: spacing[10], backgroundColor: colors.border.DEFAULT },
-  filters: { gap: spacing[2], paddingRight: spacing[4] },
   list: { gap: spacing[3] },
   saleCard: { gap: spacing[3] },
   saleHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing[3] },

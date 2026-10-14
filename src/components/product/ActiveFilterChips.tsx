@@ -29,6 +29,7 @@ export function ActiveFilterChips({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={styles.scroll}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
       testID="active-filter-chips"
@@ -60,6 +61,8 @@ export function ActiveFilterChips({
 }
 
 const styles = StyleSheet.create({
+  // flexGrow:0 → yatay ScrollView dikeyde alan doldurup çipleri germesin.
+  scroll: { flexGrow: 0 },
   content: { alignItems: 'center', gap: spacing[2], paddingVertical: spacing[1] },
   clear: { paddingHorizontal: spacing[1] },
 });

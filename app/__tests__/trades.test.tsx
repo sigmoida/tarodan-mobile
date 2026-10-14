@@ -32,7 +32,17 @@ describe('Takaslarım', () => {
   beforeEach(() => {
     resetRouterMocks();
     mockAuth = { isAuthenticated: true, user: { id: 'u1' } };
-    (tradesApi.getAll as jest.Mock).mockReset().mockResolvedValue({ data: { trades: [] } });
+    // İptal / Reddedilen sayaçları `getAll({status, pageSize:1}).total` ile gelir.
+    (tradesApi.getAll as jest.Mock)
+      .mockReset()
+      .mockImplementation((params?: { status?: string; pageSize?: string }) =>
+        Promise.resolve({
+          data: {
+            trades: [],
+            total: params?.status === 'cancelled' ? 3 : params?.status === 'rejected' ? 1 : 0,
+          },
+        }),
+      );
   });
 
   it('giriş yoksa giriş çağrısı çıkar ve giriş sayfasına gider', () => {
@@ -42,12 +52,14 @@ describe('Takaslarım', () => {
     expect(pushMock).toHaveBeenCalledWith('/(auth)/login');
   });
 
-  it('filtre chip\'leri sunucu sayaçlarını taşır; sayaçsız filtreler yalnız etiket', async () => {
+  it('tüm filtre sekmeleri sayaç taşır (İptal / Reddedilen dahil — tutarlı tek kural)', async () => {
     renderWithProviders(<TradesScreen />);
     expect(await screen.findByText('Tümü (5)')).toBeOnTheScreen();
     expect(screen.getByText('Bekleyen (2)')).toBeOnTheScreen();
     expect(screen.getByText('Kargoda (1)')).toBeOnTheScreen();
-    expect(screen.getByText('İptal')).toBeOnTheScreen();
+    expect(screen.getByText('Tamamlanan (2)')).toBeOnTheScreen();
+    expect(screen.getByText('İptal (3)')).toBeOnTheScreen();
+    expect(screen.getByText('Reddedilen (1)')).toBeOnTheScreen();
   });
 
   it('boş listede boş durum çıkar ve filtre chip\'leri görünür kalır', async () => {

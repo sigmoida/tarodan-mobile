@@ -1,10 +1,10 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MessageKey } from '@/i18n/lib';
-import { View, ScrollView } from 'react-native';
+import { View } from 'react-native';
 import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
-import { Alert, Button, Checkbox, Chip, EmptyState, IconButton, ProgressBar, SectionCard, Text, theme, Icon, Pill, ButtonRow, ListRowCard } from '@/ui';
+import { Alert, Button, Checkbox, ChipTabs, EmptyState, IconButton, ProgressBar, SectionCard, Text, theme, Icon, Pill, ButtonRow, ListRowCard } from '@/ui';
 
 import UpgradeCta from '@/components/UpgradeCta';
 import { styles } from '../_lib/styles';
@@ -86,19 +86,16 @@ const FILTER_CHIPS: Array<{
 export function MyListingsFilters({ f }: { f: MyListingsController }) {
   const { t } = useTranslation();
   return (
-    <View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-        {FILTER_CHIPS.map((c) => (
-          <Chip
-            key={c.value}
-            label={`${t(c.labelKey)} (${f.counts[c.countKey]})`}
-            selected={f.filter === c.value}
-            variant={f.filter === c.value ? 'primary' : 'neutral'}
-            onPress={() => f.setFilter(c.value)}
-          />
-        ))}
-      </ScrollView>
-    </View>
+    <ChipTabs
+      testID="my-listings-filters"
+      value={f.filter}
+      onChange={f.setFilter}
+      items={FILTER_CHIPS.map((c) => ({
+        key: c.value,
+        label: t(c.labelKey),
+        count: f.counts[c.countKey],
+      }))}
+    />
   );
 }
 

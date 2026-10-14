@@ -1,10 +1,8 @@
-import { ScrollView } from 'react-native';
-import { Chip } from '@/ui';
-import { styles } from '../_lib/styles';
+import { ChipTabs } from '@/ui';
 import { SALE_FILTERS, useStatusLabel } from '../_lib/status';
 import type { FilterType } from '../_lib/types';
 
-/** Yatay durum-filtre çipleri (bounded liste → ScrollView kabul edilir). */
+/** Yatay durum-filtre sekmeleri (web Tabs karşılığı). */
 export function SalesFilterChips({
   filter,
   onSelect,
@@ -14,16 +12,11 @@ export function SalesFilterChips({
 }) {
   const getStatusLabel = useStatusLabel();
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
-      {SALE_FILTERS.map((f) => (
-        <Chip
-          key={f}
-          label={getStatusLabel(f)}
-          selected={filter === f}
-          variant="primary"
-          onPress={() => onSelect(f)}
-        />
-      ))}
-    </ScrollView>
+    <ChipTabs
+      testID="sales-filters"
+      value={filter}
+      onChange={onSelect}
+      items={SALE_FILTERS.map((f) => ({ key: f, label: getStatusLabel(f) }))}
+    />
   );
 }

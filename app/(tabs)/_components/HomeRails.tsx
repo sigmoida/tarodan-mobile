@@ -40,7 +40,7 @@ function ProductRail({
   return (
     <SectionCard title={title} badge={badge} action={<SectionCardAction onPress={onSeeAll} />} testID={testID}>
       {isLoading ? (
-        <ScrollView horizontal scrollEnabled={false} contentContainerStyle={styles.rail} testID={`${testID}-skeleton`}>
+        <ScrollView horizontal scrollEnabled={false} style={styles.railScroll} contentContainerStyle={styles.rail} testID={`${testID}-skeleton`}>
           {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
             <View key={i} style={styles.railCell}>
               <SkeletonCard />
@@ -50,7 +50,7 @@ function ProductRail({
       ) : items.length === 0 ? (
         emptyState
       ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.railScroll} contentContainerStyle={styles.rail}>
           {items.slice(0, RAIL_LIMIT).map((item) => (
             <View key={item.id} style={styles.railCell}>
               <ProductCard product={item} showMeta={false} onPress={() => onProductPress(item.id)} />

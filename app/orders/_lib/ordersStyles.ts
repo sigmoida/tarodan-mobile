@@ -5,7 +5,6 @@ const { colors, radius, spacing } = theme;
 
 // Siparişlerim — web OrderGroupCard'ın telefon görünümü (çerçeveli kart, 56pt görsel, rozet + fiyat sağda).
 export const styles = StyleSheet.create({
-  filters: { gap: spacing[2], paddingRight: spacing[4] },
   list: { gap: spacing[3] },
   card: { gap: spacing[3] },
   cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing[3] },

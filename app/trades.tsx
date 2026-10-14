@@ -1,12 +1,13 @@
 import { useState, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueries } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Chip, EmptyState, ErrorState, SkeletonCard, pageListContentStyle, theme, usePageScrollHandler } from '@/ui';
+import { ChipTabs, EmptyState, ErrorState, SkeletonCard, pageListContentStyle, theme, usePageScrollHandler } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { tradesApi } from '@/lib/api';
+import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import { TradeCard, type TradeCardTrade } from '@/components/trade/TradeCard';
 import type { TFn } from './trade/[id]/_lib/types';
@@ -17,21 +18,23 @@ const { spacing } = theme;
 // istemci tarafı statü listesine gerek kalmadı.
 type TradesTabFilter = 'all' | 'pending' | 'shipping' | 'completed' | 'cancelled' | 'rejected';
 
-// Sunucu sayaçları yalnızca ilk 4 grup için var; iptal/red sayaçsız gösterilir.
+// Sunucu sayaçları (status-counts) yalnızca ilk 4 grup için var; İptal/Reddedilen sayaçları
+// `getAll({ status, pageSize: 1 }).total` ile tamamlanır → ChipTabs tek kural: sayaç ya HEPSİNDE
+// ya hiçbirinde (hepsi yüklenene dek sayısız etiket).
 // Etiketler katalogdan — module-scope dizi import-zamanı DONMASIN diye
 // `buildFilters(t)` fonksiyonu (CLAUDE.md §2), her render'da yeniden kurulur.
 function buildFilters(t: TFn): {
   value: TradesTabFilter;
   label: string;
-  countKey?: 'all' | 'pending' | 'shipping' | 'completed';
+  countKey: 'all' | 'pending' | 'shipping' | 'completed' | 'cancelled' | 'rejected';
 }[] {
   return [
     { value: 'all', label: t('common.all'), countKey: 'all' },
     { value: 'pending', label: t('trade.filterPending'), countKey: 'pending' },
     { value: 'shipping', label: t('trade.filterInTransit'), countKey: 'shipping' },
     { value: 'completed', label: t('trade.filterCompleted'), countKey: 'completed' },
-    { value: 'cancelled', label: t('common.cancel') },
-    { value: 'rejected', label: t('trade.filterRejected') },
+    { value: 'cancelled', label: t('common.cancel'), countKey: 'cancelled' },
+    { value: 'rejected', label: t('trade.filterRejected'), countKey: 'rejected' },
   ];
 }
 
@@ -73,13 +76,31 @@ export default function TradesScreen() {
     queryFn: () => tradesApi.getStatusCounts(),
     enabled: isAuthenticated,
   });
-  const tc = countsResp?.data ?? { all: 0, pending: 0, shipping: 0, completed: 0 };
+  // İptal / Reddedilen sayaçları (status-counts'ta yok): pageSize=1 ile yalnız `total` okunur.
+  // Anahtar `statusCounts` önekini paylaşır → takas oluşunca/ödemede aynı invalidate tazeler.
+  const extraCounts = useQueries({
+    queries: (['cancelled', 'rejected'] as const).map((status) => ({
+      queryKey: [...qk.trades.statusCounts, status],
+      queryFn: async () => {
+        const res = await tradesApi.getAll({ status, pageSize: '1' });
+        const total = (res.data as { total?: number } | undefined)?.total;
+        return typeof total === 'number' ? total : null;
+      },
+      enabled: isAuthenticated,
+    })),
+  });
+  const [cancelledCount, rejectedCount] = extraCounts.map((q) => q.data);
+  const tc = countsResp?.data;
+  const allCounts =
+    tc && typeof cancelledCount === 'number' && typeof rejectedCount === 'number'
+      ? { ...tc, cancelled: cancelledCount, rejected: rejectedCount }
+      : undefined;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([refetch(), refetchCounts()]);
+    await Promise.all([refetch(), refetchCounts(), ...extraCounts.map((q) => q.refetch())]);
     setRefreshing(false);
-  }, [refetch, refetchCounts]);
+  }, [refetch, refetchCounts, extraCounts]);
 
   const handleBack = () => {
     if (router.canGoBack()) router.back();
@@ -122,20 +143,17 @@ export default function TradesScreen() {
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderTrade}
         ListHeaderComponent={
-          // Durum filtreleri — web gibi sarmalanan (wrap) chip satırı
-          <View style={styles.filterRow}>
-            {FILTERS.map((f) => {
-              const count = f.countKey ? (tc as Record<string, number>)[f.countKey] : undefined;
-              return (
-                <Chip
-                  key={f.value}
-                  label={`${f.label}${count != null ? ` (${count})` : ''}`}
-                  selected={filter === f.value}
-                  onPress={() => setFilter(f.value)}
-                />
-              );
-            })}
-          </View>
+          // Durum filtreleri — tek satır, yatay kaydırılan sekmeler (sayaçlar hepsinde ya da hiçbirinde)
+          <ChipTabs
+            testID="trades-filters"
+            value={filter}
+            onChange={setFilter}
+            items={FILTERS.map((f) => ({
+              key: f.value,
+              label: f.label,
+              count: allCounts?.[f.countKey],
+            }))}
+          />
         }
         ListEmptyComponent={
           isError ? (
@@ -161,11 +179,5 @@ export default function TradesScreen() {
 }
 
 const styles = StyleSheet.create({
-  filterRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-    marginBottom: spacing[1],
-  },
   skeletons: { gap: spacing[3] },
 });
