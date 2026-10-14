@@ -1,23 +1,24 @@
 import i18n from '@/i18n/config';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ordersApi, type OrderQuoteResponse } from '@/lib/api';
 import { qk, retryUnlessClientError } from '@/lib/query';
 import { serverAmount } from '@/utils/format';
 import { indexQuoteLines } from '@/utils/quoteLines';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
-import { useCartStore } from '@/stores/cartStore';
+import { maxAllowedQty, useCartStore, type CartItem } from '@/stores/cartStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useCartSync } from '@/hooks/useCartSync';
 import { useServerCart } from '@/hooks/useServerCart';
 
 /**
- * Cart controller — owns the cart store bindings, the expired-item cleanup, the
+ * Cart controller — owns the cart store bindings, the
  * buyer-fee quote query, and the totals + quantity/remove handlers. Lifted
  * verbatim from the monolithic screen (§12).
  */
 export function useCart() {
-  const { items, getItemCount, cleanExpiredItems } = useCartStore();
+  const { items, getItemCount } = useCartStore();
+  const syncStock = useCartStore((s) => s.syncStock);
   // Seçim store'da: checkout ayrı bir rota ve aynı kaynaktan okuyor. Ekranda
   // `useState` olsaydı ödeme adımı seçimi göremezdi.
   const deselectedIds = useCartStore((s) => s.deselectedIds);
@@ -38,11 +39,6 @@ export function useCart() {
   const sync = useCartSync();
   const { byProductId } = useServerCart();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-
-  // Clean expired items on mount
-  useEffect(() => {
-    cleanExpiredItems();
-  }, []);
 
   const itemCount = getItemCount();
 
@@ -80,7 +76,7 @@ export function useCart() {
 
   /**
    * Satır birim fiyatı — sunucunun `items[].unitPrice`'ı. Sepetteki `item.price`
-   * ekleme anında donuyor ve 24 saat saklanıyor; kampanya penceresi sepette
+   * ekleme anında donuyor ve sepette süresiz bekleyebiliyor; kampanya penceresi sepette
    * beklerken kapanırsa satırda eski (indirimli) fiyat, özette yeni ara toplam
    * görünürdü. Sunucu satırı yoksa `null` → ekran yer tutucu basar.
    */
@@ -96,9 +92,41 @@ export function useCart() {
     sync.removeItem(itemId);
   };
 
+  /**
+   * Sunucunun bildirdiği taze satın alınabilir adet (`availableQuantity` / `maxQuantity`;
+   * ikisi de varsa küçüğü). Yalnız üyede ve sunucu satırı varken dolu; yoksa `null`
+   * (eski sunucu yanıtı ya da misafir → yerel donmuş `stock`'a düşülür).
+   */
+  const serverStockFor = (productId: string): number | null => {
+    const line = byProductId.get(productId);
+    if (!line) return null;
+    const caps = [line.availableQuantity, line.maxQuantity].filter(
+      (n): n is number => typeof n === 'number' && Number.isFinite(n),
+    );
+    return caps.length ? Math.max(0, Math.min(...caps)) : null;
+  };
+
+  /**
+   * Adet seçicinin tavanı. Sunucu değeri varsa o (sipariş-başı limit ve 99 ile kırpılır);
+   * yoksa eski davranış: ekleme anındaki stok. Tavan sepetteki adedin ALTINA düşerse
+   * (sepette 5, sunucu 3/0) tavan = mevcut adet: "+" kilitlenir, "−" çalışır — stepper
+   * `value > max` iken her adımı yutuyordu. Azaltınca store taze tavana kırpar (syncStock).
+   */
+  const maxQuantityFor = (item: Pick<CartItem, 'productId' | 'quantity' | 'stock' | 'maxQuantityPerOrder'>) => {
+    const server = serverStockFor(item.productId);
+    const cap =
+      server === 0
+        ? 0
+        : maxAllowedQty({ stock: server ?? item.stock, maxQuantityPerOrder: item.maxQuantityPerOrder });
+    return Math.max(1, item.quantity, cap);
+  };
+
   const handleQuantityChange = (itemId: string, delta: number) => {
     const item = items.find((i) => i.id === itemId);
     if (item) {
+      // Store'un tavanı da sunucu değerini görsün: donmuş `stock` daha düşükse artış kırpılırdı.
+      const server = serverStockFor(item.productId);
+      if (server != null && server > 0) syncStock(item.productId, server);
       sync.setQuantity(itemId, item.quantity + delta);
     }
   };
@@ -143,6 +171,7 @@ export function useCart() {
     },
     handleRemove,
     handleQuantityChange,
+    maxQuantityFor,
     stockWarningFor,
   };
 }

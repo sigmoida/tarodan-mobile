@@ -3,7 +3,7 @@
  * store'un GERÇEKTEN eklediği fark gider (yerel/sunucu ayrışmasın). Fark 0 ise sunucu çağrısı yok.
  */
 import React from 'react';
-import { renderHook, act } from '@testing-library/react-native';
+import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -27,6 +27,7 @@ jest.mock('@/stores/authStore', () => ({
 import { cartApi } from '@/lib/api';
 import { useCartStore } from '@/stores/cartStore';
 import { useCartSync } from '../useCartSync';
+import { toast } from '@/ui';
 import { cartQuantityLimit, clampCartQuantity } from '../../../app/product/[id]/_lib/quantity';
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -103,5 +104,56 @@ describe('ürün detayı adet tavanı (store kuralıyla tek kaynak)', () => {
     expect(clampCartQuantity(9, { ...base, maxQuantityPerOrder: 3 }, false)).toBe(3);
     expect(clampCartQuantity(0, base, false)).toBe(1);
     expect(clampCartQuantity(5, { ...base, availableQuantity: 1 }, false)).toBe(1);
+  });
+});
+
+describe('useCartSync.setQuantity · sunucuya store un kırptığı adet', () => {
+  let toastError: jest.SpyInstance;
+  beforeEach(() => {
+    (cartApi.updateItem as jest.Mock).mockReset();
+    (cartApi.updateItem as jest.Mock).mockImplementation(() => Promise.resolve());
+    useCartStore.setState({ items: [], deselectedIds: [] });
+    toastError = jest.spyOn(toast, 'error').mockImplementation(() => 1);
+  });
+  afterEach(() => toastError.mockRestore());
+
+  const seed = (over: Record<string, unknown> = {}) =>
+    useCartStore.setState({
+      items: [{ ...item({ stock: 3 }), id: 'c1', quantity: 2, addedAt: Date.now(), ...over }],
+    });
+
+  it('tavanı aşan istek: sunucuya ham 5 değil kırpılmış 3 gider', () => {
+    seed();
+    const { result } = renderHook(() => useCartSync(), { wrapper });
+    act(() => result.current.setQuantity('c1', 5));
+    expect(useCartStore.getState().items[0]!.quantity).toBe(3);
+    expect(cartApi.updateItem).toHaveBeenCalledWith('p1', 3);
+  });
+
+  it('kırpılınca adet değişmediyse sunucu çağrısı yok', () => {
+    seed({ quantity: 3 });
+    const { result } = renderHook(() => useCartSync(), { wrapper });
+    act(() => result.current.setQuantity('c1', 4));
+    expect(cartApi.updateItem).not.toHaveBeenCalled();
+  });
+
+  it('1 in altı silme: sunucuya 0 gider', () => {
+    seed();
+    const { result } = renderHook(() => useCartSync(), { wrapper });
+    act(() => result.current.setQuantity('c1', 0));
+    expect(useCartStore.getState().items).toHaveLength(0);
+    expect(cartApi.updateItem).toHaveBeenCalledWith('p1', 0);
+  });
+
+  it('sunucu 4xx ile reddederse yerel adet geri alınır ve mesaj gösterilir', async () => {
+    seed();
+    (cartApi.updateItem as jest.Mock).mockRejectedValue({
+      response: { status: 400, data: { message: 'Stok yetersiz' } },
+    });
+    const { result } = renderHook(() => useCartSync(), { wrapper });
+    act(() => result.current.setQuantity('c1', 3));
+    expect(useCartStore.getState().items[0]!.quantity).toBe(3);
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith('Stok yetersiz'));
+    expect(useCartStore.getState().items[0]!.quantity).toBe(2);
   });
 });

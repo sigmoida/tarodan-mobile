@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { EmptyState, ErrorState, Input, SkeletonAvatar, SkeletonText, Text, pageListContentStyle, theme, ListRowCard, usePageScrollHandler } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { EntityLogo } from '@/components/catalog/EntityLogo';
+import { listingCount } from '@/utils/catalogListings';
 import { useManufacturers, type Manufacturer } from './_hooks/useManufacturers';
 
 const { colors, spacing } = theme;
@@ -13,7 +14,7 @@ const SKELETON_ROWS = [0, 1, 2, 3, 4, 5];
 
 function ManufacturerRow({ item }: { item: Manufacturer }) {
   const { t } = useTranslation();
-  const count = item.productCount ?? item._count?.products;
+  const count = listingCount(item);
   return (
     <ListRowCard onPress={() => router.push(`/ureticiler/${item.slug}` as any)}>
       <EntityLogo logo={item.logo} name={item.name} />
@@ -21,11 +22,9 @@ function ManufacturerRow({ item }: { item: Manufacturer }) {
         <Text variant="body" weight="semibold" numberOfLines={1}>
           {item.name}
         </Text>
-        {typeof count === 'number' ? (
-          <Text variant="caption" tone="muted">
-            {t('payment.itemsCount', { count })}
-          </Text>
-        ) : null}
+        <Text variant="caption" tone="muted">
+          {t('payment.itemsCount', { count })}
+        </Text>
       </View>
     </ListRowCard>
   );

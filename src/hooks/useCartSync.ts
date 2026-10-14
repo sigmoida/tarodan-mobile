@@ -90,8 +90,20 @@ export function useCartSync() {
       const line = useCartStore.getState().items.find((i) => i.id === itemId);
       store.updateQuantity(itemId, quantity);
       if (!line) return;
-      // Store 1'in altını silme sayar; sunucuda da 0 = satırı kaldır.
-      mirror(() => cartApi.updateItem(line.productId, Math.max(0, quantity)), 'cart.update');
+      // Sunucuya istenen değil, store'un GERÇEKTEN yazdığı adet gider (`add` ile aynı kural):
+      // store stok/sipariş tavanında kırpıyor; ham değer gitseydi sunucu 4xx ile reddeder,
+      // yerel 3 / sunucu 5 diye ayrışırdı. Store 1'in altını silme sayar → sunucuda 0.
+      const after = useCartStore.getState().items.find((i) => i.id === itemId);
+      const applied = after?.quantity ?? 0;
+      if (after && applied === line.quantity) return; // değişmedi: sunucu çağrısı yok
+      mirror(() => cartApi.updateItem(line.productId, applied), 'cart.update', (message) => {
+        // Sunucu reddetti: yerel adedi sunucudakine (önceki hâl) geri al, taze sepeti çek.
+        if (useCartStore.getState().items.some((i) => i.id === itemId)) {
+          store.updateQuantity(itemId, line.quantity);
+        }
+        queryClient.invalidateQueries({ queryKey: qk.cart.mine });
+        toast.error(message);
+      });
     },
 
     clear: () => {

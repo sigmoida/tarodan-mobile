@@ -8,9 +8,13 @@ export const goSearch = (query: string) => {
 
 export const goScale = (scale: string) => router.push(`/search?scale=${encodeURIComponent(scale)}`);
 
-// Anasayfa "Markalar" şeridi aslında üreticiler — web ile aynı: manufacturer ismi ile filtrele.
+// Anasayfa "Markalar" şeridi aslında üreticiler — web menüsüyle aynı: id (API süzgeci, ad
+// eşleşmesinden bağımsız) + ad (aktif filtre çipi etiketi) birlikte.
 export const goBrand = (brand: { id: string; name: string }) =>
-  router.push(`/search?manufacturer=${encodeURIComponent(brand.name)}`);
+  router.push(
+    `/search?manufacturer=${encodeURIComponent(brand.name)}` +
+      (brand.id ? `&manufacturerId=${encodeURIComponent(brand.id)}` : ''),
+  );
 
 export const goCategory = (cat: { id: string; name: string }) =>
   router.push(`/search?categoryId=${encodeURIComponent(cat.id)}&category=${encodeURIComponent(cat.name)}`);
