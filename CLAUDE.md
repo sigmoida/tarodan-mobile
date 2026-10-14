@@ -298,11 +298,16 @@ Binding for every screen and component. Mostly enforced by lint (`.eslintrc.cjs`
 local rules in `eslint-plugin-tarodan/`) — today as **warnings**; wave 2 clears them
 and turns them into **errors**, so write new code warning-free.
 
-- **Shells are mandatory.** Tab roots use `AppShell` (`@/components/shell/AppShell` — one
-  identical primary-600 bar on EVERY tab root: [search field][notifications][cart], no logo;
-  StatusBar goes light while focused). The bottom menu is a floating pill (`AppTabBar`;
-  Home, Favorites, +, Messages, Profile); tab-root lists/ScrollViews add `useTabBarInset()`
-  as bottom padding so content never hides under it. Search is a stack route (`/search`). Stack screens use
+- **Shells are mandatory.** Tab roots use `AppShell` (`@/components/shell/AppShell` — the same
+  bar on EVERY tab root: [☰ side menu][search field or title][messages][notifications] — exactly two
+  right-side icons with unread badges, no cart, no logo). The bottom menu is a floating pill
+  (`AppTabBar`; Home, Favorites, Cart, Profile + the separate "+" sell button); tab-root
+  lists/ScrollViews add `useTabBarInset()` as bottom padding so content never hides under it.
+  Messages and Notifications are stack routes (`/messages`, `/notifications`) opened from the header.
+  The side menu also opens with a left-edge swipe on the base tab root only. Navigating to a tab
+  root from a stack screen / push / ad / deep link goes through `navigateTo()`
+  (`@/lib/navigation/goTo`, `router.dismissTo`) — never `router.push('/(tabs)/…')`, which stacks a
+  second `(tabs)`. Search is a stack route (`/search`). Stack screens use
   `PageShell` (`@/components/common/PageShell` — floating glass top bar with back arrow,
   centred title, optional right action, optional fixed bottom bar, keyboard + safe area, and
   `loading` / `empty` / `error` + `onRetry` states; `loading`/`error` **unmount `children`**,
