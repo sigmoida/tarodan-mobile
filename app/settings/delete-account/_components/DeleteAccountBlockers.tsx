@@ -8,7 +8,11 @@ import {
   type DeleteAccountPathKey,
 } from '../_lib/deleteAccountError';
 
-const PATH_LABEL: Record<DeleteAccountPathKey, 'mobile.quickMySales' | 'trade.myTrades' | 'nav.myOrders'> = {
+const PATH_LABEL: Record<
+  DeleteAccountPathKey,
+  'profile.deleteBlockedManageListings' | 'mobile.quickMySales' | 'trade.myTrades' | 'nav.myOrders'
+> = {
+  listings: 'profile.deleteBlockedManageListings',
   sales: 'mobile.quickMySales',
   trades: 'trade.myTrades',
   orders: 'nav.myOrders',

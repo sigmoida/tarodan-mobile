@@ -6,10 +6,12 @@
  * Web aynı başlık + her engeli toast'la gösteriyor; mobil ekranda kalıcı listeler.
  *
  * Engeller ve yolları:
- * - İlan engeli (`details.activeProducts` — ad sözleşme gereği korunur) YALNIZ süren
- *   bir satışa/takasa bağlı REZERVE ilanları sayar; aktif ve onay bekleyen ilanlar
- *   silmede sunucuca pasife alınır, engel değildir. Rezerve ilan kapatılamaz,
- *   satış bitince kalkar → "Satışlarım".
+ * - İlan engeli (`details.activeProducts` — ad sözleşme gereği korunur): yeni sunucuda
+ *   YALNIZ süren satışa/takasa bağlı REZERVE ilanları sayar (aktif / onay bekleyen ilanlar
+ *   silmede pasife alınır); hâlâ yayında olan sunucu sürümü aktif + onay bekleyen +
+ *   rezerve toplamını sayar. Hangisi olduğu bilinmediği için iki yol birlikte verilir:
+ *   "İlanlarımı yönet" (aktif/onay bekleyen ilan kapatılabilir) ve "Satışlarım"
+ *   (rezerve ilan satış bitince serbest kalır). Sunucu cümlesi durumu ayrıca anlatır.
  * - Bekleyen sipariş (alıcı ya da satıcı tarafı) → "Siparişlerim".
  * - Süren takas → "Takaslarım".
  * - Açık iade, bekleyen satıcı ödemesi, ödeme blokajı beklenmesi gereken süreçlerdir;
@@ -24,8 +26,8 @@ export interface DeleteAccountFailure {
   reasons: string[];
   /** Sunucu engel listesi döndü (silme kuralı; ağ/sunucu hatası değil). */
   blocked: boolean;
-  /** Satışa/takasa bağlı rezerve ilan sayısı. */
-  reservedListings: number;
+  /** Sunucunun ilan engeli (`details.activeProducts`; sürüme göre yalnız rezerve ya da hepsi). */
+  blockingListings: number;
   /** Bekleyen sipariş (alıcı ya da satıcı tarafı). */
   pendingOrders: number;
   /** Süren takas. */
@@ -57,25 +59,28 @@ export function describeDeleteAccountError(
     title,
     reasons,
     blocked,
-    reservedListings: blocked ? count(data?.details?.activeProducts) : 0,
+    blockingListings: blocked ? count(data?.details?.activeProducts) : 0,
     pendingOrders: blocked ? count(data?.details?.pendingOrders) : 0,
     activeTrades: blocked ? count(data?.details?.activeTrades) : 0,
   };
 }
 
-export type DeleteAccountPathKey = 'sales' | 'orders' | 'trades';
+export type DeleteAccountPathKey = 'listings' | 'sales' | 'orders' | 'trades';
 
 export interface DeleteAccountPath {
   key: DeleteAccountPathKey;
-  href: '/sales' | '/orders' | '/trades';
+  href: '/settings/my-listings' | '/sales' | '/orders' | '/trades';
 }
 
 /** Engelin izlenebileceği ekranlar (yalnız navigasyon), sunucu sırasıyla. */
 export function deleteAccountPaths(
-  failure: Pick<DeleteAccountFailure, 'reservedListings' | 'pendingOrders' | 'activeTrades'>,
+  failure: Pick<DeleteAccountFailure, 'blockingListings' | 'pendingOrders' | 'activeTrades'>,
 ): DeleteAccountPath[] {
   const paths: DeleteAccountPath[] = [];
-  if (failure.reservedListings > 0) paths.push({ key: 'sales', href: '/sales' });
+  if (failure.blockingListings > 0) {
+    paths.push({ key: 'listings', href: '/settings/my-listings' });
+    paths.push({ key: 'sales', href: '/sales' });
+  }
   if (failure.activeTrades > 0) paths.push({ key: 'trades', href: '/trades' });
   if (failure.pendingOrders > 0) paths.push({ key: 'orders', href: '/orders' });
   return paths;

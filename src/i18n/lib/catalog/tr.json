@@ -2338,6 +2338,7 @@
       "empty": "Süresi dolan ilanınız yok.",
       "emptyDescription": "Süresi dolan ilanlarınız burada listelenir."
     },
+    "deleteBlockedManageListings": "İlanlarımı yönet",
     "sidebar": {
       "alisveris": "Alışveriş",
       "indirimlerim": "İndirimlerim",

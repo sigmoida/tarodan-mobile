@@ -8,7 +8,10 @@ import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 jest.mock('@/ui', () => ({ toast: jest.fn(), appAlert: jest.fn() }));
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ logout: jest.fn(() => Promise.resolve()) }),
+  useAuthStore: (sel?: (state: { logout: () => Promise<void> }) => unknown) => {
+    const state = { logout: jest.fn(() => Promise.resolve()) };
+    return sel ? sel(state) : state;
+  },
 }));
 
 import { useProfileActions } from '../useProfileActions';

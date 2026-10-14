@@ -2338,6 +2338,7 @@
       "empty": "You have no expired listings.",
       "emptyDescription": "Your expired listings are listed here."
     },
+    "deleteBlockedManageListings": "Manage my listings",
     "sidebar": {
       "alisveris": "Shopping",
       "indirimlerim": "My Discounts",

@@ -10,7 +10,12 @@ import React from 'react';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils/render';
 import { ToastHost } from '@/ui';
-import { dismissToMock, pushMock, resetRouterMocks } from '@/test-utils/router-mock';
+import {
+  dismissToMock,
+  navigateMock,
+  pushMock,
+  resetRouterMocks,
+} from '@/test-utils/router-mock';
 
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
@@ -78,16 +83,18 @@ describe('yazarak onay', () => {
     expect(isDisabled()).toBe(true);
   });
 
-  it('büyük/küçük harf duyarlı: "sil" ya da "SIL" açmaz, "SİL" açar', async () => {
+  it('klavye farkları tolere edilir ("SIL", "sil", " SİL "); başka kelime açmaz', async () => {
     renderScreen();
-    typeKeyword('sil');
-    expect(isDisabled()).toBe(true);
-    typeKeyword('SIL');
-    expect(isDisabled()).toBe(true);
+    for (const wrong of ['', 'SL', 'SILME', 'SAL', 'DELETE']) {
+      typeKeyword(wrong);
+      expect(isDisabled()).toBe(true);
+    }
     await press();
     expect(mockDelete).not.toHaveBeenCalled();
-    typeKeyword('SİL ');
-    expect(isDisabled()).toBe(false);
+    for (const ok of ['SIL', 'sil', ' SİL ', 'SİL', 'sİl']) {
+      typeKeyword(ok);
+      expect(isDisabled()).toBe(false);
+    }
   });
 });
 
@@ -100,7 +107,16 @@ describe('başarı', () => {
 
     expect(mockDelete).toHaveBeenCalledTimes(1);
     expect(mockLogout).toHaveBeenCalledWith({ reason: 'accountDeleted' });
+    // Kökteki (tabs)'a dön, ardından açıkça Ana Sayfa sekmesi (son açık Profil kalmasın).
     expect(dismissToMock).toHaveBeenCalledWith('/(tabs)');
+    expect(navigateMock).toHaveBeenCalledWith('/(tabs)');
+    expect(dismissToMock.mock.invocationCallOrder[0]).toBeLessThan(
+      navigateMock.mock.invocationCallOrder[0]!,
+    );
+    // Çıkış yönlendirmeden önce biter.
+    expect(mockLogout.mock.invocationCallOrder[0]).toBeLessThan(
+      dismissToMock.mock.invocationCallOrder[0]!,
+    );
     expect(await screen.findByText('Hesabınız silindi')).toBeTruthy();
   });
 
@@ -157,9 +173,14 @@ describe('engel', () => {
     expect(screen.getByText('• 1 açık iade süreciniz bulunmaktadır.')).toBeTruthy();
     expect(mockLogout).not.toHaveBeenCalled();
     expect(dismissToMock).not.toHaveBeenCalled();
+    expect(navigateMock).not.toHaveBeenCalled();
 
-    // Rezerve ilan → Satışlarım; bekleyen sipariş → Siparişlerim; takas yok → yol yok.
+    // İlan engeli (sunucu sürümüne göre rezerve ya da aktif/onay bekleyen de) → İlanlarımı
+    // yönet + Satışlarım; bekleyen sipariş → Siparişlerim; takas yok → yol yok.
     expect(screen.queryByTestId('delete-account-path-trades')).toBeNull();
+    expect(screen.getByText('İlanlarımı yönet')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('delete-account-path-listings'));
+    expect(pushMock).toHaveBeenCalledWith('/settings/my-listings');
     fireEvent.press(screen.getByTestId('delete-account-path-sales'));
     expect(pushMock).toHaveBeenCalledWith('/sales');
     fireEvent.press(screen.getByTestId('delete-account-path-orders'));

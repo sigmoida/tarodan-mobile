@@ -13,6 +13,17 @@ import {
 } from '../_lib/deleteAccountError';
 
 /**
+ * Web gibi ana sayfa. `dismissTo`: kök yığındaki `(tabs)`'a geri döner (yeni örnek itmez) —
+ * ama sekme gezgini son açık sekmeyi (Profil) koruyabilir; ardından `navigate` açıkça Ana
+ * Sayfa sekmesini seçer. Kuyruk sırayla işlenir: `navigate` çalıştığında kökte odak zaten
+ * `(tabs)` olduğundan aynı rota güncellenir (yeni `(tabs)` itilmez), iç gezgin index'e geçer.
+ */
+function goHomeTab(): void {
+  router.dismissTo('/(tabs)');
+  router.navigate('/(tabs)');
+}
+
+/**
  * Hesap silme controller'ı (web `useDeleteAccount` eşi). Sözleşme değişmez:
  * `DELETE /users/me`; sunucu hesabı anonimleştirir, engel varsa 400 `errors[]`/`details`.
  *
@@ -61,8 +72,7 @@ export function useDeleteAccount() {
     } catch (error) {
       logger.captureException(error, { level: 'warning', tags: { flow: 'accountDeleted' } });
     }
-    // Web gibi ana sayfa. `dismissTo`: kök yığındaki `(tabs)`'a geri döner (yeni örnek itmez).
-    router.dismissTo('/(tabs)');
+    goHomeTab();
   }, [confirmed, logout, mutation, t]);
 
   return {
