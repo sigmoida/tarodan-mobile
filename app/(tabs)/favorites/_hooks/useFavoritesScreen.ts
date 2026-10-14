@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/ui';
 import { useFavorites, type WishlistItem } from '@/hooks/useFavorites';
@@ -11,7 +11,7 @@ import { formatPrice } from '@/utils/format';
 
 /**
  * Favorites-screen controller — wraps the useFavorites + cartStore hooks with
- * the screen's focus fetch, remove and cart-toggle. Feedback is an actionless
+ * the screen's focus fetch, remove and add-to-cart (in cart → go to cart). Feedback is an actionless
  * `toast.success` / `toast.error` (web parity) — the old Snackbar offered the
  * cart action on EVERY message, errors included.
  */
@@ -44,11 +44,14 @@ export function useFavoritesScreen() {
     else toast.error(t('utility.error500.title'));
   };
 
-  // Toggle: sepetteyse çıkar, değilse ekle (tekrar basınca adet artırmasın).
-  const handleToggleCart = (item: WishlistItem) => {
+  /**
+   * Kart düğmesi — ürün detayının sepet aksiyonuyla aynı kural: sepette değilse 1 adet ekle
+   * (+ "Ürün sepete eklendi!" toast'u); zaten sepetteyse "Sepete Git" → sepet sekmesi. Tekrar
+   * basmak adet artırmaz, sepetten de çıkarmaz (çıkarma sepet ekranında).
+   */
+  const handleCartAction = (item: WishlistItem) => {
     if (isInCart(item.productId)) {
-      cart.removeByProductId(item.productId);
-      toast.success(t('cart.removedFromCart'));
+      router.push('/cart');
       return;
     }
     const product = item.product;
@@ -59,7 +62,7 @@ export function useFavoritesScreen() {
       imageUrl: getImageUrlFromUtils(product.images),
       seller: product.seller,
     });
-    toast.success(t('cart.addedToCart'));
+    toast.success(t('product.addedToCartExclaim'));
   };
 
   return {
@@ -73,7 +76,7 @@ export function useFavoritesScreen() {
     refreshing,
     onRefresh,
     handleRemove,
-    handleToggleCart,
+    handleCartAction,
     formatPrice,
   };
 }

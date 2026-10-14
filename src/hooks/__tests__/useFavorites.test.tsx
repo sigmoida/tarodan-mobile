@@ -75,6 +75,17 @@ describe('J112 · isInFavorites / getFavoriteCount', () => {
     expect(result.current.isInFavorites('p1')).toBe(true);
     expect(result.current.isInFavorites('yok')).toBe(false);
   });
+
+  it('sunucunun productOriginalPrice alanı originalPrice olarak eşlenir (yoksa undefined)', async () => {
+    const { result } = await setup([
+      { ...srvItem('p1'), productPrice: 80, productOriginalPrice: 100 },
+      srvItem('p2'),
+    ]);
+    await waitFor(() => expect(result.current.getFavoriteCount()).toBe(2));
+    const [first, second] = result.current.items;
+    expect(first!.product.originalPrice).toBe(100);
+    expect(second!.product.originalPrice).toBeUndefined();
+  });
 });
 
 describe('J21 · favoriye ekleme (addToFavorites optimistic)', () => {
