@@ -5,6 +5,7 @@ import { useMembership } from './_hooks/useMembership';
 import {
   MembershipBanners,
   MembershipCurrentPlan,
+  MembershipExplorePlansCard,
   MembershipBillingToggle,
   MembershipTierList,
 } from './_components/MembershipSections';
@@ -26,6 +27,7 @@ export default function MembershipScreen() {
     >
       <MembershipBanners f={f} />
       <MembershipCurrentPlan f={f} />
+      <MembershipExplorePlansCard f={f} />
       {/* Fiyatlar ve paket kartları iOS ve Android'de yok: uygulama içi dijital
           satış IAP/Play Billing'siz yapılamıyor (Guideline 3.1.1, Play ödeme
           politikası) ve fiyat göstermek 2.1(b)'nin "abonelik referansı"
