@@ -2,20 +2,14 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Text, theme, Icon } from '@/ui';
+import { passwordChecks } from '@/utils/passwordPolicy';
 
 const { colors, spacing, radius, radiusRole } = theme;
 
 const CHECK_BOX = spacing[4];
 
 /** Parola kuralları (web `passwordChecks`) — kural metni `auth.pwReq*` (kayıt/şifre değiştirme ile ortak). */
-export function passwordChecks(password: string) {
-  return {
-    hasMinLength: password.length >= 8,
-    hasUppercase: /[A-Z]/.test(password),
-    hasLowercase: /[a-z]/.test(password),
-    hasNumber: /[0-9]/.test(password),
-  };
-}
+export { passwordChecks };
 
 /** Tek gereksinim satırı: sağlanınca yeşil + onay, aksi halde gri nokta (web `PasswordRequirement`). */
 export const PasswordRequirement: React.FC<{ met: boolean; text: string }> = ({ met, text }) => (

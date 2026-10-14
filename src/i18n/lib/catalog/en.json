@@ -7934,7 +7934,6 @@
     }
   },
   "security": {
-    "passwordRules": "The password must be at least 8 characters and contain an uppercase letter, a lowercase letter, a digit and a special character (@$!%*?&)",
     "passwordChangeFailed": "The password could not be changed",
     "twoFactorQrAlt": "Two-factor authentication QR code",
     "twoFactorEnabled": "Two-factor authentication is enabled",

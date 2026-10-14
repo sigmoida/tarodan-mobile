@@ -5,18 +5,12 @@ import { z } from 'zod';
 import { strongPasswordSchema } from '@/utils/validation';
 import { DEFAULT_COUNTRY_CODE, getPhoneInvalidMessage, parsePhoneForPayload } from '@/utils/phone';
 
-/**
- * API `ChangePasswordDto` kuralı birebir (özel karakter + izinli karakter kümesi). Web şeması
- * yalnız 4 kuralı denetliyor; burada eksik kalırsa sunucu ham 400 döndürüyordu.
- */
-export const API_PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-
 /** Şifre değiştir (web `changePasswordSchema` + API kuralı). */
 export const changePasswordSchema = (t: TFunction) =>
   z
     .object({
       currentPassword: z.string().min(1, t('validation.currentPasswordRequired')),
-      newPassword: strongPasswordSchema(t).regex(API_PASSWORD_PATTERN, t('security.passwordRules')),
+      newPassword: strongPasswordSchema(t),
       confirmPassword: z.string().min(1, t('validation.repeatNewPassword')),
     })
     .refine((d) => d.newPassword === d.confirmPassword, {

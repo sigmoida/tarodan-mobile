@@ -6,6 +6,15 @@ import { AuthShell } from "@/components/auth/AuthShell";
 import { PasswordChecklist } from "@/components/auth/PasswordChecklist";
 import { authApi } from "@/lib/api";
 import { useTranslation } from "react-i18next";
+import { firstPasswordViolation, type PasswordRuleKey } from "@/utils/passwordPolicy";
+
+const RESET_RULE_KEYS: Record<PasswordRuleKey, string> = {
+  min: "auth.pwRuleMinLength",
+  max: "validation.passwordMax72",
+  uppercase: "auth.pwRuleUppercase",
+  lowercase: "auth.pwRuleLowercase",
+  number: "auth.pwRuleNumber",
+};
 
 const { colors } = theme;
 
@@ -19,11 +28,9 @@ export default function ResetPasswordScreen() {
   const [success, setSuccess] = useState(false);
 
   const validatePassword = () => {
-    if (password.length < 8) return t("auth.pwRuleMinLength");
-    if (!/[A-Z]/.test(password)) return t("auth.pwRuleUppercase");
-    if (!/[a-z]/.test(password)) return t("auth.pwRuleLowercase");
-    if (!/[0-9]/.test(password)) return t("auth.pwRuleNumber");
-    return null;
+    const violation = firstPasswordViolation(password);
+    if (!violation) return null;
+    return t(RESET_RULE_KEYS[violation]);
   };
 
   const handleResetPassword = async () => {

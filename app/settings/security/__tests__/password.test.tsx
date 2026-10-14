@@ -61,10 +61,16 @@ describe('settings/security/password', () => {
     expect(mockChangePassword).not.toHaveBeenCalled();
   });
 
-  it('özel karakter yoksa API kuralı metni satır içi, istek yok', async () => {
-    fill('Eski1234!', 'Yeni12345', 'Yeni12345');
-    expect(await screen.findByText(i18n.t('security.passwordRules'))).toBeTruthy();
+  it('72 karakterden uzun şifre satır içi hata, istek yok', async () => {
+    const long = `Aa1${'x'.repeat(70)}`;
+    fill('Eski1234!', long, long);
+    expect(await screen.findByText(i18n.t('validation.passwordMax72'))).toBeTruthy();
     expect(mockChangePassword).not.toHaveBeenCalled();
+  });
+
+  it('özel karakter şartı yok: Yeni12345 geçerli', async () => {
+    fill('Eski1234!', 'Yeni12345', 'Yeni12345');
+    await waitFor(() => expect(mockChangePassword).toHaveBeenCalledWith('Eski1234!', 'Yeni12345'));
   });
 
   it('mevcut şifre boşsa satır içi hata', async () => {

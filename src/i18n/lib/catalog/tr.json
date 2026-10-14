@@ -7934,7 +7934,6 @@
     }
   },
   "security": {
-    "passwordRules": "Şifre en az 8 karakter, bir büyük harf, bir küçük harf, bir rakam ve bir özel karakter (@$!%*?&) içermelidir",
     "passwordChangeFailed": "Şifre değiştirilemedi",
     "twoFactorQrAlt": "İki adımlı doğrulama QR kodu",
     "twoFactorEnabled": "İki faktörlü doğrulama aktifleştirildi",

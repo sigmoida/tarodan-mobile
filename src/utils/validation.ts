@@ -1,6 +1,6 @@
 /**
  * Web `apps/web/src/app/register/page.tsx` paritesinde Zod helper'ları.
- * Şifre kuralı: 8+ karakter, en az 1 büyük harf, 1 küçük harf, 1 rakam.
+ * Şifre kuralı: bkz. `./passwordPolicy` (8-72 karakter, ≥1 büyük, ≥1 küçük, ≥1 rakam; ASCII).
  *
  * Mobile'daki bütün form ekranları (register, register-business, reset-password,
  * settings/security'deki şifre değiştirme) bu yardımcıları kullanır ki kurallar
@@ -10,6 +10,13 @@
 import { z } from 'zod';
 import type { TFunction } from 'i18next';
 import { parseE164TrPhone } from './phone';
+import {
+  PASSWORD_LOWERCASE_RE,
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_NUMBER_RE,
+  PASSWORD_UPPERCASE_RE,
+} from './passwordPolicy';
 
 /**
  * ## Neden şemalar FABRİKA
@@ -28,10 +35,11 @@ import { parseE164TrPhone } from './phone';
 export const strongPasswordSchema = (t: TFunction) =>
   z
     .string()
-    .min(8, t('validation.passwordMin8'))
-    .regex(/[A-Z]/, t('validation.passwordUppercase'))
-    .regex(/[a-z]/, t('validation.passwordLowercase'))
-    .regex(/\d/, t('validation.passwordNumber'));
+    .min(PASSWORD_MIN_LENGTH, t('validation.passwordMin8'))
+    .max(PASSWORD_MAX_LENGTH, t('validation.passwordMax72'))
+    .regex(PASSWORD_UPPERCASE_RE, t('validation.passwordUppercase'))
+    .regex(PASSWORD_LOWERCASE_RE, t('validation.passwordLowercase'))
+    .regex(PASSWORD_NUMBER_RE, t('validation.passwordNumber'));
 
 /**
  * TR cep telefonu — **zorunlu**. Çıktı E.164 (`+905XXXXXXXXX`), çözülemeyen
