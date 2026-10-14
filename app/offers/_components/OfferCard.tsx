@@ -12,7 +12,6 @@ import { FirstToPayNote } from "./FirstToPayNote";
 import {
   getProductImage,
   getTimeRemaining,
-  getOfferDiscountPercent,
   isExpiringSoon,
   formatTimeAgo,
   formatPrice,
@@ -40,8 +39,8 @@ export interface OfferCardProps {
 /**
  * Teklif kartı — net hiyerarşi (yukarıdan aşağı):
  *  1. Üst satır: küçük görsel + başlık (2 satır) · durum rozeti sağ üstte.
- *  2. Fiyat satırı: teklif tutarı (fiyat rengi, belirgin) · ilan fiyatı üstü çizili · ilan fiyatına
- *     göre indirim yüzdesi. Satıcıya tahmini net ayrı satırda.
+ *  2. Fiyat satırı: teklif tutarı (fiyat rengi, belirgin) · "İlan fiyatı: X" (teklif düşükse üstü
+ *     çizili). Satıcıya tahmini net ayrı satırda.
  *  3. Meta satırı: karşı taraf (avatar + ad, "Alıcı"/"Satıcı") · kalan süre çipi (< 6 sa uyarı
  *     tonu) · göreli tarih.
  *  4. Not: ince alıntı çizgisi, en çok 2 satır.
@@ -67,7 +66,7 @@ function OfferCardBase({
   const isOpen = offer.status === "pending";
   const timeRemaining = isOpen ? getTimeRemaining(offer.expiresAt, t) : null;
   const expiringSoon = timeRemaining != null && isExpiringSoon(offer.expiresAt);
-  const discountPercent = getOfferDiscountPercent(offer.amount, offer.product.price);
+  const listingStruck = offer.amount < Number(offer.product.price);
   const openProduct = () => router.push(`/product/${offer.product.id}` as any);
   const openOrder = () =>
     router.push({ pathname: "/orders/[id]", params: { id: offer.orderId! } } as any);
@@ -94,7 +93,7 @@ function OfferCardBase({
         <StatusBadge status={offer.status} config={statusConfig} size="sm" />
       </View>
 
-      {/* 2 · Tutar: teklif · ilan fiyatı (çizili) · indirim yüzdesi */}
+      {/* 2 · Tutar: teklif · etiketli ilan fiyatı */}
       <View style={styles.priceBlock}>
         <View style={styles.priceRow}>
           <Text
@@ -105,19 +104,20 @@ function OfferCardBase({
           >
             {formatPrice(offer.amount)}
           </Text>
-          <Text
-            variant="bodySm"
-            tone="subtle"
-            style={styles.strikethrough}
-            accessibilityLabel={`${t("offer.listingPrice")}: ${formatPrice(offer.product.price)}`}
-          >
-            {formatPrice(offer.product.price)}
+          {/* İlan fiyatı etiketli; YALNIZ teklif ondan düşükse üstü çizili. İndirim yüzdesi
+              gösterilmez: teklif yanıtındaki `product.price` TABAN fiyat (kampanya fiyatı yok),
+              yüzde kampanyalı ilanda şişerdi. */}
+          <Text variant="caption" tone="subtle" testID="offer-listing-price">
+            {t("offer.listingPrice")}:{" "}
+            <Text
+              variant="caption"
+              tone="subtle"
+              style={listingStruck ? styles.strikethrough : undefined}
+              testID={listingStruck ? "offer-listing-price-struck" : undefined}
+            >
+              {formatPrice(offer.product.price)}
+            </Text>
           </Text>
-          {discountPercent != null ? (
-            <Badge variant="success" size="xs" testID="offer-discount-percent">
-              {t("offer.presetDiscount", { percent: discountPercent })}
-            </Badge>
-          ) : null}
         </View>
         {estimatedNet != null && (
           <Text variant="caption" tone="subtle">

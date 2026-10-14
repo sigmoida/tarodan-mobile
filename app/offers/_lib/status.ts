@@ -28,16 +28,6 @@ export function isExpiringSoon(expiresAt: string, now = Date.now()): boolean {
   return diff > 0 && diff < OFFER_EXPIRING_SOON_HOURS * 3_600_000;
 }
 
-/**
- * Teklifin ilan fiyatına göre indirim yüzdesi (tam sayı). Teklif ilan fiyatının altında değilse
- * ya da fiyat bilinmiyorsa `null` (rozet çizilmez).
- */
-export function getOfferDiscountPercent(amount: number, listPrice: number): number | null {
-  if (!(listPrice > 0) || !(amount > 0) || amount >= listPrice) return null;
-  const pct = Math.round(((listPrice - amount) / listPrice) * 100);
-  return pct > 0 ? pct : null;
-}
-
 export function formatTimeAgo(iso: string, t: TFunction): string {
   const diff = Date.now() - new Date(iso).getTime();
   if (diff < 0) return t("time.ago.justNow");

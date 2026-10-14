@@ -111,7 +111,7 @@ describe("J3 · Tekliflerim listesi", () => {
     );
   });
 
-  it("kart: teklif tutarı + çizili ilan fiyatı + indirim yüzdesi; < 6 sa kalan süre uyarı tonunda", async () => {
+  it("kart: teklif tutarı + etiketli ilan fiyatı (düşük teklifte çizili); < 6 sa kalan süre uyarı tonunda", async () => {
     getAllMock.mockResolvedValue({
       data: {
         data: [
@@ -140,8 +140,12 @@ describe("J3 · Tekliflerim listesi", () => {
     renderWithProviders(<OffersScreen />);
 
     await waitFor(() => expect(screen.getByTestId("offer-card-o1")).toBeOnTheScreen());
-    // İndirim rozeti yalnız ilan fiyatının altındaki teklifte (o2 = ilan fiyatı).
-    expect(screen.getAllByTestId("offer-discount-percent")).toHaveLength(1);
+    // İlan fiyatı her kartta etiketli; yalnız teklif ondan düşükse üstü çizili (o2 = ilan fiyatı).
+    // İndirim yüzdesi rozeti YOK (product.price taban fiyat; kampanyalı ilanda şişerdi).
+    expect(screen.getAllByTestId("offer-listing-price")).toHaveLength(2);
+    expect(screen.getAllByText(/offer\.listingPrice/)).toHaveLength(2);
+    expect(screen.getAllByTestId("offer-listing-price-struck")).toHaveLength(1);
+    expect(screen.queryByTestId("offer-discount-percent")).toBeNull();
     // Kalan süre: o1 (2 sa) uyarı, o2 (20 sa) nötr.
     expect(screen.getAllByTestId("offer-time-remaining-soon")).toHaveLength(1);
     expect(screen.getAllByTestId("offer-time-remaining")).toHaveLength(1);
