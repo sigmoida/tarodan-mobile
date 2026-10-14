@@ -1,5 +1,5 @@
 import { View, Pressable, Image } from "react-native";
-import { Badge, EmptyState, FAB, SectionCard, Text } from "@/ui";
+import { Badge, EmptyState, FAB, SectionCard, Text, useFabContentInset } from "@/ui";
 import { router } from "expo-router";
 import { resolveImageUrl } from "@/utils/imageUrl";
 import { AuthGatePage } from "@/components/common/AuthGatePage";
@@ -15,6 +15,7 @@ import { styles } from "./_collections/_lib/styles";
  */
 export default function CollectionsScreen() {
   const f = useMyCollections();
+  const fabInset = useFabContentInset();
   const { t } = f;
   const title = t("mobile.settingsCollections");
 
@@ -24,6 +25,7 @@ export default function CollectionsScreen() {
 
   return (
     <PageShell
+      contentStyle={{ paddingBottom: fabInset }}
       title={title}
       onBack={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)"))}
       loading={f.isLoading}

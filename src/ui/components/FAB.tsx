@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, type PressableProps, type ViewStyle } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../lib/theme';
+import { useFloatingBottomOffset } from '../lib/floating';
 import { RawText } from './Text';
 import { RefIcon, type IconRef, type IconVariant } from '../icons';
 
@@ -17,8 +17,9 @@ export interface FABProps extends Omit<PressableProps, 'style'> {
   style?: ViewStyle;
   accessibilityLabel: string;
   /**
-   * `bottomRight`: ekranın sağ altında yüzer — alt güvenli alanın (iOS ana ekran çubuğu, Android
-   * 3 düğmeli / hareket gezinme çubuğu) ÜSTÜNDE. Ekranlar kendi `bottom` değerini yazmaz.
+   * `bottomRight`: ekranın sağ altında yüzer — alt menü hapıyla aynı taban (`floatingBottomOffset`:
+   * iOS/hareket gezinmesinde tutamaç şeridine biner, Android 3 düğmeli çubuğun üstünde). Ekranın
+   * kaydırma içeriği `useFabContentInset()` kadar alt boşluk bırakır.
    */
   placement?: 'bottomRight';
 }
@@ -48,7 +49,7 @@ export const FAB: React.FC<FABProps> = ({
   placement,
   ...rest
 }) => {
-  const insets = useSafeAreaInsets();
+  const floatingBottom = useFloatingBottomOffset();
   const ss = sizeMap[size];
   const vs = variantStyle[variant];
   const extended = !!label;
@@ -60,7 +61,7 @@ export const FAB: React.FC<FABProps> = ({
         placement === 'bottomRight' && {
           position: 'absolute',
           right: spacing[4],
-          bottom: insets.bottom + spacing[4],
+          bottom: floatingBottom,
         },
         {
           height: ss.box,

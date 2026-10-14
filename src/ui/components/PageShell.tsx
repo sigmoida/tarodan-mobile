@@ -199,8 +199,8 @@ export const PageShell: React.FC<PageShellProps> = ({
         style={styles.fill}
         contentContainerStyle={
           hasBar
-            ? own.contentStyle([styles.scrollContent, { padding: pad }, contentStyle])
-            : [styles.scrollContent, { padding: pad }, contentStyle]
+            ? own.contentStyle([styles.scrollContent, { padding: pad }, !footer && { paddingBottom: pad + insets.bottom }, contentStyle])
+            : [styles.scrollContent, { padding: pad }, !footer && { paddingBottom: pad + insets.bottom }, contentStyle]
         }
         keyboardShouldPersistTaps="handled"
         onScroll={own.onScroll}

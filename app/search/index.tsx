@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { View, RefreshControl } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
-import { ErrorState, FAB, Spinner, theme } from '@/ui';
+import { ErrorState, FAB, Spinner, theme, useFabContentInset } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import {
   ProductCard,
@@ -49,10 +49,12 @@ export default function SearchScreen() {
     [isList],
   );
 
+  // Son sonuç satırı yukarı-çık FAB'ının ve gezinme çubuğunun altında kalmasın.
+  const fabInset = useFabContentInset();
   // Liste prop'ları kararlı kalsın: ekran render olsa da liste boş yere uzlaştırılmasın.
   const contentContainerStyle = useMemo(
-    () => [styles.listContent, { paddingTop: f.headerHeight }],
-    [f.headerHeight],
+    () => [styles.listContent, { paddingTop: f.headerHeight, paddingBottom: fabInset }],
+    [f.headerHeight, fabInset],
   );
   const refreshControl = useMemo(
     () => (

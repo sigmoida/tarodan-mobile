@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { FAB, TopBarAction } from '@/ui';
+import { FAB, TopBarAction, useFabContentInset } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { BoostModal } from '@/components/product/BoostModal';
@@ -23,9 +23,11 @@ import { MyListingsModals } from './_components/MyListingsModals';
  */
 export default function MyListingsScreen() {
   const f = useMyListings();
+  const fabInset = useFabContentInset();
 
   return (
     <PageShell
+      contentStyle={{ paddingBottom: fabInset }}
       title={f.t('mobile.settingsMyListings')}
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       right={
