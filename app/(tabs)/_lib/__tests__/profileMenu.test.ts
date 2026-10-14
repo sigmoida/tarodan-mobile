@@ -52,13 +52,13 @@ describe('buildProfileMenuGroups', () => {
     );
   });
 
-  it('Favoriler Alışveriş grubunun İLK satırı (sabit grup yok); Mesajlar/Bildirimler (alt menü sekmeleri) tekrarlanmaz', () => {
+  it('Favoriler (alt menü sekmesi) ve Mesajlar/Bildirimler (üst bar düğmeleri) menüde tekrarlanmaz; sabit grup yok', () => {
     const groups = buildProfileMenuGroups(schemaT, base);
     expect(groups.some((g) => g.key === 'pinned')).toBe(false);
     const commerce = groups.find((g) => g.key === 'commerce');
-    expect(commerce?.items[0]).toMatchObject({ key: 'favorites', to: '/favorites', testID: 'profile-favorites-link' });
+    expect(commerce?.items[0]).toMatchObject({ key: 'listings' });
     const all = groups.flatMap((g) => g.items);
-    expect(all.filter((i) => i.to === '/favorites')).toHaveLength(1);
+    expect(all.some((i) => i.to === '/favorites' || i.to === '/cart')).toBe(false);
     expect(all.some((i) => i.to === '/messages' || i.to === '/notifications')).toBe(false);
   });
 

@@ -1,11 +1,12 @@
 import { useCallback, useState } from 'react';
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import type { Notification } from '../_lib/types';
 import { routeForNotification } from '../_lib/route';
+import { navigateTo } from '@/lib/navigation/goTo';
 
 /**
  * Liste bu süreden taze sayılır: sekmeye dönüşte sessiz tazeleme yalnız bayatsa çalışır.
@@ -173,7 +174,8 @@ export function useNotifications() {
       // eşlemesi ve güvenlik kapısı orada). Hedef yoksa gezinme YOK — satır
       // okundu işaretlenir, kullanıcı alakasız bir ekrana atılmaz.
       const target = routeForNotification(notification);
-      if (target) router.push(target as never);
+      // Bildirimler bir yığın ekranı: sekme hedefi (`/profile`, `/cart` …) alttaki `(tabs)`'a döner.
+      if (target) navigateTo(target);
     },
     [markAsRead],
   );

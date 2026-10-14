@@ -1,5 +1,5 @@
 # F-08: Favorite → unfavorite from list and detail.
-# Search ile ürün bul → kalp ikonu tap → Profil → Favoriler → list'te kalbi tekrar tap.
+# Search ile ürün bul → kalp ikonu tap → Favoriler sekmesi → list'te kalbi tekrar tap.
 # Heart icon testID yok, "kalp" /heart label fallback yok; ikona tıklamak için
 # "Beğen" / "Favoriye" gibi label dene; aksi halde optional flow.
 appId: ${APP_ID}
@@ -42,10 +42,9 @@ env:
 - tapOn:
     id: "product-favorite-button"
     optional: true
-# Yan menü → Favoriler (Alışveriş grubunun ilk satırı; grup varsayılan açık)
-- runFlow: ../subflows/open-side-menu.yaml
-- tapOn:
-    id: "profile-favorites-link"
+# Favoriler artık alt menüde sekme (yan menüde değil); ürün detayı yığın ekranı olduğundan sekme
+# köküne derin bağlantıyla geçilir.
+- openLink: "tarodan://favorites"
 - extendedWaitUntil:
     visible:
       text: "Favoriler|Favori"

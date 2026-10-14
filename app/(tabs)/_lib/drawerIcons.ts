@@ -8,7 +8,6 @@ import type { IconName } from '@/ui';
 export const DEFAULT_DRAWER_ICON: IconName = 'document-text';
 
 const DRAWER_ICONS: Record<string, IconName> = {
-  favorites: 'heart',
   // Alışveriş
   listings: 'tag',
   orders: 'shopping-bag',

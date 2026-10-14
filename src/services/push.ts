@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 import { queryClient, qk } from '@/lib/query';
 import i18n from '@/i18n/config';
 import { notificationRoute } from '../utils/notificationRoute';
+import { navigateTo } from '@/lib/navigation/goTo';
 import { withTimeout } from '@/utils/withTimeout';
 
 /** Push token alımı için üst sınır — çıkış akışı bundan uzun bekleyemez. */
@@ -222,14 +223,16 @@ export function routeFromNotification(data: any): void {
     // ikisini de aynı şekilde okusun diye nesne hem `data` hem üst seviye verilir.
     const target = notificationRoute({ type: data?.type, link: data?.link, data });
     if (target) {
-      router.push(target as any);
+      // Sekme hedefi ikinci bir `(tabs)` itmesin (`navigateTo`: sekmede dismissTo, aksi halde push).
+      navigateTo(target);
       return;
     }
 
     // Push'ta hedef çözülemezse bildirim listesi makul iniş noktası: kullanıcı
     // zaten bildirime dokunarak uygulamayı açtı, boş ekranda bırakılmamalı.
     // (Uygulama içi listede karşılığı "gezinme yok" — orada zaten listedesin.)
-    router.push('/(tabs)/notifications' as any);
+    // `navigate`: liste zaten açıksa ikinci bir kopya itilmez.
+    router.navigate('/notifications');
   } catch (err) {
     logger.debug('routeFromNotification failed', { err: safeError(err) });
   }

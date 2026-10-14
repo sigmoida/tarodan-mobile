@@ -29,11 +29,19 @@ export function tabPillBottomOffset(insetBottom: number, os: typeof Platform.OS 
 }
 
 /**
+ * Yüzen hapın ÜST kenarının ekran altından uzaklığı (hap yüksekliği + alt boşluk). Hapın hemen
+ * üstünde duran sabit öğeler (sepetin "Ödemeye Geç" çubuğu) `bottom` olarak bunu kullanır.
+ */
+export function useTabBarTop(): number {
+  const insets = useSafeAreaInsets();
+  return TAB_PILL_HEIGHT + tabPillBottomOffset(insets.bottom);
+}
+
+/**
  * Tab köklerindeki liste / ScrollView'ların ALT DOLGUSU — içerik yüzen hapın / "+" düğmesinin altında kalmasın
  * (ikisi aynı yükseklikte; daralmış halde de aynı dolgu korunur, böylece kaydırma sırasında içerik zıplamaz).
  * Tek kaynak: hap yüksekliği + alt boşluk + nefes payı. Her tab kökü bunu `paddingBottom`a ekler.
  */
 export function useTabBarInset(): number {
-  const insets = useSafeAreaInsets();
-  return TAB_PILL_HEIGHT + tabPillBottomOffset(insets.bottom) + CONTENT_GAP;
+  return useTabBarTop() + CONTENT_GAP;
 }

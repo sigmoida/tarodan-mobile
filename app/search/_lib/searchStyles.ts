@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { theme } from '@/ui';
+import { SEARCH_FIELD_BORDER_COLOR, theme } from '@/ui';
 
 const { colors, spacing, typography, radiusRole } = theme;
 
@@ -36,8 +36,9 @@ export const styles = StyleSheet.create({
   searchInputContainer: {
     marginBottom: spacing[0],
   },
+  // Vurgu çerçevesi tek kaynaktan (Ana Sayfa arama alanı da aynı rengi kullanır).
   searchInputField: {
-    borderColor: colors.primary[500],
+    borderColor: SEARCH_FIELD_BORDER_COLOR,
   },
   searchInputFieldOpen: {
     borderBottomLeftRadius: theme.radius.none,
@@ -55,7 +56,7 @@ export const styles = StyleSheet.create({
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderBottomWidth: 1,
-    borderColor: colors.primary[500],
+    borderColor: SEARCH_FIELD_BORDER_COLOR,
     ...theme.shadow.medium,
     zIndex: 100,
   },

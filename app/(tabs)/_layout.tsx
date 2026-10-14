@@ -29,8 +29,8 @@ export default function TabLayout() {
       >
         <Tabs.Screen name="index" options={{ title: t("nav.home") }} />
         <Tabs.Screen name="sell" options={{ title: "" }} />
-        <Tabs.Screen name="messages/index" options={{ title: t("message.messages") }} />
-        <Tabs.Screen name="notifications/index" options={{ title: t("nav.notifications") }} />
+        <Tabs.Screen name="favorites/index" options={{ title: t("nav.favorites") }} />
+        <Tabs.Screen name="cart/index" options={{ title: t("nav.cart") }} />
         <Tabs.Screen name="profile" options={{ title: t("nav.profile") }} />
         {/* Hidden screens */}
         <Tabs.Screen name="create" options={{ href: null }} />

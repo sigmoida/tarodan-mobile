@@ -3,29 +3,24 @@ import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Badge, EmptyState, Spinner, TopBarAction, usePageScrollValue } from '@/ui';
-import { tabDiag } from '@/components/_tabDiag';
+import { Badge, EmptyState, Spinner, TopBarAction, usePageScrollHandler } from '@/ui';
+import { PageShell } from '@/components/common/PageShell';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
-import { AppShell } from '@/components/shell/AppShell';
-import { useTabBarInset } from '@/components/shell/tabBarLayout';
-import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { useNotifications } from './_hooks/useNotifications';
 import { styles } from './_lib/styles';
 import { NotificationRow } from './_components/NotificationRow';
 import type { Notification } from './_lib/types';
 
 /**
- * Bildirimler sekmesi — sekme kökü (alt menüde Mesajlar'dan sonra): AppShell (başlıklı beyaz bar,
- * geri oku yok) + liste; Skeleton, çekip yenileme, sonsuz kaydırma; sağ üstte okunmamış sayacı
- * (danger-500) ve "Tümünü oku". Kaydırma alt menüyü daraltır (`useTabBarScrollHandler`).
+ * Bildirimler — yığın ekranı (sekme köklerinin üst barındaki Bildirimler düğmesinden, push
+ * bildiriminden ve `/notifications` derin bağlantısından açılır): PageShell (geri oklu yüzen bar) +
+ * liste; Skeleton, çekip yenileme, sonsuz kaydırma; sağ üstte okunmamış sayacı (danger-500) ve
+ * "Tümünü oku".
  */
-function NotificationsTabScreen() {
+export default function NotificationsScreen() {
   const { t } = useTranslation();
   const f = useNotifications();
-  const tabInset = useTabBarInset();
-  const page = usePageScrollValue();
-  // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
-  const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
+  const page = usePageScrollHandler();
   const title = t('notification.notifications');
 
   const renderItem = useCallback(
@@ -35,22 +30,24 @@ function NotificationsTabScreen() {
 
   if (!f.isAuthenticated) {
     return (
-      <AppShell variant="title" title={title}>
-        <EmptyState
-          icon="bell"
-          title={t('notification.loginToView')}
-          subtitle={t('notification.loginPromptDesc')}
-          actionLabel={t('common.login')}
-          onAction={() => router.push('/(auth)/login')}
-        />
-      </AppShell>
+      <PageShell
+        title={title}
+        empty
+        emptyState={{
+          icon: 'bell',
+          title: t('notification.loginToView'),
+          subtitle: t('notification.loginPromptDesc'),
+          actionLabel: t('common.login'),
+          onAction: () => router.push('/(auth)/login'),
+        }}
+      />
     );
   }
 
   return (
-    <AppShell
-      variant="title"
+    <PageShell
       title={title}
+      mode="list"
       // Yükleniyor iskeleti listeyi taşımaz: bar altından başlasın (sabit şerit).
       scroll={f.loading ? undefined : page}
       right={
@@ -70,9 +67,7 @@ function NotificationsTabScreen() {
         <RowListSkeleton rows={6} />
       ) : (
         <Animated.FlatList
-          {...tabScroll}
-          {...page.scrollProps}
-          scrollEventThrottle={16}
+          {...page.listProps}
           testID="notifications-list"
           data={f.notifications}
           renderItem={renderItem}
@@ -82,11 +77,7 @@ function NotificationsTabScreen() {
           initialNumToRender={8}
           maxToRenderPerBatch={10}
           removeClippedSubviews
-          contentContainerStyle={page.contentStyle([
-            styles.listContent,
-            { paddingBottom: tabInset },
-          ])}
-          progressViewOffset={page.topInset}
+          contentContainerStyle={page.contentStyle(styles.listContent)}
           refreshing={f.refreshing}
           onRefresh={f.handleRefresh}
           ListEmptyComponent={
@@ -101,8 +92,6 @@ function NotificationsTabScreen() {
           ListFooterComponent={f.loadingMore ? <Spinner style={styles.footerSpinner} /> : null}
         />
       )}
-    </AppShell>
+    </PageShell>
   );
 }
-
-export default tabDiag('notifications', NotificationsTabScreen);

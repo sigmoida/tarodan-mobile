@@ -166,6 +166,8 @@ export {
 	fieldSizeStyle,
 	fieldBorderColor,
 	fieldBackgroundColor,
+	searchFieldBoxStyle,
+	SEARCH_FIELD_BORDER_COLOR,
 	type FieldSize,
 	type FieldBoxOptions,
 } from './lib/fieldSurface';

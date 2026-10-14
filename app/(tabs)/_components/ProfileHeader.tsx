@@ -15,11 +15,13 @@ interface ProfileHeaderProps {
   layout?: 'centered' | 'row';
   /** Yalnız `row`: avatar + metin satırının altında tam genişlik satır (rozetler). */
   footer?: React.ReactNode;
+  /** Yalnız `row`: kimlik satırının sağ ucunda aksiyon (ör. "Profili düzenle" kalemi). */
+  trailing?: React.ReactNode;
   children?: React.ReactNode;
 }
 
 /** Profil sekmesi üst bandı — misafirde ortalı, üyede yatay kompakt kimlik başlığı. */
-export function ProfileHeader({ name, source, layout = 'centered', footer, children }: ProfileHeaderProps) {
+export function ProfileHeader({ name, source, layout = 'centered', footer, trailing, children }: ProfileHeaderProps) {
   const avatar = (
     <Avatar
       size={layout === 'row' ? 'header' : '2xl'}
@@ -35,6 +37,7 @@ export function ProfileHeader({ name, source, layout = 'centered', footer, child
         <View style={styles.identityRow}>
           {avatar}
           <View style={styles.identityText}>{children}</View>
+          {trailing}
         </View>
         {footer}
       </View>

@@ -19,7 +19,7 @@ jest.mock('@/ui/lib/glass', () => {
   return { getGlassView: () => Glass, resetGlassCache: () => undefined };
 });
 
-const routes = ['index', 'sell', 'messages/index', 'notifications/index', 'profile', 'create'];
+const routes = ['index', 'sell', 'favorites/index', 'cart/index', 'profile', 'create'];
 let collapsedRef: { value: boolean } | null = null;
 function Capture() {
   collapsedRef = useTabBarCollapsed();
@@ -51,11 +51,11 @@ describe('AppTabBar — Liquid Glass', () => {
 
   it('aktif sekme vurgusu çok hafif primary-50 (koyu overlay.black10 değil); sekme düğmesinin kendisinde zemin yok', () => {
     setup(2);
-    ['tab-home', 'tab-messages'].forEach((id, i) =>
+    ['tab-home', 'tab-favorites'].forEach((id, i) =>
       fireEvent(screen.getByTestId(id), 'layout', { nativeEvent: { layout: { x: i * 80, y: 0, width: 80, height: 48 } } }),
     );
     expect(flat('tab-highlight').backgroundColor).toBe(theme.colors.primary[50]);
-    expect(flat('tab-messages').backgroundColor).toBeUndefined();
+    expect(flat('tab-favorites').backgroundColor).toBeUndefined();
     expect(flat('tab-home').backgroundColor).toBeUndefined();
   });
 
@@ -67,7 +67,7 @@ describe('AppTabBar — Liquid Glass', () => {
     expect(interactive[0]!.props.tintColor).toBe(theme.colors.primary[600]);
   });
 
-  it('Mesajlar: daralmış sekme dairesi de cam (tint yok, interaktif); hap yüzeyi interaktif değil', () => {
+  it('Favoriler: daralmış sekme dairesi de cam (tint yok, interaktif); hap yüzeyi interaktif değil', () => {
     setup(2);
     const glasses = screen.getAllByTestId('glass-view', { includeHiddenElements: true });
     expect(glasses).toHaveLength(3);

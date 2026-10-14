@@ -15,6 +15,7 @@
  */
 import { isNeverNavigatePath, pathFromUrl } from '@/lib/deeplinks';
 import { toMobileRoute } from '@/utils/notificationRoute';
+import { navigateTo, tabHrefFor } from '@/lib/navigation/goTo';
 
 /**
  * Boş string = "gezinme yok". expo-router boş yolu, uygulamanın bağlantısız
@@ -23,7 +24,7 @@ import { toMobileRoute } from '@/utils/notificationRoute';
  */
 const NO_NAVIGATION = '';
 
-export function redirectSystemPath({ path }: { path: string; initial: boolean }): string {
+export function redirectSystemPath({ path, initial }: { path: string; initial: boolean }): string {
   try {
     const normalized = pathFromUrl(path);
     // Kök URL (`tarodan:///` — bağlantısız açılış) ya da boş: dokunma.
@@ -48,7 +49,19 @@ export function redirectSystemPath({ path }: { path: string; initial: boolean })
     // açılış URL'i (`tarodan://expo-development-client/?url=…`) dahil, ki
     // uygulama splash'te kilitleniyordu. `path` dönmek "kanca yokmuş gibi
     // davran" demek; `tarodan://cart` gibi örtüşen yollar yine çalışır.
-    return toMobileRoute(normalized) ?? path;
+    const mapped = toMobileRoute(normalized);
+
+    // Uygulama açıkken SEKME hedefi (`tarodan://cart`, `/favorites`, `/`): expo-router'ın NAVIGATE
+    // eylemi üstte bir yığın ekranı varken kök yığına ikinci bir `(tabs)` iterdi. Bunun yerine
+    // alttaki `(tabs)`'a dönülür (`navigateTo` → dismissTo) ve expo-router'a "gezinme yok" denir.
+    // Soğuk başlatmada yığın zaten yalnız `(tabs)`: yol olduğu gibi verilir.
+    const tabTarget = initial ? null : tabHrefFor(mapped ?? normalized);
+    if (tabTarget) {
+      navigateTo(tabTarget);
+      return NO_NAVIGATION;
+    }
+
+    return mapped ?? path;
   } catch {
     // Kancada atılan hata uygulamayı çökertebilir — girdiyi olduğu gibi bırak.
     return path;

@@ -61,12 +61,13 @@ afterEach(() => {
 });
 
 describe('DrawerMenu — üye', () => {
-  it('Favoriler Alışveriş grubunun ilk satırı; ana başlıklar profileMenu gruplarından; Hesap/Mesajlar/Bildirimler yok', () => {
+  it('Favoriler yan menüde yok (alt menüde sekme); ana başlıklar profileMenu gruplarından; Hesap/Mesajlar/Bildirimler yok', () => {
     setup();
     expect(screen.getByTestId('side-menu')).toBeTruthy();
-    expect(screen.getByTestId('profile-favorites-link')).toBeTruthy();
+    expect(screen.queryByTestId('profile-favorites-link')).toBeNull();
+    expect(screen.queryByText('Favoriler')).toBeNull();
     const commerce = screen.getByTestId('side-menu-section-commerce');
-    expect(within(commerce).getByTestId('profile-favorites-link')).toBeTruthy();
+    expect(within(commerce).getByTestId('profile-orders-link')).toBeTruthy();
     expect(screen.queryByTestId('side-menu-section-pinned')).toBeNull();
     for (const title of ['Alışveriş', 'Finans', 'Koleksiyon', 'Analiz', 'İletişim', 'Bilgi ve Yasal']) {
       expect(screen.getByText(title)).toBeTruthy();
@@ -124,10 +125,10 @@ describe('DrawerMenu — üye', () => {
     expect(screen.queryByTestId('side-menu')).toBeNull();
   });
 
-  it('Favoriler satırı /favorites açar', () => {
+  it('satıra dokunma rotayı açar ve menüyü kapatır', () => {
     setup();
-    fireEvent.press(screen.getByTestId('profile-favorites-link'));
-    expect(pushMock).toHaveBeenCalledWith('/favorites');
+    fireEvent.press(screen.getByTestId('profile-orders-link'));
+    expect(pushMock).toHaveBeenCalledWith('/orders');
     expect(state()).toBe('closed');
   });
 

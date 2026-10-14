@@ -56,3 +56,14 @@ export function fieldBoxStyle({ size = 'md', focused = false, error, disabled }:
     backgroundColor: fieldBackgroundColor(disabled),
   };
 }
+
+/**
+ * Arama alanının vurgu çerçevesi (web arama kutusu: primary-500, 1px). TEK kaynak: arama ekranının
+ * `Input`'u ve Ana Sayfa üst barındaki sahte arama alanı (`SearchField`) aynı görünümü buradan alır.
+ */
+export const SEARCH_FIELD_BORDER_COLOR = colors.primary[500];
+
+/** Arama alanı kutusu: normal alan kutusu (`fieldBoxStyle`) + vurgu çerçevesi. */
+export function searchFieldBoxStyle(size: FieldSize = 'md'): ViewStyle {
+  return { ...fieldBoxStyle({ size }), borderColor: SEARCH_FIELD_BORDER_COLOR };
+}

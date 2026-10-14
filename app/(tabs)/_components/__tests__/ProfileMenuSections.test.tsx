@@ -119,13 +119,13 @@ describe('ProfileCard — yatay kompakt kimlik başlığı', () => {
     trustVisibilityMutation: { mutate: jest.fn(), isPending: false },
   };
 
-  it('ad ve e-posta tek satır; "Profili düzenle" düğmesi kartta yok (üst barda kalem)', () => {
+  it('ad ve e-posta tek satır; "Profili düzenle" kimlik satırının sağında kalem (metin düğme yok)', () => {
     renderWithProviders(<ProfileCard f={f} />);
     expect(screen.getByTestId('profile-name').props.numberOfLines).toBe(1);
     expect(screen.getByText('Ayşe Yılmaz')).toBeTruthy();
     expect(screen.getByText('ayse@example.com').props.numberOfLines).toBe(1);
     expect(screen.getByText('AY')).toBeTruthy(); // fotoğrafsız avatar baş harfleri
-    expect(screen.queryByTestId('profile-edit-button')).toBeNull();
+    expect(screen.getByTestId('profile-edit-button').props.accessibilityLabel).toBe(i18n.t('profile.editProfile'));
     expect(screen.queryByText(i18n.t('profile.editProfile'))).toBeNull();
   });
 

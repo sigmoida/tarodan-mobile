@@ -12,8 +12,10 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing[2],
   },
+  // Yığın ekranı: alt menü yok; son satır ev göstergesinin üstünde kalsın.
   listContent: {
     flexGrow: 1,
+    paddingBottom: spacing[12],
   },
   iconContainer: {
     width: INBOX_LEADING_SIZE,

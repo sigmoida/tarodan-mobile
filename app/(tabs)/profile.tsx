@@ -1,12 +1,11 @@
 import { RefreshControl } from 'react-native';
-import { router } from 'expo-router';
 import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { tabDiag } from '@/components/_tabDiag';
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
-import { TopBarAction, theme, usePageScrollValue } from '@/ui';
+import { theme, usePageScrollValue } from '@/ui';
 
 import { useProfile } from './_hooks/useProfile';
 import { ProfileGuestView } from './_components/ProfileGuestView';
@@ -19,7 +18,7 @@ import {
 const { colors } = theme;
 
 /**
- * Profil sekmesi — sekme kökü (AppShell, başlıklı bar; sağ üstte "Profili düzenle" kalemi). Düz
+ * Profil sekmesi — sekme kökü (AppShell, başlıklı bar; "Profili düzenle" kalemi kimlik satırında). Düz
  * (kartsız) düzen: yatay kompakt kimlik başlığı + Hesap satırları (ikon + chevron) + çıkış + hesabı sil. Alışveriş / Finans / Koleksiyon / Analiz /
  * Destek / Bilgi Ana Sayfa yan menüsündedir (`DrawerMenu`).
  * `useProfile` tüm sorgu ve eylemlerin sahibi; ekran yalnız misafir/üye dallanması ve kompozisyon.
@@ -36,20 +35,7 @@ function ProfileScreen() {
   if (!f.isAuthenticated) return <ProfileGuestView f={f} />;
 
   return (
-    <AppShell
-      variant="title"
-      title={t('profile.profile')}
-      scroll={page}
-      right={
-        // Maestro akışları `profile-edit-button`'a bağlı (giriş yapılmış mı testi) — misafirde YOK.
-        <TopBarAction
-          icon="pencil"
-          accessibilityLabel={t('profile.editProfile')}
-          testID="profile-edit-button"
-          onPress={() => router.push('/settings/edit-profile')}
-        />
-      }
-    >
+    <AppShell variant="title" title={t('profile.profile')} scroll={page}>
       <Animated.ScrollView
         {...tabScroll}
         {...page.scrollProps}

@@ -9,15 +9,15 @@ const { colors } = theme;
 
 export interface AppShellProps {
   /**
-   * `search` (varsayılan): hamburger (yan menü) + arama alanı + sepet — YALNIZ Ana Sayfa.
-   * `title`: yüzen ortalı başlıklı üst bar (ScreenHeader ile aynı görünüm, geri oku yok) — diğer
-   * tüm sekme kökleri (bkz. `TitleShell`).
+   * `search` (varsayılan): ☰ (yan menü) + arama alanı + Mesajlar + Bildirimler — YALNIZ Ana Sayfa.
+   * `title`: yüzen ortalı başlıklı üst bar (ScreenHeader ile aynı görünüm; geri oku yerine ☰, sağda
+   * Mesajlar + Bildirimler) — diğer tüm sekme kökleri (bkz. `TitleShell`).
    */
   variant?: 'search' | 'title';
   /** `variant="title"` için bar başlığı. */
   title?: string;
-  /** `variant="title"` için sağ aksiyon(lar) (`TopBarAction`). */
-  right?: React.ReactNode;
+  /** `variant="title"` için başlık altı küçük satır (ör. sepetteki ürün sayısı). */
+  subtitle?: string;
   /** `variant="title"`: listenin kaydırma sinyali (bkz. `TitleShell`); verilmezse sabit şerit. */
   scroll?: PageScrollValue;
   children?: React.ReactNode;
@@ -28,18 +28,18 @@ export interface AppShellProps {
 
 /**
  * Sekme köklerinin kabuğu. Ana Sayfa (`variant="search"`): içeriğin ÜSTÜNDE yüzen bar
- * (`FloatingSearchBar`): [☰ cam daire][arama alanı][sepet cam daire]; kaydırınca arama alanı yukarı +
- * sola kayıp kaybolur, bar zemini solar, yalnız iki cam buton kalır (alt menüyle aynı daralma sinyali).
+ * (`FloatingSearchBar`): [☰][arama alanı][Mesajlar][Bildirimler] (cam daireler, sayaçlı); kaydırınca
+ * arama alanı yukarı + sola kayıp kaybolur, bar zemini solar, yalnız cam düğmeler kalır (alt menüyle
+ * aynı daralma sinyali).
  * Liste, `useFloatingBarInset` + `floatingBarScrollProps` ile üst boşluk bırakmalıdır. Diğer sekme
- * kökleri (`variant="title"`): `ScreenHeader` ile AYNI bar (geri oku yok → boş kutu çizilmez,
- * başlık sayfa kenar boşluğundan başlar), isteğe bağlı sağ aksiyon; beyaz zemin + alt çizgi, aynı
- * yükseklik (`theme.headerHeight`). StatusBar koyu içerik (kök layout varsayılanı) — kabuk
+ * kökleri (`variant="title"`): `ScreenHeader` ile AYNI bar (geri oku yerine ☰, ortalı başlık, sağda
+ * Mesajlar + Bildirimler), aynı yükseklik (`theme.headerHeight`). StatusBar koyu içerik (kök layout varsayılanı) — kabuk
  * StatusBar'a dokunmaz.
  */
 export const AppShell: React.FC<AppShellProps> = ({
   variant = 'search',
   title,
-  right,
+  subtitle,
   scroll,
   children,
   contentStyle,
@@ -47,7 +47,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 }) => {
   if (variant === 'title') {
     return (
-      <TitleShell title={title} right={right} scroll={scroll} contentStyle={contentStyle} testID={testID}>
+      <TitleShell title={title} subtitle={subtitle} scroll={scroll} contentStyle={contentStyle} testID={testID}>
         {children}
       </TitleShell>
     );

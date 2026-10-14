@@ -8,12 +8,14 @@ import {
   useShellScrollState,
   type PageScrollValue,
 } from '@/ui';
+import { ShellHeaderActions, ShellMenuButton } from './ShellHeaderActions';
 
 const { colors } = theme;
 
 export interface TitleShellProps {
   title?: string;
-  right?: React.ReactNode;
+  /** Başlığın altında küçük satır (ör. sepetteki ürün sayısı). */
+  subtitle?: string;
   /**
    * Ekranın kendi listesinin kaydırma sinyali (`usePageScrollValue()`; sekme kökleri
    * `useTabBarScrollHandler(undefined, page.scrollY)` ile tek handler'dan besler). Verilirse içerik
@@ -28,10 +30,11 @@ export interface TitleShellProps {
 
 /**
  * Sekme köklerinin başlıklı kabuğu (`AppShell variant="title"`): `ScreenHeader` ile AYNI yüzen bar
- * (ortalı başlık, cam butonlar, geri oku yok → sol boş) + kaydırma kenarı. İçerik tam yükseklikte;
- * bar üstünde yüzer.
+ * (ortalı başlık, cam butonlar) + kaydırma kenarı. Geri oku yerine solda ☰ (yan menü), sağda TAM iki
+ * düğme: Mesajlar + Bildirimler (`ShellHeaderActions`) — Ana Sayfa'nın yüzen barıyla aynı düzen.
+ * Ekrana özel üst bar aksiyonu yok (sağ grup sabit). İçerik tam yükseklikte; bar üstünde yüzer.
  */
-export const TitleShell: React.FC<TitleShellProps> = ({ title, right, scroll, children, contentStyle, testID }) => {
+export const TitleShell: React.FC<TitleShellProps> = ({ title, subtitle, scroll, children, contentStyle, testID }) => {
   const shell = useShellScrollState(scroll, false);
   useResetScrollOnBind(shell.page.scrollY, shell.bound);
   return (
@@ -46,8 +49,9 @@ export const TitleShell: React.FC<TitleShellProps> = ({ title, right, scroll, ch
       </ShellScrollProvider>
       <ScreenHeader
         title={title ?? ''}
-        showBack={false}
-        right={right}
+        subtitle={subtitle}
+        leading={<ShellMenuButton testID="app-shell-menu" />}
+        right={<ShellHeaderActions />}
         testID="app-shell-bar"
         scrollY={shell.bound ? shell.page.scrollY : undefined}
       />

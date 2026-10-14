@@ -3,6 +3,7 @@ import {
   AccessibilityInfo,
   BackHandler,
   findNodeHandle,
+  Platform,
   Pressable,
   StyleSheet,
   useWindowDimensions,
@@ -19,14 +20,20 @@ import Animated, {
 import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import * as Router from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { theme } from '@/ui';
 import {
   contentFadeOpacity,
   contentTranslateX,
   dragProgress,
+  isBaseTabsFocused,
+  openDragProgress,
   shouldCloseOnRelease,
+  shouldOpenOnRelease,
+  sideMenuEdgeWidth,
   sideMenuWidth,
+  type NavStateLike,
 } from './sideMenuMotion';
 import { useSideMenu } from './SideMenuContext';
 
@@ -37,6 +44,26 @@ const { colors, duration } = theme;
 /** Sürükleme, yatayda bu kadar hareketten sonra başlar (dikey kaydırma/dokunuşlar bozulmasın). */
 const PAN_ACTIVE_OFFSET_X = 12;
 const PAN_FAIL_OFFSET_Y = 16;
+/** Kenar şeridi (platforma göre; bkz. `sideMenuEdgeWidth`). */
+const EDGE_WIDTH = sideMenuEdgeWidth(Platform.OS);
+
+/**
+ * Kenardan açma yalnız TABAN sekme kökünde: kök yığın indeksi 0 ve o rota `(tabs)`
+ * (`isBaseTabsFocused`). Yığın ekranlarında — ve üste itilmiş ikinci bir `(tabs)` kopyasında — sol
+ * kenar iOS'un "kaydırarak geri" jestine aittir. `useSegments` her gezinmede yeniden çizimi tetikler;
+ * yığın derinliği kapsayıcı ref'inden okunur. `* as Router`: expo-router'ı kısmi mock'layan testlerde
+ * kanca yoksa kapalı.
+ */
+function useEdgeSwipeEnabled(): boolean {
+  const segments = (Router.useSegments?.() ?? []) as string[];
+  const navRef = Router.useNavigationContainerRef?.();
+  if (segments[0] !== '(tabs)') return false;
+  try {
+    return isBaseTabsFocused(navRef?.getRootState?.() as NavStateLike | undefined);
+  } catch {
+    return false;
+  }
+}
 /** Ekran okuyucu odağını menüye taşımadan önce animasyonun başlamasını bekle (ms). */
 const A11Y_FOCUS_DELAY_MS = 350;
 
@@ -64,7 +91,8 @@ interface SideMenuHostProps {
  * Panel içeriği yalnız menü açıkken bağlanır → kapalıyken sorgu/abonelik yok.
  */
 export function SideMenuHost({ menu, children }: SideMenuHostProps) {
-  const { isOpen, close } = useSideMenu();
+  const { isOpen, open, close } = useSideMenu();
+  const edgeEnabled = useEdgeSwipeEnabled();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
@@ -78,6 +106,13 @@ export function SideMenuHost({ menu, children }: SideMenuHostProps) {
   const isOpenSV = useSharedValue(isOpen);
   // Kapanış animasyonu bitene dek bağlı kalır.
   const [mounted, setMounted] = useState(false);
+  // Kenardan açma sürüklemesi sürüyor: panel bağlı, zorla söküm emniyeti beklemede.
+  const [edgeDragging, setEdgeDragging] = useState(false);
+  const beginEdgeDrag = useCallback(() => {
+    setMounted(true);
+    setEdgeDragging(true);
+  }, []);
+  const endEdgeDrag = useCallback(() => setEdgeDragging(false), []);
   const closeRef = useRef<View>(null);
 
   // Kapanış animasyonu bitince söker — ama bu arada yeniden açıldıysa dokunmaz.
@@ -107,14 +142,14 @@ export function SideMenuHost({ menu, children }: SideMenuHostProps) {
   // Emniyet: kapanış animasyonu kesilirse (`finished=false`) bile menü takılı kalmasın —
   // süre + pay sonra progress'i 0'a çekip paneli söker.
   useEffect(() => {
-    if (isOpen || !mounted) return undefined;
+    if (isOpen || !mounted || edgeDragging) return undefined;
     const id = setTimeout(() => {
       if (isOpenRef.current) return;
       progress.value = 0;
       setMounted(false);
     }, animMs + FORCE_UNMOUNT_SLACK_MS);
     return () => clearTimeout(id);
-  }, [isOpen, mounted, animMs, progress]);
+  }, [isOpen, mounted, edgeDragging, animMs, progress]);
 
   // Android geri tuşu: açıkken menüyü kapatır (ekranı geri götürmez).
   useEffect(() => {
@@ -166,6 +201,46 @@ export function SideMenuHost({ menu, children }: SideMenuHostProps) {
     [isOpen, width, animMs, close, progress, isOpenSV],
   );
 
+  // Kapalıyken, yalnız sekme köklerinde: sol kenar şeridinde (`EDGE_WIDTH`) BAŞLAYAN sağa sürükleme
+  // menüyü parmakla birlikte açar. `hitSlop` şeridi tanıma alanıyla sınırlar; içerikteki dokunuşlar
+  // (hamburger, satırlar) etkilenmez — jest yalnız yatay eşik aşılınca etkinleşir.
+  const edgePan = useMemo(
+    () =>
+      Gesture.Pan()
+        .withTestId('side-menu-edge-pan')
+        .enabled(!isOpen && edgeEnabled)
+        .hitSlop({ left: 0, width: EDGE_WIDTH })
+        .activeOffsetX(PAN_ACTIVE_OFFSET_X)
+        .failOffsetX(-PAN_ACTIVE_OFFSET_X)
+        .failOffsetY([-PAN_FAIL_OFFSET_Y, PAN_FAIL_OFFSET_Y])
+        .onStart(() => {
+          'worklet';
+          scheduleOnRN(beginEdgeDrag);
+        })
+        .onUpdate((e) => {
+          'worklet';
+          if (isOpenSV.value) return;
+          progress.value = openDragProgress(e.translationX, width);
+        })
+        .onEnd((e, success) => {
+          'worklet';
+          if (isOpenSV.value) return;
+          if (success && shouldOpenOnRelease(e.translationX, e.velocityX, width)) {
+            scheduleOnRN(open);
+          } else {
+            progress.value = withTiming(0, { duration: animMs, easing: EASING }, (finished) => {
+              'worklet';
+              if (finished) scheduleOnRN(unmount);
+            });
+          }
+        })
+        .onFinalize(() => {
+          'worklet';
+          scheduleOnRN(endEdgeDrag);
+        }),
+    [isOpen, edgeEnabled, width, animMs, open, beginEdgeDrag, endEdgeDrag, unmount, progress, isOpenSV],
+  );
+
   // Panel + içerik tek taşıyıcıda: aynı translateX.
   const trackStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: contentTranslateX(progress.value, width) }],
@@ -206,14 +281,18 @@ export function SideMenuHost({ menu, children }: SideMenuHostProps) {
               </View>
             ) : null}
           </View>
-          {/* Uygulama içeriği (Stack + tab bar). Menü açıkken ekran okuyucudan gizlenir. */}
-          <View
-            style={styles.content}
-            importantForAccessibility={isOpen ? 'no-hide-descendants' : 'auto'}
-            accessibilityElementsHidden={isOpen}
-          >
-            {children}
-          </View>
+          {/* Uygulama içeriği (Stack + tab bar). Menü açıkken ekran okuyucudan gizlenir. Kenardan
+              açma jesti içeriğin sol şeridinde tanınır. */}
+          <GestureDetector gesture={edgePan}>
+            <View
+              testID="side-menu-content"
+              style={styles.content}
+              importantForAccessibility={isOpen ? 'no-hide-descendants' : 'auto'}
+              accessibilityElementsHidden={isOpen}
+            >
+              {children}
+            </View>
+          </GestureDetector>
           {/* Kayan içeriğin üstünde beyaz soluklaştırma; dokununca kapatır. Kapanış sürerken de
               dokunuşu yutar (alttaki ekrana geçmesin). */}
           {mounted ? (

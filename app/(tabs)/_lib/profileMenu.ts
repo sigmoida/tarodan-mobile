@@ -85,7 +85,7 @@ function withProfileIcons(items: ProfileMenuItem[]): ProfileMenuItem[] {
  * Menü modeli — TEK kaynak. Web `ProfileSidebar`'ın gruplu yapısı (Alışveriş · Finans · Koleksiyon ·
  * Analiz · İletişim · Hesap) + mobil-özel "Bilgi" grubu (hukuki/bilgi sayfalarının tek girişi).
  * Her grup bir `surface`'e aittir: `profile` (Profil sekmesi: yalnız Hesap) ya da `drawer`
- * (Ana Sayfa yan menüsü: Hesap hariç tüm gruplar; Favoriler Alışveriş'in ilk satırı). Seçiciler: `selectProfileSections`,
+ * (Ana Sayfa yan menüsü: Hesap hariç tüm gruplar; Favoriler yan menüde değil, alt menüde sekme). Seçiciler: `selectProfileSections`,
  * `selectDrawerSections`. Etiketler web'in i18n anahtarlarıdır; web'de karşılığı olmayan mobil
  * ekranlar (banka hesabı, ödeme geçmişi, dil…) ilgili gruba eklenir. Profil (Hesap) satırları `icon` taşır;
  * yan menü ikonları `drawerIcons.ts`'te, satır anahtarına göre.
@@ -117,8 +117,6 @@ export function buildProfileMenuGroups(
       title: t('profile.sidebar.alisveris'),
       surface: 'drawer',
       items: [
-        // Favoriler: Alışveriş grubunun ilk satırı (misafirde grup gizli olduğundan satır da gizli).
-        { key: 'favorites', label: t('nav.favorites'), to: '/favorites', testID: 'profile-favorites-link' },
         { key: 'listings', label: t('nav.myListings'), to: '/settings/my-listings' },
         { key: 'orders', label: t('order.myOrders'), to: '/orders', testID: 'profile-orders-link' },
         { key: 'sales', label: t('mobile.quickMySales'), to: '/sales', testID: 'profile-sales-link' },

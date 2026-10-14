@@ -117,7 +117,7 @@ Her flow YAML başında `tags:` bloğu ile bir öncelik kategorisine atanır:
 | F-02 | Yanlış şifre → recover with right (form reload yok) | `regression` | zeynep |
 | F-03 | Forgot password → success notice | `regression` | zeynep |
 | F-04 | Logout superset (input cleared, no toast error) | `regression` | zeynep |
-| F-05 | Tab navigation (Ana Sayfa/Favoriler/Mesajlar/Profil) + arama alanından arama | `smoke` | zeynep |
+| F-05 | Tab navigation (Ana Sayfa/Favoriler/Sepet/Profil) + üst bar Mesajlar/Bildirimler + arama alanından arama | `smoke` | zeynep |
 | F-06 | Search → product detail → back nav | `smoke` | zeynep |
 | F-07 | Category drill-down (3-deep) | `regression` | zeynep |
 | F-08 | Favorite toggle (list + detail) | `manual` | zeynep — heart accessibility label kararsız |
@@ -178,7 +178,7 @@ maestro/
 
 Expo Router + React Native Paper UI'ı Maestro'nun text dump'ına `text` alanı olarak değil **`accessibilityText`** olarak çıkıyor. Maestro `tapOn: "..."` accessibility text'inde substring/regex araması yapar. Bu yüzden:
 
-- ✅ İyi: `tapOn: id: "tab-profile"` — alt menü sekmeleri testID ile (`tab-home`, `tab-messages`, `tab-notifications`, `tab-profile`, `tab-sell`; Favoriler artık sekme değil → `openLink: "tarodan://favorites"`; bkz. [AppTabBar](../src/components/shell/AppTabBar.tsx)). Arama: `runFlow: ../subflows/open-search.yaml`
+- ✅ İyi: `tapOn: id: "tab-profile"` — alt menü sekmeleri testID ile (`tab-home`, `tab-favorites`, `tab-cart`, `tab-profile`, `tab-sell`; Mesajlar / Bildirimler sekme değil → sekme köklerinin üst barındaki `app-shell-messages` / `app-shell-notifications`; bkz. [AppTabBar](../src/components/shell/AppTabBar.tsx), [ShellHeaderActions](../src/components/shell/ShellHeaderActions.tsx)). Arama: `runFlow: ../subflows/open-search.yaml`
 - ✅ İyi: `assertVisible: text: ".*sonuç bulundu.*"`
 - ❌ Çalışmaz: `tapOn: "Profil"` (anchor'sız aramada multi-part label'a takılabilir)
 
