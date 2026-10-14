@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { categoriesApi, collectionsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
+import { useRefresh } from '@/hooks/useRefresh';
 import type { ActiveFilterChip } from '@/components/product';
 import {
   DEFAULT_SORT,
@@ -97,6 +98,9 @@ export function useCollectionsBrowse() {
   const collections = isPublic ? publicCollections : myCollections;
 
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = publicQuery;
+  // Yalnız kullanıcının çektiği yenileme döner: keepPreviousData ile arama/sıralama/kategori
+  // değişimi de `isRefetching` sayılıyor, RefreshControl dönüp iOS listesi zıplıyordu.
+  const { refreshing, onRefresh } = useRefresh(active.refetch);
   const loadMore = useCallback(() => {
     if (isPublic && hasNextPage && !isFetchingNextPage) void fetchNextPage();
   }, [isPublic, hasNextPage, isFetchingNextPage, fetchNextPage]);
@@ -141,7 +145,8 @@ export function useCollectionsBrowse() {
     collections,
     isLoading: active.isLoading,
     isError: active.isError && collections.length === 0,
-    isRefetching: active.isRefetching && !isFetchingNextPage,
+    refreshing,
+    onRefresh,
     refetch: active.refetch,
     loadMore,
     isFetchingNextPage: isPublic && isFetchingNextPage,

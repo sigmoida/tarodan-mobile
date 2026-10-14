@@ -131,4 +131,17 @@ describe('Koleksiyon tarama', () => {
     fireEvent.press(screen.getByText('Tekrar Dene'));
     expect(await screen.findByText('Ferrari Koleksiyonu')).toBeOnTheScreen();
   });
+
+  it('arama değişimi çekip-yenile göstergesini döndürmez (yalnız kullanıcı yenilemesi)', async () => {
+    renderWithProviders(<CollectionsScreen />);
+    await screen.findByText('Ferrari Koleksiyonu');
+    let resolveNext: ((v: unknown) => void) | undefined;
+    browseMock.mockImplementationOnce(() => new Promise((r) => (resolveNext = r)));
+    fireEvent.changeText(screen.getByTestId('collections-search'), 'porsche');
+    await waitFor(() => expect(lastBrowseParams()).toMatchObject({ search: 'porsche' }));
+    const list = screen.getByTestId('collections-list');
+    expect(list.props.refreshControl.props.refreshing).toBe(false);
+    resolveNext?.({ data: { collections: [col('c2', 'Porsche')], total: 1, page: 1, pageSize: 20 } });
+    expect(await screen.findByText('Porsche')).toBeOnTheScreen();
+  });
 });
