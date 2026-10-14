@@ -69,16 +69,16 @@ describe('satıcı profili', () => {
     render(<SellerProfileScreen />);
     expect(screen.getByText('Ferrari F40')).toBeTruthy();
     expect(screen.getByText('Supra')).toBeTruthy();
-    expect(screen.getByText('İlanlar (2)')).toBeTruthy();
-    expect(screen.getByText('Değerlendirmeler (1)')).toBeTruthy();
-    expect(screen.getByText('Koleksiyonlar (1)')).toBeTruthy();
+    expect(screen.getByLabelText('İlanlar (2)')).toBeTruthy();
+    expect(screen.getByLabelText('Değerlendirmeler (1)')).toBeTruthy();
+    expect(screen.getByLabelText('Koleksiyonlar (1)')).toBeTruthy();
   });
 
   it('sekmeye basınca setActiveTab', () => {
     const f = base();
     mockProfile.mockReturnValue(f);
     render(<SellerProfileScreen />);
-    fireEvent.press(screen.getByText('Koleksiyonlar (1)'));
+    fireEvent.press(screen.getByLabelText('Koleksiyonlar (1)'));
     expect(f.setActiveTab).toHaveBeenCalledWith('collections');
   });
 

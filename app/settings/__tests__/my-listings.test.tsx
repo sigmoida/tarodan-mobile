@@ -99,9 +99,9 @@ describe("J68 · İlanlarım filtre chip + durum rozeti", () => {
   it("J68.1 filtre chip'leri sunucu sayaçlarıyla render olur (Tümü/Reddedildi)", async () => {
     mockGetMyListings.mockResolvedValue({ data: { data: [listing()] } });
     renderWithProviders(<MyListingsScreen />);
-    expect(await screen.findByText("listing.filterAll (3)")).toBeOnTheScreen();
-    expect(screen.getByText("listing.filterRejected (1)")).toBeOnTheScreen();
-    expect(screen.getByText("listing.filterActive (1)")).toBeOnTheScreen();
+    expect(await screen.findByLabelText("listing.filterAll (3)")).toBeOnTheScreen();
+    expect(screen.getByLabelText("listing.filterRejected (1)")).toBeOnTheScreen();
+    expect(screen.getByLabelText("listing.filterActive (1)")).toBeOnTheScreen();
   });
 
   it('J68.2 reddedilen ilan → "Reddedildi" durum rozeti gösterilir', async () => {

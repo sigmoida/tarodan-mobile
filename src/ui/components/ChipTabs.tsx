@@ -8,8 +8,10 @@ export interface ChipTabItem<K extends string = string> {
   key: K;
   label: string;
   /**
-   * Sekme sayacı → "Etiket (n)". TEK kural: bir ekranda sayaç varsa TÜM sekmelerde verin
-   * (kısmi sayaç tutarsız görünür); hiçbirinde yoksa hiç vermeyin.
+   * Sekme sayacı → etiketin yanında küçük sayaç rozeti (erişilebilirlik etiketi "Etiket (n)").
+   * TEK kural: bir ekranda sayaç varsa TÜM sekmelerde verin (kısmi sayaç tutarsız görünür);
+   * hiçbirinde yoksa hiç vermeyin. Sayacı etiket metnine gömmeyin ("İlanlar (20)" çevirisi değil,
+   * `label: 'İlanlar', count: 20`).
    */
   count?: number;
   /** Verilmezse `testID` varsa `${testID}-${key}`. */
@@ -33,14 +35,17 @@ export interface ChipTabsProps<K extends string = string> {
 
 const { spacing } = theme;
 
-/** Etiket + sayaç tek biçimi (ChipTabs içi). */
+/** Etiket + sayaç tek metin biçimi (ChipTabs erişilebilirlik etiketi). */
 export function chipTabLabel(label: string, count?: number): string {
   return count == null ? label : `${label} (${count})`;
 }
 
 /**
- * Web `Tabs`'ın mobil karşılığı: durum / filtre sekmeleri — yatay kaydırılan, tek seçimli çip
- * satırı. Ekranlarda elle `ScrollView horizontal + Chip` kurulmaz.
+ * Web `Tabs`'ın mobil karşılığı: durum / filtre / içerik sekmeleri — yatay kaydırılan, tek seçimli
+ * çip satırı. Uygulamadaki TEK sekme bileşeni: ekranlarda elle `ScrollView horizontal + Chip` ya da
+ * `SegmentedButtons` ile sekme kurulmaz (SegmentedButtons yalnız 2–3 seçenekli ayar anahtarıdır).
+ * Etiketler ASLA kısaltılmaz: çipler içerik genişliğinde, sığmazsa satır yatay kaydırılır; sayaç
+ * etiketin yanında küçük rozettir.
  *
  * Boy sabitliği: RN yatay `ScrollView` varsayılan `flexGrow: 1` taşır; sabit yüksekliksiz bir
  * kapsayıcıda (PageShell `static`/`list`, flex:1 ebeveyn) kalan dikey alanı doldurup içerik
@@ -98,7 +103,9 @@ export function ChipTabs<K extends string = string>({
           key={item.key}
           size={size}
           testID={item.testID ?? (testID ? `${testID}-${item.key}` : undefined)}
-          label={chipTabLabel(item.label, item.count)}
+          label={item.label}
+          count={item.count}
+          accessibilityLabel={chipTabLabel(item.label, item.count)}
           selected={item.key === value}
           onPress={() => onChange(item.key)}
           onLayout={onChipLayout(item.key)}
