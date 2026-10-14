@@ -13,20 +13,27 @@ export interface AvatarProps {
   source?: ImageSourcePropType | string;
   name?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
-  /** `neutral` = açık gri zemin + başlık renginde baş harf (profil başlığı); varsayılan marka tonu. */
-  tone?: 'brand' | 'neutral';
   /** `icon` = fotoğraf yoksa baş harf yerine `user` ikonu (misafir / adsız). */
   placeholder?: 'initials' | 'icon';
 }
 
 const { colors } = theme;
+
+/**
+ * Fotoğrafsız avatar yer tutucusu — TEK renk çifti (profil sekmesi, profil düzenleme, satıcı/mesaj
+ * listeleri aynı): açık marka zemini + koyu marka baş harf / `user` ikonu. Ekran ayrı ton seçmez.
+ */
+export const avatarPlaceholderColors = {
+  background: colors.primary[100] as string,
+  foreground: colors.primary[700] as string,
+} as const;
+
 const sizeMap = { sm: 28, md: 40, lg: 56, xl: 80, '2xl': 120 } as const;
 
 export const Avatar: React.FC<AvatarProps> = ({
   source,
   name,
   size = 'md',
-  tone = 'brand',
   placeholder = 'initials',
 }) => {
   const s = sizeMap[size];
@@ -62,11 +69,7 @@ export const Avatar: React.FC<AvatarProps> = ({
 
   return (
     <View
-      style={[
-        styles.base,
-        tone === 'neutral' && styles.baseNeutral,
-        { width: s, height: s, borderRadius: s / 2 },
-      ]}
+      style={[styles.base, { width: s, height: s, borderRadius: s / 2 }]}
     >
       {showImage ? (
         <Image
@@ -75,11 +78,9 @@ export const Avatar: React.FC<AvatarProps> = ({
           onError={() => setFailed(true)}
         />
       ) : placeholder === 'icon' ? (
-        <Icon name="user" size={s * 0.5} color={colors.text.subtle} />
+        <Icon name="user" size={s * 0.5} color={avatarPlaceholderColors.foreground} />
       ) : (
-        <RawText
-          style={[styles.initials, tone === 'neutral' && styles.initialsNeutral, { fontSize: s * 0.4 }]}
-        >
+        <RawText style={[styles.initials, { fontSize: s * 0.4 }]}>
           {initials}
         </RawText>
       )}
@@ -89,15 +90,13 @@ export const Avatar: React.FC<AvatarProps> = ({
 
 const styles = StyleSheet.create({
   base: {
-    backgroundColor: colors.primary[100],
+    backgroundColor: avatarPlaceholderColors.background,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  baseNeutral: { backgroundColor: colors.gray[100] },
-  initialsNeutral: { color: colors.text.heading },
   initials: {
-    color: colors.primary[700]!,
-    fontWeight: '700',
+    color: avatarPlaceholderColors.foreground,
+    fontWeight: theme.typography.fontWeight.bold,
   },
 });

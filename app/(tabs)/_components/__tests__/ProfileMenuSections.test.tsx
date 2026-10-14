@@ -6,7 +6,9 @@
  */
 import React from 'react';
 import { fireEvent, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import i18n from '@/i18n/config';
+import { avatarPlaceholderColors } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
 import { router } from 'expo-router';
 import { ProfileCard, ProfileDeleteAccount, ProfileMenuSections } from '../ProfileSections';
@@ -32,9 +34,11 @@ it('kurumsal hesapta "Kurumsal Başvuru" öğesini gösterir', () => {
   expect(screen.getByTestId('settings-business-application')).toBeTruthy();
 });
 
-it('yalnız Hesap grubunu gösterir; yan menü grupları profilde yok', () => {
+it('yalnız Hesap grubunu başlıksız gösterir; yan menü grupları profilde yok', () => {
   renderWithProviders(<ProfileMenuSections f={f} />);
-  expect(screen.getByText('Hesap')).toBeTruthy();
+  // Küçük "Hesap" grup başlığı kaldırıldı (kullanıcı geri bildirimi); satırlar yine görünür.
+  expect(screen.queryByText('Hesap')).toBeNull();
+  expect(screen.getByTestId('profile-language-link')).toBeTruthy();
   for (const title of ['Alışveriş', 'Finans', 'Koleksiyon', 'Analiz', 'İletişim', 'Bilgi ve Yasal']) {
     expect(screen.queryByText(title)).toBeNull();
   }
@@ -122,6 +126,13 @@ describe('ProfileCard — ortalı kimlik başlığı', () => {
     expect(json).toContain('"width":120');
     expect(json).toContain('"height":120');
     expect(json).toContain('"borderRadius":60');
+  });
+
+  it('fotoğrafsız avatar, profil düzenlemedekiyle aynı yer tutucu rengini kullanır', () => {
+    renderWithProviders(<ProfileCard f={f} />);
+    const json = JSON.stringify(screen.toJSON());
+    expect(json).toContain(`"backgroundColor":"${avatarPlaceholderColors.background}"`);
+    expect(StyleSheet.flatten(screen.getByText('AY').props.style).color).toBe(avatarPlaceholderColors.foreground);
   });
 
   it('ücretli üyede katman rozeti görünür', () => {
