@@ -43,8 +43,8 @@ export interface ProfileMenuContext {
   /** Kurumsal hesap (companyName + taxId var). */
   isBusiness: boolean;
   /**
-   * Üyelik/abonelik satırları: satın alma açık platform ya da ücretli üye. iOS'ta ücretsiz
-   * kullanıcı görmez (Apple 2.1(b)); ücretli üye aboneliğini iptal edebileceği tek yer.
+   * Üyelik satırı (plan + abonelik durumu tek ekranda, `/membership`): satın alma açık platform
+   * ya da ücretli üye. iOS'ta ücretsiz kullanıcı görmez (Apple 2.1(b)). Mobilde salt görüntüleme.
    */
   showMembership: boolean;
   isPaidTier: boolean;
@@ -67,7 +67,6 @@ const PROFILE_ICONS: Record<string, IconName> = {
   addresses: 'map-pin',
   'bank-account': 'building-library',
   membership: 'sparkles',
-  subscription: 'credit-card',
   business: 'building-storefront',
   'business-application': 'briefcase',
   'notification-settings': 'bell',
@@ -228,12 +227,6 @@ export function buildProfileMenuGroups(
                 to: '/membership',
                 testID: 'profile-membership-link',
                 rightBadge: ctx.isPaidTier ? ctx.tierLabel : undefined,
-              },
-              {
-                key: 'subscription',
-                label: t('mobile.settingsSubscription'),
-                to: '/settings/subscription',
-                testID: 'profile-subscription-link',
               },
             ]
           : []),

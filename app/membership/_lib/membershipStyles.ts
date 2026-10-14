@@ -24,6 +24,17 @@ export const styles = StyleSheet.create({
   planBody: {
     gap: spacing[2],
   },
+  // Abonelik özeti (dönem / sonraki ödeme ya da bitiş / kalan gün) — salt görüntüleme satırları.
+  detailList: {
+    gap: spacing[2],
+    marginTop: spacing[1],
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing[3],
+  },
   manageRow: {
     marginTop: spacing[1],
     paddingVertical: spacing[3],

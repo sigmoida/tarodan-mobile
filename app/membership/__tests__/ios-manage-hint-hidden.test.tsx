@@ -2,9 +2,8 @@
  * Task 10 GAP 2 · iOS'ta "membership.manageMembershipHint" satırı
  * ("Üyelik Yönetimi (otomatik yenileme & kayıtlı kartlar)") gizli olmalı —
  * FREE kullanıcıya bile tam olarak kapattığımız non-Apple yinelenen tahsilat
- * yönetimini tanıtıyor. İptal akışı buradan değil Profil → Abonelik
- * (SubscriptionBody) üzerinden gelir ve orada iOS'ta da açık kalır (bkz.
- * app/settings/subscription/__tests__/ios-reactivate-gate.test.tsx).
+ * yönetimini tanıtıyor. Abonelik durumu aynı ekranda salt görüntülenir; mobilde
+ * iptal/yükseltme eylemi yok (bkz. current-plan-subscription.test.tsx).
  *
  * TEKNİK: bkz. ios-membership-screen.test.tsx başlığındaki not — CAN_BUY_DIGITAL
  * modül seviyesinde mock'lanmalı.

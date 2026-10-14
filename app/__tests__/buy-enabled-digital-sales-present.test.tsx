@@ -8,7 +8,7 @@
  * (bkz. ios-no-digital-sales.test.tsx). Kapı yalnız iOS'a özel — birisi
  * `CAN_BUY_DIGITAL`'ı platform ayrımı olmadan kapatırsa (ör. "uyumluluk
  * için hepsini gizleyelim" gibi bir kestirme), bu testler kırmızı yanar.
- * Aynı dört ekran, aynı senaryolar; tek fark CAN_BUY_DIGITAL: true.
+ * Aynı ekranlar, aynı senaryolar; tek fark CAN_BUY_DIGITAL: true.
  *
  * TEKNİK: bkz. ios-no-digital-sales.test.tsx başlığı — CAN_BUY_DIGITAL modül
  * seviyesinde mock'lanıyor (module-load-time sabit, ekranlar statik import).
@@ -51,18 +51,16 @@ jest.mock('@/lib/api', () => ({
     getMyPayments: jest.fn(),
   },
 }));
-import { api, membershipApi, paymentsApi } from '@/lib/api';
+import { api, membershipApi } from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import MembershipScreen from '../membership/index';
-import SubscriptionSettingsScreen from '../settings/subscription/index';
 import SavedSearchesScreen from '../settings/saved-searches/index';
 import CollectionsScreen from '../settings/collections';
 import { STORAGE_KEY } from '../settings/saved-searches/_lib/types';
 
 const mockGetMembership = membershipApi.getCurrentMembership as jest.Mock;
 const mockGetTiers = membershipApi.getTiers as jest.Mock;
-const mockGetMyPayments = paymentsApi.getMyPayments as jest.Mock;
 const mockApiGet = api.get as jest.Mock;
 
 describe('Android: dijital satış çağrıları yerinde — üyelik ekranı', () => {
@@ -84,21 +82,6 @@ describe('Android: dijital satış çağrıları yerinde — üyelik ekranı', (
     expect(screen.getAllByText(/ TL$/).length).toBeGreaterThan(0);
     expect(screen.getByText('membership.monthly')).toBeTruthy();
     expect(screen.getByText('membership.mostPopular')).toBeTruthy();
-  });
-});
-
-describe('Android: dijital satış çağrıları yerinde — abonelik ayarları (ücretsiz kullanıcı)', () => {
-  beforeEach(() => {
-    resetRouterMocks();
-    mockAuthState = { isAuthenticated: true };
-    mockGetMembership.mockResolvedValue({ data: null });
-    mockGetMyPayments.mockResolvedValue({ data: [] });
-  });
-
-  it('yükseltme düğmesi ve promosu görünür', async () => {
-    renderWithProviders(<SubscriptionSettingsScreen />);
-    expect(await screen.findByText('membership.upgradeToPremium')).toBeTruthy();
-    expect(screen.getByText('membership.freePlanPromo')).toBeTruthy();
   });
 });
 

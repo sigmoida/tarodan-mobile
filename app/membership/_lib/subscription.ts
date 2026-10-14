@@ -3,8 +3,9 @@ import { theme } from '@/ui';
 
 const { colors } = theme;
 
-// Faz 1'de subscriptionStore'dan buraya taşındı: abonelik ekranına ait tipler +
-// saf durum-türetme yardımcıları. Store artık React Query hook'u (useSubscription).
+// Abonelik tipleri + saf durum-türetme yardımcıları. Eski "Aboneliğim" ekranı
+// (settings/subscription) Üyelik Planı ekranıyla birleşti; durum/yenileme/bitiş bilgisi
+// artık `MembershipCurrentPlan`'da, mobilde salt görüntüleme (iptal/yükseltme yok).
 
 export interface MembershipTier {
   id: string;
@@ -92,3 +93,46 @@ export const getSubscriptionStatusText = (t: TFunction, status: Subscription['st
       return { text: t('common.unknown'), color: colors.gray[400] };
   }
 };
+
+export type SubscriptionChipVariant = 'neutral' | 'success' | 'warning' | 'danger';
+
+const STATUS_CHIP: Record<Subscription['status'], SubscriptionChipVariant> = {
+  active: 'success',
+  cancelled: 'warning',
+  past_due: 'danger',
+  expired: 'neutral',
+};
+
+/** Mevcut üyelik yanıtının (GET /membership/current) abonelik alanları — hepsi opsiyonel. */
+export interface SubscriptionFields {
+  tier?: { type?: string } | null;
+  status?: Subscription['status'];
+  billingPeriod?: Subscription['billingPeriod'];
+  currentPeriodEnd?: string;
+}
+
+/**
+ * Üyelik planı kartının abonelik özeti (salt görüntüleme). `hasDetails` yalnız ücretli katmanda
+ * ve yanıt durum + dönem sonu taşıyorsa açılır; aksi halde kart eski tek satırlık yenileme
+ * notuna düşer. Ücretsiz üyelik (backend her kullanıcıya ~100 yıllık aktif kayıt açar) premium
+ * sayılmaz — web `profile/membership` ile aynı kural.
+ */
+export function deriveSubscriptionSummary(t: TFunction, m: SubscriptionFields | null | undefined) {
+  const tierType = m?.tier?.type ?? 'free';
+  const hasDetails = !!m && tierType !== 'free' && !!m.status && !!m.currentPeriodEnd;
+  if (!hasDetails) {
+    return { hasDetails: false as const };
+  }
+  const status = m.status!;
+  const end = m.currentPeriodEnd!;
+  const daysLeft = getDaysUntilRenewal({ currentPeriodEnd: end } as Subscription);
+  return {
+    hasDetails: true as const,
+    isCancelled: status === 'cancelled',
+    daysLeft,
+    periodEnd: end,
+    billingPeriodLabel: m.billingPeriod ? formatBillingPeriod(t, m.billingPeriod) : null,
+    statusLabel: getSubscriptionStatusText(t, status).text,
+    statusChipVariant: STATUS_CHIP[status] ?? 'neutral',
+  };
+}

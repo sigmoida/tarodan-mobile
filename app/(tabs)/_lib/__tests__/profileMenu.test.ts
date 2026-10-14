@@ -68,11 +68,13 @@ describe('buildProfileMenuGroups', () => {
     expect(guest[0]!.items.map((i) => i.key)).toEqual(['help']);
   });
 
-  it('üyelik/abonelik satırları yalnız satın alma açıkken ya da ücretli üyede gelir (Apple 2.1(b))', () => {
-    expect(items().some((i) => i.key === 'membership' || i.key === 'subscription')).toBe(false);
+  it('tek üyelik satırı yalnız satın alma açıkken ya da ücretli üyede gelir (Apple 2.1(b))', () => {
+    expect(items().some((i) => i.key === 'membership')).toBe(false);
     const paid = items({ showMembership: true, isPaidTier: true });
     expect(paid.find((i) => i.key === 'membership')?.rightBadge).toBe('Premium');
-    expect(paid.some((i) => i.key === 'subscription')).toBe(true);
+    expect(paid.find((i) => i.key === 'membership')?.to).toBe('/membership');
+    // "Aboneliğim" Üyelik Planı ile birleşti — ayrı satır/rota yok.
+    expect(paid.some((i) => i.key === 'subscription' || i.to === '/settings/subscription')).toBe(false);
   });
 
   it('işletme paneli yalnız business katmanında, kurumsal başvuru yalnız kurumsal hesapta', () => {

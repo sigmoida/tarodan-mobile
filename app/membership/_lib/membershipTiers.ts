@@ -60,6 +60,9 @@ export const formatTL = (n: number): string =>
 
 export interface MembershipDetails {
   tier?: { type: string; name: string };
+  /** Abonelik durumu / dönemi — Üyelik Planı kartında salt görüntülenir (`deriveSubscriptionSummary`). */
+  status?: 'active' | 'cancelled' | 'past_due' | 'expired';
+  billingPeriod?: 'monthly' | 'yearly';
   currentPeriodStart?: string;
   currentPeriodEnd?: string;
   pendingPayment?: {
