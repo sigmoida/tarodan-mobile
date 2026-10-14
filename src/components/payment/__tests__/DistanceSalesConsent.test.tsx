@@ -16,13 +16,14 @@ it('kutu `@/ui` Checkbox: durum erişilebilirlikte, dokununca onToggle', () => {
   expect(box.props.accessibilityState).toMatchObject({ checked: false });
   fireEvent.press(box);
   expect(onToggle).toHaveBeenCalledTimes(1);
-  expect(screen.getByText('Mesafeli satış sözleşmesini okudum ve onaylıyorum')).toBeOnTheScreen();
+  expect(screen.getByText('Mesafeli Satış Sözleşmesi')).toBeOnTheScreen();
 });
 
-it('"Sözleşmeyi oku" mesafeli satış sözleşmesi sayfasını açar, onayı değiştirmez', () => {
+it('metindeki sözleşme adı sözleşme sayfasını açar, onayı değiştirmez; "Sözleşmeyi oku" yok', () => {
   const onToggle = jest.fn();
   renderWithProviders(<DistanceSalesConsent checked onToggle={onToggle} />);
-  fireEvent.press(screen.getByText('Sözleşmeyi oku'));
+  expect(screen.queryByText('Sözleşmeyi oku')).toBeNull();
+  fireEvent.press(screen.getByTestId('distance-sales-link'));
   expect(router.push).toHaveBeenCalledWith('/distance-sales');
   expect(onToggle).not.toHaveBeenCalled();
 });

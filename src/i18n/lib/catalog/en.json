@@ -948,7 +948,7 @@
     "cvv": "CVV",
     "differentBilling": "Use a different billing address",
     "discountLabel": "Discount",
-    "distanceSalesConsent": "I have read and accept the distance sales agreement",
+    "distanceSalesConsent": "I have read and accept the <contract>Distance Sales Agreement</contract>.",
     "distanceSalesConsentLink": "Read the agreement",
     "district": "District",
     "emailAlreadyRegistered": "This email is already registered. Please sign in to continue.",
@@ -2977,7 +2977,7 @@
     "expiryLabel": "Expires: {month}/{year}",
     "noSavedCardsSubtitle": "You can add a card by checking \"save my card\" during a payment.",
     "noSavedCardsTitle": "No saved cards",
-    "savedCardsIntro": "Your saved cards for auto-renewal and fast checkout. New cards are added via \"save my card\" during payment.",
+    "savedCardsIntro": "New cards are added via \"save my card\" during payment.",
     "savedCardsTitle": "My Saved Cards",
     "myPaymentsLoginSubtitle": "Sign in to see your payment history.",
     "noPaymentsFilteredSubtitle": "No payments match this filter.",
@@ -3052,7 +3052,7 @@
     "cancelAction": "Cancel It",
     "retryTitle": "Retry Payment",
     "retryStarted": "Retry started",
-    "savedCardsIntroNeutral": "Your saved cards for faster checkout. Add a new card with \"save my card\" during payment.",
+    "savedCardsIntroNeutral": "Add a new card with \"save my card\" during payment.",
     "deleteCardBodyNeutral": "Are you sure you want to delete the {brand} •••• {last4} card?"
   },
   "seller": {

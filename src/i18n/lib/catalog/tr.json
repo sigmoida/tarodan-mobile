@@ -948,7 +948,7 @@
     "cvv": "CVV",
     "differentBilling": "Farklı fatura adresi kullan",
     "discountLabel": "İndirim",
-    "distanceSalesConsent": "Mesafeli satış sözleşmesini okudum ve onaylıyorum",
+    "distanceSalesConsent": "<contract>Mesafeli Satış Sözleşmesi</contract>'ni okudum, onaylıyorum.",
     "distanceSalesConsentLink": "Sözleşmeyi oku",
     "district": "İlçe",
     "emailAlreadyRegistered": "Bu e-posta adresi zaten kayıtlı. Lütfen giriş yapıp alışverişe devam edin.",
@@ -2977,7 +2977,7 @@
     "expiryLabel": "Son kullanma: {month}/{year}",
     "noSavedCardsSubtitle": "Bir ödeme yaparken \"kartımı kaydet\" seçeneğini işaretleyerek kart ekleyebilirsin.",
     "noSavedCardsTitle": "Kayıtlı kartın yok",
-    "savedCardsIntro": "Otomatik yenileme ve hızlı ödeme için kayıtlı kartların. Yeni kart, ödeme sırasında \"kartımı kaydet\" ile eklenir.",
+    "savedCardsIntro": "Yeni kart, ödeme sırasında \"kartımı kaydet\" ile eklenir.",
     "savedCardsTitle": "Kayıtlı Kartlarım",
     "myPaymentsLoginSubtitle": "Ödeme geçmişinizi görmek için giriş yapın.",
     "noPaymentsFilteredSubtitle": "Bu filtreyle eşleşen ödeme bulunamadı.",
@@ -3052,7 +3052,7 @@
     "cancelAction": "İptal Et",
     "retryTitle": "Ödemeyi Yeniden Dene",
     "retryStarted": "Yeniden deneme başlatıldı",
-    "savedCardsIntroNeutral": "Hızlı ödeme için kayıtlı kartların. Yeni kart, ödeme sırasında \"kartımı kaydet\" ile eklenir.",
+    "savedCardsIntroNeutral": "Yeni kart, ödeme sırasında \"kartımı kaydet\" ile eklenir.",
     "deleteCardBodyNeutral": "{brand} •••• {last4} kartını silmek istediğine emin misin?"
   },
   "seller": {
