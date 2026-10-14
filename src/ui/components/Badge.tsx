@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { StatusConfig, WebStatusVariant } from '@/lib/shared';
 import { theme } from '../lib/theme';
 import { RawText } from './Text';
-import { Pill, pillTextStyle } from './Pill';
+import { Pill, pillTextStyle, type PillSize } from './Pill';
 
 /**
  * Badge varyantları. Web `@tarodan/ui` Badge'in 5 durum varyantı — `default` (marka tonu),
@@ -20,7 +20,8 @@ export type BadgeAppearance = 'soft' | 'solid';
 
 export interface BadgeProps extends ViewProps {
   variant?: BadgeVariant;
-  size?: 'sm' | 'md' | 'lg';
+  /** `xs` = görsel üstü sıkı (12pt, ProductBadge); `sm` gövde yazısına eşit (14pt). */
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   appearance?: BadgeAppearance;
   children?: React.ReactNode;
   /** Etiketin önünde küçük ikon (web `icon`). */
@@ -99,10 +100,11 @@ export const Badge: React.FC<BadgeProps> = ({
     content = label;
   }
 
+  const pillSize: PillSize = size === 'xs' ? 'sm' : size === 'sm' ? 'body' : size;
   const vs = (appearance === 'solid' ? solidStyle : softStyle)[resolvedVariant];
   return (
     <Pill
-      size={size}
+      size={pillSize}
       shape="badge"
       background={vs.bg}
       borderColor={vs.border}
@@ -113,7 +115,7 @@ export const Badge: React.FC<BadgeProps> = ({
       <RawText
         numberOfLines={1}
         maxFontSizeMultiplier={theme.typography.maxFontScale.control}
-        style={[pillTextStyle(size, vs.text), styles.label, textStyle]}
+        style={[pillTextStyle(pillSize, vs.text), styles.label, textStyle]}
       >
         {content}
       </RawText>

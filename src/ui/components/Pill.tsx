@@ -8,7 +8,7 @@ import { RawText } from './Text';
  * `Badge` (+ `StatusBadge`, `ProductBadge`), `CountBadge` ve `Chip` bunu kullanır; ekranlarda
  * elle `View + Text` ile hap çizilmez (bkz. CLAUDE.md §14).
  */
-export type PillSize = 'count' | 'sm' | 'md' | 'lg';
+export type PillSize = 'count' | 'sm' | 'body' | 'md' | 'lg';
 /** `badge` = web `rounded-lg`/rozet köşesi (radiusRole.badge), `full` = tam yuvarlak (çip, sayaç). */
 export type PillShape = 'badge' | 'full';
 
@@ -16,11 +16,14 @@ const { radius, radiusRole, spacing, typography, colors } = theme;
 
 /**
  * Web: sm px-2 py-0.5 text-xs · md px-2.5 py-1 text-sm · lg px-3 py-2 text-sm.
- * `count` = CountBadge (h18 min-w18 text-2xs). Çip yükseklikleri (24/32) çipin kendisinde.
+ * `count` = CountBadge (h18 min-w18 text-2xs). Çip yükseklikleri (28/32) çipin kendisinde.
+ * `sm` = görsel üstü sıkı rozet (ProductBadge, fotoğraf kaplamaları; 12pt, büyümez); `body` = gövde
+ * yazısıyla eşleşen bir basamak büyük (Badge/Chip `sm`: 14pt, py-0.5).
  */
 export const pillMetrics = {
   count: { px: spacing[1], py: 0, font: typography.fontSize['2xs'], minHeight: 18 },
   sm: { px: spacing[2], py: spacing[0.5], font: typography.fontSize.xs, minHeight: 0 },
+  body: { px: spacing[2], py: spacing[0.5], font: typography.fontSize.sm, minHeight: 0 },
   md: { px: spacing[2.5], py: spacing[1], font: typography.fontSize.sm, minHeight: 0 },
   lg: { px: spacing[3], py: spacing[2], font: typography.fontSize.sm, minHeight: 0 },
 } as const;

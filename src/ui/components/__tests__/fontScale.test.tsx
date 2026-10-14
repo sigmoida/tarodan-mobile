@@ -110,10 +110,10 @@ describe('sabit yükseklikli kontroller: asgari yükseklik + dikey dolgu (kırp�
     expect(s.minHeight).toBeUndefined();
   });
 
-  it('Chip sm: minHeight 24 + dikey dolgu', () => {
+  it('Chip sm: minHeight 28 + dikey dolgu', () => {
     render(<Chip testID="c" label="X" onPress={jest.fn()} />);
     expect(pressableStyle(screen.getByTestId('c'))).toMatchObject({
-      minHeight: 24,
+      minHeight: 28,
       paddingVertical: theme.spacing[0.5],
     });
   });

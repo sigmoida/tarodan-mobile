@@ -24,7 +24,7 @@ export interface ChipProps extends Omit<PressableProps, 'style'> {
    * Seçilebilir çipte (`selected`/`active` verildiğinde) yok sayılır: web Chip'i gibi.
    */
   variant?: ChipVariant;
-  /** Web `sm` = `px-2 py-1 text-xs` (varsayılan); `md` biraz daha iri (eski mobil ölçü). */
+  /** `sm` (varsayılan) = px-2 text-sm (14pt) asgari h28 — gövde yazısıyla eşit; `md` biraz daha iri (h32). */
   size?: ChipSize;
   /** Seçili durum (web `active`). Verildiğinde çip, web'in açılır-kapanır filtre çipi olur. */
   selected?: boolean;
@@ -58,7 +58,7 @@ const toggleStyle = {
 } as const;
 
 /**
- * Çip = tam yuvarlak hap (Pill tabanı): sm → Pill sm (px-2 text-xs) h24; md → Pill lg (px-3 text-sm) h32.
+ * Çip = tam yuvarlak hap (Pill tabanı): sm → Pill body (px-2 text-sm) h28; md → Pill lg (px-3 text-sm) h32.
  * `height` ASGARİ yüksekliktir (`minHeight` + küçük dikey dolgu): normal yazı ölçeğinde çip tam bu
  * boydadır, büyük ölçekte etiket kırpılmadan büyür.
  *
@@ -69,7 +69,7 @@ const toggleStyle = {
  * (`alignSelf` kullanılmadı: ebeveynin `alignItems` hizasını — center/flex-start — bozardı.)
  */
 const sizeMap: Record<ChipSize, { height: number; pill: PillSize }> = {
-  sm: { height: 24, pill: 'sm' },
+  sm: { height: spacing[6] + spacing[1], pill: 'body' },
   md: { height: 32, pill: 'lg' },
 };
 
