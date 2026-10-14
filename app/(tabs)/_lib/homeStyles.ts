@@ -19,7 +19,7 @@ export const homeStyles = StyleSheet.create({
   // Ürün rayı (web: flex gap-3 overflow-x-auto, kart w-40)
   // Yatay şeritler: flexGrow:0 (dikeyde içerik kadar) + hizalama (kartlar germesin).
   railScroll: { flexGrow: 0 },
-  rail: { gap: spacing[3], alignItems: 'flex-start' },
+  rail: { gap: spacing[3] },
   railCell: { width: RAIL_CARD_WIDTH },
 
   // Üreticiler şeridi (web: w-24 h-14 kutular, border, rounded, p-2.5)

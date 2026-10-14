@@ -91,10 +91,17 @@ export default function TradesScreen() {
   });
   const [cancelledCount, rejectedCount] = extraCounts.map((q) => q.data);
   const tc = countsResp?.data;
-  const allCounts =
-    tc && typeof cancelledCount === 'number' && typeof rejectedCount === 'number'
+  // Sayaçlar ya hep birlikte görünür ya hiç; ek sayaçlar (İptal/Reddedilen) alınamazsa sunucunun
+  // 4 grubu yine gösterilir (eski davranış) — tek bir yan istek hatası tüm sayaçları silmesin.
+  const extrasReady = typeof cancelledCount === 'number' && typeof rejectedCount === 'number';
+  const extrasFailed = extraCounts.some((q) => q.isError || (q.isSuccess && q.data == null));
+  const allCounts: Partial<Record<string, number>> | undefined = !tc
+    ? undefined
+    : extrasReady
       ? { ...tc, cancelled: cancelledCount, rejected: rejectedCount }
-      : undefined;
+      : extrasFailed
+        ? tc
+        : undefined;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
