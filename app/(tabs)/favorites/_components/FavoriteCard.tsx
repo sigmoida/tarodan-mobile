@@ -32,7 +32,7 @@ export function FavoriteCard({ item, f }: { item: WishlistItem; f: FavoritesScre
   return (
     <Card variant="bordered" padding={0} style={styles.card} testID={`favorite-card-${item.productId}`}>
       <View style={styles.cardContent}>
-        <Pressable onPress={open} accessibilityRole="link">
+        <Pressable onPress={open} accessibilityRole="link" style={styles.imageWrap}>
           <AppImage source={product.images} variant="card" style={styles.productImage} />
         </Pressable>
 

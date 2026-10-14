@@ -21,16 +21,22 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'stretch',
   },
-  productImage: {
+  // Görsel sarmalayıcısı satır yüksekliğine uzar → görsel kartın solunu boydan boya doldurur.
+  imageWrap: {
     width: THUMB,
-    minHeight: THUMB,
     alignSelf: 'stretch',
+  },
+  productImage: {
+    width: '100%',
+    height: '100%',
+    minHeight: THUMB,
     backgroundColor: colors.surface.alt,
   },
   productInfo: {
     flex: 1,
     minWidth: 0,
-    padding: spacing[3],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
     gap: spacing[1],
     justifyContent: 'space-between',
   },
