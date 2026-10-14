@@ -372,6 +372,11 @@ build_submit() {
       || die "build $id appIdentifier '${actual:-okunamadı}', beklenen '$expected' — GÖNDERİLMEDİ."
   fi
   if [ "$submit_profile" != "-" ]; then
+    # eas submit de app.config.js'i çözer: Android'de Play service account'unu paket adına göre
+    # (`com.tarodan.app` / `.staging`) arar. Build profilinin env'i (EXPO_PUBLIC_ENVIRONMENT=preview)
+    # yüklenmezse staging gönderimi production paketinin kimliğini arar ve "Google Service Account
+    # Keys cannot be set up in --non-interactive mode" ile düşer.
+    load_profile_env "$profile"
     eas submit --platform "$platform" --profile "$submit_profile" --id "$id" \
       --non-interactive || die "eas submit başarısız ($platform/$submit_profile, build $id)"
   fi
