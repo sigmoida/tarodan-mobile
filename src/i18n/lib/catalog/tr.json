@@ -831,7 +831,8 @@
     "commissionRuleUnavailable": "Kategori, fiyat ve üyelik tipinize uygun aktif komisyon kuralı bulunamadığı için bu ilan oluşturulamaz.",
     "packageFeeLabel": "Paket ücreti",
     "sampleDimensionsLabel": "Örnek ölçü (en × boy × yükseklik)",
-    "packageFeeNeedsPriceAndCategory": "Paket ücretinizi görmek için fiyat ve kategori girin."
+    "packageFeeNeedsPriceAndCategory": "Paket ücretinizi görmek için fiyat ve kategori girin.",
+    "negotiable": "Pazarlık yapılabilir"
   },
   "cart": {
     "addToCartFailed": "Sepete eklenemedi",
@@ -1800,7 +1801,9 @@
     "myOffersTitle": "Tekliflerim",
     "loadingOffers": "Teklifler yükleniyor...",
     "loadOffersFailed": "Teklifler yüklenirken bir hata oluştu",
-    "authGateSubtitle": "Tekliflerinizi görmek için giriş yapın"
+    "authGateSubtitle": "Tekliflerinizi görmek için giriş yapın",
+    "presetDiscount": "-%{percent}",
+    "presetsLabel": "Hızlı teklif"
   },
   "message": {
     "messages": "Mesajlar",

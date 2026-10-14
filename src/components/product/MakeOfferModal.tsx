@@ -2,11 +2,25 @@ import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
-import { theme, Text, Alert, Button, Modal, Input, Textarea, useModalMessage, ModalMessage, ButtonRow } from '@/ui';
+import {
+  theme,
+  Text,
+  Alert,
+  Button,
+  Chip,
+  Modal,
+  Input,
+  Textarea,
+  useModalMessage,
+  ModalMessage,
+  ButtonRow,
+  toast,
+} from '@/ui';
 import { offersApi } from '@/lib/api';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { IS_MAESTRO } from '@/config/maestro';
 import { formatPrice } from '../../utils/format';
+import { MIN_OFFER_RATIO, offerPresets } from './offerPresets';
 
 const { colors } = theme;
 
@@ -17,13 +31,16 @@ interface MakeOfferModalProps {
   productTitle: string;
   /** Liste fiyatı (satıcının istediği fiyat) — kullanıcının altında teklif vermesi beklenir. */
   listPrice: number;
-  /** Başarılı gönderim sonrası callback (örn. snackbar). */
+  /** Başarılı gönderim sonrası callback (örn. toast) — modal o anda zaten kapalı. */
   onSuccess?: () => void;
 }
 
 /**
  * Ürün detayında "Teklif Ver" butonuna tıklayınca açılan modal.
  * Web `apps/web/src/app/listings/[id]/page.tsx:424` ile aynı `offersApi.create({ productId, amount, message })`.
+ *
+ * §14 "Modals never wait for a mutation": doğrulama hataları modal içinde (ModalMessage) gösterilir;
+ * geçerli teklifte modal ÖNCE kapanır, mutation sonra çalışır, sonuç toast'a düşer (iOS donma kuralı).
  */
 export default function MakeOfferModal({
   visible,
@@ -39,23 +56,20 @@ export default function MakeOfferModal({
   const msg = useModalMessage();
 
   const createOfferMutation = useMutation({
-    mutationFn: () =>
-      offersApi.create({
-        productId,
-        amount: parseFloat(amount),
-        message: message.trim() || undefined,
-      }),
+    // Değerler çağrı anında geçirilir: modal kapanınca form state'i sıfırlanıyor.
+    mutationFn: (vars: { amount: number; message?: string }) => offersApi.create({ productId, ...vars }),
+    onSuccess: () => onSuccess?.(),
+    onError: (e) => toast.error(apiErrorMessage(e, t('product.offerFailed'))),
   });
 
   const handleClose = () => {
     msg.clear();
     setAmount('');
     setMessage('');
-    createOfferMutation.reset();
     onDismiss();
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     msg.clear();
     const numeric = parseFloat(amount);
     if (!numeric || numeric <= 0) {
@@ -63,7 +77,7 @@ export default function MakeOfferModal({
       return;
     }
     // API kuralı: minimum teklif fiyatın %50'si (web paritesi) — yoksa ham 400 dönüyordu.
-    const minOffer = listPrice * 0.5;
+    const minOffer = listPrice * MIN_OFFER_RATIO;
     if (numeric < minOffer) {
       msg.error(t('offer.minimumOfferErrorTl', { amount: formatPrice(minOffer) }));
       return;
@@ -72,18 +86,16 @@ export default function MakeOfferModal({
       msg.error(t('offer.aboveListPriceError'));
       return;
     }
-    try {
-      await createOfferMutation.mutateAsync();
-      onSuccess?.();
-      handleClose();
-    } catch (e: any) {
-      msg.error(apiErrorMessage(e, t('product.offerFailed')));
-    }
+    const vars = { amount: numeric, message: message.trim() || undefined };
+    handleClose();
+    createOfferMutation.mutate(vars);
   };
 
   const numeric = parseFloat(amount) || 0;
   const discount = listPrice > 0 && numeric > 0 ? listPrice - numeric : 0;
   const discountPct = listPrice > 0 && numeric > 0 ? Math.round(((listPrice - numeric) / listPrice) * 100) : 0;
+  // Hızlı teklif: liste fiyatından −%5/−%10/−%15 (tam TL); serbest giriş de açık.
+  const presets = offerPresets(listPrice);
 
   return (
     <Modal isOpen={visible} onClose={handleClose} title={t('product.makeOffer')}>
@@ -112,6 +124,23 @@ export default function MakeOfferModal({
           placeholder={t('offer.amountPlaceholderExample')}
         />
 
+        {presets.length > 0 ? (
+          <View style={styles.presets} accessibilityLabel={t('offer.presetsLabel')}>
+            {presets.map((p) => (
+              <Chip
+                key={p.percent}
+                testID={`offer-preset-${p.percent}`}
+                label={`${t('offer.presetDiscount', { percent: p.percent })} · ${formatPrice(p.amount)}`}
+                selected={numeric === p.amount}
+                onPress={() => {
+                  msg.clear();
+                  setAmount(String(p.amount));
+                }}
+              />
+            ))}
+          </View>
+        ) : null}
+
         {numeric > 0 && discount > 0 ? (
           <Alert variant="success" style={styles.input}>
             {t('offer.discountBelowListText', { amount: formatPrice(discount), percent: discountPct })}
@@ -136,14 +165,12 @@ export default function MakeOfferModal({
           variant="ghost"
           title={t('listing.dismiss')}
           onPress={handleClose}
-          disabled={createOfferMutation.isPending}
         />
         <Button
           testID="offer-submit-button"
           variant="primary"
           title={t('offer.sendOffer')}
           onPress={handleSubmit}
-          isLoading={createOfferMutation.isPending}
           disabled={!numeric || createOfferMutation.isPending}
         />
       </ButtonRow>
@@ -163,4 +190,5 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing[3],
   },
   input: { marginBottom: theme.spacing[2.5] },
+  presets: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing[2], marginBottom: theme.spacing[2.5] },
 });

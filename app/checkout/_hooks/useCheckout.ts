@@ -247,10 +247,9 @@ export function useCheckout() {
    * Yerelde yalnız ödenenler düşer, sunucu sepeti yeniden çekilir.
    */
   const finalizeCart = () => {
-    if (isBuyNow) {
-      clearBuyNow();
-      return;
-    }
+    // "Hemen Al" ürünü sepete de ekliyor (web paritesi: vazgeçilirse kaybolmasın); ödendiyse
+    // sepetteki satırı da düşer. Sepetin geri kalanı (ödemeye girmeyen satırlar) yerinde kalır.
+    if (isBuyNow) clearBuyNow();
     onPurchaseComplete(items.map((i) => i.productId));
     if (isAuthenticated) {
       queryClient.invalidateQueries({ queryKey: qk.cart.mine });

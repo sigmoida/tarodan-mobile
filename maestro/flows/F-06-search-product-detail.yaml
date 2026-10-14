@@ -38,14 +38,14 @@ env:
     visible:
       id: "product-price"
     timeout: 30000
-- scrollUntilVisible:
-    element:
-      id: "product-detail-add-to-cart-button"
-    direction: DOWN
+# Sepet düğmesi sabit alt barda (kaydırma gerekmez); ürün zaten sepetteyse "Sepete Git".
+- extendedWaitUntil:
+    visible:
+      id: "product-detail-(add-to-cart|go-to-cart)-button"
     timeout: 30000
-- assertVisible: "Sepete Ekle"
+- assertVisible: "Sepete Ekle|Sepete Git"
 - assertVisible:
-    id: "product-detail-add-to-cart-button"
+    id: "product-detail-(add-to-cart|go-to-cart)-button"
 - assertNotVisible: ".*Network Error.*"
 # Galeri üstündeki yüzen geri adası ile arama sonuçlarına dön (iOS + Android aynı)
 - assertVisible:

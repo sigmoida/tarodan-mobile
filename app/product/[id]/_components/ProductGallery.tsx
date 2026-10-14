@@ -2,9 +2,9 @@ import React, { useCallback } from 'react';
 import { FlatList, Pressable, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppImage } from '@/components/AppImage';
-import { GlassSurface, Text, theme } from '@/ui';
+import { GlassSurface, Icon, ProductBadge, Text, theme } from '@/ui';
 
-const { spacing } = theme;
+const { spacing, iconSize, colors } = theme;
 
 /** Sayfa göstergesi hapının yüksekliği (pt). */
 const COUNTER_HEIGHT = 28;
@@ -15,15 +15,18 @@ const COUNTER_HEIGHT = 28;
  * göstersin). `cover`: web galerisi gibi kareyi doldurur, yanlarda boşluk kalmaz; tam fotoğraf
  * dokununca açılan görüntüleyicide. Sayfa göstergesi fotoğrafın alt kenarında küçük cam hap içinde
  * "2 / 5" (koyu metin; opacity animasyonu YOK — iOS 26 cam opacity < 1'de efekti kaybeder).
- * Sayfalar sanal: yalnız görünen ve komşu kareler bağlanır.
+ * Sayfalar sanal: yalnız görünen ve komşu kareler bağlanır. Takasa açık ilanda fotoğrafın sol alt
+ * köşesinde `ProductCard` ile aynı "takas" rozeti (sol üst yüzen geri adasına ayrılmış).
  */
 export function ProductGallery({
   images,
   currentImage,
   onPageChange,
   onOpenViewer,
+  tradeOpen = false,
 }: {
   images: any[];
+  tradeOpen?: boolean;
   currentImage: number;
   onPageChange: (page: number) => void;
   onOpenViewer: (index: number) => void;
@@ -84,6 +87,18 @@ export function ProductGallery({
         windowSize={3}
       />
 
+      {tradeOpen ? (
+        <View style={styles.badge} pointerEvents="none">
+          <ProductBadge
+            testID="product-gallery-trade-badge"
+            variant="trade"
+            icon={<Icon name="arrows-right-left" size={iconSize.sm} color={colors.text.inverted} />}
+          >
+            {t('product.tradeOpenBadge')}
+          </ProductBadge>
+        </View>
+      ) : null}
+
       {total > 1 && (
         <View style={styles.indicatorsWrap} pointerEvents="none">
           <View testID="product-gallery-dots">
@@ -114,4 +129,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   counter: { paddingHorizontal: spacing[3] },
+  badge: { position: 'absolute', left: spacing[4], bottom: spacing[3] },
 });

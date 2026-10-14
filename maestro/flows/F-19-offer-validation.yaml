@@ -73,10 +73,10 @@ env:
     visible:
       id: "product-price"
     timeout: 30000
-- scrollUntilVisible:
-    element:
+# Teklif/takas satırı sabit alt barın üstünde (kaydırma gerekmez).
+- extendedWaitUntil:
+    visible:
       id: "product-detail-offer-button"
-    direction: DOWN
     timeout: 30000
 - tapOn:
     id: "product-detail-offer-button"

@@ -4,7 +4,7 @@
  * Strateji: docs/superpowers/specs/mobile-test-strategy.md
  */
 import React from 'react';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import {  } from 'react-native';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import MakeOfferModal from '../MakeOfferModal';
@@ -95,5 +95,60 @@ describe('MakeOfferModal', () => {
       expect(screen.getByText(/Minimum teklif/)).toBeOnTheScreen(),
     );
     expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it('hızlı teklif çipleri: −%5/−%10/−%15 tam TL, dokununca tutarı doldurur', async () => {
+    renderModal({ listPrice: 390 });
+    expect(screen.getByTestId('offer-preset-5')).toBeOnTheScreen();
+    expect(screen.getByText('-%10 · 351,00 TL')).toBeOnTheScreen();
+    fireEvent.press(screen.getByTestId('offer-preset-15')); // 390 × 0,85 = 331,5 → 332
+    expect(screen.getByTestId('offer-amount-input').props.value).toBe('332');
+    expect(screen.getByTestId('offer-preset-15').props.accessibilityState?.selected).toBe(true);
+    // Serbest giriş de çalışır; çip seçimi düşer.
+    fireEvent.changeText(screen.getByTestId('offer-amount-input'), '300');
+    expect(screen.getByTestId('offer-preset-15').props.accessibilityState?.selected).toBe(false);
+    fireEvent.press(screen.getByTestId('offer-preset-5'));
+    fireEvent.press(screen.getByTestId('offer-submit-button'));
+    await waitFor(() =>
+      expect(createMock).toHaveBeenCalledWith({ productId: 'prod-1', amount: 371, message: undefined }),
+    );
+  });
+
+  it('§14: geçerli teklifte modal ÖNCE kapanır, gönderim sonra (sonuç beklenmez)', async () => {
+    let resolveCreate: (v: unknown) => void = () => undefined;
+    createMock.mockImplementationOnce(() => new Promise((r) => (resolveCreate = r)));
+    const { onDismiss, onSuccess } = renderModal();
+    fireEvent.changeText(screen.getByTestId('offer-amount-input'), '300');
+    fireEvent.press(screen.getByTestId('offer-submit-button'));
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(createMock).toHaveBeenCalledWith({ productId: 'prod-1', amount: 300, message: undefined }));
+    expect(onSuccess).not.toHaveBeenCalled();
+    resolveCreate({ data: { id: 'offer-2' } });
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+  });
+
+  it('sunucu hatası modal kapandıktan sonra toast ile gösterilir', async () => {
+    const errorSpy = jest.spyOn(toast, 'error');
+    createMock.mockImplementationOnce(() => Promise.reject({ response: { status: 400, data: { message: 'Teklif reddedildi' } } }));
+    const { onDismiss, onSuccess } = renderModal();
+    fireEvent.changeText(screen.getByTestId('offer-amount-input'), '300');
+    fireEvent.press(screen.getByTestId('offer-submit-button'));
+    expect(onDismiss).toHaveBeenCalled();
+    await waitFor(() => expect(errorSpy).toHaveBeenCalled());
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it('doğrulama hatasında modal açık kalır (hata modal içinde)', async () => {
+    const { onDismiss } = renderModal({ listPrice: 390 });
+    fireEvent.changeText(screen.getByTestId('offer-amount-input'), '400');
+    fireEvent.press(screen.getByTestId('offer-submit-button'));
+    expect(onDismiss).not.toHaveBeenCalled();
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it('çok düşük fiyatta liste fiyatına yuvarlanan çip çizilmez', () => {
+    renderModal({ listPrice: 10 });
+    expect(screen.queryByTestId('offer-preset-5')).toBeNull(); // 9,5 → 10 = liste fiyatı
+    expect(screen.getByTestId('offer-preset-10')).toBeOnTheScreen(); // 9
   });
 });
