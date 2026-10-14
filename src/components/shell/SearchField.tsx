@@ -7,7 +7,7 @@ const { colors, spacing, iconSize, radius } = theme;
 
 export interface SearchFieldProps {
   onPress: () => void;
-  /** Boşken gösterilen metin; verilmezse web ile aynı `nav.searchPlaceholder`. */
+  /** Boşken gösterilen metin; verilmezse web'in telefon başlığındaki kısa metin `nav.searchPlaceholderMobile` (dar alanda kesilmez). */
   placeholder?: string;
   testID?: string;
 }
@@ -18,7 +18,7 @@ export interface SearchFieldProps {
  */
 export const SearchField: React.FC<SearchFieldProps> = ({ onPress, placeholder, testID }) => {
   const { t } = useTranslation();
-  const label = placeholder ?? t('nav.searchPlaceholder');
+  const label = placeholder ?? t('nav.searchPlaceholderMobile');
   return (
     <Pressable
       onPress={onPress}
