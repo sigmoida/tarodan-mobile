@@ -42,12 +42,12 @@ jest.mock('@/stores/authStore', () => ({
   },
 }));
 
-// AppShell sayaçları (sepet deposu vb.) bu süitin konusu değil.
+// Kabuk sayaçları (sepet deposu vb.) bu süitin konusu değil.
 jest.mock('@/components/shell/useShellCounts', () => ({
   useShellCounts: () => ({ cartCount: 0, notificationCount: 0, messageCount: 0 }),
 }));
 
-import NotificationsScreen from '../notifications';
+import NotificationsScreen from '..';
 
 const getAll = notificationsApi.getAll as jest.Mock;
 const getUnreadCount = notificationsApi.getUnreadCount as jest.Mock;
@@ -120,32 +120,35 @@ describe('J38 · bildirim listesi ve okunmamış sayaç', () => {
   });
 });
 
-describe('Bildirimler · sekme kökü kabuğu', () => {
-  it('başlık "Bildirimler", geri oku yok (AppShell title varyantı)', async () => {
+describe('Bildirimler · yığın ekranı kabuğu (PageShell)', () => {
+  it('başlık "Bildirimler" + geri oku (üst bardaki zil düğmesinden açılan yığın ekranı)', async () => {
     getAll.mockResolvedValue({ data: { notifications: sample } });
     renderWithProviders(<NotificationsScreen />);
 
     await screen.findByText('Yeni Sipariş');
     expect(screen.getByText('Bildirimler')).toBeOnTheScreen();
-    expect(screen.queryByLabelText('Geri')).toBeNull();
+    expect(screen.getByLabelText('Geri')).toBeOnTheScreen();
+    // Sekme kökü kabuğu (☰ + mesaj/bildirim düğmeleri) burada yok.
+    expect(screen.queryByTestId('app-shell-menu')).toBeNull();
+    expect(screen.queryByTestId('app-shell-notifications')).toBeNull();
   });
 
-  it('liste alt menü kaydırma sinyalini taşır (onScroll + onContentSizeChange + onLayout)', async () => {
+  it('liste kaydırma kenarı sinyalini taşır; alt menü yok (sekme kökü değil)', async () => {
     getAll.mockResolvedValue({ data: { notifications: sample } });
     renderWithProviders(<NotificationsScreen />);
 
     await screen.findByText('Yeni Sipariş');
     const list = screen.getByTestId('notifications-list');
     expect(list.props.onScroll).toBeDefined();
-    expect(list.props.onContentSizeChange).toBeDefined();
-    expect(list.props.onLayout).toBeDefined();
+    expect(list.props.refreshing).toBe(false);
+    expect(typeof list.props.onRefresh).toBe('function');
   });
 
-  it('misafir: başlık + giriş boş durumu, geri oku yok', () => {
+  it('misafir: başlık + giriş boş durumu, geri oku var', () => {
     mockAuthed = false;
     renderWithProviders(<NotificationsScreen />);
     expect(screen.getByText('Bildirimler')).toBeOnTheScreen();
-    expect(screen.queryByLabelText('Geri')).toBeNull();
+    expect(screen.getByLabelText('Geri')).toBeOnTheScreen();
   });
 });
 

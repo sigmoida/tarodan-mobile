@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text } from 'react-native';
-import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react-native';
-import { GLASS_ICON_BUTTON_SIZE, ScreenHeader, theme, usePageScrollValue } from '@/ui';
+import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react-native';
+import { GLASS_ICON_BUTTON_SIZE, SEARCH_FIELD_BORDER_COLOR, ScreenHeader, theme, usePageScrollValue } from '@/ui';
 import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
 import { AppShell, APP_SHELL_BAR_HEIGHT } from '../AppShell';
 import { SideMenuProvider, useSideMenu } from '../SideMenuContext';
@@ -16,7 +16,7 @@ jest.mock('expo-status-bar', () => ({
   setStatusBarStyle: jest.fn(),
 }));
 jest.mock('../useShellCounts', () => ({
-  useShellCounts: () => ({ cartCount: 2, notificationCount: 0, messageCount: 0, favoriteCount: 0 }),
+  useShellCounts: () => ({ cartCount: 2, notificationCount: 5, messageCount: 3 }),
 }));
 
 let mockTop = 0;
@@ -31,7 +31,7 @@ beforeEach(() => {
 });
 
 describe('AppShell — tek satır beyaz bar', () => {
-  it('beyaz bar (ScreenHeader ile aynı zemin + alt çizgi), logo yok; hamburger + arama alanı + sepet (sayaçlı), bildirim yok ve içerik', () => {
+  it('beyaz bar (ScreenHeader ile aynı zemin + alt çizgi), logo yok; hamburger + arama alanı + mesajlar + bildirimler (sayaçlı), sepet yok', () => {
     render(
       <AppShell>
         <Text>içerik</Text>
@@ -45,12 +45,24 @@ describe('AppShell — tek satır beyaz bar', () => {
     expect(screen.queryByLabelText('Tarodan')).toBeNull();
     expect(screen.getByTestId('home-menu-button')).toBeTruthy();
     expect(screen.getByTestId('home-search-input')).toBeTruthy();
-    // Bildirim alt menüye taşındı: üst barda yok.
-    expect(screen.queryByTestId('app-shell-notifications')).toBeNull();
-    expect(screen.getByText('2')).toBeTruthy();
+    // Sepet alt menüde (sekme): üst barda yok. Sağda tam iki düğme, okunmamış sayaçlarıyla.
+    expect(screen.queryByTestId('app-shell-cart')).toBeNull();
+    expect(within(screen.getByTestId('app-shell-messages')).getByText('3')).toBeTruthy();
+    expect(within(screen.getByTestId('app-shell-notifications')).getByText('5')).toBeTruthy();
+    expect(screen.getByTestId('app-shell-messages').props.accessibilityLabel).toBe('Mesajlar');
+    expect(screen.getByTestId('app-shell-notifications').props.accessibilityLabel).toBe('Bildirimler');
     expect(screen.getByText('içerik')).toBeTruthy();
-    fireEvent.press(screen.getByTestId('app-shell-cart'));
-    expect(pushMock).toHaveBeenCalledWith('/cart');
+    fireEvent.press(screen.getByTestId('app-shell-messages'));
+    expect(pushMock).toHaveBeenCalledWith('/messages');
+    fireEvent.press(screen.getByTestId('app-shell-notifications'));
+    expect(pushMock).toHaveBeenCalledWith('/notifications');
+  });
+
+  it('mesaj/bildirim düğmesine çift dokunuş tek ekran açar', () => {
+    render(<AppShell />);
+    fireEvent.press(screen.getByTestId('app-shell-messages'));
+    fireEvent.press(screen.getByTestId('app-shell-messages'));
+    expect(pushMock.mock.calls.filter((c) => c[0] === '/messages')).toHaveLength(1);
   });
 
   it('hamburger solda (ilk öğe), "Menü" etiketli; dokununca yan menüyü açar', () => {
@@ -67,10 +79,10 @@ describe('AppShell — tek satır beyaz bar', () => {
     const btn = screen.getByTestId('home-menu-button');
     expect(btn.props.accessibilityLabel).toBe('Menü');
     const row = screen.getByTestId('app-shell-bar-row') as unknown as {
-      props: { children: Array<{ props?: { testID?: string } }> };
+      props: { children: Array<{ type?: { name?: string }; props?: { testID?: string } }> };
     };
-    const order = row.props.children.map((c) => c?.props?.testID);
-    expect(order).toEqual(['home-menu-button', 'home-search-wrap', 'app-shell-cart']);
+    const order = row.props.children.map((c) => c?.props?.testID ?? c?.type?.name);
+    expect(order).toEqual(['home-menu-button', 'home-search-wrap', 'ShellHeaderActions']);
     expect(screen.getByTestId('menu-state').children.join('')).toBe('closed');
     fireEvent.press(btn);
     expect(screen.getByTestId('menu-state').children.join('')).toBe('open');
@@ -115,17 +127,20 @@ describe('AppShell — tek satır beyaz bar', () => {
     expect(screen.queryByTestId('status-bar')).toBeNull();
   });
 
-  it('arama alanı açık gri (gray-100) zemin + muted yer tutucu', () => {
+  it('arama alanı arama ekranının kutusuyla aynı görünüm: beyaz zemin, 1px primary-500 çerçeve, input radius', () => {
     render(<AppShell />);
     const field = StyleSheet.flatten(screen.getByTestId('home-search-input').props.style);
-    expect(field.backgroundColor).toBe(theme.colors.gray[100]);
+    expect(field.backgroundColor).toBe(theme.colors.surface.elevated);
+    expect(field.borderWidth).toBe(1);
+    expect(field.borderColor).toBe(SEARCH_FIELD_BORDER_COLOR);
+    expect(SEARCH_FIELD_BORDER_COLOR).toBe(theme.colors.primary[500]);
+    expect(field.borderRadius).toBe(theme.radiusRole.input);
   });
 
-  it('arama alanı yüksekliği = cam düğme çapı, tam yuvarlak; sarmalayıcı aynı yükseklikte', () => {
+  it('arama alanı asgari yüksekliği = cam düğme çapı; sarmalayıcı aynı yükseklikte', () => {
     render(<AppShell />);
     const field = StyleSheet.flatten(screen.getByTestId('home-search-input').props.style);
-    expect(field.height).toBe(GLASS_ICON_BUTTON_SIZE);
-    expect(field.borderRadius).toBe(theme.radius.full);
+    expect(field.minHeight).toBe(GLASS_ICON_BUTTON_SIZE);
     expect(StyleSheet.flatten(screen.getByTestId('home-search-wrap').props.style).height).toBe(GLASS_ICON_BUTTON_SIZE);
     expect(GLASS_ICON_BUTTON_SIZE).toBeLessThanOrEqual(APP_SHELL_BAR_HEIGHT);
   });
@@ -159,7 +174,7 @@ describe('AppShell - yuzen bar: kaydirinca arama gizlenir, cam butonlar kalir', 
     expect(pushMock).toHaveBeenCalledWith('/search?focus=1');
   });
 
-  it('daralinca arama alani dokunmaya + ekran okuyucuya kapanir; menu ve sepet yerinde ve calisir', async () => {
+  it('daralinca arama alani dokunmaya + ekran okuyucuya kapanir; menu, mesajlar ve bildirimler yerinde ve calisir', async () => {
     setup();
     act(() => {
       collapsedRef!.value = true;
@@ -170,8 +185,9 @@ describe('AppShell - yuzen bar: kaydirinca arama gizlenir, cam butonlar kalir', 
     expect(wrap().props.importantForAccessibility).toBe('no-hide-descendants');
     fireEvent.press(screen.getByTestId('home-search-input', { includeHiddenElements: true }));
     expect(pushMock).not.toHaveBeenCalledWith('/search?focus=1');
-    fireEvent.press(screen.getByTestId('app-shell-cart'));
-    expect(pushMock).toHaveBeenCalledWith('/cart');
+    fireEvent.press(screen.getByTestId('app-shell-notifications'));
+    expect(pushMock).toHaveBeenCalledWith('/notifications');
+    expect(screen.getByTestId('app-shell-messages')).toBeTruthy();
     expect(screen.getByTestId('home-menu-button')).toBeTruthy();
   });
 
@@ -191,7 +207,7 @@ describe('AppShell - yuzen bar: kaydirinca arama gizlenir, cam butonlar kalir', 
 });
 
 describe('AppShell variant="title" — Ana Sayfa dışındaki sekme kökleri', () => {
-  it('standart beyaz başlıklı bar: başlık var; arama alanı, bildirim ve sepet yok; geri oku yok', () => {
+  it('başlıklı bar: solda ☰, sağda TAM iki düğme (mesajlar + bildirimler); arama alanı, sepet ve geri oku yok', () => {
     render(
       <AppShell variant="title" title="Favoriler">
         <Text>içerik</Text>
@@ -200,9 +216,32 @@ describe('AppShell variant="title" — Ana Sayfa dışındaki sekme kökleri', (
     expect(screen.getByText('Favoriler')).toBeTruthy();
     expect(screen.getByText('içerik')).toBeTruthy();
     expect(screen.queryByTestId('home-search-input')).toBeNull();
-    expect(screen.queryByTestId('app-shell-notifications')).toBeNull();
+    expect(screen.getByTestId('app-shell-menu').props.accessibilityLabel).toBe('Menü');
+    const right = within(screen.getByTestId('app-shell-bar-right'));
+    expect(right.getByTestId('app-shell-messages')).toBeTruthy();
+    expect(right.getByTestId('app-shell-notifications')).toBeTruthy();
+    expect(right.getAllByRole('button')).toHaveLength(2);
+    expect(within(screen.getByTestId('app-shell-bar-left')).getByTestId('app-shell-menu')).toBeTruthy();
     expect(screen.queryByTestId('app-shell-cart')).toBeNull();
     expect(screen.queryByLabelText('Geri')).toBeNull();
+  });
+
+  it('☰ yan menüyü açar; mesaj/bildirim yığın rotalarını açar', () => {
+    function State() {
+      const { isOpen } = useSideMenu();
+      return <Text testID="menu-state">{isOpen ? 'open' : 'closed'}</Text>;
+    }
+    render(
+      <SideMenuProvider>
+        <State />
+        <AppShell variant="title" title="Sepetim" subtitle="2 ürün" />
+      </SideMenuProvider>,
+    );
+    expect(screen.getByText('2 ürün')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('app-shell-menu'));
+    expect(screen.getByTestId('menu-state').children.join('')).toBe('open');
+    fireEvent.press(screen.getByTestId('app-shell-messages'));
+    expect(pushMock).toHaveBeenCalledWith('/messages');
   });
 
   it('ScreenHeader ile aynı bar kuralı: zemin, alt çizgi, üst boşluk ve satır yüksekliği', () => {
@@ -220,11 +259,6 @@ describe('AppShell variant="title" — Ana Sayfa dışındaki sekme kökleri', (
     expect(row.height).toBe(stackRow.height);
     expect(row.height).toBe(APP_SHELL_BAR_HEIGHT);
   });
-
-  it('sağ aksiyon slotu çizilir', () => {
-    render(<AppShell variant="title" title="Profil" right={<Text>aksiyon</Text>} />);
-    expect(screen.getByText('aksiyon')).toBeTruthy();
-  });
 });
 
 describe('AppShell variant="title" — yüzen ortalı bar + kaydırma kenarı', () => {
@@ -237,7 +271,7 @@ describe('AppShell variant="title" — yüzen ortalı bar + kaydırma kenarı', 
     );
   }
 
-  it('bar yüzer (absolute), başlık ortalı; geri oku yok', () => {
+  it('bar yüzer (absolute), başlık ortalı; geri oku yok (yerinde ☰)', () => {
     render(<AppShell variant="title" title="Mesajlar" />);
     expect(StyleSheet.flatten(screen.getByTestId('app-shell-bar').props.style).position).toBe('absolute');
     expect(StyleSheet.flatten(screen.getByText('Mesajlar').props.style).textAlign).toBe('center');

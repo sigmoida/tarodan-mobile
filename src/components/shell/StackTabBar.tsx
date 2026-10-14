@@ -9,8 +9,8 @@ import { TabBarCollapseProvider, useTabBarCollapsed } from './TabBarCollapse';
 export const TAB_BAR_HREF: Record<TabBarRoute, Href> = {
   index: '/(tabs)',
   sell: '/(tabs)/sell',
-  'messages/index': '/(tabs)/messages',
-  'notifications/index': '/(tabs)/notifications',
+  'favorites/index': '/(tabs)/favorites',
+  'cart/index': '/(tabs)/cart',
   profile: '/(tabs)/profile',
 };
 

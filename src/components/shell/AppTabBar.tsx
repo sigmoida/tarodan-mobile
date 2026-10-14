@@ -41,13 +41,14 @@ const PILL_HIDE_SCALE = 0.9;
 /** Hapın iç yatay dolgusu (daralmış sekme dairesinin başlangıç konumu da buna göre hesaplanır). */
 const PILL_PADDING_X = spacing[1];
 
-// Hap içindeki sekmeler (sırasıyla): Ana Sayfa, Mesajlar, Bildirimler, Profil. href:null olan (create)
-// kasıtlı olarak dışarıda; Favoriler artık yığın rotası (/favorites, yan menü). Rozet sayaçları
-// `useShellCounts`'tan (tek kaynak). İkonlar web Heroicons adları; odaklı sekme `solid`, diğerleri `outline`.
+// Hap içindeki sekmeler (sırasıyla): Ana Sayfa, Favoriler, Sepet, Profil. href:null olan (create)
+// kasıtlı olarak dışarıda; Mesajlar ve Bildirimler artık sekme değil, üst bardan açılan yığın rotaları
+// (`ShellHeaderActions`). Rozet sayaçları `useShellCounts`'tan (tek kaynak). İkonlar web Heroicons
+// adları; odaklı sekme `solid`, diğerleri `outline`.
 const TABS = [
   { name: "index", testID: "tab-home", labelKey: "nav.home", icon: "home" as IconName, badge: null },
-  { name: "messages/index", testID: "tab-messages", labelKey: "message.messages", icon: "chat-bubble-left-right" as IconName, badge: "messageCount" },
-  { name: "notifications/index", testID: "tab-notifications", labelKey: "nav.notifications", icon: "bell" as IconName, badge: "notificationCount" },
+  { name: "favorites/index", testID: "tab-favorites", labelKey: "nav.favorites", icon: "heart" as IconName, badge: null },
+  { name: "cart/index", testID: "tab-cart", labelKey: "nav.cart", icon: "shopping-cart" as IconName, badge: "cartCount" },
   { name: "profile", testID: "tab-profile", labelKey: "nav.profile", icon: "user" as IconName, badge: null },
 ] as const;
 const SELL_ROUTE = "sell";
@@ -57,13 +58,13 @@ type TabDef = (typeof TABS)[number];
 export type TabBarRoute = TabDef["name"] | typeof SELL_ROUTE;
 
 /**
- * Özel yüzen alt menü (düz RN View'lar): solda 4 sekmeli hap [Ana Sayfa][Mesajlar][Bildirimler][Profil], sağında
+ * Özel yüzen alt menü (düz RN View'lar): solda 4 sekmeli hap [Ana Sayfa][Favoriler][Sepet][Profil], sağında
  * AYRI yuvarlak "+" (İlan Ver) düğmesi; ikisi aynı alt hizada/yükseklikte. Yüzeyler `GlassSurface`:
  * iOS 26'da gerçek Liquid Glass (arkadaki içerik görünür; "+" primary tint), iOS < 26 / Android'de
  * opak beyaz hap (ince border + gölge) ve düz turuncu daire. İçerik aşağı kaydırılınca
  * (bkz. `useTabBarScrollHandler`) hap daralır; geride TEK öğe kalır, sekmeye göre:
  * - Ana Sayfa (ve hap dışı rotalar): "+" sağdan sola (alt sol köşe) kayar.
- * - Mesajlar / Bildirimler / Profil: "+" gizlenir; o sekmenin seçili ikonu (rozetiyle) tek daire
+ * - Favoriler / Sepet / Profil: "+" gizlenir; o sekmenin seçili ikonu (rozetiyle) tek daire
  *   olarak hap içindeki yerinden sol alt köşeye kayar. Daireye dokununca hap yeniden açılır.
  * Yukarı kaydırınca hap geri gelir. Hap fallback'te opacity + translateY + scale ile; CAMDA opacity ile DEĞİL
  * (native cam ata opacity < 1 iken efektini kaybeder) aşağı kayıp ekran dışına çıkarak, içeriği
@@ -294,7 +295,7 @@ interface CollapsedTabButtonProps {
 }
 
 /**
- * Daralmış hapın yerine kalan TEK sekme dairesi (Mesajlar / Bildirimler / Profil): "+" ile aynı boyut
+ * Daralmış hapın yerine kalan TEK sekme dairesi (Favoriler / Sepet / Profil): "+" ile aynı boyut
  * ve cam yüzey (fallback'te opak beyaz + kenarlık + gölge / Android elevation); içinde hap vurgusuyla
  * aynı primary-50 iç daire + seçili (solid, primary-600) ikon + varsa rozet. Dokununca hap açılır.
  */

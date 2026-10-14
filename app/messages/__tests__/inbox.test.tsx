@@ -78,7 +78,7 @@ jest.mock("@/lib/purchases", () => ({
   CAN_BUY_DIGITAL: true,
 }));
 
-import MessagesTabScreen from "../messages";
+import MessagesTabScreen from "..";
 
 function thread(overrides: Record<string, unknown> = {}) {
   return {
@@ -142,14 +142,15 @@ describe("J16 · mesaj konuşma listesi", () => {
     expect(mockPush).toHaveBeenCalledWith("/(auth)/login");
   });
 
-  it("J16.1b başlık üst barda tek kez; arama kutusu YOK, arama alanı yalnız Ana Sayfa'da", () => {
+  it("J16.1b başlık üst barda tek kez + geri oku (yığın ekranı); arama kutusu ve sekme kökü düğmeleri YOK", () => {
     mockThreadsQuery = makeThreadsQuery([thread()]);
     renderWithProviders(<MessagesTabScreen />);
     expect(screen.getAllByText("mobile.messagesTitle")).toHaveLength(1);
-    expect(screen.getByTestId("app-shell-bar")).toBeOnTheScreen();
+    expect(screen.getByTestId("screen-header")).toBeOnTheScreen();
+    expect(screen.getByTestId("screen-header-back")).toBeOnTheScreen();
     expect(screen.queryByPlaceholderText("mobile.searchInMessages")).toBeNull();
     expect(screen.queryByTestId("home-search-input")).toBeNull();
-    expect(screen.queryByTestId("app-shell-cart")).toBeNull();
+    expect(screen.queryByTestId("app-shell-messages")).toBeNull();
   });
 
   it("J16.2 thread yoksa boş durum gösterir", () => {

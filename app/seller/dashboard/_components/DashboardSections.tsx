@@ -69,7 +69,7 @@ export function QuickActions() {
       <QuickAction label={t('sellerDashboard.myListings')} onPress={() => router.push('/settings/my-listings')} />
       <QuickAction label={t('sellerDashboard.mySales')} onPress={() => router.push('/sales')} />
       <QuickAction label={t('sellerDashboard.analytics')} onPress={() => router.push('/settings/analytics')} />
-      <QuickAction label={t('nav.messages')} onPress={() => router.push('/(tabs)/messages')} />
+      <QuickAction label={t('nav.messages')} onPress={() => router.push('/messages')} />
       <QuickAction label={t('sellerDashboard.businessInfo')} onPress={() => router.push('/seller/register')} />
     </SectionCard>
   );

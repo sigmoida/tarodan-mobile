@@ -1,8 +1,9 @@
-# F-05: Tab navigation comprehensive — login → her bottom tab, alt menü sırasıyla (Ana Sayfa, Mesajlar,
-# Bildirimler, Profil; sağda ayrı "+" İlan Ver). Arama tab değil; üst bar arama alanından açılır
-# (subflows/open-search.yaml). Favoriler tab değil: yığın rotası, deep link ile açılır (yan menü
-# subflow'una bağımlı olmamak için openLink).
-# Sekmelere dokunma testID ile (tab-home, tab-messages, tab-notifications, tab-profile, tab-sell).
+# F-05: Tab navigation comprehensive — login → her bottom tab, alt menü sırasıyla (Ana Sayfa, Favoriler,
+# Sepet, Profil; sağda ayrı "+" İlan Ver). Arama tab değil; üst bar arama alanından açılır
+# (subflows/open-search.yaml). Mesajlar ve Bildirimler tab değil: her sekme kökünün üst barının
+# sağındaki iki düğmeden açılan yığın ekranları (geri oku ile dönülür).
+# Sekmelere dokunma testID ile (tab-home, tab-favorites, tab-cart, tab-profile, tab-sell); üst bar
+# düğmeleri app-shell-messages / app-shell-notifications.
 appId: ${APP_ID}
 tags:
   - smoke
@@ -27,15 +28,22 @@ env:
       text: "Ana Sayfa"
     timeout: 15000
 - assertNotVisible: ".*Network Error.*"
-# 2. Favoriler (yığın ekranı, tab çubuğu yok): deep link ile aç, geri oku ile tab köküne dön
-- openLink: "tarodan://favorites"
+# 2. Favoriler (sekme kökü)
+- tapOn:
+    id: "tab-favorites"
 - extendedWaitUntil:
     visible:
       text: "Favorilerim.*"
     timeout: 20000
 - assertNotVisible: ".*Network Error.*"
+# 2a. Sepet (sekme kökü)
 - tapOn:
-    text: "Geri"
+    id: "tab-cart"
+- extendedWaitUntil:
+    visible:
+      text: "Sepetim"
+    timeout: 15000
+- assertNotVisible: ".*Network Error.*"
 # 2b. Arama: tab değil, üst bardaki arama alanı (tab kökünden)
 - tapOn:
     id: "tab-home"
@@ -46,22 +54,28 @@ env:
 # Arama yığın ekranı: tab çubuğu yok, geri oku ile tab köküne dön
 - tapOn:
     text: "Geri"
-# 3. Mesajlar
+# 3. Mesajlar (üst bar düğmesi → yığın ekranı → geri)
 - tapOn:
-    id: "tab-messages"
+    id: "tab-home"
+- tapOn:
+    id: "app-shell-messages"
 - extendedWaitUntil:
     visible:
       text: "Mesajlar"
     timeout: 15000
 - assertNotVisible: ".*Network Error.*"
-# 4. Bildirimler
 - tapOn:
-    id: "tab-notifications"
+    text: "Geri"
+# 4. Bildirimler (üst bar düğmesi → yığın ekranı → geri)
+- tapOn:
+    id: "app-shell-notifications"
 - extendedWaitUntil:
     visible:
       text: "Bildirimler"
     timeout: 15000
 - assertNotVisible: ".*Network Error.*"
+- tapOn:
+    text: "Geri"
 # 5. Profil
 - tapOn:
     id: "tab-profile"

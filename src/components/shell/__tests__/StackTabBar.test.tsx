@@ -46,7 +46,7 @@ describe('withStackTabBar — yığın ekranında yüzen alt menü', () => {
     render(<Listings />);
     expect(screen.getByTestId('screen-listings')).toBeTruthy();
     expect(screen.getByTestId('app-tab-bar')).toBeTruthy();
-    ['tab-home', 'tab-messages', 'tab-notifications', 'tab-profile'].forEach((id) =>
+    ['tab-home', 'tab-favorites', 'tab-cart', 'tab-profile'].forEach((id) =>
       expect(screen.getByTestId(id).props.accessibilityState).toEqual({ selected: false }),
     );
     expect(screen.getByTestId('tab-sell').props.accessibilityState).toEqual({ selected: false });
@@ -67,8 +67,8 @@ describe('withStackTabBar — yığın ekranında yüzen alt menü', () => {
 
   it.each([
     ['tab-home', '/(tabs)'],
-    ['tab-messages', '/(tabs)/messages'],
-    ['tab-notifications', '/(tabs)/notifications'],
+    ['tab-favorites', '/(tabs)/favorites'],
+    ['tab-cart', '/(tabs)/cart'],
     ['tab-profile', '/(tabs)/profile'],
     ['tab-sell', '/(tabs)/sell'],
   ])('%s dokunuşu alttaki sekmelere döner: dismissTo(%s)', (testID, href) => {

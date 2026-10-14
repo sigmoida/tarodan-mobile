@@ -16,11 +16,11 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
 import { ordersApi } from '@/lib/api';
-import CartScreen from '../cart';
+import CartScreen from '..';
 
 // Sepet özeti artık `POST /orders/quote` gövdesinden besleniyor (istemci
 // aritmetiği kaldırıldı). Bu dosya UI/navigasyon dilimlerini test ediyor;
-// fiyat sözleşmesinin kendi testi `app/cart/__tests__/cart-summary.test.tsx`.
+// fiyat sözleşmesinin kendi testi `app/(tabs)/cart/__tests__/cart-summary.test.tsx`.
 // Burada yalnızca ağ çağrısını deterministik yapıyoruz.
 const QUOTE_SUMMARY = { productAmount: 190, shippingAmount: 50, serviceFeeAmount: 24.4, total: 264.4 };
 jest.spyOn(ordersApi, 'getQuote').mockResolvedValue({

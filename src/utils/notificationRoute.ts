@@ -6,7 +6,7 @@ import { deepLinkConfig, stripLocalePrefix } from '@/lib/deeplinks';
  * rotaları farklı olduğundan link'i mobil rotaya çeviriyoruz. Eşleşme yoksa
  * null döner → çağıran taraf data tabanlı fallback'e düşer.
  *
- * Hem uygulama içi bildirim listesi (app/(tabs)/notifications/index.tsx) hem de
+ * Hem uygulama içi bildirim listesi (app/notifications/index.tsx) hem de
  * push bildirimi tap handler'ı (src/services/push.ts) bu fonksiyonu kullanır;
  * aksi halde push ile gelen /messages?thread=<id> mobilde geçersiz rota olup
  * boş ekran açıyordu.
@@ -22,7 +22,7 @@ export function toMobileRoute(link: string): string | null {
   // /messages?thread=<id> → /messages/<id>  (RN'de URLSearchParams'a güvenmeden)
   if (path === '/messages') {
     const thread = rawQuery?.match(/(?:^|&)thread=([^&]+)/)?.[1];
-    return thread ? `/messages/${decodeURIComponent(thread)}` : '/(tabs)/messages';
+    return thread ? `/messages/${decodeURIComponent(thread)}` : '/messages';
   }
   // /offers?tab=received → /offers
   if (path === '/offers') return '/offers';

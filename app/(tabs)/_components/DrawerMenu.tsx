@@ -65,7 +65,7 @@ function DrawerSection({
 
 /**
  * Ana Sayfa yan menüsünün içeriği (`SideMenuHost` panelinde; başlık/X yok, güvenli alanın hemen altından başlar). Gruplar `profileMenu.ts`'ten
- * (`selectDrawerSections`): hepsi açılır-kapanır başlıklar (Favoriler Alışveriş'in ilk satırı). Misafirde
+ * (`selectDrawerSections`): hepsi açılır-kapanır başlıklar (Favoriler yan menüde değil, alt menüde sekme). Misafirde
  * üstte Giriş Yap / Kayıt Ol, altında yalnız misafire açık gruplar. Satıra basınca ÖNCE menü
  * kapanır, sonra yönlendirilir.
  */

@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { Badge, Chip, Divider, Text, theme } from '@/ui';
+import { Badge, Chip, Divider, IconButton, Text, theme } from '@/ui';
 
 import { buildAvatarUrl } from '@/lib/api';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
@@ -18,7 +18,8 @@ type SectionProps = { f: ProfileController };
 // ---------------------------------------------------------------------------
 // Kimlik başlığı (yatay kompakt): solda avatar, sağında ad + e-posta; altında tek satırda
 // üyelik rozeti + güven skoru + görünürlük çipi (dar ekranda alt satıra sarar). "Profili
-// düzenle" girişi üst barın sağındaki kalem (`profile.tsx`).
+// düzenle" girişi kimlik satırının sağındaki kalem (üst barın sağı sekme köklerinde sabit:
+// Mesajlar + Bildirimler).
 // ---------------------------------------------------------------------------
 export function ProfileCard({ f }: SectionProps) {
   const { t } = useTranslation();
@@ -57,6 +58,16 @@ export function ProfileCard({ f }: SectionProps) {
       name={user?.displayName || 'U'}
       source={user?.avatar && user?.id ? buildAvatarUrl(String(user.id), user.avatar) : undefined}
       footer={badges}
+      trailing={
+        // Maestro akışları `profile-edit-button`'a bağlı (giriş yapılmış mı testi) — misafirde YOK.
+        <IconButton
+          icon="pencil"
+          variant="ghost"
+          accessibilityLabel={t('profile.editProfile')}
+          testID="profile-edit-button"
+          onPress={() => router.push('/settings/edit-profile')}
+        />
+      }
     >
       <Text variant="h3" weight="bold" numberOfLines={1} testID="profile-name">
         {user?.displayName || t('nav.account')}

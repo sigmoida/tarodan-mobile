@@ -1,24 +1,21 @@
 /**
- * Mesajlar sekmesi — D1b REFERANS EKRANI (sekme kökü): AppShell (başlıklı beyaz bar) +
- * liste; yükleniyor = Skeleton, boş/misafir = EmptyState.
- * Mantık `_hooks/useMessagesTab`'de; ekran yalnız kompozisyon.
+ * Mesajlar — yığın ekranı (sekme köklerinin üst barındaki Mesajlar düğmesinden ve `/messages` derin
+ * bağlantısından açılır): PageShell (geri oklu yüzen bar) + sohbet listesi; yükleniyor = Skeleton,
+ * boş/misafir = EmptyState, çekip yenileme. Mantık `_hooks/useMessagesTab`'de; ekran yalnız kompozisyon.
  */
 import { RefreshControl, View } from "react-native";
 import Animated from "react-native-reanimated";
-import { tabDiag } from "@/components/_tabDiag";
-import { AppShell } from "@/components/shell/AppShell";
-import { useTabBarInset } from "@/components/shell/tabBarLayout";
-import { useTabBarScrollHandler } from "@/components/shell/TabBarCollapse";
+import { router } from "expo-router";
+import { useTranslation } from "react-i18next";
+import { PageShell } from "@/components/common/PageShell";
 import {
   Alert,
   EmptyState,
   SkeletonAvatar,
   SkeletonText,
   theme,
-  usePageScrollValue,
+  usePageScrollHandler,
 } from "@/ui";
-import { router } from "expo-router";
-import { useTranslation } from "react-i18next";
 import { useMessagesTab } from "./_hooks/useMessagesTab";
 import { styles } from "./_lib/styles";
 import { ThreadRow } from "./_components/ThreadRow";
@@ -26,25 +23,25 @@ import { ThreadRow } from "./_components/ThreadRow";
 const { colors } = theme;
 const SKELETON_ROWS = [0, 1, 2, 3, 4];
 
-function MessagesTabScreen() {
+export default function MessagesScreen() {
   const { t } = useTranslation();
   const f = useMessagesTab();
-  const tabInset = useTabBarInset();
-  const page = usePageScrollValue();
-  // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
-  const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
+  const page = usePageScrollHandler();
+  const title = t("mobile.messagesTitle");
 
   if (!f.isAuthenticated) {
     return (
-      <AppShell variant="title" title={t("mobile.messagesTitle")}>
-        <EmptyState
-          icon="chat-bubble-left-right"
-          title={t("mobile.messagesTitle")}
-          subtitle={t("message.loginToView")}
-          actionLabel={t("common.login")}
-          onAction={() => router.push("/(auth)/login")}
-        />
-      </AppShell>
+      <PageShell
+        title={title}
+        empty
+        emptyState={{
+          icon: "chat-bubble-left-right",
+          title,
+          subtitle: t("message.loginToView"),
+          actionLabel: t("common.login"),
+          onAction: () => router.push("/(auth)/login"),
+        }}
+      />
     );
   }
 
@@ -62,11 +59,10 @@ function MessagesTabScreen() {
     ) : null;
 
   return (
-    <AppShell variant="title" title={t("mobile.messagesTitle")} scroll={page}>
+    <PageShell title={title} mode="list" scroll={page}>
       <Animated.FlatList
-        {...tabScroll}
-        {...page.scrollProps}
-        scrollEventThrottle={16}
+        {...page.listProps}
+        testID="messages-list"
         data={initialLoading ? [] : f.threads}
         keyExtractor={(thread) => thread.id}
         ListHeaderComponent={header}
@@ -90,7 +86,7 @@ function MessagesTabScreen() {
             />
           )
         }
-        contentContainerStyle={page.contentStyle([styles.listContent, { paddingBottom: tabInset }])}
+        contentContainerStyle={page.contentStyle(styles.listContent)}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
@@ -103,8 +99,6 @@ function MessagesTabScreen() {
         }
         renderItem={({ item }) => <ThreadRow thread={item} f={f} />}
       />
-    </AppShell>
+    </PageShell>
   );
 }
-
-export default tabDiag("messages", MessagesTabScreen);

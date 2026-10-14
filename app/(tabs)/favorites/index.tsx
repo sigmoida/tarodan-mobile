@@ -1,39 +1,44 @@
 /**
- * Favorilerim — yığın ekranı (yan menü / profil / reklam bağlantılarından açılır): PageShell (beyaz
- * üst bar + geri oku, başlıkta sayaç) + ürün satırları. Misafir = giriş EmptyState, ilk yükleme =
- * Skeleton, hata = ErrorState + yeniden dene, boş = EmptyState. Kaldırma / sepet geri bildirimi
- * eylemsiz `toast` (hook'ta; web ile aynı). URL `/favorites`.
+ * Favorilerim — sekme kökü (alt menüde Ana Sayfa'dan sonra): AppShell (başlıklı yüzen bar; ☰ +
+ * Mesajlar/Bildirimler) + ürün satırları. Misafir = giriş EmptyState, ilk yükleme = Skeleton, hata =
+ * ErrorState + yeniden dene, boş = EmptyState. Kaldırma / sepet geri bildirimi eylemsiz `toast`
+ * (hook'ta; web ile aynı). Kaydırma alt menüyü daraltır. URL `/favorites`.
  */
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, ErrorState, pageListContentStyle, usePageScrollHandler } from '@/ui';
-import { PageShell } from '@/components/common/PageShell';
+import { Button, EmptyState, ErrorState, pageListContentStyle, usePageScrollValue } from '@/ui';
+import { tabDiag } from '@/components/_tabDiag';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
+import { AppShell } from '@/components/shell/AppShell';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
+import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { useFavoritesScreen } from './_hooks/useFavoritesScreen';
 import { styles } from './_lib/styles';
 import { FavoriteCard } from './_components/FavoriteCard';
 
-export default function FavoritesScreen() {
+function FavoritesScreen() {
   const { t } = useTranslation();
   const f = useFavoritesScreen();
-  const page = usePageScrollHandler();
+  // Hook sırası sabit kalsın diye erken return'den ÖNCE (CLAUDE.md §12).
+  const tabInset = useTabBarInset();
+  const page = usePageScrollValue();
+  // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
+  const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
 
   if (!f.isAuthenticated) {
     return (
-      <PageShell
-        title={t('favorites.myFavorites')}
-        empty
-        emptyState={{
-          icon: 'heart',
-          title: t('favorites.myFavorites'),
-          subtitle: t('favorites.loginRequired'),
-          actionLabel: t('common.login'),
-          onAction: () => router.push('/(auth)/login'),
-          secondaryLabel: t('auth.createAccount'),
-          onSecondary: () => router.push('/(auth)/register'),
-        }}
-      />
+      <AppShell variant="title" title={t('favorites.myFavorites')}>
+        <EmptyState
+          icon="heart"
+          title={t('favorites.myFavorites')}
+          subtitle={t('favorites.loginRequired')}
+          actionLabel={t('common.login')}
+          onAction={() => router.push('/(auth)/login')}
+          secondaryLabel={t('auth.createAccount')}
+          onSecondary={() => router.push('/(auth)/register')}
+        />
+      </AppShell>
     );
   }
 
@@ -41,16 +46,20 @@ export default function FavoritesScreen() {
   const loadFailed = !!f.error && f.items.length === 0;
 
   return (
-    <PageShell
+    <AppShell
+      variant="title"
       title={`${t('favorites.myFavorites')} (${f.getFavoriteCount()})`}
-      mode="list"
       scroll={page}
     >
       <Animated.FlatList
-        {...page.listProps}
+        {...tabScroll}
+        {...page.scrollProps}
+        scrollEventThrottle={16}
+        testID="favorites-list"
         data={initialLoading || loadFailed ? [] : f.items}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={page.contentStyle(pageListContentStyle)}
+        contentContainerStyle={page.contentStyle([pageListContentStyle, { paddingBottom: tabInset }])}
+        progressViewOffset={page.topInset}
         refreshing={f.refreshing}
         onRefresh={f.onRefresh}
         ListEmptyComponent={
@@ -84,6 +93,8 @@ export default function FavoritesScreen() {
         }
         renderItem={({ item }) => <FavoriteCard item={item} f={f} />}
       />
-    </PageShell>
+    </AppShell>
   );
 }
+
+export default tabDiag('favorites', FavoritesScreen);

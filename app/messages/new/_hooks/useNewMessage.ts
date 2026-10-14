@@ -120,7 +120,7 @@ export function useNewMessage() {
   // Geri git; stack kökündeysek (deep link / replace ile gelinmişse) mesajlara düş.
   const handleBack = () => {
     if (router.canGoBack()) router.back();
-    else router.replace('/(tabs)/messages' as never);
+    else router.replace('/messages');
   };
 
   return {

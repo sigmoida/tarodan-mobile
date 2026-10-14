@@ -1,5 +1,5 @@
 /**
- * Profil sekmesi üst barı: "Profili düzenle" artık sağ üstte kalem (`TopBarAction`). testID
+ * Profil sekmesi: "Profili düzenle" kimlik satırının sağında kalem (üst barın sağı sekme köklerinde sabit: Mesajlar + Bildirimler). testID
  * `profile-edit-button` AYNEN korunur — Maestro akışları (34 adet) giriş yapılmış mı kontrolünü
  * buna bağlar; misafir görünümünde bu düğme OLMAMALI.
  */
@@ -36,7 +36,7 @@ const member = {
 };
 
 describe('profil sekmesi · düzenle kalemi', () => {
-  it('üyede üst barın sağında kalem var ve Profili Düzenle ekranına gider', () => {
+  it('üyede kimlik satırında kalem var ve Profili Düzenle ekranına gider', () => {
     mockF = member;
     renderWithProviders(<ProfileScreen />);
     const pencil = screen.getByTestId('profile-edit-button');

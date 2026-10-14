@@ -229,7 +229,7 @@ export function routeFromNotification(data: any): void {
     // Push'ta hedef çözülemezse bildirim listesi makul iniş noktası: kullanıcı
     // zaten bildirime dokunarak uygulamayı açtı, boş ekranda bırakılmamalı.
     // (Uygulama içi listede karşılığı "gezinme yok" — orada zaten listedesin.)
-    router.push('/(tabs)/notifications' as any);
+    router.push('/notifications');
   } catch (err) {
     logger.debug('routeFromNotification failed', { err: safeError(err) });
   }

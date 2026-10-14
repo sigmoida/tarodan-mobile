@@ -49,6 +49,20 @@ describe('app/** ekran kabukları', () => {
     expect(missing).toEqual([]);
   });
 
+  it('sekme kökleri AppShell, üst bardan açılan Mesajlar/Bildirimler yığın ekranı PageShell kullanır', () => {
+    const read = (f: string) => fs.readFileSync(path.join(APP, f), 'utf8');
+    for (const f of ['(tabs)/index.tsx', '(tabs)/favorites/index.tsx', '(tabs)/cart/index.tsx', '(tabs)/profile.tsx']) {
+      expect([f, /<AppShell\b/.test(read(f))]).toEqual([f, true]);
+    }
+    for (const f of ['messages/index.tsx', 'notifications/index.tsx']) {
+      expect([f, /<PageShell\b/.test(read(f)), /<AppShell\b/.test(read(f))]).toEqual([f, true, false]);
+    }
+    // Eski konumlar kalmadı (aynı URL'ye iki rota çakışmasın).
+    for (const gone of ['(tabs)/messages', '(tabs)/notifications', 'cart', 'favorites']) {
+      expect([gone, fs.existsSync(path.join(APP, gone))]).toEqual([gone, false]);
+    }
+  });
+
   it('özel üst bar (header={…}) yalnız izinli listede', () => {
     const offenders = files
       .filter((f) => /\bheader=\{(?!false\})/.test(fs.readFileSync(f, 'utf8')))

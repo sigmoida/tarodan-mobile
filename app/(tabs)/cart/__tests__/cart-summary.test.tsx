@@ -9,7 +9,7 @@
  * Beklenen: dört satır da `pricing.summary`'den AYNEN; istemcide hiçbir
  * toplama/çıkarma yok; sunucu değeri yokken tutar yerine yer tutucu.
  *
- * `app/cart/` altında bu güvencenin testi yoktu (`app/__tests__/cart.test.tsx`
+ * `app/(tabs)/cart/` altında bu güvencenin testi yoktu (`app/(tabs)/cart/__tests__/cart.test.tsx`
  * `getQuote`/`total`/`buyerFee` kelimelerinin hiçbirini içermiyordu).
  */
 import React from 'react';
