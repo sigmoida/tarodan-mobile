@@ -1,5 +1,5 @@
 /**
- * useHomeHero — slayt/rozet kararları `select` ile veri+dil anahtarlı üretilir:
+ * useHomeHero — slayt kararları `select` ile veri+dil anahtarlı üretilir:
  * aynı girdide render'lar arası AYNI dizi (gereksiz yeniden çizim yok), dil
  * değişince yeniden hesaplanır, zarflı/zarfsız gövde ve uç hatası `[]`.
  */
@@ -8,11 +8,9 @@ import { renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const mockGetSlides = jest.fn();
-const mockGetBadges = jest.fn();
 jest.mock('@/lib/api', () => ({
   heroApi: {
     getSlides: (...a: unknown[]) => mockGetSlides(...a),
-    getTrustBadges: (...a: unknown[]) => mockGetBadges(...a),
   },
 }));
 
@@ -41,8 +39,6 @@ describe('useHomeHero', () => {
   beforeEach(() => {
     mockLang = 'tr';
     mockGetSlides.mockReset();
-    mockGetBadges.mockReset();
-    mockGetBadges.mockResolvedValue({ data: [] });
   });
 
   it('zarflı gövdeden görünür slaytları süzer; render arası aynı referans', async () => {
@@ -57,15 +53,12 @@ describe('useHomeHero', () => {
     expect(result.current.slides).toBe(first);
   });
 
-  it('rozetler de render arası sabit; uç hatası → []', async () => {
+  it('uç hatası → [] (güven rozeti isteği yok)', async () => {
     mockGetSlides.mockRejectedValue(new Error('x'));
-    mockGetBadges.mockResolvedValue({ data: [{ id: 'b1', icon: 'truck', title: { tr: 'Kargo' }, description: null }] });
-    const { result, rerender } = run();
-    await waitFor(() => expect(result.current.badges).toHaveLength(1));
-    const first = result.current.badges;
-    rerender({});
-    expect(result.current.badges).toBe(first);
+    const { result } = run();
+    await waitFor(() => expect(result.current.loadingSlides).toBe(false));
     expect(result.current.slides).toEqual([]);
+    expect(result.current).not.toHaveProperty('badges');
   });
 
   it('veri yokken boş liste her render aynı referanstır', () => {

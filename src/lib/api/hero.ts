@@ -37,30 +37,10 @@ export interface HeroSlide {
   hideOnIos: boolean;
 }
 
-/** Sunucunun bildiği ikon anahtarları (heroicons outline adları). */
-export type TrustBadgeIconKey =
-  | "shield-check"
-  | "truck"
-  | "arrow-path"
-  | "credit-card"
-  | "rectangle-stack"
-  | "arrows-right-left";
-
-export interface TrustBadge {
-  id: string;
-  /** `TrustBadgeIconKey` değerlerinden biri; liste ileride büyüyebilir → `string`, bilinmeyen anahtar çizilmez. */
-  icon: string;
-  title: LocalizedText;
-  description: LocalizedText | null;
-}
-
 export const heroApi = {
   /** Yayındaki slaytlar (en çok 5, sunucu sırasıyla). Boş dönebilir. */
   getSlides: (placement: HeroPlacement) =>
     guestApi.get<HeroSlide[]>("/hero-slides", { params: { placement } }),
-
-  /** Yayındaki güven rozetleri, admin sırasıyla. */
-  getTrustBadges: () => guestApi.get<TrustBadge[]>("/trust-badges"),
 
   /** Gösterim sayacı — slayt ilk göründüğünde; ateşle-unut, 204. */
   recordImpression: (id: string) =>

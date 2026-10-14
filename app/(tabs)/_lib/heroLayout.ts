@@ -1,4 +1,5 @@
 import { theme } from '@/ui';
+import { HOME_GUTTER } from './homeLayout';
 
 const { spacing } = theme;
 
@@ -16,8 +17,8 @@ const { spacing } = theme;
 export const HERO_IMAGE_RATIO = 16 / 10;
 /** Kabuk kenarlığı (her kenar). */
 export const HERO_BORDER_WIDTH = 1;
-/** Kabuğun yatay dış boşluğu (her kenar) — ekran genişliğinden düşülür. */
-export const HERO_MARGIN_X = spacing[4];
+/** Kabuğun yatay dış boşluğu (her kenar; ana sayfa bölümleriyle aynı kenar) — ekran genişliğinden düşülür. */
+export const HERO_MARGIN_X = HOME_GUTTER;
 /** Gövde taban yüksekliği: dolgu + başlık + alt başlık + bir/iki buton için tipik alan. */
 export const HERO_BODY_MIN_HEIGHT = 168;
 /** Nokta şeridi: nokta (8) + alt dolgu. Tek slaytta da ayrılır (kayma olmasın). */

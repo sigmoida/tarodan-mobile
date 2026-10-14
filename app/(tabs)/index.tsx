@@ -20,7 +20,6 @@ import { FeaturedRail, OnSaleRail, TradeRail, PopularRail } from './_components/
 import { TopCollections } from './_components/HomeCollections';
 import { Spotlights } from './_components/HomeSpotlights';
 import { HeroSection } from './_components/HeroSlider';
-import { TrustBadges } from './_components/TrustBadges';
 import { useHomeHero } from './_hooks/useHomeHero';
 import { useHeroVisibility } from './_hooks/useHeroVisibility';
 import { AdBanner } from '@/components/ads/AdBanner';
@@ -31,7 +30,7 @@ const { colors } = theme;
 
 /**
  * Ana sayfa — web ana sayfasının bölüm kümesi ve sırası (hero, markalar, Öne Çıkan, İndirimdekiler,
- * Takas Vitrini, Popüler, En İyi Koleksiyonlar, Haftanın Koleksiyoneri/Şirketi, güven rozetleri).
+ * Takas Vitrini, Popüler, En İyi Koleksiyonlar, Haftanın Koleksiyoneri/Şirketi). Güven rozeti ızgarası yok.
  * AppShell (marka barı: arama alanı + bildirim + sepet) içinde; her bölüm SectionCard + "Tümünü gör ›". Veri `useHomeData`.
  */
 export default function HomeScreen() {
@@ -123,7 +122,6 @@ export default function HomeScreen() {
         </View>
 
         <AdBanner position="footer" session={adSession} />
-        <TrustBadges badges={hero.badges} />
         <View style={{ height: tabInset }} />
       </Animated.ScrollView>
 

@@ -1,11 +1,9 @@
 import { Platform } from 'react-native';
-import type { HeroSlide, TrustBadge } from '@/lib/api/hero';
+import type { HeroSlide } from '@/lib/api/hero';
 import {
-  MAX_TRUST_BADGES,
   heroImageUrl,
   pickLocalized,
   resolveHeroCta,
-  resolveTrustBadges,
   visibleSlides,
 } from '../heroView';
 
@@ -119,36 +117,5 @@ describe('resolveHeroCta / satın alma kapısı', () => {
       label: 'Git',
       href: 'https://example.org/membership',
     });
-  });
-});
-
-describe('resolveTrustBadges', () => {
-  const badge = (over: Partial<TrustBadge> = {}): TrustBadge => ({
-    id: 'b1',
-    icon: 'truck',
-    title: { tr: 'Hızlı kargo', en: 'Fast shipping' },
-    description: { tr: 'Açıklama' },
-    ...over,
-  });
-
-  it('ikon eşlenir, metin dile göre seçilir', () => {
-    expect(resolveTrustBadges([badge()], 'en')).toEqual([
-      { id: 'b1', icon: 'truck', title: 'Fast shipping', description: 'Açıklama' },
-    ]);
-  });
-  it('bilinmeyen ikon anahtarı ve başlıksız rozet gösterilmez', () => {
-    const out = resolveTrustBadges(
-      [badge({ id: 'x', icon: 'rocket' }), badge({ id: 'y', title: { tr: '' } }), badge({ id: 'z' })],
-      'tr',
-    );
-    expect(out.map((b) => b.id)).toEqual(['z']);
-  });
-  it('üst sınır uygulanır', () => {
-    const many = Array.from({ length: 30 }, (_, i) => badge({ id: `b${i}` }));
-    expect(resolveTrustBadges(many, 'tr')).toHaveLength(MAX_TRUST_BADGES);
-  });
-  it('boş / geçersiz → []', () => {
-    expect(resolveTrustBadges([], 'tr')).toEqual([]);
-    expect(resolveTrustBadges(undefined, 'tr')).toEqual([]);
   });
 });

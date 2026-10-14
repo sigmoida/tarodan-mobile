@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '@/ui';
+import { HOME_GUTTER, HOME_SECTION_GAP } from './homeLayout';
 
 const { colors, spacing, radiusRole } = theme;
 
@@ -13,8 +14,8 @@ export const homeStyles = StyleSheet.create({
   flexShrink: { flexShrink: 1 },
   pressed: { opacity: 0.85 },
   scroll: { flex: 1 },
-  // Bölümler: web PageShell `space-y-4` + `px-4`.
-  sections: { padding: spacing[4], gap: spacing[4] },
+  // Bölümler: web PageShell `space-y-4` + `px-4` (tek kaynak `homeLayout`; hero ile aynı kenar).
+  sections: { paddingHorizontal: HOME_GUTTER, paddingVertical: HOME_SECTION_GAP, gap: HOME_SECTION_GAP },
 
   // Ürün rayı (web: flex gap-3 overflow-x-auto, kart w-40)
   // Yatay şeritler: flexGrow:0 (dikeyde içerik kadar) + hizalama (kartlar germesin).
@@ -77,8 +78,8 @@ export const homeStyles = StyleSheet.create({
 
   // Statik yedek hero
   heroBanner: {
-    marginHorizontal: spacing[4],
-    marginBottom: spacing[2],
+    marginTop: HOME_SECTION_GAP,
+    marginHorizontal: HOME_GUTTER,
     gap: spacing[2],
     padding: spacing[4],
     borderRadius: radiusRole.section,
