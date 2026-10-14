@@ -19,6 +19,15 @@ export function getTimeRemaining(expiresAt: string, t: TFunction): string | null
   return `${hours}${t('time.hourShort')} ${minutes}${t('time.minuteShort')}`;
 }
 
+/** Bu süreden az kalan bekleyen teklifin süre çipi uyarı tonunda çizilir. */
+export const OFFER_EXPIRING_SOON_HOURS = 6;
+
+/** Süresi `OFFER_EXPIRING_SOON_HOURS` saatten az kalmış (ve dolmamış) mı? */
+export function isExpiringSoon(expiresAt: string, now = Date.now()): boolean {
+  const diff = new Date(expiresAt).getTime() - now;
+  return diff > 0 && diff < OFFER_EXPIRING_SOON_HOURS * 3_600_000;
+}
+
 export function formatTimeAgo(iso: string, t: TFunction): string {
   const diff = Date.now() - new Date(iso).getTime();
   if (diff < 0) return t("time.ago.justNow");

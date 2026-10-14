@@ -13,6 +13,8 @@ export interface WishlistItem {
     id: string;
     title: string;
     price: number;
+    /** İndirim öncesi fiyat (sunucu `productOriginalPrice`; yalnız kampanya indirimindeyse dolu). */
+    originalPrice?: number;
     images: Array<{ url: string }>;
     condition: string;
     status: string;
@@ -22,6 +24,12 @@ export interface WishlistItem {
     };
   };
   addedAt: string;
+}
+
+/** Pozitif sonlu sayı (string de kabul) ya da `undefined`. */
+function toPositiveNumber(v: unknown): number | undefined {
+  const n = typeof v === 'string' ? Number(v) : v;
+  return typeof n === 'number' && Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
 /**
@@ -44,6 +52,7 @@ export function mapWishlist(data: any, t: TFunction): WishlistItem[] {
         id: item.productId,
         title: item.productTitle || item.product?.title || t('product.productFallback'),
         price: item.productPrice || item.product?.price || 0,
+        originalPrice: toPositiveNumber(item.productOriginalPrice ?? item.product?.originalPrice ?? item.product?.oldPrice),
         images: item.productImage ? [{ url: item.productImage }] : (item.product?.images || []),
         condition: item.productCondition || item.product?.condition || 'good',
         status: item.productStatus || item.product?.status || 'active',

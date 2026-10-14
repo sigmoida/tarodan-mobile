@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { PAGE_GUTTER, PAGE_SECTION_GAP, theme } from '@/ui';
 
-const { colors, spacing, radius, radiusRole } = theme;
+const { colors, spacing, radiusRole } = theme;
 
 // Sepet düzeni — web CartClient'ın telefon görünümü (satır kartları + özet kartı alt alta).
 export const styles = StyleSheet.create({
@@ -16,25 +16,32 @@ export const styles = StyleSheet.create({
   selectAllCount: { flexShrink: 0 },
 
   // --- Satır kartı (web CartItemCard) ---
-  itemCard: { gap: spacing[3] },
-  itemCardUnavailable: { backgroundColor: colors.surface.alt },
-  itemTop: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing[3] },
-  selectBox: { paddingTop: spacing[1] },
+  // [seçim] [görsel] [bilgi sütunu]; seçim kutusu dikeyde ortalı.
+  itemCard: { flexDirection: 'row', alignItems: 'center', gap: spacing[3] },
   itemImage: {
-    width: spacing[24],
-    height: spacing[24],
-    borderRadius: radius.lg,
+    width: spacing[20],
+    height: spacing[20],
+    borderRadius: radiusRole.productCard,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border.DEFAULT,
     backgroundColor: colors.surface.alt,
   },
-  itemInfo: { flex: 1, minWidth: 0, gap: spacing[1] },
+  itemInfo: { flex: 1, minWidth: 0, alignSelf: 'stretch', gap: spacing[1] },
+  // Başlık + sağ üstte kaldır.
+  itemHead: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing[1] },
+  itemTitle: { flex: 1, minWidth: 0 },
+  // Sol altta adet, sağ altta fiyat.
   itemBottom: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
     gap: spacing[2],
+    marginTop: 'auto',
   },
-  itemLineTotal: { flex: 1 },
-  itemActions: { alignItems: 'flex-end', gap: spacing[2] },
+  itemPrice: { flexShrink: 1, minWidth: 0, alignItems: 'flex-end' },
+  itemPriceText: { color: theme.priceColor.card, textAlign: 'right' },
+  itemOldPrice: { textDecorationLine: 'line-through', textAlign: 'right' },
+  textEnd: { textAlign: 'right' },
   stockWarning: { alignSelf: 'flex-start' },
 
   // --- Özet ---

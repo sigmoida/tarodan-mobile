@@ -143,3 +143,61 @@ describe('Sepet · süresiz sepet ve sunucu stoğu', () => {
     await waitFor(() => expect(increase()).toBeDisabled());
   });
 });
+
+describe('Sepet satırı · kart düzeni', () => {
+  const { ordersApi } = jest.requireMock('@/lib/api') as { ordersApi: { getQuote: jest.Mock } };
+  const quote = (unitPrice: number) => ({
+    data: {
+      pricingHash: 'h',
+      items: [{ productId: 'p1', quantity: 1, unitPrice, subtotal: unitPrice }],
+      pricing: {
+        summary: { productAmount: unitPrice, shippingAmount: 0, serviceFeeAmount: 0, total: unitPrice },
+      },
+    },
+  });
+
+  beforeEach(() => {
+    jest.mocked(cartApi.get).mockReset();
+    jest.mocked(cartApi.removeItem).mockClear();
+    useCartStore.setState({ items: [seedItem()], deselectedIds: [], lastUpdated: Date.now() });
+  });
+
+  afterEach(() => {
+    ordersApi.getQuote.mockImplementation(() => new Promise(() => {}));
+    useCartStore.setState({ items: [] });
+  });
+
+  it('sunucu satırı indirim bildiriyorsa eski fiyat üstü çizili, güncel fiyat quote birim fiyatı', async () => {
+    ordersApi.getQuote.mockResolvedValue(quote(80));
+    jest
+      .mocked(cartApi.get)
+      .mockResolvedValue(serverCart({ originalPrice: 100, effectivePrice: 80 }) as any);
+    renderWithProviders(<CartScreen />);
+
+    expect(await screen.findByTestId('cart-item-old-price')).toHaveTextContent('100,00 TL');
+    expect(screen.getByTestId('cart-item-unit-price')).toHaveTextContent('80,00 TL');
+  });
+
+  it('indirim yoksa eski fiyat çizilmez', async () => {
+    ordersApi.getQuote.mockResolvedValue(quote(100));
+    jest
+      .mocked(cartApi.get)
+      .mockResolvedValue(serverCart({ originalPrice: 100, effectivePrice: 100 }) as any);
+    renderWithProviders(<CartScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId('cart-item-unit-price')).toHaveTextContent('100,00 TL'),
+    );
+    expect(screen.queryByTestId('cart-item-old-price')).toBeNull();
+  });
+
+  it('başlıkta satıcı adı + ürün başlığı; sağ üstteki kaldır düğmesi satırı siler', async () => {
+    jest.mocked(cartApi.get).mockResolvedValue(serverCart({}) as any);
+    renderWithProviders(<CartScreen />);
+
+    expect(await screen.findByText('Hot Wheels Mustang')).toBeOnTheScreen();
+    expect(screen.getByText(/^Satıcı/)).toBeOnTheScreen();
+    fireEvent.press(screen.getByTestId('cart-item-remove-p1'));
+    await waitFor(() => expect(useCartStore.getState().items).toHaveLength(0));
+  });
+});

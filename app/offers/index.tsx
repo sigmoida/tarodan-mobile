@@ -45,9 +45,13 @@ export default function OffersScreen() {
       setActiveTab(tabFromUrl);
   }, [tabFromUrl]);
 
+  // Sekme değişimi YERİNDE: URL parametresi `setParams` ile güncellenir. Eskiden
+  // `router.replace('/offers?tab=…')` her seçimde yığına yeni ekran koyup `slide_from_right`
+  // animasyonunu oynatıyordu (yön sekme sırasından bağımsız, hep aynı kayma). Diğer ChipTabs
+  // ekranları gibi liste anında değişir.
   const setTab = useCallback((tab: TabType) => {
     setActiveTab(tab);
-    router.replace(`/offers?tab=${tab}`);
+    router.setParams({ tab });
   }, []);
 
   const {

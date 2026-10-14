@@ -125,16 +125,39 @@ describe('J57 · favoriler ekranı — dolu liste', () => {
     expect(mockState.removeFromFavorites).toHaveBeenCalledWith('p1');
   });
 
-  it('sepet butonu toggle: sepette değilse addItem, sepetteyse removeByProductId çağırır', () => {
+  it('"Sepete Ekle" sepette değilse addItem çağırır; sepetteyse "Sepete Git" sepete götürür (çıkarmaz)', () => {
     mockState.items = [makeItem('p1')];
-    renderWithProviders(<FavoritesScreen />);
-    fireEvent.press(screen.getByLabelText('Sepete Ekle'));
+    const first = renderWithProviders(<FavoritesScreen />);
+    fireEvent.press(screen.getByText('Sepete Ekle'));
     expect(mockState.addItem).toHaveBeenCalledWith(expect.objectContaining({ productId: 'p1' }));
+    first.unmount();
 
     mockState.isInCart.mockReturnValue(true);
     renderWithProviders(<FavoritesScreen />);
-    fireEvent.press(screen.getByLabelText('Sepetten Çıkar'));
-    expect(mockState.removeByProductId).toHaveBeenCalledWith('p1');
+    expect(screen.queryByText('Sepete Ekle')).toBeNull();
+    fireEvent.press(screen.getByText('Sepete Git'));
+    expect(pushMock).toHaveBeenCalledWith('/cart');
+    expect(mockState.removeByProductId).not.toHaveBeenCalled();
+  });
+
+  it('kartta satıcı adı + başlık + fiyat; indirimdeyse eski fiyat üstü çizili', () => {
+    const discounted = makeItem('p1', 'Mustang 1967');
+    (discounted.product as any).originalPrice = 300;
+    mockState.items = [discounted, makeItem('p2', 'Camaro')];
+    renderWithProviders(<FavoritesScreen />);
+    expect(screen.getAllByText('Satıcı X')).toHaveLength(2);
+    expect(screen.getByTestId('favorite-price-p1')).toHaveTextContent('250,00 TL');
+    expect(screen.getByTestId('favorite-price-p1-old')).toHaveTextContent('300,00 TL');
+    expect(screen.queryByTestId('favorite-price-p2-old')).toBeNull();
+  });
+
+  it('satışta olmayan üründe sepet düğmesi yerine durum rozeti', () => {
+    const sold = makeItem('p1');
+    sold.product.status = 'sold';
+    mockState.items = [sold];
+    renderWithProviders(<FavoritesScreen />);
+    expect(screen.queryByTestId('favorite-cart-p1')).toBeNull();
+    expect(screen.getByText('Satıldı')).toBeOnTheScreen();
   });
 
   it('ürün kartına dokununca ürün detayına push eder', () => {
