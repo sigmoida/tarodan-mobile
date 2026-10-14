@@ -14,9 +14,9 @@ import { useRefreshAccount } from './useRefreshAccount';
  * Kullanıcı adı BİR KEZ belirlenir (`PATCH /users/me/username`; sunucu ikinci
  * kez 409 verir). Bu hook yalnız belirlenebilir hesapta (sosyal girişle açılmış,
  * `usernameClaimed === false`) bağlanır: uygunluk kontrolü + onay + mutasyon.
- * Profil formunun "Kaydet"inden BAĞIMSIZDIR — her kayıtta yeniden talep edilmez.
+ * Kendi ekranında (`edit-profile/username`); başarıda `onClaimed` (ekran geri döner).
  */
-export function useClaimUsername() {
+export function useClaimUsername({ onClaimed }: { onClaimed?: () => void } = {}) {
   const { t } = useTranslation();
   const { user, updateUser } = useAuthStore();
   const refreshAccount = useRefreshAccount();
@@ -36,6 +36,7 @@ export function useClaimUsername() {
       updateUser({ username, usernameClaimed: true });
       await refreshAccount();
       toast.success(t('profile.usernameSaved'));
+      onClaimed?.();
     },
     onError: (e) => {
       // 409 (alınmış / zaten belirlenmiş) alanın altında; başka hata kullanıcının
@@ -76,3 +77,5 @@ export function useClaimUsername() {
     }),
   };
 }
+
+export type ClaimUsernameController = ReturnType<typeof useClaimUsername>;

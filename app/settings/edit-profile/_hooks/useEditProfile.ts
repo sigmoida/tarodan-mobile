@@ -1,14 +1,14 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { appAlert, toast } from '@/ui';
-import { userApi, mediaApi } from '@/lib/api';
+import { userApi } from '@/lib/api';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { useAuthStore } from '@/stores/authStore';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { getPhoneInvalidMessage, splitPhone } from '@/utils/phone';
 import { buildProfileSchema, type ProfileForm } from '../_lib/schema';
 import { phoneToSend, resolvePhoneOutcome } from '../_lib/phoneOutcome';
@@ -20,16 +20,18 @@ type UpdateVars = {
 };
 
 /**
- * Edit-profile controller — owns the RHF+zod form, the avatar pick + upload,
- * the phone country-code, the update mutation (avatar upload → JSON PATCH) and
- * the toast bildirimleri. Lifted verbatim from the monolithic screen (§12).
+ * Edit-profile controller — kişisel (+ işletme) bilgiler formu: RHF+zod, telefon ülke kodu,
+ * güncelleme mutasyonu (JSON PATCH) ve toast bildirimleri. Fotoğraf ayrı (`useUploadAvatar`,
+ * seçilince anında yüklenir); kullanıcı adı / e-posta kendi ekranlarında.
+ *
+ * `isDirty`: form ya da ülke kodu kayıtlı değerden farklı → alt çubuk "Kaydet" etkin ve
+ * ekrandan çıkış onay ister (`useUnsavedChangesGuard`). Başarılı kayıtta kaydedilen değerler
+ * yeni temel olur (form temizlenir).
  */
 export function useEditProfile() {
   const { t } = useTranslation();
   const { user, isAuthenticated, refreshUserData } = useAuthStore();
   const queryClient = useQueryClient();
-
-  const [avatar, setAvatar] = useState<string | null>(null);
 
   const isBusinessTier = (user as any)?.membershipTier === 'business';
 
@@ -39,17 +41,19 @@ export function useEditProfile() {
   );
 
   // Kayıtlı numara "+90532…" formatında gelir — ülke kodu + formatlı lokal parçaya ayır.
-  const [phoneCountryCode, setPhoneCountryCode] = useState(
+  // `savedCountryCode` kirlilik temelidir (RHF formunun dışında tutulan tek alan).
+  const [savedCountryCode, setSavedCountryCode] = useState(
     () => splitPhone((user as any)?.phone || '').countryCode,
   );
+  const [phoneCountryCode, setPhoneCountryCode] = useState(savedCountryCode);
 
   const {
     control,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty: isFormDirty },
     setError,
     clearErrors,
-    setValue,
+    reset,
     watch,
   } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -66,36 +70,16 @@ export function useEditProfile() {
     },
   });
 
-  // Yalnız avatar DEĞERİ değişince eşle (`user` nesnesi her e-posta/kullanıcı adı
-  // tazelemesinde yenilenir). Henüz kaydedilmemiş yerel seçim (http olmayan URI)
-  // sunucudan gelen değerle ezilmez — presigned URL her çekimde farklı gelir.
-  useEffect(() => {
-    if (user?.avatar) {
-      const serverAvatar = user.avatar;
-      setAvatar((prev) => (prev && !prev.startsWith('http') ? prev : serverAvatar));
-    }
-  }, [user?.avatar]);
+  const isDirty = isFormDirty || phoneCountryCode !== savedCountryCode;
+  useUnsavedChangesGuard(isDirty);
 
   const updateMutation = useMutation({
     mutationFn: async ({ data, phone }: UpdateVars) => {
-      // 1. Avatar yerel olarak değiştiyse önce /media/upload/avatar'a yükle (web ile aynı akış),
-      //    dönen anahtarı (key) avatarUrl olarak JSON PATCH ile gönder.
-      let avatarUrl: string | undefined;
-      if (avatar && avatar !== user?.avatar && !avatar.startsWith('http')) {
-        const uploadRes = await mediaApi.uploadAvatar({
-          uri: avatar,
-          name: 'avatar.jpg',
-          type: 'image/jpeg',
-        });
-        avatarUrl = uploadRes.data?.key ?? uploadRes.data?.url;
-      }
-
       const payload: Record<string, any> = {
         displayName: data.displayName,
         bio: data.bio,
         birthDate: data.birthDate,
       };
-      if (avatarUrl) payload.avatarUrl = avatarUrl;
 
       // Kurumsal alanlar yalnızca business tier'da gönderilir (web ile parite).
       // Backend, non-business'ta companyName/taxId'yi yalnızca isCorporateSeller=true ile işler.
@@ -118,31 +102,29 @@ export function useEditProfile() {
       const res = await userApi.updateProfile(payload);
       return { sentPhone: phone, responsePhone: (res?.data as any)?.phone as string | undefined };
     },
-    onSuccess: async ({ sentPhone, responsePhone }) => {
-      // Store'u taze /users/me ile güncelle: mapApiUserToUser, API'nin döndürdüğü
-      // 'avatarUrl' alanını UI'ın okuduğu 'avatar' alanına eşler. Aksi halde
-      // updateUser ham yanıtı sığ merge ettiği için 'avatar' bayat kalır ve
-      // profilde yeni foto görünmez. Web'deki refreshUser() ile parite.
-      // Numara değiştiyse `isPhoneVerified` da burada false'a döner ("doğrulanmış
-      // üye" kriteri, authStore.isVerifiedMember).
+    onSuccess: async ({ sentPhone, responsePhone }, { data }) => {
+      // Store'u taze /users/me ile güncelle (web refreshUser() paritesi). Numara değiştiyse
+      // `isPhoneVerified` da burada false'a döner ("doğrulanmış üye" kriteri).
       const fresh = await refreshUserData();
       queryClient.invalidateQueries({ queryKey: ['user'] });
-      // Yerel seçim yüklendi → sunucudaki değere dön (yoksa bir sonraki kayıtta
-      // aynı fotoğraf yeniden yüklenirdi).
-      if (fresh?.avatar) setAvatar(fresh.avatar);
       // Kayıt sonucu TAZE kullanıcıyla doğrulanır; tazeleme düştüyse PATCH
       // yanıtındaki (zarfsız kullanıcı nesnesi) telefona geri çekilinir.
       const savedPhone = fresh ? fresh.phone : responsePhone;
       const result = resolvePhoneOutcome(sentPhone, savedPhone);
-      // Numara yazılmadı/silinmedi → formu hesaptaki GERÇEK değere geri al;
-      // yoksa sonraki ilgisiz bir kayıt aynı numarayı yeniden gönderip uyarıyı
-      // tekrar tetiklerdi. Mesaj bunu kullanıcıya söylüyor.
+      // Kaydedilen değerler yeni temel → form temizlenir ("Kaydet" pasif, çıkış korumasız).
+      // Numara yazılmadı/silinmedi → telefon hesaptaki GERÇEK değere geri alınır; yoksa
+      // sonraki ilgisiz bir kayıt aynı numarayı yeniden gönderip uyarıyı tekrar tetiklerdi.
+      let nextPhone = data.phone;
+      let nextCountryCode = phoneCountryCode;
       if (result.outcome === 'notSaved' || result.outcome === 'notRemoved') {
         const restored = splitPhone(savedPhone ?? '');
-        setPhoneCountryCode(restored.countryCode);
-        setValue('phone', restored.phone);
-        clearErrors('phone');
+        nextPhone = restored.phone;
+        nextCountryCode = restored.countryCode;
+        setPhoneCountryCode(nextCountryCode);
       }
+      reset({ ...data, phone: nextPhone });
+      setSavedCountryCode(nextCountryCode);
+
       if (result.outcome === 'unchanged') {
         toast.success(t('profile.profileUpdated'));
         return;
@@ -177,19 +159,6 @@ export function useEditProfile() {
     },
   });
 
-  const pickAvatar = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setAvatar(result.assets[0].uri);
-    }
-  };
-
   const onSubmit = (data: ProfileForm) => {
     // Telefon opsiyonel. DOLUYSA çözülebilmeli: eskiden fazla hane sessizce
     // kırpılıp yanlış numara kaydediliyordu. Şema ülke kodunu bilmediği için
@@ -213,8 +182,7 @@ export function useEditProfile() {
     errors,
     handleSubmit,
     onSubmit,
-    avatar,
-    pickAvatar,
+    isDirty,
     phoneCountryCode,
     setPhoneCountryCode,
     isBusinessTier,

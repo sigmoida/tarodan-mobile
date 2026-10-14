@@ -1,34 +1,36 @@
 /**
- * Profili düzenle — tek ekran: üç bölüm (kişisel bilgiler / kullanıcı adı / e-posta),
- * alt çubuk "Kaydet" yalnız profil bilgisini kaydeder; eski ayrı ekran düğmeleri
- * (AccountLinks) ve "destek ile iletişime geçin" yardım metni yok.
- * Ayrıca avatar tuzağı: kaydedilmemiş yerel fotoğraf, store yenilenince (e-posta /
- * kullanıcı adı akışları `user` nesnesini değiştirir) sessizce geri dönmemeli.
+ * Profili düzenle — iOS Ayarlar düzeni:
+ *  - Üyelik rozet kartı yok; Hesap kartında kullanıcı adı / e-posta SALT OKUNUR satırlar
+ *    (e-posta → kendi ekranı; kullanıcı adı yalnız belirlenebilir hesapta → kendi ekranı).
+ *  - Alt çubuk "Değişiklikleri Kaydet" yalnız form kirliyken etkin; kayıttan sonra yine pasif.
+ *  - Kirli formdan çıkış onay ister (`useUnsavedChangesGuard`), temiz formdan istemez.
+ *  - Fotoğraf seçilince ANINDA yüklenir + PATCH /users/me (web `useUploadAvatar` paritesi).
  */
 import React from 'react';
-import { screen } from '@testing-library/react-native';
-import { renderHook, act } from '@testing-library/react-native';
-import { renderWithProviders, makeTestQueryClient } from '@/test-utils/render';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { renderWithProviders } from '@/test-utils/render';
+import { appAlert, ToastHost } from '@/ui';
+import { emitBeforeRemove, pushMock, resetRouterMocks } from '@/test-utils/router-mock';
 
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
 let mockUser: any;
+const mockRefreshUserData = jest.fn((): Promise<any> => Promise.resolve(null));
 jest.mock('@/stores/authStore', () => ({
   useAuthStore: (sel?: (state: any) => unknown) => {
     const state: any = {
       user: mockUser,
       isAuthenticated: true,
       updateUser: jest.fn(),
-      refreshUserData: jest.fn(() => Promise.resolve(null)),
+      refreshUserData: mockRefreshUserData,
     };
     return sel ? sel(state) : state;
   },
 }));
 
 jest.mock('@/lib/api', () => ({
-  userApi: { updateProfile: jest.fn(), claimUsername: jest.fn() },
-  mediaApi: { uploadAvatar: jest.fn() },
+  userApi: { updateProfile: jest.fn(() => Promise.resolve({ data: {} })), claimUsername: jest.fn() },
+  mediaApi: { uploadAvatar: jest.fn(() => Promise.resolve({ data: { key: 'avatars/u1/yeni.jpg' } })) },
   authApi: {
     checkUsernameAvailability: jest.fn(),
     requestEmailChange: jest.fn(),
@@ -36,6 +38,7 @@ jest.mock('@/lib/api', () => ({
   },
   errorText: jest.requireActual('@/lib/api/errorText').errorText,
 }));
+import { mediaApi, userApi } from '@/lib/api';
 
 jest.mock('expo-image-picker', () => ({
   MediaTypeOptions: { Images: 'Images' },
@@ -45,9 +48,12 @@ jest.mock('expo-image-picker', () => ({
 }));
 
 import EditProfileScreen from '../index';
-import { useEditProfile } from '../_hooks/useEditProfile';
+
+const updateProfile = userApi.updateProfile as jest.Mock;
+const uploadAvatar = mediaApi.uploadAvatar as jest.Mock;
 
 const baseUser = {
+  id: 'u1',
   displayName: 'Test Kullanıcı',
   email: 't@b.com',
   isEmailVerified: true,
@@ -57,87 +63,126 @@ const baseUser = {
   avatar: 'https://cdn.example.com/a.jpg?sig=1',
 };
 
-describe('Profili düzenle · tek ekran', () => {
-  beforeEach(() => {
-    mockUser = { ...baseUser };
-  });
+const renderScreen = () =>
+  renderWithProviders(
+    <>
+      <EditProfileScreen />
+      <ToastHost />
+    </>,
+  );
 
-  it('üç bölüm + alt çubuk Kaydet; ayrı ekran düğmeleri ve destek yardım metni yok', () => {
-    renderWithProviders(<EditProfileScreen />);
+const isDisabled = (testID: string) =>
+  !!screen.getByTestId(testID).props.accessibilityState?.disabled;
 
-    expect(screen.getByText('Kişisel Bilgiler')).toBeTruthy();
-    expect(screen.getByTestId('edit-profile-username-section')).toBeTruthy();
-    expect(screen.getByTestId('edit-profile-email-section')).toBeTruthy();
+beforeEach(() => {
+  jest.clearAllMocks();
+  resetRouterMocks();
+  mockUser = { ...baseUser };
+});
+
+describe('Profili düzenle · düzen', () => {
+  it('üyelik rozet kartı yok; Hesap satırları + Kişisel Bilgiler + Kaydet', () => {
+    renderScreen();
+    expect(screen.queryByText('Ücretsiz Üye')).toBeNull();
+    expect(screen.getByTestId('edit-profile-account-section')).toBeTruthy();
     expect(screen.getByText('@kaan.merakli')).toBeTruthy();
+    expect(screen.getByText('Kullanıcı adı değiştirilemez')).toBeTruthy();
     expect(screen.getByText('t@b.com')).toBeTruthy();
-    expect(screen.getByText('Değiştir')).toBeTruthy();
+    expect(screen.getByText('Doğrulandı')).toBeTruthy();
+    expect(screen.getByText('Kişisel Bilgiler')).toBeTruthy();
     expect(screen.getByText('Değişiklikleri Kaydet')).toBeTruthy();
-
-    // Eski AccountLinks düğmeleri ve yanıltıcı yardım metni kalktı.
-    expect(screen.queryByTestId('edit-profile-email-change')).toBeNull();
-    expect(screen.queryByTestId('edit-profile-username')).toBeNull();
-    expect(screen.queryByText(/destek ile iletişime/)).toBeNull();
-  });
-
-  it('belirlenmiş kullanıcı adı salt okunur: alan ve Kaydet yok', () => {
-    renderWithProviders(<EditProfileScreen />);
+    // Satır içi formlar bu ekranda yok (kendi ekranlarında).
+    expect(screen.queryByTestId('email-change-input')).toBeNull();
     expect(screen.queryByTestId('username-input')).toBeNull();
-    expect(screen.queryByTestId('username-submit')).toBeNull();
   });
 
-  it('belirlenebilir hesapta kullanıcı adı formu aynı ekranda açılır', () => {
+  it('e-posta satırı e-posta değiştirme ekranına gider', () => {
+    renderScreen();
+    fireEvent.press(screen.getByTestId('edit-profile-email-row'));
+    expect(pushMock).toHaveBeenCalledWith('/settings/edit-profile/email');
+  });
+
+  it('belirlenmiş kullanıcı adı salt okunur satır: dokunulmaz, ekran açılmaz', () => {
+    renderScreen();
+    expect(screen.queryByTestId('edit-profile-username-row')).toBeNull();
+    fireEvent.press(screen.getByTestId('username-claimed'));
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it('belirlenebilir hesapta kullanıcı adı satırı kendi ekranına gider', () => {
     mockUser = { ...baseUser, username: 'otomatik.ad', usernameClaimed: false };
-    renderWithProviders(<EditProfileScreen />);
-    expect(screen.getByTestId('username-input')).toBeTruthy();
-    expect(screen.getByTestId('username-submit')).toBeTruthy();
+    renderScreen();
+    expect(screen.getByText('@otomatik.ad')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('edit-profile-username-row'));
+    expect(pushMock).toHaveBeenCalledWith('/settings/edit-profile/username');
   });
 });
 
-describe('useEditProfile · avatar', () => {
-  const setup = () => {
-    const client = makeTestQueryClient();
-    const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+describe('Profili düzenle · kaydet + çıkış koruması', () => {
+  const nameInput = () => screen.getByDisplayValue('Test Kullanıcı');
+
+  it('form temizken Kaydet pasif, çıkış korumasız', () => {
+    renderScreen();
+    expect(isDisabled('edit-profile-save')).toBe(true);
+    expect(emitBeforeRemove().prevented).toBe(false);
+    expect(appAlert).not.toHaveBeenCalled();
+  });
+
+  it('düzenleyince Kaydet etkin; kirliyken çıkış onay ister', async () => {
+    renderScreen();
+    fireEvent.changeText(nameInput(), 'Yeni Ad');
+    await waitFor(() => expect(isDisabled('edit-profile-save')).toBe(false));
+    expect(emitBeforeRemove().prevented).toBe(true);
+    await waitFor(() => expect(appAlert).toHaveBeenCalledTimes(1));
+    expect((appAlert as jest.Mock).mock.calls[0]![0]).toBe('Kaydedilmemiş değişiklikler');
+  });
+
+  it('kayıt yalnız profil alanlarını gönderir; başarıdan sonra form temiz (Kaydet pasif, çıkış serbest)', async () => {
+    renderScreen();
+    fireEvent.changeText(nameInput(), 'Yeni Ad');
+    await waitFor(() => expect(isDisabled('edit-profile-save')).toBe(false));
+    fireEvent.press(screen.getByTestId('edit-profile-save'));
+
+    await waitFor(() => expect(updateProfile).toHaveBeenCalledTimes(1));
+    const payload = updateProfile.mock.calls[0]![0];
+    expect(payload.displayName).toBe('Yeni Ad');
+    expect(payload).not.toHaveProperty('avatarUrl');
+    expect(await screen.findByText('Profil güncellendi!')).toBeTruthy();
+    await waitFor(() => expect(isDisabled('edit-profile-save')).toBe(true));
+    expect(emitBeforeRemove().prevented).toBe(false);
+  });
+});
+
+describe('Profili düzenle · fotoğraf anında yüklenir', () => {
+  it('seçim → yükleme → PATCH { avatarUrl } → store tazelenir + toast; Kaydet gerekmez', async () => {
+    renderScreen();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('edit-profile-avatar'));
+    });
+
+    await waitFor(() =>
+      expect(uploadAvatar).toHaveBeenCalledWith({
+        uri: 'file:///yeni-foto.jpg',
+        name: 'avatar.jpg',
+        type: 'image/jpeg',
+      }),
     );
-    return renderHook(() => useEditProfile(), { wrapper });
-  };
-
-  beforeEach(() => {
-    mockUser = { ...baseUser };
+    await waitFor(() => expect(updateProfile).toHaveBeenCalledWith({ avatarUrl: 'avatars/u1/yeni.jpg' }));
+    await waitFor(() => expect(mockRefreshUserData).toHaveBeenCalled());
+    expect(await screen.findByText('Profil fotoğrafı güncellendi')).toBeTruthy();
+    // Profil formu kirlenmedi: Kaydet hâlâ pasif.
+    expect(isDisabled('edit-profile-save')).toBe(true);
   });
 
-  it('sunucudaki avatar ilk değer olarak alınır', () => {
-    const { result } = setup();
-    expect(result.current.avatar).toBe(baseUser.avatar);
-  });
-
-  it('kaydedilmemiş yerel seçim, `user` nesnesi yenilenince (aynı avatar) bozulmaz', async () => {
-    const { result, rerender } = setup();
+  it('yükleme düşerse hata toast + önizleme geri alınır', async () => {
+    uploadAvatar.mockRejectedValueOnce(new Error('network'));
+    renderScreen();
     await act(async () => {
-      await result.current.pickAvatar();
+      fireEvent.press(screen.getByTestId('edit-profile-avatar'));
     });
-    expect(result.current.avatar).toBe('file:///yeni-foto.jpg');
-
-    mockUser = { ...baseUser, email: 'yeni@b.com' }; // e-posta doğrulandı → yeni user nesnesi
-    rerender({});
-    expect(result.current.avatar).toBe('file:///yeni-foto.jpg');
-  });
-
-  it('presigned URL değişse bile (yeni imza) yerel seçim korunur', async () => {
-    const { result, rerender } = setup();
-    await act(async () => {
-      await result.current.pickAvatar();
-    });
-
-    mockUser = { ...baseUser, avatar: 'https://cdn.example.com/a.jpg?sig=2' };
-    rerender({});
-    expect(result.current.avatar).toBe('file:///yeni-foto.jpg');
-  });
-
-  it('yerel seçim yokken sunucu avatarı değişirse eşlenir', () => {
-    const { result, rerender } = setup();
-    mockUser = { ...baseUser, avatar: 'https://cdn.example.com/b.jpg' };
-    rerender({});
-    expect(result.current.avatar).toBe('https://cdn.example.com/b.jpg');
+    expect(await screen.findByText('Fotoğraf yüklenemedi')).toBeTruthy();
+    expect(updateProfile).not.toHaveBeenCalled();
+    const json = JSON.stringify(screen.toJSON());
+    expect(json).not.toContain('yeni-foto.jpg');
   });
 });

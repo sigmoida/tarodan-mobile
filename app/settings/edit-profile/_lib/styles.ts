@@ -21,6 +21,14 @@ export const styles = StyleSheet.create({
     height: AVATAR_SIZE,
     borderRadius: radius.full,
   },
+  // Yükleme sürerken fotoğrafın üstünde yarı saydam daire + gösterge.
+  avatarUploading: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: radius.full,
+    backgroundColor: colors.overlay.black30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   avatarEditBadge: {
     position: 'absolute',
     bottom: 0,

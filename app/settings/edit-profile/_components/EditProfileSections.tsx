@@ -1,48 +1,49 @@
 import { View, Pressable, Image } from "react-native";
-import { Alert, Avatar, Badge, DateField, Input, SectionCard, theme, Icon } from "@/ui";
-import { router } from "expo-router";
+import { Alert, Avatar, Badge, DateField, Input, SectionCard, Spinner, theme, Icon } from "@/ui";
 import { Controller } from "react-hook-form";
-import { MembershipBadgeCard } from "@/components/PremiumBadge";
-import { CAN_BUY_DIGITAL } from "@/lib/purchases";
 import { useTranslation } from "react-i18next";
+import { useAuthStore } from "@/stores/authStore";
 import { resolveImageUrl } from "@/utils/imageUrl";
 import { PhoneInput } from "@/components/common";
 import { styles } from "../_lib/styles";
 import { MAX_BIO_LENGTH, minBirthDate } from "../_lib/schema";
 import type { EditProfileController } from "../_hooks/useEditProfile";
+import type { AvatarUploadController } from "../_hooks/useUploadAvatar";
 
 const { colors, iconSize } = theme;
 
-/** Avatar seçici (kamera rozeti işlev taşır: fotoğraf değiştir) + üyelik rozeti. */
-export function AvatarSection({ f }: { f: EditProfileController }) {
+/**
+ * Profil fotoğrafı (kamera rozeti işlev taşır: fotoğraf değiştir). Seçilince anında yüklenir
+ * (`useUploadAvatar`); yükleme sürerken önizlemenin üstünde gösterge, dokunma kapalı.
+ */
+export function AvatarSection({ avatar }: { avatar: AvatarUploadController }) {
   const { t } = useTranslation();
+  const { user } = useAuthStore();
   return (
-    <>
-      <View style={styles.avatarSection}>
-        <Pressable
-          onPress={f.pickAvatar}
-          accessibilityRole="button"
-          accessibilityLabel={t("profile.changePhoto")}
-        >
-          {f.avatar ? (
-            <Image source={{ uri: resolveImageUrl(f.avatar) }} style={styles.avatar} />
-          ) : (
-            <Avatar size="xl" name={f.user?.displayName || "U"} />
-          )}
-          <View style={styles.avatarEditBadge}>
-            <Icon name="camera" variant="solid" size={iconSize.sm} color={colors.text.inverted} />
+    <View style={styles.avatarSection}>
+      <Pressable
+        onPress={avatar.pick}
+        disabled={avatar.isUploading}
+        accessibilityRole="button"
+        accessibilityLabel={t("profile.changePhoto")}
+        accessibilityState={{ busy: avatar.isUploading, disabled: avatar.isUploading }}
+        testID="edit-profile-avatar"
+      >
+        {avatar.avatar ? (
+          <Image source={{ uri: resolveImageUrl(avatar.avatar) }} style={styles.avatar} />
+        ) : (
+          <Avatar size="xl" name={user?.displayName || "U"} />
+        )}
+        {avatar.isUploading ? (
+          <View style={styles.avatarUploading} testID="edit-profile-avatar-uploading">
+            <Spinner size="md" color={colors.text.inverted} />
           </View>
-        </Pressable>
-      </View>
-
-      {/* Kartın tamamını sarmak rozeti de gizlerdi; bu yüzden yalnız onUpgrade prop'u
-          koşullanır — undefined'ken kart yükseltme düğmesini zaten render etmiyor. */}
-      <MembershipBadgeCard
-        membershipTier={f.user?.membershipTier || "free"}
-        isVerified={f.user?.isVerified}
-        onUpgrade={CAN_BUY_DIGITAL ? () => router.push("/upgrade") : undefined}
-      />
-    </>
+        ) : null}
+        <View style={styles.avatarEditBadge}>
+          <Icon name="camera" variant="solid" size={iconSize.sm} color={colors.text.inverted} />
+        </View>
+      </Pressable>
+    </View>
   );
 }
 

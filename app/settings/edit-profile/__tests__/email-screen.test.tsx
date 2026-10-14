@@ -1,14 +1,17 @@
 /**
- * Profili düzenle · e-posta bölümü: aynı kartta satır içi adımlar (modal yok).
- * idle (e-posta + doğrulama durumu + "Değiştir") → entering (yeni e-posta → "Kod gönder")
- * → codeSent (6 haneli kod, "Doğrula", 60 sn "Tekrar gönder", "E-postayı düzelt", "Vazgeç").
- * (Eski `settings/email-change` ekran testlerinin senaryoları buraya taşındı.)
+ * E-posta değiştir ekranı (`edit-profile/email`, Profili düzenle'deki e-posta satırından):
+ * mevcut e-posta + doğrulama durumu; yeni e-posta → alt çubuk "Kod gönder" → 6 haneli kod →
+ * alt çubuk "Doğrula" (60 sn "Tekrar gönder", "E-postayı düzelt") → başarıda geri dönülür.
+ * Vazgeçmek = geri oku (modal / "Vazgeç" düğmesi yok).
  */
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils/render';
 import { appAlert, ToastHost, theme } from '@/ui';
+import { backMock, canGoBackMock, resetRouterMocks } from '@/test-utils/router-mock';
+
+jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
 const mockUpdateUser = jest.fn();
 const mockRefreshUserData = jest.fn(() => Promise.resolve(null));
@@ -33,7 +36,7 @@ jest.mock('@/lib/api', () => ({
 }));
 import { authApi } from '@/lib/api';
 
-import { EmailSection } from '../_sections/EmailSection';
+import EmailChangeScreen from '../email';
 
 const requestChange = authApi.requestEmailChange as jest.Mock;
 const verifyChange = authApi.verifyEmailChange as jest.Mock;
@@ -52,33 +55,34 @@ const btnStyle = (testID: string) => {
 const renderSection = () =>
   renderWithProviders(
     <>
-      <EmailSection />
+      <EmailChangeScreen />
       <ToastHost />
     </>,
   );
 
-/** idle → entering → (yeni e-posta yaz, kod iste) → codeSent. */
+/** entering → (yeni e-posta yaz, kod iste) → codeSent. */
 async function goToCodeStep() {
-  fireEvent.press(screen.getByTestId('edit-profile-email-change-toggle'));
   fireEvent.changeText(screen.getByTestId('email-change-input'), 'yeni@ornek.com');
   fireEvent.press(screen.getByTestId('email-change-request'));
   await screen.findByTestId('email-change-code');
 }
 
-describe('Profili düzenle · e-posta bölümü', () => {
+describe('E-posta değiştir ekranı', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    resetRouterMocks();
     mockUser = { email: 'eski@ornek.com', isEmailVerified: true };
   });
   afterEach(() => jest.useRealTimers());
 
-  it('idle: mevcut e-posta + doğrulama durumu + "Değiştir"; eski "destek" yardım metni yok', () => {
+  it('mevcut e-posta + doğrulama durumu; yeni e-posta alanı hemen açık; "Vazgeç" / destek metni yok', () => {
     renderSection();
     expect(screen.getByText('eski@ornek.com')).toBeTruthy();
     expect(screen.getByText('Doğrulandı')).toBeTruthy();
-    expect(screen.getByTestId('edit-profile-email-change-toggle')).toBeTruthy();
-    expect(screen.queryByTestId('email-change-input')).toBeNull();
+    expect(screen.getByTestId('email-change-input')).toBeTruthy();
+    expect(screen.getByTestId('email-change-request')).toBeTruthy();
+    expect(screen.queryByTestId('email-change-cancel')).toBeNull();
     expect(screen.queryByText(/destek ile iletişime/)).toBeNull();
   });
 
@@ -88,41 +92,18 @@ describe('Profili düzenle · e-posta bölümü', () => {
     expect(screen.getByText('E-posta doğrulanmadı')).toBeTruthy();
   });
 
-  it('"Değiştir" aynı kartta yeni e-posta alanını açar; "Vazgeç" geri kapatır', () => {
+  it('alt çubuk: e-posta adımında "Kod gönder", kod adımında "Doğrula" (birincil, dolu)', async () => {
     renderSection();
-    fireEvent.press(screen.getByTestId('edit-profile-email-change-toggle'));
-    expect(screen.getByTestId('email-change-input')).toBeTruthy();
-    expect(screen.queryByTestId('edit-profile-email-change-toggle')).toBeNull();
-
-    fireEvent.press(screen.getByTestId('email-change-cancel'));
-    expect(screen.queryByTestId('email-change-input')).toBeNull();
-    expect(screen.getByTestId('edit-profile-email-change-toggle')).toBeTruthy();
-  });
-
-  it('e-posta adımı: "Kod gönder" birincil (dolu), "Vazgeç" outline (ButtonRow)', () => {
-    renderSection();
-    fireEvent.press(screen.getByTestId('edit-profile-email-change-toggle'));
     expect(btnStyle('email-change-request')).toMatchObject({ backgroundColor: theme.colors.primary[600] });
-    expect(btnStyle('email-change-cancel')).toMatchObject({
-      backgroundColor: 'transparent',
-      borderWidth: 1,
-      borderColor: theme.colors.border.DEFAULT,
-    });
-  });
-
-  it('kod adımı: "Doğrula" birincil, "Vazgeç" outline; "Tekrar gönder"/"E-postayı düzelt" metin düğmesi', async () => {
-    renderSection();
     await goToCodeStep();
+    expect(screen.queryByTestId('email-change-request')).toBeNull();
     expect(btnStyle('email-change-verify')).toMatchObject({ backgroundColor: theme.colors.primary[600] });
-    expect(btnStyle('email-change-cancel')).toMatchObject({ backgroundColor: 'transparent', borderWidth: 1 });
     expect(btnStyle('email-change-resend').borderWidth).toBe(0);
     expect(btnStyle('email-change-fix').borderWidth).toBe(0);
-    expect(screen.getAllByTestId('email-change-cancel')).toHaveLength(1);
   });
 
   it('geçersiz e-posta gönderilmez, hata alanın altında', async () => {
     renderSection();
-    fireEvent.press(screen.getByTestId('edit-profile-email-change-toggle'));
     fireEvent.changeText(screen.getByTestId('email-change-input'), 'gecersiz');
     fireEvent.press(screen.getByTestId('email-change-request'));
     await advance(0);
@@ -155,7 +136,8 @@ describe('Profili düzenle · e-posta bölümü', () => {
     expect(input.props.value).toBe('1234');
   });
 
-  it('doğru kod: store e-posta + isEmailVerified ile güncellenir, tazelenir, toast, bölüm idle olur', async () => {
+  it('doğru kod: store e-posta + isEmailVerified ile güncellenir, tazelenir, toast, geri dönülür', async () => {
+    canGoBackMock.mockReturnValue(true);
     renderSection();
     await goToCodeStep();
     fireEvent.changeText(screen.getByTestId('email-change-code'), '123456');
@@ -170,8 +152,7 @@ describe('Profili düzenle · e-posta bölümü', () => {
     );
     await waitFor(() => expect(mockRefreshUserData).toHaveBeenCalled());
     expect(await screen.findByText('E-posta adresiniz güncellendi')).toBeTruthy();
-    expect(screen.queryByTestId('email-change-code')).toBeNull();
-    expect(screen.getByTestId('edit-profile-email-change-toggle')).toBeTruthy();
+    await waitFor(() => expect(backMock).toHaveBeenCalledTimes(1));
     expect(appAlert).not.toHaveBeenCalled();
   });
 
@@ -187,6 +168,7 @@ describe('Profili düzenle · e-posta bölümü', () => {
     expect(await screen.findByText('Kod hatalı veya süresi dolmuş')).toBeTruthy();
     expect(screen.getByTestId('email-change-code')).toBeTruthy();
     expect(mockUpdateUser).not.toHaveBeenCalled();
+    expect(backMock).not.toHaveBeenCalled();
     expect(appAlert).not.toHaveBeenCalled();
   });
 
@@ -195,7 +177,6 @@ describe('Profili düzenle · e-posta bölümü', () => {
       response: { status: 409, data: { message: 'Bu e-posta başka bir hesapta kayıtlı' } },
     });
     renderSection();
-    fireEvent.press(screen.getByTestId('edit-profile-email-change-toggle'));
     fireEvent.changeText(screen.getByTestId('email-change-input'), 'dolu@ornek.com');
     fireEvent.press(screen.getByTestId('email-change-request'));
 
@@ -247,15 +228,5 @@ describe('Profili düzenle · e-posta bölümü', () => {
 
     expect(screen.queryByTestId('email-change-code')).toBeNull();
     expect(screen.getByTestId('email-change-input').props.value).toBe('yeni@ornek.com');
-  });
-
-  it('kod adımında "Vazgeç": bölüm idle olur, mevcut e-posta aynen kalır', async () => {
-    renderSection();
-    await goToCodeStep();
-    fireEvent.press(screen.getByTestId('email-change-cancel'));
-
-    expect(screen.queryByTestId('email-change-code')).toBeNull();
-    expect(screen.getByText('eski@ornek.com')).toBeTruthy();
-    expect(verifyChange).not.toHaveBeenCalled();
   });
 });

@@ -1,14 +1,16 @@
 /**
- * Profili düzenle · kullanıcı adı bölümü.
- * - Belirlenmişse (çoğu hesap) yalnız salt okunur satır; form YOK.
- * - Yalnız `usernameClaimed === false` hesapta satır içi belirleme: debounced uygunluk,
- *   "bir kez belirlenir" uyarısı, appAlert onayı, bölüm içi Kaydet.
- * (Eski `settings/username` ekran testlerinin senaryoları buraya taşındı.)
+ * Kullanıcı adı ekranı (`edit-profile/username`, Profili düzenle'deki satırdan).
+ * - Belirlenmişse (çoğu hesap) yalnız salt okunur gösterim; form / Kaydet YOK.
+ * - Yalnız `usernameClaimed === false` hesapta belirleme: debounced uygunluk,
+ *   "bir kez belirlenir" uyarısı, appAlert onayı, alt çubuk Kaydet; başarıda geri dönülür.
  */
 import React from 'react';
 import { screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils/render';
 import { appAlert, ToastHost } from '@/ui';
+import { backMock, canGoBackMock, resetRouterMocks } from '@/test-utils/router-mock';
+
+jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
 const mockUpdateUser = jest.fn();
 const mockRefreshUserData = jest.fn(() => Promise.resolve(null));
@@ -35,7 +37,7 @@ jest.mock('@/lib/api', () => ({
 }));
 import { userApi, authApi } from '@/lib/api';
 
-import { UsernameSection } from '../_sections/UsernameSection';
+import UsernameScreen from '../username';
 
 const claim = userApi.claimUsername as jest.Mock;
 const check = authApi.checkUsernameAvailability as jest.Mock;
@@ -43,7 +45,7 @@ const check = authApi.checkUsernameAvailability as jest.Mock;
 const renderSection = () =>
   renderWithProviders(
     <>
-      <UsernameSection />
+      <UsernameScreen />
       <ToastHost />
     </>,
   );
@@ -63,10 +65,11 @@ const settleAvailability = () =>
     await jest.advanceTimersByTimeAsync(0);
   });
 
-describe('Profili düzenle · kullanıcı adı bölümü', () => {
+describe('Kullanıcı adı ekranı', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    resetRouterMocks();
     check.mockResolvedValue({ data: { available: true } });
     mockUser = { username: 'otomatik.ad', usernameClaimed: false };
   });
@@ -94,10 +97,11 @@ describe('Profili düzenle · kullanıcı adı bölümü', () => {
     });
   });
 
-  it('kullanıcı adı yoksa ve bayrak bilinmiyorsa bölüm hiç çizilmez', () => {
+  it('kullanıcı adı yoksa ve bayrak bilinmiyorsa bölüm de form da çizilmez', () => {
     mockUser = {};
     renderSection();
     expect(screen.queryByTestId('edit-profile-username-section')).toBeNull();
+    expect(screen.queryByTestId('username-submit')).toBeNull();
   });
 
   describe('belirlenebilir hesap', () => {
@@ -150,7 +154,8 @@ describe('Profili düzenle · kullanıcı adı bölümü', () => {
       await waitFor(() => expect(appAlert).toHaveBeenCalledTimes(1));
     });
 
-    it('geçerli ad: önce appAlert onayı, onaydan sonra PATCH; başarıda store tazelenir + toast', async () => {
+    it('geçerli ad: önce appAlert onayı, onaydan sonra PATCH; başarıda store tazelenir + toast + geri', async () => {
+      canGoBackMock.mockReturnValue(true);
       renderSection();
       fireEvent.changeText(screen.getByTestId('username-input'), 'kaan.merakli');
       await settleAvailable();
@@ -174,6 +179,7 @@ describe('Profili düzenle · kullanıcı adı bölümü', () => {
       );
       await waitFor(() => expect(mockRefreshUserData).toHaveBeenCalled());
       expect(await screen.findByText('Kullanıcı adınız kaydedildi.')).toBeTruthy();
+      await waitFor(() => expect(backMock).toHaveBeenCalledTimes(1));
     });
 
     it('onay iptal edilirse mutasyon çalışmaz', async () => {
@@ -203,6 +209,7 @@ describe('Profili düzenle · kullanıcı adı bölümü', () => {
       expect(await screen.findByText('Bu kullanıcı adı zaten kullanılıyor')).toBeTruthy();
       expect(appAlert).toHaveBeenCalledTimes(1); // yalnız onay diyaloğu
       expect(mockUpdateUser).not.toHaveBeenCalled();
+      expect(backMock).not.toHaveBeenCalled();
     });
   });
 });

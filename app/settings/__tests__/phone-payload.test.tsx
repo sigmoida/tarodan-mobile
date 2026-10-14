@@ -178,6 +178,8 @@ describe('Profil formu — alana yazılan telefon payload\'a ne olarak gidiyor',
 
   it('telefon boş bırakılabilir (numara silme) — hata çıkmaz', async () => {
     renderWithProviders(<EditProfileScreen />);
+    // Kaydet yalnız kirli formda etkin: telefon dışı bir alanı değiştir.
+    fireEvent.changeText(screen.getByDisplayValue('Test'), 'Test Yeni');
     fireEvent.press(screen.getByText('product.saveChanges'));
     await waitFor(() => expect(updateProfile).toHaveBeenCalledTimes(1));
     expect(screen.queryByText(getPhoneInvalidMessage())).toBeNull();

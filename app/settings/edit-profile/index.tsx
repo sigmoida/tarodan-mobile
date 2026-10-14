@@ -3,32 +3,30 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/ui";
 import { PageShell } from "@/components/common/PageShell";
 import { useEditProfile } from "./_hooks/useEditProfile";
+import { useUploadAvatar } from "./_hooks/useUploadAvatar";
 import {
   AvatarSection,
   PersonalInfoCard,
   BusinessInfoCard,
 } from "./_components/EditProfileSections";
+import { AccountSection } from "./_components/AccountSection";
 import { LegalIdentityCard } from "./_components/LegalIdentityCard";
-import { UsernameSection } from "./_sections/UsernameSection";
-import { EmailSection } from "./_sections/EmailSection";
 
 /**
- * Profili düzenle — D1b REFERANS EKRANI (form): PageShell (beyaz üst bar, klavye kaçınma,
- * sabit alt bar) + bölümler web'deki gibi SectionCard. Alt çubuk "Kaydet" YALNIZ kişisel
- * (ve işletme) bilgileri kaydeder; kullanıcı adı ve e-posta ayrı uçlarda yaşadığı için
- * kendi bölümlerinde kendi eylemleriyle yönetilir (`_sections/`). Form/mutasyon
- * `useEditProfile`'da; ekran yalnız kompozisyon.
+ * Profili düzenle — iOS Ayarlar düzeni (PageShell): fotoğraf (seçilince anında yüklenir) →
+ * Hesap satırları (kullanıcı adı / e-posta salt okunur; değişiklik kendi ekranında) →
+ * Kişisel (+ işletme) bilgiler formu → Kimlik bilgileri (salt okunur). Alt çubuk "Değişiklikleri
+ * Kaydet" YALNIZ form kirliyken etkin; kirliyken çıkış onay ister (`useEditProfile`).
  */
 export default function EditProfileScreen() {
   const { t } = useTranslation();
   const f = useEditProfile();
-  const onBack = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)"));
+  const avatar = useUploadAvatar();
 
   if (!f.isAuthenticated) {
     return (
       <PageShell
         title={t("mobile.settingsEditProfile")}
-        onBack={onBack}
         empty
         emptyState={{
           icon: "user",
@@ -44,7 +42,6 @@ export default function EditProfileScreen() {
   return (
     <PageShell
       title={t("mobile.settingsEditProfile")}
-      onBack={onBack}
       footer={
         <Button
           variant="primary"
@@ -53,17 +50,16 @@ export default function EditProfileScreen() {
           title={t("product.saveChanges")}
           onPress={f.handleSubmit(f.onSubmit)}
           isLoading={f.updateMutation.isPending}
-          disabled={f.updateMutation.isPending}
+          disabled={!f.isDirty || f.updateMutation.isPending}
           testID="edit-profile-save"
         />
       }
     >
-      <AvatarSection f={f} />
+      <AvatarSection avatar={avatar} />
+      <AccountSection />
       <PersonalInfoCard f={f} />
-      <UsernameSection />
-      <EmailSection />
-      <LegalIdentityCard />
       <BusinessInfoCard f={f} />
+      <LegalIdentityCard />
     </PageShell>
   );
 }
