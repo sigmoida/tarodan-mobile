@@ -188,7 +188,6 @@ export default function SearchScreen() {
         {f.showScrollTop && (
           <FAB
             icon="chevron-up"
-            size="sm"
             placement="bottomRight"
             style={styles.scrollTopFab}
             onPress={f.scrollToTop}

@@ -285,4 +285,12 @@ export { StatusBadge, type StatusBadgeProps } from './components/StatusBadge';
 // Durum haritaları `@/lib/shared/status-configs`'ten (web status-configs'in tek kaynağı)
 // doğrudan alınır; `@/ui` artık çevrilmemiş `{labelKey, variant}` haritalarını yeniden ihraç
 // etmez (tüketicisi yoktu).
-export { floatingBottomOffset, useFloatingBottomOffset, useFabContentInset, FAB_SIZE_MD } from './lib/floating';
+export {
+	floatingBottomOffset,
+	useFloatingBottomOffset,
+	useFabContentInset,
+	FAB_SIZE_MD,
+	FLOATING_ACTION_SIZE,
+	FLOATING_ACTION_ICON_SIZE,
+	FLOATING_SIDE_GAP,
+} from './lib/floating';
