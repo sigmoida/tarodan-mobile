@@ -23,6 +23,12 @@ export const styles = StyleSheet.create({
     aspectRatio: 1,
     backgroundColor: colors.surface.alt,
   },
+  /** Kapak üstünde sağ üst: beğeniyi kaldır (cam daire, dolu kırmızı kalp). */
+  unlikeButton: {
+    position: 'absolute',
+    top: spacing[2],
+    right: spacing[2],
+  },
   collectionInfo: {
     padding: spacing[3],
     gap: spacing[1],
@@ -31,5 +37,10 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[3],
+  },
+  likeMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
   },
 });
