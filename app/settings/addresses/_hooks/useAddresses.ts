@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useRefresh } from '@/hooks/useRefresh';
+import { resolveMaxAddresses } from '@/lib/addressLimit';
 import { api } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
@@ -44,7 +45,8 @@ export function useAddresses() {
   return {
     isAuthenticated,
     addresses: query.data ?? [],
-    maxAddresses: limits?.maxAddresses || 10,
+    // Sunucu limiti (3) tek kaynaktan; bilinmeyen/sınırsız → Infinity (sayaç gizli).
+    maxAddresses: resolveMaxAddresses(limits?.maxAddresses),
     isLoading: query.isLoading,
     refreshing,
     onRefresh,

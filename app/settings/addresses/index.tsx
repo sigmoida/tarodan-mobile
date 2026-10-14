@@ -10,7 +10,7 @@ import { AddressCard } from './_components/AddressCard';
 /**
  * Kayıtlı adresler — D1b REFERANS EKRANI (liste): PageShell (beyaz üst bar, Skeleton,
  * çekip yenileme) + üst barın sağında "+" (yeni adres; limit dolunca / liste boşken gizli) +
- * kartın üstünde soluk "2/10 adres kayıtlı" satırı + tek SectionCard içinde satırlar; boşken kart
+ * kartın üstünde soluk "1/3 adres kayıtlı" satırı (limit bilinmiyorsa yok) + tek SectionCard içinde satırlar; boşken kart
  * içi EmptyState (kendi "Yeni Adres Ekle" eylemiyle). Ekle/düzenle ayrı EKRANLAR (`new`,
  * `[id]/edit`); `useAddresses` sorgu, `useAddressActions` yönlendirme + mutasyonlar.
  */
@@ -59,9 +59,11 @@ export default function AddressesScreen() {
         ) : undefined
       }
     >
-      <Text variant="bodySm" tone="muted" testID="address-limit-usage">
-        {t('address.limitUsage', { count: f.addresses.length, max: f.maxAddresses })}
-      </Text>
+      {Number.isFinite(f.maxAddresses) ? (
+        <Text variant="bodySm" tone="muted" testID="address-limit-usage">
+          {t('address.limitUsage', { count: f.addresses.length, max: f.maxAddresses })}
+        </Text>
+      ) : null}
       <SectionCard bodyStyle={styles.list}>
         {f.addresses.length === 0 ? (
           <EmptyState

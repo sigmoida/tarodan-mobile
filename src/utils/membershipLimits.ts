@@ -6,6 +6,7 @@
 import type { TFunction } from 'i18next';
 import { theme } from '@/ui';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
+import { SERVER_MAX_ADDRESSES } from '@/lib/addressLimit';
 import { useAuthStore, MembershipTier, MembershipLimits } from '../stores/authStore';
 
 const { colors } = theme;
@@ -14,7 +15,7 @@ const { colors } = theme;
 export const FREE_MEMBER_LIMITS = {
   maxListings: 10,
   maxImagesPerListing: 5,
-  maxAddresses: 10,
+  maxAddresses: SERVER_MAX_ADDRESSES, // sunucu tüm katmanlarda 3 (bkz. @/lib/addressLimit)
   maxSavedSearches: 5,
   maxMessagesPerDay: 50,
   listingExpireDays: 60,
@@ -33,7 +34,7 @@ export const FREE_MEMBER_LIMITS = {
 export const PREMIUM_MEMBER_LIMITS = {
   maxListings: -1, // Unlimited
   maxImagesPerListing: 15,
-  maxAddresses: 10,
+  maxAddresses: SERVER_MAX_ADDRESSES, // sunucu tüm katmanlarda 3 (bkz. @/lib/addressLimit)
   maxSavedSearches: -1, // Unlimited
   maxMessagesPerDay: -1, // Unlimited
   listingExpireDays: -1, // Never expire

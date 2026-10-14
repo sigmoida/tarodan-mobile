@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { SERVER_MAX_ADDRESSES } from "@/lib/addressLimit";
 import * as SecureStore from "expo-secure-store";
 import { advanceSessionEpoch, authApi, userApi } from "@/lib/api";
 import {
@@ -202,7 +203,7 @@ const TIER_LIMITS: Record<MembershipTier, MembershipLimits> = {
   free: {
     maxListings: 10,
     maxImagesPerListing: 5,
-    maxAddresses: 10,
+    maxAddresses: SERVER_MAX_ADDRESSES,
     maxSavedSearches: 5,
     maxMessagesPerDay: 50,
     listingExpireDays: 60,
@@ -219,7 +220,7 @@ const TIER_LIMITS: Record<MembershipTier, MembershipLimits> = {
   basic: {
     maxListings: 25,
     maxImagesPerListing: 10,
-    maxAddresses: 10,
+    maxAddresses: SERVER_MAX_ADDRESSES,
     maxSavedSearches: 10,
     maxMessagesPerDay: 100,
     listingExpireDays: 90,
@@ -236,7 +237,7 @@ const TIER_LIMITS: Record<MembershipTier, MembershipLimits> = {
   premium: {
     maxListings: -1, // Unlimited
     maxImagesPerListing: 15,
-    maxAddresses: 10,
+    maxAddresses: SERVER_MAX_ADDRESSES,
     maxSavedSearches: -1, // Unlimited
     maxMessagesPerDay: -1, // Unlimited
     listingExpireDays: -1, // Never expire
@@ -253,7 +254,7 @@ const TIER_LIMITS: Record<MembershipTier, MembershipLimits> = {
   business: {
     maxListings: -1,
     maxImagesPerListing: 20,
-    maxAddresses: 10,
+    maxAddresses: SERVER_MAX_ADDRESSES,
     maxSavedSearches: -1,
     maxMessagesPerDay: -1,
     listingExpireDays: -1,
