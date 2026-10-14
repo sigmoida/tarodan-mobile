@@ -4,7 +4,10 @@ import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { PageShell } from '@/components/common/PageShell';
-import { pageListContentStyle, theme, usePageScrollHandler } from '@/ui';
+import { pageListContentStyle, theme } from '@/ui';
+import { useTabBarPageScroll } from '@/components/shell/TabBarCollapse';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
+import { withStackTabBar } from '@/components/shell/StackTabBar';
 import ProductFilterSheet from '@/components/ProductFilterSheet';
 import {
   ProductCard,
@@ -26,9 +29,10 @@ const { colors } = theme;
 /**
  * Tüm ilanlar — web `/listings`: PageShell (başlık üst barda) + ortak `ProductListToolbar` (arama,
  * filtre + sıralama + ızgara/liste, ürün sayısı, aktif filtre çipleri) ve ürün ızgarası. Kontrolcü
- * `useListings`; ekran yalnız kompozisyon.
+ * `useListings`; ekran yalnız kompozisyon. Yüzen alt menü (`withStackTabBar`) ekranın üstünde; aşağı
+ * kaydırınca Ana Sayfa gibi daralır (yalnız "+" kalır).
  */
-export default function ListingsScreen() {
+function ListingsScreen() {
   const { t } = useTranslation();
   const f = useListings();
   // Izgara içi (inline) reklam: 8. karttan sonra, sonra 16'da bir, en çok 2 (web ile aynı).
@@ -37,7 +41,9 @@ export default function ListingsScreen() {
   const isList = f.layout === 'list';
   const rows = useMemo(() => withInlineAds(f.listings, isList ? 1 : 2), [f.listings, isList]);
   const cellWidth = useProductCellWidth();
-  const page = usePageScrollHandler();
+  // Tek handler: alt menü daralması + üst barın kaydırma kenarı.
+  const page = useTabBarPageScroll();
+  const tabInset = useTabBarInset();
 
   return (
     <PageShell
@@ -86,7 +92,7 @@ export default function ListingsScreen() {
             </View>
           )
         }
-        contentContainerStyle={page.contentStyle([pageListContentStyle, styles.content])}
+        contentContainerStyle={page.contentStyle([pageListContentStyle, styles.content, { paddingBottom: tabInset }])}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={
@@ -115,3 +121,5 @@ export default function ListingsScreen() {
     </PageShell>
   );
 }
+
+export default withStackTabBar(ListingsScreen);

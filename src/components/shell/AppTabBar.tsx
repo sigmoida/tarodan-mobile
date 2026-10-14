@@ -53,6 +53,8 @@ const TABS = [
 const SELL_ROUTE = "sell";
 const HOME_ROUTE = "index";
 type TabDef = (typeof TABS)[number];
+/** Menünün gidebildiği sekme rotaları (`Tabs` ekran adları): hap sekmeleri + "+" (İlan Ver). */
+export type TabBarRoute = TabDef["name"] | typeof SELL_ROUTE;
 
 /**
  * Özel yüzen alt menü (düz RN View'lar): solda 4 sekmeli hap [Ana Sayfa][Mesajlar][Bildirimler][Profil], sağında
@@ -74,6 +76,29 @@ type TabDef = (typeof TABS)[number];
  * dev'de sorunsuz). Düz flex satırıyla o native yolu tamamen atlıyoruz.
  */
 export function AppTabBar({ state, navigation }: BottomTabBarProps) {
+  return (
+    <TabBarView
+      activeName={state.routes[state.index]?.name}
+      onNavigate={(name) => navigation.navigate(name)}
+    />
+  );
+}
+
+export interface TabBarViewProps {
+  /**
+   * Odaktaki sekmenin `Tabs` rota adı. Sekme dışı yığın ekranında (`StackTabBar`: İlanlar, Kategori)
+   * `undefined`: vurgu yok, daralınca Ana Sayfa gibi yalnız "+" kalır.
+   */
+  activeName?: string;
+  /** Sekmeye / "+"ya dokunuş (odaktaki sekmeye dokunuşta çağrılmaz). */
+  onNavigate: (name: TabBarRoute) => void;
+}
+
+/**
+ * Menünün görünümü — navigasyondan bağımsız: `AppTabBar` (sekme kökleri, `Tabs` bağlamı) ve
+ * `StackTabBar` (menülü yığın ekranları, rota tabanlı) aynı görünümü çizer.
+ */
+export function TabBarView({ activeName, onNavigate }: TabBarViewProps) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const counts = useShellCounts();
@@ -83,9 +108,6 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
   // Gizli hap: dokunma + ekran okuyucu dışı (JS state; UI thread'inden scheduleOnRN ile).
   const pillHidden = useTabBarCollapsedFlag();
   const glass = getGlassView() !== null;
-
-  // state.routes içindeki aktif route adını çöz (görünür sırayla eşleştir).
-  const activeName = state.routes[state.index]?.name;
 
   // Sekme değişince ve oturum durumu değişince (ör. Profil üye <-> misafir görünümü) menü açık hale döner.
   const isAuthenticated = useAuthStore((st) => st.isAuthenticated);
@@ -172,7 +194,7 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
                   focused={focused}
                   onLayout={highlight.onItemLayout(tab.name)}
                   onPress={() => {
-                    if (!focused) navigation.navigate(tab.name);
+                    if (!focused) onNavigate(tab.name);
                   }}
                 >
                   <View>
@@ -241,7 +263,7 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
           onPressIn={sellPress.onPressIn}
           onPressOut={sellPress.onPressOut}
           onPress={() => {
-            if (!sellFocused) navigation.navigate(SELL_ROUTE);
+            if (!sellFocused) onNavigate(SELL_ROUTE);
           }}
         >
           <Animated.View style={sellPress.style}>

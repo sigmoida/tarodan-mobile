@@ -13,6 +13,10 @@ jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn(), canGoBack: () => true, replace: jest.fn() },
   useFocusEffect: jest.fn(),
 }));
+// Yüzen alt menü (withStackTabBar) sayaçları: sepet deposu (AsyncStorage) / sorgu bağlamı gerekmesin.
+jest.mock('@/components/shell/useShellCounts', () => ({
+  useShellCounts: () => ({ cartCount: 0, notificationCount: 0, messageCount: 0 }),
+}));
 jest.mock('@/components/ProductFilterSheet', () => () => null);
 jest.mock('../_components/ListingsHeader', () => {
   const { AdBanner } = require('@/components/ads/AdBanner');
@@ -62,6 +66,8 @@ describe('/listings reklam yuvaları', () => {
     expect(queryByTestId('slot-header')).toBeTruthy();
     expect(queryByTestId('slot-footer')).toBeTruthy();
     expect(queryByTestId('slot-inline-0')).toBeNull();
+    // Yüzen alt menü bu yığın ekranında da görünür (withStackTabBar).
+    expect(queryByTestId('app-tab-bar')).toBeTruthy();
   });
 
   it('inline yuva 8. karttan sonra gelir (yuva 0), kartlar eksiksiz çizilir', () => {

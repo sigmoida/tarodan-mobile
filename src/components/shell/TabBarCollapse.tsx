@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import {
@@ -13,7 +13,7 @@ import {
   type SharedValue,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { theme } from '@/ui';
+import { theme, usePageScrollValue, type PageScroll } from '@/ui';
 import { pageScrollOffset } from '@/ui/lib/pageScroll';
 import {
   normalizeScrollMetrics,
@@ -25,6 +25,7 @@ import {
 /**
  * Alt menü daralma sinyalinin TEK kaynağı: tab layout'ta bir paylaşılan değer (`collapsed`);
  * sekme köklerinin kaydırılabilir listeleri `useTabBarScrollHandler` ile yazar, `AppTabBar` okur.
+ * Menülü yığın ekranlarında (`withStackTabBar`: İlanlar, Kategori) ekrana özel ayrı bir sağlayıcı var.
  */
 /** `onOffset` köprüsünün en küçük ofset adımı (pt). */
 const OFFSET_BRIDGE_STEP = 16;
@@ -164,4 +165,32 @@ export function useTabBarScrollHandler(onOffset?: (y: number) => void, pageScrol
   });
 
   return { onScroll, onContentSizeChange, onLayout };
+}
+
+/**
+ * Menülü yığın ekranlarının (İlanlar, Kategori — `withStackTabBar`) liste sinyali: TEK handler hem alt
+ * menüyü daraltır hem üst barın kaydırma kenarını (`scrollY`) besler — sekme köklerindeki
+ * `usePageScrollValue()` + `useTabBarScrollHandler(undefined, page.scrollY)` kalıbının `PageScroll`
+ * biçimi. `usePageScrollHandler` yerine geçer: `<PageShell scroll={page}>` +
+ * `<Animated.FlatList {...page.listProps} contentContainerStyle={page.contentStyle(base)} />`.
+ */
+export function useTabBarPageScroll(): PageScroll {
+  const value = usePageScrollValue();
+  const { onScroll, onLayout, onContentSizeChange } = useTabBarScrollHandler(undefined, value.scrollY);
+  return useMemo(
+    () => ({
+      ...value,
+      onScroll,
+      scrollEventThrottle: 16,
+      listProps: {
+        ...value.scrollProps,
+        onScroll,
+        onLayout,
+        onContentSizeChange,
+        scrollEventThrottle: 16,
+        progressViewOffset: value.topInset,
+      },
+    }),
+    [value, onScroll, onLayout, onContentSizeChange],
+  );
 }
