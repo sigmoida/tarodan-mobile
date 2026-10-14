@@ -128,14 +128,14 @@ describe('J57 · favoriler ekranı — dolu liste', () => {
   it('"Sepete Ekle" sepette değilse addItem çağırır; sepetteyse "Sepete Git" sepete götürür (çıkarmaz)', () => {
     mockState.items = [makeItem('p1')];
     const first = renderWithProviders(<FavoritesScreen />);
-    fireEvent.press(screen.getByText('Sepete Ekle'));
+    fireEvent.press(screen.getByLabelText('Sepete Ekle'));
     expect(mockState.addItem).toHaveBeenCalledWith(expect.objectContaining({ productId: 'p1' }));
     first.unmount();
 
     mockState.isInCart.mockReturnValue(true);
     renderWithProviders(<FavoritesScreen />);
-    expect(screen.queryByText('Sepete Ekle')).toBeNull();
-    fireEvent.press(screen.getByText('Sepete Git'));
+    expect(screen.queryByLabelText('Sepete Ekle')).toBeNull();
+    fireEvent.press(screen.getByLabelText('Sepete Git'));
     expect(pushMock).toHaveBeenCalledWith('/cart');
     expect(mockState.removeByProductId).not.toHaveBeenCalled();
   });

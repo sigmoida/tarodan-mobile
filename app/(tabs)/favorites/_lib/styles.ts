@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '@/ui';
 
-const { colors, spacing, radiusRole } = theme;
+const { colors, spacing } = theme;
 
 /** Satırdaki ürün görseli (pt). */
 const THUMB = spacing[24];
@@ -14,46 +14,42 @@ export const styles = StyleSheet.create({
   },
   card: {
     marginBottom: spacing[3],
+    overflow: 'hidden',
   },
-  // [görsel] [bilgi sütunu]
+  // [görsel — kartın sol tarafını boydan boya kaplar] [bilgi sütunu]
   cardContent: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing[3],
-    padding: spacing[3],
+    alignItems: 'stretch',
   },
   productImage: {
     width: THUMB,
-    height: THUMB,
-    borderRadius: radiusRole.productCard,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border.DEFAULT,
+    minHeight: THUMB,
+    alignSelf: 'stretch',
     backgroundColor: colors.surface.alt,
   },
   productInfo: {
     flex: 1,
     minWidth: 0,
+    padding: spacing[3],
     gap: spacing[1],
+    justifyContent: 'space-between',
   },
-  // Satıcı + başlık solda, kalp sağ üstte.
-  headRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing[1],
-  },
+  // Satıcı (kalın) üstte, ürün adı altında.
   titleBlock: {
-    flex: 1,
     minWidth: 0,
   },
+  // Alt satır: fiyat solda, sağında favori + sepet ikon düğmeleri.
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+  },
   price: {
+    flex: 1,
+    minWidth: 0,
     color: theme.priceColor.card,
   },
-  cartButton: {
-    alignSelf: 'flex-start',
-    marginTop: spacing[1],
-  },
   statusBadge: {
-    alignSelf: 'flex-start',
-    marginTop: spacing[1],
+    alignSelf: 'center',
   },
 });

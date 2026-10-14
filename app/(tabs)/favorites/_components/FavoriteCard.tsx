@@ -1,5 +1,5 @@
 import { View, Pressable } from 'react-native';
-import { Badge, Button, Card, IconButton, Text, theme } from '@/ui';
+import { Badge, Card, IconButton, Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { AppImage } from '@/components/AppImage';
@@ -11,17 +11,15 @@ import type { FavoritesScreenController } from '../_hooks/useFavoritesScreen';
 const { colors } = theme;
 
 /**
- * Tek favori satırı (pazar yeri favori kartı düzeni, yalnız elimizdeki veriyle):
+ * Tek favori satırı:
  *
- *   [görsel]  **Satıcı adı**                       [♥]
- *             Ürün başlığı (soluk, en çok 2 satır)
- *             ~~eski fiyat~~ (indirimdeyse)
- *             1.234,50 TL
- *             [ Sepete Ekle ]  →  sepetteyse [ Sepete Git ]
+ *   [görsel ]  **Satıcı adı**
+ *   [boydan ]  Ürün adı (soluk, en çok 2 satır)
+ *   [boya   ]  1.234,50 TL                [♥] [🛒]
  *
- * Kalp favoriden çıkarır. Satışta olmayan üründe sepet düğmesi yerine durum rozeti. Kalp ve sepet
- * düğmesi navigasyon Pressable'ının DIŞINDA (kardeş) — iç içe dokunulabilirde ebeveyn dokunuşu
- * yutabiliyor.
+ * Görsel kartın solunu boydan boya kaplar. Kalp favoriden çıkarır; sepet düğmesi ürün sepette değilse
+ * ekler, sepetteyse sepete gider (dolu ikon). Satışta olmayan üründe sepet yerine durum rozeti. Kalp ve
+ * sepet navigasyon Pressable'ının DIŞINDA (kardeş) — iç içe dokunulabilirde ebeveyn dokunuşu yutabiliyor.
  */
 export function FavoriteCard({ item, f }: { item: WishlistItem; f: FavoritesScreenController }) {
   const { t } = useTranslation();
@@ -29,6 +27,7 @@ export function FavoriteCard({ item, f }: { item: WishlistItem; f: FavoritesScre
   const open = () => router.push(`/product/${item.productId}`);
   const isActive = product.status === 'active';
   const inCart = f.isInCart(item.productId);
+  const cartLabel = inCart ? t('product.goToCart') : t('product.addToCart');
 
   return (
     <Card variant="bordered" padding={0} style={styles.card} testID={`favorite-card-${item.productId}`}>
@@ -38,15 +37,23 @@ export function FavoriteCard({ item, f }: { item: WishlistItem; f: FavoritesScre
         </Pressable>
 
         <View style={styles.productInfo}>
-          <View style={styles.headRow}>
-            <Pressable onPress={open} accessibilityRole="link" style={styles.titleBlock}>
-              <Text variant="bodySm" weight="bold" tone="heading" numberOfLines={1}>
-                {product.seller?.displayName || t('product.seller')}
-              </Text>
-              <Text variant="bodySm" tone="muted" numberOfLines={2}>
-                {product.title}
-              </Text>
-            </Pressable>
+          <Pressable onPress={open} accessibilityRole="link" style={styles.titleBlock}>
+            <Text variant="bodySm" weight="bold" tone="heading" numberOfLines={1}>
+              {product.seller?.displayName || t('product.seller')}
+            </Text>
+            <Text variant="bodySm" tone="muted" numberOfLines={2}>
+              {product.title}
+            </Text>
+          </Pressable>
+
+          <View style={styles.bottomRow}>
+            <ProductPrice
+              product={product}
+              variant="body"
+              weight="bold"
+              style={styles.price}
+              testID={`favorite-price-${item.productId}`}
+            />
             <IconButton
               icon="heart"
               iconVariant="solid"
@@ -56,31 +63,22 @@ export function FavoriteCard({ item, f }: { item: WishlistItem; f: FavoritesScre
               testID={`favorite-remove-${item.productId}`}
               onPress={() => f.handleRemove(item.productId)}
             />
+            {isActive ? (
+              <IconButton
+                icon="shopping-cart"
+                iconVariant={inCart ? 'solid' : 'outline'}
+                accessibilityLabel={cartLabel}
+                size="sm"
+                color={colors.primary[600]!}
+                testID={`favorite-cart-${item.productId}`}
+                onPress={() => f.handleCartAction(item)}
+              />
+            ) : (
+              <Badge variant="warning" size="xs" style={styles.statusBadge}>
+                {product.status === 'sold' ? t('product.statusSold') : t('product.statusInactive')}
+              </Badge>
+            )}
           </View>
-
-          <ProductPrice
-            product={product}
-            variant="body"
-            weight="bold"
-            style={styles.price}
-            testID={`favorite-price-${item.productId}`}
-          />
-
-          {isActive ? (
-            <Button
-              size="sm"
-              variant="outline"
-              title={inCart ? t('product.goToCart') : t('product.addToCart')}
-              accessibilityLabel={inCart ? t('product.goToCart') : t('product.addToCart')}
-              testID={`favorite-cart-${item.productId}`}
-              style={styles.cartButton}
-              onPress={() => f.handleCartAction(item)}
-            />
-          ) : (
-            <Badge variant="warning" size="xs" style={styles.statusBadge}>
-              {product.status === 'sold' ? t('product.statusSold') : t('product.statusInactive')}
-            </Badge>
-          )}
         </View>
       </View>
     </Card>
