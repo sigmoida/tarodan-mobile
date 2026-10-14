@@ -16,6 +16,9 @@ export const styles = StyleSheet.create({
   },
   coverImage: { width: '100%', height: '100%' },
   headInfo: { flex: 1, minWidth: 0, gap: spacing[1.5] },
+  // Ghost ikon düğmeleri (40pt kutu, 20pt ikon): ilk ikon metin kenarıyla hizalansın diye kutunun
+  // iç boşluğu kadar sola kaydırılır; dokunma alanı hitSlop ile 44pt.
+  headActions: { flexDirection: 'row', alignItems: 'center', gap: spacing[1], marginLeft: -spacing[2.5] },
   ownerChip: {
     alignSelf: 'flex-start',
     flexDirection: 'row',

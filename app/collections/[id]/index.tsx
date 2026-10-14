@@ -1,6 +1,5 @@
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { TopBarAction } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import ReportModal from '@/components/ReportModal';
 import { useCollectionDetail } from './_hooks/useCollectionDetail';
@@ -8,8 +7,10 @@ import { useCollectionReport } from './_hooks/useCollectionReport';
 import { CollectionDetailBody } from './_components/CollectionDetailBody';
 
 /**
- * Koleksiyon detayı — PageShell (üst barda yalnız geri + paylaş/beğen/şikayet; uzun koleksiyon adı üç
- * düğmenin yanında kesildiği için başlık sayfa içinde) içinde başlık kartı ve öğe ızgarası.
+ * Koleksiyon detayı — PageShell (üst barda YALNIZ geri; ad ve paylaş/beğen/şikayet web
+ * `CollectionHeaderCard` gibi sayfa içinde, başlık kartında) içinde başlık kartı ve öğe ızgarası.
+ * Üç cam düğme üst barın sağ yuvasına (en çok %36 genişlik) sığmıyor, paylaş düğmesi yuvanın
+ * dışına taşıp dokunuşları kaçırıyordu.
  * `useCollectionDetail` sorgu, iyimser beğeni, paylaşım ve sahip/premium bayraklarının sahibi.
  */
 export default function CollectionDetailScreen() {
@@ -33,28 +34,6 @@ export default function CollectionDetailScreen() {
       }}
       refreshing={f.refreshing}
       onRefresh={f.onRefresh}
-      right={
-        f.collection ? (
-          <>
-            <TopBarAction icon="share" accessibilityLabel={t('collection.share')} onPress={f.handleShare} />
-            {!f.isOwner ? (
-              <>
-                <TopBarAction
-                  icon="heart"
-                  iconVariant={f.isLiked ? 'solid' : 'outline'}
-                  accessibilityLabel={t('collection.likes')}
-                  onPress={f.handleLike}
-                />
-                <TopBarAction
-                  icon="flag"
-                  accessibilityLabel={t('collection.report')}
-                  onPress={report.open}
-                />
-              </>
-            ) : null}
-          </>
-        ) : undefined
-      }
       overlay={
         f.collection ? (
           <ReportModal
@@ -67,7 +46,7 @@ export default function CollectionDetailScreen() {
         ) : undefined
       }
     >
-      {f.collection ? <CollectionDetailBody f={f} /> : null}
+      {f.collection ? <CollectionDetailBody f={f} onReport={report.open} /> : null}
     </PageShell>
   );
 }

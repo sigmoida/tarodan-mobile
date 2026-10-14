@@ -1,6 +1,14 @@
 import { View, RefreshControl } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { theme, ChipTabs, EmptyState, Input, pageListContentStyle, SkeletonCard, usePageScrollHandler } from '@/ui';
+import {
+  theme,
+  EmptyState,
+  ErrorState,
+  pageListContentStyle,
+  SkeletonCard,
+  Spinner,
+  usePageScrollHandler,
+} from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PageShell } from '@/components/common/PageShell';
@@ -8,17 +16,21 @@ import { useCollectionsBrowse } from './_hooks/useCollectionsBrowse';
 import { styles } from './_lib/browseStyles';
 import { CollectionCard } from '@/components/collection/CollectionCard';
 import { CollectionsInfoCard } from './_components/CollectionsInfoCard';
+import { CollectionsToolbar } from './_components/CollectionsToolbar';
+import { CollectionsSheets } from './_components/CollectionsSheets';
 
 const { colors } = theme;
 
 /**
- * Koleksiyonlar (web `/collections`): PageShell + arama, Tümü/Popüler/Yeni çipleri ve 2 sütun
- * koleksiyon kartları; yüklenirken iskelet, boşken EmptyState.
+ * Koleksiyonlar (web `/collections`): PageShell + "Herkese açık / Benim" sekmeleri (Benim yalnız
+ * girişli), sunucu araması, kategori filtresi ve sıralama (SelectSheet) ile 2 sütun koleksiyon
+ * kartları; herkese açık liste sonsuz kaydırılır. Yüklenirken iskelet, boşken EmptyState.
  */
 export default function CollectionsScreen() {
   const { t } = useTranslation();
   const f = useCollectionsBrowse();
   const page = usePageScrollHandler();
+  const mineEmpty = f.activeTab === 'mine' && !f.hasSearch;
 
   return (
     <PageShell
@@ -26,50 +38,35 @@ export default function CollectionsScreen() {
       mode="list"
       scroll={page}
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+      overlay={<CollectionsSheets f={f} />}
     >
       <Animated.FlatList
         {...page.listProps}
-        data={f.isLoading ? [] : f.filteredCollections}
+        testID="collections-list"
+        data={f.isLoading ? [] : f.collections}
         renderItem={({ item }) => (
           <View style={styles.cell}>
             <CollectionCard item={item} />
           </View>
         )}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.id)}
         numColumns={2}
         columnWrapperStyle={styles.row}
         contentContainerStyle={page.contentStyle([pageListContentStyle, styles.footer])}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        onEndReached={f.loadMore}
+        onEndReachedThreshold={0.5}
         refreshControl={
           <RefreshControl
-            refreshing={f.isRefetching}
-            onRefresh={f.refetch}
+            refreshing={f.refreshing}
+            onRefresh={f.onRefresh}
             progressViewOffset={page.topInset}
             colors={[colors.primary[600]!]}
             tintColor={colors.primary[600]!}
           />
         }
-        ListHeaderComponent={
-          <View style={styles.header}>
-            <Input
-              placeholder={t('collection.browsePlaceholder')}
-              value={f.searchQuery}
-              onChangeText={f.setSearchQuery}
-              leftIconName="magnifying-glass"
-            />
-            <ChipTabs
-              testID="collections-filters"
-              value={f.activeFilter}
-              onChange={f.setActiveFilter}
-              items={[
-                { key: 'all', label: t('common.all') },
-                { key: 'popular', label: t('common.popular') },
-                { key: 'recent', label: t('common.new') },
-              ]}
-            />
-          </View>
-        }
+        ListHeaderComponent={<CollectionsToolbar f={f} />}
         ListEmptyComponent={
           f.isLoading ? (
             <View style={styles.skeletons} testID="collections-skeleton">
@@ -80,15 +77,23 @@ export default function CollectionsScreen() {
                 <SkeletonCard />
               </View>
             </View>
+          ) : f.isError ? (
+            <ErrorState onRetry={() => void f.refetch()} />
           ) : (
             <EmptyState
+              testID="collections-empty"
               icon="rectangle-stack"
-              title={t('collection.browseEmptyTitle')}
-              subtitle={t('search.tryDifferent')}
+              title={mineEmpty ? t('collection.noCollections') : t('collection.browseEmptyTitle')}
+              subtitle={mineEmpty ? t('collection.startBuildingToday') : t('search.tryDifferent')}
             />
           )
         }
-        ListFooterComponent={f.isPremiumMember ? null : <CollectionsInfoCard isAuthenticated={f.isAuthenticated} />}
+        ListFooterComponent={
+          <>
+            {f.isFetchingNextPage ? <Spinner testID="collections-next-page" /> : null}
+            {f.isPremiumMember ? null : <CollectionsInfoCard isAuthenticated={f.isAuthenticated} />}
+          </>
+        }
       />
     </PageShell>
   );

@@ -9,6 +9,8 @@ import { qk } from '@/lib/query';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useAuthStore } from '@/stores/authStore';
 import { buildShareContent, collectionShareUrl } from '@/utils/share';
+import { copyToClipboard } from '@/lib/clipboard';
+import { toast } from '@/ui';
 
 /**
  * Collection detail controller — owns the collection query, optimistic like,
@@ -54,18 +56,25 @@ export function useCollectionDetail() {
     }
   }, [apiCollection]);
 
+  // Web `handleShare` ile aynı: paylaşım sayfası açılamazsa (hata/yok) linki panoya kopyala +
+  // "Link kopyalandı"; o da olmazsa hata toast'ı. Sessizce yutulmaz. Kullanıcının paylaşımı
+  // kapatması hata değildir (RN `Share.share` reddetmez, `dismissedAction` ile çözülür).
   const handleShare = async () => {
     if (!collection) return;
+    const url = collectionShareUrl(String(collection.id ?? id));
     try {
       const { content, options } = buildShareContent(
         t('collection.shareText', { name: collection.name, description: collection.description ?? '' }),
-        collectionShareUrl(String(collection.id ?? id)),
+        url,
         collection.name,
       );
       await Share.share(content, options);
+      return;
     } catch (error) {
-      logger.error('Share error', { err: safeError(error) });
+      logger.warn('Share unavailable, copying link', { err: safeError(error) });
     }
+    if (copyToClipboard(url)) toast.success(t('collection.linkCopied'));
+    else toast.error(t('common.copyFailed'));
   };
 
   const handleLike = async () => {
