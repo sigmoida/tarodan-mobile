@@ -96,7 +96,7 @@ describe('settings/security hub', () => {
     };
     for (const id of ['security-password-button', 'two-factor-manage-button', 'phone-verify-button']) {
       expect(style(id)).toMatchObject({
-        backgroundColor: 'transparent',
+        backgroundColor: theme.colors.surface.elevated,
         borderWidth: 1,
         minHeight: theme.controlHeight.sm,
       });

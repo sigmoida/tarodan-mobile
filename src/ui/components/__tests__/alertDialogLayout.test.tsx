@@ -57,7 +57,7 @@ describe('appAlert düğme dizilimi', () => {
     expect(direction()).toBe('row');
     expect(order()).toEqual(['İptal', 'Sil']);
     expect(pressableStyle('Sil').backgroundColor).toBe(theme.colors.danger[600]);
-    expect(pressableStyle('İptal')).toMatchObject({ borderWidth: 1, backgroundColor: 'transparent' });
+    expect(pressableStyle('İptal')).toMatchObject({ borderWidth: 1, backgroundColor: theme.colors.surface.elevated });
     expect(screen.getByText('Sil').props.numberOfLines).toBe(1);
   });
 

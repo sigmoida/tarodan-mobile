@@ -63,7 +63,8 @@ const { colors, radiusRole, spacing, typography, controlHeight, iconSize, minTou
 const variantStyle: Record<ButtonVariant, { bg: string; text: string; border?: string }> = {
   primary: { bg: colors.primary[600], text: colors.text.inverted },
   secondary: { bg: colors.surface.alt, text: colors.text.heading },
-  outline: { bg: 'transparent', text: colors.text.body, border: colors.border.DEFAULT },
+  // Beyaz zemin (web outline = bg-white + border): gri alt çubuk/kart üstünde de beyaz görünür.
+  outline: { bg: colors.surface.elevated, text: colors.text.body, border: colors.border.DEFAULT },
   ghost: { bg: 'transparent', text: colors.text.body },
   danger: { bg: colors.danger[600], text: colors.text.inverted },
   success: { bg: colors.success[600], text: colors.text.inverted },
