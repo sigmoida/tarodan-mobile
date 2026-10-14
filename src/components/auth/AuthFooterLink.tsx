@@ -3,8 +3,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Text, theme } from '@/ui';
 
 export interface AuthFooterLinkProps {
-  /** Düz metin ("Hesabınız yok mu?"). */
-  prompt: string;
+  /** Düz metin ("Hesabınız yok mu?"); verilmezse satır yalnız bağlantıdır. */
+  prompt?: string;
   /** Bağlantı etiketi ("Üye Ol"). */
   linkLabel: string;
   onPress: () => void;
@@ -24,9 +24,11 @@ export const AuthFooterLink: React.FC<AuthFooterLinkProps> = ({
   testID,
 }) => (
   <View style={styles.row}>
-    <Text variant="bodySm" tone="muted">
-      {prompt}
-    </Text>
+    {prompt ? (
+      <Text variant="bodySm" tone="muted">
+        {prompt}
+      </Text>
+    ) : null}
     <Pressable
       testID={testID}
       onPress={onPress}
