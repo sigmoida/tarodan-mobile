@@ -6,8 +6,6 @@ export const goSearch = (query: string) => {
   if (query.trim()) router.push(`/search?q=${encodeURIComponent(query)}`);
 };
 
-export const goScale = (scale: string) => router.push(`/search?scale=${encodeURIComponent(scale)}`);
-
 // Anasayfa "Markalar" şeridi aslında üreticiler — web menüsüyle aynı: id (API süzgeci, ad
 // eşleşmesinden bağımsız) + ad (aktif filtre çipi etiketi) birlikte.
 export const goBrand = (brand: { id: string; name: string }) =>

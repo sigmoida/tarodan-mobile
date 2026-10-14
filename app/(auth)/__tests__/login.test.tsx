@@ -212,6 +212,18 @@ describe('giriş — adım 2 (şifre)', () => {
     await waitFor(() => expect(authApi.resendVerification).toHaveBeenCalledWith('a@b.com'));
   });
 
+  it('EMAIL_NOT_VERIFIED kodu metinden bağımsız doğrulama uyarısını açar', async () => {
+    mockLogin.mockRejectedValue({
+      response: { data: { message: 'Account inactive', errorCode: 'EMAIL_NOT_VERIFIED' } },
+    });
+    renderWithProviders(<LoginScreen />);
+    await goToPasswordStep();
+    fireEvent.changeText(screen.getByTestId('login-password-input'), 'Password1');
+    fireEvent.press(screen.getByTestId('login-submit-button'));
+    await waitFor(() => expect(screen.getByTestId('unverified-email-banner')).toBeOnTheScreen());
+    expect(screen.queryByTestId('login-error-banner')).toBeNull();
+  });
+
   it('Şifremi Unuttum şifre sıfırlama ekranına gider', async () => {
     renderWithProviders(<LoginScreen />);
     await goToPasswordStep();

@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
+import { toast } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { authApi } from '@/lib/api';
 import { registrationConsentDocuments } from '@/lib/shared/legalConsent';
@@ -9,6 +10,7 @@ import { buildRegisterSchema, type RegisterForm } from '../_lib/schema';
 import { useUsernameAvailability } from '@/hooks/useUsernameAvailability';
 import { useSocialSignIn } from '@/hooks/useSocialSignIn';
 import { IS_MAESTRO } from '@/config/maestro';
+import { useResendVerification } from './useResendVerification';
 
 /**
  * "Bu e-posta zaten kayıtlı" — kasıtlı olarak fırlatılan, KULLANICIYA
@@ -58,6 +60,11 @@ export function useRegister() {
   const usernameAvailability = useUsernameAvailability(usernameValue);
   const social = useSocialSignIn();
 
+  // Kayıt başarılıysa formun yerine web "Neredeyse Tamam!" durumu çizilir (aynı rota, ayrı akış
+  // değil: geri dönüş yok, yalnız girişe/doğrulamaya yönlendirir). Doluysa durum açık.
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
+  const resend = useResendVerification(registeredEmail);
+
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterForm) => {
       // Kayıttan önce e-posta durumunu sor (web ile parite). Backend zaten 409
@@ -95,7 +102,12 @@ export function useRegister() {
         acceptedConsents: registrationConsentDocuments(data),
       });
     },
-    onSuccess: () => router.replace('/(auth)/login'),
+    onSuccess: (_res, data) => {
+      setRegisteredEmail(data.email);
+      // İlk doğrulama e-postası kayıtla birlikte gitti → tekrar gönder hemen açılmaz.
+      resend.startCooldown();
+      toast.success(t('auth.registerSuccessVerify'));
+    },
   });
 
   const onSubmit = (data: RegisterForm) => {
@@ -107,6 +119,8 @@ export function useRegister() {
   };
 
   const handleBack = () => (router.canGoBack() ? router.back() : router.replace('/(auth)/login'));
+  const goToLogin = () => router.replace('/(auth)/login');
+  const goToVerifyEmail = () => router.push('/(auth)/verify-email');
 
   return {
     control,
@@ -117,6 +131,10 @@ export function useRegister() {
     handleBack,
     usernameAvailability,
     social,
+    registeredEmail,
+    resend,
+    goToLogin,
+    goToVerifyEmail,
   };
 }
 

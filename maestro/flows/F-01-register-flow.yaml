@@ -85,10 +85,10 @@ env:
     timeout: 10000
 - tapOn:
     id: "register-submit-button"
-# Başarılı: login ekranına yönlendirilir VEYA verify-email gate çıkar.
+# Başarılı: "Neredeyse Tamam!" durumu (doğrulama e-postası gönderildi + Giriş Sayfasına Git).
 - extendedWaitUntil:
     visible:
-      text: ".*doğrula.*|.*Giriş.*|.*E-posta.*"
+      id: "register-go-login-button"
     timeout: 30000
 - assertNotVisible: ".*Network Error.*"
 - assertNotVisible: ".*Kayıt başarısız.*"

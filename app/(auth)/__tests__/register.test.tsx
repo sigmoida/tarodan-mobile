@@ -4,7 +4,7 @@
  * birthDate jest.setup'taki EXPO_PUBLIC_MAESTRO=1 ile '1990-01-01' öndolu.
  */
 import React from 'react';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { act, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 import { routerMock, resetRouterMocks, pushMock } from '@/test-utils/router-mock';
 
@@ -13,6 +13,7 @@ jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 jest.mock('@/lib/api', () => ({
   authApi: {
     register: jest.fn(),
+    resendVerification: jest.fn(() => Promise.resolve({ data: {} })),
     checkUsernameAvailability: jest.fn(() => Promise.resolve({ data: { available: true } })),
   },
 }));
@@ -61,14 +62,53 @@ describe('J43 · aynı email ile kayıt reddi (register)', () => {
     );
   });
 
-  it('başarılı kayıt login ekranına yönlendirir', async () => {
+  it('başarılı kayıt "Neredeyse Tamam!" durumunu gösterir (sessizce girişe gitmez)', async () => {
     mockRegister.mockResolvedValue({ data: { id: 'u1' } });
     renderWithProviders(<RegisterScreen />);
     fillValidFormExceptResult();
     fireEvent.press(screen.getByTestId('register-submit-button'));
 
-    await waitFor(() => expect(mockRegister).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByTestId('register-verify-sent')).toBeOnTheScreen());
+    expect(routerMock.router.replace).not.toHaveBeenCalled();
+    expect(screen.getByText('Neredeyse Tamam!')).toBeOnTheScreen();
+    expect(screen.getByTestId('register-verify-email')).toHaveTextContent('dupe@demo.com');
+    expect(screen.queryByTestId('register-submit-button')).toBeNull();
+
+    fireEvent.press(screen.getByTestId('register-go-login-button'));
     expect(routerMock.router.replace).toHaveBeenCalledWith('/(auth)/login');
+    fireEvent.press(screen.getByTestId('register-verify-later-link'));
+    expect(pushMock).toHaveBeenCalledWith('/(auth)/verify-email');
+  });
+
+  it('tekrar gönder: ilk 60 sn kilitli (geri sayım), sonra e-postayla resend-verification çağırır', async () => {
+    // Geri sayım aralığı kayıt anında kurulur → sahte saat baştan açık olmalı.
+    jest.useFakeTimers();
+    try {
+      mockRegister.mockResolvedValue({ data: { id: 'u1' } });
+      renderWithProviders(<RegisterScreen />);
+      fillValidFormExceptResult();
+      fireEvent.press(screen.getByTestId('register-submit-button'));
+      await waitFor(() => expect(screen.getByTestId('register-resend-button')).toBeOnTheScreen());
+
+      expect(screen.getByText('Tekrar gönder (60s)')).toBeOnTheScreen();
+      fireEvent.press(screen.getByTestId('register-resend-button'));
+      expect(authApi.resendVerification).not.toHaveBeenCalled();
+
+      for (let i = 0; i < 60; i++) {
+        act(() => {
+          jest.advanceTimersByTime(1000);
+        });
+      }
+      expect(screen.getByText('Doğrulama E-postasını Tekrar Gönder')).toBeOnTheScreen();
+    } finally {
+      jest.useRealTimers();
+    }
+    fireEvent.press(screen.getByTestId('register-resend-button'));
+    await waitFor(() =>
+      expect(authApi.resendVerification).toHaveBeenCalledWith('dupe@demo.com'),
+    );
+    // Başarılı gönderim geri sayımı yeniden kurar.
+    await waitFor(() => expect(screen.getByText('Tekrar gönder (60s)')).toBeOnTheScreen());
   });
 
   it('B-2.3 kayıt gövdesi acceptedConsents taşır; yasal ad/TCKN gönderilmez', async () => {

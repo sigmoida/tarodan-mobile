@@ -21,6 +21,7 @@ import { withInlineAds, type GridRow } from '@/lib/ads/inlinePlacement';
 import { useAdSession } from '@/lib/ads/useAdSession';
 import { useListings } from './_hooks/useListings';
 import { styles } from './_lib/styles';
+import { listingsTitle } from './_lib/title';
 import { ListingsHeader } from './_components/ListingsHeader';
 import { ListingsFooter } from './_components/ListingsFooter';
 
@@ -47,7 +48,7 @@ function ListingsScreen() {
 
   return (
     <PageShell
-      title={t('common.listings')}
+      title={listingsTitle(f.filters, t, f.options)}
       mode="list"
       scroll={page}
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}

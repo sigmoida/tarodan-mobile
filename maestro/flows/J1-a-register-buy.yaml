@@ -163,7 +163,13 @@ tags:
     timeout: 10000
 - tapOn:
     id: "register-submit-button"
-# Başarılı kayıt → login ekranına döner (register.tsx onSuccess router.replace login)
+# Başarılı kayıt → "Neredeyse Tamam!" durumu (web paritesi); "Giriş Sayfasına Git" login'e götürür.
+- extendedWaitUntil:
+    visible:
+      id: "register-go-login-button"
+    timeout: 20000
+- tapOn:
+    id: "register-go-login-button"
 - extendedWaitUntil:
     visible:
       id: "login-email-input"

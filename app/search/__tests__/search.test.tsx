@@ -144,6 +144,22 @@ describe('catalog-search · arama ekranı (J52/J53)', () => {
     expect(input.props.value).toBe('ferrari');
   });
 
+  it('regresyon: aramadan dönüp yeniden açılan /search önceki sorguyu taşımaz', async () => {
+    mockGetAll.mockResolvedValue(mockListResponse([]));
+    const first = renderWithProviders(<SearchScreen />);
+    fireEvent.changeText(screen.getByTestId('search-input'), 'ferrari');
+    first.unmount();
+
+    // Ana sayfa sahte alanı `/search?focus=1` açar (q yok) → yeni örnek boş başlar.
+    mockGetAll.mockClear();
+    renderWithProviders(<SearchScreen />);
+    expect(screen.getByTestId('search-input').props.value).toBe('');
+    await waitFor(() => expect(mockGetAll).toHaveBeenCalled());
+    const params = mockGetAll.mock.calls[0][0];
+    expect(params.search).toBeUndefined();
+    expect(params.scale).toBeUndefined();
+  });
+
   it('J53 · ürün kartına basınca ürün detayına navigasyon yapılır', async () => {
     mockGetAll.mockResolvedValue(mockListResponse([makeProduct('p1', 'Ferrari F40')]));
     renderWithProviders(<SearchScreen />);

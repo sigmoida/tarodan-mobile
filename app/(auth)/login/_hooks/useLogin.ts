@@ -119,11 +119,21 @@ export function useLogin() {
       router.replace('/' as never);
     },
     onError: (error: unknown) => {
-      const e = error as { response?: { data?: { message?: string } }; message?: string };
+      const e = error as {
+        response?: { data?: { message?: string; errorCode?: string } };
+        message?: string;
+      };
       const msg = e?.response?.data?.message || e?.message || t('auth.loginFailed');
       logger.debug('Login hatası', { msg });
       const lower = msg.toLowerCase();
-      if (lower.includes('doğrula') || lower.includes('verify') || lower.includes('doğrulanmadı')) {
+      // Önce sunucunun dilden bağımsız kodu (`EMAIL_NOT_VERIFIED`); metin kontrolü yalnız
+      // kodu göndermeyen eski API yanıtları için yedek.
+      const unverified =
+        e?.response?.data?.errorCode === 'EMAIL_NOT_VERIFIED' ||
+        lower.includes('doğrula') ||
+        lower.includes('verify') ||
+        lower.includes('doğrulanmadı');
+      if (unverified) {
         setUnverifiedEmail(getValues('email'));
         setErrorMessage(null);
       } else {
@@ -229,7 +239,8 @@ export function useLogin() {
     handleSubmit(onSubmit)();
   };
 
-  const errorBannerVisible = errorMessage || loginMutation.isError;
+  // Doğrulanmamış e-posta kendi uyarı kutusunu gösterir; üstüne "Giriş başarısız" yazılmaz.
+  const errorBannerVisible = errorMessage || (loginMutation.isError && !unverifiedEmail);
 
   return {
     form,
