@@ -98,7 +98,10 @@ export function useEntityProducts(kind: CatalogEntityKind, slug: string | undefi
     products,
     // Varlık çözülmeden ürün sorgusu devre dışıdır (isLoading=false): boş durum erken çakmasın.
     loading: entityQuery.isLoading || (!!entity?.id && productsQuery.isPending),
-    error: productsQuery.error,
+    // Hata yalnız gösterilecek ürün YOKKEN tam ekran ErrorState olur. Sonraki sayfa / yenileme
+    // hatasında yüklü ızgara korunur (ProductGrid hata gelince listeyi siliyordu); `hasNextPage`
+    // açık kaldığı için bir sonraki `onEndReached` sayfayı yeniden dener.
+    error: products.length === 0 ? productsQuery.error : null,
     refetch: refresh,
     // Sonraki sayfa yüklenirken de `isRefetching` değil — yalnız çek-bırak yenilemesi.
     isRefetching: productsQuery.isRefetching && !isFetchingNextPage,

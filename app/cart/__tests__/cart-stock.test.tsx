@@ -119,6 +119,22 @@ describe('Sepet · süresiz sepet ve sunucu stoğu', () => {
     expect(increase()).toBeDisabled();
   });
 
+  it('sunucu stoğu sepetteki adedin altına düştü (5 → 3): "+" kilitli, "−" çalışır ve 3 e kırpar', async () => {
+    // Yerel donmuş stok 9: "+" yalnız sunucu yanıtı gelince kilitlenir (yanıtı beklemiş oluruz).
+    useCartStore.setState({ items: [seedItem({ stock: 9, quantity: 5 })] });
+    jest.mocked(cartApi.get).mockResolvedValue(serverCart({ availableQuantity: 3 }) as any);
+    renderWithProviders(<CartScreen />);
+
+    const decrease = () => screen.getByLabelText('Adedi azalt');
+    await waitFor(() => expect(increase()).toBeDisabled());
+    expect(decrease()).not.toBeDisabled();
+    fireEvent.press(decrease());
+
+    const item = useCartStore.getState().items[0]!;
+    expect(item.quantity).toBe(3);
+    expect(cartApi.updateItem).toHaveBeenCalledWith('p1', 3);
+  });
+
   it('sunucu maxQuantity daha düşükse o tavan olur', async () => {
     useCartStore.setState({ items: [seedItem({ stock: 5, quantity: 2 })] });
     jest.mocked(cartApi.get).mockResolvedValue(serverCart({ maxQuantity: 2 }) as any);

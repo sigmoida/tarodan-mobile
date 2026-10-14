@@ -108,15 +108,17 @@ export function useCart() {
 
   /**
    * Adet seçicinin tavanı. Sunucu değeri varsa o (sipariş-başı limit ve 99 ile kırpılır);
-   * sunucu 0 diyorsa artırma kapanır (azaltma serbest). Yoksa eski davranış: ekleme anındaki stok.
+   * yoksa eski davranış: ekleme anındaki stok. Tavan sepetteki adedin ALTINA düşerse
+   * (sepette 5, sunucu 3/0) tavan = mevcut adet: "+" kilitlenir, "−" çalışır — stepper
+   * `value > max` iken her adımı yutuyordu. Azaltınca store taze tavana kırpar (syncStock).
    */
   const maxQuantityFor = (item: Pick<CartItem, 'productId' | 'quantity' | 'stock' | 'maxQuantityPerOrder'>) => {
     const server = serverStockFor(item.productId);
-    if (server === 0) return Math.max(1, item.quantity);
-    return maxAllowedQty({
-      stock: server ?? item.stock,
-      maxQuantityPerOrder: item.maxQuantityPerOrder,
-    });
+    const cap =
+      server === 0
+        ? 0
+        : maxAllowedQty({ stock: server ?? item.stock, maxQuantityPerOrder: item.maxQuantityPerOrder });
+    return Math.max(1, item.quantity, cap);
   };
 
   const handleQuantityChange = (itemId: string, delta: number) => {

@@ -60,6 +60,32 @@ describe('useEntityProducts · sayfalama', () => {
     expect(getAll).toHaveBeenCalledTimes(2);
   });
 
+  it('sonraki sayfa hatası yüklü ızgarayı silmez; tekrar kaydırınca yeniden dener', async () => {
+    getAll
+      .mockResolvedValueOnce(page(['p1', 'p2'], 1, 2))
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValueOnce(page(['p3'], 2, 2));
+
+    const { result } = renderHook(() => useEntityProducts('manufacturer', 'hot-wheels'), { wrapper });
+    await waitFor(() => expect(result.current.products).toHaveLength(2));
+
+    act(() => result.current.loadMore());
+    await waitFor(() => expect(getAll).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.loadingMore).toBe(false));
+    expect(result.current.products).toHaveLength(2);
+    expect(result.current.error).toBeNull();
+
+    act(() => result.current.loadMore());
+    await waitFor(() => expect(result.current.products.map((p) => p.id)).toEqual(['p1', 'p2', 'p3']));
+  });
+
+  it('ilk sayfa hatası (ürün yok) → error dolu (tam ekran ErrorState)', async () => {
+    getAll.mockRejectedValueOnce(new Error('boom'));
+    const { result } = renderHook(() => useEntityProducts('manufacturer', 'hot-wheels'), { wrapper });
+    await waitFor(() => expect(result.current.error).toBeTruthy());
+    expect(result.current.products).toHaveLength(0);
+  });
+
   it('meta yoksa (eski yanıt) tek sayfa sayılır', async () => {
     getAll.mockResolvedValueOnce({ data: { data: [{ id: 'p1', title: 'x', price: 1, images: [] }] } });
     const { result } = renderHook(() => useEntityProducts('manufacturer', 'hot-wheels'), { wrapper });
