@@ -1,59 +1,12 @@
 import React from 'react';
 import { Image, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Alert, Badge, Button, ButtonRow, IconButton, SectionCard, Text } from '@/ui';
+import { Alert, Button, IconButton, SectionCard, Text } from '@/ui';
 import { Form, FormInput } from '@/ui/form';
-import type { MessageKey } from '@/i18n/lib';
 
 import { styles } from '../_lib/styles';
 import { toSixDigits } from '../_lib/schema';
-import { REQUIREMENT_KEYS, WHY_2FA_MATTERS_KEYS } from '../_lib/types';
 import type { TwoFactorFlow } from '../_hooks/useTwoFactorFlow';
-
-/** Durum kartı (web `StatusCard`). */
-export function TwoFactorStatusCard({ isEnabled }: { isEnabled: boolean }) {
-  const { t } = useTranslation();
-  return (
-    <SectionCard>
-      <View style={styles.settingRow}>
-        <View style={styles.settingText}>
-          <Text variant="body" weight="semibold">{t('settings.twoFactorTitle')}</Text>
-          <Text variant="bodySm" tone="muted">
-            {isEnabled ? t('settings.twoFactorEnabledDesc') : t('settings.twoFactorDisabledDesc')}
-          </Text>
-        </View>
-        <Badge variant={isEnabled ? 'success' : 'outline'} testID="two-factor-status-badge">
-          {isEnabled ? t('common.active') : t('common.inactive')}
-        </Badge>
-      </View>
-    </SectionCard>
-  );
-}
-
-function Bullets({ keys }: { keys: readonly MessageKey[] }) {
-  const { t } = useTranslation();
-  return (
-    <View style={styles.list}>
-      {keys.map((key) => (
-        <Text key={key} variant="bodySm" tone="muted">
-          • {t(key)}
-        </Text>
-      ))}
-    </View>
-  );
-}
-
-/** Kurulum öncesi tanıtım (web `SetupIntro`); "Kurulumu Başlat" alt çubukta. */
-export function SetupIntro() {
-  const { t } = useTranslation();
-  return (
-    <SectionCard title={t('profile.twoFactor.enable')} bodyStyle={styles.stack}>
-      <Text variant="bodySm" tone="muted">{t('profile.twoFactor.intro')}</Text>
-      <Text variant="bodySm" weight="medium">{t('profile.twoFactor.requirementsTitle')}</Text>
-      <Bullets keys={REQUIREMENT_KEYS} />
-    </SectionCard>
-  );
-}
 
 function StepHead({ n, title }: { n: number; title: string }) {
   return (
@@ -67,8 +20,9 @@ function StepHead({ n, title }: { n: number; title: string }) {
 }
 
 /**
- * Kurulum (web `SetupFlow`): 1) QR'ı tara / anahtarı kopyala, 2) 6 haneli kodu gir. Kullanıcı
- * Authenticator'a geçip döndüğünde QR ve anahtar ekranda kalır; "Doğrula" alt çubukta.
+ * Kurulum (web `SetupFlow`) — 2FA kapalıyken ekranın TEK içeriği: 1) QR'ı tara / anahtarı kopyala,
+ * 2) 6 haneli kodu gir. Kullanıcı Authenticator'a geçip döndüğünde QR ve anahtar ekranda kalır;
+ * "Doğrula ve Etkinleştir" alt çubukta; yanlış kod hatası alanın altında.
  */
 export function SetupFlow({ f }: { f: TwoFactorFlow }) {
   const { t } = useTranslation();
@@ -119,8 +73,10 @@ export function SetupFlow({ f }: { f: TwoFactorFlow }) {
           keyboardType="number-pad"
           maxLength={6}
           transform={toSixDigits}
-          autoComplete="one-time-code"
-          textContentType="oneTimeCode"
+          // TOTP (Authenticator) kodu — SMS değil: iOS "Mesajlar'dan" / Android SMS önerisi kapalı
+          // (son gelen telefon doğrulama SMS'i önerilip yanlış kod gönderilebiliyordu).
+          autoComplete="off"
+          textContentType="none"
           inputStyle={styles.codeInput}
           accessibilityLabel={t('security.verificationCode')}
           testID="two-factor-code-input"
@@ -193,60 +149,34 @@ export function EnabledOptions({ f }: { f: TwoFactorFlow }) {
   );
 }
 
-/** "2FA neden önemli?" (web `WhyItMatters`). */
-export function WhyItMatters() {
-  const { t } = useTranslation();
-  return (
-    <SectionCard title={t('profile.twoFactor.whyTitle')}>
-      <Bullets keys={WHY_2FA_MATTERS_KEYS} />
-    </SectionCard>
-  );
-}
-
 /** Alt çubuk: görünüme göre tek ana aksiyon (klavyenin üstünde kalır). */
 export function TwoFactorFooter({ f }: { f: TwoFactorFlow }) {
   const { t } = useTranslation();
-  switch (f.view) {
-    case 'intro':
-      return (
-        <Button
-          variant="primary"
-          size="lg"
-          fullWidth
-          title={t('profile.twoFactor.startSetup')}
-          onPress={f.startSetup}
-          isLoading={f.isStarting}
-          disabled={f.isStarting}
-          testID="two-factor-start"
-        />
-      );
-    case 'setup':
-      return (
-        <ButtonRow stackOrder="reverse">
-          <Button variant="outline" size="lg" title={t('common.cancel')} onPress={f.cancelSetup} />
-          <Button
-            variant="primary"
-            size="lg"
-            title={t('profile.twoFactor.verifyAndEnable')}
-            onPress={f.submitVerify}
-            isLoading={f.isVerifying}
-            disabled={!f.canVerify}
-            testID="two-factor-verify"
-          />
-        </ButtonRow>
-      );
-    case 'codes':
-      return (
-        <Button
-          variant="primary"
-          size="lg"
-          fullWidth
-          title={t('profile.twoFactor.savedAck')}
-          onPress={f.ackCodes}
-          testID="backup-codes-ack"
-        />
-      );
-    default:
-      return null;
+  if (f.view === 'setup' && f.setup) {
+    // Uzunluğa göre kilitlenmez: her basış geri bildirim verir (eksik kod → alanın altında uyarı).
+    return (
+      <Button
+        variant="primary"
+        size="lg"
+        fullWidth
+        title={t('profile.twoFactor.verifyAndEnable')}
+        onPress={f.submitVerify}
+        isLoading={f.isVerifying}
+        testID="two-factor-verify"
+      />
+    );
   }
+  if (f.view === 'codes') {
+    return (
+      <Button
+        variant="primary"
+        size="lg"
+        fullWidth
+        title={t('profile.twoFactor.savedAck')}
+        onPress={f.ackCodes}
+        testID="backup-codes-ack"
+      />
+    );
+  }
+  return null;
 }

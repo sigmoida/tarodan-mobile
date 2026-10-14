@@ -84,8 +84,9 @@ export function TwoFactorCodeModal({
           keyboardType="number-pad"
           maxLength={6}
           transform={toSixDigits}
-          autoComplete="one-time-code"
-          textContentType="oneTimeCode"
+          // TOTP (Authenticator) kodu — SMS değil: iOS "Mesajlar'dan" / Android SMS önerisi kapalı.
+          autoComplete="off"
+          textContentType="none"
           autoFocus
           testID={testID ? `${testID}-input` : undefined}
         />
