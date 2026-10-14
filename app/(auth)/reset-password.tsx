@@ -8,13 +8,13 @@ import { authApi } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 import { firstPasswordViolation, type PasswordRuleKey } from "@/utils/passwordPolicy";
 
-const RESET_RULE_KEYS: Record<PasswordRuleKey, string> = {
+const RESET_RULE_KEYS = {
   min: "auth.pwRuleMinLength",
   max: "validation.passwordMax72",
   uppercase: "auth.pwRuleUppercase",
   lowercase: "auth.pwRuleLowercase",
   number: "auth.pwRuleNumber",
-};
+} as const satisfies Record<PasswordRuleKey, string>;
 
 const { colors } = theme;
 
