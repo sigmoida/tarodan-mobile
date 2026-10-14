@@ -1,11 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Platform,
-  Pressable,
-  StyleSheet,
-  View,
-  type ViewStyle,
-} from 'react-native';
+import { Platform, StyleSheet, type ViewStyle } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import DateTimePicker, {
   type DateTimePickerEvent,
@@ -13,19 +7,17 @@ import DateTimePicker, {
 import { BottomSheet } from './BottomSheet';
 import { Button } from './Button';
 import { ButtonRow } from './ButtonRow';
-import { theme } from '../lib/theme';
 // Bazı ekran testleri `react-i18next`'i yalnız `{ t }` döndürecek şekilde
 // mock'luyor (useTranslation().i18n undefined kalır) — aktif dili doğrudan
 // global i18n örneğinden okuyoruz (bkz. `@/utils/format`), `t` yine
 // `useTranslation()`'dan (mock'lanabilir metin).
 import i18nInstance from '@/i18n/config';
-import { RawText } from './Text';
-import { FieldMessage, Label } from './Label';
-import { fieldBorderColor } from './Input';
+import { FieldTrigger } from './FieldTrigger';
 
-import { Icon } from '../icons';
 export interface DateFieldProps {
   label?: string;
+  /** Etiketin sonuna kırmızı `*`. */
+  required?: boolean;
   /** ISO date string "YYYY-MM-DD" (or empty/undefined when unset). */
   value?: string;
   /** Always called with a "YYYY-MM-DD" string. */
@@ -39,8 +31,6 @@ export interface DateFieldProps {
   testID?: string;
   containerStyle?: ViewStyle;
 }
-
-const { colors, radius, spacing, typography } = theme;
 
 /** iOS `UIDatePicker` spinner'ının doğal yüksekliği (pt). */
 const IOS_SPINNER_HEIGHT = 216;
@@ -94,6 +84,7 @@ function formatHuman(date: Date, locale: string): string {
 
 export const DateField: React.FC<DateFieldProps> = ({
   label,
+  required,
   value,
   onChange,
   error,
@@ -129,35 +120,22 @@ export const DateField: React.FC<DateFieldProps> = ({
   };
 
   return (
-    <View style={[styles.container, containerStyle]}>
-      {label ? <Label>{label}</Label> : null}
-
-      <Pressable
+    <>
+      <FieldTrigger
         testID={testID}
+        label={label}
+        required={required}
+        value={selectedDate ? formatHuman(selectedDate, dateLocale) : null}
+        placeholder={resolvedPlaceholder}
         onPress={open}
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        style={[
-          styles.field,
-          { borderColor: fieldBorderColor(error, show) },
-        ]}
-      >
-        <RawText
-          // Yan yana (yarım genişlik) yerleşimde "30 Ağustos 1990" iki satıra sarmasın.
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.8}
-          style={[
-            styles.value,
-            { color: selectedDate ? colors.text.body : colors.text.subtle },
-          ]}
-        >
-          {selectedDate ? formatHuman(selectedDate, dateLocale) : resolvedPlaceholder}
-        </RawText>
-        <Icon name="calendar" size={theme.iconSize.md} color={colors.text.subtle} />
-      </Pressable>
-
-      <FieldMessage error={error} helperText={helperText} />
+        error={error}
+        helperText={helperText}
+        open={show}
+        icon="calendar"
+        // Yan yana (yarım genişlik) yerleşimde "30 Ağustos 1990" iki satıra sarmasın.
+        fitText
+        containerStyle={containerStyle}
+      />
 
       {Platform.OS === 'android' && show ? (
         <DateTimePicker
@@ -211,29 +189,11 @@ export const DateField: React.FC<DateFieldProps> = ({
           />
         </BottomSheet>
       ) : null}
-    </View>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    marginBottom: spacing[2],
-  },
-  field: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    height: theme.controlHeight.md,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    paddingHorizontal: spacing[3],
-    backgroundColor: colors.surface.elevated,
-  },
-  value: {
-    flex: 1,
-    fontSize: typography.fontSize.base,
-  },
   iosPicker: {
     alignSelf: 'center',
     // iOS spinner explicit boyut almazsa 0 yüksekliğe çöküp görünmez oluyor (sistem spinner'ı 216pt).

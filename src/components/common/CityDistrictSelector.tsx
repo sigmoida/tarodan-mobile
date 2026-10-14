@@ -1,10 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, StyleSheet, Pressable, Keyboard } from 'react-native';
+import { View, StyleSheet, Keyboard } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { theme, SelectSheet, Text, Icon, type SelectSheetOption } from '@/ui';
+import { theme, FieldTrigger, SelectSheet, type SelectSheetOption } from '@/ui';
 import { turkeyLocations, getDistrictsForCity } from '../../utils/turkeyLocations';
-
-const { colors } = theme;
 
 /** İl (81) ve ilçe listeleri sabit satır yüksekliğiyle sanal kayar (`SelectSheet.rowHeight`). */
 const ROW_HEIGHT = 48;
@@ -79,43 +77,31 @@ export function CityDistrictSelector({
 
   return (
     <View>
-      <Pressable
+      <FieldTrigger
+        label={t('address.city')}
+        required
+        value={city}
+        placeholder={t('common.selectCityPlaceholder')}
         onPress={openCity}
-        style={({ pressed }) => [styles.fakeInput, cityError && styles.fakeInputError, pressed && styles.pressed]}
-        accessibilityRole="button"
+        error={cityError}
+        open={cityOpen}
+        containerStyle={styles.field}
         testID="city-select-trigger"
-      >
-        <View style={styles.fill}>
-          <Text variant="caption" tone="muted">{`${t('address.city')} *`}</Text>
-          <Text variant="body" tone={city ? 'heading' : 'subtle'} numberOfLines={1}>
-            {city || t('common.selectCityPlaceholder')}
-          </Text>
-        </View>
-        <Icon name="chevron-down" size={theme.iconSize.sm} color={colors.text.muted} />
-      </Pressable>
+      />
 
       {!hideDistrict ? (
-        <Pressable
+        <FieldTrigger
+          label={t('address.district')}
+          required
+          value={district}
+          placeholder={city ? t('common.selectDistrictPlaceholder') : t('common.selectCityFirst')}
           onPress={openDistrict}
           disabled={!city}
-          style={({ pressed }) => [
-            styles.fakeInput,
-            districtError && styles.fakeInputError,
-            !city && styles.fakeInputDisabled,
-            pressed && styles.pressed,
-          ]}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !city }}
+          error={districtError}
+          open={districtOpen}
+          containerStyle={styles.field}
           testID="district-select-trigger"
-        >
-          <View style={styles.fill}>
-            <Text variant="caption" tone="muted">{`${t('address.district')} *`}</Text>
-            <Text variant="body" tone={district ? 'heading' : 'subtle'} numberOfLines={1}>
-              {district || (city ? t('common.selectDistrictPlaceholder') : t('common.selectCityFirst'))}
-            </Text>
-          </View>
-          <Icon name="chevron-down" size={theme.iconSize.sm} color={colors.text.muted} />
-        </Pressable>
+        />
       ) : null}
 
       <SelectSheet
@@ -148,27 +134,8 @@ export function CityDistrictSelector({
 }
 
 const styles = StyleSheet.create({
-  fill: { flex: 1 },
-  fakeInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface.DEFAULT,
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    borderRadius: theme.radius.md,
-    paddingHorizontal: theme.spacing[3.5],
-    paddingVertical: theme.spacing[2.5],
-    minHeight: theme.controlHeight.xl,
-    marginBottom: theme.spacing[3],
-  },
-  fakeInputError: {
-    borderColor: colors.danger[600]!,
-  },
-  fakeInputDisabled: {
-    backgroundColor: colors.surface.alt,
-    opacity: 0.6,
-  },
-  pressed: { opacity: 0.7 },
+  // Yanındaki Input'larla aynı dikey ritim (formlarda `containerStyle` alt boşluğu spacing[3]).
+  field: { marginBottom: theme.spacing[3] },
 });
 
 export default CityDistrictSelector;

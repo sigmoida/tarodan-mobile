@@ -43,7 +43,8 @@ export function CheckoutAddressSection({ c }: { c: Ctrl }) {
           />
           <PhoneInput
             testID="guest-phone-input"
-            label={`${t('checkout.guestPhone')} *`}
+            label={t('checkout.guestPhone')}
+            required
             // Çözülemeyen numara blur'da uyarır (gönderimi engelleyen kuralla aynı ayrıştırıcı).
             validateOnBlur
             countryCode={c.guestPhoneCountryCode}

@@ -59,7 +59,8 @@ export function AddressForm({ address }: { address: Address | null }) {
             render={({ field, fieldState }) => (
               <PhoneInput
                 testID="address-phone-input"
-                label={`${t('address.phone')} *`}
+                label={t('address.phone')}
+                required
                 // Kaydete basmadan önce görsün: çözülemeyen numara blur'da uyarır.
                 validateOnBlur
                 phone={field.value}

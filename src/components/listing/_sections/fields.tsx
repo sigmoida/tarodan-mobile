@@ -2,18 +2,15 @@ import React, { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import {
   Chip,
-  Icon,
+  FieldTrigger,
   Label,
   ListRowCard,
   Text,
-  androidRipple,
   pillBoxStyle,
-  rippleClip,
-  showPressedStyle,
   theme,
 } from '@/ui';
 
-const { colors, spacing, controlHeight, radiusRole, iconSize, radius, minTouchTarget } = theme;
+const { colors, spacing, controlHeight, radius, minTouchTarget } = theme;
 
 /**
  * İlan formunun ortak alan parçaları. Hepsi `@/ui` primitiflerinden; ekranlar elle çerçeve /
@@ -35,7 +32,7 @@ export interface PickerFieldProps {
   testID?: string;
 }
 
-/** Web Select tetikleyicisiyle aynı ölçü (Input md: h-40, px-3, text-base) + aşağı ok. */
+/** Ortak `FieldTrigger` (Input ile aynı kutu): üstte etiket, kutuda değer/placeholder + aşağı ok. */
 export const PickerField = memo(function PickerField({
   label,
   required,
@@ -46,35 +43,17 @@ export const PickerField = memo(function PickerField({
   testID,
 }: PickerFieldProps) {
   return (
-    <View>
-      <Label required={required}>{label}</Label>
-      <Pressable
-        testID={testID}
-        onPress={onPress}
-        disabled={disabled}
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        accessibilityValue={{ text: value || placeholder }}
-        accessibilityState={{ disabled: !!disabled }}
-        android_ripple={androidRipple()}
-        style={({ pressed }) => [
-          styles.trigger,
-          rippleClip(),
-          disabled && styles.triggerDisabled,
-          showPressedStyle(pressed) && styles.triggerPressed,
-        ]}
-      >
-        <Text
-          variant="body"
-          tone={value ? 'body' : 'subtle'}
-          numberOfLines={1}
-          style={styles.triggerText}
-        >
-          {value || placeholder}
-        </Text>
-        <Icon name="chevron-down" size={iconSize.sm} color={colors.text.subtle} />
-      </Pressable>
-    </View>
+    <FieldTrigger
+      label={label}
+      required={required}
+      value={value}
+      placeholder={placeholder}
+      onPress={onPress}
+      disabled={disabled}
+      testID={testID}
+      // Bölüm gövdesi ritmini `fieldStyles.body.gap` verir (çift boşluk olmasın).
+      containerStyle={fieldStyles.flush}
+    />
   );
 });
 
@@ -231,27 +210,6 @@ const CHIP_SLOP = { top: (minTouchTarget - CHIP_HEIGHT) / 2, bottom: (minTouchTa
 const COLOR_DOT = spacing[2.5];
 
 const styles = StyleSheet.create({
-  trigger: {
-    height: controlHeight.md,
-    paddingHorizontal: spacing[3],
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    borderRadius: radiusRole.input,
-    backgroundColor: colors.surface.elevated,
-  },
-  triggerDisabled: {
-    backgroundColor: colors.surface.DEFAULT,
-    opacity: 0.5,
-  },
-  triggerPressed: {
-    borderColor: colors.primary[500],
-  },
-  triggerText: {
-    flex: 1,
-  },
   chipWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',

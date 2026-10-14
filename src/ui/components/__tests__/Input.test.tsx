@@ -84,6 +84,6 @@ describe('Select', () => {
     fireEvent.press(screen.getByRole('combobox'));
     fireEvent.press(screen.getByText('İki'));
     expect(onChange).toHaveBeenCalledWith('b');
-    expect(StyleSheet.flatten(screen.getByRole('combobox').props.style).height).toBe(40);
+    expect(StyleSheet.flatten(screen.getByRole('combobox').props.style).minHeight).toBe(40);
   });
 });

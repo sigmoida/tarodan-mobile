@@ -13,6 +13,7 @@ import { theme } from '../lib/theme';
 import { RawTextInput } from './RawTextInput';
 import { Icon, RefIcon, type IconRef } from '../icons';
 import { FieldMessage, Label } from './Label';
+import { fieldBoxStyle, fieldSizeStyle } from '../lib/fieldSurface';
 
 /**
  * Not: `style` dış sarmalayıcıya (container) uygulanır — margin/yerleşim için.
@@ -40,26 +41,7 @@ export interface InputProps extends TextInputProps {
   inputStyle?: TextStyle;
 }
 
-const { colors, radiusRole, spacing, typography, controlHeight, iconSize } = theme;
-
-/**
- * Web `@tarodan/ui` Input: sm h-8 px-2.5 · md h-10 px-3 · lg h-12 px-4. Metin her boyutta 16:
- * web telefon genişliğinde `CONTROL_TEXT` = `text-base` (16px altı iOS'ta odakta yakınlaştırır).
- * `height` Input'ta ASGARİ yüksekliktir (`minHeight` + küçük dikey dolgu): normal yazı ölçeğinde
- * alan tam bu boydadır, büyük ölçekte (metin en çok `maxFontScale.control`, `RawTextInput`) büyür.
- */
-export const inputSizeStyle = {
-  sm: { height: controlHeight.sm, px: spacing[2.5], font: typography.fontSize.base },
-  md: { height: controlHeight.md, px: spacing[3], font: typography.fontSize.base },
-  lg: { height: controlHeight.lg, px: spacing[4], font: typography.fontSize.base },
-} as const;
-
-/** Çerçeve rengi — web: hata danger-500, odak primary-500, normal border. */
-export function fieldBorderColor(error: unknown, focused: boolean): string {
-  if (error) return colors.danger[500];
-  if (focused) return colors.primary[500];
-  return colors.border.DEFAULT;
-}
+const { colors, spacing, iconSize } = theme;
 
 export const Input: React.FC<InputProps> = ({
   label,
@@ -86,10 +68,8 @@ export const Input: React.FC<InputProps> = ({
   const { t } = useTranslation();
   const [focused, setFocused] = useState(false);
   const [passwordHidden, setPasswordHidden] = useState(true);
-  const ss = inputSizeStyle[inputSize];
+  const ss = fieldSizeStyle[inputSize];
   const disabled = editable === false;
-
-  const borderColor = fieldBorderColor(error, focused);
 
   const resolvedLeftIcon =
     leftIcon ??
@@ -124,12 +104,8 @@ export const Input: React.FC<InputProps> = ({
       {label ? <Label required={required}>{label}</Label> : null}
       <View
         style={[
-          styles.field,
-          { paddingHorizontal: ss.px },
-          multiline
-            ? { minHeight: MULTILINE_MIN_HEIGHT, paddingVertical: spacing[2], alignItems: 'flex-start' }
-            : { minHeight: ss.height, paddingVertical: spacing[1] },
-          { borderColor, backgroundColor: disabled ? colors.surface.DEFAULT : colors.surface.elevated },
+          fieldBoxStyle({ size: inputSize, focused, error, disabled }),
+          multiline ? styles.fieldMultiline : null,
           fieldStyle,
         ]}
       >
@@ -170,11 +146,10 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: spacing[2],
   },
-  field: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: radiusRole.input,
-    borderWidth: 1,
+  fieldMultiline: {
+    minHeight: MULTILINE_MIN_HEIGHT,
+    paddingVertical: spacing[2],
+    alignItems: 'flex-start',
   },
   input: {
     flex: 1,
