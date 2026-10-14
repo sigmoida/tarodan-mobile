@@ -831,7 +831,8 @@
     "commissionRuleUnavailable": "This listing cannot be created because no active commission rule matches your category, price, and membership type.",
     "packageFeeLabel": "Package fee",
     "sampleDimensionsLabel": "Sample size (W × L × H)",
-    "packageFeeNeedsPriceAndCategory": "Enter a price and a category to see your package fee."
+    "packageFeeNeedsPriceAndCategory": "Enter a price and a category to see your package fee.",
+    "negotiable": "Open to offers"
   },
   "cart": {
     "addToCartFailed": "Could not add to cart",
@@ -1800,7 +1801,9 @@
     "myOffersTitle": "My Offers",
     "loadingOffers": "Loading offers...",
     "loadOffersFailed": "Something went wrong while loading offers",
-    "authGateSubtitle": "Sign in to view your offers"
+    "authGateSubtitle": "Sign in to view your offers",
+    "presetDiscount": "-{percent}%",
+    "presetsLabel": "Quick offer"
   },
   "message": {
     "messages": "Messages",

@@ -76,10 +76,10 @@ env:
     timeout: 30000
 - assertVisible: "Sepete Ekle|Sepete Git"
 # tradeAvailable ürünlerde "Takas Teklifi" butonu var
-- scrollUntilVisible:
-    element:
+# Teklif/takas satırı sabit alt barın üstünde (kaydırma gerekmez).
+- extendedWaitUntil:
+    visible:
       id: "product-detail-trade-button"
-    direction: DOWN
     timeout: 15000
     optional: true
 - tapOn:

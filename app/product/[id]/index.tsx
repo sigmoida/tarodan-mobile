@@ -25,7 +25,10 @@ import { ProductScrollView } from './_components/ProductScrollView';
 import { ProductGallery } from './_components/ProductGallery';
 import { ProductTitleBlock } from './_components/ProductTitleBlock';
 import { ProductDescription } from './_components/ProductDescription';
-import { ProductBuyBar, ProductSecondaryActions } from './_components/ProductActions';
+import { ProductBuyBar, ProductOfferTradeRow, ProductSecondaryActions } from './_components/ProductActions';
+import { getOfferTradeAvailability } from './_lib/engagement';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
 import { SellerCard } from './_components/SellerCard';
 import { ProductSpecs } from './_components/ProductSpecs';
 import { ProductReviewsPreview } from './_components/ProductReviewsPreview';
@@ -50,9 +53,10 @@ function ProductSkeleton() {
 
 /**
  * Ürün detayı — web `ListingDetailClient` blokları ve sırası: galeri, başlık, fiyat bloğu, açıklama,
- * durum uyarısı, eylem satırı (adet seçici + Takas Teklifi / Teklif Ver), satıcı kartı, özellik
- * tabloları, değerlendirmeler, benzer ürünler. Sabit alt bar (platform kalıbı): fiyat · "Hemen Al" ·
- * "Sepete Ekle" (misafir de ekler; sahipte fiyat · "Düzenle").
+ * durum uyarısı, adet seçici, satıcı kartı, özellik tabloları, değerlendirmeler, benzer ürünler.
+ * Sabit alt bar (platform kalıbı): üstte ince "Takas Teklifi" · "Teklif Ver" satırı (tek giriş;
+ * fiyatın altındaki çipler kısayol), altında fiyat · "Hemen Al" · "Sepete Ekle" (misafir de ekler;
+ * sahipte fiyat · "Düzenle").
  * Mantık `_hooks/`'ta; hook'lar PageShell'in yükleniyor/boş dallarından ÖNCE koşulsuz çağrılır.
  */
 export default function ProductDetailScreen() {
@@ -95,6 +99,11 @@ export default function ProductDetailScreen() {
     product && isAuthenticated && user?.id && product.seller?.id && user.id === product.seller.id,
   );
   const reportOnly = !sellerId || isOwner;
+  // iOS: yetkisi olmayana takas girişi gösterilmez (bkz. useFeatureAccess).
+  const { showTradeEntry } = useFeatureAccess();
+  const availability = product
+    ? getOfferTradeAvailability(product, { isOwner, isOutOfStock, showTradeEntry })
+    : { offer: false, trade: false };
   const price = product ? getProductPriceInfo(product) : null;
   const openReviews = () => router.push(`/product/${productId}/reviews`);
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
@@ -117,16 +126,23 @@ export default function ProductDetailScreen() {
       }}
       footer={
         ready ? (
-          <ProductBuyBar
-            product={product}
-            isOwner={isOwner}
-            isOutOfStock={isOutOfStock}
-            inCart={actions.inCart}
-            onAddToCart={actions.handleAddToCart}
-            onBuyNow={actions.handleBuyNow}
-            onGoToCart={actions.handleGoToCart}
-            onEdit={() => router.push(`/listing/${product.id}/edit` as any)}
-          />
+          <>
+            <ProductOfferTradeRow
+              availability={availability}
+              onTrade={actions.handleTrade}
+              onMakeOffer={actions.handleMakeOffer}
+            />
+            <ProductBuyBar
+              product={product}
+              isOwner={isOwner}
+              isOutOfStock={isOutOfStock}
+              inCart={actions.inCart}
+              onAddToCart={actions.handleAddToCart}
+              onBuyNow={actions.handleBuyNow}
+              onGoToCart={actions.handleGoToCart}
+              onEdit={() => router.push(`/listing/${product.id}/edit` as any)}
+            />
+          </>
         ) : undefined
       }
       overlay={
@@ -194,18 +210,24 @@ export default function ProductDetailScreen() {
             currentImage={currentImage}
             onPageChange={setCurrentImage}
             onOpenViewer={(index) => setViewer({ open: true, index })}
+            tradeOpen={showTradeEntry && isProductTradeOpen(product)}
           />
 
           <View style={styles.body}>
-            <ProductTitleBlock product={product} price={price} favoriteCount={favorite.favoriteCount} />
+            <ProductTitleBlock
+              product={product}
+              price={price}
+              favoriteCount={favorite.favoriteCount}
+              availability={availability}
+              onMakeOffer={actions.handleMakeOffer}
+              onTrade={actions.handleTrade}
+            />
             <ProductDescription product={product} />
             <ProductSecondaryActions
               product={product}
               isOwner={isOwner}
               quantity={actions.quantity}
               onQuantity={actions.setQuantity}
-              onTrade={actions.handleTrade}
-              onMakeOffer={actions.handleMakeOffer}
               onAddToCollection={actions.handleAddToCollection}
             />
             <SellerCard

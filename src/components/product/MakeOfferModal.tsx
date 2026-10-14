@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
-import { theme, Text, Alert, Button, Modal, Input, Textarea, useModalMessage, ModalMessage, ButtonRow } from '@/ui';
+import { theme, Text, Alert, Button, Chip, Modal, Input, Textarea, useModalMessage, ModalMessage, ButtonRow } from '@/ui';
 import { offersApi } from '@/lib/api';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { IS_MAESTRO } from '@/config/maestro';
 import { formatPrice } from '../../utils/format';
+import { MIN_OFFER_RATIO, offerPresets } from './offerPresets';
 
 const { colors } = theme;
 
@@ -63,7 +64,7 @@ export default function MakeOfferModal({
       return;
     }
     // API kuralı: minimum teklif fiyatın %50'si (web paritesi) — yoksa ham 400 dönüyordu.
-    const minOffer = listPrice * 0.5;
+    const minOffer = listPrice * MIN_OFFER_RATIO;
     if (numeric < minOffer) {
       msg.error(t('offer.minimumOfferErrorTl', { amount: formatPrice(minOffer) }));
       return;
@@ -84,6 +85,8 @@ export default function MakeOfferModal({
   const numeric = parseFloat(amount) || 0;
   const discount = listPrice > 0 && numeric > 0 ? listPrice - numeric : 0;
   const discountPct = listPrice > 0 && numeric > 0 ? Math.round(((listPrice - numeric) / listPrice) * 100) : 0;
+  // Hızlı teklif: liste fiyatından −%5/−%10/−%15 (tam TL); serbest giriş de açık.
+  const presets = offerPresets(listPrice);
 
   return (
     <Modal isOpen={visible} onClose={handleClose} title={t('product.makeOffer')}>
@@ -111,6 +114,23 @@ export default function MakeOfferModal({
           containerStyle={styles.input}
           placeholder={t('offer.amountPlaceholderExample')}
         />
+
+        {presets.length > 0 ? (
+          <View style={styles.presets} accessibilityLabel={t('offer.presetsLabel')}>
+            {presets.map((p) => (
+              <Chip
+                key={p.percent}
+                testID={`offer-preset-${p.percent}`}
+                label={`${t('offer.presetDiscount', { percent: p.percent })} · ${formatPrice(p.amount)}`}
+                selected={numeric === p.amount}
+                onPress={() => {
+                  msg.clear();
+                  setAmount(String(p.amount));
+                }}
+              />
+            ))}
+          </View>
+        ) : null}
 
         {numeric > 0 && discount > 0 ? (
           <Alert variant="success" style={styles.input}>
@@ -163,4 +183,5 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing[3],
   },
   input: { marginBottom: theme.spacing[2.5] },
+  presets: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing[2], marginBottom: theme.spacing[2.5] },
 });

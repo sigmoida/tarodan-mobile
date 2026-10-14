@@ -3,7 +3,7 @@
  * Yükleniyor → ürün render (başlık/fiyat), bulunamadı durumu, alıcı aksiyonları.
  */
 import React from 'react';
-import { screen, waitFor, within } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 
 jest.mock('expo-router', () => ({
@@ -115,6 +115,50 @@ describe('Ürün detay ekranı', () => {
     expect(screen.getByTestId('product-price')).toBeOnTheScreen();
   });
 
+  it('takasa açık ilan: barın üstünde Takas Teklifi · Teklif Ver, fiyat çipleri, galeri rozeti; tek giriş', async () => {
+    getOneMock.mockResolvedValue({ data: { data: productFixture({ tradeAvailable: true }) } });
+    renderWithProviders(<ProductDetailScreen />);
+
+    await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
+    const footer = within(screen.getByTestId('page-shell-footer'));
+    expect(footer.getByTestId('product-detail-offer-button')).toBeOnTheScreen();
+    expect(footer.getByTestId('product-detail-trade-button')).toBeOnTheScreen();
+    // Her eylemin tek düğmesi var (çipler kısayol).
+    expect(screen.getAllByTestId('product-detail-offer-button')).toHaveLength(1);
+    expect(screen.getAllByTestId('product-detail-trade-button')).toHaveLength(1);
+    expect(screen.getByTestId('product-negotiable-chip')).toBeOnTheScreen();
+    expect(screen.getByTestId('product-trade-chip')).toBeOnTheScreen();
+    expect(screen.getByTestId('product-gallery-trade-badge')).toBeOnTheScreen();
+  });
+
+  it('takasa kapalı ilan: yalnız Teklif Ver + Pazarlık çipi; takas rozeti yok', async () => {
+    getOneMock.mockResolvedValue({ data: { data: productFixture() } });
+    renderWithProviders(<ProductDetailScreen />);
+
+    await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
+    expect(screen.getByTestId('product-detail-offer-button')).toBeOnTheScreen();
+    expect(screen.queryByTestId('product-detail-trade-button')).toBeNull();
+    expect(screen.getByTestId('product-negotiable-chip')).toBeOnTheScreen();
+    expect(screen.queryByTestId('product-trade-chip')).toBeNull();
+    expect(screen.queryByTestId('product-gallery-trade-badge')).toBeNull();
+  });
+
+  it('misafir teklif çipine dokununca giriş istenir (modal açılmaz)', async () => {
+    jest.useFakeTimers();
+    try {
+      getOneMock.mockResolvedValue({ data: { data: productFixture() } });
+      renderWithProviders(<ProductDetailScreen />);
+      await waitFor(() => expect(screen.getByTestId('product-negotiable-chip')).toBeOnTheScreen());
+      fireEvent.press(screen.getByTestId('product-negotiable-chip'));
+      act(() => {
+        jest.advanceTimersByTime(1600);
+      });
+      expect(jest.requireMock('expo-router').router.push).toHaveBeenCalledWith('/(auth)/login');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('sahip: altta fiyat + Düzenle, satın alma yok', async () => {
     mockAuth = { isAuthenticated: true, user: { id: 's1' } };
     getOneMock.mockResolvedValue({ data: { data: productFixture() } });
@@ -123,6 +167,9 @@ describe('Ürün detay ekranı', () => {
     await waitFor(() => expect(screen.getByTestId('product-detail-edit-button')).toBeOnTheScreen());
     expect(screen.queryByTestId('product-detail-add-to-cart-button')).toBeNull();
     expect(screen.queryByTestId('product-detail-buy-now-button')).toBeNull();
+    // Kendi ilanına teklif/takas yok.
+    expect(screen.queryByTestId('product-offer-trade-row')).toBeNull();
+    expect(screen.queryByTestId('product-negotiable-chip')).toBeNull();
   });
 
   it('stokta yok üründe pasif buton gösterir', async () => {

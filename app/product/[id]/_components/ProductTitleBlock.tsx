@@ -1,9 +1,10 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Badge, Text, theme, Icon } from '@/ui';
+import { Badge, Chip, Text, theme, Icon } from '@/ui';
 import { formatPrice } from '@/utils/format';
 import type { PriceInfo } from '../_lib/display';
+import type { OfferTradeAvailability } from '../_lib/engagement';
 import type { Product } from '../_lib/types';
 
 const { colors, spacing, iconSize, priceColor } = theme;
@@ -11,16 +12,23 @@ const { colors, spacing, iconSize, priceColor } = theme;
 /**
  * Başlık, fiyat bloğu ve sayaçlar (web `ProductStaticInfoView`): h1 bold, satıldıysa "Satıldı"
  * rozeti; indirimdeyse üstü çizili eski fiyat + "%x indirim"; fiyat primary-500 bold (detay rengi);
- * görüntülenme + beğeni.
+ * fiyatın altında kısayol çipleri ("Pazarlık yapılabilir" → teklif, "Takas Açık" → takas; görünürlük
+ * `getOfferTradeAvailability`, birincil giriş alt bardaki satır); görüntülenme + beğeni.
  */
 export function ProductTitleBlock({
   product,
   price,
   favoriteCount,
+  availability,
+  onMakeOffer,
+  onTrade,
 }: {
   product: Product;
   price: PriceInfo;
   favoriteCount: number;
+  availability: OfferTradeAvailability;
+  onMakeOffer: () => void;
+  onTrade: () => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -52,6 +60,28 @@ export function ProductTitleBlock({
         <Text variant="h1" weight="bold" color={priceColor.detail} testID="product-price">
           {formatPrice(price.effectivePrice)}
         </Text>
+        {availability.offer || availability.trade ? (
+          <View style={styles.chips}>
+            {availability.offer ? (
+              <Chip
+                testID="product-negotiable-chip"
+                variant="primary"
+                label={t('product.negotiable')}
+                onPress={onMakeOffer}
+                accessibilityRole="button"
+              />
+            ) : null}
+            {availability.trade ? (
+              <Chip
+                testID="product-trade-chip"
+                variant="success"
+                label={t('product.tradeOpenBadge')}
+                onPress={onTrade}
+                accessibilityRole="button"
+              />
+            ) : null}
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.counters}>
@@ -79,6 +109,7 @@ const styles = StyleSheet.create({
   priceBlock: { gap: spacing[1] },
   oldRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
   struck: { textDecorationLine: 'line-through' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2], marginTop: spacing[1] },
   counters: { flexDirection: 'row', alignItems: 'center', gap: spacing[4] },
   counter: { flexDirection: 'row', alignItems: 'center', gap: spacing[1] },
 });

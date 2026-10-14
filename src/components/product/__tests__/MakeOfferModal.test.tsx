@@ -96,4 +96,27 @@ describe('MakeOfferModal', () => {
     );
     expect(createMock).not.toHaveBeenCalled();
   });
+
+  it('hızlı teklif çipleri: −%5/−%10/−%15 tam TL, dokununca tutarı doldurur', async () => {
+    renderModal({ listPrice: 390 });
+    expect(screen.getByTestId('offer-preset-5')).toBeOnTheScreen();
+    expect(screen.getByText('-%10 · 351,00 TL')).toBeOnTheScreen();
+    fireEvent.press(screen.getByTestId('offer-preset-15')); // 390 × 0,85 = 331,5 → 332
+    expect(screen.getByTestId('offer-amount-input').props.value).toBe('332');
+    expect(screen.getByTestId('offer-preset-15').props.accessibilityState?.selected).toBe(true);
+    // Serbest giriş de çalışır; çip seçimi düşer.
+    fireEvent.changeText(screen.getByTestId('offer-amount-input'), '300');
+    expect(screen.getByTestId('offer-preset-15').props.accessibilityState?.selected).toBe(false);
+    fireEvent.press(screen.getByTestId('offer-preset-5'));
+    fireEvent.press(screen.getByTestId('offer-submit-button'));
+    await waitFor(() =>
+      expect(createMock).toHaveBeenCalledWith({ productId: 'prod-1', amount: 371, message: undefined }),
+    );
+  });
+
+  it('çok düşük fiyatta liste fiyatına yuvarlanan çip çizilmez', () => {
+    renderModal({ listPrice: 10 });
+    expect(screen.queryByTestId('offer-preset-5')).toBeNull(); // 9,5 → 10 = liste fiyatı
+    expect(screen.getByTestId('offer-preset-10')).toBeOnTheScreen(); // 9
+  });
 });

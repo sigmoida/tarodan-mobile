@@ -1,11 +1,19 @@
 /**
  * Ürün detayı CTA'ları. Sabit alt bar: fiyat · kare "Hemen Al" · geniş "Sepete Ekle" (sepetteyse
  * "Sepete Git"); satılamayan ilanda web durum etiketi + pasif; sahipte fiyat + "Düzenle".
- * İçerik eylem satırı: adet seçici (stok>1) + Takas Teklifi / Teklif Ver; sahipte Koleksiyona Ekle.
+ * Barın üstünde teklif/takas satırı (tek giriş; görünürlük `getOfferTradeAvailability`).
+ * İçerik eylem satırı: adet seçici (stok>1); sahipte Koleksiyona Ekle.
  */
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { ProductBuyBar, ProductSecondaryActions, quantityLimit } from '../_components/ProductActions';
+import {
+  ProductBuyBar,
+  ProductOfferTradeRow,
+  ProductSecondaryActions,
+  quantityLimit,
+} from '../_components/ProductActions';
+import { getOfferTradeAvailability } from '../_lib/engagement';
+import type { Product } from '../_lib/types';
 import { getProductNotice } from '../_lib/notice';
 import i18n from '@/i18n/config';
 
@@ -139,6 +147,71 @@ describe('adet tavanı', () => {
   });
 });
 
+describe('teklif/takas görünürlüğü (tek kaynak)', () => {
+  const avail = (over: Record<string, unknown> = {}, opts: Partial<{ isOwner: boolean; isOutOfStock: boolean; showTradeEntry: boolean }> = {}) =>
+    getOfferTradeAvailability({ ...base, ...over } as Product, {
+      isOwner: false,
+      isOutOfStock: false,
+      showTradeEntry: true,
+      ...opts,
+    });
+
+  it('aktif ilan: teklif açık; takas yalnız takasa açıksa', () => {
+    expect(avail()).toEqual({ offer: true, trade: false });
+    expect(avail({ tradeAvailable: true })).toEqual({ offer: true, trade: true });
+  });
+
+  it('sahipte ikisi de kapalı', () => {
+    expect(avail({ tradeAvailable: true }, { isOwner: true })).toEqual({ offer: false, trade: false });
+  });
+
+  it('satıldı / rezerve / stok bitti: ikisi de kapalı (web: aktif değilse teklif/takas yok)', () => {
+    expect(avail({ status: 'sold', tradeAvailable: true })).toEqual({ offer: false, trade: false });
+    expect(avail({ status: 'reserved' })).toEqual({ offer: false, trade: false });
+    expect(avail({ availableQuantity: 0 }, { isOutOfStock: true })).toEqual({ offer: false, trade: false });
+  });
+
+  it('platformda takas girişi kapalıysa (iOS yetki) takas yok, teklif var', () => {
+    expect(avail({ tradeAvailable: true }, { showTradeEntry: false })).toEqual({ offer: true, trade: false });
+  });
+});
+
+describe('alt bardaki teklif/takas satırı', () => {
+  const row = (availability: { offer: boolean; trade: boolean }, props: Record<string, unknown> = {}) =>
+    render(<ProductOfferTradeRow availability={availability} onTrade={noop} onMakeOffer={noop} {...props} />);
+  const flat = (id: string) => Object.assign({}, ...[screen.getByTestId(id).props.style].flat());
+
+  it('ikisi de geçerliyse eşit genişlikte yan yana: Takas Teklifi · Teklif Ver', () => {
+    row({ offer: true, trade: true });
+    expect(screen.getByText('Takas Teklifi')).toBeTruthy();
+    expect(screen.getByText('Teklif Ver')).toBeTruthy();
+    expect(flat('product-detail-trade-button').flex).toBe(1);
+    expect(flat('product-detail-offer-button').flex).toBe(1);
+    expect(screen.getByText('Takas Teklifi').props.numberOfLines).toBe(1);
+  });
+
+  it('yalnız teklif: tek düğme tam genişlik', () => {
+    row({ offer: true, trade: false });
+    expect(screen.queryByTestId('product-detail-trade-button')).toBeNull();
+    expect(flat('product-detail-offer-button').flex).toBe(1);
+  });
+
+  it('hiçbiri geçerli değilse satır çizilmez', () => {
+    row({ offer: false, trade: false });
+    expect(screen.queryByTestId('product-offer-trade-row')).toBeNull();
+  });
+
+  it('düğmeler ilgili akışı açar', () => {
+    const onTrade = jest.fn();
+    const onMakeOffer = jest.fn();
+    row({ offer: true, trade: true }, { onTrade, onMakeOffer });
+    fireEvent.press(screen.getByTestId('product-detail-trade-button'));
+    fireEvent.press(screen.getByTestId('product-detail-offer-button'));
+    expect(onTrade).toHaveBeenCalledTimes(1);
+    expect(onMakeOffer).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('içerik eylem satırı', () => {
   const secondary = (over: Record<string, unknown> = {}, props: Record<string, unknown> = {}) =>
     render(
@@ -147,53 +220,24 @@ describe('içerik eylem satırı', () => {
         isOwner={false}
         quantity={1}
         onQuantity={noop}
-        onTrade={noop}
-        onMakeOffer={noop}
         onAddToCollection={noop}
         {...props}
       />,
     );
 
-  it('takasa açıksa Takas Teklifi · Teklif Ver yan yana; sepet düğmesi yok (alt barda)', () => {
-    const flat = (id: string) => Object.assign({}, ...[screen.getByTestId(id).props.style].flat());
-    secondary({ tradeAvailable: true });
-    expect(screen.getByText('Takas Teklifi')).toBeTruthy();
-    expect(screen.getByText('Teklif Ver')).toBeTruthy();
-    expect(screen.queryByText('Sepete Ekle')).toBeNull();
-    expect(flat('product-detail-trade-button').flex).toBe(1);
-    expect(flat('product-detail-offer-button').flex).toBe(1);
-  });
-
-  it('takasa kapalıysa yalnız Teklif Ver (tam genişlik)', () => {
-    secondary();
-    expect(screen.queryByText('Takas Teklifi')).toBeNull();
-    expect(screen.getByText('Teklif Ver')).toBeTruthy();
-  });
-
-  it('adet seçici yalnız stok>1 ilanda', () => {
-    const { unmount } = secondary();
+  it('adet seçici yalnız stok>1 ilanda; teklif/takas burada yok (alt barda)', () => {
+    const { unmount } = secondary({ tradeAvailable: true });
     expect(screen.getByLabelText('Adedi arttır')).toBeTruthy();
+    expect(screen.queryByText('Teklif Ver')).toBeNull();
+    expect(screen.queryByText('Takas Teklifi')).toBeNull();
     unmount();
     secondary({ availableQuantity: 1 });
     expect(screen.queryByLabelText('Adedi arttır')).toBeNull();
   });
 
-  it('ilan aktif değilse düğmeler pasif', () => {
-    secondary({ status: 'sold' });
-    expect(screen.getByTestId('product-detail-offer-button').props.accessibilityState?.disabled).toBe(true);
-  });
-
-  it('teklif düğmesi onMakeOffer çağırır', () => {
-    const onMakeOffer = jest.fn();
-    secondary({}, { onMakeOffer });
-    fireEvent.press(screen.getByTestId('product-detail-offer-button'));
-    expect(onMakeOffer).toHaveBeenCalled();
-  });
-
   it('sahipte yalnız Koleksiyona Ekle', () => {
     const onAddToCollection = jest.fn();
     secondary({}, { isOwner: true, onAddToCollection });
-    expect(screen.queryByText('Teklif Ver')).toBeNull();
     fireEvent.press(screen.getByText('Koleksiyona Ekle'));
     expect(onAddToCollection).toHaveBeenCalled();
   });
