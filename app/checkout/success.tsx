@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { router, useLocalSearchParams } from 'expo-router';
+import { navigateTo } from '@/lib/navigation/goTo';
 import { Button, SectionCard, Text } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { useHardwareBackToHome } from '@/hooks/useBlockHardwareBack';
@@ -33,7 +34,7 @@ export default function CheckoutSuccessScreen() {
               variant="outline"
               title={t('cart.continueShopping')}
               fullWidth
-              onPress={() => router.replace('/(tabs)')}
+              onPress={() => navigateTo('/(tabs)')}
             />
           </>
         }

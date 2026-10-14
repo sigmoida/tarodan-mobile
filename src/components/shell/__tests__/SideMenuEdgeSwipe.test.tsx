@@ -1,7 +1,7 @@
 /**
  * Yan menü kenardan açma jesti: yalnız sekme köklerinde (`(tabs)` grubu) etkin, sol kenar şeridiyle
  * sınırlı (`hitSlop`), yeterli/hızlı sağa sürükleme menüyü açar, kısa sürükleme geri yaylanır ve
- * paneli söker; yığın ekranlarında (iOS kaydırarak geri) kapalı.
+ * paneli söker; yığın ekranlarında (iOS kaydırarak geri) ve üste itilmiş (tabs) kopyasında kapalı.
  */
 import React from 'react';
 import { BackHandler, StyleSheet, Text, View } from 'react-native';
@@ -11,6 +11,7 @@ import { State } from 'react-native-gesture-handler';
 import { SideMenuProvider, useSideMenu } from '../SideMenuContext';
 import { SideMenuHost } from '../SideMenuHost';
 import {
+  isBaseTabsFocused,
   openDragProgress,
   shouldOpenOnRelease,
   sideMenuEdgeWidth,
@@ -21,9 +22,12 @@ import {
 jest.mock('expo-status-bar', () => ({ StatusBar: () => null, setStatusBarStyle: jest.fn() }));
 
 let mockSegments: string[] = ['(tabs)'];
+const BASE_TABS = { index: 0, routes: [{ name: '(tabs)' }] };
+let mockRootState: unknown = { index: 0, routes: [{ name: '__root', state: BASE_TABS }] };
 jest.mock('expo-router', () => ({
   usePathname: () => '/',
   useSegments: () => mockSegments,
+  useNavigationContainerRef: () => ({ getRootState: () => mockRootState }),
 }));
 
 function Trigger() {
@@ -59,6 +63,7 @@ const edge = () => getByGestureTestId('side-menu-edge-pan');
 beforeEach(() => {
   jest.useFakeTimers();
   mockSegments = ['(tabs)'];
+  mockRootState = { index: 0, routes: [{ name: '__root', state: BASE_TABS }] };
   jest.spyOn(BackHandler, 'addEventListener').mockImplementation(() => ({ remove: () => undefined }) as never);
 });
 afterEach(() => {
@@ -76,6 +81,21 @@ describe('Yan menü — kenardan açma', () => {
 
   it('yığın ekranında (iOS kaydırarak geri) kapalı', () => {
     mockSegments = ['product', '[id]'];
+    setup();
+    expect(edge().config.enabled).toBe(false);
+  });
+
+  it('üste itilmiş ikinci (tabs) kopyasında kapalı (kök yığın indeksi > 0)', () => {
+    mockSegments = ['(tabs)', 'cart'];
+    mockRootState = {
+      index: 0,
+      routes: [
+        {
+          name: '__root',
+          state: { index: 2, routes: [{ name: '(tabs)' }, { name: 'product/[id]' }, { name: '(tabs)' }] },
+        },
+      ],
+    };
     setup();
     expect(edge().config.enabled).toBe(false);
   });
@@ -137,10 +157,20 @@ describe('Yan menü — kenardan açma', () => {
 });
 
 describe('sideMenuMotion — kenardan açma kuralları', () => {
-  it('şerit: iOS 20pt, Android 32pt (sistem geri bölgesinin hemen içi de çalışır)', () => {
+  it('şerit: iOS 20pt, Android 16pt (16pt kenar boşluğundaki yatay kaydırıcılarla çakışmaz)', () => {
     expect(sideMenuEdgeWidth('ios')).toBe(SIDE_MENU_EDGE_WIDTH_IOS);
     expect(sideMenuEdgeWidth('android')).toBe(SIDE_MENU_EDGE_WIDTH_ANDROID);
-    expect(SIDE_MENU_EDGE_WIDTH_IOS).toBeLessThanOrEqual(24);
+    expect(SIDE_MENU_EDGE_WIDTH_IOS).toBe(20);
+    expect(SIDE_MENU_EDGE_WIDTH_ANDROID).toBeLessThanOrEqual(16);
+  });
+
+  it('isBaseTabsFocused: yalnız (tabs) barındıran yığın indeks 0 ve o rota (tabs) ise', () => {
+    expect(isBaseTabsFocused({ index: 0, routes: [{ name: '(tabs)' }] })).toBe(true);
+    expect(isBaseTabsFocused({ index: 0, routes: [{ name: '__root', state: { index: 0, routes: [{ name: '(tabs)' }] } }] })).toBe(true);
+    expect(isBaseTabsFocused({ index: 1, routes: [{ name: '(tabs)' }, { name: 'messages' }] })).toBe(false);
+    expect(isBaseTabsFocused({ index: 1, routes: [{ name: '(tabs)' }, { name: '(tabs)' }] })).toBe(false);
+    expect(isBaseTabsFocused({ index: 0, routes: [{ name: '(auth)' }] })).toBe(false);
+    expect(isBaseTabsFocused(undefined)).toBe(false);
   });
 
   it('progress sağa sürüklemeyle doğrusal ve 0..1 kenetli', () => {

@@ -2,6 +2,7 @@ import { Linking } from 'react-native';
 import { router } from 'expo-router';
 import { pathFromUrl, stripLocalePrefix } from '@/lib/deeplinks';
 import { toMobileRoute } from '@/utils/notificationRoute';
+import { navigateTo } from '@/lib/navigation/goTo';
 import { ownWebPageUrl } from '@/lib/web';
 import { isPurchasePath } from './purchasePath';
 import { safeAdHref } from './safeAdHref';
@@ -173,7 +174,8 @@ export function openAdLink(linkUrl: string | null | undefined): boolean {
   const target = resolveAdLink(linkUrl);
   switch (target.kind) {
     case 'route':
-      router.push(target.route as any);
+      // Sekme hedefi (`/cart`, `/favorites`, `/`) alttaki `(tabs)`'a döner; diğerleri push.
+      navigateTo(target.route);
       return true;
     case 'external':
       Linking.openURL(target.url).catch(() => {});

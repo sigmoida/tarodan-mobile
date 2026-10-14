@@ -5,7 +5,13 @@
 import { Linking } from 'react-native';
 
 const mockPush = jest.fn();
-jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockPush(...a) } }));
+const mockDismissTo = jest.fn();
+jest.mock('expo-router', () => ({
+  router: {
+    push: (...a: unknown[]) => mockPush(...a),
+    dismissTo: (...a: unknown[]) => mockDismissTo(...a),
+  },
+}));
 
 import { openAdLink, resolveAdLink, isOwnWebUrl, isPurchaseLink } from '../openAdLink';
 
@@ -154,5 +160,15 @@ describe('openAdLink', () => {
     expect(openAdLink('javascript:alert(1)')).toBe(false);
     expect(mockPush).not.toHaveBeenCalled();
     expect(openURL).not.toHaveBeenCalled();
+  });
+
+  it('sekme hedefi (sepet, favoriler, ana sayfa) ikinci (tabs) itmez: dismissTo', () => {
+    mockPush.mockClear();
+    mockDismissTo.mockClear();
+    expect(openAdLink('/cart')).toBe(true);
+    expect(mockDismissTo).toHaveBeenLastCalledWith('/(tabs)/cart');
+    expect(openAdLink('/wishlist')).toBe(true);
+    expect(mockDismissTo).toHaveBeenLastCalledWith('/(tabs)/favorites');
+    expect(mockPush).not.toHaveBeenCalled();
   });
 });

@@ -50,12 +50,15 @@ export function shouldCloseOnRelease(translationX: number, velocityX: number, wi
 /**
  * Kenardan açma şeridinin genişliği (pt): sürükleme yalnız ekranın sol kenarındaki bu şeritte
  * BAŞLARSA menüyü açar — yatay listeler/karuseller (sayfa kenar boşluğu 16pt'den başlar) ve dokunuşlar
- * bozulmaz. Android'de jest gezintisinin sistem "geri" bölgesi (~24dp) kenarı önce yakalar; şerit biraz
- * daha geniş tutulur ki o bölgenin hemen içinden başlayan sürükleme de menüyü açsın (3 düğmeli
- * gezintide tüm şerit çalışır). Hamburger her iki platformda da ana yol olarak kalır.
+ * bozulmaz. Hamburger her iki platformda da ana yol olarak kalır.
  */
 export const SIDE_MENU_EDGE_WIDTH_IOS = 20;
-export const SIDE_MENU_EDGE_WIDTH_ANDROID = 32;
+/**
+ * Android: sayfa kenar boşluğundan (16pt) başlayan yatay kaydırıcılarla (ana sayfa rayları, hero)
+ * çakışmasın diye şerit kenar boşluğu kadar. Jest gezintisinde bu bölgeyi sistem "geri" jesti alır;
+ * orada ana yol hamburger (3 düğmeli gezintide şerit çalışır).
+ */
+export const SIDE_MENU_EDGE_WIDTH_ANDROID = 16;
 
 export function sideMenuEdgeWidth(os: string): number {
   return os === 'android' ? SIDE_MENU_EDGE_WIDTH_ANDROID : SIDE_MENU_EDGE_WIDTH_IOS;
@@ -76,4 +79,27 @@ export function shouldOpenOnRelease(translationX: number, velocityX: number, wid
   'worklet';
   if (velocityX < -CLOSE_FLING_VELOCITY) return false;
   return translationX > width * OPEN_DRAG_FRACTION || velocityX > CLOSE_FLING_VELOCITY;
+}
+
+/** Navigasyon durumu (React Navigation) — yalnız okunan alanlar. */
+export interface NavStateLike {
+  index?: number;
+  routes?: Array<{ name: string; state?: NavStateLike }>;
+}
+
+/**
+ * Kenardan açma koşulu: `(tabs)` grubunu barındıran (kök) yığın EN ALTTAKİ `(tabs)`'ta duruyor —
+ * yığın indeksi 0 ve o rota `(tabs)`. Üste itilmiş ikinci bir `(tabs)` kopyası (indeks > 0) ya da bir
+ * yığın ekranı odaktayken `false` (orada sol kenar geri jestine ait). Durum yoksa `false`. Saf.
+ */
+export function isBaseTabsFocused(state: NavStateLike | undefined | null): boolean {
+  let s = state ?? undefined;
+  for (let depth = 0; s && depth < 8; depth += 1) {
+    const routes = s.routes ?? [];
+    if (routes.some((r) => r.name === '(tabs)')) {
+      return (s.index ?? 0) === 0 && routes[0]?.name === '(tabs)';
+    }
+    s = routes[s.index ?? 0]?.state;
+  }
+  return false;
 }

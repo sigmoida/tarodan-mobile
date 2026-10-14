@@ -6,6 +6,15 @@
  * ödeme dönüşünün yönlendirilmemesi. Fark: artık `router.push` gözlenmiyor —
  * kanca saf bir fonksiyon, dönüş değeri expo-router'a verilen yoldur.
  */
+const mockDismissTo = jest.fn();
+const mockPush = jest.fn();
+jest.mock('expo-router', () => ({
+  router: {
+    dismissTo: (...a: unknown[]) => mockDismissTo(...a),
+    push: (...a: unknown[]) => mockPush(...a),
+  },
+}));
+
 import fs from 'fs';
 import nodePath from 'path';
 import { redirectSystemPath } from '../+native-intent';
@@ -112,5 +121,32 @@ describe('checkout: AASA dışında ama custom scheme ile AÇILIR', () => {
 
   it('checkout ekranı GERÇEKTEN var — engellenirse ölür', () => {
     expect(fs.existsSync(nodePath.join(__dirname, '../checkout/index.tsx'))).toBe(true);
+  });
+});
+
+describe('redirectSystemPath — uygulama açıkken sekme hedefi', () => {
+  beforeEach(() => {
+    mockDismissTo.mockClear();
+    mockPush.mockClear();
+  });
+
+  it('tarodan://cart (açık uygulama): ikinci (tabs) itilmez — dismissTo + gezinme yok', () => {
+    expect(call('tarodan://cart', false)).toBe('');
+    expect(mockDismissTo).toHaveBeenCalledWith('/(tabs)/cart');
+  });
+
+  it('https://…/favorites (açık uygulama): dismissTo favoriler sekmesi', () => {
+    expect(call('https://tarodan.com.tr/favorites', false)).toBe('');
+    expect(mockDismissTo).toHaveBeenCalledWith('/(tabs)/favorites');
+  });
+
+  it('soğuk başlatmada sekme hedefi expo-router\'a olduğu gibi verilir', () => {
+    expect(call('tarodan://cart', true)).toBe('tarodan://cart');
+    expect(mockDismissTo).not.toHaveBeenCalled();
+  });
+
+  it('yığın hedefi açık uygulamada da yol olarak döner (dismissTo yok)', () => {
+    expect(call('https://tarodan.com.tr/listings/123', false)).toBe('/product/123');
+    expect(mockDismissTo).not.toHaveBeenCalled();
   });
 });

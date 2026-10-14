@@ -27,11 +27,13 @@ import {
   contentFadeOpacity,
   contentTranslateX,
   dragProgress,
+  isBaseTabsFocused,
   openDragProgress,
   shouldCloseOnRelease,
   shouldOpenOnRelease,
   sideMenuEdgeWidth,
   sideMenuWidth,
+  type NavStateLike,
 } from './sideMenuMotion';
 import { useSideMenu } from './SideMenuContext';
 
@@ -46,13 +48,21 @@ const PAN_FAIL_OFFSET_Y = 16;
 const EDGE_WIDTH = sideMenuEdgeWidth(Platform.OS);
 
 /**
- * Kenardan açma yalnız SEKME KÖKLERİNDE: odaktaki rota `(tabs)` grubundaysa. Yığın ekranlarında
- * sol kenar iOS'un "kaydırarak geri" jestine aittir. `* as Router`: expo-router'ı kısmi mock'layan
- * testlerde `useSegments` yoksa kapalı.
+ * Kenardan açma yalnız TABAN sekme kökünde: kök yığın indeksi 0 ve o rota `(tabs)`
+ * (`isBaseTabsFocused`). Yığın ekranlarında — ve üste itilmiş ikinci bir `(tabs)` kopyasında — sol
+ * kenar iOS'un "kaydırarak geri" jestine aittir. `useSegments` her gezinmede yeniden çizimi tetikler;
+ * yığın derinliği kapsayıcı ref'inden okunur. `* as Router`: expo-router'ı kısmi mock'layan testlerde
+ * kanca yoksa kapalı.
  */
 function useEdgeSwipeEnabled(): boolean {
   const segments = (Router.useSegments?.() ?? []) as string[];
-  return segments[0] === '(tabs)';
+  const navRef = Router.useNavigationContainerRef?.();
+  if (segments[0] !== '(tabs)') return false;
+  try {
+    return isBaseTabsFocused(navRef?.getRootState?.() as NavStateLike | undefined);
+  } catch {
+    return false;
+  }
 }
 /** Ekran okuyucu odağını menüye taşımadan önce animasyonun başlamasını bekle (ms). */
 const A11Y_FOCUS_DELAY_MS = 350;
