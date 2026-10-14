@@ -48,9 +48,15 @@ export interface ListingLimits {
   remainingListings: number;
 }
 
+/** İlan formu komisyon önizlemesi (web `CommissionPreview` ile aynı şekil). */
 export interface CommissionPreview {
   sellerFeeAmount: number;
+  withholdingTaxAmount: number;
+  /** Satıcının üstlendiği kargo payı (seçili kademe). */
+  shippingAmount: number;
   sellerNetAmount: number;
+  /** Her kademe için satıcının kargo payı — kademe kartlarındaki "Paket ücreti". */
+  packageTierShipping: Array<{ code: string; sellerShippingAmount: number }>;
 }
 
 export type AttrGroup = {

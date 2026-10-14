@@ -344,7 +344,7 @@ export const ordersApi = {
     amount: number;
     categoryId?: string;
     packageTier?: ShippingPackageTierCode;
-  }) => api.get('/orders/commission-preview', { params }),
+  }) => api.get<CommissionPreviewResponse>('/orders/commission-preview', { params }),
   /** İlanlarım listesi için toplu komisyon önizleme */
   getCommissionPreviewBatch: (items: Array<{ amount: number; categoryId?: string | null }>) =>
     api.post('/orders/commission-preview-batch', { items }),
@@ -416,6 +416,22 @@ export type ShippingProvider = 'surat';
  */
 /** İlan başına seçilen kargo paket boyutu (desi girdisinin yerine geçti). */
 export type ShippingPackageTierCode = 'small' | 'medium' | 'large';
+
+/**
+ * `GET /orders/commission-preview` gövdesi (ilan formu). Tutarlar sunucuda
+ * string de gelebiliyor; istemci `Number()` ile normalize eder.
+ *
+ * `packageTierShipping[]`: her kademe için SATICININ ödeyeceği kargo payı —
+ * kademe kartlarındaki "Paket ücreti" buradan gelir (tarifenin tam bedeli
+ * `ShippingPackageTier.amount` DEĞİL). Seçili kademeden bağımsızdır.
+ */
+export interface CommissionPreviewResponse {
+  sellerFeeAmount?: number | string;
+  withholdingTaxAmount?: number | string;
+  shippingAmount?: number | string;
+  sellerNetAmount?: number | string;
+  packageTierShipping?: Array<{ code: ShippingPackageTierCode; sellerShippingAmount?: number | string }>;
+}
 
 /**
  * `GET /shipping/package-tiers` kademesi (canlı ölçüm — staging, 2026-08-02).

@@ -6,6 +6,10 @@ export interface Listing {
   id: string;
   title: string;
   price: number;
+  /** İndirim öncesi fiyat (varsa; üstü çizili gösterilir — `@/utils/productPrice`). */
+  oldPrice?: number | string | null;
+  originalPrice?: number | string | null;
+  isOnSale?: boolean;
   status: 'active' | 'pending' | 'sold' | 'inactive' | 'reserved' | 'rejected' | 'deleted' | 'suspended';
   viewCount: number;
   likeCount?: number;

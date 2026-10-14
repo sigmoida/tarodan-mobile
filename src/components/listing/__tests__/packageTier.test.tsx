@@ -138,23 +138,13 @@ describe('paket boyutu seçimi', () => {
   // modalı + native ImagePicker), o yüzden kural saf fonksiyon üzerinde
   // kilitlendi.
 
-  it('seçim değişince net kazanç önizlemesi o kademeyle yenilenir', async () => {
+  // Kademenin önizleme isteğine geçmesi `useCommissionPreview.test`te (kategori seçimi
+  // bu birim testinde doldurulamıyor). Burada: girdi eksikken kartlarda ücret yok ("—").
+  it('fiyat/kategori yokken kademe kartlarında ücret "—"', async () => {
     renderWithProviders(<ListingForm mode="create" />);
     await screen.findByText('Büyük Paket');
 
-    fireEvent.changeText(screen.getByPlaceholderText('0.00'), '500');
-    fireEvent.press(screen.getByTestId('package-tier-large'));
-
-    await waitFor(
-      () =>
-        expect(mockGet).toHaveBeenCalledWith(
-          '/orders/commission-preview',
-          expect.objectContaining({
-            params: expect.objectContaining({ packageTier: 'large' }),
-          }),
-        ),
-      { timeout: 3000 },
-    );
+    expect(screen.getAllByTestId('package-tier-fee').map((n) => n.props.children)).toEqual(['—', '—', '—']);
   });
 
   it('tarife alınamazsa seçim yaptırmadan gönderime izin vermez', async () => {

@@ -182,16 +182,15 @@ describe('J56 · komisyon önizleme bölümü', () => {
   });
   afterEach(() => alertSpy.mockRestore());
 
-  it('J56.1 fiyat girilince komisyon önizleme bölümü (kesinti + net kazanç) render olur', async () => {
+  // Web paritesi: önizleme yalnız fiyat VE kategori varken sorulur (satır içeriği,
+  // hata ve kademe ücretleri `listingPricing.test` + `useCommissionPreview.test`te).
+  it('J56.1 kategori seçilmeden fiyat girilince önizleme sorulmaz ve kutu çizilmez', async () => {
     renderWithProviders(<ListingForm mode="create" />);
     await screen.findByText('İlan Oluştur');
     fireEvent.changeText(screen.getByPlaceholderText('0.00'), '500');
-    await waitFor(
-      () => expect(screen.getByText('Tahmini (satış başına)')).toBeOnTheScreen(),
-      { timeout: 3000 },
-    );
-    expect(screen.getByText(/Platform kesintisi/)).toBeOnTheScreen();
-    expect(screen.getByText(/Net kazanç/)).toBeOnTheScreen();
+    await new Promise((r) => setTimeout(r, 600));
+    expect(mockGet).not.toHaveBeenCalledWith('/orders/commission-preview', expect.anything());
+    expect(screen.queryByText('Tahmini (satış başına)')).toBeNull();
   });
 
   it('J56.2 fiyat boş/0 ise komisyon önizleme bölümü görünmez', async () => {

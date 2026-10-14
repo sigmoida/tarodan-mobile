@@ -14,7 +14,14 @@ type SectionProps = { f: ListingFormController };
 const goUpgrade = () => router.push('/(tabs)/profile');
 
 /**
- * Seçenekler (web `OptionsCard`): takas, set/paket (+ parça sayısı), ön sipariş ve ilan
+ * Set / Paket geçici olarak kapalı ve formdan gizli — web `OptionsCard`
+ * `SET_BUNDLE_ENABLED` ile aynı karar. Şema/payload/düzenleme eşleyicisi
+ * dokunulmadan kalır: mevcut set ilanlar değerlerini korur. Geri açmak için `true`.
+ */
+export const SET_BUNDLE_ENABLED: boolean = false;
+
+/**
+ * Seçenekler (web `OptionsCard`): takas, set/paket (+ parça sayısı; şu an kapalı), ön sipariş ve ilan
  * durumu (yalnız düzenleme). Takas hakkı yoksa anahtar yerine yükseltme bağlantısı
  * (`UpgradeCta`: satın alma kapalıysa hiç çizilmez) ve nötr açıklama.
  */
@@ -57,15 +64,17 @@ export function ListingOptionsSection({ f }: SectionProps) {
         }
       />
 
-      <ToggleRow
-        label={t('product.setBundle')}
-        hint={t('product.setBundleHelper')}
-        control={
-          <Switch value={f.isSet} onValueChange={f.setIsSet} accessibilityLabel={t('product.setBundle')} />
-        }
-      />
+      {SET_BUNDLE_ENABLED ? (
+        <ToggleRow
+          label={t('product.setBundle')}
+          hint={t('product.setBundleHelper')}
+          control={
+            <Switch value={f.isSet} onValueChange={f.setIsSet} accessibilityLabel={t('product.setBundle')} />
+          }
+        />
+      ) : null}
 
-      {f.isSet ? (
+      {SET_BUNDLE_ENABLED && f.isSet ? (
         <Input
           label={t('product.setPieceCount')}
           value={f.bundleSize}

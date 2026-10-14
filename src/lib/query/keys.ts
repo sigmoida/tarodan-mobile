@@ -134,6 +134,9 @@ export const qk = {
     elogoInvoices: (id: string) => ["elogo-invoices", id] as const,
     sellerInvoice: (id: string) => ["seller-invoice", id] as const,
     sellerPending: ["seller-pending-orders"] as const,
+    /** İlan formu: tek ürün komisyon/hak ediş önizlemesi (`GET /orders/commission-preview`). */
+    commissionPreview: (amount: string, categoryId: string, packageTier: string | null) =>
+      ["orders", "commission-preview", amount, categoryId, packageTier] as const,
   },
 
   trades: {

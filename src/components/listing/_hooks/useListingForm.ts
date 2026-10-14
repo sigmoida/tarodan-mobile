@@ -20,6 +20,13 @@ import { activatedStatus, activationMessageKey } from '../_lib/activation';
 import { useDispatchAddress } from './useDispatchAddress';
 import { invalidateListingCaches as invalidateListingCachesShared } from '../_lib/invalidate';
 import { useDeleteListing } from './useDeleteListing';
+import { useCommissionPreview } from './useCommissionPreview';
+import {
+  commissionPreviewAmount,
+  defaultSaleDates,
+  salePayload,
+  saleStartsLater,
+} from '../_lib/sale';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 import { useLatestRef } from '@/hooks/useLatestRef';
 
@@ -36,7 +43,6 @@ import type {
   MaterialOption,
   ColorOption,
   ListingLimits,
-  CommissionPreview,
   AttrGroup,
   ListingFormProps,
   MyProductResponse,
@@ -178,8 +184,14 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const setShippingPackageTier = (v: string) =>
     form.setValue('shippingPackageTier', v);
   const [salePrice, setSalePrice] = useState('');
-  const [saleStartDate, setSaleStartDate] = useState('');
-  const [saleEndDate, setSaleEndDate] = useState('');
+  // Yeni ilanda web gibi bugün → +7 gün önerilir; indirimli fiyat girilmedikçe
+  // payload'a girmez. Düzenlemede sunucudaki değerler (`applyMappedListing`).
+  const [saleStartDate, setSaleStartDate] = useState(() =>
+    isEdit ? '' : defaultSaleDates().saleStartDate,
+  );
+  const [saleEndDate, setSaleEndDate] = useState(() =>
+    isEdit ? '' : defaultSaleDates().saleEndDate,
+  );
   const [reactivateQuantity, setReactivateQuantity] = useState('');
   const [reactivating, setReactivating] = useState(false);
   const [removalOpen, setRemovalOpen] = useState(false);
@@ -247,9 +259,12 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   // Listing limits (create only)
   const [listingLimits, setListingLimits] = useState<ListingLimits | null>(null);
 
-  // Commission preview
-  const [commissionPreview, setCommissionPreview] = useState<CommissionPreview | null>(null);
-  const [commissionLoading, setCommissionLoading] = useState(false);
+  // Komisyon önizlemesi — indirim BUGÜN geçerliyse indirimli fiyattan sorulur
+  // (create + edit; web düzenleme ekranı hâlâ normal fiyatı kullanıyor).
+  const saleFields = { price, salePrice, saleStartDate, saleEndDate };
+  const { commissionPreview, commissionLoading, commissionError, commissionEnabled } =
+    useCommissionPreview(commissionPreviewAmount(saleFields), categoryId, shippingPackageTier);
+  const saleStartsOn = saleStartsLater(saleFields);
 
   // Picker modal visibility
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
@@ -263,8 +278,6 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const [brandSearch, setBrandSearch] = useState('');
   const [manufacturerSearch, setManufacturerSearch] = useState('');
   const [categorySearch, setCategorySearch] = useState('');
-
-  const commissionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // -----------------------------------------------------------------------
   // Auth gate (create only — edit is always reached authenticated)
@@ -418,49 +431,6 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       cancelled = true;
     };
   }, [manufacturerId, manufacturerList]);
-
-  // -----------------------------------------------------------------------
-  // Commission preview when price changes
-  // -----------------------------------------------------------------------
-  useEffect(() => {
-    if (commissionTimer.current) clearTimeout(commissionTimer.current);
-
-    const amount = Number(price);
-    if (isNaN(amount) || amount <= 0) {
-      setCommissionPreview(null);
-      return;
-    }
-
-    commissionTimer.current = setTimeout(() => {
-      setCommissionLoading(true);
-      api
-        .get('/orders/commission-preview', {
-          params: {
-            amount: price,
-            categoryId: categoryId || undefined,
-            // Geçilmezse sunucu `small` varsayar → satıcıya HER ZAMAN en küçük
-            // paketin net kazancı gösterilirdi. Seçim yoksa alanı hiç koyma.
-            packageTier: shippingPackageTier || undefined,
-          },
-        })
-        .then((res) => {
-          if (res.data) {
-            setCommissionPreview({
-              sellerFeeAmount: Number(res.data.sellerFeeAmount ?? 0),
-              sellerNetAmount: Number(res.data.sellerNetAmount ?? 0),
-            });
-          }
-        })
-        .catch(() => setCommissionPreview(null))
-        .finally(() => setCommissionLoading(false));
-    }, 500);
-
-    return () => {
-      if (commissionTimer.current) clearTimeout(commissionTimer.current);
-    };
-    // Kademe değişince net kazanç yeniden sorulur — satıcı seçiminin etkisini
-    // anında görür.
-  }, [price, categoryId, shippingPackageTier]);
 
   // -----------------------------------------------------------------------
   // API Calls
@@ -753,25 +723,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
    * `salePrice < max(originalPrice, price)` ise ürünü indirimli açar, aksi
    * halde indirim alanlarını yok sayar. Etkin fiyatı İSTEMCİ TÜRETMEZ.
    */
-  const buildSalePayload = (): Record<string, unknown> => {
-    const formPrice = Number(price);
-    const sale = salePrice ? Number(salePrice) : 0;
-    const hasSale = sale > 0 && formPrice > sale && sale !== formPrice;
-    if (!hasSale) {
-      return {
-        originalPrice: null,
-        salePrice: null,
-        saleStartDate: null,
-        saleEndDate: null,
-      };
-    }
-    return {
-      originalPrice: formPrice,
-      salePrice: sale,
-      saleStartDate: saleStartDate ? new Date(saleStartDate).toISOString() : null,
-      saleEndDate: saleEndDate ? new Date(saleEndDate).toISOString() : null,
-    };
-  };
+  const buildSalePayload = (): Record<string, unknown> => ({ ...salePayload(saleFields) });
 
   const validate = (): boolean => {
     // Kurallar ve SIRALARI tek yerde (`_lib/validate.ts`) — kullanıcıya
@@ -1021,7 +973,10 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     setGlobalAttributes({});
     setImageUris([]);
     setImageKeys([]);
-    setCommissionPreview(null);
+    setSalePrice('');
+    const sale = defaultSaleDates();
+    setSaleStartDate(sale.saleStartDate);
+    setSaleEndDate(sale.saleEndDate);
   };
 
   return {
@@ -1100,6 +1055,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     // commission
     commissionPreview,
     commissionLoading,
+    commissionError,
+    commissionEnabled,
+    saleStartsOn,
     // picker visibility
     showCategoryPicker, setShowCategoryPicker,
     showBrandPicker, setShowBrandPicker,
