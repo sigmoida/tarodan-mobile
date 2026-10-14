@@ -55,7 +55,6 @@ export function useRegister() {
   });
 
   const usernameValue = watch('username') ?? '';
-  const passwordValue = watch('password') ?? '';
   const usernameAvailability = useUsernameAvailability(usernameValue);
   const social = useSocialSignIn();
 
@@ -117,7 +116,6 @@ export function useRegister() {
     onSubmit,
     handleBack,
     usernameAvailability,
-    passwordValue,
     social,
   };
 }

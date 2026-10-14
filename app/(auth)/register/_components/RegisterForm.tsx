@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { Controller } from 'react-hook-form';
 import { Button, DateField, Input, Text } from '@/ui';
 import { useUsernameFieldStatus } from '@/hooks/useUsernameFieldStatus';
-import { PasswordChecklist } from '@/components/auth/PasswordChecklist';
 import { PhonePrefix } from '@/components/auth/PhonePrefix';
 import { SocialButtons } from '@/components/auth/SocialButtons';
 import { DEFAULT_COUNTRY_CODE, formatTrPhoneField, getPhonePlaceholder } from '@/utils/phone';
 import { toHandle } from '@/utils/validation';
+import { passwordHint } from '@/utils/passwordPolicy';
 import { IS_MAESTRO } from '@/config/maestro';
 import { styles } from '../_lib/styles';
 import { maxBirthDate } from '../_lib/schema';
@@ -18,9 +18,9 @@ import { RegisterConsents } from './RegisterConsents';
 const PHONE_PLACEHOLDER = getPhonePlaceholder(DEFAULT_COUNTRY_CODE);
 
 /**
- * Bireysel kayıt formu (web `RegisterForm` sırası): Görünen Ad, Profil Kullanıcı Adı, E-posta,
- * Telefon + Doğum Tarihi (yan yana), Şifre, Şifre Tekrar, şifre gereksinimleri, onaylar,
- * Üye Ol, Google/Apple. Web'deki Ad/Soyad/T.C. Kimlik bloğu BİLEREK yok: kimlik, ihtiyaç anında
+ * Bireysel kayıt formu (web `RegisterForm` sırası): Ad Soyad (`displayName`), Profil Kullanıcı
+ * Adı, E-posta, Telefon + Doğum Tarihi (yan yana), Şifre (altında yazarken eksik kurallar),
+ * Şifre Tekrar, onaylar, Üye Ol, Google/Apple. Web'deki Ad/Soyad/T.C. Kimlik bloğu BİLEREK yok: kimlik, ihtiyaç anında
  * (ödeme/ilan/takas) sorulur — kayıtta sorulmaz (App Store 5.1.1).
  */
 export function RegisterForm({ f }: { f: RegisterController }) {
@@ -38,9 +38,10 @@ export function RegisterForm({ f }: { f: RegisterController }) {
         render={({ field: { onChange, value } }) => (
           <Input
             testID="register-displayName-input"
-            label={t('profile.displayName')}
+            // Kayıta özel etiket (`profile.displayName` profil ekranlarıyla ortak, dokunulmaz).
+            label={t('auth.fullName')}
             required
-            placeholder={t('profile.displayNamePlaceholder')}
+            placeholder={t('auth.fullNamePlaceholder')}
             value={value}
             onChangeText={onChange}
             autoComplete="nickname"
@@ -156,6 +157,8 @@ export function RegisterForm({ f }: { f: RegisterController }) {
             autoCapitalize="none"
             spellCheck={false}
             togglePasswordVisibility
+            // Ayrı kural kartı yok: yazarken yalnız eksik kurallar (tek kaynak `passwordHint`).
+            helperText={passwordHint(value, t)}
             error={errors.password?.message}
           />
         )}
@@ -182,8 +185,6 @@ export function RegisterForm({ f }: { f: RegisterController }) {
           />
         )}
       />
-
-      <PasswordChecklist password={f.passwordValue} />
 
       <RegisterConsents f={f} />
 

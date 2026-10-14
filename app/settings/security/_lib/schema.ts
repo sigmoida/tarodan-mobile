@@ -2,27 +2,18 @@
 // çözüldüğü için hepsi `t` alan fabrika — ekranlar `useMemo(() => …, [t])` ile kurar.
 import type { TFunction } from 'i18next';
 import { z } from 'zod';
-import { strongPasswordSchema } from '@/utils/validation';
+import { passwordSchema, refinePasswordMatch } from '@/utils/passwordPolicy';
 import { DEFAULT_COUNTRY_CODE, getPhoneInvalidMessage, parsePhoneForPayload } from '@/utils/phone';
 
-/**
- * API `ChangePasswordDto` kuralı birebir (özel karakter + izinli karakter kümesi). Web şeması
- * yalnız 4 kuralı denetliyor; burada eksik kalırsa sunucu ham 400 döndürüyordu.
- */
-export const API_PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-
-/** Şifre değiştir (web `changePasswordSchema` + API kuralı). */
+/** Şifre değiştir (web `changePasswordSchema`; şifre kuralı tek kaynak `passwordSchema`). */
 export const changePasswordSchema = (t: TFunction) =>
   z
     .object({
       currentPassword: z.string().min(1, t('validation.currentPasswordRequired')),
-      newPassword: strongPasswordSchema(t).regex(API_PASSWORD_PATTERN, t('security.passwordRules')),
+      newPassword: passwordSchema(t),
       confirmPassword: z.string().min(1, t('validation.repeatNewPassword')),
     })
-    .refine((d) => d.newPassword === d.confirmPassword, {
-      message: t('validation.passwordMatch'),
-      path: ['confirmPassword'],
-    });
+    .superRefine(refinePasswordMatch(t, 'newPassword', 'confirmPassword'));
 
 export type ChangePasswordValues = z.input<ReturnType<typeof changePasswordSchema>>;
 

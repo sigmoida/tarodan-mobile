@@ -1,6 +1,8 @@
 /**
- * Şifre değiştir EKRANI (eski diyalog yerine): `useZodForm` alan hataları satır içi; API kuralı
- * (özel karakter) istemcide; başarı → geri + toast; sunucu hatası → toast.error, ekran kalır.
+ * Şifre değiştir EKRANI (eski diyalog yerine): `useZodForm` alan hataları satır içi; şifre kuralı
+ * tek kaynak (`passwordSchema`: 8+, büyük, küçük, rakam — özel karakter ŞART DEĞİL); ayrı kural
+ * kartı yok, yazarken alanın altında yalnız eksik kurallar; başarı → geri + toast; sunucu hatası →
+ * toast.error, ekran kalır.
  */
 import React from 'react';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
@@ -50,9 +52,17 @@ function fill(current: string, next: string, confirm: string) {
 }
 
 describe('settings/security/password', () => {
-  it('canlı gereksinim paneli görünür', () => {
+  it('ayrı kural kartı yok; yazarken alanın altında ANLIK yalnız eksik kural(lar)', () => {
     renderWithProviders(<ChangePasswordScreen />);
-    expect(screen.getByTestId('password-checklist')).toBeTruthy();
+    expect(screen.queryByTestId('password-checklist')).toBeNull();
+    // Boş alan: uyarı yok.
+    expect(screen.queryByText(i18n.t('auth.pwHintNumber'))).toBeNull();
+    fireEvent.changeText(screen.getByTestId('new-password-input'), 'Yenisifre');
+    expect(screen.getByText(i18n.t('auth.pwHintNumber'))).toBeTruthy();
+    expect(screen.queryByText(i18n.t('auth.pwHintUppercase'))).toBeNull();
+    // Hepsi tamam → mesaj yok.
+    fireEvent.changeText(screen.getByTestId('new-password-input'), 'Yenisifre1');
+    expect(screen.queryByText(i18n.t('auth.pwHintNumber'))).toBeNull();
   });
 
   it('tekrar eşleşmezse satır içi hata, istek yok', async () => {
@@ -61,10 +71,15 @@ describe('settings/security/password', () => {
     expect(mockChangePassword).not.toHaveBeenCalled();
   });
 
-  it('özel karakter yoksa API kuralı metni satır içi, istek yok', async () => {
-    fill('Eski1234!', 'Yeni12345', 'Yeni12345');
-    expect(await screen.findByText(i18n.t('security.passwordRules'))).toBeTruthy();
+  it('kurala uymayan yeni şifre → eksik kural satır içi, istek yok', async () => {
+    fill('Eski1234!', 'yeni12345', 'yeni12345');
+    expect(await screen.findByText(i18n.t('auth.pwHintUppercase'))).toBeTruthy();
     expect(mockChangePassword).not.toHaveBeenCalled();
+  });
+
+  it('özel karakter ŞART DEĞİL: harf + rakam yeterli, istek gider', async () => {
+    fill('Eski1234!', 'Yeni12345', 'Yeni12345');
+    await waitFor(() => expect(mockChangePassword).toHaveBeenCalledWith('Eski1234!', 'Yeni12345'));
   });
 
   it('mevcut şifre boşsa satır içi hata', async () => {

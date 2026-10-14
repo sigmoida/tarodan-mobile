@@ -1,6 +1,7 @@
 /**
- * J46 · Yeni şifre belirle: zayıf şifre validasyonu, eşleşmeme,
- * eksik token, buton enable/disable, başarı ekranı.
+ * J46 · Yeni şifre belirle: zayıf şifre validasyonu (tek kaynak `passwordSchema`),
+ * yazarken anlık eksik kural ipucu, eşleşmeme (zod refine), eksik token, buton
+ * enable/disable, başarı ekranı, sunucu hatası formda kalıcı.
  */
 import React from "react";
 import { TextInput } from "react-native";
@@ -60,11 +61,20 @@ describe("J46 · şifre sıfırlama (zayıf şifre)", () => {
     fireEvent.press(screen.getByText("mobile.resetPasswordButton"));
 
     await waitFor(() =>
-      expect(
-        screen.getByText("auth.pwRuleMinLength"),
-      ).toBeOnTheScreen(),
+      expect(screen.getByText("auth.pwHintMinLength")).toBeOnTheScreen(),
     );
     expect(mockReset).not.toHaveBeenCalled();
+  });
+
+  it("J46.2b ayrı kural kartı yok; yazarken alanın altında yalnız eksik kural", () => {
+    renderWithProviders(<ResetPasswordScreen />);
+    expect(screen.queryByTestId("password-checklist")).toBeNull();
+    expect(screen.queryByText("auth.pwHintNumber")).toBeNull();
+    fireEvent.changeText(screen.getByTestId("reset-password-input"), "Abcdefgh");
+    expect(screen.getByText("auth.pwHintNumber")).toBeOnTheScreen();
+    expect(screen.queryByText("auth.pwHintUppercase")).toBeNull();
+    fireEvent.changeText(screen.getByTestId("reset-password-input"), STRONG);
+    expect(screen.queryByText("auth.pwHintNumber")).toBeNull();
   });
 
   it("J46.3 büyük harf eksik → ilgili hata", async () => {
@@ -73,10 +83,9 @@ describe("J46 · şifre sıfırlama (zayıf şifre)", () => {
     fireEvent.press(screen.getByText("mobile.resetPasswordButton"));
 
     await waitFor(() =>
-      expect(
-        screen.getByText("auth.pwRuleUppercase"),
-      ).toBeOnTheScreen(),
+      expect(screen.getByText("auth.pwHintUppercase")).toBeOnTheScreen(),
     );
+    expect(mockReset).not.toHaveBeenCalled();
   });
 
   it("J46.4 şifreler eşleşmiyor → hata, istek atılmaz", async () => {
@@ -85,7 +94,7 @@ describe("J46 · şifre sıfırlama (zayıf şifre)", () => {
     fireEvent.press(screen.getByText("mobile.resetPasswordButton"));
 
     await waitFor(() =>
-      expect(screen.getByText("auth.resetPasswordMismatch")).toBeOnTheScreen(),
+      expect(screen.getByText("validation.passwordMatch")).toBeOnTheScreen(),
     );
     expect(mockReset).not.toHaveBeenCalled();
   });
@@ -116,7 +125,7 @@ describe("J46 · şifre sıfırlama (zayıf şifre)", () => {
     expect(mockReset).toHaveBeenCalledWith("valid-token", STRONG);
   });
 
-  it("J46.7 backend hata mesajı → ekranda gösterilir", async () => {
+  it("J46.7 backend hata mesajı → formda kalıcı gösterilir", async () => {
     mockReset.mockRejectedValue({
       response: { data: { message: "Token süresi doldu" } },
     });

@@ -5,9 +5,9 @@ import {
   emailSchema,
   isAdult,
   optionalTrPhoneSchema,
-  strongPasswordSchema,
   usernameSchema,
 } from '@/utils/validation';
+import { passwordSchema, refinePasswordMatch } from '@/utils/passwordPolicy';
 
 /** En geç seçilebilir doğum tarihi (bugün - 18 yıl) — 18+'ı seçici seviyesinde kısıtlar. */
 export function maxBirthDate(): Date {
@@ -44,7 +44,7 @@ export const buildRegisterSchema = (t: TFunction) =>
           t('validation.birthDateInvalid'),
         )
         .refine((v) => !v || isAdult(v), t('validation.minAge18')),
-      password: strongPasswordSchema(t),
+      password: passwordSchema(t),
       confirmPassword: z.string(),
       acceptTerms: z.boolean().refine((val) => val, t('validation.acceptTerms')),
       // KVKK aydınlatma metni AYRI kutu (web ile aynı; delta 22). Sunucuya
@@ -53,9 +53,6 @@ export const buildRegisterSchema = (t: TFunction) =>
       // Pazarlama e-postası izni — zorunlu değil (web `acceptsMarketingEmails`).
       acceptsMarketingEmails: z.boolean().optional(),
     })
-    .refine((data) => data.password === data.confirmPassword, {
-      message: t('validation.passwordMatch'),
-      path: ['confirmPassword'],
-    });
+    .superRefine(refinePasswordMatch(t, 'password', 'confirmPassword'));
 
 export type RegisterForm = z.infer<ReturnType<typeof buildRegisterSchema>>;

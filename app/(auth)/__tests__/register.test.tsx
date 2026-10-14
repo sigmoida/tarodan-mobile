@@ -110,15 +110,28 @@ describe('bireysel kayıt — düzen ve alanlar', () => {
     expect(screen.getByTestId('register-tab-individual').props.accessibilityState.selected).toBe(true);
   });
 
-  it('web sırası: Görünen Ad, kullanıcı adı (+ değiştirilemez ipucu), e-posta, telefon (+90) ve doğum tarihi, şifreler, gereksinimler', () => {
+  it('web sırası: Ad Soyad, kullanıcı adı (+ değiştirilemez ipucu), e-posta, telefon (+90) ve doğum tarihi, şifreler', () => {
     renderWithProviders(<RegisterScreen />);
-    expect(screen.getByText(/Görünen Ad/)).toBeOnTheScreen();
+    expect(screen.getByText(/^Ad Soyad/)).toBeOnTheScreen();
+    expect(screen.queryByText(/Görünen Ad/)).toBeNull();
+    expect(screen.getByPlaceholderText('Adınız Soyadınız')).toBeOnTheScreen();
     expect(screen.getByText(/Profil Kullanıcı Adı/)).toBeOnTheScreen();
     expect(screen.getByText('Profil adresinizde kullanılır ve daha sonra değiştirilemez.')).toBeOnTheScreen();
     expect(screen.getByTestId('register-phone-input')).toBeOnTheScreen();
     expect(screen.getByText('+90')).toBeOnTheScreen();
     expect(screen.getByTestId('register-birthDate-input')).toBeOnTheScreen();
-    expect(screen.getByTestId('password-checklist')).toBeOnTheScreen();
+    // Ayrı kural kartı YOK: şifre alanının altında yazarken yalnız eksik kurallar.
+    expect(screen.queryByTestId('password-checklist')).toBeNull();
+  });
+
+  it('şifre alanının altında ANLIK yalnız eksik kural(lar); tamamsa mesaj yok', () => {
+    renderWithProviders(<RegisterScreen />);
+    expect(screen.queryByText('En az 1 rakam ekleyin')).toBeNull();
+    fireEvent.changeText(screen.getByTestId('register-password-input'), 'Demoabcd');
+    expect(screen.getByText('En az 1 rakam ekleyin')).toBeOnTheScreen();
+    expect(screen.queryByText('En az 1 büyük harf ekleyin')).toBeNull();
+    fireEvent.changeText(screen.getByTestId('register-password-input'), 'Demo1234');
+    expect(screen.queryByText('En az 1 rakam ekleyin')).toBeNull();
   });
 
   it('T.C. Kimlik / Ad / Soyad bloğu YOK (kimlik ihtiyaç anında sorulur — App Store 5.1.1)', () => {
