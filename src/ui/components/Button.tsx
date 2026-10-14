@@ -72,15 +72,17 @@ const variantStyle: Record<ButtonVariant, { bg: string; text: string; border?: s
 };
 
 /**
- * Web: sm h-8 px-3 text-sm · md h-10 px-4 text-sm · lg h-12 px-6 text-base · xl h-14 px-8 text-lg.
+ * Yükseklik/dolgu web ile aynı (sm h-8 px-3 · md h-10 px-4 · lg h-12 px-6 · xl h-14 px-8). Etiket
+ * boyu: sm web gibi, md/lg/xl telefonda bir basamak büyük (iOS HIG; md = gövde/Input `base`):
+ * sm `sm` (14) · md `base` (16) · lg `lg` (17) · xl `xl` (20). Sığmazsa `adjustsFontSizeToFit`.
  * `height` = ASGARİ yükseklik (`minHeight`): normal yazı ölçeğinde düğme tam bu boydadır; büyük
  * ölçekte (en çok `maxFontScale.control`) etiket kırpılmasın diye büyüyebilir.
  */
 const sizeStyle: Record<ButtonSize, { height: number; px: number; font: number; icon: number }> = {
   sm: { height: controlHeight.sm, px: spacing[3], font: typography.fontSize.sm, icon: iconSize.sm },
-  md: { height: controlHeight.md, px: spacing[4], font: typography.fontSize.sm, icon: iconSize.sm },
-  lg: { height: controlHeight.lg, px: spacing[6], font: typography.fontSize.base, icon: iconSize.md },
-  xl: { height: controlHeight.xl, px: spacing[8], font: typography.fontSize.lg, icon: iconSize.md },
+  md: { height: controlHeight.md, px: spacing[4], font: typography.fontSize.base, icon: iconSize.sm },
+  lg: { height: controlHeight.lg, px: spacing[6], font: typography.fontSize.lg, icon: iconSize.md },
+  xl: { height: controlHeight.xl, px: spacing[8], font: typography.fontSize.xl, icon: iconSize.md },
 };
 
 /** Büyük yazı ölçeğinde etiketin kenarlara yapışmaması için dikey iç boşluk (normal ölçekte etkisiz). */

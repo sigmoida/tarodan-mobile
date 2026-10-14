@@ -146,18 +146,18 @@ const styles = StyleSheet.create({
     padding: theme.spacing[6],
   },
   title: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: theme.typography.fontSize.xl,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.gray[900],
     marginTop: theme.spacing[4],
     textAlign: "center",
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.gray[600],
     textAlign: "center",
     marginTop: theme.spacing[2],
-    lineHeight: 20,
+    lineHeight: theme.typography.fontSize.sm * theme.typography.lineHeight.normal,
   },
   errorBox: {
     maxHeight: 200,
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontFamily: "Courier",
-    fontSize: 11,
+    fontSize: theme.typography.fontSize.xs,
     color: colors.danger[800],
   },
   button: {
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: colors.white,
-    fontWeight: "600",
-    fontSize: 15,
+    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: theme.typography.fontSize.base,
   },
 });

@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 import { render, screen } from '@testing-library/react-native';
 import { brandFontStyle, bodyLetterSpacing, normalizeFontWeight } from '@/theme';
 import { TextInput } from 'react-native';
-import { BrandFontProvider, RawText, RawTextInput, Text } from '@/ui';
+import { BrandFontProvider, RawText, RawTextInput, Text, theme } from '@/ui';
 
 const styleOf = (text: string) => StyleSheet.flatten(screen.getByText(text).props.style);
 
@@ -33,6 +33,28 @@ describe('font eşlemesi (src/theme/typography.ts)', () => {
   });
 });
 
+describe('tipografi ölçeği (tek kaynak)', () => {
+  // Gövde basamakları web ile aynı (12/14/16), lg 17 = yan menü satırı (h3), başlıklar web'den küçük.
+  it('ölçek değerleri', () => {
+    expect(theme.typography.fontSize).toEqual({
+      '2xs': 10, xs: 12, sm: 14, base: 16, lg: 17, xl: 20, '2xl': 22, '3xl': 26, '4xl': 30,
+    });
+  });
+
+  it.each([
+    ['body', 'base'],
+    ['bodySm', 'sm'],
+    ['caption', 'xs'],
+    ['label', 'sm'],
+    ['h3', 'lg'],
+    ['h2', 'xl'],
+    ['h1', '2xl'],
+  ] as const)('Text %s → fontSize.%s', (variant, token) => {
+    render(<Text variant={variant}>{variant}</Text>);
+    expect(styleOf(variant).fontSize).toBe(theme.typography.fontSize[token]);
+  });
+});
+
 describe('Text / RawText marka fontu', () => {
   it('sağlayıcı yokken (test, yükleme hatası) stil değişmez', () => {
     render(<Text weight="bold">Merhaba</Text>);
@@ -52,7 +74,8 @@ describe('Text / RawText marka fontu', () => {
     expect(styleOf('Başlık')).toMatchObject({
       fontFamily: 'NotoSans_600SemiBold',
       fontWeight: 'normal',
-      letterSpacing: -0.15,
+      // `Text` varsayılanı `body` = fontSize.base (16) × -0.01em.
+      letterSpacing: -0.16,
     });
     expect(styleOf('Ham')).toMatchObject({
       fontFamily: 'NotoSans_400Regular',

@@ -52,7 +52,7 @@ export const styles = StyleSheet.create({
   },
   stepLabel: {
     marginTop: theme.spacing[1],
-    fontSize: 11,
+    fontSize: theme.typography.fontSize.xs,
     color: colors.text.muted,
   },
   stepLabelActive: {

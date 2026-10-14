@@ -10,16 +10,18 @@ export const fontFamily = {
 } as const;
 
 export const fontSize = {
-  // Mobil ölçek (iOS HIG'e yakın). Web ölçeği (xs 12 / sm 14 / base 16 / xl 20 / 2xl 24 / 3xl 30 / 4xl 36)
-  // telefonda iri kaldı; TEK yerden küçültüldü — Text variant'ları, Button/Input/Chip/Badge
-  // ve `typography.fontSize.*` okuyan her stil buradan beslenir. Yeni ölçek dışı sayı yazma.
+  // Mobil ölçek (iOS HIG'e yakın) — TEK kaynak: Text variant'ları, Button/Input/Chip/Badge ve
+  // `typography.fontSize.*` okuyan her stil buradan beslenir. Yeni ölçek dışı sayı yazma.
+  // Gövde basamakları (xs/sm/base) web ile aynı (12/14/16; iOS caption/subheadline/callout);
+  // başlık basamakları web'den küçük kalır (web xl 20 / 2xl 24 / 3xl 30 / 4xl 36 telefonda iri).
+  // `lg` 17 = iOS "headline": yan menü satırı (`h3`) ve bölüm başlıkları bu boyda.
   // Dense label / rozet mikro metni (`text-[10px]` yerine).
   "2xs": 10,
-  xs: 11,
-  sm: 13,
-  base: 15,
+  xs: 12,
+  sm: 14,
+  base: 16,
   lg: 17,
-  xl: 19,
+  xl: 20,
   "2xl": 22,
   "3xl": 26,
   "4xl": 30,
