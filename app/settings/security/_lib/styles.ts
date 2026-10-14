@@ -21,12 +21,6 @@ export const styles = StyleSheet.create({
     flex: 1,
     gap: spacing[0.5],
   },
-  actionButton: {
-    marginTop: spacing[3],
-  },
-  tips: {
-    gap: spacing[2],
-  },
   stack: {
     gap: spacing[3],
   },

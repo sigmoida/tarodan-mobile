@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/ui';
@@ -10,22 +10,19 @@ import { EMAIL_CODE_RESEND_SECONDS, type EmailPhase } from '../_lib/emailChange'
 import { useRefreshAccount } from './useRefreshAccount';
 
 /**
- * E-posta değişikliği — aynı kartta satır içi durum makinesi (modal YOK):
- *   idle → entering → codeSent → idle (başarı)
+ * E-posta değişikliği ekranının (`edit-profile/email`) durum makinesi (modal YOK):
+ *   entering → codeSent → (başarı) `onVerified` (ekran geri döner)
  * Sunucuda "bekleyen değişiklik" sorgusu yok; kod 15 dk geçerli ve `verify` yalnız
  * kodu ister, bu yüzden `codeSent` ekran ömrü boyunca bellekte tutulur. Mevcut
  * e-posta kod doğrulanana kadar geçerli kalır. Tüm hatalar ilgili alanın altında
- * gösterilir (klavye açıkken dialog sıçraması yok).
+ * gösterilir (klavye açıkken dialog sıçraması yok). Vazgeçmek = ekrandan çıkmak.
  */
-export function useEmailChangeFlow() {
+export function useEmailChangeFlow({ onVerified }: { onVerified?: () => void } = {}) {
   const { t } = useTranslation();
   const { user, updateUser } = useAuthStore();
   const refreshAccount = useRefreshAccount();
 
-  const [phase, setPhase] = useState<EmailPhase>('idle');
-  // Uçuştaki istek yanıtı geldiğinde güncel aşamayı okumak için (closure bayat kalır).
-  const phaseRef = useRef<EmailPhase>(phase);
-  phaseRef.current = phase;
+  const [phase, setPhase] = useState<EmailPhase>('entering');
   const [pendingEmail, setPendingEmail] = useState('');
   const [resendIn, setResendIn] = useState(0);
 
@@ -44,9 +41,6 @@ export function useEmailChangeFlow() {
   const request = useMutation({
     mutationFn: (newEmail: string) => authApi.requestEmailChange(newEmail),
     onSuccess: (_res, newEmail) => {
-      // Sunucu cooldown'u başladı; kullanıcı bu arada "Vazgeç" dediyse akışı yeniden açma.
-      setResendIn(EMAIL_CODE_RESEND_SECONDS);
-      if (phaseRef.current === 'idle') return;
       setPendingEmail(newEmail);
       codeForm.reset({ code: '' });
       setPhase('codeSent');
@@ -74,7 +68,7 @@ export function useEmailChangeFlow() {
       updateUser({ email, isEmailVerified: true });
       await refreshAccount();
       toast.success(t('profile.emailChanged'));
-      reset();
+      onVerified?.();
     },
     onError: (e) =>
       codeForm.setError('code', {
@@ -82,14 +76,6 @@ export function useEmailChangeFlow() {
         message: errorText(e, t('settings.codeVerifyFailedBody')),
       }),
   });
-
-  const reset = useCallback(() => {
-    setPhase('idle');
-    setPendingEmail('');
-    setResendIn(0);
-    emailForm.reset({ newEmail: '' });
-    codeForm.reset({ code: '' });
-  }, [emailForm, codeForm]);
 
   return {
     email: user?.email ?? '',
@@ -99,8 +85,6 @@ export function useEmailChangeFlow() {
     resendIn,
     emailForm,
     codeForm,
-    start: () => setPhase('entering'),
-    cancel: reset,
     /** Kod adımından yeni adresi düzeltmek için geri dön (yazılan değer korunur). */
     fixEmail: () => {
       codeForm.reset({ code: '' });

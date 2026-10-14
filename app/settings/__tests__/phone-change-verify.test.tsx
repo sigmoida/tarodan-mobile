@@ -236,6 +236,8 @@ describe('edit-profile · telefon değişimi sonrası', () => {
         <ToastHost />
       </>,
     );
+    // Kaydet yalnız kirli formda etkin: telefon dışı bir alanı değiştir.
+    fireEvent.changeText(screen.getByDisplayValue('Test'), 'Test Yeni');
     fireEvent.press(screen.getByText('product.saveChanges'));
 
     expect(await screen.findByText('profile.profileUpdated')).toBeTruthy();
@@ -273,6 +275,8 @@ describe('edit-profile · telefon değişimi sonrası', () => {
         <ToastHost />
       </>,
     );
+    // Kaydet yalnız kirli formda etkin: telefon dışı bir alanı değiştir.
+    fireEvent.changeText(screen.getByDisplayValue('Test'), 'Test Yeni');
     fireEvent.press(screen.getByText('product.saveChanges'));
 
     expect(await screen.findByText('profile.profileUpdated')).toBeTruthy();

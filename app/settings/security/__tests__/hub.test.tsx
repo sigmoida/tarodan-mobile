@@ -4,7 +4,8 @@
  */
 import React from 'react';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { appAlert, toast } from '@/ui';
+import { StyleSheet } from 'react-native';
+import { appAlert, theme, toast } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
 import { pushMock, replaceMock, resetRouterMocks } from '@/test-utils/router-mock';
 import i18n from '@/i18n/config';
@@ -77,13 +78,35 @@ async function confirmLogoutAll() {
 describe('settings/security hub', () => {
   it('formlar diyalog değil, ayrı ekranlar', async () => {
     renderWithProviders(<SecuritySettingsScreen />);
-    fireEvent.press(await screen.findByTestId('security-password-row'));
+    fireEvent.press(await screen.findByTestId('security-password-button'));
     expect(pushMock).toHaveBeenLastCalledWith('/settings/security/password');
     fireEvent.press(screen.getByTestId('two-factor-manage-button'));
     expect(pushMock).toHaveBeenLastCalledWith('/settings/security/two-factor');
     fireEvent.press(screen.getByTestId('phone-verify-button'));
     expect(pushMock).toHaveBeenLastCalledWith('/settings/security/phone');
     expect(screen.queryByTestId('modal-root')).toBeNull();
+  });
+
+  it('tek kart kalıbı: her eylem aynı tip düğme (outline sm); tüm cihazlardan çıkış danger; ipuçları kartı yok', async () => {
+    renderWithProviders(<SecuritySettingsScreen />);
+    await screen.findByTestId('security-password-button');
+    const style = (id: string) => {
+      const s = screen.getByTestId(id).props.style;
+      return StyleSheet.flatten(typeof s === 'function' ? s({ pressed: false }) : s);
+    };
+    for (const id of ['security-password-button', 'two-factor-manage-button', 'phone-verify-button']) {
+      expect(style(id)).toMatchObject({
+        backgroundColor: 'transparent',
+        borderWidth: 1,
+        minHeight: theme.controlHeight.sm,
+      });
+    }
+    expect(style('security-logout-all')).toMatchObject({
+      backgroundColor: theme.colors.danger[600],
+      minHeight: theme.controlHeight.sm,
+    });
+    expect(screen.queryByText(i18n.t('security.tipsSection'))).toBeNull();
+    expect(screen.queryByText(new RegExp(i18n.t('mobile.tipStrongPassword')))).toBeNull();
   });
 
   it('2FA açıkken "Yönet" + Aktif rozeti; kapalıyken "Ayarla"', async () => {

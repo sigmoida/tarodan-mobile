@@ -1,41 +1,17 @@
 import { View } from 'react-native';
 import { Controller } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Input, SectionCard, Text } from '@/ui';
-import { useAuthStore } from '@/stores/authStore';
+import { Alert, Input, SectionCard, Text } from '@/ui';
 import { toHandle } from '@/utils/validation';
-import { useClaimUsername } from '../_hooks/useClaimUsername';
+import type { ClaimUsernameController } from '../_hooks/useClaimUsername';
 import { styles } from '../_lib/styles';
 
 /**
- * Kullanıcı adı — çoğu hesapta SALT OKUNUR bir satır (ad bir kez belirlenir,
- * değiştirilemez). Yalnız sunucunun izin verdiği hesapta (`usernameClaimed === false`,
- * sosyal girişle açılmış) satır içi belirleme formu açılır. Alt çubuktaki profil
- * "Kaydet"inden bağımsızdır.
+ * Kullanıcı adı ekranının gövdesi. Belirlenebilir hesap (`usernameClaimed === false`):
+ * mevcut otomatik ad + kalıcılık uyarısı + uygunluk kontrollü giriş ("Kaydet" alt çubukta).
  */
-export function UsernameSection() {
+export function UsernameClaimForm({ f }: { f: ClaimUsernameController }) {
   const { t } = useTranslation();
-  const { user } = useAuthStore();
-
-  if (user?.usernameClaimed === false) return <ClaimUsernameCard />;
-  if (!user?.username) return null;
-
-  return (
-    <SectionCard title={t('auth.usernameLabel')} testID="edit-profile-username-section">
-      <View style={styles.sectionBody} testID="username-claimed">
-        <Text variant="h3">@{user.username}</Text>
-        <Text variant="bodySm" tone="muted">
-          {t('profile.usernameImmutable')}
-        </Text>
-      </View>
-    </SectionCard>
-  );
-}
-
-/** Belirlenebilir hesap: uygunluk kontrolü + kalıcılık uyarısı + onaylı kayıt. */
-function ClaimUsernameCard() {
-  const { t } = useTranslation();
-  const f = useClaimUsername();
 
   return (
     <SectionCard title={t('auth.usernameLabel')} testID="edit-profile-username-section">
@@ -70,14 +46,21 @@ function ClaimUsernameCard() {
             />
           )}
         />
-        <Button
-          variant="outline"
-          title={t('common.save')}
-          onPress={f.submit}
-          isLoading={f.isSubmitting}
-          disabled={!f.canSubmit}
-          testID="username-submit"
-        />
+      </View>
+    </SectionCard>
+  );
+}
+
+/** Belirlenmiş kullanıcı adı (ekrana derin bağlantıyla / başka cihazda belirlendikten sonra gelinirse). */
+export function UsernameReadOnly({ username }: { username: string }) {
+  const { t } = useTranslation();
+  return (
+    <SectionCard title={t('auth.usernameLabel')} testID="edit-profile-username-section">
+      <View style={styles.sectionBody} testID="username-claimed">
+        <Text variant="h3">@{username}</Text>
+        <Text variant="bodySm" tone="muted">
+          {t('profile.usernameImmutable')}
+        </Text>
       </View>
     </SectionCard>
   );

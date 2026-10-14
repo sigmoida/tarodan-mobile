@@ -109,23 +109,33 @@ it('işletme paneli yalnız business katmanında görünür', () => {
   expect(screen.getByText(i18n.t('mobile.settingsBusinessPanel'))).toBeTruthy();
 });
 
-describe('ProfileCard — ortalı kimlik başlığı', () => {
-  it('ad, e-posta ve "Profili düzenle" düğmesi render edilir; düğme düzenleme ekranına gider', () => {
+describe('ProfileCard — yatay kompakt kimlik başlığı', () => {
+  const trustF = {
+    ...f,
+    isPremiumProfile: true,
+    trustScore: 87,
+    trustLevel: null,
+    showTrustScore: true,
+    trustVisibilityMutation: { mutate: jest.fn(), isPending: false },
+  };
+
+  it('ad ve e-posta tek satır; "Profili düzenle" düğmesi kartta yok (üst barda kalem)', () => {
     renderWithProviders(<ProfileCard f={f} />);
+    expect(screen.getByTestId('profile-name').props.numberOfLines).toBe(1);
     expect(screen.getByText('Ayşe Yılmaz')).toBeTruthy();
-    expect(screen.getByText('ayse@example.com')).toBeTruthy();
+    expect(screen.getByText('ayse@example.com').props.numberOfLines).toBe(1);
     expect(screen.getByText('AY')).toBeTruthy(); // fotoğrafsız avatar baş harfleri
-    expect(screen.getByText(i18n.t('profile.editProfile'))).toBeTruthy();
-    fireEvent.press(screen.getByTestId('profile-edit-button'));
-    expect(router.push).toHaveBeenCalledWith('/settings/edit-profile');
+    expect(screen.queryByTestId('profile-edit-button')).toBeNull();
+    expect(screen.queryByText(i18n.t('profile.editProfile'))).toBeNull();
   });
 
-  it('avatar 120pt daire', () => {
+  it('avatar 64pt daire, metnin solunda (yatay satır)', () => {
     renderWithProviders(<ProfileCard f={f} />);
     const json = JSON.stringify(screen.toJSON());
-    expect(json).toContain('"width":120');
-    expect(json).toContain('"height":120');
-    expect(json).toContain('"borderRadius":60');
+    expect(json).toContain('"width":64');
+    expect(json).toContain('"height":64');
+    expect(json).toContain('"borderRadius":32');
+    expect(json).toContain('"flexDirection":"row"');
   });
 
   it('fotoğrafsız avatar, profil düzenlemedekiyle aynı yer tutucu rengini kullanır', () => {
@@ -135,8 +145,33 @@ describe('ProfileCard — ortalı kimlik başlığı', () => {
     expect(StyleSheet.flatten(screen.getByText('AY').props.style).color).toBe(avatarPlaceholderColors.foreground);
   });
 
-  it('ücretli üyede katman rozeti görünür', () => {
+  it('rozet yoksa (ücretsiz, güven skoru yok) rozet satırı çizilmez', () => {
+    renderWithProviders(<ProfileCard f={f} />);
+    expect(screen.queryByTestId('profile-badges')).toBeNull();
+  });
+
+  it('ücretli üyede katman rozeti rozet satırında görünür', () => {
     renderWithProviders(<ProfileCard f={{ ...f, isPaidTier: true, tierLabel: 'Premium' }} />);
+    expect(screen.getByTestId('profile-badges')).toBeTruthy();
     expect(screen.getByText(i18n.t('profile.tierMemberBadge', { tier: 'Premium' }))).toBeTruthy();
+  });
+
+  it('güven skoru + "Herkese açık" çipi aynı satırda; dokununca görünürlük değişir', () => {
+    renderWithProviders(<ProfileCard f={{ ...trustF, isPaidTier: true, tierLabel: 'Premium' }} />);
+    expect(screen.getByText(i18n.t('seller.trustScoreLabel', { score: 87 }))).toBeTruthy();
+    const chip = screen.getByTestId('profile-trust-visibility');
+    expect(screen.getByText(i18n.t('mobile.profileTrustPublic'))).toBeTruthy();
+    expect(chip.props.accessibilityState).toMatchObject({ selected: true });
+    fireEvent.press(chip);
+    expect(trustF.trustVisibilityMutation.mutate).toHaveBeenCalledWith(false);
+  });
+
+  it('gizliyken "Gizli" yazar; premium olmayan profilde güven skoru ve çip yok', () => {
+    renderWithProviders(<ProfileCard f={{ ...trustF, showTrustScore: false }} />);
+    expect(screen.getByText(i18n.t('mobile.profileTrustHidden'))).toBeTruthy();
+    screen.unmount();
+    renderWithProviders(<ProfileCard f={{ ...trustF, isPremiumProfile: false }} />);
+    expect(screen.queryByTestId('profile-trust-visibility')).toBeNull();
+    expect(screen.queryByText(i18n.t('seller.trustScoreLabel', { score: 87 }))).toBeNull();
   });
 });

@@ -1,8 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { Badge, Button, Divider, Text, theme } from '@/ui';
+import { Badge, Chip, Divider, Text, theme } from '@/ui';
 
 import { buildAvatarUrl } from '@/lib/api';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
@@ -16,59 +16,55 @@ const { spacing } = theme;
 type SectionProps = { f: ProfileController };
 
 // ---------------------------------------------------------------------------
-// Kimlik başlığı (Storytel "Profilim"): ortalı büyük avatar, ad, e-posta, üyelik rozeti,
-// ortalı çerçeveli "Profili düzenle" düğmesi, güven skoru.
+// Kimlik başlığı (yatay kompakt): solda avatar, sağında ad + e-posta; altında tek satırda
+// üyelik rozeti + güven skoru + görünürlük çipi (dar ekranda alt satıra sarar). "Profili
+// düzenle" girişi üst barın sağındaki kalem (`profile.tsx`).
 // ---------------------------------------------------------------------------
 export function ProfileCard({ f }: SectionProps) {
   const { t } = useTranslation();
   const { user } = f;
-  return (
-    <ProfileHeader
-      name={user?.displayName || 'U'}
-      source={user?.avatar && user?.id ? buildAvatarUrl(String(user.id), user.avatar) : undefined}
-    >
-      <View style={styles.identityText}>
-        <Text variant="h2" align="center" numberOfLines={1} testID="profile-name">
-          {user?.displayName || t('nav.account')}
-        </Text>
-        {user?.email ? (
-          <Text variant="bodySm" tone="muted" align="center" numberOfLines={1}>
-            {user.email}
-          </Text>
-        ) : null}
+  const showTrust = f.isPremiumProfile && f.trustScore != null;
+  const badges =
+    f.isPaidTier || showTrust ? (
+      <View style={styles.badgeRow} testID="profile-badges">
         {f.isPaidTier ? (
-          <View style={styles.tierBadge}>
-            <Badge variant="default" size="sm">
-              {t('profile.tierMemberBadge', { tier: f.tierLabel })}
+          <Badge variant="default" size="sm">
+            {t('profile.tierMemberBadge', { tier: f.tierLabel })}
+          </Badge>
+        ) : null}
+        {showTrust ? (
+          <>
+            <Badge variant="warning" size="sm">
+              {t('seller.trustScoreLabel', { score: f.trustScore })}
+              {f.trustLevel ? t('seller.trustScoreLevelSuffix', { level: f.trustLevel }) : ''}
             </Badge>
-          </View>
+            <Chip
+              testID="profile-trust-visibility"
+              size="sm"
+              selected={f.showTrustScore}
+              label={f.showTrustScore ? t('mobile.profileTrustPublic') : t('mobile.profileTrustHidden')}
+              onPress={() => f.trustVisibilityMutation.mutate(!f.showTrustScore)}
+              disabled={f.trustVisibilityMutation.isPending}
+            />
+          </>
         ) : null}
       </View>
-      <Button
-        testID="profile-edit-button"
-        variant="outline"
-        size="md"
-        title={t('profile.editProfile')}
-        style={styles.editButton}
-        onPress={() => router.push('/settings/edit-profile')}
-      />
-      {f.isPremiumProfile && f.trustScore != null ? (
-        <View style={styles.trustRow}>
-          <Badge variant="warning" size="sm">
-            {t('seller.trustScoreLabel', { score: f.trustScore })}
-            {f.trustLevel ? t('seller.trustScoreLevelSuffix', { level: f.trustLevel }) : ''}
-          </Badge>
-          <Pressable
-            onPress={() => f.trustVisibilityMutation.mutate(!f.showTrustScore)}
-            disabled={f.trustVisibilityMutation.isPending}
-            hitSlop={spacing[3]}
-            accessibilityRole="button"
-          >
-            <Text variant="caption">
-              {f.showTrustScore ? t('mobile.profileTrustPublic') : t('mobile.profileTrustHidden')}
-            </Text>
-          </Pressable>
-        </View>
+    ) : null;
+
+  return (
+    <ProfileHeader
+      layout="row"
+      name={user?.displayName || 'U'}
+      source={user?.avatar && user?.id ? buildAvatarUrl(String(user.id), user.avatar) : undefined}
+      footer={badges}
+    >
+      <Text variant="h3" weight="bold" numberOfLines={1} testID="profile-name">
+        {user?.displayName || t('nav.account')}
+      </Text>
+      {user?.email ? (
+        <Text variant="bodySm" tone="muted" numberOfLines={1}>
+          {user.email}
+        </Text>
       ) : null}
     </ProfileHeader>
   );
@@ -148,10 +144,7 @@ export function ProfileDeleteAccount({ f }: SectionProps) {
 }
 
 const styles = StyleSheet.create({
-  identityText: { alignItems: 'center', gap: spacing[0.5], maxWidth: '100%' },
-  tierBadge: { flexDirection: 'row', marginTop: spacing[1] },
-  editButton: { alignSelf: 'center', paddingHorizontal: spacing[6] },
-  trustRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing[3] },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing[2] },
   group: { paddingTop: spacing[2], paddingBottom: spacing[1] },
   divider: { marginVertical: spacing[1] },
 });

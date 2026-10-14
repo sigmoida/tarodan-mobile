@@ -3,16 +3,18 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
 
 /**
- * Hesap alanı (kullanıcı adı / e-posta) değiştikten sonra store'u taze
+ * Hesap alanı (kullanıcı adı / e-posta / fotoğraf) değiştikten sonra store'u taze
  * `GET /users/me` ile eşler ve kullanıcıya bağlı sorguları geçersiz kılar —
  * `isEmailVerified` gibi türetilmiş alanlar yalnız sunucudan gelir. Tazeleme
  * düşerse (null) çağıran tarafın önceden yazdığı `updateUser` değeri kalır.
+ * Taze kullanıcıyı (ya da `null`) döndürür.
  */
 export function useRefreshAccount() {
   const { refreshUserData } = useAuthStore();
   const queryClient = useQueryClient();
   return useCallback(async () => {
-    await refreshUserData();
+    const fresh = await refreshUserData();
     queryClient.invalidateQueries({ queryKey: ['user'] });
+    return fresh;
   }, [refreshUserData, queryClient]);
 }

@@ -12,7 +12,8 @@ import { RawText } from './Text';
 export interface AvatarProps {
   source?: ImageSourcePropType | string;
   name?: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  /** `header` = kompakt kimlik başlığı (profil sekmesi; web `UserAvatar size="lg"` h-16). */
+  size?: 'sm' | 'md' | 'lg' | 'header' | 'xl' | '2xl';
   /** `icon` = fotoğraf yoksa baş harf yerine `user` ikonu (misafir / adsız). */
   placeholder?: 'initials' | 'icon';
 }
@@ -28,7 +29,7 @@ export const avatarPlaceholderColors = {
   foreground: colors.primary[700] as string,
 } as const;
 
-const sizeMap = { sm: 28, md: 40, lg: 56, xl: 80, '2xl': 120 } as const;
+const sizeMap = { sm: 28, md: 40, lg: 56, header: 64, xl: 80, '2xl': 120 } as const;
 
 export const Avatar: React.FC<AvatarProps> = ({
   source,

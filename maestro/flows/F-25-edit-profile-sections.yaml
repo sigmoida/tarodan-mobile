@@ -1,7 +1,8 @@
-# F-25: Profili düzenle — tek ekran, üç bölüm (kişisel bilgiler / kullanıcı adı / e-posta).
-# Duman akışı: bölümler görünür, "Değiştir" aynı kartta yeni e-posta alanını açar, "Vazgeç"
-# kapatır. Kod doğrulaması gerçek posta kutusu gerektirdiği için UÇTAN UCA OTOMASYONA
-# alınmaz (kod adımı jest testlerinde kapsanır). Gizli değer akışta yok: giriş subflow'u.
+# F-25: Profili düzenle — iOS Ayarlar düzeni: Hesap kartında kullanıcı adı / e-posta SALT
+# OKUNUR satırlar; e-posta satırına dokununca ayrı "E-posta Değiştir" ekranı (yeni e-posta
+# alanı + alt çubuk "Kod gönder"); geri oku Profili düzenle'ye döner. Kod doğrulaması gerçek
+# posta kutusu gerektirdiği için UÇTAN UCA OTOMASYONA alınmaz (kod adımı jest testlerinde
+# kapsanır). Gizli değer akışta yok: giriş subflow'u.
 appId: ${APP_ID}
 tags:
   - regression
@@ -17,40 +18,40 @@ tags:
 - runFlow: ../subflows/login-as.yaml
 - tapOn:
     id: "tab-profile"
+# "Profili düzenle" = üst barın sağ üstündeki kalem.
 - tapOn:
     id: "profile-edit-button"
 - extendedWaitUntil:
     visible:
       id: "edit-profile-save"
     timeout: 20000
-# Kullanıcı adı bölümü (belirlenmişse salt okunur satır; belirlenebilirse form) + e-posta bölümü.
+# Hesap kartı: kullanıcı adı (belirlenmişse salt okunur, belirlenebilirse satır) + e-posta satırı.
 - scrollUntilVisible:
     element:
-      id: "edit-profile-username-section"
-    direction: DOWN
-    timeout: 10000
-- scrollUntilVisible:
-    element:
-      id: "edit-profile-email-section"
+      id: "edit-profile-account-section"
     direction: DOWN
     timeout: 10000
 - assertVisible:
-    id: "edit-profile-email-change-toggle"
+    id: "edit-profile-email-row"
+- assertNotVisible:
+    id: "email-change-input"
 - assertNotVisible: "destek ile iletişime geçin"
-# "Değiştir" → aynı kartta yeni e-posta alanı (modal yok).
+# E-posta satırı → ayrı ekranda yeni e-posta alanı + alt çubuk "Kod gönder" (modal yok).
 - tapOn:
-    id: "edit-profile-email-change-toggle"
+    id: "edit-profile-email-row"
 - extendedWaitUntil:
     visible:
       id: "email-change-input"
     timeout: 10000
 - assertVisible:
     id: "email-change-request"
-# "Vazgeç" → alan kapanır, "Değiştir" geri gelir.
+# Geri oku → Profili düzenle, e-posta satırı yerinde.
 - tapOn:
-    id: "email-change-cancel"
+    id: "screen-header-back"
+- extendedWaitUntil:
+    visible:
+      id: "edit-profile-email-row"
+    timeout: 10000
 - assertNotVisible:
     id: "email-change-input"
-- assertVisible:
-    id: "edit-profile-email-change-toggle"
 - assertNotVisible: ".*Network Error.*"
