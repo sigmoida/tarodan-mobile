@@ -24,6 +24,20 @@ describe('Button (web @tarodan/ui ölçüleri)', () => {
     expect(buttonStyle().borderRadius).toBe(theme.radius.lg);
   });
 
+  // Etiket boyu ölçekten: sm web gibi 14, md/lg/xl telefonda bir basamak büyük (gövde/Input ile uyumlu).
+  it.each([
+    ['sm', 'sm', 14],
+    ['md', 'base', 16],
+    ['lg', 'lg', 17],
+    ['xl', 'xl', 20],
+  ] as const)('%s etiketi fontSize.%s (%i) ve tek satır', (size, token, pt) => {
+    render(<Button size={size} title="Kaydet" />);
+    const label = screen.getByText('Kaydet');
+    expect(StyleSheet.flatten(label.props.style).fontSize).toBe(theme.typography.fontSize[token]);
+    expect(theme.typography.fontSize[token]).toBe(pt);
+    expect(label.props.numberOfLines).toBe(1);
+  });
+
   it('primary = primary-600, etiket 500 ağırlık', () => {
     render(<Button title="Kaydet" />);
     expect(buttonStyle().backgroundColor).toBe(theme.colors.primary[600]);

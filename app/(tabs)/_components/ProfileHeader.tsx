@@ -17,7 +17,6 @@ export function ProfileHeader({ name, source, children }: ProfileHeaderProps) {
     <View style={styles.header}>
       <Avatar
         size="2xl"
-        tone="neutral"
         name={name}
         source={source}
         placeholder={name ? 'initials' : 'icon'}

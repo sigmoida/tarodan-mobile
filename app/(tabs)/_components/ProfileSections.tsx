@@ -11,7 +11,7 @@ import type { ProfileController } from '../_hooks/useProfile';
 import { ProfileHeader } from './ProfileHeader';
 import { ProfileRow } from './ProfileRow';
 
-const { spacing, radius, typography } = theme;
+const { spacing, radius } = theme;
 
 type SectionProps = { f: ProfileController };
 
@@ -75,7 +75,7 @@ export function ProfileCard({ f }: SectionProps) {
 }
 
 // ---------------------------------------------------------------------------
-// Profille ilgili menü (yalnız Hesap grubu) + çıkış. Diğer gruplar Ana Sayfa yan menüsünde.
+// Profille ilgili menü (yalnız Hesap grubu, başlıksız) + çıkış. Diğer gruplar Ana Sayfa yan menüsünde.
 // ---------------------------------------------------------------------------
 export function ProfileMenuSections({
   f,
@@ -103,10 +103,8 @@ export function ProfileMenuSections({
   return (
     <>
       {groups.map((group) => (
+        // Grup başlığı ("Hesap") yok: profilde tek grup var, satırlar kimlik başlığının hemen altında.
         <View key={group.key} style={styles.group}>
-          <Text variant="overline" tone="subtle" style={styles.groupTitle}>
-            {group.title}
-          </Text>
           {group.items.map((item) => (
             <ProfileRow
               key={item.key}
@@ -154,13 +152,6 @@ const styles = StyleSheet.create({
   tierBadge: { flexDirection: 'row', marginTop: spacing[1] },
   editButton: { alignSelf: 'center', borderRadius: radius.full, paddingHorizontal: spacing[6] },
   trustRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing[3] },
-  group: { paddingBottom: spacing[1] },
-  groupTitle: {
-    paddingHorizontal: spacing[4],
-    paddingTop: spacing[3],
-    paddingBottom: spacing[1],
-    fontSize: typography.fontSize['2xs'],
-    letterSpacing: typography.fontSize['2xs'] * 0.1,
-  },
+  group: { paddingTop: spacing[2], paddingBottom: spacing[1] },
   divider: { marginVertical: spacing[1] },
 });

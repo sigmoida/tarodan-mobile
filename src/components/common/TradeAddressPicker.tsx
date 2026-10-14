@@ -128,13 +128,13 @@ export function TradeAddressPicker({ onChange, label }: Props) {
 const styles = StyleSheet.create({
   container: { gap: theme.spacing[2] },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[1.5], marginBottom: theme.spacing[1] },
-  label: { fontSize: 13, fontWeight: '600', color: colors.text.heading },
+  label: { fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.semibold, color: colors.text.heading },
   card: { alignItems: 'stretch' },
   cardActive: { borderColor: colors.primary[500]!, backgroundColor: colors.primary[50]! },
-  name: { fontSize: 13, fontWeight: '600', color: colors.text.heading },
-  default: { fontSize: 11, color: colors.primary[600]!, fontWeight: '500' },
-  sub: { fontSize: 13, color: colors.text.muted, marginTop: theme.spacing[0.5] },
-  addr: { fontSize: 11, color: colors.text.subtle, marginTop: 1 },
+  name: { fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.semibold, color: colors.text.heading },
+  default: { fontSize: theme.typography.fontSize.xs, color: colors.primary[600]!, fontWeight: theme.typography.fontWeight.medium },
+  sub: { fontSize: theme.typography.fontSize.sm, color: colors.text.muted, marginTop: theme.spacing[0.5] },
+  addr: { fontSize: theme.typography.fontSize.xs, color: colors.text.subtle, marginTop: 1 },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -144,5 +144,5 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius['2xl'],
     backgroundColor: colors.primary[50]!,
   },
-  addBtnText: { fontSize: 13, fontWeight: '600', color: colors.primary[600]! },
+  addBtnText: { fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.semibold, color: colors.primary[600]! },
 });

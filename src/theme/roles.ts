@@ -6,6 +6,7 @@
  */
 import { colors } from "./colors";
 import { radius } from "./radius";
+import { lineHeight as lineHeightScale } from "./typography";
 
 /** İkon boyutları (pt) — web heroicons h-4 / h-5 / h-6. */
 export const iconSize = {
@@ -69,6 +70,16 @@ export const counterBadgeColor = colors.danger[500] as string;
  */
 export const inactiveIconColor = colors.text.subtle as string;
 
+/**
+ * Alt menü (yüzen hap) sekme etiketi — tipografi ölçeğinden BAĞIMSIZ sabit rol (iOS tab bar
+ * etiketi 10–11pt). Ölçek büyüse de 4 sekme + "+" düğmesi 360pt genişlikte sığsın diye
+ * (en uzun etiket: "Bildirimler" / "Notifications") burada sabitlenir; satır yüksekliği aynı oran.
+ */
+export const tabBarLabel = {
+  fontSize: 11,
+  lineHeight: 11 * lineHeightScale.normal,
+} as const;
+
 export const roles = {
   iconSize,
   controlHeight,
@@ -78,4 +89,5 @@ export const roles = {
   priceColor,
   counterBadgeColor,
   inactiveIconColor,
+  tabBarLabel,
 } as const;

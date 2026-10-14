@@ -294,7 +294,16 @@ function ProductCardBase({
                   {formatPrice(original)}
                 </Text>
               ) : null}
-              <Text variant="body" weight="bold" tone="primary" testID="product-card-price">
+              {/* Dar ızgara hücresinde (360pt) uzun fiyat sarmaz; gerekirse hafifçe küçülür. */}
+              <Text
+                variant="body"
+                weight="bold"
+                tone="primary"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+                testID="product-card-price"
+              >
                 {formatPrice(effective)}
               </Text>
             </View>

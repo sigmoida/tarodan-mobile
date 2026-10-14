@@ -268,7 +268,7 @@ export {
 	SkeletonAvatar,
 	type SkeletonProps,
 } from './components/Skeleton';
-export { Avatar, type AvatarProps } from './components/Avatar';
+export { Avatar, avatarPlaceholderColors, type AvatarProps } from './components/Avatar';
 export { StatusBadge, type StatusBadgeProps } from './components/StatusBadge';
 
 // Durum haritaları `@/lib/shared/status-configs`'ten (web status-configs'in tek kaynağı)

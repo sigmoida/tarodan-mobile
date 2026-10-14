@@ -62,6 +62,18 @@ describe('AppTabBar — yüzen hap', () => {
     expect(screen.getByLabelText('Bildirimler')).toBeTruthy();
   });
 
+  it('sekme etiketi ölçekten bağımsız sabit rol (11pt, tek satır, sığmazsa küçülür)', () => {
+    setup();
+    const label = screen.getByText('Bildirimler');
+    expect(StyleSheet.flatten(label.props.style)).toMatchObject({
+      fontSize: theme.tabBarLabel.fontSize,
+      lineHeight: theme.tabBarLabel.lineHeight,
+    });
+    expect(theme.tabBarLabel.fontSize).toBe(11);
+    expect(label.props.numberOfLines).toBe(1);
+    expect(label.props.adjustsFontSizeToFit).toBe(true);
+  });
+
   it('a11y: sekmeler role=tab + selected; "+" erişilebilir düğme', () => {
     setup(2);
     expect(screen.getByTestId('tab-messages').props.accessibilityRole).toBe('tab');

@@ -290,8 +290,10 @@ const styles = StyleSheet.create({
     height: TAB_SELL_SIZE,
     borderRadius: radius.full,
   },
+  // Etiket boyu ölçekten bağımsız rol (`theme.tabBarLabel`): hap genişliğine sığar.
   label: {
     marginTop: spacing[0.5],
+    ...theme.tabBarLabel,
   },
   badge: {
     top: -spacing[1],
