@@ -75,7 +75,7 @@ describe('J43 · aynı email ile kayıt reddi (register)', () => {
     expect(screen.queryByTestId('register-submit-button')).toBeNull();
 
     fireEvent.press(screen.getByTestId('register-go-login-button'));
-    expect(routerMock.router.replace).toHaveBeenCalledWith('/(auth)/login');
+    expect(routerMock.router.dismissTo).toHaveBeenCalledWith('/(auth)/login');
     fireEvent.press(screen.getByTestId('register-verify-later-link'));
     expect(pushMock).toHaveBeenCalledWith('/(auth)/verify-email');
   });

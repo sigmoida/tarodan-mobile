@@ -119,7 +119,8 @@ export function useRegister() {
   };
 
   const handleBack = () => (router.canGoBack() ? router.back() : router.replace('/(auth)/login'));
-  const goToLogin = () => router.replace('/(auth)/login');
+  // Login yığında varsa ona dön (çift login ekranı olmaz), yoksa aç.
+  const goToLogin = () => router.dismissTo('/(auth)/login');
   const goToVerifyEmail = () => router.push('/(auth)/verify-email');
 
   return {
