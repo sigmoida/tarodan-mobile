@@ -40,5 +40,5 @@ export function ProductScrollView({
   );
 }
 
-/** Sayfa zemini beyaz (PageShell'in surface zemini yerine) — galeri altındaki içerik beyaz kağıt gibi. */
-const styles = StyleSheet.create({ fill: { flex: 1, backgroundColor: theme.colors.surface.elevated } });
+/** Sayfa zemini ana sayfayla aynı (`surface.DEFAULT`): beyaz bölüm kartları (Açıklama, satıcı…) zeminden ayrışır. */
+const styles = StyleSheet.create({ fill: { flex: 1, backgroundColor: theme.colors.surface.DEFAULT } });
