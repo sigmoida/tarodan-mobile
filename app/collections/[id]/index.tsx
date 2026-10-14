@@ -8,7 +8,8 @@ import { useCollectionReport } from './_hooks/useCollectionReport';
 import { CollectionDetailBody } from './_components/CollectionDetailBody';
 
 /**
- * Koleksiyon detayı — PageShell (koleksiyon adı üst barda; geri + paylaş/beğen/şikayet) içinde başlık kartı ve öğe ızgarası.
+ * Koleksiyon detayı — PageShell (üst barda yalnız geri + paylaş/beğen/şikayet; uzun koleksiyon adı üç
+ * düğmenin yanında kesildiği için başlık sayfa içinde) içinde başlık kartı ve öğe ızgarası.
  * `useCollectionDetail` sorgu, iyimser beğeni, paylaşım ve sahip/premium bayraklarının sahibi.
  */
 export default function CollectionDetailScreen() {
@@ -19,7 +20,7 @@ export default function CollectionDetailScreen() {
 
   return (
     <PageShell
-      title={f.collection?.name ?? ''}
+      title=""
       onBack={goBack}
       loading={f.isLoading}
       empty={!f.isLoading && !f.collection}

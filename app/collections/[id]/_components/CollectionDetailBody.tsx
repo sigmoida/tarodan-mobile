@@ -38,6 +38,9 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
             ) : null}
           </View>
           <View style={styles.headInfo}>
+            <Text variant="h2" accessibilityRole="header">
+              {collection.name}
+            </Text>
             {collection.description ? (
               <Text variant="bodySm" tone="muted">
                 {collection.description}
