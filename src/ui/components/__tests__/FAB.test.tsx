@@ -7,6 +7,7 @@ import { StyleSheet } from 'react-native';
 import { render, renderHook, screen } from '@testing-library/react-native';
 import { FAB } from '../FAB';
 import {
+  FAB_SIZE_SM,
   FLOATING_ACTION_SIZE,
   FLOATING_SIDE_GAP,
   floatingBottomOffset,
@@ -33,15 +34,18 @@ describe('FAB bottomRight', () => {
     expect(f.bottom).toBe(floatingBottomOffset(0));
   });
 
-  it('bottomRight yerleşiminde `size` yok sayılır (her ekranda aynı çap)', () => {
+  it('ikincil FAB (size verilmiş, ör. yukarı çık) küçük kalır ama konumu "+" ile aynı', () => {
     render(<FAB testID="fab" icon="chevron-up" size="sm" accessibilityLabel="Yukarı" placement="bottomRight" />);
-    expect(fabStyle().height).toBe(FLOATING_ACTION_SIZE);
+    const f = fabStyle();
+    expect(f.height).toBe(FAB_SIZE_SM);
+    expect(f.right).toBe(TAB_PILL_SIDE_GAP);
+    expect(f.bottom).toBe(tabPillBottomOffset(0));
   });
 
   it('satır içi FAB kendi boyutunu korur', () => {
     render(<FAB testID="fab" icon="plus" size="sm" accessibilityLabel="Yeni" />);
     const f = fabStyle();
-    expect(f.height).toBe(40);
+    expect(f.height).toBe(FAB_SIZE_SM);
     expect(f.position).toBeUndefined();
   });
 
@@ -53,5 +57,7 @@ describe('FAB bottomRight', () => {
   it('içerik boşluğu = alt uzaklık + FAB çapı + nefes payı', () => {
     const { result } = renderHook(() => useFabContentInset());
     expect(result.current).toBe(floatingBottomOffset(0) + FLOATING_ACTION_SIZE + theme.spacing[2]);
+    const sm = renderHook(() => useFabContentInset(FAB_SIZE_SM));
+    expect(sm.result.current).toBe(floatingBottomOffset(0) + FAB_SIZE_SM + theme.spacing[2]);
   });
 });

@@ -289,6 +289,7 @@ export {
 	useFloatingBottomOffset,
 	useFabContentInset,
 	FAB_SIZE_MD,
+	FAB_SIZE_SM,
 	FLOATING_ACTION_SIZE,
 	FLOATING_ACTION_ICON_SIZE,
 	FLOATING_SIDE_GAP,

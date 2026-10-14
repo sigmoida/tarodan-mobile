@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, type PressableProps, type ViewStyle } from 'react-native';
 import { theme } from '../lib/theme';
 import {
+  FAB_SIZE_SM,
   FLOATING_ACTION_ICON_SIZE,
   FLOATING_ACTION_SIZE,
   FLOATING_SIDE_GAP,
@@ -24,8 +25,9 @@ export interface FABProps extends Omit<PressableProps, 'style'> {
   /**
    * `bottomRight`: ekranın sağ altında yüzer — alt menünün "+" düğmesiyle AYNI çap, sağ kenar ve alt
    * uzaklık (`FLOATING_ACTION_SIZE` / `FLOATING_SIDE_GAP` / `floatingBottomOffset`: iOS/hareket
-   * gezinmesinde tutamaç şeridine biner, Android 3 düğmeli çubuğun üstünde). Bu yerleşimde `size`
-   * yok sayılır. Ekranın kaydırma içeriği `useFabContentInset()` kadar alt boşluk bırakır.
+   * gezinmesinde tutamaç şeridine biner, Android 3 düğmeli çubuğun üstünde). `size` verilmezse
+   * çap da "+" ile aynıdır (birincil "oluştur" FAB'ı); ikincil yardımcı FAB (ör. yukarı çık) `size`
+   * vererek küçük kalır, konumu yine aynıdır. Ekranın kaydırma içeriği `useFabContentInset()` kadar alt boşluk bırakır.
    */
   placement?: 'bottomRight';
 }
@@ -33,7 +35,7 @@ export interface FABProps extends Omit<PressableProps, 'style'> {
 const { colors, radius, spacing } = theme;
 
 const sizeMap: Record<FABSize, { box: number; icon: number }> = {
-  sm: { box: 40, icon: 18 },
+  sm: { box: FAB_SIZE_SM, icon: 18 },
   md: { box: 56, icon: 24 },
   lg: { box: 64, icon: 28 },
 };
@@ -51,7 +53,7 @@ export const FAB: React.FC<FABProps> = ({
   iconVariant,
   label,
   variant = 'primary',
-  size = 'md',
+  size,
   disabled,
   style,
   accessibilityLabel,
@@ -60,7 +62,8 @@ export const FAB: React.FC<FABProps> = ({
 }) => {
   const floatingBottom = useFloatingBottomOffset();
   const floating = placement === 'bottomRight';
-  const ss = floating ? FLOATING_SIZE : sizeMap[size];
+  // Sağ altta boyut verilmezse "+" ile aynı çap; verilirse (ikincil FAB) o boyut.
+  const ss = size ? sizeMap[size] : floating ? FLOATING_SIZE : sizeMap.md;
   const vs = variantStyle[variant];
   const extended = !!label;
   return (

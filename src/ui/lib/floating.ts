@@ -38,6 +38,9 @@ export const FLOATING_SIDE_GAP = spacing[4];
 /** Sağ alttaki FAB'ın çapı (= `FLOATING_ACTION_SIZE`; geriye uyumlu ad). */
 export const FAB_SIZE_MD = FLOATING_ACTION_SIZE;
 
+/** İkincil (küçük, `size="sm"`) sağ alt FAB'ın çapı — ör. arama ekranındaki "yukarı çık". */
+export const FAB_SIZE_SM = 40;
+
 /** Sağ altta FAB olan bir ekranın kaydırma içeriğine eklenecek alt boşluk: son öğe FAB'ın altında kalmasın. */
 export function useFabContentInset(fabSize: number = FLOATING_ACTION_SIZE): number {
   return useFloatingBottomOffset() + fabSize + spacing[2];
