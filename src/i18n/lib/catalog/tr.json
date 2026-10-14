@@ -2345,7 +2345,6 @@
       "emptyDescription": "Süresi dolan ilanlarınız burada listelenir."
     },
     "deleteBlockedManageListings": "İlanlarımı yönet",
-    "deleteBlockedReservedNote": "{count} ilanınız bir satışa ayrıldığı (rezerve) için şu an kapatılamaz ve silinemez. Satış tamamlanınca ya da iptal edilince bu engel kalkar; durumunu Satışlarım'dan izleyebilirsiniz.",
     "sidebar": {
       "alisveris": "Alışveriş",
       "indirimlerim": "İndirimlerim",
@@ -2820,6 +2819,9 @@
     "showEmail": "E-postayı Göster",
     "showPhone": "Telefonu Göster",
     "deleteAccount": "Hesabı Sil",
+    "deleteAccountWarning": "Tüm verileriniz, ilanlarınız ve sipariş geçmişiniz kalıcı olarak silinecektir.",
+    "deleteAccountKeyword": "SİL",
+    "deleteAccountTypePrompt": "Onaylamak için {keyword} yazın:",
     "deleteAccountConfirm": "Hesabınızı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
     "accountDeleted": "Hesabınız silindi",
     "settingUpdated": "Ayar güncellendi",
@@ -3380,7 +3382,7 @@
     },
     "deleteAccount": {
       "q": "Hesabımı nasıl silerim?",
-      "a": "Profil > Ayarlar > Hesap > ''Hesabı Sil'' seçeneğinden hesabınızı kalıcı olarak silebilirsiniz. Bu işlem kalıcıdır ve geri alınamaz."
+      "a": "Profil > ''Hesabı Sil'' seçeneğinden hesabınızı kalıcı olarak silebilirsiniz. Bu işlem kalıcıdır ve geri alınamaz."
     },
     "orderTracking": {
       "q": "Siparişimi nasıl takip ederim?",

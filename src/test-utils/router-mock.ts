@@ -9,6 +9,8 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 export const pushMock = jest.fn();
 export const replaceMock = jest.fn();
 export const backMock = jest.fn();
+export const dismissToMock = jest.fn();
+export const navigateMock = jest.fn();
 export const canGoBackMock = jest.fn(() => false);
 
 /**
@@ -77,6 +79,8 @@ export const routerMock = {
   router: {
     push: pushMock,
     replace: replaceMock,
+    dismissTo: dismissToMock,
+    navigate: navigateMock,
     back: backMock,
     canGoBack: canGoBackMock,
   },
@@ -93,6 +97,8 @@ export const routerMock = {
 export function resetRouterMocks() {
   pushMock.mockClear();
   replaceMock.mockClear();
+  dismissToMock.mockClear();
+  navigateMock.mockClear();
   backMock.mockClear();
   navigationDispatchMock.mockClear();
   canGoBackMock.mockReset();
