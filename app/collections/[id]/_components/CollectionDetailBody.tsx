@@ -3,7 +3,7 @@ import { View, Pressable } from 'react-native';
 import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Alert, Avatar, Button, EmptyState, SectionCard, Text, theme, Icon } from '@/ui';
+import { Alert, Avatar, Button, EmptyState, IconButton, SectionCard, Text, theme, Icon } from '@/ui';
 import { ProductCard } from '@/components/product';
 import UpgradeCta from '@/components/UpgradeCta';
 import { styles } from '../_lib/collectionStyles';
@@ -22,8 +22,46 @@ function toCardProduct(item: any, fallbackTitle: string) {
   };
 }
 
+/**
+ * Başlık kartının aksiyonları (web `CollectionHeaderCard` sağ grubu): paylaş herkese; beğen ve
+ * şikayet yalnız sahibi olmayana. Üst bar yerine adın altında akışta durur — dar ekranda ve büyük
+ * yazıda (360pt, ölçek 1.3) kapağın yanındaki sütuna sığar, her düğme ≥ 44pt dokunma alanlı.
+ */
+function CollectionHeaderActions({ f, onReport }: { f: CollectionDetailController; onReport: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <View style={styles.headActions} testID="collection-actions">
+      <IconButton
+        testID="collection-share-button"
+        icon="share"
+        accessibilityLabel={t('collection.share')}
+        onPress={f.handleShare}
+      />
+      {!f.isOwner ? (
+        <>
+          <IconButton
+            testID="collection-like-button"
+            icon="heart"
+            iconVariant={f.isLiked ? 'solid' : 'outline'}
+            variant={f.isLiked ? 'danger' : 'ghost'}
+            accessibilityLabel={t('collection.likes')}
+            accessibilityState={{ selected: f.isLiked }}
+            onPress={f.handleLike}
+          />
+          <IconButton
+            testID="collection-report-button"
+            icon="flag"
+            accessibilityLabel={t('collection.report')}
+            onPress={onReport}
+          />
+        </>
+      ) : null}
+    </View>
+  );
+}
+
 /** Başlık kartı (web `CollectionHeaderCard`), içerik kartı (öğeler) ve misafir bilgilendirmesi. */
-export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
+export function CollectionDetailBody({ f, onReport }: { f: CollectionDetailController; onReport: () => void }) {
   const { t } = useTranslation();
   const { collection, items, id } = f;
   const cover = collection.coverImageUrl ?? collection.coverImage;
@@ -46,6 +84,7 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
                 {collection.description}
               </Text>
             ) : null}
+            <CollectionHeaderActions f={f} onReport={onReport} />
           </View>
         </View>
 

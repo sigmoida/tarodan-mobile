@@ -6,8 +6,13 @@
  * Backend: like kalıcılığı, viewCount artışı, share sayacı backend-only.
  */
 import React from 'react';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react-native';
+import { Share } from 'react-native';
 import { renderWithProviders } from '@/test-utils';
+import { toast } from '@/ui';
+
+jest.mock('@/lib/clipboard', () => ({ copyToClipboard: jest.fn(() => true) }));
+import { copyToClipboard } from '@/lib/clipboard';
 
 let mockParams: Record<string, string> = { id: 'col-1' };
 const mockPush = jest.fn();
@@ -73,13 +78,30 @@ describe('J30 · Koleksiyon detayı render + paylaş/beğeni', () => {
     expect(screen.getByText('42 görüntüleme')).toBeOnTheScreen();
   });
 
-  it('J30.2 başlık kartında görüntülenme ve beğeni sayacı (web gibi); üst barda paylaş + beğen', async () => {
+  it('J30.2 başlık kartında sayaçlar + paylaş/beğen/şikayet (web gibi sayfa içinde); üst barda yalnız geri', async () => {
     mockAuth = { isAuthenticated: true, user: { id: 'viewer-9', membershipTier: 'free' } };
     getMock.mockResolvedValue({ data: { data: collectionFixture({ likeCount: 5 }) } });
     renderWithProviders(<CollectionDetailScreen />);
     await waitFor(() => expect(screen.getByText('5 beğeni')).toBeOnTheScreen());
-    expect(screen.getByLabelText('Paylaş')).toBeOnTheScreen();
-    expect(screen.getByLabelText('beğeni')).toBeOnTheScreen();
+    const header = screen.getByTestId('collection-header');
+    const actions = screen.getByTestId('collection-actions');
+    expect(within(header).getByTestId('collection-actions')).toBe(actions);
+    expect(within(actions).getByLabelText('Paylaş')).toBeOnTheScreen();
+    expect(within(actions).getByLabelText('beğeni')).toBeOnTheScreen();
+    expect(within(actions).getByLabelText('Koleksiyonu Şikayet Et')).toBeOnTheScreen();
+    // Üst bar: aksiyon yok, koleksiyon adı da yok.
+    const bar = screen.getByTestId('screen-header');
+    expect(within(bar).queryByLabelText('Paylaş')).toBeNull();
+    expect(within(bar).queryByText('Ferrari Koleksiyonum')).toBeNull();
+  });
+
+  it('J30.3 sahip yalnız paylaş görür (beğen/şikayet yok)', async () => {
+    getMock.mockResolvedValue({ data: { data: collectionFixture({ userId: 'owner-1' }) } });
+    renderWithProviders(<CollectionDetailScreen />);
+    const actions = await screen.findByTestId('collection-actions');
+    expect(within(actions).getByLabelText('Paylaş')).toBeOnTheScreen();
+    expect(within(actions).queryByLabelText('beğeni')).toBeNull();
+    expect(within(actions).queryByLabelText('Koleksiyonu Şikayet Et')).toBeNull();
   });
 
   it('J30.4 koleksiyon bulunamazsa boş durum gösterilir', async () => {
@@ -135,5 +157,59 @@ describe('Koleksiyon şikayeti · misafir', () => {
     fireEvent.press(await screen.findByLabelText('Koleksiyonu Şikayet Et'));
     expect(appAlert).toHaveBeenCalledWith(expect.any(String), 'Raporlamak için giriş yapmalısınız', expect.any(Array));
     expect(screen.queryByText('Koleksiyonu Şikayet Et')).toBeNull();
+  });
+});
+
+/** Web `handleShare`: paylaşım açılamazsa link panoya + "Link kopyalandı"; o da olmazsa hata toast'ı. */
+describe('Koleksiyon paylaşımı', () => {
+  const copyMock = copyToClipboard as jest.Mock;
+  let shareSpy: jest.SpyInstance;
+  let successSpy: jest.SpyInstance;
+  let errorSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    getMock.mockReset();
+    copyMock.mockReset();
+    mockParams = { id: 'col-1' };
+    mockAuth = { isAuthenticated: true, user: { id: 'viewer-9', membershipTier: 'free' } };
+    getMock.mockResolvedValue({ data: { data: collectionFixture() } });
+    shareSpy = jest.spyOn(Share, 'share');
+    successSpy = jest.spyOn(toast, 'success').mockImplementation(() => 'id');
+    errorSpy = jest.spyOn(toast, 'error').mockImplementation(() => 'id');
+  });
+  afterEach(() => {
+    shareSpy.mockRestore();
+    successSpy.mockRestore();
+    errorSpy.mockRestore();
+  });
+
+  it('paylaşım sayfası açılırsa link kopyalanmaz, toast yok', async () => {
+    shareSpy.mockResolvedValue({ action: Share.sharedAction });
+    renderWithProviders(<CollectionDetailScreen />);
+    fireEvent.press(await screen.findByTestId('collection-share-button'));
+    await waitFor(() => expect(shareSpy).toHaveBeenCalledTimes(1));
+    expect(String(shareSpy.mock.calls[0][0].message)).toContain('/collections/col-1');
+    expect(copyMock).not.toHaveBeenCalled();
+    expect(successSpy).not.toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it('paylaşım başarısızsa link panoya kopyalanır + "Link kopyalandı"', async () => {
+    shareSpy.mockRejectedValue(new Error('unavailable'));
+    copyMock.mockReturnValue(true);
+    renderWithProviders(<CollectionDetailScreen />);
+    fireEvent.press(await screen.findByTestId('collection-share-button'));
+    await waitFor(() => expect(successSpy).toHaveBeenCalledWith('Link kopyalandı'));
+    expect(copyMock).toHaveBeenCalledWith(expect.stringContaining('/collections/col-1'));
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it('paylaşım ve kopyalama başarısızsa hata toast\'ı (sessiz yutma yok)', async () => {
+    shareSpy.mockRejectedValue(new Error('unavailable'));
+    copyMock.mockReturnValue(false);
+    renderWithProviders(<CollectionDetailScreen />);
+    fireEvent.press(await screen.findByTestId('collection-share-button'));
+    await waitFor(() => expect(errorSpy).toHaveBeenCalledWith('Link kopyalanamadı'));
+    expect(successSpy).not.toHaveBeenCalled();
   });
 });
