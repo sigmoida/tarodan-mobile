@@ -191,12 +191,12 @@ describe('Sepet satırı · kart düzeni', () => {
     expect(screen.queryByTestId('cart-item-old-price')).toBeNull();
   });
 
-  it('başlıkta satıcı adı + ürün başlığı; sağ üstteki kaldır düğmesi satırı siler', async () => {
+  it('başlıkta yalnız ürün başlığı (satıcı adı yok); sağ üstteki kaldır düğmesi satırı siler', async () => {
     jest.mocked(cartApi.get).mockResolvedValue(serverCart({}) as any);
     renderWithProviders(<CartScreen />);
 
     expect(await screen.findByText('Hot Wheels Mustang')).toBeOnTheScreen();
-    expect(screen.getByText(/^Satıcı/)).toBeOnTheScreen();
+    expect(screen.queryByText(/^Satıcı/)).toBeNull();
     fireEvent.press(screen.getByTestId('cart-item-remove-p1'));
     await waitFor(() => expect(useCartStore.getState().items).toHaveLength(0));
   });

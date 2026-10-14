@@ -27,7 +27,6 @@ export function CartItemRow({ item, f }: { item: any; f: CartController }) {
   const open = () => router.push(`/product/${item.productId}`);
   const lineSubtotal = f.lineSubtotalFor?.(item.productId) ?? null;
   const originalPrice = selected ? (f.originalPriceFor?.(item.productId) ?? null) : null;
-  const sellerName: string | undefined = item.seller?.displayName;
 
   return (
     <SectionCard testID="cart-item-row" bodyStyle={styles.itemCard}>
@@ -46,12 +45,7 @@ export function CartItemRow({ item, f }: { item: any; f: CartController }) {
         <View style={styles.itemHead}>
           <Pressable onPress={open} accessibilityRole="link" style={styles.itemTitle}>
             <Text variant="bodySm" tone="body" numberOfLines={2}>
-              {sellerName ? (
-                <Text variant="bodySm" weight="bold" tone="heading">
-                  {sellerName}{' '}
-                </Text>
-              ) : null}
-              <Text variant="bodySm" tone="body">{item.title}</Text>
+              {item.title}
             </Text>
           </Pressable>
           <IconButton
@@ -76,7 +70,7 @@ export function CartItemRow({ item, f }: { item: any; f: CartController }) {
           <QuantityStepper
             value={item.quantity}
             max={itemMax}
-            size="sm"
+            size="xs"
             onChange={(next) => f.handleQuantityChange(item.id, next - item.quantity)}
             decreaseLabel={t('cart.decreaseQuantity')}
             increaseLabel={t('cart.increaseQuantity')}

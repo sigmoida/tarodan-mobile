@@ -17,7 +17,7 @@ export interface QuantityStepperProps {
   /** Üst sınır (stok ∧ sipariş sınırı). Yoksa üst sınır yok. */
   max?: number;
   disabled?: boolean;
-  size?: 'sm' | 'md';
+  size?: 'xs' | 'sm' | 'md';
   style?: StyleProp<ViewStyle>;
   decreaseLabel?: string;
   increaseLabel?: string;
@@ -25,9 +25,9 @@ export interface QuantityStepperProps {
 
 const { colors, spacing, radius, radiusRole, typography, iconSize, minTouchTarget } = theme;
 
-/** Web: sm h-8 min-w-8 text-sm · md h-10 min-w-10 text-base. */
-const boxSize = { sm: 32, md: 40 } as const;
-const valueFont = { sm: typography.fontSize.sm, md: typography.fontSize.base } as const;
+/** Web: sm h-8 min-w-8 text-sm · md h-10 min-w-10 text-base. `xs` = satır içi sıkı (h-7, text-xs; sepet). */
+const boxSize = { xs: spacing[6] + spacing[1], sm: 32, md: 40 } as const;
+const valueFont = { xs: typography.fontSize.xs, sm: typography.fontSize.sm, md: typography.fontSize.base } as const;
 
 export const QuantityStepper: React.FC<QuantityStepperProps> = ({
   value,
