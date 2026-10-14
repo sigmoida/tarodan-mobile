@@ -1,6 +1,6 @@
 import { logger, safeError } from '@/services/logger';
 import { goBackOrHome } from '@/components/common/goBackOrHome';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
@@ -16,6 +16,19 @@ import { buildColorAndBoxPayload, serverErrorMessage } from '../_lib/payload';
 import { MAX_COLORS } from '../_lib/schema';
 import { globalCustomGroups, requiredGlobalGroups } from '../_lib/attributeGroups';
 import { toFormValues } from '../_lib/editMapper';
+import {
+  hasPendingImages,
+  imageFromKeys,
+  imagesFromMapped,
+  makeCoverById,
+  moveImageById,
+  patchImage,
+  removeImageById,
+  rotatedPreviewUri,
+  shiftImageById,
+  toImageKeys,
+  type ListingImage,
+} from '../_lib/images';
 import { activatedStatus, activationMessageKey } from '../_lib/activation';
 import { useDispatchAddress } from './useDispatchAddress';
 import { invalidateListingCaches as invalidateListingCachesShared } from '../_lib/invalidate';
@@ -31,7 +44,7 @@ import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 import { useLatestRef } from '@/hooks/useLatestRef';
 
 import { useAuthStore } from '../../../stores/authStore';
-import { api, productsApi, categoriesApi, bankAccountApi, shippingApi, type ListingRemovalPayload } from '@/lib/api';
+import { api, productsApi, categoriesApi, bankAccountApi, shippingApi, mediaApi, type ListingRemovalPayload } from '@/lib/api';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { qk } from '@/lib/query';
 import { FALLBACK_SCALES, buildMaterials, BRAND_SLUGS, SCALE_SLUGS , MIN_IMAGE_BYTES } from '../_lib/constants';
@@ -198,10 +211,21 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const [productLoading, setProductLoading] = useState(isEdit);
   const [productNotFound, setProductNotFound] = useState(false);
 
-  // Images: local URIs for display + server keys for submission
-  const [imageUris, setImageUris] = useState<string[]>([]);
-  const [imageKeys, setImageKeys] = useState<Array<{ cardKey: string; detailKey: string }>>([]);
+  // Görseller: TEK liste (ekran sırası = payload sırası, ilk = kapak). Anahtarlar/URI'ler
+  // bundan türetilir — paralel diziler indeksle ayrışabiliyordu (`_lib/images.ts`).
+  const [images, setImages] = useState<ListingImage[]>([]);
+  const imageKeys = useMemo(() => toImageKeys(images), [images]);
+  const imagesRef = useLatestRef(images);
+  /** Çevirmesi süren kalemler — aynı karedeki ikinci dokunuş state'i görmeden kesilir. */
+  const rotatingIdsRef = useRef(new Set<string>());
   const [uploadingImages, setUploadingImages] = useState(false);
+  /** Görsel sürükleniyor: form ScrollView'ı kaydırmayı bırakır (iki hareket çatışmasın). */
+  const [imageDragActive, setImageDragActive] = useState(false);
+  // Sürüklenecek ikinci görsel kalmadıysa kilit kalkar — sürükleme yarıda kesilip bitiş
+  // bildirimi gelmezse form kaydırması kalıcı kilitli kalmasın.
+  useEffect(() => {
+    if (images.length < 2) setImageDragActive(false);
+  }, [images.length]);
 
   // Data from API
   const [categories, setCategories] = useState<Category[]>([]);
@@ -323,8 +347,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const applyMappedListing = (mapped: MappedListing) => {
     form.reset(mapped.values);
     setReservedQty(mapped.reservedQty);
-    setImageKeys(mapped.images.keys);
-    setImageUris(mapped.images.uris);
+    setImages(imagesFromMapped(mapped.images));
     setSalePrice(mapped.sale.salePrice);
     setSaleStartDate(mapped.sale.saleStartDate);
     setSaleEndDate(mapped.sale.saleEndDate);
@@ -596,17 +619,13 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       if (usable.length !== uploaded.length) {
         toast.error(t('product.imageUploadIncomplete'));
       }
-      const newKeys = usable.map((r: any) => ({
-        cardKey: r.cardKey,
-        detailKey: r.detailKey,
-      }));
-      const newPreviewUrls = usable.map((r: any) => r.cardUrl || r.detailUrl || '');
-
-      setImageKeys((prev) => [...prev, ...newKeys]);
       // API'nin döndürdüğü URL esastır; yerel geçici URI'yi saklamak, kaydetme
       // anında sunucuda karşılığı olmayan bir görselin "yüklenmiş" görünmesine
       // yol açar (delta 18 §2d).
-      setImageUris((prev) => [...prev, ...newPreviewUrls]);
+      const added = usable.map((r: any) =>
+        imageFromKeys({ cardKey: r.cardKey, detailKey: r.detailKey }, r.cardUrl || r.detailUrl || ''),
+      );
+      setImages((prev) => [...prev, ...added]);
     } catch (err: any) {
       toast.error(apiErrorMessage(err, t('listing.imageUploadFailed')));
     } finally {
@@ -614,9 +633,57 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     }
   };
 
-  const removeImage = (index: number) => {
-    setImageKeys((prev) => prev.filter((_, i) => i !== index));
-    setImageUris((prev) => prev.filter((_, i) => i !== index));
+  /** Kalemi KİMLİĞİNDEN kaldır (indeks, sıralama/çevirme sırasında kayar). */
+  const removeImage = (id: string) => {
+    rotatingIdsRef.current.delete(id);
+    setImages((prev) => removeImageById(prev, id));
+  };
+
+  /**
+   * Sıralama KİMLİKLE: konum işlem anındaki listeden çözülür (sürükleme/menü açıkken liste
+   * değişmiş olabilir). Sürükle-bırak: `to` = bırakılan yuva.
+   */
+  const moveImage = (id: string, to: number) => {
+    setImages((prev) => moveImageById(prev, id, to));
+  };
+
+  /** Menü "Sola/Sağa taşı": `delta` = -1 / +1. */
+  const shiftImage = (id: string, delta: number) => {
+    setImages((prev) => shiftImageById(prev, id, delta));
+  };
+
+  /** Kapak = ilk kalem (web `makeCover`). */
+  const makeCoverImage = (id: string) => {
+    setImages((prev) => makeCoverById(prev, id));
+  };
+
+  /**
+   * 90° çevir — sunucu depodaki detay türevini çevirip YENİ anahtarlar döner
+   * (`POST /media/product-image/rotate`; taze yüklenen geçici görsellerde de çalışır).
+   * Eski anahtarlar silinmez (sunucu temizler), bu yüzden hata durumunda kalem aynen kalır.
+   */
+  const rotateImage = async (id: string) => {
+    const target = imagesRef.current.find((item) => item.id === id);
+    if (!target || target.status !== 'ready' || rotatingIdsRef.current.has(id)) return;
+    rotatingIdsRef.current.add(id);
+    setImages((prev) => patchImage(prev, id, { status: 'rotating' }));
+    try {
+      const { data } = await mediaApi.rotateProductImage(target.detailKey);
+      // Kalem bu arada kaldırıldıysa `patchImage` hiçbir şey yapmaz.
+      setImages((prev) =>
+        patchImage(prev, id, {
+          cardKey: data.cardKey,
+          detailKey: data.detailKey,
+          uri: rotatedPreviewUri(data.cardUrl || data.detailUrl, target.uri),
+          status: 'ready',
+        }),
+      );
+    } catch {
+      setImages((prev) => patchImage(prev, id, { status: 'ready' }));
+      toast.error(t('product.imageUpload.rotateFailed'));
+    } finally {
+      rotatingIdsRef.current.delete(id);
+    }
   };
 
   // -----------------------------------------------------------------------
@@ -726,6 +793,12 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const buildSalePayload = (): Record<string, unknown> => ({ ...salePayload(saleFields) });
 
   const validate = (): boolean => {
+    // Görsel yüklemesi/çevirmesi sürerken kaydedilen ilan, ekrandakinden farklı (eksik ya da
+    // çevrilmemiş) görselle giderdi — web `imageSubmitBlocker` "pending".
+    if (uploadingImages || hasPendingImages(images)) {
+      toast.error(t('product.imageUpload.blockerPending'));
+      return false;
+    }
     // Kurallar ve SIRALARI tek yerde (`_lib/validate.ts`) — kullanıcıya
     // gösterilecek tek mesajı o sıra belirliyor.
     const error = firstListingValidationError(t, {
@@ -971,8 +1044,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     form.setValue('colors', []);
     form.setValue('isBoxed', '');
     setGlobalAttributes({});
-    setImageUris([]);
-    setImageKeys([]);
+    setImages([]);
     setSalePrice('');
     const sale = defaultSaleDates();
     setSaleStartDate(sale.saleStartDate);
@@ -1032,11 +1104,17 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     reactivateQuantity, setReactivateQuantity,
     reactivating,
     // images
-    imageUris,
+    images,
     imageKeys,
     uploadingImages,
     pickImages,
     removeImage,
+    moveImage,
+    shiftImage,
+    makeCoverImage,
+    rotateImage,
+    imageDragActive,
+    setImageDragActive,
     // data
     brands,
     models,

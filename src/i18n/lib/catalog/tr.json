@@ -515,7 +515,19 @@
     "images": "Fotoğraflar",
     "basicInfo": "Temel Bilgiler",
     "imageUpload": {
-      "removeImage": "{index}. görseli kaldır"
+      "removeImage": "{index}. görseli kaldır",
+      "cover": "Kapak",
+      "imageAlt": "Görsel {index}",
+      "makeCoverImage": "{index}. görseli kapak yap",
+      "reorderImage": "{index}. görselin sırasını değiştir",
+      "rotate": "90° çevir",
+      "rotateImage": "{index}. görseli 90° çevir",
+      "rotateFailed": "Görsel çevrilemedi",
+      "blockerPending": "Görsel yüklemesi sürüyor, lütfen tamamlanmasını bekleyin.",
+      "makeCover": "Kapak yap",
+      "moveLeft": "Sola taşı",
+      "moveRight": "Sağa taşı",
+      "orderHintTouch": "İlk görsel kapak olur — basılı tutup sürükleyerek ya da görsele dokunarak sırayı değiştirebilirsiniz."
     },
     "views": "görüntülenme",
     "likes": "beğeni",

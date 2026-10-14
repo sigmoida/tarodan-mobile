@@ -53,6 +53,16 @@ export const mediaApi = {
       },
     );
   },
+  /**
+   * Ürün görselini saat yönünde 90° çevirir (web `rotateProductImage`). Sunucu depodaki detay
+   * türevini çevirip YENİ anahtarlar döner; sahiplik: kullanıcının geçici yükleme klasörü ya da
+   * kendi ürününe bağlı anahtar (taze yüklenmiş ve kayıtlı görsellerin ikisi de çevrilebilir).
+   */
+  rotateProductImage: (detailKey: string) =>
+    api.post<{ cardKey: string; detailKey: string; cardUrl: string; detailUrl: string }>(
+      '/media/product-image/rotate',
+      { detailKey },
+    ),
   deleteFile: (key: string) => api.delete(`/media/file/${key}`),
 };
 
