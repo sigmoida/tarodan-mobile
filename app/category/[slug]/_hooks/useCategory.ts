@@ -4,7 +4,8 @@ import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { productsApi, categoriesApi } from '@/lib/api';
-import { buildSortOptions } from '@/utils/productFilters';
+import { qk } from '@/lib/query';
+import { EMPTY_FILTERS, buildSortOptions } from '@/utils/productFilters';
 
 /**
  * Category controller — owns the category-detail query, the filtered products
@@ -15,7 +16,7 @@ export function useCategory() {
   const { t } = useTranslation();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('created_desc');
+  const [sortBy, setSortBy] = useState(EMPTY_FILTERS.sortBy);
   const [selectedScale, setSelectedScale] = useState('');
   const [sortMenuVisible, setSortMenuVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -37,7 +38,7 @@ export function useCategory() {
   });
 
   const { data: products, isLoading, refetch } = useQuery({
-    queryKey: ['category-products', category?.id, searchQuery, sortBy, selectedScale],
+    queryKey: qk.products.categoryProducts(category?.id, searchQuery, sortBy, selectedScale),
     queryFn: async () => {
       try {
         const params: any = { categoryId: category?.id, limit: 50 };

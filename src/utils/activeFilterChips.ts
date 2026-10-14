@@ -16,35 +16,40 @@ export interface ActiveChip {
   onRemove: () => void;
 }
 
+/** `useState` setter'ı — çipler HER ZAMAN fonksiyonel güncelleme verir (bayat kapanım yok). */
+export type SetFilters = (updater: (prev: ProductFilters) => ProductFilters) => void;
+
 /**
- * Aktif filtrelerden kaldırılabilir çip listesi üret (tek kaynak). setFilters ile
- * her çipin "kaldır" davranışı bağlanır. Monolitten BİREBİR taşındı.
+ * Aktif filtrelerden kaldırılabilir çip listesi — ilanlar ve arama ekranlarının TEK kaynağı.
+ * Her çipin "kaldır" davranışı `setFilters(prev => …)` ile bağlanır: çip render'ından sonra
+ * gelen başka bir güncelleme (ör. debounce'lu arama metni) ezilmez.
  */
 export function buildActiveChips(
   filters: ProductFilters,
-  setFilters: (f: ProductFilters) => void,
+  setFilters: SetFilters,
   t: TFunction,
   attributeGroups: ProductFilterOptions['customAttributes'] = [],
 ): ActiveChip[] {
   const chips: ActiveChip[] = [];
-  if (filters.category) chips.push({ key: 'cat', label: filters.category, onRemove: () => setFilters({ ...filters, category: '', categoryId: '' }) });
-  if (filters.brand) chips.push({ key: 'brand', label: filters.brand, onRemove: () => setFilters({ ...filters, brand: '', brandId: '', carModel: '', carModelId: '' }) });
-  if (filters.carModel) chips.push({ key: 'model', label: filters.carModel, onRemove: () => setFilters({ ...filters, carModel: '', carModelId: '' }) });
-  if (filters.manufacturer) chips.push({ key: 'manuf', label: filters.manufacturer, onRemove: () => setFilters({
-    ...filters,
-    manufacturer: '',
-    manufacturerId: '',
-    // Üreticiye bağlı grup seçimleri düşer, genel gruplar kalır (filtre sayfasıyla aynı kural).
-    customAttributes: keepGeneralAttributeSelections(filters.customAttributes, attributeGroups),
-  }) });
-  if (filters.scale) chips.push({ key: 'scale', label: filters.scale, onRemove: () => setFilters({ ...filters, scale: '' }) });
-  if (filters.material) chips.push({ key: 'mat', label: filters.material, onRemove: () => setFilters({ ...filters, material: '' }) });
-  if (filters.condition) chips.push({ key: 'cond', label: conditionLabel(filters.condition, t), onRemove: () => setFilters({ ...filters, condition: '' }) });
-  if (filters.minPrice || filters.maxPrice) chips.push({ key: 'price', label: formatPriceRange(filters.minPrice, filters.maxPrice), onRemove: () => setFilters({ ...filters, minPrice: '', maxPrice: '' }) });
-  if (filters.tradeOnly) chips.push({ key: 'trade', label: t('filter.tradeOnlyChip'), onRemove: () => setFilters({ ...filters, tradeOnly: false }) });
-  if (filters.discountOnly) chips.push({ key: 'disc', label: t('filter.discountOnlyLabel'), onRemove: () => setFilters({ ...filters, discountOnly: false }) });
-  if (filters.preOrder) chips.push({ key: 'pre', label: t('product.preOrder'), onRemove: () => setFilters({ ...filters, preOrder: false }) });
-  if (filters.limited) chips.push({ key: 'lim', label: t('product.limitedEdition'), onRemove: () => setFilters({ ...filters, limited: false }) });
-  if (filters.set) chips.push({ key: 'set', label: t('product.setBundle'), onRemove: () => setFilters({ ...filters, set: false }) });
+  const add = (key: string, label: string, patch: (prev: ProductFilters) => Partial<ProductFilters>) =>
+    chips.push({ key, label, onRemove: () => setFilters((prev) => ({ ...prev, ...patch(prev) })) });
+
+  if (filters.category) add('cat', filters.category, () => ({ category: '', categoryId: '' }));
+  if (filters.brand) add('brand', filters.brand, () => ({ brand: '', brandId: '' }));
+  if (filters.manufacturer)
+    add('manuf', filters.manufacturer, (prev) => ({
+      manufacturer: '',
+      manufacturerId: '',
+      // Üreticiye bağlı grup seçimleri düşer, genel gruplar kalır (filtre sayfasıyla aynı kural).
+      customAttributes: keepGeneralAttributeSelections(prev.customAttributes, attributeGroups),
+    }));
+  if (filters.scale) add('scale', filters.scale, () => ({ scale: '' }));
+  if (filters.material) add('mat', filters.material, () => ({ material: '' }));
+  if (filters.condition)
+    add('cond', conditionLabel(filters.condition, t), () => ({ condition: '' }));
+  if (filters.minPrice || filters.maxPrice)
+    add('price', formatPriceRange(filters.minPrice, filters.maxPrice), () => ({ minPrice: '', maxPrice: '' }));
+  if (filters.tradeOnly) add('trade', t('filter.tradeOnlyChip'), () => ({ tradeOnly: false }));
+  if (filters.discountOnly) add('disc', t('filter.discountOnlyLabel'), () => ({ discountOnly: false }));
   return chips;
 }

@@ -1,6 +1,3 @@
-import type { TFunction } from 'i18next';
-import { buildConditionOptions } from '@/utils/productFilters';
-
 export const PAGE_SIZE = 24;
 
 // NOT: Üst çubukların yüksekliği için tahmini bir sabit (eski COLLAPSIBLE_ESTIMATE)
@@ -15,9 +12,6 @@ export const PAGE_SIZE = 24;
 // düzeltme notu) — kart yüksekliği koşullu puan satırı + tek/iki satırlık
 // başlık nedeniyle 272.8–315.8pt arasında değişiyor, sabit değil.
 export const SEARCH_NUM_COLUMNS = 2;
-
-export const conditionLabel = (v: string, t: TFunction) =>
-  buildConditionOptions(t).find((c) => c.value === v)?.label || v;
 
 /**
  * FlashList v2 geri dönüşüm penceresi (px): görünür alanın alt/üstünde bu kadar içerik önceden çizilir.

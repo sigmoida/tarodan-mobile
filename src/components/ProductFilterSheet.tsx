@@ -1,7 +1,7 @@
 /**
  * Web `apps/web/src/components/SidebarFilters.tsx` paritesi — mobil filtre paneli.
- * Bölümler: Araç Türü, Marka, Model (markaya bağlı), Ölçek, Malzeme, Üretici,
- * Durum, Fiyat, Seçenekler (takas/indirim/ön sipariş/limited/set).
+ * Bölümler: Araç Türü, Marka, Ölçek, Malzeme, Üretici,
+ * Durum, Fiyat, Seçenekler (takas/indirim).
  *
  * Alttan açılan `BottomSheet` (`size="large"`): [Temizle] [N Sonuç Göster] gövdenin DIŞINDA
  * sabit footer'da — güvenli alan (home indicator / gezinti çubuğu) kadar alt boşluklu, klavye
@@ -118,20 +118,10 @@ function FilterSheetBody({
 
   const selectBrand = (o: FilterOption) => {
     const isSel = filters.brandId === o.id;
-    // marka değişince modeli sıfırla (web handleBrandChange)
     onChange(
-      isSel
-        ? { ...filters, brandId: '', brand: '', carModelId: '', carModel: '' }
-        : { ...filters, brandId: o.id, brand: o.label, carModelId: '', carModel: '' },
+      isSel ? { ...filters, brandId: '', brand: '' } : { ...filters, brandId: o.id, brand: o.label },
     );
   };
-
-  const selectModel = (o: FilterOption) =>
-    onChange(
-      filters.carModelId === o.id
-        ? { ...filters, carModelId: '', carModel: '' }
-        : { ...filters, carModelId: o.id, carModel: o.label },
-    );
 
   const selectManufacturer = (o: FilterOption) =>
     // Üretici değişince YALNIZ üreticiye-özel attribute seçimlerini sıfırla (web ile
@@ -179,14 +169,6 @@ function FilterSheetBody({
   const brandOptions = useMemo(
     () => options.brands.map((b) => ({ id: b.id, label: b.name })),
     [options.brands],
-  );
-  // Model listesi seçili markaya göre daralır (web modelsForBrand)
-  const modelOptions = useMemo(
-    () =>
-      options.carModels
-        .filter((m) => !filters.brandId || m.brandId === filters.brandId)
-        .map((m) => ({ id: m.id, label: m.name })),
-    [options.carModels, filters.brandId],
   );
   const manufacturerOptions = useMemo(
     () => options.manufacturers.map((m) => ({ id: m.id, label: m.name })),
@@ -249,27 +231,6 @@ function FilterSheetBody({
           onSelect={selectBrand}
           searchPlaceholder={t('brands.searchPlaceholder')}
           testID="filter-brand"
-        />
-      </View>
-
-      <Divider style={styles.divider} />
-
-      {/* Model (markaya bağlı) */}
-      <View style={styles.section}>
-        <SectionTitle>{t('product.model')}</SectionTitle>
-        {!filters.brandId && (
-          <Text variant="caption" tone="muted" style={styles.hint}>
-            {t('filter.modelSelectBrandFirstHint')}
-          </Text>
-        )}
-        <FilterOptionList
-          // Marka değişince arama/açık durumu sıfırlansın.
-          key={filters.brandId || 'all'}
-          options={modelOptions}
-          selectedId={filters.carModelId}
-          onSelect={selectModel}
-          searchPlaceholder={t('product.searchModels')}
-          testID="filter-model"
         />
       </View>
 
@@ -408,27 +369,6 @@ function FilterSheetBody({
             label={t('filter.discountOnlyLabel')}
           />
         </View>
-        <View style={styles.optionRow}>
-          <Checkbox
-            checked={filters.preOrder}
-            onChange={(v) => onChange({ ...filters, preOrder: v })}
-            label={t('product.preOrder')}
-          />
-        </View>
-        <View style={styles.optionRow}>
-          <Checkbox
-            checked={filters.limited}
-            onChange={(v) => onChange({ ...filters, limited: v })}
-            label={t('product.limitedEdition')}
-          />
-        </View>
-        <View style={styles.optionRow}>
-          <Checkbox
-            checked={filters.set}
-            onChange={(v) => onChange({ ...filters, set: v })}
-            label={t('product.setBundle')}
-          />
-        </View>
       </View>
     </>
   );
@@ -439,7 +379,6 @@ const styles = StyleSheet.create({
   section: { marginTop: spacing[4] },
   sectionTitle: { marginBottom: spacing[3] },
   divider: { marginTop: spacing[4] },
-  hint: { marginBottom: spacing[2] },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] },
   priceRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: spacing[3] },
   priceDash: { marginHorizontal: spacing[3], marginBottom: spacing[3] },

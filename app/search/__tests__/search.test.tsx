@@ -111,6 +111,30 @@ describe('catalog-search · arama ekranı (J52/J53)', () => {
     expect(screen.getByText('0 sonuç bulundu')).toBeOnTheScreen();
   });
 
+  it('sıralama (fiyat artan/azalan) seçilince ürün sayısı sabit kalır, yalnız sortBy değişir', async () => {
+    const items = [makeProduct('p1', 'Ferrari F40'), makeProduct('p2', 'Lamborghini'), makeProduct('p3', 'Porsche')];
+    mockGetAll.mockImplementation(async (params: any) => ({
+      data: {
+        // Sunucu taklidi: aynı küme, yalnız sıra değişir.
+        items: params.sortBy === 'price_desc' ? [...items].reverse() : items,
+        meta: { page: 1, totalPages: 1, total: items.length },
+      },
+    }));
+    renderWithProviders(<SearchScreen />);
+    await waitFor(() => expect(screen.getAllByTestId('search-result-card').length).toBe(3));
+
+    for (const sortBy of ['price_asc', 'price_desc']) {
+      mockGetAll.mockClear();
+      fireEvent.press(screen.getByTestId('sort-button'));
+      fireEvent.press(await screen.findByTestId(`product-sort-sheet-option-${sortBy}`));
+      await waitFor(() =>
+        expect(mockGetAll).toHaveBeenCalledWith({ limit: 24, page: 1, sortBy }),
+      );
+      await waitFor(() => expect(screen.getAllByTestId('search-result-card').length).toBe(3));
+      expect(screen.getByText('3 sonuç bulundu')).toBeOnTheScreen();
+    }
+  });
+
   it('J53 · arama kutusuna yazınca değer ekrana yansır', async () => {
     mockGetAll.mockResolvedValue(mockListResponse([]));
     renderWithProviders(<SearchScreen />);

@@ -45,6 +45,7 @@ const controller = (n: number) => ({
   filterModalVisible: false,
   setFilterModalVisible: jest.fn(),
   setFilters: jest.fn(),
+  setSortBy: jest.fn(),
   clearFilters: jest.fn(),
   isFetching: false,
   isFetchingNextPage: false,

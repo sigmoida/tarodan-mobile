@@ -22,7 +22,6 @@ jest.mock('@/hooks/useProductFilterOptions', () => ({
     manufacturers: [{ id: 'm1', name: 'Hot Wheels', slug: 'hot-wheels' }],
     brands: [],
     categories: [],
-    carModels: [],
     scales: [],
     materials: [],
     customAttributes: [

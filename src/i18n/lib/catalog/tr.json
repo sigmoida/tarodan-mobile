@@ -658,7 +658,6 @@
     "sortHighestRating": "En Yüksek Puan",
     "sortLowestRating": "En Düşük Puan",
     "searchTypes": "Tür ara",
-    "searchModels": "Model ara",
     "searchScale": "Ölçek ara",
     "searchMaterial": "Malzeme ara",
     "searchManufacturers": "Üretici ara",
@@ -8234,7 +8233,6 @@
   "filter": {
     "searchSectionTitle": "Arama",
     "clearSearchLabel": "Aramayı temizle",
-    "modelSelectBrandFirstHint": "Önce marka seçin (ya da tüm modellerde arayın)",
     "discountOnlyLabel": "Sadece İndirimli",
     "tradeOnlyChip": "Takaslı",
     "resultsLoading": "Sonuçlar yükleniyor…",

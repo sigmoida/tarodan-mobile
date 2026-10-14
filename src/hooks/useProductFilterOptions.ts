@@ -8,7 +8,6 @@ import { productsApi, categoriesApi } from '@/lib/api';
 export type FilterCategory = { id: string; name: string; slug: string };
 export type FilterBrand = { id: string; name: string; slug: string };
 export type FilterManufacturer = { id: string; name: string; slug: string };
-export type FilterCarModel = { id: string; name: string; slug: string; brandId: string };
 export type FilterMaterial = { slug: string; label: string };
 export type FilterCustomAttribute = { slug: string; label: string; color: string | null };
 export type FilterCustomAttributeGroup = {
@@ -23,7 +22,6 @@ export type ProductFilterOptions = {
   categories: FilterCategory[];
   brands: FilterBrand[];
   manufacturers: FilterManufacturer[];
-  carModels: FilterCarModel[];
   scales: string[];
   materials: FilterMaterial[];
   /**
@@ -75,7 +73,6 @@ export function useProductFilterOptions(manufacturerSlug?: string): ProductFilte
     categories,
     brands: data?.brands ?? [],
     manufacturers: data?.manufacturers ?? [],
-    carModels: data?.carModels ?? [],
     // Sunucu 16'lık sabit ölçek listesini KALDIRDI: boş dizi artık meşru bir
     // yanıt ("katalogda ölçek yok"), hata değil. Eskiden boş görünce istemci
     // listesi konuyordu ve kullanıcı katalogda karşılığı olmayan bir ölçekle
