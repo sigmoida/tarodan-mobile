@@ -52,16 +52,16 @@ const base = () => ({
 describe('satıcı profili', () => {
   beforeEach(() => mockProfile.mockReset());
 
-  it('başlık kartı: ad, doğrulanmış rozeti, sayaçlar (İlanlar/Satış/Takas/Puan)', () => {
+  it('başlık kartı: ad, doğrulanmış rozeti, sayaçlar (İlanlar/Satış/Takas/Takipçi)', () => {
     mockProfile.mockReturnValue(base());
     render(<SellerProfileScreen />);
     expect(screen.getByText('Ali Veli')).toBeTruthy();
     expect(screen.getByText('Doğrulanmış')).toBeTruthy();
     expect(screen.getByText('Satış')).toBeTruthy();
     expect(screen.getByText('Takas')).toBeTruthy();
-    expect(screen.getByText('Puan')).toBeTruthy();
-    expect(screen.getByText('4.5')).toBeTruthy();
-    expect(screen.getByText(/3 Takipçi/)).toBeTruthy();
+    expect(screen.getByText('Takipçi')).toBeTruthy();
+    expect(screen.queryByText('4.5')).toBeNull(); // ortalama puan başlıkta değil, değerlendirmeler kartında
+    expect(screen.getByText('3')).toBeTruthy(); // takipçi sayacı ızgarada
   });
 
   it('ilanlar sekmesi ProductCard ızgarası; sekme sayıları etikette', () => {

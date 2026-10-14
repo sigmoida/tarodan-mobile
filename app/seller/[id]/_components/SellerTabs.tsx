@@ -5,6 +5,7 @@ import { Avatar, ChipTabs, EmptyState, SectionCard, Text, theme, Icon } from '@/
 
 import { ProductCard } from '@/components/product';
 import { CollectionCard } from '@/components/collection/CollectionCard';
+import { sellerRatingSummary } from '../_lib/rating';
 import { styles } from '../_lib/styles';
 import type { SellerProfileController } from '../_hooks/useSellerProfile';
 import { ReviewAuthorName } from '@/components/reviews/ReviewAuthorName';
@@ -17,6 +18,7 @@ type Tab = SellerProfileController['activeTab'];
 export function SellerTabs({ f }: { f: SellerProfileController }) {
   const { t } = useTranslation();
   const { activeTab, products, reviews, collections } = f;
+  const rating = sellerRatingSummary(f);
   return (
     <>
       <ChipTabs<Tab>
@@ -47,7 +49,16 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
         (reviews.length === 0 ? (
           <EmptyState placement="inline" testID="seller-empty-reviews" icon="star" title={t('review.noReviews')} subtitle={t('seller.noReviewsDesc')} />
         ) : (
-          <SectionCard title={t('review.reviews')}>
+          <SectionCard
+            title={t('review.reviews')}
+            badge={
+              rating.hasRatings ? (
+                <Text variant="bodySm" weight="semibold" tone="heading" testID="seller-reviews-average">
+                  ★ {rating.average.toFixed(1)} ({rating.total})
+                </Text>
+              ) : null
+            }
+          >
             {reviews.map((review: any, i: number) => {
               // Kullanıcı/satıcı değerlendirmesi DTO'su: { score, comment, createdAt, giverName, giver: { displayName, avatarUrl } }
               const score = review.score ?? review.rating ?? 0;
