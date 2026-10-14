@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { RefreshControl, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { EmptyState, ErrorState, Spinner, pageListContentStyle, theme, useShellPageScroll } from '@/ui';
+import { EmptyState, ErrorState, Spinner, pageListContentStyle, theme, useShellPageScroll, type PageScroll } from '@/ui';
 import { ProductCard, type ProductCardLayout, type ProductCardProduct } from './ProductCard';
 import { PRODUCT_GRID_GAP, ProductGridSkeleton, ProductListEmpty, useProductCellWidth } from './ProductListStates';
 
@@ -32,6 +32,13 @@ interface ProductGridBaseProps {
   onItemPress?: (product: ProductCardProduct) => void;
   showMeta?: boolean;
   testID?: string;
+  /**
+   * Ekranın kendi kaydırma sinyali (ör. alt menülü yığın ekranı: `useTabBarPageScroll()`, aynı değer
+   * `<PageShell scroll={page}>`a da verilir). Verilirse kabuk bağlamı yerine liste buna bağlanır.
+   */
+  scroll?: PageScroll;
+  /** İçeriğin alt dolgusu (ör. yüzen alt menü: `useTabBarInset()`); verilmezse varsayılan. */
+  bottomInset?: number;
 }
 
 // Kararlı anahtar: yalnız `id` (index YOK) — sayfa kayması/yeniden sıralamada hücreler sökülmesin.
@@ -81,6 +88,8 @@ export function ProductGrid({
   onItemPress,
   showMeta = true,
   testID,
+  scroll,
+  bottomInset,
 }: ProductGridProps) {
   const columns = layout === 'list' ? 1 : 2;
   // Tek tük kalan son kart komşusundan geniş olmasın: hücre genişliği açık verilir.
@@ -95,7 +104,10 @@ export function ProductGrid({
 
   // Kabuk kaydırma sinyali (yoksa null → bağlanmaz). iOS `contentInset` + Android üst dolgusu
   // `contentStyle` ile tek yerden verilir; `ListHeaderComponent` ek boşluk almaz (çift boşluk yok).
-  const page = useShellPageScroll();
+  // Ekran kendi sinyalini verdiyse kabuğa bağlanılmaz (kabuk zaten o sinyali gösterir).
+  const shellPage = useShellPageScroll(!scroll);
+  const page = scroll ?? shellPage;
+  const content = bottomInset == null ? styles.content : [styles.content, { paddingBottom: bottomInset }];
 
   const empty = errorMessage ? (
     <ErrorState message={errorMessage} onRetry={onRetry} />
@@ -116,7 +128,7 @@ export function ProductGrid({
       renderItem={renderItem}
       numColumns={columns}
       {...(page?.listProps ?? null)}
-      contentContainerStyle={page ? page.contentStyle(styles.content) : styles.content}
+      contentContainerStyle={page ? page.contentStyle(content) : content}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       columnWrapperStyle={columns > 1 ? styles.row : undefined}
