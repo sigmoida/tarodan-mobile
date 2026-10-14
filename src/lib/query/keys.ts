@@ -97,6 +97,8 @@ export const qk = {
 
   catalog: {
     categories: ["categories"] as const,
+    /** Koleksiyon tarama kategori filtresi — `/categories?refresh=1` ağacı (web `categories.collections`). */
+    collectionCategories: ["categories", "collections"] as const,
     brands: ["brands"] as const,
     manufacturers: ["manufacturers"] as const,
     /** Marka / üretici detayı (slug) ve ürünleri (varlık id'si). */
@@ -113,6 +115,7 @@ export const qk = {
 
   collections: {
     all: ["collections"] as const,
+    /** Herkese açık koleksiyon tarama (sonsuz liste) — `{ sortBy, search, categoryId }`. */
     list: (filters?: Filters) => ["collections", "list", filters] as const,
     detail: (id: string) => ["collection", id] as const,
     /** Prefix root — her `collection` detayını yakalar. */
