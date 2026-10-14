@@ -19,7 +19,6 @@ export function ShipmentStatusChip({
     <Pill
       testID={testID}
       size="md"
-      shape="full"
       background={meta.bg}
       color={meta.fg}
       style={styles.chip}

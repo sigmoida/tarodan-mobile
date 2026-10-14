@@ -9,7 +9,7 @@ import { theme } from '../lib/theme';
 import { touchSlop } from './Button';
 import { RawText } from './Text';
 import { Icon, type IconName } from '../icons';
-import { pillBoxStyle, pillTextStyle, type PillSize } from './Pill';
+import { Pill, pillBoxStyle, pillTextStyle, type PillSize } from './Pill';
 import { androidRipple, rippleClip, showPressedStyle } from '../lib/pressableFeedback';
 
 export type ChipVariant = 'neutral' | 'primary' | 'success' | 'danger' | 'warning' | 'info';
@@ -17,6 +17,11 @@ export type ChipSize = 'sm' | 'md';
 
 export interface ChipProps extends Omit<PressableProps, 'style'> {
   label: string;
+  /**
+   * Etiketin yanında küçük sayaç rozeti (sekme çipi: "İlanlar [20]"). Rozet köşesi
+   * (`radiusRole.badge`); 0 da gösterilir. Erişilebilirlik etiketine `Etiket (n)` olarak girer.
+   */
+  count?: number;
   /** Etiketin sonunda işlev ikonu (ör. kaldırılabilir filtre çipi için `x-mark`). */
   trailingIcon?: IconName;
   /**
@@ -30,6 +35,13 @@ export interface ChipProps extends Omit<PressableProps, 'style'> {
   selected?: boolean;
   /** `selected` takma adı (web adı). */
   active?: boolean;
+  /**
+   * Köşe. Varsayılan: seçilebilir çip (`selected`/`active` verilmiş) = `pill` (tam hap — seçim
+   * kontrolü); etiket modu (salt gösterim / tek eylem) = `badge` (rozet köşesi, `radiusRole.badge`).
+   * Rozet satırında duran bir açma/kapama (ör. profildeki görünürlük çipi) `badge` verir ki
+   * yanındaki rozetlerle aynı köşede dursun. Kural: `src/theme/roles.ts` → `radiusRole`.
+   */
+  shape?: 'pill' | 'badge';
   /** Custom background color (overrides variant). Use sparingly — prefer variant. */
   backgroundColor?: string;
   textColor?: string;
@@ -58,7 +70,7 @@ const toggleStyle = {
 } as const;
 
 /**
- * Çip = tam yuvarlak hap (Pill tabanı): sm → Pill body (px-2 text-sm) h28; md → Pill lg (px-3 text-sm) h32.
+ * Çip = Pill tabanı; seçim kontrolünde tam yuvarlak hap, etiket modunda rozet köşesi (bkz. `shape`): sm → Pill body (px-2 text-sm) h28; md → Pill lg (px-3 text-sm) h32.
  * `height` ASGARİ yüksekliktir (`minHeight` + küçük dikey dolgu): normal yazı ölçeğinde çip tam bu
  * boydadır, büyük ölçekte etiket kırpılmadan büyür.
  *
@@ -75,11 +87,13 @@ const sizeMap: Record<ChipSize, { height: number; pill: PillSize }> = {
 
 export const Chip: React.FC<ChipProps> = ({
   label,
+  count,
   trailingIcon,
   variant = 'neutral',
   size = 'sm',
   selected,
   active,
+  shape,
   backgroundColor,
   textColor,
   onPress,
@@ -109,9 +123,9 @@ export const Chip: React.FC<ChipProps> = ({
       hitSlop={hitSlop ?? (onPress ? touchSlop(ss.height) : undefined)}
       android_ripple={onPress ? androidRipple() : undefined}
       style={({ pressed }) => [
-        pillBoxStyle(ss.pill, 'full'),
+        pillBoxStyle(ss.pill, (shape ?? (isOn === undefined ? 'badge' : 'pill')) === 'badge' ? 'badge' : 'full'),
         onPress ? rippleClip() : null,
-        trailingIcon ? { gap: spacing[1] } : null,
+        trailingIcon || count != null ? { gap: spacing[1] } : null,
         {
           minHeight: ss.height,
           maxHeight,
@@ -124,6 +138,7 @@ export const Chip: React.FC<ChipProps> = ({
         style,
       ]}
       accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={count != null ? `${label} (${count})` : undefined}
       accessibilityState={isOn === undefined ? undefined : { selected: isOn }}
       {...rest}
     >
@@ -134,6 +149,17 @@ export const Chip: React.FC<ChipProps> = ({
       >
         {label}
       </RawText>
+      {count != null ? (
+        <Pill
+          size="count"
+          shape="badge"
+          background={isOn ? colors.primary[600] : colors.gray[100]}
+          color={isOn ? colors.text.inverted : colors.text.muted}
+          testID={rest.testID ? `${rest.testID}-count` : undefined}
+        >
+          {String(count)}
+        </Pill>
+      ) : null}
       {trailingIcon ? <Icon name={trailingIcon} size={theme.iconSize.sm} color={fg} /> : null}
     </Pressable>
   );

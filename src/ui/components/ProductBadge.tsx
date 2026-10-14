@@ -32,8 +32,8 @@ const TO_BADGE: Record<ProductBadgeVariant, { variant: BadgeVariant; appearance:
 /**
  * Ürün kartı vitrin rozeti (indirim / yeni / takas / nadir / ön sipariş / sınırlı / sponsorlu).
  * Web gibi genel `Badge`'in ince sarmalayıcısı: SOLID görünüm (görsel üstünde okunur), `xs` (12pt; fotoğraf
- * üstünde büyümez),
- * `rounded-md` (4) ve kalın yazı.
+ * üstünde büyümez) ve kalın yazı. Köşe diğer tüm rozetlerle aynı: `radiusRole.badge` (Badge'den gelir;
+ * web'in `rounded-md`'si tek-rozet-köşesi kuralı için bilinçli olarak eşitlendi).
  */
 export const ProductBadge: React.FC<ProductBadgeProps> = ({
   variant = 'default',
@@ -47,7 +47,7 @@ export const ProductBadge: React.FC<ProductBadgeProps> = ({
       variant={mapped.variant}
       appearance={mapped.appearance}
       size="xs"
-      style={[styles.base, style]}
+      style={style}
       textStyle={[styles.text, textStyle]}
       {...rest}
     />
@@ -55,6 +55,5 @@ export const ProductBadge: React.FC<ProductBadgeProps> = ({
 };
 
 const styles = StyleSheet.create({
-  base: { borderRadius: theme.radius.md },
   text: { fontWeight: theme.typography.fontWeight.bold },
 });

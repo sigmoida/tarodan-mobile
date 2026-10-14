@@ -46,6 +46,15 @@ export const minTouchTarget = 44;
  * Radius rolleri — web'deki gibi: ürün kartı `rounded` (4); kart, bölüm, buton, input ve rozet
  * `rounded-lg` (6); modal `rounded-xl` (8); alttan açılan sheet'in üst köşeleri `2xl` (10);
  * chip ve avatar `full`.
+ *
+ * ROZET KURALI (tek köşe): her rozet — `Badge`, `StatusBadge`, `ProductBadge` (görsel üstü vitrin
+ * rozeti dahil), etiket modundaki `Chip` (seçim durumu yok), `Pill` (varsayılan `shape="badge"`),
+ * buton içi sayaç, durum/bilgi etiketleri ve bunlarla AYNI SATIRDA duran küçük açma/kapama
+ * (ör. profildeki "Herkese açık" görünürlük çipi, `Chip shape="badge"`) — `radiusRole.badge`
+ * kullanır (web `Badge` `rounded-lg` = 6). İstisnalar yalnız ikidir ve rozet DEĞİLDİR:
+ *   1. `chip` (tam hap): tek/çoklu seçim KONTROLLERİ — filtre çipleri, `ChipTabs`, seçenek çipleri.
+ *   2. `counter` (daire): ikon üstündeki okunmamış/adet sayacı (`CountBadge`, web `rounded-full`).
+ * Ekranda elle köşe yazılmaz; yeni bir rozet bu rollerden birini seçer.
  */
 export const radiusRole = {
   productCard: radius.DEFAULT,
@@ -54,6 +63,7 @@ export const radiusRole = {
   button: radius.lg,
   input: radius.lg,
   badge: radius.lg,
+  counter: radius.full,
   modal: radius.xl,
   sheet: radius['2xl'],
   chip: radius.full,

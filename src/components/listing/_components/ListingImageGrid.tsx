@@ -367,7 +367,6 @@ const ImageTile = memo(function ImageTile({
         {isCover ? (
           <Pill
             size="sm"
-            shape="full"
             background={colors.primary[600]}
             color={colors.text.inverted}
             weight={typography.fontWeight.semibold}
@@ -381,7 +380,6 @@ const ImageTile = memo(function ImageTile({
         ) : (
           <Pill
             size="sm"
-            shape="full"
             background={colors.overlay.white90}
             borderColor={colors.border.DEFAULT}
             color={colors.text.muted}
