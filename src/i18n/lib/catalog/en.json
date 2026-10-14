@@ -663,7 +663,6 @@
     "sortHighestRating": "Highest Rating",
     "sortLowestRating": "Lowest Rating",
     "searchTypes": "Search types",
-    "searchModels": "Search models",
     "searchScale": "Search scale",
     "searchMaterial": "Search material",
     "searchManufacturers": "Search manufacturers",
@@ -8242,7 +8241,6 @@
   "filter": {
     "searchSectionTitle": "Search",
     "clearSearchLabel": "Clear search",
-    "modelSelectBrandFirstHint": "Select a brand first (or search across all models)",
     "discountOnlyLabel": "Discounted Only",
     "tradeOnlyChip": "Tradeable",
     "resultsLoading": "Loading results…",

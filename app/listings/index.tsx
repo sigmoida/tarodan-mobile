@@ -51,7 +51,7 @@ export default function ListingsScreen() {
             visible={f.sortMenuVisible}
             value={f.filters.sortBy}
             onSelect={(sortBy) => {
-              f.setFilters({ ...f.filters, sortBy });
+              f.setSortBy(sortBy);
               f.setSortMenuVisible(false);
             }}
             onClose={() => f.setSortMenuVisible(false)}
@@ -108,7 +108,7 @@ export default function ListingsScreen() {
           f.isLoading ? (
             <ProductGridSkeleton />
           ) : (
-            <ProductListEmpty filtered={f.activeFilterCount > 0} onClearFilters={f.clearFilters} />
+            <ProductListEmpty filtered={f.activeFilterCount > 0 || !!f.filters.search} onClearFilters={f.clearFilters} />
           )
         }
       />

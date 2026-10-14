@@ -36,7 +36,7 @@ const BLOCK_INVALIDATES = [
   // Kategori/marka/üretici/model listeleri, arama önerileri, yorumlar ve puanlar
   // ham anahtarlarla (qk dışında) sorgulanıyor; kökleri burada — yoksa 5 dk
   // staleTime boyunca engellenenin içeriği görünmeye devam ediyordu (Apple 1.2).
-  ['category-products'],
+  qk.products.categoryProductsAll,
   ['brand-products'],
   ['manufacturer-products'],
   ['model-products'],

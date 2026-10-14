@@ -32,7 +32,6 @@ const filters = (over: Record<string, unknown> = {}) => ({
     categories: [],
     brands: [],
     manufacturers: [],
-    carModels: [],
     scales: [],
     materials: [],
     customAttributes: [],

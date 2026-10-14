@@ -176,9 +176,7 @@ function SearchSuggestionsBase({
                   <Pressable
                     key={`b-${b.id}`}
                     style={styles.acItem}
-                    onPress={() =>
-                      onApplyFacet({ brandId: b.id, brand: b.name, carModel: '', carModelId: '' })
-                    }
+                    onPress={() => onApplyFacet({ brandId: b.id, brand: b.name })}
                   >
                     <Text style={styles.acItemText}>{b.name}</Text>
                   </Pressable>

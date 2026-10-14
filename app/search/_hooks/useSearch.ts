@@ -16,21 +16,22 @@ import {
 } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { formatPriceRange } from '@/utils/format';
-
 import { productsApi, searchApi } from '@/lib/api';
+import { qk } from '@/lib/query';
 import { useRecentSearchesStore } from '@/stores/recentSearchesStore';
 import { useProductFilterOptions } from '@/hooks/useProductFilterOptions';
 import {
   EMPTY_FILTERS,
   buildListParams,
+  clearProductFilters,
   countActiveFilters,
   extractListings,
   extractMeta,
-  keepGeneralAttributeSelections,
+  flattenUniqueListings,
   type ProductFilters,
 } from '@/utils/productFilters';
-import { PAGE_SIZE, conditionLabel } from '../_lib/searchConstants';
+import { buildActiveChips } from '@/utils/activeFilterChips';
+import { PAGE_SIZE } from '../_lib/searchConstants';
 import {
   BARS_ANIM_MS,
   nextBarsHidden,
@@ -142,14 +143,21 @@ export function useSearch() {
   }, []);
 
   // Arama kutusu (debounce sonrası) → filters.search + öneri sorgusu
-  const commitQuery = useCallback(
-    (text: string) => {
-      setFilters((prev) => (prev.search === text ? prev : { ...prev, search: text.trim() }));
-      const q = text.trim();
-      setAutocompleteQuery(q.length >= 2 ? q : '');
-    },
-    [],
-  );
+  // `filters.search` TEK kaynak: kutu (debounce) ve filtre sayfasındaki arama alanı aynı değeri
+  // yazar. `lastSearchRef` son bilinen değeri tutar; değişiklik kutudan GELMEDİYSE (filtre
+  // sayfası) kutu o metne eşitlenir (aşağıdaki effect).
+  const lastSearchRef = useRef(filters.search);
+  const commitQuery = useCallback((text: string) => {
+    const q = text.trim();
+    lastSearchRef.current = q;
+    setFilters((prev) => (prev.search.trim() === q ? prev : { ...prev, search: q }));
+    setAutocompleteQuery(q.length >= 2 ? q : '');
+  }, []);
+  useEffect(() => {
+    if (filters.search === lastSearchRef.current) return;
+    lastSearchRef.current = filters.search;
+    setInputText(filters.search);
+  }, [filters.search, setInputText]);
 
   // Son aramalara YALNIZ onaylanmış aramada yazılır (Enter / öneri seçimi / öneriden sonuca gitme /
   // dışarıdan gelen `q` ile açılış). Eskiden her debounce'ta ("fer","ferr","ferra") kaydoluyor ve
@@ -201,7 +209,7 @@ export function useSearch() {
 
   // --- Ürün listesi: web /products endpoint'i + sayfalama (sonsuz kaydırma) ---
   const queryClient = useQueryClient();
-  const searchKey = ['products-search', filters] as const;
+  const searchKey = qk.products.search(undefined, filters);
   const {
     data,
     isLoading,
@@ -231,9 +239,6 @@ export function useSearch() {
       first.meta.page > 1 ? first.meta.page - 1 : undefined,
   });
 
-  // Sayfalar arası tekilleştirme: sayfalama sırasında bir ilan iki sayfada da dönebilir
-  // (araya yeni ilan girerse kayma olur); `keyExtractor` yalnız `item.id` kullandığı için
-  // yinelenen id'ler listeden elenir.
   // Pull-to-refresh: spinner YALNIZ kullanıcı çekip bıraktığında döner (`isRefetching` sonraki sayfa
   // yüklemesinde / filtre değişiminde de true olur → RefreshControl yanlışlıkla tetiklenirdi).
   const [pullRefreshing, setPullRefreshing] = useState(false);
@@ -254,18 +259,9 @@ export function useSearch() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryClient, refetch, filters]);
 
-  const products: any[] = useMemo(() => {
-    const seen = new Set<string>();
-    const out: any[] = [];
-    for (const page of data?.pages ?? []) {
-      for (const item of page.items) {
-        if (seen.has(item.id)) continue;
-        seen.add(item.id);
-        out.push(item);
-      }
-    }
-    return out;
-  }, [data]);
+  // Sayfalar arası tekilleştirme (`flattenUniqueListings`): sunucu eşit fiyat/başlıkta sayfalar
+  // arası kararsız sıralayabilir ve `keyExtractor` yalnız `item.id` kullanır.
+  const products: any[] = useMemo(() => flattenUniqueListings(data?.pages), [data]);
   const total = data?.pages[0]?.meta.total ?? 0;
 
   const activeFiltersCount = useMemo(() => countActiveFilters(filters), [filters]);
@@ -279,10 +275,13 @@ export function useSearch() {
     [setInputText],
   );
 
-  const clearAllFilters = useCallback(() => {
-    setFilters({ ...EMPTY_FILTERS });
-    setInputText('');
-  }, [setInputText]);
+  // "Temizle" filtreleri sıfırlar; sıralama ve üstteki arama metni kalır.
+  const clearAllFilters = useCallback(() => setFilters(clearProductFilters), []);
+  // Sıralama değişimi mevcut filtreleri OLDUĞU GİBİ korur (bayat `filters` kapanımı yok).
+  const setSortBy = useCallback(
+    (sortBy: string) => setFilters((prev) => (prev.sortBy === sortBy ? prev : { ...prev, sortBy })),
+    [],
+  );
 
   // Öneriden metin seçilince: kutuyu doldur, öneri panelini kapat.
   const pickSuggestion = useCallback(
@@ -308,30 +307,11 @@ export function useSearch() {
     }, 200);
   }, []);
 
-  // Aktif filtre çipleri (web parity: kaldırılabilir)
-  const activeChips = useMemo(() => {
-  const activeChips: { key: string; label: string; onRemove: () => void }[] = [];
-  if (filters.category) activeChips.push({ key: 'cat', label: filters.category, onRemove: () => setFilters({ ...filters, category: '', categoryId: '' }) });
-  if (filters.brand) activeChips.push({ key: 'brand', label: filters.brand, onRemove: () => setFilters({ ...filters, brand: '', brandId: '', carModel: '', carModelId: '' }) });
-  if (filters.carModel) activeChips.push({ key: 'model', label: filters.carModel, onRemove: () => setFilters({ ...filters, carModel: '', carModelId: '' }) });
-  if (filters.manufacturer) activeChips.push({ key: 'manuf', label: filters.manufacturer, onRemove: () => setFilters({
-    ...filters,
-    manufacturer: '',
-    manufacturerId: '',
-    // Üreticiye bağlı grup seçimleri düşer, genel gruplar kalır (filtre sayfasıyla aynı kural).
-    customAttributes: keepGeneralAttributeSelections(filters.customAttributes, options.customAttributes),
-  }) });
-  if (filters.scale) activeChips.push({ key: 'scale', label: filters.scale, onRemove: () => setFilters({ ...filters, scale: '' }) });
-  if (filters.material) activeChips.push({ key: 'mat', label: filters.material, onRemove: () => setFilters({ ...filters, material: '' }) });
-  if (filters.condition) activeChips.push({ key: 'cond', label: conditionLabel(filters.condition, t), onRemove: () => setFilters({ ...filters, condition: '' }) });
-  if (filters.minPrice || filters.maxPrice) activeChips.push({ key: 'price', label: formatPriceRange(filters.minPrice, filters.maxPrice), onRemove: () => setFilters({ ...filters, minPrice: '', maxPrice: '' }) });
-  if (filters.tradeOnly) activeChips.push({ key: 'trade', label: t('filter.tradeOnlyChip'), onRemove: () => setFilters({ ...filters, tradeOnly: false }) });
-  if (filters.discountOnly) activeChips.push({ key: 'disc', label: t('filter.discountOnlyLabel'), onRemove: () => setFilters({ ...filters, discountOnly: false }) });
-  if (filters.preOrder) activeChips.push({ key: 'pre', label: t('product.preOrder'), onRemove: () => setFilters({ ...filters, preOrder: false }) });
-  if (filters.limited) activeChips.push({ key: 'lim', label: t('product.limitedEdition'), onRemove: () => setFilters({ ...filters, limited: false }) });
-  if (filters.set) activeChips.push({ key: 'set', label: t('product.setBundle'), onRemove: () => setFilters({ ...filters, set: false }) });
-  return activeChips;
-  }, [filters, options.customAttributes, t]);
+  // Aktif filtre çipleri (web parity: kaldırılabilir) — ilanlar ekranıyla aynı tek kaynak.
+  const activeChips = useMemo(
+    () => buildActiveChips(filters, setFilters, t, options.customAttributes),
+    [filters, options.customAttributes, t],
+  );
 
   // Öneri/geçmiş paneli görünür mü? (X kapat tuşu ve input köşe stilinde kullanılır)
   const recentPanelOpen =
@@ -402,6 +382,7 @@ export function useSearch() {
     // filters / search box
     filters,
     setFilters,
+    setSortBy,
     initialQuery,
     inputEmpty,
     setInputEmpty,

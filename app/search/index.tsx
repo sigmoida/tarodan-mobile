@@ -94,18 +94,17 @@ export default function SearchScreen() {
     [isLoading, isError, refetch, activeFiltersCount, hasSearch, clearAllFilters, t],
   );
 
-  const { setSortModalVisible, setFilterModalVisible, setFilters } = f;
+  const { setSortModalVisible, setFilterModalVisible, setSortBy } = f;
   const openSort = useCallback(() => setSortModalVisible(true), [setSortModalVisible]);
   const openFilter = useCallback(() => setFilterModalVisible(true), [setFilterModalVisible]);
   const closeFilter = useCallback(() => setFilterModalVisible(false), [setFilterModalVisible]);
   const closeSort = useCallback(() => setSortModalVisible(false), [setSortModalVisible]);
-  const currentFilters = f.filters;
   const selectSort = useCallback(
     (sortBy: string) => {
-      setFilters({ ...currentFilters, sortBy });
+      setSortBy(sortBy);
       setSortModalVisible(false);
     },
-    [currentFilters, setFilters, setSortModalVisible],
+    [setSortBy, setSortModalVisible],
   );
 
   return (

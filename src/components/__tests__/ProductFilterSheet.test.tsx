@@ -31,7 +31,6 @@ const options = (over: Partial<ProductFilterOptions> = {}): ProductFilterOptions
     { id: 'm1', name: 'Hot Wheels', slug: 'hot-wheels' },
     { id: 'm2', name: 'Majorette', slug: 'majorette' },
   ],
-  carModels: [],
   scales: [],
   materials: [],
   customAttributes: [GENERAL, SCOPED],
@@ -145,6 +144,28 @@ describe('ProductFilterSheet · alt çubuk (footer)', () => {
     renderSheet({ visible: false });
     expect(screen.queryByTestId('product-filter-sheet')).toBeNull();
     expect(screen.queryByText('Majorette')).toBeNull();
+  });
+});
+
+describe('ProductFilterSheet · kaldırılan filtreler', () => {
+  it('Model bölümü, Ön Sipariş, Limited Edition ve Set/Paket seçenekleri yok', () => {
+    render(
+      <ProductFilterSheet
+        visible
+        onClose={jest.fn()}
+        onClear={jest.fn()}
+        onChange={jest.fn()}
+        filters={EMPTY_FILTERS}
+        options={options()}
+        resultCount={0}
+      />,
+    );
+    expect(screen.queryByTestId('filter-model')).toBeNull();
+    for (const label of ['Model', 'Ön Sipariş', 'Limited Edition', 'Set / Paket']) {
+      expect(screen.queryByText(label)).toBeNull();
+    }
+    // Kalan seçenekler yerinde.
+    expect(screen.getByText('Sadece takas yapılabilir ürünleri göster')).toBeTruthy();
   });
 });
 

@@ -1,21 +1,26 @@
-import { useState, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import { productsApi } from '@/lib/api';
+import { qk } from '@/lib/query';
 import { useProductFilterOptions } from '@/hooks/useProductFilterOptions';
 import {
   EMPTY_FILTERS,
   buildSortOptions,
   buildListParams,
+  clearProductFilters,
   countActiveFilters,
   extractListings,
   extractMeta,
+  flattenUniqueListings,
   type ProductFilters,
 } from '@/utils/productFilters';
-import { buildActiveChips } from '../_lib/chips';
+import { buildActiveChips } from '@/utils/activeFilterChips';
 
 const PAGE_SIZE = 24;
+/** Üst arama kutusu yazmayı bırakınca `filters.search`'e yazılır (arama ekranıyla aynı süre). */
+const SEARCH_DEBOUNCE_MS = 400;
 
 /**
  * Listings controller — owns the filters + search state, the manufacturer-slug
@@ -50,7 +55,21 @@ export function useListings() {
     sortBy: params.sortBy || EMPTY_FILTERS.sortBy,
   }));
 
+  // Arama metninin TEK kaynağı `filters.search`. Üst kutu yalnız yazım taslağını tutar:
+  // debounce/Enter ile `filters.search`'e işlenir, filtre sayfası veya çip `filters.search`'i
+  // değiştirirse taslak ona eşitlenir.
   const [searchQuery, setSearchQuery] = useState(filters.search);
+  useEffect(() => {
+    setSearchQuery(filters.search);
+  }, [filters.search]);
+  useEffect(() => {
+    const q = searchQuery.trim();
+    const id = setTimeout(
+      () => setFilters((prev) => (prev.search.trim() === q ? prev : { ...prev, search: q })),
+      SEARCH_DEBOUNCE_MS,
+    );
+    return () => clearTimeout(id);
+  }, [searchQuery]);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [sortMenuVisible, setSortMenuVisible] = useState(false);
   // Izgara / liste görünümü (web ProductLayoutSelector).
@@ -67,7 +86,16 @@ export function useListings() {
   }, [filters.manufacturerId, filters.manufacturer, baseOptions.manufacturers]);
   const options = useProductFilterOptions(manufacturerSlug);
 
-  const applySearch = () => setFilters((prev) => ({ ...prev, search: searchQuery.trim() }));
+  const applySearch = () =>
+    setFilters((prev) => {
+      const q = searchQuery.trim();
+      return prev.search.trim() === q ? prev : { ...prev, search: q };
+    });
+  // Sıralama değişimi mevcut filtreleri OLDUĞU GİBİ korur (bayat `filters` kapanımı yok).
+  const setSortBy = useCallback(
+    (sortBy: string) => setFilters((prev) => (prev.sortBy === sortBy ? prev : { ...prev, sortBy })),
+    [],
+  );
 
   const {
     data,
@@ -79,7 +107,7 @@ export function useListings() {
     refetch,
     isRefetching,
   } = useInfiniteQuery({
-    queryKey: ['listings', filters],
+    queryKey: qk.products.listings(filters),
     placeholderData: keepPreviousData,
     initialPageParam: 1,
     queryFn: async ({ pageParam }) => {
@@ -97,14 +125,12 @@ export function useListings() {
     getPreviousPageParam: (first) => (first.meta.page > 1 ? first.meta.page - 1 : undefined),
   });
 
-  const listings: any[] = useMemo(() => data?.pages.flatMap((p) => p.items) ?? [], [data]);
+  const listings: any[] = useMemo(() => flattenUniqueListings(data?.pages), [data]);
   const total = data?.pages[0]?.meta.total ?? 0;
   const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
 
-  const clearFilters = () => {
-    setFilters({ ...EMPTY_FILTERS });
-    setSearchQuery('');
-  };
+  // "Temizle" filtreleri sıfırlar; sıralama ve üst arama metni kalır.
+  const clearFilters = useCallback(() => setFilters(clearProductFilters), []);
 
   const sortOptions = useMemo(() => buildSortOptions(t), [t]);
   const getSortLabel = () =>
@@ -115,6 +141,7 @@ export function useListings() {
   return {
     filters,
     setFilters,
+    setSortBy,
     searchQuery,
     setSearchQuery,
     applySearch,
